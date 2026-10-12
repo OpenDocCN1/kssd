@@ -1,2 +1,0 @@
-
-# CopyMinder

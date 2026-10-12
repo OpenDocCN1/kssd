@@ -1,138 +1,145 @@
 
-
 # Windows 优化大师 v3.0-v3.4 的注册机源代码
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum960.htm`](https://www.pediy.com/kssd/pediy03/forum960.htm)
 
-Windows 优化大师 v3.0-v3.4 的注册机源代码 
+Windows 优化大师 v3.0-v3.4 的注册机源代码
 
 > 时空幻影于 2001 年 3 月 15 日
-> 
-> 我在《Windows 优化大师》这个软件开始使用某种加密算法时就在破解时有点摸不着头脑，不知道这个算法是 RSA 加密算法。自从几个月前拜读了《论坛精华Ⅱ》中的《Windows 优化大师 v2.9+的注册码加密算法》一文后我就开始按照该文所讲的方法编写注册机，从此噩梦开始......
-> 
-> 我先把 n=0x0000000069AAA0E3 进行因子分解求出 p=0x80BD 和 q=0xD21F，于是就求得 f=0x0000000069A53372，然后又按照第四条规则很辛苦地编程求出 d=0x000000003E0877FD。至此我想应该可以顺利地编写出注册机了吧，然而作出来的注册机不但算出来的注册码不对，而且用加密算法算出来的结果不能用解密算法还原成原来输入的两个数值。这个问题一直弄得我头大，直到最近我从别人那弄的一个注册申请码和正确的注册码，我才算出解密密钥 d 不是 0x000000003E0877FD，而是 0x00000000002C86F9，于是我终于写成了注册机。
-> 
-> 源代码如下：（C++ Builder 5.0 编译通过）
-> 
-> //---------------------------------------------------------------------------
-> 
-> #include <vcl.h>  
-> #pragma hdrstop
-> 
-> #include "Unit1.h"  
-> //---------------------------------------------------------------------------  
-> #pragma package(smart\_init)  
-> #pragma resource "\*.dfm"  
-> TForm1 \*Form1;  
-> //---------------------------------------------------------------------------  
-> \_\_fastcall TForm1::TForm1(TComponent\* Owner)  
-> : TForm(Owner)  
-> {  
-> }  
-> //---------------------------------------------------------------------------
-> 
-> unsigned \_\_int64 \_\_fastcall Encrypt\_Decrypt(unsigned \_\_int64 m,unsigned \_\_int64 e,unsigned \_\_int64 n)  
-> {  
-> unsigned \_\_int64 a,b,c;
-> 
->  a=m;  
-> b=e;  
-> c=1;
-> 
->  while(b)  
-> {  
-> if ((b%2)==0)  
-> {  
-> b=b/2;  
-> a=(a\*a)%n;  
-> }  
-> else  
-> {  
-> b=b-1;  
-> c=(c\*a)%n;  
-> }  
-> }  
-> return (c);  
-> }  
-> //---------------------------------------------------------------------------
-> 
->   
-> void \_\_fastcall TForm1::Button2Click(TObject \*Sender)  
-> {  
-> Application->MessageBox("时空幻影于 2001 年 3 月 12 日，如有什么问题请 E-MAIL：shikonghuanying@sina.com","关于",MB\_OK);  
-> }  
-> //---------------------------------------------------------------------------
-> 
-> void \_\_fastcall TForm1::Button1Click(TObject \*Sender)  
-> {  
-> unsigned \_\_int32 s\[4\]={0x20756f59,0x20657261,0x20676962,0x2e676970};//"You are big pig."的内存表示  
-> unsigned \_\_int32 t1=0,t2=0,esi=0x9e3779b9,temp;  
-> unsigned \_\_int64 n=0x69aaa0e3,d=0x002c86f9,m1,m2,n1,n2,t;  
-> int i,j;  
-> AnsiString Buffer=Edit1->Text;  
-> if (Edit1->Text.IsEmpty())  
-> {  
-> Application->MessageBox("请输入注册申请码!","提示",MB\_OK);  
-> return;  
-> }  
-> Buffer=Buffer+"1234567";  
-> Buffer.SetLength(8);  
-> i=4;  
-> while (i>0)  
-> {  
-> t1=0x100\*t1+(StrToInt(Buffer\[i\])+0x30);  
-> i--;  
-> }  
-> i=8;  
-> while (i>4)  
-> {  
-> t2=0x100\*t2+(StrToInt(Buffer\[i\])+0x30);  
-> i--;  
-> }  
-> for (j=0;j<32;j++)  
-> {  
-> temp=t2<<4;  
-> t1=t1+temp+(s\[0\]^t2);  
-> temp=t2>>5;  
-> t1=t1+(temp^esi)+s\[1\];  
-> temp=t1<<4;  
-> t2=t2+temp+(s\[2\]^t1);  
-> temp=t1>>5;  
-> t2=t2+(temp^esi)+s\[3\];  
-> esi=esi+0x9e3779b9;  
-> }  
-> t1=t1+2;  
-> i=0;  
-> j=0;  
-> temp=t1;  
-> if (t1>0x3fffffff)  
-> {  
-> temp=t1&0x0fffffff;  
-> s1:  
-> ;  
-> if (temp<=0x3fffffff)  
-> {  
-> j=1;  
-> while (j<=4)  
-> {  
-> t=j\*0x100000000+(temp<<2);  
-> if ((t>>2)%0x100000000==t1) goto s2;  
-> else j++;  
-> }  
-> i=i+0x10000000;  
-> temp=temp+0x10000000;  
-> if (i<0x40000000) goto s1;  
-> }  
-> }  
-> s2:  
-> ;  
-> m1=temp;  
-> m2=(0x50|j)+2;  
-> n1=Encrypt\_Decrypt(m1,d,n);  
-> n2=Encrypt\_Decrypt(m2,d,n);  
-> Edit2->Text=IntToHex((\_\_int64)n1,8);  
-> Edit3->Text=IntToHex((\_\_int64)n2,8);  
-> }  
-> //---------------------------------------------------------------------------
 
- 4dd466d0e1e0cc123afbe504da2462ca
+> 
+
+> 我在《Windows 优化大师》这个软件开始使用某种加密算法时就在破解时有点摸不着头脑，不知道这个算法是 RSA 加密算法。自从几个月前拜读了《论坛精华Ⅱ》中的《Windows 优化大师 v2.9+的注册码加密算法》一文后我就开始按照该文所讲的方法编写注册机，从此噩梦开始......
+
+> 
+
+> 我先把 `n=0x0000000069AAA0E3` 进行因子分解求出 `p=0x80BD` 和 `q=0xD21F`，于是就求得 `f=0x0000000069A53372`，然后又按照第四条规则很辛苦地编程求出 `d=0x000000003E0877FD`。至此我想应该可以顺利地编写出注册机了吧，然而作出来的注册机不但算出来的注册码不对，而且用加密算法算出来的结果不能用解密算法还原成原来输入的两个数值。这个问题一直弄得我头大，直到最近我从别人那弄的一个注册申请码和正确的注册码，我才算出解密密钥 `d` 不是 `0x000000003E0877FD`，而是 `0x00000000002C86F9`，于是我终于写成了注册机。
+
+> 
+
+> 源代码如下：（C++ Builder 5.0 编译通过）
+
+> 
+
+```cpp
+//---------------------------------------------------------------------------
+#include <vcl.h>  
+#pragma hdrstop
+
+#include "Unit1.h"  
+//---------------------------------------------------------------------------  
+#pragma package(smart_init)  
+#pragma resource "*.dfm"  
+TForm1 *Form1;  
+//---------------------------------------------------------------------------  
+__fastcall TForm1::TForm1(TComponent* Owner)  
+: TForm(Owner)  
+{  
+}  
+//---------------------------------------------------------------------------
+
+unsigned __int64 __fastcall Encrypt_Decrypt(unsigned __int64 m, unsigned __int64 e, unsigned __int64 n)  
+{  
+unsigned __int64 a,b,c;
+
+ a=m;  
+b=e;  
+c=1;
+
+ while(b)  
+{  
+if ((b%2)==0)  
+{  
+b=b/2;  
+a=(a*a)%n;  
+}  
+else  
+{  
+b=b-1;  
+c=(c*a)%n;  
+}  
+}  
+return (c);  
+}  
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button2Click(TObject *Sender)  
+{  
+Application->MessageBox("时空幻影于 2001 年 3 月 12 日，如有什么问题请 E-MAIL：shikonghuanying@sina.com","关于",MB_OK);  
+}  
+//---------------------------------------------------------------------------
+
+void __fastcall TForm1::Button1Click(TObject *Sender)  
+{  
+unsigned __int32 s[4]={0x20756f59,0x20657261,0x20676962,0x2e676970};//"You are big pig."的内存表示  
+unsigned __int32 t1=0,t2=0,esi=0x9e3779b9,temp;  
+unsigned __int64 n=0x69aaa0e3,d=0x002c86f9,m1,m2,n1,n2,t;  
+int i,j;  
+AnsiString Buffer=Edit1->Text;  
+if (Edit1->Text.IsEmpty())  
+{  
+Application->MessageBox("请输入注册申请码!","提示",MB_OK);  
+return;  
+}  
+Buffer=Buffer+"1234567";  
+Buffer.SetLength(8);  
+i=4;  
+while (i>0)  
+{  
+t1=0x100*t1+(StrToInt(Buffer[i])+0x30);  
+i--;  
+}  
+i=8;  
+while (i>4)  
+{  
+t2=0x100*t2+(StrToInt(Buffer[i])+0x30);  
+i--;  
+}  
+for (j=0;j<32;j++)  
+{  
+temp=t2<<4;  
+t1=t1+temp+(s[0]^t2);  
+temp=t2>>5;  
+t1=t1+(temp^esi)+s[1];  
+temp=t1<<4;  
+t2=t2+temp+(s[2]^t1);  
+temp=t1>>5;  
+t2=t2+(temp^esi)+s[3];  
+esi=esi+0x9e3779b9;  
+}  
+t1=t1+2;  
+i=0;  
+j=0;  
+temp=t1;  
+if (t1>0x3fffffff)  
+{  
+temp=t1&0x0fffffff;  
+s1:  
+;  
+if (temp<=0x3fffffff)  
+{  
+j=1;  
+while (j<=4)  
+{  
+t=j*0x100000000+(temp<<2);  
+if ((t>>2)%0x100000000==t1) goto s2;  
+else j++;  
+}  
+i=i+0x10000000;  
+temp=temp+0x10000000;  
+if (i<0x40000000) goto s1;  
+}  
+}  
+s2:  
+;  
+m1=temp;  
+m2=(0x50|j)+2;  
+n1=Encrypt_Decrypt(m1,d,n);  
+n2=Encrypt_Decrypt(m2,d,n);  
+Edit2->Text=IntToHex((__int64)n1,8);  
+Edit3->Text=IntToHex((__int64)n2,8);  
+}  
+//---------------------------------------------------------------------------
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

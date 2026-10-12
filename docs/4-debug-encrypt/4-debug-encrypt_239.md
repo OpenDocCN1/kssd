@@ -1,555 +1,553 @@
 
-
 # 蓝光介绍信管理软件 V3.2-算法分析
 
-> 原文：[`www.pediy.com/kssd/pediy09/pediy09-151.htm`](https://www.pediy.com/kssd/pediy09/pediy09-151.htm)
+> **原文**: [`www.pediy.com/kssd/pediy09/pediy09-151.htm`](https://www.pediy.com/kssd/pediy09/pediy09-151.htm)
 
-> 【文章标题】: 蓝光介绍信管理软件 V3.2-算法分析  
-> 【文章作者】: johnroot\[PYG\]  
-> 【作者主页】: bbs.chinapyg.com  
-> 【作者 QQ 号】: 6426587  
-> 【软件名称】: 蓝光介绍信管理软件 V3.2  
-> 【下载地址】: 自己搜索下载  
-> 【加壳方式】: ASPack 2.12  
-> 【保护方式】: 加壳，变形 DES  
-> 【编写语言】: DELPHI  
-> 【使用工具】: Ollydbg  
-> 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
-> \--------------------------------------------------------------------------------  
-> 【详细过程】  
->   1.ASPack 壳手脱很容易搞定。  
->     
->   2.软件是重启验证注册，搜索字符串“SOFTWARE\\”找到“SOFTWARE\\Referral”  
->   来到：  
->   :00599701::  BA 0C995900              MOV EDX,59990C                              \\->:   
->   
-> SOFTWARE\\Referral  
->   ::00599706::  8BC6                     MOV EAX,ESI                               
->   ::00599708::  E8 D792E9FF              CALL 004329E4                           \\:JMPUP  
->   ::0059970D::  84C0                     TEST AL,AL                                
->   ::0059970F::  74 1E                    JE SHORT 0059972F                       \\:JMPDOWN  
->   ::00599711::  8D4D FC                  LEA ECX,\[EBP-4\]                           
->   ::00599714::  BA 28995900              MOV EDX,599928                              \\->:   
->   
-> user  
->   ::00599719::  8BC6                     MOV EAX,ESI                               
->   ::0059971B::  E8 009AE9FF              CALL 00433120                           \\:JMPUP  
->   ::00599720::  8D4D F8                  LEA ECX,\[EBP-8\]                           
->   ::00599723::  BA 38995900              MOV EDX,599938                              \\->:   
->   
-> RegID  
->   很明显在这里读取用户名，注册码。  
->     
->   Ollydbg 加载程序，在 599723 下断，F9 断下，往下跟踪  
->     
->   ::00599740::  E8 5BC6E6FF              CALL 00405DA0                           \\:JMPUP  
->   ::00599745::  8B45 E0                  MOV EAX,\[EBP-20\]                          
->   ::00599748::  8D55 E4                  LEA EDX,\[EBP-1C\]                          
->   ::0059974B::  E8 FC12E7FF              CALL 0040AA4C                           \\\\获取机器  
->   
-> 码  
->   ::00599750::  8B45 E4                  MOV EAX,\[EBP-1C\]                          
->   ::00599753::  33D2                     XOR EDX,EDX                               
->   ::00599755::  E8 36C8E6FF              CALL 00405F90                           \\\\机器码是  
->   
-> 否为空  
->   ::0059975A::  75 12                    JNZ SHORT 0059976E                      \\\\不是就跳  
->   ::0059975C::  8B83 8C030000            MOV EAX,\[EBX+38C\]                         
->   ::00599762::  BA 48995900              MOV EDX,599948                              \\->:   
->   
-> RNODER8088  
->                                                                                   \\\\把机器码  
->   
-> 设为固定的“RNODER8088”  
->     
->     
->     
->   ::005997B7::  8B55 CC                  MOV EDX,\[EBP-34\]                      //取密钥  
->   
-> “WAVE990”                       
->   ::005997BA::  8D4D D0                  LEA ECX,\[EBP-30\]                          
->   ::005997BD::  8B45 F4                  MOV EAX,\[EBP-C\]                       //取机器码    
->   ::005997C0::  E8 EFF6FFFF              CALL 00598EB4                         //变形的 DES 加  
->   
-> 密  
->   ::005997C5::  8B45 D0                  MOV EAX,\[EBP-30\]                          
->   ::005997C8::  8D4D F0                  LEA ECX,\[EBP-10\]                          
->   ::005997CB::  BA 09000000              MOV EDX,9                                 
->   ::005997D0::  E8 E7F4EBFF              CALL 00458CBC                        //取结果的前 9  
->   
-> 位  
->   ::005997D5::  8D4D C8                  LEA ECX,\[EBP-38\]                          
->   ::005997D8::  8B55 F0                  MOV EDX,\[EBP-10\]                     //取结果的前 9  
->   
-> 位作为密钥     
->   ::005997DB::  8B45 FC                  MOV EAX,\[EBP-4\]                      //取用户名     
->   ::005997DE::  E8 D1F6FFFF              CALL 00598EB4                        //变形的 DES 加  
->   
-> 密  
->   ::005997E3::  8B45 C8                  MOV EAX,\[EBP-38\]                          
->   ::005997E6::  8D4D EC                  LEA ECX,\[EBP-14\]                          
->   ::005997E9::  BA 09000000              MOV EDX,9                                 
->   ::005997EE::  E8 C9F4EBFF              CALL 00458CBC                       //取结果的前 9 位   
->   
-> A  
->   ::005997F3::  8D45 C4                  LEA EAX,\[EBP-3C\]                          
->   ::005997F6::  E8 3D66FFFF              CALL 0058FE38                            
->   ::005997FB::  8B55 C4                  MOV EDX,\[EBP-3C\]                    //取密钥  
->   
-> “WAVE990”    
->   ::005997FE::  8D4D E8                  LEA ECX,\[EBP-18\]                          
->   ::00599801::  8B45 F8                  MOV EAX,\[EBP-8\]                     //取注册码假码    
->   
->     
->   ::00599804::  E8 8FF8FFFF              CALL 00599098                       //变形的 DES 解密  
->   ::00599809::  8B45 EC                  MOV EAX,\[EBP-14\]                    //A      
->   ::0059980C::  8B55 E8                  MOV EDX,\[EBP-18\]                    // 解密的结果 B   
->   
->     
->   ::0059980F::  E8 3CC0E6FF              CALL 00405850                       //比较 A=B 否  
->   ::00599814::  75 78                    JNZ SHORT 0059988E                  //不等未注册  
->   ::00599816::  837D EC 00               CMP DWORD PTR \[EBP-14\],0            //比较 A 是否为空   
->   
->      
->   ::0059981A::  74 72                    JE SHORT 0059988E                   //是就未注册  
->     
->   delphi 注册机代码：  
->   DES 部分：  
->   unit DES;  
->     
->   interface  
->     
->   uses SysUtils;  
->     
->   type  
->   TKeyByte = array\[0..5\] of Byte;  
->   TDesMode = (dmEncry, dmDecry);  
->     
->   function EncryStr(Str, Key: String): String;  
->   function DecryStr(Str, Key: String): String;  
->   function EncryStrHex(Str, Key: String): String;  
->   function DecryStrHex(StrHex, Key: String): String;  
->     
->   const  
->   BitIP: array\[0..63\] of Byte =  
->   (57, 49, 41, 33, 25, 17, 9, 1,  
->   59, 51, 43, 35, 27, 19, 11, 3,  
->   61, 53, 45, 37, 29, 21, 13, 5,  
->   63, 55, 47, 39, 31, 23, 15, 7,  
->   56, 48, 40, 32, 24, 16, 8, 0,  
->   58, 50, 42, 34, 26, 18, 10, 2,  
->   60, 52, 44, 36, 28, 20, 12, 4,  
->   62, 54, 46, 38, 30, 22, 14, 6 );  
->     
->   BitCP: array\[0..63\] of Byte =  
->   ( 39, 7, 47, 15, 55, 23, 63, 31,  
->   38, 6, 46, 14, 54, 22, 62, 30,  
->   37, 5, 45, 13, 53, 21, 61, 29,  
->   36, 4, 44, 12, 52, 20, 60, 28,  
->   35, 3, 43, 11, 51, 19, 59, 27,  
->   34, 2, 42, 10, 50, 18, 58, 26,  
->   33, 1, 41, 9, 49, 17, 57, 25,  
->   32, 0, 40, 8, 48, 16, 56, 24 );  
->     
->   BitExp: array\[0..47\] of Integer =  
->   ( 31, 0, 1, 2, 3, 4, 3, 4, 5, 6, 7, 8, 7, 8, 9,10,  
->   11,12,11,12,13,14,15,16,15,16,17,18,19,20,19,20,  
->   21,22,23,24,23,24,25,26,27,28,27,28,29,30,31,0 );  
->     
->   BitPM: array\[0..31\] of Byte =  
->   ( 15, 6,19,20,28,11,27,16, 0,14,22,25, 4,17,30, 9,  
->   1, 7,23,13,31,26, 2, 8,18,12,29, 5,21,10, 3,24 );  
->     
->   sBox: array\[0..7\] of array\[0..63\] of Byte =  
->   ( ( 14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7,  
->   0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8,  
->   4, 1, 14, 8, 13, 6, 2, 11, 15, 12, 9, 7, 3, 10, 5, 0,  
->   15, 12, 8, 2, 4, 9, 1, 7, 5, 11, 3, 14, 10, 0, 6, 13 ),  
->     
->   ( 15, 1, 8, 14, 6, 11, 3, 4, 9, 7, 2, 13, 12, 0, 5, 10,  
->   3, 13, 4, 7, 15, 2, 8, 14, 12, 0, 1, 10, 6, 9, 11, 5,  
->   0, 14, 7, 11, 10, 4, 13, 1, 5, 8, 12, 6, 9, 3, 2, 15,  
->   13, 8, 10, 1, 3, 15, 4, 2, 11, 6, 7, 12, 0, 5, 14, 9 ),  
->     
->   ( 10, 0, 9, 14, 6, 3, 15, 5, 1, 13, 12, 7, 11, 4, 2, 8,  
->   13, 7, 0, 9, 3, 4, 6, 10, 2, 8, 5, 14, 12, 11, 15, 1,  
->   13, 6, 4, 9, 8, 15, 3, 0, 11, 1, 2, 12, 5, 10, 14, 7,  
->   1, 10, 13, 0, 6, 9, 8, 7, 4, 15, 14, 3, 11, 5, 2, 12 ),  
->     
->   ( 7, 13, 14, 3, 0, 6, 9, 10, 1, 2, 8, 5, 11, 12, 4, 15,  
->   13, 8, 11, 5, 6, 15, 0, 3, 4, 7, 2, 12, 1, 10, 14, 9,  
->   10, 6, 9, 0, 12, 11, 7, 13, 15, 1, 3, 14, 5, 2, 8, 4,  
->   3, 15, 0, 6, 10, 1, 13, 8, 9, 4, 5, 11, 12, 7, 2, 14 ),  
->     
->   ( 2, 12, 4, 1, 7, 10, 11, 6, 8, 5, 3, 15, 13, 0, 14, 9,  
->   14, 11, 2, 12, 4, 7, 13, 1, 5, 0, 15, 10, 3, 9, 8, 6,  
->   4, 2, 1, 11, 10, 13, 7, 8, 15, 9, 12, 5, 6, 3, 0, 14,  
->   11, 8, 12, 7, 1, 14, 2, 13, 6, 15, 0, 9, 10, 4, 5, 3 ),  
->     
->   ( 12, 1, 10, 15, 9, 2, 6, 8, 0, 13, 3, 4, 14, 7, 5, 11,  
->   10, 15, 4, 2, 7, 12, 9, 5, 6, 1, 13, 14, 0, 11, 3, 8,  
->   9, 14, 15, 5, 2, 8, 12, 3, 7, 0, 4, 10, 1, 13, 11, 6,  
->   4, 3, 2, 12, 9, 5, 15, 10, 11, 14, 1, 7, 6, 0, 8, 13 ),  
->     
->   ( 4, 11, 2, 14, 15, 0, 8, 13, 3, 12, 9, 7, 5, 10, 6, 1,  
->   13, 0, 11, 7, 4, 9, 1, 10, 14, 3, 5, 12, 2, 15, 8, 6,  
->   1, 4, 11, 13, 12, 3, 7, 14, 10, 15, 6, 8, 0, 5, 9, 2,  
->   6, 11, 13, 8, 1, 4, 10, 7, 9, 5, 0, 15, 14, 2, 3, 12 ),  
->     
->   ( 13, 2, 8, 4, 6, 15, 11, 1, 10, 9, 3, 14, 5, 0, 12, 7,  
->   1, 15, 13, 8, 10, 3, 7, 4, 12, 5, 6, 11, 0, 14, 9, 2,  
->   7, 11, 4, 1, 9, 12, 14, 2, 0, 6, 10, 13, 15, 3, 5, 8,  
->   2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11 ) );  
->     
->   BitPMC1: array\[0..55\] of Byte =  
->   ( 56, 48, 40, 32, 24, 16, 8,  
->   0, 57, 49, 41, 33, 25, 17,  
->   9, 1, 58, 50, 42, 34, 26,  
->   18, 10, 2, 59, 51, 43, 35,  
->   62, 54, 46, 38, 30, 22, 14,  
->   6, 61, 53, 45, 37, 29, 21,  
->   13, 5, 66, 52, 44, 36, 28,  
->   20, 12, 4, 27, 19, 11, $11 );  
->     
->   BitPMC2: array\[0..47\] of Byte =  
->   ( 13, 16, 10, 23, 0, 4,  
->   2, 27, 14, $19, 20, 9,  
->   22, 18, 11, 3, 25, 7,  
->   15, 6, 26, 19, 12, $1A,  
->   40, 51, 30, 36, 46, 54,  
->   29, 39, 50, 44, 32, 47,  
->   43, 48, 38, 55, 33, 52,  
->   45, 41, 49, 35, 28, $0D ); //红色部分为 DES 的变形；  
->     
->   var  
->   subKey: array\[0..15\] of TKeyByte;  
->     
->   implementation  
->     
->   procedure initPermutation(var inData: array of Byte);  
->   var  
->   newData: array\[0..7\] of Byte;  
->   i: Integer;  
->   begin  
->   FillChar(newData, 8, 0);  
->   for i := 0 to 63 do  
->   if (inData\[BitIP\[i\] shr 3\] and (1 shl (7- (BitIP\[i\] and $07)))) <> 0 then  
->   newData\[i shr 3\] := newData\[i shr 3\] or (1 shl (7-(i and $07)));  
->   for i := 0 to 7 do inData\[i\] := newData\[i\];  
->   end;  
->     
->   procedure conversePermutation(var inData: array of Byte);  
->   var  
->   newData: array\[0..7\] of Byte;  
->   i: Integer;  
->   begin  
->   FillChar(newData, 8, 0);  
->   for i := 0 to 63 do  
->   if (inData\[BitCP\[i\] shr 3\] and (1 shl (7-(BitCP\[i\] and $07)))) <> 0 then  
->   newData\[i shr 3\] := newData\[i shr 3\] or (1 shl (7-(i and $07)));  
->   for i := 0 to 7 do inData\[i\] := newData\[i\];  
->   end;  
->     
->   procedure expand(inData: array of Byte; var outData: array of Byte);  
->   var  
->   i: Integer;  
->   begin  
->   FillChar(outData, 6, 0);  
->   for i := 0 to 47 do  
->   if (inData\[BitExp\[i\] shr 3\] and (1 shl (7-(BitExp\[i\] and $07)))) <> 0 then  
->   outData\[i shr 3\] := outData\[i shr 3\] or (1 shl (7-(i and $07)));  
->   end;  
->     
->   procedure permutation(var inData: array of Byte);  
->   var  
->   newData: array\[0..3\] of Byte;  
->   i: Integer;  
->   begin  
->   FillChar(newData, 4, 0);  
->   for i := 0 to 31 do  
->   if (inData\[BitPM\[i\] shr 3\] and (1 shl (7-(BitPM\[i\] and $07)))) <> 0 then  
->   newData\[i shr 3\] := newData\[i shr 3\] or (1 shl (7-(i and $07)));  
->   for i := 0 to 3 do inData\[i\] := newData\[i\];  
->   end;  
->     
->   function si(s,inByte: Byte): Byte;  
->   var  
->   c: Byte;  
->   begin  
->   c := (inByte and $20) or ((inByte and $1e) shr 1) or  
->   ((inByte and $01) shl 4);  
->   Result := (sBox\[s\]\[c\] and $0f);  
->   end;  
->     
->   procedure permutationChoose1(inData: array of Byte;  
->   var outData: array of Byte);  
->   var  
->   i: Integer;  
->   begin  
->   FillChar(outData, 7, 0);  
->   for i := 0 to 55 do  
->   if (inData\[BitPMC1\[i\] shr 3\] and (1 shl (7-(BitPMC1\[i\] and $07)))) <> 0 then  
->   outData\[i shr 3\] := outData\[i shr 3\] or (1 shl (7-(i and $07)));  
->   end;  
->     
->   procedure permutationChoose2(inData: array of Byte;  
->   var outData: array of Byte);  
->   var  
->   i: Integer;  
->   begin  
->   FillChar(outData, 6, 0);  
->   for i := 0 to 47 do  
->   if (inData\[BitPMC2\[i\] shr 3\] and (1 shl (7-(BitPMC2\[i\] and $07)))) <> 0 then  
->   outData\[i shr 3\] := outData\[i shr 3\] or (1 shl (7-(i and $07)));  
->   end;  
->     
->   procedure cycleMove(var inData: array of Byte; bitMove: Byte);  
->   var  
->   i: Integer;  
->   begin  
->   for i := 0 to bitMove - 1 do  
->   begin  
->   inData\[0\] := (inData\[0\] shl 1) or (inData\[1\] shr 7);  
->   inData\[1\] := (inData\[1\] shl 1) or (inData\[2\] shr 7);  
->   inData\[2\] := (inData\[2\] shl 1) or (inData\[3\] shr 7);  
->   inData\[3\] := (inData\[3\] shl 1) or ((inData\[0\] and $10) shr 4);  
->   inData\[0\] := (inData\[0\] and $0f);  
->   end;  
->   end;  
->     
->   procedure makeKey(inKey: array of Byte; var outKey: array of TKeyByte);  
->   const  
->   bitDisplace: array\[0..15\] of Byte =  
->   ( 1,1,2,2, 2,2,2,2, 1,2,2,2, 2,2,2,1 );  
->   var  
->   outData56: array\[0..6\] of Byte;  
->   key28l: array\[0..3\] of Byte;  
->   key28r: array\[0..3\] of Byte;  
->   key56o: array\[0..6\] of Byte;  
->   i: Integer;  
->   begin  
->   permutationChoose1(inKey, outData56);  
->     
->   key28l\[0\] := outData56\[0\] shr 4;  
->   key28l\[1\] := (outData56\[0\] shl 4) or (outData56\[1\] shr 4);  
->   key28l\[2\] := (outData56\[1\] shl 4) or (outData56\[2\] shr 4);  
->   key28l\[3\] := (outData56\[2\] shl 4) or (outData56\[3\] shr 4);  
->   key28r\[0\] := outData56\[3\] and $0f;  
->   key28r\[1\] := outData56\[4\];  
->   key28r\[2\] := outData56\[5\];  
->   key28r\[3\] := outData56\[6\];  
->     
->   for i := 0 to 15 do  
->   begin  
->   cycleMove(key28l, bitDisplace\[i\]);  
->   cycleMove(key28r, bitDisplace\[i\]);  
->   key56o\[0\] := (key28l\[0\] shl 4) or (key28l\[1\] shr 4);  
->   key56o\[1\] := (key28l\[1\] shl 4) or (key28l\[2\] shr 4);  
->   key56o\[2\] := (key28l\[2\] shl 4) or (key28l\[3\] shr 4);  
->   key56o\[3\] := (key28l\[3\] shl 4) or (key28r\[0\]);  
->   key56o\[4\] := key28r\[1\];  
->   key56o\[5\] := key28r\[2\];  
->   key56o\[6\] := key28r\[3\];  
->   permutationChoose2(key56o, outKey\[i\]);  
->   end;  
->   end;  
->     
->   procedure encry(inData, subKey: array of Byte;  
->   var outData: array of Byte);  
->   var  
->   outBuf: array\[0..5\] of Byte;  
->   buf: array\[0..7\] of Byte;  
->   i: Integer;  
->   begin  
->   expand(inData, outBuf);  
->   for i := 0 to 5 do outBuf\[i\] := outBuf\[i\] xor subKey\[i\];  
->   // outBuf xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx  
->   buf\[0\] := outBuf\[0\] shr 2; //xxxxxx -> 2  
->   buf\[1\] := ((outBuf\[0\] and $03) shl 4) or (outBuf\[1\] shr 4); // 4 <- xx xxxx -> 4  
->   buf\[2\] := ((outBuf\[1\] and $0f) shl 2) or (outBuf\[2\] shr 6); // 2 <- xxxx xx -> 6  
->   buf\[3\] := outBuf\[2\] and $3f; // xxxxxx  
->   buf\[4\] := outBuf\[3\] shr 2; // xxxxxx  
->   buf\[5\] := ((outBuf\[3\] and $03) shl 4) or (outBuf\[4\] shr 4); // xx xxxx  
->   buf\[6\] := ((outBuf\[4\] and $0f) shl 2) or (outBuf\[5\] shr 6); // xxxx xx  
->   buf\[7\] := outBuf\[5\] and $3f; // xxxxxx  
->   for i := 0 to 7 do buf\[i\] := si(i, buf\[i\]);  
->   for i := 0 to 3 do outBuf\[i\] := (buf\[i\*2\] shl 4) or buf\[i\*2+1\];  
->   permutation(outBuf);  
->   for i := 0 to 3 do outData\[i\] := outBuf\[i\];  
->   end;  
->     
->   procedure desData(desMode: TDesMode;  
->   inData: array of Byte; var outData: array of Byte);  
->   // inData, outData 都为 8Bytes，否则出错  
->   var  
->   i, j: Integer;  
->   temp, buf: array\[0..3\] of Byte;  
->   begin  
->   for i := 0 to 7 do outData\[i\] := inData\[i\];  
->   initPermutation(outData);  
->   if desMode = dmEncry then  
->   begin  
->   for i := 0 to 15 do  
->   begin  
->   for j := 0 to 3 do temp\[j\] := outData\[j\]; //temp = Ln  
->   for j := 0 to 3 do outData\[j\] := outData\[j + 4\]; //Ln+1 = Rn  
->   encry(outData, subKey\[i\], buf); //Rn ==Kn==> buf  
->   for j := 0 to 3 do outData\[j + 4\] := temp\[j\] xor buf\[j\]; //Rn+1 = Ln^buf  
->   end;  
->     
->   for j := 0 to 3 do temp\[j\] := outData\[j + 4\];  
->   for j := 0 to 3 do outData\[j + 4\] := outData\[j\];  
->   for j := 0 to 3 do outData\[j\] := temp\[j\];  
->   end  
->   else if desMode = dmDecry then  
->   begin  
->   for i := 15 downto 0 do  
->   begin  
->   for j := 0 to 3 do temp\[j\] := outData\[j\];  
->   for j := 0 to 3 do outData\[j\] := outData\[j + 4\];  
->   encry(outData, subKey\[i\], buf);  
->   for j := 0 to 3 do outData\[j + 4\] := temp\[j\] xor buf\[j\];  
->   end;  
->   for j := 0 to 3 do temp\[j\] := outData\[j + 4\];  
->   for j := 0 to 3 do outData\[j + 4\] := outData\[j\];  
->   for j := 0 to 3 do outData\[j\] := temp\[j\];  
->   end;  
->   conversePermutation(outData);  
->   end;  
->     
->   //////////////////////////////////////////////////////////////  
->     
->   function EncryStr(Str, Key: String): String;  
->   var  
->   StrByte, OutByte, KeyByte: array\[0..7\] of Byte;  
->   StrResult: String;  
->   I, J: Integer;  
->   begin  
->   if (Length(Str) > 0) and (Ord(Str\[Length(Str)\]) = 0) then  
->   raise Exception.Create('Error: the last char is NULL char.');  
->   if Length(Key) < 8 then  
->   while Length(Key) < 8 do Key := Key + Chr(0);  
->   while Length(Str) mod 8 <> 0 do Str := Str + Chr(0);  
->     
->   for J := 0 to 7 do KeyByte\[J\] := Ord(Key\[J + 1\]);  
->   makeKey(keyByte, subKey);  
->     
->   StrResult := '';  
->     
->   for I := 0 to Length(Str) div 8 - 1 do  
->   begin  
->   for J := 0 to 7 do  
->   StrByte\[J\] := Ord(Str\[I \* 8 + J + 1\]);  
->   desData(dmEncry, StrByte, OutByte);  
->   for J := 0 to 7 do  
->   StrResult := StrResult + Chr(OutByte\[J\]);  
->   end;  
->     
->   Result := StrResult;  
->   end;  
->     
->   function DecryStr(Str, Key: String): String;  
->   var  
->   StrByte, OutByte, KeyByte: array\[0..7\] of Byte;  
->   StrResult: String;  
->   I, J: Integer;  
->   begin  
->   if Length(Key) < 8 then  
->   while Length(Key) < 8 do Key := Key + Chr(0);  
->     
->   for J := 0 to 7 do KeyByte\[J\] := Ord(Key\[J + 1\]);  
->   makeKey(keyByte, subKey);  
->     
->   StrResult := '';  
->     
->   for I := 0 to Length(Str) div 8 - 1 do  
->   begin  
->   for J := 0 to 7 do StrByte\[J\] := Ord(Str\[I \* 8 + J + 1\]);  
->   desData(dmDecry, StrByte, OutByte);  
->   for J := 0 to 7 do  
->   StrResult := StrResult + Chr(OutByte\[J\]);  
->   end;  
->   while (Length(StrResult) > 0) and  
->   (Ord(StrResult\[Length(StrResult)\]) = 0) do  
->   Delete(StrResult, Length(StrResult), 1);  
->   Result := StrResult;  
->   end;  
->     
->   ///////////////////////////////////////////////////////////  
->     
->   function EncryStrHex(Str, Key: String): String;  
->   var  
->   StrResult, TempResult, Temp: String;  
->   I: Integer;  
->   begin  
->   TempResult := EncryStr(Str, Key);  
->   StrResult := '';  
->   for I := 0 to Length(TempResult) - 1 do  
->   begin  
->   Temp := Format('%x', \[Ord(TempResult\[I + 1\])\]);  
->   if Length(Temp) = 1 then Temp := '0' + Temp;  
->   StrResult := StrResult + Temp;  
->   end;  
->   Result := StrResult;  
->   end;  
->     
->   function DecryStrHex(StrHex, Key: String): String;  
->   function HexToInt(Hex: String): Integer;  
->   var  
->   I, Res: Integer;  
->   ch: Char;  
->   begin  
->   Res := 0;  
->   for I := 0 to Length(Hex) - 1 do  
->   begin  
->   ch := Hex\[I + 1\];  
->   if (ch >= '0') and (ch <= '9') then  
->   Res := Res \* 16 + Ord(ch) - Ord('0')  
->   else if (ch >= 'A') and (ch <= 'F') then  
->   Res := Res \* 16 + Ord(ch) - Ord('A') + 10  
->   else if (ch >= 'a') and (ch <= 'f') then  
->   Res := Res \* 16 + Ord(ch) - Ord('a') + 10  
->   else raise Exception.Create('Error: not a Hex String');  
->   end;  
->   Result := Res;  
->   end;  
->     
->   var  
->   Str, Temp: String;  
->   I: Integer;  
->   begin  
->   Str := '';  
->   for I := 0 to Length(StrHex) div 2 - 1 do  
->   begin  
->   Temp := Copy(StrHex, I \* 2 + 1, 2);  
->   Str := Str + Chr(HexToInt(Temp));  
->   end;  
->   Result := DecryStr(Str, Key);  
->   end;  
->   end.  
->     
->      
->   主程序部分：  
->   uses  
->   des;  
->     
->   procedure TForm1.Button1Click(Sender: TObject);  
->    var  
->    diskid,nameok,regsn:string;  
->   begin  
->    diskid:=copy(edit1.Text,1,8);  
->    nameok:=copy(edit2.Text,1,8);  
->    regsn:=des.EncryStrHex(diskid,'WAVE990');  
->    regsn:=copy(regsn,1,9);  
->    regsn:=des.EncryStrHex(nameok,regsn);  
->    regsn:=copy(regsn,1,9);  
->    regsn:=des.EncryStrHex(regsn,'WAVE990');  
->    edit3.Text:=regsn;  
->   end;                  
->     
-> \--------------------------------------------------------------------------------  
-> 【版权声明】: 转载请注明作者并保持文章的完整, 谢谢!  
->   
->                                                        2007 年 05 月 29 日 17:39:57 
+> **文章标题**: 蓝光介绍信管理软件 V3.2-算法分析
+> **文章作者**: `johnroot[PYG]`
+> **作者主页**: `bbs.chinapyg.com`
+> **作者 QQ 号**: `6426587`
+> **软件名称**: 蓝光介绍信管理软件 V3.2
+> **下载地址**: 自己搜索下载
+> **加壳方式**: `ASPack 2.12`
+> **保护方式**: 加壳，变形 `DES`
+> **编写语言**: `DELPHI`
+> **使用工具**: `Ollydbg`
+> **作者声明**: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
 
- 4dd466d0e1e0cc123afbe504da2462ca
+---
+
+### 详细过程
+
+1. `ASPack` 壳手脱很容易搞定。
+
+2. 软件是重启验证注册，搜索字符串`"SOFTWARE\"`找到`"SOFTWARE\Referral"`。
+
+   来到：
+
+   ```asm
+   :00599701   BA 0C995900          MOV EDX,59990C    ; "SOFTWARE\Referral"
+   :00599706   8BC6                 MOV EAX,ESI
+   :00599708   E8 D792E9FF         CALL 004329E4
+   :0059970D   84C0                 TEST AL,AL
+   :0059970F   74 1E                JE SHORT 0059972F
+   ```
+
+   ```asm
+   :00599711   8D4D FC             LEA ECX,[EBP-4]
+   :00599714   BA 28995900         MOV EDX,599928    ; "user"
+   :00599719   8BC6                 MOV EAX,ESI
+   :0059971B   E8 009AE9FF         CALL 00433120
+   :00599720   8D4D F8             LEA ECX,[EBP-8]
+   :00599723   BA 38995900         MOV EDX,599938    ; "RegID"
+   ```
+
+   很明显在这里读取用户名，注册码。
+
+3. `Ollydbg` 加载程序，在`599723`下断，`F9` 断下，往下跟踪。
+
+   ```asm
+   :00599740   E8 5BC6E6FF         CALL 00405DA0
+   :00599745   8B45 E0             MOV EAX,[EBP-20]
+   :00599748   8D55 E4             LEA EDX,[EBP-1C]
+   :0059974B   E8 FC12E7FF        CALL 0040AA4C     ; 获取机器码
+   :00599750   8B45 E4             MOV EAX,[EBP-1C]
+   :00599753   33D2                 XOR EDX,EDX
+   :00599755   E8 36C8E6FF        CALL 00405F90     ; 机器码是否为空
+   :0059975A   75 12               JNZ SHORT 0059976E ; 不是就跳
+   :0059975C   8B83 8C030000       MOV EAX,[EBX+38C]
+   :00599762   BA 48995900        MOV EDX,599948    ; "RNODER8088"
+   ```
+
+   把机器码设为固定的`"RNODER8088"`。
+
+4. 取密钥`"WAVE990"`，进行变形的 `DES` 加密。
+
+   ```asm
+   :005997B7   8B55 CC             MOV EDX,[EBP-34]  ; 取密钥 "WAVE990"
+   :005997BA   8D4D D0             LEA ECX,[EBP-30]
+   :005997BD   8B45 F4             MOV EAX,[EBP-C]   ; 取机器码
+   :005997C0   E8 EFF6FFFF          CALL 00598EB4     ; 变形的 DES 加密
+   :005997C5   8B45 D0             MOV EAX,[EBP-30]
+   :005997C8   8D4D F0             LEA ECX,[EBP-10]
+   :005997CB   BA 09000000         MOV EDX,9
+   :005997D0   E8 E7F4EBFF         CALL 00458CBC     ; 取结果的前 9 位
+   :005997D5   8D4D C8             LEA ECX,[EBP-38]
+   :005997D8   8B55 F0             MOV EDX,[EBP-10] ; 取结果的前 9 位作为密钥
+   :005997DB   8B45 FC             MOV EAX,[EBP-4]   ; 取用户名
+   :005997DE   E8 D1F6FFFF          CALL 00598EB4     ; 变形的 DES 加密
+   :005997E3   8B45 C8             MOV EAX,[EBP-38]
+   :005997E6   8D4D EC             LEA ECX,[EBP-14]
+   :005997E9   BA 09000000         MOV EDX,9
+   :005997EE   E8 C9F4EBFF         CALL 00458CBC      ; 取结果的前 9 位 A
+   :005997F3   8D45 C4             LEA EAX,[EBP-3C]
+   :005997F6   E8 3D66FFFF          CALL 0058FE38
+   :005997FB   8B55 C4             MOV EDX,[EBP-3C]  ; 取密钥 "WAVE990"
+   :005997FE   8D4D E8             LEA ECX,[EBP-18]
+   :00599801   8B45 F8             MOV EAX,[EBP-8]   ; 取注册码假码
+   ```
+
+   接着进行变形的 `DES` 解密，并比较结果。
+
+   ```asm
+   :00599804   E8 8FF8FFFF          CALL 00599098     ; 变形的 DES 解密
+   :00599809   8B45 EC             MOV EAX,[EBP-14]  ; A
+   :0059980C   8B55 E8             MOV EDX,[EBP-18]  ; 解密的结果 B
+   :0059980F   E8 3CC0E6FF         CALL 00405850      ; 比较 A=B 否
+   :00599814   75 78               JNZ SHORT 0059988E ; 不等未注册
+   :00599816   837D EC 00          CMP DWORD PTR [EBP-14],0 ; 比较 A 是否为空
+   :0059981A   74 72               JE SHORT 0059988E  ; 是就未注册
+   ```
+
+### Delphi 注册机代码
+
+#### `DES` 部分
+
+```delphi
+unit DES;
+
+interface
+
+uses SysUtils;
+
+type
+  TKeyByte = array[0..5] of Byte;
+  TDesMode = (dmEncry, dmDecry);
+
+  function EncryStr(Str, Key: String): String;
+  function DecryStr(Str, Key: String): String;
+  function EncryStrHex(Str, Key: String): String;
+  function DecryStrHex(StrHex, Key: String): String;
+
+const
+  BitIP: array[0..63] of Byte =
+  (57, 49, 41, 33, 25, 17, 9, 1,
+   59, 51, 43, 35, 27, 19, 11, 3,
+   61, 53, 45, 37, 29, 21, 13, 5,
+   63, 55, 47, 39, 31, 23, 15, 7,
+   56, 48, 40, 32, 24, 16, 8, 0,
+   58, 50, 42, 34, 26, 18, 10, 2,
+   60, 52, 44, 36, 28, 20, 12, 4,
+   62, 54, 46, 38, 30, 22, 14, 6 );
+
+  BitCP: array[0..63] of Byte =
+  ( 39,  7, 47, 15, 55, 23, 63, 31,
+    38,  6, 46, 14, 54, 22, 62, 30,
+    37,  5, 45, 13, 53, 21, 61, 29,
+    36,  4, 44, 12, 52, 20, 60, 28,
+    35,  3, 43, 11, 51, 19, 59, 27,
+    34,  2, 42, 10, 50, 18, 58, 26,
+    33,  1, 41,  9, 49, 17, 57, 25,
+    32,  0, 40,  8, 48, 16, 56, 24 );
+
+  BitExp: array[0..47] of Integer =
+  ( 31, 0, 1, 2, 3, 4, 3, 4, 5, 6, 7, 8, 7, 8, 9,10,
+    11,12,11,12,13,14,15,16,15,16,17,18,19,20,19,20,
+    21,22,23,24,23,24,25,26,27,28,27,28,29,30,31,0 );
+
+  BitPM: array[0..31] of Byte =
+  ( 15,  6,19,20,28,11,27,16, 0,14,22,25, 4,17,30, 9,
+    1,  7,23,13,31,26, 2, 8,18,12,29, 5,21,10, 3,24 );
+
+  sBox: array[0..7] of array[0..63] of Byte =
+  ( ( 14,  4, 13,  1,  2, 15, 11,  8,  3, 10,  6, 12,  5,  9,  0,  7,
+      0, 15,  7,  4, 14,  2, 13,  1, 10,  6, 12, 11,  9,  5,  3,  8,
+      4,  1, 14,  8, 13,  6,  2, 11, 15, 12,  9,  7,  3, 10,  5,  0,
+     15, 12,  8,  2,  4,  9,  1,  7,  5, 11,  3, 14, 10,  0,  6, 13 ),
+
+    ( 15,  1,  8, 14,  6, 11,  3,  4,  9,  7,  2, 13, 12,  0,  5, 10,
+      3, 13,  4,  7, 15,  2,  8, 14, 12,  0,  1, 10,  6,  9, 11,  5,
+      0, 14,  7, 11, 10,  4, 13,  1,  5,  8, 12,  6,  9,  3,  2, 15,
+     13,  8, 10,  1,  3, 15,  4,  2, 11,  6,  7, 12,  0,  5, 14,  9 ),
+
+    ( 10,  0,  9, 14,  6,  3, 15,  5,  1, 13, 12,  7, 11,  4,  2,  8,
+     13,  7,  0,  9,  3,  4,  6, 10,  2,  8,  5, 14, 12, 11, 15,  1,
+     13,  6,  4,  9,  8, 15,  3,  0, 11,  1,  2, 12,  5, 10, 14,  7,
+```
+
+
+
+```
+1, 10, 13, 0, 6, 9, 8, 7, 4, 15, 14, 3, 11, 5, 2, 12 );  
+
+( 7, 13, 14, 3, 0, 6, 9, 10, 1, 2, 8, 5, 11, 12, 4, 15,  
+13, 8, 11, 5, 6, 15, 0, 3, 4, 7, 2, 12, 1, 10, 14, 9,  
+10, 6, 9, 0, 12, 11, 7, 13, 15, 1, 3, 14, 5, 2, 8, 4,  
+3, 15, 0, 6, 10, 1, 13, 8, 9, 4, 5, 11, 12, 7, 2, 14 ),  
+
+( 2, 12, 4, 1, 7, 10, 11, 6, 8, 5, 3, 15, 13, 0, 14, 9,  
+14, 11, 2, 12, 4, 7, 13, 1, 5, 0, 15, 10, 3, 9, 8, 6,  
+4, 2, 1, 11, 10, 13, 7, 8, 15, 9, 12, 5, 6, 3, 0, 14,  
+11, 8, 12, 7, 1, 14, 2, 13, 6, 15, 0, 9, 10, 4, 5, 3 ),  
+
+( 12, 1, 10, 15, 9, 2, 6, 8, 0, 13, 3, 4, 14, 7, 5, 11,  
+10, 15, 4, 2, 7, 12, 9, 5, 6, 1, 13, 14, 0, 11, 3, 8,  
+9, 14, 15, 5, 2, 8, 12, 3, 7, 0, 4, 10, 1, 13, 11, 6,  
+4, 3, 2, 12, 9, 5, 15, 10, 11, 14, 1, 7, 6, 0, 8, 13 ),  
+
+( 4, 11, 2, 14, 15, 0, 8, 13, 3, 12, 9, 7, 5, 10, 6, 1,  
+13, 0, 11, 7, 4, 9, 1, 10, 14, 3, 5, 12, 2, 15, 8, 6,  
+1, 4, 11, 13, 12, 3, 7, 14, 10, 15, 6, 8, 0, 5, 9, 2,  
+6, 11, 13, 8, 1, 4, 10, 7, 9, 5, 0, 15, 14, 2, 3, 12 ),  
+
+( 13, 2, 8, 4, 6, 15, 11, 1, 10, 9, 3, 14, 5, 0, 12, 7,  
+1, 15, 13, 8, 10, 3, 7, 4, 12, 5, 6, 11, 0, 14, 9, 2,  
+7, 11, 4, 1, 9, 12, 14, 2, 0, 6, 10, 13, 15, 3, 5, 8,  
+2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11 ) );  
+
+BitPMC1: array[0..55] of Byte =  
+( 56, 48, 40, 32, 24, 16, 8,  
+0, 57, 49, 41, 33, 25, 17,  
+9, 1, 58, 50, 42, 34, 26,  
+18, 10, 2, 59, 51, 43, 35,  
+62, 54, 46, 38, 30, 22, 14,  
+6, 61, 53, 45, 37, 29, 21,  
+13, 5, 66, 52, 44, 36, 28,  
+20, 12, 4, 27, 19, 11, $11 );  
+
+BitPMC2: array[0..47] of Byte =  
+( 13, 16, 10, 23, 0, 4,  
+2, 27, 14, $19, 20, 9,  
+22, 18, 11, 3, 25, 7,  
+15, 6, 26, 19, 12, $1A,  
+40, 51, 30, 36, 46, 54,  
+29, 39, 50, 44, 32, 47,  
+43, 48, 38, 55, 33, 52,  
+45, 41, 49, 35, 28, $0D ); //红色部分为 DES 的变形；  
+
+var  
+subKey: array[0..15] of TKeyByte;  
+
+implementation  
+
+procedure initPermutation(var inData: array of Byte);  
+var  
+newData: array[0..7] of Byte;  
+i: Integer;  
+begin  
+FillChar(newData, 8, 0);  
+for i := 0 to 63 do  
+if (inData[BitIP[i] shr 3] and (1 shl (7- (BitIP[i] and $07)))) <> 0 then  
+newData[i shr 3] := newData[i shr 3] or (1 shl (7-(i and $07)));  
+for i := 0 to 7 do inData[i] := newData[i];  
+end;  
+
+procedure conversePermutation(var inData: array of Byte);  
+var  
+newData: array[0..7] of Byte;  
+i: Integer;  
+begin  
+FillChar(newData, 8, 0);  
+for i := 0 to 63 do  
+if (inData[BitCP[i] shr 3] and (1 shl (7-(BitCP[i] and $07)))) <> 0 then  
+newData[i shr 3] := newData[i shr 3] or (1 shl (7-(i and $07)));  
+for i := 0 to 7 do inData[i] := newData[i];  
+end;  
+
+procedure expand(inData: array of Byte; var outData: array of Byte);  
+var  
+i: Integer;  
+begin  
+FillChar(outData, 6, 0);  
+for i := 0 to 47 do  
+if (inData[BitExp[i] shr 3] and (1 shl (7-(BitExp[i] and $07)))) <> 0 then  
+outData[i shr 3] := outData[i shr 3] or (1 shl (7-(i and $07)));  
+end;  
+
+procedure permutation(var inData: array of Byte);  
+var  
+newData: array[0..3] of Byte;  
+i: Integer;  
+begin  
+FillChar(newData, 4, 0);  
+for i := 0 to 31 do  
+if (inData[BitPM[i] shr 3] and (1 shl (7-(BitPM[i] and $07)))) <> 0 then  
+newData[i shr 3] := newData[i shr 3] or (1 shl (7-(i and $07)));  
+for i := 0 to 3 do inData[i] := newData[i];  
+end;  
+
+function si(s,inByte: Byte): Byte;  
+var  
+c: Byte;  
+begin  
+c := (inByte and $20) or ((inByte and $1e) shr 1) or  
+((inByte and $01) shl 4);  
+Result := (sBox[s][c] and $0f);  
+end;  
+
+procedure permutationChoose1(inData: array of Byte;  
+var outData: array of Byte);  
+var  
+i: Integer;  
+begin  
+FillChar(outData, 7, 0);  
+for i := 0 to 55 do  
+if (inData[BitPMC1[i] shr 3] and (1 shl (7-(BitPMC1[i] and $07)))) <> 0 then  
+outData[i shr 3] := outData[i shr 3] or (1 shl (7-(i and $07)));  
+end;  
+
+procedure permutationChoose2(inData: array of Byte;  
+var outData: array of Byte);  
+var  
+i: Integer;  
+begin  
+FillChar(outData, 6, 0);  
+for i := 0 to 47 do  
+if (inData[BitPMC2[i] shr 3] and (1 shl (7-(BitPMC2[i] and $07)))) <> 0 then  
+outData[i shr 3] := outData[i shr 3] or (1 shl (7-(i and $07)));  
+end;  
+
+procedure cycleMove(var inData: array of Byte; bitMove: Byte);  
+var  
+i: Integer;  
+begin  
+for i := 0 to bitMove - 1 do  
+begin  
+inData[0] := (inData[0] shl 1) or (inData[1] shr 7);  
+inData[1] := (inData[1] shl 1) or (inData[2] shr 7);  
+inData[2] := (inData[2] shl 1) or (inData[3] shr 7);  
+inData[3] := (inData[3] shl 1) or ((inData[0] and $10) shr 4);  
+inData[0] := (inData[0] and $0f);  
+end;  
+end;  
+
+procedure makeKey(inKey: array of Byte; var outKey: array of TKeyByte);  
+const  
+bitDisplace: array[0..15] of Byte =  
+( 1,1,2,2, 2,2,2,2, 1,2,2,2, 2,2,2,1 );  
+var  
+outData56: array[0..6] of Byte;  
+key28l: array[0..3] of Byte;  
+key28r: array[0..3] of Byte;  
+key56o: array[0..6] of Byte;  
+i: Integer;  
+begin  
+permutationChoose1(inKey, outData56);  
+
+key28l[0] := outData56[0] shr 4;  
+key28l[1] := (outData56[0] shl 4) or (outData56[1] shr 4);  
+key28l[2] := (outData56[1] shl 4) or (outData56[2] shr 4);  
+key28l[3] := (outData56[2] shl 4) or (outData56[3] shr 4);  
+key28r[0] := outData56[3] and $0f;  
+key28r[1] := outData56[4];  
+key28r[2] := outData56[5];  
+key28r[3] := outData56[6];  
+
+for i := 0 to 15 do  
+begin  
+cycleMove(key28l, bitDisplace[i]);  
+cycleMove(key28r, bitDisplace[i]);  
+key56o[0] := (key28l[0] shl 4) or (key28l[1] shr 4);  
+key56o[1] := (key28l[1] shl 4) or (key28l[2] shr 4);  
+key56o[2] := (key28l[2] shl 4) or (key28l[3] shr 4);  
+key56o[3] := (key28l[3] shl 4) or (key28r[0]);  
+key56o[4] := key28r[1];  
+key56o[5] := key28r[2];  
+key56o[6] := key28r[3];  
+permutationChoose2(key56o, outKey[i]);  
+end;  
+end;  
+
+procedure encry(inData, subKey: array of Byte;  
+var outData: array of Byte);  
+var  
+outBuf: array[0..5] of Byte;  
+buf: array[0..7] of Byte;  
+i: Integer;  
+begin  
+expand(inData, outBuf);  
+for i := 0 to 5 do outBuf[i] := outBuf[i] xor subKey[i];  
+// outBuf xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx  
+buf[0] := outBuf[0] shr 2; //xxxxxx -> 2  
+buf[1] := ((outBuf[0] and $03) shl 4) or (outBuf[1] shr 4); // 4 <- xx xxxx -> 4  
+buf[2] := ((outBuf[1] and $0f) shl 2) or (outBuf[2] shr 6); // 2 <- xxxx xx -> 6  
+buf[3] := outBuf[2] and $3f; // xxxxxx  
+buf[4] := outBuf[3] shr 2; // xxxxxx  
+buf[5] := ((outBuf[3] and $03) shl 4) or (outBuf[4] shr 4); // xx xxxx  
+buf[6] := ((outBuf[4] and $0f) shl 2) or (outBuf[5] shr 6); // xxxx xx  
+buf[7] := outBuf[5] and $3f; // xxxxxx  
+for i := 0 to 7 do buf[i] := si(i, buf[i]);  
+for i := 0 to 3 do outBuf[i] := (buf[i*2] shl 4) or buf[i*2+1];  
+permutation(outBuf);  
+for i := 0 to 3 do outData[i] := outBuf[i];  
+end;  
+
+procedure desData(desMode: TDesMode;  
+inData: array of Byte; var outData: array of Byte);  
+```
+
+
+
+```delphi
+// inData, outData 都为 8Bytes，否则出错
+var
+i, j: Integer;
+temp, buf: array[0..3] of Byte;
+begin
+for i := 0 to 7 do outData[i] := inData[i];
+initPermutation(outData);
+if desMode = dmEncry then
+begin
+for i := 0 to 15 do
+begin
+for j := 0 to 3 do temp[j] := outData[j]; //temp = Ln
+for j := 0 to 3 do outData[j] := outData[j + 4]; //Ln+1 = Rn
+encry(outData, subKey[i], buf); //Rn ==Kn==> buf
+for j := 0 to 3 do outData[j + 4] := temp[j] xor buf[j]; //Rn+1 = Ln^buf
+end;
+
+for j := 0 to 3 do temp[j] := outData[j + 4];
+for j := 0 to 3 do outData[j + 4] := outData[j];
+for j := 0 to 3 do outData[j] := temp[j];
+end
+else if desMode = dmDecry then
+begin
+for i := 15 downto 0 do
+begin
+for j := 0 to 3 do temp[j] := outData[j];
+for j := 0 to 3 do outData[j] := outData[j + 4];
+encry(outData, subKey[i], buf);
+for j := 0 to 3 do outData[j + 4] := temp[j] xor buf[j];
+end;
+for j := 0 to 3 do temp[j] := outData[j + 4];
+for j := 0 to 3 do outData[j + 4] := outData[j];
+for j := 0 to 3 do outData[j] := temp[j];
+end;
+conversePermutation(outData);
+end;
+
+//////////////////////////////////////////////////////////////
+
+function EncryStr(Str, Key: String): String;
+var
+StrByte, OutByte, KeyByte: array[0..7] of Byte;
+StrResult: String;
+I, J: Integer;
+begin
+if (Length(Str) > 0) and (Ord(Str[Length(Str)]) = 0) then
+raise Exception.Create('Error: the last char is NULL char.');
+if Length(Key) < 8 then
+while Length(Key) < 8 do Key := Key + Chr(0);
+while Length(Str) mod 8 <> 0 do Str := Str + Chr(0);
+
+for J := 0 to 7 do KeyByte[J] := Ord(Key[J + 1]);
+makeKey(keyByte, subKey);
+
+StrResult := '';
+
+for I := 0 to Length(Str) div 8 - 1 do
+begin
+for J := 0 to 7 do
+StrByte[J] := Ord(Str[I * 8 + J + 1]);
+desData(dmEncry, StrByte, OutByte);
+for J := 0 to 7 do
+StrResult := StrResult + Chr(OutByte[J]);
+end;
+
+Result := StrResult;
+end;
+
+function DecryStr(Str, Key: String): String;
+var
+StrByte, OutByte, KeyByte: array[0..7] of Byte;
+StrResult: String;
+I, J: Integer;
+begin
+if Length(Key) < 8 then
+while Length(Key) < 8 do Key := Key + Chr(0);
+
+for J := 0 to 7 do KeyByte[J] := Ord(Key[J + 1]);
+makeKey(keyByte, subKey);
+
+StrResult := '';
+
+for I := 0 to Length(Str) div 8 - 1 do
+begin
+for J := 0 to 7 do StrByte[J] := Ord(Str[I * 8 + J + 1]);
+desData(dmDecry, StrByte, OutByte);
+for J := 0 to 7 do
+StrResult := StrResult + Chr(OutByte[J]);
+end;
+while (Length(StrResult) > 0) and
+(Ord(StrResult[Length(StrResult)]) = 0) do
+Delete(StrResult, Length(StrResult), 1);
+Result := StrResult;
+end;
+
+///////////////////////////////////////////////////////////
+
+function EncryStrHex(Str, Key: String): String;
+var
+StrResult, TempResult, Temp: String;
+I: Integer;
+begin
+TempResult := EncryStr(Str, Key);
+StrResult := '';
+for I := 0 to Length(TempResult) - 1 do
+begin
+Temp := Format('%x', [Ord(TempResult[I + 1])]);
+if Length(Temp) = 1 then Temp := '0' + Temp;
+StrResult := StrResult + Temp;
+end;
+Result := StrResult;
+end;
+
+function DecryStrHex(StrHex, Key: String): String;
+function HexToInt(Hex: String): Integer;
+var
+I, Res: Integer;
+ch: Char;
+begin
+Res := 0;
+for I := 0 to Length(Hex) - 1 do
+begin
+ch := Hex[I + 1];
+if (ch >= '0') and (ch <= '9') then
+Res := Res * 16 + Ord(ch) - Ord('0')
+else if (ch >= 'A') and (ch <= 'F') then
+Res := Res * 16 + Ord(ch) - Ord('A') + 10
+else if (ch >= 'a') and (ch <= 'f') then
+Res := Res * 16 + Ord(ch) - Ord('a') + 10
+else raise Exception.Create('Error: not a Hex String');
+end;
+Result := Res;
+end;
+
+var
+Str, Temp: String;
+I: Integer;
+begin
+Str := '';
+for I := 0 to Length(StrHex) div 2 - 1 do
+begin
+Temp := Copy(StrHex, I * 2 + 1, 2);
+Str := Str + Chr(HexToInt(Temp));
+end;
+Result := DecryStr(Str, Key);
+end;
+end.
+
+主程序部分：
+uses
+des;
+
+procedure TForm1.Button1Click(Sender: TObject);
+  var
+  diskid,nameok,regsn:string;
+begin
+  diskid:=copy(edit1.Text,1,8);
+  nameok:=copy(edit2.Text,1,8);
+  regsn:=des.EncryStrHex(diskid,'WAVE990');
+  regsn:=copy(regsn,1,9);
+  regsn:=des.EncryStrHex(nameok,regsn);
+  regsn:=copy(regsn,1,9);
+  regsn:=des.EncryStrHex(regsn,'WAVE990');
+  edit3.Text:=regsn;
+end;
+
+--------------------------------------------------------------------------------
+
+【版权声明】: 转载请注明作者并保持文章的完整, 谢谢!
+
+2007 年 05 月 29 日 17:39:57
+```

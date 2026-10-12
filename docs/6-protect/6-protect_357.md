@@ -1,242 +1,292 @@
 
-
-# aspr 用来 anti 调试器的代码
+# `aspr` 用来 anti 调试器的代码
 
 > 原文：[`www.pediy.com/kssd/pediy08/pediy8-647.htm`](https://www.pediy.com/kssd/pediy08/pediy8-647.htm)
 
-首先申明，菜谱(菜得离谱),高手就不要浪费时间看了.  
-  
-我们知道 aspr 是有对调试器的 anti 的,不过它很弱,用 hide-OD 就可以躲过,几乎很多人都不会提起它  
-我只知道它大概是检测 PEB 中的东西。  
-反正是闲着无聊，我们来看看它怎么检测的,就以"我是盲人"发的 crackme 为例来看看这个 anti  
-只看 anti......,不谈脱壳,因为大多人都会  
-关掉 hideod,用 OD 加载程序,忽略所有异常,运行,出现错误"请不要开启调试器调试本程序"  
-![](img/4ad0c205f35491f7f7ad610293f08687.jpg)   
-  
-明显是个 MessageBox,:)  
-重新加载,bp MessageBox,运行断了下来,查看堆栈  
-0012FA10   00E55EA0  /CALL 到 MessageBoxA  
-0012FA14   00000000  |hOwner = NULL  
-0012FA18   00EB03F0  |Text = "请",B2,"",BB,"要开启?,F7,"试?,F7,"?,F7,"试本程序."  
-0012FA1C   00E8E41C  |Title = "Protection Error"  
-0012FA20   00002030  \\Style = MB\_OK|MB\_ICONEXCLAMATION|MB\_TASKMODAL  
-  
-看栈顶:E55EA0:  
-00E55E9E    8BC0            mov     eax, eax  
-00E55EA0  - FF25 08C3E900   jmp     dword ptr \[E9C308\]               ; kernel32.ExitProcess  
-00E55EA6    8BC0            mov     eax, eax  
-00E55EA8  - FF25 04C3E900   jmp     dword ptr \[E9C304\]               ; kernel32.FileTimeToDosDateTime  
-  
-原来 E55EA0 在跳转表中,而且是 ExitProcess,  
-这样程序执行完 MessageBox 就直接退出了,  
-却不是我原本预料的回到壳检测代码附近,看来壳用了某种手法.....  
-拿出杀手锏,ESP 定律,hehhe  
-重新加载,hr 12FA10(还记得这是什么吧,call MessageBox 时的栈顶指针),运行断下,查看代码:  
-00E65DA9    0000            add     byte ptr \[eax\], al  
-00E65DAB    0045 72         add     byte ptr \[ebp+72\], al  
-00E65DAE    72 6F           jb      short 00E65E1F  
-00E65DB0    72 00           jb      short 00E65DB2  
-00E65DB2    0000            add     byte ptr \[eax\], al  
-00E65DB4    55              push    ebp  
-00E65DB5    8BEC            mov     ebp, esp  
-00E65DB7    51              push    ecx  
-00E65DB8    8B45 0C         mov     eax, dword ptr \[ebp+C\]  
-00E65DBB    E8 F817FFFF     call    00E575B8  
-00E65DC0    85C0            test    eax, eax  
-00E65DC2    75 0D           jnz     short 00E65DD1  
-00E65DC4    6A FF           push    -1  
-00E65DC6    BB A15EE500     mov     ebx, 0E55EA1  
-00E65DCB    4B              dec     ebx  
-00E65DCC    53              push    ebx  
-00E65DCD    C3              retn  
-00E65DCE    EB 01           jmp     short 00E65DD1  
-00E65DD0    E8 83C464E8     call    E94B2258  
-00E65DD5    C702 FFFF8945   mov     dword ptr \[edx\], 4589FFFF  
-00E65DDB    FC              cld  
-00E65DDC    B8 0F61E500     mov     eax, 0E5610F  
-00E65DE1    40              inc     eax  
-00E65DE2    6A FF           push    -1        //这是做什么的?  
-00E65DE4    BB A15EE500     mov     ebx, 0E55EA1  
-00E65DE9    4B              dec     ebx  
-00E65DEA    68 30200000     push    2030      //MessageBox's Style  
-00E65DEF    FF75 08         push    dword ptr \[ebp+8\]    //MessageBox's Title  
-00E65DF2    FF75 0C         push    dword ptr \[ebp+C\]    //MessageBox's Text  
-00E65DF5    FF75 FC         push    dword ptr \[ebp-4\]    //MessageBox's hOwner  
-00E65DF8    53              push    ebx  
-00E65DF9    50              push    eax  ///////////断在这里    eax = jmp MessageBox; ebx = jmp ExitProcess  
-00E65DFA    C3              retn  
-00E65DFB    59              pop     ecx  
-00E65DFC    5D              pop     ebp  
-00E65DFD    C2 0800         retn    8  
-  
-将 0xE65DCE 处去花,看到  
-00E65DCE    90              nop  
-00E65DCF    90              nop  
-00E65DD0    90              nop  
-00E65DD1    83C4 64         add     esp, 64  
-00E65DD4    E8 C702FFFF     call    00E560A0                         ; jmp 到 USER32.GetActiveWindow  
-  
-原来如此....add esp,64  来隐藏检测代码....  
-往上看看,我们猜测 00E65DB4 为壳显示消息框的入口地址,现在只要在这里下个断,呵呵...  
-重新加载,因为 00E65DB4 这里是在动态内存空间,不能直接下断,所以我们不忽略内存异常(在第一个内存异常之后就出现错误提示了)  
-运行出现内存异常断下,这时壳检测代码已经解开,  
-我们在 00E65DB4 处下个 F2 断点,shift + F9,断下,查看堆栈:  
-0012F9CC   00E8E401  返回到 00E8E401 来自 00E65DB4  
-0012F9D0   00E8E41C  ASCII "Protection Error"  
-0012F9D4   00EB03F0  
-0012F9D8   0012F9F8  指向下一个 SEH 记录的指针  
-0012F9DC   00E8E40B  SE 处理程序  
-  
-在反汇编窗口来到 0xE8E401 处,查看代码,显然这一段就是 aspr 检测调试器的 anti 的主函数代码:  
-我加了一点简单的注释。  
-00E8E3A8    55              push    ebp  
-00E8E3A9    8BEC            mov     ebp, esp  
-00E8E3AB    53              push    ebx  
-00E8E3AC    56              push    esi  
-00E8E3AD    57              push    edi  
-00E8E3AE    8BF0            mov     esi, eax  
-00E8E3B0    33DB            xor     ebx, ebx  
-00E8E3B2    33C0            xor     eax, eax  
-00E8E3B4    55              push    ebp  
-00E8E3B5    68 0BE4E800     push    0E8E40B  
-00E8E3BA    64:FF30         push    dword ptr fs:\[eax\]  
-00E8E3BD    64:8920         mov     dword ptr fs:\[eax\], esp  
-00E8E3C0    E8 9BFEFFFF     call    00E8E260      //检测操作系统类型  
-00E8E3C5    84C0            test    al, al  
-00E8E3C7    74 07           je      short 00E8E3D0    //是 98 系统则跳  
-00E8E3C9    E8 96FFFFFF     call    00E8E364      //对 nt 以上系统,检测 PEB 中标志  
-00E8E3CE    8BD8            mov     ebx, eax  
-00E8E3D0    84DB            test    bl, bl  
-00E8E3D2    75 22           jnz     short 00E8E3F6    //跳你就挂了  
-00E8E3D4    E8 9FFEFFFF     call    00E8E278      //又是检测,用一个 SEH 清调试寄存器  
-00E8E3D9    84C0            test    al, al  
-00E8E3DB    75 19           jnz     short 00E8E3F6    //跳你就挂了  
-00E8E3DD    A1 D02BE900     mov     eax, dword ptr \[E92BD0\]  //取出壳用到的 API 的起始地址  
-00E8E3E2    8378 24 00      cmp     dword ptr \[eax+24\], 0  //这个位置存的是 IsDebuggerPresent,比较这个函数地址是否为空  
-00E8E3E6    74 19           je      short 00E8E401    //抵达安全彼岸,:)  
-00E8E3E8    A1 D02BE900     mov     eax, dword ptr \[E92BD0\]  
-00E8E3ED    8B40 24         mov     eax, dword ptr \[eax+24\]  //取出 IsDebuggerPresent 地址  
-00E8E3F0    FFD0            call    eax        //调用 IsDebuggerPresent  
-00E8E3F2    84C0            test    al, al  
-00E8E3F4    74 0B           je      short 00E8E401    //抵达安全彼岸,:)  
-00E8E3F6    56              push    esi  
-00E8E3F7    68 1CE4E800     push    0E8E41C                          ; ASCII "Protection Error"  
-00E8E3FC    E8 B379FDFF     call    00E65DB4                  //这里出现 MessageBox  
-00E8E401    33C0            xor     eax, eax      
-00E8E403    5A              pop     edx  
-00E8E404    59              pop     ecx  
-00E8E405    59              pop     ecx  
-00E8E406    64:8910         mov     dword ptr fs:\[eax\], edx  
-00E8E409    EB 0A           jmp     short 00E8E415  
-00E8E40B  ^ E9 584AFCFF     jmp     00E52E68  
-00E8E410    E8 AF4DFCFF     call    00E531C4  
-00E8E415    5F              pop     edi  
-00E8E416    5E              pop     esi  
-00E8E417    5B              pop     ebx  
-00E8E418    5D              pop     ebp  
-00E8E419    C3              retn  
-  
-  
-call E8E260 的代码,检测操作系统类型  
-00E8E260    90              nop  
-00E8E261    90              nop  
-00E8E262    90              nop  
-00E8E263    66:8CD8         mov     ax, ds  
-00E8E266    A8 04           test    al, 4  
-00E8E268    90              nop  
-00E8E269    90              nop  
-00E8E26A    90              nop  
-00E8E26B    74 03           je      short 00E8E270  
-00E8E26D    31C0            xor     eax, eax  //98  
-00E8E26F    C3              retn  
-00E8E270    B8 01000000     mov     eax, 1  //nt,xp  
-00E8E275    C3              retn  
-  
-call    00E8E364 的代码,检测 PEB 中的调试标志  
-00E8E364    64:8B05 3000000>mov     eax, dword ptr fs:\[30\]  
-00E8E36B    90              nop  
-00E8E36C    90              nop  
-00E8E36D    90              nop  
-00E8E36E    0FB640 02       movzx   eax, byte ptr \[eax+2\]  //读取 BeingDebugged 标志  
-00E8E372    08C0            or      al, al  
-00E8E374    74 02           je      short 00E8E378  
-00E8E376    B0 01           mov     al, 1  //被调试往 al 赋 1  
-00E8E378    C3              retn  
-  
-call 00E8E278 的代码  
-00E8E278    53              push    ebx  
-00E8E279    56              push    esi  
-00E8E27A    57              push    edi  
-00E8E27B    90              nop  
-00E8E27C    90              nop  
-00E8E27D    90              nop  
-00E8E27E    90              nop  
-00E8E27F    90              nop  
-00E8E280    90              nop  
-00E8E281    90              nop  
-00E8E282    31C0            xor     eax, eax  
-00E8E284    68 1CE2E800     push    0E8E21C      //SEH 处理地址  
-00E8E289    64:FF30         push    dword ptr fs:\[eax\]    //push fs:\[0\]  
-00E8E28C    54              push    esp  
-00E8E28D    8F05 2CB6E900   pop     dword ptr \[E9B62C\]    //mov \[E9B62C\],ESP,保存 ESP  
-00E8E293    90              nop  
-00E8E294    90              nop  
-00E8E295    90              nop  
-00E8E296    90              nop  
-00E8E297    892D 30B6E900   mov     dword ptr \[E9B630\], ebp  //保存 EBP  
-00E8E29D    C705 34B6E900 C>mov     dword ptr \[E9B634\], 0E8E2CB //保存一个 E8E2CB 这个地址做什么?  
-00E8E2A7    64:8920         mov     dword ptr fs:\[eax\], esp  //安装 SEH 处理  
-00E8E2AA    90              nop  
-00E8E2AB    90              nop  
-00E8E2AC    90              nop  
-00E8E2AD    89C3            mov     ebx, eax  
-00E8E2AF    66:BE 4746      mov     si, 4647  
-00E8E2B3    66:BF 4D4A      mov     di, 4A4D  
-00E8E2B7    90              nop  
-00E8E2B8    90              nop  
-00E8E2B9    90              nop  
-00E8E2BA    CC              int3        
-00E8E2BB    90              nop  
-00E8E2BC    90              nop  
-00E8E2BD    90              nop  
-00E8E2BE    90              nop  
-00E8E2BF    66:81FE 4746    cmp     si, 4647    //这里有可能执行吗,质疑  
-00E8E2C4    74 05           je      short 00E8E2CB  
-00E8E2C6    31C0            xor     eax, eax  
-00E8E2C8    40              inc     eax  
-00E8E2C9    EB 02           jmp     short 00E8E2CD  
-00E8E2CB    31C0            xor     eax, eax    //SEH 出口地址  
-00E8E2CD    31DB            xor     ebx, ebx  
-00E8E2CF    64:8F03         pop     dword ptr fs:\[ebx\]  
-00E8E2D2    83C4 04         add     esp, 4  
-00E8E2D5    90              nop  
-00E8E2D6    90              nop  
-00E8E2D7    90              nop  
-00E8E2D8    5F              pop     edi  
-00E8E2D9    5E              pop     esi  
-00E8E2DA    5B              pop     ebx  
-00E8E2DB    C3              retn  
-  
-SEH E8E21C 处的代码  
-00E8E21C    55              push    ebp  
-00E8E21D    8BEC            mov     ebp, esp  
-00E8E21F    8B45 10         mov     eax, dword ptr \[ebp+10\] //取得 context 指针  
-00E8E222    33D2            xor     edx, edx  
-00E8E224    8950 04         mov     dword ptr \[eax+4\], edx  //清 dr0  
-00E8E227    8B15 2CB6E900   mov     edx, dword ptr \[E9B62C\]  
-00E8E22D    8990 C4000000   mov     dword ptr \[eax+C4\], edx //还原保存的 esp  
-00E8E233    33D2            xor     edx, edx  
-00E8E235    8950 08         mov     dword ptr \[eax+8\], edx  //清 dr1  
-00E8E238    8B15 30B6E900   mov     edx, dword ptr \[E9B630\]  
-00E8E23E    8990 B4000000   mov     dword ptr \[eax+B4\], edx //还原保存的 ebp  
-00E8E244    33D2            xor     edx, edx  
-00E8E246    8950 0C         mov     dword ptr \[eax+C\], edx //清 dr2  
-00E8E249    8B15 34B6E900   mov     edx, dword ptr \[E9B634\]  
-00E8E24F    8990 B8000000   mov     dword ptr \[eax+B8\], edx //还原 regEip 为\[E9B634\]=E8E2CB  
-00E8E255    33D2            xor     edx, edx  
-00E8E257    8950 10         mov     dword ptr \[eax+10\], edx //清 dr3  
-00E8E25A    33C0            xor     eax, eax  
-00E8E25C    5D              pop     ebp  
-00E8E25D    C3              retn 
+首先申明，菜谱(菜得离谱),高手就不要浪费时间看了。
 
- 4dd466d0e1e0cc123afbe504da2462ca
+我们知道 `aspr` 是有对调试器的 anti 的,不过它很弱,用 `hide-OD` 就可以躲过,几乎很多人都不会提起它。
+
+我只知道它大概是检测 `PEB` 中的东西。
+
+反正是闲着无聊，我们来看看它怎么检测的,以"我是盲人"发的 `crackme` 为例来看看这个 anti。
+
+只看 anti,不谈脱壳,因为大多人都会。
+
+关掉 `hideod`,用 `OD` 加载程序,忽略所有异常,运行,出现错误"请不要开启调试器调试本程序"。
+
+`![](img/4ad0c205f35491f7f7ad610293f08687.jpg)`
+
+明显是个 `MessageBox`:)
+
+重新加载,`bp` `MessageBox`,运行断了下来,查看堆栈
+
+```
+0012FA10   00E55EA0  /CALL 到 MessageBoxA
+0012FA14   00000000  |hOwner = NULL
+0012FA18   00EB03F0  |Text = "请",B2,"",BB,"要开启?,F7,"试?,F7,"?,F7,"试本程序."
+0012FA1C   00E8E41C  |Title = "Protection Error"
+0012FA20   00002030  \Style = MB_OK|MB_ICONEXCLAMATION|MB_TASKMODAL
+```
+
+看栈顶:`E55EA0`:
+
+```
+00E55E9E     8BC0            mov     eax, eax
+00E55EA0   - FF25 08C3E900   jmp     dword ptr [E9C308]                 ; kernel32.ExitProcess
+00E55EA6     8BC0            mov     eax, eax
+00E55EA8   - FF25 04C3E900   jmp     dword ptr [E9C304]                 ; kernel32.FileTimeToDosDateTime
+```
+
+原来 `E55EA0` 在跳转表中,而且是 `ExitProcess`,
+
+这样程序执行完 `MessageBox` 就直接退出了,
+
+却不是我原本预料的回到壳检测代码附近,看来壳用了某种手法.....
+
+拿出杀手锏,`ESP` 定律,hehhe
+
+重新加载,`hr` `12FA10`(还记得这是什么吧,`call` `MessageBox` 时的栈顶指针),运行断下,查看代码:
+
+```
+00E65DA9     0000            add     byte ptr [eax], al
+00E65DAB     0045 72         add     byte ptr [ebp+72], al
+00E65DAE     72 6F          jb      short 00E65E1F
+00E65DB0     72 00          jb      short 00E65DB2
+00E65DB2     0000            add     byte ptr [eax], al
+00E65DB4     55              push    ebp
+00E65DB5     8BEC            mov     ebp, esp
+00E65DB7     51              push    ecx
+00E65DB8     8B45 0C         mov     eax, dword ptr [ebp+C]
+00E65DBB     E8 F817FFFF     call    00E575B8
+00E65DC0     85C0            test    eax, eax
+00E65DC2     75 0D          jnz     short 00E65DD1
+00E65DC4     6A FF          push    -1
+00E65DC6     BB A15EE500     mov     ebx, 0E55EA1
+00E65DCB     4B              dec     ebx
+00E65DCC     53              push    ebx
+00E65DCD     C3              retn
+00E65DCE     EB 01          jmp     short 00E65DD1
+00E65DD0     E8 83C464E8     call    E94B2258
+00E65DD5     C702 FFFF8945   mov     dword ptr [edx], 4589FFFF
+00E65DDB     FC              cld
+00E65DDC     B8 0F61E500     mov     eax, 0E5610F
+00E65DE1     40              inc     eax
+00E65DE2     6A FF          push    -1         //这是做什么的?
+00E65DE4     BB A15EE500     mov     ebx, 0E55EA1
+00E65DE9     4B              dec     ebx
+00E65DEA     68 30200000     push    2030       //MessageBox's Style
+00E65DEF     FF75 08         push    dword ptr [ebp+8]     //MessageBox's Title
+00E65DF2     FF75 0C         push    dword ptr [ebp+C]     //MessageBox's Text
+00E65DF5     FF75 FC         push    dword ptr [ebp-4]     //MessageBox's hOwner
+00E65DF8     53              push    ebx
+00E65DF9     50              push    eax  /////////断在这里    eax = jmp MessageBox; ebx = jmp ExitProcess
+00E65DFA     C3              retn
+00E65DFB     59              pop     ecx
+00E65DFC     5D              pop     ebp
+00E65DFD     C2 0800         retn    8
+```
+
+将 `0xE65DCE` 处去花,看到
+
+```
+00E65DCE     90              nop
+00E65DCF     90              nop
+00E65DD0     90              nop
+00E65DD1     83C4 64         add     esp, 64
+00E65DD4     E8 C702FFFF     call    00E560A0                       ; jmp 到 USER32.GetActiveWindow
+```
+
+原来如此....`add` `esp,64` 来隐藏检测代码....
+
+往上看看,我们猜测 `00E65DB4` 为壳显示消息框的入口地址,现在只要在这里下个断,呵呵...
+
+重新加载,因为 `00E65DB4` 这里是在动态内存空间,不能直接下断,所以我们不忽略内存异常(在第一个内存异常之后就出现错误提示了)
+
+运行出现内存异常断下,这时壳检测代码已经解开,
+
+我们在 `00E65DB4` 处下个 `F2` 断点,`shift` + `F9`,断下,查看堆栈:
+
+```
+0012F9CC   00E8E401  返回到 00E8E401 来自 00E65DB4
+0012F9D0   00E8E41C  ASCII "Protection Error"
+0012F9D4   00EB03F0
+0012F9D8   0012F9F8  指向下一个 SEH 记录的指针
+0012F9DC   00E8E40B  SE 处理程序
+```
+
+在反汇编窗口来到 `0xE8E401` 处,查看代码,显然这一段就是 `aspr` 检测调试器的 anti 的主函数代码:
+
+我加了一点简单的注释。
+
+```
+00E8E3A8     55              push    ebp
+00E8E3A9     8BEC            mov     ebp, esp
+00E8E3AB     53              push    ebx
+00E8E3AC     56              push    esi
+00E8E3AD     57              push    edi
+00E8E3AE     8BF0            mov     esi, eax
+00E8E3B0     33DB            xor     ebx, ebx
+00E8E3B2     33C0            xor     eax, eax
+00E8E3B4     55              push    ebp
+00E8E3B5     68 0BE4E800     push    0E8E40B
+00E8E3BA     64:FF30         push    dword ptr fs:[eax]
+00E8E3BD     64:8920         mov     dword ptr fs:[eax], esp
+00E8E3C0     E8 9BFeFFFF     call    00E8E260      //检测操作系统类型
+00E8E3C5     84C0            test    al, al
+00E8E3C7     74 07          je      short 00E8E3D0    //是 98 系统则跳
+00E8E3C9     E8 96FFFFFF     call    00E8E364      //对 nt 以上系统,检测 PEB 中标志
+00E8E3CE     8BD8            mov     ebx, eax
+00E8E3D0     84DB            test    bl, bl
+00E8E3D2     75 22          jnz     short 00E8E3F6    //跳你就挂了
+00E8E3D4     E8 9FFeFFFF     call    00E8E278      //又是检测,用一个 SEH 清调试寄存器
+00E8E3D9     84C0            test    al, al
+00E8E3DB     75 19          jnz     short 00E8E3F6    //跳你就挂了
+00E8E3DD     A1 D02BE900     mov     eax, dword ptr [E92BD0]  //取出壳用到的 API 的起始地址
+00E8E3E2     8378 24 00      cmp     dword ptr [eax+24], 0  //这个位置存的是 IsDebuggerPresent,比较这个函数地址是否为空
+00E8E3E6     74 19          je      short 00E8E401    //抵达安全彼岸,:)
+00E8E3E8     A1 D02BE900     mov     eax, dword ptr [E92BD0]
+00E8E3ED     8B40 24         mov     eax, dword ptr [eax+24]  //取出 IsDebuggerPresent 地址
+00E8E3F0     FFD0            call    eax         //调用 IsDebuggerPresent
+00E8E3F2     84C0            test    al, al
+00E8E3F4     74 0B          je      short 00E8E401    //抵达安全彼岸,:)
+00E8E3F6     56              push    esi
+00E8E3F7     68 1CE4E800     push    0E8E41C                   ; ASCII "Protection Error"
+00E8E3FC     E8 B379FDFF     call    00E65DB4            //这里出现 MessageBox
+00E8E401     33C0            xor     eax, eax     
+00E8E403     5A              pop     edx
+00E8E404     59              pop     ecx
+00E8E405     59              pop     ecx
+00E8E406     64:8910         mov     dword ptr fs:[eax], edx
+00E8E409     EB 0A          jmp     short 00E8E415
+00E8E40B   ^ E9 584AFCFF     jmp     00E52E68
+00E8E410     E8 AF4DFCFF     call    00E531C4
+00E8E415     5F              pop     edi
+00E8E416     5E              pop     esi
+00E8E417     5B              pop     ebx
+00E8E418     5D              pop     ebp
+00E8E419     C3              retn
+```
+
+`call` `E8E260` 的代码,检测操作系统类型
+
+```
+00E8E260     90              nop
+00E8E261     90              nop
+00E8E262     90              nop
+00E8E263     66:8CD8         mov     ax, ds
+00E8E266     A8 04          test    al, 4
+00E8E268     90              nop
+00E8E269     90              nop
+00E8E26A     90              nop
+00E8E26B     74 03          je      short 00E8E270
+00E8E26D     31C0            xor     eax, eax  //98
+00E8E26F     C3              retn
+00E8E270     B8 01000000     mov     eax, 1  //nt,xp
+00E8E275     C3              retn
+```
+
+`call` `00E8E364` 的代码,检测 `PEB` 中的调试标志
+
+```
+00E8E364     64:8B05 3000000>mov     eax, dword ptr fs:[30]
+00E8E36B     90              nop
+00E8E36C     90              nop
+00E8E36D     90              nop
+00E8E36E     0FB640 02       movzx   eax, byte ptr [eax+2]  //读取 BeingDebugged 标志
+00E8E372     08C0            or      al, al
+00E8E374     74 02          je      short 00E8E378
+00E8E376     B0 01          mov     al, 1  //被调试往 al 赋 1
+00E8E378     C3              retn
+```
+
+`call` `00E8E278` 的代码
+
+```
+00E8E278     53              push    ebx
+00E8E279     56              push    esi
+00E8E27A     57              push    edi
+00E8E27B     90              nop
+00E8E27C     90              nop
+00E8E27D     90              nop
+00E8E27E     90              nop
+00E8E27F     90              nop
+```
+
+
+
+## 主要代码段
+
+```
+00E8E280    90                nop  
+00E8E281    90                nop  
+00E8E282    31C0              xor     eax, eax  
+00E8E284    68 1CE2E800       push    0E8E21C       //SEH 处理地址  
+00E8E289    64:FF30          push    dword ptr fs:[eax]   //push fs:[0]  
+00E8E28C    54                push    esp  
+00E8E28D    8F05 2CB6E900    pop     dword ptr [E9B62C]   //mov [E9B62C],ESP,保存 ESP  
+00E8E293    90                nop  
+00E8E294    90                nop  
+00E8E295    90                nop  
+00E8E296    90                nop  
+00E8E297    892D 30B6E900    mov     dword ptr [E9B630], ebp   //保存 EBP  
+00E8E29D    C705 34B6E900 C  >mov     dword ptr [E9B634], 0E8E2CB  //保存一个 E8E2CB 这个地址做什么?  
+00E8E2A7    64:8920          mov     dword ptr fs:[eax], esp   //安装 SEH 处理  
+00E8E2AA    90                nop  
+00E8E2AB    90                nop  
+00E8E2AC    90                nop  
+00E8E2AD    89C3              mov     ebx, eax  
+00E8E2AF    66:BE 4746      mov     si, 4647  
+00E8E2B3    66:BF 4D4A      mov     di, 4A4D  
+00E8E2B7    90                nop  
+00E8E2B8    90                nop  
+00E8E2B9    90                nop  
+00E8E2BA    CC                int3      
+00E8E2BB    90                nop  
+00E8E2BC    90                nop  
+00E8E2BD    90                nop  
+00E8E2BE    90                nop  
+00E8E2BF    66:81FE 4746    cmp     si, 4647    //这里有可能执行吗,质疑  
+00E8E2C4    74 05           je      short 00E8E2CB  
+00E8E2C6    31C0              xor     eax, eax  
+00E8E2C8    40                inc     eax  
+00E8E2C9    EB 02           jmp     short 00E8E2CD  
+00E8E2CB    31C0              xor     eax, eax    //SEH 出口地址  
+00E8E2CD    31DB              xor     ebx, ebx  
+00E8E2CF    64:8F03          pop     dword ptr fs:[ebx]  
+00E8E2D2    83C4 04         add     esp, 4  
+00E8E2D5    90                nop  
+00E8E2D6    90                nop  
+00E8E2D7    90                nop  
+00E8E2D8    5F                pop     edi  
+00E8E2D9    5E                pop     esi  
+00E8E2DA    5B                pop     ebx  
+00E8E2DB    C3                retn  
+```
+
+## SEH `E8E21C` 处的代码
+
+```
+00E8E21C    55                push    ebp  
+00E8E21D    8BEC              mov     ebp, esp  
+00E8E21F    8B45 10         mov     eax, dword ptr [ebp+10] //取得 context 指针  
+00E8E222    33D2              xor     edx, edx  
+00E8E224    8950 04         mov     dword ptr [eax+4], edx   //清 dr0  
+00E8E227    8B15 2CB6E900   mov     edx, dword ptr [E9B62C]  
+00E8E22D    8990 C4000000   mov     dword ptr [eax+C4], edx //还原保存的 esp  
+00E8E233    33D2              xor     edx, edx  
+00E8E235    8950 08         mov     dword ptr [eax+8], edx   //清 dr1  
+00E8E238    8B15 30B6E900   mov     edx, dword ptr [E9B630]  
+00E8E23E    8990 B4000000   mov     dword ptr [eax+B4], edx //还原保存的 ebp  
+00E8E244    33D2              xor     edx, edx  
+00E8E246    8950 0C         mov     dword ptr [eax+C], edx //清 dr2  
+00E8E249    8B15 34B6E900   mov     edx, dword ptr [E9B634]  
+00E8E24F    8990 B8000000   mov     dword ptr [eax+B8], edx //还原 regEip 为[E9B634]=E8E2CB  
+00E8E255    33D2              xor     edx, edx  
+00E8E257    8950 10         mov     dword ptr [eax+10], edx //清 dr3  
+00E8E25A    33C0              xor     eax, eax  
+00E8E25C    5D                pop     ebp  
+00E8E25D    C3                retn 
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

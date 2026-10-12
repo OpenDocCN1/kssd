@@ -1,831 +1,918 @@
 
-
 # 手脱“最新版 MSN 性感相册变种(Worm/MSN.SendPhoto)”病毒所添加的未知壳(最新所有版通脱)
 
 > 原文：[`www.pediy.com/kssd/pediy09/pediy09-572.htm`](https://www.pediy.com/kssd/pediy09/pediy09-572.htm)
 
-> ////////////////////////////////////////////////////////////////////////////////////////////  
-> 文件名称：手脱“最新版 MSN 性感相册变种(Worm/MSN.SendPhoto)”病毒所添加的未知壳(最新所有版通脱)  
-> 目标程序：最新版 MSN 性感相册变种(Worm/MSN.SendPhoto)  
-> 操作环境：Windows XP-SP2  
-> 使用工具：Ollydbg 1.10 版  
-> 编写作者：Coderui  
-> 编写时间：2007 年 12 月 27 日  
-> 联系方式：coderui@163.com  
-> 作者博客：http://hi.baidu.com/coderui  
->   
-> \---------------------------------------------------------------------------------------------  
-> 介绍：  
->   
->     前不久“MSN 性感相册变种(Worm/MSN.SendPhoto)”病毒在网络中消失了一段时间以后，最近又开始疯狂的发作了。很显然不是以前版本的病毒又复活了，而是病毒作者重新开发出了新的版本在进行到处传播。对病毒感兴趣的朋友当然是非常喜欢分析病毒原理的，但如果被其壳挡在门外，那可是最最郁闷的事情了。如果是简单壳或通用壳大家完全是可以使用脱壳机的，但如今的病毒作者是很聪明的，不会让大家那么轻松的就可以分析出他们的病毒信息，所以选择的壳当然也是比较强硬、希奇的物种。  
->     最近分析了几个新版的“MSN 性感相册变种(Worm/MSN.SendPhoto)”病毒，发现所添加的壳完全是一样的，可以肯定的是出自一个人之手，因为这种未知壳很少见，反正我是没见过(井底之蛙？呵呵)。病毒所添加的壳比较有深度，融入了很多技术，不适合脱壳的初学者和新手去手脱这个壳。我拿到该样本后，大概分析了 4-5 个小时，尝试手脱次数估计近 50 次，跑飞次数大概占全部次数的 9 层(也就是手脱 10 次，跑飞 9 次，剩下的一次以失败而告终，嘿嘿)，最后终于分析出来壳的原理和详细的手脱方法了(当然分析出来再去脱壳就不会跑飞了)，所以现在分享给大家，希望对想分析这个病毒原理的朋友有帮助。因为“MSN 性感相册变种(Worm/MSN.SendPhoto)”这个病毒现在比较流行，相信大家会很关注、会很喜欢的，也谢谢大家的支持了！  
->     简单的介绍下“MSN 性感相册变种(Worm/MSN.SendPhoto)”病毒所添加的壳吧。该壳中融入了压缩壳的技术、加密壳的技术、混淆入口点的技术、创建线程解密的技术、输入表加密的技术、花指令技术等等。也许可能这些技术来自于不同的壳(也就是病毒加了几层壳)，也许可能这些技术来自于同一个壳(那么这个壳还真不错，压缩率高、还可以保护住自己，不被一些人所破解)，弄个这样的壳来自己用感觉很不错(不过现在我没有，郁闷)，呵呵！  
->     今天给大家讲解的方法是怎样去快速脱掉该病毒所添加的壳，详细的调试分析跟踪步骤就不写了，因为代码太多，恐怕会越讲越乱，最后适得其反。(说真的，感觉做视频教程比写这种文章简单多了。采用文章去写的话，复杂的代码会被贴的很乱，大家就忍忍吧。)  
-> \---------------------------------------------------------------------------------------------  
-> OD 设置：(OD 设置为不忽略任何异常。\[F2\]：下软断点、\[F4\]：执行到当前代码处、\[F7\]：单步步入、\[F8\]单步步过、\[F9\]运行。)  
-> 按照顺序查看注解：(1)、(2)、(3)……(10)。  
->   
-> 0040101E > $ /EB 0C         JMP SHORT 8d56547f.0040102C              ; (1)程序载入后，停在这里。  
->                                                                      ; (2)我们向下看本段代码，在数据段与代码段的分界处有个 JMP。  
-> 00401020     |90            NOP  
-> 00401021     |90            NOP  
-> 00401022     |00            DB 00  
-> 00401023     |00            DB 00  
-> 00401024     |00            DB 00  
-> 00401025     |00            DB 00  
-> 00401026     |00            DB 00  
-> 00401027     |00            DB 00  
-> 00401028     |00            DB 00  
-> 00401029     |00            DB 00  
-> 0040102A   . |CD 2E         INT 2E  
-> 0040102C   > \\E8 03000000   CALL 8d56547f.00401034  
-> 00401031   .  90            NOP  
-> 00401032   .  EB 02         JMP SHORT 8d56547f.00401036  
-> 00401034  /$  90            NOP  
-> 00401035  \\.  C3            RETN  
-> 00401036   >  8B4424 FC     MOV EAX,DWORD PTR SS:\[ESP-4\]  
-> 0040103A   .  2D 9C194000   SUB EAX,8d56547f.0040199C  
-> 0040103F   .  8D80 98194000 LEA EAX,DWORD PTR DS:\[EAX+401998\]  
-> 00401045   >  48            DEC EAX  
-> 00401046   .  66:8138 5045  CMP WORD PTR DS:\[EAX\],4550  
-> 0040104B   .^ 75 F8         JNZ SHORT 8d56547f.00401045  
-> 0040104D   .  8BF8          MOV EDI,EAX  
-> 0040104F   >  48            DEC EAX  
-> 00401050   .  66:8138 4D5A  CMP WORD PTR DS:\[EAX\],5A4D  
-> 00401055   .^ 75 F8         JNZ SHORT 8d56547f.0040104F  
-> 00401057   .  8BBF 80000000 MOV EDI,DWORD PTR DS:\[EDI+80\]  
-> 0040105D   .  03F8          ADD EDI,EAX  
-> 0040105F   .  8B7F 10       MOV EDI,DWORD PTR DS:\[EDI+10\]  
-> 00401062   .  03F8          ADD EDI,EAX  
-> 00401064   .  8B07          MOV EAX,DWORD PTR DS:\[EDI\]  
-> 00401066   .  B9 0C0C0000   MOV ECX,0C0C  
-> 0040106B   .  81C1 00000000 ADD ECX,0  
-> 00401071   .  2AC9          SUB CL,CL  
-> 00401073   .  81C1 00010000 ADD ECX,100  
-> 00401079   .  50            PUSH EAX  
-> 0040107A   .  50            PUSH EAX  
-> 0040107B   .  51            PUSH ECX  
-> 0040107C   .  6A 40         PUSH 40  
-> 0040107E   .  68 00200000   PUSH 2000  
-> 00401083   .  51            PUSH ECX  
-> 00401084   .  6A 00         PUSH 0  
-> 00401086   .  FFD0          CALL EAX  
-> 00401088   .  8BF8          MOV EDI,EAX  
-> 0040108A   .  59            POP ECX  
-> 0040108B   .  58            POP EAX  
-> 0040108C   .  6A 40         PUSH 40  
-> 0040108E   .  68 00100000   PUSH 1000  
-> 00401093   .  51            PUSH ECX  
-> 00401094   .  57            PUSH EDI  
-> 00401095   .  FFD0          CALL EAX  
-> 00401097   .  8BF8          MOV EDI,EAX  
-> 00401099   .  57            PUSH EDI  
-> 0040109A   .  E8 03000000   CALL 8d56547f.004010A2  
-> 0040109F   .  90            NOP  
-> 004010A0   .  EB 02         JMP SHORT 8d56547f.004010A4  
-> 004010A2  /$  90            NOP  
-> 004010A3  \\.  C3            RETN  
-> 004010A4   >  8B7424 FC     MOV ESI,DWORD PTR SS:\[ESP-4\]  
-> 004010A8   .  81EE 0B1A4000 SUB ESI,8d56547f.00401A0B  
-> 004010AE   .  8DB6 6C194000 LEA ESI,DWORD PTR DS:\[ESI+40196C\]  
-> 004010B4   .  B9 0C0C0000   MOV ECX,0C0C  
-> 004010B9   .  81EE 00000000 SUB ESI,0  
-> 004010BF   .  81C1 00000000 ADD ECX,0  
-> 004010C5   .  F3:A4         REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[>  
-> 004010C7   .  5F            POP EDI  
-> 004010C8   .  81C7 FA000000 ADD EDI,0FA  
-> 004010CE   .  57            PUSH EDI  
-> 004010CF   .  B0 C5         MOV AL,0C5  
-> 004010D1   .  B9 0C0C0000   MOV ECX,0C0C  
-> 004010D6   .  81C7 00000000 ADD EDI,0  
-> 004010DC   >  0007          ADD BYTE PTR DS:\[EDI\],AL  
-> 004010DE   .  47            INC EDI  
-> 004010DF   .  49            DEC ECX  
-> 004010E0   .^ 75 FA         JNZ SHORT 8d56547f.004010DC  
-> 004010E2   .  5F            POP EDI  
-> 004010E3   .  E8 03000000   CALL 8d56547f.004010EB  
-> 004010E8   .  90            NOP  
-> 004010E9   .  EB 03         JMP SHORT 8d56547f.004010EE  
-> 004010EB  /$  40            INC EAX  
-> 004010EC  |.  90            NOP  
-> 004010ED  \\.  C3            RETN  
-> 004010EE   >  8B4424 FC     MOV EAX,DWORD PTR SS:\[ESP-4\]  
-> 004010F2   .  81C7 00000000 ADD EDI,0  
-> 004010F8   .  FFE7          JMP EDI                                  ; (3)这个就是分界处的 JMP，上边这段应该是数据解压代码。  
->                                                                      ; (4)我们在这里按\[F4\]：执行到当前代码处。然后\[F8\]跳。  
-> 004010FA      8E            DB 8E  
-> 004010FB      23            DB 23                                    ;  CHAR '#'  
-> 004010FC      3B            DB 3B                                    ;  CHAR ';'  
-> 004010FD      3B            DB 3B                                    ;  CHAR ';'  
-> 004010FE      3B            DB 3B                                    ;  CHAR ';'  
-> 004010FF      3B            DB 3B                                    ;  CHAR ';'  
->               .  
->               .  
->               .  
-> 003700FA    53              PUSH EBX                                 ; (5)跳转后来到这里。我们向下看本段代码(会向下看很长一段)，其中有一处代码存在 N 多的 NOP，在 NOP 上方有一个 RETN，RETN 上边是 POPAD 和 PUSHAD。  
-> 003700FB    E8 00000000     CALL 00370100  
-> 00370100    5B              POP EBX  
-> 00370101    8983 0A000000   MOV DWORD PTR DS:\[EBX+A\],EAX  
-> 00370107    5B              POP EBX  
-> 00370108    EB 04           JMP SHORT 0037010E  
-> 0037010A    0000            ADD BYTE PTR DS:\[EAX\],AL  
-> 0037010C    0000            ADD BYTE PTR DS:\[EAX\],AL  
-> 0037010E    E8 00000000     CALL 00370113  
-> 00370113    58              POP EAX  
-> 00370114    8D80 75020000   LEA EAX,DWORD PTR DS:\[EAX+275\]  
-> 0037011A    FFD0            CALL EAX  
-> 0037011C    60              PUSHAD  
-> 0037011D    50              PUSH EAX  
-> 0037011E    E8 0F000000     CALL 00370132  
-> 00370123    56              PUSH ESI  
-> 00370124    6972 74 75616C5>IMUL ESI,DWORD PTR DS:\[EDX+74\],506C6175  
-> 0037012B    72 6F           JB SHORT 0037019C  
-> 0037012D    74 65           JE SHORT 00370194  
-> 0037012F    637400 50       ARPL WORD PTR DS:\[EAX+EAX+50\],SI  
-> 00370133    E8 00000000     CALL 00370138  
-> 00370138    58              POP EAX  
-> 00370139    8D80 7A010000   LEA EAX,DWORD PTR DS:\[EAX+17A\]  
-> 0037013F    FFD0            CALL EAX  
-> 00370141    5B              POP EBX  
-> 00370142    0BC0            OR EAX,EAX  
-> 00370144    0F85 82000000   JNZ 003701CC  
-> 0037014A    E8 10000000     CALL 0037015F  
-> 0037014F    4C              DEC ESP  
-> 00370150    64:72 47        JB SHORT 0037019A                        ; 多余的前缀  
-> 00370153    65:74 44        JE SHORT 0037019A                        ; 多余的前缀  
-> 00370156    6C              INS BYTE PTR ES:\[EDI\],DX                 ; I/O 命令  
-> 00370157    6C              INS BYTE PTR ES:\[EDI\],DX                 ; I/O 命令  
-> 00370158    48              DEC EAX  
-> 00370159    61              POPAD  
-> 0037015A    6E              OUTS DX,BYTE PTR ES:\[EDI\]                ; I/O 命令  
-> 0037015B    64:6C           INS BYTE PTR ES:\[EDI\],DX                 ; I/O 命令  
-> 0037015D    65:0053 E8      ADD BYTE PTR GS:\[EBX-18\],DL  
-> 00370161    0000            ADD BYTE PTR DS:\[EAX\],AL  
-> 00370163    0000            ADD BYTE PTR DS:\[EAX\],AL  
-> 00370165    58              POP EAX  
-> 00370166    8D80 4D010000   LEA EAX,DWORD PTR DS:\[EAX+14D\]  
-> 0037016C    FFD0            CALL EAX  
-> 0037016E    8BF8            MOV EDI,EAX  
-> 00370170    2BC0            SUB EAX,EAX  
-> 00370172    50              PUSH EAX  
-> 00370173    8BCC            MOV ECX,ESP  
-> 00370175    E8 14000000     CALL 0037018E  
-> 0037017A    4B              DEC EBX  
-> 0037017B    0045 00         ADD BYTE PTR SS:\[EBP\],AL  
-> 0037017E    52              PUSH EDX  
-> 0037017F    004E 00         ADD BYTE PTR DS:\[ESI\],CL  
-> 00370182    45              INC EBP  
-> 00370183    004C00 33       ADD BYTE PTR DS:\[EAX+EAX+33\],CL  
-> 00370187    0032            ADD BYTE PTR DS:\[EDX\],DH  
-> 00370189    0000            ADD BYTE PTR DS:\[EAX\],AL  
-> 0037018B    0000            ADD BYTE PTR DS:\[EAX\],AL  
-> 0037018D    00B8 10001200   ADD BYTE PTR DS:\[EAX+120010\],BH  
-> 00370193    50              PUSH EAX  
-> 00370194    8BC4            MOV EAX,ESP  
-> 00370196    51              PUSH ECX  
-> 00370197    50              PUSH EAX  
-> 00370198    6A 00           PUSH 0  
-> 0037019A    6A 00           PUSH 0  
-> 0037019C    FFD7            CALL EDI  
-> 0037019E    83C4 08         ADD ESP,8  
-> 003701A1    58              POP EAX  
-> 003701A2    50              PUSH EAX  
-> 003701A3    E8 0F000000     CALL 003701B7  
-> 003701A8    56              PUSH ESI  
-> 003701A9    6972 74 75616C5>IMUL ESI,DWORD PTR DS:\[EDX+74\],506C6175  
-> 003701B0    72 6F           JB SHORT 00370221  
-> 003701B2    74 65           JE SHORT 00370219  
-> 003701B4    637400 50       ARPL WORD PTR DS:\[EAX+EAX+50\],SI  
-> 003701B8    E8 00000000     CALL 003701BD  
-> 003701BD    58              POP EAX  
-> 003701BE    8D80 F5000000   LEA EAX,DWORD PTR DS:\[EAX+F5\]  
-> 003701C4    FFD0            CALL EAX  
-> 003701C6    5B              POP EBX  
-> 003701C7    0BC0            OR EAX,EAX  
-> 003701C9    75 01           JNZ SHORT 003701CC  
-> 003701CB    C3              RETN  
-> 003701CC    50              PUSH EAX  
-> 003701CD    DB0424          FILD DWORD PTR SS:\[ESP\]  
-> 003701D0    8BD3            MOV EDX,EBX  
-> 003701D2    8B4424 28       MOV EAX,DWORD PTR SS:\[ESP+28\]  
-> 003701D6    60              PUSHAD  
-> 003701D7    E8 00000000     CALL 003701DC  
-> 003701DC    5E              POP ESI  
-> 003701DD    8DB6 2D000000   LEA ESI,DWORD PTR DS:\[ESI+2D\]  
-> 003701E3    56              PUSH ESI  
-> 003701E4    64:FF35 0000000>PUSH DWORD PTR FS:\[0\]  
-> 003701EB    64:8925 0000000>MOV DWORD PTR FS:\[0\],ESP  
-> 003701F2    66:8138 4D5A    CMP WORD PTR DS:\[EAX\],5A4D  
-> 003701F7    74 02           JE SHORT 003701FB  
-> 003701F9    2BC0            SUB EAX,EAX  
-> 003701FB    E8 00000000     CALL 00370200  
-> 00370200    5B              POP EBX  
-> 00370201    8D9B 28000000   LEA EBX,DWORD PTR DS:\[EBX+28\]  
-> 00370207    FFE3            JMP EBX  
-> 00370209    8B6424 08       MOV ESP,DWORD PTR SS:\[ESP+8\]  
-> 0037020D    64:8F05 0000000>POP DWORD PTR FS:\[0\]  
-> 00370214    83C4 04         ADD ESP,4  
-> 00370217    61              POPAD  
-> 00370218    2BC0            SUB EAX,EAX  
-> 0037021A    E8 00000000     CALL 0037021F  
-> 0037021F    5B              POP EBX  
-> 00370220    8D9B 13000000   LEA EBX,DWORD PTR DS:\[EBX+13\]  
-> 00370226    FFE3            JMP EBX  
-> 00370228    64:8F05 0000000>POP DWORD PTR FS:\[0\]  
-> 0037022F    83C4 24         ADD ESP,24  
-> 00370232    8BDA            MOV EBX,EDX  
-> 00370234    60              PUSHAD  
-> 00370235    E8 00000000     CALL 0037023A  
-> 0037023A    58              POP EAX  
-> 0037023B    8B80 D0FEFFFF   MOV EAX,DWORD PTR DS:\[EAX-130\]  
-> 00370241    66:2BC0         SUB AX,AX  
-> 00370244    66:8138 4D5A    CMP WORD PTR DS:\[EAX\],5A4D  
-> 00370249    74 07           JE SHORT 00370252  
-> 0037024B    2D 00000100     SUB EAX,10000                            ; UNICODE "=::=::\\"  
-> 00370250  ^ EB F2           JMP SHORT 00370244  
-> 00370252    50              PUSH EAX  
-> 00370253    DB0424          FILD DWORD PTR SS:\[ESP\]  
-> 00370256    58              POP EAX  
-> 00370257    61              POPAD  
-> 00370258    5B              POP EBX  
-> 00370259    6A 00           PUSH 0  
-> 0037025B    8BC4            MOV EAX,ESP  
-> 0037025D    83C4 04         ADD ESP,4  
-> 00370260    50              PUSH EAX  
-> 00370261    6A 40           PUSH 40  
-> 00370263    E8 00000000     CALL 00370268  
-> 00370268    58              POP EAX  
-> 00370269    8B80 A2FDFFFF   MOV EAX,DWORD PTR DS:\[EAX-25E\]  
-> 0037026F    50              PUSH EAX  
-> 00370270    E8 00000000     CALL 00370275  
-> 00370275    58              POP EAX  
-> 00370276    8D80 8BFDFFFF   LEA EAX,DWORD PTR DS:\[EAX-275\]  
-> 0037027C    50              PUSH EAX  
-> 0037027D    FFD3            CALL EBX  
-> 0037027F    6A 00           PUSH 0  
-> 00370281    8BC4            MOV EAX,ESP  
-> 00370283    83C4 04         ADD ESP,4  
-> 00370286    50              PUSH EAX  
-> 00370287    6A 40           PUSH 40  
-> 00370289    E8 00000000     CALL 0037028E  
-> 0037028E    58              POP EAX  
-> 0037028F    8B80 80FDFFFF   MOV EAX,DWORD PTR DS:\[EAX-280\]  
-> 00370295    50              PUSH EAX  
-> 00370296    51              PUSH ECX  
-> 00370297    DB1424          FIST DWORD PTR SS:\[ESP\]  
-> 0037029A    59              POP ECX  
-> 0037029B    E8 00000000     CALL 003702A0  
-> 003702A0    58              POP EAX  
-> 003702A1    8B80 62FDFFFF   MOV EAX,DWORD PTR DS:\[EAX-29E\]  
-> 003702A7    03C1            ADD EAX,ECX  
-> 003702A9    50              PUSH EAX  
-> 003702AA    FFD3            CALL EBX  
-> 003702AC    61              POPAD  
-> 003702AD    E9 F8000000     JMP 003703AA  
-> 003702B2    56              PUSH ESI  
-> 003702B3    51              PUSH ECX  
-> 003702B4    52              PUSH EDX  
-> 003702B5    53              PUSH EBX  
-> 003702B6    8B7424 18       MOV ESI,DWORD PTR SS:\[ESP+18\]  
-> 003702BA    8B4424 14       MOV EAX,DWORD PTR SS:\[ESP+14\]  
-> 003702BE    E8 01000000     CALL 003702C4  
-> 003702C3    90              NOP  
-> 003702C4    5D              POP EBP  
-> 003702C5    45              INC EBP  
-> 003702C6    81ED 301C4000   SUB EBP,401C30  
-> 003702CC    0FB750 3C       MOVZX EDX,WORD PTR DS:\[EAX+3C\]  
-> 003702D0    8BD8            MOV EBX,EAX  
-> 003702D2    03C2            ADD EAX,EDX  
-> 003702D4    8B40 78         MOV EAX,DWORD PTR DS:\[EAX+78\]  
-> 003702D7    03C3            ADD EAX,EBX  
-> 003702D9    8B50 24         MOV EDX,DWORD PTR DS:\[EAX+24\]  
-> 003702DC    52              PUSH EDX  
-> 003702DD    DB0424          FILD DWORD PTR SS:\[ESP\]  
-> 003702E0    5A              POP EDX  
-> 003702E1    8B50 1C         MOV EDX,DWORD PTR DS:\[EAX+1C\]  
-> 003702E4    891424          MOV DWORD PTR SS:\[ESP\],EDX  
-> 003702E7    52              PUSH EDX  
-> 003702E8    DB0424          FILD DWORD PTR SS:\[ESP\]  
-> 003702EB    5A              POP EDX  
-> 003702EC    8B50 20         MOV EDX,DWORD PTR DS:\[EAX+20\]  
-> 003702EF    03D3            ADD EDX,EBX  
-> 003702F1    8BFE            MOV EDI,ESI  
-> 003702F3    60              PUSHAD  
-> 003702F4    E8 00000000     CALL 003702F9  
-> 003702F9    5E              POP ESI  
-> 003702FA    8DB6 5B000000   LEA ESI,DWORD PTR DS:\[ESI+5B\]  
-> 00370300    56              PUSH ESI  
-> 00370301    64:FF35 0000000>PUSH DWORD PTR FS:\[0\]  
-> 00370308    64:8925 0000000>MOV DWORD PTR FS:\[0\],ESP  
-> 0037030F    2BC9            SUB ECX,ECX  
-> 00370311    49              DEC ECX  
-> 00370312    2BC0            SUB EAX,EAX  
-> 00370314    57              PUSH EDI  
-> 00370315    F2:AE           REPNE SCAS BYTE PTR ES:\[EDI\]  
-> 00370317    F7D1            NOT ECX  
-> 00370319    5F              POP EDI  
-> 0037031A    8B3482          MOV ESI,DWORD PTR DS:\[EDX+EAX\*4\]  
-> 0037031D    03F3            ADD ESI,EBX  
-> 0037031F    57              PUSH EDI  
-> 00370320    51              PUSH ECX  
-> 00370321    F3:A6           REPE CMPS BYTE PTR ES:\[EDI\],BYTE PTR DS:>  
-> 00370323    59              POP ECX  
-> 00370324    74 04           JE SHORT 0037032A  
-> 00370326    5F              POP EDI  
-> 00370327    40              INC EAX  
-> 00370328  ^ EB F0           JMP SHORT 0037031A  
-> 0037032A    5F              POP EDI  
-> 0037032B    56              PUSH ESI  
-> 0037032C    DB1C24          FISTP DWORD PTR SS:\[ESP\]  
-> 0037032F    5E              POP ESI  
-> 00370330    87F7            XCHG EDI,ESI  
-> 00370332    56              PUSH ESI  
-> 00370333    DB1C24          FISTP DWORD PTR SS:\[ESP\]  
-> 00370336    5E              POP ESI  
-> 00370337    8D141E          LEA EDX,DWORD PTR DS:\[ESI+EBX\]  
-> 0037033A    0FB70442        MOVZX EAX,WORD PTR DS:\[EDX+EAX\*2\]  
-> 0037033E    8D141F          LEA EDX,DWORD PTR DS:\[EDI+EBX\]  
-> 00370341    8B0482          MOV EAX,DWORD PTR DS:\[EDX+EAX\*4\]  
-> 00370344    03C3            ADD EAX,EBX  
-> 00370346    E8 00000000     CALL 0037034B  
-> 0037034B    5B              POP EBX  
-> 0037034C    8D9B 28000000   LEA EBX,DWORD PTR DS:\[EBX+28\]  
-> 00370352    FFE3            JMP EBX  
-> 00370354    8B6424 08       MOV ESP,DWORD PTR SS:\[ESP+8\]  
-> 00370358    64:8F05 0000000>POP DWORD PTR FS:\[0\]  
-> 0037035F    83C4 04         ADD ESP,4  
-> 00370362    61              POPAD  
-> 00370363    2BC0            SUB EAX,EAX  
-> 00370365    E8 00000000     CALL 0037036A  
-> 0037036A    5B              POP EBX  
-> 0037036B    8D9B 13000000   LEA EBX,DWORD PTR DS:\[EBX+13\]  
-> 00370371    FFE3            JMP EBX  
-> 00370373    64:8F05 0000000>POP DWORD PTR FS:\[0\]  
-> 0037037A    83C4 24         ADD ESP,24  
-> 0037037D    5B              POP EBX  
-> 0037037E    5A              POP EDX  
-> 0037037F    59              POP ECX  
-> 00370380    5E              POP ESI  
-> 00370381    83C4 0C         ADD ESP,0C  
-> 00370384    FF6424 F4       JMP DWORD PTR SS:\[ESP-C\]  
-> 00370388    8B4C24 04       MOV ECX,DWORD PTR SS:\[ESP+4\]  
-> 0037038C    52              PUSH EDX  
-> 0037038D    51              PUSH ECX  
-> 0037038E    2BD2            SUB EDX,EDX  
-> 00370390    49              DEC ECX  
-> 00370391    66:8139 4D5A    CMP WORD PTR DS:\[ECX\],5A4D  
-> 00370396  ^ 75 F8           JNZ SHORT 00370390  
-> 00370398    8BF9            MOV EDI,ECX  
-> 0037039A    66:8B51 3C      MOV DX,WORD PTR DS:\[ECX+3C\]  
-> 0037039E    66:813C0A 5045  CMP WORD PTR DS:\[EDX+ECX\],4550  
-> 003703A4  ^ 75 EA           JNZ SHORT 00370390  
-> 003703A6    91              XCHG EAX,ECX  
-> 003703A7    59              POP ECX  
-> 003703A8    5A              POP EDX  
-> 003703A9    C3              RETN  
-> 003703AA    50              PUSH EAX  
-> 003703AB    DB1C24          FISTP DWORD PTR SS:\[ESP\]  
-> 003703AE    E8 00000000     CALL 003703B3  
-> 003703B3    58              POP EAX  
-> 003703B4    8B80 4FFCFFFF   MOV EAX,DWORD PTR DS:\[EAX-3B1\]  
-> 003703BA    030424          ADD EAX,DWORD PTR SS:\[ESP\]  
-> 003703BD    83C4 04         ADD ESP,4  
-> 003703C0    60              PUSHAD  
-> 003703C1    E8 00000000     CALL 003703C6  
-> 003703C6    5F              POP EDI  
-> 003703C7    8DBF 46080000   LEA EDI,DWORD PTR DS:\[EDI+846\]  
-> 003703CD    8BD8            MOV EBX,EAX  
-> 003703CF    B0 68           MOV AL,68  
-> 003703D1    AA              STOS BYTE PTR ES:\[EDI\]  
-> 003703D2    8BC3            MOV EAX,EBX  
-> 003703D4    AB              STOS DWORD PTR ES:\[EDI\]  
-> 003703D5    B0 C3           MOV AL,0C3  
-> 003703D7    AA              STOS BYTE PTR ES:\[EDI\]  
-> 003703D8    0F31            RDTSC  
-> 003703DA    8BDA            MOV EBX,EDX  
-> 003703DC    0F31            RDTSC  
-> 003703DE    33DA            XOR EBX,EDX  
-> 003703E0    32DF            XOR BL,BH  
-> 003703E2    80C7 E0         ADD BH,0E0  
-> 003703E5    80F3 FF         XOR BL,0FF  
-> 003703E8    8BC3            MOV EAX,EBX  
-> 003703EA    E8 00000000     CALL 003703EF  
-> 003703EF    5F              POP EDI  
-> 003703F0    8DBF 1B000000   LEA EDI,DWORD PTR DS:\[EDI+1B\]  
-> 003703F6    66:AB           STOS WORD PTR ES:\[EDI\]  
-> 003703F8    61              POPAD  
-> 003703F9    E8 00000000     CALL 003703FE  
-> 003703FE    58              POP EAX  
-> 003703FF    8D80 0E080000   LEA EAX,DWORD PTR DS:\[EAX+80E\]  
-> 00370405    50              PUSH EAX  
-> 00370406    DB1C24          FISTP DWORD PTR SS:\[ESP\]  
-> 00370409    60              PUSHAD  
-> 0037040A    61              POPAD                                    ; (7)我们在这里按\[F4\]：执行到当前代码处。看看代码是不是改变了(我们看下边注解"8"所在的代码位置)。  
-> 0037040B    C3              RETN                                     ; (6)这个就是我们要找的 RENT，但我们不要在这里下断。因为这段代码中有动态解密代码，所以代码所在的位置会被动态的改变。  
-> 0037040C    90              NOP  
-> 0037040D    90              NOP  
-> 0037040E    90              NOP  
-> 0037040F    90              NOP  
-> 00370410    90              NOP  
-> 00370411    90              NOP  
-> 00370412    90              NOP  
-> 00370413    90              NOP  
-> 00370414    90              NOP  
-> 00370415    90              NOP  
-> 00370416    90              NOP  
-> 00370417    90              NOP  
-> 00370418    90              NOP  
-> 00370419    90              NOP  
-> 0037041A    90              NOP  
-> 0037041B    90              NOP  
-> 0037041C    90              NOP  
-> 0037041D    90              NOP  
-> 0037041E    90              NOP  
-> 0037041F    90              NOP  
-> 00370420    90              NOP  
-> 00370421    90              NOP  
->               .  
->               .  
->               .  
-> 003703F8    61              POPAD  
-> 003703F9    E8 00000000     CALL 003703FE  
-> 003703FE    58              POP EAX  
-> 003703FF    8D80 0E080000   LEA EAX,DWORD PTR DS:\[EAX+80E\]  
-> 00370405    50              PUSH EAX  
-> 00370406    DB1C24          FISTP DWORD PTR SS:\[ESP\]  
-> 00370409    60              PUSHAD  
-> 0037040A    FFE0            JMP EAX                                  ; (8)我们刚才\[F4\]后，程序停在了这里，看看现在的代码是不是和上边的代码有所不同呢？我们现在\[F8\]跳。  
-> 0037040C    90              NOP  
-> 0037040D    90              NOP  
-> 0037040E    90              NOP  
-> 0037040F    90              NOP  
-> 00370410    90              NOP  
-> 00370411    90              NOP  
-> 00370412    90              NOP  
-> 00370413    90              NOP  
-> 00370414    90              NOP  
-> 00370415    90              NOP  
-> 00370416    90              NOP  
-> 00370417    90              NOP  
-> 00370418    90              NOP  
-> 00370419    90              NOP  
-> 0037041A    90              NOP  
-> 0037041B    90              NOP  
-> 0037041C    90              NOP  
-> 0037041D    90              NOP  
-> 0037041E    90              NOP  
->               .  
->               .  
->               .  
-> 00370C0C    68 0DE94500     PUSH 45E90D                              ; (9)跳到这里。\[F8\]单步步过。  
-> 00370C11    C3              RETN                                     ; (10)\[F8\]返回。  
-> 00370C12    C5C5            LDS EAX,EBP                              ; 非法使用寄存器  
-> 00370C14    C5C5            LDS EAX,EBP                              ; 非法使用寄存器  
-> 00370C16    C5C5            LDS EAX,EBP                              ; 非法使用寄存器  
-> 00370C18    C5C5            LDS EAX,EBP                              ; 非法使用寄存器  
-> 00370C1A    C5C5            LDS EAX,EBP                              ; 非法使用寄存器  
-> 00370C1C    C5C5            LDS EAX,EBP                              ; 非法使用寄存器  
->               .  
->               .  
->               .  
-> 0045E90D    60              PUSHAD                                   ; (11)程序返回到这里。我们看下边 0045E921 到 0045E925 处的代码，其实这里也是动态解密后台代码，解密完毕后才去执行的。所以我们直接停在它所解密完毕后的第一句代码上就可以了。  
-> 0045E90E    E8 00000000     CALL 8d56547f.0045E913  
-> 0045E913    5F              POP EDI  
-> 0045E914    8DBF 1A000000   LEA EDI,DWORD PTR DS:\[EDI+1A\]  
-> 0045E91A    B9 980E0000     MOV ECX,0E98  
-> 0045E91F    B0 B5           MOV AL,0B5  
-> 0045E921    0007            ADD BYTE PTR DS:\[EDI\],AL  
-> 0045E923    47              INC EDI  
-> 0045E924    49              DEC ECX  
-> 0045E925  ^ 75 FA           JNZ SHORT 8d56547f.0045E921  
-> 0045E927    61              POPAD                                    ; (12)我们在这里按\[F4\]：执行到当前代码处。看看后边代码是不是改变了(我们看下边注解"13"所在的代码位置)。  
-> 0045E928    90              NOP  
-> 0045E929    90              NOP  
-> 0045E92A    90              NOP  
-> 0045E92B    90              NOP  
-> 0045E92C    90              NOP  
-> 0045E92D    334B 4B         XOR ECX,DWORD PTR DS:\[EBX+4B\]  
-> 0045E930    4B              DEC EBX  
-> 0045E931    4B              DEC EBX  
-> 0045E932    A9 CC11464E     TEST EAX,4E4611CC  
->               .  
->               .  
->               .  
-> 0045E927    61              POPAD  
-> 0045E928    90              NOP  
-> 0045E929    90              NOP  
-> 0045E92A    90              NOP  
-> 0045E92B    90              NOP  
-> 0045E92C    90              NOP  
-> 0045E92D    E8 00000000     CALL 8d56547f.0045E932                   ; (13)这段以后就是改变的代码。  
->                                                                      ; (14)我们向下看本段代码，其中有一处代码存在 N 多的 NOP。  
-> 0045E932    5E              POP ESI  
-> 0045E933    81C6 FB030000   ADD ESI,3FB  
-> 0045E939    B9 F40E0000     MOV ECX,0EF4  
-> 0045E93E    8BFE            MOV EDI,ESI  
-> 0045E940    E8 00000000     CALL 8d56547f.0045E945  
-> 0045E945    5B              POP EBX  
-> 0045E946    81EB 1D114000   SUB EBX,8d56547f.0040111D  
-> 0045E94C    8D9B 2A114000   LEA EBX,DWORD PTR DS:\[EBX+40112A\]  
-> 0045E952    AC              LODS BYTE PTR DS:\[ESI\]  
-> 0045E953    04 AA           ADD AL,0AA  
-> 0045E955    34 E3           XOR AL,0E3  
-> 0045E957    EB 01           JMP SHORT 8d56547f.0045E95A  
-> 0045E959    C2 F9C0         RETN 0C0F9  
-> 0045E95C    C0E6 FE         SHL DH,0FE                               ; 移位常量超出 1..31 的范围  
-> 0045E95F    C0FE C0         SAR DH,0C0                               ; 移位常量超出 1..31 的范围  
-> 0045E962    2C EC           SUB AL,0EC  
-> 0045E964    90              NOP  
-> 0045E965    C0C8 EB         ROR AL,0EB                               ; 移位常量超出 1..31 的范围  
-> 0045E968    FEC0            INC AL  
-> 0045E96A    EB 01           JMP SHORT 8d56547f.0045E96D  
-> 0045E96C    E8 EB01C2EB     CALL EC07EB5C  
-> 0045E971    01E9            ADD ECX,EBP  
-> 0045E973    EB 01           JMP SHORT 8d56547f.0045E976  
-> 0045E975    E8 F934AC04     CALL 04F21E73  
-> 0045E97A  ^ 7E 90           JLE SHORT 8d56547f.0045E90C  
-> 0045E97C    2C 99           SUB AL,99  
-> 0045E97E    FEC0            INC AL  
-> 0045E980    F9              STC  
-> 0045E981    F9              STC  
-> 0045E982    34 05           XOR AL,5  
-> 0045E984    2C 1B           SUB AL,1B  
-> 0045E986    F8              CLC  
-> 0045E987    EB 01           JMP SHORT 8d56547f.0045E98A  
-> 0045E989    C2 F9C0         RETN 0C0F9  
-> 0045E98C    C0E6 90         SHL DH,90                                ; 移位常量超出 1..31 的范围  
-> 0045E98F    AA              STOS BYTE PTR ES:\[EDI\]  
-> 0045E990    49              DEC ECX  
-> 0045E991    74 02           JE SHORT 8d56547f.0045E995  
-> 0045E993    FFE3            JMP EBX  
-> 0045E995    90              NOP                                      ; (15)我们在这个第一处 NOP 的地方，按\[F4\]：执行到当前代码处。  
->                                                                      ; (16)我们向下看本段代码，看到连续全部的 NOP 结束的地方(会很长一段)。  
-> 0045E996    90              NOP  
-> 0045E997    90              NOP  
-> 0045E998    90              NOP  
-> 0045E999    90              NOP  
-> 0045E99A    90              NOP  
-> 0045E99B    90              NOP  
-> 0045E99C    90              NOP  
-> 0045E99D    90              NOP  
-> 0045E99E    90              NOP  
-> 0045E99F    90              NOP  
-> 0045E9A0    90              NOP  
-> 0045E9A1    90              NOP  
-> 0045E9A2    90              NOP  
-> 0045E9A3    90              NOP  
-> 0045E9A4    90              NOP  
->               .  
->               .  
->               .  
-> 0045ED2C    90              NOP                                      ; (17)这个就是连接 NOP 最后结束的地方。  
-> 0045ED2D    2833            SUB BYTE PTR DS:\[EBX\],DH                 ; (18)我们在这里按\[F4\]：执行到当前代码处。看看后边代码是不是改变了(我们看下边注解"19"所在的代码位置)。  
-> 0045ED2F    1D 4F4F4F4F     SBB EAX,4F4F4F4F  
-> 0045ED34    4F              DEC EDI  
-> 0045ED35    4F              DEC EDI  
-> 0045ED36    E5 37           IN EAX,37                                ; I/O 命令  
-> 0045ED38    B7 65           MOV BH,65  
-> 0045ED3A    59              POP ECX  
-> 0045ED3B    F4              HLT                                      ; 特权命令  
-> 0045ED3C    4D              DEC EBP  
-> 0045ED3D    43              INC EBX  
-> 0045ED3E    59              POP ECX  
-> 0045ED3F    BC 4D45AB4F     MOV ESP,4FAB454D  
-> 0045ED44    4F              DEC EDI  
-> 0045ED45    4F              DEC EDI  
-> 0045ED46    4F              DEC EDI  
-> 0045ED47    5E              POP ESI  
-> 0045ED48    90              NOP  
->               .  
->               .  
->               .  
-> 0045ED2D   /E9 F7040000     JMP 8d56547f.0045F229                    ; (19)这段下边就是改变的地方。\[F8\]跳。  
-> 0045ED32   |0000            ADD BYTE PTR DS:\[EAX\],AL  
-> 0045ED34   |0000            ADD BYTE PTR DS:\[EAX\],AL  
-> 0045ED36   |56              PUSH ESI  
-> 0045ED37   |51              PUSH ECX  
-> 0045ED38   |52              PUSH EDX  
-> 0045ED39   |53              PUSH EBX  
-> 0045ED3A   |8B7424 18       MOV ESI,DWORD PTR SS:\[ESP+18\]  
-> 0045ED3E   |8B4424 14       MOV EAX,DWORD PTR SS:\[ESP+14\]  
-> 0045ED42   |E8 00000000     CALL 8d56547f.0045ED47  
-> 0045ED47   |5D              POP EBP  
-> 0045ED48   |81ED 13574000   SUB EBP,8d56547f.00405713  
-> 0045ED4E   |0FB750 3C       MOVZX EDX,WORD PTR DS:\[EAX+3C\]  
-> 0045ED52   |8BD8            MOV EBX,EAX  
-> 0045ED54   |03C2            ADD EAX,EDX  
-> 0045ED56   |8B40 78         MOV EAX,DWORD PTR DS:\[EAX+78\]  
-> 0045ED59   |03C3            ADD EAX,EBX  
-> 0045ED5B   |8B50 24         MOV EDX,DWORD PTR DS:\[EAX+24\]  
->               .  
->               .  
->               .  
-> 0045F229    61              POPAD                                    ; (20)跳到这里。注解“20”以前的壳都是比较好分析的，而从这里开始，后边的代码壳会自己去利用创建线程的方式解密输入表，把主线程停止 5 秒后退出，然后利用壳解密输入表的线程去继续执行主程序的真正代码。这里就算你把所有的 CALL 都跟进度(包括系统的 API)，最后的结果都会是“不是程序跑飞，就是进程退出，无法执行了”。因为壳所创建的线程里使用了 LoadLibraryA 去查找解密输入表，所以我们如果是利用单步跟踪的方式时，就可以采用对 LoadLibraryA 下断的方法把创建的线程断下来，利用这种方法就可以跟到程序的真正入口点了。  
->                                                                      ; (21)其实所创建线程后的工作代码也在程序中的，而这个壳的失败之处就在于一切的分界线都是那么的明显(全部都可以用眼睛直接看出来)，所以我们就可以采取简单的办法，向下大篇幅的翻代码，找到特征性的跳转代码(这个特征代码对于该病毒所使用的壳是唯一性的、不改变的，目前新变种的所有版本百试百灵)。特征代码请看第“24”注解处。  
-> 0045F22A    E8 D4FBFFFF     CALL 8d56547f.0045EE03  
-> 0045F22F    53              PUSH EBX  
-> 0045F230    E8 00000000     CALL 8d56547f.0045F235  
-> 0045F235    5B              POP EBX  
-> 0045F236    8943 EC         MOV DWORD PTR DS:\[EBX-14\],EAX  
-> 0045F239    5B              POP EBX  
-> 0045F23A    E8 00000000     CALL 8d56547f.0045F23F  
-> 0045F23F    5F              POP EDI  
-> 0045F240    8D7F E6         LEA EDI,DWORD PTR DS:\[EDI-1A\]  
-> 0045F243    E8 00000000     CALL 8d56547f.0045F248  
-> 0045F248    58              POP EAX  
-> 0045F249    8D80 EEFAFFFF   LEA EAX,DWORD PTR DS:\[EAX-512\]  
-> 0045F24F    AB              STOS DWORD PTR ES:\[EDI\]  
-> 0045F250    E8 00000000     CALL 8d56547f.0045F255  
-> 0045F255    58              POP EAX  
-> 0045F256    8B40 CC         MOV EAX,DWORD PTR DS:\[EAX-34\]  
-> 0045F259    E8 0D000000     CALL 8d56547f.0045F26B                   ; (22)这个 CALL 会去创建线程。  
-> 0045F25E    43              INC EBX  
-> 0045F25F    72 65           JB SHORT 8d56547f.0045F2C6  
-> 0045F261    61              POPAD  
-> 0045F262    74 65           JE SHORT 8d56547f.0045F2C9  
-> 0045F264    54              PUSH ESP  
-> 0045F265    68 72656164     PUSH 64616572  
-> 0045F26A    0050 E8         ADD BYTE PTR DS:\[EAX-18\],DL  
-> 0045F26D    0000            ADD BYTE PTR DS:\[EAX\],AL  
-> 0045F26F    0000            ADD BYTE PTR DS:\[EAX\],AL  
-> 0045F271    58              POP EAX  
-> 0045F272    8D80 C5FAFFFF   LEA EAX,DWORD PTR DS:\[EAX-53B\]  
-> 0045F278    FFD0            CALL EAX  
-> 0045F27A    60              PUSHAD  
-> 0045F27B    8BD0            MOV EDX,EAX  
-> 0045F27D    E8 00000000     CALL 8d56547f.0045F282  
-> 0045F282    5B              POP EBX  
-> 0045F283    8D9B B0FAFFFF   LEA EBX,DWORD PTR DS:\[EBX-550\]  
-> 0045F289    E8 00000000     CALL 8d56547f.0045F28E  
-> 0045F28E    59              POP ECX  
-> 0045F28F    8D89 83000000   LEA ECX,DWORD PTR DS:\[ECX+83\]  
-> 0045F295    E8 00000000     CALL 8d56547f.0045F29A  
-> 0045F29A    5F              POP EDI  
-> 0045F29B    8DBF 52080000   LEA EDI,DWORD PTR DS:\[EDI+852\]  
-> 0045F2A1    66:B8 2BD2      MOV AX,0D22B  
-> 0045F2A5    66:AB           STOS WORD PTR ES:\[EDI\]  
-> 0045F2A7    B0 68           MOV AL,68  
-> 0045F2A9    AA              STOS BYTE PTR ES:\[EDI\]  
-> 0045F2AA    8BC3            MOV EAX,EBX  
-> 0045F2AC    AB              STOS DWORD PTR ES:\[EDI\]  
-> 0045F2AD    66:B8 5252      MOV AX,5252  
-> 0045F2B1    66:AB           STOS WORD PTR ES:\[EDI\]  
-> 0045F2B3    B0 68           MOV AL,68  
-> 0045F2B5    AA              STOS BYTE PTR ES:\[EDI\]  
-> 0045F2B6    8BC1            MOV EAX,ECX  
-> 0045F2B8    AB              STOS DWORD PTR ES:\[EDI\]  
-> 0045F2B9    66:B8 5252      MOV AX,5252  
-> 0045F2BD    66:AB           STOS WORD PTR ES:\[EDI\]  
-> 0045F2BF    66:B8 FFD0      MOV AX,0D0FF  
-> 0045F2C3    66:AB           STOS WORD PTR ES:\[EDI\]  
-> 0045F2C5    B0 C3           MOV AL,0C3  
-> 0045F2C7    AA              STOS BYTE PTR ES:\[EDI\]  
-> 0045F2C8    8BC2            MOV EAX,EDX  
-> 0045F2CA    E8 00000000     CALL 8d56547f.0045F2CF  
-> 0045F2CF    5F              POP EDI  
-> 0045F2D0    8DBF 1D080000   LEA EDI,DWORD PTR DS:\[EDI+81D\]  
-> 0045F2D6    FFD7            CALL EDI  
-> 0045F2D8    61              POPAD  
-> 0045F2D9    60              PUSHAD  
-> 0045F2DA    E8 00000000     CALL 8d56547f.0045F2DF  
-> 0045F2DF    58              POP EAX  
-> 0045F2E0    8B80 42FFFFFF   MOV EAX,DWORD PTR DS:\[EAX-BE\]  
-> 0045F2E6    E8 06000000     CALL 8d56547f.0045F2F1  
-> 0045F2EB    53              PUSH EBX  
-> 0045F2EC    6C              INS BYTE PTR ES:\[EDI\],DX                 ; I/O 命令  
-> 0045F2ED    65:             PREFIX GS:                               ; 多余的前缀  
-> 0045F2EE    65:70 00        JO SHORT 8d56547f.0045F2F1               ; 多余的前缀  
-> 0045F2F1    50              PUSH EAX  
-> 0045F2F2    E8 00000000     CALL 8d56547f.0045F2F7  
-> 0045F2F7    58              POP EAX  
-> 0045F2F8    8D80 3FFAFFFF   LEA EAX,DWORD PTR DS:\[EAX-5C1\]  
-> 0045F2FE    FFD0            CALL EAX  
-> 0045F300    8BD8            MOV EBX,EAX  
-> 0045F302    68 88130000     PUSH 1388  
-> 0045F307    FFD3            CALL EBX                                 ; (23)主线程等待 5 秒。  
-> 0045F309    61              POPAD  
-> 0045F30A    2BC0            SUB EAX,EAX  
-> 0045F30C    40              INC EAX  
-> 0045F30D    83C4 04         ADD ESP,4  
-> 0045F310    C3              RETN  
->               .  
->               .  
->               .  
-> 0045F958  ^\\0F85 63FFFFFF   JNZ 8d56547f.0045F8C1  
-> 0045F95E    68 00400000     PUSH 4000  
-> 0045F963    68 13050000     PUSH 513  
-> 0045F968    FFB5 1A050000   PUSH DWORD PTR SS:\[EBP+51A\]  
-> 0045F96E    FF95 4E040000   CALL DWORD PTR SS:\[EBP+44E\]  
-> 0045F974    E8 42000000     CALL 8d56547f.0045F9BB  
-> 0045F979    E8 29010000     CALL 8d56547f.0045FAA7  
-> 0045F97E    61              POPAD  
-> 0045F97F    EB 03           JMP SHORT 8d56547f.0045F984  
-> 0045F981    83C4 04         ADD ESP,4  
-> 0045F984  - E9 7F80FAFF     JMP 8d56547f.00407A08                    ; (24)这里就是特征码所在位置，很多壳在结束自己时都有这样明显的特征(记住这样代表性的特征很有好处的)。这里同样也是壳所创建输入表解密线程执行完毕后的跳转。  
->                                                                      ; (25)我们在这里按\[F2\]下断，然后\[F9\]运行。这样程序执行一段时间后(一段时间是在解密输入表)，就会停在这里了。我们现在\[F8\]大跳。  
->                                                                      ; (26)注意：这里千万不要使用\[F4\]执行到该代码处，因为这里代码是以新建线程执行的，你\[F4\]执行后根本是停不下来的，直接就跑飞了，不信你试试。  
-> 0045F989    61              POPAD  
-> 0045F98A    C3              RETN  
-> 0045F98B    60              PUSHAD  
-> 0045F98C    8B85 FA040000   MOV EAX,DWORD PTR SS:\[EBP+4FA\]  
-> 0045F992    0340 3C         ADD EAX,DWORD PTR DS:\[EAX+3C\]  
-> 0045F995    66:0340 14      ADD AX,WORD PTR DS:\[EAX+14\]  
-> 0045F999    83C0 18         ADD EAX,18  
-> 0045F99C    8B58 0C         MOV EBX,DWORD PTR DS:\[EAX+C\]  
-> 0045F99F    039D FA040000   ADD EBX,DWORD PTR SS:\[EBP+4FA\]  
-> 0045F9A5    8B48 08         MOV ECX,DWORD PTR DS:\[EAX+8\]  
-> 0045F9A8    8D85 F2040000   LEA EAX,DWORD PTR SS:\[EBP+4F2\]  
->               .  
->               .  
->               .  
-> 00407A08      55            DB 55                                    ;  CHAR 'U' (27)看看这里是什么？我们\[Ctrl+A\]使 OD 重新分析代码。  
-> 00407A09      8B            DB 8B  
-> 00407A0A      EC            DB EC  
-> 00407A0B      6A            DB 6A                                    ;  CHAR 'j'  
-> 00407A0C      FF            DB FF  
-> 00407A0D      68            DB 68                                    ;  CHAR 'h'  
-> 00407A0E      50            DB 50                                    ;  CHAR 'P'  
-> 00407A0F      12            DB 12  
-> 00407A10      40            DB 40                                    ;  CHAR '@'  
-> 00407A11      00            DB 00  
-> 00407A12      68            DB 68                                    ;  CHAR 'h'  
-> 00407A13      20            DB 20                                    ;  CHAR ' '  
-> 00407A14      79            DB 79                                    ;  CHAR 'y'  
-> 00407A15      40            DB 40                                    ;  CHAR '@'  
-> 00407A16      00            DB 00  
-> 00407A17      64            DB 64                                    ;  CHAR 'd'  
-> 00407A18      A1            DB A1  
-> 00407A19      00            DB 00  
-> 00407A1A      00            DB 00  
-> 00407A1B      00            DB 00  
-> 00407A1C      00            DB 00  
-> 00407A1D      50            DB 50                                    ;  CHAR 'P'  
-> 00407A1E      64            DB 64                                    ;  CHAR 'd'  
-> 00407A1F      89            DB 89  
-> 00407A20      25            DB 25                                    ;  CHAR '%'  
->               .  
->               .  
->               .  
-> 00407A08  /.  55            PUSH EBP                                 ; (28)看到了吧？多么可爱的入口点啊。被作者隐藏的这么神秘，里边一定有好东西。我们 DUMP 后继续去分析吧，记得要修复输入表哦！(^\_^)  
-> 00407A09  |.  8BEC          MOV EBP,ESP  
-> 00407A0B  |.  6A FF         PUSH -1  
-> 00407A0D  |.  68 50124000   PUSH 8d56547f.00401250  
-> 00407A12  |.  68 20794000   PUSH 8d56547f.00407920                   ;  JMP 到 msvcrt.\_except\_handler3; SE 处理程序安装  
-> 00407A17  |.  64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]  
-> 00407A1D  |.  50            PUSH EAX  
-> 00407A1E  |.  64:8925 00000>MOV DWORD PTR FS:\[0\],ESP  
-> 00407A25  |.  83EC 68       SUB ESP,68  
-> 00407A28  |.  53            PUSH EBX  
-> 00407A29  |.  56            PUSH ESI  
-> 00407A2A  |.  57            PUSH EDI  
-> 00407A2B  |.  8965 E8       MOV DWORD PTR SS:\[EBP-18\],ESP  
-> 00407A2E  |.  33DB          XOR EBX,EBX  
-> 00407A30  |.  895D FC       MOV DWORD PTR SS:\[EBP-4\],EBX  
-> 00407A33  |.  6A 02         PUSH 2  
-> 00407A35  |.  FF15 D8104000 CALL DWORD PTR DS:\[4010D8\]               ;  msvcrt.\_\_set\_app\_type  
-> 00407A3B  |.  59            POP ECX  
-> 00407A3C  |.  830D 6CB84400>OR DWORD PTR DS:\[44B86C\],FFFFFFFF  
-> 00407A43  |.  830D 70B84400>OR DWORD PTR DS:\[44B870\],FFFFFFFF  
-> 00407A4A  |.  FF15 DC104000 CALL DWORD PTR DS:\[4010DC\]               ;  msvcrt.\_\_p\_\_fmode  
-> 00407A50  |.  8B0D 54B84400 MOV ECX,DWORD PTR DS:\[44B854\]  
-> 00407A56  |.  8908          MOV DWORD PTR DS:\[EAX\],ECX  
-> 00407A58  |.  FF15 E0104000 CALL DWORD PTR DS:\[4010E0\]               ;  msvcrt.\_\_p\_\_commode  
-> 00407A5E  |.  8B0D 50B84400 MOV ECX,DWORD PTR DS:\[44B850\]  
-> 00407A64  |.  8908          MOV DWORD PTR DS:\[EAX\],ECX  
-> 00407A66  |.  A1 E4104000   MOV EAX,DWORD PTR DS:\[4010E4\]  
-> 00407A6B  |.  8B00          MOV EAX,DWORD PTR DS:\[EAX\]  
-> 00407A6D  |.  A3 68B84400   MOV DWORD PTR DS:\[44B868\],EAX  
-> 00407A72  |.  E8 13010000   CALL 8d56547f.00407B8A  
-> 00407A77  |.  391D 90334000 CMP DWORD PTR DS:\[403390\],EBX  
-> 00407A7D  |.  75 0C         JNZ SHORT 8d56547f.00407A8B  
-> 00407A7F  |.  68 B9664000   PUSH 8d56547f.004066B9  
-> 00407A84  |.  FF15 E8104000 CALL DWORD PTR DS:\[4010E8\]               ;  msvcrt.\_\_setusermatherr  
-> 00407A8A  |.  59            POP ECX  
-> 00407A8B  |>  E8 E8000000   CALL 8d56547f.00407B78  
-> 00407A90  |.  68 14204000   PUSH 8d56547f.00402014  
-> 00407A95  |.  68 10204000   PUSH 8d56547f.00402010  
-> 00407A9A  |.  E8 D3000000   CALL 8d56547f.00407B72                   ;  JMP 到 msvcrt.\_initterm  
-> 00407A9F  |.  A1 4CB84400   MOV EAX,DWORD PTR DS:\[44B84C\]  
-> 00407AA4  |.  8945 94       MOV DWORD PTR SS:\[EBP-6C\],EAX  
-> 00407AA7  |.  8D45 94       LEA EAX,DWORD PTR SS:\[EBP-6C\]  
-> 00407AAA  |.  50            PUSH EAX  
-> 00407AAB  |.  FF35 48B84400 PUSH DWORD PTR DS:\[44B848\]  
-> 00407AB1  |.  8D45 9C       LEA EAX,DWORD PTR SS:\[EBP-64\]  
-> 00407AB4  |.  50            PUSH EAX  
-> 00407AB5  |.  8D45 90       LEA EAX,DWORD PTR SS:\[EBP-70\]  
-> 00407AB8  |.  50            PUSH EAX  
-> 00407AB9  |.  8D45 A0       LEA EAX,DWORD PTR SS:\[EBP-60\]  
-> 00407ABC  |.  50            PUSH EAX  
-> 00407ABD  |.  FF15 F0104000 CALL DWORD PTR DS:\[4010F0\]               ;  msvcrt.\_\_getmainargs  
-> 00407AC3  |.  68 0C204000   PUSH 8d56547f.0040200C  
-> 00407AC8  |.  68 00204000   PUSH 8d56547f.00402000  
-> 00407ACD  |.  E8 A0000000   CALL 8d56547f.00407B72                   ;  JMP 到 msvcrt.\_initterm  
-> \---------------------------------------------------------------------------------------------  
-> 总结：  
->   
->     脱壳保存后，使用 PEID 查壳显示为“Microsoft Visual C++ 6.0”，但程序连接版本号是 8.0，也不知道是壳改了文件体什么特征呢？还是 PEID 查壳误报呢？就不研究了，反正壳是脱掉了。  
->     这个病毒所使用的壳融合了很多技术，我只把壳的各个分界线简单介绍了下，壳里边的细节完全没有介绍就写了这么多文字，恐怖啊！实在没办法写详细的分析步骤了，大家慢慢看吧。  
->     脱壳真是一种享受啊，每脱一种比较强的壳，那种心理感觉，你们知道是什么样子的吗？追寻技术的颠峰，不断的飞跃，心灵的喜悦才是动力的源泉！  
-> \--------------------------------------------------------------------------------------------- 
+> ////////////////////////////////////////////////////////////////////////////////////////////
 
- 4dd466d0e1e0cc123afbe504da2462ca
+> 文件名称：手脱“最新版 MSN 性感相册变种(Worm/MSN.SendPhoto)”病毒所添加的未知壳(最新所有版通脱)
+
+> 目标程序：最新版 MSN 性感相册变种(Worm/MSN.SendPhoto)
+
+> 操作环境：Windows XP-SP2
+
+> 使用工具：Ollydbg 1.10 版
+
+> 编写作者：Coderui
+
+> 编写时间：2007 年 12 月 27 日
+
+> 联系方式：coderui@163.com
+
+> 作者博客：http://hi.baidu.com/coderui
+
+> 介绍：
+
+> 前不久“MSN 性感相册变种(Worm/MSN.SendPhoto)”病毒在网络中消失了一段时间以后，最近又开始疯狂的发作了。很显然不是以前版本的病毒又复活了，而是病毒作者重新开发出了新的版本在进行到处传播。对病毒感兴趣的朋友当然是非常喜欢分析病毒原理的，但如果被其壳挡在门外，那可是最最郁闷的事情了。如果是简单壳或通用壳大家完全是可以使用脱壳机的，但如今的病毒作者是很聪明的，不会让大家那么轻松的就可以分析出他们的病毒信息，所以选择的壳当然也是比较强硬、希奇的物种。
+
+> 最近分析了几个新版的“MSN 性感相册变种(Worm/MSN.SendPhoto)”病毒，发现所添加的壳完全是一样的，可以肯定的是出自一个人之手，因为这种未知壳很少见，反正我是没见过(井底之蛙？呵呵)。病毒所添加的壳比较有深度，融入了很多技术，不适合脱壳的初学者和新手去手脱这个壳。我拿到该样本后，大概分析了 4-5 个小时，尝试手脱次数估计近 50 次，跑飞次数大概占全部次数的 9 层(也就是手脱 10 次，跑飞 9 次，剩下的一次以失败而告终，嘿嘿)，最后终于分析出来壳的原理和详细的手脱方法了(当然分析出来再去脱壳就不会跑飞了)，所以现在分享给大家，希望对想分析这个病毒原理的朋友有帮助。因为“MSN 性感相册变种(Worm/MSN.SendPhoto)”这个病毒现在比较流行，相信大家会很关注、会很喜欢的，也谢谢大家的支持了！
+
+> 简单的介绍下“MSN 性感相册变种(Worm/MSN.SendPhoto)”病毒所添加的壳吧。该壳中融入了压缩壳的技术、加密壳的技术、混淆入口点的技术、创建线程解密的技术、输入表加密的技术、花指令技术等等。也许可能这些技术来自于不同的壳(也就是病毒加了几层壳)，也许可能这些技术来自于同一个壳(那么这个壳还真不错，压缩率高、还可以保护住自己，不被一些人所破解)，弄个这样的壳来自己用感觉很不错(不过现在我没有，郁闷)，呵呵！
+
+> 今天给大家讲解的方法是怎样去快速脱掉该病毒所添加的壳，详细的调试分析跟踪步骤就不写了，因为代码太多，恐怕会越讲越乱，最后适得其反。(说真的，感觉做视频教程比写这种文章简单多了。采用文章去写的话，复杂的代码会被贴的很乱，大家就忍忍吧。)
+
+> OD 设置：(OD 设置为不忽略任何异常。`[F2]`：下软断点、`[F4]`：执行到当前代码处、`[F7]`：单步步入、`[F8]`单步步过、`[F9]`运行。)
+
+> 按照顺序查看注解：(1)、(2)、(3)……(10)。
+
+```
+0040101E  >  $  /EB 0C           JMP SHORT 8d56547f.0040102C                ; (1)程序载入后，停在这里。
+00401020   |  90               NOP
+00401021   |  90               NOP
+00401022   |  00               DB 00
+00401023   |  00               DB 00
+00401024   |  00               DB 00
+00401025   |  00               DB 00
+00401026   |  00               DB 00
+00401027   |  00               DB 00
+00401028   |  00               DB 00
+00401029   |  00               DB 00
+0040102A . |  CD 2E            INT 2E
+0040102C   >  \E8 03000000     CALL 8d56547f.00401034
+00401031 .   90               NOP
+00401032 .   EB 02            JMP SHORT 8d56547f.00401036
+00401034  /$   90             NOP
+00401035  \.   C3             RETN
+00401036   >   8B4424 FC      MOV EAX,DWORD PTR SS:[ESP-4]
+0040103A .   2D 9C194000      SUB EAX,8d56547f.0040199C
+0040103F .   8D80 98194000    LEA EAX,DWORD PTR DS:[EAX+401998]
+00401045   >   48             DEC EAX
+00401046 .   66:8138 5045     CMP WORD PTR DS:[EAX],4550
+0040104B . ^ 75 F8            JNZ SHORT 8d56547f.00401045
+0040104D .   8BF8             MOV EDI,EAX
+0040104F   >   48             DEC EAX
+00401050 .   66:8138 4D5A     CMP WORD PTR DS:[EAX],5A4D
+00401055 . ^ 75 F8            JNZ SHORT 8d56547f.0040104F
+00401057 .   8BBF 80000000    MOV EDI,DWORD PTR DS:[EDI+80]
+0040105D .   03F8             ADD EDI,EAX
+0040105F .   8B7F 10          MOV EDI,DWORD PTR DS:[EDI+10]
+00401062 .   03F8             ADD EDI,EAX
+00401064 .   8B07             MOV EAX,DWORD PTR DS:[EDI]
+00401066 .   B9 0C0C0000      MOV ECX,0C0C
+0040106B .   81C1 00000000    ADD ECX,0
+00401071 .   2AC9             SUB CL,CL
+00401073 .   81C1 00010000    ADD ECX,100
+00401079 .   50               PUSH EAX
+0040107A .   50               PUSH EAX
+0040107B .   51               PUSH ECX
+0040107C .   6A 40            PUSH 40
+0040107E .   68 00200000      PUSH 2000
+00401083 .   51               PUSH ECX
+00401084 .   6A 00            PUSH 0
+00401086 .   FFD0             CALL EAX
+00401088 .   8BF8             MOV EDI,EAX
+0040108A .   59               POP ECX
+0040108B .   58               POP EAX
+0040108C .   6A 40            PUSH 40
+0040108E .   68 00100000      PUSH 1000
+00401093 .   51               PUSH ECX
+00401094 .   57               PUSH EDI
+00401095 .   FFD0             CALL EAX
+00401097 .   8BF8             MOV EDI,EAX
+00401099 .   57               PUSH EDI
+0040109A .   E8 03000000      CALL 8d56547f.004010A2
+0040109F .   90               NOP
+004010A0 .   EB 02            JMP SHORT 8d56547f.004010A4
+004010A2  /$   90             NOP
+004010A3  \.   C3             RETN
+004010A4   >   8B7424 FC      MOV ESI,DWORD PTR SS:[ESP-4]
+004010A8 .   81EE 0B1A4000    SUB ESI,8d56547f.00401A0B
+004010AE .   8DB6 6C194000    LEA ESI,DWORD PTR DS:[ESI+40196C]
+004010B4 .   B9 0C0C0000      MOV ECX,0C0C
+004010B9 .   81EE 00000000    SUB ESI,0
+004010BF .   81C1 00000000    ADD ECX,0
+004010C5 .   F3:A4            REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[>
+004010C7 .   5F               POP EDI
+004010C8 .   81C7 FA000000    ADD EDI,0FA
+004010CE .   57               PUSH EDI
+004010CF .   B0 C5            MOV AL,0C5
+004010D1 .   B9 0C0C0000      MOV ECX,0C0C
+004010D6 .   81C7 00000000    ADD EDI,0
+004010DC   >   0007           ADD BYTE PTR DS:[EDI],AL
+004010DE .   47               INC EDI
+004010DF .   49               DEC ECX
+004010E0 . ^ 75 FA            JNZ SHORT 8d56547f.004010DC
+004010E2 .   5F               POP EDI
+004010E3 .   E8 03000000      CALL 8d56547f.004010EB
+004010E8 .   90               NOP
+004010E9 .   EB 03            JMP SHORT 8d56547f.004010EE
+004010EB  /$   40             INC EAX
+004010EC | . 90             NOP
+004010ED  \.  C3             RETN
+004010EE   >   8B4424 FC      MOV EAX,DWORD PTR SS:[ESP-4]
+004010F2 .   81C7 00000000    ADD EDI,0
+004010F8 .   FFE7             JMP EDI                              ; (3)这个就是分界处的 JMP，上边这段应该是数据解压代码。
+004010FA     8E               DB 8E
+004010FB     23               DB 23                              ;  CHAR '#'
+004010FC     3B               DB 3B                              ;  CHAR ';'
+004010FD     3B               DB 3B                              ;  CHAR ';'
+004010FE     3B               DB 3B                              ;  CHAR ';'
+004010FF     3B               DB 3B                              ;  CHAR ';'
+.
+.
+.
+003700FA    53                PUSH EBX                            ; (5)跳转后来到这里。我们向下看本段代码(会向下看很长一段)，其中有一处代码存在 N 多的 NOP，在 NOP 上方有一个 RETN，RETN 上边是 POPAD 和 PUSHAD。
+003700FB    E8 00000000       CALL 00370100
+00370100    5B                POP EBX
+00370101    8983 0A000000     MOV DWORD PTR DS:[EBX+A],EAX
+00370107    5B                POP EBX
+00370108    EB 04             JMP SHORT 0037010E
+0037010A    0000              ADD BYTE PTR DS:[EAX],AL
+0037010C    0000              ADD BYTE PTR DS:[EAX],AL
+0037010E    E8 00000000       CALL 00370113
+00370113    58                POP EAX
+00370114    8D80 75020000     LEA EAX,DWORD PTR DS:[EAX+275]
+0037011A    FFD0              CALL EAX
+0037011C    60                PUSHAD
+0037011D    50                PUSH EAX
+0037011E    E8 0F000000       CALL 00370132
+00370123    56                PUSH ESI
+00370124    6972 74 75616C5>  IMUL ESI,DWORD PTR DS:[EDX+74],506C6175
+0037012B    72 6F             JB SHORT 0037019C
+0037012D    74 65             JE SHORT 00370194
+0037012F    637400 50         ARPL WORD PTR DS:[EAX+EAX+50],SI
+00370133    E8 00000000       CALL 00370138
+00370138    58                POP EAX
+```
+
+
+
+```text
+00370139    8D80 7A010000   LEA EAX,DWORD PTR DS:[EAX+17A]
+0037013F    FFD0            CALL EAX
+00370141    5B              POP EBX
+00370142    0BC0            OR EAX,EAX
+00370144    0F85 82000000   JNZ 003701CC
+0037014A    E8 10000000      CALL 0037015F
+0037014F    4C              DEC ESP
+00370150    64:72 47        JB SHORT 0037019A                    ; 多余的前缀
+00370153    65:74 44        JE SHORT 0037019A                    ; 多余的前缀
+00370156    6C              INS BYTE PTR ES:[EDI],DX             ; I/O 命令
+00370157    6C              INS BYTE PTR ES:[EDI],DX             ; I/O 命令
+00370158    48              DEC EAX
+00370159    61              POPAD
+0037015A    6E              OUTS DX,BYTE PTR ES:[EDI]            ; I/O 命令
+0037015B    64:6C           INS BYTE PTR ES:[EDI],DX             ; I/O 命令
+0037015D    65:0053 E8      ADD BYTE PTR GS:[EBX-18],DL
+00370161    0000            ADD BYTE PTR DS:[EAX],AL
+00370163    0000            ADD BYTE PTR DS:[EAX],AL
+00370165    58              POP EAX
+00370166    8D80 4D010000   LEA EAX,DWORD PTR DS:[EAX+14D]
+0037016C    FFD0            CALL EAX
+0037016E    8BF8            MOV EDI,EAX
+00370170    2BC0            SUB EAX,EAX
+00370172    50              PUSH EAX
+00370173    8BCC            MOV ECX,ESP
+00370175    E8 14000000      CALL 0037018E
+0037017A    4B              DEC EBX
+0037017B    0045 00         ADD BYTE PTR SS:[EBP],AL
+0037017E    52              PUSH EDX
+0037017F    004E 00         ADD BYTE PTR DS:[ESI],CL
+00370182    45              INC EBP
+00370183    004C00 33       ADD BYTE PTR DS:[EAX+EAX+33],CL
+00370187    0032            ADD BYTE PTR DS:[EDX],DH
+00370189    0000            ADD BYTE PTR DS:[EAX],AL
+0037018B    0000            ADD BYTE PTR DS:[EAX],AL
+0037018D    00B8 10001200   ADD BYTE PTR DS:[EAX+120010],BH
+00370193    50              PUSH EAX
+00370194    8BC4            MOV EAX,ESP
+00370196    51              PUSH ECX
+00370197    50              PUSH EAX
+00370198    6A 00           PUSH 0
+0037019A    6A 00           PUSH 0
+0037019C    FFD7            CALL EDI
+0037019E    83C4 08         ADD ESP,8
+003701A1    58              POP EAX
+003701A2    50              PUSH EAX
+003701A3    E8 0F000000      CALL 003701B7
+003701A8    56              PUSH ESI
+003701A9    6972 74 7568    IMUL ESI,DWORD PTR DS:[EDX+74],506C6175 ; 注意：此处原文显示为 "IMUL ESI,DWORD PTR DS:\[EDX+74\],506C6175"，其中 "rtual" 可能是 "virtual" 的一部分或被截断，但根据汇编语义，操作数通常是立即数。观察后续行 003701B0 "JB SHORT"，表明这里可能是重叠指令或数据。根据规则，保留核心内容，修正格式。原文 "IMUL ESI,DWORD PTR DS:\[EDX+74\],506C6175" 中 506C6175 是十六进制立即数。
+003701B0    72 6F           JB SHORT 00370221
+003701B2    74 65           JE SHORT 00370219
+003701B4    637400 50       ARPL WORD PTR DS:[EAX+EAX+50],SI
+003701B8    E8 00000000      CALL 003701BD
+003701BD    58              POP EAX
+003701BE    8D80 F5000000   LEA EAX,DWORD PTR DS:[EAX+F5]
+003701C4    FFD0            CALL EAX
+003701C6    5B              POP EBX
+003701C7    0BC0            OR EAX,EAX
+003701C9    75 01           JNZ SHORT 003701CC
+003701CB    C3              RETN
+003701CC    50              PUSH EAX
+003701CD    DB0424          FILD DWORD PTR SS:[ESP]
+003701D0    8BD3            MOV EDX,EBX
+003701D2    8B4424 28       MOV EAX,DWORD PTR SS:[ESP+28]
+003701D6    60              PUSHAD
+003701D7    E8 00000000      CALL 003701DC
+003701DC    5E              POP ESI
+003701DD    8DB6 2D000000   LEA ESI,DWORD PTR DS:[ESI+2D]
+003701E3    56              PUSH ESI
+003701E4    64:FF35 0000000> PUSH DWORD PTR FS:[0]
+003701EB    64:8925 0000000> MOV DWORD PTR FS:[0],ESP
+003701F2    66:8138 4D5A    CMP WORD PTR DS:[EAX],5A4D
+003701F7    74 02           JE SHORT 003701FB
+003701F9    2BC0            SUB EAX,EAX
+003701FB    E8 00000000      CALL 00370200
+00370200    5B              POP EBX
+00370201    8D9B 28000000   LEA EBX,DWORD PTR DS:[EBX+28]
+00370207    FFE3            JMP EBX
+00370209    8B6424 08       MOV ESP,DWORD PTR SS:[ESP+8]
+0037020D    64:8F05 0000000> POP DWORD PTR FS:[0]
+00370214    83C4 04         ADD ESP,4
+00370217    61              POPAD
+00370218    2BC0            SUB EAX,EAX
+0037021A    E8 00000000      CALL 0037021F
+0037021F    5B              POP EBX
+00370220    8D9B 13000000   LEA EBX,DWORD PTR DS:[EBX+13]
+00370226    FFE3            JMP EBX
+00370228    64:8F05 0000000> POP DWORD PTR FS:[0]
+0037022F    83C4 24         ADD ESP,24
+00370232    8BDA            MOV EBX,EDX
+00370234    60              PUSHAD
+00370235    E8 00000000      CALL 0037023A
+0037023A    58              POP EAX
+0037023B    8B80 D0FEFFFF   MOV EAX,DWORD PTR DS:[EAX-130]
+00370241    66:2BC0         SUB AX,AX
+00370244    66:8138 4D5A    CMP WORD PTR DS:[EAX],5A4D
+00370249    74 07           JE SHORT 00370252
+0037024B    2D 00000100     SUB EAX,10000                     ; UNICODE "=::=::\\"
+00370250   ^ EB F2          JMP SHORT 00370244
+00370252    50              PUSH EAX
+00370253    DB0424          FILD DWORD PTR SS:[ESP]
+00370256    58              POP EAX
+00370257    61              POPAD
+00370258    5B              POP EBX
+00370259    6A 00           PUSH 0
+0037025B    8BC4            MOV EAX,ESP
+0037025D    83C4 04         ADD ESP,4
+00370260    50              PUSH EAX
+00370261    6A 40           PUSH 40
+00370263    E8 00000000      CALL 00370268
+00370268    58              POP EAX
+00370269    8B80 A2FDFFFF   MOV EAX,DWORD PTR DS:[EAX-25E]
+0037026F    50              PUSH EAX
+00370270    E8 00000000      CALL 00370275
+00370275    58              POP EAX
+00370276    8D80 8BFDFFFF   LEA EAX,DWORD PTR DS:[EAX-275]
+0037027C    50              PUSH EAX
+0037027D    FFD3            CALL EBX
+0037027F    6A 00           PUSH 0
+00370281    8BC4            MOV EAX,ESP
+00370283    83C4 04         ADD ESP,4
+00370286    50              PUSH EAX
+00370287    6A 40           PUSH 40
+00370289    E8 00000000      CALL 0037028E
+0037028E    58              POP EAX
+0037028F    8B80 80FDFFFF   MOV EAX,DWORD PTR DS:[EAX-280]
+00370295    50              PUSH EAX
+00370296    51              PUSH ECX
+00370297    DB1424          FIST DWORD PTR SS:[ESP]
+0037029A    59              POP ECX
+0037029B    E8 00000000      CALL 003702A0
+003702A0    58              POP EAX
+003702A1    8B80 62FDFFFF   MOV EAX,DWORD PTR DS:[EAX-29E]
+003702A7    03C1            ADD EAX,ECX
+003702A9    50              PUSH EAX
+003702AA    FFD3            CALL EBX
+003702AC    61              POPAD
+003702AD    E9 F8000000      JMP 003703AA
+003702B2    56              PUSH ESI
+003702B3    51              PUSH ECX
+003702B4    52              PUSH EDX
+003702B5    53              PUSH EBX
+003702B6    8B7424 18       MOV ESI,DWORD PTR SS:[ESP+18]
+003702BA    8B4424 14       MOV EAX,DWORD PTR SS:[ESP+14]
+003702BE    E8 01000000      CALL 003702C4
+003702C3    90              NOP
+003702C4    5D              POP EBP
+003702C5    45              INC EBP
+003702C6    81ED 301C4000   SUB EBP,401C30
+003702CC    0FB750 3C       MOVZX EDX,WORD PTR DS:[EAX+3C]
+003702D0    8BD8            MOV EBX,EAX
+003702D2    03C2            ADD EAX,EDX
+003702D4    8B40 78         MOV EAX,DWORD PTR DS:[EAX+78]
+003702D7    03C3            ADD EAX,EBX
+003702D9    8B50 24         MOV EDX,DWORD PTR DS:[EAX+24]
+003702DC    52              PUSH EDX
+003702DD    DB0424          FILD DWORD PTR SS:[ESP]
+003702E0    5A              POP EDX
+003702E1    8B50 1C         MOV EDX,DWORD PTR DS:[EAX+1C]
+```
+
+
+
+```assembly
+003702E4    891424          MOV DWORD PTR SS:[ESP],EDX
+003702E7    52              PUSH EDX
+003702E8    DB0424          FILD DWORD PTR SS:[ESP]
+003702EB    5A              POP EDX
+003702EC    8B50 20         MOV EDX,DWORD PTR DS:[EAX+20]
+003702EF    03D3            ADD EDX,EBX
+003702F1    8BFE            MOV EDI,ESI
+003702F3    60              PUSHAD
+003702F4    E8 00000000     CALL 003702F9
+003702F9    5E              POP ESI
+003702FA    8DB6 5B000000   LEA ESI,DWORD PTR DS:[ESI+5B]
+00370300    56              PUSH ESI
+00370301    64:FF35 00000000 PUSH DWORD PTR FS:[0]
+00370308    64:8925 00000000 MOV DWORD PTR FS:[0],ESP
+0037030F    2BC9            SUB ECX,ECX
+00370311    49              DEC ECX
+00370312    2BC0            SUB EAX,EAX
+00370314    57              PUSH EDI
+00370315    F2:AE           REPNE SCAS BYTE PTR ES:[EDI]
+00370317    F7D1            NOT ECX
+00370319    5F              POP EDI
+0037031A    8B3482          MOV ESI,DWORD PTR DS:[EDX+EAX*4]
+0037031D    03F3            ADD ESI,EBX
+0037031F    57              PUSH EDI
+00370320    51              PUSH ECX
+00370321    F3:A6           REPE CMPS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]
+00370323    59              POP ECX
+00370324    74 04           JE SHORT 0037032A
+00370326    5F              POP EDI
+00370327    40              INC EAX
+00370328    EB F0           JMP SHORT 0037031A
+0037032A    5F              POP EDI
+0037032B    56              PUSH ESI
+0037032C    DB1C24          FISTP DWORD PTR SS:[ESP]
+0037032F    5E              POP ESI
+00370330    87F7            XCHG EDI,ESI
+00370332    56              PUSH ESI
+00370333    DB1C24          FISTP DWORD PTR SS:[ESP]
+00370336    5E              POP ESI
+00370337    8D141F          LEA EDX,DWORD PTR DS:[ESI+EBX]
+0037033A    0FB70442        MOVZX EAX,WORD PTR DS:[EDX+EAX*2]
+0037033E    8D141F          LEA EDX,DWORD PTR DS:[EDI+EBX]
+00370341    8B0482          MOV EAX,DWORD PTR DS:[EDX+EAX*4]
+00370344    03C3            ADD EAX,EBX
+00370346    E8 00000000     CALL 0037034B
+0037034B    5B              POP EBX
+0037034C    8D9B 28000000   LEA EBX,DWORD PTR DS:[EBX+28]
+00370352    FFE3            JMP EBX
+00370354    8B6424 08       MOV ESP,DWORD PTR SS:[ESP+8]
+00370358    64:8F05 00000000 POP DWORD PTR FS:[0]
+0037035F    83C4 04         ADD ESP,4
+00370362    61              POPAD
+00370363    2BC0            SUB EAX,EAX
+00370365    E8 00000000     CALL 0037036A
+0037036A    5B              POP EBX
+0037036B    8D9B 13000000   LEA EBX,DWORD PTR DS:[EBX+13]
+00370371    FFE3            JMP EBX
+00370373    64:8F05 00000000 POP DWORD PTR FS:[0]
+0037037A    83C4 24         ADD ESP,24
+0037037D    5B              POP EBX
+0037037E    5A              POP EDX
+0037037F    59              POP ECX
+00370380    5E              POP ESI
+00370381    83C4 0C         ADD ESP,0C
+00370384    FF6424 F4       JMP DWORD PTR SS:[ESP-C]
+00370388    8B4C24 04       MOV ECX,DWORD PTR SS:[ESP+4]
+0037038C    52              PUSH EDX
+0037038D    51              PUSH ECX
+0037038E    2BD2            SUB EDX,EDX
+00370390    49              DEC ECX
+00370391    66:8139 4D5A    CMP WORD PTR DS:[ECX],5A4D
+00370396    75 F8           JNZ SHORT 00370390
+00370398    8BF9            MOV EDI,ECX
+0037039A    66:8B51 3C      MOV DX,WORD PTR DS:[ECX+3C]
+0037039E    66:813C0A 5045  CMP WORD PTR DS:[EDX+ECX],4550
+003703A4    75 EA           JNZ SHORT 00370390
+003703A6    91              XCHG EAX,ECX
+003703A7    59              POP ECX
+003703A8    5A              POP EDX
+003703A9    C3              RETN
+003703AA    50              PUSH EAX
+003703AB    DB1C24          FISTP DWORD PTR SS:[ESP]
+003703AE    E8 00000000     CALL 003703B3
+003703B3    58              POP EAX
+003703B4    8B80 4FFCFFFF   MOV EAX,DWORD PTR DS:[EAX-3B1]
+003703BA    030424          ADD EAX,DWORD PTR SS:[ESP]
+003703BD    83C4 04         ADD ESP,4
+003703C0    60              PUSHAD
+003703C1    E8 00000000     CALL 003703C6
+003703C6    5F              POP EDI
+003703C7    8DBF 46080000   LEA EDI,DWORD PTR DS:[EDI+846]
+003703CD    8BD8            MOV EBX,EAX
+003703CF    B0 68           MOV AL,68
+003703D1    AA              STOS BYTE PTR ES:[EDI]
+003703D2    8BC3            MOV EAX,EBX
+003703D4    AB              STOS DWORD PTR ES:[EDI]
+003703D5    B0 C3           MOV AL,0C3
+003703D7    AA              STOS BYTE PTR ES:[EDI]
+003703D8    0F31            RDTSC
+003703DA    8BDA            MOV EBX,EDX
+003703DC    0F31            RDTSC
+003703DE    33DA            XOR EBX,EDX
+003703E0    32DF            XOR BL,BH
+003703E2    80C7 E0         ADD BH,0E0
+003703E5    80F3 FF         XOR BL,0FF
+003703E8    8BC3            MOV EAX,EBX
+003703EA    E8 00000000     CALL 003703EF
+003703EF    5F              POP EDI
+003703F0    8DBF 1B000000   LEA EDI,DWORD PTR DS:[EDI+1B]
+003703F6    66:AB           STOS WORD PTR ES:[EDI]
+003703F8    61              POPAD
+003703F9    E8 00000000     CALL 003703FE
+003703FE    58              POP EAX
+003703FF    8D80 0E080000   LEA EAX,DWORD PTR DS:[EAX+80E]
+00370405    50              PUSH EAX
+00370406    DB1C24          FISTP DWORD PTR SS:[ESP]
+00370409    60              PUSHAD
+0037040A    61              POPAD ; (7)我们在这里按[F4]：执行到当前代码处。看看代码是不是改变了(我们看下边注解"8"所在的代码位置)。
+0037040B    C3              RETN ; (6)这个就是我们要找的 RENT，但我们不要在这里下断。因为这段代码中有动态解密代码，所以代码所在的位置会被动态的改变。
+0037040C    90              NOP
+0037040D    90              NOP
+0037040E    90              NOP
+0037040F    90              NOP
+00370410    90              NOP
+00370411    90              NOP
+00370412    90              NOP
+00370413    90              NOP
+00370414    90              NOP
+00370415    90              NOP
+00370416    90              NOP
+00370417    90              NOP
+00370418    90              NOP
+00370419    90              NOP
+0037041A    90              NOP
+0037041B    90              NOP
+0037041C    90              NOP
+0037041D    90              NOP
+0037041E    90              NOP
+0037041F    90              NOP
+00370420    90              NOP
+00370421    90              NOP
+...
+003703F8    61              POPAD
+003703F9    E8 00000000     CALL 003703FE
+003703FE    58              POP EAX
+003703FF    8D80 0E080000   LEA EAX,DWORD PTR DS:[EAX+80E]
+00370405    50              PUSH EAX
+00370406    DB1C24          FISTP DWORD PTR SS:[ESP]
+00370409    60              PUSHAD
+0037040A    FFE0            JMP EAX ; (8)我们刚才[F4]后，程序停在了这里，看看现在的代码是不是和上边的代码有所不同呢？我们现在[F8]跳。
+0037040C    90              NOP
+0037040D    90              NOP
+0037040E    90              NOP
+0037040F    90              NOP
+00370410    90              NOP
+00370411    90              NOP
+00370412    90              NOP
+00370413    90              NOP
+00370414    90              NOP
+00370415    90              NOP
+00370416    90              NOP
+00370417    90              NOP
+00370418    90              NOP
+00370419    90              NOP
+0037041A    90              NOP
+0037041B    90              NOP
+```
+
+
+
+```
+0037041C    90              NOP
+0037041D    90              NOP
+0037041E    90              NOP
+...
+00370C0C    68 0DE94500     PUSH 45E90D ; (9)跳到这里。[F8]单步步过。
+00370C11    C3              RETN ; (10)[F8]返回。
+00370C12    C5C5            LDS EAX,EBP ; 非法使用寄存器
+00370C14    C5C5            LDS EAX,EBP ; 非法使用寄存器
+00370C16    C5C5            LDS EAX,EBP ; 非法使用寄存器
+00370C18    C5C5            LDS EAX,EBP ; 非法使用寄存器
+00370C1A    C5C5            LDS EAX,EBP ; 非法使用寄存器
+00370C1C    C5C5            LDS EAX,EBP ; 非法使用寄存器
+...
+0045E90D    60              PUSHAD ; (11)程序返回到这里。我们看下边 0045E921 到 0045E925 处的代码，其实这里也是动态解密后台代码，解密完毕后才去执行的。所以我们直接停在它所解密完毕后的第一句代码上就可以了。
+0045E90E    E8 00000000     CALL 8d56547f.0045E913
+0045E913    5F              POP EDI
+0045E914    8DBF 1A000000   LEA EDI,DWORD PTR DS:[EDI+1A]
+0045E91A    B9 980E0000     MOV ECX,0E98
+0045E91F    B0 B5          MOV AL,0B5
+0045E921    0007            ADD BYTE PTR DS:[EDI],AL
+0045E923    47              INC EDI
+0045E924    49              DEC ECX
+0045E925  ^ 75 FA          JNZ SHORT 8d56547f.0045E921
+0045E927    61              POPAD ; (12)我们在这里按[F4]：执行到当前代码处。看看后边代码是不是改变了(我们看下边注解"13"所在的代码位置)。
+0045E928    90              NOP
+0045E929    90              NOP
+0045E92A    90              NOP
+0045E92B    90              NOP
+0045E92C    90              NOP
+0045E92D    334B 4B         XOR ECX,DWORD PTR DS:[EBX+4B]
+0045E930    4B              DEC EBX
+0045E931    4B              DEC EBX
+0045E932    A9 CC11464E     TEST EAX,4E4611CC
+...
+0045E927    61              POPAD
+0045E928    90              NOP
+0045E929    90              NOP
+0045E92A    90              NOP
+0045E92B    90              NOP
+0045E92C    90              NOP
+0045E92D    E8 00000000     CALL 8d56547f.0045E932 ; (13)这段以后就是改变的代码。
+; (14)我们向下看本段代码，其中有一处代码存在 N 多的 NOP。
+0045E932    5E              POP ESI
+0045E933    81C6 FB030000   ADD ESI,3FB
+0045E939    B9 F40E0000     MOV ECX,0EF4
+0045E93E    8BFE            MOV EDI,ESI
+0045E940    E8 00000000     CALL 8d56547f.0045E945
+0045E945    5B              POP EBX
+0045E946    81EB 1D114000   SUB EBX,8d56547f.0040111D
+0045E94C    8D9B 2A114000   LEA EBX,DWORD PTR DS:[EBX+40112A]
+0045E952    AC              LODS BYTE PTR DS:[ESI]
+0045E953    04 AA           ADD AL,0AA
+0045E955    34 E3           XOR AL,0E3
+0045E957    EB 01           JMP SHORT 8d56547f.0045E95A
+0045E959    C2 F9C0         RETN 0C0F9
+0045E95C    C0E6 FE         SHL DH,0FE ; 移位常量超出 1..31 的范围
+0045E95F    C0FE C0         SAR DH,0C0 ; 移位常量超出 1..31 的范围
+0045E962    2C EC           SUB AL,0EC
+0045E964    90              NOP
+0045E965    C0C8 EB         ROR AL,0EB ; 移位常量超出 1..31 的范围
+0045E968    FEC0            INC AL
+0045E96A    EB 01           JMP SHORT 8d56547f.0045E96D
+0045E96C    E8 EB01C2EB     CALL EC07EB5C
+0045E971    01E9            ADD ECX,EBP
+0045E973    EB 01           JMP SHORT 8d56547f.0045E976
+0045E975    E8 F934AC04     CALL 04F21E73
+0045E97A  ^ 7E 90          JLE SHORT 8d56547f.0045E90C
+0045E97C    2C 99           SUB AL,99
+0045E97E    FEC0            INC AL
+0045E980    F9              STC
+0045E981    F9              STC
+0045E982    34 05           XOR AL,5
+0045E984    2C 1B           SUB AL,1B
+0045E986    F8              CLC
+0045E987    EB 01           JMP SHORT 8d56547f.0045E98A
+0045E989    C2 F9C0         RETN 0C0F9
+0045E98C    C0E6 90         SHL DH,90 ; 移位常量超出 1..31 的范围
+0045E98F    AA              STOS BYTE PTR ES:[EDI]
+0045E990    49              DEC ECX
+0045E991    74 02           JE SHORT 8d56547f.0045E995
+0045E993    FFE3            JMP EBX
+0045E995    90              NOP ; (15)我们在这个第一处 NOP 的地方，按[F4]：执行到当前代码处。
+; (16)我们向下看本段代码，看到连续全部的 NOP 结束的地方(会很长一段)。
+0045E996    90              NOP
+0045E997    90              NOP
+0045E998    90              NOP
+0045E999    90              NOP
+0045E99A    90              NOP
+0045E99B    90              NOP
+0045E99C    90              NOP
+0045E99D    90              NOP
+0045E99E    90              NOP
+0045E99F    90              NOP
+0045E9A0    90              NOP
+0045E9A1    90              NOP
+0045E9A2    90              NOP
+0045E9A3    90              NOP
+0045E9A4    90              NOP
+...
+0045ED2C    90              NOP ; (17)这个就是连接 NOP 最后结束的地方。
+0045ED2D    2833            SUB BYTE PTR DS:[EBX],DH ; (18)我们在这里按[F4]：执行到当前代码处。看看后边代码是不是改变了(我们看下边注解"19"所在的代码位置)。
+0045ED2F    1D 4F4F4F4F     SBB EAX,4F4F4F4F
+0045ED34    4F              DEC EDI
+0045ED35    4F              DEC EDI
+0045ED36    E5 37           IN EAX,37 ; I/O 命令
+0045ED38    B7 65           MOV BH,65
+0045ED3A    59              POP ECX
+0045ED3B    F4              HLT ; 特权命令
+0045ED3C    4D              DEC EBP
+0045ED3D    43              INC EBX
+0045ED3E    59              POP ECX
+0045ED3F    BC 4D45AB4F     MOV ESP,4FAB454D
+0045ED44    4F              DEC EDI
+0045ED45    4F              DEC EDI
+0045ED46    4F              DEC EDI
+0045ED47    5E              POP ESI
+0045ED48    90              NOP
+...
+0045ED2D   /E9 F7040000     JMP 8d56547f.0045F229 ; (19)这段下边就是改变的地方。[F8]跳。
+0045ED32   |0000            ADD BYTE PTR DS:[EAX],AL
+0045ED34   |0000            ADD BYTE PTR DS:[EAX],AL
+0045ED36   |56              PUSH ESI
+0045ED37   |51              PUSH ECX
+0045ED38   |52              PUSH EDX
+0045ED39   |53              PUSH EBX
+0045ED3A   |8B7424 18       MOV ESI,DWORD PTR SS:[ESP+18]
+0045ED3E   |8B4424 14       MOV EAX,DWORD PTR SS:[ESP+14]
+0045ED42   |E8 00000000     CALL 8d56547f.0045ED47
+0045ED47   |5D              POP EBP
+0045ED48   |81ED 13574000   SUB EBP,8d56547f.00405713
+0045ED4E   |0FB750 3C       MOVZX EDX,WORD PTR DS:[EAX+3C]
+0045ED52   |8BD8            MOV EBX,EAX
+0045ED54   |03C2            ADD EAX,EDX
+0045ED56   |8B40 78         MOV EAX,DWORD PTR DS:[EAX+78]
+0045ED59   |03C3            ADD EAX,EBX
+0045ED5B   |8B50 24         MOV EDX,DWORD PTR DS:[EAX+24]
+...
+0045F229    61              POPAD ; (20)跳到这里。注解“20”以前的壳都是比较好分析的，而从这里开始，后边的代码壳会自己去利用创建线程的方式解密输入表，把主线程停止 5 秒后退出，然后利用壳解密输入表的线程去继续执行主程序的真正代码。这里就算你把所有的 CALL 都跟进度(包括系统的 API)，最后的结果都会是“不是程序跑飞，就是进程退出，无法执行了”。因为壳所创建的线程里使用了 LoadLibraryA 去查找解密输入表，所以我们如果是利用单步跟踪的方式时，就可以采用对 LoadLibraryA 下断的方法把创建的线程断下来，利用这种方法就可以跟到程序的真正入口点了。
+```
+
+
+
+;(21)其实所创建线程后的工作代码也在程序中的，而这个壳的失败之处就在于一切的分界线都是那么的明显(全部都可以用眼睛直接看出来)，所以我们就可以采取简单的办法，向下大篇幅的翻代码，找到特征性的跳转代码(这个特征代码对于该病毒所使用的壳是唯一性的、不改变的，目前新变种的所有版本百试百灵)。特征代码请看第“24”注解处。
+
+```asm
+0045F22A    E8 D4FBFFFF     CALL 8d56547f.0045EE03
+0045F22F    53              PUSH EBX
+0045F230    E8 00000000     CALL 8d56547f.0045F235
+0045F235    5B              POP EBX
+0045F236    8943 EC        MOV DWORD PTR DS:[EBX-14],EAX
+0045F239    5B              POP EBX
+0045F23A    E8 00000000     CALL 8d56547f.0045F23F
+0045F23F    5F              POP EDI
+0045F240    8D7F E6         LEA EDI,DWORD PTR DS:[EDI-1A]
+0045F243    E8 00000000     CALL 8d56547f.0045F248
+0045F248    58              POP EAX
+0045F249    8D80 EEFAFFFF   LEA EAX,DWORD PTR DS:[EAX-512]
+0045F24F    AB              STOS DWORD PTR ES:[EDI]
+0045F250    E8 00000000     CALL 8d56547f.0045F255
+0045F255    58              POP EAX
+0045F256    8B40 CC         MOV EAX,DWORD PTR DS:[EAX-34]
+0045F259    E8 0D000000     CALL 8d56547f.0045F26B            ;(22)这个 CALL 会去创建线程。
+0045F25E    43              INC EBX
+0045F25F    72 65           JB SHORT 8d56547f.0045F2C6
+0045F261    61              POPAD
+0045F262    74 65           JE SHORT 8d56547f.0045F2C9
+0045F264    54              PUSH ESP
+0045F265    68 72656164     PUSH 64616572
+0045F26A    0050 E8         ADD BYTE PTR DS:[EAX-18],DL
+0045F26D    0000            ADD BYTE PTR DS:[EAX],AL
+0045F26F    0000            ADD BYTE PTR DS:[EAX],AL
+0045F271    58              POP EAX
+0045F272    8D80 C5FAFFFF   LEA EAX,DWORD PTR DS:[EAX-53B]
+0045F278    FFD0            CALL EAX
+0045F27A    60              PUSHAD
+0045F27B    8BD0            MOV EDX,EAX
+0045F27D    E8 00000000     CALL 8d56547f.0045F282
+0045F282    5B              POP EBX
+0045F283    8D9B B0FAFFFF   LEA EBX,DWORD PTR DS:[EBX-550]
+0045F289    E8 00000000     CALL 8d56547f.0045F28E
+0045F28E    59              POP ECX
+0045F28F    8D89 83000000   LEA ECX,DWORD PTR DS:[ECX+83]
+0045F295    E8 00000000     CALL 8d56547f.0045F29A
+0045F29A    5F              POP EDI
+0045F29B    8DBF 52080000   LEA EDI,DWORD PTR DS:[EDI+852]
+0045F2A1    66:B8 2BD2      MOV AX,0D22B
+0045F2A5    66:AB           STOS WORD PTR ES:[EDI]
+0045F2A7    B0 68           MOV AL,68
+0045F2A9    AA              STOS BYTE PTR ES:[EDI]
+0045F2AA    8BC3            MOV EAX,EBX
+0045F2AC    AB              STOS DWORD PTR ES:[EDI]
+0045F2AD    66:B8 5252      MOV AX,5252
+0045F2B1    66:AB           STOS WORD PTR ES:[EDI]
+0045F2B3    B0 68           MOV AL,68
+0045F2B5    AA              STOS BYTE PTR ES:[EDI]
+0045F2B6    8BC1            MOV EAX,ECX
+0045F2B8    AB              STOS DWORD PTR ES:[EDI]
+0045F2B9    66:B8 5252      MOV AX,5252
+0045F2BD    66:AB           STOS WORD PTR ES:[EDI]
+0045F2BF    66:B8 FFD0      MOV AX,0D0FF
+0045F2C3    66:AB           STOS WORD PTR ES:[EDI]
+0045F2C5    B0 C3           MOV AL,0C3
+0045F2C7    AA              STOS BYTE PTR ES:[EDI]
+0045F2C8    8BC2            MOV EAX,EDX
+0045F2CA    E8 00000000     CALL 8d56547f.0045F2CF
+0045F2CF    5F              POP EDI
+0045F2D0    8DBF 1D080000   LEA EDI,DWORD PTR DS:[EDI+81D]
+0045F2D6    FFD7            CALL EDI
+0045F2D8    61              POPAD
+0045F2D9    60              PUSHAD
+0045F2DA    E8 00000000     CALL 8d56547f.0045F2DF
+0045F2DF    58              POP EAX
+0045F2E0    8B80 42FFFFFF   MOV EAX,DWORD PTR DS:[EAX-BE]
+0045F2E6    E8 06000000     CALL 8d56547f.0045F2F1
+0045F2EB    53              PUSH EBX
+0045F2EC    6C              INS BYTE PTR ES:[EDI],DX          ;I/O 命令
+0045F2ED    65:             PREFIX GS:                        ;多余的前缀
+0045F2EE    65:70 00        JO SHORT 8d56547f.0045F2F1        ;多余的前缀
+0045F2F1    50              PUSH EAX
+0045F2F2    E8 00000000     CALL 8d56547f.0045F2F7
+0045F2F7    58              POP EAX
+0045F2F8    8D80 3FFAFFFF   LEA EAX,DWORD PTR DS:[EAX-5C1]
+0045F2FE    FFD0            CALL EAX
+0045F300    8BD8            MOV EBX,EAX
+0045F302    68 88130000     PUSH 1388
+0045F307    FFD3            CALL EBX                           ;(23)主线程等待 5 秒。
+0045F309    61              POPAD
+0045F30A    2BC0            SUB EAX,EAX
+0045F30C    40              INC EAX
+0045F30D    83C4 04         ADD ESP,4
+0045F310    C3              RETN
+                 .
+                 .
+                 .
+0045F958   ^0F85 63FFFFFF  JNZ 8d56547f.0045F8C1
+0045F95E    68 00400000     PUSH 4000
+0045F963    68 13050000     PUSH 513
+0045F968    FFB5 1A050000   PUSH DWORD PTR SS:[EBP+51A]
+0045F96E    FF95 4E040000   CALL DWORD PTR SS:[EBP+44E]
+0045F974    E8 42000000     CALL 8d56547f.0045F9BB
+0045F979    E8 29010000     CALL 8d56547f.0045FAA7
+0045F97E    61              POPAD
+0045F97F    EB 03           JMP SHORT 8d56547f.0045F984
+0045F981    83C4 04         ADD ESP,4
+0045F984  - E9 7F80FAFF     JMP 8d56547f.00407A08            ;(24)这里就是特征码所在位置，很多壳在结束自己时都有这样明显的特征(记住这样代表性的特征很有好处的)。这里同样也是壳所创建输入表解密线程执行完毕后的跳转。
+                                                     ;(25)我们在这里按[F2]下断，然后[F9]运行。这样程序执行一段时间后(一段时间是在解密输入表)，就会停在这里了。我们现在[F8]大跳。
+                                                     ;(26)注意：这里千万不要使用[F4]执行到该代码处，因为这里代码是以新建线程执行的，你[F4]执行后根本是停不下来的，直接就跑飞了，不信你试试。
+0045F989    61              POPAD
+0045F98A    C3              RETN
+0045F98B    60              PUSHAD
+0045F98C    8B85 FA040000   MOV EAX,DWORD PTR SS:[EBP+4FA]
+0045F992    0340 3C         ADD EAX,DWORD PTR DS:[EAX+3C]
+0045F995    66:0340 14      ADD AX,WORD PTR DS:[EAX+14]
+0045F999    83C0 18         ADD EAX,18
+0045F99C    8B58 0C         MOV EBX,DWORD PTR DS:[EAX+C]
+0045F99F    039D FA040000   ADD EBX,DWORD PTR SS:[EBP+4FA]
+0045F9A5    8B48 08         MOV ECX,DWORD PTR DS:[EAX+8]
+0045F9A8    8D85 F2040000   LEA EAX,DWORD PTR SS:[EBP+4F2]
+                 .
+                 .
+                 .
+```
+
+;(27)看看这里是什么？我们`Ctrl+A`使 `OD` 重新分析代码。
+
+```asm
+00407A08      55            DB 55                          ; CHAR 'U'
+00407A09      8B            DB 8B
+00407A0A      EC            DB EC
+00407A0B      6A            DB 6A                          ; CHAR 'j'
+00407A0C      FF            DB FF
+00407A0D      68            DB 68                          ; CHAR 'h'
+00407A0E      50            DB 50                          ; CHAR 'P'
+00407A0F      12            DB 12
+00407A10      40            DB 40                          ; CHAR '@'
+00407A11      00            DB 00
+00407A12      68            DB 68                          ; CHAR 'h'
+00407A13      20            DB 20                          ; CHAR ' '
+00407A14      79            DB 79                          ; CHAR 'y'
+00407A15      40            DB 40                          ; CHAR '@'
+00407A16      00            DB 00
+00407A17      64            DB 64                          ; CHAR 'd'
+00407A18      A1            DB A1
+00407A19      00            DB 00
+00407A1A      00            DB 00
+00407A1B      00            DB 00
+00407A1C      00            DB 00
+00407A1D      50            DB 50                          ; CHAR 'P'
+00407A1E      64            DB 64                          ; CHAR 'd'
+```
+
+
+
+```
+> 00407A1F     89            DB 89
+
+> 00407A20     25            DB 25                             ;  CHAR '%'
+
+>               .
+
+>               .
+
+>               .
+
+> 00407A08  /. 55            PUSH EBP                            ; (28)看到了吧？多么可爱的入口点啊。被作者隐藏的这么神秘，里边一定有好东西。我们 DUMP 后继续去分析吧，记得要修复输入表哦！(^\_^)
+
+> 00407A09  |. 8BEC          MOV EBP,ESP
+
+> 00407A0B  |. 6A FF        PUSH -1
+
+> 00407A0D  |. 68 50124000  PUSH 8d56547f.00401250
+
+> 00407A12  |. 68 20794000  PUSH 8d56547f.00407920               ;  JMP 到 msvcrt.\_except\_handler3;  SE 处理程序安装
+
+> 00407A17  |. 64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]
+
+> 00407A1D  |. 50            PUSH EAX
+
+> 00407A1E  |. 64:8925 00000>MOV DWORD PTR FS:\[0\],ESP
+
+> 00407A25  |. 83EC 68       SUB ESP,68
+
+> 00407A28  |. 53            PUSH EBX
+
+> 00407A29  |. 56            PUSH ESI
+
+> 00407A2A  |. 57            PUSH EDI
+
+> 00407A2B  |. 8965 E8       MOV DWORD PTR SS:\[EBP-18\],ESP
+
+> 00407A2E  |. 33DB          XOR EBX,EBX
+
+> 00407A30  |. 895D FC       MOV DWORD PTR SS:\[EBP-4\],EBX
+
+> 00407A33  |. 6A 02         PUSH 2
+
+> 00407A35  |. FF15 D8104000 CALL DWORD PTR DS:\[4010D8\]        ;  msvcrt.\_\_set\_app\_type
+
+> 00407A3B  |. 59            POP ECX
+
+> 00407A3C  |. 830D 6CB84400>OR DWORD PTR DS:\[44B86C\],FFFFFFFF
+
+> 00407A43  |. 830D 70B84400>OR DWORD PTR DS:\[44B870\],FFFFFFFF
+
+> 00407A4A  |. FF15 DC104000 CALL DWORD PTR DS:\[4010DC\]        ;  msvcrt.\_\_p\_\_fmode
+
+> 00407A50  |. 8B0D 54B84400 MOV ECX,DWORD PTR DS:\[44B854\]
+
+> 00407A56  |. 8908          MOV DWORD PTR DS:\[EAX\],ECX
+
+> 00407A58  |. FF15 E0104000 CALL DWORD PTR DS:\[4010E0\]        ;  msvcrt.\_\_p\_\_commode
+
+> 00407A5E  |. 8B0D 50B84400 MOV ECX,DWORD PTR DS:\[44B850\]
+
+> 00407A64  |. 8908          MOV DWORD PTR DS:\[EAX\],ECX
+
+> 00407A66  |. A1 E4104000  MOV EAX,DWORD PTR DS:\[4010E4\]
+
+> 00407A6B  |. 8B00          MOV EAX,DWORD PTR DS:\[EAX\]
+
+> 00407A6D  |. A3 68B84400  MOV DWORD PTR DS:\[44B868\],EAX
+
+> 00407A72  |. E8 13010000  CALL 8d56547f.00407B8A
+
+> 00407A77  |. 391D 90334000 CMP DWORD PTR DS:\[403390\],EBX
+
+> 00407A7D  |. 75 0C         JNZ SHORT 8d56547f.00407A8B
+
+> 00407A7F  |. 68 B9664000  PUSH 8d56547f.004066B9
+
+> 00407A84  |. FF15 E8104000 CALL DWORD PTR DS:\[4010E8\]        ;  msvcrt.\_\_setusermatherr
+
+> 00407A8A  |. 59            POP ECX
+
+> 00407A8B  |>  E8 E8000000  CALL 8d56547f.00407B78
+
+> 00407A90  |. 68 14204000  PUSH 8d56547f.00402014
+
+> 00407A95  |. 68 10204000  PUSH 8d56547f.00402010
+
+> 00407A9A  |. E8 D3000000  CALL 8d56547f.00407B72               ;  JMP 到 msvcrt.\_initterm
+
+> 00407A9F  |. A1 4CB84400  MOV EAX,DWORD PTR DS:\[44B84C\]
+
+> 00407AA4  |. 8945 94       MOV DWORD PTR SS:\[EBP-6C\],EAX
+
+> 00407AA7  |. 8D45 94       LEA EAX,DWORD PTR SS:\[EBP-6C\]
+
+> 00407AAA  |. 50            PUSH EAX
+
+> 00407AAB  |. FF35 48B84400 PUSH DWORD PTR DS:\[44B848\]
+
+> 00407AB1  |. 8D45 9C       LEA EAX,DWORD PTR SS:\[EBP-64\]
+
+> 00407AB4  |. 50            PUSH EAX
+
+> 00407AB5  |. 8D45 90       LEA EAX,DWORD PTR SS:\[EBP-70\]
+
+> 00407AB8  |. 50            PUSH EAX
+
+> 00407AB9  |. 8D45 A0       LEA EAX,DWORD PTR SS:\[EBP-60\]
+
+> 00407ABC  |. 50            PUSH EAX
+
+> 00407ABD  |. FF15 F0104000 CALL DWORD PTR DS:\[4010F0\]        ;  msvcrt.\_\_getmainargs
+
+> 00407AC3  |. 68 0C204000  PUSH 8d56547f.0040200C
+
+> 00407AC8  |. 68 00204000  PUSH 8d56547f.00402000
+
+> 00407ACD  |. E8 A0000000  CALL 8d56547f.00407B72               ;  JMP 到 msvcrt.\_initterm
+> \---------------------------------------------------------------------------------------------
+```
+
+总结：
+
+脱壳保存后，使用 `PEID` 查壳显示为“Microsoft Visual C++ 6.0”，但程序连接版本号是 8.0，也不知道是壳改了文件体什么特征呢？还是 `PEID` 查壳误报呢？就不研究了，反正壳是脱掉了。
+
+这个病毒所使用的壳融合了很多技术，我只把壳的各个分界线简单介绍了下，壳里边的细节完全没有介绍就写了这么多文字，恐怖啊！实在没办法写详细的分析步骤了，大家慢慢看吧。
+
+脱壳真是一种享受啊，每脱一种比较强的壳，那种心理感觉，你们知道是什么样子的吗？追寻技术的颠峰，不断的飞跃，心灵的喜悦才是动力的源泉！
+
+`4dd466d0e1e0cc123afbe504da2462ca`

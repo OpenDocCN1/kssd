@@ -1,237 +1,251 @@
 
-
 # 取巧脱 tElock 1.0 (private) -> tE!壳
 
 > 原文：[`www.pediy.com/kssd/pediy12/134003.html`](https://www.pediy.com/kssd/pediy12/134003.html)
 
-标 题: 【原创】取巧脱 tElock 1.0 (private) -> tE!壳  
-作 者: swordkok  
-时 间: 2011-05-16,01:50:00  
-链 接: http://bbs.pediy.com/showthread.php?p=959225  
-  
-【文章标题】: 取巧脱 tElock 1.0 (private) -> tE!壳  
-【文章作者】: swordkok  
-【作者邮箱】:   
-【软件名称】: REDitorII  
-【下载地址】: http://u.115.com/file/clcunmn7#  
-【加壳方式】: tElock 1.0 (private) -> tE!  
-【保护方式】:   
-【编写语言】: Delphi??  
-【使用工具】: OD,IREC,LORDPE  
-【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
-\--------------------------------------------------------------------------------  
-【详细过程】  
-PEID 插壳，tElock 1.0 (private) -> tE!  
-OD 忽略除了 INT3 之外的所有异常,IsDebug 去掉 Od 标志  
-用 OD 载入，停在  
+标题: 【原创】取巧脱 `tElock` `1.0` (`private`) -> `tE!` 壳
 
-代码:
+作者: `swordkok`
 
-```
-00A7509D >^\\E9 5EDFFFFF     jmp REDitorI.00A73000
-00A750A2    0000            add byte ptr ds:\[eax\],al
-00A750A4    000B            add byte ptr ds:\[ebx\],cl
-00A750A6    D9BB B6E55067   fstcw word ptr ds:\[ebx+0x6750E5B6\]
+时间: `2011-05-16,01:50:00`
 
-```
+链接: `http://bbs.pediy.com/showthread.php?p=959225`
 
-连续三次 SHIFT+F9  
-CTRL+S,搜索  
-代码:
+【文章标题】: 取巧脱 `tElock` `1.0` (`private`) -> `tE!` 壳
 
-```
-mov ebx,edx
-shr ebx,10
-mov eax,dword ptr ds:\[esi\]
+【文章作者】: `swordkok`
+
+【作者邮箱】:
+
+【软件名称】: `REDitorII`
+
+【下载地址】: `http://u.115.com/file/clcunmn7#`
+
+【加壳方式】: `tElock` `1.0` (`private`) -> `tE!`
+
+【保护方式】:
+
+【编写语言】: `Delphi`
+
+【使用工具】: `OD`, `IREC`, `LORDPE`
+
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+【详细过程】
+
+`PEID` 插壳，`tElock` `1.0` (`private`) -> `tE!`
+
+`OD` 忽略除了 `INT3` 之外的所有异常, `IsDebug` 去掉 `Od` 标志
+
+用 `OD` 载入，停在：
 
 ```
-
-代码:
-
-```
-00A74558    8BDA            mov ebx,edx
-00A7455A    C1EB 10         shr ebx,0x10
-00A7455D    8B06            mov eax,dword ptr ds:\[esi\]
-00A7455F    85C0            test eax,eax
-00A74561    74 70           je short REDitorI.00A745D3
-00A74563    8B4E 04         mov ecx,dword ptr ds:\[esi+0x4\]
-00A74566    83E9 08         sub ecx,0x8
-00A74569    D1E9            shr ecx,1
-00A7456B    8BBD 63374000   mov edi,dword ptr ss:\[ebp+0x403763\]
-00A74571    03F8            add edi,eax
-00A74573    83C6 08         add esi,0x8
-00A74576    0FB706          movzx eax,word ptr ds:\[esi\]
-00A74579    C1C8 0C         ror eax,0xC
-00A7457C    FEC8            dec al
-00A7457E    78 4C           js short REDitorI.00A745CC
-00A74580    74 0E           je short REDitorI.00A74590
-00A74582    FEC8            dec al
-00A74584    74 13           je short REDitorI.00A74599
-00A74586    FEC8            dec al
-00A74588    74 3C           je short REDitorI.00A745C6
-00A7458A    FEC8            dec al
-00A7458C    74 14           je short REDitorI.00A745A2
-00A7458E    EB 3C           jmp short REDitorI.00A745CC
-00A74590    C1E8 14         shr eax,0x14
-00A74593    66:011C38       add word ptr ds:\[eax+edi\],bx
-00A74597    EB 33           jmp short REDitorI.00A745CC
-00A74599    C1E8 14         shr eax,0x14
-00A7459C    66:011438       add word ptr ds:\[eax+edi\],dx
-00A745A0    EB 2A           jmp short REDitorI.00A745CC
-00A745A2    52              push edx
-00A745A3    C1E8 14         shr eax,0x14
-00A745A6    8BD8            mov ebx,eax
-00A745A8    C1E0 10         shl eax,0x10
-00A745AB    66:8B16         mov dx,word ptr ds:\[esi\]
-00A745AE    66:81E2 FF0F    and dx,0xFFF
-00A745B3    66:8BC2         mov ax,dx
-00A745B6    5A              pop edx
-00A745B7    8D8402 00800000 lea eax,dword ptr ds:\[edx+eax+0x8000\]
-00A745BE    89043B          mov dword ptr ds:\[ebx+edi\],eax
-00A745C1    46              inc esi
-00A745C2    46              inc esi
-00A745C3    49              dec ecx
-00A745C4    EB 06           jmp short REDitorI.00A745CC
-00A745C6    C1E8 14         shr eax,0x14
-00A745C9    011438          add dword ptr ds:\[eax+edi\],edx
-00A745CC    46              inc esi
-00A745CD    46              inc esi
-00A745CE    49              dec ecx
-00A745CF  ^ 7F A5           jg short REDitorI.00A74576
-00A745D1  ^ EB 8A           jmp short REDitorI.00A7455D
-00A745D3    8B95 63374000   mov edx,dword ptr ss:\[ebp+0x403763\]
-00A745D9    8BB5 53374000   mov esi,dword ptr ss:\[ebp+0x403753\]   //IAT 地址
-00A745DF    85F6            test esi,esi
-00A745E1    0F84 2F040000   je REDitorI.00A74A16  //magic jmp
-
+00A7509D >^\\E9 5EDFFFFF jmp REDitorI.00A73000
+00A750A2 0000 add byte ptr ds:\[eax\],al
+00A750A4 000B add byte ptr ds:\[ebx\],cl
+00A750A6 D9BB B6E55067 fstcw word ptr ds:\[ebx+0x6750E5B6\]
 ```
 
-00A745E1    0F84 2F040000   je REDitorI.00A74A16  //magic jmp,je 改成 jmp  
-对 00A745E1 下硬断，SHIFT+F9，再把 z 置 1，跳到：  
-  
-代码:
+连续三次 `SHIFT+F9`
+
+`CTRL+S`, 搜索：
 
 ```
-00A74A16    8BBD 5B374000   mov edi,dword ptr ss:\[ebp+0x40375B\]
-00A74A1C    85FF            test edi,edi
-00A74A1E    EB 03           jmp short REDitorI.00A74A23
-00A74A20    0100            add dword ptr ds:\[eax\],eax
-00A74A22    EB 74           jmp short REDitorI.00A74A98
-
+mov ebx,edx
+shr ebx,10
+mov eax,dword ptr ds:\[esi\]
 ```
 
-清除所以断点，然后 alt+m，对 code 段下内存访问断点，再 SHIFT+F9,来到 OEP:  
-  
-代码:
-
 ```
-0040B848    53              push ebx                                 ; kernel32.LoadLibraryW
-0040B849    8BD8            mov ebx,eax
-0040B84B    33C0            xor eax,eax
-0040B84D    A3 281A5F00     mov dword ptr ds:\[0x5F1A28\],eax
-0040B852    6A 00           push 0x0
-0040B854    E8 2BFFFFFF     call REDitorI.0040B784
-0040B859    A3 40DC5F00     mov dword ptr ds:\[0x5FDC40\],eax
-0040B85E    A1 40DC5F00     mov eax,dword ptr ds:\[0x5FDC40\]
-0040B863    A3 341A5F00     mov dword ptr ds:\[0x5F1A34\],eax
-0040B868    33C0            xor eax,eax
-
-```
-
-因为用了几个 telock 的脱壳机脱壳，虽然最后都无法正常运行，但是他们找到的 OEP 也是 0040B848 这个地址，所以没有怀疑。  
-DUMP ,修复 IAT，结果无法运行，出错。  
-看了好久，没有结果，上看雪求助，“幻影火”牛提示可能 OEP 找错了，仔细看了下，觉得真有可能是 OEP 找错了  
-于是用另外的方法。  
-  
-OD 载入,忽略全部异常  
-ALT+M  
-Memory map, 条目 24  
- 地址=005F1000  
- 大小=0000A000 (40960.)  
- 属主=REDitorI 00400000  
- 区段=.aspr  
- 包含=数据  
- 类型=Imag 01001002  
- 访问=R  
- 初始访问=RWE  
- -------------下断，SHIFT+F9  
-到：  
-代码:
-
-```
-00A740C6    AC              lods byte ptr ds:\[esi\]
-00A740C7    85FF            test edi,edi
-00A740C9    34 FF           xor al,0xFF
-
-```
-
-  
-CTRL+B    
-查找 0AF6  
-  
-来到：  
-代码:
-
-```
-00A7472D    0AF6            or dh,dh
-00A7472F    895424 1C       mov dword ptr ss:\[esp+0x1C\],edx
-00A74733    61              popad
-00A74734    C685 FD2F4000 0>mov byte ptr ss:\[ebp+0x402FFD\],0x0
-00A7473B    74 24           je short REDitorI.00A74761           ----------->magic jmp,改成 jmp
-
+00A74558 8BDA mov ebx,edx
+00A7455A C1EB 10 shr ebx,0x10
+00A7455D 8B06 mov eax,dword ptr ds:\[esi\]
+00A7455F 85C0 test eax,eax
+00A74561 74 70 je short REDitorI.00A745D3
+00A74563 8B4E 04 mov ecx,dword ptr ds:\[esi+0x4\]
+00A74566 83E9 08 sub ecx,0x8
+00A74569 D1E9 shr ecx,1
+00A7456B 8BBD 63374000 mov edi,dword ptr ss:\[ebp+0x403763\]
+00A74571 03F8 add edi,eax
+00A74573 83C6 08 add esi,0x8
+00A74576 0FB706 movzx eax,word ptr ds:\[esi\]
+00A74579 C1C8 0C ror eax,0xC
+00A7457C FEC8 dec al
+00A7457E 78 4C js short REDitorI.00A745CC
+00A74580 74 0E je short REDitorI.00A74590
+00A74582 FEC8 dec al
+00A74584 74 13 je short REDitorI.00A74599
+00A74586 FEC8 dec al
+00A74588 74 3C je short REDitorI.00A745C6
+00A7458A FEC8 dec al
+00A7458C 74 14 je short REDitorI.00A745A2
+00A7458E EB 3C jmp short REDitorI.00A745CC
+00A74590 C1E8 14 shr eax,0x14
+00A74593 66:011C38 add word ptr ds:\[eax+edi\],bx
+00A74597 EB 33 jmp short REDitorI.00A745CC
+00A74599 C1E8 14 shr eax,0x14
+00A7459C 66:011438 add word ptr ds:\[eax+edi\],dx
+00A745A0 EB 2A jmp short REDitorI.00A745CC
+00A745A2 52 push edx
+00A745A3 C1E8 14 shr eax,0x14
+00A745A6 8BD8 mov ebx,eax
+00A745A8 C1E0 10 shl eax,0x10
+00A745AB 66:8B16 mov dx,word ptr ds:\[esi\]
+00A745AE 66:81E2 FF0F and dx,0xFFF
+00A745B3 66:8BC2 mov ax,dx
+00A745B6 5A pop edx
+00A745B7 8D8402 00800000 lea eax,dword ptr ds:\[edx+eax+0x8000\]
+00A745BE 89043B mov dword ptr ds:\[ebx+edi\],eax
+00A745C1 46 inc esi
+00A745C2 46 inc esi
+00A745C3 49 dec ecx
+00A745C4 EB 06 jmp short REDitorI.00A745CC
+00A745C6 C1E8 14 shr eax,0x14
+00A745C9 011438 add dword ptr ds:\[eax+edi\],edx
+00A745CC 46 inc esi
+00A745CD 46 inc esi
+00A745CE 49 dec ecx
+00A745CF ^ 7F A5 jg short REDitorI.00A74576
+00A745D1 ^ EB 8A jmp short REDitorI.00A7455D
+00A745D3 8B95 63374000 mov edx,dword ptr ss:\[ebp+0x403763\]
+00A745D9 8BB5 53374000 mov esi,dword ptr ss:\[ebp+0x403753\] //IAT 地址
+00A745DF 85F6 test esi,esi
+00A745E1 0F84 2F040000 je REDitorI.00A74A16 //magic jmp
 ```
 
-  
-ALT+M，  
-Memory map, 条目 22  
- 地址=00401000  
- 大小=001EE000 (2023424.)  
- 属主=REDitorI 00400000  
- 区段=.aspr  
- 包含=代码  
- 类型=Imag 01001002  
- 访问=R  
- 初始访问=RWE  
-\---------------下断，SHIFT+F9 来到  
-  
-代码:
+`00A745E1` `0F84 2F040000` `je REDitorI.00A74A16` //magic jmp, `je` 改成 `jmp`
+
+对 `00A745E1` 下硬断，`SHIFT+F9`，再把 `z` 置 `1`，跳到：
 
 ```
-0040B848    53              push ebx                                 ; kernel32.LoadLibraryW
-0040B849    8BD8            mov ebx,eax
-0040B84B    33C0            xor eax,eax
-0040B84D    A3 281A5F00     mov dword ptr ds:\[0x5F1A28\],eax
-0040B852    6A 00           push 0x0
-
+00A74A16 8BBD 5B374000 mov edi,dword ptr ss:\[ebp+0x40375B\]
+00A74A1C 85FF test edi,edi
+00A74A1E EB 03 jmp short REDitorI.00A74A23
+00A74A20 0100 add dword ptr ds:\[eax\],eax
+00A74A22 EB 74 jmp short REDitorI.00A74A98
 ```
 
-  
-结果还是这个伪 OEP，郁闷，也不知道真正的 OEP 在哪  
-突然想起用某脱壳机脱的时候，OEP 是 005F0AC4，于是到这个地址看看：  
-  
-代码:
+清除所有断点，然后 `alt+m`，对 `code` 段下内存访问断点，再 `SHIFT+F9`, 来到 `OEP`:
 
 ```
-005F0AC4    55              push ebp
-005F0AC5    8BEC            mov ebp,esp
-005F0AC7    B9 05000000     mov ecx,0x5
-005F0ACC    6A 00           push 0x0
-005F0ACE    6A 00           push 0x0
-005F0AD0    49              dec ecx
-005F0AD1  ^ 75 F9           jnz short REDitorI.005F0ACC
-
+0040B848 53 push ebx ; kernel32.LoadLibraryW
+0040B849 8BD8 mov ebx,eax
+0040B84B 33C0 xor eax,eax
+0040B84D A3 281A5F00 mov dword ptr ds:\[0x5F1A28\],eax
+0040B852 6A 00 push 0x0
+0040B854 E8 2BFFFFFF call REDitorI.0040B784
+0040B859 A3 40DC5F00 mov dword ptr ds:\[0x5FDC40\],eax
+0040B85E A1 40DC5F00 mov eax,dword ptr ds:\[0x5FDC40\]
+0040B863 A3 341A5F00 mov dword ptr ds:\[0x5F1A34\],eax
+0040B868 33C0 xor eax,eax
 ```
 
-觉得这个挺像 OEP 的，于是对这个地址下硬断，shift+F9,  
-dump，IRec 输入 OEP，自动查找，无果……，输入第一个方法找到的 IAT 地址：00201000，获取 IAT，剪掉无效 API，修复。  
-  
-居然成功了，程序可以正常运行，不过几秒钟后自动退出，估计还有自校验，收工。   
-  
-成功脱掉有点侥幸，只是不明白这个 OEP 到底应该怎么找，只是借用了脱壳机找到的 OEP，希望大牛们给出找到 OEP 的方法。       
-  
-  
-  
-\--------------------------------------------------------------------------------  
-【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
-  
-                                                                                                    2011 年 05 月 16 日 01:53:00
+因为用了几个 `telock` 的脱壳机脱壳，虽然最后都无法正常运行，但是他们找到的 `OEP` 也是 `0040B848` 这个地址，所以没有怀疑。
+
+`DUMP`, 修复 `IAT`，结果无法运行，出错。
+
+看了好久，没有结果，上看雪求助，“幻影火”牛提示可能 `OEP` 找错了，仔细看了下，觉得真有可能是 `OEP` 找错了
+
+于是用另外的方法。
+
+`OD` 载入, 忽略全部异常
+
+`ALT+M`
+
+`Memory` `map`, 条目 `24`
+
+地址=`005F1000`
+
+大小=`0000A000` (`40960.`)
+
+属主=`REDitorI` `00400000`
+
+区段=`.aspr`
+
+包含=数据
+
+类型=`Imag` `01001002`
+
+访问=`R`
+
+初始访问=`RWE`
+
+-------------下断，`SHIFT+F9`
+
+到：
+
+```
+00A740C6 AC lods byte ptr ds:\[esi\]
+00A740C7 85FF test edi,edi
+00A740C9 34 FF xor al,0xFF
+```
+
+`CTRL+B`
+
+查找 `0AF6`
+
+来到：
+
+```
+00A7472D 0AF6 or dh,dh
+00A7472F 895424 1C mov dword ptr ss:\[esp+0x1C\],edx
+00A74733 61 popad
+00A74734 C685 FD2F4000 0>mov byte ptr ss:\[ebp+0x402FFD\],0x0
+00A7473B 74 24 je short REDitorI.00A74761 ---------->magic jmp,改成 jmp
+```
+
+`ALT+M`，
+
+`Memory` `map`, 条目 `22`
+
+地址=`00401000`
+
+大小=`001EE000` (`2023424.`)
+
+属主=`REDitorI` `00400000`
+
+区段=`.aspr`
+
+包含=代码
+
+类型=`Imag` `01001002`
+
+访问=`R`
+
+初始访问=`RWE`
+
+---------------下断，`SHIFT+F9` 来到
+
+```
+0040B848 53 push ebx ; kernel32.LoadLibraryW
+0040B849 8BD8 mov ebx,eax
+0040B84B 33C0 xor eax,eax
+0040B84D A3 281A5F00 mov dword ptr ds:\[0x5F1A28\],eax
+0040B852 6A 00 push 0x0
+```
+
+结果还是这个伪 `OEP`，郁闷，也不知道真正的 `OEP` 在哪
+
+突然想起用某脱壳机脱的时候，`OEP` 是 `005F0AC4`，于是到这个地址看看：
+
+```
+005F0AC4 55 push ebp
+005F0AC5 8BEC mov ebp,esp
+005F0AC7 B9 05000000 mov ecx,0x5
+005F0ACC 6A 00 push 0x0
+005F0ACE 6A 00 push 0x0
+005F0AD0 49 dec ecx
+005F0AD1 ^ 75 F9 jnz short REDitorI.005F0ACC
+```
+
+觉得这个挺像 `OEP` 的，于是对这个地址下硬断，`shift+F9`,
+
+`dump`，`IRec` 输入 `OEP`，自动查找，无果……，输入第一个方法找到的 `IAT` 地址：`00201000`，获取 `IAT`，剪掉无效 `API`，修复。
+
+居然成功了，程序可以正常运行，不过几秒钟后自动退出，估计还有自校验，收工。
+
+成功脱掉有点侥幸，只是不明白这个 `OEP` 到底应该怎么找，只是借用了脱壳机找到的 `OEP`，希望大牛们给出找到 `OEP` 的方法。
+
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2011 年 05 月 16 日 01:53:00

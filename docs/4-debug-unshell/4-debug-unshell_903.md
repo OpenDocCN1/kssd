@@ -1,336 +1,434 @@
 
-
 # PEspin V0.1
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6961.htm`](https://www.pediy.com/kssd/pediy06/pediy6961.htm)
 
-PEspin V0.1 脱壳——PESpin.exe 主程序   
-    
-    
-    
-下载页面：  点击下载  
-软件大小：  30 KB   
-发布日期：  20.10.2003   
-  
-【软件简介】：PE Spin is a very simple PE protector, encryptor. Options(short): Add Debugger detection;Close program after: ... minut;API Redirection;Section names;Antidump protection;Password protection;Remove the OEP.   
-  
-【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！   
-  
-【调试环境】：WinXP、Ollydbg1.09D、PEiD、LordPE、ImportREC   
-  
-—————————————————————————————————    
-【脱壳过程】：   
-             
-            
-    
-最近很是郁闷，碰巧看到这个东东，好像以前没见过，索性再捏个“软柿子”。   
-感觉 PEspin 的强度大体和 EXE Stealth 相仿，或许只能算作中等水平的保护壳吧？    
-  
-      
-一、避开 IAT 加密，得到正确的输入表   
-    
-    
-    
-老规矩：用 IsDebug 1.4 插件去掉 Ollydbg 的调试器标志。忽略所有的异常选项。   
-设置 Ollydbg1.09D 的调试设置选项：把 事件－>标记首先暂停在－>“系统断点”   
-    
-    
-77F7F571     C3                   retn//进入 OD 后停在系统断点   
-    
-下断：BP VirtualAlloc    F9 运行，断下。   
-当然也可以不忽略某些异常，看 SEH 信息走，但是偶觉得用这个断点稍微快点。   
-确定弹出的错误警告，Shift+F9 走，在 77E5980A 处中断第 2 次，偶们可以行动了。   
-    
-    
-77E5980A     55                   push ebp//中断 2 次，取消断点。 Ctrl+F9 执行到返回   
-77E5980B     8BEC                 mov ebp,esp   
-77E5980D     FF75 14              push dword ptr ss:\[ebp+14\]   
-77E59810     FF75 10              push dword ptr ss:\[ebp+10\]   
-77E59813     FF75 0C              push dword ptr ss:\[ebp+C\]   
-77E59816     FF75 08              push dword ptr ss:\[ebp+8\]   
-77E59819     6A FF                push -1   
-77E5981B     E8 04000000          call kernel32.VirtualAllocEx   
-77E59820     5D                   pop ebp   
-77E59821     C2 1000              retn 10 //返回到 0040B873      
-     
-     
-0040B86D     FF95 FE284000        call dword ptr ss:\[ebp+4028FE\]; kernel32.VirtualAlloc   
-0040B873     50                   push eax   
-0040B874     8F85 B9284000        pop dword ptr ss:\[ebp+4028B9\]   
-0040B87A     8BB5 B6224000        mov esi,dword ptr ss:\[ebp+4022B6\]   
-0040B880     03B5 B3284000        add esi,dword ptr ss:\[ebp+4028B3\]   
-0040B886     3BB5 B3284000        cmp esi,dword ptr ss:\[ebp+4028B3\]   
-0040B88C     75 09                jnz short PESpin.0040B897   
-    
-0040B897     817E 10 28AE0000     cmp dword ptr ds:\[esi+10\],0AE28   
-0040B89E     0F84 42010000        je PESpin.0040B9E6//输入表处理结束之后，将跳到这个地址◆   
-0040B8A4     8B5E 0C              mov ebx,dword ptr ds:\[esi+C\]   
-0040B8A7     039D B3284000        add ebx,dword ptr ss:\[ebp+4028B3\]   
-0040B8AD     8BFB                 mov edi,ebx   
-0040B8AF     E8 3B0C0000          call PESpin.0040C4EF   
-0040B8B4     E8 01000000          call PESpin.0040B8BA//跟进   
-    
-0040B8BA     58                   pop eax     ; PESpin.0040B8B9   
-0040B8BB     53                   push ebx   
-0040B8BC     50                   push eax   
-0040B8BD     FFB5 E5284000        push dword ptr ss:\[ebp+4028E5\]   
-0040B8C3     814424 04 14000000   add dword ptr ss:\[esp+4\],14   
-0040B8CB     C3                   retn//返回系统 DLL，可以 F7 继续走到返回   
-    
-\[esp+4\]+14＝\[0012FF9C\]=0040B8CD  所以直接在 0040B8CD 处下断，省点时间吧。   
-    
-0040B8CD     85C0                 test eax,eax//此处下断，F9 断在这   
-0040B8CF     0F84 E0050000        je PESpin.0040BEB5   
-0040B8D5     50                   push eax   
-0040B8D6     E8 DDFDFFFF          call PESpin.0040B6B8   
-0040B8DB     56                   push esi   
-0040B8DC     53                   push ebx   
-0040B8DD     33C9                 xor ecx,ecx   
-0040B8DF     8A1419               mov dl,byte ptr ds:\[ecx+ebx\]   
-0040B8E2     F6C2 40              test dl,40   
-0040B8E5     74 04                je short PESpin.0040B8EB   
-0040B8E7     802419 5F            and byte ptr ds:\[ecx+ebx\],5F   
-0040B8EB     41                   inc ecx   
-0040B8EC     0AD2                 or dl,dl   
-0040B8EE     75 EF                jnz short PESpin.0040B8DF   
-0040B8F0     49                   dec ecx   
-0040B8F1     C1C1 10              rol ecx,10   
-0040B8F4     8A2B                 mov ch,byte ptr ds:\[ebx\]   
-0040B8F6     B1 04                mov cl,4   
-0040B8F8     33D2                 xor edx,edx   
-0040B8FA     3AAC15 03324000      cmp ch,byte ptr ss:\[ebp+edx+403203\]   
-0040B901     74 09                je short PESpin.0040B90C   
-    
-0040B90C     C1E9 10              shr ecx,10   
-0040B90F     8DBC2A 04324000      lea edi,dword ptr ds:\[edx+ebp+403204\]   
-0040B916     8B3F                 mov edi,dword ptr ds:\[edi\]   
-0040B918     03FD                 add edi,ebp   
-0040B91A     87F3                 xchg ebx,esi   
-0040B91C     F3:A6                repe cmps byte ptr es:\[edi\],byte ptr ds:\[esi\]//比较是否该加密   
-0040B91E     75 09                jnz short PESpin.0040B929   
-     
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-\[EDI\]=0040C8F4 内存处：   
-  
-0040C8F4  4B 45 52 4E 45 4C 33 32 2E 44 4C 4C 55 53 45 52  KERNEL32.DLLUSER   
-0040C904  33 32 2E 44 4C 4C 47 44 49 33 32 2E 44 4C 4C 53  32.DLLGDI32.DLLS   
-0040C914  48 45 4C 4C 33 32 2E 44 4C 4C                    HELL32.DLL   
-  
-0040B91C 处比较是否是这几个 DLL，是则加密。也就意味着 PEspin 0.1 只加密 kernel32.dll、   
-user32.dll、shell32.dll、gdi32.dll 四个 DLL 的函数。很“善良”的壳  ![icon\_biggrin.gif](img/40f8aa1f3e2e5f4b0b2a718e0bd5133a.jpg)  
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-      
-0040B91E     75 09                jnz short PESpin.0040B929   
-0040B920     808D A8304000 01     or byte ptr ss:\[ebp+4030A8\],1 //置需加密标志   
-0040B927     EB 07                jmp short PESpin.0040B930   
-0040B929     80A5 A8304000 00     and byte ptr ss:\[ebp+4030A8\],0//不需加密标志   
-     
-很好的让 PEspin 不加密 IAT 的突破口，只要把 0040B920 处改为 or byte ptr ss:\[ebp+4030A8\],0   
-则所有的函数都是“不需”加密的了。当然，偶们可以继续看下去，还有一个“Magic Jump”   
-     
-0040B930     5B                   pop ebx   
-0040B931     5E                   pop esi   
-0040B932     2BD2                 sub edx,edx   
-0040B934     F9                   stc   
-0040B935     72 07                jb short PESpin.0040B93E   
-0040B93E     E8 04000000          call PESpin.0040B947   
-0040B947     EB 06                jmp short PESpin.0040B94F   
-0040B94F     F5                   cmc   
-0040B950     72 0E                jb short PESpin.0040B960   
-0040B952     F5                   cmc   
-0040B953     72 F8                jb short PESpin.0040B94D   
-0040B94D     EB 07                jmp short PESpin.0040B956   
-0040B956     EB EC                jmp short PESpin.0040B944   
-0040B944     F5                   cmc   
-0040B945     73 11                jnb short PESpin.0040B958   
-0040B958     830424 07            add dword ptr ss:\[esp\],7   
-0040B95C     F5                   cmc   
-0040B95D     FF3424               push dword ptr ss:\[esp\]  ; PESpin.0040B94A   
-0040B960     C3                   retn   
-    
-0040B94A     72 ED                jb short PESpin.0040B939   
-0040B939     830424 17            add dword ptr ss:\[esp\],17//和下面的 RET 其实是一种跳转方式   
-0040B93D     C3                   retn   
-    
-0040B961     800B 00              or byte ptr ds:\[ebx\],0   
-0040B964     74 0D                je short PESpin.0040B973   
-0040B966     8813                 mov byte ptr ds:\[ebx\],dl   
-0040B968     C1C2 04              rol edx,4   
-0040B96B     75 01                jnz short PESpin.0040B96E   
-0040B96E     43                   inc ebx   
-0040B96F     FF6424 FC            jmp dword ptr ss:\[esp-4\]   ; PESpin.0040B961   
-0040B973     93                   xchg eax,ebx//F4 跳出上面的循环   
-0040B974     8B56 10              mov edx,dword ptr ds:\[esi+10\]   
-0040B977     0395 B3284000        add edx,dword ptr ss:\[ebp+4028B3\]   
-0040B97D     830A 00              or dword ptr ds:\[edx\],0   
-0040B980     74 42                je short PESpin.0040B9C4   
-0040B982     8B02                 mov eax,dword ptr ds:\[edx\]   
-0040B984     A9 00000080          test eax,80000000   
-0040B989     74 09                je short PESpin.0040B994   
-0040B994     40                   inc eax   
-0040B995     0385 B3284000        add eax,dword ptr ss:\[ebp+4028B3\]   
-0040B99B     97                   xchg eax,edi   
-0040B99C     E8 95FDFFFF          call PESpin.0040B736   
-0040B9A1     0F84 0E050000        je PESpin.0040BEB5   
-0040B9A7     8D8D A8304000        lea ecx,dword ptr ss:\[ebp+4030A8\]   
-0040B9AD     F601 01              test byte ptr ds:\[ecx\],1//比较是否需加密的标志了 ![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)  
-0040B9B0     74 0A                je short PESpin.0040B9BC//跳则不加密   Magic Jump   
-    
-0040B9B2     E8 41FCFFFF          call PESpin.0040B5F8//加密 CALL  其实在这里面动手脚也很容易   
-0040B9B7     0BE4                 or esp,esp   
-0040B9B9     75 01                jnz short PESpin.0040B9BC   
-0040B9BC     8902                 mov dword ptr ds:\[edx\],eax; kernel32.GetCommandLineA   
-                                  //如此这般之后就是 正确的函数写入正确的地址啦 ![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)  
-0040B9BE     83C2 04              add edx,4   
-0040B9C1     EB BA                jmp short PESpin.0040B97D//循环   
-     
-0040B9C3     E8 83661000          call 0051204B   
-0040B9C8     83C6 14              add esi,14   
-0040B9CB     E9 C7FEFFFF          jmp PESpin.0040B897   
-0040B9D0     C9                   leave   
-0040B9D1     8050 61 00           adc byte ptr ds:\[eax+61\],0   
-0040B9D5     0089 8D3DDE22        add byte ptr ds:\[ecx+22DE3D8D\],cl   
-0040B9DB     40                   inc eax   
-0040B9DC     00AB 66813F78        add byte ptr ds:\[ebx+783F8166\],ch   
-0040B9E2     23741E FF            and esi,dword ptr ds:\[esi+ebx-1\]   
-0040B9E6     F9                   stc//输入表处理结束之后，将跳到这里 ◆   
-0040B9E7     72 05                jb short PESpin.0040B9EE   
-    
-    
-Magic Jump 只是习惯上的称呼罢了，其最大的功效就是避开 IAT 的加密。这个东东只要修改 1 处就 OK 了：   
-    
-0040B920     808D A8304000 01     or byte ptr ss:\[ebp+4030A8\],1   
-0040B920     808D A8304000 00     or byte ptr ss:\[ebp+4030A8\],0//修改标志   
-    
-或者改这里：   
-0040B9B0     74 0A                je short PESpin.0040B9BC   
-0040B9B0     EB 0A                jmp short PESpin.0040B9BC//改为 JMP   
-    
-    
-—————————————————————————————————   
-二、寻找 Stolen Code、OEP、DUMP   
-     
-     
-    
-偶最初是通过堆栈猜测 Stolen Code 的，后来又看了一下，发现在壳中可以找到 Stolen Code   
-IAT 处理完后，程序当然要最后一跳 OEP 啦。接着上面的走，Let's Go!     
-      
-     
-还记得上面所提的输入表处理结束之后将跳的地址吧？其实就在循环 JMP 的下面   
-  
-0040B897     817E 10 28AE0000     cmp dword ptr ds:\[esi+10\],0AE28   
-0040B89E     0F84 42010000        je PESpin.0040B9E6//输入表处理结束之后，将跳到这个地址◆   
-    
-OK，改好 Magic Jump 之后就不必看 PEspin 循环了，在 0040B9E6 处下个 硬件执行 断点   
-不要下 INT3 普通断点，取消以前的所有断点，否则异常后会死悄悄的      
-在 0040B9E6 断下后恢复上面修改的 Magic Jump 代码，程序有自校验的。当然，可以再强制跳过。   
-    
-    
-0040B9E6     F9                   stc//下 硬件执行 断点，Shift+F9 断在这里！   
-0040B9E7     72 05                jb short PESpin.0040B9EE   
-0040B9E7     72 05                jb short 0040B9EE   
-0040B9EE     EB 01                jmp short 0040B9F1   
-0040B9F1     8DBD 1C234000        lea edi,dword ptr ss:\[ebp+40231C\]   
-0040B9F7     EB 01                jmp short 0040B9FA   
-0040B9FA     F3:                  prefix rep:   
-0040B9FB     0F31                 rdtsc   
-0040B9FD     50                   push eax   
-0040B9FE     F3:                  prefix rep:   
-0040B9FF     0F31                 rdtsc   
-0040BA01     EB 01                jmp short 0040BA04   
-0040BA04     8D6424 04            lea esp,dword ptr ss:\[esp+4\]   
-0040BA08     EB 01                jmp short 0040BA0B   
-0040BA0B     2B4424 FC            sub eax,dword ptr ss:\[esp-4\]   
-0040BA0F     EB 01                jmp short 0040BA12   
-0040BA12     0BC0                 or eax,eax   
-0040BA14     75 01                jnz short 0040BA17   
-0040BA17     3D FF0F0000          cmp eax,0FFF   
-0040BA1C     76 1A                jbe short 0040BA38   
-//如果自校验没通过，就在这里强制跳过吧  ![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)   否则会死悄悄的  ![icon\_sad.gif](img/6b6604f612cad8b046faadea41e25cf2.jpg)  
-    
-0040BA38     EB 01                jmp short 0040BA3B   
-    
-0040BA3B     61                   popad//注意这个 POPAD！ Stolen Code 出现了 ![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)  
-0040BA3C     33C0                 xor eax,eax ★   
-0040BA3E     EB 01                jmp short 0040BA41   
-  
-0040BA41     68 6A4E4000          push 404E6A      ; ASCII "PE\_SPIN\_v01" ★   
-0040BA46     EB 01                jmp short 0040BA49   
-  
-0040BA49     50                   push eax ★   
-0040BA4A     EB 01                jmp short 0040BA4D   
-  
-0040BA4D     50                   push eax ★   
-0040BA4E     EB 01                jmp short 0040BA51   
-  
-0040BA51     E8 7097FFFF          call 004051C6 ; jmp to kernel32.CreateMutexA ★   
-0040BA56     E8 9597FFFF          call 004051F0 ; jmp to ntdll.RtlGetLastWin32Error ★   
-  
-0040BA5B     E9 ED93FFFF          jmp 00404E4D//飞向光明之巅！![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg) 返回程序   
-    
-    
-标注 ★ 的代码就是 Stolen Code 了。对于用 PEspin 加壳的程序，Stolen Code 也是在这些地方   
-     
-      
-————————————————————————   
-    
-00404E3A     33C0                 xor eax,eax//在这儿用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程   
-00404E3C     68 6A4E4000          push 404E6A; ASCII "PE\_SPIN\_v01"   
-00404E41     50                   push eax   
-00404E42     50                   push eax   
-00404E43     E8 7E030000          call 004051C6; jmp to kernel32.CreateMutexA   
-00404E48     E8 A3030000          call 004051F0; jmp to ntdll.RtlGetLastWin32Error   
-                                //上面是补上的 Stolen Code，既然程序留的位置正好索性全部还原吧 ![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)  
-  
-00404E4D     3D B7000000          cmp eax,0B7//由壳中返回这里   
-00404E52     75 2F                jnz short 00404E83   
-00404E54     68 764E4000          push 404E76                   ; ASCII "PE Spin v0.1"   
-00404E59     6A 00                push 0   
-00404E5B     E8 14040000          call 00405274                 ; jmp to USER32.FindWindowA   
-00404E60     6A 01                push 1   
-00404E62     50                   push eax   
-00404E63     E8 12040000          call 0040527A                 ; jmp to USER32.FlashWindow   
-00404E68     EB 42                jmp short 00404EAC   
-  
-其实上面这段代码是判断系统中是否已经运行 PEspin 了，如果有 PEspin 运行则自动退出将要运行的 PEspin，所以可以把 00404E52 改为 jmp 00404E83，这样就可以同时运行多个 PEspin 程序了。但是有必要吗？呵呵   
-  
-00404E83     6A 00                push 0   
-00404E85     E8 6C030000          call 004051F6               ; jmp to kernel32.GetModuleHandleA   
-00404E8A     A3 E9754000          mov dword ptr ds:\[4075E9\],eax   
-00404E8F     E8 D6C5FFFF          call 0040146A   
-00404E94     50                   push eax   
-00404E95     68 B94E4000          push 404EB9   
-00404E9A     6A 00                push 0   
-00404E9C     68 10614000          push 406110                 ; ASCII "IDD\_PE\_SPIN"   
-00404EA1     FF35 E9754000        push dword ptr ds:\[4075E9\]   
-00404EA7     E8 AA030000          call 00405256               ; jmp to USER32.DialogBoxParamA   
-00404EAC     2BC0                 sub eax,eax   
-00404EAE     50                   push eax   
-00404EAF     E8 24030000          call 004051D8               ; jmp to kernel32.ExitProcess   
-00404EB4     E8 15040000          call 004052CE               ; jmp to COMCTL32.InitCommonControls   
-     
-      
-    
-运行 ImportREC，选择这个进程。把 OEP 改为 00004E3A，点 IT AutoSearch，点“Get Import”，FixDump，正常运行！   
-      
-      
-—————————————————————————————————   
-       
-                                   
-         ,     \_/    
-        /| \_.-~/            \_     ,        青春都一饷   
-       ( /~   /              ~-.\_ |   
-       \`\\  \_/                   ~ )          忍把浮名    
-   \_-~~~-.)  )\_\_/;;,.          \_  //'   
-  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂   
- \`~ \_( ,\_..-- (     ,;'' /    ~--   /.\_\`    
-  /~~//'   /' \`~         ) /--..\_, )\_  \`~   
-  "  \`~"  "      \`"      /~'\`    \`\\~~      
-                         "     "   "~'  ""   
-  
-       
-  
-     Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]\[NUKE\]\[DCM\]   
-  
-                2004-02-01  03:30  
+PEspin V0.1 脱壳——PESpin.exe 主程序
+
+下载页面： 点击下载
+
+软件大小： 30 KB
+
+发布日期： 20.10.2003
+
+【软件简介】：PE Spin is a very simple PE protector, encryptor. Options(short): Add Debugger detection;Close program after: ... minut;API Redirection;Section names;Antidump protection;Password protection;Remove the OEP.
+
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+【调试环境】：WinXP、Ollydbg1.09D、PEiD、LordPE、ImportREC
+
+—————————————————————————————————
+
+【脱壳过程】：
+
+最近很是郁闷，碰巧看到这个东东，好像以前没见过，索性再捏个“软柿子”。
+
+感觉 PEspin 的强度大体和 EXE Stealth 相仿，或许只能算作中等水平的保护壳吧？
+
+## 一、避开 IAT 加密，得到正确的输入表
+
+老规矩：用 IsDebug 1.4 插件去掉 Ollydbg 的调试器标志。忽略所有的异常选项。
+
+设置 Ollydbg1.09D 的调试设置选项：把 事件－>标记首先暂停在－>“系统断点”
+
+```
+77F7F571     C3                 retn//进入 OD 后停在系统断点
+```
+
+下断：BP VirtualAlloc F9 运行，断下。
+
+当然也可以不忽略某些异常，看 SEH 信息走，但是偶觉得用这个断点稍微快点。
+
+确定弹出的错误警告，Shift+F9 走，在 77E5980A 处中断第 2 次，偶们可以行动了。
+
+```
+77E5980A     55                 push ebp//中断 2 次，取消断点。 Ctrl+F9 执行到返回
+77E5980B     8BEC               mov ebp,esp
+77E5980D     FF75 14            push dword ptr ss:[ebp+14]
+77E59810     FF75 10            push dword ptr ss:[ebp+10]
+77E59813     FF75 0C            push dword ptr ss:[ebp+C]
+77E59816     FF75 08            push dword ptr ss:[ebp+8]
+77E59819     6A FF              push -1
+77E5981B     E8 04000000        call kernel32.VirtualAllocEx
+77E59820     5D                 pop ebp
+77E59821     C2 1000            retn 10 //返回到 0040B873
+
+0040B86D     FF95 FE284000      call dword ptr ss:[ebp+4028FE]; kernel32.VirtualAlloc
+0040B873     50                 push eax
+0040B874     8F85 B9284000      pop dword ptr ss:[ebp+4028B9]
+0040B87A     8BB5 B6224000      mov esi,dword ptr ss:[ebp+4022B6]
+0040B880     03B5 B3284000      add esi,dword ptr ss:[ebp+4028B3]
+0040B886     3BB5 B3284000      cmp esi,dword ptr ss:[ebp+4028B3]
+0040B88C     75 09              jnz short PESpin.0040B897
+0040B897     817E 10 28AE0000   cmp dword ptr ds:[esi+10],0AE28
+0040B89E     0F84 42010000      je PESpin.0040B9E6//输入表处理结束之后，将跳到这个地址◆
+0040B8A4     8B5E 0C            mov ebx,dword ptr ds:[esi+C]
+0040B8A7     039D B3284000      add ebx,dword ptr ss:[ebp+4028B3]
+0040B8AD     8BFB               mov edi,ebx
+0040B8AF     E8 3B0C0000        call PESpin.0040C4EF
+0040B8B4     E8 01000000        call PESpin.0040B8BA//跟进
+0040B8BA     58                 pop eax     ; PESpin.0040B8B9
+0040B8BB     53                 push ebx
+0040B8BC     50                 push eax
+0040B8BD     FFB5 E5284000      push dword ptr ss:[ebp+4028E5]
+0040B8C3     814424 04 14000000  add dword ptr ss:[esp+4],14
+0040B8CB     C3                 retn//返回系统 DLL，可以 F7 继续走到返回
+[esp+4]+14＝[0012FF9C]=0040B8CD  所以直接在 0040B8CD 处下断，省点时间吧。
+0040B8CD     85C0               test eax,eax//此处下断，F9 断在这
+0040B8CF     0F84 E0050000      je PESpin.0040BEB5
+0040B8D5     50                 push eax
+0040B8D6     E8 DDFDFFFF        call PESpin.0040B6B8
+0040B8DB     56                 push esi
+0040B8DC     53                 push ebx
+0040B8DD     33C9               xor ecx,ecx
+0040B8DF     8A1419             mov dl,byte ptr ds:[ecx+ebx]
+0040B8E2     F6C2 40            test dl,40
+0040B8E5     74 04              je short PESpin.0040B8EB
+0040B8E7     802419 5F          and byte ptr ds:[ecx+ebx],5F
+0040B8EB     41                 inc ecx
+0040B8EC     0AD2               or dl,dl
+0040B8EE     75 EF              jnz short PESpin.0040B8DF
+0040B8F0     49                 dec ecx
+0040B8F1     C1C1 10            rol ecx,10
+0040B8F4     8A2B               mov ch,byte ptr ds:[ebx]
+0040B8F6     B1 04              mov cl,4
+0040B8F8     33D2               xor edx,edx
+0040B8FA     3AAC15 03324000    cmp ch,byte ptr ss:[ebp+edx+403203]
+0040B901     74 09              je short PESpin.0040B90C
+0040B90C     C1E9 10            shr ecx,10
+0040B90F     8DBC2A 04324000    lea edi,dword ptr ds:[edx+ebp+403204]
+0040B916     8B3F               mov edi,dword ptr ds:[edi]
+0040B918     03FD               add edi,ebp
+0040B91A     87F3               xchg ebx,esi
+0040B91C     F3:A6              repe cmps byte ptr es:[edi],byte ptr ds:[esi]//比较是否该加密
+0040B91E     75 09              jnz short PESpin.0040B929
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+[EDI]=0040C8F4 内存处：
+
+```
+0040C8F4  4B 45 52 4E 45 4C 33 32 2E 44 4C 4C 55 53 45 52  KERNEL32.DLLUSER
+0040C904  33 32 2E 44 4C 4C 47 44 49 33 32 2E 44 4C 4C 53  32.DLLGDI32.DLLS
+0040C914  48 45 4C 4C 33 32 2E 44 4C 4C                   HELL32.DLL
+```
+
+0040B91C 处比较是否是这几个 DLL，是则加密。也就意味着 PEspin 0.1 只加密 kernel32.dll、 user32.dll、shell32.dll、gdi32.dll 四个 DLL 的函数。很“善良”的壳 ![icon\_biggrin.gif](img/40f8aa1f3e2e5f4b0b2a718e0bd5133a.jpg)
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+```
+0040B91E     75 09              jnz short PESpin.0040B929
+0040B920     808D A8304000 01   or byte ptr ss:[ebp+4030A8],1 //置需加密标志
+0040B927     EB 07              jmp short PESpin.0040B930
+0040B929     80A5 A8304000 00   and byte ptr ss:[ebp+4030A8],0//不需加密标志
+```
+
+很好的让 PEspin 不加密 IAT 的突破口，只要把 0040B920 处改为 or byte ptr ss:[ebp+4030A8],0
+
+则所有的函数都是“不需”加密的了。当然，偶们可以继续看下去，还有一个“Magic Jump”
+
+```
+0040B930     5B                 pop ebx
+0040B931     5E                 pop esi
+0040B932     2BD2               sub edx,edx
+0040B934     F9                 stc
+0040B935     72 07              jb short PESpin.0040B93E
+0040B93E     E8 04000000        call PESpin.0040B947
+0040B947     EB 06              jmp short PESpin.0040B94F
+0040B94F     F5                 cmc
+0040B950     72 0E              jb short PESpin.0040B960
+0040B952     F5                 cmc
+0040B953     72 F8              jb short PESpin.0040B94D
+0040B94D     EB 07              jmp short PESpin.0040B956
+0040B956     EB EC              jmp short PESpin.0040B944
+0040B944     F5                 cmc
+0040B945     73 11              jnb short PESpin.0040B958
+0040B958     830424 07          add dword ptr ss:[esp],7
+0040B95C     F5                 cmc
+0040B95D     FF3424             push dword ptr ss:[esp]  ; PESpin.0040B94A
+0040B960     C3                 retn
+0040B94A     72 ED              jb short PESpin.0040B939
+0040B939     830424 17          add dword ptr ss:[esp],17//和下面的 RET 其实是一种跳转方式
+0040B93D     C3                 retn
+0040B961     800B 00            or byte ptr ds:[ebx],0
+0040B964     74 0D              je short PESpin.0040B973
+0040B966     8813               mov byte ptr ds:[ebx],dl
+0040B968     C1C2 04            rol edx,4
+0040B96B     75 01              jnz short PESpin.0040B96E
+0040B96E     43                 inc ebx
+0040B96F     FF6424 FC          jmp dword ptr ss:[esp-4]   ; PESpin.0040B961
+0040B973     93                 xchg eax,ebx//F4 跳出上面的循环
+0040B974     8B56 10            mov edx,dword ptr ds:[esi+10]
+0040B977     0395 B3284000      add edx,dword ptr ss:[ebp+4028B3]
+0040B97D     830A 00            or dword ptr ds:[edx],0
+0040B980     74 42              je short PESpin.0040B9C4
+0040B982     8B02               mov eax,dword ptr ds:[edx]
+0040B984     A9 00000080        test eax,80000000
+0040B989     74 09              je short PESpin.0040B994
+0040B994     40                 inc eax
+0040B995     0385 B3284000      add eax,dword ptr ss:[ebp+4028B3]
+0040B99B     97                 xchg eax,edi
+0040B99C     E8 95FDFFFF        call PESpin.0040B736
+```
+
+
+
+```
+0040B9A1     0F84 0E050000        je PESpin.0040BEB5   
+
+0040B9A7     8D8D A8304000        lea ecx,dword ptr ss:[ebp+4030A8]   
+
+0040B9AD     F601 01              test byte ptr ds:[ecx],1//比较是否需加密的标志了 ![icon_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)  
+
+0040B9B0     74 0A               je short PESpin.0040B9BC//跳则不加密   Magic Jump   
+
+0040B9B2     E8 41FCFFFF         call PESpin.0040B5F8//加密 CALL  其实在这里面动手脚也很容易   
+
+0040B9B7     0BE4               or esp,esp   
+
+0040B9B9     75 01              jnz short PESpin.0040B9BC   
+
+0040B9BC     8902               mov dword ptr ds:[edx],eax; kernel32.GetCommandLineA   
+
+                               //如此这般之后就是 正确的函数写入正确的地址啦 ![icon_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)  
+
+0040B9BE     83C2 04            add edx,4   
+
+0040B9C1     EB BA              jmp short PESpin.0040B97D//循环   
+
+0040B9C3     E8 83661000        call 0051204B   
+
+0040B9C8     83C6 14            add esi,14   
+
+0040B9CB     E9 C7FEFFFF        jmp PESpin.0040B897   
+
+0040B9D0     C9                 leave   
+
+0040B9D1     8050 61 00          adc byte ptr ds:[eax+61],0   
+
+0040B9D5     0089 8D3DDE22       add byte ptr ds:[ecx+22DE3D8D],cl   
+
+0040B9DB     40                 inc eax   
+
+0040B9DC     00AB 66813F78       add byte ptr ds:[ebx+783F8166],ch   
+
+0040B9E2     23741E FF           and esi,dword ptr ds:[esi+ebx-1]   
+
+0040B9E6     F9                 stc//输入表处理结束之后，将跳到这里 ◆   
+
+0040B9E7     72 05              jb short PESpin.0040B9EE
+```
+
+`Magic Jump` 只是习惯上的称呼罢了，其最大的功效就是避开 `IAT` 的加密。这个东东只要修改 1 处就 OK 了：
+
+```
+0040B920     808D A8304000 01    or byte ptr ss:[ebp+4030A8],1   
+
+0040B920     808D A8304000 00    or byte ptr ss:[ebp+4030A8],0//修改标志
+```
+
+或者改这里：
+
+```
+0040B9B0     74 0A               je short PESpin.0040B9BC   
+
+0040B9B0     EB 0A               jmp short PESpin.0040B9BC//改为 JMP
+```
+
+\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+
+## 二、寻找 `Stolen Code`、`OEP`、`DUMP`
+
+偶最初是通过堆栈猜测 `Stolen Code` 的，后来又看了一下，发现在壳中可以找到 `Stolen Code`
+
+`IAT` 处理完后，程序当然要最后一跳 `OEP` 啦。接着上面的走，Let's Go!
+
+还记得上面所提的输入表处理结束之后将跳的地址吧？其实就在循环 `JMP` 的下面
+
+```
+0040B897     817E 10 28AE0000    cmp dword ptr ds:[esi+10],0AE28   
+
+0040B89E     0F84 42010000       je PESpin.0040B9E6//输入表处理结束之后，将跳到这个地址◆
+```
+
+OK，改好 `Magic Jump` 之后就不必看 `PEspin` 循环了，在 `0040B9E6` 处下个 硬件执行 断点
+
+不要下 `INT3` 普通断点，取消以前的所有断点，否则异常后会死悄悄的
+
+在 `0040B9E6` 断下后恢复上面修改的 `Magic Jump` 代码，程序有自校验的。当然，可以再强制跳过。
+
+```
+0040B9E6     F9                 stc//下 硬件执行 断点，Shift+F9 断在这里！   
+
+0040B9E7     72 05              jb short PESpin.0040B9EE   
+
+0040B9E7     72 05              jb short 0040B9EE   
+
+0040B9EE     EB 01              jmp short 0040B9F1   
+
+0040B9F1     8DBD 1C234000      lea edi,dword ptr ss:[ebp+40231C]   
+
+0040B9F7     EB 01              jmp short 0040B9FA   
+
+0040B9FA     F3:               prefix rep:   
+
+0040B9FB     0F31               rdtsc   
+
+0040B9FD     50                 push eax   
+
+0040B9FE     F3:               prefix rep:   
+
+0040B9FF     0F31               rdtsc   
+
+0040BA01     EB 01              jmp short 0040BA04   
+
+0040BA04     8D6424 04           lea esp,dword ptr ss:[esp+4]   
+
+0040BA08     EB 01              jmp short 0040BA0B   
+
+0040BA0B     2B4424 FC          sub eax,dword ptr ss:[esp-4]   
+
+0040BA0F     EB 01              jmp short 0040BA12   
+
+0040BA12     0BC0               or eax,eax   
+
+0040BA14     75 01              jnz short 0040BA17   
+
+0040BA17     3D FF0F0000        cmp eax,0FFF   
+
+0040BA1C     76 1A              jbe short 0040BA38
+```
+
+`//如果自校验没通过，就在这里强制跳过吧  ![icon_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)   否则会死悄悄的  ![icon_sad.gif](img/6b6604f612cad8b046faadea41e25cf2.jpg)`
+
+```
+0040BA38     EB 01              jmp short 0040BA3B   
+
+0040BA3B     61                 popad//注意这个 POPAD！ Stolen Code 出现了 ![icon_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)  
+
+0040BA3C     33C0               xor eax,eax ★   
+
+0040BA3E     EB 01              jmp short 0040BA41   
+
+0040BA41     68 6A4E4000        push 404E6A       ; ASCII "PE_SPIN_v01" ★   
+
+0040BA46     EB 01              jmp short 0040BA49   
+
+0040BA49     50                 push eax ★   
+
+0040BA4A     EB 01              jmp short 0040BA4D   
+
+0040BA4D     50                 push eax ★   
+
+0040BA4E     EB 01              jmp short 0040BA51   
+
+0040BA51     E8 7097FFFF        call 004051C6 ; jmp to kernel32.CreateMutexA ★   
+
+0040BA56     E8 9597FFFF        call 004051F0 ; jmp to ntdll.RtlGetLastWin32Error ★   
+
+0040BA5B     E9 ED93FFFF        jmp 00404E4D//飞向光明之巅！![icon_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg) 返回程序
+```
+
+标注 ★ 的代码就是 `Stolen Code` 了。对于用 `PEspin` 加壳的程序，`Stolen Code` 也是在这些地方
+
+\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+
+```
+00404E3A     33C0               xor eax,eax//在这儿用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程   
+
+00404E3C     68 6A4E4000        push 404E6A; ASCII "PE_SPIN_v01"   
+
+00404E41     50                 push eax   
+
+00404E42     50                 push eax   
+
+00404E43     E8 7E030000        call 004051C6; jmp to kernel32.CreateMutexA   
+
+00404E48     E8 A3030000        call 004051F0; jmp to ntdll.RtlGetLastWin32Error   
+
+                              //上面是补上的 Stolen Code，既然程序留的位置正好索性全部还原吧 ![icon_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)  
+
+00404E4D     3D B7000000        cmp eax,0B7//由壳中返回这里   
+
+00404E52     75 2F              jnz short 00404E83   
+
+00404E54     68 764E4000        push 404E76                 ; ASCII "PE Spin v0.1"   
+
+00404E59     6A 00              push 0   
+
+00404E5B     E8 14040000        call 00405274              ; jmp to USER32.FindWindowA   
+
+00404E60     6A 01              push 1   
+
+00404E62     50                 push eax   
+
+00404E63     E8 12040000        call 0040527A              ; jmp to USER32.FlashWindow   
+
+00404E68     EB 42              jmp short 00404EAC
+```
+
+其实上面这段代码是判断系统中是否已经运行 `PEspin` 了，如果有 `PEspin` 运行则自动退出将要运行的 `PEspin`，所以可以把 `00404E52` 改为 `jmp 00404E83`，这样就可以同时运行多个 `PEspin` 程序了。但是有必要吗？呵呵
+
+```
+00404E83     6A 00              push 0   
+
+00404E85     E8 6C030000        call 004051F6             ; jmp to kernel32.GetModuleHandleA   
+
+00404E8A     A3 E9754000        mov dword ptr ds:[4075E9],eax   
+
+00404E8F     E8 D6C5FFFF        call 0040146A   
+
+00404E94     50                 push eax   
+
+00404E95     68 B94E4000        push 404EB9   
+
+00404E9A     6A 00              push 0   
+
+00404E9C     68 10614000        push 406110               ; ASCII "IDD_PE_SPIN"   
+
+00404EA1     FF35 E9754000      push dword ptr ds:[4075E9]   
+
+00404EA7     E8 AA030000        call 00405256             ; jmp to USER32.DialogBoxParamA   
+
+00404EAC     2BC0               sub eax,eax   
+
+00404EAE     50                 push eax   
+
+00404EAF     E8 24030000        call 004051D8             ; jmp to kernel32.ExitProcess   
+
+00404EB4     E8 15040000        call 004052CE             ; jmp to COMCTL32.InitCommonControls
+```
+
+运行 `ImportREC`，选择这个进程。把 `OEP` 改为 `00004E3A`，点 `IT AutoSearch`，点“`Get Import`”，`FixDump`，正常运行！
+
+\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-
+
+```
+        ,     \_/   
+
+      /| \_.-~/          \_     ,        青春都一饷   
+
+     ( /~   /             ~-.\_ |   
+
+     \`\\  \_/               ~ )          忍把浮名   
+
+  \_-~~~-.)  )\_\_/;;,.          \  //'   
+
+  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂   
+
+ \`~ \_( ,\_..-- (     ,;'' /    ~--- /.\_\`   
+
+  /~~//'   /' \`~          ) /--..\_, )\_ \`~   
+
+  "  \`~"  "     \`"       /~'\`    \`\\~~   
+
+                         "     "   "~'  ""   
+
+    Cracked By 巢水工作坊——fly [OCN][FCG][NUKE][DCM]   
+
+              2004-02-01  03:30
+
  4dd466d0e1e0cc123afbe504da2462ca
+```

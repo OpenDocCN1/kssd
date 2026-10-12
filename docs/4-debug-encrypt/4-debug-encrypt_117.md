@@ -1,469 +1,751 @@
 
-
 # Awave Studio v7.0
 
-> 原文：[`www.pediy.com/kssd/pediy03/forum428.htm`](https://www.pediy.com/kssd/pediy03/forum428.htm)
+> 原文：`[www.pediy.com/kssd/pediy03/forum428.htm](https://www.pediy.com/kssd/pediy03/forum428.htm)`
 
-Awave Studio v7.0 的破解   
-工具:TRW2000 和 Wdasm 8.93 Gold 版(http://go.163.com/~wuhuashang/gold.exe)   
-目标说明:一个能转换几乎所有音频格式的工具，用于聆听不同平台音频文件的最好工具之一，   
-        你可以以各种方式使用它：音频文件格式转换器、音频编辑器、音频播放器、以及作   
-        为一个通用波表合成器格式的转换器和编辑器。Awave 可以读取差不多所有的音频文   
-        件格式，同时它可以输出大部分流行的音频文件格式。   
-难度:中级?          
-下载地址:http://www.fmjsoft.com   
-\==================================================================================   
-Awave Studio v7.0 是用 Asprotect 加的壳，无法直接用 Wdasm 反汇编，只有先找到它的 OEP，再从内存   
-中 Dump 出脱离壳后的文件映像(无需重建 Import Table)，具体过程可参看《论坛精华 II》中的教程！   
-运行 Wdasm 8.93(Gold 版)反汇编 Dump 出来的文件，在 String Data References 中会看到"Registered to:%s"   
-的字样。通过 RegMon 监测，该软件启动时会校验注册表中的 Username 和 Usercode 两个键值，已确定是否已注册。   
-为了便于跟踪，可手动建立下列两个键及键值：   
-\[HKEY\_CURRENT\_USER\\Software\\FMJ-Software\\Awave Studio\]   
-"Username"="sUpErbOss"   
-"Usercode"="1122334455"   
-启动 TRW2000，加载 Awave Studio，点击"Load"按钮。进入到 TRW2000 环境，下指令"faults off"，   
-再打"G 0046E22C",即可！   
-:0046E22C E82F140000              call 0046F660 <----重点！！(这是一个共用 Call！)   
-:0046E231 84C0                    test al, al  <----al\=0，则为注册版！   
-:0046E233 7410                    je 0046E245    
-:0046E235 8B06                    mov eax, dword ptr \[esi\]   
-:0046E237 6A00                    push 00000000   
-  
-\* Possible StringData Ref from Data Obj ->"Unregistered copy"   
-                                  |   
-:0046E239 689CD34C00              push 004CD39C   
-:0046E23E 8BCE                    mov ecx, esi   
-:0046E240 FF500C                  call \[eax+0C\]   
-:0046E243 EB44                    jmp 0046E289   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:0046E233(C)   
-|   
-:0046E245 68ADF04D00              push 004DF0AD   
-:0046E24A 8D4C2444                lea ecx, dword ptr \[esp+44\]   
-  
-\* Possible StringData Ref from Data Obj ->"Registered to: %s"   
-                                  |   
-:0046E24E 6888D34C00              push 004CD388   
-:0046E253 51                      push ecx   
-:0046E254 E826810300              call 004A637F   
-  
-\================================================================================   
-\* Referenced by a CALL at Addresses:   
-|:0046E22C  , :0046EAC5  , :0046EB17    
-|   
-:0046F660 53                      push ebx   
-:0046F661 56                      push esi   
-:0046F662 68E8030000              push 000003E8   
-:0046F667 E82F6A0300              call 004A609B   
-:0046F66C 83C404                  add esp, 00000004   
-:0046F66F 8BF0                    mov esi, eax   
-:0046F671 E81A000000              call 0046F690  <--------核心 Call(1)！跟进去！！   
-:0046F676 8AD8                    mov bl, al   
-:0046F678 A05CF44D00              mov al, byte ptr \[004DF45C\]   
-:0046F67D 56                      push esi   
-:0046F67E 84C0                    test al, al   
-:0046F680 E80B6A0300              call 004A6090   
-:0046F685 83C404                  add esp, 00000004   
-:0046F688 8AC3                    mov al, bl   
-:0046F68A 5E                      pop esi   
-:0046F68B 5B                      pop ebx   
-:0046F68C C3                      ret   
-  
-\===============================================================================   
-\* Referenced by a CALL at Address:   
-|:0046F671    
-|   
-:0046F690 E80B000000              call 0046F6A0  <-----继续跟进！   
-:0046F695 F6D8                    neg al   
-:0046F697 1BC0                    sbb eax, eax   
-:0046F699 40                      inc eax   
-:0046F69A C3                      ret   
-  
-\=============================================================================   
-\* Referenced by a CALL at Address:   
-|:0046F690    
-|   
-:0046F6A0 B9D0E34D00              mov ecx, 004DE3D0   
-:0046F6A5 C6055CF44D0001          mov byte ptr \[004DF45C\], 01   
-:0046F6AC E81F95FFFF              call 00468BD0  <-----继续跟进！   
-:0046F6B1 F6D8                    neg al   
-:0046F6B3 1BC0                    sbb eax, eax   
-:0046F6B5 40                      inc eax   
-:0046F6B6 C3                      ret   
-\=============================================================================   
-\* Referenced by a CALL at Addresses:   
-|:0046445C  , :00466ECC  , :0046BB9C  , :0046F6AC  , :0047E6CC    
-|   
-:00468BD0 83EC1C                  sub esp, 0000001C   
-  
-\* Possible StringData Ref from Data Obj ->"裃 j?c 佀 4UN 塳桗勩菥?篤顤'\`鯚骸?"   
-                                        ->".啅 L 摚|菹 Q 赕暌??   
-                                  |   
-:00468BD3 C705B8F14D00D8AC4C00    mov dword ptr \[004DF1B8\], 004CACD8   
-:00468BDD 53                      push ebx   
-:00468BDE 55                      push ebp   
-:00468BDF 8BE9                    mov ebp, ecx   
-:00468BE1 57                      push edi   
-:00468BE2 6A06                    push 00000006   
-  
-\* Possible StringData Ref from Data Obj ->"@DATE="   
-                                  |   
-:00468BE4 68ACB54C00              push 004CB5AC   
-:00468BE9 8D9DDD0C0000            lea ebx, dword ptr \[ebp+00000CDD\]   
-:00468BEF 53                      push ebx   
-:00468BF0 E8AB930400              call 004B1FA0    
-:00468BF5 83C40C                  add esp, 0000000C   
-:00468BF8 85C0                    test eax, eax  <----eax\=1   
-:00468BFA 0F85B1000000            jne 00468CB1   
-\=============================================================================   
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:00468BFA(C), :00468CA6(C)   
-|   
-:00468CB1 8B0DB8F14D00            mov ecx, dword ptr \[004DF1B8\]   
-:00468CB7 8B95610D0000            mov edx, dword ptr \[ebp+00000D61\]   
-:00468CBD 51                      push ecx   
-:00468CBE 8BFB                    mov edi, ebx   
-:00468CC0 83C9FF                  or ecx, FFFFFFFF   
-:00468CC3 33C0                    xor eax, eax   
-:00468CC5 81C5210D0000            add ebp, 00000D21   
-:00468CCB 52                      push edx   
-:00468CCC F2                      repnz   
-:00468CCD AE                      scasb   
-:00468CCE F7D1                    not ecx   
-:00468CD0 49                      dec ecx   
-:00468CD1 55                      push ebp   
-:00468CD2 51                      push ecx   
-:00468CD3 53                      push ebx   
-:00468CD4 E807BB0300              call 004A47E0  <-----继续跟进！   
-:00468CD9 85C0                    test eax, eax   
-:00468CDB 5F                      pop edi   
-:00468CDC 5D                      pop ebp   
-:00468CDD 0F95C0                  setne al   
-:00468CE0 5B                      pop ebx   
-:00468CE1 83C41C                  add esp, 0000001C   
-:00468CE4 C3                      ret   
-\=============================================================================   
-\* Referenced by a CALL at Addresses:   
-|:00468CD4  , :00468DEE    
-|   
-:004A47E0 81ECD0000000            sub esp, 000000D0   
-:004A47E6 8D442438                lea eax, dword ptr \[esp+38\]   
-:004A47EA 56                      push esi   
-:004A47EB 50                      push eax   
-:004A47EC E84F010000              call 004A4940   
-:004A47F1 8D44243C                lea eax, dword ptr \[esp+3C\]   
-:004A47F5 8B8C24DC000000          mov ecx, dword ptr \[esp+000000DC\]   
-:004A47FC 8B9424D8000000          mov edx, dword ptr \[esp+000000D8\]   
-:004A4803 51                      push ecx   
-:004A4804 52                      push edx   
-:004A4805 50                      push eax   
-:004A4806 E865010000              call 004A4970   
-:004A480B 8BB424E4000000          mov esi, dword ptr \[esp+000000E4\]   
-:004A4812 83FE40                  cmp esi, 00000040   
-:004A4815 760F                    jbe 004A4826  <-----跳转！！   
-:004A4817 B899090000              mov eax, 00000999   
-:004A481C 5E                      pop esi   
-:004A481D 81C4D0000000            add esp, 000000D0   
-:004A4823 C21400                  ret 0014   
-  
-  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:004A4815(C)   
-|   
-:004A4826 8D4C243C                lea ecx, dword ptr \[esp+3C\]   
-:004A482A 53                      push ebx   
-:004A482B 8D54240C                lea edx, dword ptr \[esp+0C\]   
-:004A482F 51                      push ecx   
-:004A4830 52                      push edx   
-:004A4831 33DB                    xor ebx, ebx  <-----令 ebx=0！！   
-:004A4833 E8E8010000              call 004A4A20   
-:004A4838 8D44240C                lea eax, dword ptr \[esp+0C\]   
-:004A483C 8D4C241C                lea ecx, dword ptr \[esp+1C\]   
-:004A4840 50                      push eax   
-:004A4841 51                      push ecx   
-:004A4842 E899000000              call 004A48E0   
-:004A4847 8D4C2408                lea ecx, dword ptr \[esp+08\]   
-:004A484B 8B9424EC000000          mov edx, dword ptr \[esp+000000EC\]   
-:004A4852 8B8424E4000000          mov eax, dword ptr \[esp+000000E4\]   
-:004A4859 52                      push edx   
-:004A485A 56                      push esi   
-:004A485B 50                      push eax   
-:004A485C 8D9424A4000000          lea edx, dword ptr \[esp+000000A4\]   
-:004A4863 51                      push ecx   
-:004A4864 52                      push edx   
-:004A4865 E8860C0000              call 004A54F0  <-----------比对 Call！！   
-:004A486A 85C0                    test eax, eax   
-:004A486C 7540                    jne 004A48AE  <----将此处改为 jne 004A48A1！   
-:004A486E 8B442408                mov eax, dword ptr \[esp+08\]   
-  
-\* Possible Reference to Dialog: DialogID\_0022   
-                                  |   
-:004A4872 B922000000              mov ecx, 00000022   
-:004A4877 3BC1                    cmp eax, ecx  <--------比对 eax=22?   
-:004A4879 7545                    jne 004A48C0   
-:004A487B 57                      push edi   
-:004A487C 8D7C2420                lea edi, dword ptr \[esp+20\]   
-:004A4880 8DB4249C000000          lea esi, dword ptr \[esp+0000009C\]   
-:004A4887 33C0                    xor eax, eax  <---令 eax=0！！   
-:004A4889 F3                      repz   
-:004A488A A6                      cmpsb  <-------EDI 与 ESI 指向的内容，比对 22 个字节！！   
-:004A488B 5F                      pop edi   
-:004A488C 7405                    je 004A4893   
-:004A488E 1BC0                    sbb eax, eax   
-:004A4890 83D8FF                  sbb eax, FFFFFFFF   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:004A488C(C)   
-|   
-:004A4893 85C0                    test eax, eax  <---eax\=0   
-:004A4895 7529                    jne 004A48C0   
-:004A4897 8D442440                lea eax, dword ptr \[esp+40\]   
-:004A489B 50                      push eax   
-:004A489C E89F000000              call 004A4940   
-:004A48A1 8BC3                    mov eax, ebx  <----eax\=ebx\=0(注册成功的标志)   
-:004A48A3 5B                      pop ebx   
-:004A48A4 5E                      pop esi   
-:004A48A5 81C4D0000000            add esp, 000000D0   
-:004A48AB C21400                  ret 0014   
-  
-  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:004A486C(C)   
-|   
-:004A48AE BB88080000              mov ebx, 00000888    
-:004A48B3 8BC3                    mov eax, ebx   
-:004A48B5 5B                      pop ebx   
-:004A48B6 5E                      pop esi   
-:004A48B7 81C4D0000000            add esp, 000000D0   
-:004A48BD C21400                  ret 0014   
-  
-\=======================================================================   
-\* Referenced by a CALL at Address:   
-|:004A4865    
-|   
-:004A54F0 8B442410                mov eax, dword ptr \[esp+10\]   
-:004A54F4 83EC40                  sub esp, 00000040   
-:004A54F7 83F840                  cmp eax, 00000040   
-:004A54FA 0F878B000000            ja 004A558B   
-:004A5500 8B4C2454                mov ecx, dword ptr \[esp+54\]   
-:004A5504 8B54244C                mov edx, dword ptr \[esp+4C\]   
-:004A5508 51                      push ecx   
-:004A5509 50                      push eax   
-:004A550A 8D442458                lea eax, dword ptr \[esp+58\]   
-:004A550E 52                      push edx   
-:004A550F 8D4C240C                lea ecx, dword ptr \[esp+0C\]   
-:004A5513 50                      push eax   
-:004A5514 51                      push ecx   
-:004A5515 E886000000              call 004A55A0   
-:004A551A 85C0                    test eax, eax   
-:004A551C 7572                    jne 004A5590   
-:004A551E 837C245040              cmp dword ptr \[esp+50\], 00000040  <----\[esp+50\]=40   
-:004A5523 7566                    jne 004A558B   
-:004A5525 8A442400                mov al, byte ptr \[esp\] <-----\[esp\]=0   
-:004A5529 84C0                    test al, al   
-:004A552B 755E                    jne 004A558B   
-:004A552D 807C240101              cmp byte ptr \[esp+01\], 01<------\[esp+01\]=1   
-:004A5532 7557                    jne 004A558B   
-:004A5534 B802000000              mov eax, 00000002   
-:004A5539 B1FF                    mov cl, FF   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:004A5545(C)   
-|   
-:004A553B 384C0400                cmp byte ptr \[esp+eax\], cl <-----\[esp+eax\]=FF   
-:004A553F 7506                    jne 004A5547   
-:004A5541 40                      inc eax   
-:004A5542 83F83F                  cmp eax, 0000003F  <---比对 27 次！eax=1d   
-:004A5545 72F4                    jb 004A553B   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:004A553F(C)   
-|   
-:004A5547 8A540400                mov dl, byte ptr \[esp+eax\] <-------dl\=0   
-:004A554B 40                      inc eax  <-----eax\=1d+1=1e   
-:004A554C 84D2                    test dl, dl   
-:004A554E 753B                    jne 004A558B   
-:004A5550 8B542448                mov edx, dword ptr \[esp+48\]   
-  
-\* Possible Reference to Dialog: DialogID\_0040   
-                                  |   
-:004A5554 B940000000              mov ecx, 00000040   
-:004A5559 2BC8                    sub ecx, eax  <-----ecx\=22，eax=1e   
-:004A555B 890A                    mov dword ptr \[edx\], ecx   
-:004A555D 8D510B                  lea edx, dword ptr \[ecx+0B\]   
-:004A5560 83FA40                  cmp edx, 00000040   
-:004A5563 7726                    ja 004A558B   
-:004A5565 85C9                    test ecx, ecx   
-:004A5567 741A                    je 004A5583   
-:004A5569 56                      push esi   
-:004A556A 8D740404                lea esi, dword ptr \[esp+eax+04\]   
-:004A556E 8BC1                    mov eax, ecx   
-:004A5570 57                      push edi   
-:004A5571 8B7C244C                mov edi, dword ptr \[esp+4C\]   
-:004A5575 C1E902                  shr ecx, 02   
-:004A5578 F3                      repz   
-:004A5579 A5                      movsd   
-:004A557A 8BC8                    mov ecx, eax   
-:004A557C 83E103                  and ecx, 00000003   
-:004A557F F3                      repz   
-:004A5580 A4                      movsb   
-:004A5581 5F                      pop edi   
-:004A5582 5E                      pop esi   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:004A5567(C)   
-|   
-:004A5583 33C0                    xor eax, eax   
-:004A5585 83C440                  add esp, 00000040   
-:004A5588 C21400                  ret 0014   
-  
-  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:004A54FA(C), :004A5523(C), :004A552B(C), :004A5532(C), :004A554E(C)   
-|:004A5563(C)   
-|   
-:004A558B B801000000              mov eax, 00000001   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:004A551C(C)   
-|   
-:004A5590 83C440                  add esp, 00000040   
-:004A5593 C21400                  ret 0014   
-\========================================================================   
-此软件的注册码的计算好像用到了 RSA 算法，要算出注册码是很困难的。但很明显，用暴力   
-法破解它是非常容易的，只需将 004A486C 处的 jne 004A48AE 改为 jne 004A48A1，即可！   
-当然，改法不止这一种！由于 Awave Studio 被 Asprotect 加了壳，而最新的 Asprotect 的   
-脱壳软件 Caspr v0.952 对它脱壳不完整，造成脱壳后，Awave Studio 运行出错！所以，无法   
-在脱壳后修改，只有写一个 Loader 搞定它！Loader 源码如下：(已经调试通过）   
-  
-; tasm32 /ml loader.asm   
-; tlink32 /Tpe /aa /c loader,loader,, <path to> import32.lib   
-; 以上两行是编译命令，需用到 TASM 5.0！   
-  
-.386P   
-model flat,stdcall   
-locals   
-jumps   
-  
-Extrn      MessageBoxA:PROC    
-Extrn      WaitForInputIdle:PROC   
-  
-Extrn      WriteProcessMemory:PROC   
-Extrn      ReadProcessMemory:PROC   
-Extrn      CreateProcessA:PROC   
-Extrn      CloseHandle:PROC   
-Extrn      ExitProcess:PROC   
-  
-;-=-Normal data-=-=-=-=-=-=-=-=-=-=-=-=-=   
-.Data                                          
-CSiR\_Tag            db 'Awave Studio v7.0 (Loader),by sUpErbOss ',0   
-CSiR\_Error          db 'Error!!!',0   
-CSiR\_Error1        db 'Something wrong!!...',0   
-OpenERR\_txt        db 'CreateProcess Error :(',0   
-ReadERR\_txt        db 'ReadProcessMemory Error :(', 
+Awave Studio v7.0 的破解
 
-> WriteERR\_txt        db 'WriteProcessMemory Error :P',0   
-> VersionERR\_txt      db 'Incorrect Version of application :(',0   
-> CSiR\_ProcessInfo    dd 4 dup (0)        ;process handles   
-> CSiR\_StartupInfo    db 48h dup (0)      ;startup info for the process were opening   
-> CSiR\_RPBuffer      db 2h dup (0)      ;read buffer, for checking data   
->   
-> ;-=-Patch datas-=-=-=-=-=-=-=-=-=-=-=-=-=   
->   
-> CSiR\_AppName  db 'Awave.EXE',0          
-> AwaveVer      dd 004a486ch                  ; address to read data from for version checking   
-> sizeof        dd 2                        ; in the new process   
->   
-> checkbytes    db 075h,040h                ; the bytes to check for   
->                                           ; if there not there, we have the wrong version??   
-> patch\_data\_1  db 033h   
-> patch\_size\_1  dd 1   
-> patch\_addr\_1  dd 004a486dh   
->   
-> .Code                                    
-> ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=   
-> Main:   
->     push    offset CSiR\_Tag   
->     mov    dword ptr \[CSiR\_StartupInfo\],44h ; (the size in bytes of the structure)   
->     push    offset CSiR\_ProcessInfo          ; Typedef struct \_PROCESS\_INFORMATION   
->     push    offset CSiR\_StartupInfo          ; Pointer to STARTUPINFO structure   
->     push    0   
->     push    0   
->     push    20h                              ; Creation flags   
->     push    0   
->     push    0   
->     push    0   
->     push    0   
->     push    offset CSiR\_AppName              ; Pointer to name of executable mod   
->     call    CreateProcessA   
->     test    eax,eax   
->     jz      OpenERR   
->   
-> Wait4Depack:   
->     push    500                      ; 此处的时间等待值请根据自己的机器配置调整,俺的是赛扬 566、128M 内存！   
->                                       ; Timeout (in milliseconds, -1 = infinate)   
->                                           
->     push    dword ptr \[CSiR\_ProcessInfo\]   
->     call    WaitForInputIdle   
->       
-> Check\_Data:   
->   
->     push    0                              ; BytesRead   
->     push    dword ptr \[sizeof\]              ; Length   
->     push    offset CSiR\_RPBuffer            ; Destination (to read them to)   
->     push    dword ptr \[AwaveVer\]                ; Source   
->     push    dword ptr \[CSiR\_ProcessInfo\]    ; Process whose memory we are to read   
->     call    ReadProcessMemory   
->     test    eax,eax   
->     jz      ReadERR   
->     cld   
->     lea    esi, CSiR\_RPBuffer   
->     lea    edi, checkbytes   
->     mov    ecx, 2   
->     rep    cmpsb   
->     jnz    VersionERR    
->   
-> Patch\_the\_mother:   
->     push    0                              ; Pointer to byteswritten (i like null though)   
->     push    dword ptr \[patch\_size\_1\]        ; Length   
->     push    offset patch\_data\_1            ; Source   
->     push    dword ptr \[patch\_addr\_1\]        ; Destination   
->     push    dword ptr \[CSiR\_ProcessInfo\]    ; Process whose memory we are to patch   
->     call    WriteProcessMemory              ; Call Kernel32!WriteProcessMenory   
->     test    eax,eax   
->     jz      WriteERR   
->       
-> Close\_This\_app:   
->     push    dword ptr \[CSiR\_ProcessInfo\]   
->     call    CloseHandle   
->     push    dword ptr \[CSiR\_ProcessInfo+4\]   
->     call    CloseHandle   
->       
-> Exit\_Proc:   
->     Push LARGE-1   
->     Call ExitProcess   
->   
-> ;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=   
-> VersionERR:   
->     lea    eax, VersionERR\_txt   
->     jmp    abort   
-> ReadERR:   
->     lea    eax, ReadERR\_txt   
->     jmp    abort   
-> OpenERR:   
->     lea    eax, OpenERR\_txt   
->     jmp    abort   
-> WriteERR:   
->     lea    eax, WriteERR\_txt   
-> abort:   
->     push 0   
->     push offset CSiR\_Error                  ; Title   
->     push eax                                ; Message   
->     push 0   
->     call MessageBoxA   
->     jmp Close\_This\_app   
-> end Main  4dd466d0e1e0cc123afbe504da2462ca
+工具：`TRW2000` 和 `Wdasm` `8.93` `Gold` 版 (`http://go.163.com/~wuhuashang/gold.exe`)
+
+目标说明：一个能转换几乎所有音频格式的工具，用于聆听不同平台音频文件的最好工具之一，
+你可以以各种方式使用它：音频文件格式转换器、音频编辑器、音频播放器、以及作为一个通用波表合成器格式的转换器和编辑器。`Awave` 可以读取差不多所有的音频文件
+格式，同时它可以输出大部分流行的音频文件格式。
+
+难度：中级
+
+下载地址：`http://www.fmjsoft.com`
+
+```
+==================================================================================
+```
+
+`Awave` `Studio` `v7.0` 是用 `Asprotect` 加的壳，无法直接用 `Wdasm` 反汇编，只有先找到它的 `OEP`，再从内存
+中 `Dump` 出脱离壳后的文件映像(无需重建 `Import` `Table`)，具体过程可参看《论坛精华 II》中的教程！
+
+运行 `Wdasm` `8.93`(`Gold` 版)反汇编 `Dump` 出来的文件，在 `String` `Data` `References` 中会看到 `"Registered to:%s"`
+的字样。通过 `RegMon` 监测，该软件启动时会校验注册表中的 `Username` 和 `Usercode` 两个键值，已确定是否已注册。
+
+为了便于跟踪，可手动建立下列两个键及键值：
+
+```
+[HKEY_CURRENT_USER\Software\FMJ-Software\Awave Studio\]
+
+"Username"="sUpErbOss"
+
+"Usercode"="1122334455"
+```
+
+启动 `TRW2000`，加载 `Awave` `Studio`，点击 `"Load"` 按钮。进入到 `TRW2000` 环境，下指令 `"faults off"`，
+再打 `"G 0046E22C"`，即可！
+
+```
+:0046E22C E82F140000                call 0046F660 <----重点！！(这是一个共用 Call！)
+
+:0046E231 84C0                      test al, al  <----al=0，则为注册版！
+
+:0046E233 7410                      je 0046E245
+
+:0046E235 8B06                      mov eax, dword ptr [esi]
+
+:0046E237 6A00                      push 00000000
+
+* Possible StringData Ref from Data Obj ->"Unregistered copy"
+
+                              |
+
+:0046E239 689CD34C00              push 004CD39C
+
+:0046E23E 8BCE                    mov ecx, esi
+
+:0046E240 FF500C                  call [eax+0C]
+
+:0046E243 EB44                    jmp 0046E289
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0046E233(C)
+
+|
+
+:0046E245 68ADF04D00              push 004DF0AD
+
+:0046E24A 8D4C2444                lea ecx, dword ptr [esp+44]
+
+* Possible StringData Ref from Data Obj ->"Registered to: %s"
+
+                              |
+
+:0046E24E 6888D34C00              push 004CD388
+
+:0046E253 51                      push ecx
+
+:0046E254 E826810300              call 004A637F
+
+================================================================================
+* Referenced by a CALL at Addresses:
+
+|:0046E22C  , :0046EAC5  , :0046EB17
+
+|
+
+:0046F660 53                       push ebx
+
+:0046F661 56                      push esi
+
+:0046F662 68E8030000              push 000003E8
+
+:0046F667 E82F6A0300              call 004A609B
+
+:0046F66C 83C404                  add esp, 00000004
+
+:0046F66F 8BF0                    mov esi, eax
+
+:0046F671 E81A000000              call 0046F690  <--------核心 Call(1)！跟进去！！
+
+:0046F676 8AD8                    mov bl, al
+
+:0046F678 A05CF44D00              mov al, byte ptr [004DF45C]
+
+:0046F67D 56                      push esi
+
+:0046F67E 84C0                    test al, al
+
+:0046F680 E80B6A0300              call 004A6090
+
+:0046F685 83C404                  add esp, 00000004
+
+:0046F688 8AC3                    mov al, bl
+
+:0046F68A 5E                      pop esi
+
+:0046F68B 5B                      pop ebx
+
+:0046F68C C3                      ret
+
+===============================================================================
+* Referenced by a CALL at Address:
+
+|:0046F671
+
+|
+
+:0046F690 E80B000000              call 0046F6A0  <-----继续跟进！
+
+:0046F695 F6D8                    neg al
+
+:0046F697 1BC0                    sbb eax, eax
+
+:0046F699 40                      inc eax
+
+:0046F69A C3                      ret
+
+=============================================================================
+* Referenced by a CALL at Address:
+
+|:0046F690
+
+|
+
+:0046F6A0 B9D0E34D00              mov ecx, 004DE3D0
+
+:0046F6A5 C6055CF44D0001           mov byte ptr [004DF45C], 01
+
+:0046F6AC E81F95FFFF               call 00468BD0  <-----继续跟进！
+
+:0046F6B1 F6D8                    neg al
+
+:0046F6B3 1BC0                    sbb eax, eax
+
+:0046F6B5 40                      inc eax
+
+:0046F6B6 C3                      ret
+
+=============================================================================
+* Referenced by a CALL at Addresses:
+
+|:0046445C  , :00466ECC  , :0046BB9C  , :0046F6AC  , :0047E6CC
+
+|
+
+:00468BD0 83EC1C                    sub esp, 0000001C
+
+* Possible StringData Ref from Data Obj ->"裃 j?c 佀 4UN 塳桗勩菥?篤顤?'`鯚骸?"
+                                          ->".啅 L 摚|菹 Q 赕暌??
+
+                              |
+
+:00468BD3 C705B8F14D00D8AC4C00     mov dword ptr [004DF1B8], 004CACD8
+
+:00468BDD 53                      push ebx
+
+:00468BDE 55                      push ebp
+
+:00468BDF 8BE9                    mov ebp, ecx
+
+:00468BE1 57                      push edi
+
+:00468BE2 6A06                    push 00000006
+
+* Possible StringData Ref from Data Obj ->"@DATE="
+
+                              |
+
+:00468BE4 68ACB54C00              push 004CB5AC
+
+:00468BE9 8D9DDD0C0000             lea ebx, dword ptr [ebp+00000CDD]
+
+:00468BEF 53                      push ebx
+
+:00468BF0 E8AB930400              call 004B1FA0
+
+:00468BF5 83C40C                  add esp, 0000000C
+
+:00468BF8 85C0                    test eax, eax  <----eax=1
+
+:00468BFA 0F85B1000000             jne 00468CB1
+
+=============================================================================
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00468BFA(C), :00468CA6(C)
+
+|
+
+:00468CB1 8B0DB8F14D00             mov ecx, dword ptr [004DF1B8]
+
+:00468CB7 8B95610D0000             mov edx, dword ptr [ebp+00000D61]
+
+:00468CBD 51                      push ecx
+
+:00468CBE 8BFB                    mov edi, ebx
+
+:00468CC0 83C9FF                  or ecx, FFFFFFFF
+
+:00468CC3 33C0                    xor eax, eax
+
+:00468CC5 81C5210D0000            add ebp, 00000D21
+
+:00468CCB 52                      push edx
+
+:00468CCC F2                      repnz
+
+:00468CCD AE                      scasb
+
+:00468CCE F7D1                    not ecx
+
+:00468CD0 49                      dec ecx
+
+:00468CD1 55                      push ebp
+
+:00468CD2 51                      push ecx
+
+:00468CD3 53                      push ebx
+
+:00468CD4 E807BB0300              call 004A47E0  <-----继续跟进！
+
+:00468CD9 85C0                    test eax, eax
+
+:00468CDB 5F                      pop edi
+
+:00468CDC 5D                      pop ebp
+
+:00468CDD 0F95C0                  setne al
+
+:00468CE0 5B                      pop ebx
+
+:00468CE1 83C41C                  add esp, 0000001C
+
+:00468CE4 C3                      ret
+
+=============================================================================
+* Referenced by a CALL at Addresses:
+
+|:00468CD4  , :00468DEE
+
+|
+
+:004A47E0 81ECD0000000             sub esp, 000000D0
+
+:004A47E6 8D442438                lea eax, dword ptr [esp+38]
+
+:004A47EA 56                      push esi
+
+:004A47EB 50                      push eax
+
+:004A47EC E84F010000              call 004A4940
+
+:004A47F1 8D44243C                lea eax, dword ptr [esp+3C]
+
+:004A47F5 8B8C24DC000000          mov ecx, dword ptr [esp+000000DC]
+
+:004A47FC 8B9424D8000000          mov edx, dword ptr [esp+000000D8]
+
+:004A4803 51                      push ecx
+
+:004A4804 52                      push edx
+
+:004A4805 50                      push eax
+
+:004A4806 E865010000              call 004A4970
+
+:004A480B 8BB424E4000000          mov esi, dword ptr [esp+000000E4]
+
+:004A4812 83FE40                  cmp esi, 00000040
+
+:004A4815 760F                    jbe 004A4826  <-----跳转！！
+
+:004A4817 B899090000              mov eax, 00000999
+
+:004A481C 5E                      pop esi
+
+:004A481D 81C4D0000000            add esp, 000000D0
+```
+
+
+
+```assembly
+:004A4823 C21400                   ret 0014
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004A4815(C)
+
+|
+
+:004A4826 8D4C243C               lea ecx, dword ptr [esp+3C]
+
+:004A482A 53                     push ebx
+
+:004A482B 8D54240C               lea edx, dword ptr [esp+0C]
+
+:004A482F 51                     push ecx
+
+:004A4830 52                     push edx
+
+:004A4831 33DB                   xor ebx, ebx   <-----令 ebx=0！！
+
+:004A4833 E8E8010000             call 004A4A20
+
+:004A4838 8D44240C               lea eax, dword ptr [esp+0C]
+
+:004A483C 8D4C241C               lea ecx, dword ptr [esp+1C]
+
+:004A4840 50                     push eax
+
+:004A4841 51                     push ecx
+
+:004A4842 E899000000             call 004A48E0
+
+:004A4847 8D4C2408               lea ecx, dword ptr [esp+08]
+
+:004A484B 8B9424EC000000         mov edx, dword ptr [esp+000000EC]
+
+:004A4852 8B8424E4000000         mov eax, dword ptr [esp+000000E4]
+
+:004A4859 52                     push edx
+
+:004A485A 56                     push esi
+
+:004A485B 50                     push eax
+
+:004A485C 8D9424A4000000         lea edx, dword ptr [esp+000000A4]
+
+:004A4863 51                     push ecx
+
+:004A4864 52                     push edx
+
+:004A4865 E8860C0000             call 004A54F0   <-----------比对 Call！！
+
+:004A486A 85C0                   test eax, eax
+
+:004A486C 7540                   jne 004A48AE   <----将此处改为 jne 004A48A1！
+
+:004A486E 8B442408               mov eax, dword ptr [esp+08]
+
+* Possible Reference to Dialog: DialogID_0022
+
+                                  |
+
+:004A4872 B922000000             mov ecx, 00000022
+
+:004A4877 3BC1                   cmp eax, ecx   <--------比对 eax=22?
+
+:004A4879 7545                   jne 004A48C0
+
+:004A487B 57                     push edi
+
+:004A487C 8D7C2420               lea edi, dword ptr [esp+20]
+
+:004A4880 8DB4249C000000         lea esi, dword ptr [esp+0000009C]
+
+:004A4887 33C0                   xor eax, eax   <---令 eax=0！！
+
+:004A4889 F3                     repz
+
+:004A488A A6                     cmpsb   <-------EDI 与 ESI 指向的内容，比对 22 个字节！！
+
+:004A488B 5F                     pop edi
+
+:004A488C 7405                   je 004A4893
+
+:004A488E 1BC0                   sbb eax, eax
+
+:004A4890 83D8FF                 sbb eax, FFFFFFFF
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004A488C(C)
+
+|
+
+:004A4893 85C0                   test eax, eax   <---eax=0
+
+:004A4895 7529                   jne 004A48C0
+
+:004A4897 8D442440               lea eax, dword ptr [esp+40]
+
+:004A489B 50                     push eax
+
+:004A489C E89F000000             call 004A4940
+
+:004A48A1 8BC3                   mov eax, ebx   <----eax=ebx=0(注册成功的标志)
+
+:004A48A3 5B                     pop ebx
+
+:004A48A4 5E                     pop esi
+
+:004A48A5 81C4D0000000           add esp, 000000D0
+
+:004A48AB C21400                   ret 0014
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004A486C(C)
+
+|
+
+:004A48AE BB88080000             mov ebx, 00000888
+
+:004A48B3 8BC3                   mov eax, ebx
+
+:004A48B5 5B                     pop ebx
+
+:004A48B6 5E                     pop esi
+
+:004A48B7 81C4D0000000           add esp, 000000D0
+
+:004A48BD C21400                   ret 0014
+
+\=======================================================================
+
+* Referenced by a CALL at Address:
+
+|:004A4865
+
+|
+
+:004A54F0 8B442410               mov eax, dword ptr [esp+10]
+
+:004A54F4 83EC40                 sub esp, 00000040
+
+:004A54F7 83F840                 cmp eax, 00000040
+
+:004A54FA 0F878B000000           ja 004A558B
+
+:004A5500 8B4C2454               mov ecx, dword ptr [esp+54]
+
+:004A5504 8B54244C               mov edx, dword ptr [esp+4C]
+
+:004A5508 51                     push ecx
+
+:004A5509 50                     push eax
+
+:004A550A 8D442458               lea eax, dword ptr [esp+58]
+
+:004A550E 52                     push edx
+
+:004A550F 8D4C240C               lea ecx, dword ptr [esp+0C]
+
+:004A5513 50                     push eax
+
+:004A5514 51                     push ecx
+
+:004A5515 E886000000             call 004A55A0
+
+:004A551A 85C0                   test eax, eax
+
+:004A551C 7572                   jne 004A5590
+
+:004A551E 837C245040             cmp dword ptr [esp+50], 00000040   <----[esp+50]=40
+
+:004A5523 7566                   jne 004A558B
+
+:004A5525 8A442400               mov al, byte ptr [esp] <-----[esp]=0
+
+:004A5529 84C0                   test al, al
+
+:004A552B 755E                   jne 004A558B
+
+:004A552D 807C240101             cmp byte ptr [esp+01], 01<------[esp+01]=1
+
+:004A5532 7557                   jne 004A558B
+
+:004A5534 B802000000             mov eax, 00000002
+
+:004A5539 B1FF                   mov cl, FF
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004A5545(C)
+
+|
+
+:004A553B 384C0400               cmp byte ptr [esp+eax], cl <-----[esp+eax]=FF
+
+:004A553F 7506                   jne 004A5547
+
+:004A5541 40                     inc eax
+
+:004A5542 83F83F                 cmp eax, 0000003F   <---比对 27 次！eax=1d
+
+:004A5545 72F4                   jb 004A553B
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004A553F(C)
+
+|
+
+:004A5547 8A540400               mov dl, byte ptr [esp+eax] <-------dl=0
+
+:004A554B 40                     inc eax   <-----eax=1d+1=1e
+
+:004A554C 84D2                   test dl, dl
+
+:004A554E 753B                   jne 004A558B
+
+:004A5550 8B542448               mov edx, dword ptr [esp+48]
+
+* Possible Reference to Dialog: DialogID_0040
+
+                                  |
+
+:004A5554 B940000000             mov ecx, 00000040
+
+:004A5559 2BC8                   sub ecx, eax   <-----ecx=22，eax=1e
+
+:004A555B 890A                   mov dword ptr [edx], ecx
+
+:004A555D 8D510B                 lea edx, dword ptr [ecx+0B]
+
+:004A5560 83FA40                 cmp edx, 00000040
+
+:004A5563 7726                   ja 004A558B
+
+:004A5565 85C9                   test ecx, ecx
+
+:004A5567 741A                   je 004A5583
+
+:004A5569 56                     push esi
+
+:004A556A 8D740404               lea esi, dword ptr [esp+eax+04]
+
+:004A556E 8BC1                   mov eax, ecx
+
+:004A5570 57                     push edi
+
+:004A5571 8B7C244C               mov edi, dword ptr [esp+4C]
+
+:004A5575 C1E902                 shr ecx, 02
+
+:004A5578 F3                     repz
+
+:004A5579 A5                     movsd
+
+:004A557A 8BC8                   mov ecx, eax
+
+:004A557C 83E103                 and ecx, 00000003
+
+:004A557F F3                     repz
+
+:004A5580 A4                     movsb
+
+:004A5581 5F                     pop edi
+
+:004A5582 5E                     pop esi
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004A5567(C)
+
+|
+
+:004A5583 33C0                   xor eax, eax
+
+:004A5585 83C440                 add esp, 00000040
+
+:004A5588 C21400                   ret 0014
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:004A54FA(C), :004A5523(C), :004A552B(C), :004A5532(C), :004A554E(C)
+
+|:004A5563(C)
+
+|
+
+:004A558B B801000000             mov eax, 00000001
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004A551C(C)
+
+|
+
+:004A5590 83C440                 add esp, 00000040
+
+:004A5593 C21400                   ret 0014
+
+\========================================================================
+```
+
+
+
+此软件的注册码的计算好像用到了`RSA`算法，要算出注册码是很困难的。但很明显，用暴力法破解它是非常容易的，只需将`004A486C`处的`jne 004A48AE`改为`jne 004A48A1`，即可！
+
+当然，改法不止这一种！由于`Awave Studio`被`Asprotect`加了壳，而最新的`Asprotect`的脱壳软件`Caspr v0.952`对它脱壳不完整，造成脱壳后，`Awave Studio`运行出错！所以，无法在脱壳后修改，只有写一个`Loader`搞定它！`Loader`源码如下：(已经调试通过）
+
+```
+; tasm32 /ml loader.asm
+; tlink32 /Tpe /aa /c loader,loader,, <path to> import32.lib
+; 以上两行是编译命令，需用到 TASM 5.0！
+
+.386P
+
+model flat,stdcall
+locals
+
+jumps
+
+Extrn       MessageBoxA:PROC 
+Extrn       WaitForInputIdle:PROC
+Extrn       WriteProcessMemory:PROC
+Extrn       ReadProcessMemory:PROC
+Extrn       CreateProcessA:PROC
+Extrn       CloseHandle:PROC
+Extrn       ExitProcess:PROC
+
+;-=-Normal data-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+.Data                                             
+CSiR_Tag             db 'Awave Studio v7.0 (Loader),by sUpErbOss ',0
+CSiR_Error           db 'Error!!!',0
+CSiR_Error1          db 'Something wrong!!...',0
+OpenERR_txt          db 'CreateProcess Error :(',0
+ReadERR_txt          db 'ReadProcessMemory Error :(',
+WriteERR_txt         db 'WriteProcessMemory Error :P',0
+VersionERR_txt       db 'Incorrect Version of application :(',0
+CSiR_ProcessInfo     dd 4 dup (0)       ;process handles
+CSiR_StartupInfo     db 48h dup (0)     ;startup info for the process were opening
+CSiR_RPBuffer        db 2h dup (0)      ;read buffer, for checking data
+
+;-=-Patch datas-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+CSiR_AppName db 'Awave.EXE',0        
+AwaveVer     dd 004a486ch                       ; address to read data from for version checking
+sizeof       dd 2                              ; in the new process
+
+checkbytes   db 075h,040h                       ; the bytes to check for
+                                                 ; if there not there, we have the wrong version??
+patch_data_1 db 033h
+patch_size_1 dd 1
+patch_addr_1 dd 004a486dh
+
+.Code                                               
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+Main:
+    push    offset CSiR_Tag
+    mov     dword ptr [CSiR_StartupInfo],44h ; (the size in bytes of the structure)
+    push    offset CSiR_ProcessInfo           ; Typedef struct _PROCESS_INFORMATION
+    push    offset CSiR_StartupInfo           ; Pointer to STARTUPINFO structure
+    push    0
+    push    0
+    push    20h                               ; Creation flags
+    push    0
+    push    0
+    push    0
+    push    0
+    push    offset CSiR_AppName               ; Pointer to name of executable mod
+    call    CreateProcessA
+    test    eax,eax
+    jz      OpenERR
+
+Wait4Depack:
+    push    500                           ; 此处的时间等待值请根据自己的机器配置调整,俺的是赛扬 566、128M 内存！
+                                            ; Timeout (in milliseconds, -1 = infinate)
+                                           
+    push    dword ptr [CSiR_ProcessInfo]
+    call    WaitForInputIdle
+    
+Check_Data:
+
+    push    0                               ; BytesRead
+    push    dword ptr [sizeof]              ; Length
+    push    offset CSiR_RPBuffer            ; Destination (to read them to)
+    push    dword ptr [AwaveVer]                ; Source
+    push    dword ptr [CSiR_ProcessInfo]    ; Process whose memory we are to read
+    call    ReadProcessMemory
+    test    eax,eax
+    jz      ReadERR
+    cld
+    lea     esi, CSiR_RPBuffer
+    lea     edi, checkbytes
+    mov     ecx, 2
+    rep     cmpsb
+    jnz     VersionERR 
+    
+Patch_the_mother:
+    push    0                               ; Pointer to byteswritten (i like null though)
+    push    dword ptr [patch_size_1]        ; Length
+    push    offset patch_data_1              ; Source
+    push    dword ptr [patch_addr_1]        ; Destination
+    push    dword ptr [CSiR_ProcessInfo]    ; Process whose memory we are to patch
+    call    WriteProcessMemory              ; Call Kernel32!WriteProcessMenory
+    test    eax,eax
+    jz      WriteERR
+    
+Close_This_app:
+    push    dword ptr [CSiR_ProcessInfo]
+    call    CloseHandle
+    push    dword ptr [CSiR_ProcessInfo+4]
+    call    CloseHandle
+    
+Exit_Proc:
+    Push LARGE-1
+    Call ExitProcess
+
+;-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+VersionERR:
+    lea     eax, VersionERR_txt
+    jmp     abort
+ReadERR:
+    lea     eax, ReadERR_txt
+    jmp     abort
+OpenERR:
+    lea     eax, OpenERR_txt
+    jmp     abort
+WriteERR:
+    lea     eax, WriteERR_txt
+
+abort:
+    push 0
+    push offset CSiR_Error                   ; Title
+    push eax                                 ; Message
+    push 0
+    call MessageBoxA
+    jmp Close_This_app
+
+end Main  4dd466d0e1e0cc123afbe504da2462ca
+```

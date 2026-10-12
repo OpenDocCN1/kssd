@@ -1,345 +1,267 @@
 
-
 # EncryptPE V1.2003.5.18
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6663.htm`](https://www.pediy.com/kssd/pediy06/pediy6663.htm)
 
-【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！  
-          
-【调试环境】：WinXP、flyODBG、PEiD、LordPE、ImportREC  
-                   
-—————————————————————————————————   
-【脱壳过程】：  
-            
-           
-           
-有兄弟让看看 EncryptPE 加壳的 DLL，我说新版的就不行了，搞不定的。后来看是 EncryptPE V1.2003.5.18 旧版加壳的，应该用的是老王老师发布的免费版。呵呵，所以脱了一下，顺便记录过程。  
-大家可以自己用 EncryptPE V1.2003.5.18 免费版加个 EdrLib.dll 看看。  
-        
-—————————————————————————————————   
-一、避开 IAT 加密  
-           
-          
-设置 Ollydbg 忽略所有的异常选项。用 IsDebug 1.4 插件去掉 Ollydbg 的调试器标志。  
-添加“同时忽略 0EEDFADE、C0000008、009B25C、00953D74”异常。  
-        
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
 
-> ```
-> 代码: 
-> 00877000     60                  pushad//进入 OD 后停在这
-> 00877001     9C                  pushfd
-> 00877002     64:FF35 00000000    push dword ptr fs:\[0\]
-> 00877009     E8 79010000         call EdrLib.00877187
-> 
-> ```
-> 
->   
+【调试环境】：`WinXP`、`flyODBG`、`PEiD`、`LordPE`、`ImportREC`
 
-   
-          
-下断：BP IsDebuggerPresent 断下后取消断点  
-现在我们 Ctrl+G:711A0000  
-为何用这个地址？因为 V12003518.EPE 是相同的。呵呵，钻了个旧版的空子。  
-          
-其实可以再 BP GetProcAddress，根据返回地址来判断。如果返回地址是 711XXXXX，说明这是 V12003518.EPE 的调用，就可以取消断点 Ctrl+F9 返回了。具体情况以堆栈的返回地址为准。  
-          
-现在 Ctrl+S 在“整个区段”搜索命令序列：  
+---
 
-> ```
-> 代码:
-> mov eax,edi
-> mov edx,dword ptr ss:\[ebp\-8\]
-> mov dword ptr ds:\[eax\],edx
-> xor eax,eax 
-> 
-> ```
-> 
->   
+【脱壳过程】：
 
-   
-          
-找到在 711A339F 处，我们在 711A339F 处下个 硬件执行 断点。  
-现在我们关闭 Ollydbg，重新载入这个 dll，直接 Shift+F9 运行，中断在 711A339F 处  
-          
+有兄弟让看看 `EncryptPE` 加壳的 `DLL`，我说新版的就不行了，搞不定的。后来看是 `EncryptPE V1.2003.5.18` 旧版加壳的，应该用的是老王老师发布的免费版。呵呵，所以脱了一下，顺便记录过程。
 
-> ```
-> 代码:
-> 711A339F     8BC7                mov eax,edi
-> 711A33A1     8B55 F8             mov edx,dword ptr ss:\[ebp\-8\]
-> //改为： mov edx,dword ptr ss:\[ebp-4\] ★ 正确函数写入
-> 711A33A4     8910                mov dword ptr ds:\[eax\],edx
-> 711A33A6     33C0                xor eax,eax
-> 711A33A8     5A                  pop edx
-> 711A33A9     59                  pop ecx
-> 711A33AA     59                  pop ecx
-> 711A33AB     64:8910             mov dword ptr fs:\[eax\],edx
-> 711A33AE     EB 0A               jmp short V1200351.711A33BA
-> 
-> ```
-> 
->   
+大家可以自己用 `EncryptPE V1.2003.5.18` 免费版加个 `EdrLib.dll` 看看。
 
-   
-          
-把 711A33A1 处修改好之后，取消以前下的 711A339F 处的断点。  
-再 Ctrl+S 搜索命令序列：  
+---
 
-> ```
-> 代码:
-> add ebx,4
-> mov eax,dword ptr ss:\[ebp\-4C\]
-> add eax,4
-> 
-> ```
-> 
->   
+## 一、避开 IAT 加密
 
-   
-找到在 711A43C2 处，我们在下面 xor eax,eax 的 711A4401 下断。Shift+F9 运行  
-          
+设置 `Ollydbg` 忽略所有的异常选项。用 `IsDebug 1.4` 插件去掉 `Ollydbg` 的调试器标志。
 
-> ```
-> 代码:
-> 711A43C2     83C3 04             add ebx,4
-> 711A43C5     8B45 B4             mov eax,dword ptr ss:\[ebp\-4C\]
-> 711A43C8     83C0 04             add eax,4
-> 711A43CB     8945 B4             mov dword ptr ss:\[ebp\-4C\],eax
-> 711A43CE     8B03                mov eax,dword ptr ds:\[ebx\]
-> 711A43D0     85C0                test eax,eax
-> 711A43D2     0F87 39FDFFFF       ja V1200351.711A4111
-> 711A43D8     A1 74C71B71         mov eax,dword ptr ds:\[711BC774\]
-> 711A43DD     8038 00             cmp byte ptr ds:\[eax\],0 
-> 711A43E0     75 1F               jnz short V1200351.711A4401
-> 711A43E2     8B45 C4             mov eax,dword ptr ss:\[ebp\-3C\]
-> 711A43E5     83C0 14             add eax,14
-> 711A43E8     8945 C4             mov dword ptr ss:\[ebp\-3C\],eax
-> 711A43EB     8B45 C4             mov eax,dword ptr ss:\[ebp\-3C\]
-> 711A43EE     8378 0C 00          cmp dword ptr ds:\[eax+C\],0
-> 711A43F2     76 0D               jbe short V1200351.711A4401
-> 711A43F4     8B45 C4             mov eax,dword ptr ss:\[ebp\-3C\]
-> 711A43F7     8378 10 00          cmp dword ptr ds:\[eax+10\],0
-> 711A43FB     0F87 38FCFFFF       ja V1200351.711A4039//循环处理 IAT
-> 711A4401     33C0                xor eax,eax//此处下断！ ★
-> 
-> ```
-> 
->   
+添加“同时忽略 `0EEDFADE`、`C0000008`、`009B25C`、`00953D74`”异常。
 
-   
-          
-当我们中断在 711A4401 处时 IAT 已经处理完毕，此时就可以用 ImportREC 得到正确的输入表了。  
-因为 EncryptPE 后面有自校验，所以我们返回 711A33A1 处，点右键－>撤销选择，恢复原来的代码。  
-          
-          
-—————————————————————————————————   
-二、得到重定位表信息、获得 OEP  
-          
-          
-Ctrl+S 在“整个区段”搜索命令序列：  
+```
+00877000     60                  pushad//进入 OD 后停在这
+00877001     9C                  pushfd
+00877002     64:FF35 00000000    push dword ptr fs:[0]
+00877009     E8 79010000         call EdrLib.00877187
+```
 
-> ```
-> 代码:
-> mov edx,dword ptr ss:\[ebp\-24\]
-> sub edx,dword ptr ds:\[eax+34\]
-> mov dword ptr ss:\[ebp\-54\],edx
-> 
-> ```
-> 
->   
+下断：`BP IsDebuggerPresent` 断下后取消断点
 
-   
-找到在 711A4428 处，下断，Shift+F9 运行，中断下来  
-          
+现在我们 `Ctrl+G:711A0000`
 
-> ```
-> 代码:
-> 711A4428     8B55 DC             mov edx,dword ptr ss:\[ebp\-24\] ; EdrLib.00870000
-> 711A442B     2B50 34             sub edx,dword ptr ds:\[eax+34\]//算是一种比较方式吧
-> 711A442E     8955 AC             mov dword ptr ss:\[ebp\-54\],edx
-> 711A4431     8B45 D8             mov eax,dword ptr ss:\[ebp\-28\]
-> 711A4434     8B40 3C             mov eax,dword ptr ds:\[eax+3C\]
-> 711A4437     0345 D8             add eax,dword ptr ss:\[ebp\-28\]
-> 711A443A     8B90 A0000000       mov edx,dword ptr ds:\[eax+A0\]
-> //\[eax+A0\]＝\[008E7D80\]＝00006000  ★ 这个 00006000 就是重定位表的 RVA！原来放在这里 :-)
-> 711A4440     8955 C8             mov dword ptr ss:\[ebp\-38\],edx
-> 711A4443     8B90 A4000000       mov edx,dword ptr ds:\[eax+A4\]
-> //\[eax+A4\]＝\[008E7D84\]＝000003B0  ★ 这个 000003B0 就是重定位表的 Size！
-> 
-> ```
-> 
->   
+为何用这个地址？因为 `V12003518.EPE` 是相同的。呵呵，钻了个旧版的空子。
 
-   
-          
-OK，我们已经得到了我们想得到的信息。我们可以 Dump 出重定位表了，现在的重定位表是完好的。  
-用 LordPE 选择这个 dll，部分脱壳：地址＝00870000+00006000＝00876000，大小＝3B0，存为 00876000.dmp  
-          
-略去重定位过程，我们在这里寻找 OEP！  
-Ctrl+F 在当前位置下搜索命令:sub edx,dword ptr ss:\[ebp-24\]  找到在 711A450D 处：  
-          
+其实可以再 `BP GetProcAddress`，根据返回地址来判断。如果返回地址是 `711XXXXX`，说明这是 `V12003518.EPE` 的调用，就可以取消断点 `Ctrl+F9` 返回了。具体情况以堆栈的返回地址为准。
 
-> ```
-> 代码:
-> 711A4504     83F0 FF             xor eax,FFFFFFFF
-> 711A4507     8B55 F0             mov edx,dword ptr ss:\[ebp\-10\]
-> 711A450A     83F2 FF             xor edx,FFFFFFFF
-> //EDX＝FF78EE36 XOR FFFFFFFF＝008711C9
-> 711A450D     2B55 DC             sub edx,dword ptr ss:\[ebp\-24\] 
-> //EDX＝008711C9  ★  这是什么？呵呵，OEP 啦
-> 711A4510     33C2                xor eax,edx
-> 711A4512     0345 AC             add eax,dword ptr ss:\[ebp\-54\]
-> 711A4515     8945 FC             mov dword ptr ss:\[ebp\-4\],eax
-> 711A4518     EB 13               jmp short V1200351.711A452D
-> 
-> ```
-> 
->   
+现在 `Ctrl+S` 在“整个区段”搜索命令序列：
 
-   
-          
-下面每处理 1 次就清零掉重定位表数据。  
-Ctrl+F 在当前位置下搜索命令:mov word ptr ds:\[ebx\],0  找到在 711A4600 处：  
-          
+```
+mov eax,edi
+mov edx,dword ptr ss:[ebp-8]
+mov dword ptr ds:[eax],edx
+xor eax,eax 
+```
 
-> ```
-> 代码:
-> 711A4600     66:C703 0000        mov word ptr ds:\[ebx\],0//重定位表清 0！
-> 711A4605     FF4D E0             dec dword ptr ss:\[ebp\-20\]
-> 711A4608     837D E0 00          cmp dword ptr ss:\[ebp\-20\],0
-> 711A460C     0F8F B6FEFFFF       jg V1200351.711A44C8
-> 711A4612     8B45 E8             mov eax,dword ptr ss:\[ebp\-18\]
-> 
-> ```
-> 
->   
+找到在 `711A339F` 处，我们在 `711A339F` 处下个 硬件执行 断点。
 
-   
-          
-如果壳加密了跳转表，则在这段代码中间处理，可以修改代码避开跳转表的加密。  
-          
-          
-—————————————————————————————————   
-三、DUMP  
-      
-             
-去 OEP 吧。Ctrl+S 在“整个区段”搜索命令序列：  
+现在我们关闭 `Ollydbg`，重新载入这个 `dll`，直接 `Shift+F9` 运行，中断在 `711A339F` 处
 
-> ```
-> 代码:
-> mov eax,dword ptr ds:\[edx+28\]
-> mov dword ptr ds:\[ebx+0B0\],eax
-> 
-> ```
-> 
->   
+```
+711A339F     8BC7                mov eax,edi
+711A33A1     8B55 F8             mov edx,dword ptr ss:[ebp-8]
+//改为： mov edx,dword ptr ss:[ebp-4] ★ 正确函数写入
+711A33A4     8910                mov dword ptr ds:[eax],edx
+711A33A6     33C0                xor eax,eax
+711A33A8     5A                  pop edx
+711A33A9     59                  pop ecx
+711A33AA     59                  pop ecx
+711A33AB     64:8910             mov dword ptr fs:[eax],edx
+711A33AE     EB 0A              jmp short V1200351.711A33BA
+```
 
-   
-          
-找到在 7119CF0E 处，在 7119CF11 处下 硬件执行 断点，Shift+F9 运行  
+把 `711A33A1` 处修改好之后，取消以前下的 `711A339F` 处的断点。
 
-> ```
-> 代码:
-> 7119CF0E     8B42 28             mov eax,dword ptr ds:\[edx+28\]
-> 7119CF11     8983 B0000000       mov dword ptr ds:\[ebx+B0\],eax; EdrLib.008711C9
-> 
-> ```
-> 
->   
+再 `Ctrl+S` 搜索命令序列：
 
-   
-          
-我们会在 7119CF11 处中断 2 次，第 2 次就是 OEP 的值了。  
-BP 008711C9  Shift+F9 运行就来到 OEP 了。  
-          
+```
+add ebx,4
+mov eax,dword ptr ss:[ebp-4C]
+add eax,4
+```
 
-> ```
-> 代码:
-> 008711C9     55                  push ebp//OEP ★
-> 008711CA     8BEC                mov ebp,esp
-> 008711CC     53                  push ebx
-> 008711CD     8B5D 08             mov ebx,dword ptr ss:\[ebp+8\]
-> 008711D0     56                  push esi
-> 008711D1     8B75 0C             mov esi,dword ptr ss:\[ebp+C\]
-> 008711D4     57                  push edi
-> 008711D5     8B7D 10             mov edi,dword ptr ss:\[ebp+10\]
-> 008711D8     85F6                test esi,esi
-> 008711DA     75 09               jnz short EdrLib.008711E5
-> 008711DC     833D 60538700 00    cmp dword ptr ds:\[875360\],0
-> 008711E3     EB 26               jmp short EdrLib.0087120B
-> 
-> ```
-> 
->   
+找到在 `711A43C2` 处，我们在下面 `xor eax,eax` 的 `711A4401` 下断。`Shift+F9` 运行
 
-   
-          
-现在就可以 DUMP 了。用 LordPE 选中 Ollydbg 的 loaddll.exe 的进程，在下面的列表里选择 EdrLib.dll，然后完整脱壳，得到 dumped.dll。  
-          
-小提示：EncryptPE V1.2003.5.18 都用的是 V12003518.EPE  
-所以，以上避开 IAT 加密和得到重定位信息的代码地址是相同的，呵呵。  
-          
-          
-—————————————————————————————————   
-四、输入表  
-          
-          
-因为已经避开了 IAT 加密，所以现在可以得到完整的输入表。随便从程序找个 API 调用：  
-008710FD     FF15 20408700       call dword ptr ds:\[874020\]; kernel32.GetVersion  
-在转存中跟随 874020，上下看到许多函数地址，很明显的可以找到 IAT 开始和结束的地址：  
+```
+711A43C2     83C3 04             add ebx,4
+711A43C5     8B45 B4             mov eax,dword ptr ss:[ebp-4C]
+711A43C8     83C0 04             add eax,4
+711A43CB     8945 B4             mov dword ptr ss:[ebp-4C],eax
+711A43CE     8B03                mov eax,dword ptr ds:[ebx]
+711A43D0     85C0                test eax,eax
+711A43D2     0F87 39FDFFFF       ja V1200351.711A4111
+711A43D8     A1 74C71B71         mov eax,dword ptr ds:[711BC774]
+711A43DD     8038 00             cmp byte ptr ds:[eax],0 
+711A43E0     75 1F               jnz short V1200351.711A4401
+711A43E2     8B45 C4             mov eax,dword ptr ss:[ebp-3C]
+711A43E5     83C0 14             add eax,14
+711A43E8     8945 C4             mov dword ptr ss:[ebp-3C],eax
+711A43EB     8B45 C4             mov eax,dword ptr ss:[ebp-3C]
+711A43EE     8378 0C 00          cmp dword ptr ds:[eax+C],0
+711A43F2     76 0D               jbe short V1200351.711A4401
+711A43F4     8B45 C4             mov eax,dword ptr ss:[ebp-3C]
+711A43F7     8378 10 00          cmp dword ptr ds:[eax+10],0
+711A43FB     0F87 38FCFFFF       ja V1200351.711A4039//循环处理 IAT
+711A4401     33C0                xor eax,eax//此处下断！ ★
+```
 
-> ```
-> 代码:
-> ☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
-> IAT：
-> 00873FF0   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
-> 00874000   1D 51 C4 77 1C 3A C4 77 3E E7 C4 77 CC D2 C4 77  Q 膚:膚>缒 w 桃膚
->         
-> 008740B0   CE 7C E5 77 05 74 E5 77 F9 81 E5 77 EB 41 E4 77  蝲鍂 t 鍂鶃鍂階鋡
-> 008740C0   66 C8 E5 77 3E 18 F6 77 00 00 00 00 00 00 00 00  f 儒 w>鰓........
-> ☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
-> 
-> ```
-> 
->   
+当我们中断在 `711A4401` 处时 `IAT` 已经处理完毕，此时就可以用 `ImportREC` 得到正确的输入表了。
 
-   
-开始地址＝00874000  
-结束地址＝008740C9  
-          
-运行 ImportREC，去掉“使用来自磁盘的 PE 部首”的选项！选中 Ollydbg 的 loaddll.exe 的进程，然后点“选取 DLL”，选择 EdrLib.dll，填入填入 RVA=00004000、大小＝C8、OEP=000011C9 ，点“Get Import”，得到输入表，FixDump！  
-          
-          
-—————————————————————————————————   
-五、PE 修正  
-          
-          
-用 LordPE 修正 dumped\_.dll 的基址为 00870000。  
-用 WinHex 把 00876000.dmp 全部复制写入进 dumped\_.dll 的 00006000 处。  
-用 LordPE 修正 dumped\_.dll 的重定位表 RVA=00006000、大小＝000003B0，保存之。  
-OK，脱壳完成啦。  
-          
-          
-—————————————————————————————————       
+因为 `EncryptPE` 后面有自校验，所以我们返回 `711A33A1` 处，点右键－>撤销选择，恢复原来的代码。
 
-> ```
-> 代码:                           
->          ,     \_/ 
->         /| \_.-~/            \\\_     ,        青春都一晌
->        ( /~   /              \\~-.\_ |\\
->        \`\\\\  \_/                \\   ~\\ )          忍把浮名 
->    \_-~~~-.)  )\_\_/;;,.          \\\_  //'
->   /'\_,\\   --~   \\ ~~~-  ,;;\\\_\_\_(  (.-~~~-.        换了破解轻狂
->  \`~ \_( ,\_..--\\ (     ,;'' /    ~--   /.\_\`\\ 
->   /~~//'   /' \`~\\         ) /--..\_, )\_  \`~
->   "  \`~"  "      \`"      /~'\`\\    \`\\\\~~\\   
->                          "     "   "~'  ""
-> 
-> ```
-> 
->   
+---
 
-   
-  
-     Cracked By 巢水工作坊——fly \[FCG\]\[NUKE\]\[DCM\]  
-             
-                2004-07-07  02:22  4dd466d0e1e0cc123afbe504da2462ca
+## 二、得到重定位表信息、获得 OEP
+
+`Ctrl+S` 在“整个区段”搜索命令序列：
+
+```
+mov edx,dword ptr ss:[ebp-24]
+sub edx,dword ptr ds:[eax+34]
+mov dword ptr ss:[ebp-54],edx
+```
+
+找到在 `711A4428` 处，下断，`Shift+F9` 运行，中断下来
+
+```
+711A4428     8B55 DC             mov edx,dword ptr ss:[ebp-24] ; EdrLib.00870000
+711A442B     2B50 34             sub edx,dword ptr ds:[eax+34]//算是一种比较方式吧
+711A442E     8955 AC             mov dword ptr ss:[ebp-54],edx
+711A4431     8B45 D8             mov eax,dword ptr ss:[ebp-28]
+711A4434     8B40 3C             mov eax,dword ptr ds:[eax+3C]
+711A4437     0345 D8             add eax,dword ptr ss:[ebp-28]
+711A443A     8B90 A0000000       mov edx,dword ptr ds:[eax+A0]
+//[eax+A0]=[008E7D80]=00006000  ★ 这个 00006000 就是重定位表的 RVA！原来放在这里 :-)
+711A4440     8955 C8             mov dword ptr ss:[ebp-38],edx
+711A4443     8B90 A4000000       mov edx,dword ptr ds:[eax+A4]
+//[eax+A4]=[008E7D84]=000003B0  ★ 这个 000003B0 就是重定位表的 Size！
+```
+
+OK，我们已经得到了我们想得到的信息。我们可以 `Dump` 出重定位表了，现在的重定位表是完好的。
+
+用 `LordPE` 选择这个 `dll`，部分脱壳：地址＝`00870000`+`00006000`＝`00876000`，大小＝`3B0`，存为 `00876000.dmp`
+
+略去重定位过程，我们在这里寻找 `OEP`！
+
+`Ctrl+F` 在当前位置下搜索命令:`sub edx,dword ptr ss:[ebp-24]`  找到在 `711A450D` 处：
+
+```
+711A4504     83F0 FF             xor eax,FFFFFFFF
+711A4507     8B55 F0             mov edx,dword ptr ss:[ebp-10]
+711A450A     83F2 FF             xor edx,FFFFFFFF
+//EDX=FF78EE36 XOR FFFFFFFF=008711C9
+711A450D     2B55 DC             sub edx,dword ptr ss:[ebp-24] 
+//EDX=008711C9  ★  这是什么？呵呵，OEP 啦
+711A4510     33C2                xor eax,edx
+711A4512     0345 AC             add eax,dword ptr ss:[ebp-54]
+711A4515     8945 FC             mov dword ptr ss:[ebp-4],eax
+711A4518     EB 13               jmp short V1200351.711A452D
+```
+
+下面每处理 1 次就清零掉重定位表数据。
+
+`Ctrl+F` 在当前位置下搜索命令:`mov word ptr ds:[ebx],0`  找到在 `711A4600` 处：
+
+```
+711A4600     66:C703 0000        mov word ptr ds:[ebx],0//重定位表清 0！
+711A4605     FF4D E0             dec dword ptr ss:[ebp-20]
+711A4608     837D E0 00          cmp dword ptr ss:[ebp-20],0
+711A460C     0F8F B6FEFFFF       jg V1200351.711A44C8
+711A4612     8B45 E8             mov eax,dword ptr ss:[ebp-18]
+```
+
+如果壳加密了跳转表，则在这段代码中间处理，可以修改代码避开跳转表的加密。
+
+---
+
+## 三、DUMP
+
+去 `OEP` 吧。`Ctrl+S` 在“整个区段”搜索命令序列：
+
+```
+mov eax,dword ptr ds:[edx+28]
+mov dword ptr ds:[ebx+0B0],eax
+```
+
+找到在 `7119CF0E` 处，在 `7119CF11` 处下 硬件执行 断点，`Shift+F9` 运行
+
+```
+7119CF0E     8B42 28             mov eax,dword ptr ds:[edx+28]
+7119CF11     8983 B0000000       mov dword ptr ds:[ebx+B0],eax; EdrLib.008711C9
+```
+
+我们会在 `7119CF11` 处中断 2 次，第 2 次就是 `OEP` 的值了。
+
+`BP 008711C9`  `Shift+F9` 运行就来到 `OEP` 了。
+
+```
+008711C9     55                  push ebp//OEP ★
+008711CA     8BEC                mov ebp,esp
+008711CC     53                  push ebx
+008711CD     8B5D 08             mov ebx,dword ptr ss:[ebp+8]
+008711D0     56                  push esi
+008711D1     8B75 0C             mov esi,dword ptr ss:[ebp+C]
+008711D4     57                  push edi
+008711D5     8B7D 10             mov edi,dword ptr ss:[ebp+10]
+008711D8     85F6                test esi,esi
+008711DA     75 09               jnz short EdrLib.008711E5
+008711DC     833D 60538700 00     cmp dword ptr ds:[875360],0
+008711E3     EB 26               jmp short EdrLib.0087120B
+```
+
+现在就可以 `DUMP` 了。用 `LordPE` 选中 `Ollydbg` 的 `loaddll.exe` 的进程，在下面的列表里选择 `EdrLib.dll`，然后完整脱壳，得到 `dumped.dll`。
+
+小提示：`EncryptPE V1.2003.5.18` 都用的是 `V12003518.EPE`
+
+所以，以上避开 `IAT` 加密和得到重定位信息的代码地址是相同的，呵呵。
+
+---
+
+## 四、输入表
+
+因为已经避开了 `IAT` 加密，所以现在可以得到完整的输入表。随便从程序找个 `API` 调用：
+
+`008710FD     FF15 20408700       call dword ptr ds:[874020]; kernel32.GetVersion`
+
+在转存中跟随 `874020`，上下看到许多函数地址，很明显的可以找到 `IAT` 开始和结束的地址：
+
+```
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+IAT：
+00873FF0   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00874000   1D 51 C4 77 1C 3A C4 77 3E E7 C4 77 CC D2 C4 77  Q 膚:膚>缒 w 桃膚
+              
+008740B0   CE 7C E5 77 05 74 E5 77 F9 81 E5 77 EB 41 E4 77  蝲鍂 t 鍂鶃鍂階鋡
+008740C0   66 C8 E5 77 3E 18 F6 77 00 00 00 00 00 00 00 00  f 儒 w>鰓........
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+```
+
+开始地址＝`00874000`
+
+结束地址＝`008740C9`
+
+
+
+运行`ImportREC`，去掉“使用来自磁盘的 PE 部首”的选项！选中`Ollydbg`的`loaddll.exe`的进程，然后点“选取 DLL”，选择`EdrLib.dll`，填入`RVA=00004000`、大小＝`C8`、`OEP=000011C9`，点“Get Import”，得到输入表，`FixDump`！
+
+五、PE 修正
+
+用`LordPE`修正`dumped\_.dll`的基址为`00870000`。
+
+用`WinHex`把`00876000.dmp`全部复制写入进`dumped\_.dll`的`00006000`处。
+
+用`LordPE`修正`dumped\_.dll`的重定位表`RVA=00006000`、大小＝`000003B0`，保存之。
+
+OK，脱壳完成啦。
+
+```
+代码:                     
+        ,     \_/ 
+       /| \_.-~/            \\     ,        青春都一晌
+      ( /~   /              \\~-.\_ |\\
+      \`\\   \_/                \   ~\ )          忍把浮名 
+  _-~~~-.)  )\\_/;;,.          \    //'
+ /'_,\\   --~   \\ ~~~-  ,;;\\__(  (.-~~~-.        换了破解轻狂
+ \`~ _( ,_..--\\ (     ,;'' /    ~--   /.\\
+  /~~//'   / \`~\\          ) /--..\_, )_  \`~
+  "  \`~"  "      \`"      /~'\`\\    \\\\~~\ 
+                     "     "   "~'  ""
+```
+
+Cracked By 巢水工作坊——fly [FCG][NUKE][DCM]
+
+2004-07-07 02:22 4dd466d0e1e0cc123afbe504da2462ca

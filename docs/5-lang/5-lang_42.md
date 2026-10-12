@@ -1,116 +1,158 @@
 
-
-# {smartassembly}不完全分析
+# `{smartassembly}` 不完全分析
 
 > 原文：[`www.pediy.com/kssd/pediy09/pediy09-232.htm`](https://www.pediy.com/kssd/pediy09/pediy09-232.htm)
 
-> 由于工作的原因，很长时间没有写文章了。和 kanxue 聊下天，觉得坛里关注.net 的人不少，但讨论.net 的人不多，因此决定还是抽空写一点东西。质量如何倒是第二位的了，关键是能拉动一些讨论的热情。.net 加解密这方面，玩儿这个的感觉发展是突飞猛进，上半年刚学的知识，下半年就有点过时了，这种情况下，.net 的加解密似乎成了一个小圈子里几个人的爱好。.net 保护这两年发展迅猛，个人感觉今年尤其快速。基本现在分四大类了：混淆、加密（壳）、授权、VM。这四方面都是有机的结合，使得保护的强度更上一层楼。有机会，大家应该都了解一下，其中也有很有技术含量的东西，并非早几年那样，拿到个程序，reflector 反编译看下，修改了再 ilasm 就完事儿了。  
->     废话说到这，今天分析是{smartassembly} v2.2，说不完全分析是因为当逆向了 80%的时候，发现 0day 出破解了。于是没有继续搞下去，只能把所做的工作拿出来献丑，希望引起大家的兴趣，共同研究.net 软件安全。  
->     {smartassembly}是一款.net 混淆软件，采用了基本上目前所有主流的混淆技术，其实也就两种：名称、流程。但混淆保护中辅助手段是不可少的：打包、强名称校验、错误元数据等。软件名字起的不错，所以安装后在 Program Files 目录下总是排在第一。  
->     拿到软件先运行一下，提示还有几天试用到期，到期后则无法进入。  
->   
-> ![](img/fbfef2e2def3bd91553fb327d2c31aa7.jpg)  
->   
->     习惯性的，用 Reflector 载入，来到入口点，直接显示// This item is obfuscated and can not be translated。切换成 IL，看一下流程混淆的形式，开始的几句代码如下：  
-> 
-> 代码:
-> 
-> ```
->     L\_0000: call bool  .:: ()
->     L\_0005: brtrue.s L\_000c
->     L\_0007: leave L\_0799
->     L\_000c: br L\_0698
->     L\_0011: br L\_06a2
->     L\_0016: br L\_06ac
->     L\_001b: brtrue.s L\_0022
->     L\_001d: leave L\_0799
->     L\_0022: br L\_06b6
->     L\_0027: ldlen 
-> 
-> ```
-> 
->     看来是利用跳转表进行的混淆。名称混淆也是比较烦人的那种乱码，如下图：  
-> ![](img/396b90189a860202fb26463b8168e31b.jpg)  
->   
->     浏览一下资源，发现 N 个 DLL，其中还有一个名叫{license}.dll，这个名称很敏感，一会再好好看。  
->     先试一下有没有强名，用 Strong Name Remove 或者 RE-Sign 去除或者替换强名，程序都会运行出错。这时，就应该考虑是否代码有对强名称的调用了。一般调用就两个 AssemblyName.GetPublicKey 和 GetPublicKeyToken。  
->     用 ildasm 反编译成 il 文件，搜索上面两个方法，可以见到如下代码：  
-> 代码:
-> 
-> ```
-> IL\_0015:  ldsfld     class \[mscorlib\]System.IO.Stream ' '.' '::' '
-> IL\_001a:  brtrue   IL\_0067
-> 
-> IL\_001c:  call       class \[mscorlib\]System.Reflection.Assembly \[mscorlib\]System.Reflection.Assembly::GetExecutingAssembly()
-> IL\_0021:  stloc.1
-> IL\_0022:  ldloc.1
-> IL\_0023:  ldstr      "{e75060b3-2d5b-48f0-8182-1dfcf56cfa33}"
-> IL\_0028:  callvirt   instance class \[mscorlib\]System.IO.Stream \[mscorlib\]System.Reflection.Assembly::GetManifestResourceStream(string)
-> IL\_002d:  stsfld     class \[mscorlib\]System.IO.Stream ' '.' '::' '
-> IL\_0032:  ldloc.1
-> IL\_0033:  callvirt   instance class \[mscorlib\]System.Reflection.AssemblyName \[mscorlib\]System.Reflection.Assembly::GetName()
-> IL\_0038:  callvirt   instance uint8\[\] \[mscorlib\]System.Reflection.AssemblyName::GetPublicKeyToken()
-> 
-> ```
-> 
->     该段代码中用到了"{e75060b3-2d5b-48f0-8182-1dfcf56cfa33}"这个资源文件，初看上去像是强名参与该资源的加解密。可是该资源是干什么的呢？一会就知道了。  
->     .net 混淆的另一个特征是字符被加密，寻找敏感字符串可是解密的重要线索之一。在 Reflector 中浏览需要用到字符串的指令，比较方便的是寻找窗体类的初始化方法，一般都要给控件命名，很快找到一段指令：  
-> 代码:
-> 
-> ```
-> L\_0096: ldc.i4 0x3076
-> L\_009b: call string  . :: (int32)
-> L\_00a0: callvirt instance void \[System.Windows.Forms\]System.Windows.Forms.Control::set\_Text(string)
-> 
-> ```
-> 
->   
->     太明显了，那个一拐一个加号的乱码方法就是解码函数。点击浏览其代码，正是刚才调用 GetPublicKeyToken 的代码。这个方法被混淆了，要得出解码方法比较累。手工反混淆该方法，然后用 ilasm 编译（注意此时还不可以运行，并且乱码编译时会发出很不爽的响声，建议关闭扬声器）。编译之前要注意，资源里有两个文件是不可打印字符，因此无法生成文件，在 ilasm 编译时可以把这两项暂时屏蔽。  
->     然后用 Reflector 再次浏览该字符串解码方法，反混淆得到的 C#代码如下图所示：  
->   
-> ![](img/4d20ad9a3a8a5607dc8de761850aa0bf.jpg)  
->   
->       这样很容易编写得到解码算法，源代码中的字符串也就很容易得到了。这里又出现了另个问题，强名是要参与解码的，而这个程序我们是要爆破的，如果加新的强名，则解码肯定出错。这里有两个方法：一是用新的强名通过逆算法把资源重新解密再加密，烦；二是直接插入根据老的强名算出的值，简单，可行。  
->     强名在解码中的用处如下：  
-> 代码:
-> 
-> * * *
-> 
-> `while (num < (originalPublicKeyToken.Length - 1))   {   offset ^= (originalPublicKeyToken[num] << 8) + originalPublicKeyToken[num + 1];   num += 2;   }` 
-> 
-> * * *
-> 
-> ????    因此我们只需算出 num 既可。根据原始强名算出 num=11167，于是在 IL 中添加如下代码：  
-> 代码:
-> 
-> * * *
-> 
-> `ldc.i4 11167//添加的代码   stsfld     int32 ' '.' '/*02000007*/::' ' /* 04000009 */ //添加的代码   IL_0067:  ldsfld     class [mscorlib/*23000008*/]System.IO.Stream/*01000016*/ ' '.' '/*02000007*/::' ' /* 04000008 */   IL_006c:  ldarg.0   IL_006d:  ldsfld     int32 ' '.' '/*02000007*/::' ' /* 04000009 */` 
-> 
-> * * *
-> 
-> ????    这时，再次用 ilasm 编译程序，已经可以执行了，不过还没有解决授权的问题。接下就看看负责授权的{license}.dll。Reflector 载入后发现已经被混淆了，但是同刚才步骤一样，手动反混淆，方法比较少，几步搞定，这下能看到 C#了。  
->     一个名叫 bool Validate()的方法引起了注意，看下代码，正是授权系统，代码如下：  
->   
-> 代码:
-> 
-> * * *
-> 
-> `public static bool Validate()   {       DateTime time = DateTime.Parse("{6b25f59b-30dd-4b47-a739-10fc96df587e}");       if ((DateTime.Now > time) || (DateTime.Now < time.AddDays(-21)))       {            .  mainForm = new  . (string.Format("This Assembly has been built with an evaluation version of {{smartassembly}}, which has expired on {0}.\n\nYou need to purchase a license of {{smartassembly}}.", time.ToString("D")), "{smartassembly} License Exception", "error");           ();           Application.Run(mainForm);           return false;       }       bool flag = false;       try       {           RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\{smartassembly}");           if (key != null)           {               if (((string) key.GetValue("Path", string.Empty)).Length > 0)               {                   flag = true;               }               key.Close();           }       }       catch       {       }       if (flag)       {           return true;       }       try       {            .   2 = new  . ("This application has been built with an evaluation version of {smartassembly}, and thus cannot be distributed. You can install {smartassembly} on this computer to be able to run this application.\n\nThis application will now quit.", "{smartassembly} Evaluation Version", "error");           ();            2.BackColor = Color.White;            2.ShowDialog();       }       catch       {       }       return false;   }` 
-> 
-> * * *
-> 
-> ????    搞定这个简单，在开头第一句加上 return true 不就结了。在 il 中把该方法的代码改为：  
-> 代码:
-> 
-> * * *
-> 
-> `ldc.i4.1   return` 
-> 
-> * * *
-> 
-> ????    其余代码删除，既好用又减肥。ilasm 重新编译，运行不出错，但是在混淆时会出错。最后得出是同目录下的{database}.mdb 文件在作怪，打开这个数据库需要密码，我第一个猜的密码就是 publickeytoken，果不其然。用 Access 打开 mdb 文件，取消密码，程序可以正常使用了。  
->     本准备继续下去，把对 mdb 处理的地方找到，但这时发现了网上已有的 0day 破解，于是失去了斗志，也就半途而废了。把这个过程写出来，中间省略了很多繁琐的细节，希望能对大家有用，也希望更多的人来讨论.net。  
->     附件中提供字符串解码程序，要看源码的 reflector。 
+> 由于工作的原因，很长时间没有写文章了。和 `kanxue` 聊下天，觉得坛里关注 `.net` 的人不少，但讨论 `.net` 的人不多，因此决定还是抽空写一点东西。质量如何倒是第二位的了，关键是能拉动一些讨论的热情。`.net` 加解密这方面，玩儿这个的感觉发展是突飞猛进，上半年刚学的知识，下半年就有点过时了，这种情况下，`.net` 的加解密似乎成了一个小圈子里几个人的爱好。`.net` 保护这两年发展迅猛，个人感觉今年尤其快速。基本现在分四大类了：混淆、加密（壳）、授权、VM。这四方面都是有机的结合，使得保护的强度更上一层楼。有机会，大家应该都了解一下，其中也有很有技术含量的东西，并非早几年那样，拿到个程序，`reflector` 反编译看下，修改了再 `ilasm` 就完事儿了。
 
- 4dd466d0e1e0cc123afbe504da2462ca
+> 废话说到这，今天分析是 `{smartassembly}` `v2.2`，说不完全分析是因为当逆向了 80% 的时候，发现 `0day` 出破解了。于是没有继续搞下去，只能把所做的工作拿出来献丑，希望引起大家的兴趣，共同研究 `.net` 软件安全。
+
+> `{smartassembly}` 是一款 `.net` 混淆软件，采用了基本上目前所有主流的混淆技术，其实也就两种：名称、流程。但混淆保护中辅助手段是不可少的：打包、强名称校验、错误元数据等。软件名字起的不错，所以安装后在 `Program Files` 目录下总是排在第一。
+
+> 拿到软件先运行一下，提示还有几天试用到期，到期后则无法进入。
+
+> ![](img/fbfef2e2def3bd91553fb327d2c31aa7.jpg)
+
+> 习惯性的，用 `Reflector` 载入，来到入口点，直接显示 `// This item is obfuscated and can not be translated`。切换成 IL，看一下流程混淆的形式，开始的几句代码如下：
+
+```
+L_0000: call bool  .:: ()
+L_0005: brtrue.s L_000c
+L_0007: leave L_0799
+L_000c: br L_0698
+L_0011: br L_06a2
+L_0016: br L_06ac
+L_001b: brtrue.s L_0022
+L_001d: leave L_0799
+L_0022: br L_06b6
+L_0027: ldlen 
+
+```
+
+> 看来是利用跳转表进行的混淆。名称混淆也是比较烦人的那种乱码，如下图：
+
+> ![](img/396b90189a860202fb26463b8168e31b.jpg)
+
+> 浏览一下资源，发现 N 个 DLL，其中还有一个名叫 `{license}.dll`，这个名称很敏感，一会再好好看。
+
+> 先试一下有没有强名，用 `Strong Name Remove` 或者 `RE-Sign` 去除或者替换强名，程序都会运行出错。这时，就应该考虑是否代码有对强名称的调用了。一般调用就两个 `AssemblyName.GetPublicKey` 和 `GetPublicKeyToken`。
+
+> 用 `ildasm` 反编译成 IL 文件，搜索上面两个方法，可以见到如下代码：
+
+```
+IL_0015:  ldsfld     class [mscorlib]System.IO.Stream ' '.' ::' '
+IL_001a:  brtrue   IL_0067
+
+IL_001c:  call       class [mscorlib]System.Reflection.Assembly [mscorlib]System.Reflection.Assembly::GetExecutingAssembly()
+IL_0021:  stloc.1
+IL_0022:  ldloc.1
+IL_0023:  ldstr      "{e75060b3-2d5b-48f0-8182-1dfcf56cfa33}"
+IL_0028:  callvirt   instance class [mscorlib]System.IO.Stream [mscorlib]System.Reflection.Assembly::GetManifestResourceStream(string)
+IL_002d:  stsfld     class [mscorlib]System.IO.Stream ' '.' ::' '
+IL_0032:  ldloc.1
+IL_0033:  callvirt   instance class [mscorlib]System.Reflection.AssemblyName [mscorlib]System.Reflection.Assembly::GetName()
+IL_0038:  callvirt   instance uint8[] [mscorlib]System.Reflection.AssemblyName::GetPublicKeyToken()
+
+```
+
+> 该段代码中用到了 `"{e75060b3-2d5b-48f0-8182-1dfcf56cfa33}"` 这个资源文件，初看上去像是强名参与该资源的加解密。可是该资源是干什么的呢？一会就知道了。
+
+> `.net` 混淆的另一个特征是字符被加密，寻找敏感字符串可是解密的重要线索之一。在 `Reflector` 中浏览需要用到字符串的指令，比较方便的是寻找窗体类的初始化方法，一般都要给控件命名，很快找到一段指令：
+
+```
+L_0096: ldc.i4 0x3076
+L_009b: call string  . :: (int32)
+L_00a0: callvirt instance void [System.Windows.Forms]System.Windows.Forms.Control::set_Text(string)
+
+```
+
+> 太明显了，那个一拐一个加号的乱码方法就是解码函数。点击浏览其代码，正是刚才调用 `GetPublicKeyToken` 的代码。这个方法被混淆了，要得出解码方法比较累。手工反混淆该方法，然后用 `ilasm` 编译（注意此时还不可以运行，并且乱码编译时会发出很不爽的响声，建议关闭扬声器）。编译之前要注意，资源里有两个文件是不可打印字符，因此无法生成文件，在 `ilasm` 编译时可以把这两项暂时屏蔽。
+
+> 然后用 `Reflector` 再次浏览该字符串解码方法，反混淆得到的 C# 代码如下图所示：
+
+> ![](img/4d20ad9a3a8a5607dc8de761850aa0bf.jpg)
+
+> 这样很容易编写得到解码算法，源代码中的字符串也就很容易得到了。这里又出现了另个问题，强名是要参与解码的，而这个程序我们是要爆破的，如果加新的强名，则解码肯定出错。这里有两个方法：一是用新的强名通过逆算法把资源重新解密再加密，烦；二是直接插入根据老的强名算出的值，简单，可行。
+
+> 强名在解码中的用处如下：
+
+```csharp
+while (num < (originalPublicKeyToken.Length - 1))   {   
+    offset ^= (originalPublicKeyToken[num] << 8) + originalPublicKeyToken[num + 1];   
+    num += 2;   
+}
+```
+
+> 因此我们只需算出 `num` 既可。根据原始强名算出 `num=11167`，于是在 IL 中添加如下代码：
+
+```
+ldc.i4 11167//添加的代码
+stsfld     int32 ' '.'/*02000007*/::' ' /* 04000009 */ //添加的代码
+IL_0067:  ldsfld     class [mscorlib/*23000008*/]System.IO.Stream/*01000016*/ ' '.'/*02000007*/::' ' /* 04000008 */
+IL_006c:  ldarg.0
+IL_006d:  ldsfld     int32 ' '.'/*02000007*/::' ' /* 04000009 */
+```
+
+> 这时，再次用 `ilasm` 编译程序，已经可以执行了，不过还没有解决授权的问题。接下就看看负责授权的 `{license}.dll`。`Reflector` 载入后发现已经被混淆了，但是同刚才步骤一样，手动反混淆，方法比较少，几步搞定，这下能看到 C# 了。
+
+> 一个名叫 `bool Validate()` 的方法引起了注意，看下代码，正是授权系统，代码如下：
+
+```csharp
+public static bool Validate() 
+{    
+    DateTime time = DateTime.Parse("{6b25f59b-30dd-4b47-a739-10fc96df587e}");    
+    if ((DateTime.Now > time) || (DateTime.Now < time.AddDays(-21)))    
+    {        
+        .  mainForm = new . (string.Format("This Assembly has been built with an evaluation version of {smartassembly}, which has expired on {0}.\n\nYou need to purchase a license of {smartassembly}.", time.ToString("D")), "{smartassembly} License Exception", "error");        
+        ();        
+        Application.Run(mainForm);        
+        return false;    
+    }    
+    bool flag = false;    
+    try    
+    {        
+        RegistryKey key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\{smartassembly}");        
+        if (key != null)        
+        {            
+            if (((string) key.GetValue("Path", string.Empty)).Length > 0)            
+            {                
+                flag = true;            
+            }            
+            key.Close();        
+        }    
+    }    
+    catch    
+    {    
+    }    
+    if (flag)    
+    {        
+        return true;    
+    }    
+    try    
+    {         
+        .   2 = new . ("This application has been built with an evaluation version of {smartassembly}, and thus cannot be distributed. You can install {smartassembly} on this computer to be able to run this application.\n\nThis application will now quit.", "{smartassembly} Evaluation Version", "error");        
+        ();         
+        2.BackColor = Color.White;         
+        2.ShowDialog();    
+    }    
+    catch    
+    {    
+    }    
+    return false; 
+}
+```
+
+> 搞定这个简单，在开头第一句加上 `return true` 不就结了。在 IL 中把该方法的代码改为：
+
+```
+ldc.i4.1
+return
+```
+
+> 其余代码删除，既好用又减肥。`ilasm` 重新编译，运行不出错，但是在混淆时会出错。最后得出是同目录下的 `{database}.mdb` 文件在作怪，打开这个数据库需要密码，我第一个猜的密码就是 `publickeytoken`，果不其然。用 `Access` 打开 `mdb` 文件，取消密码，程序可以正常使用了。
+
+> 本准备继续下去，把对 `mdb` 处理的地方找到，但这时发现了网上已有的 `0day` 破解，于是失去了斗志，也就半途而废了。把这个过程写出来，中间省略了很多繁琐的细节，希望能对大家有用，也希望更多的人来讨论 `.net`。
+
+> 附件中提供字符串解码程序，要看源码的 `reflector`。
+
+4dd466d0e1e0cc123afbe504da2462ca

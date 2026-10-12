@@ -1,1145 +1,1422 @@
 
-
-# ASPr 带壳调试+壳内存 CRC 分析+Inline Loader\[Delphi 开源\]+录象\[看雪 2006 读书季\]
+# ASPr 带壳调试+壳内存 CRC 分析+Inline Loader[Delphi 开源]+录象[看雪 2006 读书季]
 
 > 原文：[`www.pediy.com/kssd/pediy08/pediy8-481.htm`](https://www.pediy.com/kssd/pediy08/pediy8-481.htm)
 
-【文章标题】: ASPr 带壳调试+内存校验完整分析+Inline Loader\[Delphi 开源\]+语音使用录象  
-【文章作者】: wynney  
-【作者主页】: http://ReverserCracker.Spaces.Live.Com  
-【软件名称】: Tail4win 2.7  
-【软件大小】: 765K  
-【使用工具】: Delphi 7、OD  
-【下载地址】: http://74530.cn/3800hk/Files.rar  
-【加壳方式】: ASProtect 2.3 SKE build 05.14 Beta  
-【作者声明】: Dup2、KeyMake、Inline Loader 对比  
-\--------------------------------------------------------------------------------  
-【详细过程】  
-   
-  一、前言  
-  
-  呵呵，昨天才发现有这么个活动，参加玩玩吧，重在参与嘛：）文章中既有调试又有壳的分析又有编程又有工具，还真不知道应该发到哪个区去  
-  
-  像 ASPr 一类猛壳加壳的软件会有内存校验，一般的补丁工具制作的内存补丁，一是表现得很不稳定，导致补丁无效，二是被 ASPr  
-  检测到，提示 Protection Error:45 之类的错误  
-   
-当然你若想用 Dup2、KeyMake 来做 ASPr 的内存补丁，也可以！那就还需要填上躲避校验值的补丁数据，比较麻烦，但是这个相对于一些老鸟而言是很简单的事了。于是，本人就写了个补丁制作工具，只需填写补丁数据\[不需要原始数据，不需要设置跳过校验\]即可，也不会被内存校验到。不足的是开有杀毒软件会导致补丁不够稳定\[在某些机器上测试有此情况，我的机器上却没有\]。  
-    
-    
-  二、带壳调试  
-  
-  带壳动态调试最起码的要求是目标程序能够在 OD 下正常的跑得起来。  
-    
-  1、未注册启动就有个注册框  
-  2、注册框上提示“You have 30 day(s) left”  
-  3、看注册方式是重启验证  
-  4、假注册试试，提示“Serial is not valid, please input again”  
-    
-  既然如此，我们就从注册框入手  
-    
-  5、忽略除了 INT3 和指定异常之外的所有异常、OD 载入  
-  6、F9 两次中断在 INT3 异常，Alt+M 在 Code 段 F9 中断在 OEP  
-  7、搜索所有参考文本字符串  
-    
-  文本字符串参考位于 Tail4win:  
-  地址       反汇编                    文本字符串  
-  004D843C   mov edx,Tail4win.004D858  ASCII "Trial expired, please register."  
-  004D8448   push Tail4win.004D85A8    ASCII "You have "  
-  004D845E   push Tail4win.004D85BC    ASCII " day(s) left"  
-  004D84B5   mov edx,Tail4win.004D85D  ASCII "This copy is licensed to "  
-  004D84DB   push Tail4win.004D85F8    ASCII "You hava not register. This copy left "  
-  004D84F8   push Tail4win.004D8628    ASCII " days to use."  
-  004D86FD   push Tail4win.004D8724    ASCII "System Error"  
-  004D8702   push Tail4win.004D8734    ASCII "Form create error, please send mail to support@withdata.com!"  
-  004D88DA   mov edx,Tail4win.004D8A0  ASCII "can not open "  
-  004D8A24   push Tail4win.004D8A98    ASCII "OutputDebugString"  
-  004D8B82   mov edx,Tail4win.004D8C1  ASCII "\\Software\\withdata\\tail4win\\recent"  
-  004D8B92   mov edx,Tail4win.004D8C4  ASCII "loadlines"  
-  004D8B97   mov eax,Tail4win.004D8C5  ASCII "Software\\withdata\\tail4win"  
-  004D8BBA   mov edx,Tail4win.004D8C8  ASCII "editor"  
-  004D8BBF   mov eax,Tail4win.004D8C5  ASCII "Software\\withdata\\tail4win"  
-  004D8BE6   mov edx,Tail4win.004D8C9  ASCII "notepad"  
-  004D8D0D   mov edx,Tail4win.004D8D7  ASCII "This copy is licensed to "  
-    
-  文本字符串参考位于 Tail4win:  
-  地址       反汇编                    文本字符串  
-  004D2ADF   push Tail4win.004D2B40    ASCII "Registration"  
-  004D2AE4   push Tail4win.004D2B50    ASCII "Thank you for your registration!"  
-  004D2B01   push Tail4win.004D2B40    ASCII "Registration"  
-  004D2B06   push Tail4win.004D2B74    ASCII "Serial is not valid, please input again!"  
-    
-    
-  从上面的信息可以看出，一是通过注册表实现重启验证\[Software\\withdata\\tail4win\]，二是我们找到了 2 中的提示  
-    
-  8、双击 004D8448 来到这里,因为是带壳调试，所有我们要下的断点必须都是硬件断点。  
-    
-  004D841D     E8 F6A5FFFF        call Tail4win.004D2A18           ; 这里是关键 Call，下硬件执行断点  
-  004D8422     84C0               test al,al                       ; 跳转是受 al 的限制的，al 为 1 才可以实现跳转  
-  004D8424     75 66              jnz short Tail4win.004D848C  
-  004D8426     8B45 F8            mov eax,dword ptr ss:\[ebp-8\]  
-  004D8429     8BB0 34030000      mov esi,dword ptr ds:\[eax+334\]  
-  004D842F     85F6               test esi,esi  
-  004D8431     75 15              jnz short Tail4win.004D8448  
-  004D8433     8B45 F8            mov eax,dword ptr ss:\[ebp-8\]  
-  004D8436     8B80 14030000      mov eax,dword ptr ds:\[eax+314\]  
-  004D843C     BA 80854D00        mov edx,Tail4win.004D8580        ; ASCII "Trial expired, please register."  
-  004D8441     E8 D69AF8FF        call Tail4win.00461F1C  
-  004D8446     EB 39              jmp short Tail4win.004D8481  
-  004D8448     68 A8854D00        push Tail4win.004D85A8           ; ASCII "You have "  
-  004D844D     8BC6               mov eax,esi  
-  004D844F     33D2               xor edx,edx  
-  004D8451     52                 push edx  
-  004D8452     50                 push eax  
-  004D8453     8D45 F0            lea eax,dword ptr ss:\[ebp-10\]  
-  004D8456     E8 910CF3FF        call Tail4win.004090EC  
-  004D845B     FF75 F0            push dword ptr ss:\[ebp-10\]  
-  004D845E     68 BC854D00        push Tail4win.004D85BC           ; ASCII " day(s) left"  
-  004D8463     8D45 F4            lea eax,dword ptr ss:\[ebp-C\]  
-    
-  9、忽略所有异常，重新加载，F9 中断在 004D841D，F7 进入  
-    
-  004D2A18     53                 push ebx  
-  004D2A19     56                 push esi  
-  004D2A1A     57                 push edi  
-  004D2A1B     83C4 F8            add esp,-8  
-  004D2A1E     8BF0               mov esi,eax  
-  004D2A20     33DB               xor ebx,ebx  
-  004D2A22     8D86 28030000      lea eax,dword ptr ds:\[esi+328\]  
-  004D2A28     50                 push eax  
-  004D2A29     8D86 24030000      lea eax,dword ptr ds:\[esi+324\]  
-  004D2A2F     50                 push eax  
-  004D2A30     6A 00              push 0  
-  004D2A32     E8 25FDFFFF        call Tail4win.004D275C  
-  004D2A37     8BBE 24030000      mov edi,dword ptr ds:\[esi+324\]  
-  004D2A3D     85FF               test edi,edi  
-  004D2A3F     74 1E              je short Tail4win.004D2A5F  
-  004D2A41     8BC7               mov eax,edi  
-  004D2A43     E8 806EF3FF        call Tail4win.004098C8  
-  004D2A48     85C0               test eax,eax  
-  004D2A4A     76 13              jbe short Tail4win.004D2A5F  
-  004D2A4C     54                 push esp  
-  004D2A4D     8D86 2C030000      lea eax,dword ptr ds:\[esi+32C\]  
-  004D2A53     50                 push eax  
-  004D2A54     6A 00              push 0  
-  004D2A56     E8 19FDFFFF        call Tail4win.004D2774  
-  004D2A5B     B3 01              mov bl,1                         ; 如果这里实现,bl 就是 1  
-  004D2A5D     EB 1B              jmp short Tail4win.004D2A7A  
-  004D2A5F     8D86 34030000      lea eax,dword ptr ds:\[esi+334\]  
-  004D2A65     50                 push eax  
-  004D2A66     8D86 30030000      lea eax,dword ptr ds:\[esi+330\]  
-  004D2A6C     50                 push eax  
-  004D2A6D     6A 00              push 0  
-  004D2A6F     E8 F8FCFFFF        call Tail4win.004D276C  
-  004D2A74     84C0               test al,al  
-  004D2A76     74 02              je short Tail4win.004D2A7A  
-  004D2A78   33DB               xor ebx,ebx                      ; 如果这里实现,ebx 被清 0  
-  004D2A7A     8BC3               mov eax,ebx                      ; 赋值给 eax  
-  004D2A7C     59                 pop ecx  
-  004D2A7D     5A                 pop edx  
-  004D2A7E     5F                 pop edi  
-  004D2A7F     5E                 pop esi  
-  004D2A80     5B                 pop ebx  
-  004D2A81     C3                 retn  
-    
-  很明显这上面的代码就相当于一个 if 条件语句。跟踪发现 004D2A78 被实现，也就是说 eax 会被赋值为 0，即 al=0，自然就要求注册了。  
-    
-  10、OK，我们来检测下，看这里是否是重启验证的关键，删除硬件执行断点和所有断点，在 004D2A7A 下硬件执行断点，重载，F9  
-    
-  中断第 1 次  
-  ebx=00000000  
-  eax=00000001  
-  手动更改 ebx 为 1  
-    
-  继续 F9  
-    
-  中断第 2 次  
-  ebx=00000000  
-  eax=00000001  
-  手动更改 ebx 为 1  
-    
-  继续 F9  
-  程序运行，注册框没有出现，OK，点 Help-->About Tail4win，显示“This copy is licensed to”\[注册表里没有注册名\]  
-    
-  11、看来这个地方是关键改之  
-    
-  004D2A7A     B0 01              mov al,1                         ; 赋值 1 给 al，eax 摆脱 ebx 的控制  
-    
-  如果想让其显示注册名，自己就伪造个注册表吧：）  
-    
-  12、使用 Dup2 和 KeyMak 制作补丁发现  
-    
-  补丁不是无效就是提示 Error，于是便有了下文：）  
-  
-  三、ASPr 内存校验完整分析  
-    
-  既然上面我们提到了 ASPr 内存校验的问题，那么我们就一并分析了吧。  
-  第一部分前言，我们说过被检测到会提示 Protection Error:45，那就 OK  
-    
-  1、设置忽略除了内存访问和指定异常之外的所有异常。F9 运行，中断在第 1 次内存异常处，别管了  
-  2、搜索所有参考文本字符串  
-       
-     文本字符串参考位于 00F70000..00FC1FFF  
-地址       反汇编                    文本字符串  
-00FAC9CB   push 0FAC9F0              ASCII "Protection Error"  
-00FACA9F   mov edx,0FACAFC           ASCII "90"  
-00FACDEF   push 0FACE14              ASCII "103"  
-00FAD289   push 0FAD330              ASCII "42"  
-00FAD4EB   push 0FAD520              ASCII "151"  
-00FADAED   push 0FADD50              ASCII "85"  
-00FADB07   push 0FADD50              ASCII "85"  
-00FADC87   push 0FADD60              ASCII "55"  
-00FADCE6   push 0FADD70              ASCII "57"  
-00FADD2A   push 0FADD80              ASCII "60"  
-00FADE83   push 0FADF18              ASCII "45"         ；双击来到代码处  
-00FADEF0   push 0FADF28              ASCII "34"  
-00FAE4CE   push 0FAE638              ASCII "100"  
-00FAE5FE   add byte ptr ds:\[eax\],al  （初始 CPU 选择）  
-00FAE6B0   push 0FAE6D4              ASCII "150"  
-00FAE7DC   push 0FAE84C              ASCII "170"  
-  
-  3、看到了上面的 45 号错误了吧  
-  
-00FADE70     E8 A36CFDFF        call 00F84B18                      
-00FADE75     8BE8               mov ebp,eax  
-00FADE77     892D D495FB00      mov dword ptr ds:\[FB95D4\],ebp  
-00FADE7D     3B6C24 28          cmp ebp,dword ptr ss:\[esp+28\]   ; 先在这里下 he 断点  
-00FADE81     74 0C              je short 00FADE8F               ; 如被检测到这里肯定没有跳  
-00FADE83     68 18DFFA00        push 0FADF18                    ; ASCII "45"  
-00FADE88     E8 FB79FDFF        call 00F85888  
-  
-  4、在 00FADE7D 下好硬件执行断点后，我们忽略所有异常，重载，F9 运行中断在 00FADE7D，先来探探情况  
-  
-堆栈 ss:\[0012FF5C\]=5E2582B0，ebp=5E2582B0  
-  
-按这个值比较，00FADE81 是会跳的，因为我们这样调试并没有影响到内存校验嘛。那么 5E2582B0 就是内存校验值了。OK，情况明了  
-我们在数据窗中转存一下 0012FF5C 看看  
-  
-0012FF14  B0 82 25 5E D0 C0 06 01  皞%^欣         ；这里也有校验值  
-0012FF1C  1F 2C F7 00 55 4B F8 00  ,?UK?  
-0012FF24  00 10 00 00 00 80 0E 00  ....€.  
-0012FF2C  00 7C FB 00 75 DE FA 00  .|?u 搡.  
-0012FF34  00 00 00 00 00 00 40 00  ......@.  
-0012FF3C  00 00 00 00 00 10 00 00  .......  
-0012FF44  00 00 00 00 00 00 00 00  ........  
-0012FF4C  00 00 00 00 00 00 00 00  ........  
-0012FF54  00 00 00 00 00 9E 0D 00  .....?.  
-0012FF5C  B0 82 25 5E 00 00 00 00  皞%^....         ；校验值  
-  
-  
-  5、我们删除所有的断点包括刚才的硬件执行断点，重新在 00FADE70 下硬件执行断点，重载，F9 中断在 00FADE70，继续探探情况  
-  
-00FADE70     E8 A36CFDFF        call 00F84B18                   ; 这里就是计算校验值的了  
-00FADE75     8BE8               mov ebp,eax                     ; 给 eax 返回 5E2582B0 校验值  
-00FADE77     892D D495FB00      mov dword ptr ds:\[FB95D4\],ebp   ; ebp 里也是校验值  
-  
-  6、我们来做一个小实验，重载，F9  
-  
-00FADE70     E8 A36CFDFF        call 00F84B18                   ; F8，注意观察转存中的 0012FF14 和 0012FF5C  
-00FADE75     8BE8               mov ebp,eax                     ; 手动给 eax 清 0  
-00FADE77     892D D495FB00      mov dword ptr ds:\[FB95D4\],ebp   ; 0，0  
-00FADE7D     3B6C24 28          cmp ebp,dword ptr ss:\[esp+28\]   ; 0，5E2582B0  
-00FADE81     74 0C              je short 00FADE8F               ; 没跳，让人高兴的在后面  
-00FADE83     68 18DFFA00        push 0FADF18                    ; ASCII "45"  
-00FADE88     E8 FB79FDFF        call 00F85888                   ; 提示 Protection Error:45  
-  
-  需要注意的是，在我们手动更改 eax=0 的时候，0012FF14 和 0012FF5C 里面的值是没变的，都是校验值。  
-  
-  7、OK，那我们可以大胆的假设性\[也是有事实根据的\]分析一下  
-     1)、若 ASPr 检测到内存校验，那么 00FADE70     call 00F84B18 将会给 eax 返回为 0 或者是除了正确校验值之外的其他值  
-     2)、若 ASPr 没有检测到，那么一切如常  
-  
-     分析完了，我们就有必要到 00FADE70     call 00F84B18 去看看了  
-  
-有的朋友可能会说，那我把 00FADE81 改成 jmp 不就不管什么情况都可以跳过内存校验吗？呵呵，你不要忘了，壳也有自身校验的，这也是为什么我们在使用补区段法的时候，还要修改 Route Check 的缘故了  
-  
-如果在内存补丁当中这样去设置  
-![](img/facad77f3d4c00673b2b0e650bf9415c.jpg)   
-那么将会出现这样的错误提示  
-![](img/f4df1db09cc0187cb484eba129607a75.jpg)   
-  
-    8、重载，F9，F7  
-  
-00F84B18     53                 push ebx  
-00F84B19     56                 push esi  
-00F84B1A     57                 push edi  
-00F84B1B     8BFA               mov edi,edx  
-00F84B1D     8BF0               mov esi,eax  
-00F84B1F     B2 01              mov dl,1  
-00F84B21     A1 20F8F700        mov eax,dword ptr ds:\[F7F820\]  
-00F84B26     E8 B9E0FEFF        call 00F72BE4  
-00F84B2B     8BD8               mov ebx,eax  
-00F84B2D     8BC3               mov eax,ebx  
-00F84B2F     8B10               mov edx,dword ptr ds:\[eax\]  
-00F84B31     FF12               call dword ptr ds:\[edx\]  
-00F84B33     8BD6               mov edx,esi  
-00F84B35     8BCF               mov ecx,edi  
-00F84B37     8BC3               mov eax,ebx  
-00F84B39     8B30               mov esi,dword ptr ds:\[eax\]  
-00F84B3B     FF56 04            call dword ptr ds:\[esi+4\]  
-00F84B3E     8BC3               mov eax,ebx  
-00F84B40     8B10               mov edx,dword ptr ds:\[eax\]  
-00F84B42     FF52 08            call dword ptr ds:\[edx+8\]  
-00F84B45     8BC3               mov eax,ebx  
-00F84B47     8B10               mov edx,dword ptr ds:\[eax\]  
-00F84B49     FF52 0C            call dword ptr ds:\[edx+C\]  
-00F84B4C     8B30               mov esi,dword ptr ds:\[eax\]  
-00F84B4E     8BC3               mov eax,ebx  
-00F84B50     E8 BFE0FEFF        call 00F72C14                   ; 这里给 0012FF14 赋校验值  
-00F84B55     8BC6               mov eax,esi                     ; 正常情况下 esi 里的值是校验值  
-00F84B57     5F                 pop edi                         ; 需要注意的是在这整个过程当中 0012FF5C 始终没变，都是校验值  
-00F84B58     5E                 pop esi  
-00F84B59     5B                 pop ebx  
-00F84B5A     C3                 retn  
-  
-上面我们分析了，通过改跳转是行不通的，调试发现 call 00F84B18 里面的值是不会被检测的  
-  
- 9、重载，F9，F7，修改之  
-  
-00F84B18     8B4424 2C          mov eax,dword ptr ss:\[esp+2C\]   ; \[esp+2C\]=0012FF5C  
-00F84B1C     C3                 retn                            ; 回去吧  
-00F84B1D     8BF0               mov esi,eax  
-00F84B1F     B2 01              mov dl,1  
-00F84B21     A1 20F8F700        mov eax,dword ptr ds:\[F7F820\]  
-  
-即从 00F84B18 开始的原始数据  
-53 56 57 8B FA  
-改之  
-8B 44 24 2C C3  
-![](img/856c3a3c3e341c2ce25e231090a7fb7c.jpg)   
-  
-在 Dup2 或者 keymake 里面这样设置之后，就不会被检测到了，但会有 1%的不稳定性，呵呵，带壳的内存补丁基本上都会遇到这样的问题。  
-  
-好啦，到此为止，ASPr 的内存校验算是分析完了。  
-    
-  四、补丁工具的功能  
-    
-               功能  ：   
-               1、可以根据用户输入的数据信息，生成相对应的补丁   
-               2、支持用户对数据的添加、修改、删除功能   
-               3、双击要修改的数据即可对原数据进行编辑   
-               4、支持数据排序功能，用户只需拖曳相应数据即可  
-               5、支持自动添加连续数据功能  
-               6、支持查看窗体名功能  
-               7、支持工程文件保存、打开功能  
-               8、增加了目标文件拖曳功能  
-               9、增加了工程文件拖曳功能  
-               10、增加了窗体捕捉功能  
-               11、增加了用户个人信息设置  
-               后期更新：  
-               1、增加补丁程序和原程序整合为一个程序功能  
-               2、增加多个连续数据的支持  
-               3、增加补丁样式的选择  
-               其他特点：  
-               1、水纹效果  
-               2、无标题栏拖曳效果  
-    
-  为了程序的美化等因素，使用了大量的第 3 方控件  
-  关于补丁工具的演示请看演示录象  
-    
- 建议：最好不要使用“用户个人信息设置”，因为这样会影响到补丁的启动速度。  
-  
-  五、几款补丁工具的对比  
-    
-  几款补丁工具的对比可以看演示录象，一看就一目了然：）  
-    
-  六、补丁工具原理  
-  
-  就目前流行的几种补丁工具来看，都是使用通过查找进程名来定位目标程序，再通过目标地址利用原始数据对比来  
-  进行 Patch 补丁数据。然后经过本人测试发现，对付像 ASPr 一类的通过内存校验来完成反 Loader 功能的壳而言，此方法会被检测到。  
-  于是本人转换了种方式看下文  
-    
-  主程序部分：把事先写好的补丁模块以资源形式加入到主程序中，根据用户填写的补丁信息生成一个 ini 文件，然后把 ini 文件  
-  捆绑到释放的补丁模块末尾,所以用 PEID 给补丁查壳是 Borland Delphi 6.0 - 7.0 \[Overlay\]  
-    
-  补丁部分：补丁程序释放捆绑在末尾的 ini 文件，再读取 ini 文件内的信息对目标程序进行补丁。 本补丁是通过窗体  
-  名定位目标程序并非常规补丁工具那样使用的是进程名来定位，这样就基本可以逃过壳的内存检测了。   
-    
-  经测试，若开有杀毒软件，会导致出现 Dup2 和 KeyMake 一样的不稳定情况，但是，不会有错误提示  
-    
-  七、源码  
-    
-先看下流程图吧  
-![](img/f6ec15509c29fa10b0a542fd2c7756a8.jpg)   
-  主程序源码  
-   
+**【文章标题】**: ASPr 带壳调试+内存校验完整分析+Inline Loader[Delphi 开源]+语音使用录象  
 
-引用:  unit Unit1;  
-    
-  interface  
-    
-  uses  
-    Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,  
-    Dialogs, ExtCtrls, SUIForm, StdCtrls, SUIButton, SUIEdit, XPMan,  
-    CnWaterImage, SUIMemo, jpeg, ComCtrls, SUIStatusBar, SUISideChannel,  
-    CheckLst, EnhListView, Inifiles, ShellAPI, About, SUIListView, FindWindow,  
-    SUIImagePanel, SUIGroupBox;  
-    
-  type  
-    TForm1 = class(TForm)  
-      XPManifest1: TXPManifest;  
-      Mac: TsuiForm;  
-      GroupBox1: TGroupBox;  
-      CnWaterImage1: TCnWaterImage;  
-      NameTxt: TsuiEdit;  
-      TitileTxt: TsuiEdit;  
-      Generent: TsuiButton;  
-      Exit: TsuiButton;  
-      Label1: TLabel;  
-      Label2: TLabel;  
-      suiStatusBar1: TsuiStatusBar;  
-      OpenDialog1: TOpenDialog;  
-      SaveDialog1: TSaveDialog;  
-      look: TsuiButton;  
-      GroupBox2: TGroupBox;  
-      Addr: TsuiEdit;  
-      Data: TsuiEdit;  
-      Add: TsuiButton;  
-      Modify: TsuiButton;  
-      Del: TsuiButton;  
-      Label5: TLabel;  
-      Label6: TLabel;  
-      about : TsuiButton;  
-      grp1: TGroupBox;  
-      mmo1: TsuiMemo;  
-      View: TsuiButton;  
-      Open: TsuiButton;  
-      Save: TsuiButton;  
-      dlgOpen1: TOpenDialog;  
-      dlgSave1: TSaveDialog;  
-      DataList: TsuiListView;  
-      Get: TsuiButton;  
-      InfoGroup: TsuiGroupBox;  
-      InfoMemo: TsuiMemo;  
-      procedure ExitClick(Sender: TObject);  
-      procedure lookClick(Sender: TObject);  
-      procedure AddClick(Sender: TObject);  
-      procedure DelClick(Sender: TObject);  
-      procedure DataListDblClick(Sender: TObject);  
-      procedure ModifyClick(Sender: TObject);  
-      procedure FormCreate(Sender: TObject);  
-      procedure GenerentClick(Sender: TObject);  
-      procedure DataListDragDrop(Sender, Source: TObject; X, Y: Integer);  
-      procedure DataListDragOver(Sender, Source: TObject; X, Y: Integer;  
-        State: TDragState; var Accept: Boolean);  
-      procedure AboutClick(Sender: TObject);  
-      procedure ViewClick(Sender: TObject);  
-      procedure SaveClick(Sender: TObject);  
-      procedure OpenClick(Sender: TObject);  
-      procedure GetClick(Sender: TObject);  
-      procedure CnWaterImage1MouseDown(Sender: TObject; Button: TMouseButton;  
-        Shift: TShiftState; X, Y: Integer);  
-      procedure MacMouseDown(Sender: TObject; Button: TMouseButton;  
-        Shift: TShiftState; X, Y: Integer);  
-      procedure FormMouseDown(Sender: TObject; Button: TMouseButton;  
-        Shift: TShiftState; X, Y: Integer);  
-      procedure InfoGroupMouseDown(Sender: TObject; Button: TMouseButton;  
-        Shift: TShiftState; X, Y: Integer);  
-      procedure GroupBox2MouseDown(Sender: TObject; Button: TMouseButton;  
-        Shift: TShiftState; X, Y: Integer);  
-      procedure GroupBox1MouseDown(Sender: TObject; Button: TMouseButton;  
-        Shift: TShiftState; X, Y: Integer);  
-      procedure grp1MouseDown(Sender: TObject; Button: TMouseButton;  
-        Shift: TShiftState; X, Y: Integer);  
-    private  
-    DragItem,TargetItem:TListItem;  
-    procedure WMDropFiles(var Msg: TWMDropFiles);message WM\_DROPFILES;  
-    function ExtractRes(ResType,Resname,ResNewName:string):boolean;  
-      { Private declarations }  
-    public  
-      { Public declarations }  
-    end;  
-    
-  var  
-    Form1: TForm1;  
-    Inifile:TInifile;  
-    FilePath:String;  
-    
-    
-  implementation  
-    
-  {$R \*.dfm}  
-  {$R Loader.RES}   //补丁模块以资源文件的形式保存  
-    
-  procedure TForm1.ExitClick(Sender: TObject);  
-  begin  
-  Application.Terminate;  
-  end;  
-    
-  procedure TForm1.lookClick(Sender: TObject);   //浏览按钮  
-  Var  
-  i,j:Integer;  
-  begin  
-  if OpenDialog1.Execute then  
-    begin  
-     NameTxt.Text:=OpenDialog1.FileName;  
-    end;  
-     FilePath:=NameTxt.Text;  
-     j:=Length(FilePath);  
-    for i:=0 to j do  
-        if Copy(FilePath,i,1)='' then  
-          begin  
-           NameTxt.Text:=Copy(FilePath,i+1,j-i);   //获取程序名  
-          end;  
-  end;  
-    
-  procedure TForm1.AddClick(Sender: TObject);   //填加按钮  
-  var  
-  tempItem:TListItem;  
-  i,j:Integer;  
-  S,S1:String;  
-  begin  
-  S1:=Data.Text;  
-    
-  if Addr.text='' then  
-   begin  
-    Addr.SetFocus;  
-   end  
-   else  
-   begin  
-    if Data.Text='' then  
-     begin  
-      Addr.SetFocus;  
-     end  
-     else  
-     begin  
-    if Length(Addr.Text)=6 then  
-     begin  
-       Addr.Text:='00' + Addr.Text;  
-     end;  
-  j:= Length(Addr.Text);  
-  S:= Addr.Text;  
-  Addr.Text:='';  
-  for i:=0 to j do  
-   begin  
-  Addr.Text:=Addr.Text + UpperCase(Copy(S,i+1,1));  
-   end;  
-  tempItem:=DataList.Items.Add;  
-  tempItem.Caption:='$' + Addr.text;  
-    
-  j:=Length(S1);  
-  S:='';  
-   for i:=0 to j  do    //数据转换成大写  
-    begin  
-       S:=S + UpperCase(Copy(Data.Text,i+1,1));  
-    end;  
-  S1:=S;  
-    
-  j:=Length(S1);  
-  S:='$' + Copy(S1,1,2);  
-  tempItem.SubItems.Add(S);  
-  Data.Text:=Copy(S1,3,j);  
-    
-  S:=IntToStr(StrToInt('$' + Addr.Text)+1);  
-  Addr.Text:=Format('%x',\[StrToInt(S)\]);  
-    if Length(Addr.Text)=6 then  
-     begin  
-      Addr.Text:='00' + Addr.Text;  
-     end;  
-   end;  
-   end;  
-  end;  
-    
-    
-  procedure TForm1.DelClick(Sender: TObject); //删除按钮  
-  var  
-  tempItem:TListItem;  
-    begin  
-      tempItem:=DataList.Selected;  
-      if (assigned(tempItem)) or (tempItem<>nil) then  
-        begin  
-          tempItem.Delete;  
-        end;  
-    end;  
-    
-  procedure TForm1.DataListDblClick(Sender: TObject);     //数据双击事件  
-  begin  
-  if DataList.Selected<>nil then  
-    begin  
-  Addr.Text:=Copy(DataList.Selected.Caption,2,8);  
-  Data.Text:=Copy(DataList.Selected.SubItems\[0\],2,2);  
-  DataList.Selected.Delete;  
-    end  
-    else  
-  DataList.SetFocus;  
-  end;  
-    
-    
-  procedure TForm1.ModifyClick(Sender: TObject);  //修改按钮  
-  var  
-  tempItem:TListItem;  
-  begin  
-  tempItem:=DataList.Items.Add;  
-  tempItem.Caption:='$' + Addr.text;  
-  tempItem.SubItems.Add('$' + Data.Text);  
-  Addr.Clear;  
-  Data.Clear;  
-  end;  
-    
-  procedure TForm1.FormCreate(Sender: TObject);  //界面启动事件  
-  begin  
-  DragAcceptFiles(Handle, True);     //拖曳  
-  DataList.DragMode  :=  dmAutomatic;  
-  DataList.GridLines:=True;  
-  end;  
-    
-  procedure TForm1.GenerentClick(Sender: TObject);  //生成按钮  
-  var  
-  File1,File2:TFileStream;  
-  Size:integer;  
-  Files:string;  
-  eXeFileName: string;  
-  i,j:Integer;  
-  AppzName,TitleName,MyInfo,LeftName :string;  
-  aPos:Integer;  
-  begin  
-  AppzName :=NameTxt.Text;     //取目标名  
-  TitleName :=TitileTxt.Text;  //取标题，查找窗口  
-  MyInfo:=InfoMemo.Text;       //获取个人信息  
-    
-  aPos:=Pos('.',AppzName);  
-  LeftName:=Copy(AppzName,1,aPos-1);  
-  SaveDialog1.FileName:=LeftName + ' - ' + 'Loader.eXe';  
-    
-  if SaveDialog1.Execute then  
-     begin  
-  eXeFileName := SaveDialog1.FileName;  
-    
-   if (AppzName = '') or (TitleName = '') then  
-       begin  
-           NameTxt.SetFocus;  
-       end  
-       else  
-       begin  
-  ExtractRes('exefile','myexe',eXeFileName);   //释放资源  
-  IniFile:=TIniFile.Create(ExtractFilePath(paramstr(0))+'Config.ini');  //生成配置 INI 文件  
-    
-  IniFile.WriteString('Appz','AppzName',AppzName);  //写 INI  
-  IniFile.WriteString('Appz','TitleName',TitleName);  
-  IniFile.WriteString('Info','MyInfo',MyInfo);  
-    
-  j:= DataList.Items.Count -1 ;    //数据的个数，打算从 0 开始算，遂-1  
-  IniFile.WriteString('Nume','Number',IntToStr(j));  
-    
-   for i:=0 to j do     //逐个填加  
-    begin  
-  IniFile.WriteString('Data','Address' + IntToStr(i),DataList.Items.Item\[i\].Caption);  
-  IniFile.WriteString('Data','NewData' + IntToStr(i),DataList.Items.Item\[i\].SubItems\[0\]);  
-    end;  
-  IniFile.Free;    
-  Files:=ExtractFileDir(Application.ExeName)+'\\Config.ini';  
-  File1:=TFileStream.Create(SaveDialog1.FileName,fmOpenWrite);  
-  File2:=TFilestream.Create(Files,fmOpenRead);  
-    
-    try  
-  File1.Seek(0,soFromEnd);   //捆绑  
-  File1.CopyFrom(File2,0);  
-  Size:=File2.Size+SizeOf(Size);  
-  File1.WriteBuffer(Size,SizeOf(Size));  
-    Finally  
-  File1.Free;  
-  File2.Free;  
-  DeleteFile(Files);  
-   end;  
-   end;  
-   end;  
-  end;  
-    
-  function TForm1.ExtractRes(ResType, Resname,ResNewName: string): boolean;  //资源释放函数  
-  var  
-  res:TresourceStream;  
-  begin  
-  try  
-      Res:=Tresourcestream.Create(Hinstance,Resname,Pchar(ResType));  
-      try  
-          Res.SaveToFile(Resnewname);  
-          Result:=True;  
-      except  
-          Result:=False;  
-      end  
-      Finally  
-        Res.Free;  
-      end;  
-  end;  
-    
-  procedure TForm1.DataListDragDrop(Sender, Source: TObject; X, Y: Integer);  //数据位置交换拖曳事件  
-  var    
-     TargetIndex:  integer;    
-  begin    
-     DragItem  :=  DataList.Selected;  
-     TargetIndex  :=  DataList.DropTarget.Index;  
-     if  TargetIndex>DragItem.Index  then    
-     TargetItem:=DataList.Items.Insert(TargetIndex+1)  
-     else  TargetItem:=DataList.Items.Insert(TargetIndex);  
-     TargetItem.Assign(DragItem);    
-     DragItem.Delete;    
-  end;  
-    
-  procedure TForm1.DataListDragOver(Sender, Source: TObject; X, Y: Integer;  //数据位置交换拖曳事件  
-    State: TDragState; var Accept: Boolean);  
-  begin  
-     if  Source=DataList  then  accept  :=true;  
-  end;    
-     
-    
-    
-  procedure TForm1.AboutClick(Sender: TObject);  //调用关于窗口  
-  begin  
-  Form2.ShowModal;  
-  end;  
-    
-  procedure TForm1.ViewClick(Sender: TObject);  //查看按钮  
-  var  
-    hCurrentWindow: HWnd;  
-    szText: array\[0..254\] of char;  
-  begin  
-    
-    hCurrentWindow := GetWindow(Handle, GW\_HWNDFIRST);  
-   while hCurrentWindow <> 0 do  
-    begin  
-     if GetWindowText(hCurrentWindow, @szText, 255)>0 then  
-      mmo1.Lines.Add(StrPas(szText));  
-      hCurrentWindow:=GetWindow(hCurrentWindow, GW\_HWNDNEXT);  
-     end;  
-  end;  
-    
-  procedure TForm1.SaveClick(Sender: TObject);  //保存按钮  
-  var  
-    i,j,aPos:Integer;  
-    AppzName,TitleName,MyInfo,LeftName :string;  
-  begin  
-  AppzName :=NameTxt.Text;     //取目标名  
-  TitleName :=TitileTxt.Text;  //取标题，查找窗口  
-  MyInfo:=InfoMemo.Text;       //获取个人信息  
-    
-  aPos:=Pos('.',AppzName);  
-  LeftName:=Copy(AppzName,1,aPos-1);  
-  dlgSave1.FileName:=LeftName + '-' + 'Project.oοО';  
-  if dlgSave1.Execute then  
-            begin  
-  IniFile:=TIniFile.Create(dlgSave1.FileName);  
-    
-  IniFile.WriteString('Appz','FilePath',FilePath);  
-  IniFile.WriteString('Appz','AppzName',AppzName);  
-  IniFile.WriteString('Appz','TitleName',TitleName);  
-  IniFile.WriteString('Info','MyInfo',MyInfo);  
-    
-  j:= DataList.Items.Count -1 ;  
-  Inifile.WriteString('Nume','Number',IntToStr(j));  
-    
-  for i:=0 to j do  
-    begin  
-  IniFile.WriteString('Data','Address' + IntToStr(i),DataList.Items.Item\[i\].Caption);  
-  IniFile.WriteString('Data','NewData' + IntToStr(i),DataList.Items.Item\[i\].SubItems\[0\]);  
-    end;  
-  IniFile.Free;  
-    
-  end;  
-  end;  
-    
-    
-  procedure TForm1.OpenClick(Sender: TObject);   //打开按钮  
-  var  
-    TempItem:TListItem;  
-    Inifile:Tinifile;  
-    i,j:Integer;  
-  begin  
-  if dlgOpen1.Execute then  
-     begin  
-  IniFile:=TIniFile.Create(dlgOpen1.FileName);  
-    
-  FilePath:=Inifile.ReadString('Appz','FilePath','');  
-  NameTxt.Text:=PChar(Inifile.ReadString('Appz','AppzName',''));  
-  TitileTxt.text:= Inifile.ReadString('Appz','TitleName','');  
-  InfoMemo.lines.Add(Inifile.ReadString('Info','MyInfo',''));  
-    
-  j:=StrToInt(Inifile.ReadString('Nume','Number',''));  
-    
-    
-  for i:=0 to j do  
-   begin  
-     TempItem:=DataList.Items.Add;  //每次添加必须调用一次的  
-     TempItem.Caption:=Inifile.ReadString('Data','Address'  + IntToStr(i),'');  
-     TempItem.SubItems.Add(Inifile.ReadString('Data','NewData'  + IntToStr(i),''));  
-   end;  
-  IniFile.Free;  
-    end;  
-  end;  
-    
-  procedure Tform1.WMDropFiles(var Msg: TWMDropFiles);  
-  var  
-    CFileName: array\[0..MAX\_PATH\] of Char;  
-    aPos,k,l,m,n:Integer;  
-    TempItem:TListItem;  
-    Inifile:Tinifile;  
-  begin  
-    try  
-      if DragQueryFile(Msg.Drop, 0, CFileName, MAX\_PATH) > 0 then  
-      begin  
-  //      CheckFileSave;  
-        NameTxt.text:=CFileName;  
-        FilePath:=CFileName;  
-    
-  //开始判断是 exe 还是 oοО文件了  
-        aPos:=Pos('.',NameTxt.text);   //定位.的位置  
-       if Copy(CFileName,aPos,4)='.exe' then   //规定 exe  
-         begin  
-           l:=Length(FilePath);  
-             for k:=0 to l do  
-              if Copy(FilePath,k,1)='' then  
-                begin  
-                  NameTxt.Text:=Copy(FilePath,k+1,l-k);  
-                  Msg.Result := 0;  
-                end  
-                  else  
-                  begin  
-                   Msg.Result := 1;  
-                  end;  
-         end  
-         else  
-         begin  
-          if Copy(CFileName,aPos,6)='.oοО' then   //规定 ini 才可以  
-           begin  
-            IniFile:=TIniFile.Create(CFileName);  
-            FilePath:=Inifile.ReadString('Appz','FilePath','');  
-            NameTxt.Text:=PChar(Inifile.ReadString('Appz','AppzName',''));  
-            TitileTxt.text:= Inifile.ReadString('Appz','TitleName','');  
-            InfoMemo.Lines.Add(Inifile.ReadString('Info','MyInfo',''));  
-            n:=StrToInt(Inifile.ReadString('Nume','Number',''));  
-           for m:=0 to n do  
-            begin  
-              TempItem:=DataList.Items.Add;  //每次添加必须调用一次的  
-              TempItem.Caption:=Inifile.ReadString('Data','Address'  + IntToStr(m),'');  
-              TempItem.SubItems.Add(Inifile.ReadString('Data','NewData'  + IntToStr(m),''));  
-            end;  
-            Msg.Result := 0;  
-            IniFile.Free;  
-         end;  
-       end;  
-     end;  
-    finally  
-      DragFinish(Msg.Drop);  
-    end;  
-  end;  
-    
-  procedure TForm1.GetClick(Sender: TObject);      //调用 FindWindow 单元，捕捉窗体按钮，要用到枚举  
-  var  
-    PI:TProcessInformation;  
-    SI:TStartUpInfo;  
-    MyHandle:THandle;  
-    TitleInfo: String;  
-  begin  
-  if NameTxt.Text='' then  
-   begin  
-    NameTxt.SetFocus;  
-   end  
-   else  
-   begin  
-    ZeroMemory(@SI, SizeOf(SI));  
-    ZeroMemory(@PI, SizeOf(PI));  
-    SI.cb := SizeOf(SI);  
-    if CreateProcess(nil,PChar(FilePath), nil, nil, FALSE, 0 ,nil,nil, SI, PI) then  
-      begin  //注意!  
-      WaitForInputIdle(PI.hProcess, INFINITE);  
-      MyHandle := FindMainWindow(PI.dwProcessID);  
-       if MyHandle > 0 then  
-          begin  
-            SetLength(TitleInfo, 255);  
-            GetWindowText(MyHandle, PChar(TitleInfo), 255);  
-            SetLength(TitleInfo, StrLen(PChar(TitleInfo)));  
-            TitileTxt.Text:=TitleInfo;  
-          end;  
-     TerminateProcess(PI.hProcess,0);  
-     TerminateProcess(PI.hThread,0);  
-     CloseHandle(PI.hProcess);  
-     CloseHandle(PI.hThread);  
-      end;  
-   end;  
-  end;  
-    
-  procedure TForm1.CnWaterImage1MouseDown(Sender: TObject;  //无标题栏拖曳事件  
-    Button: TMouseButton; Shift: TShiftState; X, Y: Integer);  
-  begin  
-  if Button = mbLeft then  
-      begin  
-       ReleaseCapture();  
-       SendMessage(Handle,WM\_NCLBUTTONDOWN,HTCAPTION, 0);  
-      end;  
-  end;  
-    
-  procedure TForm1.MacMouseDown(Sender: TObject; Button: TMouseButton;  //无标题栏拖曳事件  
-    Shift: TShiftState; X, Y: Integer);  
-  begin  
-  if Button = mbLeft then  
-      begin  
-       ReleaseCapture();  
-       SendMessage(Handle,WM\_NCLBUTTONDOWN,HTCAPTION, 0);  
-      end;  
-  end;  
-    
-  procedure TForm1.FormMouseDown(Sender: TObject; Button: TMouseButton;  //无标题栏拖曳事件  
-    Shift: TShiftState; X, Y: Integer);  
-  begin  
-  if Button = mbLeft then  
-      begin  
-       ReleaseCapture();  
-       SendMessage(Handle,WM\_NCLBUTTONDOWN,HTCAPTION, 0);  
-      end;  
-  end;  
-    
-  procedure TForm1.InfoGroupMouseDown(Sender: TObject; Button: TMouseButton;  //无标题栏拖曳事件  
-    Shift: TShiftState; X, Y: Integer);  
-  begin  
-  if Button = mbLeft then  
-      begin  
-       ReleaseCapture();  
-       SendMessage(Handle,WM\_NCLBUTTONDOWN,HTCAPTION, 0);  
-      end;  
-  end;  
-    
-  procedure TForm1.GroupBox2MouseDown(Sender: TObject; Button: TMouseButton;  //无标题栏拖曳事件  
-    Shift: TShiftState; X, Y: Integer);  
-  begin  
-  if Button = mbLeft then  
-      begin  
-       ReleaseCapture();  
-       SendMessage(Handle,WM\_NCLBUTTONDOWN,HTCAPTION, 0);  
-      end;  
-  end;  
-    
-  procedure TForm1.GroupBox1MouseDown(Sender: TObject; Button: TMouseButton;  //无标题栏拖曳事件  
-    Shift: TShiftState; X, Y: Integer);  
-  begin  
-  if Button = mbLeft then  
-      begin  
-       ReleaseCapture();  
-       SendMessage(Handle,WM\_NCLBUTTONDOWN,HTCAPTION, 0);  
-      end;  
-  end;  
-    
-  procedure TForm1.grp1MouseDown(Sender: TObject; Button: TMouseButton;  //无标题栏拖曳事件  
-    Shift: TShiftState; X, Y: Integer);  
-  begin  
-  if Button = mbLeft then  
-      begin  
-       ReleaseCapture();  
-       SendMessage(Handle,WM\_NCLBUTTONDOWN,HTCAPTION, 0);  
-      end;  
-  end;  
-    
-  end.
+**【文章作者】**: wynney  
 
-  
-  
-  补丁模块源码  
+**【作者主页】**: [http://ReverserCracker.Spaces.Live.Com](http://ReverserCracker.Spaces.Live.Com)  
 
-引用:  //Loader by wynney  
-    
-  program loader;  
-    
-    
-  uses  
-    ShellApi,Windows,Inifiles,SysUtils,Messages,Variants,Classes,Graphics,  
-    Controls,ExtCtrls,StdCtrls,Dialogs,Forms,Kill in 'Kill.pas';  
-    
-  {$R Loader.RES}  
-    
-    
-  Var  
-  WindowName : integer;  
-  ProcessId : integer;  
-  ThreadId : integer;  
-  Buf : PChar;  
-  HandleWindow : integer;  
-  Handle : integer;  
-  Write : Cardinal;  
-  Buf1 : integer;  
-  Appz: Pchar;  
-  WindowTitle : Pchar;  
-  Address : Cardinal;  
-  PokeValue : Cardinal;  
-  NumberOfBytes : Cardinal;  
-  Inifile:Tinifile;//INI  
-  Files:string;//配置文件  
-  Des:TFileStream;//资源  
-  size:integer;//资源大小  
-  FileMemo:TMemorystream;//文件内存流对象  
-  s:TStrings;  
-  i,j:Cardinal;  
-  Info:String;  
-    
-    
-  Var  
-  Str: String;  
-  Len:Byte absolute Str;  
-    
-    
-    
-  begin  
-  Files:=ExtractFilePath(Application.ExeName) + '\\Config.ini';  //释放配置文件  
-  FileMemo:=TMemoryStream.Create;  
-  Des:=TFileStream.Create(Application.ExeName,fmShareDenyNone);  
-    
-  try  
-  des.Seek(-sizeof(size),soFromEnd);  
-  des.ReadBuffer(size,sizeof(size));  
-  des.Seek(-Size,soFromEnd);  
-  FileMemo.CopyFrom(Des,size-sizeof(size));  
-       if FileExists(Files)=False then       //若配置文件已存，则取消释放  
-         begin  
-           FileMemo.SaveToFile(Files);  
-         end;  
-  finally  
-  FileMemo.Free;  
-  des.Free;  
-  end;  
-  Inifile:=Tinifile.Create(Files);  
-  s:=TStringlist.Create;  
-  IniFile.ReadSections(s);  
-    
-  SetFileAttributes(Pchar(Files),FILE\_ATTRIBUTE\_HIDDEN+FILE\_ATTRIBUTE\_SYSTEM);  
-    
-  Info:= Inifile.ReadString('Info','MyInfo','');  
-  WindowTitle:= PChar(Inifile.ReadString('Appz','TitleName',''));  
-  Appz:=PChar(Inifile.ReadString('Appz','AppzName',''));  
-  j:=StrToInt(Inifile.ReadString('Nume','Number',''));  
-    
-   if Info <> '' then  
-     begin  
-      if   Application.MessageBox(PChar(Info),'友好提示',MB\_YESNO+MB\_IconQuestion)=   mrNO   then Exit;  
-     end;  
-    
-  ShellExecute(Handle,PChar('Open'),Appz,nil,Appz,SW\_SHOWNORMAL); //要打开的目标程序  
-    
-  //开始 Loader  
-    
-  for Buf1:=0 to 999999 do   //多次查找  
-   begin  
-    WindowName := FindWindow(nil,WindowTitle);  
-     if WindowName = 0 then  
-       begin  
-         WindowName := FindWindow(nil,WindowTitle);  
-             if Buf1 = 999999 then   
-                begin  
-                   ShowMessage('程序异常，请重启！');  
-                   Exit;     //退出补丁  
-                   KillTask(Appz);     //杀死目标进程  
-                end;  
-       end  
-       else  
-       begin  
-            ThreadId := GetWindowThreadProcessId(WindowName,@ProcessID);  
-            HandleWindow := OpenProcess(Process\_All\_Access,False,ProcessId);  
-    
-            for i:=0 to j do  
-                begin  
-                Address :=StrToInt(Inifile.ReadString('Data','Address'  + IntToStr(i),''));  //读取数据  
-                PokeValue:=StrToInt(Inifile.ReadString('Data','NewData'  + IntToStr(i),'')); //读取数据  
-    
-                NumberOfBytes:= 1;  
-                GetMem(Buf,1);  
-                Buf^ := Chr(PokeValue);  
-                WriteProcessMemory(HandleWindow,Ptr(Address),Buf,NumberOfBytes,Write);  
-                end;  
-                DeleteFile(Files);         //用完之后马上删除  
-                Exit;                      //自己随后退出  
-       end;  
-   end;  
-  end.
+**【软件名称】**: `Tail4win` 2.7  
 
-  
-  
-  Kill（杀进程）模块源码  
+**【软件大小】**: 765K  
 
-引用:  unit Kill;  
-    
-  interface  
-    
-  uses  
-    Windows, SysUtils, Variants, Classes, Graphics, StdCtrls, Tlhelp32;  
-    
-   function KillTask(ExeFileName: string): integer;  
-     
-  implementation  
-    
-  function KillTask(ExeFileName: string): integer;  //杀死进程的函数，来对付防火墙进程。  
-  const  
-    PROCESS\_TERMINATE=$0001;  //进程的 PROCESS\_TERMINATE 访问权限  
-  var  
-    ContinueLoop: BOOL;  
-    FSnapshotHandle: THandle;  
-    FProcessEntry32: TProcessEntry32;  
-  begin  
-    result:= 0;  
-    FSnapshotHandle := CreateToolhelp32Snapshot(TH32CS\_SNAPPROCESS, 0);  
-    //获取系统所有进程快照  
-    FProcessEntry32.dwSize := Sizeof(FProcessEntry32);  
-    //调用 Process32First 前用 Sizeof(FProcessEntry32)填充 FProcessEntry32.dwSize  
-    ContinueLoop := Process32First(FSnapshotHandle,FProcessEntry32);  
-    //获取快照中第一个进程信息并保存到 FProcessEntry32 结构体中  
-    while integer(ContinueLoop) <> 0 do  
-    //循环枚举快照中所有进程信息  
-    begin  
-      if ((UpperCase(ExtractFileName(FProcessEntry32.szExeFile))=UpperCase(ExeFileName))  
-          or (UpperCase(FProcessEntry32.szExeFile)=UpperCase(ExeFileName))) then  
-      //找到要中止的进程名  
-         Result := Integer(TerminateProcess(OpenProcess(PROCESS\_TERMINATE, BOOL(0),  
-                   FProcessEntry32.th32ProcessID), 0));  
-       //中止进程  
-         ContinueLoop := Process32Next(FSnapshotHandle,FProcessEntry32);  
-       //查找下一个符合条件进程  
-    end;  
-  end;  
-  end.
+**【使用工具】**: Delphi 7、OD  
 
-  
-  
-最后附上 Dup2、KeyMake 补丁模块范例, 经本人调试此源码对本文目标程序补丁无效\[因为壳的缘故\]，大家可做参考  
+**【下载地址】**: [http://74530.cn/3800hk/Files.rar](http://74530.cn/3800hk/Files.rar)  
 
-引用:    
-  
-program Loader;  
-  
-uses  
-  Windows,TlHelp32;  
-  
-const  
-  OldData : array\[0..1\] of byte = ($8B,$C3);  
-  NewData : array\[0..1\] of byte = ($B0,$01);  
-  
-var  
-  StartInfo: TStartupInfo;  
-  ProcInfo: TProcessInformation;  
-  BytesRead : DWORD;  
-  TmpData : array\[0..1\] of Byte;  
-  
+**【加壳方式】**: ASProtect 2.3 SKE build 05.14 Beta  
+
+**【作者声明】**: `Dup2`、`KeyMake`、Inline Loader 对比  
+
+***
+
+**【详细过程】**
+
+### 一、前言
+
+呵呵，昨天才发现有这么个活动，参加玩玩吧，重在参与嘛：）文章中既有调试又有壳的分析又有编程又有工具，还真不知道应该发到哪个区去
+
+像 `ASPr` 一类猛壳加壳的软件会有内存校验，一般的补丁工具制作的内存补丁，一是表现得很不稳定，导致补丁无效，二是被 `ASPr` 检测到，提示 `Protection Error:45` 之类的错误
+
+当然你若想用 `Dup2`、`KeyMake` 来做 `ASPr` 的内存补丁，也可以！那就还需要填上躲避校验值的补丁数据，比较麻烦，但是这个相对于一些老鸟而言是很简单的事了。于是，本人就写了个补丁制作工具，只需填写补丁数据[不需要原始数据，不需要设置跳过校验]即可，也不会被内存校验到。不足的是开有杀毒软件会导致补丁不够稳定[在某些机器上测试有此情况，我的机器上却没有]。
+
+### 二、带壳调试
+
+带壳动态调试最起码的要求是目标程序能够在 `OD` 下正常的跑得起来。
+
+1. 未注册启动就有个注册框
+2. 注册框上提示 `"You have 30 day(s) left"`
+3. 看注册方式是重启验证
+4. 假注册试试，提示 `"Serial is not valid, please input again"`
+
+既然如此，我们就从注册框入手
+
+5. 忽略除了 `INT3` 和指定异常之外的所有异常、`OD` 载入
+6. `F9` 两次中断在 `INT3` 异常，`Alt+M` 在 `Code` 段 `F9` 中断在 `OEP`
+7. 搜索所有参考文本字符串
+
+文本字符串参考位于 `Tail4win`:
+
+```text
+地址       反汇编                   文本字符串
+004D843C   mov edx,Tail4win.004D858  ASCII "Trial expired, please register."
+004D8448   push Tail4win.004D85A8    ASCII "You have "
+004D845E   push Tail4win.004D85BC    ASCII " day(s) left"
+004D84B5   mov edx,Tail4win.004D85D  ASCII "This copy is licensed to "
+004D84DB   push Tail4win.004D85F8    ASCII "You hava not register. This copy left "
+004D84F8   push Tail4win.004D8628    ASCII " days to use."
+004D86FD   push Tail4win.004D8724    ASCII "System Error"
+004D8702   push Tail4win.004D8734    ASCII "Form create error, please send mail to support@withdata.com!"
+004D88DA   mov edx,Tail4win.004D8A0  ASCII "\\Software\\withdata\\tail4win\\recent"
+004D8A24   push Tail4win.004D8A98    ASCII "OutputDebugString"
+004D8B82   mov edx,Tail4win.004D8C1  ASCII "\\Software\\withdata\\tail4win\\recent"
+004D8B92   mov edx,Tail4win.004D8C4  ASCII "loadlines"
+004D8B97   mov eax,Tail4win.004D8C5  ASCII "Software\\withdata\\tail4win"
+004D8BBA   mov edx,Tail4win.004D8C8  ASCII "editor"
+004D8BBF   mov eax,Tail4win.004D8C5  ASCII "Software\\withdata\\tail4win"
+004D8BE6   mov edx,Tail4win.004D8C9  ASCII "notepad"
+004D8D0D   mov edx,Tail4win.004D8D7  ASCII "This copy is licensed to "
+```
+
+文本字符串参考位于 `Tail4win`:
+
+```text
+地址       反汇编                   文本字符串
+004D2ADF   push Tail4win.004D2B40    ASCII "Registration"
+004D2AE4   push Tail4win.004D2B50    ASCII "Thank you for your registration!"
+004D2B01   push Tail4win.004D2B40    ASCII "Registration"
+004D2B06   push Tail4win.004D2B74    ASCII "Serial is not valid, please input again!"
+```
+
+从上面的信息可以看出，一是通过注册表实现重启验证[`Software\withdata\tail4win`]，二是我们找到了 2 中的提示
+
+8. 双击 `004D8448` 来到这里,因为是带壳调试，所有我们要下的断点必须都是硬件断点。
+
+```text
+004D841D     E8 F6A5FFFF        call Tail4win.004D2A18         ; 这里是关键 Call，下硬件执行断点
+004D8422     84C0               test al,al                     ; 跳转是受 al 的限制的，al 为 1 才可以实现跳转
+004D8424     75 66              jnz short Tail4win.004D848C
+004D8426     8B45 F8            mov eax,dword ptr ss:[ebp-8]
+004D8429     8BB0 34030000      mov esi,dword ptr ds:[eax+334]
+004D842F     85F6               test esi,esi
+004D8431     75 15              jnz short Tail4win.004D8448
+004D8433     8B45 F8            mov eax,dword ptr ss:[ebp-8]
+004D8436     8B80 14030000      mov eax,dword ptr ds:[eax+314]
+004D843C     BA 80854D00        mov edx,Tail4win.004D8580       ; ASCII "Trial expired, please register."
+004D8441     E8 D69AF8FF        call Tail4win.00461F1C
+004D8446     EB 39              jmp short Tail4win.004D8481
+004D8448     68 A8854D00        push Tail4win.004D85A8          ; ASCII "You have "
+004D844D     8BC6               mov eax,esi
+004D844F     33D2               xor edx,edx
+004D8451     52                 push edx
+004D8452     50                 push eax
+004D8453     8D45 F0            lea eax,dword ptr ss:[ebp-10]
+004D8456     E8 910CF3FF        call Tail4win.004090EC
+004D845B     FF75 F0            push dword ptr ss:[ebp-10]
+004D845E     68 BC854D00        push Tail4win.004D85BC          ; ASCII " day(s) left"
+004D8463     8D45 F4            lea eax,dword ptr ss:[ebp-C]
+```
+
+9. 忽略所有异常，重新加载，`F9` 中断在 `004D841D`，`F7` 进入
+
+```text
+004D2A18     53                 push ebx
+004D2A19     56                 push esi
+004D2A1A     57                 push edi
+004D2A1B     83C4 F8            add esp,-8
+004D2A1E     8BF0               mov esi,eax
+004D2A20     33DB               xor ebx,ebx
+004D2A22     8D86 28030000      lea eax,dword ptr ds:[esi+328]
+004D2A28     50                 push eax
+004D2A29     8D86 24030000      lea eax,dword ptr ds:[esi+324]
+004D2A2F     50                 push eax
+004D2A30     6A 00              push 0
+004D2A32     E8 25FDFFFF        call Tail4win.004D275C
+004D2A37     8BBE 24030000      mov edi,dword ptr ds:[esi+324]
+004D2A3D     85FF               test edi,edi
+004D2A3F     74 1E              je short Tail4win.004D2A5F
+004D2A41     8BC7               mov eax,edi
+004D2A43     E8 806EF3FF        call Tail4win.004098C8
+004D2A48     85C0               test eax,eax
+004D2A4A     76 13              jbe short Tail4win.004D2A5F
+004D2A4C     54                 push esp
+004D2A4D     8D86 2C030000      lea eax,dword ptr ds:[esi+32C]
+004D2A53     50                 push eax
+004D2A54     6A 00              push 0
+004D2A56     E8 19FDFFFF        call Tail4win.004D2774
+004D2A5B     B3 01              mov bl,1                      ; 如果这里实现,bl 就是 1
+004D2A5D     EB 1B              jmp short Tail4win.004D2A7A
+004D2A5F     8D86 34030000      lea eax,dword ptr ds:[esi+334]
+004D2A65     50                 push eax
+004D2A66     8D86 30030000      lea eax,dword ptr ds:[esi+330]
+004D2A6C     50                 push eax
+004D2A6D     6A 00              push 0
+004D2A6F     E8 F8FCFFFF        call Tail4win.004D276C
+004D2A74     84C0               test al,al
+004D2A76     74 02              je short Tail4win.004D2A7A
+004D2A78   33DB               xor ebx,ebx                    ; 如果这里实现,ebx 被清 0
+004D2A7A     8BC3               mov eax,ebx                   ; 赋值给 eax
+004D2A7C     59                 pop ecx
+004D2A7D     5A                 pop edx
+004D2A7E     5F                 pop edi
+004D2A7F     5E                 pop esi
+004D2A80     5B                 pop ebx
+004D2A81     C3                 retn
+```
+
+很明显这上面的代码就相当于一个 `if` 条件语句。跟踪发现 `004D2A78` 被实现，也就是说 `eax` 会被赋值为 0，即 `al=0`，自然就要求注册了。
+
+10. OK，我们来检测下，看这里是否是重启验证的关键，删除硬件执行断点和所有断点，在 `004D2A7A` 下硬件执行断点，重载，`F9`
+
+    中断第 1 次
+
+    `ebx=00000000`
+    `eax=00000001`
+    手动更改 `ebx` 为 1
+
+    继续 `F9`
+
+    中断第 2 次
+
+    `ebx=00000000`
+    `eax=00000001`
+    手动更改 `ebx` 为 1
+
+    继续 `F9`
+
+    程序运行，注册框没有出现，OK，点 `Help-->About Tail4win`，显示`"This copy is licensed to"`[注册表里没有注册名]
+
+11. 看来这个地方是关键改之
+
+```text
+004D2A7A     B0 01              mov al,1                      ; 赋值 1 给 al，eax 摆脱 ebx 的控制
+```
+
+如果想让其显示注册名，自己就伪造个注册表吧：）
+
+12. 使用 `Dup2` 和 `KeyMak` 制作补丁发现
+
+补丁不是无效就是提示 `Error`，于是便有了下文：）
+
+### 三、ASPr 内存校验完整分析
+
+既然上面我们提到了 `ASPr` 内存校验的问题，那么我们就一并分析了吧。
+
+第一部分前言，我们说过被检测到会提示 `Protection Error:45`，那就 OK
+
+1. 设置忽略除了内存访问和指定异常之外的所有异常。`F9` 运行，中断在第 1 次内存异常处，别管了
+2. 搜索所有参考文本字符串
+
+文本字符串参考位于 `00F70000..00FC1FFF`
+
+```text
+地址       反汇编                   文本字符串
+00FAC9CB   push 0FAC9F0            ASCII "Protection Error"
+00FACA9F   mov edx,0FACAFC         ASCII "90"
+```
+
+
+
+`00FACDEF   push 0FACE14             ASCII "103"`
+
+`00FAD289   push 0FAD330             ASCII "42"`
+
+`00FAD4EB   push 0FAD520             ASCII "151"`
+
+`00FADAED   push 0FADD50             ASCII "85"`
+
+`00FADB07   push 0FADD50             ASCII "85"`
+
+`00FADC87   push 0FADD60             ASCII "55"`
+
+`00FADCE6   push 0FADD70             ASCII "57"`
+
+`00FADD2A   push 0FADD80             ASCII "60"`
+
+`00FADE83   push 0FADF18             ASCII "45"       ；双击来到代码处`
+
+`00FADEF0   push 0FADF28             ASCII "34"`
+
+`00FAE4CE   push 0FAE638             ASCII "100"`
+
+`00FAE5FE   add byte ptr ds:[eax],al  （初始 CPU 选择）`
+
+`00FAE6B0   push 0FAE6D4             ASCII "150"`
+
+`00FAE7DC   push 0FAE84C             ASCII "170"`
+
+### 3、看到了上面的 45 号错误了吧
+
+```
+00FADE70     E8 A36CFDFF        call 00F84B18
+
+00FADE75     8BE8              mov ebp,eax
+
+00FADE77     892D D495FB00     mov dword ptr ds:[FB95D4],ebp
+
+00FADE7D     3B6C24 28         cmp ebp,dword ptr ss:[esp+28]  ; 先在这里下 he 断点
+
+00FADE81     74 0C           je short 00FADE8F        ; 如被检测到这里肯定没有跳
+
+00FADE83     68 18DFFA00     push 0FADF18             ; ASCII "45"
+
+00FADE88     E8 FB79FDFF     call 00F85888
+```
+
+### 4、在 00FADE7D 下好硬件执行断点后，我们忽略所有异常，重载，F9 运行中断在 00FADE7D，先来探探情况
+
+堆栈 `ss:[0012FF5C]=5E2582B0`，`ebp=5E2582B0`
+
+按这个值比较，`00FADE81` 是会跳的，因为我们这样调试并没有影响到内存校验嘛。那么 `5E2582B0` 就是内存校验值了。OK，情况明了
+
+我们在数据窗中转存一下 `0012FF5C` 看看
+
+```
+0012FF14  B0 82 25 5E D0 C0 06 01  皞%^欣         ；这里也有校验值
+
+0012FF1C  1F 2C F7 00 55 4B F8 00  ,?UK?
+
+0012FF24  00 10 00 00 00 80 0E 00  ....€.
+
+0012FF2C  00 7C FB 00 75 DE FA 00  .|?u 搡.
+
+0012FF34  00 00 00 00 00 00 40 00  ......@.
+
+0012FF3C  00 00 00 00 00 10 00 00  .......
+
+0012FF44  00 00 00 00 00 00 00 00  ........
+
+0012FF4C  00 00 00 00 00 00 00 00  ........
+
+0012FF54  00 00 00 00 00 9E 0D 00  .....?.
+
+0012FF5C  B0 82 25 5E 00 00 00 00  皞%^....         ；校验值
+```
+
+### 5、我们删除所有的断点包括刚才的硬件执行断点，重新在 00FADE70 下硬件执行断点，重载，F9 中断在 00FADE70，继续探探情况
+
+```
+00FADE70     E8 A36CFDFF        call 00F84B18          ; 这里就是计算校验值的了
+
+00FADE75     8BE8              mov ebp,eax             ; 给 eax 返回 5E2582B0 校验值
+
+00FADE77     892D D495FB00     mov dword ptr ds:[FB95D4],ebp  ; ebp 里也是校验值
+```
+
+### 6、我们来做一个小实验，重载，F9
+
+```
+00FADE70     E8 A36CFDFF        call 00F84B18          ; F8，注意观察转存中的 0012FF14 和 0012FF5C
+
+00FADE75     8BE8              mov ebp,eax             ; 手动给 eax 清 0
+
+00FADE77     892D D495FB00     mov dword ptr ds:[FB95D4],ebp  ; 0，0
+
+00FADE7D     3B6C24 28         cmp ebp,dword ptr ss:[esp+28]  ; 0，5E2582B0
+
+00FADE81     74 0C           je short 00FADE8F        ; 没跳，让人高兴的在后面
+
+00FADE83     68 18DFFA00     push 0FADF18             ; ASCII "45"
+
+00FADE88     E8 FB79FDFF     call 00F85888            ; 提示 Protection Error:45
+```
+
+需要注意的是，在我们手动更改 `eax=0` 的时候，`0012FF14` 和 `0012FF5C` 里面的值是没变的，都是校验值。
+
+### 7、OK，那我们可以大胆的假设性（也是有事实根据的）分析一下
+
+1. 若 `ASPr` 检测到内存校验，那么 `00FADE70     call 00F84B18` 将会给 `eax` 返回为 0 或者是除了正确校验值之外的其他值
+2. 若 `ASPr` 没有检测到，那么一切如常
+
+分析完了，我们就有必要到 `00FADE70     call 00F84B18` 去看看了
+
+有的朋友可能会说，那我把 `00FADE81` 改成 `jmp` 不就不管什么情况都可以跳过内存校验吗？呵呵，你不要忘了，壳也有自身校验的，这也是为什么我们在使用补区段法的时候，还要修改 `Route Check` 的缘故了
+
+如果在内存补丁当中这样去设置
+
+![](img/facad77f3d4c00673b2b0e650bf9415c.jpg)
+
+那么将会出现这样的错误提示
+
+![](img/f4df1db09cc0187cb484eba129607a75.jpg)
+
+### 8、重载，F9，F7
+
+```
+00F84B18     53                  push ebx
+
+00F84B19     56                  push esi
+
+00F84B1A     57                  push edi
+
+00F84B1B     8BFA                mov edi,edx
+
+00F84B1D     8BF0                mov esi,eax
+
+00F84B1F     B2 01               mov dl,1
+
+00F84B21     A1 20F8F700        mov eax,dword ptr ds:[F7F820]
+
+00F84B26     E8 B9E0FEFF        call 00F72BE4
+
+00F84B2B     8BD8                mov ebx,eax
+
+00F84B2D     8BC3                mov eax,ebx
+
+00F84B2F     8B10                mov edx,dword ptr ds:[eax]
+
+00F84B31     FF12                call dword ptr ds:[edx]
+
+00F84B33     8BD6                mov edx,esi
+
+00F84B35     8BCF                mov ecx,edi
+
+00F84B37     8BC3                mov eax,ebx
+
+00F84B39     8B30                mov esi,dword ptr ds:[eax]
+
+00F84B3B     FF56 04           call dword ptr ds:[esi+4]
+
+00F84B3E     8BC3                mov eax,ebx
+
+00F84B40     8B10                mov edx,dword ptr ds:[eax]
+
+00F84B42     FF52 08           call dword ptr ds:[edx+8]
+
+00F84B45     8BC3                mov eax,ebx
+
+00F84B47     8B10                mov edx,dword ptr ds:[eax]
+
+00F84B49     FF52 0C           call dword ptr ds:[edx+C]
+
+00F84B4C     8B30                mov esi,dword ptr ds:[eax]
+
+00F84B4E     8BC3                mov eax,ebx
+
+00F84B50     E8 BFE0FEFF        call 00F72C14          ; 这里给 0012FF14 赋校验值
+
+00F84B55     8BC6                mov eax,esi            ; 正常情况下 esi 里的值是校验值
+
+00F84B57     5F                  pop edi              ; 需要注意的是在这整个过程当中 0012FF5C 始终没变，都是校验值
+
+00F84B58     5E                  pop esi
+
+00F84B59     5B                  pop ebx
+
+00F84B5A     C3                  retn
+```
+
+上面我们分析了，通过改跳转是行不通的，调试发现 `call 00F84B18` 里面的值是不会被检测的
+
+### 9、重载，F9，F7，修改之
+
+```
+00F84B18     8B4424 2C          mov eax,dword ptr ss:[esp+2C]  ; [esp+2C]=0012FF5C
+
+00F84B1C     C3                  retn                   ; 回去吧
+
+00F84B1D     8BF0                mov esi,eax
+
+00F84B1F     B2 01               mov dl,1
+
+00F84B21     A1 20F8F700        mov eax,dword ptr ds:[F7F820]
+```
+
+即从 `00F84B18` 开始的原始数据
+
+`53 56 57 8B FA`
+
+改之
+
+`8B 44 24 2C C3`
+
+![](img/856c3a3c3e341c2ce25e231090a7fb7c.jpg)
+
+在 `Dup2` 或者 `keymake` 里面这样设置之后，就不会被检测到了，但会有 1%的不稳定性，呵呵，带壳的内存补丁基本上都会遇到这样的问题。
+
+好啦，到此为止，`ASPr` 的内存校验算是分析完了。
+
+## 四、补丁工具的功能
+
+功能 ：
+
+1. 可以根据用户输入的数据信息，生成相对应的补丁
+2. 支持用户对数据的添加、修改、删除功能
+3. 双击要修改的数据即可对原数据进行编辑
+4. 支持数据排序功能，用户只需拖曳相应数据即可
+5. 支持自动添加连续数据功能
+6. 支持查看窗体名功能
+7. 支持工程文件保存、打开功能
+8. 增加了目标文件拖曳功能
+9. 增加了工程文件拖曳功能
+10. 增加了窗体捕捉功能
+11. 增加了用户个人信息设置
+
+后期更新：
+
+1. 增加补丁程序和原程序整合为一个程序功能
+2. 增加多个连续数据的支持
+3. 增加补丁样式的选择
+
+其他特点：
+
+1. 水纹效果
+2. 无标题栏拖曳效果
+
+为了程序的美化等因素，使用了大量的第 3 方控件
+
+关于补丁工具的演示请看演示录象
+
+建议：最好不要使用“用户个人信息设置”，因为这样会影响到补丁的启动速度。
+
+## 五、几款补丁工具的对比
+
+几款补丁工具的对比可以看演示录象，一看就一目了然：）
+
+## 六、补丁工具原理
+
+就目前流行的几种补丁工具来看，都是使用通过查找进程名来定位目标程序，再通过目标地址利用原始数据对比来进行 Patch 补丁数据。然后经过本人测试发现，对付像 `ASPr` 一类的通过内存校验来完成反 Loader 功能的壳而言，此方法会被检测到。
+
+于是本人转换了种方式看下文
+
+主程序部分：把事先写好的补丁模块以资源形式加入到主程序中，根据用户填写的补丁信息生成一个 ini 文件，然后把 ini 文件捆绑到释放的补丁模块末尾,所以用 `PEID` 给补丁查壳是 `Borland Delphi 6.0 - 7.0 [Overlay]`
+
+补丁部分：补丁程序释放捆绑在末尾的 ini 文件，再读取 ini 文件内的信息对目标程序进行补丁。 本补丁是通过窗体名定位目标程序并非常规补丁工具那样使用的是进程名来定位，这样就基本可以逃过壳的内存检测了。
+
+经测试，若开有杀毒软件，会导致出现 `Dup2` 和 `KeyMake` 一样的不稳定情况，但是，不会有错误提示
+
+## 七、源码
+
+先看下流程图吧
+
+![](img/f6ec15509c29fa10b0a542fd2c7756a8.jpg)
+
+主程序源码
+
+引用: `unit Unit1;`
+
+```
+interface
+
+  uses
+    Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+    Dialogs, ExtCtrls, SUIForm, StdCtrls, SUIButton, SUIEdit, XPMan,
+    CnWaterImage, SUIMemo, jpeg, ComCtrls, SUIStatusBar, SUISideChannel,
+    CheckLst, EnhListView, Inifiles, ShellAPI, About, SUIListView, FindWindow,
+    SUIImagePanel, SUIGroupBox;
+
+  type
+    TForm1 = class(TForm)
+      XPManifest1: TXPManifest;
+      Mac: TsuiForm;
+      GroupBox1: TGroupBox;
+      CnWaterImage1: TCnWaterImage;
+      NameTxt: TsuiEdit;
+      TitileTxt: TsuiEdit;
+      Generent: TsuiButton;
+      Exit: TsuiButton;
+      Label1: TLabel;
+      Label2: TLabel;
+      suiStatusBar1: TsuiStatusBar;
+      OpenDialog1: TOpenDialog;
+      SaveDialog1: TSaveDialog;
+      look: TsuiButton;
+      GroupBox2: TGroupBox;
+```
+
+
+
+```
+Addr: TsuiEdit;
+Data: TsuiEdit;
+Add: TsuiButton;
+Modify: TsuiButton;
+Del: TsuiButton;
+Label5: TLabel;
+Label6: TLabel;
+about : TsuiButton;
+grp1: TGroupBox;
+mmo1: TsuiMemo;
+View: TsuiButton;
+Open: TsuiButton;
+Save: TsuiButton;
+dlgOpen1: TOpenDialog;
+dlgSave1: TSaveDialog;
+DataList: TsuiListView;
+Get: TsuiButton;
+InfoGroup: TsuiGroupBox;
+InfoMemo: TsuiMemo;
+
+procedure ExitClick(Sender: TObject);
+procedure lookClick(Sender: TObject);
+procedure AddClick(Sender: TObject);
+procedure DelClick(Sender: TObject);
+procedure DataListDblClick(Sender: TObject);
+procedure ModifyClick(Sender: TObject);
+procedure FormCreate(Sender: TObject);
+procedure GenerentClick(Sender: TObject);
+procedure DataListDragDrop(Sender, Source: TObject; X, Y: Integer);
+procedure DataListDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);
+procedure AboutClick(Sender: TObject);
+procedure ViewClick(Sender: TObject);
+procedure SaveClick(Sender: TObject);
+procedure OpenClick(Sender: TObject);
+procedure GetClick(Sender: TObject);
+procedure CnWaterImage1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+procedure MacMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+procedure FormMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+procedure InfoGroupMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+procedure GroupBox2MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+procedure GroupBox1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+procedure grp1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
+
+private
+DragItem, TargetItem: TListItem;
+procedure WMDropFiles(var Msg: TWMDropFiles); message WM_DROPFILES;
+function ExtractRes(ResType, Resname, ResNewName: string): boolean;
+{ Private declarations }
+
+public
+{ Public declarations }
+end;
+
+var
+Form1: TForm1;
+Inifile: TInifile;
+FilePath: String;
+
+implementation
+
+{$R *.dfm}
+{$R Loader.RES}   //补丁模块以资源文件的形式保存
+
+procedure TForm1.ExitClick(Sender: TObject);
+begin
+Application.Terminate;
+end;
+
+procedure TForm1.lookClick(Sender: TObject);   //浏览按钮
+Var
+i, j: Integer;
+begin
+if OpenDialog1.Execute then
+  begin
+    NameTxt.Text := OpenDialog1.FileName;
+  end;
+  FilePath := NameTxt.Text;
+  j := Length(FilePath);
+  for i := 0 to j do
+    if Copy(FilePath, i, 1) = '' then
+      begin
+        NameTxt.Text := Copy(FilePath, i+1, j-i);   //获取程序名
+      end;
+end;
+
+procedure TForm1.AddClick(Sender: TObject);   //填加按钮
+var
+tempItem: TListItem;
+i, j: Integer;
+S, S1: String;
+begin
+S1 := Data.Text;
+if Addr.text = '' then
+ begin
+   Addr.SetFocus;
+ end
+ else
+ begin
+   if Data.Text = '' then
+     begin
+       Addr.SetFocus;
+     end
+     else
+     begin
+       if Length(Addr.Text) = 6 then
+         begin
+           Addr.Text := '00' + Addr.Text;
+         end;
+       j := Length(Addr.Text);
+       S := Addr.Text;
+       Addr.Text := '';
+       for i := 0 to j do
+         begin
+           Addr.Text := Addr.Text + UpperCase(Copy(S, i+1, 1));
+         end;
+       tempItem := DataList.Items.Add;
+       tempItem.Caption := '$' + Addr.text;
+       j := Length(S1);
+       S := '';
+       for i := 0 to j do    //数据转换成大写
+         begin
+           S := S + UpperCase(Copy(Data.Text, i+1, 1));
+         end;
+       S1 := S;
+       j := Length(S1);
+       S := '$' + Copy(S1, 1, 2);
+       tempItem.SubItems.Add(S);
+       Data.Text := Copy(S1, 3, j);
+       S := IntToStr(StrToInt('$' + Addr.Text) + 1);
+       Addr.Text := Format('%x', [StrToInt(S)]);
+       if Length(Addr.Text) = 6 then
+         begin
+           Addr.Text := '00' + Addr.Text;
+         end;
+     end;
+ end;
+end;
+
+procedure TForm1.DelClick(Sender: TObject); //删除按钮
+var
+tempItem: TListItem;
+begin
+  tempItem := DataList.Selected;
+  if (assigned(tempItem)) or (tempItem <> nil) then
+    begin
+      tempItem.Delete;
+    end;
+end;
+
+procedure TForm1.DataListDblClick(Sender: TObject);     //数据双击事件
+begin
+if DataList.Selected <> nil then
+  begin
+    Addr.Text := Copy(DataList.Selected.Caption, 2, 8);
+    Data.Text := Copy(DataList.Selected.SubItems[0], 2, 2);
+    DataList.Selected.Delete;
+  end
+  else
+    DataList.SetFocus;
+end;
+
+procedure TForm1.ModifyClick(Sender: TObject);  //修改按钮
+var
+tempItem: TListItem;
+begin
+tempItem := DataList.Items.Add;
+tempItem.Caption := '$' + Addr.text;
+tempItem.SubItems.Add('$' + Data.Text);
+Addr.Clear;
+Data.Clear;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);  //界面启动事件
+begin
+DragAcceptFiles(Handle, True);     //拖曳
+DataList.DragMode := dmAutomatic;
+DataList.GridLines := True;
+end;
+
+procedure TForm1.GenerentClick(Sender: TObject);  //生成按钮
+var
+File1, File2: TFileStream;
+Size: integer;
+Files: string;
+eXeFileName: string;
+i, j: Integer;
+AppzName, TitleName, MyInfo, LeftName : string;
+aPos: Integer;
+begin
+AppzName := NameTxt.Text;     //取目标名
+TitleName := TitileTxt.Text;  //取标题，查找窗口
+MyInfo := InfoMemo.Text;      //获取个人信息
+aPos := Pos('.', AppzName);
+LeftName := Copy(AppzName, 1, aPos-1);
+SaveDialog1.FileName := LeftName + ' - ' + 'Loader.eXe';
+if SaveDialog1.Execute then
+  begin
+    eXeFileName := SaveDialog1.FileName;
+    if (AppzName = '') or (TitleName = '') then
+      begin
+        NameTxt.SetFocus;
+      end
+      else
+      begin
+        ExtractRes('exefile', 'myexe', eXeFileName);   //释放资源
+        IniFile := TIniFile.Create(ExtractFilePath(paramstr(0)) + 'Config.ini');  //生成配置 INI 文件
+        IniFile.WriteString('Appz', 'AppzName', AppzName);  //写 INI
+        IniFile.WriteString('Appz', 'TitleName', TitleName);
+        IniFile.WriteString('Info', 'MyInfo', MyInfo);
+        j := DataList.Items.Count - 1;    //数据的个数，打算从 0 开始算，遂-1
+        IniFile.WriteString('Nume', 'Number', IntToStr(j));
+        for i := 0 to j do     //逐个填加
+          begin
+            IniFile.WriteString('Data', 'Address' + IntToStr(i), DataList.Items.Item[i].Caption);
+            IniFile.WriteString('Data', 'NewData' + IntToStr(i), DataList.Items.Item[i].SubItems[0]);
+          end;
+        IniFile.Free;
+        Files := ExtractFileDir(Application.ExeName) + '\\Config.ini';
+        File1 := TFileStream.Create(SaveDialog1.FileName, fmOpenWrite);
+        File2 := TFilestream.Create(Files, fmOpenRead);
+        try
+          File1.Seek(0, soFromEnd);   //捆绑
+          File1.CopyFrom(File2, 0);
+          Size := File2.Size + SizeOf(Size);
+          File1.WriteBuffer(Size, SizeOf(Size));
+        Finally
+          File1.Free;
+          File2.Free;
+          DeleteFile(Files);
+        end;
+      end;
+  end;
+end;
+
+function TForm1.ExtractRes(ResType, Resname, ResNewName: string): boolean;  //资源释放函数
+var
+res: TresourceStream;
+begin
+try
+  Res := Tresourcestream.Create(Hinstance, Resname, Pchar(ResType));
+  try
+    Res.SaveToFile(Resnewname);
+    Result := True;
+  except
+    Result := False;
+  end
+  Finally
+    Res.Free;
+  end;
+end;
+
+procedure TForm1.DataListDragDrop(Sender, Source: TObject; X, Y: Integer);  //数据位置交换拖曳事件
+var
+TargetIndex: integer;
+begin
+DragItem := DataList.Selected;
+```
+
+
+
+`TargetIndex := DataList.DropTarget.Index;`
+
+```pascal
+if TargetIndex > DragItem.Index then
+  TargetItem := DataList.Items.Insert(TargetIndex + 1)
+else
+  TargetItem := DataList.Items.Insert(TargetIndex);
+
+TargetItem.Assign(DragItem);
+DragItem.Delete;
+end;
+```
+
+`procedure TForm1.DataListDragOver(Sender, Source: TObject; X, Y: Integer; State: TDragState; var Accept: Boolean);` //数据位置交换拖曳事件
+
+```pascal
+begin
+  if Source = DataList then
+    accept := true;
+end;
+```
+
+`procedure TForm1.AboutClick(Sender: TObject);` //调用关于窗口
+
+```pascal
+begin
+  Form2.ShowModal;
+end;
+```
+
+`procedure TForm1.ViewClick(Sender: TObject);` //查看按钮
+
+```pascal
+var
+  hCurrentWindow: HWnd;
+  szText: array[0..254] of char;
+begin
+  hCurrentWindow := GetWindow(Handle, GW_HWNDFIRST);
+  while hCurrentWindow <> 0 do
+  begin
+    if GetWindowText(hCurrentWindow, @szText, 255) > 0 then
+      mmo1.Lines.Add(StrPas(szText));
+    hCurrentWindow := GetWindow(hCurrentWindow, GW_HWNDNEXT);
+  end;
+end;
+```
+
+`procedure TForm1.SaveClick(Sender: TObject);` //保存按钮
+
+```pascal
+var
+  i, j, aPos: Integer;
+  AppzName, TitleName, MyInfo, LeftName: string;
+begin
+  AppzName := NameTxt.Text;          //取目标名
+  TitleName := TitileTxt.Text;       //取标题，查找窗口
+  MyInfo := InfoMemo.Text;           //获取个人信息
+  aPos := Pos('.', AppzName);
+  LeftName := Copy(AppzName, 1, aPos - 1);
+  dlgSave1.FileName := LeftName + '-' + 'Project.oοО';
+  if dlgSave1.Execute then
+  begin
+    IniFile := TIniFile.Create(dlgSave1.FileName);
+    IniFile.WriteString('Appz', 'FilePath', FilePath);
+    IniFile.WriteString('Appz', 'AppzName', AppzName);
+    IniFile.WriteString('Appz', 'TitleName', TitleName);
+    IniFile.WriteString('Info', 'MyInfo', MyInfo);
+    j := DataList.Items.Count - 1;
+    Inifile.WriteString('Nume', 'Number', IntToStr(j));
+    for i := 0 to j do
+      begin
+        IniFile.WriteString('Data', 'Address' + IntToStr(i), DataList.Items.Item[i].Caption);
+        IniFile.WriteString('Data', 'NewData' + IntToStr(i), DataList.Items.Item[i].SubItems[0]);
+      end;
+    IniFile.Free;
+  end;
+end;
+```
+
+`procedure TForm1.OpenClick(Sender: TObject);` //打开按钮
+
+```pascal
+var
+  TempItem: TListItem;
+  Inifile: Tinifile;
+  i, j: Integer;
+begin
+  if dlgOpen1.Execute then
+  begin
+    IniFile := TIniFile.Create(dlgOpen1.FileName);
+    FilePath := Inifile.ReadString('Appz', 'FilePath', '');
+    NameTxt.Text := PChar(Inifile.ReadString('Appz', 'AppzName', ''));
+    TitileTxt.text := Inifile.ReadString('Appz', 'TitleName', '');
+    InfoMemo.lines.Add(Inifile.ReadString('Info', 'MyInfo', ''));
+    j := StrToInt(Inifile.ReadString('Nume', 'Number', ''));
+    for i := 0 to j do
+      begin
+        TempItem := DataList.Items.Add; //每次添加必须调用一次的
+        TempItem.Caption := Inifile.ReadString('Data', 'Address' + IntToStr(i), '');
+        TempItem.SubItems.Add(Inifile.ReadString('Data', 'NewData' + IntToStr(i), ''));
+      end;
+    IniFile.Free;
+  end;
+end;
+```
+
+`procedure Tform1.WMDropFiles(var Msg: TWMDropFiles);`
+
+```pascal
+var
+  CFileName: array[0..MAX_PATH] of Char;
+  aPos, k, l, m, n: Integer;
+  TempItem: TListItem;
+  Inifile: Tinifile;
+begin
+  try
+    if DragQueryFile(Msg.Drop, 0, CFileName, MAX_PATH) > 0 then
+    begin
+      // CheckFileSave;
+      NameTxt.text := CFileName;
+      FilePath := CFileName;
+      //开始判断是 exe 还是 oοО文件了
+      aPos := Pos('.', NameTxt.text); //定位.的位置
+      if Copy(CFileName, aPos, 4) = '.exe' then //规定 exe
+        begin
+          l := Length(FilePath);
+          for k := 0 to l do
+            if Copy(FilePath, k, 1) = '' then
+              begin
+                NameTxt.Text := Copy(FilePath, k + 1, l - k);
+                Msg.Result := 0;
+              end
+            else
+              begin
+                Msg.Result := 1;
+              end;
+        end
+      else
+        begin
+          if Copy(CFileName, aPos, 6) = '.oοО' then //规定 ini 才可以
+            begin
+              IniFile := TIniFile.Create(CFileName);
+              FilePath := Inifile.ReadString('Appz', 'FilePath', '');
+              NameTxt.Text := PChar(Inifile.ReadString('Appz', 'AppzName', ''));
+              TitileTxt.text := Inifile.ReadString('Appz', 'TitleName', '');
+              InfoMemo.Lines.Add(Inifile.ReadString('Info', 'MyInfo', ''));
+              n := StrToInt(Inifile.ReadString('Nume', 'Number', ''));
+              for m := 0 to n do
+                begin
+                  TempItem := DataList.Items.Add; //每次添加必须调用一次的
+                  TempItem.Caption := Inifile.ReadString('Data', 'Address' + IntToStr(m), '');
+                  TempItem.SubItems.Add(Inifile.ReadString('Data', 'NewData' + IntToStr(m), ''));
+                end;
+              Msg.Result := 0;
+              IniFile.Free;
+            end;
+        end;
+    end;
+  finally
+    DragFinish(Msg.Drop);
+  end;
+end;
+```
+
+`procedure TForm1.GetClick(Sender: TObject);` //调用 FindWindow 单元，捕捉窗体按钮，要用到枚举
+
+```pascal
+var
+  PI: TProcessInformation;
+  SI: TStartUpInfo;
+  MyHandle: THandle;
+  TitleInfo: String;
+begin
+  if NameTxt.Text = '' then
+    begin
+      NameTxt.SetFocus;
+    end
+  else
+    begin
+      ZeroMemory(@SI, SizeOf(SI));
+      ZeroMemory(@PI, SizeOf(PI));
+      SI.cb := SizeOf(SI);
+      if CreateProcess(nil, PChar(FilePath), nil, nil, FALSE, 0, nil, nil, SI, PI) then
+        begin //注意!
+          WaitForInputIdle(PI.hProcess, INFINITE);
+          MyHandle := FindMainWindow(PI.dwProcessID);
+          if MyHandle > 0 then
+            begin
+              SetLength(TitleInfo, 255);
+              GetWindowText(MyHandle, PChar(TitleInfo), 255);
+              SetLength(TitleInfo, StrLen(PChar(TitleInfo)));
+              TitileTxt.Text := TitleInfo;
+            end;
+          TerminateProcess(PI.hProcess, 0);
+          TerminateProcess(PI.hThread, 0);
+          CloseHandle(PI.hProcess);
+          CloseHandle(PI.hThread);
+        end;
+    end;
+end;
+```
+
+`procedure TForm1.CnWaterImage1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);` //无标题栏拖曳事件
+
+```pascal
+begin
+  if Button = mbLeft then
+    begin
+      ReleaseCapture();
+      SendMessage(Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+    end;
+end;
+```
+
+`procedure TForm1.MacMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);` //无标题栏拖曳事件
+
+```pascal
+begin
+  if Button = mbLeft then
+    begin
+      ReleaseCapture();
+      SendMessage(Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+    end;
+end;
+```
+
+`procedure TForm1.FormMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);` //无标题栏拖曳事件
+
+```pascal
+begin
+  if Button = mbLeft then
+    begin
+      ReleaseCapture();
+      SendMessage(Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+    end;
+end;
+```
+
+`procedure TForm1.InfoGroupMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);` //无标题栏拖曳事件
+
+```pascal
+begin
+  if Button = mbLeft then
+    begin
+      ReleaseCapture();
+      SendMessage(Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+    end;
+end;
+```
+
+`procedure TForm1.GroupBox2MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);` //无标题栏拖曳事件
+
+```pascal
+begin
+  if Button = mbLeft then
+    begin
+      ReleaseCapture();
+      SendMessage(Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+    end;
+end;
+```
+
+`procedure TForm1.GroupBox1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);` //无标题栏拖曳事件
+
+```pascal
+begin
+  if Button = mbLeft then
+    begin
+      ReleaseCapture();
+      SendMessage(Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+    end;
+end;
+```
+
+`procedure TForm1.grp1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);` //无标题栏拖曳事件
+
+
+
+Shift: TShiftState; X, Y: Integer);  
+
 begin  
-  ZeroMemory(@StartInfo, SizeOf(TStartupInfo));  
-  StartInfo.cb := SizeOf(TStartupInfo);  
-  if not CreateProcess(nil,'Tail4win.exe', nil, nil, False, Create\_Suspended, nil, nil, StartInfo, ProcInfo) then Exit;  
-  ReadProcessMemory(ProcInfo.hProcess,Pointer($004D2A7A),@TmpData,2,BytesRead);  
-  if (TmpData\[0\] = OldData\[0\]) and (TmpData\[1\] = OldData\[1\]) then  
-  begin  
-    if WriteProcessMemory(ProcInfo.hProcess, Pointer($004D2A7A), @NewData, 2, BytesRead) then  
-      MessageBox(0,'恭喜补丁成功',nil,0) else MessageBox(0,'补丁失败',nil,0);  
-  end else  
-  begin  
-    MessageBox(0,'补丁失败',nil,0)  
-  end;  
-  ResumeThread(ProcInfo.hThread);  
-  CloseHandle(ProcInfo.hProcess);  
-  CloseHandle(ProcInfo.hThread);  
-end.  
-  
 
-  
-\--------------------------------------------------------------------------------  
-【经验总结】  
-  1、如果把补丁和原目标程序整合为一个应用程序，那么就更加完美了，可惜现期还没时间去写，可以利用捆绑的思想，有兴  
-  趣的朋友可以继续：）  
-  2、个人觉得带壳调试已经是不可阻挡的趋势了，大家可以多花点工夫在上面：）  
-  3、谢绝用心不良的人转载源码  
-  4、文章有点长，感谢你耐心看完：）  
-\--------------------------------------------------------------------------------  
-【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢! 
+if Button = mbLeft then  
 
- 4dd466d0e1e0cc123afbe504da2462ca
+   begin  
+
+    ReleaseCapture();  
+
+    SendMessage(Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);  
+
+   end;  
+
+end;  
+
+end.
+
+### 补丁模块源码
+
+引用: //Loader by wynney  
+
+```pascal
+program loader;  
+
+uses  
+
+  ShellApi, Windows, Inifiles, SysUtils, Messages, Variants, Classes, Graphics,  
+
+  Controls, ExtCtrls, StdCtrls, Dialogs, Forms, Kill in 'Kill.pas';  
+
+{$R Loader.RES}  
+
+Var  
+
+  WindowName : integer;  
+
+  ProcessId : integer;  
+
+  ThreadId : integer;  
+
+  Buf : PChar;  
+
+  HandleWindow : integer;  
+
+  Handle : integer;  
+
+  Write : Cardinal;  
+
+  Buf1 : integer;  
+
+  Appz: Pchar;  
+
+  WindowTitle : Pchar;  
+
+  Address : Cardinal;  
+
+  PokeValue : Cardinal;  
+
+  NumberOfBytes : Cardinal;  
+
+  Inifile: Tinifile;//INI  
+
+  Files: string;//配置文件  
+
+  Des: TFileStream;//资源  
+
+  size: integer;//资源大小  
+
+  FileMemo: TMemorystream;//文件内存流对象  
+
+  s: TStrings;  
+
+  i, j: Cardinal;  
+
+  Info: String;  
+
+Var  
+
+  Str: String;  
+
+  Len: Byte absolute Str;  
+
+begin  
+
+  Files := ExtractFilePath(Application.ExeName) + '\\Config.ini'; //释放配置文件  
+
+  FileMemo := TMemoryStream.Create;  
+
+  Des := TFileStream.Create(Application.ExeName, fmShareDenyNone);  
+
+  try  
+
+    des.Seek(-sizeof(size), soFromEnd);  
+
+    des.ReadBuffer(size, sizeof(size));  
+
+    des.Seek(-Size, soFromEnd);  
+
+    FileMemo.CopyFrom(Des, size - sizeof(size));  
+
+    if FileExists(Files) = False then //若配置文件已存，则取消释放  
+
+      begin  
+
+        FileMemo.SaveToFile(Files);  
+
+      end;  
+
+  finally  
+
+    FileMemo.Free;  
+
+    des.Free;  
+
+  end;  
+
+  Inifile := Tinifile.Create(Files);  
+
+  s := TStringlist.Create;  
+
+  IniFile.ReadSections(s);  
+
+  SetFileAttributes(Pchar(Files), FILE_ATTRIBUTE_HIDDEN + FILE_ATTRIBUTE_SYSTEM);  
+
+  Info := Inifile.ReadString('Info', 'MyInfo', '');  
+
+  WindowTitle := PChar(Inifile.ReadString('Appz', 'TitleName', ''));  
+
+  Appz := PChar(Inifile.ReadString('Appz', 'AppzName', ''));  
+
+  j := StrToInt(Inifile.ReadString('Nume', 'Number', ''));  
+
+  if Info <> '' then  
+
+    begin  
+
+      if Application.MessageBox(PChar(Info), '友好提示', MB_YESNO + MB_IconQuestion) = mrNO then Exit;  
+
+    end;  
+
+  ShellExecute(Handle, PChar('Open'), Appz, nil, Appz, SW_SHOWNORMAL); //要打开的目标程序  
+
+  //开始 Loader  
+
+  for Buf1 := 0 to 999999 do //多次查找  
+
+    begin  
+
+      WindowName := FindWindow(nil, WindowTitle);  
+
+      if WindowName = 0 then  
+
+        begin  
+
+          WindowName := FindWindow(nil, WindowTitle);  
+
+          if Buf1 = 999999 then  
+
+            begin  
+
+              ShowMessage('程序异常，请重启！');  
+
+              Exit; //退出补丁  
+
+              KillTask(Appz); //杀死目标进程  
+
+            end;  
+
+        end  
+
+        else  
+
+        begin  
+
+          ThreadId := GetWindowThreadProcessId(WindowName, @ProcessID);  
+
+          HandleWindow := OpenProcess(Process_All_Access, False, ProcessId);  
+
+          for i := 0 to j do  
+
+            begin  
+
+              Address := StrToInt(Inifile.ReadString('Data', 'Address' + IntToStr(i), '')); //读取数据  
+
+              PokeValue := StrToInt(Inifile.ReadString('Data', 'NewData' + IntToStr(i), '')); //读取数据  
+
+              NumberOfBytes := 1;  
+
+              GetMem(Buf, 1);  
+
+              Buf^ := Chr(PokeValue);  
+
+              WriteProcessMemory(HandleWindow, Ptr(Address), Buf, NumberOfBytes, Write);  
+
+            end;  
+
+          DeleteFile(Files); //用完之后马上删除  
+
+          Exit; //自己随后退出  
+
+        end;  
+
+    end;  
+
+end.
+```
+
+### Kill（杀进程）模块源码
+
+引用:  
+```pascal
+unit Kill;  
+
+interface  
+
+uses  
+
+  Windows, SysUtils, Variants, Classes, Graphics, StdCtrls, Tlhelp32;  
+
+function KillTask(ExeFileName: string): integer;  
+
+implementation  
+
+function KillTask(ExeFileName: string): integer; //杀死进程的函数，来对付防火墙进程。  
+
+const  
+
+  PROCESS_TERMINATE = $0001; //进程的 PROCESS_TERMINATE 访问权限  
+
+var  
+
+  ContinueLoop: BOOL;  
+
+  FSnapshotHandle: THandle;  
+
+  FProcessEntry32: TProcessEntry32;  
+
+begin  
+
+  result := 0;  
+
+  FSnapshotHandle := CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);  
+
+  //获取系统所有进程快照  
+
+  FProcessEntry32.dwSize := Sizeof(FProcessEntry32);  
+
+  //调用 Process32First 前用 Sizeof(FProcessEntry32)填充 FProcessEntry32.dwSize  
+
+  ContinueLoop := Process32First(FSnapshotHandle, FProcessEntry32);  
+
+  //获取快照中第一个进程信息并保存到 FProcessEntry32 结构体中  
+
+  while integer(ContinueLoop) <> 0 do  
+
+  //循环枚举快照中所有进程信息  
+
+    begin  
+
+      if ((UpperCase(ExtractFileName(FProcessEntry32.szExeFile)) = UpperCase(ExeFileName))  
+
+        or (UpperCase(FProcessEntry32.szExeFile) = UpperCase(ExeFileName))) then  
+
+      //找到要中止的进程名  
+
+        Result := Integer(TerminateProcess(OpenProcess(PROCESS_TERMINATE, BOOL(0),  
+
+          FProcessEntry32.th32ProcessID), 0));  
+
+      //中止进程  
+
+        ContinueLoop := Process32Next(FSnapshotHandle, FProcessEntry32);  
+
+      //查找下一个符合条件进程  
+
+    end;  
+
+end;  
+
+end.
+```
+
+最后附上 `Dup2`、`KeyMake` 补丁模块范例, 经本人调试此源码对本文目标程序补丁无效`[因为壳的缘故]`，大家可做参考  
+
+引用:  
+
+```pascal
+program Loader;  
+
+uses  
+
+  Windows, TlHelp32;  
+
+const  
+
+  OldData : array[0..1] of byte = ($8B, $C3);  
+
+  NewData : array[0..1] of byte = ($B0, $01);  
+
+var  
+
+  StartInfo: TStartupInfo;  
+
+  ProcInfo: TProcessInformation;  
+
+  BytesRead : DWORD;  
+
+  TmpData : array[0..1] of Byte;  
+
+begin  
+
+  ZeroMemory(@StartInfo, SizeOf(TStartupInfo));  
+
+  StartInfo.cb := SizeOf(TStartupInfo);  
+
+  if not CreateProcess(nil, 'Tail4win.exe', nil, nil, False, Create_Suspended, nil, nil, StartInfo, ProcInfo) then Exit;  
+
+  ReadProcessMemory(ProcInfo.hProcess, Pointer($004D2A7A), @TmpData, 2, BytesRead);  
+
+  if (TmpData[0] = OldData[0]) and (TmpData[1] = OldData[1]) then  
+
+    begin  
+
+      if WriteProcessMemory(ProcInfo.hProcess, Pointer($004D2A7A), @NewData, 2, BytesRead) then  
+
+        MessageBox(0, '恭喜补丁成功', nil, 0) else MessageBox(0, '补丁失败', nil, 0);  
+
+    end else  
+
+    begin  
+
+      MessageBox(0, '补丁失败', nil, 0)  
+
+    end;  
+
+  ResumeThread(ProcInfo.hThread);  
+
+  CloseHandle(ProcInfo.hProcess);  
+
+  CloseHandle(ProcInfo.hThread);  
+
+end.
+```
+
+--------------------------------------------------------------------------------  
+
+**【经验总结】**  
+
+1. 如果把补丁和原目标程序整合为一个应用程序，那么就更加完美了，可惜现期还没时间去写，可以利用捆绑的思想，有兴趣的朋友可以继续：）  
+
+2. 个人觉得带壳调试已经是不可阻挡的趋势了，大家可以多花点工夫在上面：）  
+
+3. 谢绝用心不良的人转载源码  
+
+4. 文章有点长，感谢你耐心看完：）  
+
+--------------------------------------------------------------------------------  
+
+**【版权声明】**: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢! 
+
+`4dd466d0e1e0cc123afbe504da2462ca`

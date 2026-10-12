@@ -1,101 +1,94 @@
 
-
 # 月影传说
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum1262.htm`](https://www.pediy.com/kssd/pediy03/forum1262.htm)
 
-呵呵，我又来了，这是我的第二篇破解光盘游戏的文章，写得不好，请大家指正，小弟这次就不罗嗦了，工具还是上次说的那些，不知道上次没破出来的朋友是否用起子和榔头解决了问题，如果没有的话，请先别急，再看看小弟的这篇   
-  
-开工：   
-  
-1。找到可执行文件.exe 的就是了，一看只有 200 多 k,有点怀疑，就用 fi 检查，哈哈，没有加壳，好   
-接下来还是拿出我的工具 w32dasm 开始反他！嘿嘿   
-  
-代码如下：   
-  
-:00408867 8D44243C                lea eax, dword ptr \[esp+3C\]   
-  
-\* Possible StringData Ref from Data Obj ->"C:"        ===>>检查文件是否来源于 c:\\   
-                                  |   
-:0040886B 6808894300              push 00438908   
-:00408870 50                      push eax   
-  
-\* Reference To: KERNEL32.lstrcpyA, Ord:0302h   
-                                  |   
-:00408871 FF1510304300            Call dword ptr \[00433010\]   
-  
-\* Reference To: KERNEL32.SetErrorMode, Ord:0264h      =======>>设置错误代码（小弟猜的。呵呵）   
-                                  |   
-:00408877 8B1D1C304300            mov ebx, dword ptr \[0043301C\]   
-  
-\* Reference To: KERNEL32.GetVolumeInformationA, Ord:0177h    ===>>这次的重点！！！！注意啦！！GetVolumeInformationA 函数是获得盘符卷标的，呵呵，明白了吧，干紧看看第二张光盘的卷标是什么？   
-                                  |   
-:0040887D 8B2D20304300            mov ebp, dword ptr \[00433020\]   
-:00408883 C744241000000000        mov \[esp+10\], 00000000   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:004088F5(C)   
-|   
-:0040888B 8D4C243C                lea ecx, dword ptr \[esp+3C\]   
-:0040888F 51                      push ecx   
-  
-\* Reference To: KERNEL32.GetDriveTypeA, Ord:0104h      ======>>>还用说吗？上次不明白的还有吗？自己看 winapi 吧   
-                                  |   
-:00408890 FF1530304300            Call dword ptr \[00433030\]   
-:00408896 83F805                  cmp eax, 00000005      =======>>>赶快改！！！！   
-:00408899 7544                    jne 004088DF        ====>>不是就跳走!!!   
-:0040889B 6A01                    push 00000001   
-:0040889D FFD3                    call ebx   
-:0040889F 8BF0                    mov esi, eax   
-:004088A1 6A00                    push 00000000   
-:004088A3 8D542418                lea edx, dword ptr \[esp+18\]   
-:004088A7 6A00                    push 00000000   
-:004088A9 8D442420                lea eax, dword ptr \[esp+20\]   
-:004088AD 52                      push edx   
-:004088AE 50                      push eax   
-:004088AF 6A00                    push 00000000   
-:004088B1 8D4C2430                lea ecx, dword ptr \[esp+30\]   
-:004088B5 6A20                    push 00000020   
-:004088B7 8D542454                lea edx, dword ptr \[esp+54\]   
-:004088BB 51                      push ecx   
-:004088BC 52                      push edx   
-:004088BD FFD5                    call ebp   
-:004088BF 56                      push esi   
-:004088C0 8BF8                    mov edi, eax   
-:004088C2 FFD3                    call ebx   
-:004088C4 85FF                    test edi, edi   
-:004088C6 7417                    je 004088DF   
-:004088C8 8B842490000000          mov eax, dword ptr \[esp+00000090\]   
-:004088CF 8D4C241C                lea ecx, dword ptr \[esp+1C\]   
-:004088D3 50                      push eax   
-:004088D4 51                      push ecx   
-  
-\* Reference To: KERNEL32.lstrcmpA, Ord:02FCh   
-                                  |   
-:004088D5 FF15F4304300            Call dword ptr \[004330F4\]   
-:004088DB 85C0                    test eax, eax   
-:004088DD 7432                    je 00408911   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:00408899(C), :004088C6(C)   
-|   
-:004088DF 8A44243C                mov al, byte ptr \[esp+3C\]   
-:004088E3 FEC0                    inc al   
-:004088E5 8844243C                mov byte ptr \[esp+3C\], al   
-:004088E9 8B442410                mov eax, dword ptr \[esp+10\]   
-:004088ED 40                      inc eax   
-:004088EE 83F818                  cmp eax, 00000018              ====>>比较 24 次   
-:004088F1 89442410                mov dword ptr \[esp+10\], eax   
-:004088F5 7C94                    jl 0040888B   
-  
-\* Possible StringData Ref from Data Obj ->"请插入《月影传说》的第二号光盘，再重新运行本程"   
-                                        ->"序。"   
-                                  |   
-:004088F7 68D4884300              push 004388D4   
-  
-  
-以上为简单分析，值得注意的是这次开始加上了卷标的判断 希望大家注意，修改方法如下：   
-改 c:\\卷标和改 000005 为 000003   
-  
-  
-cracked by copyyour\[CCG\]  4dd466d0e1e0cc123afbe504da2462ca
+呵呵，我又来了，这是我的第二篇破解光盘游戏的文章，写得不好，请大家指正，小弟这次就不罗嗦了，工具还是上次说的那些，不知道上次没破出来的朋友是否用起子和榔头解决了问题，如果没有的话，请先别急，再看看小弟的这篇
+
+开工：
+
+1. 找到可执行文件`.exe`的就是了，一看只有 200 多 k，有点怀疑，就用`fi`检查，哈哈，没有加壳，好
+2. 接下来还是拿出我的工具`w32dasm`开始反他！嘿嘿
+3. 代码如下：
+
+```asm
+:00408867 8D44243C               lea eax, dword ptr [esp+3C]
+* Possible StringData Ref from Data Obj ->"C:"       ===>>检查文件是否来源于 c:\
+
+                    |
+:0040886B 6808894300             push 00438908
+:00408870 50                     push eax
+* Reference To: KERNEL32.lstrcpyA, Ord:0302h
+                    |
+:00408871 FF1510304300           Call dword ptr [00433010]
+* Reference To: KERNEL32.SetErrorMode, Ord:0264h     =======>>设置错误代码（小弟猜的。呵呵）
+
+                    |
+:00408877 8B1D1C304300          mov ebx, dword ptr [0043301C]
+* Reference To: KERNEL32.GetVolumeInformationA, Ord:0177h    ===>>这次的重点！！！！注意啦！！GetVolumeInformationA 函数是获得盘符卷标的，呵呵，明白了吧，干紧看看第二张光盘的卷标是什么？
+
+                    |
+:0040887D 8B2D20304300          mov ebp, dword ptr [00433020]
+:00408883 C744241000000000      mov [esp+10], 00000000
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004088F5(C)
+|
+:0040888B 8D4C243C               lea ecx, dword ptr [esp+3C]
+:0040888F 51                     push ecx
+* Reference To: KERNEL32.GetDriveTypeA, Ord:0104h     ======>>>还用说吗？上次不明白的还有吗？自己看 winapi 吧
+                    |
+:00408890 FF1530304300          Call dword ptr [00433030]
+:00408896 83F805                cmp eax, 00000005     =======>>>赶快改！！！！
+:00408899 7544                  jne 004088DF          ====>>不是就跳走!!!
+:0040889B 6A01                  push 00000001
+:0040889D FFD3                  call ebx
+:0040889F 8BF0                  mov esi, eax
+:004088A1 6A00                  push 00000000
+:004088A3 8D542418              lea edx, dword ptr [esp+18]
+:004088A7 6A00                  push 00000000
+:004088A9 8D442420              lea eax, dword ptr [esp+20]
+:004088AD 52                    push edx
+:004088AE 50                    push eax
+:004088AF 6A00                  push 00000000
+:004088B1 8D4C2430              lea ecx, dword ptr [esp+30]
+:004088B5 6A20                  push 00000020
+:004088B7 8D542454              lea edx, dword ptr [esp+54]
+:004088BB 51                    push ecx
+:004088BC 52                    push edx
+:004088BD FFD5                  call ebp
+:004088BF 56                    push esi
+:004088C0 8BF8                  mov edi, eax
+:004088C2 FFD3                  call ebx
+:004088C4 85FF                  test edi, edi
+:004088C6 7417                  je 004088DF
+:004088C8 8B842490000000        mov eax, dword ptr [esp+00000090]
+:004088CF 8D4C241C              lea ecx, dword ptr [esp+1C]
+:004088D3 50                    push eax
+:004088D4 51                    push ecx
+* Reference To: KERNEL32.lstrcmpA, Ord:02FCh
+                    |
+:004088D5 FF15F4304300          Call dword ptr [004330F4]
+:004088DB 85C0                  test eax, eax
+:004088DD 7432                  je 00408911
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:00408899(C), :004088C6(C)
+|
+:004088DF 8A44243C               mov al, byte ptr [esp+3C]
+:004088E3 FEC0                  inc al
+:004088E5 8844243C               mov byte ptr [esp+3C], al
+:004088E9 8B442410               mov eax, dword ptr [esp+10]
+:004088ED 40                    inc eax
+:004088EE 83F818                 cmp eax, 00000018                ====>>比较 24 次
+:004088F1 89442410               mov dword ptr [esp+10], eax
+:004088F5 7C94                   jl 0040888B
+* Possible StringData Ref from Data Obj ->"请插入《月影传说》的第二号光盘，再重新运行本程"
+                               ->"序。"
+                    |
+:004088F7 68D4884300             push 004388D4
+```
+
+以上为简单分析，值得注意的是这次开始加上了卷标的判断，希望大家注意，修改方法如下：
+
+改`c:\卷标`和改`000005`为`000003`
+
+`cracked by copyyour[CCG] 4dd466d0e1e0cc123afbe504da2462ca`

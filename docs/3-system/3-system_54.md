@@ -1,281 +1,445 @@
 
-
 # 增加区段的 VC 嵌汇编代码
 
 > 原文：[`www.pediy.com/kssd/pediy10/99972.html`](https://www.pediy.com/kssd/pediy10/99972.html)
 
-// 增加区段.cpp : Defines the entry point for the console application.  
+```c
+// 增加区段.cpp : Defines the entry point for the console application.  
+
 //  
-  
-  
-#include <windows.h>  
-#include <stdio.h>  
-#include <winbase.h>  
-  
-  
-bool OpenMyFile(char fileName\[\]);  
-LPVOID AddSection(LPVOID ImageBase,char sectionName\[\],DWORD SectionNumber);  
-DWORD ToAlign(DWORD SectionNumber,DWORD AlignSize); //取整 第二个参数表示以多少进行取整  
-  
-DWORD addNumber;  //新区段的字节数  
-DWORD VAValue;    //保存原入口 VA 值  
-char chao\[MAX\_PATH\]="MessageBoxA GetProAddress LoadLibraryA user32.dll kernel32.dll";  
-DWORD addRess;    //保存 GETMODULEHANDL 地址  
-  
-int main(int argc, char\* argv\[\])  
+
+#include <windows.h>  
+
+#include <stdio.h>  
+
+#include <winbase.h>  
+
+bool OpenMyFile(char fileName[]);  
+
+LPVOID AddSection(LPVOID ImageBase, char sectionName[], DWORD SectionNumber);  
+
+DWORD ToAlign(DWORD SectionNumber, DWORD AlignSize); //取整 第二个参数表示以多少进行取整  
+
+DWORD addNumber;  //新区段的字节数  
+
+DWORD VAValue;    //保存原入口 VA 值  
+
+char chao[MAX_PATH]="MessageBoxA GetProAddress LoadLibraryA user32.dll kernel32.dll";  
+
+DWORD addRess;    //保存 GETMODULEHANDL 地址  
+
+int main(int argc, char* argv[])  
+
 {  
-  addRess  =(DWORD)GetProcAddress(GetModuleHandle("kernel32.dll"),"GetModuleHandleA");  
-  
-  addNumber = 100;  
-  
-  char fileName\[\] = "text.exe";   //欲测试的程序  
-    
-  
-  if(!OpenMyFile(fileName))  
-    printf("failed!!!\\n");  
-  
-  
-  return 0;  
+
+  addRess  =(DWORD)GetProcAddress(GetModuleHandle("kernel32.dll"),"GetModuleHandleA");  
+
+  addNumber = 100;  
+
+  char fileName[] = "text.exe";   //欲测试的程序  
+
+  if(!OpenMyFile(fileName))  
+
+    printf("failed!!!\\n");  
+
+  return 0;  
+
 }  
-  
-  
-bool OpenMyFile(char fileName\[\])  
+
+bool OpenMyFile(char fileName[])  
+
 {  
-  
-  HANDLE hFile;  
-  hFile = CreateFile(fileName,      //打开文件  
-          GENERIC\_READ|GENERIC\_WRITE,  
-          FILE\_SHARE\_READ|FILE\_SHARE\_WRITE,  
-          NULL,OPEN\_EXISTING,  
-          FILE\_ATTRIBUTE\_NORMAL,  
-          NULL);  
-  if(!hFile)  
-    return false;  
-    
-  DWORD fileSize = GetFileSize(hFile,NULL); //得到文件大小  
-  
-  HANDLE hMap;  
-  hMap = CreateFileMapping(hFile,NULL,     
-              PAGE\_READWRITE,0,  
-              fileSize+0x2000,0);  
-    
-  if(!hMap)  
-    return false;  
-  
-  LPVOID ImageBase;  
-  ImageBase = MapViewOfFile(hMap,  
-              FILE\_MAP\_ALL\_ACCESS,  
-              0,0,0);  
-  
-  if(!ImageBase)  
-    return false;  
-  
-  //判断是否为有效的 PE 文件  
-  PIMAGE\_DOS\_HEADER pDos;  
-  pDos = (PIMAGE\_DOS\_HEADER)ImageBase;  
-  if('ZM'!=pDos->e\_magic)  
-    return false;  
-  
-  PIMAGE\_NT\_HEADERS pNt;  
-  pNt = (PIMAGE\_NT\_HEADERS)((DWORD)ImageBase+pDos->e\_lfanew);  
-  if('EP' !=pNt->Signature)  
-    return false;  
-    
-  LPVOID newSectionName;   //指向新区段节名  
-  newSectionName = AddSection(ImageBase,".fan",addNumber);  
-  DWORD len = strlen(chao);   //把新区段要用到的字符 COYP 到其中  
- \_asm  
- {  
-    mov esi,pNt  
-    mov ebx,dword ptr\[esi+28h\]   //入口 RVA 值   
-    add ebx,dword ptr\[esi+34h\]   //与映像值相加  
-    mov VAValue,ebx  
-    mov eax,newSectionName  
-    push dword ptr\[eax+0ch\]     //得到新区段虚拟 RVA  
-    pop dword ptr\[esi+28h\]       //修改到新入口  
-    mov ecx,dword ptr\[esi+28h\]   //把入口值加上字符串长度  
-    add ecx,len           //加上字符长度  
-    inc ecx  
-    add ecx,4           //加上原入口 RVA 值    
-    add ecx,4           //加上 GETMODULHAND 地址的四个字节  
-    mov dword ptr\[esi+28h\],ecx  
-    lea esi,chao  
-    mov edi,dword ptr\[eax+14h\]  
-    add edi,ImageBase  
-    mov ecx,len  
-    inc ecx  
-    cld  
-    rep movs byte ptr\[edi\],byte ptr\[esi\]  
-      
-    lea esi,addRess         //写入 GETMODULEHANDLE 的地址  
-    mov ecx,4  
-    cld  
-    rep movs byte ptr\[edi\],byte ptr\[esi\]  
-  
-    lea esi,VAValue         //把原入口 RVA 值写到字符串后  
-    mov ecx,4  
-    cld  
-    rep movs byte ptr\[edi\],byte ptr\[esi\]  
-      
-    lea esi,fan           //完成进入前原入口前的一些任务 如写病毒代码  
-    mov ecx,30h  
-    cld  
-    rep movs byte ptr\[edi\],byte ptr\[esi\]  
-      
- }  
-  
-  UnmapViewOfFile(ImageBase);  
-  CloseHandle(hMap);  
-  CloseHandle(hFile);  
-  
-  return true;  
+
+  HANDLE hFile;  
+
+  hFile = CreateFile(fileName,      //打开文件  
+
+          GENERIC_READ|GENERIC_WRITE,  
+
+          FILE_SHARE_READ|FILE_SHARE_WRITE,  
+
+          NULL,OPEN_EXISTING,  
+
+          FILE_ATTRIBUTE_NORMAL,  
+
+          NULL);  
+
+  if(!hFile)  
+
+    return false;  
+
+  DWORD fileSize = GetFileSize(hFile,NULL); //得到文件大小  
+
+  HANDLE hMap;  
+
+  hMap = CreateFileMapping(hFile,NULL,    
+
+          PAGE_READWRITE,0,  
+
+          fileSize+0x2000,0);  
+
+  if(!hMap)  
+
+    return false;  
+
+  LPVOID ImageBase;  
+
+  ImageBase = MapViewOfFile(hMap,  
+
+          FILE_MAP_ALL_ACCESS,  
+
+          0,0,0);  
+
+  if(!ImageBase)  
+
+    return false;  
+
+  //判断是否为有效的 PE 文件  
+
+  PIMAGE_DOS_HEADER pDos;  
+
+  pDos = (PIMAGE_DOS_HEADER)ImageBase;  
+
+  if('ZM'!=pDos->e_magic)  
+
+    return false;  
+
+  PIMAGE_NT_HEADERS pNt;  
+
+  pNt = (PIMAGE_NT_HEADERS)((DWORD)ImageBase+pDos->e_lfanew);  
+
+  if('EP' !=pNt->Signature)  
+
+    return false;  
+
+  LPVOID newSectionName;   //指向新区段节名  
+
+  newSectionName = AddSection(ImageBase,".fan",addNumber);  
+
+  DWORD len = strlen(chao);   //把新区段要用到的字符 COYP 到其中  
+
+ _asm  
+
+ {  
+
+    mov esi,pNt  
+
+    mov ebx,dword ptr[esi+28h]   //入口 RVA 值  
+
+    add ebx,dword ptr[esi+34h]   //与映像值相加  
+
+    mov VAValue,ebx  
+
+    mov eax,newSectionName  
+
+    push dword ptr[eax+0ch]      //得到新区段虚拟 RVA  
+
+    pop dword ptr[esi+28h]       //修改到新入口  
+
+    mov ecx,dword ptr[esi+28h]   //把入口值加上字符串长度  
+
+    add ecx,len           //加上字符长度  
+
+    inc ecx  
+
+    add ecx,4           //加上原入口 RVA 值   
+
+    add ecx,4           //加上 GETMODULHAND 地址的四个字节  
+
+    mov dword ptr[esi+28h],ecx  
+
+    lea esi,chao  
+
+    mov edi,dword ptr[eax+14h]  
+
+    add edi,ImageBase  
+
+    mov ecx,len  
+
+    inc ecx  
+
+    cld  
+
+    rep movs byte ptr[edi],byte ptr[esi]  
+
+    lea esi,addRess         //写入 GETMODULEHANDLE 的地址  
+
+    mov ecx,4  
+
+    cld  
+
+    rep movs byte ptr[edi],byte ptr[esi]  
+
+    lea esi,VAValue         //把原入口 RVA 值写到字符串后  
+
+    mov ecx,4  
+
+    cld  
+
+    rep movs byte ptr[edi],byte ptr[esi]  
+
+    lea esi,fan           //完成进入前原入口前的一些任务 如写病毒代码  
+
+    mov ecx,30h  
+
+    cld  
+
+    rep movs byte ptr[edi],byte ptr[esi]  
+
+ }  
+
+  UnmapViewOfFile(ImageBase);  
+
+  CloseHandle(hMap);  
+
+  CloseHandle(hFile);  
+
+  return true;  
+
 fan:  
-  //在此处填写要在程序执行前想执行的代码  
- \_asm  
- {    
-      call zhi   //占五个字节  
-zhi:  pop ebx      
-    sub ebx,5  //此时 EBX 指向 CALL ZHI 这条指令  
-    sub ebx,4  //此时 EBX 指向存放原入口的 RVA 值  
-    push ebx    
-    
-    push ebp  
-    mov ebp,esp  
-    sub esp,10h //存放要用到的数据  
-    
-    sub ebx,4  
-    mov esi,ebx  
-    sub ebx,0Dh  
-    push ebx       //此时 EBX 指向 KERNEL32 DLL 字符串  
-    call dword ptr\[esi\]  //得到 KERNEL32 基址  
-        
-    add esp,10h       //堆栈平衡    
-    pop ebp   
-    pop ebx  
-    jmp dword ptr\[ebx\]    //跳回到原程序入口  
-            
- }  
-  
-  
-  
+
+  //在此处填写要在程序执行前想执行的代码  
+
+ _asm  
+
+ {   
+
+      call zhi   //占五个字节  
+
+zhi:  pop ebx     
+
+    sub ebx,5  //此时 EBX 指向 CALL ZHI 这条指令  
+
+    sub ebx,4  //此时 EBX 指向存放原入口的 RVA 值  
+
+    push ebx   
+
+    push ebp  
+
+    mov ebp,esp  
+
+    sub esp,10h //存放要用到的数据  
+
+    sub ebx,4  
+
+    mov esi,ebx  
+
+    sub ebx,0Dh  
+
+    push ebx       //此时 EBX 指向 KERNEL32 DLL 字符串  
+
+    call dword ptr[esi]  //得到 KERNEL32 基址  
+
+    add esp,10h       //堆栈平衡   
+
+    pop ebp   
+
+    pop ebx  
+
+    jmp dword ptr[ebx]    //跳回到原程序入口  
+
+ }  
+
 }  
-  
-  
-LPVOID AddSection(LPVOID ImageBase,char sectionName\[\],DWORD SectionNumber)  
+
+LPVOID AddSection(LPVOID ImageBase, char sectionName[], DWORD SectionNumber)  
+
 {  
-    PIMAGE\_NT\_HEADERS pNt;  
-    DWORD fileAlign;   //文件对齐大小  
-    DWORD meryAlign;   //内存对齐大小  
-    LPVOID oldSection; //指向最后一个区段  
-    LPVOID newSection; //指向新的区段节表  
-      
-  \_asm  
-  {  
-    mov esi,ImageBase  
-    add esi,dword ptr\[esi+3ch\]  
-    mov pNt,esi    
-    mov cx,word ptr\[esi+6\]  
-    movzx ecx,cx  
-    inc word ptr\[esi+6\]   //增加区段数目加一  
-    push dword ptr\[esi+3ch\]  
-    pop  fileAlign  
-    push dword ptr\[esi+38h\]  
-    pop meryAlign  
-    add esi,0F8h       //让 ESI 指向节表首地址  
-    mov eax,28h  
-    mov ebx,ecx  
-    imul ebx  
-    add esi,eax      //让 ESI 指向节表尾地址前  
-    mov newSection,esi  
-    sub esi,28h  
-    mov oldSection,esi  
-      
-  }  
-  
-   //以下是为新区段给名称  
-    int i=0;    
-      char \*newS =(char\*)newSection;  
-  
-    while(sectionName\[i\]!='\\0')  
-     {      
-      \*newS=sectionName\[i\];  
-      ++newS;    
-      ++i;  
-     }  
-  
-  
-    //增加新区段其它信息  
- \_asm  
- {    
-      mov esi,newSection  
-    push 0E00000E0h  
-    pop dword ptr\[esi+24h\]  
-    push SectionNumber    //新区段的内存大小  
-    pop dword ptr\[esi+8h\]  
-      
- }  
-      
-  DWORD newFileSize =ToAlign(SectionNumber,fileAlign);  //新区段大小文件取整得到其文件大小  
-    \_asm mov esi,newSection  
-  \_asm mov eax,newFileSize  
-  \_asm mov dword ptr\[esi+10h\],eax  //将新区段文件大小写到区段信息中  
-  
-  //接下来就是写新区段的文件偏移和内存 RVA 值 这个值是根据原最后一个区段的信息算出的  
-\_asm  
+
+    PIMAGE_NT_HEADERS pNt;  
+
+    DWORD fileAlign;   //文件对齐大小  
+
+    DWORD meryAlign;   //内存对齐大小  
+
+    LPVOID oldSection; //指向最后一个区段  
+
+    LPVOID newSection; //指向新的区段节表  
+
+  _asm  
+
+  {  
+
+    mov esi,ImageBase  
+
+    add esi,dword ptr[esi+3ch]  
+
+    mov pNt,esi   
+
+    mov cx,word ptr[esi+6]  
+
+    movzx ecx,cx  
+
+    inc word ptr[esi+6]   //增加区段数目加一  
+
+    push dword ptr[esi+3ch]  
+
+    pop  fileAlign  
+
+    push dword ptr[esi+38h]  
+
+    pop meryAlign  
+
+    add esi,0F8h        //让 ESI 指向节表首地址  
+
+    mov eax,28h  
+
+    mov ebx,ecx  
+
+    imul ebx  
+
+    add esi,eax      //让 ESI 指向节表尾地址前  
+
+    mov newSection,esi  
+
+    sub esi,28h  
+
+    mov oldSection,esi  
+
+  }  
+
+   //以下是为新区段给名称  
+
+    int i=0;   
+
+      char *newS =(char*)newSection;  
+
+    while(sectionName[i]!='\0')  
+
+     {     
+
+      *newS=sectionName[i];  
+
+      ++newS;   
+
+      ++i;  
+
+     }  
+
+    //增加新区段其它信息  
+
+ _asm  
+
+ {   
+
+      mov esi,newSection  
+
+    push 0E00000E0h  
+
+    pop dword ptr[esi+24h]  
+
+    push SectionNumber    //新区段的内存大小  
+
+    pop dword ptr[esi+8h]  
+
+ }  
+
+  DWORD newFileSize =ToAlign(SectionNumber,fileAlign);  //新区段大小文件取整得到其文件大小  
+
+    _asm mov esi,newSection  
+
+  _asm mov eax,newFileSize  
+
+  _asm mov dword ptr[esi+10h],eax  //将新区段文件大小写到区段信息中  
+
+  //接下来就是写新区段的文件偏移和内存 RVA 值 这个值是根据原最后一个区段的信息算出的  
+
+_asm  
+
 {  
-    mov esi,oldSection  
-    mov ebx,dword ptr\[esi+08h\]    //虚拟大小  
-  add ebx,dword ptr\[esi+0ch\]  //虚拟偏移  
-    mov ecx,dword ptr\[esi+10h\]  //文件大小  
-  add ecx,dword ptr\[esi+14h\]  //文件偏移  
-  push fileAlign        //文件取整  
-  push ecx  
-  call ToAlign  
-  add esp,8  
-  mov esi,newSection  
-  mov dword ptr\[esi+14h\],eax   
-  push meryAlign  
-  push ebx  
-  call ToAlign  
-  add esp,8  
-  mov dword ptr\[esi+0ch\],eax  
+
+    mov esi,oldSection  
+
+    mov ebx,dword ptr[esi+08h]    //虚拟大小  
+
+  add ebx,dword ptr[esi+0ch]  //虚拟偏移  
+
+    mov ecx,dword ptr[esi+10h]  //文件大小  
+
+  add ecx,dword ptr[esi+14h]  //文件偏移  
+
+  push fileAlign        //文件取整  
+
+  push ecx  
+
+  call ToAlign  
+
+  add esp,8  
+
+  mov esi,newSection  
+
+  mov dword ptr[esi+14h],eax   
+
+  push meryAlign  
+
+  push ebx  
+
+  call ToAlign  
+
+  add esp,8  
+
+  mov dword ptr[esi+0ch],eax  
+
 //新区段 RVA 值加虚拟大小进行取整得新映像大小  
-  add eax,dword ptr\[esi+08h\]  
-  push meryAlign  
-  push eax  
-  call ToAlign  
-  add esp,8  
-  mov ebx,pNt  
-  mov dword ptr\[ebx+50h\],eax //修正映像大小  
+
+  add eax,dword ptr[esi+08h]  
+
+  push meryAlign  
+
+  push eax  
+
+  call ToAlign  
+
+  add esp,8  
+
+  mov ebx,pNt  
+
+  mov dword ptr[ebx+50h],eax //修正映像大小  
+
 //新区段前 SectionNumber 个字节清零  
-  push dword ptr\[esi+14h\]  
-  pop edi  
-  add edi,ImageBase  
-  mov ecx,SectionNumber     //把新区段数据 SectionNumber 个字节置零  
-  xor eax,eax  
-  cld  
-  rep stos byte ptr\[edi\]  
-  mov eax,esi  
-    
+
+  push dword ptr[esi+14h]  
+
+  pop edi  
+
+  add edi,ImageBase  
+
+  mov ecx,SectionNumber     //把新区段数据 SectionNumber 个字节置零  
+
+  xor eax,eax  
+
+  cld  
+
+  rep stos byte ptr[edi]  
+
+  mov eax,esi  
+
 }  
-         
+
 }  
-  
+
 //区段取整  
-DWORD ToAlign(DWORD SectionNumber,DWORD AlignSize)  
+
+DWORD ToAlign(DWORD SectionNumber, DWORD AlignSize)  
+
 {  
-  
-  DWORD size = SectionNumber%AlignSize;      //取余  
-  DWORD size2 = SectionNumber/AlignSize;   //取整  
-  if(size == 0)  //如果余数为 0，则证明已是其整数倍  
-    return SectionNumber;  
-  else  
-      return (++size2)\*AlignSize;  
-   
+
+  DWORD size = SectionNumber%AlignSize;      //取余  
+
+  DWORD size2 = SectionNumber/AlignSize;   //取整  
+
+  if(size == 0)  //如果余数为 0，则证明已是其整数倍  
+
+    return SectionNumber;  
+
+  else  
+
+      return (++size2)*AlignSize;  
+
 }  
-  
+```
+
 刚学，代码有点不整，大家见谅
 
-上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || 增加区段.rar  
- |
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | | 增加区段.rar |  
+|---|---|---|

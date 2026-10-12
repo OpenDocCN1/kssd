@@ -1,213 +1,205 @@
 
-
-# ACProtect v1.21 
+# ACProtect v1.21
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6854.htm`](https://www.pediy.com/kssd/pediy06/pediy6854.htm)
 
-【脱文标题】 带发修行 ACProtect v1.21  
-  
-【脱文作者】 二哥 weiyi75\[Dfcg\]  
-   
-【作者邮箱】 weiyi75@sohu.com  
-  
-【作者主页】 Dfcg 官方大本营+龙族联盟论坛  
-  
-【使用工具】 UnkillOd,Imprec1.42  
-  
-【破解平台】 Win2000/XP  
-  
-【软件名称】 Acprotect1.21 加壳的 Win98 的记事本,选择了所有的 Antidbg 选项。  
-  
-【下载地址   附件下载 或[ http://bbs.pediy.com/showthread.php?s=&threadid=7727](http://bbs.pediy.com/showthread.php?s=&threadid=7727)  
-   
-【软件简介】：ACProtect is an application that allows you to protect Windows executable files against piracy,using public keys encryption algorithms (RSA) to create and verify the registration keys and unlock some RSA key locked code,it has embedded cryptor against dump and unpacker.it also has many anti debug tricks.  And you can use it to  create  evaluation and trial application versions. with specialized API system, mutual communication between loader and application is also can be achieved.   
-  
-【软件大小】 121k  
-  
-【加壳方式】 UltraProtect 1.x -> RISCO Software Inc.  
-   
-【脱壳声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）  
-  
-\--------------------------------------------------------------------------------  
-  
-前言，看了 tDasm 的新版 ACProtect v1.21 的手动脱壳，用 Acprotect 相同版本加了同样的壳，但代码完全不同。我没有他的才艺，蛮力还是有些的。此版本与 ACProtect v1.09 版本不同是 Stolen code 在内存异常之前出现了。并且每句都是一个 Call 保护,佩服 tDasm 可以逐句还原。他的脱文现在还没有看懂，此壳无法脱光只好带发修行了。  
-  
-【脱壳内容】  
-  
-Od 设置不忽略内存异常，其余异常全部忽略。  
-  
-载入程序，全自动 HIDEOD 插件隐藏 Od。  
-  
-1. Stote Code  
-  
-OD 载入程序  
-  
-0040D000 N>  60                  pushad  
-0040D001     70 02               jo short NOTEPAD.0040D005 //这里运行 Esp 定律，命令行 hr esp  
-0040D003     D3FE                sar esi,cl  
-0040D005     C1D6 12             rcl esi,12  
-0040D008     FC                  cld  
-0040D009     F9                  stc  
-0040D00A     87EE                xchg esi,ebp  
-0040D00C     87D3                xchg ebx,edx  
-0040D00E     43                  inc ebx  
-0040D00F     66:81D6 DE21        adc si,21DE  
-0040D014     70 01               jo short NOTEPAD.0040D017  
-  
-F9 运行，这里 ESP 定律要分 7 对中断  
-  
-0041E6FF     61                  popad  '1  
-0041E700     56                  push esi  
-0041E701     BE A3DE4000         mov esi,NOTEPAD.0040DEA3  
-  
-0041E750     60                  pushad  
-0041E751     E8 0ABDFFFF         call NOTEPAD.0041A460  
-0041E756     E8 00000000         call NOTEPAD.0041E75B  
-  
-0041E76E     61                  popad  '2  
-0041E76F     890F                mov dword ptr ds:\[edi\],ecx  
-0041E771     5F                  pop edi  
-  
-0041E7BF     60                  pushad   
-0041E7C0     E8 9BBCFFFF         call NOTEPAD.0041A460  
-0041E7C5     E8 34BAFFFF         call NOTEPAD.0041A1FE  
-  
-0041E7D0     61                  popad  '3  
-0041E7D1     8B0B                mov ecx,dword ptr ds:\[ebx\]  
-0041E7D3     8F05 93DE4000       pop dword ptr ds:\[40DE93\]  
-  
-0041E821     60                  pushad   
-0041E822     E8 39BCFFFF         call NOTEPAD.0041A460  
-0041E827     C685 D0D14000 00    mov byte ptr ss:\[ebp+40D1D0\],0  
-   
-0041E82E     61                  popad  '4  
-0041E82F     FF35 EBDE4000       push dword ptr ds:\[40DEEB\]  
-0041E835     57                  push edi  
-  
-0041E87F     60                  pushad   
-0041E880     E8 15DEFFFF         call NOTEPAD.0041C69A  
-  
-0041E885     61                  popad  '5  
-0041E886     8F05 B7DE4000       pop dword ptr ds:\[40DEB7\]         ; NOTEPAD.0040DF0B  
-0041E88C     FF35 B7DE4000       push dword ptr ds:\[40DEB7\]  
-  
-0041E8D6     60                  pushad  
-0041E8D7     E8 5BDBFFFF         call NOTEPAD.0041C437  
-  
-0041E8DC     61                  popad  '6  
-0041E8DD     FF35 CFDE4000       push dword ptr ds:\[40DECF\]  
-  
-0041E92D     60                  pushad  
-0041E92E     E8 86FDFFFF         call NOTEPAD.0041E6B9  
-  
-0041E933     61                  popad  '7  
-0041E934     8F05 73DE4000       pop dword ptr ds:\[40DE73\] //这里就是代发修行的最佳脱壳地点，此时对资源和代码已经完全解压。壳将处理的数据秘密保存某处，我不知道也不需要知道是如何处理的，让壳和壳去谈吧。  
-  
-以上对应 7 句保护 Call,到伪造入口就明白了。  
-  
-F9 继续运行  
-  
-0041BAAD     CD 01               int 1  
-0041BAAF     40                  inc eax  
-0041BAB0     40                  inc eax  
-0041BAB1     0BC0                or eax,eax  
-0041BAB3     75 05               jnz short NOTEPAD.0041BABA  
-0041BAB5     90                  nop  
-0041BAB6     90                  nop  
-0041BAB7     90                  nop  
-0041BAB8     90                  nop  
-0041BAB9     61                  popad  
-0041BABA     33C0                xor eax,eax  
-0041BABC     64:8F00             pop dword ptr fs:\[eax\]  
-0041BABF     58                  pop eax  
-0041BAC0     60                  pushad  
-...............................................................  
-  
-ALT+M 打开内存镜像  
-   
-内存镜像，项目 12   
-  
- 地址=00401000 //对准这里下 F2 断点,Shift+F9 飞向光明之巅  
-  
- 大小=00004000 (16384.)  
-  
- Owner=NOTEPAD  00400000  
-  
- 区段=.text  
-  
- 包含=code  
-  
- 类型=Imag 01001002  
-  
- 访问=R  
-  
- 初始访问=RWE  
-  
-004010CC     95                  xchg eax,ebp //真 OEP  
-004010CD     61                  popad  
-004010CE     2E:EF               out dx,eax  
-004010D0     D1AD 26477503       shr dword ptr ss:\[ebp+3754726\],1  
-004010D6     8730                xchg dword ptr ds:\[eax\],esi  
-004010D8     3C A2               cmp al,0A2  
-004010DA   ^ 78 84               js short NOTEPAD.00401060  
-004010DC     7F 3C               jg short NOTEPAD.0040111A  
-  
-还原为  
-  
-004010CC d>/$  55                push ebp  
-004010CD   |.  8BEC              mov ebp,esp  
-004010CF   |.  83EC 44           sub esp,44  
-004010D2   |.  56                push esi  
-004010D3   |.  FF15 E4634000     call dword ptr ds:\[<&kernel32.Get>; \[GetCommandLineA  
-004010D9   |.  8BF0              mov esi,eax  
-004010DB   |.  8A00              mov al,byte ptr ds:\[eax\]  
-  
-刚好 7 句，7 个 Call 保护  
-  
-004010DD     3C 22               cmp al,22 //伪 OEP  
-004010DF     75 1B               jnz short NOTEPAD.004010FC  
-004010E1     56                  push esi  
-004010E2     FF15 F4644000       call dword ptr ds:\[4064F4\]        ; NOTEPAD.0040D4D6  
-004010E8     8BF0                mov esi,eax  
-004010EA     8A00                mov al,byte ptr ds:\[eax\]  
-004010EC     84C0                test al,al  
-004010EE     74 04               je short NOTEPAD.004010F4  
-004010F0     3C 22               cmp al,22  
-004010F2   ^ 75 ED               jnz short NOTEPAD.004010E1  
-004010F4     803E 22             cmp byte ptr ds:\[esi\],22  
-004010F7     75 15               jnz short NOTEPAD.0040110E  
-004010F9     46                  inc esi  
-004010FA     EB 12               jmp short NOTEPAD.0040110E  
-.........................................................................................  
-  
-我们获取伪 OEP 只是方便修复 IAT,壳早就在  
-  
-0041E934     8F05 73DE4000       pop dword ptr ds:\[40DE73\] 已经脱了。  
-  
-Dephi 程序的入口校验问题，Fly 大侠已经指出，处理很简单，处理一下就可以了。  
-  
-不知此法可否对付 Replace Code，待测试。  
-  
-超人的话  
-  
-很多壳脱多掉以后产生的失真是不可避免的   
-  
-在 stolen code 的恢复上各有各的处理方法，人的时间和耐心是不一样的，有人追求完美，有人追求实用，完美的固然好，实用的讲究效率；   
-  
-如果非要追求完美，还要同时兼顾到下面内容：   
-1。不要使用 imprec 去修复 IAT，imprec 会存在潜在错误，手工处理放到合适的位置而不增加新段   
-2。去掉后面的垃圾段，恢复 ImageSize 到原来的值，有时需要资源的移动   
-3。sections num 恢复到原来数目，各 section 的 RVA 及 Vsize 要恢复到原来数值，RawSize 不必强减肥。   
-  
-目前水平无法完成  
-  
-运行 ImportREC，选择这个进程。把 OEP 改为 000010CC，点 IT AutoSearch，点“Get Import”，指针部分有效，用跟踪等级 3 全部修复，把 OEP 改为 1E934,修复程序，正常运行。  
-  
-Patch IAT 估计和再次进阶 Acprotect1.09 的壳方法一样，没有细看。  
-  
-\--------------------------------------------------------------------------------    
-  
-【版权声明】 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢![](http://bbs.pediy.com/upload/file/2004/12/NOTEPAD.rar_495.rar) 
+**【脱文标题】** 带发修行 ACProtect v1.21
 
-  
- 4dd466d0e1e0cc123afbe504da2462ca
+**【脱文作者】** 二哥 weiyi75[Dfcg]
+
+**【作者邮箱】** `weiyi75@sohu.com`
+
+**【作者主页】** `Dfcg` 官方大本营+龙族联盟论坛
+
+**【使用工具】** `UnkillOd`, `Imprec1.42`
+
+**【破解平台】** `Win2000/XP`
+
+**【软件名称】** `Acprotect1.21` 加壳的 `Win98` 的记事本,选择了所有的 `Antidbg` 选项。
+
+**【下载地址】** 附件下载 或 [http://bbs.pediy.com/showthread.php?s=&threadid=7727](http://bbs.pediy.com/showthread.php?s=&threadid=7727)
+
+**【软件简介】**：`ACProtect` is an application that allows you to protect `Windows` executable files against piracy,using public keys encryption algorithms (`RSA`) to create and verify the registration keys and unlock some `RSA` key locked code,it has embedded cryptor against dump and unpacker.it also has many anti debug tricks.  And you can use it to create evaluation and trial application versions. with specialized `API` system, mutual communication between loader and application is also can be achieved.
+
+**【软件大小】** `121k`
+
+**【加壳方式】** `UltraProtect 1.x` -> `RISCO Software Inc.`
+
+**【脱壳声明】** 我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+--------------------------------------------------------------------------------
+
+前言，看了 `tDasm` 的新版 `ACProtect v1.21` 的手动脱壳，用 `Acprotect` 相同版本加了同样的壳，但代码完全不同。我没有他的才艺，蛮力还是有些的。此版本与 `ACProtect v1.09` 版本不同是 `Stolen code` 在内存异常之前出现了。并且每句都是一个 `Call` 保护,佩服 `tDasm` 可以逐句还原。他的脱文现在还没有看懂，此壳无法脱光只好带发修行了。
+
+## 脱壳内容
+
+`Od` 设置不忽略内存异常，其余异常全部忽略。
+
+载入程序，全自动 `HIDEOD` 插件隐藏 `Od`。
+
+### 1. Stote Code
+
+`OD` 载入程序
+
+```
+0040D000 N> 60           pushad
+0040D001    70 02        jo short NOTEPAD.0040D005 //这里运行 Esp 定律，命令行 hr esp
+0040D003    D3FE         sar esi,cl
+0040D005    C1D6 12      rcl esi,12
+0040D008    FC           cld
+0040D009    F9           stc
+0040D00A    87EE         xchg esi,ebp
+0040D00C    87D3         xchg ebx,edx
+0040D00E    43           inc ebx
+0040D00F    66:81D6 DE21 adc si,21DE
+0040D014    70 01        jo short NOTEPAD.0040D017
+```
+
+`F9` 运行，这里 `ESP` 定律要分 7 对中断
+
+```
+0041E6FF  61          popad  '1
+0041E700  56          push esi
+0041E701  BE A3DE4000 mov esi,NOTEPAD.0040DEA3
+0041E750  60          pushad
+0041E751  E8 0ABDFFFF call NOTEPAD.0041A460
+0041E756  E8 00000000 call NOTEPAD.0041E75B
+0041E76E  61          popad  '2
+0041E76F  890F        mov dword ptr ds:[edi],ecx
+0041E771  5F          pop edi
+0041E7BF  60          pushad
+0041E7C0  E8 9BBCFFFF call NOTEPAD.0041A460
+0041E7C5  E8 34BAFFFF call NOTEPAD.0041A1FE
+0041E7D0  61          popad  '3
+0041E7D1  8B0B        mov ecx,dword ptr ds:[ebx]
+0041E7D3  8F05 93DE4000 pop dword ptr ds:[40DE93]
+0041E821  60          pushad
+0041E822  E8 39BCFFFF call NOTEPAD.0041A460
+0041E827  C685 D0D14000 00 mov byte ptr ss:[ebp+40D1D0],0
+0041E82E  61          popad  '4
+0041E82F  FF35 EBDE4000 push dword ptr ds:[40DEEB]
+0041E835  57          push edi
+0041E87F  60          pushad
+0041E880  E8 15DEFFFF call NOTEPAD.0041C69A
+0041E885  61          popad  '5
+0041E886  8F05 B7DE4000 pop dword ptr ds:[40DEB7]         ; NOTEPAD.0040DF0B
+0041E88C  FF35 B7DE4000 push dword ptr ds:[40DEB7]
+0041E8D6  60          pushad
+0041E8D7  E8 5BDBFFFF call NOTEPAD.0041C437
+0041E8DC  61          popad  '6
+0041E8DD  FF35 CFDE4000 push dword ptr ds:[40DECF]
+0041E92D  60          pushad
+0041E92E  E8 86FDFFFF call NOTEPAD.0041E6B9
+0041E933  61          popad  '7
+0041E934  8F05 73DE4000 pop dword ptr ds:[40DE73] //这里就是代发修行的最佳脱壳地点，此时对资源和代码已经完全解压。壳将处理的数据秘密保存某处，我不知道也不需要知道是如何处理的，让壳和壳去谈吧。
+```
+
+以上对应 7 句保护 `Call`,到伪造入口就明白了。
+
+`F9` 继续运行
+
+```
+0041BAAD  CD 01       int 1
+0041BAAF  40          inc eax
+0041BAB0  40          inc eax
+0041BAB1  0BC0        or eax,eax
+0041BAB3  75 05       jnz short NOTEPAD.0041BABA
+0041BAB5  90          nop
+0041BAB6  90          nop
+0041BAB7  90          nop
+0041BAB8  90          nop
+0041BAB9  61          popad
+0041BABA  33C0        xor eax,eax
+0041BABC  64:8F00     pop dword ptr fs:[eax]
+0041BABF  58          pop eax
+0041BAC0  60          pushad
+```
+...............................................................
+
+`ALT+M` 打开内存镜像
+
+内存镜像，项目 12
+
+```
+ 地址=00401000 //对准这里下 F2 断点,Shift+F9 飞向光明之巅
+ 大小=00004000 (16384.)
+ Owner=NOTEPAD  00400000
+ 区段=.text
+ 包含=code
+ 类型=Imag 01001002
+ 访问=R
+ 初始访问=RWE
+```
+
+```
+004010CC  95          xchg eax,ebp //真 OEP
+004010CD  61          popad
+004010CE  2E:EF       out dx,eax
+004010D0  D1AD 26477503 shr dword ptr ss:[ebp+3754726],1
+004010D6  8730        xchg dword ptr ds:[eax],esi
+004010D8  3C A2       cmp al,0A2
+004010DA ^ 78 84      js short NOTEPAD.00401060
+004010DC  7F 3C       jg short NOTEPAD.0040111A
+```
+
+还原为
+
+```
+004010CC d>/$ 55        push ebp
+004010CD  |. 8BEC       mov ebp,esp
+004010CF  |. 83EC 44    sub esp,44
+004010D2  |. 56         push esi
+004010D3  |. FF15 E4634000 call dword ptr ds:[<&kernel32.Get>; [GetCommandLineA
+004010D9  |. 8BF0       mov esi,eax
+004010DB  |. 8A00       mov al,byte ptr ds:[eax]
+```
+
+刚好 7 句，7 个 `Call` 保护
+
+```
+004010DD  3C 22       cmp al,22 //伪 OEP
+004010DF  75 1B       jnz short NOTEPAD.004010FC
+004010E1  56          push esi
+004010E2  FF15 F4644000 call dword ptr ds:[4064F4]      ; NOTEPAD.0040D4D6
+004010E8  8BF0        mov esi,eax
+004010EA  8A00        mov al,byte ptr ds:[eax]
+004010EC  84C0        test al,al
+004010EE  74 04       je short NOTEPAD.004010F4
+004010F0  3C 22       cmp al,22
+004010F2 ^ 75 ED      jnz short NOTEPAD.004010E1
+004010F4  803E 22     cmp byte ptr ds:[esi],22
+004010F7  75 15       jnz short NOTEPAD.0040110E
+004010F9  46          inc esi
+004010FA  EB 12       jmp short NOTEPAD.0040110E
+```
+.........................................................................................
+
+我们获取伪 `OEP` 只是方便修复 `IAT`,壳早就在 `0041E934  8F05  73DE4000  pop dword ptr ds:[40DE73]` 已经脱了。
+
+`Dephi` 程序的入口校验问题，`Fly` 大侠已经指出，处理很简单，处理一下就可以了。
+
+不知此法可否对付 `Replace Code`，待测试。
+
+## 超人的话
+
+很多壳脱多掉以后产生的失真是不可避免的
+
+在 `stolen code` 的恢复上各有各的处理方法，人的时间和耐心是不一样的，有人追求完美，有人追求实用，完美的固然好，实用的讲究效率；
+
+如果非要追求完美，还要同时兼顾到下面内容：
+
+1. 不要使用 `imprec` 去修复 `IAT`，`imprec` 会存在潜在错误，手工处理放到合适的位置而不增加新段
+2. 去掉后面的垃圾段，恢复 `ImageSize` 到原来的值，有时需要资源的移动
+3. `sections num` 恢复到原来数目，各 `section` 的 `RVA` 及 `Vsize` 要恢复到原来数值，`RawSize` 不必强减肥。
+
+目前水平无法完成
+
+运行 `ImportREC`，选择这个进程。把 `OEP` 改为 `000010CC`，点 `IT AutoSearch`，点“`Get Import`”，指针部分有效，用跟踪等级 3 全部修复，把 `OEP` 改为 `1E934`,修复程序，正常运行。
+
+`Patch IAT` 估计和再次进阶 `Acprotect1.09` 的壳方法一样，没有细看。
+
+--------------------------------------------------------------------------------
+
+**【版权声明】** 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢![](http://bbs.pediy.com/upload/file/2004/12/NOTEPAD.rar_495.rar)
+
+`4dd466d0e1e0cc123afbe504da2462ca`

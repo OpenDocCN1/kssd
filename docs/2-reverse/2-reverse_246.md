@@ -1,36 +1,48 @@
 
-
 # XP SP1 断点
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6839.htm`](https://www.pediy.com/kssd/pediy06/pediy6839.htm)
 
-Breakpoints not working on XP with SP1 or Windows 2000 with SP3   
-在 Xp 带 sp1 或 2000 带 sp3 环境下断点失效   
-问题编码：FAQID1591 2003-05-29   
-  
-Q: I am using XP sp1 or Windows 2000 sp3 with DriverStudio or DriverSuite 2.7 and my user mode breakpoints   
-are not stopping correctly plus I am getting hook failure messages, what should I do?   
-Q:我使用 XP SP1 或 2000SP3，安装了 DriverStudio 或 DriverSuite 2.7 ，我设置的断点不起作用。我该怎么办？   
-  
-  
-A: First, here is a link to osinfo.dat, replace the one currently on your machine and reboot. This should   
-take into account any structural changes in the kernel that the service pack has made.   
-首先，下载下面链接的 OSINFO.DAT 文件，替换系统目录原有的。   
-ftp://ftp.compuware.com/pub/driverstudio/outgoing/OsInfo/OSINFO.DAT   
-  
-If there are any problems after this due to hotfixes, etc. this should alleviate them:   
-如果问题是由于安装 HOTFIX 后出现的，这样操作可以减少 HOTFIX 的影响。   
-The symbol trick as it is called gives SoftICE a change to dynamically calculate some of its hooks.   
-  
-The steps are as follows.   
-步骤如下：   
-1. Create a correct NMS file for ntoskrnl. See "Translating system files" below.   
-建立正确的针对 NTOSKRNL 的 NMS 文件，参照 "Translating system files" 中的内容（略）   
-2. Place the NTSYMBOLS=ON keyword on a separate line in winice.dat.   
-在 Winice.dat 中加入独立的一行内容：NTSYMBOLS=ON   
-3. Add the symbols to the list of symbols to load at start. See "Adding files to start" below.   
-将开始时，就将 Symbols 加入到 symbol 列表中，见"Adding files to start" 一章（略）   
-That should solve nearly even problem encountered with a hot fix or service pack   
-这样就能解决你的问题了。   
-  
+Breakpoints not working on XP with SP1 or Windows 2000 with SP3
+
+在 Xp 带 sp1 或 2000 带 sp3 环境下断点失效
+
+问题编码：`FAQID1591` 2003-05-29
+
+Q: I am using XP sp1 or Windows 2000 sp3 with DriverStudio or DriverSuite 2.7 and my user mode breakpoints are not stopping correctly plus I am getting hook failure messages, what should I do?
+
+Q: 我使用 XP SP1 或 2000SP3，安装了 DriverStudio 或 DriverSuite 2.7 ，我设置的断点不起作用。我该怎么办？
+
+A: First, here is a link to osinfo.dat, replace the one currently on your machine and reboot. This should take into account any structural changes in the kernel that the service pack has made.
+
+首先，下载下面链接的 `OSINFO.DAT` 文件，替换系统目录原有的。
+
+`ftp://ftp.compuware.com/pub/driverstudio/outgoing/OsInfo/OSINFO.DAT`
+
+If there are any problems after this due to hotfixes, etc. this should alleviate them:
+
+如果问题是由于安装 HOTFIX 后出现的，这样操作可以减少 HOTFIX 的影响。
+
+The symbol trick as it is called gives SoftICE a change to dynamically calculate some of its hooks.
+
+The steps are as follows.
+
+步骤如下：
+
+1.  Create a correct NMS file for ntoskrnl. See "Translating system files" below.
+
+    建立正确的针对 `NTOSKRNL` 的 `NMS` 文件，参照 "Translating system files" 中的内容（略）
+
+2.  Place the `NTSYMBOLS=ON` keyword on a separate line in `winice.dat`.
+
+    在 `winice.dat` 中加入独立的一行内容：`NTSYMBOLS=ON`
+
+3.  Add the symbols to the list of symbols to load at start. See "Adding files to start" below.
+
+    将开始时，就将 Symbols 加入到 symbol 列表中，见 "Adding files to start" 一章（略）
+
+That should solve nearly even problem encountered with a hot fix or service pack
+
+这样就能解决你的问题了。
+
 简单理解，请多包涵

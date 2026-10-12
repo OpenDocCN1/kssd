@@ -1,240 +1,298 @@
 
-
 # vc2005 seh 新认识【原创】
 
-> 原文：[`www.pediy.com/kssd/pediy09/pediy09-619.htm`](https://www.pediy.com/kssd/pediy09/pediy09-619.htm)
+> 原文：`[www.pediy.com/kssd/pediy09/pediy09-619.htm](https://www.pediy.com/kssd/pediy09/pediy09-619.htm)`
 
-> 由于生计问题,我不得不写一段关于异常处理的代码,我的程序是多线程的,我的目的是要在某个线程发生异常的时候结束本线程,保存出错信息,重新启动一个新线程增加程序稳定性,于是呼打开 vs 2005 就开工了,新建一个测试程序  
->   
->   
-> void \_\_stdcall SetCatchProc(void\* pCProc)  
-> {  
->  \_\_asm  
->  {  
->   push    pCProc  
->   push    fs:\[0\]        
->   mov     fs:\[0\],esp  
->  }  
-> }  
->   
-> static int \_\_stdcall CatchProc(EXCEPTION\_RECORD\* pExcept,void\* pErr,void\* pContext,void\*)  
-> {  
->  if (pExcept->ExceptionCode == EXCEPTION\_BREAKPOINT)  
->  {  
->   printf("catched");  
->   return 0;  
->  }  
->  printf("catched");  
->  return 1;  
-> }  
->   
->   
-> int \_tmain(int argc, \_TCHAR\* argv\[\])  
-> {   
->  SetCatchProc(CatchProc);  
-> \_\_asm int 3  
->   char p1\[255\];  
->  gets(p1);  
->  return 0;  
-> }  
->   
->   
-> 但是无论如何程序也无法捕获异常,但是打开编译器/EHa 选项后使用 try catch(...)确可以正常捕获异常,不使用 try catch(...)的原因是因为虽然能捕获所有异常,但是并不能获取异常信息,虽然 release 编译模式下可以在 catch 处理分段上使用\_\_asm mov lpExcept,dword ptr \[esp+8\] 来取得一个 EXCEPTION\_RECORD 结构指针,但是我并没有找到任何文档关于这个参数的说明,这个只是我使用 od 最终后发现的,并且在 Debug 编译模式下代码不能单单的这一句就能完成,于是呼我不得不开动 od  
-> 跟踪到如下代码的 int3 处 F8  
->   push    dword ptr \[ebp-118\]  
->   push    dword ptr fs:\[0\]  
->   mov     dword ptr fs:\[0\], esp  
->   int3  
-> od 带我们进入异常处理领空  
->   
-> 7C958554    8B1C24          mov     ebx, dword ptr \[esp\]  
-> 7C958557    51              push    ecx  
-> 7C958558    53              push    ebx                              ; kernel32.GetProcessHeap  
-> 7C958559    E8 D88F0000     call    7C961536   //很容易可以看出这里是异常处理核心,如果返回结果不为 0 那么表示异常处理,调用 ZwContinue 继续执行程序,否则抛出异常  
-> 7C95855E    0AC0            or      al, al  
-> 7C958560    74 0C           je      short 7C95856E  
-> 7C958562    5B              pop     ebx                              ; 0012FB5C  
-> 7C958563    59              pop     ecx                              ; 0012FB5C  
-> 7C958564    6A 00           push    0  
-> 7C958566    51              push    ecx  
-> 7C958567    E8 23E8FFFF     call    ZwContinue  
-> 7C95856C    EB 0B           jmp     short 7C958579  
-> 7C95856E    5B              pop     ebx                              ; 0012FB5C  
-> 7C95856F    59              pop     ecx                              ; 0012FB5C  
-> 7C958570    6A 00           push    0  
-> 7C958572    51              push    ecx  
-> 7C958573    53              push    ebx                              ; kernel32.GetProcessHeap  
-> 7C958574    E8 C6F1FFFF     call    ZwRaiseException  
-> 进入 7C961536  
->   
->   
-> 7C961536    8BFF            mov     edi, edi  
-> 7C961538    55              push    ebp  
-> 7C961539    8BEC            mov     ebp, esp  
-> 7C96153B    83EC 5C         sub     esp, 5C  
-> 7C96153E    56              push    esi  
-> 7C96153F    FF75 0C         push    dword ptr \[ebp+C\]  
-> 7C961542    8B75 08         mov     esi, dword ptr \[ebp+8\]  
-> 7C961545    56              push    esi  
-> 7C961546    C645 FF 00      mov     byte ptr \[ebp-1\], 0  
-> 7C96154A    E8 94010000     call    7C9616E3  
-> 7C96154F    84C0            test    al, al  
-> 7C961551    0F85 406A0200   jnz     7C987F97  
-> 7C961557    53              push    ebx  
-> 7C961558    57              push    edi  
-> 7C961559    8D45 F8         lea     eax, dword ptr \[ebp-8\]  
-> 7C96155C    50              push    eax  
-> 7C96155D    8D45 08         lea     eax, dword ptr \[ebp+8\]  
-> 7C961560    50              push    eax  
-> 7C961561    E8 2073FFFF     call    7C958886  
-> 7C961566    E8 3773FFFF     call    7C9588A2  
-> 7C96156B    8BD8            mov     ebx, eax  
-> 7C96156D    33FF            xor     edi, edi  
-> 7C96156F    83FB FF         cmp     ebx, -1               //之前做一些准备工作,ebx 为 seh 异常处理链表头,这里是在笑颜链表头是否在线程堆栈领空  
-> 7C961572    74 6E           je      short 7C9615E2  
-> 7C961574    3B5D 08         cmp     ebx, dword ptr \[ebp+8\]  
-> 7C961577  ^ 0F82 28A1FDFF   jb      7C93B6A5  
-> 7C96157D    8D43 08         lea     eax, dword ptr \[ebx+8\]  
-> 7C961580    3B45 F8         cmp     eax, dword ptr \[ebp-8\]           ; Exceptio.0040A880  
-> 7C961583  ^ 0F87 1CA1FDFF   ja      7C93B6A5  
-> 7C961589    F6C3 03         test    bl, 3  
-> 7C96158C  ^ 0F85 13A1FDFF   jnz     7C93B6A5  
-> 7C961592    8B43 04         mov     eax, dword ptr \[ebx+4\] //这里取出异常处理函数入口,并判断入口是否在堆栈里面，防止益出攻击  
-> 7C961595    3B45 08         cmp     eax, dword ptr \[ebp+8\]  
-> 7C961598    72 09           jb      short 7C9615A3  
-> 7C96159A    3B45 F8         cmp     eax, dword ptr \[ebp-8\]           ; Exceptio.0040A880  
-> 7C96159D  ^ 0F82 02A1FDFF   jb      7C93B6A5  
-> 7C9615A3    50              push    eax  
-> 7C9615A4    E8 51000000     call    7C9615FA //这里就是这次事故核心,这里是效验函数合法性  
-> 7C9615A9    84C0            test    al, al  
-> 7C9615AB  ^ 0F84 F4A0FDFF   je      7C93B6A5  
-> 7C9615B1    FF73 04         push    dword ptr \[ebx+4\]  
-> 7C9615B4    8D45 F4         lea     eax, dword ptr \[ebp-C\]  
-> 7C9615B7    50              push    eax  
-> 7C9615B8    FF75 0C         push    dword ptr \[ebp+C\]  
-> 7C9615BB    53              push    ebx  
-> 7C9615BC    56              push    esi  
-> 7C9615BD    E8 2E71FFFF     call    7C9586F0                         ; 调用 seh 处理  
-> 既然事故核心函数出来了，当然要跟进去看看  
-> 7C9615FA    8BFF            mov     edi, edi  
-> 7C9615FC    55              push    ebp  
-> 7C9615FD    8BEC            mov     ebp, esp  
-> 7C9615FF    83EC 34         sub     esp, 34  
-> 7C961602    A1 30779B7C     mov     eax, dword ptr \[7C9B7730\]  
-> 7C961607    53              push    ebx  
-> 7C961608    56              push    esi  
-> 7C961609    8B75 08         mov     esi, dword ptr \[ebp+8\]  
-> 7C96160C    8945 FC         mov     dword ptr \[ebp-4\], eax           ; Exceptio.00401000  
-> 7C96160F    57              push    edi  
-> 7C961610    8D45 F8         lea     eax, dword ptr \[ebp-8\]  
-> 7C961613    50              push    eax                              ; Exceptio.00401000  
-> 7C961614    8D45 EC         lea     eax, dword ptr \[ebp-14\]  
-> 7C961617    50              push    eax                              ; Exceptio.00401000  
-> 7C961618    33DB            xor     ebx, ebx  
-> 7C96161A    56              push    esi  
-> 7C96161B    895D F4         mov     dword ptr \[ebp-C\], ebx  
-> 7C96161E    E8 58000000     call    7C96167B   //这里从 pe 头的 directories 目录的 loadconfig 取出一个地址线性数组指针,和数组大小,下面的代码就是根据这个数组判断 seh 处理函数是否在这些数据当中,也就是是否合法,这样也是为了安全性,防止不合法的 seh 处理函数被调用,一开始我也纳闷,因为找了好多资料都都没有提到 seh 异常处理会效验处理函数的合法性  
-> 7C961623    3BC3            cmp     eax, ebx  
-> 7C961625    8945 F0         mov     dword ptr \[ebp-10\], eax          ; Exceptio.00401000  
-> 7C961628    0F84 30690200   je      7C987F5E  
-> 7C96162E    8B7D F8         mov     edi, dword ptr \[ebp-8\]  
-> 7C961631    3BFB            cmp     edi, ebx  
-> 7C961633    0F84 25690200   je      7C987F5E  
-> 7C961639    83F8 FF         cmp     eax, -1  
-> 7C96163C    0F84 07690200   je      7C987F49  
-> 7C961642    2B75 EC         sub     esi, dword ptr \[ebp-14\]  
-> 7C961645    33D2            xor     edx, edx                         ; ntdll.KiFastSystemCallRet  
-> 7C961647    3BFB            cmp     edi, ebx  
-> 7C961649    0F8C 04690200   jl      7C987F53  
-> 7C96164F    8D0C17          lea     ecx, dword ptr \[edi+edx\]  
-> 7C961652    D1F9            sar     ecx, 1  
-> 7C961654    8B1C88          mov     ebx, dword ptr \[eax+ecx\*4\]  
-> 7C961657    3BF3            cmp     esi, ebx  
-> 7C961659  ^ 0F82 1EA0FDFF   jb      7C93B67D  
-> 7C96165F  ^ 0F87 E56EFDFF   ja      7C93854A  
-> 7C961665    B0 01           mov     al, 1  
-> 7C961667    8B4D FC         mov     ecx, dword ptr \[ebp-4\]  
-> 7C96166A    5F              pop     edi                              ; ntdll.7C9615A9  
-> 7C96166B    5E              pop     esi                              ; ntdll.7C9615A9  
-> 7C96166C    5B              pop     ebx                              ; ntdll.7C9615A9  
-> 7C96166D    E8 358FFFFF     call    7C95A5A7  
-> 7C961672    C9              leave  
-> 7C961673    C2 0400         retn    4  
->   
-> 下面代码是 xp sp2 代码,更加好理解,win2003 的代码从效率上优化过,以至于我这 286 的头脑理解不过来  
-> 7C9579C8    8BFF            mov     edi, edi                         ; Exceptio.00401000  
-> 7C9579CA    55              push    ebp  
-> 7C9579CB    8BEC            mov     ebp, esp  
-> 7C9579CD    51              push    ecx                              ; Exceptio.0040DC70  
-> 7C9579CE    FF75 08         push    dword ptr \[ebp+8\]                ; Exceptio.00400000  
-> 7C9579D1    E8 738EFDFF     call    RtlImageNtHeader  
-> 7C9579D6    F640 5F 04      test    byte ptr \[eax+5F\], 4  
-> 7C9579DA    0F85 CF7C0100   jnz     7C96F6AF  
-> 7C9579E0    8D45 FC         lea     eax, \[ebp-4\]  
-> 7C9579E3    50              push    eax                              ; Exceptio.0040DAE8  
-> 7C9579E4    6A 0A           push    0A  
-> 7C9579E6    6A 01           push    1  
-> 7C9579E8    FF75 08         push    dword ptr \[ebp+8\]                ; Exceptio.00400000  
-> 7C9579EB    E8 668EFDFF     call    RtlImageDirectoryEntryToData  
-> 7C9579F0    85C0            test    eax, eax                         ; Exceptio.0040DAE8  
-> 7C9579F2    0F84 D8010000   je      7C957BD0  
-> 7C9579F8    8B4D FC         mov     ecx, \[ebp-4\]  
-> 7C9579FB    85C9            test    ecx, ecx                         ; Exceptio.0040DC70  
-> 7C9579FD    0F84 CD010000   je      7C957BD0  
-> 7C957A03    83F9 40         cmp     ecx, 40  
-> 7C957A06  ^ 0F85 361DFEFF   jnz     7C939742  
-> 7C957A0C    8338 48         cmp     dword ptr \[eax\], 48  
-> 7C957A0F    0F82 BB010000   jb      7C957BD0  
-> 7C957A15    8B48 40         mov     ecx, \[eax+40\]                    ; Exceptio.0040DC70  
-> 7C957A18    85C9            test    ecx, ecx                         ; Exceptio.0040DC70  
-> 7C957A1A    0F84 B0010000   je      7C957BD0  
-> 7C957A20    8378 44 00      cmp     dword ptr \[eax+44\], 0  
-> 7C957A24    0F84 A6010000   je      7C957BD0  
-> 7C957A2A    8B55 0C         mov     edx, \[ebp+C\]  
-> 7C957A2D    890A            mov     \[edx\], ecx                       ; Exceptio.0040DC70  
-> 7C957A2F    8B40 44         mov     eax, \[eax+44\]  
-> 7C957A32    8B4D 10         mov     ecx, \[ebp+10\]  
-> 7C957A35    8901            mov     \[ecx\], eax                       ; Exceptio.0040DAE8  
-> 7C957A37    C9              leave  
-> 7C957A38    C2 0C00         retn    0C  
->   
-> 很容易我们就能看出这个函数的意图,就是取 LoadConfig 第 40 字节开始为数组头指针,44 字节开始 dowrd 为数组长度  
-> 我查阅了一些关于 pe 头的文档上面都只提到 loadconfig 的用途和目的不明确,不过我想 msdn 上面应该有详细介绍的,可惜本人英语水平实在是烂到了极点,所以不想在晚上了还被这个折磨,由此我们可以看出 LoadConfig 与 seh 异常处理是有关系的,而且 vs2005 连接器好象还没有关闭生成 loadconfig 的选项,此时只要我们用一个工具将 pe 文件的 loadconfig 目录清 0,程序运行就又可以正常捕获异常了.当然你也许会建议我使用\_\_try \_\_except 或者指定 catch 异常类型等等,不过既然问题已经来了,那么我们至少应该尝试着去解决.  
-> 既然问题已经找到了,那么我们得尝试去解决,我们想到了最简单的办法就是清零 LoadConfig,但是我们如何保证 LoadConfig 没有其他用途呢,况且每次编译都要这样还不麻烦死,于是呼我们可以寻求更简单一点的方法，就是 hook,我们使用 try catch(...)后,程序会自动在函数开始注册一个 seh 处理链,这个注册过程优先于所有用户代码,所以我们可以简单的写一个函数来达到目的,我的函数代码如下,这样即使 hook 失败了，我们依然可以使用 catch(...)处理过程，但是这样以来,代码发生异常后就只会回调函数 pCProc  
->   
->   
-> int    \_\_stdcall CatchProc(EXCEPTION\_RECORD\* pExcept,void\* pErr,void\* pContext,void\* p\_Dis)  
-> {  
->     if (pExcept->ExceptionCode == EXCEPTION\_BREAKPOINT)  
->     {  
->         printf("catched");  
->         return 0;  
->     }  
->     printf("catched");  
->     return 1;  
-> }  
->    
->   
-> bool \_\_stdcall SetCatchProc(void\*    pCProc)  
-> {  
->     char\* p\_ExpProcEntry;  
->     \_\_asm  
->     {  
->         mov eax,fs:\[0\]  
->         add eax,4  
->         mov eax,dword ptr \[eax\]  
->         mov p\_ExpProcEntry,eax  
->     }  
->     DWORD p\_oldProtect = 0;  
->     if (VirtualProtect(p\_ExpProcEntry,5,PAGE\_EXECUTE\_READWRITE,&p\_oldProtect))  
->     {  
->         \*(BYTE\*)p\_ExpProcEntry = 0xE9;  
->         \*(DWORD\*)(p\_ExpProcEntry+1)=(char\*)pCProc-p\_ExpProcEntry-5;  
->         return true;  
->     }  
->     return false;  
-> }  
->   
-> 当然可以简单的使用\_\_try \_\_except 或者指定 catch 异常类型来捕获异常,不过我觉得使用 seh 异常获得的信息丰富些. 
+> 由于生计问题，我不得不写一段关于异常处理的代码。我的程序是多线程的，我的目的是要在某个线程发生异常的时候结束本线程，保存出错信息，重新启动一个新线程增加程序稳定性。于是乎打开 `vs 2005` 就开工了，新建一个测试程序
 
- 4dd466d0e1e0cc123afbe504da2462ca
+```c
+void __stdcall SetCatchProc(void* pCProc)
+{
+    __asm
+    {
+        push    pCProc
+        push    fs:[0]
+        mov     fs:[0], esp
+    }
+}
+
+static int __stdcall CatchProc(EXCEPTION_RECORD* pExcept, void* pErr, void* pContext, void*)
+{
+    if (pExcept->ExceptionCode == EXCEPTION_BREAKPOINT)
+    {
+        printf("catched");
+        return 0;
+    }
+    printf("catched");
+    return 1;
+}
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+    SetCatchProc(CatchProc);
+    __asm int 3
+    char p1[255];
+    gets(p1);
+    return 0;
+}
+```
+
+> 但是无论如何程序也无法捕获异常，但是打开编译器 `/EHa` 选项后使用 `try catch(...)` 确可以正常捕获异常。不使用 `try catch(...)` 的原因是因为虽然能捕获所有异常，但是并不能获取异常信息。虽然 `release` 编译模式下可以在 `catch` 处理分段上使用 `__asm mov lpExcept, dword ptr [esp+8]` 来取得一个 `EXCEPTION_RECORD` 结构指针，但是我并没有找到任何文档关于这个参数的说明。这个只是我使用 `od` 最终后发现的，并且在 `Debug` 编译模式下代码不能单单的这一句就能完成。于是乎我不得不开动 `od` 跟踪到如下代码的 `int3` 处 `F8`
+
+```asm
+    push    dword ptr [ebp-118]
+    push    dword ptr fs:[0]
+    mov     dword ptr fs:[0], esp
+    int3
+```
+
+> `od` 带我们进入异常处理领空
+
+```asm
+7C958554    8B1C24          mov     ebx, dword ptr [esp]
+7C958557    51              push    ecx
+7C958558    53              push    ebx                       ; kernel32.GetProcessHeap
+7C958559    E8 D88F0000     call    7C961536   //很容易可以看出这里是异常处理核心,如果返回结果不为 0 那么表示异常处理,调用 ZwContinue 继续执行程序,否则抛出异常
+7C95855E    0AC0            or      al, al
+7C958560    74 0C           je      short 7C95856E
+7C958562    5B              pop     ebx                       ; 0012FB5C
+7C958563    59              pop     ecx                       ; 0012FB5C
+7C958564    6A 00           push    0
+7C958566    51              push    ecx
+7C958567    E8 23E8FFFF     call    ZwContinue
+7C95856C    EB 0B           jmp     short 7C958579
+7C95856E    5B              pop     ebx                       ; 0012FB5C
+7C95856F    59              pop     ecx                       ; 0012FB5C
+7C958570    6A 00           push    0
+7C958572    51              push    ecx
+7C958573    53              push    ebx                       ; kernel32.GetProcessHeap
+7C958574    E8 C6F1FFFF     call    ZwRaiseException
+```
+
+> 进入 `7C961536`
+
+```asm
+7C961536    8BFF            mov     edi, edi
+7C961538    55              push    ebp
+7C961539    8BEC            mov     ebp, esp
+7C96153B    83EC 5C         sub     esp, 5C
+7C96153E    56              push    esi
+7C96153F    FF75 0C         push    dword ptr [ebp+C]
+7C961542    8B75 08         mov     esi, dword ptr [ebp+8]
+7C961545    56              push    esi
+7C961546    C645 FF 00      mov     byte ptr [ebp-1], 0
+7C96154A    E8 94010000     call    7C9616E3
+7C96154F    84C0            test    al, al
+7C961551    0F85 406A0200   jnz     7C987F97
+7C961557    53              push    ebx
+7C961558    57              push    edi
+7C961559    8D45 F8         lea     eax, dword ptr [ebp-8]
+7C96155C    50              push    eax
+7C96155D    8D45 08         lea     eax, dword ptr [ebp+8]
+7C961560    50              push    eax
+7C961561    E8 2073FFFF     call    7C958886
+7C961566    E8 3773FFFF     call    7C9588A2
+7C96156B    8BD8            mov     ebx, eax
+7C96156D    33FF            xor     edi, edi
+7C96156F    83FB FF         cmp     ebx, -1                   //之前做一些准备工作,ebx 为 seh 异常处理链表头,这里是在笑颜链表头是否在线程堆栈领空
+7C961572    74 6E           je      short 7C9615E2
+7C961574    3B5D 08         cmp     ebx, dword ptr [ebp+8]
+7C961577  ^ 0F82 28A1FDFF   jb      7C93B6A5
+7C96157D    8D43 08         lea     eax, dword ptr [ebx+8]
+7C961580    3B45 F8         cmp     eax, dword ptr [ebp-8]    ; Exceptio.0040A880
+7C961583  ^ 0F87 1CA1FDFF   ja      7C93B6A5
+7C961589    F6C3 03         test    bl, 3
+7C96158C  ^ 0F85 13A1FDFF   jnz     7C93B6A5
+7C961592    8B43 04         mov     eax, dword ptr [ebx+4]    //这里取出异常处理函数入口,并判断入口是否在堆栈里面，防止益出攻击
+7C961595    3B45 08         cmp     eax, dword ptr [ebp+8]
+7C961598    72 09           jb      short 7C9615A3
+7C96159A    3B45 F8         cmp     eax, dword ptr [ebp-8]    ; Exceptio.0040A880
+7C96159D  ^ 0F82 02A1FDFF   jb      7C93B6A5
+7C9615A3    50              push    eax
+7C9615A4    E8 51000000     call    7C9615FA  //这里就是这次事故核心,这里是效验函数合法性
+7C9615A9    84C0            test    al, al
+7C9615AB  ^ 0F84 F4A0FDFF   je      7C93B6A5
+7C9615B1    FF73 04         push    dword ptr [ebx+4]
+7C9615B4    8D45 F4         lea     eax, dword ptr [ebp-C]
+7C9615B7    50              push    eax
+7C9615B8    FF75 0C         push    dword ptr [ebp+C]
+7C9615BB    53              push    ebx
+7C9615BC    56              push    esi
+7C9615BD    E8 2E71FFFF     call    7C9586F0                  ; 调用 seh 处理
+```
+
+> 既然事故核心函数出来了，当然要跟进去看看
+
+```asm
+7C9615FA    8BFF            mov     edi, edi
+7C9615FC    55              push    ebp
+7C9615FD    8BEC            mov     ebp, esp
+7C9615FF    83EC 34         sub     esp, 34
+7C961602    A1 30779B7C     mov     eax, dword ptr [7C9B7730]
+7C961607    53              push    ebx
+7C961608    56              push    esi
+7C961609    8B75 08         mov     esi, dword ptr [ebp+8]
+7C96160C    8945 FC         mov     dword ptr [ebp-4], eax    ; Exceptio.00401000
+7C96160F    57              push    edi
+7C961610    8D45 F8         lea     eax, dword ptr [ebp-8]
+7C961613    50              push    eax                       ; Exceptio.00401000
+7C961614    8D45 EC         lea     eax, dword ptr [ebp-14]
+7C961617    50              push    eax                       ; Exceptio.00401000
+7C961618    33DB            xor     ebx, ebx
+7C96161A    56              push    esi
+7C96161B    895D F4         mov     dword ptr [ebp-C], ebx
+7C96161E    E8 58000000     call    7C96167B   //这里从 pe 头的 directories 目录的 loadconfig 取出一个地址线性数组指针,和数组大小,下面的代码就是根据这个数组判断 seh 处理函数是否在这些数据当中,也就是是否合法,这样也是为了安全性,防止不合法的 seh 处理函数被调用,一开始我也纳闷,因为找了好多资料都都没有提到 seh 异常处理会效验处理函数的合法性
+7C961623    3BC3            cmp     eax, ebx
+7C961625    8945 F0         mov     dword ptr [ebp-10], eax   ; Exceptio.00401000
+7C961628    0F84 30690200   je      7C987F5E
+7C96162E    8B7D F8         mov     edi, dword ptr [ebp-8]
+7C961631    3BFB            cmp     edi, ebx
+7C961633    0F84 25690200   je      7C987F5E
+7C961639    83F8 FF         cmp     eax, -1
+7C96163C    0F84 07690200   je      7C987F49
+7C961642    2B75 EC         sub     esi, dword ptr [ebp-14]
+7C961645    33D2            xor     edx, edx                  ; ntdll.KiFastSystemCallRet
+7C961647    3BFB            cmp     edi, ebx
+7C961649    0F8C 04690200   jl      7C987F53
+7C96164F    8D0C17          lea     ecx, dword ptr [edi+edx]
+7C961652    D1F9            sar     ecx, 1
+7C961654    8B1C88          mov     ebx, dword ptr [eax+ecx*4]
+7C961657    3BF3            cmp     esi, ebx
+7C961659  ^ 0F82 1EA0FDFF   jb      7C93B67D
+7C96165F  ^ 0F87 E56EFDFF   ja      7C93854A
+7C961665    B0 01           mov     al, 1
+7C961667    8B4D FC         mov     ecx, dword ptr [ebp-4]
+7C96166A    5F              pop     edi                       ; ntdll.7C9615A9
+7C96166B    5E              pop     esi                       ; ntdll.7C9615A9
+```
+
+
+
+```
+> 7C96166C    5B                pop     ebx                     ; ntdll.7C9615A9  
+
+> 7C96166D    E8 358FFFFF       call    7C95A5A7  
+
+> 7C961672    C9                leave  
+
+> 7C961673    C2 0400           retn    4  
+
+>   
+
+> 下面代码是 xp sp2 代码,更加好理解,win2003 的代码从效率上优化过,以至于我这 286 的头脑理解不过来  
+
+> 7C9579C8    8BFF             mov     edi, edi                  ; Exceptio.00401000  
+
+> 7C9579CA    55                push    ebp  
+
+> 7C9579CB    8BEC             mov     ebp, esp  
+
+> 7C9579CD    51                push    ecx                       ; Exceptio.0040DC70  
+
+> 7C9579CE    FF75 08          push    dword ptr [ebp+8]         ; Exceptio.00400000  
+
+> 7C9579D1    E8 738EFDFF      call    RtlImageNtHeader  
+
+> 7C9579D6    F640 5F 04       test    byte ptr [eax+5F], 4  
+
+> 7C9579DA    0F85 CF7C0100    jnz     7C96F6AF  
+
+> 7C9579E0    8D45 FC          lea     eax, [ebp-4]  
+
+> 7C9579E3    50                push    eax                         ; Exceptio.0040DAE8  
+
+> 7C9579E4    6A 0A             push    0A  
+
+> 7C9579E6    6A 01             push    1  
+
+> 7C9579E8    FF75 08          push    dword ptr [ebp+8]         ; Exceptio.00400000  
+
+> 7C9579EB    E8 668EFDFF      call    RtlImageDirectoryEntryToData  
+
+> 7C9579F0    85C0             test    eax, eax                    ; Exceptio.0040DAE8  
+
+> 7C9579F2    0F84 D8010000    je      7C957BD0  
+
+> 7C9579F8    8B4D FC          mov     ecx, [ebp-4]  
+
+> 7C9579FB    85C9             test    ecx, ecx                    ; Exceptio.0040DC70  
+
+> 7C9579FD    0F84 CD010000    je      7C957BD0  
+
+> 7C957A03    83F9 40          cmp     ecx, 40  
+
+> 7C957A06   ^ 0F85 361DFEFF  jnz     7C939742  
+
+> 7C957A0C    8338 48          cmp     dword ptr [eax], 48  
+
+> 7C957A0F    0F82 BB010000    jb      7C957BD0  
+
+> 7C957A15    8B48 40          mov     ecx, [eax+40]              ; Exceptio.0040DC70  
+
+> 7C957A18    85C9             test    ecx, ecx                    ; Exceptio.0040DC70  
+
+> 7C957A1A    0F84 B0010000    je      7C957BD0  
+
+> 7C957A20    8378 44 00       cmp     dword ptr [eax+44], 0  
+
+> 7C957A24    0F84 A6010000    je      7C957BD0  
+
+> 7C957A2A    8B55 0C          mov     edx, [ebp+C]  
+
+> 7C957A2D    890A             mov     [edx], ecx                  ; Exceptio.0040DC70  
+
+> 7C957A2F    8B40 44          mov     eax, [eax+44]  
+
+> 7C957A32    8B4D 10          mov     ecx, [ebp+10]  
+
+> 7C957A35    8901             mov     [ecx], eax                  ; Exceptio.0040DAE8  
+
+> 7C957A37    C9                leave  
+
+> 7C957A38    C2 0C00          retn    0C  
+```
+
+下面代码是 xp sp2 代码,更加好理解,win2003 的代码从效率上优化过,以至于我这 286 的头脑理解不过来
+
+很容易我们就能看出这个函数的意图,就是取 `LoadConfig` 第 40 字节开始为数组头指针,44 字节开始 dowrd 为数组长度
+
+我查阅了一些关于 pe 头的文档上面都只提到 `LoadConfig` 的用途和目的不明确,不过我想 msdn 上面应该有详细介绍的,可惜本人英语水平实在是烂到了极点,所以不想在晚上了还被这个折磨,由此我们可以看出 `LoadConfig` 与 `seh` 异常处理是有关系的,而且 vs2005 连接器好象还没有关闭生成 `LoadConfig` 的选项,此时只要我们用一个工具将 pe 文件的 `LoadConfig` 目录清 0,程序运行就又可以正常捕获异常了.当然你也许会建议使用 `__try __except` 或者指定 `catch` 异常类型等等,不过既然问题已经来了,那么我们至少应该尝试着去解决.
+
+既然问题已经找到了,那么我们得尝试去解决,我们想到了最简单的办法就是清零 `LoadConfig`,但是我们如何保证 `LoadConfig` 没有其他用途呢,况且每次编译都要这样还不麻烦死,于是呼我们可以寻求更简单一点的方法，就是 `hook`,我们使用 `try catch(...)` 后,程序会自动在函数开始注册一个 `seh` 处理链,这个注册过程优先于所有用户代码,所以我们可以简单的写一个函数来达到目的,我的函数代码如下,这样即使 `hook` 失败了，我们依然可以使用 `catch(...)` 处理过程，但是这样以来,代码发生异常后就只会回调函数 `pCProc`
+
+```cpp
+int __stdcall CatchProc(EXCEPTION_RECORD* pExcept, void* pErr, void* pContext, void* p_Dis)
+{
+    if (pExcept->ExceptionCode == EXCEPTION_BREAKPOINT)
+    {
+        printf("catched");
+        return 0;
+    }
+    printf("catched");
+    return 1;
+}
+
+bool __stdcall SetCatchProc(void*    pCProc)
+{
+    char* p_ExpProcEntry;
+    __asm
+    {
+        mov eax, fs:[0]
+        add eax, 4
+        mov eax, dword ptr [eax]
+        mov p_ExpProcEntry, eax
+    }
+    DWORD p_oldProtect = 0;
+    if (VirtualProtect(p_ExpProcEntry, 5, PAGE_EXECUTE_READWRITE, &p_oldProtect))
+    {
+        *(BYTE*)p_ExpProcEntry = 0xE9;
+        *(DWORD*)(p_ExpProcEntry + 1) = (char*)pCProc - p_ExpProcEntry - 5;
+        return true;
+    }
+    return false;
+}
+```
+
+当然可以简单的使用 `__try __except` 或者指定 `catch` 异常类型来捕获异常,不过我觉得使用 `seh` 异常获得的信息丰富些.
+
+4dd466d0e1e0cc123afbe504da2462ca

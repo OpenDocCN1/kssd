@@ -1,598 +1,761 @@
 
-
 # PELock1.0x 脱壳实例
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-566.htm`](https://www.pediy.com/kssd/pediy07/pediy7-566.htm)
 
-PELock 1.0x -> Bartosz Wojcik 脱壳实例之 CryptCD Professional version 4.0.exe  
-下载地址：http://bbs.hanzify.org/index.php?act=Attach&type=post&id=14354  
-  
-1.借尸还魂--搞定 iat 表  
-用 OD 加载 CryptCD Professional version 4.0.exe  
-OD 的异常全部勾上，到壳的入口：  
-0049D05C >JMP SHORT CryptCD\_.0049D060    
-0049D05E  XCHG ESP,ESI  
-0049D060  CLC  
-0049D061  JNB SHORT CryptCD\_.0049D064  
-  
-Alt+E 打开模块窗口，光标选择 kernel32 (system) Ctrl+N 打开函数窗口  
-找到 LoadLibraryA 这个函数，双击它：  
-77E5D8B4 >CMP DWORD PTR SS:\[ESP+4\],0  
-77E5D8B9  PUSH EBX  
-77E5D8BA  PUSH ESI  
-77E5D8BB  JE SHORT kernel32.77E5D8D6  
-  
-在 77E5D8B9  PUSH EBX 这行下内存访问中断，F9 运行程序：  
-第二次中断在：  
-00374CD9  MOV EDX,DWORD PTR DS:\[ECX+ESI\]  
-00374CDC  JMP SHORT 00374CE1  
-......  
-0037501D  MOV EAX,DWORD PTR DS:\[ESI\]  
-0037501F  MOV EDX,EAX  
-00375021  CMP AL,0CC  
-00375023  JNZ SHORT 00375054  
-......  
-00375B22  MOV AL,BYTE PTR DS:\[ECX\]  
-00375B24  INC ECX  
-00375B25  OR EDX,DWORD PTR DS:\[EBX+EAX\*4\]  
-00375B28  TEST DL,8  
-00375B2B  JNZ SHORT 00375B1F  
-  
-  
-  
-  
-壳会全程检查函数代码，所以 int3 中断不能使用。  
-  
-Shift+F9 继续运行，直到重新被中断在函数中  
-77E5D8B9  PUSH EBX  
-77E5D8BA  PUSH ESI  
-77E5D8BB  JE SHORT kernel32.77E5D8D6  
-  
-堆栈中出现：  
-0012EA54   72F44841  返回到 72F44841 来自 kernel32.LoadLibraryA  
-0012EA58   72F1A978  ASCII "gdi32.dll"  
-  
-  
-  
-回到壳代码中，F7 运行到：  
-00374661  MOV DWORD PTR DS:\[ECX\],EBX  
-00374663  JMP SHORT 00374668  
-  
-  
-EAX 77D18ABC USER32.TranslateMessage  
-ECX 00426288 CryptCD\_.00426288  
-EDX 77D10000 USER32.77D10000  
-EBX 003E193F  
-ESP 0012FFAC  
-EBP 0037062D  
-ESI 00380399  
-EDI 00380389 ASCII "USER32.dll"  
-EIP 00374661  
-  
-分析代码发现，\[ECX\]是 iat 表中的地址，EBX 是加密后的函数地址，再仔细分析发现，  
-这时候的 EAX 中就是未加密的函数，如果把：  
-  
-00374661  MOV DWORD PTR DS:\[ECX\],EBX  
-修改成：  
-00374661  MOV DWORD PTR DS:\[ECX\],EAX  
-  
-嘿嘿就可以得到正确的 iat 表了，修改看看  
-继续运行，出现 Invalid version of library USER32.dll 错误。是因为下面的 CRC 没有通过。  
-  
-没有关系，用 OllyScript 来搞定它：  
-\=======================================  
-//PELock 1.0x 脱壳实例之 CryptCD Professional version 4.0  
-//获取 iat 表 Script  
-//by  fxyang  2005.5.20  
-//由于只想得到 iat 表，所以没有检查表的结束。  
-var index  
-#LOG  
-  
-gpa "LoadLibraryA", "kernel32.dll"  
-bprm $RESULT,1  
-mov index,1  
-eob exp1  
-run  
-  
-exp1:  
-cmp index,0  
-je exp2  
-dec index  
-esto  
-  
-exp2:  
-bpmc   
-rtu  
-bprm 00374661,1  
-mov index,1  
-eob exp3  
-esto  
-  
-exp3:  
-cmp index,0  
-je exp4  
-dec index  
-esto  
-  
-exp4:  
-mov \[ecx\],eax  
-add eip,2  
-mov index,1  
-esto  
-\=========================================  
-  
-脚本完成后到 iat 表中看看：  
-00426000  D8 17 DA 77 9A 22 DA 77  ?趙?趙  
-00426008  68 6A DB 77 10 24 DA 77  hj 踳$趙  
-00426010  00 00 00 00 A4 7F 33 77  ....?3w  
-......  
-00426370  CF 90 32 76 0F DA 33 76  蠍 2v?v  
-00426378  00 00 00 00 59 58 F3 4F  ....YX 驩  
-00426380  0B 65 EE 4F 00 10 EF 4F  e 頞.颫  
-00426388  A8 12 EF 4F A6 F2 ED 4F  ?颫︱鞳  
-00426390  00 00 00 00 00 00 00 00  ........  
-  
-一个完整的表，用 Import.Reconstructor 得到完整的表，保存备用。  
-  
-2.修复被壳转移的代码  
-  
-重新 OD 加载程序，重新对 LoadLibraryA 函数的代码下内存访问中断。F9 运行：  
-在第二次被中断在函数中时，Alt+M 打开内存窗口，双击 00401000 段：  
-00401000  MOV EAX,DWORD PTR SS:\[ESP+4\]  
-00401004  MOV DWORD PTR DS:\[440840\],EAX  
-00401009  CALL CryptCD\_.00401080  
-0040100E  CALL CryptCD\_.00401320  
-00401013  CALL CryptCD\_.00403A20  
-00401018  TEST EAX,EAX  
-0040101A  JNZ SHORT CryptCD\_.00401033  
-0040101C  PUSH 5BCD98  
-00401021  PUSH 6DE6CC  
-00401026  CALL CryptCD\_.00403560  
-  
-对 0040101C  PUSH 5BCD98 下内存访问中断，Shift+F9 运行：  
-  
-003780F0  PUSHAD  
-003780F1  PUSH 4  
-003780F3  PUSH 3000  
-003780F8  PUSH 5D58  
-003780FD  PUSH 0  
-003780FF  CALL DWORD PTR SS:\[EBP+4\]  
-00378102  XCHG EAX,EDI  
-00378103  CALL 003780E9  
-00378108  LEA ESI,DWORD PTR SS:\[EBP-5\]  
-0037810B  SUB ESI,0BAB  
-00378111  PUSH ESI  
-00378112  MOV EBX,101  
-00378117  XOR BYTE PTR DS:\[EDI\],DL  
-00378119  INC EDI  
-0037811A  MOV EDX,DWORD PTR DS:\[ESI\]  
-0037811C  ADD ESI,4  
-0037811F  MOV BYTE PTR DS:\[EDX\],0E9  
-00378122  MOV EAX,EDI  
-00378124  SUB EAX,EDX  
-00378126  SUB EAX,5  
-00378129  MOV DWORD PTR DS:\[EDX+1\],EAX  
-0037812C  MOV AL,BYTE PTR DS:\[ESI\]  
-0037812E  INC ESI  
-0037812F  MOVZX ECX,AL  
-00378132  AND EAX,3  
-00378135  SHR ECX,2  
-00378138  REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS:\[ESI\]  
-0037813A  MOV ECX,EAX  
-0037813C  REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]  
-0037813E  MOV AL,BYTE PTR DS:\[ESI\]  
-00378140  INC ESI  
-00378141  ADD EDX,EAX  
-00378143  MOV BYTE PTR DS:\[EDI\],0E9  
-00378146  SUB EDX,EDI  
-00378148  SUB EDX,5  
-0037814B  MOV DWORD PTR DS:\[EDI+1\],EDX  
-0037814E  ADD EDI,5  
-00378151  DEC EBX  
-00378152  JNZ SHORT 00378117  
-00378154  POP EDI  
-00378155  LEA ECX,DWORD PTR SS:\[EBP+66\]  
-00378158  SUB ECX,EDI  
-0037815A  REP STOS BYTE PTR ES:\[EDI\]  
-0037815C  POPAD  
-0037815D  RETN  
-  
-  
-  
-这段代码就是把程序的代码修改为调用到壳中转移的地址，分析这段代码  
-  
-0037811F  MOV BYTE PTR DS:\[EDX\],0E9  
-修改\[EDX\]指向的地址 40101C 为 JMP  
-  
-00378122  MOV EAX,EDI  
-00378124  SUB EAX,EDX  
-00378126  SUB EAX,5  
-00378129  MOV DWORD PTR DS:\[EDX+1\],EAX  
-  
-计算跳转偏移，然后写入到程序中  
-  
-0037812C  MOV AL,BYTE PTR DS:\[ESI\]  
-0037812E  INC ESI  
-0037812F  MOVZX ECX,AL  
-00378132  AND EAX,3  
-00378135  SHR ECX,2  
-00378138  REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS:\[ESI\]  
-0037813A  MOV ECX,EAX  
-0037813C  REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]  
-  
-到\[ESI\]指向的地址看看：  
-  
-0037753E  1C 10 40 00 05 68 C4 82  @.h 膫  
-00377546  42 00 05 21 10 40 00 05  B.!@.  
-0037754E  68 B8 82 42 00 05 38 10  h 競 B.8  
-00377556  40 00 05 68 18 82 42 00  @.h 侭.  
-0037755E  05 3D 10 40 00 05 68 08  =@.h  
-00377566  82 42 00 05 53 10 40 00  侭.S@.  
-0037756E  05 68 F0 81 42 00 05 58  h 饋 B.X  
-00377576  10 40 00 05 68 E4 81 42  @.h 鋪 B  
-0037757E  00 05 81 10 40 00 12 8D  .?@.  
-  
-这个地址中其实是一个表，表的组成是：  
-1.)需要修改的程序地址 ：1C 10 40 00  
-2.)需要复制到壳申请临时空间的代码长度：05  
-3.)需要转移的代码：68 C4 82 42 00  
-4.)写入 jump 回程序中地址的偏移：05  
-  
-0037813E  MOV AL,BYTE PTR DS:\[ESI\]  
-00378140  INC ESI  
-00378141  ADD EDX,EAX  
-00378143  MOV BYTE PTR DS:\[EDI\],0E9  
-00378146  SUB EDX,EDI  
-00378148  SUB EDX,5  
-0037814B  MOV DWORD PTR DS:\[EDI+1\],EDX  
-  
-计算 jump 回到程序中的偏移，写入 jump 回的代码  
-  
-分析完了上面的流程和方法后，就可以利用这段代码把转移的代码写回到程序中：  
-  
-修改：  
-003780F0  PUSHAD  
-003780F1  PUSH 4  
-003780F3  PUSH 3000  
-003780F8  PUSH 5D58  
-003780FD  PUSH 0  
-003780FF  CALL DWORD PTR SS:\[EBP+4\]  
-00378102  XCHG EAX,EDI  
-00378103  CALL 003780E9  
-00378108  LEA ESI,DWORD PTR SS:\[EBP-5\]  
-0037810B  SUB ESI,0BAB  
-00378111  PUSH ESI  
-00378112  MOV EBX,101  
-00378117  NOP  
-00378118  NOP  
-00378119  INC EDI  
-0037811A  MOV EDX,DWORD PTR DS:\[ESI\]  
-0037811C  ADD ESI,4  
-0037811F  MOV EDI,EDX      //关键,把壳的地址替换为程序的地址  
-00378121  NOP  
-00378122  MOV EAX,EDI  
-00378124  SUB EAX,EDX  
-00378126  SUB EAX,5  
-00378129  NOP  
-0037812A  NOP  
-0037812B  NOP  
-0037812C  MOV AL,BYTE PTR DS:\[ESI\]  
-0037812E  INC ESI  
-0037812F  MOVZX ECX,AL  
-00378132  AND EAX,3  
-00378135  SHR ECX,2  
-00378138  REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS:\[ESI\]  
-0037813A  MOV ECX,EAX  
-0037813C  REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]  
-0037813E  MOV AL,BYTE PTR DS:\[ESI\]  
-00378140  INC ESI  
-00378141  ADD EDX,EAX  
-00378143  NOP  
-00378144  NOP  
-00378145  NOP  
-00378146  SUB EDX,EDI  
-00378148  SUB EDX,5  
-0037814B  NOP  
-0037814C  NOP  
-0037814D  NOP  
-0037814E  ADD EDI,5  
-00378151  DEC EBX  
-00378152  JNZ SHORT 00378117  
-00378154  POP EDI  
-00378155  LEA ECX,DWORD PTR SS:\[EBP+66\]  
-00378158  SUB ECX,EDI  
-0037815A  REP STOS BYTE PTR ES:\[EDI\]  
-0037815C  POPAD  
-0037815D  RETN  
-  
-修改完成后,F4 到 0037815D  RETN  
-  
-Alt+M 打开内存窗口,在 00401000 的代码段下内存访问中断,Shift+F9 运行程序:  
-  
-0041B9D4  CALL DWORD PTR DS:\[426124\]  
-0041B9DA  XOR EDX,EDX  
-0041B9DC  MOV DL,AH  
-0041B9DE  MOV DWORD PTR DS:\[441C04\],EDX  
-  
-这是程序的伪 OEP,在堆栈中检查:  
-  
-0012FFA8   0012FFB8  指针到下一个 SEH 记录  
-0012FFAC   0041F270  SE 句柄  
-0012FFB0   004263F0  CryptCD\_.004263F0  
-0012FFB4   FFFFFFFF  
-0012FFB8   0012FFE0  指针到下一个 SEH 记录  
-  
-这个程序是 VC++编译的,根据堆栈中的数据恢复代码:  
-  
-0041B9AE >PUSH EBP  
-0041B9AF  MOV EBP,ESP  
-0041B9B1  PUSH -1  
-0041B9B3  PUSH CryptCD\_.004263F0  
-0041B9B8  PUSH CryptCD\_.0041F270                   ;  SE handler installation  
-0041B9BD  MOV EAX,DWORD PTR FS:\[0\]  
-0041B9C3  PUSH EAX  
-0041B9C4  MOV DWORD PTR FS:\[0\],ESP  
-0041B9CB  SUB ESP,58  
-0041B9CE  PUSH EBX  
-0041B9CF  PUSH ESI  
-0041B9D0  PUSH EDI  
-0041B9D1  MOV DWORD PTR SS:\[EBP-18\],ESP  
-  
-用 LordPE dump 下程序,修改程序的 OEP 为 0041B9AE,保存备用.  
-  
-3.还原 IAT 表  
-  
-用 Import.Reconstructor 加载保存的 iat 表,去掉增加新的区段的勾,然后在新的输入表信息的  
-RVA 中填入原 iat 表的 RVA 00026000 在 OEP 中填入 0001B9AE 后,修复上面保存的 dump 程序.  
-看似修复好了 iat 表,运行看看,程序不见了:( 看来还是有问题.有什么问题呢?  
-  
-用 OD 加载原程序,直接运行,运行成功后来到 imports 段 00426000   
-再用 OD 加载修复后的 dump 程序,比较 imports 段和原来的有些什么不同,发现原 imports 表中多了些数据:  
-  
-00426390  00 00 00 00 00 00 00 00 9A 99 99 99 99 99 E9 3F  ........殭櫃櫃?  
-004263A0  00 00 00 00 00 00 50 3F 00 00 80 3A 00 00 00 00  ......P?..€:....  
-004263B0  00 00 00 00 00 00 E0 3F 9A 99 99 99 99 99 B9 3F  ......?殭櫃櫃?  
-004263C0  80 09 F8 7B 32 BF 1A 10 8B BB 00 AA 00 30 0C AB  €.�{2?嫽.?0.  
-......  
-00426AC0  64 61 79 00 4D 6F 6E 64 61 79 00 00 53 75 6E 64  day.Monday..Sund  
-00426AD0  61 79 00 00 53 61 74 00 46 72 69 00 54 68 75 00  ay..Sat.Fri.Thu.  
-00426AE0  57 65 64 00 54 75 65 00 4D 6F 6E 00 53 75 6E 00  Wed.Tue.Mon.Sun.  
-00426AF0  FF FF FF FF 27 42 42 00 2B 42 42 00 FF FF FF FF  ����'BB.+BB.����  
-00426B00  84 42 42 00 88 42 42 00 FF FF FF FF D4 4B 42 00  凚 B.圔 B.����訩 B.  
-00426B10  D8 4B 42 00 FF FF FF FF 43 4C 42 00 47 4C 42 00  豄 B.����CLB.GLB.  
-00426B20  20 05 93 19 01 00 00 00 40 6B 42 00 00 00 00 00   ?...@kB.....  
-00426B30  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
-  
-而在修复的程序中这些数据被 iat 表的其他结构覆盖掉了:  
-  
-00426390  00 00 00 00 00 60 02 00 00 00 00 00 00 00 00 00  .....\`.........  
-004263A0  5C 64 02 00 00 60 02 00 14 60 02 00 00 00 00 00  \\d..\`.\`.....  
-004263B0  00 00 00 00 AC 64 02 00 14 60 02 00 58 60 02 00  ....琩.\`.X\`.  
-004263C0  00 00 00 00 00 00 00 00 1E 66 02 00 58 60 02 00  ........f.X\`.  
-004263D0  CC 60 02 00 00 00 00 00 00 00 00 00 D0 67 02 00  蘞.........術.  
-004263E0  CC 60 02 00 5C 62 02 00 00 00 00 00 00 00 00 00  蘞.\\b.........  
-004263F0  B6 6E 02 00 5C 62 02 00 68 62 02 00 00 00 00 00  秐.\\b.hb.....  
-00426400  00 00 00 00 F6 6E 02 00 68 62 02 00 88 62 02 00  ....鰊.hb.坆.  
-00426410  00 00 00 00 00 00 00 00 7C 6F 02 00 88 62 02 00  ........|o.坆.  
-......  
-00426AE0  1F 02 49 73 42 61 64 52 65 61 64 50 74 72 00 00  IsBadReadPtr..  
-00426AF0  1C 02 49 73 42 61 64 43 6F 64 65 50 74 72 00 FF  IsBadCodePtr.�  
-00426B00  F1 00 47 65 74 41 43 50 00 FF 85 01 47 65 74 4F  ?GetACP.�?GetO  
-00426B10  45 4D 43 50 00 FF F8 02 53 65 74 45 6E 64 4F 66  EMCP.�?SetEndOf  
-00426B20  46 69 6C 65 00 00 37 00 43 6F 6D 70 61 72 65 53  File..7.CompareS  
-00426B30  74 72 69 6E 67 41 00 00 38 00 43 6F 6D 70 61 72  tringA..8.Compar  
-  
-现在知道了原因,来尝试修复它:  
-1.)先把 iat 表的 IID 和 Name 结构转移到数据的后面,就用 OD 的二进制复制功能把  
-00426390  00 60 02 00 00 00 00 00 00 00 00 00 58 64 02 00  .\`.........Xd.  
-004263A0  00 60 02 00 14 60 02 00 00 00 00 00 00 00 00 00  .\`.\`.........  
-004263B0  A8 64 02 00 14 60 02 00 58 60 02 00 00 00 00 00  ╠.\`.X\`.....  
-004263C0  00 00 00 00 1A 66 02 00 58 60 02 00 CC 60 02 00  ....f.X\`.蘞.  
-004263D0  00 00 00 00 00 00 00 00 CC 67 02 00 CC 60 02 00  ........蘥.蘞.  
-004263E0  5C 62 02 00 00 00 00 00 00 00 00 00 B2 6E 02 00  \\b.........瞡.  
-004263F0  5C 62 02 00 68 62 02 00 00 00 00 00 00 00 00 00  \\b.hb.........  
-  
-  
-到:  
-  
-00427340  46 6F 6E 74 41 00 6F 6C 65 33 32 2E 64 6C 6C 00  FontA.ole32.dll.  
-00427350  A1 00 47 65 74 48 47 6C 6F 62 61 6C 46 72 6F 6D  ?GetHGlobalFrom  
-00427360  53 74 72 65 61 6D 00 06 92 00 43 72 65 61 74 65  Stream.?Create  
-00427370  53 74 72 65 61 6D 4F 6E 48 47 6C 6F 62 61 6C 00  StreamOnHGlobal.  
-00427380  FD 00 4F 6C 65 49 6E 69 74 69 61 6C 69 7A 65 00  ?OleInitialize.  
-00427390  14 01 4F 6C 65 55 6E 69 6E 69 74 69 61 6C 69 7A  OleUninitializ  
-004273A0  65 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  e...............  
-  
-  
-的数据二进制复制到:  
-  
-00426B90  00 60 02 00 00 00 00 00  .\`.....  
-00426B98  00 00 00 00 58 64 02 00  ....Xd.  
-00426BA0  00 60 02 00 14 60 02 00  .\`.\`.  
-00426BA8  00 00 00 00 00 00 00 00  ........  
-00426BB0  A8 64 02 00 14 60 02 00  ╠.\`.  
-00426BB8  58 60 02 00 00 00 00 00  X\`.....  
-00426BC0  00 00 00 00 1A 66 02 00  ....f.  
-......  
-00427B70  53 74 72 65 61 6D 4F 6E  StreamOn  
-00427B78  48 47 6C 6F 62 61 6C 00  HGlobal.  
-00427B80  FD 00 4F 6C 65 49 6E 69  ?OleIni  
-00427B88  74 69 61 6C 69 7A 65 00  tialize.  
-00427B90  14 01 4F 6C 65 55 6E 69  OleUni  
-00427B98  6E 69 74 69 61 6C 69 7A  nitializ  
-00427BA0  65 00 00 00 00 00 00 00  e.......  
-  
-  
-然后从原程序中把需要的数据还原到:  
-  
-00426390  00 00 00 00 00 00 00 00 9A 99 99 99 99 99 E9 3F  ........殭櫃櫃?  
-004263A0  00 00 00 00 00 00 50 3F 00 00 80 3A 00 00 00 00  ......P?..€:....  
-004263B0  00 00 00 00 00 00 E0 3F 9A 99 99 99 99 99 B9 3F  ......?殭櫃櫃?  
-004263C0  80 09 F8 7B 32 BF 1A 10 8B BB 00 AA 00 30 0C AB  €.�{2?嫽.?0.  
-......  
-00426AC0  64 61 79 00 4D 6F 6E 64 61 79 00 00 53 75 6E 64  day.Monday..Sund  
-00426AD0  61 79 00 00 53 61 74 00 46 72 69 00 54 68 75 00  ay..Sat.Fri.Thu.  
-00426AE0  57 65 64 00 54 75 65 00 4D 6F 6E 00 53 75 6E 00  Wed.Tue.Mon.Sun.  
-00426AF0  FF FF FF FF 27 42 42 00 2B 42 42 00 FF FF FF FF  ����'BB.+BB.����  
-00426B00  84 42 42 00 88 42 42 00 FF FF FF FF D4 4B 42 00  凚 B.圔 B.����訩 B.  
-00426B10  D8 4B 42 00 FF FF FF FF 43 4C 42 00 47 4C 42 00  豄 B.����CLB.GLB.  
-00426B20  20 05 93 19 01 00 00 00 40 6B 42 00 00 00 00 00   ?...@kB.....  
-00426B30  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
-  
-  
-再用二进制编辑器复制 dump 下修复的文件中 iat 表的 FirstThunk 结构替换 iat 表中的函数地址:  
-00426000  66 64 02 00 74 64 02 00  fd.td.  
-00426008  84 64 02 00 94 64 02 00  刣.攄.  
-00426010  00 00 00 00 B6 64 02 00  ....禿.  
-00426018  C6 64 02 00 DC 64 02 00  芼.躣.  
-00426020  F4 64 02 00 08 65 02 00  鬱.e.  
-00426028  22 65 02 00 3E 65 02 00  "e.>e.  
-00426030  50 65 02 00 66 65 02 00  Pe.fe.  
-......  
-00426360  DE 72 02 00 00 00 00 00  農.....  
-00426368  00 73 02 00 10 73 02 00  .s.s.  
-00426370  24 73 02 00 38 73 02 00  $s.8s.  
-00426378  00 00 00 00 50 73 02 00  ....Ps.  
-00426380  68 73 02 00 80 73 02 00  hs.€s.  
-00426388  90 73 02 00 00 00 00 00  恠.....  
-  
-  
-  
-好了,到这里把需要的数据都恢复到原来的位置了,下面就是重新修正 iat 表结构中的偏移.  
-  
-  
-  
-第一个要修正的偏移就是 iat 中的 FirstThunk 结构,即 00426000 开始的部分.  
-计算一下移动的偏移量=00426B90-00426390=800  
-现在来写代码修正：  
-  
-0041B91E >    B8 00604200   MOV EAX,00426000  
-0041B923      8100 00080000 ADD DWORD PTR DS:\[EAX\],800  
-0041B929      8D40 04       LEA EAX,DWORD PTR DS:\[EAX+4\]  
-0041B92C      8338 00       CMP DWORD PTR DS:\[EAX\],0  
-0041B92F    ^ 74 F8         JE SHORT dumped-u.0041B929  
-0041B931    ^ EB F0         JMP SHORT dumped-u.0041B923  
-  
-B8 00 60 42 00 81 00 00 08 00 00 8D 40 04 83 38 00 74 F8 EB F0  
-  
-  
-在 00426390  00 00 00 00   下内存访问中断，到这里上面的修正就完成了。  
-  
-修改后：  
-00426000  66 6C 02 00 74 6C 02 00  fl.tl.  
-00426008  84 6C 02 00 94 6C 02 00  刲.攍.  
-00426010  00 00 00 00 B6 6C 02 00  ....秎.  
-00426018  C6 6C 02 00 DC 6C 02 00  苐.躭.  
-00426020  F4 6C 02 00 08 6D 02 00  鬺.m.  
-......  
-00426360  DE 7A 02 00 00 00 00 00  込.....  
-00426368  00 7B 02 00 10 7B 02 00  .{.{.  
-00426370  24 7B 02 00 38 7B 02 00  ${.8{.  
-00426378  00 00 00 00 50 7B 02 00  ....P{.  
-00426380  68 7B 02 00 80 7B 02 00  h{.€{.  
-00426388  90 7B 02 00 00 00 00 00  �{.....  
-  
-  
-第二个要修正的偏移是 IID 结构中的 Name RVA  
-  
-写代码修正它：  
-0041B9AE >MOV EAX,dumped-p.00426B9C  
-0041B9B3  ADD DWORD PTR DS:\[EAX\],800  
-0041B9B9  LEA EAX,DWORD PTR DS:\[EAX+14\]  
-0041B9BC  CMP DWORD PTR DS:\[EAX\],0  
-0041B9BF  JE SHORT dumped-p.0041B9B9  
-0041B9C1  JMP SHORT dumped-p.0041B9B3  
-  
-B8 9C 6B 42 00 81 00 00 08 00 00 8D 40 14 83 38 00 74 F8 EB F0  
-  
-没有几项，手动运行，完成后 IID 结构：  
-  
-00426B90  00 60 02 00 00 00 00 00 00 00 00 00 58 6C 02 00  .\`.........Xl.  
-00426BA0  00 60 02 00 14 60 02 00 00 00 00 00 00 00 00 00  .\`.\`.........  
-00426BB0  A8 6C 02 00 14 60 02 00 58 60 02 00 00 00 00 00  ╨.\`.X\`.....  
-00426BC0  00 00 00 00 1A 6E 02 00 58 60 02 00 CC 60 02 00  ....n.X\`.蘞.  
-00426BD0  00 00 00 00 00 00 00 00 CC 6F 02 00 CC 60 02 00  ........蘯.蘞.  
-00426BE0  5C 62 02 00 00 00 00 00 00 00 00 00 B2 76 02 00  \\b.........瞯.  
-00426BF0  5C 62 02 00 68 62 02 00 00 00 00 00 00 00 00 00  \\b.hb.........  
-00426C00  F2 76 02 00 68 62 02 00 88 62 02 00 00 00 00 00  騰.hb.坆.....  
-00426C10  00 00 00 00 78 77 02 00 88 62 02 00 68 63 02 00  ....xw.坆.hc.  
-00426C20  00 00 00 00 00 00 00 00 F2 7A 02 00 68 63 02 00  ........騴.hc.  
-00426C30  7C 63 02 00 00 00 00 00 00 00 00 00 46 7B 02 00  |c.........F{.  
-00426C40  7C 63 02 00 00 00 00 00 00 00 00 00 00 00 00 00  |c.............  
-  
-用 OD 的保存到 可执行文件 把修正后的文件保存成新的程序。  
-  
-用 LordPE 修正 导入表 的 RVA=00026B90 ，SIZE=000000B4 保存。  
-  
-  
-4.混乱器代码的修正  
-  
-重新运行上面保存的程序，发现程序会异常，用 OD 加载调试跟踪发现：  
-  
-00401740  LEA ECX,DWORD PTR DS:\[5E1C0EDA\]  
-00401746  LEA ECX,DWORD PTR DS:\[ECX+A1E3F12A\]  
-0040174C  INC ESP  
-0040174D  ADD CL,DL  
-0040174F  CLC  
-00401750  ADD EAX,14  
-00401753  DEC EDX  
-  
-发现发现这是 PELock 1.0x 的壳把原程序的部分代码经过混乱器混乱后变成的代码。  
-这个代码能完成功能，但是代码的长度比原程序长多了，这样经过自动恢复后会把  
-下面正确的代码覆盖掉，所以程序就异常了。  
-  
-发现发现混乱器混乱的是有规律的，其实混乱器生成的代码功能就是：  
-MOV  ECX，04  
-  
-就是说壳会把程序中赋值常数代码经过混乱器混乱。  
-  
-现在来修复它：  
-修正 00401740  LEA ECX,DWORD PTR DS:\[5E1C0EDA\]的代码为：  
-  
-00401740  MOV ECX,4  
-  
-然后再找回覆盖的代码--  
-  
-用 OD 加载未脱壳的程序，运行。Ctrl+G 到 00401740 地址，发现代码是：  
-00401740  JMP 009E0379  
-00401745  CDQ  
-00401746  SUB EAX,EDX  
-00401748  MOV EDX,DWORD PTR DS:\[440ABC\]  
-0040174E  SAR EAX,1  
-  
-光标停在 00401740  JMP 009E0379 回车：  
-009E0379  LEA ECX,DWORD PTR DS:\[5E1C0EDA\]  
-009E037F  LEA ECX,DWORD PTR DS:\[ECX+A1E3F12A\]  
-009E0385  JMP CryptCD\_.00401745  
-  
-可以看到返回地址是 00401745，看看 00401745 的代码是：  
-00401745  CDQ  
-00401746  SUB EAX,EDX  
-00401748  MOV EDX,DWORD PTR DS:\[440ABC\]  
-0040174E  SAR EAX,1  
-00401750  ADD EAX,14  
-00401753  DEC EDX  
-00401754  MOV DWORD PTR DS:\[42CD80\],ECX  
-0040175A  MOV DWORD PTR DS:\[42CD8C\],ECX  
-  
-用 OD 的二进制代码复制功能把被覆盖的代码,恢复如下：  
-  
-00401740  MOV ECX,4  
-00401745  CDQ  
-00401746  SUB EAX,EDX  
-00401748  MOV EDX,DWORD PTR DS:\[440ABC\]  
-0040174E  SAR EAX,1  
-00401750  ADD EAX,14  
-00401753  DEC EDX  
-  
-我还没有发现自动恢复混乱器混乱代码的方法，只能这样跟踪,现在的麻烦就是不知道有多少这样的代码。  
-  
-  
-经过上面的修复，脱壳基本完成。我只能做到这样，或许大家有好的方法，不妨写出来共享。  
-我不善于写文章，写得很乱，看不明白不要骂我 ：)  
-  
-  
-                                       by fxyang  
-                                       2005.5.24 
+`PELock 1.0x` -> `Bartosz Wojcik` 脱壳实例之 `CryptCD Professional version 4.0.exe`
 
- 4dd466d0e1e0cc123afbe504da2462ca
+下载地址：`http://bbs.hanzify.org/index.php?act=Attach&type=post&id=14354`
+
+## 1. 借尸还魂--搞定 `iat` 表
+
+用 `OD` 加载 `CryptCD Professional version 4.0.exe`
+
+`OD` 的异常全部勾上，到壳的入口：
+
+```
+0049D05C  >JMP SHORT CryptCD\_.0049D060
+0049D05E    XCHG ESP,ESI
+0049D060    CLC
+0049D061    JNB SHORT CryptCD\_.0049D064
+```
+
+`Alt+E` 打开模块窗口，光标选择 `kernel32` (`system`)，`Ctrl+N` 打开函数窗口
+
+找到 `LoadLibraryA` 这个函数，双击它：
+
+```
+77E5D8B4  >CMP DWORD PTR SS:[ESP+4],0
+77E5D8B9    PUSH EBX
+77E5D8BA    PUSH ESI
+77E5D8BB    JE SHORT kernel32.77E5D8D6
+```
+
+在 `77E5D8B9  PUSH EBX` 这行下内存访问中断，`F9` 运行程序：
+
+第二次中断在：
+
+```
+00374CD9    MOV EDX,DWORD PTR DS:[ECX+ESI]
+00374CDC    JMP SHORT 00374CE1
+......
+0037501D    MOV EAX,DWORD PTR DS:[ESI]
+0037501F    MOV EDX,EAX
+00375021    CMP AL,0CC
+00375023    JNZ SHORT 00375054
+......
+00375B22    MOV AL,BYTE PTR DS:[ECX]
+00375B24    INC ECX
+00375B25    OR EDX,DWORD PTR DS:[EBX+EAX*4]
+00375B28    TEST DL,8
+00375B2B    JNZ SHORT 00375B1F
+```
+
+壳会全程检查函数代码，所以 `int3` 中断不能使用。
+
+`Shift+F9` 继续运行，直到重新被中断在函数中
+
+```
+77E5D8B9    PUSH EBX
+77E5D8BA    PUSH ESI
+77E5D8BB    JE SHORT kernel32.77E5D8D6
+```
+
+堆栈中出现：
+
+```
+0012EA54   72F44841  返回到 72F44841 来自 kernel32.LoadLibraryA
+0012EA58   72F1A978  ASCII "gdi32.dll"
+```
+
+回到壳代码中，`F7` 运行到：
+
+```
+00374661    MOV DWORD PTR DS:[ECX],EBX
+00374663    JMP SHORT 00374668
+```
+
+```
+EAX 77D18ABC  USER32.TranslateMessage
+ECX 00426288  CryptCD\_.00426288
+EDX 77D10000  USER32.77D10000
+EBX 003E193F
+ESP 0012FFAC
+EBP 0037062D
+ESI 00380399
+EDI 00380389  ASCII "USER32.dll"
+EIP 00374661
+```
+
+分析代码发现，`[ECX]`是 `iat` 表中的地址，`EBX` 是加密后的函数地址，再仔细分析发现，
+
+这时候的 `EAX` 中就是未加密的函数，如果把：
+
+```
+00374661    MOV DWORD PTR DS:[ECX],EBX
+```
+
+修改成：
+
+```
+00374661    MOV DWORD PTR DS:[ECX],EAX
+```
+
+嘿嘿就可以得到正确的 `iat` 表了，修改看看
+
+继续运行，出现 `Invalid version of library USER32.dll` 错误。是因为下面的 `CRC` 没有通过。
+
+没有关系，用 `OllyScript` 来搞定它：
+
+```
+=======================================
+//PELock 1.0x 脱壳实例之 CryptCD Professional version 4.0
+//获取 iat 表 Script
+//by  fxyang  2005.5.20
+//由于只想得到 iat 表，所以没有检查表的结束。
+
+var index
+
+#LOG
+
+gpa "LoadLibraryA", "kernel32.dll"
+
+bprm $RESULT,1
+
+mov index,1
+
+eob exp1
+
+run
+
+exp1:
+
+cmp index,0
+
+je exp2
+
+dec index
+
+esto
+
+exp2:
+
+bpmc
+
+rtu
+
+bprm 00374661,1
+
+mov index,1
+
+eob exp3
+
+esto
+
+exp3:
+
+cmp index,0
+
+je exp4
+
+dec index
+
+esto
+
+exp4:
+
+mov [ecx],eax
+
+add eip,2
+
+mov index,1
+
+esto
+=========================================
+```
+
+脚本完成后到 `iat` 表中看看：
+
+```
+00426000   D8 17 DA 77 9A 22 DA 77    ?趙?趙
+00426008   68 6A DB 77 10 24 DA 77    hj 踳$趙
+00426010   00 00 00 00 A4 7F 33 77    ....?3w
+......
+00426370   CF 90 32 76 0F DA 33 76    蠍 2v?v
+00426378   00 00 00 00 59 58 F3 4F    ....YX 驩
+00426380   0B 65 EE 4F 00 10 EF 4F    e 頞.颫
+00426388   A8 12 EF 4F A6 F2 ED 4F    ?颫︱鞳
+00426390   00 00 00 00 00 00 00 00    ........
+```
+
+一个完整的表，用 `Import.Reconstructor` 得到完整的表，保存备用。
+
+## 2. 修复被壳转移的代码
+
+重新 `OD` 加载程序，重新对 `LoadLibraryA` 函数的代码下内存访问中断。`F9` 运行：
+
+在第二次被中断在函数中时，`Alt+M` 打开内存窗口，双击 `00401000` 段：
+
+```
+00401000    MOV EAX,DWORD PTR SS:[ESP+4]
+00401004    MOV DWORD PTR DS:[440840],EAX
+00401009    CALL CryptCD\_.00401080
+0040100E    CALL CryptCD\_.00401320
+00401013    CALL CryptCD\_.00403A20
+00401018    TEST EAX,EAX
+0040101A    JNZ SHORT CryptCD\_.00401033
+0040101C    PUSH 5BCD98
+00401021    PUSH 6DE6CC
+00401026    CALL CryptCD\_.00403560
+```
+
+对 `0040101C  PUSH 5BCD98` 下内存访问中断，`Shift+F9` 运行：
+
+```
+003780F0    PUSHAD
+003780F1    PUSH 4
+003780F3    PUSH 3000
+003780F8    PUSH 5D58
+003780FD    PUSH 0
+003780FF    CALL DWORD PTR SS:[EBP+4]
+00378102    XCHG EAX,EDI
+00378103    CALL 003780E9
+00378108    LEA ESI,DWORD PTR SS:[EBP-5]
+0037810B    SUB ESI,0BAB
+00378111    PUSH ESI
+00378112    MOV EBX,101
+00378117    XOR BYTE PTR DS:[EDI],DL
+00378119    INC EDI
+0037811A    MOV EDX,DWORD PTR DS:[ESI]
+0037811C    ADD ESI,4
+0037811F    MOV BYTE PTR DS:[EDX],0E9
+00378122    MOV EAX,EDI
+00378124    SUB EAX,EDX
+00378126    SUB EAX,5
+00378129    MOV DWORD PTR DS:[EDX+1],EAX
+0037812C    MOV AL,BYTE PTR DS:[ESI]
+0037812E    INC ESI
+0037812F    MOVZX ECX,AL
+00378132    AND EAX,3
+00378135    SHR ECX,2
+00378138    REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ESI]
+0037813A    MOV ECX,EAX
+0037813C    REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]
+0037813E    MOV AL,BYTE PTR DS:[ESI]
+00378140    INC ESI
+00378141    ADD EDX,EAX
+00378143    MOV BYTE PTR DS:[EDI],0E9
+00378146    SUB EDX,EDI
+00378148    SUB EDX,5
+0037814B    MOV DWORD PTR DS:[EDI+1],EDX
+0037814E    ADD EDI,5
+00378151    DEC EBX
+00378152    JNZ SHORT 00378117
+00378154    POP EDI
+00378155    LEA ECX,DWORD PTR SS:[EBP+66]
+00378158    SUB ECX,EDI
+0037815A    REP STOS BYTE PTR ES:[EDI]
+0037815C    POPAD
+0037815D    RETN
+```
+
+这段代码就是把程序的代码修改为调用到壳中转移的地址，分析这段代码
+
+```
+0037811F    MOV BYTE PTR DS:[EDX],0E9
+```
+
+修改`[EDX]`指向的地址 `40101C` 为 `JMP`
+
+```
+00378122    MOV EAX,EDI
+00378124    SUB EAX,EDX
+00378126    SUB EAX,5
+00378129    MOV DWORD PTR DS:[EDX+1],EAX
+```
+
+计算跳转偏移，然后写入到程序中
+
+```
+0037812C    MOV AL,BYTE PTR DS:[ESI]
+0037812E    INC ESI
+0037812F    MOVZX ECX,AL
+00378132    AND EAX,3
+00378135    SHR ECX,2
+00378138    REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ESI]
+0037813A    MOV ECX,EAX
+0037813C    REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]
+```
+
+到`[ESI]`指向的地址看看：
+
+```
+0037753E   1C 10 40 00 05 68 C4 82  @.h 膫
+00377546   42 00 05 21 10 40 00 05   B.!@.
+0037754E   68 B8 82 42 00 05 38 10   h 競 B.8
+00377556   40 00 05 68 18 82 42 00   @.h 侭.
+0037755E   05 3D 10 40 00 05 68 08   =@.h
+00377566   82 42 00 05 53 10 40 00   侭.S@.
+0037756E   05 68 F0 81 42 00 05 58   h 饋 B.X
+00377576   10 40 00 05 68 E4 81 42   @.h 鋪 B
+0037757E   00 05 81 10 40 00 12 8D   .?@.
+```
+
+这个地址中其实是一个表，表的组成是：
+
+1. 需要修改的程序地址 `1C 10 40 00`
+2. 需要复制到壳申请临时空间的代码长度：`05`
+3. 需要转移的代码：`68 C4 82 42 00`
+4. 写入 `jump` 回程序中地址的偏移：`05`
+
+```
+0037813E    MOV AL,BYTE PTR DS:[ESI]
+00378140    INC ESI
+00378141    ADD EDX,EAX
+00378143    MOV BYTE PTR DS:[EDI],0E9
+00378146    SUB EDX,EDI
+00378148    SUB EDX,5
+0037814B    MOV DWORD PTR DS:[EDI+1],EDX
+```
+
+计算 `jump` 回到程序中的偏移，写入 `jump` 回的代码
+
+分析完了上面的流程和方法后，就可以利用这段代码把转移的代码写回到程序中：
+
+修改：
+
+```
+003780F0    PUSHAD
+003780F1    PUSH 4
+003780F3    PUSH 3000
+003780F8    PUSH 5D58
+003780FD    PUSH 0
+003780FF    CALL DWORD PTR SS:[EBP+4]
+00378102    XCHG EAX,EDI
+00378103    CALL 003780E9
+00378108    LEA ESI,DWORD PTR SS:[EBP-5]
+0037810B    SUB ESI,0BAB
+00378111    PUSH ESI
+00378112    MOV EBX,101
+00378117    NOP
+00378118    NOP
+00378119    INC EDI
+0037811A    MOV EDX,DWORD PTR DS:[ESI]
+0037811C    ADD ESI,4
+0037811F    MOV EDI,EDX      //关键,把壳的地址替换为程序的地址
+00378121    NOP
+00378122    MOV EAX,EDI
+00378124    SUB EAX,EDX
+00378126    SUB EAX,5
+00378129    NOP
+0037812A    NOP
+0037812B    NOP
+0037812C    MOV AL,BYTE PTR DS:[ESI]
+0037812E    INC ESI
+0037812F    MOVZX ECX,AL
+00378132    AND EAX,3
+00378135    SHR ECX,2
+00378138    REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ESI]
+0037813A    MOV ECX,EAX
+0037813C    REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]
+0037813E    MOV AL,BYTE PTR DS:[ESI]
+00378140    INC ESI
+00378141    ADD EDX,EAX
+00378143    NOP
+00378144    NOP
+00378145    NOP
+00378146    SUB EDX,EDI
+00378148    SUB EDX,5
+0037814B    NOP
+0037814C    NOP
+0037814D    NOP
+0037814E    ADD EDI,5
+00378151    DEC EBX
+00378152    JNZ SHORT 00378117
+00378154    POP EDI
+00378155    LEA ECX,DWORD PTR SS:[EBP+66]
+00378158    SUB ECX,EDI
+0037815A    REP STOS BYTE PTR ES:[EDI]
+0037815C    POPAD
+0037815D    RETN
+```
+
+修改完成后,`F4` 到 `0037815D  RETN`
+
+`Alt+M` 打开内存窗口,在 `00401000` 的代码段下内存访问中断,`Shift+F9` 运行程序:
+
+```
+0041B9D4    CALL DWORD PTR DS:[426124]
+0041B9DA    XOR EDX,EDX
+0041B9DC    MOV DL,AH
+0041B9DE    MOV DWORD PTR DS:[441C04],EDX
+```
+
+这是程序的伪 `OEP`,在堆栈中检查:
+
+```
+0012FFA8   0012FFB8  指针到下一个 SEH 记录
+0012FFAC   0041F270  SE 句柄
+```
+
+
+
+### 1. SEH 记录与代码恢复
+
+`0012FFB0`   `004263F0`  `CryptCD\_.004263F0`  
+`0012FFB4`   `FFFFFFFF`  
+`0012FFB8`   `0012FFE0`  指针到下一个 SEH 记录  
+
+这个程序是 VC++编译的,根据堆栈中的数据恢复代码:
+
+```
+0041B9AE  >PUSH EBP  
+0041B9AF   MOV EBP,ESP  
+0041B9B1   PUSH -1  
+0041B9B3   PUSH CryptCD\_.004263F0  
+0041B9B8   PUSH CryptCD\_.0041F270             ;  SE handler installation  
+0041B9BD   MOV EAX,DWORD PTR FS:\[0\]  
+0041B9C3   PUSH EAX  
+0041B9C4   MOV DWORD PTR FS:\[0\],ESP  
+0041B9CB   SUB ESP,58  
+0041B9CE   PUSH EBX  
+0041B9CF   PUSH ESI  
+0041B9D0   PUSH EDI  
+0041B9D1   MOV DWORD PTR SS:\[EBP-18\],ESP  
+```
+
+用 `LordPE` dump 下程序,修改程序的 `OEP` 为 `0041B9AE`,保存备用.  
+
+### 2. 还原 IAT 表
+
+用 `Import.Reconstructor` 加载保存的 `iat` 表,去掉增加新的区段的勾,然后在新的输入表信息的  
+`RVA` 中填入原 `iat` 表的 `RVA` `00026000` 在 `OEP` 中填入 `0001B9AE` 后,修复上面保存的 dump 程序.  
+
+看似修复好了 `iat` 表,运行看看,程序不见了:( 看来还是有问题.有什么问题呢?  
+
+用 `OD` 加载原程序,直接运行,运行成功后来到 `imports` 段 `00426000`  
+
+再用 `OD` 加载修复后的 dump 程序,比较 `imports` 段和原来的有些什么不同,发现原 `imports` 表中多了些数据:
+
+```
+00426390  00 00 00 00 00 00 00 00 9A 99 99 99 99 99 E9 3F  ........殭櫃櫃?  
+004263A0  00 00 00 00 00 00 50 3F 00 00 80 3A 00 00 00 00  ......P?..€:....  
+004263B0  00 00 00 00 00 00 E0 3F 9A 99 99 99 99 99 B9 3F  ......?殭櫃櫃?  
+004263C0  80 09 F8 7B 32 BF 1A 10 8B BB 00 AA 00 30 0C AB  €.�{2?嫽.?0.  
+......  
+00426AC0  64 61 79 00 4D 6F 6E 64 61 79 00 00 53 75 6E 64  day.Monday..Sund  
+00426AD0  61 79 00 00 53 61 74 00 46 72 69 00 54 68 75 00  ay..Sat.Fri.Thu.  
+00426AE0  57 65 64 00 54 75 65 00 4D 6F 6E 00 53 75 6E 00  Wed.Tue.Mon.Sun.  
+00426AF0  FF FF FF FF 27 42 42 00 2B 42 42 00 FF FF FF FF  ****'BB.+BB.****  
+00426B00  84 42 42 00 88 42 42 00 FF FF FF FF D4 4B 42 00  凚 B.圔 B.****訩 B.  
+00426B10  D8 4B 42 00 FF FF FF FF 43 4C 42 00 47 4C 42 00  豄 B.****CLB.GLB.  
+00426B20  20 05 93 19 01 00 00 00 40 6B 42 00 00 00 00 00   ?.?..@kB.....  
+00426B30  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+```
+
+而在修复的程序中这些数据被 `iat` 表的其他结构覆盖掉了:
+
+```
+00426390  00 00 00 00 00 60 02 00 00 00 00 00 00 00 00 00  ....\`.........  
+004263A0  5C 64 02 00 00 60 02 00 14 60 02 00 00 00 00 00  \\d..\`.\`.....  
+004263B0  00 00 00 00 AC 64 02 00 14 60 02 00 58 60 02 00  ....琩.\`.X\`.  
+004263C0  00 00 00 00 00 00 00 00 1E 66 02 00 58 60 02 00  ........f.X\`.  
+004263D0  CC 60 02 00 00 00 00 00 00 00 00 00 D0 67 02 00  蘞.........術.  
+004263E0  CC 60 02 00 5C 62 02 00 00 00 00 00 00 00 00 00  蘞.\\b.........  
+004263F0  B6 6E 02 00 5C 62 02 00 68 62 02 00 00 00 00 00  秐.\\b.hb.....  
+00426400  00 00 00 00 F6 6E 02 00 68 62 02 00 88 62 02 00  ....鰊.hb.坆.  
+00426410  00 00 00 00 00 00 00 00 7C 6F 02 00 88 62 02 00  ........|o.坆.  
+......  
+00426AE0  1F 02 49 73 42 61 64 52 65 61 64 50 74 72 00 00  IsBadReadPtr..  
+00426AF0  1C 02 49 73 42 61 64 43 6F 64 65 50 74 72 00 FF  IsBadCodePtr.�  
+00426B00  F1 00 47 65 74 41 43 50 00 FF 85 01 47 65 74 4F  ?GetACP.�?GetO  
+00426B10  45 4D 43 50 00 FF F8 02 53 65 74 45 6E 64 4F 66  EMCP.�?SetEndOf  
+00426B20  46 69 6C 65 00 00 37 00 43 6F 6D 70 61 72 65 53  File..7.CompareS  
+00426B30  74 72 69 6E 67 41 00 00 38 00 43 6F 6D 70 61 72  tringA..8.Compar  
+```
+
+现在知道了原因,来尝试修复它:  
+
+1.)先把 `iat` 表的 `IID` 和 `Name` 结构转移到数据的后面,就用 `OD` 的二进制复制功能把
+
+```
+00426390  00 60 02 00 00 00 00 00 00 00 00 00 58 64 02 00  .\`.........Xd.  
+004263A0  00 60 02 00 14 60 02 00 00 00 00 00 00 00 00 00  .\`.\`.........  
+004263B0  A8 64 02 00 14 60 02 00 58 60 02 00 00 00 00 00  ╠.\`.X\`.....  
+004263C0  00 00 00 00 1A 66 02 00 58 60 02 00 CC 60 02 00  ....f.X\`.蘞.  
+004263D0  00 00 00 00 00 00 00 00 CC 67 02 00 CC 60 02 00  ........蘥.蘞.  
+004263E0  5C 62 02 00 00 00 00 00 00 00 00 00 B2 6E 02 00  \\b.........瞡.  
+004263F0  5C 62 02 00 68 62 02 00 00 00 00 00 00 00 00 00  \\b.hb.........  
+```
+
+到:
+
+```
+00427340  46 6F 6E 74 41 00 6F 6C 65 33 32 2E 64 6C 6C 00  FontA.ole32.dll.  
+00427350  A1 00 47 65 74 48 47 6C 6F 62 61 6C 46 72 6F 6D  ?GetHGlobalFrom  
+00427360  53 74 72 65 61 6D 00 06 92 00 43 72 65 61 74 65  Stream.?Create  
+00427370  53 74 72 65 61 6D 4F 6E 48 47 6C 6F 62 61 6C 00  StreamOnHGlobal.  
+00427380  FD 00 4F 6C 65 49 6E 69 74 69 61 6C 69 7A 65 00  ?OleInitialize.  
+00427390  14 01 4F 6C 65 55 6E 69 6E 69 74 69 61 6C 69 7A  OleUninitializ  
+004273A0  65 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  e...............  
+```
+
+的数据二进制复制到:
+
+```
+00426B90  00 60 02 00 00 00 00 00  .\`.....  
+00426B98  00 00 00 00 58 64 02 00  ....Xd.  
+00426BA0  00 60 02 00 14 60 02 00  .\`.\`.  
+00426BA8  00 00 00 00 00 00 00 00  ........  
+00426BB0  A8 64 02 00 14 60 02 00  ╠.\`.  
+00426BB8  58 60 02 00 00 00 00 00  X\`.....  
+00426BC0  00 00 00 00 1A 66 02 00  ....f.  
+......  
+00427B70  53 74 72 65 61 6D 4F 6E  StreamOn  
+00427B78  48 47 6C 6F 62 61 6C 00  HGlobal.  
+00427B80  FD 00 4F 6C 65 49 6E 69  ?OleIni  
+00427B88  74 69 61 6C 69 7A 65 00  tialize.  
+00427B90  14 01 4F 6C 65 55 6E 69  OleUni  
+00427B98  6E 69 74 69 61 6C 69 7A  nitializ  
+00427BA0  65 00 00 00 00 00 00 00  e.......  
+```
+
+然后从原程序中把需要的数据还原到:
+
+```
+00426390  00 00 00 00 00 00 00 00 9A 99 99 99 99 99 E9 3F  ........殭櫃櫃?  
+004263A0  00 00 00 00 00 00 50 3F 00 00 80 3A 00 00 00 00  ......P?..€:....  
+004263B0  00 00 00 00 00 00 E0 3F 9A 99 99 99 99 99 B9 3F  ......?殭櫃櫃?  
+004263C0  80 09 F8 7B 32 BF 1A 10 8B BB 00 AA 00 30 0C AB  €.�{2?嫽.?0.  
+......  
+00426AC0  64 61 79 00 4D 6F 6E 64 61 79 00 00 53 75 6E 64  day.Monday..Sund  
+00426AD0  61 79 00 00 53 61 74 00 46 72 69 00 54 68 75 00  ay..Sat.Fri.Thu.  
+00426AE0  57 65 64 00 54 75 65 00 4D 6F 6E 00 53 75 6E 00  Wed.Tue.Mon.Sun.  
+00426AF0  FF FF FF FF 27 42 42 00 2B 42 42 00 FF FF FF FF  ****'BB.+BB.****  
+00426B00  84 42 42 00 88 42 42 00 FF FF FF FF D4 4B 42 00  凚 B.圔 B.****訩 B.  
+00426B10  D8 4B 42 00 FF FF FF FF 43 4C 42 00 47 4C 42 00  豄 B.****CLB.GLB.  
+00426B20  20 05 93 19 01 00 00 00 40 6B 42 00 00 00 00 00   ?.?..@kB.....  
+00426B30  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+```
+
+再用二进制编辑器复制 dump 下修复的文件中 `iat` 表的 `FirstThunk` 结构替换 `iat` 表中的函数地址:
+
+```
+00426000  66 64 02 00 74 64 02 00  fd.td.  
+00426008  84 64 02 00 94 64 02 00  刣.攄.  
+00426010  00 00 00 00 B6 64 02 00  ....禿.  
+00426018  C6 64 02 00 DC 64 02 00  芼.躣.  
+00426020  F4 64 02 00 08 65 02 00  鬱.e.  
+00426028  22 65 02 00 3E 65 02 00  "e.>e.  
+00426030  50 65 02 00 66 65 02 00  Pe.fe.  
+......  
+00426360  DE 72 02 00 00 00 00 00  農.....  
+00426368  00 73 02 00 10 73 02 00  .s.s.  
+00426370  24 73 02 00 38 73 02 00  $s.8s.  
+00426378  00 00 00 00 50 73 02 00  ....Ps.  
+00426380  68 73 02 00 80 73 02 00  hs.€s.  
+00426388  90 73 02 00 00 00 00 00  恠.....  
+```
+
+好了,到这里把需要的数据都恢复到原来的位置了,下面就是重新修正 `iat` 表结构中的偏移.  
+
+第一个要修正的偏移就是 `iat` 中的 `FirstThunk` 结构,即 `00426000` 开始的部分.  
+
+计算一下移动的偏移量=`00426B90`-`00426390`=`800`  
+
+现在来写代码修正：
+
+```
+0041B91E  >    B8 00604200   MOV EAX,00426000  
+0041B923       8100 00080000 ADD DWORD PTR DS:\[EAX\],800  
+0041B929       8D40 04       LEA EAX,DWORD PTR DS:\[EAX+4\]  
+0041B92C       8338 00       CMP DWORD PTR DS:\[EAX\],0  
+0041B92F    ^ 74 F8         JE SHORT dumped-u.0041B929  
+0041B931    ^ EB F0         JMP SHORT dumped-u.0041B923  
+
+B8 00 60 42 00 81 00 00 08 00 00 8D 40 04 83 38 00 74 F8 EB F0  
+```
+
+在 `00426390` `00 00 00 00` 下内存访问中断，到这里上面的修正就完成了。  
+
+修改后：
+
+```
+00426000  66 6C 02 00 74 6C 02 00  fl.tl.  
+00426008  84 6C 02 00 94 6C 02 00  刲.攍.  
+00426010  00 00 00 00 B6 6C 02 00  ....秎.  
+00426018  C6 6C 02 00 DC 6C 02 00  苐.躭.  
+00426020  F4 6C 02 00 08 6D 02 00  鬺.m.  
+......  
+00426360  DE 7A 02 00 00 00 00 00  込.....  
+00426368  00 7B 02 00 10 7B 02 00  .{.{.  
+00426370  24 7B 02 00 38 7B 02 00  ${.8{.  
+00426378  00 00 00 00 50 7B 02 00  ....P{.  
+00426380  68 7B 02 00 80 7B 02 00  h{.€{.  
+00426388  90 7B 02 00 00 00 00 00  {.....  
+```
+
+第二个要修正的偏移是 `IID` 结构中的 `Name` `RVA`  
+
+写代码修正它：
+
+```
+0041B9AE >MOV EAX,dumped-p.00426B9C  
+0041B9B3   ADD DWORD PTR DS:\[EAX\],800  
+0041B9B9   LEA EAX,DWORD PTR DS:\[EAX+14\]  
+0041B9BC   CMP DWORD PTR DS:\[EAX\],0  
+0041B9BF   JE SHORT dumped-p.0041B9B9  
+0041B9C1   JMP SHORT dumped-p.0041B9B3  
+
+B8 9C 6B 42 00 81 00 00 08 00 00 8D 40 14 83 38 00 74 F8 EB F0  
+```
+
+没有几项，手动运行，完成后 `IID` 结构：  
+
+
+
+```
+00426B90  00 60 02 00 00 00 00 00 00 00 00 00 58 6C 02 00  .\`.........Xl.  
+
+00426BA0  00 60 02 00 14 60 02 00 00 00 00 00 00 00 00 00  .\`.\`.........  
+
+00426BB0  A8 6C 02 00 14 60 02 00 58 60 02 00 00 00 00 00  ╨.\`.X\`.....  
+
+00426BC0  00 00 00 00 1A 6E 02 00 58 60 02 00 CC 60 02 00  ....n.X\`.蘞.  
+
+00426BD0  00 00 00 00 00 00 00 00 CC 6F 02 00 CC 60 02 00  ........蘯.蘞.  
+
+00426BE0  5C 62 02 00 00 00 00 00 00 00 00 00 B2 76 02 00  \\b.........瞯.  
+
+00426BF0  5C 62 02 00 68 62 02 00 00 00 00 00 00 00 00 00  \\b.hb.........  
+
+00426C00  F2 76 02 00 68 62 02 00 88 62 02 00 00 00 00 00  騰.hb.坆.....  
+
+00426C10  00 00 00 00 78 77 02 00 88 62 02 00 68 63 02 00  ....xw.坆.hc.  
+
+00426C20  00 00 00 00 00 00 00 00 F2 7A 02 00 68 63 02 00  ........騴.hc.  
+
+00426C30  7C 63 02 00 00 00 00 00 00 00 00 00 46 7B 02 00  |c.........F{.  
+
+00426C40  7C 63 02 00 00 00 00 00 00 00 00 00 00 00 00 00  |c.............
+```
+
+用 `OD` 的保存功能，把修正后的文件保存成新的可执行文件。
+
+用 `LordPE` 修正导入表的 `RVA=00026B90`，`SIZE=000000B4` 保存。
+
+### 4. 混乱器代码的修正
+
+重新运行上面保存的程序，发现程序会异常，用 `OD` 加载调试跟踪发现：
+
+```
+00401740  LEA ECX,DWORD PTR DS:[5E1C0EDA]  
+
+00401746  LEA ECX,DWORD PTR DS:[ECX+A1E3F12A]  
+
+0040174C  INC ESP  
+
+0040174D  ADD CL,DL  
+
+0040174F  CLC  
+
+00401750  ADD EAX,14  
+
+00401753  DEC EDX
+```
+
+发现这是 `PELock 1.0x` 的壳把原程序的部分代码经过混乱器混乱后变成的代码。
+
+这个代码能完成功能，但是代码的长度比原程序长多了，这样经过自动恢复后会把下面正确的代码覆盖掉，所以程序就异常了。
+
+发现混乱器混乱的是有规律的，其实混乱器生成的代码功能就是：
+
+```
+MOV ECX, 04
+```
+
+就是说壳会把程序中赋值常数代码经过混乱器混乱。
+
+现在来修复它：
+
+修正 `00401740  LEA ECX,DWORD PTR DS:[5E1C0EDA]` 的代码为：
+
+```
+00401740  MOV ECX,4
+```
+
+然后再找回覆盖的代码：
+
+用 `OD` 加载未脱壳的程序，运行。`Ctrl+G` 到 `00401740` 地址，发现代码是：
+
+```
+00401740  JMP 009E0379  
+
+00401745  CDQ  
+
+00401746  SUB EAX,EDX  
+
+00401748  MOV EDX,DWORD PTR DS:[440ABC]  
+
+0040174E  SAR EAX,1
+```
+
+光标停在 `00401740  JMP 009E0379` 回车：
+
+```
+009E0379  LEA ECX,DWORD PTR DS:[5E1C0EDA]  
+
+009E037F  LEA ECX,DWORD PTR DS:[ECX+A1E3F12A]  
+
+009E0385  JMP CryptCD\_.00401745
+```
+
+可以看到返回地址是 `00401745`，看看 `00401745` 的代码是：
+
+```
+00401745  CDQ  
+
+00401746  SUB EAX,EDX  
+
+00401748  MOV EDX,DWORD PTR DS:[440ABC]  
+
+0040174E  SAR EAX,1  
+
+00401750  ADD EAX,14  
+
+00401753  DEC EDX  
+
+00401754  MOV DWORD PTR DS:[42CD80],ECX  
+
+0040175A  MOV DWORD PTR DS:[42CD8C],ECX
+```
+
+用 `OD` 的二进制代码复制功能把被覆盖的代码，恢复如下：
+
+```
+00401740  MOV ECX,4  
+
+00401745  CDQ  
+
+00401746  SUB EAX,EDX  
+
+00401748  MOV EDX,DWORD PTR DS:[440ABC]  
+
+0040174E  SAR EAX,1  
+
+00401750  ADD EAX,14  
+
+00401753  DEC EDX
+```
+
+我还没有发现自动恢复混乱器混乱代码的方法，只能这样跟踪，现在的麻烦就是不知道有多少这样的代码。
+
+经过上面的修复，脱壳基本完成。我只能做到这样，或许大家有好的方法，不妨写出来共享。
+
+我不善于写文章，写得很乱，看不明白不要骂我 :)
+
+`by fxyang`
+
+`2005.5.24`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

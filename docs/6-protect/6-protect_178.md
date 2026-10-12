@@ -1,123 +1,152 @@
 
-
 # 南天住房档案及住房补贴管理信息系统
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6206.htm`](https://www.pediy.com/kssd/pediy06/pediy6206.htm)
 
-VFP 与狗  
-   简介：最近老豆单位里买了一套《XX 住房档案及住房补贴管理系统（单位版）》软件，里面包含了一张光盘(使用了 45 兆)、说明书和一只打印端口的“深思洛克”狗，我在家适用了一下发现软件编写的不够体贴用户，而且价格不绯（500 多大洋），但软件是我们昆明人自己编的我也不能拆他的台嘛。  
-     
-   工具用到了：UnFOXAll2.1 、UltraEdit32、Microsoft Visual FoxPro 6.0  
-     
-   我这也是第一次破解软件狗，有很多不懂的地方，于是就翻阅了所有《看雪论坛精华》找资料，才发现绝大多数破解者都是调试或静态反汇编用 PE 格式生成的 EXE 文件，然后在找中文或 E 文的调用狗的地方破解的。一开始我也跟着憨，用 TRW2000 和 W32dasm 研究主文件可是基本没得到太有用的地方。后用 UltraEdit32 打开文件才发现里面是一行行的伪代码，再根据调试时发现总在 VFP6R.DLL 的领空打转，才最终确定了破解方向。  
-   发现是 VFP 的格式后当然就用 UnFOXAll2.1 将它反编译了，有 389 个文件，打开其中的主文件 gzkmk.prg 发现有以下语句  
-  
-DO ghjsz.prg  
-PUBLIC PWD1 , PWD2 , PWD3 , PWD4 , PWD5 , PWD6 , PWD7 , PWD8 , PWD9 , PWD10 , PWD11 ,  ;  
-     PWD12 , PWD13  
-PUBLIC US1 , US2 , USER1  
-PWD1 = .T.  
-PWD2 = .T.  
-PWD3 = .T.  
-PWD4 = .T.  
-PWD5 = .T.  
-PWD6 = .T.  
-PWD7 = .T.  
-PWD8 = .T.  
-PWD9 = .T.  
-PWD10 = .T.  
-PWD11 = .T.  
-PWD12 = .T.  
-PWD13 = .T.  
-\_SCREEN.WINDOWSTATE = 2  
-\_SCREEN.FONTNAME = '宋体'  
-\_SCREEN.FONTSIZE = 11  
-\_SCREEN.CAPTION = 'XX 住房档案及住房补贴管理系统(单位版) VER 5.0'  
-\_SCREEN.CLOSABLE = .F.  
-\_SCREEN.PICTURE = 'c:\\zfbt\\kmda1.jpg'  
-DO GDOG 启动时检查狗  
-DO GRECORD3  
-DO form gpasswd  
-DO gzkpm.prg  
-DO GDOG 退出前检查狗  
-QUIT   
-     
-GDOG.prg 内容如下：没狗时就出现“执行条件不具备”的窗口。  
-  
-SET TALK OFF  
-SET SAFETY OFF  
-DECLARE KEYPRO IN keypro STRING   
-DECLARE PutData IN keypro INTEGER , STRING , INTEGER   
-DECLARE INTEGER GetData IN keypro STRING , INTEGER   
-LOCAL II , JJ , AA , BB , ND , CT , CM , NA , PD1 , PD2 , PD3 , KD  
-KD = SPACE(80)  
-PD1 = ''  
-PD2 = ''  
-PD3 = ''  
-II = 22  
-JJ = 33  
-\= PUTDATA(II,@KD,6)  
-\= PUTDATA(JJ,@KD,8)  
-\= PUTDATA(0,@KD,2)  
-FOR JJ = 10 TO 15  
-   = PUTDATA(JJ,@KD,4)  
-   = KEYPRO(@KD)  
-   IF GETDATA(@KD,0) <> 0  
-      ND = 64  
-      CT = '提示:'  
-      CM = '执行条件不具备 1.' + STR(GETDATA(@KD,0))  
-      NA = MESSAGEBOX(CM,ND,CT)  
-      QUIT   
-   ELSE   
-      PD1 = PD1 + STR(GETDATA(@KD,10),1)  
-   ENDIF   
-ENDFOR   
-FOR JJ = 30 TO 35  
-   = PUTDATA(JJ,@KD,4)  
-   = KEYPRO(@KD)  
-   IF GETDATA(@KD,0) <> 0  
-      ND = 64  
-      CT = '提示:'  
-      CM = '执行条件不具备 2.'  
-      NA = MESSAGEBOX(CM,ND,CT)  
-      QUIT   
-   ELSE   
-      PD2 = PD2 + STR(GETDATA(@KD,10),1)  
-   ENDIF   
-ENDFOR   
-FOR JJ = 50 TO 55  
-   = PUTDATA(JJ,@KD,4)  
-   = KEYPRO(@KD)  
-   IF GETDATA(@KD,0) <> 0  
-      ND = 64  
-      CT = '提示:'  
-      CM = '执行条件不具备 3.'  
-      NA = MESSAGEBOX(CM,ND,CT)  
-      QUIT   
-   ELSE   
-      PD3 = PD3 + STR(GETDATA(@KD,10),1)  
-   ENDIF   
-ENDFOR   
-IF PD1 + PD2 + PD3 <> '650041140056650041'  
-   ND = 64  
-   CT = '提示:'  
-   CM = '执行条件不具备 4.'  
-   NA = MESSAGEBOX(CM,ND,CT)  
-   QUIT   
-ENDIF   
-RETURN   
-\*  
-   我再在 389 个文件的内容中查找 GDOG 语句，发现只有这两处（编程的人太浪费这个狗了！！！）。于是我将两句 DO GDOG 语句删除了，（以.prg 结尾的是程序文件，其他结尾的是表格、数据库、资源文件千万不要有一丁点改动！！！）然后用 Microsoft Visual FoxPro 6.0 重新连编这些处理过的文件，本以为可以收工了但………启动连编后的文件丢失了好多变量和出现了好多语法错误，我只能手动处理完了语法错误，在启动程序后（无狗）就能正常进入了，但还有变量丢失的问题（我的问题还是 UnFOXAll 和 ReFox V8.0 的问题）（不好修复，程序中有太多的变量交叉），不过至少证明了我们的思路是对的。  
-   由于是政府或企业使用的敏感软件，我们还是要以严密、谨慎的态度对待它，不然一丁点失误都会造成不可估量的后果！  
-   我采用了另一种特别的方法破解：用 UltraEdit32 打开原版的 EXE 程序，查找 ASCII 码的 GDOG，第一次找到后就停下仔细观察 
+## VFP 与狗
 
-黙T? 黙 T? 黙T? 黙T? 黙T? 黙T? 黙T? 黙T? 黙T? 黙 T??  T??  宋体 T?? = T?? . XX 住房档案及住房补贴管理系统(单位版) VER 5.0  
-T?? ?  T??  c:\\zfbt\\kmda1.jpg ? ? ? ? ? gpasswd? ? gzkpm.prg? ? ? 8? U GHJSZ PRG PWD1 PWD2 PWD3 PWD4 PWD5 PWD6 PWD7 PWD8 PWD9 PWD10 PWD11 PWD12 PWD13 US1 US2 USER1WINDOWSTATE FONTNAME FONTSIZE CAPTION CLOSABLE PICTURE GRECORD3 GDOG GPASSWD GZKPMr???????????????1???r q ?q A 1                   %        d  (     L?%   ?  
+### 简介
+最近老豆单位里买了一套《XX 住房档案及住房补贴管理系统（单位版）》软件，里面包含了一张光盘(使用了 45 兆)、说明书和一只打印端口的“深思洛克”狗，我在家适用了一下发现软件编写的不够体贴用户，而且价格不绯（500 多大洋），但软件是我们昆明人自己编的我也不能拆他的台嘛。
 
-发现 GDOG 前面的 ASCII 码与反编译后得到的 389 个文件中的主文件 gzkmk.prg 内容很象（见上文），于是我将 GDOG 的十六进制码 47 44 4F 47 改成了 00 00 00 00   保存运行程序（无狗）就可以正常使用所有功能了。  
+### 工具
+用到了：`UnFOXAll2.1`、`UltraEdit32`、`Microsoft Visual FoxPro 6.0`
 
-   本文局限性较大，而且有很多问题，请大家一同努力。  
-   请保持文章的完整。  
+### 破解过程
+我这也是第一次破解软件狗，有很多不懂的地方，于是就翻阅了所有《看雪论坛精华》找资料，才发现绝大多数破解者都是调试或静态反汇编用 `PE` 格式生成的 `EXE` 文件，然后在找中文或 `E` 文的调用狗的地方破解的。一开始我也跟着憨，用 `TRW2000` 和 `W32dasm` 研究主文件可是基本没得到太有用的地方。后用 `UltraEdit32` 打开文件才发现里面是一行行的伪代码，再根据调试时发现总在 `VFP6R.DLL` 的领空打转，才最终确定了破解方向。
 
-  
- 4dd466d0e1e0cc123afbe504da2462ca
+发现是 `VFP` 的格式后当然就用 `UnFOXAll2.1` 将它反编译了，有 389 个文件，打开其中的主文件 `gzkmk.prg` 发现有以下语句
+
+```
+DO ghjsz.prg
+
+PUBLIC PWD1 , PWD2 , PWD3 , PWD4 , PWD5 , PWD6 , PWD7 , PWD8 , PWD9 , PWD10 , PWD11 ,  ;
+    PWD12 , PWD13
+
+PUBLIC US1 , US2 , USER1
+
+PWD1 = .T.
+PWD2 = .T.
+PWD3 = .T.
+PWD4 = .T.
+PWD5 = .T.
+PWD6 = .T.
+PWD7 = .T.
+PWD8 = .T.
+PWD9 = .T.
+PWD10 = .T.
+PWD11 = .T.
+PWD12 = .T.
+PWD13 = .T.
+
+_SCREEN.WINDOWSTATE = 2
+_SCREEN.FONTNAME = '宋体'
+_SCREEN.FONTSIZE = 11
+_SCREEN.CAPTION = 'XX 住房档案及住房补贴管理系统(单位版) VER 5.0'
+_SCREEN.CLOSABLE = .F.
+_SCREEN.PICTURE = 'c:\zfbt\kmda1.jpg'
+
+DO GDOG 启动时检查狗
+DO GRECORD3
+DO form gpasswd
+DO gzkpm.prg
+DO GDOG 退出前检查狗
+QUIT
+```
+
+`GDOG.prg` 内容如下：没狗时就出现“执行条件不具备”的窗口。
+
+```
+SET TALK OFF
+SET SAFETY OFF
+
+DECLARE KEYPRO IN keypro STRING
+DECLARE PutData IN keypro INTEGER , STRING , INTEGER
+DECLARE INTEGER GetData IN keypro STRING , INTEGER
+
+LOCAL II , JJ , AA , BB , ND , CT , CM , NA , PD1 , PD2 , PD3 , KD
+
+KD = SPACE(80)
+PD1 = ''
+PD2 = ''
+PD3 = ''
+
+II = 22
+JJ = 33
+\= PUTDATA(II,@KD,6)
+\= PUTDATA(JJ,@KD,8)
+\= PUTDATA(0,@KD,2)
+
+FOR JJ = 10 TO 15
+    = PUTDATA(JJ,@KD,4)
+    = KEYPRO(@KD)
+    IF GETDATA(@KD,0) <> 0
+        ND = 64
+        CT = '提示:'
+        CM = '执行条件不具备 1.' + STR(GETDATA(@KD,0))
+        NA = MESSAGEBOX(CM,ND,CT)
+        QUIT
+    ELSE
+        PD1 = PD1 + STR(GETDATA(@KD,10),1)
+    ENDIF
+ENDFOR
+
+FOR JJ = 30 TO 35
+    = PUTDATA(JJ,@KD,4)
+    = KEYPRO(@KD)
+    IF GETDATA(@KD,0) <> 0
+        ND = 64
+        CT = '提示:'
+        CM = '执行条件不具备 2.'
+        NA = MESSAGEBOX(CM,ND,CT)
+        QUIT
+    ELSE
+        PD2 = PD2 + STR(GETDATA(@KD,10),1)
+    ENDIF
+ENDFOR
+
+FOR JJ = 50 TO 55
+    = PUTDATA(JJ,@KD,4)
+    = KEYPRO(@KD)
+    IF GETDATA(@KD,0) <> 0
+        ND = 64
+        CT = '提示:'
+        CM = '执行条件不具备 3.'
+        NA = MESSAGEBOX(CM,ND,CT)
+        QUIT
+    ELSE
+        PD3 = PD3 + STR(GETDATA(@KD,10),1)
+    ENDIF
+ENDFOR
+
+IF PD1 + PD2 + PD3 <> '650041140056650041'
+    ND = 64
+    CT = '提示:'
+    CM = '执行条件不具备 4.'
+    NA = MESSAGEBOX(CM,ND,CT)
+    QUIT
+ENDIF
+
+RETURN
+\*
+```
+
+我再在 389 个文件的内容中查找 `GDOG` 语句，发现只有这两处（编程的人太浪费这个狗了！！！）。于是我将两句 `DO GDOG` 语句删除了，（以`.prg`结尾的是程序文件，其他结尾的是表格、数据库、资源文件千万不要有一丁点改动！！！）然后用 `Microsoft Visual FoxPro 6.0` 重新连编这些处理过的文件，本以为可以收工了但………启动连编后的文件丢失了好多变量和出现了好多语法错误，我只能手动处理完了语法错误，在启动程序后（无狗）就能正常进入了，但还有变量丢失的问题（我的问题还是 `UnFOXAll` 和 `ReFox V8.0` 的问题）（不好修复，程序中有太多的变量交叉），不过至少证明了我们的思路是对的。
+
+由于是政府或企业使用的敏感软件，我们还是要以严密、谨慎的态度对待它，不然一丁点失误都会造成不可估量的后果！
+
+我采用了另一种特别的方法破解：用 `UltraEdit32` 打开原版的 `EXE` 程序，查找 `ASCII` 码的 `GDOG`，第一次找到后就停下仔细观察
+
+```
+黙T? 黙 T? 黙T? 黙T? 黙T? 黙T? 黙T? 黙T? 黙T? 黙 T??  T??  宋体 T?? = T?? . XX 住房档案及住房补贴管理系统(单位版) VER 5.0
+
+T?? ?  T??  c:\zfbt\kmda1.jpg ? ? ? ? ? gpasswd? ? gzkpm.prg? ? ? 8? U GHJSZ PRG PWD1 PWD2 PWD3 PWD4 PWD5 PWD6 PWD7 PWD8 PWD9 PWD10 PWD11 PWD12 PWD13 US1 US2 USER1WINDOWSTATE FONTNAME FONTSIZE CAPTION CLOSABLE PICTURE GRECORD3 GDOG GPASSWD GZKPMr???????????????1???r q ?q A 1 % d ( L?% ?
+```
+
+发现 `GDOG` 前面的 `ASCII` 码与反编译后得到的 389 个文件中的主文件 `gzkmk.prg` 内容很象（见上文），于是我将 `GDOG` 的十六进制码 `47 44 4F 47` 改成了 `00 00 00 00` 保存运行程序（无狗）就可以正常使用所有功能了。
+
+### 结语
+本文局限性较大，而且有很多问题，请大家一同努力。
+
+请保持文章的完整。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

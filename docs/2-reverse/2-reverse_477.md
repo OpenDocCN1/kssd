@@ -1,393 +1,432 @@
 
-
 # 逆向 C++之三 函数 大事化小 小事化了
 
 > 原文：[`www.pediy.com/kssd/pediy10/79105.html`](https://www.pediy.com/kssd/pediy10/79105.html)
 
-【文章标题】: 逆向 C++之三 函数 大事化小 小事化了  
-【文章作者】: kanghtta  
-【作者邮箱】: kanghtta@hotmail.com  
-【作者主页】: http://kanghtta.cublog.cn  
-\--------------------------------------------------------------------------------  
-【详细过程】  
-      大家好，上一节写了逆向 C++的变量后，本来按顺序来说应该写表达式和运算符了，但是关于表达式和运算符，  
-  主要涉及的知识还是组成原理中的二进制运算和编码解码的问题，所以先打算把有关 C++的写完，有时间以后在写点  
-  系统方面的东西；好了，话多不甜；   
-    
-  使用函数的意义：  
-     在程序中使用函数主要是为了编写可重用的代码来避免不必要的重复劳动，我们将功能独立的代码封装成独立于程序的函数，  
-  它们可以在程序的任何地方被调用，由于它们可以独立于程序而存在，所以你可以把它们复制和粘贴到其它的程序中。然而，  
-  在宏观的层面上，实现重用的更好方法是把函数封装在类中，让所有的程序都能用它； 你甚至还可以将对同一类问题的解决的功能  
-  性函数编译成静态库或者是动态链接库；方便以后使用； 还有点题外话，很多函数的使用，其实依赖于多个公式的使用，  
-  因此补充点数学知识对你百利而无一害； 而无论我们面对的是多么复杂的问题，最终都可以找到解决的方案；  
-    
-  函数的定义格式：  
-    
-  return\_type function\_name(parameter\_declaration\_list)  
-  {  
-       statement\_list;  
-  }  
-    
-  return\_type  是函数的返回值类型，void 表示函数没有返回值，包含存储类型和数据类型，其中存储类省略的为外部函数，  
-  而数据类型不可省略；注意，没有返回值的函数不能用在表达式中；  
-    
-  function\_name  函数名，用来标示一个函数，一般定义为有意义的字段值；如 GetWindowText  
-    
-  (parameter\_declaration\_list) 在括号中间的是，函数的参数，多个参数之间用，号分隔；如果在定义函数的时候只给出参数  
-  名，那么要在下面逐一说明参数的类型，通常是在参数表中同时给出参数的类型和名称；  
-    
-  statement\_list 是语句系列，表达式后面加个分号就构成语句，一条语句用来完成一种功能，多条语句放在一个大括号内称为复合语句；  
-    
-    
-  函数的说明方法：  
-    函数定义之后，在调用之前通常要说明该函数，特别是调用在前，定义在后的函数，使用之前一定要说明，否则无法通过编译；  
-  而定义在前，调用在后的函数，使用时可以不用说明；  
-  函数的说明格式：  
-  return\_type function\_name(parameter\_declaration\_list)；  
-    
-  也可以省略参数表中的变量名，但要指出参数的类型和个数；如：  
-    
-  int fun(int a,int b)  
-  {  
-     return a+b;  
-  }  
-    
-  说明：  
-  int fun(int a,int b);  原型说明  
-  int fun(int,int);      简单说明  
-    
-  函数的类型：  
-    
-  函数的存储类有两种： 一是外部函数，它的作用域是整个程序，包含程序中的各个文件；定义时，存储类型为： extern  
-   extern  data\_type function\_name(parameter\_declaration\_list)  
-  一般在 C++中，类体外定义的函数不加存储类型说明符的都是外部函数，它定义在某个文件中，在该程序的其它文件中都可以调用；  
-   内部函数：  
-  内部函数的作用域是在定义该函数的文件内，在改程序的其它文件内不可调用，定义时，存储类型为： static  
-   extern  data\_type function\_name(parameter\_declaration\_list)  
-    
-  函数的返回值：return <表达式>  
-  计算过程如下:  
-  1): 计算表达式的值。  
-  2):转换表达式的类型，但计算的表达式和函数的返回值类型不一致时，应将表达式的类型转换为返回值类型，通常加强制类型转换；  
-  3):将表达式的值返回给调用函数作为调用函数的值，一般在 eax 中  
-  4):将程序的控制权返回到调用函数语句，执行调用函数下面的语句；  
-    
-  函数的参数：  
-     参数的类型：函数的参数有实参和形参之分；   
-  1：实参--调用函数的参数称为实在参数，通常函数的参数是一种表达式，它具有确定的值；在函数调用时，将实参值对应地传递给被调用的参数  
-  使被调用函数的参数获得实际的值；  
-  2：形参--被调用函数的参数称为形式参数，通常是一种变量名，数组名，引用名，指针名等，在未被调用之前，它没有实际的值，而被调用之后，  
-  它才从函数的实参那获取值；我们可以设置形参的默认值；但必须从函数参数表的右边开始，并且如果一个函数有说明语句，则参数默认值应该放  
-  在说明函数的语句中，否则放在定义函数的语句中；  
-    
-  定义函数时：必须指出函数的形参的个数和名字；  
-    
-  函数参数的求值顺序： （其实就是调用约定，函数参数的入栈顺序和堆栈的平衡）  
-    
-  C 类语言中，（\_\_stdcall）函数入栈顺序从右到左，最右边的参数最先入栈； 在 Windef.h 中有如下语句  
-  #define CALLBACK    \_\_stdcall  
-  #define WINAPI      \_\_stdcall  
-  #define WINAPIV     \_\_cdecl  
-    
-  实例分析：由于为了方便理解，函数写的简单了点；不过能帮助大家能理解原理就行；  
-    
- 
+**【文章标题】**: 逆向 C++之三 函数 大事化小 小事化了
+
+**【文章作者】**: `kanghtta`
+
+**【作者邮箱】**: `kanghtta@hotmail.com`
+
+**【作者主页】**: `http://kanghtta.cublog.cn`
+
+--------------------------------------------------------------------------------
+
+## 【详细过程】
+
+大家好，上一节写了逆向 C++的变量后，本来按顺序来说应该写表达式和运算符了，但是关于表达式和运算符，主要涉及的知识还是组成原理中的二进制运算和编码解码的问题，所以先打算把有关 C++的写完，有时间以后在写点系统方面的东西；好了，话多不甜；
+
+### 使用函数的意义：
+
+在程序中使用函数主要是为了编写可重用的代码来避免不必要的重复劳动，我们将功能独立的代码封装成独立于程序的函数，它们可以在程序的任何地方被调用，由于它们可以独立于程序而存在，所以你可以把它们复制和粘贴到其它的程序中。然而，在宏观的层面上，实现重用的更好方法是把函数封装在类中，让所有的程序都能用它；你甚至还可以将对同一类问题的解决的功能性函数编译成静态库或者是动态链接库；方便以后使用；还有点题外话，很多函数的使用，其实依赖于多个公式的使用，因此补充点数学知识对你百利而无一害；而无论我们面对的是多么复杂的问题，最终都可以找到解决的方案；
+
+### 函数的定义格式：
+
+```
+return_type function_name(parameter_declaration_list)
+{
+    statement_list;
+}
+```
+
+`return_type` 是函数的返回值类型，`void` 表示函数没有返回值，包含存储类型和数据类型，其中存储类省略的为外部函数，而数据类型不可省略；注意，没有返回值的函数不能用在表达式中；
+
+`function_name` 函数名，用来标示一个函数，一般定义为有意义的字段值；如 `GetWindowText`
+
+`parameter_declaration_list` 在括号中间的是，函数的参数，多个参数之间用，号分隔；如果在定义函数的时候只给出参数名，那么要在下面逐一说明参数的类型，通常是在参数表中同时给出参数的类型和名称；
+
+`statement_list` 是语句系列，表达式后面加个分号就构成语句，一条语句用来完成一种功能，多条语句放在一个大括号内称为复合语句；
+
+### 函数的说明方法：
+
+函数定义之后，在调用之前通常要说明该函数，特别是调用在前，定义在后的函数，使用之前一定要说明，否则无法通过编译；而定义在前，调用在后的函数，使用时可以不用说明；
+
+### 函数的说明格式：
+
+```
+return_type function_name(parameter_declaration_list);
+```
+
+也可以省略参数表中的变量名，但要指出参数的类型和个数；如：
+
+```
+int fun(int a,int b)
+{
+    return a+b;
+}
+```
+
+说明：
+
+```
+int fun(int a,int b);  // 原型说明
+int fun(int,int);       // 简单说明
+```
+
+### 函数的类型：
+
+函数的存储类有两种：一是外部函数，它的作用域是整个程序，包含程序中的各个文件；定义时，存储类型为：`extern`
+
+```
+extern data_type function_name(parameter_declaration_list)
+```
+
+一般在 C++中，类体外定义的函数不加存储类型说明符的都是外部函数，它定义在某个文件中，在该程序的其它文件中都可以调用；
+
+**内部函数：**
+
+内部函数的作用域是在定义该函数的文件内，在改程序的其它文件内不可调用，定义时，存储类型为：`static`
+
+```
+extern data_type function_name(parameter_declaration_list)
+```
+
+### 函数的返回值：
+
+`return <表达式>`
+
+计算过程如下:
+
+1): 计算表达式的值。
+2): 转换表达式的类型，但计算的表达式和函数的返回值类型不一致时，应将表达式的类型转换为返回值类型，通常加强制类型转换；
+3): 将表达式的值返回给调用函数作为调用函数的值，一般在 `eax` 中
+4): 将程序的控制权返回到调用函数语句，执行调用函数下面的语句；
+
+### 函数的参数：
+
+参数的类型：函数的参数有实参和形参之分；
+
+1：实参--调用函数的参数称为实在参数，通常函数的参数是一种表达式，它具有确定的值；在函数调用时，将实参值对应地传递给被调用的参数使被调用函数的参数获得实际的值；
+
+2：形参--被调用函数的参数称为形式参数，通常是一种变量名，数组名，引用名，指针名等，在未被调用之前，它没有实际的值，而被调用之后，它才从函数的实参那获取值；我们可以设置形参的默认值；但必须从函数参数表的右边开始，并且如果一个函数有说明语句，则参数默认值应该放在说明函数的语句中，否则放在定义函数的语句中；
+
+定义函数时：必须指出函数的形参的个数和名字；
+
+### 函数参数的求值顺序：
+
+（其实就是调用约定，函数参数的入栈顺序和堆栈的平衡）
+
+C 类语言中，(`__stdcall`) 函数入栈顺序从右到左，最右边的参数最先入栈；在 `Windef.h` 中有如下语句
+
+```
+#define CALLBACK    __stdcall
+#define WINAPI      __stdcall
+#define WINAPIV     __cdecl
+```
+
+### 实例分析：
+
+由于为了方便理解，函数写的简单了点；不过能帮助大家能理解原理就行；
 
 代码:
 
-```
+```c
 #include<iostream>
-using namespace std;
+using namespace std;
 
+int AddTwoNumber(int a,int b=8);//设置形参默认值
+int AddTwoNumber(int *,int *);
+int AddTwoNum(int &,int &);
 
-int AddTwoNumber(int a,int b=8);//设置形参默认值
-int  AddTwoNumber(int \*,int \*);
-int AddTwoNum(int &,int &);
-
-int main()
+int main()
 {
-  int a=2,
-    b=8;
-  int result = AddTwoNumber(2,b);// 
-  
-  AddTwoNumber(&a,&b);
+    int a=2,
+        b=8;
+    int result = AddTwoNumber(2,b);// 
 
-  AddTwoNum(a,b);
+    AddTwoNumber(&a,&b);
 
-  return 0;
+    AddTwoNum(a,b);
+
+    return 0;
 }
 
-int  AddTwoNumber(int a,int b)
+int AddTwoNumber(int a,int b)
 {
-  return  a+b;
+    return a+b;
 }
 
-int  AddTwoNumber(int \*pa,int \*pb)
+int AddTwoNumber(int *pa,int *pb)
 {
-  return  \*pa+\*pb;
+    return *pa+*pb;
 }
 
-int  AddTwoNum(int &a,int &b)
+int AddTwoNum(int &a,int &b)
 {
-  return  a+b;
+    return a+b;
 }
-
 ```
 
-  
-  在 Visual C++ 6.0 中编译，链接后，用 OD 载入，按照第一课的方法找到 Main 函数入口，F7 跟进，来到主函数体内  
-  
-  00401050  /> \\55            push    ebp          ； 保存 ebp                       
-  00401051  |.  8BEC          mov     ebp, esp     ；  
-  00401053  |.  83EC 4C       sub     esp, 4C      ；在堆栈中预留空间  
-  00401056  |.  53            push    ebx  
-  00401057  |.  56            push    esi  
-  00401058  |.  57            push    edi  
-  00401059  |.  8D7D B4       lea     edi, dword ptr \[ebp-4C\]  
-  0040105C  |.  B9 13000000   mov     ecx, 13  
-  00401061  |.  B8 CCCCCCCC   mov     eax, CCCCCCCC  
-  00401066  |.  F3:AB         rep     stos dword ptr es:\[edi\]  
-  00401068  |.  C745 FC 02000>mov     dword ptr \[ebp-4\], 2     ; 变量定义以及初始化  
-  0040106F  |.  C745 F8 08000>mov     dword ptr \[ebp-8\], 8       
-  00401076  |.  8B45 F8       mov     eax, dword ptr \[ebp-8\]  
-  00401079  |.  50            push    eax  
-  0040107A  |.  6A 02         push    2  
-  0040107C  |.  E8 8EFFFFFF   call    0040100F               ；调用 AddTwoNumber(int a,int b) ，传值调用  
-  00401081  |.  83C4 08       add     esp, 8  
-  00401084  |.  8945 F4       mov     dword ptr \[ebp-C\], eax  
-  00401087  |.  8D4D F8       lea     ecx, dword ptr \[ebp-8\]  
-  0040108A  |.  51            push    ecx  
-  0040108B  |.  8D55 FC       lea     edx, dword ptr \[ebp-4\]  
-  0040108E  |.  52            push    edx  
-  0040108F  |.  E8 76FFFFFF   call    0040100A               ；调用 int  AddTwoNumber(int \*pa,int \*pb) 传址调用  
-  00401094  |.  83C4 08       add     esp, 8  
-  00401097  |.  8D45 F8       lea     eax, dword ptr \[ebp-8\]  
-  0040109A  |.  50            push    eax  
-  0040109B  |.  8D4D FC       lea     ecx, dword ptr \[ebp-4\]  
-  0040109E  |.  51            push    ecx  
-  0040109F  |.  E8 61FFFFFF   call    00401005               ；调用 int  AddTwoNum(int &a,int &b)引用调用  
-  004010A4  |.  83C4 08       add     esp, 8  
-  004010A7  |.  33C0          xor     eax, eax  
-  004010A9  |.  5F            pop     edi  
-  004010AA  |.  5E            pop     esi  
-  004010AB  |.  5B            pop     ebx  
-  004010AC  |.  83C4 4C       add     esp, 4C  
-  004010AF  |.  3BEC          cmp     ebp, esp  
-  004010B1  |.  E8 AA710000   call    00408260  
-  004010B6  |.  8BE5          mov     esp, ebp  
-  004010B8  |.  5D            pop     ebp  
-  004010B9  \\.  C3            retn  
-  
-    参数传递和堆栈平衡  
-  
-  我们知道，调用子程序是通过堆栈进行的，调用者先把参数（实参）压入堆栈，然后调用子程序，在完成后，由于堆栈中  
-  先前压入的数不在有用，调用者或者被调用者必须有一方把堆栈指针修正到调用前的状态，也就是栈的平衡；参数的最右  
-  边还是最左边先入栈，堆栈的平衡由调用者还是被调用者来维护，必须有个约定；C 语言中，参数从最右边入栈，由调用  
-  者来修正栈区；  
-  
-  这里注意堆和栈的区别：（引用，shellcode handbook 的内容，以后有机会，会详细和大家讨论）  
-  1：  
-  栈是一个 LIFO 数据结构，有点象自助餐厅里摆放的一叠盘子，最后放上去的会被第一个拿走。  
-  栈的边界由扩展栈指针（ESP）寄存器来定义，它指向栈顶。PUSH 和 POP 是两条专用的栈指令，  
-  它们通过 ESP 对栈进行操作。在许多硬件体系结构里（如上一章提到的 IA32），ESP 指向最后使用的栈地址。  
-  在其它的硬件体系结构里，它可能指向第一个空闲的地址。PUSH 把数据压入栈，POP 把数据弹出栈。  
-  这两条指令都经过特别优化，有很高的执行效率。让我们观察执行 PUSH 后，栈是如何变化的。  
-  另一个与栈相关的寄存器是 EBP。EBP 保存栈底指针，通常以它为基址来计算其它的地址，我们把它称为“帧指针”，  
-  有时也称为“基址指针”。尽管可以把 EBP 当作通用寄存器来使用，但在历史上，EBP 总是与栈操作相关。  
-  
-  2：堆  
-  程序在运行时，每个线程都会有一个栈，用来保存局部变量。但对全局变量或太大的变量来说，栈就不太适合了，  
-  这个时候就需要使用另外的内存区域来保存它们。事实上，有些程序在编译时并不能确定它将要使用多大的内存，  
-  而一般是在运行时，通过特殊的系统调用来动态分配。一个典型的 Linux 程序通常包括.bss 段（未初始化的全局变量），  
-  .data 段（已初始化的全局变量），和其他的、用 brk()或 mmap()等系统调用分配的、由 malloc()使用的一些段。  
-  你可以用 GDB 的 maintenance info sections 命令查看这些段信息。尽管一般人都认为由 malloc()分配的段才是真正的堆，  
-  但在我们看来，任何可写的段都可以看作是堆  
-  
-  注意： 堆和栈是内存管理中两种不同的数据结构，它们的增长方向不同；如果内存依据地址按照从小到大排列，  
-  那么堆向下增长，栈向上增长；在 Od 中，栈帧是依据 ebp 的值来划分的，也就是说，前一栈帧既属于上一个栈帧  
-  又属于下一个栈帧；  
-  
-  函数调用 AddTwoNumber(2,b)这个函数时堆栈的数据  
-  
-  EBP-4    > CCCCCCCC  
-  EBP ==>  >/0012FF80     ；栈帧的划分  
-  EBP+4    >|00401081  返回到 function.00401081 来自 function.0040100F  
-  EBP+8    >|00000002  
-  EBP+C    >|00000008  
-  EBP+10   >|7C930208  ntdll.7C930208  
-  EBP+14   >|FFFFFFFF  
-  EBP+18   >|7FFD7000  
-  EBP+1C   >|CCCCCCCC  
-  EBP+20   >|CCCCCCCC  
-  EBP+24   >|CCCCCCCC  
-  EBP+28   >|CCCCCCCC  
-  EBP+2C   >|CCCCCCCC  
-  EBP+30   >|CCCCCCCC  
-  EBP+34   >|CCCCCCCC  
-  EBP+38   >|CCCCCCCC  
-  EBP+3C   >|CCCCCCCC  
-  EBP+40   >|CCCCCCCC  
-  EBP+44   >|CCCCCCCC  
-  EBP+48   >|CCCCCCCC  
-  EBP+4C   >|CCCCCCCC  
-  EBP+50   >|CCCCCCCC  
-  EBP+54   >|CCCCCCCC  
-  EBP+58   >|CCCCCCCC  
-  EBP+5C   >|CCCCCCCC  
-  EBP+60   >|00000008  
-  EBP+64   >|00000002  
-  EBP+68   >\]0012FFC0  
-  EBP+6C   >|004084A9  返回到 function.<模块入口点>+0E9 来自 function.0040101E  
-  
-  函数参数调用方式：  
-  
-  一：  
-  传值调用： 函数调用时，实参的值传递给形参使用；  
-  
-  1）程序中定义为：  
-  
-  int  AddTwoNumber(int a,int b)  
-  {  
-    return  a+b;  
-  }  
-  
-  2）反汇编后的代码为：  
-  参数入栈：  
-  00401079  |.  50            push    eax  
-  0040107A  |.  6A 02         push    2  
-  
-  函数实现：  
-  
-  004010E0  /> \\55            push    ebp  
-  004010E1  |.  8BEC          mov     ebp, esp  
-  004010E3  |.  83EC 40       sub     esp, 40  
-  004010E6  |.  53            push    ebx  
-  004010E7  |.  56            push    esi  
-  004010E8  |.  57            push    edi  
-  004010E9  |.  8D7D C0       lea     edi, dword ptr \[ebp-40\]  
-  004010EC  |.  B9 10000000   mov     ecx, 10  
-  004010F1  |.  B8 CCCCCCCC   mov     eax, CCCCCCCC  
-  004010F6  |.  F3:AB         rep     stos dword ptr es:\[edi\]  
-  
-  004010F8  |.  8B45 08       mov     eax, dword ptr \[ebp+8\]  
-  004010FB  |.  0345 0C       add     eax, dword ptr \[ebp+C\]  
-  004010FE  |.  5F            pop     edi  
-  004010FF  |.  5E            pop     esi  
-  00401100  |.  5B            pop     ebx  
-  00401101  |.  8BE5          mov     esp, ebp  
-  00401103  |.  5D            pop     ebp  
-  00401104  \\.  C3            retn  
-  
-  二：  
-  
-  传址调用：形参为指针，实参为地址  
-  
-  1）程序中定义为：  
-  
-  int  AddTwoNumber(int \*pa,int \*pb)  
-  {  
-    return  \*pa+\*pb;  
-  }  
-  
-  
-  2）反汇编后的代码为：  
-  
-  参数入栈：  
-  00401081  |.  83C4 08       add     esp, 8       ;调用者平衡被调用者的参数堆栈  
-  00401084  |.  8945 F4       mov     dword ptr \[ebp-C\], eax  ;int result = AddTwoNumber（）；  
-  
-  00401087  |.  8D4D F8       lea     ecx, dword ptr \[ebp-8\]  ；注意这里，指针调用  
-  0040108A  |.  51            push    ecx  
-  0040108B  |.  8D55 FC       lea     edx, dword ptr \[ebp-4\]    
-  0040108E  |.  52            push    edx  
-  
-  函数实现：  
-  
-  00401110  /> \\55            push    ebp  
-  00401111  |.  8BEC          mov     ebp, esp  
-  00401113  |.  83EC 40       sub     esp, 40  
-  00401116  |.  53            push    ebx  
-  00401117  |.  56            push    esi  
-  00401118  |.  57            push    edi  
-  00401119  |.  8D7D C0       lea     edi, dword ptr \[ebp-40\]  
-  0040111C  |.  B9 10000000   mov     ecx, 10  
-  00401121  |.  B8 CCCCCCCC   mov     eax, CCCCCCCC  
-  00401126  |.  F3:AB         rep     stos dword ptr es:\[edi\]  
-  
-  00401128  |.  8B45 08       mov     eax, dword ptr \[ebp+8\]  
-  0040112B  |.  8B00          mov     eax, dword ptr \[eax\]  
-  0040112D  |.  8B4D 0C       mov     ecx, dword ptr \[ebp+C\]  
-  00401130  |.  0301          add     eax, dword ptr \[ecx\]    ；在 ecx 寄存器上右键，数据窗口中跟随，地址是堆栈中的地址；  
-  00401132  |.  5F            pop     edi  
-  00401133  |.  5E            pop     esi  
-  00401134  |.  5B            pop     ebx  
-  00401135  |.  8BE5          mov     esp, ebp  
-  00401137  |.  5D            pop     ebp  
-  00401138  \\.  C3            retn  
-  
-  
-  
-  引用调用：形参为引用，实参为变量名   
-  
-  1）程序中定义为：  
-  
-  int  AddTwoNum(int &a,int &b)  
-  {  
-    return  a+b;  
-  }  
-  
-  2）反汇编后的代码为：  
-  参数入栈：  
-  00401097  |.  8D45 F8       lea     eax, dword ptr \[ebp-8\]  
-  0040109A  |.  50            push    eax  
-  0040109B  |.  8D4D FC       lea     ecx, dword ptr \[ebp-4\]  
-  0040109E  |.  51            push    ecx  
-  
-  
-  函数实现：  
-  00401150  /> \\55            push    ebp  
-  00401151  |.  8BEC          mov     ebp, esp  
-  00401153  |.  83EC 40       sub     esp, 40  
-  00401156  |.  53            push    ebx  
-  00401157  |.  56            push    esi  
-  00401158  |.  57            push    edi  
-  00401159  |.  8D7D C0       lea     edi, dword ptr \[ebp-40\]  
-  0040115C  |.  B9 10000000   mov     ecx, 10  
-  00401161  |.  B8 CCCCCCCC   mov     eax, CCCCCCCC  
-  00401166  |.  F3:AB         rep     stos dword ptr es:\[edi\]  
-  00401168  |.  8B45 08       mov     eax, dword ptr \[ebp+8\]  
-  0040116B  |.  8B00          mov     eax, dword ptr \[eax\]  
-  0040116D  |.  8B4D 0C       mov     ecx, dword ptr \[ebp+C\]  
-  00401170  |.  0301          add     eax, dword ptr \[ecx\]  
-  00401172  |.  5F            pop     edi  
-  00401173  |.  5E            pop     esi  
-  00401174  |.  5B            pop     ebx  
-  00401175  |.  8BE5          mov     esp, ebp  
-  00401177  |.  5D            pop     ebp  
-  00401178  \\.  C3            retn  
-  
-  
-  从上述我们可以看出，三种函数调用方式上 ，传值调用和后两种在参数的使用和功能实现上都有不同，由于是指针，  
-  所以在参数入栈时用了 lea 指令，并且，传址调用和引用调用的功能性代码完全相同，而且，用引用调用能简化书写，  
-  它们的不同，在这个程序中，唯一的区别就是参数入栈时，使用的寄存器不同；由于使用了 Lea 指令，传址调用和引用调用  
-  函数执行的时间肯定要比传值调用的时间长，所以如果是在函数的递归调用和嵌套调用中，如果为了效力考虑，在完成  
-  相同的功能的函数设计上，尽量使用传值调用；另外在传址调用和引用调用上，建议大家使用引用调用，因为它们在实现  
-  上一样的，而引用调用使用起来更加方便；  
-  并且有一点想让大家注意，大家在想栈这个数据结构，不要想着 Push， pop 后栈中的数据就不再了，  
-  物理内存一般为动态 RAM，一般为 MOS 型，它具有客观实在性，因此，即使你 pop 平衡了栈后，原来的数据仍然存放在内存中  
-  也就是，除非断电或再一次被使用，否则内存中的数据不会改变；  
-  
-  好了，这一部分就写到这吧； 写这文章好累啊；好费时； 555555  
-  
-  
-  
-\--------------------------------------------------------------------------------  
-【经验总结】  
-     其实，细心的读者可以还会看出，在此例中还用了函数的多态性的一种，重载函数； 这一部分留给大家随便看下，对，  
-  机器来说，指令和数据没有区别，而是人类抽象思维的结晶；让我们拥有了这个千变万华的世界；   
-  
-\--------------------------------------------------------------------------------  
-【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
-  
-  
-                                                       2008 年 12 月 20 日 22:08:55
+在 Visual C++ 6.0 中编译，链接后，用 `OD` 载入，按照第一课的方法找到 `Main` 函数入口，`F7` 跟进，来到主函数体内
+
+```asm
+00401050  /> \55            push    ebp          ; 保存 ebp
+00401051  |.  8BEC          mov     ebp, esp
+00401053  |.  83EC 4C       sub     esp, 4C      ;在堆栈中预留空间
+00401056  |.  53            push    ebx
+00401057  |.  56            push    esi
+00401058  |.  57            push    edi
+00401059  |.  8D7D B4       lea     edi, dword ptr [ebp-4C]
+0040105C  |.  B9 13000000   mov     ecx, 13
+00401061  |.  B8 CCCCCCCC   mov     eax, CCCCCCCC
+00401066  |.  F3:AB         rep     stos dword ptr es:[edi]
+00401068  |.  C745 FC 02000>mov     dword ptr [ebp-4], 2     ; 变量定义以及初始化
+0040106F  |.  C745 F8 08000>mov     dword ptr [ebp-8], 8
+00401076  |.  8B45 F8       mov     eax, dword ptr [ebp-8]
+00401079  |.  50            push    eax
+0040107A  |.  6A 02         push    2
+0040107C  |.  E8 8EFFFFFF   call    0040100F        ;调用 AddTwoNumber(int a,int b) ，传值调用
+00401081  |.  83C4 08       add     esp, 8
+00401084  |.  8945 F4       mov     dword ptr [ebp-C], eax
+00401087  |.  8D4D F8       lea     ecx, dword ptr [ebp-8]
+0040108A  |.  51            push    ecx
+0040108B  |.  8D55 FC       lea     edx, dword ptr [ebp-4]
+0040108E  |.  52            push    edx
+0040108F  |.  E8 76FFFFFF   call    0040100A        ;调用 int AddTwoNumber(int *pa,int *pb) 传址调用
+00401094  |.  83C4 08       add     esp, 8
+00401097  |.  8D45 F8       lea     eax, dword ptr [ebp-8]
+0040109A  |.  50            push    eax
+0040109B  |.  8D4D FC       lea     ecx, dword ptr [ebp-4]
+0040109E  |.  51            push    ecx
+0040109F  |.  E8 61FFFFFF   call    00401005        ;调用 int AddTwoNum(int &a,int &b)引用调用
+004010A4  |.  83C4 08       add     esp, 8
+004010A7  |.  33C0          xor     eax, eax
+004010A9  |.  5F            pop     edi
+004010AA  |.  5E            pop     esi
+004010AB  |.  5B            pop     ebx
+004010AC  |.  83C4 4C       add     esp, 4C
+004010AF  |.  3BEC          cmp     ebp, esp
+004010B1  |.  E8 AA710000   call    00408260
+004010B6  |.  8BE5          mov     esp, ebp
+004010B8  |.  5D            pop     ebp
+004010B9  \.  C3            retn
+```
+
+### 参数传递和堆栈平衡
+
+我们知道，调用子程序是通过堆栈进行的，调用者先把参数（实参）压入堆栈，然后调用子程序，在完成后，由于堆栈中先前压入的数不在有用，调用者或者被调用者必须有一方把堆栈指针修正到调用前的状态，也就是栈的平衡；参数的最右边还是最左边先入栈，堆栈的平衡由调用者还是被调用者来维护，必须有个约定；C 语言中，参数从最右边入栈，由调用者来修正栈区；
+
+这里注意堆和栈的区别：（引用，`shellcode handbook` 的内容，以后有机会，会详细和大家讨论）
+
+1：
+
+栈是一个 `LIFO` 数据结构，有点象自助餐厅里摆放的一叠盘子，最后放上去的会被第一个拿走。
+
+栈的边界由扩展栈指针（`ESP`）寄存器来定义，它指向栈顶。`PUSH` 和 `POP` 是两条专用的栈指令，它们通过 `ESP` 对栈进行操作。在许多硬件体系结构里（如上一章提到的 `IA32`），`ESP` 指向最后使用的栈地址。在其它的硬件体系结构里，它可能指向第一个空闲的地址。`PUSH` 把数据压入栈，`POP` 把数据弹出栈。这两条指令都经过特别优化，有很高的执行效率。让我们观察执行 `PUSH` 后，栈是如何变化的。
+
+另一个与栈相关的寄存器是 `EBP`。`EBP` 保存栈底指针，通常以它为基址来计算其它的地址，我们把它称为“帧指针”，有时也称为“基址指针”。尽管可以把 `EBP` 当作通用寄存器来使用，但在历史上，`EBP` 总是与栈操作相关。
+
+2：堆
+
+程序在运行时，每个线程都会有一个栈，用来保存局部变量。但对全局变量或太大的变量来说，栈就不太适合了，这个时候就需要使用另外的内存区域来保存它们。事实上，有些程序在编译时并不能确定它将要使用多大的内存，而一般是在运行时，通过特殊的系统调用来动态分配。一个典型的 `Linux` 程序通常包括 `.bss` 段（未初始化的全局变量），`.data` 段（已初始化的全局变量），和其他的、用 `brk()`或 `mmap()`等系统调用分配的、由 `malloc()`使用的一些段。你可以用 `GDB` 的 `maintenance info sections` 命令查看这些段信息。尽管一般人都认为由 `malloc()`分配的段才是真正的堆，但在我们看来，任何可写的段都可以看作是堆
+
+注意： 堆和栈是内存管理中两种不同的数据结构，它们的增长方向不同；如果内存依据地址按照从小到大排列，那么堆向下增长，栈向上增长；在 `Od` 中，栈帧是依据 `ebp` 的值来划分的，也就是说，前一栈帧既属于上一个栈帧又属于下一个栈帧；
+
+### 函数调用 AddTwoNumber(2,b) 这个函数时堆栈的数据
+
+```
+EBP-4    > CCCCCCCC
+EBP ==>  > 0012FF80  ；栈帧的划分
+EBP+4    >|00401081  返回到 function.00401081 来自 function.0040100F
+EBP+8    >|00000002
+EBP+C    >|00000008
+EBP+10   >|7C930208  ntdll.7C930208
+EBP+14   >|FFFFFFFF
+EBP+18   >|7FFD7000
+EBP+1C   >|CCCCCCCC
+EBP+20   >|CCCCCCCC
+EBP+24   >|CCCCCCCC
+EBP+28   >|CCCCCCCC
+EBP+2C   >|CCCCCCCC
+EBP+30   >|CCCCCCCC
+EBP+34   >|CCCCCCCC
+EBP+38   >|CCCCCCCC
+EBP+3C   >|CCCCCCCC
+EBP+40   >|CCCCCCCC
+EBP+44   >|CCCCCCCC
+EBP+48   >|CCCCCCCC
+EBP+4C   >|CCCCCCCC
+EBP+50   >|CCCCCCCC
+EBP+54   >|CCCCCCCC
+EBP+58   >|CCCCCCCC
+EBP+5C   >|CCCCCCCC
+EBP+60   >|00000008
+EBP+64   >|00000002
+EBP+68   >\]0012FFC0
+EBP+6C   >|004084A9  返回到 function.<模块入口点>+0E9 来自 function.0040101E
+```
+
+### 函数参数调用方式：
+
+一：
+
+传值调用： 函数调用时，实参的值传递给形参使用；
+
+1）程序中定义为：
+
+```c
+int AddTwoNumber(int a,int b)
+{
+    return a+b;
+}
+```
+
+2）反汇编后的代码为：
+
+参数入栈：
+
+```asm
+00401079  |.  50            push    eax
+0040107A  |.  6A 02         push    2
+```
+
+函数实现：
+
+```asm
+004010E0  /> \55            push    ebp
+```
+
+
+
+### 一、传值调用
+
+```
+  004010E1  |.  8BEC             mov     ebp, esp  
+  004010E3  |.  83EC 40         sub     esp, 40  
+  004010E6  |.  53              push    ebx  
+  004010E7  |.  56              push    esi  
+  004010E8  |.  57              push    edi  
+  004010E9  |.  8D7D C0         lea     edi, dword ptr [ebp-40]  
+  004010EC  |.  B9 10000000     mov     ecx, 10  
+  004010F1  |.  B8 CCCCCCCCC    mov     eax, CCCCCCCCC  
+  004010F6  |.  F3:AB           rep     stos dword ptr es:[edi]  
+  004010F8  |.  8B45 08         mov     eax, dword ptr [ebp+8]  
+  004010FB  |.  0345 0C         add     eax, dword ptr [ebp+C]  
+  004010FE  |.  5F              pop     edi  
+  004010FF  |.  5E              pop     esi  
+  00401100  |.  5B              pop     ebx  
+  00401101  |.  8BE5            mov     esp, ebp  
+  00401103  |.  5D              pop     ebp  
+  00401104  \.  C3              retn  
+```
+
+### 二、传址调用：形参为指针，实参为地址
+
+#### 1）程序中定义为：
+
+```
+int  AddTwoNumber(int *pa,int *pb)  
+{  
+  return  *pa+*pb;  
+}  
+```
+
+#### 2）反汇编后的代码为：
+
+**参数入栈：**
+
+```
+  00401081  |.  83C4 08         add     esp, 8       ;调用者平衡被调用者的参数堆栈  
+  00401084  |.  8945 F4         mov     dword ptr [ebp-C], eax  ;int result = AddTwoNumber（）；  
+  00401087  |.  8D4D F8         lea     ecx, dword ptr [ebp-8]  ；注意这里，指针调用  
+  0040108A  |.  51              push    ecx  
+  0040108B  |.  8D55 FC         lea     edx, dword ptr [ebp-4]   
+  0040108E  |.  52              push    edx  
+```
+
+**函数实现：**
+
+```
+  00401110  /> \55             push    ebp  
+  00401111  |.  8BEC            mov     ebp, esp  
+  00401113  |.  83EC 40         sub     esp, 40  
+  00401116  |.  53              push    ebx  
+  00401117  |.  56              push    esi  
+  00401118  |.  57              push    edi  
+  00401119  |.  8D7D C0         lea     edi, dword ptr [ebp-40]  
+  0040111C  |.  B9 10000000     mov     ecx, 10  
+  00401121  |.  B8 CCCCCCCCC    mov     eax, CCCCCCCCC  
+  00401126  |.  F3:AB           rep     stos dword ptr es:[edi]  
+  00401128  |.  8B45 08         mov     eax, dword ptr [ebp+8]  
+  0040112B  |.  8B00            mov     eax, dword ptr [eax]  
+  0040112D  |.  8B4D 0C         mov     ecx, dword ptr [ebp+C]  
+  00401130  |.  0301            add     eax, dword ptr [ecx]    ；在 ecx 寄存器上右键，数据窗口中跟随，地址是堆栈中的地址；  
+  00401132  |.  5F              pop     edi  
+  00401133  |.  5E              pop     esi  
+  00401134  |.  5B              pop     ebx  
+  00401135  |.  8BE5            mov     esp, ebp  
+  00401137  |.  5D              pop     ebp  
+  00401138  \.  C3              retn  
+```
+
+### 三、引用调用：形参为引用，实参为变量名
+
+#### 1）程序中定义为：
+
+```
+int  AddTwoNum(int &a,int &b)  
+{  
+  return  a+b;  
+}  
+```
+
+#### 2）反汇编后的代码为：
+
+**参数入栈：**
+
+```
+  00401097  |.  8D45 F8         lea     eax, dword ptr [ebp-8]  
+  0040109A  |.  50              push    eax  
+  0040109B  |.  8D4D FC         lea     ecx, dword ptr [ebp-4]  
+  0040109E  |.  51              push    ecx  
+```
+
+**函数实现：**
+
+```
+  00401150  /> \55             push    ebp  
+  00401151  |.  8BEC            mov     ebp, esp  
+  00401153  |.  83EC 40         sub     esp, 40  
+  00401156  |.  53              push    ebx  
+  00401157  |.  56              push    esi  
+  00401158  |.  57              push    edi  
+  00401159  |.  8D7D C0         lea     edi, dword ptr [ebp-40]  
+  0040115C  |.  B9 10000000     mov     ecx, 10  
+  00401161  |.  B8 CCCCCCCCC    mov     eax, CCCCCCCCC  
+  00401166  |.  F3:AB           rep     stos dword ptr es:[edi]  
+  00401168  |.  8B45 08         mov     eax, dword ptr [ebp+8]  
+  0040116B  |.  8B00            mov     eax, dword ptr [eax]  
+  0040116D  |.  8B4D 0C         mov     ecx, dword ptr [ebp+C]  
+  00401170  |.  0301            add     eax, dword ptr [ecx]  
+  00401172  |.  5F              pop     edi  
+  00401173  |.  5E              pop     esi  
+  00401174  |.  5B              pop     ebx  
+  00401175  |.  8BE5            mov     esp, ebp  
+  00401177  |.  5D              pop     ebp  
+  00401178  \.  C3              retn  
+```
+
+### 总结
+
+从上述我们可以看出，三种函数调用方式上，传值调用和后两种在参数的使用和功能实现上都有不同。由于是指针，所以在参数入栈时用了 `lea` 指令。并且，传址调用和引用调用的功能性代码完全相同。而且，用引用调用能简化书写。它们的不同，在这个程序中，唯一的区别就是参数入栈时，使用的寄存器不同。
+
+由于使用了 `Lea` 指令，传址调用和引用调用函数执行的时间肯定要比传值调用的时间长。所以如果是在函数的递归调用和嵌套调用中，如果为了效力考虑，在完成相同的功能的函数设计上，尽量使用传值调用。另外在传址调用和引用调用上，建议大家使用引用调用，因为它们在实现上一样的，而引用调用使用起来更加方便。
+
+并且有一点想让大家注意，大家在想栈这个数据结构，不要想着 `Push`，`pop` 后栈中的数据就不再了。物理内存一般为动态 `RAM`，一般为 `MOS` 型，它具有客观实在性。因此，即使你 `pop` 平衡了栈后，原来的数据仍然存放在内存中。也就是说，除非断电或再一次被使用，否则内存中的数据不会改变。
+
+好了，这一部分就写到这吧。写这文章好累啊。好费时。 555555
+
+--------------------------------------------------------------------------------
+
+### 【经验总结】
+
+其实，细心的读者可以还会看出，在此例中还用了函数的多态性的一种，重载函数。这一部分留给大家随便看下。对，机器来说，指令和数据没有区别，而是人类抽象思维的结晶。让我们拥有了这个千变万华的世界。
+
+--------------------------------------------------------------------------------
+
+### 【版权声明】
+
+本文原创于看雪技术论坛，转载请注明作者并保持文章的完整，谢谢!
+
+2008 年 12 月 20 日 22:08:55

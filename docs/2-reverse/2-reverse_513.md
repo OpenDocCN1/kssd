@@ -1,125 +1,172 @@
 
-
 # C++代码分析
 
 > 原文：[`www.pediy.com/kssd/pediy12/139289.html`](https://www.pediy.com/kssd/pediy12/139289.html)
 
-C++虚函数是构成多态的一部分，多态指的是运行期决定调用哪个函数，下面是个纯虚函数例子：  
-#include "stdafx.h"  
-class Test{  
-public:  
-  Test(){  
-    printf("Test::Test\\n");  
-  }  
-  virtual ~Test(){  
-    printf("Virtual ~Test()\\n");  
-  }  
-  virtual void prointer()=0;  
-  virtual void pointf()=0;  
-};  
-class TestA:public Test{  
-public:  
-  TestA(){  
-    printf("TestA::TestA\\n");  
-  }  
-  virtual ~TestA(){  
-    printf("TestA::TestA\\n");  
-  }  
-  virtual void prointer(){  
-    printf("Derive Class TestA：：Pointer\\n");  
-  }  
-  virtual void pointf(){  
-    printf("Derive Class TestA::Pointf\\n");  
-  }  
-};  
-int \_tmain(int argc, \_TCHAR\* argv\[\]){  
-  TestA \*pTest=new TestA;  
-  pTest->pointf();  
-  pTest->prointer();  
-  delete pTest;  
-  return 0;  
-}  
-这段代码定义了一个抽象类，和一个派生类，抽象类不能创建自己的对象，但是可以间接的从派生类创建自己的对象，构成纯虚函数的条件：  
-1.  一个类中必须要有一个虚函数  
-2.  在虚函数后面添加一个=0 就是一个纯虚函数了  
-抽象基类的所有纯虚函数必须被派生类定义的虚函数覆盖，否者派生类也是一个抽象基类，不能创建自己的对象；先看下 Test 类，由于 Test 类不能创建自己的对象，所以我根据 TestA 类来解析调用过程。Test 类我们可以把它看做一个地址，这个地址里面有些指针，只想函数的地址，假如 Test 类的地址是 0x401000，那么在这个地址里面的第一个就是虚折构函数，方便释放类的对象的时候调用，第二个没有了，因为我们只在 Test 类中定义一个析构函数，和一个构造函数，构造函数在编译的时候就被编译器从类的里面给趴到 Main 来了，看下反汇编代码：  
-00401091  |.  6A 04         PUSH 4  
-00401093  |.  E8 68000000   CALL <JMP.&MSVCR90.operator new>  
-00401098  |.  8BF0          MOV ESI,EAX  
-0040109A  |.  83C4 04       ADD ESP,4  
-0040109D  |.  85F6          TEST ESI,ESI  
-0040109F  |.  74 27         JE SHORT 004010C8  
-这里就是 TestA \*pTest=new TestA 这里了，从这段代码我们可以看出，new 是无论何如都会调用成功的，因为 CALL <JMP.&MSVCR90.operator new>后的返回值，被比较是否等于 0 了，虽然这个比较不是我们的代码，但是编译器就已经够定了 new 无论如何都会调用成功，如果 CALL <JMP.&MSVCR90.operator new>的返回值是 0，那么构造函数都会被跳过，而构造函数是会被程序调用的，如果不调用的话，这样就和 C++构造函数的说法相反了，所以 new 操作符分配的内存一定会成功的，我们在接着看下下面这段代码：  
-004010A1  |.  57            PUSH EDI  
-004010A2  |.  8B3D B0204000 MOV EDI,DWORD PTR DS:\[<&MSVCR90.printf>\]      ;  msvcr90.printf  
-004010A8  |.  68 0C214000   PUSH 0040210C                          ; /format = "Test::Test"  
-004010AD  |.  C706 7C214000 MOV DWORD PTR DS:\[ESI\],0040217C         ; |  
-004010B3  |.  FFD7          CALL EDI                                      ; \\printf  
-004010B5  |.  68 2C214000   PUSH 0040212C                          ;  ASCII "TestA::TestA"  
-004010BA  |.  C706 8C214000 MOV DWORD PTR DS:\[ESI\],0040218C  
-004010C0  |.  FFD7          CALL EDI  
-这段代码显然是两个类的构造函数被调用了，那么其中传递了两个地址给 ESI，我们看下这个地址是什么类容，我们跟随到数据窗口看一下，显示格式选择为地址格式  
-0040217C  00401000  这就是这个地址的内容，一个代码地址  
-C++构造.00401000 其中第一个地址指向如下地址，跟随一下  
-00401000   .  56            PUSH ESI  
-00401001   .  8BF1          MOV ESI,ECX  
-00401003   .  68 18214000   PUSH 00402118                      ; /format = "Virtual ~Test()"  
-00401008   .  C706 7C214000 MOV DWORD PTR DS:\[ESI\],0040217C               ; |  
-0040100E   .  FF15 B0204000 CALL DWORD PTR DS:\[<&MSVCR90.printf>\]         ; \\printf  
-这里显然就是折够函数了，所以当一个类中有虚析构函数的时候，这个虚析构函数的地址会被放在类指针的最前面，这里把 Test 的地址的指针放入 ESI 里面，然后根据 ESP+8 来判断是否调用 delete 操作符，这些都是编译器自动添加的，这是编译器的事，我还没那技术去研究  
-00401014   .  83C4 04       ADD ESP,4  
-00401017   .  F64424 08 01  TEST BYTE PTR SS:\[ESP+8\],1  
-0040101C   .  74 09         JE SHORT 00401027  
-0040101E   .  56            PUSH ESI  
-0040101F   .  E8 D6000000   CALL <JMP.&MSVCR90.operator delete>  
-00401024   .  83C4 04       ADD ESP,4  
-00401027   >  8BC6          MOV EAX,ESI  
-00401029   .  5E            POP ESI  
-0040102A   .  C2 0400       RETN 4  
-继续我们上面的构造函数，类的构造函数被一次从上至下的调用之后，传递了 Test 和 TestA 的地址到 ESI 里面，我们声明的是 TestA 的对象，所以最后一个地址就是 TestA 了，看下反汇编代码的调用过程  
-004010C2  |.  83C4 08       ADD ESP,8   
-004010C5  |.  5F            POP EDI  
-004010C6  |.  EB 02         JMP SHORT 004010CA  
-004010C8  |>  33F6          XOR ESI,ESI  
-004010CA  |>  8B06          MOV EAX,DWORD PTR DS:\[ESI\]                    ;    
-004010CC  |.  8B50 08       MOV EDX,DWORD PTR DS:\[EAX+8\]  
-004010CF  |.  8BCE          MOV ECX,ESI  
-004010D1  |.  FFD2          CALL EDX  
-这里 ESI 指向 TestA 类的起始地址，把这个起始地址传到 EAX 里面之后，就把这个类里面的一个函数地址放到 EDX 里面，TestA 类本身一共有 4 个函数，刚才构造函数被外部也就是 Main 调用了，那么里面只剩下 3 个地址了，我们知道一个类如果有虚析构函数，第一个地址就指向虚析构函数的地址，EAX+8 就是调用了  
-pTest->pointf();至于为什么，自己想一下，MOV ECX,ESI 通过 ECX 来保证堆栈的平衡  
-004010D3  |.  8B06          MOV EAX,DWORD PTR DS:\[ESI\]                    ;  C++构造.0040218C  
-004010D5  |.  8B50 04       MOV EDX,DWORD PTR DS:\[EAX+4\]  
-004010D8  |.  8BCE          MOV ECX,ESI  
-004010DA  |.  FFD2          CALL EDX  
-这里就调用了 pTest->prointer();因为我们是根据类的地址来决定调用哪个函数的  
-004010DC  |.  8B06          MOV EAX,DWORD PTR DS:\[ESI\]  
-004010DE  |.  8B10          MOV EDX,DWORD PTR DS:\[EAX\]                    ;  C++构造.00401050  
-004010E0  |.  6A 01         PUSH 1  
-004010E2  |.  8BCE          MOV ECX,ESI  
-004010E4  |.  FFD2          CALL EDX  
-这里就是调用 TestA 类的虚折构函数，也就是当前类的地址的第一个指针，我们跟踪进去看一下，下面是反汇编代码：  
-00401050   .  56            PUSH ESI  
-00401051   .  57            PUSH EDI  
-00401052   .  8B3D B0204000 MOV EDI,DWORD PTR DS:\[<&MSVCR90.printf>\]      ;  msvcr90.printf  
-00401058   .  8BF1          MOV ESI,ECX  
-0040105A   .  68 2C214000   PUSH 0040212C                     ; /format = "TestA::TestA"  
-0040105F   .  C706 8C214000 MOV DWORD PTR DS:\[ESI\],0040218C               ; |  
-00401065   .  FFD7          CALL EDI                                      ; \\printf  
-00401067   .  68 18214000   PUSH 00402118                        ;  ASCII "Virtual ~Test()"  
-0040106C   .  C706 7C214000 MOV DWORD PTR DS:\[ESI\],0040217C  
-00401072   .  FFD7          CALL EDI  
-00401074   .  83C4 08       ADD ESP,8  
-00401077   .  F64424 0C 01  TEST BYTE PTR SS:\[ESP+C\],1  
-0040107C   .  74 09         JE SHORT 00401087  
-0040107E   .  56            PUSH ESI  
-0040107F   .  E8 76000000   CALL <JMP.&MSVCR90.operator delete>  
-00401084   .  83C4 04       ADD ESP,4  
-00401087   >  5F            POP EDI  
-00401088   .  8BC6          MOV EAX,ESI  
-0040108A   .  5E            POP ESI  
-0040108B   .  C2 0400       RETN 4  
-这里调用了两个虚析构函数的地方，为什么是先调用~TestA，而不是先调用~Test 呢，因为我们把这两个析构函数定义为了虚函数，虚函数是在运行期决定调用谁的，当我们把 TestA 的成员函数调用完毕之后，析构函数会自动调用，因此，TestA 完了之后就调用自己的析构函数，释放最新分配的内存，所以，先调用 TestA 的折构函数，再调用 Test 的折构函数，这也是为什么把析构函数声明为虚函数的原因，  
-这里调用了两个虚析构函数之后，就是用 delete 指针删除了由 new 分配的地址，分析完毕。  
-总结一下：  
-当我们定义了一个带有虚函数的类的时候，这个类的虚函数就会被放在一个地址表里面，这个地址表被放在类的入口里面，当我们调用哪个类的时候，就使用哪个类的入口来调用里面的虚函数，这就证名明了 C++中得函数同名的虚函数的多态机制。  
+C++虚函数是构成多态的一部分，多态指的是运行期决定调用哪个函数，下面是个纯虚函数例子：
+
+```cpp
+#include "stdafx.h"
+
+class Test{
+public:
+  Test(){
+    printf("Test::Test\n");
+  }
+  virtual ~Test(){
+    printf("Virtual ~Test()\n");
+  }
+  virtual void prointer()=0;
+  virtual void pointf()=0;
+};
+
+class TestA:public Test{
+public:
+  TestA(){
+    printf("TestA::TestA\n");
+  }
+  virtual ~TestA(){
+    printf("TestA::TestA\n");
+  }
+  virtual void prointer(){
+    printf("Derive Class TestA::Pointer\n");
+  }
+  virtual void pointf(){
+    printf("Derive Class TestA::Pointf\n");
+  }
+};
+
+int _tmain(int argc, _TCHAR* argv[]){
+  TestA *pTest=new TestA;
+  pTest->pointf();
+  pTest->prointer();
+  delete pTest;
+  return 0;
+}
+```
+
+这段代码定义了一个抽象类，和一个派生类，抽象类不能创建自己的对象，但是可以间接的从派生类创建自己的对象，构成纯虚函数的条件：
+
+1. 一个类中必须要有一个虚函数
+2. 在虚函数后面添加一个`=0`就是一个纯虚函数了
+
+抽象基类的所有纯虚函数必须被派生类定义的虚函数覆盖，否则派生类也是一个抽象基类，不能创建自己的对象；先看下`Test`类，由于`Test`类不能创建自己的对象，所以我根据`TestA`类来解析调用过程。`Test`类我们可以把它看做一个地址，这个地址里面有些指针，指向函数的地址，假如`Test`类的地址是`0x401000`，那么在这个地址里面的第一个就是虚析构函数，方便释放类的对象的时候调用，第二个没有了，因为我们只在`Test`类中定义一个析构函数，和一个构造函数，构造函数在编译的时候就被编译器从类的里面给扒到`Main`来了，看下反汇编代码：
+
+```
+00401091   |.  6A 04           PUSH 4
+00401093   |.  E8 68000000    CALL <JMP.&MSVCR90.operator new>
+00401098   |.  8BF0          MOV ESI,EAX
+0040109A   |.  83C4 04       ADD ESP,4
+0040109D   |.  85F6          TEST ESI,ESI
+0040109F   |.  74 27         JE SHORT 004010C8
+```
+
+这里就是`TestA *pTest=new TestA`这里了，从这段代码我们可以看出，`new`是无论如何都会调用成功的，因为`CALL <JMP.&MSVCR90.operator new>`后的返回值，被比较是否等于`0`了，虽然这个比较不是我们的代码，但是编译器就已经够定了`new`无论如何都会调用成功，如果`CALL <JMP.&MSVCR90.operator new>`的返回值是`0`，那么构造函数都会被跳过，而构造函数是会被程序调用的，如果不调用的话，这样就和C++构造函数的说法相反了，所以`new`操作符分配的内存一定会成功的，我们在接着看下下面这段代码：
+
+```
+004010A1   |.  57             PUSH EDI
+004010A2   |.  8B3D B0204000  MOV EDI,DWORD PTR DS:[<&MSVCR90.printf>]     ;  msvcr90.printf
+004010A8   |.  68 0C214000   PUSH 0040210C                 ; /format = "Test::Test"
+004010AD   |.  C706 7C214000  MOV DWORD PTR DS:[ESI],0040217C        ; |
+004010B3   |.  FFD7           CALL EDI                     ; \printf
+004010B5   |.  68 2C214000   PUSH 0040212C                 ;  ASCII "TestA::TestA"
+004010BA   |.  C706 8C214000  MOV DWORD PTR DS:[ESI],0040218C
+004010C0   |.  FFD7           CALL EDI
+```
+
+这段代码显然是两个类的构造函数被调用了，那么其中传递了两个地址给`ESI`，我们看下这个地址是什么内容，我们跟随到数据窗口看一下，显示格式选择为地址格式
+
+`0040217C 00401000` 这就是这个地址的内容，一个代码地址
+
+`C++构造.00401000`其中第一个地址指向如下地址，跟随一下
+
+```
+00401000   .  56             PUSH ESI
+00401001   .  8BF1          MOV ESI,ECX
+00401003   .  68 18214000   PUSH 00402118                ; /format = "Virtual ~Test()"
+00401008   .  C706 7C214000  MOV DWORD PTR DS:[ESI],0040217C     ; |
+0040100E   .  FF15 B0204000  CALL DWORD PTR DS:[<&MSVCR90.printf>]       ; \printf
+```
+
+这里显然就是析构函数了，所以当一个类中有虚析构函数的时候，这个虚析构函数的地址会被放在类指针的最前面，这里把`Test`的地址的指针放入`ESI`里面，然后根据`ESP+8`来判断是否调用`delete`操作符，这些都是编译器自动添加的，这是编译器的事，我还没那技术去研究
+
+```
+00401014   .  83C4 04       ADD ESP,4
+00401017   .  F64424 08 01  TEST BYTE PTR SS:[ESP+8],1
+0040101C   .  74 09         JE SHORT 00401027
+0040101E   .  56             PUSH ESI
+0040101F   .  E8 D6000000   CALL <JMP.&MSVCR90.operator delete>
+00401024   .  83C4 04       ADD ESP,4
+00401027   >  8BC6          MOV EAX,ESI
+00401029   .  5E             POP ESI
+0040102A   .  C2 0400       RETN 4
+```
+
+继续我们上面的构造函数，类的构造函数被一次从上至下的调用之后，传递了`Test`和`TestA`的地址到`ESI`里面，我们声明的是`TestA`的对象，所以最后一个地址就是`TestA`了，看下反汇编代码的调用过程
+
+```
+004010C2   |.  83C4 08       ADD ESP,8
+004010C5   |.  5F             POP EDI
+004010C6   |.  EB 02         JMP SHORT 004010CA
+004010C8   |>  33F6          XOR ESI,ESI
+004010CA   |>  8B06          MOV EAX,DWORD PTR DS:[ESI]             ;
+004010CC   |.  8B50 08       MOV EDX,DWORD PTR DS:[EAX+8]
+004010CF   |.  8BCE          MOV ECX,ESI
+004010D1   |.  FFD2          CALL EDX
+```
+
+这里`ESI`指向`TestA`类的起始地址，把这个起始地址传到`EAX`里面之后，就把这个类里面的一个函数地址放到`EDX`里面，`TestA`类本身一共有`4`个函数，刚才构造函数被外部也就是`Main`调用了，那么里面只剩下`3`个地址了，我们知道一个类如果有虚析构函数，第一个地址就指向虚析构函数的地址，`EAX+8`就是调用了
+
+`pTest->pointf();`至于为什么，自己想一下，`MOV ECX,ESI`通过`ECX`来保证堆栈的平衡
+
+```
+004010D3   |.  8B06          MOV EAX,DWORD PTR DS:[ESI]             ;  C++构造.0040218C
+004010D5   |.  8B50 04       MOV EDX,DWORD PTR DS:[EAX+4]
+004010D8   |.  8BCE          MOV ECX,ESI
+004010DA   |.  FFD2          CALL EDX
+```
+
+这里就调用了`pTest->prointer();`因为我们是根据类的地址来决定调用哪个函数的
+
+```
+004010DC   |.  8B06          MOV EAX,DWORD PTR DS:[ESI]
+004010DE   |.  8B10          MOV EDX,DWORD PTR DS:[EAX]             ;  C++构造.00401050
+004010E0   |.  6A 01         PUSH 1
+004010E2   |.  8BCE          MOV ECX,ESI
+004010E4   |.  FFD2          CALL EDX
+```
+
+这里就是调用`TestA`类的虚析构函数，也就是当前类的地址的第一个指针，我们跟踪进去看一下，下面是反汇编代码：
+
+```
+00401050   .  56             PUSH ESI
+00401051   .  57             PUSH EDI
+00401052   .  8B3D B0204000  MOV EDI,DWORD PTR DS:[<&MSVCR90.printf>]     ;  msvcr90.printf
+00401058   .  8BF1          MOV ESI,ECX
+0040105A   .  68 2C214000   PUSH 0040212C              ; /format = "TestA::TestA"
+0040105F   .  C706 8C214000  MOV DWORD PTR DS:[ESI],0040218C     ; |
+00401065   .  FFD7          CALL EDI                     ; \printf
+00401067   .  68 18214000   PUSH 00402118                 ;  ASCII "Virtual ~Test()"
+0040106C   .  C706 7C214000  MOV DWORD PTR DS:[ESI],0040217C
+00401072   .  FFD7          CALL EDI
+00401074   .  83C4 08       ADD ESP,8
+00401077   .  F64424 0C 01  TEST BYTE PTR SS:[ESP+C],1
+0040107C   .  74 09         JE SHORT 00401087
+0040107E   .  56             PUSH ESI
+0040107F   .  E8 76000000   CALL <JMP.&MSVCR90.operator delete>
+00401084   .  83C4 04       ADD ESP,4
+00401087   >  5F             POP EDI
+00401088   .  8BC6          MOV EAX,ESI
+0040108A   .  5E             POP ESI
+0040108B   .  C2 0400       RETN 4
+```
+
+这里调用了两个虚析构函数的地方，为什么是先调用`~TestA`，而不是先调用`~Test`呢，因为我们把这两个析构函数定义为了虚函数，虚函数是在运行期决定调用谁的，当我们把`TestA`的成员函数调用完毕之后，析构函数会自动调用，因此，`TestA`完了之后就调用自己的析构函数，释放最新分配的内存，所以，先调用`TestA`的析构函数，再调用`Test`的析构函数，这也是为什么把析构函数声明为虚函数的原因，
+
+这里调用了两个虚析构函数之后，就是用`delete`指针删除了由`new`分配的地址，分析完毕。
+
+总结一下：
+
+当我们定义了一个带有虚函数的类的时候，这个类的虚函数就会被放在一个地址表里面，这个地址表被放在类的入口里面，当我们调用哪个类的时候，就使用哪个类的入口来调用里面的虚函数，这就证明了C++中得函数同名的虚函数的多态机制。
+
 讲得不好，如果有错误的地方请各位指出来，谢谢！

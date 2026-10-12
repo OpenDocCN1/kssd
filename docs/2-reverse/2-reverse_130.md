@@ -1,181 +1,206 @@
 
-
 # OD 写补丁代码插件 SkyPatch 的 bug 修正
 
 > 原文：[`www.pediy.com/kssd/pediy10/87690.html`](https://www.pediy.com/kssd/pediy10/87690.html)
 
-【文章标题】: OD 写补丁代码插件 SkyPatch 的 bug 修正  
-【文章作者】: CCDebuger  
-【软件名称】: SkyPatch 1.1  
-【下载地址】: 自己搜索下载  
-【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
-\--------------------------------------------------------------------------------  
-【详细过程】  
-  SkyPatch 插件用来在 OD 中写补丁代码是比较方便的。不过这个插件有个 bug，就是当写入的字串放在 VA 地址 00A00000 以后，则无法构建。如果构建的话，则会出现类似这样的错误：  
-    
-  错误的命令位于行: 18 PUSH a17250 Unknown identifier  
-  构建失败  
-    
-  补丁代码类似于这样：  
-    
-  @0x00A17250:  
-  $str1 "xxxxxx"  
-    
-  以下代码省略...  
-    
-  PUSH $str1  
-    
-  这里要在 OD 中正常汇编的话，转换后的指令应该是：  
-    
-  PUSH 0a17250  
-    
-  这样才能正常编译。可见 SkyPatch 插件在把地址的 DWORD 值转换为字串时，把前面的 0 丢掉了。如果地址是低于 00A00000 的值，这样没什么问题，但如果转换的字串地址大于 00A00000，则无法编译了。现在试着修复这个错误。用 IDA 分析一下 SkyPatch 插件，根据出错字串“错误的命令位于行”很容易发现有三个地方调用。两个地方都是调用 OD 的汇编功能的，不是我们要找的地方。那就只有这个地方：  
-    
-  .text:1000F1DF loc\_1000F1DF:                           ; CODE XREF: \_Convert\_Param\_to\_Str+EFj  
-  .text:1000F1DF                 mov     edx, \[eax+0Ch\]  
-  .text:1000F1E2                 mov     ecx, (offset LibFileName+124h)  
-  .text:1000F1E7                 and     dh, 0F9h  
-  .text:1000F1EA                 or      dh, 8  
-  .text:1000F1ED                 mov     \[eax+0Ch\], edx  
-  .text:1000F1F0                 mov     eax, \[esp+3Ch+arg\_0\]  
-  .text:1000F1F4                 push    eax             ; 这里就是地址的 DWORD 值  
-  .text:1000F1F5                 call    ds:std::basic\_ostream<char,std::char\_traits<char>>::operator<<(uint)  
-  .text:1000F1F5  
-  .text:1000F1FB                 lea     ecx, \[esp+3Ch+var\_1C\]  
-  .text:1000F1FF                 push    ecx  
-  .text:1000F200                 mov     ecx, (offset LibFileName+11Ch)  
-  .text:1000F205                 call    ds:std::basic\_stringstream<char,std::char\_traits<char>,std::allocator<char>>::str(void)  
-  .text:1000F205  
-  .text:1000F20B                 mov     esi, eax  
-  .text:1000F20D                 mov     edx, ds:uint const std::basic\_string<char,std::char\_traits<char>,std::allocator<char>>::npos  
-  .text:1000F213                 mov     ecx, \[esi+8\]  
-  .text:1000F216                 mov     \[esp+3Ch+var\_4\], 1  
-  .text:1000F21E                 mov     eax, \[edx\]  
-  .text:1000F220                 mov     edi, eax  
-  .text:1000F222                 cmp     ecx, edi  
-  .text:1000F224                 jnb     short loc\_1000F228  
-  .text:1000F224  
-  .text:1000F226                 mov     edi, ecx        ; 在 EDI 中保留转换后的地址字串长度值  
-  .text:1000F226  
-  .text:1000F228  
-  .text:1000F228 loc\_1000F228:                           ; CODE XREF: \_Convert\_Param\_to\_Str+144j  
-  .text:1000F228                 sub     eax, \[ebp+8\]  
-  .text:1000F22B                 cmp     eax, edi  
-  .text:1000F22D                 ja      short loc\_1000F235  
-  .text:1000F22D  
-  .text:1000F22F                 call    ds:std::\_Xlen(void)  
-  .text:1000F22F  
-  .text:1000F235  
-  .text:1000F235 loc\_1000F235:                           ; CODE XREF: \_Convert\_Param\_to\_Str+14Dj  
-  .text:1000F235                 test    edi, edi  
-  .text:1000F237                 jbe     short loc\_1000F27C  
-  .text:1000F237  
-  .text:1000F239                 mov     ebx, \[ebp+8\]  
-  .text:1000F23C                 push    0  
-  .text:1000F23E                 add     ebx, edi        ; 地址字串长度或指令+地址字串长度送到 EBX  
-  .text:1000F240                 mov     ecx, ebp  
-  .text:1000F242                 push    ebx  
-  .text:1000F243                 call    ds:std::basic\_string<char,std::char\_traits<char>,std::allocator<char>>::\_Grow(uint,bool)  
-  .text:1000F243  
-  .text:1000F249                 test    al, al  
-  .text:1000F24B                 jz      short loc\_1000F27C  
-  .text:1000F24B  
-  .text:1000F24D                 mov     esi, \[esi+4\]    ; \[ESI+4\]中就是转换后的地址字串  
-  .text:1000F250                 test    esi, esi  
-  .text:1000F252                 jnz     short loc\_1000F25A  
-  .text:1000F252  
-  .text:1000F254                 mov     esi, ds:char const \`std::basic\_string<char,std::char\_traits<char>,std::allocator<char>>::\_Nullstr(void)'::\`2'::\_C  
-  .text:1000F254  
-  .text:1000F25A  
-  .text:1000F25A loc\_1000F25A:                           ; CODE XREF: \_Convert\_Param\_to\_Str+172j  
-  .text:1000F25A                 mov     eax, \[ebp+4\]  
-  .text:1000F25D                 mov     ecx, edi  
-  .text:1000F25F                 mov     edi, \[ebp+8\]  
-  .text:1000F262                 add     edi, eax  
-  .text:1000F264                 mov     eax, ecx  
-  ----------------------------------------------------------------------------------------------------------  
-  现在复制一个原版的 OllyDBG，只配置 SkyPatch 这一个插件，这个新配置的 OD 我们设为 OD1。现在用我们自己常用的 OD 打开 OD1，用 OD1 载入我们要打补丁的程序，调用 SkyPatch 打开要写入的补丁脚本。现在转到我们自己常用的 OD 中，ALT+E 打开模块窗口，双击 SkyPatch 模块，在汇编窗口中定位到我们上面看到的代码处，设断点。当然上面的代码是我已经结合 OD 分析过的，第一次我们可能定位的位置并不一定对。不过没关系，可以根据断下来后程序的执行情况再调整断点。这个各位可以自己测试。现在说一下在 OD 中调试看到的情况：  
-    
-  026AF1F4  |.  50            PUSH EAX                                         ;  EAX 就是参数经过转换后所得到的地址 DWORD 值  
-  026AF1F5  |.  FF15 60306B02 CALL DWORD PTR DS:\[<&MSVCP60.??6?$basic\_ostream@>;  MSVCP60.??6?$basic\_ostream@DU?$char\_traits@D@std@@@std@@QAEAAV01@I@Z  
-  026AF1FB  |.  8D4C24 20     LEA ECX,DWORD PTR SS:\[ESP+20\]  
-  026AF1FF  |.  51            PUSH ECX  
-  026AF200  |.  B9 807C6B02   MOV ECX,026B7C80  
-  026AF205  |.  FF15 F8306B02 CALL DWORD PTR DS:\[<&MSVCP60.?str@?$basic\_string>;  MSVCP60.?str@?$basic\_stringstream@DU?$char\_traits@D@std@@V?$allocator@D@2@@std@@QBE?AV?$basic\_string@DU?$char\_traits@D@std@@V?$allocator@D@2@@2@XZ  
-  026AF20B  |.  8BF0          MOV ESI,EAX  
-  026AF20D  |.  8B15 BC306B02 MOV EDX,DWORD PTR DS:\[<&MSVCP60.?npos@?$basic\_st>;  MSVCP60.?npos@?$basic\_string@DU?$char\_traits@D@std@@V?$allocator@D@2@@std@@2IB  
-  026AF213  |.  8B4E 08       MOV ECX,DWORD PTR DS:\[ESI+8\]                     ;  转换后的地址字串长度  
-  026AF216  |.  C74424 38 010>MOV DWORD PTR SS:\[ESP+38\],1  
-  026AF21E  |.  8B02          MOV EAX,DWORD PTR DS:\[EDX\]  
-  026AF220  |.  8BF8          MOV EDI,EAX  
-  026AF222  |.  3BCF          CMP ECX,EDI                                      ;  比较字串长度是否大于等于 0  
-  026AF224  |.  73 02         JNB SHORT 026AF228  
-  026AF226  |.  8BF9          MOV EDI,ECX                                      ;  在 EDI 中保留转换后的地址字串长度值  
-  026AF228      2B45 08       SUB EAX,DWORD PTR SS:\[EBP+8\]  
-  026AF22B      3BC7          CMP EAX,EDI  
-  026AF22D  |.  77 06         JA SHORT 026AF235  
-  026AF22F  |.  FF15 CC306B02 CALL DWORD PTR DS:\[<&MSVCP60.?\_Xlen@std@@YAXXZ>\] ;  MSVCP60.?\_Xlen@std@@YAXXZ  
-  026AF235  |>  85FF          TEST EDI,EDI                                     ;  判断字串长度是否等于 0  
-  026AF237  |.  76 43         JBE SHORT 026AF27C  
-  026AF239  |.  8B5D 08       MOV EBX,DWORD PTR SS:\[EBP+8\]  
-  026AF23C  |.  6A 00         PUSH 0  
-  026AF23E  |.  03DF          ADD EBX,EDI                                      ;  地址字串长度或指令+地址字串长度送到 EBX  
-  026AF240  |.  8BCD          MOV ECX,EBP  
-  026AF242  |.  53            PUSH EBX  
-  026AF243  |.  FF15 C0306B02 CALL DWORD PTR DS:\[<&MSVCP60.?\_Grow@?$basic\_stri>;  MSVCP60.?\_Grow@?$basic\_string@DU?$char\_traits@D@std@@V?$allocator@D@2@@std@@AAE\_NI\_N@Z  
-  026AF249  |.  84C0          TEST AL,AL  
-  026AF24B  |.  74 2F         JE SHORT 026AF27C  
-  026AF24D      8B76 04       MOV ESI,DWORD PTR DS:\[ESI+4\]                     ;  \[ESI+4\]中就是转换后的地址字串  
-  026AF250      85F6          TEST ESI,ESI  
-  026AF252  |.  75 06         JNZ SHORT 026AF25A  
-  026AF254  |.  8B35 1C316B02 MOV ESI,DWORD PTR DS:\[<&MSVCP60.?\_C@?1??\_Nullstr>;  MSVCP60.?\_C@?1??\_Nullstr@?$basic\_string@DU?$char\_traits@D@std@@V?$allocator@D@2@@std@@CAPBDXZ@4DB  
-  026AF25A      8B45 04       MOV EAX,DWORD PTR SS:\[EBP+4\]                     ;  这里改成跳到我们的补丁代码处执行  
-  026AF25D      8BCF          MOV ECX,EDI  
-  026AF25F  |.  8B7D 08       MOV EDI,DWORD PTR SS:\[EBP+8\]  
-  026AF262  |.  03F8          ADD EDI,EAX  
-  026AF264  |.  8BC1          MOV EAX,ECX  
-  026AF266  |.  C1E9 02       SHR ECX,2  
-  026AF269  |.  F3:A5         REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS:\[ESI\]  
-  026AF26B  |.  8BC8          MOV ECX,EAX  
-  026AF26D  |.  83E1 03       AND ECX,3  
-  026AF270  |.  F3:A4         REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]  
-  ----------------------------------------------------------------------------------------------------------  
-  从上面可以看出，程序是调用了 STL 模板库中的标准函数把地址的 DWORD 转成了字串，不过后面没对转换后字串的第一个字符是否位于“a”到“f”间作判断，就直接拿来用了。导致会出现我们开始时提到的那个错误。现在我们只要加上这个判断，如果第一个字符在“a”到“f”之间，我们就在字串前面插一个“0”字符。这里就偷个懒，直接判断第一个字符是否大于字符“9”，如果大于则在字串前面插一个“0”字符。找一个空白地方写我们的代码，我这把补丁代码放在 RVA 125C0 处。根据程序在我这重定位后的基址，我在 VA 026B25C0 处写补丁代码。先把上面地址 026AF25A 处的代码改为跳到我们的补丁代码处执行：  
-  ----------------------------------------------------------------------------------------------------------  
-  修改后代码：  
-  026AF25A      E9 61330000   JMP 026B25C0                                     ;  这里改成跳到我们的补丁代码处执行  
-  026AF25F  |.  8B7D 08       MOV EDI,DWORD PTR SS:\[EBP+8\]  
-  ----------------------------------------------------------------------------------------------------------  
-  要写的补丁代码：  
-  026B25C0      60            PUSHAD                                           ;  保护现场  
-  026B25C1      9C            PUSHFD  
-  026B25C2      803E 39       CMP BYTE PTR DS:\[ESI\],39                         ;  第一个字符是否大于 9  
-  026B25C5      7F 0C         JG SHORT 026B25D3                                ;  大于 9 则处理，否则返回  
-  026B25C7      9D            POPFD  
-  026B25C8      61            POPAD  
-  026B25C9      8B45 04       MOV EAX,DWORD PTR SS:\[EBP+4\]  
-  026B25CC      8BCF          MOV ECX,EDI  
-  026B25CE    ^ E9 8CCCFFFF   JMP 026AF25F  
-  026B25D3      C6443E 01 00  MOV BYTE PTR DS:\[ESI+EDI+1\],0                    ;  地址字串最后面添加一个 0 字节  
-  026B25D8      8A443E FF     MOV AL,BYTE PTR DS:\[ESI+EDI\-1\]  
-  026B25DC      88043E        MOV BYTE PTR DS:\[ESI+EDI\],AL                     ;  这里依次把地址字串的字符向后移一位，以便我们在字串开始的地方插一个 0  
-  026B25DF      4F            DEC EDI  
-  026B25E0      83FF 00       CMP EDI,0                                        ;  判断字串是否都已移完  
-  026B25E3    ^ 75 F3         JNZ SHORT 026B25D8  
-  026B25E5      C606 30       MOV BYTE PTR DS:\[ESI\],30                         ;  在地址字串前面加一个字符 0  
-  026B25E8      9D            POPFD  
-  026B25E9      61            POPAD  
-  026B25EA      43            INC EBX                                          ;  指令字串总长度加 1  
-  026B25EB      47            INC EDI                                          ;  地址字串长度加 1  
-  026B25EC      8B45 04       MOV EAX,DWORD PTR SS:\[EBP+4\]                     ;  恢复原始代码并返回继续执行  
-  026B25EF      8BCF          MOV ECX,EDI  
-  026B25F1    ^ E9 69CCFFFF   JMP 026AF25F                                     ;  返回到原程序的下一句代码继续执行  
-    
-  附件是 dup 制作的补丁，可以直接对 SkyPatch 1.1 进行 patch 修正 bug。  
-    
-\--------------------------------------------------------------------------------  
-【版权声明】: 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+【文章标题】： OD 写补丁代码插件 SkyPatch 的 bug 修正
+
+【文章作者】： CCDebuger
+
+【软件名称】： SkyPatch 1.1
+
+【下载地址】： 自己搜索下载
+
+【作者声明】： 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+--------------------------------------------------------------------------------
+
+## 【详细过程】
+
+SkyPatch 插件用来在 OD 中写补丁代码是比较方便的。不过这个插件有个 bug，就是当写入的字串放在 VA 地址 `00A00000` 以后，则无法构建。如果构建的话，则会出现类似这样的错误：
+
+错误的命令位于行: 18 `PUSH a17250` Unknown identifier
+
+构建失败
+
+补丁代码类似于这样：
+
+@`0x00A17250`:
+
+`$str1` "xxxxxx"
+
+以下代码省略...
+
+`PUSH $str1`
+
+这里要在 OD 中正常汇编的话，转换后的指令应该是：
+
+`PUSH 0a17250`
+
+这样才能正常编译。可见 SkyPatch 插件在把地址的 DWORD 值转换为字串时，把前面的 `0` 丢掉了。如果地址是低于 `00A00000` 的值，这样没什么问题，但如果转换的字串地址大于 `00A00000`，则无法编译了。现在试着修复这个错误。用 IDA 分析一下 SkyPatch 插件，根据出错字串“错误的命令位于行”很容易发现有三个地方调用。两个地方都是调用 OD 的汇编功能的，不是我们要找的地方。那就只有这个地方：
+
+```
+.text:1000F1DF loc_1000F1DF:                           ; CODE XREF: _Convert_Param_to_Str+EFj
+.text:1000F1DF                mov     edx, [eax+0Ch]
+.text:1000F1E2                mov     ecx, (offset LibFileName+124h)
+.text:1000F1E7                and     dh, 0F9h
+.text:1000F1EA                or      dh, 8
+.text:1000F1ED                mov     [eax+0Ch], edx
+.text:1000F1F0                mov     eax, [esp+3Ch+arg_0]
+.text:1000F1F4                push    eax             ; 这里就是地址的 DWORD 值
+.text:1000F1F5                call    ds:std::basic_ostream<char,std::char_traits<char>>::operator<<(uint)
+.text:1000F1F5
+
+.text:1000F1FB                lea     ecx, [esp+3Ch+var_1C]
+.text:1000F1FF                push    ecx
+.text:1000F200                mov     ecx, (offset LibFileName+11Ch)
+.text:1000F205                call    ds:std::basic_stringstream<char,std::char_traits<char>,std::allocator<char>>::str(void)
+.text:1000F205
+
+.text:1000F20B                mov     esi, eax
+.text:1000F20D                mov     edx, ds:uint const std::basic_string<char,std::char_traits<char>,std::allocator<char>>::npos
+.text:1000F213                mov     ecx, [esi+8]
+.text:1000F216                mov     [esp+3Ch+var_4], 1
+.text:1000F21E                mov     eax, [edx]
+.text:1000F220                mov     edi, eax
+.text:1000F222                cmp     ecx, edi
+.text:1000F224                jnb     short loc_1000F228
+.text:1000F224
+
+.text:1000F226                mov     edi, ecx        ; 在 EDI 中保留转换后的地址字串长度值
+.text:1000F226
+
+.text:1000F228
+.text:1000F228 loc_1000F228:                           ; CODE XREF: _Convert_Param_to_Str+144j
+.text:1000F228                sub     eax, [ebp+8]
+.text:1000F22B                cmp     eax, edi
+.text:1000F22D                ja      short loc_1000F235
+.text:1000F22D
+
+.text:1000F22F                call    ds:std::_Xlen(void)
+.text:1000F22F
+
+.text:1000F235
+.text:1000F235 loc_1000F235:                           ; CODE XREF: _Convert_Param_to_Str+14Dj
+.text:1000F235                test    edi, edi
+.text:1000F237                jbe     short loc_1000F27C
+.text:1000F237
+
+.text:1000F239                mov     ebx, [ebp+8]
+.text:1000F23C                push    0
+.text:1000F23E                add     ebx, edi        ; 地址字串长度或指令+地址字串长度送到 EBX
+.text:1000F240                mov     ecx, ebp
+.text:1000F242                push    ebx
+.text:1000F243                call    ds:std::basic_string<char,std::char_traits<char>,std::allocator<char>>::_Grow(uint,bool)
+.text:1000F243
+
+.text:1000F249                test    al, al
+.text:1000F24B                jz      short loc_1000F27C
+.text:1000F24B
+
+.text:1000F24D                mov     esi, [esi+4]    ; [ESI+4]中就是转换后的地址字串
+.text:1000F250                test    esi, esi
+.text:1000F252                jnz     short loc_1000F25A
+.text:1000F252
+
+.text:1000F254                mov     esi, ds:char const `std::basic_string<char,std::char_traits<char>,std::allocator<char>>::_Nullstr(void)'::`2'::_C
+.text:1000F254
+
+.text:1000F25A
+.text:1000F25A loc_1000F25A:                           ; CODE XREF: _Convert_Param_to_Str+172j
+.text:1000F25A                mov     eax, [ebp+4]
+.text:1000F25D                mov     ecx, edi
+.text:1000F25F                mov     edi, [ebp+8]
+.text:1000F262                add     edi, eax
+.text:1000F264                mov     eax, ecx
+```
+
+现在复制一个原版的 OllyDBG，只配置 SkyPatch 这一个插件，这个新配置的 OD 我们设为 `OD1`。现在用我们自己常用的 OD 打开 `OD1`，用 `OD1` 载入我们要打补丁的程序，调用 SkyPatch 打开要写入的补丁脚本。现在转到我们自己常用的 OD 中，`ALT+E` 打开模块窗口，双击 SkyPatch 模块，在汇编窗口中定位到我们上面看到的代码处，设断点。当然上面的代码是我已经结合 OD 分析过的，第一次我们可能定位的位置并不一定对。不过没关系，可以根据断下来后程序的执行情况再调整断点。这个各位可以自己测试。现在说一下在 OD 中调试看到的情况：
+
+```
+026AF1F4  |.  50            PUSH EAX                                 ;  EAX 就是参数经过转换后所得到的地址 DWORD 值
+026AF1F5  |.  FF15 60306B02 CALL DWORD PTR DS:[<&MSVCP60.??6?$basic_ostream@>;  MSVCP60.??6?$basic_ostream@DU?$char_traits@D@std@@@std@@QAEAAV01@I@Z
+026AF1FB  |.  8D4C24 20     LEA ECX,DWORD PTR SS:[ESP+20]
+026AF1FF  |.  51            PUSH ECX
+026AF200  |.  B9 807C6B02   MOV ECX,026B7C80
+026AF205  |.  FF15 F8306B02 CALL DWORD PTR DS:[<&MSVCP60.?str@?$basic_string>;  MSVCP60.?str@?$basic_stringstream@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QBE?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@XZ
+026AF20B  |.  8BF0          MOV ESI,EAX
+026AF20D  |.  8B15 BC306B02 MOV EDX,DWORD PTR DS:[<&MSVCP60.?npos@?$basic_st>;  MSVCP60.?npos@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@2IB
+026AF213  |.  8B4E 08       MOV ECX,DWORD PTR DS:[ESI+8]                     ;  转换后的地址字串长度
+026AF216  |.  C74424 38 010>MOV DWORD PTR SS:[ESP+38],1
+026AF21E  |.  8B02          MOV EAX,DWORD PTR DS:[EDX]
+026AF220  |.  8BF8          MOV EDI,EAX
+026AF222  |.  3BCF          CMP ECX,EDI                                      ;  比较字串长度是否大于等于 0
+026AF224  |.  73 02         JNB SHORT 026AF228
+026AF226  |.  8BF9          MOV EDI,ECX                                      ;  在 EDI 中保留转换后的地址字串长度值
+026AF228      2B45 08       SUB EAX,DWORD PTR SS:[EBP+8]
+026AF22B      3BC7          CMP EAX,EDI
+026AF22D  |.  77 06         JA SHORT 026AF235
+026AF22F  |.  FF15 CC306B02 CALL DWORD PTR DS:[<&MSVCP60.?_Xlen@std@@YAXXZ>]  ;  MSVCP60.?_Xlen@std@@YAXXZ
+026AF235  |>  85FF          TEST EDI,EDI                                     ;  判断字串长度是否等于 0
+026AF237  |.  76 43         JBE SHORT 026AF27C
+026AF239  |.  8B5D 08       MOV EBX,DWORD PTR SS:[EBP+8]
+026AF23C  |.  6A 00         PUSH 0
+026AF23E  |.  03DF          ADD EBX,EDI                                      ;  地址字串长度或指令+地址字串长度送到 EBX
+026AF240  |.  8BCD          MOV ECX,EBP
+026AF242  |.  53            PUSH EBX
+026AF243  |.  FF15 C0306B02 CALL DWORD PTR DS:[<&MSVCP60.?_Grow@?$basic_stri>; MSVCP60.?_Grow@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@AAE_NI_N@Z
+026AF249  |.  84C0          TEST AL,AL
+026AF24B  |.  74 2F         JE SHORT 026AF27C
+026AF24D      8B76 04       MOV ESI,DWORD PTR DS:[ESI+4]                     ;  [ESI+4]中就是转换后的地址字串
+026AF250      85F6          TEST ESI,ESI
+026AF252  |.  75 06         JNZ SHORT 026AF25A
+026AF254  |.  8B35 1C316B02 MOV ESI,DWORD PTR DS:[<&MSVCP60.?_C@?1??_Nullstr>;  MSVCP60.?_C@?1??_Nullstr@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@CAPBDXZ@4DB
+026AF25A      8B45 04       MOV EAX,DWORD PTR SS:[EBP+4]                     ;  这里改成跳到我们的补丁代码处执行
+026AF25D      8BCF          MOV ECX,EDI
+```
+
+
+
+从上面可以看出，程序是调用了 `STL` 模板库中的标准函数把地址的 `DWORD` 转成了字串，不过后面没对转换后字串的第一个字符是否位于“a”到“f”间作判断，就直接拿来用了。导致会出现我们开始时提到的那个错误。现在我们只要加上这个判断，如果第一个字符在“a”到“f”之间，我们就在字串前面插一个“0”字符。这里就偷个懒，直接判断第一个字符是否大于字符“9”，如果大于则在字串前面插一个“0”字符。找一个空白地方写我们的代码，我这把补丁代码放在 `RVA 125C0` 处。根据程序在我这重定位后的基址，我在 `VA 026B25C0` 处写补丁代码。先把上面地址 `026AF25A` 处的代码改为跳到我们的补丁代码处执行：
+
+### 修改后代码
+
+```
+026AF25A      E9 61330000   JMP 026B25C0                                     ;  这里改成跳到我们的补丁代码处执行
+026AF25F  |.  8B7D 08       MOV EDI,DWORD PTR SS:[EBP+8]
+```
+
+### 要写的补丁代码
+
+```
+026B25C0      60            PUSHAD                                           ;  保护现场
+026B25C1      9C            PUSHFD
+026B25C2      803E 39       CMP BYTE PTR DS:[ESI],39                         ;  第一个字符是否大于 9
+026B25C5      7F 0C         JG SHORT 026B25D3                                ;  大于 9 则处理，否则返回
+026B25C7      9D            POPFD
+026B25C8      61            POPAD
+026B25C9      8B45 04       MOV EAX,DWORD PTR SS:[EBP+4]
+026B25CC      8BCF          MOV ECX,EDI
+026B25CE    ^ E9 8CCCFFFF   JMP 026AF25F
+
+026B25D3      C6443E 01 00  MOV BYTE PTR DS:[ESI+EDI+1],0                    ;  地址字串最后面添加一个 0 字节
+026B25D8      8A443E FF     MOV AL,BYTE PTR DS:[ESI+EDI\-1]
+026B25DC      88043E        MOV BYTE PTR DS:[ESI+EDI],AL                     ;  这里依次把地址字串的字符向后移一位，以便我们在字串开始的地方插一个 0
+026B25DF      4F            DEC EDI
+026B25E0      83FF 00       CMP EDI,0                                        ;  判断字串是否都已移完
+026B25E3    ^ 75 F3         JNZ SHORT 026B25D8
+026B25E5      C606 30       MOV BYTE PTR DS:[ESI],30                         ;  在地址字串前面加一个字符 0
+026B25E8      9D            POPFD
+026B25E9      61            POPAD
+026B25EA      43            INC EBX                                         ;  指令字串总长度加 1
+026B25EB      47            INC EDI                                         ;  地址字串长度加 1
+026B25EC      8B45 04       MOV EAX,DWORD PTR SS:[EBP+4]                     ;  恢复原始代码并返回继续执行
+026B25EF      8BCF          MOV ECX,EDI
+026B25F1    ^ E9 69CCFFFF   JMP 026AF25F                                     ;  返回到原程序的下一句代码继续执行
+```
+
+附件是 `dup` 制作的补丁，可以直接对 `SkyPatch 1.1` 进行 `patch` 修正 `bug`。
+
+--------------------------------------------------------------------------------
+
+【版权声明】: 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
 
 上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || skypatch.1.1-patch.rar  
- |
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || skypatch.1.1-patch.rar |

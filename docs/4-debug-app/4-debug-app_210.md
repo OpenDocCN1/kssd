@@ -1,341 +1,364 @@
 
-
 # 如何实现某棋牌游戏的换牌
 
 > 原文：[`www.pediy.com/kssd/pediy12/139744.html`](https://www.pediy.com/kssd/pediy12/139744.html)
 
-曾经做过一个棋牌游戏换牌的，所谓的换牌也就是欺骗玩家以达到某种目的，但是最近由于游戏改了方案了。。所以那个没有用了，因此我想放出来也许会对某些人有用  
-  换牌其实并不是那么神奇的，主要有 2 个方式进行解决。。。。一通过改游戏的封包，二是通过自己写软件达到看上去牌是被换了的效果  
-   首先谈一下我对着这 2 种方式的一种看法吧，对于第一种办法达到的效果最好，破绽最少，也可以说是相对比较稳定的，但是这种相对难度大，由于对于棋牌游戏你需要进行解密，而且需要逃过杀毒软件，，如果游戏一旦更新，比如加密方式变了。那么也许更新起来很不方便  
-    第二种方式也就是我用的这种方式，就是通过只对游戏数据进行读取，然后在自己的软件上实行相应的操作，简单的说就是用你的软件做成棋牌的图片将游戏的部分画面给覆盖了，从而达到你的目的。。。但是这种方法工作量教大，。考虑因素很多，需要处理好很多细节，不然会被人家看出来，下面我就详细说说我所用的这种方法吧  
-    其实这种方法完全是我自己想出来的。。不知道别人是否用过同样的方法，但是确实是属于自己想出来的，还记得当时我想通过解密游戏的封包来完成目的，但是由于技术有限。当时没将数据解密出来，后来索性想其他的方法了。。好像当时想到这个办法的时候正在课堂上![](img/906f120cfe711ccbc8463fd6eb86eee9.jpg "尴尬")  
-     下面我就简单说一下我的步骤吧，由于细节很繁琐。。  
-    第一我需要游戏的牌的图片。我想游戏的图片肯定在游戏的某个 exe 或者 dll 中。。。于是我用  
-Restorator 资源查看器。。。。其实这个软件是当时学做免杀的时候接触到的。。。后来经常就使用他了。。。。通过查看，我在一个 dll 中找到了 54 张牌的位图，也是通过上面的资源查看器将他提起出来的  
-  
-![](img/4bb52a3eff12b5fa17d749871b448e52.jpg)  
-  
-  
-于是我将 54 张扑克打包出来做成资源文件，从而直接加入到我的软件中去了。。。这只是第一步  
-后面的路还长着呢  
-   第二步在游戏中寻找数据来进行标识什么时候显示什么游戏界面比如下面是我找到的标识  
-\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-     s1:string='493278|dc|1b0';///是否开始；  
-     s2:string='493278|dc|368';/////是否下注；  
-     s3:string='493278|dc|2b8';/////是否摊牌；  
-     s4:string='493278|dc|208';  /////是否当庄家；  
-     s5:string='493278|dc|4c8';  /////是否全部开始了  
-     s6:string='493278|dc|164|4|a4';  /////是否有牌了  
-\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-  我写了一个函数来读取上面的数据的  
-    
-function readint(h:hwnd;s:string):integer;  //h：目标句柄。。  
-var  
-  wnd:hwnd;  
-  pid:hwnd;  
-  pHandle:hwnd;  
-  hp:integer;  
-  i:array \[1..10\]of integer;  
-  nSize:DWORD;  
-  j:integer ;  
-  lpNumberOfBytesRead:DWORD;  
-  list : TStringlist;  
-  begin  
-    try  
- // nSize:=10;  
-  //hp:=AllocMem(nSize);  
-//  Wnd   :=   FindWindow(nil,'Element   Client');  
- list := TStringlist.Create;  
- list.Delimiter := '|';  
- list.DelimitedText := s;  
-   for j:=1 to list.Count do  
-   begin  
-   i\[j\]:=strtoint('$'+list.Strings\[j-1\]);  
-  
-   end;  
-  GetWindowThreadProcessId(h,@pid);  
-  pHandle:=OpenProcess(PROCESS\_ALL\_ACCESS,false,pid);  
-  
-  ReadProcessMemory(pHandle,Pointer(i\[1\]),@hp,sizeof(hp),lpNumberOfBytesRead);  
-  
-      IF list.Count>1 then  
-   begin  
-  for j:=2 to list.Count do  
-   begin  
-  
-  hp:=hp+i\[j\];  
-  
-  ReadProcessMemory(pHandle,Pointer(hp),@hp,sizeof(hp),lpNumberOfBytesRead);  
-  
-   end;  
-  end;  
-  
-  result:=hp;  
-   except  
-  end;  
-  
-   end;  
-  
-  
-  
-简单说一下上面的参数 s:string 是代表什么吧  
-想必你们找到基址和便宜吧  
-比如 s1:string='493278|dc|1b0';///是否开始；  
-如果用 od 查看的时候就是  dd \[\[493278\]+0dc\]+1b0  
-由于我需要再游戏中进行批量读取。。所以就写了上面的那个函数来的读取指定程序的数据  
-\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-     上面基本就是我需要的游戏的全部数据了，由于还要进行识别牌的点数。所以只能说基本上上面的数据就行了  
-    我遇到的人他们有的人要求全部替换牌，不用识别牌。。。。。所以说如果那样的话那么上面的数据就足够了。。。所以说想做的话可以不用多少逆向的东西，不用你找太多东西就能达到换牌的目的，其实最大的问题是在怎么处理好你和游戏之间进行同步了。。。详细细节也不好说清楚。。。所以只是稍微提一下，就是说什么时候你的牌覆盖游戏的牌。。什么时候你软件隐藏。什么时候你软件出现在什么位置。考虑细节比如当其他窗口打开。比如浏览器打开。由于只是你的软件进行覆盖到游戏上面，那么你这个时候就需要进行相应的处理了  
-   其实说起来挺简单的，但是具体操作起来就麻烦了。。因为你必须保证到人家看不出任何破绽，不然的话你的软件就没有任何价值了  
-++++++++++++++++++++++++++++++++++++++++++++++++++  
-   下面我就说一下如何读取游戏中牌的点数了  
-   关于识别游戏牌的点数曾经我发过一篇贴子，但是游戏当时图片丢失了，所以我这次再简单说一下我的思路吧  
-   由于当时时间挺急的。我想直接从游戏中读取游戏牌的点数。但是当时一直没思路该从哪里下手  
-   后来在游戏中调试看到了 user32.loadbitmap   
-0040E5B6    CC              int3  
-0040E5B7    8BEC            mov     ebp, esp  
-0040E5B9    8A45 08         mov     al, byte ptr \[ebp+8\]  
-0040E5BC    50              push    eax  
-0040E5BD    EB 08           jmp     short 0040E5C7  
-0040E5BF    CC              int3  
-0040E5C0    55              push    ebp  
-0040E5C1  - E9 88BB1C00     jmp     005DA14E       跳到我的区段中去执行  
-0040E5C6    50              push    eax  
-0040E5C7    E8 64FFFFFF     call    0040E530  
-0040E5CC    85C0            test    eax, eax  
-0040E5CE    75 04           jnz     short 0040E5D4  
-0040E5D0    33C0            xor     eax, eax  
-0040E5D2    EB 2F           jmp     short 0040E603  
-0040E5D4    837D 0C 00      cmp     dword ptr \[ebp+C\], 0  
-0040E5D8    74 09           je      short 0040E5E3  
-0040E5DA    8B4D 0C         mov     ecx, dword ptr \[ebp+C\]  
-0040E5DD    C701 FF00FF00   mov     dword ptr \[ecx\], 0FF00FF  
-0040E5E3    0FB655 08       movzx   edx, byte ptr \[ebp+8\]  
-0040E5E7    85D2            test    edx, edx  
-0040E5E9    75 04           jnz     short 0040E5EF  
-0040E5EB    C645 08 FF      mov     byte ptr \[ebp+8\], 0FF  
-0040E5EF    0FB645 08       movzx   eax, byte ptr \[ebp+8\]  
-0040E5F3    50              push    eax  
-0040E5F4    6A 00           push    0  
-0040E5F6    FF15 6CE14700   call    dword ptr \[<&KERNEL32.GetModuleH>; kernel32.GetModuleHandleA  
-0040E5FC    50              push    eax  
-0040E5FD    FF15 B8EC4700   call    dword ptr \[<&USER32.LoadBitmapA>>; USER32.LoadBitmapA  
-0040E603    5D              pop     ebp  
-0040E604    C2 0800         retn    8  
-  
-  
-于是我想到可以从这里下手，于是我就首先给游戏加了个区段，，才开始的时候这个函数本来是出现在游戏中一个 dll 中的，后来游戏改了，他把这段代码改到游戏中去了，你一看上面的函数就知道是怎么回事了，于是我给游戏加了个区段，，在这段代码上面的 某个地方改了他运行的流程，让他跳到我的区段中去执行，那么数据处理需要经过分析后才行，我通过分析后发现他传进来的参数就是上面用 restorator 中和 bmp 的名称存在一种想应的关系，，于是我就写了下面这段代码  
-   
-005DA000  - E9 B245E3FF     jmp     0040E5B7  跳回去  
-005DA005    90              nop  
-005DA006    90              nop  
-005DA007    90              nop  
-005DA008    90              nop  
-005DA009    90              nop  
-005DA00A    90              nop  
-005DA00B    90              nop  
-005DA00C    90              nop  
-005DA00D    90              nop  
-005DA00E    90              nop  
-005DA00F    90              nop  
-005DA010    83F8 00         cmp     eax, 0  
-005DA013    75 17           jnz     short 005DA02C  
-005DA015    C705 E84D4900 0>mov     dword ptr \[494DE8\], 5  
-005DA01F    90              nop  
-005DA020    90              nop  
-005DA021    90              nop  
-005DA022  ^ EB DC           jmp     short 005DA000  
-005DA024    90              nop  
-005DA025    90              nop  
-005DA026    90              nop  
-005DA027    90              nop  
-005DA028    90              nop  
-005DA029    90              nop  
-005DA02A    90              nop  
-005DA02B    90              nop  
-005DA02C    81F9 00020000   cmp     ecx, 200  
-005DA032    7D 0C           jge     short 005DA040  
-005DA034  ^ EB CA           jmp     short 005DA000  
-005DA036    90              nop  
-005DA037    90              nop  
-005DA038    90              nop  
-005DA039    90              nop  
-005DA03A    90              nop  
-005DA03B    90              nop  
-005DA03C    90              nop  
-005DA03D    90              nop  
-005DA03E    90              nop  
-005DA03F    90              nop  
-005DA040    81F9 00030000   cmp     ecx, 300  
-005DA046  ^ 7D B8           jge     short 005DA000  
-005DA048    833D E84D4900 0>cmp     dword ptr \[494DE8\], 1  
-005DA04F  ^ 7C AF           jl      short 005DA000  
-005DA051    50              push    eax  
-005DA052    A1 E84D4900     mov     eax, dword ptr \[494DE8\]  
-005DA057    3E:890C85 E84D4>mov     dword ptr \[eax\*4+494DE8\], ecx  
-005DA05F    48              dec     eax  
-005DA060    A3 E84D4900     mov     dword ptr \[494DE8\], eax  
-005DA065    58              pop     eax  
-005DA066    833D E84D4900 0>cmp     dword ptr \[494DE8\], 0  
-005DA06D  ^ 75 91           jnz     short 005DA000  
-005DA06F    90              nop  
-005DA070    90              nop  
-005DA071    50              push    eax  
-005DA072    53              push    ebx  
-005DA073    51              push    ecx  
-005DA074    52              push    edx  
-005DA075    BB 00000000     mov     ebx, 0  
-005DA07A    A1 FC4D4900     mov     eax, dword ptr \[494DFC\]  
-005DA07F    2D 00020000     sub     eax, 200  
-005DA084    E8 A5000000     call    005DA12E  
-005DA089    90              nop  
-005DA08A    90              nop  
-005DA08B    90              nop  
-005DA08C    90              nop  
-005DA08D    A3 004E4900     mov     dword ptr \[494E00\], eax  
-005DA092    A1 F84D4900     mov     eax, dword ptr \[494DF8\]  
-005DA097    2D 00020000     sub     eax, 200  
-005DA09C    E8 8D000000     call    005DA12E  
-005DA0A1    90              nop  
-005DA0A2    90              nop  
-005DA0A3    90              nop  
-005DA0A4    90              nop  
-005DA0A5    A3 044E4900     mov     dword ptr \[494E04\], eax  
-005DA0AA    A1 F44D4900     mov     eax, dword ptr \[494DF4\]  
-005DA0AF    2D 00020000     sub     eax, 200  
-005DA0B4    E8 75000000     call    005DA12E  
-005DA0B9    90              nop  
-005DA0BA    90              nop  
-005DA0BB    90              nop  
-005DA0BC    90              nop  
-005DA0BD    A3 084E4900     mov     dword ptr \[494E08\], eax  
-005DA0C2    A1 F04D4900     mov     eax, dword ptr \[494DF0\]  
-005DA0C7    2D 00020000     sub     eax, 200  
-005DA0CC    E8 5D000000     call    005DA12E  
-005DA0D1    90              nop  
-005DA0D2    90              nop  
-005DA0D3    90              nop  
-005DA0D4    90              nop  
-005DA0D5    A3 0C4E4900     mov     dword ptr \[494E0C\], eax  
-005DA0DA    A1 EC4D4900     mov     eax, dword ptr \[494DEC\]  
-005DA0DF    2D 00020000     sub     eax, 200  
-005DA0E4    E8 45000000     call    005DA12E  
-005DA0E9    90              nop  
-005DA0EA    90              nop  
-005DA0EB    90              nop  
-005DA0EC    90              nop  
-005DA0ED    A3 104E4900     mov     dword ptr \[494E10\], eax  
-005DA0F2    90              nop  
-005DA0F3    90              nop  
-005DA0F4    90              nop  
-005DA0F5    90              nop  
-005DA0F6    90              nop  
-005DA0F7    90              nop  
-005DA0F8    5A              pop     edx  
-005DA0F9    59              pop     ecx  
-005DA0FA    90              nop  
-005DA0FB    90              nop  
-005DA0FC    90              nop  
-005DA0FD    90              nop  
-005DA0FE    90              nop  
-005DA0FF    5B              pop     ebx  
-005DA100    58              pop     eax  
-005DA101    8BEC            mov     ebp, esp  
-005DA103    894D 08         mov     dword ptr \[ebp+8\], ecx  
-005DA106    C705 184E4900 1>mov     dword ptr \[494E18\], 10  
-005DA110  ^ E9 EBFEFFFF     jmp     005DA000  
-005DA115    90              nop  
-005DA116    0000            add     byte ptr \[eax\], al  
-005DA118    0000            add     byte ptr \[eax\], al  
-005DA11A    0000            add     byte ptr \[eax\], al  
-005DA11C    0000            add     byte ptr \[eax\], al  
-005DA11E    0000            add     byte ptr \[eax\], al  
-005DA120    0000            add     byte ptr \[eax\], al  
-005DA122    0000            add     byte ptr \[eax\], al  
-005DA124    0000            add     byte ptr \[eax\], al  
-005DA126    0000            add     byte ptr \[eax\], al  
-005DA128    0000            add     byte ptr \[eax\], al  
-005DA12A    0000            add     byte ptr \[eax\], al  
-005DA12C    0000            add     byte ptr \[eax\], al  
-005DA12E    53              push    ebx  
-005DA12F    90              nop  
-005DA130    BB 00000000     mov     ebx, 0  
-005DA135    83E8 10         sub     eax, 10  
-005DA138    43              inc     ebx  
-005DA139    83F8 10         cmp     eax, 10  
-005DA13C  ^ 7D F7           jge     short 005DA135  
-005DA13E    8BC3            mov     eax, ebx  
-005DA140    5B              pop     ebx  
-005DA141    C3              retn  
-005DA142    0000            add     byte ptr \[eax\], al  
-005DA144    0000            add     byte ptr \[eax\], al  
-005DA146    0000            add     byte ptr \[eax\], al  
-005DA148    0000            add     byte ptr \[eax\], al  
-005DA14A    0000            add     byte ptr \[eax\], al  
-005DA14C    0000            add     byte ptr \[eax\], al  
-005DA14E    890D E04D4900   mov     dword ptr \[494DE0\], ecx  
-005DA154    A3 E44D4900     mov     dword ptr \[494DE4\], eax  
-005DA159  ^ E9 AEFEFFFF     jmp     005DA00C  
-005DA15E    90              nop  
-005DA15F    90              nop  
-005DA160    90              nop  
-005DA161    90              nop  
-005DA162    90              nop  
-005DA163    90              nop  
-005DA164    90              nop  
-005DA165    90              nop  
-005DA166    90              nop  
-005DA167    90              nop  
-005DA168    90              nop  
-005DA169    90              nop  
-005DA16A    90              nop  
-005DA16B    90              nop  
-005DA16C    90              nop  
-005DA16D    90              nop  
-005DA16E    90              nop  
-005DA16F    90              nop  
-005DA170    90              nop  
-005DA171    90              nop  
-005DA172    90              nop  
-005DA173    90              nop  
-005DA174    90              nop  
-005DA175    90              nop  
-005DA176    90              nop  
-005DA177    90              nop  
-005DA178    90              nop  
-005DA179    90              nop  
-005DA17A    90              nop  
-005DA17B    90              nop  
-005DA17C    90              nop  
-005DA17D    90              nop  
-005DA17E    90              nop  
-005DA17F    90              nop  
-005DA180    90              nop  
-005DA181    90              nop  
-005DA182    90              nop  
-005DA183    90              nop  
-005DA184    90              nop  
-005DA185    90              nop  
-005DA186    90              nop  
-005DA187    90              nop  
-005DA188    90              nop  
-005DA189    90              nop  
-005DA18A  ^ EB C2           jmp     short 005DA14E  
-005DA18C    90              nop  
-005DA18D    90              nop  
-  
-  由于夜太深了。。我也不想讲上面的具体含义了。。如果想知道的话可以去看看我的另外一篇贴  
-\-   于是通过上面的操作我将棋牌的牌的点数放到游戏中指定的一个内存地址也就是基址 中  
-  
-于是我通过下面的函数就可以读出牌的点数(没花色。因为没必要，所以就没写出计算花色的代码）   
-     
-     
-   i\[1\]:=readint(game\_handle,'494E00');  
-   i\[2\]:=readint(game\_handle,'494E04');  
-   i\[3\]:=readint(game\_handle,'494E08');  
-   i\[4\]:=readint(game\_handle,'494E0c');  
-   i\[5\]:=readint(game\_handle,'494E10');  
- 上面的基的基址中的数据全是我上面代码自动写进去的。。。。由于当时做的时候牌就只有五张。所以我就定义了五个变量来读取牌的点数  
-  
-  
-  上面只是提供一个思路，如果感觉有用的话就行了。。。夜也太深了，我就不继续写了
+曾经做过一个棋牌游戏换牌的，所谓的换牌也就是欺骗玩家以达到某种目的，但是最近由于游戏改了方案了，所以那个没有用了，因此我想放出来也许会对某些人有用。
+
+## 换牌方式概述
+
+换牌其实并不是那么神奇的，主要有 2 个方式进行解决：一、通过改游戏的封包；二、是通过自己写软件达到看上去牌是被换了的效果。
+
+首先谈一下我对着这 2 种方式的一种看法吧，对于第一种办法达到的效果最好，破绽最少，也可以说是相对比较稳定的，但是这种相对难度大，由于对于棋牌游戏你需要进行解密，而且需要逃过杀毒软件。如果游戏一旦更新，比如加密方式变了，那么也许更新起来很不方便。
+
+第二种方式也就是我用的这种方式，就是通过只对游戏数据进行读取，然后在自己的软件上实行相应的操作。简单的说就是用你的软件做成棋牌的图片将游戏的部分画面给覆盖了，从而达到你的目的。但是这种方法工作量教大，考虑因素很多，需要处理好很多细节，不然会被人家看出来，下面我就详细说说我所用的这种方法吧。
+
+其实这种方法完全是我自己想出来的。不知道别人是否用过同样的方法，但是确实是属于自己想出来的，还记得当时我想通过解密游戏的封包来完成目的，但是由于技术有限，当时没将数据解密出来，后来索性想其他的方法了。好像当时想到这个办法的时候正在课堂上![](img/906f120cfe711ccbc8463fd6eb86eee9.jpg "尴尬")
+
+下面我就简单说一下我的步骤吧，由于细节很繁琐。
+
+## 第一步：获取游戏牌图片
+
+第一我需要游戏的牌的图片。我想游戏的图片肯定在游戏的某个 `exe` 或者 `dll` 中。于是我用 `Restorator` 资源查看器。其实这个软件是当时学做免杀的时候接触到的。后来经常就使用他了。通过查看，我在一个 `dll` 中找到了 54 张牌的位图，也是通过上面的资源查看器将他提起出来的。
+
+![](img/4bb52a3eff12b5fa17d749871b448e52.jpg)
+
+于是我将 54 张扑克打包出来做成资源文件，从而直接加入到我的软件中去了。这只是第一步，后面的路还长着呢。
+
+## 第二步：标识游戏界面
+
+第二步在游戏中寻找数据来进行标识什么时候显示什么游戏界面。比如下面是我找到的标识：
+
+```
+s1:string='493278|dc|1b0';///是否开始；
+s2:string='493278|dc|368';/////是否下注；
+s3:string='493278|dc|2b8';/////是否摊牌；
+s4:string='493278|dc|208';  /////是否当庄家；
+s5:string='493278|dc|4c8';  /////是否全部开始了
+s6:string='493278|dc|164|4|a4';  /////是否有牌了
+```
+
+我写了一个函数来读取上面的数据的：
+
+```
+function readint(h:hwnd;s:string):integer;  //h：目标句柄。。
+var
+  wnd:hwnd;
+  pid:hwnd;
+  pHandle:hwnd;
+  hp:integer;
+  i:array [1..10]of integer;
+  nSize:DWORD;
+  j:integer ;
+  lpNumberOfBytesRead:DWORD;
+  list : TStringlist;
+  begin
+    try
+  // nSize:=10;
+  //hp:=AllocMem(nSize);
+//  Wnd   :=   FindWindow(nil,'Element   Client');
+  list := TStringlist.Create;
+  list.Delimiter := '|';
+  list.DelimitedText := s;
+   for j:=1 to list.Count do
+   begin
+   i[j]:=strtoint('$'+list.Strings[j-1]);
+   end;
+  GetWindowThreadProcessId(h,@pid);
+  pHandle:=OpenProcess(PROCESS_ALL_ACCESS,false,pid);
+  ReadProcessMemory(pHandle,Pointer(i[1]),@hp,sizeof(hp),lpNumberOfBytesRead);
+      IF list.Count>1 then
+   begin
+  for j:=2 to list.Count do
+   begin
+  hp:=hp+i[j];
+  ReadProcessMemory(pHandle,Pointer(hp),@hp,sizeof(hp),lpNumberOfBytesRead);
+   end;
+  end;
+  result:=hp;
+   except
+  end;
+   end;
+```
+
+简单说一下上面的参数 `s:string` 是代表什么吧。
+
+想必你们找到基址和便宜吧。比如 `s1:string='493278|dc|1b0';///是否开始；`
+
+如果用 `od` 查看的时候就是 `dd [[493278]+0dc]+1b0`。
+
+由于我需要再游戏中进行批量读取，所以就写了上面的那个函数来的读取指定程序的数据。
+
+上面基本就是我需要的游戏的全部数据了，由于还要进行识别牌的点数，所以只能说基本上上面的数据就行了。
+
+我遇到的人他们有的人要求全部替换牌，不用识别牌。所以说如果那样的话那么上面的数据就足够了。所以说想做的话可以不用多少逆向的东西，不用你找太多东西就能达到换牌的目的。其实最大的问题是在怎么处理好你和游戏之间进行同步了。详细细节也不好说清楚。所以只是稍微提一下，就是说什么时候你的牌覆盖游戏的牌，什么时候你软件隐藏，什么时候你软件出现在什么位置。考虑细节比如当其他窗口打开，比如浏览器打开。由于只是你的软件进行覆盖到游戏上面，那么你这个时候就需要进行相应的处理了。
+
+其实说起来挺简单的，但是具体操作起来就麻烦了。因为你必须保证到人家看不出任何破绽，不然的话你的软件就没有任何价值了。
+
+## 读取游戏中牌的点数
+
+下面我就说一下如何读取游戏中牌的点数了。
+
+关于识别游戏牌的点数曾经我发过一篇贴子，但是游戏当时图片丢失了，所以我这次再简单说一下我的思路吧。
+
+由于当时时间挺急的，我想直接从游戏中读取游戏牌的点数。但是当时一直没思路该从哪里下手。
+
+后来在游戏中调试看到了 `user32.loadbitmap`。
+
+```
+0040E5B6    CC               int3
+0040E5B7    8BEC             mov     ebp, esp
+0040E5B9    8A45 08          mov     al, byte ptr [ebp+8]
+0040E5BC    50               push    eax
+0040E5BD    EB 08            jmp     short 0040E5C7
+0040E5BF    CC               int3
+0040E5C0    55               push    ebp
+0040E5C1  - E9 88BB1C00      jmp     005DA14E       跳到我的区段中去执行
+0040E5C6    50               push    eax
+0040E5C7    E8 64FFFFFF      call    0040E530
+0040E5CC    85C0             test    eax, eax
+0040E5CE    75 04            jnz     short 0040E5D4
+0040E5D0    33C0             xor     eax, eax
+0040E5D2    EB 2F            jmp     short 0040E603
+0040E5D4    837D 0C 00       cmp     dword ptr [ebp+C], 0
+0040E5D8    74 09            je      short 0040E5E3
+0040E5DA    8B4D 0C          mov     ecx, dword ptr [ebp+C]
+0040E5DD    C701 FF00FF00   mov     dword ptr [ecx], 0FF00FF
+0040E5E3    0FB655 08       movzx   edx, byte ptr [ebp+8]
+0040E5E7    85D2            test    edx, edx
+0040E5E9    75 04           jnz     short 0040E5EF
+0040E5EB    C645 08 FF      mov     byte ptr [ebp+8], 0FF
+0040E5EF    0FB645 08       movzx   eax, byte ptr [ebp+8]
+0040E5F3    50               push    eax
+0040E5F4    6A 00            push    0
+0040E5F6    FF15 6CE14700    call    dword ptr [&KERNEL32.GetModuleH]; kernel32.GetModuleHandleA
+0040E5FC    50               push    eax
+0040E5FD    FF15 B8EC4700    call    dword ptr [&USER32.LoadBitmapA>>; USER32.LoadBitmapA
+0040E603    5D               pop     ebp
+0040E604    C2 0800          retn    8
+```
+
+于是我想到可以从这里下手，于是我就首先给游戏加了个区段，才开始的时候这个函数本来是出现在游戏中一个 `dll` 中的，后来游戏改了，他把这段代码改到游戏中去了，你一看上面的函数就知道是怎么回事了。于是我给游戏加了个区段，在这段代码上面的某个地方改了他运行的流程，让他跳到我的区段中去执行。那么数据处理需要经过分析后才行，我通过分析后发现他传进来的参数就是上面用 `restorator` 中和 `bmp` 的名称存在一种想应的关系，于是我就写了下面这段代码：
+
+```
+005DA000  - E9 B245E3FF      jmp     0040E5B7  跳回去
+005DA005    90               nop
+005DA006    90               nop
+005DA007    90               nop
+005DA008    90               nop
+005DA009    90               nop
+005DA00A    90               nop
+005DA00B    90               nop
+005DA00C    90               nop
+005DA00D    90               nop
+005DA00E    90               nop
+005DA00F    90               nop
+005DA010    83F8 00          cmp     eax, 0
+005DA013    75 17            jnz     short 005DA02C
+005DA015    C705 E84D4900 0>mov     dword ptr [494DE8], 5
+005DA01F    90               nop
+005DA020    90               nop
+005DA021    90               nop
+005DA022  ^ EB DC            jmp     short 005DA000
+005DA024    90               nop
+005DA025    90               nop
+005DA026    90               nop
+005DA027    90               nop
+005DA028    90               nop
+005DA029    90               nop
+005DA02A    90               nop
+005DA02B    90               nop
+005DA02C    81F9 00020000    cmp     ecx, 200
+005DA032    7D 0C            jge     short 005DA040
+005DA034  ^ EB CA            jmp     short 005DA000
+005DA036    90               nop
+005DA037    90               nop
+005DA038    90               nop
+005DA039    90               nop
+005DA03A    90               nop
+005DA03B    90               nop
+005DA03C    90               nop
+005DA03D    90               nop
+005DA03E    90               nop
+005DA03F    90               nop
+005DA040    81F9 00030000    cmp     ecx, 300
+005DA046  ^ 7D B8            jge     short 005DA000
+005DA048    833D E84D4900 0>cmp     dword ptr [494DE8], 1
+005DA04F  ^ 7C AF            jl      short 005DA000
+005DA051    50               push    eax
+005DA052    A1 E84D4900      mov     eax, dword ptr [494DE8]
+005DA057    3E:890C85 E84D4>mov     dword ptr [eax*4+494DE8], ecx
+005DA05F    48               dec     eax
+005DA060    A3 E84D4900      mov     dword ptr [494DE8], eax
+005DA065    58               pop     eax
+005DA066    833D E84D4900 0>cmp     dword ptr [494DE8], 0
+005DA06D  ^ 75 91            jnz     short 005DA000
+005DA06F    90               nop
+005DA070    90               nop
+005DA071    50               push    eax
+005DA072    53               push    ebx
+005DA073    51               push    ecx
+005DA074    52               push    edx
+005DA075    BB 00000000      mov     ebx, 0
+005DA07A    A1 FC4D4900      mov     eax, dword ptr [494DFC]
+```
+
+
+
+```asm
+005DA07F    2D 00020000     sub     eax, 200  
+005DA084    E8 A5000000     call    005DA12E  
+005DA089    90              nop  
+005DA08A    90              nop  
+005DA08B    90              nop  
+005DA08C    90              nop  
+005DA08D    A3 004E4900     mov     dword ptr [494E00], eax  
+005DA092    A1 F84D4900     mov     eax, dword ptr [494DF8]  
+005DA097    2D 00020000     sub     eax, 200  
+005DA09C    E8 8D000000     call    005DA12E  
+005DA0A1    90              nop  
+005DA0A2    90              nop  
+005DA0A3    90              nop  
+005DA0A4    90              nop  
+005DA0A5    A3 044E4900     mov     dword ptr [494E04], eax  
+005DA0AA    A1 F44D4900     mov     eax, dword ptr [494DF4]  
+005DA0AF    2D 00020000     sub     eax, 200  
+005DA0B4    E8 75000000     call    005DA12E  
+005DA0B9    90              nop  
+005DA0BA    90              nop  
+005DA0BB    90              nop  
+005DA0BC    90              nop  
+005DA0BD    A3 084E4900     mov     dword ptr [494E08], eax  
+005DA0C2    A1 F04D4900     mov     eax, dword ptr [494DF0]  
+005DA0C7    2D 00020000     sub     eax, 200  
+005DA0CC    E8 5D000000     call    005DA12E  
+005DA0D1    90              nop  
+005DA0D2    90              nop  
+005DA0D3    90              nop  
+005DA0D4    90              nop  
+005DA0D5    A3 0C4E4900     mov     dword ptr [494E0C], eax  
+005DA0DA    A1 EC4D4900     mov     eax, dword ptr [494DEC]  
+005DA0DF    2D 00020000     sub     eax, 200  
+005DA0E4    E8 45000000     call    005DA12E  
+005DA0E9    90              nop  
+005DA0EA    90              nop  
+005DA0EB    90              nop  
+005DA0EC    90              nop  
+005DA0ED    A3 104E4900     mov     dword ptr [494E10], eax  
+005DA0F2    90              nop  
+005DA0F3    90              nop  
+005DA0F4    90              nop  
+005DA0F5    90              nop  
+005DA0F6    90              nop  
+005DA0F7    90              nop  
+005DA0F8    5A              pop     edx  
+005DA0F9    59              pop     ecx  
+005DA0FA    90              nop  
+005DA0FB    90              nop  
+005DA0FC    90              nop  
+005DA0FD    90              nop  
+005DA0FE    90              nop  
+005DA0FF    5B              pop     ebx  
+005DA100    58              pop     eax  
+005DA101    8BEC            mov     ebp, esp  
+005DA103    894D 08         mov     dword ptr [ebp+8], ecx  
+005DA106    C705 184E4900 1  mov   dword ptr [494E18], 10  
+005DA110    ^ E9 EBFEFFFF   jmp     005DA000  
+005DA115    90              nop  
+005DA116    0000            add     byte ptr [eax], al  
+005DA118    0000            add     byte ptr [eax], al  
+005DA11A    0000            add     byte ptr [eax], al  
+005DA11C    0000            add     byte ptr [eax], al  
+005DA11E    0000            add     byte ptr [eax], al  
+005DA120    0000            add     byte ptr [eax], al  
+005DA122    0000            add     byte ptr [eax], al  
+005DA124    0000            add     byte ptr [eax], al  
+005DA126    0000            add     byte ptr [eax], al  
+005DA128    0000            add     byte ptr [eax], al  
+005DA12A    0000            add     byte ptr [eax], al  
+005DA12C    0000            add     byte ptr [eax], al  
+005DA12E    53              push    ebx  
+005DA12F    90              nop  
+005DA130    BB 00000000     mov     ebx, 0  
+005DA135    83E8 10         sub     eax, 10  
+005DA138    43              inc     ebx  
+005DA139    83F8 10         cmp     eax, 10  
+005DA13C    ^ 7D F7         jge     short 005DA135  
+005DA13E    8BC3            mov     eax, ebx  
+005DA140    5B              pop     ebx  
+005DA141    C3              retn  
+005DA142    0000            add     byte ptr [eax], al  
+005DA144    0000            add     byte ptr [eax], al  
+005DA146    0000            add     byte ptr [eax], al  
+005DA148    0000            add     byte ptr [eax], al  
+005DA14A    0000            add     byte ptr [eax], al  
+005DA14C    0000            add     byte ptr [eax], al  
+005DA14E    890D E04D4900  mov     dword ptr [494DE0], ecx  
+005DA154    A3 E44D4900     mov     dword ptr [494DE4], eax  
+005DA159    ^ E9 AEF EffFFF jmp     005DA00C  
+005DA15E    90              nop  
+005DA15F    90              nop  
+005DA160    90              nop  
+005DA161    90              nop  
+005DA162    90              nop  
+005DA163    90              nop  
+005DA164    90              nop  
+005DA165    90              nop  
+005DA166    90              nop  
+005DA167    90              nop  
+005DA168    90              nop  
+005DA169    90              nop  
+005DA16A    90              nop  
+005DA16B    90              nop  
+005DA16C    90              nop  
+005DA16D    90              nop  
+005DA16E    90              nop  
+005DA16F    90              nop  
+005DA170    90              nop  
+005DA171    90              nop  
+005DA172    90              nop  
+005DA173    90              nop  
+005DA174    90              nop  
+005DA175    90              nop  
+005DA176    90              nop  
+005DA177    90              nop  
+005DA178    90              nop  
+005DA179    90              nop  
+005DA17A    90              nop  
+005DA17B    90              nop  
+005DA17C    90              nop  
+005DA17D    90              nop  
+005DA17E    90              nop  
+005DA17F    90              nop  
+005DA180    90              nop  
+005DA181    90              nop  
+005DA182    90              nop  
+005DA183    90              nop  
+005DA184    90              nop  
+005DA185    90              nop  
+005DA186    90              nop  
+005DA187    90              nop  
+005DA188    90              nop  
+005DA189    90              nop  
+005DA18A    ^ EB C2         jmp     short 005DA14E  
+005DA18C    90              nop  
+005DA18D    90              nop  
+```
+
+由于夜太深了，我也不想讲上面的具体含义了。如果想知道的话可以去看看我的另外一篇贴。
+
+于是通过上面的操作我将棋牌的牌的点数放到游戏中指定的一个内存地址也就是基址中。
+
+于是我通过下面的函数就可以读出牌的点数（没花色。因为没必要，所以就没写出计算花色的代码）：
+
+```
+i[1] := readint(game_handle, '494E00');
+i[2] := readint(game_handle, '494E04');
+i[3] := readint(game_handle, '494E08');
+i[4] := readint(game_handle, '494E0c');
+i[5] := readint(game_handle, '494E10');
+```
+
+上面的基址中的数据全是我上面代码自动写进去的。由于当时做的时候牌就只有五张，所以我就定义了五个变量来读取牌的点数。
+
+上面只是提供一个思路，如果感觉有用的话就行了。夜也太深了，我就不继续写了。

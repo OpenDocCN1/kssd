@@ -1,306 +1,353 @@
 
-
 # ASProtect v0.95 保护
 
 > 原文：[`www.pediy.com/kssd/tutorial/chap8-5-5-1.htm`](https://www.pediy.com/kssd/tutorial/chap8-5-5-1.htm)
 
+## 基本信息
+
 **ASProtect v0.95 保护**
 
-教程写作: 看雪  
-技术指导：D.boy 和 RuFeng  
-写作日期：2000 年 5 月 30 日   
-目标程序：ShowDep 4.0 beta 1  
-程序大小：Showdep.exe 为 177K  
-程序下载：ShowDep 4.0   
-使用工具：Softice 4.05; ProcDump 1.6.2 Final; FrogsICE v0.43；Icedump 6.016
+教程写作: 看雪
 
-　　首先忠心感谢 D.boy 和 RuFeng 的热心帮助，是在他们的帮助下，我才对 PE 文件有一定程度的了解。我把从他们那里吸取的经验总结了一篇文章，希望对大家有所帮助。为了使初学者能更好理解这文章，本人尽量写的仔细点。
+技术指导：D.boy 和 RuFeng
 
-**一、Import 表的一些理论知识**
+写作日期：2000 年 5 月 30 日
 
-在你看这篇文章之前,你应对 PE 文件的结构有一定了解,否则请先看看 PE 介绍.
+目标程序：`ShowDep 4.0 beta 1`
 
-1、现在不少软件脱壳后 Import 表被损坏或地址发生改变，需要我们手动找到正确的 Import 表来替换被破坏的 Import 表，并修正 Import 表的地址，程序才能正确执行。  
-  
-程序装载时,需要装载很多函数和 DLL 文件,这时程序需要判定目标函数的地址并将该函数插补到该执行文件的映像中，所需要的信息都是放在 PE 文件的 Import 表，PE 文件中的每一个输入函数都明确的列于该表中。  
-  
-一般来说 Import 表是存放在程序的.idata 块，它一般包含其他外来 DLL 的函数及数据信息。但也有不少程序的 Import 表不存在 idata 块中，给我们判断 Import 表的地址造成困难，但不要着急，只要了解 Import 表的结构你就能迅速定位 Import 表的地址。
+程序大小：`Showdep.exe` 为 177K
 
-2、Import 表以一个 IMAGE\_IMPORT\_DESCRIPTOR 数组开始。每一个被 PE 文件隐式连结进来的 DLL 都有一个 IMAGE\_IMPORT\_DESCRIPTOR。在这个数组中，没有字段指出该结构数组的项数，但它的最后一个单元是 NULL，可以由此计数算出该数组的项数。IMAGE\_IMPORT\_DESCRIPTOR 的格式如下：
+程序下载：`ShowDep 4.0`
 
-image\_import\_descriptors 结构：
+使用工具：`Softice 4.05`; `ProcDump 1.6.2 Final`; `FrogsICE v0.43`; `Icedump 6.016`
 
-| IMAGE\_IMPORT\_DESCRIPTOR struct  |
-| --- |
-| 　riginalFirstThunk || dd 0 || 该字段是一个指针数组的 RVA 偏移。其中每一个指针都指向一 IMAGE\_IMPORT\_BY\_NAME 结构 |
-| 　TimeDateStamp || dd 0 || 时间及日期标志，在这可以忽略 |
-| 　ForwarderChain || dd 0 || 正向链结索引，在这可以忽略 |
-| 　Name || dd 0 || 以 NULL 结尾的 ASCII 字符的 RVA 地址，该字符串包含输入的 DLL 名，比如"Kernel32.dll" 或"USER32.DLL" （关键！，我们定位 Import 表的依据） |
-| 　FirstThunk || dd 0 || 该字段是在 image\_thunk\_data 联合结构中的 RVA 偏移。大多数情况下，image\_thunk\_data 是指 IMAGE\_IMPORT\_BY\_NAME 结构的指针。如果不是一个指针的话，那它就是该功能在 DLL 中的序号。 |
-| IMAGE\_IMPORT\_DESCRIPTOR ends  |
+首先忠心感谢 D.boy 和 RuFeng 的热心帮助，是在他们的帮助下，我才对 PE 文件有一定程度的了解。我把从他们那里吸取的经验总结了一篇文章，希望对大家有所帮助。为了使初学者能更好理解这文章，本人尽量写的仔细点。
 
-3、为了使大家更好理解，我们以 ShowDep 4.0 beta 的 Import 表为例，ShowDep 4.0 用 ASProtect 加壳，用 prodump 分析，发现没有 idata 段。 脱壳大师 D.boy 很成功分析出该软件的 Import 表：import rav 0042D104，size 00001470 ；image Base（基址）＝00400000。
+### 一、Import 表的一些理论知识
 
-该软件的 Import 表的 image\_import\_descriptors 结构如下：  
+在你看这篇文章之前，你应对 PE 文件的结构有一定了解，否则请先看看 PE 介绍。
 
-| \-----SHOWDEP!.rdata+1104--------------------------dword-------------PROT---(0)\-- |
-| --- |
-| 0030:0042D104 ①0002D23C ②00000000 ③00000000 ④0002DA8A <............... ^ |
-| 0030:0042D114 ⑤0002C070 ⑥0002D43C ⑦00000000 ⑦00000000 p...<........... v |
+1. 现在不少软件脱壳后 Import 表被损坏或地址发生改变，需要我们手动找到正确的 Import 表来替换被破坏的 Import 表，并修正 Import 表的地址，程序才能正确执行。
 
-（图一） 
+程序装载时，需要装载很多函数和 DLL 文件，这时程序需要判定目标函数的地址并将该函数插补到该执行文件的映像中，所需要的信息都是放在 PE 文件的 Import 表，PE 文件中的每一个输入函数都明确的列于该表中。
 
-为了解释方便，我在每个数据前加了序号。上图就是一个典型的 Import 表开始处的 image\_import\_descriptors 结构，Import 表就是以这个数组开始的一段连续内存空间，在这里大小是 1470 的连续空间。各项数据含义如下：
+一般来说 Import 表是存放在程序的 `.idata` 块，它一般包含其他外来 DLL 的函数及数据信息。但也有不少程序的 Import 表不存在 `.idata` 块中，给我们判断 Import 表的地址造成困难，但不要着急，只要了解 Import 表的结构你就能迅速定位 Import 表的地址。
 
-| IMAGE\_IMPORT\_DESCRIPTOR struct  |
-| --- |
-| 　riginalFirstThunk || dd 0 || ①0002D23C |
-| 　TimeDateStamp || dd 0 || ②00000000  |
-| 　ForwarderChain || dd 0 || ③00000000 |
-| 　Name || dd 0 || ④0002DA8A（关键！，我们定位 Import 表的依据） |
-| 　FirstThunk || dd 0 || ⑤0002C070 |
-| IMAGE\_IMPORT\_DESCRIPTOR ends  |
+2. Import 表以一个 `IMAGE_IMPORT_DESCRIPTOR` 数组开始。每一个被 PE 文件隐式连结进来的 DLL 都有一个 `IMAGE_IMPORT_DESCRIPTOR`。在这个数组中，没有字段指出该结构数组的项数，但它的最后一个单元是 `NULL`，可以由此计数算出该数组的项数。`IMAGE_IMPORT_DESCRIPTOR` 的格式如下：
 
-现在我们将 image\_import\_descriptors 结构中每项的地址均显示分析一下：
+`image_import_descriptors` 结构：
 
-  
-**① Name 选项**（我们定位 Import 表地址就是以此为依据的）
+```
+IMAGE_IMPORT_DESCRIPTOR struct
 
-在这例 Name 项值为：④0002DA8A  
-  
-下命令 DD 42DA8A （显示内存地址 42DA8A 的数据，其中 42DA8A＝④0002DA8A＋image Base（基址））
+    riginalFirstThunk || dd 0 || 该字段是一个指针数组的 RVA 偏移。其中每一个指针都指向一 IMAGE_IMPORT_BY_NAME 结构
+    TimeDateStamp     || dd 0 || 时间及日期标志，在这可以忽略
+    ForwarderChain    || dd 0 || 正向链结索引，在这可以忽略
+    Name              || dd 0 || 以 NULL 结尾的 ASCII 字符的 RVA 地址，该字符串包含输入的 DLL 名，比如"Kernel32.dll" 或"USER32.DLL" （关键！，我们定位 Import 表的依据）
+    FirstThunk        || dd 0 || 该字段是在 image_thunk_data 联合结构中的 RVA 偏移。大多数情况下，image_thunk_data 是指 IMAGE_IMPORT_BY_NAME 结构的指针。如果不是一个指针的话，那它就是该功能在 DLL 中的序号。
 
-| \-----SHOWDEP!.rdata+1A8A--------------------------dword-------------PROT---(0)\-- |
-| --- |
-| 0030:0042DA8A 4E52454B 32334C45 4C4C442E 019A0000 KERNEL32.DLL.... ^ |
-| 0030:0042DA9A 64616F4C 73727543 0041726F 6F4C01AB LoadCursorA...Lo v |
+IMAGE_IMPORT_DESCRIPTOR ends
+```
 
-（图二） 
+3. 为了使大家更好理解，我们以 `ShowDep 4.0 beta` 的 Import 表为例，`ShowDep 4.0` 用 ASProtect 加壳，用 `prodump` 分析，发现没有 `.idata` 段。脱壳大师 D.boy 很成功分析出该软件的 Import 表：`import rav 0042D104, size 00001470`；`image Base`（基址）＝`00400000`。
 
-想必大家己睁大眼睛了，发现什么有价值的东西？对，就是***KERNEL32.DLL***！就是我们的突破口。
+该软件的 Import 表的 `image_import_descriptors` 结构如下：
 
-Import 表装载的基本原理是：根据 Import 表的指示找到外部模块的文件名，再使用 Win32 API 函数 GetModuleHandleA 获得该模块在内存中的句柄。如果没在内存中就使用 LoadLibraryA API 调用装入该模块。随后使用获得的模块句柄调用 Win32 API 函数 GetProcAddress 获得该模块中 Import 表指定功能的实际地址，加上装入基址，并且填入 Import 表的 FirstThunk 所指的 IMAGE\_IMPORT\_BY\_NAME 结构指针数组中，完成该模块的一个功能的人工装入填写。循环调用函数 GetProcAddress 以获得其他功能调用的地址，加上装入基址，并填入之，以完成一个外部模块的装入。再循环上述过程对其他模块进行装入。  
-  
-因此我们可以从函数 LoadLibraryA 入手，该函数会装入外部模块，我们监视这函数的入口参数是否为 KERNEL32.DLL，以此来确定 Import 表的状况。即确定 image\_import\_descriptors 结构中的 name 选项。
+```
+\-----SHOWDEP!.rdata+1104--------------------------dword-------------PROT---(0)\--
 
-函数 LoadLibrary：
+0030:0042D104 ①0002D23C ②00000000 ③00000000 ④0002DA8A <............... ^
+0030:0042D114 ⑤0002C070 ⑥0002D43C ⑦00000000 ⑦00000000 p...<........... v
+```
+（图一）
 
-| HINSTANCE LoadLibrary(  
-　LPCTSTR lpLibFileName // 执行模块的文件名和地址  
-); |
-| --- |
+为了解释方便，我在每个数据前加了序号。上图就是一个典型的 Import 表开始处的 `image_import_descriptors` 结构，Import 表就是以这个数组开始的一段连续内存空间，在这里大小是 `1470` 的连续空间。各项数据含义如下：
 
-只要函数 LoadLibrary 参数的模块名为 KERNEL32.DLL，就会出现图二的情况，这时 KERNEL32.DLL 地址为**0042DA8A**。因此 image\_import\_descriptors 结构中 name 为 0042DA8A—400000=2DA8A，这时利用 S 命令在内存中查找字条串 002DA8A，就可确定 import 表的地址。  
+```
+IMAGE_IMPORT_DESCRIPTOR struct
+
+    riginalFirstThunk || dd 0 || ①0002D23C
+    TimeDateStamp     || dd 0 || ②00000000
+    ForwarderChain    || dd 0 || ③00000000
+    Name              || dd 0 || ④0002DA8A（关键！，我们定位 Import 表的依据）
+    FirstThunk        || dd 0 || ⑤0002C070
+
+IMAGE_IMPORT_DESCRIPTOR ends
+```
+
+现在我们将 `image_import_descriptors` 结构中每项的地址均显示分析一下：
+
+#### ① Name 选项
+
+（我们定位 Import 表地址就是以此为依据的）
+
+在这例 `Name` 项值为：`④0002DA8A`
+
+下命令 `DD 42DA8A` （显示内存地址 `42DA8A` 的数据，其中 `42DA8A`＝`④0002DA8A`＋`image Base`（基址））
+
+```
+\-----SHOWDEP!.rdata+1A8A--------------------------dword-------------PROT---(0)\--
+
+0030:0042DA8A 4E52454B 32334C45 4C4C442E 019A0000 KERNEL32.DLL.... ^
+0030:0042DA9A 64616F4C 73727543 0041726F 6F4C01AB LoadCursorA...Lo v
+```
+（图二）
+
+想必大家己睁大眼睛了，发现什么有价值的东西？对，就是 `KERNEL32.DLL`！就是我们的突破口。
+
+Import 表装载的基本原理是：根据 Import 表的指示找到外部模块的文件名，再使用 Win32 API 函数 `GetModuleHandleA` 获得该模块在内存中的句柄。如果没在内存中就使用 `LoadLibraryA` API 调用装入该模块。随后使用获得的模块句柄调用 Win32 API 函数 `GetProcAddress` 获得该模块中 Import 表指定功能的实际地址，加上装入基址，并且填入 Import 表的 `FirstThunk` 所指的 `IMAGE_IMPORT_BY_NAME` 结构指针数组中，完成该模块的一个功能的人工装入填写。循环调用函数 `GetProcAddress` 以获得其他功能调用的地址，加上装入基址，并填入之，以完成一个外部模块的装入。再循环上述过程对其他模块进行装入。
+
+因此我们可以从函数 `LoadLibraryA` 入手，该函数会装入外部模块，我们监视这函数的入口参数是否为 `KERNEL32.DLL`，以此来确定 Import 表的状况。即确定 `image_import_descriptors` 结构中的 `name` 选项。
+
+函数 `LoadLibrary`：
+
+```
+HINSTANCE LoadLibrary(
+    LPCTSTR lpLibFileName // 执行模块的文件名和地址
+);
+```
+
+只要函数 `LoadLibrary` 参数的模块名为 `KERNEL32.DLL`，就会出现图二的情况，这时 `KERNEL32.DLL` 地址为 `0042DA8A`。因此 `image_import_descriptors` 结构中 `name` 为 `0042DA8A`—`400000`=`2DA8A`，这时利用 `S` 命令在内存中查找字条串 `002DA8A`，就可确定 `import` 表的地址。
 
 （到这里我们就能确定 Import 表的地址了，下面几项可帮助我们大家更好理解 Import 表）
 
-**②riginalFirstThunk 项**
+#### ② riginalFirstThunk 项
 
-在这里 riginalFirstThunk 项值为：①0002D23C  
-  
-下命令 DD 42D23C （显示内存地址 42D23C 的数据，其中 42DA8A＝①0002D23C＋image Base（基址）） 
+在这里 `riginalFirstThunk` 项值为：`①0002D23C`
 
-| \-----SHOWDEP!.rdata+123C--------------------------dword-------------PROT---(0)\-- |
-| --- |
-| 0030:0042D23C 0002D798 0002D7A8 0002D7BE 0002D782 ................ ^ |
-| 0030:0042D24C 0002D7CC 0002D7E0 0002D7F6 0002D80A ................ ^ |
-| 0030:0042D25C 0002D81C 0002D830 0002D840 0002D854 ....0...@...T... v |
-| 0030:0042D26C 0002D868 0002D87C 0002D890 0002D8A0 h...|........... v |
+下命令 `DD 42D23C` （显示内存地址 `42D23C` 的数据，其中 `42DA8A`＝`①0002D23C`＋`image Base`（基址））
 
-（图三） 
+```
+\-----SHOWDEP!.rdata+123C--------------------------dword-------------PROT---(0)\--
 
-图三是一个指针数组，其中每一个指针都指向一 IMAGE\_IMPORT\_BY\_NAME 结构。
+0030:0042D23C 0002D798 0002D7A8 0002D7BE 0002D782 ................ ^
+0030:0042D24C 0002D7CC 0002D7E0 0002D7F6 0002D80A ................ ^
+0030:0042D25C 0002D81C 0002D830 0002D840 0002D854 ....0...@...T... v
+0030:0042D26C 0002D868 0002D87C 0002D890 0002D8A0 h...|........... v
+```
+（图三）
 
-我们以第一个指针 0002D798 为例，显示它所指的 IMAGE\_IMPORT\_BY\_NAME 结构.  
-下命令：dd 42d798（注意：0002D798＋image Base（基址））
+图三是一个指针数组，其中每一个指针都指向一 `IMAGE_IMPORT_BY_NAME` 结构。
 
-| \-----SHOWDEP!.rdata+1798--------------------------dword-------------PROT---(0)\-- |
-| --- |
-| 0030:0042D798 6547011B 636F4C74 69546C61 0000656D ..GetLocalTime.. ^ |
-| 0030:0042D7A8 6F430025 6E69746E 65446575 45677562 %.ContinueDebugE ^ |
-| 0030:0042D7B8 746E6576 022B0000 65736552 65764574 vent..+.ResetEve v |
-| 0030:0042D7C8 0000746E 615702CB 6F467469 62654472 nt....WaitForDeb v |
+我们以第一个指针 `0002D798` 为例，显示它所指的 `IMAGE_IMPORT_BY_NAME` 结构.
 
-（图四） 
+下命令：`dd 42d798`（注意：`0002D798`＋`image Base`（基址））
 
-**③FirstThunk 项**
+```
+\-----SHOWDEP!.rdata+1798--------------------------dword-------------PROT---(0)\--
 
-在这例，FirstThunk 项的值为：⑤0002C070  
+0030:0042D798 6547011B 636F4C74 69546C61 0000656D ..GetLocalTime.. ^
+0030:0042D7A8 6F430025 6E69746E 65446575 45677562 %.ContinueDebugE ^
+0030:0042D7B8 746E6576 022B0000 65736552 65764574 vent..+.ResetEve v
+0030:0042D7C8 0000746E 615702CB 6F467469 62654472 nt....WaitForDeb v
+```
+（图四）
 
-下命令 dd 42c070 （注意：0002c070＋image Base（基址））:
+#### ③ FirstThunk 项
 
-| \-----SHOWDEP!.rdata+0070--------------------------dword-------------PROT---(0)\-- |
-| --- |
-| 0030:0042C070 0002D798 0002D7A8 0002D7BE 0002D782 ................ ^ |
-| 0030:0042C080 0002D7CC 0002D7E0 0002D7F6 0002D80A ................ ^ |
-| 0030:0042C090 0002D81C 0002D830 0002D840 0002D854 ....0...@...T... v |
-| 0030:0042C0A0 0002D868 0002D87C 0002D890 0002D8A0 h...|........... v |
+在这例，`FirstThunk` 项的值为：`⑤0002C070`
 
-（图五） 
+下命令 `dd 42c070` （注意：`0002c070`＋`image Base`（基址））:
 
-图五是一个指针数组（image\_thunk\_data 联合结构），大多数情况下，image\_thunk\_data 是指 IMAGE\_IMPORT\_BY\_NAME 结构的指针。如果不是一个指针的话，那它就是该功能在 DLL 中的序号。不知你发现没有，图五的数据和图三完全相同，原因就是这个。
+```
+\-----SHOWDEP!.rdata+0070--------------------------dword-------------PROT---(0)\--
 
-**二、确定 Import 表的地址和大小并修正 Import 表**
+0030:0042C070 0002D798 0002D7A8 0002D7BE 0002D782 ................ ^
+0030:0042C080 0002D7CC 0002D7E0 0002D7F6 0002D80A ................ ^
+0030:0042C090 0002D81C 0002D830 0002D840 0002D854 ....0...@...T... v
+0030:0042C0A0 0002D868 0002D87C 0002D890 0002D8A0 h...|........... v
+```
+（图五）
 
-通过上面的讲解，想必大家对 Import 表己比较熟悉了吧，现在以脱 ShowDep 4.0 beta 1 的壳为例，讲解定位 Import 表的位置和大小的几种方法。
+图五是一个指针数组（`image_thunk_data` 联合结构），大多数情况下，`image_thunk_data` 是指 `IMAGE_IMPORT_BY_NAME` 结构的指针。如果不是一个指针的话，那它就是该功能在 DLL 中的序号。不知你发现没有，图五的数据和图三完全相同，原因就是这个。
 
-方法一：通过 idata 来确定 Import 表的位置
+### 二、确定 Import 表的地址和大小并修正 Import 表
 
-大部分加壳程序的块表中都有.idata 这一项，.idata 包含其他外来 DLL 的函数及数据信息，也就是说 Import 表的起始地址就是.idata 的地址。如是这种情况，脱壳就简单多了。
+通过上面的讲解，想必大家对 Import 表己比较熟悉了吧，现在以脱 `ShowDep 4.0 beta 1` 的壳为例，讲解定位 Import 表的位置和大小的几种方法。
 
-先 dump 取正确的 Import 表（假设取名为 idata.bin），然后在解压入口点 full dump 取整个程序(假设取名为 dump.exe),用 Procdump 打开 dump.exe 文件， 察看.idata Section. 记下 Raw Size 和 Raw Offset 的值。用 HexWorkshop 打开 dump.exe, 将 idata.bin 拷贝/粘贴到 dump.exe(粘贴位置为 Raw Offset, 大小为 Raw Size）. 再修正 Entry Point 和 Import 表的地址（此值就是.idata 的 RVA） 
+#### 方法一：通过 .idata 来确定 Import 表的位置
+
+大部分加壳程序的块表中都有 `.idata` 这一项，`.idata` 包含其他外来 DLL 的函数及数据信息，也就是说 Import 表的起始地址就是 `.idata` 的地址。如是这种情况，脱壳就简单多了。
+
+先 dump 取正确的 Import 表（假设取名为 `idata.bin`），然后在解压入口点 full dump 取整个程序(假设取名为 `dump.exe`),用 `Procdump` 打开 `dump.exe` 文件， 察看 `.idata` Section. 记下 `Raw Size` 和 `Raw Offset` 的值。用 `HexWorkshop` 打开 `dump.exe`, 将 `idata.bin` 拷贝/粘贴到 `dump.exe`(粘贴位置为 `Raw Offset`, 大小为 `Raw Size`）. 再修正 `Entry Point` 和 Import 表的地址（此值就是 `.idata` 的 `RVA`）
 
 具体操作参考后面几节的脱壳教学实例。
 
-方法二：没.idata 一项，利用 bpx loadlibrarya 来判断 Import 表的位置
+#### 方法二：没 .idata 一项，利用 bpx loadlibrarya 来判断 Import 表的位置
 
-由于 ShowDep 4.0 beta 1 没.idata 一项，因此要确定 Import 表的位置和大小较困难，步骤如下：
+由于 `ShowDep 4.0 beta 1` 没 `.idata` 一项，因此要确定 Import 表的位置和大小较困难，步骤如下：
 
-①分析 ShowDep 4.0 beta 1 的文件 PE 头
+①分析 `ShowDep 4.0 beta 1` 的文件 PE 头
 
- 运行 Procdump，点击 pe-editor 按钮，选中 ShowDep.exe 文件：
+运行 `Procdump`，点击 `pe-editor` 按钮，选中 `ShowDep.exe` 文件：
 
-Size of image : 000A0000 ; 这个 PE 文件执行时分配的内存空间。  
-image Base : 00400000 ; 基址
+`Size of image : 000A0000` ; 这个 PE 文件执行时分配的内存空间。
+
+`image Base : 00400000` ; 基址
 
 ②确定 Import 表的地址
 
-a.先装载 Icedump  
-在这用 Icedump 6.016 版本，其命令操作形式完全和以前的版本不同。先在 Icedump 目录里运行相应 SOFTICE 版本的 icedump.exe（我用的 SOFTICE 是 4.05 版，因此在 win9x/405 目录下运行 icedump.exe），如 Icedump 装载成功，Icedump 会返回如下信息：
+a.先装载 `Icedump`
 
-| icedump v6.0.1.6 for winice v4.05 loader  
-icedump unloaded  
-icedump loaded ←出现这句话表示 Icedump 装载成功  
-  
-C：>  |
-| --- |
+在这用 `Icedump 6.016` 版本，其命令操作形式完全和以前的版本不同。先在 `Icedump` 目录里运行相应 `SOFTICE` 版本的 `icedump.exe`（我用的 `SOFTICE` 是 `4.05` 版，因此在 `win9x/405` 目录下运行 `icedump.exe`），如 `Icedump` 装载成功，`Icedump` 会返回如下信息：
 
-（图六） 
+```
+icedump v6.0.1.6 for winice v4.05 loader
+icedump unloaded
+icedump loaded ←出现这句话表示 Icedump 装载成功
+C：>
+```
+（图六）
 
- b.再装载 FrogsICE  
-由于 ShowDep 能检测到 SOFTICE 的存在，因此装载 Frogsice 就可躲过。在我机子里：FrogsICE 1.00 Final 和 Icedump 不能很好兼容工作，因此我将 FrogsICE 换成版本 v0.43，hehe..它们配合的很好。双击 FPloader.exe 文件即可装载成功。  
-OK,到此你的 SOFTICE 的功能己大大加强里。  
-这时试试运行 ShowDep，这时屏幕将蓝屏给你一菜单选项，告知 ShowDep 发现了 SOFTICE，是否欺骗它，这时你按 ESC 按钮，程序即可正常运行。（注：我的 SOFTICE 用 icepath 打过补丁）  
+b.再装载 `FrogsICE`
 
-c、拦截函数 loadlibararya  
+由于 `ShowDep` 能检测到 `SOFTICE` 的存在，因此装载 `Frogsice` 就可躲过。在我机子里：`FrogsICE 1.00 Final` 和 `Icedump` 不能很好兼容工作，因此我将 `FrogsICE` 换成版本 `v0.43`，hehe..它们配合的很好。双击 `FPloader.exe` 文件即可装载成功。
 
-下命令：bpx loadlibrarya do "dd esp->4"  
-(注:在 TRW2000 下实现同样功能的命令是: bpx loadlibrarya do "dd \*(esp+4)" 
+OK,到此你的 `SOFTICE` 的功能己大大加强里。
 
-这个命令就是当拦截 loadlibararya 函数时，显示其入口参数的在内存的值，如：
+这时试试运行 `ShowDep`，这时屏幕将蓝屏给你一菜单选项，告知 `ShowDep` 发现了 `SOFTICE`，是否欺骗它，这时你按 `ESC` 按钮，程序即可正常运行。（注：我的 `SOFTICE` 用 `icepath` 打过补丁）
 
-0137:00710242 PUSH EAX   
-0137:00710243 CALL \[loadlibarary\] ；当调用此函数将中断，并显示 push 参数的值，在这里即：d eax 
+c、拦截函数 `loadlibararya`
 
-ok,断点设置好后，运行 ShowDep 程序，将中断，此时按 F5 一直到数据窗口显示为：KERNEL32.DLL 字符。在我 win97 系统下，只要按两下 F5,即可看到如下情况：
+下命令：`bpx loadlibrarya do "dd esp->4"`
 
-| \-----SHOWDEP!.rdata+1A8A--------------------------dword-------------PROT---(0)\-- |
-| --- |
-| 0030:0042DA8A 4E52454B 32334C45 4C4C442E 019A0000 KERNEL32.DLL.... ^ |
-| 0030:0042DA9A 64616F4C 73727543 0041726F 6F4C01AB LoadCursorA...Lo v |
+(注:在 `TRW2000` 下实现同样功能的命令是: `bpx loadlibrarya do "dd *(esp+4)"`
 
-（图六） 
+这个命令就是当拦截 `loadlibararya` 函数时，显示其入口参数的在内存的值，如：
 
-hehe...看看图六和图三是不是一样啊！其中前面的地址 0042DA8A 就是关键。  
-0042DA8A 就是 image\_import\_descriptors 结构中的 name 项的值，因为该结构如下：
+```
+0137:00710242 PUSH EAX
+0137:00710243 CALL [loadlibarary] ；当调用此函数将中断，并显示 push 参数的值，在这里即：d eax
+```
+ok,断点设置好后，运行 `ShowDep` 程序，将中断，此时按 `F5` 一直到数据窗口显示为：`KERNEL32.DLL` 字符。在我 `win97` 系统下，只要按两下 `F5`,即可看到如下情况：
 
-0030:0042D104 0002D23C 00000000 00000000 0002DA8A <............... ^  
-0030:0042D114 0002C070 0002D43C 00000000 00000000 p...<........... v 
+```
+\-----SHOWDEP!.rdata+1A8A--------------------------dword-------------PROT---(0)\--
 
-因此这时我要在数据窗口向前查找字符串 0002DA8A（0002DA8A＝0042DA8A\-基址）：
+0030:0042DA8A 4E52454B 32334C45 4C4C442E 019A0000 KERNEL32.DLL.... ^
+0030:0042DA9A 64616F4C 73727543 0041726F 6F4C01AB LoadCursorA...Lo v
+```
+（图六）
 
-下命令：S DS:400000 L FFFFFFFF 8A DA 02 00  
-(注:在 TRW2000 下实现同样功能的命令是: S 30:0 L FFFFFFFF 8A DA 02 00)(用上面的好象不行,但愿新版能改进)   
-结果如下： 
+hehe...看看图六和图三是不是一样啊！其中前面的地址 `0042DA8A` 就是关键。
 
+`0042DA8A` 就是 `image_import_descriptors` 结构中的 `name` 项的值，因为该结构如下：
+
+```
+0030:0042D104 0002D23C 00000000 00000000 0002DA8A <............... ^
+```
+
+
+
+`0030:0042D114 0002C070 0002D43C 00000000 00000000 p...<........... v`
+
+因此这时我要在数据窗口向前查找字符串 `0002DA8A`（`0002DA8A`＝`0042DA8A`-基址）：
+
+下命令：`S DS:400000 L FFFFFFFF 8A DA 02 00`
+
+（注：在 `TRW2000` 下实现同样功能的命令是：`S 30:0 L FFFFFFFF 8A DA 02 00`）（用上面的好象不行,但愿新版能改进）
+
+结果如下：
+
+```
 | \-----SHOWDEP!.rdata+1100--------------------------dword-------------PROT---(0)\-- |
 | --- |
 | 013F:0042D100 0042B385 0002D23C 00000000 00000000 ..B.<........... ^ |
 | 013F:0042D110 0002DA8A 0002C070 0002D43C 00000000 ....p...<....... v |
+```
 
-（图七） 
+（图七）
 
-仔细比较图七和图一，发现这就是 Import 表的 IMAGE\_IMPORT\_DESCRIPTOR 数组。  
-如你看不习惯，可再下命令： D 42D110-C 这样就可显示和图一一样的画面了。
+仔细比较图七和图一，发现这就是 Import 表的 `IMAGE_IMPORT_DESCRIPTOR` 数组。
 
-这样就可确定 Import 表的地址是 2D104＝0042D104—400000（基址）
+如你看不习惯，可再下命令：`D 42D110-C` 这样就可显示和图一一样的画面了。
 
-③确定 Import 表的大小
+这样就可确定 Import 表的地址是 `2D104`＝`0042D104`—`400000`（基址）
 
-现己将 Import 表的起始地址确定了：RVA=42D104。只要确定 Import 表的尾部就可计算出其大小，Import 表在内存里是连续存放的一段数据，其一般结尾处一段内存空间都是 0,在此例，你开始先定位来到 Import 表的起始处，按 ALT+↓向下翻页（或 ALT+PageDown)，直到看到如下情况：
+### ③ 确定 Import 表的大小
 
+现己将 Import 表的起始地址确定了：`RVA=42D104`。只要确定 Import 表的尾部就可计算出其大小，Import 表在内存里是连续存放的一段数据，其一般结尾处一段内存空间都是 `0`，在此例，你开始先定位来到 Import 表的起始处，按 `ALT+↓` 向下翻页（或 `ALT+PageDown`），直到看到如下情况：
+
+```
 | 013F:0042E54A 65530262 766E4574 6E6F7269 746E656D b.SetEnvironment  |
 | --- |
 | 013F:0042E55A 69726156 656C6261 011D0041 4C746547 VariableA...GetL  |
 | 013F:0042E56A 6C61636F 666E4965 0000576F 00000000 ocaleInfoW......  |
 | 013F:0042E57A 00000000 00000000 00000000 00000000 ................ v |
 | 013F:0042E58A 00000000 00000000 00000000 00000000 ................ v |
+```
 
-（图八） 
+（图八）
 
-字符串 0000576F 就是 Import 表的最后一项，其后面一位 000000 的地址为：42e574（其边界就是上面红色的 W,如你在 SOFTICE 不能确定可 DUMP 后在十六进制工具 Hexworkshop 很方便知边界地址）
+字符串 `0000576F` 就是 Import 表的最后一项，其后面一位 `000000` 的地址为：`42e574`（其边界就是上面红色的 `W`，如你在 `SOFTICE` 不能确定可 `DUMP` 后在十六进制工具 `Hexworkshop` 很方便知边界地址）
 
-因此 Import 表的大小＝42E574-42D104\=1470
+因此 Import 表的大小＝`42E574`-`42D104`=`1470`
 
-④、找入口点
+### ④、找入口点
 
-在 SOFTICE 你会来到如下：  
-0137:00710B35 MOV EDX,\[EAX\]   
-0137:00710B37 MOV EAX,\[EBP+08\]   
-0137:00710B3A ADD EDX,\[EAX+18\]   
-0137:00710B3D MOV EAX,\[EBP+08\]   
-0137:00710B40 MOV EAX,\[EAX+1C\]   
+在 `SOFTICE` 你会来到如下：
+
+```
+0137:00710B35 MOV EDX,[EAX]   
+0137:00710B37 MOV EAX,[EBP+08]   
+0137:00710B3A ADD EDX,[EAX+18]   
+0137:00710B3D MOV EAX,[EBP+08]   
+0137:00710B40 MOV EAX,[EAX+1C]   
 0137:00710B43 CALL 007104C8 ←按 F8 进去  
 0137:00710B48 POP EDI   
 0137:00710B49 POP ESI   
 0137:00710B4A POP EBX   
 0137:00710B4B POP ECX
+```
 
-按 F8 进去来到：
+按 `F8` 进去来到：
 
+```
 | 0137:007104C6 8BC0 MOV EAX,EAX  |
 | --- |
 | 0137:007104C8 89C4 MOV ESP,EAX  |
 | 0137:007104CA 89D0 MOV EAX,EDX  |
-| 0137:007104CC 8B1D34567100 MOV EBX,\[00715634\]  |
-| 137:007104D2 89041C MOV \[EBX+ESP\],EAX  |
+| 0137:007104CC 8B1D34567100 MOV EBX,[00715634]  |
+| 137:007104D2 89041C MOV [EBX+ESP],EAX  |
 | 0137:007104D5 61 POPAD  |
 | 0137:007104D6 50 PUSH EAX ←此处 EAX=422c3a 即入口点的值 |
 | 0137:007104D7 C3 RET ←返回到入口点 |
+```
 
-（图九） 
+（图九）
 
-此时程序己完全解压准备运行了。记下程序入口点：00422c3a 在 dump 前，清除所有的断点：bc \*. 因此你可在 SOFTICE 下用命令：
+此时程序己完全解压准备运行了。记下程序入口点：`00422c3a` 在 dump 前，清除所有的断点：`bc *.` 因此你可在 `SOFTICE` 下用命令：
 
-：/dump 400000 A0000 c:\\temp\\dump.exe  
-(如你是用 Icedump 6.016 以前版本用此命令:pagein d 400000 A0000 c:\\temp\\dump.exe） 
+```
+:/dump 400000 A0000 c:\temp\dump.exe
+```
 
-⑤修正 PE 文件头  
-  
-用 Procdump 打开刚建好的 dump.exe 文件，点击 pe-editor 按钮，然后再点击 SECTIONS 按钮，在每个 section 点击右键，选中 Edit section，把所有的 section 的 PSize == VSize offset == RVA （即让物理地址和大小等于虚拟地址和大小）。如你是用 Procdump 脱的壳，可省去这一步。
+（如你是用 `Icedump` `6.016` 以前版本用此命令：`pagein d 400000 A0000 c:\temp\dump.exe`）
 
-在改完所有的 sections 后，按 OK,存盘后，你在资源管理器中刷新一下，就会发现 dumped.exe 的图标回来了，但还不能运行，你还要修正入口点和 import 表。
+### ⑤ 修正 PE 文件头
 
-将入口点（Entry Point）改为：00422c3a（记着：00422c3a\-imagebase\=22c3a）
+用 `Procdump` 打开刚建好的 `dump.exe` 文件，点击 `pe-editor` 按钮，然后再点击 `SECTIONS` 按钮，在每个 section 点击右键，选中 `Edit section`，把所有的 section 的 `PSize == VSize offset == RVA` （即让物理地址和大小等于虚拟地址和大小）。如你是用 `Procdump` 脱的壳，可省去这一步。
 
-再点击 Directory 按钮，将 Import Table 改为 RVA （2D104 ）；而其选项 Size 只要比 0 大就可；（这程序 DUMP 后 improt 并没被破坏，只要把 import rav/size 填上就 OK 了！） 在这例中，Import 表的尺寸没用上，但方法要掌握，如碰到 Import 表损坏的程序，就要替换 Import 表程了，这时需要 Import 表的大小了。
+在改完所有的 sections 后，按 `OK`，存盘后，你在资源管理器中刷新一下，就会发现 `dumped.exe` 的图标回来了，但还不能运行，你还要修正入口点和 import 表。
 
-然后点击 OK,退出 Procdump，再运行 dumped.exe ，程序成功运行！   
+将入口点（Entry Point）改为：`00422c3a`（记着：`00422c3a`-`imagebase`=`22c3a`）
 
-方法三：利用 S 命令查找字串 KERNEL32.DLL 来确定 Import 表的位置
+再点击 `Directory` 按钮，将 `Import Table` 改为 `RVA`（`2D104`）；而其选项 `Size` 只要比 `0` 大就可；（这程序 `DUMP` 后 `improt` 并没被破坏，只要把 `import rav/size` 填上就 OK 了！）在这例中，Import 表的尺寸没用上，但方法要掌握，如碰到 Import 表损坏的程序，就要替换 Import 表程了，这时需要 Import 表的大小了。
 
-如果软件没.idata 项，用方法二 bpx loadlibrarya do "dd esp->4"也不能看到 KERNEL32.DLL，这种情况就要用 S 命令来协助了。
+然后点击 `OK`，退出 `Procdump`，再运行 `dumped.exe`，程序成功运行！
 
-先 bpx loadlibrarya do "dd esp->4"
+## 方法三：利用 S 命令查找字串 KERNEL32.DLL 来确定 Import 表的位置
 
-中断后，凭经验来判断 Import 表完全触压时机，一般中断在第一次或第二次（某些情况要几次）Import 表就基本解压结束了。这时下命令：S DS:400000 l FFFFFFFF 'KERNEL32.DLL'  
+如果软件没 `.idata` 项，用方法二 `bpx loadlibrarya do "dd esp->4"` 也不能看到 `KERNEL32.DLL`，这种情况就要用 `S` 命令来协助了。
 
-会在数据区找到 KERNEL32.DLL ，但这不一定是 image\_import\_descriptors 结构中对应的 KERNEL32.DLL 项，这要跟据具体情况来分析了，一般我们要找到的 KERNEL32.DLL 是在 xxx:4xxxxxx 的地址形式处。
+先 `bpx loadlibrarya do "dd esp->4"`
 
-如不能确定何处是关键的 KERNEL32.DLL，只好 dump 后，用十六进制工具来分析了，这样较直观，打开后查找 image\_import\_descriptors 类似结构。
+中断后，凭经验来判断 Import 表完全触压时机，一般中断在第一次或第二次（某些情况要几次）Import 表就基本解压结束了。这时下命令：`S DS:400000 l FFFFFFFF 'KERNEL32.DLL'`
+
+会在数据区找到 `KERNEL32.DLL`，但这不一定是 `image_import_descriptors` 结构中对应的 `KERNEL32.DLL` 项，这要跟据具体情况来分析了，一般我们要找到的 `KERNEL32.DLL` 是在 `xxx:4xxxxxx` 的地址形式处。
+
+如不能确定何处是关键的 `KERNEL32.DLL`，只好 `dump` 后，用十六进制工具来分析了，这样较直观，打开后查找 `image_import_descriptors` 类似结构。
 
 当然 Import 表确定方法多种，这里将本人常用的几种方法列出供参考！也欢迎你将自己的经验告诉大家，互相提高。
 
- 
-
- 4dd466d0e1e0cc123afbe504da2462ca
+`4dd466d0e1e0cc123afbe504da2462ca`

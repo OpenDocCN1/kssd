@@ -1,250 +1,448 @@
 
-
-# win 32 asm 第二十八课：win32 调试 API 第一部分
+# Win32 ASM 第二十八课：Win32 调试 API 第一部分
 
 > 原文：[`www.pediy.com/kssd/pediy10/60919.html`](https://www.pediy.com/kssd/pediy10/60919.html)
 
-Tutorial 28: Win32 Debug API Part 1  
-第二十八课：win32 调试 API 第一部分  
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-In this tutorial, you'll learn what Win32 offers to developers regarding debugging primitives. You'll know how to debug a process when you're finished with this tutorial.   
-在这一课中，我们将学习 win32 提供给开发者的关于调试的原语。当你完成这一课时，你将知道如何调试一个进程。  
-Download the example.   
-Theory:  
-Win32 has several APIs that allow programmers to use some of the powers of a debugger. They are called Win32 Debug APIs or primitives. With them, you can:  
-Win32 有一些 API 函数，它们允许程序员使用一些相当于调试器的功能。它们被叫做 win32 调式 API 函数或者 原语。用它们，你能：  
-  Load a program or attach to a running program for debugging   
-加载一个程序或者是挂载一个正在运行的程序以供调试。  
-  Obtain low-level information about the program you're debugging, such as process ID, address of entrypoint, image base and so on.   
-获得被调试程序的底层信息，例如进程ＩＤ，入口点函数，映像基址等等。  
-  Be notified of debugging-related events such as when a process/thread starts/exits, DLLs are loaded/unloaded etc.   
-　　　当与调试有关的事件发生时，获得通知。例如，当一个进程／线程　开始或结束时，dll 文件被装载或是卸载时等。  
-  Modify the process/thread being debugged   
-修改正在被调试的进程或是线程。  
-In short, you can code a simple debugger with those APIs. Since this subject is vast, I divide it into several managable parts: this tutorial being the first part. I'll explain the basic concepts and general framework for using Win32 Debug APIs in this tutorial.  
-简而言之，你能用这些 API 函数编写一个简单的调式器。由于这个主题巨大，我将它分成几部分：这一课开始第一部分。我将在这一课中解释一些基本的概念和用 win32 调式 API 函数的一般框架.  
-The steps in using Win32 Debug APIs are:  
-使用 Win32 调试 API 的步骤如下：  
-1.  Create a process or attach your program to a running process. This is the first step in using Win32 Debug APIs. Since your program will act as a debugger, you need a program to debug. The program being debugged is called a debuggee. You can acquire a debuggee in two ways:   
-创建一个进程或是在一个正在运行的进程上捆绑你的程序。　这是用 win32 调式 API 的第一步。因为你的程序将充当一个调式器，你需要一个程序来调试。一个被调试的程序叫 debuggee 。你可以用两种方式来得到一个 debuggee。  
-o  You can create the debuggee process yourself with CreateProcess. In order to create a process for debugging, you must specify the DEBUG\_PROCESS flag. This flag tells Windows that we want to debug the process. Windows will send notifications of important debugging-related events (debug events) that occur in the debuggee to your program. The debuggee process will be immediately suspended until your program is ready. If the debuggee also creates child processes, Windows will also send debug events that occur in all those child processes to your program as well. This behavior is usually undesirable. You can disable this behavior by specifying DEBUG\_ONLY\_THIS\_PROCESS flag in combination of DEBUG\_PROCESS flag.   
-你自己可以用 CreateProcess 函数创建一个 debuggee 进程。为了创建一个供调试的进程，你必须指定 DEBUG\_PROCESS 标志。这个标志告诉 windows，我们想调试这个进程。当在 debuggee 中发生和调试有关的事件时，windows 将发送重要的调试通知给你的程序。这个 debuggee 进程将被立即挂起直到你的程序准备好。如果 debuggee 还创建了子进程，windows 将发生在这些子进程中的调试事件通知发送给你的程序。这一行为通常不合需求。你能通过指定 DEBUG\_ONLY\_THIS\_PROCESS 与 DEBUG\_PROCESS 的组合标志来禁止这一行为。  
-o  You can attach your program to a running process with DebugActiveProcess.   
-你能用 DebugActiveProcess 函数来捆绑你的程序到一个正在运行的进程上。  
-2.  Wait for debugging events. After your program acquired a debuggee, the debuggee's primary thread is suspended and will continue to be suspended until your program calls WaitForDebugEvent. This function works like other WaitForXXX functions, ie. it blocks the calling thread until the waited-for event occurs. In this case, it waits for debug events to be sent by Windows. Let's see its definition:   
-等待调试事件。 在你的程序获得一个 debuggee 进程后，debuggee 的主线程被挂起并持续处于挂起状态直到你的程序调用 WaitForDebugEvent。这个函数和其它 WaitForXXX 函数工作类似，比如说，它阻塞调用线程直到等待的事件发生。既然这样，它等待由 windows 发送来的调试事件。让我们看看它的定义：　  
-WaitForDebugEvent proto lpDebugEvent:DWORD, dwMilliseconds:DWORD  
-lpDebugEvent is the address of a DEBUG\_EVENT structure that will be filled with information about the debug event that occurs within the debuggee.  
-LpDebugEvent 是 DEBUG\_EVENT 结构的地址，这个结构将被发生在 debuggee 中的调式信息填充。  
-dwMilliseconds is the length of time in milliseconds this function will wait for the debug event to occur. If this period elapses and no debug event occurs, WaitForDebugEvent returns to the caller. On the other hand, if you specify INFINITE constant in this argument, the function will not return until a debug event occurs.  
-DwMillseconds 是一个以毫秒为单位的长时间值。这个函数将在这段时间等待调试事件的发生。如果在这期间都没调试事件发生，WaitForDebugEvent 返回调用者。另一方面，如果你指定 INFINITE 为这参数值，这个函数将等到调试事件发生才返回。  
-Now let's examine the DEBUG\_EVENT structure in more detail.  
-现在，让我们详细分析 DEBUG\_EVENT 结构体。  
-DEBUG\_EVENT STRUCT   
-   dwDebugEventCode dd ?   
-   dwProcessId dd ?   
-   dwThreadId dd ?   
-   u DEBUGSTRUCT <>   
-DEBUG\_EVENT ENDS   
-dwDebugEventCode contains the value that specifies what type of debug event occurs. In short, there can be many types of events, your program needs to check the value in this field so it knows what type of event occurs and responds appropriately. The possible values are:  
-dwDebugEventCode  包含的值指定了什么类型的调试事件发生。简而言之，这里有很多类型的调试事件，你的程序需要检查这个字段的值以便让它知道什么类型的事件发生以及做出适当的响应。可能的值如下：  
-Value  Meanings  
-CREATE\_PROCESS\_DEBUG\_EVENT  A process is created. This event will be sent when the debuggee process is just created (and not yet running) or when your program just attaches itself to a running process with DebugActiveProcess. This is the first event your program will receive.  
-一个进程被创建。当 debuggee 进程刚被创建（但没有运行）或者是你的程序用 DebugActiveProcess 函数将它自己刚捆绑到一个正运行的进程上时，这个事件将被发送。这是你的程序收到的第一个事件。  
-EXIT\_PROCESS\_DEBUG\_EVENT  A process exits.  
-进程退出（停止运行）。  
-CREATE\_THEAD\_DEBUG\_EVENT  A new thread is created in the debuggee process or when your program first attaches itself to a running process. Note that you'll not receive this notification when the primary thread of the debuggee is created.   
-当你的程序第一次捆绑它自己到一个正在运行的进程上时或者是在 debuggee 进程中的一个新线程被创建。注意，当 debuggee 的主线程被创建时，你将不能收到这通知。  
-EXIT\_THREAD\_DEBUG\_EVENT  A thread in the debuggee process exits. Your program will not receive this event for the primary thread. In short, you can think of the primary thread of the debuggee as the equivalent of the debuggee process itself. Thus, when your program sees CREATE\_PROCESS\_DEBUG\_EVENT, it's actually the CREATE\_THREAD\_DEBUG\_EVENT for the primary thread.  
-在 debuggee 进程中的一个线程退出时， 但是当主线程退出时，你的程序接收不到这个事件通知。简而言之，你可以认为 debuggee 的主线程等同于 debuggee 本身。因此，当你的程序看到 CREATE\_PROCESS\_DEBUG\_EVET 标志时，对于主线程来说，它实际是 CREATE\_THREAD\_DEBUG\_EVENT 标志。   
-LOAD\_DLL\_DEBUG\_EVENT  The debuggee loads a DLL. You'll receive this event when the PE loader first resolves the links to DLLs (you call CreateProcess to load the debuggee) and when the debuggee calls LoadLibrary.  
-Debuggee 装载一个 dll。当 PE 首次分解链接这个 dll 时（你调用 CreateProcess 来装载 debuggee）和当 debuggee 调用 LoadLibrary 时，你将接收到这个事件通知。  
-UNLOAD\_DLL\_DEBUG\_EVENT  A DLL is unloaded from the debuggee process.   
-从 debuggee 中卸载一个 dll。  
-EXCEPTION\_DEBUG\_EVENT  An exception occurs in the debuggee process. Important: This event will occur once just before the debuggee starts executing its first instruction. The exception is actually a debug break (int 3h). When you want to resume the debuggee, call ContinueDebugEvent with DBG\_CONTINUE flag. Don't use DBG\_EXCEPTION\_NOT\_HANDLED flag else the debuggee will refuse to run under NT (on Win98, it works fine).  
-当 debuggee 进程发生异常时。要点：该事件仅在 debuggee 开始它的第一条指令之前发生一次。异常实际上是一次调试中断（int3h）。当你想重新开始这个 debuggee 时，调用 ContinueDebugEvent 函数并设置 DBG\_CONTINUE 标志。不要用 DBG\_EXCEPTION\_NOT\_HANDLED 标志，否则，debuggee 将拒绝运行在 NT 下（而在 98 上，它工作的 非常好）  
-OUTPUT\_DEBUG\_STRING\_EVENT  This event is generated when the debuggee calls DebugOutputString function to send a message string to your program.   
-当 debuggee 调用 DebugOutputString 函数发送一个字符串消息给你的程序时，这个事件发生。  
-RIP\_EVENT  System debugging error occurs  
-系统调式错误发生。  
-dwProcessId and dwThreadId are the process and thread Ids of the process that the debug event occurs. You can use these values as identifiers of the process/thread you're interested in. Remember that if you use CreateProcess to load the debuggee, you also get the process and thread IDs of the debuggee in the PROCESS\_INFO structure. You can use these values to differentiate between the debug events occurring in the debuggee and its child processes (in case you didn't specify DEBUG\_ONLY\_THIS\_PROCESS flag).  
-DwProcessId 和 dwThreadId 是发生调式事件的进程和线程 id 值。你能用这些值作为你感兴趣的进程或是线程的标识符。记住，如果你用 CreateProcess 函数装载一个 debuggee，你仍能在 PROCESS\_INFO 结构中获得 debuggee 的进程和线程的 ID 值。你可以用这些值来区分调试事件是发生在 debuggee 中还是在它们的子进程中。（在你没有指定 DEBUG\_ONLY\_THIS\_PROCESS 标志时）  
-u is a union that contains more information about the debug event. It can be one of the following structures depending on the value of dwDebugEventCode above.   
-U 是关于调试事件的联合，它包含更多的信息。根据上面 dwDebugEventCode 的值，它可以有以下几种结构。  
-value in dwDebugEventCode  Interpretation of u  
-CREATE\_PROCESS\_DEBUG\_EVENT  A CREATE\_PROCESS\_DEBUG\_INFO structure named CreateProcessInfo  
-名为 CreateProcessInfo 的 CREATE\_PROCESS\_DEBUG\_INFO 结构。  
-EXIT\_PROCESS\_DEBUG\_EVENT  An EXIT\_PROCESS\_DEBUG\_INFO structure named ExitProcess  
-名为 ExitProcess 的 EXIT\_PROCESS\_DEBUG\_INFO 的结构。  
-CREATE\_THREAD\_DEBUG\_EVENT  A CREATE\_THREAD\_DEBUG\_INFO structure named CreateThread  
-名为 CreateThread 的 CREATE\_THREAD\_DEBUG\_INFO 的结构。  
-EXIT\_THREAD\_DEBUG\_EVENT  An EXIT\_THREAD\_DEBUG\_EVENT structure named ExitThread  
-名为 ExitThread 的 EXIT\_THREAD\_DEBUG\_EVENT 的结构。  
-LOAD\_DLL\_DEBUG\_EVENT  A LOAD\_DLL\_DEBUG\_INFO structure named LoadDll  
-名为 LoadDll 的 LOAD\_DLL\_DEBUG\_INFO 的结构。  
-UNLOAD\_DLL\_DEBUG\_EVENT  An UNLOAD\_DLL\_DEBUG\_INFO structure named UnloadDll  
-名为 UnloadDll 的 UNLOAD\_DLL\_DEBUG\_INFO 的结构。  
-EXCEPTION\_DEBUG\_EVENT  An EXCEPTION\_DEBUG\_INFO structure named Exception  
-名为 Exception 的 EXCEPTION\_DEBUG\_INFO 的结构。  
-OUTPUT\_DEBUG\_STRING\_EVENT  An OUTPUT\_DEBUG\_STRING\_INFO structure named DebugString   
-名为 DebugString 的 OUTPUT\_DEBUG\_STRING\_INFO 的结构。  
-RIP\_EVENT  A RIP\_INFO structure named RipInfo  
-名为 RipInfo 的 RIP\_INFO 的结构。  
-I won't go into detail about all those structures in this tutorial, only the CREATE\_PROCESS\_DEBUG\_INFO structure will be covered here.   
-Assuming that our program calls WaitForDebugEvent and it returns. The first thing we should do is to examine the value in dwDebugEventCode to see which type of debug event occured in the debuggee process. For example, if the value in dwDebugEventCode is CREATE\_PROCESS\_DEBUG\_EVENT, you can interpret the member in u as CreateProcessInfo and access it with u.CreateProcessInfo.   
-我不想在这一课中详细的介绍所有的这些结构，这里仅介绍 CREATE\_PROCESS\_DEBUG\_INFO 结构。假设我们的程序调用了 WaitForDebugEvent 函数并返回,我们要做的第一件事就是检查 dwDebugEventCode 中的值来看 debuggee 进程中发生了那种类型的调试事件.比如说,如果 dwDebugEventCode 的值为 CREATE\_PROCESS\_DEBUG\_EVENT,就可认为 u 的成员为 CreateProcessInfo 并用 u.CreateProcessInfo 来访问  
-3.  Do whatever your program want to do in response to the debug event. When WaitForDebugEvent returns, it means a debug event just occurred in the debuggee process or a timeout occurs. Your program needs to examine the value in dwDebugEventCode in order to react to the event appropriately. In this regard, it's like processing Windows messages: you choose to handle some and ignore some.   
-无论你的程序在做什么，它都应该对调试事件做出响应。当 WaitForDebugEvent 函数返回时，它意味着调试事件刚刚在 debuggee 进程中发生或者是超过了调试时间。为了合适的对事件做出响应，你的程序需要解释在 dwDebugEventCode 中的值。在这点上，它就像处理 windows 消息：你选择处理一些同时也忽略一些。  
-4.  Let the debuggee continues execution. When a debug event occurs, Windows suspends the debuggee. When you're finished with the event handling, you need to kick the debuggee into moving again. You do this by calling ContinueDebugEvent function.   
-让 debuggee 继续执行。当调试事件发生时，windows 将 debuggee 挂起。当事件处理完成后，你需要将 debuggee 转入运行态。你能调用 ContinueDebugEvent 函数来做到这点。  
-ContinueDebugEvent proto dwProcessId:DWORD, dwThreadId:DWORD, dwContinueStatus:DWORD  
-This function resumes the thread that was previously suspended because a debug event occurred.   
- 这个函数继续执行先前因为调试事件被挂起的线程。  
-  
-dwProcessId and dwThreadId are the process and thread IDs of the thread that will be resumed. You usually take these two values from the dwProcessId and dwThreadId members of the DEBUG\_EVENT structure.  
-DwProcessId 和 dwThreadId 是即将被恢复执行的进程和线程的 ID 值。你通常能从 DEBUG\_EVENT 结构的 dwProcessId 和 dwThreadID 成员中得到这两个值。  
-  
-dwContinueStatus specifies how to continue the thread that reported the debug event. There are two possible values: DBG\_CONTINUE and DBG\_EXCEPTION\_NOT\_HANDLED. For all other debug events, those two values do the same thing: resume the thread. The exception is the EXCEPTION\_DEBUG\_EVENT. If the thread reports an exception debug event, it means an exception occurred in the debuggee thread. If you specify DBG\_CONTINUE, the thread will ignore its own exception handling and continue with the execution. In this scenario, your program must examine and resolve the exception itself before resuming the thread with DBG\_CONTINUE else the exception will occur again and again and again....  
-DwContinueStatus 指定了如何继续报告调试事件的线程。这可能有两个值：DBG\_CONTINUE 和 DBG\_EXCEPTION\_NOT\_HANDLED.对于其它所有调试事件，这两个值都做相同的事：继续执行线程。唯一的例外就是 EXCEPTION\_DEBUG\_EVENT.如果线程报告了一个异常调试事件，它意味着在 debuggee 线程中发生异常。如果指定 DBG\_CONTINUE,这个线程将忽视它自己的异常操作并且继续执行。在这种情况下，你的程序必须在恢复由 DBG\_CONTINUE 标志的线程执行前，检察并解决这个异常，否则，这个异常将一次又一次的发生下去。  
-If you specify DBG\_EXCEPTION\_NOT\_HANDLED, your program is telling Windows that it didn't handle the exception: Windows should use the default exception handler of the debuggee to handle the exception. In conclusion, if the debug event refers to an exception in the debuggee process, you should call ContinueDebugEvent with DBG\_CONTINUE flag if your program already removed the cause of exception.  
- Otherwise, your program must call ContinueDebugEvent with DBG\_EXCEPTION\_NOT\_HANDLED flag. Except in one case which you must always use DBG\_CONTINUE flag: the first EXCEPTION\_DEBUG\_EVENT which has the value EXCEPTION\_BREAKPOINT in the ExceptionCode member. When the debuggee is going to execute its very first instruction, your program will receive the exception debug event. It's actually a debug break (int 3h).  
-如果你指定了 DBG\_EXCEPTION\_NOT\_HANDLED,你的程序将告诉 windows 它不需要处理异常：windows 将用自定义的 debuggee 的异常处理程序处理这个异常。总而言之，如果在 debuggee 进程中，调试事件引用了一个异常，如果你的程序已经和这个异常无关，那么你应该调用 ContinueDebugEvent 函数并指定 DBG\_CONTINUE 标志。否则，我们的程序必须以 DBG\_EXCEPTION\_NOT\_HANDLED 标志来调用 ContinueDebugEvent 函数。除了一种情况你必须用 DBG\_CONTINUE 标志：即第一个在 ExceptionCode 成员中有值 EXCEPTION\_BREAKPOINT 的 EXCEPTION\_DEBUG\_EVENT 事件，当 debuggee 开始执行它的第一条指令时，你的程序将接收到异常调试事件。它实际上是调试中断（int 3h） .  
-  
- If you respond by calling ContinueDebugEvent with DBG\_EXCEPTION\_NOT\_HANDLED flag, Windows NT will refuse to run the debuggee (because no one cares for it). You must always use DBG\_CONTINUE flag in this case to tell Windows that you want the thread to go on.  
-如果你用 DBG\_EXCEPTION\_NOT\_HANDLED 标志调用 ContinueDebugEvent 函数，windows NT 将拒绝运行 debuggee。你必须在这种情形下使用 DBG\_CONTINUE 标志来告诉 windows 你希望这个线程继续执行下去。  
-5.  Continue this cycle in an infinite loop until the debuggee process exits. Your program must be in an infinite loop much like a message loop until the debuggee exits. The loop looks like this:   
-在无限循环中继续这个周期，直到 debuggee 进程结束。你们的程序必须在一个很像消息循环的无限循环中直到 debuggee 进程结束.该循环体大体如下:  
-.while TRUE  
-    invoke WaitForDebugEvent, addr DebugEvent, INFINITE  
-   .break .if DebugEvent.dwDebugEventCode==EXIT\_PROCESS\_DEBUG\_EVENT  
-   <Handle the debug events>  
-   invoke ContinueDebugEvent, DebugEvent.dwProcessId, DebugEvent.dwThreadId, DBG\_EXCEPTION\_NOT\_HANDLED   
-.endw   
-Here's the catch: Once you start debugging a program, you just can't detach from the debuggee until it exits.  
-这里有一点： 一旦你开始调试一个程序，除非 debuggee 结束，否则你的程序就不能从 debuggee 中分开。  
-Let's summarize the steps again:  
-让我们在总结一下这些步骤：  
-1.  Create a process or attach your program to a running process.   
-创建一个进程或是将你的程序捆绑到一个正在运行的进程上。  
-2.  Wait for debugging events   
-等待调试事件的发生。  
-3.  Do whatever your program want to do in response to the debug event.   
-无论你的程序在做什么，都应该对调试事件做出响应。  
-4.  Let the debuggee continues execution.   
-让 debuggee 进程继续执行。  
-5.  Continue this cycle in an infinite loop until the debuggee process exits   
-在无限循环中继续这个周期，直到 debuggee 进程退出。  
-Example:  
-This example debugs a win32 program and shows important information such as the process handle, process Id, image base and so on.  
+Tutorial 28: Win32 Debug API Part 1
+
+第二十八课：win32 调试 API 第一部分
+
+---
+
+In this tutorial, you'll learn what Win32 offers to developers regarding debugging primitives. You'll know how to debug a process when you're finished with this tutorial.
+
+在这一课中，我们将学习 win32 提供给开发者的关于调试的原语。当你完成这一课时，你将知道如何调试一个进程。
+
+Download the example.
+
+## Theory:
+
+Win32 has several APIs that allow programmers to use some of the powers of a debugger. They are called Win32 Debug APIs or primitives. With them, you can:
+
+Win32 有一些 API 函数，它们允许程序员使用一些相当于调试器的功能。它们被叫做 win32 调式 API 函数或者 原语。用它们，你能：
+
+- Load a program or attach to a running program for debugging
+  加载一个程序或者是挂载一个正在运行的程序以供调试。
+- Obtain low-level information about the program you're debugging, such as process ID, address of entrypoint, image base and so on.
+  获得被调试程序的底层信息，例如进程ＩＤ，入口点函数，映像基址等等。
+- Be notified of debugging-related events such as when a process/thread starts/exits, DLLs are loaded/unloaded etc.
+  当与调试有关的事件发生时，获得通知。例如，当一个进程／线程 开始或结束时，dll 文件被装载或是卸载时等。
+- Modify the process/thread being debugged
+  修改正在被调试的进程或是线程。
+
+In short, you can code a simple debugger with those APIs. Since this subject is vast, I divide it into several managable parts: this tutorial being the first part. I'll explain the basic concepts and general framework for using Win32 Debug APIs in this tutorial.
+
+简而言之，你能用这些 API 函数编写一个简单的调式器。由于这个主题巨大，我将它分成几部分：这一课开始第一部分。我将在这一课中解释一些基本的概念和用 win32 调式 API 函数的一般框架.
+
+## The steps in using Win32 Debug APIs are:
+
+使用 Win32 调试 API 的步骤如下：
+
+1. Create a process or attach your program to a running process. This is the first step in using Win32 Debug APIs. Since your program will act as a debugger, you need a program to debug. The program being debugged is called a debuggee. You can acquire a debuggee in two ways:
+
+   创建一个进程或是在一个正在运行的进程上捆绑你的程序。 这是用 win32 调式 API 的第一步。因为你的程序将充当一个调式器，你需要一个程序来调试。一个被调试的程序叫 `debuggee` 。你可以用两种方式来得到一个 `debuggee`。
+
+   - You can create the debuggee process yourself with `CreateProcess`. In order to create a process for debugging, you must specify the `DEBUG_PROCESS` flag. This flag tells Windows that we want to debug the process. Windows will send notifications of important debugging-related events (debug events) that occur in the debuggee to your program. The debuggee process will be immediately suspended until your program is ready. If the debuggee also creates child processes, Windows will also send debug events that occur in all those child processes to your program as well. This behavior is usually undesirable. You can disable this behavior by specifying `DEBUG_ONLY_THIS_PROCESS` flag in combination of `DEBUG_PROCESS` flag.
+     
+     你自己可以用 `CreateProcess` 函数创建一个 `debuggee` 进程。为了创建一个供调试的进程，你必须指定 `DEBUG_PROCESS` 标志。这个标志告诉 windows，我们想调试这个进程。当在 `debuggee` 中发生和调试有关的事件时，windows 将发送重要的调试通知给你的程序。这个 `debuggee` 进程将被立即挂起直到你的程序准备好。如果 `debuggee` 还创建了子进程，windows 将发生在这些子进程中的调试事件通知发送给你的程序。这一行为通常不合需求。你能通过指定 `DEBUG_ONLY_THIS_PROCESS` 与 `DEBUG_PROCESS` 的组合标志来禁止这一行为。
+   - You can attach your program to a running process with `DebugActiveProcess`.
+     
+     你能用 `DebugActiveProcess` 函数来捆绑你的程序到一个正在运行的进程上。
+
+2. Wait for debugging events. After your program acquired a debuggee, the debuggee's primary thread is suspended and will continue to be suspended until your program calls `WaitForDebugEvent`. This function works like other `WaitForXXX` functions, ie. it blocks the calling thread until the waited-for event occurs. In this case, it waits for debug events to be sent by Windows. Let's see its definition:
+
+   等待调试事件。 在你的程序获得一个 `debuggee` 进程后，`debuggee` 的主线程被挂起并持续处于挂起状态直到你的程序调用 `WaitForDebugEvent`。这个函数和其它 `WaitForXXX` 函数工作类似，比如说，它阻塞调用线程直到等待的事件发生。既然这样，它等待由 windows 发送来的调试事件。让我们看看它的定义：
+
+   ```
+   WaitForDebugEvent proto lpDebugEvent:DWORD, dwMilliseconds:DWORD
+   ```
+
+   `lpDebugEvent` is the address of a `DEBUG_EVENT` structure that will be filled with information about the debug event that occurs within the debuggee.
+
+   `LpDebugEvent` 是 `DEBUG_EVENT` 结构的地址，这个结构将被发生在 `debuggee` 中的调式信息填充。
+
+   `dwMilliseconds` is the length of time in milliseconds this function will wait for the debug event to occur. If this period elapses and no debug event occurs, `WaitForDebugEvent` returns to the caller. On the other hand, if you specify `INFINITE` constant in this argument, the function will not return until a debug event occurs.
+
+   `DwMillseconds` 是一个以毫秒为单位的长时间值。这个函数将在这段时间等待调试事件的发生。如果在这期间都没调试事件发生，`WaitForDebugEvent` 返回调用者。另一方面，如果你指定 `INFINITE` 为这参数值，这个函数将等到调试事件发生才返回。
+
+   Now let's examine the `DEBUG_EVENT` structure in more detail.
+
+   现在，让我们详细分析 `DEBUG_EVENT` 结构体。
+
+   ```
+   DEBUG_EVENT STRUCT 
+      dwDebugEventCode dd ? 
+      dwProcessId dd ? 
+      dwThreadId dd ? 
+      u DEBUGSTRUCT <> 
+   DEBUG_EVENT ENDS 
+   ```
+
+   `dwDebugEventCode` contains the value that specifies what type of debug event occurs. In short, there can be many types of events, your program needs to check the value in this field so it knows what type of event occurs and responds appropriately. The possible values are:
+
+   `dwDebugEventCode` 包含的值指定了什么类型的调试事件发生。简而言之，这里有很多类型的调试事件，你的程序需要检查这个字段的值以便让它知道什么类型的事件发生以及做出适当的响应。可能的值如下：
+
+   - `CREATE_PROCESS_DEBUG_EVENT`: A process is created. This event will be sent when the debuggee process is just created (and not yet running) or when your program just attaches itself to a running process with `DebugActiveProcess`. This is the first event your program will receive.
+     一个进程被创建。当 `debuggee` 进程刚被创建（但没有运行）或者是你的程序用 `DebugActiveProcess` 函数将它自己刚捆绑到一个正运行的进程上时，这个事件将被发送。这是你的程序收到的第一个事件。
+   - `EXIT_PROCESS_DEBUG_EVENT`: A process exits.
+     进程退出（停止运行）。
+   - `CREATE_THREAD_DEBUG_EVENT`: A new thread is created in the debuggee process or when your program first attaches itself to a running process. Note that you'll not receive this notification when the primary thread of the debuggee is created.
+     当你的程序第一次捆绑它自己到一个正在运行的进程上时或者是在 `debuggee` 进程中的一个新线程被创建。注意，当 `debuggee` 的主线程被创建时，你将不能收到这通知。
+   - `EXIT_THREAD_DEBUG_EVENT`: A thread in the debuggee process exits. Your program will not receive this event for the primary thread. In short, you can think of the primary thread of the debuggee as the equivalent of the debuggee process itself. Thus, when your program sees `CREATE_PROCESS_DEBUG_EVET` flag, it's actually the `CREATE_THREAD_DEBUG_EVENT` flag.
+     在 `debuggee` 进程中的一个线程退出时， 但是当主线程退出时，你的程序接收不到这个事件通知。简而言之，你可以认为 `debuggee` 的主线程等同于 `debuggee` 本身。因此，当你的程序看到 `CREATE_PROCESS_DEBUG_EVET` 标志时，对于主线程来说，它实际是 `CREATE_THREAD_DEBUG_EVENT` 标志。
+   - `LOAD_DLL_DEBUG_EVENT`: The debuggee loads a DLL. You'll receive this event when the PE loader first resolves the links to DLLs (you call `CreateProcess` to load the debuggee) and when the debuggee calls `LoadLibrary`.
+     Debuggee 装载一个 dll。当 PE 首次分解链接这个 dll 时（你调用 `CreateProcess` 来装载 `debuggee`）和当 `debuggee` 调用 `LoadLibrary` 时，你将接收到这个事件通知。
+   - `UNLOAD_DLL_DEBUG_EVENT`: A DLL is unloaded from the debuggee process.
+     从 `debuggee` 中卸载一个 dll。
+   - `EXCEPTION_DEBUG_EVENT`: An exception occurs in the debuggee process. Important: This event will occur once just before the debuggee starts executing its first instruction. The exception is actually a debug break (`int 3h`). When you want to resume the debuggee, call `ContinueDebugEvent` with `DBG_CONTINUE` flag. Don't use `DBG_EXCEPTION_NOT_HANDLED` flag else the debuggee will refuse to run under NT (on Win98, it works fine).
+     当 `debuggee` 进程发生异常时。要点：该事件仅在 `debuggee` 开始它的第一条指令之前发生一次。异常实际上是一次调试中断（`int3h`）。当你想重新开始这个 `debuggee` 时，调用 `ContinueDebugEvent` 函数并设置 `DBG_CONTINUE` 标志。不要用 `DBG_EXCEPTION_NOT_HANDLED` 标志，否则，`debuggee` 将拒绝运行在 NT 下（而在 98 上，它工作的 非常好）
+   - `OUTPUT_DEBUG_STRING_EVENT`: This event is generated when the debuggee calls `DebugOutputString` function to send a message string to your program.
+     当 `debuggee` 调用 `DebugOutputString` 函数发送一个字符串消息给你的程序时，这个事件发生。
+   - `RIP_EVENT`: System debugging error occurs.
+     系统调式错误发生。
+
+
+
+`dwProcessId` and `dwThreadId` are the process and thread IDs of the process that the debug event occurs in. You can use these values as identifiers of the process/thread you're interested in. Remember that if you use `CreateProcess` to load the debuggee, you also get the process and thread IDs of the debuggee in the `PROCESS_INFO` structure. You can use these values to differentiate between the debug events occurring in the debuggee and its child processes (in case you didn't specify the `DEBUG_ONLY_THIS_PROCESS` flag).
+
+`dwProcessId` 和 `dwThreadId` 是发生调试事件的进程和线程 ID 值。你能用这些值作为你感兴趣的进程或是线程的标识符。记住，如果你用 `CreateProcess` 函数装载一个 debuggee，你仍能在 `PROCESS_INFO` 结构中获得 debuggee 的进程和线程的 ID 值。你可以用这些值来区分调试事件是发生在 debuggee 中还是在它们的子进程中。（在你没有指定 `DEBUG_ONLY_THIS_PROCESS` 标志时）
+
+`u` is a union that contains more information about the debug event. It can be one of the following structures depending on the value of `dwDebugEventCode` above.
+
+`u` 是关于调试事件的联合，它包含更多的信息。根据上面 `dwDebugEventCode` 的值，它可以有以下几种结构。
+
+| Value in `dwDebugEventCode` | Interpretation of `u` |
+| :--- | :--- |
+| `CREATE_PROCESS_DEBUG_EVENT` | A `CREATE_PROCESS_DEBUG_INFO` structure named `CreateProcessInfo`<br>名为 `CreateProcessInfo` 的 `CREATE_PROCESS_DEBUG_INFO` 结构。 |
+| `EXIT_PROCESS_DEBUG_EVENT` | An `EXIT_PROCESS_DEBUG_INFO` structure named `ExitProcess`<br>名为 `ExitProcess` 的 `EXIT_PROCESS_DEBUG_INFO` 的结构。 |
+| `CREATE_THREAD_DEBUG_EVENT` | A `CREATE_THREAD_DEBUG_INFO` structure named `CreateThread`<br>名为 `CreateThread` 的 `CREATE_THREAD_DEBUG_INFO` 的结构。 |
+| `EXIT_THREAD_DEBUG_EVENT` | An `EXIT_THREAD_DEBUG_INFO` structure named `ExitThread`<br>名为 `ExitThread` 的 `EXIT_THREAD_DEBUG_INFO` 的结构。 |
+| `LOAD_DLL_DEBUG_EVENT` | A `LOAD_DLL_DEBUG_INFO` structure named `LoadDll`<br>名为 `LoadDll` 的 `LOAD_DLL_DEBUG_INFO` 的结构。 |
+| `UNLOAD_DLL_DEBUG_EVENT` | An `UNLOAD_DLL_DEBUG_INFO` structure named `UnloadDll`<br>名为 `UnloadDll` 的 `UNLOAD_DLL_DEBUG_INFO` 的结构。 |
+| `EXCEPTION_DEBUG_EVENT` | An `EXCEPTION_DEBUG_INFO` structure named `Exception`<br>名为 `Exception` 的 `EXCEPTION_DEBUG_INFO` 的结构。 |
+| `OUTPUT_DEBUG_STRING_EVENT` | An `OUTPUT_DEBUG_STRING_INFO` structure named `DebugString`<br>名为 `DebugString` 的 `OUTPUT_DEBUG_STRING_INFO` 的结构。 |
+| `RIP_EVENT` | A `RIP_INFO` structure named `RipInfo`<br>名为 `RipInfo` 的 `RIP_INFO` 的结构。 |
+
+I won't go into detail about all those structures in this tutorial, only the `CREATE_PROCESS_DEBUG_INFO` structure will be covered here.
+
+我不想在这一课中详细的介绍所有的这些结构，这里仅介绍 `CREATE_PROCESS_DEBUG_INFO` 结构。
+
+Assuming that our program calls `WaitForDebugEvent` and it returns. The first thing we should do is to examine the value in `dwDebugEventCode` to see which type of debug event occurred in the debuggee process. For example, if the value in `dwDebugEventCode` is `CREATE_PROCESS_DEBUG_EVENT`, you can interpret the member in `u` as `CreateProcessInfo` and access it with `u.CreateProcessInfo`.
+
+假设我们的程序调用了 `WaitForDebugEvent` 函数并返回,我们要做的第一件事就是检查 `dwDebugEventCode` 中的值来看 debuggee 进程中发生了那种类型的调试事件.比如说,如果 `dwDebugEventCode` 的值为 `CREATE_PROCESS_DEBUG_EVENT`,就可认为 `u` 的成员为 `CreateProcessInfo` 并用 `u.CreateProcessInfo` 来访问
+
+### 3. Do whatever your program wants to do in response to the debug event
+
+When `WaitForDebugEvent` returns, it means a debug event just occurred in the debuggee process or a timeout occurs. Your program needs to examine the value in `dwDebugEventCode` in order to react to the event appropriately. In this regard, it's like processing Windows messages: you choose to handle some and ignore some.
+
+无论你的程序在做什么，它都应该对调试事件做出响应。当 `WaitForDebugEvent` 函数返回时，它意味着调试事件刚刚在 debuggee 进程中发生或者是超过了调试时间。为了合适的对事件做出响应，你的程序需要解释在 `dwDebugEventCode` 中的值。在这点上，它就像处理 windows 消息：你选择处理一些同时也忽略一些。
+
+### 4. Let the debuggee continues execution
+
+When a debug event occurs, Windows suspends the debuggee. When you're finished with the event handling, you need to kick the debuggee into moving again. You do this by calling `ContinueDebugEvent` function.
+
+让 debuggee 继续执行。当调试事件发生时，windows 将 debuggee 挂起。当事件处理完成后，你需要将 debuggee 转入运行态。你能调用 `ContinueDebugEvent` 函数来做到这点。
+
+`ContinueDebugEvent` proto `dwProcessId`:DWORD, `dwThreadId`:DWORD, `dwContinueStatus`:DWORD
+
+This function resumes the thread that was previously suspended because a debug event occurred.
+
+这个函数继续执行先前因为调试事件被挂起的线程。
+
+`dwProcessId` and `dwThreadId` are the process and thread IDs of the thread that will be resumed. You usually take these two values from the `dwProcessId` and `dwThreadId` members of the `DEBUG_EVENT` structure.
+
+`dwProcessId` 和 `dwThreadId` 是即将被恢复执行的进程和线程的 ID 值。你通常能从 `DEBUG_EVENT` 结构的 `dwProcessId` 和 `dwThreadId` 成员中得到这两个值。
+
+`dwContinueStatus` specifies how to continue the thread that reported the debug event. There are two possible values: `DBG_CONTINUE` and `DBG_EXCEPTION_NOT_HANDLED`. For all other debug events, those two values do the same thing: resume the thread. The exception is the `EXCEPTION_DEBUG_EVENT`. If the thread reports an exception debug event, it means an exception occurred in the debuggee thread. If you specify `DBG_CONTINUE`, the thread will ignore its own exception handling and continue with the execution. In this scenario, your program must examine and resolve the exception itself before resuming the thread with `DBG_CONTINUE` else the exception will occur again and again and again....
+
+`dwContinueStatus` 指定了如何继续报告调试事件的线程。这可能有两个值：`DBG_CONTINUE` 和 `DBG_EXCEPTION_NOT_HANDLED`。对于其它所有调试事件，这两个值都做相同的事：继续执行线程。唯一的例外就是 `EXCEPTION_DEBUG_EVENT`。如果线程报告了一个异常调试事件，它意味着在 debuggee 线程中发生异常。如果指定 `DBG_CONTINUE`，这个线程将忽视它自己的异常操作并且继续执行。在这种情况下，你的程序必须在恢复由 `DBG_CONTINUE` 标志的线程执行前，检察并解决这个异常，否则，这个异常将一次又一次的发生下去。
+
+If you specify `DBG_EXCEPTION_NOT_HANDLED`, your program is telling Windows that it didn't handle the exception: Windows should use the default exception handler of the debuggee to handle the exception. In conclusion, if the debug event refers to an exception in the debuggee process, you should call `ContinueDebugEvent` with `DBG_CONTINUE` flag if your program already removed the cause of exception.
+
+如果你指定了 `DBG_EXCEPTION_NOT_HANDLED`，你的程序将告诉 windows 它不需要处理异常：windows 将用默认的 debuggee 的异常处理程序处理这个异常。总而言之，如果在 debuggee 进程中，调试事件引用了一个异常，如果你的程序已经移除了这个异常的原因，那么你应该调用 `ContinueDebugEvent` 函数并指定 `DBG_CONTINUE` 标志。
+
+Otherwise, your program must call `ContinueDebugEvent` with `DBG_EXCEPTION_NOT_HANDLED` flag. Except in one case which you must always use `DBG_CONTINUE` flag: the first `EXCEPTION_DEBUG_EVENT` which has the value `EXCEPTION_BREAKPOINT` in the `ExceptionCode` member. When the debuggee is going to execute its very first instruction, your program will receive the exception debug event. It's actually a debug break (`int 3h`).
+
+否则，我们的程序必须以 `DBG_EXCEPTION_NOT_HANDLED` 标志来调用 `ContinueDebugEvent` 函数。除了一种情况你必须用 `DBG_CONTINUE` 标志：即第一个在 `ExceptionCode` 成员中有值 `EXCEPTION_BREAKPOINT` 的 `EXCEPTION_DEBUG_EVENT` 事件，当 debuggee 开始执行它的第一条指令时，你的程序将接收到异常调试事件。它实际上是调试中断（`int 3h`）。
+
+If you respond by calling `ContinueDebugEvent` with `DBG_EXCEPTION_NOT_HANDLED` flag, Windows NT will refuse to run the debuggee (because no one cares for it). You must always use `DBG_CONTINUE` flag in this case to tell Windows that you want the thread to go on.
+
+如果你用 `DBG_EXCEPTION_NOT_HANDLED` 标志调用 `ContinueDebugEvent` 函数，windows NT 将拒绝运行 debuggee。你必须在这种情形下使用 `DBG_CONTINUE` 标志来告诉 windows 你希望这个线程继续执行下去。
+
+### 5. Continue this cycle in an infinite loop until the debuggee process exits
+
+Your program must be in an infinite loop much like a message loop until the debuggee exits. The loop looks like this:
+
+在无限循环中继续这个周期，直到 debuggee 进程结束。你们的程序必须在一个很像消息循环的无限循环中直到 debuggee 进程结束。该循环体大体如下:
+
+```
+.while TRUE
+    invoke WaitForDebugEvent, addr DebugEvent, INFINITE
+    .break .if DebugEvent.dwDebugEventCode == EXIT_PROCESS_DEBUG_EVENT
+    <Handle the debug events>
+    invoke ContinueDebugEvent, DebugEvent.dwProcessId, DebugEvent.dwThreadId, DBG_EXCEPTION_NOT_HANDLED
+.endw
+```
+
+Here's the catch: Once you start debugging a program, you just can't detach from the debuggee until it exits.
+
+这里有一点： 一旦你开始调试一个程序，除非 debuggee 结束，否则你的程序就不能从 debuggee 中分开。
+
+Let's summarize the steps again:
+
+让我们在总结一下这些步骤：
+
+
+
+1.  Create a process or attach your program to a running process.  
+    创建一个进程或是将你的程序捆绑到一个正在运行的进程上。  
+
+2.  Wait for debugging events  
+    等待调试事件的发生。  
+
+3.  Do whatever your program want to do in response to the debug event.  
+    无论你的程序在做什么，都应该对调试事件做出响应。  
+
+4.  Let the debuggee continues execution.  
+    让 `debuggee` 进程继续执行。  
+
+5.  Continue this cycle in an infinite loop until the debuggee process exits  
+    在无限循环中继续这个周期，直到 `debuggee` 进程退出。  
+
+### Example:
+
+This example debugs a win32 program and shows important information such as the process handle, process Id, image base and so on.  
 这个例子调试一个 win32 程序并且显示诸如进程句柄，进程 ID 值，基地址等等的一些重要信息。  
-.386   
-.model flat,stdcall   
-option casemap:none   
-include \\masm32\\include\\windows.inc   
-include \\masm32\\include\\kernel32.inc   
-include \\masm32\\include\\comdlg32.inc   
-include \\masm32\\include\\user32.inc   
-includelib \\masm32\\lib\\kernel32.lib   
-includelib \\masm32\\lib\\comdlg32.lib   
-includelib \\masm32\\lib\\user32.lib   
-.data   
-AppName db "Win32 Debug Example no.1",0   
-ofn OPENFILENAME <>   
-FilterString db "Executable Files",0,"\*.exe",0   
-             db "All Files",0,"\*.\*",0,0   
-ExitProc db "The debuggee exits",0   
-NewThread db "A new thread is created",0   
-EndThread db "A thread is destroyed",0   
-ProcessInfo db "File Handle: %lx ",0dh,0Ah   
-            db "Process Handle: %lx",0Dh,0Ah   
-            db "Thread Handle: %lx",0Dh,0Ah   
-            db "Image Base: %lx",0Dh,0Ah   
-            db "Start Address: %lx",0   
-.data?   
-buffer db 512 dup(?)   
-startinfo STARTUPINFO <>   
-pi PROCESS\_INFORMATION <>   
-DBEvent DEBUG\_EVENT <>   
-.code   
-start:   
-mov ofn.lStructSize,sizeof ofn   
-mov ofn.lpstrFilter, offset FilterString   
-mov ofn.lpstrFile, offset buffer   
-mov ofn.nMaxFile,512   
-mov ofn.Flags, OFN\_FILEMUSTEXIST or OFN\_PATHMUSTEXIST or OFN\_LONGNAMES or OFN\_EXPLORER or OFN\_HIDEREADONLY   
-invoke GetOpenFileName, ADDR ofn   
-.if eax==TRUE   
-invoke GetStartupInfo,addr startinfo   
-invoke CreateProcess, addr buffer, NULL, NULL, NULL, FALSE, DEBUG\_PROCESS+ DEBUG\_ONLY\_THIS\_PROCESS, NULL, NULL, addr startinfo, addr pi   
-.while TRUE   
-   invoke WaitForDebugEvent, addr DBEvent, INFINITE   
-   .if DBEvent.dwDebugEventCode==EXIT\_PROCESS\_DEBUG\_EVENT   
-       invoke MessageBox, 0, addr ExitProc, addr AppName, MB\_OK+MB\_ICONINFORMATION   
-       .break   
-   .elseif DBEvent.dwDebugEventCode==CREATE\_PROCESS\_DEBUG\_EVENT   
-       invoke wsprintf, addr buffer, addr ProcessInfo, DBEvent.u.CreateProcessInfo.hFile, DBEvent.u.CreateProcessInfo.hProcess, DBEvent.u.CreateProcessInfo.hThread, DBEvent.u.CreateProcessInfo.lpBaseOfImage, DBEvent.u.CreateProcessInfo.lpStartAddress   
-       invoke MessageBox,0, addr buffer, addr AppName, MB\_OK+MB\_ICONINFORMATION      
-   .elseif DBEvent.dwDebugEventCode==EXCEPTION\_DEBUG\_EVENT   
-       .if DBEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION\_BREAKPOINT   
-          invoke ContinueDebugEvent, DBEvent.dwProcessId, DBEvent.dwThreadId, DBG\_CONTINUE   
-         .continue   
-       .endif   
-   .elseif DBEvent.dwDebugEventCode==CREATE\_THREAD\_DEBUG\_EVENT   
-       invoke MessageBox,0, addr NewThread, addr AppName, MB\_OK+MB\_ICONINFORMATION   
-   .elseif DBEvent.dwDebugEventCode==EXIT\_THREAD\_DEBUG\_EVENT   
-       invoke MessageBox,0, addr EndThread, addr AppName, MB\_OK+MB\_ICONINFORMATION   
-   .endif   
-   invoke ContinueDebugEvent, DBEvent.dwProcessId, DBEvent.dwThreadId, DBG\_EXCEPTION\_NOT\_HANDLED   
-.endw   
-invoke CloseHandle,pi.hProcess   
-invoke CloseHandle,pi.hThread   
-.endif   
-invoke ExitProcess, 0   
-end start   
-Analysis:  
-分析：   
-The program fills the OPENFILENAME structure and then calls GetOpenFileName to let the user choose a program to be debugged.  
-程序填充 OPENFILENAME 结构，然后调用 GetOpenFileName 函数来让用户选择一个程序来调试。  
-invoke GetStartupInfo,addr startinfo   
-invoke CreateProcess, addr buffer, NULL, NULL, NULL, FALSE, DEBUG\_PROCESS+ DEBUG\_ONLY\_THIS\_PROCESS, NULL, NULL, addr startinfo, addr pi   
-When the user chose one, it calls CreateProcess to load the program. It calls GetStartupInfo to fill the STARTUPINFO structure with its default values. Note that we use DEBUG\_PROCESS combined with DEBUG\_ONLY\_THIS\_PROCESS flags in order to debug only this program, not including its child processes.  
-当用户选择好一个程序时，它调用 CreateProcess 来装载这个程序。它调用 GetStartupInfo 函数来用它的默认值填充 STARTUPINFO 结构。注意：为了仅仅调试这个程序，而不包含它的子进程，我们使用 DEBUG\_PROCESS 和 DEBUG\_ONLY\_THIS\_PROCESS 的联合值。  
-.while TRUE   
-   invoke WaitForDebugEvent, addr DBEvent, INFINITE   
-When the debuggee is loaded, we enter the infinite debug loop, calling WaitForDebugEvent. WaitForDebugEvent will not return until a debug event occurs in the debuggee because we specify INFINITE as its second parameter. When a debug event occurred, WaitForDebugEvent returns and DBEvent is filled with information about the debug event.  
-当 debuggee 被装载后 ,我们调用 WaitForDebugEvent 进入无尽的调试循环,WaitForDebugEvent 在 debuggee 中发生调试事件时返回,因为我们指定了 INFINITE 作为第二个参数.当调试事件发生时, WaitForDebugEvent 返回并将调试事件的信息填充到 DBEvent 结构中.  
-   .if DBEvent.dwDebugEventCode==EXIT\_PROCESS\_DEBUG\_EVENT   
-       invoke MessageBox, 0, addr ExitProc, addr AppName, MB\_OK+MB\_ICONINFORMATION   
-       .break   
-We first check the value in dwDebugEventCode. If it's EXIT\_PROCESS\_DEBUG\_EVENT, we display a message box saying "The debuggee exits" and then get out of the debug loop.  
-我们首先检查在 dwDebugEventCode 中的值，如果它是 EXIT\_PROCESS\_DEBUG\_EVENT,我们在一个对话框中显示“the debuggee exits”然后离开这个调试循环。  
-   .elseif DBEvent.dwDebugEventCode==CREATE\_PROCESS\_DEBUG\_EVENT   
-       invoke wsprintf, addr buffer, addr ProcessInfo, DBEvent.u.CreateProcessInfo.hFile, DBEvent.u.CreateProcessInfo.hProcess, DBEvent.u.CreateProcessInfo.hThread, DBEvent.u.CreateProcessInfo.lpBaseOfImage, DBEvent.u.CreateProcessInfo.lpStartAddress   
-       invoke MessageBox,0, addr buffer, addr AppName, MB\_OK+MB\_ICONINFORMATION      
-If the value in dwDebugEventCode is CREATE\_PROCESS\_DEBUG\_EVENT, then we display several interesting information about the debuggee in a message box. We obtain those information from u.CreateProcessInfo. CreateProcessInfo is a structure of type CREATE\_PROCESS\_DEBUG\_INFO. You can get more info about this structure from Win32 API reference.   
-如果在 dwDebugEventCode 的值是 CREATE\_PROCESS\_DEBUG\_EVENT,那么我们在对话框中显示几个有趣的调试信息。这些信息从 u.CreateProcessInfo 获得. CreateProcessInfo 是一个 CREATE\_PROCESS\_DEBUG\_INFO 类型的结构体.你可以查阅 Win32 API 获得它的更多信息 e.  
-   .elseif DBEvent.dwDebugEventCode==EXCEPTION\_DEBUG\_EVENT   
-       .if DBEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION\_BREAKPOINT   
-          invoke ContinueDebugEvent, DBEvent.dwProcessId, DBEvent.dwThreadId, DBG\_CONTINUE   
-         .continue   
-       .endif   
-If the value in dwDebugEventCode is EXCEPTION\_DEBUG\_EVENT, we must check further for the exact type of exception. It's a long line of nested structure reference but you can obtain the kind of exception from ExceptionCode member. If the value in ExceptionCode is EXCEPTION\_BREAKPOINT and it occurs for the first time (or if we are sure that the debuggee has no embedded int 3h), we can safely assume that this exception occured when the debuggee was going to execute its very first instruction. When we are done with the processing, we must call ContinueDebugEvent with DBG\_CONTINUE flag to let the debuggee run. Then we go back to wait for the next debug event.  
-如果在 dwDebugEventCode 中的值是 EXCEPTION\_DEBUG\_EVENT,我们必须进一步检查异常的类型。是一大堆的结构嵌套,但我们可以从 ExceptionCode 成员获得异常类型.如果 ExceptionCode 的值为 EXCEPTION\_BREAKPOINT 并且是第一次发生(或者我们已知道 deuggee 中没有 int 3h 指令),我们可以安全地假定在 debuggee 要执行第一条指令时发生这一异常.在我们完成这些处理后,就可以用 DBG\_CONTINUE 调用 ContinueDebugEvent 来继续执行 debuggee.接着我们继续等待下一个调试事件的发生.  
-   .elseif DBEvent.dwDebugEventCode==CREATE\_THREAD\_DEBUG\_EVENT   
-       invoke MessageBox,0, addr NewThread, addr AppName, MB\_OK+MB\_ICONINFORMATION   
-   .elseif DBEvent.dwDebugEventCode==EXIT\_THREAD\_DEBUG\_EVENT   
-       invoke MessageBox,0, addr EndThread, addr AppName, MB\_OK+MB\_ICONINFORMATION   
-   .endif   
-If the value in dwDebugEventCode is CREATE\_THREAD\_DEBUG\_EVENT or EXIT\_THREAD\_DEBUG\_EVENT, we display a message box saying so.  
-如果在 dwDebugEventCode 中的值是 CREATE\_THREAD\_DEBUG\_EVENT 或是 EXIT\_THREAD\_DEBUG\_EVENT.我们显示一个对话框。  
-   invoke ContinueDebugEvent, DBEvent.dwProcessId, DBEvent.dwThreadId, DBG\_EXCEPTION\_NOT\_HANDLED   
-.endw   
-Except for the EXCEPTION\_DEBUG\_EVENT case above, we call ContinueDebugEvent with DBG\_EXCEPTION\_NOT\_HANDLED flag to resume the debuggee.  
-除了上面讨论的 EXCEPTION\_DEBUG\_EVENT 情况外，我们用 DBG\_EXCEPTION\_NOT\_HANDLED 标志调用 ContinueDebugEvent 函数来恢复 debuggee 的执行。  
-invoke CloseHandle,pi.hProcess   
-invoke CloseHandle,pi.hThread   
-When the debuggee exits, we are out of the debug loop and must close both process and thread handles of the debuggee. Closing the handles doesn't mean we are killing the process/thread. It just means we don't want to use those handles to refer to the process/thread anymore.   
-当 debuggee 退出时，我们离开调试循环并且必须关闭 debuggee 的进程和线程句柄。关闭句柄并不意味着我们杀死进程或是线程。它仅仅意味着我们再也不需要用这些句柄来引用进程和线程了。  
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-This article come from Iczelion's asm page  
+
+```asm
+.386
+
+.model flat,stdcall
+
+option casemap:none
+
+include \masm32\include\windows.inc
+
+include \masm32\include\kernel32.inc
+
+include \masm32\include\comdlg32.inc
+
+include \masm32\include\user32.inc
+
+includelib \masm32\lib\kernel32.lib
+
+includelib \masm32\lib\comdlg32.lib
+
+includelib \masm32\lib\user32.lib
+
+.data
+
+AppName db "Win32 Debug Example no.1",0
+
+ofn OPENFILENAME <>
+
+FilterString db "Executable Files",0,"*.exe",0
+
+             db "All Files",0,"*.*",0,0
+
+ExitProc db "The debuggee exits",0
+
+NewThread db "A new thread is created",0
+
+EndThread db "A thread is destroyed",0
+
+ProcessInfo db "File Handle: %lx ",0dh,0Ah
+
+            db "Process Handle: %lx",0Dh,0Ah
+
+            db "Thread Handle: %lx",0Dh,0Ah
+
+            db "Image Base: %lx",0Dh,0Ah
+
+            db "Start Address: %lx",0
+
+.data?
+
+buffer db 512 dup(?)
+
+startinfo STARTUPINFO <>
+
+pi PROCESS_INFORMATION <>
+
+DBEvent DEBUG_EVENT <>
+
+.code
+
+start:
+
+mov ofn.lStructSize,sizeof ofn
+
+mov ofn.lpstrFilter, offset FilterString
+
+mov ofn.lpstrFile, offset buffer
+
+mov ofn.nMaxFile,512
+
+mov ofn.Flags, OFN_FILEMUSTEXIST or OFN_PATHMUSTEXIST or OFN_LONGNAMES or OFN_EXPLORER or OFN_HIDEREADONLY
+
+invoke GetOpenFileName, ADDR ofn
+
+.if eax==TRUE
+
+invoke GetStartupInfo,addr startinfo
+
+invoke CreateProcess, addr buffer, NULL, NULL, NULL, FALSE, DEBUG_PROCESS+ DEBUG_ONLY_THIS_PROCESS, NULL, NULL, addr startinfo, addr pi
+
+.while TRUE
+
+   invoke WaitForDebugEvent, addr DBEvent, INFINITE
+
+   .if DBEvent.dwDebugEventCode==EXIT_PROCESS_DEBUG_EVENT
+
+       invoke MessageBox, 0, addr ExitProc, addr AppName, MB_OK+MB_ICONINFORMATION
+
+       .break
+
+   .elseif DBEvent.dwDebugEventCode==CREATE_PROCESS_DEBUG_EVENT
+
+       invoke wsprintf, addr buffer, addr ProcessInfo, DBEvent.u.CreateProcessInfo.hFile, DBEvent.u.CreateProcessInfo.hProcess, DBEvent.u.CreateProcessInfo.hThread, DBEvent.u.CreateProcessInfo.lpBaseOfImage, DBEvent.u.CreateProcessInfo.lpStartAddress
+
+       invoke MessageBox,0, addr buffer, addr AppName, MB_OK+MB_ICONINFORMATION
+
+   .elseif DBEvent.dwDebugEventCode==EXCEPTION_DEBUG_EVENT
+
+       .if DBEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION_BREAKPOINT
+
+          invoke ContinueDebugEvent, DBEvent.dwProcessId, DBEvent.dwThreadId, DBG_CONTINUE
+
+          .continue
+
+       .endif
+
+   .elseif DBEvent.dwDebugEventCode==CREATE_THREAD_DEBUG_EVENT
+
+       invoke MessageBox,0, addr NewThread, addr AppName, MB_OK+MB_ICONINFORMATION
+
+   .elseif DBEvent.dwDebugEventCode==EXIT_THREAD_DEBUG_EVENT
+
+       invoke MessageBox,0, addr EndThread, addr AppName, MB_OK+MB_ICONINFORMATION
+
+   .endif
+
+   invoke ContinueDebugEvent, DBEvent.dwProcessId, DBEvent.dwThreadId, DBG_EXCEPTION_NOT_HANDLED
+
+.endw
+
+invoke CloseHandle,pi.hProcess
+
+invoke CloseHandle,pi.hThread
+
+.endif
+
+invoke ExitProcess, 0
+
+end start
+```
+
+### Analysis:
+
+分析：
+
+The program fills the `OPENFILENAME` structure and then calls `GetOpenFileName` to let the user choose a program to be debugged.  
+程序填充 `OPENFILENAME` 结构，然后调用 `GetOpenFileName` 函数来让用户选择一个程序来调试。
+
+```asm
+invoke GetStartupInfo,addr startinfo
+
+invoke CreateProcess, addr buffer, NULL, NULL, NULL, FALSE, DEBUG_PROCESS+ DEBUG_ONLY_THIS_PROCESS, NULL, NULL, addr startinfo, addr pi
+```
+
+When the user chose one, it calls `CreateProcess` to load the program. It calls `GetStartupInfo` to fill the `STARTUPINFO` structure with its default values. Note that we use `DEBUG_PROCESS` combined with `DEBUG_ONLY_THIS_PROCESS` flags in order to debug only this program, not including its child processes.  
+当用户选择好一个程序时，它调用 `CreateProcess` 来装载这个程序。它调用 `GetStartupInfo` 函数来用它的默认值填充 `STARTUPINFO` 结构。注意：为了仅仅调试这个程序，而不包含它的子进程，我们使用 `DEBUG_PROCESS` 和 `DEBUG_ONLY_THIS_PROCESS` 的联合值。
+
+```asm
+.while TRUE
+
+   invoke WaitForDebugEvent, addr DBEvent, INFINITE
+```
+
+When the debuggee is loaded, we enter the infinite debug loop, calling `WaitForDebugEvent`. `WaitForDebugEvent` will not return until a debug event occurs in the debuggee because we specify `INFINITE` as its second parameter. When a debug event occurred, `WaitForDebugEvent` returns and `DBEvent` is filled with information about the debug event.  
+当 `debuggee` 被装载后，我们调用 `WaitForDebugEvent` 进入无尽的调试循环，`WaitForDebugEvent` 在 `debuggee` 中发生调试事件时返回，因为我们指定了 `INFINITE` 作为第二个参数。当调试事件发生时，`WaitForDebugEvent` 返回并将调试事件的信息填充到 `DBEvent` 结构中。
+
+```asm
+   .if DBEvent.dwDebugEventCode==EXIT_PROCESS_DEBUG_EVENT
+
+       invoke MessageBox, 0, addr ExitProc, addr AppName, MB_OK+MB_ICONINFORMATION
+
+       .break
+```
+
+We first check the value in `dwDebugEventCode`. If it's `EXIT_PROCESS_DEBUG_EVENT`, we display a message box saying "The debuggee exits" and then get out of the debug loop.  
+我们首先检查在 `dwDebugEventCode` 中的值，如果它是 `EXIT_PROCESS_DEBUG_EVENT`，我们在一个对话框中显示“the debuggee exits”然后离开这个调试循环。
+
+```asm
+   .elseif DBEvent.dwDebugEventCode==CREATE_PROCESS_DEBUG_EVENT
+
+       invoke wsprintf, addr buffer, addr ProcessInfo, DBEvent.u.CreateProcessInfo.hFile, DBEvent.u.CreateProcessInfo.hProcess, DBEvent.u.CreateProcessInfo.hThread, DBEvent.u.CreateProcessInfo.lpBaseOfImage, DBEvent.u.CreateProcessInfo.lpStartAddress
+
+       invoke MessageBox,0, addr buffer, addr AppName, MB_OK+MB_ICONINFORMATION
+```
+
+If the value in `dwDebugEventCode` is `CREATE_PROCESS_DEBUG_EVENT`, then we display several interesting information about the debuggee in a message box. We obtain those information from `u.CreateProcessInfo`. `CreateProcessInfo` is a structure of type `CREATE_PROCESS_DEBUG_INFO`. You can get more info about this structure from Win32 API reference.  
+如果在 `dwDebugEventCode` 的值是 `CREATE_PROCESS_DEBUG_EVENT`，那么我们在对话框中显示几个有趣的调试信息。这些信息从 `u.CreateProcessInfo` 获得。`CreateProcessInfo` 是一个 `CREATE_PROCESS_DEBUG_INFO` 类型的结构体。你可以查阅 Win32 API 获得它的更多信息。
+
+```asm
+   .elseif DBEvent.dwDebugEventCode==EXCEPTION_DEBUG_EVENT
+
+       .if DBEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION_BREAKPOINT
+
+          invoke ContinueDebugEvent, DBEvent.dwProcessId, DBEvent.dwThreadId, DBG_CONTINUE
+
+          .continue
+
+       .endif
+```
+
+If the value in `dwDebugEventCode` is `EXCEPTION_DEBUG_EVENT`, we must check further for the exact type of exception. It's a long line of nested structure reference but you can obtain the kind of exception from `ExceptionCode` member. If the value in `ExceptionCode` is `EXCEPTION_BREAKPOINT` and it occurs for the first time (or if we are sure that the debuggee has no embedded `int 3h`), we can safely assume that this exception occured when the debuggee was going to execute its very first instruction. When we are done with the processing, we must call `ContinueDebugEvent` with `DBG_CONTINUE` flag to let the debuggee run. Then we go back to wait for the next debug event.  
+如果在 `dwDebugEventCode` 中的值是 `EXCEPTION_DEBUG_EVENT`，我们必须进一步检查异常的类型。是一大堆的结构嵌套，但我们可以从 `ExceptionCode` 成员获得异常类型。如果 `ExceptionCode` 的值为 `EXCEPTION_BREAKPOINT` 并且是第一次发生（或者我们已知道 debuggee 中没有 `int 3h` 指令），我们可以安全地假定在 debuggee 要执行第一条指令时发生这一异常。在我们完成这些处理后，就可以用 `DBG_CONTINUE` 调用 `ContinueDebugEvent` 来继续执行 debuggee。接着我们继续等待下一个调试事件的发生。
+
+```asm
+   .elseif DBEvent.dwDebugEventCode==CREATE_THREAD_DEBUG_EVENT
+
+       invoke MessageBox,0, addr NewThread, addr AppName, MB_OK+MB_ICONINFORMATION
+```
+
+
+
+```
+.elseif DBEvent.dwDebugEventCode==EXIT_THREAD_DEBUG_EVENT
+    invoke MessageBox,0, addr EndThread, addr AppName, MB_OK+MB_ICONINFORMATION
+.endif
+```
+
+If the value in `dwDebugEventCode` is `CREATE_THREAD_DEBUG_EVENT` or `EXIT_THREAD_DEBUG_EVENT`, we display a message box saying so.
+
+如果在 `dwDebugEventCode` 中的值是 `CREATE_THREAD_DEBUG_EVENT` 或是 `EXIT_THREAD_DEBUG_EVENT`.我们显示一个对话框。
+
+```
+invoke ContinueDebugEvent, DBEvent.dwProcessId, DBEvent.dwThreadId, DBG_EXCEPTION_NOT_HANDLED
+
+.endw
+```
+
+Except for the `EXCEPTION_DEBUG_EVENT` case above, we call `ContinueDebugEvent` with `DBG_EXCEPTION_NOT_HANDLED` flag to resume the debuggee.
+
+除了上面讨论的 `EXCEPTION_DEBUG_EVENT` 情况外，我们用 `DBG_EXCEPTION_NOT_HANDLED` 标志调用 `ContinueDebugEvent` 函数来恢复 debuggee 的执行。
+
+```
+invoke CloseHandle, pi.hProcess
+invoke CloseHandle, pi.hThread
+```
+
+When the debuggee exits, we are out of the debug loop and must close both process and thread handles of the debuggee. Closing the handles doesn't mean we are killing the process/thread. It just means we don't want to use those handles to refer to the process/thread anymore.
+
+当 debuggee 退出时，我们离开调试循环并且必须关闭 debuggee 的进程和线程句柄。关闭句柄并不意味着我们杀死进程或是线程。它仅仅意味着我们再也不需要用这些句柄来引用进程和线程了。
+
+This article come from Iczelion's asm page
+
 风向改变翻译于 2008-3-9

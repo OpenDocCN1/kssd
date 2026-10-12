@@ -1,140 +1,194 @@
 
-
 # 某 ExeCryptor 二次加密的软件无 KEY 脱壳
 
 > 原文：[`www.pediy.com/kssd/pediy08/pediy8-621.htm`](https://www.pediy.com/kssd/pediy08/pediy8-621.htm)
 
-朋友说有个二次加密的软件需要解决，PEID 看一下是 EXECryptor 2.X 的，论坛上说 EXECryptor 2.X 无 KEY 可以脱去的，所以参考了相关文章后写出了过程。运行界面：  
-![](img/0abe03d6f87bac71a0f6a973b2285c09.jpg)   
-   
-一、跳过输入表加密：  
-EXECryptor 专用 OD 或 advancedolly 插件设置 ANTI-DEBUG 后再载入原程序：  
-0055F2AA    E8 EBFEFFFF     CALL keygen.0055F19A                     ; 载入后停在这里  
-0055F2AF    05 25180000     ADD EAX,1825  
-0055F2B4    FFE0            JMP NEAR EAX  
-0055F2B6    E8 04000000     CALL keygen.0055F2BF  
-0055F2BB    FFFF            ???                                      ; Unknown command  
-0055F2BD    FFFF            ???                                      ; Unknown command  
-0055F2BF    5E              POP ESI  
-0055F2C0    C3              RETN  
-ALT+B 打开断点查看窗口，发现系统自动设置了一个断点 One-shot，删除断点。  
-Breakpoints, item 0  
- Address=0055F29E keygen.<ModuleEntryPoint>  
- Module=keygen  
- Active=One-shot  
- Disassembly=CALL keygen.0055F19A  
-ALT+M 打开内存镜像，CODE 段 F2 下断，SHIFT+F9 运行：  
-0055C660    F3:A4           REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[>; 停在这里,   
-0055C662    31DB            XOR EBX,EBX  
-0055C664    5E              POP ESI  
-0055C665  ^ EB 9D           JMP SHORT keygen.0055C604  
-0055C667    89F0            MOV EAX,ESI  
-0055C669    5B              POP EBX  
-CTRL+N 打开导入表，右击 GetProcAddress，在导入表中跟随，双击：  
-0055F0C2    FF15 BC804D00   CALL NEAR DWORD PTR DS:\[<&kernel32.GetPr>; 来到这里，下硬件执行断点  
-0055F0C8    09C0            OR EAX,EAX  
-0055F0CA    0F84 0D000000   JE keygen.0055F0DD  
-0055F0D0    8907            MOV DWORD PTR DS:\[EDI\],EAX  
-0055F0D2    8345 F4 04      ADD DWORD PTR SS:\[EBP-C\],4  
-0055F0D6  ^ E9 A6FFFFFF     JMP keygen.0055F081  
-0055F0DB    0000            ADD BYTE PTR DS:\[EAX\],AL  
-0055F0DD    53              PUSH EBX  
-0055F0DE    89D8            MOV EAX,EBX  
-0055F0E0    E8 09000000     CALL keygen.0055F0EE  
-0055F0E5    5B              POP EBX  
-0055F0E6    5F              POP EDI  
-0055F0E7    5E              POP ESI  
-0055F0E8    8BE5            MOV ESP,EBP  
-0055F0EA    5D              POP EBP  
-0055F0EB    C3              RETN  
-CTRL+F2 重新载入原程序，ALT+B 打开断点查看窗口，删除断点后 F9，断在硬件执行断点处，取消硬件执行断点，F4 到 0055F0E5：  
-0055F0C2    FF15 BC804D00   CALL NEAR DWORD PTR DS:\[<&kernel32.GetPr>; 来到这里，下硬件执行断点  
-0055F0C8    09C0            OR EAX,EAX  
-0055F0CA    0F84 0D000000   JE keygen.0055F0DD  
-0055F0D0    8907            MOV DWORD PTR DS:\[EDI\],EAX  
-0055F0D2    8345 F4 04      ADD DWORD PTR SS:\[EBP-C\],4  
-0055F0D6  ^ E9 A6FFFFFF     JMP keygen.0055F081  
-0055F0DB    0000            ADD BYTE PTR DS:\[EAX\],AL  
-0055F0DD    53              PUSH EBX  
-0055F0DE    89D8            MOV EAX,EBX  
-0055F0E0    E8 09000000     CALL keygen.0055F0EE  
-0055F0E5    5B              POP EBX                                  ; 走到这里后 IAT 就填充完毕了,在这里 F4  
-0055F0E6    5F              POP EDI  
-0055F0E7    5E              POP ESI  
-0055F0E8    8BE5            MOV ESP,EBP  
-0055F0EA    5D              POP EBP  
-0055F0EB    C3              RETN  
-F4 下来后我们就可以转储了，为了测试 IAT 是否完整，我们 CTRL+B，搜索 FF 25，在内存地址中可以看到完整的 IAT 表，关于转储，这里要讲一下，我起先用 LOADPE 转储，居然发现 IAT 表中有三个函数丢失，后来换用 PETools 就能完成的得到 IAT 表。不知是何原因。  
-LOADPE 转储的：  
-…  
-00470228  77DA7883  advapi32.RegQueryValueExA  
-0047022C  77DA761B  advapi32.RegOpenKeyExA  
-00470230  77DA6BF0  advapi32.RegCloseKey  
-00470234  00000000  
-00470238  770F4850                            //这个没了  
-0047023C  7711C99D                           //这个没了  
-00470240  770F4B59                            //这个也没了  
-00470244  00000000  
-00470248 >7C809BF5  kernel32.TlsSetValue  
-0047024C >7C809750  kernel32.TlsGetValue  
-00470250 >7C8099BD  kernel32.LocalAlloc  
-…  
-PETools 转储：  
-00470228 >77DA7883  advapi32.RegQueryValueExA  
-0047022C >77DA761B  advapi32.RegOpenKeyExA  
-00470230 >77DA6BF0  advapi32.RegCloseKey  
-00470234  00000000  
-00470238 >770F4850  oleaut32.SysFreeString  
-0047023C >7711C99D  oleaut32.SysReAllocStringLen  
-00470240 >770F4B59  oleaut32.SysAllocStringLen  
-00470244  00000000  
-00470248 >7C809BF5  kernel32.TlsSetValue  
-0047024C >7C809750  kernel32.TlsGetValue  
-00470250 >7C8099BD  kernel32.LocalAlloc  
-  
-二、寻找 OEP  
-从区段中的 BBS 区段可以判断该程序应该为 DELHI 程序，那就根据这个语言的特点找寻 OEP。  
-用 WINHEX 载入转储的文件 DUMP.EXE 程序，搜索文本“runtime”：  
-00446544   E1 E3 00 E4 E5 8D 40 00  52 75 6E 74 69 6D 65 20   徙.溴岪.Runtime   
-00446560   65 72 72 6F 72 20 20 20  20 20 61 74 20 30 30 30   error     at 000  
-向上查找最近的十六进制数字“55 8B EC”：  
-0006C760   55 8B EC 83 C4 F0 B8 78  C4 46 00 E8 74 A1 F9 FF   U 嬱兡鸶 x 腇.鑤※  
-0006C770   A1 E4 EC 46 00 8B 00 E8  88 C1 FE FF A1 E4 EC 46   ′霧.?鑸窿�′霧  
-所以，OEP 为 0046C760。  
-更改转储后的程序的 OEP 为 004C760 即可。  
-0046C760 > $  55            PUSH EBP                                 ;  OEP  
-0046C761   .  8BEC          MOV EBP,ESP  
-0046C763   .  83C4 F0       ADD ESP,-10  
-0046C766   .  B8 78C44600   MOV EAX,复件\_dum.0046C478  
-0046C76B   .  E8 74A1F9FF   CALL 复件\_dum.004068E4  
-0046C770   .  A1 E4EC4600   MOV EAX,DWORD PTR DS:\[46ECE4\]  
-0046C775   .  8B00          MOV EAX,DWORD PTR DS:\[EAX\]  
-  
-这时程序已经可以正常运行。由于没有 OEP 被偷，这个脱壳过程比较简单。  
-  
-关于用 lord-PE 把数据目录(Directories)中 TLS 表的回调表 VA 一项置 0,然后保存，我试了下，这样修改后用 OD 载入脱壳后的程序可以直接停在 OEP 处，并且断点表中没有断点。而没有清 0 则停在壳的 EP 处，并自动设置一个断点，也就是说，这个项的作用就是在壳的 EP 处自动做个断点。我们可以看看那个回调地址为 004D813C，OD 中 CTRL+G 到 004D813C：  
-004D813C    AA              STOS BYTE PTR ES:\[EDI\]                   ; 这里就是回调地址，内存中的值正好是壳的 OEP 值  
-作用就是使这个地址比 ep 先获得执行权（不包括 98）。 
+朋友说有个二次加密的软件需要解决，PEID 看一下是 EXECryptor 2.X 的，论坛上说 EXECryptor 2.X 无 KEY 可以脱去的，所以参考了相关文章后写出了过程。运行界面：
 
-引用:  *最初由** cxlrb **发布*  
-学习，如果被偷了 OEP，该如何找 oep？55 8B EC 应该没有了吧，请指教！ 
+![](img/0abe03d6f87bac71a0f6a973b2285c09.jpg)
 
-  
-  
-delphi 的程序都有个初始化例程(函数).  
-  
-delphi 入口:  
-push ebp        
-mov ebp,esp  
-sub esp,imm32  
-mov eax,imm32  
-call xxxxxxxx      //这个就是初始化例程  
-  
-而这个初始化函数 call xxxxxxxx 里面都是这样的:  
-push ebx  
-mov ebx,eax  
-XOR EAX,EAX  
-MOV \[imm32\],EAX  
-call GetModuleHandleA          //关键是这个  
-  
-我们只要下 He GetModuleHandleA 断点,利用堆栈找回 OEP 地址.
+## 一、跳过输入表加密
+
+EXECryptor 专用 OD 或 advancedolly 插件设置 ANTI-DEBUG 后再载入原程序：
+
+```
+0055F2AA    E8 EBFEFFFF      CALL keygen.0055F19A                    ; 载入后停在这里
+0055F2AF    05 25180000      ADD EAX,1825
+0055F2B4    FFE0             JMP NEAR EAX
+0055F2B6    E8 04000000      CALL keygen.0055F2BF
+0055F2BB    FFFF             ???                                     ; Unknown command
+0055F2BD    FFFF             ???                                     ; Unknown command
+0055F2BF    5E               POP ESI
+0055F2C0    C3               RETN
+```
+
+`ALT+B` 打开断点查看窗口，发现系统自动设置了一个断点 `One-shot`，删除断点。
+
+`Breakpoints, item 0`
+
+Address=`0055F29E` `keygen.<ModuleEntryPoint>`
+
+Module=`keygen`
+
+Active=`One-shot`
+
+Disassembly=`CALL keygen.0055F19A`
+
+`ALT+M` 打开内存镜像，`CODE` 段 `F2` 下断，`SHIFT+F9` 运行：
+
+```
+0055C660    F3:A4           REP MOVSB                                 ; 停在这里,
+0055C662    31DB            XOR EBX,EBX
+0055C664    5E              POP ESI
+0055C665   ^ EB 9D          JMP SHORT keygen.0055C604
+0055C667    89F0            MOV EAX,ESI
+0055C669    5B              POP EBX
+```
+
+`CTRL+N` 打开导入表，右击 `GetProcAddress`，在导入表中跟随，双击：
+
+```
+0055F0C2    FF15 BC804D00   CALL NEAR DWORD PTR DS:[<&kernel32.GetPr>; 来到这里，下硬件执行断点
+0055F0C8    09C0            OR EAX,EAX
+0055F0CA    0F84 0D000000   JE keygen.0055F0DD
+0055F0D0    8907            MOV DWORD PTR DS:[EDI],EAX
+0055F0D2    8345 F4 04      ADD DWORD PTR SS:[EBP-C],4
+0055F0D6   ^ E9 A6FFFFFF    JMP keygen.0055F081
+0055F0DB    0000            ADD BYTE PTR DS:[EAX],AL
+0055F0DD    53              PUSH EBX
+0055F0DE    89D8            MOV EAX,EBX
+0055F0E0    E8 09000000     CALL keygen.0055F0EE
+0055F0E5    5B              POP EBX
+0055F0E6    5F              POP EDI
+0055F0E7    5E              POP ESI
+0055F0E8    8BE5            MOV ESP,EBP
+0055F0EA    5D              POP EBP
+0055F0EB    C3              RETN
+```
+
+`CTRL+F2` 重新载入原程序，`ALT+B` 打开断点查看窗口，删除断点后 `F9`，断在硬件执行断点处，取消硬件执行断点，`F4` 到 `0055F0E5`：
+
+```
+0055F0C2    FF15 BC804D00   CALL NEAR DWORD PTR DS:[<&kernel32.GetPr>; 来到这里，下硬件执行断点
+0055F0C8    09C0            OR EAX,EAX
+0055F0CA    0F84 0D000000   JE keygen.0055F0DD
+0055F0D0    8907            MOV DWORD PTR DS:[EDI],EAX
+0055F0D2    8345 F4 04      ADD DWORD PTR SS:[EBP-C],4
+0055F0D6   ^ E9 A6FFFFFF    JMP keygen.0055F081
+0055F0DB    0000            ADD BYTE PTR DS:[EAX],AL
+0055F0DD    53              PUSH EBX
+0055F0DE    89D8            MOV EAX,EBX
+0055F0E0    E8 09000000     CALL keygen.0055F0EE
+0055F0E5    5B              POP EBX                                    ; 走到这里后 IAT 就填充完毕了,在这里 F4
+0055F0E6    5F              POP EDI
+0055F0E7    5E              POP ESI
+0055F0E8    8BE5            MOV ESP,EBP
+0055F0EA    5D              POP EBP
+0055F0EB    C3              RETN
+```
+
+`F4` 下来后我们就可以转储了，为了测试 IAT 是否完整，我们 `CTRL+B`，搜索 `FF 25`，在内存地址中可以看到完整的 IAT 表，关于转储，这里要讲一下，我起先用 `LOADPE` 转储，居然发现 IAT 表中有三个函数丢失，后来换用 `PETools` 就能完成的得到 IAT 表。不知是何原因。
+
+LOADPE 转储的：
+
+```
+…
+00470228  77DA7883  advapi32.RegQueryValueExA
+0047022C  77DA761B  advapi32.RegOpenKeyExA
+00470230  77DA6BF0  advapi32.RegCloseKey
+00470234  00000000
+00470238  770F4850                        //这个没了
+0047023C  7711C99D                        //这个没了
+00470240  770F4B59                        //这个也没了
+00470244  00000000
+00470248 >7C809BF5  kernel32.TlsSetValue
+0047024C >7C809750  kernel32.TlsGetValue
+00470250 >7C8099BD  kernel32.LocalAlloc
+…
+```
+
+PETools 转储：
+
+```
+00470228 >77DA7883  advapi32.RegQueryValueExA
+0047022C >77DA761B  advapi32.RegOpenKeyExA
+00470230 >77DA6BF0  advapi32.RegCloseKey
+00470234  00000000
+00470238 >770F4850  oleaut32.SysFreeString
+0047023C >7711C99D  oleaut32.SysReAllocStringLen
+00470240 >770F4B59  oleaut32.SysAllocStringLen
+00470244  00000000
+00470248 >7C809BF5  kernel32.TlsSetValue
+0047024C >7C809750  kernel32.TlsGetValue
+00470250 >7C8099BD  kernel32.LocalAlloc
+```
+
+## 二、寻找 OEP
+
+从区段中的 `BBS` 区段可以判断该程序应该为 `DELHI` 程序，那就根据这个语言的特点找寻 OEP。
+
+用 `WINHEX` 载入转储的文件 `DUMP.EXE` 程序，搜索文本“runtime”：
+
+```
+00446544   E1 E3 00 E4 E5 8D 40 00  52 75 6E 74 69 6D 65 20    徙.溴岪.Runtime
+00446560   65 72 72 6F 72 20 20 20  20 20 61 74 20 30 30 30    error     at 000
+```
+
+向上查找最近的十六进制数字“`55 8B EC`”：
+
+```
+0006C760   55 8B EC 83 C4 F0 B8 78  C4 46 00 E8 74 A1 F9 FF    U 嬱兡鸶 x 腇.鑤※
+0006C770   A1 E4 EC 46 00 8B 00 E8  88 C1 FE FF A1 E4 EC 46    ′霧.?鑸窿‘′霧
+```
+
+所以，OEP 为 `0046C760`。
+
+更改转储后的程序的 OEP 为 `004C760` 即可。
+
+```
+0046C760 > $  55              PUSH EBP                               ;  OEP
+0046C761  .  8BEC             MOV EBP,ESP
+0046C763  .  83C4 F0          ADD ESP,-10
+0046C766  .  B8 78C44600      MOV EAX,复件_dum.0046C478
+0046C76B  .  E8 74A1F9FF      CALL 复件_dum.004068E4
+0046C770  .  A1 E4EC4600      MOV EAX,DWORD PTR DS:[46ECE4]
+0046C775  .  8B00             MOV EAX,DWORD PTR DS:[EAX]
+```
+
+这时程序已经可以正常运行。由于没有 OEP 被偷，这个脱壳过程比较简单。
+
+关于用 `lord-PE` 把数据目录(Directories)中 TLS 表的回调表 VA 一项置 0,然后保存，我试了下，这样修改后用 OD 载入脱壳后的程序可以直接停在 OEP 处，并且断点表中没有断点。而没有清 0 则停在壳的 EP 处，并自动设置一个断点，也就是说，这个项的作用就是在壳的 EP 处自动做个断点。我们可以看看那个回调地址为 `004D813C`，OD 中 `CTRL+G` 到 `004D813C`：
+
+```
+004D813C    AA                STOS BYTE PTR ES:[EDI]                    ; 这里就是回调地址，内存中的值正好是壳的 OEP 值
+```
+
+作用就是使这个地址比 ep 先获得执行权（不包括 98）。
+
+引用: 最初由 `cxlrb` 发布
+
+学习，如果被偷了 OEP，该如何找 oep？`55 8B EC` 应该没有了吧，请指教！
+
+`delphi` 的程序都有个初始化例程(函数).
+
+`delphi` 入口:
+
+```
+push ebp
+mov ebp,esp
+sub esp,imm32
+mov eax,imm32
+call xxxxxxxx      //这个就是初始化例程
+```
+
+而这个初始化函数 `call xxxxxxxx` 里面都是这样的:
+
+```
+push ebx
+mov ebx,eax
+XOR EAX,EAX
+MOV [imm32],EAX
+call GetModuleHandleA           //关键是这个
+```
+
+我们只要下 `He GetModuleHandleA` 断点,利用堆栈找回 OEP 地址.

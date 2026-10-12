@@ -1,260 +1,325 @@
 
-
 # 《3Days》(NEKOPACK)游戏资源格式分析
 
 > 原文：[`www.pediy.com/kssd/pediy10/73085.html`](https://www.pediy.com/kssd/pediy10/73085.html)
 
-【文章标题】: 《3Days》(NEKOPACK)游戏资源格式分析  
-【文章作者】: Cradiator  
-【作者邮箱】: cradiator@gmail.com  
-【作者 QQ 号】: 39335705  
-【软件名称】: 《3Days》  
-【使用工具】: OllyDbg+WinHex  
-\--------------------------------------------------------------------------------  
-【详细过程】  
-  呵呵，我是一只破解小菜，喜欢 GalGame，这里希望认识一些志同道合的朋友。  
-  最近看到了一款 GalGame《3Days》。口味很……  
-  嗯……有爱的人搜索一下就知道是什么了。对 GalGame 不感冒的人还是只看原理别看游戏了：）  
-  好现在进入正题。  
-    
-  用 WinHex 打开一个游戏资源文件，这里我用的是 image.dat。  
-  Offset      0  1  2  3  4  5  6  7   8  9  A  B  C  D  E  F  
-    
-  00000000   4E 45 4B 4F 50 41 43 4B  CB 00 00 00 00 00 00 00   NEKOPACK?......  
-  00000010   A5 04 00 00 00 0D C9 8A  7F 56 59 C8 C1 CE DD 7B   ?....VY 攘屋{  
-  00000020   C4 FD 13 12 8B 00 00 E2  02 00 00 00 0D 9E 8C CA   凝..?.?....?  
-  00000030   96 B5 B5 BF 5E 75 01 D7  B3 4C F4 8D 00 00 09 09   悼^u.壮 L....  
-    
-  除了一个比较明显的文件头 NEKOPACK 以外貌似没有有效信息。  
-  用 OD 载入游戏在 CreateFileA 上下断点。发现程序载入 image.dat 后，继续跟踪看到如下东东。  
-  00402BDE  |.  50            PUSH EAX                                 ; /Arg3  
-  00402BDF  |.  52            PUSH EDX                                 ; |Arg2  
-  00402BE0  |.  51            PUSH ECX                                 ; |Arg1  
-  00402BE1  |.  E8 E2A40600   CALL <3days.读取相应字节的数据>          ;跟踪后发现这个函数将 arg3 个字节读入 arg2  
-  00402BE6  |.  83C4 0C       ADD ESP,0C  
-  00402BE9  |.  84C0          TEST AL,AL  
-  00402BEB  |.  75 1F         JNZ SHORT 3days.00402C0C  
-  00402BED  |.  33C0          XOR EAX,EAX  
-  00402BEF  |.  50            PUSH EAX  
-  00402BF0  |.  FF4B 1C       DEC DWORD PTR DS:\[EBX+1C\]  
-  00402BF3  |.  8D55 FC       LEA EDX,DWORD PTR SS:\[EBP-4\]  
-  00402BF6  |.  52            PUSH EDX  
-  00402BF7  |.  E8 58A40600   CALL 3days.0046D054  
-  00402BFC  |.  59            POP ECX  
-  00402BFD  |.  58            POP EAX  
-  00402BFE  |.  8B13          MOV EDX,DWORD PTR DS:\[EBX\]  
-  00402C00  |.  64:8915 00000>MOV DWORD PTR FS:\[0\],EDX  
-  00402C07  |.  E9 A20F0000   JMP 3days.00403BAE  
-  00402C0C  |>  6A 08         PUSH 8                                   ; /Arg3 = 00000008  
-  00402C0E  |.  68 77884A00   PUSH 3days.004A8877                      ; |Arg2 = 004A8877 ASCII "NEKOPACK"  
-  00402C13  |.  8D8D E0FEFFFF LEA ECX,DWORD PTR SS:\[EBP-120\]           ; |  
-  00402C19  |.  51            PUSH ECX                                 ; |Arg1  
-  00402C1A  |.  E8 7D700900   CALL 3days.00499C9C                      ; \\3days.00499C9C  
-  00402C1F  |.  83C4 0C       ADD ESP,0C  
-  00402C22  |.  85C0          TEST EAX,EAX  
-  00402C24  |.  74 1F         JE SHORT 3days.00402C45  
-  00402C26  |.  33C0          XOR EAX,EAX  
-  00402C28  |.  50            PUSH EAX  
-  00402C29  |.  FF4B 1C       DEC DWORD PTR DS:\[EBX+1C\]  
-  00402C2C  |.  8D55 FC       LEA EDX,DWORD PTR SS:\[EBP-4\]  
-  00402C2F  |.  52            PUSH EDX  
-  00402C30  |.  E8 1FA40600   CALL 3days.0046D054  
-  00402C35  |.  59            POP ECX  
-  00402C36  |.  58            POP EAX  
-  00402C37  |.  8B13          MOV EDX,DWORD PTR DS:\[EBX\]  
-  00402C39  |.  64:8915 00000>MOV DWORD PTR FS:\[0\],EDX  
-  00402C40  |.  E9 690F0000   JMP 3days.00403BAE  
-  00402C45  |>  33C9          XOR ECX,ECX  
-  00402C47  |.  8D95 D8FEFFFF LEA EDX,DWORD PTR SS:\[EBP-128\]  
-  00402C4D  |.  898D D8FEFFFF MOV DWORD PTR SS:\[EBP-128\],ECX  
-  00402C53  |.  8D4D FC       LEA ECX,DWORD PTR SS:\[EBP-4\]  
-  00402C56  |.  C785 D4FEFFFF>MOV DWORD PTR SS:\[EBP-12C\],4  
-  00402C60  |.  8B85 D4FEFFFF MOV EAX,DWORD PTR SS:\[EBP-12C\]  
-  00402C66  |.  50            PUSH EAX                                 ; /Arg3  
-  00402C67  |.  52            PUSH EDX                                 ; |Arg2  
-  00402C68  |.  51            PUSH ECX                                 ; |Arg1  
-  00402C69  |.  E8 5AA40600   CALL <3days.读取相应字节的数据>                   ; \\3days.0046D0C8  
-  00402C6E  |.  83C4 0C       ADD ESP,0C  
-  00402C71  |.  84C0          TEST AL,AL  
-    
-  这里实在判断文件头是否正确。分析后了解文件的前 16 字节均为文件头。  
-  到现在为止还没什么有用信息。  
-  继续跟踪咱看见它又读了 4 字节，并存到了\[EBP-128\]里，这个值现在还用不到。  
-  00402D0E  |> \\33C9          XOR ECX,ECX  
-  00402D10  |.  898D C8FEFFFF MOV DWORD PTR SS:\[EBP-138\],ECX  
-  00402D16  |.  BE 04000000   MOV ESI,4  
-  00402D1B  |.  56            PUSH ESI                                 ; /Arg3 => 00000004  
-  00402D1C  |.  8D85 C8FEFFFF LEA EAX,DWORD PTR SS:\[EBP-138\]           ; |  
-  00402D22  |.  50            PUSH EAX                                 ; |Arg2  
-  00402D23  |.  8D55 FC       LEA EDX,DWORD PTR SS:\[EBP-4\]             ; |  
-  00402D26  |.  52            PUSH EDX                                 ; |Arg1  
-  00402D27  |.  E8 9CA30600   CALL <3days.读取相应字节的数据>                   ; \\3days.0046D0C8  
-    
-    
-  然后来到这里，这是个很重要的函数。在这个函数里程序对解密时需要用到的数据进行了初始化。  
-  00402D52  |> \\68 99990000   PUSH 9999                                ; /Arg2 = 00009999  这个 9999 万分可疑  
-  00402D57  |.  8D8D 64F3FFFF LEA ECX,DWORD PTR SS:\[EBP-C9C\]           ; |  
-  00402D5D  |.  51            PUSH ECX                                 ; |Arg1  
-  00402D5E  |.  E8 0D760500   CALL <3days.p2\*10DCD(IMUL)循环 270 次依次存入 p1,0>; \\3days.0045A370  
-    
-  跟入这个函数  
-  0045A370 >/$  55            PUSH EBP  
-  0045A371  |.  8BEC          MOV EBP,ESP  
-  0045A373  |.  53            PUSH EBX  
-  0045A374  |.  8B45 0C       MOV EAX,DWORD PTR SS:\[EBP+C\]             ;  EAX=\[EBP+C\]=9999  
-  0045A377  |.  8B5D 08       MOV EBX,DWORD PTR SS:\[EBP+8\]             ;  EBX=\[EBP+8\]一个地址  
-  0045A37A  |.  33C9          XOR ECX,ECX                              ;  ecx = 0  
-  0045A37C  |.  8BD3          MOV EDX,EBX                              ;  EDX = EBX  
-  0045A37E  |>  69C0 CD0D0100 IMUL EAX,EAX,10DCD                       ;  eax = eax\*10DCD    循环 0--269  
-  0045A384  |.  83E0 FF       AND EAX,FFFFFFFF  
-  0045A387  |.  8902          MOV DWORD PTR DS:\[EDX\],EAX               ;  \[edx\] = eax  
-  0045A389  |.  41            INC ECX                                  ;  ecx++  
-  0045A38A  |.  83C2 04       ADD EDX,4                                ;  edx += 4  
-  0045A38D  |.  81F9 70020000 CMP ECX,270  
-  0045A393  |.^ 7C E9         JL SHORT 3days.0045A37E                  ;  这里的算法是 第二参数\*10DCD 存入第一参数 DWORD  
-  0045A395  |.  33C0          XOR EAX,EAX  
-  0045A397  |.  8983 C0090000 MOV DWORD PTR DS:\[EBX+9C0\],EAX           ;  用 0 封口  
-  0045A39D  |.  5B            POP EBX  
-  0045A39E  |.  5D            POP EBP  
-  0045A39F  \\.  C3            RETN  
-  这个函数用 arg2,也就是 0x9999 初始化了 arg1 那个参数所指的数组。具体算法如下  
-  for( i = 0; i < 0x270; i++)  
-  {  
-      arg2 \*= 0x10DCD;  
-      arg1\[i\] = arg2;  
-  }  
-  arg1\[i\] = 0;  
-  记下这个牛 X 的 DWORD 型数组的地址\[EBP-C9C\]继续往下看。  
-    
-  之后程序又分别读入了 2 个字节，第 1 个字节直接丢弃了，第 2 个字节存入\[EBP-13E\]。  
-  继续往下来到这里。  
-  00402E34  |> \\0FB6B5 C2FEFF>|MOVZX ESI,BYTE PTR SS:\[EBP-13E\]  
-  00402E3B  |.  56            |PUSH ESI                                ; /Arg3  \[EBP-13E\]  
-  00402E3C  |.  8D85 60F2FFFF |LEA EAX,DWORD PTR SS:\[EBP-DA0\]          ; |  
-  00402E42  |.  50            |PUSH EAX                                ; |Arg2  
-  00402E43  |.  8D55 FC       |LEA EDX,DWORD PTR SS:\[EBP-4\]            ; |  
-  00402E46  |.  52            |PUSH EDX                                ; |Arg1  
-  00402E47  |.  E8 7CA20600   |CALL <3days.读取相应字节的数据>                  ; \\3days.0046D0C8  
-  读入了\[EBP-13E\]个数据到 EBP-DA0。  
-    
-  继续往下来到这个函数。发现函数的参数为刚才计算的解密数组，刚读取的数据和数据长度。  
-  应该这个就是解密的东东了～～  
-  00402E72  |> \\8D8D 64F3FFFF |LEA ECX,DWORD PTR SS:\[EBP-C9C\]          ;  ecx 是那个变换过的数组  
-  00402E78  |.  51            |PUSH ECX                                ; /Arg3  
-  00402E79  |.  33C0          |XOR EAX,EAX                             ; |  
-  00402E7B  |.  8A85 C2FEFFFF |MOV AL,BYTE PTR SS:\[EBP-13E\]            ; |al 为刚才读出的长度  
-  00402E81  |.  50            |PUSH EAX                                ; |Arg2  
-  00402E82  |.  8D95 60F2FFFF |LEA EDX,DWORD PTR SS:\[EBP-DA0\]          ; |edx 为刚才读出的数组  
-  00402E88  |.  52            |PUSH EDX                                ; |Arg1  
-  00402E89  |.  E8 86FCFFFF   |CALL <3days.将读取的数组解码>                   ; \\3days.00402B14  
-    
-  跟进去看看算法。  
-  00402B14 >/$  55            PUSH EBP  
-  00402B15  |.  8BEC          MOV EBP,ESP  
-  00402B17  |.  53            PUSH EBX  
-  00402B18  |.  56            PUSH ESI  
-  00402B19  |.  57            PUSH EDI  
-  00402B1A  |.  8B7D 08       MOV EDI,DWORD PTR SS:\[EBP+8\]             ;  edi = 从文件读出的数组  
-  00402B1D  |.  33DB          XOR EBX,EBX                              ;  ebx = 0  
-  00402B1F  |.  8BF7          MOV ESI,EDI                              ;  esi = edi  
-  00402B21  |.  3B5D 0C       CMP EBX,DWORD PTR SS:\[EBP+C\]  
-  00402B24  |.  73 1A         JNB SHORT 3days.00402B40                 ;  循环 长度(arg2) 次  ebx 计数  
-  00402B26  |>  8BC3          /MOV EAX,EBX                             ;  eax = ebx  
-  00402B28  |.  03C7          |ADD EAX,EDI                             ;  eax += edi (eax 是数组当前指针)  
-  00402B2A  |.  50            |PUSH EAX                                ; /Arg2  
-  00402B2B  |.  8B55 10       |MOV EDX,DWORD PTR SS:\[EBP+10\]           ; |edx 为变换的数组  
-  00402B2E  |.  52            |PUSH EDX                                ; |Arg1  
-  00402B2F  |.  E8 6C780500   |CALL <3days.取变换数组(arg1)第 i 元素(记录在末尾),和 arg2 指的 b>;这个函数很诡异  
-  00402B34  |.  83C4 08       |ADD ESP,8  
-  00402B37  |.  8806          |MOV BYTE PTR DS:\[ESI\],AL  
-  00402B39  |.  43            |INC EBX  
-  00402B3A  |.  46            |INC ESI  
-  00402B3B  |.  3B5D 0C       |CMP EBX,DWORD PTR SS:\[EBP+C\]  
-  00402B3E  |.^ 72 E6         \\JB SHORT 3days.00402B26  
-  00402B40  |>  5F            POP EDI  
-  00402B41  |.  5E            POP ESI  
-  00402B42  |.  5B            POP EBX  
-  00402B43  |.  5D            POP EBP  
-  00402B44  \\.  C3            RETN  
-    
-  这里的意思是将数据和上面计算出来的那个解密用的数组传入  
-  00402B2F  |.  E8 6C780500   |CALL <3days.取变换数组(arg1)第 i 元素(记录在末尾),和 arg2 指的 b>  
-  这个函数，然后将返回值再存入数组。  
-  这个函数跟进去以后是一个非常没有爱的计算。  
-  0045A3A4  |.  8B5D 08       MOV EBX,DWORD PTR SS:\[EBP+8\]             ;  ebx = 变换的数组  
-  0045A3A7  |.  81BB C0090000>CMP DWORD PTR DS:\[EBX+9C0\],270           ;  \[EBX+9C0\]为变换数组结尾，应该小于 270  
-  0045A3B1  |.  72 10         JB SHORT 3days.0045A3C3  
-  0045A3B3  |.  8B83 BC090000 MOV EAX,DWORD PTR DS:\[EBX+9BC\]  
-  0045A3B9  |.  50            PUSH EAX                                 ; /Arg2  
-  0045A3BA  |.  53            PUSH EBX                                 ; |Arg1  
-  0045A3BB  |.  E8 B0FFFFFF   CALL <3days.p2\*10DCD(IMUL)循环 270 次依次存入 p1,0>; \\3days.0045A370  
-  0045A3C0  |.  83C4 08       ADD ESP,8  
-  0045A3C3  |>  8B93 C0090000 MOV EDX,DWORD PTR DS:\[EBX+9C0\]           ;  edx = 变换数组结尾  
-  0045A3C9  |.  FF83 C0090000 INC DWORD PTR DS:\[EBX+9C0\]               ;  变换数组结尾+1  
-  0045A3CF  |.  8B0493        MOV EAX,DWORD PTR DS:\[EBX+EDX\*4\]  
-  0045A3D2  |.  8BD0          MOV EDX,EAX                              ;  eax = edx = 变换数组中低 i 个元素(i 记录在数组末尾)  
-  0045A3D4  |.  C1EA 0B       SHR EDX,0B                               ;  edx >> 0B  
-  0045A3D7  |.  33C2          XOR EAX,EDX                              ;  eax ^= edx  
-  0045A3D9  |.  8BC8          MOV ECX,EAX                              ;  ecx = eax  
-  0045A3DB  |.  C1E1 07       SHL ECX,7                                ;  ecx << 7  
-  0045A3DE  |.  81E1 638A5131 AND ECX,31518A63                         ;  ecx &= 31518A63  
-  0045A3E4  |.  33C1          XOR EAX,ECX                              ;  eax ^= ecx  
-  0045A3E6  |.  8BD0          MOV EDX,EAX                              ;  edx = eax  
-  0045A3E8  |.  C1E2 0F       SHL EDX,0F                               ;  edx << 0F  
-  0045A3EB  |.  81E2 43CAF117 AND EDX,17F1CA43                         ;  edx &= 17F1CA43  
-  0045A3F1  |.  33C2          XOR EAX,EDX                              ;  eax ^= edx  
-  0045A3F3  |.  8B55 0C       MOV EDX,DWORD PTR SS:\[EBP+C\]             ;  edx = 读取的数组地址  
-  0045A3F6  |.  8BC8          MOV ECX,EAX                              ;  ecx = eax  
-  0045A3F8  |.  C1E9 12       SHR ECX,12                               ;  ecx >> 12  
-  0045A3FB  |.  33C1          XOR EAX,ECX                              ;  eax ^= ecx  
-  0045A3FD  |.  24 FF         AND AL,0FF  
-  0045A3FF  |.  3202          XOR AL,BYTE PTR DS:\[EDX\]                 ;  al ^= \[数组元素\]  
-    
-  这个算法没什么难度，但是很繁琐，就不一一解释了。  
-  数据解密后终于发现可以阅读的字符串了“map\\title.map”，这个因该就是传说中的索引了。  
-  之后的代码就很简单了，程序又存储了 8 个字节，但没有用到，应该是索引中的地址等信息了。  
-    
-  继续向下走后是一个很长的跳转，跳转前对\[EBP-138\]这个位置进行比较，可见这里面存的是资源数量。  
-    
-  用刚刚跟踪出来的算法对 image.dat 进行解密。  
-  Offset      0  1  2  3  4  5  6  7   8  9  A  B  C  D  E  F  
-    
-  00000000   4E 45 4B 4F 50 41 43 4B  CB 00 00 00 00 00 00 00   NEKOPACK?......  
-  00000010   26 26 00 00 00 1E 76 6F  69 63 65 5C 62 74 31 2D   &&....voice\\bt1-  
-  00000020   30 31 37 2D 30 38 2D 30  31 5C 68 69 5F 30 30 30   017-08-01\\hi\_000  
-  00000030   2E 6F 67 67 13 F6 05 00  FD 9B 00 00 00 1E 76 6F   .ogg.?.....vo  
-  00000040   69 63 65 5C 62 74 31 2D  30 31 37 2D 30 38 2D 30   ice\\bt1-017-08-0  
-  哇哈哈，看到 Loli 和御姐了！！  
-  嗯……是看到可以阅读的数据了……  
-    
-  根据前面的逆向分析一下再文件结构  
-  00000000-0000000F 文件头  
-  00000010-00000013 资源数量  
-  然后  
-  循环{  
-  1 字节 00，1 字节资源名长度 XX  
-  后面是 XX 字节资源名。  
-  8 字节未知数据  
-  }  
-    
-  现在我们来猜猜那 8 字节未知数据是什么吧。  
-  因为这个索引里现在只出现了文件名相关的东西，这 8 字节应该是文件大小或者文件长度。  
-  请相信我，我真的是猜的……而且我猜对了：）  
-    
-  呵呵，最后附上我写的资源提取器。  
-  有兴趣看源代码的人可以邮箱或 QQ 联系我。  
-    
-  感谢 痴汉工贼、二毛、DWING 给予我的精神上的动力，虽然你们根本就不认识我，但是没有你们这些大牛也不会让我走上破解这条路。  
-  感谢 看雪学院和澄空的 CKGAL 板块带给了我所有的知识。  
-  感谢 和谐 GalGame 的制作公司填补我空虚的生活 XD  
-  
-   附件为 VS2005 编写的提取器，可能需要.net 库，虽然我一个.net 函数也没用 = =！  
-    
-\--------------------------------------------------------------------------------  
-  
-  
-                                                       2008 年 09 月 19 日 19:30:57
+## 文章信息
+
+- 【文章标题】: 《3Days》(NEKOPACK)游戏资源格式分析  
+- 【文章作者】: Cradiator  
+- 【作者邮箱】: cradiator@gmail.com  
+- 【作者 QQ 号】: 39335705  
+- 【软件名称】: 《3Days》  
+- 【使用工具】: OllyDbg+WinHex  
+
+## 详细过程
+
+呵呵，我是一只破解小菜，喜欢 GalGame，这里希望认识一些志同道合的朋友。
+
+最近看到了一款 GalGame《3Days》。口味很……
+
+嗯……有爱的人搜索一下就知道是什么了。对 GalGame 不感冒的人还是只看原理别看游戏了：）
+
+好现在进入正题。
+
+用 `WinHex` 打开一个游戏资源文件，这里我用的是 `image.dat`。
+
+```
+Offset      0  1  2  3  4  5  6  7   8  9  A  B  C  D  E  F
+
+00000000   4E 45 4B 4F 50 41 43 4B  CB 00 00 00 00 00 00 00   NEKOPACK?......
+00000010   A5 04 00 00 00 0D C9 8A  7F 56 59 C8 C1 CE DD 7B   ?....VY 攘屋{
+00000020   C4 FD 13 12 8B 00 00 E2  02 00 00 00 0D 9E 8C CA   凝..?.?....?
+00000030   96 B5 B5 BF 5E 75 01 D7  B3 4C F4 8D 00 00 09 09   悼^u.壮 L....
+```
+
+除了一个比较明显的文件头 `NEKOPACK` 以外貌似没有有效信息。
+
+用 `OD` 载入游戏在 `CreateFileA` 上下断点。发现程序载入 `image.dat` 后，继续跟踪看到如下东东。
+
+```
+00402BDE  |.  50             PUSH EAX                             ; /Arg3
+00402BDF  |.  52             PUSH EDX                             ; |Arg2
+00402BE0  |.  51             PUSH ECX                             ; |Arg1
+00402BE1  |.  E8 E2A40600    CALL <3days.读取相应字节的数据>        ;跟踪后发现这个函数将 arg3 个字节读入 arg2
+00402BE6  |.  83C4 0C        ADD ESP,0C
+00402BE9  |.  84C0           TEST AL,AL
+00402BEB  |.  75 1F          JNZ SHORT 3days.00402C0C
+00402BED  |.  33C0           XOR EAX,EAX
+00402BEF  |.  50             PUSH EAX
+00402BF0  |.  FF4B 1C        DEC DWORD PTR DS:\[EBX+1C\]
+00402BF3  |.  8D55 FC        LEA EDX,DWORD PTR SS:\[EBP-4\]
+00402BF6  |.  52             PUSH EDX
+00402BF7  |.  E8 58A40600    CALL 3days.0046D054
+00402BFC  |.  59             POP ECX
+00402BFD  |.  58             POP EAX
+00402BFE  |.  8B13           MOV EDX,DWORD PTR DS:\[EBX\]
+00402C00  |.  64:8915 00000>MOV DWORD PTR FS:\[0\],EDX
+00402C07  |.  E9 A20F0000    JMP 3days.00403BAE
+00402C0C  |>  6A 08          PUSH 8                               ; /Arg3 = 00000008
+00402C0E  |.  68 77884A00    PUSH 3days.004A8877                  ; |Arg2 = 004A8877 ASCII "NEKOPACK"
+00402C13  |.  8D8D E0FEFFFF  LEA ECX,DWORD PTR SS:\[EBP-120\]     ; |
+00402C19  |.  51             PUSH ECX                              ; |Arg1
+00402C1A  |.  E8 7D700900    CALL 3days.00499C9C                  ; \\3days.00499C9C
+00402C1F  |.  83C4 0C        ADD ESP,0C
+00402C22  |.  85C0           TEST EAX,EAX
+00402C24  |.  74 1F          JE SHORT 3days.00402C45
+00402C26  |.  33C0           XOR EAX,EAX
+00402C28  |.  50             PUSH EAX
+00402C29  |.  FF4B 1C        DEC DWORD PTR DS:\[EBX+1C\]
+00402C2C  |.  8D55 FC        LEA EDX,DWORD PTR SS:\[EBP-4\]
+00402C2F  |.  52             PUSH EDX
+00402C30  |.  E8 1FA40600    CALL 3days.0046D054
+00402C35  |.  59             POP ECX
+00402C36  |.  58             POP EAX
+00402C37  |.  8B13           MOV EDX,DWORD PTR DS:\[EBX\]
+00402C39  |.  64:8915 00000>MOV DWORD PTR FS:\[0\],EDX
+00402C40  |.  E9 690F0000    JMP 3days.00403BAE
+00402C45  |>  33C9           XOR ECX,ECX
+00402C47  |.  8D95 D8FEFFFF  LEA EDX,DWORD PTR SS:\[EBP-128\]
+00402C4D  |.  898D D8FEFFFF  MOV DWORD PTR SS:\[EBP-128\],ECX
+00402C53  |.  8D4D FC        LEA ECX,DWORD PTR SS:\[EBP-4\]
+00402C56  |.  C785 D4FEFFFF>MOV DWORD PTR SS:\[EBP-12C\],4
+00402C60  |.  8B85 D4FEFFFF  MOV EAX,DWORD PTR SS:\[EBP-12C\]
+00402C66  |.  50             PUSH EAX                               ; /Arg3
+00402C67  |.  52             PUSH EDX                               ; |Arg2
+00402C68  |.  51             PUSH ECX                               ; |Arg1
+00402C69  |.  E8 5AA40600    CALL <3days.读取相应字节的数据>          ; \\3days.0046D0C8
+00402C6E  |.  83C4 0C        ADD ESP,0C
+00402C71  |.  84C0           TEST AL,AL
+```
+
+这里实在判断文件头是否正确。分析后了解文件的前 16 字节均为文件头。
+
+到现在为止还没什么有用信息。
+
+继续跟踪咱看见它又读了 4 字节，并存到了 `[EBP-128]` 里，这个值现在还用不到。
+
+```
+00402D0E  |>  \\33C9          XOR ECX,ECX
+00402D10  |.  898D C8FEFFFF  MOV DWORD PTR SS:\[EBP-138\],ECX
+00402D16  |.  BE 04000000    MOV ESI,4
+00402D1B  |.  56             PUSH ESI                               ; /Arg3 => 00000004
+00402D1C  |.  8D85 C8FEFFFF  LEA EAX,DWORD PTR SS:\[EBP-138\]       ; |
+00402D22  |.  50             PUSH EAX                               ; |Arg2
+00402D23  |.  8D55 FC        LEA EDX,DWORD PTR SS:\[EBP-4\]         ; |
+00402D26  |.  52             PUSH EDX                               ; |Arg1
+00402D27  |.  E8 9CA30600    CALL <3days.读取相应字节的数据>          ; \\3days.0046D0C8
+```
+
+然后来到这里，这是个很重要的函数。在这个函数里程序对解密时需要用到的数据进行了初始化。
+
+```
+00402D52  |>  \\68 99990000    PUSH 9999                            ; /Arg2 = 00009999  这个 9999 万分可疑
+00402D57  |.  8D8D 64F3FFFF    LEA ECX,DWORD PTR SS:\[EBP-C9C\]     ; |
+00402D5D  |.  51             PUSH ECX                               ; |Arg1
+00402D5E  |.  E8 0D760500    CALL <3days.p2\*10DCD(IMUL)循环 270 次依次存入 p1,0>; \\3days.0045A370
+```
+
+跟入这个函数
+
+```
+0045A370 >/$  55             PUSH EBP
+0045A371  |.  8BEC           MOV EBP,ESP
+0045A373  |.  53             PUSH EBX
+0045A374  |.  8B45 0C        MOV EAX,DWORD PTR SS:\[EBP+C\]         ;  EAX=\[EBP+C\]=9999
+0045A377  |.  8B5D 08        MOV EBX,DWORD PTR SS:\[EBP+8\]         ;  EBX=\[EBP+8\]一个地址
+0045A37A  |.  33C9           XOR ECX,ECX                             ;  ecx = 0
+0045A37C  |.  8BD3           MOV EDX,EBX                             ;  EDX = EBX
+0045A37E  |>  69C0 CD0D0100  IMUL EAX,EAX,10DCD                     ;  eax = eax\*10DCD    循环 0--269
+0045A384  |.  83E0 FF        AND EAX,FFFFFFFF
+0045A387  |.  8902           MOV DWORD PTR DS:\[EDX\],EAX           ;  \[edx\] = eax
+0045A389  |.  41             INC ECX                                 ;  ecx++
+0045A38A  |.  83C2 04        ADD EDX,4                               ;  edx += 4
+0045A38D  |.  81F9 70020000  CMP ECX,270
+0045A393  |.^ 7C E9          JL SHORT 3days.0045A37E                 ;  这里的算法是 第二参数\*10DCD 存入第一参数 DWORD
+0045A395  |.  33C0           XOR EAX,EAX
+0045A397  |.  8983 C0090000  MOV DWORD PTR DS:\[EBX+9C0\],EAX       ;  用 0 封口
+0045A39D  |.  5B             POP EBX
+0045A39E  |.  5D             POP EBP
+0045A39F  |\.  C3             RETN
+```
+
+这个函数用 `arg2`，也就是 `0x9999` 初始化了 `arg1` 那个参数所指的数组。具体算法如下
+
+```
+for( i = 0; i < 0x270; i++)
+{
+    arg2 *= 0x10DCD;
+    arg1[i] = arg2;
+}
+arg1[i] = 0;
+```
+
+记下这个牛 X 的 `DWORD` 型数组的地址 `[EBP-C9C]` 继续往下看。
+
+之后程序又分别读入了 2 个字节，第 1 个字节直接丢弃了，第 2 个字节存入 `[EBP-13E]`。
+
+继续往下来到这里。
+
+```
+00402E34  |>  \\0FB6B5 C2FEFF>MOVZX ESI,BYTE PTR SS:\[EBP-13E\]
+00402E3B  |.  56             |PUSH ESI                              ; /Arg3  [EBP-13E]
+00402E3C  |.  8D85 60F2FFFF |LEA EAX,DWORD PTR SS:\[EBP-DA0\]       ; |
+00402E42  |.  50             |PUSH EAX                               ; |Arg2
+00402E43  |.  8D55 FC        |LEA EDX,DWORD PTR SS:\[EBP-4\]        ; |
+00402E46  |.  52             |PUSH EDX                               ; |Arg1
+00402E47  |.  E8 7CA20600    |CALL <3days.读取相应字节的数据>          ; \\3days.0046D0C8
+```
+
+读入了 `[EBP-13E]` 个数据到 `EBP-DA0`。
+
+继续往下来到这个函数。发现函数的参数为刚才计算的解密数组，刚读取的数据和数据长度。
+
+应该这个就是解密的东东了～～
+
+```
+00402E72  |>  \\8D8D 64F3FFFF  LEA ECX,DWORD PTR SS:\[EBP-C9C\]     ;  ecx 是那个变换过的数组
+00402E78  |.  51             |PUSH ECX                              ; /Arg3
+00402E79  |.  33C0           |XOR EAX,EAX                           ; |
+00402E7B  |.  8A85 C2FEFFFF  |MOV AL,BYTE PTR SS:\[EBP-13E\]        ; |al 为刚才读出的长度
+00402E81  |.  50             |PUSH EAX                              ; |Arg2
+```
+
+
+
+### 代码段
+```
+00402E82  |.  8D95 60F2FFFF |LEA EDX,DWORD PTR SS:[EBP-DA0]            ; |edx 为刚才读出的数组  
+00402E88  |.  52             |PUSH EDX                                 ; |Arg1  
+00402E89  |.  E8 86FCFFFF    |CALL <3days.将读取的数组解码>             ; \3days.00402B14  
+```
+
+跟进去看看算法。
+
+### 解码函数分析
+```
+00402B14 >/$  55             PUSH EBP  
+00402B15  |.  8BEC           MOV EBP,ESP  
+00402B17  |.  53             PUSH EBX  
+00402B18  |.  56             PUSH ESI  
+00402B19  |.  57             PUSH EDI  
+00402B1A  |.  8B7D 08        MOV EDI,DWORD PTR SS:[EBP+8]             ;  edi = 从文件读出的数组  
+00402B1D  |.  33DB           XOR EBX,EBX                               ;  ebx = 0  
+00402B1F  |.  8BF7           MOV ESI,EDI                               ;  esi = edi  
+00402B21  |.  3B5D 0C        CMP EBX,DWORD PTR SS:[EBP+C]  
+00402B24  |.  73 1A          JNB SHORT 3days.00402B40                 ;  循环 长度(arg2) 次  ebx 计数  
+00402B26  |>  8BC3           /MOV EAX,EBX                              ;  eax = ebx  
+00402B28  |.  03C7           |ADD EAX,EDI                              ;  eax += edi (eax 是数组当前指针)  
+00402B2A  |.  50             |PUSH EAX                                 ; /Arg2  
+00402B2B  |.  8B55 10        |MOV EDX,DWORD PTR SS:[EBP+10]           ; |edx 为变换的数组  
+00402B2E  |.  52             |PUSH EDX                                 ; |Arg1  
+00402B2F  |.  E8 6C780500    |CALL <3days.取变换数组(arg1)第 i 元素(记录在末尾),和 arg2 指的 b>;这个函数很诡异  
+00402B34  |.  83C4 08        |ADD ESP,8  
+00402B37  |.  8806           |MOV BYTE PTR DS:[ESI],AL  
+00402B39  |.  43             |INC EBX  
+00402B3A  |.  46             |INC ESI  
+00402B3B  |.  3B5D 0C        |CMP EBX,DWORD PTR SS:[EBP+C]  
+00402B3E  |.^ 72 E6          \JB SHORT 3days.00402B26  
+00402B40  |>  5F             POP EDI  
+00402B41  |.  5E             POP ESI  
+00402B42  |.  5B             POP EBX  
+00402B43  |.  5D             POP EBP  
+00402B44  \\.  C3             RETN  
+```
+
+这里的意思是将数据和上面计算出来的那个解密用的数组传入：
+```
+00402B2F  |.  E8 6C780500    |CALL <3days.取变换数组(arg1)第 i 元素(记录在末尾),和 arg2 指的 b>
+```
+这个函数，然后将返回值再存入数组。
+
+这个函数跟进去以后是一个非常没有爱的计算。
+
+### 复杂计算逻辑
+```
+0045A3A4  |.  8B5D 08        MOV EBX,DWORD PTR SS:[EBP+8]             ;  ebx = 变换的数组  
+0045A3A7  |.  81BB C0090000 >CMP DWORD PTR DS:[EBX+9C0],270          ;  [EBX+9C0]为变换数组结尾，应该小于 270  
+0045A3B1  |.  72 10          JB SHORT 3days.0045A3C3  
+0045A3B3  |.  8B83 BC090000 MOV EAX,DWORD PTR DS:[EBX+9BC]  
+0045A3B9  |.  50             PUSH EAX                                  ; /Arg2  
+0045A3BA  |.  53             PUSH EBX                                  ; |Arg1  
+0045A3BB  |.  E8 B0FFFFFF    CALL <3days.p2*10DCD(IMUL)循环 270 次依次存入 p1,0>; \3days.0045A370  
+0045A3C0  |.  83C4 08        ADD ESP,8  
+0045A3C3  |>  8B93 C0090000 MOV EDX,DWORD PTR DS:[EBX+9C0]           ;  edx = 变换数组结尾  
+0045A3C9  |.  FF83 C0090000 INC DWORD PTR DS:[EBX+9C0]               ;  变换数组结尾+1  
+0045A3CF  |.  8B0493         MOV EAX,DWORD PTR DS:[EBX+EDX*4]  
+0045A3D2  |.  8BD0           MOV EDX,EAX                               ;  eax = edx = 变换数组中低 i 个元素(i 记录在数组末尾)  
+0045A3D4  |.  C1EA 0B        SHR EDX,0B                                 ;  edx >> 0B  
+0045A3D7  |.  33C2           XOR EAX,EDX                                ;  eax ^= edx  
+0045A3D9  |.  8BC8           MOV ECX,EAX                                ;  ecx = eax  
+0045A3DB  |.  C1E1 07        SHL ECX,7                                  ;  ecx << 7  
+0045A3DE  |.  81E1 638A5131 AND ECX,31518A63                           ;  ecx &= 31518A63  
+0045A3E4  |.  33C1           XOR EAX,ECX                                ;  eax ^= ecx  
+0045A3E6  |.  8BD0           MOV EDX,EAX                                ;  edx = eax  
+0045A3E8  |.  C1E2 0F        SHL EDX,0F                                 ;  edx << 0F  
+0045A3EB  |.  81E2 43CAF117 AND EDX,17F1CA43                           ;  edx &= 17F1CA43  
+0045A3F1  |.  33C2           XOR EAX,EDX                                ;  eax ^= edx  
+0045A3F3  |.  8B55 0C        MOV EDX,DWORD PTR SS:[EBP+C]              ;  edx = 读取的数组地址  
+0045A3F6  |.  8BC8           MOV ECX,EAX                                ;  ecx = eax  
+0045A3F8  |.  C1E9 12        SHR ECX,12                                 ;  ecx >> 12  
+0045A3FB  |.  33C1           XOR EAX,ECX                                ;  eax ^= ecx  
+0045A3FD  |.  24 FF          AND AL,0FF  
+0045A3FF  |.  3202           XOR AL,BYTE PTR DS:[EDX]                   ;  al ^= [数组元素]  
+```
+
+这个算法没什么难度，但是很繁琐，就不一一解释了。
+
+数据解密后终于发现可以阅读的字符串了`map\title.map`，这个因该就是传说中的索引了。
+
+### 后续分析与提取器
+之后的代码就很简单了，程序又存储了 `8` 个字节，但没有用到，应该是索引中的地址等信息了。
+
+继续向下走后是一个很长的跳转，跳转前对`[EBP-138]`这个位置进行比较，可见这里面存的是资源数量。
+
+用刚刚跟踪出来的算法对 `image.dat` 进行解密。
+
+#### Hex 数据
+```
+Offset      0  1  2  3  4  5  6  7   8  9  A  B  C  D  E  F  
+00000000   4E 45 4B 4F 50 41 43 4B  CB 00 00 00 00 00 00 00   NEKOPACK?......  
+00000010   26 26 00 00 00 1E 76 6F  69 63 65 5C 62 74 31 2D   &&....voice\bt1-  
+00000020   30 31 37 2D 30 38 2D 30  31 5C 68 69 5F 30 30 30   017-08-01\hi_000  
+00000030   2E 6F 67 67 13 F6 05 00  FD 9B 00 00 00 1E 76 6F   .ogg.?.....vo  
+00000040   69 63 65 5C 62 74 31 2D  30 31 37 2D 30 38 2D 30   ice\bt1-017-08-0  
+```
+
+哇哈哈，看到 `Loli` 和御姐了！！
+
+嗯……是看到可以阅读的数据了……
+
+根据前面的逆向分析一下再文件结构
+- `00000000-0000000F` 文件头
+- `00000010-00000013` 资源数量
+
+然后
+- `1` 字节 `00`，`1` 字节资源名长度 `XX`
+- 后面是 `XX` 字节资源名。
+- `8` 字节未知数据
+
+现在我们来猜猜那 `8` 字节未知数据是什么吧。
+
+因为这个索引里现在只出现了文件名相关的东西，这 `8` 字节应该是文件大小或者文件长度。
+
+请相信我，我真的是猜的……而且我猜对了：）
+
+呵呵，最后附上我写的资源提取器。
+
+有兴趣看源代码的人可以邮箱或 `QQ` 联系我。
+
+感谢 `痴汉工贼`、`二毛`、`DWING` 给予我的精神上的动力，虽然你们根本就不认识我，但是没有你们这些大牛也不会让我走上破解这条路。
+
+感谢 `看雪学院`和澄空的 `CKGAL` 板块带给了我所有的知识。
+
+感谢 `和谐 GalGame` 的制作公司填补我空虚的生活 `XD`
+
+附件为 `VS2005` 编写的提取器，可能需要 `.net` 库，虽然我一个 `.net` 函数也没用 `=` `=`！
+
+---
+`2008 年 09 月 19 日 19:30:57`
 
 上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || 3DayExtractor.rar  
- |
+
+| 图片 | 文件 |
+| :--- | :--- |
+| `img/c8c74a380a3dea7fa2460187d80ee5e0.jpg` | `3DayExtractor.rar` |

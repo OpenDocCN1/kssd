@@ -1,812 +1,1091 @@
 
-
 # RSA 算法
 
 > 原文：[`www.pediy.com/kssd/pediy05/pediy50349.htm`](https://www.pediy.com/kssd/pediy05/pediy50349.htm)
 
-一篇关于密码学的入门级破解实例   
-BiSHoP 的 LockLess CrackMe4 破解   
-  
-昨天整理电脑时候偶然发现的一个 CrackMe 作者为：BiSHoP   
-难度：简单   
-算法： MD5＋RSA130   
-  
-使用工具： 我修改的 TRW2000 1.23 (这个 CrackMe 包含有 SoftICE，TRW 等调试器的 Anti 代码  使用我修改的这个版本不会被察觉)   
-          W32Dasm 10.0 (用的是 Killer 修改的版本～  感谢 Killer)   
-          RSATool2.17 (tE!/\[TMG\]的 RSA 工具 Cool)   
-          BigInt Calculator Pro 1.2 (感谢 Stkman/\[CCG\]提供给我的 KeyFile )   
-  
-运行 CrackMe 输入相关信息 Name：娃娃 Organization：\[CCG\] Registeration Code：38383838   
-  
-\* Reference To: USER32.GetDlgItemTextA, Ord:0000h   
-                                  |   
-:00401544 8B3DCCB04000            mov edi, dword ptr \[0040B0CC\]   
-:0040154A 8D9424B0000000          lea edx, dword ptr \[esp+000000B0\]   
-:00401551 6A32                    push 00000032   
-:00401553 52                      push edx   
-:00401554 68EB030000              push 000003EB   
-:00401559 56                      push esi   
-:0040155A FFD7                    call edi   
-:0040155C 85C0                    test eax, eax   
-:0040155E 7521                    jne 00401581  /检测用户名位数是否为 0 需要跳转   
-:00401560 6A40                    push 00000040   
-  
-\* Possible StringData Ref from Data Obj ->"Name"   
-                                  |   
-:00401562 6838C44000              push 0040C438   
-  
-\* Possible StringData Ref from Data Obj ->"Please enter a name."   
-                                  |   
-:00401567 6820C44000              push 0040C420   
-:0040156C 56                      push esi   
-  
-\* Reference To: USER32.MessageBoxA, Ord:0000h   
-                                  |   
-:0040156D FF15D0B04000            Call dword ptr \[0040B0D0\]   
-:00401573 5F                      pop edi   
-:00401574 5E                      pop esi   
-:00401575 33C0                    xor eax, eax   
-:00401577 5B                      pop ebx   
-:00401578 81C488010000            add esp, 00000188   
-:0040157E C21000                  ret 0010   
-  
-  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:0040155E(C)   
-|   
-:00401581 8D8424E8000000          lea eax, dword ptr \[esp+000000E8\]   
-:00401588 6A32                    push 00000032   
-:0040158A 50                      push eax   
-:0040158B 68EC030000              push 000003EC   
-:00401590 56                      push esi   
-:00401591 FFD7                    call edi   
-:00401593 85C0                    test eax, eax   
-:00401595 7521                    jne 004015B8  /组织名位数不能为 0 需要跳转   
-:00401597 6A40                    push 00000040   
-  
-\* Possible StringData Ref from Data Obj ->"Company"   
-                                  |   
-:00401599 6818C44000              push 0040C418   
-  
-\* Possible StringData Ref from Data Obj ->"Please enter company or organization."   
-                                  |   
-:0040159E 68F0C34000              push 0040C3F0   
-:004015A3 56                      push esi   
-  
-\* Reference To: USER32.MessageBoxA, Ord:0000h   
-                                  |   
-:004015A4 FF15D0B04000            Call dword ptr \[0040B0D0\]   
-:004015AA 5F                      pop edi   
-:004015AB 5E                      pop esi   
-:004015AC 33C0                    xor eax, eax   
-:004015AE 5B                      pop ebx   
-:004015AF 81C488010000            add esp, 00000188   
-:004015B5 C21000                  ret 0010   
-  
-  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:00401595(C)   
-|   
-  
-\* Reference To: KERNEL32.lstrcpyA, Ord:0000h   
-                                  |   
-:004015B8 8B1D10B04000            mov ebx, dword ptr \[0040B010\]   
-:004015BE 8D8C24B0000000          lea ecx, dword ptr \[esp+000000B0\]   
-:004015C5 8D942420010000          lea edx, dword ptr \[esp+00000120\]   
-:004015CC 51                      push ecx   
-:004015CD 52                      push edx   
-:004015CE FFD3                    call ebx   
-:004015D0 8D8424E8000000          lea eax, dword ptr \[esp+000000E8\]   
-:004015D7 8D8C24B0000000          lea ecx, dword ptr \[esp+000000B0\]   
-:004015DE 50                      push eax  /EAX 中存放用户名   
-:004015DF 51                      push ecx  /ECX 中存放组织名   
-  
-\* Reference To: KERNEL32.lstrlenA, Ord:0000h   
-                                  |   
-:004015E0 FF1578B04000            Call dword ptr \[0040B078\]   
-:004015E6 8D940424010000          lea edx, dword ptr \[esp+eax+00000124\]   
-:004015ED 52                      push edx   
-:004015EE FFD3                    call ebx /调用 LSTRCPYA 将用户名和组织名合并   
-:004015F0 8D44242C                lea eax, dword ptr \[esp+2C\]   
-:004015F4 8D8C2420010000          lea ecx, dword ptr \[esp+00000120\]   
-:004015FB 50                      push eax   
-:004015FC 51                      push ecx   
-:004015FD E86EFBFFFF              call 00401170  \*//关键 Call(1)   
-:00401602 8D542434                lea edx, dword ptr \[esp+34\]   
-:00401606 52                      push edx  /EDX 中存放 Hash 运算结果 设结果为 Temp 便于后面分析   
-:00401607 E8F4F9FFFF              call 00401000   
-:0040160C 83C40C                  add esp, 0000000C   
-:0040160F 8D442478                lea eax, dword ptr \[esp+78\]   
-:00401613 6A32                    push 00000032   
-:00401615 50                      push eax   
-:00401616 68ED030000              push 000003ED   
-:0040161B 56                      push esi   
-:0040161C FFD7                    call edi   
-:0040161E 85C0                    test eax, eax   
-:00401620 7521                    jne 00401643  /检测注册码位数是否为 0 必须跳转   
-:00401622 6A40                    push 00000040   
-  
-\* Possible StringData Ref from Data Obj ->"Registeration"   
-                                  |   
-:00401624 68E0C34000              push 0040C3E0   
-  
-\* Possible StringData Ref from Data Obj ->"Please enter your registeration "   
-                                        ->"code."   
-                                  |   
-:00401629 68B8C34000              push 0040C3B8   
-:0040162E 56                      push esi   
-  
-\* Reference To: USER32.MessageBoxA, Ord:0000h   
-                                  |   
-:0040162F FF15D0B04000            Call dword ptr \[0040B0D0\]   
-:00401635 5F                      pop edi   
-:00401636 5E                      pop esi   
-:00401637 33C0                    xor eax, eax   
-:00401639 5B                      pop ebx   
-:0040163A 81C488010000            add esp, 00000188   
-:00401640 C21000                  ret 0010   
-  
-  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:00401620(C)   
-|   
-:00401643 8D4C2478                lea ecx, dword ptr \[esp+78\]   
-:00401647 51                      push ecx  /ECX 中存放 Registeration Code   
-:00401648 E843FAFFFF              call 00401090  /此 Call 检测 Registeration Code 中是否含有非法字符 （合法范围：0123456789ABCDEF）   
-:0040164D 83C404                  add esp, 00000004   
-:00401650 83F801                  cmp eax, 00000001  /EAX 为标志位 若检测出 Registeration Code 含有非法字符 EAX 为 0   
-:00401653 7526                    jne 0040167B  /不能跳转   
-:00401655 8D542450                lea edx, dword ptr \[esp+50\]   
-:00401659 8D442478                lea eax, dword ptr \[esp+78\]   
-:0040165D 52                      push edx   
-:0040165E 50                      push eax  /EAX＝Registeration Code   
-:0040165F E86CFAFFFF              call 004010D0  \*//关键 Call(2)   
-:00401664 83C408                  add esp, 00000008   
-:00401667 8D4C242C                lea ecx, dword ptr \[esp+2C\]   
-:0040166B 8D542450                lea edx, dword ptr \[esp+50\]   
-:0040166F 51                      push ecx  /ECX＝Temp   
-:00401670 52                      push edx  /EDX 存放 Registeration Code 经过关键 Call2 后的 Hash 运算结果 设为 Temp2   
-  
-\* Reference To: KERNEL32.lstrcmpA, Ord:0000h  //调用 lstrcmpA 进行比较 所以若 temp=temp2 则注册成功   
-                                  |   
-:00401671 FF150CB04000            Call dword ptr \[0040B00C\]   
-:00401677 85C0                    test eax, eax /EAX 为注册成功与否的标志   
-:00401679 7421                    je 0040169C /跳转则注册成功   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:00401653(C)   
-|   
-:0040167B 6A10                    push 00000010   
-  
-\* Possible StringData Ref from Data Obj ->"Invalid code"   
-                                  |   
-:0040167D 68A8C34000              push 0040C3A8   
-  
-\* Possible StringData Ref from Data Obj ->"Sorry, the registeration code "   
-                                        ->"you entered is invalid."   
-                                  |   
-:00401682 6870C34000              push 0040C370   
-:00401687 56                      push esi   
-  
-\* Reference To: USER32.MessageBoxA, Ord:0000h   
-                                  |   
-:00401688 FF15D0B04000            Call dword ptr \[0040B0D0\]   
-:0040168E 5F                      pop edi   
-:0040168F 5E                      pop esi   
-:00401690 33C0                    xor eax, eax   
-:00401692 5B                      pop ebx   
-:00401693 81C488010000            add esp, 00000188   
-:00401699 C21000                  ret 0010   
-  
-  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:00401679(C)   
-|   
-:0040169C 6A40                    push 00000040   
-  
-\* Possible StringData Ref from Data Obj ->"Thank you!"   
-                                  |   
-:0040169E 6864C34000              push 0040C364   
-  
-\* Possible StringData Ref from Data Obj ->"Thank you for your support, the "   
-                                        ->"program has been registered!"   
-                                  |   
-:004016A3 6824C34000              push 0040C324   
-:004016A8 56                      push esi   
-  
-\* Reference To: USER32.MessageBoxA, Ord:0000h   
-                                  |   
-:004016A9 FF15D0B04000            Call dword ptr \[0040B0D0\]   
-:004016AF 5F                      pop edi   
-:004016B0 5E                      pop esi   
-:004016B1 33C0                    xor eax, eax   
-:004016B3 5B                      pop ebx   
-:004016B4 81C488010000            add esp, 00000188   
-:004016BA C21000                  ret 0010   
-  
-  
-\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*关键 Call(1)\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
-  
-\* Referenced by a CALL at Address:   
-|:004015FD    
-|   
-:00401170 B8001A0000              mov eax, 00001A00   
-:00401175 E8565D0000              call 00406ED0   
-:0040117A 33C0                    xor eax, eax   
-:0040117C 53                      push ebx   
-:0040117D 89442405                mov dword ptr \[esp+05\], eax   
-:00401181 56                      push esi   
-:00401182 8944240D                mov dword ptr \[esp+0D\], eax   
-:00401186 57                      push edi   
-:00401187 89442415                mov dword ptr \[esp+15\], eax   
-:0040118B 33DB                    xor ebx, ebx   
-:0040118D 89442419                mov dword ptr \[esp+19\], eax   
-:00401191 B908000000              mov ecx, 00000008   
-:00401196 668944241D              mov word ptr \[esp+1D\], ax   
-:0040119B 8D7C2421                lea edi, dword ptr \[esp+21\]   
-:0040119F 8844241F                mov byte ptr \[esp+1F\], al   
-:004011A3 885C2420                mov byte ptr \[esp+20\], bl   
-:004011A7 F3                      repz   
-:004011A8 AB                      stosd   
-:004011A9 8D4C2444                lea ecx, dword ptr \[esp+44\]   
-:004011AD 885C240C                mov byte ptr \[esp+0C\], bl   
-:004011B1 51                      push ecx   
-:004011B2 66AB                    stosw   
-:004011B4 E847060000              call 00401800   
-:004011B9 8BB424141A0000          mov esi, dword ptr \[esp+00001A14\]   
-:004011C0 83C404                  add esp, 00000004   
-:004011C3 56                      push esi   
-  
-\* Reference To: KERNEL32.lstrlenA, Ord:0000h   
-                                  |   
-:004011C4 FF1578B04000            Call dword ptr \[0040B078\]   
-:004011CA 50                      push eax   
-:004011CB 8D542448                lea edx, dword ptr \[esp+48\]   
-:004011CF 56                      push esi  /ESI\=Name=娃娃\[CCG\]   
-:004011D0 52                      push edx  /EDX\="0123456789ABCDEFFEDEBA9876543210"   
-:004011D1 E85A060000              call 00401830   
-:004011D6 8D442418                lea eax, dword ptr \[esp+18\]   
-:004011DA 50                      push eax   
-:004011DB E800070000              call 004018E0   
-  
-\* Reference To: USER32.wsprintfA, Ord:0000h   
-                                  |   
-:004011E0 8B1DECB04000            mov ebx, dword ptr \[0040B0EC\]   
-:004011E6 83C410                  add esp, 00000010   
-:004011E9 33F6                    xor esi, esi   
-:004011EB 8D7C2420                lea edi, dword ptr \[esp+20\]   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:00401208(C)   
-|   
-:004011EF 33C9                    xor ecx, ecx   
-:004011F1 8A4C340C                mov cl, byte ptr \[esp+esi+0C\]   
-:004011F5 51                      push ecx   
-  
-\* Possible StringData Ref from Data Obj ->"%02lX"   
-                                  |   
-:004011F6 681CC34000              push 0040C31C   
-:004011FB 57                      push edi   
-:004011FC FFD3                    call ebx   
-:004011FE 83C40C                  add esp, 0000000C   
-:00401201 46                      inc esi   
-:00401202 83C702                  add edi, 00000002   
-:00401205 83FE10                  cmp esi, 00000010   
-:00401208 7CE5                    jl 004011EF   
-:0040120A 8B8424141A0000          mov eax, dword ptr \[esp+00001A14\]   
-:00401211 8D542420                lea edx, dword ptr \[esp+20\]   
-:00401215 52                      push edx   
-:00401216 50                      push eax   
-  
-\* Reference To: KERNEL32.lstrcpyA, Ord:0000h   
-                                  |   
-:00401217 FF1510B04000            Call dword ptr \[0040B010\]   
-:0040121D 5F                      pop edi   
-:0040121E 5E                      pop esi   
-:0040121F 5B                      pop ebx   
-:00401220 81C4001A0000            add esp, 00001A00   
-:00401226 C3                      ret   
-  
-由 004011D0 处可以根据 Hash 计算的常量“0123456789ABCDEFFEDEBA9876543210”推算出程序的第一部分   
-Hash 计算使用的是 MD5 算法 关于 MD5 算法算法我在这篇文章里面就不多说了 如果对它感兴趣的话可以参看   
-我以前发布在看雪论坛上面的《MD5 的介绍,算法和实现》 我想多多少少会对您有点帮助 根据 MD5 的特性－单向不可逆   
-所以在这个 CrackMe 中 MD5 算法只是起到一个计算中间值的作用 只要能看出来是 MD5 算法其他的都不用管了   
-\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*Call(1)分析结束\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
-\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*关键 Call(2)\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
-  
-  
-\* Referenced by a CALL at Address:   
-|:0040165F    
-|   
-:004010D0 51                      push ecx   
-:004010D1 53                      push ebx   
-:004010D2 55                      push ebp   
-:004010D3 56                      push esi   
-:004010D4 57                      push edi   
-:004010D5 6A00                    push 00000000   
-:004010D7 6A64                    push 00000064   
-:004010D9 E832180000              call 00402910   
-:004010DE 6A00                    push 00000000   
-:004010E0 8944241C                mov dword ptr \[esp+1C\], eax   
-:004010E4 E887170000              call 00402870   
-:004010E9 6A00                    push 00000000   
-:004010EB 8BF0                    mov esi, eax   
-:004010ED E87E170000              call 00402870   
-:004010F2 6A00                    push 00000000   
-:004010F4 8BF8                    mov edi, eax   
-:004010F6 E875170000              call 00402870   
-:004010FB 6A00                    push 00000000   
-:004010FD 8BD8                    mov ebx, eax   
-:004010FF E86C170000              call 00402870   
-:00401104 8B4C2430                mov ecx, dword ptr \[esp+30\]   
-:00401108 8BE8                    mov ebp, eax   
-:0040110A 8B442428                mov eax, dword ptr \[esp+28\]   
-:0040110E 51                      push ecx   
-:0040110F 55                      push ebp   
-:00401110 C7803802000010000000    mov dword ptr \[ebx+00000238\], 00000010   
-:0040111A E891260000              call 004037B0   
-  
-\* Possible StringData Ref from Data Obj ->"24DFDA27FA14D3F27DDF62CEA5D2381F9"  /\*N\*/   
-                                  |   
-:0040111F 68F0C24000              push 0040C2F0   
-:00401124 57                      push edi   
-:00401125 E886260000              call 004037B0   
-  
+一篇关于密码学的入门级破解实例
 
-\* Possible StringData Ref from Data Obj ->"E401C1B"  /\*E\*/   
-                                  |   
-:0040112A 6814C34000              push 0040C314   
-:0040112F 53                      push ebx   
-:00401130 E87B260000              call 004037B0   
-:00401135 56                      push esi   
-:00401136 57                      push edi   
-:00401137 53                      push ebx   
-:00401138 55                      push ebp   
-:00401139 E8422D0000              call 00403E80   
-:0040113E 8B54245C                mov edx, dword ptr \[esp+5C\]   
-:00401142 83C440                  add esp, 00000040   
-:00401145 52                      push edx   
-:00401146 56                      push esi   
-:00401147 E8F4280000              call 00403A40   
-:0040114C 57                      push edi   
-:0040114D E8BE1C0000              call 00402E10   
-:00401152 53                      push ebx   
-:00401153 E8B81C0000              call 00402E10   
-:00401158 55                      push ebp   
-:00401159 E8B21C0000              call 00402E10   
-:0040115E 56                      push esi   
-:0040115F E8AC1C0000              call 00402E10   
-:00401164 83C418                  add esp, 00000018   
-:00401167 5F                      pop edi   
-:00401168 5E                      pop esi   
-:00401169 5D                      pop ebp   
-:0040116A 5B                      pop ebx   
-:0040116B 59                      pop ecx   
-:0040116C C3                      ret   
-  
-一个很明显的 RSA 算法 Call 在分析这个 Call 之前 让我们以最快的速度来复习一下关于 RSA 的概念和公式 以及通过   
-公式分析破解这个 CrackMe   
-  
-\_\_\_\_\_\_\_ 下面一小段引自 dr0 于 2000 年 08 月 22 日发表在看雪论坛的文章－《Windows 优化大师 v2.9+的注册码加密算法》\_\_\_\_\_   
-RSA 算法简述   
-1、取两个素数 p 和 q   
-2、计算 n=pq,f=(p-1)(q-1)   
-3、随机选取整数 e,满足条件 gcd(e, f)=1,其中 gcd 为最大公约数   
-4、计算 d,使得乘积 de 对 f 求余的结果为 1,即 de 和 1 对 f 同余   
-上述只有 e 和 n 对外公开,用于加密   
-  
-加密过程(符号^表示乘幂,mod 表示求余) 设 e 为加密密钥,明文为 m,密文为 c 则加密公式如下 c = (m ^ e) mod n   
-解密过程(设 e 为加密密钥,明文为 m,密文为 c,d 为解密密钥) 则解密公式如下 m= (c ^ d) mod n   
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ 引用结束 感谢 dr0 \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_   
-  
-现在我们已知 N=24DFDA27FA14D3F27DDF62CEA5D2381F9 E=E401C1B 如上所说我们的首要任务就是求出 D   
-运行 RSATool(其实 BigInt Calculator Pro 1.2 也有 RSATool 的功能 但是感觉上没有 tE!的 RSATool 完善   
-并且在这个 CrackMe 中分解 P 和 Q 时会使系统没有响应 ) 求得 P＝16F54CE422ACC40EB  Q＝19B2CF048CA1B2FAB   
-所以 D＝1E2D9B52ADCBC20DCCDE3C721AA740E83   
-\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*Call(2)分析结束\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
-  
-到此 我们已经可以分析出这个 CrackMe 得基本算法了 不妨列出个等式方便分析：   
-CrackMe 实际上是对比 MD5 的 Hash 运算结果与 RSA 算法中的密文 若相等则认为注册成功,根据上面的分析 RSA 的加密   
-公式为 c = (m ^ e) mod n  换中说法就是比较 MD5 的 Hash 运算结果是否等于 (M^E) MOD N   
-所以： (Registeration Code ^ E ) MOD N = MD5(Name + Organization)   
-即：  Registeration Code = \[ MD5( Name + Organization ) ^ D \] MOD N   
-因为： MD5(娃娃\[CCG\])=3E32771176B5CE99ED7C920DD28EADD6   
-得出等式：Registeration Code = \[ 3E32771176B5CE99ED7C920DD28EADD6 ^ 1E2D9B52ADCBC20DCCDE3C721AA740E83 \] MOD 24DFDA27FA14D3F27DDF62CEA5D2381F9   
-这时就需要用到 BigInt Calculator 了 设 X＝82674165571952145171965745053779799510 Y＝641818296898666730290105568133836443267 Z＝784232236484777663526392470596418241017  然后计算 X^Y%Z   
-得出结果为：362487173057627226939435819421597555030   
-在将其转换成十六进制得到：110B47D7782077078380A409E3295D956   
-字符串 110B47D7782077078380A409E3295D956 即为有效 Key  分析完成～～～～～～～   
-  
-给出两组有效 Key 方便各位加深理解   
-Name： 娃娃   
-Organization： \[CCG\]   
-Registeration Code： 110B47D7782077078380A409E3295D956   
-  
-Name： NYDoll   
-Organization： CHiNA CrACKiNG GrOUp   
-Registeration Code： 188B6DE7B64A99CA1DFE50084A6372ADE   
-  
-\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*注册机(VC 源代码)\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
-/\*        
-Lockless CrackMe #4 注册机  娃娃/\[CCG\]制作   
-RSA 算法的源代码引用自 tE! 的 PowerStrip keygenerator   
-MD5 算法引用 Colin Plumb 和 John Walker 编写的模板   
-程序使用 freelip 的动态连接库   
-\*/   
-  
-#include <windows.h>   
-#include <lip.h>   
-#include <memory.h>   
-  
-#define DLG\_MAIN                        111   
-#define BT\_GENERATE                    1008   
-#define EDIT\_NAME                      1009   
-#define EDIT\_CODE                      1010   
-#define EDIT\_ORG              1011      
-  
-typedef unsigned long uint32;   
-  
-struct MD5Context {   
-        uint32 buf\[4\];   
-        uint32 bits\[2\];   
-        unsigned char in\[64\];   
-};   
-  
-void MD5Transform(uint32\*, uint32\*);   
-  
-void byteReverse(buf, longs)   
-    unsigned char \*buf; unsigned longs;   
-{   
-    uint32 t;   
-    do {   
-    t = (uint32) ((unsigned) buf\[3\] << 8 | buf\[2\]) << 16 |   
-        ((unsigned) buf\[1\] << 8 | buf\[0\]);   
-    \*(uint32 \*) buf = t;   
-    buf += 4;   
-    } while (--longs);   
-}   
-  
-void MD5Init(ctx)   
-    struct MD5Context \*ctx;   
-{   
-    ctx->buf\[0\] = 0x67452301;   
-    ctx->buf\[1\] = 0xefcdab89;   
-    ctx->buf\[2\] = 0x98badcfe;   
-    ctx->buf\[3\] = 0x10325476;   
-  
-    ctx->bits\[0\] = 0;   
-    ctx->bits\[1\] = 0;   
-}   
-  
-void MD5Update(ctx, buf, len)   
-    struct MD5Context \*ctx; unsigned char \*buf; unsigned len;   
-{   
-    uint32 t;   
-  
-    t = ctx->bits\[0\];   
-    if ((ctx->bits\[0\] = t + ((uint32) len << 3)) < t)   
-    ctx->bits\[1\]++;     /\* Carry from low to high \*/   
-    ctx->bits\[1\] += len >> 29;   
-  
-    t = (t >> 3) & 0x3f;    /\* Bytes already in shsInfo->data \*/   
-  
-    /\* Handle any leading odd-sized chunks \*/   
-  
-    if (t) {   
-    unsigned char \*p = (unsigned char \*) ctx->in + t;   
-  
-    t = 64 - t;   
-    if (len < t) {   
-        memcpy(p, buf, len);   
-        return;   
-    }   
-    memcpy(p, buf, t);   
-    byteReverse(ctx->in, 16);   
-    MD5Transform(ctx->buf, (uint32 \*) ctx->in);   
-    buf += t;   
-    len -= t;   
-    }   
-    /\* Process data in 64-byte chunks \*/   
-  
-    while (len >= 64) {   
-    memcpy(ctx->in, buf, 64);   
-    byteReverse(ctx->in, 16);   
-    MD5Transform(ctx->buf, (uint32 \*) ctx->in);   
-    buf += 64;   
-    len -= 64;   
-    }   
-  
-    /\* Handle any remaining bytes of data. \*/   
-  
-    memcpy(ctx->in, buf, len);   
-}   
-  
-void MD5Final(digest, ctx)   
-    unsigned char digest\[16\]; struct MD5Context \*ctx;   
-{   
-    unsigned count;   
-    unsigned char \*p;   
-  
-    count = (ctx->bits\[0\] >> 3) & 0x3F;   
-    p = ctx->in + count;   
-    \*p++ = 0x80;   
-    count = 64 - 1 - count;   
-  
-    /\* Pad out to 56 mod 64 \*/   
-    if (count < 8) {   
-    memset(p, 0, count);   
-    byteReverse(ctx->in, 16);   
-    MD5Transform(ctx->buf, (uint32 \*) ctx->in);   
-    memset(ctx->in, 0, 56);   
-    } else {   
-    memset(p, 0, count - 8);   
-    }   
-    byteReverse(ctx->in, 14);   
-    ((uint32 \*) ctx->in)\[14\] = ctx->bits\[0\];   
-    ((uint32 \*) ctx->in)\[15\] = ctx->bits\[1\];   
-  
-    MD5Transform(ctx->buf, (uint32 \*) ctx->in);   
-    byteReverse((unsigned char \*) ctx->buf, 4);   
-    memcpy(digest, ctx->buf, 16);   
-    memset(ctx, 0, sizeof(ctx));          
-}   
-  
-  
-/\* The four core functions - F1 is optimized somewhat \*/   
-  
-/\* #define F1(x, y, z) (x & y | ~x & z) \*/   
-#define F1(x, y, z) (z ^ (x & (y ^ z)))   
-#define F2(x, y, z) F1(z, x, y)   
-#define F3(x, y, z) (x ^ y ^ z)   
-#define F4(x, y, z) (y ^ (x | ~z))   
-  
-/\* This is the central step in the MD5 algorithm. \*/   
-#define MD5STEP(f, w, x, y, z, data, s) \\   
-    ( w += f(x, y, z) + data,  w = w<<s | w>>(32-s),  w += x )   
-  
-void MD5Transform(buf, in)   
-    uint32 buf\[4\]; uint32 in\[16\];   
-{   
-    register uint32 a, b, c, d;   
-  
-    a = buf\[0\];   
-    b = buf\[1\];   
-    c = buf\[2\];   
-    d = buf\[3\];   
-  
-    MD5STEP(F1, a, b, c, d, in\[0\] + 0xd76aa478, 7);   
-    MD5STEP(F1, d, a, b, c, in\[1\] + 0xe8c7b756, 12);   
-    MD5STEP(F1, c, d, a, b, in\[2\] + 0x242070db, 17);   
-    MD5STEP(F1, b, c, d, a, in\[3\] + 0xc1bdceee, 22);   
-    MD5STEP(F1, a, b, c, d, in\[4\] + 0xf57c0faf, 7);   
-    MD5STEP(F1, d, a, b, c, in\[5\] + 0x4787c62a, 12);   
-    MD5STEP(F1, c, d, a, b, in\[6\] + 0xa8304613, 17);   
-    MD5STEP(F1, b, c, d, a, in\[7\] + 0xfd469501, 22);   
-    MD5STEP(F1, a, b, c, d, in\[8\] + 0x698098d8, 7);   
-    MD5STEP(F1, d, a, b, c, in\[9\] + 0x8b44f7af, 12);   
-    MD5STEP(F1, c, d, a, b, in\[10\] + 0xffff5bb1, 17);   
-    MD5STEP(F1, b, c, d, a, in\[11\] + 0x895cd7be, 22);   
-    MD5STEP(F1, a, b, c, d, in\[12\] + 0x6b901122, 7);   
-    MD5STEP(F1, d, a, b, c, in\[13\] + 0xfd987193, 12);   
-    MD5STEP(F1, c, d, a, b, in\[14\] + 0xa679438e, 17);   
-    MD5STEP(F1, b, c, d, a, in\[15\] + 0x49b40821, 22);   
-  
-    MD5STEP(F2, a, b, c, d, in\[1\] + 0xf61e2562, 5);   
-    MD5STEP(F2, d, a, b, c, in\[6\] + 0xc040b340, 9);   
-    MD5STEP(F2, c, d, a, b, in\[11\] + 0x265e5a51, 14);   
-    MD5STEP(F2, b, c, d, a, in\[0\] + 0xe9b6c7aa, 20);   
-    MD5STEP(F2, a, b, c, d, in\[5\] + 0xd62f105d, 5);   
-    MD5STEP(F2, d, a, b, c, in\[10\] + 0x02441453, 9);   
-    MD5STEP(F2, c, d, a, b, in\[15\] + 0xd8a1e681, 14);   
-    MD5STEP(F2, b, c, d, a, in\[4\] + 0xe7d3fbc8, 20);   
-    MD5STEP(F2, a, b, c, d, in\[9\] + 0x21e1cde6, 5);   
-    MD5STEP(F2, d, a, b, c, in\[14\] + 0xc33707d6, 9);   
-    MD5STEP(F2, c, d, a, b, in\[3\] + 0xf4d50d87, 14);   
-    MD5STEP(F2, b, c, d, a, in\[8\] + 0x455a14ed, 20);   
-    MD5STEP(F2, a, b, c, d, in\[13\] + 0xa9e3e905, 5);   
-    MD5STEP(F2, d, a, b, c, in\[2\] + 0xfcefa3f8, 9);   
-    MD5STEP(F2, c, d, a, b, in\[7\] + 0x676f02d9, 14);   
-    MD5STEP(F2, b, c, d, a, in\[12\] + 0x8d2a4c8a, 20);   
-  
-    MD5STEP(F3, a, b, c, d, in\[5\] + 0xfffa3942, 4);   
-    MD5STEP(F3, d, a, b, c, in\[8\] + 0x8771f681, 11);   
-    MD5STEP(F3, c, d, a, b, in\[11\] + 0x6d9d6122, 16);   
-    MD5STEP(F3, b, c, d, a, in\[14\] + 0xfde5380c, 23);   
-    MD5STEP(F3, a, b, c, d, in\[1\] + 0xa4beea44, 4);   
-    MD5STEP(F3, d, a, b, c, in\[4\] + 0x4bdecfa9, 11);   
-    MD5STEP(F3, c, d, a, b, in\[7\] + 0xf6bb4b60, 16);   
-    MD5STEP(F3, b, c, d, a, in\[10\] + 0xbebfbc70, 23);   
-    MD5STEP(F3, a, b, c, d, in\[13\] + 0x289b7ec6, 4);   
-    MD5STEP(F3, d, a, b, c, in\[0\] + 0xeaa127fa, 11);   
-    MD5STEP(F3, c, d, a, b, in\[3\] + 0xd4ef3085, 16);   
-    MD5STEP(F3, b, c, d, a, in\[6\] + 0x04881d05, 23);   
-    MD5STEP(F3, a, b, c, d, in\[9\] + 0xd9d4d039, 4);   
-    MD5STEP(F3, d, a, b, c, in\[12\] + 0xe6db99e5, 11);   
-    MD5STEP(F3, c, d, a, b, in\[15\] + 0x1fa27cf8, 16);   
-    MD5STEP(F3, b, c, d, a, in\[2\] + 0xc4ac5665, 23);   
-  
-    MD5STEP(F4, a, b, c, d, in\[0\] + 0xf4292244, 6);   
-    MD5STEP(F4, d, a, b, c, in\[7\] + 0x432aff97, 10);   
-    MD5STEP(F4, c, d, a, b, in\[14\] + 0xab9423a7, 15);   
-    MD5STEP(F4, b, c, d, a, in\[5\] + 0xfc93a039, 21);   
-    MD5STEP(F4, a, b, c, d, in\[12\] + 0x655b59c3, 6);   
-    MD5STEP(F4, d, a, b, c, in\[3\] + 0x8f0ccc92, 10);   
-    MD5STEP(F4, c, d, a, b, in\[10\] + 0xffeff47d, 15);   
-    MD5STEP(F4, b, c, d, a, in\[1\] + 0x85845dd1, 21);   
-    MD5STEP(F4, a, b, c, d, in\[8\] + 0x6fa87e4f, 6);   
-    MD5STEP(F4, d, a, b, c, in\[15\] + 0xfe2ce6e0, 10);   
-    MD5STEP(F4, c, d, a, b, in\[6\] + 0xa3014314, 15);   
-    MD5STEP(F4, b, c, d, a, in\[13\] + 0x4e0811a1, 21);   
-    MD5STEP(F4, a, b, c, d, in\[4\] + 0xf7537e82, 6);   
-    MD5STEP(F4, d, a, b, c, in\[11\] + 0xbd3af235, 10);   
-    MD5STEP(F4, c, d, a, b, in\[2\] + 0x2ad7d2bb, 15);   
-    MD5STEP(F4, b, c, d, a, in\[9\] + 0xeb86d391, 21);   
-  
-    buf\[0\] += a;   
-    buf\[1\] += b;   
-    buf\[2\] += c;   
-    buf\[3\] += d;   
-}   
-  
-char eulav(long i);   
-  
-void zhconvert(verylong a, char \*dbuff, int CodeLen){   
-    static     char \*b;   
-    register long i,j,cnt = 0;   
-  
-    b = (char \*)malloc( (size\_t)(a\[0\] << 3) );   
-    if (!b) return;   
-  
-    do    {   
-        b\[cnt\] = eulav(a\[1\] & 15);   
-        cnt++;   
-        zrshift(a, (long) 4, &a);   
-    }   
-    while ( (a\[1\] != 0) || (a\[0\] != 1) || (cnt < CodeLen) );   
-  
-    b\[cnt\]&=0x00;   
-    j=cnt-1;   
-    for    (i=0; i<cnt; i++)    {   
-        dbuff\[i\]=b\[j\];   
-        j--;   
-    }   
-    dbuff\[i\]=0x00;   
-    free(b);   
-}   
-  
-void GenerateCode(HWND hDlg){   
-    static char modulus\_n\[\]="24DFDA27FA14D3F27DDF62CEA5D2381F9";   
-    static char private\_d\[\]="1E2D9B52ADCBC20DCCDE3C721AA740E83";   
-    static char hextab\[\]="0123456789ABCDEF";   
-       
-    char        szName\[31\], szOrg\[31\], szH\[62\], signature\[16\], md\[33\];   
-    struct MD5Context md5c;   
-  
-        char        Regcode\[42\];   
-    int        i,j,nLen,oLen;   
-    BYTE        t, u;   
-    verylong    d = 0;   
-    verylong    m = 0;   
-    verylong    n = 0;   
-  
-    nLen=GetDlgItemTextA(hDlg, EDIT\_NAME, szName, 31);   
-        oLen=GetDlgItemTextA(hDlg, EDIT\_ORG, szOrg, 31);   
-  
-    if    (nLen < 1) {   
-        SetDlgItemTextA(hDlg, EDIT\_CODE, "Name must contain at least 1 char.");   
-        return;   
-    }   
-    if    (oLen < 1) {   
-        SetDlgItemTextA(hDlg, EDIT\_CODE, "Organization must contain at least 1 char.");   
-        return;   
-    }   
-       
-    //concatenate the strings   
-    for (i=0; i<nLen; i++) szH\[i\] = szName\[i\];   
-    for (i=0; i<oLen; i++) szH\[nLen+i\] = szOrg\[i\];   
-    szH\[nLen+oLen\] = '\\0';   
-  
-    MD5Init(&md5c);   
-    MD5Update(&md5c, szH, nLen+oLen);   
-    MD5Final(signature, &md5c);   
-  
-    j=0;   
-    for    (i=0; i<16; i++){   
-        u=t=signature\[i\];   
-        md\[j\]=hextab\[((t & 0xF0) >> 4)\];   
-        md\[j+1\]=hextab\[(u & 0x0F)\];   
-        j+=2;   
-    }   
-    md\[j\]&=0x00;   
-  
-     /\* Read in Bignums \*/   
-    zstrtozbas(modulus\_n, (long) 16, &n);   
-    zstrtozbas(private\_d, (long) 16, &d);   
-    zstrtozbas(md, (long) 16, &m);   
-  
-    /\* m = m^d % n \*/   
-    zexpmod(m,d,n,&m);   
-    /\* Convert m to Hex String, 32 Chars long \*/   
-    zhconvert(m, md, 32);   
-       
-        /\* Clean up \*/   
-    zfree(&d);   
-    zfree(&m);   
-    zfree(&n);   
-       
-  
-    /\* Show Regcode \*/   
-    SetDlgItemTextA(hDlg, EDIT\_CODE, md);   
-  
-}   
-  
-BOOL CALLBACK DlgP (HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)   
-{   
-    switch (message)   
-    {   
-        case WM\_INITDIALOG :   
-            SendDlgItemMessageA(hDlg, EDIT\_NAME, EM\_SETLIMITTEXT, (WPARAM) 30, 0);   
-            SetWindowTextA(hDlg, "KeyGen For Bishop Lockless CrackMe4 By 娃娃/\[CCG\]");   
-            SetDlgItemTextA(hDlg, EDIT\_CODE, "请输入用户名和组织名.");   
-            return TRUE;   
-        case WM\_COMMAND :   
-            switch (LOWORD (wParam))   
-            {   
-                case BT\_GENERATE :   
-                    GenerateCode(hDlg);               
-                    SetFocus(GetDlgItem(hDlg, EDIT\_NAME));   
-                    break;   
-                case IDCANCEL :   
-                    EndDialog (hDlg, 0);   
-                    break;   
-            }   
-            break;   
-    }   
-    return FALSE;   
-}   
-  
-int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)   
-{   
-    DialogBoxA(hInstance, MAKEINTRESOURCE(DLG\_MAIN), 0, DlgP);   
-    return 0;   
-} 
+**BiSHoP** 的 `LockLess CrackMe4` 破解
 
-> \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*KeyGen.RC\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
->   
-> 111 DIALOG 24, 50, 210, 119   
-> STYLE DS\_ABSALIGN | DS\_MODALFRAME | 0xA04L | WS\_POPUP | WS\_VISIBLE | WS\_CAPTION | WS\_SYSMENU   
-> CAPTION "KeyGen By 娃娃/\[CCG\]"   
-> FONT 9, "宋体"   
-> LANGUAGE LANG\_FRENCH, SUBLANG\_NEUTRAL   
-> {   
-> CONTROL "", 1009, "EDIT", ES\_LEFT | ES\_AUTOHSCROLL | ES\_OEMCONVERT | WS\_CHILD | WS\_VISIBLE | WS\_BORDER | WS\_TABSTOP, 4, 13, 202, 12   
-> CONTROL "(&G)生成", 1008, "BUTTON", BS\_PUSHBUTTON | WS\_CHILD | WS\_VISIBLE | WS\_TABSTOP, 7, 101, 45, 13   
-> CONTROL "(&X)退出", 2, "BUTTON", BS\_PUSHBUTTON | WS\_CHILD | WS\_VISIBLE | WS\_TABSTOP, 59, 101, 45, 13   
-> CONTROL "", 1010, "EDIT", ES\_LEFT | ES\_AUTOHSCROLL | ES\_READONLY | WS\_CHILD | WS\_VISIBLE | WS\_BORDER | WS\_TABSTOP, 4, 73, 202, 12   
-> CONTROL "用户名称:", -1, "STATIC", SS\_LEFT | WS\_CHILD | WS\_VISIBLE | WS\_GROUP, 5, 4, 36, 8   
-> CONTROL "您的注册码:", -1, "STATIC", SS\_LEFT | WS\_CHILD | WS\_VISIBLE | WS\_GROUP, 6, 64, 60, 8   
-> CONTROL "组织名称:", -1, "STATIC", SS\_LEFT | WS\_CHILD | WS\_VISIBLE | WS\_GROUP, 6, 32, 64, 8   
-> CONTROL "", 1011, "EDIT", ES\_LEFT | ES\_AUTOHSCROLL | ES\_OEMCONVERT | WS\_CHILD | WS\_VISIBLE | WS\_BORDER | WS\_TABSTOP, 4, 41, 202, 12   
-> }   
-> \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
->   
-> 好久都没有写这种破解文章了 看着以前破解界的朋友现在或忙于工作或投身于编程或者逆向工程 也不知道自己心里是   
-> 因为技不如人而感到羞愧 还是因为失去一些可以互相交流和帮助的老朋友而感到惋惜 看雪论坛陪我度过了 3 年的时光   
-> 无数精彩的回忆都留在这里 不免有的时候想想再过三年之后的看雪论坛 想想三年之后的\[CCG\] 又或者想想三年之后的   
-> 我 ……  ……  无限惆怅   
-> 不好意思 一时间有感而发 说多了   
->   
->   
-> 还是那句话：仅以此文献给我可爱的组织 CCG 希望他能蒸蒸日上   
->   
->                                                 作者：娃娃 QQ:15110296 EMAil:Nydoll@etang.com   
->                                                     属于中国破解组织 CCG(CHiNA CrACKiNG GrOUp)   
->                                                   写于 2002 年 11 月 8 日   
->   
-> \*/转贴请保持完整 并写明出处:"看雪软件调试论坛" 作者:"娃娃\[CCG\]"/\* 
-> 
->  4dd466d0e1e0cc123afbe504da2462ca
+昨天整理电脑时候偶然发现的一个 `CrackMe` 作者为：**BiSHoP**
+
+难度：简单
+
+算法：`MD5` + `RSA130`
+
+使用工具：
+
+- 我修改的 `TRW2000 1.23`（这个 `CrackMe` 包含有 `SoftICE`、`TRW` 等调试器的 Anti 代码 使用我修改的这个版本不会被察觉）
+- `W32Dasm 10.0`（用的是 `Killer` 修改的版本～ 感谢 `Killer`）
+- `RSATool2.17`（`tE!/[TMG]` 的 `RSA` 工具 `Cool`）
+- `BigInt Calculator Pro 1.2`（感谢 `Stkman/[CCG]` 提供给我的 `KeyFile`）
+
+运行 `CrackMe` 输入相关信息：
+`Name`：娃娃
+`Organization`：`[CCG]`
+`Registeration Code`：`38383838`
+
+```asm
+* Reference To: USER32.GetDlgItemTextA, Ord:0000h
+
+:00401544 8B3DCCB04000              mov edi, dword ptr [0040B0CC]
+:0040154A 8D9424B0000000            lea edx, dword ptr [esp+000000B0]
+:00401551 6A32                      push 00000032
+:00401553 52                        push edx
+:00401554 68EB030000                push 000003EB
+:00401559 56                        push esi
+:0040155A FFD7                      call edi
+:0040155C 85C0                      test eax, eax
+:0040155E 7521                      jne 00401581  /检测用户名位数是否为 0 需要跳转
+
+* Possible StringData Ref from Data Obj ->"Name"
+
+:00401560 6A40                      push 00000040
+
+* Possible StringData Ref from Data Obj ->"Please enter a name."
+
+:00401562 6838C44000                push 0040C438
+:00401567 6820C44000                push 0040C420
+:0040156C 56                        push esi
+
+* Reference To: USER32.MessageBoxA, Ord:0000h
+
+:0040156D FF15D0B04000              Call dword ptr [0040B0D0]
+:00401573 5F                        pop edi
+:00401574 5E                        pop esi
+:00401575 33C0                      xor eax, eax
+:00401577 5B                        pop ebx
+:00401578 81C488010000              add esp, 00000188
+:0040157E C21000                    ret 0010
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040155E(C)
+
+:00401581 8D8424E8000000            lea eax, dword ptr [esp+000000E8]
+:00401588 6A32                      push 00000032
+:0040158A 50                        push eax
+:0040158B 68EC030000                push 000003EC
+:00401590 56                        push esi
+:00401591 FFD7                      call edi
+:00401593 85C0                      test eax, eax
+:00401595 7521                      jne 004015B8  /组织名位数不能为 0 需要跳转
+
+* Possible StringData Ref from Data Obj ->"Company"
+
+:00401597 6A40                      push 00000040
+
+* Possible StringData Ref from Data Obj ->"Please enter company or organization."
+
+:00401599 6818C44000                push 0040C418
+:0040159E 68F0C34000                push 0040C3F0
+:004015A3 56                        push esi
+
+* Reference To: USER32.MessageBoxA, Ord:0000h
+
+:004015A4 FF15D0B04000              Call dword ptr [0040B0D0]
+:004015AA 5F                        pop edi
+:004015AB 5E                        pop esi
+:004015AC 33C0                      xor eax, eax
+:004015AE 5B                        pop ebx
+:004015AF 81C488010000              add esp, 00000188
+:004015B5 C21000                    ret 0010
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401595(C)
+
+* Reference To: KERNEL32.lstrcpyA, Ord:0000h
+
+:004015B8 8B1D10B04000              mov ebx, dword ptr [0040B010]
+:004015BE 8D8C24B0000000            lea ecx, dword ptr [esp+000000B0]
+:004015C5 8D942420010000            lea edx, dword ptr [esp+00000120]
+:004015CC 51                        push ecx
+:004015CD 52                        push edx
+:004015CE FFD3                      call ebx
+:004015D0 8D8424E8000000            lea eax, dword ptr [esp+000000E8]
+:004015D7 8D8C24B0000000            lea ecx, dword ptr [esp+000000B0]
+:004015DE 50                        push eax  /EAX 中存放用户名
+:004015DF 51                        push ecx  /ECX 中存放组织名
+
+* Reference To: KERNEL32.lstrlenA, Ord:0000h
+
+:004015E0 FF1578B04000              Call dword ptr [0040B078]
+:004015E6 8D940424010000            lea edx, dword ptr [esp+eax+00000124]
+:004015ED 52                        push edx
+:004015EE FFD3                      call ebx /调用 LSTRCPYA 将用户名和组织名合并
+:004015F0 8D44242C                  lea eax, dword ptr [esp+2C]
+:004015F4 8D8C2420010000            lea ecx, dword ptr [esp+00000120]
+:004015FB 50                        push eax
+:004015FC 51                        push ecx
+:004015FD E86EFBFFFF                call 00401170  //*//关键 Call(1)
+:00401602 8D542434                  lea edx, dword ptr [esp+34]
+:00401606 52                        push edx  /EDX 中存放 Hash 运算结果 设结果为 Temp 便于后面分析
+:00401607 E8F4F9FFFF                call 00401000
+:0040160C 83C40C                    add esp, 0000000C
+:0040160F 8D442478                  lea eax, dword ptr [esp+78]
+:00401613 6A32                      push 00000032
+:00401615 50                        push eax
+:00401616 68ED030000                push 000003ED
+:0040161B 56                        push esi
+:0040161C FFD7                      call edi
+:0040161E 85C0                      test eax, eax
+:00401620 7521                      jne 00401643  /检测注册码位数是否为 0 必须跳转
+
+* Possible StringData Ref from Data Obj ->"Registeration"
+
+:00401622 6A40                      push 00000040
+
+* Possible StringData Ref from Data Obj ->"Please enter your registeration "
+                                    ->"code."
+
+:00401624 68E0C34000                push 0040C3E0
+:00401629 68B8C34000                push 0040C3B8
+:0040162E 56                        push esi
+
+* Reference To: USER32.MessageBoxA, Ord:0000h
+
+:0040162F FF15D0B04000              Call dword ptr [0040B0D0]
+:00401635 5F                        pop edi
+:00401636 5E                        pop esi
+:00401637 33C0                      xor eax, eax
+:00401639 5B                        pop ebx
+:0040163A 81C488010000              add esp, 00000188
+:00401640 C21000                    ret 0010
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401620(C)
+
+:00401643 8D4C2478                  lea ecx, dword ptr [esp+78]
+:00401647 51                        push ecx  /ECX 中存放 Registeration Code
+:00401648 E843FAFFFF                call 00401090  /此 Call 检测 Registeration Code 中是否含有非法字符 （合法范围：0123456789ABCDEF）
+:0040164D 83C404                    add esp, 00000004
+:00401650 83F801                    cmp eax, 00000001  /EAX 为标志位 若检测出 Registeration Code 含有非法字符 EAX 为 0
+:00401653 7526                      jne 0040167B  /不能跳转
+:00401655 8D542450                  lea edx, dword ptr [esp+50]
+:00401659 8D442478                  lea eax, dword ptr [esp+78]
+:0040165D 52                        push edx
+:0040165E 50                        push eax  /EAX＝Registeration Code
+:0040165F E86CFAFFFF                call 004010D0  //*//关键 Call(2)
+:00401664 83C408                    add esp, 00000008
+:00401667 8D4C242C                  lea ecx, dword ptr [esp+2C]
+:0040166B 8D542450                  lea edx, dword ptr [esp+50]
+:0040166F 51                        push ecx  /ECX＝Temp
+:00401670 52                        push edx  /EDX 存放 Registeration Code 经过关键 Call2 后的 Hash 运算结果 设为 Temp2
+
+* Reference To: KERNEL32.lstrcmpA, Ord:0000h  //调用 lstrcmpA 进行比较 所以若 temp=temp2 则注册成功
+```
+
+
+
+`00401671 FF150CB04000` `Call dword ptr [0040B00C]`
+
+`00401677 85C0` `test eax, eax` / `EAX` 为注册成功与否的标志
+
+`00401679 7421` `je 0040169C` / 跳转则注册成功
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`00401653(C)`
+
+`0040167B 6A10` `push 00000010`
+
+* Possible StringData Ref from Data Obj -> `Invalid code`
+
+`0040167D 68A8C34000` `push 0040C3A8`
+
+* Possible StringData Ref from Data Obj -> `Sorry, the registeration code`
+-> `you entered is invalid.`
+
+`00401682 6870C34000` `push 0040C370`
+
+`00401687 56` `push esi`
+
+* Reference To: `USER32.MessageBoxA`, Ord:0000h
+
+`00401688 FF15D0B04000` `Call dword ptr [0040B0D0]`
+
+`0040168E 5F` `pop edi`
+
+`0040168F 5E` `pop esi`
+
+`00401690 33C0` `xor eax, eax`
+
+`00401692 5B` `pop ebx`
+
+`00401693 81C488010000` `add esp, 00000188`
+
+`00401699 C21000` `ret 0010`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`00401679(C)`
+
+`0040169C 6A40` `push 00000040`
+
+* Possible StringData Ref from Data Obj -> `Thank you!`
+
+`0040169E 6864C34000` `push 0040C364`
+
+* Possible StringData Ref from Data Obj -> `Thank you for your support, the`
+-> `program has been registered!`
+
+`004016A3 6824C34000` `push 0040C324`
+
+`004016A8 56` `push esi`
+
+* Reference To: `USER32.MessageBoxA`, Ord:0000h
+
+`004016A9 FF15D0B04000` `Call dword ptr [0040B0D0]`
+
+`004016AF 5F` `pop edi`
+
+`004016B0 5E` `pop esi`
+
+`004016B1 33C0` `xor eax, eax`
+
+`004016B3 5B` `pop ebx`
+
+`004016B4 81C488010000` `add esp, 00000188`
+
+`004016BA C21000` `ret 0010`
+
+`******关键 Call(1)******`
+
+* Referenced by a CALL at Address:
+
+`004015FD`
+
+`00401170 B8001A0000` `mov eax, 00001A00`
+
+`00401175 E8565D0000` `call 00406ED0`
+
+`0040117A 33C0` `xor eax, eax`
+
+`0040117C 53` `push ebx`
+
+`0040117D 89442405` `mov dword ptr [esp+05], eax`
+
+`00401181 56` `push esi`
+
+`00401182 8944240D` `mov dword ptr [esp+0D], eax`
+
+`00401186 57` `push edi`
+
+`00401187 89442415` `mov dword ptr [esp+15], eax`
+
+`0040118B 33DB` `xor ebx, ebx`
+
+`0040118D 89442419` `mov dword ptr [esp+19], eax`
+
+`00401191 B908000000` `mov ecx, 00000008`
+
+`00401196 668944241D` `mov word ptr [esp+1D], ax`
+
+`0040119B 8D7C2421` `lea edi, dword ptr [esp+21]`
+
+`0040119F 8844241F` `mov byte ptr [esp+1F], al`
+
+`004011A3 885C2420` `mov byte ptr [esp+20], bl`
+
+`004011A7 F3` `repz`
+
+`004011A8 AB` `stosd`
+
+`004011A9 8D4C2444` `lea ecx, dword ptr [esp+44]`
+
+`004011AD 885C240C` `mov byte ptr [esp+0C], bl`
+
+`004011B1 51` `push ecx`
+
+`004011B2 66AB` `stosw`
+
+`004011B4 E847060000` `call 00401800`
+
+`004011B9 8BB424141A0000` `mov esi, dword ptr [esp+00001A14]`
+
+`004011C0 83C404` `add esp, 00000004`
+
+`004011C3 56` `push esi`
+
+* Reference To: `KERNEL32.lstrlenA`, Ord:0000h
+
+`004011C4 FF1578B04000` `Call dword ptr [0040B078]`
+
+`004011CA 50` `push eax`
+
+`004011CB 8D542448` `lea edx, dword ptr [esp+48]`
+
+`004011CF 56` `push esi` / `ESI=Name=娃娃[CCG]`
+
+`004011D0 52` `push edx` / `EDX="0123456789ABCDEFFEDEBA9876543210"`
+
+`004011D1 E85A060000` `call 00401830`
+
+`004011D6 8D442418` `lea eax, dword ptr [esp+18]`
+
+`004011DA 50` `push eax`
+
+`004011DB E800070000` `call 004018E0`
+
+* Reference To: `USER32.wsprintfA`, Ord:0000h
+
+`004011E0 8B1DECB04000` `mov ebx, dword ptr [0040B0EC]`
+
+`004011E6 83C410` `add esp, 00000010`
+
+`004011E9 33F6` `xor esi, esi`
+
+`004011EB 8D7C2420` `lea edi, dword ptr [esp+20]`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+`00401208(C)`
+
+`004011EF 33C9` `xor ecx, ecx`
+
+`004011F1 8A4C340C` `mov cl, byte ptr [esp+esi+0C]`
+
+`004011F5 51` `push ecx`
+
+* Possible StringData Ref from Data Obj -> `%02lX`
+
+`004011F6 681CC34000` `push 0040C31C`
+
+`004011FB 57` `push edi`
+
+`004011FC FFD3` `call ebx`
+
+`004011FE 83C40C` `add esp, 0000000C`
+
+`00401201 46` `inc esi`
+
+`00401202 83C702` `add edi, 00000002`
+
+`00401205 83FE10` `cmp esi, 00000010`
+
+`00401208 7CE5` `jl 004011EF`
+
+`0040120A 8B8424141A0000` `mov eax, dword ptr [esp+00001A14]`
+
+`00401211 8D542420` `lea edx, dword ptr [esp+20]`
+
+`00401215 52` `push edx`
+
+`00401216 50` `push eax`
+
+* Reference To: `KERNEL32.lstrcpyA`, Ord:0000h
+
+`00401217 FF1510B04000` `Call dword ptr [0040B010]`
+
+`0040121D 5F` `pop edi`
+
+`0040121E 5E` `pop esi`
+
+`0040121F 5B` `pop ebx`
+
+`00401220 81C4001A0000` `add esp, 00001A00`
+
+`00401226 C3` `ret`
+
+由 `004011D0` 处可以根据 Hash 计算的常量 `0123456789ABCDEFFEDEBA9876543210` 推算出程序的第一部分
+
+Hash 计算使用的是 `MD5` 算法，关于 `MD5` 算法我在这篇文章里面就不多说了，如果对它感兴趣的话可以参看
+
+我以前发布在看雪论坛上面的《`MD5` 的介绍,算法和实现》我想多多少少会对您有点帮助。根据 `MD5` 的特性－单向不可逆
+
+所以在这个 `CrackMe` 中 `MD5` 算法只是起到一个计算中间值的作用，只要能看出来是 `MD5` 算法其他的都不用管了
+
+`******Call(1)分析结束******`
+
+`******关键 Call(2)******`
+
+* Referenced by a CALL at Address:
+
+`0040165F`
+
+`004010D0 51` `push ecx`
+
+`004010D1 53` `push ebx`
+
+`004010D2 55` `push ebp`
+
+`004010D3 56` `push esi`
+
+`004010D4 57` `push edi`
+
+`004010D5 6A00` `push 00000000`
+
+`004010D7 6A64` `push 00000064`
+
+`004010D9 E832180000` `call 00402910`
+
+`004010DE 6A00` `push 00000000`
+
+`004010E0 8944241C` `mov dword ptr [esp+1C], eax`
+
+`004010E4 E887170000` `call 00402870`
+
+`004010E9 6A00` `push 00000000`
+
+`004010EB 8BF0` `mov esi, eax`
+
+`004010ED E87E170000` `call 00402870`
+
+`004010F2 6A00` `push 00000000`
+
+`004010F4 8BF8` `mov edi, eax`
+
+`004010F6 E875170000` `call 00402870`
+
+
+
+# 汇编代码分析
+
+```
+:004010FB 6A00                    push 00000000
+:004010FD 8BD8                    mov ebx, eax
+:004010FF E86C170000              call 00402870
+:00401104 8B4C2430                mov ecx, dword ptr [esp+30]
+:00401108 8BE8                    mov ebp, eax
+:0040110A 8B442428                mov eax, dword ptr [esp+28]
+:0040110E 51                      push ecx
+:0040110F 55                      push ebp
+:00401110 C7803802000010000000    mov dword ptr [ebx+00000238], 00000010
+:0040111A E891260000              call 004037B0
+
+* Possible StringData Ref from Data Obj -> "24DFDA27FA14D3F27DDF62CEA5D2381F9" /*N*/
+                                      |
+:0040111F 68F0C24000                push 0040C2F0
+:00401124 57                        push edi
+:00401125 E886260000                call 004037B0
+
+* Possible StringData Ref from Data Obj -> "E401C1B" /*E*/
+                                      |
+:0040112A 6814C34000                push 0040C314
+:0040112F 53                        push ebx
+:00401130 E87B260000                call 004037B0
+:00401135 56                        push esi
+:00401136 57                        push edi
+:00401137 53                        push ebx
+:00401138 55                        push ebp
+:00401139 E8422D0000                call 00403E80
+:0040113E 8B54245C                  mov edx, dword ptr [esp+5C]
+:00401142 83C440                    add esp, 00000040
+:00401145 52                        push edx
+:00401146 56                        push esi
+:00401147 E8F4280000                call 00403A40
+:0040114C 57                        push edi
+:0040114D E8BE1C0000                call 00402E10
+:00401152 53                        push ebx
+:00401153 E8B81C0000                call 00402E10
+:00401158 55                        push ebp
+:00401159 E8B21C0000                call 00402E10
+:0040115E 56                        push esi
+:0040115F E8AC1C0000                call 00402E10
+:00401164 83C418                    add esp, 00000018
+:00401167 5F                        pop edi
+:00401168 5E                        pop esi
+:00401169 5D                        pop ebp
+:0040116A 5B                        pop ebx
+:0040116B 59                        pop ecx
+:0040116C C3                        ret
+```
+
+一个很明显的 `RSA` 算法 `Call`。在分析这个 `Call` 之前，让我们以最快的速度来复习一下关于 `RSA` 的概念和公式，以及通过公式分析破解这个 `CrackMe`。
+
+\_\_\_\_\_\_\_ 下面一小段引自 `dr0` 于 2000 年 08 月 22 日发表在看雪论坛的文章－《Windows 优化大师 v2.9+的注册码加密算法》\_\_\_\_\_
+
+## `RSA` 算法简述
+
+1. 取两个素数 `p` 和 `q`
+2. 计算 `n=pq`, `f=(p-1)(q-1)`
+3. 随机选取整数 `e`, 满足条件 `gcd(e, f)=1`, 其中 `gcd` 为最大公约数
+4. 计算 `d`, 使得乘积 `de` 对 `f` 求余的结果为 1, 即 `de` 和 1 对 `f` 同余
+
+上述只有 `e` 和 `n` 对外公开, 用于加密
+
+### 加密过程
+
+(符号 `^` 表示乘幂, `mod` 表示求余) 设 `e` 为加密密钥, 明文为 `m`, 密文为 `c` 则加密公式如下 `c = (m ^ e) mod n`
+
+### 解密过程
+
+(设 `e` 为加密密钥, 明文为 `m`, 密文为 `c`, `d` 为解密密钥) 则解密公式如下 `m = (c ^ d) mod n`
+
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ 引用结束 感谢 `dr0` \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+
+现在我们已知 `N=24DFDA27FA14D3F27DDF62CEA5D2381F9` `E=E401C1B`。如上所说我们的首要任务就是求出 `D`。
+
+运行 `RSATool` (其实 `BigInt Calculator Pro 1.2` 也有 `RSATool` 的功能，但是感觉上没有 `tE!` 的 `RSATool` 完善，并且在这个 `CrackMe` 中分解 `P` 和 `Q` 时会使系统没有响应)，求得 `P=16F54CE422ACC40EB` `Q=19B2CF048CA1B2FAB`。
+
+所以 `D=1E2D9B52ADCBC20DCCDE3C721AA740E83`
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\* `Call(2)` 分析结束 \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+## 算法分析
+
+到此，我们已经可以分析出这个 `CrackMe` 的基本算法了，不妨列出个等式方便分析：
+
+`CrackMe` 实际上是对比 `MD5` 的 `Hash` 运算结果与 `RSA` 算法中的密文。若相等则认为注册成功。根据上面的分析，`RSA` 的加密公式为 `c = (m ^ e) mod n`。换句话说，就是比较 `MD5` 的 `Hash` 运算结果是否等于 `(M^E) MOD N`。
+
+所以：`(Registeration Code ^ E) MOD N = MD5(Name + Organization)`
+
+即：`Registeration Code = [ MD5( Name + Organization ) ^ D ] MOD N`
+
+因为：`MD5(娃娃[CCG])=3E32771176B5CE99ED7C920DD28EADD6`
+
+得出等式：`Registeration Code = [ 3E32771176B5CE99ED7C920DD28EADD6 ^ 1E2D9B52ADCBC20DCCDE3C721AA740E83 ] MOD 24DFDA27FA14D3F27DDF62CEA5D2381F9`
+
+这时就需要用到 `BigInt Calculator` 了。
+
+设 `X=82674165571952145171965745053779799510`
+`Y=641818296898666730290105568133836443267`
+`Z=784232236484777663526392470596418241017`
+
+然后计算 `X^Y%Z`
+
+得出结果为：`362487173057627226939435819421597555030`
+
+在将其转换成十六进制得到：`110B47D7782077078380A409E3295D956`
+
+字符串 `110B47D7782077078380A409E3295D956` 即为有效 `Key`。
+
+### 有效 Key 示例
+
+给出两组有效 `Key` 方便各位加深理解
+
+**Name:** 娃娃
+**Organization:** [CCG]
+**Registeration Code:** `110B47D7782077078380A409E3295D956`
+
+**Name:** `NYDoll`
+**Organization:** `CHiNA CrACKiNG GrOUp`
+**Registeration Code:** `188B6DE7B64A99CA1DFE50084A6372ADE`
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\* 注册机(`VC` 源代码) \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```c
+/*
+Lockless CrackMe #4 注册机  娃娃/[CCG]制作
+RSA 算法的源代码引用自 tE! 的 PowerStrip keygenerator
+MD5 算法引用 Colin Plumb 和 John Walker 编写的模板
+程序使用 freelip 的动态连接库
+*/
+
+#include <windows.h>
+#include <lip.h>
+#include <memory.h>
+
+#define DLG_MAIN                    111
+#define BT_GENERATE                 1008
+#define EDIT_NAME                   1009
+#define EDIT_CODE                   1010
+#define EDIT_ORG                   1011
+
+typedef unsigned long uint32;
+
+struct MD5Context {
+        uint32 buf[4];
+        uint32 bits[2];
+        unsigned char in[64];
+};
+
+void MD5Transform(uint32*, uint32*);
+
+void byteReverse(buf, longs)
+    unsigned char *buf; unsigned longs;
+{
+    uint32 t;
+    do {
+    t = (uint32) ((unsigned) buf[3] << 8 | buf[2]) << 16 |
+        ((unsigned) buf[1] << 8 | buf[0]);
+    *(uint32 *) buf = t;
+    buf += 4;
+    } while (--longs);
+}
+
+void MD5Init(ctx)
+    struct MD5Context *ctx;
+{
+    ctx->buf[0] = 0x67452301;
+    ctx->buf[1] = 0xefcdab89;
+    ctx->buf[2] = 0x98badcfe;
+    ctx->buf[3] = 0x10325476;
+    ctx->bits[0] = 0;
+    ctx->bits[1] = 0;
+}
+
+void MD5Update(ctx, buf, len)
+    struct MD5Context *ctx; unsigned char *buf; unsigned len;
+{
+    uint32 t;
+    t = ctx->bits[0];
+    if ((ctx->bits[0] = t + ((uint32) len << 3)) < t)
+    ctx->bits[1]++;      /* Carry from low to high */
+    ctx->bits[1] += len >> 29;
+    t = (t >> 3) & 0x3f;    /* Bytes already in shsInfo->data */
+    /* Handle any leading odd-sized chunks */
+    if (t) {
+    unsigned char *p = (unsigned char *) ctx->in + t;
+    t = 64 - t;
+    if (len < t) {
+        memcpy(p, buf, len);
+        return;
+    }
+    memcpy(p, buf, t);
+    byteReverse(ctx->in, 16);
+    MD5Transform(ctx->buf, (uint32 *) ctx->in);
+    buf += t;
+    len -= t;
+    }
+    /* Process data in 64-byte chunks */
+    while (len >= 64) {
+    memcpy(ctx->in, buf, 64);
+    byteReverse(ctx->in, 16);
+    MD5Transform(ctx->buf, (uint32 *) ctx->in);
+    buf += 64;
+    len -= 64;
+    }
+    /* Handle any remaining bytes of data. */
+    memcpy(ctx->in, buf, len);
+}
+
+void MD5Final(digest, ctx)
+    unsigned char digest[16]; struct MD5Context *ctx;
+{
+    unsigned count;
+    unsigned char *p;
+    count = (ctx->bits[0] >> 3) & 0x3F;
+    p = ctx->in + count;
+    *p++ = 0x80;
+    count = 64 - 1 - count;
+    /* Pad out to 56 mod 64 */
+    if (count < 8) {
+    memset(p, 0, count);
+    byteReverse(ctx->in, 16);
+    MD5Transform(ctx->buf, (uint32 *) ctx->in);
+    memset(ctx->in, 0, 56);
+    } else {
+    memset(p, 0, count - 8);
+    }
+    byteReverse(ctx->in, 14);
+    ((uint32 *) ctx->in)[14] = ctx->bits[0];
+    ((uint32 *) ctx->in)[15] = ctx->bits[1];
+    MD5Transform(ctx->buf, (uint32 *) ctx->in);
+    byteReverse((unsigned char *) ctx->buf, 4);
+    memcpy(digest, ctx->buf, 16);
+}
+```
+
+
+
+```c
+    memset(ctx, 0, sizeof(ctx));
+
+}
+
+/* The four core functions - F1 is optimized somewhat */
+
+/* #define F1(x, y, z) (x & y | ~x & z) */
+
+#define F1(x, y, z) (z ^ (x & (y ^ z)))
+
+#define F2(x, y, z) F1(z, x, y)
+
+#define F3(x, y, z) (x ^ y ^ z)
+
+#define F4(x, y, z) (y ^ (x | ~z))
+
+/* This is the central step in the MD5 algorithm. */
+
+#define MD5STEP(f, w, x, y, z, data, s) \
+    ( w += f(x, y, z) + data,  w = w<<s | w>>(32-s),  w += x )
+
+void MD5Transform(buf, in)
+    uint32 buf[4]; uint32 in[16];
+{
+    register uint32 a, b, c, d;
+
+    a = buf[0];
+
+    b = buf[1];
+
+    c = buf[2];
+
+    d = buf[3];
+
+    MD5STEP(F1, a, b, c, d, in[0] + 0xd76aa478, 7);
+
+    MD5STEP(F1, d, a, b, c, in[1] + 0xe8c7b756, 12);
+
+    MD5STEP(F1, c, d, a, b, in[2] + 0x242070db, 17);
+
+    MD5STEP(F1, b, c, d, a, in[3] + 0xc1bdceee, 22);
+
+    MD5STEP(F1, a, b, c, d, in[4] + 0xf57c0faf, 7);
+
+    MD5STEP(F1, d, a, b, c, in[5] + 0x4787c62a, 12);
+
+    MD5STEP(F1, c, d, a, b, in[6] + 0xa8304613, 17);
+
+    MD5STEP(F1, b, c, d, a, in[7] + 0xfd469501, 22);
+
+    MD5STEP(F1, a, b, c, d, in[8] + 0x698098d8, 7);
+
+    MD5STEP(F1, d, a, b, c, in[9] + 0x8b44f7af, 12);
+
+    MD5STEP(F1, c, d, a, b, in[10] + 0xffff5bb1, 17);
+
+    MD5STEP(F1, b, c, d, a, in[11] + 0x895cd7be, 22);
+
+    MD5STEP(F1, a, b, c, d, in[12] + 0x6b901122, 7);
+
+    MD5STEP(F1, d, a, b, c, in[13] + 0xfd987193, 12);
+
+    MD5STEP(F1, c, d, a, b, in[14] + 0xa679438e, 17);
+
+    MD5STEP(F1, b, c, d, a, in[15] + 0x49b40821, 22);
+
+    MD5STEP(F2, a, b, c, d, in[1] + 0xf61e2562, 5);
+
+    MD5STEP(F2, d, a, b, c, in[6] + 0xc040b340, 9);
+
+    MD5STEP(F2, c, d, a, b, in[11] + 0x265e5a51, 14);
+
+    MD5STEP(F2, b, c, d, a, in[0] + 0xe9b6c7aa, 20);
+
+    MD5STEP(F2, a, b, c, d, in[5] + 0xd62f105d, 5);
+
+    MD5STEP(F2, d, a, b, c, in[10] + 0x02441453, 9);
+
+    MD5STEP(F2, c, d, a, b, in[15] + 0xd8a1e681, 14);
+
+    MD5STEP(F2, b, c, d, a, in[4] + 0xe7d3fbc8, 20);
+
+    MD5STEP(F2, a, b, c, d, in[9] + 0x21e1cde6, 5);
+
+    MD5STEP(F2, d, a, b, c, in[14] + 0xc33707d6, 9);
+
+    MD5STEP(F2, c, d, a, b, in[3] + 0xf4d50d87, 14);
+
+    MD5STEP(F2, b, c, d, a, in[8] + 0x455a14ed, 20);
+
+    MD5STEP(F2, a, b, c, d, in[13] + 0xa9e3e905, 5);
+
+    MD5STEP(F2, d, a, b, c, in[2] + 0xfcefa3f8, 9);
+
+    MD5STEP(F2, c, d, a, b, in[7] + 0x676f02d9, 14);
+
+    MD5STEP(F2, b, c, d, a, in[12] + 0x8d2a4c8a, 20);
+
+    MD5STEP(F3, a, b, c, d, in[5] + 0xfffa3942, 4);
+
+    MD5STEP(F3, d, a, b, c, in[8] + 0x8771f681, 11);
+
+    MD5STEP(F3, c, d, a, b, in[11] + 0x6d9d6122, 16);
+
+    MD5STEP(F3, b, c, d, a, in[14] + 0xfde5380c, 23);
+
+    MD5STEP(F3, a, b, c, d, in[1] + 0xa4beea44, 4);
+
+    MD5STEP(F3, d, a, b, c, in[4] + 0x4bdecfa9, 11);
+
+    MD5STEP(F3, c, d, a, b, in[7] + 0xf6bb4b60, 16);
+
+    MD5STEP(F3, b, c, d, a, in[10] + 0xbebfbc70, 23);
+
+    MD5STEP(F3, a, b, c, d, in[13] + 0x289b7ec6, 4);
+
+    MD5STEP(F3, d, a, b, c, in[0] + 0xeaa127fa, 11);
+
+    MD5STEP(F3, c, d, a, b, in[3] + 0xd4ef3085, 16);
+
+    MD5STEP(F3, b, c, d, a, in[6] + 0x04881d05, 23);
+
+    MD5STEP(F3, a, b, c, d, in[9] + 0xd9d4d039, 4);
+
+    MD5STEP(F3, d, a, b, c, in[12] + 0xe6db99e5, 11);
+
+    MD5STEP(F3, c, d, a, b, in[15] + 0x1fa27cf8, 16);
+
+    MD5STEP(F3, b, c, d, a, in[2] + 0xc4ac5665, 23);
+
+    MD5STEP(F4, a, b, c, d, in[0] + 0xf4292244, 6);
+
+    MD5STEP(F4, d, a, b, c, in[7] + 0x432aff97, 10);
+
+    MD5STEP(F4, c, d, a, b, in[14] + 0xab9423a7, 15);
+
+    MD5STEP(F4, b, c, d, a, in[5] + 0xfc93a039, 21);
+
+    MD5STEP(F4, a, b, c, d, in[12] + 0x655b59c3, 6);
+
+    MD5STEP(F4, d, a, b, c, in[3] + 0x8f0ccc92, 10);
+
+    MD5STEP(F4, c, d, a, b, in[10] + 0xffeff47d, 15);
+
+    MD5STEP(F4, b, c, d, a, in[1] + 0x85845dd1, 21);
+
+    MD5STEP(F4, a, b, c, d, in[8] + 0x6fa87e4f, 6);
+
+    MD5STEP(F4, d, a, b, c, in[15] + 0xfe2ce6e0, 10);
+
+    MD5STEP(F4, c, d, a, b, in[6] + 0xa3014314, 15);
+
+    MD5STEP(F4, b, c, d, a, in[13] + 0x4e0811a1, 21);
+
+    MD5STEP(F4, a, b, c, d, in[4] + 0xf7537e82, 6);
+
+    MD5STEP(F4, d, a, b, c, in[11] + 0xbd3af235, 10);
+
+    MD5STEP(F4, c, d, a, b, in[2] + 0x2ad7d2bb, 15);
+
+    MD5STEP(F4, b, c, d, a, in[9] + 0xeb86d391, 21);
+
+    buf[0] += a;
+
+    buf[1] += b;
+
+    buf[2] += c;
+
+    buf[3] += d;
+
+}
+
+char eulav(long i);
+
+void zhconvert(verylong a, char *dbuff, int CodeLen){
+
+    static    char *b;
+
+    register long i,j,cnt = 0;
+
+    b = (char *)malloc( (size_t)(a[0] << 3) );
+
+    if (!b) return;
+
+    do    {
+        b[cnt] = eulav(a[1] & 15);
+
+        cnt++;
+
+        zrshift(a, (long) 4, &a);
+
+    }
+
+    while ( (a[1] != 0) || (a[0] != 1) || (cnt < CodeLen) );
+
+    b[cnt]&=0x00;
+
+    j=cnt-1;
+
+    for    (i=0; i<cnt; i++)    {
+        dbuff[i]=b[j];
+
+        j--;
+
+    }
+
+    dbuff[i]=0x00;
+
+    free(b);
+
+}
+
+void GenerateCode(HWND hDlg){
+
+    static char modulus_n[]="24DFDA27FA14D3F27DDF62CEA5D2381F9";
+
+    static char private_d[]="1E2D9B52ADCBC20DCCDE3C721AA740E83";
+
+    static char hextab[]="0123456789ABCDEF";
+
+    char       szName[31], szOrg[31], szH[62], signature[16], md[33];
+
+    struct MD5Context md5c;
+
+        char       Regcode[42];
+
+    int       i,j,nLen,oLen;
+
+    BYTE      t, u;
+
+    verylong  d = 0;
+
+    verylong  m = 0;
+
+    verylong  n = 0;
+
+    nLen=GetDlgItemTextA(hDlg, EDIT_NAME, szName, 31);
+
+        oLen=GetDlgItemTextA(hDlg, EDIT_ORG, szOrg, 31);
+
+    if    (nLen < 1) {
+        SetDlgItemTextA(hDlg, EDIT_CODE, "Name must contain at least 1 char.");
+
+        return;
+
+    }
+
+    if    (oLen < 1) {
+        SetDlgItemTextA(hDlg, EDIT_CODE, "Organization must contain at least 1 char.");
+
+        return;
+
+    }
+
+    //concatenate the strings
+
+    for (i=0; i<nLen; i++) szH[i] = szName[i];
+
+    for (i=0; i<oLen; i++) szH[nLen+i] = szOrg[i];
+
+    szH[nLen+oLen] = '\0';
+
+    MD5Init(&md5c);
+
+    MD5Update(&md5c, szH, nLen+oLen);
+
+    MD5Final(signature, &md5c);
+
+    j=0;
+
+    for    (i=0; i<16; i++){
+        u=t=signature[i];
+
+        md[j]=hextab[((t & 0xF0) >> 4)];
+
+        md[j+1]=hextab[(u & 0x0F)];
+
+        j+=2;
+
+    }
+
+    md[j]&=0x00;
+
+    /* Read in Bignums */
+
+    zstrtozbas(modulus_n, (long) 16, &n);
+
+    zstrtozbas(private_d, (long) 16, &d);
+
+    zstrtozbas(md, (long) 16, &m);
+
+    /* m = m^d % n */
+
+    zexpmod(m,d,n,&m);
+
+    /* Convert m to Hex String, 32 Chars long */
+
+    zhconvert(m, md, 32);
+
+        /* Clean up */
+
+    zfree(&d);
+
+    zfree(&m);
+
+    zfree(&n);
+
+    /* Show Regcode */
+
+    SetDlgItemTextA(hDlg, EDIT_CODE, md);
+
+}
+
+BOOL CALLBACK DlgP (HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+
+{
+
+    switch (message)
+
+    {
+
+        case WM_INITDIALOG :
+            SendDlgItemMessageA(hDlg, EDIT_NAME, EM_SETLIMITTEXT, (WPARAM) 30, 0);
+
+            SetWindowTextA(hDlg, "KeyGen For Bishop Lockless CrackMe4 By 娃娃/[CCG]");
+
+            SetDlgItemTextA(hDlg, EDIT_CODE, "请输入用户名和组织名.");
+
+            return TRUE;
+
+        case WM_COMMAND :
+            switch (LOWORD (wParam))
+
+            {
+
+                case BT_GENERATE :
+                    GenerateCode(hDlg);
+
+                    SetFocus(GetDlgItem(hDlg, EDIT_NAME));
+
+                    break;
+
+                case IDCANCEL :
+                    EndDialog (hDlg, 0);
+
+                    break;
+
+            }
+
+            break;
+
+    }
+
+    return FALSE;
+
+}
+```
+
+
+
+```
+int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow)
+{
+    DialogBoxA(hInstance, MAKEINTRESOURCE(DLG_MAIN), 0, DlgP);
+    return 0;
+}
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*`KeyGen.RC`\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+\`\`\`rc
+111 DIALOG 24, 50, 210, 119
+
+STYLE DS_ABSALIGN | DS_MODALFRAME | 0xA04L | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+
+CAPTION "KeyGen By 娃娃/[CCG]"
+
+FONT 9, "宋体"
+
+LANGUAGE LANG_FRENCH, SUBLANG_NEUTRAL
+
+{
+    CONTROL "", 1009, "EDIT", ES_LEFT | ES_AUTOHSCROLL | ES_OEMCONVERT | WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 4, 13, 202, 12
+    CONTROL "(&G)生成", 1008, "BUTTON", BS_PUSHBUTTON | WS_CHILD | WS_VISIBLE | WS_TABSTOP, 7, 101, 45, 13
+    CONTROL "(&X)退出", 2, "BUTTON", BS_PUSHBUTTON | WS_CHILD | WS_VISIBLE | WS_TABSTOP, 59, 101, 45, 13
+    CONTROL "", 1010, "EDIT", ES_LEFT | ES_AUTOHSCROLL | ES_READONLY | WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 4, 73, 202, 12
+    CONTROL "用户名称:", -1, "STATIC", SS_LEFT | WS_CHILD | WS_VISIBLE | WS_GROUP, 5, 4, 36, 8
+    CONTROL "您的注册码:", -1, "STATIC", SS_LEFT | WS_CHILD | WS_VISIBLE | WS_GROUP, 6, 64, 60, 8
+    CONTROL "组织名称:", -1, "STATIC", SS_LEFT | WS_CHILD | WS_VISIBLE | WS_GROUP, 6, 32, 64, 8
+    CONTROL "", 1011, "EDIT", ES_LEFT | ES_AUTOHSCROLL | ES_OEMCONVERT | WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 4, 41, 202, 12
+}
+\`\`\`
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+好久都没有写这种破解文章了 看着以前破解界的朋友现在或忙于工作或投身于编程或者逆向工程 也不知道自己心里是因为技不如人而感到羞愧 还是因为失去一些可以互相交流和帮助的老朋友而感到惋惜 看雪论坛陪我度过了 3 年的时光 无数精彩的回忆都留在这里 不免有的时候想想再过三年之后的看雪论坛 想想三年之后的\[CCG\] 又或者想想三年之后的我 …… …… 无限惆怅
+
+不好意思 一时间有感而发 说多了
+
+还是那句话：仅以此文献给我可爱的组织 CCG 希望他能蒸蒸日上
+
+作者：娃娃 QQ:15110296 EMAil:Nydoll@etang.com
+
+属于中国破解组织 CCG(CHiNA CrACKiNG GrOUp)
+
+写于 2002 年 11 月 8 日
+
+\*/转贴请保持完整 并写明出处:"看雪软件调试论坛" 作者:"娃娃[CCG]"/\*
+
+`4dd466d0e1e0cc123afbe504da2462ca`

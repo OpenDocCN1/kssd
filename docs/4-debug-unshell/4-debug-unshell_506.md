@@ -1,437 +1,454 @@
 
-
 # ASPr 2.0.06.23 Alpha 另一种法子脱壳(Import Recovery&补区段&Script)
 
 > 原文：[`www.pediy.com/kssd/pediy09/pediy09-495.htm`](https://www.pediy.com/kssd/pediy09/pediy09-495.htm)
 
-> 【文章标题】: ASPr 2.0.06.23 Alpha 另一种法子脱壳(Import Recovery&补区段&Script)  
-> 【文章作者】: wynney  
-> 【下载地址】: http://bbs.pediy.com/attachment.php?attachmentid=5186  
-> 【操作平台】: XP SP2 64 位双核  
-> 【作者声明】: ASPr 2.0Alpha 两个分支的处理  
-> \--------------------------------------------------------------------------------  
-> 【详细过程】  
->   
->   一、前言  
->     
->   前几天似乎在论坛上看到一个程序就是 2.0Alpha 的，volx 大侠的脚本不支持，遂连同 1.31 一并看了下，发现 1.31 和 2.0Alpha  
->   基本上差不多，稍有不同。  
->     
->   二、“探听军情”  
->     
->   忽略除了内存访问异常和指定异常之外的所有异常  
->   到达最后一次异常后在 Code 段下断，Shift+F9，中断在 Code 段后  
->   易发现输入表是 Call 类型的，而且有 Stolen OEP，这就是我们要探听的军情了  
->     
->   三、输入表处理  
->     
->   请忽略所有异常  
->   bp VirtualAlloc,Shift+F9,中断两次，取消断点  
->   Alt+F9 一次  
->   接着  
->   Ctrl+F9 一次  
->     
->    
-> 
-> 引用:   00AA8000    90              nop                               ; 返回到这  
->   00AA8001    60              pushad                            ; 看到这，突想到某大侠说过 ASProtect=ASPcak+dll  
->   00AA8002    E8 40060000     call    00AA8647                  ; F8 到这，hr esp  
->   00AA8007    EB 44           jmp     short 00AA804D  
->   00AA8009    0000            add     byte ptr \[eax\], al  
->   00AA800B    0000            add     byte ptr \[eax\], al  
->    
-> 
->     
->   Shift+F9  
->     
->   
-> 
-> 引用:   00AA85C2   /75 08           jnz     short 00AA85CC            ; Shift+F9 中断在这，删除断点  
->   00AA85C4   |B8 01000000     mov     eax, 1  
->   00AA85C9   |C2 0C00         retn    0C  
->   00AA85CC   \\68 788FA900     push    0A98F78  
->   00AA85D1    C3              retn  
->    
-> 
->     
->    1、Ctrl+B:8A 00 FF 43 08   
->     
->   
-> 
-> 引用:   00A8CC8A   /75 1A           jnz     short 00A8CCA6            ; IAT 处理完就跳  
->   00A8CC8C   |EB 01           jmp     short 00A8CC8F  
->   00A8CC8E   |698B C7E8CE58 F>imul    ecx, dword ptr \[ebx+58CEE>  
->   00A8CC98   |E9 1B040000     jmp     00A8D0B8  
->   00A8CC9D  -|E9 E9150400     jmp     00ACE28B  
->   00A8CCA2   |00EB            add     bl, ch  
->   00A8CCA4   |01E8            add     eax, ebp  
->   00A8CCA6   \\337424 28       xor     esi, dword ptr \[esp+28\]  
->   00A8CCAA    0373 40         add     esi, dword ptr \[ebx+40\]  
->   00A8CCAD    8B43 08         mov     eax, dword ptr \[ebx+8\]  
->   00A8CCB0    8A00            mov     al, byte ptr \[eax\]        ; 找到这，F2，Shift+F9 中断下来，删除断点  
->   00A8CCB2    FF43 08         inc     dword ptr \[ebx+8\]  
->   00A8CCB5    33D2            xor     edx, edx  
->   00A8CCB7    8AD0            mov     dl, al  
->   00A8CCB9    8BC7            mov     eax, edi  
->    
-> 
->     
->    2、Ctrl+B:8B 54 24 0C 89 02 8B 44 24 0C 89 06 0F B7 44 24 04 01 43 08   
->     
->   
-> 
-> 引用:   00A8CEAD    8B5424 0C       mov     edx, dword ptr \[esp+C\]    ; 找到这  
->   00A8CEB1    8902            mov     dword ptr \[edx\], eax      ; ①ebp 里才是 IAT，把 eax 改成 ebp  
->   00A8CEB3    8B4424 0C       mov     eax, dword ptr \[esp+C\]  
->   00A8CEB7    8906            mov     dword ptr \[esi\], eax  
->   00A8CEB9    0FB74424 04     movzx   eax, word ptr \[esp+4\]  
->   00A8CEBE    0143 08         add     dword ptr \[ebx+8\], eax  
->    
-> 
->     
->    3、Ctrl+B:53 8B D8 8B C3 E8 ?? ?? ?? ?? C6 03 E8 43 89 03 5B C3   
->     
->   
-> 
-> 引用:   00A83780    53              push    ebx                       ; ②找到这，Patch 这里  
->   00A83781    8BD8            mov     ebx, eax  
->   00A83783    8BC3            mov     eax, ebx  
->   00A83785    E8 56FFFFFF     call    00A836E0  
->   00A8378A    C603 E8         mov     byte ptr \[ebx\], 0E8       ; 这里是 IAT 加密，给改成 E8 了  
->   00A8378D    43              inc     ebx  
->   00A8378E    8903            mov     dword ptr \[ebx\], eax  
->   00A83790    5B              pop     ebx  
->   00A83791    C3              retn 3  
->    
-> 
->     
->   以下是 Patch 代码  
->   
->   
-> 
-> 引用:   00A83780    66:C700 FF15    mov     word ptr \[eax\], 15FF      ; Call 类型的，第二步探听到的，呵呵，如果是 jmp 类型的把 15FF 改成 25FF 即可  
->   00A83785    83C0 02         add     eax, 2  
->   00A83788    8910            mov     dword ptr \[eax\], edx  
->   00A8378A    892A            mov     dword ptr \[edx\], ebp      ; ebp 是正确的 IAT  
->   00A8378C    90              nop  
->   00A8378D    90              nop  
->   00A8378E    90              nop  
->   00A8378F    90              nop  
->   00A83790    90              nop  
->   00A83791    C3              retn  
->     
->   66 C7 00 FF 15 83 C0 02 89 10 89 2A 90 90 90 90 90 C3  
->    
-> 
->   
-> 另外判断是 Jmp 还是 Call 类型的方法  
-> Ctrl+B:8B 54 24 0C 89 02 8D 4C 24 0C 8A 54 24 07 8B C3  
->   
-> 
-> 引用: 00A8CDD1    8B5424 0C       mov     edx, dword ptr \[esp+C\]           ; 找到这  
-> 00A8CDD5    8902            mov     dword ptr \[edx\], eax  
-> 00A8CDD7    8D4C24 0C       lea     ecx, dword ptr \[esp+C\]  
-> 00A8CDDB    8A5424 07       mov     dl, byte ptr \[esp+7\]             ; \[esp+7\]为 1 则 jmp\[xxxxxxxx\]类型，为 2 则 Call\[xxxxxxxx\]类型  
-> 00A8CDDF    8BC3            mov     eax, ebx  
-> 00A8CDE1    E8 FAF7FFFF     call    00A8C5E0  
-> 00A8CDE6    8BC6            mov     eax, esi  
-> 00A8CDE8    83E8 02         sub     eax, 2 
-> 
->   
->     
->    4、Ctrl+B：C6 03 E9 8D 53 01 89 02 8B 45 08 89 10 B8 05 00 00 00 5B 5D C2 04 00   
->     
->   
-> 
-> 引用:   00A83767    C603 E9         mov     byte ptr \[ebx\], 0E9       ; 找到这，F2 打个埋伏，为了找方便伪 OEP  
->   00A8376A    8D53 01         lea     edx, dword ptr \[ebx+1\]  
->   00A8376D    8902            mov     dword ptr \[edx\], eax  
->   00A8376F    8B45 08         mov     eax, dword ptr \[ebp+8\]  
->   00A83772    8910            mov     dword ptr \[eax\], edx  
->   00A83774    B8 05000000     mov     eax, 5  
->   00A83779    5B              pop     ebx  
->   00A8377A    5D              pop     ebp  
->   00A8377B    C2 0400         retn    4  
->    
-> 
->     
->     
->   四、到达伪 OEP&补区段  
->     
->   做了上述 2 处 Patch 后，Shift+F9，中断在 00A83767，删除断点，注意看 ECX=00CE0178  
->   这个地址就是 Stolen Code 的起始地址  
->     
->   Ctrl+G：00CE0178  
->     
->   
-> 
-> 引用:   00CE0178    55              push    ebp                       ; 伪 OEP，F2，Shift+F9，中断后删除断点  
->   00CE0179    89E5            mov     ebp, esp  
->   00CE017B    6A FF           push    -1  
->   00CE017D    F3:             prefix rep:  
->   00CE017E    EB 02           jmp     short 00CE0182  
->   00CE0180    CD20 FF74241C   vxdcall 1C2474FF  
->   00CE0186    66:9C           pushfw  
->   00CE0188    51              push    ecx  
->   00CE0189    81C1 CED3EF23   add     ecx, 23EFD3CE  
->    
-> 
->    
-> 
->   
->   补上这么几个区段  
->   
->   Region00920000-00928000.DMP  
->   Region00AB0000-00AC8000.DMP  
->   Region00BB0000-00C00000.DMP  
->   Region00CE0000-00CE1000.DMP  
->     
->   修改虚拟地址后，最后只选上“验证 PE”重建 PE！  
->   想完美恢复 Stolen OEP 的话，就根据程序语言特征从这里慢慢分析吧：）  
->     
->   五、ImportREC 上阵  
->     
->   按照如图所示操作
-> 
-> ![](img/8781b320bc861594cc179b8cec62daeb.jpg)
-> 
-> ![](img/a303cad1ea42b62195aaeb35515265de.jpg)
-> 
-> ![](img/28cfc52ba30fdb152bc75d4db0e44df5.jpg)
-> 
-> ![](img/25335a1b866d9bd6597718e711e19b92.jpg)  
->   
->   如若想顺便解决下跨平台的问题的话，就纠正几个 ntdll.dll 函数为 kernel32.dll 函数  
->     
->     
->   ntdll.dll                                    kernel32.dll  
->   \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
->   RtlUnwind                                    RtlUnwind  
->   RtlFreeHeap                                  HeapFree  
->   RtlAllocateHeap                              HeapAlloc  
->   RtlGetLastWin32Error                         GetLastError  
->     
->     
->   纠正 OEP 为 8E0178，修复！  
->   最后优化下文件吧  
->    
->   
->   
-> 附上简单的修复脚本吧  
->   
-> 请忽略所有异常，否则用不了，没测试其他平台如何  
-> 
->  
-> 
-> 引用: /\*  
-> Script written by wynney  
->   
-> Date:   2007-04-12  
-> Script:ASProtect 2.0 Alpha Simple Fixer  
-> Environment : OllyDbg 1.1, ODBGScript 1.52,Winxp Sp2  
-> Debugging options: Tick all items in OllyDbg's Debugging Options-Exceptions  
->   
-> Thanks :  
->          kanxue     - author of HideOD         
->          hnhuqiong  - author of ODbgScript 1.52  
-> \*/  
->   
-> var API  
-> var PatchAddr  
-> var ImagBase  
-> var ImagSize  
-> var CBase  
-> var CSize  
-> var Dll  
-> var DllBase  
-> var Addr  
-> var 1st  
-> var 2nd  
-> var end  
-> var Start  
-> var temp  
-> var SC  
-> var fix  
->   
-> //获取基址  
-> GetBase:  
->                dbh  
->                BPHWCALL  
->                GMI eip, ModuleBase  
->                cmp $RESULT,0  
->                je error  
->                mov ImagBase,$RESULT  
->                GMI eip,ModuleSize  
->                cmp $RESULT,0  
->                je error  
->                mov ImagSize,$RESULT  
->                GMI eip,CodeBase       
->                cmp $RESULT,0  
->                je error  
->                mov CBase,$RESULT  
->                GMI eip, CodeSize  
->                cmp $RESULT,0  
->                je error  
->                mov CSize,$RESULT  
->   
-> //进入 Dll  
-> Getloader:  
->               GPA "GetModuleHandleA","kernel32.Dll"  
->               cmp $RESULT,0  
->               je error  
->               mov API,$RESULT  
->               bphws API,"x"  
->               esto  
->               esto  
->               bphwc API  
->               RTU  
->               mov DllBase,eax  
->               find eip,#617508B801000000C20C0068????????C3#  
->               cmp $RESULT,0  
->               je error  
->               mov temp,$RESULT  
->               bp temp  
->               esto  
->               bc temp  
->               mov PatchAddr,\[esp\]  
->               mov fix,\[esp\]  
->               mov temp,esp  
->               bphws temp,"r"  
->               esto  
->               bphwc temp  
->   
-> FindAddr:  
->               find eip,#C603E98D530189028B45088910B8050000005B5DC20400#  
->               cmp $RESULT,0  
->               je error  
->               mov SC,$RESULT  
->               find eip,#8BC0538BD88BC3E8????????C603E84389035BC3#  
->               cmp $RESULT,0  
->               je error  
->               mov 2nd,$RESULT  
->               add 2nd,0C  
->               find eip,#8A00FF430833D28AD08BC7#  
->               cmp $RESULT,0  
->               je error  
->               mov temp,$RESULT  
->               bp temp  
->               esto  
->               bc temp  
->               sub temp,03D  
->               mov Start,temp  
->               find eip,#83C4??5D5F5E5BC3#  
->               cmp $RESULT,0  
->               je error  
->               mov end,$RESULT  
->               add end,7  
->   
-> SetData:  
->               mov Dll,PatchAddr  
->               mov \[Dll\],DllBase  
->               mov Addr,PatchAddr  
->               add Addr,08  
->               mov temp,CBase  
->               add temp,CSize  
->               mov \[Addr\],temp  
->   
-> Patch1st:  
->               find eip,#8B44240C89060FB7442404014308#  
->               cmp $RESULT,0  
->               je error  
->               mov 1st,$RESULT  
->               add PatchAddr,11  
->               mov \[PatchAddr\],#51528B54241C3B150000A700740D89150000A70083050800A700048B0D0800A7008929890E83050800A700045A596890909090C390#  
->               eval "jmp {PatchAddr}"  
->               asm 1st,$RESULT  
->               add 1st,5  
->               fill 1st,1,90  
->               add 1st,1  
->               add PatchAddr,2F  
->               mov \[PatchAddr\],1st  
->   
-> Patch2nd:  
->               add PatchAddr,6  
->               mov \[PatchAddr\],#51528B5424243B150000A700740D89150000A70083050800A700048B0D0800A7008929890E83050800A7000466C703FF15807C241702740566C703FF255A596890909090C390#  
->              eval "jmp {PatchAddr}"  
->              asm 2nd,$RESULT  
->              add 2nd,5  
->              fill 2nd,1,90  
->              add 2nd,1  
->              add PatchAddr,40  
->              mov \[PatchAddr\],2nd  
->   
-> FixData:  
->           add fix,19  
->           mov \[fix\],Dll  
->           add fix,8  
->           mov \[fix\],Dll  
->           add fix,6  
->           mov \[fix\],Addr  
->           add fix,7  
->           mov \[fix\],Addr  
->           add fix,0A  
->           mov \[fix\],Addr  
->   
->           add fix,16  
->           mov \[fix\],Dll  
->           add fix,8  
->           mov \[fix\],Dll  
->           add fix,6  
->           mov \[fix\],Addr  
->           add fix,7  
->           mov \[fix\],Addr  
->           add fix,0A  
->           mov \[fix\],Addr  
->   
-> Final:  
->            bphws end,"x"  
->            esto  
->            BPHWCALL  
->            BPRM CBase,CSize  
->            esto  
->            BPMC  
->            bphws SC,"x"  
->            jmp Done  
->   
-> HavSC:  
->           BPHWCALL  
->           mov temp,ecx  
->           bp temp  
->           esto  
->           bc temp  
->           jmp OK  
->            
-> Done:   
->           cmp eip,SC  
->           je HavSC  
->           MSGYN "请检查是否是 OEP？"  
->           cmp $RESULT,1  
->           je OK  
->           esto  
->           jmp HavSC  
->   
-> OK:   
->           BPHWCALL  
->           cmt eip,"OEP"  
->           msg "脚本完成，请使用 ImportREC 的高级指令修复输入表^\_^"  
->           ret                          
-> error:  
->          msg "错误退出:("  
->          ret 
-> 
-> ?  
->   
-> \--------------------------------------------------------------------------------  
-> 【经验总结】  
->   1、思路在于人想出来的：）  
->     
->   2、本想写一个支持 1.31 和 2.0 Alpha 的脚本的，写起来才发现，要做到通用还是蛮要点时间的，对 Volx 大侠的敬佩之情由然  
->   而生啊  
->     
->     
-> \--------------------------------------------------------------------------------  
-> 【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
->   
->                                                        2007 年 04 月 12 日 wynney 
+> 【文章标题】: ASPr 2.0.06.23 Alpha 另一种法子脱壳(Import Recovery&补区段&Script)
+> 【文章作者】: wynney
+> 【下载地址】: `http://bbs.pediy.com/attachment.php?attachmentid=5186`
+> 【操作平台】: XP SP2 64 位双核
+> 【作者声明】: ASPr 2.0Alpha 两个分支的处理
+>
+> ---
+> 【详细过程】
 
- 4dd466d0e1e0cc123afbe504da2462ca
+## 一、前言
+
+前几天似乎在论坛上看到一个程序就是 `2.0Alpha` 的，`volx` 大侠的脚本不支持，遂连同 `1.31` 一并看了下，发现 `1.31` 和 `2.0Alpha` 基本上差不多，稍有不同。
+
+## 二、“探听军情”
+
+1. 忽略除了内存访问异常和指定异常之外的所有异常
+2. 到达最后一次异常后在 `Code` 段下断，`Shift+F9`，中断在 `Code` 段后
+3. 易发现输入表是 `Call` 类型的，而且有 `Stolen OEP`，这就是我们要探听的军情了
+
+## 三、输入表处理
+
+1. 请忽略所有异常
+2. `bp VirtualAlloc` , `Shift+F9` , 中断两次，取消断点
+3. `Alt+F9` 一次
+4. 接着
+5. `Ctrl+F9` 一次
+
+引用:
+
+```
+  00AA8000    90                nop                   ; 返回到这
+  00AA8001    60                pushad                ; 看到这，突想到某大侠说过 ASProtect=ASPcak+dll
+  00AA8002    E8 40060000       call    00AA8647      ; F8 到这，hr esp
+  00AA8007    EB 44             jmp     short 00AA804D
+  00AA8009    0000              add     byte ptr [eax], al
+  00AA800B    0000              add     byte ptr [eax], al
+```
+
+`Shift+F9`
+
+引用:
+
+```
+  00AA85C2   /75 08             jnz     short 00AA85CC      ; Shift+F9 中断在这，删除断点
+  00AA85C4   |B8 01000000       mov     eax, 1
+  00AA85C9   |C2 0C00           retn    0C
+  00AA85CC   \68 788FA900       push    0A98F78
+  00AA85D1    C3                retn
+```
+
+1. `Ctrl+B:8A 00 FF 43 08`
+
+引用:
+
+```
+  00A8CC8A   /75 1A             jnz     short 00A8CCA6      ; IAT 处理完就跳
+  00A8CC8C   |EB 01             jmp     short 00A8CC8F
+  00A8CC8E   |698B C7E8CE58 F>imul    ecx, dword ptr [ebx+58CEE>
+  00A8CC98   |E9 1B040000       jmp     00A8D0B8
+  00A8CC9D  -|E9 E9150400       jmp     00ACE28B
+  00A8CCA2   |00EB               add     bl, ch
+  00A8CCA4   |01E8               add     eax, ebp
+  00A8CCA6   \337424 28         xor     esi, dword ptr [esp+28]
+  00A8CCAA    0373 40            add     esi, dword ptr [ebx+40]
+  00A8CCAD    8B43 08            mov     eax, dword ptr [ebx+8]
+  00A8CCB0    8A00               mov     al, byte ptr [eax]        ; 找到这，F2，Shift+F9 中断下来，删除断点
+  00A8CCB2    FF43 08            inc     dword ptr [ebx+8]
+  00A8CCB5    33D2               xor     edx, edx
+  00A8CCB7    8AD0               mov     dl, al
+  00A8CCB9    8BC7               mov     eax, edi
+```
+
+2. `Ctrl+B:8B 54 24 0C 89 02 8B 44 24 0C 89 06 0F B7 44 24 04 01 43 08`
+
+引用:
+
+```
+  00A8CEAD    8B5424 0C          mov     edx, dword ptr [esp+C]     ; 找到这
+  00A8CEB1    8902               mov     dword ptr [edx], eax      ; ①ebp 里才是 IAT，把 eax 改成 ebp
+  00A8CEB3    8B4424 0C          mov     eax, dword ptr [esp+C]
+  00A8CEB7    8906               mov     dword ptr [esi], eax
+  00A8CEB9    0FB74424 04        movzx   eax, word ptr [esp+4]
+  00A8CEBE    0143 08            add     dword ptr [ebx+8], eax
+```
+
+3. `Ctrl+B:53 8B D8 8B C3 E8 ?? ?? ?? ?? C6 03 E8 43 89 03 5B C3`
+
+引用:
+
+```
+  00A83780    53                push    ebx                ; ②找到这，Patch 这里
+  00A83781    8BD8               mov     ebx, eax
+  00A83783    8BC3               mov     eax, ebx
+  00A83785    E8 56FFFFFF        call    00A836E0
+  00A8378A    C603 E8            mov     byte ptr [ebx], 0E8       ; 这里是 IAT 加密，给改成 E8 了
+  00A8378D    43                inc     ebx
+  00A8378E    8903               mov     dword ptr [ebx], eax
+  00A83790    5B                pop     ebx
+  00A83791    C3                retn 3
+```
+
+以下是 `Patch` 代码：
+
+```
+  00A83780    66:C700 FF15      mov     word ptr [eax], 15FF     ; Call 类型的，第二步探听到的，呵呵，如果是 jmp 类型的把 15FF 改成 25FF 即可
+  00A83785    83C0 02            add     eax, 2
+  00A83788    8910               mov     dword ptr [eax], edx
+  00A8378A    892A               mov     dword ptr [edx], ebp      ; ebp 是正确的 IAT
+  00A8378C    90                nop
+  00A8378D    90                nop
+  00A8378E    90                nop
+  00A8378F    90                nop
+  00A83790    90                nop
+  00A83791    C3                retn
+```
+
+`66 C7 00 FF 15 83 C0 02 89 10 89 2A 90 90 90 90 90 C3`
+
+另外判断是 `Jmp` 还是 `Call` 类型的方法
+`Ctrl+B:8B 54 24 0C 89 02 8D 4C 24 0C 8A 54 24 07 8B C3`
+
+引用:
+
+```
+00A8CDD1    8B5424 0C          mov     edx, dword ptr [esp+C]            ; 找到这
+00A8CDD5    8902               mov     dword ptr [edx], eax
+00A8CDD7    8D4C24 0C          lea     ecx, dword ptr [esp+C]
+00A8CDDB    8A5424 07          mov     dl, byte ptr [esp+7]              ; [esp+7]为 1 则 jmp[xxxxxxxx]类型，为 2 则 Call[xxxxxxxx]类型
+00A8CDDF    8BC3               mov     eax, ebx
+00A8CDE1    E8 FAF7FFFFFF      call    00A8C5E0
+00A8CDE6    8BC6               mov     eax, esi
+00A8CDE8    83E8 02            sub     eax, 2
+```
+
+4. `Ctrl+B：C6 03 E9 8D 53 01 89 02 8B 45 08 89 10 B8 05 00 00 00 5B 5D C2 04 00`
+
+引用:
+
+```
+  00A83767    C603 E9          mov     byte ptr [ebx], 0E9       ; 找到这，F2 打个埋伏，为了找方便伪 OEP
+  00A8376A    8D53 01          lea     edx, dword ptr [ebx+1]
+  00A8376D    8902               mov     dword ptr [edx], eax
+  00A8376F    8B45 08          mov     eax, dword ptr [ebp+8]
+  00A83772    8910               mov     dword ptr [eax], edx
+  00A83774    B8 05000000      mov     eax, 5
+  00A83779    5B                pop     ebx
+  00A8377A    5D                pop     ebp
+  00A8377B    C2 0400            retn    4
+```
+
+## 四、到达伪 OEP&补区段
+
+做了上述 2 处 `Patch` 后，`Shift+F9`，中断在 `00A83767`，删除断点，注意看 `ECX=00CE0178`。
+这个地址就是 `Stolen Code` 的起始地址。
+
+`Ctrl+G`：`00CE0178`
+
+引用:
+
+```
+  00CE0178    55                push    ebp               ; 伪 OEP，F2，Shift+F9，中断后删除断点
+  00CE0179    89E5               mov     ebp, esp
+  00CE017B    6A FF               push    -1
+  00CE017D    F3:                 prefix rep:
+  00CE017E    EB 02               jmp     short 00CE0182
+  00CE0180    CD20 FF74241C     vxdcall 1C2474FF
+  00CE0186    66:9C               pushfw
+  00CE0188    51                push    ecx
+  00CE0189    81C1 CED3EF23     add     ecx, 23EFD3CE
+```
+
+补上这么几个区段：
+
+- `Region00920000-00928000.DMP`
+- `Region00AB0000-00AC8000.DMP`
+- `Region00BB0000-00C00000.DMP`
+- `Region00CE0000-00CE1000.DMP`
+
+修改虚拟地址后，最后只选上“验证 PE”重建 PE！
+想完美恢复 `Stolen OEP` 的话，就根据程序语言特征从这里慢慢分析吧：）
+
+## 五、ImportREC 上阵
+
+按照如图所示操作
+
+![](img/8781b320bc861594cc179b8cec62daeb.jpg)
+
+![](img/a303cad1ea42b62195aaeb35515265de.jpg)
+
+![](img/28cfc52ba30fdb152bc75d4db0e44df5.jpg)
+
+![](img/25335a1b866d9bd6597718e711e19b92.jpg)
+
+如若想顺便解决下跨平台的问题的话，就纠正几个 `ntdll.dll` 函数为 `kernel32.dll` 函数
+
+| ntdll.dll | kernel32.dll |
+| :--- | :--- |
+| `RtlUnwind` | `RtlUnwind` |
+| `RtlFreeHeap` | `HeapFree` |
+| `RtlAllocateHeap` | `HeapAlloc` |
+| `RtlGetLastWin32Error` | `GetLastError` |
+
+纠正 `OEP` 为 `8E0178`，修复！
+最后优化下文件吧
+
+附上简单的修复脚本吧
+请忽略所有异常，否则用不了，没测试其他平台如何
+
+```
+/*
+Script written by wynney
+
+Date:   2007-04-12
+```
+
+
+
+# ASProtect 2.0 Alpha Simple Fixer
+
+## 环境信息
+- **Script**: `ASProtect 2.0 Alpha Simple Fixer`
+- **Environment**: `OllyDbg 1.1`, `ODBGScript 1.52`, `Winxp Sp2`
+- **Debugging options**: Tick all items in `OllyDbg's Debugging Options-Exceptions`
+
+## 致谢
+- `kanxue` - author of `HideOD`
+- `hnhuqiong` - author of `ODbgScript 1.52`
+
+## 变量定义
+```
+var API
+var PatchAddr
+var ImagBase
+var ImagSize
+var CBase
+var CSize
+var Dll
+var DllBase
+var Addr
+var 1st
+var 2nd
+var end
+var Start
+var temp
+var SC
+var fix
+```
+
+## 获取基址 (`GetBase`)
+```
+GetBase:
+          dbh
+          BPHWCALL
+          GMI eip, ModuleBase
+          cmp $RESULT, 0
+          je error
+          mov ImagBase, $RESULT
+          GMI eip, ModuleSize
+          cmp $RESULT, 0
+          je error
+          mov ImagSize, $RESULT
+          GMI eip, CodeBase
+          cmp $RESULT, 0
+          je error
+          mov CBase, $RESULT
+          GMI eip, CodeSize
+          cmp $RESULT, 0
+          je error
+          mov CSize, $RESULT
+```
+
+## 进入 Dll (`Getloader`)
+```
+Getloader:
+          GPA "GetModuleHandleA","kernel32.Dll"
+          cmp $RESULT, 0
+          je error
+          mov API, $RESULT
+          bphws API,"x"
+          esto
+          esto
+          bphwc API
+          RTU
+          mov DllBase, eax
+          find eip, #617508B801000000C20C0068????????C3#
+          cmp $RESULT, 0
+          je error
+          mov temp, $RESULT
+          bp temp
+          esto
+          bc temp
+          mov PatchAddr, [esp]
+          mov fix, [esp]
+          mov temp, esp
+          bphws temp,"r"
+          esto
+          bphwc temp
+```
+
+## 查找地址 (`FindAddr`)
+```
+FindAddr:
+          find eip, #C603E98D530189028B45088910B8050000005B5DC20400#
+          cmp $RESULT, 0
+          je error
+          mov SC, $RESULT
+          find eip, #8BC0538BD88BC3E8????????C603E84389035BC3#
+          cmp $RESULT, 0
+          je error
+          mov 2nd, $RESULT
+          add 2nd, 0C
+          find eip, #8A00FF430833D28AD08BC7#
+          cmp $RESULT, 0
+          je error
+          mov temp, $RESULT
+          bp temp
+          esto
+          bc temp
+          sub temp, 03D
+          mov Start, temp
+          find eip, #83C4??5D5F5E5BC3#
+          cmp $RESULT, 0
+          je error
+          mov end, $RESULT
+          add end, 7
+```
+
+## 设置数据 (`SetData`)
+```
+SetData:
+          mov Dll, PatchAddr
+          mov [Dll], DllBase
+          mov Addr, PatchAddr
+          add Addr, 08
+          mov temp, CBase
+          add temp, CSize
+          mov [Addr], temp
+```
+
+## 补丁 1 (`Patch1st`)
+```
+Patch1st:
+          find eip, #8B44240C89060FB7442404014308#
+          cmp $RESULT, 0
+          je error
+          mov 1st, $RESULT
+          add PatchAddr, 11
+          mov [PatchAddr], #51528B54241C3B150000A700740D89150000A70083050800A700048B0D0800A7008929890E83050800A700045A596890909090C390#
+          eval "jmp {PatchAddr}"
+          asm 1st, $RESULT
+          add 1st, 5
+          fill 1st, 1, 90
+          add 1st, 1
+          add PatchAddr, 2F
+          mov [PatchAddr], 1st
+```
+
+## 补丁 2 (`Patch2nd`)
+```
+Patch2nd:
+          add PatchAddr, 6
+          mov [PatchAddr], #51528B5424243B150000A700740D89150000A70083050800A700048B0D0800A7008929890E83050800A7000466C703FF15807C241702740566C703FF255A596890909090C390#
+          eval "jmp {PatchAddr}"
+          asm 2nd, $RESULT
+          add 2nd, 5
+          fill 2nd, 1, 90
+          add 2nd, 1
+          add PatchAddr, 40
+          mov [PatchAddr], 2nd
+```
+
+## 修复数据 (`FixData`)
+```
+FixData:
+          add fix, 19
+          mov [fix], Dll
+          add fix, 8
+          mov [fix], Dll
+          add fix, 6
+          mov [fix], Addr
+          add fix, 7
+          mov [fix], Addr
+          add fix, 0A
+          mov [fix], Addr
+
+          add fix, 16
+          mov [fix], Dll
+          add fix, 8
+          mov [fix], Dll
+          add fix, 6
+          mov [fix], Addr
+          add fix, 7
+          mov [fix], Addr
+          add fix, 0A
+          mov [fix], Addr
+```
+
+## 最终处理 (`Final`)
+```
+Final:
+          bphws end, "x"
+          esto
+          BPHWCALL
+          BPRM CBase, CSize
+          esto
+          BPMC
+          bphws SC, "x"
+          jmp Done
+
+HavSC:
+          BPHWCALL
+          mov temp, ecx
+          bp temp
+          esto
+          bc temp
+          jmp OK
+
+Done:
+          cmp eip, SC
+          je HavSC
+          MSGYN "请检查是否是 OEP？"
+          cmp $RESULT, 1
+          je OK
+          esto
+          jmp HavSC
+
+OK:
+          BPHWCALL
+          cmt eip, "OEP"
+          msg "脚本完成，请使用 ImportREC 的高级指令修复输入表^\_^"
+          ret
+
+error:
+          msg "错误退出:("
+          ret
+```
+
+---
+
+## 经验总结
+1. 思路在于人想出来的 :)
+2. 本想写一个支持 `1.31` 和 `2.0 Alpha` 的脚本的，写起来才发现，要做到通用还是蛮要点时间的，对 `Volx` 大侠的敬佩之情由然而生啊
+
+## 版权声明
+本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2007 年 04 月 12 日 wynney
+
+`4dd466d0e1e0cc123afbe504da2462ca`

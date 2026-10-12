@@ -1,287 +1,328 @@
 
-
-# BlindWrite Suite v5.1.5.132 
+# BlindWrite Suite v5.1.5.132
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6537.htm`](https://www.pediy.com/kssd/pediy06/pediy6537.htm)
 
-Software : BlindWrite Suite v5.1.5.132 的文件补丁  
-           能够对“防拷保护”的光盘制作镜象，能够通过烧录软体将镜象还原  
-           [`www.vso-software.fr/`](http://www.vso-software.fr/)  
-Tools -- : W32Dasm、OllyDbg、MASM32、WIN2000  
-Cracker  : lq7972\[bruceyu13@sina.com\]  
-  
-【】CloneCD 不支持那个电脑商送我的什么牌子烧录烂货；听说这个行，但只能 Try 20 Days  
-  
-软件开始就跳个东东出来说是"用户要合法使用，任何非法行为及后果它不负责"云云(不晓得是不是这个意思？)，  
-然后就是熟悉的界面："This software is not ..."，提供两个按钮："Buy" OR "Try"(过期后自然只 Buy 了)  
-; $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $  
-从纷乱的跟踪记录中整理出下面的报告：  
-软件在 "Legal Disclarmer" 后开始注册判断～  
-【1】、静态分析  
-; W32Dasm >>  
-; 查找"BW5.Log"  
-; 这个地方软件启动时来，注册判断  
-:005DE6BC 55                      push ebp  
-:005DE6BD 8BEC                    mov ebp, esp  
-:005DE6BF B90F000000              mov ecx, 0000000F  
-; ...  
-\* Possible StringData Ref from Code Obj ->"BW5.Log"  
-                                  |  
-:005DE751 B96CF05D00              mov ecx, 005DF06C  
-:005DE756 8B55FC                  mov edx, dword ptr \[ebp\-04\]  
-:005DE759 8B9214050000            mov edx, dword ptr \[edx+00000514\]  
-; ...  
-:005E8EDA E8CDA6E1FF              call 004035AC  
-:005E8EDF 807DF300                cmp byte ptr \[ebp\-0D\], 00  
-:005E8EE3 750C                    jne 005E8EF1  
-:005E8EE5 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
-:005E8EE8 80B82305000000          cmp byte ptr \[eax+00000523\], 00  
-:005E8EEF 7425                    je 005E8F16                 ; 关键判断，要 jump，因为  
-; ...  
-\* Reference To: user32.PostQuitMessage, Ord:0000h  
-                                  |  
-:005E8F11 E82EE6E1FF              Call 00407544  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:005E8EEF(C), :005E8F09(C)  
-|  
-:005E8F16 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
-:005E8F19 80B82305000000          cmp byte ptr \[eax+00000523\], 00  
-:005E8F20 750C                    jne 005E8F2E                ; 关键判断，不要 jump，因为  
-:005E8F22 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
-:005E8F25 80B82205000000          cmp byte ptr \[eax+00000522\], 00  
-:005E8F2C 743B                    je 005E8F69                 ; 这里  
-; ...  
-\* Reference To: user32.PostQuitMessage, Ord:0000h  
-                                  |  
-:005E8F64 E8DBE5E1FF              Call 00407544  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:005E8F2C(C), :005E8F5C(C)  
-|  
-:005E8F69 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
-; ...  
-  
-【2】、动态跟踪  
-; W32Dasm >>  
-; 查找"This software is not free. But "  
-; -----------------------------------------------------------------------------------  
-:005DB51C 55                      push ebp  
-; ...  
-:005DB52B E87CF9FFFF              call 005DAEAC  
-; -----------------------------------------------------------------------------------  
-\* Referenced by a CALL at Address:  
-|:005DB52B     
-|  
-:005DAEAC 55                      push ebp  
-; ...  
-\* Possible StringData Ref from Code Obj ->"This software is not free. But "  
-                                        ->"you can try it for free."  
-                                  |  
-:005DAF16 BAA0B35D00              mov edx, 005DB3A0  
-; ...  
-  
-; OllyDbg >>  
-005DB51C 处断点，查看堆栈：0047418B，这个就是 CALL 指令压入的返回地址  
-  
-; W32Dasm >>  
-; ...  
-:0047417B 8BD8                    mov ebx, eax  
-:0047417D 8BD0                    mov edx, eax  
-:0047417F 8B83CC020000            mov eax, dword ptr \[ebx+000002CC\]  
-:00474185 FF93C8020000            call dword ptr \[ebx+000002C8\] ; 就是这个 CALL 了  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:00474179(C)  
-|  
-:0047418B 5B                      pop ebx  
-; ...  
-  
-【3】、修改总结  
-(1) 005E8EEF : 7425 → 7525               (Offset : 001E82EF)  
-(2) 005E8F20 : 750C → 740C               (Offset : 001E8320)  
-(3) 00474185 :  CALL NOP 掉(6 个 90)        (Offset : 00073585)  
-或  005DB51C : 55 →  CC                  (Offset : 001DA91C)  
-(4) 005D9998 : 7571 → 7471               (Offset : 001D8D98)  
-在 \[Settings\]->\[Registration\] 中是 "This software is registered to "，而非 "This software is in trial mode "  
-  
-【4】、自己动手写文件补丁  
-虽然有 KeyMake ，但今天自己动手明天丰衣足食  
-  
-; Patch.asm  
-; +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++  
-            .386  
-            .model flat, stdcall  
-            option casemap : none  
-; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-include         windows.inc  
-include         user32.inc  
-includelib      user32.lib  
-include         kernel32.inc  
-includelib      kernel32.lib  
-; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-DLG\_MAIN        equ      101  
-ICO\_MAIN        equ      102  
-IDC\_BACKUP      equ      1001  
-IDC\_FILEEXT     equ      1002  
-; \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-PATCH\_POS01      equ      001D8D98h  
-PATCH\_POS02      equ      001DA91Ch  
-PATCH\_POS03      equ      001E82EFh  
-PATCH\_POS04      equ      001E8320h  
-; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-         .data?  
-hInstance        dd      ?  
-szNewFilename    db      MAX\_PATH dup (?)  
-         .data  
-szFileExtension  db      '.bak', 0  
-; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-         .const  
-dbPatched01      db   74h, 71h  
-dbPatched02      db   0CCh  
-dbPatched03      db   75h, 25h  
-dbPatched04      db   74h, 0Ch  
-ddFileSize       dd   3AD200h  
-szExeFilename    db   'BW.exe', 0  
-szInfo           db   'Info', 0  
-szOkInfo         db   'Success ...', 0  
-szErrExec        db   '<BW.exe> not found!', 0  
-szErrFileSize    db   '<BW.exe> is incorrect size!', 0  
-; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-         .code  
-; \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-\_ProcPatch  proc  
-            local   @hFile, @lpBuffer, @lpTemp  
-            pushad  
-              
-            invoke   CreateFile, addr szExeFilename, GENERIC\_READ or GENERIC\_WRITE,\\  
-                     0, NULL, OPEN\_EXISTING, FILE\_ATTRIBUTE\_NORMAL, NULL  
-            .if      eax == INVALID\_HANDLE\_VALUE  
-                     invoke   MessageBox, NULL, addr szErrExec, addr szInfo, MB\_OK  
-            .else  
-                  mov      @hFile, eax  
-                  invoke   GetFileSize, @hFile, NULL  
-                  .if      eax != dword ptr \[ddFileSize\]  
-                           invoke   MessageBox, NULL, addr szErrFileSize,\\  
-                                 addr szInfo, MB\_OK  
-                  .else  
-; \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-                        invoke   SetFilePointer, @hFile, PATCH\_POS01,\\  
-                                 NULL, FILE\_BEGIN  
-                        invoke   WriteFile, @hFile, addr dbPatched01, 2,\\  
-                                 addr @lpTemp, NULL  
-; \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-                        invoke   SetFilePointer, @hFile, PATCH\_POS02,\\  
-                                 NULL, FILE\_BEGIN  
-                        invoke   WriteFile, @hFile, addr dbPatched02, 1,\\  
-                                 addr @lpTemp, NULL  
-; \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-                        invoke   SetFilePointer, @hFile, PATCH\_POS03,\\  
-                                 NULL, FILE\_BEGIN  
-                        invoke   WriteFile, @hFile, addr dbPatched03, 2,\\  
-                                 addr @lpTemp, NULL  
-; \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-                        invoke   SetFilePointer, @hFile, PATCH\_POS04,\\  
-                                 NULL, FILE\_BEGIN  
-                        invoke   WriteFile, @hFile, addr dbPatched04, 2,\\  
-                                 addr @lpTemp, NULL  
-; \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*     
-                        invoke   MessageBox, NULL, addr szOkInfo, addr szInfo, MB\_OK  
-                  .endif  
-            .endif  
-              
-            popad  
-            ret  
-\_ProcPatch  endp  
-; \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-\_ProcDlgMain    proc   uses ebx edi esi hWnd, wMsg, wParam, lParam  
-  
-            mov       eax, wMsg  
-            .if       eax == WM\_CLOSE  
-                      invoke   EndDialog, hWnd, NULL  
-            .elseif   eax == WM\_INITDIALOG  
-                      invoke   SetDlgItemText, hWnd, IDC\_FILEEXT, addr szFileExtension  
-                      invoke   CheckDlgButton, hWnd, IDC\_BACKUP, BST\_CHECKED  
-            .elseif   eax == WM\_COMMAND  
-                  mov      eax, wParam  
-                  .if      ax == IDOK  
-                           invoke   IsDlgButtonChecked, hWnd, IDC\_BACKUP  
-                           .if      eax == BST\_CHECKED  
-                                    invoke   GetDlgItemText, hWnd, IDC\_FILEEXT,\\  
-                                             addr szFileExtension, sizeof szFileExtension  
-                                    invoke   lstrcpy, addr szNewFilename, addr szExeFilename  
-                                    invoke   lstrcat, addr szNewFilename, addr szFileExtension  
-                                    invoke   CopyFile, addr szExeFilename,\\  
-                                             addr szNewFilename, FALSE  
-                        .endif  
-                        call        \_ProcPatch  
-                  .elseif   ax == IDCANCEL  
-                        invoke   EndDialog, hWnd, NULL  
-                  .endif  
-            .else  
-                  mov      eax, FALSE  
-                  ret  
-            .endif  
-            mov      eax, TRUE  
-            ret  
-  
-\_ProcDlgMain   endp  
-; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-start:  
-      invoke   GetModuleHandle, NULL  
-      mov      hInstance, eax  
-      invoke   DialogBoxParam, hInstance, DLG\_MAIN, NULL, addr \_ProcDlgMain, NULL  
-      invoke   ExitProcess, NULL  
-; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-      end      start  
-  
-// Patch.rc  
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++  
-#include <resource.h>  
-  
-#define DLG\_MAIN                        101  
-#define ICO\_MAIN                        102  
-#define IDC\_BACKUP                      1001  
-#define IDC\_FILEEXT                     1002  
-  
-ICO\_MAIN            ICON            "Patch.ico"  
-  
-DLG\_MAIN DIALOGEX 0, 0, 91, 109  
-STYLE DS\_MODALFRAME | DS\_CENTER | WS\_POPUP | WS\_CAPTION | WS\_SYSMENU  
-CAPTION "BlindWrite 文件补丁"  
-FONT 10, "System"  
-BEGIN  
-    DEFPUSHBUTTON   "补丁",IDOK,9,62,31,12  
-    PUSHBUTTON      "退出",IDCANCEL,50,62,31,12  
-    LTEXT           "除去所有的限制\\nCrack by lq7972\\nbruceyu13@sina.com",  
-                    IDC\_STATIC,9,28,72,28,WS\_DISABLED,WS\_EX\_STATICEDGE  
-    LTEXT           "BlindWrite Suite\\n v5.1.5.132 文件补丁",IDC\_STATIC,9,6,  
-                    72,18,WS\_BORDER  
-    GROUPBOX        "",IDC\_STATIC,8,77,73,25  
-    CONTROL         "文件备份",IDC\_BACKUP,"Button",BS\_AUTOCHECKBOX |   
-                    WS\_TABSTOP,14,88,43,8  
-    EDITTEXT        IDC\_FILEEXT,58,86,19,12,ES\_AUTOHSCROLL  
-END  
-  
-# makefile  
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++  
-NAME = Patch  
-OBJS = $(NAME).obj  
-RES = $(NAME).res  
-  
-LINK\_FLAG = /subsystem:windows  
-ML\_FLAG = /c /coff  
-  
-$(NAME).exe: $(OBJS) $(RES)  
-   Link $(LINK\_FLAG) $(OBJS) $(RES)  
-  
-.asm.obj:  
-   ml $(ML\_FLAG) $<  
-.rc.res:  
-   rc $<  
-     
-clean:  
-   del \*.obj  
-   del \*.res
+Software : `BlindWrite Suite v5.1.5.132` 的文件补丁
 
- 4dd466d0e1e0cc123afbe504da2462ca
+能够对“防拷保护”的光盘制作镜象，能够通过烧录软体将镜象还原
+
+[`www.vso-software.fr/`](http://www.vso-software.fr/)
+
+Tools -- : `W32Dasm`、`OllyDbg`、`MASM32`、`WIN2000`
+
+Cracker : `lq7972`[`bruceyu13@sina.com`]
+
+【】`CloneCD` 不支持那个电脑商送我的什么牌子烧录烂货；听说这个行，但只能 `Try 20 Days`
+
+软件开始就跳个东东出来说是"用户要合法使用，任何非法行为及后果它不负责"云云(不晓得是不是这个意思？)，
+
+然后就是熟悉的界面："This software is not ..."，提供两个按钮："Buy" OR "Try"(过期后自然只 `Buy` 了)
+
+`$ $ $ $ $ $ $ $ $ $ $ $ $ $ $`
+
+从纷乱的跟踪记录中整理出下面的报告：
+
+软件在 "Legal Disclarmer" 后开始注册判断～
+
+【1】、静态分析
+
+```
+; W32Dasm >>
+; 查找"BW5.Log"
+; 这个地方软件启动时来，注册判断
+:005DE6BC 55           push ebp
+:005DE6BD 8BEC         mov ebp, esp
+:005DE6BF B90F000000   mov ecx, 0000000F
+; ...
+* Possible StringData Ref from Code Obj ->"BW5.Log"
+                      |
+:005DE751 B96CF05D00   mov ecx, 005DF06C
+:005DE756 8B55FC       mov edx, dword ptr [ebp-04]
+:005DE759 8B9214050000 mov edx, dword ptr [edx+00000514]
+; ...
+:005E8EDA E8CDA6E1FF   call 004035AC
+:005E8EDF 807DF300     cmp byte ptr [ebp-0D], 00
+:005E8EE3 750C         jne 005E8EF1
+:005E8EE5 8B45FC       mov eax, dword ptr [ebp-04]
+:005E8EE8 80B82305000000 cmp byte ptr [eax+00000523], 00
+:005E8EEF 7425         je 005E8F16           ; 关键判断，要 jump，因为
+; ...
+* Reference To: user32.PostQuitMessage, Ord:0000h
+                      |
+:005E8F11 E82EE6E1FF   Call 00407544
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:005E8EEF(C), :005E8F09(C)
+|
+:005E8F16 8B45FC       mov eax, dword ptr [ebp-04]
+:005E8F19 80B82305000000 cmp byte ptr [eax+00000523], 00
+:005E8F20 750C         jne 005E8F2E          ; 关键判断，不要 jump，因为
+:005E8F22 8B45FC       mov eax, dword ptr [ebp-04]
+:005E8F25 80B82205000000 cmp byte ptr [eax+00000522], 00
+:005E8F2C 743B         je 005E8F69           ; 这里
+; ...
+* Reference To: user32.PostQuitMessage, Ord:0000h
+                      |
+:005E8F64 E8DBE5E1FF   Call 00407544
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:005E8F2C(C), :005E8F5C(C)
+|
+:005E8F69 8B45FC       mov eax, dword ptr [ebp-04]
+; ...
+```
+
+【2】、动态跟踪
+
+```
+; W32Dasm >>
+; 查找"This software is not free. But "
+; -----------------------------------------------------------------------------------
+:005DB51C 55           push ebp
+; ...
+:005DB52B E87CF9FFFF   call 005DAEAC
+; -----------------------------------------------------------------------------------
+* Referenced by a CALL at Address:
+|:005DB52B    
+|
+:005DAEAC 55           push ebp
+; ...
+* Possible StringData Ref from Code Obj ->"This software is not free. But "
+                    ->"you can try it for free."
+                      |
+:005DAF16 BAA0B35D00   mov edx, 005DB3A0
+; ...
+; OllyDbg >>
+005DB51C 处断点，查看堆栈：0047418B，这个就是 CALL 指令压入的返回地址
+; W32Dasm >>
+; ...
+:0047417B 8BD8         mov ebx, eax
+:0047417D 8BD0         mov edx, eax
+:0047417F 8B83CC020000 mov eax, dword ptr [ebx+000002CC]
+:00474185 FF93C8020000 call dword ptr [ebx+000002C8] ; 就是这个 CALL 了
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00474179(C)
+|
+:0047418B 5B           pop ebx
+; ...
+```
+
+【3】、修改总结
+
+(1) `005E8EEF` : `7425` → `7525` (`Offset` : `001E82EF`)
+
+(2) `005E8F20` : `750C` → `740C` (`Offset` : `001E8320`)
+
+(3) `00474185` : `CALL` `NOP` 掉(6 个 `90`) (`Offset` : `00073585`)
+
+或 `005DB51C` : `55` → `CC` (`Offset` : `001DA91C`)
+
+(4) `005D9998` : `7571` → `7471` (`Offset` : `001D8D98`)
+
+在 `[Settings]`->`[Registration]` 中是 "This software is registered to "，而非 "This software is in trial mode "
+
+【4】、自己动手写文件补丁
+
+虽然有 `KeyMake` ，但今天自己动手明天丰衣足食
+
+```
+; Patch.asm
+; +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    .386
+    .model flat, stdcall
+    option casemap : none
+; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+include     windows.inc
+include     user32.inc
+includelib  user32.lib
+include     kernel32.inc
+includelib  kernel32.lib
+; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+DLG_MAIN      equ     101
+ICO_MAIN      equ     102
+IDC_BACKUP    equ     1001
+IDC_FILEEXT   equ     1002
+; *****************************************************************************************
+PATCH_POS01   equ     001D8D98h
+PATCH_POS02   equ     001DA91Ch
+PATCH_POS03   equ     001E82EFh
+PATCH_POS04   equ     001E8320h
+; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    .data?
+hInstance     dd      ?
+szNewFilename db      MAX_PATH dup (?)
+    .data
+szFileExtension  db  '.bak', 0
+; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    .const
+dbPatched01   db  74h, 71h
+dbPatched02   db  0CCh
+dbPatched03   db  75h, 25h
+dbPatched04   db  74h, 0Ch
+ddFileSize    dd  3AD200h
+szExeFilename db  'BW.exe', 0
+szInfo        db  'Info', 0
+szOkInfo      db  'Success ...', 0
+szErrExec     db  '<BW.exe> not found!', 0
+szErrFileSize db  '<BW.exe> is incorrect size!', 0
+; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    .code
+; *****************************************************************************************
+_ProcPatch proc
+    local   @hFile, @lpBuffer, @lpTemp
+    pushad
+    invoke  CreateFile, addr szExeFilename, GENERIC_READ or GENERIC_WRITE,\
+            0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL
+    .if     eax == INVALID_HANDLE_VALUE
+            invoke  MessageBox, NULL, addr szErrExec, addr szInfo, MB_OK
+    .else
+          mov     @hFile, eax
+          invoke  GetFileSize, @hFile, NULL
+          .if     eax != dword ptr [ddFileSize]
+                 invoke  MessageBox, NULL, addr szErrFileSize,\
+                       addr szInfo, MB_OK
+          .else
+; *****************************************************************************************
+                invoke  SetFilePointer, @hFile, PATCH_POS01,\
+                       NULL, FILE_BEGIN
+                invoke  WriteFile, @hFile, addr dbPatched01, 2,\
+                       addr @lpTemp, NULL
+; *****************************************************************************************
+                invoke  SetFilePointer, @hFile, PATCH_POS02,\
+                       NULL, FILE_BEGIN
+                invoke  WriteFile, @hFile, addr dbPatched02, 1,\
+                       addr @lpTemp, NULL
+```
+
+
+
+```
+                        addr @lpTemp, NULL
+
+; ********************************************************************
+
+                    invoke   SetFilePointer, @hFile, PATCH_POS03,
+                        NULL, FILE_BEGIN
+                    invoke   WriteFile, @hFile, addr dbPatched03, 2,
+                        addr @lpTemp, NULL
+
+; ********************************************************************
+
+                    invoke   SetFilePointer, @hFile, PATCH_POS04,
+                        NULL, FILE_BEGIN
+                    invoke   WriteFile, @hFile, addr dbPatched04, 2,
+                        addr @lpTemp, NULL
+
+; ********************************************************************
+
+                    invoke   MessageBox, NULL, addr szOkInfo, addr szInfo, MB_OK
+              .endif
+        .endif
+        popad
+        ret
+
+_ProcPatch  endp
+
+; ********************************************************************
+
+_ProcDlgMain    proc   uses ebx edi esi hWnd, wMsg, wParam, lParam
+        mov       eax, wMsg
+        .if       eax == WM_CLOSE
+                  invoke   EndDialog, hWnd, NULL
+        .elseif   eax == WM_INITDIALOG
+                  invoke   SetDlgItemText, hWnd, IDC_FILEEXT, addr szFileExtension
+                  invoke   CheckDlgButton, hWnd, IDC_BACKUP, BST_CHECKED
+        .elseif   eax == WM_COMMAND
+              mov     eax, wParam
+              .if     ax == IDOK
+                    invoke   IsDlgButtonChecked, hWnd, IDC_BACKUP
+                    .if     eax == BST_CHECKED
+                        invoke   GetDlgItemText, hWnd, IDC_FILEEXT,
+                            addr szFileExtension, sizeof szFileExtension
+                        invoke   lstrcpy, addr szNewFilename, addr szExeFilename
+                        invoke   lstrcat, addr szNewFilename, addr szFileExtension
+                        invoke   CopyFile, addr szExeFilename,
+                            addr szNewFilename, FALSE
+                .endif
+                call        _ProcPatch
+              .elseif   ax == IDCANCEL
+                invoke   EndDialog, hWnd, NULL
+              .endif
+        .else
+              mov     eax, FALSE
+              ret
+        .endif
+        mov      eax, TRUE
+        ret
+_ProcDlgMain   endp
+
+; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+start:
+    invoke   GetModuleHandle, NULL
+    mov     hInstance, eax
+    invoke   DialogBoxParam, hInstance, DLG_MAIN, NULL, addr _ProcDlgMain, NULL
+    invoke   ExitProcess, NULL
+
+; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+      end      start
+
+// Patch.rc
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#include <resource.h>
+
+#define DLG_MAIN                   101
+
+#define ICO_MAIN                   102
+
+#define IDC_BACKUP                 1001
+
+#define IDC_FILEEXT                1002
+
+ICO_MAIN               ICON                 "Patch.ico"
+
+DLG_MAIN DIALOGEX 0, 0, 91, 109
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "BlindWrite 文件补丁"
+FONT 10, "System"
+BEGIN
+    DEFPUSHBUTTON   "补丁",IDOK,9,62,31,12
+    PUSHBUTTON      "退出",IDCANCEL,50,62,31,12
+    LTEXT           "除去所有的限制\nCrack by lq7972\nbruceyu13@sina.com",
+                    IDC_STATIC,9,28,72,28,WS_DISABLED,WS_EX_STATICEDGE
+    LTEXT           "BlindWrite Suite\n v5.1.5.132 文件补丁",IDC_STATIC,9,6,
+                    72,18,WS_BORDER
+    GROUPBOX        "",IDC_STATIC,8,77,73,25
+    CONTROL         "文件备份",IDC_BACKUP,"Button",BS_AUTOCHECKBOX |
+                    WS_TABSTOP,14,88,43,8
+    EDITTEXT        IDC_FILEEXT,58,86,19,12,ES_AUTOHSCROLL
+END
+
+# makefile
+
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+NAME = Patch
+
+OBJS = $(NAME).obj
+
+RES = $(NAME).res
+
+LINK_FLAG = /subsystem:windows
+
+ML_FLAG = /c /coff
+
+$(NAME).exe: $(OBJS) $(RES)
+   Link $(LINK_FLAG) $(OBJS) $(RES)
+
+.asm.obj:
+   ml $(ML_FLAG) $<
+
+.rc.res:
+   rc $<
+
+clean:
+   del \*.obj
+   del \*.res
+```

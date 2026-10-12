@@ -1,12 +1,9 @@
 
-
 # 第一阶段【第四题】我也发一下我做的吧。
 
 > 原文：[`www.pediy.com/kssd/pediy10/74644.html`](https://www.pediy.com/kssd/pediy10/74644.html)
 
-一、程序 BUG  
-  
-代码:  
+## 一、程序 BUG
 
 代码:
 
@@ -28,12 +25,10 @@
 77EFB0CE   .  F645 2C 03    test    byte ptr \[ebp+2C\], 3
 77EFB0D2   .  89B8 D0060000 mov     dword ptr \[eax+6D0\], edi
 77EFB0D8   .  0F85 46150100 jnz     <loc\_77F0C624>
-
 ```
 
-程序用 pbmiConvertInfo 根据参数构造一个 BITMAPINFOHEADER 然后通过 cjBitmapBitsSize 函数获得图片大小。在 77EFB0CE   判断图片数据的地址是否与 4 对齐，如果对齐，就直接显示，如果没有对齐，会跳转到  
-  
-代码:  
+程序用 `pbmiConvertInfo` 根据参数构造一个 `BITMAPINFOHEADER` 然后通过 `cjBitmapBitsSize` 函数获得图片大小。在 `77EFB0CE` 判断图片数据的地址是否与 4 对齐，如果对齐，就直接显示，如果没有对齐，会跳转到
+
 代码:
 
 ```
@@ -59,50 +54,67 @@
 77F0C65E   .  8945 2C       mov     dword ptr \[ebp+2C\], eax
 77F0C661   .  33FF          xor     edi, edi
 77F0C663   .^ E9 76EAFEFF   jmp     <loc\_77EFB0DE>
-
 ```
 
-这段代码是根据图片大小申请一个堆空间，然后，复制数据到这个堆里。  
-由于没有对文件大小进行判断，造成 rep     movs dword ptr es:\[edi\], dword ptr \[esi\] 语句\[esi\]访问到非法内存，造成堆溢出。  
-  
-二、利用方法  
-构造一个变形的 BITMAPINFOHEADER 结构。由于有 77EFB0CE   .  F645 2C 03    test    byte ptr \[ebp+2C\], 3 的判断，那么，只要造成数据不是以 4 字节对齐，才可以执行到内存 Copy 的代码。仔细分析 BMP 的数据结构发现，使用 OS/2 的 BMP 文件格式，就可以实现：  
-  
-代码:  
-typedef struct tagBITMAPCOREHEADER {  
-        DWORD   bcSize;                 /\* used to get to color table \*/  
-        WORD    bcWidth;  
-        WORD    bcHeight;  
-        WORD    bcPlanes;  
-        WORD    bcBitCount;  
-} BITMAPCOREHEADER, FAR \*LPBITMAPCOREHEADER, \*PBITMAPCOREHEADER;  
-OS/2 是使用的 BITMAPCOREHEADER 结构。我们构造数据：  
-bcSize=0C  
-bcWidth=0200  
-bcHeight=0200  
-bcPlanes=1  
-bcBitCount=1          ;正常的 ICO 是 4，这里只有使用 1  
-  
-构造好这个数据后，修改 exe 的 PE，替换掉 ICO 数据部分。  
-  
-三、效果  
-修改 EXE 后，来看看效果。进入文件所在的路径，由于 explorer.exe 的异常处理过滤了 0xC0000005 错误，所以，没有任何提示。但是，这时系统会变的很慢，桌面已经无法使用，只有结束 explorer.exe 进程，然后重新开启才能恢复。  
-  
-四、其他的运用方法  
-这里，不止 exe 的 PE 可以造成错误，直接构造一个 ico 文件也可以达到同样的效果。由于 explorer 在浏览到 ico 文件时，会产生缩位图。构造 ICO 的方法和 PE 里大同小异。修改一个 ICO 文件，修改如下：  
+这段代码是根据图片大小申请一个堆空间，然后，复制数据到这个堆里。
+
+由于没有对文件大小进行判断，造成 `rep     movs dword ptr es:\[edi\], dword ptr \[esi\]` 语句`[esi]`访问到非法内存，造成堆溢出。
+
+## 二、利用方法
+
+构造一个变形的 `BITMAPINFOHEADER` 结构。由于有 `77EFB0CE` `. F645 2C 03    test    byte ptr [ebp+2C], 3` 的判断，那么，只要造成数据不是以 4 字节对齐，才可以执行到内存 Copy 的代码。仔细分析 BMP 的数据结构发现，使用 OS/2 的 BMP 文件格式，就可以实现：
+
+代码:
+
+```
+typedef struct tagBITMAPCOREHEADER { 
+
+        DWORD   bcSize;                 /\* used to get to color table \*/ 
+
+        WORD    bcWidth; 
+
+        WORD    bcHeight; 
+
+        WORD    bcPlanes; 
+
+        WORD    bcBitCount; 
+
+} BITMAPCOREHEADER, FAR \*LPBITMAPCOREHEADER, \*PBITMAPCOREHEADER;
+```
+
+OS/2 是使用的 `BITMAPCOREHEADER` 结构。我们构造数据：
+
+`bcSize=0C`  
+`bcWidth=0200`  
+`bcHeight=0200`  
+`bcPlanes=1`  
+`bcBitCount=1`          ;正常的 ICO 是 4，这里只有使用 1
+
+构造好这个数据后，修改 exe 的 PE，替换掉 ICO 数据部分。
+
+## 三、效果
+
+修改 EXE 后，来看看效果。进入文件所在的路径，由于 `explorer.exe` 的异常处理过滤了 `0xC0000005` 错误，所以，没有任何提示。但是，这时系统会变的很慢，桌面已经无法使用，只有结束 `explorer.exe` 进程，然后重新开启才能恢复。
+
+## 四、其他的运用方法
+
+这里，不止 exe 的 PE 可以造成错误，直接构造一个 ico 文件也可以达到同样的效果。由于 `explorer` 在浏览到 ico 文件时，会产生缩位图。构造 ICO 的方法和 PE 里大同小异。修改一个 ICO 文件，修改如下：
+
+```
 00000000h: 00 00 01 00 01 00 10 10 10 00 00 00 00 00 28 01   
 00000010h: 00 00 16 00 00 00 0C 00 00 00 00 20 00 20 01 00  
-00000020h: 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  
-  
-保存后，浏览文件所在的路径时，出现同样的错误。  
-  
-  
-附件上传修改后的 exe 和 ico 文件  
-  
-实在没办法让 explorer.exe 出现错误对话框。  
-  
+00000020h: 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+```
+
+保存后，浏览文件所在的路径时，出现同样的错误。
+
+附件上传修改后的 exe 和 ico 文件
+
+实在没办法让 `explorer.exe` 出现错误对话框。
+
 科锐学子：沙金
 
 上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || TestGdi.rar  
- |
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || TestGdi.rar |
+

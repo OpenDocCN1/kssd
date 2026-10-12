@@ -1,471 +1,519 @@
 
-
 # UltraProtect 1.x 的脱壳与修复
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-665.htm`](https://www.pediy.com/kssd/pediy07/pediy7-665.htm)
 
-UltraProtect 1.x 的脱壳与修复 - 雪狐提醒簿 V3.0  
-  
-软件名称：雪狐提醒簿 V3.0  
-  
-实例下载：http://www.onlinedown.net/soft/2469.htm  
-  
-软件大小：4644KB  
-  
-软件语言：简体中文  
-  
-软件类别：国产软件/免费版/闹铃时钟  
-  
-运行环境：Win9x/Me/NT/2000/XP  
-  
-调试环境：Win2000, Ollydbg1.10, LordPE, ImportREC 1.6.2, PEid v0.93  
-  
-作   者: blackeyes  
-  
-作者声明：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！  
-  
-  
-  
-1. Dump 文件,寻找 OEP  
-  
-首先用 PEiD v0.93:   
-UltraProtect 1.x -> RISCO Software Inc.  
-  
-打开 OllyDbg，载入 RemindBook.exe  
-  
-009A6000 >  60              PUSHAD                                   ; 壳入口  
-009A6001    EB 01           JMP SHORT RemindBo.009A6004  
-009A6003    7B 66           JPO SHORT RemindBo.009A606B  
-009A6005    BD A98966C1     MOV EBP,C16689A9  
-  
-按 F9 运行，有 INT3, 停在 009B799F  
-009B799B    64:8920         MOV DWORD PTR FS:\[EAX\],ESP  
-009B799E    CC              INT3  
-009B799F    90              NOP                                      ; 停在这  
-009B79A0    64:67:8F06 0000 POP DWORD PTR FS:\[0\]  
-009B79A6    83C4 04         ADD ESP,4  
-  
-按 1 次 Shift+F9, 程序运行  
-  
-Ctrl+F2 重来, CODE 段下 f2 断点, F9 运行, Shift+F9 通过 INT3, 停在 OEP  
-  
-00729280 >  55              PUSH EBP                                 ; 程序 OEP  
-00729281    8BEC            MOV EBP,ESP  
-00729283    B9 05000000     MOV ECX,5  
-00729288    6A 00           PUSH 0  
-0072928A    6A 00           PUSH 0  
-  
-F7 单步 跟一下, 很快找到 IAT  
-  
-IAT:  0074F26C-0074FD6B  
-size: 0B00  
-  
-这时打开 ImportREC, 选 Process RemindBook.exe  
-填上下列信息,  
-    OEP:  329280  
-    RVA:  0034F26C, Size:0B00  
-按 Get Imports, 很多无效的, 直接用 ImportREC 修复不了,  
-随便选一个, 右键==>Disassemble/HexView  
-009A6010    68 8DF3FB5A     PUSH 5AFBF38D  
-009A6015    813424 D8A5032D XOR DWORD PTR SS:\[ESP\],2D03A5D8  
-009A601C    C3              RETN  
-  
-这几行等于 jmp far 77F85655,     // 5AFBF38D XOR 2D03A5D8 = 77F85655  
-变形的跳转.  
-  
-从 009A6010 到 009A67FB, 全是这样, ImportREC 不能处理,   
-要将它们变成 jmp xxxx,  
-  
-  
-Ctrl+F2 重来, 到 OEP 后, 在 CODE 段找一段空白地方, 写上一段代码修复  
-  
-00729F00    60              PUSHAD  
-00729F01    BF 10609A00     MOV EDI,RemindBo.009A6010                ; 起始地址  
-00729F06    B9 EC070000     MOV ECX,7EC                              ; Size  
-00729F0B    33C0            XOR EAX,EAX  
-00729F0D    B0 68           MOV AL,68                                ; 先找 68  
-00729F0F    F2:AE           REPNE SCAS BYTE PTR ES:\[EDI\]  
-00729F11    83F9 00         CMP ECX,0  
-00729F14    74 2C           JE SHORT RemindBo.00729F42  
-00729F16    8B1F            MOV EBX,DWORD PTR DS:\[EDI\]               ; push XXXX  
-00729F18    8B47 04         MOV EAX,DWORD PTR DS:\[EDI+4\]  
-00729F1B    25 FFFFFF00     AND EAX,0FFFFFF  
-00729F20    3D 81342400     CMP EAX,243481                           ; 再找 813424  
-00729F25  ^ 75 E4           JNZ SHORT RemindBo.00729F0B  
-00729F27    8B57 07         MOV EDX,DWORD PTR DS:\[EDI+7\]             ; xor \[esp\], YYYY  
-00729F2A    33DA            XOR EBX,EDX  
-00729F2C    8A47 0B         MOV AL,BYTE PTR DS:\[EDI+B\]  
-00729F2F    3C C3           CMP AL,0C3                               ; 是 C3 吗?, RETN  
-00729F31  ^ 75 D8           JNZ SHORT RemindBo.00729F0B  
-00729F33    C647 FF E9      MOV BYTE PTR DS:\[EDI-1\],0E9              ; 修改成 JMP FAR ZZZZ  
-00729F37    83EB 04         SUB EBX,4  
-00729F3A    2BDF            SUB EBX,EDI  
-00729F3C    891F            MOV DWORD PTR DS:\[EDI\],EBX  
-00729F3E  ^ EB CB           JMP SHORT RemindBo.00729F0B  
-00729F40    90              NOP  
-00729F41    90              NOP  
-00729F42    61              POPAD  
-00729F43    90              NOP  
-  
-上面代码的 Binary Format, 在 OLLYDBG 中, 可在 CPU 的数据窗直接用 Binary Copy/Binary Paste, 挺方便的.  
-60 BF 10 60 9A 00 B9 EC 07 00 00 33 C0 B0 68 F2 AE 83 F9 00 74 2C 8B 1F 8B 47 04 25 FF FF FF 00  
-3D 81 34 24 00 75 E4 8B 57 07 33 DA 8A 47 0B 3C C3 75 D8 C6 47 FF E9 83 EB 04 2B DF 89 1F EB CB  
-90 90 61 90 00 00 00 00 00 00 00 00 00 00 00 00  
-  
-  
-写完代码后, 让这段代码运行一遍, 再回到 OEP, 用 OllyDump 插件 Dump   
-  
-这时打开 ImportREC, 再进行 IAT 修复, 用 Level 1 后, 只有 3 个不能修复, 并且指向壳中  
-  
-0  0034F330  ?  0000  009A6280  
-0  0034F844  ?  0000  009B4E31  
-0  0034F878  ?  0000  009B4E4B  
-  
-  
-2. Debug, 修复 IAT  
-  
-Ctrl+F2 重来, 到 OEP 后, 直接转到 009A6280/009B4E31, 然后 F7 单步跟踪  
-  
-  
-先跟 009B4E31  
-009B4E31    837C24 04 FF             CMP DWORD PTR SS:\[ESP+4\],-1  
-009B4E36    74 13                    JE SHORT RemindBo.009B4E4B  
-009B4E38    90                       NOP  
-009B4E39    90                       NOP  
-009B4E3A    90                       NOP  
-009B4E3B    90                       NOP  
-009B4E3C    55                       PUSH EBP  
-009B4E3D    E8 BE120000              CALL RemindBo.009B6100                   ; EBP = 005A5000  
-009B4E42    8BC5                     MOV EAX,EBP  
-009B4E44    5D                       POP EBP  
-009B4E45  - FFA0 C4FD4000            JMP DWORD PTR DS:\[EAX+40FDC4\]            ; user32.RegisterHotKey  
-所以 009B4E31 实际上就是 user32.RegisterHotKey,  
-  
-再跟 009A6280, 实际上与 009B4E4B 一样了  
-009A6280   /E9 C6EB0000              JMP RemindBo.009B4E4B  
-  
-从现在起, 下面有很多的花指令, 以及很多的垃圾指令, 来干扰跟踪, 而且其中最主要的 CODE 还是  
-加密的, 总是先解密, 然后执行, 接着又加密回去, 下面只将有用的指令列出:  
-009B4E4B    60                       PUSHAD  
-009B4E4C    FC                       CLD  
-009B4E4D    78 03                    JS SHORT RemindBo.009B4E52  
-009B4E4F    79 01                    JNS SHORT RemindBo.009B4E52  
-...  
-  
-009B4F13    68 F64F9B00              PUSH RemindBo.009B4FF6                   ; 解密的起始地址  
-  
-009B4F1F    5B                       POP EBX                                  ; RemindBo.009B4FF6  
-  
-009B4F31    BF 535ED47F              MOV EDI,7FD45E53                         ; 解密的 Key  
-  
-009B4F40    B9 691549E2              MOV ECX,E2491569  
-009B4F45    03EF                     ADD EBP,EDI  
-009B4F47    81C1 D6EAB61D            ADD ECX,1DB6EAD6                         ; ECX = 3F, 解密的长度, DWORD  
-  
-009B4F56    8B03                     MOV EAX,DWORD PTR DS:\[EBX\]               ; 读出加密的 CODE, 一个 DWORD  
-  
-009B4F5D    33C7                     XOR EAX,EDI                              ; 变换  
-  
-009B4F6D    C1C0 11                  ROL EAX,11                               ; 变换  
-  
-009B4F76    2B43 04                  SUB EAX,DWORD PTR DS:\[EBX+4\]             ; 变换  
-  
-009B4F91    8903                     MOV DWORD PTR DS:\[EBX\],EAX               ; 写回解密后的 CODE, 一个 DWORD  
-  
-009B4FA5    81C7 DBF7E8FD            ADD EDI,FDE8F7DB                         ; Key 变换  
-  
-009B4FDA    83E9 01                  SUB ECX,1  
-009B4FDD  ^ 0F85 73FFFFFF            JNZ RemindBo.009B4F56                    ; 循环  
-...  
-  
-下面是解密后的 CODE, 没有花指令, 没有垃圾指令, 看起来舒服多了  
-009B4FF6    61                       POPAD  
-009B4FF7    55                       PUSH EBP  
-009B4FF8    E8 03110000              CALL RemindBo.009B6100  
-009B4FFD    8BC5                     MOV EAX,EBP                              ; EAX = RemindBo.005A5000  
-009B4FFF    5D                       POP EBP  
-009B5000    837C24 04 FF             CMP DWORD PTR SS:\[ESP+4\],-1  
-009B5005    74 25                    JE SHORT RemindBo.009B502C  
-009B5007   |90                       NOP  
-009B5008   |90                       NOP  
-009B5009   |90                       NOP  
-009B500A   |90                       NOP  
-009B500B   |8B98 2C854100            MOV EBX,DWORD PTR DS:\[EAX+41852C\]        ; user32.MessageBoxA  
-到这已经得到了 API, 可以修复 IAT 了  
-  
-再跟一跟这段代码  
-009B5011    803B CC                  CMP BYTE PTR DS:\[EBX\],0CC                ; MessageBoxA 上有断点吗?  
-009B5014    0F84 DE000000            JE RemindBo.009B50F8                     ; 有就跳, 最后会到 005A5000  
-009B501A    807B 01 CC               CMP BYTE PTR DS:\[EBX+1\],0CC              ; MessageBoxA+1 上有断点吗?  
-009B501E    0F84 D4000000            JE RemindBo.009B50F8                     ; 有就跳, 最后会到 005A5000  
-009B5024    8BC3                     MOV EAX,EBX                              ; EAX <== API Address  
-009B5026    60                       PUSHAD  
-009B5027    E9 CC000000              JMP RemindBo.009B50F8  
-...  
-如果跟踪原程序, 假如在 MessageBoxA, 或者 MessageBoxA+1 上下断点, 壳会检测到的!!  
-  
-  
-下面这段 CODE 就是把 009B4FF6-009B50F1 再加密回去  
-009B50F8    60                       PUSHAD  
-009B50F9    E8 00000000              CALL RemindBo.009B50FE  
-009B50FE    5E                       POP ESI  
-009B50FF    83EE 06                  SUB ESI,6  
-009B5102    B9 02010000              MOV ECX,102  
-009B5107    29CE                     SUB ESI,ECX  
-009B5109    BA 5D6540FE              MOV EDX,FE40655D  
-009B510E    C1E9 02                  SHR ECX,2  
-009B5111    83E9 02                  SUB ECX,2  
-009B5114    83F9 00                  CMP ECX,0  
-009B5117    7C 1A                    JL SHORT RemindBo.009B5133  
-009B5119    8B048E                   MOV EAX,DWORD PTR DS:\[ESI+ECX\*4\]  
-009B511C    8B5C8E 04                MOV EBX,DWORD PTR DS:\[ESI+ECX\*4+4\]  
-009B5120    03C3                     ADD EAX,EBX  
-009B5122    C1C8 11                  ROR EAX,11  
-009B5125    33C2                     XOR EAX,EDX  
-009B5127    81EA DBF7E8FD            SUB EDX,FDE8F7DB  
-009B512D    89048E                   MOV DWORD PTR DS:\[ESI+ECX\*4\],EAX  
-009B5130    49                       DEC ECX  
-009B5131  ^ EB E1                    JMP SHORT RemindBo.009B5114  
-009B5133    61                       POPAD  
-  
-009B5134    61                       POPAD                                    ; 对应 009B5026 的 PUSHAD  
-009B5135    837C24 04 FF             CMP DWORD PTR SS:\[ESP+4\],-1  
-009B513A    74 06                    JE SHORT RemindBo.009B5142  
-009B513C    90                       NOP  
-009B513D    90                       NOP  
-009B513E    90                       NOP  
-009B513F    90                       NOP  
-009B5140  - FFE0                     JMP EAX                                  ; user32.MessageBoxA  
-009B5142    C2 1000                  RETN 10  
-从 009B5140 跳到 API 中执行.  
-  
-跟踪结果:  
-0  0034F330  ?  0000  009A6280      // user32.MessageBoxA  
-0  0034F844  ?  0000  009B4E31      // user32.RegisterHotKey  
-0  0034F878  ?  0000  009B4E4B      // user32.MessageBoxA  
-  
-  
-3. 脱壳后的再修复  
-  
-脱壳, IAT 修复后,再运行, 还是有错  
-  
-用 OLLYDBG 载入 dumped\_.exe  
-  
-Ctrl+F2 重来, 在壳的 CODE 段下 f2 断点, F9 运行, 断在下面, 说明脱壳后, CODE 与壳还有联系.  
-  
-下面的 CODE, 要用 F7 跟踪, 有很多的花指令, 很多的垃圾指令, 来干扰跟踪, 而且其中主要的 CODE 还是  
-加密的, 总是先解密, 然后执行, 接着又加密回去,与上面的 MessageBoxA 那段 CODE 很象,  
-  
-下面只将有用的指令列出, 花指令/垃圾指令 都略过.  
-  
-009A702E    60                       PUSHAD  
-009A702F    F9                       STC  
-009A7030    87C8                     XCHG EAX,ECX  
-...  
-009A70D5    BB D9719A00              MOV EBX,RemindBo.009A71D9                ; 解密的起始地址  
-...  
-009A70F1    BE B0E08A2A              MOV ESI,2A8AE0B0  
-009A70F6    C1EA C4                  SHR EDX,0C4                              ; Shift constant out of range 1..31  
-009A70F9    81C6 073A95D0            ADD ESI,D0953A07                         ; ESI = FB201AB7  
-  
-009A710F    BF 39CECA88              MOV EDI,88CACE39  
-009A7114    8BC6                     MOV EAX,ESI  
-009A7116    81F7 12CECA88            XOR EDI,88CACE12                         ; EDI = 002B, 解密的长度, DWORD  
-  
-009A712E    8B2B                     MOV EBP,DWORD PTR DS:\[EBX\]               ; 读出加密的 DWORD  
-...  
-009A7140    03EE                     ADD EBP,ESI                              ; 变换  
-...  
-009A7155    C1C5 10                  ROL EBP,10                               ; 变换  
-...  
-009A7166    036B 04                  ADD EBP,DWORD PTR DS:\[EBX+4\]             ; 变换  
-...  
-009A7179    892B                     MOV DWORD PTR DS:\[EBX\],EBP               ; 写回解密后的 DWORD  
-...  
-009A7189    81F6 3D309808            XOR ESI,898303D  
-...  
-009A71A7    81EB FCFFFFFF            SUB EBX,-4  
-...  
-009A71C3    83EF 01                  SUB EDI,1  
-009A71C6  ^ 0F85 62FFFFFF            JNZ RemindBo.009A712E                    ; 循环  
-009A71CC   /7E 03                    JLE SHORT RemindBo.009A71D1  
-009A71CE   |7F 01                    JG SHORT RemindBo.009A71D1  
-  
-009A71D1   /E9 03000000              JMP RemindBo.009A71D9  
-  
-从 009A71D9 到 009A7284 为解密的 CODE  
-009A71D9    E8 22EF0000              CALL RemindBo.009B6100                    ; 壳用来重定位的一个地址 EBP=005A5000  
-009A71DE    8B4424 20                MOV EAX,DWORD PTR SS:\[ESP+20\]             ; 返回地址 404FB0 ==> EAX  
-009A71E2    33C9                     XOR ECX,ECX                               ; ECX = 0, index  
-009A71E4    8B9C8D 812E4000          MOV EBX,DWORD PTR SS:\[EBP+ECX\*4+402E81\]   ; Offset 保存在从 009A7E81 开始的地址  
-009A71EB    039D 46F84000            ADD EBX,DWORD PTR SS:\[EBP+40F846\]         ; 加上 Module Base 00400000  
-009A71F1    3BC3                     CMP EAX,EBX                               ; 与返回地址比较  
-009A71F3    74 07                    JE SHORT RemindBo.009A71FC                ; 相等吗?  
-009A71F5    90                       NOP  
-009A71F6    90                       NOP  
-009A71F7    90                       NOP  
-009A71F8    90                       NOP  
-009A71F9    41                       INC ECX                                   ; index 加 1   
-009A71FA  ^ EB E8                    JMP SHORT RemindBo.009A71E4               ; 循环  
-  
-009A71FC    8DB5 615D4000            LEA ESI,DWORD PTR SS:\[EBP+405D61\]         ; ESI=009AAD61, 被抽掉的 Code 保存的  
-  
-起始地址  
-009A7202    B8 0A000000              MOV EAX,0A                                ; 每块被抽掉的 Code 保存为 0x0a bytes   
-009A7207    F7E1                     MUL ECX                                   ; index  
-009A7209    03F0                     ADD ESI,EAX                               ; 对应于返回地址的 被抽 Code 的保存起始,   
-  
-源地址  
-009A720B    8DBD 07184000            LEA EDI,DWORD PTR SS:\[EBP+401807\]         ; EDI = 009A6807, 目的地址, 共用的,   
-  
-与 index 无关  
-009A7211    0FB6840D C9224000        MOVZX EAX,BYTE PTR SS:\[EBP+ECX+4022C9\]    ; 从地址 009A72C9 开始记录各处 CALL 到壳  
-  
-中的次数  
-009A7219    FEC0                     INC AL                                    ; 次数加 1  
-009A721B    88840D C9224000          MOV BYTE PTR SS:\[EBP+ECX+4022C9\],AL       ; 保存次数  
-009A7222    3C 20                    CMP AL,20                                 ; 已经 0x20 次了吗?  
-009A7224    75 13                    JNZ SHORT RemindBo.009A7239               ; 不够 0x20 次, 跳到 009A7239  
-009A7226    90                       NOP  
-009A7227    90                       NOP  
-009A7228    90                       NOP  
-009A7229    90                       NOP  
-  
-009A722A    8BBD 4AF84000            MOV EDI,DWORD PTR SS:\[EBP+40F84A\]         ; 如果已经 0x20 次, 目的地址从  
-  
-\[009B484A\]中取出  
-                                                                               ; 为 00134938  
-009A7230    B8 0A000000              MOV EAX,0A  
-009A7235    F7E1                     MUL ECX  
-009A7237    03F8                     ADD EDI,EAX                               ; 再加上偏移量, 0x0a \* index, 与  
-  
-index 相关, 不重叠  
-009A7239    8A9D 1E204000            MOV BL,BYTE PTR SS:\[EBP+40201E\]           ; SS:\[009A701E\]=BA, 解密的 Key  
-009A723F    B9 0A000000              MOV ECX,0A                                ; 0x0a bytes  
-009A7244    AC                       LODS BYTE PTR DS:\[ESI\]                    ; 从源地址取一 byte  
-009A7245    32C3                     XOR AL,BL                                 ; 变换  
-009A7247    AA                       STOS BYTE PTR ES:\[EDI\]                    ; 保存到目的地址  
-009A7248  ^ E2 FA                    LOOPD SHORT RemindBo.009A7244             ; 循环 0x0a 次  
-009A724A    83EF 0A                  SUB EDI,0A                                ; 目的地址  
-009A724D    57                       PUSH EDI                                  ; 目的地址入栈  
-009A724E    8DB5 07184000            LEA ESI,DWORD PTR SS:\[EBP+401807\]         ; ESI = 009A6807, 共用的目的地址  
-009A7254    33F7                     XOR ESI,EDI  
-009A7256    74 19                    JE SHORT RemindBo.009A7271                ; 目的地址 是 009A6807? 是就跳  
-009A7258    90                       NOP  
-009A7259    90                       NOP  
-009A725A    90                       NOP  
-009A725B    90                       NOP  
-  
-下面的几行, 把程序中的 CALL 009A702E, 改成 CALL ( 00134938 + 0x0a \* index )  
-可能主要是为了提高速度, 因为 CALL 到 009A702E, 要执行这么多的指令, 而实际上的指令只有 0x0a byte  
-009A725C    8B7424 24                MOV ESI,DWORD PTR SS:\[ESP+24\]  
-009A7260    83EE 04                  SUB ESI,4  
-009A7263    AD                       LODS DWORD PTR DS:\[ESI\]  
-009A7264    81EF 2E204000            SUB EDI,RemindBo.0040202E  
-009A726A    2BFD                     SUB EDI,EBP  
-009A726C    03C7                     ADD EAX,EDI  
-009A726E    8946 FC                  MOV DWORD PTR DS:\[ESI-4\],EAX  
-  
-009A7271    5F                       POP EDI  
-009A7272    57                       PUSH EDI  
-009A7273    33C9                     XOR ECX,ECX  
-009A7275    83F9 08                  CMP ECX,8                                 ; 循环 8 次, 将目的地址挪到 PUSHAD 进  
-  
-栈的 8 个 DWORD 下面  
-009A7278    74 0E                    JE SHORT RemindBo.009A7288  
-009A727A    90                       NOP  
-009A727B    90                       NOP  
-009A727C    90                       NOP  
-009A727D    90                       NOP  
-009A727E    8B448C 04                MOV EAX,DWORD PTR SS:\[ESP+ECX\*4+4\]  
-009A7282    89048C                   MOV DWORD PTR SS:\[ESP+ECX\*4\],EAX  
-009A7285    41                       INC ECX  
-009A7286  ^ EB ED                    JMP SHORT RemindBo.009A7275  
-009A7288    893C8C                   MOV DWORD PTR SS:\[ESP+ECX\*4\],EDI  
-  
-009A728B    60                       PUSHAD                                   ; 重新加密 009A71D9-009A7284  
-009A728C    E8 00000000              CALL RemindBo.009A7291  
-009A7291    5E                       POP ESI  
-009A7292    83EE 06                  SUB ESI,6  
-009A7295    B9 B2000000              MOV ECX,0B2  
-009A729A    29CE                     SUB ESI,ECX  
-009A729C    BA B71A20FB              MOV EDX,FB201AB7  
-009A72A1    C1E9 02                  SHR ECX,2  
-009A72A4    83E9 02                  SUB ECX,2  
-009A72A7    83F9 00                  CMP ECX,0  
-009A72AA    7C 1A                    JL SHORT RemindBo.009A72C6  
-009A72AC    8B048E                   MOV EAX,DWORD PTR DS:\[ESI+ECX\*4\]  
-009A72AF    8B5C8E 04                MOV EBX,DWORD PTR DS:\[ESI+ECX\*4+4\]  
-009A72B3    2BC3                     SUB EAX,EBX  
-009A72B5    C1C8 10                  ROR EAX,10  
-009A72B8    2BC2                     SUB EAX,EDX  
-009A72BA    81F2 3D309808            XOR EDX,898303D  
-009A72C0    89048E                   MOV DWORD PTR DS:\[ESI+ECX\*4\],EAX  
-009A72C3    49                       DEC ECX  
-009A72C4  ^ EB E1                    JMP SHORT RemindBo.009A72A7  
-009A72C6    61                       POPAD                                   ; 加密结束  
-  
-009A72C7    61                       POPAD  
-009A72C8    C3                       RETN                                    ; 返回 目的地址  
-  
-目的地址, 0x0a bytes, 这就是程序 CALL 009A702E 真正要执行的 CODE  
-009A6807    33FD                     XOR EDI,EBP                             ; 干扰指令  
-009A6809    33DB                     XOR EBX,EBX                             ; 从原程序中抽掉的指令  
-009A680B    8B40 04                  MOV EAX,DWORD PTR DS:\[EAX+4\]            ; 从原程序中抽掉的指令  
-009A680E    33FD                     XOR EDI,EBP                             ; 干扰指令  
-009A6810    C3                       RETN                                    ; 返回 00404FB0  
-  
-其中有两条干扰指令, 真正起作用的指令只有两条, 为 5 BYTES  
-  
-壳实际上是把真正的原程序中的  
-          33DB                     XOR EBX,EBX  
-          8B40 04                  MOV EAX,DWORD PTR DS:\[EAX+4\]  
-抽掉, 再加上两条干扰指令, 然后加密保存起来, 再把原程序中被抽掉的地方改成  
-            CALL 009A702E  
-从 009A702E 开始的 CODE, 就是根据返回地址, 找到保存的加密 code, 解密, 然后执行.  
-  
-看看从原程序中都抽掉了多少 CODE  
-  
-009A72C9 - 009A7E80, 每块为 1 BYTE,   保存次数  
-009A7E81 - 009AAD60, 每块为 1 DWORD,  保存 Offset  
-009AAD61 - 009B2290, 每块为 10 BYTES, 保存加密的 CODE  
-  
-总共是 0BB8 块, 用 10 进制是 3000, 够变态的吧?!  
-  
-而且每块被抽的 5 BYTES, 不仅加密, 还加上两条干扰指令, 搞的不能很简单的自动还原, 脱了壳,   
-还得带着壳的一些 CODE 运行, 够狠的!  
-  
-  
-先说脱壳后的问题:  
-  
-脱壳后的程序, 如果运行到 009A722A, 从\[009B484A\]中取出的地址 00134938,  
-  
-已经不可以使用了, 这时候如果把解密的 CODE 放到其中, 不出问题才怪!  
-  
-\[009B484A\]的地址 00134938, 应该是壳在解码程序, 运行到 OEP 之前分配的内存, 一脱壳就把这脱没了.  
-  
-  
-再说一说如何修复吧:  
-  
-用 OLLYDBG 载入 dumped\_.exe, F2 在 009A702E 下断, F9 运行, 停在 009A702E  
-  
-再 F2 在 009A728B 下断, F9 运行, 停在 009A728B,   
-  
-这时壳 009A71D9-009A7284 的 CODE 已解密，  
-  
-然后将下面的三个地方改掉，  
-  
-009A702E    60                       PUSHAD  
-009A702F    E9 A5010000              JMP RemindBo.009A71D9                  ; 直接 跳过垃圾指令与壳解密的指令  
-  
-009A7222    3C 20                    CMP AL,20  
-009A7224   /EB 13                    JMP SHORT RemindBo.009A7239            ; 总是使用共用的目的地址  
-  
-009A728B   /EB 3A                    JMP SHORT RemindBo.009A72C7            ; 直接 跳过壳加密指令  
-  
-  
-最后将 009A702E - 009A6810 的区域 DUMP 出来, 再用 16 进制编辑器, 覆盖 dumped\_.exe 的相应地方,   
-  
-然后运行, 一切正常. 
+**软件名称**：雪狐提醒簿 V3.0
 
- 4dd466d0e1e0cc123afbe504da2462ca
+**实例下载**：`http://www.onlinedown.net/soft/2469.htm`
+
+**软件大小**：4644KB
+
+**软件语言**：简体中文
+
+**软件类别**：国产软件/免费版/闹铃时钟
+
+**运行环境**：`Win9x`/`Me`/`NT`/`2000`/`XP`
+
+**调试环境**：`Win2000`, `Ollydbg` 1.10, `LordPE`, `ImportREC` 1.6.2, `PEid` v0.93
+
+**作者**: `blackeyes`
+
+**作者声明**：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+## 1. Dump 文件, 寻找 OEP
+
+首先用 `PEiD` v0.93：
+
+```text
+UltraProtect 1.x -> RISCO Software Inc.
+```
+
+打开 `OllyDbg`，载入 `RemindBook.exe`。
+
+```text
+009A6000 >  60                 PUSHAD                       ; 壳入口
+009A6001    EB 01              JMP SHORT RemindBo.009A6004
+009A6003    7B 66              JPO SHORT RemindBo.009A606B
+009A6005    BD A98966C1        MOV EBP,C16689A9
+```
+
+按 `F9` 运行，有 `INT3`，停在 `009B799F`：
+
+```text
+009B799B    64:8920            MOV DWORD PTR FS:[EAX],ESP
+009B799E    CC                 INT3
+009B799F    90                 NOP                          ; 停在这
+009B79A0    64:67:8F06 0000    POP DWORD PTR FS:[0]
+009B79A6    83C4 04            ADD ESP,4
+```
+
+按 1 次 `Shift+F9`，程序运行。
+
+`Ctrl+F2` 重来，`CODE` 段下 `f2` 断点，`F9` 运行，`Shift+F9` 通过 `INT3`，停在 `OEP`：
+
+```text
+00729280 >  55                 PUSH EBP                     ; 程序 OEP
+00729281    8BEC                MOV EBP,ESP
+00729283    B9 05000000        MOV ECX,5
+00729288    6A 00              PUSH 0
+0072928A    6A 00              PUSH 0
+```
+
+`F7` 单步跟一下，很快找到 `IAT`：
+
+```text
+IAT:  0074F26C-0074FD6B
+size: 0B00
+```
+
+这时打开 `ImportREC`，选 `Process RemindBook.exe`。
+
+填上下列信息，
+
+```text
+    OEP:  329280
+    RVA:  0034F26C, Size:0B00
+```
+
+按 `Get Imports`，很多无效的，直接用 `ImportREC` 修复不了，
+
+随便选一个，右键==>`Disassemble/HexView`。
+
+```text
+009A6010    68 8DF3FB5A        PUSH 5AFBF38D
+009A6015    813424 D8A5032D    XOR DWORD PTR SS:[ESP],2D03A5D8
+009A601C    C3                 RETN
+```
+
+这几行等于 `jmp far 77F85655`， // `5AFBF38D XOR 2D03A5D8 = 77F85655`
+
+变形的跳转.
+
+从 `009A6010` 到 `009A67FB`，全是这样，`ImportREC` 不能处理，
+
+要将它们变成 `jmp xxxx`，
+
+`Ctrl+F2` 重来，到 `OEP` 后，在 `CODE` 段找一段空白地方，写上一段代码修复：
+
+```text
+00729F00    60                 PUSHAD
+00729F01    BF 10609A00        MOV EDI,RemindBo.009A6010           ; 起始地址
+00729F06    B9 EC070000        MOV ECX,7EC                         ; Size
+00729F0B    33C0               XOR EAX,EAX
+00729F0D    B0 68              MOV AL,68                           ; 先找 68
+00729F0F    F2:AE             REPNE SCAS BYTE PTR ES:[EDI]
+00729F11    83F9 00            CMP ECX,0
+00729F14    74 2C              JE SHORT RemindBo.00729F42
+00729F16    8B1F               MOV EBX,DWORD PTR DS:[EDI]          ; push XXXXX
+00729F18    8B47 04            MOV EAX,DWORD PTR DS:[EDI+4]
+00729F1B    25 FFFFFF00        AND EAX,0FFFFFF
+00729F20    3D 81342400        CMP EAX,243481                      ; 再找 813424
+00729F25   ^ 75 E4             JNZ SHORT RemindBo.00729F0B
+00729F27    8B57 07            MOV EDX,DWORD PTR DS:[EDI+7]        ; xor [esp], YYYY
+00729F2A    33DA               XOR EBX,EDX
+00729F2C    8A47 0B            MOV AL,BYTE PTR DS:[EDI+B]
+00729F2F    3C C3              CMP AL,0C3                          ; 是 C3 吗?, RETN
+00729F31   ^ 75 D8             JNZ SHORT RemindBo.00729F0B
+00729F33    C647 FF E9         MOV BYTE PTR DS:[EDI-1],0E9         ; 修改成 JMP FAR ZZZZ
+00729F37    83EB 04            SUB EBX,4
+00729F3A    2BDF               SUB EBX,EDI
+00729F3C    891F               MOV DWORD PTR DS:[EDI],EBX
+00729F3E   ^ EB CB             JMP SHORT RemindBo.00729F0B
+00729F40    90                 NOP
+00729F41    90                 NOP
+00729F42    61                 POPAD
+00729F43    90                 NOP
+```
+
+上面代码的 Binary Format，在 `OLLYDBG` 中，可在 CPU 的数据窗直接用 `Binary Copy/Binary Paste`，挺方便的.
+
+```text
+60 BF 10 60 9A 00 B9 EC 07 00 00 33 C0 B0 68 F2 AE 83 F9 00 74 2C 8B 1F 8B 47 04 25 FF FF FF 00 
+
+3D 81 34 24 00 75 E4 8B 57 07 33 DA 8A 47 0B 3C C3 75 D8 C6 47 FF E9 83 EB 04 2B DF 89 1F EB CB 
+
+90 90 61 90 00 00 00 00 00 00 00 00 00 00 00 00
+```
+
+写完代码后，让这段代码运行一遍，再回到 `OEP`，用 `OllyDump` 插件 `Dump`。
+
+这时打开 `ImportREC`，再进行 `IAT` 修复，用 `Level 1` 后，只有 3 个不能修复，并且指向壳中：
+
+```text
+0  0034F330  ?  0000  009A6280
+0  0034F844  ?  0000  009B4E31
+0  0034F878  ?  0000  009B4E4B
+```
+
+## 2. Debug, 修复 IAT
+
+`Ctrl+F2` 重来，到 `OEP` 后，直接转到 `009A6280`/`009B4E31`，然后 `F7` 单步跟踪。
+
+先跟 `009B4E31`：
+
+```text
+009B4E31    837C24 04 FF             CMP DWORD PTR SS:[ESP+4],-1
+009B4E36    74 13                    JE SHORT RemindBo.009B4E4B
+009B4E38    90                       NOP
+009B4E39    90                       NOP
+009B4E3A    90                       NOP
+009B4E3B    90                       NOP
+009B4E3C    55                       PUSH EBP
+009B4E3D    E8 BE120000              CALL RemindBo.009B6100             ; EBP = 005A5000
+009B4E42    8BC5                     MOV EAX,EBP
+009B4E44    5D                       POP EBP
+009B4E45   - FFA0 C4FD4000           JMP DWORD PTR DS:[EAX+40FDC4]     ; user32.RegisterHotKey
+```
+
+所以 `009B4E31` 实际上就是 `user32.RegisterHotKey`，
+
+再跟 `009A6280`，实际上与 `009B4E4B` 一样了：
+
+```text
+009A6280   /E9 C6EB0000              JMP RemindBo.009B4E4B
+```
+
+从现在起，下面有很多的花指令，以及很多的垃圾指令，来干扰跟踪，而且其中最主要的 `CODE` 还是
+
+加密的，总是先解密，然后执行，接着又加密回去，下面只将有用的指令列出:
+
+```text
+009B4E4B    60                       PUSHAD
+009B4E4C    FC                       CLD
+009B4E4D    78 03                    JS SHORT RemindBo.009B4E52
+009B4E4F    79 01                    JNS SHORT RemindBo.009B4E52
+...
+009B4F13    68 F64F9B00              PUSH RemindBo.009B4FF6             ; 解密的起始地址
+009B4F1F    5B                       POP EBX                            ; RemindBo.009B4FF6
+009B4F31    BF 535ED47F              MOV EDI,7FD45E53                   ; 解密的 Key
+009B4F40    B9 691549E2              MOV ECX,E2491569
+009B4F45    03EF                     ADD EBP,EDI
+009B4F47    81C1 D6EAB61D            ADD ECX,1DB6EAD6                   ; ECX = 3F, 解密的长度, DWORD
+009B4F56    8B03                     MOV EAX,DWORD PTR DS:[EBX]         ; 读出加密的 CODE, 一个 DWORD
+009B4F5D    33C7                     XOR EAX,EDI                        ; 变换
+009B4F6D    C1C0 11                  ROL EAX,11                         ; 变换
+009B4F76    2B43 04                  SUB EAX,DWORD PTR DS:[EBX+4]       ; 变换
+009B4F91    8903                     MOV DWORD PTR DS:[EBX],EAX         ; 写回解密后的 CODE, 一个 DWORD
+009B4FA5    81C7 DBF7E8FD            ADD EDI,FDE8F7DB                   ; Key 变换
+009B4FDA    83E9 01                  SUB ECX,1
+009B4FDD   ^ 0F85 73FFFFFF            JNZ RemindBo.009B4F56              ; 循环
+...
+```
+
+下面是解密后的 `CODE`，没有花指令，没有垃圾指令，看起来舒服多了：
+
+```text
+009B4FF6    61                       POPAD
+009B4FF7    55                       PUSH EBP
+009B4FF8    E8 03110000              CALL RemindBo.009B6100
+009B4FFD    8BC5                     MOV EAX,EBP                        ; EAX = RemindBo.005A5000
+009B4FFF    5D                       POP EBP
+009B5000    837C24 04 FF             CMP DWORD PTR SS:[ESP+4],-1
+009B5005    74 25                    JE SHORT RemindBo.009B502C
+009B5007   |90                      NOP
+009B5008   |90                      NOP
+009B5009   |90                      NOP
+009B500A   |90                      NOP
+009B500B   |8B98 2C854100           MOV EBX,DWORD PTR DS:[EAX+41852C]    ; user32.MessageBoxA
+```
+
+到这已经得到了 `API`，可以修复 `IAT` 了。
+
+再跟一跟这段代码：
+
+```text
+009B5011    803B CC                  CMP BYTE PTR DS:[EBX],0CC          ; MessageBoxA 上有断点吗?
+009B5014    0F84 DE000000            JE RemindBo.009B50F8               ; 有就跳, 最后会到 005A5000
+009B501A    807B 01 CC               CMP BYTE PTR DS:[EBX+1],0CC        ; MessageBoxA+1 上有断点吗?
+009B501E    0F84 D4000000            JE RemindBo.009B50F8               ; 有就跳, 最后会到 005A5000
+009B5024    8BC3                     MOV EAX,EBX                        ; EAX <== API Address
+009B5026    60                       PUSHAD
+```
+
+
+
+`009B5027` `E9 CC000000` `JMP RemindBo.009B50F8`
+
+...
+
+如果跟踪原程序，假如在`MessageBoxA`，或者`MessageBoxA+1`上下断点，壳会检测到的!!
+
+下面这段CODE就是把`009B4FF6-009B50F1`再加密回去
+
+```
+009B50F8    60                PUSHAD  
+009B50F9    E8 00000000       CALL RemindBo.009B50FE  
+009B50FE    5E                POP ESI  
+009B50FF    83EE 06          SUB ESI,6  
+009B5102    B9 02010000      MOV ECX,102  
+009B5107    29CE             SUB ESI,ECX  
+009B5109    BA 5D6540FE      MOV EDX,FE40655D  
+009B510E    C1E9 02          SHR ECX,2  
+009B5111    83E9 02          SUB ECX,2  
+009B5114    83F9 00          CMP ECX,0  
+009B5117    7C 1A            JL SHORT RemindBo.009B5133  
+009B5119    8B048E           MOV EAX,DWORD PTR DS:[ESI+ECX*4]  
+009B511C    8B5C8E 04        MOV EBX,DWORD PTR DS:[ESI+ECX*4+4]  
+009B5120    03C3             ADD EAX,EBX  
+009B5122    C1C8 11          ROR EAX,11  
+009B5125    33C2             XOR EAX,EDX  
+009B5127    81EA DBF7E8FD    SUB EDX,FDE8F7DB  
+009B512D    89048E           MOV DWORD PTR DS:[ESI+ECX*4],EAX  
+009B5130    49               DEC ECX  
+009B5131   ^ EB E1            JMP SHORT RemindBo.009B5114  
+009B5133    61                POPAD  
+009B5134    61                POPAD                          ; 对应 009B5026 的 PUSHAD  
+009B5135    837C24 04 FF     CMP DWORD PTR SS:[ESP+4],-1  
+009B513A    74 06            JE SHORT RemindBo.009B5142  
+009B513C    90               NOP  
+009B513D    90               NOP  
+009B513E    90               NOP  
+009B513F    90               NOP  
+009B5140   - FFE0            JMP EAX                          ; user32.MessageBoxA  
+009B5142    C2 1000          RETN 10
+```
+
+从`009B5140`跳到API中执行.
+
+跟踪结果:
+
+`0` `0034F330` `?` `0000` `009A6280` `// user32.MessageBoxA`  
+`0` `0034F844` `?` `0000` `009B4E31` `// user32.RegisterHotKey`  
+`0` `0034F878` `?` `0000` `009B4E4B` `// user32.MessageBoxA`
+
+### 3. 脱壳后的再修复
+
+脱壳，`IAT`修复后，再运行，还是有错
+
+用`OLLYDBG`载入`dumped\_.exe`
+
+`Ctrl+F2`重来，在壳的`CODE`段下`f2`断点，`F9`运行，断在下面，说明脱壳后，`CODE`与壳还有联系.
+
+下面的`CODE`，要用`F7`跟踪，有很多的花指令，很多的垃圾指令，来干扰跟踪，而且其中主要的`CODE`还是加密的，总是先解密，然后执行，接着又加密回去，与上面的`MessageBoxA`那段`CODE`很象，下面只将有用的指令列出，花指令/垃圾指令都略过.
+
+```
+009A702E    60                PUSHAD  
+009A702F    F9                STC  
+009A7030    87C8              XCHG EAX,ECX  
+
+...  
+
+009A70D5    BB D9719A00      MOV EBX,RemindBo.009A71D9            ; 解密的起始地址  
+
+...  
+
+009A70F1    BE B0E08A2A      MOV ESI,2A8AE0B0  
+009A70F6    C1EA C4          SHR EDX,0C4                          ; Shift constant out of range 1..31  
+009A70F9    81C6 073A95D0    ADD ESI,D0953A07                     ; ESI = FB201AB7  
+009A710F    BF 39CECA88      MOV EDI,88CACE39  
+009A7114    8BC6              MOV EAX,ESI  
+009A7116    81F7 12CECA88    XOR EDI,88CACE12                     ; EDI = 002B, 解密的长度, DWORD  
+009A712E    8B2B              MOV EBP,DWORD PTR DS:[EBX]           ; 读出加密的 DWORD  
+
+...  
+
+009A7140    03EE              ADD EBP,ESI                          ; 变换  
+
+...  
+
+009A7155    C1C5 10          ROL EBP,10                           ; 变换  
+
+...  
+
+009A7166    036B 04          ADD EBP,DWORD PTR DS:[EBX+4]         ; 变换  
+
+...  
+
+009A7179    892B              MOV DWORD PTR DS:[EBX],EBP           ; 写回解密后的 DWORD  
+
+...  
+
+009A7189    81F6 3D309808    XOR ESI,898303D  
+
+...  
+
+009A71A7    81EB FCFFFFFF    SUB EBX,-4  
+
+...  
+
+009A71C3    83EF 01          SUB EDI,1  
+009A71C6   ^ 0F85 62FFFFFF  JNZ RemindBo.009A712E                  ; 循环  
+009A71CC    /7E 03           JLE SHORT RemindBo.009A71D1  
+009A71CE    |7F 01           JG SHORT RemindBo.009A71D1  
+009A71D1    /E9 03000000     JMP RemindBo.009A71D9
+```
+
+从`009A71D9`到`009A7284`为解密的`CODE`
+
+```
+009A71D9    E8 22EF0000      CALL RemindBo.009B6100                ; 壳用来重定位的一个地址 EBP=005A5000  
+009A71DE    8B4424 20        MOV EAX,DWORD PTR SS:[ESP+20]        ; 返回地址 404FB0 ==> EAX  
+009A71E2    33C9              XOR ECX,ECX                          ; ECX = 0, index  
+009A71E4    8B9C8D 812E4000  MOV EBX,DWORD PTR SS:[EBP+ECX*4+402E81]   ; Offset 保存在从 009A7E81 开始的地址  
+009A71EB    039D 46F84000    ADD EBX,DWORD PTR SS:[EBP+40F846]     ; 加上 Module Base 00400000  
+009A71F1    3BC3              CMP EAX,EBX                          ; 与返回地址比较  
+009A71F3    74 07            JE SHORT RemindBo.009A71FC           ; 相等吗?  
+009A71F5    90               NOP  
+009A71F6    90               NOP  
+009A71F7    90               NOP  
+009A71F8    90               NOP  
+009A71F9    41               INC ECX                              ; index 加 1  
+009A71FA   ^ EB E8            JMP SHORT RemindBo.009A71E4         ; 循环  
+009A71FC    8DB5 615D4000    LEA ESI,DWORD PTR SS:[EBP+405D61]     ; ESI=009AAD61, 被抽掉的 Code 保存的起始地址  
+009A7202    B8 0A000000      MOV EAX,0A                           ; 每块被抽掉的 Code 保存为 0x0a bytes  
+009A7207    F7E1              MUL ECX                              ; index  
+009A7209    03F0              ADD ESI,EAX                          ; 对应于返回地址的 被抽 Code 的保存起始, 源地址  
+009A720B    8DBD 07184000    LEA EDI,DWORD PTR SS:[EBP+401807]     ; EDI = 009A6807, 目的地址, 共用的, 与 index 无关  
+009A7211    0FB6840D C9224000  MOVZX EAX,BYTE PTR SS:[EBP+ECX+4022C9]    ; 从地址 009A72C9 开始记录各处 CALL 到壳中的次数  
+009A7219    FEC0              INC AL                               ; 次数加 1  
+009A721B    88840D C9224000  MOV BYTE PTR SS:[EBP+ECX+4022C9],AL    ; 保存次数  
+009A7222    3C 20            CMP AL,20                            ; 已经 0x20 次了吗?  
+009A7224    75 13            JNZ SHORT RemindBo.009A7239          ; 不够 0x20 次, 跳到 009A7239  
+009A7226    90               NOP  
+009A7227    90               NOP  
+009A7228    90               NOP  
+009A7229    90               NOP  
+009A722A    8BBD 4AF84000    MOV EDI,DWORD PTR SS:[EBP+40F84A]     ; 如果已经 0x20 次, 目的地址从 [009B484A]中取出  
+                                                                                   ; 为 00134938  
+009A7230    B8 0A000000      MOV EAX,0A  
+009A7235    F7E1              MUL ECX  
+009A7237    03F8              ADD EDI,EAX                          ; 再加上偏移量, 0x0a * index, 与 index 相关, 不重叠  
+009A7239    8A9D 1E204000    MOV BL,BYTE PTR SS:[EBP+40201E]       ; SS:[009A701E]=BA, 解密的 Key  
+009A723F    B9 0A000000      MOV ECX,0A                           ; 0x0a bytes  
+009A7244    AC                LODS BYTE PTR DS:[ESI]               ; 从源地址取一 byte  
+009A7245    32C3              XOR AL,BL                            ; 变换  
+009A7247    AA                STOS BYTE PTR ES:[EDI]               ; 保存到目的地址  
+009A7248   ^ E2 FA            LOOPD SHORT RemindBo.009A7244        ; 循环 0x0a 次  
+009A724A    83EF 0A          SUB EDI,0A                           ; 目的地址  
+009A724D    57               PUSH EDI                             ; 目的地址入栈  
+009A724E    8DB5 07184000    LEA ESI,DWORD PTR SS:[EBP+401807]     ; ESI = 009A6807, 共用的目的地址  
+009A7254    33F7              XOR ESI,EDI  
+009A7256    74 19            JE SHORT RemindBo.009A7271           ; 目的地址 是 009A6807? 是就跳  
+009A7258    90               NOP
+```
+
+
+
+```
+009A7259    90                      NOP
+009A725A    90                      NOP
+009A725B    90                      NOP
+```
+
+下面的几行，把程序中的 `CALL 009A702E`，改成 `CALL ( 00134938 + 0x0a * index )`
+
+可能主要是为了提高速度，因为 `CALL` 到 `009A702E`，要执行这么多的指令，而实际上的指令只有 `0x0a` byte
+
+```
+009A725C    8B7424 24               MOV ESI,DWORD PTR SS:[ESP+24]
+009A7260    83EE 04                 SUB ESI,4
+009A7263    AD                      LODS DWORD PTR DS:[ESI]
+009A7264    81EF 2E204000           SUB EDI,RemindBo.0040202E
+009A726A    2BFD                    SUB EDI,EBP
+009A726C    03C7                    ADD EAX,EDI
+009A726E    8946 FC                 MOV DWORD PTR DS:[ESI-4],EAX
+009A7271    5F                      POP EDI
+009A7272    57                      PUSH EDI
+009A7273    33C9                    XOR ECX,ECX
+009A7275    83F9 08                 CMP ECX,8                     ; 循环 8 次, 将目的地址挪到 PUSHAD 进
+栈的 8 个 DWORD 下面
+009A7278    74 0E                   JE SHORT RemindBo.009A7288
+009A727A    90                      NOP
+009A727B    90                      NOP
+009A727C    90                      NOP
+009A727D    90                      NOP
+009A727E    8B448C 04               MOV EAX,DWORD PTR SS:[ESP+ECX*4+4]
+009A7282    89048C                  MOV DWORD PTR SS:[ESP+ECX*4],EAX
+009A7285    41                      INC ECX
+009A7286  ^ EB ED                  JMP SHORT RemindBo.009A7275
+009A7288    893C8C                  MOV DWORD PTR SS:[ESP+ECX*4],EDI
+009A728B    60                      PUSHAD                      ; 重新加密 009A71D9-009A7284
+009A728C    E8 00000000             CALL RemindBo.009A7291
+009A7291    5E                      POP ESI
+009A7292    83EE 06                 SUB ESI,6
+009A7295    B9 B2000000             MOV ECX,0B2
+009A729A    29CE                    SUB ESI,ECX
+009A729C    BA B71A20FB             MOV EDX,FB201AB7
+009A72A1    C1E9 02                 SHR ECX,2
+009A72A4    83E9 02                 SUB ECX,2
+009A72A7    83F9 00                 CMP ECX,0
+009A72AA    7C 1A                   JL SHORT RemindBo.009A72C6
+009A72AC    8B048E                  MOV EAX,DWORD PTR DS:[ESI+ECX*4]
+009A72AF    8B5C8E 04               MOV EBX,DWORD PTR DS:[ESI+ECX*4+4]
+009A72B3    2BC3                    SUB EAX,EBX
+009A72B5    C1C8 10                 ROR EAX,10
+009A72B8    2BC2                    SUB EAX,EDX
+009A72BA    81F2 3D309808           XOR EDX,898303D
+009A72C0    89048E                  MOV DWORD PTR DS:[ESI+ECX*4],EAX
+009A72C3    49                      DEC ECX
+009A72C4  ^ EB E1                  JMP SHORT RemindBo.009A72A7
+009A72C6    61                      POPAD                       ; 加密结束
+009A72C7    61                      POPAD
+009A72C8    C3                      RETN                        ; 返回 目的地址
+```
+
+目的地址，`0x0a` bytes，这就是程序 `CALL 009A702E` 真正要执行的 CODE
+
+```
+009A6807    33FD                    XOR EDI,EBP                 ; 干扰指令
+009A6809    33DB                    XOR EBX,EBX                 ; 从原程序中抽掉的指令
+009A680B    8B40 04                 MOV EAX,DWORD PTR DS:[EAX+4]    ; 从原程序中抽掉的指令
+009A680E    33FD                    XOR EDI,EBP                 ; 干扰指令
+009A6810    C3                      RETN                        ; 返回 00404FB0
+```
+
+其中有两条干扰指令，真正起作用的指令只有两条，为 `5` BYTES
+
+壳实际上是把真正的原程序中的
+```
+33DB                    XOR EBX,EBX
+8B40 04                 MOV EAX,DWORD PTR DS:[EAX+4]
+```
+抽掉，再加上两条干扰指令，然后加密保存起来，再把原程序中被抽掉的地方改成
+
+`CALL 009A702E`
+
+从 `009A702E` 开始的 CODE，就是根据返回地址，找到保存的加密 code，解密，然后执行.
+
+看看从原程序中都抽掉了多少 CODE
+
+`009A72C9 - 009A7E80`，每块为 `1` BYTE， 保存次数
+`009A7E81 - 009AAD60`，每块为 `1` DWORD， 保存 Offset
+`009AAD61 - 009B2290`，每块为 `10` BYTES，保存加密的 CODE
+
+总共是 `0BB8` 块，用 `10` 进制是 `3000`，够变态的吧?!
+
+而且每块被抽的 `5` BYTES，不仅加密，还加上两条干扰指令，搞的不能很简单的自动还原，脱了壳，
+还得带着壳的一些 CODE 运行，够狠的!
+
+先说脱壳后的问题:
+
+脱壳后的程序，如果运行到 `009A722A`，从`[009B484A]`中取出的地址 `00134938`，
+已经不可以使用了，这时候如果把解密的 CODE 放到其中，不出问题才怪!
+
+`[009B484A]`的地址 `00134938`，应该是壳在解码程序，运行到 OEP 之前分配的内存，一脱壳就把这脱没了.
+
+再说一说如何修复吧:
+
+用 `OLLYDBG` 载入 `dumped_.exe`，`F2` 在 `009A702E` 下断，`F9` 运行，停在 `009A702E`
+
+再 `F2` 在 `009A728B` 下断，`F9` 运行，停在 `009A728B`，
+
+这时壳 `009A71D9-009A7284` 的 CODE 已解密，
+
+然后将下面的三个地方改掉，
+
+```
+009A702E    60                      PUSHAD
+009A702F    E9 A5010000             JMP RemindBo.009A71D9       ; 直接 跳过垃圾指令与壳解密的指令
+009A7222    3C 20                   CMP AL,20
+009A7224   /EB 13                  JMP SHORT RemindBo.009A7239 ; 总是使用共用的目的地址
+009A728B   /EB 3A                  JMP SHORT RemindBo.009A72C7 ; 直接 跳过壳加密指令
+```
+
+最后将 `009A702E - 009A6810` 的区域 DUMP 出来，再用 `16` 进制编辑器，覆盖 `dumped_.exe` 的相应地方，
+
+然后运行，一切正常.
+
+`4dd466d0e1e0cc123afbe504da2462ca`

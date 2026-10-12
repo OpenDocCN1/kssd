@@ -1,842 +1,1340 @@
 
-
-# Tarma QuickInstall V2.99.3016 注册算法分析\[变异 SHA1 算法\]
+# Tarma QuickInstall V2.99.3016 注册算法分析 [变异 SHA1 算法]
 
 > 原文：[`www.pediy.com/kssd/pediy10/64991.html`](https://www.pediy.com/kssd/pediy10/64991.html)
 
-Tarma QuickInstall V2.99.3016 注册算法分析\[变异 SHA1 算法\]  
-\===========================================================  
-下载地址:http://www.tarma.com/index.htm#/products/tin/  
-大    小:1368 KB  
-简    介:安装程序制作工具,详见其主页。  
-  Tarma QuickInstall 2 is a software installer and uninstaller for Microsoft Windows 95, 98, Me, NT 4, 2000 and XP applications. Its design goals are to provide Windows-compliant installation and removal functionality with a small distribution size, a straightforward and simple user interface, and smart install and (particularly) uninstall behavior.  
-作    者:WksWlj999@sohu.com   
-日    期:\[2008.05.17\]  
-\===========================================================  
-peid0.94 查看为:Microsoft Visual C++ 6.0 \[Debug\],插件 KANAL v2.90 查看发现 ADLER32 和 SHA1 算法:  
-  
-ADLER32 :: 0004AAA3 :: 0044B6A3  
-  The reference is above.  
-SHA1 \[Compress\] :: 00038876 :: 00439476  
-  The reference is above.  
-  
-OD 载入,运行,在注册框输入注册用户名 WksWlj999,邮箱 WksWlj999@sohu.com,注册码 ABCDE23456JKLMN56789VWXYZ,为何输入 25 位注册码下面有分析,点 Register 按钮开始跟踪:  
-\----------------------------------------------------------------------  
-0042080D  |.  FF75 C0       |PUSH DWORD PTR SS:\[EBP-40\]  //注册码入栈  
-00420810  |.  8BCE          |MOV ECX,ESI  
-00420812  |.  FF75 BC       |PUSH DWORD PTR SS:\[EBP-44\] //邮箱  
-00420815  |.  FF75 B8       |PUSH DWORD PTR SS:\[EBP-48\] //用户名  
-00420818  |.  E8 91FDFFFF   |CALL Tin.004205AE  
-0042081D  |.  85C0          |TEST EAX,EAX  
-0042081F  |.^ 74 CE         \\JE SHORT Tin.004207EF  
-\----------------------------------------------------------------------  
-跟进 00420818 CALL Tin.004205AE  
-  
-004205AE  /$  B8 D3074500   MOV EAX,Tin.004507D3  
-004205B3  |.  E8 28CF0200   CALL Tin.0044D4E0  
-...略  
-004205EA  |.  E8 5710FEFF   CALL Tin.00401646  
-004205EF  |.  6A 43         PUSH 43                      //43h 号资源索引号  
-004205F1  |.  33D2          XOR EDX,EDX  
-004205F3  |.  8D8D 50FEFFFF LEA ECX,DWORD PTR SS:\[EBP-1B0\]  
-004205F9  |.  E8 E110FEFF   CALL Tin.004016DF            //通过 3 轮参数固定的运算处理 43h 号资源的 256 字节数据  
-004205FE  |.  85C0          TEST EAX,EAX                 //处理结果在 0012f83c 开始的 84 个字节  
-00420600  |.  75 17         JNZ SHORT Tin.00420619  
-00420602  |.  68 6C744500   PUSH Tin.0045746C    ;ASCII "Internal licensing error. Please re-install the application."  
-00420607  |.  6A 30         PUSH 30  
-00420609  |.  FF75 F0       PUSH DWORD PTR SS:\[EBP-10\]  
-0042060C  |.  E8 7ED30100   CALL Tin.0043D98F  
-00420611  |.  83C4 0C       ADD ESP,0C  
-00420614  |.  E9 7B010000   JMP Tin.00420794  
-00420619  |>  8B5D 08       MOV EBX,DWORD PTR SS:\[EBP+8\]  
-0042061C  |.  8BCB          MOV ECX,EBX  
-0042061E  |.  E8 D2800100   CALL Tin.004386F5                       //用户名是否空  
-00420623  |.  85C0          TEST EAX,EAX  
-00420625  |.  BE E0534500   MOV ESI,Tin.004553E0  
-0042062A  |.  74 02         JE SHORT Tin.0042062E  
-0042062C  |.  8BDE          MOV EBX,ESI  
-0042062E  |>  8B7D 0C       MOV EDI,DWORD PTR SS:\[EBP+C\]  
-00420631  |.  8BCF          MOV ECX,EDI  
-00420633  |.  E8 BD800100   CALL Tin.004386F5                        //Email 是否为空  
-00420638  |.  85C0          TEST EAX,EAX  
-0042063A  |.  74 02         JE SHORT Tin.0042063E  
-0042063C  |.  8BFE          MOV EDI,ESI  
-0042063E  |>  8B4D 10       MOV ECX,DWORD PTR SS:\[EBP+10\]  
-00420641  |.  E8 AF800100   CALL Tin.004386F5                        //输入的注册码是否为空  
-00420646  |.  85C0          TEST EAX,EAX  
-00420648  |.  75 03         JNZ SHORT Tin.0042064D  
-0042064A  |.  8B75 10       MOV ESI,DWORD PTR SS:\[EBP+10\]  
-0042064D  |>  8D45 D8       LEA EAX,DWORD PTR SS:\[EBP-28\]  
-00420650  |.  8D55 B8       LEA EDX,DWORD PTR SS:\[EBP-48\]  
-00420653  |.  50            PUSH EAX  
-00420654  |.  8BCE          MOV ECX,ESI             //ecx <-- 输入的注册码地址  
-00420656  |.  E8 C9800100   CALL Tin.00438724                        //取注册码的前 31 位，不足 31 位全取  
-0042065B  |.  8D4D B8       LEA ECX,DWORD PTR SS:\[EBP-48\]            //ecx <-- 取得的注册码偏移地址  
-0042065E  |.  E8 8D0AFEFF   CALL Tin.004010F0                        //注册码须 25 位,由大写字母及数字组成  
-00420663  |.  85C0          TEST EAX,EAX                             //但不能出现数字 0,1 和字母 O,I  
-00420665  |.  0F85 15010000 JNZ Tin.00420780                         //跳就出错！  
-0042066B  |.  8D85 50FEFFFF LEA EAX,DWORD PTR SS:\[EBP-1B0\]  
-00420671  |.  8D55 D8       LEA EDX,DWORD PTR SS:\[EBP-28\]  
-00420674  |.  50            PUSH EAX                                 ; /Arg1  
-00420675  |.  8D4D B8       LEA ECX,DWORD PTR SS:\[EBP-48\]            ; |  
-00420678  |.  E8 7A0BFEFF   CALL Tin.004011F7                        ; \\Tin.004011F7 //Func1,Func2 见下面注解  
-0042067D  |.  85C0          TEST EAX,EAX  
-0042067F  |.  0F84 FB000000 JE Tin.00420780  
-00420685  |.  8D55 D8       LEA EDX,DWORD PTR SS:\[EBP-28\]  
-00420688  |.  8D4D A4       LEA ECX,DWORD PTR SS:\[EBP-5C\]  
-0042068B  |.  E8 CC0CFEFF   CALL Tin.0040135C           //Func3 见下面注解  
-00420690  |.  8D4D A4       LEA ECX,DWORD PTR SS:\[EBP-5C\]  
-00420693  |.  E8 390CFEFF   CALL Tin.004012D1           //重要!变异 SHA1 算法!见下面分析  
-00420698  |.  8D4D D8       LEA ECX,DWORD PTR SS:\[EBP-28\]  
-0042069B  |.  E8 1C0CFEFF   CALL Tin.004012BC                        //VerifyProc1 处理\[0012f9c4\]开始的 17 个字节  
-004206A0  |.  85C0          TEST EAX,EAX  
-004206A2  |.  0F84 C1000000 JE Tin.00420769                          ;  ;不能跳!  
-004206A8  |.  57            PUSH EDI                                 ; /Arg1 //邮件 WksWlj999@sohu.com  
-004206A9  |.  8BD3          MOV EDX,EBX                              ; |  
-004206AB  |.  8D4D A4       LEA ECX,DWORD PTR SS:\[EBP-5C\]            ; |  
-004206AE  |.  E8 D00CFEFF   CALL Tin.00401383                        ; \\Tin.00401383  
-004206B3  |.  85C0          TEST EAX,EAX  
-004206B5  |.  0F84 AE000000 JE Tin.00420769                          //不能跳!  
-004206BB  |.  8D8D A4FEFFFF LEA ECX,DWORD PTR SS:\[EBP-15C\]  
-004206C1  |.  E8 52FDFFFF   CALL Tin.00420418  
-004206C6  |.  85C0          TEST EAX,EAX  
-004206C8  |.  0F84 9B000000 JE Tin.00420769                          //不能跳!  
-004206CE  |.  8D85 24FFFFFF LEA EAX,DWORD PTR SS:\[EBP-DC\]  
-004206D4  |.  8D95 A4FEFFFF LEA EDX,DWORD PTR SS:\[EBP-15C\]  
-004206DA  |.  50            PUSH EAX  
-004206DB  |.  8BCB          MOV ECX,EBX  
-004206DD  |.  E8 42800100   CALL Tin.00438724  
-004206E2  |.  8D45 A4       LEA EAX,DWORD PTR SS:\[EBP-5C\]  
-004206E5  |.  8D95 24FFFFFF LEA EDX,DWORD PTR SS:\[EBP-DC\]  
-004206EB  |.  50            PUSH EAX  
-004206EC  |.  8BCF          MOV ECX,EDI  
-004206EE  |.  E8 31800100   CALL Tin.00438724  
-004206F3  |.  8D8D A4FEFFFF LEA ECX,DWORD PTR SS:\[EBP-15C\]  
-004206F9  |.  E8 2CFCFFFF   CALL Tin.0042032A  
-004206FE  |.  85C0          TEST EAX,EAX  
-00420700  |.  0F85 8C000000 JNZ Tin.00420792  
-00420706  |.  2145 EC       AND DWORD PTR SS:\[EBP-14\],EAX  
-00420709  |.  807D E8 02    CMP BYTE PTR SS:\[EBP-18\],2               //=2 就是 Site License  
-0042070D  |.  C645 FC 01    MOV BYTE PTR SS:\[EBP-4\],1  
-00420711  |.  74 10         JE SHORT Tin.00420723  
-00420713  |.  807D E8 06    CMP BYTE PTR SS:\[EBP-18\],6               //=6 也是 Site License,否则就是 Single-user license  
-00420717  |.  74 0A         JE SHORT Tin.00420723  
-00420719  |.  8D55 EC       LEA EDX,DWORD PTR SS:\[EBP-14\]  
-0042071C  |.  B9 30744500   MOV ECX,Tin.00457430         ;ASCII "Single-user license - only valid for the registered user."  
-00420721  |.  EB 08         JMP SHORT Tin.0042072B  
-00420723  |>  8D55 EC       LEA EDX,DWORD PTR SS:\[EBP-14\]  
-00420726  |.  B9 08744500   MOV ECX,Tin.00457408         ;ASCII "Site license - valid for all employees."  
-0042072B  |>  E8 7C810100   CALL Tin.004388AC  
-00420730  |.  8B4D EC       MOV ECX,DWORD PTR SS:\[EBP-14\]  
-00420733  |.  E8 777F0100   CALL Tin.004386AF  
-00420738  |.  50            PUSH EAX  
-00420739  |.  56            PUSH ESI  
-0042073A  |.  57            PUSH EDI  
-0042073B  |.  53            PUSH EBX  
-0042073C  |.  68 C8734500   PUSH Tin.004573C8           ;ASCII "This copy of Tarma QuickInstall is registered to:",LF,LF,"%s",LF,"%s",LF,"%s",LF,LF,"%s"  
-00420741  |.  6A 40         PUSH 40  
-00420743  |.  FF75 F0       PUSH DWORD PTR SS:\[EBP-10\]  
-00420746  |.  E8 44D20100   CALL Tin.0043D98F  
-0042074B  |.  8B4D F0       MOV ECX,DWORD PTR SS:\[EBP-10\]  
-0042074E  |.  83C4 1C       ADD ESP,1C  
-00420751  |.  E8 E2FCFFFF   CALL Tin.00420438  
-00420756  |.  33C9          XOR ECX,ECX  
-00420758  |.  85C0          TEST EAX,EAX  
-0042075A  |.  0F9FC1        SETG CL  
-0042075D  |.  8BF1          MOV ESI,ECX  
-0042075F  |.  8D4D EC       LEA ECX,DWORD PTR SS:\[EBP-14\]  
-00420762  |.  E8 DA810100   CALL Tin.00438941  
-00420767  |.  EB 2B         JMP SHORT Tin.00420794  
-00420769  |>  56            PUSH ESI  
-0042076A  |.  57            PUSH EDI  
-0042076B  |.  53            PUSH EBX  
-0042076C  |.  68 18734500   PUSH Tin.00457318                        ;  ASCII "The license code you entered is not valid for this product,",LF,"product version, or registered name and email.",LF,LF,"%s",LF,"%s",LF,"%s",LF,LF,"Please check your registration information and try again."  
-00420771  |.  6A 30         PUSH 30  
-00420773  |.  FF75 F0       PUSH DWORD PTR SS:\[EBP-10\]  
-00420776  |.  E8 14D20100   CALL Tin.0043D98F  
-0042077B  |.  83C4 18       ADD ESP,18  
-0042077E  |.  EB 12         JMP SHORT Tin.00420792  
-00420780  |>  68 E8724500   PUSH Tin.004572E8                        ;  ASCII "The license code is invalid. Please re-enter."  
-00420785  |.  6A 30         PUSH 30  
-00420787  |.  FF75 F0       PUSH DWORD PTR SS:\[EBP-10\]  
-0042078A  |.  E8 00D20100   CALL Tin.0043D98F  
-0042078F  |.  83C4 0C       ADD ESP,0C  
-00420792  |>  33F6          XOR ESI,ESI  
-00420794  |>  8D8D A4FEFFFF LEA ECX,DWORD PTR SS:\[EBP-15C\]  
-0042079A  |.  E8 A2F9FFFF   CALL Tin.00420141  
-0042079F  |.  8B4D F4       MOV ECX,DWORD PTR SS:\[EBP-C\]  
-004207A2  |.  8BC6          MOV EAX,ESI  
-004207A4  |.  5F            POP EDI  
-004207A5  |.  5E            POP ESI  
-004207A6  |.  5B            POP EBX  
-004207A7  |.  64:890D 00000>MOV DWORD PTR FS:\[0\],ECX  
-004207AE  |.  C9            LEAVE  
-004207AF  \\.  C2 0C00       RETN 0C  
-\------------------------------------------------------------------------------------  
-004205F9 CALL Tin.004016DF 的功能是分别调用 00439613,00439657 和 00401884 处代码处理 43h 号资源的 256 字节数据  
-经过 3 轮固定参数处理得到的数据如下：这些代码可以提取汇编出来,写注册机时可用上.  
-0012F83C  5A 88 F5 4C E7 5B 13 57 F5 23 F3 57 83 C0 61 BA  ZLW?a?  
-  
-0012F84C  02 00 1C 1E 11 08 18 16 22 15 04 0D 0B 0F 20 1B  .".   
-0012F85C  1A 13 14 03 10 19 05 01 0A 0C 21 23 06 12 07 1F  ..!#  
-0012F86C  1D 0E 17 09 42 58 41 54 4B 57 32 34 46 39 59 4D  .BXATKW24F9YM  
-0012F87C  5A 4C 37 4E 55 45 33 52 53 4A 48 38 47 56 51 50  ZL7NUE3RSJH8GVQP  
-0012F88C  43 36 44 35 00 00 00 00 00 00 00 00 00 00 00 00  C6D5............  
-这个结果是固定的，如果你修改了原程序中的这个资源块，就会出现"Internal licensing error. Please re-install the application."  
-\------------------------------------------------------------------------------------  
-跟进 0042065E CALL Tin.004010F0，这个 Call 是为了避免注册码出现数字 0，1 或字母 O，I 导致难以分辨。  
-  
-004010F0  /$  53            PUSH EBX  
-004010F1  |.  56            PUSH ESI  
-004010F2  |.  8BF1          MOV ESI,ECX  
-004010F4  |.  57            PUSH EDI  
-004010F5  |.  8BFE          MOV EDI,ESI  
-004010F7  |.  8BDE          MOV EBX,ESI  
-004010F9  |.  803E 00       CMP BYTE PTR DS:\[ESI\],0   //比较注册码首位是否为空  
-004010FC  |.  74 2C         JE SHORT Tin.0040112A  
-004010FE  |>  8A0B          /MOV CL,BYTE PTR DS:\[EBX\]  
-00401100  |.  0FB6C1        |MOVZX EAX,CL  
-00401103  |.  F680 E0A44500>|TEST BYTE PTR DS:\[EAX+45A4E0\],7  //注意 45A4E0 处的索引表,128 字节大小  
-0040110A  |.  74 18         |JE SHORT Tin.00401124  
-0040110C  |.  E8 83820300   |CALL Tin.00439394    //转换小写字母为大写  
-00401111  |.  3C 30         |CMP AL,30                               ;  ;与 30h 比较,数字 0  
-00401113  |.  8807          |MOV BYTE PTR DS:\[EDI\],AL  
-00401115  |.  74 28         |JE SHORT Tin.0040113F  
-00401117  |.  3C 31         |CMP AL,31                               ;  ;与 31h 比较,数字 1  
-00401119  |.  74 24         |JE SHORT Tin.0040113F  
-0040111B  |.  3C 4F         |CMP AL,4F                               ;  ;与 4Fh 比较,大写字母 O  
-0040111D  |.  74 20         |JE SHORT Tin.0040113F  
-0040111F  |.  3C 49         |CMP AL,49                               ;  ;与 49h 比较,大写字母 I  
-00401121  |.  74 1C         |JE SHORT Tin.0040113F  
-00401123  |.  47            |INC EDI  
-00401124  |>  43            |INC EBX  
-00401125  |.  803B 00       |CMP BYTE PTR DS:\[EBX\],0  
-00401128  |.^ 75 D4         \\JNZ SHORT Tin.004010FE  
-0040112A  |>  8027 00       AND BYTE PTR DS:\[EDI\],0  
-0040112D      8BC7          MOV EAX,EDI  
-0040112F      2BC6          SUB EAX,ESI                              ;  ;取得的注册码长度  
-00401131      83E8 19       SUB EAX,19                               ;  ;减去 19h(十进制 25),若不等返回后 eax 将非 0  
-00401134      F7D8          NEG EAX  
-00401136      1BC0          SBB EAX,EAX  
-00401138      83E0 02       AND EAX,2  
-0040113B      5F            POP EDI  
-0040113C      5E            POP ESI  
-0040113D      5B            POP EBX  
-0040113E      C3            RETN  
-  
-所以注册码必须为大写字母加数字,且不能有数字 0，1 字母 O，I  
+Tarma QuickInstall V2.99.3016 注册算法分析 [变异 SHA1 算法]
+
+===========================================================
+
+下载地址:`http://www.tarma.com/index.htm#/products/tin/`
+
+大小:`1368 KB`
+
+简介:安装程序制作工具,详见其主页。
+
+Tarma QuickInstall 2 is a software installer and uninstaller for Microsoft Windows 95, 98, Me, NT 4, 2000 and XP applications. Its design goals are to provide Windows-compliant installation and removal functionality with a small distribution size, a straightforward and simple user interface, and smart install and (particularly) uninstall behavior.
+
+作者:`WksWlj999@sohu.com`
+
+日期:`[2008.05.17]`
+
+===========================================================
+
+`peid0.94` 查看为:`Microsoft Visual C++ 6.0 [Debug]`,`KANAL v2.90` 插件查看发现 `ADLER32` 和 `SHA1` 算法:
+
+```
+ADLER32 :: 0004AAA3 :: 0044B6A3
+  The reference is above.
+
+SHA1 [Compress] :: 00038876 :: 00439476
+  The reference is above.
+```
+
+`OD` 载入，运行，在注册框输入注册用户名 `WksWlj999`，邮箱 `WksWlj999@sohu.com`，注册码 `ABCDE23456JKLMN56789VWXYZ`，为何输入 `25` 位注册码下面有分析，点 `Register` 按钮开始跟踪:
+
+----------------------------------------------------------------------
+```
+0042080D  |.  FF75 C0       |PUSH DWORD PTR SS:[EBP-40]  //注册码入栈
+00420810  |.  8BCE         |MOV ECX,ESI
+00420812  |.  FF75 BC      |PUSH DWORD PTR SS:[EBP-44] //邮箱
+00420815  |.  FF75 B8      |PUSH DWORD PTR SS:[EBP-48] //用户名
+00420818  |.  E8 91FDFFFF  |CALL Tin.004205AE
+0042081D  |.  85C0         |TEST EAX,EAX
+0042081F  |.^ 74 CE        \JE SHORT Tin.004207EF
+```
+----------------------------------------------------------------------
+
+跟进 `00420818` `CALL Tin.004205AE`
+
+```
+004205AE  /$  B8 D3074500   MOV EAX,Tin.004507D3
+004205B3  |.  E8 28CF0200   CALL Tin.0044D4E0
+...略
+004205EA  |.  E8 5710FEFF   CALL Tin.00401646
+004205EF  |.  6A 43         PUSH 43                 //43h 号资源索引号
+004205F1  |.  33D2          XOR EDX,EDX
+004205F3  |.  8D8D 50FEFFFF LEA ECX,DWORD PTR SS:[EBP-1B0]
+004205F9  |.  E8 E110FEFF   CALL Tin.004016DF        //通过 3 轮参数固定的运算处理 43h 号资源的 256 字节数据
+004205FE  |.  85C0          TEST EAX,EAX             //处理结果在 0012f83c 开始的 84 个字节
+00420600  |.  75 17         JNZ SHORT Tin.00420619
+00420602  |.  68 6C744500   PUSH Tin.0045746C    ;ASCII "Internal licensing error. Please re-install the application."
+00420607  |.  6A 30         PUSH 30
+00420609  |.  FF75 F0       PUSH DWORD PTR SS:[EBP-10]
+0042060C  |.  E8 7ED30100   CALL Tin.0043D98F
+00420611  |.  83C4 0C       ADD ESP,0C
+00420614  |.  E9 7B010000   JMP Tin.00420794
+00420619  |>  8B5D 08       MOV EBX,DWORD PTR SS:[EBP+8]
+0042061C  |.  8BCB          MOV ECX,EBX
+0042061E  |.  E8 D2800100   CALL Tin.004386F5                   //用户名是否空
+00420623  |.  85C0          TEST EAX,EAX
+00420625  |.  BE E0534500   MOV ESI,Tin.004553E0
+0042062A  |.  74 02         JE SHORT Tin.0042062E
+0042062C  |.  8BDE          MOV EBX,ESI
+0042062E  |>  8B7D 0C       MOV EDI,DWORD PTR SS:[EBP+C]
+00420631  |.  8BCF          MOV ECX,EDI
+00420633  |.  E8 BD800100   CALL Tin.004386F5                     //Email 是否为空
+00420638  |.  85C0          TEST EAX,EAX
+0042063A  |.  74 02         JE SHORT Tin.0042063E
+0042063C  |.  8BFE          MOV EDI,ESI
+0042063E  |>  8B4D 10       MOV ECX,DWORD PTR SS:[EBP+10]
+00420641  |.  E8 AF800100   CALL Tin.004386F5                     //输入的注册码是否为空
+00420646  |.  85C0          TEST EAX,EAX
+00420648  |.  75 03         JNZ SHORT Tin.0042064D
+0042064A  |.  8B75 10       MOV ESI,DWORD PTR SS:[EBP+10]
+0042064D  |>  8D45 D8       LEA EAX,DWORD PTR SS:[EBP-28]
+00420650  |.  8D55 B8       LEA EDX,DWORD PTR SS:[EBP-48]
+00420653  |.  50            PUSH EAX
+00420654  |.  8BCE          MOV ECX,ESI             //ecx <-- 输入的注册码地址
+00420656  |.  E8 C9800100   CALL Tin.00438724                       //取注册码的前 31 位，不足 31 位全取
+0042065B  |.  8D4D B8       LEA ECX,DWORD PTR SS:[EBP-48]            //ecx <-- 取得的注册码偏移地址
+0042065E  |.  E8 8D0AFEFF   CALL Tin.004010F0                       //注册码须 25 位,由大写字母及数字组成
+00420663  |.  85C0          TEST EAX,EAX                          //但不能出现数字 0,1 和字母 O,I
+00420665  |.  0F85 15010000 JNZ Tin.00420780                       //跳就出错！
+0042066B  |.  8D85 50FEFFFF LEA EAX,DWORD PTR SS:[EBP-1B0]
+00420671  |.  8D55 D8       LEA EDX,DWORD PTR SS:[EBP-28]
+00420674  |.  50            PUSH EAX                              ; /Arg1
+00420675  |.  8D4D B8       LEA ECX,DWORD PTR SS:[EBP-48]          ; |
+00420678  |.  E8 7A0BFEFF   CALL Tin.004011F7                     ; \\Tin.004011F7 //Func1,Func2 见下面注解
+0042067D  |.  85C0          TEST EAX,EAX
+0042067F  |.  0F84 FB000000 JE Tin.00420780
+00420685  |.  8D55 D8       LEA EDX,DWORD PTR SS:[EBP-28]
+00420688  |.  8D4D A4       LEA ECX,DWORD PTR SS:[EBP-5C]
+0042068B  |.  E8 CC0CFEFF   CALL Tin.0040135C        //Func3 见下面注解
+00420690  |.  8D4D A4       LEA ECX,DWORD PTR SS:[EBP-5C]
+00420693  |.  E8 390CFEFF   CALL Tin.004012D1        //重要!变异 SHA1 算法!见下面分析
+00420698  |.  8D4D D8       LEA ECX,DWORD PTR SS:[EBP-28]
+0042069B  |.  E8 1C0CFEFF   CALL Tin.004012BC                    //VerifyProc1 处理[0012f9c4]开始的 17 个字节
+004206A0  |.  85C0          TEST EAX,EAX
+004206A2  |.  0F84 C1000000 JE Tin.00420769                       ;  ;不能跳!
+004206A8  |.  57            PUSH EDI                            ; /Arg1 //邮件 WksWlj999@sohu.com
+004206A9  |.  8BD3          MOV EDX,EBX                         ; |
+004206AB  |.  8D4D A4       LEA ECX,DWORD PTR SS:[EBP-5C]          ; |
+004206AE  |.  E8 D00CFEFF   CALL Tin.00401383                     ; \\Tin.00401383
+004206B3  |.  85C0          TEST EAX,EAX
+004206B5  |.  0F84 AE000000 JE Tin.00420769                       //不能跳!
+004206BB  |.  8D8D A4FEFFFF LEA ECX,DWORD PTR SS:[EBP-15C]
+004206C1  |.  E8 52FDFFFF   CALL Tin.00420418
+004206C6  |.  85C0          TEST EAX,EAX
+004206C8  |.  0F84 9B000000 JE Tin.00420769                       //不能跳!
+004206CE  |.  8D85 24FFFFFF LEA EAX,DWORD PTR SS:[EBP-DC]
+004206D4  |.  8D95 A4FEFFFF LEA EDX,DWORD PTR SS:[EBP-15C]
+004206DA  |.  50            PUSH EAX
+004206DB  |.  8BCB          MOV ECX,EBX
+004206DD  |.  E8 42800100   CALL Tin.00438724
+004206E2  |.  8D45 A4       LEA EAX,DWORD PTR SS:[EBP-5C]
+004206E5  |.  8D95 24FFFFFF LEA EDX,DWORD PTR SS:[EBP-DC]
+004206EB  |.  50            PUSH EAX
+004206EC  |.  8BCF          MOV ECX,EDI
+004206EE  |.  E8 31800100   CALL Tin.00438724
+004206F3  |.  8D8D A4FEFFFF LEA ECX,DWORD PTR SS:[EBP-15C]
+004206F9  |.  E8 2CFCFFFF   CALL Tin.0042032A
+004206FE  |.  85C0          TEST EAX,EAX
+00420700  |.  0F85 8C000000 JNZ Tin.00420792
+00420706  |.  2145 EC       AND DWORD PTR SS:[EBP-14],EAX
+00420709  |.  807D E8 02    CMP BYTE PTR SS:[EBP-18],2            //=2 就是 Site License
+0042070D  |.  C645 FC 01    MOV BYTE PTR SS:[EBP-4],1
+00420711  |.  74 10         JE SHORT Tin.00420723
+00420713  |.  807D E8 06    CMP BYTE PTR SS:[EBP-18],6            //=6 也是 Site License,否则就是 Single-user license
+00420717  |.  74 0A         JE SHORT Tin.00420723
+00420719  |.  8D55 EC       LEA EDX,DWORD PTR SS:[EBP-14]
+0042071C  |.  B9 30744500   MOV ECX,Tin.00457430     ;ASCII "Single-user license - only valid for the registered user."
+00420721  |.  EB 08         JMP SHORT Tin.0042072B
+00420723  |>  8D55 EC       LEA EDX,DWORD PTR SS:[EBP-14]
+00420726  |.  B9 08744500   MOV ECX,Tin.00457408     ;ASCII "Site license - valid for all employees."
+0042072B  |>  E8 7C810100   CALL Tin.004388AC
+00420730  |.  8B4D EC       MOV ECX,DWORD PTR SS:[EBP-14]
+00420733  |.  E8 777F0100   CALL Tin.004386AF
+```
+
+
+
+# 00420738 至 004207AF 反汇编分析
+
+```asm
+00420738  |.  50           PUSH EAX  
+00420739  |.  56           PUSH ESI  
+0042073A  |.  57           PUSH EDI  
+0042073B  |.  53           PUSH EBX  
+0042073C  |.  68 C8734500  PUSH Tin.004573C8             ;ASCII "This copy of Tarma QuickInstall is registered to:",LF,LF,"%s",LF,"%s",LF,"%s",LF,LF,"%s"  
+00420741  |.  6A 40        PUSH 40  
+00420743  |.  FF75 F0      PUSH DWORD PTR SS:[EBP-10]  
+00420746  |.  E8 44D20100  CALL Tin.0043D98F  
+0042074B  |.  8B4D F0      MOV ECX,DWORD PTR SS:[EBP-10]  
+0042074E  |.  83C4 1C      ADD ESP,1C  
+00420751  |.  E8 E2FCFFFF  CALL Tin.00420438  
+00420756  |.  33C9         XOR ECX,ECX  
+00420758  |.  85C0         TEST EAX,EAX  
+0042075A  |.  0F9FC1       SETG CL  
+0042075D  |.  8BF1         MOV ESI,ECX  
+0042075F  |.  8D4D EC      LEA ECX,DWORD PTR SS:[EBP-14]  
+00420762  |.  E8 DA810100  CALL Tin.00438941  
+00420767  |.  EB 2B        JMP SHORT Tin.00420794  
+00420769  |>  56          PUSH ESI  
+0042076A  |.  57          PUSH EDI  
+0042076B  |.  53          PUSH EBX  
+0042076C  |.  68 18734500  PUSH Tin.00457318                ;  ASCII "The license code you entered is not valid for this product,",LF,"product version, or registered name and email.",LF,LF,"%s",LF,"%s",LF,"%s",LF,LF,"Please check your registration information and try again."  
+00420771  |.  6A 30       PUSH 30  
+00420773  |.  FF75 F0     PUSH DWORD PTR SS:[EBP-10]  
+00420776  |.  E8 14D20100 CALL Tin.0043D98F  
+0042077B  |.  83C4 18     ADD ESP,18  
+0042077E  |.  EB 12       JMP SHORT Tin.00420792  
+00420780  |>  68 E8724500 PUSH Tin.004572E8                ;  ASCII "The license code is invalid. Please re-enter."  
+00420785  |.  6A 30      PUSH 30  
+00420787  |.  FF75 F0    PUSH DWORD PTR SS:[EBP-10]  
+0042078A  |.  E8 00D20100 CALL Tin.0043D98F  
+0042078F  |.  83C4 0C    ADD ESP,0C  
+00420792  |>  33F6      XOR ESI,ESI  
+00420794  |>  8D8D A4FEFFFF LEA ECX,DWORD PTR SS:[EBP-15C]  
+0042079A  |.  E8 A2F9FFFF CALL Tin.00420141  
+0042079F  |.  8B4D F4     MOV ECX,DWORD PTR SS:[EBP-C]  
+004207A2  |.  8BC6        MOV EAX,ESI  
+004207A4  |.  5F          POP EDI  
+004207A5  |.  5E          POP ESI  
+004207A6  |.  5B          POP EBX  
+004207A7  |.  64:890D 00000000 MOV DWORD PTR FS:[0],ECX  
+004207AE  |.  C9          LEAVE  
+004207AF  \.  C2 0C00     RETN 0C  
+```
+
+## 资源处理流程分析
+
+`004205F9 CALL Tin.004016DF` 的功能是分别调用 `00439613`、`00439657` 和 `00401884` 处代码处理 `43h` 号资源的 `256` 字节数据。
+
+经过 `3` 轮固定参数处理得到的数据如下：这些代码可以提取汇编出来，写注册机时可用上。
+
+```
+0012F83C  5A 88 F5 4C E7 5B 13 57 F5 23 F3 57 83 C0 61 BA   ZLW?a?  
+0012F84C  02 00 1C 1E 11 08 18 16 22 15 04 0D 0B 0F 20 1B  "."  
+0012F85C  1A 13 14 03 10 19 05 01 0A 0C 21 23 06 12 07 1F  ..!#  
+0012F86C  1D 0E 17 09 42 58 41 54 4B 57 32 34 46 39 59 4D  .BXATKW24F9YM  
+0012F87C  5A 4C 37 4E 55 45 33 52 53 4A 48 38 47 56 51 50  ZL7NUE3RSJH8GVQP  
+0012F88C  43 36 44 35 00 00 00 00 00 00 00 00 00 00 00 00  C6D5............  
+```
+
+这个结果是固定的，如果你修改了原程序中的这个资源块，就会出现 `Internal licensing error. Please re-install the application.`。
+
+## 注册码字符过滤逻辑
+
+跟进 `0042065E CALL Tin.004010F0`，这个 `Call` 是为了避免注册码出现数字 `0`、`1` 或字母 `O`、`I` 导致难以分辨。
+
+```asm
+004010F0  /$  53           PUSH EBX  
+004010F1  |.  56           PUSH ESI  
+004010F2  |.  8BF1         MOV ESI,ECX  
+004010F4  |.  57           PUSH EDI  
+004010F5  |.  8BFE         MOV EDI,ESI  
+004010F7  |.  8BDE         MOV EBX,ESI  
+004010F9  |.  803E 00      CMP BYTE PTR DS:[ESI],0   //比较注册码首位是否为空  
+004010FC  |.  74 2C        JE SHORT Tin.0040112A  
+004010FE  |>  8A0B         /MOV CL,BYTE PTR DS:[EBX]  
+00401100  |.  0FB6C1       |MOVZX EAX,CL  
+00401103  |.  F680 E0A44500>|TEST BYTE PTR DS:[EAX+45A4E0],7  //注意 45A4E0 处的索引表,128 字节大小  
+0040110A  |.  74 18        |JE SHORT Tin.00401124  
+0040110C  |.  E8 83820300  |CALL Tin.00439394    //转换小写字母为大写  
+00401111  |.  3C 30        |CMP AL,30                     ;  ;与 30h 比较,数字 0  
+00401113  |.  8807         |MOV BYTE PTR DS:[EDI],AL  
+00401115  |.  74 28        |JE SHORT Tin.0040113F  
+00401117  |.  3C 31        |CMP AL,31                     ;  ;与 31h 比较,数字 1  
+00401119  |.  74 24        |JE SHORT Tin.0040113F  
+0040111B  |.  3C 4F        |CMP AL,4F                     ;  ;与 4Fh 比较,大写字母 O  
+0040111D  |.  74 20        |JE SHORT Tin.0040113F  
+0040111F  |.  3C 49        |CMP AL,49                     ;  ;与 49h 比较,大写字母 I  
+00401121  |.  74 1C        |JE SHORT Tin.0040113F  
+00401123  |.  47           |INC EDI  
+00401124  |>  43           |INC EBX  
+00401125  |.  803B 00      |CMP BYTE PTR DS:[EBX],0  
+00401128  |.^ 75 D4        \JNZ SHORT Tin.004010FE  
+0040112A  |>  8027 00      AND BYTE PTR DS:[EDI],0  
+0040112D     8BC7          MOV EAX,EDI  
+0040112F     2BC6          SUB EAX,ESI                     ;  ;取得的注册码长度  
+00401131     83E8 19       SUB EAX,19                      ;  ;减去 19h(十进制 25),若不等返回后 eax 将非 0  
+00401134     F7D8          NEG EAX  
+00401136     1BC0          SBB EAX,EAX  
+00401138     83E0 02       AND EAX,2  
+0040113B     5F           POP EDI  
+0040113C     5E           POP ESI  
+0040113D     5B           POP EBX  
+0040113E     C3           RETN  
+```
+
+所以注册码必须为大写字母加数字，且不能有数字 `0`、`1`，字母 `O`、`I`。
+
+## 注册码校验算法逻辑
+
+以下 `ddXX` 代表 `dword`，`dwXX` 代表 `word`，`dbXX` 代表 `byte`。
+
+`00420678 CALL Tin.004011F7` / `00401213 CALL Tin.00401144` 的功能是计算 `[0012f814]` 的 `4` 个 `dword` 值：
+
+`Func1(输入的注册码,45A4E0 处索引表,43h 资源运算结果)` --> `[0012f814]` = `{ddA1,ddA2,ddA3,ddA4}`
+
+`00401221 CALL Tin.0040122F` 处代码由 `[0012f814]` 的值计算得到 `[0012f9c4]` 的 `5` 个 `dword` 值：
+
+`Func2([0012f814])` --> `[0012f9c4]` = `{ddB1,ddB2,ddB3,ddB4,{dbB5,dbB6,dwB7}}`
+
+`0042068B CALL Tin.0040135C` 处代码由 `[0012f9c4]` 的值计算得到 `[0012f998]` 的 `3` 个 `dword` 值
+
+`Func3([0012f9c4])` --> `[0012f998]` = `{ddC1,ddC2,{dbC3,dbC4,dbC5,dbC6}}`
+
+`Func1`、`Func2`、`Func3` 这三段汇编代码都可以提取出来，做注册机时用。
+
+## 系统信息获取逻辑
+
+`00420693 CALL Tin.004012D1` 的功能是调用 API 函数 `GetUserName` 获取当前用户名 `NCIS`，调用 `GetComputerName` 获取计算机名 `IBM-1161`。
+
+调用 `GetWindowsDirectoryA` 获得系统目录，然后调用 `GetVolumeInformationA` 取系统盘卷标序列号，一个 `dword` 值。
+
+```asm
+004012D1  /$ /E9 00000000   JMP Tin.004012D6  
+004012D6  |$ \55            PUSH EBP  
+004012D7  |.  8BEC          MOV EBP,ESP  
+004012D9  |.  81EC 0C010000 SUB ESP,10C  
+004012DF  |.  56            PUSH ESI  
+004012E0  |.  8BF1          MOV ESI,ECX  
+004012E2  |.  B8 80000000   MOV EAX,80  
+004012E7  |.  8D8D F4FEFFFF LEA ECX,DWORD PTR SS:[EBP-10C]  
+004012ED  |.  8945 F4       MOV DWORD PTR SS:[EBP-C],EAX  
+004012F0  |.  8945 FC       MOV DWORD PTR SS:[EBP-4],EAX  
+004012F3  |.  E8 1CFDFFFF   CALL Tin.00401014  
+004012F8  |.  8D45 F4       LEA EAX,DWORD PTR SS:[EBP-C]  
+004012FB  |.  50            PUSH EAX                     ; /pBufferSize  
+004012FC  |.  8D85 74FFFFFF LEA EAX,DWORD PTR SS:[EBP-8C]      ; |  
+00401302  |.  50            PUSH EAX                     ; |Buffer  
+00401303  |.  FF15 DC304500 CALL DWORD PTR DS:[<&KERNEL32.GetCompute>; \GetComputerNameA //  
+00401309  |.  85C0          TEST EAX,EAX  
+0040130B  |.  74 4A         JE SHORT Tin.00401357  
+0040130D  |.  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]  
+00401310  |.  50            PUSH EAX                     ; /pBufCount  
+00401311  |.  8D85 F4FEFFFF LEA EAX,DWORD PTR SS:[EBP-10C]      ; |  
+00401317  |.  50            PUSH EAX                     ; |Buffer  
+00401318  |.  FF15 00304500 CALL DWORD PTR DS:[<&ADVAPI32.GetUserNam>; \GetUserNameA  
+0040131E  |.  85C0          TEST EAX,EAX  
+00401320  |.  74 35         JE SHORT Tin.00401357  
+```
+
+
+
+## 00401322 CALL 指令序列
+
+```
+00401322  |.  8D4D F8       LEA ECX,DWORD PTR SS:[EBP-8]
+
+00401325  |.  E8 85830300   CALL Tin.004396AF                  ;  ;取系统盘卷标序列号
+
+0040132A  |.  85C0          TEST EAX,EAX
+
+0040132C  |.  74 29         JE SHORT Tin.00401357
+
+0040132E  |.  8D8D F4FEFFFF LEA ECX,DWORD PTR SS:[EBP-10C]
+
+00401334  |.  E8 E8FCFFFF   CALL Tin.00401021                  ;  ;填充数据块,分别转换 `UserName` 和 `ComputerName` 为 `80h` 字节长
+
+00401339  |.  8B45 F8       MOV EAX,DWORD PTR SS:[EBP-8]        ;  ;`eax`<--卷标序列号
+
+0040133C  |.  8D8D F4FEFFFF LEA ECX,DWORD PTR SS:[EBP-10C]      ;  ;`ecx`<--`80h` 字节长 `UserName` 首地址
+
+00401342  |.  8985 F4FEFFFF MOV DWORD PTR SS:[EBP-10C],EAX     ;  ;替换 `UserName` 首个 `dword` 为卷标序列号
+
+00401348  |.  E8 69FDFFFF   CALL Tin.004010B6                  ;  ;变异 `SHA1` 算法
+
+0040134D  |.  8906          MOV DWORD PTR DS:[ESI],EAX         ;  ;`[0012f990]` <-- `eax`=`H4` xor `H2` xor `H0`
+
+0040134F  |.  8956 04       MOV DWORD PTR DS:[ESI+4],EDX       ;  ;`[0012f994]` <-- `edx`=`0` xor `H3` xor `H1`
+
+00401352  |.  6A 01         PUSH 1
+
+00401354  |.  58            POP EAX
+
+00401355  |.  EB 02         JMP SHORT Tin.00401359
+
+00401357  |>  33C0          XOR EAX,EAX
+
+00401359  |>  5E            POP ESI
+
+0040135A  |.  C9            LEAVE
+
+0040135B  \.  C3            RETN
+```
+
+----------------------------------------------------------------------------------------------------------------
+
+## 00401325 `CALL` `Tin.004396AF` 处跟进
+
+```
+004396AF  /$  55            PUSH EBP
+
+004396B0  |.  8BEC          MOV EBP,ESP
+
+004396B2  |.  81EC 0C010000 SUB ESP,10C
+
+004396B8  |.  56            PUSH ESI
+
+004396B9  |.  8D85 F4FEFFFF LEA EAX,DWORD PTR SS:[EBP-10C]
+
+004396BF  |.  68 04010000   PUSH 104                          ; /`BufSize` = `104` (260.)
+
+004396C4  |.  8BF1          MOV ESI,ECX                       ; |
+
+004396C6  |.  50            PUSH EAX                           ; |`Buffer`
+
+004396C7  |.  FF15 14314500 CALL DWORD PTR DS:[<&KERNEL32.GetWindows>; \GetWindowsDirectoryA  //取系统目录
+
+004396CD  |.  85C0          TEST EAX,EAX
+
+004396CF  |.  74 26         JE SHORT Tin.004396F7
+
+004396D1  |.  8D8D F4FEFFFF LEA ECX,DWORD PTR SS:[EBP-10C]
+
+004396D7  |.  E8 FD060000   CALL Tin.00439DD9
+
+004396DC  |.  8945 F8       MOV DWORD PTR SS:[EBP-8],EAX
+
+004396DF  |.  33C0          XOR EAX,EAX
+
+004396E1  |.  50            PUSH EAX                           ; /`pFileSystemNameSize` => `NULL`
+
+004396E2  |.  50            PUSH EAX                           ; |`pFileSystemNameBuffer` => `NULL`
+
+004396E3  |.  50            PUSH EAX                           ; |`pFileSystemFlags` => `NULL`
+
+004396E4  |.  50            PUSH EAX                           ; |`pMaxFilenameLength` => `NULL`
+
+004396E5  |.  56            PUSH ESI                           ; |`pVolumeSerialNumber`
+
+004396E6  |.  50            PUSH EAX                           ; |`MaxVolumeNameSize` => `0`
+
+004396E7  |.  8802          MOV BYTE PTR DS:[EDX],AL          ; |
+
+004396E9  |.  50            PUSH EAX                           ; |`VolumeNameBuffer` => `NULL`
+
+004396EA  |.  8D85 F4FEFFFF LEA EAX,DWORD PTR SS:[EBP-10C]    ; |
+
+004396F0  |.  50            PUSH EAX                           ; |`RootPathName`
+
+004396F1  |.  FF15 C0314500 CALL DWORD PTR DS:[<&KERNEL32.GetVolumeI>; \GetVolumeInformationA  //取系统盘卷标序列号
+
+004396F7  |>  5E            POP ESI
+
+004396F8  |.  C9            LEAVE
+
+004396F9  \.  C3            RETN
+```
+
+----------------------------------------------------------------------------------------------------------------
+
+## 00401334 `CALL` `Tin.00401021` 跟进
+
+```
+00401021  /$  53            PUSH EBX
+
+00401022  |.  56            PUSH ESI
+
+00401023  |.  8BF1          MOV ESI,ECX
+
+00401025  |.  BA 80000000   MOV EDX,80                        ;  ;字母转大写,仅保留字母和数字后
+
+0040102A  |.  E8 17000000   CALL Tin.00401046                  ;  ;自身复制到 `80h` 字节长,末尾填充 `Null`
+
+0040102F  |.  BA 80000000   MOV EDX,80
+
+00401034  |.  8D8E 80000000 LEA ECX,DWORD PTR DS:[ESI+80]
+
+0040103A  |.  8BD8          MOV EBX,EAX                       ;  ;字母转大写,仅保留字母和数字后
+
+0040103C  |.  E8 05000000   CALL Tin.00401046                  ;  ;自身复制到 `80h` 字节长,末尾填充 `Null`
+
+00401041  |.  03C3          ADD EAX,EBX
+
+00401043  |.  5E            POP ESI
+
+00401044  |.  5B            POP EBX
+
+00401045  \.  C3            RETN
+```
+
+----------------------------------------------------------------------------------------------------------------
+
+## 总结数据填充规律
+
+1. `UserName` `"NCIS"` 字母转大写,仅保留字母和数字,自身复制到 `80h` 字节长，末尾一个字节用 `NULL` 替换；
+2. `ComputerName` `"IBM-1161"` 同上处理；
+3. 将扩充后的 `80h` 字节长的 `UserName` 的第一个 `dword` 用获取的系统盘卷标序列号替换。
+
+填充结束后的待处理串 `100h` 字节大小，如下所示，前四个字节为系统盘卷标序列号：
+
+### 要处理的消息串 M1-M4 (`4*512Bits`)
+
+```
+0012F71C  89 21 C5 98 4E 43 49 53 4E 43 49 53 4E 43 49 53  ?NCISNCISNCIS
+0012F72C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS
+0012F73C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS
+0012F74C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS
+0012F75C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS
+0012F76C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS
+0012F77C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS
+0012F78C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 00  NCISNCISNCISNCI.
+0012F79C  49 42 4D 31 31 36 31 49 42 4D 31 31 36 31 49 42  IBM1161IBM1161IB
+0012F7AC  4D 31 31 36 31 49 42 4D 31 31 36 31 49 42 4D 31  M1161IBM1161IBM1
+0012F7BC  31 36 31 49 42 4D 31 31 36 31 49 42 4D 31 31 36  161IBM1161IBM116
+0012F7CC  31 49 42 4D 31 31 36 31 49 42 4D 31 31 36 31 49  1IBM1161IBM1161I
+0012F7DC  42 4D 31 31 36 31 49 42 4D 31 31 36 31 49 42 4D  BM1161IBM1161IBM
+0012F7EC  31 31 36 31 49 42 4D 31 31 36 31 49 42 4D 31 31  1161IBM1161IBM11
+0012F7FC  36 31 49 42 4D 31 31 36 31 49 42 4D 31 31 36 31  61IBM1161IBM1161
+0012F80C  49 42 4D 31 31 36 31 49 42 4D 31 31 36 31 49 00  IBM1161IBM1161I.
+```
+
+----------------------------------------------------------------------------------------------------------------
+
+## 00401348 `CALL` `Tin.004010B6` 处跟进,研究变异 `SHA1` 算法
+
+```
+004010B6  /$  55            PUSH EBP
+
+004010B7  |.  8BEC          MOV EBP,ESP
+
+004010B9  |.  83EC 14       SUB ESP,14
+
+004010BC  |.  56            PUSH ESI
+
+004010BD  |.  8BF1          MOV ESI,ECX
+
+004010BF  |.  57            PUSH EDI
+
+004010C0  |.  8D4D EC       LEA ECX,DWORD PTR SS:[EBP-14]
+
+004010C3  |.  E8 1D830300   CALL Tin.004393E5                  ;  ;`SHA1` 算法初始化值
+
+004010C8  |.  6A 04         PUSH 4
+
+004010CA  |.  5F            POP EDI                              ;  ;有 4 个 512 位串需要处理 `{Mi}`
+
+004010CB  |>  8D45 EC       /LEA EAX,DWORD PTR SS:[EBP-14]
+
+004010CE  |.  56            |PUSH ESI                            ;  ;要 `HASH` 的位串
+
+004010CF  |.  50            |PUSH EAX                            ;  ;`{Hi}`缓冲区
+
+004010D0  |.  E8 33830300   |CALL Tin.00439408                   ;  ;`SHA1` 核心算法
+
+004010D5  |.  83C6 40       |ADD ESI,40                          ;  ;下一个要处理的 `Mi` (`64Bytes*8Bits`)
+
+004010D8  |.  4F            |DEC EDI
+
+004010D9  |.^ 75 F0         \JNZ SHORT Tin.004010CB              ;  ;循环处理
+
+004010DB  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]        ;  ;`eax` <-- `H4`
+
+004010DE  |.  33D2          XOR EDX,EDX                          ;  ;`edx` <-- `0`
+
+004010E0  |.  3345 F4       XOR EAX,DWORD PTR SS:[EBP-C]        ;  ;`eax` <-- `H4` xor `H2`
+
+004010E3  |.  3355 F8       XOR EDX,DWORD PTR SS:[EBP-8]        ;  ;`edx` <-- `0` xor `H3`
+
+004010E6  |.  5F            POP EDI
+
+004010E7  |.  5E            POP ESI
+
+004010E8  |.  3345 EC       XOR EAX,DWORD PTR SS:[EBP-14]       ;  ;`eax` <-- `H4` xor `H2` xor `H0`
+
+004010EB  |.  3355 F0       XOR EDX,DWORD PTR SS:[EBP-10]       ;  ;`edx` <-- `0` xor `H3` xor `H1`
+
+004010EE  |.  C9            LEAVE
+```
+
+
+
+### 004010EF - RETN
+
+```
+004010EF   \.  C3             RETN  
+
+-----------------------------------------------------------------------------------------------------  
+
+004010C3 CALL Tin.004393E5 处：  
+
+004393E5   /$  C701 01234567 MOV DWORD PTR DS:[ECX],67452301           ;  ;SHA1 算法初始化值  
+
+004393EB   |.  C741 04 89ABC>MOV DWORD PTR DS:[ECX+4],EFCDAB89  
+
+004393F2   |.  C741 08 FEDCB>MOV DWORD PTR DS:[ECX+8],98BADCFE  
+
+004393F9   |.  C741 0C 76543>MOV DWORD PTR DS:[ECX+C],10325476  
+
+00439400   |.  C741 10 F0E1D>MOV DWORD PTR DS:[ECX+10],C3D2E1F0  
+
+00439407   \.  C3             RETN  
+
+-----------------------------------------------------------------------------------------------------
+```
+
+### 004010D0 - CALL Tin.00439408
+
+变异 SHA1 核心算法，当然要研究，请参考附件 `SHA1.doc`,跟进：
+
+```
+00439408    $  55             PUSH EBP  
+
+00439409    .  8BEC          MOV EBP,ESP  
+
+0043940B    .  81EC 54010000 SUB ESP,154  
+
+00439411    .  53             PUSH EBX  
+
+00439412    .  56             PUSH ESI  
+
+00439413    .  57             PUSH EDI  
+
+00439414    .  8B75 0C       MOV ESI,DWORD PTR SS:[EBP+C]  
+
+00439417    .  8DBD ACFEFFFF LEA EDI,DWORD PTR SS:[EBP-154]  
+
+0043941D    .  B9 10000000   MOV ECX,10  
+
+00439422    .  F3:A5         REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS>;  ;处理 Mi,取 16 个 dword 值{W0,...,W15}  
+
+00439424    .  B9 40000000   MOV ECX,40                              ;  ;t=16 to 79,计算 W16 to W79  
+
+00439429    >  8B47 F4       MOV EAX,DWORD PTR DS:[EDI-C]            ;  ;eax<--Wt-3  
+
+0043942C    .  3347 E8       XOR EAX,DWORD PTR DS:[EDI-18]           ;  ;eax<--Wt-3 xor Wt-6 ;变异 SHA1,标准算法应是 Wt-8  
+
+0043942F    .  3347 C8       XOR EAX,DWORD PTR DS:[EDI-38]           ;  ;eax<--Wt-3 xor Wt-6 xor Wt-14  
+
+00439432    .  3347 C0       XOR EAX,DWORD PTR DS:[EDI-40]           ;  ;eax<--Wt-3 xor Wt-6 xor Wt-14 xor Wt-16  
+
+00439435    .  D1C0          ROL EAX,1                               ;  ;eax<<1  
+
+00439437    .  AB            STOS DWORD PTR ES:[EDI]                 ;  ;Wt=S1(Wt-3 xor Wt-6 xor Wt-14 xor Wt-16)  
+
+00439438    .  49            DEC ECX  
+
+00439439    .^ 75 EE        JNZ SHORT Tin.00439429                   ;  ;循环处理  
+
+0043943B    .  8B75 08       MOV ESI,DWORD PTR SS:[EBP+8]  
+
+0043943E    .  8DBD ECFFFFFF LEA EDI,DWORD PTR SS:[EBP-14]  
+
+00439444    .  B9 05000000   MOV ECX,5  
+
+00439449    .  F3:A5         REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS>;  ;A=H0,B=H1,C=H2,D=H3,E=H4  
+
+0043944B    .  8DBD ACFEFFFF LEA EDI,DWORD PTR SS:[EBP-154]         ;  ;edi<--Mi{W0,...,W79}  
+
+00439451    .  8DB5 ECFFFFFF LEA ESI,DWORD PTR SS:[EBP-14]          ;  ;esi<--{A,B,C,D,E}  
+
+00439457    .  BA 9979825A   MOV EDX,5A827999                        ;  ;Kt=0x5A827999(0≤t≤19)  
+
+0043945C    .  E8 32000000   CALL Tin.00439493                        ;  ;第一轮运算  
+
+00439461    .  BA A1EBD96E   MOV EDX,6ED9EBA1                        ;  ;Kt=0x6ED9EBA1(20≤t≤39)  
+
+00439466    .  E8 6D000000   CALL Tin.004394D8                        ;  ;第二轮运算  
+
+0043946B    .  BA DCBC1B8F   MOV EDX,8F1BBCDC                         ;  ;Kt=0x8F1BBCDC(40≤t≤59)  
+
+00439470    .  E8 A2000000   CALL Tin.00439517                        ;  ;第三轮运算  
+
+00439475    .  BA D6C162CA   MOV EDX,CA62C1D6                         ;  ;Kt=0xCA62C1D6(60≤t≤79)  
+
+0043947A    .  E8 59000000   CALL Tin.004394D8                        ;  ;第四轮运算  
+
+0043947F    .  8B7D 08       MOV EDI,DWORD PTR SS:[EBP+8]            ;  ;edi<--{Hi}缓冲区地址  
+
+00439482    .  B9 05000000   MOV ECX,5  
+
+00439487    >  AD            LODS DWORD PTR DS:[ESI]  
+
+00439488    .  0307         ADD EAX,DWORD PTR DS:[EDI]               ;  ;H0=H0+A,H1=H1+B,H2=H2+C,H3=H3+D,H4=H4+E  
+
+0043948A    .  AB            STOS DWORD PTR ES:[EDI]  
+
+0043948B    .  49            DEC ECX  
+
+0043948C    .^ 75 F9        JNZ SHORT Tin.00439487  
+
+0043948E    .  E9 CF000000   JMP Tin.00439562
+```
+
+### 00439493 - 第一轮运算 (0≤t≤19)
+
+```
+00439493   /$  B9 14000000   MOV ECX,14                              ;  ;计数器,第一轮,0≤t≤19  
+
+00439498   |>  8B46 04       MOV EAX,DWORD PTR DS:[ESI+4]            ;  ;eax<--B  
+
+0043949B   |.  8BD8          MOV EBX,EAX                             ;  ;ebx<--B  
+
+0043949D   |.  2346 08       AND EAX,DWORD PTR DS:[ESI+8]            ;  ;eax<--B and C  
+
+004394A0   |.  F7D3          NOT EBX                                 ;  ;ebx<--not B  
+
+004394A2   |.  235E 0C       AND EBX,DWORD PTR DS:[ESI+C]            ;  ;ebx<--(not B)and D  
+
+004394A5   |.  0BC3          OR EAX,EBX                              ;  ;ft(B,C,D)=(B and C)or((not B)and D)  
+
+004394A7   |.  8B1E          MOV EBX,DWORD PTR DS:[ESI]              ;  ;ebx<--A  
+
+004394A9   |.  C1C3 05       ROL EBX,5                               ;  ;S5(A)=(A<<5)  
+
+004394AC   |.  03C3          ADD EAX,EBX                             ;  ;eax<--ft(B,C,D)+S5(A)  
+
+004394AE   |.  0346 10       ADD EAX,DWORD PTR DS:[ESI+10]          ;  ;ft(B,C,D)+S5(A)+E  
+
+004394B1   |.  0307          ADD EAX,DWORD PTR DS:[EDI]              ;  ;ft(B,C,D)+S5(A)+E+Wt  
+
+004394B3   |.  03C2          ADD EAX,EDX                             ;  ;TEMP=ft(B,C,D)+S5(A)+E+Wt+Kt (Kt=0x5A827999)  
+
+004394B5   |.  8B5E 0C       MOV EBX,DWORD PTR DS:[ESI+C]            ;  ;ebx<--D  
+
+004394B8   |.  895E 10       MOV DWORD PTR DS:[ESI+10],EBX           ;  ;E=D  
+
+004394BB   |.  8B5E 08       MOV EBX,DWORD PTR DS:[ESI+8]            ;  ;ebx<--C  
+
+004394BE   |.  895E 0C       MOV DWORD PTR DS:[ESI+C],EBX            ;  ;D=C  
+
+004394C1   |.  8B5E 04       MOV EBX,DWORD PTR DS:[ESI+4]            ;  ;ebx<--B  
+
+004394C4   |.  C1CB 02       ROR EBX,2                               ;  ;S30(B)=(B>>2)  
+
+004394C7   |.  895E 08       MOV DWORD PTR DS:[ESI+8],EBX            ;  ;C=S30(B)  
+
+004394CA   |.  8B1E          MOV EBX,DWORD PTR DS:[ESI]              ;  ;ebx<--A  
+
+004394CC   |.  895E 04       MOV DWORD PTR DS:[ESI+4],EBX            ;  ;B=A  
+
+004394CF   |.  8906          MOV DWORD PTR DS:[ESI],EAX              ;  ;A=TEMP  
+
+004394D1   |.  83C7 04       ADD EDI,4                                ;  ;edi<--指向下一个 Wt  
+
+004394D4   |.  49            DEC ECX                                  ;  ;计数减 1  
+
+004394D5   |.^ 75 C1         JNZ SHORT Tin.00439498                   ;  ;循环至计数为 0  
+
+004394D7   \.  C3             RETN
+```
+
+### 004394D8 - 第二轮运算 (20≤t≤39) & 第四轮运算 (60≤t≤79)
+
+```
+004394D8   /$  B9 14000000   MOV ECX,14                              ;  ;计数器,第二轮,20≤t≤39;第四轮,60≤t≤79  
+
+004394DD   |>  8B46 04       MOV EAX,DWORD PTR DS:[ESI+4]            ;  ;eax<--B  
+
+004394E0   |.  3346 08       XOR EAX,DWORD PTR DS:[ESI+8]            ;  ;eax<--B xor C  
+
+004394E3   |.  3346 0C       XOR EAX,DWORD PTR DS:[ESI+C]            ;  ;ft(B,C,D)=B xor C xor D  
+
+004394E6   |.  8B1E          MOV EBX,DWORD PTR DS:[ESI]              ;  ;ebx<--A;以下运算同第一轮相似,除了 Kt 常量不同  
+
+004394E8   |.  C1C3 05       ROL EBX,5  
+
+004394EB   |.  03C3          ADD EAX,EBX  
+
+004394ED   |.  0346 10       ADD EAX,DWORD PTR DS:[ESI+10]  
+
+004394F0   |.  0307          ADD EAX,DWORD PTR DS:[EDI]  
+
+004394F2   |.  03C2          ADD EAX,EDX  
+
+004394F4   |.  8B5E 0C       MOV EBX,DWORD PTR DS:[ESI+C]  
+
+004394F7   |.  895E 10       MOV DWORD PTR DS:[ESI+10],EBX  
+
+004394FA   |.  8B5E 08       MOV EBX,DWORD PTR DS:[ESI+8]  
+
+004394FD   |.  895E 0C       MOV DWORD PTR DS:[ESI+C],EBX  
+
+00439500   |.  8B5E 04       MOV EBX,DWORD PTR DS:[ESI+4]  
+
+00439503   |.  C1CB 02       ROR EBX,2  
+
+00439506   |.  895E 08       MOV DWORD PTR DS:[ESI+8],EBX  
+
+00439509   |.  8B1E          MOV EBX,DWORD PTR DS:[ESI]  
+
+0043950B   |.  895E 04       MOV DWORD PTR DS:[ESI+4],EBX  
+
+0043950E   |.  8906          MOV DWORD PTR DS:[ESI],EAX  
+
+00439510   |.  83C7 04       ADD EDI,4  
+
+00439513   |.  49            DEC ECX  
+
+00439514   |.^ 75 C7         JNZ SHORT Tin.004394DD  
+
+00439516   \.  C3             RETN
+```
+
+### 00439517 - 第三轮运算 (40≤t≤59)
+
+```
+00439517   /$  B9 14000000   MOV ECX,14                              ;  ;计数器,第三轮,40≤t≤59  
+
+0043951C   |>  8B46 04       /MOV EAX,DWORD PTR DS:[ESI+4]           ;  ;eax<--B  
+
+0043951F   |.  8BD8          |MOV EBX,EAX                             ;  ;ebx<--B
+```
+
+
+
+## 汇编代码片段
+
+```assembly
+00439521   |.   2346 08        |AND EAX,DWORD PTR DS:[ESI+8]           ;  ;eax<--B and C  
+
+00439524   |.   235E 0C        |AND EBX,DWORD PTR DS:[ESI+C]           ;  ;ebx<--B and D  
+
+00439527   |.   0BC3           |OR EAX,EBX                             ;  ;eax<--(B and C)or(B and D)  
+
+00439529   |.   8B5E 08        |MOV EBX,DWORD PTR DS:[ESI+8]           ;  ;ebx<--C  
+
+0043952C   |.   235E 0C        |AND EBX,DWORD PTR DS:[ESI+C]           ;  ;ebx<--C and D  
+
+0043952F   |.   0BC3           |OR EAX,EBX                             ;  ;ft(B,C,D)=(B and C)or(B and D)or(C and D)  
+
+00439531   |.   8B1E           |MOV EBX,DWORD PTR DS:[ESI]             ;  ;ebx<--A;以下运算同第一轮相似,除了 Kt 常量不同  
+
+00439533   |.   C1C3 05        |ROL EBX,5  
+
+00439536   |.   03C3           |ADD EAX,EBX  
+
+00439538   |.   0346 10        |ADD EAX,DWORD PTR DS:[ESI+10]  
+
+0043953B   |.   0307           |ADD EAX,DWORD PTR DS:[EDI]  
+
+0043953D   |.   03C2           |ADD EAX,EDX  
+
+0043953F   |.   8B5E 0C        |MOV EBX,DWORD PTR DS:[ESI+C]  
+
+00439542   |.   895E 10        |MOV DWORD PTR DS:[ESI+10],EBX  
+
+00439545   |.   8B5E 08        |MOV EBX,DWORD PTR DS:[ESI+8]  
+
+00439548   |.   895E 0C        |MOV DWORD PTR DS:[ESI+C],EBX  
+
+0043954B   |.   8B5E 04        |MOV EBX,DWORD PTR DS:[ESI+4]  
+
+0043954E   |.   C1CB 02        |ROR EBX,2  
+
+00439551   |.   895E 08        |MOV DWORD PTR DS:[ESI+8],EBX  
+
+00439554   |.   8B1E           |MOV EBX,DWORD PTR DS:[ESI]  
+
+00439556   |.   895E 04        |MOV DWORD PTR DS:[ESI+4],EBX  
+
+00439559   |.   8906           |MOV DWORD PTR DS:[ESI],EAX  
+
+0043955B   |.   83C7 04        |ADD EDI,4  
+
+0043955E   |.   49             |DEC ECX  
+
+0043955F   |.^ 75 BB          \\JNZ SHORT Tin.0043951C  
+
+00439561   \\.   C3             RETN  
+
+00439562    >   5F             POP EDI  
+
+00439563    .   5E             POP ESI  
+
+00439564    .   5B             POP EBX  
+
+00439565    .   C9             LEAVE  
+
+00439566    .   C2 0800        RETN 8  
+
 \-----------------------------------------------------------------------------------------------  
-以下 ddXX 代表 dword，dwXX 代表 word，dbXX 代表 byte  
-  
-00420678 CALL Tin.004011F7 / 00401213 CALL Tin.00401144 的功能是计算\[0012f814\]的 4 个 dword 值:  
-Func1(输入的注册码,45A4E0 处索引表,43h 资源运算结果) --> \[0012f814\] = {ddA1,ddA2,ddA3,ddA4}  
-  
-00401221 CALL Tin.0040122F 处代码由\[0012f814\]的值计算得到\[0012f9c4\]的 5 个 dword 值:  
-Func2(\[0012f814\]) --> \[0012f9c4\] = {ddB1,ddB2,ddB3,ddB4,{dbB5,dbB6,dwB7}}  
-  
-0042068B CALL Tin.0040135C 处代码由\[0012f9c4\]的值计算得到\[0012f998\]的 3 个 dword 值  
-Func3(\[0012f9c4\]) --> \[0012f998\] = {ddC1,ddC2,{dbC3,dbC4,dbC5,dbC6}}  
-  
-Func1,Func2，Func3 这三段汇编代码都可以提取出来，做注册机时用。  
-\-------------------------------------------------------------------------------------------------  
-00420693 CALL Tin.004012D1 的功能是调用 API 函数 GetUserName 获取当前用户名 NCIS，调用 GetComputerName 获取计算机名 IBM-1161  
-调用 GetWindowsDirectoryA 获得系统目录，然后调用 GetVolumeInformationA 取系统盘卷标序列号，一个 dword 值。  
-004012D1  /$ /E9 00000000   JMP Tin.004012D6  
-004012D6  |$ \\55            PUSH EBP  
-004012D7  |.  8BEC          MOV EBP,ESP  
-004012D9  |.  81EC 0C010000 SUB ESP,10C  
-004012DF  |.  56            PUSH ESI  
-004012E0  |.  8BF1          MOV ESI,ECX  
-004012E2  |.  B8 80000000   MOV EAX,80  
-004012E7  |.  8D8D F4FEFFFF LEA ECX,DWORD PTR SS:\[EBP-10C\]  
-004012ED  |.  8945 F4       MOV DWORD PTR SS:\[EBP-C\],EAX  
-004012F0  |.  8945 FC       MOV DWORD PTR SS:\[EBP-4\],EAX  
-004012F3  |.  E8 1CFDFFFF   CALL Tin.00401014  
-004012F8  |.  8D45 F4       LEA EAX,DWORD PTR SS:\[EBP-C\]  
-004012FB  |.  50            PUSH EAX                                 ; /pBufferSize  
-004012FC  |.  8D85 74FFFFFF LEA EAX,DWORD PTR SS:\[EBP-8C\]            ; |  
-00401302  |.  50            PUSH EAX                                 ; |Buffer  
-00401303  |.  FF15 DC304500 CALL DWORD PTR DS:\[<&KERNEL32.GetCompute>; \\GetComputerNameA //  
-00401309  |.  85C0          TEST EAX,EAX  
-0040130B  |.  74 4A         JE SHORT Tin.00401357  
-0040130D  |.  8D45 FC       LEA EAX,DWORD PTR SS:\[EBP-4\]  
-00401310  |.  50            PUSH EAX                                 ; /pBufCount  
-00401311  |.  8D85 F4FEFFFF LEA EAX,DWORD PTR SS:\[EBP-10C\]           ; |  
-00401317  |.  50            PUSH EAX                                 ; |Buffer  
-00401318  |.  FF15 00304500 CALL DWORD PTR DS:\[<&ADVAPI32.GetUserNam>; \\GetUserNameA  
-0040131E  |.  85C0          TEST EAX,EAX  
-00401320  |.  74 35         JE SHORT Tin.00401357  
-00401322  |.  8D4D F8       LEA ECX,DWORD PTR SS:\[EBP-8\]  
-00401325  |.  E8 85830300   CALL Tin.004396AF                        ;  ;取系统盘卷标序列号  
-0040132A  |.  85C0          TEST EAX,EAX  
-0040132C  |.  74 29         JE SHORT Tin.00401357  
-0040132E  |.  8D8D F4FEFFFF LEA ECX,DWORD PTR SS:\[EBP-10C\]  
-00401334  |.  E8 E8FCFFFF   CALL Tin.00401021                        ;  ;填充数据块,分别转换 UserName 和 ComputerName 为 80h 字节长  
-00401339  |.  8B45 F8       MOV EAX,DWORD PTR SS:\[EBP-8\]             ;  ;eax<--卷标序列号  
-0040133C  |.  8D8D F4FEFFFF LEA ECX,DWORD PTR SS:\[EBP-10C\]           ;  ;ecx<--80h 字节长 UserName 首地址  
-00401342  |.  8985 F4FEFFFF MOV DWORD PTR SS:\[EBP-10C\],EAX           ;  ;替换 UserName 首个 dword 为卷标序列号  
-00401348  |.  E8 69FDFFFF   CALL Tin.004010B6                        ;  ;变异 SHA1 算法  
-0040134D  |.  8906          MOV DWORD PTR DS:\[ESI\],EAX               ;  ;\[0012f990\] <-- eax=H4 xor H2 xor H0  
-0040134F  |.  8956 04       MOV DWORD PTR DS:\[ESI+4\],EDX             ;  ;\[0012f994\] <-- edx=0 xor H3 xor H1  
-00401352  |.  6A 01         PUSH 1  
-00401354  |.  58            POP EAX  
-00401355  |.  EB 02         JMP SHORT Tin.00401359  
-00401357  |>  33C0          XOR EAX,EAX  
-00401359  |>  5E            POP ESI  
-0040135A  |.  C9            LEAVE  
-0040135B  \\.  C3            RETN  
-\---------------------------------------------------------------------------------------------------  
-00401325 CALL Tin.004396AF 处跟进：  
-  
-004396AF  /$  55            PUSH EBP  
-004396B0  |.  8BEC          MOV EBP,ESP  
-004396B2  |.  81EC 0C010000 SUB ESP,10C  
-004396B8  |.  56            PUSH ESI  
-004396B9  |.  8D85 F4FEFFFF LEA EAX,DWORD PTR SS:\[EBP-10C\]  
-004396BF  |.  68 04010000   PUSH 104                                 ; /BufSize = 104 (260.)  
-004396C4  |.  8BF1          MOV ESI,ECX                              ; |  
-004396C6  |.  50            PUSH EAX                                 ; |Buffer  
-004396C7  |.  FF15 14314500 CALL DWORD PTR DS:\[<&KERNEL32.GetWindows>; \\GetWindowsDirectoryA //取系统目录  
-004396CD  |.  85C0          TEST EAX,EAX  
-004396CF  |.  74 26         JE SHORT Tin.004396F7  
-004396D1  |.  8D8D F4FEFFFF LEA ECX,DWORD PTR SS:\[EBP-10C\]  
-004396D7  |.  E8 FD060000   CALL Tin.00439DD9  
-004396DC  |.  8945 F8       MOV DWORD PTR SS:\[EBP-8\],EAX  
-004396DF  |.  33C0          XOR EAX,EAX  
-004396E1  |.  50            PUSH EAX                                 ; /pFileSystemNameSize => NULL  
-004396E2  |.  50            PUSH EAX                                 ; |pFileSystemNameBuffer => NULL  
-004396E3  |.  50            PUSH EAX                                 ; |pFileSystemFlags => NULL  
-004396E4  |.  50            PUSH EAX                                 ; |pMaxFilenameLength => NULL  
-004396E5  |.  56            PUSH ESI                                 ; |pVolumeSerialNumber  
-004396E6  |.  50            PUSH EAX                                 ; |MaxVolumeNameSize => 0  
-004396E7  |.  8802          MOV BYTE PTR DS:\[EDX\],AL                 ; |  
-004396E9  |.  50            PUSH EAX                                 ; |VolumeNameBuffer => NULL  
-004396EA  |.  8D85 F4FEFFFF LEA EAX,DWORD PTR SS:\[EBP-10C\]           ; |  
-004396F0  |.  50            PUSH EAX                                 ; |RootPathName  
-004396F1  |.  FF15 C0314500 CALL DWORD PTR DS:\[<&KERNEL32.GetVolumeI>; \\GetVolumeInformationA //取系统盘卷标序列号  
-004396F7  |>  5E            POP ESI  
-004396F8  |.  C9            LEAVE  
-004396F9  \\.  C3            RETN  
-\-------------------------------------------------------------------------------------------------------------  
-00401334 CALL Tin.00401021 跟进：  
-  
-00401021  /$  53            PUSH EBX  
-00401022  |.  56            PUSH ESI  
-00401023  |.  8BF1          MOV ESI,ECX  
-00401025  |.  BA 80000000   MOV EDX,80                               ;  ;字母转大写,仅保留字母和数字后  
-0040102A  |.  E8 17000000   CALL Tin.00401046                        ;  ;自身复制到 80h 字节长,末尾填充 Null  
-0040102F  |.  BA 80000000   MOV EDX,80  
-00401034  |.  8D8E 80000000 LEA ECX,DWORD PTR DS:\[ESI+80\]  
-0040103A  |.  8BD8          MOV EBX,EAX                              ;  ;字母转大写,仅保留字母和数字后  
-0040103C  |.  E8 05000000   CALL Tin.00401046                        ;  ;自身复制到 80h 字节长,末尾填充 Null  
-00401041  |.  03C3          ADD EAX,EBX  
-00401043  |.  5E            POP ESI  
-00401044  |.  5B            POP EBX  
-00401045  \\.  C3            RETN  
-\-------------------------------------------------------------------------------------------------------------  
-总结前面数据填充规律为：  
-(1)UserName "NCIS"字母转大写,仅保留字母和数字,自身复制到 80h 字节长，末尾一个字节用 NULL 替换；  
-(2)ComputerName "IBM-1161"同上处理；  
-(3)将扩充后的 80h 字节长的 UserName 的第一个 dword 用获取的系统盘卷标序列号替换。  
-  
-填充结束后的待处理串 100h 字节大小，如下所示，前四个字节为系统盘卷标序列号：  
-  
-要处理的消息串 M1-M4(4\*512Bits)：  
-0012F71C  89 21 C5 98 4E 43 49 53 4E 43 49 53 4E 43 49 53  ?NCISNCISNCIS  
-0012F72C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS  
-0012F73C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS  
-0012F74C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS  
-0012F75C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS  
-0012F76C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS  
-0012F77C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS  
-0012F78C  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 00  NCISNCISNCISNCI.  
-0012F79C  49 42 4D 31 31 36 31 49 42 4D 31 31 36 31 49 42  IBM1161IBM1161IB  
-0012F7AC  4D 31 31 36 31 49 42 4D 31 31 36 31 49 42 4D 31  M1161IBM1161IBM1  
-0012F7BC  31 36 31 49 42 4D 31 31 36 31 49 42 4D 31 31 36  161IBM1161IBM116  
-0012F7CC  31 49 42 4D 31 31 36 31 49 42 4D 31 31 36 31 49  1IBM1161IBM1161I  
-0012F7DC  42 4D 31 31 36 31 49 42 4D 31 31 36 31 49 42 4D  BM1161IBM1161IBM  
-0012F7EC  31 31 36 31 49 42 4D 31 31 36 31 49 42 4D 31 31  1161IBM1161IBM11  
-0012F7FC  36 31 49 42 4D 31 31 36 31 49 42 4D 31 31 36 31  61IBM1161IBM1161  
-0012F80C  49 42 4D 31 31 36 31 49 42 4D 31 31 36 31 49 00  IBM1161IBM1161I.  
-\------------------------------------------------------------------------------------  
-00401348 CALL Tin.004010B6 处跟进,研究变异 SHA1 算法：  
-  
-004010B6  /$  55            PUSH EBP  
-004010B7  |.  8BEC          MOV EBP,ESP  
-004010B9  |.  83EC 14       SUB ESP,14  
-004010BC  |.  56            PUSH ESI  
-004010BD  |.  8BF1          MOV ESI,ECX  
-004010BF  |.  57            PUSH EDI  
-004010C0  |.  8D4D EC       LEA ECX,DWORD PTR SS:\[EBP-14\]  
-004010C3  |.  E8 1D830300   CALL Tin.004393E5                        ;  ;SHA1 算法初始化值  
-004010C8  |.  6A 04         PUSH 4  
-004010CA  |.  5F            POP EDI                                  ;  ;有 4 个 512 位串需要处理 {Mi}  
-004010CB  |>  8D45 EC       /LEA EAX,DWORD PTR SS:\[EBP-14\]  
-004010CE  |.  56            |PUSH ESI                                ;  ;要 HASH 的位串  
-004010CF  |.  50            |PUSH EAX                                ;  ;{Hi}缓冲区  
-004010D0  |.  E8 33830300   |CALL Tin.00439408                       ;  ;SHA1 核心算法  
-004010D5  |.  83C6 40       |ADD ESI,40                              ;  ;下一个要处理的 Mi(64Bytes\*8Bits)  
-004010D8  |.  4F            |DEC EDI  
-004010D9  |.^ 75 F0         \\JNZ SHORT Tin.004010CB                  ;  ;循环处理  
-004010DB  |.  8B45 FC       MOV EAX,DWORD PTR SS:\[EBP-4\]             ;  ;eax <-- H4  
-004010DE  |.  33D2          XOR EDX,EDX                              ;  ;edx <-- 0  
-004010E0  |.  3345 F4       XOR EAX,DWORD PTR SS:\[EBP-C\]             ;  ;eax <-- H4 xor H2  
-004010E3  |.  3355 F8       XOR EDX,DWORD PTR SS:\[EBP-8\]             ;  ;edx <-- 0 xor H3  
-004010E6  |.  5F            POP EDI  
-004010E7  |.  5E            POP ESI  
-004010E8  |.  3345 EC       XOR EAX,DWORD PTR SS:\[EBP-14\]            ;  ;eax <-- H4 xor H2 xor H0  
-004010EB  |.  3355 F0       XOR EDX,DWORD PTR SS:\[EBP-10\]            ;  ;edx <-- 0 xor H3 xor H1  
-004010EE  |.  C9            LEAVE  
-004010EF  \\.  C3            RETN  
-\-----------------------------------------------------------------------------------------------------  
-004010C3 CALL Tin.004393E5 处：  
-  
-004393E5  /$  C701 01234567 MOV DWORD PTR DS:\[ECX\],67452301          ;  ;SHA1 算法初始化值  
-004393EB  |.  C741 04 89ABC>MOV DWORD PTR DS:\[ECX+4\],EFCDAB89  
-004393F2  |.  C741 08 FEDCB>MOV DWORD PTR DS:\[ECX+8\],98BADCFE  
-004393F9  |.  C741 0C 76543>MOV DWORD PTR DS:\[ECX+C\],10325476  
-00439400  |.  C741 10 F0E1D>MOV DWORD PTR DS:\[ECX+10\],C3D2E1F0  
-00439407  \\.  C3            RETN  
-\-----------------------------------------------------------------------------------------------------  
-004010D0 CALL Tin.00439408 变异 SHA1 核心算法，当然要研究，请参考附件 SHA1.doc,跟进：  
-  
-00439408   $  55            PUSH EBP  
-00439409   .  8BEC          MOV EBP,ESP  
-0043940B   .  81EC 54010000 SUB ESP,154  
-00439411   .  53            PUSH EBX  
-00439412   .  56            PUSH ESI  
-00439413   .  57            PUSH EDI  
-00439414   .  8B75 0C       MOV ESI,DWORD PTR SS:\[EBP+C\]  
-00439417   .  8DBD ACFEFFFF LEA EDI,DWORD PTR SS:\[EBP-154\]  
-0043941D   .  B9 10000000   MOV ECX,10  
-00439422   .  F3:A5         REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS>;  ;处理 Mi,取 16 个 dword 值{W0,...,W15}  
-00439424   .  B9 40000000   MOV ECX,40                               ;  ;t=16 to 79,计算 W16 to W79  
-00439429   >  8B47 F4       MOV EAX,DWORD PTR DS:\[EDI-C\]             ;  ;eax<--Wt-3  
-0043942C   .  3347 E8       XOR EAX,DWORD PTR DS:\[EDI-18\]            ;  ;eax<--Wt-3 xor Wt-6 ;变异 SHA1,标准算法应是 Wt-8  
-0043942F   .  3347 C8       XOR EAX,DWORD PTR DS:\[EDI-38\]            ;  ;eax<--Wt-3 xor Wt-6 xor Wt-14  
-00439432   .  3347 C0       XOR EAX,DWORD PTR DS:\[EDI-40\]            ;  ;eax<--Wt-3 xor Wt-6 xor Wt-14 xor Wt-16  
-00439435   .  D1C0          ROL EAX,1                                ;  ;eax<<1  
-00439437   .  AB            STOS DWORD PTR ES:\[EDI\]                  ;  ;Wt=S1(Wt-3 xor Wt-6 xor Wt-14 xor Wt-16)  
-00439438   .  49            DEC ECX  
-00439439   .^ 75 EE         JNZ SHORT Tin.00439429                   ;  ;循环处理  
-0043943B   .  8B75 08       MOV ESI,DWORD PTR SS:\[EBP+8\]  
-0043943E   .  8DBD ECFFFFFF LEA EDI,DWORD PTR SS:\[EBP-14\]  
-00439444   .  B9 05000000   MOV ECX,5  
-00439449   .  F3:A5         REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS>;  ;A=H0,B=H1,C=H2,D=H3,E=H4  
-0043944B   .  8DBD ACFEFFFF LEA EDI,DWORD PTR SS:\[EBP-154\]           ;  ;edi<--Mi{W0,...,W79}  
-00439451   .  8DB5 ECFFFFFF LEA ESI,DWORD PTR SS:\[EBP-14\]            ;  ;esi<--{A,B,C,D,E}  
-00439457   .  BA 9979825A   MOV EDX,5A827999                         ;  ;Kt=0x5A827999(0≤t≤19)  
-0043945C   .  E8 32000000   CALL Tin.00439493                        ;  ;第一轮运算  
-00439461   .  BA A1EBD96E   MOV EDX,6ED9EBA1                         ;  ;Kt=0x6ED9EBA1(20≤t≤39)  
-00439466   .  E8 6D000000   CALL Tin.004394D8                        ;  ;第二轮运算  
-0043946B   .  BA DCBC1B8F   MOV EDX,8F1BBCDC                         ;  ;Kt=0x8F1BBCDC(40≤t≤59)  
-00439470   .  E8 A2000000   CALL Tin.00439517                        ;  ;第三轮运算  
-00439475   .  BA D6C162CA   MOV EDX,CA62C1D6                         ;  ;Kt=0xCA62C1D6(60≤t≤79)  
-0043947A   .  E8 59000000   CALL Tin.004394D8                        ;  ;第四轮运算  
-0043947F   .  8B7D 08       MOV EDI,DWORD PTR SS:\[EBP+8\]             ;  ;edi<--{Hi}缓冲区地址  
-00439482   .  B9 05000000   MOV ECX,5  
-00439487   >  AD            LODS DWORD PTR DS:\[ESI\]  
-00439488   .  0307          ADD EAX,DWORD PTR DS:\[EDI\]               ;  ;H0=H0+A,H1=H1+B,H2=H2+C,H3=H3+D,H4=H4+E  
-0043948A   .  AB            STOS DWORD PTR ES:\[EDI\]  
-0043948B   .  49            DEC ECX  
-0043948C   .^ 75 F9         JNZ SHORT Tin.00439487  
-0043948E   .  E9 CF000000   JMP Tin.00439562  
-00439493  /$  B9 14000000   MOV ECX,14                               ;  ;计数器,第一轮,0≤t≤19  
-00439498  |>  8B46 04       MOV EAX,DWORD PTR DS:\[ESI+4\]             ;  ;eax<--B  
-0043949B  |.  8BD8          MOV EBX,EAX                              ;  ;ebx<--B  
-0043949D  |.  2346 08       AND EAX,DWORD PTR DS:\[ESI+8\]             ;  ;eax<--B and C  
-004394A0  |.  F7D3          NOT EBX                                  ;  ;ebx<--not B  
-004394A2  |.  235E 0C       AND EBX,DWORD PTR DS:\[ESI+C\]             ;  ;ebx<--(not B)and D  
-004394A5  |.  0BC3          OR EAX,EBX                               ;  ;ft(B,C,D)=(B and C)or((not B)and D)  
-004394A7  |.  8B1E          MOV EBX,DWORD PTR DS:\[ESI\]               ;  ;ebx<--A  
-004394A9  |.  C1C3 05       ROL EBX,5                                ;  ;S5(A)=(A<<5)  
-004394AC  |.  03C3          ADD EAX,EBX                              ;  ;eax<--ft(B,C,D)+S5(A)  
-004394AE  |.  0346 10       ADD EAX,DWORD PTR DS:\[ESI+10\]            ;  ;ft(B,C,D)+S5(A)+E  
-004394B1  |.  0307          ADD EAX,DWORD PTR DS:\[EDI\]               ;  ;ft(B,C,D)+S5(A)+E+Wt  
-004394B3  |.  03C2          ADD EAX,EDX                              ;  ;TEMP=ft(B,C,D)+S5(A)+E+Wt+Kt (Kt=0x5A827999)  
-004394B5  |.  8B5E 0C       MOV EBX,DWORD PTR DS:\[ESI+C\]             ;  ;ebx<--D  
-004394B8  |.  895E 10       MOV DWORD PTR DS:\[ESI+10\],EBX            ;  ;E=D  
-004394BB  |.  8B5E 08       MOV EBX,DWORD PTR DS:\[ESI+8\]             ;  ;ebx<--C  
-004394BE  |.  895E 0C       MOV DWORD PTR DS:\[ESI+C\],EBX             ;  ;D=C  
-004394C1  |.  8B5E 04       MOV EBX,DWORD PTR DS:\[ESI+4\]             ;  ;ebx<--B  
-004394C4  |.  C1CB 02       ROR EBX,2                                ;  ;S30(B)=(B>>2)  
-004394C7  |.  895E 08       MOV DWORD PTR DS:\[ESI+8\],EBX             ;  ;C=S30(B)  
-004394CA  |.  8B1E          MOV EBX,DWORD PTR DS:\[ESI\]               ;  ;ebx<--A  
-004394CC  |.  895E 04       MOV DWORD PTR DS:\[ESI+4\],EBX             ;  ;B=A  
-004394CF  |.  8906          MOV DWORD PTR DS:\[ESI\],EAX               ;  ;A=TEMP  
-004394D1  |.  83C7 04       ADD EDI,4                                ;  ;edi<--指向下一个 Wt  
-004394D4  |.  49            DEC ECX                                  ;  ;计数减 1  
-004394D5  |.^ 75 C1         JNZ SHORT Tin.00439498                   ;  ;循环至计数为 0  
-004394D7  \\.  C3            RETN  
-004394D8  /$  B9 14000000   MOV ECX,14                               ;  ;计数器,第二轮,20≤t≤39;第四轮,60≤t≤79  
-004394DD  |>  8B46 04       MOV EAX,DWORD PTR DS:\[ESI+4\]             ;  ;eax<--B  
-004394E0  |.  3346 08       XOR EAX,DWORD PTR DS:\[ESI+8\]             ;  ;eax<--B xor C  
-004394E3  |.  3346 0C       XOR EAX,DWORD PTR DS:\[ESI+C\]             ;  ;ft(B,C,D)=B xor C xor D  
-004394E6  |.  8B1E          MOV EBX,DWORD PTR DS:\[ESI\]               ;  ;ebx<--A;以下运算同第一轮相似,除了 Kt 常量不同  
-004394E8  |.  C1C3 05       ROL EBX,5  
-004394EB  |.  03C3          ADD EAX,EBX  
-004394ED  |.  0346 10       ADD EAX,DWORD PTR DS:\[ESI+10\]  
-004394F0  |.  0307          ADD EAX,DWORD PTR DS:\[EDI\]  
-004394F2  |.  03C2          ADD EAX,EDX  
-004394F4  |.  8B5E 0C       MOV EBX,DWORD PTR DS:\[ESI+C\]  
-004394F7  |.  895E 10       MOV DWORD PTR DS:\[ESI+10\],EBX  
-004394FA  |.  8B5E 08       MOV EBX,DWORD PTR DS:\[ESI+8\]  
-004394FD  |.  895E 0C       MOV DWORD PTR DS:\[ESI+C\],EBX  
-00439500  |.  8B5E 04       MOV EBX,DWORD PTR DS:\[ESI+4\]  
-00439503  |.  C1CB 02       ROR EBX,2  
-00439506  |.  895E 08       MOV DWORD PTR DS:\[ESI+8\],EBX  
-00439509  |.  8B1E          MOV EBX,DWORD PTR DS:\[ESI\]  
-0043950B  |.  895E 04       MOV DWORD PTR DS:\[ESI+4\],EBX  
-0043950E  |.  8906          MOV DWORD PTR DS:\[ESI\],EAX  
-00439510  |.  83C7 04       ADD EDI,4  
-00439513  |.  49            DEC ECX  
-00439514  |.^ 75 C7         JNZ SHORT Tin.004394DD  
-00439516  \\.  C3            RETN  
-00439517  /$  B9 14000000   MOV ECX,14                               ;  ;计数器,第三轮,40≤t≤59  
-0043951C  |>  8B46 04       /MOV EAX,DWORD PTR DS:\[ESI+4\]            ;  ;eax<--B  
-0043951F  |.  8BD8          |MOV EBX,EAX                             ;  ;ebx<--B  
-00439521  |.  2346 08       |AND EAX,DWORD PTR DS:\[ESI+8\]            ;  ;eax<--B and C  
-00439524  |.  235E 0C       |AND EBX,DWORD PTR DS:\[ESI+C\]            ;  ;ebx<--B and D  
-00439527  |.  0BC3          |OR EAX,EBX                              ;  ;eax<--(B and C)or(B and D)  
-00439529  |.  8B5E 08       |MOV EBX,DWORD PTR DS:\[ESI+8\]            ;  ;ebx<--C  
-0043952C  |.  235E 0C       |AND EBX,DWORD PTR DS:\[ESI+C\]            ;  ;ebx<--C and D  
-0043952F  |.  0BC3          |OR EAX,EBX                              ;  ;ft(B,C,D)=(B and C)or(B and D)or(C and D)  
-00439531  |.  8B1E          |MOV EBX,DWORD PTR DS:\[ESI\]              ;  ;ebx<--A;以下运算同第一轮相似,除了 Kt 常量不同  
-00439533  |.  C1C3 05       |ROL EBX,5  
-00439536  |.  03C3          |ADD EAX,EBX  
-00439538  |.  0346 10       |ADD EAX,DWORD PTR DS:\[ESI+10\]  
-0043953B  |.  0307          |ADD EAX,DWORD PTR DS:\[EDI\]  
-0043953D  |.  03C2          |ADD EAX,EDX  
-0043953F  |.  8B5E 0C       |MOV EBX,DWORD PTR DS:\[ESI+C\]  
-00439542  |.  895E 10       |MOV DWORD PTR DS:\[ESI+10\],EBX  
-00439545  |.  8B5E 08       |MOV EBX,DWORD PTR DS:\[ESI+8\]  
-00439548  |.  895E 0C       |MOV DWORD PTR DS:\[ESI+C\],EBX  
-0043954B  |.  8B5E 04       |MOV EBX,DWORD PTR DS:\[ESI+4\]  
-0043954E  |.  C1CB 02       |ROR EBX,2  
-00439551  |.  895E 08       |MOV DWORD PTR DS:\[ESI+8\],EBX  
-00439554  |.  8B1E          |MOV EBX,DWORD PTR DS:\[ESI\]  
-00439556  |.  895E 04       |MOV DWORD PTR DS:\[ESI+4\],EBX  
-00439559  |.  8906          |MOV DWORD PTR DS:\[ESI\],EAX  
-0043955B  |.  83C7 04       |ADD EDI,4  
-0043955E  |.  49            |DEC ECX  
-0043955F  |.^ 75 BB         \\JNZ SHORT Tin.0043951C  
-00439561  \\.  C3            RETN  
-00439562   >  5F            POP EDI  
-00439563   .  5E            POP ESI  
-00439564   .  5B            POP EBX  
-00439565   .  C9            LEAVE  
-00439566   .  C2 0800       RETN 8  
-\-----------------------------------------------------------------------------------------------  
-将要处理的消息串 M1-M4(4\*512Bits)，分成 4 块，每块 64Bytes\[512Bits\]，分别进行变异 SHA1 运算求 HASH。  
-  
-处理后的 M1{W0-W79}:  
-0012F590  89 21 C5 98 4E 43 49 53 4E 43 49 53 4E 43 49 53  ?NCISNCISNCIS  
-0012F5A0  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS  
-0012F5B0  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS  
-0012F5C0  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS  
-0012F5D0  8F C5 18 97 00 00 00 00 00 00 00 00 83 0D A3 88  ?.......?  
-0012F5E0  9C 86 92 A6 9C 86 92 A6 18 90 77 3F 39 0D 25 4D  ?9.%M  
-0012F5F0  39 0D 25 4D 37 3B A9 6F 4B 17 6F D7 4B 17 6F D7  9.%M7;Koo?  
-0012F600  5E 56 BD A1 E5 34 94 34 66 39 37 BC 4F 5C BA 3A  ^V 健??f97\\?  
-0012F610  42 CC C7 E9 5D 47 F6 C7 1A 19 2B 7B 71 E7 C4 E6  B 糖 G 銮+{q 缒?  
-0012F620  7F D1 48 C4 E1 9D 4D 54 24 6C A3 FA 58 40 65 42  尼 T$lｚX@eB  
-0012F630  13 3D 59 6A 53 4E 43 49 65 A0 FF E1 B9 06 DF BB  =YjSNCIe?峁呋  
-0012F640  9F 9A D4 5C 2F 11 69 5B 1D 9D ED 08 BD 9F B7 D1  /i\[费  
-0012F650  24 C8 F4 50 11 77 00 24 8E 9A 01 64 37 47 29 72  $若 Pw.$d7G)r  
-0012F660  AE AE 0C 24 15 B1 3D 47 49 BC 4F 64 68 AF 55 16  .$?GIdh  
-0012F670  DB 6D 35 51 29 67 F5 C9 79 76 E4 1E B1 96 7D ED  5Q)g 跎 yv?}?  
-0012F680  C5 B9 07 F3 07 AF DE 04 A7 5C A3 C8 81 6C 8A 9E  殴?Ｈ  
-0012F690  A8 17 9F 5D 60 F4 EF E7 C8 C2 01 5B 1A 9D AA D8  ?\`麸缛?\[?  
-0012F6A0  40 74 1F DE 69 60 C7 29 41 B6 9E 60 C3 90 A0 CC  @t\`?A\`  
-0012F6B0  06 72 2F 7A 87 B5 79 39 7F 56 B8 FE B3 57 96 74  r/zy9V 羹  
-0012F6C0  48 CD 87 C4 75 0A 98 50 75 DD 0A 37 5D C0 37 09  H.u?7\]?.  
-  
-M1 的 SHA1 Hash 值：  
-0012F6FC  0B D8 7B A5 1A 43 A9 4E 44 C6 A1 17 D5 9A 56 94 81 74 78 57  
-\-------------------------------------------------------------------------------  
-处理后的 M2{W0-W79}:  
-0012F590  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS  
-0012F5A0  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS  
-0012F5B0  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53  NCISNCISNCISNCIS  
-0012F5C0  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 00  NCISNCISNCISNCI.  
-0012F5D0  00 00 00 00 00 00 00 00 00 00 00 A6 9C 86 92 A6  ...........?  
-0012F5E0  9C 86 92 A6 9D 86 92 4C 39 0D 25 4D 39 0D 25 4D  9.%M9.%M  
-0012F5F0  3B 0D 25 D5 4B 17 6F D7 4B 17 6F D7 4D 17 6F 33  ;.%ooo3  
-0012F600  E5 34 94 34 E5 34 94 92 71 B2 06 6A C1 C1 64 C7  ???q?j 亮 d?  
-0012F610  5D 47 F6 C7 41 47 F6 FF 71 E7 C4 E6 73 E7 C4 7E  \]G 銮 AG?q 缒缒~  
-0012F620  2A FD 8E FC 28 5A 2F 40 58 40 65 42 33 40 65 32  \*?Z/@X@eB3@e2  
-0012F630  53 4E 43 49 5B 4E 43 B1 6E 3D 21 5A A7 6F 2E 51  SNCI\[NC=!Z.Q  
-0012F640  2F 11 69 5B F2 10 69 7B B1 A9 3B 6B E9 B3 71 A5  /i\[?i{暴;k 槌 q?  
-0012F650  60 1B F5 00 49 CC 4E 76 3B 71 A5 C8 92 6D EF 8A  \`?Iv;qト  
-0012F660  15 B1 3D 47 92 B1 3D 3F F3 F1 78 02 69 E6 AA 64  ?G=?篑 xi 妾 d  
-0012F670  29 67 F5 C9 3A 7B F5 D1 7A F6 BE 45 DD 53 1F B9  )g 跎:{跹 z 鼍 E?  
-0012F680  AF 64 BE C7 11 66 19 FE 4A 0C 49 36 6B C0 E8 8A  厩 f.I6k 黎?  
-0012F690  60 F4 EF E7 98 FC EF E7 D5 C9 9C 85 E3 9C 48 58  \`麸缯 X  
-0012F6A0  69 60 C7 29 8A BC C6 A9 B2 FC 55 E8 44 03 EE F6  i\`?譬颤 U 铞  
-0012F6B0  19 C8 23 40 6D 91 EE B1 F0 E3 53 BA BF 82 C6 5D  ?@m 别嚎\]  
-0012F6C0  75 0A 98 50 9C 8D 98 70 19 65 87 98 D7 4F E3 18  u.e?  
-  
-M1M2 的 SHA1 Hash 值：   
-0012F6FC  D9 04 EC 36 5F 23 F3 EB 7E 1B 7B 7B A1 F9 26 F1 DB 11 8A A5  
-\-------------------------------------------------------------------------------  
-处理后的 M3{W0-W79}:  
-0012F590  49 42 4D 31 31 36 31 49 42 4D 31 31 36 31 49 42  IBM1161IBM1161IB  
-0012F5A0  4D 31 31 36 31 49 42 4D 31 31 36 31 49 42 4D 31  M1161IBM1161IBM1  
-0012F5B0  31 36 31 49 42 4D 31 31 36 31 49 42 4D 31 31 36  161IBM1161IBM116  
-0012F5C0  31 49 42 4D 31 31 36 31 49 42 4D 31 31 36 31 49  1IBM1161IBM1161I  
-0012F5D0  18 1E 06 E6 06 E8 08 18 1E 06 E6 06 5D AE 76 B0  ???\]?  
-0012F5E0  66 54 85 5C AE 76 B0 67 8A 6E EF 5C D6 66 E3 89  fT  
-0012F5F0  6E EF 5C D4 B1 79 33 D7 6F 95 DA B4 79 33 D7 69  n 员 y33  
-0012F600  87 38 A6 EF 72 E9 7D 8A 8C 00 81 D5 02 3E 59 D3  ?r.>Y?  
-0012F610  37 C8 8E BC 5C EB 50 28 FA A9 38 CD 6D F3 6B C2  7(8?  
-0012F620  79 A2 77 FB 01 0F 65 E0 7D 75 AD EC 85 AC EE 1B  y?eu?  
-0012F630  F4 B9 B7 9B B1 99 45 20 29 46 CB 77 FD D9 F0 30  艄 E )F?  
-0012F640  8F A9 9F ED B8 7B 02 6A 65 51 91 84 C0 CA A7 6D  jeQ 朗  
-0012F650  B8 B8 FE D8 52 21 B5 BC 99 D1 EE 6C D9 7E E4 21  父 R!导?  
-0012F660  66 4E FD 5F BB 71 85 F5 D1 15 00 1C 01 B4 C6 B1  fN?.雌?  
-0012F670  FE BF 2E EA 88 56 A2 5A 82 2B DE E8 00 D8 B2 8A  .V?掼.夭?  
-0012F680  66 77 59 5F F6 5D 7A BD 46 1C E7 79 F9 94 D3 A9  fwY\_z 萤  
-0012F690  AB 3E 68 C3 9A 37 09 DC C1 F8 32 8B 7F D8 E6 54  ?h7.芰??劓 T  
-0012F6A0  D7 E0 26 CC 04 53 45 CD F6 99 40 C3 89 6B 96 F6  奏&?SE 亡 k  
-0012F6B0  72 7F 0E 89 02 9E 6D 8F 75 AF 6F 1A 00 53 07 E7  r?.S?  
-0012F6C0  A8 D9 26 D5 E7 1B A0 F0 3F 1D 0C A9 92 C9 23 5F  ㄙ&甄?.?\_  
-  
-M1M2M3 的 SHA1 Hash 值：   
-0012F6FC  ED 19 A3 3F 88 01 23 32 72 A5 2E 7E 5D 8E 4D E2 D6 E0 F0 33  
-\--------------------------------------------------------------------------------  
-处理后的 M4{W0-W79}:  
-0012F590  42 4D 31 31 36 31 49 42 4D 31 31 36 31 49 42 4D  BM1161IBM1161IBM  
-0012F5A0  31 31 36 31 49 42 4D 31 31 36 31 49 42 4D 31 31  1161IBM1161IBM11  
-0012F5B0  36 31 49 42 4D 31 31 36 31 49 42 4D 31 31 36 31  61IBM1161IBM1161  
-0012F5C0  49 42 4D 31 31 36 31 49 42 4D 31 31 36 31 49 00  IBM1161IBM1161I.  
-0012F5D0  1E 06 E6 06 E8 08 18 1E 06 E6 06 6C AE 76 B0 67  ???l  
-0012F5E0  54 85 5C AE 76 B0 67 D8 6E EF 5C D4 67 E3 89 6E  Tn  
-0012F5F0  EF 5C D4 76 79 33 D7 69 97 DA B4 79 33 D7 69 AD  y33?  
-0012F600  39 A6 EF 7B EE 7D 8A BC 01 81 D5 D8 3C 59 D3 18  9{?Y?  
-0012F610  C3 8E BC 5F E8 50 28 18 AF 38 CD 42 EA 6B C2 B9  (?鹿  
-0012F620  A7 77 FB 75 05 65 E0 D9 50 AD EC 89 A2 EE 1B D5  e 噘 P??  
-0012F630  A5 B7 9B 28 E1 45 20 E9 57 CB 77 45 FB F0 30 C1  シ? E0?  
-0012F640  13 9F ED 87 4E 02 6A 68 38 91 84 DD 4C A6 6D DC  jh8?  
-0012F650  EA FE D8 60 83 B5 BC 7A AE EC 6C D9 96 E4 21 D1  掰 l??  
-0012F660  98 FC 5F B6 8A 82 F5 13 12 01 1C 21 B1 C4 B1 E1  \_!蹦贬  
-0012F670  AD 25 EA 4E 3D A1 5A B0 DB D8 E8 2A 25 AB 8A E8  ?=佰罔\*%?  
-0012F680  09 5C 5F 96 D0 70 BD FE B4 C2 79 36 F7 DD A9 01  .\\\_p 浸绰 y6 鬏?  
-0012F690  9E 74 C3 DB 08 71 DC EA 91 23 8B F1 A5 C4 54 CF  蜜 q 荜?ツT?  
-0012F6A0  6C 9C CC 97 BA 70 CD 04 08 29 C3 F6 D0 11 F7 59  lp?)闽?  
-0012F6B0  BB 5C 89 22 6A CF 8F C2 DC 12 18 E5 E8 EF E7 60  ?j 萝彖镧\`  
-0012F6C0  BF F1 D4 28 56 5C F7 87 F3 0A A8 5F 54 24 5D 02  狂?V\\?T$\]  
-  
-4 块数据 HASH 完后 M1M2M3M4 的 SHA1 Hash 值：{H0，H1，H2，H3，H4}  
-0012F6FC  FD 02 BB D5 7D 99 91 B5 EC 6A BB 11 59 38 D8 55 27 8A AC C2  
-\----------------------------------------------------------------------------------  
-在 00420693 CALL Tin.004012D1 中得到 M1-M4 的 HASH 值后如下计算，并将值分别赋予 eax 和 edx：  
-  
-EAX=06ACE236  存到 \[0012f990\]处  eax <-- H4 xor H2 xor H0  
-EDX=E049A124  存到 \[0012F994\]处  edx <-- 0 xor H3 xor H1  
-\-----------------------------------------------------------------------------------  
-校验第一处：  
-  
-0042069B CALL Tin.004012BC //处理\[0012f9c4\]开始的 17 个字节{ddB1,ddB2,ddB3,ddB4,dbB5},运算结果在 AX  
-称为 VerifyProc1：将 AX 与前面所得 word\[0012F9d6\]=dwB7 比较,必须相等。  
-  
-004012BC  /$  56            PUSH ESI  
-004012BD  |.  8BF1          MOV ESI,ECX  
-004012BF  |.  56            PUSH ESI  
-004012C0  |.  E8 E8FFFFFF   CALL Tin.004012AD            //处理\[00129c4\]-\[0012f9d4\]17bytes,结果在 AX  
-004012C5  |.  66:2B46 12    SUB AX,WORD PTR DS:\[ESI+12\]  //AX 与\[0012f9d6\]的 word 值比较  
-004012C9  |.  5E            POP ESI  
-004012CA  |.  66:F7D8       NEG AX  
-004012CD  |.  1BC0          SBB EAX,EAX  
-004012CF  |.  40            INC EAX  
-004012D0  \\.  C3            RETN  
-\-------------------------------------------------------------------------------------  
-004206AE CALL Tin.00401383 跟进:  
-  
-00401383  /$  55            PUSH EBP  
-00401384  |.  8BEC          MOV EBP,ESP  
-00401386  |.  81EC 08010000 SUB ESP,108  
-0040138C  |.  56            PUSH ESI  
-0040138D  |.  8BF1          MOV ESI,ECX  
-0040138F  |.  57            PUSH EDI  
-00401390  |.  8BFA          MOV EDI,EDX  
-00401392  |.  8D8D F8FEFFFF LEA ECX,DWORD PTR SS:\[EBP-108\]  
-00401398  |.  E8 77FCFFFF   CALL Tin.00401014                        ;  ;clear buffer  
-0040139D  |.  8D85 78FFFFFF LEA EAX,DWORD PTR SS:\[EBP-88\]  
-004013A3  |.  8D95 F8FEFFFF LEA EDX,DWORD PTR SS:\[EBP-108\]  
-004013A9  |.  50            PUSH EAX  
-004013AA  |.  8BCF          MOV ECX,EDI  
-004013AC  |.  E8 73730300   CALL Tin.00438724                        ;  ;copy 用户名 to buffer  
-004013B1  |.  8B4D 08       MOV ECX,DWORD PTR SS:\[EBP+8\]  
-004013B4  |.  8D45 F8       LEA EAX,DWORD PTR SS:\[EBP-8\]  
-004013B7  |.  50            PUSH EAX  
-004013B8  |.  8D95 78FFFFFF LEA EDX,DWORD PTR SS:\[EBP-88\]  
-004013BE  |.  E8 61730300   CALL Tin.00438724                        ;  ;copy Email to buffer  
-004013C3  |.  8D8D F8FEFFFF LEA ECX,DWORD PTR SS:\[EBP-108\]  
-004013C9  |.  E8 53FCFFFF   CALL Tin.00401021                        ;  ;填充数据块,分别转换用户名和 Email 为 80h 字节长  
-004013CE  |.  8D8D F8FEFFFF LEA ECX,DWORD PTR SS:\[EBP-108\]  
-004013D4  |.  E8 DDFCFFFF   CALL Tin.004010B6                        ;  ;变异 SHA1 算法  
-004013D9  |.  3B46 08       CMP EAX,DWORD PTR DS:\[ESI+8\]  //校验  
-004013DC  |.  75 25         JNZ SHORT Tin.00401403  
-004013DE  |.  3B56 0C       CMP EDX,DWORD PTR DS:\[ESI+C\]  //校验  
-004013E1  |.  75 20         JNZ SHORT Tin.00401403  
-004013E3  |.  8D4D F8       LEA ECX,DWORD PTR SS:\[EBP-8\]  
-004013E6  |.  E8 EBFEFFFF   CALL Tin.004012D6      //再次取 USERName/ComputerName/系统盘卷标序列号，SHA1 运算  
-004013EB  |.  85C0          TEST EAX,EAX  
-004013ED  |.  74 14         JE SHORT Tin.00401403  
-004013EF  |.  8B45 F8       MOV EAX,DWORD PTR SS:\[EBP-8\]    
-004013F2  |.  3B06          CMP EAX,DWORD PTR DS:\[ESI\]    //校验是否切换了用户  
-004013F4  |.  75 0D         JNZ SHORT Tin.00401403  
-004013F6  |.  8B45 FC       MOV EAX,DWORD PTR SS:\[EBP-4\]  
-004013F9  |.  3B46 04       CMP EAX,DWORD PTR DS:\[ESI+4\]  //校验是否切换了用户  
-004013FC  |.  75 05         JNZ SHORT Tin.00401403  
-004013FE  |.  6A 01         PUSH 1  
-00401400  |.  58            POP EAX  
-00401401  |.  EB 02         JMP SHORT Tin.00401405  
-00401403  |>  33C0          XOR EAX,EAX  
-00401405  |>  5F            POP EDI  
-00401406  |.  5E            POP ESI  
-00401407  |.  C9            LEAVE  
-00401408  \\.  C2 0400       RETN 4  
-\----------------------------------------------------------------------------------  
-用户名 WksWlj999 和 Email WksWLj999@sohu.com 转换为要处理的消息串 M1-M4(4\*512Bits)：  
-0012F71C  57 4B 53 57 4C 4A 39 39 39 57 4B 53 57 4C 4A 39  WKSWLJ999WKSWLJ9  
-0012F72C  39 39 57 4B 53 57 4C 4A 39 39 39 57 4B 53 57 4C  99WKSWLJ999WKSWL  
-0012F73C  4A 39 39 39 57 4B 53 57 4C 4A 39 39 39 57 4B 53  J999WKSWLJ999WKS  
-0012F74C  57 4C 4A 39 39 39 57 4B 53 57 4C 4A 39 39 39 57  WLJ999WKSWLJ999W  
-0012F75C  4B 53 57 4C 4A 39 39 39 57 4B 53 57 4C 4A 39 39  KSWLJ999WKSWLJ99  
-0012F76C  39 57 4B 53 57 4C 4A 39 39 39 57 4B 53 57 4C 4A  9WKSWLJ999WKSWLJ  
-0012F77C  39 39 39 57 4B 53 57 4C 4A 39 39 39 57 4B 53 57  999WKSWLJ999WKSW  
-0012F78C  4C 4A 39 39 39 57 4B 53 57 4C 4A 39 39 39 57 00  LJ999WKSWLJ999W.  
-0012F79C  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM  
-0012F7AC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM  
-0012F7BC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM  
-0012F7CC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM  
-0012F7DC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM  
-0012F7EC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM  
-0012F7FC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM  
-0012F80C  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 00  WKSWLJ999SOHUCO.  
-  
-计算 M1M2M3M4 的 SHA1 Hash 值：{H0，H1，H2，H3，H4}  
-0012F6F8  17 01 0A B9 26 87 F7 46 1C 65 B3 78 59 8A 59 02 6E 72 02 01  
-EAX=C0BB1665  eax <-- H4 xor H2 xor H0  与\[0012f998\]处 dword 比较，必须相等  
-EDX=44AE0D7F  edx <-- 0 xor H3 xor H1    与\[0012F994\]处 dword 比较，必须相等  
-\------------------------------------------------------------------------------------  
-校验第二处  
-比较 ddE1=eax 和\[0012ff998\]=ddC1,ddE2=edx 和\[0012f99c\]=ddC2,必须均相等,参见 Func3  
-\------------------------------------------------------------------------------------  
-004013E6 CALL Tin.004012D6 处再次取 UserName 和 ComputerName 及系统盘卷标序列号，SHA1 运算  
-检验是否切换了用户。  
-\------------------------------------------------------------------------------------  
-校验第三处 ，004206C1  CALL Tin.00420418 处：  
-dbC4=\[0012f9a1\]应为 03,dbC5=\[0012f9a3\]应为 02,dbC3=\[0012f9a0\]应大于 00  
-  
-00420418  /$  33C0          XOR EAX,EAX  
-0042041A  |.  80B9 11010000>CMP BYTE PTR DS:\[ECX+111\],3              ;  ;字节\[0012f9a1\]必须=3  
-00420421  |.  75 14         JNZ SHORT Tin.00420437  
-00420423  |.  80B9 13010000>CMP BYTE PTR DS:\[ECX+113\],2              ;  ;字节\[0012f9a3\]必须=2  
-0042042A  |.  75 0B         JNZ SHORT Tin.00420437  
-0042042C  |.  3881 10010000 CMP BYTE PTR DS:\[ECX+110\],AL             ;  ;字节\[0012f9a0\]必须>0  
-00420432  |.  76 03         JBE SHORT Tin.00420437  
-00420434  |.  6A 01         PUSH 1  
-00420436  |.  58            POP EAX  
-00420437  \\>  C3            RETN  
-\---------------------------------------------------------------------------------------------------------  
-004206F9 CALL Tin.0042032A 处写入用户名 WksWlj999，Email WksWlj999@sohu.com 和变换加密后的注册码到注册表：  
-  
-\[HKEY\_CURRENT\_USER\\Software\\Tarma Software Research\\Tarma Installer\\License\]  
-"Name"="WksWlj999"  
-"Email"="WksWlj999@sohu.com"  
-"License"=hex:a5,35,c1,a3,a5,d1,bb,06,c7,3d,b9,45,af,35,c6,a8,b0,27,6e,c3,2a,\\  
-  93,bb,fb,d6,cc,77,35,e5,97,c9,8d,aa,09,00,37,69,a1,1b,d5,17,9b,76,e2,63,d7,\\  
-  80,02,ec,74,bc,39,8c,0b,8a,6a,bb,3c,97,2a,9c,ed,e1,fe,6f,72,1a,c7,82,b8,49,\\  
-  26,30,08,2e,1d,7d,22,ab,07,e8,d2,40,aa,b1,8c,0f,04,7c,69,05,95,df,7d,73,f1,\\  
-  61,ee,6c,08,b7,46,81,38,73,0f,39,21,0f,ed,a6,71,0e,86,aa,2c,d9,7b,58,db,f8,\\  
-  d0,53,12,52,6a,e8,7e  
-\-----------------------------------------------------------------------------------------------------------  
-dbB5=\[0012f9d4\]为 02 或 06,就是 Site License,其他值就是 Single-User License    
-  
-00420706  |.  2145 EC       AND DWORD PTR SS:\[EBP-14\],EAX  
-00420709  |.  807D E8 02    CMP BYTE PTR SS:\[EBP-18\],2               //=2 就是 Site License  
-0042070D  |.  C645 FC 01    MOV BYTE PTR SS:\[EBP-4\],1  
-00420711  |.  74 10         JE SHORT Tin.00420723  
-00420713  |.  807D E8 06    CMP BYTE PTR SS:\[EBP-18\],6               //=6 也是 Site License,否则就是 Single-user license  
-00420717  |.  74 0A         JE SHORT Tin.00420723  
-00420719  |.  8D55 EC       LEA EDX,DWORD PTR SS:\[EBP-14\]  
-0042071C  |.  B9 30744500   MOV ECX,Tin.00457430         ;ASCII "Single-user license - only valid for the registered user."  
-00420721  |.  EB 08         JMP SHORT Tin.0042072B  
-00420723  |>  8D55 EC       LEA EDX,DWORD PTR SS:\[EBP-14\]  
-00420726  |.  B9 08744500   MOV ECX,Tin.00457408         ;ASCII "Site license - valid for all employees."  
-0042072B  |>  E8 7C810100   CALL Tin.004388AC  
-00420730  |.  8B4D EC       MOV ECX,DWORD PTR SS:\[EBP-14\]  
-00420733  |.  E8 777F0100   CALL Tin.004386AF  
-00420738  |.  50            PUSH EAX  
-00420739  |.  56            PUSH ESI  
-0042073A  |.  57            PUSH EDI  
-0042073B  |.  53            PUSH EBX  
-0042073C  |.  68 C8734500   PUSH Tin.004573C8           ;ASCII "This copy of Tarma QuickInstall is registered to:",LF,LF,"%s",LF,"%s",LF,"%s",LF,LF,"%s"  
-00420741  |.  6A 40         PUSH 40  
-\-------------------------------------------------------------------------------------------------------------  
-总结一下注册算法：  
-注册码为 25 位，由数字和大写字母组成，但不含数字 0，1 和字母 O，I。  
-(1)索引号 43h 资源的 256 字节数据经三轮固定数字运算得到\[0012f83c\]开始的 84bytes 数据；  
-(2)Func1(注册码,索引表,43h 号资源运算结果) --> \[0012f814\] = {ddA1,ddA2,ddA3,ddA4}  
-(3)Func2(\[0012f814\]) --> \[0012f9c4\] = {ddB1,ddB2,ddB3,ddB4,{dbB5,dbB6,dwB7}}  
-(4)Func3(\[0012f9c4\]) --> \[0012f998\] = {ddC1,ddC2,{dbC3,dbC4,dbC5,dbC6}}  
-(5)取 UserName "NCIS"，取 ComputerName "IBM-1161"，取系统盘卷标序列号 "8921C598"  
-   UserName "NCIS"字母转大写,仅保留字母和数字,自身复制到 80h 字节长，末尾一个字节用 NULL 替换；  
-   ComputerName "IBM-1161"同上处理；  
-   将扩充后的 80h 字节长的 UserName 的第一个 dword 用获取的系统盘卷标序列号替换；  
-   对填充好的 4 个 512bits 消息串进行变异 SHA1 算法求 HASH，得到{H0,H1,H2，H3，H4}  
-   H4 xor H2 xor H0 到\[0012f990\],H3 xor H1 xor 0 到\[0012f994\]  
-(6)校验 1：VerifyProc1,处理\[0012f9c4\]开始的 17 个字节{ddB1,ddB2,ddB3,ddB4,dbB5},运算结果在 AX  
-   与 word\[0012F9d6\]=dwB7 比较,必须相等；  
-(7)校验 2：分别转换"用户名"和"电子邮件"填充数据块,组合为 80h\*2 字节长  
-   计算变异 SHA1(用户名,Email)-->\[SHA1BufferH2\] {H0,H1,H2,H3,H4}  
-   ddE1=\[Reaxedx\]<--eax = H4 xor H2 xor H0, ddE2=\[Reaxedx + 4\]<--edx = 0 xor H1 xor H3  
-   比较 ddE1=\[Readedx\]和\[0012ff998\]=ddC1,ddE2=\[Readedx + 4\]和\[0012f99c\]=ddC2,必须均相等  
-(8)校验 3：dbC4=\[0012f9a1\]应为 03,dbC5=\[0012f9a3\]应为 02,dbC3=\[0012f9a0\]应大于 00  
-(9)再次取 UserName，ComputerName，系统盘卷标序列号，变异 SHA1 算法求 HASH  
-   与\[0012f990\]\[0012f994\]验证,判断是否切换了用户  
-(10)三次校验全部通过后，即为符合条件的注册码，下面判断注册码类型：  
-   dbB5=\[0012f9d4\]为 02 或 06,就是 Site License,其他值就是 Single-User License  
-(11)将注册码加密变换后和用户名及 Email 一起写入注册表保存起来。  
-\----------------------------------------------------------------------------------------------------------------  
-说说这个 SHA1 变异算法和标准 SHA1 算法的区别：  
-(1)数据填充方式不同  
-   标准 SHA1 算法，填充补位为：先补一个 1，然后再补 0，直到长度满足对 512 取模后余数是 448，  
-   总而言之，补位是至少补一位，最多补 512 位。  
-   这个变异 SHA1 算法有两种补位方式：  
-   (a)UserName "NCIS"字母转大写,仅保留字母和数字,自身复制到 80h 字节长，末尾一个字节用 NULL 替换；  
-      ComputerName "IBM-1161"同上处理；将扩充后的 80h 字节长的 UserName 的第一个 dword 用获取的系统盘卷标序列号替换；  
-      得到填充好的 4 个 512bits 消息串。  
-   (b)用户名 "WksWlj999"和 Email "WksWlj999@sohu.com"分别字母转大写,仅保留字母和数字,自身复制到 80h 字节长，  
-      末尾一个字节用 NULL 替换；得到填充好的 4 个 512bits 消息串。  
-(2)W0-W79 计算方式不同：  
-   标准 SHA1 算法使用 Wt-3，Wt-8，Wt-14，Wt-16  
-   这个变异 SHA1 使用 Wt-3，Wt-6，Wt-14，Wt-16  
-\-----------------------------------------------------------------------------------------------------------------  
-下面谈谈破解：  
-暴力破解，就找上面关键校验处及程序启动时读取注册表后验证处，修改跳转。  
-而要做注册机，就必须穷举了 :-(  
-开始想顺序穷举,注册码 25 位，每位可用字符"23456789ABCDEFGHJKLMNPQRSTUVWXYZ",有 32 种可能  
-那么可能的注册码组合有 32 的 25 次方个，约是 4.2535295865117307932921825928971e+37 种可能  
-结果穷举了 11 个小时后才变化到第 7 位，看来这样不是办法，那就改为乱序随机穷举。  
-具体实现方法如下：  
-通过 RDTSC 指令获取随机数，变换为 0-0Fh 和 0-0FFFh,其中前者控制注册码要变换的第几位  
-后者控制从该位开始 0-31 循环变换，并进位的次数。  
-设置一个.while TRUE 的死循环，在其中校验所有条件，找到第一个符合所有条件的注册码就跳出循环。  
-程序使用了多线程，并通过事件对象可以暂停或恢复穷举的线程，同时可以保存和载入穷举进度。  
-变异的 SHA1 算法可以从标准 SHA1 算法稍微更改一下得到，感谢 drizz <1of00@gmx.net>的标准 SHA1 算法 MASM32 源码。  
-![](img/06ca55ee5169bb2cc6108d371648ddf5.jpg)  
-\-----------------------------------------------------------------------------------------------------  
-附件说明：Tarma.rar  
-SHA1.doc    SHA1 标准算法简介，来自网络  
-Tarma\_KeyFinder.exe  随机乱序穷举程序,MASM32 V9.0/WinXP SP2/RadASM v2.1.1.2 调试通过  
-SHA1.asm    修改过的变异 SHA1 算法 MASM32 源码  
-能否穷举出正确的注册码，就看你的运气了，反正我是还没找到......郁闷中.....  
-如果你找到了一个正确的注册码，请一定跟贴告知我。  
+```
+
+## 消息处理与哈希计算
+
+将要处理的消息串`M1-M4`(4*512Bits)，分成 4 块，每块 64Bytes[512Bits]，分别进行变异`SHA1`运算求`HASH`。
+
+### 处理后的 `M1` {`W0-W79`}:
+
+```text
+0012F590  89 21 C5 98 4E 43 49 53 4E 43 49 53 4E 43 49 53   ?NCISNCISNCIS  
+
+0012F5A0  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53   NCISNCISNCISNCIS  
+
+0012F5B0  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53   NCISNCISNCISNCIS  
+
+0012F5C0  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53   NCISNCISNCISNCIS  
+
+0012F5D0  8F C5 18 97 00 00 00 00 00 00 00 00 83 0D A3 88   ?.......?  
+
+0012F5E0  9C 86 92 A6 9C 86 92 A6 18 90 77 3F 39 0D 25 4D   ?9.%M  
+
+0012F5F0  39 0D 25 4D 37 3B A9 6F 4B 17 6F D7 4B 17 6F D7   9.%M7;Koo?  
+
+0012F600  5E 56 BD A1 E5 34 94 34 66 39 37 BC 4F 5C BA 3A   ^V 健??f97\?  
+
+0012F610  42 CC C7 E9 5D 47 F6 C7 1A 19 2B 7B 71 E7 C4 E6   B 糖 G 銮+{q 缒?  
+
+0012F620  7F D1 48 C4 E1 9D 4D 54 24 6C A3 FA 58 40 65 42   尼 T$lｚX@eB  
+
+0012F630  13 3D 59 6A 53 4E 43 49 65 A0 FF E1 B9 06 DF BB   =YjSNCIe?峁呋  
+
+0012F640  9F 9A D4 5C 2F 11 69 5B 1D 9D ED 08 BD 9F B7 D1   /i\[费  
+
+0012F650  24 C8 F4 50 11 77 00 24 8E 9A 01 64 37 47 29 72   $若 Pw.$d7G)r  
+
+0012F660  AE AE 0C 24 15 B1 3D 47 49 BC 4F 64 68 AF 55 16   .$?GIdh  
+
+0012F670  DB 6D 35 51 29 67 F5 C9 79 76 E4 1E B1 96 7D ED   5Q)g 跎 yv?}?  
+
+0012F680  C5 B9 07 F3 07 AF DE 04 A7 5C A3 C8 81 6C 8A 9E   殴?Ｈ  
+
+0012F690  A8 17 9F 5D 60 F4 EF E7 C8 C2 01 5B 1A 9D AA D8   ?\`麸缛?\[?  
+
+0012F6A0  40 74 1F DE 69 60 C7 29 41 B6 9E 60 C3 90 A0 CC   @t\`?A\`  
+
+0012F6B0  06 72 2F 7A 87 B5 79 39 7F 56 B8 FE B3 57 96 74   r/zy9V 羹  
+
+0012F6C0  48 CD 87 C4 75 0A 98 50 75 DD 0A 37 5D C0 37 09   H.u?7\]?.  
+```
+
+`M1` 的 `SHA1` Hash 值：
+
+```text
+0012F6FC  0B D8 7B A5 1A 43 A9 4E 44 C6 A1 17 D5 9A 56 94 81 74 78 57  
+```
+
+\-------------------------------------------------------------------------------
+
+### 处理后的 `M2` {`W0-W79`}:
+
+```text
+0012F590  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53   NCISNCISNCISNCIS  
+
+0012F5A0  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53   NCISNCISNCISNCIS  
+
+0012F5B0  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 53   NCISNCISNCISNCIS  
+
+0012F5C0  4E 43 49 53 4E 43 49 53 4E 43 49 53 4E 43 49 00   NCISNCISNCISNCI.  
+
+0012F5D0  00 00 00 00 00 00 00 00 00 00 00 A6 9C 86 92 A6   ............?  
+
+0012F5E0  9C 86 92 A6 9D 86 92 4C 39 0D 25 4D 39 0D 25 4D   9.%M9.%M  
+
+0012F5F0  3B 0D 25 D5 4B 17 6F D7 4B 17 6F D7 4D 17 6F 33   ;.%ooo3  
+
+0012F600  E5 34 94 34 E5 34 94 92 71 B2 06 6A C1 C1 64 C7   ???q?j 亮 d?  
+
+0012F610  5D 47 F6 C7 41 47 F6 FF 71 E7 C4 E6 73 E7 C4 7E   \]G 銮 AG?q 缒缒~  
+
+0012F620  2A FD 8E FC 28 5A 2F 40 58 40 65 42 33 40 65 32   \*?Z/@X@eB3@e2  
+
+0012F630  53 4E 43 49 5B 4E 43 B1 6E 3D 21 5A A7 6F 2E 51   SNCI\[NC=!Z.Q  
+
+0012F640  2F 11 69 5B F2 10 69 7B B1 A9 3B 6B E9 B3 71 A5   /i\[?i{暴;k 槌 q?  
+
+0012F650  60 1B F5 00 49 CC 4E 76 3B 71 A5 C8 92 6D EF 8A   \`?Iv;qト  
+
+0012F660  15 B1 3D 47 92 B1 3D 3F F3 F1 78 02 69 E6 AA 64   ?G=?篑 xi 妾 d  
+
+0012F670  29 67 F5 C9 3A 7B F5 D1 7A F6 BE 45 DD 53 1F B9   )g 跎:{跹 z 鼍 E?  
+
+0012F680  AF 64 BE C7 11 66 19 FE 4A 0C 49 36 6B C0 E8 8A   厩 f.I6k 黎?  
+
+0012F690  60 F4 EF E7 98 FC EF E7 D5 C9 9C 85 E3 9C 48 58   \`麸缯 X  
+
+0012F6A0  69 60 C7 29 8A BC C6 A9 B2 FC 55 E8 44 03 EE F6   i\`?譬颤 U 铞  
+
+0012F6B0  19 C8 23 40 6D 91 EE B1 F0 E3 53 BA BF 82 C6 5D   ?@m 别嚎\]  
+
+0012F6C0  75 0A 98 50 9C 8D 98 70 19 65 87 98 D7 4F E3 18   u.e?  
+```
+
+`M1` `M2` 的 `SHA1` Hash 值：
+
+```text
+0012F6FC  D9 04 EC 36 5F 23 F3 EB 7E 1B 7B 7B A1 F9 26 F1 DB 11 8A A5  
+```
+
+\-------------------------------------------------------------------------------
+
+### 处理后的 `M3` {`W0-W79`}:
+
+```text
+0012F590  49 42 4D 31 31 36 31 49 42 4D 31 31 36 31 49 42   IBM1161IBM1161IB  
+
+0012F5A0  4D 31 31 36 31 49 42 4D 31 31 36 31 49 42 4D 31   M1161IBM1161IBM1  
+
+0012F5B0  31 36 31 49 42 4D 31 31 36 31 49 42 4D 31 31 36   161IBM1161IBM116  
+
+0012F5C0  31 49 42 4D 31 31 36 31 49 42 4D 31 31 36 31 49   1IBM1161IBM1161I  
+
+0012F5D0  18 1E 06 E6 06 E8 08 18 1E 06 E6 06 5D AE 76 B0   ???\]?  
+
+0012F5E0  66 54 85 5C AE 76 B0 67 8A 6E EF 5C D6 66 E3 89   fT  
+
+0012F5F0  6E EF 5C D4 B1 79 33 D7 6F 95 DA B4 79 33 D7 69   n 员 y33  
+
+0012F600  87 38 A6 EF 72 E9 7D 8A 8C 00 81 D5 02 3E 59 D3   ?r.>Y?  
+
+0012F610  37 C8 8E BC 5C EB 50 28 FA A9 38 CD 6D F3 6B C2   7(8?  
+
+0012F620  79 A2 77 FB 01 0F 65 E0 7D 75 AD EC 85 AC EE 1B   y?eu?  
+
+0012F630  F4 B9 B7 9B B1 99 45 20 29 46 CB 77 FD D9 F0 30   艄 E )F?  
+
+0012F640  8F A9 9F ED B8 7B 02 6A 65 51 91 84 C0 CA A7 6D   jeQ 朗  
+
+0012F650  B8 B8 FE D8 52 21 B5 BC 99 D1 EE 6C D9 7E E4 21   父 R!导?  
+
+0012F660  66 4E FD 5F BB 71 85 F5 D1 15 00 1C 01 B4 C6 B1   fN?.雌?  
+
+0012F670  FE BF 2E EA 88 56 A2 5A 82 2B DE E8 00 D8 B2 8A   .V?掼.夭?  
+
+0012F680  66 77 59 5F F6 5D 7A BD 46 1C E7 79 F9 94 D3 A9   fwY\_z 萤  
+
+0012F690  AB 3E 68 C3 9A 37 09 DC C1 F8 32 8B 7F D8 E6 54   ?h7.芰??劓 T  
+
+0012F6A0  D7 E0 26 CC 04 53 45 CD F6 99 40 C3 89 6B 96 F6   奏&?SE 亡 k  
+
+0012F6B0  72 7F 0E 89 02 9E 6D 8F 75 AF 6F 1A 00 53 07 E7   r?.S?  
+
+0012F6C0  A8 D9 26 D5 E7 1B A0 F0 3F 1D 0C A9 92 C9 23 5F   ㄙ&甄?.?\_  
+```
+
+`M1` `M2` `M3` 的 `SHA1` Hash 值：
+
+```text
+0012F6FC  ED 19 A3 3F 88 01 23 32 72 A5 2E 7E 5D 8E 4D E2 D6 E0 F0 33  
+```
+
+\--------------------------------------------------------------------------------
+
+### 处理后的 `M4` {`W0-W79`}:
+
+```text
+0012F590  42 4D 31 31 36 31 49 42 4D 31 31 36 31 49 42 4D   BM1161IBM1161IBM  
+
+0012F5A0  31 31 36 31 49 42 4D 31 31 36 31 49 42 4D 31 31   1161IBM1161IBM11  
+
+0012F5B0  36 31 49 42 4D 31 31 36 31 49 42 4D 31 31 36 31   61IBM1161IBM1161  
+
+0012F5C0  49 42 4D 31 31 36 31 49 42 4D 31 31 36 31 49 00   IBM1161IBM1161I.  
+
+0012F5D0  1E 06 E6 06 E8 08 18 1E 06 E6 06 6C AE 76 B0 67   ???l  
+
+0012F5E0  54 85 5C AE 76 B0 67 D8 6E EF 5C D4 67 E3 89 6E   Tn  
+
+0012F5F0  EF 5C D4 76 79 33 D7 69 97 DA B4 79 33 D7 69 AD   y33?  
+
+0012F600  39 A6 EF 7B EE 7D 8A BC 01 81 D5 D8 3C 59 D3 18   9{?Y?  
+
+0012F610  C3 8E BC 5F E8 50 28 18 AF 38 CD 42 EA 6B C2 B9   (?鹿  
+
+0012F620  A7 77 FB 75 05 65 E0 D9 50 AD EC 89 A2 EE 1B D5   e 噘 P??  
+
+0012F630  A5 B7 9B 28 E1 45 20 E9 57 CB 77 45 FB F0 30 C1   シ? E0?  
+
+0012F640  13 9F ED 87 4E 02 6A 68 38 91 84 DD 4C A6 6D DC   jh8?  
+```
+
+
+
+### 内存数据块
+
+```
+0012F650  EA FE D8 60 83 B5 BC 7A AE EC 6C D9 96 E4 21 D1  
+0012F660  98 FC 5F B6 8A 82 F5 13 12 01 1C 21 B1 C4 B1 E1  
+0012F670  AD 25 EA 4E 3D A1 5A B0 DB D8 E8 2A 25 AB 8A E8  
+0012F680  09 5C 5F 96 D0 70 BD FE B4 C2 79 36 F7 DD A9 01  
+0012F690  9E 74 C3 DB 08 71 DC EA 91 23 8B F1 A5 C4 54 CF  
+0012F6A0  6C 9C CC 97 BA 70 CD 04 08 29 C3 F6 D0 11 F7 59  
+0012F6B0  BB 5C 89 22 6A CF 8F C2 DC 12 18 E5 E8 EF E7 60  
+0012F6C0  BF F1 D4 28 56 5C F7 87 F3 0A A8 5F 54 24 5D 02  
+```
+
+`H0`、`H1`、`H2`、`H3`、`H4`
+
+### SHA1 哈希值
+
+4 块数据 `HASH` 完后 `M1` `M2` `M3` `M4` 的 `SHA1` `Hash` 值：`{H0, H1, H2, H3, H4}`
+
+```
+0012F6FC  FD 02 BB D5 7D 99 91 B5 EC 6A BB 11 59 38 D8 55 27 8A AC C2
+```
+
+### 计算哈希值
+
+在 `00420693` `CALL` `Tin.004012D1` 中得到 `M1-M4` 的 `HASH` 值后如下计算，并将值分别赋予 `eax` 和 `edx`：
+
+*   `EAX=06ACE236` 存到 `[0012f990]` 处，`eax <-- H4 xor H2 xor H0`
+*   `EDX=E049A124` 存到 `[0012F994]` 处，`edx <-- 0 xor H3 xor H1`
+
+### 校验第一处
+
+`0042069B` `CALL` `Tin.004012BC` // 处理 `[0012f9c4]` 开始的 17 个字节 `{ddB1, ddB2, ddB3, ddB4, dbB5}`，运算结果在 `AX`
+
+称为 `VerifyProc1`：将 `AX` 与前面所得 `word[0012F9d6]=dwB7` 比较，必须相等。
+
+```
+004012BC  /$  56             PUSH ESI
+004012BD  |.  8BF1           MOV ESI,ECX
+004012BF  |.  56             PUSH ESI
+004012C0  |.  E8 E8FFFFFF    CALL Tin.004012AD             // 处理 [00129c4]-[0012f9d4] 17bytes, 结果在 AX
+004012C5  |.  66:2B46 12     SUB AX,WORD PTR DS:[ESI+12]  // AX 与 [0012f9d6] 的 word 值比较
+004012C9  |.  5E             POP ESI
+004012CA  |.  66:F7D8        NEG AX
+004012CD  |.  1BC0           SBB EAX,EAX
+004012CF  |.  40             INC EAX
+004012D0  \.  C3             RETN
+```
+
+### 跟进 `004206AE` `CALL` `Tin.00401383`
+
+```
+00401383  /$  55             PUSH EBP
+00401384  |.  8BEC           MOV EBP,ESP
+00401386  |.  81EC 08010000  SUB ESP,108
+0040138C  |.  56             PUSH ESI
+0040138D  |.  8BF1           MOV ESI,ECX
+0040138F  |.  57             PUSH EDI
+00401390  |.  8BFA           MOV EDI,EDX
+00401392  |.  8D8D F8FEFFFF  LEA ECX,DWORD PTR SS:[EBP-108]
+00401398  |.  E8 77FCFFFF    CALL Tin.00401014               ;  ;clear buffer
+0040139D  |.  8D85 78FFFFFF  LEA EAX,DWORD PTR SS:[EBP-88]
+004013A3  |.  8D95 F8FEFFFF  LEA EDX,DWORD PTR SS:[EBP-108]
+004013A9  |.  50             PUSH EAX
+004013AA  |.  8BCF           MOV ECX,EDI
+004013AC  |.  E8 73730300    CALL Tin.00438724               ;  ;copy 用户名 to buffer
+004013B1  |.  8B4D 08        MOV ECX,DWORD PTR SS:[EBP+8]
+004013B4  |.  8D45 F8        LEA EAX,DWORD PTR SS:[EBP-8]
+004013B7  |.  50             PUSH EAX
+004013B8  |.  8D95 78FFFFFF  LEA EDX,DWORD PTR SS:[EBP-88]
+004013BE  |.  E8 61730300    CALL Tin.00438724               ;  ;copy Email to buffer
+004013C3  |.  8D8D F8FEFFFF  LEA ECX,DWORD PTR SS:[EBP-108]
+004013C9  |.  E8 53FCFFFF    CALL Tin.00401021               ;  ;填充数据块,分别转换用户名和 Email 为 80h 字节长
+004013CE  |.  8D8D F8FEFFFF  LEA ECX,DWORD PTR SS:[EBP-108]
+004013D4  |.  E8 DDCCFFFF    CALL Tin.004010B6               ;  ;变异 SHA1 算法
+004013D9  |.  3B46 08        CMP EAX,DWORD PTR DS:[ESI+8]  //校验
+004013DC  |.  75 25          JNZ SHORT Tin.00401403
+004013DE  |.  3B56 0C        CMP EDX,DWORD PTR DS:[ESI+C]  //校验
+004013E1  |.  75 20          JNZ SHORT Tin.00401403
+004013E3  |.  8D4D F8        LEA ECX,DWORD PTR SS:[EBP-8]
+004013E6  |.  E8 EBFEFFFF    CALL Tin.004012D6     //再次取 USERName/ComputerName/系统盘卷标序列号，SHA1 运算
+004013EB  |.  85C0           TEST EAX,EAX
+004013ED  |.  74 14          JE SHORT Tin.00401403
+004013EF  |.  8B45 F8        MOV EAX,DWORD PTR SS:[EBP-8]
+004013F2  |.  3B06           CMP EAX,DWORD PTR DS:[ESI]    //校验是否切换了用户
+004013F4  |.  75 0D          JNZ SHORT Tin.00401403
+004013F6  |.  8B45 FC        MOV EAX,DWORD PTR SS:[EBP-4]
+004013F9  |.  3B46 04        CMP EAX,DWORD PTR DS:[ESI+4]  //校验是否切换了用户
+004013FC  |.  75 05          JNZ SHORT Tin.00401403
+004013FE  |.  6A 01          PUSH 1
+00401400  |.  58             POP EAX
+00401401  |.  EB 02          JMP SHORT Tin.00401405
+00401403  |>  33C0           XOR EAX,EAX
+00401405  |>  5F             POP EDI
+00401406  |.  5E             POP ESI
+00401407  |.  C9             LEAVE
+00401408  \.  C2 0400        RETN 4
+```
+
+### 消息串转换
+
+用户名 `WksWlj999` 和 `Email` `WksWLj999@sohu.com` 转换为要处理的消息串 `M1-M4`(4*512Bits)：
+
+```
+0012F71C  57 4B 53 57 4C 4A 39 39 39 57 4B 53 57 4C 4A 39  WKSWLJ999WKSWLJ9
+0012F72C  39 39 57 4B 53 57 4C 4A 39 39 39 57 4B 53 57 4C  99WKSWLJ999WKSWL
+0012F73C  4A 39 39 39 57 4B 53 57 4C 4A 39 39 39 57 4B 53  J999WKSWLJ999WKS
+0012F74C  57 4C 4A 39 39 39 57 4B 53 57 4C 4A 39 39 39 57  WLJ999WKSWLJ999W
+0012F75C  4B 53 57 4C 4A 39 39 39 57 4B 53 57 4C 4A 39 39  KSWLJ999WKSWLJ99
+0012F76C  39 57 4B 53 57 4C 4A 39 39 39 57 4B 53 57 4C 4A  9WKSWLJ999WKSWLJ
+0012F77C  39 39 39 57 4B 53 57 4C 4A 39 39 39 57 4B 53 57  999WKSWLJ999WKSW
+0012F78C  4C 4A 39 39 39 57 4B 53 57 4C 4A 39 39 39 57 00  LJ999WKSWLJ999W.
+0012F79C  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F7AC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F7BC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F7CC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F7DC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F7EC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F7FC  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 4D  WKSWLJ999SOHUCOM
+0012F80C  57 4B 53 57 4C 4A 39 39 39 53 4F 48 55 43 4F 00  WKSWLJ999SOHUCO.
+```
+
+### 计算 `M1 M2 M3 M4` 的 `SHA1` `Hash` 值：`{H0，H1，H2，H3，H4}`
+
+```
+0012F6F8  17 01 0A B9 26 87 F7 46 1C 65 B3 78 59 8A 59 02 6E 72 02 01
+```
+
+*   `EAX=C0BB1665` `eax <-- H4 xor H2 xor H0` 与 `[0012f998]` 处 `dword` 比较，必须相等
+*   `EDX=44AE0D7F` `edx <-- 0 xor H3 xor H1` 与 `[0012F994]` 处 `dword` 比较，必须相等
+
+### 校验第二处
+
+比较 `ddE1=eax` 和 `[0012ff998]=ddC1`，`ddE2=edx` 和 `[0012f99c]=ddC2`，必须均相等，参见 `Func3`
+
+### `004013E6` `CALL` `Tin.004012D6`
+
+处再次取 `UserName` 和 `ComputerName` 及系统盘卷标序列号，`SHA1` 运算
+
+检验是否切换了用户。
+
+### 校验第三处
+
+`004206C1` `CALL` `Tin.00420418` 处：
+
+*   `dbC4=[0012f9a1]` 应为 `03`
+*   `dbC5=[0012f9a3]` 应为 `02`
+*   `dbC3=[0012f9a0]` 应大于 `00`
+
+```
+00420418  /$  33C0          XOR EAX,EAX
+0042041A  |.  80B9 11010000 > CMP BYTE PTR DS:[ECX+111],3        ;  ;字节 [0012f9a1] 必须=3
+00420421  |.  75 14         JNZ SHORT Tin.00420437
+00420423  |.  80B9 13010000 > CMP BYTE PTR DS:[ECX+113],2        ;  ;字节 [0012f9a3] 必须=2
+0042042A  |.  75 0B         JNZ SHORT Tin.00420437
+0042042C  |.  3881 10010000  CMP BYTE PTR DS:[ECX+110],AL        ;  ;字节 [0012f9a0] 必须>0
+00420432  |.  76 03         JBE SHORT Tin.00420437
+00420434  |.  6A 01         PUSH 1
+00420436  |.  58            POP EAX
+00420437  \>  C3            RETN
+```
+
+### 写入注册表
+
+`004206F9` `CALL` `Tin.0042032A` 处写入用户名 `WksWlj999`，`Email` `WksWlj999@sohu.com` 和变换加密后的注册码到注册表：
+
+`[HKEY_CURRENT_USER\Software\Tarma Software Research\Tarma Installer\License]`
+
+*   `"Name"="WksWlj999"`
+*   `"Email"="WksWlj999@sohu.com"`
+*   `"License"=hex:a5,35,c1,a3,a5,d1,bb,06,c7,3d,b9,45,af,35,c6,a8,b0,27,6e,c3,2a,\`
+    `93,bb,fb,d6,cc,77,35,e5,97,c9,8d,aa,09,00,37,69,a1,1b,d5,17,9b,76,e2,63,d7,\`
+    `80,02,ec,74,bc,39,8c,0b,8a,6a,bb,3c,97,2a,9c,ed,e1,fe,6f,72,1a,c7,82,b8,49,\`
+
+
+
+## 代码数据
+
+`26,30,08,2e,1d,7d,22,ab,07,e8,d2,40,aa,b1,8c,0f,04,7c,69,05,95,df,7d,73,f1,`
+
+`61,ee,6c,08,b7,46,81,38,73,0f,39,21,0f,ed,a6,71,0e,86,aa,2c,d9,7b,58,db,f8,`
+
+`d0,53,12,52,6a,e8,7e`
+
+---
+
+## 汇编分析
+
+`dbB5=[0012f9d4]`为`02`或`06`,就是`Site License`,其他值就是`Single-User License`
+
+```asm
+00420706  |.  2145 EC       AND DWORD PTR SS:[EBP-14],EAX
+00420709  |.  807D E8 02    CMP BYTE PTR SS:[EBP-18],2               //=2 就是 Site License
+0042070D  |.  C645 FC 01    MOV BYTE PTR SS:[EBP-4],1
+00420711  |.  74 10         JE SHORT Tin.00420723
+00420713  |.  807D E8 06    CMP BYTE PTR SS:[EBP-18],6               //=6 也是 Site License,否则就是 Single-user license
+00420717  |.  74 0A         JE SHORT Tin.00420723
+00420719  |.  8D55 EC       LEA EDX,DWORD PTR SS:[EBP-14]
+0042071C  |.  B9 30744500   MOV ECX,Tin.00457430      ;ASCII "Single-user license - only valid for the registered user."
+00420721  |.  EB 08         JMP SHORT Tin.0042072B
+00420723  |>  8D55 EC       LEA EDX,DWORD PTR SS:[EBP-14]
+00420726  |.  B9 08744500   MOV ECX,Tin.00457408      ;ASCII "Site license - valid for all employees."
+0042072B  |>  E8 7C810100   CALL Tin.004388AC
+00420730  |.  8B4D EC       MOV ECX,DWORD PTR SS:[EBP-14]
+00420733  |.  E8 777F0100   CALL Tin.004386AF
+00420738  |.  50            PUSH EAX
+00420739  |.  56            PUSH ESI
+0042073A  |.  57            PUSH EDI
+0042073B  |.  53            PUSH EBX
+0042073C  |.  68 C8734500   PUSH Tin.004573C8         ;ASCII "This copy of Tarma QuickInstall is registered to:",LF,LF,"%s",LF,"%s",LF,"%s",LF,LF,"%s"
+00420741  |.  6A 40         PUSH 40
+```
+
+---
+
+## 注册算法总结
+
+注册码为`25`位，由数字和大写字母组成，但不含数字`0`、`1`和字母`O`、`I`。
+
+1. 索引号`43h`资源的`256`字节数据经三轮固定数字运算得到`[0012f83c]`开始的`84bytes`数据；
+2. `Func1(注册码,索引表,43h 号资源运算结果)` --> `[0012f814]` = `{ddA1,ddA2,ddA3,ddA4}`
+3. `Func2([0012f814])` --> `[0012f9c4]` = `{ddB1,ddB2,ddB3,ddB4,{dbB5,dbB6,dwB7}}`
+4. `Func3([0012f9c4])` --> `[0012f998]` = `{ddC1,ddC2,{dbC3,dbC4,dbC5,dbC6}}`
+5. 取`UserName` `"NCIS"`，取`ComputerName` `"IBM-1161"`，取系统盘卷标序列号`"8921C598"`
+   `UserName` `"NCIS"`字母转大写,仅保留字母和数字,自身复制到`80h`字节长，末尾一个字节用`NULL`替换；
+   `ComputerName` `"IBM-1161"`同上处理；
+   将扩充后的`80h`字节长的`UserName`的第一个`dword`用获取的系统盘卷标序列号替换；
+   对填充好的`4`个`512bits`消息串进行变异`SHA1`算法求`HASH`，得到`{H0,H1,H2，H3，H4}`
+   `H4 xor H2 xor H0`到`[0012f990]`,`H3 xor H1 xor 0`到`[0012f994]`
+6. 校验`1`：`VerifyProc1`,处理`[0012f9c4]`开始的`17`个字节`{ddB1,ddB2,ddB3,ddB4,dbB5}`,运算结果在`AX`
+   与`word[0012F9d6]=dwB7`比较,必须相等；
+7. 校验`2`：分别转换`"用户名"`和`"电子邮件"`填充数据块,组合为`80h*2`字节长
+   计算变异`SHA1(用户名,Email)`-->`[SHA1BufferH2]` `{H0,H1,H2,H3,H4}`
+   `ddE1=[Reaxedx]<--eax = H4 xor H2 xor H0`, `ddE2=[Reaxedx + 4]<--edx = 0 xor H1 xor H3`
+   比较`ddE1=[Readedx]`和`[0012ff998]=ddC1`,`ddE2=[Readedx + 4]`和`[0012f99c]=ddC2`,必须均相等
+8. 校验`3`：`dbC4=[0012f9a1]`应为`03`,`dbC5=[0012f9a3]`应为`02`,`dbC3=[0012f9a0]`应大于`00`
+9. 再次取`UserName`，`ComputerName`，系统盘卷标序列号，变异`SHA1`算法求`HASH`
+   与`[0012f990][0012f994]`验证,判断是否切换了用户
+10. 三次校验全部通过后，即为符合条件的注册码，下面判断注册码类型：
+    `dbB5=[0012f9d4]`为`02`或`06`,就是`Site License`,其他值就是`Single-User License`
+11. 将注册码加密变换后和用户名及`Email`一起写入注册表保存起来。
+
+---
+
+## SHA1 变异算法与标准 SHA1 算法的区别
+
+1. **数据填充方式不同**
+   标准`SHA1`算法，填充补位为：先补一个`1`，然后再补`0`，直到长度满足对`512`取模后余数是`448`，
+   总而言之，补位是至少补一位，最多补`512`位。
+   这个变异`SHA1`算法有两种补位方式：
+   (a) `UserName` `"NCIS"`字母转大写,仅保留字母和数字,自身复制到`80h`字节长，末尾一个字节用`NULL`替换；
+      `ComputerName` `"IBM-1161"`同上处理；将扩充后的`80h`字节长的`UserName`的第一个`dword`用获取的系统盘卷标序列号替换；
+      得到填充好的`4`个`512bits`消息串。
+   (b) 用户名`"WksWlj999"`和`Email` `"WksWlj999@sohu.com"`分别字母转大写,仅保留字母和数字,自身复制到`80h`字节长，
+      末尾一个字节用`NULL`替换；得到填充好的`4`个`512bits`消息串。
+2. **W0-W79 计算方式不同**：
+   标准`SHA1`算法使用`Wt-3`，`Wt-8`，`Wt-14`，`Wt-16`
+   这个变异`SHA1`使用`Wt-3`，`Wt-6`，`Wt-14`，`Wt-16`
+
+---
+
+## 破解方法
+
+暴力破解，就找上面关键校验处及程序启动时读取注册表后验证处，修改跳转。
+
+而要做注册机，就必须穷举了 `:-(`
+
+开始想顺序穷举,注册码`25`位，每位可用字符`"23456789ABCDEFGHJKLMNPQRSTUVWXYZ"`,有`32`种可能
+那么可能的注册码组合有`32`的`25`次方个，约是`4.2535295865117307932921825928971e+37`种可能
+结果穷举了`11`个小时后才变化到第`7`位，看来这样不是办法，那就改为乱序随机穷举。
+
+具体实现方法如下：
+
+通过`RDTSC`指令获取随机数，变换为`0-0Fh`和`0-0FFFh`,其中前者控制注册码要变换的第几位
+后者控制从该位开始`0-31`循环变换，并进位的次数。
+
+设置一个`.while TRUE`的死循环，在其中校验所有条件，找到第一个符合所有条件的注册码就跳出循环。
+
+程序使用了多线程，并通过事件对象可以暂停或恢复穷举的线程，同时可以保存和载入穷举进度。
+
+变异的`SHA1`算法可以从标准`SHA1`算法稍微更改一下得到，感谢`drizz` `<1of00@gmx.net>`的标准`SHA1`算法`MASM32`源码。
+
+![](img/06ca55ee5169bb2cc6108d371648ddf5.jpg)
+
+---
+
+## 附件说明
+
+`Tarma.rar`
+
+`SHA1.doc`    `SHA1` 标准算法简介，来自网络
+`Tarma_KeyFinder.exe`  随机乱序穷举程序,`MASM32 V9.0/WinXP SP2/RadASM v2.1.1.2` 调试通过
+`SHA1.asm`    修改过的变异`SHA1`算法`MASM32`源码
+
+能否穷举出正确的注册码，就看你的运气了，反正我是还没找到......郁闷中.....
+
+如果你找到了一个正确的注册码，请一定跟贴告知我。
+
 最后有个疑问：软件开发商是如何计算注册码的!?
 
 上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || Tarma.rar  
- |
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || `Tarma.rar` |

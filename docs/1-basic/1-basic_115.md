@@ -1,344 +1,348 @@
 
-
 # 一个 32 位长度反汇编引擎以及对 xfish LDE 的进一步优化
 
 > 原文：[`www.pediy.com/kssd/pediy10/95458.html`](https://www.pediy.com/kssd/pediy10/95458.html)
 
-这里有两个主题，不过都是关于 LDE 的，所以放在一起了。  
-  
-主题一:一个 32 位长度反汇编引擎  
-和 xfish 的那个不同，这里的解析过程是模仿 CPU 解码。这个代码实际上是 ASM Community 窥来的，只是稍作修改。  
+这里有两个主题，不过都是关于 LDE 的，所以放在一起了。
+
+## 主题一: 一个 32 位长度反汇编引擎
+
+和 xfish 的那个不同，这里的解析过程是模仿 CPU 解码。这个代码实际上是 ASM Community 窥来的，只是稍作修改。
 
 代码:
 
 ```
-#include "lde.h"
+#include "lde.h"
 
-int LDE(const unsigned char \*func) 
-{ 
-  int operandSize = 4;
-  int FPU = 0;
-  const unsigned char\* pOrigin = func;
-  
-  //跳过 F0h,F2h,F3h,66h,67h,2Eh,26h,36h,3Eh,64h,65h 等前缀,
-  //以及 D8h-DFh 等 ESC(转移操作码)  
-  while (\*func == 0xF0 ||
-       \*func == 0xF2 ||
-       \*func == 0xF3 ||
-       \*func == 0x66 ||
-       \*func == 0x67 ||
-       \*func == 0x2E ||
-       \*func == 0x3E ||
-       \*func == 0x26 ||
-       \*func == 0x36 ||
-       \*func == 0x64 ||
-       \*func == 0x65 ||
-       (\*func & 0xF8) == 0xD8  //D8-DF
-      ) 
-  { 
-    if (\*func == 0x66)
-    { 
-      operandSize = 2;
-    } 
-    else if ( (\*func & 0xF8)==0xD8 )
-    { 
-      FPU = \*func++;
-      break;
-    }
-    
-    func++;
-  } 
-  
-  //跳过双字节操作码转义字节 0Fh
-  bool twoByte = false;
-  if (\*func == 0x0F)
-  {
-    twoByte = true;
-    func++;
-  }
-  
-  //跳过主操作码
-  unsigned char opcode = \*func++;
-  
-  //跳过 ModR/M 字节
-  unsigned char modRM = 0xFF;
-  if (FPU)
-  { 
-    if ( (opcode & 0xC0) != 0xC0 ) 
-    { 
-      modRM = opcode; 
-    }
-  }
-  else if (!twoByte) 
-  { 
-    if ((opcode & 0xC4) == 0x00 || 
-      (opcode & 0xF4) == 0x60 && ((opcode & 0x0A) == 0x02 || (opcode & 0x09) == 0x9) || 
-      (opcode & 0xF0) == 0x80 || 
-      (opcode & 0xF8) == 0xC0 && (opcode & 0x0E) != 0x02 || 
-      (opcode & 0xFC) == 0xD0 || 
-      (opcode & 0xF6) == 0xF6
-      ) 
-    { 
-      modRM = \*func++; 
-    }
-  }
-  else 
-  { 
-    if ((opcode & 0xF0) == 0x00 && (opcode & 0x0F) >= 0x04 && (opcode & 0x0D) != 0x0D || 
-      (opcode & 0xF0) == 0x30 || 
-      opcode == 0x77 || 
-      (opcode & 0xF0) == 0x80 || 
-      (opcode & 0xF0) == 0xA0 && (opcode & 0x07) <= 0x02 || 
-      (opcode & 0xF8) == 0xC8
-      ) 
-    { 
-      // No mod R/M byte 
-    } 
-    else 
-    { 
-      modRM = \*func++; 
-    } 
-  } 
-  
-  //跳过 SIB 字节
-  if ( (modRM & 0x07) == 0x04 && (modRM>>6 & 3) != 3  )
-  {
-    unsigned char SIB = \*func;
-    func += 1;
-    if ((SIB & 0x7) == 5)
-    {
-      func += 4;  // disp32
-    }
-  }
-  if ( (modRM & 0xC5) == 0x05 )
-  {
-    func += 4;   // disp32, no base 
-  }
-  if ( (modRM & 0xC0) == 0x40 )
-  {
-    func += 1;   // disp8
-  }
-  if ( (modRM & 0xC0) == 0x80 )
-  {
-    func += 4;   // disp32
-  }
-  
-  //跳过立即数
-  if (FPU)
-  {
-    // Can't have immediate operand
-  }
-  else if (!twoByte)
-  {
-    if ((opcode & 0xC7) == 0x04 ||
-      (opcode & 0xFE) == 0x6A ||   // PUSH/POP/IMUL
-      (opcode & 0xF0) == 0x70 ||   // Jcc
-      opcode == 0x80 ||
-      opcode == 0x83 ||
-      (opcode & 0xFD) == 0xA0 ||   // MOV
-      opcode == 0xA8 ||       // TEST
-      opcode == 0xB0 ||       // MOV
-      (opcode & 0xFE) == 0xC0 ||   // RCL
-      opcode == 0xC6 ||       // MOV
-      opcode == 0xCD ||       // INT
-      (opcode & 0xFE) == 0xD4 ||   // AAD/AAM
-      (opcode & 0xF8) == 0xE0 ||   // LOOP/JCXZ
-      opcode == 0xEB ||
-      opcode == 0xF6 && (modRM & 0x30) == 0x00   // TEST
-      )
-    { 
-      func += 1; 
-    } 
-    else if( (opcode & 0xF7) == 0xC2 ) 
-    { 
-      func += 2;   // RET 
-    } 
-    else if( (opcode & 0xFC) == 0x80 || 
-         (opcode & 0xC7) == 0x05 || 
-         (opcode & 0xFE) == 0xE8 ||      // CALL/Jcc 
-         (opcode & 0xFE) == 0x68 || 
-         (opcode & 0xFC) == 0xA0 || 
-         (opcode & 0xEE) == 0xA8 || 
-         opcode == 0xC7 || 
-         opcode == 0xF7 && (modRM & 0x30) == 0x00
-        ) 
-    { 
-      func += operandSize; 
-    } 
-  } 
-  else 
-  { 
-    if ( opcode == 0xBA ||      // BT 
-       opcode == 0x0F ||      // 3DNow! 
-       (opcode & 0xFC) == 0x70 ||  // PSLLW 
-       (opcode & 0xF7) == 0xA4 ||  // SHLD 
-       opcode == 0xC2 || 
-       opcode == 0xC4 || 
-       opcode == 0xC5 || 
-       opcode == 0xC6
-      ) 
-    { 
-      func += 1; 
-    } 
-    else if((opcode & 0xF0) == 0x80) 
-    { 
-      func += operandSize;   // Jcc -i 
-    } 
-  }
-  
-  return func-pOrigin;
+int LDE(const unsigned char *func) 
+{ 
+  int operandSize = 4;
+  int FPU = 0;
+  const unsigned char* pOrigin = func;
+  
+  //跳过 F0h,F2h,F3h,66h,67h,2Eh,26h,36h,3Eh,64h,65h 等前缀,
+  //以及 D8h-DFh 等 ESC(转移操作码)  
+  while (*func == 0xF0 ||
+       *func == 0xF2 ||
+       *func == 0xF3 ||
+       *func == 0x66 ||
+       *func == 0x67 ||
+       *func == 0x2E ||
+       *func == 0x3E ||
+       *func == 0x26 ||
+       *func == 0x36 ||
+       *func == 0x64 ||
+       *func == 0x65 ||
+       (*func & 0xF8) == 0xD8  //D8-DF
+      ) 
+  { 
+    if (*func == 0x66)
+    { 
+      operandSize = 2;
+    } 
+    else if( (*func & 0xF8)==0xD8 )
+    { 
+      FPU = *func++;
+      break;
+    }
+    
+    func++;
+  } 
+  
+  //跳过双字节操作码转义字节 0Fh
+  bool twoByte = false;
+  if (*func == 0x0F)
+  {
+    twoByte = true;
+    func++;
+  }
+  
+  //跳过主操作码
+  unsigned char opcode = *func++;
+  
+  //跳过 ModR/M 字节
+  unsigned char modRM = 0xFF;
+  if (FPU)
+  { 
+    if( (opcode & 0xC0) != 0xC0 ) 
+    { 
+      modRM = opcode; 
+    }
+  }
+  else if (!twoByte) 
+  { 
+    if ((opcode & 0xC4) == 0x00 || 
+      (opcode & 0xF4) == 0x60 && ((opcode & 0x0A) == 0x02 || (opcode & 0x09) == 0x9) || 
+      (opcode & 0xF0) == 0x80 || 
+      (opcode & 0xF8) == 0xC0 && (opcode & 0x0E) != 0x02 || 
+      (opcode & 0xFC) == 0xD0 || 
+      (opcode & 0xF6) == 0xF6
+      ) 
+    { 
+      modRM = *func++; 
+    }
+  }
+  else 
+  { 
+    if ((opcode & 0xF0) == 0x00 && (opcode & 0x0F) >= 0x04 && (opcode & 0x0D) != 0x0D || 
+      (opcode & 0xF0) == 0x30 || 
+      opcode == 0x77 || 
+      (opcode & 0xF0) == 0x80 || 
+      (opcode & 0xF0) == 0xA0 && (opcode & 0x07) <= 0x02 || 
+      (opcode & 0xF8) == 0xC8
+      ) 
+    { 
+      // No mod R/M byte 
+    } 
+    else 
+    { 
+      modRM = *func++; 
+    } 
+  } 
+  
+  //跳过 SIB 字节
+  if( (modRM & 0x07) == 0x04 && (modRM>>6 & 3) != 3  )
+  {
+    unsigned char SIB = *func;
+    func += 1;
+    if ((SIB & 0x7) == 5)
+    {
+      func += 4;  // disp32
+    }
+  }
+  if( (modRM & 0xC5) == 0x05 )
+  {
+    func += 4;   // disp32, no base 
+  }
+  if( (modRM & 0xC0) == 0x40 )
+  {
+    func += 1;   // disp8
+  }
+  if( (modRM & 0xC0) == 0x80 )
+  {
+    func += 4;   // disp32
+  }
+  
+  //跳过立即数
+  if (FPU)
+  {
+    //  Can't have immediate operand
+  }
+  else if (!twoByte)
+  {
+    if ((opcode & 0xC7) == 0x04 ||
+      (opcode & 0xFE) == 0x6A ||   // PUSH/POP/IMUL
+      (opcode & 0xF0) == 0x70 ||   // Jcc
+      opcode == 0x80 ||
+      opcode == 0x83 ||
+      (opcode & 0xFD) == 0xA0 ||   // MOV
+      opcode == 0xA8 ||       // TEST
+      opcode == 0xB0 ||       // MOV
+      (opcode & 0xFE) == 0xC0 ||   // RCL
+      opcode == 0xC6 ||       // MOV
+      opcode == 0xCD ||       // INT
+      (opcode & 0xFE) == 0xD4 ||   // AAD/AAM
+      (opcode & 0xF8) == 0xE0 ||   // LOOP/JCXZ
+      opcode == 0xEB ||
+      opcode == 0xF6 && (modRM & 0x30) == 0x00   // TEST
+      )
+    { 
+      func += 1; 
+    } 
+    else if( (opcode & 0xF7) == 0xC2 ) 
+    { 
+      func += 2;   // RET 
+    } 
+    else if( (opcode & 0xFC) == 0x80 || 
+         (opcode & 0xC7) == 0x05 || 
+         (opcode & 0xFE) == 0xE8 ||      // CALL/Jcc 
+         (opcode & 0xFE) == 0x68 || 
+         (opcode & 0xFC) == 0xA0 || 
+         (opcode & 0xEE) == 0xA8 || 
+         opcode == 0xC7 || 
+         opcode == 0xF7 && (modRM & 0x30) == 0x00
+        ) 
+    { 
+      func += operandSize; 
+    } 
+  } 
+  else 
+  { 
+    if( opcode == 0xBA ||      // BT 
+       opcode == 0x0F ||      // 3DNow! 
+       (opcode & 0xFC) == 0x70 ||  // PSLLW 
+       (opcode & 0xF7) == 0xA4 ||  // SHLD 
+       opcode == 0xC2 || 
+       opcode == 0xC4 || 
+       opcode == 0xC5 || 
+       opcode == 0xC6
+      ) 
+    { 
+      func += 1; 
+    } 
+    else if((opcode & 0xF0) == 0x80) 
+    { 
+      func += operandSize;   // Jcc -i 
+    } 
+  }
+  
+  return func-pOrigin;
 }
-
 ```
 
-主题二：对 xfish LDE 的进一步优化  
-为了进一步阅读，请先参考[【Anti Virus 专题】长度反汇编引擎的打造 ](http://bbs.pediy.com/showthread.php?t=87915&highlight=)。这里的优化是针对字节大小而言的，即追求更少的字节数。过程其实很简单，主要是对表格进行压缩，这里采用的是行程编码。行程编码一般适用于位图等压缩，压缩的单位一般与文件中的处理单位一致，如对于位图为一个像素的字节数，这里自然是半个字节即 4 位。  
-  
-编码部分：  
-行程编码的过程非常简单：  
-如字节序列 00 00 00 00 00 01 00 00，以字节为单位进行压缩。压缩后为 00 04 01 00 00 01，第一字节为序列中的一个元素 00，第二字节为该元素重复的次数 04，解码后为 00 00 00 00 00。够简单吧！~  
+## 主题二：对 xfish LDE 的进一步优化
+
+为了进一步阅读，请先参考【Anti Virus 专题】长度反汇编引擎的打造 `http://bbs.pediy.com/showthread.php?t=87915&highlight=`。这里的优化是针对字节大小而言的，即追求更少的字节数。过程其实很简单，主要是对表格进行压缩，这里采用的是行程编码。行程编码一般适用于位图等压缩，压缩的单位一般与文件中的处理单位一致，如对于位图为一个像素的字节数，这里自然是半个字节即 4 位。
+
+编码部分：
+
+行程编码的过程非常简单：
+
+如字节序列 `00 00 00 00 00 01 00 00`，以字节为单位进行压缩。压缩后为 `00 04 01 00 00 01`，第一字节为序列中的一个元素 `00`，第二字节为该元素重复的次数 `04`，解码后为 `00 00 00 00 00`。够简单吧！~
+
 代码:
 
 ```
-#include <stdio.h>
-#include <fstream>
-#include <iostream>
-using namespace std;
+#include <stdio.h>
+#include <fstream>
+#include <iostream>
+using namespace std;
 
-void main()
-{  
-  ifstream fin;
-  fin.open("in.txt");
+void main()
+{  
+  ifstream fin;
+  fin.open("in.txt");
 
-  char szIn\[600\];
-  fin>>szIn;
-  fin.close();
+  char szIn[600];
+  fin>>szIn;
+  fin.close();
 
-  int i=0;
-  int dwLen = strlen(szIn);
-  int dwCount = 0;
-  while (i<dwLen)
-  {
-    if (dwCount%16==0)
-    {
-      cout<<"\\""<<endl;
-      cout<<"\\"";
-    }
-    dwCount++;
-    
-    char chTemp = szIn\[i\];
-    cout<<"\\\\x"<<chTemp;
+  int i=0;
+  int dwLen = strlen(szIn);
+  int dwCount = 0;
+  while (i<dwLen)
+  {
+    if (dwCount%16==0)
+    {
+      cout<<"\\""<<endl;
+      cout<<"\\"";
+    }
+    dwCount++;
+    
+    char chTemp = szIn[i];
+    cout<<"\\\\x"<<chTemp;
 
-    i++;
-    int dwRunlen = 0;
-    while (i<dwLen && dwRunlen<0xF && szIn\[i\]==chTemp)
-    {
-      dwRunlen++;
-      i++;
-    }
-    printf("%01X", dwRunlen);
-  }
+    i++;
+    int dwRunlen = 0;
+    while (i<dwLen && dwRunlen<0xF && szIn[i]==chTemp)
+    {
+      dwRunlen++;
+      i++;
+    }
+    printf("%01X", dwRunlen);
+  }
 
-  cout<<"\\"";
-  cout<<endl;
+  cout<<"\\"";
+  cout<<endl;
 
-  cout<<"after being compressed it's "<<dwCount<<" bytes"<<endl;
+  cout<<"after being compressed it's "<<dwCount<<" bytes"<<endl;
 }
-
 ```
 
-原表为 8\*16\*2=256 字节，被压缩后为 134 字节。  
-  
-解码部分：  
-这部分是采用汇编编写的。现在的内存寻址一般是以字节为单位的，而这里的压缩单位为 4 位，故使用了一个位索引或位偏移的概念，看看代码就知道了，这样省去了很多判断。另外为了方便的处理位，这里利用 rol，rcl 对 CF 位处理的特性。  
+原表为 `8*16*2=256` 字节，被压缩后为 `134` 字节。
+
+解码部分：
+
+这部分是采用汇编编写的。现在的内存寻址一般是以字节为单位的，而这里的压缩单位为 4 位，故使用了一个位索引或位偏移的概念，看看代码就知道了，这样省去了很多判断。另外为了方便的处理位，这里利用 `rol`，`rcl` 对 `CF` 位处理的特性。
+
 代码:
 
 ```
-unsigned char szDecrypted\[256\];
-unsigned char szCrypted\[\] =
-  "\\x13\\x20\\x80\\x01\\x13\\x20\\x80\\x01\\x13\\x20\\x80\\x01\\x13\\x20\\x80\\x01"
-  "\\x13\\x20\\x80\\xF0\\x00\\x13\\x20\\x80\\xF0\\x00\\x13\\x20\\x80\\xF0\\x00\\x13"
-  "\\x20\\x80\\xF0\\x0F\\x0F\\x02\\x11\\xF3\\x80\\x90\\x20\\x30\\x03\\x2F\\x30\\x90"
-  "\\x31\\x1B\\x09\\xC0\\x04\\x83\\x03\\x20\\x80\\x05\\x27\\x87\\x31\\x40\\x00\\x11"
-  "\\x30\\x90\\x60\\x00\\x40\\x01\\x20\\x01\\x13\\x21\\x01\\x17\\x27\\x81\\xC0\\x20"
-  "\\x03\\xF0\\x00\\xF1\\x01\\x11\\x05\\x15\\xE0\\x04\\xE2\\x10\\x00\\x30\\x18\\xE6"
-  "\\x14\\xE0\\x10\\xE0\\x17\\x05\\xE9\\x1F\\x1F\\x1F\\x33\\x12\\x00\\x17\\x8F\\x1F"
-  "\\x02\\x10\\x30\\x12\\x02\\x10\\x30\\x1A\\xE1\\x30\\x16\\x30\\x10\\x32\\x10\\x07"
-  "\\xE0\\x1F\\x1E\\xE0\\x1D\\xE0";
+unsigned char szDecrypted[256];
+unsigned char szCrypted[] =
+  "\\x13\\x20\\x80\\x01\\x13\\x20\\x80\\x01\\x13\\x20\\x80\\x01\\x13\\x20\\x80\\x01"
+  "\\x13\\x20\\x80\\xF0\\x00\\x13\\x20\\x80\\xF0\\x00\\x13\\x20\\x80\\xF0\\x00\\x13"
+  "\\x20\\x80\\xF0\\x0F\\x0F\\x02\\x11\\xF3\\x80\\x90\\x20\\x30\\x03\\x2F\\x30\\x90"
+  "\\x31\\x1B\\x09\\xC0\\x04\\x83\\x03\\x20\\x80\\x05\\x27\\x87\\x31\\x40\\x00\\x11"
+  "\\x30\\x90\\x60\\x00\\x40\\x01\\x20\\x01\\x13\\x21\\x01\\x17\\x27\\x81\\xC0\\x20"
+  "\\x03\\xF0\\x00\\xF1\\x01\\x11\\x05\\x15\\xE0\\x04\\xE2\\x10\\x00\\x30\\x18\\xE6"
+  "\\x14\\xE0\\x10\\xE0\\x17\\x05\\xE9\\x1F\\x1F\\x1F\\x33\\x12\\x00\\x17\\x8F\\x1F"
+  "\\x02\\x10\\x30\\x12\\x02\\x10\\x30\\x1A\\xE1\\x30\\x16\\x30\\x10\\x32\\x10\\x07"
+  "\\xE0\\x1F\\x1E\\xE0\\x1D\\xE0";
 
-\_\_declspec(naked) void main(void)
+__declspec(naked) void main(void)
 {
-  /\*
-  约定：
-  al: lodsb
-  cl: 个数计数，即行程
-  ebx: 字节游标
-  edx: 位游标
-  esi: 压缩后的内存
-  edi: 解压后的内存
+  /*
+  约定：
+  al: lodsb
+  cl: 个数计数，即行程
+  ebx: 字节游标
+  edx: 位游标
+  esi: 压缩后的内存
+  edi: 解压后的内存
 
-  rol:
-  cf <---- \[...\] <-
-        |\_\_\_\_\_\_\_\_\_|
+  rol:
+  cf <---- [...] <-
+        |___________|
 
-  rcl:
-  <- cf <- \[...\] <-
-  |\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_|
-  \*/
-  \_\_asm
-  {
-    pushad        //60
-    pushfd        //9C
+  rcl:
+  <- cf <- [...] <-
+  |_______________|
+  */
+  __asm
+  {
+    pushad        //60
+    pushfd        //9C
 
-    lea edi, szDecrypted
-    lea esi, szCrypted
-    xor edx, edx     //33D2    //位索引
+    lea edi, szDecrypted
+    lea esi, szCrypted
+    xor edx, edx     //33D2    //位索引
 
-\_Loop:
-    xor ecx, ecx    //33C9
-    lodsb        //AC
-    mov cl, al      //8AC8
-    and cl, 0x0F    //80E10F  //得到字符个数
+_Loop:
+    xor ecx, ecx    //33C9
+    lodsb        //AC
+    mov cl, al      //8AC8
+    and cl, 0x0F    //80E10F  //得到字符个数
 
-    mov ah, al      //8AE0
-    shr ah, 4      //C0EC04
-    and al, 0xF0    //24F0
-    or  al, ah       //0AC4    //复制高 4 位到低 4 位,方便循环
+    mov ah, al      //8AE0
+    shr ah, 4      //C0EC04
+    and al, 0xF0    //24F0
+    or  al, ah       //0AC4    //复制高 4 位到低 4 位,方便循环
 
-    inc cl         //FEC1    //真正的字符个数
-    shl ecx, 2      //C1E102  //ecx \*= 4
+    inc cl         //FEC1    //真正的字符个数
+    shl ecx, 2      //C1E102  //ecx *= 4
 
-\_SetBitLoop:
-    mov ebx, edx    //8BDA
-    shr ebx, 3       //C1EB03  //ebx /= 8
+_SetBitLoop:
+    mov ebx, edx    //8BDA
+    shr ebx, 3       //C1EB03  //ebx /= 8
 
-    cmp bx, 255      //6681FBFF00  替换 cmp ebx, 255  81FBFF000000,解压后的表长为 256Bytes
-    jg  \_Exit      //7F0A
+    cmp bx, 255      //6681FBFF00  替换 cmp ebx, 255  81FBFF000000,解压后的表长为 256Bytes
+    jg  _Exit      //7F0A
 
-    rol al, 1       //D0C0    //cf = al 最高位
-    rcl byte ptr \[edi+ebx\],1 //D0141F  //cf 移进 edi
-    inc edx        //42
-    loop \_SetBitLoop  //E2EB
+    rol al, 1       //D0C0    //cf = al 最高位
+    rcl byte ptr [edi+ebx],1 //D0141F  //cf 移进 edi
+    inc edx        //42
+    loop _SetBitLoop  //E2EB
 
-    jmp \_Loop      //EB03
+    jmp _Loop      //EB03
 
-\_Exit:
-    popfd        //9D
-    popad        //61
-  }
+_Exit:
+    popfd        //9D
+    popad        //61
+  }
 }
-
 ```
 
-解压的代码大致为 0X3E=62 字节。  
-  
-由于 Xfish 的代码是 Fasm 的（我一般熟悉 Masm 和 Nasm），而我又没有太多时间去修改，所以只能有时间再把这个优化添加进去。稍微估算了一下还是能节省数十字节。  
-  
-附件：  
+解压的代码大致为 `0X3E=62` 字节。
+
+由于 Xfish 的代码是 Fasm 的（我一般熟悉 Masm 和 Nasm），而我又没有太多时间去修改，所以只能有时间再把这个优化添加进去。稍微估算了一下还是能节省数十字节。
+
+附件：
+
 32 位长度反汇编引擎 Lde vc.rar
 
 上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || DeRunLen.rar  
- |
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || RunLen.rar  
- |
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || DeRunLen.rar |
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || RunLen.rar |

@@ -1,141 +1,173 @@
 
-
 # 软件保护壳技术专题 - 构建壳使用的 x86 汇编器
 
 > 原文：[`www.pediy.com/kssd/pediy10/103757.html`](https://www.pediy.com/kssd/pediy10/103757.html)
 
-0.这个汇编器有什么用处???  
-   这个汇编器是在壳内使用的汇编器,一共可以汇编 47 条常用指令。一般来说如果用汇编写程序也很难使用这 47 条指令以外的指令。这个汇编器不是让人使用的。而是让壳使用的，写过病毒或者壳的朋友一定有编写过随机花指令的经验。无非是靠模板和寄存器变换已经常数变换来生成花指令。这种花指令严重太过于依赖于模板。例如在变形引擎构建一文中列出的花指令产生函数。  
-   如果有病毒或者壳内部带一个小型的汇编器可以让花指令玩出很多花样。  
-   这里我也不 YY 一个汇编器对于构造花指令的好处了。  
-  
-1.相关原理  
-   在编译原理中有两个重要的步骤：1.词法分析。2.语法分析。词法分析函数将源文件的符号转换成词法标记。语法分析使用这些标记进行语义处理。因为这个汇编器是给壳使用的。所以当然不需要第一个步骤(词法分析)。我们的目的在于使用一个巧妙的组合算法(数学公式的随机,线性代数,图论),再加上一些函数的相互嵌套。自动生成一套用于语法分析的词法标记集合。让壳自己写程序。这样想法不错吧。呵呵。。。![](img/3e9367e5826886294bccbb08463f3e34.jpg "酷") 这样生成的花指令和真实指令无异。。。而且随机率也更大。有兴趣的朋友可以用数学公式生产花指令一文与此文给出的代码结合。产生出自己的随机花指令构建器。  
-   壳汇编器直接对这个词法集合进行汇编。  
-  
-我先介绍一下这套汇编语言中的使用规则吧。  
+## 0. 这个汇编器有什么用处???
+
+这个汇编器是在壳内使用的汇编器，一共可以汇编 `47` 条常用指令。一般来说如果用汇编写程序也很难使用这 `47` 条指令以外的指令。这个汇编器不是让人使用的。而是让壳使用的，写过病毒或者壳的朋友一定有编写过随机花指令的经验。无非是靠模板和寄存器变换以及常数变换来生成花指令。这种花指令严重太过于依赖于模板。例如在变形引擎构建一文中列出的花指令产生函数。
+
+如果有病毒或者壳内部带一个小型的汇编器可以让花指令玩出很多花样。
+
+这里我也不 `YY` 一个汇编器对于构造花指令的好处了。
+
+## 1. 相关原理
+
+在编译原理中有两个重要的步骤：`1.` 词法分析。`2.` 语法分析。词法分析函数将源文件的符号转换成词法标记。语法分析使用这些标记进行语义处理。因为这个汇编器是给壳使用的。所以当然不需要第一个步骤(词法分析)。我们的目的在于使用一个巧妙的组合算法(数学公式的随机,线性代数,图论),再加上一些函数的相互嵌套。自动生成一套用于语法分析的词法标记集合。让壳自己写程序。这样想法不错吧。呵呵。。。`![](img/3e9367e5826886294bccbb08463f3e34.jpg "酷")` 这样生成的花指令和真实指令无异。。。而且随机率也更大。有兴趣的朋友可以用数学公式生产花指令一文与此文给出的代码结合。产生出自己的随机花指令构建器。
+
+壳汇编器直接对这个词法集合进行汇编。
+
+我先介绍一下这套汇编语言中的使用规则吧。
 
 代码:
 
 ```
-// 汇编标记
-typedef enum \_ASM\_TOKEN
+// 汇编标记
+typedef enum _ASM_TOKEN
 {
-  ASMER\_TK\_ERROR,
+  ASMER_TK_ERROR,
 
-  /\* 指令 \*/
-  ASMER\_TK\_INST\_NOP, 
-  ASMER\_TK\_INST\_ADD, 
-  ASMER\_TK\_INST\_SUB, 
-  ASMER\_TK\_INST\_MUL, 
-  ASMER\_TK\_INST\_IMUL, 
-  ASMER\_TK\_INST\_DIV, 
-  ASMER\_TK\_INST\_IDIV, 
-  ASMER\_TK\_INST\_NOT, 
-  ASMER\_TK\_INST\_AND, 
-  ASMER\_TK\_INST\_OR, 
-  ASMER\_TK\_INST\_XOR, 
-  ASMER\_TK\_INST\_SHL,
-  ASMER\_TK\_INST\_SHR, 
-  ASMER\_TK\_INST\_ROL, 
-  ASMER\_TK\_INST\_ROR, 
-  ASMER\_TK\_INST\_MOV, 
-  ASMER\_TK\_INST\_LEA, 
-  ASMER\_TK\_INST\_STOSB, 
-  ASMER\_TK\_INST\_STOSW, 
-  ASMER\_TK\_INST\_STOSD,
-  ASMER\_TK\_INST\_LODSB, 
-  ASMER\_TK\_INST\_LODSW, 
-  ASMER\_TK\_INST\_LODSD, 
-  ASMER\_TK\_INST\_MOVSB, 
-  ASMER\_TK\_INST\_MOVSW, 
-  ASMER\_TK\_INST\_MOVSD,
-  ASMER\_TK\_INST\_CLD,
-  ASMER\_TK\_INST\_STD,
-  ASMER\_TK\_INST\_PUSH,
-  ASMER\_TK\_INST\_POP, 
-  ASMER\_TK\_INST\_PUSHAD, 
-  ASMER\_TK\_INST\_POPAD, 
-  ASMER\_TK\_INST\_PUSHFD, 
-  ASMER\_TK\_INST\_POPFD, 
-  ASMER\_TK\_INST\_RET, 
-  ASMER\_TK\_INST\_RETN, 
-  ASMER\_TK\_INST\_JMP, 
-  ASMER\_TK\_INST\_CALL,
-  ASMER\_TK\_INST\_LOOP, 
-  ASMER\_TK\_INST\_JZ, 
-  ASMER\_TK\_INST\_JNZ, 
-  ASMER\_TK\_INST\_JA, 
-  ASMER\_TK\_INST\_JB, 
-  ASMER\_TK\_INST\_JAE, 
-  ASMER\_TK\_INST\_JBE, 
-  ASMER\_TK\_INST\_CMP, 
-  ASMER\_TK\_INST\_TEST,
+  /* 指令 */
+  ASMER_TK_INST_NOP, 
+  ASMER_TK_INST_ADD, 
+  ASMER_TK_INST_SUB, 
+  ASMER_TK_INST_MUL, 
+  ASMER_TK_INST_IMUL, 
+  ASMER_TK_INST_DIV, 
+  ASMER_TK_INST_IDIV, 
+  ASMER_TK_INST_NOT, 
+  ASMER_TK_INST_AND, 
+  ASMER_TK_INST_OR, 
+  ASMER_TK_INST_XOR, 
+  ASMER_TK_INST_SHL,
+  ASMER_TK_INST_SHR, 
+  ASMER_TK_INST_ROL, 
+  ASMER_TK_INST_ROR, 
+  ASMER_TK_INST_MOV, 
+  ASMER_TK_INST_LEA, 
+  ASMER_TK_INST_STOSB, 
+  ASMER_TK_INST_STOSW, 
+  ASMER_TK_INST_STOSD,
+  ASMER_TK_INST_LODSB, 
+  ASMER_TK_INST_LODSW, 
+  ASMER_TK_INST_LODSD, 
+  ASMER_TK_INST_MOVSB, 
+  ASMER_TK_INST_MOVSW, 
+  ASMER_TK_INST_MOVSD,
+  ASMER_TK_INST_CLD,
+  ASMER_TK_INST_STD,
+  ASMER_TK_INST_PUSH,
+  ASMER_TK_INST_POP, 
+  ASMER_TK_INST_PUSHAD, 
+  ASMER_TK_INST_POPAD, 
+  ASMER_TK_INST_PUSHFD, 
+  ASMER_TK_INST_POPFD, 
+  ASMER_TK_INST_RET, 
+  ASMER_TK_INST_RETN, 
+  ASMER_TK_INST_JMP, 
+  ASMER_TK_INST_CALL,
+  ASMER_TK_INST_LOOP, 
+  ASMER_TK_INST_JZ, 
+  ASMER_TK_INST_JNZ, 
+  ASMER_TK_INST_JA, 
+  ASMER_TK_INST_JB, 
+  ASMER_TK_INST_JAE, 
+  ASMER_TK_INST_JBE, 
+  ASMER_TK_INST_CMP, 
+  ASMER_TK_INST_TEST,
 
-  /\* 寄存器 \*/
-  /\* 8Bits 寄存器 \*/
-  ASMER\_TK\_REG\_AL, ASMER\_TK\_REG\_AH, ASMER\_TK\_REG\_CL, ASMER\_TK\_REG\_CH,
-  ASMER\_TK\_REG\_DL, ASMER\_TK\_REG\_DH, ASMER\_TK\_REG\_BL, ASMER\_TK\_REG\_BH,
+  /* 寄存器 */
+  /* 8Bits 寄存器 */
+  ASMER_TK_REG_AL, ASMER_TK_REG_AH, ASMER_TK_REG_CL, ASMER_TK_REG_CH,
+  ASMER_TK_REG_DL, ASMER_TK_REG_DH, ASMER_TK_REG_BL, ASMER_TK_REG_BH,
 
-  /\* 16Bits 寄存器 \*/
-  ASMER\_TK\_REG\_AX, ASMER\_TK\_REG\_CX, ASMER\_TK\_REG\_DX, ASMER\_TK\_REG\_BX,
-  ASMER\_TK\_REG\_SP, ASMER\_TK\_REG\_BP, ASMER\_TK\_REG\_SI, ASMER\_TK\_REG\_DI,
+  /* 16Bits 寄存器 */
+  ASMER_TK_REG_AX, ASMER_TK_REG_CX, ASMER_TK_REG_DX, ASMER_TK_REG_BX,
+  ASMER_TK_REG_SP, ASMER_TK_REG_BP, ASMER_TK_REG_SI, ASMER_TK_REG_DI,
 
-  /\* 32Bits 寄存器 \*/
-  ASMER\_TK\_REG\_EAX, ASMER\_TK\_REG\_ECX, ASMER\_TK\_REG\_EDX, ASMER\_TK\_REG\_EBX,
-  ASMER\_TK\_REG\_ESP, ASMER\_TK\_REG\_EBP, ASMER\_TK\_REG\_ESI, ASMER\_TK\_REG\_EDI,
+  /* 32Bits 寄存器 */
+  ASMER_TK_REG_EAX, ASMER_TK_REG_ECX, ASMER_TK_REG_EDX, ASMER_TK_REG_EBX,
+  ASMER_TK_REG_ESP, ASMER_TK_REG_EBP, ASMER_TK_REG_ESI, ASMER_TK_REG_EDI,
 
-  /\* 关键字 \*/
-  ASMER\_TK\_KW\_BYTE\_PTR, ASMER\_TK\_KW\_WORD\_PTR, ASMER\_TK\_KW\_DWORD\_PTR,
-  ASMER\_TK\_KW\_SCALE\_1, ASMER\_TK\_KW\_SCALE\_2, ASMER\_TK\_KW\_SCALE\_4, ASMER\_TK\_KW\_SCALE\_8, 
-  ASMER\_TK\_KW\_ADD, ASMER\_TK\_KW\_SUB,/\* 减号在编译的过程中换算为加号 \*/
-  ASMER\_TK\_KW\_ADDR\_LAB, ASMER\_TK\_KW\_ADDR\_VALUE\_LAB,
-  ASMER\_TK\_KW\_DISPLACEMENT8, ASMER\_TK\_KW\_DISPLACEMENT32,
-  ASMER\_TK\_KW\_IMMEDIATE8, ASMER\_TK\_KW\_IMMEDIATE16, ASMER\_TK\_KW\_IMMEDIATE32,
-  ASMER\_TK\_KW\_MEMEND, ASMER\_TK\_KW\_LINEND,
+  /* 关键字 */
+  ASMER_TK_KW_BYTE_PTR, ASMER_TK_KW_WORD_PTR, ASMER_TK_KW_DWORD_PTR,
+  ASMER_TK_KW_SCALE_1, ASMER_TK_KW_SCALE_2, ASMER_TK_KW_SCALE_4, ASMER_TK_KW_SCALE_8, 
+  ASMER_TK_KW_ADD, ASMER_TK_KW_SUB,/* 减号在编译的过程中换算为加号 */
+  ASMER_TK_KW_ADDR_LAB, ASMER_TK_KW_ADDR_VALUE_LAB,
+  ASMER_TK_KW_DISPLACEMENT8, ASMER_TK_KW_DISPLACEMENT32,
+  ASMER_TK_KW_IMMEDIATE8, ASMER_TK_KW_IMMEDIATE16, ASMER_TK_KW_IMMEDIATE32,
+  ASMER_TK_KW_MEMEND, ASMER_TK_KW_LINEND,
 
-  /\* 结束符 \*/
-  ASMER\_TK\_END
-} ASM\_TOKEN, \*PASM\_TOKEN;
-
+  /* 结束符 */
+  ASMER_TK_END
+} ASM_TOKEN, *PASM_TOKEN;
 ```
 
-这些标记也就是在编程过程中要使用的关键字  
-最前面的是指令。这个不用介绍了。主要是关键字部分。  
-ASMER\_TK\_KW\_BYTE\_PTR, ASMER\_TK\_KW\_WORD\_PTR,ASMER\_TK\_KW\_DWORD\_PTR.这几个是指针操作符。  
-用于设定如 mov eax, dword ptr \[XXXX\]如下操作 每当想使用一个内存的时候第一个标记必然是这个类型。  
-ASMER\_TK\_KW\_SCALE\_(1,2,4,8) 刻度标签 跟随在内存之后使用。如果刻度为 1 可以忽略不记  
-ASMER\_TK\_KW\_DISPLACEMENT(8,32)用于在内存中表示偏移量。  
-ASMER\_TK\_KW\_IMMEDIATE(8,16,32)用于表示常量  
-ASMER\_TK\_KW\_MEMEND 用于结束一个内存标记  
-ASMER\_TK\_KW\_LINEND 用于表示一条语句的结束  
-ASMER\_TK\_END 用于表示整个源文件的结束  
-  
-ASMER\_TK\_KW\_ADDR\_LAB 这个是地址标签表示一个地址  
-ASMER\_TK\_KW\_ADDR\_VALUE\_LAB 这个是地址值标签，表示从这个地址中取出的值  
-这两个标签可以在内存指针中使用，但不可以作为偏移。也可以作为常量使用  
-内存指针中使用:\[addr\_lab\]或者\[addr\_value\_lab\] 这两种都可以 但是不可以以下形式\[eax+addr\_lab\]//错误  
-或者当作常数  
-mov eax, addr\_lab(或者 addr\_value\_lab)这种情况都是允许的。 不同的是 eax 最后的值一个是地址 一个是地址的值.  
-当然如果是流程语句例如 JMP CALL Jcc 这类将会转换为相对于这个目的地址的偏移。![](img/792ac17acdd6fd3e39fc1aacdcf4c3d9.jpg "124.gif")  
-大体上就这么多了。 在附件的代码中 main.cpp 里有一个使用的例子。例子的代码是我胡乱打的。只为了测试用。  
-  
-2.介绍源文件  
-![](img/f43c1e514327696dccbb0da997496b2a.jpg "扮鬼脸")  
-写汇编器并不复杂。只要把 Modrm/SIB 处理掉然后根据指令进行依次填充就 OK 了  
-这个汇编器代码里有两个主要的函数一个是 Compiling 一个是 Linking 其实就是做语法处理的两次遍历。我为了函数意义明确就起了这两个名字。![](img/0d3dbf5fb8604477afb4a1766fe8c72d.jpg "尴尬")  
-这里介绍一个源代码:  
-Assembler.h 定义了所有的结构  
-Assembler.cpp 定义了主函数和所需的辅助函数,例如最后链接后的重定位  
-AssemblerCompiling.cpp 这里实现了对每条指令的第一次汇编也是进行语法分析的主要地方  
-AssemblerLinking.cpp 主要将编译好后的中间结构输出为了 2 进制到缓存中。  
-AssemblerSymbolTable.cpp 这里是操作符号表的函数。  
-liblogic 是辅助的一个小型库。用到了 2 叉哈希树做符号表。可以直接忽略掉他  
-这里不贴什么代码了。有兴趣的看附件吧。![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")  
-  
-3.最后的 YY  
-这份代码花了我整一周时间。写的乱了点，希望论坛上的朋友不要见怪。不过今天晚上测试还是没有问题得～～～。 现在是临晨 5：44 外面的风呼呼的。。。这是什么平安夜嘛～～～![](img/1e3c9433a1c444ac212c55a1ce70452a.jpg "狂怒")![](img/1e3c9433a1c444ac212c55a1ce70452a.jpg "狂怒")![](img/1e3c9433a1c444ac212c55a1ce70452a.jpg "狂怒")
+这些标记也就是在编程过程中要使用的关键字
+
+最前面的是指令。这个不用介绍了。主要是关键字部分。
+
+`ASMER_TK_KW_BYTE_PTR`, `ASMER_TK_KW_WORD_PTR`, `ASMER_TK_KW_DWORD_PTR`. 这几个是指针操作符。
+
+用于设定如 `mov eax, dword ptr [XXXX]` 如下操作 每当想使用一个内存的时候第一个标记必然是这个类型。
+
+`ASMER_TK_KW_SCALE_(1,2,4,8)` 刻度标签 跟随在内存之后使用。如果刻度为 `1` 可以忽略不记
+
+`ASMER_TK_KW_DISPLACEMENT(8,32)` 用于在内存中表示偏移量。
+
+`ASMER_TK_KW_IMMEDIATE(8,16,32)` 用于表示常量
+
+`ASMER_TK_KW_MEMEND` 用于结束一个内存标记
+
+`ASMER_TK_KW_LINEND` 用于表示一条语句的结束
+
+`ASMER_TK_END` 用于表示整个源文件的结束
+
+`ASMER_TK_KW_ADDR_LAB` 这个是地址标签表示一个地址
+
+`ASMER_TK_KW_ADDR_VALUE_LAB` 这个是地址值标签，表示从这个地址中取出的值
+
+这两个标签可以在内存指针中使用，但不可以作为偏移。也可以作为常量使用
+
+内存指针中使用: `[addr_lab]` 或者 `[addr_value_lab]` 这两种都可以 但是不可以以下形式 `[eax+addr_lab]` // 错误
+
+或者当作常数
+
+`mov eax, addr_lab` (或者 `addr_value_lab`) 这种情况都是允许的。 不同的是 `eax` 最后的值一个是地址 一个是地址的值.
+
+当然如果是流程语句例如 `JMP` `CALL` `Jcc` 这类将会转换为相对于这个目的地址的偏移。`![](img/792ac17acdd6fd3e39fc1aacdcf4c3d9.jpg "124.gif")`
+
+大体上就这么多了。 在附件的代码中 `main.cpp` 里有一个使用的例子。例子的代码是我胡乱打的。只为了测试用。
+
+## 2. 介绍源文件
+
+`![](img/f43c1e514327696dccbb0da997496b2a.jpg "扮鬼脸")`
+
+写汇编器并不复杂。只要把 `Modrm/SIB` 处理掉然后根据指令进行依次填充就 `OK` 了
+
+这个汇编器代码里有两个主要的函数一个是 `Compiling` 一个是 `Linking` 其实就是做语法处理的两次遍历。我为了函数意义明确就起了这两个名字。`![](img/0d3dbf5fb8604477afb4a1766fe8c72d.jpg "尴尬")`
+
+这里介绍一个源代码:
+
+`Assembler.h` 定义了所有的结构
+
+`Assembler.cpp` 定义了主函数和所需的辅助函数,例如最后链接后的重定位
+
+`AssemblerCompiling.cpp` 这里实现了对每条指令的第一次汇编也是进行语法分析的主要地方
+
+`AssemblerLinking.cpp` 主要将编译好后的中间结构输出为了 `2` 进制到缓存中。
+
+`AssemblerSymbolTable.cpp` 这里是操作符号表的函数。
+
+`liblogic` 是辅助的一个小型库。用到了 `2` 叉哈希树做符号表。可以直接忽略掉他
+
+这里不贴什么代码了。有兴趣的看附件吧。`![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")`
+
+## 3. 最后的 YY
+
+这份代码花了我整一周时间。写的乱了点，希望论坛上的朋友不要见怪。不过今天晚上测试还是没有问题得～～～。 现在是临晨 `5:44` 外面的风呼呼的。。。这是什么平安夜嘛～～～`![](img/1e3c9433a1c444ac212c55a1ce70452a.jpg "狂怒")` `![](img/1e3c9433a1c444ac212c55a1ce70452a.jpg "狂怒")` `![](img/1e3c9433a1c444ac212c55a1ce70452a.jpg "狂怒")`
 
 上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || Assembler.rar  
- |
+
+| `![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg)` | | `Assembler.rar` |
+

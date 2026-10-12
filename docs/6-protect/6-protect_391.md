@@ -1,199 +1,203 @@
 
-
 # UltraEdit 16.10.0.1028 的反破解保护
 
 > 原文：[`www.pediy.com/kssd/pediy11/119807.html`](https://www.pediy.com/kssd/pediy11/119807.html)
 
-UltraEdit 16.10.0.1028，是一款集成了多种功能的文件二进制查看编辑工具。  
-官方发布 30 天免费使用版，如果要正式版需要$60。闲来无事，拿来破解了一下。  
-   
-系统：Windows 7  
-工具：OllyDBG1.10 汉化第二版  
-   
-1、因为看此软件主程序有.tls 段，为了确定在 main()入口之前，是否通过 tls 回调函数执行了反破解保护，修改一下 OD 的系统设置“选项->调试设置->事件->第一次中断于->系统断点”，然后加载该软件。待停住后，在 Uedit32.exe 模块的.text 段设置访问断点，然后 F9 运行。  
-   
-2、在 00ACB92B > $ E8 8E040200 CALL Uedit32.00AEBDBE 此处停了下来。发现这就是函数的入口点了。说明此时并没有执行反破解保护。程序的入口大致是这样的：  
+`UltraEdit 16.10.0.1028`，是一款集成了多种功能的文件二进制查看编辑工具。
 
-代码:
+官方发布 30 天免费使用版，如果要正式版需要$60。闲来无事，拿来破解了一下。
 
-```
-00AEBDF4  |.  50            PUSH EAX                                 ; /pFileTime
-00AEBDF5  |.  FF15 A8A4CF00 CALL DWORD PTR DS:\[<&KERNEL32.GetSystemT>; \\GetSystemTimeAsFileTime 取得系统日期和时间
-00AEBDFB  |.  8B75 FC       MOV ESI,DWORD PTR SS:\[EBP-4\]
-00AEBDFE  |.  3375 F8       XOR ESI,DWORD PTR SS:\[EBP-8\]
-00AEBE01  |.  FF15 9CA6CF00 CALL DWORD PTR DS:\[<&KERNEL32.GetCurrent>; \[GetCurrentProcessId
-00AEBE07  |.  33F0          XOR ESI,EAX
-00AEBE09  |.  FF15 D0A6CF00 CALL DWORD PTR DS:\[<&KERNEL32.GetCurrent>; \[GetCurrentThreadId
-00AEBE0F  |.  33F0          XOR ESI,EAX
-00AEBE11  |.  FF15 DCA6CF00 CALL DWORD PTR DS:\[<&KERNEL32.GetTickCou>; \[GetTickCount 取得 CPU 运行时间，
-00AEBE17  |.  33F0          XOR ESI,EAX
-00AEBE19  |.  8D45 F0       LEA EAX,DWORD PTR SS:\[EBP-10\]
-00AEBE1C  |.  50            PUSH EAX                                 ; /pPerformanceCount
-00AEBE1D  |.  FF15 18A4CF00 CALL DWORD PTR DS:\[<&KERNEL32.QueryPerfo>; \\QueryPerformanceCounter 取得精确系统时间
-00AEBE23  |.  8B45 F4       MOV EAX,DWORD PTR SS:\[EBP-C\]
-00AEBE26  |.  3345 F0       XOR EAX,DWORD PTR SS:\[EBP-10\]
-00AEBE29  |.  33F0          XOR ESI,EAX                              ;  将上面取得的值都异或在一起，作为一个唯一标志值
-00AEBE2B  |.  3BF7          CMP ESI,EDI
-00AEBE2D  |.  75 07         JNZ SHORT Uedit32.00AEBE36
-00AEBE2F  |.  BE 4FE640BB   MOV ESI,BB40E64F
-00AEBE34  |.  EB 0B         JMP SHORT Uedit32.00AEBE41
-00AEBE36  |>  85F3          TEST EBX,ESI
-00AEBE38  |.  75 07         JNZ SHORT Uedit32.00AEBE41
-00AEBE3A  |.  8BC6          MOV EAX,ESI
-00AEBE3C  |.  C1E0 10       SHL EAX,10
-00AEBE3F  |.  0BF0          OR ESI,EAX
-00AEBE41  |>  8935 B45C0101 MOV DWORD PTR DS:\[1015CB4\],ESI           ;  将这串标志值写到\[1015CB4\]，用于后面的频繁比较
-00AEBE47  |.  F7D6          NOT ESI
-00AEBE49  |.  8935 B85C0101 MOV DWORD PTR DS:\[1015CB8\],ESI
-00AEBE4F  |.  5E            POP ESI
-00AEBE50  |>  5F            POP EDI
-00AEBE51  |.  5B            POP EBX
-00AEBE52  |.  C9            LEAVE
-00AEBE53  \\.  C3            RETN
+系统：`Windows 7`
+
+工具：`OllyDBG1.10` 汉化第二版
+
+1、因为看此软件主程序有`.tls` 段，为了确定在`main()`入口之前，是否通过`tls`回调函数执行了反破解保护，修改一下`OD`的系统设置“选项->调试设置->事件->第一次中断于->系统断点”，然后加载该软件。待停住后，在`Uedit32.exe`模块的`.text`段设置访问断点，然后`F9`运行。
+
+2、在`00ACB92B > $ E8 8E040200 CALL Uedit32.00AEBDBE`此处停了下来。发现这就是函数的入口点了。说明此时并没有执行反破解保护。程序的入口大致是这样的：
 
 ```
-
-  
-3、对\[1015CB4\]设置内存访问断点，发现在后面的执行中，频繁的执行比较：  
-代码:
-
-```
-00ABA020   $  3B0D B45C0101 CMP ECX,DWORD PTR DS:\[1015CB4\]           ;  比较标志,防止破解.如果不相等就跳转到 AD599C
-00ABA026   .  75 02         JNZ SHORT Uedit32.00ABA02A
-00ABA028   .  F3:           PREFIX REP:                              ;  多余的前缀
-00ABA029   .  C3            RETN
-00ABA02A   >  E9 6DB90100   JMP Uedit32.00AD599C
-
-```
-
-再看看 AD599C 处的代码：  
-代码:
-
-```
-00AD599C   > \\8BFF          MOV EDI,EDI
-00AD599E  /.  55            PUSH EBP
-00AD599F  |.  8BEC          MOV EBP,ESP
-00AD59A1  |.  81EC 28030000 SUB ESP,328
-00AD59A7  |.  A3 C0B40701   MOV DWORD PTR DS:\[107B4C0\],EAX
-00AD59AC  |.  890D BCB40701 MOV DWORD PTR DS:\[107B4BC\],ECX
-00AD59B2  |.  8915 B8B40701 MOV DWORD PTR DS:\[107B4B8\],EDX
-00AD59B8  |.  891D B4B40701 MOV DWORD PTR DS:\[107B4B4\],EBX
-00AD59BE  |.  8935 B0B40701 MOV DWORD PTR DS:\[107B4B0\],ESI
-00AD59C4  |.  893D ACB40701 MOV DWORD PTR DS:\[107B4AC\],EDI
-00AD59CA  |.  66:8C15 D8B40>MOV WORD PTR DS:\[107B4D8\],SS
-00AD59D1  |.  66:8C0D CCB40>MOV WORD PTR DS:\[107B4CC\],CS
-00AD59D8  |.  66:8C1D A8B40>MOV WORD PTR DS:\[107B4A8\],DS
-00AD59DF  |.  66:8C05 A4B40>MOV WORD PTR DS:\[107B4A4\],ES
-00AD59E6  |.  66:8C25 A0B40>MOV WORD PTR DS:\[107B4A0\],FS
-00AD59ED  |.  66:8C2D 9CB40>MOV WORD PTR DS:\[107B49C\],GS
-00AD59F4  |.  9C            PUSHFD
-00AD59F5  |.  8F05 D0B40701 POP DWORD PTR DS:\[107B4D0\]
-00AD59FB  |.  8B45 00       MOV EAX,DWORD PTR SS:\[EBP\]
-00AD59FE  |.  A3 C4B40701   MOV DWORD PTR DS:\[107B4C4\],EAX
-00AD5A03  |.  8B45 04       MOV EAX,DWORD PTR SS:\[EBP+4\]
-00AD5A06  |.  A3 C8B40701   MOV DWORD PTR DS:\[107B4C8\],EAX
-00AD5A0B  |.  8D45 08       LEA EAX,DWORD PTR SS:\[EBP+8\]
-00AD5A0E  |.  A3 D4B40701   MOV DWORD PTR DS:\[107B4D4\],EAX
-00AD5A13  |.  8B85 E0FCFFFF MOV EAX,DWORD PTR SS:\[EBP-320\]
-00AD5A19  |.  C705 10B40701>MOV DWORD PTR DS:\[107B410\],10001
-00AD5A23  |.  A1 C8B40701   MOV EAX,DWORD PTR DS:\[107B4C8\]
-00AD5A28  |.  A3 C4B30701   MOV DWORD PTR DS:\[107B3C4\],EAX
-00AD5A2D  |.  C705 B8B30701>MOV DWORD PTR DS:\[107B3B8\],C0000409
-00AD5A37  |.  C705 BCB30701>MOV DWORD PTR DS:\[107B3BC\],1
-00AD5A41  |.  A1 B45C0101   MOV EAX,DWORD PTR DS:\[1015CB4\]
-00AD5A46  |.  8985 D8FCFFFF MOV DWORD PTR SS:\[EBP-328\],EAX
-00AD5A4C  |.  A1 B85C0101   MOV EAX,DWORD PTR DS:\[1015CB8\]
-00AD5A51  |.  8985 DCFCFFFF MOV DWORD PTR SS:\[EBP-324\],EAX
-00AD5A57  |.  FF15 00A5CF00 CALL DWORD PTR DS:\[<&KERNEL32.IsDebugger>; \[判断当前是否处在 Debugger 模式
-00AD5A5D  |.  A3 08B40701   MOV DWORD PTR DS:\[107B408\],EAX
-00AD5A62  |.  6A 01         PUSH 1
-00AD5A64  |.  E8 CFF7FFFF   CALL Uedit32.00AD5238
-00AD5A69  |.  59            POP ECX
-00AD5A6A  |.  6A 00         PUSH 0                                   ; /pTopLevelFilter = NULL
-00AD5A6C  |.  FF15 BCA7CF00 CALL DWORD PTR DS:\[<&KERNEL32.SetUnhandl>; \\SetUnhandledExceptionFilter 设置异常处理
-00AD5A72  |.  68 90B1DD00   PUSH Uedit32.00DDB190                    ; /pExceptionInfo = Uedit32.00DDB190
-00AD5A77  |.  FF15 E0A4CF00 CALL DWORD PTR DS:\[<&KERNEL32.UnhandledE>; \\UnhandledExceptionFilter
-00AD5A7D  |.  833D 08B40701>CMP DWORD PTR DS:\[107B408\],0
-00AD5A84  |.  75 08         JNZ SHORT Uedit32.00AD5A8E
-00AD5A86  |.  6A 01         PUSH 1
-00AD5A88  |.  E8 ABF7FFFF   CALL Uedit32.00AD5238
-00AD5A8D  |.  59            POP ECX
-00AD5A8E  |>  68 090400C0   PUSH C0000409                            ; /ExitCode = C0000409 (-1073740791.)
-00AD5A93  |.  FF15 C8A7CF00 CALL DWORD PTR DS:\[<&KERNEL32.GetCurrent>; |\[GetCurrentProcess
-00AD5A99  |.  50            PUSH EAX                                 ; |hProcess
-00AD5A9A  |.  FF15 A4A4CF00 CALL DWORD PTR DS:\[<&KERNEL32.TerminateP>; \\TerninateProces 结束进程
-00AD5AA0  |.  C9            LEAVE
-00AD5AA1  \\.  C3            RETN
-
+00AEBDF4  .  50            PUSH EAX                        ; /pFileTime
+00AEBDF5  .  FF15 A8A4CF00 CALL DWORD PTR DS:[<&KERNEL32.GetSystemT>; \GetSystemTimeAsFileTime 取得系统日期和时间
+00AEBDFB  .  8B75 FC       MOV ESI,DWORD PTR SS:[EBP-4]
+00AEBDFE  .  3375 F8       XOR ESI,DWORD PTR SS:[EBP-8]
+00AEBE01  .  FF15 9CA6CF00 CALL DWORD PTR DS:[<&KERNEL32.GetCurrent>; [GetCurrentProcessId
+00AEBE07  .  33F0          XOR ESI,EAX
+00AEBE09  .  FF15 D0A6CF00 CALL DWORD PTR DS:[<&KERNEL32.GetCurrent>; [GetCurrentThreadId
+00AEBE0F  .  33F0          XOR ESI,EAX
+00AEBE11  .  FF15 DCA6CF00 CALL DWORD PTR DS:[<&KERNEL32.GetTickCou>; [GetTickCount 取得 CPU 运行时间，
+00AEBE17  .  33F0          XOR ESI,EAX
+00AEBE19  .  8D45 F0       LEA EAX,DWORD PTR SS:[EBP-10]
+00AEBE1C  .  50            PUSH EAX                        ; /pPerformanceCount
+00AEBE1D  .  FF15 18A4CF00 CALL DWORD PTR DS:[<&KERNEL32.QueryPerfo>; \QueryPerformanceCounter 取得精确系统时间
+00AEBE23  .  8B45 F4       MOV EAX,DWORD PTR SS:[EBP-C]
+00AEBE26  .  3345 F0       XOR EAX,DWORD PTR SS:[EBP-10]
+00AEBE29  .  33F0          XOR ESI,EAX                     ;  将上面取得的值都异或在一起，作为一个唯一标志值
+00AEBE2B  .  3BF7          CMP ESI,EDI
+00AEBE2D  .  75 07         JNZ SHORT Uedit32.00AEBE36
+00AEBE2F  .  BE 4FE640BB  MOV ESI,BB40E64F
+00AEBE34  .  EB 0B         JMP SHORT Uedit32.00AEBE41
+00AEBE36  |>  85F3         TEST EBX,ESI
+00AEBE38  .  75 07         JNZ SHORT Uedit32.00AEBE41
+00AEBE3A  .  8BC6          MOV EAX,ESI
+00AEBE3C  .  C1E0 10       SHL EAX,10
+00AEBE3F  .  0BF0          OR ESI,EAX
+00AEBE41  |>  8935 B45C0101 MOV DWORD PTR DS:[1015CB4],ESI        ;  将这串标志值写到[1015CB4]，用于后面的频繁比较
+00AEBE47  .  F7D6          NOT ESI
+00AEBE49  .  8935 B85C0101 MOV DWORD PTR DS:[1015CB8],ESI
+00AEBE4F  .  5E            POP ESI
+00AEBE50  |>  5F            POP EDI
+00AEBE51  .  5B            POP EBX
+00AEBE52  .  C9            LEAVE
+00AEBE53  \.  C3            RETN
 ```
 
-我们看到，运行到这里就直接退出程序了。这是程序在加载的过程中，多次采样取时间，如果发现时间有不同，就断定为程序曾被“暂停”，从而断定正在被调试而退出程序。  
-将 00ABA026   .  75 02         JNZ SHORT Uedit32.00ABA02A 这个地方的代码改成两个 nop，也就废了它的“时间点”保护。  
-4、废掉它的时间点一致性保护后，继续运行，却发现程序执行异常。经过研究问题出在这里  
-代码:
+3、对`[1015CB4]`设置内存访问断点，发现在后面的执行中，频繁的执行比较：
 
 ```
-004D31B3   .  6A 00         PUSH 0                                   ; /Title = NULL
-004D31B5   .  68 28A3D000   PUSH Uedit32.00D0A328                    ; |Class = "UEDIT32"
-004D31BA   .  FFD7          CALL EDI                                 ; \\FindWindowA
-004D31BC   .  8985 C8B3FFFF MOV DWORD PTR SS:\[EBP+FFFFB3C8\],EAX
-004D31C2   .  8B83 20040000 MOV EAX,DWORD PTR DS:\[EBX+420\]
-004D31C8   .  85C0          TEST EAX,EAX
-004D31CA   .  74 5B         JE SHORT Uedit32.004D3227
-
+00ABA020   $  3B0D B45C0101 CMP ECX,DWORD PTR DS:[1015CB4]        ;  比较标志,防止破解.如果不相等就跳转到 AD599C
+00ABA026   .  75 02         JNZ SHORT Uedit32.00ABA02A
+00ABA028   .  F3:         PREFIX REP:                           ;  多余的前缀
+00ABA029   .  C3            RETN
+00ABA02A   >  E9 6DB90100   JMP Uedit32.00AD599C
 ```
 
-它用 FindWindowA 来获取 UEDIT32 的窗口，可是如果使用 OD 加载的话，此时还未将窗口生成出来。所以获取失败，后面用此窗口句柄做一些事，当然会导致执行异常。这一措施又是它对破解防护的一个手段！  
-5、加载的方式程序执行过不去，再看看附加的方式。我把文件中的代码改了一下，意图破坏它的时间校验，执行起来却发生出错。说明它还有“程序代码完整性校验”。没办法，只有等运行起来后再改了。注意，OllyDBG 附加上后，立即让其处于运行状态，再去改时间校验代码。否则，因为改代码而暂停程序，会让其所有线程进入等待“死锁”而被挂起。  
-  
-6、这回一些防破解保护应该都去掉了吧！点处 Uedit32 的注册码输入窗口试试看吧！怀着一颗紧张而低调的心情，将本模块中所有调用“GetWindowstextA”的函数都设上了断点。然而，郁闷的事情发生了![](img/9b2aec7f3d4bb041b2d419a59832192f.jpg "恐怖!")，程序执行到了这里：  
-代码:
+再看看`AD599C`处的代码：
 
 ```
-75D51949 >  8BFF            MOV EDI,EDI
-75D5194B    CC              INT3
-75D5194C    C3              RETN
-
+00AD599C   > \8BFF          MOV EDI,EDI
+00AD599E  /.  55            PUSH EBP
+00AD599F  |.  8BEC          MOV EBP,ESP
+00AD59A1  |.  81EC 28030000 SUB ESP,328
+00AD59A7  |.  A3 C0B40701   MOV DWORD PTR DS:[107B4C0],EAX
+00AD59AC  |.  890D BCB40701 MOV DWORD PTR DS:[107B4BC],ECX
+00AD59B2  |.  8915 B8B40701 MOV DWORD PTR DS:[107B4B8],EDX
+00AD59B8  |.  891D B4B40701 MOV DWORD PTR DS:[107B4B4],EBX
+00AD59BE  |.  8935 B0B40701 MOV DWORD PTR DS:[107B4B0],ESI
+00AD59C4  |.  893D ACB40701 MOV DWORD PTR DS:[107B4AC],EDI
+00AD59CA  |.  66:8C15 D8B40>MOV WORD PTR DS:[107B4D8],SS
+00AD59D1  |.  66:8C0D CCB40>MOV WORD PTR DS:[107B4CC],CS
+00AD59D8  |.  66:8C1D A8B40>MOV WORD PTR DS:[107B4A8],DS
+00AD59DF  |.  66:8C05 A4B40>MOV WORD PTR DS:[107B4A4],ES
+00AD59E6  |.  66:8C25 A0B40>MOV WORD PTR DS:[107B4A0],FS
+00AD59ED  |.  66:8C2D 9CB40>MOV WORD PTR DS:[107B49C],GS
+00AD59F4  |.  9C            PUSHFD
+00AD59F5  |.  8F05 D0B40701 POP DWORD PTR DS:[107B4D0]
+00AD59FB  |.  8B45 00       MOV EAX,DWORD PTR SS:[EBP]
+00AD59FE  |.  A3 C4B40701   MOV DWORD PTR DS:[107B4C4],EAX
+00AD5A03  |.  8B45 04       MOV EAX,DWORD PTR SS:[EBP+4]
+00AD5A06  |.  A3 C8B40701   MOV DWORD PTR DS:[107B4C8],EAX
+00AD5A0B  |.  8D45 08       LEA EAX,DWORD PTR SS:[EBP+8]
+00AD5A0E  |.  A3 D4B40701   MOV DWORD PTR DS:[107B4D4],EAX
+00AD5A13  |.  8B85 E0FCFFFF MOV EAX,DWORD PTR SS:[EBP-320]
+00AD5A19  |.  C705 10B40701>MOV DWORD PTR DS:[107B410],10001
+00AD5A23  |.  A1 C8B40701   MOV EAX,DWORD PTR DS:[107B4C8]
+00AD5A28  |.  A3 C4B30701   MOV DWORD PTR DS:[107B3C4],EAX
+00AD5A2D  |.  C705 B8B30701>MOV DWORD PTR DS:[107B3B8],C0000409
+00AD5A37  |.  C705 BCB30701>MOV DWORD PTR DS:[107B3BC],1
+00AD5A41  |.  A1 B45C0101   MOV EAX,DWORD PTR DS:[1015CB4]
+00AD5A46  |.  8985 D8FCFFFF MOV DWORD PTR SS:[EBP-328],EAX
+00AD5A4C  |.  A1 B85C0101   MOV EAX,DWORD PTR DS:[1015CB8]
+00AD5A51  |.  8985 DCFCFFFF MOV DWORD PTR SS:[EBP-324],EAX
+00AD5A57  |.  FF15 00A5CF00 CALL DWORD PTR DS:[<&KERNEL32.IsDebugger>; [判断当前是否处在 Debugger 模式
+00AD5A5D  |.  A3 08B40701   MOV DWORD PTR DS:[107B408],EAX
+00AD5A62  |.  6A 01         PUSH 1
+00AD5A64  |.  E8 CFF7FFFF   CALL Uedit32.00AD5238
+00AD5A69  |.  59            POP ECX
+00AD5A6A  |.  6A 00         PUSH 0                          ; /pTopLevelFilter = NULL
+00AD5A6C  |.  FF15 BCA7CF00 CALL DWORD PTR DS:[<&KERNEL32.SetUnhandl>; \SetUnhandledExceptionFilter 设置异常处理
+00AD5A72  |.  68 90B1DD00  PUSH Uedit32.00DDB190          ; /pExceptionInfo = Uedit32.00DDB190
+00AD5A77  |.  FF15 E0A4CF00 CALL DWORD PTR DS:[<&KERNEL32.UnhandledE>; \UnhandledExceptionFilter
+00AD5A7D  |.  833D 08B40701>CMP DWORD PTR DS:[107B408],0
+00AD5A84  |.  75 08         JNZ SHORT Uedit32.00AD5A8E
+00AD5A86  |.  6A 01         PUSH 1
+00AD5A88  |.  E8 ABF7FFFF   CALL Uedit32.00AD5238
+00AD5A8D  |.  59            POP ECX
+00AD5A8E  |>  68 090400C0  PUSH C000409                  ; /ExitCode = C0000409 (-1073740791.)
+00AD5A93  |.  FF15 C8A7CF00 CALL DWORD PTR DS:[<&KERNEL32.GetCurrent>; |\GetCurrentProcess
+00AD5A99  |.  50            PUSH EAX                      ; |hProcess
+00AD5A9A  |.  FF15 A4A4CF00 CALL DWORD PTR DS:[<&KERNEL32.TerninateP>; \TerninateProces 结束进程
+00AD5AA0  |.  C9            LEAVE
+00AD5AA1  \.  C3            RETN
 ```
 
-正常的程序中怎么还有 INT3 命令呢？很惊奇。这个 INT3 激活了 OD 的暂停程序功能。但是 F9 运行后，程序就出错了。  
-  
-7、查看堆栈，根据返回地址，找到了这段代码：  
-代码:
+我们看到，运行到这里就直接退出程序了。这是程序在加载的过程中，多次采样取时间，如果发现时间有不同，就断定为程序曾被“暂停”，从而断定正在被调试而退出程序。
+
+将`00ABA026 . 75 02 JNZ SHORT Uedit32.00ABA02A`这个地方的代码改成两个`nop`，也就废了它的“时间点”保护。
+
+4、废掉它的时间点一致性保护后，继续运行，却发现程序执行异常。经过研究问题出在这里：
 
 ```
-00CCB510    55              PUSH EBP
-00CCB511    8BEC            MOV EBP,ESP
-00CCB513    6A FE           PUSH -2
-00CCB515    68 C083EB00     PUSH Uedit32.00EB83C0
-00CCB51A    68 F0BFAB00     PUSH Uedit32.00ABBFF0
-00CCB51F    64:A1 00000000  MOV EAX,DWORD PTR FS:\[0\]
-00CCB525    50              PUSH EAX
-00CCB526    83C4 F0         ADD ESP,-10
-00CCB529    53              PUSH EBX
-00CCB52A    56              PUSH ESI
-00CCB52B    57              PUSH EDI
-00CCB52C    A1 B45C0101     MOV EAX,DWORD PTR DS:\[1015CB4\]
-00CCB531    3145 F8         XOR DWORD PTR SS:\[EBP-8\],EAX
-00CCB534    33C5            XOR EAX,EBP
-00CCB536    50              PUSH EAX
-00CCB537    8D45 F0         LEA EAX,DWORD PTR SS:\[EBP-10\]
-00CCB53A    64:A3 00000000  MOV DWORD PTR FS:\[0\],EAX
-00CCB540    8965 E8         MOV DWORD PTR SS:\[EBP-18\],ESP
-00CCB543    C745 E4 0100000>MOV DWORD PTR SS:\[EBP-1C\],1
-00CCB54A    C745 FC 0000000>MOV DWORD PTR SS:\[EBP-4\],0
-00CCB551    FF15 D4A4CF00   CALL DWORD PTR DS:\[<&KERNEL32.DebugBreak>; kernel32.DebugBreak
-
+004D31B3   .  6A 00         PUSH 0                        ; /Title = NULL
+004D31B5   .  68 28A3D000  PUSH Uedit32.00D0A328          ; |Class = "UEDIT32"
+004D31BA   .  FFD7          CALL EDI                      ; \FindWindowA
+004D31BC   .  8985 C8B3FFFF MOV DWORD PTR SS:[EBP+FFFFB3C8],EAX
+004D31C2   .  8B83 20040000 MOV EAX,DWORD PTR DS:[EBX+420]
+004D31C8   .  85C0          TEST EAX,EAX
+004D31CA   .  74 5B         JE SHORT Uedit32.004D3227
 ```
 
-就是在 kernel32.DebugBreak 函数里调用失败，而导致程序不可忽略的异常的。这个函数是进入调试模式。  
-\[CODE\]  
-看来一旦用户有所操作，它就要调用此函数，从而导致错误。  
-好好复杂呀！不知道把这个函数搞掉后，会是怎样？根据它这情况，它肯定还有别的保护点。  
-我投降了![](img/cb6288ad81b189b02921e98a92da6abe.jpg "124.gif")今天的工作就到此为止吧。  
-\===========================================  
-    好家伙，这用了多少反调试的手段呀！虽然没有成功，但是通过破解它，倒是让人学习了很多知识。也让我第一次在逆向跟踪里碰了个钉子。或许碰见狠角色了，心有未甘，我怀着虐人的心理，加载了我机器上试用版的 WinRAR.exe，结果我大吃一惊![](img/c1376e2bd59b6be48d07a70822c7e47d.jpg "伤心")，这代码怎么和 UEDIT32 的一样啊。  
-    看来，这反调试功能是一个公司的产品，两款软件都采用了这一种反调试模块了。  
-    这要是搞掉它，就搞掉一大片啊！  
-    到网上一搜，这个版本的 UEDIT32 和 WinRAR 都有破解版的了。真是人外有人啊！由衷感叹。路漫漫其修远兮，吾将上下而求索。  
-    诸位兄弟有没有对此保护方式有什么认识的，请不吝赐教几句，让吾辈有醍醐灌顶之感，岂不美哉？
+它用`FindWindowA`来获取`UEDIT32`的窗口，可是如果使用`OD`加载的话，此时还未将窗口生成出来。所以获取失败，后面用此窗口句柄做一些事，当然会导致执行异常。这一措施又是它对破解防护的一个手段！
+
+5、加载的方式程序执行过不去，再看看附加的方式。我把文件中的代码改了一下，意图破坏它的时间校验，执行起来却发生出错。说明它还有“程序代码完整性校验”。没办法，只有等运行起来后再改了。注意，`OllyDBG`附加上后，立即让其处于运行状态，再去改时间校验代码。否则，因为改代码而暂停程序，会让其所有线程进入等待“死锁”而被挂起。
+
+6、这回一些防破解保护应该都去掉了吧！点处`Uedit32`的注册码输入窗口试试看吧！怀着一颗紧张而低调的心情，将本模块中所有调用“`GetWindowstextA`”的函数都设上了断点。然而，郁闷的事情发生了![](img/9b2aec7f3d4bb041b2d419a59832192f.jpg "恐怖!")，程序执行到了这里：
+
+```
+75D51949 >  8BFF          MOV EDI,EDI
+75D5194B     CC            INT3
+75D5194C     C3            RETN
+```
+
+正常的程序中怎么还有`INT3`命令呢？很惊奇。这个`INT3`激活了`OD`的暂停程序功能。但是`F9`运行后，程序就出错了。
+
+7、查看堆栈，根据返回地址，找到了这段代码：
+
+
+
+### 反汇编代码
+
+```
+00CCB510    55               PUSH EBP
+00CCB511    8BEC             MOV EBP,ESP
+00CCB513    6A FE            PUSH -2
+00CCB515    68 C083EB00      PUSH Uedit32.00EB83C0
+00CCB51A    68 F0BFAB00      PUSH Uedit32.00ABBFF0
+00CCB51F    64:A1 00000000   MOV EAX,DWORD PTR FS:[0]
+00CCB525    50               PUSH EAX
+00CCB526    83C4 F0          ADD ESP,-10
+00CCB529    53               PUSH EBX
+00CCB52A    56               PUSH ESI
+00CCB52B    57               PUSH EDI
+00CCB52C    A1 B45C0101      MOV EAX,DWORD PTR DS:[1015CB4]
+00CCB531    3145 F8          XOR DWORD PTR SS:[EBP-8],EAX
+00CCB534    33C5             XOR EAX,EBP
+00CCB536    50               PUSH EAX
+00CCB537    8D45 F0          LEA EAX,DWORD PTR SS:[EBP-10]
+00CCB53A    64:A3 00000000   MOV DWORD PTR FS:[0],EAX
+00CCB540    8965 E8          MOV DWORD PTR SS:[EBP-18],ESP
+00CCB543    C745 E4 0100000> MOV DWORD PTR SS:[EBP-1C],1
+00CCB54A    C745 FC 0000000> MOV DWORD PTR SS:[EBP-4],0
+00CCB551    FF15 D4A4CF00    CALL DWORD PTR DS:[<&KERNEL32.DebugBreak>]; kernel32.DebugBreak
+```
+
+就是在 `kernel32.DebugBreak` 函数里调用失败，而导致程序不可忽略的异常的。这个函数是进入调试模式。
+
+`[CODE]`
+
+看来一旦用户有所操作，它就要调用此函数，从而导致错误。
+
+好好复杂呀！不知道把这个函数搞掉后，会是怎样？根据它这情况，它肯定还有别的保护点。
+
+我投降了![](img/cb6288ad81b189b02921e98a92da6abe.jpg "124.gif") 今天的工作就到此为止吧。
+
+### 反调试手段分析
+
+好家伙，这用了多少反调试的手段呀！虽然没有成功，但是通过破解它，倒是让人学习了很多知识。也让我第一次在逆向跟踪里碰了个钉子。或许碰见狠角色了，心有未甘，我怀着虐人的心理，加载了我机器上试用版的 `WinRAR.exe`，结果我大吃一惊![](img/c1376e2bd59b6be48d07a70822c7e47d.jpg "伤心")，这代码怎么和 `UEDIT32` 的一样啊。
+
+看来，这反调试功能是一个公司的产品，两款软件都采用了这一种反调试模块了。
+
+这要是搞掉它，就搞掉一大片啊！
+
+到网上一搜，这个版本的 `UEDIT32` 和 `WinRAR` 都有破解版的了。真是人外有人啊！由衷感叹。路漫漫其修远兮，吾将上下而求索。
+
+诸位兄弟有没有对此保护方式有什么认识的，请不吝赐教几句，让吾辈有醍醐灌顶之感，岂不美哉？

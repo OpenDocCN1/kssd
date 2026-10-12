@@ -1,51 +1,36 @@
 
-
-# what programming language should I learn
+# What Programming Language Should I Learn
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6567.htm`](https://www.pediy.com/kssd/pediy06/pediy6567.htm)
 
-原文：（来自 Reverse-Engineering-Community）  
-  
-If youre wanting to learn cracking, you must understand fundamental concepts of programming,  
- and machine architecture, and possess a good working knowledge of the operating system youre   
-working with. If you dont have all three, chances are youre not really going to progress much.   
-If you have some programming experience, then this generally helps, depending on the language.  
- But many newbies decide they want to instantly become crackers without any programming   
-experience. Do yourself a favour, and learn how to program first    
-  
-I am often asked by people, what is the best programming language to learn ? The answer to   
-this is never clear cut, as it depends on what your ultimate aims are. A good knowledge of  
- Assembly language is a great help in reversing, but many people are able to crack well without  
- necessarily being able to program in assembly. As long as you can fully understand the flow   
-and effects of the instructions, this is often enough.   
-  
-Additionally, you might want to consider learning a higher level language such as C. The web  
- is infested with programming tutorials, do a web search. Also, Borland (http://www.borland.com)   
-produce a free C compiler (http://www.borland.com/bcppbuilder/freecompiler/). LCC is another  
- alternative which I use personally. Knowing C will allow you to quickly produce keygens, patches  
- and any other tools you need to complete a crack, although a good assembly coder is able to produce   
-these in about the same time scale.   
-Knowing a language like C will also aid you in studying disassembly. Various compilers produce  
- different object code, and you can often tell what compiler was used, just by studying the  
- generated opcodes. Although this is less of an issue as you can use IDA flirt recognition to  
- identify the compiler too.   
-  
-High level languages such as Visual Basic are not really much of a benefit to your cracking  
- adventures. Although you can produce equivalent tools in VB, if youre writing a complex keygen,   
-and its not quite write, you lose the ability somehwat to study the disassembly to see where exactly   
-its going wrong.   
-  
-So to summarise, if youre not technically minded, learn C, otherwise immerse yourself in assembly language.  
- But then if youre not technically minded, why are you even wanting to become a cracker ?   
-  
-译文：  
-   如果你想学习 crack,你必须懂得编程的基本原理，体系结构，并且掌握你所用的操作系统的工作原理。如果你不具有以上三点，你不可能进行得很深入。如果你具有一些编程的经验，是非常有帮助的。但是一些新手并没有编程的经验，却想迅速成为 crackers。还是首先学习编程吧。。。  
-    别人经常问到我，该学什么编程语言。这个回答并不固定，它取决于你最终的目标。良好的汇编知识对于 reversing 是非常有帮助的，但是一些人可以不会汇编编程而进行 crack。只要你完全理解程序流程和指令的意义，就足够了。  
-    此外，你应该考虑学习一门高级语言，比如:C。有许多编程指南的站点，可以搜索一下。Borland(http://www.borland.com) 开发了一个自由的 C 编译器(http://www.borland.com/bcppbuilder/freecompiler/),LCC 也是我经常用到的另一个编译器。掌握 C 可以让你很快的写出注册机、打补丁而了解其它你需要的工具就可以完成 crack 了，尽管一名优秀的汇编程序员在相同的时间内可以完成这些工作。  
-    了解 C 语言也可以帮助你学校汇编语言。不同的编译器产生不同的目标代码，你可以通过对产生的操作码的学习，而知道用的是哪种编译器。尽管你也可以通过 IDA 来确定。  
-    高级语言，比如 VB,对于你的 crack 之旅并没有太多的益处，尽管可以用 VB 写出相同的工具，但对于一个复杂的注册机，用 VB 并不好写，你失去了学习反汇编的能力，而学习反汇编可以让你看到发生了错误的准确位置。  
-    综上所述，如果你没有技术头脑，学习 C，否则，学习汇编语言，但是，如果没有技术头脑，为什么要成为一个 cracker 呢？  
-  
-（翻译的可能有点生硬，请指教）. 
+原文：（来自 `Reverse-Engineering-Community`）
 
- 4dd466d0e1e0cc123afbe504da2462ca
+If you're wanting to learn cracking, you must understand fundamental concepts of programming, and machine architecture, and possess a good working knowledge of the operating system you're working with. If you don't have all three, chances are you're not really going to progress much. If you have some programming experience, then this generally helps, depending on the language. But many newbies decide they want to instantly become crackers without any programming experience. Do yourself a favour, and learn how to program first.
+
+I am often asked by people, what is the best programming language to learn? The answer to this is never clear cut, as it depends on what your ultimate aims are. A good knowledge of `Assembly` language is a great help in reversing, but many people are able to crack well without necessarily being able to program in assembly. As long as you can fully understand the flow and effects of the instructions, this is often enough.
+
+Additionally, you might want to consider learning a higher level language such as `C`. The web is infested with programming tutorials, do a web search. Also, `Borland` (`http://www.borland.com`) produce a free `C` compiler (`http://www.borland.com/bcppbuilder/freecompiler/`). `LCC` is another alternative which I use personally. Knowing `C` will allow you to quickly produce keygens, patches and any other tools you need to complete a crack, although a good assembly coder is able to produce these in about the same time scale.
+
+Knowing a language like `C` will also aid you in studying disassembly. Various compilers produce different object code, and you can often tell what compiler was used, just by studying the generated opcodes. Although this is less of an issue as you can use `IDA flirt` recognition to identify the compiler too.
+
+High level languages such as `Visual Basic` are not really much of a benefit to your cracking adventures. Although you can produce equivalent tools in `VB`, if you're writing a complex keygen, and it's not quite right, you lose the ability somewhat to study the disassembly to see where exactly it's going wrong.
+
+So to summarise, if you're not technically minded, learn `C`, otherwise immerse yourself in `Assembly` language. But then if you're not technically minded, why are you even wanting to become a cracker?
+
+译文：
+
+如果你想学习 `crack`，你必须懂得编程的基本原理，体系结构，并且掌握你所用的操作系统的工作原理。如果你不具有以上三点，你不可能进行得很深入。如果你具有一些编程的经验，是非常有帮助的。但是一些新手并没有编程的经验，却想迅速成为 `crackers`。还是首先学习编程吧。。。
+
+别人经常问到我，该学什么编程语言。这个回答并不固定，它取决于你最终的目标。良好的 `Assembly` 知识对于 `reversing` 是非常有帮助的，但是一些人可以不会汇编编程而进行 `crack`。只要你完全理解程序流程和指令的意义，就足够了。
+
+此外，你应该考虑学习一门高级语言，比如:`C`。有许多编程指南的站点，可以搜索一下。`Borland` (`http://www.borland.com`) 开发了一个自由的 `C` 编译器 (`http://www.borland.com/bcppbuilder/freecompiler/`), `LCC` 也是我经常用到的另一个编译器。掌握 `C` 可以让你很快的写出注册机、打补丁而了解其它你需要的工具就可以完成 `crack` 了，尽管一名优秀的汇编程序员在相同的时间内可以完成这些工作。
+
+了解 `C` 语言也可以帮助你学校汇编语言。不同的编译器产生不同的目标代码，你可以通过对产生的操作码的学习，而知道用的是哪种编译器。尽管你也可以通过 `IDA` 来确定。
+
+高级语言，比如 `VB`,对于你的 `crack` 之旅并没有太多的益处，尽管可以用 `VB` 写出相同的工具，但对于一个复杂的注册机，用 `VB` 并不好写，你失去了学习反汇编的能力，而学习反汇编可以让你看到发生了错误的准确位置。
+
+综上所述，如果你没有技术头脑，学习 `C`，否则，学习 `Assembly` 语言，但是，如果没有技术头脑，为什么要成为一个 `cracker` 呢？
+
+（翻译的可能有点生硬，请指教）
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,5 +1,4 @@
 
-
 # intel 汇编指令格式学习
 
 > 原文：[`www.pediy.com/kssd/pediy12/130429.html`](https://www.pediy.com/kssd/pediy12/130429.html)
@@ -8,5 +7,5 @@
 谢谢论坛高手的无私分享，自己小菜一个，只是学习笔记，欢迎高手指导！
 
 上传的附件
-| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || intel 汇编指令格式学习.rar  
- |
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || intel 汇编指令格式学习.rar |

@@ -1,164 +1,171 @@
 
-
-# 多层壳与 Anti-ImportREC 
+# 多层壳与 Anti-ImportREC
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6735.htm`](https://www.pediy.com/kssd/pediy06/pediy6735.htm)
 
-\[原创\]多层壳与 Anti-ImportREC  
-  
-作者：lordor  
-软件：字模 III　V2.52  
-  
-  
-说明：  
-很长时间没破东西了，更别说写破文了，对于 PE 文件格式都忘记得差不多了，趁手里的刀还未生锈，写了这一篇文章，如果任何错误或建议请  
-  
-让我知道。  
-  
-这个软件是加了 ASpack 的壳，为了防止 aspack 的自动脱壳机，所以又加了一个老罗的 Crypto V1.0（EXE 文件加密码的工具）所带的壳，很奇怪  
-  
-，没有看到 Crypto 的输入密码框，可能是作者屏蔽掉了。  
-  
-  
-  
-ZimoIII.<>MOV EAX,DWORD PTR SS:\[ESP\]               ＝＝＞载入程序停在这  
-006208F4  AND EAX,FFFF0000  
-006208F9  CMP DWORD PTR DS:\[EAX\],905A4D  
-006208FF  JE SHORT ZimoIII.00620908  
-00620901  SUB EAX,1000  
-00620906  JMP SHORT ZimoIII.006208F9  
-00620908  PUSH EBP  
-00620909  PUSH EBX  
-0062090A  PUSH ESI  
-0062090B  PUSH EDI  
-0062090C  MOV EBP,EAX  
-0062090E  ADD EAX,DWORD PTR DS:\[EAX+3C\]  
-  
-老罗这个外壳极短，往下找找，  
-  
-  
-00620CD0  OR EAX,EAX  
-00620CD2  JNZ SHORT ZimoIII.00620CE7  
-00620CD4  MOV EAX,ZimoIII.006208D1  
-00620CD9  PUSH EAX  
-00620CDA  PUSH EAX  
-00620CDB  CALL DWORD PTR DS:\[620420\]  
-00620CE1  CALL DWORD PTR DS:\[620424\]  
-00620CE7  JMP SHORT ZimoIII.00620CA9  
-00620CE9  PUSH DWORD PTR DS:\[620004\]  
-00620CEF  CALL DWORD PTR DS:\[620410\]  
-00620CF5  PUSH DWORD PTR DS:\[620000\]  
-00620CFB  CALL DWORD PTR DS:\[620410\]  
-00620D01  CMP BYTE PTR DS:\[62089C\],0  
-00620D08  JE SHORT ZimoIII.00620D11  
-00620D0A  MOV EAX,ZimoIII.0061D001  
-00620D0F  JMP EAX  ＝＝＞这里跳往下一层壳了  
-  
-也可以用 tc eip<00620000 走到下一层壳。  
-  
-来到这  
-  
-0061D001  PUSHAD    ＝＝＞来到这  
-0061D002  CALL ZimoIII.0061D00A  
-0061D007  JMP 45BED4F7  
-0061D00C  PUSH EBP  
-0061D00D  RETN  
-0061D00E  CALL ZimoIII.0061D014  
-  
-  
-在上面的 pushad 后，运用 esp 定律，可以快速到达 OEP 处  
-  
-00401000  JMP SHORT ZimoIII.00401012　　＝＝＞OEP 入口  
-00401002  BOUND DI,DWORD PTR DS:\[EDX\]  
-00401005  INC EBX  
-00401006  SUB EBP,DWORD PTR DS:\[EBX\]  
-00401008  DEC EAX  
-00401009  DEC EDI  
-0040100A  DEC EDI  
-0040100B  DEC EBX  
-0040100C  NOP  
-0040100D  JMP 0092F64A  
-00401012  MOV EAX,DWORD PTR DS:\[52E62B\]  
-00401017  SHL EAX,2  
-0040101A  MOV DWORD PTR DS:\[52E62F\],EAX  
-0040101F  PUSH EDX  
-00401020  PUSH 0  
-00401022  CALL ZimoIII.0052C92C                                               ; JMP to kernel32.GetModuleHandleA  
-00401027  MOV EDX,EAX  
-00401029  CALL ZimoIII.00508FB0  
-0040102E  POP EDX  
-0040102F  CALL ZimoIII.00508F14  
-  
-  
-到了上面 OEP 后，可以 dump 程序了。  
-  
-上面的步骤都很简单，然后来到修复 iat 了，这里费了我不少时间。  
-  
-  
-运行 ImportREC1.42＋，填入 oep,查找 iat,然后 fixdump,运行一下修复后的程序，会看到显示程序初始化失败云云。  
-  
-  
-嘿嘿，不知这是 ImportREC 的 bug，还是 anti 所致。  
-  
-用 ollydbg 载入程序，来到 oep 后，我们得看看 iat 表，看有什么不当的地方。  
-  
-找到调用 api 的地方，如  
-00401000  JMP SHORT ZimoIII.00401012  
-00401002  BOUND DI,DWORD PTR DS:\[EDX\]  
-00401005  INC EBX  
-00401006  SUB EBP,DWORD PTR DS:\[EBX\]  
-00401008  DEC EAX  
-00401009  DEC EDI  
-0040100A  DEC EDI  
-0040100B  DEC EBX  
-0040100C  NOP  
-0040100D  JMP 0092F64A  
-00401012  MOV EAX,DWORD PTR DS:\[52E62B\]  
-00401017  SHL EAX,2  
-0040101A  MOV DWORD PTR DS:\[52E62F\],EAX  
-0040101F  PUSH EDX  
-00401020  PUSH 0  
-00401022  CALL ZimoIII.0052C92C                                               ; JMP to kernel32.GetModuleHandleA  
-00401027  MOV EDX,EAX  
-00401029  CALL ZimoIII.00508FB0  
-  
-我们在 00401022 处双击，进入 iat 表所在的调用位置，找到  
-0052C6B8  JMP DWORD PTR DS:\[5471D0\]                                           ; dllmatri.@Matrix@$bctr$qxpucxulxuixui  
-0052C6BE  JMP DWORD PTR DS:\[5471D4\]                                           ; dllmatri.@Matrix@$bdtr$qv  
-0052C6C4  JMP DWORD PTR DS:\[5471D8\]                                           ; dllmatri.@Matrix@Compress$qv  
-0052C6CA  JMP DWORD PTR DS:\[5471DC\]                                           ; dllmatri.@Matrix@CreativeOutData$qv  
-0052C6D0  JMP DWORD PTR DS:\[5471E0\]                                           ; dllmatri.@Matrix@DoColorMode$quc  
-0052C6D6  JMP DWORD PTR DS:\[5471E4\]                                           ; dllmatri.@Matrix@DoColorMode$qv  
-0052C6DC  JMP DWORD PTR DS:\[5471E8\]                                           ; dllmatri.@Matrix@GetBuffPoint$xqv  
-0052C6E2  JMP DWORD PTR DS:\[5471EC\]                                           ; dllmatri.@Matrix@GetBuffSize$xqv  
-0052C6E8  JMP DWORD PTR DS:\[5471F0\]                                           ; dllmatri.@Matrix@GetColorBuffSize$xqv  
-0052C6EE  JMP DWORD PTR DS:\[5471F4\]                                           ; dllmatri.@Matrix@GetCompressBuffPoint$xqv  
-0052C6F4  JMP DWORD PTR DS:\[5471F8\]                                           ; dllmatri.@Matrix@GetCompressBuffSize$xqv  
-0052C6FA  JMP DWORD PTR DS:\[5471FC\]                                           ; dllmatri.@Matrix@GetPalletBuffPoint$xqv  
-0052C700  JMP DWORD PTR DS:\[547200\]                                           ; dllmatri.@Matrix@GetPalletBuffSize$xqv  
-0052C706  JMP DWORD PTR DS:\[547204\]                                           ; dllmatri.@Matrix@SetOperation$qucucucpv  
-0052C70C  JMP DWORD PTR DS:\[547208\]                                           ; dllmatri.@Matrix@GetColorBuffPoint$xqv  
-0052C712  INT3  
-0052C713  INT3  
-0052C714  JMP DWORD PTR DS:\[547268\]                                           ; bmpchgdl.@PicChg@$bctr$qpuculuiuiuc  
-0052C71A  JMP DWORD PTR DS:\[54726C\]                                           ; bmpchgdl.@PicChg@$bdtr$qv  
-0052C720  JMP DWORD PTR DS:\[547270\]                                           ; bmpchgdl.@PicChg@$brlsh$qxuc  
-0052C726  JMP DWORD PTR DS:\[547274\]                                           ; bmpchgdl.@PicChg@$brrsh$qxuc  
-0052C72C  JMP DWORD PTR DS:\[547278\]                                           ; bmpchgdl.@PicChg@DeleteAllSpace$qv  
-0052C732  JMP DWORD PTR DS:\[54727C\]                                           ; bmpchgdl.@PicChg@ExtendToDown$quc  
-0052C738  JMP DWORD PTR DS:\[547280\]                                           ; bmpchgdl.@PicChg@ExtendToRight$quc  
-0052C73E  JMP DWORD PTR DS:\[547284\]                                           ; bmpchgdl.@PicChg@GetHeight$xqv  
-  
-可以看到这中间存在 int3,不知是不是因为这些 int3 引起 ImportREC 自动查找到的 iat 不正常？  
-还是手动填入 iat 的 rva 吧：  
-iat rva:5471d0-40000=1471d0,长度可以选用 1000，然后点 getimport,把无效的全部 cut 掉。再 fixdump 即可以修复成功。  
-  
-总结：  
-很简单的东西，有时脱东西，不要总是相信工具软件。多有大脑思考。  
-  
-by lordor  
-04.11.15
+**\[原创\]多层壳与 Anti-ImportREC**
 
-不是 imp 的问题，bc 的程序都是这样的，要自己填用地址和大小的  
+作者：`lordor`
 
- 4dd466d0e1e0cc123afbe504da2462ca
+软件：`字模 III V2.52`
+
+说明：
+
+很长时间没破东西了，更别说写破文了，对于 `PE` 文件格式都忘记得差不多了，趁手里的刀还未生锈，写了这一篇文章，如果任何错误或建议请让我知道。
+
+这个软件是加了 `ASpack` 的壳，为了防止 `aspack` 的自动脱壳机，所以又加了一个老罗的 `Crypto V1.0`（`EXE` 文件加密码的工具）所带的壳，很奇怪，没有看到 `Crypto` 的输入密码框，可能是作者屏蔽掉了。
+
+```
+ZimoIII.<>MOV EAX,DWORD PTR SS:[ESP]          ＝＝＞载入程序停在这
+006208F4  AND EAX,FFFF0000
+006208F9  CMP DWORD PTR DS:[EAX],905A4D
+006208FF  JE SHORT ZimoIII.00620908
+00620901  SUB EAX,1000
+00620906  JMP SHORT ZimoIII.006208F9
+00620908  PUSH EBP
+00620909  PUSH EBX
+0062090A  PUSH ESI
+0062090B  PUSH EDI
+0062090C  MOV EBP,EAX
+0062090E  ADD EAX,DWORD PTR DS:[EAX+3C]
+```
+
+老罗这个外壳极短，往下找找，
+
+```
+00620CD0  OR EAX,EAX
+00620CD2  JNZ SHORT ZimoIII.00620CE7
+00620CD4  MOV EAX,ZimoIII.006208D1
+00620CD9  PUSH EAX
+00620CDA  PUSH EAX
+00620CDB  CALL DWORD PTR DS:[620420]
+00620CE1  CALL DWORD PTR DS:[620424]
+00620CE7  JMP SHORT ZimoIII.00620CA9
+00620CE9  PUSH DWORD PTR DS:[620004]
+00620CEF  CALL DWORD PTR DS:[620410]
+00620CF5  PUSH DWORD PTR DS:[620000]
+00620CFB  CALL DWORD PTR DS:[620410]
+00620D01  CMP BYTE PTR DS:[62089C],0
+00620D08  JE SHORT ZimoIII.00620D11
+00620D0A  MOV EAX,ZimoIII.0061D001
+00620D0F  JMP EAX  ＝＝＞这里跳往下一层壳了
+```
+
+也可以用 `tc eip<00620000` 走到下一层壳。
+
+来到这
+
+```
+0061D001  PUSHAD    ＝＝＞来到这
+0061D002  CALL ZimoIII.0061D00A
+0061D007  JMP 45BED4F7
+0061D00C  PUSH EBP
+0061D00D  RETN
+0061D00E  CALL ZimoIII.0061D014
+```
+
+在上面的 `pushad` 后，运用 `esp` 定律，可以快速到达 `OEP` 处
+
+```
+00401000  JMP SHORT ZimoIII.00401012      ＝＝＞OEP 入口
+00401002  BOUND DI,DWORD PTR DS:[EDX]
+00401005  INC EBX
+00401006  SUB EBP,DWORD PTR DS:[EBX]
+00401008  DEC EAX
+00401009  DEC EDI
+0040100A  DEC EDI
+0040100B  DEC EBX
+0040100C  NOP
+0040100D  JMP 0092F64A
+00401012  MOV EAX,DWORD PTR DS:[52E62B]
+00401017  SHL EAX,2
+0040101A  MOV DWORD PTR DS:[52E62F],EAX
+0040101F  PUSH EDX
+00401020  PUSH 0
+00401022  CALL ZimoIII.0052C92C          ; JMP to kernel32.GetModuleHandleA
+00401027  MOV EDX,EAX
+00401029  CALL ZimoIII.00508FB0
+0040102E  POP EDX
+0040102F  CALL ZimoIII.00508F14
+```
+
+到了上面 `OEP` 后，可以 `dump` 程序了。
+
+上面的步骤都很简单，然后来到修复 `iat` 了，这里费了我不少时间。
+
+运行 `ImportREC1.42＋`，填入 `oep`，查找 `iat`，然后 `fixdump`，运行一下修复后的程序，会看到显示程序初始化失败云云。
+
+嘿嘿，不知这是 `ImportREC` 的 `bug`，还是 `anti` 所致。
+
+用 `ollydbg` 载入程序，来到 `oep` 后，我们得看看 `iat` 表，看有什么不当的地方。
+
+找到调用 `api` 的地方，如
+
+```
+00401000  JMP SHORT ZimoIII.00401012
+00401002  BOUND DI,DWORD PTR DS:[EDX]
+00401005  INC EBX
+00401006  SUB EBP,DWORD PTR DS:[EBX]
+00401008  DEC EAX
+00401009  DEC EDI
+0040100A  DEC EDI
+0040100B  DEC EBX
+0040100C  NOP
+0040100D  JMP 0092F64A
+00401012  MOV EAX,DWORD PTR DS:[52E62B]
+00401017  SHL EAX,2
+0040101A  MOV DWORD PTR DS:[52E62F],EAX
+0040101F  PUSH EDX
+00401020  PUSH 0
+00401022  CALL ZimoIII.0052C92C          ; JMP to kernel32.GetModuleHandleA
+00401027  MOV EDX,EAX
+00401029  CALL ZimoIII.00508FB0
+```
+
+我们在 `00401022` 处双击，进入 `iat` 表所在的调用位置，找到
+
+```
+0052C6B8  JMP DWORD PTR DS:[5471D0]      ; dllmatri.@Matrix@$bctr$qxpucxulxuixui
+0052C6BE  JMP DWORD PTR DS:[5471D4]      ; dllmatri.@Matrix@$bdtr$qv
+0052C6C4  JMP DWORD PTR DS:[5471D8]      ; dllmatri.@Matrix@Compress$qv
+0052C6CA  JMP DWORD PTR DS:[5471DC]      ; dllmatri.@Matrix@CreativeOutData$qv
+0052C6D0  JMP DWORD PTR DS:[5471E0]      ; dllmatri.@Matrix@DoColorMode$quc
+0052C6D6  JMP DWORD PTR DS:[5471E4]      ; dllmatri.@Matrix@DoColorMode$qv
+0052C6DC  JMP DWORD PTR DS:[5471E8]      ; dllmatri.@Matrix@GetBuffPoint$xqv
+0052C6E2  JMP DWORD PTR DS:[5471EC]      ; dllmatri.@Matrix@GetBuffSize$xqv
+0052C6E8  JMP DWORD PTR DS:[5471F0]      ; dllmatri.@Matrix@GetColorBuffSize$xqv
+0052C6EE  JMP DWORD PTR DS:[5471F4]      ; dllmatri.@Matrix@GetCompressBuffPoint$xqv
+0052C6F4  JMP DWORD PTR DS:[5471F8]      ; dllmatri.@Matrix@GetCompressBuffSize$xqv
+0052C6FA  JMP DWORD PTR DS:[5471FC]      ; dllmatri.@Matrix@GetPalletBuffPoint$xqv
+0052C700  JMP DWORD PTR DS:[547200]      ; dllmatri.@Matrix@GetPalletBuffSize$xqv
+0052C706  JMP DWORD PTR DS:[547204]      ; dllmatri.@Matrix@SetOperation$qucucucpv
+0052C70C  JMP DWORD PTR DS:[547208]      ; dllmatri.@Matrix@GetColorBuffPoint$xqv
+0052C712  INT3
+0052C713  INT3
+0052C714  JMP DWORD PTR DS:[547268]      ; bmpchgdl.@PicChg@$bctr$qpuculuiuiuc
+0052C71A  JMP DWORD PTR DS:[54726C]      ; bmpchgdl.@PicChg@$bdtr$qv
+0052C720  JMP DWORD PTR DS:[547270]      ; bmpchgdl.@PicChg@$brlsh$qxuc
+0052C726  JMP DWORD PTR DS:[547274]      ; bmpchgdl.@PicChg@$brrsh$qxuc
+0052C72C  JMP DWORD PTR DS:[547278]      ; bmpchgdl.@PicChg@DeleteAllSpace$qv
+0052C732  JMP DWORD PTR DS:[54727C]      ; bmpchgdl.@PicChg@ExtendToDown$quc
+0052C738  JMP DWORD PTR DS:[547280]      ; bmpchgdl.@PicChg@ExtendToRight$quc
+0052C73E  JMP DWORD PTR DS:[547284]      ; bmpchgdl.@PicChg@GetHeight$xqv
+```
+
+可以看到这中间存在 `int3`，不知是不是因为这些 `int3` 引起 `ImportREC` 自动查找到的 `iat` 不正常？
+
+还是手动填入 `iat` 的 `rva` 吧：
+
+`iat rva:5471d0-40000=1471d0`，长度可以选用 `1000`，然后点 `getimport`，把无效的全部 `cut` 掉。再 `fixdump` 即可以修复成功。
+
+### 总结
+
+很简单的东西，有时脱东西，不要总是相信工具软件。多有大脑思考。
+
+`by lordor`
+
+`04.11.15`
+
+不是 `imp` 的问题，`bc` 的程序都是这样的，要自己填用地址和大小的
+
+`4dd466d0e1e0cc123afbe504da2462ca`

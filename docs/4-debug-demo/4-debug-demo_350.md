@@ -1,105 +1,168 @@
 
-
 # Window Commander 4.52
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum777.htm`](https://www.pediy.com/kssd/pediy03/forum777.htm)
 
-tKC 在他的破解教程中几乎每次都提到 WINDOW COMMANDER，而我是属于一形成习惯就难改的那类，最近上网在华军顺手当下来。一使用，效果还真不错“这腰不酸了，腿不疼了，胃也不抽筋了”，在此郑重向大家推荐（如果你没有用过）。   
-  WINDOW COMMANDER 的最新版本是 4.52。它采用 KEYFILE 形式注册，需要在它的目录下有一个 1024 BYTES 的 WINCMD.KEY，注册算法很复杂，（至少我还看不明白）。   
-  
-  在此郑重声明：《论坛精华 II》中有一篇 C-pen 写的 WINDOW COMMAND 4.51 版的破解文章。这篇文章极其有用，我的破解就是完全参照完成的，只是地址不同，简单的写一下过程。   
-  它是用 ASPACK 压的，用 TRW2000 LOAD，下 PNEWSEC，再下 MAKEPE 脱壳；   
-  运行出现 CRC CHECK 的消息框，下 BPX MESSAGEBOXA，拦到：   
-  
-:004EAC4D 8D85E4FDFFFF            lea eax, dword ptr \[ebp+FFFFFDE4\]   
-:004EAC53 E87CF0F1FF              call 00409CD4   
-:004EAC58 50                      push eax   
-:004EAC59 8B45FC                  mov eax, dword ptr \[ebp\-04\]   
-:004EAC5C E8576EF3FF              call 00421AB8   
-:004EAC61 50                      push eax   
-  
-\* Reference To: USER32.MessageBoxA, Ord:0000h  《==   
-                                  |   
-:004EAC62 E8E1ADF1FF              Call 00405A48   
-:004EAC67 6A00                    push 00000000   
-  
-\* Possible Reference to String Resource ID=61536: "Grid index out of range"   
-                                  |   
-:004EAC69 6860F00000              push 0000F060   
-:004EAC6E 6812010000              push 00000112   
-:004EAC73 8B45FC                  mov eax, dword ptr \[ebp\-04\]   
-  
-静态分析，向上找：   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:004EA8B4(C)   
-|   
-:004EA8EC 83E809                  sub eax, 00000009   
-:004EA8EF 0F8438060000            je 004EAF2D   
-:004EA8F5 48                      dec eax   
-:004EA8F6 0F84E4060000            je 004EAFE0   
-:004EA8FC 48                      dec eax   
-:004EA8FD 0F8485060000            je 004EAF88   
-:004EA903 2D36050000              sub eax, 00000536   
-:004EA908 90                      nop   
-:004EA909 90                      nop   
-:004EA90A 90                      nop   
-:004EA90B 90                      nop   
-:004EA90C 90                      nop   
-:004EA90D 90                      nop   
-:004EA90E E962070000              jmp 004EB075   
-  
-（跳转已 NOP 掉）   
-  
-作出 WINCMD.KEY 文件，再下 BPX CREATEFILEA，拦 WINCMD.KEY 的读取，跟到以下两处：   
-:004D902A 8D8560FAFFFF            lea eax, dword ptr \[ebp+FFFFFA60\]   
-:004D9030 8D9570FEFFFF            lea edx, dword ptr \[ebp+FFFFFE70\]   
-  
-\* Possible Reference to String Resource ID=00016: "Specify file type"   
-                                  |   
-:004D9036 B910000000              mov ecx, 00000010   
-:004D903B E8E499F2FF              call 00402A24   
-:004D9040 0F84AE000000            je 004D90F4   
-:004D9046 33DB                    xor ebx, ebx   
-  
-和：   
-  
-  
-:004D9445 8D8560FAFFFF            lea eax, dword ptr \[ebp+FFFFFA60\]   
-:004D944B 8D9560FEFFFF            lea edx, dword ptr \[ebp+FFFFFE60\]   
-  
-\* Possible Reference to String Resource ID=00016: "Specify file type"   
-                                  |   
-:004D9451 B910000000              mov ecx, 00000010   
-:004D9456 E8C995F2FF              call 00402A24   
-:004D945B 7402                    je 004D945F   
-:004D945D 33DB                    xor ebx, ebx   
-  
-这两处比较\[EAX\]和\[EDX\]处内容是否一致，若成功会跳走。我是这样改的：   
-将 EAX 赋值分别改为   
-  
-lea eax, dword ptr \[ebp+FFFFFE70\]   
-。。。。   
-lea eax, dword ptr \[ebp+FFFFFE60\]   
-  
-这样就可以了。   
-  C-pen 提到的暗桩同样存在，就是每执行一项什么功能，WINCOMMANDER 会退出，怎么设断呢？   
-  关键点在这里：它的‘关于’是一个消息框，好了 BE MESSAGEBOXA，点‘关于’，拦下后，一个跳转会到这里   
-  
-  
-:004F3BA1 A198525400              mov eax, dword ptr \[00545298\]   
-:004F3BA6 2DB9230000              sub eax, 000023B9   
-                            〈==改为 XOR EAX，EAX   
-                                      CMP EAX，EAX   
-                                      NOP   
-    
-:004F3BAB 740A                    je 004F3BB7   
-  
-\* Possible Reference to String Resource ID=00001: "Enter file types (e.g. \*.doc;\*.txt)"   
-                                  |   
-:004F3BAD B801000000              mov eax, 00000001   
-:004F3BB2 E84509F1FF              call 004044FC   
-  
-  问题解决了，当然，我不清楚 KEYFILE 的计算注册名是乱码，哪位兄台有兴趣可以追一追。   
-            
-                                      仅以此文献给 C-pen  4dd466d0e1e0cc123afbe504da2462ca
+`KC` 在他的破解教程中几乎每次都提到 `WINDOW COMMANDER`，而我是属于一形成习惯就难改的那类，最近上网在华军顺手当下来。一使用，效果还真不错“这腰不酸了，腿不疼了，胃也不抽筋了”，在此郑重向大家推荐（如果你没有用过）。
+
+`WINDOW COMMANDER` 的最新版本是 `4.52`。它采用 `KEYFILE` 形式注册，需要在它的目录下有一个 `1024 BYTES` 的 `WINCMD.KEY`，注册算法很复杂，（至少我还看不明白）。
+
+在此郑重声明：《论坛精华 II》中有一篇 `C-pen` 写的 `WINDOW COMMAND 4.51` 版的破解文章。这篇文章极其有用，我的破解就是完全参照完成的，只是地址不同，简单的写一下过程。
+
+它是用 `ASPACK` 压的，用 `TRW2000` `LOAD`，下 `PNEWSEC`，再下 `MAKEPE` 脱壳；
+
+运行出现 `CRC CHECK` 的消息框，下 `BPX MESSAGEBOXA`，拦到：
+
+```
+:004EAC4D 8D85E4FDFFFF                 lea eax, dword ptr [ebp+FFFFFDE4]
+
+:004EAC53 E87CF0F1FF                   call 00409CD4
+
+:004EAC58 50                           push eax
+
+:004EAC59 8B45FC                       mov eax, dword ptr [ebp-04]
+
+:004EAC5C E8576EF3FF                   call 00421AB8
+
+:004EAC61 50                           push eax
+
+* Reference To: USER32.MessageBoxA, Ord:0000h  <==
+
+                                          |
+
+:004EAC62 E8E1ADF1FF                   Call 00405A48
+
+:004EAC67 6A00                         push 00000000
+
+* Possible Reference to String Resource ID=61536: "Grid index out of range"
+
+                                          |
+
+:004EAC69 6860F00000                   push 0000F060
+
+:004EAC6E 6812010000                   push 00000112
+
+:004EAC73 8B45FC                       mov eax, dword ptr [ebp-04]
+```
+
+静态分析，向上找：
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004EA8B4(C)
+|
+:004EA8EC 83E809                       sub eax, 00000009
+
+:004EA8EF 0F8438060000                 je 004EAF2D
+
+:004EA8F5 48                           dec eax
+
+:004EA8F6 0F84E4060000                 je 004EAFE0
+
+:004EA8FC 48                           dec eax
+
+:004EA8FD 0F8485060000                 je 004EAF88
+
+:004EA903 2D36050000                   sub eax, 00000536
+
+:004EA908 90                           nop
+
+:004EA909 90                           nop
+
+:004EA90A 90                           nop
+
+:004EA90B 90                           nop
+
+:004EA90C 90                           nop
+
+:004EA90D 90                           nop
+
+:004EA90E E962070000                   jmp 004EB075
+
+（跳转已 NOP 掉）
+```
+
+作出 `WINCMD.KEY` 文件，再下 `BPX CREATEFILEA`，拦 `WINCMD.KEY` 的读取，跟到以下两处：
+
+```
+:004D902A 8D8560FAFFFF                 lea eax, dword ptr [ebp+FFFFFA60]
+
+:004D9030 8D9570FEFFFF                 lea edx, dword ptr [ebp+FFFFFE70]
+
+* Possible Reference to String Resource ID=00016: "Specify file type"
+
+                                          |
+
+:004D9036 B910000000                   mov ecx, 00000010
+
+:004D903B E8E499F2FF                   call 00402A24
+
+:004D9040 0F84AE000000                 je 004D90F4
+
+:004D9046 33DB                         xor ebx, ebx
+```
+
+和：
+
+```
+:004D9445 8D8560FAFFFF                 lea eax, dword ptr [ebp+FFFFFA60]
+
+:004D944B 8D9560FEFFFF                 lea edx, dword ptr [ebp+FFFFFE60]
+
+* Possible Reference to String Resource ID=00016: "Specify file type"
+
+                                          |
+
+:004D9451 B910000000                   mov ecx, 00000010
+
+:004D9456 E8C995F2FF                   call 00402A24
+
+:004D945B 7402                         je 004D945F
+
+:004D945D 33DB                         xor ebx, ebx
+```
+
+这两处比较`[EAX]`和`[EDX]`处内容是否一致，若成功会跳走。我是这样改的：
+
+将 `EAX` 赋值分别改为
+
+```
+lea eax, dword ptr [ebp+FFFFFE70]
+```
+
+和
+
+```
+lea eax, dword ptr [ebp+FFFFFE60]
+```
+
+这样就可以了。
+
+`C-pen` 提到的暗桩同样存在，就是每执行一项什么功能，`WINCOMMANDER` 会退出，怎么设断呢？
+
+关键点在这里：它的‘关于’是一个消息框，好了 `BE MESSAGEBOXA`，点‘关于’，拦下后，一个跳转会到这里
+
+```
+:004F3BA1 A198525400                   mov eax, dword ptr [00545298]
+
+:004F3BA6 2DB9230000                   sub eax, 000023B9
+
+                                    <==改为 XOR EAX，EAX
+                                              CMP EAX，EAX
+                                              NOP
+
+:004F3BAB 740A                         je 004F3BB7
+
+* Possible Reference to String Resource ID=00001: "Enter file types (e.g. *.doc;*.txt)"
+
+                                          |
+
+:004F3BAD B801000000                   mov eax, 00000001
+
+:004F3BB2 E84509F1FF                   call 004044FC
+```
+
+问题解决了，当然，我不清楚 `KEYFILE` 的计算注册名是乱码，哪位兄台有兴趣可以追一追。
+
+仅以此文献给 `C-pen` `4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,397 +1,494 @@
 
-
 # 从逆向工程的角度来看 C++ (三)
 
 > 原文：[`www.pediy.com/kssd/pediy10/87589.html`](https://www.pediy.com/kssd/pediy10/87589.html)
 
-进入本次正题：  
-  
-                           (三)\[  C++ 之 构造与析构  \]  
-  
-//来 CPP:  
-  
-//stack3.h  
-#ifndef STACK\_H\_  
-#define STACK\_H\_  
-  
-class stack  
-{  
-struct link  
-{  
-   void \*data;  
-   link \*next;  
-   void initialize(void \*Data, link \*Next);  
-} \*head;  
-public:  
-   stack();  
-   stack(int);  
-   ~stack();  
-   void push(void \*Data);  
-   void\* peek(void \*Data);  
-   void\* pop();  
-};  
-  
-#endif  
-  
-//stack3.cpp  
-#include <stdlib.h>  
-#include <assert.h>  
-#include <stdio.h>  
-#include "stack3.h"  
-  
-  
-void stack::link::initialize(void \*Data, link \*Next)  
-{  
-data = Data;  
-next = Next;  
-}  
-  
-stack::stack()  
-{  
-printf("stack::stack() called . \\n");  
-head = 0;  
-}  
-stack::stack(int){}  
-  
-void stack::push(void \*Data)  
-{  
-link \*newLink = (link\*)malloc(sizeof(link));  
-assert(newLink);  
-newLink->initialize(Data,head);  
-head = newLink ;  
-}  
-  
-void\* stack::peek(void \*Data){return head->data;}  
-  
-void\* stack::pop()  
-{  
-if (0 == head) return 0;  
-void \*result =head->data;  
-link \*oldHead = head;  
-head = head->next;  
-free(oldHead);  
-return result;  
-}  
-  
-stack::~stack()  
-{  
-printf("stack::~stack() called . \\n");  
-link \*cursor = head;  
-while(head)  
-{  
-   cursor = cursor->next;  
-   free(head);  
-   head = cursor;  
-}  
-}  
-  
-// lesson3.cpp : Defines the entry point for the console application.  
-//  
-  
-//#include "stdafx.h"  
-#include "stack3.h"  
-#include <stdio.h>  
-#include <stdlib.h>  
-#include <string.h>  
-#include <assert.h>  
-  
-#pragma warning(disable:4005)  
-#pragma warning(disable:4700)  
-  
-#define PPATH "c:\\\\test.txt"  
-#define BUFSIZE 100  
-  
-int main(int argc, char\* argv\[\])  
-{  
-\_\_asm int 3  
-assert(2 == argc) ;  
-FILE \*file = fopen(PPATH,"r");  
-assert(file);  
-printf("1\\n");  
-  
-{printf("2\\n"); stack test;   printf("3\\n");}  
-printf("4\\n");  
-printf("sizeof stack :%d",sizeof(stack));  
-  
-char buf\[BUFSIZE\];  
-buf\[9\] += 9 ;   
-stack textline; //Constuctor called.  
-while (fgets(buf,BUFSIZE,file))  
-{  
-   char \*str = (char \*)malloc(strlen(buf)+1);  
-   assert(str);  
-   strcpy(str,buf);  
-   textline.push(str);  
-}  
-//Pop lines from the stack and print them  
-char \*s;  
-while(0 != (s = (char\*)textline.pop()))  
-{  
-   printf("%s",s);  
-   free(s);  
-}  
-buf\[8\] += 8;  
-return 0;  
-} //Destructor called here .  
-  
-////来反汇编:  
-  
-00410BE0 > 55              push ebp  
-00410BE1    8BEC            mov ebp,esp  
-00410BE3    6A FF           push -1  
-00410BE5    68 99594100     push lesson3.00415999  
-00410BEA    64:A1 00000000 mov eax,dword ptr fs:\[0\]  
-00410BF0    50              push eax  
-00410BF1    64:8925 0000000>mov dword ptr fs:\[0\],esp  
-00410BF8    81EC BC000000   sub esp,0BC  
-00410BFE    53              push ebx  
-00410BFF    56              push esi  
-00410C00    57              push edi  
-00410C01    8DBD 38FFFFFF   lea edi,dword ptr ss:\[ebp-C8\]  
-00410C07    B9 2F000000     mov ecx,2F  
-00410C0C    B8 CCCCCCCC     mov eax,CCCCCCCC  
-00410C11    F3:AB           rep stos dword ptr es:\[edi\]  
-00410C13    90              nop  
-00410C14    837D 08 02      cmp dword ptr ss:\[ebp+8\],2                 ; assert (2==argc) 相当于 if(..) 弹错!  
-00410C18    74 1D           je short lesson3.00410C37                  ; 跳过去继续正常执行  
-00410C1A    0FBF05 409C4200 movsx eax,word ptr ds:\[\`main'::\`2'::\_\_LINE>  
-00410C21    83C0 02         add eax,2  
-00410C24    50              push eax                                   ; assert 有三个参数了  
-00410C25    68 94824200     push lesson3.00428294                      ; ASCII "d:\\reverse\\c++\\lesson3\\lesson3.cpp"  
-00410C2A    68 38704200     push lesson3.00427038                      ; ASCII "2 == argc"  
-00410C2F    E8 8C2BFFFF     call lesson3.\_assert  
-00410C34    83C4 0C         add esp,0C                                 ; 恢复堆栈  
-00410C37    68 34704200     push lesson3.00427034  
-00410C3C    68 88824200     push lesson3.00428288                      ; ASCII "c:\\test.txt"  
-00410C41    E8 EA2FFFFF     call lesson3.fopen                         ; fopen  
-00410C46    83C4 08         add esp,8  
-00410C49    8945 F0         mov dword ptr ss:\[ebp-10\],eax              ; 打开后文件的指针  
-00410C4C    837D F0 00      cmp dword ptr ss:\[ebp-10\],0  
-00410C50    75 1D           jnz short lesson3.00410C6F                 ; 不为 NULL 则继续.  
-00410C52    0FBF15 409C4200 movsx edx,word ptr ds:\[\`main'::\`2'::\_\_LINE>  
-00410C59    83C2 04         add edx,4  
-00410C5C    52              push edx  
-00410C5D    68 94824200     push lesson3.00428294                      ; ASCII "d:\\reverse\\c++\\lesson3\\lesson3.cpp"  
-00410C62    68 48824200     push lesson3.00428248                      ; ASCII "file"  
-00410C67    E8 542BFFFF     call lesson3.\_assert  
-00410C6C    83C4 0C         add esp,0C  
-00410C6F    68 30704200     push lesson3.00427030                      ; ASCII "1",LF  
-00410C74    E8 2728FFFF     call lesson3.printf                        ; {的外面打印 1  
-00410C79    83C4 04         add esp,4  
-00410C7C    68 68704200     push lesson3.00427068                      ; ASCII "2",LF  
-00410C81    E8 1A28FFFF     call lesson3.printf                        ; 进去之后打印 2  
-00410C86    83C4 04         add esp,4  
-00410C89    8D4D EC         lea ecx,dword ptr ss:\[ebp-14\]  
-00410C8C    E8 7403FFFF     call lesson3.00401005                      ; 定义类对象时,构造函数执行.  
-00410C91    68 58704200     push lesson3.00427058                      ; ASCII "3",LF  
-00410C96    E8 0528FFFF     call lesson3.printf                        ; }的左边打印 3  
-00410C9B    83C4 04         add esp,4  
-00410C9E    8D4D EC         lea ecx,dword ptr ss:\[ebp-14\]  
-00410CA1    E8 6903FFFF     call lesson3.0040100F                      ; 出}析构了.  
-00410CA6    68 2C704200     push lesson3.0042702C                      ; ASCII "4",LF  
-00410CAB    E8 F027FFFF     call lesson3.printf                        ; 刚出}的时候来打印 4  
-00410CB0    83C4 04         add esp,4  
-00410CB3    6A 04           push 4  
-00410CB5    68 44704200     push lesson3.00427044                      ; ASCII "sizeof stack :%d"  
-00410CBA    E8 E127FFFF     call lesson3.printf  
-00410CBF    83C4 08         add esp,8  
-00410CC2    8A4D 91         mov cl,byte ptr ss:\[ebp-6F\]  
-00410CC5    80C1 09         add cl,9  
-00410CC8    884D 91         mov byte ptr ss:\[ebp-6F\],cl  
-00410CCB    8D4D 84         lea ecx,dword ptr ss:\[ebp-7C\]  
-00410CCE    E8 3203FFFF     call lesson3.00401005                      ; 构造函数  
-00410CD3    C745 FC 0000000>mov dword ptr ss:\[ebp-4\],0  
-00410CDA    8B55 F0         mov edx,dword ptr ss:\[ebp-10\]  
-00410CDD    52              push edx                                   ; 文件句柄.  
-00410CDE    6A 64           push 64                                    ; size  
-00410CE0    8D45 88         lea eax,dword ptr ss:\[ebp-78\]              ; 缓冲区  
-00410CE3    50              push eax  
-00410CE4    E8 A729FFFF     call lesson3.fgets  
-00410CE9    83C4 0C         add esp,0C  
-00410CEC    85C0            test eax,eax  
-00410CEE    74 5C           je short lesson3.00410D4C                  ; fgets 得到空则玩完  
-00410CF0    8D4D 88         lea ecx,dword ptr ss:\[ebp-78\]  
-00410CF3    51              push ecx  
-00410CF4    E8 1729FFFF     call lesson3.strlen  
-00410CF9    83C4 04         add esp,4  
-00410CFC    83C0 01         add eax,1  
-00410CFF    50              push eax  
-00410D00    E8 1B08FFFF     call lesson3.malloc                        ; 申请一段内存放 buff  
-00410D05    83C4 04         add esp,4  
-00410D08    8945 80         mov dword ptr ss:\[ebp-80\],eax  
-00410D0B    837D 80 00      cmp dword ptr ss:\[ebp-80\],0  
-00410D0F    75 1D           jnz short lesson3.00410D2E                 ; 没申请到下面就玩完  
-00410D11    0FBF15 409C4200 movsx edx,word ptr ds:\[\`main'::\`2'::\_\_LINE>  
-00410D18    83C2 11         add edx,11  
-00410D1B    52              push edx  
-00410D1C    68 94824200     push lesson3.00428294                      ; ASCII "d:\\reverse\\c++\\lesson3\\lesson3.cpp"  
-00410D21    68 20704200     push lesson3.00427020                      ; ASCII "str"  
-00410D26    E8 952AFFFF     call lesson3.\_assert  
-00410D2B    83C4 0C         add esp,0C  
-00410D2E    8D4D 88         lea ecx,dword ptr ss:\[ebp-78\]  
-00410D31    51              push ecx  
-00410D32    8B55 80         mov edx,dword ptr ss:\[ebp-80\]  
-00410D35    52              push edx  
-00410D36    E8 E527FFFF     call lesson3.strcpy                        ; 放到缓冲区中  
-00410D3B    83C4 08         add esp,8  
-00410D3E    8B45 80         mov eax,dword ptr ss:\[ebp-80\]  
-00410D41    50              push eax                                   ; 刚刚堆上的字符串  
-00410D42    8D4D 84         lea ecx,dword ptr ss:\[ebp-7C\]              ; this  
-00410D45    E8 DE02FFFF     call lesson3.00401028                      ; 成员函数 stack::push  
-00410D4A ^ EB 8E           jmp short lesson3.00410CDA                 ; 继续循环.  
-00410D4C    8D4D 84         lea ecx,dword ptr ss:\[ebp-7C\]  
-00410D4F    E8 CF02FFFF     call lesson3.00401023                      ; 成员函数.跟了一下发现是 pop  
-00410D54    8985 7CFFFFFF   mov dword ptr ss:\[ebp-84\],eax  
-00410D5A    83BD 7CFFFFFF 0>cmp dword ptr ss:\[ebp-84\],0  
-00410D61    74 25           je short lesson3.00410D88                  ; 为 0 则读完,玩完  
-00410D63    8B8D 7CFFFFFF   mov ecx,dword ptr ss:\[ebp-84\]  
-00410D69    51              push ecx  
-00410D6A    68 1C704200     push lesson3.0042701C                      ; ASCII "%s"  
-00410D6F    E8 2C27FFFF     call lesson3.printf  
-00410D74    83C4 08         add esp,8  
-00410D77    8B95 7CFFFFFF   mov edx,dword ptr ss:\[ebp-84\]              ; char \*s 指针  
-00410D7D    52              push edx  
-00410D7E    E8 1D12FFFF     call lesson3.free                          ; 释放  
-00410D83    83C4 04         add esp,4  
-00410D86 ^ EB C4           jmp short lesson3.00410D4C  
-00410D88    8A45 90         mov al,byte ptr ss:\[ebp-70\]  
-00410D8B    04 08           add al,8  
-00410D8D    8845 90         mov byte ptr ss:\[ebp-70\],al  
-00410D90    C785 78FFFFFF 0>mov dword ptr ss:\[ebp-88\],0  
-00410D9A    C745 FC FFFFFFF>mov dword ptr ss:\[ebp-4\],-1  
-00410DA1    8D4D 84         lea ecx,dword ptr ss:\[ebp-7C\]  
-00410DA4    E8 6602FFFF     call lesson3.0040100F                      ; 调用析构函数.  
-00410DA9    8B85 78FFFFFF   mov eax,dword ptr ss:\[ebp-88\]              ; return 0  
-00410DAF    8B4D F4         mov ecx,dword ptr ss:\[ebp-C\]  
-00410DB2    64:890D 0000000>mov dword ptr fs:\[0\],ecx  
-00410DB9    5F              pop edi                                    ; 00241FE4  
-00410DBA    5E              pop esi  
-00410DBB    5B              pop ebx  
-00410DBC    81C4 C8000000   add esp,0C8  
-00410DC2    3BEC            cmp ebp,esp  
-00410DC4    E8 6732FFFF     call lesson3.\_chkesp                       ; 就是看 ebp esp 了..  
-00410DC9    8BE5            mov esp,ebp  
-00410DCB    5D              pop ebp  
-00410DCC    C3              retn  
-  
-  
-////来看看 Release 版本的:  
-  
-00401000 /$ 55            push ebp  
-00401001 |. 8BEC          mov ebp,esp  
-00401003 |. 6A FF         push -1  
-00401005 |. 68 58744000   push lesson3.00407458                              ; SE 处理程序安装  
-0040100A |. 64:A1 0000000>mov eax,dword ptr fs:\[0\]  
-00401010 |. 50            push eax  
-00401011 |. 64:8925 00000>mov dword ptr fs:\[0\],esp  
-00401018 |. 83EC 6C       sub esp,6C  
-0040101B |. 53            push ebx  
-0040101C |. 56            push esi  
-0040101D |. 90            nop  
-0040101E |. 68 74904000   push lesson3.00409074  
-00401023 |. 68 68904000   push lesson3.00409068                              ; ASCII "c:\\test.txt"  
-00401028 |. E8 A6030000   call lesson3.004013D3  
-0040102D |. 68 64904000   push lesson3.00409064                              ; ASCII "1",LF  
-00401032 |. 8BD8          mov ebx,eax  
-00401034 |. E8 49030000   call lesson3.00401382  
-00401039 |. 68 60904000   push lesson3.00409060                              ; ASCII "2",LF  
-0040103E |. E8 3F030000   call lesson3.00401382  
-00401043 |. 83C4 10       add esp,10  
-00401046 |. 8D4D EC       lea ecx,\[local.5\]  
-00401049 |. E8 22010000   call lesson3.00401170                              ; instructor called  
-0040104E |. 68 5C904000   push lesson3.0040905C                              ; ASCII "3",LF  
-00401053 |. E8 2A030000   call lesson3.00401382  
-00401058 |. 83C4 04       add esp,4  
-0040105B |. 8D4D EC       lea ecx,\[local.5\]  
-0040105E |. E8 7D010000   call lesson3.004011E0                              ; destructor called  
-00401063 |. 68 58904000   push lesson3.00409058                              ; ASCII "4",LF  
-00401068 |. E8 15030000   call lesson3.00401382  
-0040106D |. 6A 04         push 4  
-0040106F |. 68 44904000   push lesson3.00409044                              ; ASCII "sizeof stack :%d"  
-00401074 |. E8 09030000   call lesson3.00401382  
-00401079 |. 8A4D 91       mov cl,byte ptr ss:\[ebp-6F\]  
-0040107C |. 83C4 0C       add esp,0C  
-0040107F |. 80C1 09       add cl,9  
-00401082 |. 884D 91       mov byte ptr ss:\[ebp-6F\],cl  
-00401085 |. 8D4D F0       lea ecx,\[local.4\]  
-00401088 |. E8 E3000000   call lesson3.00401170                              ; instructor  
-0040108D |. 53            push ebx  
-0040108E |. 8D45 88       lea eax,\[local.30\]  
-00401091 |. 6A 64         push 64  
-00401093 |. 50            push eax  
-00401094 |. C745 FC 00000>mov \[local.1\],0  
-0040109B |. E8 8B020000   call lesson3.0040132B                              ; fgets  
-004010A0 |. 83C4 0C       add esp,0C  
-004010A3 |. 85C0          test eax,eax  
-004010A5 |. 74 55         je short lesson3.004010FC  
-004010A7 |. 57            push edi  
-004010A8 |> 8D7D 88       /lea edi,\[local.30\]  
-004010AB |. 83C9 FF       |or ecx,FFFFFFFF  
-004010AE |. 33C0          |xor eax,eax  
-004010B0 |. F2:AE         |repne scas byte ptr es:\[edi\]  
-004010B2 |. F7D1          |not ecx                                           ; 直接把 strlen inline 进来了, 呵呵  
-004010B4 |. 51            |push ecx  
-004010B5 |. E8 BF010000   |call lesson3.00401279                             ; malloc  
-004010BA |. 8BD0          |mov edx,eax  
-004010BC |. 8D7D 88       |lea edi,\[local.30\]  
-004010BF |. 83C9 FF       |or ecx,FFFFFFFF  
-004010C2 |. 33C0          |xor eax,eax  
-004010C4 |. 83C4 04       |add esp,4  
-004010C7 |. F2:AE         |repne scas byte ptr es:\[edi\]  
-004010C9 |. F7D1          |not ecx  
-004010CB |. 2BF9          |sub edi,ecx  
-004010CD |. 52            |push edx  
-004010CE |. 8BC1          |mov eax,ecx  
-004010D0 |. 8BF7          |mov esi,edi  
-004010D2 |. 8BFA          |mov edi,edx  
-004010D4 |. C1E9 02       |shr ecx,2  
-004010D7 |. F3:A5         |rep movs dword ptr es:\[edi\],dword ptr ds:\[esi\]  
-004010D9 |. 8BC8          |mov ecx,eax  
-004010DB |. 83E1 03       |and ecx,3  
-004010DE |. F3:A4         |rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\]      ; strcpy 也融入进来了  
-004010E0 |. 8D4D F0       |lea ecx,\[local.4\]  
-004010E3 |. E8 A8000000   |call lesson3.00401190                             ; push  
-004010E8 |. 53            |push ebx  
-004010E9 |. 8D4D 88       |lea ecx,\[local.30\]  
-004010EC |. 6A 64         |push 64  
-004010EE |. 51            |push ecx  
-004010EF |. E8 37020000   |call lesson3.0040132B                             ; fgets  
-004010F4 |. 83C4 0C       |add esp,0C  
-004010F7 |. 85C0          |test eax,eax  
-004010F9 |.^ 75 AD         \\jnz short lesson3.004010A8  
-004010FB |. 5F            pop edi  
-004010FC |> 8D4D F0       lea ecx,\[local.4\]  
-004010FF |. E8 BC000000   call lesson3.004011C0                              ; pop  
-00401104 |. 8BF0          mov esi,eax  
-00401106 |. 85F6          test esi,esi  
-00401108 |. 74 22         je short lesson3.0040112C  
-0040110A |> 56            /push esi  
-0040110B |. 68 40904000   |push lesson3.00409040                             ; ASCII "%s"  
-00401110 |. E8 6D020000   |call lesson3.00401382                             ; 打印  
-00401115 |. 56            |push esi  
-00401116 |. E8 F5000000   |call lesson3.00401210                             ; free  
-0040111B |. 83C4 0C       |add esp,0C  
-0040111E |. 8D4D F0       |lea ecx,\[local.4\]  
-00401121 |. E8 9A000000   |call lesson3.004011C0                             ; 又是 pop  
-00401126 |. 8BF0          |mov esi,eax  
-00401128 |. 85F6          |test esi,esi  
-0040112A |.^ 75 DE         \\jnz short lesson3.0040110A  
-0040112C |> 8A45 90       mov al,byte ptr ss:\[ebp-70\]  
-0040112F |. 8D4D F0       lea ecx,\[local.4\]  
-00401132 |. 04 08         add al,8  
-00401134 |. C745 FC FFFFF>mov \[local.1\],-1  
-0040113B |. 8845 90       mov byte ptr ss:\[ebp-70\],al  
-0040113E |. E8 9D000000   call lesson3.004011E0                              ; 析构  
-00401143 |. 8B4D F4       mov ecx,\[local.3\]  
-00401146 |. 5E            pop esi  
-00401147 |. 33C0          xor eax,eax  
-00401149 |. 5B            pop ebx  
-0040114A |. 64:890D 00000>mov dword ptr fs:\[0\],ecx  
-00401151 |. 8BE5          mov esp,ebp  
-00401153 |. 5D            pop ebp  
-00401154 \\. C3            retn  
-  
-  
-看来 Release 版本的变化还真是大, 编译器做了很多的优化, 一定要注意.  
-  
-还有注意构造函数与析构函数的执行时机, 构造函数实在对象定义的位置执行的, 析构函数是在离开右边的大括号的时候执行的.
+进入本次正题：
+
+### (三) C++ 之 构造与析构
+
+#### //来 CPP:
+
+**//stack3.h**
+
+```cpp
+#ifndef STACK_H_
+#define STACK_H_
+
+class stack
+{
+    struct link
+    {
+        void *data;
+        link *next;
+        void initialize(void *Data, link *Next);
+    } *head;
+
+public:
+    stack();
+    stack(int);
+    ~stack();
+    void push(void *Data);
+    void* peek(void *Data);
+    void* pop();
+};
+
+#endif
+```
+
+**//stack3.cpp**
+
+```cpp
+#include <stdlib.h>
+#include <assert.h>
+#include <stdio.h>
+#include "stack3.h"
+
+void stack::link::initialize(void *Data, link *Next)
+{
+    data = Data;
+    next = Next;
+}
+
+stack::stack()
+{
+    printf("stack::stack() called . \n");
+    head = 0;
+}
+
+stack::stack(int){}
+
+void stack::push(void *Data)
+{
+    link *newLink = (link*)malloc(sizeof(link));
+    assert(newLink);
+    newLink->initialize(Data, head);
+    head = newLink;
+}
+
+void* stack::peek(void *Data){return head->data;}
+
+void* stack::pop()
+{
+    if (0 == head) return 0;
+    void *result = head->data;
+    link *oldHead = head;
+    head = head->next;
+    free(oldHead);
+    return result;
+}
+
+stack::~stack()
+{
+    printf("stack::~stack() called . \n");
+    link *cursor = head;
+    while(head)
+    {
+        cursor = cursor->next;
+        free(head);
+        head = cursor;
+    }
+}
+```
+
+**// lesson3.cpp : Defines the entry point for the console application.**
+
+```cpp
+//#include "stdafx.h"
+#include "stack3.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+
+#pragma warning(disable:4005)
+#pragma warning(disable:4700)
+
+#define PPATH "c:\\test.txt"
+#define BUFSIZE 100
+
+int main(int argc, char* argv[])
+{
+    __asm int 3
+    assert(2 == argc);
+    FILE *file = fopen(PPATH,"r");
+    assert(file);
+    printf("1\n");
+    {
+        printf("2\n");
+        stack test;
+        printf("3\n");
+    }
+    printf("4\n");
+    printf("sizeof stack :%d",sizeof(stack));
+    char buf[BUFSIZE];
+    buf[9] += 9;
+    stack textline; //Constuctor called.
+    while (fgets(buf,BUFSIZE,file))
+    {
+        char *str = (char *)malloc(strlen(buf)+1);
+        assert(str);
+        strcpy(str,buf);
+        textline.push(str);
+    }
+    //Pop lines from the stack and print them
+    char *s;
+    while(0 != (s = (char*)textline.pop()))
+    {
+        printf("%s",s);
+        free(s);
+    }
+    buf[8] += 8;
+    return 0;
+} //Destructor called here.
+```
+
+#### ////来反汇编:
+
+```asm
+00410BE0 > 55               push ebp
+00410BE1   8BEC             mov ebp,esp
+00410BE3   6A FF            push -1
+00410BE5   68 99594100      push lesson3.00415999
+00410BEA   64:A1 00000000   mov eax,dword ptr fs:[0]
+00410BF0   50               push eax
+00410BF1   64:8925 0000000> mov dword ptr fs:[0],esp
+00410BF8   81EC BC000000    sub esp,0BC
+00410BFE   53               push ebx
+00410BFF   56               push esi
+00410C00   57               push edi
+00410C01   8DBD 38FFFFFF    lea edi,dword ptr ss:[ebp-C8]
+00410C07   B9 2F000000      mov ecx,2F
+00410C0C   B8 CCCCCCCCC     mov eax,CCCCCCCC
+00410C11   F3:AB            rep stos dword ptr es:[edi]
+00410C13   90               nop
+00410C14   837D 08 02       cmp dword ptr ss:[ebp+8],2           ; assert (2==argc) 相当于 if(..) 弹错!
+00410C18   74 1D            je short lesson3.00410C37             ; 跳过去继续正常执行
+00410C1A   0FBF05 409C4200  movsx eax,word ptr ds:[`main'::`2'::__LINE>
+00410C21   83C0 02          add eax,2
+00410C24   50               push eax                               ; assert 有三个参数了
+00410C25   68 94824200      push lesson3.00428294                  ; ASCII "d:\reverse\c++\lesson3\lesson3.cpp"
+00410C2A   68 38704200      push lesson3.00427038                  ; ASCII "2 == argc"
+00410C2F   E8 8C2BFFFF      call lesson3._assert
+00410C34   83C4 0C          add esp,0C                              ; 恢复堆栈
+00410C37   68 34704200      push lesson3.00427034
+00410C3C   68 88824200      push lesson3.00428288                  ; ASCII "c:\test.txt"
+00410C41   E8 EA2FFFFF      call lesson3.fopen                     ; fopen
+00410C46   83C4 08          add esp,8
+00410C49   8945 F0          mov dword ptr ss:[ebp-10],eax           ; 打开后文件的指针
+00410C4C   837D F0 00       cmp dword ptr ss:[ebp-10],0
+00410C50   75 1D            jnz short lesson3.00410C6F              ; 不为 NULL 则继续.
+00410C52   0FBF15 409C4200  movsx edx,word ptr ds:[`main'::`2'::__LINE>
+00410C59   83C2 04          add edx,4
+00410C5C   52               push edx
+00410C5D   68 94824200      push lesson3.00428294                  ; ASCII "d:\reverse\c++\lesson3\lesson3.cpp"
+00410C62   68 48824200      push lesson3.00428248                  ; ASCII "file"
+00410C67   E8 542BFFFF      call lesson3._assert
+00410C6C   83C4 0C          add esp,0C
+00410C6F   68 30704200      push lesson3.00427030                  ; ASCII "1",LF
+00410C74   E8 2728FFFF      call lesson3.printf                    ; {的外面打印 1
+00410C79   83C4 04          add esp,4
+00410C7C   68 68704200      push lesson3.00427068                  ; ASCII "2",LF
+00410C81   E8 1A28FFFF      call lesson3.printf                    ; 进去之后打印 2
+00410C86   83C4 04          add esp,4
+00410C89   8D4D EC          lea ecx,dword ptr ss:[ebp-14]
+00410C8C   E8 7403FFFF      call lesson3.00401005                  ; 定义类对象时,构造函数执行.
+00410C91   68 58704200      push lesson3.00427058                  ; ASCII "3",LF
+00410C96   E8 0528FFFF      call lesson3.printf                    ; }的左边打印 3
+00410C9B   83C4 04          add esp,4
+00410C9E   8D4D EC          lea ecx,dword ptr ss:[ebp-14]
+00410CA1   E8 6903FFFF      call lesson3.0040100F                  ; 出}析构了.
+00410CA6   68 2C704200      push lesson3.0042702C                  ; ASCII "4",LF
+00410CAB   E8 F027FFFF      call lesson3.printf                    ; 刚出}的时候来打印 4
+00410CB0   83C4 04          add esp,4
+00410CB3   6A 04            push 4
+00410CB5   68 44704200      push lesson3.00427044                  ; ASCII "sizeof stack :%d"
+00410CBA   E8 E127FFFF      call lesson3.printf
+00410CBF   83C4 08          add esp,8
+00410CC2   8A4D 91          mov cl,byte ptr ss:[ebp-6F]
+00410CC5   80C1 09          add cl,9
+00410CC8   884D 91          mov byte ptr ss:[ebp-6F],cl
+00410CCB   8D4D 84          lea ecx,dword ptr ss:[ebp-7C]
+00410CCE   E8 3203FFFF      call lesson3.00401005                  ; 构造函数
+00410CD3   C745 FC 0000000> mov dword ptr ss:[ebp-4],0
+00410CDA   8B55 F0          mov edx,dword ptr ss:[ebp-10]
+00410CDD   52               push edx                                ; 文件句柄.
+00410CDE   6A 64            push 64                                 ; size
+00410CE0   8D45 88          lea eax,dword ptr ss:[ebp-78]           ; 缓冲区
+00410CE3   50               push eax
+00410CE4   E8 A729FFFF      call lesson3.fgets
+00410CE9   83C4 0C          add esp,0C
+00410CEC   85C0             test eax,eax
+00410CEE   74 5C            je short lesson3.00410D4C               ; fgets 得到空则玩完
+00410CF0   8D4D 88          lea ecx,dword ptr ss:[ebp-78]
+00410CF3   51               push ecx
+00410CF4   E8 1729FFFF      call lesson3.strlen
+00410CF9   83C4 04          add esp,4
+00410CFC   83C0 01          add eax,1
+00410CFF   50               push eax
+00410D00   E8 1B08FFFF      call lesson3.malloc                      ; 申请一段内存放 buff
+00410D05   83C4 04          add esp,4
+00410D08   8945 80          mov dword ptr ss:[ebp-80],eax
+00410D0B   837D 80 00       cmp dword ptr ss:[ebp-80],0
+00410D0F   75 1D            jnz short lesson3.00410D2E               ; 没申请到下面就玩完
+```
+
+
+
+00410D11 `0FBF15 409C4200 movsx edx,word ptr ds:[`main'::`2'::__LINE>`
+
+00410D18 `83C2 11 add edx,11`
+
+00410D1B `52 push edx`
+
+00410D1C `68 94824200 push lesson3.00428294 ; ASCII "d:\\reverse\\c++\\lesson3\\lesson3.cpp"`
+
+00410D21 `68 20704200 push lesson3.00427020 ; ASCII "str"`
+
+00410D26 `E8 952AFFFF call lesson3._assert`
+
+00410D2B `83C4 0C add esp,0C`
+
+00410D2E `8D4D 88 lea ecx,dword ptr ss:[ebp-78]`
+
+00410D31 `51 push ecx`
+
+00410D32 `8B55 80 mov edx,dword ptr ss:[ebp-80]`
+
+00410D35 `52 push edx`
+
+00410D36 `E8 E527FFFF call lesson3.strcpy ; 放到缓冲区中`
+
+00410D3B `83C4 08 add esp,8`
+
+00410D3E `8B45 80 mov eax,dword ptr ss:[ebp-80]`
+
+00410D41 `50 push eax ; 刚刚堆上的字符串`
+
+00410D42 `8D4D 84 lea ecx,dword ptr ss:[ebp-7C] ; this`
+
+00410D45 `E8 DE02FFFF call lesson3.00401028 ; 成员函数 stack::push`
+
+00410D4A `EB 8E jmp short lesson3.00410CDA ; 继续循环.`
+
+00410D4C `8D4D 84 lea ecx,dword ptr ss:[ebp-7C]`
+
+00410D4F `E8 CF02FFFF call lesson3.00401023 ; 成员函数.跟了一下发现是 pop`
+
+00410D54 `8985 7CFFFFFF mov dword ptr ss:[ebp-84],eax`
+
+00410D5A `83BD 7CFFFFFF 0> cmp dword ptr ss:[ebp-84],0`
+
+00410D61 `74 25 je short lesson3.00410D88 ; 为 0 则读完,玩完`
+
+00410D63 `8B8D 7CFFFFFF mov ecx,dword ptr ss:[ebp-84]`
+
+00410D69 `51 push ecx`
+
+00410D6A `68 1C704200 push lesson3.0042701C ; ASCII "%s"`
+
+00410D6F `E8 2C27FFFF call lesson3.printf`
+
+00410D74 `83C4 08 add esp,8`
+
+00410D77 `8B95 7CFFFFFF mov edx,dword ptr ss:[ebp-84] ; char *s 指针`
+
+00410D7D `52 push edx`
+
+00410D7E `E8 1D12FFFF call lesson3.free ; 释放`
+
+00410D83 `83C4 04 add esp,4`
+
+00410D86 `EB C4 jmp short lesson3.00410D4C`
+
+00410D88 `8A45 90 mov al,byte ptr ss:[ebp-70]`
+
+00410D8B `04 08 add al,8`
+
+00410D8D `8845 90 mov byte ptr ss:[ebp-70],al`
+
+00410D90 `C785 78FFFFFF 0> mov dword ptr ss:[ebp-88],0`
+
+00410D9A `C745 FC FFFFFFF> mov dword ptr ss:[ebp-4],-1`
+
+00410DA1 `8D4D 84 lea ecx,dword ptr ss:[ebp-7C]`
+
+00410DA4 `E8 6602FFFF call lesson3.0040100F ; 调用析构函数.`
+
+00410DA9 `8B85 78FFFFFF mov eax,dword ptr ss:[ebp-88] ; return 0`
+
+00410DAF `8B4D F4 mov ecx,dword ptr ss:[ebp-C]`
+
+00410DB2 `64:890D 0000000> mov dword ptr fs:[0],ecx`
+
+00410DB9 `5F pop edi ; 00241FE4`
+
+00410DBA `5E pop esi`
+
+00410DBB `5B pop ebx`
+
+00410DBC `81C4 C8000000 add esp,0C8`
+
+00410DC2 `3BEC cmp ebp,esp`
+
+00410DC4 `E8 6732FFFF call lesson3._chkesp ; 就是看 ebp esp 了..`
+
+00410DC9 `8BE5 mov esp,ebp`
+
+00410DCB `5D pop ebp`
+
+00410DCC `C3 retn`
+
+##### 来看看 Release 版本的:
+
+```
+00401000 55 push ebp
+00401001 8BEC mov ebp,esp
+00401003 6A FF push -1
+00401005 68 58744000 push lesson3.00407458 ; SE 处理程序安装
+0040100A 64:A1 0000000> mov eax,dword ptr fs:[0]
+00401010 50 push eax
+00401011 64:8925 00000> mov dword ptr fs:[0],esp
+00401018 83EC 6C sub esp,6C
+0040101B 53 push ebx
+0040101C 56 push esi
+0040101D 90 nop
+0040101E 68 74904000 push lesson3.00409074
+00401023 68 68904000 push lesson3.00409068 ; ASCII "c:\\test.txt"
+00401028 E8 A6030000 call lesson3.004013D3
+0040102D 68 64904000 push lesson3.00409064 ; ASCII "1",LF
+00401032 8BD8 mov ebx,eax
+00401034 E8 49030000 call lesson3.00401382
+00401039 68 60904000 push lesson3.00409060 ; ASCII "2",LF
+0040103E E8 3F030000 call lesson3.00401382
+00401043 83C4 10 add esp,10
+00401046 8D4D EC lea ecx,[local.5]
+00401049 E8 22010000 call lesson3.00401170 ; instructor called
+0040104E 68 5C904000 push lesson3.0040905C ; ASCII "3",LF
+00401053 E8 2A030000 call lesson3.00401382
+00401058 83C4 04 add esp,4
+0040105B 8D4D EC lea ecx,[local.5]
+0040105E E8 7D010000 call lesson3.004011E0 ; destructor called
+00401063 68 58904000 push lesson3.00409058 ; ASCII "4",LF
+00401068 E8 15030000 call lesson3.00401382
+0040106D 6A 04 push 4
+0040106F 68 44904000 push lesson3.00409044 ; ASCII "sizeof stack :%d"
+00401074 E8 09030000 call lesson3.00401382
+00401079 8A4D 91 mov cl,byte ptr ss:[ebp-6F]
+0040107C 83C4 0C add esp,0C
+0040107F 80C1 09 add cl,9
+00401082 884D 91 mov byte ptr ss:[ebp-6F],cl
+00401085 8D4D F0 lea ecx,[local.4]
+00401088 E8 E3000000 call lesson3.00401170 ; instructor
+0040108D 53 push ebx
+0040108E 8D45 88 lea eax,[local.30]
+00401091 6A 64 push 64
+00401093 50 push eax
+00401094 C745 FC 00000> mov [local.1],0
+0040109B E8 8B020000 call lesson3.0040132B ; fgets
+004010A0 83C4 0C add esp,0C
+004010A3 85C0 test eax,eax
+004010A5 74 55 je short lesson3.004010FC
+004010A7 57 push edi
+004010A8 8D7D 88 lea edi,[local.30]
+004010AB 83C9 FF or ecx,FFFFFFFF
+004010AE 33C0 xor eax,eax
+004010B0 F2:AE repne scas byte ptr es:[edi]
+004010B2 F7D1 not ecx ; 直接把 strlen inline 进来了, 呵呵
+004010B4 51 push ecx
+004010B5 E8 BF010000 call lesson3.00401279 ; malloc
+004010BA 8BD0 mov edx,eax
+004010BC 8D7D 88 lea edi,[local.30]
+004010BF 83C9 FF or ecx,FFFFFFFF
+004010C2 33C0 xor eax,eax
+004010C4 83C4 04 add esp,4
+004010C7 F2:AE repne scas byte ptr es:[edi]
+004010C9 F7D1 not ecx
+004010CB 2BF9 sub edi,ecx
+004010CD 52 push edx
+004010CE 8BC1 mov eax,ecx
+004010D0 8BF7 mov esi,edi
+004010D2 8BFA mov edi,edx
+004010D4 C1E9 02 shr ecx,2
+004010D7 F3:A5 rep movs dword ptr es:[edi],dword ptr ds:[esi]
+004010D9 8BC8 mov ecx,eax
+004010DB 83E1 03 and ecx,3
+004010DE F3:A4 rep movs byte ptr es:[edi],byte ptr ds:[esi] ; strcpy 也融入进来了
+004010E0 8D4D F0 lea ecx,[local.4]
+004010E3 E8 A8000000 call lesson3.00401190 ; push
+004010E8 53 push ebx
+004010E9 8D4D 88 lea ecx,[local.30]
+004010EC 6A 64 push 64
+004010EE 51 push ecx
+004010EF E8 37020000 call lesson3.0040132B ; fgets
+004010F4 83C4 0C add esp,0C
+004010F7 85C0 test eax,eax
+004010F9 75 AD jnz short lesson3.004010A8
+004010FB 5F pop edi
+004010FC 8D4D F0 lea ecx,[local.4]
+004010FF E8 BC000000 call lesson3.004011C0 ; pop
+```
+
+
+
+```
+00401104  . 8BF0          mov esi,eax  
+
+00401106  . 85F6          test esi,esi  
+
+00401108  . 74 22         je short lesson3.0040112C  
+
+0040110A  > 56            /push esi  
+
+0040110B  . 68 40904000   |push lesson3.00409040           ; ASCII "%s"  
+
+00401110  . E8 6D020000   |call lesson3.00401382           ; 打印  
+
+00401115  . 56            |push esi  
+
+00401116  . E8 F5000000   |call lesson3.00401210           ; free  
+
+0040111B  . 83C4 0C       |add esp,0C  
+
+0040111E  . 8D4D F0       |lea ecx,[local.4]  
+
+00401121  . E8 9A000000   |call lesson3.004011C0           ; 又是 pop  
+
+00401126  . 8BF0          |mov esi,eax  
+
+00401128  . 85F6          |test esi,esi  
+
+0040112A  . 75 DE         \jnz short lesson3.0040110A  
+
+0040112C  > 8A45 90       mov al,byte ptr ss:[ebp-70]  
+
+0040112F  . 8D4D F0       lea ecx,[local.4]  
+
+00401132  . 04 08         add al,8  
+
+00401134  . C745 FC FFFF> mov [local.1],-1  
+
+0040113B  . 8845 90       mov byte ptr ss:[ebp-70],al  
+
+0040113E  . E8 9D000000   call lesson3.004011E0            ; 析构  
+
+00401143  . 8B4D F4       mov ecx,[local.3]  
+
+00401146  . 5E            pop esi  
+
+00401147  . 33C0          xor eax,eax  
+
+00401149  . 5B            pop ebx  
+
+0040114A  . 64:890D 00000> mov dword ptr fs:[0],ecx  
+
+00401151  . 8BE5          mov esp,ebp  
+
+00401153  . 5D            pop ebp  
+
+00401154  . C3            retn  
+```
+
+`Release`版本的变化还真是大，编译器做了很多的优化，一定要注意。
+
+还有注意构造函数与析构函数的执行时机，构造函数实在对象定义的位置执行的，析构函数是在离开右边的大括号的时候执行的。

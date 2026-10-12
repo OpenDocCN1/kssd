@@ -1,437 +1,539 @@
 
-
 # Flax2.02
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6817.htm`](https://www.pediy.com/kssd/pediy06/pediy6817.htm)
 
-  
-  
-一种动态打文件补丁的方法－谈破解 Flax 的自校验  
-  
-作者：lzrlzr   
-邮箱：crack\_lzrlzr@163.com   
-日期：2003 年 11 月 28 日   
-软件：Flax 2.02  
-加密方式：自校验，机器码＋注册码   
-难度：中等   
-所用工具：softice,hiew6.83  
-破解环境：win2000   
-声明: 此文仅用于学习及交流，若要转载请保持文章完整  
-  
-  
-引用论坛中一位兄弟的原文：  
-一款支持中文的 Flash 文字动画工具 flax2.02，我们 Hanzify 论坛的人要汉化，但是如果改动了其中的资源以后，就失去动画实时预览的功能了。   
-菜菜的我起初想到是自校验，追了一上午了。没什么进展。只跟出了软件在启动时会在 TEMP 目录下创建一个 flax1.exe 文件，如果发现主文件被改动时，flax1.exe 将退出。   
-\> 程序不大，才几 00k。   
-[`xbol-http.skycn.net:8080/down/flax202.exe`](http://xbol-http.skycn.net:8080/down/flax202.exe)   
-  
-我经常用汉化的软件，于是想为汉化人作点事，以感谢他们的辛苦工作，愿他们作得更好，我们大家有更多的汉化软件使用。  
-请这位兄弟和我联系，我把打过补丁的主程序 flax.exe 发给你。  
-  
-  
-  
-  
-自校验功能和实时预览功能  
-这个软件在运行时由主文件生成两个临时文件，Flax001.exe,Flax002.exe,Flax001.exe 主要是完成实时预览，Flax002.exe 主要是对主文件 Flax.exe 进行完整性校验，如果文件完整，没有被修改，则加载 Flax001.exe 进行实时预览，如果发现主文件 Flax.exe 被修改，则加载 Flax001.exe 文件不成功，这时软件就没有了实时预览功能，自校验完成后程序自动删除 Flax002.exe，主程序退出时自动删除 Flax001.exe。  
-而且这两个文件的文件名在不同的环境下文件名还不固定。  
-  
-所以要保留实时预览功能，就必须破解它的自校验  
-Flax002.exe 的文件大小是 41000 字节  
-  
-  
-以下是 Flax002.exe 文件中的一段代码：  
-:00401000 55                      push ebp  
-:00401001 8BEC                    mov ebp, esp  
-:00401003 81EC5C010000            sub esp, 0000015C  
-:00401009 6A00                    push 00000000  
-:0040100B 6880000000              push 00000080  
-:00401010 6A03                    push 00000003  
-:00401012 6A00                    push 00000000  
-:00401014 6A03                    push 00000003  
-:00401016 6800000080              push 80000000  
-  
-\* Possible StringData Ref from Data Obj ->"C:\\Program Files\\Goldshell\\FlaX.exe"  
-                                  |  
-:0040101B 68A0904000              push 004090A0  
-  
-\* Reference To: KERNEL32.CreateFileA, Ord:0034h  
-                                  |  
-:00401020 FF1510804000            Call dword ptr \[00408010\]  
-:00401026 8945FC                  mov dword ptr \[ebp\-04\], eax  
-:00401029 837DFCFF                cmp dword ptr \[ebp\-04\], FFFFFFFF  
-:0040102D 0F84FE000000            je 00401131  
-:00401033 A158904000              mov eax, dword ptr \[00409058\]  
-:00401038 8945F8                  mov dword ptr \[ebp\-08\], eax  
-:0040103B 837DF800                cmp dword ptr \[ebp\-08\], 00000000  
-:0040103F 0F8EE2000000            jle 00401127  
-:00401045 6A00                    push 00000000  
-:00401047 6A00                    push 00000000  
-:00401049 6A00                    push 00000000  
-:0040104B 8B4DFC                  mov ecx, dword ptr \[ebp\-04\]  
-:0040104E 51                      push ecx  
-  
-\* Reference To: KERNEL32.SetFilePointer, Ord:026Ah  
-                                  |  
-:0040104F FF150C804000            Call dword ptr \[0040800C\]  
-:00401055 8B55F8                  mov edx, dword ptr \[ebp\-08\]  
-:00401058 52                      push edx  
-:00401059 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
-:0040105C 50                      push eax  
-:0040105D E8D7000000              call 00401139\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*在这个过程中对 Flax.exe 进行校验运算。  
-:00401062 83C408                  add esp, 00000008  
-＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝  
-:00401065 8B0D50904000            mov ecx, dword ptr \[00409050\]\*\*\*\*\*\*\*运算结果和\[00409050\]的值进行 xor 运算  
-:0040106B 33C8                    xor ecx, eax\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝  
-:0040106D 890D50904000            mov dword ptr \[00409050\], ecx\*\*\*\*\*\*\*运算结果保存在\[00409050\]中，所以这两行代码是我要打补丁  
-:00401073 8B55FC                  mov edx, dword ptr \[ebp\-04\]\*\*\*\*\*\*\*\*\*的地方，标记为 A  
-:00401076 52                      push edx  
-:00401077 E885050000              call 00401601  
-:0040107C 83C404                  add esp, 00000004  
-:0040107F 6800010000              push 00000100  
-:00401084 8D85E8FEFFFF            lea eax, dword ptr \[ebp+FFFFFEE8\]  
-:0040108A 50                      push eax  
-:0040108B 6A00                    push 00000000  
-  
-\* Reference To: KERNEL32.GetModuleFileNameA, Ord:0124h  
-                                  |  
-:0040108D FF1508804000            Call dword ptr \[00408008\]  
-:00401093 8B0D6C904000            mov ecx, dword ptr \[0040906C\]  
-:00401099 51                      push ecx  
-  
-\* Possible StringData Ref from Data Obj ->"flax%03d.exe"  
-                                  |  
-:0040109A 6838904000              push 00409038  
-:0040109F 6A5C                    push 0000005C  
-:004010A1 8D95E8FEFFFF            lea edx, dword ptr \[ebp+FFFFFEE8\]  
-:004010A7 52                      push edx  
-:004010A8 E8B3380000              call 00404960\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*根据环境生成不同的文件名：Flax00\*.exe  
-:004010AD 83C408                  add esp, 00000008  
-:004010B0 83C001                  add eax, 00000001  
-:004010B3 50                      push eax  
-  
-\* Reference To: USER32.wsprintfA, Ord:02ACh  
-                                  |  
-:004010B4 FF15B0804000            Call dword ptr \[004080B0\]  
-:004010BA 83C40C                  add esp, 0000000C  
-  
-\* Possible StringData Ref from Data Obj ->"罸?  
-                                  |  
-:004010BD 6850904000              push 00409050  
-:004010C2 8D85E8FEFFFF            lea eax, dword ptr \[ebp+FFFFFEE8\]  
-:004010C8 50                      push eax  
-:004010C9 E8B2370000              call 00404880\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*在这个过程中对\[00409050\]中的运算结果检测，并根据结果决定  
-:004010CE 83C408                  add esp, 00000008\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*加载 Flax001.exe 文件能不能成功  
-:004010D1 6A44                    push 00000044  
-:004010D3 6A00                    push 00000000  
-:004010D5 8D8DA4FEFFFF            lea ecx, dword ptr \[ebp+FFFFFEA4\]  
-:004010DB 51                      push ecx  
-:004010DC E82F370000              call 00404810  
-:004010E1 83C40C                  add esp, 0000000C  
-:004010E4 C785A4FEFFFF44000000    mov dword ptr \[ebp+FFFFFEA4\], 00000044  
-:004010EE 66C785D4FEFFFF0000      mov word ptr \[ebp+FFFFFED4\], 0000  
-:004010F7 C785D0FEFFFF01000000    mov dword ptr \[ebp+FFFFFED0\], 00000001  
-:00401101 8D55E8                  lea edx, dword ptr \[ebp\-18\]  
-:00401104 52                      push edx  
-:00401105 8D85A4FEFFFF            lea eax, dword ptr \[ebp+FFFFFEA4\]  
-:0040110B 50                      push eax  
-:0040110C 6A00                    push 00000000  
-:0040110E 6A00                    push 00000000  
-:00401110 6A00                    push 00000000  
-:00401112 6A00                    push 00000000  
-:00401114 6A00                    push 00000000  
-:00401116 6A00                    push 00000000  
-:00401118 8D8DE8FEFFFF            lea ecx, dword ptr \[ebp+FFFFFEE8\]  
-:0040111E 51                      push ecx  
-:0040111F 6A00                    push 00000000  
-  
-\* Reference To: KERNEL32.CreateProcessA, Ord:0044h  
-                                  |  
-:00401121 FF1504804000            Call dword ptr \[00408004\]\*\*\*\*\*\*\*\*\*\*\*\*加载 Flax001.exe，如果文件 Flax.exe 被修改,则加载失败。  
-  
-  
-经过用 softice 反复动态调试，发现代码 A 处的计算结果为：00465820H  
-则可以对 Flax002.exe 打补丁，修改结果为：  
-  
-001B:00401065 mov ecx,00465820  
-001B:0040106A nop  
-001B:0040106B nop  
-001B:0040106C nop  
-  
-但 Flax002.exe 是动态生成的临时文件，是无法直接打补丁的  
-  
-打补丁方法分析  
-经过对主文件 Flax.exe 反复动态调试，发现 Flax002.exe 是用 Flax.exe 的几段资源数据经过解密还完出来的，没有办法在 Flax.exe 文件中进行修改。最后决定在 Flax002.exe 文件解密还完以后，还没有实现自校验，也就是还没有工作以前对它进行修改。也就是在 Flax.exe 运行时生成完整的 Flax002.exe 以后，还没有加载 Flax002.exe 以前，由 Flax.exe 对 Flax002.exe 动态打补丁。  
-  
-于是对 Flax.exe 文件动态调试，并用  
-bpx CreateFileA  
-bpx CloseHandle  
-bpx CreateProcessA  
-下断点，最后得到以下：  
-  
-:0041C82D 68A8634400              push 004463A8  
-:0041C832 6A00                    push 00000000  
-  
-\* Reference To: KERNEL32.GetModuleFileNameA, Ord:0124h  
-                                  |  
-:0041C834 FF154CE14300            Call dword ptr \[0043E14C\]  
-:0041C83A 8D95E4FEFFFF            lea edx, dword ptr \[ebp+FFFFFEE4\]  
-:0041C840 52                      push edx  
-:0041C841 E865130100              call 0042DBAB\*\*\*\*\*\*\*\*\*\*\*用 createfilea 产生新的 Flax002.exe 文件。  
-:0041C846 83C404                  add esp, 00000004  
-:0041C849 898590FEFFFF            mov dword ptr \[ebp+FFFFFE90\], eax  
-:0041C84F 6A00                    push 00000000  
-:0041C851 6A00                    push 00000000  
-  
-\* Possible StringData Ref from Data Obj ->" "  
-                                  |  
-:0041C853 B8A8644400              mov eax, 004464A8  
-:0041C858 2D70634400              sub eax, 00446370  
-:0041C85D 50                      push eax  
-  
-\* Possible StringData Ref from Data Obj ->""  
-                                  |  
-:0041C85E 6870634400              push 00446370  
-:0041C863 E871140100              call 0042DCD9\*\*\*\*\*\*\*\*\*对新的 Flax002.exe 文件进行数据还原，从 Flax.exe 文件中取出加密过的数据，  
-:0041C868 83C410                  add esp, 00000010\*\*\*\*\*并经过还原后，写入 Flax002.exe 文件  
-:0041C86B 6800120000              push 00001200  
-  
-\* Possible StringData Ref from Data Obj ->"pad"  
-                                  |  
-:0041C870 68D8644400              push 004464D8  
-:0041C875 E8F3200100              call 0042E96D\*\*\*\*\*\*\*\*\*对新的 Flax002.exe 文件进行数据还原，从 Flax.exe 文件中取出加密过的数据，  
-:0041C87A 83C408                  add esp, 00000008\*\*\*\*\*并经过还原后，写入 Flax002.exe 文件  
-:0041C87D 8B8D90FEFFFF            mov ecx, dword ptr \[ebp+FFFFFE90\]  
-:0041C883 51                      push ecx  
-:0041C884 E898130100              call 0042DC21\*\*\*\*\*\*\*\*\*\*\*还原结束以后，关闭打开的 Flax002.exe 文件名柄，这儿就是我要加入代码的  
-:0041C889 83C404                  add esp, 00000004\*\*\*\*\*\*\*地方，在关闭 Flax002.exe 文件名柄以前，修改 Flax002.exe，写入自已的补  
-:0041C88C 8B9594FEFFFF            mov edx, dword ptr \[ebp+FFFFFE94\]\*\*\*丁代码，实现对 Flax002.exe 文件的动态修改。标记为 B  
-:0041C892 52                      push edx  
-:0041C893 E889130100              call 0042DC21\*\*\*\*\*\*\*\*\*\*\*还原结束以后，关闭打开的 Flax.exe 文件名柄  
-:0041C898 83C404                  add esp, 00000004  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:0041C7CA(C), :0041C7F0(U)  
-|  
-:0041C89B 837DE800                cmp dword ptr \[ebp\-18\], 00000000  
-:0041C89F 7452                    je 0041C8F3  
-:0041C8A1 6A01                    push 00000001  
-:0041C8A3 6A01                    push 00000001  
-:0041C8A5 E86BBC0000              call 00428515  
-:0041C8AA 83C408                  add esp, 00000008  
-:0041C8AD 6A44                    push 00000044  
-:0041C8AF 6A00                    push 00000000  
-:0041C8B1 8D859CFEFFFF            lea eax, dword ptr \[ebp+FFFFFE9C\]  
-:0041C8B7 50                      push eax  
-:0041C8B8 E813CD0100              call 004395D0  
-:0041C8BD 83C40C                  add esp, 0000000C  
-:0041C8C0 C7859CFEFFFF44000000    mov dword ptr \[ebp+FFFFFE9C\], 00000044  
-:0041C8CA 8D4DF0                  lea ecx, dword ptr \[ebp\-10\]  
-:0041C8CD 51                      push ecx  
-:0041C8CE 8D959CFEFFFF            lea edx, dword ptr \[ebp+FFFFFE9C\]  
-:0041C8D4 52                      push edx  
-:0041C8D5 6A00                    push 00000000  
-:0041C8D7 6A00                    push 00000000  
-:0041C8D9 6A00                    push 00000000  
-:0041C8DB 6A00                    push 00000000  
-:0041C8DD 6A00                    push 00000000  
-:0041C8DF 6A00                    push 00000000  
-:0041C8E1 8D85E4FEFFFF            lea eax, dword ptr \[ebp+FFFFFEE4\]  
-:0041C8E7 50                      push eax  
-:0041C8E8 6A00                    push 00000000  
-  
-\* Reference To: KERNEL32.CreateProcessA, Ord:0044h  
-                                  |  
-:0041C8EA FF152CE14300            Call dword ptr \[0043E12C\]\*\*\*\*\*\*\*\*\*\*\*\*\*\*加载 Flax002.exe 对 Flax.exe 进行完整性校验  
-:0041C8F0 8945E8                  mov dword ptr \[ebp\-18\], eax  
-  
-  
-在 Flax.exe 文件中找到一段空白的代码段，写入一段代码（其中的 nop 是我预留的，以防代码要修改，写的比较烂，后来也没有再重写，请大家能看懂原理就可以了，可不要骂我啊）  
-  
-.00440501: 90                           nop  
-.00440502: 90                           nop  
-.00440503: 90                           nop  
-.00440504: 8D55FC                       lea         edx,\[ebp\]\[-04\]\*\*\*\*在局部变量（文件缓冲区）中填入要补丁的数据。  
-.00440507: 8B12                         mov         edx,\[edx\]  
-.00440509: C702B9205846                 mov         d,\[edx\],0465820B9  
-.0044050F: C7420400909090               mov         d,\[edx\]\[04\],090909000  
-.00440516: 90                           nop  
-.00440517: 90                           nop  
-.0044051F: 90                           nop                                      
-.00440520: 51                           push        ecx                          
-.00440521: 59                           pop         ecx                          
-.00440522: 6A00                         push        000                          
-.00440524: 50                           push        eax                          
-.00440525: FF1568E14300                 call        GetFileSize   
-.0044052B: 3D28A00000                   cmp         eax,00000A028     
-.00440530: 0F854A0A0000                 jne        .000440F78 \*\*\*\*  得到文件大小，判断是否是 Flax002.exe 文件，  
-.00440536: 6A00                         push        000   \*\*\*\*\*\*\*\*  Flax002.exe 的文件大小是 41000 字节                         
-.00440538: 6A00                         push        000                          
-.0044053A: 6865100000                   push        000001065           
-.0044053F: 8B4D08                       mov         ecx,\[ebp\]\[08\]                
-.00440542: 51                           push        ecx                          
-.00440543: FF151CE14300                 call        SetFilePointer  
-.00440549: 90                           nop  \*\*\*\*  移动当前文件指针到要修改的文件偏移  
-.0044054A: 90                           nop                            
-.0044054F: 90                           nop                                                                       
-.00440551: 6A00                         push        000                          
-.00440553: 8D45F8                       lea         eax,\[ebp\]\[-08\]               
-.00440556: 50                           push        eax                          
-.00440557: 6A08                         push        008                          
-.00440559: 90                           nop                                      
-.0044055A: 8B4DFC                       mov         ecx,\[ebp\]\[-04\]               
-.0044055D: 51                           push        ecx                                                    
-.00440566: 90                           nop                                      
-.00440567: 90                           nop                                      
-.00440568: 8B4D08                       mov         ecx,\[ebp\]\[08\]                
-.0044056B: 51                           push        ecx                          
-.0044056C: FF1590E14300                 call        WriteFile KERNEL32.dll      
-.00440572: 90                           nop   \*\*\*\*在文件中写入补丁数据  
-.00440575: 90                           nop                                      
-     
-.00440591: E9E2090000                   jmp        .000440F78  -----  (1)        
-.00440596: 90                           nop                                                             
-.00440F78: 8B4D08                       mov         ecx,\[ebp\]\[08\]                
-.00440F7A: 90                           nop                                      
-.00440F7E: 90                           nop                                      
-.00440F7F: 90                           nop                                      
-.00440F80: 51                           push        ecx                          
-.00440F81: FF159CE14300                 call        CloseHandle\*\*\*\* 关闭文件名柄，完成程序原来的功能  
-.00440F87: C705C0966000FFFFFFFF         mov         d,\[006096C0\],0FFFFFFFF  
-.00440F91: E93FCDFEFF                   jmp        .00042DCD5       
-  
-  
-然后在标记 B 处调用的过程 call 0042DC21 中修改一处代码  
-  
-              
-  
-:0042DC21 55                      push ebp  
-:0042DC22 8BEC                    mov ebp, esp  
-:0042DC24 83EC0C                  sub esp, 0000000C  
-:0042DC27 E8C4FBFFFF              call 0042D7F0  
-:0042DC2C 837D08FF                cmp dword ptr \[ebp+08\], FFFFFFFF  
-:0042DC30 0F849F000000            je 0042DCD5  
-:0042DC36 8B4508                  mov eax, dword ptr \[ebp+08\]  
-:0042DC39 3B05C0966000            cmp eax, dword ptr \[006096C0\]  
-:0042DC3F 7516                    jne 0042DC57  
-:0042DC41 8B4D08                  mov ecx, dword ptr \[ebp+08\]  
-:0042DC44 51                      push ecx  
-  
-\* Reference To: KERNEL32.CloseHandle, Ord:001Bh  
-                                  |  
-:0042DC45 FF159CE14300            Call dword ptr \[0043E19C\]  
-:0042DC4B C705C0966000FFFFFFFF    mov dword ptr \[006096C0\], FFFFFFFF  
-:0042DC55 EB7E                    jmp 0042DCD5  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0042DC3F(C)  
-|  
-:0042DC57 8B5508                  mov edx, dword ptr \[ebp+08\]  
-:0042DC5A 3B15E09B6000            cmp edx, dword ptr \[00609BE0\]  
-:0042DC60 7573                    jne 0042DCD5  
-:0042DC62 833DE49B600000          cmp dword ptr \[00609BE4\], 00000000  
-:0042DC69 7456                    je 0042DCC1  
-:0042DC6B B8ECA06000              mov eax, 0060A0EC  
-:0042DC70 8B0DE49B6000            mov ecx, dword ptr \[00609BE4\]  
-:0042DC76 6BC928                  imul ecx, 00000028  
-:0042DC79 2BC1                    sub eax, ecx  
-:0042DC7B 8945FC                  mov dword ptr \[ebp\-04\], eax  
-:0042DC7E 8B15E49B6000            mov edx, dword ptr \[00609BE4\]  
-:0042DC84 6BD228                  imul edx, 00000028  
-:0042DC87 8955F4                  mov dword ptr \[ebp\-0C\], edx  
-  
-\* Possible StringData Ref from Data Obj ->"GLUE"  
-                                  |  
-:0042DC8A 68349D4400              push 00449D34  
-:0042DC8F E8ACE0FDFF              call 0040BD40  
-:0042DC94 83C404                  add esp, 00000004  
-:0042DC97 6A01                    push 00000001  
-:0042DC99 8B45F4                  mov eax, dword ptr \[ebp\-0C\]  
-:0042DC9C 50                      push eax  
-:0042DC9D 8B4DFC                  mov ecx, dword ptr \[ebp\-04\]  
-:0042DCA0 51                      push ecx  
-:0042DCA1 E8A1E2FDFF              call 0040BF47  
-:0042DCA6 83C40C                  add esp, 0000000C  
-:0042DCA9 6A00                    push 00000000  
-:0042DCAB 8D55F8                  lea edx, dword ptr \[ebp\-08\]  
-:0042DCAE 52                      push edx  
-:0042DCAF 8B45F4                  mov eax, dword ptr \[ebp\-0C\]  
-:0042DCB2 50                      push eax  
-:0042DCB3 8B4DFC                  mov ecx, dword ptr \[ebp\-04\]  
-:0042DCB6 51                      push ecx  
-:0042DCB7 8B5508                  mov edx, dword ptr \[ebp+08\]  
-:0042DCBA 52                      push edx  
-  
-\* Reference To: KERNEL32.WriteFile, Ord:02DFh  
-                                  |  
-:0042DCBB FF1590E14300            Call dword ptr \[0043E190\]\*\*\*\*这儿有一个写操作，所以直接使用它的局部变量。  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0042DC69(C)  
-|  
-:0042DCC1 8B4508                  mov eax, dword ptr \[ebp+08\]  
-＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝修改前  
-:0042DCC4 50                      push eax  
-  
-\* Reference To: KERNEL32.CloseHandle, Ord:001Bh  
-                                  |  
-:0042DCC5 FF159CE14300            Call dword ptr \[0043E19C\]  
-:0042DCCB C705E09B6000FFFFFFFF    mov dword ptr \[00609BE0\], FFFFFFFF  
-＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:0042DC30(C), :0042DC55(U), :0042DC60(C)  
-|  
-:0042DCD5 8BE5                    mov esp, ebp  
-:0042DCD7 5D                      pop ebp  
-:0042DCD8 C3                      ret  
-  
-＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝修改后，以跳到自已的代码处对 flax002.exe 文件进行写操作  
-:0042DCC1 8B4508                  mov eax, dword ptr \[ebp+08\]  
-:0042DCC4 E938280100              jmp 00440501  
-:0042DCC9 90                      nop  
-:0042DCCA 90                      nop  
-＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝  
-  
-  
-＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝附动态补丁的结果＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝  
-  
-  
-:00401058 52                      push edx  
-:00401059 8B45FC                  mov eax, dword ptr \[ebp\-04\]  
-:0040105C 50                      push eax  
-:0040105D E8D7000000              call 00401139\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*在这个过程中对 Flax.exe 进行校验运算。  
-:00401062 83C408                  add esp, 00000008  
-＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝这是动态补丁以后 Flax002.exe 的结果  
-:00401065 mov ecx,00465820  
-:0040106A nop  
-:0040106B nop  
-:0040106C nop  
-＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝  
-:0040106D 890D50904000            mov dword ptr \[00409050\], ecx\*\*\*\*\*\*\*运算结果保存在\[00409050\]中  
-:00401073 8B55FC                  mov edx, dword ptr \[ebp\-04\]  
-:00401076 52                      push edx  
-:00401077 E885050000              call 00401601  
-:0040107C 83C404                  add esp, 00000004  
-:0040107F 6800010000              push 00000100  
-到此，对 Flax.exe 作任意修改都没问题，包括暴破和汉化。  
-  
-  
-总结说明：  
-在这个 Flax.exe 中，要用到的几个 API  
-GetFileSize  
-SetFilePointer  
-WriteFile  
-在输入表中都已经存在，所以不用增加 API  
-在 call 0042DC21 过程中，有一个文件的写操作，所以就直接使用它的局部变量，这也是为什么要在这里加入功能代码的主要原因。  
-  
-  
-  
-修改以后，每一次主程序 Flax.exe 运行时，自动生成一个已经被打过补丁的 flax002.exe,所以 flax002.exe 的自校验每一次都行到正确的运算结果，实时预览功能正常，这个程序还有机器码+注册码的注册，我没有破，以后有时间再破解它了。  
-  
-  
-中间写的比较粗，在实际中多跟几次就可以明白程序的一段代码的功能作用。  
-如果大家有问题可以给我发邮件，大家共同学习。  
-欢迎大家来指点不足，希望能和大家互相交流经验。  
-  
+一种动态打文件补丁的方法－谈破解 `Flax` 的自校验
 
- 4dd466d0e1e0cc123afbe504da2462ca
+作者：lzrlzr
+
+邮箱：`crack_lzrlzr@163.com`
+
+日期：2003 年 11 月 28 日
+
+软件：`Flax` 2.02
+
+加密方式：自校验，机器码＋注册码
+
+难度：中等
+
+所用工具：`softice`, `hiew6.83`
+
+破解环境：`win2000`
+
+声明: 此文仅用于学习及交流，若要转载请保持文章完整
+
+引用论坛中一位兄弟的原文：
+
+一款支持中文的 `Flash` 文字动画工具 `flax2.02`，我们 `Hanzify` 论坛的人要汉化，但是如果改动了其中的资源以后，就失去动画实时预览的功能了。
+
+菜菜的我起初想到是自校验，追了一上午了。没什么进展。只跟出了软件在启动时会在 `TEMP` 目录下创建一个 `flax1.exe` 文件，如果发现主文件被改动时，`flax1.exe` 将退出。
+
+> 程序不大，才几 00k。
+
+[`xbol-http.skycn.net:8080/down/flax202.exe`](http://xbol-http.skycn.net:8080/down/flax202.exe)
+
+我经常用汉化的软件，于是想为汉化人作点事，以感谢他们的辛苦工作，愿他们作得更好，我们大家有更多的汉化软件使用。
+
+请这位兄弟和我联系，我把打过补丁的主程序 `flax.exe` 发给你。
+
+### 自校验功能和实时预览功能
+
+这个软件在运行时由主文件生成两个临时文件，`Flax001.exe`, `Flax002.exe`, `Flax001.exe` 主要是完成实时预览，`Flax002.exe` 主要是对主文件 `Flax.exe` 进行完整性校验，如果文件完整，没有被修改，则加载 `Flax001.exe` 进行实时预览，如果发现主文件 `Flax.exe` 被修改，则加载 `Flax001.exe` 文件不成功，这时软件就没有了实时预览功能，自校验完成后程序自动删除 `Flax002.exe`，主程序退出时自动删除 `Flax001.exe`。
+
+而且这两个文件的文件名在不同的环境下文件名还不固定。
+
+所以要保留实时预览功能，就必须破解它的自校验
+
+`Flax002.exe` 的文件大小是 41000 字节
+
+以下是 `Flax002.exe` 文件中的一段代码：
+
+```
+:00401000  55               push  ebp
+:00401001  8BEC            mov   ebp,  esp
+:00401003  81EC5C010000    sub   esp,  0000015C
+:00401009  6A00            push  00000000
+:0040100B  6880000000      push  00000080
+:00401010  6A03            push  00000003
+:00401012  6A00            push  00000000
+:00401014  6A03            push  00000003
+:00401016  6800000080      push  80000000
+* Possible StringData Ref from Data Obj ->"C:\Program Files\Goldshell\FlaX.exe"
+                    |
+:0040101B  68A0904000      push  004090A0
+* Reference To: KERNEL32.CreateFileA, Ord:0034h
+                    |
+:00401020  FF1510804000    Call  dword ptr [00408010]
+:00401026  8945FC          mov   dword ptr [ebp-04], eax
+:00401029  837DFCFF        cmp   dword ptr [ebp-04], FFFFFFFF
+:0040102D  0F84FE000000    je    00401131
+:00401033  A158904000      mov   eax,  dword ptr [00409058]
+:00401038  8945F8          mov   dword ptr [ebp-08], eax
+:0040103B  837DF800        cmp   dword ptr [ebp-08], 00000000
+:0040103F  0F8EE2000000    jle   00401127
+:00401045  6A00            push  00000000
+:00401047  6A00            push  00000000
+:00401049  6A00            push  00000000
+:0040104B  8B4DFC          mov   ecx,  dword ptr [ebp-04]
+:0040104E  51              push  ecx
+* Reference To: KERNEL32.SetFilePointer, Ord:026Ah
+                    |
+:0040104F  FF150C804000    Call  dword ptr [0040800C]
+:00401055  8B55F8          mov   edx,  dword ptr [ebp-08]
+:00401058  52              push  edx
+:00401059  8B45FC          mov   eax,  dword ptr [ebp-04]
+:0040105C  50              push  eax
+:0040105D  E8D7000000      call  00401139************************在这个过程中对 Flax.exe 进行校验运算。
+:00401062  83C408          add   esp,  00000008
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+:00401065  8B0D50904000    mov   ecx,  dword ptr [00409050]******运算结果和[00409050]的值进行 xor 运算
+:0040106B  33C8            xor   ecx,  eax******************************
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+:0040106D  890D50904000    mov   dword ptr [00409050], ecx*****运算结果保存在[00409050]中，所以这两行代码是我要打补丁
+:00401073  8B55FC          mov   edx,  dword ptr [ebp-04]*****的地方，标记为 A
+:00401076  52              push  edx
+:00401077  E885050000      call  00401601
+:0040107C  83C404          add   esp,  00000004
+:0040107F  6800010000      push  00000100
+:00401084  8D85E8FEFFFF    lea   eax,  dword ptr [ebp+FFFFFEE8]
+:0040108A  50              push  eax
+:0040108B  6A00            push  00000000
+* Reference To: KERNEL32.GetModuleFileNameA, Ord:0124h
+                    |
+:0040108D  FF1508804000    Call  dword ptr [00408008]
+:00401093  8B0D6C904000    mov   ecx,  dword ptr [0040906C]
+:00401099  51              push  ecx
+* Possible StringData Ref from Data Obj ->"flax%03d.exe"
+                    |
+:0040109A  6838904000      push  00409038
+:0040109F  6A5C            push  0000005C
+:004010A1  8D95E8FEFFFF    lea   edx,  dword ptr [ebp+FFFFFEE8]
+:004010A7  52              push  edx
+:004010A8  E8B3380000      call  00404960************************根据环境生成不同的文件名：Flax00*.exe
+:004010AD  83C408          add   esp,  00000008
+:004010B0  83C001          add   eax,  00000001
+:004010B3  50              push  eax
+* Reference To: USER32.wsprintfA, Ord:02ACh
+                    |
+:004010B4  FF15B0804000    Call  dword ptr [004080B0]
+:004010BA  83C40C          add   esp,  0000000C
+* Possible StringData Ref from Data Obj ->"罸?
+                    |
+:004010BD  6850904000      push  00409050
+:004010C2  8D85E8FEFFFF    lea   eax,  dword ptr [ebp+FFFFFEE8]
+:004010C8  50              push  eax
+:004010C9  E8B2370000      call  00404880***************************在这个过程中对[00409050]中的运算结果检测，并根据结果决定
+:004010CE  83C408          add   esp,  00000008************************加载 Flax001.exe 文件能不能成功
+:004010D1  6A44            push  00000044
+:004010D3  6A00            push  00000000
+:004010D5  8D8DA4FEFFFF    lea   ecx,  dword ptr [ebp+FFFFFEA4]
+:004010DB  51              push  ecx
+:004010DC  E82F370000      call  00404810
+:004010E1  83C40C          add   esp,  0000000C
+:004010E4  C785A4FEFFFF44000000 mov  dword ptr [ebp+FFFFFEA4], 00000044
+:004010EE  66C785D4FEFFFF0000 mov  word  ptr [ebp+FFFFFED4], 0000
+:004010F7  C785D0FEFFFF01000000 mov  dword ptr [ebp+FFFFFED0], 00000001
+:00401101  8D55E8          lea   edx,  dword ptr [ebp-18]
+:00401104  52              push  edx
+:00401105  8D85A4FEFFFF    lea   eax,  dword ptr [ebp+FFFFFEA4]
+:0040110B  50              push  eax
+:0040110C  6A00            push  00000000
+:0040110E  6A00            push  00000000
+:00401110  6A00            push  00000000
+:00401112  6A00            push  00000000
+:00401114  6A00            push  00000000
+:00401116  6A00            push  00000000
+:00401118  8D8DE8FEFFFF    lea   ecx,  dword ptr [ebp+FFFFFEE8]
+:0040111E  51              push  ecx
+:0040111F  6A00            push  00000000
+* Reference To: KERNEL32.CreateProcessA, Ord:0044h
+                    |
+:00401121  FF1504804000    Call  dword ptr [00408004]*********加载 Flax001.exe，如果文件 Flax.exe 被修改,则加载失败。
+```
+
+经过用 `softice` 反复动态调试，发现代码 A 处的计算结果为：`00465820H`
+
+则可以对 `Flax002.exe` 打补丁，修改结果为：
+
+```
+001B:00401065  mov  ecx,00465820
+001B:0040106A  nop
+001B:0040106B  nop
+001B:0040106C  nop
+```
+
+但 `Flax002.exe` 是动态生成的临时文件，是无法直接打补丁的
+
+### 打补丁方法分析
+
+经过对主文件 `Flax.exe` 反复动态调试，发现 `Flax002.exe` 是用 `Flax.exe` 的几段资源数据经过解密还完出来的，没有办法在 `Flax.exe` 文件中进行修改。最后决定在 `Flax002.exe` 文件解密还完以后，还没有实现自校验，也就是还没有工作以前对它进行修改。也就是在 `Flax.exe` 运行时生成完整的 `Flax002.exe` 以后，还没有加载 `Flax002.exe` 以前，由 `Flax.exe` 对 `Flax002.exe` 动态打补丁。
+
+于是对 `Flax.exe` 文件动态调试，并用
+
+```
+bpx  CreateFileA
+bpx  CloseHandle
+bpx  CreateProcessA
+```
+
+下断点，最后得到以下：
+
+```
+:0041C82D  68A8634400      push  004463A8
+:0041C832  6A00            push  00000000
+* Reference To: KERNEL32.GetModuleFileNameA, Ord:0124h
+                    |
+:0041C834  FF154CE14300    Call  dword ptr [0043E14C]
+```
+
+
+
+:0041C83A 8D95E4FEFFFF             lea edx, dword ptr [ebp+FFFFFEE4]  
+
+:0041C840 52                      push edx  
+
+:0041C841 E865130100             call 0042DBAB**** using `createfilea` to generate the new `Flax002.exe` file.  
+
+:0041C846 83C404                 add esp, 00000004  
+
+:0041C849 898590FEFFFF           mov dword ptr [ebp+FFFFFE90], eax  
+
+:0041C84F 6A00                  push 00000000  
+
+:0041C851 6A00                  push 00000000  
+
+\* Possible StringData Ref from Data Obj ->" "  
+
+                             |  
+
+:0041C853 B8A8644400             mov eax, 004464A8  
+
+:0041C858 2D70634400             sub eax, 00446370  
+
+:0041C85D 50                    push eax  
+
+\* Possible StringData Ref from Data Obj ->""  
+
+                             |  
+
+:0041C85E 6870634400             push 00446370  
+
+:0041C863 E871140100             call 0042DCD9**** Restore data for the new `Flax002.exe` file, extracting encrypted data from the `Flax.exe` file,  
+
+:0041C868 83C410                 add esp, 00000010**** and writing it to the `Flax002.exe` file after restoration.  
+
+:0041C86B 6800120000             push 00001200  
+
+\* Possible StringData Ref from Data Obj ->"pad"  
+
+                             |  
+
+:0041C870 68D8644400             push 004464D8  
+
+:0041C875 E8F3200100             call 0042E96D**** Restore data for the new `Flax002.exe` file, extracting encrypted data from the `Flax.exe` file,  
+
+:0041C87A 83C408                 add esp, 00000008**** and writing it to the `Flax002.exe` file after restoration.  
+
+:0041C87D 8B8D90FEFFFF           mov ecx, dword ptr [ebp+FFFFFE90]  
+
+:0041C883 51                    push ecx  
+
+:0041C884 E898130100             call 0042DC21**** After restoration ends, close the file handle of the open `Flax002.exe`. This is where I need to insert code.  
+
+:0041C889 83C404                 add esp, 00000004**** Before closing the file handle of `Flax002.exe`, modify `Flax002.exe` and write my patch.  
+
+:0041C88C 8B9594FEFFFF           mov edx, dword ptr [ebp+FFFFFE94]*** Implement dynamic modification of the `Flax002.exe` file. Marked as B.  
+
+:0041C892 52                    push edx  
+
+:0041C893 E889130100             call 0042DC21**** After restoration ends, close the file handle of the open `Flax.exe`.  
+
+:0041C898 83C404                 add esp, 00000004  
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+
+|:0041C7CA(C), :0041C7F0(U)  
+
+|  
+
+:0041C89B 837DE800               cmp dword ptr [ebp-18], 00000000  
+
+:0041C89F 7452                   je 0041C8F3  
+
+:0041C8A1 6A01                   push 00000001  
+
+:0041C8A3 6A01                   push 00000001  
+
+:0041C8A5 E86BBC0000             call 00428515  
+
+:0041C8AA 83C408                 add esp, 00000008  
+
+:0041C8AD 6A44                   push 00000044  
+
+:0041C8AF 6A00                   push 00000000  
+
+:0041C8B1 8D859CFEFFFF           lea eax, dword ptr [ebp+FFFFFE9C]  
+
+:0041C8B7 50                    push eax  
+
+:0041C8B8 E813CD0100             call 004395D0  
+
+:0041C8BD 83C40C                 add esp, 0000000C  
+
+:0041C8C0 C7859CFEFFFF44000000   mov dword ptr [ebp+FFFFFE9C], 00000044  
+
+:0041C8CA 8D4DF0                 lea ecx, dword ptr [ebp-10]  
+
+:0041C8CD 51                    push ecx  
+
+:0041C8CE 8D959CFEFFFF           lea edx, dword ptr [ebp+FFFFFE9C]  
+
+:0041C8D4 52                    push edx  
+
+:0041C8D5 6A00                   push 00000000  
+
+:0041C8D7 6A00                   push 00000000  
+
+:0041C8D9 6A00                   push 00000000  
+
+:0041C8DB 6A00                   push 00000000  
+
+:0041C8DD 6A00                   push 00000000  
+
+:0041C8DF 6A00                   push 00000000  
+
+:0041C8E1 8D85E4FEFFFF           lea eax, dword ptr [ebp+FFFFFEE4]  
+
+:0041C8E7 50                    push eax  
+
+:0041C8E8 6A00                   push 00000000  
+
+\* Reference To: `KERNEL32.CreateProcessA`, Ord:0044h  
+
+                             |  
+
+:0041C8EA FF152CE14300           Call dword ptr [0043E12C]******** Load `Flax002.exe` to perform integrity check on `Flax.exe`.  
+
+:0041C8F0 8945E8                 mov dword ptr [ebp-18], eax  
+
+Find a blank code section in the `Flax.exe` file and write a code segment (the `nop` instructions are reserved in case the code needs modification; the implementation is rough and was not rewritten later. Please just understand the principle, and don't criticize me).  
+
+```
+.00440501: 90                     nop  
+
+.00440502: 90                     nop  
+
+.00440503: 90                     nop  
+
+.00440504: 8D55FC                 lea         edx,[ebp][-04]**** Fill the patch data into the local variable (file buffer).  
+
+.00440507: 8B12                   mov         edx,[edx]  
+
+.00440509: C702B9205846           mov         d,[edx],0465820B9  
+
+.0044050F: C7420400909090         mov         d,[edx][04],090909000  
+
+.00440516: 90                     nop  
+
+.00440517: 90                     nop  
+
+.0044051F: 90                     nop                                          
+
+.00440520: 51                     push        ecx                                  
+.00440521: 59                     pop         ecx                                  
+.00440522: 6A00                   push        000                                  
+.00440524: 50                     push        eax                                  
+.00440525: FF1568E14300           call        `GetFileSize`                      
+.0044052B: 3D28A00000             cmp         eax,00000A028                     
+.00440530: 0F854A0A0000           jne         .000440F78 ****  Get file size, check if it is the `Flax002.exe` file.  
+.00440536: 6A00                   push        000   *******  The file size of `Flax002.exe` is 41000 bytes.                      
+.00440538: 6A00                   push        000                                  
+.0044053A: 6865100000             push        000001065                         
+.0044053F: 8B4D08                 mov         ecx,[ebp][08]                     
+.00440542: 51                     push        ecx                                  
+.00440543: FF151CE14300           call        `SetFilePointer`                    
+.00440549: 90                     nop   ***** Move the current file pointer to the file offset to be modified.  
+.0044054A: 90                     nop                                     
+.0044054F: 90                     nop                                      
+.00440551: 6A00                   push        000                                  
+.00440553: 8D45F8                 lea         eax,[ebp][-08]                  
+.00440556: 50                     push        eax                                  
+.00440557: 6A08                   push        008                                  
+.00440559: 90                     nop                                          
+.0044055A: 8B4DFC                 mov         ecx,[ebp][-04]                  
+.0044055D: 51                     push        ecx                                  
+.00440566: 90                     nop                                          
+.00440567: 90                     nop                                          
+.00440568: 8B4D08                 mov         ecx,[ebp][08]                     
+.0044056B: 51                     push        ecx                                  
+.0044056C: FF1590E14300           call        `WriteFile` `KERNEL32.dll`          
+.00440572: 90                     nop   **** Write patch data to the file  
+.00440575: 90                     nop                                          
+.00440591: E9E2090000             jmp         .000440F78  -----  (1)       
+.00440596: 90                     nop                                  
+.00440F78: 8B4D08                 mov         ecx,[ebp][08]                     
+.00440F7A: 90                     nop                                          
+.00440F7E: 90                     nop                                          
+.00440F7F: 90                     nop                                          
+.00440F80: 51                     push        ecx                                  
+.00440F81: FF159CE14300           call        `CloseHandle`**** Close file handle, complete the original functionality of the program
+```
+
+
+
+## 修改过程
+
+在标记 `B` 处调用的过程 `call 0042DC21` 中修改一处代码。
+
+### 1. 原始代码段 (`0042DC21`)
+
+```asm
+:0042DC21  55                  push ebp
+:0042DC22  8BEC                mov ebp, esp
+:0042DC24  83EC0C              sub esp, 0000000C
+:0042DC27  E8C4FBFFFF          call 0042D7F0
+:0042DC2C  837D08FF            cmp dword ptr [ebp+08], FFFFFFFF
+:0042DC30  0F849F000000        je 0042DCD5
+:0042DC36  8B4508              mov eax, dword ptr [ebp+08]
+:0042DC39  3B05C0966000        cmp eax, dword ptr [006096C0]
+:0042DC3F  7516                jne 0042DC57
+:0042DC41  8B4D08              mov ecx, dword ptr [ebp+08]
+:0042DC44  51                  push ecx
+
+* Reference To: KERNEL32.CloseHandle, Ord:001Bh
+                                      |
+:0042DC45  FF159CE14300          Call dword ptr [0043E19C]
+:0042DC4B  C705C0966000FFFFFFFF  mov dword ptr [006096C0], FFFFFFFF
+:0042DC55  EB7E                jmp 0042DCD5
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0042DC3F(C)
+|
+:0042DC57  8B5508              mov edx, dword ptr [ebp+08]
+:0042DC5A  3B15E09B6000        cmp edx, dword ptr [00609BE0]
+:0042DC60  7573                jne 0042DCD5
+:0042DC62  833DE49B600000      cmp dword ptr [00609BE4], 00000000
+:0042DC69  7456                je 0042DCC1
+:0042DC6B  B8ECA06000          mov eax, 0060A0EC
+:0042DC70  8B0DE49B6000        mov ecx, dword ptr [00609BE4]
+:0042DC76  6BC928              imul ecx, 00000028
+:0042DC79  2BC1                sub eax, ecx
+:0042DC7B  8945FC              mov dword ptr [ebp-04], eax
+:0042DC7E  8B15E49B6000        mov edx, dword ptr [00609BE4]
+:0042DC84  6BD228              imul edx, 00000028
+:0042DC87  8955F4              mov dword ptr [ebp-0C], edx
+
+* Possible StringData Ref from Data Obj ->"GLUE"
+                                      |
+:0042DC8A  68349D4400          push 00449D34
+:0042DC8F  E8ACE0FDFF          call 0040BD40
+:0042DC94  83C404              add esp, 00000004
+:0042DC97  6A01                push 00000001
+:0042DC99  8B45F4              mov eax, dword ptr [ebp-0C]
+:0042DC9C  50                  push eax
+:0042DC9D  8B4DFC              mov ecx, dword ptr [ebp-04]
+:0042DCA0  51                  push ecx
+:0042DCA1  E8A1E2FDFF          call 0040BF47
+:0042DCA6  83C40C              add esp, 0000000C
+:0042DCA9  6A00                push 00000000
+:0042DCAB  8D55F8              lea edx, dword ptr [ebp-08]
+:0042DCAE  52                  push edx
+:0042DCAF  8B45F4              mov eax, dword ptr [ebp-0C]
+:0042DCB2  50                  push eax
+:0042DCB3  8B4DFC              mov ecx, dword ptr [ebp-04]
+:0042DCB6  51                  push ecx
+:0042DCB7  8B5508              mov edx, dword ptr [ebp+08]
+:0042DCBA  52                  push edx
+
+* Reference To: KERNEL32.WriteFile, Ord:02DFh
+                                      |
+:0042DCBB  FF1590E14300        Call dword ptr [0043E190] ****这儿有一个写操作，所以直接使用它的局部变量。
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0042DC69(C)
+|
+:0042DCC1  8B4508              mov eax, dword ptr [ebp+08]
+```
+
+### 2. 修改前代码
+
+```asm
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝修改前
+
+:0042DCC4  50                  push eax
+
+* Reference To: KERNEL32.CloseHandle, Ord:001Bh
+                                      |
+:0042DCC5  FF159CE14300        Call dword ptr [0043E19C]
+:0042DCCB  C705E09B6000FFFFFFFF mov dword ptr [00609BE0], FFFFFFFF
+
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0042DC30(C), :0042DC55(U), :0042DC60(C)
+|
+:0042DCD5  8BE5                mov esp, ebp
+:0042DCD7  5D                  pop ebp
+:0042DCD8  C3                  ret
+```
+
+### 3. 修改后代码
+
+```asm
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝修改后，以跳到自已的代码处对 flax002.exe 文件进行写操作
+
+:0042DCC1  8B4508              mov eax, dword ptr [ebp+08]
+:0042DCC4  E938280100          jmp 00440501
+:0042DCC9  90                  nop
+:0042DCCA  90                  nop
+
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝附动态补丁的结果＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+
+:00401058  52                  push edx
+:00401059  8B45FC              mov eax, dword ptr [ebp-04]
+:0040105C  50                  push eax
+:0040105D  E8D7000000          call 00401139*******************在这个过程中对 Flax.exe 进行校验运算。
+:00401062  83C408              add esp, 00000008
+
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝这是动态补丁以后 Flax002.exe 的结果
+
+:00401065  mov ecx,00465820
+:0040106A  nop
+:0040106B  nop
+:0040106C  nop
+
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+
+:0040106D  890D50904000        mov dword ptr [00409050], ecx********运算结果保存在[00409050]中
+:00401073  8B55FC              mov edx, dword ptr [ebp-04]
+:00401076  52                  push edx
+:00401077  E885050000          call 00401601
+:0040107C  83C404              add esp, 00000004
+:0040107F  6800010000          push 00000100
+```
+
+到此，对 `Flax.exe` 作任意修改都没问题，包括暴破和汉化。
+
+### 总结说明
+
+在这个 `Flax.exe` 中，要用到的几个 API：
+
+- `GetFileSize`
+- `SetFilePointer`
+- `WriteFile`
+
+在输入表中都已经存在，所以不用增加 API。
+
+在 `call 0042DC21` 过程中，有一个文件的写操作，所以就直接使用它的局部变量，这也是为什么要在这里加入功能代码的主要原因。
+
+修改以后，每一次主程序 `Flax.exe` 运行时，自动生成一个已经被打过补丁的 `flax002.exe`，所以 `flax002.exe` 的自校验每一次都行到正确的运算结果，实时预览功能正常。这个程序还有机器码+注册码的注册，我没有破，以后有时间再破解它了。
+
+中间写的比较粗，在实际中多跟几次就可以明白程序的一段代码的功能作用。
+
+如果大家有问题可以给我发邮件，大家共同学习。
+
+欢迎大家来指点不足，希望能和大家互相交流经验。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

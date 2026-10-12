@@ -1,292 +1,343 @@
 
-
 # 端口访问监控原理
 
 > 原文：[`www.pediy.com/kssd/pediy10/65903.html`](https://www.pediy.com/kssd/pediy10/65903.html)
 
-NetRoc  
-http://netroc682.spaces.live.com/  
-本来不打算写文章的，呵呵。既然 AhnLab 敢用，我当然也敢写咯，哈哈  
-安博士的反外挂系统最近添加了一个功能，可以检查出来按键精灵、简单游这些用增强版 WinIo 直接进行端口读写的程序。后来拿来看了一下，其原理就是自己前段时间实现过的那种。通过 Hook int 1，设置 IO 断点进行监控的方法。  
-原理如下：  
-Intel 兼容 CPU 都内置了调试功能。可以设置的断点类型包括执行断点、内存访问断点和 IO 断点。通过操作 DrX 寄存器和 CR4 寄存器，可以在发生特定端口的读写操作时触发断点。AhnLab 的这种检测技术就是基于 CPU 的这种功能。以下的介绍都基于 32 位处理器。  
-CPU 调试寄存器简介：  
-DR0DR3 寄存器：它们是 32 位调试地址寄存器。根据 DR7 中设置的不同，它们可以包含内存地址，也可以包含 IO 端口号。很多调试器的硬件断点也是通过这几个寄存器实现的，所以一般硬件断点只能设置 4 个。  
-DR4 和 DR5：这两个寄存器是被系统保留的，当 CR4 中的 DE 被设置时，访问这两个寄存器会产生非法指令错误#UD；当 CR4 中的 DE 被清空时，这两个寄存器和 DR6、DR7 关联，即访问它们和访问 DR6、DR7 一样。  
-DR6：调试状态寄存器。这个寄存器用于在调试事件发生时报告状态信息。要判断是哪个断点被触发，触发的原因之类的就是靠它里面的值。DR6 的定义如下：  
-  typedef struct \_DR6INFO  
-{  
-  unsigned B0  :  1;  //B0  
-  unsigned B1  :  1;  //B1  
-  unsigned B2  :  1;  //B2  
-  unsigned B3  :  1;  //B3  
-  unsigned Reserved1  :  9;  //reserved  
-  unsigned BD  :  1;  //BD  
-  unsigned BS  :  1;  //BS  
-  unsigned BT  :  1;  //BT  
-  unsigned Reserved2  :  16;  //Reserved  
-}DR6INFO, \*PDR6INFO;  
-  B0 到 B3 用于指示哪个断点被触发。它们分别对应于 DR0 到 DR3 中的地址或端口。  
-  BD 表示触发断点的下一条指令是对调试寄存器的访问。当 DR7 的 GD 标志被设置时，对调试寄存器进行访问的指令会触发调试事件，并且 DR6 的 BD 被设置。  
-  BS 表示是由于单步执行触发的调试事件。当 EFLAGS 的 TF 标志被设置时，这种断点会被触发。  
-  BT 指示是由于任务切换触发的调试事件。当 TSS 中的 T 标志被设置时会产生这种事件。  
-DR7：调试控制寄存器。对断点是否启用、断点类型等的控制。设置断点需要配合 DR0DR3 和 DR7 寄存器。定义如下：  
-typedef struct \_DR7INFO  
-{  
-  unsigned L0  :  1;  //L0  
-  unsigned G0  :  1;  //G0  
-  unsigned L1  :  1;  //L1  
-  unsigned G1  :  1;  //G1  
-  unsigned L2  :  1;  //L2  
-  unsigned G2  :  1;  //G2  
-  unsigned L3  :  1;  //L3  
-  unsigned G3  :  1;  //G3  
-  unsigned LE  :  1;  //LE  
-  unsigned GE  :  1;  //GE  
-  unsigned Reserved1  :  3;  //reserved  
-  unsigned GD  :  1;  //GD  
-  unsigned Reserved2  :  2;  //reserved  
-  unsigned RW0  :  2;  //R/W0  
-  unsigned LEN0  :  2;  //LEN0  
-  unsigned RW1  :  2;  //R/W1  
-  unsigned LEN1  :  2;  //LEN1  
-  unsigned RW2  :  2;  //R/W2  
-  unsigned LEN2  :  2;  //LEN2  
-  unsigned RW3  :  2;  //R/W3  
-  unsigned LEN3  :  2;  //LEN3  
-}DR7INFO, \*PDR7INFO;  
-  L0 到 L3：设置时为当前任务启用相应的断点条件。每次任务切换时 CPU 都会自动清除 Lx 位，所以这几位只控制当前任务的断点。  
-  G0 到 G3：为所有任务启用相应的断点条件。这是针对整个机器的。  
-  LE 和 GE：P6 family 和之后的 IA32 处理器都不支持这两位。当设置时，使得处理器会检测触发数据断点的精确的指令。为了兼容性，Intel 建议使用精确断点时把 LE 和 GE 都设置为 1。  
-  GD：设置 GD 位时启用对调试寄存器的保护，这时对这些寄存器的访问都会触发调试中断。进入中断处理函数前，CPU 会清掉 GD 位，使得中断处理函数能够访问 DRx 寄存器。  
-  R/W0 到 R/W3：指定各个断点的触发条件。它们对应于 DR0 到 DR3 中的地址以及 DR6 中的 4 个断点条件标志。这几位的意义会受到 CR4 中的 DE 位的影响。  
-当 DE 位为 1 时，它们的意义如下：  
-00  仅在指令执行时中断  
-01  仅数据写入时中断  
-10  IO 输入输出时中断  
-11  数据读取或写入时中断，但是不受指令预取的影响  
-当 DE 位为 0 时，它们的意义如下：  
-00  仅在指令执行时中断  
-01  仅数据写入时中断  
-10 未定义  
-11  数据读取或写入时中断，但是不受指令预取的影响  
-  LEN0 到 LEN3：指定在调试地址寄存器 DR0 到 DR3 中指定的地址位置的大小。如果 R/Wx 位为 0，则 LENx 位也必须为 0，否则会产生不确定的行为。这几位的意义如下：  
-00  1 字节长度  
-01  2 字节长度  
-10  未定义  
-11  四字节长度  
-IO 监控的实现  
-介绍了上面这些内容，那么 IO 监控的实现方法就很简单了，键盘 IO 的端口是 60 和 64，比如要监控 60 端口，就可以这样进行：  
-  Hook 掉 Trap01，自己接管调试中断  
-  设置 CR4 的 DE，以及 DR7 中的 LE 和 GE。  
-  在 DR0 到 DR3 中选一个来设置端口号，比如选择 DR0 设置为 0x60。  
-  设置 DR7 中的 R/Wx 和 LENx 位，这里应该设置 RW0 为 10、LEN0 为 00  
-  在 Hook 的中端函数中，检查 DR6 中的 B0 到 B3，如果是 B0 的话，表明发生了对 0x60 端口的读写操作。  
-由于 IO 断点是 Trap，即在事件发生后才能触发中断，所以这种方法不能阻止对端口的读写，而仅能够进行监控。判断读写的数据以及要精确的判断是读还是写需要更进一步的操作，也是有一些办法可以实现的，这里就不说完了，呵呵。  
-实现的关键代码  
+`NetRoc`
+
+`http://netroc682.spaces.live.com/`
+
+本来不打算写文章的，呵呵。既然 `AhnLab` 敢用，我当然也敢写咯，哈哈
+
+安博士的反外挂系统最近添加了一个功能，可以检查出来按键精灵、简单游这些用增强版 `WinIo` 直接进行端口读写的程序。后来拿来看了一下，其原理就是自己前段时间实现过的那种。通过 Hook `int 1`，设置 `IO` 断点进行监控的方法。
+
+原理如下：
+
+Intel 兼容 CPU 都内置了调试功能。可以设置的断点类型包括执行断点、内存访问断点和 IO 断点。通过操作 `DrX` 寄存器和 `CR4` 寄存器，可以在发生特定端口的读写操作时触发断点。`AhnLab` 的这种检测技术就是基于 CPU 的这种功能。以下的介绍都基于 32 位处理器。
+
+## CPU 调试寄存器简介
+
+`DR0DR3` 寄存器：它们是 32 位调试地址寄存器。根据 `DR7` 中设置的不同，它们可以包含内存地址，也可以包含 `IO` 端口号。很多调试器的硬件断点也是通过这几个寄存器实现的，所以一般硬件断点只能设置 4 个。
+
+`DR4` 和 `DR5`：这两个寄存器是被系统保留的，当 `CR4` 中的 `DE` 被设置时，访问这两个寄存器会产生非法指令错误#UD；当 `CR4` 中的 `DE` 被清空时，这两个寄存器和 `DR6`、`DR7` 关联，即访问它们和访问 `DR6`、`DR7` 一样。
+
+`DR6`：调试状态寄存器。这个寄存器用于在调试事件发生时报告状态信息。要判断是哪个断点被触发，触发的原因之类的就是靠它里面的值。`DR6` 的定义如下：
+
+```
+typedef struct _DR6INFO
+{
+  unsigned B0  :  1;  //B0
+  unsigned B1  :  1;  //B1
+  unsigned B2  :  1;  //B2
+  unsigned B3  :  1;  //B3
+  unsigned Reserved1  :  9;  //reserved
+  unsigned BD  :  1;  //BD
+  unsigned BS  :  1;  //BS
+  unsigned BT  :  1;  //BT
+  unsigned Reserved2  :  16;  //Reserved
+}DR6INFO, *PDR6INFO;
+```
+
+`B0` 到 `B3` 用于指示哪个断点被触发。它们分别对应于 `DR0` 到 `DR3` 中的地址或端口。
+
+`BD` 表示触发断点的下一条指令是对调试寄存器的访问。当 `DR7` 的 `GD` 标志被设置时，对调试寄存器进行访问的指令会触发调试事件，并且 `DR6` 的 `BD` 被设置。
+
+`BS` 表示是由于单步执行触发的调试事件。当 `EFLAGS` 的 `TF` 标志被设置时，这种断点会被触发。
+
+`BT` 指示是由于任务切换触发的调试事件。当 `TSS` 中的 `T` 标志被设置时会产生这种事件。
+
+`DR7`：调试控制寄存器。对断点是否启用、断点类型等的控制。设置断点需要配合 `DR0DR3` 和 `DR7` 寄存器。定义如下：
+
+```
+typedef struct _DR7INFO
+{
+  unsigned L0  :  1;  //L0
+  unsigned G0  :  1;  //G0
+  unsigned L1  :  1;  //L1
+  unsigned G1  :  1;  //G1
+  unsigned L2  :  1;  //L2
+  unsigned G2  :  1;  //G2
+  unsigned L3  :  1;  //L3
+  unsigned G3  :  1;  //G3
+  unsigned LE  :  1;  //LE
+  unsigned GE  :  1;  //GE
+  unsigned Reserved1  :  3;  //reserved
+  unsigned GD  :  1;  //GD
+  unsigned Reserved2  :  2;  //reserved
+  unsigned RW0  :  2;  //R/W0
+  unsigned LEN0  :  2;  //LEN0
+  unsigned RW1  :  2;  //R/W1
+  unsigned LEN1  :  2;  //LEN1
+  unsigned RW2  :  2;  //R/W2
+  unsigned LEN2  :  2;  //LEN2
+  unsigned RW3  :  2;  //R/W3
+  unsigned LEN3  :  2;  //LEN3
+}DR7INFO, *PDR7INFO;
+```
+
+`L0` 到 `L3`：设置时为当前任务启用相应的断点条件。每次任务切换时 CPU 都会自动清除 `Lx` 位，所以这几位只控制当前任务的断点。
+
+`G0` 到 `G3`：为所有任务启用相应的断点条件。这是针对整个机器的。
+
+`LE` 和 `GE`：`P6 family` 和之后的 `IA32` 处理器都不支持这两位。当设置时，使得处理器会检测触发数据断点的精确的指令。为了兼容性，`Intel` 建议使用精确断点时把 `LE` 和 `GE` 都设置为 1。
+
+`GD`：设置 `GD` 位时启用对调试寄存器的保护，这时对这些寄存器的访问都会触发调试中断。进入中断处理函数前，`CPU` 会清掉 `GD` 位，使得中断处理函数能够访问 `DRx` 寄存器。
+
+`R/W0` 到 `R/W3`：指定各个断点的触发条件。它们对应于 `DR0` 到 `DR3` 中的地址以及 `DR6` 中的 4 个断点条件标志。这几位的意义会受到 `CR4` 中的 `DE` 位的影响。
+
+当 `DE` 位为 1 时，它们的意义如下：
+
+* `00` 仅在指令执行时中断
+* `01` 仅数据写入时中断
+* `10` IO 输入输出时中断
+* `11` 数据读取或写入时中断，但是不受指令预取的影响
+
+当 `DE` 位为 0 时，它们的意义如下：
+
+* `00` 仅在指令执行时中断
+* `01` 仅数据写入时中断
+* `10` 未定义
+* `11` 数据读取或写入时中断，但是不受指令预取的影响
+
+`LEN0` 到 `LEN3`：指定在调试地址寄存器 `DR0` 到 `DR3` 中指定的地址位置的大小。如果 `R/Wx` 位为 0，则 `LENx` 位也必须为 0，否则会产生不确定的行为。这几位的意义如下：
+
+* `00` 1 字节长度
+* `01` 2 字节长度
+* `10` 未定义
+* `11` 四字节长度
+
+## IO 监控的实现
+
+介绍了上面这些内容，那么 IO 监控的实现方法就很简单了，键盘 IO 的端口是 `60` 和 `64`，比如要监控 `60` 端口，就可以这样进行：
+
+* Hook 掉 `Trap01`，自己接管调试中断
+* 设置 `CR4` 的 `DE`，以及 `DR7` 中的 `LE` 和 `GE`。
+* 在 `DR0` 到 `DR3` 中选一个来设置端口号，比如选择 `DR0` 设置为 `0x60`。
+* 设置 `DR7` 中的 `R/Wx` 和 `LENx` 位，这里应该设置 `RW0` 为 `10`、`LEN0` 为 `00`
+* 在 Hook 的中断函数中，检查 `DR6` 中的 `B0` 到 `B3`，如果是 `B0` 的话，表明发生了对 `0x60` 端口的读写操作。
+
+由于 `IO` 断点是 `Trap`，即在事件发生后才能触发中断，所以这种方法不能阻止对端口的读写，而仅能够进行监控。判断读写的数据以及要精确的判断是读还是写需要更进一步的操作，也是有一些办法可以实现的，这里就不说完了，呵呵。
+
+## 实现的关键代码
 
 代码:
 
+
+
+# Hook 掉 IDT
+
+## 钩子实现
+
 ```
-Hook 掉 IDT
-NTSTATUS HookIdt(ULONG ulId, PVOID pIntProc, PULONG pOldIntProc, PIDTENTRY pstOldEntry)
+NTSTATUS HookIdt(ULONG ulId, PVOID pIntProc, PULONG pOldIntProc, PIDTENTRY pstOldEntry)
 {
-  CCHAR CpuCount = 0;
-  PIDTENTRY    IdtEntry = NULL;
-  IDTR stIdtr = {0};
+  CCHAR CpuCount = 0;
+  PIDTENTRY    IdtEntry = NULL;
+  IDTR stIdtr = {0};
 
-  CpuCount = \*KeNumberProcessors;
-  while( CpuCount > 0)
-  {//处理多 CPU
-    KeSetAffinityThread( KeGetCurrentThread(), CpuCount);//绑定 CPU
-    //得到 IDTR 中得段界限与基地址
-    \_asm sidt stIdtr;
-    IdtEntry = (PIDTENTRY)stIdtr.Base;
-    //保存原有得 IDT
-    if ( pstOldEntry)
-    {
-      RtlCopyMemory( pstOldEntry, &IdtEntry\[ulId\], sizeof( IDTENTRY));
-    }
-    \_asm cli;//禁止中断
-    if ( pOldIntProc)
-    {
-      \*pOldIntProc = (ULONG)IdtEntry\[ulId\].OffsetLow | ((ULONG)IdtEntry\[ulId\].OffsetHigh<<16);    
-    }
-    IdtEntry\[ulId\].OffsetLow   = (unsigned short)pIntProc;                           
-    IdtEntry\[ulId\].OffsetHigh  = (unsigned short)((unsigned int)pIntProc>>16);
-    \_asm sti;//开中断
-    CpuCount--;
-  }
-  return STATUS\_SUCCESS;
+  CpuCount = *KeNumberProcessors;
+  while( CpuCount > 0)
+  {//处理多 CPU
+    KeSetAffinityThread( KeGetCurrentThread(), CpuCount);//绑定 CPU
+    //得到 IDTR 中得段界限与基地址
+    _asm sidt stIdtr;
+    IdtEntry = (PIDTENTRY)stIdtr.Base;
+    //保存原有得 IDT
+    if ( pstOldEntry)
+    {
+      RtlCopyMemory( pstOldEntry, &IdtEntry[ulId], sizeof( IDTENTRY));
+    }
+    _asm cli;//禁止中断
+    if ( pOldIntProc)
+    {
+      *pOldIntProc = (ULONG)IdtEntry[ulId].OffsetLow | ((ULONG)IdtEntry[ulId].OffsetHigh<<16);     
+    }
+    IdtEntry[ulId].OffsetLow   = (unsigned short)pIntProc;                    
+    IdtEntry[ulId].OffsetHigh  = (unsigned short)((unsigned int)pIntProc>>16);
+    _asm sti;//开中断
+    CpuCount--;
+  }
+  return STATUS_SUCCESS;
 }
+```
 
-//卸载钩子
-NTSTATUS UnhookIdt(ULONG ulId, ULONG pIntProc)
+## 卸载钩子
+
+```
+NTSTATUS UnhookIdt(ULONG ulId, ULONG pIntProc)
 {
-  CCHAR CpuCount = 0;
-  PIDTENTRY    IdtEntry = NULL;
-  IDTR stIdtr = {0};
-  CpuCount = \*KeNumberProcessors;
-  while( CpuCount > 0)
-  {
-    KeSetAffinityThread( KeGetCurrentThread(), CpuCount);//绑定 CPU
-    //得到 IDTR 中得段界限与基地址
-    \_asm sidt stIdtr;
-    IdtEntry = (PIDTENTRY)stIdtr.Base;
-    \_asm cli;//禁止中断  
-    IdtEntry\[ulId\].OffsetLow   = (unsigned short)pIntProc;                           
-    IdtEntry\[ulId\].OffsetHigh  = (unsigned short)((unsigned int)pIntProc>>16);
-    \_asm sti;//开中断
-    CpuCount--;
-  }
-  return STATUS\_SUCCESS;
+  CCHAR CpuCount = 0;
+  PIDTENTRY    IdtEntry = NULL;
+  IDTR stIdtr = {0};
+  CpuCount = *KeNumberProcessors;
+  while( CpuCount > 0)
+  {
+    KeSetAffinityThread( KeGetCurrentThread(), CpuCount);//绑定 CPU
+    //得到 IDTR 中得段界限与基地址
+    _asm sidt stIdtr;
+    IdtEntry = (PIDTENTRY)stIdtr.Base;
+    _asm cli;//禁止中断   
+    IdtEntry[ulId].OffsetLow   = (unsigned short)pIntProc;                    
+    IdtEntry[ulId].OffsetHigh  = (unsigned short)((unsigned int)pIntProc>>16);
+    _asm sti;//开中断
+    CpuCount--;
+  }
+  return STATUS_SUCCESS;
 }
+```
 
+## 自定义 Trap01
+
+```
 //自己的
-#pragma optimize( "", off )
-void \_\_declspec (naked) NewTrap01(void)
+#pragma optimize( "", off )
+void __declspec (naked) NewTrap01(void)
 {
-  INT\_CONTEXT stContext;
-  ULONG ulResult;
-  \_asm
-  {    
-    //保存环境;
-    push ebp;
-    mov ebp, esp;
-    sub esp, 100h;
+  INT_CONTEXT stContext;
+  ULONG ulResult;
+  _asm
+  {     
+    //保存环境;
+    push ebp;
+    mov ebp, esp;
+    sub esp, 100h;
 
-    mov stContext.cs, cs;
-    mov stContext.ds, ds;
-    mov stContext.eax, eax;
-    mov stContext.ebp, ebp;
-    mov stContext.ebx, ebx;
-    mov stContext.ecx, ecx;
-    mov stContext.edi, edi;
-    mov stContext.edx, edx;
-    mov stContext.es, es;
-    mov stContext.esi, esi;
-    mov stContext.esp, esp;
-    mov stContext.fs, fs;
-    mov stContext.ss, ss;
-    mov ax, 0x30;
-    mov fs, ax;
-    mov stContext.gs, gs;
-  }
-  ulResult = OnTrap01( &stContext);//实际处理
-  if ( ulResult == 1)
-  {
-    \_asm
-    {    
-      mov ax, stContext.ds;
-      mov ds, ax;
-      mov ebp, stContext.ebp;
-      mov ebx, stContext.ebx;
-      mov ecx, stContext.ecx;
-      mov edi, stContext.edi;
-      mov edx, stContext.edx;
-      mov esi, stContext.esi;
+    mov stContext.cs, cs;
+    mov stContext.ds, ds;
+    mov stContext.eax, eax;
+    mov stContext.ebp, ebp;
+    mov stContext.ebx, ebx;
+    mov stContext.ecx, ecx;
+    mov stContext.edi, edi;
+    mov stContext.edx, edx;
+    mov stContext.es, es;
+    mov stContext.esi, esi;
+    mov stContext.esp, esp;
+    mov stContext.fs, fs;
+    mov stContext.ss, ss;
+    mov ax, 0x30;
+    mov fs, ax;
+    mov stContext.gs, gs;
+  }
+  ulResult = OnTrap01( &stContext);//实际处理
+  if ( ulResult == 1)
+  {
+    _asm
+    {     
+      mov ax, stContext.ds;
+      mov ds, ax;
+      mov ebp, stContext.ebp;
+      mov ebx, stContext.ebx;
+      mov ecx, stContext.ecx;
+      mov edi, stContext.edi;
+      mov edx, stContext.edx;
+      mov esi, stContext.esi;
 
-      mov ax, stContext.es
-      mov es, ax;
-      mov ax, stContext.fs
-      mov fs, ax;
-      mov ax, stContext.ss
-      mov ss, ax;
-      mov ax, stContext.gs;
-      mov gs, ax;
-      mov eax, stContext.eax;
+      mov ax, stContext.es
+      mov es, ax;
+      mov ax, stContext.fs
+      mov fs, ax;
+      mov ax, stContext.ss
+      mov ss, ax;
+      mov ax, stContext.gs;
+      mov gs, ax;
+      mov eax, stContext.eax;
 
-      mov esp,ebp;
-      pop ebp;
-      //退出
-      iretd;
-    }
-  }
-  else
-  {
-    \_asm
-    {    
-      mov ax, stContext.ds;
-      mov ds, ax;
-      mov ebp, stContext.ebp;
-      mov ebx, stContext.ebx;
-      mov ecx, stContext.ecx;
-      mov edi, stContext.edi;
-      mov edx, stContext.edx;
-      mov esi, stContext.esi;
+      mov esp,ebp;
+      pop ebp;
+      //退出
+      iretd;
+    }
+  }
+  else
+  {
+    _asm
+    {     
+      mov ax, stContext.ds;
+      mov ds, ax;
+      mov ebp, stContext.ebp;
+      mov ebx, stContext.ebx;
+      mov ecx, stContext.ecx;
+      mov edi, stContext.edi;
+      mov edx, stContext.edx;
+      mov esi, stContext.esi;
 
-      mov ax, stContext.es
-      mov es, ax;
-      mov ax, stContext.fs
-      mov fs, ax;
-      mov ax, stContext.ss
-      mov ss, ax;
-      mov ax, stContext.gs;
-      mov gs, ax;
-      mov eax, stContext.eax;
+      mov ax, stContext.es
+      mov es, ax;
+      mov ax, stContext.fs
+      mov fs, ax;
+      mov ax, stContext.ss
+      mov ss, ax;
+      mov ax, stContext.gs;
+      mov gs, ax;
+      mov eax, stContext.eax;
 
-      mov esp,ebp;
-      pop ebp;
-      //不是自己需要的事件，调用原来的 Trap01;
-      jmp g\_pOldTrap01;
-    }
-  }
-  
+      mov esp,ebp;
+      pop ebp;
+      //不是自己需要的事件，调用原来的 Trap01;
+      jmp g_pOldTrap01;
+    }
+  }
+   
 }
-#pragma optimize( "", on )
-
-ULONG \_\_stdcall OnTrap01(LPINT\_CONTEXT pstContext)
-{
-  DR6INFO stDr6;
-  ULONG ulEip = 0;
-  USHORT usCs = 0;
-  PUCHAR pucCode = 0;
-
-  ulEip = \*((PULONG)(pstContext->ebp + 4));
-  usCs = \*((PUSHORT)(pstContext->ebp + 8));
-  /\*DbgPrint( "\[ebp\]=0x%X, \[ebp+4\]=0x%X, \[ebp+8\]=0x%X, \[ebp+C\]=0x%X\\r\\n", \*((PULONG)(pstContext->ebp)), 
-    \*((PULONG)(pstContext->ebp + 0x4)), 
-    \*((PULONG)(pstContext->ebp + 0x8)),
-    \*((PULONG)(pstContext->ebp + 0xC)));\*/
-  pucCode = (PUCHAR)ulEip;
-
-
-  stDr6 = GetDR6();
-  /\*DbgPrint( "%d:In trap 01.dr6.B0=%d, dr6.B1=%d, dr6.B2=%d,dr6.B3=%d, dr6.BD=%d, dr6.BS=%d, dr6.BT=%d\\r\\n", \_\_LINE\_\_, 
-    stDr6.B0, stDr6.B1, stDr6.B2, stDr6.B3, stDr6.BD, stDr6.BS, stDr6.BT);
-  DbgPrint( "%d:Traped EIP=0x%X, CS=0x%X\\r\\n",  \_\_LINE\_\_, (ULONG)ulEip, (ULONG)usCs);\*/
-  if ( stDr6.B0 && g\_bpInfo\[0\].blIsSet)
-  {
-    //
-    OnBreak( 0, pstContext, pucCode);
-    //DbgPrint("On bp 0\\r\\n");
-    return 1;
-  }else if ( stDr6.B1 && g\_bpInfo\[1\].blIsSet)
-  {
-    //
-    OnBreak( 1, pstContext, pucCode);
-    //DbgPrint("On bp 1\\r\\n");
-    return 1;
-  }else if ( stDr6.B2 && g\_bpInfo\[2\].blIsSet)
-  {
-    //
-    OnBreak( 2, pstContext, pucCode);
-    //DbgPrint("On bp 2\\r\\n");
-    return 1;
-  }else if ( stDr6.B3 && g\_bpInfo\[3\].blIsSet)
-  {
-    //
-    OnBreak( 3, pstContext, pucCode);
-    //DbgPrint("On bp 3\\r\\n");
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-}
-
+#pragma optimize( "", on )
 ```
 
-破解方法  
-既然知道了原理，那么破解方法也就很明了了。读写端口之前想办法清掉调试寄存器即可。但是如果处理了 DR7 中的 GD 标志的话，清调试器的办法要麻烦一些。这里也不赘述了，呵呵。
+## 处理 Trap01 事件
+
+```
+ULONG __stdcall OnTrap01(LPINT_CONTEXT pstContext)
+{
+  DR6INFO stDr6;
+  ULONG ulEip = 0;
+  USHORT usCs = 0;
+  PUCHAR pucCode = 0;
+
+  ulEip = *((PULONG)( pstContext->ebp + 4));
+  usCs = *((PUSHORT)(pstContext->ebp + 8));
+  /*DbgPrint( "[ebp]=0x%X, [ebp+4]=0x%X, [ebp+8]=0x%X, [ebp+C]=0x%X\r\n", *((PULONG)(pstContext->ebp)), 
+    *((PULONG)(pstContext->ebp + 0x4)), 
+    *((PULONG)(pstContext->ebp + 0x8)),
+    *((PULONG)(pstContext->ebp + 0xC)));*/
+  pucCode = (PUCHAR)ulEip;
+
+
+  stDr6 = GetDR6();
+  /*DbgPrint( "%d:In trap 01.dr6.B0=%d, dr6.B1=%d, dr6.B2=%d,dr6.B3=%d, dr6.BD=%d, dr6.BS=%d, dr6.BT=%d\r\n", __LINE__, 
+    stDr6.B0, stDr6.B1, stDr6.B2, stDr6.B3, stDr6.BD, stDr6.BS, stDr6.BT);
+  DbgPrint( "%d:Traped EIP=0x%X, CS=0x%X\r\n",  __LINE__, (ULONG)ulEip, (ULONG)usCs);*/
+  if ( stDr6.B0 && g_bpInfo[0].blIsSet)
+  {
+    //
+    OnBreak( 0, pstContext, pucCode);
+    //DbgPrint("On bp 0\r\n");
+    return 1;
+  }else if ( stDr6.B1 && g_bpInfo[1].blIsSet)
+  {
+    //
+    OnBreak( 1, pstContext, pucCode);
+    //DbgPrint("On bp 1\r\n");
+    return 1;
+  }else if ( stDr6.B2 && g_bpInfo[2].blIsSet)
+  {
+    //
+    OnBreak( 2, pstContext, pucCode);
+    //DbgPrint("On bp 2\r\n");
+    return 1;
+  }else if ( stDr6.B3 && g_bpInfo[3].blIsSet)
+  {
+    //
+    OnBreak( 3, pstContext, pucCode);
+    //DbgPrint("On bp 3\r\n");
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+```
+
+## 破解方法
+
+既然知道了原理，那么破解方法也就很明了了。读写端口之前想办法清掉调试寄存器即可。但是如果处理了 `DR7` 中的 `GD` 标志的话，清调试器的办法要麻烦一些。这里也不赘述了，呵呵。

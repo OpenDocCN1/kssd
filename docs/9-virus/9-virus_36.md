@@ -1,353 +1,353 @@
 
-
 # 【Anti Virus 专题】1.2 - 2.kernel32 基地址获得
 
 > 原文：[`www.pediy.com/kssd/pediy10/85910.html`](https://www.pediy.com/kssd/pediy10/85910.html)
 
-1.2 2.kernel32 基地址获得  
-  
-      
-  
-    kernel32 基地址的获得也是病毒中必不可少的技术，因为在 win32 环境中一般初始化 PE 文件的时候，我们的 ntdll.dll, kernel32.dll 是随进程以及线程初始化时候加载的。所以即使程  
-  
-序中我们不引入任何输入表结构，这两个 DLL 在我们程序进程以及线程初始化时也必须加载。所以我们今天这篇文章的目的就是在我们的进程内存空间中来获得加载 kernel32.dll 的基地址。因为我们获得  
-  
-kernel32.dll 的基地址后，就可以获得 LoadLibray 函数来继续加载其他的动态链接库，然后再通过我们的 GetProcAdress 函数来获得相应需要的 api 函数地址,这样也就做到了可移植性的要求，所有的函数  
-  
-均是自己动态获取并填充。  
-  
-      
-  
-    今天我给大家介绍三种获取 kernel32.dll 基地址的技术，其实还有部分方法也可以获得，只是这 3 种比较通用，也是病毒中经常用到的。它们分别是  
-  
-    1. 通过线程初始化时, 获得 esp 堆栈指针中的 ExitThread 函数的地址，然后通过搜索获得 kernel32.dll 的基地址。  
-  
-    2. 遍历 seh 异常链，然后获得 EXCEPTION\_REGISTRATION 结构 prev 为-1 的异常处理过程地址，这个异常处理过程地址是位于 kernel32.dll，通过它搜索得到 kernel32.dll 的基地址。  
-  
-    3. 通过 TEB 获得 PEB 结构地址，然后再获得 PEB\_LDR\_DATA 结构地址，然后遍历模块列表，查找 kernel32.dll 模块的基地址。  
-      
-  1.  
-  
-第一种方法:  
-  
-  我们上面介绍了**线程在被初始化的时，其堆栈指针指向 ExitThread 函数的地址**，windows 这样做是为了**通过 ret 返回时来调用 ExitThread 地址**。所以一般我们可以在我们主线程的起始位置(也就是  
-  
-程序入口点处)通过获得堆栈指针中 ExitThread 函数(当然你要想创建一个线程时候获得也可以 o(∩\_∩)o...哈哈)。  
-  
-  我们直接通过  
-  mov  edx, \[esp\] ;获得堆栈指针中 ExitThread 地址到 edx 寄存器。因为 ExitThread 地址在 kernel32.dll 空间中，所以我们可以通过它往上搜索来获得基地址。  
-  
-  分析过 kernel32.dll 的朋友应该都知道 kernel32.dll 的**块对齐值是 00001000h**, 并且一般**DLL 以 1M 为边界**，所以我们可以通过**10000h** (64k) 作为**跨度**，这样可以增加搜索速度。我们如何确定这个  
-  
-地址是基地址，我们都知道我们判断这个地址的前两个字节是否是"MZ",然后定位到 PE 头结构，然后判断是否是"PE"，如果这两个都符合的话则表示我们的地址则是基地址了。。  
-  
-  有了以上的了解我们就可以来写代码了。  
-  
-  
-  mov  edx, \[esp\]   
- .Next:    
-  dec  edx  ;  
-  xor  dx, dx  ; 减去跨度  
-  cmp  word \[edx\], "MZ"  
-  jz  .IsPe  
-  jmp  .Next  
-    
- .IsPe:  
-  mov  eax, \[edx+3ch\]  
-  cmp  word \[eax+edx\], 'PE'  
-  jnz  .Next  
-  xchg  eax, edx   ; eax = kernel32 基地址  
-  
-  
-这里贴一个封装过的过程。  
-  
+## 1.2 2.kernel32 基地址获得
 
-代码:
+`kernel32` 基地址的获得也是病毒中必不可少的技术，因为在 `win32` 环境中一般初始化 `PE` 文件的时候，我们的 `ntdll.dll`, `kernel32.dll` 是随进程以及线程初始化时候加载的。所以即使程序中我们不引入任何输入表结构，这两个 `DLL` 在我们程序进程以及线程初始化时也必须加载。所以我们今天这篇文章的目的就是在我们的进程内存空间中来获得加载 `kernel32.dll` 的基地址。因为我们获得 `kernel32.dll` 的基地址后，就可以获得 `LoadLibrary` 函数来继续加载其他的动态链接库，然后再通过我们的 `GetProcAddress` 函数来获得相应需要的 `api` 函数地址，这样也就做到了可移植性的要求，所有的函数均是自己动态获取并填充。
+
+今天我给大家介绍三种获取 `kernel32.dll` 基地址的技术，其实还有部分方法也可以获得，只是这 3 种比较通用，也是病毒中经常用到的。它们分别是：
+
+1. 通过线程初始化时，获得 `esp` 堆栈指针中的 `ExitThread` 函数的地址，然后通过搜索获得 `kernel32.dll` 的基地址。
+2. 遍历 `seh` 异常链，然后获得 `EXCEPTION_REGISTRATION` 结构 `prev` 为 -1 的异常处理过程地址，这个异常处理过程地址是位于 `kernel32.dll`，通过它搜索得到 `kernel32.dll` 的基地址。
+3. 通过 `TEB` 获得 `PEB` 结构地址，然后再获得 `PEB_LDR_DATA` 结构地址，然后遍历模块列表，查找 `kernel32.dll` 模块的基地址。
+
+### 1. 第一种方法
+
+我们上面介绍了线程在被初始化的时，其堆栈指针指向 `ExitThread` 函数的地址，`windows` 这样做是为了通过 `ret` 返回时来调用 `ExitThread` 地址。所以一般我们可以在我们主线程的起始位置（也就是程序入口点处）通过获得堆栈指针中 `ExitThread` 函数（当然你要想创建一个线程时候获得也可以 o(∩\_∩)o...哈哈）。
+
+我们直接通过：
 
 ```
- ;++
- ;
- ; int
- ;   GetKrnlBase(
- ;      int KrnlApiAddress
- ;   )
- ;
- ; Routine Description:
- ;
- ;    获得 kernel32 基地址
- ;
- ; Arguments:
- ;
- ;    (esp)          - return address
- ;
- ;    Data   (esp+4) - KrnlApiAddress, ptr ApiAddress
- ;
- ;
- ; Return Value:
- ;
- ;    eax =  krnl32 base
- ;
- ;--
-
- GetKrnlBase:
-   pop  eax
-   pop  edx
-   push  eax
-   
- .Next:
-   cmp  word \[edx\], 'MZ' 
-   jz  .IsPe
-  dec  edx
-  xor  dx, dx
-   jmp  .Next
- 
- .IsPe:  
-   mov  eax, \[edx+3ch\]
-   cmp  word \[eax+edx\], 'PE'
-   jnz  .Next
-   xchg  eax, edx
-   ret
-
+mov  edx, [esp] ;获得堆栈指针中 ExitThread 地址到 edx 寄存器
 ```
 
-  
-2.   
-  第二种方法:  
-  
-  这个方法是遍历遍历 seh 异常链，然后获得 EXCEPTION\_REGISTRATION 结构**prev 为-1 的异常处理过程地址**，这个异常处理过程地址是位于 kernel32.dll，通过它搜索得到 kernel32.dll 的基地址。  
-搜索的方法在上面我已经说了，通过减去跨度，然后判断地址前两字节是否是"MZ"，是的话，继续定位到 PE 头结构，然后判断前两个字节是否是"PE"，不是的话继续减去跨度搜索。直到是为止。  
-  
-  struct EXCEPTION\_REGISTRATION   
-        prev dd ?                         
-        handler dd ?                     
-  ends   
-  
-  遍历的方法也很简单，我们都知道\[fs:0\]的 ExceptionList 指向 EXCEPTION\_REGISTRATION 结构，所以通过\[fs:0\]获得 EXCEPTION\_REGISTRATION 结构后，判断 prev 成员是否是-1，如果是的话则取  
-  
-异常处理过程地址，然后进行搜索。  
-  
-  
-  有了思路，我们开始写代码。  
-  
-  mov  edx, \[fs:0\]  ;获得 EXCEPTION\_REGISTRATION 结构地址  
- .Next:  
-  inc  dword \[edx\]  ;将 prev 成员 + 1  
-  jz  .Krnl    ;如果 ZF = 1, 则跳转.Krnl  
-  dec  dword \[edx\]  
-  mov  edx,  \[edx\]  
-  jmp  .Next  
- .Krnl:  
-  dec  dword \[edx\]  ;恢复 -1  
-  mov  edx, \[edx+4\]  ;获得 handler, 然后下面进行搜索..  
- .Loop:  
-  cmp  word \[edx\], 'MZ'   
-   jz  .IsPe  
-  dec  edx  
-  xor  dx, dx  
-  jmp  .Loop  
-  
- .IsPe:    
-   mov  eax, \[edx+3ch\]  
-   cmp  word \[eax+edx\], 'PE'  
-   jnz  .Next  
-   xchg  eax, edx  ; eax = kernel32 基地址  
-  
-一个封装过的过程:  
-代码:
+因为 `ExitThread` 地址在 `kernel32.dll` 空间中，所以我们可以通过它往上搜索来获得基地址。
+
+分析过 `kernel32.dll` 的朋友应该都知道 `kernel32.dll` 的块对齐值是 `00001000h`，并且一般 `DLL` 以 `1M` 为边界，所以我们可以通过 `10000h` (64k) 作为跨度，这样可以增加搜索速度。我们如何确定这个地址是基地址，我们都知道我们判断这个地址的前两个字节是否是 `"MZ"`，然后定位到 `PE` 头结构，然后判断是否是 `"PE"`，如果这两个都符合的话则表示我们的地址则是基地址了。
+
+有了以上的了解我们就可以来写代码了。
 
 ```
- ;++
- ;
- ; int
- ;   GetKrnlBase2(
- ;    void
- ;   )
- ;
- ; Routine Description:
- ;
- ;    获得 kernel32 基地址
- ;
- ; Arguments:
- ;
- ;    (esp)          - return address
- ;
- ;
- ; Return Value:
- ;
- ;    eax =  krnl32 base
- ;
- ;--
- 
- GetKrnlBase2:
-   mov  edx, \[fs:0\]
- .Next:
-  inc  dword \[edx\]
-  jz  .Krnl
-  dec  dword \[edx\]
-  mov  edx,  \[edx\]
-  jmp  .Next
- .Krnl:
-  dec  dword \[edx\]
-  mov  edx, \[edx+4\]
- .Loop:
-  cmp  word \[edx\], 'MZ' 
-   jz  .IsPe
-  dec  edx
-  xor  dx, dx
-  jmp  .Loop
+mov  edx, [esp]
 
- .IsPe:  
-   mov  eax, \[edx+3ch\]
-   cmp  word \[eax+edx\], 'PE'
-   jnz  .Next
-   xchg  eax, edx
-   ret
+.Next:
+  dec  edx
+  xor  dx, dx  ; 减去跨度
+  cmp  word [edx], "MZ"
+  jz   .IsPe
+  jmp  .Next
 
+.IsPe:
+  mov  eax, [edx+3ch]
+  cmp  word [eax+edx], 'PE'
+  jnz  .Next
+  xchg eax, edx   ; eax = kernel32 基地址
 ```
 
-3.   
-  
-第三种方法:  
-  
-  此方法是通过 TEB 获得 PEB 结构地址，然后再获得 PEB\_LDR\_DATA 结构地址，然后遍历模块列表，查找 kernel32.dll 模块的基地址。  
-  
-  TEB 是线程环境块(Thread Environment Block)结构, 我们的 fs 段选择子所对应的段指向 TEB，也就是 fs:0(注意这里可不是“\[fs:0\]”)指向 TEB.那么 TEB 的 ProcessEnvironmentBlock 结构成员指  
-  
-向我们的 PEB 进程环境块结构(Process Environment Block)，然后通过 PEB 结构来获得 PEB\_LDR\_DATA。 接下来我们通过 windbg 来查看下相关结构。  
-  
-我们首先来看下 TEB 结构，通过 windbg 的 dt 命令。  
-  
-lkd> dt \_TEB  
-nt!\_TEB  
-   +0x000 NtTib            : \_NT\_TIB  
-   +0x01c EnvironmentPointer : Ptr32 Void  
-   +0x020 ClientId         : \_CLIENT\_ID  
-   +0x028 ActiveRpcHandle  : Ptr32 Void  
-   +0x02c ThreadLocalStoragePointer : Ptr32 Void  
-   +0x030 ProcessEnvironmentBlock : Ptr32 \_PEB  ;;;;;;;;;;  
-  
-   ......省略  
-  
-  
-我们可以看到 TEB 结构的 0x30 偏移处存储的我们的 PEB 结构的地址。。  
-  
-   然后接下来我们来看 PEB 结构。  
-  
-lkd> dt \_PEB  
-nt!\_PEB  
-   +0x000 InheritedAddressSpace : UChar  
-   +0x001 ReadImageFileExecOptions : UChar  
-   +0x002 BeingDebugged    : UChar  
-   +0x003 SpareBool        : UChar  
-   +0x004 Mutant           : Ptr32 Void  
-   +0x008 ImageBaseAddress : Ptr32 Void  
-   +0x00c Ldr              : Ptr32 \_PEB\_LDR\_DATA  
-   ..........省略  
-  
-我们可以看到 PEB 结构的 0x0c 偏移处存储的我们的\_PEB\_LDR\_DATA 结构地址。  
-  
-    好到这里我们可以先把获得\_PEB\_LDR\_DATA 结构地址的代码写出来。  
-  
-    mov eax, \[fs:30h\] ;Get Peb  
-    mov eax, \[eax+0ch\] ;Get \_PEB\_LDR\_DATA  
-  
-然后我们再来查看 \_PEB\_LDR\_DATA 结构  
-  
-lkd> dt \_PEB\_LDR\_DATA  
-nt!\_PEB\_LDR\_DATA  
-   +0x000 Length           : Uint4B  
-   +0x004 Initialized      : UChar  
-   +0x008 SsHandle         : Ptr32 Void  
-   +0x00c InLoadOrderModuleList : \_LIST\_ENTRY  
-   +0x014 InMemoryOrderModuleList : \_LIST\_ENTRY  
-   +0x01c InInitializationOrderModuleList : \_LIST\_ENTRY  
-   +0x024 EntryInProgress  : Ptr32 Void  
-  
-我们看到这个结构中的模块立标有 3 个\_LIST\_ENTRY 结构，它们分别是  
-InLoadOrderModuleList (加载顺序模块列表)  
-InMemoryOrderModuleList(内存顺序模块排列)  
-InInitializationOrderModuleList(初始化顺序模块列表)  
-  
-然后我们继续查看这个结构。  
-  
-nt!\_LIST\_ENTRY  
-   +0x000 Flink            : Ptr32 \_LIST\_ENTRY  
-   +0x004 Blink            : Ptr32 \_LIST\_ENTRY  
-  
-这个结构我们可以看到它是一个双向链表，Flink 表示从前往后， Blink 表示从后往前。  
-  
-**并且这三个链表的结点是均是指向此结构**  
-  
-typedef struct \_LDR\_MODULE  
-{  
-    LIST\_ENTRY        InLoadOrderModuleList;            // +0x00  
-    LIST\_ENTRY        InMemoryOrderModuleList;          // +0x08  
-    LIST\_ENTRY        InInitializationOrderModuleList;  // +0x10  
-    PVOID             BaseAddress;                      // +0x18  
-    PVOID             EntryPoint;                       // +0x1c  
-    ULONG             SizeOfImage;                      // +0x20  
-    UNICODE\_STRING    FullDllName;                      // +0x24  
-    UNICODE\_STRING    BaseDllName;                      // +0x2c  
-    ULONG             Flags;                            // +0x34  
-    SHORT             LoadCount;                        // +0x38  
-    SHORT             TlsIndex;                         // +0x3a  
-    LIST\_ENTRY        HashTableEntry;                   // +0x3c  
-    ULONG             TimeDateStamp;                    // +0x44  
-                                                        // +0x48  
-} LDR\_MODULE, \*PLDR\_MODULE;  
-  
-  
-我们一般取它的初始化顺序结构(InInitializationOrderModuleList)的 Flink 成员指向的\_LDR\_MODULE 结构的 BaseAddress 成员则为我们需要的基地址，当然由于第一个是  
-ntdll，所以取第二个则为我们的 Kernel32.dll。  
-  
-OK 我们开始写代码，上面我们已经写了取得\_PEB\_LDR\_DATA 结构地址的代码了。我们把它 copy 下来。  
-  
-    mov eax, \[fs:30h\] ;Get Peb  
-    mov eax, \[eax+0ch\] ;Get \_PEB\_LDR\_DATA  
-    mov eax, \[eax+1ch\];Get InInitializationOrderModuleList.Flink, 此时 eax 指向的是 ntdll 模块的 InInitializationOrderModuleList 线性地址。所以我们获得它的下一个则是 kernel32.dll  
-    mov eax, \[eax\]  
-    mov eax, \[eax+8\] ; 8 = sizeof.LIST\_ENTRY  
-    ret  
-  
-同样我们贴一个封装过的过程。  
-代码:
+这里贴一个封装过的过程。
+
+代码：
 
 ```
- ;++
- ;
- ; int
- ;   GetKrnlBase3(
- ;    void
- ;   )
- ;
- ; Routine Description:
- ;
- ;    获得 kernel32 基地址
- ;
- ; Arguments:
- ;
- ;    (esp)          - return address
- ;
- ;
- ; Return Value:
- ;
- ;    eax =  krnl32 base
- ;
- ;--
- 
- GetKrnlBase3:
-   mov  eax, \[fs:30h\]
-   mov  eax, \[eax+0ch\]
-   mov  eax, \[eax+1ch\]
-   mov  eax, \[eax\]
-  mov  eax, \[eax+8h\]
-  ret   
- 
+;++
+;
+; int
+;   GetKrnlBase(
+;     int KrnlApiAddress
+;   )
+;
+; Routine Description:
+;
+;    获得 kernel32 基地址
+;
+; Arguments:
+;
+;    (esp)        - return address
+;
+;    Data   (esp+4) - KrnlApiAddress, ptr ApiAddress
+;
+;
+; Return Value:
+;
+;    eax =  krnl32 base
+;
+;--
 
+ GetKrnlBase:
+   pop  eax
+   pop  edx
+   push eax
+
+ .Next:
+   cmp  word [edx], 'MZ'
+   jz   .IsPe
+  dec  edx
+  xor  dx, dx
+   jmp  .Next
+
+ .IsPe:
+   mov  eax, [edx+3ch]
+   cmp  word [eax+edx], 'PE'
+   jnz  .Next
+   xchg eax, edx
+   ret
 ```
 
-附件为此三种方法的代码和 bin。
+### 2. 第二种方法
+
+这个方法是遍历 `seh` 异常链，然后获得 `EXCEPTION_REGISTRATION` 结构 `prev` 为 -1 的异常处理过程地址，这个异常处理过程地址是位于 `kernel32.dll`，通过它搜索得到 `kernel32.dll` 的基地址。
+
+搜索的方法在上面我已经说了，通过减去跨度，然后判断地址前两字节是否是 `"MZ"`，是的话，继续定位到 `PE` 头结构，然后判断前两个字节是否是 `"PE"`，不是的话继续减去跨度搜索。直到是为止。
+
+```
+struct EXCEPTION_REGISTRATION
+        prev dd ?
+        handler dd ?
+ends
+```
+
+遍历的方法也很简单，我们都知道 `[fs:0]` 的 `ExceptionList` 指向 `EXCEPTION_REGISTRATION` 结构，所以通过 `[fs:0]` 获得 `EXCEPTION_REGISTRATION` 结构后，判断 `prev` 成员是否是 -1，如果是的话则取异常处理过程地址，然后进行搜索。
+
+有了思路，我们开始写代码。
+
+```
+mov  edx, [fs:0]  ;获得 EXCEPTION_REGISTRATION 结构地址
+
+.Next:
+  inc  dword [edx]  ;将 prev 成员 + 1
+  jz   .Krnl    ;如果 ZF = 1, 则跳转.Krnl
+  dec  dword [edx]
+  mov  edx,  [edx]
+  jmp  .Next
+
+.Krnl:
+  dec  dword [edx]  ;恢复 -1
+  mov  edx, [edx+4]  ;获得 handler, 然后下面进行搜索..
+
+.Loop:
+  cmp  word [edx], 'MZ'
+   jz  .IsPe
+  dec  edx
+  xor  dx, dx
+  jmp  .Loop
+
+.IsPe:
+   mov  eax, [edx+3ch]
+   cmp  word [eax+edx], 'PE'
+   jnz  .Next
+   xchg eax, edx  ; eax = kernel32 基地址
+```
+
+一个封装过的过程：
+
+代码：
+
+```
+;++
+;
+; int
+;   GetKrnlBase2(
+;    void
+;   )
+;
+; Routine Description:
+;
+;    获得 kernel32 基地址
+;
+; Arguments:
+;
+;    (esp)        - return address
+;
+;
+; Return Value:
+;
+;    eax =  krnl32 base
+;
+;--
+
+ GetKrnlBase2:
+   mov  edx, [fs:0]
+ .Next:
+  inc  dword [edx]
+  jz   .Krnl
+  dec  dword [edx]
+  mov  edx,  [edx]
+  jmp  .Next
+ .Krnl:
+  dec  dword [edx]
+  mov  edx, [edx+4]
+ .Loop:
+  cmp  word [edx], 'MZ'
+   jz   .IsPe
+  dec  edx
+  xor  dx, dx
+  jmp  .Loop
+
+ .IsPe:
+   mov  eax, [edx+3ch]
+   cmp  word [eax+edx], 'PE'
+   jnz  .Next
+   xchg eax, edx
+   ret
+```
+
+### 3. 第三种方法
+
+此方法是通过 `TEB` 获得 `PEB` 结构地址，然后再获得 `PEB_LDR_DATA` 结构地址，然后遍历模块列表，查找 `kernel32.dll` 模块的基地址。
+
+`TEB` 是线程环境块（Thread Environment Block）结构，我们的 `fs` 段选择子所对应的段指向 `TEB`，也就是 `fs:0`（注意这里可不是“`[fs:0]`”）指向 `TEB`。那么 `TEB` 的 `ProcessEnvironmentBlock` 结构成员指向我们的 `PEB` 进程环境块结构（Process Environment Block），然后通过 `PEB` 结构来获得 `PEB_LDR_DATA`。 接下来我们通过 `windbg` 来查看下相关结构。
+
+我们首先来看下 `TEB` 结构，通过 `windbg` 的 `dt` 命令。
+
+```
+lkd> dt _TEB
+
+nt!_TEB
+   +0x000 NtTib            : _NT_TIB
+   +0x01c EnvironmentPointer : Ptr32 Void
+   +0x020 ClientId         : _CLIENT_ID
+   +0x028 ActiveRpcHandle  : Ptr32 Void
+   +0x02c ThreadLocalStoragePointer : Ptr32 Void
+   +0x030 ProcessEnvironmentBlock : Ptr32 _PEB  ;;;;;;;;;
+   ......省略
+```
+
+我们可以看到 `TEB` 结构的 `0x30` 偏移处存储的我们的 `PEB` 结构的地址。
+
+然后接下来我们来看 `PEB` 结构。
+
+```
+lkd> dt _PEB
+
+nt!_PEB
+   +0x000 InheritedAddressSpace : UChar
+   +0x001 ReadImageFileExecOptions : UChar
+   +0x002 BeingDebugged    : UChar
+   +0x003 SpareBool        : UChar
+   +0x004 Mutant           : Ptr32 Void
+   +0x008 ImageBaseAddress : Ptr32 Void
+   +0x00c Ldr              : Ptr32 _PEB_LDR_DATA
+   ..........省略
+```
+
+我们可以看到 `PEB` 结构的 `0x0c` 偏移处存储的我们的 `_PEB_LDR_DATA` 结构地址。
+
+好到这里我们可以先把获得 `_PEB_LDR_DATA` 结构地址的代码写出来。
+
+```
+mov eax, [fs:30h] ;Get Peb
+mov eax, [eax+0ch] ;Get _PEB_LDR_DATA
+```
+
+然后我们再来查看 `_PEB_LDR_DATA` 结构
+
+```
+lkd> dt _PEB_LDR_DATA
+
+nt!_PEB_LDR_DATA
+   +0x000 Length           : Uint4B
+   +0x004 Initialized      : UChar
+   +0x008 SsHandle         : Ptr32 Void
+   +0x00c InLoadOrderModuleList : _LIST_ENTRY
+   +0x014 InMemoryOrderModuleList : _LIST_ENTRY
+   +0x01c InInitializationOrderModuleList : _LIST_ENTRY
+   +0x024 EntryInProgress  : Ptr32 Void
+```
+
+我们看到这个结构中的模块列表有 3 个 `_LIST_ENTRY` 结构，它们分别是：
+
+*   `InLoadOrderModuleList` (加载顺序模块列表)
+*   `InMemoryOrderModuleList` (内存顺序模块排列)
+*   `InInitializationOrderModuleList` (初始化顺序模块列表)
+
+然后我们继续查看这个结构。
+
+```
+nt!_LIST_ENTRY
+   +0x000 Flink            : Ptr32 _LIST_ENTRY
+   +0x004 Blink            : Ptr32 _LIST_ENTRY
+```
+
+这个结构我们可以看到它是一个双向链表，`Flink` 表示从前往后， `Blink` 表示从后往前。
+
+并且这三个链表的结点是均是指向此结构：
+
+```c
+typedef struct _LDR_MODULE
+{
+    LIST_ENTRY        InLoadOrderModuleList;           // +0x00
+    LIST_ENTRY        InMemoryOrderModuleList;         // +0x08
+    LIST_ENTRY        InInitializationOrderModuleList; // +0x10
+    PVOID             BaseAddress;                     // +0x18
+    PVOID             EntryPoint;                      // +0x1c
+    ULONG             SizeOfImage;                     // +0x20
+    UNICODE_STRING    FullDllName;                     // +0x24
+    UNICODE_STRING    BaseDllName;                     // +0x2c
+    ULONG             Flags;                           // +0x34
+    SHORT             LoadCount;                       // +0x38
+    SHORT             TlsIndex;                        // +0x3a
+    LIST_ENTRY        HashTableEntry;                  // +0x3c
+    ULONG             TimeDateStamp;                   // +0x44
+                                                       // +0x48
+} LDR_MODULE, *PLDR_MODULE;
+```
+
+我们一般取它的初始化顺序结构（`InInitializationOrderModuleList`）的 `Flink` 成员指向的 `_LDR_MODULE` 结构的 `BaseAddress` 成员则为我们需要的基地址，当然由于第一个是 `ntdll`，所以取第二个则为我们的 `Kernel32.dll`。
+
+`OK` 我们开始写代码，上面我们已经写了取得 `_PEB_LDR_DATA` 结构地址的代码了。我们把它 `copy` 下来。
+
+```
+mov eax, [fs:30h] ;Get Peb
+mov eax, [eax+0ch] ;Get _PEB_LDR_DATA
+mov eax, [eax+1ch];Get InInitializationOrderModuleList.Flink, 此时 eax 指向的是 ntdll 模块的 InInitializationOrderModuleList 线性地址。所以我们获得它的下一个则是 kernel32.dll
+mov eax, [eax]
+mov eax, [eax+8] ; 8 = sizeof.LIST_ENTRY
+ret
+```
+
+同样我们贴一个封装过的过程。
+
+代码：
+
+
+
+```asm
+ ;;
+ ;
+ ; int
+ ;   GetKrnlBase3(
+ ;    void
+ ;   )
+ ;
+ ; Routine Description:
+ ;
+ ;    获得 kernel32 基地址
+ ;
+ ; Arguments:
+ ;
+ ;    (esp)          - return address
+ ;
+ ;
+ ; Return Value:
+ ;
+ ;    eax  =  krnl32 base
+ ;
+ ;--
+ 
+ GetKrnlBase3:
+   mov  eax, [fs:30h]
+   mov  eax, [eax+0ch]
+   mov  eax, [eax+1ch]
+   mov  eax, [eax]
+  mov  eax, [eax+8h]
+  ret   
+ 
+```
+
+附件为此三种方法的代码和 `bin`。
 
 上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || krnlbase.rar \[解压密码：pediy\]   
- |
+
+| `![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg)` | | `krnlbase.rar`（解压密码：`pediy`） |

@@ -1,477 +1,435 @@
 
-
 # yoda's Protector v1.01
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6701.htm`](https://www.pediy.com/kssd/pediy06/pediy6701.htm)
 
-Unpacking yP v1.01  
-  
-不忽略 INT3 异常：  
-  
+Unpacking `yP v1.01`
 
-> ```
-> 代码:
-> 00450060 >PUSH EBP
-> 00450061  MOV EBP,ESP
-> 00450063  PUSH EBX
-> 00450064  PUSH ESI
-> 00450065  PUSH EDI
-> 00450066  CALL yP.0045006E
-> 
-> ```
-> 
->   
+不忽略 `INT3` 异常：
 
-  
-跳过 5 次 SEH 以后，下断点 bp Process32Next,然后 Shift+F9，来到：  
+```
+代码:
+00450060 >PUSH EBP
+00450061   MOV EBP,ESP
+00450063   PUSH EBX
+00450064   PUSH ESI
+00450065   PUSH EDI
+00450066   CALL yP.0045006E
+```
 
-> ```
-> 代码:
-> 77E9BCD3 >PUSH EBP
-> 77E9BCD4  MOV EBP,ESP
-> 77E9BCD6  SUB ESP,22C
-> 77E9BCDC  PUSH EBX
-> 77E9BCDD  PUSH ESI
-> 
-> ```
-> 
->   
+跳过 5 次 `SEH` 以后，下断点 `bp Process32Next`，然后 `Shift+F9`，来到：
 
-  
-取消断点，Alt+F9 返回：  
+```
+代码:
+77E9BCD3 >PUSH EBP
+77E9BCD4   MOV EBP,ESP
+77E9BCD6   SUB ESP,22C
+77E9BCDC   PUSH EBX
+77E9BCDD   PUSH ESI
+```
 
-> ```
-> 代码:
-> 00450636  CALL DWORD PTR DS:\[EDX\]
-> 00450638  TEST EAX,EAX        ；从这里出来
-> 0045063A  JE SHORT yP.004506AA
-> 0045063C  MOV EBX,DWORD PTR SS:\[ESP+C\]
-> 00450641  JMP SHORT yP.00450646
-> 00450643  LEA ECX,DWORD PTR DS:\[ECX\]
-> 00450646  MOV EAX,DWORD PTR SS:\[ESP+20\]
-> 0045064B  LEA ESI,DWORD PTR SS:\[ESP+3C\]
-> 00450650  MOV EDI,ESI
-> 00450652  PUSH ESI
-> 00450653  PUSH EDI
-> 00450654  CALL yP.00450E6C
-> 00450659  ADD ESP,8
-> 0045065C  PUSH EDI
-> 0045065D  PUSH ESI
-> 0045065E  CALL yP.00450EBC
-> 00450663  ADD ESP,8
-> 00450666  MOV ESI,EDI
-> 00450668  MOV EDX,EBP
-> 0045066A  ADD EDX,yP.0041FFF6
-> 00450670  LEA EDI,DWORD PTR DS:\[EDX\]
-> 00450672  MOV ECX,0D
-> 00450677  XOR EDX,EDX
-> 00450679  REPE CMPS BYTE PTR ES:\[EDI\],BYTE PTR DS:>
-> 0045067B  JNZ SHORT yP.0045067F
-> 0045067D  MOV EBX,EAX
-> 0045067F  CMP EAX,DWORD PTR SS:\[ESP+14\]
-> 00450684  JNZ SHORT yP.00450690
-> 00450686  MOV EAX,DWORD PTR SS:\[ESP+30\]
-> 0045068B  MOV DWORD PTR SS:\[ESP+10\],EAX
-> 00450690  MOV EDX,DWORD PTR SS:\[ESP+C\]
-> 00450695  LEA ECX,DWORD PTR SS:\[ESP+18\]
-> 0045069A  PUSH ECX
-> 0045069B  PUSH EDX
-> 0045069C  MOV EDX,EBP
-> 0045069E  ADD EDX,yP.0041FF62
-> 004506A4  CALL DWORD PTR DS:\[EDX\]
-> 004506A6  TEST EAX,EAX
-> 004506A8  JNZ SHORT yP.00450646
-> 004506AA  MOV EAX,DWORD PTR SS:\[ESP+10\]
-> 004506AF  CMP EAX,EBX        ；句柄比较
-> 004506B1  JE SHORT yP.004506D3      ；在这里让 Z 标志翻转
-> 004506B3  PUSH EAX
-> 004506B4  PUSH 1
-> 004506B6  PUSH 1F0FFF
-> 004506BB  MOV EDX,EBP
-> 004506BD  ADD EDX,yP.0041FF95
-> 004506C3  CALL DWORD PTR DS:\[EDX\]    ；OpenProcess
-> 004506C5  PUSH 0
-> 004506C7  PUSH EAX
-> 004506C8  MOV EDX,EBP
-> 004506CA  ADD EDX,yP.0041FFAA
-> 004506D0  CALL DWORD PTR DS:\[EDX\]    ；TerminateProcess
-> 004506D2  RETN          ；永远不会走到这里
-> 
-> ```
-> 
->   
+取消断点，`Alt+F9` 返回：
 
-  
-下面还有 2 次同样类型的检测，都这样跳过去，最后走到这里：  
+```
+代码:
+00450636   CALL DWORD PTR DS:\[EDX\]
+00450638   TEST EAX,EAX        ；从这里出来
+0045063A   JE SHORT yP.004506AA
+0045063C   MOV EBX,DWORD PTR SS:\[ESP+C\]
+00450641   JMP SHORT yP.00450646
+00450643   LEA ECX,DWORD PTR DS:\[ECX\]
+00450646   MOV EAX,DWORD PTR SS:\[ESP+20\]
+0045064B   LEA ESI,DWORD PTR SS:\[ESP+3C\]
+00450650   MOV EDI,ESI
+00450652   PUSH ESI
+00450653   PUSH EDI
+00450654   CALL yP.00450E6C
+00450659   ADD ESP,8
+0045065C   PUSH EDI
+0045065D   PUSH ESI
+0045065E   CALL yP.00450EBC
+00450663   ADD ESP,8
+00450666   MOV ESI,EDI
+00450668   MOV EDX,EBP
+0045066A   ADD EDX,yP.0041FFF6
+00450670   LEA EDI,DWORD PTR DS:\[EDX\]
+00450672   MOV ECX,0D
+00450677   XOR EDX,EDX
+00450679   REPE CMPS BYTE PTR ES:\[EDI\],BYTE PTR DS:>
+0045067B   JNZ SHORT yP.0045067F
+0045067D   MOV EBX,EAX
+0045067F   CMP EAX,DWORD PTR SS:\[ESP+14\]
+00450684   JNZ SHORT yP.00450690
+00450686   MOV EAX,DWORD PTR SS:\[ESP+30\]
+0045068B   MOV DWORD PTR SS:\[ESP+10\],EAX
+00450690   MOV EDX,DWORD PTR SS:\[ESP+C\]
+00450695   LEA ECX,DWORD PTR SS:\[ESP+18\]
+0045069A   PUSH ECX
+0045069B   PUSH EDX
+0045069C   MOV EDX,EBP
+0045069E   ADD EDX,yP.0041FF62
+004506A4   CALL DWORD PTR DS:\[EDX\]
+004506A6   TEST EAX,EAX
+004506A8   JNZ SHORT yP.00450646
+004506AA   MOV EAX,DWORD PTR SS:\[ESP+10\]
+004506AF   CMP EAX,EBX        ；句柄比较
+004506B1   JE SHORT yP.004506D3      ；在这里让 Z 标志翻转
+004506B3   PUSH EAX
+004506B4   PUSH 1
+004506B6   PUSH 1F0FFF
+004506BB   MOV EDX,EBP
+004506BD   ADD EDX,yP.0041FF95
+004506C3   CALL DWORD PTR DS:\[EDX\]    ；OpenProcess
+004506C5   PUSH 0
+004506C7   PUSH EAX
+004506C8   MOV EDX,EBP
+004506CA   ADD EDX,yP.0041FFAA
+004506D0   CALL DWORD PTR DS:\[EDX\]    ；TerminateProcess
+004506D2   RETN           ；永远不会走到这里
+```
 
-> ```
-> 代码:
-> 004511EF  XOR EAX,EAX
-> 004511F1  MOV ECX,88
-> 004511F6  MOV EDX,EBP
-> 004511F8  ADD EDX,yP.00420030
-> 004511FE  LEA EDI,DWORD PTR DS:\[EDX\]
-> 
-> ```
-> 
->   
+下面还有 2 次同样类型的检测，都这样跳过去，最后走到这里：
 
-  
-下断点 bp LoadLibraryA，走到这里：  
+```
+代码:
+004511EF   XOR EAX,EAX
+004511F1   MOV ECX,88
+004511F6   MOV EDX,EBP
+004511F8   ADD EDX,yP.00420030
+004511FE   LEA EDI,DWORD PTR DS:\[EDX\]
+```
 
-> ```
-> 代码:
-> 0045146B  PUSH EBX
-> 0045146C  MOV EDX,EBP
-> 0045146E  ADD EDX,yP.0041FE42
-> 00451474  CALL DWORD PTR DS:\[EDX\]                  ; KeRnEl32.LoadLibraryA
-> 00451476  TEST EAX,EAX
-> 00451478  JE yP.004515C4
-> 0045147E  PUSH EDX
-> 0045147F  PUSH EAX
-> 00451480  MOV EDX,EBP
-> 00451482  ADD EDX,yP.0041FD96
-> 00451488  TEST DWORD PTR DS:\[EDX\],4
-> 0045148E  JE SHORT yP.004514A2
-> 00451490  MOV EDX,EBP
-> 00451492  ADD EDX,yP.0041F8C2
-> 00451498  LEA EAX,DWORD PTR DS:\[EDX\]
-> 
-> …………
-> …………
-> 
-> 00451770  MOV BYTE PTR DS:\[EAX\],0    ；清空 dll 字符串，NOP 掉
-> 00451774  INC EAX
-> 00451775  CMP BYTE PTR DS:\[EAX\],0
-> 00451779  JNZ SHORT yP.00451770
-> 
-> ```
-> 
->   
+下断点 `bp LoadLibraryA`，走到这里：
 
-  
-上面是加载 dll，下面开始填充输入表：  
+```
+代码:
+0045146B   PUSH EBX
+0045146C   MOV EDX,EBP
+0045146E   ADD EDX,yP.0041FE42
+00451474   CALL DWORD PTR DS:\[EDX\]                 ; KeRnEl32.LoadLibraryA
+00451476   TEST EAX,EAX
+00451478   JE yP.004515C4
+0045147E   PUSH EDX
+0045147F   PUSH EAX
+00451480   MOV EDX,EBP
+00451482   ADD EDX,yP.0041FD96
+00451488   TEST DWORD PTR DS:\[EDX\],4
+0045148E   JE SHORT yP.004514A2
+00451490   MOV EDX,EBP
+00451492   ADD EDX,yP.0041F8C2
+00451498   LEA EAX,DWORD PTR DS:\[EDX\]
 
-> ```
-> 代码:
-> 004514A2  POP EBX
-> 004514A3  POP EDX
-> 004514A4  MOV ECX,DWORD PTR DS:\[ESI+8\]
-> 004514A8  OR ECX,ECX        ；是否有输入函数？
-> 004514AA  JNZ SHORT yP.004514B0
-> 004514AC  MOV ECX,DWORD PTR DS:\[ESI+4\]
-> 004514B0  PUSH EBX
-> 
-> ………………
-> ………………
-> 
-> 004514F1  PUSH EBX
-> 004514F2  MOV EDX,EBP
-> 004514F4  ADD EDX,yP.0041FE46
-> 004514FA  CALL DWORD PTR DS:\[EDX\]                  ; KeRnEl32.GetProcAddress
-> 004514FC  OR EAX,EAX
-> 004514FE  JNZ SHORT yP.00451507
-> 00451500  POP ECX
-> 
-> ```
-> 
->   
+…………
+…………
 
-  
-上面取函数地址  
-  
-下面有一段清空函数名字符串：  
+00451770   MOV BYTE PTR DS:\[EAX\],0    ；清空 dll 字符串，NOP 掉
+00451774   INC EAX
+00451775   CMP BYTE PTR DS:\[EAX\],0
+00451779   JNZ SHORT yP.00451770
+```
 
-> ```
-> 代码:
-> 00451770  MOV BYTE PTR DS:\[EAX\],0    ；清空函数名，NOP 掉
-> 00451774  INC EAX
-> 00451775  CMP BYTE PTR DS:\[EAX\],0
-> 00451779  JNZ SHORT yP.00451770
-> 
-> ```
-> 
->   
+上面是加载 dll，下面开始填充输入表：
 
-  
-注意下面这段代码：  
+```
+代码:
+004514A2   POP EBX
+004514A3   POP EDX
+004514A4   MOV ECX,DWORD PTR DS:\[ESI+8\]
+004514A8   OR ECX,ECX        ；是否有输入函数？
+004514AA   JNZ SHORT yP.004514B0
+004514AC   MOV ECX,DWORD PTR DS:\[ESI+4\]
+004514B0   PUSH EBX
 
-> ```
-> 代码:
-> 00451589  PUSH EDI
-> 0045158A  PUSH ESI
-> 0045158B  MOV ECX,EBP
-> 0045158D  ADD ECX,yP.00420030
-> 00451593  LEA EDI,DWORD PTR DS:\[ECX\]
-> 00451595  MOV ESI,DWORD PTR DS:\[EDI+4\]
-> 00451599  MOV DWORD PTR DS:\[EDX\],ESI    ；改成 MOV DWORD PTR DS:\[EDX\],EAX
-> 0045159B  SUB EAX,ESI
-> 0045159D  SUB EAX,5
-> 004515A0  MOV BYTE PTR DS:\[ESI\],0E9    ；生成 JMP 表
-> 004515A3  MOV DWORD PTR DS:\[ESI+1\],EAX
-> 004515A6  ADD DWORD PTR DS:\[EDI+4\],5
-> 004515AB  POP ESI
-> 004515AC  POP EDI
-> 004515AD  POP ECX
-> 004515AE  ADD ECX,4
-> 004515B1  ADD EDX,4
-> 004515B4  JMP yP.004514C2
-> 
-> ```
-> 
->   
+………………
+………………
 
-  
-  
-原来外壳在动态申请的空间里形成了 API 跳转表，把 IAT 指向这个跳转表，这样 ImportRec 就不能恢复了  
-既然这样我们就直接 patch，把输入函数地址直接填充到 IAT 中  
-  
-把 00451599  MOV DWORD PTR DS:\[EDX\],ESI 这句  
-改成 00451599  MOV DWORD PTR DS:\[EDX\],EAX  
-  
-EAX 中恰好为输入函数的地址。  
-  
-可以在这里设断点观察 IAT 的范围，等到 EDX 发生大范围变化的时候就可以用 ImportRec 收集了。  
-  
-但是注意后面有 CRC 校验，所以必须重新跟踪一次到 OEP，方法是对 code 段设内存镜像访问断点即可。  
-  
-修复后出现异常，对照 fly 的 unpacked 发现是输入表识别问题，1.6 把 comdlg32.dll 认错了，还有 shell32.dll 没认出来，不知道是不是 ImportRec 1.6 的 bug(近日有此类流言)。一遍遍修复太麻烦，哪位兄弟写个 Script 再试试。 
+004514F1   PUSH EBX
+004514F2   MOV EDX,EBP
+004514F4   ADD EDX,yP.0041FE46
+004514FA   CALL DWORD PTR DS:\[EDX\]                 ; KeRnEl32.GetProcAddress
+004514FC   OR EAX,EAX
+004514FE   JNZ SHORT yP.00451507
+00451500   POP ECX
+```
 
-第一次写脚本，不妥之处敬请指教![](img/620448a77d884bd6b2c4a7cfef437501.jpg)   
-  
+上面取函数地址
 
-> ```
-> 代码:
-> //Script for yoda's Protector v1.01
-> 
-> //by cyclotron \[BCG\]\[DFCG\]\[FCG\]\[OCN\]
-> 
-> //收集 IAT
-> 
-> //━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 
-> gpa "Process32Next","kernel32.dll" 
-> 
-> bp $RESULT
-> 
-> run      //F9
-> 
-> bc $RESULT    //clear bp
-> 
-> rtu      //run to user code
-> 
-> find eip,#3BC374#  //cmp eax,ebx
-> 
-> add $RESULT,2    //next instruction
-> 
-> bp $RESULT
-> 
-> run
-> 
-> bc $RESULT
-> 
-> mov !ZF,1    //置 Z 标志
-> 
-> //━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 
-> gpa "Process32Next","kernel32.dll" 
-> 
-> bp $RESULT
-> 
-> run      //F9
-> 
-> bc $RESULT    //clear bp
-> 
-> rtu      //run to user code
-> 
-> find eip,#3BC374#  //cmp eax,ebx
-> 
-> add $RESULT,2    //next instruction
-> 
-> bp $RESULT
-> 
-> run
-> 
-> bc $RESULT
-> 
-> mov !ZF,1    //置 Z 标志
-> 
-> //━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 
-> gpa "Process32Next","kernel32.dll" 
-> 
-> bp $RESULT
-> 
-> run      //F9
-> 
-> bc $RESULT    //clear bp
-> 
-> rtu      //run to user code
-> 
-> find eip,#3BC374#  //cmp eax,ebx
-> 
-> add $RESULT,2    //next instruction
-> 
-> bp $RESULT
-> 
-> run
-> 
-> bc $RESULT
-> 
-> mov !ZF,1    //置 Z 标志
-> 
-> //━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 
-> gpa "LoadLibraryA","kernel32.dll" 
-> 
-> bp $RESULT
-> 
-> run      //F9
-> 
-> bc $RESULT    //clear bp
-> 
-> rtu      //run to user code
-> 
-> gpa "GetProcAddress","kernel32.dll" 
-> 
-> bp $RESULT
-> 
-> run      //F9
-> 
-> bc $RESULT    //clear bp
-> 
-> rtu      //run to user code
-> 
-> //━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 
-> bp 451599
-> 
-> run
-> 
-> bc 451599
-> 
-> asm eip,"MOV DWORD PTR \[EDX\],EAX"
-> 
-> add eip,2
-> 
-> bp eip
-> 
-> run
-> 
-> msg "IAT 收集开始"
-> 
-> pause
-> 
-> ```
-> 
->   
+下面有一段清空函数名字符串：
 
-> ```
-> 代码:
-> //Script for yoda's Protector v1.01
-> 
-> //by cyclotron \[BCG\]\[DFCG\]\[FCG\]\[OCN\]
-> 
-> //直取 OEP
-> 
-> //━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 
-> gpa "Process32Next","kernel32.dll" 
-> 
-> bp $RESULT
-> 
-> run      //F9
-> 
-> bc $RESULT    //clear bp
-> 
-> rtu      //run to user code
-> 
-> find eip,#3BC374#  //cmp eax,ebx
-> 
-> add $RESULT,2    //next instruction
-> 
-> bp $RESULT
-> 
-> run
-> 
-> bc $RESULT
-> 
-> mov !ZF,1    //置 Z 标志
-> 
-> //━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 
-> gpa "Process32Next","kernel32.dll" 
-> 
-> bp $RESULT
-> 
-> run      //F9
-> 
-> bc $RESULT    //clear bp
-> 
-> rtu      //run to user code
-> 
-> find eip,#3BC374#  //cmp eax,ebx
-> 
-> add $RESULT,2    //next instruction
-> 
-> bp $RESULT
-> 
-> run
-> 
-> bc $RESULT
-> 
-> mov !ZF,1    //置 Z 标志
-> 
-> //━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 
-> gpa "Process32Next","kernel32.dll" 
-> 
-> bp $RESULT
-> 
-> run      //F9
-> 
-> bc $RESULT    //clear bp
-> 
-> rtu      //run to user code
-> 
-> find eip,#3BC374#  //cmp eax,ebx
-> 
-> add $RESULT,2    //next instruction
-> 
-> bp $RESULT
-> 
-> run
-> 
-> bc $RESULT
-> 
-> mov !ZF,1    //置 Z 标志
-> 
-> //━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 
-> var cbase
-> 
-> gmi eip,CODEBASE
-> 
-> mov cbase,$RESULT
-> 
-> var csize
-> 
-> gmi eip,CODESIZE
-> 
-> mov csize,$RESULT
-> 
-> bprm cbase,csize  //内存读断点
-> 
-> run
-> 
-> bpmc
-> 
-> pause
-> 
-> 
-> ```
-> 
->   
+```
+代码:
+00451770   MOV BYTE PTR DS:\[EAX\],0    ；清空函数名，NOP 掉
+00451774   INC EAX
+00451775   CMP BYTE PTR DS:\[EAX\],0
+00451779   JNZ SHORT yP.00451770
+```
 
-  
-   4dd466d0e1e0cc123afbe504da2462ca
+注意下面这段代码：
+
+```
+代码:
+00451589   PUSH EDI
+0045158A   PUSH ESI
+0045158B   MOV ECX,EBP
+0045158D   ADD ECX,yP.00420030
+00451593   LEA EDI,DWORD PTR DS:\[ECX\]
+00451595   MOV ESI,DWORD PTR DS:\[EDI+4\]
+00451599   MOV DWORD PTR DS:\[EDX\],ESI    ；改成 MOV DWORD PTR DS:\[EDX\],EAX
+0045159B   SUB EAX,ESI
+0045159D   SUB EAX,5
+004515A0   MOV BYTE PTR DS:\[ESI\],0E9    ；生成 JMP 表
+004515A3   MOV DWORD PTR DS:\[ESI+1\],EAX
+004515A6   ADD DWORD PTR DS:\[EDI+4\],5
+004515AB   POP ESI
+004515AC   POP EDI
+004515AD   POP ECX
+004515AE   ADD ECX,4
+004515B1   ADD EDX,4
+004515B4   JMP yP.004514C2
+```
+
+原来外壳在动态申请的空间里形成了 API 跳转表，把 IAT 指向这个跳转表，这样 `ImportRec` 就不能恢复了
+
+既然这样我们就直接 patch，把输入函数地址直接填充到 IAT 中
+
+把 `00451599   MOV DWORD PTR DS:\[EDX\],ESI` 这句
+
+改成 `00451599   MOV DWORD PTR DS:\[EDX\],EAX`
+
+`EAX` 中恰好为输入函数的地址。
+
+可以在这里设断点观察 IAT 的范围，等到 `EDX` 发生大范围变化的时候就可以用 `ImportRec` 收集了。
+
+但是注意后面有 `CRC` 校验，所以必须重新跟踪一次到 `OEP`，方法是对 `code` 段设内存镜像访问断点即可。
+
+修复后出现异常，对照 `fly` 的 `unpacked` 发现是输入表识别问题，`1.6` 把 `comdlg32.dll` 认错了，还有 `shell32.dll` 没认出来，不知道是不是 `ImportRec 1.6` 的 `bug`（近日有此类流言）。一遍遍修复太麻烦，哪位兄弟写个 `Script` 再试试。
+
+第一次写脚本，不妥之处敬请指教![](img/620448a77d884bd6b2c4a7cfef437501.jpg)
+
+```
+//Script for yoda's Protector v1.01
+
+//by cyclotron [BCG][DFCG][FCG][OCN]
+
+//收集 IAT
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+gpa "Process32Next","kernel32.dll" 
+
+bp $RESULT
+
+run      //F9
+
+bc $RESULT    //clear bp
+
+rtu      //run to user code
+
+find eip,#3BC374#  //cmp eax,ebx
+
+add $RESULT,2    //next instruction
+
+bp $RESULT
+
+run
+
+bc $RESULT
+
+mov !ZF,1    //置 Z 标志
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+gpa "Process32Next","kernel32.dll" 
+
+bp $RESULT
+
+run      //F9
+
+bc $RESULT    //clear bp
+
+rtu      //run to user code
+
+find eip,#3BC374#  //cmp eax,ebx
+
+add $RESULT,2    //next instruction
+
+bp $RESULT
+
+run
+
+bc $RESULT
+
+mov !ZF,1    //置 Z 标志
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+gpa "Process32Next","kernel32.dll" 
+
+bp $RESULT
+
+run      //F9
+
+bc $RESULT    //clear bp
+
+rtu      //run to user code
+
+find eip,#3BC374#  //cmp eax,ebx
+
+add $RESULT,2    //next instruction
+
+bp $RESULT
+
+run
+
+bc $RESULT
+
+mov !ZF,1    //置 Z 标志
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+gpa "LoadLibraryA","kernel32.dll" 
+
+bp $RESULT
+
+run      //F9
+
+bc $RESULT    //clear bp
+
+rtu      //run to user code
+
+gpa "GetProcAddress","kernel32.dll" 
+
+bp $RESULT
+
+run      //F9
+
+bc $RESULT    //clear bp
+
+rtu      //run to user code
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+bp 451599
+
+run
+
+bc 451599
+
+asm eip,"MOV DWORD PTR [EDX],EAX"
+
+add eip,2
+
+bp eip
+
+run
+
+msg "IAT 收集开始"
+
+pause
+```
+
+
+
+```
+//Script for yoda's Protector v1.01
+
+//by cyclotron [BCG][DFCG][FCG][OCN]
+
+//直取 OEP
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+gpa "Process32Next","kernel32.dll" 
+
+bp $RESULT
+
+run      //F9
+
+bc $RESULT    //clear bp
+
+rtu      //run to user code
+
+find eip,#3BC374#   //cmp eax,ebx
+
+add $RESULT,2    //next instruction
+
+bp $RESULT
+
+run
+
+bc $RESULT
+
+mov !ZF,1    //置 Z 标志
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+gpa "Process32Next","kernel32.dll" 
+
+bp $RESULT
+
+run      //F9
+
+bc $RESULT    //clear bp
+
+rtu      //run to user code
+
+find eip,#3BC374#   //cmp eax,ebx
+
+add $RESULT,2    //next instruction
+
+bp $RESULT
+
+run
+
+bc $RESULT
+
+mov !ZF,1    //置 Z 标志
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+gpa "Process32Next","kernel32.dll" 
+
+bp $RESULT
+
+run      //F9
+
+bc $RESULT    //clear bp
+
+rtu      //run to user code
+
+find eip,#3BC374#   //cmp eax,ebx
+
+add $RESULT,2    //next instruction
+
+bp $RESULT
+
+run
+
+bc $RESULT
+
+mov !ZF,1    //置 Z 标志
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+var cbase
+
+gmi eip,CODEBASE
+
+mov cbase,$RESULT
+
+var csize
+
+gmi eip,CODESIZE
+
+mov csize,$RESULT
+
+bprm cbase,csize   //内存读断点
+
+run
+
+bpmc
+
+pause
+
+4dd466d0e1e0cc123afbe504da2462ca
+```

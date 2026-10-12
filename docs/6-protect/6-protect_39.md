@@ -1,213 +1,240 @@
 
-
 # Api 地址的获取
 
 > 原文：[`www.pediy.com/kssd/pediy04/kanxue468.htm`](https://www.pediy.com/kssd/pediy04/kanxue468.htm)
 
-api 函数地址的获取   
-  
-                                by Hume/冷雨飘心   
-  
-这是一个老题目了,如果我们不用任何引入库,能否在程序中调用 api 函数?当然可以!方法有很多,你可能早就知道了,如果你已经了解了,就此打住,这是为还不了解这一技术而写.另外这也是病毒必用的技巧之一,如果你对病毒技术感兴趣,接着看下去.   
-  
-这里假设你了解 PE 的基本结构,如果还不懂,找点资料来看看,到处都是呦.   
-  
-在几乎每个病毒的开头都用下面的语句:   
-        call    delta   
-delta:    
-        pop    ebp                              
-        sub    ebp,offset delta                  
-        mov    dword ptr \[ebp+offset appBase\],ebp   
-          
-让我们考虑一下程序的执行情况,如果下面的代码由编译器自动编译连接,那么程序执行的基址一般是 400000h,如果是在 Nt 下执行,那么基址可能不同,比如从 100000h 开始,不用担心,操作系统的 Loader 会自动为你重定位.但是这里停下来让我们看一下,如果你想要把这段代码附加到其他程序的后面并想让其正确执行的话,就不是那么简单了,因为你的代码可能要从 555588h 处开始执行,而在没有得到宿主程序许可的情况下期望操作系统自动为你修正偏移错误是不可能的,既然有非常的目的,就得费点力气,自己搞定重定位.而上面的代码就是首先得到 eip 指针,也是 delta 在程序执行时的实际偏移,然后减掉代码头到 delta 的偏移从而得到你的代码的真正基址,后面对于偏移的操作都应以这个真正的偏移为准.这就是你上面看到的.如果不明白,就仔细想一下,nothing difficult!下面的例子演示了这一点,并没有全部重定位,因为这只是技术演示.   
-  
-现在回到本文的正式内容,要想获得 api 的地址,得首先获得诸如 kernel32.dll,user32.dll 的基址,然后再找到真正的函数地址.如何获得基址和函数地址呢呢?有几种方法   
-        1)搜寻宿主的引入表获得 GetModuleHandleA 函数和 GetProcAddress 的地址,然后通过他返回系统 dll 的基址.因为很多程序都要使用这两个函数,因此在某些情况下是可行的,如果宿主没有使用 GetProcAddress,那你就不得不搜寻 Export 表了.   
-        2)直接获得 kernel32.dll 的基址,然后再搜寻 Export 表获得 GetProcAddress 和 LoadLibraryA 的地址,然后我们就能得到任何想调用的函数地址.   
-  
-        3)硬编码调用函数,比如在 9X 下 GetModuleHandleA 的地址一般是 BFF7\*\*\*\*.   
-  
-第一种和第三种方法存在兼容性的问题,假如宿主没有调用 GetModuleHandleA,那么你就不能获得基址,别的就更别想了...硬编码问题更大,操作系统不同则不能运行了,比如 9X 下可能在有些计算机上正常,但肯定不能在 Nt/2K 下运行...   
-  
-第二种方法兼容性比较好,因此作以介绍.   
-  
-        一点背景:在 PE Loader 装入我们的程序启动后堆栈顶的地址是是程序的返回地址,肯定在 Kernel 中!   
-  
-        因此我们可以得到这个地址,然后向低地址缩减验证一直到找到模块的起始地址,验证条件为 PE 头不能大于 4096bytes,PE header 的 ImageBase 值应该和当前指针相等,嘿嘿,简单吧,而且兼容性还不错.   
-  
-        要获得 Api 的地址首先要获得 GetModuleHandle,LoadLibraryA,GetProcAddress 的地址,这是通过搜索 Export 表来实现的,具体原理就是 PE Export 表的结构,如果了解了 PE 结构就很简单了.下面我加了点注释,没有优化代码,是为了便于理解.   
-  
-        好,这一部分结束了!   
-  
-这是一个例子,没有用任何预引入函数,加了一条 invoke InitCommonControls 是为了在 2K 下也能正常运行,否则不能在 2K 下不加载!   
-程序得到 MessageBoxA 的地址然后显示一个消息框,目的在于演示,重要部分加了注释,很好明白.   
-  
-.586   
-.model flat, stdcall   
-option casemap :none  ; case sensitive   
-include c:\\hd\\hd.h   
-include c:\\hd\\mac.h   
-  
-;;--------------   
-  
-GetApiA        proto    :DWORD,:DWORD   
-  
-;;--------------   
-    .CODE   
-appBase        dd ?   
-k32Base        dd ?   
-  
-lpApiAddrs      label  near   
-                dd      offset sGetModuleHandle   
-                dd      offset sGetProcAddress   
-                dd      offset sExitProcess   
-                dd      offset sLoadLibrary   
-                dd      0   
-  
-sGetModuleHandle      db "GetModuleHandleA",0   
-sGetProcAddress        db "GetProcAddress",0   
-sExitProcess          db "ExitProcess",0   
-sLoadLibrary          db "LoadLibraryA",0   
-  
-sMessageBoxA          db "MessageBoxA",0   
-  
-    
-aGetModuleHandle                dd 0   
-aGetProcAddress                dd 0   
-aExitProcess                    dd 0   
-aLoadLibrary                    dd 0   
-aMessageBoxA                    dd 0   
-  
-u32                    db "User32.dll",0   
-k32                    db "Kernel32.dll",0   
-  
-sztit                  db "By Hume,2002",0   
-szMsg0                  db "Hey,Hope U enjoy it!",0   
-;;-----------------------------------------   
-  
-\_\_Start:   
-        invoke    InitCommonControls   
-          
-        call    delta   
-delta:    
-        pop    ebp                            ;得到 delta 地址   
-        sub    ebp,offset delta                ;因为在其他程序中基址可能不是默认的所以需要重定位   
-        mov    dword ptr \[ebp+offset appBase\],ebp    ;呵呵仔细想想   
-          
-    mov    ecx,\[esp\]                      ;返回地址   
-        xor    edx,edx   
-getK32Base:   
-        dec    ecx                            ;逐字节比较验证   
-        mov    dx,word  ptr \[ecx+IMAGE\_DOS\_HEADER.e\_lfanew\]  ;就是 ecx+3ch   
-        test    dx,0f000h                      ;Dos Header+stub 不可能太大,超过 4096byte   
-        jnz    getK32Base                      ;加速检验   
-        cmp    ecx,dword ptr \[ecx+edx+IMAGE\_NT\_HEADERS.OptionalHeader.ImageBase\]   
-        jnz    getK32Base                      ;看 Image\_Base 值是否等于 ecx 即模块起始值,   
-        mov    \[ebp+offset k32Base\],ecx        ;如果是,就认为找到 kernel32 的 Base 值   
-          
-        lea    edi,\[ebp+offset aGetModuleHandle\]   
-        lea    esi,\[ebp+offset lpApiAddrs\]   
-lop\_get:   
-        lodsd   
-        cmp    eax,0   
-        jz      End\_Get   
-        push    eax   
-        push    dword ptr \[ebp+offset k32Base\]   
-        call    GetApiA                        ;获取 API 地址          
-        stosd   
-        jmp    lop\_get   
-End\_Get:   
-        push    offset u32   
-        call    dword ptr \[ebp+offset aLoadLibrary\]    ;在程序空间加载 User32.dll   
-          
-        lea    EDX,\[EBP+OFFSET sMessageBoxA\]   
-        push    edx   
-        push    eax   
-        mov    eax,dword ptr \[ebp+aGetProcAddress\]    ;用 GetProcAddress 获得 MessageBoxA 的地址   
-        call    eax                                    ;调用 GetProcAddress   
-  
-        push    40h+1000h                              ;style   
-        push    offset sztit                            ;title   
-        push    offset  szMsg0                          ;消息内容   
-        push    0   
-        call    eax                                    ;一个消息框产生了...嘿嘿   
-                                                        ;有理由为此高兴吧,因为我们没有预先引入   
-@@:                                                    ;这些函数   
-        push    0   
-        call    \[ebp+aExitProcess\]   
-          
+`api` 函数地址的获取
+
+by Hume/冷雨飘心
+
+这是一个老题目了，如果我们不用任何引入库，能否在程序中调用 `api` 函数？当然可以！方法有很多，你可能早就知道了，如果你已经了解了，就此打住，这是为还不了解这一技术而写。另外这也是病毒必用的技巧之一，如果你对病毒技术感兴趣，接着看下去。
+
+这里假设你了解 `PE` 的基本结构，如果还不懂，找点资料来看看，到处都是呦。
+
+在几乎每个病毒的开头都用下面的语句：
+
+```asm
+        call    delta
+
+delta:
+        pop     ebp
+        sub     ebp, offset delta
+        mov     dword ptr [ebp+offset appBase], ebp
+```
+
+让我们考虑一下程序的执行情况，如果下面的代码由编译器自动编译连接，那么程序执行的基址一般是 `400000h`，如果是在 `Nt` 下执行，那么基址可能不同，比如从 `100000h` 开始，不用担心，操作系统的 `Loader` 会自动为你重定位。但是这里停下来让我们看一下，如果你想要把这段代码附加到其他程序的后面并想让其正确执行的话，就不是那么简单了，因为你的代码可能要从 `555588h` 处开始执行，而在没有得到宿主程序许可的情况下期望操作系统自动为你修正偏移错误是不可能的，既然有非常的目的，就得费点力气，自己搞定重定位。而上面的代码就是首先得到 `eip` 指针，也是 `delta` 在程序执行时的实际偏移，然后减掉代码头到 `delta` 的偏移从而得到你的代码的真正基址，后面对于偏移的操作都应以这个真正的偏移为准。这就是你上面看到的。如果不明白，就仔细想一下，`nothing difficult`！下面的例子演示了这一点，并没有全部重定位，因为这只是技术演示。
+
+现在回到本文的正式内容，要想获得 `api` 的地址，得首先获得诸如 `kernel32.dll`, `user32.dll` 的基址，然后再找到真正的函数地址。如何获得基址和函数地址呢呢？有几种方法
+
+1. 搜寻宿主的引入表获得 `GetModuleHandleA` 函数和 `GetProcAddress` 的地址，然后通过他返回系统 `dll` 的基址。因为很多程序都要使用这两个函数，因此在某些情况下是可行的，如果宿主没有使用 `GetProcAddress`，那你就不得不搜寻 `Export` 表了。
+
+2. 直接获得 `kernel32.dll` 的基址，然后再搜寻 `Export` 表获得 `GetProcAddress` 和 `LoadLibraryA` 的地址，然后我们就能得到任何想调用的函数地址。
+
+3. 硬编码调用函数，比如在 `9X` 下 `GetModuleHandleA` 的地址一般是 `BFF7****`。
+
+第一种和第三种方法存在兼容性的问题，假如宿主没有调用 `GetModuleHandleA`，那么你就不能获得基址，别的就更别想了... 硬编码问题更大，操作系统不同则不能运行了，比如 `9X` 下可能在有些计算机上正常，但肯定不能在 `Nt/2K` 下运行...
+
+第二种方法兼容性比较好，因此作以介绍。
+
+一点背景：在 `PE` `Loader` 装入我们的程序启动后堆栈顶的地址是是程序的返回地址，肯定在 `Kernel` 中！
+
+因此我们可以得到这个地址，然后向低地址缩减验证一直到找到模块的起始地址，验证条件为 `PE` 头不能大于 `4096bytes`，`PE` header 的 `ImageBase` 值应该和当前指针相等，嘿嘿，简单吧，而且兼容性还不错。
+
+要获得 `Api` 的地址首先要获得 `GetModuleHandle`, `LoadLibraryA`, `GetProcAddress` 的地址，这是通过搜索 `Export` 表来实现的，具体原理就是 `PE` `Export` 表的结构，如果了解了 `PE` 结构就很简单了。下面我加了点注释，没有优化代码，是为了便于理解。
+
+好，这一部分结束了！
+
+这是一个例子，没有用任何预引入函数，加了一条 `invoke` `InitCommonControls` 是为了在 `2K` 下也能正常运行，否则不能在 `2K` 下不加载！
+
+程序得到 `MessageBoxA` 的地址然后显示一个消息框，目的在于演示，重要部分加了注释，很好明白。
+
+```asm
+.586
+.model flat, stdcall
+option casemap :none  ; case sensitive
+include c:\hd\hd.h
+include c:\hd\mac.h
+
+;;--------------
+GetApiA         proto   :DWORD,:DWORD
+;;--------------
+
+    .CODE
+
+appBase         dd ?
+k32Base         dd ?
+lpApiAddrs      label  near
+
+                dd      offset sGetModuleHandle
+                dd      offset sGetProcAddress
+                dd      offset sExitProcess
+                dd      offset sLoadLibrary
+                dd      0
+
+sGetModuleHandle    db "GetModuleHandleA",0
+sGetProcAddress     db "GetProcAddress",0
+sExitProcess        db "ExitProcess",0
+sLoadLibrary        db "LoadLibraryA",0
+sMessageBoxA        db "MessageBoxA",0
+
+aGetModuleHandle        dd 0
+aGetProcAddress         dd 0
+aExitProcess            dd 0
+aLoadLibrary            dd 0
+aMessageBoxA            dd 0
+
+u32                 db "User32.dll",0
+k32                 db "Kernel32.dll",0
+sztit                 db "By Hume,2002",0
+szMsg0                db "Hey,Hope U enjoy it!",0
+
+;;-----------------------------------------
+__Start:
+        invoke    InitCommonControls
+        call    delta
+delta:
+        pop     ebp                              ;得到 delta 地址
+        sub     ebp, offset delta               ;因为在其他程序中基址可能不是默认的所以需要重定位
+        mov     dword ptr [ebp+offset appBase], ebp    ;呵呵仔细想想
+
+    mov     ecx,[esp]                          ;返回地址
+        xor     edx,edx
+
+getK32Base:
+        dec     ecx                              ;逐字节比较验证
+        mov     dx, word  ptr [ecx+IMAGE_DOS_HEADER.e_lfanew]  ;就是 ecx+3ch
+        test    dx,0f000h                        ;Dos Header+stub 不可能太大,超过 4096byte
+        jnz     getK32Base                       ;加速检验
+        cmp     ecx, dword ptr [ecx+edx+IMAGE_NT_HEADERS.OptionalHeader.ImageBase]
+        jnz     getK32Base                       ;看 Image_Base 值是否等于 ecx 即模块起始值,
+        mov     [ebp+offset k32Base],ecx        ;如果是,就认为找到 kernel32 的 Base 值
+        lea     edi,[ebp+offset aGetModuleHandle]
+        lea     esi,[ebp+offset lpApiAddrs]
+
+lop_get:
+        lodsd
+        cmp     eax,0
+        jz      End_Get
+        push    eax
+        push    dword ptr [ebp+offset k32Base]
+        call    GetApiA                          ;获取 API 地址
+        stosd
+        jmp     lop_get
+
+End_Get:
+        push    offset u32
+        call    dword ptr [ebp+offset aLoadLibrary]    ;在程序空间加载 User32.dll
+        lea     EDX,[EBP+OFFSET sMessageBoxA]
+        push    edx
+        push    eax
+        mov     eax,dword ptr [ebp+aGetProcAddress]    ;用 GetProcAddress 获得 MessageBoxA 的地址
+        call    eax                                   ;调用 GetProcAddress
+        push    40h+1000h                              ;style
+        push    offset sztit                             ;title
+        push    offset  szMsg0                           ;消息内容
+        push    0
+        call    eax                                    ;一个消息框产生了...嘿嘿
+
+                                                ;有理由为此高兴吧,因为我们没有预先引入
+@@:                                                 ;这些函数
+        push    0
+        call    [ebp+aExitProcess]
+
+;-----------------------------------------
+
+K32_api_retrieve      proc    Base:DWORD ,sApi:DWORD
+        push    edx                ;保存 edx
+        xor     eax,eax            ;此时 esi=sApi
+
+Next_Api:                           ;edi=AddressOfNames
+        mov     esi,sApi
+        xor     edx,edx
+        dec     edx
+
+Match_Api_name:
+        mov     bl, byte  ptr [esi]
+        inc     esi
+        cmp     bl,0
+        jz      foundit
+        inc     edx
+        push    eax
+        mov     eax,[edi+eax*4]      ;AddressOfNames 的指针,递增
+        add     eax,Base             ;注意是 RVA,一定要加 Base 值
+        cmp     bl, byte  ptr [eax+edx]  ;逐字符比较
+        pop     eax
+        jz      Match_Api_name         ;继续搜寻
+        inc     eax                  ;不匹配,下一个 api
+        loop    Next_Api
+        jmp     no_exist             ;若全部搜完,即未存在
+
+foundit:
+        pop     edx                  ;edx=AddressOfNameOrdinals
+        shl     eax,1                ;*2 得到 AddressOfNameOrdinals 的指针
+        movzx   eax, word  ptr [edx+eax] ;eax 返回指向 AddressOfFunctions 的指针
+        ret
+
+no_exist:
+        pop     edx
+        xor     eax,eax
+        ret
+
+K32_api_retrieve      endp
+
+;-----------------------------------------
+
+GetApiA         proc    Base:DWORD,sApi:DWORD
+        local     ADDRofFun:DWORD
+        pushad
+        mov     edi,Base
+        add     edi,IMAGE_DOS_HEADER.e_lfanew
+        mov     edi,[edi]                       ;现在 edi=off PE_HEADER
+        add     edi,Base                          ;得到 IMAGE_NT_HEADERS 的偏移
+
+        mov     ebx,edi
+        mov     edi,[edi+IMAGE_NT_HEADERS.OptionalHeader.DataDirectory.VirtualAddress]
+        add     edi,Base                          ;得到 edi=IMAGE_EXPORT_DIRECTORY 入口
+        mov     eax,[edi+1ch]                     ;AddressOfFunctions 的地址
+        add     eax,Base
+        mov     ADDRofFun,eax
+
+                                                ;ecx=NumberOfNames
+        mov     ecx,[edi+18h]
+
+        mov     edx,[edi+24h]
+
+        add     edx,Base                          ;edx=AddressOfNameOrdinals
+        mov     edi,[edi+20h]
+        add     edi,Base                          ;edi=AddressOfNames
+
+GetApiA         endp
+```
+
+
+
+```
+        invoke    K32_api_retrieve,Base,sApi   
+
+        mov     ebx,ADDRofFun   
+
+        shl     eax,2                                   ;要*4 才得到偏移   
+
+        add     eax,ebx   
+
+        mov     eax,[eax]   
+
+        add     eax,Base                                 ;加上 Base!   
+
+        mov     [esp+7*4],eax                            ;eax 返回 api 地址   
+
+        popad   
+
+        ret   
+
+GetApiA         endp   
+
 ;-----------------------------------------   
-K32\_api\_retrieve        proc    Base:DWORD ,sApi:DWORD   
-  
-        push    edx                    ;保存 edx      
-        xor    eax,eax                ;此时 esi=sApi   
-Next\_Api:                              ;edi=AddressOfNames   
-        mov    esi,sApi   
-        xor    edx,edx   
-        dec    edx   
-Match\_Api\_name:   
-        mov    bl,byte  ptr \[esi\]   
-        inc    esi   
-        cmp    bl,0   
-        jz      foundit   
-  
-        inc    edx   
-  
-        push    eax   
-        mov    eax,\[edi+eax\*4\]        ;AddressOfNames 的指针,递增   
-        add    eax,Base                ;注意是 RVA,一定要加 Base 值   
-        cmp    bl,byte  ptr \[eax+edx\]  ;逐字符比较    
-        pop    eax   
-        jz      Match\_Api\_name          ;继续搜寻   
-        inc    eax                    ;不匹配,下一个 api   
-        loop    Next\_Api   
-        jmp    no\_exist                ;若全部搜完,即未存在   
-foundit:   
-        pop    edx                    ;edx=AddressOfNameOrdinals   
-        shl    eax,1                  ;\*2 得到 AddressOfNameOrdinals 的指针   
-        movzx  eax,word  ptr \[edx+eax\] ;eax 返回指向 AddressOfFunctions 的指针   
-        ret   
-no\_exist:   
-        pop    edx   
-        xor    eax,eax   
-        ret   
-K32\_api\_retrieve        endp   
-;-----------------------------------------   
-  
-GetApiA        proc    Base:DWORD,sApi:DWORD   
-        local    ADDRofFun:DWORD   
-        pushad   
-        mov    edi,Base   
-        add    edi,IMAGE\_DOS\_HEADER.e\_lfanew   
-        mov    edi,\[edi\]                      ;现在 edi=off PE\_HEADER   
-        add    edi,Base                        ;得到 IMAGE\_NT\_HEADERS 的偏移                          
-  
-        mov    ebx,edi   
-        mov    edi,\[edi+IMAGE\_NT\_HEADERS.OptionalHeader.DataDirectory.VirtualAddress\]   
-        add    edi,Base                        ;得到 edi=IMAGE\_EXPORT\_DIRECTORY 入口   
-          
-        mov    eax,\[edi+1ch\]                  ;AddressOfFunctions 的地址   
-        add    eax,Base   
-        mov    ADDRofFun,eax   
-                                                ;ecx=NumberOfNames   
-        mov    ecx,\[edi+18h\]                    
-        mov    edx,\[edi+24h\]                    
-        add    edx,Base                        ;edx=AddressOfNameOrdinals   
-  
-        mov    edi,\[edi+20h\]   
-        add    edi,Base                        ;edi=AddressOfNames   
-        invoke    K32\_api\_retrieve,Base,sApi   
-        mov    ebx,ADDRofFun   
-        shl    eax,2                          ;要\*4 才得到偏移   
-        add    eax,ebx   
-        mov    eax,\[eax\]   
-        add    eax,Base                        ;加上 Base!   
-        mov    \[esp+7\*4\],eax                  ;eax 返回 api 地址   
-        popad   
-        ret   
-GetApiA        endp   
-  
-;-----------------------------------------   
-  
-END    \_\_Start   
+
+END     __Start   
+
 ;------------------------------------------End all  4dd466d0e1e0cc123afbe504da2462ca
+```

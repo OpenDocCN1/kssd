@@ -1,515 +1,553 @@
 
-
 # 【作品提交】文件 MD5 值计算工具
 
 > 原文：[`www.pediy.com/kssd/pediy10/67552.html`](https://www.pediy.com/kssd/pediy10/67552.html)
 
-功能很简单，怎么会这么简单？？![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!") ![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!") ![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!") ![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")  
-  
+功能很简单，怎么会这么简单？？
+![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!") ![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!") ![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!") ![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")
 
 代码:
 
+
+
+# 1. 汇编代码：MD5 算法实现与 GUI 界面
+
+## 2. 模块定义与包含文件
+
+```asm
+    .386
+    .model flat, stdcall
+    option casemap :none
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; Include 文件定义
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+include    windows.inc
+include    masm32.inc
+includelib  masm32.lib
+include    user32.inc
+includelib  user32.lib
+include    kernel32.inc
+includelib  kernel32.lib
+include    comdlg32.inc
+includelib  comdlg32.lib
 ```
-    .386
-    .model flat, stdcall
-    option casemap :none
 
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-; Include 文件定义
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-include    windows.inc
-include    masm32.inc
-includelib  masm32.lib
-include    user32.inc
-includelib  user32.lib
-include    kernel32.inc
-includelib  kernel32.lib
-include    comdlg32.inc
-includelib  comdlg32.lib
+## 3. 结构体定义
 
-MD5RESULT    STRUCT
-  dtA    dd  ?
-  dtB    dd  ?
-  dtC    dd  ?
-  dtD    dd  ?
-MD5RESULT    ENDS
+```asm
+MD5RESULT    STRUCT
+  dtA    dd  ?
+  dtB    dd  ?
+  dtC    dd  ?
+  dtD    dd  ?
+MD5RESULT    ENDS
+```
 
+## 4. 宏定义
 
+```asm
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; Equ 等值定义
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+ICO\_MAIN  equ    1000
+DLG\_MAIN  equ    100
+IDC\_FILE  equ    101
+IDC\_BROWSE  equ    102
+```
 
+## 5. 数据段
+
+```asm
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-; Equ 等值定义
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-ICO\_MAIN  equ    1000
-DLG\_MAIN  equ    100
-IDC\_FILE  equ    101
-IDC\_BROWSE  equ    102
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-; 数据段
+; 数据段
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 .data
-bfBuffer    db  256 dup (0)
-szMD5Format    db  '%.8x%.8x%.8x%.8x',0
-    .data?
-
-hInstance  dd  ?
-hWinMain  dd  ?
-szFileName  db  MAX\_PATH dup (?)
-stMD5Result    MD5RESULT <?>
-    .const
-szFileExt  db  '文本文件',0,'\*.\*',0,0
-szNewFile  db  '.new.txt',0
-szErrOpenFile  db  '无法打开源文件!',0
-szErrCreateFile  db  '无法创建新的文本文件!',0
-szSuccees  db  '文件转换成功，新的文本文件保存为',0dh,0ah,'%s',0
-szSucceesCap  db  '提示',0
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-; 代码段
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-    .code
-
-FF      proc  uses ebx ecx,dta,dtb,dtc,dtd,x,s:byte,t    ; a = b + ((a + F(b,c,d) + x + t) << s )
-
-      mov  eax,dtb
-      mov  ebx,dtc
-      mov  ecx,dtd
-
-      ; F(x,y,z) = (x and y) or ((not x) and z)
-      and  ebx,eax
-      not  eax
-      and  eax,ecx
-      or  eax,ebx
-
-      add  eax,dta
-      add  eax,x
-      add  eax,t
-
-      mov  cl,s
-      rol  eax,cl
-
-      add  eax,dtb
-
-      ret
-
-FF      endp
-
-GG      proc  uses ebx ecx,dta,dtb,dtc,dtd,x,s:byte,t    ; a = b + ((a + G(b,c,d) + x + t) << s)
-
-      mov  eax,dtb
-      mov  ebx,dtc
-      mov  ecx,dtd
-
-      ; G(x,y,z) = (x and z) or (y and (not z))
-      and  eax,ecx
-      not  ecx
-      and  ecx,ebx
-      or  eax,ecx
-
-      add  eax,dta
-      add  eax,x
-      add  eax,t
-
-      mov  cl,s
-      rol  eax,cl
-
-      add  eax,dtb
-
-      ret
-
-GG      endp
-
-HH      proc  uses ebx ecx,dta,dtb,dtc,dtd,x,s:byte,t    ; a = b + ((a + H(b,c,d) + x + t) << s)
-
-      mov  eax,dtb
-      mov  ebx,dtc
-      mov  ecx,dtd
-
-      ; H(x,y,z) = x xor y xor z
-      xor  eax,ebx
-      xor  eax,ecx
-
-      add  eax,dta
-      add  eax,x
-      add  eax,t
-
-      mov  cl,s
-      rol  eax,cl
-
-      add  eax,dtb
-
-      ret
-
-HH      endp
-
-II      proc  uses ebx ecx,dta,dtb,dtc,dtd,x,s:byte,t    ; a = b + ((a + I(b,c,d) + x + t) << s)
-
-      mov  eax,dtb
-      mov  ebx,dtc
-      mov  ecx,dtd
-
-      ; I(x,y,z) = y xor (x or (not z))
-      not  ecx
-      or  eax,ecx
-      xor  eax,ebx
-
-      add  eax,dta
-      add  eax,x
-      add  eax,t
-
-      mov  cl,s
-      rol  eax,cl
-
-      add  eax,dtb
-
-      ret
-
-II      endp
-
-procMD5hash    proc  uses eax ebx ecx edx edi esi,ptBuffer:dword,dtBufferLength:dword,ptMD5Result:dword
-      local  dta:dword,dtb:dword,dtc:dword,dtd:dword
-
-      mov  edi,ptBuffer
-      mov  eax,dtBufferLength
-
-      inc  eax
-      add  edi,eax
-      mov  byte ptr \[edi-1\],080h
-
-      xor  edx,edx
-
-      mov  ebx,64
-      div  ebx
-
-      neg  edx
-      add  edx,64
-
-      cmp  edx,8
-      jae  @f
-
-      add  edx,64
-
-@@:      mov  ecx,edx
-      xor  al,al
-      rep  stosb
-
-      mov  eax,dtBufferLength
-
-      inc  edx
-      add  dtBufferLength,edx
-
-      xor  edx,edx
-
-      mov  ebx,8
-      mul  ebx
-
-      mov  dword ptr \[edi-8\],eax
-      mov  dword ptr \[edi-4\],edx
-
-      mov  edx,dtBufferLength
-
-      mov  edi,ptBuffer
-
-
-      mov  esi,ptMD5Result
-      assume  esi:ptr MD5RESULT
-
-      mov  \[esi\].dtA,067452301h
-      mov  \[esi\].dtB,0efcdab89h
-      mov  \[esi\].dtC,098badcfeh
-      mov  \[esi\].dtD,010325476h
-
-hashloop:    mov  eax,\[esi\].dtA
-      mov  dta,eax
-      mov  eax,\[esi\].dtB
-      mov  dtb,eax
-      mov  eax,\[esi\].dtC
-      mov  dtc,eax
-      mov  eax,\[esi\].dtD
-      mov  dtd,eax
-
-
-      invoke  FF,dta,dtb,dtc,dtd,dword ptr \[edi+00\*4\],07,0d76aa478h
-      mov  dta,eax
-      invoke  FF,dtd,dta,dtb,dtc,dword ptr \[edi+01\*4\],12,0e8c7b756h
-      mov  dtd,eax
-      invoke  FF,dtc,dtd,dta,dtb,dword ptr \[edi+02\*4\],17,0242070dbh
-      mov  dtc,eax
-      invoke  FF,dtb,dtc,dtd,dta,dword ptr \[edi+03\*4\],22,0c1bdceeeh
-      mov  dtb,eax
-      invoke  FF,dta,dtb,dtc,dtd,dword ptr \[edi+04\*4\],07,0f57c0fafh
-      mov  dta,eax
-      invoke  FF,dtd,dta,dtb,dtc,dword ptr \[edi+05\*4\],12,04787c62ah
-      mov  dtd,eax
-      invoke  FF,dtc,dtd,dta,dtb,dword ptr \[edi+06\*4\],17,0a8304613h
-      mov  dtc,eax
-      invoke  FF,dtb,dtc,dtd,dta,dword ptr \[edi+07\*4\],22,0fd469501h
-      mov  dtb,eax
-      invoke  FF,dta,dtb,dtc,dtd,dword ptr \[edi+08\*4\],07,0698098d8h
-      mov  dta,eax
-      invoke  FF,dtd,dta,dtb,dtc,dword ptr \[edi+09\*4\],12,08b44f7afh
-      mov  dtd,eax
-      invoke  FF,dtc,dtd,dta,dtb,dword ptr \[edi+10\*4\],17,0ffff5bb1h
-      mov  dtc,eax
-      invoke  FF,dtb,dtc,dtd,dta,dword ptr \[edi+11\*4\],22,0895cd7beh
-      mov  dtb,eax
-      invoke  FF,dta,dtb,dtc,dtd,dword ptr \[edi+12\*4\],07,06b901122h
-      mov  dta,eax
-      invoke  FF,dtd,dta,dtb,dtc,dword ptr \[edi+13\*4\],12,0fd987193h
-      mov  dtd,eax
-      invoke  FF,dtc,dtd,dta,dtb,dword ptr \[edi+14\*4\],17,0a679438eh
-      mov  dtc,eax
-      invoke  FF,dtb,dtc,dtd,dta,dword ptr \[edi+15\*4\],22,049b40821h
-      mov  dtb,eax
-
-
-      invoke  GG,dta,dtb,dtc,dtd,dword ptr \[edi+01\*4\],05,0f61e2562h
-      mov  dta,eax
-      invoke  GG,dtd,dta,dtb,dtc,dword ptr \[edi+06\*4\],09,0c040b340h
-      mov  dtd,eax
-      invoke  GG,dtc,dtd,dta,dtb,dword ptr \[edi+11\*4\],14,0265e5a51h
-      mov  dtc,eax
-      invoke  GG,dtb,dtc,dtd,dta,dword ptr \[edi+00\*4\],20,0e9b6c7aah
-      mov  dtb,eax
-      invoke  GG,dta,dtb,dtc,dtd,dword ptr \[edi+05\*4\],05,0d62f105dh
-      mov  dta,eax
-      invoke  GG,dtd,dta,dtb,dtc,dword ptr \[edi+10\*4\],09,002441453h
-      mov  dtd,eax
-      invoke  GG,dtc,dtd,dta,dtb,dword ptr \[edi+15\*4\],14,0d8a1e681h
-      mov  dtc,eax
-      invoke  GG,dtb,dtc,dtd,dta,dword ptr \[edi+04\*4\],20,0e7d3fbc8h
-      mov  dtb,eax
-      invoke  GG,dta,dtb,dtc,dtd,dword ptr \[edi+09\*4\],05,021e1cde6h
-      mov  dta,eax
-      invoke  GG,dtd,dta,dtb,dtc,dword ptr \[edi+14\*4\],09,0c33707d6h
-      mov  dtd,eax
-      invoke  GG,dtc,dtd,dta,dtb,dword ptr \[edi+03\*4\],14,0f4d50d87h
-      mov  dtc,eax
-      invoke  GG,dtb,dtc,dtd,dta,dword ptr \[edi+08\*4\],20,0455a14edh
-      mov  dtb,eax
-      invoke  GG,dta,dtb,dtc,dtd,dword ptr \[edi+13\*4\],05,0a9e3e905h
-      mov  dta,eax
-      invoke  GG,dtd,dta,dtb,dtc,dword ptr \[edi+02\*4\],09,0fcefa3f8h
-      mov  dtd,eax
-      invoke  GG,dtc,dtd,dta,dtb,dword ptr \[edi+07\*4\],14,0676f02d9h
-      mov  dtc,eax
-      invoke  GG,dtb,dtc,dtd,dta,dword ptr \[edi+12\*4\],20,08d2a4c8ah
-      mov  dtb,eax
-
-      invoke  HH,dta,dtb,dtc,dtd,dword ptr \[edi+05\*4\],04,0fffa3942h
-      mov  dta,eax
-      invoke  HH,dtd,dta,dtb,dtc,dword ptr \[edi+08\*4\],11,08771f681h
-      mov  dtd,eax
-      invoke  HH,dtc,dtd,dta,dtb,dword ptr \[edi+11\*4\],16,06d9d6122h
-      mov  dtc,eax
-      invoke  HH,dtb,dtc,dtd,dta,dword ptr \[edi+14\*4\],23,0fde5380ch
-      mov  dtb,eax
-      invoke  HH,dta,dtb,dtc,dtd,dword ptr \[edi+01\*4\],04,0a4beea44h
-      mov  dta,eax
-      invoke  HH,dtd,dta,dtb,dtc,dword ptr \[edi+04\*4\],11,04bdecfa9h
-      mov  dtd,eax
-      invoke  HH,dtc,dtd,dta,dtb,dword ptr \[edi+07\*4\],16,0f6bb4b60h
-      mov  dtc,eax
-      invoke  HH,dtb,dtc,dtd,dta,dword ptr \[edi+10\*4\],23,0bebfbc70h
-      mov  dtb,eax
-      invoke  HH,dta,dtb,dtc,dtd,dword ptr \[edi+13\*4\],04,0289b7ec6h
-      mov  dta,eax
-      invoke  HH,dtd,dta,dtb,dtc,dword ptr \[edi+00\*4\],11,0eaa127fah
-      mov  dtd,eax
-      invoke  HH,dtc,dtd,dta,dtb,dword ptr \[edi+03\*4\],16,0d4ef3085h
-      mov  dtc,eax
-      invoke  HH,dtb,dtc,dtd,dta,dword ptr \[edi+06\*4\],23,004881d05h
-      mov  dtb,eax
-      invoke  HH,dta,dtb,dtc,dtd,dword ptr \[edi+09\*4\],04,0d9d4d039h
-      mov  dta,eax
-      invoke  HH,dtd,dta,dtb,dtc,dword ptr \[edi+12\*4\],11,0e6db99e5h
-      mov  dtd,eax
-      invoke  HH,dtc,dtd,dta,dtb,dword ptr \[edi+15\*4\],16,01fa27cf8h
-      mov  dtc,eax
-      invoke  HH,dtb,dtc,dtd,dta,dword ptr \[edi+02\*4\],23,0c4ac5665h
-      mov  dtb,eax
-
-
-      invoke  II,dta,dtb,dtc,dtd,dword ptr \[edi+00\*4\],06,0f4292244h
-      mov  dta,eax
-      invoke  II,dtd,dta,dtb,dtc,dword ptr \[edi+07\*4\],10,0432aff97h
-      mov  dtd,eax
-      invoke  II,dtc,dtd,dta,dtb,dword ptr \[edi+14\*4\],15,0ab9423a7h
-      mov  dtc,eax
-      invoke  II,dtb,dtc,dtd,dta,dword ptr \[edi+05\*4\],21,0fc93a039h
-      mov  dtb,eax
-      invoke  II,dta,dtb,dtc,dtd,dword ptr \[edi+12\*4\],06,0655b59c3h
-      mov  dta,eax
-      invoke  II,dtd,dta,dtb,dtc,dword ptr \[edi+03\*4\],10,08f0ccc92h
-      mov  dtd,eax
-      invoke  II,dtc,dtd,dta,dtb,dword ptr \[edi+10\*4\],15,0ffeff47dh
-      mov  dtc,eax
-      invoke  II,dtb,dtc,dtd,dta,dword ptr \[edi+01\*4\],21,085845dd1h
-      mov  dtb,eax
-      invoke  II,dta,dtb,dtc,dtd,dword ptr \[edi+08\*4\],06,06fa87e4fh
-      mov  dta,eax
-      invoke  II,dtd,dta,dtb,dtc,dword ptr \[edi+15\*4\],10,0fe2ce6e0h
-      mov  dtd,eax
-      invoke  II,dtc,dtd,dta,dtb,dword ptr \[edi+06\*4\],15,0a3014314h
-      mov  dtc,eax
-      invoke  II,dtb,dtc,dtd,dta,dword ptr \[edi+13\*4\],21,04e0811a1h
-      mov  dtb,eax
-      invoke  II,dta,dtb,dtc,dtd,dword ptr \[edi+04\*4\],06,0f7537e82h
-      mov  dta,eax
-      invoke  II,dtd,dta,dtb,dtc,dword ptr \[edi+11\*4\],10,0bd3af235h
-      mov  dtd,eax
-      invoke  II,dtc,dtd,dta,dtb,dword ptr \[edi+02\*4\],15,02ad7d2bbh
-      mov  dtc,eax
-      invoke  II,dtb,dtc,dtd,dta,dword ptr \[edi+09\*4\],21,0eb86d391h
-      mov  dtb,eax
-
-      mov  eax,dta
-      add  \[esi\].dtA,eax
-      mov  eax,dtb
-      add  \[esi\].dtB,eax
-      mov  eax,dtc
-      add  \[esi\].dtC,eax
-      mov  eax,dtd
-      add  \[esi\].dtD,eax
-
-      add  edi,64
-
-      sub  edx,64
-      jnz  hashloop
-
-
-
-      mov  ecx,4
-
-@@:      mov  eax,dword ptr \[esi\]
-      xchg  al,ah
-      rol  eax,16
-      xchg  al,ah
-      mov  dword ptr \[esi\],eax
-
-      add  esi,4
-
-      loop  @b
-
-      mov  esi,ptMD5Result
-
-      ret
-
-procMD5hash    endp
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-\_ProcFile  proc  pszFileName,pbfBuffer
-    local  @hFile,@hFileNew,@hFileMap,@lpMemory,@lpMemorywr,@dwFileSize
-    local  @szNewFile\[MAX\_PATH\]:byte
-    local  @szBuffer\[512\]:byte
-    LOCAL  @stMD5Result:MD5RESULT
-
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-; 打开文件
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-    invoke  CreateFile,pszFileName,GENERIC\_READ,FILE\_SHARE\_READ,0,\\
-      OPEN\_EXISTING,FILE\_ATTRIBUTE\_NORMAL,0
-    .if  eax ==  INVALID\_HANDLE\_VALUE
-      ;invoke  MessageBox,hWinMain,addr szErrOpenFile,NULL,MB\_OK or MB\_ICONEXCLAMATION
-      ret
-    .endif
-    mov  @hFile,eax
-    invoke  GetFileSize,@hFile,NULL
-    mov  @dwFileSize,eax
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-; 建立内存映射文件
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-    invoke  CreateFileMapping,@hFile,NULL,PAGE\_READONLY,0,0,NULL
-    .if  ! eax
-      ;invoke  MessageBox,hWinMain,addr szErrOpenFile,NULL,MB\_OK or MB\_ICONEXCLAMATION
-      jmp  \_Ret1
-    .endif
-    mov  @hFileMap,eax
-    invoke  MapViewOfFile,eax,FILE\_MAP\_READ,0,0,0
-    .if  ! eax
-      ;invoke  MessageBox,hWinMain,addr szErrOpenFile,NULL,MB\_OK or MB\_ICONEXCLAMATION
-      jmp  \_Ret2
-    .endif
-    mov  @lpMemory,eax
-;CountMd5Hash
-    invoke  VirtualAlloc,0,@dwFileSize,1000h,40h
-    mov @lpMemorywr,eax
-    invoke MemCopy,@lpMemory,@lpMemorywr,@dwFileSize 
-    invoke  procMD5hash, @lpMemorywr, @dwFileSize, addr @stMD5Result
-    invoke  VirtualFree,@lpMemorywr,@dwFileSize,MEM\_RELEASE
-    lea  esi,@stMD5Result
-    assume  esi:ptr MD5RESULT
-    invoke  wsprintfA,pbfBuffer,addr szMD5Format,\[esi\].dtA,\[esi\].dtB,\[esi\].dtC,\[esi\].dtD
-
-\_Ret3:
-    invoke  UnmapViewOfFile,@lpMemory
-\_Ret2:
-    invoke  CloseHandle,@hFileMap
-\_Ret1:
-    invoke  CloseHandle,@hFile
-    ret
-
-\_ProcFile  endp
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-\_ProcDlgMain  proc  uses ebx edi esi hWnd,wMsg,wParam,lParam
-    local  @stOpenFileName:OPENFILENAME
-
-    mov  eax,wMsg
-    .if  eax ==  WM\_CLOSE
-      invoke  EndDialog,hWnd,NULL
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-    .elseif  eax ==  WM\_INITDIALOG
-      push  hWnd
-      pop  hWinMain
-      invoke  LoadIcon,hInstance,ICO\_MAIN
-      invoke  SendMessage,hWnd,WM\_SETICON,ICON\_BIG,eax
-      invoke  SendDlgItemMessage,hWnd,IDC\_FILE,EM\_SETLIMITTEXT,MAX\_PATH,0
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-    .elseif  eax ==  WM\_COMMAND
-      mov  eax,wParam
-      .if  ax ==  IDC\_BROWSE
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-        invoke  RtlZeroMemory,addr @stOpenFileName,sizeof OPENFILENAME
-        mov  @stOpenFileName.lStructSize,SIZEOF @stOpenFileName
-        mov  @stOpenFileName.Flags,OFN\_FILEMUSTEXIST or OFN\_PATHMUSTEXIST
-        push  hWinMain
-        pop  @stOpenFileName.hwndOwner
-        mov  @stOpenFileName.lpstrFilter,offset szFileExt
-        mov  @stOpenFileName.lpstrFile,offset szFileName
-        mov  @stOpenFileName.nMaxFile,MAX\_PATH
-        invoke  GetOpenFileName,addr @stOpenFileName
-        .if  eax
-          invoke  SetDlgItemText,hWnd,IDC\_FILE,addr szFileName
-        .endif
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-      .elseif  ax ==  IDC\_FILE
-        invoke  GetDlgItemText,hWnd,IDC\_FILE,addr szFileName,MAX\_PATH
-        mov  ebx,eax
-        invoke  GetDlgItem,hWnd,IDOK
-        invoke  EnableWindow,eax,ebx
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-      .elseif  ax ==  IDOK
-        invoke  \_ProcFile,addr szFileName,addr bfBuffer
-        invoke SetDlgItemText,hWnd,IDC\_FILE,addr bfBuffer
-      .endif
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-    .else
-      mov  eax,FALSE
-      ret
-    .endif
-    mov  eax,TRUE
-    ret
-
-\_ProcDlgMain  endp
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-start:
-    invoke  GetModuleHandle,NULL
-    mov  hInstance,eax
-    invoke  DialogBoxParam,hInstance,DLG\_MAIN,NULL,offset \_ProcDlgMain,NULL
-    invoke  ExitProcess,NULL
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    end  start
-
+bfBuffer    db  256 dup (0)
+szMD5Format    db  '%.8x%.8x%.8x%.8x',0
+    .data?
+
+hInstance  dd  ?
+hWinMain  dd  ?
+szFileName  db  MAX\_PATH dup (?)
+stMD5Result    MD5RESULT <?>
+    .const
+szFileExt  db  '文本文件',0,'\*.\*',0,0
+szNewFile  db  '.new.txt',0
+szErrOpenFile  db  '无法打开源文件!',0
+szErrCreateFile  db  '无法创建新的文本文件!',0
+szSuccees  db  '文件转换成功，新的文本文件保存为',0dh,0ah,'%s',0
+szSucceesCap  db  '提示',0
 ```
 
+## 6. 代码段：MD5 核心算法
+
+```asm
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; 代码段
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    .code
+
+FF      proc  uses ebx ecx,dta,dtb,dtc,dtd,x,s:byte,t    ; a = b + ((a + F(b,c,d) + x + t) << s )
+
+      mov  eax,dtb
+      mov  ebx,dtc
+      mov  ecx,dtd
+
+      ; F(x,y,z) = (x and y) or ((not x) and z)
+      and  ebx,eax
+      not  eax
+      and  eax,ecx
+      or  eax,ebx
+
+      add  eax,dta
+      add  eax,x
+      add  eax,t
+
+      mov  cl,s
+      rol  eax,cl
+
+      add  eax,dtb
+
+      ret
+
+FF      endp
+
+GG      proc  uses ebx ecx,dta,dtb,dtc,dtd,x,s:byte,t    ; a = b + ((a + G(b,c,d) + x + t) << s)
+
+      mov  eax,dtb
+      mov  ebx,dtc
+      mov  ecx,dtd
+
+      ; G(x,y,z) = (x and z) or (y and (not z))
+      and  eax,ecx
+      not  ecx
+      and  ecx,ebx
+      or  eax,ecx
+
+      add  eax,dta
+      add  eax,x
+      add  eax,t
+
+      mov  cl,s
+      rol  eax,cl
+
+      add  eax,dtb
+
+      ret
+
+GG      endp
+
+HH      proc  uses ebx ecx,dta,dtb,dtc,dtd,x,s:byte,t    ; a = b + ((a + H(b,c,d) + x + t) << s)
+
+      mov  eax,dtb
+      mov  ebx,dtc
+      mov  ecx,dtd
+
+      ; H(x,y,z) = x xor y xor z
+      xor  eax,ebx
+      xor  eax,ecx
+
+      add  eax,dta
+      add  eax,x
+      add  eax,t
+
+      mov  cl,s
+      rol  eax,cl
+
+      add  eax,dtb
+
+      ret
+
+HH      endp
+
+II      proc  uses ebx ecx,dta,dtb,dtc,dtd,x,s:byte,t    ; a = b + ((a + I(b,c,d) + x + t) << s)
+
+      mov  eax,dtb
+      mov  ebx,dtc
+      mov  ecx,dtd
+
+      ; I(x,y,z) = y xor (x or (not z))
+      not  ecx
+      or  eax,ecx
+      xor  eax,ebx
+
+      add  eax,dta
+      add  eax,x
+      add  eax,t
+
+      mov  cl,s
+      rol  eax,cl
+
+      add  eax,dtb
+
+      ret
+
+II      endp
+
+procMD5hash    proc  uses eax ebx ecx edx edi esi,ptBuffer:dword,dtBufferLength:dword,ptMD5Result:dword
+      local  dta:dword,dtb:dword,dtc:dword,dtd:dword
+
+      mov  edi,ptBuffer
+      mov  eax,dtBufferLength
+
+      inc  eax
+      add  edi,eax
+      mov  byte ptr [edi-1],080h
+
+      xor  edx,edx
+
+      mov  ebx,64
+      div  ebx
+
+      neg  edx
+      add  edx,64
+
+      cmp  edx,8
+      jae  @f
+
+      add  edx,64
+
+@@:      mov  ecx,edx
+      xor  al,al
+      rep  stosb
+
+      mov  eax,dtBufferLength
+
+      inc  edx
+      add  dtBufferLength,edx
+
+      xor  edx,edx
+
+      mov  ebx,8
+      mul  ebx
+
+      mov  dword ptr [edi-8],eax
+      mov  dword ptr [edi-4],edx
+
+      mov  edx,dtBufferLength
+
+      mov  edi,ptBuffer
+
+
+      mov  esi,ptMD5Result
+      assume  esi:ptr MD5RESULT
+
+      mov  [esi].dtA,067452301h
+      mov  [esi].dtB,0efcdab89h
+      mov  [esi].dtC,098badcfeh
+      mov  [esi].dtD,010325476h
+
+hashloop:    mov  eax,[esi].dtA
+      mov  dta,eax
+      mov  eax,[esi].dtB
+      mov  dtb,eax
+      mov  eax,[esi].dtC
+      mov  dtc,eax
+      mov  eax,[esi].dtD
+      mov  dtd,eax
+
+
+      invoke  FF,dta,dtb,dtc,dtd,dword ptr [edi+00*4],07,0d76aa478h
+      mov  dta,eax
+      invoke  FF,dtd,dta,dtb,dtc,dword ptr [edi+01*4],12,0e8c7b756h
+      mov  dtd,eax
+      invoke  FF,dtc,dtd,dta,dtb,dword ptr [edi+02*4],17,0242070dbh
+      mov  dtc,eax
+      invoke  FF,dtb,dtc,dtd,dta,dword ptr [edi+03*4],22,0c1bdceeeh
+      mov  dtb,eax
+      invoke  FF,dta,dtb,dtc,dtd,dword ptr [edi+04*4],07,0f57c0fafh
+      mov  dta,eax
+      invoke  FF,dtd,dta,dtb,dtc,dword ptr [edi+05*4],12,04787c62ah
+      mov  dtd,eax
+      invoke  FF,dtc,dtd,dta,dtb,dword ptr [edi+06*4],17,0a8304613h
+      mov  dtc,eax
+      invoke  FF,dtb,dtc,dtd,dta,dword ptr [edi+07*4],22,0fd469501h
+      mov  dtb,eax
+      invoke  FF,dta,dtb,dtc,dtd,dword ptr [edi+08*4],07,0698098d8h
+      mov  dta,eax
+      invoke  FF,dtd,dta,dtb,dtc,dword ptr [edi+09*4],12,08b44f7afh
+      mov  dtd,eax
+      invoke  FF,dtc,dtd,dta,dtb,dword ptr [edi+10*4],17,0ffff5bb1h
+      mov  dtc,eax
+      invoke  FF,dtb,dtc,dtd,dta,dword ptr [edi+11*4],22,0895cd7beh
+      mov  dtb,eax
+      invoke  FF,dta,dtb,dtc,dtd,dword ptr [edi+12*4],07,06b901122h
+      mov  dta,eax
+      invoke  FF,dtd,dta,dtb,dtc,dword ptr [edi+13*4],12,0fd987193h
+      mov  dtd,eax
+      invoke  FF,dtc,dtd,dta,dtb,dword ptr [edi+14*4],17,0a679438eh
+      mov  dtc,eax
+      invoke  FF,dtb,dtc,dtd,dta,dword ptr [edi+15*4],22,049b40821h
+      mov  dtb,eax
+
+
+      invoke  GG,dta,dtb,dtc,dtd,dword ptr [edi+01*4],05,0f61e2562h
+      mov  dta,eax
+      invoke  GG,dtd,dta,dtb,dtc,dword ptr [edi+06*4],09,0c040b340h
+      mov  dtd,eax
+      invoke  GG,dtc,dtd,dta,dtb,dword ptr [edi+11*4],14,0265e5a51h
+      mov  dtc,eax
+      invoke  GG,dtb,dtc,dtd,dta,dword ptr [edi+00*4],20,0e9b6c7aah
+      mov  dtb,eax
+      invoke  GG,dta,dtb,dtc,dtd,dword ptr [edi+05*4],05,0d62f105dh
+      mov  dta,eax
+      invoke  GG,dtd,dta,dtb,dtc,dword ptr [edi+10*4],09,002441453h
+      mov  dtd,eax
+      invoke  GG,dtc,dtd,dta,dtb,dword ptr [edi+15*4],14,0d8a1e681h
+      mov  dtc,eax
+      invoke  GG,dtb,dtc,dtd,dta,dword ptr [edi+04*4],20,0e7d3fbc8h
+      mov  dtb,eax
+      invoke  GG,dta,dtb,dtc,dtd,dword ptr [edi+09*4],05,021e1cde6h
+      mov  dta,eax
+      invoke  GG,dtd,dta,dtb,dtc,dword ptr [edi+14*4],09,0c33707d6h
+      mov  dtd,eax
+      invoke  GG,dtc,dtd,dta,dtb,dword ptr [edi+03*4],14,0f4d50d87h
+      mov  dtc,eax
+      invoke  GG,dtb,dtc,dtd,dta,dword ptr [edi+08*4],20,0455a14edh
+      mov  dtb,eax
+      invoke  GG,dta,dtb,dtc,dtd,dword ptr [edi+13*4],05,0a9e3e905h
+      mov  dta,eax
+      invoke  GG,dtd,dta,dtb,dtc,dword ptr [edi+02*4],09,0fcefa3f8h
+      mov  dtd,eax
+      invoke  GG,dtc,dtd,dta,dtb,dword ptr [edi+07*4],14,0676f02d9h
+      mov  dtc,eax
+      invoke  GG,dtb,dtc,dtd,dta,dword ptr [edi+12*4],20,08d2a4c8ah
+      mov  dtb,eax
+
+      invoke  HH,dta,dtb,dtc,dtd,dword ptr [edi+05*4],04,0fffa3942h
+      mov  dta,eax
+      invoke  HH,dtd,dta,dtb,dtc,dword ptr [edi+08*4],11,08771f681h
+      mov  dtd,eax
+      invoke  HH,dtc,dtd,dta,dtb,dword ptr [edi+11*4],16,06d9d6122h
+      mov  dtc,eax
+      invoke  HH,dtb,dtc,dtd,dta,dword ptr [edi+14*4],23,0fde5380ch
+      mov  dtb,eax
+      invoke  HH,dta,dtb,dtc,dtd,dword ptr [edi+01*4],04,0a4beea44h
+      mov  dta,eax
+      invoke  HH,dtd,dta,dtb,dtc,dword ptr [edi+04*4],11,04bdecfa9h
+      mov  dtd,eax
+      invoke  HH,dtc,dtd,dta,dtb,dword ptr [edi+07*4],16,0f6bb4b60h
+      mov  dtc,eax
+      invoke  HH,dtb,dtc,dtd,dta,dword ptr [edi+10*4],23,0bebfbc70h
+      mov  dtb,eax
+      invoke  HH,dta,dtb,dtc,dtd,dword ptr [edi+13*4],04,0289b7ec6h
+      mov  dta,eax
+      invoke  HH,dtd,dta,dtb,dtc,dword ptr [edi+00*4],11,0eaa127fah
+      mov  dtd,eax
+      invoke  HH,dtc,dtd,dta,dtb,dword ptr [edi+03*4],16,0d4ef3085h
+      mov  dtc,eax
+      invoke  HH,dtb,dtc,dtd,dta,dword ptr [edi+06*4],23,004881d05h
+      mov  dtb,eax
+      invoke  HH,dta,dtb,dtc,dtd,dword ptr [edi+09*4],04,0d9d4d039h
+      mov  dta,eax
+      invoke  HH,dtd,dta,dtb,dtc,dword ptr [edi+12*4],11,0e6db99e5h
+      mov  dtd,eax
+      invoke  HH,dtc,dtd,dta,dtb,dword ptr [edi+15*4],16,01fa27cf8h
+      mov  dtc,eax
+      invoke  HH,dtb,dtc,dtd,dta,dword ptr [edi+02*4],23,0c4ac5665h
+      mov  dtb,eax
+
+
+      invoke  II,dta,dtb,dtc,dtd,dword ptr [edi+00*4],06,0f4292244h
+      mov  dta,eax
+      invoke  II,dtd,dta,dtb,dtc,dword ptr [edi+07*4],10,0432aff97h
+      mov  dtd,eax
+      invoke  II,dtc,dtd,dta,dtb,dword ptr [edi+14*4],15,0ab9423a7h
+      mov  dtc,eax
+      invoke  II,dtb,dtc,dtd,dta,dword ptr [edi+05*4],21,0fc93a039h
+      mov  dtb,eax
+      invoke  II,dta,dtb,dtc,dtd,dword ptr [edi+12*4],06,0655b59c3h
+      mov  dta,eax
+      invoke  II,dtd,dta,dtb,dtc,dword ptr [edi+03*4],10,08f0ccc92h
+      mov  dtd,eax
+      invoke  II,dtc,dtd,dta,dtb,dword ptr [edi+10*4],15,0ffeff47dh
+      mov  dtc,eax
+      invoke  II,dtb,dtc,dtd,dta,dword ptr [edi+01*4],21,085845dd1h
+      mov  dtb,eax
+      invoke  II,dta,dtb,dtc,dtd,dword ptr [edi+08*4],06,06fa87e4fh
+      mov  dta,eax
+      invoke  II,dtd,dta,dtb,dtc,dword ptr [edi+15*4],10,0fe2ce6e0h
+      mov  dtd,eax
+      invoke  II,dtc,dtd,dta,dtb,dword ptr [edi+06*4],15,0a3014314h
+      mov  dtc,eax
+      invoke  II,dtb,dtc,dtd,dta,dword ptr [edi+13*4],21,04e0811a1h
+      mov  dtb,eax
+      invoke  II,dta,dtb,dtc,dtd,dword ptr [edi+04*4],06,0f7537e82h
+      mov  dta,eax
+      invoke  II,dtd,dta,dtb,dtc,dword ptr [edi+11*4],10,0bd3af235h
+      mov  dtd,eax
+      invoke  II,dtc,dtd,dta,dtb,dword ptr [edi+02*4],15,02ad7d2bbh
+      mov  dtc,eax
+      invoke  II,dtb,dtc,dtd,dta,dword ptr [edi+09*4],21,0eb86d391h
+      mov  dtb,eax
+
+      mov  eax,dta
+      add  [esi].dtA,eax
+      mov  eax,dtb
+      add  [esi].dtB,eax
+      mov  eax,dtc
+      add  [esi].dtC,eax
+      mov  eax,dtd
+      add  [esi].dtD,eax
+
+      add  edi,64
+
+      sub  edx,64
+      jnz  hashloop
+
+
+
+      mov  ecx,4
+
+@@:      mov  eax,dword ptr [esi]
+      xchg  al,ah
+      rol  eax,16
+      xchg  al,ah
+      mov  dword ptr [esi],eax
+
+      add  esi,4
+
+      loop  @b
+
+      mov  esi,ptMD5Result
+
+      ret
+
+procMD5hash    endp
+```
+
+## 7. 文件处理逻辑
+
+```asm
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+_ProcFile  proc  pszFileName,pbfBuffer
+    local  @hFile,@hFileNew,@hFileMap,@lpMemory,@lpMemorywr,@dwFileSize
+    local  @szNewFile[MAX\_PATH]:byte
+    local  @szBuffer[512]:byte
+    LOCAL  @stMD5Result:MD5RESULT
+
+;************************************************************************
+; 打开文件
+;************************************************************************
+    invoke  CreateFile,pszFileName,GENERIC\_READ,FILE\_SHARE\_READ,0,\
+      OPEN\_EXISTING,FILE\_ATTRIBUTE\_NORMAL,0
+    .if  eax ==  INVALID\_HANDLE\_VALUE
+      ;invoke  MessageBox,hWinMain,addr szErrOpenFile,NULL,MB\_OK or MB\_ICONEXCLAMATION
+      ret
+    .endif
+    mov  @hFile,eax
+    invoke  GetFileSize,@hFile,NULL
+    mov  @dwFileSize,eax
+;************************************************************************
+; 建立内存映射文件
+;************************************************************************
+    invoke  CreateFileMapping,@hFile,NULL,PAGE\_READONLY,0,0,NULL
+    .if  ! eax
+      ;invoke  MessageBox,hWinMain,addr szErrOpenFile,NULL,MB\_OK or MB\_ICONEXCLAMATION
+      jmp  _Ret1
+    .endif
+    mov  @hFileMap,eax
+    invoke  MapViewOfFile,eax,FILE\_MAP\_READ,0,0,0
+    .if  ! eax
+      ;invoke  MessageBox,hWinMain,addr szErrOpenFile,NULL,MB\_OK or MB\_ICONEXCLAMATION
+      jmp  _Ret2
+    .endif
+    mov  @lpMemory,eax
+;CountMd5Hash
+    invoke  VirtualAlloc,0,@dwFileSize,1000h,40h
+    mov @lpMemorywr,eax
+    invoke MemCopy,@lpMemory,@lpMemorywr,@dwFileSize 
+    invoke  procMD5hash, @lpMemorywr, @dwFileSize, addr @stMD5Result
+    invoke  VirtualFree,@lpMemorywr,@dwFileSize,MEM\_RELEASE
+    lea  esi,@stMD5Result
+    assume  esi:ptr MD5RESULT
+    invoke  wsprintfA,pbfBuffer,addr szMD5Format,[esi].dtA,[esi].dtB,[esi].dtC,[esi].dtD
+
+_Ret3:
+    invoke  UnmapViewOfFile,@lpMemory
+_Ret2:
+    invoke  CloseHandle,@hFileMap
+_Ret1:
+    invoke  CloseHandle,@hFile
+    ret
+
+_ProcFile  endp
+```
+
+## 8. 对话框过程逻辑
+
+```asm
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+_ProcDlgMain  proc  uses ebx edi esi hWnd,wMsg,wParam,lParam
+    local  @stOpenFileName:OPENFILENAME
+
+    mov  eax,wMsg
+    .if  eax ==  WM\_CLOSE
+      invoke  EndDialog,hWnd,NULL
+;************************************************************************
+    .elseif  eax ==  WM\_INITDIALOG
+      push  hWnd
+      pop  hWinMain
+      invoke  LoadIcon,hInstance,ICO\_MAIN
+      invoke  SendMessage,hWnd,WM\_SETICON,ICON\_BIG,eax
+      invoke  SendDlgItemMessage,hWnd,IDC\_FILE,EM\_SETLIMITTEXT,MAX\_PATH,0
+;************************************************************************
+    .elseif  eax ==  WM\_COMMAND
+      mov  eax,wParam
+      .if  ax ==  IDC\_BROWSE
+;************************************************************************
+        invoke  RtlZeroMemory,addr @stOpenFileName,sizeof OPENFILENAME
+        mov  @stOpenFileName.lStructSize,SIZEOF @stOpenFileName
+        mov  @stOpenFileName.Flags,OFN\_FILEMUSTEXIST or OFN\_PATHMUSTEXIST
+        push  hWinMain
+        pop  @stOpenFileName.hwndOwner
+        mov  @stOpenFileName.lpstrFilter,offset szFileExt
+        mov  @stOpenFileName.lpstrFile,offset szFileName
+        mov  @stOpenFileName.nMaxFile,MAX\_PATH
+        invoke  GetOpenFileName,addr @stOpenFileName
+        .if  eax
+          invoke  SetDlgItemText,hWnd,IDC\_FILE,addr szFileName
+        .endif
+;************************************************************************
+      .elseif  ax ==  IDC\_FILE
+        invoke  GetDlgItemText,hWnd,IDC\_FILE,addr szFileName,MAX\_PATH
+        mov  ebx,eax
+        invoke  GetDlgItem,hWnd,IDOK
+        invoke  EnableWindow,eax,ebx
+;************************************************************************
+      .elseif  ax ==  IDOK
+        invoke  _ProcFile,addr szFileName,addr bfBuffer
+        invoke SetDlgItemText,hWnd,IDC\_FILE,addr bfBuffer
+      .endif
+;************************************************************************
+    .else
+      mov  eax,FALSE
+      ret
+    .endif
+    mov  eax,TRUE
+    ret
+
+_ProcDlgMain  endp
+```
+
+## 9. 程序入口
+
+```asm
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+start:
+    invoke  GetModuleHandle,NULL
+    mov  hInstance,eax
+    invoke  DialogBoxParam,hInstance,DLG\_MAIN,NULL,offset _ProcDlgMain,NULL
+    invoke  ExitProcess,NULL
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    end  start
+```
+
+
+
 上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || FileMD5.rar  
- |
+
+| `![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg)` | | `FileMD5.rar` |
+|---|---|---|

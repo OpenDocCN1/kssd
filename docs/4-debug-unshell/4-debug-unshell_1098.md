@@ -1,308 +1,389 @@
 
-
 # Themida/WinLicense V1.8.2.0 脱壳的祥细过程(不明白细节者适用)
 
 > 原文：[`www.pediy.com/kssd/pediy09/pediy09-528.htm`](https://www.pediy.com/kssd/pediy09/pediy09-528.htm)
 
-> 【文章标题】: Themida/WinLicense V1.8.2.0 + 脱壳的祥细过程(不明白细节者适用)  
-> 【文章作者】: redrose  
-> 【软件名称】: 未知   
-> 【软件大小】: 未知   
-> 【下载地址】: 自己搜索下载  
-> 【加壳方式】: Themida/WinLicense V1.8.2.0 +  -> Oreans Technologies   \* Sign.By.fly \*  
-> 【编写语言】: Microsoft Visual C++ 7.0  
-> 【使用工具】: OllyICE v1.10 汉化第二版，LordPE 豪华版，SuperImportREC,peid0.94  
-> 【操作平台】: WinXP\_SP2  
-> 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!感谢 wynney 兄的共享及 okdodo 兄的脚本！！  
+> 【文章标题】: `Themida/WinLicense` V1.8.2.0 + 脱壳的祥细过程(不明白细节者适用)  
+> 【文章作者】: `redrose`  
+> 【软件名称】: 未知  
+> 【软件大小】: 未知  
+> 【下载地址】: 自己搜索下载  
+> 【加壳方式】: `Themida/WinLicense` V1.8.2.0 + -> `Oreans Technologies` \* `Sign.By.fly` \*  
+> 【编写语言】: Microsoft Visual C++ 7.0  
+> 【使用工具】: `OllyICE` v1.10 汉化第二版，`LordPE` 豪华版，`SuperImportREC`, `peid`0.94  
+> 【操作平台】: `WinXP`_`SP2`  
+> 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!感谢 `wynney` 兄的共享及 `okdodo` 兄的脚本！！  
 > \--------------------------------------------------------------------------------  
 > 【详细过程】  
->   第一步：用 peid 查壳可得知加壳方法为：Themida/WinLicense V1.8.2.0 +  -> Oreans Technologies   \* Sign.By.fly \*  
->           如果查不出是什么壳，请更新 peid 程序里 userdb.txt 的内容，看雪论坛有下载。  
->   第二步：OllyICE v1.10 设置－－忽略在 KERNEL32 中的内存访问异常;隐藏调试工具;  
->   第三步：加载被调试程序停在程序入口：  
->   00730014 >  B8 00000000     mov     eax, 0  
->   00730019    60              pushad  
->   0073001A    0BC0            or      eax, eax  
->   0073001C    74 68           je      short 00730086  
->   0073001E    E8 00000000     call    00730023  
->   00730023    58              pop     eax  
->   00730024    05 53000000     add     eax, 53  
->   00730029    8038 E9         cmp     byte ptr \[eax\], 0E9  
->   0073002C    75 13           jnz     short 00730041  
->   0073002E    61              popad  
->   0073002F    EB 45           jmp     short 00730076  
->   00730031    DB2D 37007300   fld     tbyte ptr \[730037\]  
->   00730037    FFFF            ???               ; 未知命令 ，如果隐藏 OD 在调试过程中还是退出  
-> 请注意 OD 的浮点陷井（呵呵）  
->   00730039    FFFF            ???                                      ; 未知命令  
->   0073003B    FFFF            ???                                      ; 未知命令  
->   0073003D    FFFF            ???                                      ; 未知命令  
->   0073003F    3D 40E80000     cmp     eax, 0E840  
->   00730044    0000            add     byte ptr \[eax\], al  
->   00730046    58              pop     eax  
->     
->   接着运行 okdodo 兄的脚本，脚本结束后到  
->   
-> 脚本执行完毕!请注意 OEP 是否被偷代码!  
->   
->   0061C920    68 DC686100     push    006168DC                伪 OEP,① call 0061c920 看堆栈   
->   0061C925    64:A1 00000000  mov     eax, dword ptr fs:\[0\]  
->   0061C92B    50              push    eax  
->   0061C92C    8B4424 10       mov     eax, dword ptr \[esp+10\]  
->   0061C930    896C24 10       mov     dword ptr \[esp+10\], ebp  
->   0061C934    8D6C24 10       lea     ebp, dword ptr \[esp+10\]  
->   0061C938    2BE0            sub     esp, eax  
->   0061C93A    53              push    ebx  
->   0061C93B    56              push    esi  
->   0061C93C    57              push    edi  
->   0061C93D    8B45 F8         mov     eax, dword ptr \[ebp-8\]  
->   0061C940    8965 E8         mov     dword ptr \[ebp-18\], esp  
->   0061C943    50              push    eax  
->   0061C944    8B45 FC         mov     eax, dword ptr \[ebp-4\]  
->   0061C947    C745 FC FFFFFFF>mov     dword ptr \[ebp-4\], -1  
->   0061C94E    8945 F8         mov     dword ptr \[ebp-8\], eax  
->   0061C951    8D45 F0         lea     eax, dword ptr \[ebp-10\]  
->   0061C954    64:A3 00000000  mov     dword ptr fs:\[0\], eax  
->   0061C95A    C3              retn    ; 直接 F4，F8 到 VM 中  
->   堆栈如下：  
->   0012FF8C   0097480D  Sungame.0097480D      
->   0012FF90   006C15E8  Sungame.006C15E8    ② push 006C15E8   
->   0012FF94   00000060                      ③ push 60  ，在这里  
->     
->   直接 F4，F8 到 VM 中到  
->   0097480D    68 CD05892B     push    2B8905CD    ; ALt+M 在代码段 00401000 F2 下断后 shift+F9  
->   00974812  ^ E9 63B1FFFF     jmp     0096F97A  
->   00974817    0AF3            or      dh, bl  
->   00974819    F61429          not     byte ptr \[ecx+ebp\]  
->   0097481C    C6              ???                                      ; 未知命令  
->   0097481D    CD C7           int     0C7  
->   0097481F    BA 68476083     mov     edx, 83604768  
->   00974824    53              push    ebx  
->   00974825  ^ E9 50B1FFFF     jmp     0096F97A  
->   到这里后按下 ALt+M 在代码段 00401000 F2 下断 后 shift+F9 运行中断在  
->   006169E0    3D 00100000     cmp     eax, 1000               ; ④  Call 006169E0  
->   006169E5    73 0E           jnb     short 006169F5  
->   006169E7    F7D8            neg     eax  
->   006169E9    03C4            add     eax, esp  
->   006169EB    83C0 04         add     eax, 4  
->   006169EE    8500            test    dword ptr \[eax\], eax  
->   006169F0    94              xchg    eax, esp  
->   006169F1    8B00            mov     eax, dword ptr \[eax\]  
->   006169F3    50              push    eax  
->   006169F4    C3              retn                                     ; 直接 F4，F8 到 VM 中  
->   直接 F4，F8 到 VM 中到  
->   00974820    68 47608353     push    53836047                           
->   00974825  ^ E9 50B1FFFF     jmp     0096F97A  
->   0097482A    399E 8C165657   cmp     dword ptr \[esi+5756168C\], ebx  
->   00974830    09A2 9385E6EC   or      dword ptr \[edx+ECE68593\], esp  
->   00974836    15 688ED6FE     adc     eax, FED68E68  
->   0097483B    26:E9 39B1FFFF  jmp     0096F97A  
->   Alt+M 在代码段 00401000 F2 下断后 shift+F9 运行后中断在  
->   00EA098D    FF33            push    dword ptr \[ebx\]  ;kernel32.GetVersionExA,ebx=0069D088  
->   00EA098F    E9 A5830000     jmp     00EA8D39  
->   00EA0994    01FB            add     ebx, edi  
->   00EA0996    332B            xor     ebp, dword ptr \[ebx\]  
->   00EA0998    E9 ED520000     jmp     00EA5C8A  
->   00EA099D    B8 01000000     mov     eax, 1  
->   00EA09A2    21C1            and     ecx, eax  
->   00EA09A4    E9 1BD20400     jmp     00EEDBC4  
->   00EA09A9    81FA 000000F0   cmp     edx, F0000000  
->     
->   注意 EDX 里面的值(0069D088)得就是 GetVersionExA 所在的地址了   
->     
->   在寄存器窗口中在 0069D088 这里跟随到数据窗口，后到  
->     
->   0069D088  7C812ADE  kernel32.GetVersionExA  
->   0069D08C  7C809BF8  kernel32.MultiByteToWideChar  
->   0069D090  7C80A0D4  kernel32.WideCharToMultiByte  
->   ………………  
->   往上看后往下看可知道  
->   0069CFFC  00000000  
->   0069D000  77DC1558  ADVAPI32.CryptEncrypt         IAT 开始地址  
->   0069D004  77DA7883  ADVAPI32.RegQueryValueExA  
->   0069D008  77DCC41B  ADVAPI32.RegOpenKeyA  
->   …………………………………………  
->   0069D490  1000F870  wzSound.wzsnd\_update\_3d\_source  
->   0069D494  1000F9A0  wzSound.wzsnd\_stop  
->   0069D498  00000000  
->   0069D49C  00000000                   IAT 结束地址，好了这里不明白自动找的和手动找的怎么不一样。  
->     
->   Rav=0069CFFC-0040000=0029CFFC,Size=0069D49C-0069CFFC=4A0 这里在修复时可用到  
->   
->   第四步：找回 Stolen Code(这里和 wynney 兄的一样了，我只写出重点部分)  
->   Ctrl+B 在数据窗口整个块中搜索 33 C0 39 B1 E8 00 00 00 0F 95 C0 89 45 E4 6A 01  
-> 汇编代码就是下面一段：  
->   0061874C    33C0            xor     eax, eax  
->   0061874E    39B1 E8000000   cmp     dword ptr \[ecx+E8\], esi  
->   00618754    0F95C0          setne   al  
->   00618757    8945 E4         mov     dword ptr \[ebp-1C\], eax  
->   0061875A    6A 01           push    1  
-> 找到所在地址为 0061874C 后，在反汇编中来到这个地址  
->   0061874C    33C0            xor     eax, eax  
->   0061874E    39B1 E8000000   cmp     dword ptr \[ecx+E8\], esi  
->   00618754    0F95C0          setne   al  
->   00618757    8945 E4         mov     dword ptr \[ebp-1C\], eax  
->   0061875A    6A 01           push    1  
->   往上仔细看看和没加壳的程序对比一下，确定 006186A4 就是真正的 OEP  
->   如果看不出来请仔细看没加壳的 VC++7.0 的 OEP 入口代码  
->   
->   00618693    ED              in      eax, dx                          ; 真 OEP;=③  
->   00618694    C7              ???                                      ; 未知命令  
->   00618695    1A05 165DAC93   sbb     al, byte ptr \[93AC5D16\]          ; (1)=②  
->   0061869B    EF              out     dx, eax  
->   0061869C    93              xchg    eax, ebx  
->   0061869D    A0 1DED9822     mov     al, byte ptr \[2298ED1D\]  
->   006186A2    7D 0C           jge     short 006186B0  
->   006186A4    ED              in      eax, dx  
->   006186A5    B1 19           mov     cl, 19  
->   006186A7    32CE            xor     cl, dh  
->   006186A9    85F3            test    ebx, esi  
->   006186AB    FB              sti  
->   006186AC    8CFD            mov     bp, seg?                         ; 未定义的段寄存器  
->   006186AE    98              cwde  
->   006186AF    52              push    edx  
->   006186B0    8B91 BB7D6B9E   mov     edx, dword ptr \[ecx+9E6B7DBB\]  
->   006186B6    4E              dec     esi  
->   006186B7    2A30            sub     dh, byte ptr \[eax\]  
->   006186B9    9E              sahf  
->   006186BA    65:B7 2B        mov     bh, 2B  
->   006186BD    6389 507206CA   arpl    word ptr \[ecx+CA067250\], cx  
->   006186C3    7A 95           jpe     short 0061865A  
->   006186C5    A3 08927200     mov     dword ptr \[729208\], eax          ; (5)=(7)+08  
->   006186CA    8B56 08         mov     edx, dword ptr \[esi+8\]  
->   006186CD    8915 0C927200   mov     dword ptr \[72920C\], edx          ; (6)=(7)+0C  
->   006186D3    8B76 0C         mov     esi, dword ptr \[esi+C\]  
->   006186D6    81E6 FF7F0000   and     esi, 7FFF  
->   006186DC    8935 00927200   mov     dword ptr \[729200\], esi          ; (7)  
->   006186E2    83F9 02         cmp     ecx, 2  
->   006186E5    74 0C           je      short 006186F3  
->   006186E7    81CE 00800000   or      esi, 8000  
->   006186ED    8935 00927200   mov     dword ptr \[729200\], esi  
->   006186F3    C1E0 08         shl     eax, 8  
->   006186F6    03C2            add     eax, edx  
->   006186F8    A3 04927200     mov     dword ptr \[729204\], eax  
->   006186FD    33F6            xor     esi, esi  
->   006186FF    56              push    esi  
->   00618700    8B3D 10D16900   mov     edi, dword ptr \[69D110\]          ; kernel32.GetModuleHandleA  
->   00618706    FFD7            call    edi  
->   00618708    66:8138 4D5A    cmp     word ptr \[eax\], 5A4D  
->   0061870D    75 1F           jnz     short 0061872E  
->   0061870F    8B48 3C         mov     ecx, dword ptr \[eax+3C\]  
->   00618712    03C8            add     ecx, eax  
->   00618714    8139 50450000   cmp     dword ptr \[ecx\], 4550  
->   0061871A    75 12           jnz     short 0061872E  
->   0061871C    0FB741 18       movzx   eax, word ptr \[ecx+18\]  
->   00618720    3D 0B010000     cmp     eax, 10B  
->   00618725    74 1F           je      short 00618746  
->   00618727    3D 0B020000     cmp     eax, 20B  
->   0061872C    74 05           je      short 00618733  
->   0061872E    8975 E4         mov     dword ptr \[ebp-1C\], esi  
->   00618731    EB 27           jmp     short 0061875A  
->   00618733    83B9 84000000 0>cmp     dword ptr \[ecx+84\], 0E  
->   0061873A  ^ 76 F2           jbe     short 0061872E  
->   0061873C    33C0            xor     eax, eax  
->   0061873E    39B1 F8000000   cmp     dword ptr \[ecx+F8\], esi  
->   00618744    EB 0E           jmp     short 00618754  
->   00618746    8379 74 0E      cmp     dword ptr \[ecx+74\], 0E  
->   0061874A  ^ 76 E2           jbe     short 0061872E  
->   0061874C    33C0            xor     eax, eax                      我们搜索的位置  
->   0061874E    39B1 E8000000   cmp     dword ptr \[ecx+E8\], esi  
->   00618754    0F95C0          setne   al  
->   00618757    8945 E4         mov     dword ptr \[ebp-1C\], eax  
->   0061875A    6A 01           push    1  
->     
->   好了，现在根据 wynney 兄所提到的各地址之间的关系  
->      引用：  
->     ｛ 以 ⑺为基点有以下关系  
->       OEP 位置=③  
->       ⑴=②，⑵=①，⑶=④  
->       ⑷=⑺-04，⑸=⑺+08，⑹=⑺+0C  
->         
->       那么其他的都一样的啦  
->       对 VC++ 7.0 而言，以上关系是永远存在的  
->      ｝  
-> 找到我们标记的③的地方，改汇编后接着改⑴＝②的地方，接着⑵=①的地方，下面两段代码就用原来没加壳前的代码，接着是⑶=④的地方，以下四段代码照原来没加壳的代码改写，接着  
-> call    dword ptr \[69D088\] 这里\[69D088\]是从上面来的  
-> 接着有一段代码用原来没加壳的就可以，代码改好了现在要注意的是⑷=⑺-04，729200-04=7291FC 得来;  
-> ⑸=⑺+08，⑹=⑺+0C，这两个的能看出来了，我就不写了  
->   
->   还原 Stolen Code 后代码如下  
->   /////////////////////////////////////////////////////////////////////////////  
->   00618693    6A 60           push    60                               ; 真 OEP;=③  
->   00618695    68 E8156C00     push    006C15E8                         ; (1)=②  
->   0061869A    E8 81420000     call    0061C920                         ; (2)=①  
->   0061869F    BF 94000000     mov     edi, 94  
->   006186A4    8BC7            mov     eax, edi  
->   006186A6    E8 35E3FFFF     call    006169E0                         ; (3)=④  
->   006186AB    8965 E8         mov     dword ptr \[ebp-18\], esp  
->   006186AE    8BF4            mov     esi, esp  
->   006186B0    893E            mov     dword ptr \[esi\], edi  
->   006186B2    56              push    esi  
->   006186B3    FF15 88D06900   call    dword ptr \[69D088\]     ; kernel32.GetVersionExA  
->   006186B9    8B4E 10         mov     ecx, dword ptr \[esi+10\]  
->   006186BC    890D FC917200   mov     dword ptr \[7291FC\], ecx          ; (4)=(7)-04  
->   006186C2    8B46 04         mov     eax, dword ptr \[esi+4\]  
->   机器码如下：在这里也可以用机器码改写，我刚才一步步是为了给大家能看懂  
->   6A 60 68 E8 15 6C 00 E8 81 42 00 00 BF 94 00 00 00 8B C7 E8 35 E3 FF FF 89 65 E8 8B F4 89    3E 56 FF 15 88 D0 69 00 8B 4E 10 89 0D FC 91 72 00 8B 46 04  
->   ///////////////////////////////////////////////////////////  
->   006186C5    A3 08927200     mov     dword ptr \[729208\], eax          ; (5)=(7)+08  
->   006186CA    8B56 08         mov     edx, dword ptr \[esi+8\]  
->   006186CD    8915 0C927200   mov     dword ptr \[72920C\], edx          ; (6)=(7)+0C  
->   006186D3    8B76 0C         mov     esi, dword ptr \[esi+C\]  
->   006186D6    81E6 FF7F0000   and     esi, 7FFF  
->   006186DC    8935 00927200   mov     dword ptr \[729200\], esi          ; (7)  
->   006186E2    83F9 02         cmp     ecx, 2  
->   006186E5    74 0C           je      short 006186F3  
->   006186E7    81CE 00800000   or      esi, 8000  
->   006186ED    8935 00927200   mov     dword ptr \[729200\], esi  
->   006186F3    C1E0 08         shl     eax, 8  
->   006186F6    03C2            add     eax, edx  
->   006186F8    A3 04927200     mov     dword ptr \[729204\], eax  
->   006186FD    33F6            xor     esi, esi  
->   006186FF    56              push    esi  
->   00618700    8B3D 10D16900   mov     edi, dword ptr \[69D110\]          ; kernel32.GetModuleHandleA  
->   00618706    FFD7            call    edi  
->   00618708    66:8138 4D5A    cmp     word ptr \[eax\], 5A4D  
->   0061870D    75 1F           jnz     short 0061872E  
->   0061870F    8B48 3C         mov     ecx, dword ptr \[eax+3C\]  
->   00618712    03C8            add     ecx, eax  
->   00618714    8139 50450000   cmp     dword ptr \[ecx\], 4550  
->   0061871A    75 12           jnz     short 0061872E  
->   0061871C    0FB741 18       movzx   eax, word ptr \[ecx+18\]  
->   00618720    3D 0B010000     cmp     eax, 10B  
->   00618725    74 1F           je      short 00618746  
->   00618727    3D 0B020000     cmp     eax, 20B  
->   0061872C    74 05           je      short 00618733  
->   0061872E    8975 E4         mov     dword ptr \[ebp-1C\], esi  
->   00618731    EB 27           jmp     short 0061875A  
->   00618733    83B9 84000000 0>cmp     dword ptr \[ecx+84\], 0E  
->   0061873A  ^ 76 F2           jbe     short 0061872E  
->   0061873C    33C0            xor     eax, eax  
->   0061873E    39B1 F8000000   cmp     dword ptr \[ecx+F8\], esi  
->   00618744    EB 0E           jmp     short 00618754  
->   00618746    8379 74 0E      cmp     dword ptr \[ecx+74\], 0E  
->   0061874A  ^ 76 E2           jbe     short 0061872E  
->   0061874C    33C0            xor     eax, eax  
->   0061874E    39B1 E8000000   cmp     dword ptr \[ecx+E8\], esi  
->   00618754    0F95C0          setne   al  
->   00618757    8945 E4         mov     dword ptr \[ebp-1C\], eax  
->   0061875A    6A 01           push    1  
->   
->   
->   上面代码还原完成。  
->   第五步：脱壳和修复。  
->   在 00618693，也就是 OEP 的地方，设置为新 EIP 后，用 LordPE 工具 Dump 得到 1.exe（注意这里别连网线，网线接上就 dump 不出来的，原因我还没找，这次没接网线又不成功，晕了用 OD 自带的吧，好了有了）。  
-> 打开 SuperImportREC,填入以下（这里上面已经说明怎么得到的了）  
->   OEP=00618693-00400000=00218693  
->    Rav=0069CFFC-00400000=0029CFFC  
->   Size=0069D498-0069D49C=4A0          
-> 接着获取输入表，没有无效函数，修复 1.exe 完成得到 1\_.exe,现在我们看看有没有脱掉并且能不能运行，这里看到了不能运行了，方法就是上面的，请大家仔细点，别出错，我的可能是在那步出错了，我这是录第二次了，第一次录的已经可以运行，但没录下来，这次又不能运行了，晕了，小弟不才呀！！！好了可以运行了，脱壳完成，另外有朋友说壳脱了，但是在登陆后选角色时，和服务器断开连接了，对这点我再研究吧，谢谢各位了。  
->     
-> 注：附件中有录像大家看看吧，上传不了，权限不够，如果那位朋友看出我错在哪里，请指出，谢谢。  
-> [`www.love400.net/download/gametuoke.rar`](http://www.love400.net/download/gametuoke.rar)  
-> \--------------------------------------------------------------------------------  
-> 【版权声明】: 本文原创于看雪技术论坛及人世间论坛, 转载请注明作者并保持文章的完整, 谢谢!  
->   
->                                                        2007 年 07 月 26 日 18:51:21 
 
- 4dd466d0e1e0cc123afbe504da2462ca
+> 第一步：用 `peid` 查壳可得知加壳方法为：`Themida/WinLicense` V1.8.2.0 + -> `Oreans Technologies` \* `Sign.By.fly` \*  
+> 如果查不出是什么壳，请更新 `peid` 程序里 `userdb.txt` 的内容，看雪论坛有下载。  
+
+> 第二步：`OllyICE` v1.10 设置－－忽略在 `KERNEL32` 中的内存访问异常;隐藏调试工具;  
+
+> 第三步：加载被调试程序停在程序入口：  
+
+```
+00730014 > B8 00000000 mov eax, 0
+00730019 60 pushad
+0073001A 0BC0 or eax, eax
+0073001C 74 68 je short 00730086
+0073001E E8 00000000 call 00730023
+00730023 58 pop eax
+00730024 05 53000000 add eax, 53
+00730029 8038 E9 cmp byte ptr [eax], 0E9
+0073002C 75 13 jnz short 00730041
+0073002E 61 popad
+0073002F EB 45 jmp short 00730076
+00730031 DB2D 37007300 fld tbyte ptr [730037]
+00730037 FFFF ??? ; 未知命令 ，如果隐藏 OD 在调试过程中还是退出
+```
+
+> 请注意 `OD` 的浮点陷井（呵呵）
+
+```
+00730039 FFFF ??? ; 未知命令
+0073003B FFFF ??? ; 未知命令
+0073003D FFFF ??? ; 未知命令
+0073003F 3D 40E80000 cmp eax, 0E840
+00730044 0000 add byte ptr [eax], al
+00730046 58 pop eax
+```
+
+> 接着运行 `okdodo` 兄的脚本，脚本结束后到
+
+> 脚本执行完毕!请注意 `OEP` 是否被偷代码!
+
+```
+0061C920 68 DC686100 push 006168DC ; 伪 OEP,① call 0061c920 看堆栈
+0061C925 64:A1 00000000 mov eax, dword ptr fs:[0]
+0061C92B 50 push eax
+0061C92C 8B4424 10 mov eax, dword ptr [esp+10]
+0061C930 896C24 10 mov dword ptr [esp+10], ebp
+0061C934 8D6C24 10 lea ebp, dword ptr [esp+10]
+0061C938 2BE0 sub esp, eax
+0061C93A 53 push ebx
+0061C93B 56 push esi
+0061C93C 57 push edi
+0061C93D 8B45 F8 mov eax, dword ptr [ebp-8]
+0061C940 8965 E8 mov dword ptr [ebp-18], esp
+0061C943 50 push eax
+0061C944 8B45 FC mov eax, dword ptr [ebp-4]
+0061C947 C745 FC FFFFFFF>mov dword ptr [ebp-4], -1
+0061C94E 8945 F8 mov dword ptr [ebp-8], eax
+0061C951 8D45 F0 lea eax, dword ptr [ebp-10]
+0061C954 64:A3 00000000 mov dword ptr fs:[0], eax
+0061C95A C3 retn ; 直接 F4，F8 到 VM 中
+```
+
+> 堆栈如下：
+
+```
+0012FF8C 0097480D Sungame.0097480D
+0012FF90 006C15E8 Sungame.006C15E8 ② push 006C15E8
+0012FF94 00000060 ③ push 60 ，在这里
+```
+
+> 直接 F4，F8 到 VM 中到
+
+```
+0097480D 68 CD05892B push 2B8905CD ; ALt+M 在代码段 00401000 F2 下断后 shift+F9
+00974812 ^ E9 63B1FFFF jmp 0096F97A
+00974817 0AF3 or dh, bl
+00974819 F61429 not byte ptr [ecx+ebp]
+0097481C C6 ??? ; 未知命令
+0097481D CD C7 int 0C7
+0097481F BA 68476083 mov edx, 83604768
+00974824 53 push ebx
+00974825 ^ E9 50B1FFFF jmp 0096F97A
+```
+
+> 到这里后按下 ALt+M 在代码段 `00401000` F2 下断 后 shift+F9 运行中断在
+
+```
+006169E0 3D 00100000 cmp eax, 1000 ; ④ Call 006169E0
+006169E5 73 0E jnb short 006169F5
+006169E7 F7D8 neg eax
+006169E9 03C4 add eax, esp
+006169EB 83C0 04 add eax, 4
+006169EE 8500 test dword ptr [eax], eax
+006169F0 94 xchg eax, esp
+006169F1 8B00 mov eax, dword ptr [eax]
+006169F3 50 push eax
+006169F4 C3 retn ; 直接 F4，F8 到 VM 中
+```
+
+> 直接 F4，F8 到 VM 中到
+
+```
+00974820 68 47608353 push 53836047
+00974825 ^ E9 50B1FFFF jmp 0096F97A
+0097482A 399E 8C165657 cmp dword ptr [esi+5756168C], ebx
+00974830 09A2 9385E6EC or dword ptr [edx+ECE68593], esp
+00974836 15 688ED6FE adc eax, FED68E68
+0097483B 26:E9 39B1FFFF jmp 0096F97A
+```
+
+> Alt+M 在代码段 `00401000` F2 下断后 shift+F9 运行后中断在
+
+```
+00EA098D FF33 push dword ptr [ebx] ;kernel32.GetVersionExA,ebx=0069D088
+00EA098F E9 A5830000 jmp 00EA8D39
+00EA0994 01FB add ebx, edi
+00EA0996 332B xor ebp, dword ptr [ebx]
+00EA0998 E9 ED520000 jmp 00EA5C8A
+00EA099D B8 01000000 mov eax, 1
+00EA09A2 21C1 and ecx, eax
+00EA09A4 E9 1BD20400 jmp 00EEDBC4
+00EA09A9 81FA 000000F0 cmp edx, F0000000
+```
+
+> 注意 `EDX` 里面的值(`0069D088`)得就是 `GetVersionExA` 所在的地址了
+
+> 在寄存器窗口中在 `0069D088` 这里跟随到数据窗口，后到
+
+```
+0069D088 7C812ADE kernel32.GetVersionExA
+0069D08C 7C809BF8 kernel32.MultiByteToWideChar
+0069D090 7C80A0D4 kernel32.WideCharToMultiByte
+………………
+```
+
+> 往上看后往下看可知道
+
+```
+0069CFFC 00000000
+0069D000 77DC1558 ADVAPI32.CryptEncrypt IAT 开始地址
+0069D004 77DA7883 ADVAPI32.RegQueryValueExA
+0069D008 77DCC41B ADVAPI32.RegOpenKeyA
+…………………………………………
+0069D490 1000F870 wzSound.wzsnd_update_3d_source
+0069D494 1000F9A0 wzSound.wzsnd_stop
+0069D498 00000000
+0069D49C 00000000 IAT 结束地址，好了这里不明白自动找的和手动找的怎么不一样。
+```
+
+> `Rav`=`0069CFFC`-`0040000`=`0029CFFC`, `Size`=`0069D49C`-`0069CFFC`=`4A0` 这里在修复时可用到
+
+> 第四步：找回 `Stolen Code`(这里和 `wynney` 兄的一样了，我只写出重点部分)
+
+> Ctrl+B 在数据窗口整个块中搜索 `33 C0 39 B1 E8 00 00 00 0F 95 C0 89 45 E4 6A 01`  
+> 汇编代码就是下面一段：
+
+```
+0061874C 33C0 xor eax, eax
+0061874E 39B1 E8000000 cmp dword ptr [ecx+E8], esi
+00618754 0F95C0 setne al
+00618757 8945 E4 mov dword ptr [ebp-1C], eax
+0061875A 6A 01 push 1
+```
+
+> 找到所在地址为 `0061874C` 后，在反汇编中来到这个地址
+
+```
+0061874C 33C0 xor eax, eax
+0061874E 39B1 E8000000 cmp dword ptr [ecx+E8], esi
+00618754 0F95C0 setne al
+00618757 8945 E4 mov dword ptr [ebp-1C], eax
+0061875A 6A 01 push 1
+```
+
+> 往上仔细看看和没加壳的程序对比一下，确定 `006186A4` 就是真正的 `OEP`
+
+> 如果看不出来请仔细看没加壳的 `VC++7.0` 的 `OEP` 入口代码
+
+```
+00618693 ED in eax, dx ; 真 OEP;=③
+00618694 C7 ??? ; 未知命令
+00618695 1A05 165DAC93 sbb al, byte ptr [93AC5D16] ; (1)=②
+0061869B EF out dx, eax
+0061869C 93 xchg eax, ebx
+0061869D A0 1DED9822 mov al, byte ptr [2298ED1D]
+006186A2 7D 0C jge short 006186B0
+006186A4 ED in eax, dx
+```
+
+
+
+```
+006186A5    B1 19             mov     cl, 19
+006186A7    32CE            xor     cl, dh
+006186A9    85F3            test    ebx, esi
+006186AB    FB              sti
+006186AC    8CFD            mov     bp, seg?                 ; 未定义的段寄存器
+006186AE    98              cwde
+006186AF    52              push    edx
+006186B0    8B91 BB7D6B9E   mov     edx, dword ptr [ecx+9E6B7DBB]
+006186B6    4E              dec     esi
+006186B7    2A30            sub     dh, byte ptr [eax]
+006186B9    9E              sahf
+006186BA    65:B7 2B        mov     bh, 2B
+006186BD    6389 507206CA   arpl    word ptr [ecx+CA067250], cx
+006186C3    7A 95           jpe     short 0061865A
+006186C5    A3 08927200     mov     dword ptr [729208], eax    ; (5)=(7)+08
+006186CA    8B56 08         mov     edx, dword ptr [esi+8]
+006186CD    8915 0C927200   mov     dword ptr [72920C], edx    ; (6)=(7)+0C
+006186D3    8B76 0C         mov     esi, dword ptr [esi+C]
+006186D6    81E6 FF7F0000   and     esi, 7FFF
+006186DC    8935 00927200   mov     dword ptr [729200], esi    ; (7)
+006186E2    83F9 02         cmp     ecx, 2
+006186E5    74 0C           je      short 006186F3
+006186E7    81CE 00800000   or      esi, 8000
+006186ED    8935 00927200   mov     dword ptr [729200], esi
+006186F3    C1E0 08         shl     eax, 8
+006186F6    03C2            add     eax, edx
+006186F8    A3 04927200     mov     dword ptr [729204], eax
+006186FD    33F6            xor     esi, esi
+006186FF    56              push    esi
+00618700    8B3D 10D16900   mov     edi, dword ptr [69D110]    ; kernel32.GetModuleHandleA
+00618706    FFD7            call    edi
+00618708    66:8138 4D5A    cmp     word ptr [eax], 5A4D
+0061870D    75 1F           jnz     short 0061872E
+0061870F    8B48 3C         mov     ecx, dword ptr [eax+3C]
+00618712    03C8            add     ecx, eax
+00618714    8139 50450000   cmp     dword ptr [ecx], 4550
+0061871A    75 12           jnz     short 0061872E
+0061871C    0FB741 18       movzx   eax, word ptr [ecx+18]
+00618720    3D 0B010000     cmp     eax, 10B
+00618725    74 1F           je      short 00618746
+00618727    3D 0B020000     cmp     eax, 20B
+0061872C    74 05           je      short 00618733
+0061872E    8975 E4         mov     dword ptr [ebp-1C], esi
+00618731    EB 27           jmp     short 0061875A
+00618733    83B9 84000000   cmp     dword ptr [ecx+84], 0E
+0061873A    76 F2           jbe     short 0061872E
+0061873C    33C0            xor     eax, eax
+0061873E    39B1 F8000000   cmp     dword ptr [ecx+F8], esi
+00618744    EB 0E           jmp     short 00618754
+00618746    8379 74 0E      cmp     dword ptr [ecx+74], 0E
+0061874A    76 E2           jbe     short 0061872E
+0061874C    33C0            xor     eax, eax                 我们搜索的位置
+0061874E    39B1 E8000000   cmp     dword ptr [ecx+E8], esi
+00618754    0F95C0          setne   al
+00618757    8945 E4         mov     dword ptr [ebp-1C], eax
+0061875A    6A 01           push    1
+```
+
+好了，现在根据 `wynney` 兄所提到的各地址之间的关系
+
+引用：
+
+- 以 `⑺` 为基点有以下关系
+  - `OEP` 位置 = `③`
+  - `⑴` = `②`，`⑵` = `①`，`⑶` = `④`
+  - `⑷` = `⑺` - `04`，`⑸` = `⑺` + `08`，`⑹` = `⑺` + `0C`
+- 那么其他的都一样的啦
+- 对 `VC++ 7.0` 而言，以上关系是永远存在的
+
+找到我们标记的 `③` 的地方，改汇编后接着改 `⑴`＝`②` 的地方，接着 `⑵`=`①` 的地方，下面两段代码就用原来没加壳前的代码，接着是 `⑶`=`④` 的地方，以下四段代码照原来没加壳的代码改写，接着
+
+`call dword ptr [69D088]` 这里 `[69D088]` 是从上面来的
+
+接着有一段代码用原来没加壳的就可以，代码改好了现在要注意的是 `⑷`=`⑺`-`04`，`729200`-`04`=`7291FC` 得来;
+
+`⑸`=`⑺`+`08`，`⑹`=`⑺`+`0C`，这两个的能看出来了，我就不写了
+
+还原 `Stolen Code` 后代码如下
+
+```
+/////////////////////////////////////////////////////////////////////////////
+00618693    6A 60             push    60                       ; 真 OEP;=③
+00618695    68 E8156C00       push    006C15E8                   ; (1)=②
+0061869A    E8 81420000       call    0061C920                   ; (2)=①
+0061869F    BF 94000000       mov     edi, 94
+006186A4    8BC7              mov     eax, edi
+006186A6    E8 35E3FFFF       call    006169E0                   ; (3)=④
+006186AB    8965 E8           mov     dword ptr [ebp-18], esp
+006186AE    8BF4              mov     esi, esp
+006186B0    893E              mov     dword ptr [esi], edi
+006186B2    56                push    esi
+006186B3    FF15 88D06900     call    dword ptr [69D088]     ; kernel32.GetVersionExA
+006186B9    8B4E 10           mov     ecx, dword ptr [esi+10]
+006186BC    890D FC917200     mov     dword ptr [7291FC], ecx   ; (4)=(7)-04
+006186C2    8B46 04           mov     eax, dword ptr [esi+4]
+```
+
+机器码如下：在这里也可以用机器码改写，我刚才一步步是为了给大家能看懂
+
+```
+6A 60 68 E8 15 6C 00 E8 81 42 00 00 BF 94 00 00 00 8B C7 E8 35 E3 FF FF 89 65 E8 8B F4 89
+3E 56 FF 15 88 D0 69 00 8B 4E 10 89 0D FC 91 72 00 8B 46 04
+```
+
+```
+///////////////////////////////////////////////////////////
+006186C5    A3 08927200       mov     dword ptr [729208], eax    ; (5)=(7)+08
+006186CA    8B56 08           mov     edx, dword ptr [esi+8]
+006186CD    8915 0C927200     mov     dword ptr [72920C], edx    ; (6)=(7)+0C
+006186D3    8B76 0C           mov     esi, dword ptr [esi+C]
+006186D6    81E6 FF7F0000     and     esi, 7FFF
+006186DC    8935 00927200     mov     dword ptr [729200], esi    ; (7)
+006186E2    83F9 02           cmp     ecx, 2
+006186E5    74 0C             je      short 006186F3
+006186E7    81CE 00800000     or      esi, 8000
+006186ED    8935 00927200     mov     dword ptr [729200], esi
+006186F3    C1E0 08           shl     eax, 8
+006186F6    03C2              add     eax, edx
+006186F8    A3 04927200       mov     dword ptr [729204], eax
+006186FD    33F6              xor     esi, esi
+006186FF    56                push    esi
+00618700    8B3D 10D16900     mov     edi, dword ptr [69D110]    ; kernel32.GetModuleHandleA
+00618706    FFD7              call    edi
+00618708    66:8138 4D5A      cmp     word ptr [eax], 5A4D
+0061870D    75 1F             jnz     short 0061872E
+0061870F    8B48 3C           mov     ecx, dword ptr [eax+3C]
+00618712    03C8              add     ecx, eax
+00618714    8139 50450000     cmp     dword ptr [ecx], 4550
+0061871A    75 12             jnz     short 0061872E
+0061871C    0FB741 18         movzx   eax, word ptr [ecx+18]
+00618720    3D 0B010000       cmp     eax, 10B
+00618725    74 1F             je      short 00618746
+00618727    3D 0B020000       cmp     eax, 20B
+0061872C    74 05             je      short 00618733
+0061872E    8975 E4           mov     dword ptr [ebp-1C], esi
+00618731    EB 27             jmp     short 0061875A
+00618733    83B9 84000000     cmp     dword ptr [ecx+84], 0E
+0061873A    76 F2             jbe     short 0061872E
+0061873C    33C0              xor     eax, eax
+0061873E    39B1 F8000000     cmp     dword ptr [ecx+F8], esi
+00618744    EB 0E             jmp     short 00618754
+00618746    8379 74 0E        cmp     dword ptr [ecx+74], 0E
+0061874A    76 E2             jbe     short 0061872E
+0061874C    33C0              xor     eax, eax
+0061874E    39B1 E8000000     cmp     dword ptr [ecx+E8], esi
+00618754    0F95C0            setne   al
+00618757    8945 E4           mov     dword ptr [ebp-1C], eax
+0061875A    6A 01             push    1
+```
+
+上面代码还原完成。
+
+第五步：脱壳和修复。
+
+
+
+在 `00618693`，也就是 `OEP` 的地方，设置为新 `EIP` 后，用 `LordPE` 工具 `Dump` 得到 `1.exe`（注意这里别连网线，网线接上就 `dump` 不出来的，原因我还没找，这次没接网线又不成功，晕了用 `OD` 自带的吧，好了有了）。
+
+打开 `SuperImportREC`，填入以下（这里上面已经说明怎么得到的了）
+
+```
+OEP=00618693-00400000=00218693
+
+Rav=0069CFFC-00400000=0029CFFC
+
+Size=0069D498-0069D49C=4A0
+```
+
+接着获取输入表，没有无效函数，修复 `1.exe` 完成得到 `1_.exe`，现在我们看看有没有脱掉并且能不能运行，这里看到了不能运行了，方法就是上面的，请大家仔细点，别出错，我的可能是在那步出错了，我这是录第二次了，第一次录的已经可以运行，但没录下来，这次又不能运行了，晕了，小弟不才呀！！！好了可以运行了，脱壳完成，另外有朋友说壳脱了，但是在登陆后选角色时，和服务器断开连接了，对这点我再研究吧，谢谢各位了。
+
+注：附件中有录像大家看看吧，上传不了，权限不够，如果那位朋友看出我错在哪里，请指出，谢谢。
+
+[`www.love400.net/download/gametuoke.rar`](http://www.love400.net/download/gametuoke.rar)
+
+--------------------------------------------------------------------------------
+
+【版权声明】: 本文原创于看雪技术论坛及人世间论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2007 年 07 月 26 日 18:51:21
+
+`4dd466d0e1e0cc123afbe504da2462ca`

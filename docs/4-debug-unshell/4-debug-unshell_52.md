@@ -1,258 +1,355 @@
 
-
-# 易格式可执行文件脱壳方法一则 
+# 易格式可执行文件脱壳方法一则
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6616.htm`](https://www.pediy.com/kssd/pediy06/pediy6616.htm)
 
-易格式可执行文件脱壳方法一则  
-  
-前言：  
-  
-易格式壳执行文件就是用易语言编译生成的可执行文件。由于易语言的全中文化和简单易用，现在有不少软件都是用它写的。我们今天就来研究一下关于这种文件的脱壳问题。有人说：脱壳的方法还用你说！是的，我脱壳的水平的确很烂，不过易格式可执行文件和标准的 PE 文件有所不同（植于不同在何处下面还要详细叙述），所以平常我们用的脱壳的办法就显得不是很方便了，于是就有了这篇文章。其实关于易格式可执行文件脱壳的方法我以前在《易格式初步分析》一文中作过说明，不过那个说明实在是太简单了，而且当时还没有称手的工具，所以现在准备详细的说一下那个方法。  
-  
-起因：  
-  
-前几天有人在坛子里放出一个程序请求。据帖子里面留言，是用“软件保护神”加的壳。下载回来打开一看，是一个示例程序，估计是想检验加壳强度吧？  
-  
-要脱壳的软件：  
-  
-由于要脱壳的不是什么正式的软件，也就没有必要把地址放上来了，自己用易语言写一个程序再加上壳就可以了。  
-  
-原理及分析：  
-  
-易格式可执行文件是一种特殊的可执行文件。它由 PE 骨骼和易格式原体两部分组成。PE 部分用来释放、寻找、加载易格式装载器。易格式原体部分包含了程序运行所需要的代码、数据和资源。易格式可执行文件在被 PE 装载器装载后，首先 PE 部分寻找并加载易格式装载器（易格式装载器在 krnln.fne 这个文件里，这个文件实质上是一个 DLL 文件），然后把运行权转交给易格式装载器。易格式装载器得到控制权后，载入易格式原体，加载接口地址，并对需要的部分进行重定位。接着又把运行权转交给了易格式的代码部分。到这个时候，程序才开始正式的运作，你在易语言中写的代码才开始被执行。有人认为易语言编译出来的代码不是全编译，是解释执行的。其实通过加载器和支持库的做法只是为了可移植性考虑的做法。至于代码是否是全编译的，自己跟踪一下就知道了：）不好意思，有点跑题了，我们接着刚才的说。说到这儿，不知道有没有人发现问题：因为易格式最终是要被易格式装载器装载的，所以在被装载的时候，易格式的原体部分应该是完整且正确的，否则装载过程将发生错误。这也就是说为什么在用 ASProtect 对易格式壳执行文件加壳时要选择“保留附加数据”的原因了。根据前面的分析，只要能获得易格式原体，然后我们再给它加上一副 PE 骨骼，一切就完成了。这样就给了我们可乘之机。在装载器装载完成后，我们就可以从内存中把易格式提取出来。  
-但是事情不会这么简单的，经过试验（过程下面会详细描述，这里就不多说了），最终合成出了一个可执行文件，执行的时候却出现了非法操作。难道上面的分析有误？调出 OD 跟踪：  
-  
-00401000 >/$ E8 06000000    CALL foo24.0040100B  
-00401005  |. 50             PUSH EAX                                 ; /ExitCode  
-00401006  \\. E8 BB010000    CALL <JMP.&KERNEL32.ExitProcess>         ; \\ExitProcess  
-0040100B  /$ 55             PUSH EBP  
-0040100C  |. 8BEC           MOV EBP,ESP  
-0040100E  |. 81C4 F0FEFFFF  ADD ESP,-110  
-00401014  |. E9 83000000    JMP foo24.0040109C  
-00401019  |. 6B 72 6E 6C 6E>ASCII "krnln.fnr",0  
-00401023  |. 6B 72 6E 6C 6E>ASCII "krnln.fne",0  
-0040102D  |. 47 65 74 4E 65>ASCII "GetNewSock",0  
-00401038  |. 53 6F 66 74 77>ASCII "Software\\FlySky\\"  
-00401048  |. 45 5C 49 6E 73>ASCII "E\\Install",0  
-00401052  |. 50 61 74 68 00>ASCII "Path",0  
-00401057  |. 4E 6F 74 20 66>ASCII "Not found the ke"  
-00401067  |. 72 6E 65 6C 20>ASCII "rnel library or "  
-00401077  |. 74 68 65 20 6B>ASCII "the kernel libra"  
-00401087  |. 72 79 20 69 73>ASCII "ry is invalid!",0  
-00401096  |. 45 72 72 6F 72>ASCII "Error",0  
-0040109C  |> 8D85 FCFEFFFF  LEA EAX,DWORD PTR SS:\[EBP\-104\]  
-004010A2  |. 50             PUSH EAX  
-004010A3  |. E8 44010000    CALL foo24.004011EC  
-004010A8  |. 68 19104000    PUSH foo24.00401019                      ; /StringToAdd = "krnln.fnr"  
-004010AD  |. 8D85 FCFEFFFF  LEA EAX,DWORD PTR SS:\[EBP\-104\]           ; |  
-004010B3  |. 50             PUSH EAX                                 ; |ConcatString  
-004010B4  |. E8 25010000    CALL <JMP.&KERNEL32.lstrcatA>            ; \\lstrcatA  
-004010B9  |. 50             PUSH EAX                                 ; /FileName  
-004010BA  |. E8 19010000    CALL <JMP.&KERNEL32.LoadLibraryA>        ; \\LoadLibraryA 载入核心支持库  
-004010BF  |. 85C0           TEST EAX,EAX  
-004010C1  |. 0F85 9E000000  JNZ foo24.00401165  
-004010C7  |. 8D85 F4FEFFFF  LEA EAX,DWORD PTR SS:\[EBP\-10C\]  
-004010CD  |. 50             PUSH EAX                                 ; /pHandle  
-004010CE  |. 68 19000200    PUSH 20019                               ; |Access = KEY\_READ  
-004010D3  |. 6A 00          PUSH 0                                   ; |Reserved = 0  
-004010D5  |. 68 38104000    PUSH foo24.00401038                      ; |Subkey = "Software\\FlySky\\E\\Install"  
-004010DA  |. 68 01000080    PUSH 80000001                            ; |hKey = HKEY\_CURRENT\_USER  
-004010DF  |. E8 36010000    CALL <JMP.&ADVAPI32.RegOpenKeyExA>       ; \\RegOpenKeyExA 从注册表中查找核心支持库的位置  
-004010E4  |. 83F8 00        CMP EAX,0  
-004010E7  |. 0F85 B8000000  JNZ foo24.004011A5  
-004010ED  |. C785 F0FEFFFF >MOV DWORD PTR SS:\[EBP\-110\],103  
-004010F7  |. 8D85 F0FEFFFF  LEA EAX,DWORD PTR SS:\[EBP\-110\]  
-004010FD  |. 50             PUSH EAX                                 ; /pBufSize  
-004010FE  |. 8D85 FCFEFFFF  LEA EAX,DWORD PTR SS:\[EBP\-104\]           ; |  
-00401104  |. 50             PUSH EAX                                 ; |Buffer  
-00401105  |. 6A 00          PUSH 0                                   ; |pValueType = NULL  
-00401107  |. 6A 00          PUSH 0                                   ; |Reserved = NULL  
-00401109  |. 68 52104000    PUSH foo24.00401052                      ; |ValueName = "Path"  
-0040110E  |. FFB5 F4FEFFFF  PUSH DWORD PTR SS:\[EBP\-10C\]              ; |hKey  
-00401114  |. E8 07010000    CALL <JMP.&ADVAPI32.RegQueryValueExA>    ; \\RegQueryValueExA  
-00401119  |. 50             PUSH EAX  
-0040111A  |. FFB5 F4FEFFFF  PUSH DWORD PTR SS:\[EBP\-10C\]              ; /hKey  
-00401120  |. E8 EF000000    CALL <JMP.&ADVAPI32.RegCloseKey>         ; \\RegCloseKey  
-00401125  |. 58             POP EAX  
-00401126  |. 83F8 00        CMP EAX,0  
-00401129  |. 75 7A          JNZ SHORT foo24.004011A5  
-0040112B  |. 8D85 FCFEFFFF  LEA EAX,DWORD PTR SS:\[EBP\-104\]  
-00401131  |. 50             PUSH EAX                                 ; /String  
-00401132  |. E8 AD000000    CALL <JMP.&KERNEL32.lstrlenA>            ; \\lstrlenA  
-00401137  |. 8D9D FCFEFFFF  LEA EBX,DWORD PTR SS:\[EBP\-104\]  
-0040113D  |. 03D8           ADD EBX,EAX  
-0040113F  |. 4B             DEC EBX  
-00401140  |. 803B 5C        CMP BYTE PTR DS:\[EBX\],5C  
-00401143  |. 74 05          JE SHORT foo24.0040114A  
-00401145  |. 66:C703 5C00   MOV WORD PTR DS:\[EBX\],5C  
-0040114A  |> 68 23104000    PUSH foo24.00401023                      ; /StringToAdd = "krnln.fne"  
-0040114F  |. 8D85 FCFEFFFF  LEA EAX,DWORD PTR SS:\[EBP\-104\]           ; |  
-00401155  |. 50             PUSH EAX                                 ; |ConcatString  
-00401156  |. E8 83000000    CALL <JMP.&KERNEL32.lstrcatA>            ; \\lstrcatA  
-0040115B  |. 50             PUSH EAX                                 ; /FileName  
-0040115C  |. E8 77000000    CALL <JMP.&KERNEL32.LoadLibraryA>        ; \\LoadLibraryA  
-00401161  |. 85C0           TEST EAX,EAX  
-00401163  |. 74 40          JE SHORT foo24.004011A5  
-00401165  |> 8985 F8FEFFFF  MOV DWORD PTR SS:\[EBP\-108\],EAX  
-0040116B  |. 68 2D104000    PUSH foo24.0040102D                      ; /ProcNameOrOrdinal = "GetNewSock"  
-00401170  |. 50             PUSH EAX                                 ; |hModule  
-00401171  |. E8 5C000000    CALL <JMP.&KERNEL32.GetProcAddress>      ; \\GetProcAddress  
-00401176  |. 85C0           TEST EAX,EAX  
-00401178  |. 74 20          JE SHORT foo24.0040119A  
-0040117A  |. 68 E8030000    PUSH 3E8  
-0040117F  |. FFD0           CALL EAX  
-00401181  |. 85C0           TEST EAX,EAX  
-00401183  |. 74 15          JE SHORT foo24.0040119A  
-00401185  |. E8 00000000    CALL foo24.0040118A  
-0040118A  |$ 810424 761E000>ADD DWORD PTR SS:\[ESP\],1E76  
-00401191  |. FFD0           CALL EAX                                 ;装跳到核心支持库领空  
-  
-10029E72   55               PUSH EBP  
-10029E73   8BEC             MOV EBP,ESP  
-10029E75   8B45 08          MOV EAX,DWORD PTR SS:\[EBP+8\]  
-10029E78   50               PUSH EAX  
-10029E79   B9 F8E81210      MOV ECX,krnln.1012E8F8  
-10029E7E   E8 ACF5FFFF      CALL krnln.1002942F                      ;继续跟进  
-10029E83   5D               POP EBP  
-10029E84   C2 0400          RETN 4  
-  
-1002942F   55               PUSH EBP  
-10029430   8BEC             MOV EBP,ESP  
-10029432   83EC 08          SUB ESP,8  
-10029435   53               PUSH EBX  
-10029436   56               PUSH ESI  
-10029437   57               PUSH EDI  
-10029438   894D F8          MOV DWORD PTR SS:\[EBP\-8\],ECX  
-1002943B   FF15 C8230D10    CALL DWORD PTR DS:\[<&KERNEL32.GetProcess>; KERNEL32.GetProcessHeap  
-10029441   8B4D F8          MOV ECX,DWORD PTR SS:\[EBP\-8\]  
-10029444   8981 EC030000    MOV DWORD PTR DS:\[ECX+3EC\],EAX  
-1002944A   8B55 08          MOV EDX,DWORD PTR SS:\[EBP+8\]  
-1002944D   8B42 30          MOV EAX,DWORD PTR DS:\[EDX+30\]  
-10029450   83E0 01          AND EAX,1  
-10029453   85C0             TEST EAX,EAX  
-10029455   75 10            JNZ SHORT krnln.10029467  
-10029457   8B4D 08          MOV ECX,DWORD PTR SS:\[EBP+8\]  
-1002945A   51               PUSH ECX  
-1002945B   8B4D F8          MOV ECX,DWORD PTR SS:\[EBP\-8\]  
-1002945E   E8 FD400300      CALL krnln.1005D560  
-10029463   FFE0             JMP EAX                                  ;易格式已经装载完成了，转交指挥权  
-  
-00404207   FC               CLD                                      ;易格式代码的起始位置  
-00404208   DBE3             FINIT  
-0040420A   68 027F8000      PUSH 807F02  
-0040420F   B8 03000000      MOV EAX,3  
-00404214   E8 31000000      CALL foo24.0040424A  
-00404219   83C4 04          ADD ESP,4  
-0040421C   68 01000152      PUSH 52010001  
-00404221   E8 1E000000      CALL foo24.00404244                        
-00404226   83C4 04          ADD ESP,4  
-00404229   6A 00            PUSH 0  
-0040422B   E8 0E000000      CALL foo24.0040423E  
-00404230   E8 03000000      CALL foo24.00404238  
-00404235   83C4 04          ADD ESP,4  
-00404238   FF25 94788000    JMP DWORD PTR DS:\[807894\]  
-0040423E   FF25 98788000    JMP DWORD PTR DS:\[807898\]  
-00404244   FF25 9C788000    JMP DWORD PTR DS:\[80789C\]  
-0040424A   FF25 A0788000    JMP DWORD PTR DS:\[8078A0\]               ;最后在这个地方程序当掉了  
-00404250   FF25 90788000    JMP DWORD PTR DS:\[807890\]  
-00404256   FF25 78788000    JMP DWORD PTR DS:\[807878\]  
-0040425C   FF25 7C788000    JMP DWORD PTR DS:\[80787C\]  
-00404262   FF25 80788000    JMP DWORD PTR DS:\[807880\]  
-  
+## 前言
+
+易格式壳执行文件就是用易语言编译生成的可执行文件。由于易语言的全中文化和简单易用，现在有不少软件都是用它写的。我们今天就来研究一下关于这种文件的脱壳问题。有人说：脱壳的方法还用你说！是的，我脱壳的水平的确很烂，不过易格式可执行文件和标准的 `PE` 文件有所不同（植于不同在何处下面还要详细叙述），所以平常我们用的脱壳的办法就显得不是很方便了，于是就有了这篇文章。其实关于易格式可执行文件脱壳的方法我以前在《易格式初步分析》一文中作过说明，不过那个说明实在是太简单了，而且当时还没有称手的工具，所以现在准备详细的说一下那个方法。
+
+## 起因
+
+前几天有人在坛子里放出一个程序请求。据帖子里面留言，是用“软件保护神”加的壳。下载回来打开一看，是一个示例程序，估计是想检验加壳强度吧？
+
+## 要脱壳的软件
+
+由于要脱壳的不是什么正式的软件，也就没有必要把地址放上来了，自己用易语言写一个程序再加上壳就可以了。
+
+## 原理及分析
+
+易格式可执行文件是一种特殊的可执行文件。它由 `PE` 骨骼和易格式原体两部分组成。`PE` 部分用来释放、寻找、加载易格式装载器。易格式原体部分包含了程序运行所需要的代码、数据和资源。易格式可执行文件在被 `PE` 装载器装载后，首先 `PE` 部分寻找并加载易格式装载器（易格式装载器在 `krnln.fne` 这个文件里，这个文件实质上是一个 `DLL` 文件），然后把运行权转交给易格式装载器。易格式装载器得到控制权后，载入易格式原体，加载接口地址，并对需要的部分进行重定位。接着又把运行权转交给了易格式的代码部分。到这个时候，程序才开始正式的运作，你在易语言中写的代码才开始被执行。有人认为易语言编译出来的代码不是全编译，是解释执行的。其实通过加载器和支持库的做法只是为了可移植性考虑的做法。至于代码是否是全编译的，自己跟踪一下就知道了：）不好意思，有点跑题了，我们接着刚才的说。
+
+说到这儿，不知道有没有人发现问题：因为易格式最终是要被易格式装载器装载的，所以在被装载的时候，易格式的原体部分应该是完整且正确的，否则装载过程将发生错误。这也就是说为什么在用 `ASProtect` 对易格式壳执行文件加壳时要选择“保留附加数据”的原因了。根据前面的分析，只要能获得易格式原体，然后我们再给它加上一副 `PE` 骨骼，一切就完成了。这样就给了我们可乘之机。在装载器装载完成后，我们就可以从内存中把易格式提取出来。
+
+但是事情不会这么简单的，经过试验（过程下面会详细描述，这里就不多说了），最终合成出了一个可执行文件，执行的时候却出现了非法操作。难道上面的分析有误？调出 `OD` 跟踪：
+
+```asm
+00401000  >/$ E8 06000000 CALL foo24.0040100B
+
+00401005  |. 50 PUSH EAX ; /ExitCode
+00401006  \\. E8 BB010000 CALL <JMP.&KERNEL32.ExitProcess> ; \ExitProcess
+
+0040100B  /$ 55 PUSH EBP
+0040100C  |. 8BEC MOV EBP,ESP
+0040100E  |. 81C4 F0FEFFFF ADD ESP,-110
+00401014  |. E9 83000000 JMP foo24.0040109C
+00401019  |. 6B 72 6E 6C 6E>ASCII "krnln.fnr",0
+00401023  |. 6B 72 6E 6C 6E>ASCII "krnln.fne",0
+0040102D  |. 47 65 74 4E 65>ASCII "GetNewSock",0
+00401038  |. 53 6F 66 74 77>ASCII "Software\\FlySky\\"
+00401048  |. 45 5C 49 6E 73>ASCII "E\\Install",0
+00401052  |. 50 61 74 68 00>ASCII "Path",0
+00401057  |. 4E 6F 74 20 66>ASCII "Not found the ke"
+00401067  |. 72 6E 65 6C 20>ASCII "rnel library or "
+00401077  |. 74 68 65 20 6B>ASCII "the kernel libra"
+00401087  |. 72 79 20 69 73>ASCII "ry is invalid!",0
+00401096  |. 45 72 72 6F 72>ASCII "Error",0
+0040109C  |> 8D85 FCFEFFFF LEA EAX,DWORD PTR SS:[EBP-104]
+004010A2  |. 50 PUSH EAX
+004010A3  |. E8 44010000 CALL foo24.004011EC
+004010A8  |. 68 19104000 PUSH foo24.00401019 ; /StringToAdd = "krnln.fnr"
+004010AD  |. 8D85 FCFEFFFF LEA EAX,DWORD PTR SS:[EBP-104] ; |
+004010B3  |. 50 PUSH EAX ; |ConcatString
+004010B4  |. E8 25010000 CALL <JMP.&KERNEL32.lstrcatA> ; \lstrcatA
+004010B9  |. 50 PUSH EAX ; /FileName
+004010BA  |. E8 19010000 CALL <JMP.&KERNEL32.LoadLibraryA> ; \LoadLibraryA 载入核心支持库
+004010BF  |. 85C0 TEST EAX,EAX
+004010C1  |. 0F85 9E000000 JNZ foo24.00401165
+004010C7  |. 8D85 F4FEFFFF LEA EAX,DWORD PTR SS:[EBP-10C]
+004010CD  |. 50 PUSH EAX ; /pHandle
+004010CE  |. 68 19000200 PUSH 20019 ; |Access = KEY_READ
+004010D3  |. 6A 00 PUSH 0 ; |Reserved = 0
+004010D5  |. 68 38104000 PUSH foo24.00401038 ; |Subkey = "Software\\FlySky\\E\\Install"
+004010DA  |. 68 01000080 PUSH 80000001 ; |hKey = HKEY_CURRENT_USER
+004010DF  |. E8 36010000 CALL <JMP.&ADVAPI32.RegOpenKeyExA> ; \RegOpenKeyExA 从注册表中查找核心支持库的位置
+004010E4  |. 83F8 00 CMP EAX,0
+004010E7  |. 0F85 B8000000 JNZ foo24.004011A5
+004010ED  |. C785 F0FEFFFF >MOV DWORD PTR SS:[EBP-110],103
+004010F7  |. 8D85 F0FEFFFF LEA EAX,DWORD PTR SS:[EBP-110]
+004010FD  |. 50 PUSH EAX ; /pBufSize
+004010FE  |. 8D85 FCFEFFFF LEA EAX,DWORD PTR SS:[EBP-104] ; |
+00401104  |. 50 PUSH EAX ; |Buffer
+00401105  |. 6A 00 PUSH 0 ; |pValueType = NULL
+00401107  |. 6A 00 PUSH 0 ; |Reserved = NULL
+00401109  |. 68 52104000 PUSH foo24.00401052 ; |ValueName = "Path"
+0040110E  |. FFB5 F4FEFFFF PUSH DWORD PTR SS:[EBP-10C] ; |hKey
+00401114  |. E8 07010000 CALL <JMP.&ADVAPI32.RegQueryValueExA> ; \RegQueryValueExA
+00401119  |. 50 PUSH EAX
+0040111A  |. FFB5 F4FEFFFF PUSH DWORD PTR SS:[EBP-10C] ; /hKey
+00401120  |. E8 EF000000 CALL <JMP.&ADVAPI32.RegCloseKey> ; \RegCloseKey
+00401125  |. 58 POP EAX
+00401126  |. 83F8 00 CMP EAX,0
+00401129  |. 75 7A JNZ SHORT foo24.004011A5
+0040112B  |. 8D85 FCFEFFFF LEA EAX,DWORD PTR SS:[EBP-104]
+00401131  |. 50 PUSH EAX ; /String
+00401132  |. E8 AD000000 CALL <JMP.&KERNEL32.lstrlenA> ; \lstrlenA
+00401137  |. 8D9D FCFEFFFF LEA EBX,DWORD PTR SS:[EBP-104]
+0040113D  |. 03D8 ADD EBX,EAX
+0040113F  |. 4B DEC EBX
+00401140  |. 803B 5C CMP BYTE PTR DS:[EBX],5C
+00401143  |. 74 05 JE SHORT foo24.0040114A
+00401145  |. 66:C703 5C00 MOV WORD PTR DS:[EBX],5C
+0040114A  |> 68 23104000 PUSH foo24.00401023 ; /StringToAdd = "krnln.fne"
+0040114F  |. 8D85 FCFEFFFF LEA EAX,DWORD PTR SS:[EBP-104] ; |
+00401155  |. 50 PUSH EAX ; |ConcatString
+00401156  |. E8 83000000 CALL <JMP.&KERNEL32.lstrcatA> ; \lstrcatA
+0040115B  |. 50 PUSH EAX ; /FileName
+0040115C  |. E8 77000000 CALL <JMP.&KERNEL32.LoadLibraryA> ; \LoadLibraryA
+00401161  |. 85C0 TEST EAX,EAX
+00401163  |. 74 40 JE SHORT foo24.004011A5
+00401165  |> 8985 F8FEFFFF MOV DWORD PTR SS:[EBP-108],EAX
+0040116B  |. 68 2D104000 PUSH foo24.0040102D ; /ProcNameOrOrdinal = "GetNewSock"
+00401170  |. 50 PUSH EAX ; |hModule
+00401171  |. E8 5C000000 CALL <JMP.&KERNEL32.GetProcAddress> ; \GetProcAddress
+00401176  |. 85C0 TEST EAX,EAX
+00401178  |. 74 20 JE SHORT foo24.0040119A
+0040117A  |. 68 E8030000 PUSH 3E8
+0040117F  |. FFD0 CALL EAX
+00401181  |. 85C0 TEST EAX,EAX
+00401183  |. 74 15 JE SHORT foo24.0040119A
+00401185  |. E8 00000000 CALL foo24.0040118A
+0040118A  /$ 810424 761E000>ADD DWORD PTR SS:[ESP],1E76
+00401191  |. FFD0 CALL EAX ;装跳到核心支持库领空
+
+10029E72 55 PUSH EBP
+10029E73 8BEC MOV EBP,ESP
+10029E75 8B45 08 MOV EAX,DWORD PTR SS:[EBP+8]
+10029E78 50 PUSH EAX
+10029E79 B9 F8E81210 MOV ECX,krnln.1012E8F8
+10029E7E E8 ACF5FFFF CALL krnln.1002942F ;继续跟进
+10029E83 5D POP EBP
+10029E84 C2 0400 RETN 4
+
+1002942F 55 PUSH EBP
+10029430 8BEC MOV EBP,ESP
+10029432 83EC 08 SUB ESP,8
+10029435 53 PUSH EBX
+10029436 56 PUSH ESI
+10029437 57 PUSH EDI
+10029438 894D F8 MOV DWORD PTR SS:[EBP-8],ECX
+1002943B FF15 C8230D10 CALL DWORD PTR DS:[<&KERNEL32.GetProcess>; KERNEL32.GetProcessHeap
+10029441 8B4D F8 MOV ECX,DWORD PTR SS:[EBP-8]
+10029444 8981 EC030000 MOV DWORD PTR DS:[ECX+3EC],EAX
+1002944A 8B55 08 MOV EDX,DWORD PTR SS:[EBP+8]
+1002944D 8B42 30 MOV EAX,DWORD PTR DS:[EDX+30]
+```
+
+
+
+10029450&nbsp;&nbsp;83E0 01&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AND EAX,1  
+
+10029453&nbsp;&nbsp;85C0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TEST EAX,EAX  
+
+10029455&nbsp;&nbsp;75 10&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JNZ SHORT krnln.10029467  
+
+10029457&nbsp;&nbsp;8B4D 08&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MOV ECX,DWORD PTR SS:\[EBP+8\]  
+
+1002945A&nbsp;&nbsp;51&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PUSH ECX  
+
+1002945B&nbsp;&nbsp;8B4D F8&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MOV ECX,DWORD PTR SS:\[EBP\-8\]  
+
+1002945E&nbsp;&nbsp;E8 FD400300&nbsp;&nbsp;&nbsp;CALL krnln.1005D560  
+
+10029463&nbsp;&nbsp;FFE0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JMP EAX&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;易格式已经装载完成了，转交指挥权  
+
+00404207&nbsp;&nbsp;FC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CLD&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;易格式代码的起始位置  
+
+00404208&nbsp;&nbsp;DBE3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FINIT  
+
+0040420A&nbsp;&nbsp;68 027F8000&nbsp;&nbsp;&nbsp;&nbsp;PUSH 807F02  
+
+0040420F&nbsp;&nbsp;B8 03000000&nbsp;&nbsp;&nbsp;&nbsp;MOV EAX,3  
+
+00404214&nbsp;&nbsp;E8 31000000&nbsp;&nbsp;&nbsp;&nbsp;CALL foo24.0040424A  
+
+00404219&nbsp;&nbsp;83C4 04&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ADD ESP,4  
+
+0040421C&nbsp;&nbsp;68 01000152&nbsp;&nbsp;&nbsp;&nbsp;PUSH 52010001  
+
+00404221&nbsp;&nbsp;E8 1E000000&nbsp;&nbsp;&nbsp;&nbsp;CALL foo24.00404244&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+
+00404226&nbsp;&nbsp;83C4 04&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ADD ESP,4  
+
+00404229&nbsp;&nbsp;6A 00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PUSH 0  
+
+0040422B&nbsp;&nbsp;E8 0E000000&nbsp;&nbsp;&nbsp;&nbsp;CALL foo24.0040423E  
+
+00404230&nbsp;&nbsp;E8 03000000&nbsp;&nbsp;&nbsp;&nbsp;CALL foo24.00404238  
+
+00404235&nbsp;&nbsp;83C4 04&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ADD ESP,4  
+
+00404238&nbsp;&nbsp;FF25 94788000&nbsp;&nbsp;&nbsp;JMP DWORD PTR DS:\[807894\]  
+
+0040423E&nbsp;&nbsp;FF25 98788000&nbsp;&nbsp;&nbsp;JMP DWORD PTR DS:\[807898\]  
+
+00404244&nbsp;&nbsp;FF25 9C788000&nbsp;&nbsp;&nbsp;JMP DWORD PTR DS:\[80789C\]  
+
+0040424A&nbsp;&nbsp;FF25 A0788000&nbsp;&nbsp;&nbsp;JMP DWORD PTR DS:\[8078A0\]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;最后在这个地方程序当掉了  
+
+00404250&nbsp;&nbsp;FF25 90788000&nbsp;&nbsp;&nbsp;JMP DWORD PTR DS:\[807890\]  
+
+00404256&nbsp;&nbsp;FF25 78788000&nbsp;&nbsp;&nbsp;JMP DWORD PTR DS:\[807878\]  
+
+0040425C&nbsp;&nbsp;FF25 7C788000&nbsp;&nbsp;&nbsp;JMP DWORD PTR DS:\[80787C\]  
+
+00404262&nbsp;&nbsp;FF25 80788000&nbsp;&nbsp;&nbsp;JMP DWORD PTR DS:\[807880\]  
+
 转跳指向了一个莫名其妙的地址，程序不当掉才怪。  
-启动 W32Dasm 载入程序，进行静态分析。在相同位置得到了这样的反汇编代码：  
-  
-:00404207 FC                      cld  
-:00404208 DBE3                    finit  
-:0040420A 6806424000              push 00404206  
-:0040420F B803000000              mov eax, 00000003  
-:00404214 E831000000              call 0040424A  
-:00404219 83C404                  add esp, 00000004  
-:0040421C 6801000152              push 52010001  
-:00404221 E81E000000              call 00404244  
-:00404226 83C404                  add esp, 00000004  
-:00404229 6A00                    push 00000000  
-:0040422B E80E000000              call 0040423E  
-:00404230 E803000000              call 00404238  
-:00404235 83C404                  add esp, 00000004  
-  
-\* Referenced by a CALL at Address:  
-|:00404230     
+
+启动 `W32Dasm` 载入程序，进行静态分析。在相同位置得到了这样的反汇编代码：  
+
+:00404207 FC&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cld  
+
+:00404208 DBE3&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;finit  
+
+:0040420A 6806424000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;push 00404206  
+
+:0040420F B803000000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mov eax, 00000003  
+
+:00404214 E831000000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;call 0040424A  
+
+:00404219 83C404&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add esp, 00000004  
+
+:0040421C 6801000152&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;push 52010001  
+
+:00404221 E81E000000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;call 00404244  
+
+:00404226 83C404&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add esp, 00000004  
+
+:00404229 6A00&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;push 00000000  
+
+:0040422B E80E000000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;call 0040423E  
+
+:00404230 E803000000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;call 00404238  
+
+:00404235 83C404&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;add esp, 00000004  
+
+\* Referenced by a CALL at Address:  
+
+|:00404230&nbsp;&nbsp;&nbsp;  
+
 |  
-:00404238 FF255C3C4000            jmp dword ptr \[00403C5C\]  
-  
-\* Referenced by a CALL at Address:  
-|:0040422B     
+
+:00404238 FF255C3C4000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jmp dword ptr \[00403C5C\]  
+
+\* Referenced by a CALL at Address:  
+
+|:0040422B&nbsp;&nbsp;&nbsp;  
+
 |  
-:0040423E FF25603C4000            jmp dword ptr \[00403C60\]  
-  
-\* Referenced by a CALL at Address:  
-|:00404221     
+
+:0040423E FF25603C4000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jmp dword ptr \[00403C60\]  
+
+\* Referenced by a CALL at Address:  
+
+|:00404221&nbsp;&nbsp;&nbsp;  
+
 |  
-:00404244 FF25643C4000            jmp dword ptr \[00403C64\]  
-  
-\* Referenced by a CALL at Address:  
-|:00404214     
+
+:00404244 FF25643C4000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jmp dword ptr \[00403C64\]  
+
+\* Referenced by a CALL at Address:  
+
+|:00404214&nbsp;&nbsp;&nbsp;  
+
 |  
-:0040424A FF25683C4000            jmp dword ptr \[00403C68\]  
-  
-\* Referenced by a CALL at Addresses:  
-|:00403E10   , :00403EE0   , :00403F67   , :00403F77   , :004040A1     
-|:00404107   , :00404194   , :004041FA     
+
+:0040424A FF25683C4000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jmp dword ptr \[00403C68\]  
+
+\* Referenced by a CALL at Addresses:  
+
+|:00403E10&nbsp;&nbsp; , :00403EE0&nbsp;&nbsp; , :00403F67&nbsp;&nbsp; , :00403F77&nbsp;&nbsp; , :004040A1&nbsp;&nbsp;&nbsp;  
+
+|:00404107&nbsp;&nbsp; , :00404194&nbsp;&nbsp; , :004041FA&nbsp;&nbsp;&nbsp;  
+
 |  
-:00404250 FF25583C4000            jmp dword ptr \[00403C58\]  
-  
-\* Referenced by a CALL at Addresses:  
-|:00403E75   , :00403F37   , :00404014   , :0040403A   , :004040F7     
-|:0040412D   , :004041EA     
+
+:00404250 FF25583C4000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jmp dword ptr \[00403C58\]  
+
+\* Referenced by a CALL at Addresses:  
+
+|:00403E75&nbsp;&nbsp; , :00403F37&nbsp;&nbsp; , :00404014&nbsp;&nbsp; , :0040403A&nbsp;&nbsp; , :004040F7&nbsp;&nbsp;&nbsp;  
+
+|:0040412D&nbsp;&nbsp; , :004041EA&nbsp;&nbsp;&nbsp;  
+
 |  
-:00404256 FF25403C4000            jmp dword ptr \[00403C40\]  
-  
-\* Referenced by a CALL at Addresses:  
-|:00403E4A   , :00403ECD   , :00403FB1   , :0040408E   , :00404181     
+
+:00404256 FF25403C4000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jmp dword ptr \[00403C40\]  
+
+\* Referenced by a CALL at Addresses:  
+
+|:00403E4A&nbsp;&nbsp; , :00403ECD&nbsp;&nbsp; , :00403FB1&nbsp;&nbsp; , :0040408E&nbsp;&nbsp; , :00404181&nbsp;&nbsp;&nbsp;  
+
 |  
-:0040425C FF25443C4000            jmp dword ptr \[00403C44\]  
-:00404262 FF25483C4000            jmp dword ptr \[00403C48\]  
-  
+
+:0040425C FF25443C4000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jmp dword ptr \[00403C44\]  
+
+:00404262 FF25483C4000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jmp dword ptr \[00403C48\]  
+
 经过对比很明显就能发现，转跳的地址不同。原因呢？很简单：重定位。  
-用 EcE 载入程序，查看@code 段的重定位信息，得到如下结果：  
-0：RT\_HELP\_FUNC    0000053E  
-0：RT\_HELP\_FUNC    00000544  
-0：RT\_HELP\_FUNC    0000054A  
-0：RT\_HELP\_FUNC    00000550  
-0：RT\_HELP\_FUNC    00000556  
-0：RT\_HELP\_FUNC    0000055C  
-0：RT\_HELP\_FUNC    00000562  
-0：RT\_HELP\_FUNC    00000568  
-在“重要装载信息”里显示，易格式所在节的 RVA 在 0x00003000 处。@code 段的偏移为 0x00000CFC。然后计算 0x004000000+0x00003000+0x00000cfc+0x0000053E = 0x0040423A，正是那个错误的地址。  
+
+用 `EcE` 载入程序，查看`@code`段的重定位信息，得到如下结果：  
+
+0：RT\_HELP\_FUNC&nbsp;&nbsp;&nbsp;&nbsp;0000053E  
+
+0：RT\_HELP\_FUNC&nbsp;&nbsp;&nbsp;&nbsp;00000544  
+
+0：RT\_HELP\_FUNC&nbsp;&nbsp;&nbsp;&nbsp;0000054A  
+
+0：RT\_HELP\_FUNC&nbsp;&nbsp;&nbsp;&nbsp;00000550  
+
+0：RT\_HELP\_FUNC&nbsp;&nbsp;&nbsp;&nbsp;00000556  
+
+0：RT\_HELP\_FUNC&nbsp;&nbsp;&nbsp;&nbsp;0000055C  
+
+0：RT\_HELP\_FUNC&nbsp;&nbsp;&nbsp;&nbsp;00000562  
+
+0：RT\_HELP\_FUNC&nbsp;&nbsp;&nbsp;&nbsp;00000568  
+
+在“重要装载信息”里显示，易格式所在节的 RVA 在 `0x00003000` 处。`@code`段的偏移为 `0x00000CFC`。然后计算 `0x004000000+0x00003000+0x00000cfc+0x0000053E = 0x0040423A`，正是那个错误的地址。  
+
 也就是说，我们从内存中提取出来的易格式原体是经过装载器重定位后的，所以当我们以重定位后的易格式原体被装载器载入，然后再次进行重定位，自然会指向错误的地址。所以只要我们修复了从内存中提取到易格式原体的重定位信息即可。  
+
 总结一下，脱壳的思路如下：  
-载入要脱壳的程序，等待装载器把易格式装入内存 -〉从内存中获取易格式原体并保存下来 -〉修复易格式原体的重定位信息 -〉将修复后的原体植入 PE 骨骼。  
-  
+
+载入要脱壳的程序，等待装载器把易格式装入内存 -〉从内存中获取易格式原体并保存下来 -〉修复易格式原体的重定位信息 -〉将修复后的原体植入 `PE` 骨骼。  
+
 实施步骤：  
-1。双击运行加了壳的程序，这里是 2-2.exe。（废话:)）  
-2。启动 WinHex，在“工具”-〉“RAM 编辑器”中选择 2-2.exe 进程，打开其主要内存。  
-3。查找字符串“WTNE”，这是易格式的验证字符串。在 0x00403000 处找到了。  
-4。然后向下找，找到“@reloc”（如果没有，就找“@var”），结果在 0x004042AC 处找到了。  
-5。一般易格式是按照 FileAlignment 对齐的，也就是说，易格式原体应该是从 0x00403000——0x00403400 的部分。  
-6。把这一部分的数据“复制块”-〉“进入正常文件”，我们把它命名为 yt.dat。  
-7。用 EcE 载入 yt.dat，在载入之前，必须要在“综合功能中心”-〉“综合设置”-〉“分析设置”中，设置“分析对象类型”为“易格式原体文件”。如果可以正常载入的话，说明我们的第一步提取成功了。  
-8。下面我们要进行的是修复重定位的工作。在以前这可是个极度痛苦的工作。试想一下吧，计算修复成千上万个重定位数据后，人会变成什么样子……不过现在情况好多了，可以利用 EcE 里面带的“易格式重定位信息修复”工具来代替我们完成这个工作，不过你必须要有 0.60 版本以上的 EcE，在坛子里有最新的下载（算是广告吧:)）。  
-9。选择 EcE 左边工具栏中“综合功能中心”-〉“工具箱”，启动“易格式重定位信息修复”。在一个警告提示之后，会出现一个输入框，让你输入“重定位基址”。这个基址也就是易格式原体实际上的 RVA 了。由于我们是从进程内存 0x00403000 处体取得易格式原体，这个地方就输入 00403000。确定后稍等片刻，会提示“重定位信息修复完成”。  
-10。接下来改把易格式重新封装起来了。PE 骨骼要求能完成找到易语言核心支持库，装载易格式装载器等一系列工作。到哪儿去制作一个符合要求的 PE 骨骼呢？EcE 的工具箱也提供了这样的功能（好像工具箱是专门为脱壳设计的:)）。  
-11。关闭刚才打开的原体。在“工具箱”中选择“易格式原体植入 PE 骨骼”。首先会让你选择易格式原体文件，我们选择“yt.dat”。然后在输入要保存到的文件名，这里用 new.exe。稍等片刻会提示已经完成。  
-12。现在基本上大功告成了。执行一下 new.exe 试试看能否正常运行：）  
-  
+
+1。双击运行加了壳的程序，这里是 `2-2.exe`。（废话:)）  
+
+2。启动 `WinHex`，在“工具”-〉“RAM 编辑器”中选择 `2-2.exe` 进程，打开其主要内存。  
+
+3。查找字符串“WTNE”，这是易格式的验证字符串。在 `0x00403000` 处找到了。  
+
+4。然后向下找，找到“@reloc”（如果没有，就找“@var”），结果在 `0x004042AC` 处找到了。  
+
+5。一般易格式是按照 `FileAlignment` 对齐的，也就是说，易格式原体应该是从 `0x00403000`——`0x00403400` 的部分。  
+
+6。把这一部分的数据“复制块”-〉“进入正常文件”，我们把它命名为 `yt.dat`。  
+
+7。用 `EcE` 载入 `yt.dat`，在载入之前，必须要在“综合功能中心”-〉“综合设置”-〉“分析设置”中，设置“分析对象类型”为“易格式原体文件”。如果可以正常载入的话，说明我们的第一步提取成功了。  
+
+8。下面我们要进行的是修复重定位的工作。在以前这可是个极度痛苦的工作。试想一下吧，计算修复成千上万个重定位数据后，人会变成什么样子……不过现在情况好多了，可以利用 `EcE` 里面带的“易格式重定位信息修复”工具来代替我们完成这个工作，不过你必须要有 `0.60` 版本以上的 `EcE`，在坛子里有最新的下载（算是广告吧:)）。  
+
+9。选择 `EcE` 左边工具栏中“综合功能中心”-〉“工具箱”，启动“易格式重定位信息修复”。在一个警告提示之后，会出现一个输入框，让你输入“重定位基址”。这个基址也就是易格式原体实际上的 `RVA` 了。由于我们是从进程内存 `0x00403000` 处体取得易格式原体，这个地方就输入 `00403000`。确定后稍等片刻，会提示“重定位信息修复完成”。  
+
+10。接下来改把易格式重新封装起来了。`PE` 骨骼要求能完成找到易语言核心支持库，装载易格式装载器等一系列工作。到哪儿去制作一个符合要求的 `PE` 骨骼呢？`EcE` 的工具箱也提供了这样的功能（好像工具箱是专门为脱壳设计的:)）。  
+
+11。关闭刚才打开的原体。在“工具箱”中选择“易格式原体植入 PE 骨骼”。首先会让你选择易格式原体文件，我们选择“`yt.dat`”。然后在输入要保存到的文件名，这里用 `new.exe`。稍等片刻会提示已经完成。  
+
+12。现在基本上大功告成了。执行一下 `new.exe` 试试看能否正常运行：）  
+
 后记：  
-之所以没有提供加壳后的软件下载，前面我也说过了，是因为我感觉这种方法适用于大部分壳（当然了，只是针对易格式壳执行程序）。至少我试过的 UPX，ASProtect，软件保护神，比泰加密等均壳易用这种方法脱壳或解密，所以也没有很强的针对性了。不过对于某些壳也是无效的，这样就需要变通变通了。  
-也许有会说这样看来易格式可执行文件的安全性不高啊。其实并非如此。易格式很特殊，而大部分加壳软件的作者并非都熟悉易格式，而且那些软件也没有针对性的保护措施，所以才会很容易的被脱掉。我相信随着人们对易格式的认识加深，用不了多长时间就会有专门的加壳软件 for 易格式的版本或者保护选项了。  
+
+之所以没有提供加壳后的软件下载，前面我也说过了，是因为我感觉这种方法适用于大部分壳（当然了，只是针对易格式壳执行程序）。至少我试过的 `UPX`，`ASProtect`，软件保护神，比泰加密等均壳易用这种方法脱壳或解密，所以也没有很强的针对性了。不过对于某些壳也是无效的，这样就需要变通变通了。  
+
+也许有会说这样看来易格式可执行文件的安全性不高啊。其实并非如此。易格式很特殊，而大部分加壳软件的作者并非都熟悉易格式，而且那些软件也没有针对性的保护措施，所以才会很容易的被脱掉。我相信随着人们对易格式的认识加深，用不了多长时间就会有专门的加壳软件 `for` 易格式的版本或者保护选项了。  
+
 另外，加壳不是保护软件的最终手段，不要太依靠那个东西，毕竟，锁是防君子不防小人的。  
-  
-  
-  
-  
+
 monkeycz  
+
 2004 年 11 月 16 日
 
- 4dd466d0e1e0cc123afbe504da2462ca
+ `4dd466d0e1e0cc123afbe504da2462ca`

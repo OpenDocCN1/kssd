@@ -1,175 +1,255 @@
 
-
 # MySQL Manager 2.8.0.1
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6723.htm`](https://www.pediy.com/kssd/pediy06/pediy6723.htm)
 
-【破文标题】 MySQL Manager 2.8.0.1 脱壳破解手记破解分析  
-【破文作者】springkang\[DFCG\]  
-【作者主页】www.chinadfcg.com  
-【作者邮箱】springkang2003@yahoo.com.cn  
-【所属组织】DFCG  
-【软件名称】 MySQL Manager 2.8.0.1  
-【下载地址】[`www.ems-hitech.com/mymanager/`](http://www.ems-hitech.com/mymanager/)  
-【破解工具】OllyDBG1.10，loadpe，impr,brain and hands  
-【保护方式】ASProtect 1.2 / 1.2c-> Alexey Solodovnikov  
-【软件限制】30 天试用  
-【破解难度】中等  
-【破解时间】始破于二○○四年七月二十九日，脱文作于二○○四年十一月二日  
-\----------------------------------------------------  
-软件介绍：  
-    强大的 mysql 管理工具，允许用户通过图形界面创建或编辑数据库对象，并提供通过 sql 语句管理用户和权限，通过图形界面建立 sql 语句，自动生成 html 格式的数据库文档，导入/导出数据，查看/编辑 blob 字段等功能  
-\----------------------------------------------------  
-破解声名：学习和研究壳的脱法!帮助脱壳小菜鸟成功走上脱壳大菜鸟之路系列之一  
-\----------------------------------------------------  
-【破解分析】  
-    今年 7 月在 DFCG 官方论坛 0day 区里看到这款软件，不知出于何目的就稀里糊涂的把它下了。查壳是 ASProtect 1.2 / 1.2c-> Alexey Solodovnikov，很老的版本了！当时也觉得很奇怪，aspr 的壳 1.23 版的脱文到处都是，已经被人研究得很透彻了，1.3 甚至 2.0 的壳都已经出来了，一个刚出的新软件为何还要用老版壳来保护？现在 fly 和 loveboom 都脱到 2.0 的了，想必我没有必要再讲脱这个老版本的壳了吧！可是当初大菜鸟我在脱它的时候，遇到了一点麻烦，什么麻烦，先卖个关子，。。。呵呵（晕，谁扔的鸡蛋，%￥＾＆＊＠＠，要扔就扔点硬币噻:-) ）。两个月前，e5v 兄弟曾经向我问过如何破解它，其实我哪里会什么算法破解，只不过这个软件过分依赖壳的保护，才让大菜鸟我得了个便宜。时隔这么久，要不是当初 e5v 的几次问起，的确不好意思作此脱文！  
-好吧，费话说了一大通，切入正题吧！  
-老规矩，忽略除内存异常外的所有异常，载入，  
-00401000 >  68 01A0C600     PUSH MyManage.00C6A001　　//停在这里  
-00401005    C3              RETN  
-00401006    AA              STOS BYTE PTR ES:\[EDI\]  
-00401007    803446 FA       XOR BYTE PTR DS:\[ESI+EAX\*2\],0FA  
-0040100B    C9              LEAVE  
-  
-F9 运行，按 shift+F9 在第十六次时来到第一次硬盘指纹出现的地方：  
-01280260    3100            XOR DWORD PTR DS:\[EAX\],EAX　　//第十六次时来到这里，我们看看堆栈，然后 ALT+M, 下内存访问断点  
-01280262    EB 01           JMP SHORT 01280265  
-01280264    68 648F0500     PUSH 58F64  
-01280269    0000            ADD BYTE PTR DS:\[EAX\],AL  
-0128026B    00EB            ADD BL,CH  
-  
-0012D748   01270000  
-0012D74C   01250000  
-0012D750   01280038  
-0012D754   00000000  
-0012D758   01351E0C  ASCII "0hUeFQCQUXY="　　//第十六次时就会看到它，你的机器可能不是这些字符，差不多是类似的，呵呵  
-0012D75C   00000000  
-0012D760   00000000  
-  
-内存镜像，项目 23  
- 地址=00401000　　　//就在这里下内存断点了  
- 大小=0062F000 (6483968.)  
- Owner=MyManage 00400000  
- 区段=  
- 包含=code  
- 类型=Imag 01001002  
- 访问=R  
- 初始访问=RWE  
-  
-下断后按 shift+F9,中断，先别取消内存断点；  
-00A2E37C    55              PUSH EBP   //停在这里，F9。  
-00A2E37D    8BEC            MOV EBP,ESP  
-00A2E37F    8B45 08         MOV EAX,DWORD PTR SS:\[EBP+8\]  
-00A2E382    A3 C89AA300     MOV DWORD PTR DS:\[A39AC8\],EAX　　//要注意 A39AC8，后面的麻烦就是他引起的，此时 eax=0127C784。现在暂时不理它  
-00A2E387    5D              POP EBP  
-00A2E388    C2 0400         RETN 4  
-  
-  
-  
-F9 若干次后，来到  
-00A2E290    55              PUSH EBP    //来到这里  
-00A2E291    8BEC            MOV EBP,ESP  
-00A2E293    A1 549DA300     MOV EAX,DWORD PTR DS:\[A39D54\]  
-00A2E298    8B55 08         MOV EDX,DWORD PTR SS:\[EBP+8\]  
-00A2E29B    8910            MOV DWORD PTR DS:\[EAX\],EDX  
-00A2E29D    A1 C8AFA300     MOV EAX,DWORD PTR DS:\[A3AFC8\]  
-00A2E2A2    8B55 0C         MOV EDX,DWORD PTR SS:\[EBP+C\]  
-00A2E2A5    8910            MOV DWORD PTR DS:\[EAX\],EDX  
-00A2E2A7    5D              POP EBP  
-00A2E2A8    C2 0800         RETN 8　　　//以上几行用 F9 小心跟，仔细观察每行的数值和堆栈，这几行代码主要是处理使用的次数和日期的。  
-  
-00A2E280    55              PUSH EBP　　//然后再来到这  
-00A2E281    8BEC            MOV EBP,ESP  
-00A2E283    8B45 08         MOV EAX,DWORD PTR SS:\[EBP+8\]  
-00A2E286    A3 C49AA300     MOV DWORD PTR DS:\[A39AC4\],EAX　　//这里就要注意了，A39AC4 里存放的就是注册名。我们在命令行里输入：dd 00a39ac4。看看内存的值，如下：  
-00A2E28B    5D              POP EBP  
-00A2E28C    C2 0400         RETN 4  
-  
-此时内存的值：  
-00A39AB8  0000001E　　  
-00A39ABC  0000001E　　//以上两行是次数和日期的值，把它们修改一下  
-00A39AC0  00000000  
-00A39AC4  00A2E18C  MyManage.00A2E18C　　　//这里放的是注册名，找个空白的地方，改成你的注册名，我找的是 00a3b738，把它的值改成 springkang\[DFCG\]  
-00A39AC8  0127C784     //这里先不管，回头再收拾它。  
-  
-经修改后的内存值如下：  
-00A39AB8  FFFFFFFF  
-00A39ABC  FFFFFFFF　　　//实践中好像此不改也行，呵呵。但改了总比不改好！  
-00A39AC0  00000000  
-00A39AC4  00A3B738  ASCII "springkang\[DFCG\]"　　//不过这里小心，如果在到达最后一次异常时或入口点，可能会变成了其他的值，再把它改回来就是了。另一种方法就是在入口点处，准备 dump 前来修改，这样也可靠些！  
-00A39AC8  0127C784  
-  
-取消内存断点，shift+F9 来到最后一次异常处了：  
-0135F054    FE01            INC BYTE PTR DS:\[ECX\]　　//来到这里  
-0135F056  ^ EB E8           JMP SHORT 0135F040  
-0135F058    98              CWDE  
-0135F059    BB 00000000     MOV EBX,0  
-0135F05E    64:8F03         POP DWORD PTR FS:\[EBX\]  
-0135F061    5B              POP EBX  
-  
-ALt+M 再次下内存断点，中断后，就停在入口处了，  
-00A2F6CC    55              PUSH EBP　　　//没有被偷的代码，太好了！  
-00A2F6CD    8BEC            MOV EBP,ESP  
-00A2F6CF    83C4 F4         ADD ESP,-0C  
-00A2F6D2    B8 B4E3A200     MOV EAX,MyManage.00A2E3B4  
-00A2F6D7    E8 A8A49DFF     CALL MyManage.00409B84  
-00A2F6DC    A1 84A2A300     MOV EAX,DWORD PTR DS:\[A3A284\]  
-  
-loadpe　dump 后，再用 impr 追踪层次一和插件修复，全部有效。  
-运行出错，＾%￥￥%＾＆＠！  
-好吧，载入出脱壳修复后的程序看看，是什么原因：  
-发现当运行到下面代码时出错：  
-00A2F730    FF15 C89AA300   CALL DWORD PTR DS:\[A39AC8\]　　//跟进去看看  
-  
-0127C784    0007            ADD BYTE PTR DS:\[EDI\],AL　　//跟进后是这样的  
-0127C786    0000            ADD BYTE PTR DS:\[EAX\],AL  
-0127C788    0000            ADD BYTE PTR DS:\[EAX\],AL  
-0127C78A    0000            ADD BYTE PTR DS:\[EAX\],AL  
-0127C78C    0007            ADD BYTE PTR DS:\[EDI\],AL  
-0127C78E    0000            ADD BYTE PTR DS:\[EAX\],AL  
-0127C790    0013            ADD BYTE PTR DS:\[EBX\],DL  
-  
-我们还是载入原程序看看：  
-  
-0127C784    833D A8352801 0>CMP DWORD PTR DS:\[12835A8\],0　//原来是引用了壳中代码，运行不错才怪，要想办法搞定！  
-0127C78B    74 06           JE SHORT 0127C793　　//这行没跳转，估计是没什么用  
-0127C78D    FF15 A8352801   CALL DWORD PTR DS:\[12835A8\]  ; MyManage.00A2E2AC　　　//这行有用 ，但也调用了壳中代码，             
-0127C793    C3              RETN　　　　//这个也有用  
-  
-  
-先小结一下：  
-看来要修复调用的壳中代码才好办，怎么做？其实 OD 已经为我们做到了，看  
-0127C78D    FF15 A8352801   CALL DWORD PTR DS:\[12835A8\]     ; MyManage.00A2E2AC　，它引用壳中代码，但最终引用的是 00A2E2AC 的数据，呵呵，这下好办了。  
-我们在找个空地输入如下代码就行了：  
-call 00A2E2AC  
-retn  
-  
-我是在 00A2FFBD 这行输入的，输入后如下，然后右键－＞复制到可执行文件保存：  
-00A2FFBD      E8 EAE2FFFF   CALL dumped\_.00A2E2AC  
-00A2FFC2      C3            RETN  
-  
-dd 00a2ffbd 看看内存区吧：  
-00A2FFBD  FFE2EAE8  
-00A2FFC1  0000C3FF　　//这两行数据用得上  
-  
-现在，代码是修复好了，问题是怎样让出错行 00A2F730    FF15 C89AA300   CALL DWORD PTR DS:\[A39AC8\]　调用 00A2FFBD 的代码呢？  
-  
-我在第一次脱它的时候用的方法记不起来了，:-(。  
-还好我今晚又想到了一个方法：  
-还记得我在上面说的：“0A2E382    A3 C89AA300     MOV DWORD PTR DS:\[A39AC8\],EAX　　//要注意 A39AC8，后面的麻烦就是他引起的，此时 eax=0127C784。现在暂时不理它”,以及“00A39AC8  0127C784     //这里先不管，回头再收拾它” 这两句话吗？  
-  
-对了，我们就是要在 dump 前，把 00A39AC8 里的数值改成 00A2FFBD，然后再把 00A2FFBD 里的值改成 FFE2EAE8  
-00A2FFC1 里的值改成  0000C3FF  
-  
-此时 dump 后，用 impr 修复后，就运行正常了！哈哈，一切 OK！  
-\----------------------------------------------------  
-【总结】  
-几个月没脱壳了，手都生了！  
-此文献给　e5v　兄弟！同时感谢他为 NSSG 论坛提供了空间！  
-也以此文纪念我学习脱壳一周年吧！  
-\----------------------------------------------------  
-【版权信息】  
-版权公有，人权私有。如需转载，注明作者！ 
+## 【破文标题】 MySQL Manager 2.8.0.1 脱壳破解手记破解分析
 
- 4dd466d0e1e0cc123afbe504da2462ca
+## 【破文作者】 `springkang[DFCG]`
+
+## 【作者主页】 `www.chinadfcg.com`
+
+## 【作者邮箱】 `springkang2003@yahoo.com.cn`
+
+## 【所属组织】 `DFCG`
+
+## 【软件名称】 MySQL Manager 2.8.0.1
+
+## 【下载地址】 [`www.ems-hitech.com/mymanager/`](http://www.ems-hitech.com/mymanager/)
+
+## 【破解工具】 `OllyDBG1.10`，`loadpe`，`impr`，`brain and hands`
+
+## 【保护方式】 `ASProtect 1.2 / 1.2c-> Alexey Solodovnikov`
+
+## 【软件限制】 30 天试用
+
+## 【破解难度】 中等
+
+## 【破解时间】 始破于二○○四年七月二十九日，脱文作于二○○四年十一月二日
+
+----------------------------------------------------
+
+### 软件介绍
+
+强大的 `mysql` 管理工具，允许用户通过图形界面创建或编辑数据库对象，并提供通过 `sql` 语句管理用户和权限，通过图形界面建立 `sql` 语句，自动生成 `html` 格式的数据库文档，导入/导出数据，查看/编辑 `blob` 字段等功能
+
+----------------------------------------------------
+
+### 破解声名
+
+学习和研究壳的脱法!帮助脱壳小菜鸟成功走上脱壳大菜鸟之路系列之一
+
+----------------------------------------------------
+
+### 【破解分析】
+
+今年 7 月在 `DFCG` 官方论坛 `0day` 区里看到这款软件，不知出于何目的就稀里糊涂的把它下了。查壳是 `ASProtect 1.2 / 1.2c-> Alexey Solodovnikov`，很老的版本了！当时也觉得很奇怪，`aspr` 的壳 `1.23` 版的脱文到处都是，已经被人研究得很透彻了，`1.3` 甚至 `2.0` 的壳都已经出来了，一个刚出的新软件为何还要用老版壳来保护？现在 `fly` 和 `loveboom` 都脱到 `2.0` 的了，想必我没有必要再讲脱这个老版本的壳了吧！可是当初大菜鸟我在脱它的时候，遇到了一点麻烦，什么麻烦，先卖个关子，。。。呵呵（晕，谁扔的鸡蛋，%￥＾＆＊＠＠，要扔就扔点硬币噻:-) ）。两个月前，`e5v` 兄弟曾经向我问过如何破解它，其实我哪里会什么算法破解，只不过这个软件过分依赖壳的保护，才让大菜鸟我得了个便宜。时隔这么久，要不是当初 `e5v` 的几次问起，的确不好意思作此脱文！
+
+好吧，费话说了一大通，切入正题吧！
+
+老规矩，忽略除内存异常外的所有异常，载入，
+
+```
+00401000 >  68 01A0C600     PUSH MyManage.00C6A001    //停在这里
+00401005    C3             RETN
+00401006    AA             STOS BYTE PTR ES:[EDI]
+00401007    803446 FA      XOR BYTE PTR DS:[ESI+EAX*2],0FA
+0040100B    C9             LEAVE
+```
+
+`F9` 运行，按 `shift+F9` 在第十六次时来到第一次硬盘指纹出现的地方：
+
+```
+01280260    3100           XOR DWORD PTR DS:[EAX],EAX    //第十六次时来到这里，我们看看堆栈，然后 ALT+M, 下内存访问断点
+01280262    EB 01          JMP SHORT 01280265
+01280264    68 648F0500    PUSH 58F64
+01280269    0000           ADD BYTE PTR DS:[EAX],AL
+0128026B    00EB           ADD BL,CH
+0012D748   01270000
+0012D74C   01250000
+0012D750   01280038
+0012D754   00000000
+0012D758   01351E0C  ASCII "0hUeFQCQUXY="    //第十六次时就会看到它，你的机器可能不是这些字符，差不多是类似的，呵呵
+0012D75C   00000000
+0012D760   00000000
+```
+
+内存镜像，项目 23
+
+地址=`00401000`　　　//就在这里下内存断点了
+
+大小=`0062F000` (6483968.)
+
+`Owner`=`MyManage` `00400000`
+
+区段=
+
+包含=`code`
+
+类型=`Imag` `01001002`
+
+访问=`R`
+
+初始访问=`RWE`
+
+下断后按 `shift+F9`,中断，先别取消内存断点；
+
+```
+00A2E37C    55             PUSH EBP   //停在这里，F9。
+00A2E37D    8BEC           MOV EBP,ESP
+00A2E37F    8B45 08        MOV EAX,DWORD PTR SS:[EBP+8]
+00A2E382    A3 C89AA300    MOV DWORD PTR DS:[A39AC8],EAX    //要注意 A39AC8，后面的麻烦就是他引起的，此时 eax=0127C784。现在暂时不理它
+00A2E387    5D             POP EBP
+00A2E388    C2 0400        RETN 4
+```
+
+`F9` 若干次后，来到
+
+```
+00A2E290    55             PUSH EBP    //来到这里
+00A2E291    8BEC           MOV EBP,ESP
+00A2E293    A1 549DA300    MOV EAX,DWORD PTR DS:[A39D54]
+00A2E298    8B55 08        MOV EDX,DWORD PTR SS:[EBP+8]
+00A2E29B    8910           MOV DWORD PTR DS:[EAX],EDX
+00A2E29D    A1 C8AFA300    MOV EAX,DWORD PTR DS:[A3AFC8]
+00A2E2A2    8B55 0C        MOV EDX,DWORD PTR SS:[EBP+C]
+00A2E2A5    8910           MOV DWORD PTR DS:[EAX],EDX
+00A2E2A7    5D             POP EBP
+00A2E2A8    C2 0800        RETN 8        //以上几行用 F9 小心跟，仔细观察每行的数值和堆栈，这几行代码主要是处理使用的次数和日期的。
+00A2E280    55             PUSH EBP    //然后再来到这
+00A2E281    8BEC           MOV EBP,ESP
+00A2E283    8B45 08        MOV EAX,DWORD PTR SS:[EBP+8]
+00A2E286    A3 C49AA300    MOV DWORD PTR DS:[A39AC4],EAX    //这里就要注意了，A39AC4 里存放的就是注册名。我们在命令行里输入：dd 00a39ac4。看看内存的值，如下：
+00A2E28B    5D             POP EBP
+00A2E28C    C2 0400        RETN 4
+```
+
+此时内存的值：
+
+```
+00A39AB8  0000001E
+00A39ABC  0000001E    //以上两行是次数和日期的值，把它们修改一下
+00A39AC0  00000000
+00A39AC4  00A2E18C  MyManage.00A2E18C    //这里放的是注册名，找个空白的地方，改成你的注册名，我找的是 00a3b738，把它的值改成 springkang[DFCG]
+00A39AC8  0127C784      //这里先不管，回头再收拾它。
+```
+
+经修改后的内存值如下：
+
+```
+00A39AB8  FFFFFFFF
+00A39ABC  FFFFFFFF    //实践中好像此不改也行，呵呵。但改了总比不改好！
+00A39AC0  00000000
+00A39AC4  00A3B738  ASCII "springkang[DFCG]"    //不过这里小心，如果在到达最后一次异常时或入口点，可能会变成了其他的值，再把它改回来就是了。另一种方法就是在入口点处，准备 dump 前来修改，这样也可靠些！
+00A39AC8  0127C784
+```
+
+取消内存断点，`shift+F9` 来到最后一次异常处了：
+
+```
+0135F054    FE01           INC BYTE PTR DS:[ECX]    //来到这里
+0135F056  ^ EB E8          JMP SHORT 0135F040
+0135F058    98             CWDE
+0135F059    BB 00000000    MOV EBX,0
+0135F05E    64:8F03        POP DWORD PTR FS:[EBX]
+0135F061    5B             POP EBX
+```
+
+`ALt+M` 再次下内存断点，中断后，就停在入口处了，
+
+```
+00A2F6CC    55             PUSH EBP    //没有被偷的代码，太好了！
+00A2F6CD    8BEC           MOV EBP,ESP
+00A2F6CF    83C4 F4        ADD ESP,-0C
+00A2F6D2    B8 B4E3A200    MOV EAX,MyManage.00A2E3B4
+00A2F6D7    E8 A8A49DFF    CALL MyManage.00409B84
+00A2F6DC    A1 84A2A300    MOV EAX,DWORD PTR DS:[A3A284]
+```
+
+`loadpe` `dump` 后，再用 `impr` 追踪层次一和插件修复，全部有效。
+
+运行出错，＾%￥￥%＾＆＠！
+
+好吧，载入出脱壳修复后的程序看看，是什么原因：
+
+发现当运行到下面代码时出错：
+
+```
+00A2F730    FF15 C89AA300   CALL DWORD PTR DS:[A39AC8]    //跟进去看看
+0127C784    0007           ADD BYTE PTR DS:[EDI],AL    //跟进后是这样的
+0127C786    0000           ADD BYTE PTR DS:[EAX],AL
+0127C788    0000           ADD BYTE PTR DS:[EAX],AL
+0127C78A    0000           ADD BYTE PTR DS:[EAX],AL
+0127C78C    0007           ADD BYTE PTR DS:[EDI],AL
+0127C78E    0000           ADD BYTE PTR DS:[EAX],AL
+0127C790    0013           ADD BYTE PTR DS:[EBX],DL
+```
+
+我们还是载入原程序看看：
+
+```
+0127C784    833D A8352801 0>CMP DWORD PTR DS:[12835A8],0    //原来是引用了壳中代码，运行不错才怪，要想办法搞定！
+0127C78B    74 06          JE SHORT 0127C793    //这行没跳转，估计是没什么用
+0127C78D    FF15 A8352801   CALL DWORD PTR DS:[12835A8]  ; MyManage.00A2E2AC    //这行有用 ，但也调用了壳中代码，
+0127C793    C3             RETN        //这个也有用
+```
+
+先小结一下：
+
+看来要修复调用的壳中代码才好办，怎么做？其实 `OD` 已经为我们做到了，看
+
+`0127C78D    FF15 A8352801   CALL DWORD PTR DS:[12835A8]      ; MyManage.00A2E2AC` ，它引用壳中代码，但最终引用的是 `00A2E2AC` 的数据，呵呵，这下好办了。
+
+我们在找个空地输入如下代码就行了：
+
+```
+call 00A2E2AC
+
+retn
+```
+
+我是在 `00A2FFBD` 这行输入的，输入后如下，然后右键－＞复制到可执行文件保存：
+
+```
+00A2FFBD      E8 EAE2FFFF   CALL dumped\_.00A2E2AC
+00A2FFC2      C3            RETN
+```
+
+`dd 00a2ffbd` 看看内存区吧：
+
+```
+00A2FFBD  FFE2EAE8
+00A2FFC1  0000C3FF    //这两行数据用得上
+```
+
+现在，代码是修复好了，问题是怎样让出错行 `00A2F730    FF15 C89AA300   CALL DWORD PTR DS:[A39AC8]` 调用 `00A2FFBD` 的代码呢？
+
+我在第一次脱它的时候用的方法记不起来了，:-(。
+
+还好我今晚又想到了一个方法：
+
+还记得我在上面说的：“`0A2E382    A3 C89AA300     MOV DWORD PTR DS:[A39AC8],EAX    //要注意 A39AC8，后面的麻烦就是他引起的，此时 eax=0127C784。现在暂时不理它`”,以及“`00A39AC8  0127C784      //这里先不管，回头再收拾它`” 这两句话吗？
+
+对了，我们就是要在 `dump` 前，把 `00A39AC8` 里的数值改成 `00A2FFBD`，然后再把 `00A2FFBD` 里的值改成 `FFE2EAE8`
+
+`00A2FFC1` 里的值改成  `0000C3FF`
+
+此时 `dump` 后，用 `impr` 修复后，就运行正常了！哈哈，一切 `OK`！
+
+----------------------------------------------------
+
+### 【总结】
+
+几个月没脱壳了，手都生了！
+
+此文献给 `e5v` 兄弟！同时感谢他为 `NSSG` 论坛提供了空间！
+
+也以此文纪念我学习脱壳一周年吧！
+
+----------------------------------------------------
+
+### 【版权信息】
+
+版权公有，人权私有。如需转载，注明作者！
+
+`4dd466d0e1e0cc123afbe504da2462ca`

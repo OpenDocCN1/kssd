@@ -1,5 +1,4 @@
 
-
 # 常用字符的 7 位 ASCII 值
 
 > 原文：[`www.pediy.com/kssd/tutorial/append-a.htm`](https://www.pediy.com/kssd/tutorial/append-a.htm)
@@ -34,7 +33,7 @@
 | 55　 37　 7  || 79 　4F　 O  || 103 　67 　g  || 127 　7F　 　 |
 
 **注**：Dec 表示：十进制  
-　　Hex 表示：十六进制  
-　　Char 表示：字符 
+Hex 表示：十六进制  
+Char 表示：字符
 
- 4dd466d0e1e0cc123afbe504da2462ca
+4dd466d0e1e0cc123afbe504da2462ca

@@ -1,54 +1,85 @@
 
-
 # ACProtect1.23 B
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6498.htm`](https://www.pediy.com/kssd/pediy06/pediy6498.htm)
 
-菜鸟也脱 ACProtect1.23 B   
-说明：现在的壳真是越来越 BT，就说 stolen code 版本升级，一次比一次 BT，一次比一次长，要想精确还原 stolen code 对我等菜鸟真不是一件简单的事，因此也有了下文：   
-1 本文采用了-辉仔 Yock 大虾的简便方法，不用还原 STONE-CODE 的方法，再次感谢辉仔 Yock   
-2 查找 STONE-CODE 的位置，是采用了 tDasm 大虾的方法，没有任何壳能逃过 tDasm 的手心，好羡慕！   
-3．目标软件 WIN98 记事本+ACProtect1.23 B（未注册版）   
-我记得有的人说了，未注册的壳你还拿出来算什么 CREACME，哎！也真是够 BT 的！！！   
-4．脱壳过程   
-一 stolen code 分析 +DUMP 时机   
-ollydbg 除 int3 异常外全部忽略。   
-0040D000 >  60              PUSHAD\-----------------------------------壳的入口   
-0040D001    0F88 02000000   JS note1\_23.0040D009   
-0040D007    23C8            AND ECX,EAX   
-0040D009    42              INC EDX   
-0040D00A    85CE            TEST ESI,ECX   
-0040D00C    42              INC EDX   
-0040D00D    45              INC EBP   
-0040D00E    0F82 01000000   JB note1\_23.0040D015   
-0040D014    4E              DEC ESI   
-0040D015    EB 01           JMP SHORT note1\_23.0040D018   
-硬件断点设置仍然按原来不变即在入口 ESP-4=12FFC0 处。F9 运行。出现第一次 int3 异常后，不是按 shift-f9 而是 F9,这是该程序的特例。（引用 tDasm 大虾语）   
-004217D5    61              POPAD   
-004217D6    50              PUSH EAX   
-004217D7    890C24          MOV DWORD PTR SS:\[ESP\],ECX\-----停在此处   
-此处：ESP= 0012FFC0   
-      EBP\= 0012FFF0   
-注意：此时 DUMP（Yock 大虾的简便方法）因为程序已经解压完成！！   
-既然部分代码被偷到这里，那就让这里当 OEP 吧！   
-004217DA    893424          MOV DWORD PTR SS:\[ESP\],ESI   
-004217DD    53              PUSH EBX   
-004217DE    BB FDDE4000     MOV EBX,note1\_23.0040DEFD   
-004217E3    891D C1DE4000   MOV DWORD PTR DS:\[40DEC1\],EBX   
-004217E9    5B              POP EBX   
-004217EA    53              PUSH EBX   
-004217EB    BB C1DE4000     MOV EBX,note1\_23.0040DEC1   
-004217F0    8B33            MOV ESI,DWORD PTR DS:\[EBX\]   
-004217F2    5B              POP EBX   
-二修复壳的入口   
-载入 DUMP 程序-G 0040D000    
-0040D000 >  60              PUSHAD\-----------------------------------壳的入口   
-改成   
-0040D000     /E9 D2470100    JMP           004217D7   
-三修复 IAT   
-IAT 修复很简单，不用说了吧   
-  
-结束语：本文只是讲述了一种对付 stolen code 的方法，但愿有通用性，如果对其他的程序有问题（不要仍石头）可能是因为程序还有暗桩（尤其是 ACPRO；ASPRO）   
-感谢您看完本文  
-  
- 4dd466d0e1e0cc123afbe504da2462ca
+菜鸟也脱 ACProtect1.23 B
+
+说明：现在的壳真是越来越 BT，就说 stolen code 版本升级，一次比一次 BT，一次比一次长，要想精确还原 stolen code 对我等菜鸟真不是一件简单的事，因此也有了下文：
+
+1. 本文采用了-辉仔 Yock 大虾的简便方法，不用还原 STONE-CODE 的方法，再次感谢辉仔 Yock
+2. 查找 STONE-CODE 的位置，是采用了 tDasm 大虾的方法，没有任何壳能逃过 tDasm 的手心，好羡慕！
+3. 目标软件 WIN98 记事本+ACProtect1.23 B（未注册版）
+
+我记得有的人说了，未注册的壳你还拿出来算什么 CREACME，哎！也真是够 BT 的！！！
+
+### 4. 脱壳过程
+
+#### 一 stolen code 分析 +DUMP 时机
+
+`ollydbg` 除 `int3` 异常外全部忽略。
+
+```
+0040D000  >  60             PUSHAD\-----------------------------------壳的入口
+0040D001    0F88 02000000   JS  note1_23.0040D009
+0040D007    23C8            AND  ECX,EAX
+0040D009    42             INC  EDX
+0040D00A    85CE           TEST ESI,ECX
+0040D00C    42             INC  EDX
+0040D00D    45             INC  EBP
+0040D00E    0F82 01000000   JB  note1_23.0040D015
+0040D014    4E             DEC  ESI
+0040D015    EB 01          JMP  SHORT note1_23.0040D018
+```
+
+硬件断点设置仍然按原来不变即在入口 `ESP-4=12FFC0` 处。`F9` 运行。出现第一次 `int3` 异常后，不是按 `shift-f9` 而是 `F9`,这是该程序的特例。（引用 tDasm 大虾语）
+
+```
+004217D5    61             POPAD
+004217D6    50             PUSH EAX
+004217D7    890C24         MOV  DWORD PTR SS:[ESP],ECX\-----停在此处
+```
+
+此处：`ESP= 0012FFC0`
+
+`EBP= 0012FFF0`
+
+注意：此时 `DUMP`（Yock 大虾的简便方法）因为程序已经解压完成！！
+
+既然部分代码被偷到这里，那就让这里当 `OEP` 吧！
+
+```
+004217DA    893424         MOV  DWORD PTR SS:[ESP],ESI
+004217DD    53             PUSH EBX
+004217DE    BB FDDE4000    MOV  EBX,note1_23.0040DEFD
+004217E3    891D C1DE4000  MOV  DWORD PTR DS:[40DEC1],EBX
+004217E9    5B             POP  EBX
+004217EA    53             PUSH EBX
+004217EB    BB C1DE4000    MOV  EBX,note1_23.0040DEC1
+004217F0    8B33           MOV  ESI,DWORD PTR DS:[EBX]
+004217F2    5B             POP  EBX
+```
+
+#### 二 修复壳的入口
+
+载入 `DUMP` 程序-`G 0040D000`
+
+```
+0040D000 >  60             PUSHAD\-----------------------------------壳的入口
+```
+
+改成
+
+```
+0040D000     E9 D2470100    JMP          004217D7
+```
+
+#### 三 修复 IAT
+
+`IAT` 修复很简单，不用说了吧
+
+结束语：本文只是讲述了一种对付 stolen code 的方法，但愿有通用性，如果对其他的程序有问题（不要仍石头）可能是因为程序还有暗桩（尤其是 `ACPRO`；`ASPRO`）
+
+感谢您看完本文
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,387 +1,438 @@
 
-
 # Speed Video Splitter 算法分析兼 RSA 实例教程
 
 > 原文：[`www.pediy.com/kssd/pediy09/pediy09-10.htm`](https://www.pediy.com/kssd/pediy09/pediy09-10.htm)
 
->   到华军软件园随便下载了个软件，没想到居然是 RSA 保护。可能是我平常只注意了分析 CrackMe，而对具体的商用程序玩得太少的缘故吧；也有可能是现在大家都注意到用公钥算法保护自己的软件了（这可是件值得高兴的事情，呵呵）。  
->     
->   1. PEiD 告诉我们这个程序是用 VC6 编写的，kanal 插件得不到任何有用的东西。  
->   2. IDA 没帮上什么忙，没能识别出大数库的库函数。但我们还是导出了 map 文件。  
->   3. 程序中的 BigCreate，Bytes2Big，powmod 等标签是我自己手动加上的。如果大家见过不少大数库，那么对本程序所使用的库函数进行猜测应该不是件很难的事。  
->   4. 我们将尝试用几种不同的思路来破解这个程序的保护。  
->     
->   =====================  
->   方法一：做出注册机，这是最完美的方式了。  
->   =====================  
->   输入  
->   User name:happ  
->   Registration code(sn):11111111-22222222-33333333-44444444-55555555-66666663-77777777-88888888  
->   输入成这种格式的原因，后面我会解释。  
->     
->   0040BE79  |.>mov     dword ptr \[esp+60\], C95841DF   ;  //n  
->   0040BE81  |.>mov     dword ptr \[esp+64\], 717AE412  
->   0040BE89  |.>mov     dword ptr \[esp+68\], F015E3AC  
->   0040BE91  |.>mov     dword ptr \[esp+6C\], 1127EB1  
->   0040BE99  |.>mov     dword ptr \[esp+70\], 1D455E89  
->   0040BEA1  |.>mov     dword ptr \[esp+74\], 5375F151  
->   0040BEA9  |.>mov     dword ptr \[esp+78\], D34D4B6E  
->   0040BEB1  |.>mov     dword ptr \[esp+7C\], 88C5F181   ;  \\\\  
->   0040BEB9  |.>call    <??0CString@@QAE@PBD@Z>        ;  jmp 到 MFC42.#537\_CString::CString  
->   0040BEBE  |.>mov     ecx, \[esp+B0\]                  ;  sn  
->   0040BEC5  |.>mov     dword ptr \[esp+A4\], 0  
->   0040BED0  |.>push    ecx  
->   0040BED1  |.>lea     ecx, \[esp+C\]  
->   0040BED5  |.>call    <??0CString@@QAE@PBD@Z>        ;  jmp 到 MFC42.#537\_CString::CString  
->   0040BEDA  |.>mov     edx, \[esp+C\]                   ;  name  
->   0040BEDE  |.>mov     esi, \[<&MSVCRT.\_mbscmp>\]       ;  msvcrt.\_mbscmp  
->   0040BEE4  |.>push    0042219C                       ; /s2 = ""  
->   0040BEE9  |.>push    edx                            ; |s1  
->   0040BEEA  |.>mov     byte ptr \[esp+AC\], 1           ; |  
->   0040BEF2  |.>call    esi                            ; \\\_mbscmp  
->   0040BEF4  |.>add     esp, 8  
->   0040BEF7  |.>test    eax, eax  
->   0040BEF9  |.>je      0040C10E  
->   0040BEFF  |.>mov     eax, \[esp+8\]  
->   0040BF03  |.>push    0042219C  
->   0040BF08  |.>push    eax                            ;  sn  
->   0040BF09  |.>call    esi  
->   0040BF0B  |.>add     esp, 8  
->   0040BF0E  |.>test    eax, eax  
->   0040BF10  |.>je      0040C10E  
->     
->   上面初始化了 n，同时检测用户输入的信息是否为空。  
->     
->   0040BF16  |.>push    edi  
->   0040BF17  |.>push    0  
->   0040BF19  |.>lea     ecx, \[esp+44\]  
->   0040BF1D  |.>call    <BigCreate>  
->   0040BF22  |.>push    0  
->   0040BF24  |.>lea     ecx, \[esp+4C\]  
->   0040BF28  |.>mov     byte ptr \[esp+AC\], 2  
->   0040BF30  |.>call    <BigCreate>  
->   0040BF35  |.>mov     bl, 3  
->   0040BF37  |.>push    10001                          ;  e=0x10001，看到这个数，大家可能都很敏感。  
->   0040BF3C  |.>lea     ecx, \[esp+5C\]  
->   0040BF40  |.>mov     \[esp+AC\], bl  
->   0040BF47  |.>call    <BigCreate>  
->   0040BF4C  |.>lea     ecx, \[esp+58\]  
->   0040BF50  |.>mov     byte ptr \[esp+A8\], 4  
->   0040BF58  |.>push    ecx  
->   0040BF59  |.>lea     ecx, \[esp+4C\]  
->   0040BF5D  |.>call    0040D6B0  
->   0040BF62  |.>lea     ecx, \[esp+58\]  
->   0040BF66  |.>mov     \[esp+A8\], bl  
->   0040BF6D  |.>call    0040D700  
->   0040BF72  |.>lea     edx, \[esp+60\]  
->   0040BF76  |.>push    8                              ;  8 个 DWORD  
->   0040BF78  |.>push    edx                            ;  n  
->   0040BF79  |.>lea     ecx, \[esp+48\]  
->   0040BF7D  |.>call    <Bytes2Big>  
->   0040BF82  |.>mov     ecx, 8  
->   0040BF87  |.>xor     eax, eax  
->   0040BF89  |.>lea     edi, \[esp+18\]  
->   0040BF8D  |.>lea     edx, \[esp+2C\]  
->   0040BF91  |.>rep     stos dword ptr es:\[edi\]  
->   0040BF93  |.>lea     eax, \[esp+34\]  
->   0040BF97  |.>lea     ecx, \[esp+30\]  
->   0040BF9B  |.>push    eax                            ;  0  
->   0040BF9C  |.>push    ecx                            ;  0  
->   0040BF9D  |.>lea     eax, \[esp+30\]  
->   0040BFA1  |.>push    edx                            ;  0  
->   0040BFA2  |.>lea     ecx, \[esp+30\]  
->   0040BFA6  |.>push    eax                            ;  0  
->   0040BFA7  |.>lea     edx, \[esp+30\]  
->   0040BFAB  |.>push    ecx                            ;  0  
->   0040BFAC  |.>lea     eax, \[esp+30\]  
->   0040BFB0  |.>push    edx  
->   0040BFB1  |.>mov     edx, \[esp+24\]  
->   0040BFB5  |.>lea     ecx, \[esp+30\]  
->   0040BFB9  |.>push    eax  
->   0040BFBA  |.>push    ecx                            ;  下面的 format 告诉了我们注册码的格式  
->   0040BFBB  |.>push    00421ED0                       ; |format = "%08lX-%08lX-%08lX-%08lX-%08lX-%08lX-%08lX-%08lX",LF,""  
->   0040BFC0  |.>push    edx                            ; |s = "11111111-22222222-33333333-44444444-55555555-66666663-77777777-88888888"  
->   0040BFC1  |.>call    \[<&MSVCRT.sscanf>\]             ; \\sscanf  
->     
->   上面初始化了常数 e 和一些大数，同时格式化取得我们输入的注册码，这些都是很明显的事情。  
->     
->   0040BFC7  |.>mov     eax, \[esp+50\]                  ;  55555555  
->   0040BFCB  |.>mov     ecx, \[esp+4C\]                  ;  44444444  
->   0040BFCF  |.>mov     edi, \[esp+48\]                  ;  33333333  
->   0040BFD3  |.>mov     edx, \[esp+44\]                  ;  22222222  
->   0040BFD7  |.>add     eax, ecx                       ;  55555555 + 44444444 =99999999  
->   0040BFD9  |.>mov     ecx, \[esp+5C\]                  ;  88888888  
->   0040BFDD  |.>add     eax, edi                       ;  99999999 + 33333333 = cccccccc  
->   0040BFDF  |.>mov     edi, \[esp+58\]                  ;  77777777  
->   0040BFE3  |.>add     eax, edx                       ;  cccccccc + 22222222 =eeeeeeee  
->   0040BFE5  |.>mov     edx, \[esp+54\]                  ;  66666663  
->   0040BFE9  |.>xor     ecx, eax                       ;  88888888 xor eeeeeeee = 66666666 '  
->   0040BFEB  |.>mov     eax, \[esp+40\]                  ;  11111111  
->   0040BFEF  |.>add     esp, 28  
->   0040BFF2  |.>add     edx, eax                       ;  11111111 + 66666663 = 77777774  
->   0040BFF4  |.>mov     \[esp+34\], ecx                  ;  66666666  
->   0040BFF8  |.>xor     edi, edx                       ;  77777777 xor 77777774 = 3  
->   0040BFFA  |.>push    0  
->   0040BFFC  |.>lea     ecx, \[esp+3C\]  
->   0040C000  |.>mov     \[esp+34\], edi  
->   0040C004  |.>call    <BigCreate>  
->   0040C009  |.>lea     ecx, \[esp+18\]  
->   0040C00D  |.>push    8  
->   0040C00F  |.>push    ecx                            ;  sn' = 1111111122222222333333334444444455555555636666660300000066666666  
->   0040C010  |.>lea     ecx, \[esp+40\]  
->   0040C014  |.>mov     byte ptr \[esp+B0\], 5  
->   0040C01C  |.>call    <Bytes2Big>  
->     
->   一阵眼花缭乱的运算之后，得到了一个核心参数 sn'。呵呵，好戏开始了。  
->     
->   0040C021  |.>lea     edx, \[esp+38\]  
->   0040C025  |.>lea     eax, \[esp+50\]  
->   0040C029  |.>push    edx                            ;  sn'  
->   0040C02A  |.>push    eax  
->   0040C02B  |.>lea     ecx, \[esp+48\]  
->   0040C02F  |.>call    <powmod>                       ;  c =sn' ^ 10001 (mod n)  
->     
->   还是跟进去看一下这个 powmod 函数：  
->   {  
->     004068F0 >/$>push    ecx                            ;  n  
->     004068F1  |.>mov     eax, \[esp+C\]  
->     004068F5  |.>push    esi  
->     004068F6  |.>mov     esi, \[esp+C\]  
->     004068FA  |.>push    ecx                            ;  n  
->     004068FB  |.>add     ecx, 8  
->     004068FE  |.>mov     dword ptr \[esp+8\], 0  
->     00406906  |.>push    ecx                            ;  10001  
->     00406907  |.>push    eax                            ;  sn'  
->     00406908  |.>push    esi                            ;  计算结果存在此处  
->     00406909  |.>call    <\_powmod>                      ;  c =sn' ^ 10001 (mod n)  
->     0040690E  |.>add     esp, 10  
->     00406911  |.>mov     eax, esi  
->     00406913  |.>pop     esi  
->     00406914  |.>pop     ecx  
->     00406915  \\.>retn    8  
->   }  
->     
->   这里要着重说明的是大数在内存中存放的格式。在我的机器上（应该和绝大多数的 PC 一样吧），n 表示为：  
->     
->   00E949B0  DF 41 58 C9 12 E4 7A 71 AC E3 15 F0 B1 7E 12 01  吡 X?潸 q?鸨~  
->   00E949C0  89 5E 45 1D 51 F1 75 53 6E 4B 4D D3 81 F1 C5 88  ?EQ 聃 SnKM?衽  
->     
->   可以看出，它是 Little Endian 方式。  
->     
->   0040C034  |.>mov     ecx, 8  
->   0040C039  |.>xor     eax, eax  
->   0040C03B  |.>lea     edi, \[esp+18\]  
->   0040C03F  |.>push    8  
->   0040C041  |.>rep     stos dword ptr es:\[edi\]  
->   0040C043  |.>lea     ecx, \[esp+1C\]  
->   0040C047  |.>mov     byte ptr \[esp+AC\], 6  
->   0040C04F  |.>push    ecx  
->   0040C050  |.>lea     ecx, \[esp+58\]  
->   0040C054  |.>call    <copy>  
->   0040C059  |.>mov     ecx, 8  
->   0040C05E  |.>xor     eax, eax  
->   0040C060  |.>lea     edi, \[esp+80\]  
->   0040C067  |.>rep     stos dword ptr es:\[edi\]  
->   0040C069  |.>pop     edi  
->   0040C06A  |>>/mov     dl, \[esp+eax+17\]              ;  //就是由于下面这段循环导致写注册机时 name 要反转  
->   0040C06E  |.>|mov     cl, \[esp+eax+16\]  
->   0040C072  |.>|mov     \[esp+eax+7C\], dl  
->   0040C076  |.>|mov     edx, \[esp+eax+14\]  
->   0040C07A  |.>|mov     \[esp+eax+7D\], cl  
->   0040C07E  |.>|mov     cl, \[esp+eax+14\]  
->   0040C082  |.>|shr     edx, 8  
->   0040C085  |.>|mov     \[esp+eax+7E\], dl  
->   0040C089  |.>|mov     \[esp+eax+7F\], cl  
->   0040C08D  |.>|add     eax, 4  
->   0040C090  |.>|cmp     eax, 20  
->   0040C093  |.>\\jl      short 0040C06A                ;  \\\\convert c  
->   0040C095  |.>lea     edx, \[esp+7C\]  
->   0040C099  |.>lea     ecx, \[esp+10\]  
->   0040C09D  |.>push    edx                            ;  c  
->   0040C09E  |.>call    <??0CString@@QAE@PBD@Z>        ;  jmp 到 MFC42.#537\_CString::CString  
->   0040C0A3  |.>mov     eax, \[esp+10\]  
->   0040C0A7  |.>mov     ecx, \[esp+C\]  
->   0040C0AB  |.>push    eax                            ;  c  
->   0040C0AC  |.>push    ecx                            ;  name  
->   0040C0AD  |.>call    esi                            ;  msvcrt.\_mbscmp  
->   0040C0AF  |.>add     esp, 8  
->   0040C0B2  |.>lea     ecx, \[esp+10\]  
->   0040C0B6  |.>test    eax, eax  
->   0040C0B8  |.>mov     byte ptr \[esp+A4\], 6  
->   0040C0C0  | >je      0040C14C                       ;  判断注册成功与否  
->     
->   对于 convert c 的循环的解释请参考下面的注册机。现在只需明白 0040C0AD 处比较的是 RSA 计算的结果和 name 即可。看过《加密与解密 II》P208~211 的那个 RSA 例子的应该很容易就能明白这个比较。  
->     
->   好了，整理一下程序验证的思路：  
->   (1) 先是眼花缭乱的一段运算得到 sn'；  
->   (2) 计算 c = sn'^ e (mod n)；  
->   (3) 比较 c 和 name。  
->     
->   为了仔细分析那段眼花缭乱的运算，我们不妨作如下标记：  
->   11111111-22222222-33333333-44444444-55555555-66666663-77777777-88888888  
->     sn\_1     sn\_2     sn\_3     sn\_4     sn\_5     sn\_6     sn\_7     sn\_8  
->   sn'采用同样的分法。  
->     
->   OK，分析那段运算的算法：  
->   Δ = (sn\_5 + sn\_4 + sn\_3 + sn\_2) xor sn\_8  
->   δ = (sn\_1 + sn\_6) xor sn\_7  
->   很明显，该算法可逆。  
->     
->   那么：  
->   sn'=sn\_1-sn\_2-sn\_3-sn\_4-sn\_5-sn\_6-δ-Δ  
->     
->   我们已经明白了程序验证注册的完整过程，下面是 RSATool 计算出来的 RSA 参数（花了我 4 个多小时）：  
->   =======================================================  
->   n=p\*q:  
->   88C5F181D34D4B6E5375F1511D455E8901127EB1F015E3AC717AE412C95841DF  
->   p:  
->   92D9586271DFD8D47C9AE783DED37E9F  
->   q:  
->   EE6F5C9077D0A54887558B9CA262B4C1  
->   e:  
->   10001  
->   d:  
->   7AAB6636F5681EDE3D96CBAFDF9BE6F38A66563EB122E21AE8B94121DC164781  
->   ========================================================  
->     
->   该写注册机了，由于论坛不方便上传编译好的程序，所以我仅给出注册机的源代码，用到了 miracl 库：  
->   //KeyGen for \[Speed Video Splitter 2.4.29\]  
->   //Cracked by \[HappyTown\]  
->     
->   //RSA-252 inside  
->   #include <stdio.h>  
->   #include <stdlib.h>  
->   #include <windows.h>  
->   #include <miracl.h>  
->     
->   #define MAXLEN 500  
->   int main()  
->   {  
->     int i=0, iNameLen=0, k=0;  
->   unsigned char Name\[MAXLEN\] = {0};  
->   unsigned char name\[MAXLEN\] = {0};  
->   unsigned int sn\_\[8\];  
->   unsigned int \*p, \*p1;  
->   
->   big n,d,bTemp,bName;  
->   miracl \*mip = mirsys(0x500, 0x10);  
->   n = mirvar(0);  
->   d = mirvar(0);  
->   bTemp = mirvar(0);  
->   bName = mirvar(0);  
->   mip->IOBASE = 16;  
->   cinstr(n, "88C5F181D34D4B6E5375F1511D455E8901127EB1F015E3AC717AE412C95841DF");  
->   cinstr(d, "7AAB6636F5681EDE3D96CBAFDF9BE6F38A66563EB122E21AE8B94121DC164781");  
->   
->   printf("\\t\\tKeyGen for \[Speed Video Splitter 2.4.29\]\\n");  
->   printf("\\t\\t   Cracked by \[HappyTown\] 2007-01-09\\n\\n");  
->   
->   //get name and reverse name  
->   again:  
->   printf("Enter your name:");//支持中文  
->   scanf("%s", Name);  
->   iNameLen = lstrlen(Name);  
->   //name 长度最好不要大于等于 32 位，因为当超过 n 时会导致违背 RSA 算法  
->   if(iNameLen >=32)    
->   {  
->     printf("\\tWarning! Too long name.\\n");  
->     goto again;  
->   }   
->   k = iNameLen / 4;  
->   p = &Name;  
->   p1 = &name;  
->   p1 = p1 + k;  
->   for(i=0; i<=k; i++)//反转 name  
->   {  
->     \*p1 = \*(p+i);  
->     p1--;  
->   }  
->   bytes\_to\_big((k+1)\*4, name, bName);//因为反转的缘故，所以即使 name 的长度为 1，也要取 4 字节  
->   
->   //RSA  
->   powmod(bName, d, n, bTemp);  
->   
->   //get sn  
->   p = (unsigned int)bTemp;  
->   p = p + 3;  
->   for(i=0; i<8; i++)  
->   {  
->     sn\_\[i\] = \*p;  
->     p++;  
->   }  
->   
->   //xor and print Registration code  
->   sn\_\[7\] = (sn\_\[4\] + sn\_\[3\] + sn\_\[2\] + sn\_\[1\]) ^ sn\_\[7\];  
->   sn\_\[6\] = (sn\_\[0\] + sn\_\[5\]) ^ sn\_\[6\];  
->   printf("Registration code:\\n");  
->   for(i=0; i<8; i++)  
->   {  
->     printf("%08X", sn\_\[i\]);  
->     if (i != 7)  
->     {  
->       printf("-");  
->     }  
->   }  
->   
->   //kill miracl  
->   mirkill(n); mirkill(d); mirkill(bName); mirkill(bTemp);mirexit();  
->     
->   printf("\\n\\n\\n\\n");  
->   system("pause");  
->   return 0;  
->   }  
->   
->   给出几组可用的注册码供大家检测：  
->   username=happ  
->   registercode=43CF62F0-884A07EF-46355D15-9213A3DE-1E7BB37C-2C6182E1-DD729E6A-5DC99194  
->     
->   username=happytown  
->   registercode=BC4AADFF-49A152A2-FBC551F1-DD3665C7-53DC6132-B8F3E443-94BEAB2E-597DC5E9  
->   
->   username=看雪学院  
->   registercode=204B1562-C15498F6-6401CB00-5C4193E1-D36331E8-CC966A50-C92E7322-7C2C3B43  
->     
->   =====================  
->   方法二：不写注册机，也不更改程序，却可以通过验证（该方法仅作为一种思路本是可行的，但在该程序中未通过）  
->   =====================  
->   聪明的你肯定发现了注册信息存放在软件目录下的 Settings.ini 文件中。  
->   我们再看一遍下面这段代码：  
->     
->   0040C0AB  |.>push    eax                            ;  c  
->   0040C0AC  |.>push    ecx                            ;  name  
->   0040C0AD  |.>call    esi                            ;  msvcrt.\_mbscmp  
->   0040C0AF  |.>add     esp, 8  
->   0040C0B2  |.>lea     ecx, \[esp+10\]  
->   0040C0B6  |.>test    eax, eax  
->   0040C0B8  |.>mov     byte ptr \[esp+A4\], 6  
->   0040C0C0  | >je      0040C14C                       ;  判断注册成功与否  
->     
->   呵呵，在 Settings.ini 中把我们输入的 name 改成 c 是否可行呢？试试看吧，不过不能用记事本和 UE 之类的软件来改，而要用 Hex Workshop 和 WinHex 之类的软件来改。还是以方法一的输入为例。  
->   这是经过计算后的 c:  
->   003F45E0  77 21 7D 67 CB 4B 46 C3 1A EA A5 E9 0B B6 F2 8C  w!}g 怂 F?辚?厄  
->   003F45F0  96 EA C0 A3 A5 0C 64 20 71 B9 F6 C4 7B 9E D6 D4  ?溃?d q 滚柠?  
->   003F4600  E0 E3 12 00 00 00 00 00 00 00 00 00 00 00 00 00  嚆.............  
->     
->   因为\_mbscmp 比较时遇到 00 才算字符串结束，所以 Settings.ini 中的 name 也需要包含 c 后面的 E0 E3 12。  
->   但有意思的是在程序中总是把 name 中后面的 12 没有读出来，就差一个字节，导致验证失败，手动修改内存添上当然可以通过验证。我始终没有检查出为什么会漏掉这个 12。但这一思路应该在某些软件上有效。  
->     
->   =====================  
->   方法三：爆破，直接更改 0040C0C0  | >je      0040C14C 的 je 为 jne 即可。  
->   =====================  
->   这时，真正的注册码倒不能验证通过了。直接改为 jmp 算了。  
->     
->   =====================  
->   方法四：用 RSATool 生成一组 n，d 替换掉程序原来的 n 和 d。  
->   =====================  
->   这样就不用花时间计算 d，可以用自己的 n 和 d 直接写注册机。当 n 特别大而难以分解时，会很凑效。具体的我就不做了，大家可以试试。      
->     
-> \--------------------------------------------------------------------------------  
-> 【经验总结】  
->   还是那句老话，我始终认为一题多解是个很好的学习方法。  
->     
-> \--------------------------------------------------------------------------------  
-> 【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
->   
->                                                        2007 年 01 月 09 日 16:27:25 
+> 到华军软件园随便下载了个软件，没想到居然是 RSA 保护。可能是我平常只注意了分析 CrackMe，而对具体的商用程序玩得太少的缘故吧；也有可能是现在大家都注意到用公钥算法保护自己的软件了（这可是件值得高兴的事情，呵呵）。
 
- 4dd466d0e1e0cc123afbe504da2462ca
+1. `PEiD` 告诉我们这个程序是用 `VC6` 编写的，`kanal` 插件得不到任何有用的东西。
+2. `IDA` 没帮上什么忙，没能识别出大数库的库函数。但我们还是导出了 `map` 文件。
+3. 程序中的 `BigCreate`，`Bytes2Big`，`powmod` 等标签是我自己手动加上的。如果大家见过不少大数库，那么对本程序所使用的库函数进行猜测应该不是件很难的事。
+4. 我们将尝试用几种不同的思路来破解这个程序的保护。
+
+### 方法一：做出注册机，这是最完美的方式了。
+
+#### 输入
+
+- `User name`: `happ`
+- `Registration code(sn)`: `11111111-22222222-33333333-44444444-55555555-66666663-77777777-88888888`
+
+输入成这种格式的原因，后面我会解释。
+
+```asm
+0040BE79  .>mov     dword ptr [esp+60], C95841DF   ;  //n
+0040BE81  .>mov     dword ptr [esp+64], 717AE412
+0040BE89  .>mov     dword ptr [esp+68], F015E3AC
+0040BE91  .>mov     dword ptr [esp+6C], 1127EB1
+0040BE99  .>mov     dword ptr [esp+70], 1D455E89
+0040BEA1  .>mov     dword ptr [esp+74], 5375F151
+0040BEA9  .>mov     dword ptr [esp+78], D34D4B6E
+0040BEB1  .>mov     dword ptr [esp+7C], 88C5F181   ;  //n
+0040BEB9  .>call    <??0CString@@QAE@PBD@Z>        ;  jmp 到 MFC42.#537_CString::CString
+0040BEBE  .>mov     ecx, [esp+B0]                  ;  sn
+0040BEC5  .>mov     dword ptr [esp+A4], 0
+0040BED0  .>push    ecx
+0040BED1  .>lea     ecx, [esp+C]
+0040BED5  .>call    <??0CString@@QAE@PBD@Z>        ;  jmp 到 MFC42.#537_CString::CString
+0040BEDA  .>mov     edx, [esp+C]                   ;  name
+0040BEDE  .>mov     esi, [<&MSVCRT._mbscmp>]       ;  msvcrt._mbscmp
+0040BEE4  .>push    0042219C                       ; /s2 = ""
+0040BEE9  .>push    edx                            ; |s1
+0040BEEA  .>mov     byte ptr [esp+AC], 1           ; |
+0040BEF2  .>call    esi                            ; \_mbscmp
+0040BEF4  .>add     esp, 8
+0040BEF7  .>test    eax, eax
+0040BEF9  .>je      0040C10E
+0040BEFF  .>mov     eax, [esp+8]
+0040BF03  .>push    0042219C
+0040BF08  .>push    eax                            ;  sn
+0040BF09  .>call    esi
+0040BF0B  .>add     esp, 8
+0040BF0E  .>test    eax, eax
+0040BF10  .>je      0040C10E
+```
+
+上面初始化了 `n`，同时检测用户输入的信息是否为空。
+
+```asm
+0040BF16  .>push    edi
+0040BF17  .>push    0
+0040BF19  .>lea     ecx, [esp+44]
+0040BF1D  .>call    <BigCreate>
+0040BF22  .>push    0
+0040BF24  .>lea     ecx, [esp+4C]
+0040BF28  .>mov     byte ptr [esp+AC], 2
+0040BF30  .>call    <BigCreate>
+0040BF35  .>mov     bl, 3
+0040BF37  .>push    10001                          ;  e=0x10001，看到这个数，大家可能都很敏感。
+0040BF3C  .>lea     ecx, [esp+5C]
+0040BF40  .>mov     [esp+AC], bl
+0040BF47  .>call    <BigCreate>
+0040BF4C  .>lea     ecx, [esp+58]
+0040BF50  .>mov     byte ptr [esp+A8], 4
+0040BF58  .>push    ecx
+0040BF59  .>lea     ecx, [esp+4C]
+0040BF5D  .>call    0040D6B0
+0040BF62  .>lea     ecx, [esp+58]
+0040BF66  .>mov     [esp+A8], bl
+0040BF6D  .>call    0040D700
+0040BF72  .>lea     edx, [esp+60]
+0040BF76  .>push    8                              ;  8 个 DWORD
+0040BF78  .>push    edx                            ;  n
+0040BF79  .>lea     ecx, [esp+48]
+0040BF7D  .>call    <Bytes2Big>
+0040BF82  .>mov     ecx, 8
+0040BF87  .>xor     eax, eax
+0040BF89  .>lea     edi, [esp+18]
+0040BF8D  .>lea     edx, [esp+2C]
+0040BF91  .>rep     stos dword ptr es:[edi]
+0040BF93  .>lea     eax, [esp+34]
+0040BF97  .>lea     ecx, [esp+30]
+0040BF9B  .>push    eax                            ;  0
+0040BF9C  .>push    ecx                            ;  0
+0040BF9D  .>lea     eax, [esp+30]
+0040BFA1  .>push    edx                            ;  0
+0040BFA2  .>lea     ecx, [esp+30]
+0040BFA6  .>push    eax                            ;  0
+0040BFA7  .>lea     edx, [esp+30]
+0040BFAB  .>push    ecx                            ;  0
+0040BFAC  .>lea     eax, [esp+30]
+0040BFB0  .>push    edx
+0040BFB1  .>mov     edx, [esp+24]
+0040BFB5  .>lea     ecx, [esp+30]
+0040BFB9  .>push    eax
+0040BFBA  .>push    ecx                            ;  下面的 format 告诉了我们注册码的格式
+0040BFBB  .>push    00421ED0                       ; |format = "%08lX-%08lX-%08lX-%08lX-%08lX-%08lX-%08lX-%08lX",LF,""
+0040BFC0  .>push    edx                            ; |s = "11111111-22222222-33333333-44444444-55555555-66666663-77777777-88888888"
+0040BFC1  .>call    [<&MSVCRT.sscanf>]             ; \\sscanf
+```
+
+上面初始化了常数 `e` 和一些大数，同时格式化取得我们输入的注册码，这些都是很明显的事情。
+
+```asm
+0040BFC7  .>mov     eax, [esp+50]                 ;  55555555
+0040BFCB  .>mov     ecx, [esp+4C]                 ;  44444444
+0040BFCF  .>mov     edi, [esp+48]                 ;  33333333
+0040BFD3  .>mov     edx, [esp+44]                 ;  22222222
+0040BFD7  .>add     eax, ecx                      ;  55555555 + 44444444 =99999999
+0040BFD9  .>mov     ecx, [esp+5C]                 ;  88888888
+0040BFDD  .>add     eax, edi                      ;  99999999 + 33333333 = cccccccc
+0040BFDF  .>mov     edi, [esp+58]                 ;  77777777
+0040BFE3  .>add     eax, edx                      ;  cccccccc + 22222222 = eeeeeeee
+0040BFE5  .>mov     edx, [esp+54]                 ;  66666663
+0040BFE9  .>xor     ecx, eax                      ;  88888888 xor eeeeeeee = 66666666 '
+0040BFEB  .>mov     eax, [esp+40]                 ;  11111111
+0040BFEF  .>add     esp, 28
+0040BFF2  .>add     edx, eax                      ;  11111111 + 66666663 = 77777774
+0040BFF4  .>mov     [esp+34], ecx                 ;  66666666
+0040BFF8  .>xor     edi, edx                      ;  77777777 xor 77777774 = 3
+0040BFFA  .>push    0
+0040BFFC  .>lea     ecx, [esp+3C]
+0040C000  .>mov     [esp+34], edi
+0040C004  .>call    <BigCreate>
+0040C009  .>lea     ecx, [esp+18]
+0040C00D  .>push    8
+0040C00F  .>push    ecx                            ;  sn' = 1111111122222222333333334444444455555555636666660300000066666666
+0040C010  .>lea     ecx, [esp+40]
+0040C014  .>mov     byte ptr [esp+B0], 5
+0040C01C  .>call    <Bytes2Big>
+```
+
+一阵眼花缭乱的运算之后，得到了一个核心参数 `sn'`。呵呵，好戏开始了。
+
+```asm
+0040C021  .>lea     edx, [esp+38]
+0040C025  .>lea     eax, [esp+50]
+0040C029  .>push    edx                            ;  sn'
+0040C02A  .>push    eax
+0040C02B  .>lea     ecx, [esp+48]
+0040C02F  .>call    <powmod>                       ;  c =sn' ^ 10001 (mod n)
+```
+
+还是跟进去看一下这个 `powmod` 函数：
+
+```asm
+004068F0  >/$>push    ecx                          ;  n
+004068F1  |.>mov      eax, [esp+C]
+004068F5  |.>push     esi
+004068F6  |.>mov      esi, [esp+C]
+004068FA  |.>push     ecx                          ;  n
+004068FB  |.>add      ecx, 8
+004068FE  |.>mov      dword ptr [esp+8], 0
+00406906  |.>push     ecx                          ;  10001
+00406907  |.>push     eax                          ;  sn'
+00406908  |.>push     esi                          ;  计算结果存在此处
+00406909  |.>call    <\_powmod>                    ;  c =sn' ^ 10001 (mod n)
+0040690E  |.>add      esp, 10
+00406911  |.>mov      eax, esi
+```
+
+
+
+# 二进制分析与注册机源码
+
+## 汇编指令片段
+
+```
+00406913  |.>pop     esi  
+00406914  |.>pop     ecx  
+00406915  \.>retn    8  
+```
+
+}
+
+这里要着重说明的是大数在内存中存放的格式。在我的机器上（应该和绝大多数的 PC 一样吧），`n` 表示为：
+
+```
+00E949B0  DF 41 58 C9 12 E4 7A 71 AC E3 15 F0 B1 7E 12 01  吡 X?潸 q?鸨~  
+00E949C0  89 5E 45 1D 51 F1 75 53 6E 4B 4D D3 81 F1 C5 88  ?EQ 聃 SnKM?衽  
+```
+
+可以看出，它是 `Little Endian` 方式。
+
+```
+0040C034  |.>mov     ecx, 8  
+0040C039  |.>xor     eax, eax  
+0040C03B  |.>lea     edi, [esp+18]  
+0040C03F  |.>push    8  
+0040C041  |.>rep     stos dword ptr es:[edi]  
+0040C043  |.>lea     ecx, [esp+1C]  
+0040C047  |.>mov     byte ptr [esp+AC], 6  
+0040C04F  |.>push    ecx  
+0040C050  |.>lea     ecx, [esp+58]  
+0040C054  |.>call    <copy>  
+0040C059  |.>mov     ecx, 8  
+0040C05E  |.>xor     eax, eax  
+0040C060  |.>lea     edi, [esp+80]  
+0040C067  |.>rep     stos dword ptr es:[edi]  
+0040C069  |.>pop     edi  
+0040C06A  |>>/mov     dl, [esp+eax+17]               ;  //就是由于下面这段循环导致写注册机时 name 要反转  
+0040C06E  |.|mov     cl, [esp+eax+16]  
+0040C072  |.|mov     [esp+eax+7C], dl  
+0040C076  |.|mov     edx, [esp+eax+14]  
+0040C07A  |.|mov     [esp+eax+7D], cl  
+0040C07E  |.|mov     cl, [esp+eax+14]  
+0040C082  |.|shr     edx, 8  
+0040C085  |.|mov     [esp+eax+7E], dl  
+0040C089  |.|mov     [esp+eax+7F], cl  
+0040C08D  |.|add     eax, 4  
+0040C090  |.|cmp     eax, 20  
+0040C093  |.\jl      short 0040C06A                  ;  \\convert c  
+0040C095  |.>lea     edx, [esp+7C]  
+0040C099  |.>lea     ecx, [esp+10]  
+0040C09D  |.>push    edx                              ;  c  
+0040C09E  |.>call    <??0CString@@QAE@PBD@Z>          ;  jmp 到 MFC42.#537_CString::CString  
+0040C0A3  |.>mov     eax, [esp+10]  
+0040C0A7  |.>mov     ecx, [esp+C]  
+0040C0AB  |.>push    eax                              ;  c  
+0040C0AC  |.>push    ecx                              ;  name  
+0040C0AD  |.>call    esi                              ;  msvcrt._mbscmp  
+0040C0AF  |.>add     esp, 8  
+0040C0B2  |.>lea     ecx, [esp+10]  
+0040C0B6  |.>test    eax, eax  
+0040C0B8  |.>mov     byte ptr [esp+A4], 6  
+0040C0C0  | >je      0040C14C                         ;  判断注册成功与否  
+```
+
+对于 `convert c` 的循环的解释请参考下面的注册机。现在只需明白 `0040C0AD` 处比较的是 `RSA` 计算的结果和 `name` 即可。看过《加密与解密 II》P208~211 的那个 `RSA` 例子的应该很容易就能明白这个比较。
+
+好了，整理一下程序验证的思路：
+
+1. 先是眼花缭乱的一段运算得到 `sn'`；
+2. 计算 `c = sn'^ e (mod n)`；
+3. 比较 `c` 和 `name`。
+
+为了仔细分析那段眼花缭乱的运算，我们不妨作如下标记：
+
+```
+11111111-22222222-33333333-44444444-55555555-66666663-77777777-88888888  
+   sn_1     sn_2     sn_3     sn_4     sn_5     sn_6     sn_7     sn_8  
+```
+
+`sn'` 采用同样的分法。
+
+OK，分析那段运算的算法：
+
+`Δ = (sn_5 + sn_4 + sn_3 + sn_2) xor sn_8`
+
+`δ = (sn_1 + sn_6) xor sn_7`
+
+很明显，该算法可逆。
+
+那么：
+
+`sn'=sn_1-sn_2-sn_3-sn_4-sn_5-sn_6-δ-Δ`
+
+我们已经明白了程序验证注册的完整过程，下面是 `RSATool` 计算出来的 `RSA` 参数（花了我 4 个多小时）：
+
+```
+=======================================================
+n=p*q:
+88C5F181D34D4B6E5375F1511D455E8901127EB1F015E3AC717AE412C95841DF
+p:
+92D9586271DFD8D47C9AE783DED37E9F
+q:
+EE6F5C9077D0A54887558B9CA262B4C1
+e:
+10001
+d:
+7AAB6636F5681EDE3D96CBAFDF9BE6F38A66563EB122E21AE8B94121DC164781
+========================================================
+```
+
+该写注册机了，由于论坛不方便上传编译好的程序，所以我仅给出注册机的源代码，用到了 `miracl` 库：
+
+```c
+//KeyGen for [Speed Video Splitter 2.4.29]
+//Cracked by [HappyTown]
+
+//RSA-252 inside
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+#include <miracl.h>
+
+#define MAXLEN 500
+int main()
+{
+  int i=0, iNameLen=0, k=0;
+  unsigned char Name[MAXLEN] = {0};
+  unsigned char name[MAXLEN] = {0};
+  unsigned int sn_[8];
+  unsigned int *p, *p1;
+
+  big n,d,bTemp,bName;
+  miracl *mip = mirsys(0x500, 0x10);
+  n = mirvar(0);
+  d = mirvar(0);
+  bTemp = mirvar(0);
+  bName = mirvar(0);
+  mip->IOBASE = 16;
+  cinstr(n, "88C5F181D34D4B6E5375F1511D455E8901127EB1F015E3AC717AE412C95841DF");
+  cinstr(d, "7AAB6636F5681EDE3D96CBAFDF9BE6F38A66563EB122E21AE8B94121DC164781");
+
+  printf("\t\tKeyGen for [Speed Video Splitter 2.4.29]\n");
+  printf("\t\t   Cracked by [HappyTown] 2007-01-09\n\n");
+
+  //get name and reverse name
+again:
+  printf("Enter your name:");//支持中文
+  scanf("%s", Name);
+  iNameLen = lstrlen(Name);
+  //name 长度最好不要大于等于 32 位，因为当超过 n 时会导致违背 RSA 算法
+  if(iNameLen >=32)  
+  {
+    printf("\tWarning! Too long name.\n");
+    goto again;
+  } 
+  k = iNameLen / 4;
+  p = &Name;
+  p1 = &name;
+  p1 = p1 + k;
+  for(i=0; i<=k; i++)//反转 name
+  {
+    *p1 = *(p+i);
+    p1--;
+  }
+  bytes_to_big((k+1)*4, name, bName);//因为反转的缘故，所以即使 name 的长度为 1，也要取 4 字节
+
+  //RSA
+  powmod(bName, d, n, bTemp);
+
+  //get sn
+  p = (unsigned int)bTemp;
+  p = p + 3;
+  for(i=0; i<8; i++)
+  {
+    sn_[i] = *p;
+    p++;
+  }
+
+  //xor and print Registration code
+  sn_[7] = (sn_[4] + sn_[3] + sn_[2] + sn_[1]) ^ sn_[7];
+  sn_[6] = (sn_[0] + sn_[5]) ^ sn_[6];
+  printf("Registration code:\n");
+  for(i=0; i<8; i++)
+  {
+    printf("%08X", sn_[i]);
+    if (i != 7)
+    {
+      printf("-");
+    }
+  }
+
+  //kill miracl
+  mirkill(n); mirkill(d); mirkill(bName); mirkill(bTemp);mirexit();
+
+  printf("\n\n\n\n");
+  system("pause");
+  return 0;
+}
+```
+
+给出几组可用的注册码供大家检测：
+
+* `username=happ`
+* `registercode=43CF62F0-884A07EF-46355D15-9213A3DE-1E7BB37C-2C6182E1-DD729E6A-5DC99194`
+
+* `username=happytown`
+* `registercode=BC4AADFF-49A152A2-FBC551F1-DD3665C7-53DC6132-B8F3E443-94BEAB2E-597DC5E9`
+
+* `username=看雪学院`
+* `registercode=204B1562-C15498F6-6401CB00-5C4193E1-D36331E8-CC966A50-C92E7322-7C2C3B43`
+
+## 方法二：不写注册机，也不更改程序，却可以通过验证
+
+（该方法仅作为一种思路本是可行的，但在该程序中未通过）
+
+聪明的你肯定发现了注册信息存放在软件目录下的 `Settings.ini` 文件中。
+
+我们再看一遍下面这段代码：
+
+```
+0040C0AB  |.>push    eax                              ;  c  
+0040C0AC  |.>push    ecx                              ;  name  
+0040C0AD  |.>call    esi                              ;  msvcrt._mbscmp  
+0040C0AF  |.>add     esp, 8  
+0040C0B2  |.>lea     ecx, [esp+10]  
+0040C0B6  |.>test    eax, eax  
+0040C0B8  |.>mov     byte ptr [esp+A4], 6  
+0040C0C0  | >je      0040C14C                         ;  判断注册成功与否  
+```
+
+呵呵，在 `Settings.ini` 中把我们输入的 `name` 改成 `c` 是否可行呢？试试看吧，不过不能用记事本和 `UE` 之类的软件来改，而要用 `Hex Workshop` 和 `WinHex` 之类的软件来改。还是以方法一的输入为例。
+
+这是经过计算后的 `c`:
+
+```
+003F45E0  77 21 7D 67 CB 4B 46 C3 1A EA A5 E9 0B B6 F2 8C  w!}g 怂 F?辚?厄  
+003F45F0  96 EA C0 A3 A5 0C 64 20 71 B9 F6 C4 7B 9E D6 D4  ?溃?d q 滚柠?  
+003F4600  E0 E3 12 00 00 00 00 00 00 00 00 00 00 00 00 00  嚆.............
+```
+
+因为 `_mbscmp` 比较时遇到 `00` 才算字符串结束，所以 `Settings.ini` 中的 `name` 也需要包含 `c` 后面的 `E0 E3 12`。
+
+但有意思的是在程序中总是把 `name` 中后面的 `12` 没有读出来，就差一个字节，导致验证失败，手动修改内存添上当然可以通过验证。我始终没有检查出为什么会漏掉这个 `12`。但这一思路应该在某些软件上有效。
+
+## 方法三：爆破
+
+直接更改 `0040C0C0  | >je      0040C14C` 的 `je` 为 `jne` 即可。
+
+这时，真正的注册码倒不能验证通过了。直接改为 `jmp` 算了。
+
+## 方法四：用 RSATool 生成参数替换
+
+用 `RSATool` 生成一组 `n`，`d` 替换掉程序原来的 `n` 和 `d`。
+
+这样就不用花时间计算 `d`，可以用自己的 `n` 和 `d` 直接写注册机。当 `n` 特别大而难以分解时，会很凑效。具体的我就不做了，大家可以试试。
+
+
+
+> 【经验总结】  
+> 还是那句老话，我始终认为一题多解是个很好的学习方法。  
+>
+> 【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
+>
+> 2007 年 01 月 09 日 16:27:25  
+>
+> `4dd466d0e1e0cc123afbe504da2462ca`

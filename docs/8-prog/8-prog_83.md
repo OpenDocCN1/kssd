@@ -1,122 +1,109 @@
 
-
 # 汇编学习之 NT 服务编程实现
 
 > 原文：[`www.pediy.com/kssd/pediy10/77988.html`](https://www.pediy.com/kssd/pediy10/77988.html)
 
-汇编学习之 NT 服务  
-  
-  
-服务作为一种特殊的应用程序在实际编程中有很大的用途，现在用汇编来实现  
-  
-  
-NT 服务可以理解为一个程序，有两个线程，一个是负责用户的后台操作，一个是用于与操作系统进行交互，  
-通知何时启动，停止，暂停，初始化终止  
-  
-服务只有一个入口  
+服务作为一种特殊的应用程序在实际编程中有很大的用途，现在用汇编来实现。
 
-代码:
+NT 服务可以理解为一个程序，有两个线程，一个是负责用户的后台操作，一个是用于与操作系统进行交互，通知何时启动、停止、暂停、初始化终止。
 
-```
+服务只有一个入口。
+
+代码：
+
+```asm
 .code
 start:
 ;使用 scm 注册
-mov sTable.lpServiceProc, offset ServiceMain
-LOAD sTable.lpServiceName,offset SERVICE\_NAME
+mov sTable.lpServiceProc, offset ServiceMain
+LOAD sTable.lpServiceName, offset SERVICE_NAME
 
-invoke StartServiceCtrlDispatcher,ADDR sTable
+invoke StartServiceCtrlDispatcher, ADDR sTable
 
-.IF eax == 0
-  invoke ErrorHandler,ADDR ERROR\_MESSAGE
+.IF eax == 0
+  invoke ErrorHandler, ADDR ERROR_MESSAGE
 .endif
 
-invoke ExitProcess, eax
-
+invoke ExitProcess, eax
 ```
 
-程序执行调用了 StartServiceCtrlDispatcher 函数后退出，但是程序并没有返回，只有系统通知，才会返回  
-  
-调用这个函数，服务管理器利用服务名称和相关的 ServiceMain 服务函数偏移量对服务进行注册，服务控制管理器  
-调用入口点  
-代码:
+程序执行调用了 `StartServiceCtrlDispatcher` 函数后退出，但是程序并没有返回，只有系统通知，才会返回。调用这个函数，服务管理器利用服务名称和相关的 `ServiceMain` 服务函数偏移量对服务进行注册，服务控制管理器调用入口点。
 
-```
+代码：
+
+```asm
 ServiceMain
 
-ServiceMain proc argc:DWORD,argv:DWORD
-LOCAL success:BOOL
-LOCAL temp:DWORD
+ServiceMain proc argc:DWORD, argv:DWORD
+LOCAL success:BOOL
+LOCAL temp:DWORD
 ;调用服务注册函数
-invoke RegisterServiceCtrlHandle ,ADDR SERVICE\_NAME, CtrlHandler
+invoke RegisterServiceCtrlHandle, ADDR SERVICE_NAME, CtrlHandler
 ;通知 SCM 进度
-invoke SendStatus, SERVICE\_START\_PENDING,NO\_ERROR,0,1,5000
+invoke SendStatus, SERVICE_START_PENDING, NO_ERROR, 0, 1, 5000
 ;创建一个事件
-invoke CreateEvent,0,TRUE,FALSE,0
+invoke CreateEvent, 0, TRUE, FALSE, 0
 ;通知 scm 进度
-invoke SendStatus,SERVICE\_START\_PENDING,NO\_ERROR,0,2,1000
+invoke SendStatus, SERVICE_START_PENDING, NO_ERROR, 0, 2, 1000
 ;通知 SCM 进度
-invoke SendStatus,SERVICE\_START\_PENDING,NO\_ERROR,0,3,5000
+invoke SendStatus, SERVICE_START_PENDING, NO_ERROR, 0, 3, 5000
 ;服务自我启动
-call Init 
-invoke SendStatus,SERVICE\_START\_PUNNING,NO\_ERROR,0,0,0
+call Init
+invoke SendStatus, SERVICE_START_PUNNING, NO_ERROR, 0, 0, 0
 ;等待信号
-invoke WaitForSingleObject,evTerminate,INFINITE
-push 0
-call TerminateExtension,ret
-ServiceMain endp
-
+invoke WaitForSingleObject, evTerminate, INFINITE
+push 0
+call TerminateExtension, ret
+ServiceMain endp
 ```
 
-ServiceMain 负责注册和初始化过程  
-  
-  
-  
-代码:
+`ServiceMain` 负责注册和初始化过程。
 
-```
-CtrlHandler proc controlCode:DWORD
-  
-  LOCAL currentState:DWORD
-  LOCAL success:BOOL
-  
-  mov currentState,0
-  mov eax,controlCode
-  
-  .IF eax == SERVICE\_CONTROL\_STOP
-    LOAD currentState,SERVICE\_STOP\_PENDING
-    invoke SendStatus,SERVICE\_STOP\_PENDING,NO\_ERROR,0,1,5000
-    call Stop
-    ret
-    ;暂停
-  .ELSEIF eax == SERVICE\_CONTROL\_PAUSE
-    .IF fRunning !=0 && FPaused == 0
-      invoke SendStatus,SERVICE\_PAUSE\_PENDING,NO\_ERROR,0,1,1000
-      call Pause 
-      mov currentState,SERVICE\_PAUSED;
-      jmp SCHandler
-    .endif
-  ;重新开始
-  .ELSEIF eax == SERVICE\_CONTROL\_PAUSE
-    .IF fRunning != 0 && fPaused ==0
-      invoke SendStatus,SERVICE\_CONTROL\_PENDING,NO\_ERROR,0,1,1000
-      call Resume 
-      mov currentState,SERVICE\_RUNNING
-      jmp SCHandler
-    .endif
-  ;状态更新
-  .ELSEIF eax == SERVICE\_CONTROL\_INTERROGATE
-  ;
-  .ELSEIF eax == SERVICE\_CONTROL\_SHUTDOWN
-    ;停止处理
-    ret
-    
-  .endif
-  SCHandler:
-  invoke SendStatus,currentState,NO\_ERROE,0,0,0
-  ret
+代码：
 
-CtrlHandler endp
+```asm
+CtrlHandler proc controlCode:DWORD
 
+LOCAL currentState:DWORD
+LOCAL success:BOOL
+
+mov currentState, 0
+mov eax, controlCode
+
+.IF eax == SERVICE_CONTROL_STOP
+  LOAD currentState, SERVICE_STOP_PENDING
+  invoke SendStatus, SERVICE_STOP_PENDING, NO_ERROR, 0, 1, 5000
+  call Stop
+  ret
+  ;暂停
+.ELSEIF eax == SERVICE_CONTROL_PAUSE
+  .IF fRunning != 0 && FPaused == 0
+    invoke SendStatus, SERVICE_PAUSE_PENDING, NO_ERROR, 0, 1, 1000
+    call Pause
+    mov currentState, SERVICE_PAUSED
+    jmp SCHandler
+  .endif
+;重新开始
+.ELSEIF eax == SERVICE_CONTROL_PAUSE
+  .IF fRunning != 0 && fPaused == 0
+    invoke SendStatus, SERVICE_CONTROL_PENDING, NO_ERROR, 0, 1, 1000
+    call Resume
+    mov currentState, SERVICE_RUNNING
+    jmp SCHandler
+  .endif
+;状态更新
+.ELSEIF eax == SERVICE_CONTROL_INTERROGATE
+;
+.ELSEIF eax == SERVICE_CONTROL_SHUTDOWN
+  ;停止处理
+  ret
+
+.endif
+SCHandler:
+invoke SendStatus, currentState, NO_ERROE, 0, 0, 0
+ret
+
+CtrlHandler endp
 ```
 
-默认情况下，服务自己独立运行，SERVICE\_INTERACTIVE\_PROCESS 标志的 dwServiceType 参数，可以实现服务和用户之间的交互。否则服务就不会拥有界面，只能用 MB\_SERVICE\_NOTIFICATION 标志来调用 MessageBox
+默认情况下，服务自己独立运行，`SERVICE_INTERACTIVE_PROCESS` 标志的 `dwServiceType` 参数，可以实现服务和用户之间的交互。否则服务就不会拥有界面，只能用 `MB_SERVICE_NOTIFICATION` 标志来调用 `MessageBox`。

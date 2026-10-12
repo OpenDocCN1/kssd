@@ -1,334 +1,179 @@
 
-
 # 手工打造超小 119 字节 exe 文件
 
 > 原文：[`www.pediy.com/kssd/pediy10/60140.html`](https://www.pediy.com/kssd/pediy10/60140.html)
 
-手工打造超小 PE 文件  
-  
-   
-  
-作者：Sunline                lisunlin0@yahoo.com.cn  
-  
-代码下载：http://download.csdn.net/source/359340  
-  
-  
-最近试着做一些比较小的 PE 文件, 系统可识别的 EXE 做到了 119 Bytes(压缩包中的 MinApp\_06.bat.exe 文件, 期望再减小 2 bytes 左右), 弹出一个对话框的 EXE 做到了 172 Bytes(压缩包中的 MinMsg\_10.bat.exe 文件, 期望再减小 8  10 bytes 左右), 在笔者的机器(WinXp Sp2\[版本 5.1.2600\]Celeron1.7G, 256M DDR)上测试通过. 通过这些低层的操作, 可以更深刻地理解 Pe 文件中各个成员的作用及相互关系.  
-  
-对 Pe 结构感兴趣的朋友可以下载源文件研究.   
-  
-具体制作步骤可以依照打包文件中的文件序号, 一步一步实现, 这里不想多费纸墨, 其中除了 make.bat 外,其它.bat 文件都是源文件, 使用 nasmw 编译即生成可执行文件.  
-  
-以下列出的是打包文件中的最终源代码:  
-  
-\================= MinApp\_06.bat ==== 119 bytes ===============  
-  
-; rem I only test on my pc, WinXp, sp2, Celeron1.7G, 256M DDR  
-  
-; rem Constructed by Sunline           lisunlin0@yahoo.com.cn  
-  
-;  
-  
-; nasmw -fbin -o %0.exe %0  
-  
-; pause  
-  
-; exit  
-  
-bits32  
-  
-   
-  
-.e\_magic                    dw  'MZ'  
-  
-.e\_cblp                     dw  0090h  
-  
-Nt\_Header:  
-  
-Signature                            dd 'PE'  
-  
-.Machine                             dw 014Ch     
-  
-.NumberOfSections                    dw 0001h     
-  
-.TimeDateStamp                       dd 00000000h     
-  
-.PointerToSymbolTable                dd 00000000h    
-  
-.NumberOfSymbols                     dd 00000000h    
-  
-.SizeOfOptionalHeader                dw OptionalHeader\_End - OptionalHeader ;\*  
-  
-.Characteristics                     dw 010Fh     
-  
-OptionalHeader:  
-  
-.Magic                               dw 010Bh     
-  
-.MajorLinkerVersion                  db 05h     
-  
-.MinorLinkerVersion                  db 0Ch     
-  
-.SizeOfCode                          dd Code\_End - Code    ;\*  
-  
-.SizeOfInitializedData               dd 00000000h    
-  
-.SizeOfUninitializedData             dd 00000000h    
-  
-.AddressOfEntryPoint                 dd Start              ;\*  
-  
-.BaseOfCode                          dd Code               ;\*  
-  
-.BaseOfData                          dd Data               ;\*  
-  
-.ImageBase                           dd 40000000h    
-  
-.SectionAlignment                    dd 00000004h          ;\*  
-  
-.FileAlignment                       dd 00000004h          ;\*  
-  
-.MajorOperatingSystemVersion         dw 0004h  
-  
-.MinorOperatingSystemVersion         dw 0000h  
-  
-.MajorImageVersion                   dw 0000h  
-  
-.MinorImageVersion                   dw 0000h  
-  
-.MajorSubsystemVersion               dw 0004h  
-  
-.MinorSubsystemVersion               dw 0000h  
-  
-.Win32VersionValue                   dd 00000000h  
-  
-.SizeOfImage                         dd Data\_End           ;\*  
-  
-.SizeOfHeaders                       dd OptionalHeader\_End ;\*  
-  
-.CheckSum                            dd 00000000h    
-  
-.Subsystem                           dw 0002h  
-  
-OptionalHeader\_End:  
-  
-.SectionName                         db 'MinPe', 0, 0      ;\*  
-  
-Code:  
-  
-Start:  
-  
-  ret  
-  
-Code\_End:  
-  
-.VirtualSize                         dd Code\_End - Code      ;\*  
-  
-.VirtualAddress                      dd Code                 ;\*  
-  
-.SizeOfRawData                       dd Code\_End - Code      ;\*  
-  
-;.PointerToRawData                   dw Code                 ;\*  
-  
-                                     db 69h  
-  
-Data:  
-  
-Data\_End:  
-  
-   
-  
-\================= MinMsg\_10.bat ==== 172 bytes ============  
-  
-; rem I only test on my pc, WinXp, sp2, Celeron1.7G, 256M DDR  
-  
-; rem Constructed by Sunline           lisunlin0@yahoo.com.cn  
-  
-;  
-  
-; rem I only test on my pc, WinXp, sp2, Celeron1.7G, 256M DDR  
-  
-; nasmw -fbin -o %0.exe %0  
-  
-; pause  
-  
-; exit  
-  
-bits 32  
-  
-   
-  
-%define               IMAGE\_BASE         00400000h  
-  
-   
-  
-e\_magic                      dw  'MZ'  
-  
-e\_cblp                       dw  'My'  
-  
-.Signature                   dd  'PE'  
-  
-.Machine                     dw  014Ch    
-  
-Imp\_Name\_MsgBox:  
-  
-;.NumberOfSections            dw  0001h   
-  
-Hint                          dw  0001h          ; Hint  
-  
-MessageBoxA db 'MessageBoxA',0                   ; Name  
-  
-Imp\_Name\_MsgBox\_End:  
-  
-;.TimeDateStamp               dd  00000000h                ;\*#  
-  
-;.PointerToSymbolTable        dd  00000000h                ;\*#  
-  
-;.NumberOfSymbols             dd  00000000h                ;\*#  
-  
-.SizeOfOptionalHeader        dw  OptionalHeader\_End - OptionalHeader  ;\*  
-  
-.Characteristics             dw  010Fh    
-  
-OptionalHeader:  
-  
-.Magic                       dw  010Bh    
-  
-Code:  
-  
-User32\_DLL                   db 'User32',0,  
-  
-                             db 68h  
-  
-                             dd IMAGE\_BASE + MessageBoxA  
-  
-                             db 0EBh,04h                   ;--Code 2 ------- 7 -----------  
-  
-;.MajorLinkerVersion          db  05h                      ;\*#  
-  
-;.MinorLinkerVersion          db  0Ch                      ;\*#    
-  
-;.SizeOfCode                  dd  00000000h                ;\*#         ;\*  
-  
-;.SizeOfInitializedData       dd  00000000h                ;\*#   
-  
-;.SizeOfUninitializedData     dd  00000000h                ;\*#   
-  
-.AddressOfEntryPoint         dd  Start                                ;\*  
-  
-.BaseOfCode                  db  0FFh,34h,24h,6Ah          ;\*# ---Code 3 ---- 8 ----------  
-  
-.BaseOfData                  db  00h,090h,0EBh,84          ;\*# -----------------------  
-  
-.ImageBase                   dd  IMAGE\_BASE                              
-  
-.SectionAlignment            dd  00000004h                            ;\*  
-  
-.FileAlignment               dd  00000004h                            ;\*   
-  
-.MajorOperatingSystemVersion dw  0004h   
-  
-.MinorOperatingSystemVersion dw  0000h    
-  
-Start:  
-  
-.MajorImageVersion           db  6Ah                       ;# ---Code 1 ---- 4 ----------  
-  
-                             db  00h  
-  
-.MinorImageVersion           db  0EBh                       ;#   
-  
-                             db  -39  
-  
-.MajorSubsystemVersion       dw  0004h    
-  
-.MinorSubsystemVersion       dw  0000h    
-  
-.Win32VersionValue           dd  00000000h                  ;#   
-  
-.SizeOfImage                 dd  Data\_End                             ;\*  
-  
-.SizeOfHeaders               dd  OptionalHeader\_End                   ;\*  
-  
-.CheckSum                    dd  00000000h   
-  
-.Subsystem                   dw  0002h    
-  
-.DllCharacteristics          dw  0000h    
-  
-.SizeOfStackReserve          dd  00100000h                  ;#   
-  
-.SizeOfStackCommit           dd  00001000h   
-  
-.SizeOfHeapReserve           dd  00100000h                  ;#    
-  
-Thunk\_User32:  
-  
-Imp\_MsgBox                   dd Imp\_Name\_MsgBox    
-  
-                             dd 00000000h       ;End  
-  
-Thunk\_User32\_End:   
-  
-;.SizeOfHeapCommit            dd  00001000h                 ;#  
-  
-;.LoaderFlags                 dd  00000000h                 ;#  
-  
-.NumberOfRvaAndSizes         dd  00000002h                            ;\*  
-  
-.ExportRva                           dd 00000000h           ;#   
-  
-.ExportSize                          dd 00000000h           ;#   
-  
-.ImportRva                           dd ImportDir                     ;\*  
-  
-   
-  
-ImportDir:  
-  
-.ImportSize                          dd ImportDir\_End - ImportDir  ;# ;\*      
-  
-                                     db 0FFh, 15h           ;\*# ---Code 4 -------- 8 -----------  
-  
-                                     dd IMAGE\_BASE + Imp\_MsgBox  
-  
-                                     db 90h, 0C3h           ; modify 90h to 0CCh to debug  
-  
-;.ResourceRva                         db 0FFh, 15h, 0CCh, 90h          
-  
-;.ResourceSize                        dd IMAGE\_BASE + MessageBoxA   ;\*#   
-  
-OptionalHeader\_End:  
-  
-   
-  
-   
-  
-                             ;dd 00000000h        ; OriginalFirstThunk        ;#  
-  
-                             ;dd 00000000h        ; TimeDateStamp             ;#  
-  
-                             ;dd 00000000h        ; ForwarderChain            ;#                             
-  
-                             dd User32\_DLL       ; Name                         
-  
-                             dd Thunk\_User32     ; FirstThunk  
-  
-ImportDir\_End:  
-  
-;.SectionName                         db 0FFh,34h, 24h, 6Ah, 00h, 0EBh, 1Eh, 90  
-  
-.VirtualSize                         dd Code\_End - Code               ;\*  
-  
-.VirtualAddress                      dd Code                          ;\*  
-  
-.SizeOfRawData                       dd Code\_End - Code               ;\*  
-  
-.PointerToRawData                    dd Code  
-  
-   
-  
-Code\_End:  
-  
-Data:  
-  
-Data\_End:
+手工打造超小 PE 文件
+
+作者：Sunline&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lisunlin0@yahoo.com.cn
+
+代码下载：`http://download.csdn.net/source/359340`
+
+最近试着做一些比较小的 PE 文件，系统可识别的 EXE 做到了 119 Bytes(压缩包中的 `MinApp_06.bat.exe` 文件，期望再减小 2 bytes 左右)，弹出一个对话框的 EXE 做到了 172 Bytes(压缩包中的 `MinMsg_10.bat.exe` 文件，期望再减小 8 10 bytes 左右)，在笔者的机器(WinXp Sp2\[版本 5.1.2600\]Celeron1.7G, 256M DDR)上测试通过. 通过这些低层的操作，可以更深刻地理解 PE 文件中各个成员的作用及相互关系.
+
+对 PE 结构感兴趣的朋友可以下载源文件研究.
+
+具体制作步骤可以依照打包文件中的文件序号，一步一步实现，这里不想多费纸墨，其中除了 `make.bat` 外，其它 .bat 文件都是源文件，使用 `nasmw` 编译即生成可执行文件.
+
+以下列出的是打包文件中的最终源代码:
+
+```
+\================= MinApp_06.bat ==== 119 bytes ===============
+; rem I only test on my pc, WinXp, sp2, Celeron1.7G, 256M DDR
+; rem Constructed by Sunline           lisunlin0@yahoo.com.cn
+;
+; nasmw -fbin -o %0.exe %0
+; pause
+; exit
+bits32
+.e_magic                      dw  'MZ'
+.e_cblp                       dw  0090h
+Nt_Header:
+Signature                     dd 'PE'
+.Machine                      dw 014Ch
+.NumberOfSections             dw 0001h
+.TimeDateStamp                dd 00000000h
+.PointerToSymbolTable         dd 00000000h
+.NumberOfSymbols              dd 00000000h
+.SizeOfOptionalHeader         dw OptionalHeader_End - OptionalHeader ;\*
+.Characteristics              dw 010Fh
+OptionalHeader:
+.Magic                        dw 010Bh
+.MajorLinkerVersion           db 05h
+.MinorLinkerVersion           db 0Ch
+.SizeOfCode                   dd Code_End - Code    ;\*
+.SizeOfInitializedData        dd 00000000h
+.SizeOfUninitializedData      dd 00000000h
+.AddressOfEntryPoint           dd Start             ;\*
+.BaseOfCode                   dd Code              ;\*
+.BaseOfData                   dd Data             ;\*
+.ImageBase                    dd 40000000h
+.SectionAlignment             dd 00000004h          ;\*
+.FileAlignment               dd 00000004h          ;\*
+.MajorOperatingSystemVersion dw 0004h
+.MinorOperatingSystemVersion dw 0000h
+.MajorImageVersion           dw 0000h
+.MinorImageVersion           dw 0000h
+.MajorSubsystemVersion       dw 0004h
+.MinorSubsystemVersion       dw 0000h
+.Win32VersionValue           dd 00000000h
+.SizeOfImage                  dd Data_End          ;\*
+.SizeOfHeaders                dd OptionalHeader_End ;\*
+.CheckSum                     dd 00000000h
+.Subsystem                    dw 0002h
+OptionalHeader_End:
+.SectionName                  db 'MinPe', 0, 0      ;\*
+Code:
+Start:
+  ret
+Code_End:
+.VirtualSize                  dd Code_End - Code     ;\*
+.VirtualAddress               dd Code            ;\*
+.SizeOfRawData                dd Code_End - Code     ;\*
+;.PointerToRawData            dw Code            ;\*
+                        db 69h
+Data:
+Data_End:
+\================= MinMsg_10.bat ==== 172 bytes =============
+; rem I only test on my pc, WinXp, sp2, Celeron1.7G, 256M DDR
+; rem Constructed by Sunline           lisunlin0@yahoo.com.cn
+;
+; rem I only test on my pc, WinXp, sp2, Celeron1.7G, 256M DDR
+; nasmw -fbin -o %0.exe %0
+; pause
+; exit
+bits 32
+%define       IMAGE_BASE       00400000h
+e_magic      dw  'MZ'
+e_cblp       dw  'My'
+.Signature   dd  'PE'
+.Machine     dw  014Ch
+Imp_Name_MsgBox:
+;.NumberOfSections     dw  0001h
+Hint               dw  0001h         ; Hint
+MessageBoxA db 'MessageBoxA',0               ; Name
+Imp_Name_MsgBox_End:
+;.TimeDateStamp       dd  00000000h          ;\*#
+;.PointerToSymbolTable dd  00000000h          ;\*#
+;.NumberOfSymbols     dd  00000000h          ;\*#
+.SizeOfOptionalHeader dw  OptionalHeader_End - OptionalHeader  ;\*
+.Characteristics     dw  010Fh
+OptionalHeader:
+.Magic               dw  010Bh
+Code:
+User32_DLL          db 'User32',0,
+                   db 68h
+                   dd IMAGE_BASE + MessageBoxA
+                   db 0EBh,04h             ;--Code 2 ------- 7 -----------
+;.MajorLinkerVersion   db  05h              ;\*#
+;.MinorLinkerVersion   db  0Ch              ;\*#
+;.SizeOfCode          dd  00000000h          ;\*#       ;\*
+;.SizeOfInitializedData dd  00000000h        ;\*#
+;.SizeOfUninitializedData dd  00000000h      ;\*#
+.AddressOfEntryPoint  dd  Start                  ;\*
+.BaseOfCode          db  0FFh,34h,24h,6Ah     ;\*# ---Code 3 ---- 8 ----------
+.BaseOfData          db  00h,090h,0EBh,84     ;\*# -----------------------
+.ImageBase           dd  IMAGE_BASE                  .SectionAlignment      dd  00000004h                  ;\*
+.FileAlignment       dd  00000004h                  ;\*
+.MajorOperatingSystemVersion dw  0004h
+.MinorOperatingSystemVersion dw  0000h
+Start:
+.MajorImageVersion    db  6Ah                  ;# ---Code 1 ---- 4 ----------
+                   db  00h
+.MinorImageVersion    db  0EBh                ;#
+                   db  -39
+.MajorSubsystemVersion dw  0004h
+.MinorSubsystemVersion dw  0000h
+.Win32VersionValue    dd  00000000h          ;#
+.SizeOfImage          dd  Data_End                  ;\*
+.SizeOfHeaders        dd  OptionalHeader_End           ;\*
+.CheckSum             dd  00000000h
+.Subsystem            dw  0002h
+.DllCharacteristics   dw  0000h
+.SizeOfStackReserve   dd  00100000h             ;#
+.SizeOfStackCommit    dd  00001000h
+.SizeOfHeapReserve    dd  00100000h             ;#
+Thunk_User32:
+Imp_MsgBox            dd Imp_Name_MsgBox
+                   dd 00000000h       ;End
+Thunk_User32_End:
+;.SizeOfHeapCommit     dd  00001000h             ;#
+;.LoaderFlags          dd  00000000h             ;#
+.NumberOfRvaAndSizes   dd  00000002h                  ;\*
+.ExportRva                 dd 00000000h         ;#
+.ExportSize                dd 00000000h         ;#
+.ImportRva                 dd ImportDir               ;\*
+ImportDir:
+.ImportSize                 dd ImportDir_End - ImportDir  ;# ;\*
+                   db 0FFh, 15h         ;\*# ---Code 4 -------- 8 -----------
+                   dd IMAGE_BASE + Imp_MsgBox
+                   db 90h, 0C3h         ; modify 90h to 0CCh to debug
+;.ResourceRva                 db 0FFh, 15h, 0CCh, 90h
+;.ResourceSize                dd IMAGE_BASE + MessageBoxA   ;\*#
+OptionalHeader_End:
+                   ;dd 00000000h       ; OriginalFirstThunk       ;#
+                   ;dd 00000000h       ; TimeDateStamp           ;#
+                   ;dd 00000000h       ; ForwarderChain          ;#
+                   dd User32_DLL       ; Name
+```
+
+
+
+```
+dd Thunk_User32 ; FirstThunk
+
+ImportDir_End:
+
+;.SectionName db 0FFh,34h, 24h, 6Ah, 00h, 0EBh, 1Eh, 90
+
+.VirtualSize dd Code_End - Code ;\*
+.VirtualAddress dd Code ;\*
+.SizeOfRawData dd Code_End - Code ;\*
+.PointerToRawData dd Code
+
+Code_End:
+
+Data:
+
+Data_End:
+```

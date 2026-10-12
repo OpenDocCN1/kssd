@@ -1,156 +1,123 @@
 
-
 # Minicom 3.6
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum551.htm`](https://www.pediy.com/kssd/pediy03/forum551.htm)
 
-明天就开学了，开学后就会忙得要命，再也没有时间来学习破解技术了。   
-所以这可能是我近期最后一篇文章了。   
-  
-  
-软件名：Minicom 3.6   
-  
-软件简介：对于家里有两台电脑的朋友来说，这是个挺有用的软件。   
-它可以用来控制网络上另一台电脑的一切活动。包括运行软件，更   
-改系统配置，关机，等等。由于它有实时屏幕抓图的功能，所以一   
-切操作都象在自己这台电脑上进行一样。   
-  
-  
-下载地址：   
-http://dccnet.tucows.com/files2/mc30day.exe   
-  
-所用的工具：   
-            1.softICE 4.05.可在下列网址 download   
-http://mud.sz.jsinfo.net/per/aaron/files/debuggers/win/si405w9x.zip   
-  
-            2.HIEW 6.01   
-下载地址： http://go2.163.com/%7Etoye/tools/hiew640reg.zip   
-  
-破解思路：   
-  
-          本软件的破解思路和步骤完全来自看雪教材。如果你对这类软件   
-的破解原理还不了解，请看完这篇文章再看下去。   
-http://www.kanxue.com/lesson1404.htm   
-  
-  
-费话少说，让我们开始吧！   
-  
-  
-I. 找出对比关键。   
-  
-  
-1\. 用 SoftICE 的 Symbol Loader 载入 mincom.exe   
-  
-2\. 被拦下来后，下 bpx getlocaltime   
-  
-3\. 按 F5, 然后，就会被 SoftICE 再次拦下来。   
-  
-4\. 下 wc 取消显示指令栏。   
-  
-5.  然后就是狂按 F10 啦。一直到跳出 SoftICE 为止。   
-  
-6.  回到 SoftICE 的 Symbol Loader ，选 File---> Save SoftICE History As...   
-    吧刚才我们所看到的东西都保存为 log1.txt。   
-  
-7.  把系统时间调后三个月。   
-  
-8\. 再用 SoftICE 的 Symbol Loader 载入 mincom.exe.   
-  
-9\. 用前面相同的步骤取得另外一个文件，取名为 log2.txt.   
-  
-10\. 用写字板打开这两个文件。看从那里开始，这两个文件开始不同。   
-  
-  我把这两个文件的相同部分帖在下面了。   
-  
-Break due to BPX KERNEL32!GetLocalTime  (ET=98.36 milliseconds)   
-KERNEL32!GetLocalTime   
-0177:BFF77256  PUSH      BFFA2168   
-0177:BFF7725B  PUSH      DWORD PTR FS:\[EDX\]   
-0177:BFF7725E  MOV      FS:\[EDX\],ESP   
-0177:BFF77261  MOV      ECX,\[ESP+0C\]   
-0177:BFF77265  ADD      BYTE PTR \[ECX\],00   
-0177:BFF77268  ADD      BYTE PTR \[ECX+0F\],00   
-0177:BFF7726C  POP      DWORD PTR FS:\[EDX\]   
-0177:BFF7726F  ADD      ESP,04   
-0177:BFF77272  JMP      BFF76A58                                    (JUMP )   
-0177:BFF76A58  PUSH      EBP   
-0177:BFF76A59  MOV      EBP,ESP   
-0177:BFF76A5B  PUSH      EDI   
-0177:BFF76A5C  PUSH      EBX   
-0177:BFF76A5D  PUSH      DWORD PTR \[BFFCAE10\]   
-0177:BFF76A63  CALL      KERNEL32!ORD\_0061   
-0177:BFF76A68  MOV      EDI,\[EBP+08\]   
-0177:BFF76A6B  MOV      ECX,00000004   
-0177:BFF76A70  SUB      EAX,EAX   
-0177:BFF76A72  REPZ STOSD   
-0177:BFF76A74  MOV      EDI,\[EBP+08\]   
-0177:BFF76A77  MOV      AH,2A   
-0177:BFF76A79  CALL      BFF712B9   
-0177:BFF76A7E  MOV      \[EDI+02\],DH   
-0177:BFF76A81  MOV      \[EDI+06\],DL   
-0177:BFF76A84  MOV      \[EDI\],CX   
-0177:BFF76A87  SUB      AH,AH   
-0177:BFF76A89  MOV      \[EDI+04\],AX   
-0177:BFF76A8D  MOV      AH,2C   
-0177:BFF76A8F  CALL      BFF712B9   
-0177:BFF76A94  MOV      \[EDI+08\],CH   
-0177:BFF76A97  MOV      \[EDI+0A\],CL   
-0177:BFF76A9A  MOV      \[EDI+0C\],DH   
-0177:BFF76A9D  SUB      DH,DH   
-0177:BFF76A9F  IMUL      DX,DX,0A   
-0177:BFF76AA3  MOV      \[EDI+0E\],DX   
-0177:BFF76AA7  PUSH      DWORD PTR \[BFFCAE10\]   
-0177:BFF76AAD  CALL      KERNEL32!ORD\_0062   
-0177:BFF76AB2  POP      EBX   
-0177:BFF76AB3  POP      EDI   
-0177:BFF76AB4  LEAVE   
-0177:BFF76AB5  RET      0004   
-0177:00401FF1  MOV      ECX,\[EBP+08\]   
-0177:00401FF4  MOV      DL,\[EBP\-0A\]   
-0177:00401FF7  MOV      \[ECX\],DL   
-0177:00401FF9  MOV      EAX,\[EBP+08\]   
-0177:00401FFC  MOV      CL,\[EBP\-0E\]   
-0177:00401FFF  MOV      \[EAX+01\],CL   
-0177:00402002  MOV      EDX,\[EBP+08\]   
-0177:00402005  MOV      DWORD PTR \[EDX+04\],00000000   
-0177:0040200C  MOV      EAX,\[EBP\-10\]   
-0177:0040200F  AND      EAX,0000FFFF   
-0177:00402014  MOV      ECX,\[EBP+08\]   
-0177:00402017  MOV      \[ECX+04\],EAX   
-0177:0040201A  MOV      ESP,EBP   
-0177:0040201C  POP      EBP   
-0177:0040201D  RET      0004   
-0177:00402B31  MOV      ECX,\[EBP\-04\]   
-0177:00402B34  PUSH      ECX   
-0177:00402B35  MOV      EDX,\[EBP\-08\]   
-0177:00402B38  PUSH      EDX   
-0177:00402B39  MOV      ECX,\[EBP\-0C\]   
-0177:00402B3C  CALL      00402A66   
-0177:00402B41  MOV      ESP,EBP   
-0177:00402B43  POP      EBP   
-0177:00402B44  RET   
-0177:004322B1  MOV      \[EBP\-18\],EAX  ---> 提取今天日期   
-0177:004322B4  MOV      EAX,\[EBP\-0128\] ---> 提取安装日期   
-0177:004322BA  ADD      EAX,1E        ---> 安装日期加 30    
-0177:004322BD  CMP      \[EBP\-18\],EAX  ---> 比较，看过期没有。   
-0177:004322C0  JA        004322D1      ---> 大于则跳。跳则过期。   
-  
-从这两个文件我们可以发现从   
-0177:004322C0  JA        004322D1   
-处，两个文件的流程开始不同。所以，这个 jump 就是对比的关键。   
-  
-  
-II. 修改文件。   
-  
-11\. 用 Hiew 载入 minicom.exe   
-  
-12\. 按 F4 选择 Decode   
-  
-13\. 按 F5  , 输入偏址： 000322C0 然后回车。   
-  
-14\. 按 F3, 将 77 改为 74.   
-  
-15\. 修改好后，F9 存盘（按回车后到下一行，再按 ESC 让对话框消失，然后按 F9）。   
-  
-  
-  感谢看雪大哥给我的提示，使我的 bpx getsystemtime 能拦截。:)  4dd466d0e1e0cc123afbe504da2462ca
+明天就开学了，开学后就会忙得要命，再也没有时间来学习破解技术了。所以这可能是我近期最后一篇文章了。
+
+- 软件名：`Minicom` 3.6
+- 软件简介：对于家里有两台电脑的朋友来说，这是个挺有用的软件。它可以用来控制网络上另一台电脑的一切活动。包括运行软件，更改系统配置，关机，等等。由于它有实时屏幕抓图的功能，所以一切操作都象在自己这台电脑上进行一样。
+- 下载地址：`http://dccnet.tucows.com/files2/mc30day.exe`
+- 所用的工具：
+    1. `SoftICE` 4.05。可在下列网址 download
+       `http://mud.sz.jsinfo.net/per/aaron/files/debuggers/win/si405w9x.zip`
+    2. `HIEW` 6.01。下载地址：`http://go2.163.com/%7Etoye/tools/hiew640reg.zip`
+- 破解思路：
+    本软件的破解思路和步骤完全来自看雪教材。如果你对这类软件的破解原理还不了解，请看完这篇文章再看下去。`http://www.kanxue.com/lesson1404.htm`
+
+费话少说，让我们开始吧！
+
+## I. 找出对比关键
+
+1. 用 `SoftICE` 的 `Symbol Loader` 载入 `mincom.exe`
+2. 被拦下来后，下 `bpx getlocaltime`
+3. 按 `F5`，然后，就会被 `SoftICE` 再次拦下来。
+4. 下 `wc` 取消显示指令栏。
+5. 然后就是狂按 `F10` 啦。一直到跳出 `SoftICE` 为止。
+6. 回到 `SoftICE` 的 `Symbol Loader`，选 `File---> Save SoftICE History As...` 把刚才我们所看到的东西都保存为 `log1.txt`。
+7. 把系统时间调后三个月。
+8. 再用 `SoftICE` 的 `Symbol Loader` 载入 `mincom.exe`
+9. 用前面相同的步骤取得另外一个文件，取名为 `log2.txt`
+10. 用写字板打开这两个文件。看从那里开始，这两个文件开始不同。我把这两个文件的相同部分帖在下面了。
+
+```
+Break due to BPX KERNEL32!GetLocalTime  (ET=98.36 milliseconds)
+
+KERNEL32!GetLocalTime
+0177:BFF77256  PUSH        BFFA2168
+0177:BFF7725B  PUSH        DWORD PTR FS:[EDX]
+0177:BFF7725E  MOV        FS:[EDX],ESP
+0177:BFF77261  MOV        ECX,[ESP+0C]
+0177:BFF77265  ADD        BYTE PTR [ECX],00
+0177:BFF77268  ADD        BYTE PTR [ECX+0F],00
+0177:BFF7726C  POP        DWORD PTR FS:[EDX]
+0177:BFF7726F  ADD        ESP,04
+0177:BFF77272  JMP        BFF76A58                                  (JUMP )
+
+0177:BFF76A58  PUSH        EBP
+0177:BFF76A59  MOV        EBP,ESP
+0177:BFF76A5B  PUSH        EDI
+0177:BFF76A5C  PUSH        EBX
+0177:BFF76A5D  PUSH        DWORD PTR [BFFCAE10]
+0177:BFF76A63  CALL        KERNEL32!ORD_0061
+0177:BFF76A68  MOV        EDI,[EBP+08]
+0177:BFF76A6B  MOV        ECX,00000004
+0177:BFF76A70  SUB        EAX,EAX
+0177:BFF76A72  REPZ STOSD
+0177:BFF76A74  MOV        EDI,[EBP+08]
+0177:BFF76A77  MOV        AH,2A
+0177:BFF76A79  CALL        BFF712B9
+0177:BFF76A7E  MOV        [EDI+02],DH
+0177:BFF76A81  MOV        [EDI+06],DL
+0177:BFF76A84  MOV        [EDI],CX
+0177:BFF76A87  SUB        AH,AH
+0177:BFF76A89  MOV        [EDI+04],AX
+0177:BFF76A8D  MOV        AH,2C
+0177:BFF76A8F  CALL        BFF712B9
+0177:BFF76A94  MOV        [EDI+08],CH
+0177:BFF76A97  MOV        [EDI+0A],CL
+0177:BFF76A9A  MOV        [EDI+0C],DH
+0177:BFF76A9D  SUB        DH,DH
+0177:BFF76A9F  IMUL        DX,DX,0A
+0177:BFF76AA3  MOV        [EDI+0E],DX
+0177:BFF76AA7  PUSH        DWORD PTR [BFFCAE10]
+0177:BFF76AAD  CALL        KERNEL32!ORD_0062
+0177:BFF76AB2  POP        EBX
+0177:BFF76AB3  POP        EDI
+0177:BFF76AB4  LEAVE
+0177:BFF76AB5  RET        0004
+
+0177:00401FF1  MOV        ECX,[EBP+08]
+0177:00401FF4  MOV        DL,[EBP-0A]
+0177:00401FF7  MOV        [ECX],DL
+0177:00401FF9  MOV        EAX,[EBP+08]
+0177:00401FFC  MOV        CL,[EBP-0E]
+0177:00401FFF  MOV        [EAX+01],CL
+0177:00402002  MOV        EDX,[EBP+08]
+0177:00402005  MOV        DWORD PTR [EDX+04],00000000
+0177:0040200C  MOV        EAX,[EBP-10]
+0177:0040200F  AND        EAX,0000FFFF
+0177:00402014  MOV        ECX,[EBP+08]
+0177:00402017  MOV        [ECX+04],EAX
+0177:0040201A  MOV        ESP,EBP
+0177:0040201C  POP        EBP
+0177:0040201D  RET        0004
+
+0177:00402B31  MOV        ECX,[EBP-04]
+0177:00402B34  PUSH        ECX
+0177:00402B35  MOV        EDX,[EBP-08]
+0177:00402B38  PUSH        EDX
+0177:00402B39  MOV        ECX,[EBP-0C]
+0177:00402B3C  CALL        00402A66
+0177:00402B41  MOV        ESP,EBP
+0177:00402B43  POP        EBP
+0177:00402B44  RET
+
+0177:004322B1  MOV        [EBP-18],EAX   ---> 提取今天日期
+0177:004322B4  MOV        EAX,[EBP-0128] ---> 提取安装日期
+0177:004322BA  ADD        EAX,1E          ---> 安装日期加 30
+0177:004322BD  CMP        [EBP-18],EAX    ---> 比较，看过期没有。
+0177:004322C0  JA         004322D1        ---> 大于则跳。跳则过期。
+```
+
+从这两个文件我们可以发现从 `0177:004322C0 JA 004322D1` 处，两个文件的流程开始不同。所以，这个 jump 就是对比的关键。
+
+## II. 修改文件
+
+11. 用 `Hiew` 载入 `minicom.exe`
+12. 按 `F4` 选择 `Decode`
+13. 按 `F5`，输入偏址：`000322C0` 然后回车。
+14. 按 `F3`，将 `77` 改为 `74`。
+15. 修改好后，`F9` 存盘（按回车后到下一行，再按 `ESC` 让对话框消失，然后按 `F9`）。
+
+感谢看雪大哥给我的提示，使我的 `bpx getsystemtime` 能拦截。:) `4dd466d0e1e0cc123afbe504da2462ca`

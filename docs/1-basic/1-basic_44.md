@@ -1,13 +1,9 @@
 
-
 # 口算异或 xor
 
 > 原文：[`www.pediy.com/kssd/pediy11/120497.html`](https://www.pediy.com/kssd/pediy11/120497.html)
 
-只需要背会以下  
-  
-
-代码:
+只需要背会以下
 
 ```
 123
@@ -45,7 +41,6 @@
 79E
 7AD
 7BC
-
 ```
 
-向 KernelKiller 致敬，祝早日康复。
+向 KernelKiller 致敬，祝早日康复。

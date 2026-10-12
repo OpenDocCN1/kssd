@@ -1,292 +1,303 @@
 
-
 # Winace v2.04
 
 > 原文：[`www.pediy.com/kssd/pediy04/kanxue214.htm`](https://www.pediy.com/kssd/pediy04/kanxue214.htm)
 
-目标    ：    Winace v2.04.   
-工具    ：      SoftIce v4.05 for Win9x, only!   
-特别需要你的耐心与细心   
-  
-简要说明:   
-    注册验证算法下面我写了，主要想说的是，这个东西并不是太难，是密码学算法   
-    分析的入门级程度，特别是对分析 RSA 来说，是一个很好的例子。算法中应用 CRC32   
-    作为一个验证点，也就是密文的一部分，用它组合的密文通过 RSA 进行 RSA\_DECODE   
-    得到明文，然后通过一个解码过程最后得到注册码。   
-           
-    验证过程：   
-    注册码检测时，是先把输入的 fakeKey 经过查表转换成一个序列 ---> "indexFkey"   
-    然后把 indexFkey 通过一个 ENCODER(非常简单的双向算法，和 MIRC 中用到的算法类似，   
-    比 MIRC 中的又稍微复杂点)进行编码，得到的结果进行 RSA\_ENCODE，这里用到的 E = 3。   
-    之后的结果和上面说到的密文进行校验。   
-       
-    keygen 的流程：   
-           
-    其实挺简单，就是写的时候要细心些。我的程序中频繁运用了转换函数(char\* to   
-    hex\*, hex\* to char\*)，其实用 freelip 运算 RSA 后的结果(verylong)就可以直接   
-    构造生成函数，对此结果进行解码从而得到真正的注册码。   
-           
-    baseStr = strupr( username + first3CharOfRegCode );   
-    Crc32ChkSum = CRC32( baseStr );   
-    ConstructCipherText( buf, Crc32ChkSum + SomeOtherKeyPoint );   
-    /\* 这里需要你自己去找检测点了，还有如何构造密文序列 \*/   
-    indexFkey = RSA\_DECODE( ( verylong type )buf, d, n );   
-    ValidRegCode = DeCoderSimple( indexFkey, table );   
-       
-    就这样吧，再说就没有什么意义了。还是那句话，算法简单，不过要细心！   
-           
-                                Deo Gratias!   
-                                 2001-11-5   
-                                arbiter\[ccg\].   
-  
-/\* --------------------------------------------------------------------------- \*/   
-/\*            Winace v2.04 Key Generator by arbiter.                    \*/   
-/\*                                          \*/   
-/\* KeyCheck routine: RSA120 + CRC32\_Modified + authorMadeSimpleEncoder :)      \*/   
-/\*                                            \*/   
-/\* level      : Elementary phase of reversing of apply cryptography.      \*/   
-/\* lib. & compiling: You need the freelip to compile this source code, and    \*/   
-/\*              do not forget adding the "ws2\_32.lib" to your project    \*/   
-/\*              which will be used by freelip.                  \*/   
-/\*                                                \*/   
-/\* freelip is what i use to calculate the RSA, i prefer this one then the      \*/   
-/\* miracl, because of it is an excellent and fully open source code libaray.  \*/   
-/\* --------------------------------------------------------------------------- \*/   
-#include <stdio.h>   
-#include <stdlib.h>   
-#include <string.h>   
-#include <conio.h>   
-#include "lip.h"   
-#pragma comment( lib, "freelib.lib" )   
-  
-extern time();   
-typedef unsigned char    BYTE;   
-typedef unsigned long    DWORD;   
-#define    UpdCRC32( octet, crc ) \\   
-{ \\   
-    DWORD temp = crc & 0x000000ff; \\   
-    ( crc ) >>= 8; \\   
-    ( crc ) ^= CRC32\_tab\[( BYTE )octet ^ temp\]; \\   
-}       
-  
-static char ctable\[\] = "0123456789ABCDEFGHIJKMNPQRSTUVWXYZ";   
-static char leadingStr\[\] = "CCG";   
-/\* RSA120 modulus N and private key D, public key E = 3. 8^) \*/   
-static char modulus\_N\[\] = "E9EF370510CB9DB54CA78CC94A3495";   
-static char private\_D\[\] = "9BF4CF58B5DD13AF6A905C439A8E6B";   
-/\* standard CRC32 hash consts table, modified CRC32 hash routine. \*/   
-const DWORD CRC32\_tab\[\] =   
+目标：`Winace v2.04`。
+
+工具：`SoftIce v4.05` for `Win9x`, only!
+
+特别需要你的耐心与细心
+
+## 简要说明
+
+注册验证算法下面我写了，主要想说的是，这个东西并不是太难，是密码学算法分析的入门级程度，特别是对分析 `RSA` 来说，是一个很好的例子。算法中应用 `CRC32` 作为一个验证点，也就是密文的一部分，用它组合的密文通过 `RSA_DECODE` 得到明文，然后通过一个解码过程最后得到注册码。
+
+## 验证过程
+
+注册码检测时，是先把输入的 `fakeKey` 经过查表转换成一个序列 `---> "indexFkey"`。
+
+然后把 `indexFkey` 通过一个 `ENCODER`(非常简单的双向算法，和 `MIRC` 中用到的算法类似，比 `MIRC` 中的又稍微复杂点)进行编码，得到的结果进行 `RSA_ENCODE`，这里用到的 `E = 3`。
+
+之后的结果和上面说到的密文进行校验。
+
+## keygen 的流程
+
+其实挺简单，就是写的时候要细心些。我的程序中频繁运用了转换函数(`char* to hex*`, `hex* to char*`)，其实用 `freelib` 运算 `RSA` 后的结果(`verylong`)就可以直接构造生成函数，对此结果进行解码从而得到真正的注册码。
+
+```
+baseStr = strupr( username + first3CharOfRegCode );
+Crc32ChkSum = CRC32( baseStr );
+ConstructCipherText( buf, Crc32ChkSum + SomeOtherKeyPoint );
+/* 这里需要你自己去找检测点了，还有如何构造密文序列 */
+indexFkey = RSA_DECODE( ( verylong type )buf, d, n );
+ValidRegCode = DeCoderSimple( indexFkey, table );
+```
+
+就这样吧，再说就没有什么意义了。还是那句话，算法简单，不过要细心！
+
+Deo Gratias!
+
+2001-11-5
+
+`arbiter[ccg]`
+
+```c
+/* --------------------------------------------------------------------------- */
+/*      Winace v2.04 Key Generator by arbiter.                    */
+/*                              */
+/* KeyCheck routine: RSA120 + CRC32_Modified + authorMadeSimpleEncoder :)      */
+/*                              */
+/* level     : Elementary phase of reversing of apply cryptography.      */
+/* lib. & compiling: You need the freelip to compile this source code, and     */
+/*          do not forget adding the "ws2_32.lib" to your project     */
+/*          which will be used by freelip.                   */
+/*          */
+/* freelip is what i use to calculate the RSA, i prefer this one then the       */
+/* miracl, because of it is an excellent and fully open source code libaray.  */
+/* --------------------------------------------------------------------------- */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <conio.h>
+#include "lip.h"
+
+#pragma comment( lib, "freelib.lib" )
+
+extern time();
+
+typedef unsigned char    BYTE;
+typedef unsigned long    DWORD;
+
+#define    UpdCRC32( octet, crc ) \
+{ \
+    DWORD temp = crc & 0x000000ff; \
+    ( crc ) >>= 8; \
+    ( crc ) ^= CRC32_tab[( BYTE )octet ^ temp]; \
+}    
+
+static char ctable[] = "0123456789ABCDEFGHIJKMNPQRSTUVWXYZ";
+static char leadingStr[] = "CCG";
+
+/* RSA120 modulus N and private key D, public key E = 3. 8^) */
+static char modulus_N[] = "E9EF370510CB9DB54CA78CC94A3495";
+static char private_D[] = "9BF4CF58B5DD13AF6A905C439A8E6B";
+
+/* standard CRC32 hash consts table, modified CRC32 hash routine. */
+const DWORD CRC32_tab[] = 
+{
+    0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 
+    0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988, 
+    0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91, 0x1db71064, 0x6ab020f2, 
+    0xf3b97148, 0x84be41de, 0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7, 
+    0x136c9856, 0x646ba8c0, 0xfd62f97a, 0x8a65c9ec, 0x14015c4f, 0x63066cd9, 
+    0xfa0f3d63, 0x8d080df5, 0x3b6e20c8, 0x4c69105e, 0xd56041e4, 0xa2677172, 
+    0x3c03e4d1, 0x4b04d447, 0xd20d85fd, 0xa50ab56b, 0x35b5a8fa, 0x42b2986c, 
+    0xdbbbc9d6, 0xacbcf940, 0x32d86ce3, 0x45df5c75, 0xdcd60dcf, 0xabd13d59, 
+    0x26d930ac, 0x51de003a, 0xc8d75180, 0xbfd06116, 0x21b4f4b5, 0x56b3c423, 
+    0xcfba9599, 0xb8bda50f, 0x2802b89e, 0x5f058808, 0xc60cd9b2, 0xb10be924, 
+    0x2f6f7c87, 0x58684c11, 0xc1611dab, 0xb6662d3d, 0x76dc4190, 0x01db7106, 
+    0x98d220bc, 0xefd5102a, 0x71b18589, 0x06b6b51f, 0x9fbfe4a5, 0xe8b8d433, 
+    0x7807c9a2, 0x0f00f934, 0x9609a88e, 0xe10e9818, 0x7f6a0dbb, 0x086d3d2d, 
+    0x91646c97, 0xe6635c01, 0x6b6b51f4, 0x1c6c6162, 0x856530d8, 0xf262004e, 
+    0x6c0695ed, 0x1b01a57b, 0x8208f4c1, 0xf50fc457, 0x65b0d9c6, 0x12b7e950, 
+    0x8bbeb8ea, 0xfcb9887c, 0x62dd1ddf, 0x15da2d49, 0x8cd37cf3, 0xfbd44c65, 
+    0x4db26158, 0x3ab551ce, 0xa3bc0074, 0xd4bb30e2, 0x4adfa541, 0x3dd895d7, 
+    0xa4d1c46d, 0xd3d6f4fb, 0x4369e96a, 0x346ed9fc, 0xad678846, 0xda60b8d0, 
+    0x44042d73, 0x33031de5, 0xaa0a4c5f, 0xdd0d7cc9, 0x5005713c, 0x270241aa, 
+    0xbe0b1010, 0xc90c2086, 0x5768b525, 0x206f85b3, 0xb966d409, 0xce61e49f, 
+    0x5edef90e, 0x29d9c998, 0xb0d09822, 0xc7d7a8b4, 0x59b33d17, 0x2eb40d81, 
+    0xb7bd5c3b, 0xc0ba6cad, 0xedb88320, 0x9abfb3b6, 0x03b6e20c, 0x74b1d29a, 
+    0xead54739, 0x9dd277af, 0x04db2615, 0x73dc1683, 0xe3630b12, 0x94643b84, 
+    0x0d6d6a3e, 0x7a6a5aa8, 0xe40ecf0b, 0x9309ff9d, 0x0a00ae27, 0x7d079eb1, 
+    0xf00f9344, 0x8708a3d2, 0x1e01f268, 0x6906c2fe, 0xf762575d, 0x806567cb, 
+    0x196c3671, 0x6e6b06e7, 0xfed41b76, 0x89d32be0, 0x10da7a5a, 0x67dd4acc, 
+    0xf9b9df6f, 0x8ebeeff9, 0x17b7be43, 0x60b08ed5, 0xd6d6a3e8, 0xa1d1937e, 
+    0x38d8c2c4, 0x4fdff252, 0xd1bb67f1, 0xa6bc5767, 0x3fb506dd, 0x48b2364b, 
+    0xd80d2bda, 0xaf0a1b4c, 0x36034af6, 0x41047a60, 0xdf60efc3, 0xa867df55, 
+    0x316e8eef, 0x4669be79, 0xcb61b38c, 0xbc66831a, 0x256fd2a0, 0x5268e236, 
+    0xcc0c7795, 0xbb0b4703, 0x220216b9, 0x5505262f, 0xc5ba3bbe, 0xb2bd0b28, 
+    0x2bb45a92, 0x5cb36a04, 0xc2d7ffa7, 0xb5d0cf31, 0x2cd99e8b, 0x5bdeae1d, 
+    0x9b64c2b0, 0xec63f226, 0x756aa39c, 0x026d930a, 0x9c0906a9, 0xeb0e363f, 
+    0x72076785, 0x05005713, 0x95bf4a82, 0xe2b87a14, 0x7bb12bae, 0x0cb61b38, 
+    0x92d28e9b, 0xe5d5be0d, 0x7cdcefb7, 0x0bdbdf21, 0x86d3d2d4, 0xf1d4e242, 
+    0x68ddb3f8, 0x1fda836e, 0x81be16cd, 0xf6b9265b, 0x6fb077e1, 0x18b74777, 
+    0x88085ae6, 0xff0f6a70, 0x66063bca, 0x11010b5c, 0x8f659eff, 0xf862ae69, 
+    0x616bffd3, 0x166ccf45, 0xa00ae278, 0xd70dd2ee, 0x4e048354, 0x3903b3c2, 
+    0xa7672661, 0xd06016f7, 0x4969474d, 0x3e6e77db, 0xaed16a4a, 0xd9d65adc, 
+    0x40df0b66, 0x37d83bf0, 0xa9bcae53, 0xdebb9ec5, 0x47b2cf7f, 0x30b5ffe9, 
+    0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693, 
+    0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 
+    0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d 
+};
+
+DWORD CRC32_Modify( char *hashBuf, int len ) 
+{ 
+    int i; 
+    register DWORD checksum = 0xffffffff; 
+    register DWORD temp = 0x0; 
+    for( i = 0; len; len--, i++ ) 
+      UpdCRC32( hashBuf[i], checksum ); 
+    return checksum;    
+} 
+
+/* conversion code. grab it from tE!'s keygen. haha. 
+  i'm jerking around here of my lamer gen. routine 
+  over the conversion ;-) */
+
+char eulav( long i ); 
+
+void zhconvert( verylong a, char *dbuff, int CodeLen ) 
+{ 
+    static    char *b; 
+    register long i,j,cnt = 0; 
+    b = ( char* )malloc( ( size_t )( a[0] << 3 ) ); 
+    if ( !b ) return; 
+    do    { 
+      b[cnt] = eulav( a[1] & 15 ); 
+      cnt++; 
+      zrshift( a, ( long )4, &a ); 
+    } 
+    while ( ( a[1] != 0 ) || ( a[0] != 1 ) || ( cnt < CodeLen ) ); 
+    b[cnt] &= 0x00; 
+    j = cnt - 1; 
+    for( i = 0; i < cnt; i++ ) 
+    { 
+      dbuff[i] = b[j]; 
+      j--; 
+    } 
+    dbuff[i] = 0x00; 
+    free( b ); 
+} 
+
+int CheckBound( int x ) 
+{ 
+    return( ( ( x >= 0x30 && x <= 0x39 ) || 
+              ( x >= 0 && x <= 9 ) )? 0x30 : 0x37 ); 
+} 
+
+void LoadDd( DWORD *x, char *buf ) 
+{ 
+    int i; 
+    BYTE nibble_H = 0; 
+    BYTE nibble_L = 0; 
+    DWORD tByte = 0; 
+}
+```
+
+
+
+```c
+for( i = 0; i < 3; i++ )   
 {   
-    0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,   
-    0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,   
-    0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91, 0x1db71064, 0x6ab020f2,   
-    0xf3b97148, 0x84be41de, 0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7,   
-    0x136c9856, 0x646ba8c0, 0xfd62f97a, 0x8a65c9ec, 0x14015c4f, 0x63066cd9,   
-    0xfa0f3d63, 0x8d080df5, 0x3b6e20c8, 0x4c69105e, 0xd56041e4, 0xa2677172,   
-    0x3c03e4d1, 0x4b04d447, 0xd20d85fd, 0xa50ab56b, 0x35b5a8fa, 0x42b2986c,   
-    0xdbbbc9d6, 0xacbcf940, 0x32d86ce3, 0x45df5c75, 0xdcd60dcf, 0xabd13d59,   
-    0x26d930ac, 0x51de003a, 0xc8d75180, 0xbfd06116, 0x21b4f4b5, 0x56b3c423,   
-    0xcfba9599, 0xb8bda50f, 0x2802b89e, 0x5f058808, 0xc60cd9b2, 0xb10be924,   
-    0x2f6f7c87, 0x58684c11, 0xc1611dab, 0xb6662d3d, 0x76dc4190, 0x01db7106,   
-    0x98d220bc, 0xefd5102a, 0x71b18589, 0x06b6b51f, 0x9fbfe4a5, 0xe8b8d433,   
-    0x7807c9a2, 0x0f00f934, 0x9609a88e, 0xe10e9818, 0x7f6a0dbb, 0x086d3d2d,   
-    0x91646c97, 0xe6635c01, 0x6b6b51f4, 0x1c6c6162, 0x856530d8, 0xf262004e,   
-    0x6c0695ed, 0x1b01a57b, 0x8208f4c1, 0xf50fc457, 0x65b0d9c6, 0x12b7e950,   
-    0x8bbeb8ea, 0xfcb9887c, 0x62dd1ddf, 0x15da2d49, 0x8cd37cf3, 0xfbd44c65,   
-    0x4db26158, 0x3ab551ce, 0xa3bc0074, 0xd4bb30e2, 0x4adfa541, 0x3dd895d7,   
-    0xa4d1c46d, 0xd3d6f4fb, 0x4369e96a, 0x346ed9fc, 0xad678846, 0xda60b8d0,   
-    0x44042d73, 0x33031de5, 0xaa0a4c5f, 0xdd0d7cc9, 0x5005713c, 0x270241aa,   
-    0xbe0b1010, 0xc90c2086, 0x5768b525, 0x206f85b3, 0xb966d409, 0xce61e49f,   
-    0x5edef90e, 0x29d9c998, 0xb0d09822, 0xc7d7a8b4, 0x59b33d17, 0x2eb40d81,   
-    0xb7bd5c3b, 0xc0ba6cad, 0xedb88320, 0x9abfb3b6, 0x03b6e20c, 0x74b1d29a,   
-    0xead54739, 0x9dd277af, 0x04db2615, 0x73dc1683, 0xe3630b12, 0x94643b84,   
-    0x0d6d6a3e, 0x7a6a5aa8, 0xe40ecf0b, 0x9309ff9d, 0x0a00ae27, 0x7d079eb1,   
-    0xf00f9344, 0x8708a3d2, 0x1e01f268, 0x6906c2fe, 0xf762575d, 0x806567cb,   
-    0x196c3671, 0x6e6b06e7, 0xfed41b76, 0x89d32be0, 0x10da7a5a, 0x67dd4acc,   
-    0xf9b9df6f, 0x8ebeeff9, 0x17b7be43, 0x60b08ed5, 0xd6d6a3e8, 0xa1d1937e,   
-    0x38d8c2c4, 0x4fdff252, 0xd1bb67f1, 0xa6bc5767, 0x3fb506dd, 0x48b2364b,   
-    0xd80d2bda, 0xaf0a1b4c, 0x36034af6, 0x41047a60, 0xdf60efc3, 0xa867df55,   
-    0x316e8eef, 0x4669be79, 0xcb61b38c, 0xbc66831a, 0x256fd2a0, 0x5268e236,   
-    0xcc0c7795, 0xbb0b4703, 0x220216b9, 0x5505262f, 0xc5ba3bbe, 0xb2bd0b28,   
-    0x2bb45a92, 0x5cb36a04, 0xc2d7ffa7, 0xb5d0cf31, 0x2cd99e8b, 0x5bdeae1d,   
-    0x9b64c2b0, 0xec63f226, 0x756aa39c, 0x026d930a, 0x9c0906a9, 0xeb0e363f,   
-    0x72076785, 0x05005713, 0x95bf4a82, 0xe2b87a14, 0x7bb12bae, 0x0cb61b38,   
-    0x92d28e9b, 0xe5d5be0d, 0x7cdcefb7, 0x0bdbdf21, 0x86d3d2d4, 0xf1d4e242,   
-    0x68ddb3f8, 0x1fda836e, 0x81be16cd, 0xf6b9265b, 0x6fb077e1, 0x18b74777,   
-    0x88085ae6, 0xff0f6a70, 0x66063bca, 0x11010b5c, 0x8f659eff, 0xf862ae69,   
-    0x616bffd3, 0x166ccf45, 0xa00ae278, 0xd70dd2ee, 0x4e048354, 0x3903b3c2,   
-    0xa7672661, 0xd06016f7, 0x4969474d, 0x3e6e77db, 0xaed16a4a, 0xd9d65adc,   
-    0x40df0b66, 0x37d83bf0, 0xa9bcae53, 0xdebb9ec5, 0x47b2cf7f, 0x30b5ffe9,   
-    0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693,   
-    0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94,   
-    0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d   
-};   
-  
-DWORD CRC32\_Modify( char \*hashBuf, int len )   
-{   
-    int i;   
-    register DWORD checksum = 0xffffffff;   
-    register DWORD temp = 0x0;   
-    for( i = 0; len; len--, i++ )   
-        UpdCRC32( hashBuf\[i\], checksum );   
-    return checksum;       
+    nibble_H = buf[i * 2] - CheckBound( buf[i * 2] );   
+    nibble_L = buf[i * 2 + 1] - CheckBound( buf[i * 2 +1] );   
+    tByte = nibble_H * 16 + nibble_L;   
+    ( *x ) <<= 8;   
+    ( *x ) |= tByte;   
 }   
-  
-/\* conversion code. grab it from tE!'s keygen. haha.   
-  i'm jerking around here of my lamer gen. routine   
-  over the conversion ;-) \*/   
-  
-char eulav( long i );   
-void zhconvert( verylong a, char \*dbuff, int CodeLen )   
-{   
-    static     char \*b;   
-    register long i,j,cnt = 0;   
-  
-    b = ( char\* )malloc( ( size\_t )( a\[0\] << 3 ) );   
-  
-    if ( !b ) return;   
-  
-    do    {   
-        b\[cnt\] = eulav( a\[1\] & 15 );   
-        cnt++;   
-        zrshift( a, ( long )4, &a );   
-    }   
-    while ( ( a\[1\] != 0 ) || ( a\[0\] != 1 ) || ( cnt < CodeLen ) );   
-  
-    b\[cnt\] &= 0x00;   
-  
-    j = cnt - 1;   
-    for( i = 0; i < cnt; i++ )   
-    {   
-        dbuff\[i\] = b\[j\];   
-        j--;   
-    }   
-    dbuff\[i\] = 0x00;   
-    free( b );   
+
 }   
-  
-int CheckBound( int x )   
+
+void StoreDd( char *buf, DWORD x )   
 {   
-    return( ( ( x >= 0x30 && x <= 0x39 ) ||   
-              ( x >= 0 && x <= 9 ) )? 0x30 : 0x37 );   
+    int i, j;   
+    BYTE nibble_H = 0;   
+    BYTE nibble_L = 0;   
+    BYTE *bx = ( BYTE* )&x;   
+    for( i = 2, j = 0; i >= 0; i-- )   
+    {   
+        nibble_H = ( bx[i] & 0xF0 ) >> 4;   
+        nibble_L = bx[i] & 0x0F;   
+        buf[j++] = nibble_H + CheckBound( nibble_H );   
+        buf[j++] = nibble_L + CheckBound( nibble_L );   
+    }   
 }   
-  
-void LoadDd( DWORD \*x, char \*buf )   
+
+void GenRegCode( char *regCode, char *cText )   
 {   
-    int i;   
-    BYTE nibble\_H = 0;   
-    BYTE nibble\_L = 0;   
-    DWORD tByte = 0;   
-    for( i = 0; i < 3; i++ )   
-    {   
-        nibble\_H = buf\[i \* 2\] - CheckBound( buf\[i \* 2\] );   
-        nibble\_L = buf\[i \* 2 + 1\] - CheckBound( buf\[i \* 2 +1\] );   
-        tByte = nibble\_H \* 16 + nibble\_L;   
-        ( \*x ) <<= 8;   
-        ( \*x ) |= tByte;   
-    }   
+    int i = 2;   
+    int j;   
+    BYTE lmByte = 0;   
+    
+    DWORD X_man = 0;   
+    char tmpBuf[30] = { 0x00 }, *p_tmpBuf = tmpBuf;   
+    strcpy( tmpBuf, cText );   
+    strcpy( regCode, leadingStr );   
+    while( i++ < 0x1a )   
+    {   
+        for( j = 0; j < 5; j++ )   
+        {   
+            LoadDd( &X_man, p_tmpBuf );   
+            X_man |= lmByte << 24;   
+            lmByte = ( BYTE )( X_man % 0x22 );   
+            X_man = ( X_man - lmByte ) / 0x22;   
+            StoreDd( p_tmpBuf, X_man );   
+            X_man &= 0;   
+            if( j == 4 )   
+            {   
+                regCode[i] = ctable[lmByte];   
+                lmByte &= 0;   
+            }   
+            p_tmpBuf += 6;   
+        }   
+        p_tmpBuf = tmpBuf;   
+    }   
 }   
-  
-void StoreDd( char \*buf, DWORD x )   
-{   
-    int i, j;   
-    BYTE nibble\_H = 0;   
-    BYTE nibble\_L = 0;   
-    BYTE \*bx = ( BYTE\* )&x;   
-    for( i = 2, j = 0; i >= 0; i-- )   
-    {   
-        nibble\_H = ( bx\[i\] & 0xF0 ) >> 4;   
-        nibble\_L = bx\[i\] & 0x0F;   
-        buf\[j++\] = nibble\_H + CheckBound( nibble\_H );   
-        buf\[j++\] = nibble\_L + CheckBound( nibble\_L );   
-    }   
-}   
-  
-void GenRegCode( char \*regCode, char \*cText )   
-{   
-    int i = 2;   
-    int j;   
-    BYTE lmByte = 0;       
-    DWORD X\_man = 0;   
-    char tmpBuf\[30\] = { 0x00 }, \*p\_tmpBuf = tmpBuf;   
-    strcpy( tmpBuf, cText );   
-    strcpy( regCode, leadingStr );   
-    while( i++ < 0x1a )   
-    {   
-        for( j = 0; j < 5; j++ )   
-        {   
-            LoadDd( &X\_man, p\_tmpBuf );   
-            X\_man |= lmByte << 24;   
-            lmByte = ( BYTE )( X\_man % 0x22 );   
-            X\_man = ( X\_man - lmByte ) / 0x22;   
-            StoreDd( p\_tmpBuf, X\_man );   
-            X\_man &= 0;   
-            if( j == 4 )   
-            {   
-                regCode\[i\] = ctable\[lmByte\];   
-                lmByte &= 0;   
-            }   
-            p\_tmpBuf += 6;   
-        }   
-        p\_tmpBuf = tmpBuf;   
-    }   
-}   
-  
+
 void main( void )   
 {   
-    verylong    n = 0;   
-    verylong    d = 0;   
-    verylong    m = 0;   
-    int  len;   
-    DWORD sum;   
-    BYTE first, \*pb;   
-    char userName\[30\];   
-    char userCode\[50\];   
-       
-    char tempBuf\[20\] = { 0x00 };   
-    BYTE pText\[60\]      = { 0x00 };   
-       
-    srand( time( NULL ) );   
-    memset( userName, 0, 30 );   
-    memset( userCode, 0, 50 );   
-    fprintf( stderr, "Winace v2.04 key Generator by arbiter.\\n\\n" );   
-    fprintf( stderr, "Your username : " );   
-    gets( userName );   
-    puts( "\\n" );   
-       
-    /\* Begin constructing the cipher text in order to have RSA \*/   
-    strcpy( tempBuf, userName );   
-    strcat( tempBuf, leadingStr );   
-    strupr( tempBuf );   
-    len = strlen( tempBuf );   
-    sum = CRC32\_Modify( tempBuf, len );   
-    pb = ( BYTE\* )&sum;   
-    while( 1 )   
-    {   
-        first =  rand() % 0xff;   
-        if( ( pb\[2\] ^ first ) & 2 )   
-            break;   
-    }   
-    pText\[0\] = first;   
-    memcpy( pText + 3, pb, 4 );   
-    pText\[0x0b\] = ( char )0xAB;   
-    pText\[0x0d\] = ( char )0x36;   
-       
-    /\* Begin RSA \*/   
-    zstrtozbas( modulus\_N, ( long )16, &n );   
-    zstrtozbas( private\_D, ( long )16, &d );   
-    zultoz( ( DWORD\* )pText, 4, &m );   
-    zexpmod( m, d, n, &m );   
-    zhconvert( m, pText, 30 );   
-           
-    zfree( &n );   
-    zfree( &d );   
-    zfree( &m );   
-    /\* End RSA \*/       
-       
-    /\* Generate register Serial \*/   
-    GenRegCode( userCode, pText );   
-       
-    fprintf( stderr, "Your userCode : %s\\n", userCode );   
-    getch();   
-}  4dd466d0e1e0cc123afbe504da2462ca
+    verylong   n = 0;   
+    verylong   d = 0;   
+    verylong   m = 0;   
+    int  len;   
+    DWORD sum;   
+    BYTE first, *pb;   
+    char userName[30];   
+    char userCode[50];   
+    char tempBuf[20] = { 0x00 };   
+    BYTE pText[60]      = { 0x00 };   
+    srand( time( NULL ) );   
+    memset( userName, 0, 30 );   
+    memset( userCode, 0, 50 );   
+    fprintf( stderr, "Winace v2.04 key Generator by arbiter.\n\n" );   
+    fprintf( stderr, "Your username : " );   
+    gets( userName );   
+    puts( "\n" );   
+    /* Begin constructing the cipher text in order to have RSA */   
+    strcpy( tempBuf, userName );   
+    strcat( tempBuf, leadingStr );   
+    strupr( tempBuf );   
+    len = strlen( tempBuf );   
+    sum = CRC32_Modify( tempBuf, len );   
+    pb = ( BYTE* )&sum;   
+    while( 1 )   
+    {   
+        first =  rand() % 0xff;   
+        if( ( pb[2] ^ first ) & 2 )   
+            break;   
+    }   
+    pText[0] = first;   
+    memcpy( pText + 3, pb, 4 );   
+    pText[0x0b] = ( char )0xAB;   
+    pText[0x0d] = ( char )0x36;   
+    /* Begin RSA */   
+    zstrtozbas( modulus_N, ( long )16, &n );   
+    zstrtozbas( private_D, ( long )16, &d );   
+    zultoz( ( DWORD* )pText, 4, &m );   
+    zexpmod( m, d, n, &m );   
+    zhconvert( m, pText, 30 );   
+    zfree( &n );   
+    zfree( &d );   
+    zfree( &m );   
+    /* End RSA */   
+    
+    /* Generate register Serial */   
+    GenRegCode( userCode, pText );   
+    fprintf( stderr, "Your userCode : %s\n", userCode );   
+    getch();   
+}
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

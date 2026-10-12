@@ -1,599 +1,754 @@
 
-
 # aspr 中的精彩代码(一)(修正)、(二)
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-774.htm`](https://www.pediy.com/kssd/pediy07/pediy7-774.htm)
 
-【分享】aspr 中的精彩代码(一)。。。  
-  
-很久没玩壳了，这两天仔细跟踪了一下 aspr，不过我不清楚是什么版本（汗。。。我菜，公司 peid 查，是 1.3x，家里 peid 查是 2.x）问 fly，可能是 1.3，jwh51 说也有可能是 2.x，不过不管他，  
-我就不来谈怎么脱这个壳了(很经有很多大侠写了很好的文章)。。。  
-  
-跟踪过程中略有所得，整理出来与大家一起共享之。。。下面的两个函数取自于 aspr 偷 api 的代码  
-  
-1. 取得一条有效指令(OpCode)的长度  
-函数原型：  
-function GetOpCodeSize(Start: Pointer; Tlb: Pointer): integer;  
-Start: 指令起始地址  
-Tlb: 一个表。。。我暂且称它为掩码表吧，里面是 OPCode 中某位的掩码  
-  
-01843D17     60                pushad  
-01843D18     8B7424 24         mov esi,dword ptr ss:\[esp+24\]  ; 指向 tlb  
-01843D1C     8B4C24 28         mov ecx,dword ptr ss:\[esp+28\]  ; 指令起始地址  
-01843D20     31D2              xor edx,edx  
-01843D22     31C0              xor eax,eax  
-01843D24     80E2 F7           and dl,0F7  
-01843D27     8A01              mov al,byte ptr ds:\[ecx\]  
-01843D29     41                inc ecx  
-01843D2A     0B1486            or edx,dword ptr ds:\[esi+eax\*4\]  
-01843D2D     F6C2 08           test dl,8  
-01843D30   ^ 75 F2             jnz short 01843D24  
-01843D32     3C F6             cmp al,0F6  
-01843D34     74 37             je short 01843D6D  
-01843D36     3C F7             cmp al,0F7  
-01843D38     74 33             je short 01843D6D  
-01843D3A     3C CD             cmp al,0CD  
-01843D3C     74 3C             je short 01843D7A  
-01843D3E     80F8 0F           cmp al,0F  
-01843D41     74 44             je short 01843D87  
-01843D43     F6C6 80           test dh,80  
-01843D46     75 52             jnz short 01843D9A  
-01843D48     F6C6 40           test dh,40  
-01843D4B     75 73             jnz short 01843DC0  
-01843D4D     F6C2 20           test dl,20  
-01843D50     75 54             jnz short 01843DA6  
-01843D52     F6C6 20           test dh,20  
-01843D55     75 5C             jnz short 01843DB3  
-01843D57     89C8              mov eax,ecx  
-01843D59     2B4424 28         sub eax,dword ptr ss:\[esp+28\]  
-01843D5D     81E2 07070000     and edx,707  
-01843D63     00D0              add al,dl  
-01843D65     00F0              add al,dh  
-01843D67     894424 1C         mov dword ptr ss:\[esp+1C\],eax  
-01843D6B     61                popad  
-01843D6C     C3                retn  
-01843D6D     80CE 40           or dh,40  
-01843D70     F601 38           test byte ptr ds:\[ecx\],38  
-01843D73   ^ 75 CE             jnz short 01843D43  
-01843D75     80CE 80           or dh,80  
-01843D78   ^ EB C9             jmp short 01843D43  
-01843D7A     80CE 01           or dh,1  
-01843D7D     8039 20           cmp byte ptr ds:\[ecx\],20  
-01843D80   ^ 75 C1             jnz short 01843D43  
-01843D82     80CE 04           or dh,4  
-01843D85   ^ EB BC             jmp short 01843D43  
-01843D87     8A01              mov al,byte ptr ds:\[ecx\]  
-01843D89     41                inc ecx  
-01843D8A     0B9486 00040000   or edx,dword ptr ds:\[esi+eax\*4+400\]  
-01843D91     83FA FF           cmp edx,-1  
-01843D94   ^ 75 AD             jnz short 01843D43  
-01843D96     89D0              mov eax,edx  
-01843D98   ^ EB CD             jmp short 01843D67  
-01843D9A     80F6 20           xor dh,20  
-01843D9D     A8 01             test al,1  
-01843D9F   ^ 75 A7             jnz short 01843D48  
-01843DA1     80F6 21           xor dh,21  
-01843DA4   ^ EB A2             jmp short 01843D48  
-01843DA6     80F2 02           xor dl,2  
-01843DA9     F6C2 10           test dl,10  
-01843DAC   ^ 75 A4             jnz short 01843D52  
-01843DAE     80F2 06           xor dl,6  
-01843DB1   ^ EB 9F             jmp short 01843D52  
-01843DB3     80F6 02           xor dh,2  
-01843DB6     F6C6 10           test dh,10  
-01843DB9   ^ 75 9C             jnz short 01843D57  
-01843DBB     80F6 06           xor dh,6  
-01843DBE   ^ EB 97             jmp short 01843D57  
-01843DC0     8A01              mov al,byte ptr ds:\[ecx\]  
-01843DC2     41                inc ecx  
-01843DC3     88C4              mov ah,al  
-01843DC5     66:25 07C0        and ax,0C007  
-01843DC9     80FC C0           cmp ah,0C0  
-01843DCC   ^ 0F84 7BFFFFFF     je 01843D4D  
-01843DD2     F6C2 10           test dl,10  
-01843DD5     75 2F             jnz short 01843E06  
-01843DD7     80F8 04           cmp al,4  
-01843DDA     75 06             jnz short 01843DE2  
-01843DDC     8A01              mov al,byte ptr ds:\[ecx\]  
-01843DDE     41                inc ecx  
-01843DDF     80E0 07           and al,7  
-01843DE2     80FC 40           cmp ah,40  
-01843DE5     74 17             je short 01843DFE  
-01843DE7     80FC 80           cmp ah,80  
-01843DEA     74 0A             je short 01843DF6  
-01843DEC     66:83F8 05        cmp ax,5  
-01843DF0   ^ 0F85 57FFFFFF     jnz 01843D4D  
-01843DF6     80CA 04           or dl,4  
-01843DF9   ^ E9 4FFFFFFF       jmp 01843D4D  
-01843DFE     80CA 01           or dl,1  
-01843E01   ^ E9 47FFFFFF       jmp 01843D4D  
-01843E06     66:83F8 06        cmp ax,6  
-01843E0A     74 0E             je short 01843E1A  
-01843E0C     80FC 40           cmp ah,40  
-01843E0F   ^ 74 ED             je short 01843DFE  
-01843E11     80FC 80           cmp ah,80  
-01843E14   ^ 0F85 33FFFFFF     jnz 01843D4D  
-01843E1A     80CA 02           or dl,2  
-01843E1D   ^ E9 2BFFFFFF       jmp 01843D4D  
-01843E22     C3                retn  
-  
-tlb:  
-01853974     00004000    00004000    00004000    00004000  
-01853984     00008000    00008000    00000000    00000000  
-01853994     00004000    00004000    00004000    00004000  
-018539A4     00008000    00008000    00000000    00000000  
-018539B4     00004000    00004000    00004000    00004000  
-018539C4     00008000    00008000    00000000    00000000  
-018539D4     00004000    00004000    00004000    00004000  
-018539E4     00008000    00008000    00000000    00000000  
-018539F4     00004000    00004000    00004000    00004000  
-01853A04     00008000    00008000    00000008    00000000  
-01853A14     00004000    00004000    00004000    00004000  
-01853A24     00008000    00008000    00000008    00000000  
-01853A34     00004000    00004000    00004000    00004000  
-01853A44     00008000    00008000    00000008    00000000  
-01853A54     00004000    00004000    00004000    00004000  
-01853A64     00008000    00008000    00000008    00000000  
-01853A74     00000000    00000000    00000000    00000000  
-01853A84     00000000    00000000    00000000    00000000  
-01853A94     00000000    00000000    00000000    00000000  
-01853AA4     00000000    00000000    00000000    00000000  
-01853AB4     00000000    00000000    00000000    00000000  
-01853AC4     00000000    00000000    00000000    00000000  
-01853AD4     00000000    00000000    00000000    00000000  
-01853AE4     00000000    00000000    00000000    00000000  
-01853AF4     00000000    00000000    00004000    00004000  
-01853B04     00000008    00000008    00001008    00000018  
-01853B14     00002000    00006000    00000100    00004100  
-01853B24     00000000    00000000    00000000    00000000  
-01853B34     00000100    00000100    00000100    00000100  
-01853B44     00000100    00000100    00000100    00000100  
-01853B54     00000100    00000100    00000100    00000100  
-01853B64     00000100    00000100    00000100    00000100  
-01853B74     00004100    00006000    00004100    00004100  
-01853B84     00004000    00004000    00004000    00004000  
-01853B94     00004000    00004000    00004000    00004000  
-01853BA4     00004000    00004000    00004000    00004000  
-01853BB4     00000000    00000000    00000000    00000000  
-01853BC4     00000000    00000000    00000000    00000000  
-01853BD4     00000000    00000000    00002002    00000000  
-01853BE4     00000000    00000000    00000000    00000000  
-01853BF4     00000020    00000020    00000020    00000020  
-01853C04     00000000    00000000    00000000    00000000  
-01853C14     00000100    00002000    00000000    00000000  
-01853C24     00000000    00000000    00000000    00000000  
-01853C34     00000100    00000100    00000100    00000100  
-01853C44     00000100    00000100    00000100    00000100  
-01853C54     00002000    00002000    00002000    00002000  
-01853C64     00002000    00002000    00002000    00002000  
-01853C74     00004100    00004100    00000200    00000000  
-01853C84     00004000    00004000    00004100    00006000  
-01853C94     00000300    00000000    00000200    00000000  
-01853CA4     00000000    00000000    00000000    00000000  
-01853CB4     00004000    00004000    00004000    00004000  
-01853CC4     00000100    00000100    00000000    00000000  
-01853CD4     00004000    00004000    00004000    00004000  
-01853CE4     00004000    00004000    00004000    00004000  
-01853CF4     00000100    00000100    00000100    00000100  
-01853D04     00000100    00000100    00000100    00000100  
-01853D14     00002000    00002000    00002002    00000100  
-01853D24     00000000    00000000    00000000    00000000  
-01853D34     00000008    00000000    00000008    00000008  
-01853D44     00000000    00000000    00000000    00000000  
-01853D54     00000000    00000000    00000000    00000000  
-01853D64     00000000    00000000    00004000    00004000  
-01853D74     00004000    00004000    00004000    00004000  
-01853D84     FFFFFFFF    FFFFFFFF    00000000    FFFFFFFF  
-01853D94     00000000    00000000    00000000    00000000  
-01853DA4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853DB4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853DC4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853DD4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853DE4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853DF4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853E04     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853E14     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853E24     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853E34     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853E44     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853E54     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853E64     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853E74     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853E84     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853E94     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853EA4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853EB4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853EC4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853ED4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853EE4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853EF4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853F04     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853F14     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853F24     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853F34     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853F44     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853F54     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853F64     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01853F74     00002000    00002000    00002000    00002000  
-01853F84     00002000    00002000    00002000    00002000  
-01853F94     00002000    00002000    00002000    00002000  
-01853FA4     00002000    00002000    00002000    00002000  
-01853FB4     00004000    00004000    00004000    00004000  
-01853FC4     00004000    00004000    00004000    00004000  
-01853FD4     00004000    00004000    00004000    00004000  
-01853FE4     00004000    00004000    00004000    00004000  
-01853FF4     00000000    00000000    00000000    00004000  
-01854004     00004100    00004000    FFFFFFFF    FFFFFFFF  
-01854014     00000000    00000000    00000000    00004000  
-01854024     00004100    00004000    FFFFFFFF    00004000  
-01854034     00004000    00004000    00004000    00004000  
-01854044     00004000    00004000    00004000    00004000  
-01854054     FFFFFFFF    FFFFFFFF    00004100    00004000  
-01854064     00004000    00004000    00004000    00004000  
-01854074     00004000    00004000    FFFFFFFF    FFFFFFFF  
-01854084     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01854094     00000000    00000000    00000000    00000000  
-018540A4     00000000    00000000    00000000    00000000  
-018540B4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-018540C4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-018540D4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-018540E4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-018540F4     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01854104     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01854114     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01854124     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01854134     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01854144     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01854154     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01854164     FFFFFFFF    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01854174     00000000    FFFFFFFF    FFFFFFFF    FFFFFFFF  
-01854184     FFFFFFFF    FFFFFFFF  
-  
-  
-  
-2. 取得跳转的目的地址  
-function GetJmpToAddr(Start: Pointer): Pointer;  
-Start: 指令起始地址  
-  
-01843964     56                push esi  
-01843965     8BF0              mov esi,eax  
-01843967     8A16              mov dl,byte ptr ds:\[esi\]    ; 取 opcode  
-01843969     8D46 01           lea eax,dword ptr ds:\[esi+1\]  
-0184396C     8A00              mov al,byte ptr ds:\[eax\]  
-0184396E     80EA 0F           sub dl,0F  
-01843971     74 3B             je short 018439AE  
-01843973     80C2 9F           add dl,9F  
-01843976     80EA 10           sub dl,10  
-01843979     72 08             jb short 01843983  
-0184397B     80C2 A0           add dl,0A0  
-0184397E     80EA 04           sub dl,4  
-01843981     73 37             jnb short 018439BA  
-01843983     8BD0              mov edx,eax  
-01843985     80C2 80           add dl,80  
-01843988     80EA 80           sub dl,80  
-0184398B     73 13             jnb short 018439A0  
-0184398D     25 FF000000       and eax,0FF  
-01843992     BA FF000000       mov edx,0FF  
-01843997     2BD0              sub edx,eax  
-01843999     2BF2              sub esi,edx  
-0184399B     46                inc esi  
-0184399C     8BC6              mov eax,esi  
-0184399E     EB 31             jmp short 018439D1  
-018439A0     25 FF000000       and eax,0FF  
-018439A5     03F0              add esi,eax  
-018439A7     83C6 02           add esi,2      ; 加上指令本身长度  
-018439AA     8BC6              mov eax,esi  
-018439AC     5E                pop esi  
-018439AD     C3                retn  
-018439AE     8D46 02           lea eax,dword ptr ds:\[esi+2\]  
-018439B1     8B00              mov eax,dword ptr ds:\[eax\]  
-018439B3     03C6              add eax,esi  
-018439B5     83C0 06           add eax,6      ; 加上指令本身长度  
-018439B8     5E                pop esi  
-018439B9     C3                retn  
-  
-待续。。。  
-  
-xIkUg/RCT/CCG  
-  
-2005.12.19 
+【分享】`aspr` 中的精彩代码(一)。。。
 
-这段时间每天的时候也不多，就只能写这么多了东西了，不帖出来的话，怕哪天又没激情了。。。   -\_-\\\\，我尽量帖吧。。。  
-  
-3. 对 GetOpCodeSize 的实现，昨天帖的代码和数据表都不完整，今天实现的时候才发现，汗一个。。。现已修正。。。  
-  
-type  
-  PBytes = ^Byte;  
-  TMaskTable = array \[0..517\] of LongWord;  
-    
-var  
-  MaskTable: TMaskTable = (  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00008000, $00008000, $00000000, $00000000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00008000, $00008000, $00000000, $00000000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00008000, $00008000, $00000000, $00000000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00008000, $00008000, $00000000, $00000000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00008000, $00008000, $00000008, $00000000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00008000, $00008000, $00000008, $00000000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00008000, $00008000, $00000008, $00000000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00008000, $00008000, $00000008, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000000, $00000000, $00004000, $00004000,  
-    $00000008, $00000008, $00001008, $00000018,  
-    $00002000, $00006000, $00000100, $00004100,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000100, $00000100, $00000100, $00000100,  
-    $00000100, $00000100, $00000100, $00000100,  
-    $00000100, $00000100, $00000100, $00000100,  
-    $00000100, $00000100, $00000100, $00000100,  
-    $00004100, $00006000, $00004100, $00004100,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000000, $00000000, $00002002, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000020, $00000020, $00000020, $00000020,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000100, $00002000, $00000000, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000100, $00000100, $00000100, $00000100,  
-    $00000100, $00000100, $00000100, $00000100,  
-    $00002000, $00002000, $00002000, $00002000,  
-    $00002000, $00002000, $00002000, $00002000,  
-    $00004100, $00004100, $00000200, $00000000,  
-    $00004000, $00004000, $00004100, $00006000,  
-    $00000300, $00000000, $00000200, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00000100, $00000100, $00000000, $00000000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00000100, $00000100, $00000100, $00000100,  
-    $00000100, $00000100, $00000100, $00000100,  
-    $00002000, $00002000, $00002002, $00000100,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000008, $00000000, $00000008, $00000008,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000000, $00000000, $00004000, $00004000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $FFFFFFFF, $FFFFFFFF, $00000000, $FFFFFFFF,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $00002000, $00002000, $00002000, $00002000,  
-    $00002000, $00002000, $00002000, $00002000,  
-    $00002000, $00002000, $00002000, $00002000,  
-    $00002000, $00002000, $00002000, $00002000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00000000, $00000000, $00000000, $00004000,  
-    $00004100, $00004000, $FFFFFFFF, $FFFFFFFF,  
-    $00000000, $00000000, $00000000, $00004000,  
-    $00004100, $00004000, $FFFFFFFF, $00004000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $FFFFFFFF, $FFFFFFFF, $00004100, $00004000,  
-    $00004000, $00004000, $00004000, $00004000,  
-    $00004000, $00004000, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $00000000, $00000000, $00000000, $00000000,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $00000000, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,  
-    $FFFFFFFF, $FFFFFFFF  
-  );  
-  
-//成功返回长度，失败返回-1  
-function GetOpCodeSize(Start: Pointer; Tlb: TMaskTable): integer; stdcall;  
-  
-implementation  
-  
-function GetOpCodeSize(Start: Pointer; Tlb: TMaskTable): integer;  
-var  
-  pOPCode: PBytes;  
-  t, c: LongWord;  
-  dh, dl, al: byte;  
-begin  
-  result := -1;  
-  t := 0;  
-  c := 0;  
-  pOPCode := Start;  
-  
-  repeat  
-    t := t and $F7;  
-    c := pOPCode^;  
-    pOpCode := Pointer((DWORD(pOpCode) + 1));  
-    t := t or Tlb\[c\];  
-  until ((t and $000000FF) and 8) = 0;  
-  
-  if (c = $0F6) or (c = $0F7) then  
-  begin  
-    t := t or $00004000;  
-    if (pOpCode^ and $38) = 0 then  
-      t := t or $00008000;  
-  end  
-  else if (c = $0CD) then  
-  begin  
-    t := t or $00000100;  
-    if pOpCode^ = $20 then  
-      t := t or $00000400;  
-  end  
-  else if (c = $0F) then  
-  begin  
-    al := pOpCode^;  
-    pOpCode := Pointer((DWORD(pOpCode) + 1));  
-    t := t or Tlb\[al + $100\];  
-    if t = $FFFFFFFF then  
-      Exit;  
-  end;  
-  
-  if (((t and $0000FF00) shr 8) and $80) <> 0 then  
-  begin  
-    dh := (t and $0000FF00) shr 8;  
-    dh := dh xor $20;  
-    if (c and 1) = 0 then  
-      dh := dh xor $21;  
-    t := t and $FFFF00FF;  
-    t := t or (dh shl 8);  
-  end;  
-  
-  if (((t and $0000FF00) shr 8) and $40) <> 0 then  
-  begin  
-    al := pOpCode^;  
-    pOpCode := Pointer((DWORD(pOpCode) + 1));  
-    c := al;  
-    c := c or (al shl 8);  
-    c := c and $C007;  
-    if (c and $0000FF00) <> $C000 then  
-    begin  
-      if ((t and $000000FF) and $10) = 0 then  
-      begin  
-        if (c and $000000FF) = 4 then  
-        begin  
-          al := pOpCode^;  
-          pOpCode := Pointer((DWORD(pOpCode) + 1));  
-          al := al and 7;  
-          c := c and $0000FF00;  
-          c := c or al;  
-        end;  
-        if (c and $0000FF00) <> $4000 then  
-        begin  
-          if (c and $0000FF00) = $8000 then  
-          begin  
-            t := t or 4;  
-          end  
-          else if c = 5 then  
-            t := t or 4;  
-        end  
-        else  
-        begin  
-          t := t or 1;  
-        end;  
-      end  
-      else  
-      begin  
-        if (c <> 6) then  
-        begin  
-          if (c and $0000FF00) = $4000 then  
-            t := t or 1  
-          else if (c and $0000FF00) = $8000 then  
-            t := t or 2;  
-        end  
-        else  
-          t := t or 2;  
-      end;  
-    end;  
-  end;  
-    
-  if (((t and $000000FF)) and $20) <> 0 then  
-  begin  
-    dl := (t and $000000FF);  
-    dl := dl xor 2;  
-    t := t and $FFFFFF00;  
-    t := t or dl;  
-    if (dl and $10) = 0 then  
-    begin  
-      dl := dl xor 6;  
-      t := t and $FFFFFF00;  
-      t := t or dl;  
-    end;  
-  end;  
-  
-  if (((t and $0000FF00) shr 8) and $20) <> 0 then  
-  begin  
-    dh := (t and $0000FF00) shr 8;  
-    dh := dh xor 2;  
-    t := t and $FFFF00FF;  
-    t := t or (dh shl 8);  
-    if (dh and $10) = 0 then  
-    begin  
-      dh := dh xor 6;  
-      t := t and $FFFFFF00;  
-      t := t or dl;  
-    end;  
-  end;  
-  
-  result := DWORD(pOPCode) - DWORD(Start);  
-  t := t and $707;  
-  result := result + (t and $000000FF);         //１条指令不可能大过 255 个字节  
-  result := result + ((t and $0000FF00) shr 8);  
-end;  
-  
-  
-4. 检测某个地址是否被下断点  
-01844A2A     8B06              mov eax,dword ptr ds:\[esi\]  ; 某个地址  
-01844A2C     8A00              mov al,byte ptr ds:\[eax\]    ; 取这个地址的值  
-01844A2E     34 12             xor al,12  
-01844A30     3C DE             cmp al,0DE                  ; 如果这个值是 CC 的话，与 12H 进行 xor 后的结果就是 0DEH  
-01844A32     75 38             jnz short 01844A6C  
-......  //做某些事  
-  
-  
-未完待续。。。，下次争取帖出 aspr 完整偷 api 代码的程序  
-  
-如果上面的代码能正确运行的话就是我写的，如果不能，那我也不知道是谁写的。。。  
-  
-![](img/710b5589904d0d2bf58a67748fca40e1.jpg)   
-  
-xIkUg/RCT/CCG  
-  
-2005-12-20 
+很久没玩壳了，这两天仔细跟踪了一下 `aspr`，不过我不清楚是什么版本（汗。。。我菜，公司 `peid` 查，是 1.3x，家里 `peid` 查是 2.x）问 `fly`，可能是 1.3，`jwh51` 说也有可能是 2.x，不过不管他，
 
- 4dd466d0e1e0cc123afbe504da2462ca
+我就不来谈怎么脱这个壳了(很经有很多大侠写了很好的文章)。。。
+
+跟踪过程中略有所得，整理出来与大家一起共享之。。。下面的两个函数取自于 `aspr` 偷 `api` 的代码
+
+### 1. 取得一条有效指令(`OpCode`)的长度
+
+函数原型：
+
+```pascal
+function GetOpCodeSize(Start: Pointer; Tlb: Pointer): integer;
+```
+
+`Start`：指令起始地址
+
+`Tlb`：一个表。。。我暂且称它为掩码表吧，里面是 `OpCode` 中某位的掩码
+
+```asm
+01843D17     60                pushad
+01843D18     8B7424 24         mov esi,dword ptr ss:[esp+24]  ; 指向 tlb
+01843D1C     8B4C24 28         mov ecx,dword ptr ss:[esp+28]  ; 指令起始地址
+01843D20     31D2              xor edx,edx
+01843D22     31C0              xor eax,eax
+01843D24     80E2 F7           and dl,0F7
+01843D27     8A01              mov al,byte ptr ds:[ecx]
+01843D29     41                inc ecx
+01843D2A     0B1486            or edx,dword ptr ds:[esi+eax*4]
+01843D2D     F6C2 08           test dl,8
+01843D30   ^ 75 F2             jnz short 01843D24
+01843D32     3C F6             cmp al,0F6
+01843D34     74 37             je short 01843D6D
+01843D36     3C F7             cmp al,0F7
+01843D38     74 33             je short 01843D6D
+01843D3A     3C CD             cmp al,0CD
+01843D3C     74 3C             je short 01843D7A
+01843D3E     80F8 0F           cmp al,0F
+01843D41     74 44             je short 01843D87
+01843D43     F6C6 80           test dh,80
+01843D46     75 52             jnz short 01843D9A
+01843D48     F6C6 40           test dh,40
+01843D4B     75 73             jnz short 01843DC0
+01843D4D     F6C2 20           test dl,20
+01843D50     75 54             jnz short 01843DA6
+01843D52     F6C6 20           test dh,20
+01843D55     75 5C             jnz short 01843DB3
+01843D57     89C8              mov eax,ecx
+01843D59     2B4424 28         sub eax,dword ptr ss:[esp+28]
+01843D5D     81E2 07070000     and edx,707
+01843D63     00D0              add al,dl
+01843D65     00F0              add al,dh
+01843D67     894424 1C         mov dword ptr ss:[esp+1C],eax
+01843D6B     61                popad
+01843D6C     C3                retn
+01843D6D     80CE 40           or dh,40
+01843D70     F601 38           test byte ptr ds:[ecx],38
+01843D73   ^ 75 CE             jnz short 01843D43
+01843D75     80CE 80           or dh,80
+01843D78   ^ EB C9             jmp short 01843D43
+01843D7A     80CE 01           or dh,1
+01843D7D     8039 20           cmp byte ptr ds:[ecx],20
+01843D80   ^ 75 C1             jnz short 01843D43
+01843D82     80CE 04           or dh,4
+01843D85   ^ EB BC             jmp short 01843D43
+01843D87     8A01              mov al,byte ptr ds:[ecx]
+01843D89     41                inc ecx
+01843D8A     0B9486 00040000   or edx,dword ptr ds:[esi+eax*4+400]
+01843D91     83FA FF           cmp edx,-1
+01843D94   ^ 75 AD             jnz short 01843D43
+01843D96     89D0              mov eax,edx
+01843D98   ^ EB CD             jmp short 01843D67
+01843D9A     80F6 20           xor dh,20
+01843D9D     A8 01             test al,1
+01843D9F   ^ 75 A7             jnz short 01843D48
+01843DA1     80F6 21           xor dh,21
+01843DA4   ^ EB A2             jmp short 01843D48
+01843DA6     80F2 02           xor dl,2
+01843DA9     F6C2 10           test dl,10
+01843DAC   ^ 75 A4             jnz short 01843D52
+01843DAE     80F2 06           xor dl,6
+01843DB1   ^ EB 9F             jmp short 01843D52
+01843DB3     80F6 02           xor dh,2
+01843DB6     F6C6 10           test dh,10
+01843DB9   ^ 75 9C             jnz short 01843D57
+01843DBB     80F6 06           xor dh,6
+01843DBE   ^ EB 97             jmp short 01843D57
+01843DC0     8A01              mov al,byte ptr ds:[ecx]
+01843DC2     41                inc ecx
+01843DC3     88C4              mov ah,al
+01843DC5     66:25 07C0        and ax,0C007
+01843DC9     80FC C0           cmp ah,0C0
+01843DCC   ^ 0F84 7BFFFFFF     je 01843D4D
+01843DD2     F6C2 10           test dl,10
+01843DD5     75 2F             jnz short 01843E06
+01843DD7     80F8 04           cmp al,4
+01843DDA     75 06             jnz short 01843DE2
+01843DDC     8A01              mov al,byte ptr ds:[ecx]
+01843DDE     41                inc ecx
+01843DDF     80E0 07           and al,7
+01843DE2     80FC 40           cmp ah,40
+01843DE5     74 17             je short 01843DFE
+01843DE7     80FC 80           cmp ah,80
+01843DEA     74 0A             je short 01843DF6
+01843DEC     66:83F8 05        cmp ax,5
+01843DF0   ^ 0F85 57FFFFFF     jnz 01843D4D
+01843DF6     80CA 04           or dl,4
+01843DF9   ^ E9 4FFFFFFF       jmp 01843D4D
+01843DFE     80CA 01           or dl,1
+01843E01   ^ E9 47FFFFFF       jmp 01843D4D
+01843E06     66:83F8 06        cmp ax,6
+01843E0A     74 0E             je short 01843E1A
+01843E0C     80FC 40           cmp ah,40
+01843E0F   ^ 74 ED             je short 01843DFE
+01843E11     80FC 80           cmp ah,80
+01843E14   ^ 0F85 33FFFFFF     jnz 01843D4D
+01843E1A     80CA 02           or dl,2
+01843E1D   ^ E9 2BFFFFFF       jmp 01843D4D
+01843E22     C3                retn
+```
+
+`tlb`：
+
+```text
+01853974     00004000    00004000    00004000    00004000
+01853984     00008000    00008000    00000000    00000000
+01853994     00004000    00004000    00004000    00004000
+018539A4     00008000    00008000    00000000    00000000
+018539B4     00004000    00004000    00004000    00004000
+018539C4     00008000    00008000    00000000    00000000
+018539D4     00004000    00004000    00004000    00004000
+018539E4     00008000    00008000    00000000    00000000
+018539F4     00004000    00004000    00004000    00004000
+01853A04     00008000    00008000    00000008    00000000
+01853A14     00004000    00004000    00004000    00004000
+01853A24     00008000    00008000    00000008    00000000
+01853A34     00004000    00004000    00004000    00004000
+01853A44     00008000    00008000    00000008    00000000
+01853A54     00004000    00004000    00004000    00004000
+01853A64     00008000    00008000    00000008    00000000
+01853A74     00000000    00000000    00000000    00000000
+01853A84     00000000    00000000    00000000    00000000
+01853A94     00000000    00000000    00000000    00000000
+01853AA4     00000000    00000000    00000000    00000000
+01853AB4     00000000    00000000    00000000    00000000
+01853AC4     00000000    00000000    00000000    00000000
+01853AD4     00000000    00000000    00000000    00000000
+01853AE4     00000000    00000000    00000000    00000000
+01853AF4     00000000    00000000    00004000    00004000
+01853B04     00000008    00000008    00001008    00000018
+01853B14     00002000    00006000    00000100    00004100
+01853B24     00000000    00000000    00000000    00000000
+01853B34     00000100    00000100    00000100    00000100
+01853B44     00000100    00000100    00000100    00000100
+01853B54     00000100    00000100    00000100    00000100
+01853B64     00000100    00000100    00000100    00000100
+01853B74     00004100    00006000    00004100    00004100
+01853B84     00004000    00004000    00004000    00004000
+01853B94     00004000    00004000    00004000    00004000
+01853BA4     00004000    00004000    00004000    00004000
+01853BB4     00000000    00000000    00000000    00000000
+01853BC4     00000000    00000000    00000000    00000000
+01853BD4     00000000    00000000    00002002    00000000
+01853BE4     00000000    00000000    00000000    00000000
+01853BF4     00000020    00000020    00000020    00000020
+01853C04     00000000    00000000    00000000    00000000
+```
+
+
+
+01853C14 00000100 00002000 00000000 00000000
+01853C24 00000000 00000000 00000000 00000000
+01853C34 00000100 00000100 00000100 00000100
+01853C44 00000100 00000100 00000100 00000100
+01853C54 00002000 00002000 00002000 00002000
+01853C64 00002000 00002000 00002000 00002000
+01853C74 00004100 00004100 00000200 00000000
+01853C84 00004000 00004000 00004100 00006000
+01853C94 00000300 00000000 00000200 00000000
+01853CA4 00000000 00000000 00000000 00000000
+01853CB4 00004000 00004000 00004000 00004000
+01853CC4 00000100 00000100 00000000 00000000
+01853CD4 00004000 00004000 00004000 00004000
+01853CE4 00004000 00004000 00004000 00004000
+01853CF4 00000100 00000100 00000100 00000100
+01853D04 00000100 00000100 00000100 00000100
+01853D14 00002000 00002000 00002002 00000100
+01853D24 00000000 00000000 00000000 00000000
+01853D34 00000008 00000000 00000008 00000008
+01853D44 00000000 00000000 00000000 00000000
+01853D54 00000000 00000000 00000000 00000000
+01853D64 00000000 00000000 00004000 00004000
+01853D74 00004000 00004000 00004000 00004000
+01853D84 FFFFFFFF FFFFFFFF 00000000 FFFFFFFF
+01853D94 00000000 00000000 00000000 00000000
+01853DA4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853DB4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853DC4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853DD4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853DE4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853DF4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853E04 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853E14 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853E24 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853E34 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853E44 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853E54 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853E64 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853E74 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853E84 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853E94 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853EA4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853EB4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853EC4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853ED4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853EE4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853EF4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853F04 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853F14 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853F24 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853F34 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853F44 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853F54 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853F64 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01853F74 00002000 00002000 00002000 00002000
+01853F84 00002000 00002000 00002000 00002000
+01853F94 00002000 00002000 00002000 00002000
+01853FA4 00002000 00002000 00002000 00002000
+01853FB4 00004000 00004000 00004000 00004000
+01853FC4 00004000 00004000 00004000 00004000
+01853FD4 00004000 00004000 00004000 00004000
+01853FE4 00004000 00004000 00004000 00004000
+01853FF4 00000000 00000000 00000000 00004000
+01854004 00004100 00004000 FFFFFFFF FFFFFFFF
+01854014 00000000 00000000 00000000 00004000
+01854024 00004100 00004000 FFFFFFFF 00004000
+01854034 00004000 00004000 00004000 00004000
+01854044 00004000 00004000 00004000 00004000
+01854054 FFFFFFFF FFFFFFFF 00004100 00004000
+01854064 00004000 00004000 00004000 00004000
+01854074 00004000 00004000 FFFFFFFF FFFFFFFF
+01854084 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01854094 00000000 00000000 00000000 00000000
+018540A4 00000000 00000000 00000000 00000000
+018540B4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+018540C4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+018540D4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+018540E4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+018540F4 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01854104 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01854114 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01854124 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01854134 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01854144 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01854154 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01854164 FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF
+01854174 00000000 FFFFFFFF FFFFFFFF FFFFFFFF
+01854184 FFFFFFFF FFFFFFFF
+
+## 2. 取得跳转的目的地址
+
+```
+function GetJmpToAddr(Start: Pointer): Pointer;
+```
+
+`Start`: 指令起始地址
+
+```
+01843964     56                 push esi
+01843965     8BF0               mov esi,eax
+01843967     8A16               mov dl,byte ptr ds:[esi]    ; 取 opcode
+01843969     8D46 01            lea eax,dword ptr ds:[esi+1]
+0184396C     8A00               mov al,byte ptr ds:[eax]
+0184396E     80EA 0F            sub dl,0F
+01843971     74 3B              je short 018439AE
+01843973     80C2 9F            add dl,9F
+01843976     80EA 10            sub dl,10
+01843979     72 08              jb short 01843983
+0184397B     80C2 A0            add dl,0A0
+0184397E     80EA 04            sub dl,4
+01843981     73 37              jnb short 018439BA
+01843983     8BD0               mov edx,eax
+01843985     80C2 80            add dl,80
+01843988     80EA 80            sub dl,80
+0184398B     73 13              jnb short 018439A0
+0184398D     25 FF000000        and eax,0FF
+01843992     BA FF000000        mov edx,0FF
+01843997     2BD0               sub edx,eax
+01843999     2BF2               sub esi,edx
+0184399B     46                 inc esi
+0184399C     8BC6               mov eax,esi
+0184399E     EB 31              jmp short 018439D1
+018439A0     25 FF000000        and eax,0FF
+018439A5     03F0               add esi,eax
+018439A7     83C6 02            add esi,2      ; 加上指令本身长度
+018439AA     8BC6               mov eax,esi
+018439AC     5E                 pop esi
+018439AD     C3                 retn
+018439AE     8D46 02            lea eax,dword ptr ds:[esi+2]
+018439B1     8B00               mov eax,dword ptr ds:[eax]
+018439B3     03C6               add eax,esi
+018439B5     83C0 06            add eax,6      ; 加上指令本身长度
+018439B8     5E                 pop esi
+018439B9     C3                 retn
+```
+
+待续。。。
+
+`xIkUg/RCT/CCG`
+
+2005.12.19
+
+这段时间每天的时候也不多，就只能写这么多了东西了，不帖出来的话，怕哪天又没激情了。。。 -_-\\\\，我尽量帖吧。。。
+
+## 3. 对 `GetOpCodeSize` 的实现
+
+昨天帖的代码和数据表都不完整，今天实现的时候才发现，汗一个。。。现已修正。。。
+
+```
+type
+  PBytes = ^Byte;
+  TMaskTable = array [0..517] of LongWord;
+
+var
+  MaskTable: TMaskTable = (
+    $00004000, $00004000, $00004000, $00004000,
+    $00008000, $00008000, $00000000, $00000000,
+    $00004000, $00004000, $00004000, $00004000,
+    $00008000, $00008000, $00000000, $00000000,
+    $00004000, $00004000, $00004000, $00004000,
+    $00008000, $00008000, $00000000, $00000000,
+    $00004000, $00004000, $00004000, $00004000,
+    $00008000, $00008000, $00000000, $00000000,
+    $00004000, $00004000, $00004000, $00004000,
+    $00008000, $00008000, $00000008, $00000000,
+```
+
+
+
+```
+$00004000, $00004000, $00004000, $00004000,
+
+$00008000, $00008000, $00000008, $00000000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00008000, $00008000, $00000008, $00000000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00008000, $00008000, $00000008, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000000, $00000000, $00004000, $00004000,
+
+$00000008, $00000008, $00001008, $00000018,
+
+$00002000, $00006000, $00000100, $00004100,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000100, $00000100, $00000100, $00000100,
+
+$00000100, $00000100, $00000100, $00000100,
+
+$00000100, $00000100, $00000100, $00000100,
+
+$00000100, $00000100, $00000100, $00000100,
+
+$00004100, $00006000, $00004100, $00004100,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000000, $00000000, $00002002, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000020, $00000020, $00000020, $00000020,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000100, $00002000, $00000000, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000100, $00000100, $00000100, $00000100,
+
+$00000100, $00000100, $00000100, $00000100,
+
+$00002000, $00002000, $00002000, $00002000,
+
+$00002000, $00002000, $00002000, $00002000,
+
+$00004100, $00004100, $00000200, $00000000,
+
+$00004000, $00004000, $00004100, $00006000,
+
+$00000300, $00000000, $00000200, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00000100, $00000100, $00000000, $00000000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00000100, $00000100, $00000100, $00000100,
+
+$00000100, $00000100, $00000100, $00000100,
+
+$00002000, $00002000, $00002002, $00000100,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000008, $00000000, $00000008, $00000008,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000000, $00000000, $00004000, $00004000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$FFFFFFFF, $FFFFFFFF, $00000000, $FFFFFFFF,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$00002000, $00002000, $00002000, $00002000,
+
+$00002000, $00002000, $00002000, $00002000,
+
+$00002000, $00002000, $00002000, $00002000,
+
+$00002000, $00002000, $00002000, $00002000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00000000, $00000000, $00000000, $00004000,
+
+$00004100, $00004000, $FFFFFFFF, $FFFFFFFF,
+
+$00000000, $00000000, $00000000, $00004000,
+
+$00004100, $00004000, $FFFFFFFF, $00004000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$FFFFFFFF, $FFFFFFFF, $00004100, $00004000,
+
+$00004000, $00004000, $00004000, $00004000,
+
+$00004000, $00004000, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$00000000, $00000000, $00000000, $00000000,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$00000000, $FFFFFFFF, $FFFFFFFF, $FFFFFFFF,
+
+$FFFFFFFF, $FFFFFFFF
+
+);
+```
+
+// 成功返回长度，失败返回 -1
+
+```
+function GetOpCodeSize(Start: Pointer; Tlb: TMaskTable): integer; stdcall;
+
+implementation
+
+function GetOpCodeSize(Start: Pointer; Tlb: TMaskTable): integer;
+
+var
+  pOPCode: PBytes;
+  t, c: LongWord;
+  dh, dl, al: byte;
+
+begin
+  result := -1;
+  t := 0;
+  c := 0;
+  pOPCode := Start;
+  repeat
+    t := t and $F7;
+    c := pOPCode^;
+    pOpCode := Pointer((DWORD(pOpCode) + 1));
+    t := t or Tlb[c];
+  until ((t and $000000FF) and 8) = 0;
+
+  if (c = $0F6) or (c = $0F7) then
+  begin
+    t := t or $00004000;
+    if (pOpCode^ and $38) = 0 then
+      t := t or $00008000;
+  end
+  else if (c = $0CD) then
+  begin
+    t := t or $00000100;
+    if pOpCode^ = $20 then
+      t := t or $00000400;
+  end
+  else if (c = $0F) then
+  begin
+    al := pOpCode^;
+    pOpCode := Pointer((DWORD(pOpCode) + 1));
+    t := t or Tlb[al + $100];
+    if t = $FFFFFFFF then
+      Exit;
+  end;
+
+  if (((t and $0000FF00) shr 8) and $80) <> 0 then
+  begin
+    dh := (t and $0000FF00) shr 8;
+    dh := dh xor $20;
+    if (c and 1) = 0 then
+      dh := dh xor $21;
+    t := t and $FFFF00FF;
+    t := t or (dh shl 8);
+  end;
+
+  if (((t and $0000FF00) shr 8) and $40) <> 0 then
+  begin
+    al := pOpCode^;
+    pOpCode := Pointer((DWORD(pOpCode) + 1));
+    c := al;
+    c := c or (al shl 8);
+    c := c and $C007;
+    if (c and $0000FF00) <> $C000 then
+    begin
+      if ((t and $000000FF) and $10) = 0 then
+      begin
+        if (c and $000000FF) = 4 then
+        begin
+          al := pOpCode^;
+          pOpCode := Pointer((DWORD(pOpCode) + 1));
+          al := al and 7;
+          c := c and $0000FF00;
+          c := c or al;
+        end;
+        if (c and $0000FF00) <> $4000 then
+        begin
+```
+
+
+
+```pascal
+if (c and $0000FF00) = $8000 then
+begin
+  t := t or 4;
+end
+else if c = 5 then
+  t := t or 4;
+end
+else
+begin
+  t := t or 1;
+end;
+end
+else
+begin
+  if (c <> 6) then
+  begin
+    if (c and $0000FF00) = $4000 then
+      t := t or 1
+    else if (c and $0000FF00) = $8000 then
+      t := t or 2;
+  end
+  else
+    t := t or 2;
+end;
+end;
+end;
+
+if (((t and $000000FF)) and $20) <> 0 then
+begin
+  dl := (t and $000000FF);
+  dl := dl xor 2;
+  t := t and $FFFFFF00;
+  t := t or dl;
+  if (dl and $10) = 0 then
+  begin
+    dl := dl xor 6;
+    t := t and $FFFFFF00;
+    t := t or dl;
+  end;
+end;
+
+if (((t and $0000FF00) shr 8) and $20) <> 0 then
+begin
+  dh := (t and $0000FF00) shr 8;
+  dh := dh xor 2;
+  t := t and $FFFF00FF;
+  t := t or (dh shl 8);
+  if (dh and $10) = 0 then
+  begin
+    dh := dh xor 6;
+    t := t and $FFFFFF00;
+    t := t or dl;
+  end;
+end;
+
+result := DWORD(pOPCode) - DWORD(Start);
+t := t and $707;
+result := result + (t and $000000FF); //１条指令不可能大过 255 个字节
+result := result + ((t and $0000FF00) shr 8);
+end;
+```
+
+### 4. 检测某个地址是否被下断点
+
+```asm
+01844A2A    8B06            mov eax,dword ptr ds:[esi]  ; 某个地址
+01844A2C    8A00            mov al,byte ptr ds:[eax]    ; 取这个地址的值
+01844A2E    34 12           xor al,12
+01844A30    3C DE           cmp al,0DE                  ; 如果这个值是 CC 的话，与 12H 进行 xor 后的结果就是 0DEH
+01844A32    75 38           jnz short 01844A6C
+......  //做某些事
+```
+
+未完待续。。。，下次争取帖出 `aspr` 完整偷 `api` 代码的程序
+
+如果上面的代码能正确运行的话就是我写的，如果不能，那我也不知道是谁写的。。。
+
+![](img/710b5589904d0d2bf58a67748fca40e1.jpg)
+
+`xIkUg/RCT/CCG`
+
+`2005-12-20`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

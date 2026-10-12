@@ -1,10 +1,9 @@
 
-
 # 贴一个自己平面版的 1.2 题的解法
 
 > 原文：[`www.pediy.com/kssd/pediy11/123170.html`](https://www.pediy.com/kssd/pediy11/123170.html)
 
-膜拜诸位 100ms 内的大牛，实在想不出什么好的算法了。![](img/9b2aec7f3d4bb041b2d419a59832192f.jpg "恐怖!")![](img/9b2aec7f3d4bb041b2d419a59832192f.jpg "恐怖!")![](img/9b2aec7f3d4bb041b2d419a59832192f.jpg "恐怖!")  
+膜拜诸位 100ms 内的大牛，实在想不出什么好的算法了。![](img/9b2aec7f3d4bb041b2d419a59832192f.jpg "恐怖!")![](img/9b2aec7f3d4bb041b2d419a59832192f.jpg "恐怖!")![](img/9b2aec7f3d4bb041b2d419a59832192f.jpg "恐怖!")
 
 代码:
 
@@ -115,5 +114,4 @@ int main()
   }
   return 0;
 }
-
 ```

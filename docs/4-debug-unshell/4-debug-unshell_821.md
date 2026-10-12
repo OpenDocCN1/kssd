@@ -1,391 +1,450 @@
 
-
 # PE-Armor 0.765 主程序脱壳
 
 > 原文：[`www.pediy.com/kssd/pediy09/pediy09-471.htm`](https://www.pediy.com/kssd/pediy09/pediy09-471.htm)
 
-> 一、破解目标：PE-Armor 0.765 主程序  
->   
-> 二、破解工具：OllyDbg v1.10，ImportREC 1.6 Final，LordPE  
->   
-> 三、破解作者：DarkBull#126.com  
->   
-> 四、破解过程：  
->   
-> 1.用 HideOD 隐藏 OllyDbg，忽略所有异常，在第一个段下内存访问断点，解密代码如下：  
->   
-> 003B345E    55         PUSH EBP  
-> 003B345F    8BEC       MOV EBP,ESP  
-> 003B3461    83C4 FC    ADD ESP,-4  
-> 003B3464    60         PUSHAD  
-> 003B3465    8B7D 10    MOV EDI,DWORD PTR SS:\[EBP+10\]         ; KEY（20H 个字节）  
-> 003B3468    8B75 08    MOV ESI,DWORD PTR SS:\[EBP+8\]          ; 段起始地址  
-> 003B346B    8B5D 0C    MOV EBX,DWORD PTR SS:\[EBP+C\]          ; 段大小  
-> 003B346E    D1EB       SHR EBX,1  
-> 003B3470    EB 41      JMP SHORT 003B34B3  
-> 003B3472    53         PUSH EBX  
-> 003B3473    33DB       XOR EBX,EBX  
-> 003B3475    66:C745 FE>MOV WORD PTR SS:\[EBP-2\],0  
-> 003B347B    EB 25      JMP SHORT 003B34A2  
-> 003B347D    66:8B16    MOV DX,WORD PTR DS:\[ESI\]  
-> 003B3480    66:23145F  AND DX,WORD PTR DS:\[EDI+EBX\*2\]        ; EBX 为索引  
-> 003B3484    B9 1000000>MOV ECX,10  
-> 003B3489    33C0       XOR EAX,EAX  
-> 003B348B    66:D1E2    SHL DX,1  
-> 003B348E    73 01      JNB SHORT 003B3491  
-> 003B3490    40         INC EAX  
-> 003B3491  ^ E2 F8      LOOPD SHORT 003B348B  
-> 003B3493    66:83E0 01 AND AX,1  
-> 003B3497    66:8BCB    MOV CX,BX  
-> 003B349A    66:D3E0    SHL AX,CL  
-> 003B349D    66:0145 FE ADD WORD PTR SS:\[EBP-2\],AX  
-> 003B34A1    43         INC EBX  
-> 003B34A2    83FB 10    CMP EBX,10  
-> 003B34A5  ^ 72 D6      JB SHORT 003B347D  
-> 003B34A7    5B         POP EBX  
-> 003B34A8    66:8B45 FE MOV AX,WORD PTR SS:\[EBP-2\]  
-> 003B34AC    66:8906    MOV WORD PTR DS:\[ESI\],AX              ; 写入代码  
-> 003B34AF    83C6 02    ADD ESI,2  
-> 003B34B2    4B         DEC EBX  
-> 003B34B3    0BDB       OR EBX,EBX  
-> 003B34B5  ^ 75 BB      JNZ SHORT 003B3472  
-> 003B34B7    61         POPAD  
-> 003B34B8    C9         LEAVE  
-> 003B34B9    C2 0C00    RET 0C  
->   
-> 解密后（段的第四个字节为段压缩前的大小，第八字节为段压缩后的大小）再对该段进行解压缩，解压代码较长，这里省略。  
->   
-> 2.修复 IAT。  
->   
-> 下断点 BP GetModuleHandleW，拦截后执行到返回，再查找二进制数 8BF00BC9，代码如下：  
->   
-> 003A92FD    8BF0       MOV ESI,EAX                           ; DLL 的基址  
-> 003A92FF    0BC9       OR ECX,ECX  
-> 003A9301    0F85 A5070>JNZ 003A9AAC                          ; 是否 Hook API（不要跳）  
-> 003A9307    8BCF       MOV ECX,EDI  
-> 003A9309    68 00FE98C>PUSH C798FE00  
-> 003A930E    50         PUSH EAX  
-> 003A930F    E8 5D00000>CALL 003A9371  
->   
-> 没有被 HOOK 的函数名解压代码如下：  
->   
-> 003A978E    33C0       XOR EAX,EAX                           ; Patch1  
-> 003A9790    AC         LODSB  
-> 003A9791    EB 07      JMP SHORT 003A979A  
-> 003A9793    C0C0 03    ROL AL,3  
-> 003A9796    F6D0       NOT AL  
-> 003A9798    AA         STOSB                                 ; 写入函数名  
-> 003A9799    AC         LODSB  
-> 003A979A    0BC0       OR EAX,EAX  
-> 003A979C  ^ 75 F5      JNZ SHORT 003A9793  
-> 003A979E    AA         STOSB  
->   
-> 被 HOOK 的函数名解压代码（在堆栈里）如下：  
->   
-> 0012FF68    50         PUSH EAX  
-> 0012FF69    AC         LODSB  
-> 0012FF6A    34 79      XOR AL,79  
-> 0012FF6C    2C 55      SUB AL,55  
-> 0012FF6E    C0C0 03    ROL AL,3  
-> 0012FF71    F6D0       NOT AL  
-> 0012FF73    AA         STOSB                                 ; 写入函数名  
-> 0012FF74    31C0       XOR EAX,EAX  
-> 0012FF76    49         DEC ECX  
-> 0012FF77  ^ 75 F0      JNZ SHORT 0012FF69  
-> 0012FF79    AA         STOSB  
-> 0012FF7A    58         POP EAX  
-> 0012FF7B    C3         RET  
->   
-> 当模块为 kernel32.dll 和 user32.dll 时，在 003A978E 写入 Patch 代码：  
->   
-> 003A978E    AC         LODSB                                 ; Patch1  
-> 003A978F    34 79      XOR AL,79  
-> 003A9791    2C 55      SUB AL,55  
-> 003A9793    C0C0 03    ROL AL,3  
-> 003A9796    F6D0       NOT AL  
-> 003A9798    AA         STOSB                                 ; 写入函数名  
-> 003A9799    AC         LODSB  
-> 003A979A    0BC0       OR EAX,EAX  
-> 003A979C  ^ 75 F1      JNZ SHORT 003A978F  
-> 003A979E    AA         STOSB  
->   
-> 等壳处理完所有 DLL 后，用 ImportREC 获得 IAT，有 8 个地址未解析，为壳模拟的系统函数(大概有 23 个吧)，偶只有手动追踪了。完整的 IAT 如下：  
->   
-> OEP: 00015675  IATRVA: 0003E000  IATSize: 000002A4  
->   
-> FThunk: 0003E000  NbFunc: 00000003  
-> 1  0003E000  advapi32.dll  01EE  RegQueryValueExA  
-> 1  0003E004  advapi32.dll  01E4  RegOpenKeyExA  
-> 1  0003E008  advapi32.dll  01CB  RegCloseKey  
->   
-> FThunk: 0003E010  NbFunc: 00000001  
-> 1  0003E010  comctl32.dll  0011  InitCommonControls  
->   
-> FThunk: 0003E018  NbFunc: 00000001  
-> 1  0003E018  comdlg32.dll  006E  GetOpenFileNameA  
->   
-> FThunk: 0003E020  NbFunc: 0000000A  
-> 1  0003E020  gdi32.dll  0013  BitBlt  
-> 1  0003E024  gdi32.dll  002D  CreateCompatibleBitmap  
-> 1  0003E028  gdi32.dll  003B  CreateFontIndirectA  
-> 1  0003E02C  gdi32.dll  0051  CreateSolidBrush  
-> 1  0003E030  gdi32.dll  01B5  GetTextExtentPoint32A  
-> 1  0003E034  gdi32.dll  020F  SelectObject  
-> 1  0003E038  gdi32.dll  0217  SetBkMode  
-> 1  0003E03C  gdi32.dll  023D  SetTextColor  
-> 1  0003E040  gdi32.dll  024F  TextOutA  
-> 1  0003E044  gdi32.dll  002E  CreateCompatibleDC  
->   
-> FThunk: 0003E04C  NbFunc: 00000053  
-> 1  0003E04C  kernel32.dll  02A4  ReadFile  
-> 1  0003E050  kernel32.dll  02C6  RtlZeroMemory  
-> 1  0003E054  kernel32.dll  0307  SetFilePointer  
-> 1  0003E058  kernel32.dll  033E  SizeofResource  
-> 1  0003E05C  kernel32.dll  033F  Sleep  
-> 1  0003E060  kernel32.dll  00E0  FindResourceA  
-> 1  0003E064  kernel32.dll  0258  MapViewOfFile  
-> 1  0003E068  kernel32.dll  01D2  GetTickCount  
-> 1  0003E06C  kernel32.dll  0242  LoadLibraryA  
-> 1  0003E070  kernel32.dll  0247  LoadResource  
-> 1  0003E074  kernel32.dll  038C  WriteFile  
-> 1  0003E078  kernel32.dll  0391  WritePrivateProfileStringA  
-> 1  0003E07C  kernel32.dll  03A4  lstrcat  
-> 1  0003E080  kernel32.dll  03AA  lstrcmpi  
-> 1  0003E084  kernel32.dll  0063  CreateProcessA  
-> 1  0003E088  kernel32.dll  0051  CreateFileMappingA  
-> 1  0003E08C  kernel32.dll  0050  CreateFileA  
-> 1  0003E090  kernel32.dll  0040  CopyFileA  
-> 1  0003E094  kernel32.dll  01C9  GetTempPathA  
-> 1  0003E098  kernel32.dll  01AD  GetStartupInfoA  
-> 1  0003E09C  kernel32.dll  0198  GetProcAddress  
-> 1  0003E0A0  kernel32.dll  018E  GetPrivateProfileIntA  
-> 1  0003E0A4  kernel32.dll  0176  GetModuleHandleA  
-> 1  0003E0A8  kernel32.dll  015C  GetFileSize  
-> 1  0003E0AC  kernel32.dll  00F1  FreeLibrary  
-> 1  0003E0B0  kernel32.dll  037B  WaitForSingleObject  
-> 1  0003E0B4  kernel32.dll  00B7  ExitProcess  
-> 1  0003E0B8  kernel32.dll  0082  DeleteFileA  
-> 1  0003E0BC  kernel32.dll  006D  CreateThread  
-> 1  0003E0C0  kernel32.dll  036E  VirtualFree  
-> 1  0003E0C4  kernel32.dll  035B  UnmapViewOfFile  
-> 1  0003E0C8  kernel32.dll  036B  VirtualAlloc  
-> 1  0003E0CC  kernel32.dll  0032  CloseHandle  
-> 1  0003E0D0  kernel32.dll  02C5  RtlUnwind  
-> 1  0003E0D4  kernel32.dll  0297  RaiseException  
-> 1  0003E0D8  kernel32.dll  02FE  SetEndOfFile  
-> 1  0003E0DC  kernel32.dll  0038  CompareStringA  
-> 1  0003E0E0  kernel32.dll  004C  CreateEventA  
-> 1  0003E0E4  kernel32.dll  0098  EnumCalendarInfoA  
-> 1  0003E0E8  kernel32.dll  00EC  FormatMessageA  
-> 1  0003E0EC  kernel32.dll  00F7  GetACP  
-> 1  0003E0F0  kernel32.dll  00FE  GetCPInfo  
-> 1  0003E0F4  kernel32.dll  0146  GetDiskFreeSpaceA  
-> 1  0003E0F8  kernel32.dll  016B  GetLocalTime  
-> 1  0003E0FC  kernel32.dll  01B1  GetStringTypeExA  
-> 1  0003E100  kernel32.dll  01DC  GetVersionExA  
-> 1  0003E104  kernel32.dll  01EB  GlobalAlloc  
-> 1  0003E108  kernel32.dll  01F2  GlobalFree  
-> 1  0003E10C  kernel32.dll  01F6  GlobalLock  
-> 1  0003E110  kernel32.dll  01F5  GlobalHandle  
-> 1  0003E114  kernel32.dll  01F9  GlobalReAlloc  
-> 1  0003E118  kernel32.dll  01FD  GlobalUnlock  
-> 1  0003E11C  kernel32.dll  02BD  ResetEvent  
-> 1  0003E120  kernel32.dll  0302  SetEvent  
-> 1  0003E124  kernel32.dll  034C  TlsAlloc  
-> 1  0003E128  kernel32.dll  034D  TlsFree  
-> 1  0003E12C  kernel32.dll  034E  TlsGetValue  
-> 1  0003E130  kernel32.dll  034F  TlsSetValue  
-> 1  0003E134  kernel32.dll  015F  GetFileType  
-> 1  0003E138  kernel32.dll  01AF  GetStdHandle  
-> 1  0003E13C  kernel32.dll  010A  GetCommandLineA  
-> 1  0003E140  kernel32.dll  0358  UnhandledExceptionFilter  
-> 1  0003E144  kernel32.dll  00CD  FindClose  
-> 1  0003E148  kernel32.dll  00D1  FindFirstFileA  
-> 1  0003E14C  kernel32.dll  021E  InterlockedIncrement  
-> 1  0003E150  kernel32.dll  0373  VirtualQuery  
-> 1  0003E154  kernel32.dll  0080  DeleteCriticalSection  
-> 1  0003E158  kernel32.dll  0241  LeaveCriticalSection  
-> 1  0003E15C  kernel32.dll  0097  EnterCriticalSection  
-> 1  0003E160  kernel32.dll  0216  InitializeCriticalSection  
-> 1  0003E164  kernel32.dll  024C  LocalFree  
-> 1  0003E168  kernel32.dll  0248  LocalAlloc  
-> 1  0003E16C  kernel32.dll  013F  GetCurrentThreadId  
-> 1  0003E170  kernel32.dll  021A  InterlockedDecrement  
-> 1  0003E174  kernel32.dll  03B0  lstrcpyn  
-> 1  0003E178  kernel32.dll  0243  LoadLibraryExA  
-> 1  0003E17C  kernel32.dll  037F  WideCharToMultiByte  
-> 1  0003E180  kernel32.dll  0265  MultiByteToWideChar  
-> 1  0003E184  kernel32.dll  03B3  lstrlen  
-> 1  0003E188  kernel32.dll  016C  GetLocaleInfoA  
-> 1  0003E18C  kernel32.dll  01CD  GetThreadLocale  
-> 1  0003E190  kernel32.dll  0174  GetModuleFileNameA  
-> 1  0003E194  kernel32.dll  0169  GetLastError  
->   
-> FThunk: 0003E19C  NbFunc: 00000019  
-> 1  0003E19C  oleaut32.dll  0008  VariantInit  
-> 1  0003E1A0  oleaut32.dll  0009  VariantClear  
-> 1  0003E1A4  oleaut32.dll  007D  VarBoolFromStr  
-> 1  0003E1A8  oleaut32.dll  0071  VarBstrFromCy  
-> 1  0003E1AC  oleaut32.dll  000B  VariantCopyInd  
-> 1  0003E1B0  oleaut32.dll  0006  SysFreeString  
-> 1  0003E1B4  oleaut32.dll  000A  VariantCopy  
-> 1  0003E1B8  oleaut32.dll  0093  VariantChangeTypeEx  
-> 1  0003E1BC  oleaut32.dll  0072  VarBstrFromDate  
-> 1  0003E1C0  oleaut32.dll  00AD  VarNeg  
-> 1  0003E1C4  oleaut32.dll  00AE  VarNot  
-> 1  0003E1C8  oleaut32.dll  0040  VarI4FromStr  
-> 1  0003E1CC  oleaut32.dll  0054  VarR8FromStr  
-> 1  0003E1D0  oleaut32.dll  005E  VarDateFromStr  
-> 1  0003E1D4  oleaut32.dll  0068  VarCyFromStr  
-> 1  0003E1D8  oleaut32.dll  0005  SysReAllocStringLen  
-> 1  0003E1DC  oleaut32.dll  0014  SafeArrayGetLBound  
-> 1  0003E1E0  oleaut32.dll  0013  SafeArrayGetUBound  
-> 1  0003E1E4  oleaut32.dll  0074  VarBstrFromBool  
-> 1  0003E1E8  oleaut32.dll  000F  SafeArrayCreate  
-> 1  0003E1EC  oleaut32.dll  0028  SafeArrayRedim  
-> 1  0003E1F0  oleaut32.dll  0094  SafeArrayPtrOfIndex  
-> 1  0003E1F4  oleaut32.dll  0019  SafeArrayGetElement  
-> 1  0003E1F8  oleaut32.dll  001A  SafeArrayPutElement  
-> 1  0003E1FC  oleaut32.dll  0004  SysAllocStringLen  
->   
-> FThunk: 0003E204  NbFunc: 00000004  
-> 1  0003E204  shell32.dll  008A  DragAcceptFiles  
-> 1  0003E208  shell32.dll  008B  DragFinish  
-> 1  0003E20C  shell32.dll  008C  DragQueryFile  
-> 1  0003E210  shell32.dll  0167  ShellExecuteA  
->   
-> FThunk: 0003E218  NbFunc: 00000020  
-> 1  0003E218  user32.dll  01DC  MessageBeep  
-> 1  0003E21C  user32.dll  0254  SetDlgItemTextA  
-> 1  0003E220  user32.dll  0128  GetKeyboardType  
-> 1  0003E224  user32.dll  002B  CharNextA  
-> 1  0003E228  user32.dll  015E  GetSystemMetrics  
-> 1  0003E22C  user32.dll  0056  CreateDialogParamA  
-> 1  0003E230  user32.dll  0039  CheckDlgButton  
-> 1  0003E234  user32.dll  000E  BeginPaint  
-> 1  0003E238  user32.dll  02D9  wsprintfA  
-> 1  0003E23C  user32.dll  027B  SetTimer  
-> 1  0003E240  user32.dll  0284  SetWindowPos  
-> 1  0003E244  user32.dll  0287  SetWindowTextA  
-> 1  0003E248  user32.dll  0293  ShowWindow  
-> 1  0003E24C  user32.dll  01DD  MessageBoxA  
-> 1  0003E250  user32.dll  023C  SendMessageA  
-> 1  0003E254  user32.dll  01C9  LoadStringA  
-> 1  0003E258  user32.dll  01B6  LoadBitmapA  
-> 1  0003E25C  user32.dll  01B3  KillTimer  
-> 1  0003E260  user32.dll  0178  GetWindowTextA  
-> 1  0003E264  user32.dll  0112  GetDlgItem  
-> 1  0003E268  user32.dll  0111  GetDlgCtrlID  
-> 1  0003E26C  user32.dll  010D  GetDC  
-> 1  0003E270  user32.dll  00E3  FillRect  
-> 1  0003E274  user32.dll  00CC  EnumChildWindows  
-> 1  0003E278  user32.dll  00C9  EndPaint  
-> 1  0003E27C  user32.dll  00C5  EnableWindow  
-> 1  0003E280  user32.dll  009F  DialogBoxParamA  
-> 1  0003E284  user32.dll  0061  CreateWindowExA  
-> 1  0003E288  user32.dll  022B  ReleaseDC  
-> 1  0003E28C  user32.dll  0237  SendDlgItemMessageA  
-> 1  0003E290  user32.dll  0200  PostMessageA  
-> 1  0003E294  user32.dll  0202  PostQuitMessage  
->   
-> FThunk: 0003E29C  NbFunc: 00000001  
-> 1  0003E29C  winmm.dll  0041  mciSendCommandA  
->   
-> 3.寻找 OEP。  
->   
-> 在第一个段下内存访问断点，会发现壳对原代码的 JMP 和 CALL 的偏移地址进行修正，继续运行，最后停在 OEP，代码如下：  
->   
-> 00415675    C705 4B0E4>MOV DWORD PTR DS:\[440E4B\],0           ; OEP  
-> 0041567F    6A 00      PUSH 0  
-> 00415681    E8 8671000>CALL prot765.0041C80C                 ; 被 HOOK 的 GetModuleHandleA  
-> 00415686    A3 FC15440>MOV DWORD PTR DS:\[4415FC\],EAX  
-> 0041568B    E8 AE72000>CALL prot765.0041C93E                 ; JMP to comctl32.InitCommonControls  
-> 00415690    8D35 01024>LEA ESI,DWORD PTR DS:\[440201\]  
-> 00415696    8D3D 341B4>LEA EDI,DWORD PTR DS:\[441B34\]  
-> 0041569C    B9 1000000>MOV ECX,10  
-> 004156A1    F3:A4      REP MOVSB  
-> 004156A3    C705 181B4>MOV DWORD PTR DS:\[441B18\],-0C  
-> 004156AD    C705 281B4>MOV DWORD PTR DS:\[441B28\],109  
-> 004156B7    C605 2F1B4>MOV BYTE PTR DS:\[441B2F\],1  
-> 004156BE    6A 00      PUSH 0  
-> 004156C0    68 E156410>PUSH prot765.004156E1  
-> 004156C5    6A 00      PUSH 0  
-> 004156C7    68 1F00440>PUSH prot765.0044001F                 ; ASCII "IDD\_DIALOG1"  
-> 004156CC    FF35 FC154>PUSH DWORD PTR DS:\[4415FC\]  
-> 004156D2    E8 D771000>CALL prot765.0041C8AE  
-> 004156D7    6A 00      PUSH 0  
-> 004156D9    E8 1671000>CALL prot765.0041C7F4  
-> 004156DE    33C0       XOR EAX,EAX  
-> 004156E0    C3         RET  
->   
-> 4.修复被 HOOK 的 API。  
->   
-> 进入 0041C80C，发现原本 JMP DWORD PTR DS:\[XXXXXXXX\]的形式被 HOOK 成 NOP; CALL 003B2B53，代码如下：  
->   
-> <HookAPI>>  50         PUSH EAX  
-> 003B2B54    60         PUSHAD  
-> 003B2B55    E8 0000000>CALL 003B2B5A  
-> 003B2B5A    5D         POP EBP  
-> 003B2B5B    81ED 3B164>SUB EBP,41163B  
-> 003B2B61    8B7C24 24  MOV EDI,DWORD PTR SS:\[ESP+24\]  
-> 003B2B65    8BB5 A5414>MOV ESI,DWORD PTR SS:\[EBP+4141A5\]  
-> 003B2B6B    8B8D 034B4>MOV ECX,DWORD PTR SS:\[EBP+414B03\]  
-> 003B2B71    8B048E     MOV EAX,DWORD PTR DS:\[ESI+ECX\*4\]      ; ESI 为被 HOOK 的地址表  
-> 003B2B74    33D2       XOR EDX,EDX  
-> 003B2B76    99         CDQ  
-> 003B2B77    25 FFFFFF7>AND EAX,7FFFFFFF  
-> 003B2B7C    0385 4D414>ADD EAX,DWORD PTR SS:\[EBP+41414D\]  
-> 003B2B82    3BC7       CMP EAX,EDI                           ; 根据返回地址查表  
-> 003B2B84    75 10      JNZ SHORT 003B2B96  
-> 003B2B86    8D348E     LEA ESI,DWORD PTR DS:\[ESI+ECX\*4\]  
-> 003B2B89    0BD2       OR EDX,EDX  
-> 003B2B8B    75 04      JNZ SHORT 003B2B91  
-> 003B2B8D    EB 66      JMP SHORT 003B2BF5  
-> 003B2B8F    EB 05      JMP SHORT 003B2B96  
-> 003B2B91    E9 E101000>JMP 003B2D77                          ; 出口  
-> 003B2B96    8B85 A9414>MOV EAX,DWORD PTR SS:\[EBP+4141A9\]  
-> 003B2B9C    C1E8 02    SHR EAX,2  
-> 003B2B9F    83E8 02    SUB EAX,2  
-> 003B2BA2    894424 F8  MOV DWORD PTR SS:\[ESP-8\],EAX  
-> 003B2BA6    33C0       XOR EAX,EAX  
-> 003B2BA8    894424 FC  MOV DWORD PTR SS:\[ESP-4\],EAX  
-> 003B2BAC    8B4C24 FC  MOV ECX,DWORD PTR SS:\[ESP-4\]  
-> 003B2BB0    034C24 F8  ADD ECX,DWORD PTR SS:\[ESP-8\]  
-> 003B2BB4    D1E9       SHR ECX,1  
-> 003B2BB6    8B048E     MOV EAX,DWORD PTR DS:\[ESI+ECX\*4\]  
-> 003B2BB9    33D2       XOR EDX,EDX  
-> 003B2BBB    99         CDQ  
-> 003B2BBC    25 FFFFFF7>AND EAX,7FFFFFFF  
-> 003B2BC1    0385 4D414>ADD EAX,DWORD PTR SS:\[EBP+41414D\]  
-> 003B2BC7    3BC7       CMP EAX,EDI                           ; 根据返回地址查表  
-> 003B2BC9    75 18      JNZ SHORT 003B2BE3  
-> 003B2BCB    898D 034B4>MOV DWORD PTR SS:\[EBP+414B03\],ECX  
-> 003B2BD1    8D348E     LEA ESI,DWORD PTR DS:\[ESI+ECX\*4\]  
-> 003B2BD4    0BD2       OR EDX,EDX  
-> 003B2BD6    75 04      JNZ SHORT 003B2BDC  
-> 003B2BD8    EB 1B      JMP SHORT 003B2BF5  
-> 003B2BDA    EB 17      JMP SHORT 003B2BF3  
-> 003B2BDC    E9 9601000>JMP 003B2D77                          ; 出口  
-> 003B2BE1    EB 10      JMP SHORT 003B2BF3  
-> 003B2BE3    3BC7       CMP EAX,EDI  
-> 003B2BE5    76 07      JBE SHORT 003B2BEE  
-> 003B2BE7    49         DEC ECX  
-> 003B2BE8    894C24 F8  MOV DWORD PTR SS:\[ESP-8\],ECX  
-> 003B2BEC    EB 05      JMP SHORT 003B2BF3  
-> 003B2BEE    41         INC ECX  
-> 003B2BEF    894C24 FC  MOV DWORD PTR SS:\[ESP-4\],ECX  
-> 003B2BF3  ^ EB B7      JMP SHORT 003B2BAC  
->   
-> 向下查找二进制数 8B00894424246183C404C3，找到代码如下：  
->   
-> 003B2EE5    0385 4D414>ADD EAX,DWORD PTR SS:\[EBP+41414D\]     ; EAX 为 IAT 地址  
-> 003B2EEB    2B85 71414>SUB EAX,DWORD PTR SS:\[EBP+414171\]  
-> 003B2EF1    8B00       MOV EAX,DWORD PTR DS:\[EAX\]            ; EAX 为函数地址  
-> 003B2EF3    894424 24  MOV DWORD PTR SS:\[ESP+24\],EAX  
-> 003B2EF7    61         POPAD  
-> 003B2EF8    83C4 04    ADD ESP,4  
-> 003B2EFB    C3         RET  
->   
-> 找到 IAT 地址后，就可以还原被 HOOK 的 API 了。 
+## 一、破解目标
 
- 4dd466d0e1e0cc123afbe504da2462ca
+PE-Armor 0.765 主程序
+
+## 二、破解工具
+
+`OllyDbg` v1.10，`ImportREC` 1.6 Final，`LordPE`
+
+## 三、破解作者
+
+DarkBull#126.com
+
+## 四、破解过程
+
+### 1. 解密代码
+
+用 `HideOD` 隐藏 `OllyDbg`，忽略所有异常，在第一个段下内存访问断点，解密代码如下：
+
+```
+003B345E    55         PUSH EBP
+003B345F    8BEC       MOV EBP,ESP
+003B3461    83C4 FC    ADD ESP,-4
+003B3464    60         PUSHAD
+003B3465    8B7D 10    MOV EDI,DWORD PTR SS:[EBP+10]         ; KEY（20H 个字节）
+003B3468    8B75 08    MOV ESI,DWORD PTR SS:[EBP+8]          ; 段起始地址
+003B346B    8B5D 0C    MOV EBX,DWORD PTR SS:[EBP+C]          ; 段大小
+003B346E    D1EB       SHR EBX,1
+003B3470    EB 41      JMP SHORT 003B34B3
+003B3472    53         PUSH EBX
+003B3473    33DB       XOR EBX,EBX
+003B3475    66:C745 FE>MOV WORD PTR SS:[EBP-2],0
+003B347B    EB 25      JMP SHORT 003B34A2
+003B347D    66:8B16    MOV DX,WORD PTR DS:[ESI]
+003B3480    66:23145F  AND DX,WORD PTR DS:[EDI+EBX*2]        ; EBX 为索引
+003B3484    B9 1000000>MOV ECX,10
+003B3489    33C0       XOR EAX,EAX
+003B348B    66:D1E2    SHL DX,1
+003B348E    73 01      JNB SHORT 003B3491
+003B3490    40         INC EAX
+003B3491   ^ E2 F8     LOOPD SHORT 003B348B
+003B3493    66:83E0 01 AND AX,1
+003B3497    66:8BCB    MOV CX,BX
+003B349A    66:D3E0    SHL AX,CL
+003B349D    66:0145 FE ADD WORD PTR SS:[EBP-2],AX
+003B34A1    43         INC EBX
+003B34A2    83FB 10    CMP EBX,10
+003B34A5   ^ 72 D6     JB SHORT 003B347D
+003B34A7    5B         POP EBX
+003B34A8    66:8B45 FE MOV AX,WORD PTR SS:[EBP-2]
+003B34AC    66:8906    MOV WORD PTR DS:[ESI],AX              ; 写入代码
+003B34AF    83C6 02    ADD ESI,2
+003B34B2    4B         DEC EBX
+003B34B3    0BDB       OR EBX,EBX
+003B34B5   ^ 75 BB     JNZ SHORT 003B3472
+003B34B7    61         POPAD
+003B34B8    C9         LEAVE
+003B34B9    C2 0C00    RET 0C
+```
+
+解密后（段的第四个字节为段压缩前的大小，第八字节为段压缩后的大小）再对该段进行解压缩，解压代码较长，这里省略。
+
+### 2. 修复 IAT
+
+下断点 `BP GetModuleHandleW`，拦截后执行到返回，再查找二进制数 `8BF00BC9`，代码如下：
+
+```
+003A92FD    8BF0       MOV ESI,EAX                           ; DLL 的基址
+003A92FF    0BC9       OR ECX,ECX
+003A9301    0F85 A5070>JNZ 003A9AAC                          ; 是否 Hook API（不要跳）
+003A9307    8BCF       MOV ECX,EDI
+003A9309    68 00FE98C>PUSH C798FE00
+003A930E    50         PUSH EAX
+003A930F    E8 5D00000>CALL 003A9371
+```
+
+**没有被 HOOK 的函数名解压代码如下：**
+
+```
+003A978E    33C0       XOR EAX,EAX                           ; Patch1
+003A9790    AC         LODSB
+003A9791    EB 07      JMP SHORT 003A979A
+003A9793    C0C0 03    ROL AL,3
+003A9796    F6D0       NOT AL
+003A9798    AA         STOSB                                 ; 写入函数名
+003A9799    AC         LODSB
+003A979A    0BC0       OR EAX,EAX
+003A979C   ^ 75 F5     JNZ SHORT 003A9793
+003A979E    AA         STOSB
+```
+
+**被 HOOK 的函数名解压代码（在堆栈里）如下：**
+
+```
+0012FF68    50         PUSH EAX
+0012FF69    AC         LODSB
+0012FF6A    34 79      XOR AL,79
+0012FF6C    2C 55      SUB AL,55
+0012FF6E    C0C0 03    ROL AL,3
+0012FF71    F6D0       NOT AL
+0012FF73    AA         STOSB                                 ; 写入函数名
+0012FF74    31C0       XOR EAX,EAX
+0012FF76    49         DEC ECX
+0012FF77   ^ 75 F0     JNZ SHORT 0012FF69
+0012FF79    AA         STOSB
+0012FF7A    58         POP EAX
+0012FF7B    C3         RET
+```
+
+当模块为 `kernel32.dll` 和 `user32.dll` 时，在 `003A978E` 写入 Patch 代码：
+
+```
+003A978E    AC         LODSB                                 ; Patch1
+003A978F    34 79      XOR AL,79
+003A9791    2C 55      SUB AL,55
+003A9793    C0C0 03    ROL AL,3
+003A9796    F6D0       NOT AL
+003A9798    AA         STOSB                                 ; 写入函数名
+003A9799    AC         LODSB
+003A979A    0BC0       OR EAX,EAX
+003A979C   ^ 75 F1     JNZ SHORT 003A978F
+003A979E    AA         STOSB
+```
+
+等壳处理完所有 DLL 后，用 `ImportREC` 获得 IAT，有 8 个地址未解析，为壳模拟的系统函数(大概有 23 个吧)，偶只有手动追踪了。完整的 IAT 如下：
+
+```
+OEP: 00015675  IATRVA: 0003E000  IATSize: 000002A4
+
+FThunk: 0003E000  NbFunc: 00000003
+1  0003E000  advapi32.dll  01EE  RegQueryValueExA
+1  0003E004  advapi32.dll  01E4  RegOpenKeyExA
+1  0003E008  advapi32.dll  01CB  RegCloseKey
+
+FThunk: 0003E010  NbFunc: 00000001
+1  0003E010  comctl32.dll  0011  InitCommonControls
+
+FThunk: 0003E018  NbFunc: 00000001
+1  0003E018  comdlg32.dll  006E  GetOpenFileNameA
+
+FThunk: 0003E020  NbFunc: 0000000A
+1  0003E020  gdi32.dll  0013  BitBlt
+1  0003E024  gdi32.dll  002D  CreateCompatibleBitmap
+1  0003E028  gdi32.dll  003B  CreateFontIndirectA
+1  0003E02C  gdi32.dll  0051  CreateSolidBrush
+1  0003E030  gdi32.dll  01B5  GetTextExtentPoint32A
+1  0003E034  gdi32.dll  020F  SelectObject
+1  0003E038  gdi32.dll  0217  SetBkMode
+1  0003E03C  gdi32.dll  023D  SetTextColor
+1  0003E040  gdi32.dll  024F  TextOutA
+1  0003E044  gdi32.dll  002E  CreateCompatibleDC
+
+FThunk: 0003E04C  NbFunc: 00000053
+1  0003E04C  kernel32.dll  02A4  ReadFile
+1  0003E050  kernel32.dll  02C6  RtlZeroMemory
+1  0003E054  kernel32.dll  0307  SetFilePointer
+1  0003E058  kernel32.dll  033E  SizeofResource
+1  0003E05C  kernel32.dll  033F  Sleep
+1  0003E060  kernel32.dll  00E0  FindResourceA
+1  0003E064  kernel32.dll  0258  MapViewOfFile
+1  0003E068  kernel32.dll  01D2  GetTickCount
+1  0003E06C  kernel32.dll  0242  LoadLibraryA
+1  0003E070  kernel32.dll  0247  LoadResource
+1  0003E074  kernel32.dll  038C  WriteFile
+1  0003E078  kernel32.dll  0391  WritePrivateProfileStringA
+1  0003E07C  kernel32.dll  03A4  lstrcat
+1  0003E080  kernel32.dll  03AA  lstrcmpi
+1  0003E084  kernel32.dll  0063  CreateProcessA
+1  0003E088  kernel32.dll  0051  CreateFileMappingA
+1  0003E08C  kernel32.dll  0050  CreateFileA
+1  0003E090  kernel32.dll  0040  CopyFileA
+1  0003E094  kernel32.dll  01C9  GetTempPathA
+1  0003E098  kernel32.dll  01AD  GetStartupInfoA
+1  0003E09C  kernel32.dll  0198  GetProcAddress
+1  0003E0A0  kernel32.dll  018E  GetPrivateProfileIntA
+1  0003E0A4  kernel32.dll  0176  GetModuleHandleA
+1  0003E0A8  kernel32.dll  015C  GetFileSize
+1  0003E0AC  kernel32.dll  00F1  FreeLibrary
+1  0003E0B0  kernel32.dll  037B  WaitForSingleObject
+1  0003E0B4  kernel32.dll  00B7  ExitProcess
+1  0003E0B8  kernel32.dll  0082  DeleteFileA
+1  0003E0BC  kernel32.dll  006D  CreateThread
+1  0003E0C0  kernel32.dll  036E  VirtualFree
+1  0003E0C4  kernel32.dll  035B  UnmapViewOfFile
+1  0003E0C8  kernel32.dll  036B  VirtualAlloc
+1  0003E0CC  kernel32.dll  0032  CloseHandle
+1  0003E0D0  kernel32.dll  02C5  RtlUnwind
+1  0003E0D4  kernel32.dll  0297  RaiseException
+1  0003E0D8  kernel32.dll  02FE  SetEndOfFile
+1  0003E0DC  kernel32.dll  0038  CompareStringA
+1  0003E0E0  kernel32.dll  004C  CreateEventA
+1  0003E0E4  kernel32.dll  0098  EnumCalendarInfoA
+1  0003E0E8  kernel32.dll  00EC  FormatMessageA
+1  0003E0EC  kernel32.dll  00F7  GetACP
+1  0003E0F0  kernel32.dll  00FE  GetCPInfo
+1  0003E0F4  kernel32.dll  0146  GetDiskFreeSpaceA
+1  0003E0F8  kernel32.dll  016B  GetLocalTime
+1  0003E0FC  kernel32.dll  01B1  GetStringTypeExA
+1  0003E100  kernel32.dll  01DC  GetVersionExA
+1  0003E104  kernel32.dll  01EB  GlobalAlloc
+1  0003E108  kernel32.dll  01F2  GlobalFree
+1  0003E10C  kernel32.dll  01F6  GlobalLock
+1  0003E110  kernel32.dll  01F5  GlobalHandle
+1  0003E114  kernel32.dll  01F9  GlobalReAlloc
+```
+
+
+
+# 导入表与函数列表
+
+## kernel32.dll
+
+| 索引 | 地址 | 模块 | 序号 | 函数名 |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | `0003E118` | `kernel32.dll` | `01FD` | `GlobalUnlock` |
+| 1 | `0003E11C` | `kernel32.dll` | `02BD` | `ResetEvent` |
+| 1 | `0003E120` | `kernel32.dll` | `0302` | `SetEvent` |
+| 1 | `0003E124` | `kernel32.dll` | `034C` | `TlsAlloc` |
+| 1 | `0003E128` | `kernel32.dll` | `034D` | `TlsFree` |
+| 1 | `0003E12C` | `kernel32.dll` | `034E` | `TlsGetValue` |
+| 1 | `0003E130` | `kernel32.dll` | `034F` | `TlsSetValue` |
+| 1 | `0003E134` | `kernel32.dll` | `015F` | `GetFileType` |
+| 1 | `0003E138` | `kernel32.dll` | `01AF` | `GetStdHandle` |
+| 1 | `0003E13C` | `kernel32.dll` | `010A` | `GetCommandLineA` |
+| 1 | `0003E140` | `kernel32.dll` | `0358` | `UnhandledExceptionFilter` |
+| 1 | `0003E144` | `kernel32.dll` | `00CD` | `FindClose` |
+| 1 | `0003E148` | `kernel32.dll` | `00D1` | `FindFirstFileA` |
+| 1 | `0003E14C` | `kernel32.dll` | `021E` | `InterlockedIncrement` |
+| 1 | `0003E150` | `kernel32.dll` | `0373` | `VirtualQuery` |
+| 1 | `0003E154` | `kernel32.dll` | `0080` | `DeleteCriticalSection` |
+| 1 | `0003E158` | `kernel32.dll` | `0241` | `LeaveCriticalSection` |
+| 1 | `0003E15C` | `kernel32.dll` | `0097` | `EnterCriticalSection` |
+| 1 | `0003E160` | `kernel32.dll` | `0216` | `InitializeCriticalSection` |
+| 1 | `0003E164` | `kernel32.dll` | `024C` | `LocalFree` |
+| 1 | `0003E168` | `kernel32.dll` | `0248` | `LocalAlloc` |
+| 1 | `0003E16C` | `kernel32.dll` | `013F` | `GetCurrentThreadId` |
+| 1 | `0003E170` | `kernel32.dll` | `021A` | `InterlockedDecrement` |
+| 1 | `0003E174` | `kernel32.dll` | `03B0` | `lstrcpyn` |
+| 1 | `0003E178` | `kernel32.dll` | `0243` | `LoadLibraryExA` |
+| 1 | `0003E17C` | `kernel32.dll` | `037F` | `WideCharToMultiByte` |
+| 1 | `0003E180` | `kernel32.dll` | `0265` | `MultiByteToWideChar` |
+| 1 | `0003E184` | `kernel32.dll` | `03B3` | `lstrlen` |
+| 1 | `0003E188` | `kernel32.dll` | `016C` | `GetLocaleInfoA` |
+| 1 | `0003E18C` | `kernel32.dll` | `01CD` | `GetThreadLocale` |
+| 1 | `0003E190` | `kernel32.dll` | `0174` | `GetModuleFileNameA` |
+| 1 | `0003E194` | `kernel32.dll` | `0169` | `GetLastError` |
+
+`FThunk: 0003E19C` `NbFunc: 00000019`
+
+## oleaut32.dll
+
+| 索引 | 地址 | 模块 | 序号 | 函数名 |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | `0003E19C` | `oleaut32.dll` | `0008` | `VariantInit` |
+| 1 | `0003E1A0` | `oleaut32.dll` | `0009` | `VariantClear` |
+| 1 | `0003E1A4` | `oleaut32.dll` | `007D` | `VarBoolFromStr` |
+| 1 | `0003E1A8` | `oleaut32.dll` | `0071` | `VarBstrFromCy` |
+| 1 | `0003E1AC` | `oleaut32.dll` | `000B` | `VariantCopyInd` |
+| 1 | `0003E1B0` | `oleaut32.dll` | `0006` | `SysFreeString` |
+| 1 | `0003E1B4` | `oleaut32.dll` | `000A` | `VariantCopy` |
+| 1 | `0003E1B8` | `oleaut32.dll` | `0093` | `VariantChangeTypeEx` |
+| 1 | `0003E1BC` | `oleaut32.dll` | `0072` | `VarBstrFromDate` |
+| 1 | `0003E1C0` | `oleaut32.dll` | `00AD` | `VarNeg` |
+| 1 | `0003E1C4` | `oleaut32.dll` | `00AE` | `VarNot` |
+| 1 | `0003E1C8` | `oleaut32.dll` | `0040` | `VarI4FromStr` |
+| 1 | `0003E1CC` | `oleaut32.dll` | `0054` | `VarR8FromStr` |
+| 1 | `0003E1D0` | `oleaut32.dll` | `005E` | `VarDateFromStr` |
+| 1 | `0003E1D4` | `oleaut32.dll` | `0068` | `VarCyFromStr` |
+| 1 | `0003E1D8` | `oleaut32.dll` | `0005` | `SysReAllocStringLen` |
+| 1 | `0003E1DC` | `oleaut32.dll` | `0014` | `SafeArrayGetLBound` |
+| 1 | `0003E1E0` | `oleaut32.dll` | `0013` | `SafeArrayGetUBound` |
+| 1 | `0003E1E4` | `oleaut32.dll` | `0074` | `VarBstrFromBool` |
+| 1 | `0003E1E8` | `oleaut32.dll` | `000F` | `SafeArrayCreate` |
+| 1 | `0003E1EC` | `oleaut32.dll` | `0028` | `SafeArrayRedim` |
+| 1 | `0003E1F0` | `oleaut32.dll` | `0094` | `SafeArrayPtrOfIndex` |
+| 1 | `0003E1F4` | `oleaut32.dll` | `0019` | `SafeArrayGetElement` |
+| 1 | `0003E1F8` | `oleaut32.dll` | `001A` | `SafeArrayPutElement` |
+| 1 | `0003E1FC` | `oleaut32.dll` | `0004` | `SysAllocStringLen` |
+
+`FThunk: 0003E204` `NbFunc: 00000004`
+
+## shell32.dll
+
+| 索引 | 地址 | 模块 | 序号 | 函数名 |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | `0003E204` | `shell32.dll` | `008A` | `DragAcceptFiles` |
+| 1 | `0003E208` | `shell32.dll` | `008B` | `DragFinish` |
+| 1 | `0003E20C` | `shell32.dll` | `008C` | `DragQueryFile` |
+| 1 | `0003E210` | `shell32.dll` | `0167` | `ShellExecuteA` |
+
+`FThunk: 0003E218` `NbFunc: 00000020`
+
+## user32.dll
+
+| 索引 | 地址 | 模块 | 序号 | 函数名 |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | `0003E218` | `user32.dll` | `01DC` | `MessageBeep` |
+| 1 | `0003E21C` | `user32.dll` | `0254` | `SetDlgItemTextA` |
+| 1 | `0003E220` | `user32.dll` | `0128` | `GetKeyboardType` |
+| 1 | `0003E224` | `user32.dll` | `002B` | `CharNextA` |
+| 1 | `0003E228` | `user32.dll` | `015E` | `GetSystemMetrics` |
+| 1 | `0003E22C` | `user32.dll` | `0056` | `CreateDialogParamA` |
+| 1 | `0003E230` | `user32.dll` | `0039` | `CheckDlgButton` |
+| 1 | `0003E234` | `user32.dll` | `000E` | `BeginPaint` |
+| 1 | `0003E238` | `user32.dll` | `02D9` | `wsprintfA` |
+| 1 | `0003E23C` | `user32.dll` | `027B` | `SetTimer` |
+| 1 | `0003E240` | `user32.dll` | `0284` | `SetWindowPos` |
+| 1 | `0003E244` | `user32.dll` | `0287` | `SetWindowTextA` |
+| 1 | `0003E248` | `user32.dll` | `0293` | `ShowWindow` |
+| 1 | `0003E24C` | `user32.dll` | `01DD` | `MessageBoxA` |
+| 1 | `0003E250` | `user32.dll` | `023C` | `SendMessageA` |
+| 1 | `0003E254` | `user32.dll` | `01C9` | `LoadStringA` |
+| 1 | `0003E258` | `user32.dll` | `01B6` | `LoadBitmapA` |
+| 1 | `0003E25C` | `user32.dll` | `01B3` | `KillTimer` |
+| 1 | `0003E260` | `user32.dll` | `0178` | `GetWindowTextA` |
+| 1 | `0003E264` | `user32.dll` | `0112` | `GetDlgItem` |
+| 1 | `0003E268` | `user32.dll` | `0111` | `GetDlgCtrlID` |
+| 1 | `0003E26C` | `user32.dll` | `010D` | `GetDC` |
+| 1 | `0003E270` | `user32.dll` | `00E3` | `FillRect` |
+| 1 | `0003E274` | `user32.dll` | `00CC` | `EnumChildWindows` |
+| 1 | `0003E278` | `user32.dll` | `00C9` | `EndPaint` |
+| 1 | `0003E27C` | `user32.dll` | `00C5` | `EnableWindow` |
+| 1 | `0003E280` | `user32.dll` | `009F` | `DialogBoxParamA` |
+| 1 | `0003E284` | `user32.dll` | `0061` | `CreateWindowExA` |
+| 1 | `0003E288` | `user32.dll` | `022B` | `ReleaseDC` |
+| 1 | `0003E28C` | `user32.dll` | `0237` | `SendDlgItemMessageA` |
+| 1 | `0003E290` | `user32.dll` | `0200` | `PostMessageA` |
+| 1 | `0003E294` | `user32.dll` | `0202` | `PostQuitMessage` |
+
+`FThunk: 0003E29C` `NbFunc: 00000001`
+
+## winmm.dll
+
+| 索引 | 地址 | 模块 | 序号 | 函数名 |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | `0003E29C` | `winmm.dll` | `0041` | `mciSendCommandA` |
+
+# 3. 寻找 OEP
+
+在第一个段下内存访问断点，会发现壳对原代码的 `JMP` 和 `CALL` 的偏移地址进行修正，继续运行，最后停在 OEP，代码如下：
+
+```asm
+00415675    C705 4B0E4>MOV DWORD PTR DS:[440E4B],0           ; OEP
+0041567F    6A 00       PUSH 0
+00415681    E8 8671000>CALL prot765.0041C80C                 ; 被 HOOK 的 GetModuleHandleA
+00415686    A3 FC15440>MOV DWORD PTR DS:[4415FC],EAX
+0041568B    E8 AE72000>CALL prot765.0041C93E                 ; JMP to comctl32.InitCommonControls
+00415690    8D35 01024>LEA ESI,DWORD PTR DS:[440201]
+00415696    8D3D 341B4>LEA EDI,DWORD PTR DS:[441B34]
+0041569C    B9 1000000>MOV ECX,10
+004156A1    F3:A4       REP MOVSB
+004156A3    C705 181B4>MOV DWORD PTR DS:[441B18],-0C
+004156AD    C705 281B4>MOV DWORD PTR DS:[441B28],109
+004156B7    C605 2F1B4>MOV BYTE PTR DS:[441B2F],1
+004156BE    6A 00       PUSH 0
+004156C0    68 E156410>PUSH prot765.004156E1
+004156C5    6A 00       PUSH 0
+004156C7    68 1F00440>PUSH prot765.0044001F                 ; ASCII "IDD_DIALOG1"
+004156CC    FF35 FC154>PUSH DWORD PTR DS:[4415FC]
+004156D2    E8 D771000>CALL prot765.0041C8AE
+004156D7    6A 00       PUSH 0
+004156D9    E8 1671000>CALL prot765.0041C7F4
+004156DE    33C0        XOR EAX,EAX
+004156E0    C3          RET
+```
+
+# 4. 修复被 HOOK 的 API
+
+进入 `0041C80C`，发现原本 `JMP DWORD PTR DS:[XXXXXXXX]` 的形式被 HOOK 成 `NOP; CALL 003B2B53`，代码如下：
+
+```asm
+<HookAPI>>  50         PUSH EAX
+003B2B54    60         PUSHAD
+003B2B55    E8 0000000>CALL 003B2B5A
+003B2B5A    5D         POP EBP
+003B2B5B    81ED 3B164>SUB EBP,41163B
+003B2B61    8B7C24 24  MOV EDI,DWORD PTR SS:[ESP+24]
+003B2B65    8BB5 A5414>MOV ESI,DWORD PTR SS:[EBP+4141A5]
+003B2B6B    8B8D 034B4>MOV ECX,DWORD PTR SS:[EBP+414B03]
+003B2B71    8B048E     MOV EAX,DWORD PTR DS:[ESI+ECX*4]     ; ESI 为被 HOOK 的地址表
+003B2B74    33D2       XOR EDX,EDX
+003B2B76    99         CDQ
+003B2B77    25 FFFFFF7>AND EAX,7FFFFFFF
+003B2B7C    0385 4D414>ADD EAX,DWORD PTR SS:[EBP+41414D]
+003B2B82    3BC7       CMP EAX,EDI                            ; 根据返回地址查表
+003B2B84    75 10      JNZ SHORT 003B2B96
+003B2B86    8D348E     LEA ESI,DWORD PTR DS:[ESI+ECX*4]
+003B2B89    0BD2       OR EDX,EDX
+003B2B8B    75 04      JNZ SHORT 003B2B91
+003B2B8D    EB 66      JMP SHORT 003B2BF5
+003B2B8F    EB 05      JMP SHORT 003B2B96
+003B2B91    E9 E101000>JMP 003B2D77                            ; 出口
+003B2B96    8B85 A9414>MOV EAX,DWORD PTR SS:[EBP+4141A9]
+003B2B9C    C1E8 02    SHR EAX,2
+003B2B9F    83E8 02    SUB EAX,2
+003B2BA2    894424 F8  MOV DWORD PTR SS:[ESP-8],EAX
+003B2BA6    33C0       XOR EAX,EAX
+003B2BA8    894424 FC  MOV DWORD PTR SS:[ESP-4],EAX
+003B2BAC    8B4C24 FC  MOV ECX,DWORD PTR SS:[ESP-4]
+003B2BB0    034C24 F8  ADD ECX,DWORD PTR SS:[ESP-8]
+```
+
+
+
+```
+003B2BB4    D1E9        SHR ECX,1
+003B2BB6    8B048E      MOV EAX,DWORD PTR DS:[ESI+ECX*4]
+003B2BB9    33D2        XOR EDX,EDX
+003B2BBB    99          CDQ
+003B2BBC    25 FFFFFFF>AND EAX,7FFFFFFF
+003B2BC1    0385 4D414>ADD EAX,DWORD PTR SS:[EBP+41414D]
+003B2BC7    3BC7        CMP EAX,EDI                           ; 根据返回地址查表
+003B2BC9    75 18       JNZ SHORT 003B2BE3
+003B2BCB    898D 034B4>MOV DWORD PTR SS:[EBP+414B03],ECX
+003B2BD1    8D348E      LEA ESI,DWORD PTR DS:[ESI+ECX*4]
+003B2BD4    0BD2        OR EDX,EDX
+003B2BD6    75 04       JNZ SHORT 003B2BDC
+003B2BD8    EB 1B       JMP SHORT 003B2BF5
+003B2BDA    EB 17       JMP SHORT 003B2BF3
+003B2BDC    E9 9601000>JMP 003B2D77                          ; 出口
+003B2BE1    EB 10       JMP SHORT 003B2BF3
+003B2BE3    3BC7        CMP EAX,EDI
+003B2BE5    76 07       JBE SHORT 003B2BEE
+003B2BE7    49          DEC ECX
+003B2BE8    894C24 F8   MOV DWORD PTR SS:[ESP-8],ECX
+003B2BEC    EB 05       JMP SHORT 003B2BF3
+003B2BEE    41          INC ECX
+003B2BEF    894C24 FC   MOV DWORD PTR SS:[ESP-4],ECX
+003B2BF3  ^ EB B7       JMP SHORT 003B2BAC
+```
+
+向下查找二进制数`8B00894424246183C404C3`，找到代码如下：
+
+```
+003B2EE5    0385 4D414>ADD EAX,DWORD PTR SS:[EBP+41414D]     ; EAX 为 IAT 地址
+003B2EEB    2B85 71414>SUB EAX,DWORD PTR SS:[EBP+414171]
+003B2EF1    8B00        MOV EAX,DWORD PTR DS:[EAX]            ; EAX 为函数地址
+003B2EF3    894424 24   MOV DWORD PTR SS:[ESP+24],EAX
+003B2EF7    61          POPAD
+003B2EF8    83C4 04     ADD ESP,4
+003B2EFB    C3          RET
+```
+
+找到IAT地址后，就可以还原被HOOK的API了。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,717 +1,1052 @@
 
-
 # 修改计算器初始 16 进制
 
 > 原文：[`www.pediy.com/kssd/pediy10/92859.html`](https://www.pediy.com/kssd/pediy10/92859.html)
 
-闲来无聊  
-做了一些修改~  
-OD 载入:  
-01012475 >    6A 70         push    70  
-01012477      68 E0150001   push    010015E0  
-0101247C   .  E8 47030000   call    010127C8           ;seh 处理函数  
-01012481   .  33DB          xor     ebx, ebx  
-01012483   .  53            push    ebx                              ; /pModule => NULL  
-中间省略若干  
-  
-010125DD   >  50            push    eax  
-010125DE   .  56            push    esi  
-010125DF   .  53            push    ebx  
-010125E0   .  53            push    ebx  
-010125E1   .  FFD7          call    edi  
-010125E3   .  50            push    eax  
-010125E4   .  E8 68F9FEFF   call    01001F51           ;来到了本次需要分析的重点函数  
-010125E9   .  8BF0          mov     esi, eax  
-010125EB   .  8975 84       mov     dword ptr \[ebp-7C\], esi  
-010125EE   .  395D E4       cmp     dword ptr \[ebp-1C\], ebx  
-010125F1   .  75 07         jnz     short 010125FA  
-010125F3   .  56            push    esi                              ; /status  
-010125F4   .  FF15 EC110001 call    dword ptr \[<&msvcrt.exit>\]       ; \\exit  
-010125FA   >  FF15 E8110001 call    dword ptr \[<&msvcrt.\_cexit>\]     ; \[msvcrt.\_cexit  
-下面进入本次的重头戏：  
-01001F51  /$  B8 EE280101   mov     eax, 010128EE  
-01001F56  |.  E8 F5060100   call    01012650  
-01001F5B  |.  81EC F0000000 sub     esp, 0F0  
-01001F61  |.  53            push    ebx  
-01001F62  |.  56            push    esi  
-01001F63  |.  57            push    edi  
-01001F64  |.  8965 F0       mov     dword ptr \[ebp-10\], esp  
-01001F67  |.  6A 31         push    31  
-01001F69  |.  59            pop     ecx  
-01001F6A  |.  33C0          xor     eax, eax  
-01001F6C  |.  33DB          xor     ebx, ebx  
-01001F6E  |.  66:899D 04FFF>mov     word ptr \[ebp-FC\], bx  
-01001F75  |.  8DBD 06FFFFFF lea     edi, dword ptr \[ebp-FA\]  
-01001F7B  |.  F3:AB         rep     stos dword ptr es:\[edi\]  
-01001F7D  |.  66:AB         stos    word ptr es:\[edi\]  
-01001F7F  |.  8D45 E8       lea     eax, dword ptr \[ebp-18\]  
-01001F82  |.  50            push    eax  
-01001F83  |.  FF15 B4110001 call    dword ptr \[<&USER32.GetProcessDe>;  USER32.GetProcessDefaultLayout  
-01001F89  |.  85C0          test    eax, eax  
-01001F8B  |.  74 1B         je      short 01001FA8  
-01001F8D  |.  8B45 E8       mov     eax, dword ptr \[ebp-18\]  
-01001F90  |.  A8 01         test    al, 1  
-01001F92  |.  74 14         je      short 01001FA8  
-01001F94  |.  83E0 FE       and     eax, FFFFFFFE  
-01001F97  |.  50            push    eax  
-01001F98  |.  FF15 B0110001 call    dword ptr \[<&USER32.SetProcessDe>;  USER32.SetProcessDefaultLayout  
-01001F9E  |.  C705 A04D0101>mov     dword ptr \[1014DA0\], 1  
-01001FA8  |>  FF75 10       push    dword ptr \[ebp+10\]  
-01001FAB  |.  E8 B5F6FFFF   call    01001665  
-01001FB0  |.  8B45 08       mov     eax, dword ptr \[ebp+8\]  
-01001FB3  |.  FF75 0C       push    dword ptr \[ebp+C\]  
-01001FB6  |.  A3 484A0101   mov     dword ptr \[1014A48\], eax  
-01001FBB  |.  E8 07F8FFFF   call    010017C7  
-01001FC0  |.  85C0          test    eax, eax  
-01001FC2  |.  0F84 E0000000 je      010020A8  
-01001FC8  |.  68 00080000   push    800                              ; /Size = 800 (2048.)  
-01001FCD  |.  6A 40         push    40                               ; |Flags = LPTR  
-01001FCF  |.  895D FC       mov     dword ptr \[ebp-4\], ebx           ; |  
-01001FD2  |.  FF15 80100001 call    dword ptr \[<&KERNEL32.LocalAlloc>; \\LocalAlloc  
-01001FD8  |.  3BC3          cmp     eax, ebx  
-01001FDA  |.  8945 10       mov     dword ptr \[ebp+10\], eax  
-01001FDD  |.  75 04         jnz     short 01001FE3                   ;  分配内存成功  
-01001FDF  |.  53            push    ebx  
-01001FE0  |.  53            push    ebx  
-01001FE1  |.  EB 7E         jmp     short 01002061  
-01001FE3  |>  8365 0C 00    and     dword ptr \[ebp+C\], 0  
-01001FE7  |.  8B3D 78100001 mov     edi, dword ptr \[<&KERNEL32.Local>;  kernel32.LocalReAlloc  
-01001FED  |.  BE 00040000   mov     esi, 400  
-01001FF2  |>  837D 0C 54    /cmp     dword ptr \[ebp+C\], 54  
-01001FF6  |.  7F 51         |jg      short 01002049  
-01001FF8  |>  8B45 10       |/mov     eax, dword ptr \[ebp+10\]  
-01001FFB  |.  8975 EC       ||mov     dword ptr \[ebp-14\], esi  
-01001FFE  |.  295D EC       ||sub     dword ptr \[ebp-14\], ebx  
-01002001  |.  FF75 EC       ||push    dword ptr \[ebp-14\]             ; /Count  
-01002004  |.  8D0458        ||lea     eax, dword ptr \[eax+ebx\*2\]     ; |  
-01002007  |.  50            ||push    eax                            ; |Buffer  
-01002008  |.  FF75 0C       ||push    dword ptr \[ebp+C\]              ; |RsrcID  
-0100200B  |.  FF75 08       ||push    dword ptr \[ebp+8\]              ; |hInst  
-0100200E  |.  FF15 AC110001 ||call    dword ptr \[<&USER32.LoadString>; \\LoadStringW  
-01002014  |.  40            ||inc     eax  
-01002015  |.  3B45 EC       ||cmp     eax, dword ptr \[ebp-14\]  
-01002018  |.  75 1E         ||jnz     short 01002038  
-0100201A  |.  81C6 00040000 ||add     esi, 400  
-01002020  |.  6A 02         ||push    2  
-01002022  |.  8D0436        ||lea     eax, dword ptr \[esi+esi\]  
-01002025  |.  50            ||push    eax  
-01002026  |.  FF75 10       ||push    dword ptr \[ebp+10\]  
-01002029  |.  FFD7          ||call    edi  
-0100202B  |.  85C0          ||test    eax, eax  
-0100202D  |.  75 04         ||jnz     short 01002033  
-0100202F  |.  50            ||push    eax  
-01002030  |.  50            ||push    eax  
-01002031  |.  EB 2E         ||jmp     short 01002061  
-01002033  |>  8945 10       ||mov     dword ptr \[ebp+10\], eax  
-01002036  |.^ EB C0         |\\jmp     short 01001FF8  
-01002038  |>  8B4D 0C       |mov     ecx, dword ptr \[ebp+C\]  
-0100203B  |.  891C8D 504A01>|mov     dword ptr \[ecx\*4+1014A50\], ebx  
-01002042  |.  03D8          |add     ebx, eax  
-01002044  |.  FF45 0C       |inc     dword ptr \[ebp+C\]  
-01002047  |.^ EB A9         \\jmp     short 01001FF2  
-01002049  |>  6A 02         push    2  
-0100204B  |.  8D041B        lea     eax, dword ptr \[ebx+ebx\]  
-0100204E  |.  50            push    eax  
-0100204F  |.  FF75 10       push    dword ptr \[ebp+10\]  
-01002052  |.  FFD7          call    edi  
-01002054  |.  8BF0          mov     esi, eax  
-01002056  |.  33C9          xor     ecx, ecx  
-01002058  |.  3BF1          cmp     esi, ecx  
-0100205A  |.  8975 08       mov     dword ptr \[ebp+8\], esi  
-0100205D  |.  75 50         jnz     short 010020AF  
-0100205F  |.  51            push    ecx  
-01002060  |.  51            push    ecx  
-01002061  |>  E8 0A060100   call    <jmp.&msvcrt.\_CxxThrowException>  
-01002066  |.  33F6          xor     esi, esi  
-01002068  |.  3975 10       cmp     dword ptr \[ebp+10\], esi  
-0100206B  |.  74 09         je      short 01002076  
-0100206D  |.  FF75 10       push    dword ptr \[ebp+10\]               ; /hMemory  
-01002070  |.  FF15 7C100001 call    dword ptr \[<&KERNEL32.LocalFree>>; \\LocalFree  
-01002076  |>  6A 64         push    64                               ; /Count = 64 (100.)  
-01002078  |.  8D85 04FFFFFF lea     eax, dword ptr \[ebp-FC\]          ; |  
-0100207E  |.  50            push    eax                              ; |Buffer  
-0100207F  |.  6A 54         push    54                               ; |RsrcID = STRING "内存不够"  
-01002081  |.  FF35 484A0101 push    dword ptr \[1014A48\]              ; |hInst = NULL  
-01002087  |.  FF15 AC110001 call    dword ptr \[<&USER32.LoadStringW>>; \\LoadStringW  
-0100208D  |.  85C0          test    eax, eax  
-0100208F  |.  74 11         je      short 010020A2  
-01002091  |.  6A 10         push    10                               ; /Style = MB\_OK|MB\_ICONHAND|MB\_APPLMODAL  
-01002093  |.  56            push    esi                              ; |Title  
-01002094  |.  8D85 04FFFFFF lea     eax, dword ptr \[ebp-FC\]          ; |  
-0100209A  |.  50            push    eax                              ; |Text  
-0100209B  |.  56            push    esi                              ; |hOwner  
-0100209C  |.  FF15 A8110001 call    dword ptr \[<&USER32.MessageBoxW>>; \\MessageBoxW  
-010020A2  |>  B8 A8200001   mov     eax, 010020A8  
-010020A7  |.  C3            retn  
-010020A8  |>  33C0          xor     eax, eax  
-010020AA  |.  E9 11010000   jmp     010021C0  
-010020AF  |>  33D2          xor     edx, edx  
-010020B1  |>  83FA 54       /cmp     edx, 54  
-010020B4  |.  7F 11         |jg      short 010020C7  
-010020B6  |.  8D0495 504A01>|lea     eax, dword ptr \[edx\*4+1014A50\]  
-010020BD  |.  8B38          |mov     edi, dword ptr \[eax\]  
-010020BF  |.  8D3C7E        |lea     edi, dword ptr \[esi+edi\*2\]  
-010020C2  |.  8938          |mov     dword ptr \[eax\], edi  
-010020C4  |.  42            |inc     edx  
-010020C5  |.^ EB EA         \\jmp     short 010020B1  
-010020C7  |>  51            push    ecx                              ; /lParam  
-010020C8  |.  FF35 484A0101 push    dword ptr \[1014A48\]              ; |hInst = NULL  
-010020CE  |.  834D FC FF    or      dword ptr \[ebp-4\], FFFFFFFF      ; |  
-010020D2  |.  51            push    ecx                              ; |hMenu  
-010020D3  |.  51            push    ecx                              ; |hParent  
-010020D4  |.  51            push    ecx                              ; |Height  
-010020D5  |.  B8 00000080   mov     eax, 80000000                    ; |  
-010020DA  |.  50            push    eax                              ; |Width => 80000000 (-2147483648.)  
-010020DB  |.  51            push    ecx                              ; |Y  
-010020DC  |.  50            push    eax                              ; |X => 80000000 (-2147483648.)  
-010020DD  |.  68 00000010   push    10000000                         ; |Style = WS\_OVERLAPPED|WS\_VISIBLE  
-010020E2  |.  68 F0120001   push    010012F0                         ; |WindowName = "CalcMsgPumpWnd"  
-010020E7  |.  68 E4120001   push    010012E4                         ; |Class = "EDIT"  
-010020EC  |.  51            push    ecx                              ; |ExtStyle  
-010020ED  |.  FF15 A4110001 call    dword ptr \[<&USER32.CreateWindow>; \\CreateWindowExW  
-010020F3  |.  A3 704D0101   mov     dword ptr \[1014D70\], eax  
-010020F8  |.  E8 4AFDFFFF   call    01001E47  
-010020FD  |.  8B35 94100001 mov     esi, dword ptr \[<&KERNEL32.GetPr>;  kernel32.GetProfileIntW  
-01002103  |.  6A 01         push    1                                ; /Default = 1  
-01002105  |.  68 D4120001   push    010012D4                         ; |Key = "layout"  
-0100210A  |.  BF 18400101   mov     edi, 01014018                    ; |UNICODE "SciCalc"  
-0100210F  |.  57            push    edi                              ; |Section => "SciCalc"  
-01002110  |.  FFD6          call    esi                              ; \\GetProfileIntW  
-01002112  |.  33DB          xor     ebx, ebx  
-01002114  |.  53            push    ebx                              ; /Default => 0  
-01002115  |.  68 C4120001   push    010012C4                         ; |Key = "UseSep"  
-0100211A  |.  57            push    edi                              ; |Section => "SciCalc"  
-0100211B  |.  A3 484D0101   mov     dword ptr \[1014D48\], eax         ; |  
-01002120  |.  FFD6          call    esi                              ; \\GetProfileIntW  
-01002122  |.  6A 01         push    1  
-01002124  |.  A3 4C4D0101   mov     dword ptr \[1014D4C\], eax  
-01002129  |.  E8 E9F8FFFF   call    01001A17           ;重点函数  
-0100212E  |.  6A 69         push    69                               ; /TableName = 69  
-01002130  |.  FF35 484A0101 push    dword ptr \[1014A48\]              ; |hInst = NULL  
-01002136  |.  FF15 A0110001 call    dword ptr \[<&USER32.LoadAccelera>; \\LoadAcceleratorsW  
-0100213C  |.  8B35 9C110001 mov     esi, dword ptr \[<&USER32.GetMess>;  USER32.GetMessageW  
-01002142  |.  A3 444A0101   mov     dword ptr \[1014A44\], eax  
-01002147  |.  EB 5E         jmp     short 010021A7  
-01002149  |>  A1 744D0101   /mov     eax, dword ptr \[1014D74\]  
-0100214E  |.  3BC3          |cmp     eax, ebx  
-01002150  |.  74 0F         |je      short 01002161  
-01002152  |.  8D4D CC       |lea     ecx, dword ptr \[ebp-34\]  
-01002155  |.  51            |push    ecx                             ; /pMsg  
-01002156  |.  50            |push    eax                             ; |hWnd => NULL  
-01002157  |.  FF15 98110001 |call    dword ptr \[<&USER32.IsDialogMes>; \\IsDialogMessageW  
-0100215D  |.  85C0          |test    eax, eax  
-0100215F  |.  75 46         |jnz     short 010021A7  
-01002161  |>  A1 6C4D0101   |mov     eax, dword ptr \[1014D6C\]  
-01002166  |.  3945 CC       |cmp     dword ptr \[ebp-34\], eax  
-01002169  |.  74 0E         |je      short 01002179  
-0100216B  |.  FF75 CC       |push    dword ptr \[ebp-34\]              ; /hWnd  
-0100216E  |.  50            |push    eax                             ; |hParent => NULL  
-0100216F  |.  FF15 94110001 |call    dword ptr \[<&USER32.IsChild>\]   ; \\IsChild  
-01002175  |.  85C0          |test    eax, eax  
-01002177  |.  74 1A         |je      short 01002193  
-01002179  |>  8D45 CC       |lea     eax, dword ptr \[ebp-34\]  
-0100217C  |.  50            |push    eax                             ; /pMsg  
-0100217D  |.  FF35 444A0101 |push    dword ptr \[1014A44\]             ; |hAccel = NULL  
-01002183  |.  FF35 6C4D0101 |push    dword ptr \[1014D6C\]             ; |hWnd = NULL  
-01002189  |.  FF15 90110001 |call    dword ptr \[<&USER32.TranslateAc>; \\TranslateAcceleratorW  
-0100218F  |.  85C0          |test    eax, eax  
-01002191  |.  75 14         |jnz     short 010021A7  
-01002193  |>  8D45 CC       |lea     eax, dword ptr \[ebp-34\]  
-01002196  |.  50            |push    eax                             ; /pMsg  
-01002197  |.  FF15 8C110001 |call    dword ptr \[<&USER32.TranslateMe>; \\TranslateMessage  
-0100219D  |.  8D45 CC       |lea     eax, dword ptr \[ebp-34\]  
-010021A0  |.  50            |push    eax                             ; /pMsg  
-010021A1  |.  FF15 88110001 |call    dword ptr \[<&USER32.DispatchMes>; \\DispatchMessageW  
-010021A7  |>  53             push    ebx  
-010021A8  |.  53            |push    ebx  
-010021A9  |.  8D45 CC       |lea     eax, dword ptr \[ebp-34\]  
-010021AC  |.  53            |push    ebx  
-010021AD  |.  50            |push    eax  
-010021AE  |.  FFD6          |call    esi  
-010021B0  |.  85C0          |test    eax, eax  
-010021B2  |.^ 75 95         \\jnz     short 01002149  
-010021B4  |.  FF75 08       push    dword ptr \[ebp+8\]                ; /hMemory  
-010021B7  |.  FF15 7C100001 call    dword ptr \[<&KERNEL32.LocalFree>>; \\LocalFree  
-010021BD  |.  8B45 D4       mov     eax, dword ptr \[ebp-2C\]  
-010021C0  |>  8B4D F4       mov     ecx, dword ptr \[ebp-C\]  
-010021C3  |.  5F            pop     edi  
-010021C4  |.  5E            pop     esi  
-010021C5  |.  64:890D 00000>mov     dword ptr fs:\[0\], ecx  
-010021CC  |.  5B            pop     ebx  
-010021CD  |.  C9            leave  
-010021CE  \\.  C2 1000       retn    10  
-厄~~ 好晕...好大一块~~    
-函数首先分配内存动态加载资源（字符串），  
-01002001  |.  FF75 EC       ||push    dword ptr \[ebp-14\]             ; /Count  
-01002004  |.  8D0458        ||lea     eax, dword ptr \[eax+ebx\*2\]     ; |  
-01002007  |.  50            ||push    eax                            ; |Buffer  
-01002008  |.  FF75 0C       ||push    dword ptr \[ebp+C\]              ; |RsrcID  
-0100200B  |.  FF75 08       ||push    dword ptr \[ebp+8\]              ; |hInst  
-0100200E  |.  FF15 AC110001 ||call    dword ptr \[<&USER32.LoadString>; \\LoadStringW  
-可以动态看下，程序动态加载 calc 窗体的字符串。  
-下面就进入到创建窗口  
-010020C7  |>  51            push    ecx                              ; /lParam  
-010020C8  |.  FF35 484A0101 push    dword ptr \[1014A48\]              ; |hInst = NULL  
-010020CE  |.  834D FC FF    or      dword ptr \[ebp-4\], FFFFFFFF      ; |  
-010020D2  |.  51            push    ecx                              ; |hMenu  
-010020D3  |.  51            push    ecx                              ; |hParent  
-010020D4  |.  51            push    ecx                              ; |Height  
-010020D5  |.  B8 00000080   mov     eax, 80000000                    ; |  
-010020DA  |.  50            push    eax                              ; |Width => 80000000 (-2147483648.)  
-010020DB  |.  51            push    ecx                              ; |Y  
-010020DC  |.  50            push    eax                              ; |X => 80000000 (-2147483648.)  
-010020DD  |.  68 00000010   push    10000000                         ; |Style = WS\_OVERLAPPED|WS\_VISIBLE  
-010020E2  |.  68 F0120001   push    010012F0                         ; |WindowName = "CalcMsgPumpWnd"  
-010020E7  |.  68 E4120001   push    010012E4                         ; |Class = "EDIT"  
-010020EC  |.  51            push    ecx                              ; |ExtStyle  
-010020ED  |.  FF15 A4110001 call    dword ptr \[<&USER32.CreateWindow>; \\CreateWindowExW  
-这个函数应该也没啥，动态加载看了下参数没啥重要信息  
-  
-来到了本次重点  
-01002122  |.  6A 01         push    1  
-01002124  |.  A3 4C4D0101   mov     dword ptr \[1014D4C\], eax  
-01002129  |.  E8 E9F8FFFF   call    01001A17   
-  
-下面再走的换就进入消息循环了  
-01001A17  /$  55            push    ebp  
-01001A18  |.  8BEC          mov     ebp, esp  
-01001A1A  |.  81EC 80000000 sub     esp, 80  
-01001A20  |.  53            push    ebx  
-01001A21  |.  56            push    esi  
-01001A22  |.  33F6          xor     esi, esi  
-01001A24  |.  57            push    edi  
-01001A25  |.  8975 FC       mov     dword ptr \[ebp-4\], esi  
-01001A28  |.  8975 D0       mov     dword ptr \[ebp-30\], esi  
-01001A2B  |.  8975 D4       mov     dword ptr \[ebp-2C\], esi  
-01001A2E  |.  8975 D8       mov     dword ptr \[ebp-28\], esi  
-01001A31  |.  8975 DC       mov     dword ptr \[ebp-24\], esi  
-01001A34  |.  E8 14FEFFFF   call    0100184D  
-01001A39  |.  A1 2C400101   mov     eax, dword ptr \[101402C\]  
-01001A3E  |.  6A 05         push    5                                ; /BufSize = 5  
-01001A40  |.  68 2C400101   push    0101402C                         ; |ReturnBuffer = calc.0101402C  
-01001A45  |.  8945 F0       mov     dword ptr \[ebp-10\], eax          ; |  
-01001A48  |.  A1 38400101   mov     eax, dword ptr \[1014038\]         ; |  
-01001A4D  |.  68 C0120001   push    010012C0                         ; |Default = "."  
-01001A52  |.  8945 F4       mov     dword ptr \[ebp-C\], eax           ; |  
-01001A55  |.  A1 00400101   mov     eax, dword ptr \[1014000\]         ; |  
-01001A5A  |.  68 AC120001   push    010012AC                         ; |Key = "sDecimal"  
-01001A5F  |.  8935 B84D0101 mov     dword ptr \[1014DB8\], esi         ; |  
-01001A65  |.  8B35 84100001 mov     esi, dword ptr \[<&KERNEL32.GetPr>; |kernel32.GetProfileStringW  
-01001A6B  |.  BB A0120001   mov     ebx, 010012A0                    ; |UNICODE "intl"  
-01001A70  |.  53            push    ebx                              ; |Section => "intl"  
-01001A71  |.  8945 F8       mov     dword ptr \[ebp-8\], eax           ; |  
-01001A74  |.  FFD6          call    esi                              ; \\GetProfileStringW  
-01001A76  |.  6A 05         push    5                                ; /BufSize = 5  
-01001A78  |.  68 38400101   push    01014038                         ; |ReturnBuffer = calc.01014038  
-01001A7D  |.  68 9C120001   push    0100129C                         ; |Default = ","  
-01001A82  |.  68 88120001   push    01001288                         ; |Key = "sThousand"  
-01001A87  |.  53            push    ebx                              ; |Section => "intl"  
-01001A88  |.  FFD6          call    esi                              ; \\GetProfileStringW  
-01001A8A  |.  6A 10         push    10  
-01001A8C  |.  59            pop     ecx  
-01001A8D  |.  33C0          xor     eax, eax  
-01001A8F  |.  6A 20         push    20                               ; /BufSize = 20 (32.)  
-01001A91  |.  8D7D 80       lea     edi, dword ptr \[ebp-80\]          ; |  
-01001A94  |.  F3:AB         rep     stos dword ptr es:\[edi\]          ; |  
-01001A96  |.  8D45 80       lea     eax, dword ptr \[ebp-80\]          ; |  
-01001A99  |.  50            push    eax                              ; |ReturnBuffer  
-01001A9A  |.  68 80120001   push    01001280                         ; |Default = "3;0"  
-01001A9F  |.  68 6C120001   push    0100126C                         ; |Key = "sGrouping"  
-01001AA4  |.  53            push    ebx                              ; |Section => "intl"  
-01001AA5  |.  FFD6          call    esi                              ; \\GetProfileStringW  
-01001AA7  |.  8D45 80       lea     eax, dword ptr \[ebp-80\]  
-01001AAA  |.  50            push    eax  
-01001AAB  |.  E8 A9290000   call    01004459  
-01001AB0  |.  33F6          xor     esi, esi  
-01001AB2  |.  46            inc     esi  
-01001AB3  |.  3B45 F8       cmp     eax, dword ptr \[ebp-8\]  
-01001AB6  |.  A3 00400101   mov     dword ptr \[1014000\], eax  
-01001ABB  |.  74 03         je      short 01001AC0  
-01001ABD  |.  8975 FC       mov     dword ptr \[ebp-4\], esi  
-01001AC0  |>  66:8B45 F4    mov     ax, word ptr \[ebp-C\]  
-01001AC4  |.  66:3905 38400>cmp     word ptr \[1014038\], ax  
-01001ACB  |.  74 03         je      short 01001AD0  
-01001ACD  |.  8975 FC       mov     dword ptr \[ebp-4\], esi  
-01001AD0  |>  A1 2C400101   mov     eax, dword ptr \[101402C\]  
-01001AD5  |.  66:3B45 F0    cmp     ax, word ptr \[ebp-10\]  
-01001AD9  |.  74 18         je      short 01001AF3  
-01001ADB  |.  8BF8          mov     edi, eax  
-01001ADD  |.  57            push    edi  
-01001ADE  |.  68 C04D0101   push    01014DC0  
-01001AE3  |.  E8 AF0A0000   call    01002597  
-01001AE8  |.  A1 644A0101   mov     eax, dword ptr \[1014A64\]  
-01001AED  |.  66:8938       mov     word ptr \[eax\], di  
-01001AF0  |.  8975 FC       mov     dword ptr \[ebp-4\], esi  
-01001AF3  |>  6A 0C         push    0C  
-01001AF5  |.  58            pop     eax  
-01001AF6  |.  33FF          xor     edi, edi  
-01001AF8  |.  57            push    edi                              ; /UpdateProfile => 0  
-01001AF9  |.  8D4D E4       lea     ecx, dword ptr \[ebp-1C\]          ; |  
-01001AFC  |.  51            push    ecx                              ; |pParam  
-01001AFD  |.  50            push    eax                              ; |wParam => C (12.)  
-01001AFE  |.  6A 42         push    42                               ; |Action = SPI\_GETHIGHCONTRAST  
-01001B00  |.  8945 E4       mov     dword ptr \[ebp-1C\], eax          ; |  
-01001B03  |.  FF15 84110001 call    dword ptr \[<&USER32.SystemParame>; \\SystemParametersInfoW  
-01001B09  |.  85C0          test    eax, eax  
-01001B0B  |.  74 15         je      short 01001B22  
-01001B0D  |.  8B45 E8       mov     eax, dword ptr \[ebp-18\]  
-01001B10  |.  23C6          and     eax, esi  
-01001B12  |.  3B05 9C4D0101 cmp     eax, dword ptr \[1014D9C\]  
-01001B18  |.  74 08         je      short 01001B22  
-01001B1A  |.  A3 9C4D0101   mov     dword ptr \[1014D9C\], eax  
-01001B1F  |.  8975 FC       mov     dword ptr \[ebp-4\], esi  
-01001B22  |>  397D 08       cmp     dword ptr \[ebp+8\], edi  
-01001B25  |.  0F84 02030000 je      01001E2D  
-01001B2B  |.  A1 6C4D0101   mov     eax, dword ptr \[1014D6C\]  
-01001B30  |.  3BC7          cmp     eax, edi  
-01001B32  |.  8B1D 80110001 mov     ebx, dword ptr \[<&USER32.GetWind>;  USER32.GetWindowRect  
-01001B38  |.  897D FC       mov     dword ptr \[ebp-4\], edi  
-01001B3B  |.  74 3A         je      short 01001B77  
-01001B3D  |.  FF35 804D0101 push    dword ptr \[1014D80\]              ; /hMenu = NULL  
-01001B43  |.  50            push    eax                              ; |hWnd => NULL  
-01001B44  |.  FF15 7C110001 call    dword ptr \[<&USER32.SetMenu>\]    ; \\SetMenu  
-01001B4A  |.  8D45 D0       lea     eax, dword ptr \[ebp-30\]  
-01001B4D  |.  50            push    eax                              ; /pRect  
-01001B4E  |.  FF35 6C4D0101 push    dword ptr \[1014D6C\]              ; |hWnd = NULL  
-01001B54  |.  8975 FC       mov     dword ptr \[ebp-4\], esi           ; |  
-01001B57  |.  FFD3          call    ebx                              ; \\GetWindowRect  
-01001B59  |.  FF35 6C4D0101 push    dword ptr \[1014D6C\]              ; /hWnd = NULL  
-01001B5F  |.  FF15 78110001 call    dword ptr \[<&USER32.DestroyWindo>; \\DestroyWindow  
-01001B65  |.  FF35 7C4D0101 push    dword ptr \[1014D7C\]              ; /hMenu = NULL  
-01001B6B  |.  FF15 74110001 call    dword ptr \[<&USER32.DestroyMenu>>; \\DestroyMenu  
-01001B71  |.  893D 7C4D0101 mov     dword ptr \[1014D7C\], edi  
-01001B77  |>  393D 484D0101 cmp     dword ptr \[1014D48\], edi  
-01001B7D  |.  8B35 70110001 mov     esi, dword ptr \[<&USER32.GetDlgI>;  USER32.GetDlgItem  
-01001B83  |.  57            push    edi                              ; /lParam  
-01001B84  |.  57            push    edi                              ; |pDlgProc  
-01001B85  |.  57            push    edi                              ; |hOwner  
-01001B86  |.  74 52         je      short 01001BDA                   ; |  
-01001B88  |.  6A 66         push    66                               ; |pTemplate = 66  
-01001B8A  |.  FF35 484A0101 push    dword ptr \[1014A48\]              ; |hInst = 01000000  
-01001B90  |.  FF15 6C110001 call    dword ptr \[<&USER32.CreateDialog>; \\CreateDialogParamW  
-01001B96  |.  50            push    eax                              ; /hWnd  
-01001B97  |.  A3 6C4D0101   mov     dword ptr \[1014D6C\], eax         ; |  
-01001B9C  |.  FF15 A4100001 call    dword ptr \[<&USER32.GetMenu>\]    ; \\GetMenu  
-01001BA2  |.  393D A04D0101 cmp     dword ptr \[1014DA0\], edi  
-01001BA8  |.  A3 804D0101   mov     dword ptr \[1014D80\], eax  
-01001BAD  |.  0F84 3D010000 je      01001CF0  
-01001BB3  |.  6A EC         push    -14                              ; /Index = GWL\_EXSTYLE  
-01001BB5  |.  FF35 6C4D0101 push    dword ptr \[1014D6C\]              ; |hWnd = NULL  
-01001BBB  |.  FF15 68110001 call    dword ptr \[<&USER32.GetWindowLon>; \\GetWindowLongW  
-01001BC1  |.  0D 00005000   or      eax, 500000  
-01001BC6  |.  50            push    eax                              ; /NewValue  
-01001BC7  |.  6A EC         push    -14                              ; |Index = GWL\_EXSTYLE  
-01001BC9  |.  FF35 6C4D0101 push    dword ptr \[1014D6C\]              ; |hWnd = NULL  
-01001BCF  |.  FF15 64110001 call    dword ptr \[<&USER32.SetWindowLon>; \\SetWindowLongW  
-01001BD5  |.  E9 16010000   jmp     01001CF0  
-01001BDA  |>  6A 65         push    65                               ; |pTemplate = 65  
-01001BDC  |.  FF35 484A0101 push    dword ptr \[1014A48\]              ; |hInst = 01000000  
-01001BE2  |.  FF15 6C110001 call    dword ptr \[<&USER32.CreateDialog>; \\CreateDialogParamW  
-01001BE8  |.  50            push    eax                              ; /hWnd  
-01001BE9  |.  A3 6C4D0101   mov     dword ptr \[1014D6C\], eax         ; |  
-01001BEE  |.  FF15 A4100001 call    dword ptr \[<&USER32.GetMenu>\]    ; \\GetMenu  
-01001BF4  |.  6A 6C         push    6C                               ; /RsrcName = 6C  
-01001BF6  |.  FF35 484A0101 push    dword ptr \[1014A48\]              ; |hInst = 01000000  
-01001BFC  |.  A3 804D0101   mov     dword ptr \[1014D80\], eax         ; |  
-01001C01  |.  FF15 60110001 call    dword ptr \[<&USER32.LoadMenuW>\]  ; \\LoadMenuW  
-01001C07  |.  393D A04D0101 cmp     dword ptr \[1014DA0\], edi  
-01001C0D  |.  A3 7C4D0101   mov     dword ptr \[1014D7C\], eax  
-01001C12  |.  74 22         je      short 01001C36  
-01001C14  |.  6A EC         push    -14                              ; /Index = GWL\_EXSTYLE  
-01001C16  |.  FF35 6C4D0101 push    dword ptr \[1014D6C\]              ; |hWnd = NULL  
-01001C1C  |.  FF15 68110001 call    dword ptr \[<&USER32.GetWindowLon>; \\GetWindowLongW  
-01001C22  |.  0D 00005000   or      eax, 500000  
-01001C27  |.  50            push    eax                              ; /NewValue  
-01001C28  |.  6A EC         push    -14                              ; |Index = GWL\_EXSTYLE  
-01001C2A  |.  FF35 6C4D0101 push    dword ptr \[1014D6C\]              ; |hWnd = NULL  
-01001C30  |.  FF15 64110001 call    dword ptr \[<&USER32.SetWindowLon>; \\SetWindowLongW  
-01001C36  |>  C745 08 76000>mov     dword ptr \[ebp+8\], 76  
-01001C3D  |>  57            /push    edi  
-01001C3E  |.  FF75 08       |push    dword ptr \[ebp+8\]  
-01001C41  |.  FF35 6C4D0101 |push    dword ptr \[1014D6C\]  
-01001C47  |.  FFD6          |call    esi  
-01001C49  |.  50            |push    eax                             ; |hWnd  
-01001C4A  |.  FF15 5C110001 |call    dword ptr \[<&USER32.EnableWindo>; \\EnableWindow  
-01001C50  |.  FF45 08       |inc     dword ptr \[ebp+8\]  
-01001C53  |.  837D 08 79    |cmp     dword ptr \[ebp+8\], 79  
-01001C57  |.^ 7E E4         \\jle     short 01001C3D  
-01001C59  |.  FF35 544D0101 push    dword ptr \[1014D54\]  
-01001C5F  |.  FF35 504D0101 push    dword ptr \[1014D50\]  
-01001C65      6A 0A         push    0A                               ;  10?进制  
-01001C67  |.  E8 BA490000   call    01006626  
-01001C6C  |.  833D 08400101>cmp     dword ptr \[1014008\], 20  
-01001C73  |.  7E 7B         jle     short 01001CF0  
-01001C75  |.  68 93010000   push    193  
-01001C7A  |.  FF35 6C4D0101 push    dword ptr \[1014D6C\]  
-01001C80  |.  FFD6          call    esi  
-01001C82  |.  8D4D E0       lea     ecx, dword ptr \[ebp-20\]  
-01001C85  |.  51            push    ecx  
-01001C86  |.  50            push    eax  
-01001C87  |.  8945 08       mov     dword ptr \[ebp+8\], eax  
-01001C8A  |.  FFD3          call    ebx  
-01001C8C  |.  8D45 C0       lea     eax, dword ptr \[ebp-40\]  
-01001C8F  |.  50            push    eax                              ; /pRect  
-01001C90  |.  FF35 6C4D0101 push    dword ptr \[1014D6C\]              ; |hWnd = NULL  
-01001C96  |.  FF15 58110001 call    dword ptr \[<&USER32.GetClientRec>; \\GetClientRect  
-01001C9C  |.  6A 02         push    2                                ; /nPoints = 2  
-01001C9E  |.  8D45 C0       lea     eax, dword ptr \[ebp-40\]          ; |  
-01001CA1  |.  50            push    eax                              ; |pPoints  
-01001CA2  |.  57            push    edi                              ; |hWndTo  
-01001CA3  |.  FF35 6C4D0101 push    dword ptr \[1014D6C\]              ; |hWndFrom = NULL  
-01001CA9  |.  FF15 54110001 call    dword ptr \[<&USER32.MapWindowPoi>; \\MapWindowPoints  
-01001CAF  |.  8B4D C8       mov     ecx, dword ptr \[ebp-38\]  
-01001CB2  |.  2B4D E8       sub     ecx, dword ptr \[ebp-18\]  
-01001CB5  |.  8B45 C0       mov     eax, dword ptr \[ebp-40\]  
-01001CB8  |.  03C8          add     ecx, eax  
-01001CBA  |.  894D E0       mov     dword ptr \[ebp-20\], ecx  
-01001CBD  |.  8B4D C4       mov     ecx, dword ptr \[ebp-3C\]  
-01001CC0  |.  F7D9          neg     ecx  
-01001CC2  |.  51            push    ecx                              ; /dY  
-01001CC3  |.  F7D8          neg     eax                              ; |  
-01001CC5  |.  50            push    eax                              ; |dX  
-01001CC6  |.  8D45 E0       lea     eax, dword ptr \[ebp-20\]          ; |  
-01001CC9  |.  50            push    eax                              ; |pRect  
-01001CCA  |.  FF15 50110001 call    dword ptr \[<&USER32.OffsetRect>\] ; \\OffsetRect  
-01001CD0  |.  8B45 EC       mov     eax, dword ptr \[ebp-14\]  
-01001CD3  |.  2B45 E4       sub     eax, dword ptr \[ebp-1C\]  
-01001CD6  |.  6A 14         push    14                               ; /Flags = SWP\_NOZORDER|SWP\_NOACTIVATE  
-01001CD8  |.  50            push    eax                              ; |Height  
-01001CD9  |.  8B45 E8       mov     eax, dword ptr \[ebp-18\]          ; |  
-01001CDC  |.  2B45 E0       sub     eax, dword ptr \[ebp-20\]          ; |  
-01001CDF  |.  50            push    eax                              ; |Width  
-01001CE0  |.  FF75 E4       push    dword ptr \[ebp-1C\]               ; |Y  
-01001CE3  |.  FF75 E0       push    dword ptr \[ebp-20\]               ; |X  
-01001CE6  |.  57            push    edi                              ; |InsertAfter  
-01001CE7  |.  FF75 08       push    dword ptr \[ebp+8\]                ; |hWnd  
-01001CEA  |.  FF15 4C110001 call    dword ptr \[<&USER32.SetWindowPos>; \\SetWindowPos  
-01001CF0  |>  68 93010000   push    193  
-01001CF5  |.  FF35 6C4D0101 push    dword ptr \[1014D6C\]  
-01001CFB  |.  FFD6          call    esi  
-01001CFD  |.  8BF0          mov     esi, eax  
-01001CFF  |.  3BF7          cmp     esi, edi  
-01001D01  |.  74 20         je      short 01001D23  
-01001D03  |.  6A FC         push    -4                               ; /Index = GWL\_WNDPROC  
-01001D05  |.  56            push    esi                              ; |hWnd  
-01001D06  |.  FF15 68110001 call    dword ptr \[<&USER32.GetWindowLon>; \\GetWindowLongW  
-01001D0C  |.  3BC7          cmp     eax, edi  
-01001D0E  |.  A3 104F0101   mov     dword ptr \[1014F10\], eax  
-01001D13  |.  74 0E         je      short 01001D23  
-01001D15  |.  68 2A650001   push    0100652A                         ; /NewValue = 100652A  
-01001D1A  |.  6A FC         push    -4                               ; |Index = GWL\_WNDPROC  
-01001D1C  |.  56            push    esi                              ; |hWnd  
-01001D1D  |.  FF15 64110001 call    dword ptr \[<&USER32.SetWindowLon>; \\SetWindowLongW  
-01001D23  |>  397D FC       cmp     dword ptr \[ebp-4\], edi  
-01001D26  |.  74 17         je      short 01001D3F  
-01001D28  |.  6A 05         push    5                                ; /Flags = SWP\_NOSIZE|SWP\_NOZORDER  
-01001D2A  |.  57            push    edi                              ; |Height  
-01001D2B  |.  57            push    edi                              ; |Width  
-01001D2C  |.  FF75 D4       push    dword ptr \[ebp-2C\]               ; |Y  
-01001D2F  |.  FF75 D0       push    dword ptr \[ebp-30\]               ; |X  
-01001D32  |.  57            push    edi                              ; |InsertAfter  
-01001D33  |.  FF35 6C4D0101 push    dword ptr \[1014D6C\]              ; |hWnd = NULL  
-01001D39  |.  FF15 4C110001 call    dword ptr \[<&USER32.SetWindowPos>; \\SetWindowPos  
-01001D3F  |>  8B1D 48110001 mov     ebx, dword ptr \[<&USER32.CheckMe>;  USER32.CheckMenuRadioItem  
-01001D45  |.  33C0          xor     eax, eax  
-01001D47  |.  393D 484D0101 cmp     dword ptr \[1014D48\], edi  
-01001D4D  |.  57            push    edi                              ; /Flags  
-01001D4E  |.  0F95C0        setne   al                               ; |  
-01001D51  |.  BE 30010000   mov     esi, 130                         ; |  
-01001D56  |.  03C6          add     eax, esi                         ; |  
-01001D58  |.  50            push    eax                              ; |CheckID  
-01001D59  |.  68 31010000   push    131                              ; |LastID = 131 (305.)  
-01001D5E  |.  56            push    esi                              ; |FirstID => 130 (304.)  
-01001D5F  |.  FF35 804D0101 push    dword ptr \[1014D80\]              ; |hMenu = NULL  
-01001D65  |.  FFD3          call    ebx                              ; \\CheckMenuRadioItem  
-01001D67  |.  A1 4C4D0101   mov     eax, dword ptr \[1014D4C\]  
-01001D6C  |.  F7D8          neg     eax  
-01001D6E  |.  1BC0          sbb     eax, eax  
-01001D70  |.  83E0 08       and     eax, 8  
-01001D73  |.  50            push    eax                              ; /Flags  
-01001D74  |.  68 2F010000   push    12F                              ; |ItemId = 12F (303.)  
-01001D79  |.  FF35 804D0101 push    dword ptr \[1014D80\]              ; |hMenu = NULL  
-01001D7F  |.  FF15 44110001 call    dword ptr \[<&USER32.CheckMenuIte>; \\CheckMenuItem  
-01001D85  |.  A1 7C4D0101   mov     eax, dword ptr \[1014D7C\]  
-01001D8A  |.  3BC7          cmp     eax, edi  
-01001D8C  |.  74 36         je      short 01001DC4  
-01001D8E  |.  33C9          xor     ecx, ecx  
-01001D90  |.  393D 484D0101 cmp     dword ptr \[1014D48\], edi  
-01001D96  |.  57            push    edi                              ; /Flags  
-01001D97  |.  0F95C1        setne   cl                               ; |  
-01001D9A  |.  03CE          add     ecx, esi                         ; |  
-01001D9C  |.  51            push    ecx                              ; |CheckID  
-01001D9D  |.  68 31010000   push    131                              ; |LastID = 131 (305.)  
-01001DA2  |.  56            push    esi                              ; |FirstID => 130 (304.)  
-01001DA3  |.  50            push    eax                              ; |hMenu => NULL  
-01001DA4  |.  FFD3          call    ebx                              ; \\CheckMenuRadioItem  
-01001DA6  |.  A1 4C4D0101   mov     eax, dword ptr \[1014D4C\]  
-01001DAB  |.  F7D8          neg     eax  
-01001DAD  |.  1BC0          sbb     eax, eax  
-01001DAF  |.  83E0 08       and     eax, 8  
-01001DB2  |.  50            push    eax                              ; /Flags  
-01001DB3  |.  68 2F010000   push    12F                              ; |ItemId = 12F (303.)  
-01001DB8  |.  FF35 7C4D0101 push    dword ptr \[1014D7C\]              ; |hMenu = NULL  
-01001DBE  |.  FF15 44110001 call    dword ptr \[<&USER32.CheckMenuIte>; \\CheckMenuItem  
-01001DC4  |>  830D 78420101>or      dword ptr \[1014278\], FFFFFFFF  
-01001DCB      6A 0A         push    0A                               ;  10?进制 第二次加上的  
-01001DCD  |.  E8 89490000   call    0100675B  
-01001DD2  |.  FF35 944D0101 push    dword ptr \[1014D94\]  
-01001DD8  |.  E8 849F0000   call    0100BD61  
-01001DDD  |.  85C0          test    eax, eax  
-  
-继续走，  
-01001C3D  |>  57            /push    edi  
-01001C3E  |.  FF75 08       |push    dword ptr \[ebp+8\]  
-01001C41  |.  FF35 6C4D0101 |push    dword ptr \[1014D6C\]  
-01001C47  |.  FFD6          |call    esi  
-01001C49  |.  50            |push    eax                             ; |hWnd  
-01001C4A  |.  FF15 5C110001 |call    dword ptr \[<&USER32.EnableWindo>; \\EnableWindow      
-01001C50  |.  FF45 08       |inc     dword ptr \[ebp+8\]  
-01001C53  |.  837D 08 79    |cmp     dword ptr \[ebp+8\], 79  
-01001C57  |.^ 7E E4         \\jle     short 01001C3D  
-01001C59  |.  FF35 544D0101 push    dword ptr \[1014D54\]  
-01001C5F  |.  FF35 504D0101 push    dword ptr \[1014D50\]  
-01001C65      6A 0A         push    0A                               ;  10?进制  
-01001C67  |.  E8 BA490000   call    01006626                         ;关键处理函数  
-  
-EnableWindow 重点函数下面将会用到  
-这里会使一些按键无效。  
-进入 1006626  
-01006626  /$  837C24 04 0A  cmp     dword ptr \[esp+4\], 0A  
-；刚开始就来个判断   
-0100662B  |.  53            push    ebx  
-0100662C  |.  55            push    ebp  
-0100662D  |.  56            push    esi  
-0100662E  |.  57            push    edi  
-0100662F  |.  BD 39010000   mov     ebp, 139  
-01006634  |.  BB 36010000   mov     ebx, 136  
-01006639  |.  75 47         jnz     short 01006682  
-0100663B  |.  8B7424 18     mov     esi, dword ptr \[esp+18\]  
-0100663F  |.  A1 804D0101   mov     eax, dword ptr \[1014D80\]  
-01006644  |.  81C6 3A010000 add     esi, 13A  
-0100664A  |.  85C0          test    eax, eax  
-0100664C  |.  897424 18     mov     dword ptr \[esp+18\], esi  
-01006650  |.  74 0D         je      short 0100665F  
-01006652  |.  50            push    eax                              ; /hMenu => 1FF806DF  
-01006653  |.  FF35 6C4D0101 push    dword ptr \[1014D6C\]              ; |hWnd = 004008A6 ('计算器',class='SciCalc')  
-01006659  |.  FF15 7C110001 call    dword ptr \[<&USER32.SetMenu>\]    ; \\SetMenu  
-0100665F  |>  6A 00         push    0                                ; /Flags = MF\_BYCOMMAND|MF\_ENABLED|MF\_STRING  
-01006661  |.  56            push    esi                              ; |CheckID  
-01006662  |.  BE 3C010000   mov     esi, 13C                         ; |  
-01006667  |.  56            push    esi                              ; |LastID => 13C (316.)  
-01006668  |.  BF 3A010000   mov     edi, 13A                         ; |  
-0100666D  |.  57            push    edi                              ; |FirstID => 13A (314.)  
-0100666E  |.  FF35 804D0101 push    dword ptr \[1014D80\]              ; |hMenu = 1FF806DF  
-01006674  |.  FF15 48110001 call    dword ptr \[<&USER32.CheckMenuRad>; \\CheckMenuRadioItem  
-0100667A  |.  FF7424 18     push    dword ptr \[esp+18\]  
-0100667E  |.  56            push    esi  
-0100667F  |.  57            push    edi  
-01006680  |.  EB 34         jmp     short 010066B6  
-01006682  |>  8B7424 1C     mov     esi, dword ptr \[esp+1C\]  
-01006686  |.  A1 7C4D0101   mov     eax, dword ptr \[1014D7C\]  
-0100668B  |.  81C6 36010000 add     esi, 136  
-01006691  |.  85C0          test    eax, eax  
-01006693  |.  74 0D         je      short 010066A2  
-01006695  |.  50            push    eax                              ; /hMenu => 072E1BE5  
-01006696  |.  FF35 6C4D0101 push    dword ptr \[1014D6C\]              ; |hWnd = 004008A6 ('计算器',class='SciCalc')  
-0100669C  |.  FF15 7C110001 call    dword ptr \[<&USER32.SetMenu>\]    ; \\SetMenu  
-010066A2  |>  6A 00         push    0                                ; /Flags = MF\_BYCOMMAND|MF\_ENABLED|MF\_STRING  
-010066A4  |.  56            push    esi                              ; |CheckID  
-010066A5  |.  55            push    ebp                              ; |LastID  
-010066A6  |.  53            push    ebx                              ; |FirstID  
-010066A7  |.  FF35 7C4D0101 push    dword ptr \[1014D7C\]              ; |hMenu = 072E1BE5  
-010066AD  |.  FF15 48110001 call    dword ptr \[<&USER32.CheckMenuRad>; \\CheckMenuRadioItem  
-010066B3  |.  56            push    esi  
-010066B4  |.  55            push    ebp  
-010066B5  |.  53            push    ebx  
-010066B6  |>  FF35 6C4D0101 push    dword ptr \[1014D6C\]              ; |hWnd = 004008A6 ('计算器',class='SciCalc')  
-010066BC  |.  FF15 0C110001 call    dword ptr \[<&USER32.CheckRadioBu>; \\CheckRadioButton  
-；上面加载 menu，没有这次需要的内容 继续走  
-010066C2  |.  8B7424 14     mov     esi, dword ptr \[esp+14\]  
-；用到传入的参数了  
-010066C6  |.  8B3D 70110001 mov     edi, dword ptr \[<&USER32.GetDlgI>;  USER32.GetDlgItem  
-010066CC  |.  33C0          xor     eax, eax  
-010066CE  |.  83FE 0A       cmp     esi, 0A     ;靠近真相了  
-010066D1  |.  0F95C0        setne   al     ; 不相等设置 al 为真   
-010066D4  |.  83EE 0A       sub     esi, 0A  
-010066D7  |.  F7DE          neg     esi  
-010066D9  |.  1BF6          sbb     esi, esi  
-010066DB  |.  83E6 05       and     esi, 5  
-010066DE  |.  894424 18     mov     dword ptr \[esp+18\], eax  
-010066E2  |>  FF7424 18     /push    dword ptr \[esp+18\]  
-010066E6  |.  53            |push    ebx  
-010066E7  |.  FF35 6C4D0101 |push    dword ptr \[1014D6C\]  
-010066ED  |.  FFD7          |call    edi  
-010066EF  |.  50            |push    eax                             ; |hWnd            
-010066F0  |.  FF15 5C110001 |call    dword ptr \[<&USER32.EnableWindo>; \\EnableWindow    ;这里把 16 进制出现的选项给设置成真 ，看来  
-修改的没错，  
-010066F6  |.  56            |push    esi  
-010066F7  |.  53            |push    ebx  
-010066F8  |.  FF35 6C4D0101 |push    dword ptr \[1014D6C\]  
-010066FE  |.  FFD7          |call    edi  
-01006700  |.  50            |push    eax                             ; |hWnd  
-01006701  |.  FF15 38110001 |call    dword ptr \[<&USER32.ShowWindow>>; \\ShowWindow    ；设置成现实  
-01006707  |.  43            |inc     ebx  
-01006708  |.  3BDD          |cmp     ebx, ebp  
-0100670A  |.^ 7E D6         \\jle     short 010066E2  
-0100670C  |.  33DB          xor     ebx, ebx  
-0100670E  |.  837C24 14 0A  cmp     dword ptr \[esp+14\], 0A  
-01006713  |.  BE 3A010000   mov     esi, 13A  
-01006718  |.  0F94C3        sete    bl  
-0100671B  |>  53            /push    ebx  
-0100671C  |.  56            |push    esi  
-0100671D  |.  FF35 6C4D0101 |push    dword ptr \[1014D6C\]  
-01006723  |.  FFD7          |call    edi  
-01006725  |.  50            |push    eax                             ; |hWnd  
-01006726  |.  FF15 5C110001 |call    dword ptr \[<&USER32.EnableWindo>; \\EnableWindow    ；这里十进制的给设置 false  
-0100672C  |.  837C24 14 0A  |cmp     dword ptr \[esp+14\], 0A  
-01006731  |.  74 04         |je      short 01006737  
-01006733  |.  33C0          |xor     eax, eax  
-01006735  |.  EB 03         |jmp     short 0100673A  
-01006737  |>  6A 05         |push    5  
-01006739  |.  58            |pop     eax  
-0100673A  |>  50            |push    eax  
-0100673B  |.  56            |push    esi  
-0100673C  |.  FF35 6C4D0101 |push    dword ptr \[1014D6C\]  
-01006742  |.  FFD7          |call    edi  
-01006744  |.  50            |push    eax                             ; |hWnd  
-01006745  |.  FF15 38110001 |call    dword ptr \[<&USER32.ShowWindow>>; \\ShowWindow   ；设置成隐藏  
-0100674B  |.  46            |inc     esi  
-0100674C  |.  81FE 3C010000 |cmp     esi, 13C  
-01006752  |.^ 7E C7         \\jle     short 0100671B  
-  
-  
-强行修改 PUSH 0a -----> push 10 运行下发现还是没有改成 16  
-  
-只能继续跟下去了返回到上级函数  
-来到了下面  
-01001DAB  |.  F7D8          neg     eax  
-01001DAD  |.  1BC0          sbb     eax, eax  
-01001DAF  |.  83E0 08       and     eax, 8  
-01001DB2  |.  50            push    eax                              ; /Flags  
-01001DB3  |.  68 2F010000   push    12F                              ; |ItemId = 12F (303.)  
-01001DB8  |.  FF35 7C4D0101 push    dword ptr \[1014D7C\]              ; |hMenu = 072E1BE5  
-01001DBE  |.  FF15 44110001 call    dword ptr \[<&USER32.CheckMenuIte>; \\CheckMenuItem  
-01001DC4  |>  830D 78420101>or      dword ptr \[1014278\], FFFFFFFF  
-01001DCB      6A 0A         push    0A                               ;  10？进制 疑惑中 ing...  
-  
-01001DCD  |.  E8 89490000   call    0100675B                         ;跟进去  
-01001DD2  |.  FF35 944D0101 push    dword ptr \[1014D94\]  
-01001DD8  |.  E8 849F0000   call    0100BD61  
-01001DDD  |.  85C0          test    eax, eax  
-  
-进入 100675b  
-其中发现了个很熟悉的函数   
-010067BD  |.  56            push    esi  
-010067BE  |.  E8 63FEFFFF   call    01006626                        ;在这里  
-这个时候我们进入 01006626 单击右键查看调用树发现就两个地方（前面分析的那个函数和这个函数）  
-这个时候可以肯定修改了上个 push 0a 就没问题了。。。。(第一次出错的时候就该查看下调用栈 看看有没有再调用这个函数的地方)  
-爆破 复制可执行文件....  
-成功~~~          
-其实只修改第二个就可以达到爆破的目的  
-  
-![](img/fd5e3ffdbe3cdbebe08aec1f66b6d666.jpg)  
+闲来无聊
+做了一些修改~
+
+OD 载入:
+
+```
+01012475 >    6A 70          push    70
+01012477       68 E0150001   push    010015E0
+0101247C   .  E8 47030000   call    010127C8           ;seh 处理函数
+01012481   .  33DB         xor     ebx, ebx
+01012483   .  53          push    ebx                  ; /pModule => NULL
+
+中间省略若干
+
+010125DD   >  50          push    eax
+010125DE   .  56          push    esi
+010125DF   .  53          push    ebx
+010125E0   .  53          push    ebx
+010125E1   .  FFD7        call    edi
+010125E3   .  50          push    eax
+010125E4   .  E8 68F9FEFF call    01001F51           ;来到了本次需要分析的重点函数
+010125E9   .  8BF0        mov     esi, eax
+010125EB   .  8975 84     mov     dword ptr [ebp-7C], esi
+010125EE   .  395D E4     cmp     dword ptr [ebp-1C], ebx
+010125F1   .  75 07       jnz     short 010125FA
+010125F3   .  56          push    esi                  ; /status
+010125F4   .  FF15 EC110001 call    dword ptr [<&msvcrt.exit>]      ; \exit
+010125FA   >  FF15 E8110001 call    dword ptr [<&msvcrt._cexit>]     ; [msvcrt._cexit
+```
+
+下面进入本次的重头戏：
+
+```
+01001F51  /$  B8 EE280101  mov     eax, 010128EE
+01001F56  |.  E8 F5060100  call    01012650
+01001F5B  |.  81EC F0000000 sub    esp, 0F0
+01001F61  |.  53           push    ebx
+01001F62  |.  56           push    esi
+01001F63  |.  57           push    edi
+01001F64  |.  8965 F0      mov     dword ptr [ebp-10], esp
+01001F67  |.  6A 31        push    31
+01001F69  |.  59           pop     ecx
+01001F6A  |.  33C0         xor     eax, eax
+01001F6C  |.  33DB         xor     ebx, ebx
+01001F6E  |.  66:899D 04FFF>mov    word ptr [ebp-FC], bx
+01001F75  |.  8DBD 06FFFFFF lea    edi, dword ptr [ebp-FA]
+01001F7B  |.  F3:AB        rep     stos dword ptr es:[edi]
+01001F7D  |.  66:AB        stos    word ptr es:[edi]
+01001F7F  |.  8D45 E8      lea     eax, dword ptr [ebp-18]
+01001F82  |.  50           push    eax
+01001F83  |.  FF15 B4110001 call   dword ptr [<&USER32.GetProcessDe>;  USER32.GetProcessDefaultLayout
+01001F89  |.  85C0         test    eax, eax
+01001F8B  |.  74 1B        je      short 01001FA8
+01001F8D  |.  8B45 E8      mov     eax, dword ptr [ebp-18]
+01001F90  |.  A8 01        test    al, 1
+01001F92  |.  74 14        je      short 01001FA8
+01001F94  |.  83E0 FE      and     eax, FFFFFFFE
+01001F97  |.  50           push    eax
+01001F98  |.  FF15 B0110001 call   dword ptr [<&USER32.SetProcessDe>;  USER32.SetProcessDefaultLayout
+01001F9E  |.  C705 A04D0101>mov    dword ptr [1014DA0], 1
+01001FA8  |>  FF75 10      push    dword ptr [ebp+10]
+01001FAB  |.  E8 B5F6FFFF  call    01001665
+01001FB0  |.  8B45 08      mov     eax, dword ptr [ebp+8]
+01001FB3  |.  FF75 0C      push    dword ptr [ebp+C]
+01001FB6  |.  A3 484A0101  mov     dword ptr [1014A48], eax
+01001FBB  |.  E8 07F8FFFF  call    010017C7
+01001FC0  |.  85C0         test    eax, eax
+01001FC2  |.  0F84 E0000000 je     010020A8
+01001FC8  |.  68 00080000  push    800                  ; /Size = 800 (2048.)
+01001FCD  |.  6A 40        push    40                   ; |Flags = LPTR
+01001FCF  |.  895D FC      mov     dword ptr [ebp-4], ebx       ; |
+01001FD2  |.  FF15 80100001 call   dword ptr [<&KERNEL32.LocalAlloc>; \LocalAlloc
+01001FD8  |.  3BC3         cmp     eax, ebx
+01001FDA  |.  8945 10      mov     dword ptr [ebp+10], eax
+01001FDD  |.  75 04        jnz     short 01001FE3          ;  分配内存成功
+01001FDF  |.  53          push    ebx
+01001FE0  |.  53          push    ebx
+01001FE1  |.  EB 7E       jmp     short 01002061
+01001FE3  |>  8365 0C 00    and     dword ptr [ebp+C], 0
+01001FE7  |.  8B3D 78100001 mov    edi, dword ptr [<&KERNEL32.Local>;  kernel32.LocalReAlloc
+01001FED  |.  BE 00040000   mov     esi, 400
+01001FF2  |>  837D 0C 54    /cmp     dword ptr [ebp+C], 54
+01001FF6  |.  7F 51         |jg       short 01002049
+01001FF8  |>  8B45 10       |/mov      eax, dword ptr [ebp+10]
+01001FFB  |.  8975 EC       ||mov      dword ptr [ebp-14], esi
+01001FFE  |.  295D EC       ||sub      dword ptr [ebp-14], ebx
+01002001  |.  FF75 EC       ||push     dword ptr [ebp-14]            ; /Count
+01002004  |.  8D0458        ||lea      eax, dword ptr [eax+ebx*2]    ; |
+01002007  |.  50            ||push     eax                    ; |Buffer
+01002008  |.  FF75 0C       ||push     dword ptr [ebp+C]            ; |RsrcID
+0100200B  |.  FF75 08       ||push     dword ptr [ebp+8]            ; |hInst
+0100200E  |.  FF15 AC110001 ||call     dword ptr [<&USER32.LoadString>; \LoadStringW
+01002014  |.  40            ||inc      eax
+01002015  |.  3B45 EC       ||cmp      eax, dword ptr [ebp-14]
+01002018  |.  75 1E         ||jnz      short 01002038
+0100201A  |.  81C6 00040000 ||add      esi, 400
+01002020  |.  6A 02         ||push     2
+01002022  |.  8D0436        ||lea      eax, dword ptr [esi+esi]
+01002025  |.  50            ||push     eax
+01002026  |.  FF75 10       ||push     dword ptr [ebp+10]
+01002029  |.  FFD7          ||call     edi
+0100202B  |.  85C0          ||test     eax, eax
+0100202D  |.  75 04         ||jnz      short 01002033
+0100202F  |.  50            ||push     eax
+01002030  |.  50            ||push     eax
+01002031  |.  EB 2E         ||jmp      short 01002061
+01002033  |>  8945 10       ||mov      dword ptr [ebp+10], eax
+01002036  |.^ EB C0         |\jmp      short 01001FF8
+01002038  |>  8B4D 0C       |mov      ecx, dword ptr [ebp+C]
+0100203B  |.  891C8D 504A01>|mov      dword ptr [ecx*4+1014A50], ebx
+01002042  |.  03D8          |add      ebx, eax
+01002044  |.  FF45 0C       |inc      dword ptr [ebp+C]
+01002047  |.^ EB A9         \jmp      short 01001FF2
+01002049  |>  6A 02         push    2
+0100204B  |.  8D041B        lea     eax, dword ptr [ebx+ebx]
+0100204E  |.  50           push    eax
+0100204F  |.  FF75 10      push    dword ptr [ebp+10]
+01002052  |.  FFD7         call    edi
+01002054  |.  8BF0         mov     esi, eax
+01002056  |.  33C9         xor     ecx, ecx
+01002058  |.  3BF1         cmp     esi, ecx
+0100205A  |.  8975 08      mov     dword ptr [ebp+8], esi
+0100205D  |.  75 50        jnz     short 010020AF
+0100205F  |.  51          push    ecx
+01002060  |.  51          push    ecx
+01002061  |>  E8 0A060100  call    <jmp.&msvcrt._CxxThrowException>
+01002066  |.  33F6         xor     esi, esi
+01002068  |.  3975 10      cmp     dword ptr [ebp+10], esi
+0100206B  |.  74 09        je      short 01002076
+0100206D  |.  FF75 10      push    dword ptr [ebp+10]          ; /hMemory
+01002070  |.  FF15 7C100001 call   dword ptr [<&KERNEL32.LocalFree>>; \LocalFree
+01002076  |>  6A 64        push    64                   ; /Count = 64 (100.)
+01002078  |.  8D85 04FFFFFF lea    eax, dword ptr [ebp-FC]        ; |
+0100207E  |.  50          push    eax                  ; |Buffer
+0100207F  |.  6A 54        push    54                   ; |RsrcID = STRING "内存不够"
+01002081  |.  FF35 484A0101 push   dword ptr [1014A48]         ; |hInst = NULL
+01002087  |.  FF15 AC110001 call   dword ptr [<&USER32.LoadStringW>>; \LoadStringW
+0100208D  |.  85C0         test    eax, eax
+0100208F  |.  74 11        je      short 010020A2
+01002091  |.  6A 10        push    10                   ; /Style = MB_OK|MB_ICONHAND|MB_APPLMODAL
+01002093  |.  56          push    esi                  ; |Title
+```
+
+
+
+```
+01002094  |.  8D85 04FFFFFF lea     eax, dword ptr [ebp-FC]           ; |
+0100209A  |.  50          push    eax                                ; |Text
+0100209B  |.  56          push    esi                                ; |hOwner
+0100209C  |.  FF15 A8110001 call    dword ptr [<&USER32.MessageBoxW>>; \\MessageBoxW
+010020A2  |>  B8 A8200001   mov     eax, 010020A8
+010020A7  |.  C3          retn
+010020A8  |>  33C0        xor     eax, eax
+010020AA  |.  E9 11010000   jmp     010021C0
+010020AF  |>  33D2        xor     edx, edx
+010020B1  |>  83FA 54     /cmp     edx, 54
+010020B4  |.  7F 11       |jg      short 010020C7
+010020B6  |.  8D0495 504A01>|lea     eax, dword ptr [edx*4+1014A50]
+010020BD  |.  8B38        |mov     edi, dword ptr [eax]
+010020BF  |.  8D3C7E      |lea     edi, dword ptr [esi+edi*2]
+010020C2  |.  8938        |mov     dword ptr [eax], edi
+010020C4  |.  42          |inc     edx
+010020C5  |.^ EB EA       \jmp     short 010020B1
+010020C7  |>  51          push    ecx                                ; /lParam
+010020C8  |.  FF35 484A0101 push    dword ptr [1014A48]              ; |hInst = NULL
+010020CE  |.  834D FC FF  or      dword ptr [ebp-4], FFFFFFFF       ; |
+010020D2  |.  51          push    ecx                                ; |hMenu
+010020D3  |.  51          push    ecx                                ; |hParent
+010020D4  |.  51          push    ecx                                ; |Height
+010020D5  |.  B8 00000080   mov     eax, 80000000                   ; |
+010020DA  |.  50          push    eax                                ; |Width => 80000000 (-2147483648.)
+010020DB  |.  51          push    ecx                                ; |Y
+010020DC  |.  50          push    eax                                ; |X => 80000000 (-2147483648.)
+010020DD  |.  68 00000010   push    10000000                        ; |Style = WS_OVERLAPPED|WS_VISIBLE
+010020E2  |.  68 F0120001   push    010012F0                        ; |WindowName = "CalcMsgPumpWnd"
+010020E7  |.  68 E4120001   push    010012E4                        ; |Class = "EDIT"
+010020EC  |.  51          push    ecx                                ; |ExtStyle
+010020ED  |.  FF15 A4110001 call    dword ptr [<&USER32.CreateWindow>; \\CreateWindowExW
+010020F3  |.  A3 704D0101   mov     dword ptr [1014D70], eax
+010020F8  |.  E8 4AFDFFFF   call    01001E47
+010020FD  |.  8B35 94100001 mov     esi, dword ptr [<&KERNEL32.GetPr>;  kernel32.GetProfileIntW
+01002103  |.  6A 01         push    1                                 ; /Default = 1
+01002105  |.  68 D4120001   push    010012D4                        ; |Key = "layout"
+0100210A  |.  BF 18400101   mov     edi, 01014018                   ; |UNICODE "SciCalc"
+0100210F  |.  57          push    edi                                ; |Section => "SciCalc"
+01002110  |.  FFD6        call    esi                                ; \\GetProfileIntW
+01002112  |.  33DB        xor     ebx, ebx
+01002114  |.  53          push    ebx                                ; /Default => 0
+01002115  |.  68 C4120001   push    010012C4                        ; |Key = "UseSep"
+0100211A  |.  57          push    edi                                ; |Section => "SciCalc"
+0100211B  |.  A3 484D0101   mov     dword ptr [1014D48], eax        ; |
+01002120  |.  FFD6        call    esi                                ; \\GetProfileIntW
+01002122  |.  6A 01         push    1
+01002124  |.  A3 4C4D0101   mov     dword ptr [1014D4C], eax
+01002129  |.  E8 E9F8FFFF   call    01001A17            ;重点函数
+0100212E  |.  6A 69         push    69                                ; /TableName = 69
+01002130  |.  FF35 484A0101 push    dword ptr [1014A48]              ; |hInst = NULL
+01002136  |.  FF15 A0110001 call    dword ptr [<&USER32.LoadAccelera>; \\LoadAcceleratorsW
+0100213C  |.  8B35 9C110001 mov     esi, dword ptr [<&USER32.GetMess>;  USER32.GetMessageW
+01002142  |.  A3 444A0101   mov     dword ptr [1014A44], eax
+01002147  |.  EB 5E         jmp     short 010021A7
+01002149  |>  A1 744D0101   /mov    eax, dword ptr [1014D74]
+0100214E  |.  3BC3        |cmp     eax, ebx
+01002150  |.  74 0F       |je      short 01002161
+01002152  |.  8D4D CC     |lea     ecx, dword ptr [ebp-34]
+01002155  |.  51          |push    ecx                                 ; /pMsg
+01002156  |.  50          |push    eax                                 ; |hWnd => NULL
+01002157  |.  FF15 98110001 |call    dword ptr [<&USER32.IsDialogMes>; \\IsDialogMessageW
+0100215D  |.  85C0        |test    eax, eax
+0100215F  |.  75 46       |jnz     short 010021A7
+01002161  |>  A1 6C4D0101   |mov    eax, dword ptr [1014D6C]
+01002166  |.  3945 CC     |cmp     dword ptr [ebp-34], eax
+01002169  |.  74 0E       |je      short 01002179
+0100216B  |.  FF75 CC     |push    dword ptr [ebp-34]                 ; /hWnd
+0100216E  |.  50          |push    eax                                 ; |hParent => NULL
+0100216F  |.  FF15 94110001 |call    dword ptr [<&USER32.IsChild>]     ; \\IsChild
+01002175  |.  85C0        |test    eax, eax
+01002177  |.  74 1A       |je      short 01002193
+01002179  |>  8D45 CC     |lea     eax, dword ptr [ebp-34]
+0100217C  |.  50          |push    eax                                 ; /pMsg
+0100217D  |.  FF35 444A0101 |push    dword ptr [1014A44]              ; |hAccel = NULL
+01002183  |.  FF35 6C4D0101 |push    dword ptr [1014D6C]              ; |hWnd = NULL
+01002189  |.  FF15 90110001 |call    dword ptr [<&USER32.TranslateAc>; \\TranslateAcceleratorW
+0100218F  |.  85C0        |test    eax, eax
+01002191  |.  75 14       |jnz     short 010021A7
+01002193  |>  8D45 CC     |lea     eax, dword ptr [ebp-34]
+01002196  |.  50          |push    eax                                 ; /pMsg
+01002197  |.  FF15 8C110001 |call    dword ptr [<&USER32.TranslateMe>; \\TranslateMessage
+0100219D  |.  8D45 CC     |lea     eax, dword ptr [ebp-34]
+010021A0  |.  50          |push    eax                                 ; /pMsg
+010021A1  |.  FF15 88110001 |call    dword ptr [<&USER32.DispatchMes>; \\DispatchMessageW
+010021A7  |>  53          push    ebx
+010021A8  |.  53          |push    ebx
+010021A9  |.  8D45 CC     |lea     eax, dword ptr [ebp-34]
+010021AC  |.  53          |push    ebx
+010021AD  |.  50          |push    eax
+010021AE  |.  FFD6        |call    esi
+010021B0  |.  85C0        |test    eax, eax
+010021B2  |.^ 75 95       \jnz     short 01002149
+010021B4  |.  FF75 08     push    dword ptr [ebp+8]                   ; /hMemory
+010021B7  |.  FF15 7C100001 call    dword ptr [<&KERNEL32.LocalFree>>; \\LocalFree
+010021BD  |.  8B45 D4     mov     eax, dword ptr [ebp-2C]
+010021C0  |>  8B4D F4     mov     ecx, dword ptr [ebp-C]
+010021C3  |.  5F          pop     edi
+010021C4  |.  5E          pop     esi
+010021C5  |.  64:890D 00000>mov     dword ptr fs:[0], ecx
+010021CC  |.  5B          pop     ebx
+010021CD  |.  C9          leave
+010021CE  \\.  C2 1000     retn    10
+```
+
+好晕...好大一块
+
+函数首先分配内存动态加载资源（字符串），
+
+```
+01002001  |.  FF75 EC     ||push    dword ptr [ebp-14]              ; /Count
+01002004  |.  8D0458      ||lea     eax, dword ptr [eax+ebx*2]       ; |
+01002007  |.  50          ||push    eax                              ; |Buffer
+01002008  |.  FF75 0C     ||push    dword ptr [ebp+C]                ; |RsrcID
+0100200B  |.  FF75 08     ||push    dword ptr [ebp+8]                ; |hInst
+0100200E  |.  FF15 AC110001 ||call    dword ptr [<&USER32.LoadString>; \\LoadStringW
+```
+
+可以动态看下，程序动态加载 `calc` 窗体的字符串。
+
+下面就进入到创建窗口
+
+```
+010020C7  |>  51          push    ecx                                ; /lParam
+```
+
+
+
+### 窗口创建与初始化
+
+010020C8  |.  FF35 484A0101  push    dword ptr [1014A48]            ; |hInst = NULL  
+
+010020CE  |.  834D FC FF     or      dword ptr [ebp-4], FFFFFFFF    ; |  
+
+010020D2  |.  51             push    ecx                               ; |hMenu  
+
+010020D3  |.  51             push    ecx                               ; |hParent  
+
+010020D4  |.  51             push    ecx                               ; |Height  
+
+010020D5  |.  B8 00000080    mov     eax, 80000000                     ; |  
+
+010020DA  |.  50             push    eax                               ; |Width => 80000000 (-2147483648.)  
+
+010020DB  |.  51             push    ecx                               ; |Y  
+
+010020DC  |.  50             push    eax                               ; |X => 80000000 (-2147483648.)  
+
+010020DD  |.  68 00000010    push    10000000                          ; |Style = WS_OVERLAPPED|WS_VISIBLE  
+
+010020E2  |.  68 F0120001    push    010012F0                          ; |WindowName = "CalcMsgPumpWnd"  
+
+010020E7  |.  68 E4120001    push    010012E4                          ; |Class = "EDIT"  
+
+010020EC  |.  51             push    ecx                               ; |ExtStyle  
+
+010020ED  |.  FF15 A4110001  call    dword ptr [<&USER32.CreateWindow>; \CreateWindowExW  
+
+这个函数应该也没啥，动态加载看了下参数没啥重要信息
+
+### 主逻辑分支
+
+来到了本次重点
+
+01002122  |.  6A 01          push    1  
+
+01002124  |.  A3 4C4D0101    mov     dword ptr [1014D4C], eax  
+
+01002129  |.  E8 E9F8FFFF    call    01001A17  
+
+下面再走的换就进入消息循环了
+
+### 消息循环与系统参数获取
+
+01001A17  /$  55            push    ebp  
+
+01001A18  |.  8BEC          mov     ebp, esp  
+
+01001A1A  |.  81EC 80000000 sub     esp, 80  
+
+01001A20  |.  53            push    ebx  
+
+01001A21  |.  56            push    esi  
+
+01001A22  |.  33F6          xor     esi, esi  
+
+01001A24  |.  57            push    edi  
+
+01001A25  |.  8975 FC       mov     dword ptr [ebp-4], esi  
+
+01001A28  |.  8975 D0       mov     dword ptr [ebp-30], esi  
+
+01001A2B  |.  8975 D4       mov     dword ptr [ebp-2C], esi  
+
+01001A2E  |.  8975 D8       mov     dword ptr [ebp-28], esi  
+
+01001A31  |.  8975 DC       mov     dword ptr [ebp-24], esi  
+
+01001A34  |.  E8 14FEFFFF   call    0100184D  
+
+01001A39  |.  A1 2C400101   mov     eax, dword ptr [101402C]  
+
+01001A3E  |.  6A 05         push    5                                   ; /BufSize = 5  
+
+01001A40  |.  68 2C400101   push    0101402C                            ; |ReturnBuffer = calc.0101402C  
+
+01001A45  |.  8945 F0       mov     dword ptr [ebp-10], eax             ; |  
+
+01001A48  |.  A1 38400101   mov     eax, dword ptr [1014038]            ; |  
+
+01001A4D  |.  68 C0120001   push    010012C0                            ; |Default = "."  
+
+01001A52  |.  8945 F4       mov     dword ptr [ebp-C], eax             ; |  
+
+01001A55  |.  A1 00400101   mov     eax, dword ptr [1014000]            ; |  
+
+01001A5A  |.  68 AC120001   push    010012AC                            ; |Key = "sDecimal"  
+
+01001A5F  |.  8935 B84D0101 mov     dword ptr [1014DB8], esi           ; |  
+
+01001A65  |.  8B35 84100001 mov     esi, dword ptr [<&KERNEL32.GetPr>; |kernel32.GetProfileStringW  
+
+01001A6B  |.  BB A0120001   mov     ebx, 010012A0                       ; |UNICODE "intl"  
+
+01001A70  |.  53            push    ebx                                 ; |Section => "intl"  
+
+01001A71  |.  8945 F8       mov     dword ptr [ebp-8], eax              ; |  
+
+01001A74  |.  FFD6          call    esi                                 ; \GetProfileStringW  
+
+01001A76  |.  6A 05         push    5                                   ; /BufSize = 5  
+
+01001A78  |.  68 38400101   push    01014038                            ; |ReturnBuffer = calc.01014038  
+
+01001A7D  |.  68 9C120001   push    0100129C                            ; |Default = ","  
+
+01001A82  |.  68 88120001   push    01001288                            ; |Key = "sThousand"  
+
+01001A87  |.  53            push    ebx                                 ; |Section => "intl"  
+
+01001A88  |.  FFD6          call    esi                                 ; \GetProfileStringW  
+
+01001A8A  |.  6A 10         push    10  
+
+01001A8C  |.  59            pop     ecx  
+
+01001A8D  |.  33C0          xor     eax, eax  
+
+01001A8F  |.  6A 20         push    20                                  ; /BufSize = 20 (32.)  
+
+01001A91  |.  8D7D 80       lea     edi, dword ptr [ebp-80]             ; |  
+
+01001A94  |.  F3:AB         rep     stos dword ptr es:[edi]             ; |  
+
+01001A96  |.  8D45 80       lea     eax, dword ptr [ebp-80]             ; |  
+
+01001A99  |.  50            push    eax                                 ; |ReturnBuffer  
+
+01001A9A  |.  68 80120001   push    01001280                            ; |Default = "3;0"  
+
+01001A9F  |.  68 6C120001   push    0100126C                            ; |Key = "sGrouping"  
+
+01001AA4  |.  53            push    ebx                                 ; |Section => "intl"  
+
+01001AA5  |.  FFD6          call    esi                                 ; \GetProfileStringW  
+
+01001AA7  |.  8D45 80       lea     eax, dword ptr [ebp-80]  
+
+01001AAA  |.  50            push    eax  
+
+01001AAB  |.  E8 A9290000   call    01004459  
+
+01001AB0  |.  33F6          xor     esi, esi  
+
+01001AB2  |.  46            inc     esi  
+
+01001AB3  |.  3B45 F8       cmp     eax, dword ptr [ebp-8]  
+
+01001AB6  |.  A3 00400101   mov     dword ptr [1014000], eax  
+
+01001ABB  |.  74 03         je      short 01001AC0  
+
+01001ABD  |.  8975 FC       mov     dword ptr [ebp-4], esi  
+
+01001AC0  |>  66:8B45 F4    mov     ax, word ptr [ebp-C]  
+
+01001AC4  |.  66:3905 38400>cmp     word ptr [1014038], ax  
+
+01001ACB  |.  74 03         je      short 01001AD0  
+
+01001ACD  |.  8975 FC       mov     dword ptr [ebp-4], esi  
+
+01001AD0  |>  A1 2C400101   mov     eax, dword ptr [101402C]  
+
+01001AD5  |.  66:3B45 F0    cmp     ax, word ptr [ebp-10]  
+
+01001AD9  |.  74 18         je      short 01001AF3  
+
+01001ADB  |.  8BF8          mov     edi, eax  
+
+01001ADD  |.  57            push    edi  
+
+01001ADE  |.  68 C04D0101   push    01014DC0  
+
+01001AE3  |.  E8 AF0A0000   call    01002597  
+
+01001AE8  |.  A1 644A0101   mov     eax, dword ptr [1014A64]  
+
+01001AED  |.  66:8938       mov     word ptr [eax], di  
+
+01001AF0  |.  8975 FC       mov     dword ptr [ebp-4], esi  
+
+01001AF3  |>  6A 0C         push    0C  
+
+01001AF5  |.  58            pop     eax  
+
+01001AF6  |.  33FF          xor     edi, edi  
+
+01001AF8  |.  57            push    edi                                 ; /UpdateProfile => 0  
+
+01001AF9  |.  8D4D E4       lea     ecx, dword ptr [ebp-1C]             ; |  
+
+01001AFC  |.  51            push    ecx                                 ; |pParam  
+
+01001AFD  |.  50            push    eax                                 ; |wParam => C (12.)  
+
+01001AFE  |.  6A 42         push    42                                  ; |Action = SPI_GETHIGHCONTRAST  
+
+01001B00  |.  8945 E4       mov     dword ptr [ebp-1C], eax             ; |  
+
+01001B03  |.  FF15 84110001 call    dword ptr [<&USER32.SystemParame>; \SystemParametersInfoW  
+
+01001B09  |.  85C0          test    eax, eax  
+
+01001B0B  |.  74 15         je      short 01001B22  
+
+01001B0D  |.  8B45 E8       mov     eax, dword ptr [ebp-18]  
+
+01001B10  |.  23C6          and     eax, esi  
+
+01001B12  |.  3B05 9C4D0101 cmp     eax, dword ptr [1014D9C]  
+
+01001B18  |.  74 08         je      short 01001B22  
+
+01001B1A  |.  A3 9C4D0101   mov     dword ptr [1014D9C], eax  
+
+01001B1F  |.  8975 FC       mov     dword ptr [ebp-4], esi  
+
+01001B22  |>  397D 08       cmp     dword ptr [ebp+8], edi  
+
+01001B25  |.  0F84 02030000 je      01001E2D  
+
+01001B2B  |.  A1 6C4D0101   mov     eax, dword ptr [1014D6C]  
+
+01001B30  |.  3BC7          cmp     eax, edi  
+
+01001B32  |.  8B1D 80110001 mov     ebx, dword ptr [<&USER32.GetWind>;   USER32.GetWindowRect  
+
+01001B38  |.  897D FC       mov     dword ptr [ebp-4], edi  
+
+01001B3B  |.  74 3A         je      short 01001B77  
+
+01001B3D  |.  FF35 804D0101 push    dword ptr [1014D80]               ; /hMenu = NULL  
+
+
+
+```
+01001B43  |.  50             push    eax                             ; |hWnd => NULL  
+01001B44  |.  FF15 7C110001 call    dword ptr [<&USER32.SetMenu>]    ; \SetMenu  
+01001B4A  |.  8D45 D0        lea     eax, dword ptr [ebp-30]  
+01001B4D  |.  50             push    eax                             ; /pRect  
+01001B4E  |.  FF35 6C4D0101 push    dword ptr [1014D6C]               ; |hWnd = NULL  
+01001B54  |.  8975 FC        mov     dword ptr [ebp-4], esi           ; |  
+01001B57  |.  FFD3           call    ebx                               ; \GetWindowRect  
+01001B59  |.  FF35 6C4D0101 push    dword ptr [1014D6C]               ; /hWnd = NULL  
+01001B5F  |.  FF15 78110001 call    dword ptr [<&USER32.DestroyWindo>; \DestroyWindow  
+01001B65  |.  FF35 7C4D0101 push    dword ptr [1014D7C]               ; /hMenu = NULL  
+01001B6B  |.  FF15 74110001 call    dword ptr [<&USER32.DestroyMenu>>; \DestroyMenu  
+01001B71  |.  893D 7C4D0101 mov     dword ptr [1014D7C], edi  
+01001B77  |>  393D 484D0101 cmp     dword ptr [1014D48], edi  
+01001B7D  |.  8B35 70110001 mov     esi, dword ptr [<&USER32.GetDlgI>;   USER32.GetDlgItem  
+01001B83  |.  57             push    edi                               ; /lParam  
+01001B84  |.  57             push    edi                               ; |pDlgProc  
+01001B85  |.  57             push    edi                               ; |hOwner  
+01001B86  |.  74 52          je      short 01001BDA                     ; |  
+01001B88  |.  6A 66          push    66                                 ; |pTemplate = 66  
+01001B8A  |.  FF35 484A0101 push    dword ptr [1014A48]               ; |hInst = 01000000  
+01001B90  |.  FF15 6C110001 call    dword ptr [<&USER32.CreateDialog>; \CreateDialogParamW  
+01001B96  |.  50             push    eax                               ; /hWnd  
+01001B97  |.  A3 6C4D0101    mov     dword ptr [1014D6C], eax           ; |  
+01001B9C  |.  FF15 A4100001 call    dword ptr [<&USER32.GetMenu>]      ; \GetMenu  
+01001BA2  |.  393D A04D0101 cmp     dword ptr [1014DA0], edi  
+01001BA8  |.  A3 804D0101    mov     dword ptr [1014D80], eax  
+01001BAD  |.  0F84 3D010000 je      01001CF0  
+01001BB3  |.  6A EC          push    -14                                ; /Index = GWL_EXSTYLE  
+01001BB5  |.  FF35 6C4D0101 push    dword ptr [1014D6C]               ; |hWnd = NULL  
+01001BBB  |.  FF15 68110001 call    dword ptr [<&USER32.GetWindowLon>; \GetWindowLongW  
+01001BC1  |.  0D 00005000    or      eax, 500000  
+01001BC6  |.  50             push    eax                               ; /NewValue  
+01001BC7  |.  6A EC          push    -14                                ; |Index = GWL_EXSTYLE  
+01001BC9  |.  FF35 6C4D0101 push    dword ptr [1014D6C]               ; |hWnd = NULL  
+01001BCF  |.  FF15 64110001 call    dword ptr [<&USER32.SetWindowLon>; \SetWindowLongW  
+01001BD5  |.  E9 16010000    jmp     01001CF0  
+01001BDA  |>  6A 65          push    65                                 ; |pTemplate = 65  
+01001BDC  |.  FF35 484A0101 push    dword ptr [1014A48]               ; |hInst = 01000000  
+01001BE2  |.  FF15 6C110001 call    dword ptr [<&USER32.CreateDialog>; \CreateDialogParamW  
+01001BE8  |.  50             push    eax                               ; /hWnd  
+01001BE9  |.  A3 6C4D0101    mov     dword ptr [1014D6C], eax           ; |  
+01001BEE  |.  FF15 A4100001 call    dword ptr [<&USER32.GetMenu>]      ; \GetMenu  
+01001BF4  |.  6A 6C          push    6C                                 ; /RsrcName = 6C  
+01001BF6  |.  FF35 484A0101 push    dword ptr [1014A48]               ; |hInst = 01000000  
+01001BFC  |.  A3 804D0101    mov     dword ptr [1014D80], eax           ; |  
+01001C01  |.  FF15 60110001 call    dword ptr [<&USER32.LoadMenuW>]     ; \LoadMenuW  
+01001C07  |.  393D A04D0101 cmp     dword ptr [1014DA0], edi  
+01001C0D  |.  A3 7C4D0101    mov     dword ptr [1014D7C], eax  
+01001C12  |.  74 22          je      short 01001C36  
+01001C14  |.  6A EC          push    -14                                ; /Index = GWL_EXSTYLE  
+01001C16  |.  FF35 6C4D0101 push    dword ptr [1014D6C]               ; |hWnd = NULL  
+01001C1C  |.  FF15 68110001 call    dword ptr [<&USER32.GetWindowLon>; \GetWindowLongW  
+01001C22  |.  0D 00005000    or      eax, 500000  
+01001C27  |.  50             push    eax                               ; /NewValue  
+01001C28  |.  6A EC          push    -14                                ; |Index = GWL_EXSTYLE  
+01001C2A  |.  FF35 6C4D0101 push    dword ptr [1014D6C]               ; |hWnd = NULL  
+01001C30  |.  FF15 64110001 call    dword ptr [<&USER32.SetWindowLon>; \SetWindowLongW  
+01001C36  |>  C745 08 76000>mov     dword ptr [ebp+8], 76  
+01001C3D  |>  57             /push   edi  
+01001C3E  |.  FF75 08        |push    dword ptr [ebp+8]  
+01001C41  |.  FF35 6C4D0101 |push    dword ptr [1014D6C]  
+01001C47  |.  FFD6           |call    esi  
+01001C49  |.  50             |push    eax                              ; |hWnd  
+01001C4A  |.  FF15 5C110001 |call    dword ptr [<&USER32.EnableWindo>; \EnableWindow  
+01001C50  |.  FF45 08        |inc      dword ptr [ebp+8]  
+01001C53  |.  837D 08 79     |cmp      dword ptr [ebp+8], 79  
+01001C57  |.^ 7E E4          \jle      short 01001C3D  
+01001C59  |.  FF35 544D0101 push    dword ptr [1014D54]  
+01001C5F  |.  FF35 504D0101 push    dword ptr [1014D50]  
+01001C65      6A 0A          push    0A                                 ;  10?进制  
+01001C67  |.  E8 BA490000    call    01006626  
+01001C6C  |.  833D 08400101>cmp      dword ptr [1014008], 20  
+01001C73  |.  7E 7B          jle     short 01001CF0  
+01001C75  |.  68 93010000    push    193  
+01001C7A  |.  FF35 6C4D0101 push    dword ptr [1014D6C]  
+01001C80  |.  FFD6           call    esi  
+01001C82  |.  8D4D E0        lea     ecx, dword ptr [ebp-20]  
+01001C85  |.  51             push    ecx  
+01001C86  |.  50             push    eax  
+01001C87  |.  8945 08        mov     dword ptr [ebp+8], eax  
+01001C8A  |.  FFD3           call    ebx  
+01001C8C  |.  8D45 C0        lea     eax, dword ptr [ebp-40]  
+01001C8F  |.  50             push    eax                              ; /pRect  
+01001C90  |.  FF35 6C4D0101 push    dword ptr [1014D6C]               ; |hWnd = NULL  
+01001C96  |.  FF15 58110001 call    dword ptr [<&USER32.GetClientRec>; \GetClientRect  
+01001C9C  |.  6A 02          push    2                                  ; /nPoints = 2  
+01001C9E  |.  8D45 C0        lea     eax, dword ptr [ebp-40]           ; |  
+01001CA1  |.  50             push    eax                              ; |pPoints  
+01001CA2  |.  57             push    edi                              ; |hWndTo  
+01001CA3  |.  FF35 6C4D0101 push    dword ptr [1014D6C]               ; |hWndFrom = NULL  
+01001CA9  |.  FF15 54110001 call    dword ptr [<&USER32.MapWindowPoi>; \MapWindowPoints  
+01001CAF  |.  8B4D C8        mov     ecx, dword ptr [ebp-38]  
+01001CB2  |.  2B4D E8        sub     ecx, dword ptr [ebp-18]  
+01001CB5  |.  8B45 C0        mov     eax, dword ptr [ebp-40]  
+01001CB8  |.  03C8           add     ecx, eax  
+01001CBA  |.  894D E0        mov     dword ptr [ebp-20], ecx  
+01001CBD  |.  8B4D C4        mov     ecx, dword ptr [ebp-3C]  
+01001CC0  |.  F7D9           neg     ecx  
+01001CC2  |.  51             push    ecx                              ; /dY  
+01001CC3  |.  F7D8           neg     eax                              ; |  
+01001CC5  |.  50             push    eax                              ; |dX  
+01001CC6  |.  8D45 E0        lea     eax, dword ptr [ebp-20]          ; |  
+01001CC9  |.  50             push    eax                              ; |pRect  
+01001CCA  |.  FF15 50110001 call    dword ptr [<&USER32.OffsetRect>]  ; \OffsetRect  
+01001CD0  |.  8B45 EC        mov     eax, dword ptr [ebp-14]  
+01001CD3  |.  2B45 E4        sub     eax, dword ptr [ebp-1C]  
+```
+
+
+
+## 代码分析
+
+### 指令 01001CD6 - 01001D7F
+
+```
+01001CD6  |.  6A 14              push    14                           ; /Flags = SWP_NOZORDER|SWP_NOACTIVATE
+
+01001CD8  |.  50               push    eax                            ; |Height
+
+01001CD9  |.  8B45 E8          mov     eax, dword ptr [ebp-18]        ; |
+
+01001CDC  |.  2B45 E0          sub     eax, dword ptr [ebp-20]        ; |
+
+01001CDF  |.  50               push    eax                            ; |Width
+
+01001CE0  |.  FF75 E4          push    dword ptr [ebp-1C]            ; |Y
+
+01001CE3  |.  FF75 E0          push    dword ptr [ebp-20]            ; |X
+
+01001CE6  |.  57               push    edi                            ; |InsertAfter
+
+01001CE7  |.  FF75 08          push    dword ptr [ebp+8]             ; |hWnd
+
+01001CEA  |.  FF15 4C110001    call    dword ptr [<&USER32.SetWindowPos>; \SetWindowPos
+
+01001CF0  |>  68 93010000      push    193
+
+01001CF5  |.  FF35 6C4D0101    push    dword ptr [1014D6C]
+
+01001CFB  |.  FFD6             call    esi
+
+01001CFD  |.  8BF0             mov     esi, eax
+
+01001CFF  |.  3BF7             cmp     esi, edi
+
+01001D01  |.  74 20            je      short 01001D23
+
+01001D03  |.  6A FC            push    -4                             ; /Index = GWL_WNDPROC
+
+01001D05  |.  56               push    esi                            ; |hWnd
+
+01001D06  |.  FF15 68110001    call    dword ptr [<&USER32.GetWindowLon>; \GetWindowLongW
+
+01001D0C  |.  3BC7             cmp     eax, edi
+
+01001D0E  |.  A3 104F0101      mov     dword ptr [1014F10], eax
+
+01001D13  |.  74 0E            je      short 01001D23
+
+01001D15  |.  68 2A650001      push    0100652A                        ; /NewValue = 100652A
+
+01001D1A  |.  6A FC            push    -4                             ; /Index = GWL_WNDPROC
+
+01001D1C  |.  56               push    esi                            ; |hWnd
+
+01001D1D  |.  FF15 64110001    call    dword ptr [<&USER32.SetWindowLon>; \SetWindowLongW
+
+01001D23  |>  397D FC          cmp     dword ptr [ebp-4], edi
+
+01001D26  |.  74 17            je      short 01001D3F
+
+01001D28  |.  6A 05            push    5                              ; /Flags = SWP_NOSIZE|SWP_NOZORDER
+
+01001D2A  |.  57               push    edi                            ; |Height
+
+01001D2B  |.  57               push    edi                            ; |Width
+
+01001D2C  |.  FF75 D4          push    dword ptr [ebp-2C]            ; |Y
+
+01001D2F  |.  FF75 D0          push    dword ptr [ebp-30]            ; |X
+
+01001D32  |.  57               push    edi                            ; |InsertAfter
+
+01001D33  |.  FF35 6C4D0101    push    dword ptr [1014D6C]            ; |hWnd = NULL
+
+01001D39  |.  FF15 4C110001    call    dword ptr [<&USER32.SetWindowPos>; \SetWindowPos
+
+01001D3F  |>  8B1D 48110001    mov     ebx, dword ptr [<&USER32.CheckMe>;  USER32.CheckMenuRadioItem
+
+01001D45  |.  33C0             xor     eax, eax
+
+01001D47  |.  393D 484D0101    cmp     dword ptr [1014D48], edi
+
+01001D4D  |.  57               push    edi                            ; /Flags
+
+01001D4E  |.  0F95C0           setne   al                             ; |
+
+01001D51  |.  BE 30010000      mov     esi, 130                        ; |
+
+01001D56  |.  03C6             add     eax, esi                        ; |
+
+01001D58  |.  50               push    eax                            ; |CheckID
+
+01001D59  |.  68 31010000      push    131                             ; |LastID = 131 (305.)
+
+01001D5E  |.  56               push    esi                            ; |FirstID => 130 (304.)
+
+01001D5F  |.  FF35 804D0101    push    dword ptr [1014D80]            ; |hMenu = NULL
+
+01001D65  |.  FFD3             call    ebx                            ; \CheckMenuRadioItem
+
+01001D67  |.  A1 4C4D0101      mov     eax, dword ptr [1014D4C]
+
+01001D6C  |.  F7D8             neg     eax
+
+01001D6E  |.  1BC0             sbb     eax, eax
+
+01001D70  |.  83E0 08          and     eax, 8
+
+01001D73  |.  50               push    eax                            ; /Flags
+
+01001D74  |.  68 2F010000      push    12F                             ; |ItemId = 12F (303.)
+
+01001D79  |.  FF35 804D0101    push    dword ptr [1014D80]            ; |hMenu = NULL
+
+01001D7F  |.  FF15 44110001    call    dword ptr [<&USER32.CheckMenuIte>; \CheckMenuItem
+```
+
+### 指令 01001D85 - 01001DDD
+
+```
+01001D85  |.  A1 7C4D0101      mov     eax, dword ptr [1014D7C]
+
+01001D8A  |.  3BC7             cmp     eax, edi
+
+01001D8C  |.  74 36            je      short 01001DC4
+
+01001D8E  |.  33C9             xor     ecx, ecx
+
+01001D90  |.  393D 484D0101    cmp     dword ptr [1014D48], edi
+
+01001D96  |.  57               push    edi                            ; /Flags
+
+01001D97  |.  0F95C1           setne   cl                             ; |
+
+01001D9A  |.  03CE             add     ecx, esi                        ; |
+
+01001D9C  |.  51               push    ecx                            ; |CheckID
+
+01001D9D  |.  68 31010000      push    131                             ; |LastID = 131 (305.)
+
+01001DA2  |.  56               push    esi                            ; |FirstID => 130 (304.)
+
+01001DA3  |.  50               push    eax                            ; |hMenu => NULL
+
+01001DA4  |.  FFD3             call    ebx                            ; \CheckMenuRadioItem
+
+01001DA6  |.  A1 4C4D0101      mov     eax, dword ptr [1014D4C]
+
+01001DAB  |.  F7D8             neg     eax
+
+01001DAD  |.  1BC0             sbb     eax, eax
+
+01001DAF  |.  83E0 08          and     eax, 8
+
+01001DB2  |.  50               push    eax                            ; /Flags
+
+01001DB3  |.  68 2F010000      push    12F                             ; |ItemId = 12F (303.)
+
+01001DB8  |.  FF35 7C4D0101    push    dword ptr [1014D7C]            ; |hMenu = NULL
+
+01001DBE  |.  FF15 44110001    call    dword ptr [<&USER32.CheckMenuIte>; \CheckMenuItem
+
+01001DC4  |>  830D 78420101>or     dword ptr [1014278], FFFFFFFF
+
+01001DCB       6A 0A            push    0A                             ;  10?进制 第二次加上的
+
+01001DCD  |.  E8 89490000      call    0100675B
+
+01001DD2  |.  FF35 944D0101    push    dword ptr [1014D94]
+
+01001DD8  |.  E8 849F0000      call    0100BD61
+
+01001DDD  |.  85C0             test    eax, eax
+```
+
+继续走，
+
+```
+01001C3D  |>  57               /push   edi
+
+01001C3E  |.  FF75 08          |push   dword ptr [ebp+8]
+
+01001C41  |.  FF35 6C4D0101    |push   dword ptr [1014D6C]
+
+01001C47  |.  FFD6             |call   esi
+
+01001C49  |.  50               |push   eax                            ; |hWnd
+
+01001C4A  |.  FF15 5C110001    |call   dword ptr [<&USER32.EnableWindo>; \EnableWindow     
+
+01001C50  |.  FF45 08          |inc    dword ptr [ebp+8]
+
+01001C53  |.  837D 08 79       |cmp    dword ptr [ebp+8], 79
+
+01001C57  |.^ 7E E4            \jle    short 01001C3D
+
+01001C59  |.  FF35 544D0101    push    dword ptr [1014D54]
+
+01001C5F  |.  FF35 504D0101    push    dword ptr [1014D50]
+
+01001C65       6A 0A            push    0A                             ;  10?进制
+
+01001C67  |.  E8 BA490000      call    01006626                        ;关键处理函数
+```
+
+`EnableWindow` 重点函数下面将会用到
+
+这里会使一些按键无效。
+
+进入 `1006626`
+
+### 指令 01006626 - 01006652
+
+```
+01006626  /$  837C24 04 0A      cmp     dword ptr [esp+4], 0A
+
+；刚开始就来个判断  
+
+0100662B  |.  53               push    ebx
+
+0100662C  |.  55               push    ebp
+
+0100662D  |.  56               push    esi
+
+0100662E  |.  57               push    edi
+
+0100662F  |.  BD 39010000      mov     ebp, 139
+
+01006634  |.  BB 36010000      mov     ebx, 136
+
+01006639  |.  75 47            jnz     short 01006682
+
+0100663B  |.  8B7424 18        mov     esi, dword ptr [esp+18]
+
+0100663F  |.  A1 804D0101      mov     eax, dword ptr [1014D80]
+
+01006644  |.  81C6 3A010000    add     esi, 13A
+
+0100664A  |.  85C0             test    eax, eax
+
+0100664C  |.  897424 18        mov     dword ptr [esp+18], esi
+
+01006650  |.  74 0D            je      short 0100665F
+
+01006652  |.  50               push    eax                            ; /hMenu => 1FF806DF
+```
+
+
+
+# 计算器程序反汇编分析
+
+## 加载 Menu 部分
+```
+01006653   |.   FF35 6C4D0101  push    dword ptr [1014D6C]            ; |hWnd = 004008A6 ('计算器',class='SciCalc')
+01006659   |.   FF15 7C110001  call    dword ptr [<&USER32.SetMenu>]  ; \SetMenu
+
+0100665F   |>   6A 00          push    0                             ; /Flags = MF_BYCOMMAND|MF_ENABLED|MF_STRING
+01006661   |.   56           push    esi                             ; |CheckID
+01006662   |.   BE 3C010000   mov     esi, 13C                        ; |
+
+01006667   |.   56           push    esi                             ; |LastID => 13C (316.)
+01006668   |.   BF 3A010000   mov     edi, 13A                        ; |
+
+0100666D   |.   57           push    edi                             ; |FirstID => 13A (314.)
+0100666E   |.   FF35 804D0101 push    dword ptr [1014D80]            ; |hMenu = 1FF806DF
+01006674   |.   FF15 48110001 call    dword ptr [<&USER32.CheckMenuRad>; \CheckMenuRadioItem
+
+0100667A   |.   FF7424 18    push    dword ptr [esp+18]
+0100667E   |.   56           push    esi
+0100667F   |.   57           push    edi
+01006680   |.   EB 34        jmp     short 010066B6
+
+01006682   |>   8B7424 1C    mov     esi, dword ptr [esp+1C]
+01006686   |.   A1 7C4D0101   mov     eax, dword ptr [1014D7C]
+
+0100668B   |.   81C6 36010000 add     esi, 136
+01006691   |.   85C0        test    eax, eax
+01006693   |.   74 0D       je      short 010066A2
+01006695   |.   50          push    eax                             ; /hMenu => 072E1BE5
+01006696   |.   FF35 6C4D0101 push    dword ptr [1014D6C]            ; |hWnd = 004008A6 ('计算器',class='SciCalc')
+0100669C   |.   FF15 7C110001 call    dword ptr [<&USER32.SetMenu>] ; \SetMenu
+
+010066A2   |>   6A 00       push    0                             ; /Flags = MF_BYCOMMAND|MF_ENABLED|MF_STRING
+010066A4   |.   56         push    esi                             ; |CheckID
+010066A5   |.   55         push    ebp                             ; |LastID
+010066A6   |.   53         push    ebx                             ; |FirstID
+010066A7   |.   FF35 7C4D0101 push    dword ptr [1014D7C]            ; |hMenu = 072E1BE5
+010066AD   |.   FF15 48110001 call    dword ptr [<&USER32.CheckMenuRad>; \CheckMenuRadioItem
+
+010066B3   |.   56        push    esi
+010066B4   |.   55        push    ebp
+010066B5   |.   53        push    ebx
+010066B6   |>   FF35 6C4D0101 push    dword ptr [1014D6C]            ; |hWnd = 004008A6 ('计算器',class='SciCalc')
+010066BC   |.   FF15 0C110001 call    dword ptr [<&USER32.CheckRadioBu>; \CheckRadioButton
+```
+
+上面加载 menu，没有这次需要的内容，继续走。
+
+## 使用传入参数部分
+```
+010066C2   |.   8B7424 14    mov     esi, dword ptr [esp+14]
+```
+用到传入的参数了。
+
+```
+010066C6   |.   8B3D 70110001 mov     edi, dword ptr [<&USER32.GetDlgI>;  USER32.GetDlgItem
+010066CC   |.   33C0        xor     eax, eax
+
+010066CE   |.   83FE 0A      cmp     esi, 0A     ;靠近真相了
+010066D1   |.   0F95C0       setne   al      ; 不相等设置 al 为真
+
+010066D4   |.   83EE 0A      sub     esi, 0A
+010066D7   |.   F7DE        neg     esi
+010066D9   |.   1BF6        sbb     esi, esi
+010066DB   |.   83E6 05     and     esi, 5
+
+010066DE   |.   894424 18    mov     dword ptr [esp+18], eax
+
+010066E2   |>   FF7424 18     /push    dword ptr [esp+18]
+010066E6   |.   53          |push    ebx
+010066E7   |.   FF35 6C4D0101 |push    dword ptr [1014D6C]
+010066ED   |.   FFD7        |call    edi
+010066EF   |.   50         |push    eax                             ; |hWnd
+010066F0   |.   FF15 5C110001 |call    dword ptr [<&USER32.EnableWindo>; \EnableWindow    ;这里把 16 进制出现的选项给设置成真 ，看来
+
+修改的没错，
+
+010066F6   |.   56         |push    esi
+010066F7   |.   53         |push    ebx
+010066F8   |.   FF35 6C4D0101 |push    dword ptr [1014D6C]
+010066FE   |.   FFD7       |call    edi
+01006700   |.   50        |push    eax                             ; |hWnd
+01006701   |.   FF15 38110001 |call    dword ptr [<&USER32.ShowWindow>>; \ShowWindow    ；设置成现实
+
+01006707   |.   43        |inc     ebx
+01006708   |.   3BDD      |cmp     ebx, ebp
+0100670A   |.^ 7E D6      \jle     short 010066E2
+
+0100670C   |.   33DB       xor     ebx, ebx
+0100670E   |.   837C24 14 0A cmp     dword ptr [esp+14], 0A
+01006713   |.   BE 3A010000  mov     esi, 13A
+01006718   |.   0F94C3    sete    bl
+
+0100671B   |>   53         /push    ebx
+0100671C   |.   56         |push    esi
+0100671D   |.   FF35 6C4D0101 |push    dword ptr [1014D6C]
+01006723   |.   FFD7      |call    edi
+01006725   |.   50        |push    eax                             ; |hWnd
+01006726   |.   FF15 5C110001 |call    dword ptr [<&USER32.EnableWindo>; \EnableWindow    ；这里十进制的给设置 false
+
+0100672C   |.   837C24 14 0A |cmp     dword ptr [esp+14], 0A
+01006731   |.   74 04     |je      short 01006737
+01006733   |.   33C0      |xor     eax, eax
+01006735   |.   EB 03     |jmp     short 0100673A
+
+01006737   |>   6A 05     |push    5
+01006739   |.   58        |pop     eax
+0100673A   |>   50       |push    eax
+0100673B   |.   56       |push    esi
+0100673C   |.   FF35 6C4D0101 |push    dword ptr [1014D6C]
+01006742   |.   FFD7     |call    edi
+01006744   |.   50      |push    eax                             ; |hWnd
+01006745   |.   FF15 38110001 |call    dword ptr [<&USER32.ShowWindow>>; \ShowWindow   ；设置成隐藏
+
+0100674B   |.   46      |inc     esi
+0100674C   |.   81FE 3C010000 |cmp     esi, 13C
+01006752   |.^ 7E C7   \jle     short 0100671B
+```
+
+强行修改 `PUSH 0a` -----> `push 10` 运行下发现还是没有改成 16。
+
+只能继续跟下去了，返回到上级函数。
+
+## 上级函数分析
+来到了下面：
+
+```
+01001DAB   |.   F7D8       neg     eax
+01001DAD   |.   1BC0      sbb     eax, eax
+01001DAF   |.   83E0 08   and     eax, 8
+
+01001DB2   |.   50        push    eax                             ; /Flags
+01001DB3   |.   68 2F010000  push    12F                           ; |ItemId = 12F (303.)
+01001DB8   |.   FF35 7C4D0101 push    dword ptr [1014D7C]            ; |hMenu = 072E1BE5
+01001DBE   |.   FF15 44110001 call    dword ptr [<&USER32.CheckMenuIte>; \CheckMenuItem
+
+01001DC4   |>   830D 78420101 or     dword ptr [1014278], FFFFFFFF
+
+01001DCB     6A 0A      push    0A                          ;  10？进制 疑惑中 ing...
+
+01001DCD   |.   E8 89490000   call    0100675B                    ;跟进去
+
+01001DD2   |.   FF35 944D0101 push    dword ptr [1014D94]
+01001DD8   |.   E8 849F0000   call    0100BD61
+01001DDD   |.   85C0        test    eax, eax
+```
+
+进入 `100675b`。
+
+其中发现了个很熟悉的函数。
+
+```
+010067BD   |.   56        push    esi
+010067BE   |.   E8 63FEFFFF   call    01006626                  ;在这里
+```
+
+这个时候我们进入 `01006626`，单击右键查看调用树发现就两个地方（前面分析的那个函数和这个函数）。
+
+这个时候可以肯定修改了上个 `push 0a` 就没问题了。。。。(第一次出错的时候就该查看下调用栈 看看有没有再调用这个函数的地方)
+
+## 爆破结果
+爆破 复制可执行文件....
+
+成功~~~
+
+其实只修改第二个就可以达到爆破的目的。
+
+![](img/fd5e3ffdbe3cdbebe08aec1f66b6d666.jpg)
+
 ![](img/dda9d314caca86d7b48932a5e518ebe0.jpg)
 
-上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || 修改 windows 自带 calc 16 进制启动.rar  
- |
+### 上传的附件
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || 修改 windows 自带 calc 16 进制启动.rar |

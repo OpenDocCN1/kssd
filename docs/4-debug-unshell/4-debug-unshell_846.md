@@ -1,254 +1,225 @@
 
-
-# PECompact 加壳的 DLL 
+# PECompact 加壳的 DLL
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6709.htm`](https://www.pediy.com/kssd/pediy06/pediy6709.htm)
 
-  
-【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！  
-           
-【调试环境】：WinXP、Ollydbg1.10C、WinHex、PEiD、LordPE、PEditor、ImportREC 
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
 
-【实例下载】：点击此处下载。  
-           
-—————————————————————————————————   
-【脱壳过程】：  
-                     
-           
-            
-很多兄弟都不喜欢脱 DLL 的壳，我也是这样。DLL 比 EXE 多了个重定位表需要修复，况且单独一个 DLL 连脱壳后的测试都难以彻底进行。但是，并不能因为麻烦就放弃所有，譬如人生中的许多其他事……  
-           
-好几天没写东西了，忙乱且没心情。看到坛子里关于用 Ollydbg 脱 DLL 壳的笔记极少，所以写了这篇简单的东西放上来。其实在《加密与解密》第 2 版里对 DLL 的脱壳有很多的论述。  
-           
-ftgg.dll 有点特殊，如果用 Ollydbg1.10C 直接加载的话则 dll 不重定位，用 DLL\_Loader.exe 加载的话则进行重定位。所以这次我们直接用 Ollydbg1.10C 加载这个 DLL，Dump 之后再来处理重定位表。  
-           
-—————————————————————————————————  
-一、DUMP  
-           
-          
+【调试环境】：`WinXP`、`Ollydbg1.10C`、`WinHex`、`PEiD`、`LordPE`、`PEditor`、`ImportREC`
 
-> ```
-> 代码:
-> 10037000     EB 06               jmp short ftgg.10037008//进入 OD 后停在这
-> 10037002     68 90960000         push 9690//OEP 的 RVA
-> 10037007     C3                  retn
-> 10037008     9C                  pushfd
-> 10037009     60                  pushad
-> 1003700A     E8 02000000         call ftgg.10037011
-> 
-> ```
-> 
->   
+【实例下载】：点击此处下载。
 
-   
-           
-因为这个东东是 PECompact 2.0 以前的版本加壳，所以 OEP 很好找，壳入口的第 2 条指令 PUSH 的就是 OEP 的 RVA 地址。  
-OEP=10000000 + 9690=10009690  
-直接在 10009690 处下 硬件执行 断点，或者下内存断点，F9 运行就中断在 OEP 了。  
-           
+—————————————————————————————————
 
-> ```
-> 代码:
-> 10009690     55                  push ebp
-> 10009691     8BEC                mov ebp,esp
-> 10009693     53                  push ebx
-> 10009694     8B5D 08             mov ebx,dword ptr ss:\[ebp+8\]
-> 10009697     56                  push esi
-> 10009698     8B75 0C             mov esi,dword ptr ss:\[ebp+C\]
-> 1000969B     57                  push edi
-> 1000969C     8B7D 10             mov edi,dword ptr ss:\[ebp+10\]
-> 1000969F     85F6                test esi,esi
-> 100096A1     75 09               jnz short ftgg.100096AC
-> 
-> ```
-> 
->   
+## 脱壳过程
 
-  
-           
-用 LordPE 选中 Ollydbg 的 loaddll.exe 的进程，在下面的列表里选择 ftgg.dll，然后完整脱壳，得到 dumped.dll。  
-Dump 完之后，不要关闭 Ollydbg，还要为下面的处理重定位表提供点准备。  
-           
-           
-—————————————————————————————————  
-二、输入表  
-           
-           
-还是借用 ImportREC 吧。  
-随便从程序找一个 API 调用，如：  
-100095C4     FF15 60B10110       call dword ptr ds:\[1001B160\]; kernel32.GetVersion  
-在转存中跟随 1001B160，上下看到许多函数地址，很明显的可以找到 IAT 开始和结束的地址：  
-           
+很多兄弟都不喜欢脱 DLL 的壳，我也是这样。DLL 比 EXE 多了个重定位表需要修复，况且单独一个 DLL 连脱壳后的测试都难以彻底进行。但是，并不能因为麻烦就放弃所有，譬如人生中的许多其他事……
 
-> ```
-> 代码:
-> 1001AFF0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
-> 1001B000  9A 18 DA 77 EA 22 DA 77 0B 59 DA 77 F0 59 DA 77  ...w.".w.Y.w.Y.w
-> 1001B010  00 00 00 00 19 52 31 77 00 00 00 00 B0 1B C4 77  .....R1w.......w
->          
-> 1001B390  00 00 00 00 DF 71 F7 72 26 16 F7 72 6C 71 F7 72  .....q.r&..rlq.r
-> 1001B3A0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
-> 
-> ```
-> 
->   
+好几天没写东西了，忙乱且没心情。看到坛子里关于用 `Ollydbg` 脱 DLL 壳的笔记极少，所以写了这篇简单的东西放上来。其实在《加密与解密》第 2 版里对 DLL 的脱壳有很多的论述。
 
-  
-           
-开始地址＝1001B000  
-结束地址＝1001B3A0  
-           
-运行 ImportREC，选中 Ollydbg 的 loaddll.exe 的进程，然后点“选取 DLL”，选择 ftgg.dll，填入 RVA＝0001B000、大小＝3A0、OEP=00009690 ，点“Get Import”。用 PEditor 纠正 dumped.dll 的 DumpFixer，修正区块。FixDump！  
-           
-           
-—————————————————————————————————  
-三、重定位表 修复  
-           
-           
-仅仅这样就完成脱壳还是不行的，还有重定位表需要处理。  
-当我们停留在 10009690 的 OEP 处时，虽然 ftgg.dll 在用 Ollydbg1.10C 直接加载时没有进行重定位，但是其重定位代码已经解开了，所以我们现在就来寻找这段代码，以确定重定位表的 RVA 和大小。  
-           
-提供一个简单的方法来寻找这段处理代码：  
-Ctrl+G：10037000，也就是前往壳的入口点。  
-然后 Ctrl+S 在整个段块搜索命令序列：  
+`ftgg.dll` 有点特殊，如果用 `Ollydbg1.10C` 直接加载的话则 dll 不重定位，用 `DLL_Loader.exe` 加载的话则进行重定位。所以这次我们直接用 `Ollydbg1.10C` 加载这个 DLL，Dump 之后再来处理重定位表。
 
-> ```
-> 代码:
-> add esi,ebx
-> xor eax,eax
-> 
-> ```
-> 
->   
+—————————————————————————————————
 
-  
-           
-找到以下代码：  
-           
+## 一、DUMP
 
-> ```
-> 代码:
-> 10038652     8B9D E6904000       mov ebx,dword ptr ss:\[ebp+4090E6\]//\[ebp+4090E6\]=10000000
-> 10038658     3B9D 5F974000       cmp ebx,dword ptr ss:\[ebp+40975F\]//\[ebp+40975F\]=10000000
-> 1003865E     75 01               jnz short ftgg.10038661//如与映像基址不符则重定位处理！
-> //可以改标志位 Z=0，使这里跳转
-> 10038660     C3                  retn
-> 10038661     8BB5 63974000       mov esi,dword ptr ss:\[ebp+409763\]//\[ebp+409763\]=00032000  重定位表的 RVA
-> 10038667     03F3                add esi,ebx//ESI=00032000+10000000 =10032000
-> 10038669     33C0                xor eax,eax//找到这里
-> 1003866B     66:8B43 3C          mov ax,word ptr ds:\[ebx+3C\]
-> 1003866F     03C3                add eax,ebx
-> 10038671     8B80 C0000000       mov eax,dword ptr ds:\[eax+C0\]
-> 10038677     85C0                test eax,eax
-> 10038679     75 08               jnz short ftgg.10038683
-> 1003867B     2B9D 5F974000       sub ebx,dword ptr ss:\[ebp+40975F\]
-> 10038681     EB 0F               jmp short ftgg.10038692
-> 
-> ```
-> 
->   
+```
+代码:
+10037000      EB 06                 jmp short ftgg.10037008//进入 OD 后停在这
+10037002      68 90960000           push 9690//OEP 的 RVA
+10037007      C3                    retn
+10037008      9C                    pushfd
+10037009      60                    pushad
+1003700A      E8 02000000          call ftgg.10037011
+```
 
-  
-           
-现在我们在其 retn 上面的 10038652 处下 硬件执行 断点，然后 Ctrl+F2 重新载入这个 dll，F9 运行，就中断在 10038652 处了。  
-分析见上。因为这里不进行重定位，所以我们为了找到重定位表的地址和大小，可以改标志位 Z=0，使 1003865E 处跳转，可以看到 10038661 处的\[ebp+409763\]=00032000，这就是重定位表的 RVA！  
-           
+因为这个东东是 `PECompact` 2.0 以前的版本加壳，所以 OEP 很好找，壳入口的第 2 条指令 `PUSH` 的就是 OEP 的 RVA 地址。
 
-> ```
-> 代码:
-> 10038683     03C3                add eax,ebx
-> 10038685     2B9D 5F974000       sub ebx,dword ptr ss:\[ebp+40975F\]
-> 1003868B     0118                add dword ptr ds:\[eax\],ebx
-> 1003868D     83C0 04             add eax,4
-> 10038690     0118                add dword ptr ds:\[eax\],ebx
-> 10038692     AD                  lods dword ptr ds:\[esi\]//\[ESI\]=\[10033C34\]=00000000
-> 10038693     0BC0                or eax,eax
-> 10038695     74 6F               je short ftgg.10038706//重定位表处理结束，跳转
-> 10038697     8BD0                mov edx,eax
-> 10038699     0395 E6904000       add edx,dword ptr ss:\[ebp+4090E6\]
-> 1003869F     AD                  lods dword ptr ds:\[esi\]
-> 100386A0     8BC8                mov ecx,eax
-> 100386A2     83E9 08             sub ecx,8
-> 100386A5     D1E9                shr ecx,1
-> 100386A7     66:C785 55974000 00>mov word ptr ss:\[ebp+409755\],0
-> 100386B0     33C0                xor eax,eax
-> 100386B2     66:AD               lods word ptr ds:\[esi\]
-> 100386B4     0BC0                or eax,eax
-> 100386B6     74 49               je short ftgg.10038701
-> 100386B8     66:0385 55974000    add ax,word ptr ss:\[ebp+409755\]
-> 100386BF     66:8985 55974000    mov word ptr ss:\[ebp+409755\],ax
-> 100386C6     50                  push eax
-> 100386C7     C1E8 0C             shr eax,0C
-> 100386CA     83F8 01             cmp eax,1
-> 100386CD     75 0E               jnz short ftgg.100386DD
-> 100386CF     58                  pop eax
-> 100386D0     25 FF0F0000         and eax,0FFF
-> 100386D5     03C2                add eax,edx
-> 100386D7     66:0158 02          add word ptr ds:\[eax+2\],bx
-> 100386DB     EB 24               jmp short ftgg.10038701
-> 100386DD     83F8 02             cmp eax,2
-> 100386E0     75 0D               jnz short ftgg.100386EF
-> 100386E2     58                  pop eax
-> 100386E3     25 FF0F0000         and eax,0FFF
-> 100386E8     03C2                add eax,edx
-> 100386EA     66:0118             add word ptr ds:\[eax\],bx
-> 100386ED     EB 12               jmp short ftgg.10038701
-> 100386EF     83F8 03             cmp eax,3
-> 100386F2     75 0C               jnz short ftgg.10038700
-> 100386F4     58                  pop eax
-> 100386F5     25 FF0F0000         and eax,0FFF
-> 100386FA     03C2                add eax,edx
-> 100386FC     0118                add dword ptr ds:\[eax\],ebx
-> 100386FE     EB 01               jmp short ftgg.10038701
-> 10038700     58                  pop eax
-> 10038701     49                  dec ecx
-> 10038702     75 AC               jnz short ftgg.100386B0
-> 10038704     EB 8C               jmp short ftgg.10038692
-> 10038706     C3                  retn//ESI=10033C38
-> 
-> ```
-> 
->   
+`OEP=10000000 + 9690=10009690`
 
-  
-           
-上面就是程序对重定位表的处理，我们可以在 10038706 的 retn 处下断，F9 运行，断下后就可以得到重定位表的大小了。  
-ESI=10033C38，重定位表结束地址＝10033C38－4＝10033C34  
-重定位表大小＝10033C34－开始地址 10032000＝1C34  
-           
-用 WinHex 打开 dumped\_.dll，复制 32000－33C34 之间的 16 进制数值，另存为 1.bin  
-运行 看雪 老师写的辅助修复 PECompact 加壳 DLL 重定位表的工具 PEComAngela.exe，打开 1.bin，很快的提示 pediy.bin 文件创建成功！  
-           
-用 WinHex 把 pediy.bin 中的 16 进制数值全部复制、写入到 dumped\_.dll 的 32000 处，替换原先的重定位数据。  
-用 LordPE 修正 dumped\_.dll 的重定位表 RVA=00032000、大小＝00001C34，保存之。  
-           
-如果还想简单优化一下脱壳后的文件，可以用 FileScan 啦。  
-           
-OK，脱壳后的 dll 可以正常加载了，由于没有原先调用的主程序，所以只能做到这一步了。如果主程序中还有对 DLL 的校验，那就只有再从主程序入手解决了。  
-           
-           
-—————————————————————————————————      
+直接在 `10009690` 处下 硬件执行 断点，或者下内存断点，`F9` 运行就中断在 OEP 了。
 
-> ```
-> 代码:                              
->          ,     \_/ 
->         /| \_.-~/            \\\_     ,        青春都一晌
->        ( /~   /              \\~-.\_ |\\
->        \`\\\\  \_/                \\   ~\\           忍把浮名 
->    \_-~~~-.)  \_\_/;;,.          \\\_  //'
->   /'\_,\\   --~   \\ ~~~-  ,;;\\\_\_\_(  (.-~~~-.        换了破解轻狂
->  \`~ \_( ,\_..--\\ (     ,;'' /    ~--   /.\_\`\\ 
->   /~~//'   /' \`~\\         ![](img/e45fac309594d4f9580d902b0ed40a73.jpg) /--..\_, ![](img/e45fac309594d4f9580d902b0ed40a73.jpg)\_  \`~
->   "  \`~"  "      \`"      /~'\`\\    \`\\\\~~\\   
->                          "     "   "~'  ""
-> 
-> ```
-> 
->   
+```
+代码:
+10009690      55                    push ebp
+10009691      8BEC                  mov ebp,esp
+10009693      53                    push ebx
+10009694      8B5D 08              mov ebx,dword ptr ss:[ebp+8]
+10009697      56                    push esi
+10009698      8B75 0C              mov esi,dword ptr ss:[ebp+C]
+1000969B      57                    push edi
+1000969C      8B7D 10              mov edi,dword ptr ss:[ebp+10]
+1000969F      85F6                 test esi,esi
+100096A1      75 09                jnz short ftgg.100096AC
+```
 
-  
-      
-  
-     Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]\[NUKE\]\[DCM\]  
-  
-                2004-05-25  16:00  4dd466d0e1e0cc123afbe504da2462ca
+用 `LordPE` 选中 `Ollydbg` 的 `loaddll.exe` 的进程，在下面的列表里选择 `ftgg.dll`，然后完整脱壳，得到 `dumped.dll`。
+
+Dump 完之后，不要关闭 `Ollydbg`，还要为下面的处理重定位表提供点准备。
+
+—————————————————————————————————
+
+## 二、输入表
+
+还是借用 `ImportREC` 吧。
+
+随便从程序找一个 API 调用，如：
+
+`100095C4      FF15 60B10110        call dword ptr ds:[1001B160]; kernel32.GetVersion`
+
+在转存中跟随 `1001B160`，上下看到许多函数地址，很明显的可以找到 IAT 开始和结束的地址：
+
+```
+代码:
+1001AFF0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+1001B000  9A 18 DA 77 EA 22 DA 77 0B 59 DA 77 F0 59 DA 77  ...w.".w.Y.w.Y.w
+1001B010  00 00 00 00 19 52 31 77 00 00 00 00 B0 1B C4 77  .....R1w.......w
+          
+1001B390  00 00 00 00 DF 71 F7 72 26 16 F7 72 6C 71 F7 72  .....q.r&..rlq.r
+1001B3A0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+```
+
+开始地址＝`1001B000`
+
+结束地址＝`1001B3A0`
+
+运行 `ImportREC`，选中 `Ollydbg` 的 `loaddll.exe` 的进程，然后点“选取 DLL”，选择 `ftgg.dll`，填入 `RVA＝0001B000`、`大小＝3A0`、`OEP=00009690` ，点“`Get Import`”。用 `PEditor` 纠正 `dumped.dll` 的 `DumpFixer`，修正区块。`FixDump`！
+
+—————————————————————————————————
+
+## 三、重定位表 修复
+
+仅仅这样就完成脱壳还是不行的，还有重定位表需要处理。
+
+当我们停留在 `10009690` 的 OEP 处时，虽然 `ftgg.dll` 在用 `Ollydbg1.10C` 直接加载时没有进行重定位，但是其重定位代码已经解开了，所以我们现在就来寻找这段代码，以确定重定位表的 RVA 和大小。
+
+提供一个简单的方法来寻找这段处理代码：
+
+`Ctrl+G`：`10037000`，也就是前往壳的入口点。
+
+然后 `Ctrl+S` 在整个段块搜索命令序列：
+
+```
+代码:
+add esi,ebx
+xor eax,eax
+```
+
+找到以下代码：
+
+```
+代码:
+10038652      8B9D E6904000        mov ebx,dword ptr ss:[ebp+4090E6]//[ebp+4090E6]=10000000
+10038658      3B9D 5F974000        cmp ebx,dword ptr ss:[ebp+40975F]//[ebp+40975F]=10000000
+1003865E      75 01                jnz short ftgg.10038661//如与映像基址不符则重定位处理！
+//可以改标志位 Z=0，使这里跳转
+10038660      C3                    retn
+10038661      8BB5 63974000        mov esi,dword ptr ss:[ebp+409763]//[ebp+409763]=00032000   重定位表的 RVA
+10038667      03F3                 add esi,ebx//ESI=00032000+10000000 =10032000
+10038669      33C0                 xor eax,eax//找到这里
+1003866B      66:8B43 3C          mov ax,word ptr ds:[ebx+3C]
+1003866F      03C3                 add eax,ebx
+10038671      8B80 C0000000        mov eax,dword ptr ds:[eax+C0]
+10038677      85C0                 test eax,eax
+10038679      75 08                jnz short ftgg.10038683
+1003867B      2B9D 5F974000        sub ebx,dword ptr ss:[ebp+40975F]
+10038681      EB 0F                jmp short ftgg.10038692
+```
+
+现在我们在其 `retn` 上面的 `10038652` 处下 硬件执行 断点，然后 `Ctrl+F2` 重新载入这个 dll，`F9` 运行，就中断在 `10038652` 处了。
+
+分析见上。因为这里不进行重定位，所以我们为了找到重定位表的地址和大小，可以改标志位 `Z=0`，使 `1003865E` 处跳转，可以看到 `10038661` 处的`[ebp+409763]=00032000`，这就是重定位表的 RVA！
+
+```
+代码:
+10038683      03C3                 add eax,ebx
+10038685      2B9D 5F974000        sub ebx,dword ptr ss:[ebp+40975F]
+1003868B      0118                 add dword ptr ds:[eax],ebx
+1003868D      83C0 04              add eax,4
+10038690      0118                 add dword ptr ds:[eax],ebx
+10038692      AD                    lods dword ptr ds:[esi]//[ESI]=[10033C34]=00000000
+10038693      0BC0                 or eax,eax
+10038695      74 6F                je short ftgg.10038706//重定位表处理结束，跳转
+10038697      8BD0                 mov edx,eax
+10038699      0395 E6904000        add edx,dword ptr ss:[ebp+4090E6]
+1003869F      AD                    lods dword ptr ds:[esi]
+100386A0      8BC8                 mov ecx,eax
+100386A2      83E9 08              sub ecx,8
+100386A5      D1E9                 shr ecx,1
+100386A7      66:C785 55974000 00>mov word ptr ss:[ebp+409755],0
+100386B0      33C0                 xor eax,eax
+100386B2      66:AD                lods word ptr ds:[esi]
+100386B4      0BC0                 or eax,eax
+100386B6      74 49                je short ftgg.10038701
+100386B8      66:0385 55974000     add ax,word ptr ss:[ebp+409755]
+100386BF      66:8985 55974000     mov word ptr ss:[ebp+409755],ax
+100386C6      50                    push eax
+100386C7      C1E8 0C              shr eax,0C
+100386CA      83F8 01              cmp eax,1
+100386CD      75 0E                jnz short ftgg.100386DD
+100386CF      58                    pop eax
+100386D0      25 FF0F0000          and eax,0FFF
+100386D5      03C2                 add eax,edx
+100386D7      66:0158 02           add word ptr ds:[eax+2],bx
+100386DB      EB 24                jmp short ftgg.10038701
+100386DD      83F8 02              cmp eax,2
+100386E0      75 0D                jnz short ftgg.100386EF
+100386E2      58                    pop eax
+100386E3      25 FF0F0000          and eax,0FFF
+100386E8      03C2                 add eax,edx
+100386EA      66:0118              add word ptr ds:[eax],bx
+100386ED      EB 12                jmp short ftgg.10038701
+100386EF      83F8 03              cmp eax,3
+100386F2      75 0C                jnz short ftgg.10038700
+100386F4      58                    pop eax
+100386F5      25 FF0F0000          and eax,0FFF
+100386FA      03C2                 add eax,edx
+100386FC      0118                 add dword ptr ds:[eax],ebx
+100386FE      EB 01                jmp short ftgg.10038701
+10038700      58                    pop eax
+10038701      49                    dec ecx
+10038702      75 AC                jnz short ftgg.100386B0
+10038704      EB 8C                jmp short ftgg.10038692
+10038706      C3                    retn//ESI=10033C38
+```
+
+上面就是程序对重定位表的处理，我们可以在 `10038706` 的 `retn` 处下断，`F9` 运行，断下后就可以得到重定位表的大小了。
+
+`ESI=10033C38`，重定位表结束地址＝`10033C38－4＝10033C34`
+
+重定位表大小＝`10033C34－开始地址 10032000＝1C34`
+
+用 `WinHex` 打开 `dumped_.dll`，复制 `32000－33C34` 之间的 16 进制数值，另存为 `1.bin`
+
+运行 看雪 老师写的辅助修复 `PECompact` 加壳 DLL 重定位表的工具 `PEComAngela.exe`，打开 `1.bin`，很快的提示 `pediy.bin` 文件创建成功！
+
+用 `WinHex` 把 `pediy.bin` 中的 16 进制数值全部复制、写入到 `dumped_.dll` 的 `32000` 处，替换原先的重定位数据。
+
+用 `LordPE` 修正 `dumped_.dll` 的重定位表 `RVA=00032000`、`大小＝00001C34`，保存之。
+
+如果还想简单优化一下脱壳后的文件，可以用 `FileScan` 啦。
+
+`OK`，脱壳后的 dll 可以正常加载了，由于没有原先调用的主程序，所以只能做到这一步了。如果主程序中还有对 DLL 的校验，那就只有再从主程序入手解决了。
+
+—————————————————————————————————
+
+
+
+```
+代码:                             
+        ,     \_/ 
+       /| \_.-~/            \\\    ,        青春都一晌
+      ( /~   /              \\~-.\_ |\
+      \`\\  \_/              \\   ~\        忍把浮名 
+   _-~~~-.)  \_\_/;;,.        \\\  //'
+  /'_\  --~   \ ~~~-  ,;;\_\_(  (.-~~~-.)    换了破解轻狂
+ \`~ _( ,_..--\ (      ,;''/    ~--   /.\`\\ 
+  /~~//'  /' \`~\       ![](img/e45fac309594d4f9580d902b0ed40a73.jpg) /--..\_,  ![](img/e45fac309594d4f9580d902b0ed40a73.jpg)\_  \`~
+  "  \`~"  "     \`"      /~'\`\\    \`\\~~\\    
+                    "     "   "~'  ""
+
+```
+
+`Cracked By 巢水工作坊——fly [OCN][FCG][NUKE][DCM]`
+
+`2004-05-25  16:00  4dd466d0e1e0cc123afbe504da2462ca`

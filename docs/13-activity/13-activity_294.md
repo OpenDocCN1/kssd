@@ -1,10 +1,9 @@
 
-
 # 腾讯 2008 第三阶段专杀过程思路
 
 > 原文：[`www.pediy.com/kssd/pediy12/140920.html`](https://www.pediy.com/kssd/pediy12/140920.html)
 
-很简单，分为几个步骤，第一步分析 a.EXE 得知释放了 sys、exe、dll，我们先判断是否中毒了
+很简单，分为几个步骤，第一步分析 `a.EXE` 得知释放了 `sys`、`exe`、`dll`，我们先判断是否中毒了
 
 代码:
 
@@ -33,10 +32,9 @@ BOOL SystemState(HWND hWnd)
   }
   return TRUE;
 }
-
 ```
 
-，然后通过分析得知释放了文件之后就会启动 system.exe 进程，这个进程干了许多事情，释放模块，等等，我们结束它，代码:
+然后通过分析得知释放了文件之后就会启动 `system.exe` 进程，这个进程干了许多事情，释放模块，等等，我们结束它，代码:
 
 ```
 BOOL SetWindowShow(void)
@@ -49,7 +47,6 @@ BOOL SetWindowShow(void)
   EndDialog(hWnd,0);
     return TRUE;
 }
-
 ```
 
 添加了自启动，引用 SHOOO 大侠的代码代码:
@@ -66,10 +63,9 @@ BOOL StopAutoRun(void)
     SHDeleteKey(HKEY\_LOCAL\_MACHINE, "SYSTEM\\\\CurrentControlSet\\\\Services\\\\HBKernel32");
   return TRUE;
 }
-
 ```
 
-然后我们查找进程中的 HBQQXX.DLL，释放掉代码:
+然后我们查找进程中的 `HBQQXX.DLL`，释放掉代码:
 
 ```
 BOOL EnumModule(DWORD Pid)
@@ -113,17 +109,23 @@ BOOL EnumProcess(void)
     } while( Process32Next( hProcessSnap, &PE32 ));
   return TRUE;
 }
-
 ```
 
-很多事情还没做。  
-来个标准过程：  
-第一步：判断是否中毒  
-第二步：结束 System.exe 进程  
-第三步：查找进程中的 HBQXX.DLL 模块，并且释放掉  
-第四步：释放驱动  
+很多事情还没做。
+
+来个标准过程：
+
+第一步：判断是否中毒
+
+第二步：结束 `System.exe` 进程
+
+第三步：查找进程中的 `HBQXX.DLL` 模块，并且释放掉
+
+第四步：释放驱动
+
 第五步：处理注册表等等，删除模块文件等等善后工作
 
 上传的附件
-| ![](img/620251b33676a8e4b98ca0ece915ee8d.jpg) || Kill.zip  
- |
+
+| ![](img/620251b33676a8e4b98ca0ece915ee8d.jpg) || Kill.zip |
+

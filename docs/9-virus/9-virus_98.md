@@ -1,201 +1,154 @@
 
-
-# batch 病毒之一
+# Batch 病毒之一
 
 > 原文：[`www.pediy.com/kssd/pediy08/pediy8-766.htm`](https://www.pediy.com/kssd/pediy08/pediy8-766.htm)
 
-译者水平有限，望大家不吝赐教。  
-                 
-             Batch File Viruses                   
-原文：    (http://vx.netlux.org/lib/static/vdat/batchvr1.htm)  
-  
-  
-  
-\--------------------------------------------------------------------------------  
-  
-Usually virus writers strive to make their viruses as complex as possible to prevent anti-virus programs from detecting them. Certain writers, however, try to push their creations to the utmost limits of simplicity.   
-Some of them have wanted to create the smallest possible virus -- at the moment, the smallest virus consists of just 25 bytes --  
- while others have taken advantage of DOS's relatively simple batch language and written viruses infecting BAT files.   
-  
-一般病毒的作者都喜欢把他们的病毒搞的尽可能的复杂来躲过杀毒软件的检测。但是却有某些作者试着将自己创造性的东西加入代码，  
-使这些代码能更简单明了，让他们写出来的代码能更短小。现在，最小的病毒只有 25B。因为他们运用了 DOS 相对简单的批处理语言来  
-写些感染 BAT 文件的病毒。  
-  
-BAT viruses do not usually pose a serious threat due to their simplicity. They are generally unable to spread quickly between   
-computers, so infections that do happen are normally limited to small areas.   
-  
-BAT 病毒因为他们比较简短，所以通常都不会构成极其严重的威胁。这种病毒一般不会传播的很快，所以发生的感染只是局限在一些小的范围。  
-  
-Ralf Burger published the world's first known BAT virus in his book Das grosse Computerviren-Buch in 1987, calling it VR.BAT. VR.BAT did not, however, function purely on DOS batch language, for it used also machine-language code located in a separate file. Since the virus destroyed its victim, it generally did not take long for a user to smell something fishy.   
-  
-Ralf Burger 在 1987 年他的书里（Das grosse Computerviren-Buch）介绍了世界上第一个著名的 BAT 病毒－－VR.BAT。VR.BAT 不仅使用了 DOS 的  
-批处理命令，它还使用了在一个单独的文件里的机器语言代码。因为病毒损坏了一些文件，所以中招者要不了多久就会闻到一些鱼腥。  
-  
-  
-  
-  
-  
-Batman   
-  
-A few other simple BAT viruses have been found since Burger's VR.BAT. At the turn of the year, however, a batch file virus unlike any other  
- BAT virus previously encountered, called Batman, was discovered. What made Batman stand apart from other BAT viruses was its ability to  
- install itself into memory. This is possible, since the Batman virus contains binary-form machine language code inside the BAT listing.   
-  
-  
-        @ECHO OFF  
-        REM  <binary code>  
-        copy %0 b.com>nul  
-        b.com  
-        del b.com  
-        rem  <binary code>  
-  
-  
-  
-Batman 病毒  
-  
-  
-在 Burger 的 VR.BAT 病毒之后又出现了一些其他简单的 BAT 病毒。在这个年底，出现了一个不同于先前的 BAT 病毒的病毒----Batman。这个病毒不同于  
-其它病毒之处在于它能把自己装进内存。这是可能的，因为 Batman 病毒在 BAT 列表中包含了二进制的机器语言代码。  
-  
-        @ECHO OFF  
-        REM  <binary code>  
-        copy %0 b.com>nul  
-        b.com  
-        del b.com  
-        rem  <binary code>  
-  
-In other words, the virus first renames itself as B.COM, after which it executes this file as a normal COM program. This is made possible by the   
-fact that the capital-letter @ECHO OFF and REM commands at the beginning of the file translate to machine language commands which have no bearing  
- on the functioning   
-of the virus whatsoever.   
-  
-  
-简单的说，这个病毒首先把自己命名为 B.COM，这之后它就可以象普通的 COM 程序一样执行。这可能是基于这样的一个事实：文件开头以@ECHO OFF 和 REM  
-打头的命令翻译成机器语言之后对病毒没有什么影响。  
-  
-  
-  
-  
-  
-  
-        Text                 Code  
-        -----------------------------------  
-        @                    INC AX  
-        E                    INC BP  
-        C                    INC BX  
-        H                    DEC AX  
-        O                    DEC DI  
-        <space>OF            AND \[BX+46\],CL  
-        F                    INC SI  
-        <enter><text line>R  OR AX,520A  
-        E                    INC BP  
-        M                    DEC BP  
-  
-The first part of the binary code includes a jump command to the end part of Batman's code. The end part contains the commands for installing the  
- virus into memory. Since Batman does not check memory before installing itself, the virus reinstalls itself into memory every time an infected   
-file is executed. Little by little, it eats away the available memory.  
-  
-二进制代码的第一部分包含了一个 jump 命令，跳到了 Batman 病毒代码的最后。最后的那部分包含了把病毒装进内存命令。因为 Batman 病毒没有在安装之  
-前检查内存空间，所以病毒会在感染的文件每次被执行的时候都再次安装。一点点的，它就耗光了可用内存。  
-  
-   
-  
-The virus monitors write operations to files while it is active in memory. It checks the beginning of files every time they written to. If the file  
- in question starts with the command @ECHO, the virus judges it to be a batch file and infects it. Since Batman makes no attempt to check whether it  
-}  has already infected a file, the same file can be infected many times over. Moreover, if several copies of the virus have installed themselves  
- into memory, every single one of them infects the batch files that are being written to.   
-  
-病毒监测程序在病毒运行的时候就会在文件中记录操作。它每次都会检查它改写过的文件的开头。如果文件以@ECHO 命令开头，病毒就会认为它是一个批  
-处理文件，然后感染它。因为 Batman 病毒并没有检查一个文件是否已经被感染了，所以文件会被感染很多次。另外，如果病毒在内存中复制并安装了，  
-这样每一个病毒都会感染那些它们将要写入的批处理文件。  
-  
-  
-Case: The Batch Virus "BAT-Parasite" in Finland   
-  
-案例：芬兰的"BAT-Parasite"批处理病毒  
-  
-At the beginning of June, the F-PROT Support of Data Fellows Ltd. received a letter from Lahti, Finland, signed by a person using the pseudonym Pelimies (Player). A diskette   
-containing a virus that spreads via BAT files was included in the letter. In the letter, the writer explained that the virus had infested his and  
- his friends' computers for months, and that it had also infected the microcomputers of his school.   
-  
-  
-  
-  
-Closer examination proved the virus to be wholly functional, if somewhat simple. It consists of BAT files, the joint length of which measures 1111  
- bytes. The virus conceals itself by hiding three of its four BAT files by using the DOS command ATTRIB. One of its files, CHECK.BAT, contains the  
- following text in its beginning:   
-  
-Copyright (c) 1993 damage program laboratory, Finland  
-Program PARASITE  
-This version is harmless voyager   
-  
-6 月初，F-PROT Support of Data Fellows Ltd.公司收到了一封来自芬兰 Lahti 的信。当然，信上的签名是用的假名 Pelimies（Player）。在信中，有一张软盘，  
-软盘里有一个经由 BAT 文件传播的病毒。在信中,作者解释说,这种病毒已经感染了他的和他的朋友的电脑数月,而且还把学校的电脑感染了.   
-  
-较近的检测证明病毒具备完整的功能，尽管看起来有点简单。它由 BAT 文件组成，总长只有 1111B。病毒通过 DOS 命令 ATTRIB 隐藏了它的四个文件中的 3 个 BAT 文件，  
-这样它就能伪装自己了。文件中的一个－－－CHECK.BAT，它的开头是这样写的：  
-Copyright (c) 1993 damage program laboratory, Finland  
-Program PARASITE                                        
-This version is harmless voyager   
-  
-  
-这个病毒的名称是 BAT－Parasite（寄生虫）  
-  
-The virus was duly named BAT-Parasite.   
-  
-  
-  
-  
-The virus spreads via diskettes. A contaminated diskette contains one visible file, PELI.BAT (Peli is Finnish and means "game"), which, when executed,   
-copies itself and the hidden virus files to the \\DOS directory of the logical disk C. At the same time, BAT-Parasite renames the file FORMAT.COM, giving it the name F.COM. A compensating file called FORMAT.BAT has been included in the virus to prevent the user  
- from noticing the switch.   
-  
-病毒通过软盘传播.一个带毒的软盘上面有这样一个可见的文件－－PELL.BAT（PELI 是芬兰语，意思是“游戏”）。当它被执行的时候，它就会复制本身，并且  
-隐藏在逻辑 C 盘的\\DOS 目录下。同时，BAT-Parasite 将 FORMAT.COM 命名为 F.COM。而另一个文件－－FORMAT.BAT 作为补偿，它令用户注意不到变化。  
-  
-  
-  
-BAT-Parasite infects diskettes when they are formatted. When a user tries to run the FORMAT program, the viral FORMAT.BAT file first executes F.COM, using   
-the command line switches the user has given. Having done that, the CHECK.BAT file copies the viral files to the diskette.   
-  
-BAT-Parasite 在软盘格式化的时候感染软盘。当一个用户试图运行 FORMAT 程序时，带毒的 FORMAT.BAT 文件就会通过用户给出的命令行开关首先执行 F.COM。做完了上面的步骤后，CHECK.BAT 文件就会把染毒的文件拷贝到软盘里了。  
-  
-  
-  
-All the diskettes formatted in a contaminated computer contain the visible file PELI.BAT and the three hidden viral files. The creator of BAT-Parasite has relied on an enticing name to have people execute the BAT file in their computers. When PELI.BAT is executed, the virus copies itself from  
- the diskette to the hard disk and displays the message:   
-  
-ERROR, game not start   
-  
-after which it terminates its execution.   
-  
-在中毒的电脑里格式化过的所有的软盘都包含一个可见的 PELL.BAT 文件和三个隐藏的染毒文件。BAT-Parasite 的作者使用了一个诱人的名字来让人们运行 BAT 文件。当 PELI.BAT 被执行后，病毒就从软盘里复制到硬盘上，同时显示这样一条消息：  
-  
-ERROR，game not start  
-  
-然后就结束运行了。  
-  
-  
-  
-The virus is unable to spread if a computer does not contain the directory C:\\DOS. The functioning of BAT-Parasite is also hindered, but not completely blocked, by the lack of the programs ATTRIB and FORMAT.  
-  
-如果电脑上没有 C:\\DOS 目录的话，病毒就不能传播了。同样由于缺少了程序的 ATTRIB 和 FORMAT，BAT-Parasite 的功能也会丧失，但是也并不是全部的功能都没有了！  
-   
-  
-  
-  
-Even though BAT-Parasite is not a serious threat, it can spread quite unnoticed despite its simple structure. The virus can be removed by simply deleting the files  
- PELI.BAT, RESIDENT.BAT, CHECK.BAT and FORMAT.BAT, and changing the name of F.COM back to FORMAT.COM.  
-  
-  
-尽管 BAT-Parasite 不构成严重的威胁，但是它因为结构简单，能在不知不觉间传播。这个病毒能通过删除文件 PELI.BAT,RESIDENT.BAT,CHECK.BAT 和 FORMAT.BAT 来清除，也可以把 F.COM 重新命名为 FORMAT.COM 来清除.  
-  
-  
-参考：  
-See:   
-    Tutorials:  
-\- Batch Viruses by Black Wolf.  
-\- Batch viruses by Wavefunc part 2.  
-\- Batch viruses by Wavefunc part 3. 
+译者水平有限，望大家不吝赐教。
 
- 4dd466d0e1e0cc123afbe504da2462ca
+Batch File Viruses
+
+原文：([`http://vx.netlux.org/lib/static/vdat/batchvr1.htm`](http://vx.netlux.org/lib/static/vdat/batchvr1.htm))
+
+`--------------------------------------------------------------------------------`
+
+Usually virus writers strive to make their viruses as complex as possible to prevent anti-virus programs from detecting them. Certain writers, however, try to push their creations to the utmost limits of simplicity.
+
+Some of them have wanted to create the smallest possible virus -- at the moment, the smallest virus consists of just 25 bytes -- while others have taken advantage of DOS's relatively simple batch language and written viruses infecting BAT files.
+
+一般病毒的作者都喜欢把他们的病毒搞的尽可能的复杂来躲过杀毒软件的检测。但是却有某些作者试着将自己创造性的东西加入代码，使这些代码能更简单明了，让他们写出来的代码能更短小。现在，最小的病毒只有 25B。因为他们运用了 DOS 相对简单的批处理语言来写些感染 BAT 文件的病毒。
+
+BAT viruses do not usually pose a serious threat due to their simplicity. They are generally unable to spread quickly between computers, so infections that do happen are normally limited to small areas.
+
+BAT 病毒因为他们比较简短，所以通常都不会构成极其严重的威胁。这种病毒一般不会传播的很快，所以发生的感染只是局限在一些小的范围。
+
+Ralf Burger published the world's first known BAT virus in his book *Das grosse Computerviren-Buch* in 1987, calling it `VR.BAT`. `VR.BAT` did not, however, function purely on DOS batch language, for it used also machine-language code located in a separate file. Since the virus destroyed its victim, it generally did not take long for a user to smell something fishy.
+
+Ralf Burger 在 1987 年他的书里（*Das grosse Computerviren-Buch*）介绍了世界上第一个著名的 BAT 病毒－－`VR.BAT`。`VR.BAT` 不仅使用了 DOS 的批处理命令，它还使用了在一个单独的文件里的机器语言代码。因为病毒损坏了一些文件，所以中招者要不了多久就会闻到一些鱼腥。
+
+### Batman
+
+A few other simple BAT viruses have been found since Burger's `VR.BAT`. At the turn of the year, however, a batch file virus unlike any other BAT virus previously encountered, called Batman, was discovered. What made Batman stand apart from other BAT viruses was its ability to install itself into memory. This is possible, since the Batman virus contains binary-form machine language code inside the BAT listing.
+
+```
+@ECHO OFF
+REM  <binary code>
+copy %0 b.com>nul
+b.com
+del b.com
+rem  <binary code>
+```
+
+Batman 病毒
+
+在 Burger 的 `VR.BAT` 病毒之后又出现了一些其他简单的 BAT 病毒。在这个年底，出现了一个不同于先前的 BAT 病毒的病毒----Batman。这个病毒不同于其它病毒之处在于它能把自己装进内存。这是可能的，因为 Batman 病毒在 BAT 列表中包含了二进制的机器语言代码。
+
+```
+@ECHO OFF
+REM  <binary code>
+copy %0 b.com>nul
+b.com
+del b.com
+rem  <binary code>
+```
+
+In other words, the virus first renames itself as `B.COM`, after which it executes this file as a normal `COM` program. This is made possible by the fact that the capital-letter `@ECHO OFF` and `REM` commands at the beginning of the file translate to machine language commands which have no bearing on the functioning of the virus whatsoever.
+
+简单的说，这个病毒首先把自己命名为 `B.COM`，这之后它就可以象普通的 `COM` 程序一样执行。这可能是基于这样的一个事实：文件开头以 `@ECHO OFF` 和 `REM` 打头的命令翻译成机器语言之后对病毒没有什么影响。
+
+```
+Text                 Code
+-----------------------------------
+@                    INC AX
+E                    INC BP
+C                    INC BX
+H                    DEC AX
+O                    DEC DI
+<space>OF            AND [BX+46],CL
+F                    INC SI
+<enter><text line>   R  OR AX,520A
+E                    INC BP
+M                    DEC BP
+```
+
+The first part of the binary code includes a jump command to the end part of Batman's code. The end part contains the commands for installing the virus into memory. Since Batman does not check memory before installing itself, the virus reinstalls itself into memory every time an infected file is executed. Little by little, it eats away the available memory.
+
+二进制代码的第一部分包含了一个 `jump` 命令，跳到了 Batman 病毒代码的最后。最后的那部分包含了把病毒装进内存命令。因为 Batman 病毒没有在安装之前检查内存空间，所以病毒会在感染的文件每次被执行的时候都再次安装。一点点的，它就耗光了可用内存。
+
+The virus monitors write operations to files while it is active in memory. It checks the beginning of files every time they written to. If the file in question starts with the command `@ECHO`, the virus judges it to be a batch file and infects it. Since Batman makes no attempt to check whether it has already infected a file, the same file can be infected many times over. Moreover, if several copies of the virus have installed themselves into memory, every single one of them infects the batch files that are being written to.
+
+病毒监测程序在病毒运行的时候就会在文件中记录操作。它每次都会检查它改写过的文件的开头。如果文件以 `@ECHO` 命令开头，病毒就会认为它是一个批处理文件，然后感染它。因为 Batman 病毒并没有检查一个文件是否已经被感染了，所以文件会被感染很多次。另外，如果病毒在内存中复制并安装了，这样每一个病毒都会感染那些它们将要写入的批处理文件。
+
+## Case: The Batch Virus "BAT-Parasite" in Finland
+
+案例：芬兰的"BAT-Parasite"批处理病毒
+
+At the beginning of June, the F-PROT Support of Data Fellows Ltd. received a letter from Lahti, Finland, signed by a person using the pseudonym Pelimies (Player). A diskette containing a virus that spreads via BAT files was included in the letter. In the letter, the writer explained that the virus had infested his and his friends' computers for months, and that it had also infected the microcomputers of his school.
+
+Closer examination proved the virus to be wholly functional, if somewhat simple. It consists of BAT files, the joint length of which measures 1111 bytes. The virus conceals itself by hiding three of its four BAT files by using the DOS command `ATTRIB`. One of its files, `CHECK.BAT`, contains the following text in its beginning:
+
+```
+Copyright (c) 1993 damage program laboratory, Finland
+Program PARASITE
+This version is harmless voyager
+```
+
+6 月初，F-PROT Support of Data Fellows Ltd.公司收到了一封来自芬兰 Lahti 的信。当然，信上的签名是用的假名 Pelimies（Player）。在信中，有一张软盘，软盘里有一个经由 BAT 文件传播的病毒。在信中,作者解释说,这种病毒已经感染了他的和他的朋友的电脑数月,而且还把学校的电脑感染了.
+
+较近的检测证明病毒具备完整的功能，尽管看起来有点简单。它由 BAT 文件组成，总长只有 1111B。病毒通过 DOS 命令 `ATTRIB` 隐藏了它的四个文件中的 3 个 BAT 文件，这样它就能伪装自己了。文件中的一个－－－`CHECK.BAT`，它的开头是这样写的：
+
+```
+Copyright (c) 1993 damage program laboratory, Finland
+Program PARASITE
+This version is harmless voyager
+```
+
+这个病毒的名称是 BAT－Parasite（寄生虫）
+
+The virus was duly named BAT-Parasite.
+
+The virus spreads via diskettes. A contaminated diskette contains one visible file, `PELI.BAT` (`Peli` is Finnish and means "game"), which, when executed, copies itself and the hidden virus files to the `\DOS` directory of the logical disk `C`. At the same time, `BAT-Parasite` renames the file `FORMAT.COM`, giving it the name `F.COM`. A compensating file called `FORMAT.BAT` has been included in the virus to prevent the user from noticing the switch.
+
+病毒通过软盘传播.一个带毒的软盘上面有这样一个可见的文件－－PELL.BAT（PELI 是芬兰语，意思是“游戏”）。当它被执行的时候，它就会复制本身，并且隐藏在逻辑 C 盘的 `\DOS` 目录下。同时，BAT-Parasite 将 `FORMAT.COM` 命名为 `F.COM`。而另一个文件－－`FORMAT.BAT` 作为补偿，它令用户注意不到变化。
+
+`BAT-Parasite` infects diskettes when they are formatted. When a user tries to run the `FORMAT` program, the viral `FORMAT.BAT` file first executes `F.COM`, using the command line switches the user has given. Having done that, the `CHECK.BAT` file copies the viral files to the diskette.
+
+BAT-Parasite 在软盘格式化的时候感染软盘。当一个用户试图运行 `FORMAT` 程序时，带毒的 `FORMAT.BAT` 文件就会通过用户给出的命令行开关首先执行 `F.COM`。做完了上面的步骤后，`CHECK.BAT` 文件就会把染毒的文件拷贝到软盘里了。
+
+All the diskettes formatted in a contaminated computer contain the visible file `PELI.BAT` and the three hidden viral files. The creator of `BAT-Parasite` has relied on an enticing name to have people execute the BAT file in their computers. When `PELI.BAT` is executed, the virus copies itself from the diskette to the hard disk and displays the message:
+
+```
+ERROR, game not start
+```
+
+after which it terminates its execution.
+
+在中毒的电脑里格式化过的所有的软盘都包含一个可见的 PELL.BAT 文件和三个隐藏的染毒文件。BAT-Parasite 的作者使用了一个诱人的名字来让人们运行 BAT 文件。当 `PELI.BAT` 被执行后，病毒就从软盘里复制到硬盘上，同时显示这样一条消息：
+
+```
+ERROR，game not start
+```
+
+
+
+然后就结束运行了。  
+
+The virus is unable to spread if a computer does not contain the directory `C:\DOS`. The functioning of `BAT-Parasite` is also hindered, but not completely blocked, by the lack of the programs `ATTRIB` and `FORMAT`.  
+
+如果电脑上没有 `C:\DOS` 目录的话，病毒就不能传播了。同样由于缺少了程序的 `ATTRIB` 和 `FORMAT`，`BAT-Parasite` 的功能也会丧失，但是也并不是全部的功能都没有了！  
+
+Even though `BAT-Parasite` is not a serious threat, it can spread quite unnoticed despite its simple structure. The virus can be removed by simply deleting the files
+
+`PELI.BAT`, `RESIDENT.BAT`, `CHECK.BAT` and `FORMAT.BAT`, and changing the name of `F.COM` back to `FORMAT.COM`.  
+
+尽管 `BAT-Parasite` 不构成严重的威胁，但是它因为结构简单，能在不知不觉间传播。这个病毒能通过删除文件 `PELI.BAT`, `RESIDENT.BAT`, `CHECK.BAT` 和 `FORMAT.BAT` 来清除，也可以把 `F.COM` 重新命名为 `FORMAT.COM` 来清除。  
+
+参考：  
+
+See:  
+
+- Tutorials:  
+  - Batch Viruses by Black Wolf.  
+  - Batch viruses by Wavefunc part 2.  
+  - Batch viruses by Wavefunc part 3.
+
+4dd466d0e1e0cc123afbe504da2462ca

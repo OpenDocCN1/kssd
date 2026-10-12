@@ -1,316 +1,271 @@
 
-
 # 程序逆向之一学写简单的注册机
 
 > 原文：[`www.pediy.com/kssd/pediy10/59030.html`](https://www.pediy.com/kssd/pediy10/59030.html)
 
-今天，我把我前几天帮朋友破个软件的心得写一下，实际这个软件就没必要了，大家都很少用到的，我想我今天  
-  
-就和大家说说注册码的逆向，顺便和大家研究一下逆向分析，我把这几段汇编代码贴出来给大家，事前我已经把分析注释  
-  
-加上了，所以和我一样的菜鸟都能看的懂的，我是菜鸟，所以在发文章的时候都会加注释，也许高手看了会笑话的，没办  
-  
-法哦！我真的很菜~~~~，我觉得我碰到的这点东西正好适合新手学习，想想就贴出来了~~~  
-  快过年了，先祝贺大家新禧快乐！！~~~年前的一篇了，和前几篇一样都是简单的，没那么厉害，不像很早的几篇  
-  
-需要知道的东西比较多，如果新手看起来也许比较费劲。这篇也很简单，我是按我理解的来分析的，如果大家觉得不对的  
-  
-地方可以指出，我觉得我的不一定都是正确或准确的，希望大家别笑我菜哦~~~~~~~  
-  
-//------------------------------------------汇编代码段 1----------------------------------------------  
-00403330  /$  8B5424 04     mov     edx, dword ptr \[esp+4\]    ;EDX=源数据地址  
-00403334  |.  33C0          xor     eax, eax          ;EAX=空  
-00403336  |.  66:8B0A       mov     cx, word ptr \[edx\]        ;取第一个数据  
-00403339  |.  66:85C9       test    cx, cx          ;为 0 就不校验  
-0040333C  |.  74 50         je      short 0040338E  
-0040333E  |>  83C2 02       /add     edx, 2                   ;EDX 指针加 2 指向下一位  
-00403341  |.  66:83F9 30    |cmp     cx, 30                   ;如果数据小于 30 就跳  
-00403345  |.  72 0E         |jb      short 00403355  
-00403347  |.  66:83F9 39    |cmp     cx, 39                   ;如果数据大于 39 就跳  
-0040334B  |.  77 08         |ja      short 00403355  
-0040334D  |.  81C1 D0FF0000 |add     ecx, 0FFD0          ;ECX=0FFD0+数据  
-00403353  |.  EB 26         |jmp     short 0040337B  
-00403355  |>  66:83F9 41    |cmp     cx, 41                     
-00403359  |.  72 0E         |jb      short 00403369           ;如果数据小于 41 跳  
-0040335B  |.  66:83F9 46    |cmp     cx, 46  
-0040335F  |.  77 08         |ja      short 00403369           ;如果数据大于 46 跳  
-00403361  |.  81C1 C9FF0000 |add     ecx, 0FFC9               ;ECX=FFC9+数据  
-00403367  |.  EB 12         |jmp     short 0040337B  
-00403369  |>  66:83F9 61    |cmp     cx, 61                 
-0040336D  |.  72 0C         |jb      short 0040337B           ;小于 61 跳  
-0040336F  |.  66:83F9 66    |cmp     cx, 66                     
-00403373  |.  77 06         |ja      short 0040337B           ;大于 66 跳         
-00403375  |.  81C1 A9FF0000 |add     ecx, 0FFA9               ;ECX=FFA9+数据  
-0040337B  |>  C1E0 04       |shl     eax, 4                  ;EAX=EAX<<4  
-0040337E  |.  81E1 FFFF0000 |and     ecx, 0FFFF         ;ECX=ECX&0xFFFF  
-00403384  |.  0BC1          |or      eax, ecx         ;EAX=EAX|ECX  
-00403386  |.  66:8B0A       |mov     cx, word ptr \[edx\]      ;读取下一位  
-00403389  |.  66:85C9       |test    cx, cx                  ;如果不等于 0 就循环  
-0040338C  |.^ 75 B0         \\jnz     short 0040333E  
-0040338E  \\>  C3            retn  
-  
-//-----------------------------------------------------------------------------------------------------  
-  前面已经提到了，我既然说是注册相关的，那么就是与注册码相关了，这段汇编极其简单，大家再加上我的注释  
-  
-一看就明白就是注册码过滤~~~~~，如果把它翻译成 C 也就是一些 if 语句，我就不做了，大家有兴趣的做做~~~  
-  
-  下面的汇编代码就是注册码算法，相对别的软件来将它是简单的，对于我这个在算法上有缺陷的人来说，把它逆  
-  
-出来不是问题，再把它写成逆算法就是问题了，同样我加了注释，大家看起来也好懂许多  
-  
-//----------------------------------------汇编代码段二-------------------------------------------------------------  
-004033C0  /$  53            push    ebx  
-004033C1  |.  55            push    ebp  
-004033C2  |.  56            push    esi  
-004033C3  |.  8B7424 10     mov     esi, dword ptr \[esp+10\]         ;为源数据地址  
-004033C7  |.  33C0          xor     eax, eax  
-004033C9  |.  33C9          xor     ecx, ecx  
-004033CB  |.  66:8B06       mov     ax, word ptr \[esi\]              ;第一个 WORD 字  
-004033CE  |.  66:8B4E 02    mov     cx, word ptr \[esi+2\]            ;第二个 WORD 字  
-004033D2  |.  03C1          add     eax, ecx                        ;EAX=EAX+ECX 两个相加  
-004033D4  |.  33D2          xor     edx, edx                        ;EDX=0  
-004033D6  |.  A3 3C315300   mov     dword ptr \[53313C\], eax         ;保存 EAX  
-004033DB  |.  8A56 01       mov     dl, byte ptr \[esi+1\]            ;取第二个字节  
-004033DE  |.  8A76 02       mov     dh, byte ptr \[esi+2\]            ;取第三个字节,保存在 EDX  
-004033E1  |.  57            push    edi  
-004033E2  |.  52            push    edx  
-004033E3  |.  E8 A8FFFFFF   call    00403390  
-004033E8  |.  B9 88990000   mov     ecx, 9988                       ;ECX=9988  
-004033ED  |.  83C4 04       add     esp, 4  
-004033F0  |.  8BE8          mov     ebp, eax                        ;EBP=EAX  
-004033F2  |.  33FF          xor     edi, edi                        ;EDI=0  
-004033F4  |.  890D 3C315300 mov     dword ptr \[53313C\], ecx         ;保存 ECX  
-004033FA  |.  8BD6          mov     edx, esi                        ;EDX=ESI  
-004033FC  |.  BB 03000000   mov     ebx, 3                          ;EBX=3  
-00403401  |>  66:8B02       /mov     ax, word ptr \[edx\]             ;取第一个 WORD 字  
-00403404  |.  83C2 02       |add     edx, 2                         ;EDX 指向下一个  
-00403407  |.  03F8          |add     edi, eax                       ;EDI=EAX+EDI  
-00403409  |.  25 FFFF0000   |and     eax, 0FFFF                     ;EAX=EAX&0xFFFF  
-0040340E  |.  C1E1 10       |shl     ecx, 10                        ;ECX=ECX<<10  
-00403411  |.  03C8          |add     ecx, eax                       ;ECX=ECX+EAX  
-00403413  |.  4B            |dec     ebx                            ;EBX--  
-00403414  |.  890D 3C315300 |mov     dword ptr \[53313C\], ecx  
-0040341A  |.^ 75 E5         \\jnz     short 00403401                 ;依次计算注册码  
-0040341C  |.  66:8B46 04    mov     ax, word ptr \[esi+4\]            ;取注册码第 4 位  
-00403420  |.  66:33C7       xor     ax, di                          ;AX=AX^DI  
-00403423  |.  50            push    eax  
-00403424  |.  E8 67FFFFFF   call    00403390                           
-00403429  |.  8BD8          mov     ebx, eax                        ;得到返回值  
-0040342B  |.  66:8B46 06    mov     ax, word ptr \[esi+6\]            ;第 6 位放入 AX  
-0040342F  |.  8D8C07 6EE1FF>lea     ecx, dword ptr \[edi+eax-1E92\]   ;ECX=EDI+EAX-0x1E92  
-00403436  |.  33C1          xor     eax, ecx                        ;EAX=EAX^ECX  
-00403438  |.  50            push    eax  
-00403439  |.  E8 52FFFFFF   call    00403390  
-0040343E  |.  83C4 08       add     esp, 8  
-00403441  |.  66:3B46 08    cmp     ax, word ptr \[esi+8\]            ;实际与 AX 比较  
-00403445  |.  75 16         jnz     short 0040345D                  ;不等于就是注册码不对  
-00403447  |.  66:3B5E 06    cmp     bx, word ptr \[esi+6\]            ;实际与 BX 比较  
-0040344B  |.  75 10         jnz     short 0040345D  
-0040344D  |.  66:3B6E 04    cmp     bp, word ptr \[esi+4\]            ;实际与 BP 比较  
-00403451  |.  75 0A         jnz     short 0040345D  
-00403453  |.  5F            pop     edi  
-00403454  |.  5E            pop     esi  
-00403455  |.  5D            pop     ebp  
-00403456  |.  B8 01000000   mov     eax, 1  
-0040345B  |.  5B            pop     ebx  
-0040345C  |.  C3            retn  
-0040345D  |>  5F            pop     edi  
-0040345E  |.  5E            pop     esi  
-0040345F  |.  5D            pop     ebp  
-00403460  |.  33C0          xor     eax, eax  
-00403462  |.  5B            pop     ebx  
-00403463  \\.  C3            retn  
-  
-//相关的一小段：  
-//来到下面的调用  
-00403390  /$  8B4424 04     mov     eax, dword ptr \[esp+4\]   ;EAX=源数据,也就是 EDX  
-00403394  |.  8B0D 3C315300 mov     ecx, dword ptr \[53313C\]  ;ECX=前面保存的数据  
-0040339A  |.  25 FFFF0000   and     eax, 0FFFF               ;EAX=EAX&0xFFFF  
-0040339F  |.  03C1          add     eax, ecx                 ;EAX=EAX+ECX  
-004033A1  |.  69C0 6A7DAE42 imul    eax, eax, 42AE7D6A       ;EAX=EAX\*0x42AE7D6A  
-004033A7  |.  05 31D40000   add     eax, 0D431               ;EAX=EAX+0xD431  
-004033AC  |.  A3 3C315300   mov     dword ptr \[53313C\], eax  ;保存 EAX  
-004033B1  |.  C1F8 10       sar     eax, 10                  ;算术右移 10  
-004033B4  \\.  C3            retn  
-  
-//-----------------------------------------------------------------------------------------  
-  
-汇编语言就贴完了，我们要分析的就是把他们怎么逆向，对于高手来讲，已经都知道怎么回事了，对于我们菜鸟  
-  
-还要继续哦~~，我们已经分析了汇编代码，但是现在我们知道它是怎么回事并不算完，我们还要把它转换成高级语言，方  
-  
-便以后我们再使用~~，逆向并不是那么简单，而是困难，枯燥，麻烦等等为一体的。所以没有足够的耐心，还是别逆了，  
-  
-很烦人的哦，我这里就把我常用的方法给大家说一下吧~~，我这方法没有传男传女一说哦，男女都可以试的:)^\_^  
-  
-  我就以 C 语言来说明，其他语言类似，我觉得代码对于语言来将没什么要求，语言的不同实现的方法不一样，困难  
-  
-度也不一样，喜欢什么语言就用什么，没什么要求的。只看自己的兴趣和爱好了^\_^,我喜欢 C 语言，我就拿 C 给大家做试验  
-  
-。首先，我们为了模仿寄存器我们可以将寄存器声明成 DWORD 类型，如 dwEax,dwEbx 等，这样就不用怕混淆了。  
-  
-//-----------------------------------------------------------------------------------------  
-我们把最后一段逆向以后为：  
-//下面的代码不一定是最好的，我们还可以让它更好^\_^  
-DWORD EncRegCode(DWORD dwData,DWORD \*dwUnk)  
-{  
-  DWORD dwBuf=dwData;  
-  
-  dwBuf=dwBuf&0xFFFF;  
-  dwBuf=dwBuf+(\*dwUnk);  
-  dwBuf=dwBuf\*0x42AE7D6A;  
-  dwBuf=dwBuf+0xD431;  
-  \*dwUnk=dwBuf;  
-  \_asm{  
-    SAR dwBuf,0x10  
-  }  
-  
-  return dwBuf;  
-}  
-  
-  
-//最后第二段：  
-int  CheckRegCode()  
-{  
-  //测试注册码  
-  BYTE    byteReg\[10\]={0x34,0x12,  
-             0x34,0x12,0x34,0x12,  
-             0x34,0x12,0x34,0x12};  
-  
-  //取第 0 位和第 2 位  
-  DWORD   dwEax=(WORD)(\*(PWORD)&byteReg\[0\]);   
-  DWORD   dwEcx=(WORD)(\*(PWORD)&byteReg\[2\]);  
-  
-  //将 0 位和 2 位相加  
-  dwEax=dwEax+dwEcx;  
-  
-  //相加的值做为加密初始种子  
-  DWORD   dwUnk=dwEax;  
-  DWORD   dwEdx=(WORD)(\*(PWORD)&byteReg\[1\]);  
-  
-  //取第 1 位和第 2 位进行加密运算,并计算出下次加密种子  
-  dwEax=EncRegCode(dwEdx,&dwUnk);  
-  
-  //第 2 次加密的种子是被指定为 0x9988  
-  dwEcx=0x9988;  
-  DWORD   dwEbp=dwEax;  
-  dwUnk=dwEcx;  
-  
-  //只处理前 6 位注册码,每 2 位为一次  
-  DWORD dwEdi=0;  
-  WORD \*pwdBuf=(PWORD)&byteReg\[0\];  
-  for(int i=3;i>0;i--)  
-  {  
-    dwEax=\*pwdBuf;  
-    pwdBuf++;  
-  
-    dwEdi=dwEdi+dwEax;  //对数据进行累加  
-    dwEax=dwEax&0xFFFF; //取掉高位  
-    dwEcx=dwEcx<<0x10;  //左移 16 位,也就是乘以 0x10000  
-    dwEcx=dwEcx+dwEax;  //然后再加  
-    dwUnk=dwEcx;        //最后做为种子  
-  }  
-  
-  dwEax=(WORD)(\*(PWORD)&byteReg\[4\]);  
-  dwEax=dwEax^dwEdi;      //开始加密第 4 位  
-  dwEax=EncRegCode(dwEax,&dwUnk);  
-  
-  DWORD   dwEbx=dwEax;  
-  dwEax=(WORD)(\*(PWORD)&byteReg\[6\]);  
-  
-  dwEcx=dwEdi+dwEax-0x1E92;  
-  dwEax=dwEax^dwEcx;  
-  
-  dwEax=EncRegCode(dwEax,&dwUnk);  
-  
-  m\_strReg.Format("%08X %08X %08X",dwEax,dwEbx,dwEbp);  
-  
-  ..........  
-  
-  //正确返回 1，不正确返回 0。  
-  
-}  
-//-----------------------------------------------------------------------------------------  
-  
-  
-大家可以看到我在逆的时候，把寄存器转型为 DWORD 变量，对于菜鸟来将分析会好点，与汇编核对也方便许多，我  
-  
-比较喜欢这样逆向，但是由于我比较懒所以，到这个地方就不管了，直接拿去用了，我希望大家别学我，最好，把它整理  
-  
-成简洁，更容易理解的 C 代码，以便以后更新~~~~  
-  我需要说明的是大家在用下面的代码时：  
-  \_asm{  
-    SAR dwBuf,0x10  
-  }  
-不能用>>来代替，>>只能代替右移舍弃的指令。也就是说汇编指令不一定都有高级语言指令来代替，在逆向的时候，要注  
-  
-意了，尤其是这样的，可能某些程度下是对的，有的时候就不对了，这样的代码更不容易被察觉，发现。  
-  
-  实际对于算法学的好的朋友来讲真的很容易了，把注册算法都逆出来了，再写个逆算法就很简单了，但是我花了  
-  
-一天才写了下面的代码，原因是我自己算法就从来没学过，哈哈~~~所以用到了，就临时学了一下~~把简单的问题折腾好长  
-  
-时间，呵呵~~~  
-辛苦了一个晚上贴出来摆弄一下：  
-//--------------------------------------------------------------------------------------------  
-void  MakeRegCode(DWORD \*dwReg)  
-{  
-  
-  srand((INT)time(NULL));  
-  DWORD \_1dwRd=0x1000+rand()%0x1000;  
-  DWORD \_2dwRd=0x1000+rand()%0x1000;  
-  
-  DWORD dwEcx=0;  
-  DWORD dwEdx=\_1dwRd;  
-  DWORD dwUnk=\_2dwRd+\_1dwRd;  
-  DWORD dwEax=0;  
-  //DWORD dwReg\[5\]={0};  
-  
-  dwReg\[0\]=LOBYTE(dwEdx)\*0x100+(LOBYTE(dwUnk)-HIBYTE(dwEdx));  
-  dwReg\[1\]=HIBYTE(dwEdx)+(HIBYTE(dwUnk)-LOBYTE(dwEdx))\*0x100;  
-  
-  dwEax=EncRegCode(dwEdx,&dwUnk);  
-  
-  dwReg\[2\]=dwEax;  
-  
-  dwEcx=0x9988;  
-  
-  DWORD   dwEbp=dwEax;  
-  dwUnk=dwEcx;  
-  
-  DWORD dwEdi=0;  
-  
-  for(int i=3,n=0;i>0;i--,n++)  
-  {  
-    dwEax=dwReg\[n\];  
-  
-    dwEdi=dwEdi+dwEax;  
-    dwEax=dwEax&0xFFFF;  
-    dwEcx=dwEcx<<0x10;  
-    dwEcx=dwEcx+dwEax;  
-    dwUnk=dwEcx;  
-  }  
-  
-  dwEax=dwReg\[2\];  
-  dwEax=dwEax^dwEdi;  
-  
-  dwEax=EncRegCode(dwEax,&dwUnk);  
-  DWORD dwEbx=dwEax;  
-  
-  dwReg\[3\]=dwEbx;  
-  
-  dwEax=dwReg\[3\];  
-  
-  dwEcx=dwEdi+dwEax-0x1E92;  
-  dwEax=dwEax^dwEcx;  
-  
-  dwEax=EncRegCode(dwEax,&dwUnk);  
-  
-  dwReg\[4\]=dwEax;  
-}  
-//----------------------------------------------------------------------------------------  
-最后 dwReg 就是放的注册码数组~~~~~~  
-  
-  
-  
-                                                              -By EasyStudy
+今天，我把我前几天帮朋友破个软件的心得写一下，实际这个软件就没必要了，大家都很少用到的，我想今天就和大家说说注册码的逆向，顺便和大家研究一下逆向分析，我把这几段汇编代码贴出来给大家，事前我已经把分析注释加上了，所以和我一样的菜鸟都能看的懂的，我是菜鸟，所以在发文章的时候都会加注释，也许高手看了会笑话的，没办法哦！我真的很菜~~~~，我觉得我碰到的这点东西正好适合新手学习，想想就贴出来了~~~
+
+快过年了，先祝贺大家新禧快乐！！~~~年前的一篇了，和前几篇一样都是简单的，没那么厉害，不像很早的几篇需要知道的东西比较多，如果新手看起来也许比较费劲。这篇也很简单，我是按我理解的来分析的，如果大家觉得不对的地方可以指出，我觉得我的不一定都是正确或准确的，希望大家别笑我菜哦~~~~~~~
+
+### 汇编代码段 1
+
+```asm
+00403330  /$  8B5424 04     mov     edx, dword ptr [esp+4]    ;EDX=源数据地址
+00403334  |.  33C0          xor     eax, eax           ;EAX=空
+00403336  |.  66:8B0A       mov     cx, word ptr [edx]        ;取第一个数据
+00403339  |.  66:85C9       test    cx, cx           ;为 0 就不校验
+0040333C  |.  74 50         je      short 0040338E
+0040333E  |>  83C2 02       /add    edx, 2                   ;EDX 指针加 2 指向下一位
+00403341  |.  66:83F9 30    |cmp     cx, 30                   ;如果数据小于 30 就跳
+00403345  |.  72 0E         |jb      short 00403355
+00403347  |.  66:83F9 39    |cmp     cx, 39                   ;如果数据大于 39 就跳
+0040334B  |.  77 08         |ja      short 00403355
+0040334D  |.  81C1 D0FF0000 |add    ecx, 0FFD0           ;ECX=0FFD0+数据
+00403353  |.  EB 26         |jmp     short 0040337B
+00403355  |>  66:83F9 41    |cmp     cx, 41
+00403359  |.  72 0E         |jb      short 00403369           ;如果数据小于 41 跳
+0040335B  |.  66:83F9 46    |cmp     cx, 46
+0040335F  |.  77 08         |ja      short 00403369           ;如果数据大于 46 跳
+00403361  |.  81C1 C9FF0000 |add    ecx, 0FFC9               ;ECX=FFC9+数据
+00403367  |.  EB 12         |jmp     short 0040337B
+00403369  |>  66:83F9 61    |cmp     cx, 61
+0040336D  |.  72 0C         |jb      short 0040337B           ;小于 61 跳
+0040336F  |.  66:83F9 66    |cmp     cx, 66
+00403373  |.  77 06         |ja      short 0040337B           ;大于 66 跳
+00403375  |.  81C1 A9FF0000 |add    ecx, 0FFA9               ;ECX=FFA9+数据
+0040337B  |>  C1E0 04       |shl     eax, 4                   ;EAX=EAX<<4
+0040337E  |.  81E1 FFFF0000 |and    ecx, 0FFFF            ;ECX=ECX&0xFFFF
+00403384  |.  0BC1          |or      eax, ecx             ;EAX=EAX|ECX
+00403386  |.  66:8B0A       |mov     cx, word ptr [edx]       ;读取下一位
+00403389  |.  66:85C9       |test    cx, cx                 ;如果不等于 0 就循环
+0040338C  |.^ 75 B0         \jnz     short 0040333E
+0040338E  \>  C3             retn
+```
+
+前面已经提到了，我既然说是注册相关的，那么就是与注册码相关了，这段汇编极其简单，大家再加上我的注释一看就明白就是注册码过滤~~~~~，如果把它翻译成 C 也就是一些 `if` 语句，我就不做了，大家有兴趣的做做~~~
+
+下面的汇编代码就是注册码算法，相对别的软件来将它是简单的，对于我这个在算法上有缺陷的人来说，把它逆出来不是问题，再把它写成逆算法就是问题了，同样我加了注释，大家看起来也好懂许多
+
+### 汇编代码段二
+
+```asm
+004033C0  /$  53            push    ebx
+004033C1  |.  55            push    ebp
+004033C2  |.  56            push    esi
+004033C3  |.  8B7424 10     mov     esi, dword ptr [esp+10]         ;为源数据地址
+004033C7  |.  33C0          xor     eax, eax
+004033C9  |.  33C9          xor     ecx, ecx
+004033CB  |.  66:8B06       mov     ax, word ptr [esi]              ;第一个 WORD 字
+004033CE  |.  66:8B4E 02    mov     cx, word ptr [esi+2]            ;第二个 WORD 字
+004033D2  |.  03C1          add     eax, ecx                        ;EAX=EAX+ECX 两个相加
+004033D4  |.  33D2          xor     edx, edx                        ;EDX=0
+004033D6  |.  A3 3C315300   mov     dword ptr [53313C], eax         ;保存 EAX
+004033DB  |.  8A56 01       mov     dl, byte ptr [esi+1]            ;取第二个字节
+004033DE  |.  8A76 02       mov     dh, byte ptr [esi+2]            ;取第三个字节,保存在 EDX
+004033E1  |.  57            push    edi
+004033E2  |.  52            push    edx
+004033E3  |.  E8 A8FFFFFF   call    00403390
+004033E8  |.  B9 88990000   mov     ecx, 9988                       ;ECX=9988
+004033ED  |.  83C4 04       add     esp, 4
+004033F0  |.  8BE8          mov     ebp, eax                        ;EBP=EAX
+004033F2  |.  33FF          xor     edi, edi                        ;EDI=0
+004033F4  |.  890D 3C315300 mov     dword ptr [53313C], ecx         ;保存 ECX
+004033FA  |.  8BD6          mov     edx, esi                        ;EDX=ESI
+004033FC  |.  BB 03000000   mov     ebx, 3                          ;EBX=3
+00403401  |>  66:8B02       /mov    ax, word ptr [edx]              ;取第一个 WORD 字
+00403404  |.  83C2 02       |add    edx, 2                          ;EDX 指向下一个
+00403407  |.  03F8          |add    edi, eax                        ;EDI=EAX+EDI
+00403409  |.  25 FFFF0000   |and    eax, 0FFFF                      ;EAX=EAX&0xFFFF
+0040340E  |.  C1E1 10       |shl    ecx, 10                         ;ECX=ECX<<10
+00403411  |.  03C8          |add    ecx, eax                        ;ECX=ECX+EAX
+00403413  |.  4B            |dec    ebx                             ;EBX--
+00403414  |.  890D 3C315300 |mov    dword ptr [53313C], ecx
+0040341A  |.^ 75 E5         \jnz    short 00403401                  ;依次计算注册码
+0040341C  |.  66:8B46 04    mov     ax, word ptr [esi+4]            ;取注册码第 4 位
+00403420  |.  66:33C7       xor     ax, di                          ;AX=AX^DI
+00403423  |.  50            push    eax
+00403424  |.  E8 67FFFFFF   call    00403390
+00403429  |.  8BD8          mov     ebx, eax                        ;得到返回值
+0040342B  |.  66:8B46 06    mov     ax, word ptr [esi+6]            ;第 6 位放入 AX
+0040342F  |.  8D8C07 6EE1FF> lea     ecx, dword ptr [edi+eax-1E92]  ;ECX=EDI+EAX-0x1E92
+00403436  |.  33C1          xor     eax, ecx                        ;EAX=EAX^ECX
+00403438  |.  50            push    eax
+00403439  |.  E8 52FFFFFF   call    00403390
+0040343E  |.  83C4 08       add     esp, 8
+00403441  |.  66:3B46 08    cmp     ax, word ptr [esi+8]            ;实际与 AX 比较
+00403445  |.  75 16         jnz     short 0040345D                  ;不等于就是注册码不对
+00403447  |.  66:3B5E 06    cmp     bx, word ptr [esi+6]            ;实际与 BX 比较
+0040344B  |.  75 10         jnz     short 0040345D
+0040344D  |.  66:3B6E 04    cmp     bp, word ptr [esi+4]            ;实际与 BP 比较
+00403451  |.  75 0A         jnz     short 0040345D
+00403453  |.  5F            pop     edi
+00403454  |.  5E            pop     esi
+00403455  |.  5D            pop     ebp
+00403456  |.  B8 01000000   mov     eax, 1
+0040345B  |.  5B            pop     ebx
+0040345C  |.  C3            retn
+0040345D  |>  5F            pop     edi
+0040345E  |.  5E            pop     esi
+0040345F  |.  5D            pop     ebp
+00403460  |.  33C0          xor     eax, eax
+00403462  |.  5B            pop     ebx
+00403463  \.  C3            retn
+```
+
+### 相关的一小段
+
+```asm
+//来到下面的调用
+00403390  /$  8B4424 04     mov     eax, dword ptr [esp+4]   ;EAX=源数据,也就是 EDX
+00403394  |.  8B0D 3C315300 mov     ecx, dword ptr [53313C]  ;ECX=前面保存的数据
+0040339A  |.  25 FFFF0000   and     eax, 0FFFF               ;EAX=EAX&0xFFFF
+0040339F  |.  03C1          add     eax, ecx                 ;EAX=EAX+ECX
+004033A1  |.  69C0 6A7DAE42 imul    eax, eax, 42AE7D6A       ;EAX=EAX*0x42AE7D6A
+004033A7  |.  05 31D40000   add     eax, 0D431               ;EAX=EAX+0xD431
+004033AC  |.  A3 3C315300   mov     dword ptr [53313C], eax  ;保存 EAX
+004033B1  |.  C1F8 10       sar     eax, 10                   ;算术右移 10
+004033B4  \.  C3            retn
+```
+
+汇编语言就贴完了，我们要分析的就是把他们怎么逆向，对于高手来讲，已经都知道怎么回事了，对于我们菜鸟还要继续哦~~，我们已经分析了汇编代码，但是现在我们知道它是怎么回事并不算完，我们还要把它转换成高级语言，方便后续编写注册机。
+
+
+
+便以后我们再使用~~，逆向并不是那么简单，而是困难，枯燥，麻烦等等为一体的。所以没有足够的耐心，还是别逆了，很烦人的哦，我这里就把我常用的方法给大家说一下吧~~，我这方法没有传男传女一说哦，男女都可以试的:)^\_^
+
+我就以`C`语言来说明，其他语言类似，我觉得代码对于语言来将没什么要求，语言的不同实现的方法不一样，困难度也不一样，喜欢什么语言就用什么，没什么要求的。只看自己的兴趣和爱好了^\_^,我喜欢`C`语言，我就拿`C`给大家做试验。首先，我们为了模仿寄存器我们可以将寄存器声明成`DWORD`类型，如`dwEax`,`dwEbx`等，这样就不用怕混淆了。
+
+`//----`
+
+我们把最后一段逆向以后为：
+
+```
+//下面的代码不一定是最好的，我们还可以让它更好^\_^
+DWORD EncRegCode(DWORD dwData,DWORD *dwUnk)
+{
+  DWORD dwBuf=dwData;
+  dwBuf=dwBuf&0xFFFF;
+  dwBuf=dwBuf+(*dwUnk);
+  dwBuf=dwBuf*0x42AE7D6A;
+  dwBuf=dwBuf+0xD431;
+  *dwUnk=dwBuf;
+  _asm{
+    SAR dwBuf,0x10
+  }
+  return dwBuf;
+}
+
+//最后第二段：
+int  CheckRegCode()
+{
+  //测试注册码
+  BYTE    byteReg[10]={0x34,0x12,
+          0x34,0x12,0x34,0x12,
+          0x34,0x12,0x34,0x12};
+  //取第 0 位和第 2 位
+  DWORD   dwEax=(WORD)(*（PWORD)&byteReg[0]);  
+  DWORD   dwEcx=(WORD)(*（PWORD)&byteReg[2]);
+  //将 0 位和 2 位相加
+  dwEax=dwEax+dwEcx;
+  //相加的值做为加密初始种子
+  DWORD   dwUnk=dwEax;
+  DWORD   dwEdx=(WORD)(*（PWORD)&byteReg[1]);
+  //取第 1 位和第 2 位进行加密运算,并计算出下次加密种子
+  dwEax=EncRegCode(dwEdx,&dwUnk);
+  //第 2 次加密的种子是被指定为 0x9988
+  dwEcx=0x9988;
+  DWORD   dwEbp=dwEax;
+  dwUnk=dwEcx;
+  //只处理前 6 位注册码,每 2 位为一次
+  DWORD dwEdi=0;
+  WORD *pwdBuf=(PWORD)&byteReg[0];
+  for(int i=3;i>0;i--)
+  {
+    dwEax=*pwdBuf;
+    pwdBuf++;
+    dwEdi=dwEdi+dwEax;  //对数据进行累加
+    dwEax=dwEax&0xFFFF; //取掉高位
+    dwEcx=dwEcx<<0x10;  //左移 16 位,也就是乘以 0x10000
+    dwEcx=dwEcx+dwEax;  //然后再加
+    dwUnk=dwEcx;        //最后做为种子
+  }
+  dwEax=(WORD)(*（PWORD)&byteReg[4]);
+  dwEax=dwEax^dwEdi;     //开始加密第 4 位
+  dwEax=EncRegCode(dwEax,&dwUnk);
+  DWORD   dwEbx=dwEax;
+  dwEax=(WORD)(*（PWORD)&byteReg[6]);
+  dwEcx=dwEdi+dwEax-0x1E92;
+  dwEax=dwEax^dwEcx;
+  dwEax=EncRegCode(dwEax,&dwUnk);
+  m_strReg.Format("%08X %08X %08X",dwEax,dwEbx,dwEbp);
+  ..........
+  //正确返回 1，不正确返回 0。
+}
+```
+
+`//----`
+
+大家可以看到我在逆的时候，把寄存器转型为`DWORD`变量，对于菜鸟来将分析会好点，与汇编核对也方便许多，我比较喜欢这样逆向，但是由于我比较懒所以，到这个地方就不管了，直接拿去用了，我希望大家别学我，最好，把它整理成简洁，更容易理解的`C`代码，以便以后更新~~~~
+
+我需要说明的是大家在用下面的代码时：
+
+```
+_asm{
+  SAR dwBuf,0x10
+}
+```
+
+不能用`>>`来代替，`>>`只能代替右移舍弃的指令。也就是说汇编指令不一定都有高级语言指令来代替，在逆向的时候，要注意了，尤其是这样的，可能某些程度下是对的，有的时候就不对了，这样的代码更不容易被察觉，发现。
+
+实际对于算法学的好的朋友来讲真的很容易了，把注册算法都逆出来了，再写个逆算法就很简单了，但是我花了一天才写了下面的代码，原因是我自己算法就从来没学过，哈哈~~~所以用到了，就临时学了一下~~把简单的问题折腾好长时间，呵呵~~~
+
+辛苦了一个晚上贴出来摆弄一下：
+
+`//----`
+
+```
+void  MakeRegCode(DWORD *dwReg)
+{
+  srand((INT)time(NULL));
+  DWORD _1dwRd=0x1000+rand()%0x1000;
+  DWORD _2dwRd=0x1000+rand()%0x1000;
+  DWORD dwEcx=0;
+  DWORD dwEdx=_1dwRd;
+  DWORD dwUnk=_2dwRd+_1dwRd;
+  DWORD dwEax=0;
+  //DWORD dwReg[5]={0};
+  dwReg[0]=LOBYTE(dwEdx)*0x100+(LOBYTE(dwUnk)-HIBYTE(dwEdx));
+  dwReg[1]=HIBYTE(dwEdx)+(HIBYTE(dwUnk)-LOBYTE(dwEdx))*0x100;
+  dwEax=EncRegCode(dwEdx,&dwUnk);
+  dwReg[2]=dwEax;
+  dwEcx=0x9988;
+  DWORD   dwEbp=dwEax;
+  dwUnk=dwEcx;
+  DWORD dwEdi=0;
+  for(int i=3,n=0;i>0;i--,n++)
+  {
+    dwEax=dwReg[n];
+    dwEdi=dwEdi+dwEax;
+    dwEax=dwEax&0xFFFF;
+    dwEcx=dwEcx<<0x10;
+    dwEcx=dwEcx+dwEax;
+    dwUnk=dwEcx;
+  }
+  dwEax=dwReg[2];
+  dwEax=dwEax^dwEdi;
+  dwEax=EncRegCode(dwEax,&dwUnk);
+  DWORD dwEbx=dwEax;
+  dwReg[3]=dwEbx;
+  dwEax=dwReg[3];
+  dwEcx=dwEdi+dwEax-0x1E92;
+  dwEax=dwEax^dwEcx;
+  dwEax=EncRegCode(dwEax,&dwUnk);
+  dwReg[4]=dwEax;
+}
+```
+
+`//----`
+
+最后`dwReg`就是放的注册码数组~~~~~~
+
+-By `EasyStudy`

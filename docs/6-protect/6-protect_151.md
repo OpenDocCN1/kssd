@@ -1,149 +1,258 @@
 
-
 # 圣天诺
 
 > 原文：[`www.pediy.com/kssd/pediy04/kanxue040.htm`](https://www.pediy.com/kssd/pediy04/kanxue040.htm)
 
-我们用 notepad.exe 加上 super pro 的壳看看：   
-用 w32dasm 可以看到如下的段   
-  
-  Object01: 0000001  RVA: 00001000 Offset: 00001000 Size: 00004000 Flags: 60000040   
-  Object02: 0000002  RVA: 00005000 Offset: 00005000 Size: 00001000 Flags: C0000040   
-  Object03: 0000003  RVA: 00006000 Offset: 00006000 Size: 00001000 Flags: C0000040   
-  Object04: .rsrc    RVA: 00007000 Offset: 00007000 Size: 00005000 Flags: 40000040   
-  Object05: 0000005  RVA: 0000C000 Offset: 0000C000 Size: 00001000 Flags: C2000040   
-  Object06: 0000006  RVA: 0000D000 Offset: 0000D000 Size: 0000AA00 Flags: C0000040   
-  Object07: 0000007  RVA: 00018000 Offset: 00018000 Size: 00000A00 Flags: C0000040   
-  Object08: 0000008  RVA: 00019000 Offset: 00019000 Size: 00008800 Flags: 60000020   
-  Object09: 0000009  RVA: 00022000 Offset: 00022000 Size: 00001000 Flags: 42000040   
-其中的 0000008 是壳，而 0000001 和 0000002 是程序的主体部分。这个两个部分是经过一个 32 位的   
-密码加密过的,两个段的密码不同。所以说要想穷举的可能性很低，我一直在找密码的存放位置，   
-但是暂时没有结果。   
-当初拿到这个外壳的时候，以为他的花指令很厉害，经过仔细研究发现，它有庞大的二叉树判断   
-体系,跟踪者被它的标志指搞的晕头转向，不明白他的来龙去脉。所以在跟踪的时候，我们要暂时   
-避开他的程序主体。通过 deviceiocontrol 这个主要函数。和它的 API 调用方式联系起来，你就会有   
-比较清晰的破解和跟踪思路，所以大家如果要跟踪的话，最好是下载它的 API 调用说明。以及返回值   
-的具体含义，如果配合狗就会更加简单。   
-\=======================================================================================   
-//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\* Program Entry Point \*\*\*\*\*\*\*\*   
-:00419770 833D80EB400000          cmp dword ptr \[0040EB80\], 00000000   
-:00419777 53                      push ebx   
-:00419778 56                      push esi   
-:00419779 57                      push edi   
-:0041977A 55                      push ebp   
-:0041977B 0F8529070000            jne 00419EAA   
-:00419781 FF0580EB4000            inc dword ptr \[0040EB80\]   
-:00419787 BE04000000              mov esi, 00000004   
-:0041978C BFFCFFFFFF              mov edi, FFFFFFFC   
-  
-\* Reference To: KERNEL32.GetTickCount, Ord:0130h   
-                                  |   
-:00419791 FF15E4814100            Call dword ptr \[004181E4\]   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: "鍉"   
-                                  |   
-:00419797 BB08000000              mov ebx, 00000008   
-:0041979C 0105E4784100            add dword ptr \[004178E4\], eax   
-  
-\* Reference To: KERNEL32.GetCurrentProcessId, Ord:00C5h   
-                                  |   
-:004197A2 FF15E0814100            Call dword ptr \[004181E0\]   
-:004197A8 3105E4784100            xor dword ptr \[004178E4\], eax   
-:004197AE 810DE478410001002000    or dword ptr \[004178E4\], 00200001   
-:004197B8 8125E4784100FFFFFF3F    and dword ptr \[004178E4\], 3FFFFFFF   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:0041980F(U), :00419829(U), :00419843(U), :00419860(U), :0041987D(U)  这里就是所谓的转向开关的位置   
-|:0041989A(U), :004198B7(U), :004198D4(U), :004198F1(U), :0041990E(U)   
-|:0041992B(U), :00419948(U), :00419965(U), :0041998B(U), :004199C5(U)   
-|:004199E1(U), :00419A22(C), :00419A32(U), :00419A66(U), :00419A89(U)   
-|:00419AB2(U), :00419ADB(U), :00419AF4(U), :00419B17(U), :00419B3A(U)   
-|:00419B5D(U), :00419B91(U), :00419BB4(U), :00419BD7(U), :00419BF2(C)   
-|:00419C17(U), :00419C34(U), :00419C75(C), :00419C85(U), :00419CA8(U)   
-|:00419CC3(C), :00419CE8(U), :00419D0E(U), :00419D44(U), :00419D76(U)   
-|:00419DA3(U), :00419DBE(U), :00419DE0(U), :00419E0E(U), :00419E40(U)   
-|   
-:004197C2 A13CFC4000              mov eax, dword ptr \[0040FC3C\]   
-:004197C7 8B0D3CFC4000            mov ecx, dword ptr \[0040FC3C\]   
-:004197CD 668B00                  mov ax, word ptr \[eax\]   
-:004197D0 66A348FC4000            mov word ptr \[0040FC48\], ax   
-:004197D6 668B5102                mov dx, word ptr \[ecx+02\]   
-:004197DA 6689154CFC4000          mov word ptr \[0040FC4C\], dx   
-:004197E1 8B4104                  mov eax, dword ptr \[ecx+04\]   
-:004197E4 A340FC4000              mov dword ptr \[0040FC40\], eax   
-:004197E9 011D3CFC4000            add dword ptr \[0040FC3C\], ebx   
-:004197EF 33C0                    xor eax, eax   
-:004197F1 66A148FC4000            mov ax, word ptr \[0040FC48\]   
-:004197F7 3D42030000              cmp eax, 00000342   
-:004197FC 7F13                    jg 00419811   
-:004197FE 0F84C6010000            je 004199CA   
-:00419804 3DE4000000              cmp eax, 000000E4   
-:00419809 0F8481010000            je 00419990   
-:0041980F EBB1                    jmp 004197C2----------------->一般到这里不是失败就是判断结束   
-\==========================================================================   
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:0041983D(C)   
-|   
-:00419E45 33C0                    xor eax, eax   
-:00419E47 66A14CFC4000            mov ax, word ptr \[0040FC4C\]   
-:00419E4D A36CEC4000              mov dword ptr \[0040EC6C\], eax   
-:00419E52 83F80A                  cmp eax, 0000000A   
-:00419E55 770F                    ja 00419E66   
-:00419E57 33C9                    xor ecx, ecx   
-:00419E59 8A88DC9E4100            mov cl, byte ptr \[eax+00419EDC\]   
-:00419E5F FF248DC89E4100          jmp dword ptr \[4\*ecx+00419EC8\]---->判断正确的 ECX=0   
-                                                                    程序会跳到 00419EAA                      
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:00419E55(C)   
-|   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: "鎄:(A)..."   
-                                  |   
-:00419E66 C7056CEC400002000000    mov dword ptr \[0040EC6C\], 00000002   
-:00419E70 66812504D04000FEFF      and word ptr \[0040D004\], FFFE   
-:00419E79 6810200000              push 00002010   
-:00419E7E E8EDF1FFFF              call 00419070   
-:00419E83 50                      push eax   
-:00419E84 E8970A0000              call 0041A920   
-:00419E89 83C408                  add esp, 00000008   
-:00419E8C F60504D0400001          test byte ptr \[0040D004\], 01   
-:00419E93 750C                    jne 00419EA1   
-:00419E95 A16CEC4000              mov eax, dword ptr \[0040EC6C\]   
-:00419E9A 50                      push eax   
-  
-\* Reference To: KERNEL32.ExitProcess, Ord:0062h   
-                                  |   
-:00419E9B FF15DC814100            Call dword ptr \[004181DC\]   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:00419E93(C)   
-|   
-:00419EA1 33C0                    xor eax, eax   
-:00419EA3 5D                      pop ebp   
-:00419EA4 5F                      pop edi   
-:00419EA5 5E                      pop esi   
-:00419EA6 5B                      pop ebx   
-:00419EA7 C20C00                  ret 000C   
-  
-  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:0041977B(C)   
-|   
-:00419EAA 8B44241C                mov eax, dword ptr \[esp+1C\]   
-:00419EAE 8B4C2418                mov ecx, dword ptr \[esp+18\]   
-:00419EB2 8B542414                mov edx, dword ptr \[esp+14\]   
-:00419EB6 50                      push eax   
-:00419EB7 51                      push ecx   
-:00419EB8 52                      push edx   
-:00419EB9 FF1570EB4000            call dword ptr \[0040EB70\]这里是入口处，当然判断错误和密码不对   
-:00419EBF 5D                      pop ebp                  我们得到的就是垃圾   
-:00419EC0 5F                      pop edi   
-:00419EC1 5E                      pop esi   
-:00419EC2 5B                      pop ebx   
-:00419EC3 C20C00                  ret 000C   
-\=============================================================================   
-  
-新疆\[BCG\]&shou\_xin\[CCG\]其实是一个人哦。   
-写在结婚前夕，下篇以后在写吧。   
-2001-9-17  4dd466d0e1e0cc123afbe504da2462ca
+我们用 `notepad.exe` 加上 `super pro` 的壳看看：
+
+用 `w32dasm` 可以看到如下的段：
+
+```
+ Object01: 0000001  RVA: 00001000 Offset: 00001000 Size: 00004000 Flags: 60000040
+
+ Object02: 0000002  RVA: 00005000 Offset: 00005000 Size: 00001000 Flags: C0000040
+
+ Object03: 0000003  RVA: 00006000 Offset: 00006000 Size: 00001000 Flags: C0000040
+
+ Object04: .rsrc    RVA: 00007000 Offset: 00007000 Size: 00005000 Flags: 40000040
+
+ Object05: 0000005  RVA: 0000C000 Offset: 0000C000 Size: 00001000 Flags: C2000040
+
+ Object06: 0000006  RVA: 0000D000 Offset: 0000D000 Size: 0000AA00 Flags: C0000040
+
+ Object07: 0000007  RVA: 00018000 Offset: 00018000 Size: 00000A00 Flags: C0000040
+
+ Object08: 0000008  RVA: 00019000 Offset: 00019000 Size: 00008800 Flags: 60000020
+
+ Object09: 0000009  RVA: 00022000 Offset: 00022000 Size: 00001000 Flags: 42000040
+```
+
+其中的 `0000008` 是壳，而 `0000001` 和 `0000002` 是程序的主体部分。这两个部分是经过一个 32 位的密码加密过的，两个段的密码不同。所以说要想穷举的可能性很低，我一直在找密码的存放位置，但是暂时没有结果。
+
+当初拿到这个外壳的时候，以为他的花指令很厉害，经过仔细研究发现，它有庞大的二叉树判断体系，跟踪者被它的标志指搞的晕头转向，不明白他的来龙去脉。所以在跟踪的时候，我们要暂时避开他的程序主体。通过 `deviceiocontrol` 这个主要函数。和它的 API 调用方式联系起来，你就会有比较清晰的破解和跟踪思路，所以大家如果要跟踪的话，最好是下载它的 API 调用说明。以及返回值的具体含义，如果配合狗就会更加简单。
+
+```
+=======================================================================================
+
+//******************************** Program Entry Point ****
+
+:00419770 833D80EB400000             cmp dword ptr [0040EB80], 00000000
+
+:00419777 53                         push ebx
+
+:00419778 56                         push esi
+
+:00419779 57                         push edi
+
+:0041977A 55                         push ebp
+
+:0041977B 0F8529070000               jne 00419EAA
+
+:00419781 FF0580EB4000               inc dword ptr [0040EB80]
+
+:00419787 BE04000000                 mov esi, 00000004
+
+:0041978C BFFCFFFFFF                 mov edi, FFFFFFFC
+
+* Reference To: KERNEL32.GetTickCount, Ord:0130h
+
+                                  |
+
+:00419791 FF15E4814100               Call dword ptr [004181E4]
+
+* Possible Ref to Menu: MenuID_0001, Item: "鍉"
+
+                                  |
+
+:00419797 BB08000000                 mov ebx, 00000008
+
+:0041979C 0105E4784100               add dword ptr [004178E4], eax
+
+* Reference To: KERNEL32.GetCurrentProcessId, Ord:00C5h
+
+                                  |
+
+:004197A2 FF15E0814100               Call dword ptr [004181E0]
+
+:004197A8 3105E4784100               xor dword ptr [004178E4], eax
+
+:004197AE 810DE478410001002000       or dword ptr [004178E4], 00200001
+
+:004197B8 8125E4784100FFFFFF3F       and dword ptr [004178E4], 3FFFFFFF
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:0041980F(U), :00419829(U), :00419843(U), :00419860(U), :0041987D(U)  这里就是所谓的转向开关的位置
+
+|:0041989A(U), :004198B7(U), :004198D4(U), :004198F1(U), :0041990E(U)
+
+|:0041992B(U), :00419948(U), :00419965(U), :0041998B(U), :004199C5(U)
+
+|:004199E1(U), :00419A22(C), :00419A32(U), :00419A66(U), :00419A89(U)
+
+|:00419AB2(U), :00419ADB(U), :00419AF4(U), :00419B17(U), :00419B3A(U)
+
+|:00419B5D(U), :00419B91(U), :00419BB4(U), :00419BD7(U), :00419BF2(C)
+
+|:00419C17(U), :00419C34(U), :00419C75(C), :00419C85(U), :00419CA8(U)
+
+|:00419CC3(C), :00419CE8(U), :00419D0E(U), :00419D44(U), :00419D76(U)
+
+|:00419DA3(U), :00419DBE(U), :00419DE0(U), :00419E0E(U), :00419E40(U)
+
+|
+
+:004197C2 A13CFC4000                 mov eax, dword ptr [0040FC3C]
+
+:004197C7 8B0D3CFC4000               mov ecx, dword ptr [0040FC3C]
+
+:004197CD 668B00                      mov ax, word ptr [eax]
+
+:004197D0 66A348FC4000               mov word ptr [0040FC48], ax
+
+:004197D6 668B5102                   mov dx, word ptr [ecx+02]
+
+:004197DA 6689154CFC4000             mov word ptr [0040FC4C], dx
+
+:004197E1 8B4104                     mov eax, dword ptr [ecx+04]
+
+:004197E4 A340FC4000                 mov dword ptr [0040FC40], eax
+
+:004197E9 011D3CFC4000               add dword ptr [0040FC3C], ebx
+
+:004197EF 33C0                        xor eax, eax
+
+:004197F1 66A148FC4000               mov ax, word ptr [0040FC48]
+
+:004197F7 3D42030000                 cmp eax, 00000342
+
+:004197FC 7F13                        jg 00419811
+
+:004197FE 0F84C6010000               je 004199CA
+
+:00419804 3DE4000000                 cmp eax, 000000E4
+
+:00419809 0F8481010000               je 00419990
+
+:0041980F EBB1                        jmp 004197C2----------------->一般到这里不是失败就是判断结束
+
+===========================================================================
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0041983D(C)
+
+|
+
+:00419E45 33C0                        xor eax, eax
+
+:00419E47 66A14CFC4000               mov ax, word ptr [0040FC4C]
+
+:00419E4D A36CEC4000                 mov dword ptr [0040EC6C], eax
+
+:00419E52 83F80A                      cmp eax, 0000000A
+
+:00419E55 770F                        ja 00419E66
+
+:00419E57 33C9                        xor ecx, ecx
+
+:00419E59 8A88DC9E4100               mov cl, byte ptr [eax+00419EDC]
+
+:00419E5F FF248DC89E4100              jmp dword ptr [4*ecx+00419EC8]---->判断正确的 ECX=0
+
+                                                                              程序会跳到 00419EAA
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00419E55(C)
+
+|
+
+* Possible Ref to Menu: MenuID_0001, Item: "鎄:(A)..."
+
+                                  |
+
+:00419E66 C7056CEC400002000000       mov dword ptr [0040EC6C], 00000002
+
+:00419E70 66812504D04000FEFF       and word ptr [0040D004], FFFE
+
+:00419E79 6810200000                push 00002010
+
+:00419E7E E8EDF1FFFF                call 00419070
+
+:00419E83 50                         push eax
+
+:00419E84 E8970A0000                call 0041A920
+
+:00419E89 83C408                     add esp, 00000008
+
+:00419E8C F60504D0400001            test byte ptr [0040D004], 01
+
+:00419E93 750C                       jne 00419EA1
+
+:00419E95 A16CEC4000                mov eax, dword ptr [0040EC6C]
+
+:00419E9A 50                         push eax
+
+* Reference To: KERNEL32.ExitProcess, Ord:0062h
+
+                                  |
+
+:00419E9B FF15DC814100               Call dword ptr [004181DC]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00419E93(C)
+
+|
+
+:00419EA1 33C0                        xor eax, eax
+
+:00419EA3 5D                          pop ebp
+
+:00419EA4 5F                          pop edi
+
+:00419EA5 5E                          pop esi
+
+:00419EA6 5B                          pop ebx
+
+:00419EA7 C20C00                      ret 000C
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0041977B(C)
+
+|
+
+:00419EAA 8B44241C                    mov eax, dword ptr [esp+1C]
+
+:00419EAE 8B4C2418                    mov ecx, dword ptr [esp+18]
+
+:00419EB2 8B542414                    mov edx, dword ptr [esp+14]
+
+:00419EB6 50                          push eax
+
+:00419EB7 51                          push ecx
+
+:00419EB8 52                          push edx
+
+:00419EB9 FF1570EB4000               call dword ptr [0040EB70]这里是入口处，当然判断错误和密码不对
+
+:00419EBF 5D                          pop ebp                        我们得到的就是垃圾
+
+:00419EC0 5F                          pop edi
+
+:00419EC1 5E                          pop esi
+
+:00419EC2 5B                          pop ebx
+
+:00419EC3 C20C00                     ret 000C
+
+=============================================================================
+```
+
+新疆 `[BCG]` & `shou_xin` `[CCG]` 其实是一个人哦。
+
+写在结婚前夕，下篇以后在写吧。
+
+2001-9-17 `4dd466d0e1e0cc123afbe504da2462ca`

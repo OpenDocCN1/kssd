@@ -1,894 +1,990 @@
 
-
 # 利用代码注入脱壳
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6867.htm`](https://www.pediy.com/kssd/pediy06/pediy6867.htm)
 
 原文链接：[`bbs.pediy.com/showthread.php?s=&threadid=4541`](http://bbs.pediy.com/showthread.php?s=&threadid=4541)
 
-来自 声声慢 提供的英文原稿  
-  
-Author: E. Labir  
-(作者：E. Labir)  
-翻译：springkang\[DFCG\] \[Nuke Group\]\[TT\]  
-  
-摘要  
-  
-本文演示如何通过代码注入获取给定目标的内部信息。我们的攻击对当前多数反破解技术来说是完全秘密的，展示了现实生活中的威胁。我们可以重新获取如下的最相关信息：  
-  异常、句柄和有关信息列表  
-  调用所有 DLL 文件(参数、返回代码…)的 API 列表  
-  输入表的彻底重建  
-  入口点  
-我们的方法具有灵活性，操作起来并不困难。我们给出源码并提供一个关于如何分析日志文件的真实例子。  
-  
-关键词：脱壳，代码注入，反反破解技术  
-  
-一、  介绍  
-  
-调试的目标从极容易到极难不等。保护良好的软件常用主要基于 SEH(结构化异常处理)的反调试手段和极混乱的代码，这些使得破掉它成为一个无尽的梦魇。在 Windows(win9x 及后续版)，进程生存在自己的地址空间里。地址空间是平坦的，包含全部(映射的)DLL 文件、资源、和它所需的原料。Windows 也提供我们注入自己的代码并使它运行在另一进程里所需的工具。\[4\]本文使用注入代码来嗅探来自目标的大量信息。我们的方法绕过 API 重定向和所有的标准反调试。  
-  
-我们从注入代码获取的信息包括对映射到目标地址空间的所有 DLL 文件的所有调用(还有参数、返回代码)—--我们也能够修改它们。代码注入还特别提供了异常及与之有关的信息(句柄、地址、代码…)列表。有了它，我们可以轻易的重新获取入口点(注入一个追踪(tracer))，甚至在某些情况下，获取被偷的字节。即便这种方法失败了，所有的这些问题也会大大简化。  
-  
-这种方法需要“某种”人为干预去分析日志文件，但它节省了大量工作。检测你正在受到攻击并非易事，许多壳因此需要重新设计。  
-  
-我们解决的主题包括：  
-1)(第一节)壳的描述  
-2)(第二节)如何注入代码并使之运行在目标中  
-3)(第三节)挂钩所有的 API 调用  
-4)(第四节)与 API 调用(记录日志、IAT 重建)互动  
-5)(第五节)用注入追踪找到入口点  
-6)(第六节)注入代码是怎样隐匿的  
-7)(第七节)结束，深入研究…  
-  
-第一节都有代码片段(或伪码)，我们也展示了在实验中出现的例子  
-  
-二、壳的描述  
-  
-壳是旨在防止别人检测程序是如何运行或修改程序的程序。典型地来讲，受保护的程序的入口点转向先运行壳。当壳运行时，它执行以下一些步骤：  
-  解密目标的区块(目标=被加壳程序)  
-  重建输入表  
-  跳转到目标的实际入口点  
-  
-第一步区块加密对我们并不重要。通常，在它们在内存中解密之前，加密区块并不是要解决的问题，只要简单地把它们抓取(dump)到某个文件，并组合在一起。但第二、三点很重要。  
-  
-可以用多种复杂方法(several degrees of sophistication,)完成重要的保护。(现实中的一些壳的)一些保护十分脆弱，根本不需我们的方法就可破了它们。我们一贯支持强大的保护应用 IAT，即：  
-1) 删除输入表，壳仅(在安全的地方)将 API 的名字和地址的杂乱信息保存到 IAT。  
-2)算法良好的混乱，并有很多反调试，反跟踪…  
-3)壳并不使用 GetProcAddress。相反，它执行自己的算法，寻找 DLL 输出表里的 API。  
-4)IAT 已经重定向(阅读下面所述)  
-  
-注意：事实上，第三点对我们没有影响。然而，一个良好的保护应该这么做。  
-  
-看到这么多的“商业”产品不符合第一点或第三点，真是很惊讶。  
-  
-第四点(API 重定向)如何呢？我们看看“API 重定向”是什么意思：打开任意一程序，它肯定输入 kernel32.ExitProcess。现在，看看对它的一个调用(call)，你会发现类似下面的东西：  
-  
-call \[XXXXXXXXh\]      ; call to   
-                                 ;kernel32.ExitProcess  
-                                 ; XXXXXXXXh inside the IAT...   
-XXXXXXXXh: YYYYYYYYh             ; address of  
-                                 ; Kernel32.ExitProcess  
-  
-另一很平常的可能是：为调用 call xxxxxxxxh，参数也是一样的。Windows 加载器(loader)“看见”输入表，并用重要的 APIs 地址填充 IAT。壳破坏被保护程序的输入表的信息，因此当壳把控制权交给目标时，IAT 就得到错误的值。于是，结果就是壳需要用正确的值填充目标的 IAT。  
-  
-如果你用过一加壳程序，壳符合第四点，例如：Asprotect,Slovak Protector,…IAT 看起来像：  
-  
-XXXXXXXXh: ZZZZZZZZh       ; ZZZZZZZZh is inside a  
-                                           ; buffer dynamically  
-                                           ; allocated by  
-                                           ; the packer, so it will  
-                                           ; not exist if you  
-                                           ; remove the packer.  
-ZZZZZZZZh:  push ebp           ; (\*)  
-            ror eax, 16h  
-            pushf  
-            popf  
-            mov ebp, esp       ; (\*)  
-            call @@1  
-            db 68h  
-   @@1:  
-            add eax, 134h  
-            ....  
-            jmp ACTUAL\_ENTRY\_POINT\_OF\_API + k  
-  
-壳将 API 的开始指令与一些垃圾代码(在例子中，除在原始 API 代码里的以外，有\*的指令)混合在一起，它也能包含一些微小的反调试手段，最终，写个跳转(或其他类似的)到位于 API+K 的入口点处。而 K 就是已经运行在垃圾代码里的原始指令数。这样，要找到通过调用 zzzzzzzzh 的实际 API 或对 API 挂钩基本上不可能。  
-  
-输入表不是一个直观明了的结构，了解它的细节超出了本文的范围\[2\]。  
-  
-一些叫作输入表重建器的程序能够模拟一些指令去寻找我们跳转到的 DLL 中的地址。然后，你就能够从输出表中重新获得 API 名字。然而，输入表重建工具通常十分局限于它们能嗅到的东西，并不能搞定最新的壳(很明显，这些壳在发布前对重建工具进行了测试)。  
-  
-我们来看看入口点发生了什么。如我们所说，壳一旦完成工作(对目标解密，重建 IAT…)，必须把控制权交给被保护的程序。使用 Kernel32.CreateThread，或以某种特别的方法，简单地跳到那里，从而把它作为一个新线程，就可以解决。运行在一个新的线程并不是个好主意。线程的开始地址太明显，于是我们(再次)假设最坏的情况：经过很长时间的混乱和保护良好的代码后，壳跳到入口点处，跳转十分隐蔽(自己修改的代码等等…)。  
-  
-另一通常要解决的问题是“被偷代码”：壳使用一套预定义的 APIs，非常普通的一个是：GetModuleHandleA，并做如下事项：  
-  
-调用 GetModuleHandleA，存储返回  
-查看被保护的程序，模式是：  
-  
-  
-call XXXXXXXXh             ; call to  
-                            ; kernel32.GetModuleHandleA  
-  
-现在，删除这个调用，并在每个起始处，用简单的 mov \[handle\], harcoded\_value 替换 mov \[handle\], eax 而 harcoded\_value 之前已经  
-被壳对 GetModuleHandleA 的调用返回了。  
-  
-如果破解者不去检查这个把戏，那么脱壳后的程序就不能在所有操作系统上运行或有其他的缺陷。壳删除的这些字节就是“被偷代码”。这种被偷字节，也就是用一个固定编码(hardcoded)的值替换一个调用，用我们的方法将很轻松的定位并重建。  
-  
-对壳的完整描述大大超出本文的范围，请参考\[1\]获得详细的解释。  
-  
-壳是保护中等价位程序的优先方式，实践上，所有的共享软件都依赖于他们的安全。所以，研究他们的利弊成为 REC(代码逆向工程)的重要研究领域。  
-  
-三、注入并运行你的代码  
-本节中，我们将大致描述如何注入代码并使之运行在目标的地址空间里。查看\[4\]获取完整的描述。Win9x 系统请看\[3\]。  
-  
-工程将分为两部分，参见\[4\]。我们还需要一个载体程序，负责加载目标程序和注入代码。我们把注入代码称为“自动记录器”(logger)，因为它十分精确地描述它所做的一切。  
-  
-载体需要在目标程序有机会运行前注入并运行我们的记录器。因此，我们需要创建目标程序为 CREATE\_SUSPENDED。这样，目标程序的地址空间将被初始化，但主线程要等到我们调用 ResumeThread 后才运行。  
-  
-结果，载体创建目标程序为 CREATE\_SUSPENDED，并把记录器注入到它的地址空间里。下一步，载体用 CreateRemoteThread(Win2k 以上系统)运行注入的代码。记录器在目标程序被允许运行前，要做一些基础工作。当一切准备好后，载体运行目标程序的主线程。因此，载体和记录器需要以某种方式通信，我们选择的是通过一个事件，当目标程序(壳)能够运行时，记录器设置事件为真。  
-  
-我们继续概述如何执行所有的以上步骤(参见 win32.hlp)，获得下面的 APIs 的详细参考。  
-  
-; first, we create the event (choose a random name for your event)  
-；首选，我们创建一个事件(为该事件随意选个名字)  
-push offset zsEventName       ; name of event  
-push FALSE                       ; initial status = FALSE  
-...  
-call CreateEventA  
-  
-; Now, we create the target as CREATE\_SUSPENDED.  
-; The call returns a handle to the created process we need for later.  
-  
-；现在，我们创建目标程序为 CREATE\_SUSPENDED  
-；该调用返回一个句柄给创建的进程(我们后面需要)  
-...  
-push CREATE\_SUSPENDED  
-...  
-push offset zsTarget  
-call CreateProcessA  
-  
-; The address space of the process has been initialised, but its  
-; primary thread is suspended. Now, we allocate some memory into  
-; the target to host our code.  
-  
-；进程的地址空间已经初始化，但主线程仍挂起。现在，我们分配一些内存给目标程序，用作给我们的代码的宿主。  
-  
-push PAGE\_EXECUTE\_READWRITE ; attributes for the allocated   
-；memory  
-...  
-call VirtualAllocEx  
-  
-  
-; The return is the image base of the allocated memory. Finally, we can write to it, with  
-; kernel32.WriteProcessMemory, and run our code with kernel32.CreateRemoteThread.  
-  
-；返回的是分配内存的映像基址。最后，我们可以在里面写入 kernel32.WriteProcessMemory，并用 kernel32.CreateRemoteThread 运行我们的代码。  
-  
-...  
-call WriteProcessMemory  
-...  
-call CreateRemoteThread  
-  
-; At this point, the logger is running while the main thread is suspended.  
-; The logger will change the status of the event  
-; we have created at some moment, we need to wait until then before to  
-; resume the main thread:  
-  
-这样，记录器在主线程挂起的时候就运行了。记录器会改变我们在某个时刻创建的事件的状态，直到恢复主线程运行之前，我们要做的是等待。  
-  
-push -1                     ; wait infinite time  
-push dword ptr \[hEvent\]    ; handle to the event, returned by   
-                           ；CreateEventA  
-call WaitForSingleObject  
-...  
-call ResumeThread  
-push 0  
-call ExitProcess  
-  
-如你所见，注入代码到另一个进程里并运行它并不太难。注意目标程序没有被调试，因此，它(目标程序)就也没有什么好抱怨的了。  
-  
-四，挂钩 API 调用  
-A、问题及相关信息  
-如我们上面简短的评述，壳会模拟 API 开始的 K 个指令并跳到(K+1)-th 处。前 K 个指令可以变形，如 K=2 我们就有：  
-  
-；KERNEL32.DLL 里的 kernel32.ExitProcess 的未变入口点  
-  
-77E55CB5 kernel32.ExitProcess    push ebp  
-77E55CB6                             mov ebp,esp  
-77E55CB8                             push -1  
-  
-你可在缓冲区(buffer)找到的指令的样本：  
-  
-     xchg eax, esp  
-     sub eax, 4  
-     jmp @@1  
-     db 68h  
-@@1:  xchg eax, esp  
-     mov dword ptr \[esp\], ebp  
-     push esp  
-     pop ebp  
-     push (77E55CB8+RANDOM\_VALUE)  
-     sub dword ptr \[esp\], RANDOM\_VALUE  
-     ret  
-  
-两者是一样的，然而第二种不容易运用。缓冲区越长越难模拟，重建输入表就越困难。  
-  
-现在，请观察，如果你在 kernel32.ExitProcess 的入口点设了断点，会很轻易的被壳绕过。当然，可以在以后设置该断点，但那时会知道调用参数是很困难的(几乎不可能)。此外，当别的 DLL 内部调用该断点地方时，断点也会突然生效的(be fired up)。  
-让在 APIs(合适的)地方设置断点成为可能是一个很重要的问题。控制壳的行为区域就等于立刻控制了它们。  
-  
-B、步骤  
-假设 kernel32.ExitProcess 的 API 入口点如下：  
-nop                    ; 1  
-nop                   ; 2  
-...                    ; ...  
-nop                   ; k  
-...                       ; ...  
-nop                    ;  
-jmp kernel32.ExitProcess\_ActualStart  
-壳会模拟前 K 个 nops 指令，然后跳到 k+1。于是，我们就能在 jmp kernel32.ExitProcess\_ActualStart. 安全地设置断点。事实上，初始参数已  
-  
-经被保存起来了。  
-对于给定的 DLL(如 kernel32)，我们要做的如下：  
-1)获取 kernel32 的映像基址  
-2) 从 PE-header 得到(take) SizeOfImage  
-3)将对整个 kernel32 映像的权限更改到 PAGE\_EXECUTE\_WRITECOPY  
-(Change permissions over the whole image of kernel32  
-to PAGE\_EXECUTE\_WRITECOPY)  
-4)保存 DLL 中的所有输出函数的原始入口点，可以在 IMAGE\_EXPORT\_DIRECTORY.ED\_AddressOfFunctions.里找到它们。  
-5)N= 由 kernel32 输出的 API 的总数，位于 IMAGE\_EXPORT\_DIRECTORY.ED\_NumberOfFunctions.  
-6)将 kernel32 的每一个 API 转移到我们的缓冲区。  
-7)存储对 DLL 的权限(一些壳用 DLL 激活异常)  
-我们来详细看看如何将所有的 APIs 重定向到缓冲区，注意要在壳运行前完成。  
-我们称我们使用的缓冲区为 DivBuffer。该缓冲区大小为 N\*M,M 是所有缓冲区中的最大值。我们要做的如下：  
-for (i=0; i<N; ++i){  
-Change the entry point  
-of the i-th API to DivBuffer\[i\*M\].  
-Generate random garbage  
-and write it to DivBuffer\[i\*M\].  
-Write some instructions, after the  
-garbage, to save the value of i.  
-Write a jump, after the previous  
-instructions, to our hooker procedure.  
-将 i-th 的 API 的入口点改变到 DivBuffer\[i\*M\].  
-产生随机垃圾并把它们写到 DivBuffer\[i\*M\]。  
-在垃圾代码后写一些指令保存 i 的值。  
-在上面的指令后面写一跳转，转到我们的钩子程序。  
-}  
-算法中，M 只是垃圾代码大小的上界(对目前的壳而言，M=30 是个好的数值)。我们创建的所有的垃圾缓冲区会来到(lead to)钩子程序(hooker   
-  
-procedure)，它负责记录调用和原料。  
-我们概述一下钩子，它是相当简单的程序：它保存寄存器，把一切写入日志文件，然后恢复寄存器，跳转到 API 原始入口点(我们已经保存)。钩  
-  
-子看起来像下面的：  
-hooker PROC  
-mov eax, esp                      ; save esp and ebp  
-mov ecx, ebp  
-pushad  
-...  
-；写日志文件  
-；(壳调用的 API，以用参数,…)  
-     ……  
-;计算壳欲调用的 API 的实际入口点，用它覆盖下面的 dword  
-          ……  
-；恢复寄存器  
-          popad  
-；跳到 API 的实际入口点(是 push/ret)  
-db 68h  
-; first opcode of push XXXXXXXXh  
-@ActualEP: db 0,0,0,0  
-ret  
-hooker ENDP  
-可以观察到，在最开始，我们失去 eax 和 exx 的值。没关系，对 Windows 而言，eax 和 ecx 都是“垃圾”寄存器，也就是说它们并不被 APIs 使用。因  
-  
-此，在内部使用它们是安全的(剩余的寄存器需要保留)，这为我们节省了一些头痛事，因为我们能保存那里的 esp 和 ebp。匆需说，垃圾代码需  
-  
-要保留(preserve)除 eax 和 ecx 之外的所有寄存器。  
-  
-C.当壳调用某个 API 时，发生了什么?  
-  
-壳认为它要做如下的事：  
-  
-1)定位 API 的映像基址  
-2)以名字查找它，通常将该名字的固定编码(hardcoded)hash 值(hash value) 与每个 API 的 hash 值相比较，直到匹配为止。  
-3)模拟 API 的前 K 个指令(K 每次可以随机选取)  
-4)跳转到第(K+1)-th 个 API 指令  
-  
-实际上，它做：  
-  
-1)定位 API 的基址  
-2)以名字查找，通常比较……  
-3)模拟第 i-th 个缓冲区(假设它调用第 i-th API)的前 K 个指令  
-4)跳转到第(K+1)-th 垃圾指令  
-最后，我们就能在我们的程序“记录器”的入口点挂钩 API 调用。  
-壳看起来并没有任何不同之处，但我们要让调用看起来它好像没有受到保护一样。(The packer doesn’t see any difference but we have   
-  
-kept the call as if it was done without the protection.)  
-  
-D.操作提示  
-  
-下列建议可能会帮助你轻松上手，编写自己的记录器  
-。  
- Kernel32,user32 和 advapi32 加载于运行在同一操作系统上的所有进程中的相同的映像基址上。因此，记录器可以从载体程序上继承(实际上  
-  
-是全部的)APIs。  
-  
- 要测试自己的程序，不必从注入代码到另一进程开始。在此之前，推荐在载体内分配一个缓冲区，将记录器拷贝到那里，进行测试。这样，   
-  
-你就能做个最小化测试(minimum test)。  
-  
- 当最终注入代码到另一进程，你就能在记录器的开始处设置断点。这样一来，当你用 CreateRemoteThread 用行它时，它就会蹦溃(crash)，  
-  
-你有机会附载(attach)你的调试器。总的来说，你可以在你想检查的记录器的任意一点设一个 int3 断点。  
-  
- 写到日志文件的步骤：  
-  
-\--写入目标调用的 APIs 的名字  
-\--做一个从十六进制十进制到可打印字符串的小步骤(记住偏移量是以 endian order 形式给出的)  
-(Do a small procedure passing from hexadecimal to a printable string (remember that offsets are given in endian order).  
-\--使用映射你的日志文件的共享文件，以便你不用从内存中抓取(dumping)就可以随时看到并保存它。从而使你控制可执行程序。  
-\--记住文件映射不能在内存中扩大，用个大点的(1Mb)。  
- 我们推荐(作为无版权目标程序)Yoda 的加密器作实验。它重定向 API 调用，有少数你必须绕过的异常或小把戏。  
-  
-五、记录日志和 IAT 重建  
-  
-看了壳(或目标程序)是如何完成挂钩所有的调用后，我们现在转到如何对这些调用采取行动。我们要解决下面这些主题：  
-1)记录 API 调用到日志  
-2)改变它们的参数或返回值  
-3)重新激活调用，以获取(plaintext)API 地址  
-我们用于此次实验的壳是市面上最强壳之一。当然，我们不会泄露有助于破掉它的任何信息(所有的偏移量和原料都已修改)。  
-让我们一步一步回顾在现实中如何去做：  
-  
-A.记录 kernel32 日志  
-  
-首先，一直要做的是记录所有指向 kernel32 的调用，仅仅少数从其他 DLLs 调用 APIs(不包括后面的 ADVAPI32)。  
-在日志里，你要有 API 和它从何处调用(返回值是在 dword ptr \[esp\])。注意你的 API 可以来自同一(或其他的)DLL 的其他 APIs 里面调用，所有你  
-  
-就要以某种方式过滤掉这个调用。  
-我们按如下的做：    
-mov ebx, dword ptr \[esp\]            ; take return address  
-shr ebx, 28                         ; keep only the most   
-；significative byte  
-test ebx, ebx  
-jnz Dont\_Log\_Me  
-这样做是因为在 WinNT 里，kernel32 总是加载于 77E40000h。有很多更好的方法过滤它们，其中查看位于 PEB(译者：是什么？)的已加载模块是否  
-  
-匹配可能是最好的方法，但这很可靠又十分简单。我们看看来自被保护的记事本的日志：  
-Logger started for DLL KERNEL32.DLL,  
-target = Notepad.exe  
-VirtualAlloc From: 00B10024  
-Param: Buffer size: 00000200 API return: 00A70000  
-VirtualAlloc From: 00B20101  
-Param: Buffer size: 00001000 API return: 00A80000  
-LoadLibraryA From: 00A20BFE  
-Param: ADVAPI32.DLL <=== interesting!  
-VirtualFree From: 00A2310B ...  
-GetLocalTime From: 00A45150 <=== interesting!  
-...  
-VirtualFree From: 00D01711 VirtualFree From:00D02224  
-现在，你必须阅读了它调用的 APIs 并注意最相关的 APIs。我们单独隔离出 kernel32.GetLocalTime 是因为它典型的用于 30 天试用期或之类的。注  
-  
-意到壳加载了 ADVAPI32，这也很有趣，因此，你现在应记录来自 ADVAPI32 的所有调用。  
-只要去阅读一下日志，你就会精确地明白它是如何工作的。  
-B、记录某些选定 APIs 参数日志  
-开始编写大量汇编代码去对成百上千的 APIs 的参数进行解码，将是毫无意义的。相反，我们只需选取调用的 APIs 中一小部分进行处理。  
-可以在 esp+4，eps+8，…找到参数，因此，你仅需把它们写到记录器里(小心，因为它们是指针，NULL 会毁掉你的记录器)。  
-C.修改 API 调用的结果  
-本例中，我们选择的 API 是 kernel32.GetLocalTime。我们想钩住它，并改变它的返回值为一固定日期(于是我们就一直注册了)。要这样做，我  
-  
-们需要在调用前知道参数 lpSystemTime 的值，参见\[win32hlp\]，并在调用后立刻修改它指向的数据结构。结果，除写入日志外，钩子还需保存  
-  
-lpSystemTime。下面的代码演示如何进行完整的过程：  
-;--------------------------------------------------------; hooking the return address from the call  
-;--------------------------------------------------------  
-; first, we save the bytes at the return address because we   
-; are going to overwrite them with a jump to our code  
-cld                              ; clear direction flag  
-mov esi, dword ptr \[esp\]         ; take return  
-mov edi, offset your\_buffer      ;  
-mov ecx, 6                       ; the size of a push/ret  
-repnz stosb                        
-                                 ;  
-  
-; next we overwrite them with a push/ret leading to our code  
-  
-mov edi, dword ptr \[esp\]         ; take return address  
-mov al, 68h                      ; write the push  
-stosb                             ;  
-lea eax, \[My\_GetLocalTime\]       ; write the address of my   
-;procedure  
-stosd                             ;  
-mov al, 0C3h                      ; write the ret  
-stosb                             ;  
-  
-; we also need to keep track of lpSystemTime  
-  
-mov eax, dword ptr \[esp+4\]  ; store the parameter lpSystemTime  
-mov dword ptr \[ebp+lpSystemTime\], eax  
-现在，我们让目标程序完成对 kernel32.GetLocalTime 的调用，因为它已经钩住我们的代码了。注意，目标程序将对它所有的区块具有读/写权  
-  
-限，所以你对此不必担心。现在，我们要改变返回值：  
-;--------------------------------------------------------  
-; Changing the return to our fake value  
-;--------------------------------------------------------  
-  
-; The target jumps here when hooked:  
-  
-My\_GetLocalTime PROC  
-pushad  
-pushf               ; not needed in this case but you might have   
-                    ;to add it too  
-  
-; compute the delta handle in ebp  
-  
-call @@1  
-@@1:pop ebp  
-sub ebp, @@1  
-  
-; modify the returned structure  
-  
-.mov eax, dword ptr \[ebp+lpSystemTime\]     ; point to the   
-                                           ;SYSTEMTIME structure  
-mov \[eax.wYear\], 2004  
-mov \[eax.wMonth\], 4  
-mov \[eax.wDayOfWeek\], 1  
-mov \[eax.wDay\], 8  
-  
-; write back the bytes at the return instruction  
-  
-cld  
-lea esi, \[ebp+your\_buffer\]  
-lea edi, \[ebp+API\_ReturnAddress\]    ; the value we had at esp   
-                                    ;at the hooker  
-mov ecx, 6  
-repnz stosb  
-  
-; restore registers and flags and return  
-  
-popf  
-popad  
-ret  
-My\_GetLocalTime ENDP  
-  
-这使壳相信我们仍旧是在 2004 年 4 月 8 号。当然，记录 API 返回值日志同存储 eax 和 API 目前使用的所有结构一样简单。  
-  
-D.处理剩余的 DLLs  
-  
-本例中，我们知道壳加载了 ADVAPI32.DLL(对 kernel32 的一次考查就带给了我们所有加载的 DLLs)。ADVAPI32 是个相当重要的 DLL，它将我们所需  
-  
-的 APIs 包含到注册表，那是壳用来保存它们的注册信息的地方。在两种可能性：  
-  
-1)总结自己的算法：挂钩 LoadLibraryA、在每次调用时，查看哪个 DLL 被加载，同时挂钩它(译者：DLL)所有的 APIs。  
-2)简单地对新 DLL 运用我们现有的算法  
-  
-第一种方法没有很益处，事实上，在实验中从未用过它。  
-  
-E.IAT 单一地址嗅探  
-  
-观察下列由壳完成的调用：  
-  
-LoadLibraryA From: 00BA08BC Param: COMDLG32.DLL  
-壳从不使用来自 COMDLG32.DLL 的 APIs，因此，要重建目标的 IAT，就必须完成此调用。让我们挂钩来自 COMDLG32 所有对 APIs 的调用，然后看看会发生什么：  
-  
-Logger started for DLL   COMDLG32  
-End of log file  
-  
-一个空的日志文件？为什么？我们只是简单的运行目标程序，但我们仍不得不强迫它从 COMDLG32 调用一些 API。现在，我们运行目标，但还要从菜单选择“选择字体”(你要用用目标程序，直到你在日志里看见一些有趣的东西，这也是我们为什么推荐创建一个共享文件作为日志映像文件)。  
-  
-Logger started for DLL COMDLG32  
-CommDlgExtendedError Return Address: 01002E39  
-End of log file  
-  
-好的，有了。我们想想当前链接三个最常见的可能，它们通过下面链接到 API：  
-  
-• call dword ptr \[IAT\_ENTRY\]     : where  
-IAT\_ENTRY is an absolute address inside the IAT.  
-  
-• call RELATIVE\_IAT\_ENTRY         : Here, the return  
-address + RELATIVE\_IAT\_ENTRY is inside the  
-IAT (adjust for negative references).  
-  
-在本例，NotePad.exe 中，这些是：  
-  
-01002E33     call dword ptr \[10012AC\]  
-; call we have logged  
-01002E39     test eax,eax  
-; return in our log  
-  
-为区分这两种情况，只要这样做：  
-  
-mov eax, Return\_Address  
-sub eax, 6  
-  
-cmp byte ptr \[eax\], 0FFh  
-je First\_IAT\_Case  
-  
-inc eax  
-cmp byte ptr \[eax\], 0E8h  
-je Second\_IAT\_Case  
-  
-这让我们很轻松的获得我们想要的任何 API：在跳转到 API 原始入口点前，记录器来到目标程序，试图嗅出与之相应的 IAT 地址。该方法可能失败，例如(NotePad.exe)：  
-  
-01006AEF          mov edi,dword ptr  
-\[KERNEL32.GetModuleHandleA\]  
-01006AF5          call edi  
-  
-我们可以试试返回的 edi 值，有可能它已经保留(preserved)了，输出的提我们“猜”出的 IAT 地址。另一方面，我们可以限制上面所做的已知情况(在多数情况下足够了，我们下面就会看到)。  
-这是从我们实验中摘取出来的：  
-  
-lstrcmpW return address    : 01001C8D  
-IAT address? 010010F0  
-lstrcpyW return address    : 01001C9F  
-IAT address? 010010EC  
-lstrcatW return address    : 01001D4F  
-IAT address? 010010DC  
-lstrcpyW return address    : 010040ED  
-lstrlenW return address    : 010040F6  
-lstrcpyW return address    : 01004102  
-  
-你看，lstrcmpW 已经被正确地定位了(lstrcatW 也是如此)。它们的值并没有根据前述的 call edi 例子对 IAT 进行猜测。对同一应用程序，user32.dll 日志几乎产生(yield)了全部的 IAT。  
-  
-我们能在调用返回前保存字节，并试着以后对它们进行反汇编，注意到这一点很重要(这种情况并不多见)。这样，我保证我们在多数情况下最起码可以获得完整的 IAT。然而，我们将看到，还有一种更好的方法。  
-  
-F.IAT 完整重建  
-  
-在上一节，我们知道要获取单一 API，我们只需记录正确的 DLL 日志，并随意用用目标程序。因此，我们能一个接一个地增加所有的 APIs，直到我们有一个完全工作的应用程序，而这会相当耗时间的。  
-  
-IAT 的完整重建与一个一个增加输入表相比，相当简单。我们来看看如何做：  
-  
-1)首先，我们需要从目标程序使用的每个 DLL 中重新获取(retrieve)一个 API(必须用用目标程序完成，但这次我们只需每个 DLL 的一个 API，几分钟内就可完成)。  
-2)每个 DLL 的 IAT 部分是以 0 结束的数组，如下面：  
-  
-offset 0: ?????????  
-; dd immediately before the IAT  
-offset 1: DLL1\_API1  
-; first API imported from this DLL  
-offset 2: DLL1\_API2  
-; second API imported from this DLL  
-offset 3: ...  
-;  
-offset N: 0  
-; null terminating dd  
-  
-位于 offset 0 的 dword 是未知内容。它可能是 NULL，结束的 IAT 前面部分(对另一个 DLL 而言)，也可能是垃圾。  
-问题是我们知道 offset1,…,offsetN 中的一个，但我们需要知道全部的。事实上，我们甚至不能假设该数组将有一个 NULL 结束的 dword，因为壳会在那里设其他的值来迷惑我们。  
-  
-3)下面的算法解决此问题：  
-  
-; input: eax = guessed IAT address  
-; ouput: reconstruction of the  
-; imports table for the DLL to  
-; which eax belongs to  
-  
-xor ecx, ecx                      ; counter  
-  
-while (\[eax+4\*ecx\] != 0)  
-{  
-push ecx                          ; save ecx  
-push eax                          ; save eax  
-call dword ptr \[eax+4\*ecx\]     ; Compel the target  
-; to do the call.  
-; This sends us to  
-; the buffer created  
-; by the packer to  
-; emulate the first  
-; instructions of  
-; the call.  
-get the API at our logger     ;  
-restore the stack              ;  
-pop eax                          ; restore eax, ecx  
-pop ecx                           ;  
-inc ecx                          ; next  
-}  
-  
-这就从 eax 开始的重新获取了所有的地址，最终我们只需往回移动，直到前一个 0。  
-  
-当然，当我们确实调用 eax，找到有疑问号(interrogation)标志的 offset 时，我们会使程序蹦溃(十分可能)。结果是，我们需要设一个 she 句柄，保护该算法的执行。  
-  
-G.API 调用断点及附加到调试器  
-  
-通常，你想从某个调用开始检查你自己。用我们的方法，在一个 API 调用上设置断点显得太直接了。让我们看看两种方法：  
-  
-当一个 API 调用返回地址是给定的时：  
-  
-记录器并不是简单时记录位于\[esp\]的返回地址，并与一保存的值进行比较：  
-  
-mov eax, dword ptr \[esp\]  
-cmp eax, RETURN\_FROM\_GETLOCALTIME  
-  
-为什么不呢？因为壳会运行在动态分配的缓冲区上，所以映像基址是变化的，导致了不同的返回地址。相反，我们可以取得返回地址的最不 significative 的字节看看是否匹配：  
-  
-mov eax, dword ptr \[esp\]  
-mov ebx, RETURN\_ADDRESS\_FOR\_GETLOCALTIME  
-shl eax, 16  
-shl ebx, 16  
-cmp eax, ebx  
-je my\_breakpoint  
-  
-在第 n-th 次时我们调用给定的 API:  
-  
-我们有个在钩子程序调用的 API，把它与一个固定编码值(hardcoded value)进行比较，用个计数器记住该 API 被调用的次数。完工。  
-对断点本身在很多选项，我们所用的用于显示一个关于信息，然后进入一个无限循环，如：here: jmp here。现在，你可以附加到你的调试器了(attach your debugger)，暂停程序，NOP 掉 jmp，开始调试。  
-The savings are spectacular。  
-  
-六、记录所有的异常日志  
-  
-获得由壳激活的异常列表同样有帮助。如果我们想附加调试器并使用追踪，它特别有帮助，因为我们知道，它不会被任何异常杀掉。理解异常的最好教程是由 Jeremy Gordon 写的“Exception for assembler  
-Programmers“，必读。我们假定本文的最小背景。众所周知，钩住 NTDLL.ZwContinue 会给我们带来很多异常，但不是所有的信息我们都要。当我们有所松懈或(可能译得不对，原文是：we have unwindings)当句柄拒绝修复异常并把它传给下一个时， 问题来了。这种情况下，我们需要对工程做点逆向以找到正确的断点。结果如下：  
-  
-容易部分：NTDLL.ZwContinue 首先将一个指针作为参数传给上下文(context)，第三个参数为异常代码，第六个为异常发生的地址。因此，挂钩 ntdll.ZwContinue 对非疏忽(non-unwinding)和非拒绝(non-refused)异常已经足够了。  
-较困难部分(在 WinXP 上完成，对其他操作系统有细微差别)：我们选择 except32.exe，用调试器打开它，选择“在句柄 1 处理异常”。这使得前两个句柄拒绝修复异常。现在，按“引起异常”按钮，你来到这里：  
-  
-00410608 div cl  
-0041060A retn  
-  
-我们通过异常到句柄(pass exception to the handler)，但单步进入(在 olly 中 shift+F7)。现在我们看到：  
-  
-77F4109C mov ebx,dword ptr \[esp\]  
-77F4109F push ecx  
-77F410A0 push ebx  
-77F410A1 call ntdll.77F51763  
-77F410A6 or al,al  
-77F410A8 je short ntdll.77F410B6  
-77F410AA pop ebx  
-77F410AB pop ecx  
-77F410AC push 0  
-77F410AE push ecx  
-77F410AF call ntdll.ZwContinue  
-  
-改变 77F410AG 的返回值显示当异常没有修复时，ntdll.77F51763 返回 0。然而，如果我们来到 ntdll.ZwContinue，我们知道我们忽略了 unwindings 或之类的。我们调试到 ntdll.77F51763:  
-  
-77F51763 push ebp  
-77F51764 mov ebp,esp  
-77F51766 sub esp,60  
-...  
-77F51771 call ntdll.77F51820  
-77F51776 test al,al  
-77F51778 jnz ntdll.77F806B9  
-  
-这次，改变返回值为 1 直接导致 ntdll.ZwContinue。另一方面，对拒绝的或正常的异常而言，返回值是一样的。因此，我们不用单步跟入(step into)。下一个在趣的调用是这样的，我们必须调试到那里，因为否则的话我们就会在 ntdll.ZwContinue：  
-  
-77F517E8 push esi  
-77F517E9 call ntdll.77F7333F  
-...  
-  
-加上一点耐心，我们到这里了，它调用异常句柄(检查这对不同例子的正确性)：  
-  
-77F7339B mov ecx,dword ptr \[ebp+18\]  
-77F7339E call ecx ; Except.0041080A  
-  
-总结一下，要记录所有的异常(WinXP)日志，我们需要挂钩 call ecx 和 ntdll.ZwContinue。  
-  
-注意：第一个异常发生在目标程序准备运行之前，它事实上是由加载器引起的，不用记录它。  
-  
-这样，我们能轻松的记录我们需要的关于异常的所有信息。  
-七.入口点定位  
-  
-我们来看看由壳完成的调用。上面摘要的代码片段的最后两个调用如下：  
-  
-...  
-VirtualFree From: 00D01711  
-VirtualFree From: 00D02224  
-  
-这些调用很明显是由壳完成的(即使我们不知道这一点，我们也能从返回地址开始拷回一些指令，当它们变得混乱时就更明显了)。当然，入口点还在后面。  
-  
-事实上，我们能检查日志文件(DLLs，异常或其他的)，然后轻松地、尽可能准确地给出入口点的下限(lower bound)。寻找入口点的努力将显著的减少。  
-  
-壳会知道这种攻击，并在最开始时将所有异常和调用编组。这不会节省我们很多工作(无论如何，这将是一个好的改善，所有基于 seh 句柄的反调试都能自由的搞定)。处理这些难点需要注入追踪。  
-  
-A.  追踪  
-  
-有几种方法编写追踪代码：  
-1) 作为调试器的一部分    As part of a debugger.  
-2)自我追踪代码           Self-tracing code.  
-3) 代码模拟              Code Emulator.  
-  
-第一个对我们没有什么兴趣，我们假设目标程序有大量的反调试手段。第三个超出本文的范围。让我们把注意力放在第二点上：  
-  
-早在 DOS 时代早期就已经使用的自我追踪代码(self-tracing code)是一种相当强的反破解保护。基本上，我们所有的代码运行的同时，陷阱标志设为 ON，意思是我们的 she 句柄在每个指令都会被调用。  
-  
-陷阱标志设置如下：  
-  
-pushf  
-or dword ptr \[esp\], 100h  
-popf  
-nop                   ; needed for some processors  
-  
-这会产生一个 EXCEPTION-SINGLE-STEP 并调出 seh 句柄。该句柄(某种)对上下文(context)有 ring-0 存取权限，能为下一指令再次修改陷阱标志。在每个 seh 句柄里，你能设置陷阱标志为：  
-  
-push dword ptr \[eax.cx\_EFlags\]  
-; eax points to the context  
-or dword ptr \[esp\], 100h  
-pop dword ptr \[eax.cx\_EFlags\]  
-然而，我们的 seh 句柄更诡秘点，我们需要：  
-  
-1)记录所有 long “jmps”日志  
-2)避开反跟踪手段  
-  
-B．记录所有的 long “jmps”  
-  
-当陷阱标志设为真时，我们在 cx\_Eip 处收到下一指令将运行的地址，在 EXCEPTION\_RECORD.ExceptionAddress 收到异常发生的地址。我们仅需要评估他们的不同之处：  
-mov ebx, dword ptr  
-\[EXCEPTION\_RECORD.ExceptionAddress\]  
-mov ecx, dword ptr  
-\[CONTEXT.cx\_Eip\]  
-cmp ebx, ecx  
-ja DontXchg  
-xchg ebx, ecx  
-    
-DontXchg:  
-sub ebx, ecx  
-cmp ebx, 0FFFFh  
-jb DontLog  
-; don’t log jumps shorter than 0FFFFh  
-call LogJmp  
-; log this long jump  
-  
-它会记录所有的跳转，下一步，你只要看看日志文件，自己做个决定。例如，下面是个真实的日志：  
-  
-VirtualFree API return: 00C01B74  
-API return: 00000001  
-<== last call we had available  
-Entry Point? 00090392  
-Entry Point? 00C01B74  
-Entry Point? 01006AE0  
-  
-正确的是 01006AE0，如果你 看见 00090392 和 00C01B74 在由壳先前分配的缓冲区里，你就会轻松知道。  
-  
-C.避开反跟踪手段  
-  
-壳完成所有的异常和调用后，跟踪开始了，这去掉了可能用来杀死跟踪的 99%的手段。在实践中，我们要检查日志，决定跟踪被杀时发生了什么，甚至如果需要的话，可以附载到调试器(attach the debugger)。  
-  
-作为例子，我们看看如何去掉 rdtsc 手段。Rdtsc(read timestamp counter)是个半文档记载(semi-documented)的机器码，它读取位于 edx:eax 的 CPU 的当前时间印戳，edx 是最 significative(译者：这个词不太好译 :-( )部分。例如，可以按如下方法操作该手段：  
-  
-; read timestamp counter  
-rdtsc  
-push edx     ; save most significative part  
-  
-; loop to loose time  
-mov ecx, 0FFFFh  
-next:  
-xor eax, eax  
-loopd next  
-  
-; read again timestamp and compare  
-rdtsc  
-pop eax  
-cmp eax, edx  
-jne IAmTraced  
-  
-程序被追踪时，运行得更慢了(因为我们运行的同样设置了陷阱标志)。搞定这个手段十分容易，只要在句柄中这样做：  
-  
-mov ebx, dword ptr  
-\[EXCEPTION\_RECORD.ExceptionAddress\]  
-  
-cmp byte ptr \[ebx\], 0Fh  
-jne NotRdtscOpcode  
-  
-cmp byte ptr \[ebx+1\], 31h  
-jne NotRdtscOpcode  
-  
-; if we are here is cos the current  
-; instruction has been an rdtsc.  
-; Mark this so we can change cx\_Edx  
-; the next time the handler  
-; is called.  
-  
-mov dword ptr \[IAmAtRDTSC\], TRUE  
-  
-下一次重复时，必须：  
-  
-mov dword ptr \[CONTEXT.cx\_Edx\],  
-MY\_CONSTANT\_TIMESTAMP  
-mov dword ptr \[IAmAtRDTSC\], FALSE     ; initialize  
-  
-不要使用 MY\_CONSTANT\_TIMESTAMP = 0，那太明显了。  
-在更复杂的版本中，我们必须计算自上一个 rdtsc 以来的指令数并决定 cx\_Edx 的增加与否。这实际上去掉了所有类似 rdtsc 的手段。其他的手段需要其他的处理方法。  
-  
-D.如何安装追踪(器)(tracer)  
-  
-还有一个细节我们需要处理，那就是如何安装 seh 句柄。在壳所有的异常出现后，seh 句柄实际上不再需要，也就意味着我们能覆盖(overwrite)最后一个异常，以便我们能捕获所有的异常(由于陷阱标志设置为 ON)。要安装句柄：  
-  
-lea eax, \[Tracer32\_handler\]  
-mov ebx, dword ptr fs:\[0\]  
-mov dword ptr \[ebx+4\], eax  
-  
-总结，我们的追踪(器)将(缓慢地)运行壳，记录它所有的跳转(jmp’s)，直到到达入口点。去找到记录日志文件，使用它。  
-  
-八、这些方法是如何隐藏的？  
-  
-本节我们讨论一些检测这些指令以及他们弱点的可能方法。  
-  
-A.线程模拟  
-  
-目标程序能模拟运行在系统中的所有的线程，检查有多少与它相应(correspondd to)。这起不了什么作用。注意，在主要的工作已经完成后，，注入的代码实际上由目标程序调用，也就是说我们能够：  
-  
-1)用 VirtualAllocEx 分配内存  
-2)取得入口点  
-3)从入口点开始，用 ReadProcessMemory 存储一个或多个内存页面  
-4)用 GetThreadContext 保存主线程的上下文(context)  
-5)用我们的代码覆盖入口点，在此情况下，记录器做下列任务：  
-  a)打开日志文件，作为共享文件映射(shared file mapping)  
-   b)为垃圾缓冲区分配内存(hooks)  
-   c)挂钩 kernel32，把它重定向到分配的内存  
-   d)设置一个事件为真，以便载体知道它已经完成  
-   e)等待  
-6)运行我们的代码  
-7)用 SuspendThread 停止我们的代码  
-8)用 WriteProcessMemory 写回到原始代码里  
-9)用 SetThreadContext 恢复原始的上下文(context)  
-10)用 ResumeThread 恢复壳的主线程  
-  
-唯一一点是要确保重定向 APIs 的缓冲区的存在，即使如果壳的主线程终止了。这可以通过创建该缓冲区为命名共享文件映射(named shared file mapping)，从载体打开它来完成。这样，缓冲区直到载体同意才会释放。  
-  
-B.定位到我们拷贝代码的缓冲区  
-  
-同样，这不是个很好的主意。我们的代码能隐藏在 kernel32 的.reloc 区块里…。事实上，我们监视类似 CreateFileA 的所有 APIs 的调用，试着打开文件，改变他们的返回值到 INVALID\_HANDLE\_VALUE。  
-  
-C.编写一个模拟器，跳过 API 开始处的大量指令  
-  
-有作用，但它也用于破解目的。如果我们能编写一个模拟器，它能跨过许多指令，甚至一些反调试手段，我们就能把它用作输入表重建器。  
-  
-D.将 DLLs 与位于系统目录下面的 DLLs 进行检查  
-  
-壳需要进行一些调用，以重新获取这些 DLLs，然后打开它们。这在我们的日志里很明显(记录 NtCreateFile 日志)  
-  
-E.将已加载的 DLLs 与一些固定编码(hardcoded)校验进行检查  
-  
-有作用，但不是对所有的 Windows 版本都适合。壳应该会知道任何 DLL 的新版本。注意，Windows 每一个月左右就有新的安全补丁，其中一些会更新 DLLs。  
-  
-F.分析 API 的起始指令，看看是否是“API-like”之类的指令  
-  
-这些怎么样？  
-  
-push ebp  
-mov ebp,esp  
-push -1  
-push dword ptr \[ebp+4\]  
-push dword ptr \[ebp+8\]  
-  
-我们也可产生 API-like 的指令，注意，以前的所有指令可以转化，于是我们仍然可以轻松地记录输入参数日志(这样，add esp,16 取消所有的计算)。  
-  
-G.向量 AddressOfFunctions 具有在 DLL 映像文件外的数值  
-  
-这也很容易搞定。用存储在 DLLs 的.reloc 区块的一些指令链接我们的记录器。一旦 DLL 已经被加载到内存里，.reloc 就不再需要了。(还有更复杂的方法，几乎绝对难以检测 undectable)。  
-  
-总结：我们的方法相当隐匿  
-  
-九.结束，进一步的研究  
-  
-本文介绍了一种从严密保护的软件里获取内部信息的新方法。该方法十分隐匿，产生足够的信息，显著减少破解许多坚实目标的时间。  
-  
-我们的方法主要缺点是：  
-1)需要人工干预进行日志分析  
-2)需要知道我们在上一节使用的所有手段  
-  
-注意，由于目前反破解的软件并不知道这些方法,(2)仅在以后不方便。  
-  
-反破解的软件应该防止入侵(instrusions)，因此，进一步的研究应转移到如何防止它们。然而，如我们在上一节所见，这可不是件轻松的事。  
-  
-最终评价：本文所解释的一切可以在两到三个星期内编码完成(努力程度“中“)  
-  
-References  
-\[1\] Havok, “Asprotected notepad” Codebreakers-Journal, First Issue  
-2004.  
-\[2\] Labir, E., “Adding imports by hand” Codebreakers-Journal, First  
-Issue 2004.  
-\[3\] Natzgul, “How to access the memory of a process” available at  
-Fravia.  
-\[4\] Kruse, T. “Processless Applications - Remote threads on Microsoft  
-Windows 2000, XP and 2003” Codebreakers-Journal,  
-First Issue 2004.  
-  
-  
-【翻译后记】  
-呼呼，第一次翻译如此长篇大作，花了我一个星期的时间:-)。很累的说，主要是眼睛吃不消，:-(   
-感谢原文作者的美文，文字流畅，表达优美，让我再一次的学习英语。  
-还要 thx 声声慢，他提供了此文的资料，希望他能再多多提供好的英文资料:-)  
-还要感谢我的母校：江西遂川中学。以及中学英语老师：郭世泽老师和王立新老师。你们的辛勤教导，才有了我的今天!  
-  
-由于时间和水平有限，翻译错误之处难免。请大家多多指正。  
-  
-QQ：14695672  
-Email:springkang2003@yahoo.com.cn 
+来自 声声慢 提供的英文原稿
 
-  
- 4dd466d0e1e0cc123afbe504da2462ca
+Author: `E. Labir`
+
+(作者：`E. Labir`)
+
+翻译：`springkang[DFCG] [Nuke Group][TT]`
+
+## 摘要
+
+本文演示如何通过代码注入获取给定目标的内部信息。我们的攻击对当前多数反破解技术来说是完全秘密的，展示了现实生活中的威胁。我们可以重新获取如下的最相关信息：
+
+- 异常、句柄和有关信息列表
+- 调用所有 DLL 文件(参数、返回代码…)的 API 列表
+- 输入表的彻底重建
+- 入口点
+
+我们的方法具有灵活性，操作起来并不困难。我们给出源码并提供一个关于如何分析日志文件的真实例子。
+
+关键词：脱壳，代码注入，反反破解技术
+
+## 一、 介绍
+
+调试的目标从极容易到极难不等。保护良好的软件常用主要基于 `SEH`(结构化异常处理)的反调试手段和极混乱的代码，这些使得破掉它成为一个无尽的梦魇。在 `Windows`(`win9x` 及后续版)，进程生存在自己的地址空间里。地址空间是平坦的，包含全部(映射的)DLL 文件、资源、和它所需的原料。`Windows` 也提供我们注入自己的代码并使它运行在另一进程里所需的工具。\[4\]本文使用注入代码来嗅探来自目标的大量信息。我们的方法绕过 API 重定向和所有的标准反调试。
+
+我们从注入代码获取的信息包括对映射到目标地址空间的所有 DLL 文件的所有调用(还有参数、返回代码)—--我们也能够修改它们。代码注入还特别提供了异常及与之有关的信息(句柄、地址、代码…)列表。有了它，我们可以轻易的重新获取入口点(注入一个追踪(tracer))，甚至在某些情况下，获取被偷的字节。即便这种方法失败了，所有的这些问题也会大大简化。
+
+这种方法需要“某种”人为干预去分析日志文件，但它节省了大量工作。检测你正在受到攻击并非易事，许多壳因此需要重新设计。
+
+我们解决的主题包括：
+
+1. (第一节)壳的描述
+2. (第二节)如何注入代码并使之运行在目标中
+3. (第三节)挂钩所有的 API 调用
+4. (第四节)与 API 调用(记录日志、IAT 重建)互动
+5. (第五节)用注入追踪找到入口点
+6. (第六节)注入代码是怎样隐匿的
+7. (第七节)结束，深入研究…
+
+第一节都有代码片段(或伪码)，我们也展示了在实验中出现的例子
+
+## 二、壳的描述
+
+壳是旨在防止别人检测程序是如何运行或修改程序的程序。典型地来讲，受保护的程序的入口点转向先运行壳。当壳运行时，它执行以下一些步骤：
+
+- 解密目标的区块(目标=被加壳程序)
+- 重建输入表
+- 跳转到目标的实际入口点
+
+第一步区块加密对我们并不重要。通常，在它们在内存中解密之前，加密区块并不是要解决的问题，只要简单地把它们抓取(`dump`)到某个文件，并组合在一起。但第二、三点很重要。
+
+可以用多种复杂方法(`several degrees of sophistication,`)完成重要的保护。(现实中的一些壳的)一些保护十分脆弱，根本不需我们的方法就可破了它们。我们一贯支持强大的保护应用 IAT，即：
+
+1. 删除输入表，壳仅(在安全的地方)将 API 的名字和地址的杂乱信息保存到 IAT。
+2. 算法良好的混乱，并有很多反调试，反跟踪…
+3. 壳并不使用 `GetProcAddress`。相反，它执行自己的算法，寻找 DLL 输出表里的 API。
+4. IAT 已经重定向(阅读下面所述)
+
+注意：事实上，第三点对我们没有影响。然而，一个良好的保护应该这么做。
+
+看到这么多的“商业”产品不符合第一点或第三点，真是很惊讶。
+
+第四点(API 重定向)如何呢？我们看看“API 重定向”是什么意思：打开任意一程序，它肯定输入 `kernel32.ExitProcess`。现在，看看对它的一个调用(`call`)，你会发现类似下面的东西：
+
+```
+call [XXXXXXXXh]      ; call to
+                      ;kernel32.ExitProcess
+                      ; XXXXXXXXh inside the IAT...
+
+XXXXXXXXh: YYYYYYYYh         ; address of
+                      ; Kernel32.ExitProcess
+```
+
+另一很平常的可能是：为调用 `call xxxxxxxxh`，参数也是一样的。`Windows` 加载器(`loader`)“看见”输入表，并用重要的 APIs 地址填充 IAT。壳破坏被保护程序的输入表的信息，因此当壳把控制权交给目标时，IAT 就得到错误的值。于是，结果就是壳需要用正确的值填充目标的 IAT。
+
+如果你用过一加壳程序，壳符合第四点，例如：`Asprotect`,`Slovak Protector`,…IAT 看起来像：
+
+```
+XXXXXXXXh: ZZZZZZZZh       ; ZZZZZZZZh is inside a
+                            ; buffer dynamically
+                            ; allocated by
+                            ; the packer, so it will
+                            ; not exist if you
+                            ; remove the packer.
+
+ZZZZZZZZh:  push ebp         ; (*)
+            ror eax, 16h
+            pushf
+            popf
+            mov ebp, esp       ; (*)
+            call @@1
+            db 68h
+  @@1:
+            add eax, 134h
+            ....
+            jmp ACTUAL_ENTRY_POINT_OF_API + k
+```
+
+壳将 API 的开始指令与一些垃圾代码(在例子中，除在原始 API 代码里的以外，有\*的指令)混合在一起，它也能包含一些微小的反调试手段，最终，写个跳转(或其他类似的)到位于 `API+K` 的入口点处。而 `K` 就是已经运行在垃圾代码里的原始指令数。这样，要找到通过调用 `zzzzzzzzh` 的实际 API 或对 API 挂钩基本上不可能。
+
+输入表不是一个直观明了的结构，了解它的细节超出了本文的范围\[2\]。
+
+一些叫作输入表重建器的程序能够模拟一些指令去寻找我们跳转到的 DLL 中的地址。然后，你就能够从输出表中重新获得 API 名字。然而，输入表重建工具通常十分局限于它们能嗅到的东西，并不能搞定最新的壳(很明显，这些壳在发布前对重建工具进行了测试)。
+
+我们来看看入口点发生了什么。如我们所说，壳一旦完成工作(对目标解密，重建 IAT…)，必须把控制权交给被保护的程序。使用 `Kernel32.CreateThread`，或以某种特别的方法，简单地跳到那里，从而把它作为一个新线程，就可以解决。运行在一个新的线程并不是个好主意。线程的开始地址太明显，于是我们(再次)假设最坏的情况：经过很长时间的混乱和保护良好的代码后，壳跳到入口点处，跳转十分隐蔽(自己修改的代码等等…)。
+
+另一通常要解决的问题是“被偷代码”：壳使用一套预定义的 APIs，非常普通的一个是：`GetModuleHandleA`，并做如下事项：
+
+调用 `GetModuleHandleA`，存储返回
+
+查看被保护的程序，模式是：
+
+```
+call XXXXXXXXh         ; call to
+                      ; kernel32.GetModuleHandleA
+```
+
+现在，删除这个调用，并在每个起始处，用简单的 `mov [handle], harcoded_value` 替换 `mov [handle], eax` 而 `harcoded_value` 之前已经被壳对 `GetModuleHandleA` 的调用返回了。
+
+如果破解者不去检查这个把戏，那么脱壳后的程序就不能在所有操作系统上运行或有其他的缺陷。壳删除的这些字节就是“被偷代码”。这种被偷字节，也就是用一个固定编码(`hardcoded`)的值替换一个调用，用我们的方法将很轻松的定位并重建。
+
+对壳的完整描述大大超出本文的范围，请参考\[1\]获得详细的解释。
+
+壳是保护中等价位程序的优先方式，实践上，所有的共享软件都依赖于他们的安全。所以，研究他们的利弊成为 `REC`(代码逆向工程)的重要研究领域。
+
+## 三、注入并运行你的代码
+
+本节中，我们将大致描述如何注入代码并使之运行在目标的地址空间里。查看\[4\]获取完整的描述。`Win9x` 系统请看\[3\]。
+
+工程将分为两部分，参见\[4\]。我们还需要一个载体程序，负责加载目标程序和注入代码。我们把注入代码称为“自动记录器”(logger)，因为它十分精确地描述它所做的一切。
+
+载体需要在目标程序有机会运行前注入并运行我们的记录器。因此，我们需要创建目标程序为 `CREATE_SUSPENDED`。这样，目标程序的地址空间将被初始化，但主线程要等到我们调用 `ResumeThread` 后才运行。
+
+结果，载体创建目标程序为 `CREATE_SUSPENDED`，并把记录器注入到它的地址空间里。下一步，载体用 `CreateRemoteThread`(`Win2k` 以上系统)运行注入的代码。记录器在目标程序被允许运行前，要做一些基础工作。当一切准备好后，载体运行目标程序的主线程。因此，载体和记录器需要以某种方式通信，我们选择的是通过一个事件，当目标程序(壳)能够运行时，记录器设置事件为真。
+
+我们继续概述如何执行所有的以上步骤(参见 `win32.hlp`)，获得下面的 APIs 的详细参考。
+
+```
+; first, we create the event (choose a random name for your event)
+；首选，我们创建一个事件(为该事件随意选个名字)
+push offset zsEventName      ; name of event
+push FALSE                   ; initial status = FALSE
+...
+call CreateEventA
+
+; Now, we create the target as CREATE_SUSPENDED.
+; The call returns a handle to the created process we need for later.
+；现在，我们创建目标程序为 CREATE_SUSPENDED
+；该调用返回一个句柄给创建的进程(我们后面需要)
+...
+push CREATE_SUSPENDED
+...
+push offset zsTarget
+call CreateProcessA
+
+; The address space of the process has been initialised, but its
+; primary thread is suspended. Now, we allocate some memory into
+; the target to host our code.
+；进程的地址空间已经初始化，但主线程仍挂起。现在，我们分配一些内存给目标程序，用作给我们的代码的宿主。
+push PAGE_EXECUTE_READWRITE ; attributes for the allocated
+；memory
+...
+call VirtualAllocEx
+
+; The return is the image base of the allocated memory. Finally, we can write to it, with
+; kernel32.WriteProcessMemory, and run our code with kernel32.CreateRemoteThread.
+；返回的是分配内存的映像基址。最后，我们可以在里面写入 kernel32.WriteProcessMemory，并用 kernel32.CreateRemoteThread 运行我们的代码。
+...
+call WriteProcessMemory
+...
+call CreateRemoteThread
+
+; At this point, the logger is running while the main thread is suspended.
+; The logger will change the status of the event
+; we have created at some moment, we need to wait until then before to
+; resume the main thread:
+这样，记录器在主线程挂起的时候就运行了。记录器会改变我们在某个时刻创建的事件的状态，直到恢复主线程运行之前，我们要做的是等待。
+push -1                    ; wait infinite time
+push dword ptr [hEvent]    ; handle to the event, returned by
+                        ；CreateEventA
+call WaitForSingleObject
+...
+call ResumeThread
+push 0
+call ExitProcess
+```
+
+如你所见，注入代码到另一个进程里并运行它并不太难。注意目标程序没有被调试，因此，它(目标程序)就也没有什么好抱怨的了。
+
+## 四、 挂钩 API 调用
+
+### A、问题及相关信息
+
+如我们上面简短的评述，壳会模拟 API 开始的 `K` 个指令并跳到(`K+1`)-th 处。前 `K` 个指令可以变形，如 `K=2` 我们就有：
+
+```
+；KERNEL32.DLL 里的 kernel32.ExitProcess 的未变入口点
+77E55CB5 kernel32.ExitProcess    push ebp
+77E55CB6                          mov ebp,esp
+77E55CB8                          push -1
+```
+
+你可在缓冲区(buffer)找到的指令的样本：
+
+```
+     xchg eax, esp
+     sub eax, 4
+     jmp @@1
+     db 68h
+@@1:  xchg eax, esp
+     mov dword ptr [esp], ebp
+     push esp
+     pop ebp
+     push (77E55CB8+RANDOM_VALUE)
+     sub dword ptr [esp], RANDOM_VALUE
+     ret
+```
+
+两者是一样的，然而第二种不容易运用。缓冲区越长越难模拟，重建输入表就越困难。
+
+现在，请观察，如果你在 `kernel32.ExitProcess` 的入口点设了断点，会很轻易的被壳绕过。当然，可以在以后设置该断点，但那时会知道调用参数是很困难的(几乎不可能)。此外，当别的 DLL 内部调用该断点地方时，断点也会突然生效的(`be fired up`)。
+
+让在 APIs(合适的)地方设置断点成为可能是一个很重要的问题。控制壳的行为区域就等于立刻控制了它们。
+
+### B、步骤
+
+假设 `kernel32.ExitProcess` 的 API 入口点如下：
+
+```
+nop                  ; 1
+nop                  ; 2
+...                  ; ...
+nop                  ; k
+...                  ; ...
+nop                  ;
+jmp kernel32.ExitProcess_ActualStart
+```
+
+壳会模拟前 `K` 个 `nops` 指令，然后跳到 `k+1`。于是，我们就能在 `jmp kernel32.ExitProcess_ActualStart` 安全地设置断点。事实上，初始参数已经被保存起来了。
+
+对于给定的 DLL(如 `kernel32`)，我们要做的如下：
+
+1. 获取 `kernel32` 的映像基址
+2. 从 `PE-header` 得到(`take`) `SizeOfImage`
+3. 将对整个 `kernel32` 映像的权限更改到 `PAGE_EXECUTE_WRITECOPY` (`Change permissions over the whole image of kernel32 to PAGE_EXECUTE_WRITECOPY`)
+
+
+
+4) 保存 DLL 中的所有输出函数的原始入口点，可以在 `IMAGE_EXPORT_DIRECTORY.ED_AddressOfFunctions.` 里找到它们。
+
+5) `N` = 由 `kernel32` 输出的 API 的总数，位于 `IMAGE_EXPORT_DIRECTORY.ED_NumberOfFunctions.`。
+
+6) 将 `kernel32` 的每一个 API 转移到我们的缓冲区。
+
+7) 存储对 DLL 的权限（一些壳用 DLL 激活异常）。
+
+我们来详细看看如何将所有的 APIs 重定向到缓冲区，注意要在壳运行前完成。
+
+我们称我们使用的缓冲区为 `DivBuffer`。该缓冲区大小为 `N*M`，`M` 是所有缓冲区中的最大值。我们要做的如下：
+
+```
+for (i=0; i<N; ++i){
+
+    Change the entry point
+    of the i-th API to DivBuffer[i*M].
+
+    Generate random garbage
+    and write it to DivBuffer[i*M].
+
+    Write some instructions, after the
+    garbage, to save the value of i.
+
+    Write a jump, after the previous
+    instructions, to our hooker procedure.
+}
+```
+
+将 `i-th` 的 API 的入口点改变到 `DivBuffer[i*M]`。
+
+产生随机垃圾并把它们写到 `DivBuffer[i*M]`。
+
+在垃圾代码后写一些指令保存 `i` 的值。
+
+在上面的指令后面写一跳转，转到我们的钩子程序。
+
+算法中，`M` 只是垃圾代码大小的上界（对目前的壳而言，`M=30` 是个好的数值）。我们创建的所有的垃圾缓冲区会来到（lead to）钩子程序（hooker procedure），它负责记录调用和原料。
+
+我们概述一下钩子，它是相当简单的程序：它保存寄存器，把一切写入日志文件，然后恢复寄存器，跳转到 API 原始入口点（我们已经保存）。钩子看起来像下面的：
+
+```
+hooker PROC
+    mov eax, esp                  ; save esp and ebp
+    mov ecx, ebp
+    pushad
+    ...
+    ; 写日志文件
+    ; (壳调用的 API，以用参数,…)
+    ...
+    ; 计算壳欲调用的 API 的实际入口点，用它覆盖下面的 dword
+    ...
+    ; 恢复寄存器
+    popad
+    ; 跳到 API 的实际入口点(是 push/ret)
+    db 68h
+    ; first opcode of push XXXXXXXXh
+@ActualEP: db 0,0,0,0
+    ret
+hooker ENDP
+```
+
+可以观察到，在最开始，我们失去 `eax` 和 `ecx` 的值。没关系，对 Windows 而言，`eax` 和 `ecx` 都是“垃圾”寄存器，也就是说它们并不被 APIs 使用。因此，在内部使用它们是安全的（剩余的寄存器需要保留），这为我们节省了一些头痛事，因为我们能保存那里的 `esp` 和 `ebp`。不用说，垃圾代码需要保留（preserve）除 `eax` 和 `ecx` 之外的所有寄存器。
+
+### C. 当壳调用某个 API 时，发生了什么？
+
+壳认为它要做如下的事：
+
+1) 定位 API 的映像基址
+2) 以名字查找它，通常将该名字的固定编码（hardcoded）hash 值（hash value）与每个 API 的 hash 值相比较，直到匹配为止。
+3) 模拟 API 的前 `K` 个指令（`K` 每次可以随机选取）
+4) 跳转到第(`K+1`)-th 个 API 指令
+
+实际上，它做：
+
+1) 定位 API 的基址
+2) 以名字查找，通常比较……
+3) 模拟第 `i-th` 个缓冲区（假设它调用第 `i-th` API）的前 `K` 个指令
+4) 跳转到第(`K+1`)-th 垃圾指令
+
+最后，我们就能在我们的程序“记录器”的入口点挂钩 API 调用。
+
+壳看起来并没有任何不同之处，但我们要让调用看起来它好像没有受到保护一样。（The packer doesn’t see any difference but we have kept the call as if it was done without the protection.）
+
+### D. 操作提示
+
+下列建议可能会帮助你轻松上手，编写自己的记录器。
+
+- `Kernel32`、`user32` 和 `advapi32` 加载于运行在同一操作系统上的所有进程中的相同的映像基址上。因此，记录器可以从载体程序上继承（实际上是全部的）APIs。
+- 要测试自己的程序，不必从注入代码到另一进程开始。在此之前，推荐在载体内分配一个缓冲区，将记录器拷贝到那里，进行测试。这样，你就能做个最小化测试（minimum test）。
+- 当最终注入代码到另一进程，你就能在记录器的开始处设置断点。这样一来，当你用 `CreateRemoteThread` 运行它时，它就会蹦溃（crash），你有机会附载（attach）你的调试器。总的来说，你可以在你想检查的记录器的任意一点设一个 `int3` 断点。
+- 写到日志文件的步骤：
+  - 写入目标调用的 APIs 的名字
+  - 做一个从十六进制到可打印字符串的小步骤（记住偏移量是以 endian order 形式给出的）
+    （Do a small procedure passing from hexadecimal to a printable string (remember that offsets are given in endian order).）
+  - 使用映射你的日志文件的共享文件，以便你不用从内存中抓取（dumping）就可以随时看到并保存它。从而使你控制可执行程序。
+  - 记住文件映射不能在内存中扩大，用个大点的（`1Mb`）。
+- 我们推荐（作为无版权目标程序）Yoda 的加密器作实验。它重定向 API 调用，有少数你必须绕过的异常或小把戏。
+
+### 五、记录日志和 IAT 重建
+
+看了壳（或目标程序）是如何完成挂钩所有的调用后，我们现在转到如何对这些调用采取行动。我们要解决下面这些主题：
+
+1) 记录 API 调用到日志
+2) 改变它们的参数或返回值
+3) 重新激活调用，以获取（plaintext）API 地址
+
+我们用于此次实验的壳是市面上最强壳之一。当然，我们不会泄露有助于破掉它的任何信息（所有的偏移量和原料都已修改）。
+
+让我们一步一步回顾在现实中如何去做：
+
+#### A. 记录 `kernel32` 日志
+
+首先，一直要做的是记录所有指向 `kernel32` 的调用，仅仅少数从其他 DLLs 调用 APIs（不包括后面的 `ADVAPI32`）。
+
+在日志里，你要有 API 和它从何处调用（返回值是在 `dword ptr [esp]`）。注意你的 API 可以来自同一（或其他的）DLL 的其他 APIs 里面调用，所有你就要以某种方式过滤掉这个调用。
+
+我们按如下的做：
+
+```asm
+mov ebx, dword ptr [esp]        ; take return address
+shr ebx, 28                     ; keep only the most
+                                  ; significative byte
+test ebx, ebx
+jnz Dont_Log_Me
+```
+
+这样做是因为在 WinNT 里，`kernel32` 总是加载于 `77E40000h`。有很多更好的方法过滤它们，其中查看位于 `PEB`（译者：是什么？）的已加载模块是否匹配可能是最好的方法，但这很可靠又十分简单。我们看看来自被保护的记事本的日志：
+
+```
+Logger started for DLL KERNEL32.DLL,
+target = Notepad.exe
+
+VirtualAlloc From: 00B10024
+Param: Buffer size: 00000200 API return: 00A70000
+
+VirtualAlloc From: 00B20101
+Param: Buffer size: 00001000 API return: 00A80000
+
+LoadLibraryA From: 00A20BFE
+Param: ADVAPI32.DLL <=== interesting!
+
+VirtualFree From: 00A2310B ...
+GetLocalTime From: 00A45150 <=== interesting!
+...
+
+VirtualFree From: 00D01711 VirtualFree From:00D02224
+```
+
+现在，你必须阅读了它调用的 APIs 并注意最相关的 APIs。我们单独隔离出 `kernel32.GetLocalTime` 是因为它典型的用于 30 天试用期或之类的。注意到壳加载了 `ADVAPI32`，这也很有趣，因此，你现在应记录来自 `ADVAPI32` 的所有调用。
+
+只要去阅读一下日志，你就会精确地明白它是如何工作的。
+
+#### B. 记录某些选定 APIs 参数日志
+
+开始编写大量汇编代码去对成百上千的 APIs 的参数进行解码，将是毫无意义的。相反，我们只需选取调用的 APIs 中一小部分进行处理。
+
+可以在 `esp+4`，`esp+8`，…找到参数，因此，你仅需把它们写到记录器里（小心，因为它们是指针，`NULL` 会毁掉你的记录器）。
+
+#### C. 修改 API 调用的结果
+
+本例中，我们选择的 API 是 `kernel32.GetLocalTime`。我们想钩住它，并改变它的返回值为一固定日期（于是我们就一直注册了）。要这样做，我们需要在调用前知道参数 `lpSystemTime` 的值，参见 `[win32hlp]`，并在调用后立刻修改它指向的数据结构。结果，除写入日志外，钩子还需保存 `lpSystemTime`。下面的代码演示如何进行完整的过程：
+
+```asm
+;--------------------------------------------------------; hooking the return address from the call
+;--------------------------------------------------------
+; first, we save the bytes at the return address because we
+; are going to overwrite them with a jump to our code
+cld                             ; clear direction flag
+mov esi, dword ptr [esp]        ; take return
+mov edi, offset your_buffer     ;
+mov ecx, 6                      ; the size of a push/ret
+repnz stosb
+                                ;
+; next we overwrite them with a push/ret leading to our code
+mov edi, dword ptr [esp]        ; take return address
+mov al, 68h                     ; write the push
+stosb
+lea eax, [My_GetLocalTime]      ; write the address of my
+                                ; procedure
+stosd
+mov al, 0C3h                    ; write the ret
+stosb
+; we also need to keep track of lpSystemTime
+mov eax, dword ptr [esp+4]   ; store the parameter lpSystemTime
+mov dword ptr [ebp+lpSystemTime], eax
+```
+
+现在，我们让目标程序完成对 `kernel32.GetLocalTime` 的调用，因为它已经钩住我们的代码了。注意，目标程序将对它所有的区块具有读/写权限，所以你对此不必担心。现在，我们要改变返回值：
+
+```asm
+;--------------------------------------------------------
+; Changing the return to our fake value
+;--------------------------------------------------------
+; The target jumps here when hooked:
+My_GetLocalTime PROC
+    pushad
+    pushf             ; not needed in this case but you might have
+                      ; to add it too
+    ; compute the delta handle in ebp
+    call @@1
+@@1:
+    pop ebp
+    sub ebp, @@1
+    ; modify the returned structure
+    mov eax, dword ptr [ebp+lpSystemTime]     ; point to the
+                                              ; SYSTEMTIME structure
+    mov [eax.wYear], 2004
+    mov [eax.wMonth], 4
+    mov [eax.wDayOfWeek], 1
+    mov [eax.wDay], 8
+
+    ; write back the bytes at the return instruction
+    cld
+    lea esi, [ebp+your_buffer]
+    lea edi, [ebp+API_ReturnAddress]    ; the value we had at esp
+                                          ; at the hooker
+    mov ecx, 6
+    repnz stosb
+
+    ; restore registers and flags and return
+    popf
+    popad
+    ret
+My_GetLocalTime ENDP
+```
+
+这使壳相信我们仍旧是在 2004 年 4 月 8 号。当然，记录 API 返回值日志同存储 `eax` 和 API 目前使用的所有结构一样简单。
+
+#### D. 处理剩余的 DLLs
+
+本例中，我们知道壳加载了 `ADVAPI32.DLL`（对 `kernel32` 的一次考查就带给了我们所有加载的 DLLs）。`ADVAPI32` 是个相当重要的 DLL，它将我们所需的 APIs 包含到注册表，那是壳用来保存它们的注册信息的地方。在两种可能性：
+
+1) 总结自己的算法：挂钩 `LoadLibraryA`、在每次调用时，查看哪个 DLL 被加载，同时挂钩它（译者：DLL）所有的 APIs。
+2) 简单地对新 DLL 运用我们现有的算法
+
+第一种方法没有很益处，事实上，在实验中从未用过它。
+
+#### E. IAT 单一地址嗅探
+
+观察下列由壳完成的调用：
+
+```
+LoadLibraryA From: 00BA08BC Param: COMDLG32.DLL
+```
+
+壳从不使用来自 `COMDLG32.DLL` 的 APIs，因此，要重建目标的 IAT，就必须完成此调用。让我们挂钩来自 `COMDLG32` 所有对 APIs 的调用，然后看看会发生什么：
+
+```
+Logger started for DLL   COMDLG32
+End of log file
+```
+
+一个空的日志文件？为什么？我们只是简单的运行目标程序，但我们仍不得不强迫它从 `COMDLG32` 调用一些 API。现在，我们运行目标，但还要从菜单选择“选择字体”（你要用用目标程序，直到你在日志里看见一些有趣的东西，这也是我们为什么推荐创建一个共享文件作为日志映像文件）。
+
+```
+Logger started for DLL COMDLG32
+CommDlgExtendedError Return Address: 01002E39
+End of log file
+```
+
+好的，有了。我们想想当前链接三个最常见的可能，它们通过下面链接到 API：
+
+- `call dword ptr [IAT_ENTRY]`: where `IAT_ENTRY` is an absolute address inside the IAT.
+- `call RELATIVE_IAT_ENTRY`: Here, the return address + `RELATIVE_IAT_ENTRY` is inside the IAT (adjust for negative references).
+
+在本例，`NotePad.exe` 中，这些是：
+
+
+
+# F. IAT 完整重建
+
+## 1. 基本思路
+
+为区分 `call dword ptr [10012AC]`（日志已记录）和 `test eax,eax`（日志未记录）这两种情况，只要这样做：
+
+```assembly
+mov eax, Return_Address
+sub eax, 6
+cmp byte ptr [eax], 0FFh
+je First_IAT_Case
+inc eax
+cmp byte ptr [eax], 0E8h
+je Second_IAT_Case
+```
+
+这让我们很轻松地获得我们想要的任何 API：在跳转到 API 原始入口点前，记录器来到目标程序，试图嗅出与之相应的 IAT 地址。该方法可能失败，例如在 `NotePad.exe` 中：
+
+```assembly
+01006AEF           mov edi, dword ptr [KERNEL32.GetModuleHandleA]
+01006AF5           call edi
+```
+
+我们可以试试返回的 `edi` 值，有可能它已经保留（preserved）了，输出会提示我们“猜”出的 IAT 地址。另一方面，我们可以限制上面所做的已知情况（在多数情况下足够了，我们下面就会看到）。
+
+这是从我们实验中摘取出来的：
+
+```text
+lstrcmpW return address    : 01001C8D
+IAT address? 010010F0
+
+lstrcpyW return address    : 01001C9F
+IAT address? 010010EC
+
+lstrcatW return address    : 01001D4F
+IAT address? 010010DC
+
+lstrcpyW return address    : 010040ED
+lstrlenW return address    : 010040F6
+lstrcpyW return address    : 01004102
+```
+
+你看，`lstrcmpW` 已经被正确地定位了（`lstrcatW` 也是如此）。它们的值并没有根据前述的 `call edi` 例子对 IAT 进行猜测。对同一应用程序，`user32.dll` 日志几乎产生（yield）了全部的 IAT。
+
+我们能在调用返回前保存字节，并试着以后对它们进行反汇编，注意到这一点很重要（这种情况并不多见）。这样，我保证我们在多数情况下最起码可以获得完整的 IAT。然而，我们将看到，还有一种更好的方法。
+
+## 2. 完整重建算法
+
+在上一节，我们知道要获取单一 API，我们只需记录正确的 DLL 日志，并随意用用目标程序。因此，我们能一个接一个地增加所有的 APIs，直到我们有一个完全工作的应用程序，而这会相当耗时间的。
+
+IAT 的完整重建与一个一个增加输入表相比，相当简单。我们来看看如何做：
+
+1. 首先，我们需要从目标程序使用的每个 DLL 中重新获取（retrieve）一个 API（必须用用目标程序完成，但这次我们只需每个 DLL 的一个 API，几分钟内就可完成）。
+2. 每个 DLL 的 IAT 部分是以 0 结束的数组，如下面：
+
+```text
+offset 0: ?????????
+; dd immediately before the IAT
+
+offset 1: DLL1_API1
+; first API imported from this DLL
+
+offset 2: DLL1_API2
+; second API imported from this DLL
+
+offset 3: ...
+;
+offset N: 0
+; null terminating dd
+```
+
+位于 `offset 0` 的 `dword` 是未知内容。它可能是 `NULL`，结束的 IAT 前面部分（对另一个 DLL 而言），也可能是垃圾。
+
+问题是我们知道 `offset1`...`offsetN` 中的一个，但我们需要知道全部的。事实上，我们甚至不能假设该数组将有一个 `NULL` 结束的 `dword`，因为壳会在那里设其他的值来迷惑我们。
+
+3. 下面的算法解决此问题：
+
+```assembly
+; input: eax = guessed IAT address
+; output: reconstruction of the
+; imports table for the DLL to
+; which eax belongs to
+
+xor ecx, ecx                  ; counter
+
+while ([eax+4*ecx] != 0)
+{
+    push ecx                  ; save ecx
+    push eax                  ; save eax
+    call dword ptr [eax+4*ecx]    ; Compel the target
+                                  ; to do the call.
+                                  ; This sends us to
+                                  ; the buffer created
+                                  ; by the packer to
+                                  ; emulate the first
+                                  ; instructions of
+                                  ; the call.
+
+    get the API at our logger     ;
+
+    restore the stack             ;
+
+    pop eax                     ; restore eax, ecx
+    pop ecx
+    inc ecx                     ; next
+}
+```
+
+这就从 `eax` 开始的重新获取了所有的地址，最终我们只需往回移动，直到前一个 0。
+
+当然，当我们确实调用 `eax`，找到有疑问号（interrogation）标志的 `offset` 时，我们会使程序蹦溃（十分可能）。结果是，我们需要设一个 `SEH` 句柄，保护该算法的执行。
+
+# G. API 调用断点及附加到调试器
+
+通常，你想从某个调用开始检查你自己。用我们的方法，在一个 API 调用上设置断点显得太直接了。让我们看看两种方法：
+
+## 1. 当 API 调用返回地址是给定时
+
+记录器并不是简单时记录位于 `[esp]` 的返回地址，并与一保存的值进行比较：
+
+```assembly
+mov eax, dword ptr [esp]
+cmp eax, RETURN_FROM_GETLOCALTIME
+```
+
+为什么不呢？因为壳会运行在动态分配的缓冲区上，所以映像基址是变化的，导致了不同的返回地址。相反，我们可以取得返回地址的最不 significant 的字节看看是否匹配：
+
+```assembly
+mov eax, dword ptr [esp]
+mov ebx, RETURN_ADDRESS_FOR_GETLOCALTIME
+shl eax, 16
+shl ebx, 16
+cmp eax, ebx
+je my_breakpoint
+```
+
+## 2. 在第 N 次调用给定 API 时
+
+我们有个在钩子程序调用的 API，把它与一个固定编码值（hardcoded value）进行比较，用个计数器记住该 API 被调用的次数。完工。
+
+对断点本身在很多选项，我们所用的用于显示一个关于信息，然后进入一个无限循环，如：`here: jmp here`。现在，你可以附加到你的调试器了（attach your debugger），暂停程序，`NOP` 掉 `jmp`，开始调试。
+
+The savings are spectacular.
+
+# 六、记录所有的异常日志
+
+获得由壳激活的异常列表同样有帮助。如果我们想附加调试器并使用追踪，它特别有帮助，因为我们知道，它不会被任何异常杀掉。理解异常的最好教程是由 `Jeremy Gordon` 写的 “Exception for assembler Programmers”，必读。我们假定本文的最小背景。众所周知，钩住 `NTDLL.ZwContinue` 会给我们带来很多异常，但不是所有的信息我们都要。当我们有所松懈或（可能译得不对，原文是：we have unwindings）当句柄拒绝修复异常并把它传给下一个时，问题来了。这种情况下，我们需要对工程做点逆向以找到正确的断点。结果如下：
+
+## 1. 容易部分
+
+`NTDLL.ZwContinue` 首先将一个指针作为参数传给上下文（context），第三个参数为异常代码，第六个为异常发生的地址。因此，挂钩 `ntdll.ZwContinue` 对非疏忽（non-unwinding）和非拒绝（non-refused）异常已经足够了。
+
+## 2. 较困难部分（在 WinXP 上完成，对其他操作系统有细微差别）
+
+我们选择 `except32.exe`，用调试器打开它，选择“在句柄 1 处理异常”。这使得前两个句柄拒绝修复异常。现在，按“引起异常”按钮，你来到这里：
+
+```assembly
+00410608 div cl
+0041060A retn
+```
+
+我们通过异常到句柄（pass exception to the handler），但单步进入（在 `olly` 中 `shift+F7`）。现在我们看到：
+
+```assembly
+77F4109C mov ebx, dword ptr [esp]
+77F4109F push ecx
+77F410A0 push ebx
+77F410A1 call ntdll.77F51763
+77F410A6 or al, al
+77F410A8 je short ntdll.77F410B6
+77F410AA pop ebx
+77F410AB pop ecx
+77F410AC push 0
+77F410AE push ecx
+77F410AF call ntdll.ZwContinue
+```
+
+改变 `77F410AG` 的返回值显示当异常没有修复时，`ntdll.77F51763` 返回 0。然而，如果我们来到 `ntdll.ZwContinue`，我们知道我们忽略了 `unwindings` 或之类的。我们调试到 `ntdll.77F51763`:
+
+```assembly
+77F51763 push ebp
+77F51764 mov ebp, esp
+77F51766 sub esp, 60
+...
+77F51771 call ntdll.77F51820
+77F51776 test al, al
+77F51778 jnz ntdll.77F806B9
+```
+
+这次，改变返回值为 1 直接导致 `ntdll.ZwContinue`。另一方面，对拒绝的或正常的异常而言，返回值是一样的。因此，我们不用单步跟入（step into）。下一个在趣的调用是这样的，我们必须调试到那里，因为否则的话我们就会在 `ntdll.ZwContinue`：
+
+```assembly
+77F517E8 push esi
+77F517E9 call ntdll.77F7333F
+...
+```
+
+加上一点耐心，我们到这里了，它调用异常句柄（检查这对不同例子的正确性）：
+
+```assembly
+77F7339B mov ecx, dword ptr [ebp+18]
+77F7339E call ecx ; Except.0041080A
+```
+
+总结一下，要记录所有的异常（WinXP）日志，我们需要挂钩 `call ecx` 和 `ntdll.ZwContinue`。
+
+**注意**：第一个异常发生在目标程序准备运行之前，它事实上是由加载器引起的，不用记录它。
+
+这样，我们能轻松的记录我们需要的关于异常的所有信息。
+
+# 七、入口点定位
+
+我们来看看由壳完成的调用。上面摘要的代码片段的最后两个调用如下：
+
+```text
+...
+VirtualFree From: 00D01711
+VirtualFree From: 00D02224
+```
+
+这些调用很明显是由壳完成的（即使我们不知道这一点，我们也能从返回地址开始拷回一些指令，当它们变得混乱时就更明显了）。当然，入口点还在后面。
+
+事实上，我们能检查日志文件（DLLs，异常或其他的），然后轻松地、尽可能准确地给出入口点的下限（lower bound）。寻找入口点的努力将显著的减少。
+
+壳会知道这种攻击，并在最开始时将所有异常和调用编组。这不会节省我们很多工作（无论如何，这将是一个好的改善，所有基于 `SEH` 句柄的反调试都能自由的搞定）。处理这些难点需要注入追踪。
+
+## A. 追踪
+
+有几种方法编写追踪代码：
+
+1. 作为调试器的一部分 As part of a debugger.
+2. 自我追踪代码 Self-tracing code.
+3. 代码模拟 Code Emulator.
+
+第一个对我们没有什么兴趣，我们假设目标程序有大量的反调试手段。第三个超出本文的范围。让我们把注意力放在第二点上：
+
+早在 DOS 时代早期就已经使用的自我追踪代码（self-tracing code）是一种相当强的反破解保护。基本上，我们所有的代码运行的同时，陷阱标志设为 ON，意思是我们的 `SEH` 句柄在每个指令都会被调用。
+
+陷阱标志设置如下：
+
+```assembly
+pushf
+or dword ptr [esp], 100h
+popf
+nop                 ; needed for some processors
+```
+
+这会产生一个 `EXCEPTION-SINGLE-STEP` 并调出 `SEH` 句柄。该句柄（某种）对上下文（context）有 `ring-0` 存取权限，能为下一指令再次修改陷阱标志。在每个 `SEH` 句柄里，你能设置陷阱标志为：
+
+```assembly
+push dword ptr [eax.cx_EFlags]
+; eax points to the context
+or dword ptr [esp], 100h
+pop dword ptr [eax.cx_EFlags]
+```
+
+然而，我们的 `SEH` 句柄更诡秘点，我们需要：
+
+1. 记录所有 long “jmps” 日志
+2. 避开反跟踪手段
+
+## B. 记录所有的 long “jmps”
+
+当陷阱标志设为真时，我们在 `cx_Eip` 处收到下一指令将运行的地址，在 `EXCEPTION_RECORD.ExceptionAddress` 收到异常发生的地址。我们仅需要评估他们的不同之处：
+
+```assembly
+mov ebx, dword ptr [EXCEPTION_RECORD.ExceptionAddress]
+mov ecx, dword ptr [CONTEXT.cx_Eip]
+cmp ebx, ecx
+ja DontXchg
+xchg ebx, ecx
+DontXchg:
+sub ebx, ecx
+cmp ebx, 0FFFFh
+jb DontLog
+; don’t log jumps shorter than 0FFFFh
+call LogJmp
+; log this long jump
+```
+
+它会记录所有的跳转，下一步，你只要看看日志文件，自己做个决定。例如，下面是个真实的日志：
+
+```text
+VirtualFree API return: 00C01B74
+API return: 00000001
+<== last call we had available
+Entry Point? 00090392
+Entry Point? 00C01B74
+Entry Point? 01006AE0
+```
+
+正确的是 `01006AE0`，如果你看见 `00090392` 和 `00C01B74` 在由壳先前分配的缓冲区里，你就会轻松知道。
+
+## C. 避开反跟踪手段
+
+壳完成所有的异常和调用后，跟踪开始了，这去掉了可能用来杀死跟踪的 99% 的手段。在实践中，我们要检查日志，决定跟踪被杀时发生了什么，甚至如果需要的话，可以附载到调试器（attach the debugger）。
+
+作为例子，我们看看如何去掉 `rdtsc` 手段。`Rdtsc`（read timestamp counter）是个半文档记载（semi-documented）的机器码，它读取位于 `edx:eax` 的 CPU 的当前时间印戳，`edx` 是最 significant（译者：这个词不太好译 :-( ）部分。例如，可以按如下方法操作该手段：
+
+```assembly
+; read timestamp counter
+rdtsc
+push edx            ; save most significative part
+; loop to loose time
+mov ecx, 0FFFFh
+next:
+xor eax, eax
+loopd next
+; read again timestamp and compare
+rdtsc
+pop eax
+cmp eax, edx
+jne IAmTraced
+```
+
+程序被追踪时，运行得更慢了（因为我们运行的同样设置了陷阱标志）。搞定这个手段十分容易，只要在句柄中这样做：
+
+```assembly
+mov ebx, dword ptr [EXCEPTION_RECORD.ExceptionAddress]
+cmp byte ptr [ebx], 0Fh
+jne NotRdtscOpcode
+cmp byte ptr [ebx+1], 31h
+jne NotRdtscOpcode
+
+; if we are here is cos the current
+; instruction has been an rdtsc.
+; Mark this so we can change cx_Edx
+; the next time the handler
+; is called.
+mov dword ptr [IAmAtRDTSC], TRUE
+```
+
+下一次重复时，必须：
+
+```assembly
+mov dword ptr [CONTEXT.cx_Edx], MY_CONSTANT_TIMESTAMP
+```
+
+
+
+`mov dword ptr [IAmAtRDTSC], FALSE` `; initialize`
+
+不要使用`MY_CONSTANT_TIMESTAMP = 0`，那太明显了。
+
+在更复杂的版本中，我们必须计算自上一个`rdtsc`以来的指令数并决定`cx_Edx`的增加与否。这实际上去掉了所有类似`rdtsc`的手段。其他的手段需要其他的处理方法。
+
+### D.如何安装追踪(器)(tracer)
+
+还有一个细节我们需要处理，那就是如何安装`seh`句柄。在壳所有的异常出现后，`seh`句柄实际上不再需要，也就意味着我们能覆盖(overwrite)最后一个异常，以便我们能捕获所有的异常(由于陷阱标志设置为 ON)。要安装句柄：
+
+```
+lea eax, [Tracer32_handler]
+
+mov ebx, dword ptr fs:[0]
+
+mov dword ptr [ebx+4], eax
+```
+
+总结，我们的追踪(器)将(缓慢地)运行壳，记录它所有的跳转(jmp's)，直到到达入口点。去找到记录日志文件，使用它。
+
+## 八、这些方法是如何隐藏的？
+
+本节我们讨论一些检测这些指令以及他们弱点的可能方法。
+
+### A.线程模拟
+
+目标程序能模拟运行在系统中的所有的线程，检查有多少与它相应(correspondd to)。这起不了什么作用。注意，在主要的工作已经完成后，，注入的代码实际上由目标程序调用，也就是说我们能够：
+
+1.  用`VirtualAllocEx`分配内存
+2.  取得入口点
+3.  从入口点开始，用`ReadProcessMemory`存储一个或多个内存页面
+4.  用`GetThreadContext`保存主线程的上下文(context)
+5.  用我们的代码覆盖入口点，在此情况下，记录器做下列任务：
+    1.  打开日志文件，作为共享文件映射(shared file mapping)
+    2.  为垃圾缓冲区分配内存(hooks)
+    3.  挂钩`kernel32`，把它重定向到分配的内存
+    4.  设置一个事件为真，以便载体知道它已经完成
+    5.  等待
+6.  运行我们的代码
+7.  用`SuspendThread`停止我们的代码
+8.  用`WriteProcessMemory`写回到原始代码里
+9.  用`SetThreadContext`恢复原始的上下文(context)
+10. 用`ResumeThread`恢复壳的主线程
+
+唯一一点是要确保重定向 APIs 的缓冲区的存在，即使如果壳的主线程终止了。这可以通过创建该缓冲区为命名共享文件映射(named shared file mapping)，从载体打开它来完成。这样，缓冲区直到载体同意才会释放。
+
+### B.定位到我们拷贝代码的缓冲区
+
+同样，这不是个很好的主意。我们的代码能隐藏在`kernel32`的`.reloc`区块里…。事实上，我们监视类似`CreateFileA`的所有 APIs 的调用，试着打开文件，改变他们的返回值到`INVALID_HANDLE_VALUE`。
+
+### C.编写一个模拟器，跳过 API 开始处的大量指令
+
+有作用，但它也用于破解目的。如果我们能编写一个模拟器，它能跨过许多指令，甚至一些反调试手段，我们就能把它用作输入表重建器。
+
+### D.将 DLLs 与位于系统目录下面的 DLLs 进行检查
+
+壳需要进行一些调用，以重新获取这些 DLLs，然后打开它们。这在我们的日志里很明显(记录`NtCreateFile`日志)
+
+### E.将已加载的 DLLs 与一些固定编码(hardcoded)校验进行检查
+
+有作用，但不是对所有的 Windows 版本都适合。壳应该会知道任何 DLL 的新版本。注意，Windows 每一个月左右就有新的安全补丁，其中一些会更新 DLLs。
+
+### F.分析 API 的起始指令，看看是否是“API-like”之类的指令
+
+这些怎么样？
+
+```
+push ebp
+
+mov ebp,esp
+
+push -1
+
+push dword ptr [ebp+4]
+
+push dword ptr [ebp+8]
+```
+
+我们也可产生 API-like 的指令，注意，以前的所有指令可以转化，于是我们仍然可以轻松地记录输入参数日志(这样，`add esp,16`取消所有的计算)。
+
+### G.向量 AddressOfFunctions 具有在 DLL 映像文件外的数值
+
+这也很容易搞定。用存储在 DLLs 的`.reloc`区块的一些指令链接我们的记录器。一旦 DLL 已经被加载到内存里，`.reloc`就不再需要了。(还有更复杂的方法，几乎绝对难以检测 undectable)。
+
+总结：我们的方法相当隐匿
+
+## 九.结束，进一步的研究
+
+本文介绍了一种从严密保护的软件里获取内部信息的新方法。该方法十分隐匿，产生足够的信息，显著减少破解许多坚实目标的时间。
+
+我们的方法主要缺点是：
+
+1.  需要人工干预进行日志分析
+2.  需要知道我们在上一节使用的所有手段
+
+注意，由于目前反破解的软件并不知道这些方法,(2)仅在以后不方便。
+
+反破解的软件应该防止入侵(instrusions)，因此，进一步的研究应转移到如何防止它们。然而，如我们在上一节所见，这可不是件轻松的事。
+
+最终评价：本文所解释的一切可以在两到三个星期内编码完成(努力程度“中“)
+
+### References
+
+1.  Havok, “Asprotected notepad” Codebreakers-Journal, First Issue 2004.
+2.  Labir, E., “Adding imports by hand” Codebreakers-Journal, First Issue 2004.
+3.  Natzgul, “How to access the memory of a process” available at Fravia.
+4.  Kruse, T. “Processless Applications - Remote threads on Microsoft Windows 2000, XP and 2003” Codebreakers-Journal, First Issue 2004.
+
+【翻译后记】
+
+呼呼，第一次翻译如此长篇大作，花了我一个星期的时间:-)。很累的说，主要是眼睛吃不消，:-(
+
+感谢原文作者的美文，文字流畅，表达优美，让我再一次的学习英语。
+
+还要 thx 声声慢，他提供了此文的资料，希望他能再多多提供好的英文资料:-)
+
+还要感谢我的母校：江西遂川中学。以及中学英语老师：郭世泽老师和王立新老师。你们的辛勤教导，才有了我的今天!
+
+由于时间和水平有限，翻译错误之处难免。请大家多多指正。
+
+`QQ：14695672`
+
+`Email:springkang2003@yahoo.com.cn`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

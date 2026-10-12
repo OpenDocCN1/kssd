@@ -1,80 +1,83 @@
 
-
 # 菜鸟也做注册机(二)
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-34.htm`](https://www.pediy.com/kssd/pediy07/pediy7-34.htm)
 
 【作者声明】：初学破解，仅作学习交流之用，失误之处敬请大侠赐教!  
-  
-【破解工具】：Ollydbg1.10、Hiew6.81  
-  
-书接上回，这次我们来个比上一回稍稍稍稍稍稍（别砸我，你手机可是彩 e 的，贵着呢)难点的，出处同上回一样，不过还是附上源文件，节省大家搜索的宝贵时间！(源程序照例是无壳)  
-前面照例是程咬金的三板斧，载入程序；任意填入假码:12345678；搜索字符参考，定位到以下代码：  
-  
-004010C9   push esi  
-004010CA   push edi  
-004010CB   push ecx  
-004010CC   xor esi,esi  
-004010CE   xor edi,edi  
-004010D0   mov ecx,8  
-004010D5   mov esi,echap511.00403044          ;  取我们输入的假码到 esi 中，esi="12345678"  
-004010DA   /xor byte ptr ds:\[esi\],32          ;  取每位的 ASCII 与 32 作或运算  
-004010DD   |inc esi  
-004010DE   \\loopd short echap511.004010DA  
-004010E0   mov esi,echap511.00403044          ;  此时 esi 指向的内存地址中的值为作或运算后的值  
-004010E5   mov ecx,4                          ;  赋 ecx=4，结合下面可知，为循环次数  
-004010EA   /mov al,byte ptr ds:\[esi\]          ;  这下面的代码不用说了，会点汇编都知道，不注释了  
-004010EC   |mov bl,byte ptr ds:\[esi+1\]  
-004010EF   |xor al,bl  
-004010F1   |mov byte ptr ds:\[edi+40304C\],al   ;  结果存入 DS:\[40304C\]中  
-004010F7   |add esi,2  
-004010FA   |inc edi  
-004010FB   \\loopd short echap511.004010EA  
-004010FD   mov esi,echap511.0040304C          ;  取上面的小循环后的结果  
-00401102   mov al,byte ptr ds:\[esi\]           ;  下面再来，还是或运算  
-00401104   mov bl,byte ptr ds:\[esi+1\]  
-00401107   xor al,bl  
-00401109   mov bl,byte ptr ds:\[esi+2\]  
-0040110C   mov cl,byte ptr ds:\[esi+3\]  
-0040110F   xor bl,cl  
-00401111   xor al,bl  
-00401113   mov ecx,8  
-00401118   mov esi,echap511.00403044          ;  403044 中的值还记得吗，是第一次与 32 或后的运算结果  
-0040111D   /xor byte ptr ds:\[esi\],al          ;  再与上面运算得到的 al 值作或运算  
-0040111F   |inc esi  
-00401120   \\loopd short echap511.0040111D  
-00401122   mov ecx,8  
-00401127   mov esi,echap511.00403044          ;  这里是再经过上面的或运算后得到的结果  
-0040112C   mov edi,echap511.00403008          ;  DS:\[403008\]中为固定值(Hex):71 18 59 1B 79 42 45 4C  
-00401131   /mov al,byte ptr ds:\[esi\]          ;  很显然，下面是把经过输入的假码经过一系列或运算后的结果  
-00401133   |cmp al,byte ptr ds:\[edi\]          ;  与内置的固定值按位比较  
-00401135   |jnz short echap511.00401154  
-00401137   |inc esi  
-00401138   |inc edi  
-00401139   \\loopd short echap511.00401131  
-0040113B   push 40                            ; /Style = MB\_OK|MB\_ICONASTERISK|MB\_APPLMODAL  
-0040113D   push echap511.00403035             ; |Title = "Crackme 1.0"  
-00401142   push echap511.00403010             ; |Text = "Good Work Cracker"  
-00401147   push dword ptr ds:\[403054\]         ; |hOwner = 006002E0 ('Pusillus Crackme 1.0',class='#32770')  
-0040114D   call <jmp.&USER32.MessageBoxA>     ; \\MessageBoxA  
-00401152   jmp short echap511.0040116B  
-00401154   push 30                            ; /Style = MB\_OK|MB\_ICONEXCLAMATION|MB\_APPLMODAL  
-00401156   push echap511.00403035             ; |Title = "Crackme 1.0"  
-0040115B   push echap511.00403022             ; |Text = "Bad Serial, Sorry!"  
-00401160   push dword ptr ds:\[403054\]         ; |hOwner = 006002E0 ('Pusillus Crackme 1.0',class='#32770')  
-00401166   call <jmp.&USER32.MessageBoxA>     ; \\MessageBoxA  
-0040116B   pop edi  
-0040116C   pop esi  
-0040116D   pop ecx  
-0040116E   retn  
-  
-OK!到此注册算法基本上是清楚了，但是如何做注册机呢，虽然算法并不复杂,但初看这个程序做注册机有点麻烦，而且依据懒人守则之用程序自身做注册机,好像不可能，but let's try!  
-  
-我们知道或运算与异或运算都是可逆反的,而且我们看一下上面的算法，主要都是或运算，OK，我们可不可以在程序刚开始运算是用程序内固定的字串值代替我们输入的注册码参与运算，然后把最后的结果利用对话框给显示出来！  
-实践是检验真理的唯一标准，因为程序内置的固定串在 DS:00403008 处，而我们输入的假码程序放入 DS:00403044 处，OK!不用担心更改后的代码长度了，我们把 004010D5、004010E0、00401118 行中的 00403044 全部改为 00403008（注:在机器码中显示为把 44304000 改为 08304000），然后把 0040115B 处的 push echap511.00403022 改为 push echap511.00403008!保存运行一下试试!怎么正确注册码后面还跟了字串"Good Work Cracker"呢，看着有些不爽！其实在调试的时候注意一下内存区就知道，他们是连在一起的，要想让后面的"Good Work Cracker"不显示出来也很简单，用十六进制编辑器找到串"Good Work Cracker"把第一个字符的 Hex 值改为 00,保存再运行一下试试，是不是看着舒心多了！  
-  
-OK!第二篇到此结束,做注册机还是不太难嘛!嘿嘿，要的就是这种效果，不然你还会学下去吗.......  
-  
-欢迎发信到 sharpair@163.com 交流!2005.1.21 
 
- 4dd466d0e1e0cc123afbe504da2462ca
+【破解工具】：`Ollydbg1.10`、`Hiew6.81`  
+
+书接上回，这次我们来个比上一回稍稍稍稍稍稍（别砸我，你手机可是彩 e 的，贵着呢)难点的，出处同上回一样，不过还是附上源文件，节省大家搜索的宝贵时间！(源程序照例是无壳)  
+
+前面照例是程咬金的三板斧，载入程序；任意填入假码: `12345678`；搜索字符参考，定位到以下代码：
+
+```
+004010C9   push esi
+004010CA   push edi
+004010CB   push ecx
+004010CC   xor esi,esi
+004010CE   xor edi,edi
+004010D0   mov ecx,8
+004010D5   mov esi,echap511.00403044          ;  取我们输入的假码到 esi 中，esi="12345678"
+004010DA   /xor byte ptr ds:[esi],32          ;  取每位的 ASCII 与 32 作或运算
+004010DD   |inc esi
+004010DE   \loopd short echap511.004010DA
+004010E0   mov esi,echap511.00403044          ;  此时 esi 指向的内存地址中的值为作或运算后的值
+004010E5   mov ecx,4                          ;  赋 ecx=4，结合下面可知，为循环次数
+004010EA   /mov al,byte ptr ds:[esi]          ;  这下面的代码不用说了，会点汇编都知道，不注释了
+004010EC   |mov bl,byte ptr ds:[esi+1]
+004010EF   |xor al,bl
+004010F1   |mov byte ptr ds:[edi+40304C],al   ;  结果存入 DS:[40304C]中
+004010F7   |add esi,2
+004010FA   |inc edi
+004010FB   \loopd short echap511.004010EA
+004010FD   mov esi,echap511.0040304C          ;  取上面的小循环后的结果
+00401102   mov al,byte ptr ds:[esi]           ;  下面再来，还是或运算
+00401104   mov bl,byte ptr ds:[esi+1]
+00401107   xor al,bl
+00401109   mov bl,byte ptr ds:[esi+2]
+0040110C   mov cl,byte ptr ds:[esi+3]
+0040110F   xor bl,cl
+00401111   xor al,bl
+00401113   mov ecx,8
+00401118   mov esi,echap511.00403044          ;  403044 中的值还记得吗，是第一次与 32 或后的运算结果
+0040111D   /xor byte ptr ds:[esi],al          ;  再与上面运算得到的 al 值作或运算
+0040111F   |inc esi
+00401120   \loopd short echap511.0040111D
+00401122   mov ecx,8
+00401127   mov esi,echap511.00403044          ;  这里是再经过上面的或运算后得到的结果
+0040112C   mov edi,echap511.00403008          ;  DS:[403008]中为固定值(Hex):71 18 59 1B 79 42 45 4C
+00401131   /mov al,byte ptr ds:[esi]          ;  很显然，下面是把经过输入的假码经过一系列或运算后的结果
+00401133   |cmp al,byte ptr ds:[edi]          ;  与内置的固定值按位比较
+00401135   |jnz short echap511.00401154
+00401137   |inc esi
+00401138   |inc edi
+00401139   \loopd short echap511.00401131
+0040113B   push 40                            ; /Style = MB_OK|MB_ICONASTERISK|MB_APPLMODAL
+0040113D   push echap511.00403035             ; |Title = "Crackme 1.0"
+00401142   push echap511.00403010             ; |Text = "Good Work Cracker"
+00401147   push dword ptr ds:[403054]         ; |hOwner = 006002E0 ('Pusillus Crackme 1.0',class='#32770')
+0040114D   call <jmp.&USER32.MessageBoxA>     ; \MessageBoxA
+00401152   jmp short echap511.0040116B
+00401154   push 30                            ; /Style = MB_OK|MB_ICONEXCLAMATION|MB_APPLMODAL
+00401156   push echap511.00403035             ; |Title = "Crackme 1.0"
+0040115B   push echap511.00403022             ; |Text = "Bad Serial, Sorry!"
+00401160   push dword ptr ds:[403054]         ; |hOwner = 006002E0 ('Pusillus Crackme 1.0',class='#32770')
+00401166   call <jmp.&USER32.MessageBoxA>     ; \MessageBoxA
+0040116B   pop edi
+0040116C   pop esi
+0040116D   pop ecx
+0040116E   retn
+```
+
+OK! 到此注册算法基本上是清楚了，但是如何做注册机呢，虽然算法并不复杂, 但初看这个程序做注册机有点麻烦，而且依据懒人守则之用程序自身做注册机, 好像不可能，but let's try!
+
+我们知道或运算与异或运算都是可逆反的, 而且我们看一下上面的算法，主要都是或运算，OK，我们可不可以在程序刚开始运算是用程序内固定的字串值代替我们输入的注册码参与运算，然后把最后的结果利用对话框给显示出来！
+
+实践是检验真理的唯一标准，因为程序内置的固定串在 `DS:00403008` 处，而我们输入的假码程序放入 `DS:00403044` 处，OK! 不用担心更改后的代码长度了，我们把 `004010D5`、`004010E0`、`00401118` 行中的 `00403044` 全部改为 `00403008`（注: 在机器码中显示为把 `44304000` 改为 `08304000`），然后把 `0040115B` 处的 `push echap511.00403022` 改为 `push echap511.00403008`! 保存运行一下试试! 怎么正确注册码后面还跟了字串 "Good Work Cracker" 呢，看着有些不爽！其实在调试的时候注意一下内存区就知道，他们是连在一起的，要想让后面的 "Good Work Cracker" 不显示出来也很简单，用十六进制编辑器找到串 "Good Work Cracker" 把第一个字符的 `Hex` 值改为 `00`, 保存再运行一下试试，是不是看着舒心多了！
+
+OK! 第二篇到此结束, 做注册机还是不太难嘛! 嘿嘿，要的就是这种效果，不然你还会学下去吗.......
+
+欢迎发信到 `sharpair@163.com` 交流! 2005.1.21
+
+`4dd466d0e1e0cc123afbe504da2462ca`

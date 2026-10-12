@@ -1,167 +1,267 @@
 
-
 # Alex Protector V1.0 
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6715.htm`](https://www.pediy.com/kssd/pediy06/pediy6715.htm)
 
-下载页面：  [`bbs.pediy.com/showthread.php?s=&threadid=5850`](http://bbs.pediy.com/showthread.php?s=&threadid=5850) 或 点击此处本地下载。  
-软件大小：  52 KB    
-软件简介：  Protector for exe files with cool import protection    
-               
-【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！  
-               
-【调试环境】：WinXP、Ollydbg V1.10、PEiD、LordPE、ImportREC  
-               
-—————————————————————————————————   
-【脱壳过程】：  
-            
-           
-Alex Protector V1.0 是今天在 exetools 论坛发布的壳。  
-这个壳的花指令和输入表跳转地址加密有些麻烦。  
-今年涌现不少新壳，不知道这个 Alex Protector 以后会如何变态。  
-—————————————————————————————————  
-一、搞定输入表跳转地址加密  
-               
-               
-设置 Ollydbg 忽略除了“内存访问异常”之外的所有其它异常选项。老规矩：用 IsDebug V1.4 插件去掉 Ollydbg 的调试器标志。  
-  
-00438000     60                pushad  
-//进入 OD 后暂停在这  
-00438001     E8 00000000       call alexprot.00438006  
-00438006     5D                pop ebp  
-00438007     81ED 06104000     sub ebp,alexprot.00401006  
-0043800D     E8 24000000       call alexprot.00438036  
-00438012     EB 01             jmp short alexprot.00438015  
-  
-Shift+F9 运行，暂停在内存访问异常处。  
-003B13C2     3300              xor eax,dword ptr ds:\[eax\]  
-//内存访问异常处  
-003B13C4     83C4 04           add esp,4  
-003B13C7     FFE3              jmp ebx  
-  
-Shift+F9 运行，会在 003B13C2 处中断 3 次。  
-  
-Alt+M 打开内存察看窗口，在 00401000 段“设置内存写入断点”。  
-Shift+F9，中断在 003B0C05 处。中断后取消内存断点。  
-看看寄存器值，你会发现这里就是壳写入加密跳转地址的地方！  
-我在这里 Patch，使壳写入程序中的地址作为输入表的跳转地址，这样就可以 Dump 下来了。  
-  
-003B0C04     61                popad  
-003B0C05     8901              mov dword ptr ds:\[ecx\],eax  
-//中断在这里    
-//修改为：JMP 003BB000  ★  
-003B0C07     83C7 04           add edi,4  
-003B0C0A     FECB              dec bl  
-003B0C0C     58                pop eax  
-003B0C0D     80FB 00           cmp bl,0  
-003B0C10     0F87 42FFFFFF     ja 003B0B58  
-003B0C16     803F C3           cmp byte ptr ds:\[edi\],0C3  
-003B0C19     0F84 A1FDFFFF     je 003B09C0  
-003B0C1F     833F 00           cmp dword ptr ds:\[edi\],0  
-003B0C22     0F84 DE000000     je 003B0D06  
-//输入表处理完毕则跳转  
-003B0C28     E9 8AFDFFFF       jmp 003B09B7  
-003B0C2D     47                inc edi  
-003B0C2E     8B1F              mov ebx,dword ptr ds:\[edi\]  
-003B0C30     53                push ebx  
-003B0C31     60                pushad  
-003B0C32     EB 03             jmp short 003B0C37  
-  
-————————————————————————  
-在下面找点空白处（003BB000）写入 Patch 代码：  
-  
-003BB000     53                  push ebx  
-003BB001     56                  push esi  
-003BB002     3E:8B9C24 08FFFFFF  mov ebx,dword ptr ds:\[esp\-F8\]; USER32.77D10000  
-//\[esp-F8\]处保存的是处理 DLL 的基址 ★  
-003BB00A     3B1D 00C03B00       cmp ebx,dword ptr ds:\[3BC000\]; USER32.77D10000  
-//提前在\[3BC000\]处写入当前处理 DLL 的基址 ★  
-003BB010     74 0D               je short 003BB01F  
-//比较处理的 DLL 是否相同 ★  
-003BB012     891D 00C03B00       mov dword ptr ds:\[3BC000\],ebx  
-//保存新的 DLL 基址 ★  
-003BB018     8305 08C03B00 04    add dword ptr ds:\[3BC008\],4  
-//不同则跳转地址+4，方便修复输入表 ★  
-003BB01F     8B1D 08C03B00     mov ebx,dword ptr ds:\[3BC008\]  ; alexprot.00429000  
-//提前在\[3BC008\]处写入准备放跳转地址的地址，呵呵，有点拗口了 ★  
-//我选择的是程序的第 4 个区段，写入 00429000  
-003BB025     3E:8BB424 58FFFFFF  mov esi,dword ptr ds:\[esp\-A8\]; USER32.TranslateMessage  
-//\[esp-A8\]处保存的是正确的函数 ★  
-003BB02D     8933                mov dword ptr ds:\[ebx\],esi  
-//函数写入修改的地址  
-003BB02F     8919                mov dword ptr ds:\[ecx\],ebx  
-//\[ecx\]是程序中的呼叫地址，写入修改后的跳转地址 ★  
-003BB031     8305 08C03B00 04    add dword ptr ds:\[3BC008\],4  
-//跳转地址+4  
-003BB038     5E                  pop esi  
-003BB039     5B                  pop ebx  
-//恢复堆栈  
-003BB03A     83C7 04             add edi,4  
-//003B0C07 处代码挪到这里执行  
-003BB03D     E9 C85BFFFF         jmp 003B0C0A  
-//跳回去继续流程  
-  
-————————————————————————  
-修改完以上部分后在 003B0D06 处下断，Shift+F9 中断下来，输入表处理完毕了。  
-  
-003B0D06     E8 97060000       call 003B13A2  
-//这里下断  
-003B0D0B     8D9D 31254000     lea ebx,dword ptr ss:\[ebp+40253>  
-003B0D11     60                pushad  
-003B0D12     EB 03             jmp short 003B0D17  
-  
-此时\[3BC008\]处是 004290D8，这就是结束的地址了。  
-Size=004290D8-00429000=D8  
-OK，第一部分处理完毕。  
-  
-  
-—————————————————————————————————  
-二、OEP、Dump  
-  
-  
-Shift+F9 运行，来到最后一次内存异常处。当然，这步可以省略。  
-  
-003B13C2     3300              xor eax,dword ptr ds:\[eax\]  
-//最后一次内存异常  
-003B13C4     83C4 04           add esp,4  
-003B13C7     FFE3              jmp ebx  
-  
-Alt+M 打开内存察看窗口，在 00401000 段“设置内存访问断点”。  
-Shift+F9 中断在 00406B07 处！  
-  
-00406B05     0000              add byte ptr ds:\[eax\],al  
-00406B07     E8 4E2B0000       call alexprot.0040965A         ; jmp to kernel32.GetModuleHandleA  
-//中断在这里  
-00406B0C     A3 1CC64000       mov dword ptr ds:\[40C61C\],eax  
-00406B11     E8 382B0000       call alexprot.0040964E         ; jmp to kernel32.GetCommandLineA  
-00406B16     E8 872B0000       call alexprot.004096A2         ; jmp to comctl32.InitCommonControls  
-  
-看看堆栈：  
-0012FFA0   00000000  
-  
-根据汇编语言编译程序的特点和堆栈，补上 Stolen Code:  
-00406B05     6A 00             push 0  
-//用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程  
-  
-  
-运行 ImportREC，选择这个进程。把 OEP 改为 00006B05，RVA=00029000、Size=000000D8，获取输入表。  
-FixDump，正常运行！    
-                 
-               
-—————————————————————————————————      
-                                  
-         ,     \_/   
-        /| \_.-~/            \\\_     ,        青春都一晌  
-       ( /~   /              \\~-.\_ |\\  
-       \`\\\\  \_/                \\   ~\\ )          忍把浮名   
-   \_-~~~-.)  )\_\_/;;,.          \\\_  //'  
-  /'\_,\\   --~   \\ ~~~-  ,;;\\\_\_\_(  (.-~~~-.        换了破解轻狂  
- \`~ \_( ,\_..--\\ (     ,;'' /    ~--   /.\_\`\\   
-  /~~//'   /' \`~\\         ) /--..\_, )\_  \`~  
-  "  \`~"  "      \`"      /~'\`\\    \`\\\\~~\\     
-                         "     "   "~'  ""  
-      
-              UnPacked By :  fly  
-               2004-10-17 23:00
+下载页面： [`bbs.pediy.com/showthread.php?s=&threadid=5850`](http://bbs.pediy.com/showthread.php?s=&threadid=5850) 或 点击此处本地下载。
 
- 4dd466d0e1e0cc123afbe504da2462ca
+软件大小： 52 KB
+
+软件简介： Protector for exe files with cool import protection
+
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+【调试环境】：`WinXP`、`Ollydbg V1.10`、`PEiD`、`LordPE`、`ImportREC`
+
+──────────────────────────────────────────────────────
+
+## 【脱壳过程】
+
+`Alex Protector V1.0` 是今天在 `exetools` 论坛发布的壳。
+
+这个壳的花指令和输入表跳转地址加密有些麻烦。
+
+今年涌现不少新壳，不知道这个 `Alex Protector` 以后会如何变态。
+
+──────────────────────────────────────────────────────
+
+### 一、搞定输入表跳转地址加密
+
+设置 `Ollydbg` 忽略除了“内存访问异常”之外的所有其它异常选项。老规矩：用 `IsDebug V1.4` 插件去掉 `Ollydbg` 的调试器标志。
+
+```
+00438000     60               pushad
+
+//进入 OD 后暂停在这
+
+00438001     E8 00000000      call alexprot.00438006
+
+00438006     5D               pop ebp
+
+00438007     81ED 06104000    sub ebp,alexprot.00401006
+
+0043800D     E8 24000000      call alexprot.00438036
+
+00438012     EB 01            jmp short alexprot.00438015
+```
+
+`Shift+F9` 运行，暂停在内存访问异常处。
+
+```
+003B13C2     3300             xor eax,dword ptr ds:[eax]
+
+//内存访问异常处
+
+003B13C4     83C4 04          add esp,4
+
+003B13C7     FFE3             jmp ebx
+```
+
+`Shift+F9` 运行，会在 `003B13C2` 处中断 3 次。
+
+`Alt+M` 打开内存察看窗口，在 `00401000` 段“设置内存写入断点”。
+
+`Shift+F9`，中断在 `003B0C05` 处。中断后取消内存断点。
+
+看看寄存器值，你会发现这里就是壳写入加密跳转地址的地方！
+
+我在这里 Patch，使壳写入程序中的地址作为输入表的跳转地址，这样就可以 Dump 下来了。
+
+```
+003B0C04     61               popad
+
+003B0C05     8901             mov dword ptr ds:[ecx],eax
+
+//中断在这里
+
+//修改为：JMP 003BB000 ★
+
+003B0C07     83C7 04          add edi,4
+
+003B0C0A     FECB             dec bl
+
+003B0C0C     58               pop eax
+
+003B0C0D     80FB 00          cmp bl,0
+
+003B0C10     0F87 42FFFFFF    ja 003B0B58
+
+003B0C16     803F C3          cmp byte ptr ds:[edi],0C3
+
+003B0C19     0F84 A1FDFFFF    je 003B09C0
+
+003B0C1F     833F 00          cmp dword ptr ds:[edi],0
+
+003B0C22     0F84 DE000000    je 003B0D06
+
+//输入表处理完毕则跳转
+
+003B0C28     E9 8AFDFFFF      jmp 003B09B7
+
+003B0C2D     47               inc edi
+
+003B0C2E     8B1F             mov ebx,dword ptr ds:[edi]
+
+003B0C30     53               push ebx
+
+003B0C31     60               pushad
+
+003B0C32     EB 03            jmp short 003B0C37
+```
+
+────────────────────────────────
+
+在下面找点空白处（`003BB000`）写入 Patch 代码：
+
+```
+003BB000     53               push ebx
+
+003BB001     56               push esi
+
+003BB002     3E:8B9C24 08FFFFFF  mov ebx,dword ptr ds:[esp-F8]; USER32.77D10000
+
+//[esp-F8]处保存的是处理 DLL 的基址 ★
+
+003BB00A     3B1D 00C03B00     cmp ebx,dword ptr ds:[3BC000]; USER32.77D10000
+
+//提前在[3BC000]处写入当前处理 DLL 的基址 ★
+
+003BB010     74 0D            je short 003BB01F
+
+//比较处理的 DLL 是否相同 ★
+
+003BB012     891D 00C03B00     mov dword ptr ds:[3BC000],ebx
+
+//保存新的 DLL 基址 ★
+
+003BB018     8305 08C03B00 04  add dword ptr ds:[3BC008],4
+
+//不同则跳转地址+4，方便修复输入表 ★
+
+003BB01F     8B1D 08C03B00    mov ebx,dword ptr ds:[3BC008] ; alexprot.00429000
+
+//提前在[3BC008]处写入准备放跳转地址的地址，呵呵，有点拗口了 ★
+
+//我选择的是程序的第 4 个区段，写入 00429000
+
+003BB025     3E:8BB424 58FFFFFF  mov esi,dword ptr ds:[esp-A8]; USER32.TranslateMessage
+
+//[esp-A8]处保存的是正确的函数 ★
+
+003BB02D     8933             mov dword ptr ds:[ebx],esi
+
+//函数写入修改的地址
+
+003BB02F     8919             mov dword ptr ds:[ecx],ebx
+
+//[ecx]是程序中的呼叫地址，写入修改后的跳转地址 ★
+
+003BB031     8305 08C03B00 04  add dword ptr ds:[3BC008],4
+
+//跳转地址+4
+
+003BB038     5E               pop esi
+
+003BB039     5B               pop ebx
+
+//恢复堆栈
+
+003BB03A     83C7 04          add edi,4
+
+//003B0C07 处代码挪到这里执行
+
+003BB03D     E9 C85BFFFFFF    jmp 003B0C0A
+
+//跳回去继续流程
+```
+
+────────────────────────────────
+
+修改完以上部分后在 `003B0D06` 处下断，`Shift+F9` 中断下来，输入表处理完毕了。
+
+```
+003B0D06     E8 97060000      call 003B13A2
+
+//这里下断
+
+003B0D0B     8D9D 31254000    lea ebx,dword ptr ss:[ebp+40253>
+
+003B0D11     60               pushad
+
+003B0D12     EB 03            jmp short 003B0D17
+```
+
+此时`[3BC008]`处是 `004290D8`，这就是结束的地址了。
+
+`Size = 004290D8 - 00429000 = D8`
+
+OK，第一部分处理完毕。
+
+──────────────────────────────────────────────────────
+
+### 二、OEP、Dump
+
+`Shift+F9` 运行，来到最后一次内存异常处。当然，这步可以省略。
+
+```
+003B13C2     3300             xor eax,dword ptr ds:[eax]
+
+//最后一次内存异常
+
+003B13C4     83C4 04          add esp,4
+
+003B13C7     FFE3             jmp ebx
+```
+
+`Alt+M` 打开内存察看窗口，在 `00401000` 段“设置内存访问断点”。
+
+`Shift+F9` 中断在 `00406B07` 处！
+
+```
+00406B05     0000             add byte ptr ds:[eax],al
+
+00406B07     E8 4E2B0000      call alexprot.0040965A      ; jmp to kernel32.GetModuleHandleA
+
+//中断在这里
+
+00406B0C     A3 1CC64000      mov dword ptr ds:[40C61C],eax
+
+00406B11     E8 382B0000      call alexprot.0040964E      ; jmp to kernel32.GetCommandLineA
+
+00406B16     E8 872B0000      call alexprot.004096A2      ; jmp to comctl32.InitCommonControls
+```
+
+看看堆栈：
+
+```
+0012FFA0     00000000
+```
+
+根据汇编语言编译程序的特点和堆栈，补上 `Stolen Code`:
+
+```
+00406B05     6A 00            push 0
+```
+
+`//用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程`
+
+运行 `ImportREC`，选择这个进程。把 `OEP` 改为 `00006B05`，`RVA=00029000`、`Size=000000D8`，获取输入表。
+
+`FixDump`，正常运行！
+
+──────────────────────────────────────────────────────
+
+          ,     \_/
+        /| \_.-~/      \\_     ,       青春都一晌
+       ( /~   /          \\~-.\_ |\
+       \`\\   \_/          \   ~\ )        忍把浮名
+   _-~~~-.)  )\_;,.;,       \\_  //
+  '/\,\   --~   \ ~~~- ,;;\\_   (.-~~~-.        换了破解轻狂
+  `~ _( ,\_..-\ (   ,;''/  ~--   /.\`\\
+   /~~//'   / `~\       ) /--..\_, )_ `~
+   " `~"  "     `"     /~'\`\\    \`\\~~\
+                       "     "   "~'  ""
+               UnPacked By :  fly
+                2004-10-17 23:00
+
+`4dd466d0e1e0cc123afbe504da2462ca`

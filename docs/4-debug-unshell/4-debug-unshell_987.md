@@ -1,229 +1,275 @@
 
-
 # Unpack SecuROM 4.X.X.X - 5.X.X.X -> Sony DADC 教程类似物
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-680.htm`](https://www.pediy.com/kssd/pediy07/pediy7-680.htm)
 
-标题：Unpack SecuROM 4.x-5.x with FlyODBG v1.10  
-目标：秋之回忆：想君简体中文版  
-声明：纯粹为了速度和节省光驱  
-作者：无聊的菜鸟  
-时间：2005 年 11 月 20 日  01：06  
-  
-调试环境：WinXP、flyODBG、PEiD、LordPE、ImportREC、WinHex  
-  
-SecuROM 是 Sony 的产品，介绍就不用了吧，知道它是光盘保护系统就行了。  
-  
-首先我们需要 OEP，这个大家都知道的吧。  
-  
-0186F5B2 OMOKIMI.<Modu>  55                    push ebp    <-OD 停在了这里  
-0186F5B3                 8BEC                  mov ebp,esp  
-0186F5B5                 6A FF                 push -1  
-0186F5B7                 68 B8599401           push OMOKIMI.019459B8  
-0186F5BC                 68 90FA8601           push OMOKIMI.0186FA90  
-0186F5C1                 64:A1 00000000        mov eax,dword ptr fs:\[0\]  
-0186F5C7                 50                    push eax  
-0186F5C8                 64:8925 00000000      mov dword ptr fs:\[0\],esp  
-0186F5CF                 83EC 58               sub esp,58  
-0186F5D2                 53                    push ebx  
-0186F5D3                 56                    push esi  
-0186F5D4                 57                    push edi  
-0186F5D5                 8965 E8               mov dword ptr ss:\[ebp-18\],esp  
-0186F5D8                 FF15 10569601         call dword ptr ds:\[<&kernel32.GetVersion>\]       ; kernel32.GetVersion  
-0186F5DE                 33D2                  xor edx,edx  
-  
-我们先来确认一件事情，游戏呢一般都使用 VC++6.0 写的，而 VC++编译出来的程序都好一个把第一个调用的 API 写成 GetVersion，所以呢，如果 Sony 没有像 ASPr 一样模拟 API 的入口的话，我们对这个 API 下断就一定能到很接近 OEP 的地方。  
-  
-现在我们设置 OD 忽略一切异常（重要！），把 FlyODBG 的优先级调成低（重要！），He GetVersion，然后运行。  
-注意堆栈：  
-第一次：0012FF48   0186F5DE  返回到 OMOKIMI.0186F5DE 来自 kernel32.GetVersion  
-  
-第二次：0012EF40   100068E8  返回到 CmdLineE.100068E8 来自 kernel32.GetVersion  
-  
-第三次：0012F688   01816F9C  返回到 OMOKIMI.01816F9C 来自 kernel32.GetVersion  
-  
-第四次：0012EF50   20002759  返回到 20002759 来自 kernel32.GetVersion  
-  
-第五次：0012D4C4   01826A59  返回到 OMOKIMI.01826A59 来自 kernel32.GetVersion  
-  
-第六次：0012F63C   004369E8  返回到 OMOKIMI.004369E8 来自 021B0000  <-这次就是了，因为返回值在第二个段中。  
-  
-回去看看：  
-004369BC                 55                    push ebp  
-004369BD                 8BEC                  mov ebp,esp  
-004369BF                 6A FF                 push -1  
-004369C1                 68 D8E34300           push OMOKIMI.0043E3D8  
-004369C6                 68 98AB4300           push OMOKIMI.0043AB98  
-004369CB                 64:A1 00000000        mov eax,dword ptr fs:\[0\]  
-004369D1                 50                    push eax  
-004369D2                 64:8925 00000000      mov dword ptr fs:\[0\],esp  
-004369D9                 83EC 58               sub esp,58  
-004369DC                 53                    push ebx  
-004369DD                 56                    push esi  
-004369DE                 57                    push edi  
-004369DF                 8965 E8               mov dword ptr ss:\[ebp-18\],esp  
-004369E2                 FF15 084C8801         call dword ptr ds:\[1884C08\]  
-004369E8                 33D2                  xor edx,edx  <-返回这里  
-  
-与上面对比一下，不用说了吧，传说中的 OEP。我们先 dump 一份下来留着（dump.exe）。  
-不过我们注意一下返回的地方的前一行，似乎不是 call dword ptr ds:\[<&kernel32.GetVersion>\]       ; kernel32.GetVersion  
-这就是 SecuROM 的保护了，间接 API 的调用。  
-  
-下面我们将为了得到一个能够正确执行的文件而奋斗：  
-  
-我们先来看看 SecuROM 都有些什么方法来保护。  
-1. 首先 SecuROM 没有加密 API，只加密了它的调用，比 SD 好多了。。。。  
-2. 修改原始的 Call \[\]，使它指向壳中的位置，调用的时候经过一番运算得到应该用的 API（比如 GetVersion）的正确的存储位置（\[43E144\]）后跳去 API 那里执行。  
-3. 加密原始的 Call \[\]，使它变成 Call XXXXXXXX 的形式，调用的时候同上。虽然 ASPr 也喜欢干这种事情，但是 Sony 做得比较省事一点，在 Call 的前后加一些无伤大雅的单字节代码（这次我看见了 0x27(daa),0x40(inc eax),0x90(nop),0xF5(cmc),0xF8(clc),0xF9(stc)）  
-4. 跳到 API 去执行的方式也不多。  
-  
-在这里先说一下 SecuROM 的修复中最难的是避开他的时间检测，程序运行的时候，API 调用得太快或是太慢，它都会丢个不正确的直让你的 PatchCode 直接异常去。。。  
-所以我在这里用另一种方法，先修复没有时间校检的调用，然后再 Patch 有时间校检的地方，让它一边运行一边修复。。。这样的话我们得到的文件就一定能运行。至于剩下多少代码要修复，那就看我们的运气了。。。  
-  
-现在我们还在 OEP 处（还记得吧![](img/710b5589904d0d2bf58a67748fca40e1.jpg)），我用 OllyHelper 插件分配了一段内存在 0x02230000  
-主动修复代码（修复无时间检测的代码）：  
-60 9C B8 00 10 40 00 33 C9 66 8B 08 66 81 F9 FF 15 74 08 80 F9 E8 74 13 40 EB EC 8A 48 05 80 F9  
-01 75 F5 8B 48 02 8B 09 40 EB 08 8B 48 01 03 C8 83 C1 05 81 F9 00 20 82 01 72 DD 81 F9 00 30 82  
-01 77 D5 83 C0 05 50 FF E1 59 33 DB 66 8B 59 FA 66 81 FB FF 15 75 05 89 41 FC EB 2F 8A 19 80 FB  
-27 74 1A 80 FB 40 74 15 80 FB 90 74 10 80 FB F5 74 0B 80 FB F8 74 06 80 FB F9 74 01 49 83 E9 05  
-66 C7 01 FF 15 89 41 02 83 C1 06 8B C1 3D 80 DB 43 00 77 02 EB 83 9D 61 C3  
-  
-02230000       60                pushad                           ; 保护一下现场  
-02230001       9C                pushfd  
-02230002       B8 00104000       mov eax,401000                   ; 代码基址  
-02230007       33C9              xor ecx,ecx  
-02230009       66:8B08           mov cx,word ptr ds:\[eax\]  
-0223000C       66:81F9 FF15      cmp cx,15FF                      ; 搜索 Call \[\]  
-02230011       74 08             je short 0223001B  
-02230013       80F9 E8           cmp cl,0E8                       ; 搜索 Call XXXXXXXX  
-02230016       74 13             je short 0223002B  
-02230018       40                inc eax                          ; 不是的话就继续找  
-02230019     ^ EB EC             jmp short 02230007  
-0223001B       8A48 05           mov cl,byte ptr ds:\[eax+5\]  
-0223001E       80F9 01           cmp cl,1                         ; 确定这个 Call \[\]真的是我们需要的，因为中还有一些很无辜的东西  
-02230021     ^ 75 F5             jnz short 02230018  
-02230023       8B48 02           mov ecx,dword ptr ds:\[eax+2\]     ; 取调用地址  
-02230026       8B09              mov ecx,dword ptr ds:\[ecx\]  
-02230028       40                inc eax  
-02230029       EB 08             jmp short 02230033  
-0223002B       8B48 01           mov ecx,dword ptr ds:\[eax+1\]  
-0223002E       03C8              add ecx,eax  
-02230030       83C1 05           add ecx,5  
-02230033       81F9 00208201     cmp ecx,1822000                  ; 确定这个 Call 是不检测时间的  
-02230039     ^ 72 DD             jb short 02230018  
-0223003B       81F9 00308201     cmp ecx,1823000  
-02230041     ^ 77 D5             ja short 02230018  
-02230043       83C0 05           add eax,5  
-02230046       50                push eax                         ; 构造 Call 的返回地址  
-02230047       FFE1              jmp ecx                          ; 去吧  
-02230049       59                pop ecx                          ; Patch 返回处，获取 Call 的返回地址  
-0223004A       33DB              xor ebx,ebx  
-0223004C       66:8B59 FA        mov bx,word ptr ds:\[ecx-6\]       ; 准备区分 Call \[\]和 Call  
-02230050       66:81FB FF15      cmp bx,15FF  
-02230055       75 05             jnz short 0223005C  
-02230057       8941 FC           mov dword ptr ds:\[ecx-4\],eax     ; Call \[\]的话就直接写入地址  
-0223005A       EB 2F             jmp short 0223008B  
-0223005C       8A19              mov bl,byte ptr ds:\[ecx\]         ; 确定 Call 加密的垃圾代码是不是在调用后面  
-0223005E       80FB 27           cmp bl,27                        ; daa  
-02230061       74 1A             je short 0223007D  
-02230063       80FB 40           cmp bl,40                        ; inc eax  
-02230066       74 15             je short 0223007D  
-02230068       80FB 90           cmp bl,90                        ; nop  
-0223006B       74 10             je short 0223007D  
-0223006D       80FB F5           cmp bl,0F5                       ; cmc  
-02230070       74 0B             je short 0223007D  
-02230072       80FB F8           cmp bl,0F8                       ; clc  
-02230075       74 06             je short 0223007D  
-02230077       80FB F9           cmp bl,0F9                       ; stc  
-0223007A       74 01             je short 0223007D  
-0223007C       49                dec ecx  
-0223007D       83E9 05           sub ecx,5  
-02230080       66:C701 FF15      mov word ptr ds:\[ecx\],15FF       ; 构造 Call \[\]  
-02230085       8941 02           mov dword ptr ds:\[ecx+2\],eax  
-02230088       83C1 06           add ecx,6  
-0223008B       8BC1              mov eax,ecx  
-0223008D       3D 80DB4300       cmp eax,43DB80                   ; 手动找到的最后一个需要修复的地址  
-02230092       77 02             ja short 02230096  
-02230094     ^ EB 83             jmp short 02230019  
-02230096       9D                popfd                            ; 完成后恢复现场  
-02230097       61                popad  
-02230098       C3                retn                             ; 可以在这里下断,但不保证结果  
-  
-解释一下最后一句，理论上来说修复之后是会停在那个 retn 的地方，但是不排除会像我一下直接退出。但是这是第一步已完成了，我们用 LordPE 把 0x401000 处长度为 0x3D000 的数据 dump 下来保存为 dump.dmp。  
-  
+**标题**：Unpack SecuROM 4.x-5.x with FlyODBG v1.10  
+**目标**：秋之回忆：想君简体中文版  
+**声明**：纯粹为了速度和节省光驱  
+**作者**：无聊的菜鸟  
+**时间**：2005 年 11 月 20 日 01：06  
+**调试环境**：WinXP、flyODBG、PEiD、LordPE、ImportREC、WinHex
+
+SecuROM 是 Sony 的产品，介绍就不用了吧，知道它是光盘保护系统就行了。
+
+首先我们需要 OEP，这个大家都知道的吧。
+
+```
+0186F5B2 OMOKIMI.<Modu> 55 push ebp <-OD 停在了这里
+0186F5B3 8BEC mov ebp,esp
+0186F5B5 6A FF push -1
+0186F5B7 68 B8599401 push OMOKIMI.019459B8
+0186F5BC 68 90FA8601 push OMOKIMI.0186FA90
+0186F5C1 64:A1 00000000 mov eax,dword ptr fs:[0]
+0186F5C7 50 push eax
+0186F5C8 64:8925 00000000 mov dword ptr fs:[0],esp
+0186F5CF 83EC 58 sub esp,58
+0186F5D2 53 push ebx
+0186F5D3 56 push esi
+0186F5D4 57 push edi
+0186F5D5 8965 E8 mov dword ptr ss:[ebp-18],esp
+0186F5D8 FF15 10569601 call dword ptr ds:[<&kernel32.GetVersion>] ; kernel32.GetVersion
+0186F5DE 33D2 xor edx,edx
+```
+
+我们先来确认一件事情，游戏呢一般都使用 VC++6.0 写的，而 VC++编译出来的程序都好一个把第一个调用的 API 写成 `GetVersion`，所以呢，如果 Sony 没有像 ASPr 一样模拟 API 的入口的话，我们对这个 API 下断就一定能到很接近 OEP 的地方。
+
+现在我们设置 OD 忽略一切异常（重要！），把 FlyODBG 的优先级调成低（重要！），He `GetVersion`，然后运行。
+
+注意堆栈：
+
+第一次：`0012FF48 0186F5DE` 返回到 `OMOKIMI.0186F5DE` 来自 `kernel32.GetVersion`  
+第二次：`0012EF40 100068E8` 返回到 `CmdLineE.100068E8` 来自 `kernel32.GetVersion`  
+第三次：`0012F688 01816F9C` 返回到 `OMOKIMI.01816F9C` 来自 `kernel32.GetVersion`  
+第四次：`0012EF50 20002759` 返回到 `20002759` 来自 `kernel32.GetVersion`  
+第五次：`0012D4C4 01826A59` 返回到 `OMOKIMI.01826A59` 来自 `kernel32.GetVersion`  
+第六次：`0012F63C 004369E8` 返回到 `OMOKIMI.004369E8` 来自 `021B0000` <-这次就是了，因为返回值在第二个段中。
+
+回去看看：
+
+```
+004369BC 55 push ebp
+004369BD 8BEC mov ebp,esp
+004369BF 6A FF push -1
+004369C1 68 D8E34300 push OMOKIMI.0043E3D8
+004369C6 68 98AB4300 push OMOKIMI.0043AB98
+004369CB 64:A1 00000000 mov eax,dword ptr fs:[0]
+004369D1 50 push eax
+004369D2 64:8925 00000000 mov dword ptr fs:[0],esp
+004369D9 83EC 58 sub esp,58
+004369DC 53 push ebx
+004369DD 56 push esi
+004369DE 57 push edi
+004369DF 8965 E8 mov dword ptr ss:[ebp-18],esp
+004369E2 FF15 084C8801 call dword ptr ds:[1884C08]
+004369E8 33D2 xor edx,edx <-返回这里
+```
+
+与上面对比一下，不用说了吧，传说中的 OEP。我们先 dump 一份下来留着（`dump.exe`）。
+
+不过我们注意一下返回的地方的前一行，似乎不是 `call dword ptr ds:[<&kernel32.GetVersion>] ; kernel32.GetVersion`
+
+这就是 SecuROM 的保护了，间接 API 的调用。
+
+下面我们将为了得到一个能够正确执行的文件而奋斗：
+
+我们先来看看 SecuROM 都有些什么方法来保护。
+
+1. 首先 SecuROM 没有加密 API，只加密了它的调用，比 SD 好多了。。。。
+2. 修改原始的 Call `[]`，使它指向壳中的位置，调用的时候经过一番运算得到应该用的 API（比如 `GetVersion`）的正确的存储位置（`[43E144]`）后跳去 API 那里执行。
+3. 加密原始的 Call `[]`，使它变成 Call `XXXXXXXX` 的形式，调用的时候同上。虽然 ASPr 也喜欢干这种事情，但是 Sony 做得比较省事一点，在 Call 的前后加一些无伤大雅的单字节代码（这次我看见了 `0x27(daa),0x40(inc eax),0x90(nop),0xF5(cmc),0xF8(clc),0xF9(stc)`）
+4. 跳到 API 去执行的方式也不多。
+
+在这里先说一下 SecuROM 的修复中最难的是避开他的时间检测，程序运行的时候，API 调用得太快或是太慢，它都会丢个不正确的直让你的 `PatchCode` 直接异常去。。。
+
+所以我在这里用另一种方法，先修复没有时间校检的调用，然后再 Patch 有时间校检的地方，让它一边运行一边修复。。。这样的话我们得到的文件就一定能运行。至于剩下多少代码要修复，那就看我们的运气了。。。
+
+现在我们还在 OEP 处（还记得吧![](img/710b5589904d0d2bf58a67748fca40e1.jpg)），我用 OllyHelper 插件分配了一段内存在 `0x02230000`
+
+主动修复代码（修复无时间检测的代码）：
+
+```
+60 9C B8 00 10 40 00 33 C9 66 8B 08 66 81 F9 FF 15 74 08 80 F9 E8 74 13 40 EB EC 8A 48 05 80 F9
+01 75 F5 8B 48 02 8B 09 40 EB 08 8B 48 01 03 C8 83 C1 05 81 F9 00 20 82 01 72 DD 81 F9 00 30 82
+01 77 D5 83 C0 05 50 FF E1 59 33 DB 66 8B 59 FA 66 81 FB FF 15 75 05 89 41 FC EB 2F 8A 19 80 FB
+27 74 1A 80 FB 40 74 15 80 FB 90 74 10 80 FB F5 74 0B 80 FB F8 74 06 80 FB F9 74 01 49 83 E9 05
+66 C7 01 FF 15 89 41 02 83 C1 06 8B C1 3D 80 DB 43 00 77 02 EB 83 9D 61 C3
+```
+
+```
+02230000 60 pushad ; 保护一下现场
+02230001 9C pushfd
+02230002 B8 00104000 mov eax,401000 ; 代码基址
+02230007 33C9 xor ecx,ecx
+02230009 66:8B08 mov cx,word ptr ds:[eax]
+0223000C 66:81F9 FF15 cmp cx,15FF ; 搜索 Call []
+02230011 74 08 je short 0223001B
+02230013 80F9 E8 cmp cl,0E8 ; 搜索 Call XXXXXXXX
+02230016 74 13 je short 0223002B
+02230018 40 inc eax ; 不是的话就继续找
+02230019 ^ EB EC jmp short 02230007
+0223001B 8A48 05 mov cl,byte ptr ds:[eax+5]
+0223001E 80F9 01 cmp cl,1 ; 确定这个 Call []真的是我们需要的，因为中还有一些很无辜的东西
+02230021 ^ 75 F5 jnz short 02230018
+02230023 8B48 02 mov ecx,dword ptr ds:[eax+2] ; 取调用地址
+02230026 8B09 mov ecx,dword ptr ds:[ecx]
+02230028 40 inc eax
+02230029 EB 08 jmp short 02230033
+0223002B 8B48 01 mov ecx,dword ptr ds:[eax+1]
+0223002E 03C8 add ecx,eax
+02230030 83C1 05 add ecx,5
+02230033 81F9 00208201 cmp ecx,1822000 ; 确定这个 Call 是不检测时间的
+02230039 ^ 72 DD jb short 02230018
+0223003B 81F9 00308201 cmp ecx,1823000
+02230041 ^ 77 D5 ja short 02230018
+02230043 83C0 05 add eax,5
+02230046 50 push eax ; 构造 Call 的返回地址
+02230047 FFE1 jmp ecx ; 去吧
+02230049 59 pop ecx ; Patch 返回处，获取 Call 的返回地址
+0223004A 33DB xor ebx,ebx
+0223004C 66:8B59 FA mov bx,word ptr ds:[ecx-6] ; 准备区分 Call []和 Call
+02230050 66:81FB FF15 cmp bx,15FF
+02230055 75 05 jnz short 0223005C
+02230057 8941 FC mov dword ptr ds:[ecx-4],eax ; Call []的话就直接写入地址
+0223005A EB 2F jmp short 0223008B
+0223005C 8A19 mov bl,byte ptr ds:[ecx] ; 确定 Call 加密的垃圾代码是不是在调用后面
+0223005E 80FB 27 cmp bl,27 ; daa
+02230061 74 1A je short 0223007D
+02230063 80FB 40 cmp bl,40 ; inc eax
+02230066 74 15 je short 0223007D
+02230068 80FB 90 cmp bl,90 ; nop
+0223006B 74 10 je short 0223007D
+0223006D 80FB F5 cmp bl,0F5 ; cmc
+02230070 74 0B je short 0223007D
+02230072 80FB F8 cmp bl,0F8 ; clc
+02230075 74 06 je short 0223007D
+02230077 80FB F9 cmp bl,0F9 ; stc
+0223007A 74 01 je short 0223007D
+0223007C 49 dec ecx
+0223007D 83E9 05 sub ecx,5
+02230080 66:C701 FF15 mov word ptr ds:[ecx],15FF ; 构造 Call []
+02230085 8941 02 mov dword ptr ds:[ecx+2],eax
+02230088 83C1 06 add ecx,6
+```
+
+
+
+0223008B 8BC1 mov eax, ecx  
+
+0223008D 3D 80DB4300 cmp eax, 43DB80 ; 手动找到的最后一个需要修复的地址  
+
+02230092 77 02 ja short 02230096  
+
+02230094 EB 83 jmp short 02230019  
+
+02230096 9D popfd ; 完成后恢复现场  
+
+02230097 61 popad  
+
+02230098 C3 retn ; 可以在这里下断,但不保证结果  
+
+解释一下最后一句，理论上来说修复之后是会停在那个 `retn` 的地方，但是不排除会像我一下直接退出。但是这是第一步已完成了，我们用 `LordPE` 把 `0x401000` 处长度为 `0x3D000` 的数据 dump 下来保存为 `dump.dmp`。  
+
 需要 Patch 的调用过程（我们这里的 Patch 是为了直接得到 API 的正确的储存位置而不是 API 的地址）：  
-  
+
 01822EC0:  
-01822F77       FF30               push dword ptr ds:\[eax\]  <-改为 JMP 2230049  
-01822F79       C3                 retn  
-  
+
+01822F77 FF30 push dword ptr ds:[eax] <-改为 `JMP 2230049`  
+
+01822F79 C3 retn  
+
 1822D00  
-01822DD4       8945 04            mov dword ptr ss:\[ebp+4\],eax  <-这里 eax 改为 esi  
+
+01822DD4 8945 04 mov dword ptr ss:[ebp+4], eax <-这里 `eax` 改为 `esi`  
+
 。。。。  
-01822DE3       C3                 retn  <-这里改为 pop eax；JMP 2230049  
-  
+
+01822DE3 C3 retn <-这里改为 `pop eax; JMP 2230049`  
+
 1822AF0  
-01822BA5       8B00               mov eax,dword ptr ds:\[eax\]  <-改为 JMP 2230049  
-  
-然后我们重新来到入口点（和我一样挂掉的朋友就重新忍受一下异常吧），再用 OD 载入备份 dump.dmp，然后全部选中代码段，右击选择全部取消。这样我们刚刚的努力就有意义了。  
-  
+
+01822BA5 8B00 mov eax, dword ptr ds:[eax] <-改为 `JMP 2230049`  
+
+然后我们重新来到入口点（和我一样挂掉的朋友就重新忍受一下异常吧），再用 `OD` 载入备份 `dump.dmp`，然后全部选中代码段，右击选择全部取消。这样我们刚刚的努力就有意义了。  
+
 被动修复代码（修复有时间接侧的调用）：  
-60 9C 8B 4C 24 24 33 D2 BA 00 E0 43 00 3B 02 74 05 83 C2 04 EB F7 33 DB 89 51 FC 9D 61 FF E0  
-  
-02230000       60                pushad                           ; 保护一下现场  
-02230001       9C                pushfd  
-02230002       8B4C24 24         mov ecx,dword ptr ss:\[esp+24\]    ; 获取调用的返回地址  
-02230006       33D2              xor edx,edx  
-02230008       BA 00E04300       mov edx,43E000                   ; API 的正确存储位置的起点  
-0223000D       3B02              cmp eax,dword ptr ds:\[edx\]       ; 确定 API 地址对应的储存位置  
-0223000F       74 05             je short 02230016  
-02230011       83C2 04           add edx,4  
-02230014     ^ EB F7             jmp short 0223000D  
-02230016       33DB              xor ebx,ebx  
-02230018       8951 FC           mov dword ptr ds:\[ecx-4\],edx     ; 由于现在只有 Call \[\],所以就直接写地址  
-0223001B       9D                popfd                            ; 恢复现场  
-0223001C       61                popad  
-0223001D       FFE0              jmp eax                          ; 回去执行 API  
-  
+
+`60 9C 8B 4C 24 24 33 D2 BA 00 E0 43 00 3B 02 74 05 83 C2 04 EB F7 33 DB 89 51 FC 9D 61 FF E0`  
+
+02230000 60 pushad ; 保护一下现场  
+
+02230001 9C pushfd  
+
+02230002 8B4C24 24 mov ecx, dword ptr ss:[esp+24] ; 获取调用的返回地址  
+
+02230006 33D2 xor edx, edx  
+
+02230008 BA 00E04300 mov edx, 43E000 ; API 的正确存储位置的起点  
+
+0223000D 3B02 cmp eax, dword ptr ds:[edx] ; 确定 API 地址对应的储存位置  
+
+0223000F 74 05 je short 02230016  
+
+02230011 83C2 04 add edx, 4  
+
+02230014 EB F7 jmp short 0223000D  
+
+02230016 33DB xor ebx, ebx  
+
+02230018 8951 FC mov dword ptr ds:[ecx-4], edx ; 由于现在只有 Call [ ], 所以就直接写地址  
+
+0223001B 9D popfd ; 恢复现场  
+
+0223001C 61 popad  
+
+0223001D FFE0 jmp eax ; 回去执行 API  
+
 需要 Patch 的调用过程（我们这里 Patch 是为了得到 API 的地址，方便后面调用）：  
-  
-017C74E9     - FFE0               jmp eax  <-我们需要返回修复的地方。改为 JMP 2230000  
-  
-现在我们就要经一切可能使用游戏的一切功能，不过还好，看过 KID 秋之回忆 2 代的代码心里很清楚游戏真正有用的代码不会多。![](img/710b5589904d0d2bf58a67748fca40e1.jpg)  
-  
-最后我们点退出游戏，OD 就会直接挂住它，再用 LordPE 把 0x401000 处长度为 0x3D000 的数据再 Dump 一份存为 dump1.dmp。  
-现在我们打开 WinHex 把 dump1.dmp 写入 dump.exe 的 0x1000 位置覆盖后面的数据。然后打开 ImportREC 填入 OEP，IAT 起始地址 3E000，大小：0x29C，添加一个段修复一下就可以运行了。  
-  
-现在我们的 sony 已经很无助了，因为我们现在已经可以正常的玩了，不过，谁知道什么时候会出问题呢？![](img/710b5589904d0d2bf58a67748fca40e1.jpg)  
-  
-Need Fpr Speed: Most Wanted(Black Edtion)要下完了，要是硬盘还够的话，那想君就要等上一段时间再来继续修了。  
-  
+
+017C74E9 FFE0 jmp eax <-我们需要返回修复的地方。改为 `JMP 2230000`  
+
+现在我们就要经一切可能使用游戏的一切功能，不过还好，看过 `KID 秋之回忆 2` 代的代码心里很清楚游戏真正有用的代码不会多。![](img/710b5589904d0d2bf58a67748fca40e1.jpg)  
+
+最后我们点退出游戏，`OD` 就会直接挂住它，再用 `LordPE` 把 `0x401000` 处长度为 `0x3D000` 的数据再 Dump 一份存为 `dump1.dmp`。  
+
+现在我们打开 `WinHex` 把 `dump1.dmp` 写入 `dump.exe` 的 `0x1000` 位置覆盖后面的数据。然后打开 `ImportREC` 填入 `OEP`，`IAT` 起始地址 `3E000`，大小：`0x29C`，添加一个段修复一下就可以运行了。  
+
+现在我们的 `sony` 已经很无助了，因为我们现在已经可以正常的玩了，不过，谁知道什么时候会出问题呢？![](img/710b5589904d0d2bf58a67748fca40e1.jpg)  
+
+Need Fpr Speed: Most Wanted(Black Edtion)要下完了，要是硬盘还够的话，那想君就要等上一段时间再来继续修了。  
+
 不过现在我们已经可以 XX 了，其他的暂时就不是那么重要了。  
-  
+
 11 月 21 日  
-无语，NFSMW 居然是 SD4.60。。。。。而且不知支持我的 i855GME。。。。。。  
-  
+
+无语，`NFSMW` 居然是 `SD4.60`。。。。。而且不知支持我的 `i855GME`。。。。。。  
+
 我们还是继续修吧！  
-  
+
 由于这次要修得比较少，所以我反而变得更懒了。  
-  
+
 我们先搜索一个没修的，然后直接走到它的终点：  
-017C74E9     - FFE0               jmp eax  <-这里  
-  
-我们把上面那个 mov eax,\[esi\]直接 nop 掉，然后在这里写下 Patch：  
-mov ecx,\[esp\]  
-mov \[ecx-4\],eax  
-retn  
-  
-然后我们就可以回去了，搜一个，新建 EIP，按一下 F8。Call 就被自己 SMC 了。然后下一个。。。。  
-  
-最后，我们用 LordPE 把 0x00401000 的地方长度为 0x3D000 的数据 dump 下来了，用 WinHex 贴入我们最后那个文件的  
-  
-0x1000 处。  
+
+017C74E9 FFE0 jmp eax <-这里  
+
+我们把上面那个 `mov eax, [esi]` 直接 `nop` 掉，然后在这里写下 Patch：  
+
+`mov ecx, [esp]`  
+
+`mov [ecx-4], eax`  
+
+`retn`  
+
+然后我们就可以回去了，搜一个，新建 `EIP`，按一下 `F8`。`Call` 就被自己 `SMC` 了。然后下一个。。。。  
+
+最后，我们用 `LordPE` 把 `0x00401000` 的地方长度为 `0x3D000` 的数据 dump 下来了，用 `WinHex` 贴入我们最后那个文件的  
+
+`0x1000` 处。  
+
 OK 全部修完了。  
-  
+
 不过，理论上来说不会有问题了，先是会不会和理想有差距那就只能走着瞧了。  
-  
+
 如果哪位对那个时间检测很清楚的话，麻烦告诉小弟。谢谢观看。 
 
- 4dd466d0e1e0cc123afbe504da2462ca
+4dd466d0e1e0cc123afbe504da2462ca

@@ -1,242 +1,383 @@
 
-
 # 菜鸟对 PELOCK 的分析..没技术..职业灌水
 
 > 原文：[`www.pediy.com/kssd/pediy11/112667.html`](https://www.pediy.com/kssd/pediy11/112667.html)
 
-一开始跟踪..跟踪的我吐血..这个壳,真的好\*..  
-这个壳的强度,对我这个菜鸟来说,真的好强大..  
-如 IAT..偷取..而且获取 IAT,不是用 GetProcAddress..亮点...  
-F2 断点,基本不能下,IAT 不行又因为有那个 CC 检查..  
-自己的代码也不行因为有内存校验..不过有个疑问,为什么有点的断点..不能用硬件执行断点,实现?内存访问就行?郁闷  
-  
-0042C245    /EB 02                 jmp short wuliao.0042C249      ; 为下面解码  
-  
-0042C632    /EB 02                 jmp short wuliao.0042C636  
-  
-0042C774     285401 FF             sub byte ptr ds:\[ecx+eax-1\],dl           ; 开始对上面的解码  
-0042C778     D3C2                  rol edx,cl  
-0042C77A   ^ E2 F8                 loopd short wuliao.0042C774              ; 很喜欢这个模式来对上面的代码解密?加密?  
-0042C77C     50                    push eax  
-  
-0042C67D     BD 28C04200           mov ebp,<&KERNEL32.LoadLibraryA>         ; LoadLibraryA  
-0042C682     6A 04                 push 4  
-0042C684     68 00300000           push 3000  
-0042C689     68 00A00000           push 0A000  
-0042C68E     51                    push ecx  
-0042C68F     8B55 04               mov edx,dword ptr ss:\[ebp+4\]  
-0042C692     803A CC               cmp byte ptr ds:\[edx\],0CC                ;我靠,还有 VirtualAlloc 的检测.INT3  
-0042C695     0F94C1                sete cl  
-0042C698     03D1                  add edx,ecx  
-0042C69A     FFD2                  call edx                                 ; VirtualAlloc  
-0042C69C     8D95 56070000         lea edx,dword ptr ss:\[ebp+756\]  
-0042C6A2     50                    push eax                                 ; 得到,380000..呵呵就是接下里的哦  
-  
-0042C028 >7C801D7B  {|  kernel32.LoadLibraryA  
-0042C02C >7C809AE1  |   kernel32.VirtualAlloc  
-0042C030  00000000  ....  
-  
-壳就用到,这两个函数  
-  
-0042C6B6     8A06                  mov al,byte ptr ds:\[esi\]                 ; 开始对 380000,解码..可以换个地址?  
-0042C6B8     46                    inc esi  
-0042C6B9     8807                  mov byte ptr ds:\[edi\],al                 ; 这里开始,对 380000 解密  
-0042C6BB     47                    inc edi  
-0042C6BC     02DB                  add bl,bl  
-0042C6BE     73 09                 jnb short wuliao.0042C6C9  
-0042C6C0   ^ 75 F4                 jnz short wuliao.0042C6B6  
-0042C6C2     8A1E                  mov bl,byte ptr ds:\[esi\]  
-0042C6C4     46                    inc esi  
-0042C6C5     12DB                  adc bl,bl  
-0042C6C7   ^ 72 ED                 jb short wuliao.0042C6B6  
-  
-0042C76D     C3                    retn                                     ; 到这里就去 380000  
-  
-003806C2     803E CC               cmp byte ptr ds:\[esi\],0CC                ; 检测 LoadLibraryA,起始是否有 INT 断点  
-  
-00380745     FFD6                  call esi                                 ; LoadLibraryA,kernel32.dll..下断点起始不行啊  
-  
-0038077B     8F4424 FC             pop dword ptr ss:\[esp-4\]                 ; 这个和,lea esp,dword ptr \[esp+4\]..维护栈堆平衡  
-  
-00380877     FF7424 04             push dword ptr ss:\[esp+4\]                ; 7c817067..注意,呵呵  
-  
-00380848     64:8921               mov dword ptr fs:\[ecx\],esp               ; 在这里设置了,seh...7c817067  
-  
-跟踪下去,发现是  
-7C817067    .  50                  push eax                                 ; /ExitCode  
-7C817068    >  E8 7B50FFFF         call kernel32.ExitThread                 ; \\ExitThread  
-赤裸裸的暗桩啊..  
-00380C16     64:8921               mov dword ptr fs:\[ecx\],esp               ; 到这里有设置了一个 seh,3809FA  
-  
-003800D4     8038 CC               cmp byte ptr ds:\[eax\],0CC                ; 这里又有个 GetModuleHandleA 的断点检测  
-003800D7     75 0F                 jnz short 003800E8  
-  
-00384953     E8 01000000           call 00384959  
-00384958     41                    inc ecx  
-00384959     8D6424 04             lea esp,dword ptr ss:\[esp+4\]  
-  
-00384946     E8 01000000           call 0038494C  
-0038494B     6E                    outs dx,byte ptr es:\[edi\]  
-0038494C     8F4424 FC             pop dword ptr ss:\[esp-4\]  
-  
-这两个是在太普遍了...写个脚本..去除..但后来发现,这个不行,因为有内存校验吧?  
-E8 01 00 00 00 ?? 8F 44 24 FC  
-E8 01 00 00 00 ?? 8D 64 24 04  
-  
-00380005     55                    push ebp  
-00380006     8BEC                  mov ebp,esp  
-00380008     60                    pushad  
-00380009     8B5D 0C               mov ebx,dword ptr ss:\[ebp+C\]                    ; kernel32 的基址//在刚开始,是壳的 IAT 提取..//后来是程序本身的 IAT  
-0038000C     0FB743 3C             movzx eax,word ptr ds:\[ebx+3C\]                  ; nt\_ 的 ra  
-00380010     03C3                  add eax,ebx                                     ; eax..kernel32.dll 的头  
-00380012     8B50 7C               mov edx,dword ptr ds:\[eax+7C\]                   ; ??  
-00380015     8955 0C               mov dword ptr ss:\[ebp+C\],edx  
-00380018     8B78 78               mov edi,dword ptr ds:\[eax+78\]  
-0038001B     03FB                  add edi,ebx                                     ; 输出表  
-0038001D     8A55 14               mov dl,byte ptr ss:\[ebp+14\]  
-00380020     80FA FF               cmp dl,0FF  
-00380023     74 05                 je short 0038002A  
-00380025     80FA 7F               cmp dl,7F  
-00380028     75 1A                 jnz short 00380044  
-0038002A     8B45 10               mov eax,dword ptr ss:\[ebp+10\]  
-0038002D     25 FFFFFF7F           and eax,7FFFFFFF  
-00380032     8B57 1C               mov edx,dword ptr ds:\[edi+1C\]  
-00380035     03D3                  add edx,ebx  
-00380037     2B47 10               sub eax,dword ptr ds:\[edi+10\]  
-0038003A     8B0482                mov eax,dword ptr ds:\[edx+eax\*4\]  
-0038003D     03C3                  add eax,ebx  
-0038003F     E9 90000000           jmp 003800D4  
-00380044     80E2 7F               and dl,7F  
-00380047     8B4F 14               mov ecx,dword ptr ds:\[edi+14\]                   ; 这个函数的个数保存在 ecx  
-0038004A     8B77 20               mov esi,dword ptr ds:\[edi+20\]                   ; 函数的名字..指向保存在 esi  
-0038004D     03F3                  add esi,ebx  
-0038004F     57                    push edi                                        ; 保存了 pe 的 va  
-00380050     2BFF                  sub edi,edi  
-00380052     8B06                  mov eax,dword ptr ds:\[esi\]  
-00380054     83C6 04               add esi,4  
-00380057     03C3                  add eax,ebx  
-00380059     3810                  cmp byte ptr ds:\[eax\],dl                        ; 注意 eax.指向输出函数的头了  
-0038005B     75 0A                 jnz short 00380067  
-0038005D     E8 D8020000           call 0038033A  
-00380062     2B45 10               sub eax,dword ptr ss:\[ebp+10\]  
-00380065     74 07                 je short 0038006E  
-00380067     47                    inc edi  
-00380068     49                    dec ecx  
-00380069   ^ 75 E7                 jnz short 00380052  
-0038006B     5F                    pop edi  
-0038006C     EB 78                 jmp short 003800E6  
-0038006E     8BD7                  mov edx,edi  
-00380070     5F                    pop edi  
-00380071     8B47 24               mov eax,dword ptr ds:\[edi+24\]  
-00380074     03C3                  add eax,ebx  
-00380076     0FB71450              movzx edx,word ptr ds:\[eax+edx\*2\]  
-0038007A     8B47 1C               mov eax,dword ptr ds:\[edi+1C\]  
-0038007D     03C3                  add eax,ebx  
-  
-0038501D     8B06                  mov eax,dword ptr ds:\[esi\]                 
-0038501F     8BD0                  mov edx,eax                              ;跟踪后发现,那个小样,应该是把全部都检查了遍,我考..真变态..F2 断点对这个壳,不能用  
-00385021     3C CC                 cmp al,0CC  
-00385023     75 2F                 jnz short 00385054  
-  
-00385108     F3:A4                 rep movs byte ptr es:\[edi\],byte ptr ds:\[esi\]    ; 真 tmd 的\*..把偷取的放在 42C782,中间用 jmp 或者一些无效的指令如 sal eax,0,这  
-  
-个壳很喜欢用这个..连接..然后就是 retn 返回  
-GetModuleHandleA-42C782  
-CreateFileA-0042C7B5..  
-VirtualFree-0042C7F7  
-VirtualAlloc-0042C83D   
-LoadLibraryA-0042C89C //这里以后跟踪有用  
-ExitProcess-只是设置 seh  
-  
-这是第一次异常前,分析..  
-以后的异常,本来菜,跟踪不出什么东西,呵呵..不过倒是几个异常..不能单步..单步..程序死了  
-到最后第二次异常;  
-这里郁闷了,如果你在下硬件执行断点,不行...内存访问点行..上面跟踪得到的  
-(VirtualAlloc-0042C83D)这里下硬件断点..或者在起始获取 IAT 那里下断点...  
-不过 VirtualAlloc..好些   
-  
-00383873     8909                  mov dword ptr ds:\[ecx\],ecx  
-00383875     2AF7                  sub dh,bh  
-00383877     F1                    int1  
-00383878     25 2BC9648F           and eax,8F64C92B  
-  
-因为有远程跳..这个修复 IAT,还有远程跳?是不是叫 code replace?是从前的精华中找到方法的..小菜顺便在膜拜下看雪的变态级牛人们  
-  
-VirtualAlloc 断下来..第一次申请的 3C0000  
-然后到  
-0038004F     57                    push edi  
-00380050     2BFF                  sub edi,edi  
-00380052     8B06                  mov eax,dword ptr ds:\[esi\]  
-00380054     83C6 04               add esi,4  
-00380057     03C3                  add eax,ebx  
-00380059     3810                  cmp byte ptr ds:\[eax\],dl  
-0038005B     75 0A                 jnz short 00380067  
-0038005D     E8 D8020000           call 0038033A  
-00380062     2B45 10               sub eax,dword ptr ss:\[ebp+10\]  
-00380065     74 07                 je short 0038006E  
-00380067     47                    inc edi  
-00380068     49                    dec ecx  
-00380069   ^ 75 E7                 jnz short 00380052  
-0038006B     5F                    pop edi  
-0038006C     EB 78                 jmp short 003800E6  
-0038006E     8BD7                  mov edx,edi  
-  
-这里是 IAT 提取,,  
-然后 F7  
-跟踪到  
-00384661     8919                  mov dword ptr ds:\[ecx\],ebx         可能是它的疏忽吧..eax 竟然是 IAT..所以,只要把 ebx 改成 eax;不过有自校验..单纯的改,不行..所以  
-  
-写了个脚本  
-其他的貌似没什么了..  
-然后远程跳..  
-7C809AF4   |.  E8 09000000         call kernel32.VirtualAllocEx  
-7C809AF9   |.  5D                  pop ebp  
-7C809AFA   \\.  C2 1000             retn 10  
-  
-eax=920000;把 eax 改成 411F80.就行了..  
-小菜..也自己写了个脚本,灭哈哈..  
-虽然已经有了脱壳机..但小菜自给自足,奔小康..  
-只是针对自己加的小程序..小菜还没水平写出脱壳机.呵呵..不过运行貌似  
-bphws 42c69c,"x"  
-esto  
-bphwc  
-bphws 7c809afa,"x"  
-  
-wuliao1:  
-bprm 00384661,2  
-cmp eip,00384661  
-jnz  wuliao  
-mov \[00384661\],#8901#  
-esti  
-mov \[00384661\],#8919#  
-esto  
-jmp wuliao1  
-  
-wuliao:  
-cmp eip,7c809afa  
-je wuliao2  
-cmp eip,386744  
-je exit  
-esto  
-jmp wuliao1  
-  
-wuliao2:  
-cmp eax,920000  
-jne wuliao2to1  
-mov eax,411f80  
-wuliao2to1:  
-esto  
-jmp wuliao1  
-  
-exit:  
-bprm 401000,23000  
-esto  
-bpmc  
-ret  
-菜鸟当自强..破文,在看雪保存..当作我进步的阶梯,看雪是我的免费硬盘,OH..OH..
+一开始跟踪..跟踪的我吐血..这个壳,真的好*..
 
-上传的附件
-| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || wuliao.rar  
- |
-| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || wuliao 无可.rar  
- |
+这个壳的强度,对我这个菜鸟来说,真的好强大..
+
+如 `IAT`..偷取..而且获取 `IAT`,不是用 `GetProcAddress`..亮点...
+
+`F2` 断点,基本不能下,`IAT` 不行又因为有那个 `CC` 检查..
+
+自己的代码也不行因为有内存校验..不过有个疑问,为什么有点的断点..不能用硬件执行断点,实现?内存访问就行?郁闷
+
+```
+0042C245    /EB 02               jmp short wuliao.0042C249      ; 为下面解码
+
+0042C632    /EB 02               jmp short wuliao.0042C636
+
+0042C774    285401 FF           sub byte ptr ds:[ecx+eax-1],dl    ; 开始对上面的解码
+
+0042C778    D3C2                rol edx,cl
+
+0042C77A  ^ E2 F8             loopd short wuliao.0042C774       ; 很喜欢这个模式来对上面的代码解密?加密?
+
+0042C77C    50                  push eax
+
+0042C67D    BD 28C04200         mov ebp,<&KERNEL32.LoadLibraryA>   ; LoadLibraryA
+
+0042C682    6A 04               push 4
+
+0042C684    68 00300000         push 3000
+
+0042C689    68 00A00000         push 0A000
+
+0042C68E    51                  push ecx
+
+0042C68F    8B55 04             mov edx,dword ptr ss:[ebp+4]
+
+0042C692    803A CC             cmp byte ptr ds:[edx],0CC         ;我靠,还有 VirtualAlloc 的检测.INT3
+
+0042C695    0F94C1              sete cl
+
+0042C698    03D1                add edx,ecx
+
+0042C69A    FFD2                call edx                           ; VirtualAlloc
+
+0042C69C    8D95 56070000       lea edx,dword ptr ss:[ebp+756]
+
+0042C6A2    50                  push eax                            ; 得到,380000..呵呵就是接下里的哦
+
+0042C028 >7C801D7B   {|  kernel32.LoadLibraryA
+
+0042C02C >7C809AE1   |    kernel32.VirtualAlloc
+
+0042C030   00000000   ....
+
+壳就用到,这两个函数
+
+0042C6B6    8A06                mov al,byte ptr ds:[esi]          ; 开始对 380000,解码..可以换个地址?
+
+0042C6B8    46                  inc esi
+
+0042C6B9    8807                mov byte ptr ds:[edi],al          ; 这里开始,对 380000 解密
+
+0042C6BB    47                  inc edi
+
+0042C6BC    02DB                add bl,bl
+
+0042C6BE    73 09               jnb short wuliao.0042C6C9
+
+0042C6C0  ^ 75 F4             jnz short wuliao.0042C6B6
+
+0042C6C2    8A1E                mov bl,byte ptr ds:[esi]
+
+0042C6C4    46                  inc esi
+
+0042C6C5    12DB                adc bl,bl
+
+0042C6C7  ^ 72 ED             jb short wuliao.0042C6B6
+
+0042C76D    C3                  retn                               ; 到这里就去 380000
+
+003806C2    803E CC             cmp byte ptr ds:[esi],0CC         ; 检测 LoadLibraryA,起始是否有 INT 断点
+
+00380745    FFD6                call esi                           ; LoadLibraryA,kernel32.dll..下断点起始不行啊
+
+0038077B    8F4424 FC           pop dword ptr ss:[esp-4]          ; 这个和,lea esp,dword ptr [esp+4]..维护栈堆平衡
+
+00380877    FF7424 04           push dword ptr ss:[esp+4]         ; 7c817067..注意,呵呵
+
+00380848    64:8921             mov dword ptr fs:[ecx],esp        ; 在这里设置了,seh...7c817067
+
+跟踪下去,发现是
+
+7C817067    . 50                push eax                           ; /ExitCode
+
+7C817068    > E8 7B50FFFF       call kernel32.ExitThread            ; \\ExitThread
+
+赤裸裸的暗桩啊..
+
+00380C16    64:8921             mov dword ptr fs:[ecx],esp        ; 到这里有设置了一个 seh,3809FA
+
+003800D4    8038 CC             cmp byte ptr ds:[eax],0CC         ; 这里又有个 GetModuleHandleA 的断点检测
+
+003800D7    75 0F               jnz short 003800E8
+
+00384953    E8 01000000         call 00384959
+
+00384958    41                  inc ecx
+
+00384959    8D6424 04           lea esp,dword ptr ss:[esp+4]
+
+00384946    E8 01000000         call 0038494C
+
+0038494B    6E                  outs dx,byte ptr es:[edi]
+
+0038494C    8F4424 FC           pop dword ptr ss:[esp-4]
+
+这两个是在太普遍了...写个脚本..去除..但后来发现,这个不行,因为有内存校验吧?
+
+E8 01 00 00 00 ?? 8F 44 24 FC
+
+E8 01 00 00 00 ?? 8D 64 24 04
+
+00380005    55                  push ebp
+
+00380006    8BEC                mov ebp,esp
+
+00380008    60                  pushad
+
+00380009    8B5D 0C             mov ebx,dword ptr ss:[ebp+C]                ; kernel32 的基址//在刚开始,是壳的 IAT 提取..//后来是程序本身的 IAT
+
+0038000C    0FB743 3C           movzx eax,word ptr ds:[ebx+3C]             ; nt_ 的 ra
+
+00380010    03C3                add eax,ebx                                 ; eax..kernel32.dll 的头
+
+00380012    8B50 7C             mov edx,dword ptr ds:[eax+7C]             ; ??
+
+00380015    8955 0C             mov dword ptr ss:[ebp+C],edx
+
+00380018    8B78 78             mov edi,dword ptr ds:[eax+78]
+
+0038001B    03FB                add edi,ebx                                 ; 输出表
+
+0038001D    8A55 14             mov dl,byte ptr ss:[ebp+14]
+
+00380020    80FA FF             cmp dl,0FF
+
+00380023    74 05               je short 0038002A
+
+00380025    80FA 7F             cmp dl,7F
+
+00380028    75 1A               jnz short 00380044
+
+0038002A    8B45 10             mov eax,dword ptr ss:[ebp+10]
+
+0038002D    25 FFFFFF7F         and eax,7FFFFFFF
+
+00380032    8B57 1C             mov edx,dword ptr ds:[edi+1C]
+
+00380035    03D3                add edx,ebx
+
+00380037    2B47 10             sub eax,dword ptr ds:[edi+10]
+
+0038003A    8B0482              mov eax,dword ptr ds:[edx+eax*4]
+
+0038003D    03C3                add eax,ebx
+
+0038003F    E9 90000000         jmp 003800D4
+
+00380044    80E2 7F             and dl,7F
+
+00380047    8B4F 14             mov ecx,dword ptr ds:[edi+14]             ; 这个函数的个数保存在 ecx
+
+0038004A    8B77 20             mov esi,dword ptr ds:[edi+20]             ; 函数的名字..指向保存在 esi
+
+0038004D    03F3                add esi,ebx
+
+0038004F    57                  push edi                                  ; 保存了 pe 的 va
+
+00380050    2BFF                sub edi,edi
+
+00380052    8B06                mov eax,dword ptr ds:[esi]
+
+00380054    83C6 04             add esi,4
+
+00380057    03C3                add eax,ebx
+
+00380059    3810                cmp byte ptr ds:[eax],dl                ; 注意 eax.指向输出函数的头了
+
+0038005B    75 0A               jnz short 00380067
+
+0038005D    E8 D8020000         call 0038033A
+
+00380062    2B45 10             sub eax,dword ptr ss:[ebp+10]
+
+00380065    74 07               je short 0038006E
+
+00380067    47                  inc edi
+
+00380068    49                  dec ecx
+
+00380069  ^ 75 E7             jnz short 00380052
+
+0038006B    5F                  pop edi
+
+0038006C    EB 78               jmp short 003800E6
+
+0038006E    8BD7                mov edx,edi
+
+00380070    5F                  pop edi
+
+00380071    8B47 24             mov eax,dword ptr ds:[edi+24]
+
+00380074    03C3                add eax,ebx
+
+00380076    0FB71450            movzx edx,word ptr ds:[eax+edx*2]
+
+0038007A    8B47 1C             mov eax,dword ptr ds:[edi+1C]
+
+0038007D    03C3                add eax,ebx
+
+0038501D    8B06                mov eax,dword ptr ds:[esi]
+
+0038501F    8BD0                mov edx,eax                   ;跟踪后发现,那个小样,应该是把全部都检查了遍,我考..真变态..F2 断点对这个壳,不能用
+
+00385021    3C CC               cmp al,0CC
+
+00385023    75 2F               jnz short 00385054
+
+00385108    F3:A4               rep movs byte ptr es:[edi],byte ptr ds:[esi] ; 真 tmd 的*..把偷取的放在 42C782,中间用 jmp 或者一些无效的指令如 sal eax,0,这
+
+个壳很喜欢用这个..连接..然后就是 retn 返回
+```
+
+`GetModuleHandleA`-`42C782`
+
+`CreateFileA`-`0042C7B5`..
+
+`VirtualFree`-`0042C7F7`
+
+`VirtualAlloc`-`0042C83D`
+
+`LoadLibraryA`-`0042C89C` //这里以后跟踪有用
+
+`ExitProcess`-只是设置 `seh`
+
+这是第一次异常前,分析..
+
+以后的异常,本来菜,跟踪不出什么东西,呵呵..不过倒是几个异常..不能单步..单步..程序死了
+
+到最后第二次异常;
+
+
+
+# 调试过程记录
+
+这里郁闷了，如果在硬件执行断点下，不行...内存访问点行...上面跟踪得到的。
+
+在 `VirtualAlloc-0042C83D` 这里下硬件断点...或者在起始获取 IAT 那里下断点...
+
+不过 `VirtualAlloc` 好些。
+
+```
+00383873     8909                 mov dword ptr ds:[ecx],ecx
+00383875     2AF7                 sub dh,bh
+00383877     F1                   int1
+00383878     25 2BC9648F          and eax,8F64C92B
+```
+
+因为有远程跳...这个修复 IAT，还有远程跳？是不是叫 code replace？是从前的精华中找到方法的...小菜顺便在膜拜下看雪的变态级牛人们。
+
+`VirtualAlloc` 断下来...第一次申请的 `3C0000`。
+
+然后到：
+
+```
+0038004F     57                   push edi
+00380050     2BFF                 sub edi,edi
+00380052     8B06                 mov eax,dword ptr ds:[esi]
+00380054     83C6 04              add esi,4
+00380057     03C3                 add eax,ebx
+00380059     3810                 cmp byte ptr ds:[eax],dl
+0038005B     75 0A                jnz short 00380067
+0038005D     E8 D8020000          call 0038033A
+00380062     2B45 10              sub eax,dword ptr ss:[ebp+10]
+00380065     74 07                je short 0038006E
+00380067     47                   inc edi
+00380068     49                   dec ecx
+00380069     75 E7                jnz short 00380052
+0038006B     5F                   pop edi
+0038006C     EB 78                jmp short 003800E6
+0038006E     8BD7                 mov edx,edi
+```
+
+这里是 IAT 提取..
+
+然后 `F7` 跟踪到：
+
+```
+00384661     8919                 mov dword ptr ds:[ecx],ebx
+```
+
+可能是它的疏忽吧..`eax` 竟然是 IAT..所以，只要把 `ebx` 改成 `eax`；不过有自校验..单纯的改，不行..所以
+
+写了个脚本
+
+其他的貌似没什么了..
+
+然后远程跳..
+
+```
+7C809AF4   |.  E8 09000000        call kernel32.VirtualAllocEx
+7C809AF9   |.  5D                 pop ebp
+7C809AFA   \.  C2 1000            retn 10
+```
+
+`eax=920000`；把 `eax` 改成 `411F80` 就行了..
+
+小菜..也自己写了个脚本，灭哈哈..
+
+虽然已经有了脱壳机..但小菜自给自足，奔小康..
+
+只是针对自己加的小程序..小菜还没水平写出脱壳机.呵呵..不过运行貌似
+
+```
+bphws 42c69c,"x"
+
+esto
+
+bphwc
+
+bphws 7c809afa,"x"
+
+wuliao1:
+
+bprm 00384661,2
+cmp eip,00384661
+jnz  wuliao
+mov [00384661],#8901#
+
+esti
+mov [00384661],#8919#
+
+esto
+jmp wuliao1
+
+wuliao:
+
+cmp eip,7c809afa
+je wuliao2
+cmp eip,386744
+je exit
+esto
+jmp wuliao1
+
+wuliao2:
+
+cmp eax,920000
+jne wuliao2to1
+mov eax,411f80
+
+wuliao2to1:
+
+esto
+jmp wuliao1
+
+exit:
+
+bprm 401000,23000
+esto
+bpmc
+ret
+```
+
+菜鸟当自强..破文，在看雪保存..当作我进步的阶梯，看雪是我的免费硬盘，OH..OH..
+
+## 上传的附件
+
+- `wuliao.rar`
+- `wuliao 无可.rar`

@@ -1,10 +1,9 @@
 
-
 # 今年那个 Exploit Me 第四题不难啊。。
 
 > 原文：[`www.pediy.com/kssd/pediy12/134903.html`](https://www.pediy.com/kssd/pediy12/134903.html)
 
-刚学了几天溢出，看到这便想拿来练练手，竟然做出来了。倍感有动力。  
+刚学了几天溢出，看到这便想拿来练练手，竟然做出来了。倍感有动力。
 
 代码:
 
@@ -55,5 +54,4 @@ int main()
 
   return 0;
 }
-
 ```

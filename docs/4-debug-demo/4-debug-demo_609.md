@@ -1,45 +1,47 @@
 
-
-# OICQ 99c Bulid 0820
+# OICQ 99c Build 0820
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum340.htm`](https://www.pediy.com/kssd/pediy03/forum340.htm)
 
- OICQ 99c Bulid 0820 消息框的广告窗口除去   
-  
-昨天的 OICQ,经常受它人的广告攻击（利用低版本的 OICQ 漏洞发广告信息），所以今天升级了 OICQ 最新版本。可是其信息窗口的广告更是烦人，只好把其广告去除。   
-  
-方法一、暴力修改 OICQ 主文件（不推荐，操作太烦，只供探讨交流，积累经验）   
-  
-我以前破解过 Netcaptor 5.04 广告版本，利用这个经验很快找到了入口点，先观察 OICQ 的安装目录，在 DAT 目录里发现了 ad.gif 文件（和 Netcaptor 5.04 非常相似），这个是默认的显示的广告条图案。   
-  
-现在用 W32DASM 反汇编 OICQ,查找字符：ad.gif，找到两处，经试验发现只有第一处有效：   
-  
-  
-:00432E5D 885E6D                  mov byte ptr \[esi+6D\], bl   
-:00432E60 385E6C                  cmp byte ptr \[esi+6C\], bl   
-:00432E63 7543                    jne 00432EA8  //如不跳转则读取目录 AD 内的图像文件，   
-否则则读取隐藏目录 DAT 下的 ad.gif.  我们可改为 nop 不让其跳转   
-  
-\* Possible StringData Ref from Data Obj ->"dat\\ad.gif"  //关键！！！OICQ 就是在这里去 dat 目录读取广告图案的    
-                                  |   
-:00432E65 680C0E5100              push 00510E0C//把文件名 ad.gif 入栈，在此我们改成：push  00000000   
-:00432E6A 8D45F0                  lea eax, dword ptr \[ebp\-10\]   
-:00432E6D 68DC745100              push 005174DC   
-:00432E72 50                      push eax   
-:00432E73 E842DA0600              call 004A08BA   
-:00432E78 8B08                    mov ecx, dword ptr \[eax   
-  
-  
-但用 HIEW 改 OICQ.EXE 文件后，启动后出现警告：文件己修改   
-  
-这时 crack 这个广告窗口即可：   
-0167:00443B56  33FF                XOR      EDI,EDI                        
-0167:00443B58  397DDC              CMP      \[EBP\-24\],EDI                  
-0167:00443B5B  755C                JNZ      00443BB9        //此处改为跳转即可   
-  
-  
-  
-方法二、删除 OICQ 目录相关文件（推荐，操作简单）   
-  
-1、删了 OICQ 的 AD 目录，但每次 OICQ 一登陆服务器后就会自动建立，因此你删了后，建一只读同名文件就行了（设为只读属性）。   
-2.再删了默认的图标 ad.gif，在隐藏目录 DAT 里。   4dd466d0e1e0cc123afbe504da2462ca
+## OICQ 99c Build 0820 消息框的广告窗口除去
+
+昨天的 OICQ，经常受它人的广告攻击（利用低版本的 OICQ 漏洞发广告信息），所以今天升级了 OICQ 最新版本。可是其信息窗口的广告更是烦人，只好把其广告去除。
+
+### 方法一、暴力修改 OICQ 主文件（不推荐，操作太烦，只供探讨交流，积累经验）
+
+我以前破解过 `Netcaptor` 5.04 广告版本，利用这个经验很快找到了入口点，先观察 OICQ 的安装目录，在 `DAT` 目录里发现了 `ad.gif` 文件（和 `Netcaptor` 5.04 非常相似），这个是默认的显示的广告条图案。
+
+现在用 `W32DASM` 反汇编 OICQ，查找字符：`ad.gif`，找到两处，经试验发现只有第一处有效：
+
+```
+:00432E5D 885E6D  mov byte ptr [esi+6D], bl
+:00432E60 385E6C  cmp byte ptr [esi+6C], bl
+:00432E63 7543    jne 00432EA8  // 如不跳转则读取目录 AD 内的图像文件，否则则读取隐藏目录 DAT 下的 ad.gif. 我们可改为 nop 不让其跳转
+* Possible StringData Ref from Data Obj ->"dat\ad.gif"  // 关键！！！OICQ 就是在这里去 dat 目录读取广告图案的
+```
+
+:00432E65 680C0E5100 push 00510E0C // 把文件名 `ad.gif` 入栈，在此我们改成：`push 00000000`
+
+```
+:00432E6A 8D45F0  lea eax, dword ptr [ebp-10]
+:00432E6D 68DC745100  push 005174DC
+:00432E72 50          push eax
+:00432E73 E842DA0600  call 004A08BA
+:00432E78 8B08        mov ecx, dword ptr [eax
+```
+
+但用 `HIEW` 改 `OICQ.EXE` 文件后，启动后出现警告：文件己修改
+
+这时 `crack` 这个广告窗口即可：
+
+```
+0167:00443B56  33FF  XOR  EDI,EDI
+0167:00443B58  397DDC  CMP  [EBP-24],EDI
+0167:00443B5B  755C  JNZ  00443BB9  // 此处改为跳转即可
+```
+
+### 方法二、删除 OICQ 目录相关文件（推荐，操作简单）
+
+1、删了 OICQ 的 `AD` 目录，但每次 OICQ 一登陆服务器后就会自动建立，因此你删了后，建一只读同名文件就行了（设为只读属性）。
+
+2、再删了默认的图标 `ad.gif`，在隐藏目录 `DAT` 里。

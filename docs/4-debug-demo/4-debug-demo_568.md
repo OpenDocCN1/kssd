@@ -1,95 +1,133 @@
 
-
 # 悠悠心算 2006 V1.0
 
 > 原文：[`www.pediy.com/kssd/pediy08/pediy8-103.htm`](https://www.pediy.com/kssd/pediy08/pediy8-103.htm)
 
-悠悠心算 2006 V1.0  
-  
-说明：本文参考了 Pr0Zel 的大作：发现一个可以快速寻找到程序退出函数的方法  
-http://bbs.pediy.com/showthread.php?s=&threadid=20376  
-非常好用！  
-  
-PEID:Nothing found \*  
-LANGUAGE:C/C++＋Aspack，估计是误报。  
-  
-1.脱壳   
-OD 载入：  
-00A2D000 y>  E8 00000000      call yyxs.00A2D005         ;入口点  
-00A2D005     5D               pop ebp  
-...  
-00A28001     60               pushad                     ;F7＋F4 一直走到这里  
-00A28002     E8 03000000      call yyxs.00A2800A         ;对 esp 下硬件访问断点，F9  
-...  
-00A283AF     61               popad  
-00A283B0     75 08            jnz short yyxs.00A283BA    ;停在此  
-00A283B2     B8 01000000      mov eax,1  
-00A283B7     C2 0C00          retn 0C  
-00A283BA     68 B4576C00      push yyxs.006C57B4  
-00A283BF     C3               retn                       ;返回到 006C57B4 (yyxs.006C57B4)  
-...  
-006C57B4     55               push ebp                   ; yyxs.0062ADEC  
-dump，language：Delphi＋Aspack，估计还是误报。  
-程序不能运行。  
-  
-ImportREC：OEP＝002C57B4  
-IAT autosearch:RVA＝002D3240;size=00000FCC  
-没有发现无效的函数，Fixdump。  
-程序可以运行，不过刚出现界面就退出。  
-运行原程序，我靠，竟然把我刚脱掉壳的程序和修复 IAT 的程序给删除了。很强悍啊！  
-  
-2.解决自校验  
-2.1 第一个自校验：程序建立日期  
-根据 Pr0Zel 的 Exit 动画，OD 载入脱壳后修复的程序，运行直到程序退出，在堆栈里找退出的程序 ExitProcess：  
-0012FD68   /0012FDF4  
-0012FD6C   |00404E0B   返回到 up-xs-2.00404E0B 来自 <jmp.&kernel32.ExitProcess>  
-0012FD70   |00000000  
-0012FD74   |0012FDF4  
-0012FD78   |006AA508   up-xs-2.006AA508  
-0012FD7C   |01CE4650  
-0012FD80   |01CC08EC  
-0012FD84   |006AC815   返回到 up-xs-2.006AC815 来自 up-xs-2.00404D4C  
-0012FD88   |0012FDFC   指针到下一个 SEH 记录  
-0012FD8C   |006AC830   SE 句柄  
-好，来到 006AC815，就是这样：  
-006AC801   |.  8B45 AC        mov eax,dword ptr ss:\[ebp-54\]       ;  ASCII "2006-01-18"  
-006AC804   |.  BA E8C96A00    mov edx,up-xs-2.006AC9E8            ;  ASCII "2005-12-21"  
-006AC809   |.  E8 DE8AD5FF    call up-xs-2.004052EC  
-006AC80E   |. /74 05          je short up-xs-3.006AC815  
-006AC810   |. |E8 3785D5FF    call up-xs-2.00404D4C          ;导致程序退出  
-006AC815   |> \\33C0           xor eax,eax  
-  
-006AC809 call up-xs-2.004052EC 的 call 竟然是比较日期的，如果日期相等就跳过。  
-呵呵，原程序的创立时间的确是 2005－12－21，我的脱壳修复软件是 2006－01－18。  
-要么修改跳转，要不修改原程序的时间值：20051221。  
-  
-2.2 第二个自校验：比较程序名与程序个数  
-修改 006AC80E 的跳转，程序还是退出，根据相同方法找到：  
-0064DAA2    .  FF52 14        call dword ptr ds:\[edx+14\]  
-0064DAA5    .  48             dec eax                
-0064DAA6      /7E 05          jle short up-xs-2.0064DAAD            ; 文件夹下是否有多个 exe 文件      
-0064DAA8    . |E8 9F72DBFF    call up-xs-2.00404D4C                 ;  退出程序的调用还是相同的 call  
-0064DAAD    > \\8B45 FC        mov eax,dword ptr ss:\[ebp-4\]  
-向上找，来到：  
-0064DA40    .  8B85 54FEFFFF   mov eax,dword ptr ss:\[ebp-1AC\]      ;    
-0064DA46    .  BA F0E76400     mov edx,up-xs-2.0064E7F0            ;  ASCII "yyxs.exe"  
-0064DA4B    .  E8 9C78DBFF     call up-xs-2.004052EC  
-0064DA50    .  74 3B           je short up-xs-2.0064DA8D  
-  
-这个自校验程序名是否被改了。  
-往下跟还有一个跳转：0064DA8F jnz short up-xs-2.0064DA24  
-这个跳转跟了后发现，程序探测所在文件夹下有多少个 exe 执行文件，一个个比较名字，如果都没有相同的话就退出。  
-估计也就是根据这个判断，使得运行原程序后其他 exe 文件都被删除。  
-先改回原来的名称，而且文件夹下只留一个 exe 文件。  
-  
-2.3 第三个自校验：  
-同样又找到：  
-0064E5AA    > \\8A45 BF         mov al,byte ptr ss:\[ebp-41\]         ;  0012FDB3=00  
-0064E5AD    .  3C 78           cmp al,78  
-0064E5AF    .  74 05           je short up-xs-2.0064E5B6  
-0064E5B1    .  E8 9667DBFF     call up-xs-2.00404D4C  
-这个不晓得是什么。  
-  
-搞定这 3 个自校验后，程序终于启动进入。 
+**说明**：本文参考了 `Pr0Zel` 的大作：发现一个可以快速寻找到程序退出函数的方法
 
- 4dd466d0e1e0cc123afbe504da2462ca
+`http://bbs.pediy.com/showthread.php?s=&threadid=20376`
+
+非常好用！
+
+`PEID:Nothing found *`
+
+`LANGUAGE:C/C++＋Aspack`，估计是误报。
+
+## 1. 脱壳
+
+`OD` 载入：
+
+```
+00A2D000  y>  E8 00000000      call yyxs.00A2D005          ;入口点
+00A2D005     5D               pop ebp
+...
+00A28001     60               pushad                      ;F7＋F4 一直走到这里
+00A28002     E8 03000000      call yyxs.00A2800A          ;对 esp 下硬件访问断点，F9
+...
+00A283AF     61               popad
+00A283B0     75 08            jnz short yyxs.00A283BA     ;停在此
+00A283B2     B8 01000000      mov eax,1
+00A283B7     C2 0C00          retn 0C
+00A283BA     68 B4576C00      push yyxs.006C57B4
+00A283BF     C3               retn                        ;返回到 006C57B4 (yyxs.006C57B4)
+...
+006C57B4     55               push ebp                    ; yyxs.0062ADEC
+```
+
+`dump`，`language`：`Delphi＋Aspack`，估计还是误报。
+
+程序不能运行。
+
+`ImportREC`：`OEP＝002C57B4`
+
+`IAT autosearch`：`RVA＝002D3240;size=00000FCC`
+
+没有发现无效的函数，`Fixdump`。
+
+程序可以运行，不过刚出现界面就退出。
+
+运行原程序，我靠，竟然把我刚脱掉壳的程序和修复 `IAT` 的程序给删除了。很强悍啊！
+
+## 2. 解决自校验
+
+### 2.1 第一个自校验：程序建立日期
+
+根据 `Pr0Zel` 的 `Exit` 动画，`OD` 载入脱壳后修复的程序，运行直到程序退出，在堆栈里找退出的程序 `ExitProcess`：
+
+```
+0012FD68   /0012FDF4
+0012FD6C   |00404E0B   返回到 up-xs-2.00404E0B 来自 <jmp.&kernel32.ExitProcess>
+0012FD70   |00000000
+0012FD74   |0012FDF4
+0012FD78   |006AA508   up-xs-2.006AA508
+0012FD7C   |01CE4650
+0012FD80   |01CC08EC
+0012FD84   |006AC815   返回到 up-xs-2.006AC815 来自 up-xs-2.00404D4C
+0012FD88   |0012FDFC   指针到下一个 SEH 记录
+0012FD8C   |006AC830   SE 句柄
+```
+
+好，来到 `006AC815`，就是这样：
+
+```
+006AC801   |.  8B45 AC        mov eax,dword ptr ss:[ebp-54]       ;  ASCII "2006-01-18"
+006AC804   |.  BA E8C96A00    mov edx,up-xs-2.006AC9E8            ;  ASCII "2005-12-21"
+006AC809   |.  E8 DE8AD5FF    call up-xs-2.004052EC
+006AC80E   |. /74 05         je short up-xs-3.006AC815
+006AC810   |. |E8 3785D5FF    call up-xs-2.00404D4C           ;导致程序退出
+006AC815   |> \33C0          xor eax,eax
+```
+
+`006AC809 call up-xs-2.004052EC` 的 `call` 竟然是比较日期的，如果日期相等就跳过。
+
+呵呵，原程序的创立时间的确是 `2005－12－21`，我的脱壳修复软件是 `2006－01－18`。
+
+要么修改跳转，要不修改原程序的时间值：`20051221`。
+
+### 2.2 第二个自校验：比较程序名与程序个数
+
+修改 `006AC80E` 的跳转，程序还是退出，根据相同方法找到：
+
+```
+0064DAA2    .  FF52 14        call dword ptr ds:[edx+14]
+0064DAA5    .  48             dec eax       
+0064DAA6      /7E 05         jle short up-xs-2.0064DAAD            ; 文件夹下是否有多个 exe 文件     
+0064DAA8    . |E8 9F72DBFF    call up-xs-2.00404D4C               ;  退出程序的调用还是相同的 call
+0064DAAD    > \8B45 FC        mov eax,dword ptr ss:[ebp-4]
+```
+
+向上找，来到：
+
+```
+0064DA40    .  8B85 54FEFFFF   mov eax,dword ptr ss:[ebp-1AC]      ;   
+0064DA46    .  BA F0E76400     mov edx,up-xs-2.0064E7F0            ;  ASCII "yyxs.exe"
+0064DA4B    .  E8 9C78DBFF     call up-xs-2.004052EC
+0064DA50    .  74 3B           je short up-xs-2.0064DA8D
+```
+
+这个自校验程序名是否被改了。
+
+往下跟还有一个跳转：`0064DA8F jnz short up-xs-2.0064DA24`
+
+这个跳转跟了后发现，程序探测所在文件夹下有多少个 `exe` 执行文件，一个个比较名字，如果都没有相同的话就退出。
+
+估计也就是根据这个判断，使得运行原程序后其他 `exe` 文件都被删除。
+
+先改回原来的名称，而且文件夹下只留一个 `exe` 文件。
+
+### 2.3 第三个自校验：
+
+同样又找到：
+
+```
+0064E5AA    > \8A45 BF         mov al,byte ptr ss:[ebp-41]         ;  0012FDB3=00
+0064E5AD    .  3C 78          cmp al,78
+0064E5AF    .  74 05         je short up-xs-2.0064E5B6
+0064E5B1    .  E8 9667DBFF     call up-xs-2.00404D4C
+```
+
+这个不晓得是什么。
+
+搞定这 `3` 个自校验后，程序终于启动进入。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

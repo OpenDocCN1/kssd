@@ -1,310 +1,434 @@
 
-
 # 股市风暴 4.0
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum1054.htm`](https://www.pediy.com/kssd/pediy03/forum1054.htm)
 
-标题：股市风暴 4.0 的外壳分析与脱壳方法   
-所用工具：trw2000，Procdump   
-等级：手动脱壳入门   
-前言：股市风暴这个软件本身对我没有多大用处，但是它的外壳让我花费了相当长的时间，现在终于基本明白了它的流程，写下来，与那些对脱壳感兴趣的同志共同交流。   
-正文：   
-对于一个加壳的程序，常见的暴力破解方法一般有两种，一种是直接地脱壳，另外一种是利用 SMC，即在外壳程序中加入一段额外的代码，当外壳对程序处理完毕后改变外壳的流程，跳转到加入的额外代码中，在内存中对生成的原程序进行修改，达到暴破的目的。对付 SMC 的常见方法也是运用 SMC，即外壳程序也是在运行中动态生成，使破解者无法在外壳运行结束后轻易改变流程。这点在这个外壳中可以说有很充分的表现。当程序载入后可以看到如下代码：   
-0167:005E3000  PUSHA              <-入口   
-0167:005E3001  CALL    005E40F3   
-0167:005E3006  RET      
-0167:005E3007  AND      DWORD \[EDI\-22\],BYTE +21   
-0167:005E300B  ADD      BH,\[EDI\-3E\]   
-0167:005E300E  SCASB    
-0167:005E300F  XCHG    BH,\[EBX+54\]   
-当程序运行到 5E3006 后会 RET 到另一处执行一段程序，运行完后又回到 5E3007，此时代码已经变为：   
-0167:005E3000  PUSHA    
-0167:005E3001  CALL    005E40F3   
-0167:005E3006  RET      
-0167:005E3007  ADD      EBX,BYTE +07   
-0167:005E300A  REP JMP  SHORT 005E300C       
-0167:005E300D  JECXZ    005E2F92   
-0167:005E300F  RET      
-0167:005E3010  SBB      EDX,\[EBX\-18\]   
-可以看到下面的代码已经完全改变，这就是 SMC。如果你很好奇跟进那段 SMC 代码你会发现，那段代码执行完后会自行销毁，看来外壳作者实在很小心谨慎。   
-SMC 代码由此开始直到 5E3197 有近十重之多。当一个外壳运用 SMC 动态生成代码有 3 重以上时一般用 SMC 来暴破就很困难了。十重！天哪，还是放弃用 SMC 暴破的念头吧。   
-当这些 SMC 工作全部完成后（事实上后面还有），是对外壳做一些初始（希望我没有搞错），包括对一些函数取他们的入口值，比如 ExitProcess、LoadLibraryA 等，等这些完成后就进入了外壳中真正重要的部分。   
-对于一个保护良好的外壳，antidebug 是必须的，不在这方面留心一下的话恐怕连自己怎么被干掉都不知道了。下面就是他的 antidebug 代码。   
-:005E3468 8D8539040000            lea eax, dword ptr \[ebp+00000439\]   
-:005E346E 50                      push eax            <-EAX\=5E3479，异常处理程序地址   
-:005E346F 33C0                    xor eax, eax   
-:005E3471 64FF30                  push dword ptr fs:\[eax\]   
-:005E3474 648920                  mov dword ptr fs:\[eax\], esp    <-建立 SEH 链   
-:005E3477 EB10                    jmp 005E3489   
-:005E3479 8B642408                mov esp, dword ptr \[esp+08\]    <-异常处理程序入口，在此下断点   
-:005E347D 8B6C2408                mov ebp, dword ptr \[esp+08\]   
-:005E3481 8D854F040000            lea eax, dword ptr \[ebp+0000044F\]   
-:005E3487 50                      push eax   
-:005E3488 C3                      ret        <-到 5E348F 继续执行   
-  
-:005E3489 CC                      int 03    <-下 faults off，经过时产生异常可中断在上面入口，如不下 faults off，经过时不产生异常就 debugger detected 了   
-:005E348A E911010000              jmp 005E35A0   
-:005E348F 8D8561040000            lea eax, dword ptr \[ebp+00000461\]   
-:005E3495 89442404                mov dword ptr \[esp+04\], eax   
-:005E3499 646789260000            mov fs:\[0000\], esp   
-:005E349F EB10                    jmp 005E34B1   
-:005E34A1 8B642408                mov esp, dword ptr \[esp+08\]   
-:005E34A5 8B6C2408                mov ebp, dword ptr \[esp+08\]   
-:005E34A9 8D85A8040000            lea eax, dword ptr \[ebp+000004A8\]   
-:005E34AF 50                      push eax   
-:005E34B0 C3                      ret   
-  
-:005E34B1 0F018D8E120000          sidt \[ebp+0000128E\]            <-取 IDTR 的内容   
-:005E34B8 8B8590120000            mov eax, dword ptr \[ebp+00001290\]    <-取 IDT 表的基地址   
-:005E34BE 83C04E                  add eax, 0000004E   
-:005E34C1 668B18                  mov bx, word ptr \[eax\]   
-:005E34C4 C1E310                  shl ebx, 10   
-:005E34C7 668B5802                mov bx, word ptr \[eax+02\]        <-EBX 为 INT10 的入口偏移   
-:005E34CB B8000C0000              mov eax, 00000C00   
-:005E34D0 813B45524548            cmp dword ptr \[ebx\], 48455245   
-:005E34D6 0F84C4000000            je 005E35A0           
-:005E34DC 813B524F4753            cmp dword ptr \[ebx\], 53474F52       
-:005E34E2 74F2                    je 005E34D6               
-以 INT10 的入口为起点，在 C00 长度范围内查找字符串"EREH"和"ROGS"，如找到则判断为有 DEBUG 程序驻留。why?   
-:005E34E4 43                      inc ebx   
-:005E34E5 48                      dec eax   
-:005E34E6 7FE8                    jg 005E34D0            <-没有找到，继续往下   
-:005E34E8 8D85BA040000            lea eax, dword ptr \[ebp+000004BA\]   
-:005E34EE 89442404                mov dword ptr \[esp+04\], eax   
-:005E34F2 646789260000            mov fs:\[0000\], esp   
-:005E34F8 EB10                    jmp 005E350A   
-:005E34FA 8B642408                mov esp, dword ptr \[esp+08\]    <-又是一个异常处理程序入口，可下断点   
-:005E34FE 8B6C2408                mov ebp, dword ptr \[esp+08\]   
-:005E3502 8D85DE040000            lea eax, dword ptr \[ebp+000004DE\]   
-:005E3508 50                      push eax   
-:005E3509 C3                      ret        <-跳到 5E351E   
-  
-:005E350A 9C                      pushfd            \\   
-:005E350B 810C2400010000          or dword ptr \[esp\], 00000100     \\   
-:005E3512 7502                    jne 005E3516              >注意   
-:005E3514 CD20                    int 20             /   
-:005E3516 9D                      popfd                /   
-上面这几行作用是将单步执行标志 TF 置真，然后在执行下一句时产生单步异常，就会中断在上面异常处理程序入口，如果在这还单步走或在下面两句下断点的话，破坏了单步标志，不产生异常就 GAME OVER 了；   
-:005E3517 F8                      clc   
-:005E3518 0F8382000000            jnb 005E35A0   
-:005E351E 8D85F0040000            lea eax, dword ptr \[ebp+000004F0\]   
-:005E3524 89442404                mov dword ptr \[esp+04\], eax   
-:005E3528 646789260000            mov fs:\[0000\], esp   
-:005E352E EB10                    jmp 005E3540   
-:005E3530 8B642408                mov esp, dword ptr \[esp+08\]   
-:005E3534 8B6C2408                mov ebp, dword ptr \[esp+08\]   
-:005E3538 8D8517050000            lea eax, dword ptr \[ebp+00000517\]   
-:005E353E 50                      push eax   
-:005E353F C3                      ret   
-  
-:005E3540 66B80043                mov ax, 4300             \\   
-:005E3544 CD68                    int 68              \\   
-:005E3546 80BDC410000000          cmp byte ptr \[ebp+000010C4\], 00  \\检测 softice   
-:005E354D 7408                    je 005E3557              /   
-:005E354F 66057B0C                add ax, 0C7B              /   
-:005E3553 6648                    dec ax             /   
-:005E3555 7449                    je 005E35A0        <-检测到就跳   
-:005E3557 8D8529050000            lea eax, dword ptr \[ebp+00000529\]   
-:005E355D 89442404                mov dword ptr \[esp+04\], eax   
-:005E3561 646789260000            mov fs:\[0000\], esp   
-:005E3567 EB10                    jmp 005E3579   
-:005E3569 8B642408                mov esp, dword ptr \[esp+08\]   
-:005E356D 8B6C2408                mov ebp, dword ptr \[esp+08\]   
-:005E3571 8D8554050000            lea eax, dword ptr \[ebp+00000554\]   
-:005E3577 50                      push eax   
-:005E3578 C3                      ret   
-  
-:005E3579 F685C4100000FF          test byte ptr \[ebp+000010C4\], FF   
-:005E3580 7412                    je 005E3594   
-:005E3582 7501                    jne 005E3585   
-  
-:005E3585 BD4B484342              MOV      EBP,4243484B    \\   
-:005E358A 6A04                    PUSH    BYTE +04     \\   
-:005E358C 58                      POP      EAX          >再次检测 softice   
-:005E358D CC                      INT3             /   
-:005E358E 663D0400                CMP      AX,04    /   
-:005E3592 750C                    jne 005E35A0        <-检测到就跳   
-:005E3594 64678F060000            pop word ptr fs:\[0000\]   
-:005E359A 83C404                  add esp, 00000004   
-:005E359D 5D                      pop ebp   
-:005E359E EB16                    jmp 005E35B6        <-一切正常   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:005E348A(U), :005E34D6(C), :005E3518(C), :005E3555(C), :005E3592(C)   
-|   
-:005E35A0 64678F060000            pop word ptr fs:\[0000\]<-debugger detected，退出   
-:005E35A6 83C404                  add esp, 00000004   
-:005E35A9 5D                      pop ebp   
-:005E35AA 81ED06D24000            sub ebp, 0040D206   
-:005E35B0 E9D8070000              jmp 005E3D8D   
-:005E35B5 C3                      ret   
-  
-:005E35B6 8BDD                    mov ebx, ebp        <-如果没发现 DEBUG 程序就到这儿   
-:005E35B8 81ED06D24000            sub ebp, 0040D206   
-:005E35BE 8DBD3AE34000            lea edi, dword ptr \[ebp+0040E33A\]   
-  
+### 标题：股市风暴 4.0 的外壳分析与脱壳方法
 
-> 既然没发现有异常情况，那接下来就该对原程序解码了。   
-> 0167:005E35D5  POP      ECX   
-> 0167:005E35D6  MOV      ESI,\[EDI\]   
-> 0167:005E35D8  ADD      EDI,BYTE +04   
-> 0167:005E35DB  LODSB    
-> 0167:005E35DC  ADD      AL,34   
-> 0167:005E35DE  JZ      NEAR 005E3B67   
-> 0167:005E35E4  LOOP    005E35D6   
-> 0167:005E35E6  MOV      EBP,EBP   
-> 0167:005E35E8  OR      EAX,EAX   
-> 0167:005E35EA  JMP      SHORT 005E35EE   
-> 0167:005E35EC  INT      20   
-> 0167:005E35EE  CWDE      
-> 0167:005E35EF  CALL    005E376C        <-注意   
-> 0167:005E35F4  BOUND    ESI,\[EDX+38\]   
-> 0167:005E35F7  JC      005E3660   
-> 0167:005E35F9  INT3      
-> 在 5E35D6 到 5E35E4 里面转几个圈后，用 F10 带过 5E35EF 的 CALL，你会发现下面的代码改变了，所以 5E35EF 的 CALL 应该又是一次利用 SMC 来恢复解码程序。   
-> 下面就是真正解码的过程：   
-> :005E363D AC                      lodsb            <-读入一个字符   
-> :005E363E 02C1                    add al, cl   
-> :005E3640 0AC9                    or cl, cl   
-> :005E3642 D2C8                    ror al, cl   
-> :005E3644 0453                    add al, 53   
-> :005E3646 0ADB                    or bl, bl   
-> ……                            <-计算过程   
-> :005E3745 AA                      stosb   
-> :005E3746 69D2A7E7E4D4            imul edx, D4E4E7A7   
-> :005E374C F9                      stc   
-> :005E374D 7202                    jb 005E3751        <-第一次计算后放回   
-> :005E374F CD20                    int 20   
-> :005E3751 D1C2                    rol edx, 1   
-> :005E3753 69DB711FEE6A            imul ebx, 6AEE1F71   
-> :005E3759 03DA                    add ebx, edx   
-> :005E375B 49                      dec ecx   
-> :005E375C 0F8FDBFEFFFF            jg 005E363D        <-循环，准备计算下一字节   
-> :005E3762 8D85A6DA4000            lea eax, dword ptr \[ebp+0040DAA6\]    <-EAX\=5E38DF   
-> :005E3768 FFE0                    jmp eax        <-第一次计算全部结束后跳   
->   
-> :005E38DF 93                      xchg eax,ebx        <-准备第二次计算   
-> :005E38E0 61                      popad   
-> :005E38E1 56                      push esi   
-> :005E38E2 57                      push edi   
-> :005E38E3 8BFB                    mov edi, ebx   
-> :005E38E5 8BF7                    mov esi, edi   
-> :005E38E7 8B9DF0E34000            mov ebx, dword ptr \[ebp+0040E3F0\]   
-> :005E38ED AC                      lodsb            <-再次读入   
-> :005E38EE EB02                    jmp 005E38F2   
-> :005E38F0 CD20                    int 20   
-> :005E38F2 34B5                    xor al, B5   
-> :005E38F4 2C63                    sub al, 63   
-> ……   
-> :005E3916 AA                      stosb            <-第二次计算后放回   
-> :005E3917 49                      dec ecx   
-> :005E3918 7FD3                    jg 005E38ED        <-循环，准备计算下一字节   
-> :005E391A 5F                      pop edi   
-> :005E391B 5E                      pop esi   
-> :005E391C 8B8F00E44000            mov ecx, dword ptr \[edi+0040E400\]   
-> :005E3922 8B87FCE34000            mov eax, dword ptr \[edi+0040E3FC\]   
-> :005E3928 F7C100000080            test ecx, 80000000   
-> :005E392E 741C                    je 005E394C   
-> :005E3930 81E1FFFFFF7F            and ecx, 7FFFFFFF   
-> :005E3936 0385DCE34000            add eax, dword ptr \[ebp+0040E3DC\]   
-> :005E393C 50                      push eax   
-> :005E393D 51                      push ecx   
-> :005E393E E81A000000              call 005E395D        <-又一次计算   
-> :005E3943 83F8FF                  cmp eax, FFFFFFFF   
-> :005E3946 0F84F3010000            je 005E3B3F   
-> :005E394C 83C708                  add edi, 00000008   
-> :005E394F 4E                      dec esi        <-每解码一个段，ESI 减一   
-> :005E3950 7406                    je 005E3958        <-全部解码完毕后跳   
-> :005E3952 FFA5ACD74000            jmp dword ptr \[ebp+0040D7AC\]    <-返回上面对下一个段解码   
-> 整个过程循环 3 次，每次循环中对同一段代码进行 3 次计算解码，第一次循环是对代码段解码，解码字节由 401000 到 523E00，而且只有这一次是只有 2 次计算（跳过了 5E383E 处的 CALL），第二次循环是对 524000 到 527000 的段解码，第三次循环是对 528000 到 52B000 的段解码，这个段可是非常重要的，等跳到 5E3598 时你可以看一下这个段的内容，往下翻几页你就会看到诸如 kernel32.dll、DeleteCriticalSection 等文字，如果你对 PE 文件有些了解的话，你应该知道这儿是输入表，而且，很多的加壳软件都会对它进行加密，防止软件被 DUMP，既然现在已经对输入表解码完毕，那接下来自然是马上对它再加密。加密代码是从 5E3B0F 到 5E3D86，由于比较长而且也不宜说清楚，所以我就不详细写了。加密以后的结果是这样：原来在正常执行时\[528xxx\]中存放的应该是某个函数的入口地址，比如我机器上\[5281A4\]中存放的是"BFF8AF06"，它是函数"Kernel32!DeleteCriticalSection"的入口地址，而现在被加密后存放的是"850000"，而 850000 处的代码为：   
-> 0167:00850000  JMP      NEAR \[00850120\]   
-> \[850120\]中存放的才是"BFF8AF06"。如果我们 DUMP 程序的话，由于 850000 处的空间是程序外壳动态申请的，DUMP 时不会被保存下来，\[5281A4\]中的内容就指向了无效的地址，运行到那时就会产生非法操作。所以我们想 DUMP 程序的话当然不希望它被加密，否则脱壳后还要再重建输入表，而且它在加密时在输入表里加入了很多的垃圾，用 implist 根本不能工作，用 Import REConstructor 恐怕也得有不少的手工工作要做。既然如此，那索性跳过这一段加密代码，让它不加密不就可以了吗（注 1）？那在哪跳呢？上面我们说了，加密代码是从 5E3B0F 开始的，从那往上找，一看就是：   
-> :005E3AFF 8BB5CCE34000            mov esi, dword ptr \[ebp+0040E3CC\]   
-> :005E3B05 85F6                    test esi, esi   
-> :005E3B07 0F84BF020000            je 005E3DCC   
-> :005E3B0D 03F2                    add esi, edx   
-> 不有个跳转，跳到 5E3DCC，刚好跳过了加密代码（事实上当加密完成时是从 5E3B1F 跳到 5E3DCC），既然如此那就改变一下流程，直接跳到 5E3DCC。接下来程序又干了些什么呢？你可以用 Exescope 试着打开原文件，打开后看里面的 RC 数据，有一些能看到内容，而另外一些则提示无法识别结构，可能被压缩。而我们根据前面解码的地址知道已经解码的段里并不包括.rsrc 段，所以接下来还要干什么基本就可以猜到了，应该是对.rsrc 段中被加密部分解码。从 5E3DCC 往下走几步后你就会看到这行代码：   
-> :005E3DFF E859FBFFFF              call 005E395D   
-> 是不是很眼熟？对，上面的解码部分中第三次解码也是用的同一个 CALL，如果你跟进去的话你会找到它解码的起始地址是 5418CC，刚好在.rsrc 段中。   
-> 好了，经过上面的 CALL 后，外壳对于程序的解码就全部完成了。解码完成后又该干什么呢？既然程序完全解码了，它当然不希望你把它 DUMP 出来，接下来就是防 DUMP，程序并不复杂，但很有效，它会让 Procdump 在 DUMP 时产生非法操作而关闭，这是如何实现的呢？请看：   
-> 先是准备工作，防 DUMP 一般是对文件头进行破坏，而文件头一般是写保护的，那它是破坏的呢？它连续调用了 3 个函数，分别是：   
-> 0167:005E3E2C  call getcurrentprocessID    <-检取当前调用进程的标示符   
-> ……   
-> 0167:005E3E55  call openprocess        <-返回一个以存在的过程对象的句柄   
-> ……   
-> 0167:005E3E8B  call VirtualProtectEx     <-修改调用线程虚拟地址空间中被提交的页的访问保护权限   
-> 通过连续调用这三个函数，就去掉了当前进程文件头的写保护。如果你很感兴趣，你还可以仔细看一下，在每个函数调用之前还有一个 CALL，它其实是 JMP 的变形，你再仔细看一下的话，你会发现它其实是一个很精巧的设计，除了做为 JMP 的变形，可以迷惑人以外，还有一个用处哦。8-)   
-> 既然文件头已经可写了，接下来就是破坏：   
-> 0167:005E3EAF  MOV      EDI,\[EBP+0040E3DC\]    <-取程序基址（400000）   
-> 0167:005E3EB5  ADD      EDI,\[EDI+3C\]        <-取程序头地址（400100）   
-> 0167:005E3EB8  OR      WORD \[EDI+06\],BYTE -01    <-将程序头偏移 06 处改为 FFFF，那儿原来放的是什么东西呢？了解文件头的朋友应该知道那放的是文件有几个段。天啊！什么怪物会有 65535 个段！怪不得 Procdump 会 被搞死掉。马上去掉这句。现在再 dump 就安全了。   
-> 好了，外壳的任务基本完成了，再接下来该干什么呢？应该去执行程序了。且慢，还有一项工作没干，作案完毕后该破坏现场，毁灭罪证，请看：   
-> 0167:005E3EBD  MOV      EBX,\[EBP+0040E3F8\]   
-> 0167:005E3EC3  NOT      EBX   
-> 0167:005E3EC5  ADD      EBX,\[EBP+0040E3DC\]   
-> 0167:005E3ECB  MOV      \[ESP\-04\],EBX        <-此时 EBX=509EAB，入口地址？   
-> 0167:005E3ECF  LEA      EDI,\[EBP+0040E2D6\]   
-> 0167:005E3ED5  XOR      EAX,EAX   
-> 0167:005E3ED7  MOV      ECX,020B   
-> 0167:005E3EDC  REP STOSB             <-这段是将 5E4110~5E431B 清零   
->   
-> 0167:005E3EDE  LEA      EDI,\[EBP+0040D1C6\]   
-> 0167:005E3EE4  MOV      ECX,0EEB   
-> 0167:005E3EE9  REP STOSB   
-> 0167:005E3EEB  STOSB              <-这段是将从 5E3000 到这句的所有外壳代码清零。   
->   
-> 0167:005E3EEC  LEA      EDI,\[EBP+0040D1C6\]   
-> 0167:005E3EF2  MOV      BYTE \[EDI\],E9   
-> 0167:005E3EF5  INC      EDI   
-> 0167:005E3EF6  SUB      EBX,EDI   
-> 0167:005E3EF8  SUB      EBX,BYTE +04   
-> 0167:005E3EFB  MOV      \[EDI\],EBX        <-这是将 5E3000 处代码改为 JMP 00509EAB，why?   
->   
-> 0167:005E3EFD  LEA      EDI,\[EBP+0040E0B1\]   
-> 0167:005E3F03  MOV      ECX,1F   
-> 0167:005E3F08  REP STOSB   
-> 0167:005E3F0A  STOSB              <-再将这段与上面一段清零。   
->   
-> 0167:005E3F0B  JMP      SHORT 005E3F0F   
-> 0167:005E3F0D  INT      20   
-> 0167:005E3F0F  POPA      
-> 0167:005E3F10  JMP      NEAR \[ESP\-24\]        <-跳到 509EAB 处，应该就是程序入口吧。   
-> 现在你可以用 Procdump 来 dump 了，不过你会发现，dump 出的程序即使能反汇编，得到的也是乱七八糟的东西，原来从 509EAB 到 522541 这一段代码还会对程序做解码工作，所以你可以一直运行到 522541，然后等跳到 509E35 处时再开始 dump，此时得到的程序就完全暴露在你眼前，你想对她做什么都可以了（xixi.不要想坏主意哦）如果你在这之前跳过了对输入表加密的那一段的话，dump 出的程序连输入表都无须修复，这样的 dump 是不是很完美？（缺点就是这次的运行得以非法操作告终 8-(）   
-> 当然必要的修复总是要的，你得将入口偏移改为 109E35，输入表偏移改为 128000，然后就可以运行了。   
-> 最后还有一个小问题，就是每次运行它都会在当前目录下生成一个 stockstorm.EXE，而且会不给你任何警告就重启。太可恶了！难道想通过不断的重启来搞垮我的电脑吗？干掉它！用 W32DASM 反汇编，查找 EXITWINDOWS，共找到 3 个，其中一个是这儿：   
-> \* Reference To: user32.ExitWindowsEx, Ord:0000h   
-> :005097FA E875D5EFFF              Call 00406D74        <-罪魁祸首就是它   
->   
-> 由此往上看有：   
-> \* Reference To: kernel32.CopyFileA, Ord:0000h   
-> :00509786 E889CEEFFF              Call 00406614   
-> :0050978B 8D55EC                  lea edx, dword ptr \[ebp\-14\]   
-> :0050978E A1606C5200              mov eax, dword ptr \[00526C60\]   
-> ……   
->   
-> 拷贝文件？好象我们找到地方了。怎样才能避过这些呢？再往上找有：   
-> :00509731 648920                  mov dword ptr fs:\[eax\], esp   
-> :00509734 84C9                    test cl, cl   
-> :00509736 0F84D3000000            je 0050980F        <-这个   
-> :0050973C 6A00                    push 00000000   
-> 将上面这个 je 改为 jmp 再运行，一切 OK！   
-> 别急，一般运行已经没问题了，不过它还会对一些程序过敏，比如 filemon、softice 等，如果内存中刚好有 filemon 在运行的话同样也会导致重启，   
-> \* Reference To: kernel32.CreateFileA, Ord:0000h   
->                                   |   
-> :004A2FA8 E87F36F6FF              Call 0040662C        <-利用 CreateFileA 打开文件   
-> :004A2FAD 83F8FF                  cmp eax, FFFFFFFF   
-> :004A2FB0 744D                    je 004A2FFF        <-打开不成功则跳   
-> :004A2FB2 50                      push eax   
-> …………   
-> \* Reference To: user32.ExitWindowsEx, Ord:0000h   
->                                   |   
-> :004A2FE2 E88D3DF6FF              Call 00406D74   
-> :004A2FE7 EB16                    jmp 004A2FFF   
-> 程序试图打开的文件包括 TRW、TRW2000、SOFTICE、SOFTICE FOR NT、FILEMON、REGMON、WKPE，打开成功则重启，对付的方法是将上面的 je 改为 jmp 就可以了。   
-> 这样改应该不犯法吧？我只是让它在我的电脑上跑得更顺畅。脱壳后程序的启动时间比原先大约减少了一半，   
-> 脱壳前后的程序如果都进行压缩的话，脱壳后的程序体积大约也减小了一半。还有由于外壳的原因，原来的程序在 NT 下据说无法正常进入，这样改动后应该可以了吧(没有验证)。减小体积、加快启动，改进兼容性，这算不算对原程序的优化？   
-> 注 1：事实上这样做是有问题的，正常程序的输入表在程序被载入时由系统根据函数名进行初始化，在不同的系统下会初始化为不同的入口值，以便跨平台运行，现在程序被加壳，载入时真正的输入表并没有被初始化，这个工作得由外壳程序来完成，所以外壳对输入表的加密同时也是初始化，如果我们跳过加密代码的话，输入表没有被初始化，下面运行时会非法操作，不过这对于我们脱壳没有影响。   
-> 感谢：在脱壳过程中得到了 Ljttt 等的帮助，没有他们的指点，我也写不出这篇文章，所以在此表示感谢。   
->   
->                  hying\[CCG\]   
->                 2001 年 5 月 28 日  4dd466d0e1e0cc123afbe504da2462ca
+### 所用工具
+`trw2000`，`Procdump`
+
+### 等级
+手动脱壳入门
+
+### 前言
+股市风暴这个软件本身对我没有多大用处，但是它的外壳让我花费了相当长的时间，现在终于基本明白了它的流程，写下来，与那些对脱壳感兴趣的同志共同交流。
+
+### 正文
+对于一个加壳的程序，常见的暴力破解方法一般有两种，一种是直接地脱壳，另外一种是利用 `SMC`，即在外壳程序中加入一段额外的代码，当外壳对程序处理完毕后改变外壳的流程，跳转到加入的额外代码中，在内存中对生成的原程序进行修改，达到暴破的目的。对付 `SMC` 的常见方法也是运用 `SMC`，即外壳程序也是在运行中动态生成，使破解者无法在外壳运行结束后轻易改变流程。这点在这个外壳中可以说有很充分的表现。当程序载入后可以看到如下代码：
+
+```
+0167:005E3000  PUSHA                 <-入口
+0167:005E3001  CALL   005E40F3
+0167:005E3006  RET
+0167:005E3007  AND    DWORD [EDI-22],BYTE +21
+0167:005E300B  ADD    BH,[EDI-3E]
+0167:005E300E  SCASB
+0167:005E300F  XCHG   BH,[EBX+54]
+```
+
+当程序运行到 `5E3006` 后会 `RET` 到另一处执行一段程序，运行完后又回到 `5E3007`，此时代码已经变为：
+
+```
+0167:005E3000  PUSHA
+0167:005E3001  CALL   005E40F3
+0167:005E3006  RET
+0167:005E3007  ADD    EBX,BYTE +07
+0167:005E300A  REP JMP  SHORT 005E300C
+0167:005E300D  JECXZ  005E2F92
+0167:005E300F  RET
+0167:005E3010  SBB    EDX,[EBX-18]
+```
+
+可以看到下面的代码已经完全改变，这就是 `SMC`。如果你很好奇跟进那段 `SMC` 代码你会发现，那段代码执行完后会自行销毁，看来外壳作者实在很小心谨慎。
+
+`SMC` 代码由此开始直到 `5E3197` 有近十重之多。当一个外壳运用 `SMC` 动态生成代码有 3 重以上时一般用 `SMC` 来暴破就很困难了。十重！天哪，还是放弃用 `SMC` 暴破的念头吧。
+
+当这些 `SMC` 工作全部完成后（事实上后面还有），是对外壳做一些初始（希望我没有搞错），包括对一些函数取他们的入口值，比如 `ExitProcess`、`LoadLibraryA` 等，等这些完成后就进入了外壳中真正重要的部分。
+
+对于一个保护良好的外壳，`antidebug` 是必须的，不在这方面留心一下的话恐怕连自己怎么被干掉都不知道了。下面就是他的 `antidebug` 代码。
+
+```
+:005E3468 8D8539040000               lea eax, dword ptr [ebp+00000439]
+:005E346E 50                         push eax               <-EAX=5E3479，异常处理程序地址
+:005E346F 33C0                       xor eax, eax
+:005E3471 64FF30                     push dword ptr fs:[eax]
+:005E3474 648920                     mov dword ptr fs:[eax], esp   <-建立 SEH 链
+:005E3477 EB10                       jmp 005E3489
+:005E3479 8B642408                   mov esp, dword ptr [esp+08]    <-异常处理程序入口，在此下断点
+:005E347D 8B6C2408                   mov ebp, dword ptr [esp+08]
+:005E3481 8D854F040000               lea eax, dword ptr [ebp+0000044F]
+:005E3487 50                         push eax
+:005E3488 C3                         ret                <-到 5E348F 继续执行
+:005E3489 CC                         int 03   <-下 faults off，经过时产生异常可中断在上面入口，如不下 faults off，经过时不产生异常就 debugger detected 了
+:005E348A E911010000                 jmp 005E35A0
+:005E348F 8D8561040000               lea eax, dword ptr [ebp+00000461]
+:005E3495 89442404                   mov dword ptr [esp+04], eax
+:005E3499 646789260000               mov fs:[0000], esp
+:005E349F EB10                       jmp 005E34B1
+:005E34A1 8B642408                   mov esp, dword ptr [esp+08]
+:005E34A5 8B6C2408                   mov ebp, dword ptr [esp+08]
+:005E34A9 8D85A8040000               lea eax, dword ptr [ebp+000004A8]
+:005E34AF 50                         push eax
+:005E34B0 C3                         ret
+:005E34B1 0F018D8E120000             sidt [ebp+0000128E]           <-取 IDTR 的内容
+:005E34B8 8B8590120000               mov eax, dword ptr [ebp+00001290]   <-取 IDT 表的基地址
+:005E34BE 83C04E                      add eax, 0000004E
+:005E34C1 668B18                      mov bx, word ptr [eax]
+:005E34C4 C1E310                      shl ebx, 10
+:005E34C7 668B5802                    mov bx, word ptr [eax+02]     <-EBX 为 INT10 的入口偏移
+:005E34CB B8000C0000                  mov eax, 00000C00
+:005E34D0 813B45524548                cmp dword ptr [ebx], 48455245
+:005E34D6 0F84C4000000                je 005E35A0
+:005E34DC 813B524F4753                cmp dword ptr [ebx], 53474F52
+:005E34E2 74F2                         je 005E34D6
+```
+
+以 `INT10` 的入口为起点，在 `C00` 长度范围内查找字符串 `"EREH"` 和 `"ROGS"`，如找到则判断为有 `DEBUG` 程序驻留。`why?`
+
+```
+:005E34E4 43                           inc ebx
+:005E34E5 48                           dec eax
+:005E34E6 7FE8                         jg 005E34D0              <-没有找到，继续往下
+:005E34E8 8D85BA040000                 lea eax, dword ptr [ebp+000004BA]
+:005E34EE 89442404                     mov dword ptr [esp+04], eax
+:005E34F2 646789260000                 mov fs:[0000], esp
+:005E34F8 EB10                         jmp 005E350A
+:005E34FA 8B642408                     mov esp, dword ptr [esp+08]   <-又是一个异常处理程序入口，可下断点
+:005E34FE 8B6C2408                     mov ebp, dword ptr [esp+08]
+:005E3502 8D85DE040000                 lea eax, dword ptr [ebp+000004DE]
+:005E3508 50                           push eax
+:005E3509 C3                           ret                <-跳到 5E351E
+:005E350A 9C                           pushfd               \
+:005E350B 810C2400010000               or dword ptr [esp], 00000100    \
+:005E3512 7502                          jne 005E3516            >注意
+:005E3514 CD20                         int 20              /
+:005E3516 9D                           popfd                /
+```
+
+上面这几行作用是将单步执行标志 `TF` 置真，然后在执行下一句时产生单步异常，就会中断在上面异常处理程序入口，如果在这还单步走或在下面两句下断点的话，破坏了单步标志，不产生异常就 `GAME OVER` 了；
+
+```
+:005E3517 F8                            clc
+:005E3518 0F8382000000                   jnb 005E35A0
+:005E351E 8D85F0040000                   lea eax, dword ptr [ebp+000004F0]
+:005E3524 89442404                       mov dword ptr [esp+04], eax
+:005E3528 646789260000                   mov fs:[0000], esp
+:005E352E EB10                           jmp 005E3540
+:005E3530 8B642408                       mov esp, dword ptr [esp+08]
+:005E3534 8B6C2408                       mov ebp, dword ptr [esp+08]
+:005E3538 8D8517050000                   lea eax, dword ptr [ebp+00000517]
+:005E353E 50                             push eax
+:005E353F C3                             ret
+:005E3540 66B80043                       mov ax, 4300              \
+:005E3544 CD68                           int 68                  \
+:005E3546 80BDC410000000                 cmp byte ptr [ebp+000010C4], 00  \检测 softice
+:005E354D 7408                           je 005E3557           /
+:005E354F 66057B0C                        add ax, 0C7B            /
+:005E3553 6648                            dec ax                /
+:005E3555 7449                            je 005E35A0      <-检测到就跳
+:005E3557 8D8529050000                   lea eax, dword ptr [ebp+00000529]
+:005E355D 89442404                       mov dword ptr [esp+04], eax
+:005E3561 646789260000                   mov fs:[0000], esp
+:005E3567 EB10                           jmp 005E3579
+:005E3569 8B642408                       mov esp, dword ptr [esp+08]
+:005E356D 8B6C2408                       mov ebp, dword ptr [esp+08]
+:005E3571 8D8554050000                   lea eax, dword ptr [ebp+00000554]
+:005E3577 50                             push eax
+:005E3578 C3                             ret
+:005E3579 F685C4100000FF                 test byte ptr [ebp+000010C4], FF
+:005E3580 7412                           je 005E3594
+:005E3582 7501                           jne 005E3585
+:005E3585 BD4B484342                     MOV      EBP,4243484B    \
+:005E358A 6A04                            PUSH     BYTE +04      \
+:005E358C 58                              POP      EAX         >再次检测 softice
+:005E358D CC                              INT3                /
+:005E358E 663D0400                        CMP      AX,04        /
+:005E3592 750C                            jne 005E35A0       <-检测到就跳
+:005E3594 64678F060000                     pop word ptr fs:[0000]
+:005E359A 83C404                            add esp, 00000004
+:005E359D 5D                              pop ebp
+:005E359E EB16                             jmp 005E35B6     <-一切正常
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:005E348A(U), :005E34D6(C), :005E3518(C), :005E3555(C), :005E3592(C)
+|
+:005E35A0 64678F060000                     pop word ptr fs:[0000]<-debugger detected，退出
+:005E35A6 83C404                            add esp, 00000004
+:005E35A9 5D                              pop ebp
+:005E35AA 81ED06D24000                      sub ebp, 0040D206
+:005E35B0 E9D8070000                         jmp 005E3D8D
+:005E35B5 C3                              ret
+:005E35B6 8BDD                              mov ebx, ebp     <-如果没发现 DEBUG 程序就到这儿
+```
+
+
+
+# 逆向分析：SMD 外壳解码与防 DUMP 机制
+
+## 初始代码片段
+
+```assembly
+:005E35B8 81ED06D24000       sub ebp, 0040D206
+:005E35BE 8DBD3AE34000       lea edi, dword ptr [ebp+0040E33A]
+```
+
+既然没发现有异常情况，那接下来就该对原程序解码了。
+
+## 第一层解码循环
+
+```assembly
+0167:005E35D5  POP     ECX
+0167:005E35D6  MOV     ESI,[EDI]
+0167:005E35D8  ADD     EDI,BYTE +04
+0167:005E35DB  LODSB
+0167:005E35DC  ADD     AL,34
+0167:005E35DE  JZ      NEAR 005E3B67
+0167:005E35E4  LOOP    005E35D6
+0167:005E35E6  MOV     EBP,EBP
+0167:005E35E8  OR      EAX,EAX
+0167:005E35EA  JMP     SHORT 005E35EE
+0167:005E35EC  INT     20
+0167:005E35EE  CWDE
+0167:005E35EF  CALL    005E376C       ;<-注意
+0167:005E35F4  BOUND   ESI,[EDX+38]
+0167:005E35F7  JC      005E3660
+0167:005E35F9  INT3
+```
+
+在 `5E35D6` 到 `5E35E4` 里面转几个圈后，用 `F10` 带过 `5E35EF` 的 `CALL`，你会发现下面的代码改变了，所以 `5E35EF` 的 `CALL` 应该又是一次利用 SMC 来恢复解码程序。
+
+## 第二层解码过程（主要解码）
+
+下面就是真正解码的过程：
+
+```assembly
+:005E363D AC              lodsb      ;<-读入一个字符
+:005E363E 02C1            add al, cl
+:005E3640 0AC9            or cl, cl
+:005E3642 D2C8            ror al, cl
+:005E3644 0453            add al, 53
+:005E3646 0ADB            or bl, bl
+……                       ;<-计算过程
+:005E3745 AA              stosb
+:005E3746 69D2A7E7E4D4    imul edx, D4E4E7A7
+:005E374C F9              stc
+:005E374D 7202            jb 005E3751 ;<-第一次计算后放回
+:005E374F CD20            int 20
+:005E3751 D1C2            rol edx, 1
+:005E3753 69DB711FEE6A    imul ebx, 6AEE1F71
+:005E3759 03DA            add ebx, edx
+:005E375B 49              dec ecx
+:005E375C 0F8FDBFEFFFF    jg 005E363D ;<-循环，准备计算下一字节
+:005E3762 8D85A6DA4000    lea eax, dword ptr [ebp+0040DAA6] ;<-EAX=5E38DF
+:005E3768 FFE0            jmp eax     ;<-第一次计算全部结束后跳
+```
+
+## 第三层解码过程
+
+```assembly
+:005E38DF 93              xchg eax,ebx ;<-准备第二次计算
+:005E38E0 61              popad
+:005E38E1 56              push esi
+:005E38E2 57              push edi
+:005E38E3 8BFB            mov edi, ebx
+:005E38E5 8BF7            mov esi, edi
+:005E38E7 8B9DF0E34000    mov ebx, dword ptr [ebp+0040E3F0]
+:005E38ED AC              lodsb       ;<-再次读入
+:005E38EE EB02            jmp 005E38F2
+:005E38F0 CD20            int 20
+:005E38F2 34B5            xor al, B5
+:005E38F4 2C63            sub al, 63
+……
+:005E3916 AA              stosb       ;<-第二次计算后放回
+:005E3917 49              dec ecx
+:005E3918 7FD3            jg 005E38ED ;<-循环，准备计算下一字节
+:005E391A 5F              pop edi
+:005E391B 5E              pop esi
+:005E391C 8B8F00E44000    mov ecx, dword ptr [edi+0040E400]
+:005E3922 8B87FCE34000    mov eax, dword ptr [edi+0040E3FC]
+:005E3928 F7C100000080    test ecx, 80000000
+:005E392E 741C            je 005E394C
+:005E3930 81E1FFFFFF7F    and ecx, 7FFFFFFF
+:005E3936 0385DCE34000    add eax, dword ptr [ebp+0040E3DC]
+:005E393C 50              push eax
+:005E393D 51              push ecx
+:005E393E E81A000000      call 005E395D ;<-又一次计算
+:005E3943 83F8FF          cmp eax, FFFFFFFF
+:005E3946 0F84F3010000    je 005E3B3F
+:005E394C 83C708          add edi, 0000008
+:005E394F 4E              dec esi     ;<-每解码一个段，ESI 减一
+:005E3950 7406            je 005E3958 ;<-全部解码完毕后跳
+:005E3952 FFA5ACD74000    jmp dword ptr [ebp+0040D7AC] ;<-返回上面对下一个段解码
+```
+
+## 解码流程解析
+
+整个过程循环 3 次，每次循环中对同一段代码进行 3 次计算解码：
+1. 第一次循环是对代码段解码，解码字节由 `401000` 到 `523E00`，而且只有这一次是只有 2 次计算（跳过了 `5E383E` 处的 `CALL`）。
+2. 第二次循环是对 `524000` 到 `527000` 的段解码。
+3. 第三次循环是对 `528000` 到 `52B000` 的段解码。
+
+这个段可是非常重要的，等跳到 `5E3598` 时你可以看一下这个段的内容，往下翻几页你就会看到诸如 `kernel32.dll`、`DeleteCriticalSection` 等文字。如果你对 PE 文件有些了解的话，你应该知道这儿是输入表，而且，很多的加壳软件都会对它进行加密，防止软件被 DUMP。既然现在已经对输入表解码完毕，那接下来自然是马上对它再加密。
+
+加密代码是从 `5E3B0F` 到 `5E3D86`，由于比较长而且也不宜说清楚，所以我就不详细写了。加密以后的结果是这样：原来在正常执行时 `[528xxx]` 中存放的应该是某个函数的入口地址，比如我机器上 `[5281A4]` 中存放的是 `"BFF8AF06"`，它是函数 `"Kernel32!DeleteCriticalSection"` 的入口地址，而现在被加密后存放的是 `"850000"`，而 `850000` 处的代码为：
+
+```assembly
+0167:00850000  JMP     NEAR [00850120]
+```
+
+`[850120]` 中存放的才是 `"BFF8AF06"`。如果我们 DUMP 程序的话，由于 `850000` 处的空间是程序外壳动态申请的，DUMP 时不会被保存下来，`[5281A4]` 中的内容就指向了无效的地址，运行到那时就会产生非法操作。所以我们想 DUMP 程序的话当然不希望它被加密，否则脱壳后还要再重建输入表，而且它在加密时在输入表里加入了很多的垃圾，用 `implist` 根本不能工作，用 `Import REConstructor` 恐怕也得有不少的手工工作要做。
+
+既然如此，那索性跳过这一段加密代码，让它不加密不就可以了吗（注 1）？那在哪跳呢？上面我们说了，加密代码是从 `5E3B0F` 开始的，从那往上找，一看就是：
+
+```assembly
+:005E3AFF 8BB5CCE34000   mov esi, dword ptr [ebp+0040E3CC]
+:005E3B05 85F6           test esi, esi
+:005E3B07 0F84BF020000   je 005E3DCC
+:005E3B0D 03F2           add esi, edx
+```
+
+不有个跳转，跳到 `5E3DCC`，刚好跳过了加密代码（事实上当加密完成时是从 `5E3B1F` 跳到 `5E3DCC`），既然如此那就改变一下流程，直接跳到 `5E3DCC`。
+
+## .rsrc 段解码
+
+接下来程序又干了些什么呢？你可以用 `Exescope` 试着打开原文件，打开后看里面的 RC 数据，有一些能看到内容，而另外一些则提示无法识别结构，可能被压缩。而我们根据前面解码的地址知道已经解码的段里并不包括 `.rsrc` 段，所以接下来还要干什么基本就可以猜到了，应该是对 `.rsrc` 段中被加密部分解码。从 `5E3DCC` 往下走几步后你就会看到这行代码：
+
+```assembly
+:005E3DFF E859FBFFFF   call 005E395D
+```
+
+是不是很眼熟？对，上面的解码部分中第三次解码也是用的同一个 `CALL`，如果你跟进去的话你会找到它解码的起始地址是 `5418CC`，刚好在 `.rsrc` 段中。
+
+## 防 DUMP 机制
+
+好了，经过上面的 `CALL` 后，外壳对于程序的解码就全部完成了。解码完成后又该干什么呢？既然程序完全解码了，它当然不希望你把它 DUMP 出来，接下来就是防 DUMP。程序并不复杂，但很有效，它会让 `Procdump` 在 DUMP 时产生非法操作而关闭，这是如何实现的呢？请看：
+
+先是准备工作，防 DUMP 一般是对文件头进行破坏，而文件头一般是写保护的，那它是破坏的呢？它连续调用了 3 个函数，分别是：
+
+```assembly
+0167:005E3E2C  call getcurrentprocessID  ;<-检取当前调用进程的标示符
+……
+0167:005E3E55  call openprocess         ;<-返回一个以存在的过程对象的句柄
+……
+0167:005E3E8B  call VirtualProtectEx     ;<-修改调用线程虚拟地址空间中被提交的页的访问保护权限
+```
+
+通过连续调用这三个函数，就去掉了当前进程文件头的写保护。如果你很感兴趣，你还可以仔细看一下，在每个函数调用之前还有一个 `CALL`，它其实是 `JMP` 的变形，你再仔细看一下的话，你会发现它其实是一个很精巧的设计，除了做为 `JMP` 的变形，可以迷惑人以外，还有一个用处哦。
+
+既然文件头已经可写了，接下来就是破坏：
+
+```assembly
+0167:005E3EAF  MOV     EDI,[EBP+0040E3DC]  ;<-取程序基址（400000）
+0167:005E3EB5  ADD     EDI,[EDI+3C]        ;<-取程序头地址（400100）
+0167:005E3EB8  OR      WORD [EDI+06],BYTE -01 ;<-将程序头偏移 06 处改为 FFFF，那儿原来放的是什么东西呢？了解文件头的朋友应该知道那放的是文件有几个段。天啊！什么怪物会有 65535 个段！怪不得 Procdump 会被搞死掉。马上去掉这句。现在再 dump 就安全了。
+```
+
+## 清理与跳转
+
+好了，外壳的任务基本完成了，再接下来该干什么呢？应该去执行程序了。且慢，还有一项工作没干，作案完毕后该破坏现场，毁灭罪证，请看：
+
+```assembly
+0167:005E3EBD  MOV     EBX,[EBP+0040E3F8]
+0167:005E3EC3  NOT     EBX
+0167:005E3EC5  ADD     EBX,[EBP+0040E3DC]
+0167:005E3ECB  MOV     [ESP-04],EBX        ;<-此时 EBX=509EAB，入口地址？
+0167:005E3ECF  LEA     EDI,[EBP+0040E2D6]
+0167:005E3ED5  XOR     EAX,EAX
+0167:005E3ED7  MOV     ECX,020B
+0167:005E3EDC  REP STOSB                    ;<-这段是将 5E4110~5E431B 清零
+
+0167:005E3EDE  LEA     EDI,[EBP+0040D1C6]
+0167:005E3EE4  MOV     ECX,0EEB
+0167:005E3EE9  REP STOSB
+0167:005E3EEB  STOSB                        ;<-这段是将从 5E3000 到这句的所有外壳代码清零。
+
+0167:005E3EEC  LEA     EDI,[EBP+0040D1C6]
+0167:005E3EF2  MOV     BYTE [EDI],E9
+0167:005E3EF5  INC     EDI
+0167:005E3EF6  SUB     EBX,EDI
+0167:005E3EF8  SUB     EBX,BYTE +04
+0167:005E3EFB  MOV     [EDI],EBX            ;<-这是将 5E3000 处代码改为 JMP 00509EAB，why?
+
+0167:005E3EFD  LEA     EDI,[EBP+0040E0B1]
+0167:005E3F03  MOV     ECX,1F
+0167:005E3F08  REP STOSB
+0167:005E3F0A  STOSB                        ;<-再将这段与上面一段清零。
+
+0167:005E3F0B  JMP     SHORT 005E3F0F
+0167:005E3F0D  INT     20
+0167:005E3F0F  POPA
+0167:005E3F10  JMP     NEAR [ESP-24]        ;<-跳到 509EAB 处，应该就是程序入口吧。
+```
+
+现在你可以用 `Procdump` 来 dump 了，不过你会发现，dump 出的程序即使能反汇编，得到的也是乱七八糟的东西。原来从 `509EAB` 到 `522541` 这一段代码还会对程序做解码工作，所以你可以一直运行到 `522541`，然后等跳到 `509E35` 处时再开始 dump，此时得到的程序就完全暴露在你眼前，你想对她做什么都可以了（xixi.不要想坏主意哦）。如果你在这之前跳过了对输入表加密的那一段的话，dump 出的程序连输入表都无须修复，这样的 dump 是不是很完美？（缺点就是这次的运行得以非法操作告终 8-(）
+
+
+
+当然必要的修复总是要的，你得将入口偏移改为`109E35`，输入表偏移改为`128000`，然后就可以运行了。
+
+最后还有一个小问题，就是每次运行它都会在当前目录下生成一个`stockstorm.EXE`，而且会不给你任何警告就重启。太可恶了！难道想通过不断的重启来搞垮我的电脑吗？干掉它！用`W32DASM`反汇编，查找`EXITWINDOWS`，共找到`3`个，其中一个是这儿：
+
+`* Reference To: user32.ExitWindowsEx, Ord:0000h`
+
+```
+:005097FA E875D5EFFF             Call 00406D74      <-罪魁祸首就是它
+```
+
+由此往上看有：
+
+`* Reference To: kernel32.CopyFileA, Ord:0000h`
+
+```
+:00509786 E889CEEFFF             Call 00406614
+:0050978B 8D55EC                 lea edx, dword ptr [ebp-14]
+:0050978E A1606C5200             mov eax, dword ptr [00526C60]
+```
+
+……
+
+拷贝文件？好象我们找到地方了。怎样才能避过这些呢？再往上找有：
+
+```
+:00509731 648920                 mov dword ptr fs:[eax], esp
+:00509734 84C9                   test cl, cl
+:00509736 0F84D3000000           je 0050980F       <-这个
+:0050973C 6A00                   push 00000000
+```
+
+将上面这个`je`改为`jmp`再运行，一切`OK`！
+
+别急，一般运行已经没问题了，不过它还会对一些程序过敏，比如`filemon`、`softice`等，如果内存中刚好有`filemon`在运行的话同样也会导致重启，
+
+`* Reference To: kernel32.CreateFileA, Ord:0000h`
+
+```
+|
+:004A2FA8 E87F36F6FF             Call 0040662C      <-利用 CreateFileA 打开文件
+:004A2FAD 83F8FF                 cmp eax, FFFFFFFF
+:004A2FB0 744D                   je 004A2FFF       <-打开不成功则跳
+:004A2FB2 50                     push eax
+```
+
+……
+
+`* Reference To: user32.ExitWindowsEx, Ord:0000h`
+
+```
+|
+:004A2FE2 E88D3DF6FF             Call 00406D74
+:004A2FE7 EB16                   jmp 004A2FFF
+```
+
+程序试图打开的文件包括`TRW`、`TRW2000`、`SOFTICE`、`SOFTICE FOR NT`、`FILEMON`、`REGMON`、`WKPE`，打开成功则重启，对付的方法是将上面的`je`改为`jmp`就可以了。
+
+这样改应该不犯法吧？我只是让它在我的电脑上跑得更顺畅。脱壳后程序的启动时间比原先大约减少了一半，
+
+脱壳前后的程序如果都进行压缩的话，脱壳后的程序体积大约也减小了一半。还有由于外壳的原因，原来的程序在`NT`下据说无法正常进入，这样改动后应该可以了吧(没有验证)。减小体积、加快启动，改进兼容性，这算不算对原程序的优化？
+
+注 1：事实上这样做是有问题的，正常程序的输入表在程序被载入时由系统根据函数名进行初始化，在不同的系统下会初始化为不同的入口值，以便跨平台运行，现在程序被加壳，载入时真正的输入表并没有被初始化，这个工作得由外壳程序来完成，所以外壳对输入表的加密同时也是初始化，如果我们跳过加密代码的话，输入表没有被初始化，下面运行时会非法操作，不过这对于我们脱壳没有影响。
+
+感谢：在脱壳过程中得到了`Ljttt`等的帮助，没有他们的指点，我也写不出这篇文章，所以在此表示感谢。
+
+`hying[CCG]`
+
+`2001`年`5`月`28`日  `4dd466d0e1e0cc123afbe504da2462ca`

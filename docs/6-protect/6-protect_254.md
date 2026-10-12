@@ -1,82 +1,106 @@
 
-
 # 使用 vc 调试 flexlm 后台程序 Daemon
 
 > 原文：[`www.pediy.com/kssd/pediy09/pediy09-79.htm`](https://www.pediy.com/kssd/pediy09/pediy09-79.htm)
 
-> 【文章标题】: 使用 vc6 调试 flexlm 后台程序 Daemon  
-> 【文章作者】: 江湖无赖  
->   
-> 【详细信息】:  
->   目标程序不方便写出来这里使用 vendor.exe 替代。  
->   开始时使用 laoqian 文中介绍的方法获得 job 和 data 后计算出来 seed，但是生成的 license 总是不正确。使用 W32dsm8.93+.exe 的 anit-wdasm.exe 静态反汇编与 lmgrd 相关的 dll 总是出现异常崩溃，使用 IDA 能够正常地静态反汇编。看来可能有反静态汇编的代码在里面。我懒得去跟踪这个问题。于是在继续在看雪论坛搜索好多天把所有与 flexlm 相关的帖子逐个看了一遍才找到 xzwlyx 整理的 marstj 方法可以使用调试 daemon 的办法直接获得 seed，用 W32dsm8.93+.exe 反汇编 vendor.exe 能够获得所有信息。狂喜~~~  
->   使用 UE 修改 vendor.exe 的 OEP 处的代码为 cc,修改 ollyDBG 为实时调试模式，使用 lmtools 运行 vendor.exe 服务。ollyDBG 正常调出。但是单步执行到 getmodulefilename 函数处就没有响应了，好像是进入死循环。google 查了 getmodulefilename 函数是 windows 的核心函数，这个函数很普通不应该是反跟跟踪程序。我不进行跟踪的时候 lmtools 能够正常启动 license 服务。现在我也不能够确定程序是否有自校验还是有 anit-debug。  
->   无奈之下我决定换台机器使用 softice 试试(网络就是好，想当年在学校用 36k 的猫，用 201 电话卡拨号上网找资料哪里敢下在 200+M 的程序，时间就是金钱啦!!)。然后意外的是我的 vc6 先执行起来了，我恢复 OEP 后按 F5 键，程序既然正常运行了，看来 vendor.exe 里面没有对 vc6 进行 anti-debug,这个很显然，因为 flexlm SDK 使用 vc6 编译，如果对 vc6 使用了 anti-debug 他的程序根本无法调试问题。最后按照 marstj 中的方法获得 seed，添加到 flexlm SDK 编译运行,生成 license,运行程序，bingo! 程序起来了。看来使用 vc6 可以避免 anti-debug 的困扰，这里说说使用方法，供大家在 debug 中多一些手段。  
->   
->   1)寻找算法代码   
->   /\*------------------------------xzwlyx---------------------------------\*/        
->                 83BD90FEFFFF08 是 FlexLM v10.x 以后的      
->                 83BD74FEFFFF08 是 FlexLM v9.x 以前的   
->                 个别版本需要自己验证,是这种代码 83BDxxFEFFFF08  
->                 在它的前面一定有一个 add ecx, 00000001  
->    /\*------------------------------xzwlyx---------------------------------\*/  
->    vendor.exe 的算法代码在 0041BE7F 处。  
->   2)使用 UE 在 vondor.exe 的 OEP 处修改代码为 cc  
->   3)配置好 lmtools，运行 licnese 服务。vc 会弹出一个程序异常的对话框，点击取消，进入 vc 调试模式。这个时候程序中断在 OEP 地址处。在 vc 的菜单上面单击右键在确认右键菜单中 memory 被选中。  
->   4)恢复 OEP 代码，在 memory 窗口中的 address 里面输入 EIP 回车，这是 memory 里面就是当前 OEP 的汇编代码，将 OEP 除的 cc 改回原来的代码。  
->   5)ctrl+G 在对话框里面输入 0041BE7F，往下走在 0041C055 和 0041C1B0 处分别设置断点  
->   
-> \==================================================================================================  
-> 0041BE73 C7 85 74 FE FF FF 00 mov         dword ptr \[ebp-18Ch\],0  
-> 0041BE7D EB 0F                jmp         0041BE8E                    
-> 0041BE7F 8B 95 74 FE FF FF    mov         edx,dword ptr \[ebp-18Ch\]    
-> 0041BE85 83 C2 01             add         edx,1                        ；注意这里的 add edx,1  
-> 0041BE88 89 95 74 FE FF FF    mov         dword ptr \[ebp-18Ch\],edx    ；  
-> 0041BE8E 83 BD 74 FE FF FF 08 cmp         dword ptr \[ebp-18Ch\],8      ；算法特征码 83BD74FEFFFF08  
-> 0041BE95 7D 2B                jge         0041BEC2  
-> 0041BE97 8B 45 F4             mov         eax,dword ptr \[ebp-0Ch\]  
->         .  
->         .  
->         .  
-> 0041C04A 88 10                mov         byte ptr \[eax\],dl  
-> 0041C04C 8B 4D F0             mov         ecx,dword ptr \[ebp-10h\]  
-> 0041C04F 83 C1 01             add         ecx,1  
-> 0041C052 89 4D F0             mov         dword ptr \[ebp-10h\],ecx          ;3D4DA1D6h 是清除 seed 的值  
-> 0041C055 C7 85 44 FE FF FF D6 mov         dword ptr \[ebp-1BCh\],3D4DA1D6h  ;seed1 = \[ebp-1BCh\]  
-> 0041C05F 8B 55 F8             mov         edx,dword ptr \[ebp-8\]            ;\[ebp-1BCh\]是 seed1  
-> 0041C062 C1 E2 04             shl         edx,4  
->         .  
->         .  
->         .  
->   
-> 0041C1AA 83 C1 01             add         ecx,1  
-> 0041C1AD 89 4D F0             mov         dword ptr \[ebp-10h\],ecx          ;3D4DA1D6h 是清除 seed 的值     
-> 0041C1B0 C7 85 40 FE FF FF D6 mov         dword ptr \[ebp-1C0h\],3D4DA1D6h  ;seed2 = \[ebp-1C0h\]          
-> 0041C1BA E9 FB 00 00 00       jmp         0041C2BA                        ;\[ebp-1C0h\]是 seed2                            
-> 0041C1BF C7 85 70 FE FF FF 00 mov         dword ptr \[ebp-190h\],0  
-> 0041C1C9 EB 0F                jmp         0041C1DA  
-> 0041C1CB 8B 95 70 FE FF FF    mov         edx,dword ptr \[ebp-190h\]  
-> 0041C1D1 83 C2 01             add         edx,1  
-> 0041C1D4 89 95 70 FE FF FF    mov         dword ptr \[ebp-190h\],edx  
-> 0041C1DA 83 BD 70 FE FF FF 08 cmp         dword ptr \[ebp-190h\],8  
-> 0041C1E1 0F 8D D3 00 00 00    jge         0041C2BA  
-> 0041C1E7 8B 85 70 FE FF FF    mov         eax,dword ptr \[ebp-190h\]  
-> 0041C1ED 25 03 00 00 80       and         eax,80000003h  
-> 0041C1F2 79 05                jns         0041C1F9  
-> \==============================================================================================  
->   6)第一次断下来后在 memory 窗口的 address 中输入 ebp-1c0,然后在该窗口上面点击鼠标右键->Long Hex Format。这时就是 seed1 的值  
->   7)第二次断下来后得到的就是 seed2 的值  
->   8)编译 flexlm SDK 构造 license  
->     
->   总结：  
->     对于 vc 的一些功能不如专业的反汇编工具作的好，不过 vc 的操作界面还是比较合理的，另外就是大多数 anti-debug 都不敢对 vc 进行 anti-debug。可以省去很多不必要的麻烦  
->       
->   参考资料：  
->     《用 VC 和自制工具 VCDEBUG 助手进行跟踪破解》(看雪精华 4) 作者：fnlq\[BCG&&CNCG\]   
->     《On Software Reverse Engineering 》    作者：CrackZ(原文)/sln(翻译)  
->     《制作 Flexlm license 总结》  (看雪精华 7)  作者：laoqian  
->     《FLEXLM 系统高级研究(翻译)》(看雪精华 8) 作者：CrackZ(原文)/shaoge(翻译)  
->   感谢：  
->     感谢所有与该过程相关的人，另外提到两个人 marstj、xzwlyx。没有找到他们的精华贴，但是他们在论坛的讨论给我是能够找到 seed 的关键所在 
+> 【文章标题】: 使用 `vc6` 调试 `flexlm` 后台程序 `Daemon`
 
- 4dd466d0e1e0cc123afbe504da2462ca
+> 【文章作者】: 江湖无赖
+
+> 【详细信息】:
+
+ 目标程序不方便写出来这里使用 `vendor.exe` 替代。
+
+ 开始时使用 `laoqian` 文中介绍的方法获得 `job` 和 `data` 后计算出来 `seed`，但是生成的 `license` 总是不正确。使用 `W32dsm8.93+.exe` 的 `anit-wdasm.exe` 静态反汇编与 `lmgrd` 相关的 `dll` 总是出现异常崩溃，使用 `IDA` 能够正常地静态反汇编。看来可能有反静态汇编的代码在里面。我懒得去跟踪这个问题。于是在继续在看雪论坛搜索好多天把所有与 `flexlm` 相关的帖子逐个看了一遍才找到 `xzwlyx` 整理的 `marstj` 方法可以使用调试 `daemon` 的办法直接获得 `seed`，用 `W32dsm8.93+.exe` 反汇编 `vendor.exe` 能够获得所有信息。狂喜~~~
+
+ 使用 `UE` 修改 `vendor.exe` 的 `OEP` 处的代码为 `cc`,修改 `ollyDBG` 为实时调试模式，使用 `lmtools` 运行 `vendor.exe` 服务。`ollyDBG` 正常调出。但是单步执行到 `getmodulefilename` 函数处就没有响应了，好像是进入死循环。google 查了 `getmodulefilename` 函数是 windows 的核心函数，这个函数很普通不应该是反跟跟踪程序。我不进行跟踪的时候 `lmtools` 能够正常启动 `license` 服务。现在我也不能够确定程序是否有自校验还是有 `anit-debug`。
+
+ 无奈之下我决定换台机器使用 `softice` 试试(网络就是好，想当年在学校用 36k 的猫，用 201 电话卡拨号上网找资料哪里敢下在 200+M 的程序，时间就是金钱啦!!)。然后意外的是我的 `vc6` 先执行起来了，我恢复 `OEP` 后按 F5 键，程序既然正常运行了，看来 `vendor.exe` 里面没有对 `vc6` 进行 `anti-debug`,这个很显然，因为 `flexlm` `SDK` 使用 `vc6` 编译，如果对 `vc6` 使用了 `anti-debug` 他的程序根本无法调试问题。最后按照 `marstj` 中的方法获得 `seed`，添加到 `flexlm` `SDK` 编译运行,生成 `license`,运行程序，bingo! 程序起来了。看来使用 `vc6` 可以避免 `anti-debug` 的困扰，这里说说使用方法，供大家在 `debug` 中多一些手段。
+
+1) 寻找算法代码
+
+```
+/*------------------------------xzwlyx---------------------------------*/
+   83BD90FEFFFF08 是 FlexLM v10.x 以后的
+   83BD74FEFFFF08 是 FlexLM v9.x 以前的
+   个别版本需要自己验证,是这种代码 83BDxxFEFFFF08
+   在它的前面一定有一个 add ecx, 00000001
+/*------------------------------xzwlyx---------------------------------*/
+```
+
+`vendor.exe` 的算法代码在 `0041BE7F` 处。
+
+2) 使用 `UE` 在 `vondor.exe` 的 `OEP` 处修改代码为 `cc`
+
+3) 配置好 `lmtools`，运行 `licnese` 服务。`vc` 会弹出一个程序异常的对话框，点击取消，进入 `vc` 调试模式。这个时候程序中断在 `OEP` 地址处。在 `vc` 的菜单上面单击右键在确认右键菜单中 `memory` 被选中。
+
+4) 恢复 `OEP` 代码，在 `memory` 窗口中的 `address` 里面输入 `EIP` 回车，这是 `memory` 里面就是当前 `OEP` 的汇编代码，将 `OEP` 除的 `cc` 改回原来的代码。
+
+5) `ctrl+G` 在对话框里面输入 `0041BE7F`，往下走在 `0041C055` 和 `0041C1B0` 处分别设置断点
+
+```
+==================================================================================================
+0041BE73 C7 85 74 FE FF FF 00 mov       dword ptr [ebp-18Ch],0
+0041BE7D EB 0F                 jmp       0041BE8E
+
+0041BE7F 8B 95 74 FE FF FF    mov       edx,dword ptr [ebp-18Ch]
+0041BE85 83 C2 01             add       edx,1                     ；注意这里的 add edx,1
+0041BE88 89 95 74 FE FF FF    mov       dword ptr [ebp-18Ch],edx    ；
+0041BE8E 83 BD 74 FE FF FF 08 cmp       dword ptr [ebp-18Ch],8      ；算法特征码 83BD74FEFFFF08
+0041BE95 7D 2B                 jge       0041BEC2
+0041BE97 8B 45 F4             mov       eax,dword ptr [ebp-0Ch]
+       .
+       .
+       .
+0041C04A 88 10                 mov       byte ptr [eax],dl
+0041C04C 8B 4D F0             mov       ecx,dword ptr [ebp-10h]
+0041C04F 83 C1 01             add       ecx,1
+0041C052 89 4D F0             mov       dword ptr [ebp-10h],ecx      ;3D4DA1D6h 是清除 seed 的值
+0041C055 C7 85 44 FE FF FF D6 mov       dword ptr [ebp-1BCh],3D4DA1D6h  ;seed1 = [ebp-1BCh]
+0041C05F 8B 55 F8             mov       edx,dword ptr [ebp-8]        ;[ebp-1BCh]是 seed1
+0041C062 C1 E2 04             shl       edx,4
+       .
+       .
+       .
+
+0041C1AA 83 C1 01             add       ecx,1
+0041C1AD 89 4D F0             mov       dword ptr [ebp-10h],ecx      ;3D4DA1D6h 是清除 seed 的值
+0041C1B0 C7 85 40 FE FF FF D6 mov       dword ptr [ebp-1C0h],3D4DA1D6h  ;seed2 = [ebp-1C0h]
+0041C1BA E9 FB 00 00 00       jmp       0041C2BA                     ;[ebp-1C0h]是 seed2
+0041C1BF C7 85 70 FE FF FF 00 mov      dword ptr [ebp-190h],0
+0041C1C9 EB 0F                 jmp       0041C1DA
+0041C1CB 8B 95 70 FE FF FF    mov       edx,dword ptr [ebp-190h]
+0041C1D1 83 C2 01             add       edx,1
+0041C1D4 89 95 70 FE FF FF    mov       dword ptr [ebp-190h],edx
+0041C1DA 83 BD 70 FE FF FF 08 cmp       dword ptr [ebp-190h],8
+0041C1E1 0F 8D D3 00 00 00    jge       0041C2BA
+0041C1E7 8B 85 70 FE FF FF    mov       eax,dword ptr [ebp-190h]
+0041C1ED 25 03 00 00 80       and       eax,80000003h
+0041C1F2 79 05                 jns       0041C1F9
+==============================================================================================
+```
+
+6) 第一次断下来后在 `memory` 窗口的 `address` 中输入 `ebp-1c0`,然后在该窗口上面点击鼠标右键->`Long Hex Format`。这时就是 `seed1` 的值
+
+7) 第二次断下来后得到的就是 `seed2` 的值
+
+8) 编译 `flexlm` `SDK` 构造 `license`
+
+**总结：**
+
+ 对于 `vc` 的一些功能不如专业的反汇编工具作的好，不过 `vc` 的操作界面还是比较合理的，另外就是大多数 `anti-debug` 都不敢对 `vc` 进行 `anti-debug`。可以省去很多不必要的麻烦
+
+**参考资料：**
+
+ 《用 `VC` 和自制工具 `VCDEBUG` 助手进行跟踪破解》(看雪精华 4) 作者：`fnlq[BCG&&CNCG]`
+
+ 《On Software Reverse Engineering 》    作者：`CrackZ`(原文)/`sln`(翻译)
+
+ 《制作 Flexlm license 总结》  (看雪精华 7)  作者：`laoqian`
+
+ 《FLEXLM 系统高级研究(翻译)》(看雪精华 8) 作者：`CrackZ`(原文)/`shaoge`(翻译)
+
+**感谢：**
+
+ 感谢所有与该过程相关的人，另外提到两个人 `marstj`、`xzwlyx`。没有找到他们的精华贴，但是他们在论坛的讨论给我是能够找到 `seed` 的关键所在
+

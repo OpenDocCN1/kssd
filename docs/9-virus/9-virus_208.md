@@ -1,368 +1,372 @@
 
-
 # 感染 Win32.Agent.??之修复代码
 
 > 原文：[`www.pediy.com/kssd/pediy11/117951.html`](https://www.pediy.com/kssd/pediy11/117951.html)
 
-某的机器，前几日意外染毒，由于这几日在试用 ZoneAlarm，对机器表现把握不准，连什么时候中毒都不知道。。。（在此先深切怀念一下我用了七年多的 PFW，可怜了我抠抠索索出钱买的正版序列号:(　现在搞得有正版序列号还得用试用版 T\_T）。  
-直到突然发现机器表现有一些异常了，一刷 autoruns，Image Hijacks 一大堆！果然中毒了！  
-我对中毒过敏，立刻还原系统。还原后，新装个驱动，再刷 autoruns，啊！又来了！![](img/cb6288ad81b189b02921e98a92da6abe.jpg "124.gif")  
-分区根目录下并没有 autoruns.inf 之类的触发。难道是感染型病毒？！  
-我在每个分区下都放了一个小 EXE，当蜜罐使。结果一看，原本 4.5K 的变 30.5K 了，果然是感染了。可是我的驱动是压缩包里的啊，这\*毒，连压缩包也不放过！！![](img/c1376e2bd59b6be48d07a70822c7e47d.jpg "伤心")  
-完蛋完蛋，我长时间来收集一些软件啊程序啊啥的，看来要废了，我要撞墙了！！![](img/9b2aec7f3d4bb041b2d419a59832192f.jpg "恐怖!")  
-不甘心啊不甘心。  
-那就看看有没有专杀吧，给个样本让别人用杀软看看是什么毒，结果查出来叫 Win32.Agent.??（后面叫什么，忘记了），上网查有没有专杀工具，结果都没有。全是要装杀软。俺与杀软有不共戴天之仇  
-  
-，如何也不会装。而且杀软那些技俩俺也领教过，但凡感染的文件，一律做删除处理，根本不会恢复它。  
-  
-看来，得自己动手试试。  
-看看这个感染复不复杂吧？原 PE 与感染 PE 一对比，加之早早分析了一下，发现如下几点：  
-1.新加一个节区，名字是.tc。  
-2.PE 入口被修改，指向新加节区头。  
-3.区段数目+1，映像大小修改，代码块大小修改  
-仅这些特征，看来有恢复的希望。  
-  
-于是有了之后的修复代码。其实修复手段很简单了，就是把感染过程反着做就行了嘛。  
-不过代码里有加了压缩包的处理（加解压我并不熟悉，全是临时学习 WinRAR 命令行的处理。测试的过程中，可能是系统设置问题，发现解压恢复后，空文件夹无法删除。不过无伤大雅了）  
-  
-这里先给一下被感染 PE 的入口情况：  
+某的机器，前几日意外染毒，由于这几日在试用 `ZoneAlarm`，对机器表现把握不准，连什么时候中毒都不知道。。。（在此先深切怀念一下我用了七年多的 `PFW`，可怜了我抠抠索索出钱买的正版序列号:( 现在搞得有正版序列号还得用试用版 `T_T`）。
 
-代码:
+直到突然发现机器表现有一些异常了，一刷 `autoruns`，`Image Hijacks` 一大堆！果然中毒了！
 
-```
-00408000 hget.<ModuleEntryPoint>      64:8B3D 30000000           mov     edi, dword ptr fs:\[30\]
-00408007                              8B7F 0C                    mov     edi, dword ptr \[edi+C\]
-0040800A                              8B7F 1C                    mov     edi, dword ptr \[edi+1C\]
-0040800D                              8B3F                       mov     edi, dword ptr \[edi\]
-0040800F                              8B7F 08                    mov     edi, dword ptr \[edi+8\]
-00408012                              E8 00000000                call    hget.00408017
-00408017                              5B                         pop     ebx
-00408018                              81EB 17104000              sub     ebx, hget.00401017
-0040801E                              89BB DC114000              mov     dword ptr \[ebx+4011DC\], edi
-00408024                              8BF7                       mov     esi, edi
-00408026                              0376 3C                    add     esi, dword ptr \[esi+3C\]
-00408029                              8B76 78                    mov     esi, dword ptr \[esi+78\]
-0040802C                              03F7                       add     esi, edi
-0040802E                              56                         push    esi
-0040802F                              8B6E 18                    mov     ebp, dword ptr \[esi+18\]
-00408032                              8B76 20                    mov     esi, dword ptr \[esi+20\]
-00408035                              03F7                       add     esi, edi
-00408037                              33D2                       xor     edx, edx
-00408039                              56                         push    esi
-0040803A                              8B3E                       mov     edi, dword ptr \[esi\]
-0040803C                              03BB DC114000              add     edi, dword ptr \[ebx+4011DC\]
-00408042                              8DB3 9E114000              lea     esi, dword ptr \[ebx+40119E\]
-00408048                              B9 0F000000                mov     ecx, 0F
-0040804D                              F3:A6                      repe    cmps byte ptr es:\[edi\], byte ptr \es>
-0040804F                              75 06                      jnz     short hget.00408057
-00408051                              5E                         pop     esi
-00408052                              8BD6                       mov     edx, esi
-00408054                              5E                         pop     esi
-00408055                              EB 12                      jmp     short hget.00408069
-00408057                              5E                         pop     esi
-00408058                              83C6 04                    add     esi, 4
-0040805B                              42                         inc     edx
-0040805C                              90                         nop
-0040805D                              3BD5                       cmp     edx, ebp
-0040805F                            ^ 72 D8                      jb      short hget.00408039
-00408061                              83EC 04                    sub     esp, 4
-00408064                              E9 18010000                jmp     hget.00408181    ;这里有一个跳转，硬编码
+我对中毒过敏，立刻还原系统。还原后，新装个驱动，再刷 `autoruns`，啊！又来了！![](img/cb6288ad81b189b02921e98a92da6abe.jpg "124.gif")
 
+分区根目录下并没有 `autoruns.inf` 之类的触发。难道是感染型病毒？！
 
-00408181                            - E9 0AE5FFFF                jmp     hget.00406690    ;这里跳向原 OEP
+我在每个分区下都放了一个小 `EXE`，当蜜罐使。结果一看，原本 4.5K 的变 30.5K 了，果然是感染了。可是我的驱动是压缩包里的啊，这\*毒，连压缩包也不放过！！![](img/c1376e2bd59b6be48d07a70822c7e47d.jpg "伤心")
+
+完蛋完蛋，我长时间来收集一些软件啊程序啊啥的，看来要废了，我要撞墙了！！![](img/9b2aec7f3d4bb041b2d419a59832192f.jpg "恐怖!")
+
+不甘心啊不甘心。
+
+那就看看有没有专杀吧，给个样本让别人用杀软看看是什么毒，结果查出来叫 `Win32.Agent.??`（后面叫什么，忘记了），上网查有没有专杀工具，结果都没有。全是要装杀软。俺与杀软有不共戴天之仇
+
+，如何也不会装。而且杀软那些技俩俺也领教过，但凡感染的文件，一律做删除处理，根本不会恢复它。
+
+看来，得自己动手试试。
+
+看看这个感染复不复杂吧？原 `PE` 与感染 `PE` 一对比，加之早早分析了一下，发现如下几点：
+
+1.新加一个节区，名字是 `.tc`。
+2.`PE` 入口被修改，指向新加节区头。
+3.区段数目+1，映像大小修改，代码块大小修改
+
+仅这些特征，看来有恢复的希望。
+
+于是有了之后的修复代码。其实修复手段很简单了，就是把感染过程反着做就行了嘛。
+
+不过代码里有加了压缩包的处理（加解压我并不熟悉，全是临时学习 `WinRAR` 命令行的处理。测试的过程中，可能是系统设置问题，发现解压恢复后，空文件夹无法删除。不过无伤大雅了）
+
+这里先给一下被感染 `PE` 的入口情况：
 
 ```
+00408000 hget.<ModuleEntryPoint>      64:8B3D 30000000           mov     edi, dword ptr fs:\[30\]
+00408007                             8B7F 0C                    mov     edi, dword ptr [edi+C]
+0040800A                             8B7F 1C                    mov     edi, dword ptr [edi+1C]
+0040800D                             8B3F                       mov     edi, dword ptr [edi]
+0040800F                             8B7F 08                    mov     edi, dword ptr [edi+8]
+00408012                             E8 00000000                call    hget.00408017
+00408017                             5B                         pop     ebx
+00408018                             81EB 17104000              sub     ebx, hget.00401017
+0040801E                             89BB DC114000              mov     dword ptr [ebx+4011DC], edi
+00408024                             8BF7                       mov     esi, edi
+00408026                             0376 3C                    add     esi, dword ptr [esi+3C]
+00408029                             8B76 78                    mov     esi, dword ptr [esi+78]
+0040802C                             03F7                       add     esi, edi
+0040802E                             56                         push    esi
+0040802F                             8B6E 18                    mov     ebp, dword ptr [esi+18]
+00408032                             8B76 20                    mov     esi, dword ptr [esi+20]
+00408035                             03F7                       add     esi, edi
+00408037                             33D2                       xor     edx, edx
+00408039                             56                         push    esi
+0040803A                             8B3E                       mov     edi, dword ptr [esi]
+0040803C                             03BB DC114000              add     edi, dword ptr [ebx+4011DC]
+00408042                             8DB3 9E114000              lea     esi, dword ptr [ebx+40119E]
+00408048                             B9 0F000000                mov     ecx, 0F
+0040804D                             F3:A6                      repe    cmps byte ptr es:\[edi\], byte ptr \es>
+0040804F                             75 06                      jnz     short hget.00408057
+00408051                             5E                         pop     esi
+00408052                             8BD6                       mov     edx, esi
+00408054                             5E                         pop     esi
+00408055                             EB 12                      jmp     short hget.00408069
+00408057                             5E                         pop     esi
+00408058                             83C6 04                    add     esi, 4
+0040805B                             42                         inc     edx
+0040805C                             90                         nop
+0040805D                             3BD5                       cmp     edx, ebp
+0040805F                           ^ 72 D8                     jb      short hget.00408039
+00408061                             83EC 04                    sub     esp, 4
+00408064                             E9 18010000                jmp     hget.00408181    ;这里有一个跳转，硬编码
 
-新加节区情况：  
-代码:
+00408181                           - E9 0AE5FFFF                jmp     hget.00406690    ;这里跳向原 OEP
+```
+
+新加节区情况：
 
 ```
-   4. item:
-    Name:                  .tc
-    VirtualSize:           0x00007000
-    VirtualAddress:        0x00008000
-    SizeOfRawData:         0x00006800
-    PointerToRawData:      0x00001200
-    PointerToRelocations:  0x00000000
-    PointerToLinenumbers:  0x0000006B
-    NumberOfRelocations:   0x0000
-    NumberOfLinenumbers:   0x006B
-    Characteristics:       0xE0000020
-    (CODE, EXECUTE, READ, WRITE)
-
+   4. item:
+    Name:                .tc
+    VirtualSize:         0x00007000
+    VirtualAddress:      0x00008000
+    SizeOfRawData:       0x00006800
+    PointerToRawData:    0x00001200
+    PointerToRelocations: 0x00000000
+    PointerToLinenumbers: 0x0000006B
+    NumberOfRelocations:  0x0000
+    NumberOfLinenumbers:  0x006B
+    Characteristics:      0xE0000020
+    (CODE, EXECUTE, READ, WRITE)
 ```
 
-以下是修复代码，有兴趣或者有需要的兄弟可以拿去参考参考。其它就不多放了。![  
-代码:
+以下是修复代码，有兴趣或者有需要的兄弟可以拿去参考参考。其它就不多放了。![
 
-```
-// Fuck\_Win32Agent.cpp : 定义控制台应用程序的入口点。
+
+
+```cpp
+// Fuck_Win32Agent.cpp : 定义控制台应用程序的入口点。
 //
 
-#include "stdafx.h"
-#include  <windows.h>
-#include <ShellAPI.h>
-#pragma  comment(lib, "Shell32.lib ")
-#include  <Shlwapi.h>
-#pragma  comment(lib, "Shlwapi.lib ")
+#include "stdafx.h"
+#include  <windows.h>
+#include <ShellAPI.h>
+#pragma  comment(lib, "Shell32.lib ")
+#include  <Shlwapi.h>
+#pragma  comment(lib, "Shlwapi.lib ")
 
-#define  \_DBGOUT
-#include "E:\\\\work\\\\封装头文件\\\\dbgout.h"
+#define  _DBGOUT
+#include "E:\\work\\封装头文件\\dbgout.h"
 
-#include "E:\\\\work\\\\封装头文件\\\\mkValue.h"
+#include "E:\\work\\封装头文件\\mkValue.h"
 
 
-unsigned long GetRAbyRVA(HANDLE hMapView,unsigned long RVA)
-  {
-  IMAGE\_DOS\_HEADER\* doshead = (IMAGE\_DOS\_HEADER\*)hMapView;
-  IMAGE\_NT\_HEADERS\* PEhead = (IMAGE\_NT\_HEADERS\*)((unsigned long)doshead + (unsigned long)doshead->e\_lfanew);
-  IMAGE\_SECTION\_HEADER\* ISH = (IMAGE\_SECTION\_HEADER\*)((unsigned long)PEhead + sizeof(IMAGE\_NT\_HEADERS));
-  IMAGE\_EXPORT\_DIRECTORY\*  lpExpF = 0;
-  for(int i=0;i<PEhead->FileHeader.NumberOfSections;++i)
-    {
-    if(RVA>=ISH->VirtualAddress && RVA<(ISH->VirtualAddress+ISH->Misc.VirtualSize))
-      {
-      return( (unsigned long)hMapView + ISH->PointerToRawData + RVA - ISH->VirtualAddress );
-      }
-    ++ISH;
-    }
-  return 0;
-  }
+unsigned long GetRAbyRVA(HANDLE hMapView,unsigned long RVA)
+  {
+  IMAGE_DOS_HEADER* doshead = (IMAGE_DOS_HEADER*)hMapView;
+  IMAGE_NT_HEADERS* PEhead = (IMAGE_NT_HEADERS*)((unsigned long)doshead + (unsigned long)doshead->e_lfanew);
+  IMAGE_SECTION_HEADER* ISH = (IMAGE_SECTION_HEADER*)((unsigned long)PEhead + sizeof(IMAGE_NT_HEADERS));
+  IMAGE_EXPORT_DIRECTORY*  lpExpF = 0;
+  for(int i=0;i<PEhead->FileHeader.NumberOfSections;++i)
+    {
+    if(RVA>=ISH->VirtualAddress && RVA<(ISH->VirtualAddress+ISH->Misc.VirtualSize))
+      {
+      return( (unsigned long)hMapView + ISH->PointerToRawData + RVA - ISH->VirtualAddress );
+      }
+    ++ISH;
+    }
+  return 0;
+  }
 
-bool  dealPE(const TCHAR\* ps)
-  {
-  HANDLE hMapView = 0;
-  bool rets = false;
+bool  dealPE(const TCHAR* ps)
+  {
+  HANDLE hMapView = 0;
+  bool rets = false;
 try
-  {
-  HANDLE hFile = CreateFile(ps,GENERIC\_READ|GENERIC\_WRITE,FILE\_SHARE\_READ,0,OPEN\_EXISTING,FILE\_ATTRIBUTE\_NORMAL,0);
-  if(hFile == INVALID\_HANDLE\_VALUE)  return false;
-  HANDLE hFileMapping = CreateFileMapping(hFile,0,PAGE\_READWRITE,0,0,0);
-  CloseHandle(hFile);
-  hMapView = MapViewOfFile(hFileMapping,FILE\_MAP\_READ|FILE\_MAP\_WRITE,0,0,0);
-  CloseHandle(hFileMapping);
-  
-  if(!hMapView)        throw runtime\_error("MapViewOfFile 失败！");
-  IMAGE\_DOS\_HEADER\* doshead = (IMAGE\_DOS\_HEADER\*)hMapView;
-  if(doshead->e\_magic != 'ZM')        throw runtime\_error("检测 MZ 标志失败！");
-  IMAGE\_NT\_HEADERS\* PEhead = (IMAGE\_NT\_HEADERS\*)((unsigned long)doshead + (unsigned long)doshead->e\_lfanew);
-  if(PEhead->Signature != 'EP')        throw runtime\_error("检测 PE 标志失败！");
-  
-  unsigned long Entry = PEhead->OptionalHeader.AddressOfEntryPoint;
-  
-  Entry = GetRAbyRVA(hMapView,Entry);
-  bool  befuckentry = false;
-  bool  befucksection   = false;
-  if(mkL(Entry)==0x303D8B64)
-    {
-    befuckentry = true;
-    errs<<"●●●"<<errTchar((TCHAR\*)ps)<<"有感染的特征！"<<endd;
-    }
+  {
+  HANDLE hFile = CreateFile(ps,GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ,0,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);
+  if(hFile == INVALID_HANDLE_VALUE)  return false;
+  HANDLE hFileMapping = CreateFileMapping(hFile,0,PAGE_READWRITE,0,0,0);
+  CloseHandle(hFile);
+  hMapView = MapViewOfFile(hFileMapping,FILE_MAP_READ|FILE_MAP_WRITE,0,0,0);
+  CloseHandle(hFileMapping);
+  
+  if(!hMapView)        throw runtime_error("MapViewOfFile 失败！");
+  IMAGE_DOS_HEADER* doshead = (IMAGE_DOS_HEADER*)hMapView;
+  if(doshead->e_magic != 'ZM')        throw runtime_error("检测 MZ 标志失败！");
+  IMAGE_NT_HEADERS* PEhead = (IMAGE_NT_HEADERS*)((unsigned long)doshead + (unsigned long)doshead->e_lfanew);
+  if(PEhead->Signature != 'EP')        throw runtime_error("检测 PE 标志失败！");
+  
+  unsigned long Entry = PEhead->OptionalHeader.AddressOfEntryPoint;
+  
+  Entry = GetRAbyRVA(hMapView,Entry);
+  bool  befuckentry = false;
+  bool  befucksection   = false;
+  if(mkL(Entry)==0x303D8B64)
+    {
+    befuckentry = true;
+    errs<<"●●●"<<errTchar((TCHAR*)ps)<<"有感染的特征！"<<endd;
+    }
 
-  IMAGE\_SECTION\_HEADER\* ISH = (IMAGE\_SECTION\_HEADER\*)((unsigned long)PEhead + sizeof(IMAGE\_NT\_HEADERS));
-  ISH+=(PEhead->FileHeader.NumberOfSections - 1);
-  if(mkL(ISH->Name)=='\\0ct.')
-    {
-    befucksection = true;
-    errs<<"●●●"<<errTchar((TCHAR\*)ps)<<"有感染的节区！"<<endd;
-    }
-  if(befucksection&&befuckentry)
-    {
-//     cout<<"※已经确定："<<errTchar((TCHAR\*)ps)<<"被 Win32.Agent 感染，是否修复(Y/N)：";
-//     char oks;
-//     cin>>oks;
-//     if((oks!='Y') && (oks!='y'))
-//       {
-//       errs<<"修复已经被跳过！"<<endd;
-//       throw 0;
-//       }
-    errs<<"正在修复"<<errTchar((TCHAR\*)ps)<<"..."<<endd;
-    int IP = Entry + 0x64 + 1;
-    int offsets = mkL(IP);  //0x118
-    IP += sizeUL + offsets + 1;
-    offsets = mkL(IP);
-    int  realEntry = IP + sizeUL + offsets - (int)hMapView - ISH->PointerToRawData + ISH->VirtualAddress;
-    PEhead->OptionalHeader.AddressOfEntryPoint = realEntry;    //修复入口
-    size\_t realfilelen = ISH->PointerToRawData;
-    PEhead->OptionalHeader.SizeOfCode -= ISH->Misc.VirtualSize;    //修复代码块大小
-    --(PEhead->FileHeader.NumberOfSections);    //修复区段个数
-    PEhead->OptionalHeader.SizeOfImage -= ISH->Misc.VirtualSize;    //修复映像大小
-    UnmapViewOfFile(hMapView);
-    hMapView = 0;
-    HANDLE hFile = CreateFile(ps,GENERIC\_READ|GENERIC\_WRITE,FILE\_SHARE\_READ,0,OPEN\_EXISTING,FILE\_ATTRIBUTE\_NORMAL,0);
-    if(hFile == INVALID\_HANDLE\_VALUE)  return false;
-    SetFilePointer(hFile,realfilelen,0,FILE\_BEGIN);
-    SetEndOfFile(hFile);
-    CloseHandle(hFile);
-    errs<<"========修复成功！========"<<endd;
-    rets = true;
-    }
-  }
+  IMAGE_SECTION_HEADER* ISH = (IMAGE_SECTION_HEADER*)((unsigned long)PEhead + sizeof(IMAGE_NT_HEADERS));
+  ISH+=(PEhead->FileHeader.NumberOfSections - 1);
+  if(mkL(ISH->Name)=='\0ct.')
+    {
+    befucksection = true;
+    errs<<"●●●"<<errTchar((TCHAR*)ps)<<"有感染的节区！"<<endd;
+    }
+  if(befucksection&&befuckentry)
+    {
+//     cout<<"※已经确定："<<errTchar((TCHAR*)ps)<<"被 Win32.Agent 感染，是否修复(Y/N)：";
+//     char oks;
+//     cin>>oks;
+//     if((oks!='Y') && (oks!='y'))
+//       {
+//       errs<<"修复已经被跳过！"<<endd;
+//       throw 0;
+//       }
+    errs<<"正在修复"<<errTchar((TCHAR*)ps)<<"..."<<endd;
+    int IP = Entry + 0x64 + 1;
+    int offsets = mkL(IP);  //0x118
+    IP += sizeUL + offsets + 1;
+    offsets = mkL(IP);
+    int  realEntry = IP + sizeUL + offsets - (int)hMapView - ISH->PointerToRawData + ISH->VirtualAddress;
+    PEhead->OptionalHeader.AddressOfEntryPoint = realEntry;    //修复入口
+    size_t realfilelen = ISH->PointerToRawData;
+    PEhead->OptionalHeader.SizeOfCode -= ISH->Misc.VirtualSize;    //修复代码块大小
+    --(PEhead->FileHeader.NumberOfSections);    //修复区段个数
+    PEhead->OptionalHeader.SizeOfImage -= ISH->Misc.VirtualSize;    //修复映像大小
+    UnmapViewOfFile(hMapView);
+    hMapView = 0;
+    HANDLE hFile = CreateFile(ps,GENERIC_READ|GENERIC_WRITE,FILE_SHARE_READ,0,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0);
+    if(hFile == INVALID_HANDLE_VALUE)  return false;
+    SetFilePointer(hFile,realfilelen,0,FILE_BEGIN);
+    SetEndOfFile(hFile);
+    CloseHandle(hFile);
+    errs<<"========修复成功！========"<<endd;
+    rets = true;
+    }
+  }
 catch(...)
-  {
-  ;
-  }
-  if(hMapView)UnmapViewOfFile(hMapView);
-  return rets;
-  }
+  {
+  ;
+  }
+  if(hMapView)UnmapViewOfFile(hMapView);
+  return rets;
+  }
 
 
-enum  fileflag {flag\_no,PE\_EXE,RAR};
+enum  fileflag {flag_no,PE_EXE,RAR};
 
-fileflag  iswant(const TCHAR\* ps)
-  {
-  size\_t len = \_tcslen(ps);
-  if(len<=4)return flag\_no;
-  if(\_tcsicmp(TEXT(".exe"),&ps\[len-4\])==0)
-    {
-    return  PE\_EXE;
-    }
-  if(\_tcsicmp(TEXT(".dll"),&ps\[len-4\])==0)
-    {
-    return  PE\_EXE;
-    }
-  if(\_tcsicmp(TEXT(".sys"),&ps\[len-4\])==0)
-    {
-    return  PE\_EXE;
-    }
-  if(\_tcsicmp(TEXT(".rar"),&ps\[len-4\])==0)
-    {
-    return  RAR;
-    }
-  if(\_tcsicmp(TEXT(".zip"),&ps\[len-4\])==0)
-    {
-    return  RAR;
-    }
-  return flag\_no;
-  }
+fileflag  iswant(const TCHAR* ps)
+  {
+  size_t len = _tcslen(ps);
+  if(len<=4)return flag_no;
+  if(_tcsicmp(TEXT(".exe"),&ps[len-4])==0)
+    {
+    return  PE_EXE;
+    }
+  if(_tcsicmp(TEXT(".dll"),&ps[len-4])==0)
+    {
+    return  PE_EXE;
+    }
+  if(_tcsicmp(TEXT(".sys"),&ps[len-4])==0)
+    {
+    return  PE_EXE;
+    }
+  if(_tcsicmp(TEXT(".rar"),&ps[len-4])==0)
+    {
+    return  RAR;
+    }
+  if(_tcsicmp(TEXT(".zip"),&ps[len-4])==0)
+    {
+    return  RAR;
+    }
+  return flag_no;
+  }
 
-void  domain(const TCHAR\* ps);
+void  domain(const TCHAR* ps);
 
-void  doit(const TCHAR\* ps)
-  {
-  fileflag ff = iswant(ps);
-  if(ff==flag\_no)return;
-  if(ff==PE\_EXE)
-    {
-    dealPE(ps);
-    return;
-    }
-  if(ff==RAR)
-    {
-    wstring path = ps;
-    path += TEXT("$$");
-    wstring cmdline = TEXT("D:\\\\Program Files\\\\WinRAR\\\\WinRAR.exe x -O+ \\"");
-    cmdline += ps;
-    cmdline += TEXT("\\" \*.\* \\"");
-    cmdline  += path;
-    cmdline += TEXT("\\\\\\"");
-    STARTUPINFO info;
-    PROCESS\_INFORMATION pi;
-    ZeroMemory(&info,sizeof(info));
-    if(!CreateProcess(0,(TCHAR\*)cmdline.c\_str(),0,0,0,0,0,0,&info,&pi))
-      {
-      errs<<"释放："<<errTchar(ps)<<"失败！"<<endd;
-      return;
-      }
-    WaitForSingleObject(pi.hProcess,INFINITE);
-    domain(path.c\_str());
-    cmdline = TEXT("D:\\\\Program Files\\\\WinRAR\\\\WinRAR.exe m -r -ep1 -y \\"");
-    cmdline  += ps;
-    cmdline += TEXT("\\" ");
-    cmdline  += path;
-    cmdline += TEXT("\\\\\*\\"");
-    ZeroMemory(&info,sizeof(info));
-    if(!CreateProcess(0,(TCHAR\*)cmdline.c\_str(),0,0,0,0,0,0,&info,&pi))
-      {
-      errs<<"更新："<<errTchar(ps)<<"失败！"<<endd;
-      return;
-      }
-    WaitForSingleObject(pi.hProcess,INFINITE);
-    errs<<"〓〓〓〓已经处理完："<<errTchar(ps)<<endd;
-    }
-  }
+void  doit(const TCHAR* ps)
+  {
+  fileflag ff = iswant(ps);
+  if(ff==flag_no)return;
+  if(ff==PE_EXE)
+    {
+    dealPE(ps);
+    return;
+    }
+  if(ff==RAR)
+    {
+    wstring path = ps;
+    path += TEXT("$$");
+    wstring cmdline = TEXT("D:\\Program Files\\WinRAR\\WinRAR.exe x -O+ \"");
+    cmdline += ps;
+    cmdline += TEXT("\" *.* \"");
+    cmdline  += path;
+    cmdline += TEXT("\\\"");
+    STARTUPINFO info;
+    PROCESS_INFORMATION pi;
+    ZeroMemory(&info,sizeof(info));
+    if(!CreateProcess(0,(TCHAR*)cmdline.c_str(),0,0,0,0,0,0,&info,&pi))
+      {
+      errs<<"释放："<<errTchar(ps)<<"失败！"<<endd;
+      return;
+      }
+    WaitForSingleObject(pi.hProcess,INFINITE);
+    domain(path.c_str());
+    cmdline = TEXT("D:\\Program Files\\WinRAR\\WinRAR.exe m -r -ep1 -y \"");
+    cmdline  += ps;
+    cmdline += TEXT("\" ");
+    cmdline  += path;
+    cmdline += TEXT("\\*\\\"");
+    ZeroMemory(&info,sizeof(info));
+    if(!CreateProcess(0,(TCHAR*)cmdline.c_str(),0,0,0,0,0,0,&info,&pi))
+      {
+      errs<<"更新："<<errTchar(ps)<<"失败！"<<endd;
+      return;
+      }
+    WaitForSingleObject(pi.hProcess,INFINITE);
+    errs<<"〓〓〓〓已经处理完："<<errTchar(ps)<<endd;
+    }
+  }
 
 
-void  domain(const TCHAR\* ps)
-  {
-  if(\*ps==TEXT('.'))return;
-  //PathIsDirectory
-  if(PathIsDirectory(ps))
-    {
-    //errs<<"★★★"<<errTchar((TCHAR\*)ps)<<":是一个目录，向下枚举..."<<endd;
-     wstring oo = ps;
-     if(\*(oo.rbegin())==TEXT('\\\\'))
-       {
-       oo.erase(oo.end()-1);
-       }
-    oo+=TEXT("\\\\\*.\*");
-    WIN32\_FIND\_DATA  wfd;
-    HANDLE  hFind = FindFirstFile(oo.c\_str(),&wfd);
-    if(INVALID\_HANDLE\_VALUE == hFind)return;
-    for(;FindNextFile(hFind,&wfd);)
-      {
-      if(\*wfd.cFileName==TEXT('.'))continue;
-      wstring fn;
-      fn = ps;
-      if(\*(fn.rbegin())==TEXT('\\\\'))
-        {
-        fn.erase(fn.end()-1);
-        }
-      fn+=TEXT('\\\\');
-      fn+=wfd.cFileName;
-      domain(fn.c\_str());
-      }
-    CloseHandle(hFind);
-    return;
-    }
-  doit(ps);
-  }
+void  domain(const TCHAR* ps)
+  {
+  if(*ps==TEXT('.'))return;
+  //PathIsDirectory
+  if(PathIsDirectory(ps))
+    {
+    //errs<<"★★★"<<errTchar((TCHAR*)ps)<<":是一个目录，向下枚举..."<<endd;
+     wstring oo = ps;
+     if(*(oo.rbegin())==TEXT('\\'))
+       {
+       oo.erase(oo.end()-1);
+       }
+    oo+=TEXT("\\*.*");
+    WIN32_FIND_DATA  wfd;
+    HANDLE  hFind = FindFirstFile(oo.c_str(),&wfd);
+    if(INVALID_HANDLE_VALUE == hFind)return;
+    for(;FindNextFile(hFind,&wfd);)
+      {
+      if(*wfd.cFileName==TEXT('.'))continue;
+      wstring fn;
+      fn = ps;
+      if(*(fn.rbegin())==TEXT('\\'))
+        {
+        fn.erase(fn.end()-1);
+        }
+      fn+=TEXT('\\');
+      fn+=wfd.cFileName;
+      domain(fn.c_str());
+      }
+    CloseHandle(hFind);
+    return;
+    }
+  doit(ps);
+  }
 
 
 //函数：显示开始时间
-void  showSYSTEMTIME(void)
-  {
-  SYSTEMTIME systime;
-  GetLocalTime(&systime);
-  errs<<"\*\*\*\*\*\*\*\*\*\*\*\*       ";
-  errs<<setw(4)<<systime.wYear<<'-';
-  errs<<setw(2)<<systime.wMonth<<'-';
-  errs<<setw(2)<<systime.wDay<<"        ";
-  errs<<setw(2)<<systime.wHour<<':';
-  errs<<setw(2)<<systime.wMinute<<':';
-  errs<<setw(2)<<systime.wSecond<<"       \*\*\*\*\*\*\*\*\*\*\*\*"<<endd;
-  }
+void  showSYSTEMTIME(void)
+  {
+  SYSTEMTIME systime;
+  GetLocalTime(&systime);
+  errs<<"**********     ";
+  errs<<setw(4)<<systime.wYear<<'-';
+  errs<<setw(2)<<systime.wMonth<<'-';
+  errs<<setw(2)<<systime.wDay<<"        ";
+  errs<<setw(2)<<systime.wHour<<':';
+  errs<<setw(2)<<systime.wMinute<<':';
+  errs<<setw(2)<<systime.wSecond<<"       **********"<<endd;
+  }
 
-void  usage()
-  {
-  cout<<"\\n Fuck\_Win32Agent \[路径\] \[PE 文件\] ..."<<endl;
-  cout<<"\\n 如果参数为“路径”时，枚举其下所有文件。"<<endl;
-  }
+void  usage()
+  {
+  cout<<"\n Fuck_Win32Agent [路径] [PE 文件] ..."<<endl;
+  cout<<"\n 如果参数为“路径”时，枚举其下所有文件。"<<endl;
+  }
 
 
-int \_tmain(int argc, \_TCHAR\* argv\[\])
+int _tmain(int argc, _TCHAR* argv[])
 {
-  unsigned long times = GetTickCount();
-  //更改全局输出格式
-  errs<<setfill('0');
-  errs<<"\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*"<<endd;
-  showSYSTEMTIME();    //输出时间
-  if(argc<=1)
-    {
-    usage();
-    return 0;
-    }
-  for(int i = 1;i < argc;++i)
-    {
-    domain(argv\[i\]);
-    }
-  unsigned long usetime = GetTickCount() - times;
-  errs<<"\*\*\*\*\*\*\*\*\*\*\*\*           共计用时："<<setw(3)<<usetime/1000;
-  errs<<'.'<<setw(3)<<usetime%1000;
-  errs<<"秒           \*\*\*\*\*\*\*\*\*\*\*\*"<<endd;
-  errs<<"\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*"<<endd;
-  Beep(2300,50);
-  return 0;
+  unsigned long times = GetTickCount();
+  //更改全局输出格式
+  errs<<setfill('0');
+  errs<<"***********************************************************************"<<endd;
+  showSYSTEMTIME();    //输出时间
+  if(argc<=1)
+    {
+    usage();
+    return 0;
+    }
+  for(int i = 1;i < argc;++i)
+    {
+    domain(argv[i]);
+    }
+  unsigned long usetime = GetTickCount() - times;
+  errs<<"**********   共计用时："<<setw(3)<<usetime/1000;
+  errs<<'.'<<setw(3)<<usetime%1000;
+  errs<<"秒           **********"<<endd;
+  errs<<"***********************************************************************"<<endd;
+  Beep(2300,50);
+  return 0;
 }
-
 ```

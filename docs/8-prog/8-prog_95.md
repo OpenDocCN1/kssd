@@ -1,417 +1,481 @@
 
-
-# 【邀请码已发】【原创】NASMX 实现 Win32 汇编基本框架+NASM 教程［申请邀请码］
+# 【邀请码已发】【原创】`NASMX` 实现 `Win32` 汇编基本框架+`NASM` 教程［申请邀请码］
 
 > 原文：[`www.pediy.com/kssd/pediy10/96753.html`](https://www.pediy.com/kssd/pediy10/96753.html)
 
-学习 NASM 已经有一段时间了，学习过程中遇到了很多困难![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")，因为完整的 NASM 中文资源真得是少之又小![](img/1e00a4c5ba6d273521879fcbd5363999.jpg "碌眼")，不过在我的探索下发现两本书对于学习 NASM 是非常有帮助的：第一本当然就是＜＜NASM 中文手册＞＞了。虽然这本书所翻译的 nasm 版本有点低，而且翻译的水平有限（作者大大千万不要记恨我啊～～～![](img/f43c1e514327696dccbb0da997496b2a.jpg "扮鬼脸")）不过里面的内容还是非常完整的，必竟是出版官方的第一手资料！第二本就是由 Paul A. Carter 著，伍星翻译的＜＜PC 汇编语言＞＞中文版。该书是一本完全使用 NASM 语法讲解汇编语言基础的书籍，对于 NASM 语法的理解和汇编语言的理解都会有很好的帮助。  
-        当然学习完 NASM 的语法后并不是就万事大吉了，我们最终是要写 win32，甚至是 win64 下的程序，所以学习 win32 环境下的汇编程序设计就非常必要了，在这里我就要推荐大家那本超经典的＜＜Iczelion 的 Win32 汇编教程＞＞了，这本教程是用 masm 语法实现的，我改用 NASMX 实现了教程中的实例，也就得到了今天的这篇文章。在进入正题之前先把上面所说的三本经典附上与大家一同分享！  
-          
-   
-         首先先说说这篇文章，因为我是首先在我的[博客](http://hi.baidu.com/monalisa88188)上发表之后才发现“看雪”是一个非常有技术内涵的站点，希望能跟各位高手多多学习，所以我把这篇文章拿来，并正式对外发表。不知道这样算不算？  
-  
-         下面进入正题：NASMX 实现 Win32 汇编基本框架  
-  
-理论：  
-    Windows 程序中，在写图形用户界面时需要调用大量的标准 Windows GUI 函数。其实这对用户和程序员来说都有好处，对于用户，面对的是同一套标准的窗口，对这些窗口的操作都是一样的，所以使用不同的应用程序时无须重新学习操作。对程序员来说，这些 GUI 源代码都是经过了微软的严格测试，随时拿来就可以用的。当然至于具体地写程序对于程序员来说还是有难度的。为了创建基于窗口的应用程序，必须严格遵守规范。作到这一点并不难，只要用模块化或面向对象的编程方法即可。  
-  
-    下面我就列出在桌面显示一个窗口的几个步骤：  
-    1、得到你应用程序的句柄（必须）；  
-    2、得到命令行参数（如果你想从命令行得到参数，可选）；  
-    3、注册窗口类（必须，除非你使用 Windows 预定义的窗口类，如 MessageBox 或 dialog box）；  
-    4、产生窗口；（必须）  
-    5、在桌面显示窗口（必须，除非你不想立即显示它）  
-    6、刷新窗口客户区；  
-    7、进入无限的获取窗口消息的循环；  
-    8、如果有消息到达，由负责该窗口的窗口回调函数处理；  
-    9、如果用户关闭窗口，进行退出处理。  
-  
-    相对于单用户的 DOS 下的编程来说，Windows 下的程序框架结构是相当复杂的。但是 Windows 和 DOS 在系统架构上是截然不同的。Windows 是一人多任务的操作系统，故系统中同时有多个应用程序彼此协同进行。这就要求 Windows 程序员必须严格遵守编程规范，并养成良好的编程网络。  
-  
-    说明：  
-    1、在编程过程中应当把程序中要用到的所有常量和结构体的声明放到一个头文件中，并且在源程序的开始处包含这个头文件。特别要注意一定要在源程序中包含 nasmx.inc 这个头文件，因为它提供了用宏写成的高级命令语句，如 invoke,if/elsif/else/endif 等。当然你也可以写自己的宏，以提高编程的效率。  
-    2、在其它地方运用头文件中定义函数原型，常数和结构体时，要严格保持和头文件中的定义一致，包括大小写。在查询函数定义时，这将节约你大量的时间。  
-    3、在编译、链接时用 makefile 文件，免去重复敲键。  
-  
-    下面是一个简单的窗口程序的源代码。  
-  
-%include '..\\inc\\nasmx.inc'  
-%include '..\\inc\\win32\\windows.inc'  
-%include '..\\inc\\win32\\kernel32.inc'  
-%include '..\\inc\\win32\\user32.inc'  
-  
-entry    start  
-  
-\[section .bss\]  
-    hInstance:   resd 1  
-    hWnd:        resd 1  
-    lpCommandLine: resd 1  
-  
-\[section .data\]  
-    szTitle:    db    "My First Window", 0x0  
-    szClass:    db    "FirstWindow", 0x0  
-  
-    wc:  
-    istruc WNDCLASSEX                                    ;声明结构体  
-        at WNDCLASSEX.cbSize,           dd    NULL  
-        at WNDCLASSEX.style,            dd    NULL  
-        at WNDCLASSEX.lpfnWndProc,      dd    NULL  
-        at WNDCLASSEX.cbClsExtra,       dd    NULL  
-        at WNDCLASSEX.cbWndExtra,       dd    NULL  
-        at WNDCLASSEX.hInstance,        dd    NULL  
-        at WNDCLASSEX.hIcon,            dd    NULL  
-        at WNDCLASSEX.hCursor,          dd    NULL  
-        at WNDCLASSEX.hbrBackground,    dd    NULL  
-        at WNDCLASSEX.lpszMenuName,     dd    NULL  
-        at WNDCLASSEX.lpszClassName,    dd    NULL  
-        at WNDCLASSEX.hIconSm,          dd    NULL  
-    iend  
-  
-    message:  
-    istruc MSG  
-        at MSG.hwnd,                    dd    NULL  
-        at MSG.message,                 dd    NULL  
-        at MSG.wParam,                  dd    NULL  
-        at MSG.lParam,                  dd    NULL  
-        at MSG.time,                    dd    NULL  
-        at MSG.pt,                      dd    NULL  
-    iend  
-  
-\[section .code\]  
-proc    start  
-  
-    invoke   GetModuleHandleA, dword NULL        ;获取我们程序的句柄，必须的。  
-    mov      \[hInstance\], eax                    ;在 Win32 下，hmdule == hinstance mov \[hInstance\],eax  
-     
-    invoke    GetCommandLineA                ;获取命令行。如果你的程序不需要命令行执行，你可以不使用此函数。  
-    mov        \[lpCommandLine\], eax  
-  
-    invoke   \_WinMain, dword \[hInstance\], dword NULL, dword lpCommandLine, dword SW\_SHOWNORMAL        ;调用主函数。  
-    invoke   ExitProcess, dword NULL            ;退出程序。  
-    ret  
-  
-endproc  
-  
-proc    \_WinMain  
-hinst    argd        ; Current instance handle  
-hpinst   argd        ; Previous instance handle  
-cmdln    argd        ; Command line arguments  
-dwshow   argd        ; Display style  
-  
-    mov     \[wc + WNDCLASSEX.cbSize\], dword WNDCLASSEX\_size                ;设置窗口成员属性（WNDCLASSEX 结构）  
-    mov     \[wc + WNDCLASSEX.style\], dword CS\_HREDRAW | CS\_VREDRAW        ;注意：使用寄存器传值可以减少执行文件大小  
-    invoke LoadIconA, dword NULL, dword IDI\_APPLICATION  
-    mov     edx, eax  
-    mov     eax, dword argv(hinst)  
-    mov     ebx, dword szClass  
-    mov     ecx, dword WndProc  
-    mov     \[wc + WNDCLASSEX.hInstance\], eax  
-    mov        \[wc + WNDCLASSEX.hbrBackground\], dword COLOR\_WINDOW + 1  
-    mov     \[wc + WNDCLASSEX.lpszClassName\], ebx  
-    mov     \[wc + WNDCLASSEX.lpfnWndProc\], ecx  
-    mov     \[wc + WNDCLASSEX.hIcon\], edx  
-    mov     \[wc + WNDCLASSEX.hIconSm\], edx  
-  
-    invoke   RegisterClassExA, dword wc                    ;注册窗口类  
-  
-    ;创建窗口,注意要加 WS\_VISIBLE 属性，否则不可见  
-    invoke   CreateWindowExA, dword NULL, dword szClass, dword szTitle, dword WS\_OVERLAPPEDWINDOW + WS\_VISIBLE, dword CW\_USEDEFAULT, dword CW\_USEDEFAULT, dword CW\_USEDEFAULT, dword CW\_USEDEFAULT, dword NULL, dword NULL, dword \[wc + WNDCLASSEX.hInstance\], dword NULL  
-    mov      \[hWnd\], eax  
-  
-    invoke   ShowWindow, dword hWnd, dword argv(dwshow)            ;显示窗口  
-    invoke   UpdateWindow, dword hWnd                            ;刷新用户区  
-  
-    .WHILE:                                                        ;消息循环  
-        invoke   GetMessageA, dword message, dword NULL, dword NULL, dword NULL  
-        cmp      eax, dword 0  
-        je       .ENDW  
-        invoke   TranslateMessage, dword message  
-        invoke   DispatchMessageA, dword message  
-        jmp      .WHILE  
-    .ENDW:  
-  
-    mov      eax, dword \[message + MSG.wParam\]  
-    ret  
-  
-endproc  
-  
-proc    WndProc  
-hwnd    argd        ; Window handle  
-umsg    argd        ; Window message  
-wparam argd        ; wParam  
-lparam argd        ; lParam  
-  
-    if argv(umsg), ==, dword WM\_DESTROY                 ;nasmx 提供的 if/elsif/else/endif 语句  
-        invoke    PostQuitMessage, dword NULL  
-        xor eax, eax  
-    else  
-        invoke    DefWindowProcA, dword argv(hwnd), dword argv(umsg), dword argv(wparam), dword argv(lparam)  
-         
-    endif  
-     
-    ret  
-  
-endproc  
-  
-  
-分析：  
-    看到上面的代码是不是有点怕怕？我第一次见是感觉挺怕的……呵呵。但是上面的代码大多数都可以做为模板。模板就是指这些代码对差不多所有标准 Windows 程序来说都是相同的。在写 Windows 程序时你可以简单地复制就行了。当然把这些重复的代码写到一个库中也挺好。其实真实要写的代码集中在\_WinMain 中。这和一些 C 编译器一样，无需关心其它杂务，集中精力于 WinMain 函数。唯一不同的是 C 编译器要求你的源代码必须有一个叫 WinMain。否则 C 无法知道将哪个函数和有关的前后代码链接。相对 C，汇编语言提供了较大的灵活性，它不强行要求一个叫 WinMain 的函数。  
-  
-    下面我们开始分析，你可得做好思想准备，这可不是一件太轻松的话。  
-  
-%include '..\\inc\\nasmx.inc'  
-%include '..\\inc\\win32\\windows.inc'  
-%include '..\\inc\\win32\\kernel32.inc'  
-%include '..\\inc\\win32\\user32.inc'  
-  
-entry    start  
-  
-    为了使用 nasmx 提供我们的高级特性进行编程，所以我们可以认为第一行“%include '..\\inc\\nasmx.inc'”语句是必须的，下面三句是包含程序中所使用到函数的头文件。由于我们在程序中用到的函数在 user32.dll 和 kernel32.dll 中，所以我们必须要用"%include"来引用头文件“kernel32.inc 和 user32.inc”，而 “windows.inc”则包含了 Windows 系统中使用到的常量和结构的定义。如果有人要问：你需要把什么库引入到程序中？  
-    答案是：先查你要调用的函数在什么库中，然后把库包含进来。若你要调用的函数在 gdi32.inc 中，那就要包含 gdi32.inc 头文件。  
-  
-    接下来，是 nasmx 为我们提供的 entry 宏，这个宏让我们指定程序的入口点。start 则是在代码段中声明的某一个子程序名。  
-  
-  
-\[section .bss\]  
-    hInstance:   resd 1  
-    hWnd:        resd 1  
-    lpCommandLine: resd 1  
-  
-\[section .data\]  
-    szTitle:    db    "My First Window", 0x0  
-    szClass:    db    "FirstWindow", 0x0  
-  
-    wc:  
-    istruc WNDCLASSEX                                    ;声明结构体  
-        at WNDCLASSEX.cbSize,           dd    NULL  
-        at WNDCLASSEX.style,            dd    NULL  
-        at WNDCLASSEX.lpfnWndProc,      dd    NULL  
-        at WNDCLASSEX.cbClsExtra,       dd    NULL  
-        at WNDCLASSEX.cbWndExtra,       dd    NULL  
-        at WNDCLASSEX.hInstance,        dd    NULL  
-        at WNDCLASSEX.hIcon,            dd    NULL  
-        at WNDCLASSEX.hCursor,          dd    NULL  
-        at WNDCLASSEX.hbrBackground,    dd    NULL  
-        at WNDCLASSEX.lpszMenuName,     dd    NULL  
-        at WNDCLASSEX.lpszClassName,    dd    NULL  
-        at WNDCLASSEX.hIconSm,          dd    NULL  
-    iend  
-  
-    message:  
-    istruc MSG  
-        at MSG.hwnd,                    dd    NULL  
-        at MSG.message,                 dd    NULL  
-        at MSG.wParam,                  dd    NULL  
-        at MSG.lParam,                  dd    NULL  
-        at MSG.time,                    dd    NULL  
-        at MSG.pt,                      dd    NULL  
-    iend  
-  
-    上面这部分代码则是定义了数据段中的内容。  
-  
-    \[section .bss\]段用来声明未初始化的数据。resd 伪指令用来声明未初始化的双字。与它相似的指令还有 resb,resw,resq 和 rest，分别用来表示声明未初始化的字节、字、四个字、十个字节的预留空间。res\*类伪指令后面跟的数字表示要预留空间的个数。上面代码中指定了 1，表示声明一个未初始化的数据空间。“hInstance:   resd 1”表示声明一个未初始化的双字空间。未初始化表示程序在启动时它们是什么值无关紧要，只不过占了一段内存，以后再利用。  
-  
-    hInstance 代表程序的实例句柄，lplpCommandLine 保存的是传入的命令行参数。  
-  
-    \[section .data\]段用来声明初始化数据。dd 伪指令用来声明初始化的双字。与它相似的指令还有 db,dw,dq 和 dt，分别用来声明初始化的字节、字、四个字、十个字节的初始化空间。指令后要跟数值常数或字符串常数作为操作数。在声明字符串时，要以 0 来结尾。上面就定义了两个以 0 结尾的字符串：其中 szClass 是 Windows 的类名，szTitle 是我们窗口的名字。  
-  
-    wc、message 两个 label 则声明了两个数据结构的实例，并进行了初始化，他们的值都是 NULL。在 nasm 中使用宏命令 istruc/at /iend 来声明一个用 struc/endstruc 定义的结构体数据类型。at 的功能是把偏移位置定位到正确的结构体域上，然后为这个域赋值。在定义结构体时的一般格式是：  
-  
-struc mytype  
-    mt\_1:    resd    1  
-    mt\_2:    resb    1  
-    ...  
-endstruc  
-  
-    声明结构体实例时的格式：  
-  
-my:  
-istruc mytype  
-    at mt\_1,    dd    123456  
-    at mt\_2,    db    'x'  
-    ...  
-iend  
-  
-    结构体 WNDCLASSEX 和 MSG 是在 windows.inc 头文件中定义的结构体。  
-     
-\[section .code\]  
-proc    start  
-  
-    invoke   GetModuleHandleA, dword NULL        ;获取我们程序的句柄，必须的。  
-    mov      \[hInstance\], eax                    ;在 Win32 下，hmdule == hinstance mov \[hInstance\],eax  
-     
-    invoke    GetCommandLineA                ;获取命令行。如果你的程序不需要命令行执行，你可以不使用此函数。  
-    mov        \[lpCommandLine\], eax  
-  
-    invoke   \_WinMain, dword \[hInstance\], dword NULL, dword lpCommandLine, dword SW\_SHOWNORMAL        ;调用主函数。  
-    invoke   ExitProcess, dword NULL            ;退出程序。  
-    ret  
-  
-endproc  
-  
-    \[section .data\]段包含了你应用程序的所有代码。proc/endproc 是 nasmx 提供给我们的高级特性----子程序分段，可以实现程序的分块编写。它的一般格式是：  
-  
-proc 函数名  
-parameter    argd  
-...  
-parameter    argd  
-    代码  
-endproc  
-  
-    注意：parameter argd 形式的参数，它们是由调用者传给函数的参数。我们可以使用 argv(parameter)宏进行引用。至于退栈、压栈 nasm 在编译的时候会自动处理的。  
-  
-    代码中的函数名 start 就是我们在 entry 中指定的程序入口点。  
-  
-    我们程序的第一条语句是调用 GetModuleHandleA 去查找我们应用程序的句柄。在 Win32 下，应用程序的句柄和模块的句柄是一样的。你可以把实例句柄看成是你的应用程序的 ID 号。我们在调用几个函数时都把它作为参数来进行传递，所以在一开始便得到并保存它就可以省许多的事。  
-  
-    注意：在 nasm 中一般要为操作数指明数据类型，包括（byte,word,dword,nosplit）。  
-     
-    特别注意：Win32 下的实例句柄实际上是你应用程序在内存中的线性地址。  
-  
-    win32 中如函数有返回值，那它是通过 eax 寄存器来传递的。其他的值可以通过传递进来的参数地址进行返回。一个 win32 函数被调用时总会保存好段寄存器和 ebx,edi,esi 和 ebp 寄存器，而 ecx 和 edx 中的值问题不定的，不能在返回时应用。特别注意：从 Windows API 函数中返回后，eax,ecx,edx 中的值和调用前不一定相同。当函数返回时，返回值放在 eax 中。如果你的应用程序中的函数提供给 Windows 调用时，也必须遵守这一点，即在函数入口处保存段寄存器和 ebx,esp,esi,edi 的值并在函数返回时恢复。如果不这样，你的应用程序很快会崩溃。从你的程序中提供给 Windows 调用的函数大体上有两种：Windows 窗口过程和 CallBack 函数。  
-  
-    如果你的应用程序不处理命令行那么就无须调用 GetCommandLineA，这里只是告诉你如果要调用应该怎么做。  
-  
-    接下来程序调用\_WinMain 函数，函数有 4 个参数（具体函数定义下面介绍）。     
-  
-    然后在应用程序结束时通过 ExitProcess 函数把该返回码传递给 Windows。  
-  
-proc    \_WinMain  
-hinst    argd        ; Current instance handle  
-hpinst   argd        ; Previous instance handle  
-cmdln    argd        ; Command line arguments  
-dwshow   argd        ; Display style  
-  
-    上面是\_WinMain 函数的定义。该函数共有 4 个参数：应用程序的实例句柄，该应用程序的前一实例句柄，命令行参数串指针和窗口显示方式。Win32 没有前一实例句柄的概念，所以第二个参数总为 dword NULL。之所以保留它只是为了和 Win16 兼容的考虑，在 Win16 下，如果 hpinst 是 dword NULL，则该函数是第一次运行。特别注意：你不用必须声明一个名为\_WinMain 函数，事实上在这方面你可以完全自己作主！你甚至无须有一个和 \_WinMain 等同的函数。你只要把\_WinMain 中的代码拷到 GetCommandLineA 之后，其所实现的功能完全相同。在\_WinMain 返回时，把返回码放到 eax 中。  
-  
-    mov     \[wc + WNDCLASSEX.cbSize\], dword WNDCLASSEX\_size                ;设置窗口成员属性（WNDCLASSEX 结构）  
-    mov        \[wc + WNDCLASSEX.style\], dword CS\_HREDRAW | CS\_VREDRAW        ;注意：使用寄存器传值可以减少执行文件大小  
-    invoke LoadIconA, dword NULL, dword IDI\_APPLICATION  
-    mov     edx, eax  
-    mov     eax, dword argv(hinst)  
-    mov     ebx, dword szClass  
-    mov     ecx, dword WndProc  
-    mov     \[wc + WNDCLASSEX.hInstance\], eax  
-    mov        \[wc + WNDCLASSEX.hbrBackground\], dword COLOR\_WINDOW + 1  
-    mov     \[wc + WNDCLASSEX.lpszClassName\], ebx  
-    mov     \[wc + WNDCLASSEX.lpfnWndProc\], ecx  
-    mov     \[wc + WNDCLASSEX.hIcon\], edx  
-    mov     \[wc + WNDCLASSEX.hIconSm\], edx  
-  
-    invoke   RegisterClassExA, dword wc                    ;注册窗口类  
-  
-    上面几行从概念上说确实是非常地简单。只要几行指令就可以实现。其中的主要概念就是窗口类，一个窗口类就是一个有关窗口的规范，这个规范定义了几个主要的窗口的元素，如：图标、光标、背景色、和负责处理窗口的函数。你产生一个窗口就必须要有这样一个窗口类。如果你要产生不止一个同种类型的窗口时，最好的办法就是把这个窗口类型存储起来，这种方法可以节约许多的内存空间。也许今天你不会太感觉到，可是想想以前 PC 大多数只有 1M 内存时，这么做就非常有必要了。如果你定义自己的创建窗口类就必须在一个 WNDCLASS 或 WNDCLASSEX 结构体中指明你窗口的组成元素，然后调用 RegisterClass 或 RegisterClassEx，再根据该窗口类产生窗口。对不同特色的窗口必须定义不同的窗口类。Windows 有几个预定义窗口类，譬如：按钮、编辑框等。要产生该种风格的窗口无须预先再定义窗口类了，只要包含相应的预定义的类名作为参数调用给 CreateWindow 或 CreateWindowEx 即可。  
-  
-    WNDCLASSEX 中最重要的成员莫过于 lpfnWndProc 了。前缀 lpfn 表示该成员是一个指向函数的长指针。在 Win32 中由于内存模式是 FLAT 型，所以没有 near 或 far 的区别。每一个窗口类必须有一个窗口过程，当 Windows 把属于特定窗口的消息发送给该窗口时，该窗口的窗口类负责处理所有的消息，如键盘消息或鼠标消息。由于窗口过程差不多智能地处理了所有的窗口消息循环，所以你只要在其中加入消息处理过程即可。下面我讲解 WNDCLASSEX 的每一个成员。  
-  
-STRUC WNDCLASSEX  
-.cbSize RESD 1  
-.style RESD 1  
-.lpfnWndProc RESD 1  
-.cbClsExtra RESD 1  
-.cbWndExtra RESD 1  
-.hInstance RESD 1  
-.hIcon RESD 1  
-.hCursor RESD 1  
-.hbrBackground RESD 1  
-.lpszMenuName RESD 1  
-.lpszClassName RESD 1  
-.hIconSm RESD 1  
-ENDSTRUC  
-  
-    cbSize:WNDCLASSEX 的大小。我们可以用 WNDCLASSEX\_size 来获得准确的值。（nasm 使用“结构体名\_size”来获得结构体的大小）  
-    style:从这个窗口类派生的窗口具有的风格。你可以用“|”（或）来把几个风格或到一起。  
-    lpfnWndProc:窗口处理函数的指针。  
-    cbClsExtra:指定紧跟在窗口类结构后的附加字节数。  
-    cbWndExtra:指定紧跟在窗口事例后的附加字节数。如果一个应用程序在资源中用 CLASS 伪指令注册一个对话框时，则必须把这个成员设成 DLGWINDOWEXTRA。  
-    hInstance:本模块的事例句柄。  
-    hIcon:图标的句柄。  
-    hCursor:光标的句柄。  
-    hbrBackgroudn:背景画刷的句柄。  
-    lpszMenuName:指向菜单的指针。  
-    lpszClassName:指向类名称的指针。  
-    hIconsm:和窗口类关联的小图标。如果该值为 NULL。则把 hCursor 中的图标转换成大小合适的小图标。  
-  
-    注册窗口类后，我们将调用 CreateWindowExA 来产生实际的窗口。请注意该函数有 12 个参数。  
-  
-CreateWindowExA proto dwExStyle：DWORD，\\  
-lpClassName：DWORD，\\  
-lpWindowName：DWORD，\\  
-dwStyle：DWORD，\\  
-X：DWORD，\\  
-Y：DWORD，\\  
-nWidth：DWORD，\\  
-nHeight：DWORD，\\  
-hWndParent：DWORD ，\\  
-hMenu：DWORD，\\  
-hInstance：DWORD，\\  
-lpParam：DWORD  
-     
-    我们来仔细看一看这些的参数：  
-    dwExStyle:附加的窗口风格。相对于旧的 CreateWindowA 这是一个新的参数。在 9x/NT 中你可以使用新的窗口风格。你可以在 Style 中指定一般的窗口风格，但是一些特殊的窗口风格，如顶层窗口则必须在此参数中指定。如果你不想指定任何特别的风格，则把此参数设为 NULL。  
-    lpClassName:（必须）。ASCIIZ 形式的窗口类名称的地址。可以是你自己定义的类，也可以是预定义的类名。像上面所说，每一个应用程序必须有一个窗口类。  
-    lpWindowName:ASCIIZ 形式的窗口名称的地址。该名称会显示在标题条上。如果该参数空白，则标题条上什么都没有。  
-    dwStyle:窗口的风格。在此你可以指定窗口的外观。可以指定该参数为零，但那样该窗口就没有系统菜单，也没有最大化和最小化按钮，也没有关闭按钮，那样你不得不按 Alt+F4 来关闭它。最为普通的窗口类风格是 WS\_OVERLAPPEDWINDOW。一种窗口风格是一种按位的掩码，这样你可以用 “|”把你希望的窗口风格或起来，像 WS\_OVERLAPPEDWINDOW 就是由几种风格或起来的。  
-    X,Y:指定窗口左上角的以像素为单位的屏幕坐标位置。缺省地可指定为 CW\_USEDEFAULT，这样 Windows 会自动为窗口指定最合适的位置。  
-    nWidth,nHeight:以像素为单位的窗口大小。缺省地可指定为 CW\_USEDEFAULT，这样 Windows 会自动为窗口指定最合适的大小。  
-    hWndParent:父窗口的句柄（如果有的话）。这个参数告诉 Windows 这是一个子窗口和他的父窗口是谁。这和 MDI（多文档结构）不同，此处的子窗口并不会局限在父窗口的客户区内。它只是用来告诉 Windows 各个窗口之间的父子关系，以便在父窗口销毁时一同把其子窗口销毁。在我们的例子程序中因为只有一个窗口，故把参数设为 NULL。  
-    hMenu:Windows 菜单的句柄。如果只用系统菜单则指定该参数为 NULL。回头看一看 WNDCLASSEX 结构中的 lpszMenuName 参数，它也指定一个菜单，这是一个缺省菜单，任何从该窗口类派生的窗口若想用其他的菜单需在该参数中重新指定。其实该参数有双重意义：一方面若这是一个自定义窗口时，该参数代表菜单句柄，另一方面，若这是一个预定义窗口时，该参数代表是该窗口的 ID 号。Windows 是根据 lpClassName 参数来区分是自定义窗口还是预定义窗口的。  
-    hInstance:产生该窗口的应用程序的实例句柄。  
-    lpParam:（可选）指向欲传给窗口的结构体数据类型参数的指针。如在 MDI 中产生窗口时传递 CLIENTCREATESTRUCT 结构的参数。一般情况下，该值总为 NULL，这表示没有参数传递给窗口。可以通过 GetWindowLong 函数检索该值。  
-  
-    mov      \[hWnd\], eax  
-  
-    invoke   ShowWindow, dword hWnd, dword argv(dwshow)            ;显示窗口  
-    invoke   UpdateWindow, dword hWnd                            ;刷新用户区  
-  
-    调用 CreateWindowEx 成功后，窗口句柄在 eax 中。我们必须保存该值以备后用。我们刚刚产生的窗口不会自动显示，所以必须调用 ShowWindow 来按照我们希望的方式来显示该窗口。接下来调用 UudateWindow 来更新客户区。  
-  
-    .WHILE:                                                        ;消息循环  
-        invoke   GetMessageA, dword message, dword NULL, dword NULL, dword NULL  
-        cmp      eax, dword 0  
-        je       .ENDW  
-        invoke   TranslateMessage, dword message  
-        invoke   DispatchMessageA, dword message  
-        jmp      .WHILE  
-    .ENDW:  
-  
-    这时候我们的窗口已经显示在屏幕上了。但是它还不能从外界接收消息。所以我们必须给它提供相关的消息。我们是通过一个消息循环来完成该项工作的。每一个模块仅有一个消息循环，我们不断地调用 GetMessageA 从 Windows 中获得消息。GetMessageA 传递一个 MSG 结构体给 Windows，然后 Windows 在该函数中填充有关的消息，一直到 Windows 找到并填充好消息后 GetMessageA 才会返回。在这段时间内系统控制权可能会转移给其他的应用程序。这样就构成了 Win16 下的多任务结构。如果 GetMessageA 接收到 WM\_QUIT 消息后就会返回 0，使循环结束并退出应用程序。TranslateMessage 函数是一个实用函数，它从键盘接受原始按键消息，然后解释成 WM\_CHAR，在把 WN\_CHAR 放入消息队列，由于经过解释后的消息中含有按键的 ASCII 码，这比原始的扫描好理解得多。如果你的应用程序不处理按键消息的话，可以不调用该函数。 DispatchMessageA 会把消息发送给负责该窗口过程的函数。  
-  
-    mov      eax, dword \[message + MSG.wParam\]  
-    ret  
-  
-endproc  
-  
-    如果消息循环结束了，退出码存放在 MSG 中的 wParam 中，你可以通过把它放到 eax 寄存器中传给 Windows。目前 Windows 没有利用到这个结束码，但我们最好还是遵从 Windows 规范已防意外。  
-  
-proc    WndProc  
-hwnd    argd        ; Window handle  
-umsg    argd        ; Window message  
-wparam argd        ; wParam  
-lparam argd        ; lParam  
-  
-    这是我们的窗口处理函数。你可以随便给该函数命名。其中第一个参数 hwnd 是接收消息的窗口的句柄。umsg 是接收的消息。注意 umsg 不是一个 MSG 结构，其实上只是一个 Dword 类型数。Windows 定义了成百上千个消息，大多数你的应用程序不会处理到。当有该窗口的消息发生时，Windows 会发送一个相关消息给该窗口。其窗口过程处理函数会智能的处理这些消息。wparam 和 lparam 只是附加参数，以方便传递更多的和该消息有关的数据。  
-  
-    if argv(umsg), ==, dword WM\_DESTROY                 ;nasmx 提供的 if/elsif/else/endif 语句  
-        invoke    PostQuitMessage, dword NULL  
-        xor eax, eax  
-    else  
-        invoke    DefWindowProcA, dword argv(hwnd), dword argv(umsg), dword argv(wparam), dword argv(lparam)  
-         
-    endif  
-     
-    ret  
-  
-endproc  
-  
-    上面可以说是关键部分。nasmx 提供了一个 if/elsif/else/endif 宏，if 后跟三个参数，每个参数用“,”分隔。这也是我们写 Windows 程序时需要改写的主要部分。此处你的程序检查 Windows 传递过来的消息，如果是我们感兴趣的消息则加以处理，处理完后，在 eax 寄存器中传递 0，否则必须调用 DefWindowProc，把该窗口过程接收到的参数传递给缺少的窗口处理函数。所有消息你必须处理的是 WM\_DESTROY，当你的应用程序结束时，Windows 把它传来。当你的应用程序截获到该消息时它已经在屏蔽上消失了，这仅是通知你的应用程序窗口已销毁，你必须自己准备返回 Windows。在此消息中你可以做一些清理工作，但无法阻止退出应用程序。如果你要那样做的话，可以处理 WM\_CLOSE 消息。在处理完清理工作后，你必须调用 PostQuitMessage，该函数会把 WM\_QUIT 消息传回你的应用程序，而该消息会使得 GetMessage 返回，并在 eax 寄存器中放入 0，然后会结束消息循环并返回 Windows。你可以在你的程序中调用 DestroyWindow 函数，它会发送一个 WM\_DESTROY 消息给你自己的应用程序，从而迫使它退出。  
-  
-    这一篇是我使用局部变量实现的框架。[`bbs.pediy.com/showthread.php?t=96949`](http://bbs.pediy.com/showthread.php?t=96949)
+学习 `NASM` 已经有一段时间了，学习过程中遇到了很多困难![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")，因为完整的 `NASM` 中文资源真得是少之又小![](img/1e00a4c5ba6d273521879fcbd5363999.jpg "碌眼")，不过在我的探索下发现两本书对于学习 `NASM` 是非常有帮助的：第一本当然就是＜＜`NASM` 中文手册＞＞了。虽然这本书所翻译的 `nasm` 版本有点低，而且翻译的水平有限（作者大大千万不要记恨我啊～～～![](img/f43c1e514327696dccbb0da997496b2a.jpg "扮鬼脸")）不过里面的内容还是非常完整的，必竟是出版官方的第一手资料！第二本就是由 `Paul A. Carter` 著，伍星翻译的＜＜`PC` 汇编语言＞＞中文版。该书是一本完全使用 `NASM` 语法讲解汇编语言基础的书籍，对于 `NASM` 语法的理解和汇编语言的理解都会有很好的帮助。
 
-上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || NASM 中文手册.rar \[附件下载：[`bbs.pediy.com/showthread.php?t=96753`](http://bbs.pediy.com/showthread.php?t=96753) \]   
- |
-| ![](img/fb8ade91a9e54b7bd6690c3ae5b1d1cc.jpg) || pcasm-book-simplified-chinese.zip  
- |
-| ![](img/fb8ade91a9e54b7bd6690c3ae5b1d1cc.jpg) || Win32asm.zip  
- |
+当然学习完 `NASM` 的语法后并不是就万事大吉了，我们最终是要写 `win32`，甚至是 `win64` 下的程序，所以学习 `win32` 环境下的汇编程序设计就非常必要了，在这里我就要推荐大家那本超经典的＜＜`Iczelion` 的 `Win32` 汇编教程＞＞了，这本教程是用 `masm` 语法实现的，我改用 `NASMX` 实现了教程中的实例，也就得到了今天的这篇文章。在进入正题之前先把上面所说的三本经典附上与大家一同分享！
+
+首先先说说这篇文章，因为我是首先在我的[博客](http://hi.baidu.com/monalisa88188)上发表之后才发现“看雪”是一个非常有技术内涵的站点，希望能跟各位高手多多学习，所以我把这篇文章拿来，并正式对外发表。不知道这样算不算？
+
+下面进入正题：`NASMX` 实现 `Win32` 汇编基本框架
+
+### 理论
+
+`Windows` 程序中，在写图形用户界面时需要调用大量的标准 `Windows GUI` 函数。其实这对用户和程序员来说都有好处，对于用户，面对的是同一套标准的窗口，对这些窗口的操作都是一样的，所以使用不同的应用程序时无须重新学习操作。对程序员来说，这些 `GUI` 源代码都是经过了微软的严格测试，随时拿来就可以用的。当然至于具体地写程序对于程序员来说还是有难度的。为了创建基于窗口的应用程序，必须严格遵守规范。作到这一点并不难，只要用模块化或面向对象的编程方法即可。
+
+下面我就列出在桌面显示一个窗口的几个步骤：
+
+1. 得到你应用程序的句柄（必须）；
+2. 得到命令行参数（如果你想从命令行得到参数，可选）；
+3. 注册窗口类（必须，除非你使用 `Windows` 预定义的窗口类，如 `MessageBox` 或 `dialog box`）；
+4. 产生窗口；（必须）
+5. 在桌面显示窗口（必须，除非你不想立即显示它）
+6. 刷新窗口客户区；
+7. 进入无限的获取窗口消息的循环；
+8. 如果有消息到达，由负责该窗口的窗口回调函数处理；
+9. 如果用户关闭窗口，进行退出处理。
+
+相对于单用户的 `DOS` 下的编程来说，`Windows` 下的程序框架结构是相当复杂的。但是 `Windows` 和 `DOS` 在系统架构上是截然不同的。`Windows` 是一人多任务的操作系统，故系统中同时有多个应用程序彼此协同进行。这就要求 `Windows` 程序员必须严格遵守编程规范，并养成良好的编程网络。
+
+### 说明
+
+1. 在编程过程中应当把程序中要用到的所有常量和结构体的声明放到一个头文件中，并且在源程序的开始处包含这个头文件。特别要注意一定要在源程序中包含 `nasmx.inc` 这个头文件，因为它提供了用宏写成的高级命令语句，如 `invoke` , `if/elsif/else/endif` 等。当然你也可以写自己的宏，以提高编程的效率。
+2. 在其它地方运用头文件中定义函数原型，常数和结构体时，要严格保持和头文件中的定义一致，包括大小写。在查询函数定义时，这将节约你大量的时间。
+3. 在编译、链接时用 `makefile` 文件，免去重复敲键。
+
+下面是一个简单的窗口程序的源代码。
+
+```
+%include '..\inc\nasmx.inc'
+%include '..\inc\win32\windows.inc'
+%include '..\inc\win32\kernel32.inc'
+%include '..\inc\win32\user32.inc'
+
+entry    start
+
+[section .bss]
+    hInstance:    resd 1
+    hWnd:         resd 1
+    lpCommandLine: resd 1
+
+[section .data]
+    szTitle:     db    "My First Window", 0x0
+    szClass:     db    "FirstWindow", 0x0
+    wc:
+    istruc WNDCLASSEX                              ;声明结构体
+        at WNDCLASSEX.cbSize,        dd    NULL
+        at WNDCLASSEX.style,         dd    NULL
+        at WNDCLASSEX.lpfnWndProc,   dd    NULL
+        at WNDCLASSEX.cbClsExtra,    dd    NULL
+        at WNDCLASSEX.cbWndExtra,    dd    NULL
+        at WNDCLASSEX.hInstance,     dd    NULL
+        at WNDCLASSEX.hIcon,         dd    NULL
+        at WNDCLASSEX.hCursor,       dd    NULL
+        at WNDCLASSEX.hbrBackground, dd    NULL
+        at WNDCLASSEX.lpszMenuName,  dd    NULL
+        at WNDCLASSEX.lpszClassName, dd    NULL
+        at WNDCLASSEX.hIconSm,       dd    NULL
+    iend
+    message:
+    istruc MSG
+        at MSG.hwnd,                 dd    NULL
+        at MSG.message,             dd    NULL
+        at MSG.wParam,              dd    NULL
+        at MSG.lParam,              dd    NULL
+        at MSG.time,                dd    NULL
+        at MSG.pt,                  dd    NULL
+    iend
+
+[section .code]
+proc    start
+    invoke   GetModuleHandleA, dword NULL        ;获取我们程序的句柄，必须的。
+    mov      [hInstance], eax                    ;在 Win32 下，hmdule == hinstance mov [hInstance],eax
+    invoke    GetCommandLineA                    ;获取命令行。如果你的程序不需要命令行执行，你可以不使用此函数。
+    mov       [lpCommandLine], eax
+    invoke   _WinMain, dword [hInstance], dword NULL, dword lpCommandLine, dword SW_SHOWNORMAL        ;调用主函数。
+    invoke   ExitProcess, dword NULL            ;退出程序。
+    ret
+endproc
+
+proc    _WinMain
+hinst    argd        ; Current instance handle
+hpinst   argd        ; Previous instance handle
+cmdln    argd        ; Command line arguments
+dwshow   argd        ; Display style
+    mov     [wc + WNDCLASSEX.cbSize], dword WNDCLASSEX_size            ;设置窗口成员属性（WNDCLASSEX 结构）
+    mov     [wc + WNDCLASSEX.style], dword CS_HREDRAW | CS_VREDRAW    ;注意：使用寄存器传值可以减少执行文件大小
+    invoke LoadIconA, dword NULL, dword IDI_APPLICATION
+    mov     edx, eax
+    mov     eax, dword argv(hinst)
+    mov     ebx, dword szClass
+    mov     ecx, dword WndProc
+    mov     [wc + WNDCLASSEX.hInstance], eax
+    mov       [wc + WNDCLASSEX.hbrBackground], dword COLOR_WINDOW + 1
+    mov     [wc + WNDCLASSEX.lpszClassName], ebx
+    mov     [wc + WNDCLASSEX.lpfnWndProc], ecx
+    mov     [wc + WNDCLASSEX.hIcon], edx
+    mov     [wc + WNDCLASSEX.hIconSm], edx
+    invoke   RegisterClassExA, dword wc                  ;注册窗口类
+    ;创建窗口,注意要加 WS_VISIBLE 属性，否则不可见
+    invoke   CreateWindowExA, dword NULL, dword szClass, dword szTitle, dword WS_OVERLAPPEDWINDOW + WS_VISIBLE, dword CW_USEDEFAULT, dword CW_USEDEFAULT, dword CW_USEDEFAULT, dword CW_USEDEFAULT, dword NULL, dword NULL, dword [wc + WNDCLASSEX.hInstance], dword NULL
+    mov      [hWnd], eax
+    invoke   ShowWindow, dword hWnd, dword argv(dwshow)    ;显示窗口
+    invoke   UpdateWindow, dword hWnd                     ;刷新用户区
+    .WHILE:                                               ;消息循环
+        invoke   GetMessageA, dword message, dword NULL, dword NULL, dword NULL
+        cmp      eax, dword 0
+        je       .ENDW
+        invoke   TranslateMessage, dword message
+        invoke   DispatchMessageA, dword message
+        jmp      .WHILE
+    .ENDW:
+    mov      eax, dword [message + MSG.wParam]
+    ret
+endproc
+
+proc    WndProc
+hwnd    argd        ; Window handle
+umsg    argd        ; Window message
+wparam argd        ; wParam
+lparam argd        ; lParam
+    if argv(umsg), ==, dword WM_DESTROY            ;nasmx 提供的 if/elsif/else/endif 语句
+        invoke    PostQuitMessage, dword NULL
+        xor eax, eax
+    else
+        invoke    DefWindowProcA, dword argv(hwnd), dword argv(umsg), dword argv(wparam), dword argv(lparam)
+    endif
+    ret
+endproc
+```
+
+### 分析
+
+看到上面的代码是不是有点怕怕？我第一次见是感觉挺怕的……呵呵。但是上面的代码大多数都可以做为模板。模板就是指这些代码对差不多所有标准 `Windows` 程序来说都是相同的。在写 `Windows` 程序时你可以简单地复制就行了。当然把这些重复的代码写到一个库中也挺好。其实真实要写的代码集中在 `_WinMain` 中。这和一些 `C` 编译器一样，无需关心其它杂务，集中精力于 `WinMain` 函数。唯一不同的是 `C` 编译器要求你的源代码必须有一个叫 `WinMain`。否则 `C` 无法知道将哪个函数和有关的前后代码链接。相对 `C`，汇编语言提供了较大的灵活性，它不强行要求一个叫 `WinMain` 的函数。
+
+下面我们开始分析，你可得做好思想准备，这可不是一件太轻松的话。
+
+```
+%include '..\inc\nasmx.inc'
+%include '..\inc\win32\windows.inc'
+%include '..\inc\win32\kernel32.inc'
+%include '..\inc\win32\user32.inc'
+entry    start
+```
+
+为了使用 `nasmx` 提供我们的高级特性进行编程，所以我们可以认为第一行“`%include '..\inc\nasmx.inc'`”语句是必须的，下面三句是包含程序中所使用到函数的头文件。由于我们在程序中用到的函数在 `user32.dll` 和 `kernel32.dll` 中，所以我们必须要用“`%include`”来引用头文件“`kernel32.inc` 和 `user32.inc`”，而 “`windows.inc`”则包含了 `Windows` 系统中使用到的常量和结构的定义。如果有人要问：你需要把什么库引入到程序中？
+
+答案是：先查你要调用的函数在什么库中，然后把库包含进来。若你要调用的函数在 `gdi32.inc` 中，那就要包含 `gdi32.inc` 头文件。
+
+接下来，是 `nasmx` 为我们提供的 `entry` 宏，这个宏让我们指定程序的入口点。`start` 则是在代码段中声明的某一个子程序名。
+
+```
+[section .bss]
+    hInstance:    resd 1
+    hWnd:         resd 1
+    lpCommandLine: resd 1
+```
+
+```
+[section .data]
+    szTitle:     db    "My First Window", 0x0
+    szClass:     db    "FirstWindow", 0x0
+    wc:
+    istruc WNDCLASSEX                              ;声明结构体
+        at WNDCLASSEX.cbSize,        dd    NULL
+        at WNDCLASSEX.style,         dd    NULL
+        at WNDCLASSEX.lpfnWndProc,   dd    NULL
+        at WNDCLASSEX.cbClsExtra,    dd    NULL
+        at WNDCLASSEX.cbWndExtra,    dd    NULL
+```
+
+
+
+# 数据段定义与初始化
+
+## 未初始化数据段 `.bss`
+
+下面是 `.bss` 段中结构体实例的初始化代码：
+
+```
+at WNDCLASSEX.hInstance,        dd    NULL  
+at WNDCLASSEX.hIcon,           dd    NULL  
+at WNDCLASSEX.hCursor,         dd    NULL  
+at WNDCLASSEX.hbrBackground,   dd    NULL  
+at WNDCLASSEX.lpszMenuName,    dd    NULL  
+at WNDCLASSEX.lpszClassName,   dd    NULL  
+at WNDCLASSEX.hIconSm,        dd    NULL  
+iend  
+
+message:  
+istruc MSG  
+    at MSG.hwnd,              dd    NULL  
+    at MSG.message,           dd    NULL  
+    at MSG.wParam,            dd    NULL  
+    at MSG.lParam,           dd    NULL  
+    at MSG.time,              dd    NULL  
+    at MSG.pt,               dd    NULL  
+iend  
+```
+
+上面这部分代码定义了数据段中的内容。`[section .bss]` 段用来声明未初始化的数据。`resd` 伪指令用来声明未初始化的双字。与它相似的指令还有 `resb`, `resw`, `resq` 和 `rest`，分别用来表示声明未初始化的字节、字、四个字、十个字节的预留空间。`res*` 类伪指令后面跟的数字表示要预留空间的个数。上面代码中指定了 1，表示声明一个未初始化的数据空间。`"hInstance: resd 1"` 表示声明一个未初始化的双字空间。未初始化表示程序在启动时它们是什么值无关紧要，只不过占了一段内存，以后再利用。
+
+`hInstance` 代表程序的实例句柄，`lplpCommandLine` 保存的是传入的命令行参数。
+
+## 初始化数据段 `.data`
+
+`[section .data]` 段用来声明初始化数据。`dd` 伪指令用来声明初始化的双字。与它相似的指令还有 `db`, `dw`, `dq` 和 `dt`，分别用来声明初始化的字节、字、四个字、十个字节的初始化空间。指令后要跟数值常数或字符串常数作为操作数。在声明字符串时，要以 0 来结尾。上面就定义了两个以 0 结尾的字符串：其中 `szClass` 是 Windows 的类名，`szTitle` 是我们窗口的名字。
+
+`wc`、`message` 两个 label 则声明了两个数据结构的实例，并进行了初始化，他们的值都是 `NULL`。在 `nasm` 中使用宏命令 `istruc`/`at`/`iend` 来声明一个用 `struc`/`endstruc` 定义的结构体数据类型。`at` 的功能是把偏移位置定位到正确的结构体域上，然后为这个域赋值。在定义结构体时的一般格式是：
+
+```
+struc mytype  
+
+    mt_1:    resd    1  
+    mt_2:    resb    1  
+    ...  
+endstruc  
+```
+
+声明结构体实例时的格式：
+
+```
+my:  
+
+istruc mytype  
+    at mt_1,    dd    123456  
+    at mt_2,    db    'x'  
+    ...  
+iend  
+```
+
+结构体 `WNDCLASSEX` 和 `MSG` 是在 `windows.inc` 头文件中定义的结构体。
+
+## 代码段 `.code`
+
+`[section .code]`
+
+```
+proc    start  
+    invoke   GetModuleHandleA, dword NULL        ;获取我们程序的句柄，必须的。  
+    mov      [hInstance], eax                     ;在 Win32 下，hmdule == hinstance mov [hInstance],eax  
+    invoke    GetCommandLineA                     ;获取命令行。如果你的程序不需要命令行执行，你可以不使用此函数。  
+    mov        [lpCommandLine], eax  
+    invoke   _WinMain, dword [hInstance], dword NULL, dword lpCommandLine, dword SW_SHOWNORMAL        ;调用主函数。  
+    invoke   ExitProcess, dword NULL             ;退出程序。  
+    ret  
+endproc  
+```
+
+`[section .data]` 段包含了你应用程序的所有代码。`proc`/`endproc` 是 `nasmx` 提供给我们的高级特性----子程序分段，可以实现程序的分块编写。它的一般格式是：
+
+```
+proc 函数名  
+
+parameter    argd  
+
+...  
+
+parameter    argd  
+
+    代码  
+
+endproc  
+```
+
+注意：`parameter argd` 形式的参数，它们是由调用者传给函数的参数。我们可以使用 `argv(parameter)` 宏进行引用。至于退栈、压栈 `nasm` 在编译的时候会自动处理的。
+
+代码中的函数名 `start` 就是我们在 `entry` 中指定的程序入口点。
+
+我们程序的第一条语句是调用 `GetModuleHandleA` 去查找我们应用程序的句柄。在 Win32 下，应用程序的句柄和模块的句柄是一样的。你可以把实例句柄看成是你的应用程序的 ID 号。我们在调用几个函数时都把它作为参数来进行传递，所以在一开始便得到并保存它就可以省许多的事。
+
+注意：在 `nasm` 中一般要为操作数指明数据类型，包括（`byte`, `word`, `dword`, `nosplit`）。
+
+特别注意：Win32 下的实例句柄实际上是你应用程序在内存中的线性地址。
+
+Win32 中如函数有返回值，那它是通过 `eax` 寄存器来传递的。其他的值可以通过传递进来的参数地址进行返回。一个 Win32 函数被调用时总会保存好段寄存器和 `ebx`, `edi`, `esi` 和 `ebp` 寄存器，而 `ecx` 和 `edx` 中的值问题不定的，不能在返回时应用。特别注意：从 Windows API 函数中返回后，`eax`, `ecx`, `edx` 中的值和调用前不一定相同。当函数返回时，返回值放在 `eax` 中。如果你的应用程序中的函数提供给 Windows 调用时，也必须遵守这一点，即在函数入口处保存段寄存器和 `ebx`, `esp`, `esi`, `edi` 的值并在函数返回时恢复。如果不这样，你的应用程序很快会崩溃。从你的程序中提供给 Windows 调用的函数大体上有两种：Windows 窗口过程和 `CallBack` 函数。
+
+如果你的应用程序不处理命令行那么就无须调用 `GetCommandLineA`，这里只是告诉你如果要调用应该怎么做。
+
+接下来程序调用 `_WinMain` 函数，函数有 4 个参数（具体函数定义下面介绍）。
+
+然后在应用程序结束时通过 `ExitProcess` 函数把该返回码传递给 Windows。
+
+## `_WinMain` 函数定义
+
+```
+proc    _WinMain  
+
+hinst    argd        ; Current instance handle  
+hpinst   argd        ; Previous instance handle  
+cmdln    argd        ; Command line arguments  
+dwshow   argd        ; Display style  
+```
+
+上面是 `_WinMain` 函数的定义。该函数共有 4 个参数：应用程序的实例句柄，该应用程序的前一实例句柄，命令行参数串指针和窗口显示方式。Win32 没有前一实例句柄的概念，所以第二个参数总为 `dword NULL`。之所以保留它只是为了和 Win16 兼容的考虑，在 Win16 下，如果 `hpinst` 是 `dword NULL`，则该函数是第一次运行。特别注意：你不用必须声明一个名为 `_WinMain` 函数，事实上在这方面你可以完全自己作主！你甚至无须有一个和 `_WinMain` 等同的函数。你只要把 `_WinMain` 中的代码拷到 `GetCommandLineA` 之后，其所实现的功能完全相同。在 `_WinMain` 返回时，把返回码放到 `eax` 中。
+
+## 窗口类注册与创建
+
+```
+mov     [wc + WNDCLASSEX.cbSize], dword WNDCLASSEX_size              ;设置窗口成员属性（WNDCLASSEX 结构）  
+mov        [wc + WNDCLASSEX.style], dword CS_HREDRAW | CS_VREDRAW    ;注意：使用寄存器传值可以减少执行文件大小  
+invoke LoadIconA, dword NULL, dword IDI_APPLICATION  
+mov     edx, eax  
+mov     eax, dword argv(hinst)  
+mov     ebx, dword szClass  
+mov     ecx, dword WndProc  
+mov     [wc + WNDCLASSEX.hInstance], eax  
+mov        [wc + WNDCLASSEX.hbrBackground], dword COLOR_WINDOW + 1  
+mov     [wc + WNDCLASSEX.lpszClassName], ebx  
+mov     [wc + WNDCLASSEX.lpfnWndProc], ecx  
+mov     [wc + WNDCLASSEX.hIcon], edx  
+mov     [wc + WNDCLASSEX.hIconSm], edx  
+invoke   RegisterClassExA, dword wc                          ;注册窗口类  
+```
+
+上面几行从概念上说确实是非常地简单。只要几行指令就可以实现。其中的主要概念就是窗口类，一个窗口类就是一个有关窗口的规范，这个规范定义了几个主要的窗口的元素，如：图标、光标、背景色、和负责处理窗口的函数。你产生一个窗口就必须要有这样一个窗口类。如果你要产生不止一个同种类型的窗口时，最好的办法就是把这个窗口类型存储起来，这种方法可以节约许多的内存空间。也许今天你不会太感觉到，可是想想以前 PC 大多数只有 1M 内存时，这么做就非常有必要了。如果你定义自己的创建窗口类就必须在一个 `WNDCLASS` 或 `WNDCLASSEX` 结构体中指明你窗口的组成元素，然后调用 `RegisterClass` 或 `RegisterClassEx`，再根据该窗口类产生窗口。对不同特色的窗口必须定义不同的窗口类。Windows 有几个预定义窗口类，譬如：按钮、编辑框等。要产生该种风格的窗口无须预先再定义窗口类了，只要包含相应的预定义的类名作为参数调用给 `CreateWindow` 或 `CreateWindowEx` 即可。
+
+`WNDCLASSEX` 中最重要的成员莫过于 `lpfnWndProc` 了。前缀 `lpfn` 表示该成员是一个指向函数的长指针。在 Win32 中由于内存模式是 `FLAT` 型，所以没有 `near` 或 `far` 的区别。每一个窗口类必须有一个窗口过程，当 Windows 把属于特定窗口的消息发送给该窗口时，该窗口的窗口类负责处理所有的消息，如键盘消息或鼠标消息。由于窗口过程差不多智能地处理了所有的窗口消息循环，所以你只要在其中加入消息处理过程即可。下面我讲解 `WNDCLASSEX` 的每一个成员。
+
+### `WNDCLASSEX` 结构体定义
+
+```
+STRUC WNDCLASSEX  
+
+.cbSize RESD 1  
+
+.style RESD 1  
+
+.lpfnWndProc RESD 1  
+
+.cbClsExtra RESD 1  
+
+.cbWndExtra RESD 1  
+
+.hInstance RESD 1  
+
+.hIcon RESD 1  
+
+.hCursor RESD 1  
+
+.hbrBackground RESD 1  
+
+.lpszMenuName RESD 1  
+
+.lpszClassName RESD 1  
+
+.hIconSm RESD 1  
+
+ENDSTRUC  
+```
+
+- `cbSize`: `WNDCLASSEX` 的大小。我们可以用 `WNDCLASSEX_size` 来获得准确的值。（`nasm` 使用“结构体名_size”来获得结构体的大小）
+- `style`: 从这个窗口类派生的窗口具有的风格。你可以用“|”（或）来把几个风格或到一起。
+- `lpfnWndProc`: 窗口处理函数的指针。
+- `cbClsExtra`: 指定紧跟在窗口类结构后的附加字节数。
+- `cbWndExtra`: 指定紧跟在窗口事例后的附加字节数。如果一个应用程序在资源中用 `CLASS` 伪指令注册一个对话框时，则必须把这个成员设成 `DLGWINDOWEXTRA`。
+- `hInstance`: 本模块的事例句柄。
+- `hIcon`: 图标的句柄。
+- `hCursor`: 光标的句柄。
+- `hbrBackgroudn`: 背景画刷的句柄。
+- `lpszMenuName`: 指向菜单的指针。
+- `lpszClassName`: 指向类名称的指针。
+- `hIconsm`: 和窗口类关联的小图标。如果该值为 `NULL`。则把 `hCursor` 中的图标转换成大小合适的小图标。
+
+注册窗口类后，我们将调用 `CreateWindowExA` 来产生实际的窗口。请注意该函数有 12 个参数。
+
+```
+CreateWindowExA proto dwExStyle：DWORD，\  
+lpClassName：DWORD，\  
+lpWindowName：DWORD，\  
+dwStyle：DWORD，\  
+X：DWORD，\  
+Y：DWORD，\  
+nWidth：DWORD，\  
+nHeight：DWORD，\  
+hWndParent：DWORD ，\  
+hMenu：DWORD，\  
+hInstance：DWORD，\  
+lpParam：DWORD  
+```
+
+我们来仔细看一看这些的参数：
+
+- `dwExStyle`: 附加的窗口风格。相对于旧的 `CreateWindowA` 这是一个新的参数。在 9x/NT 中你可以使用新的窗口风格。你可以在 `Style` 中指定一般的窗口风格，但是一些特殊的窗口风格，如顶层窗口则必须在此参数中指定。如果你不想指定任何特别的风格，则把此参数设为 `NULL`。
+- `lpClassName`: （必须）。`ASCIIZ` 形式的窗口类名称的地址。可以是你自己定义的类，也可以是预定义的类名。像上面所说，每一个应用程序必须有一个窗口类。
+- `lpWindowName`: `ASCIIZ` 形式的窗口名称的地址。该名称会显示在标题条上。如果该参数空白，则标题条上什么都没有。
+- `dwStyle`: 窗口的风格。在此你可以指定窗口的外观。可以指定该参数为零，但那样该窗口就没有系统菜单，也没有最大化和最小化按钮，也没有关闭按钮，那样你不得不按 `Alt+F4` 来关闭它。最为普通的窗口类风格是 `WS_OVERLAPPEDWINDOW`。一种窗口风格是一种按位的掩码，这样你可以用“|”把你希望的窗口风格或起来，像 `WS_OVERLAPPEDWINDOW` 就是由几种风格或起来的。
+- `X`, `Y`: 指定窗口左上角的以像素为单位的屏幕坐标位置。缺省地可指定为 `CW_USEDEFAULT`，这样 Windows 会自动为窗口指定最合适的位置。
+- `nWidth`, `nHeight`: 以像素为单位的窗口大小。缺省地可指定为 `CW_USEDEFAULT`，这样 Windows 会自动为窗口指定最合适的大小。
+- `hWndParent`: 父窗口的句柄（如果有的话）。这个参数告诉 Windows 这是一个子窗口和他的父窗口是谁。这和 MDI（多文档结构）不同，此处的子窗口并不会局限在父窗口的客户区内。它只是用来告诉 Windows 各个窗口之间的父子关系，以便在父窗口销毁时一同把其子窗口销毁。在我们的例子程序中因为只有一个窗口，故把参数设为 `NULL`。
+- `hMenu`: Windows 菜单的句柄。如果只用系统菜单则指定该参数为 `NULL`。回头看一看 `WNDCLASSEX` 结构中的 `lpszMenuName` 参数，它也指定一个菜单，这是一个缺省菜单，任何从该窗口类派生的窗口若想用其他的菜单需在该参数中重新指定。其实该参数有双重意义：一方面若这是一个自定义窗口时，该参数代表菜单句柄，另一方面，若这是一个预定义窗口时，该参数代表是该窗口的 ID 号。Windows 是根据 `lpClassName` 参数来区分是自定义窗口还是预定义窗口的。
+- `hInstance`: 产生该窗口的应用程序的实例句柄。
+- `lpParam`: （可选）指向欲传给窗口的结构体数据类型参数的指针。如在 MDI 中产生窗口时传递 `CLIENTCREATESTRUCT` 结构的参数。一般情况下，该值总为 `NULL`，这表示没有参数传递给窗口。可以通过 `GetWindowLong` 函数检索该值。
+
+## 窗口显示
+
+```
+mov     [hWnd], eax  
+invoke   ShowWindow, dword hWnd, dword argv(dwshow)            ;显示窗口  
+```
+
+
+
+### 窗口创建与显示
+
+`invoke UpdateWindow, dword hWnd` ; 刷新用户区
+
+调用 `CreateWindowEx` 成功后，窗口句柄在 `eax` 中。我们必须保存该值以备后用。我们刚刚产生的窗口不会自动显示，所以必须调用 `ShowWindow` 来按照我们希望的方式来显示该窗口。接下来调用 `UpdateWindow` 来更新客户区。
+
+### 消息循环
+
+```
+.WHILE: ; 消息循环
+    invoke GetMessageA, dword message, dword NULL, dword NULL, dword NULL
+    cmp eax, dword 0
+    je .ENDW
+    invoke TranslateMessage, dword message
+    invoke DispatchMessageA, dword message
+    jmp .WHILE
+.ENDW:
+```
+
+这时候我们的窗口已经显示在屏幕上了。但是它还不能从外界接收消息。所以我们必须给它提供相关的消息。我们是通过一个消息循环来完成该项工作的。每一个模块仅有一个消息循环，我们不断地调用 `GetMessageA` 从 `Windows` 中获得消息。`GetMessageA` 传递一个 `MSG` 结构体给 `Windows`，然后 `Windows` 在该函数中填充有关的消息，一直到 `Windows` 找到并填充好消息后 `GetMessageA` 才会返回。在这段时间内系统控制权可能会转移给其他的应用程序。这样就构成了 `Win16` 下的多任务结构。如果 `GetMessageA` 接收到 `WM_QUIT` 消息后就会返回 `0`，使循环结束并退出应用程序。
+
+`TranslateMessage` 函数是一个实用函数，它从键盘接受原始按键消息，然后解释成 `WM_CHAR`，再把 `WM_CHAR` 放入消息队列，由于经过解释后的消息中含有按键的 `ASCII` 码，这比原始的扫描好理解得多。如果你的应用程序不处理按键消息的话，可以不调用该函数。
+
+`DispatchMessageA` 会把消息发送给负责该窗口过程的函数。
+
+```
+mov eax, dword [message + MSG.wParam]
+ret
+endproc
+```
+
+如果消息循环结束了，退出码存放在 `MSG` 中的 `wParam` 中，你可以通过把它放到 `eax` 寄存器中传给 `Windows`。目前 `Windows` 没有利用到这个结束码，但我们最好还是遵从 `Windows` 规范以防意外。
+
+### 窗口过程
+
+```
+proc WndProc
+hwnd argd ; Window handle
+umsg argd ; Window message
+wparam argd ; wParam
+lparam argd ; lParam
+```
+
+这是我们的窗口处理函数。你可以随便给该函数命名。其中第一个参数 `hwnd` 是接收消息的窗口的句柄。`umsg` 是接收的消息。注意 `umsg` 不是一个 `MSG` 结构，其实上只是一个 `Dword` 类型数。`Windows` 定义了成百上千个消息，大多数你的应用程序不会处理到。当有该窗口的消息发生时，`Windows` 会发送一个相关消息给该窗口。其窗口过程处理函数会智能的处理这些消息。`wparam` 和 `lparam` 只是附加参数，以方便传递更多的和该消息有关的数据。
+
+```
+if argv(umsg), ==, dword WM_DESTROY ; nasmx 提供的 if/elsif/else/endif 语句
+    invoke PostQuitMessage, dword NULL
+    xor eax, eax
+else
+    invoke DefWindowProcA, dword argv(hwnd), dword argv(umsg), dword argv(wparam), dword argv(lparam)
+endif
+ret
+endproc
+```
+
+上面可以说是关键部分。`nasmx` 提供了一个 `if/elsif/else/endif` 宏，`if` 后跟三个参数，每个参数用“,”分隔。这也是我们写 `Windows` 程序时需要改写的主要部分。此处你的程序检查 `Windows` 传递过来的消息，如果是我们感兴趣的消息则加以处理，处理完后，在 `eax` 寄存器中传递 `0`，否则必须调用 `DefWindowProc`，把该窗口过程接收到的参数传递给缺少的窗口处理函数。所有消息你必须处理的是 `WM_DESTROY`，当你的应用程序结束时，`Windows` 把它传来。当你的应用程序截获到该消息时它已经在屏蔽上消失了，这仅是通知你的应用程序窗口已销毁，你必须自己准备返回 `Windows`。在此消息中你可以做一些清理工作，但无法阻止退出应用程序。如果你要那样做的话，可以处理 `WM_CLOSE` 消息。在处理完清理工作后，你必须调用 `PostQuitMessage`，该函数会把 `WM_QUIT` 消息传回你的应用程序，而该消息会使得 `GetMessage` 返回，并在 `eax` 寄存器中放入 `0`，然后会结束消息循环并返回 `Windows`。你可以在你的程序中调用 `DestroyWindow` 函数，它会发送一个 `WM_DESTROY` 消息给你自己的应用程序，从而迫使它退出。
+
+### 参考资料
+
+这一篇是我使用局部变量实现的框架。`bbs.pediy.com/showthread.php?t=96949`
+
+### 附件
+
+- [NASM 中文手册.rar](http://bbs.pediy.com/showthread.php?t=96753)
+- `pcasm-book-simplified-chinese.zip`
+- `Win32asm.zip`

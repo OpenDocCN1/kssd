@@ -1,478 +1,518 @@
 
-
 # PE-SHiELD V0.25
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6413.htm`](https://www.pediy.com/kssd/pediy06/pediy6413.htm)
 
-PE-SHiELD V0.25 脱壳——Win98 的 Notepad   
-    
-    
-    
-下载地址：  http://protools.anticrack.de/files/packers/peshield.zip    
-软件大小：  32 KB   
-  
-【软件简介】：PE-SHiELD is a program, which encrypts 32-bit Windows EXE files, leaving them still executable. The previous version was over a year in the wild and there is still no unpacker for it.    
-  
-【作者声明】：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！   
-  
-【调试环境】：WinXP、Ollydbg1.09、PEiD、LordPE、ImportREC   
-  
-—————————————————————————————————    
-【脱壳过程】：   
-             
-                
-调试前先设置一下 Ollydbg。打开：Ollydbg——>选项——>调试设置——>异常     
-把“忽略在 KERNEL32 中的内存访问异常”、“INT3 中断”、“单步中断” 这 3 个选项选上。   
-  
-PE-SHiELD 属于 Crypters/Protectors 类型的壳。可以用 Unpes.exe 脱壳。   
-感觉这个壳不算太弱啦，大体比 ASProtect V1.23 RC1 稍弱点。   
-  
-—————————————————————————————————    
-用 Ollydbg 手动脱壳,老规矩：载入后弹出“是压缩代码——要继续进行分析吗？”，点“否”。   
-  
-0040D000     60                   pushad   
-                                  ====>进入 OD 后断在这！   
-0040D001     E8 2B000000          call Notepad.0040D031   
-  
-F9 运行，程序中断在异常处：   
-  
-0040D232     8DC0                 lea eax,eax   
-                                  ====>第 1 次异常   
-  
-Shift+F9 通过异常，2 次程序就运行啦。比 ASProtect “温柔”点。     
-弹出好几个“入口点预警”对话框，一一确定之。程序运行，呵呵，看看“周围环境”吧 :-)   
-  
-0040D4D7     0000                 add byte ptr ds:\[eax\],al   
-                                  ====>现在偶在这。使劲向下看：有特殊的几行    
-  
-0040DC31     0000                 add byte ptr ds:\[eax\],al   
-0040DC33     0000                 add byte ptr ds:\[eax\],al   
-0040DC35     F3:AA                rep stos byte ptr es:\[edi\]   
-0040DC37     61                   popad              //与众不同啦，    
-0040DC38     EB 01                jmp short 0040DC3B //和 tElock 有点点相似    
-0040DC3A     EA FFE00000 0000     jmp far 0000:0000E0FF     
-0040DC41     0000                 add byte ptr ds:\[eax\],al   
-0040DC43     0000                 add byte ptr ds:\[eax\],al   
-0040DC45     0000                 add byte ptr ds:\[eax\],al   
-  
-上面代码里的花指令去除后是下面的样子：   
-  
-0040DC35     F3:AA                rep stos byte ptr es:\[edi\]   
-0040DC37     61                   popad   
-0040DC38     EB 01                jmp short 0040DC3B   
-0040DC3A     90                   nop   
-0040DC3B     FFE0                 jmp eax   
-                                  ====>呵呵，典型的入口样式呀 :-)   
-  
-————————————————————————   
-好了，Try Again，继续手动跟踪。按 1 次 Shift+F9，停下来。   
-注：用 F7 走；省略的地方没什么大跳转，小循环用 F4 跳出即可。   
-  
-  
-0040D4D7     8DC0                 lea eax,eax    
-                                  ====>第 2 次异常   
-                                  ====>看堆栈区的第二条地址：0040D4AC 下断！   
-  
-0040D4AC     8B4424 0C            mov eax,dword ptr ss:\[esp+C\]   
-                                  ====>堆栈区的第二条地址，Shift+F9 断在这！   
-  
-0040D4B0     8380 B8000000 04     add dword ptr ds:\[eax+B8\],4   
-0040D4B7     53                   push ebx   
-0040D4B8     33DB                 xor ebx,ebx   
-0040D4BA     8958 04              mov dword ptr ds:\[eax+4\],ebx   
-0040D4BD     8958 08              mov dword ptr ds:\[eax+8\],ebx   
-0040D4C0     C740 18 55010000     mov dword ptr ds:\[eax+18\],155   
-0040D4C7     8958 0C              mov dword ptr ds:\[eax+C\],ebx   
-0040D4CA     8958 10              mov dword ptr ds:\[eax+10\],ebx   
-0040D4CD     5B                   pop ebx   
-0040D4CE     33C0                 xor eax,eax   
-0040D4D0     C3                   retn   
-                                  ====>返回进系统 DLL。 :-(   
-                                  ====>于是在 0040D4D7 的上下几个 JMP 处下断，运气不错，F9 断在 0040D4EE   
-  
-0040D4EE    /EB 01                jmp short Notepad.0040D4F1   
-  
-  …… ……  省 略  …… ……   
-  
-0040D5BC     8DB5 00110000        lea esi,dword ptr ss:\[ebp+1100\]   
-                                  ====>看看内存中的数据：下面一大段反跟踪检测 SICE、TRW   
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-0040E100  4D 6D 7A 4F 7D 7D 6D 79 64 7C 5E 7E 67 6C 7A 6F  MmzO}}myd|^~glzo   
-0040E110  79 00 5F 7C 65 7C 6A 4F 6E 65 6B 6B 7F 7B 42 7A  y.\_|e|jOnekk.{Bz   
-0040E120  71 65 7A 77 00 4F 7A 6A 7E 68 6F 4E 67 60 6D 4E  qezw.Ozj~hoNg\`mN   
-0040E130  00 5C 5C 2E 5C 53 49 43 45 00 5C 5C 2E 5C 54 52  .\\.SICE.\\.TR   
-0040E140  57 2E 56 58 44 00 4C 4C 4C 4C 4C 4C 4C 4C 4C 4C  W.VXD.LLLLLLLLLL   
-0040E150  4C 4C 4C 4C 4C 4C 4C 4C 4C 4C 4C 4C 4C 4C 00 43  LLLLLLLLLLLLLL.C   
-0040E160  72 65 61 74 65 54 68 72 65 61 64 00 00 00 00 00  reateThread.....   
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-  
-0040D5C2     E8 7D090000          call Notepad.0040DF44   
-0040D5C7     EB 01                jmp short Notepad.0040D5CA   
-  
-0040D5CA     E8 75090000          call Notepad.0040DF44   
-0040D5CF     EB 01                jmp short Notepad.0040D5D2   
-  
-0040D5D2     E8 6D090000          call Notepad.0040DF44   
-                                  ====>CreateFileA   
-0040D5D7     EB 03                jmp short Notepad.0040D5DC   
-  
-0040D5DC     8D85 00110000        lea eax,dword ptr ss:\[ebp+1100\]   
-                                  ====>GetCurrentProcess   
-0040D5E2     EB 01                jmp short Notepad.0040D5E5   
-  
-0040D5E5     8D9D 5B120000        lea ebx,dword ptr ss:\[ebp+125B\]   
-0040D5EB     E8 C60B0000          call Notepad.0040E1B6   
-0040D5F0     EB 01                jmp short Notepad.0040D5F3   
-  
-0040D5F3     8D85 12110000        lea eax,dword ptr ss:\[ebp+1112\]   
-0040D5F9     EB 03                jmp short Notepad.0040D5FE   
-  
-0040D5FE     8D9D 5F120000        lea ebx,dword ptr ss:\[ebp+125F\]   
-0040D604     E8 AD0B0000          call Notepad.0040E1B6   
-0040D609     EB 02                jmp short Notepad.0040D60D   
-  
-0040D60D     8D85 25110000        lea eax,dword ptr ss:\[ebp+1125\]   
-0040D613     EB 02                jmp short Notepad.0040D617   
-  
-0040D617     8D9D 6B120000        lea ebx,dword ptr ss:\[ebp+126B\]   
-0040D61D     E8 940B0000          call Notepad.0040E1B6   
-0040D622     6A 00                push 0   
-0040D624     EB 01                jmp short Notepad.0040D627   
-  
-0040D627     68 80000000          push 80   
-0040D62C     EB 01                jmp short Notepad.0040D62F   
-  
-0040D62F     6A 03                push 3   
-0040D631     EB 01                jmp short Notepad.0040D634   
-  
-0040D634     6A 00                push 0   
-0040D636     EB 01                jmp short Notepad.0040D639   
-  
-0040D639     6A 03                push 3   
-0040D63B     EB 01                jmp short Notepad.0040D63E   
-  
-0040D63E     68 00008000          push 800000   
-0040D643     EB 01                jmp short Notepad.0040D646   
-  
-0040D646     8D85 3A110000        lea eax,dword ptr ss:\[ebp+113A\]   
-                                  ====>TRW.VXD   
-0040D64C     EB 02                jmp short Notepad.0040D650   
-  
-0040D650     50                   push eax                      
-0040D651     EB 01                jmp short Notepad.0040D654   
-  
-0040D654     8B85 6B120000        mov eax,dword ptr ss:\[ebp+126B\] ; kernel32.CreateFileA   
-0040D65A     EB 01                jmp short Notepad.0040D65D   
-  
-0040D65D     E8 59070000          call Notepad.0040DDBB   
-                                  ====>检测   
-0040D662     EB 01                jmp short Notepad.0040D665   
-  
-0040D665     83F8 FF              cmp eax,-1   
-                                  ====>EAX 应=FFFFFFFF   
-0040D668     EB 01                jmp short Notepad.0040D66B   
-  
-0040D66B    /0F85 EA000000        jnz Notepad.0040D75B   
-                                  ====>跳则 OVER       发现 SC、TRW   
-0040D671    |8D85 5F110000        lea eax,dword ptr ss:\[ebp+115F\]   
-0040D677    |EB 01                jmp short Notepad.0040D67A   
-  
-0040D67A     8D9D 6C110000        lea ebx,dword ptr ss:\[ebp+116C\]   
-0040D680     EB 02                jmp short Notepad.0040D684   
-  
-0040D684     E8 2D0B0000          call Notepad.0040E1B6   
-0040D689     EB 01                jmp short Notepad.0040D68C   
-  
-0040D68C     8D85 74110000        lea eax,dword ptr ss:\[ebp+1174\]   
-0040D692     EB 01                jmp short Notepad.0040D695   
-  
-0040D695     8D9D 7F110000        lea ebx,dword ptr ss:\[ebp+117F\]   
-0040D69B     EB 03                jmp short Notepad.0040D6A0   
-  
-0040D6A0     E8 110B0000          call Notepad.0040E1B6   
-0040D6A5     EB 01                jmp short Notepad.0040D6A8   
-  
-0040D6A8     89AD 1F080000        mov dword ptr ss:\[ebp+81F\],ebp     
-0040D6AE     EB 01                jmp short Notepad.0040D6B1   
-  
-0040D6B1     8D95 87110000        lea edx,dword ptr ss:\[ebp+1187\]   
-0040D6B7     EB 01                jmp short Notepad.0040D6BA   
-  
-0040D6BA     8D8D 1E080000        lea ecx,dword ptr ss:\[ebp+81E\]   
-0040D6C0     EB 01                jmp short Notepad.0040D6C3   
-  
-0040D6C3     52                   push edx                    
-0040D6C4     EB 01                jmp short Notepad.0040D6C7   
-  
-0040D6C7     6A 00                push 0   
-0040D6C9     EB 01                jmp short Notepad.0040D6CC   
-  
-0040D6CC     83C2 04              add edx,4   
-0040D6CF     EB 01                jmp short Notepad.0040D6D2   
-  
-0040D6D2     52                   push edx                            
-0040D6D3     EB 01                jmp short Notepad.0040D6D6   
-  
-0040D6D6     51                   push ecx                      
-0040D6D7     EB 01                jmp short Notepad.0040D6DA   
-  
-0040D6DA     6A 00                push 0   
-0040D6DC     EB 01                jmp short Notepad.0040D6DF   
-  
-0040D6DF     6A 00                push 0   
-0040D6E1     EB 01                jmp short Notepad.0040D6E4   
-  
-0040D6E4     8B85 6C110000        mov eax,dword ptr ss:\[ebp+116C\] ; kernel32.CreateThread   
-0040D6EA     EB 01                jmp short Notepad.0040D6ED   
-  
-0040D6ED     E8 C9060000          call Notepad.0040DDBB   
-0040D6F2     EB 01                jmp short Notepad.0040D6F5   
-  
-0040D6F5     FFB5 7F110000        push dword ptr ss:\[ebp+117F\]    ; kernel32.ExitThread   
-0040D6FB     FF85 83110000        inc dword ptr ss:\[ebp+1183\]   
-0040D701     C3                   retn   
-                                  ====>进入系统 DLL，再次检测   
-  
-0040D87F    /EB 01                jmp short Notepad.0040D882   
-                                  ====>最后从系统 DLL 返回到这里   
-0040D882     83F8 FF              cmp eax,-1   
-                                  ====>EAX 应=FFFFFFFF   
-0040D885     EB 01                jmp short Notepad.0040D888   
-  
-0040D888   ^F85 E4FEFFFF        jnz Notepad.0040D772   
-0040D88E     EB 01                jmp short Notepad.0040D891   
-  
-0040D891     80BD 1B120000 01     cmp byte ptr ss:\[ebp+121B\],1   
-0040D898     EB 01                jmp short Notepad.0040D89B   
-  
-0040D89B    /74 6A                je short Notepad.0040D907   
-0040D89D    |EB 03                jmp short Notepad.0040D8A2   
-  
-0040D8A2     B9 C8000000          mov ecx,0C8   
-0040D8A7     EB 01                jmp short Notepad.0040D8AA   
-  
-0040D8AA     51                   push ecx   
-0040D8AB     EB 03                jmp short Notepad.0040D8B0   
-  
-0040D8B0   ^E2 F5                loopd short Notepad.0040D8A7   
-                                  ====>F4 跳出 LOOP   
-0040D8B2     EB 02                jmp short Notepad.0040D8B6   
-  
-0040D8B6     B8 64000000          mov eax,64   
-0040D8BB     E8 C8030000          call Notepad.0040DC88   
-  …… ……  省 略  …… ……   
-0040D92E     80BD 19120000 01     cmp byte ptr ss:\[ebp+1219\],1   
-0040D935     75 1C                jnz short Notepad.0040D953   
-  
-0040D953     8BB5 53120000        mov esi,dword ptr ss:\[ebp+1253\]   
-0040D959     03F5                 add esi,ebp   
-0040D95B     8B9D 43120000        mov ebx,dword ptr ss:\[ebp+1243\]   
-0040D961     AD                   lods dword ptr ds:\[esi\]   
-0040D962     EB 01                jmp short Notepad.0040D965   
-  
-0040D965     0BC0                 or eax,eax   
-0040D967     EB 01                jmp short Notepad.0040D96A   
-  
-0040D96A    /74 52                je short Notepad.0040D9BE   
-                                  ====>这里可以跳出循环啦，在下面的 0040D9BE 下断   
-0040D96C    |EB 01                jmp short Notepad.0040D96F   
-  
-0040D96F     8BF8                 mov edi,eax   
-0040D971     EB 01                jmp short Notepad.0040D974   
-  
-0040D974     33FB                 xor edi,ebx   
-0040D976     EB 01                jmp short Notepad.0040D979   
-  
-0040D979     D1C3                 rol ebx,1   
-0040D97B     03DF                 add ebx,edi   
-0040D97D     EB 01                jmp short Notepad.0040D980   
-  
-0040D980     03BD A7120000        add edi,dword ptr ss:\[ebp+12A7\]   
-0040D986     AD                   lods dword ptr ds:\[esi\]   
-0040D987     EB 01                jmp short Notepad.0040D98A   
-  
-0040D98A     8BC8                 mov ecx,eax   
-0040D98C     33CB                 xor ecx,ebx   
-0040D98E     EB 01                jmp short Notepad.0040D991   
-  
-0040D991     AD                   lods dword ptr ds:\[esi\]   
-0040D992     03C3                 add eax,ebx   
-0040D994     EB 02                jmp short Notepad.0040D998   
-  
-0040D998     D1C3                 rol ebx,1   
-0040D99A     3107                 xor dword ptr ds:\[edi\],eax   
-0040D99C     EB 02                jmp short Notepad.0040D9A0   
-  
-0040D9A0     310F                 xor dword ptr ds:\[edi\],ecx   
-0040D9A2     C1C0 03              rol eax,3   
-0040D9A5     EB 03                jmp short Notepad.0040D9AA   
-  
-0040D9AA     03C1                 add eax,ecx   
-0040D9AC     83C7 04              add edi,4   
-0040D9AF     EB 01                jmp short Notepad.0040D9B2   
-  
-0040D9B2     49                   dec ecx   
-0040D9B3     EB 02                jmp short Notepad.0040D9B7   
-  
-0040D9B7   ⁷⁵ E1                jnz short Notepad.0040D99A   
-                                  ====>F4 下去   
-0040D9B9     EB 01                jmp short Notepad.0040D9BC   
-  
-0040D9BC   ^EB A3                jmp short Notepad.0040D961   
-                                  ====>发现 0040D96A 可以跳出循环！   
-  
-0040D9BE     80BD 19120000 01     cmp byte ptr ss:\[ebp+1219\],1   
-                                  ====>在此下断，F9 跳出循环！   
-0040D9C5     75 0E                jnz short Notepad.0040D9D5   
-  
-0040D9D5     8B85 27120000        mov eax,dword ptr ss:\[ebp+1227\]   
-0040D9DB     8985 1F120000        mov dword ptr ss:\[ebp+121F\],eax   
-0040D9E1     80BD 1E120000 01     cmp byte ptr ss:\[ebp+121E\],1   
-0040D9E8     75 6A                jnz short Notepad.0040DA54   
-  
-0040DA54     8B95 27120000        mov edx,dword ptr ss:\[ebp+1227\]    
-  …… ……  省 略  …… ……   
-0040DAE7     0F84 F3000000        je Notepad.0040DBE0   
-                                  ====>G 0040DBE0 跳出下面的循环！   
-  
-0040DAED     894A 0C              mov dword ptr ds:\[edx+C\],ecx   
-0040DAF0     0385 2B120000        add eax,dword ptr ss:\[ebp+122B\]   
-0040DAF6     52                   push edx        
-0040DAF7     51                   push ecx   
-0040DAF8     50                   push eax   
-0040DAF9     50                   push eax   
-0040DAFA     C685 1D120000 00     mov byte ptr ss:\[ebp+121D\],0   
-0040DB01     8B18                 mov ebx,dword ptr ds:\[eax\]   
-0040DB03     81E3 DFDFDF00        and ebx,0DFDFDF   
-0040DB09     81FB 4D464300        cmp ebx,43464D   
-0040DB0F     75 18                jnz short Notepad.0040DB29   
-  
-0040DB29     8BD8                 mov ebx,eax       
-0040DB2B     E8 DDFBFFFF          call Notepad.0040D70D   
-0040DB30     5B                   pop ebx   
-0040DB31     59                   pop ecx   
-0040DB32     5A                   pop edx   
-0040DB33     0BC0                 or eax,eax   
-0040DB35     75 12                jnz short Notepad.0040DB49   
-0040DB37     52                   push edx   
-0040DB38     51                   push ecx   
-0040DB39     53                   push ebx   
-0040DB3A     E8 D9FBFFFF          call Notepad.0040D718   
-0040DB3F     0BC0                 or eax,eax   
-0040DB41   ^ 0F84 42FCFFFF        je Notepad.0040D789   
-0040DB47     59                   pop ecx   
-0040DB48     5A                   pop edx   
-0040DB49     E8 EF000000          call 0040DC3D   
-0040DB4E     8985 AE0B0000        mov dword ptr ss:\[ebp+BAE\],eax   
-0040DB54     8B32                 mov esi,dword ptr ds:\[edx\]   
-0040DB56     890A                 mov dword ptr ds:\[edx\],ecx   
-0040DB58     8B7A 10              mov edi,dword ptr ds:\[edx+10\]   
-0040DB5B     894A 10              mov dword ptr ds:\[edx+10\],ecx   
-0040DB5E     0BF6                 or esi,esi   
-0040DB60     75 02                jnz short 0040DB64   
-  
-0040DB64     03B5 2B120000        add esi,dword ptr ss:\[ebp+122B\]   
-0040DB6A     03BD 2B120000        add edi,dword ptr ss:\[ebp+122B\]   
-0040DB70     8B06                 mov eax,dword ptr ds:\[esi\]   
-0040DB72     0BC0                 or eax,eax   
-0040DB74     74 62                je short 0040DBD8   
-                                  ====>G 0040DBD8 跳出下面的循环！   
-  
-0040DB76     890E                 mov dword ptr ds:\[esi\],ecx   
-0040DB78     79 05                jns short 0040DB7F   
-  
-0040DB7F     0385 2B120000        add eax,dword ptr ss:\[ebp+122B\]   
-  …… ……  省 略  …… ……   
-0040DBD6   ^ EB 98                jmp short 0040DB70   
-                                  ====>发现 0040DB74 可以跳出循环！   
-  
-0040DBD8     83C2 14              add edx,14   
-0040DBDB   ^ E9 02FFFFFF          jmp 0040DAE2   
-                                  ====>发现 0040DAE7 可以跳出循环！   
-  
-0040DBE0    /EB 01                jmp short 0040DBE3   
-  
-0040DBE3     8B85 47120000        mov eax,dword ptr ss:\[ebp+1247\]   
-0040DBE9     EB 02                jmp short 0040DBED   
-  
-0040DBED     3385 9F120000        xor eax,dword ptr ss:\[ebp+129F\]   
-                                  ====>EAX\=000010CC   
-0040DBF3     EB 02                jmp short 0040DBF7   
-  
-0040DBF7     0385 A7120000        add eax,dword ptr ss:\[ebp+12A7\]   
-                                  ====>EAX\=000010CC + 00400000=004010CC   这就是 OEP 值  :-)   
-0040DBFD     EB 01                jmp short 0040DC00   
-  
-0040DC00     894424 1C            mov dword ptr ss:\[esp+1C\],eax   
-0040DC04     EB 03                jmp short 0040DC09   
-  
-0040DC09     8DBD 3D0C0000        lea edi,dword ptr ss:\[ebp+C3D\]   
-0040DC0F     EB 03                jmp short 0040DC14   
-  
-0040DC14     B9 07070000          mov ecx,707   
-0040DC19     EB 01                jmp short 0040DC1C   
-  
-0040DC1C     32C0                 xor al,al   
-0040DC1E     EB 02                jmp short 0040DC22   
-  
-0040DC22     F3:AA                rep stos byte ptr es:\[edi\]   
-                                  ====>清除那些“警告信息”   
-0040DC24     EB 01                jmp short 0040DC27   
-  
-0040DC27     8BFD                 mov edi,ebp   
-0040DC29     EB 02                jmp short 0040DC2D   
-  
-0040DC2D     B9 350C0000          mov ecx,0C35   
-0040DC32     EB 01                jmp short 0040DC35   
-  
-0040DC35     F3:AA                rep stos byte ptr es:\[edi\]   
-0040DC37     61                   popad   
-                                  ====>很高兴看见这个 POPAD   :-D   
-0040DC38    /EB 01                jmp short 0040DC3B   
-  
-0040DC3B   ^FFE0                 jmp eax   
-                                  ====>飞向光明之巅！   
-  
+PE-SHiELD V0.25 脱壳——Win98 的 Notepad
+
+下载地址： [http://protools.anticrack.de/files/packers/peshield.zip](http://protools.anticrack.de/files/packers/peshield.zip)
+
+软件大小： 32 KB
+
+【软件简介】：PE-SHiELD is a program, which encrypts 32-bit Windows EXE files, leaving them still executable. The previous version was over a year in the wild and there is still no unpacker for it.
+
+【作者声明】：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+【调试环境】：WinXP、Ollydbg1.09、PEiD、LordPE、ImportREC
+
+---
+
+## 【脱壳过程】
+
+调试前先设置一下 Ollydbg。打开：Ollydbg——>选项——>调试设置——>异常
+
+把“忽略在 KERNEL32 中的内存访问异常”、“INT3 中断”、“单步中断” 这 3 个选项选上。
+
+PE-SHiELD 属于 Crypters/Protectors 类型的壳。可以用 `Unpes.exe` 脱壳。
+
+感觉这个壳不算太弱啦，大体比 ASProtect V1.23 RC1 稍弱点。
+
+---
+
+用 Ollydbg 手动脱壳,老规矩：载入后弹出“是压缩代码——要继续进行分析吗？”，点“否”。
+
+```
+0040D000     60                   pushad
+                             =====>进入 OD 后断在这！
+
+0040D001     E8 2B000000          call Notepad.0040D031
+```
+
+F9 运行，程序中断在异常处：
+
+```
+0040D232     8DC0                 lea eax,eax
+                             =====>第 1 次异常
+```
+
+Shift+F9 通过异常，2 次程序就运行啦。比 ASProtect “温柔”点。
+
+弹出好几个“入口点预警”对话框，一一确定之。程序运行，呵呵，看看“周围环境”吧 :-)
+
+```
+0040D4D7     0000                 add byte ptr ds:[eax],al
+                             =====>现在偶在这。使劲向下看：有特殊的几行
+
+0040DC31     0000                 add byte ptr ds:[eax],al
+0040DC33     0000                 add byte ptr ds:[eax],al
+0040DC35     F3:AA                rep stos byte ptr es:[edi]
+0040DC37     61                   popad              //与众不同啦，
+0040DC38     EB 01                jmp short 0040DC3B //和 tElock 有点点相似
+0040DC3A     EA FFE00000 0000     jmp far 0000:0000E0FF
+
+0040DC41     0000                 add byte ptr ds:[eax],al
+0040DC43     0000                 add byte ptr ds:[eax],al
+0040DC45     0000                 add byte ptr ds:[eax],al
+```
+
+上面代码里的花指令去除后是下面的样子：
+
+```
+0040DC35     F3:AA                rep stos byte ptr es:[edi]
+0040DC37     61                   popad
+0040DC38     EB 01                jmp short 0040DC3B
+0040DC3A     90                   nop
+0040DC3B     FFE0                 jmp eax
+                             =====>呵呵，典型的入口样式呀 :-)
+```
+
+---
+
+好了，Try Again，继续手动跟踪。按 1 次 Shift+F9，停下来。
+
+注：用 F7 走；省略的地方没什么大跳转，小循环用 F4 跳出即可。
+
+```
+0040D4D7     8DC0                 lea eax,eax
+                             =====>第 2 次异常
+                             =====>看堆栈区的第二条地址：0040D4AC 下断！
+
+0040D4AC     8B4424 0C            mov eax,dword ptr ss:[esp+C]
+                             =====>堆栈区的第二条地址，Shift+F9 断在这！
+
+0040D4B0     8380 B8000000 04     add dword ptr ds:[eax+B8],4
+0040D4B7     53                   push ebx
+0040D4B8     33DB                 xor ebx,ebx
+0040D4BA     8958 04              mov dword ptr ds:[eax+4],ebx
+0040D4BD     8958 08              mov dword ptr ds:[eax+8],ebx
+0040D4C0     C740 18 55010000     mov dword ptr ds:[eax+18],155
+0040D4C7     8958 0C              mov dword ptr ds:[eax+C],ebx
+0040D4CA     8958 10              mov dword ptr ds:[eax+10],ebx
+0040D4CD     5B                   pop ebx
+0040D4CE     33C0                 xor eax,eax
+0040D4D0     C3                   retn
+                             =====>返回进系统 DLL。 :-(
+                             =====>于是在 0040D4D7 的上下几个 JMP 处下断，运气不错，F9 断在 0040D4EE
+
+0040D4EE    /EB 01                jmp short Notepad.0040D4F1
+  …… ……  省 略  …… ……
+
+0040D5BC     8DB5 00110000        lea esi,dword ptr ss:[ebp+1100]
+                             =====>看看内存中的数据：下面一大段反跟踪检测 SICE、TRW
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+```
+0040E100  4D 6D 7A 4F 7D 7D 6D 79 64 7C 5E 7E 67 6C 7A 6F  MmzO}}myd|^~glzo
+0040E110  79 00 5F 7C 65 7C 6A 4F 6E 65 6B 6B 7F 7B 42 7A  y.\_|e|jOnekk.{Bz
+0040E120  71 65 7A 77 00 4F 7A 6A 7E 68 6F 4E 67 60 6D 4E  qezw.Ozj~hoNg`mN
+0040E130  00 5C 5C 2E 5C 53 49 43 45 00 5C 5C 2E 5C 54 52  \\.SICE\\.TR
+0040E140  57 2E 56 58 44 00 4C 4C 4C 4C 4C 4C 4C 4C 4C 4C  W.VXD.LLLLLLLLLL
+0040E150  4C 4C 4C 4C 4C 4C 4C 4C 4C 4C 4C 4C 4C 4C 00 43  LLLLLLLLLLLL.C
+0040E160  72 65 61 74 65 54 68 72 65 61 64 00 00 00 00 00  reateThread.....
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+```
+0040D5C2     E8 7D090000          call Notepad.0040DF44
+0040D5C7     EB 01                jmp short Notepad.0040D5CA
+0040D5CA     E8 75090000          call Notepad.0040DF44
+0040D5CF     EB 01                jmp short Notepad.0040D5D2
+0040D5D2     E8 6D090000          call Notepad.0040DF44
+                             =====>CreateFileA
+
+0040D5D7     EB 03                jmp short Notepad.0040D5DC
+0040D5DC     8D85 00110000        lea eax,dword ptr ss:[ebp+1100]
+                             =====>GetCurrentProcess
+
+0040D5E2     EB 01                jmp short Notepad.0040D5E5
+0040D5E5     8D9D 5B120000        lea ebx,dword ptr ss:[ebp+125B]
+0040D5EB     E8 C60B0000          call Notepad.0040E1B6
+0040D5F0     EB 01                jmp short Notepad.0040D5F3
+0040D5F3     8D85 12110000        lea eax,dword ptr ss:[ebp+1112]
+0040D5F9     EB 03                jmp short Notepad.0040D5FE
+0040D5FE     8D9D 5F120000        lea ebx,dword ptr ss:[ebp+125F]
+0040D604     E8 AD0B0000          call Notepad.0040E1B6
+0040D609     EB 02                jmp short Notepad.0040D60D
+0040D60D     8D85 25110000        lea eax,dword ptr ss:[ebp+1125]
+0040D613     EB 02                jmp short Notepad.0040D617
+0040D617     8D9D 6B120000        lea ebx,dword ptr ss:[ebp+126B]
+0040D61D     E8 940B0000          call Notepad.0040E1B6
+0040D622     6A 00                push 0
+0040D624     EB 01                jmp short Notepad.0040D627
+0040D627     68 80000000          push 80
+0040D62C     EB 01                jmp short Notepad.0040D62F
+0040D62F     6A 03                push 3
+0040D631     EB 01                jmp short Notepad.0040D634
+0040D634     6A 00                push 0
+0040D636     EB 01                jmp short Notepad.0040D639
+0040D639     6A 03                push 3
+0040D63B     EB 01                jmp short Notepad.0040D63E
+0040D63E     68 00008000          push 800000
+0040D643     EB 01                jmp short Notepad.0040D646
+0040D646     8D85 3A110000        lea eax,dword ptr ss:[ebp+113A]
+                             =====>TRW.VXD
+
+0040D64C     EB 02                jmp short Notepad.0040D650
+0040D650     50                   push eax
+0040D651     EB 01                jmp short Notepad.0040D654
+0040D654     8B85 6B120000        mov eax,dword ptr ss:[ebp+126B] ; kernel32.CreateFileA
+0040D65A     EB 01                jmp short Notepad.0040D65D
+0040D65D     E8 59070000          call Notepad.0040DDBB
+                             =====>检测
+
+0040D662     EB 01                jmp short Notepad.0040D665
+0040D665     83F8 FF              cmp eax,-1
+                             =====>EAX 应=FFFFFFFF
+
+0040D668     EB 01                jmp short Notepad.0040D66B
+0040D66B    /0F85 EA000000        jnz Notepad.0040D75B
+                             =====>跳则 OVER     发现 SC、TRW
+
+0040D671    |8D85 5F110000        lea eax,dword ptr ss:[ebp+115F]
+0040D677    |EB 01                jmp short Notepad.0040D67A
+0040D67A     8D9D 6C110000        lea ebx,dword ptr ss:[ebp+116C]
+0040D680     EB 02                jmp short Notepad.0040D684
+0040D684     E8 2D0B0000          call Notepad.0040E1B6
+0040D689     EB 01                jmp short Notepad.0040D68C
+0040D68C     8D85 74110000        lea eax,dword ptr ss:[ebp+1174]
+```
+
+
+
+```
+0040D692     EB 01                 jmp short Notepad.0040D695
+0040D695     8D9D 7F110000        lea ebx,dword ptr ss:[ebp+117F]
+0040D69B     EB 03                 jmp short Notepad.0040D6A0
+0040D6A0     E8 110B0000          call Notepad.0040E1B6
+0040D6A5     EB 01                 jmp short Notepad.0040D6A8
+0040D6A8     89AD 1F080000        mov dword ptr ss:[ebp+81F],ebp
+0040D6AE     EB 01                 jmp short Notepad.0040D6B1
+0040D6B1     8D95 87110000        lea edx,dword ptr ss:[ebp+1187]
+0040D6B7     EB 01                 jmp short Notepad.0040D6BA
+0040D6BA     8D8D 1E080000        lea ecx,dword ptr ss:[ebp+81E]
+0040D6C0     EB 01                 jmp short Notepad.0040D6C3
+0040D6C3     52                   push edx
+0040D6C4     EB 01                 jmp short Notepad.0040D6C7
+0040D6C7     6A 00                 push 0
+0040D6C9     EB 01                 jmp short Notepad.0040D6CC
+0040D6CC     83C2 04              add edx,4
+0040D6CF     EB 01                 jmp short Notepad.0040D6D2
+0040D6D2     52                   push edx
+0040D6D3     EB 01                 jmp short Notepad.0040D6D6
+0040D6D6     51                   push ecx
+0040D6D7     EB 01                 jmp short Notepad.0040D6DA
+0040D6DA     6A 00                 push 0
+0040D6DC     EB 01                 jmp short Notepad.0040D6DF
+0040D6DF     6A 00                 push 0
+0040D6E1     EB 01                 jmp short Notepad.0040D6E4
+0040D6E4     8B85 6C110000        mov eax,dword ptr ss:[ebp+116C] ; kernel32.CreateThread
+0040D6EA     EB 01                 jmp short Notepad.0040D6ED
+0040D6ED     E8 C9060000          call Notepad.0040DDBB
+0040D6F2     EB 01                 jmp short Notepad.0040D6F5
+0040D6F5     FFB5 7F110000        push dword ptr ss:[ebp+117F]    ; kernel32.ExitThread
+0040D6FB     FF85 83110000        inc dword ptr ss:[ebp+1183]
+0040D701     C3                   retn
+
+                ==== > 进入系统 DLL，再次检测
+
+0040D87F     / EB 01               jmp short Notepad.0040D882
+
+                ==== > 最后从系统 DLL 返回到这里
+
+0040D882     83F8 FF              cmp eax,-1
+
+                ==== > EAX 应= FFFFFFFF
+
+0040D885     EB 01                 jmp short Notepad.0040D888
+0040D888     ^ F85 E4FEFFFF       jnz Notepad.0040D772
+0040D88E     EB 01                 jmp short Notepad.0040D891
+0040D891     80BD 1B120000 01     cmp byte ptr ss:[ebp+121B],1
+0040D898     EB 01                 jmp short Notepad.0040D89B
+0040D89B     / 74 6A               je short Notepad.0040D907
+0040D89D     | EB 03               jmp short Notepad.0040D8A2
+0040D8A2     B9 C8000000          mov ecx,0C8
+0040D8A7     EB 01                 jmp short Notepad.0040D8AA
+0040D8AA     51                   push ecx
+0040D8AB     EB 03                 jmp short Notepad.0040D8B0
+0040D8B0     ^ E2 F5               loopd short Notepad.0040D8A7
+
+                ==== > F4 跳出 LOOP
+
+0040D8B2     EB 02                 jmp short Notepad.0040D8B6
+0040D8B6     B8 64000000          mov eax,64
+0040D8BB     E8 C8030000          call Notepad.0040DC88
+
+  …… …… 省 略 …… ……
+
+0040D92E     80BD 19120000 01     cmp byte ptr ss:[ebp+1219],1
+0040D935     75 1C                jnz short Notepad.0040D953
+0040D953     8BB5 53120000        mov esi,dword ptr ss:[ebp+1253]
+0040D959     03F5                 add esi,ebp
+0040D95B     8B9D 43120000        mov ebx,dword ptr ss:[ebp+1243]
+0040D961     AD                   lods dword ptr ds:[esi]
+0040D962     EB 01                 jmp short Notepad.0040D965
+0040D965     0BC0                 or eax,eax
+0040D967     EB 01                 jmp short Notepad.0040D96A
+0040D96A     / 74 52               je short Notepad.0040D9BE
+
+                ==== > 这里可以跳出循环啦，在下面的 0040D9BE 下断
+
+0040D96C     | EB 01               jmp short Notepad.0040D96F
+0040D96F     8BF8                 mov edi,eax
+0040D971     EB 01                 jmp short Notepad.0040D974
+0040D974     33FB                 xor edi,ebx
+0040D976     EB 01                 jmp short Notepad.0040D979
+0040D979     D1C3                 rol ebx,1
+0040D97B     03DF                 add ebx,edi
+0040D97D     EB 01                 jmp short Notepad.0040D980
+0040D980     03BD A7120000        add edi,dword ptr ss:[ebp+12A7]
+0040D986     AD                   lods dword ptr ds:[esi]
+0040D987     EB 01                 jmp short Notepad.0040D98A
+0040D98A     8BC8                 mov ecx,eax
+0040D98C     33CB                 xor ecx,ebx
+0040D98E     EB 01                 jmp short Notepad.0040D991
+0040D991     AD                   lods dword ptr ds:[esi]
+0040D992     03C3                 add eax,ebx
+0040D994     EB 02                 jmp short Notepad.0040D998
+0040D998     D1C3                 rol ebx,1
+0040D99A     3107                 xor dword ptr ds:[edi],eax
+0040D99C     EB 02                 jmp short Notepad.0040D9A0
+0040D9A0     310F                 xor dword ptr ds:[edi],ecx
+0040D9A2     C1C0 03              rol eax,3
+0040D9A5     EB 03                 jmp short Notepad.0040D9AA
+0040D9AA     03C1                 add eax,ecx
+0040D9AC     83C7 04              add edi,4
+0040D9AF     EB 01                 jmp short Notepad.0040D9B2
+0040D9B2     49                   dec ecx
+0040D9B3     EB 02                 jmp short Notepad.0040D9B7
+0040D9B7     ⁷⁵ E1                jnz short Notepad.0040D99A
+
+                ==== > F4 下去
+
+0040D9B9     EB 01                 jmp short Notepad.0040D9BC
+0040D9BC     ^ EB A3               jmp short Notepad.0040D961
+
+                ==== > 发现 0040D96A 可以跳出循环！
+
+0040D9BE     80BD 19120000 01     cmp byte ptr ss:[ebp+1219],1
+
+                ==== > 在此下断，F9 跳出循环！
+
+0040D9C5     75 0E                jnz short Notepad.0040D9D5
+0040D9D5     8B85 27120000        mov eax,dword ptr ss:[ebp+1227]
+0040D9DB     8985 1F120000        mov dword ptr ss:[ebp+121F],eax
+0040D9E1     80BD 1E120000 01     cmp byte ptr ss:[ebp+121E],1
+0040D9E8     75 6A                jnz short Notepad.0040DA54
+0040DA54     8B95 27120000        mov edx,dword ptr ss:[ebp+1227]
+
+  …… …… 省 略 …… ……
+
+0040DAE7     0F84 F3000000        je Notepad.0040DBE0
+
+                ==== > G 0040DBE0 跳出下面的循环！
+
+0040DAED     894A 0C              mov dword ptr ds:[edx+C],ecx
+0040DAF0     0385 2B120000        add eax,dword ptr ss:[ebp+122B]
+0040DAF6     52                   push edx
+0040DAF7     51                   push ecx
+0040DAF8     50                   push eax
+0040DAF9     50                   push eax
+0040DAFA     C685 1D120000 00     mov byte ptr ss:[ebp+121D],0
+0040DB01     8B18                 mov ebx,dword ptr ds:[eax]
+0040DB03     81E3 DFDFDF00        and ebx,0DFDFDF
+0040DB09     81FB 4D464300        cmp ebx,43464D
+0040DB0F     75 18                jnz short Notepad.0040DB29
+0040DB29     8BD8                 mov ebx,eax
+0040DB2B     E8 DDFBFFFF          call Notepad.0040D70D
+0040DB30     5B                   pop ebx
+0040DB31     59                   pop ecx
+0040DB32     5A                   pop edx
+0040DB33     0BC0                 or eax,eax
+0040DB35     75 12                jnz short Notepad.0040DB49
+0040DB37     52                   push edx
+0040DB38     51                   push ecx
+0040DB39     53                   push ebx
+0040DB3A     E8 D9FBFFFF          call Notepad.0040D718
+0040DB3F     0BC0                 or eax,eax
+0040DB41     ^ 0F84 42FCFFFF      je Notepad.0040D789
+```
+
+
+
+```
+0040DB47     59                 pop ecx   
+
+0040DB48     5A                 pop edx   
+
+0040DB49     E8 EF000000        call 0040DC3D   
+
+0040DB4E     8985 AE0B0000      mov dword ptr ss:\[ebp+BAE\],eax   
+
+0040DB54     8B32               mov esi,dword ptr ds:\[edx\]   
+
+0040DB56     890A               mov dword ptr ds:\[edx\],ecx   
+
+0040DB58     8B7A 10            mov edi,dword ptr ds:\[edx+10\]   
+
+0040DB5B     894A 10            mov dword ptr ds:\[edx+10\],ecx   
+
+0040DB5E     0BF6               or esi,esi   
+
+0040DB60     75 02              jnz short 0040DB64   
+
+0040DB64     03B5 2B120000      add esi,dword ptr ss:\[ebp+122B\]   
+
+0040DB6A     03BD 2B120000      add edi,dword ptr ss:\[ebp+122B\]   
+
+0040DB70     8B06               mov eax,dword ptr ds:\[esi\]   
+
+0040DB72     0BC0               or eax,eax   
+
+0040DB74     74 62              je short 0040DBD8   
+
+                                ====>G 0040DBD8 跳出下面的循环！   
+
+0040DB76     890E               mov dword ptr ds:\[esi\],ecx   
+
+0040DB78     79 05              jns short 0040DB7F   
+
+0040DB7F     0385 2B120000      add eax,dword ptr ss:\[ebp+122B\]   
+
+  …… ……  省 略  …… ……   
+
+0040DBD6   ^ EB 98              jmp short 0040DB70   
+
+                                ====>发现 0040DB74 可以跳出循环！   
+
+0040DBD8     83C2 14            add edx,14   
+
+0040DBDB   ^ E9 02FFFFFF        jmp 0040DAE2   
+
+                                ====>发现 0040DAE7 可以跳出循环！   
+
+0040DBE0    /EB 01             jmp short 0040DBE3   
+
+0040DBE3     8B85 47120000      mov eax,dword ptr ss:\[ebp+1247\]   
+
+0040DBE9     EB 02              jmp short 0040DBED   
+
+0040DBED     3385 9F120000      xor eax,dword ptr ss:\[ebp+129F\]   
+
+                                ====>EAX=000010CC   
+
+0040DBF3     EB 02              jmp short 0040DBF7   
+
+0040DBF7     0385 A7120000      add eax,dword ptr ss:\[ebp+12A7\]   
+
+                                ====>EAX=000010CC + 00400000=004010CC   这就是 OEP 值  :-)   
+
+0040DBFD     EB 01              jmp short 0040DC00   
+
+0040DC00     894424 1C          mov dword ptr ss:\[esp+1C\],eax   
+
+0040DC04     EB 03              jmp short 0040DC09   
+
+0040DC09     8DBD 3D0C0000      lea edi,dword ptr ss:\[ebp+C3D\]   
+
+0040DC0F     EB 03              jmp short 0040DC14   
+
+0040DC14     B9 07070000        mov ecx,707   
+
+0040DC19     EB 01              jmp short 0040DC1C   
+
+0040DC1C     32C0               xor al,al   
+
+0040DC1E     EB 02              jmp short 0040DC22   
+
+0040DC22     F3:AA              rep stos byte ptr es:\[edi\]   
+
+                                ====>清除那些“警告信息”   
+
+0040DC24     EB 01              jmp short 0040DC27   
+
+0040DC27     8BFD               mov edi,ebp   
+
+0040DC29     EB 02              jmp short 0040DC2D   
+
+0040DC2D     B9 350C0000        mov ecx,0C35   
+
+0040DC32     EB 01              jmp short 0040DC35   
+
+0040DC35     F3:AA              rep stos byte ptr es:\[edi\]   
+
+0040DC37     61                 popad   
+
+                                ====>很高兴看见这个 POPAD   :-D   
+
+0040DC38    /EB 01             jmp short 0040DC3B   
+
+0040DC3B   ^FFE0               jmp eax   
+
+                                ====>飞向光明之巅！   
+
 ———————————————————————   
-  
-004010CC     55                   push ebp   
-                                  ====>在这儿用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程   
-  
-004010CD     8BEC                 mov ebp,esp   
-004010CF     83EC 44              sub esp,44   
-004010D2     56                   push esi   
-004010D3     FF15 E4634000        call dword ptr ds:\[4063E4\] ; kernel32.GetCommandLineA   
-004010D9     8BF0                 mov esi,eax   
-004010DB     8A00                 mov al,byte ptr ds:\[eax\]   
-004010DD     3C 22                cmp al,22   
-004010DF     75 1B                jnz short 004010FC   
-004010E1     56                   push esi   
-004010E2     FF15 F4644000        call dword ptr ds:\[4064F4\] ; USER32.CharNextA   
-  
-  
+
+004010CC     55                 push ebp   
+
+                                ====>在这儿用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程   
+
+004010CD     8BEC               mov ebp,esp   
+
+004010CF     83EC 44            sub esp,44   
+
+004010D2     56                 push esi   
+
+004010D3     FF15 E4634000      call dword ptr ds:\[4063E4\] ; kernel32.GetCommandLineA   
+
+004010D9     8BF0               mov esi,eax   
+
+004010DB     8A00               mov al,byte ptr ds:\[eax\]   
+
+004010DD     3C 22              cmp al,22   
+
+004010DF     75 1B              jnz short 004010FC   
+
+004010E1     56                 push esi   
+
+004010E2     FF15 F4644000      call dword ptr ds:\[4064F4\] ; USER32.CharNextA   
+
 ———————————————————————   
-  
-运行 ImportREC，选择这个进程。把 OEP 改为 000010CC，点 IT AutoSearch，点“Get Import”，   
-有几个无效函数手动修复之，FixDump，正常运行！60K ->72K  用 FileScan 优化后是 50.5K。   
-用 Unpes.exe 自动脱壳后是 60K。   
-  
+
+运行 `ImportREC`，选择这个进程。把 `OEP` 改为 `000010CC`，点 `IT AutoSearch`，点“Get Import”，   
+
+有几个无效函数手动修复之，`FixDump`，正常运行！`60K` -> `72K`  用 `FileScan` 优化后是 `50.5K`。   
+
+用 `Unpes.exe` 自动脱壳后是 `60K`。   
+
 —————————————————————————————————   
-       
-                                   
-         ,     \_/    
-        /| \_.-~/            \_     ,        青春都一饷   
-       ( /~   /              ~-.\_ |   
-       \`\\  \_/                   ~ )          忍把浮名    
-   \_-~~~-.)  )\_\_/;;,.          \_  //'    
-  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂   
- \`~ \_( ,\_..-- (     ,;'' /    ~--   /.\_\`    
-  /~~//'   /' \`~         ) /--..\_, )\_  \`~    
-  "  \`~"  "      \`"      /~'\`    \`\\~~      
-                         "     "   "~'  ""   
-  
-       
-  
-            Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]   
-  
-                   2003-10-12  20:20   
+
+        ,     \_/   
+      /| \_.-~/           \_     ,        青春都一饷  
+     ( /~   /              ~-.\_ |  
+     \`\\  \_/                ~ )           忍把浮名  
+  _-~~~-.)  )\_\_/;;,.        \_  //’   
+ /'\_,   --~    ~~~-  ,;;\_\_\_( (.-~~~-.       换了破解轻狂  
+\`~ \_ ( ,\_..-- (      ,;'' /    ~--   /.\_\`  
+  /~~//'   /' \`~         ) /--..\_, )\_  \`~    
+  "  \`~"  "      \`"      /~'\`    \`\\~~    
+              "      "   "~'  ""  
+
+        Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]  
+
+             2003-10-12  20:20  
+
  4dd466d0e1e0cc123afbe504da2462ca
+```

@@ -1,93 +1,101 @@
 
-
 # 为程序打动态内存补丁的 delphi 原码
 
 > 原文：[`www.pediy.com/kssd/pediy08/pediy8-445.htm`](https://www.pediy.com/kssd/pediy08/pediy8-445.htm)
 
-【文章标题】: 为程序打动态内存补丁的 delphi 原码  
-【文章作者】: 8713007  
-【软件名称】: CrackMe2.1  
-【软件大小】: 200k  
-【下载地址】: 自己搜索下载  
-【使用工具】: delphi7+win2000  
-【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
-\--------------------------------------------------------------------------------  
-【详细过程】  
-  原来都使用工具给程序打内存补丁，但是往往被杀毒软件认成病毒删除。所以使用 delphi7 写了一段代码。  
-  以一个 crackme1 为例，我们今天不是分析算法，而是将本内存补丁打入程序中，使爆破成功。  
-  原码如下  
-  unit Unit1;  
-    
-  interface  
-    
-  uses  
-    Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,  
-    Dialogs;  
-    
-  type  
-    TForm1 = class(TForm)  
-      procedure FormCreate(Sender: TObject);  
-    private  
-      { Private declarations }  
-    public  
-      { Public declarations }  
-    end;  
-    
-  var  
-    Form1: TForm1;  
-    
-  implementation  
-    
-  {$R \*.dfm}  
-   var  
-           si:STARTUPINFO ;  
-           pi:PROCESS\_INFORMATION ;  
-           NewData : array\[0..1\] of byte = ($90,$90);  
-           NewDataSize : DWORD;  
-           Bytesread : DWORD;  
-           Olddata : array\[0..1\] of byte;  
-           dir:string ;  
-  procedure TForm1.FormCreate(Sender: TObject);  
-  begin  
-      dir:=ExtractFileDir(Application.ExeName );  
-        if FileExists(dir+'\\crackme1.exe') then  
-       begin  
-    
-      ZeroMemory(@Pi,SizeOf(pi));  
-       FillChar (si,SizeOf(si),0);  
-       si.cb :=SizeOf(si);  
-       NewDatasize :=SizeOf(NewData )  ;  
-        if CreateProcess (nil,'crackme1.exe',nil,nil,False ,CREATE\_SUSPENDED ,nil ,nil,si,pi)=True then  
-         begin  
-          ReadProcessMemory(pi.hProcess ,Pointer($00401586  ),@olddata,2 ,BytesRead );  
-          if (OldData\[0\]=$75) and (OldData\[1\]=$18)   then  
-           begin  
-             WriteProcessMemory(pi.hProcess ,Pointer($00401586  ),@newdata,NewDatasize ,BytesRead );  
-             ResumeThread(pi.hThread );  
-             CloseHandle(pi.hProcess );  
-             CloseHandle(pi.hThread );  
-             end  else  
-           MessageBox(Handle, PChar('无法打入内存补丁'), PChar('错误'),MB\_ICONERROR or MB\_OK);  
-           TerminateProcess(pi.hProcess ,0);  
-           CloseHandle(pi.hProcess );  
-             CloseHandle(pi.hThread );  
-             end;  
-            end  
-            else  
-            begin  
-            ShowMessage('本补丁必须与原文件放在同一目录下');  
-            Application.Terminate ;  
-            end;  
-    
-  end;  
-    
-  end.  
-    
-  本段代码编译后的程序过卡巴斯基 5.0.crackme 在附件中  
-    
-\--------------------------------------------------------------------------------  
-【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
-  
-                                                       2006 年 11 月 16 日 18:36:22 
+- 【文章标题】: 为程序打动态内存补丁的 delphi 原码
+- 【文章作者】: 8713007
+- 【软件名称】: `CrackMe2.1`
+- 【软件大小】: 200k
+- 【下载地址】: 自己搜索下载
+- 【使用工具】: `delphi7`+`win2000`
+- 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
 
- 4dd466d0e1e0cc123afbe504da2462ca
+## 【详细过程】
+
+原来都使用工具给程序打内存补丁，但是往往被杀毒软件认成病毒删除。所以使用 `delphi7` 写了一段代码。
+
+以一个 `crackme1` 为例，我们今天不是分析算法，而是将本内存补丁打入程序中，使爆破成功。
+
+原码如下
+
+```delphi
+unit Unit1;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs;
+
+type
+  TForm1 = class(TForm)
+    procedure FormCreate(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.dfm}
+
+  var
+     si:STARTUPINFO ;
+     pi:PROCESS_INFORMATION ;
+     NewData : array[0..1] of byte = ($90,$90);
+     NewDataSize : DWORD;
+     Bytesread : DWORD;
+     Olddata : array[0..1] of byte;
+     dir:string ;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+    dir:=ExtractFileDir(Application.ExeName );
+      if FileExists(dir+'\crackme1.exe') then
+     begin
+      ZeroMemory(@Pi,SizeOf(pi));
+       FillChar (si,SizeOf(si),0);
+       si.cb :=SizeOf(si);
+       NewDatasize :=SizeOf(NewData )  ;
+        if CreateProcess (nil,'crackme1.exe',nil,nil,False ,CREATE_SUSPENDED ,nil ,nil,si,pi)=True then
+       begin
+        ReadProcessMemory(pi.hProcess ,Pointer($00401586  ),@olddata,2 ,BytesRead );
+        if (OldData[0]=$75) and (OldData[1]=$18)   then
+         begin
+           WriteProcessMemory(pi.hProcess ,Pointer($00401586  ),@newdata,NewDatasize ,BytesRead );
+           ResumeThread(pi.hThread );
+           CloseHandle(pi.hProcess );
+           CloseHandle(pi.hThread );
+           end  else
+         MessageBox(Handle, PChar('无法打入内存补丁'), PChar('错误'),MB_ICONERROR or MB_OK);
+         TerminateProcess(pi.hProcess ,0);
+         CloseHandle(pi.hProcess );
+           CloseHandle(pi.hThread );
+           end;
+        end
+        else
+        begin
+        ShowMessage('本补丁必须与原文件放在同一目录下');
+        Application.Terminate ;
+        end;
+end;
+
+end.
+```
+
+本段代码编译后的程序过卡巴斯基 5.0.`crackme` 在附件中
+
+---
+
+## 【版权声明】
+
+本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2006 年 11 月 16 日 18:36:22
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,2152 +1,2471 @@
 
-
 # SpyWindows 监测软件
 
 > 原文：[`www.pediy.com/kssd/pediy04/kanxue248.htm`](https://www.pediy.com/kssd/pediy04/kanxue248.htm)
 
-SpyWindows 监测软件 ME 全系列完全破解--以 ExeSpyME 为例   
-  
-  
-　　SpyWindows 监测软件 ME 系列包括以下工具：ComSpyME、ModemWatchME、ExeSpyME、HeapExplorer SE、ProcessExplorer SE、MemoryMonitorME、ODBCSpyME、HeapExplorerME、PhysicalMemoryExplorerME、ProcessMemoryExplorerME 和 SystemMemoryExplorerME，见名知义，从名字我们就可以知道其用途，这里我就不细讲了。以前我们曾经讨论过 SpyWindows 监测软件 98 系列三款工具的破解方法：SetupMonitor98、RegistryMonitor98 及 ResSpy98，ME 系列在 98 系列的“.DAT” KEY FILE 的基础上又多出一个“.DLL”动态链接库 KEY FILE，其加密强度比单纯的“.DAT” KEY FILE 型要高出许多，所以要破解 ME 系列的软件需要具有 WIN32 下 DLL 的汇编编程知识，而前面我们已经领教过 98 系列“.DAT” KEY FILE 的厉害，那么现在你可以想想要破解 ME 系列监测软件的难度有多大了！同样，ME 系列所有软件的加密方法跟 98 系列产品之间一样，其同系列的产品加密方法一样，只需要在某个软件 KEY FILE 的基础上简单的替换一些相关信息即可应用于其它软件，这里我们以 ExeSpyME 为例进行讲解，其它 ME 系列的产品看完破解过程后你自然就明白怎么改了。   
-  
-程序名　：ExeSpyME   
-版本 　 ：V5.0   
-大小 　 ：689KB   
-运行平台：Windows 95/98/ME   
-保护方式：KEY FILE（“.DAT”和“.DLL”）   
-破解方式：KEY FILE 产生   
-破解难度：非常难   
-  
-作者 　 ：ddcrack (2001/11/05)   
-  
-破解步骤：   
-  
-1\. 首先把 98 系列的破解搞懂:“SetupMonitor98/RegistryMonitor98/ResSpy98 完全破解”，如果没有彻底看明白，那么下面的东西对你来说毫无用处，因为我是在 98 系列破解教程的基础上展开的(为什么不从头开始写？难到你真想让我吐血啊！！！即便是我写了，相信也没有人看得懂，太复杂了！！！)；   
-  
-2\. 用 softice 载入 windows（通过 CTRL+D 来检查 softice 是否已经准备好，按 F5 退出 softice）；   
-  
-3\. 在“开始”菜单中点击“Spy Suite”下“ExeSpyME”的“ExeSpy”，此时我们可以从弹出的注册对话框中看到 KEY FILE 的名字分别叫“EXEMEUE.DAT”和“ExeMEKey.DLL”；   
-  
-4\. 对于“EXEMEUE.DAT”，因为前面我们已经攻破了 98 系列的工具，所以我们这里干脆用 98 系列的“.DAT”KEY FILE 来代替；而对于“ExeMEKey.DLL”就要多一些心眼了，我们可以想想这个“.DLL”的 KEY FILE 是不是只是为了迷惑我们而故意用了 DLL 的后缀，其实暗地里仍然是个“.DAT”KEY FILE 呢？如果它真的是个动态链接库文件，那么显然我们就要面临很大的困难了；先把 SetupMonitor98 的 KEY FILE“SET98UR.DAT”改名换成“EXEMEUE.DAT”放在 C 盘根目录下(注意：98 系列的 KEY FILE 都有“SPYS”和“SPY1”两种类型，那么这里究竟用哪一个呢？回答是用“SPY1”型，因为“SPY1”型的 KEY FILE 比“SPYS”型的复杂，我想在这种情况下复杂总比简单的好吧！就象 WINDOWS ME 比 WINDOWS 98 要好一样，新东西通常都比旧东西要复杂一点，而功能会更好一些)，因为现在我们还不知道这个“.DLL”的 KEY FILE 究竟是何方神圣？所以暂时我们先构造一个名为“ExeMEKey.DLL”的文本文件，假设这里为“0123456789ABCDEFFEDCBA9876543210”，内容可以随意(也许你有点糊涂：如何创建一个文本类型的“ExeMEKey.DLL”文件呢？哈哈，这很简单，先建个“.TXT”的文件，将上面的文本内容输进去，然后将文件名改掉就行了^\_^)；   
-  
-5\. 因为刚才把假的“EXEMEUE.DAT”和“ExeMEKey.DLL”放在了 C 盘根目录，所以我们在 ExeSpyME 的注册窗口中输入驱动器号“C”；   
-  
-6\. 用 CTRL+D 呼出 softice，下万能断点：bpx hmemcpy，按 F5 返回到 ExeSpyME(是不是觉得有点浪费笔墨啊^\_^，请多多包涵，我的破解文章总是这样老土的，哈哈。。。)；   
-  
-7\. 同样地，在 ExeSpyME 注册框中点击“LOAD”，程序立马被 softice 拦截住(希望顺利一些，不要太复杂了呀^\_^)；   
-  
-8\. 用 bd \* 暂停断点 bpx hmemcpy ；   
-  
-9\. 按 F12 键返回到 ExeSpyME 的领空(跟 98 系列一样，应该还是 9 次啦！)，程序停留在下面的地方：   
-  
-。。。   
-0167:00411A30  MOV      BYTE PTR \[EBP\-50\],00   
-0167:00411A34  PUSH      50   
-0167:00411A36  LEA      ECX,\[EBP\-50\]   
-0167:00411A39  PUSH      ECX   
-0167:00411A3A  PUSH      000000BF   
-0167:00411A3F  MOV      EDX,\[EBP+08\]   
-0167:00411A42  PUSH      EDX   
-0167:00411A43  CALL      \[USER32!GetDlgItemTextA\]　 <-- 获取输入的驱动器号   
-0167:00411A49  MOVSX    EAX,BYTE PTR \[EBP\-50\]　　　<-- 我们来到这里，将驱动器号送入 EAX   
-0167:00411A4D  CMP      EAX,41   
-0167:00411A50  JL        00411A5B   
-0167:00411A52  MOVSX    ECX,BYTE PTR \[EBP\-50\]   
-0167:00411A56  CMP      ECX,5A   
-0167:00411A59  JLE      00411A75   
-0167:00411A5B  MOVSX    EDX,BYTE PTR \[EBP\-50\]   
-0167:00411A5F  CMP      EDX,61   
-0167:00411A62  JL        00411DD7   
-0167:00411A68  MOVSX    EAX,BYTE PTR \[EBP\-50\]   
-0167:00411A6C  CMP      EAX,7A   
-0167:00411A6F  JG        00411DD7   
-0167:00411A75  MOV      DWORD PTR \[EBP\-00A4\],00000001　<-- \[EBP\-00A4\]置 1   
-0167:00411A7F  MOVSX    ECX,BYTE PTR \[004200AC\]　 <-- 004200AC 指向字符串“.\\EXEMEKEY.DLL”   
-0167:00411A86  TEST      ECX,ECX   
-0167:00411A88  JZ        00411BF7   
-0167:00411A8E  LEA      EDX,\[EBP\-50\]   
-0167:00411A91  PUSH      EDX   
-0167:00411A92  LEA      EAX,\[EBP+FFFFEF54\]   
-0167:00411A98  PUSH      EAX   
-0167:00411A99  CALL      \[KERNEL32!lstrcpy\]   
-0167:00411A9F  PUSH      00425154   
-0167:00411AA4  LEA      ECX,\[EBP+FFFFEF54\]   
-0167:00411AAA  PUSH      ECX   
-0167:00411AAB  CALL      \[KERNEL32!lstrcat\]   
-0167:00411AB1  PUSH      004200AE   
-0167:00411AB6  LEA      EDX,\[EBP+FFFFEF54\]   
-0167:00411ABC  PUSH      EDX   
-0167:00411ABD  CALL      \[KERNEL32!lstrcat\]   
-0167:00411AC3  PUSH      004200AC   
-0167:00411AC8  LEA      EAX,\[EBP+FFFFDF54\]   
-0167:00411ACE  PUSH      EAX   
-0167:00411ACF  CALL      \[KERNEL32!lstrcpy\]   
-0167:00411AD5  PUSH      00   
-0167:00411AD7  LEA      ECX,\[EBP+FFFFEF54\]   
-0167:00411ADD  PUSH      ECX　　　　　　　　　　　　<-- ECX 指向字符串“C:\\EXEMEKEY.DLL”   
-0167:00411ADE  CALL      \[KERNEL32!\_lopen\]　　　　　<-- 打开 KEY FILE“C:\\EXEMEKEY.DLL”   
-0167:00411AE4  MOV      \[EBP\-00A8\],EAX   
-0167:00411AEA  CMP      DWORD PTR \[EBP\-00A8\],-01   
-0167:00411AF1  JNZ      00411B36   
-0167:00411AF3  LEA      EDX,\[EBP+FFFFEF54\]   
-0167:00411AF9  PUSH      EDX   
-0167:00411AFA  PUSH      00425158   
-0167:00411AFF  LEA      EAX,\[EBP\-00A0\]   
-0167:00411B05  PUSH      EAX   
-0167:00411B06  CALL      \[USER32!wsprintfA\]   
-0167:00411B0C  ADD      ESP,0C   
-0167:00411B0F  PUSH      10   
-0167:00411B11  PUSH      0042516C   
-0167:00411B16  LEA      ECX,\[EBP\-00A0\]   
-0167:00411B1C  PUSH      ECX   
-0167:00411B1D  MOV      EDX,\[EBP+08\]   
-0167:00411B20  PUSH      EDX   
-0167:00411B21  CALL      \[USER32!MessageBoxA\]   
-0167:00411B27  MOV      DWORD PTR \[EBP\-00A4\],00000000   
-0167:00411B31  JMP      00411BF7   
-0167:00411B36  PUSH      00   
-0167:00411B38  LEA      EAX,\[EBP+FFFFDF54\]   
-0167:00411B3E  PUSH      EAX　　　　　　　　　　　　<-- EAX 指向字符串“.\\EXEMEKEY.DLL”   
-0167:00411B3F  CALL      \[KERNEL32!\_lcreat\]　　　　 <-- 在 EXESPYME 的当前目录创建文件“EXEMEKEY.DLL”   
-0167:00411B45  MOV      \[EBP\-00AC\],EAX   
-0167:00411B4B  CMP      DWORD PTR \[EBP\-00AC\],-01   
-0167:00411B52  JNZ      00411B9B   
-0167:00411B54  LEA      ECX,\[EBP+FFFFDF54\]   
-0167:00411B5A  PUSH      ECX   
-0167:00411B5B  LEA      EDX,\[EBP+FFFFEF54\]   
-0167:00411B61  PUSH      EDX   
-0167:00411B62  PUSH      00425174   
-0167:00411B67  LEA      EAX,\[EBP\-00A0\]   
-0167:00411B6D  PUSH      EAX   
-0167:00411B6E  CALL      \[USER32!wsprintfA\]   
-0167:00411B74  ADD      ESP,10   
-0167:00411B77  PUSH      10   
-0167:00411B79  PUSH      00425194   
-0167:00411B7E  LEA      ECX,\[EBP\-00A0\]   
-0167:00411B84  PUSH      ECX   
-0167:00411B85  MOV      EDX,\[EBP+08\]   
-0167:00411B88  PUSH      EDX   
-0167:00411B89  CALL      \[USER32!MessageBoxA\]   
-0167:00411B8F  MOV      DWORD PTR \[EBP\-00A4\],00000000   
-0167:00411B99  JMP      00411BEA   
-0167:00411B9B  PUSH      50   
-0167:00411B9D  LEA      EAX,\[EBP\-00A0\]   
-0167:00411BA3  PUSH      EAX   
-0167:00411BA4  MOV      ECX,\[EBP\-00A8\]   
-0167:00411BAA  PUSH      ECX   
-0167:00411BAB  CALL      \[KERNEL32!\_hread\]　　　　　<-- 读文件“C:\\EXEMEKEY.DLL”   
-0167:00411BB1  MOV      \[EBP+FFFFDF50\],EAX   
-0167:00411BB7  CMP      DWORD PTR \[EBP+FFFFDF50\],00   
-0167:00411BBE  JLE      00411BDD   
-0167:00411BC0  MOV      EDX,\[EBP+FFFFDF50\]   
-0167:00411BC6  PUSH      EDX   
-0167:00411BC7  LEA      EAX,\[EBP\-00A0\]   
-0167:00411BCD  PUSH      EAX   
-0167:00411BCE  MOV      ECX,\[EBP\-00AC\]   
-0167:00411BD4  PUSH      ECX   
-0167:00411BD5  CALL      \[KERNEL32!\_hwrite\]　　　　 <-- 写文件“.\\EXEMEKEY.DLL”   
-0167:00411BDB  JMP      00411B9B   
-0167:00411BDD  MOV      EDX,\[EBP\-00AC\]   
-0167:00411BE3  PUSH      EDX   
-0167:00411BE4  CALL      \[KERNEL32!\_lclose\]　　　　 <-- 关闭文件“.\\EXEMEKEY.DLL”   
-0167:00411BEA  MOV      EAX,\[EBP\-00A8\]   
-0167:00411BF0  PUSH      EAX   
-0167:00411BF1  CALL      \[KERNEL32!\_lclose\]　　　　 <-- 关闭文件“C:\\EXEMEKEY.DLL”   
-0167:00411BF7  CMP      DWORD PTR \[EBP\-00A4\],00   
-0167:00411BFE  JZ        00411DD5　　　　　　　　　 <-- 不会跳   
-0167:00411C04  PUSH      0042519C   
-0167:00411C09  LEA      ECX,\[EBP\-50\]   
-0167:00411C0C  PUSH      ECX   
-0167:00411C0D  CALL      \[KERNEL32!lstrcat\]   
-0167:00411C13  PUSH      0042009E   
-0167:00411C18  LEA      EDX,\[EBP\-50\]   
-0167:00411C1B  PUSH      EDX   
-0167:00411C1C  CALL      \[KERNEL32!lstrcat\]   
-0167:00411C22  PUSH      00   
-0167:00411C24  LEA      EAX,\[EBP\-50\]   
-0167:00411C27  PUSH      EAX　　　　　　　　　　　　<-- EAX 指向字符串“C:\\EXEMEUE.DAT”   
-0167:00411C28  CALL      \[KERNEL32!\_lopen\]　　　　　<-- 打开 KEY FILE“C:\\EXEMEUE.DAT”   
-0167:00411C2E  MOV      \[EBP\-00A8\],EAX   
-0167:00411C34  CMP      DWORD PTR \[EBP\-00A8\],-01   
-0167:00411C3B  JNZ      00411C73   
-0167:00411C3D  LEA      ECX,\[EBP\-50\]   
-0167:00411C40  PUSH      ECX   
-0167:00411C41  PUSH      004251A0   
-0167:00411C46  LEA      EDX,\[EBP\-00A0\]   
-0167:00411C4C  PUSH      EDX   
-0167:00411C4D  CALL      \[USER32!wsprintfA\]   
-0167:00411C53  ADD      ESP,0C   
-0167:00411C56  PUSH      10   
-0167:00411C58  PUSH      004251B4   
-0167:00411C5D  LEA      EAX,\[EBP\-00A0\]   
-0167:00411C63  PUSH      EAX   
-0167:00411C64  MOV      ECX,\[EBP+08\]   
-0167:00411C67  PUSH      ECX   
-0167:00411C68  CALL      \[USER32!MessageBoxA\]   
-0167:00411C6E  JMP      00411DD5   
-0167:00411C73  MOV      EDX,\[EBP\-00A8\]   
-0167:00411C79  PUSH      EDX   
-0167:00411C7A  CALL      \[KERNEL32!\_lclose\]　　　　 <-- 关闭文件“C:\\EXEMEUE.DAT”   
-0167:00411C80  LEA      EAX,\[EBP+FFFFDC9C\]   
-0167:00411C86  PUSH      EAX　　　　　　　　　　　　<-- 内存地址压栈   
-0167:00411C87  LEA      ECX,\[EBP+FFFFDCA4\]   
-0167:00411C8D  PUSH      ECX　　　　　　　　　　　　<-- 内存地址压栈   
-0167:00411C8E  PUSH      0042006C　　　　　　　　　 <-- 内存地址 0042006C 中是字符串“ExeSpy Millennium Edition for Windows ME/98/95”   
-0167:00411C93  LEA      EDX,\[EBP\-50\]   
-0167:00411C96  PUSH      EDX　　　　　　　　　　　　<-- EDX 指向字符串“C:\\EXEMEUE.DAT”   
-0167:00411C97  CALL      00419455　　　　　　　　　 <-- 初步验证 KEY FILE“C:\\EXEMEUE.DAT”   
-0167:00411C9C  MOV      \[EBP+FFFFDCA0\],EAX   
-0167:00411CA2  CMP      DWORD PTR \[EBP+FFFFDCA0\],00   
-0167:00411CA9  JNZ      00411CC6　　　　　　　　　 <-- 验证成功，则跳到 00411CC6 去   
-。。。   
-  
-10\. 这篇文章我不想再像前次那般详细，因为经过 98 系列的破解后我们对程序已经有了足够的了解，所以这里“话不多说，点到即止”！在跟踪的时候也没有必要一步的走了，我们可以加快脚步，只是到了关键处才停下来看看，但是因为还不知道 ME 系列到底和 98 系列是否有多大的不同，所以我们还必须要从头开始跟踪程序一直到最后(针对“.DAT”KEY FILE 而言)！   
-  
-11\. 上面的程序段作用比较简单，主要是试着分别打开 KEY FILE“EXEMEKEY.DLL”和“EXEMEUE.DAT”，如果有一个文件不存在则显示出错信息，否则将 KEY FILE“EXEMEKEY.DLL”拷贝到 EXESPYME 的当前目录下；最后有个子程序 CALL　00419455，看看其入口参数我们就知道是要初步验证“EXEMEUE.DAT”的有效性，那么这个 CALL 是否跟 98 系列的那个 CALL 一模一样呢？当然不能保证了，但是至少应该不会差太多吧，还楞在这里干什么，赶紧进去啊：   
-。。。   
-0167:00419455  PUSH      EBP   
-0167:00419456  MOV      EBP,ESP   
-0167:00419458  SUB      ESP,24   
-0167:0041945B  MOV      DWORD PTR \[00426E00\],00000000   
-0167:00419465  MOV      DWORD PTR \[00426E04\],00000000   
-0167:0041946F  MOV      DWORD PTR \[00429F84\],00429FA0   
-0167:00419479  PUSH      00008003   
-0167:0041947E  CALL      \[KERNEL32!SetErrorMode\]   
-0167:00419484  MOV      \[EBP\-1C\],EAX   
-0167:00419487  PUSH      00   
-0167:00419489  MOV      EAX,\[EBP+08\]   
-0167:0041948C  PUSH      EAX   
-0167:0041948D  CALL      \[KERNEL32!\_lopen\]　　　　　<-- 打开 KEY FILE“C:\\EXEMEUE.DAT”   
-0167:00419493  MOV      \[EBP\-18\],EAX   
-0167:00419496  MOV      ECX,\[EBP\-1C\]   
-0167:00419499  PUSH      ECX   
-0167:0041949A  CALL      \[KERNEL32!SetErrorMode\]   
-0167:004194A0  CMP      DWORD PTR \[EBP\-18\],-01   
-0167:004194A4  JZ        004194B9   
-0167:004194A6  PUSH      04   
-0167:004194A8  PUSH      00429FA0　　　　　　　　　 <-- 将 KEY FILE 内容读到内存地址 00429FA0 处   
-0167:004194AD  MOV      EDX,\[EBP\-18\]   
-0167:004194B0  PUSH      EDX   
-0167:004194B1  CALL      \[KERNEL32!\_hread\]   
-0167:004194B7  JMP      004194D2   
-0167:004194B9  PUSH      00425BD4   
-0167:004194BE  MOV      EAX,\[EBP+10\]   
-0167:004194C1  ADD      EAX,18   
-0167:004194C4  PUSH      EAX   
-0167:004194C5  CALL      \[KERNEL32!lstrcpy\]   
-0167:004194CB  XOR      EAX,EAX   
-0167:004194CD  JMP      00419579   
-0167:004194D2  MOV      ECX,\[EBP\-18\]   
-0167:004194D5  PUSH      ECX   
-0167:004194D6  CALL      \[KERNEL32!\_lclose\]   
-0167:004194DC  CMP      DWORD PTR \[00429FA0\],53595053  <-- 53595053 即字符串“SPYS”   
-0167:004194E6  JNZ      004194EF   
-0167:004194E8  XOR      EAX,EAX   
-0167:004194EA  JMP      00419579　　　　　　　　　　　　<-- 完蛋了，GAME OVER！   
-0167:004194EF  CMP      DWORD PTR \[00429FA0\],31595053  <-- 31595053 即字符串“SPY1”   
-0167:004194F9  JNZ      0041952A   
-0167:004194FB  CMP      DWORD PTR \[004256F4\],02　　　　 <-- \[004256F4\] = 03   
-0167:00419502  JG        0041951E   
-0167:00419504  MOV      EDX,\[EBP+14\]   
-0167:00419507  PUSH      EDX   
-0167:00419508  MOV      EAX,\[EBP+10\]   
-0167:0041950B  PUSH      EAX   
-0167:0041950C  MOV      ECX,\[EBP+0C\]   
-0167:0041950F  PUSH      ECX   
-0167:00419510  MOV      EDX,\[EBP+08\]   
-0167:00419513  PUSH      EDX   
-0167:00419514  CALL      004197FC   
-0167:00419519  MOV      \[EBP\-20\],EAX   
-0167:0041951C  JMP      00419525   
-0167:0041951E  MOV      DWORD PTR \[EBP\-20\],00000000   
-0167:00419525  MOV      EAX,\[EBP\-20\]   
-0167:00419528  JMP      00419579　　　　　　　　　　　　<-- 完蛋了，GAME OVER！   
-0167:0041952A  CMP      DWORD PTR \[00429FA0\],32595053  <-- 32595053 即字符串“SPY2”   
-0167:00419534  JNZ      00419565   
-0167:00419536  CMP      DWORD PTR \[004256F4\],03　　　　 <-- \[004256F4\] = 03   
-0167:0041953D  JG        00419559   
-0167:0041953F  MOV      EAX,\[EBP+14\]   
-0167:00419542  PUSH      EAX　　　　　　　　　　　　<-- 内存地址压栈   
-0167:00419543  MOV      ECX,\[EBP+10\]   
-0167:00419546  PUSH      ECX　　　　　　　　　　　　<-- 内存地址压栈   
-0167:00419547  MOV      EDX,\[EBP+0C\]   
-0167:0041954A  PUSH      EDX　　　　　　　　　　　　<-- EDX 指向字符串“ExeSpy Millennium Edition for Windows ME/98/95”   
-0167:0041954B  MOV      EAX,\[EBP+08\]   
-0167:0041954E  PUSH      EAX　　　　　　　　　　　　<-- EAX 指向字符串“C:\\EXEMEUE.DAT”   
-0167:0041954F  CALL      0041A0CC　　　　　　　　　 <-- 验证 KEY FILE“C:\\EXEMEUE.DAT”   
-0167:00419554  MOV      \[EBP\-24\],EAX   
-0167:00419557  JMP      00419560   
-0167:00419559  MOV      DWORD PTR \[EBP\-24\],00000000   
-0167:00419560  MOV      EAX,\[EBP\-24\]   
-0167:00419563  JMP      00419579   
-0167:00419565  PUSH      00425BE0   
-0167:0041956A  MOV      ECX,\[EBP+10\]   
-0167:0041956D  ADD      ECX,18   
-0167:00419570  PUSH      ECX   
-0167:00419571  CALL      \[KERNEL32!lstrcpy\]   
-0167:00419577  XOR      EAX,EAX   
-0167:00419579  MOV      ESP,EBP   
-0167:0041957B  POP      EBP   
-0167:0041957C  RET      0010   
-。。。   
-  
+SpyWindows 监测软件 ME 全系列完全破解--以 `ExeSpyME` 为例
 
-12\. 是不是跟 98 系列不一样了呀？“半路杀出个程咬金”，程序中多了一个值为 03 的常量\[004256F4\]掺和进来，为什么我说是常量呢？因为这个值不是 KEY FILE 验证部分程序设置的，而且你可以试着多运行程序几次，它的值都固定为 03，在这段程序中，我们可以发现以前 98 系列采用的两种 KEY FILE 型“SPYS”和“SPY1”在这里都已经失效，只有当 KEY FILE 数据的头 4 个字符是“SPY2”才能继续下面的验证；因此现在要么回头修改那个假的 KEY FILE，要么用 RFL Z 命令骗过程序，总之要走到 0167:0041954F 处的 CALL　0041A0CC 并跟踪进去(其它地方都是死路一条啊！另外，关于\[004256F4\]，用 W32DASM 反汇编 EXESPYME 之后查找“004256F4”，你会发现这个值其实是程序初始化时设置的一个跟版本有关的东西，所以它是不会变的)：   
-。。。   
-0167:0041A0CC  PUSH      EBP   
-0167:0041A0CD  MOV      EBP,ESP   
-0167:0041A0CF  SUB      ESP,24   
-0167:0041A0D2  MOV      DWORD PTR \[EBP\-08\],00000000　<-- \[EBP\-08\]置 00   
-0167:0041A0D9  MOV      DWORD PTR \[EBP\-04\],00000000　<-- \[EBP\-04\]置 00   
-0167:0041A0E0  MOVSX    EAX,BYTE PTR \[004200AC\]   
-0167:0041A0E7  TEST      EAX,EAX   
-0167:0041A0E9  JZ        0041A15A   
-0167:0041A0EB  PUSH      004200AC　　　　　　　　　 <-- 004200AC 指向字符串“.\\EXEMEKEY.DLL”   
-0167:0041A0F0  CALL      \[KERNEL32!LoadLibraryA\]　　<-- 加载 EXESPYME 当前目录中的动态链接库“EXEMEKEY.DLL”   
-0167:0041A0F6  MOV      \[EBP\-1C\],EAX　　　　　　　 <-- 保存返回结果，成功则 EAX 为动态链接库句柄，否则 EAX=NULL   
-0167:0041A0F9  CMP      DWORD PTR \[EBP\-1C\],00　　　<-- 加载成功吗？   
-0167:0041A0FD  JZ        0041A15A　　　　　　　　　 <-- 不成功   
-0167:0041A0FF  PUSH      65　　　　　　　　　　　　 <-- 引出函数索引值为 65   
-0167:0041A101  MOV      ECX,\[EBP\-1C\]   
-0167:0041A104  PUSH      ECX　　　　　　　　　　　　<-- 动态链接库句柄压栈   
-0167:0041A105  CALL      \[KERNEL32!GetProcAddress\]　<-- 得到引出索引值为 65 的函数在内存中的地址值   
-0167:0041A10B  MOV      \[EBP\-20\],EAX　　　　　　　 <-- 保存返回结果，成功则 EAX 为函数地址，否则 EAX=NULL   
-0167:0041A10E  CMP      DWORD PTR \[EBP\-20\],00　　　<-- 动态链接库“EXEMEKEY.DLL”中是否存在索引值为 65 的函数？   
-0167:0041A112  JZ        0041A150　　　　　　　　　 <-- 不成功   
-0167:0041A114  LEA      EDX,\[EBP\-18\]   
-0167:0041A117  PUSH      EDX　　　　　　　　　　　　<-- 内存地址 EBP-18 压栈   
-0167:0041A118  PUSH      000002AC　　　　　　　　　 <-- 常数 000002AC 压栈   
-0167:0041A11D  PUSH      00429380　　　　　　　　　 <-- 内存地址 00429380 压栈   
-0167:0041A122  CALL      \[EBP\-20\]　　　　　　　　　 <-- 调用动态链接库中引出索引值为 65 的函数(搞什么鬼呀！不明白！)   
-0167:0041A125  MOV      \[EBP\-04\],EAX　　　　　　　 <-- 保存函数返回结果 EAX 到\[EBP\-04\]   
-0167:0041A128  CMP      DWORD PTR \[EBP\-04\],00　　　<-- 返回结果为 00 吗？   
-0167:0041A12C  JZ        0041A150　　　　　　　　　 <-- 是则跳到 0041A150 去，想想。。。哇噻！跳过去就死跷跷了！   
-0167:0041A12E  MOV      EAX,\[EBP\-18\]　　　　　　　 <-- EBP\-18 是函数的入口参数之一   
-0167:0041A131  MOV      \[004256E0\],EAX　　　　　　 <-- \[EBP\-18\]存入\[004256E0\]   
-0167:0041A136  MOV      ECX,\[EBP\-14\]   
-0167:0041A139  MOV      \[004256E4\],ECX　　　　　　 <-- \[EBP\-14\]存入\[004256E4\]   
-0167:0041A13F  MOV      EDX,\[EBP\-10\]   
-0167:0041A142  MOV      \[004256E8\],EDX　　　　　　 <-- \[EBP\-10\]存入\[004256E8\]   
-0167:0041A148  MOV      EAX,\[EBP\-0C\]   
-0167:0041A14B  MOV      \[004256EC\],EAX　　　　　　 <-- \[EBP\-0C\]存入\[004256EC\]   
-0167:0041A150  MOV      ECX,\[EBP\-1C\]   
-0167:0041A153  PUSH      ECX　　　　　　　　　　　　<-- 动态链接库句柄压栈   
-0167:0041A154  CALL      \[KERNEL32!FreeLibrary\]　　 <-- 释放动态链接库“.\\EXEMEKEY.DLL”   
-0167:0041A15A  CMP      DWORD PTR \[EBP\-04\],00　　　<-- \[EBP\-04\]仍然是 00 吗？   
-0167:0041A15E  JZ        0041A178　　　　　　　　　 <-- 是则跳到 0041A178 去   
-0167:0041A160  MOV      EDX,\[EBP+14\]   
-0167:0041A163  PUSH      EDX　　　　　　　　　　　　<-- 内存地址压栈   
-0167:0041A164  MOV      EAX,\[EBP+10\]   
-0167:0041A167  PUSH      EAX　　　　　　　　　　　　<-- 内存地址压栈   
-0167:0041A168  MOV      ECX,\[EBP+0C\]   
-0167:0041A16B  PUSH      ECX　　　　　　　　　　　　<-- ECX 指向字符串“ExeSpy Millennium Edition for Windows ME/98/95”   
-0167:0041A16C  MOV      EDX,\[EBP+08\]   
-0167:0041A16F  PUSH      EDX　　　　　　　　　　　　<-- EAX 指向字符串“C:\\EXEMEUE.DAT”   
-0167:0041A170  CALL      00419C0B　　　　　　　　　 <-- 继续验证 KEY FILE“C:\\EXEMEUE.DAT”(烦不烦啊，不知道还会出什么花招？！)   
-0167:0041A175  MOV      \[EBP\-08\],EAX　　　　　　　 <-- 验证结果存在\[EBP\-08\]中   
-0167:0041A178  PUSH      00000298　　　　　　　　　 <-- 常数 000002AC 压栈   
-0167:0041A17D  PUSH      00429394　　　　　　　　　 <-- 内存地址 00429380+14 压栈(为什么这样写，因为地址 00429394 在 00429380 的偏移 14 处   
-0167:0041A182  MOV      EAX,\[EBP+10\]　　　　　　　 <-- EBP+10 是前面 CALL　00419C0B 的入口参数之一   
-0167:0041A185  ADD      EAX,14　　　　　　　　　　 <-- 偏移 14 处的地址给 EAX   
-0167:0041A188  PUSH      EAX　　　　　　　　　　　　<-- EAX 中的地址压栈   
-0167:0041A189  CALL      0041A085　　　　　　　　　 <-- 不知道里面有什么机关？   
-0167:0041A18E  MOV      \[EBP\-04\],EAX　　　　　　　 <-- 返回值存在\[EBP\-04\]中   
-0167:0041A191  MOV      EAX,\[EBP\-04\]   
-0167:0041A194  NEG      EAX　　　　　　　　　　　　<-- \[EBP\-04\]取反   
-0167:0041A196  SBB      EAX,EAX　　　　　　　　　　<-- 带进位自减，如果 CY=1，则 EAX=FFFFFFFF，否则 EAX=0   
-0167:0041A198  AND      EAX,\[EBP\-08\]　　　　　　　 <-- 减法结果和\[EBP\-08\]相与作为子程序返回值   
-0167:0041A19B  MOV      ESP,EBP   
-0167:0041A19D  POP      EBP   
-0167:0041A19E  RET      0010   
-。。。   
-  
-13\. 上面的程序跟 98 系列就完全不一样了，因为这里是“EXEMEKEY.DLL”在唱主角：0167:0041A0F0 处的 CALL　\[KERNEL32!LoadLibraryA\]加载动态链接库“EXEMEKEY.DLL”，接着 0167:0041A105 处的 CALL　\[KERNEL32!GetProcAddress\]试图取得动态链接库中索引值为 65 的函数在内存中的地址，然后在 0167:0041A122　CALL　\[EBP\-20\]处程序调用这个函数；现在看来这个“EXEMEKEY.DLL”KEY FILE 可不是省油的灯，因为我们构造的假“EXEMEKEY.DLL”只是个文本文件，所以当我们走到 0167:0041A0F0　CALL　\[KERNEL32!LoadLibraryA\]时就已经被毙掉了；继续往下看，从 0167:0041A12E 到 0167:0041A14B，紧接着刚才的函数调用之后程序开始设置\[004256E0\]、\[004256E4\]、\[004256E8\]和\[004256EC\]的值，这几个值肯定跟那个函数有关，随后程序在 0167:0041A154　CALL　\[KERNEL32!FreeLibrary\]释放已经加载的动态连接库“EXEMEKEY.DLL”；   
-  
-14\. 到这里就不要急着往下走了(可以将鼠标移到 0167:0041A0F0 处并按 F9 设置一个断点，下次就不用重复前面已经搞清楚的跟踪了），因为程序在检测“EXEMEKEY.DLL”这个动态链接库 KEY FILE，虽然可以继续用 RFL Z 来骗过去，但是我们要想破解它就必须写出真正的“EXEMEKEY.DLL”来，虽然现在还不知道“EXEMEKEY.DLL”的内部应该是什么样的程序结构，但是至少我们已经知道这个 DLL 至少包含一个索引值为 65 的引出函数，如果具备这个条件，那么程序就可以顺利的走到 0167:0041A154　CALL　\[KERNEL32!FreeLibrary\]处，至于其它的奥妙要等后面的进一步跟踪才能明白；   
-  
-15\. 开头我就已经讲过破解 EXESPYME 需要懂得 WIN32 下的 DLL 汇编编程，所以这里我直接给出程序，至于为什么就不要问我了，如果你不懂 DLL 的知识，可以去主页的“汇编语言”中看看“Iczelion's Win32 汇编教学”，以下是源程序（用 MASM32 编译通过，MASM32 可以在“汇编语言”中下载，其实程序再简单不过了^\_^！）：   
-\-------------------------------------------------------------------------------------------------------------------------   
-；Exemekey.asm   
-  
-.386   
-.model flat,stdcall   
-option casemap:none   
-include \\masm32\\include\\windows.inc   
-include \\masm32\\include\\user32.inc   
-include \\masm32\\include\\kernel32.inc   
-includelib \\masm32\\lib\\user32.lib   
-includelib \\masm32\\lib\\kernel32.lib   
-  
-.data   
-  
-.code   
-DllEntry proc hInstance:HINSTANCE, reason:DWORD, reserved1:DWORD   
-      mov  eax,TRUE   
-      ret   
-DllEntry Endp   
-  
-Call\_ebp\_20 proc   
-      mov  eax,00000001      <-- 注意：EAX 是程序返回值，不能为 0，所以将其设为 1   
-      ret  0ch                <-- 为什么是“ret 0ch”，因为函数有 3 个入口参数嘛！，所以要让 ESP 加 3\*4=12，否则程序会出问题的   
-Call\_ebp\_20 Endp   
-  
-End DllEntry   
-  
-\-----------------------------------------------------------------------------------------------------------------------   
-；Exemekey.def   
-  
-LIBRARY Exemekey   
-EXPORTS Call\_ebp\_20 @101      <-- 101 即为 16 进制数 65H   
-  
-\-----------------------------------------------------------------------------------------------------------------------   
-  
-；build.bat   
-  
-@echo off   
-\\masm32\\bin\\ml /c /coff /Cp Exemekey.asm   
-\\masm32\\bin\\link /DLL /DEF:Exemekey.def /SUBSYSTEM:WINDOWS /LIBPATH:\\masm32\\lib Exemekey.obj   
-pause   
-  
-\-----------------------------------------------------------------------------------------------------------------------   
-  
-16\. 用上面给出的批处理文件“build.bat”创建动态链接库 KEY FILE“EXEMEKEY.DLL”，然后将其替换掉 C 盘根目录下原来那个假的文本 DLL KEY FILE，重新来到步骤 12 的地方(记得刚才用 F9 设置的断点吗？)，因为现在我们的“EXEMEKEY.DLL”是个真正的 DLL 程序，并且具有索引值为 65 的函数，所以我们按 F10 可以一直来到 0167:0041A170　CALL　00419C0B，接着按 F8 进入 CALL　00419C0B 里去：   
-。。。   
-0167:00419C0B  PUSH      EBP   
-0167:00419C0C  MOV      EBP,ESP   
-0167:00419C0E  SUB      ESP,60   
-0167:00419C11  PUSH      ESI   
-0167:00419C12  MOV      DWORD PTR \[00426E00\],00000000   
-0167:00419C1C  MOV      DWORD PTR \[00426E04\],00000002   
-0167:00419C26  MOV      DWORD PTR \[00429F84\],00429FA0   
-0167:00419C30  PUSH      00008003   
-0167:00419C35  CALL      \[KERNEL32!SetErrorMode\]   
-0167:00419C3B  MOV      \[EBP\-38\],EAX   
-0167:00419C3E  PUSH      00   
-0167:00419C40  MOV      EAX,\[EBP+08\]   
-0167:00419C43  PUSH      EAX   
-0167:00419C44  CALL      \[KERNEL32!\_lopen\]   
-0167:00419C4A  MOV      \[EBP\-34\],EAX   
-0167:00419C4D  MOV      ECX,\[EBP\-38\]   
-0167:00419C50  PUSH      ECX   
-0167:00419C51  CALL      \[KERNEL32!SetErrorMode\]   
-0167:00419C57  CMP      DWORD PTR \[EBP\-34\],-01   
-0167:00419C5B  JZ        00419C73   
-0167:00419C5D  PUSH      0001E000   
-0167:00419C62  PUSH      00429FA0   
-0167:00419C67  MOV      EDX,\[EBP\-34\]   
-0167:00419C6A  PUSH      EDX   
-0167:00419C6B  CALL      \[KERNEL32!\_hread\]   
-0167:00419C71  JMP      00419C8C   
-0167:00419C73  PUSH      00425C64   
-0167:00419C78  MOV      EAX,\[EBP+10\]   
-0167:00419C7B  ADD      EAX,18   
-0167:00419C7E  PUSH      EAX   
-0167:00419C7F  CALL      \[KERNEL32!lstrcpy\]   
-0167:00419C85  XOR      EAX,EAX   
-0167:00419C87  JMP      0041A07E   
-0167:00419C8C  MOV      ECX,\[EBP\-34\]   
-0167:00419C8F  PUSH      ECX   
-0167:00419C90  CALL      \[KERNEL32!\_lclose\]   
-0167:00419C96  MOV      EDX,\[00429FAC\]   
-0167:00419C9C  XOR      EDX,\[004256E8\]   
-0167:00419CA2  MOV      \[EBP\-20\],EDX　　　　　　 <-- \[EBP\-20\]=\[00429FA0+0C\] XOR \[004256E8\]   
-0167:00419CA5  MOV      EAX,\[00429FB0\]   
-0167:00419CAA  XOR      EAX,\[004256E4\]   
-0167:00419CB0  MOV      \[EBP\-1C\],EAX　　　　　　 <-- \[EBP\-1C\]=\[00429FA0+10\] XOR \[004256E4\]   
-0167:00419CB3  MOV      ECX,\[00429FB4\]   
-0167:00419CB9  XOR      ECX,\[004256E0\]   
-0167:00419CBF  MOV      \[EBP\-14\],ECX　　　　　　 <-- \[EBP\-14\]=\[00429FA0+14\] XOR \[004256E0\]   
-0167:00419CC2  MOV      EDX,\[EBP\-14\]   
-0167:00419CC5  XOR      EDX,\[EBP\-1C\]   
-0167:00419CC8  XOR      EDX,\[EBP\-20\]   
-0167:00419CCB  MOV      \[EBP\-0C\],EDX　　　　　　 <-- \[EBP\-0C\]=\[EBP\-20\] XOR \[EBP\-1C\] XOR \[EBP\-14\]   
-0167:00419CCE  MOV      EAX,\[00429FB8\]   
-0167:00419CD3  MOV      \[EBP\-28\],EAX   
-0167:00419CD6  MOV      EAX,\[00429FA4\]   
-0167:00419CDB  XOR      EAX,\[00429FA8\]   
-0167:00419CE1  CDQ   
-0167:00419CE2  AND      EDX,03   
-0167:00419CE5  ADD      EAX,EDX   
-0167:00419CE7  SAR      EAX,02   
-0167:00419CEA  ADD      EAX,06   
-0167:00419CED  MOV      \[EBP\-10\],EAX   
-0167:00419CF0  CMP      DWORD PTR \[EBP\-10\],00002800   
-0167:00419CF7  JL        00419D12   
-0167:00419CF9  PUSH      00425C70   
-0167:00419CFE  MOV      ECX,\[EBP+10\]   
-0167:00419D01  ADD      ECX,18   
-0167:00419D04  PUSH      ECX   
-0167:00419D05  CALL      \[KERNEL32!lstrcpy\]   
-0167:00419D0B  XOR      EAX,EAX   
-0167:00419D0D  JMP      0041A07E   
-0167:00419D12  MOV      EDX,\[EBP\-10\]   
-0167:00419D15  MOV      EAX,\[EDX\*4+00429FA0\]   
-0167:00419D1C  MOV      \[EBP\-28\],EAX   
-0167:00419D1F  MOV      EAX,\[EBP\-28\]   
-0167:00419D22  CDQ   
-0167:00419D23  AND      EDX,03   
-0167:00419D26  ADD      EAX,EDX   
-0167:00419D28  SAR      EAX,02   
-0167:00419D2B  MOV      ECX,\[EBP\-10\]   
-0167:00419D2E  LEA      EDX,\[EAX+ECX+01\]   
-0167:00419D32  MOV      \[EBP\-10\],EDX   
-0167:00419D35  CMP      DWORD PTR \[EBP\-10\],00002800   
-0167:00419D3C  JGE      00419D44   
-0167:00419D3E  CMP      DWORD PTR \[EBP\-10\],00   
-0167:00419D42  JG        00419D5D   
-0167:00419D44  PUSH      00425C7C   
-0167:00419D49  MOV      EAX,\[EBP+10\]   
-0167:00419D4C  ADD      EAX,18   
-0167:00419D4F  PUSH      EAX   
-0167:00419D50  CALL      \[KERNEL32!lstrcpy\]   
-0167:00419D56  XOR      EAX,EAX   
-0167:00419D58  JMP      0041A07E   
-0167:00419D5D  MOV      ECX,\[EBP\-10\]   
-0167:00419D60  MOV      EDX,\[ECX\*4+00429FA0\]   
-0167:00419D67  MOV      \[EBP\-28\],EDX   
-0167:00419D6A  MOV      EAX,\[EBP\-28\]   
-0167:00419D6D  MOV      ECX,\[EBP\-10\]   
-0167:00419D70  LEA      EDX,\[EAX+ECX+01\]   
-0167:00419D74  CMP      EDX,00002800   
-0167:00419D7A  JGE      00419D8A   
-0167:00419D7C  MOV      EAX,\[EBP\-28\]   
-0167:00419D7F  MOV      ECX,\[EBP\-10\]   
-0167:00419D82  LEA      EDX,\[EAX+ECX+01\]   
-0167:00419D86  TEST      EDX,EDX   
-0167:00419D88  JG        00419DA3   
-0167:00419D8A  PUSH      00425C88   
-0167:00419D8F  MOV      EAX,\[EBP+10\]   
-0167:00419D92  ADD      EAX,18   
-0167:00419D95  PUSH      EAX   
-0167:00419D96  CALL      \[KERNEL32!lstrcpy\]   
-0167:00419D9C  XOR      EAX,EAX   
-0167:00419D9E  JMP      0041A07E   
-0167:00419DA3  MOV      ECX,\[EBP\-10\]   
-0167:00419DA6  LEA      EDX,\[ECX\*4+00429FA4\]   
-0167:00419DAD  MOV      \[EBP\-18\],EDX　　　　　　 <-- \[EBP\-18\]=ECX\*4+00429FA4   
-0167:00419DB0  MOV      EAX,\[EBP\-18\]   
-0167:00419DB3  ADD      EAX,14   
-0167:00419DB6  MOV      \[00429F80\],EAX   
-0167:00419DBB  MOV      DWORD PTR \[EBP\-24\],000000A5   
-0167:00419DC2  JMP      00419DCD   
-0167:00419DC4  MOV      ECX,\[EBP\-24\]   
-0167:00419DC7  SUB      ECX,01   
-0167:00419DCA  MOV      \[EBP\-24\],ECX   
-0167:00419DCD  CMP      DWORD PTR \[EBP\-24\],00   
-0167:00419DD1  JL        00419E03   
-0167:00419DD3  MOV      EDX,\[EBP\-0C\]   
-0167:00419DD6  XOR      EDX,\[EBP\-24\]   
-0167:00419DD9  MOV      EAX,\[EBP\-24\]   
-0167:00419DDC  MOV      ECX,\[00429F80\]   
-0167:00419DE2  MOV      EAX,\[EAX\*4+ECX\-04\]   
-0167:00419DE6  XOR      EAX,EDX   
-0167:00419DE8  MOV      ECX,\[EBP\-24\]   
-0167:00419DEB  MOV      EDX,\[00429F80\]   
-0167:00419DF1  MOV      ECX,\[ECX\*4+EDX\]   
-0167:00419DF4  XOR      ECX,EAX   
-0167:00419DF6  MOV      EDX,\[EBP\-24\]   
-0167:00419DF9  MOV      EAX,\[00429F80\]   
-0167:00419DFE  MOV      \[EDX\*4+EAX\],ECX   
-0167:00419E01  JMP      00419DC4   
-0167:00419E03  MOV      ECX,\[00429F80\]   
-0167:00419E09  MOV      EDX,\[ECX\]   
-0167:00419E0B  XOR      EDX,\[EBP\-0C\]   
-0167:00419E0E  MOV      EAX,\[00429F80\]   
-0167:00419E13  MOV      \[EAX\],EDX   
-0167:00419E15  CMP      DWORD PTR \[EBP\-0C\],00   
-0167:00419E19  JZ        00419E23   
-0167:00419E1B  MOV      ECX,\[EBP\-0C\]   
-0167:00419E1E  MOV      \[EBP\-60\],ECX   
-0167:00419E21  JMP      00419E2A   
-0167:00419E23  MOV      DWORD PTR \[EBP\-60\],00000001   
-0167:00419E2A  MOV      EDX,\[EBP+14\]   
-0167:00419E2D  MOV      EAX,\[EBP\-60\]   
-0167:00419E30  MOV      \[EDX\],EAX   
-0167:00419E32  MOV      ECX,\[EBP+0C\]   
-0167:00419E35  PUSH      ECX   
-0167:00419E36  MOV      EDX,\[EBP\-18\]   
-0167:00419E39  ADD      EDX,18   
-0167:00419E3C  PUSH      EDX   
-0167:00419E3D  CALL      \[KERNEL32!lstrcmp\]   
-0167:00419E43  TEST      EAX,EAX   
-0167:00419E45  JZ        00419E60   
-0167:00419E47  PUSH      00425C94   
-0167:00419E4C  MOV      EAX,\[EBP+10\]   
-0167:00419E4F  ADD      EAX,18   
-0167:00419E52  PUSH      EAX   
-0167:00419E53  CALL      \[KERNEL32!lstrcpy\]   
-0167:00419E59  XOR      EAX,EAX   
-0167:00419E5B  JMP      0041A07E   
-0167:00419E60  MOV      ECX,\[EBP+10\]   
-0167:00419E63  MOV      \[EBP\-2C\],ECX   
-0167:00419E66  MOV      EDX,\[EBP\-18\]   
-0167:00419E69  MOV      \[EBP\-30\],EDX   
-0167:00419E6C  MOV      DWORD PTR \[EBP\-24\],00000000   
-0167:00419E73  JMP      00419E7E   
-0167:00419E75  MOV      EAX,\[EBP\-24\]   
-0167:00419E78  ADD      EAX,01   
-0167:00419E7B  MOV      \[EBP\-24\],EAX   
-0167:00419E7E  CMP      DWORD PTR \[EBP\-24\],000002AC   
-0167:00419E85  JAE      00419E99   
-0167:00419E87  MOV      ECX,\[EBP\-2C\]   
-0167:00419E8A  ADD      ECX,\[EBP\-24\]   
-0167:00419E8D  MOV      EDX,\[EBP\-30\]   
-0167:00419E90  ADD      EDX,\[EBP\-24\]   
-0167:00419E93  MOV      AL,\[EDX\]   
-0167:00419E95  MOV      \[ECX\],AL   
-0167:00419E97  JMP      00419E75   
-0167:00419E99  MOV      ECX,\[EBP\-18\]　　　　　　 <-- \[EBP\-18\]=ECX\*4+00429FA4(这个 ECX 是上面的 ECX)   
-0167:00419E9C  ADD      ECX,000002AC   
-0167:00419EA2  MOV      \[EBP\-50\],ECX   
-0167:00419EA5  MOV      EDX,\[EBP\-50\]　　　　　　 <-- \[EBP\-18\]=ECX\*4+00429FA4+000002AC   
-0167:00419EA8  MOV      EAX,\[EDX\]   
-0167:00419EAA  XOR      EAX,\[004256E8\]   
-0167:00419EB0  MOV      \[EBP\-48\],EAX　　　　　　 <-- \[EBP\-48\]=\[ECX\*4+00429FA4+000002AC+00\] XOR \[004256E8\]   
-0167:00419EB3  MOV      ECX,\[EBP\-50\]   
-0167:00419EB6  MOV      EDX,\[ECX+04\]   
-0167:00419EB9  XOR      EDX,\[004256E4\]   
-0167:00419EBF  MOV      \[EBP\-44\],EDX　　　　　　 <-- \[EBP\-44\]=\[ECX\*4+00429FA4+000002AC+04\] XOR \[004256E4\]   
-0167:00419EC2  MOV      EAX,\[EBP\-50\]   
-0167:00419EC5  MOV      ECX,\[EAX+08\]   
-0167:00419EC8  XOR      ECX,\[004256E0\]   
-0167:00419ECE  MOV      \[EBP\-40\],ECX　　　　　　 <-- \[EBP\-40\]=\[ECX\*4+00429FA4+000002AC+08\] XOR \[004256E0\]   
-0167:00419ED1  MOV      EDX,\[EBP\-40\]   
-0167:00419ED4  ADD      EDX,\[EBP\-44\]   
-0167:00419ED7  ADD      EDX,\[EBP\-48\]   
-0167:00419EDA  MOV      \[EBP\-3C\],EDX　　　　　　 <-- \[EBP\-3C\]=\[EBP\-40\] ADD \[EBP\-44\] ADD \[EBP\-48\]   
-0167:00419EDD  MOV      EAX,\[EBP\-18\]   
-0167:00419EE0  ADD      EAX,000002B8   
-0167:00419EE5  MOV      \[EBP\-04\],EAX　　　　　　 <-- \[EBP\-04\]=ECX\*4+00429FA4+000002B8   
-0167:00419EE8  MOV      ECX,\[EBP\-04\]   
-0167:00419EEB  ADD      ECX,14   
-0167:00419EEE  MOV      \[00429F80\],ECX   
-0167:00419EF4  MOV      DWORD PTR \[EBP\-24\],000000A5   
-0167:00419EFB  JMP      00419F06   
-0167:00419EFD  MOV      EDX,\[EBP\-24\]   
-0167:00419F00  SUB      EDX,01   
-0167:00419F03  MOV      \[EBP\-24\],EDX   
-0167:00419F06  CMP      DWORD PTR \[EBP\-24\],00   
-0167:00419F0A  JL        00419F3C   
-0167:00419F0C  MOV      EAX,\[EBP\-3C\]   
-0167:00419F0F  XOR      EAX,\[EBP\-24\]   
-0167:00419F12  MOV      ECX,\[EBP\-24\]   
-0167:00419F15  MOV      EDX,\[00429F80\]   
-0167:00419F1B  MOV      ECX,\[ECX\*4+EDX\-04\]   
-0167:00419F1F  XOR      ECX,EAX   
-0167:00419F21  MOV      EDX,\[EBP\-24\]   
-0167:00419F24  MOV      EAX,\[00429F80\]   
-0167:00419F29  MOV      EDX,\[EDX\*4+EAX\]   
-0167:00419F2C  XOR      EDX,ECX   
-0167:00419F2E  MOV      EAX,\[EBP\-24\]   
-0167:00419F31  MOV      ECX,\[00429F80\]   
-0167:00419F37  MOV      \[EAX\*4+ECX\],EDX   
-0167:00419F3A  JMP      00419EFD   
-0167:00419F3C  MOV      EDX,\[00429F80\]   
-0167:00419F42  MOV      EAX,\[EDX\]   
-0167:00419F44  XOR      EAX,\[EBP\-3C\]   
-0167:00419F47  MOV      ECX,\[00429F80\]   
-0167:00419F4D  MOV      \[ECX\],EAX   
-0167:00419F4F  MOV      EDX,\[EBP\-04\]　　　　　　 <-- \[EBP\-04\]=ECX\*4+00429FA4+000002B8   
-0167:00419F52  ADD      EDX,000002AC   
-0167:00419F58  MOV      \[EBP\-50\],EDX　　　　　　 <-- \[EBP\-50\]=ECX\*4+00429FA4+000002B8+000002AC   
-0167:00419F5B  MOV      EAX,\[EBP\-50\]   
-0167:00419F5E  MOV      ECX,\[EAX\]   
-0167:00419F60  XOR      ECX,\[004256E8\]   
-0167:00419F66  MOV      \[EBP\-48\],ECX　　　　　　 <-- \[EBP\-48\]=\[ECX\*4+00429FA4+000002B8+000002AC+00\] XOR \[004256E8\]   
-0167:00419F69  MOV      EDX,\[EBP\-50\]   
-0167:00419F6C  MOV      EAX,\[EDX+04\]   
-0167:00419F6F  XOR      EAX,\[004256E4\]   
-0167:00419F75  MOV      \[EBP\-44\],EAX　　　　　　 <-- \[EBP\-44\]=\[ECX\*4+00429FA4+000002B8+000002AC+04\] XOR \[004256E4\]   
-0167:00419F78  MOV      ECX,\[EBP\-50\]   
-0167:00419F7B  MOV      EDX,\[ECX+08\]   
-0167:00419F7E  XOR      EDX,\[004256E0\]   
-0167:00419F84  MOV      \[EBP\-40\],EDX　　　　　　 <-- \[EBP\-40\]=\[ECX\*4+00429FA4+000002B8+000002AC+08\] XOR \[004256E0\]   
-0167:00419F87  MOV      EAX,\[EBP\-44\]   
-0167:00419F8A  XOR      EAX,\[EBP\-48\]   
-0167:00419F8D  MOV      ECX,\[EBP\-40\]   
-0167:00419F90  ADD      ECX,EAX   
-0167:00419F92  MOV      \[EBP\-3C\],ECX　　　　　　 <-- \[EBP\-3C\]=(\[EBP\-44\] XOR \[EBP\-48\]) ADD \[EBP\-40\]   
-0167:00419F95  MOV      EDX,\[EBP\-04\]   
-0167:00419F98  ADD      EDX,000002B8   
-0167:00419F9E  MOV      \[EBP\-08\],EDX   
-0167:00419FA1  MOV      EAX,\[EBP\-08\]   
-0167:00419FA4  ADD      EAX,000002AC   
-0167:00419FA9  MOV      \[00426E00\],EAX   
-0167:00419FAE  MOV      ECX,\[EBP\-08\]   
-0167:00419FB1  ADD      ECX,14   
-0167:00419FB4  MOV      \[00429F80\],ECX   
-0167:00419FBA  MOV      DWORD PTR \[EBP\-24\],000000A5   
-0167:00419FC1  JMP      00419FCC   
-0167:00419FC3  MOV      EDX,\[EBP\-24\]   
-0167:00419FC6  SUB      EDX,01   
-0167:00419FC9  MOV      \[EBP\-24\],EDX   
-0167:00419FCC  CMP      DWORD PTR \[EBP\-24\],00   
-0167:00419FD0  JL        0041A002   
-0167:00419FD2  MOV      EAX,\[EBP\-3C\]   
-0167:00419FD5  XOR      EAX,\[EBP\-24\]   
-0167:00419FD8  MOV      ECX,\[EBP\-24\]   
-0167:00419FDB  MOV      EDX,\[00429F80\]   
-0167:00419FE1  MOV      ECX,\[ECX\*4+EDX\-04\]   
-0167:00419FE5  XOR      ECX,EAX   
-0167:00419FE7  MOV      EDX,\[EBP\-24\]   
-0167:00419FEA  MOV      EAX,\[00429F80\]   
-0167:00419FEF  MOV      EDX,\[EDX\*4+EAX\]   
-0167:00419FF2  XOR      EDX,ECX   
-0167:00419FF4  MOV      EAX,\[EBP\-24\]   
-0167:00419FF7  MOV      ECX,\[00429F80\]   
-0167:00419FFD  MOV      \[EAX\*4+ECX\],EDX   
-0167:0041A000  JMP      00419FC3   
-0167:0041A002  MOV      EDX,\[00429F80\]   
-0167:0041A008  MOV      EAX,\[EDX\]   
-0167:0041A00A  XOR      EAX,\[EBP\-3C\]   
-0167:0041A00D  MOV      ECX,\[00429F80\]   
-0167:0041A013  MOV      \[ECX\],EAX   
-0167:0041A015  MOV      EDX,\[EBP\-04\]   
-0167:0041A018  ADD      EDX,14   
-0167:0041A01B  MOV      \[EBP\-54\],EDX   
-0167:0041A01E  MOV      EAX,\[EBP\-08\]   
-0167:0041A021  ADD      EAX,14   
-0167:0041A024  MOV      \[EBP\-58\],EAX   
-0167:0041A027  MOV      ECX,\[EBP+10\]   
-0167:0041A02A  ADD      ECX,14   
-0167:0041A02D  MOV      \[EBP\-5C\],ECX   
-0167:0041A030  MOV      DWORD PTR \[EBP\-24\],000000A5   
-0167:0041A037  JMP      0041A042   
-0167:0041A039  MOV      EDX,\[EBP\-24\]   
-0167:0041A03C  SUB      EDX,01   
-0167:0041A03F  MOV      \[EBP\-24\],EDX   
-0167:0041A042  CMP      DWORD PTR \[EBP\-24\],01   
-0167:0041A046  JL        0041A076   
-0167:0041A048  MOV      EAX,\[EBP\-24\]   
-0167:0041A04B  MOV      ECX,\[EBP\-54\]   
-0167:0041A04E  MOV      EDX,\[EBP\-24\]   
-0167:0041A051  MOV      ESI,\[EBP\-5C\]   
-0167:0041A054  MOV      EAX,\[EAX\*4+ECX\]   
-0167:0041A057  CMP      EAX,\[EDX\*4+ESI\]   
-0167:0041A05A  JNZ      0041A070   
-0167:0041A05C  MOV      ECX,\[EBP\-24\]   
-0167:0041A05F  MOV      EDX,\[EBP\-58\]   
-0167:0041A062  MOV      EAX,\[EBP\-24\]   
-0167:0041A065  MOV      ESI,\[EBP\-5C\]   
-0167:0041A068  MOV      ECX,\[ECX\*4+EDX\]   
-0167:0041A06B  CMP      ECX,\[EAX\*4+ESI\]   
-0167:0041A06E  JZ        0041A074   
-0167:0041A070  XOR      EAX,EAX   
-0167:0041A072  JMP      0041A07E   
-0167:0041A074  JMP      0041A039   
-0167:0041A076  MOV      EDX,\[EBP+14\]   
-0167:0041A079  MOV      EAX,\[EDX\]   
-0167:0041A07B  XOR      EAX,-01   
-0167:0041A07E  POP      ESI   
-0167:0041A07F  MOV      ESP,EBP   
-0167:0041A081  POP      EBP   
-0167:0041A082  RET      0010   
-。。。   
-  
-17\. 增大眼睛看清楚上面的程序段，大体上和 98 系列的相应程序是一样的，最明显的地方就是这里的异或因子 XOR\_FACTOR 计算方法和以前不一样：   
-　　第一轮的异或因子 XOR\_FACTOR1=\[EBP\-0C\]=\[EBP\-20\] XOR \[EBP\-1C\] XOR \[EBP\-14\]，其中：\[EBP\-20\]=\[00429FA0+0C\] XOR \[004256E8\]、\[EBP\-1C\]=\[00429FA0+10\] XOR \[004256E4\]、\[EBP\-14\]=\[00429FA0+14\] XOR \[004256E0\]；   
-　　第二轮的异或因子 XOR\_FACTOR2=\[EBP\-3C\]=\[EBP\-40\] ADD \[EBP\-44\] ADD \[EBP\-48\]，其中：\[EBP\-48\]=\[ECX\*4+00429FA4+000002AC+00\] XOR \[004256E8\]、\[EBP\-44\]=\[ECX\*4+00429FA4+000002AC+04\] XOR \[004256E4\]、 \[EBP\-40\]=\[ECX\*4+00429FA4+000002AC+08\] XOR \[004256E0\]；   
-　　第三轮的异或因子 XOR\_FACTOR3=\[EBP\-3C\]=(\[EBP\-44\] XOR \[EBP\-48\]) ADD \[EBP\-40\]，其中：\[EBP\-48\]=\[ECX\*4+00429FA4+000002B8+000002AC+00\] XOR \[004256E8\]、 \[EBP\-44\]=\[ECX\*4+00429FA4+000002B8+000002AC+04\] XOR \[004256E4\]、\[EBP\-40\]=\[ECX\*4+00429FA4+000002B8+000002AC+08\] XOR \[004256E0\]；   
-　　看明白了吗？其实只是在 98 系列异或因子计算的基础上每个对应项都异或了\[004256E8\]、\[004256E4\]和\[004256E0\]三个值中的某一个，也就是只要将异或这三个值的地方拿掉就和 98 系列的子程序一模一样了！   
-  
-18\. 从上面的子程序 CALL　00419C0B 出来后我们走到步骤 12 中这个 CALL 下面的语句 0167:0041A189　CALL　0041A085 处停下，然后按 F8 进去：   
-。。。   
-0167:0041A085  PUSH      EBP   
-0167:0041A086  MOV      EBP,ESP   
-0167:0041A088  PUSH      ECX   
-0167:0041A089  MOV      DWORD PTR \[EBP\-04\],00000000　<-- 循环计数值\[EBP\-04\]初值为 00   
-0167:0041A090  JMP      0041A09B   
-0167:0041A092  MOV      EAX,\[EBP\-04\]   
-0167:0041A095  ADD      EAX,01   
-0167:0041A098  MOV      \[EBP\-04\],EAX   
-0167:0041A09B  MOV      ECX,\[EBP\-04\]   
-0167:0041A09E  CMP      ECX,\[EBP+10\]　　　　　　 <-- 循环次数是否已到\[EBP+10\]=00000298 次   
-0167:0041A0A1  JGE      0041A0C1　　　　　　　　 <-- 循环完毕则跳到 0041A0C1 去   
-0167:0041A0A3  MOV      EDX,\[EBP+08\]　　　　　　 <-- \[EBP+08\]=00429394   
-0167:0041A0A6  ADD      EDX,\[EBP\-04\]　　　　　　 <-- 加上偏移值   
-0167:0041A0A9  XOR      EAX,EAX　　　　　　　　　<-- EAX 清零   
-0167:0041A0AB  MOV      AL,\[EDX\]　　　　　　　　 <-- 取出内存地址 00429394 偏移\[EBP\-04\]的字符放入 AL   
-0167:0041A0AD  MOV      ECX,\[EBP+0C\]　　　　　　 <-- \[EBP+0C\]指向解密后的数据   
-0167:0041A0B0  ADD      ECX,\[EBP\-04\]　　　　　　 <-- 加上偏移值   
-0167:0041A0B3  XOR      EDX,EDX　　　　　　　　　<-- EDX 清零   
-0167:0041A0B5  MOV      DL,\[ECX\]　　　　　　　　 <-- 取出解密数据偏移\[EBP\-04\]的字符放入 DL   
-0167:0041A0B7  CMP      EAX,EDX　　　　　　　　　<-- 对应的字符是否相等   
-0167:0041A0B9  JZ        0041A0BF　　　　　　　　 <-- 相等则继续   
-0167:0041A0BB  XOR      EAX,EAX　　　　　　　　　<-- 不等则 EAX 清零，子程序返回   
-0167:0041A0BD  JMP      0041A0C6   
-0167:0041A0BF  JMP      0041A092   
-0167:0041A0C1  MOV      EAX,00000001　　　　　　 <-- 如果所有字符相等，则将 00000001 作为子程序返回值   
-0167:0041A0C6  MOV      ESP,EBP   
-0167:0041A0C8  POP      EBP   
-0167:0041A0C9  RET      000C   
-。。。   
-  
-19\. 上面这段程序作用非常简单，就是比较地址 00429394 开始的 00000298 个字符数据是否和被解密后的数据完全相同，如果相同返回 1，否则返回 0，显然返回 0 是表示错误的；但是当我们用 D　00429394 查看内存的时候发现里面全是 00，怎么搞的，程序居然将解密后的数据和 00 来比较，怎么可能相等呢！！！我们可以试着多次退出 ExeSpyME 然后再来到这里，发现无论怎样 00429394 开始的地方永远都是 00，为什么呀？？？好好想想，然后回头看看步骤 12，哈哈，是不是那个“EXEMEKEY.DLL”搞的鬼呢？还记得 0167:0041A122　CALL　\[EBP\-20\]这句吗，这个 CALL 是“EXEMEKEY.DLL”中索引值为 65 的引出函数，当时我们不清楚它的作用，现在我们可以回顾一下，自从调用了这个函数以后，程序就开始设置\[004256E0\]、\[004256E4\]、\[004256E8\]和\[004256EC\]的值，然后 CALL　00419C0B 用其中的\[004256E0\]、\[004256E4\]和\[004256E8\]计算异或因子 XOR\_FACTOR，随后校验 KEY FILE“EXEMEUE.DAT”，再下来 CALL　0041A085 将解密后的数据与内存地址 00429394(00429380 偏移 14 处)开始的 00000298 个字符数据相比较，但是我们只看见 00429394 中是一堆的 00，而 CALL　\[EBP\-20\]的入口参数是\EBP\-18\、000002AC(正好是 00000298 加上 14)和内存地址 00429380，所以我们可以肯定 CALL　\[EBP\-20\]的作用一是返回用来计算异或因子 XOR\_FACTOR 的值，二是将解密后的 000002AC 个字符数据拷贝到内存地址 00429380 开始的区域中；   
-  
-20\. 现在我们又进一步知道了 KEY FILE“EXEMEKEY.DLL”中引出函数的作用，现在就要来写这个子程序了，那么我们如何在“EXEMEKEY.DLL”中将内存地址 00429380 开始的 000002AC 个字符区域变成解密数据呢？一种方法是在“EXEMEKEY.DLL”中用汇编程序实现 KEY FILE“EXEMEUE.DAT”中的第一轮加解密数据算法得到加密数据并将其解密，然后将对应的解密数据拷贝到内存 00429380 中，这种方法必须用汇编实现 KEY FILE“EXEMEUE.DAT”的加解密算法得到解密数据，比较麻烦；另外一种笨办法是当程序走到上面的 0167:0041A0AD　MOV　ECX,\[EBP+0C\]处时用命令 D EBP+0C L 00000298，将这些字符数据全部记下来，然后在程序中直接将这些数据作为固定数据拷贝到内存 00429394 中，这种办法比较烦琐，但是实现起来比较简单；   
-　　注意：因为程序中只是比较 00429394 开始的 00000298 个字符数据，所以当我们用笨办法实现 DLL 的时候只需要将 EBP+0C 处开始的 00000298 个解密数据拷贝到内存 00429394 中就可以了，至于 00429380 到 00429394 之间的 14 个字符因为程序没有使用，所以可以不去管它，下面是笨办法的某一 DLL 实现程序(只针对某一特定的 KEY FILE“EXEMEUE.DAT”，因为不同的“EXEMEUE.DAT”对应不同的“EXEMEKEY.DLL”，需要修改相应的解密数据)：   
-\-------------------------------------------------------------------------------------------------------------------------   
-；Exemekey.asm   
-  
-.386   
-.model flat,stdcall   
-option casemap:none   
-include \\masm32\\include\\windows.inc   
-include \\masm32\\include\\user32.inc   
-include \\masm32\\include\\kernel32.inc   
-includelib \\masm32\\lib\\user32.lib   
-includelib \\masm32\\lib\\kernel32.lib   
-  
-.data   
-data\_decoded DB 2Dh,1Fh,47h,1Eh,45h,78h,65h,53h,70h,79h,20h,4Dh,69h,6Ch,6Ch,65h  ;-.G.ExeSpy Mille   
-            DB 6Eh,6Eh,69h,75h,6Dh,20h,45h,64h,69h,74h,69h,6Fh,6Eh,20h,66h,6Fh  ;nnium Edition fo   
-            DB 72h,20h,57h,69h,6Eh,64h,6Fh,77h,73h,20h,4Dh,45h,2Fh,39h,38h,2Fh  ;r Windows ME/98/   
-            DB 39h,35h,00h,00h,05h,00h,00h,00h,06h,00h,00h,00h,07h,00h,00h,00h  ;95..............   
-            DB 18h,00h,00h,00h,19h,00h,00h,00h,73h,3Fh,44h,4Ch,2Eh,5Ch,45h,58h  ;........s?DL.\\EX   
-            DB 45h,4Dh,45h,55h,52h,2Eh,44h,41h,54h,00h,00h,00h,1Fh,00h,00h,00h  ;EMEUR.DAT.......   
-            DB 10h,00h,00h,00h,11h,00h,00h,00h,12h,00h,00h,00h,13h,00h,00h,00h  ;................   
-            DB 14h,00h,00h,00h,15h,00h,00h,00h,16h,00h,00h,00h,17h,00h,00h,00h  ;................   
-            DB 28h,00h,00h,00h,29h,00h,00h,00h,2Ah,00h,00h,00h,2Bh,00h,00h,00h  ;(...)...\*...+...   
-            DB 2Ch,00h,00h,00h,2Dh,00h,00h,00h,2Eh,00h,00h,00h,2Fh,00h,00h,00h  ;,...-......./...   
-            DB 20h,00h,00h,00h,21h,00h,00h,00h,22h,00h,00h,00h,23h,00h,00h,00h  ; ...!..."...#...   
-            DB 24h,00h,00h,00h,25h,00h,00h,00h,26h,00h,00h,00h,27h,00h,00h,00h  ;$...%...&...'...   
-            DB 38h,00h,00h,00h,39h,00h,00h,00h,3Ah,00h,00h,00h,3Bh,00h,00h,00h  ;8...9...:...;...   
-            DB 3Ch,00h,00h,00h,3Dh,00h,00h,00h,3Eh,00h,00h,00h,3Fh,00h,00h,00h  ;<...=...>...?...   
-            DB 30h,00h,00h,00h,31h,00h,00h,00h,32h,00h,00h,00h,33h,00h,00h,00h  ;0...1...2...3...   
-            DB 34h,00h,00h,00h,35h,00h,00h,00h,36h,00h,00h,00h,37h,00h,00h,00h  ;4...5...6...7...   
-            DB 48h,00h,00h,00h,49h,00h,00h,00h,4Ah,00h,00h,00h,4Bh,00h,00h,00h  ;H...I...J...K...   
-            DB 4Ch,00h,00h,00h,4Dh,00h,00h,00h,4Eh,00h,00h,00h,4Fh,00h,00h,00h  ;L...M...N...O...   
-            DB 40h,00h,00h,00h,41h,00h,00h,00h,42h,00h,00h,00h,43h,00h,00h,00h  ;@...A...B...C...   
-            DB 44h,00h,00h,00h,45h,00h,00h,00h,46h,00h,00h,00h,47h,00h,00h,00h  ;D...E...F...G...   
-            DB 58h,00h,00h,00h,59h,00h,00h,00h,5Bh,08h,64h,6Fh,68h,6Fh,64h,6Fh  ;X...Y...\[.dohodo   
-            DB 6Eh,67h,00h,00h,5Dh,00h,00h,00h,5Eh,00h,00h,00h,5Fh,00h,00h,00h  ;ng..\]...^...\_...   
-            DB 50h,00h,00h,00h,51h,00h,00h,00h,52h,00h,00h,00h,53h,00h,00h,00h  ;P...Q...R...S...   
-            DB 54h,00h,00h,00h,55h,00h,00h,00h,56h,00h,00h,00h,57h,00h,00h,00h  ;T...U...V...W...   
-            DB 68h,00h,00h,00h,69h,00h,00h,00h,6Ah,00h,00h,00h,6Bh,00h,00h,00h  ;h...i...j...k...   
-            DB 6Ch,00h,00h,00h,6Dh,00h,00h,00h,6Eh,00h,00h,00h,6Fh,00h,00h,00h  ;l...m...n...o...   
-            DB 60h,00h,00h,00h,61h,00h,00h,00h,62h,00h,00h,00h,63h,00h,00h,00h  ;\`...a...b...c...   
-            DB 64h,00h,00h,00h,65h,00h,00h,00h,66h,00h,00h,00h,67h,00h,00h,00h  ;d...e...f...g...   
-            DB 78h,00h,00h,00h,79h,00h,00h,00h,7Ah,00h,00h,00h,7Bh,00h,00h,00h  ;x...y...z...{...   
-            DB 7Ch,00h,00h,00h,7Dh,00h,00h,00h,7Eh,00h,00h,00h,7Fh,00h,00h,00h  ;|...}...~......   
-            DB 70h,00h,00h,00h,71h,00h,00h,00h,72h,00h,00h,00h,73h,00h,00h,00h  ;p...q...r...s...   
-            DB 74h,00h,00h,00h,75h,00h,00h,00h,76h,00h,00h,00h,77h,00h,00h,00h  ;t...u...v...w...   
-            DB 88h,00h,00h,00h,89h,00h,00h,00h,8Ah,00h,00h,00h,8Bh,00h,00h,00h  ;................   
-            DB 8Ch,00h,00h,00h,8Dh,00h,00h,00h,8Eh,00h,00h,00h,8Fh,00h,00h,00h  ;................   
-            DB 80h,00h,00h,00h,81h,00h,00h,00h,82h,00h,00h,00h,83h,00h,00h,00h  ;................   
-            DB 84h,00h,00h,00h,85h,00h,00h,00h,86h,00h,00h,00h,87h,00h,00h,00h  ;................   
-            DB 98h,00h,00h,00h,99h,00h,00h,00h,49h,47h,45h,52h,01h,00h,00h,00h  ;........IGER....   
-            DB 01h,00h,00h,00h,49h,47h,45h,52h,45h,53h,00h,00h,44h,53h,00h,00h  ;....IGERES..DS..   
-            DB 90h,00h,00h,00h,91h,00h,00h,00h,92h,00h,00h,00h,93h,00h,00h,00h  ;................   
-            DB 94h,00h,00h,00h,8Bh,0Ch,6Eh,67h,73h,69h,6Eh,67h,6Ch,65h,00h,00h  ;......ngsingle..   
-            DB 0A8h,00h,00h,00h,0A9h,00h,00h,00h,0AAh,00h,00h,00h,0ABh,00h,00h,00h  ;................   
-            DB 0ACh,00h,00h,00h,0ADh,00h,00h,00h       
-        
-.code   
-DllEntry proc hInstance:HINSTANCE, reason:DWORD, reserved1:DWORD   
-      mov  eax,TRUE   
-      ret   
-DllEntry Endp   
-  
-  
-Call\_ebp\_20 proc   
-      push ebp   
-      mov ebp,esp   
-        
-      mov eax,\[ebp+10h\]                    <-- 对应程序中的入口参数 EBP-18   
-      mov dword ptr \[eax+00h\],006BE048h    <-- 可以随意，这是没有这个函数时程序的默认值，对应\[004256E0\]   
-      mov dword ptr \[eax+04h\],00000008h    <-- 可以随意，这是没有这个函数时程序的默认值，对应\[004256E4\]   
-      mov dword ptr \[eax+08h\],00429FA0h    <-- 可以随意，这是没有这个函数时程序的默认值，对应\[004256E8\]   
-      mov dword ptr \[eax+0Ch\],000003B2h    <-- 可以随意，这是没有这个函数时程序的默认值，对应\[004256EC\]   
-        
-      mov edi,\[ebp+08h\]                    <-- 对应程序中的入口参数 00429380   
-      add edi,14                            <-- 只需要比较偏移 14 开始的数据(笨办法^\_^)   
-      lea esi,data\_decoded   
-      mov ecx,\[ebp+0Ch\]                    <-- 对应程序中的入口参数 000002AC   
-      sub ecx,14                            <-- 只需要比较 00000298 个字符(笨办法^\_^)   
-      rep movsb   
-          
-      mov eax,00000001   
-      mov esp,ebp   
-      pop ebp   
-      ret 0ch   
-Call\_ebp\_20 Endp   
-  
-End DllEntry   
-  
-；Exemekey.def 和 build.bat 跟上面的一样   
-  
-\-----------------------------------------------------------------------------------------------------------------------   
-  
-21\. 将上面的程序编译成新的“EXEMEKEY.DLL”放在 C 盘根目录，然后重新来到步骤 12，按 F10 一步一步往下走，哈哈，现在是不是可以正大光明的走到最后啦^\_^, 接下来我们按 F10 返回到步骤 12 --> 步骤 11，然后从步骤 9 最后面的程序继续往下走：   
-。。。   
-0167:00411CA9  JNZ      00411CC6   
-0167:00411CAB  PUSH      10   
-0167:00411CAD  PUSH      004251BC   
-0167:00411CB2  PUSH      004251C4   
-0167:00411CB7  MOV      EAX,\[EBP+08\]   
-0167:00411CBA  PUSH      EAX   
-0167:00411CBB  CALL      \[USER32!MessageBoxA\]   
-0167:00411CC1  JMP      00411DD5   
-0167:00411CC6  PUSH      65　　　　　　　　　　　　　<-- 常数 65 压栈   
-0167:00411CC8  MOV      ECX,\[EBP+08\]　　　　　　　 <-- \[EBP+08\]为对话框句柄   
-0167:00411CCB  PUSH      ECX   
-0167:00411CCC  PUSH      0042009C　　　　　　　　　 <-- 地址 0042009C 指向字符串“.\\EXEMEUE.DAT”   
-0167:00411CD1  LEA      EDX,\[EBP+FFFFDCA4\]　　　　<-- \[EBP+FFFFDCA4\]为解密后的 KEY FILE 数据   
-0167:00411CD7  PUSH      EDX   
-0167:00411CD8  MOV      EAX,\[EBP+FFFFDC9C\]　　　　<-- \[EBP+FFFFDC9C\]为前面验证程序的返回值   
-0167:00411CDE  PUSH      EAX   
-0167:00411CDF  CALL      0041A240　　　　　　　　　 <-- 继续验证 KEY FILE“.\\EXEMEUE.DAT”，作用和 98 系列的 CALL  0040C780 完全一样   
-0167:00411CE4  TEST      EAX,EAX   
-0167:00411CE6  JZ        00411DA9   
-0167:00411CEC  PUSH      00   
-0167:00411CEE  LEA      ECX,\[EBP\-50\]   
-0167:00411CF1  PUSH      ECX   
-0167:00411CF2  CALL      \[KERNEL32!\_lopen\]　　　　　<-- 打开 KEY FILE 文件“c:\\EXEMEUE.DAT”   
-0167:00411CF8  MOV      \[EBP\-00A8\],EAX   
-0167:00411CFE  PUSH      00   
-0167:00411D00  PUSH      0042009C   
-0167:00411D05  CALL      \[KERNEL32!\_lcreat\]　　　　 <-- 在 EXESPYME 的当前目录创建文件“.\\EXEMEUE.DAT”   
-0167:00411D0B  MOV      \[EBP\-00AC\],EAX   
-0167:00411D11  CMP      DWORD PTR \[EBP\-00AC\],-01   
-0167:00411D18  JNZ      00411D3F   
-0167:00411D1A  PUSH      10   
-0167:00411D1C  PUSH      004251F0   
-0167:00411D21  PUSH      004251F8   
-0167:00411D26  MOV      EDX,\[EBP+08\]   
-0167:00411D29  PUSH      EDX   
-0167:00411D2A  CALL      \[USER32!MessageBoxA\]   
-0167:00411D30  MOV      EAX,\[EBP\-00A8\]   
-0167:00411D36  PUSH      EAX   
-0167:00411D37  CALL      \[KERNEL32!\_lclose\]   
-0167:00411D3D  JMP      00411DA7   
-0167:00411D3F  PUSH      50   
-0167:00411D41  LEA      ECX,\[EBP\-00A0\]   
-0167:00411D47  PUSH      ECX   
-0167:00411D48  MOV      EDX,\[EBP\-00A8\]   
-0167:00411D4E  PUSH      EDX   
-0167:00411D4F  CALL      \[KERNEL32!\_hread\]　　　　　<-- 读文件“c:\\EXEMEUE.DAT”   
-0167:00411D55  MOV      \[EBP+FFFFDC98\],EAX   
-0167:00411D5B  CMP      DWORD PTR \[EBP+FFFFDC98\],00   
-0167:00411D62  JLE      00411D81   
-0167:00411D64  MOV      EAX,\[EBP+FFFFDC98\]   
-0167:00411D6A  PUSH      EAX   
-0167:00411D6B  LEA      ECX,\[EBP\-00A0\]   
-0167:00411D71  PUSH      ECX   
-0167:00411D72  MOV      EDX,\[EBP\-00AC\]   
-0167:00411D78  PUSH      EDX   
-0167:00411D79  CALL      \[KERNEL32!\_hwrite\]　　　　 <-- 写文件“.\\EXEMEUE.DAT”   
-0167:00411D7F  JMP      00411D3F   
-0167:00411D81  MOV      EAX,\[EBP\-00AC\]   
-0167:00411D87  PUSH      EAX   
-0167:00411D88  CALL      \[KERNEL32!\_lclose\]　　　　 <-- 关闭文件“.\\EXEMEUE.DAT”   
-0167:00411D8E  MOV      ECX,\[EBP\-00A8\]   
-0167:00411D94  PUSH      ECX   
-0167:00411D95  CALL      \[KERNEL32!\_lclose\]　　　　 <-- 关闭文件“c:\\EXEMEUE.DAT”   
-0167:00411D9B  PUSH      01   
-0167:00411D9D  MOV      EDX,\[EBP+08\]   
-0167:00411DA0  PUSH      EDX   
-0167:00411DA1  CALL      \[USER32!EndDialog\]   
-0167:00411DA7  JMP      00411DD5   
-0167:00411DA9  PUSH      00   
-0167:00411DAB  PUSH      0042009C   
-0167:00411DB0  CALL      \[KERNEL32!\_lcreat\]   
-0167:00411DB6  MOV      \[EBP\-00AC\],EAX   
-0167:00411DBC  MOV      EAX,\[EBP\-00A8\]   
-0167:00411DC2  PUSH      EAX   
-0167:00411DC3  CALL      \[KERNEL32!\_lclose\]   
-0167:00411DC9  PUSH      00   
-0167:00411DCB  MOV      ECX,\[EBP+08\]   
-0167:00411DCE  PUSH      ECX   
-0167:00411DCF  CALL      \[USER32!EndDialog\]   
-0167:00411DD5  JMP      00411DED   
-0167:00411DD7  PUSH      10   
-0167:00411DD9  PUSH      00425220   
-0167:00411DDE  PUSH      00425228   
-0167:00411DE3  MOV      EDX,\[EBP+08\]   
-0167:00411DE6  PUSH      EDX   
-0167:00411DE7  CALL      \[USER32!MessageBoxA\]   
-0167:00411DED  JMP      00411DFB   
-0167:00411DEF  PUSH      00   
-0167:00411DF1  MOV      EAX,\[EBP+08\]   
-0167:00411DF4  PUSH      EAX   
-0167:00411DF5  CALL      \[USER32!EndDialog\]   
-0167:00411DFB  JMP      00411E0F   
-0167:00411DFD  PUSH      00   
-0167:00411DFF  MOV      ECX,\[EBP+08\]   
-0167:00411E02  PUSH      ECX   
-0167:00411E03  CALL      \[USER32!EndDialog\]   
-0167:00411E09  JMP      00411E0F   
-0167:00411E0B  XOR      EAX,EAX   
-0167:00411E0D  JMP      00411E14   
-0167:00411E0F  MOV      EAX,00000001   
-0167:00411E14  MOV      ESP,EBP   
-0167:00411E16  POP      EBP   
-0167:00411E17  RET      0010   
-。。。   
-  
-22\. 上面的程序跟 98 系列是一样的，只不过验证“.DAT”KEY FILE 时其验证字符串多了个前缀“.\\”（98 系列为“SET98UR.DAT”,ME 系列为“.\\EXEMEUE.DAT”)，程序后面同样是将 KEY FILE“EXEMEUE.DAT”拷贝到 EXESPYME 的当前目录下；   
-  
-23\. 好了，到这里我就不再往后讲了，因为这篇文章主要是讨论 98 系列跟 ME 系列的不同之处（主要是针对 KEY FILE“EXEMEKEY.DLL”），从这里以后的程序虽然跟 98 系列的不完全一样（因为 ME 系列是“SPY2”型的嘛！），但是对于有效的注册 KEY FILE 来说（REG\_TYPE="REGI"），程序功能作用完全一致，也就是说从这里以后可以继续沿用 98 系列的注册机算法，只需要将相应的字符串信息换掉即可，后面程序的具体细节自己去看吧，这篇文章的目的已经达到，我要休息啦，真的好累，啊啊啊。。。！！！   
-  
-24\. 注意：附件所带的注册机 C 语言源程序中 KEY FILE“EXEMEKEY.DLL”的产生方法是先用汇编生成“EXEMEKEY.DLL”，然后将整个“EXEMEKEY.DLL”文件的数据放在源程序中，并根据程序需要修改相应部分的数据（对应产生的 KEY FILE“EXEMEUR.DAT”），另外程序中“EXEMEKEY.DLL”对应的汇编源程序和上面讲解的汇编源程序有一点不同，所以希望大家不要奇怪为什么源程序中的程序结构和破解文件中不一致；   
-  
-25\. 附录：下面放上程序中用到的几个相关 API 函数的原型：   
+SpyWindows 监测软件 ME 系列包括以下工具：`ComSpyME`、`ModemWatchME`、`ExeSpyME`、`HeapExplorer SE`、`ProcessExplorer SE`、`MemoryMonitorME`、`ODBCSpyME`、`HeapExplorerME`、`PhysicalMemoryExplorerME`、`ProcessMemoryExplorerME` 和 `SystemMemoryExplorerME`，见名知义，从名字我们就可以知道其用途，这里我就不细讲了。以前我们曾经讨论过 SpyWindows 监测软件 98 系列三款工具的破解方法：`SetupMonitor98`、`RegistryMonitor98` 及 `ResSpy98`，ME 系列在 98 系列的“`.DAT`” KEY FILE 的基础上又多出一个“`.DLL`”动态链接库 KEY FILE，其加密强度比单纯的“`.DAT`” KEY FILE 型要高出许多，所以要破解 ME 系列的软件需要具有 `WIN32` 下 `DLL` 的汇编编程知识，而前面我们已经领教过 98 系列“`.DAT`” KEY FILE 的厉害，那么现在你可以想想要破解 ME 系列监测软件的难度有多大了！同样，ME 系列所有软件的加密方法跟 98 系列产品之间一样，其同系列的产品加密方法一样，只需要在某个软件 KEY FILE 的基础上简单的替换一些相关信息即可应用于其它软件，这里我们以 `ExeSpyME` 为例进行讲解，其它 ME 系列的产品看完破解过程后你自然就明白怎么改了。
+
+程序名　：`ExeSpyME`
+
+版本 　 ：`V5.0`
+
+大小 　 ：`689KB`
+
+运行平台：`Windows 95/98/ME`
+
+保护方式：KEY FILE（“`.DAT`”和“`.DLL`”）
+
+破解方式：KEY FILE 产生
+
+破解难度：非常难
+
+作者 　 ：`ddcrack (2001/11/05)`
+
+破解步骤：
+
+1\. 首先把 98 系列的破解搞懂:“`SetupMonitor98`/`RegistryMonitor98`/`ResSpy98` 完全破解”，如果没有彻底看明白，那么下面的东西对你来说毫无用处，因为我是在 98 系列破解教程的基础上展开的(为什么不从头开始写？难到你真想让我吐血啊！！！即便是我写了，相信也没有人看得懂，太复杂了！！！)；
+
+2\. 用 `softice` 载入 `windows`（通过 `CTRL+D` 来检查 `softice` 是否已经准备好，按 `F5` 退出 `softice`）；
+
+3\. 在“开始”菜单中点击“Spy Suite”下“`ExeSpyME`”的“`ExeSpy`”，此时我们可以从弹出的注册对话框中看到 KEY FILE 的名字分别叫“`EXEMEUE.DAT`”和“`ExeMEKey.DLL`”；
+
+4\. 对于“`EXEMEUE.DAT`”，因为前面我们已经攻破了 98 系列的工具，所以我们这里干脆用 98 系列的“`.DAT`”KEY FILE 来代替；而对于“`ExeMEKey.DLL`”就要多一些心眼了，我们可以想想这个“`.DLL`”的 KEY FILE 是不是只是为了迷惑我们而故意用了 `DLL` 的后缀，其实暗地里仍然是个“`.DAT`”KEY FILE 呢？如果它真的是个动态链接库文件，那么显然我们就要面临很大的困难了；先把 `SetupMonitor98` 的 KEY FILE“`SET98UR.DAT`”改名换成“`EXEMEUE.DAT`”放在 `C` 盘根目录下(注意：98 系列的 KEY FILE 都有“`SPYS`”和“`SPY1`”两种类型，那么这里究竟用哪一个呢？回答是用“`SPY1`”型，因为“`SPY1`”型的 KEY FILE 比“`SPYS`”型的复杂，我想在这种情况下复杂总比简单的好吧！就象 `WINDOWS ME` 比 `WINDOWS 98` 要好一样，新东西通常都比旧东西要复杂一点，而功能会更好一些)，因为现在我们还不知道这个“`.DLL`”的 KEY FILE 究竟是何方神圣？所以暂时我们先构造一个名为“`ExeMEKey.DLL`”的文本文件，假设这里为“`0123456789ABCDEFFEDCBA9876543210`”，内容可以随意(也许你有点糊涂：如何创建一个文本类型的“`ExeMEKey.DLL`”文件呢？哈哈，这很简单，先建个“`.TXT`”的文件，将上面的文本内容输进去，然后将文件名改掉就行了^\_^)；
+
+5\. 因为刚才把假的“`EXEMEUE.DAT`”和“`ExeMEKey.DLL`”放在了 `C` 盘根目录，所以我们在 `ExeSpyME` 的注册窗口中输入驱动器号“`C`”；
+
+6\. 用 `CTRL+D` 呼出 `softice`，下万能断点：`bpx hmemcpy`，按 `F5` 返回到 `ExeSpyME`(是不是觉得有点浪费笔墨啊^\_^，请多多包涵，我的破解文章总是这样老土的，哈哈。。。)；
+
+7\. 同样地，在 `ExeSpyME` 注册框中点击“`LOAD`”，程序立马被 `softice` 拦截住(希望顺利一些，不要太复杂了呀^\_^)；
+
+8\. 用 `bd *` 暂停断点 `bpx hmemcpy` ；
+
+9\. 按 `F12` 键返回到 `ExeSpyME` 的领空(跟 98 系列一样，应该还是 9 次啦！)，程序停留在下面的地方：
+
+```
+。。。
+
+0167:00411A30  MOV       BYTE PTR [EBP-50],00
+0167:00411A34  PUSH      50
+0167:00411A36  LEA       ECX,[EBP-50]
+0167:00411A39  PUSH      ECX
+0167:00411A3A  PUSH      000000BF
+0167:00411A3F  MOV       EDX,[EBP+08]
+0167:00411A42  PUSH      EDX
+0167:00411A43  CALL      [USER32!GetDlgItemTextA]     <-- 获取输入的驱动器号
+0167:00411A49  MOVSX     EAX,BYTE PTR [EBP-50]        <-- 我们来到这里，将驱动器号送入 EAX
+0167:00411A4D  CMP       EAX,41
+0167:00411A50  JL        00411A5B
+0167:00411A52  MOVSX     ECX,BYTE PTR [EBP-50]
+0167:00411A56  CMP       ECX,5A
+0167:00411A59  JLE       00411A75
+0167:00411A5B  MOVSX     EDX,BYTE PTR [EBP-50]
+0167:00411A5F  CMP       EDX,61
+0167:00411A62  JL        00411DD7
+0167:00411A68  MOVSX     EAX,BYTE PTR [EBP-50]
+0167:00411A6C  CMP       EAX,7A
+0167:00411A6F  JG        00411DD7
+0167:00411A75  MOV       DWORD PTR [EBP-00A4],00000001 <-- [EBP-00A4]置 1
+0167:00411A7F  MOVSX     ECX,BYTE PTR [004200AC]     <-- 004200AC 指向字符串“.\EXEMEKEY.DLL”
+0167:00411A86  TEST      ECX,ECX
+0167:00411A88  JZ        00411BF7
+0167:00411A8E  LEA       EDX,[EBP-50]
+0167:00411A91  PUSH      EDX
+0167:00411A92  LEA       EAX,[EBP+FFFFEF54]
+0167:00411A98  PUSH      EAX
+0167:00411A99  CALL      [KERNEL32!lstrcpy]
+0167:00411A9F  PUSH      00425154
+0167:00411AA4  LEA       ECX,[EBP+FFFFEF54]
+0167:00411AAA  PUSH      ECX
+0167:00411AAB  CALL      [KERNEL32!lstrcat]
+0167:00411AB1  PUSH      004200AE
+0167:00411AB6  LEA       EDX,[EBP+FFFFEF54]
+0167:00411ABC  PUSH      EDX
+0167:00411ABD  CALL      [KERNEL32!lstrcat]
+0167:00411AC3  PUSH      004200AC
+0167:00411AC8  LEA       EAX,[EBP+FFFFDF54]
+0167:00411ACE  PUSH      EAX
+0167:00411ACF  CALL      [KERNEL32!lstrcpy]
+0167:00411AD5  PUSH      00
+0167:00411AD7  LEA       ECX,[EBP+FFFFEF54]
+0167:00411ADD  PUSH      ECX                   <-- ECX 指向字符串“C:\EXEMEKEY.DLL”
+0167:00411ADE  CALL      [KERNEL32!_lopen]     <-- 打开 KEY FILE“C:\EXEMEKEY.DLL”
+0167:00411AE4  MOV       [EBP-00A8],EAX
+0167:00411AEA  CMP       DWORD PTR [EBP-00A8],-01
+0167:00411AF1  JNZ       00411B36
+0167:00411AF3  LEA       EDX,[EBP+FFFFEF54]
+0167:00411AF9  PUSH      EDX
+0167:00411AFA  PUSH      00425158
+0167:00411AFF  LEA       EAX,[EBP-00A0]
+0167:00411B05  PUSH      EAX
+0167:00411B06  CALL      [USER32!wsprintfA]
+0167:00411B0C  ADD       ESP,0C
+0167:00411B0F  PUSH      10
+0167:00411B11  PUSH      0042516C
+0167:00411B16  LEA       ECX,[EBP-00A0]
+0167:00411B1C  PUSH      ECX
+0167:00411B1D  MOV       EDX,[EBP+08]
+0167:00411B20  PUSH      EDX
+0167:00411B21  CALL      [USER32!MessageBoxA]
+0167:00411B27  MOV       DWORD PTR [EBP-00A4],00000000
+0167:00411B31  JMP       00411BF7
+0167:00411B36  PUSH      00
+0167:00411B38  LEA       EAX,[EBP+FFFFDF54]
+0167:00411B3E  PUSH      EAX                   <-- EAX 指向字符串“.\EXEMEKEY.DLL”
+0167:00411B3F  CALL      [KERNEL32!_lcreat]    <-- 在 EXESPYME 的当前目录创建文件“EXEMEKEY.DLL”
+0167:00411B45  MOV       [EBP-00AC],EAX
+0167:00411B4B  CMP       DWORD PTR [EBP-00AC],-01
+0167:00411B52  JNZ       00411B9B
+0167:00411B54  LEA       ECX,[EBP+FFFFDF54]
+0167:00411B5A  PUSH      ECX
+0167:00411B5B  LEA       EDX,[EBP+FFFFEF54]
+0167:00411B61  PUSH      EDX
+0167:00411B62  PUSH      00425174
+0167:00411B67  LEA       EAX,[EBP-00A0]
+0167:00411B6D  PUSH      EAX
+0167:00411B6E  CALL      [USER32!wsprintfA]
+0167:00411B74  ADD       ESP,10
+0167:00411B77  PUSH      10
+0167:00411B79  PUSH      00425194
+0167:00411B7E  LEA       ECX,[EBP-00A0]
+0167:00411B84  PUSH      ECX
+0167:00411B85  MOV       EDX,[EBP+08]
+0167:00411B88  PUSH      EDX
+0167:00411B89  CALL      [USER32!MessageBoxA]
+0167:00411B8F  MOV       DWORD PTR [EBP-00A4],00000000
+0167:00411B99  JMP       00411BEA
+0167:00411B9B  PUSH      50
+0167:00411B9D  LEA       EAX,[EBP-00A0]
+0167:00411BA3  PUSH      EAX
+0167:00411BA4  MOV       ECX,[EBP-00A8]
+0167:00411BAA  PUSH      ECX
+0167:00411BAB  CALL      [KERNEL32!_hread]     <-- 读文件“C:\EXEMEKEY.DLL”
+0167:00411BB1  MOV       [EBP+FFFFDF50],EAX
+0167:00411BB7  CMP       DWORD PTR [EBP+FFFFDF50],00
+0167:00411BBE  JLE       00411BDD
+0167:00411BC0  MOV       EDX,[EBP+FFFFDF50]
+0167:00411BC6  PUSH      EDX
+0167:00411BC7  LEA       EAX,[EBP-00A0]
+0167:00411BCD  PUSH      EAX
+0167:00411BCE  MOV       ECX,[EBP-00AC]
+0167:00411BD4  PUSH      ECX
+0167:00411BD5  CALL      [KERNEL32!_hwrite]    <-- 写文件“.\EXEMEKEY.DLL”
+0167:00411BDB  JMP       00411B9B
+0167:00411BDD  MOV       EDX,[EBP-00AC]
+0167:00411BE3  PUSH      EDX
+0167:00411BE4  CALL      [KERNEL32!_lclose]    <-- 关闭文件“.\EXEMEKEY.DLL”
+0167:00411BEA  MOV       EAX,[EBP-00A8]
+0167:00411BF0  PUSH      EAX
+0167:00411BF1  CALL      [KERNEL32!_lclose]    <-- 关闭文件“C:\EXEMEKEY.DLL”
+0167:00411BF7  CMP       DWORD PTR [EBP-00A4],00
+0167:00411BFE  JZ        00411DD5             <-- 不会跳
+0167:00411C04  PUSH      0042519C
+0167:00411C09  LEA       ECX,[EBP-50]
+0167:00411C0C  PUSH      ECX
+0167:00411C0D  CALL      [KERNEL32!lstrcat]
+0167:00411C13  PUSH      0042009E
+0167:00411C18  LEA       EDX,[EBP-50]
+0167:00411C1B  PUSH      EDX
+0167:00411C1C  CALL      [KERNEL32!lstrcat]
+0167:00411C22  PUSH      00
+```
+
+
+
+### 汇编代码段 1
+
+```assembly
+0167:00411C24  LEA      EAX,[EBP-50]
+0167:00411C27  PUSH     EAX              <-- EAX 指向字符串“C:\EXEMEUE.DAT”
+0167:00411C28  CALL     [KERNEL32!_lopen]  <-- 打开 KEY FILE“C:\EXEMEUE.DAT”
+0167:00411C2E  MOV      [EBP-00A8],EAX
+0167:00411C34  CMP      DWORD PTR [EBP-00A8],-01
+0167:00411C3B  JNZ      00411C73
+0167:00411C3D  LEA      ECX,[EBP-50]
+0167:00411C40  PUSH     ECX
+0167:00411C41  PUSH     004251A0
+0167:00411C46  LEA      EDX,[EBP-00A0]
+0167:00411C4C  PUSH     EDX
+0167:00411C4D  CALL     [USER32!wsprintfA]
+0167:00411C53  ADD      ESP,0C
+0167:00411C56  PUSH     10
+0167:00411C58  PUSH     004251B4
+0167:00411C5D  LEA      EAX,[EBP-00A0]
+0167:00411C63  PUSH     EAX
+0167:00411C64  MOV      ECX,[EBP+08]
+0167:00411C67  PUSH     ECX
+0167:00411C68  CALL     [USER32!MessageBoxA]
+0167:00411C6E  JMP      00411DD5
+0167:00411C73  MOV      EDX,[EBP-00A8]
+0167:00411C79  PUSH     EDX
+0167:00411C7A  CALL     [KERNEL32!_lclose]  <-- 关闭文件“C:\EXEMEUE.DAT”
+0167:00411C80  LEA      EAX,[EBP+FFFFDC9C]
+0167:00411C86  PUSH     EAX              <-- 内存地址压栈
+0167:00411C87  LEA      ECX,[EBP+FFFFDCA4]
+0167:00411C8D  PUSH     ECX              <-- 内存地址压栈
+0167:00411C8E  PUSH     0042006C         <-- 内存地址 0042006C 中是字符串“ExeSpy Millennium Edition for Windows ME/98/95”
+0167:00411C93  LEA      EDX,[EBP-50]
+0167:00411C96  PUSH     EDX              <-- EDX 指向字符串“C:\EXEMEUE.DAT”
+0167:00411C97  CALL     00419455         <-- 初步验证 KEY FILE“C:\EXEMEUE.DAT”
+0167:00411C9C  MOV      [EBP+FFFFDCA0],EAX
+0167:00411CA2  CMP      DWORD PTR [EBP+FFFFDCA0],00
+0167:00411CA9  JNZ      00411CC6         <-- 验证成功，则跳到 00411CC6 去
+```
+
+### 说明 1
+
+10\. 这篇文章我不想再像前次那般详细，因为经过 98 系列的破解后我们对程序已经有了足够的了解，所以这里“话不多说，点到即止”！在跟踪的时候也没有必要一步的走了，我们可以加快脚步，只是到了关键处才停下来看看，但是因为还不知道 ME 系列到底和 98 系列是否有多大的不同，所以我们还必须要从头开始跟踪程序一直到最后(针对`.DAT`KEY FILE 而言)！
+
+11\. 上面的程序段作用比较简单，主要是试着分别打开 KEY FILE“`EXEMEKEY.DLL`”和“`EXEMEUE.DAT`”，如果有一个文件不存在则显示出错信息，否则将 KEY FILE“`EXEMEKEY.DLL`”拷贝到 `EXESPYME` 的当前目录下；最后有个子程序`CALL 00419455`，看看其入口参数我们就知道是要初步验证“`EXEMEUE.DAT`”的有效性，那么这个`CALL`是否跟 98 系列的那个`CALL`一模一样呢？当然不能保证了，但是至少应该不会差太多吧，还楞在这里干什么，赶紧进去啊：
+
+### 汇编代码段 2
+
+```assembly
+0167:00419455  PUSH     EBP
+0167:00419456  MOV      EBP,ESP
+0167:00419458  SUB      ESP,24
+0167:0041945B  MOV      DWORD PTR [00426E00],00000000
+0167:00419465  MOV      DWORD PTR [00426E04],00000000
+0167:0041946F  MOV      DWORD PTR [00429F84],00429FA0
+0167:00419479  PUSH     00008003
+0167:0041947E  CALL     [KERNEL32!SetErrorMode]
+0167:00419484  MOV      [EBP-1C],EAX
+0167:00419487  PUSH     00
+0167:00419489  MOV      EAX,[EBP+08]
+0167:0041948C  PUSH     EAX
+0167:0041948D  CALL     [KERNEL32!_lopen]  <-- 打开 KEY FILE“C:\EXEMEUE.DAT”
+0167:00419493  MOV      [EBP-18],EAX
+0167:00419496  MOV      ECX,[EBP-1C]
+0167:00419499  PUSH     ECX
+0167:0041949A  CALL     [KERNEL32!SetErrorMode]
+0167:004194A0  CMP      DWORD PTR [EBP-18],-01
+0167:004194A4  JZ       004194B9
+0167:004194A6  PUSH     04
+0167:004194A8  PUSH     00429FA0         <-- 将 KEY FILE 内容读到内存地址 00429FA0 处
+0167:004194AD  MOV      EDX,[EBP-18]
+0167:004194B0  PUSH     EDX
+0167:004194B1  CALL     [KERNEL32!_hread]
+0167:004194B7  JMP      004194D2
+0167:004194B9  PUSH     00425BD4
+0167:004194BE  MOV      EAX,[EBP+10]
+0167:004194C1  ADD      EAX,18
+0167:004194C4  PUSH     EAX
+0167:004194C5  CALL     [KERNEL32!lstrcpy]
+0167:004194CB  XOR      EAX,EAX
+0167:004194CD  JMP      00419579
+0167:004194D2  MOV      ECX,[EBP-18]
+0167:004194D5  PUSH     ECX
+0167:004194D6  CALL     [KERNEL32!_lclose]
+0167:004194DC  CMP      DWORD PTR [00429FA0],53595053  <-- 53595053 即字符串“SPYS”
+0167:004194E6  JNZ      004194EF
+0167:004194E8  XOR      EAX,EAX
+0167:004194EA  JMP      00419579         <-- 完蛋了，GAME OVER！
+0167:004194EF  CMP      DWORD PTR [00429FA0],31595053  <-- 31595053 即字符串“SPY1”
+0167:004194F9  JNZ      0041952A
+0167:004194FB  CMP      DWORD PTR [004256F4],02       <-- [004256F4] = 03
+0167:00419502  JG       0041951E
+0167:00419504  MOV      EDX,[EBP+14]
+0167:00419507  PUSH     EDX
+0167:00419508  MOV      EAX,[EBP+10]
+0167:0041950B  PUSH     EAX
+0167:0041950C  MOV      ECX,[EBP+0C]
+0167:0041950F  PUSH     ECX
+0167:00419510  MOV      EDX,[EBP+08]
+0167:00419513  PUSH     EDX
+0167:00419514  CALL     004197FC
+0167:00419519  MOV      [EBP-20],EAX
+0167:0041951C  JMP      00419525
+0167:0041951E  MOV      DWORD PTR [EBP-20],00000000
+0167:00419525  MOV      EAX,[EBP-20]
+0167:00419528  JMP      00419579         <-- 完蛋了，GAME OVER！
+0167:0041952A  CMP      DWORD PTR [00429FA0],32595053  <-- 32595053 即字符串“SPY2”
+0167:00419534  JNZ      00419565
+0167:00419536  CMP      DWORD PTR [004256F4],03       <-- [004256F4] = 03
+0167:0041953D  JG       00419559
+0167:0041953F  MOV      EAX,[EBP+14]
+0167:00419542  PUSH     EAX              <-- 内存地址压栈
+0167:00419543  MOV      ECX,[EBP+10]
+0167:00419546  PUSH     ECX              <-- 内存地址压栈
+0167:00419547  MOV      EDX,[EBP+0C]
+0167:0041954A  PUSH     EDX              <-- EDX 指向字符串“ExeSpy Millennium Edition for Windows ME/98/95”
+0167:0041954B  MOV      EAX,[EBP+08]
+0167:0041954E  PUSH     EAX              <-- EAX 指向字符串“C:\EXEMEUE.DAT”
+0167:0041954F  CALL     0041A0CC         <-- 验证 KEY FILE“C:\EXEMEUE.DAT”
+0167:00419554  MOV      [EBP-24],EAX
+0167:00419557  JMP      00419560
+0167:00419559  MOV      DWORD PTR [EBP-24],00000000
+0167:00419560  MOV      EAX,[EBP-24]
+0167:00419563  JMP      00419579
+0167:00419565  PUSH     00425BE0
+0167:0041956A  MOV      ECX,[EBP+10]
+0167:0041956D  ADD      ECX,18
+0167:00419570  PUSH     ECX
+0167:00419571  CALL     [KERNEL32!lstrcpy]
+0167:00419577  XOR      EAX,EAX
+0167:00419579  MOV      ESP,EBP
+0167:0041957B  POP      EBP
+0167:0041957C  RET      0010
+```
+
+### 说明 2
+
+12\. 是不是跟 98 系列不一样了呀？“半路杀出个程咬金”，程序中多了一个值为 03 的常量`[004256F4]`掺和进来，为什么我说是常量呢？因为这个值不是 KEY FILE 验证部分程序设置的，而且你可以试着多运行程序几次，它的值都固定为 03，在这段程序中，我们可以发现以前 98 系列采用的两种 KEY FILE 型“`SPYS`”和“`SPY1`”在这里都已经失效，只有当 KEY FILE 数据的头 4 个字符是“`SPY2`”才能继续下面的验证；因此现在要么回头修改那个假的 KEY FILE，要么用`RFL Z`命令骗过程序，总之要走到`0167:0041954F`处的`CALL 0041A0CC`并跟踪进去(其它地方都是死路一条啊！另外，关于`[004256F4]`，用`W32DASM`反汇编`EXESPYME`之后查找“`004256F4`”，你会发现这个值其实是程序初始化时设置的一个跟版本有关的东西，所以它是不会变的)：
+
+### 汇编代码段 3
+
+```assembly
+0167:0041A0CC  PUSH     EBP
+0167:0041A0CD  MOV      EBP,ESP
+0167:0041A0CF  SUB      ESP,24
+0167:0041A0D2  MOV      DWORD PTR [EBP-08],00000000  <-- [EBP-08]置 00
+0167:0041A0D9  MOV      DWORD PTR [EBP-04],00000000  <-- [EBP-04]置 00
+0167:0041A0E0  MOVSX    EAX,BYTE PTR [004200AC]
+0167:0041A0E7  TEST     EAX,EAX
+0167:0041A0E9  JZ       0041A15A
+0167:0041A0EB  PUSH     004200AC         <-- 004200AC 指向字符串“.\EXEMEKEY.DLL”
+0167:0041A0F0  CALL     [KERNEL32!LoadLibraryA]  <-- 加载 EXESPYME 当前目录中的动态链接库“EXEMEKEY.DLL”
+0167:0041A0F6  MOV      [EBP-1C],EAX     <-- 保存返回结果，成功则 EAX 为动态链接库句柄，否则 EAX=NULL
+0167:0041A0F9  CMP      DWORD PTR [EBP-1C],00  <-- 加载成功吗？
+0167:0041A0FD  JZ       0041A15A         <-- 不成功
+0167:0041A0FF  PUSH     65               <-- 引出函数索引值为 65
+0167:0041A101  MOV      ECX,[EBP-1C]
+0167:0041A104  PUSH     ECX              <-- 动态链接库句柄压栈
+0167:0041A105  CALL     [KERNEL32!GetProcAddress]  <-- 得到引出索引值为 65 的函数在内存中的地址值
+0167:0041A10B  MOV      [EBP-20],EAX     <-- 保存返回结果，成功则 EAX 为函数地址，否则 EAX=NULL
+0167:0041A10E  CMP      DWORD PTR [EBP-20],00  <-- 动态链接库“EXEMEKEY.DLL”中是否存在索引值为 65 的函数？
+0167:0041A112  JZ       0041A150         <-- 不成功
+0167:0041A114  LEA      EDX,[EBP-18]
+```
+
+
+
+0167:0041A117 `PUSH` `EDX` <-- 内存地址 `EBP-18` 压栈
+
+0167:0041A118 `PUSH` `000002AC` <-- 常数 `000002AC` 压栈
+
+0167:0041A11D `PUSH` `00429380` <-- 内存地址 `00429380` 压栈
+
+0167:0041A122 `CALL` `[EBP-20]` <-- 调用动态链接库中引出索引值为 65 的函数(搞什么鬼呀！不明白！)
+
+0167:0041A125 `MOV` `[EBP-04],EAX` <-- 保存函数返回结果 `EAX` 到 `[EBP-04]`
+
+0167:0041A128 `CMP` `DWORD PTR [EBP-04],00` <-- 返回结果为 00 吗？
+
+0167:0041A12C `JZ` `0041A150` <-- 是则跳到 `0041A150` 去，想想。。。哇噻！跳过去就死跷跷了！
+
+0167:0041A12E `MOV` `EAX,[EBP-18]` <-- `EBP-18` 是函数的入口参数之一
+
+0167:0041A131 `MOV` `[004256E0],EAX` <-- `[EBP-18]` 存入 `[004256E0]`
+
+0167:0041A136 `MOV` `ECX,[EBP-14]`
+
+0167:0041A139 `MOV` `[004256E4],ECX` <-- `[EBP-14]` 存入 `[004256E4]`
+
+0167:0041A13F `MOV` `EDX,[EBP-10]`
+
+0167:0041A142 `MOV` `[004256E8],EDX` <-- `[EBP-10]` 存入 `[004256E8]`
+
+0167:0041A148 `MOV` `EAX,[EBP-0C]`
+
+0167:0041A14B `MOV` `[004256EC],EAX` <-- `[EBP-0C]` 存入 `[004256EC]`
+
+0167:0041A150 `MOV` `ECX,[EBP-1C]`
+
+0167:0041A153 `PUSH` `ECX` <-- 动态链接库句柄压栈
+
+0167:0041A154 `CALL` `[KERNEL32!FreeLibrary]` <-- 释放动态链接库“.\\EXEMEKEY.DLL”
+
+0167:0041A15A `CMP` `DWORD PTR [EBP-04],00` <-- `[EBP-04]` 仍然是 00 吗？
+
+0167:0041A15E `JZ` `0041A178` <-- 是则跳到 `0041A178` 去
+
+0167:0041A160 `MOV` `EDX,[EBP+14]`
+
+0167:0041A163 `PUSH` `EDX` <-- 内存地址压栈
+
+0167:0041A164 `MOV` `EAX,[EBP+10]`
+
+0167:0041A167 `PUSH` `EAX` <-- 内存地址压栈
+
+0167:0041A168 `MOV` `ECX,[EBP+0C]`
+
+0167:0041A16B `PUSH` `ECX` <-- `ECX` 指向字符串“ExeSpy Millennium Edition for Windows ME/98/95”
+
+0167:0041A16C `MOV` `EDX,[EBP+08]`
+
+0167:0041A16F `PUSH` `EDX` <-- `EAX` 指向字符串“C:\\EXEMEUE.DAT”
+
+0167:0041A170 `CALL` `00419C0B` <-- 继续验证 KEY FILE“C:\\EXEMEUE.DAT”(烦不烦啊，不知道还会出什么花招？！)
+
+0167:0041A175 `MOV` `[EBP-08],EAX` <-- 验证结果存在 `[EBP-08]` 中
+
+0167:0041A178 `PUSH` `00000298` <-- 常数 `000002AC` 压栈
+
+0167:0041A17D `PUSH` `00429394` <-- 内存地址 `00429380+14` 压栈(为什么这样写，因为地址 `00429394` 在 `00429380` 的偏移 14 处
+
+0167:0041A182 `MOV` `EAX,[EBP+10]` <-- `EBP+10` 是前面 `CALL 00419C0B` 的入口参数之一
+
+0167:0041A185 `ADD` `EAX,14` <-- 偏移 14 处的地址给 `EAX`
+
+0167:0041A188 `PUSH` `EAX` <-- `EAX` 中的地址压栈
+
+0167:0041A189 `CALL` `0041A085` <-- 不知道里面有什么机关？
+
+0167:0041A18E `MOV` `[EBP-04],EAX` <-- 返回值存在 `[EBP-04]` 中
+
+0167:0041A191 `MOV` `EAX,[EBP-04]`
+
+0167:0041A194 `NEG` `EAX` <-- `[EBP-04]` 取反
+
+0167:0041A196 `SBB` `EAX,EAX` <-- 带进位自减，如果 `CY=1`，则 `EAX=FFFFFFFF`，否则 `EAX=0`
+
+0167:0041A198 `AND` `EAX,[EBP-08]` <-- 减法结果和 `[EBP-08]` 相与作为子程序返回值
+
+0167:0041A19B `MOV` `ESP,EBP`
+
+0167:0041A19D `POP` `EBP`
+
+0167:0041A19E `RET` `0010`
+
+。。。
+
+13. 上面的程序跟 98 系列就完全不一样了，因为这里是“`EXEMEKEY.DLL`”在唱主角：`0167:0041A0F0` 处的 `CALL [KERNEL32!LoadLibraryA]` 加载动态链接库“`EXEMEKEY.DLL`”，接着 `0167:0041A105` 处的 `CALL [KERNEL32!GetProcAddress]` 试图取得动态链接库中索引值为 65 的函数在内存中的地址，然后在 `0167:0041A122` `CALL [EBP-20]` 处程序调用这个函数；现在看来这个“`EXEMEKEY.DLL`” KEY FILE 可不是省油的灯，因为我们构造的假“`EXEMEKEY.DLL`”只是个文本文件，所以当我们走到 `0167:0041A0F0` `CALL [KERNEL32!LoadLibraryA]` 时就已经被毙掉了；继续往下看，从 `0167:0041A12E` 到 `0167:0041A14B`，紧接着刚才的函数调用之后程序开始设置 `[004256E0]`、`[004256E4]`、`[004256E8]` 和 `[004256EC]` 的值，这几个值肯定跟那个函数有关，随后程序在 `0167:0041A154` `CALL [KERNEL32!FreeLibrary]` 释放已经加载的动态连接库“`EXEMEKEY.DLL`”；
+
+14. 到这里就不要急着往下走了(可以将鼠标移到 `0167:0041A0F0` 处并按 `F9` 设置一个断点，下次就不用重复前面已经搞清楚的跟踪了），因为程序在检测“`EXEMEKEY.DLL`”这个动态链接库 KEY FILE，虽然可以继续用 `RFL Z` 来骗过去，但是我们要想破解它就必须写出真正的“`EXEMEKEY.DLL`”来，虽然现在还不知道“`EXEMEKEY.DLL`”的内部应该是什么样的程序结构，但是至少我们已经知道这个 DLL 至少包含一个索引值为 65 的引出函数，如果具备这个条件，那么程序就可以顺利的走到 `0167:0041A154` `CALL [KERNEL32!FreeLibrary]` 处，至于其它的奥妙要等后面的进一步跟踪才能明白；
+
+15. 开头我就已经讲过破解 `EXESPYME` 需要懂得 `WIN32` 下的 `DLL` 汇编编程，所以这里我直接给出程序，至于为什么就不要问我了，如果你不懂 `DLL` 的知识，可以去主页的“汇编语言”中看看“`Iczelion's Win32 汇编教学`”，以下是源程序（用 `MASM32` 编译通过，`MASM32` 可以在“汇编语言”中下载，其实程序再简单不过了^\_^！）：
+
+---------------------------------------------------------
+
+；Exemekey.asm
+
+```
+.386
+.model flat,stdcall
+option casemap:none
+include \masm32\include\windows.inc
+include \masm32\include\user32.inc
+include \masm32\include\kernel32.inc
+includelib \masm32\lib\user32.lib
+includelib \masm32\lib\kernel32.lib
+.data
+.code
+DllEntry proc hInstance:HINSTANCE, reason:DWORD, reserved1:DWORD
+    mov eax,TRUE
+    ret
+DllEntry Endp
+Call_ebp_20 proc
+    mov eax,00000001    <-- 注意：EAX 是程序返回值，不能为 0，所以将其设为 1
+    ret 0ch             <-- 为什么是“ret 0ch”，因为函数有 3 个入口参数嘛！，所以要让 ESP 加 3*4=12，否则程序会出问题的
+Call_ebp_20 Endp
+End DllEntry
+```
+
+---------------------------------------------------------
+
+；Exemekey.def
+
+```
+LIBRARY Exemekey
+EXPORTS Call_ebp_20 @101    <-- 101 即为 16 进制数 65H
+```
+
+---------------------------------------------------------
+
+；build.bat
+
+```
+@echo off
+\masm32\bin\ml /c /coff /Cp Exemekey.asm
+\masm32\bin\link /DLL /DEF:Exemekey.def /SUBSYSTEM:WINDOWS /LIBPATH:\masm32\lib Exemekey.obj
+pause
+```
+
+---------------------------------------------------------
+
+16. 用上面给出的批处理文件“`build.bat`”创建动态链接库 KEY FILE“`EXEMEKEY.DLL`”，然后将其替换掉 `C` 盘根目录下原来那个假的文本 `DLL` KEY FILE，重新来到步骤 12 的地方(记得刚才用 `F9` 设置的断点吗？)，因为现在我们的“`EXEMEKEY.DLL`”是个真正的 `DLL` 程序，并且具有索引值为 65 的函数，所以我们按 `F10` 可以一直来到 `0167:0041A170` `CALL 00419C0B`，接着按 `F8` 进入 `CALL 00419C0B` 里去：
+
+。。。
+
+0167:00419C0B `PUSH` `EBP`
+
+0167:00419C0C `MOV` `EBP,ESP`
+
+0167:00419C0E `SUB` `ESP,60`
+
+0167:00419C11 `PUSH` `ESI`
+
+0167:00419C12 `MOV` `DWORD PTR [00426E00],00000000`
+
+0167:00419C1C `MOV` `DWORD PTR [00426E04],00000002`
+
+0167:00419C26 `MOV` `DWORD PTR [00429F84],00429FA0`
+
+0167:00419C30 `PUSH` `00008003`
+
+0167:00419C35 `CALL` `[KERNEL32!SetErrorMode]`
+
+0167:00419C3B `MOV` `[EBP-38],EAX`
+
+0167:00419C3E `PUSH` `00`
+
+0167:00419C40 `MOV` `EAX,[EBP+08]`
+
+0167:00419C43 `PUSH` `EAX`
+
+0167:00419C44 `CALL` `[KERNEL32!_lopen]`
+
+0167:00419C4A `MOV` `[EBP-34],EAX`
+
+0167:00419C4D `MOV` `ECX,[EBP-38]`
+
+0167:00419C50 `PUSH` `ECX`
+
+0167:00419C51 `CALL` `[KERNEL32!SetErrorMode]`
+
+0167:00419C57 `CMP` `DWORD PTR [EBP-34],-01`
+
+0167:00419C5B `JZ` `00419C73`
+
+0167:00419C5D `PUSH` `0001E000`
+
+0167:00419C62 `PUSH` `00429FA0`
+
+0167:00419C67 `MOV` `EDX,[EBP-34]`
+
+0167:00419C6A `PUSH` `EDX`
+
+0167:00419C6B `CALL` `[KERNEL32!_hread]`
+
+0167:00419C71 `JMP` `00419C8C`
+
+0167:00419C73 `PUSH` `00425C64`
+
+0167:00419C78 `MOV` `EAX,[EBP+10]`
+
+0167:00419C7B `ADD` `EAX,18`
+
+0167:00419C7E `PUSH` `EAX`
+
+0167:00419C7F `CALL` `[KERNEL32!lstrcpy]`
+
+0167:00419C85 `XOR` `EAX,EAX`
+
+0167:00419C87 `JMP` `0041A07E`
+
+0167:00419C8C `MOV` `ECX,[EBP-34]`
+
+0167:00419C8F `PUSH` `ECX`
+
+0167:00419C90 `CALL` `[KERNEL32!_lclose]`
+
+0167:00419C96 `MOV` `EDX,[00429FAC]`
+
+0167:00419C9C `XOR` `EDX,[004256E8]`
+
+0167:00419CA2 `MOV` `[EBP-20],EDX` <-- `[EBP-20]=[00429FA0+0C] XOR [004256E8]`
+
+0167:00419CA5 `MOV` `EAX,[00429FB0]`
+
+0167:00419CAA `XOR` `EAX,[004256E4]`
+
+0167:00419CB0 `MOV` `[EBP-1C],EAX` <-- `[EBP-1C]=[00429FA0+10] XOR [004256E4]`
+
+0167:00419CB3 `MOV` `ECX,[00429FB4]`
+
+0167:00419CB9 `XOR` `ECX,[004256E0]`
+
+0167:00419CBF `MOV` `[EBP-14],ECX` <-- `[EBP-14]=[00429FA0+14] XOR [004256E0]`
+
+0167:00419CC2 `MOV` `EDX,[EBP-14]`
+
+0167:00419CC5 `XOR` `EDX,[EBP-1C]`
+
+0167:00419CC8 `XOR` `EDX,[EBP-20]`
+
+
+
+```
+0167:00419CCB  MOV       [EBP-0C],EDX             <-- [EBP-0C]=[EBP-20] XOR [EBP-1C] XOR [EBP-14]
+0167:00419CCE  MOV       EAX,[00429FB8]
+0167:00419CD3  MOV       [EBP-28],EAX
+0167:00419CD6  MOV       EAX,[00429FA4]
+0167:00419CDB  XOR       EAX,[00429FA8]
+0167:00419CE1  CDQ
+0167:00419CE2  AND       EDX,03
+0167:00419CE5  ADD       EAX,EDX
+0167:00419CE7  SAR       EAX,02
+0167:00419CEA  ADD       EAX,06
+0167:00419CED  MOV       [EBP-10],EAX
+0167:00419CF0  CMP       DWORD PTR [EBP-10],00002800
+0167:00419CF7  JL         00419D12
+0167:00419CF9  PUSH       00425C70
+0167:00419CFE  MOV       ECX,[EBP+10]
+0167:00419D01  ADD       ECX,18
+0167:00419D04  PUSH       ECX
+0167:00419D05  CALL       [KERNEL32!lstrcpy]
+0167:00419D0B  XOR       EAX,EAX
+0167:00419D0D  JMP       0041A07E
+0167:00419D12  MOV       EDX,[EBP-10]
+0167:00419D15  MOV       EAX,[EDX*4+00429FA0]
+0167:00419D1C  MOV       [EBP-28],EAX
+0167:00419D1F  MOV       EAX,[EBP-28]
+0167:00419D22  CDQ
+0167:00419D23  AND       EDX,03
+0167:00419D26  ADD       EAX,EDX
+0167:00419D28  SAR       EAX,02
+0167:00419D2B  MOV       ECX,[EBP-10]
+0167:00419D2E  LEA       EDX,[EAX+ECX+01]
+0167:00419D32  MOV       [EBP-10],EDX
+0167:00419D35  CMP       DWORD PTR [EBP-10],00002800
+0167:00419D3C  JGE       00419D44
+0167:00419D3E  CMP       DWORD PTR [EBP-10],00
+0167:00419D42  JG         00419D5D
+0167:00419D44  PUSH       00425C7C
+0167:00419D49  MOV       EAX,[EBP+10]
+0167:00419D4C  ADD       EAX,18
+0167:00419D4F  PUSH       EAX
+0167:00419D50  CALL       [KERNEL32!lstrcpy]
+0167:00419D56  XOR       EAX,EAX
+0167:00419D58  JMP       0041A07E
+0167:00419D5D  MOV       ECX,[EBP-10]
+0167:00419D60  MOV       EDX,[ECX*4+00429FA0]
+0167:00419D67  MOV       [EBP-28],EDX
+0167:00419D6A  MOV       EAX,[EBP-28]
+0167:00419D6D  MOV       ECX,[EBP-10]
+0167:00419D70  LEA       EDX,[EAX+ECX+01]
+0167:00419D74  CMP       EDX,00002800
+0167:00419D7A  JGE       00419D8A
+0167:00419D7C  MOV       EAX,[EBP-28]
+0167:00419D7F  MOV       ECX,[EBP-10]
+0167:00419D82  LEA       EDX,[EAX+ECX+01]
+0167:00419D86  TEST       EDX,EDX
+0167:00419D88  JG         00419DA3
+0167:00419D8A  PUSH       00425C88
+0167:00419D8F  MOV       EAX,[EBP+10]
+0167:00419D92  ADD       EAX,18
+0167:00419D95  PUSH       EAX
+0167:00419D96  CALL       [KERNEL32!lstrcpy]
+0167:00419D9C  XOR       EAX,EAX
+0167:00419D9E  JMP       0041A07E
+0167:00419DA3  MOV       ECX,[EBP-10]
+0167:00419DA6  LEA       EDX,[ECX*4+00429FA4]
+0167:00419DAD  MOV       [EBP-18],EDX             <-- [EBP-18]=ECX*4+00429FA4
+0167:00419DB0  MOV       EAX,[EBP-18]
+0167:00419DB3  ADD       EAX,14
+0167:00419DB6  MOV       [00429F80],EAX
+0167:00419DBB  MOV       DWORD PTR [EBP-24],000000A5
+0167:00419DC2  JMP       00419DCD
+0167:00419DC4  MOV       ECX,[EBP-24]
+0167:00419DC7  SUB       ECX,01
+0167:00419DCA  MOV       [EBP-24],ECX
+0167:00419DCD  CMP       DWORD PTR [EBP-24],00
+0167:00419DD1  JL         00419E03
+0167:00419DD3  MOV       EDX,[EBP-0C]
+0167:00419DD6  XOR       EDX,[EBP-24]
+0167:00419DD9  MOV       EAX,[EBP-24]
+0167:00419DDC  MOV       ECX,[00429F80]
+0167:00419DE2  MOV       EAX,[EAX*4+ECX-04]
+0167:00419DE6  XOR       EAX,EDX
+0167:00419DE8  MOV       ECX,[EBP-24]
+0167:00419DEB  MOV       EDX,[00429F80]
+0167:00419DF1  MOV       ECX,[ECX*4+EDX]
+0167:00419DF4  XOR       ECX,EAX
+0167:00419DF6  MOV       EDX,[EBP-24]
+0167:00419DF9  MOV       EAX,[00429F80]
+0167:00419DFE  MOV       [EDX*4+EAX],ECX
+0167:00419E01  JMP       00419DC4
+0167:00419E03  MOV       ECX,[00429F80]
+0167:00419E09  MOV       EDX,[ECX]
+0167:00419E0B  XOR       EDX,[EBP-0C]
+0167:00419E0E  MOV       EAX,[00429F80]
+0167:00419E13  MOV       [EAX],EDX
+0167:00419E15  CMP       DWORD PTR [EBP-0C],00
+0167:00419E19  JZ         00419E23
+0167:00419E1B  MOV       ECX,[EBP-0C]
+0167:00419E1E  MOV       [EBP-60],ECX
+0167:00419E21  JMP       00419E2A
+0167:00419E23  MOV       DWORD PTR [EBP-60],00000001
+0167:00419E2A  MOV       EDX,[EBP+14]
+0167:00419E2D  MOV       EAX,[EBP-60]
+0167:00419E30  MOV       [EDX],EAX
+0167:00419E32  MOV       ECX,[EBP+0C]
+0167:00419E35  PUSH       ECX
+0167:00419E36  MOV       EDX,[EBP-18]
+0167:00419E39  ADD       EDX,18
+0167:00419E3C  PUSH       EDX
+0167:00419E3D  CALL       [KERNEL32!lstrcmp]
+0167:00419E43  TEST       EAX,EAX
+0167:00419E45  JZ         00419E60
+0167:00419E47  PUSH       00425C94
+0167:00419E4C  MOV       EAX,[EBP+10]
+0167:00419E4F  ADD       EAX,18
+0167:00419E52  PUSH       EAX
+0167:00419E53  CALL       [KERNEL32!lstrcpy]
+0167:00419E59  XOR       EAX,EAX
+0167:00419E5B  JMP       0041A07E
+0167:00419E60  MOV       ECX,[EBP+10]
+0167:00419E63  MOV       [EBP-2C],ECX
+0167:00419E66  MOV       EDX,[EBP-18]
+0167:00419E69  MOV       [EBP-30],EDX
+0167:00419E6C  MOV       DWORD PTR [EBP-24],00000000
+0167:00419E73  JMP       00419E7E
+0167:00419E75  MOV       EAX,[EBP-24]
+0167:00419E78  ADD       EAX,01
+0167:00419E7B  MOV       [EBP-24],EAX
+0167:00419E7E  CMP       DWORD PTR [EBP-24],000002AC
+0167:00419E85  JAE       00419E99
+0167:00419E87  MOV       ECX,[EBP-2C]
+0167:00419E8A  ADD       ECX,[EBP-24]
+0167:00419E8D  MOV       EDX,[EBP-30]
+0167:00419E90  ADD       EDX,[EBP-24]
+0167:00419E93  MOV       AL,[EDX]
+0167:00419E95  MOV       [ECX],AL
+0167:00419E97  JMP       00419E75
+0167:00419E99  MOV       ECX,[EBP-18]             <-- [EBP-18]=ECX*4+00429FA4(这个 ECX 是上面的 ECX)
+0167:00419E9C  ADD       ECX,000002AC
+0167:00419EA2  MOV       [EBP-50],ECX
+0167:00419EA5  MOV       EDX,[EBP-50]             <-- [EBP-18]=ECX*4+00429FA4+000002AC
+0167:00419EA8  MOV       EAX,[EDX]
+0167:00419EAA  XOR       EAX,[004256E8]
+0167:00419EB0  MOV       [EBP-48],EAX             <-- [EBP-48]=[ECX*4+00429FA4+000002AC+00] XOR [004256E8]
+0167:00419EB3  MOV       ECX,[EBP-50]
+0167:00419EB6  MOV       EDX,[ECX+04]
+0167:00419EB9  XOR       EDX,[004256E4]
+0167:00419EBF  MOV       [EBP-44],EDX             <-- [EBP-44]=[ECX*4+00429FA4+000002AC+04] XOR [004256E4]
+0167:00419EC2  MOV       EAX,[EBP-50]
+0167:00419EC5  MOV       ECX,[EAX+08]
+0167:00419EC8  XOR       ECX,[004256E0]
+0167:00419ECE  MOV       [EBP-40],ECX             <-- [EBP-40]=[ECX*4+00429FA4+000002AC+08] XOR [004256E0]
+0167:00419ED1  MOV       EDX,[EBP-40]
+0167:00419ED4  ADD       EDX,[EBP-44]
+0167:00419ED7  ADD       EDX,[EBP-48]
+0167:00419EDA  MOV       [EBP-3C],EDX             <-- [EBP-3C]=[EBP-40] ADD [EBP-44] ADD [EBP-48]
+0167:00419EDD  MOV       EAX,[EBP-18]
+0167:00419EE0  ADD       EAX,000002B8
+0167:00419EE5  MOV       [EBP-04],EAX             <-- [EBP-04]=ECX*4+00429FA4+000002B8
+0167:00419EE8  MOV       ECX,[EBP-04]
+0167:00419EEB  ADD       ECX,14
+0167:00419EEE  MOV       [00429F80],ECX
+0167:00419EF4  MOV       DWORD PTR [EBP-24],000000A5
+0167:00419EFB  JMP       00419F06
+0167:00419EFD  MOV       EDX,[EBP-24]
+0167:00419F00  SUB       EDX,01
+0167:00419F03  MOV       [EBP-24],EDX
+0167:00419F06  CMP       DWORD PTR [EBP-24],00
+0167:00419F0A  JL         00419F3C
+0167:00419F0C  MOV       EAX,[EBP-3C]
+0167:00419F0F  XOR       EAX,[EBP-24]
+0167:00419F12  MOV       ECX,[EBP-24]
+0167:00419F15  MOV       EDX,[00429F80]
+0167:00419F1B  MOV       ECX,[ECX*4+EDX-04]
+0167:00419F1F  XOR       ECX,EAX
+0167:00419F21  MOV       EDX,[EBP-24]
+0167:00419F24  MOV       EAX,[00429F80]
+```
+
+
+
+```asm
+0167:00419F29  MOV       EDX,[EDX*4+EAX]   
+
+0167:00419F2C  XOR       EDX,ECX   
+
+0167:00419F2E  MOV       EAX,[EBP-24]   
+
+0167:00419F31  MOV       ECX,[00429F80]   
+
+0167:00419F37  MOV       [EAX*4+ECX],EDX   
+
+0167:00419F3A  JMP       00419EFD   
+
+0167:00419F3C  MOV       EDX,[00429F80]   
+
+0167:00419F42  MOV       EAX,[EDX]   
+
+0167:00419F44  XOR       EAX,[EBP-3C]   
+
+0167:00419F47  MOV       ECX,[00429F80]   
+
+0167:00419F4D  MOV       [ECX],EAX   
+
+0167:00419F4F  MOV       EDX,[EBP-04]             <-- [EBP-04]=ECX*4+00429FA4+000002B8   
+
+0167:00419F52  ADD       EDX,000002AC   
+
+0167:00419F58  MOV       [EBP-50],EDX             <-- [EBP-50]=ECX*4+00429FA4+000002B8+000002AC   
+
+0167:00419F5B  MOV       EAX,[EBP-50]   
+
+0167:00419F5E  MOV       ECX,[EAX]   
+
+0167:00419F60  XOR       ECX,[004256E8]   
+
+0167:00419F66  MOV       [EBP-48],ECX             <-- [EBP-48]=[ECX*4+00429FA4+000002B8+000002AC+00] XOR [004256E8]   
+
+0167:00419F69  MOV       EDX,[EBP-50]   
+
+0167:00419F6C  MOV       EAX,[EDX+04]   
+
+0167:00419F6F  XOR       EAX,[004256E4]   
+
+0167:00419F75  MOV       [EBP-44],EAX             <-- [EBP-44]=[ECX*4+00429FA4+000002B8+000002AC+04] XOR [004256E4]   
+
+0167:00419F78  MOV       ECX,[EBP-50]   
+
+0167:00419F7B  MOV       EDX,[ECX+08]   
+
+0167:00419F7E  XOR       EDX,[004256E0]   
+
+0167:00419F84  MOV       [EBP-40],EDX             <-- [EBP-40]=[ECX*4+00429FA4+000002B8+000002AC+08] XOR [004256E0]   
+
+0167:00419F87  MOV       EAX,[EBP-44]   
+
+0167:00419F8A  XOR       EAX,[EBP-48]   
+
+0167:00419F8D  MOV       ECX,[EBP-40]   
+
+0167:00419F90  ADD       ECX,EAX   
+
+0167:00419F92  MOV       [EBP-3C],ECX             <-- [EBP-3C]=([EBP-44] XOR [EBP-48]) ADD [EBP-40]   
+
+0167:00419F95  MOV       EDX,[EBP-04]   
+
+0167:00419F98  ADD       EDX,000002B8   
+
+0167:00419F9E  MOV       [EBP-08],EDX   
+
+0167:00419FA1  MOV       EAX,[EBP-08]   
+
+0167:00419FA4  ADD       EAX,000002AC   
+
+0167:00419FA9  MOV       [00426E00],EAX   
+
+0167:00419FAE  MOV       ECX,[EBP-08]   
+
+0167:00419FB1  ADD       ECX,14   
+
+0167:00419FB4  MOV       [00429F80],ECX   
+
+0167:00419FBA  MOV       DWORD PTR [EBP-24],000000A5   
+
+0167:00419FC1  JMP       00419FCC   
+
+0167:00419FC3  MOV       EDX,[EBP-24]   
+
+0167:00419FC6  SUB       EDX,01   
+
+0167:00419FC9  MOV       [EBP-24],EDX   
+
+0167:00419FCC  CMP       DWORD PTR [EBP-24],00   
+
+0167:00419FD0  JL        0041A002   
+
+0167:00419FD2  MOV       EAX,[EBP-3C]   
+
+0167:00419FD5  XOR       EAX,[EBP-24]   
+
+0167:00419FD8  MOV       ECX,[EBP-24]   
+
+0167:00419FDB  MOV       EDX,[00429F80]   
+
+0167:00419FE1  MOV       ECX,[ECX*4+EDX-04]   
+
+0167:00419FE5  XOR       ECX,EAX   
+
+0167:00419FE7  MOV       EDX,[EBP-24]   
+
+0167:00419FEA  MOV       EAX,[00429F80]   
+
+0167:00419FEF  MOV       EDX,[EDX*4+EAX]   
+
+0167:00419FF2  XOR       EDX,ECX   
+
+0167:00419FF4  MOV       EAX,[EBP-24]   
+
+0167:00419FF7  MOV       ECX,[00429F80]   
+
+0167:00419FFD  MOV       [EAX*4+ECX],EDX   
+
+0167:0041A000  JMP       00419FC3   
+
+0167:0041A002  MOV       EDX,[00429F80]   
+
+0167:0041A008  MOV       EAX,[EDX]   
+
+0167:0041A00A  XOR       EAX,[EBP-3C]   
+
+0167:0041A00D  MOV       ECX,[00429F80]   
+
+0167:0041A013  MOV       [ECX],EAX   
+
+0167:0041A015  MOV       EDX,[EBP-04]   
+
+0167:0041A018  ADD       EDX,14   
+
+0167:0041A01B  MOV       [EBP-54],EDX   
+
+0167:0041A01E  MOV       EAX,[EBP-08]   
+
+0167:0041A021  ADD       EAX,14   
+
+0167:0041A024  MOV       [EBP-58],EAX   
+
+0167:0041A027  MOV       ECX,[EBP+10]   
+
+0167:0041A02A  ADD       ECX,14   
+
+0167:0041A02D  MOV       [EBP-5C],ECX   
+
+0167:0041A030  MOV       DWORD PTR [EBP-24],000000A5   
+
+0167:0041A037  JMP       0041A042   
+
+0167:0041A039  MOV       EDX,[EBP-24]   
+
+0167:0041A03C  SUB       EDX,01   
+
+0167:0041A03F  MOV       [EBP-24],EDX   
+
+0167:0041A042  CMP       DWORD PTR [EBP-24],01   
+
+0167:0041A046  JL        0041A076   
+
+0167:0041A048  MOV       EAX,[EBP-24]   
+
+0167:0041A04B  MOV       ECX,[EBP-54]   
+
+0167:0041A04E  MOV       EDX,[EBP-24]   
+
+0167:0041A051  MOV       ESI,[EBP-5C]   
+
+0167:0041A054  MOV       EAX,[EAX*4+ECX]   
+
+0167:0041A057  CMP       EAX,[EDX*4+ESI]   
+
+0167:0041A05A  JNZ       0041A070   
+
+0167:0041A05C  MOV       ECX,[EBP-24]   
+
+0167:0041A05F  MOV       EDX,[EBP-58]   
+
+0167:0041A062  MOV       EAX,[EBP-24]   
+
+0167:0041A065  MOV       ESI,[EBP-5C]   
+
+0167:0041A068  MOV       ECX,[ECX*4+EDX]   
+
+0167:0041A06B  CMP       ECX,[EAX*4+ESI]   
+
+0167:0041A06E  JZ        0041A074   
+
+0167:0041A070  XOR       EAX,EAX   
+
+0167:0041A072  JMP       0041A07E   
+
+0167:0041A074  JMP       0041A039   
+
+0167:0041A076  MOV       EDX,[EBP+14]   
+
+0167:0041A079  MOV       EAX,[EDX]   
+
+0167:0041A07B  XOR       EAX,-01   
+
+0167:0041A07E  POP       ESI   
+
+0167:0041A07F  MOV       ESP,EBP   
+
+0167:0041A081  POP       EBP   
+
+0167:0041A082  RET       0010
+```
+
+### 17. 增大眼睛看清楚上面的程序段，大体上和 98 系列的相应程序是一样的，最明显的地方就是这里的异或因子 `XOR_FACTOR` 计算方法和以前不一样：
+
+第一轮的异或因子 `XOR_FACTOR1`=`[EBP-0C]`=`[EBP-20]` XOR `[EBP-1C]` XOR `[EBP-14]`，其中：`[EBP-20]`=`[00429FA0+0C]` XOR `[004256E8]`、`[EBP-1C]`=`[00429FA0+10]` XOR `[004256E4]`、`[EBP-14]`=`[00429FA0+14]` XOR `[004256E0]`；
+
+第二轮的异或因子 `XOR_FACTOR2`=`[EBP-3C]`=`[EBP-40]` ADD `[EBP-44]` ADD `[EBP-48]`，其中：`[EBP-48]`=`[ECX*4+00429FA4+000002AC+00]` XOR `[004256E8]`、`[EBP-44]`=`[ECX*4+00429FA4+000002AC+04]` XOR `[004256E4]`、 `[EBP-40]`=`[ECX*4+00429FA4+000002AC+08]` XOR `[004256E0]`；
+
+第三轮的异或因子 `XOR_FACTOR3`=`[EBP-3C]`=([EBP-44] XOR [EBP-48]) ADD [EBP-40]，其中：`[EBP-48]`=`[ECX*4+00429FA4+000002B8+000002AC+00]` XOR `[004256E8]`、 `[EBP-44]`=`[ECX*4+00429FA4+000002B8+000002AC+04]` XOR `[004256E4]`、`[EBP-40]`=`[ECX*4+00429FA4+000002B8+000002AC+08]` XOR `[004256E0]`；
+
+看明白了吗？其实只是在 98 系列异或因子计算的基础上每个对应项都异或了`[004256E8]`、`[004256E4]`和`[004256E0]`三个值中的某一个，也就是只要将异或这三个值的地方拿掉就和 98 系列的子程序一模一样了！
+
+### 18. 从上面的子程序 `CALL 00419C0B` 出来后我们走到步骤 12 中这个 CALL 下面的语句 `0167:0041A189 CALL 0041A085` 处停下，然后按 `F8` 进去：
+
+```asm
+0167:0041A085  PUSH      EBP   
+
+0167:0041A086  MOV       EBP,ESP   
+
+0167:0041A088  PUSH      ECX   
+
+0167:0041A089  MOV       DWORD PTR [EBP-04],00000000   <-- 循环计数值[EBP-04]初值为 00   
+
+0167:0041A090  JMP       0041A09B   
+
+0167:0041A092  MOV       EAX,[EBP-04]   
+
+0167:0041A095  ADD       EAX,01   
+
+0167:0041A098  MOV       [EBP-04],EAX   
+
+0167:0041A09B  MOV       ECX,[EBP-04]   
+
+0167:0041A09E  CMP       ECX,[EBP+10]              <-- 循环次数是否已到[EBP+10]=00000298 次   
+
+0167:0041A0A1  JGE       0041A0C1              <-- 循环完毕则跳到 0041A0C1 去   
+
+0167:0041A0A3  MOV       EDX,[EBP+08]              <-- [EBP+08]=00429394   
+
+0167:0041A0A6  ADD       EDX,[EBP-04]              <-- 加上偏移值   
+
+0167:0041A0A9  XOR       EAX,EAX              <-- EAX 清零   
+
+0167:0041A0AB  MOV       AL,[EDX]              <-- 取出内存地址 00429394 偏移[EBP-04]的字符放入 AL   
+
+0167:0041A0AD  MOV       ECX,[EBP+0C]              <-- [EBP+0C]指向解密后的数据   
+
+0167:0041A0B0  ADD       ECX,[EBP-04]              <-- 加上偏移值   
+
+0167:0041A0B3  XOR       EDX,EDX              <-- EDX 清零   
+
+0167:0041A0B5  MOV       DL,[ECX]              <-- 取出解密数据偏移[EBP-04]的字符放入 DL   
+
+0167:0041A0B7  CMP       EAX,EDX              <-- 对应的字符是否相等   
+
+0167:0041A0B9  JZ        0041A0BF              <-- 相等则继续   
+
+0167:0041A0BB  XOR       EAX,EAX              <-- 不等则 EAX 清零，子程序返回   
+
+0167:0041A0BD  JMP       0041A0C6   
+
+0167:0041A0BF  JMP       0041A092   
+
+0167:0041A0C1  MOV       EAX,00000001              <-- 如果所有字符相等，则将 00000001 作为子程序返回值   
+
+0167:0041A0C6  MOV       ESP,EBP   
+
+0167:0041A0C8  POP       EBP   
+
+0167:0041A0C9  RET       000C
+```
+
+
+
+19. 上面这段程序作用非常简单，就是比较地址`00429394`开始的`00000298`个字符数据是否和被解密后的数据完全相同，如果相同返回`1`，否则返回`0`，显然返回`0`是表示错误的；但是当我们用`D 00429394`查看内存的时候发现里面全是`00`，怎么搞的，程序居然将解密后的数据和`00`来比较，怎么可能相等呢！！！我们可以试着多次退出`ExeSpyME`然后再来到这里，发现无论怎样`00429394`开始的地方永远都是`00`，为什么呀？？？好好想想，然后回头看看步骤 12，哈哈，是不是那个“`EXEMEKEY.DLL`”搞的鬼呢？还记得`0167:0041A122 CALL [EBP-20]`这句吗，这个`CALL`是“`EXEMEKEY.DLL`”中索引值为`65`的引出函数，当时我们不清楚它的作用，现在我们可以回顾一下，自从调用了这个函数以后，程序就开始设置`[004256E0]`、`[004256E4]`、`[004256E8]`和`[004256EC]`的值，然后`CALL 00419C0B`用其中的`[004256E0]`、`[004256E4]`和`[004256E8]`计算异或因子`XOR_FACTOR`，随后校验`KEY FILE`“`EXEMEUE.DAT`”，再下来`CALL 0041A085`将解密后的数据与内存地址`00429394`(`00429380`偏移`14`处)开始的`00000298`个字符数据相比较，但是我们只看见`00429394`中是一堆的`00`，而`CALL [EBP-20]`的入口参数是`EBP-18`、`000002AC`(正好是`00000298`加上`14`)和内存地址`00429380`，所以我们可以肯定`CALL [EBP-20]`的作用一是返回用来计算异或因子`XOR_FACTOR`的值，二是将解密后的`000002AC`个字符数据拷贝到内存地址`00429380`开始的区域中；
+
+20. 现在我们又进一步知道了`KEY FILE`“`EXEMEKEY.DLL`”中引出函数的作用，现在就要来写这个子程序了，那么我们如何在“`EXEMEKEY.DLL`”中将内存地址`00429380`开始的`000002AC`个字符区域变成解密数据呢？一种方法是在“`EXEMEKEY.DLL`”中用汇编程序实现`KEY FILE`“`EXEMEUE.DAT`”中的第一轮加解密数据算法得到加密数据并将其解密，然后将对应的解密数据拷贝到内存`00429380`中，这种方法必须用汇编实现`KEY FILE`“`EXEMEUE.DAT`”的加解密算法得到解密数据，比较麻烦；另外一种笨办法是当程序走到上面的`0167:0041A0AD MOV ECX,[EBP+0C]`处时用命令`D EBP+0C L 00000298`，将这些字符数据全部记下来，然后在程序中直接将这些数据作为固定数据拷贝到内存`00429394`中，这种办法比较烦琐，但是实现起来比较简单；
+
+注意：因为程序中只是比较`00429394`开始的`00000298`个字符数据，所以当我们用笨办法实现`DLL`的时候只需要将`EBP+0C`处开始的`00000298`个解密数据拷贝到内存`00429394`中就可以了，至于`00429380`到`00429394`之间的`14`个字符因为程序没有使用，所以可以不去管它，下面是笨办法的某一`DLL`实现程序(只针对某一特定的`KEY FILE`“`EXEMEUE.DAT`”，因为不同的“`EXEMEUE.DAT`”对应不同的“`EXEMEKEY.DLL`”，需要修改相应的解密数据)：
+
+```asm
+; Exemekey.asm
+
+.386
+.model flat, stdcall
+option casemap: none
+
+include \masm32\include\windows.inc
+include \masm32\include\user32.inc
+include \masm32\include\kernel32.inc
+
+includelib \masm32\lib\user32.lib
+includelib \masm32\lib\kernel32.lib
+
+.data
+data_decoded DB 2Dh,1Fh,47h,1Eh,45h,78h,65h,53h,70h,79h,20h,4Dh,69h,6Ch,6Ch,65h ;-.G.ExeSpy Mille
+            DB 6Eh,6Eh,69h,75h,6Dh,20h,45h,64h,69h,74h,69h,6Fh,6Eh,20h,66h,6Fh ;nnium Edition fo
+            DB 72h,20h,57h,69h,6Eh,64h,6Fh,77h,73h,20h,4Dh,45h,2Fh,39h,38h,2Fh ;r Windows ME/98/
+            DB 39h,35h,00h,00h,05h,00h,00h,00h,06h,00h,00h,00h,07h,00h,00h,00h ;95..............
+            DB 18h,00h,00h,00h,19h,00h,00h,00h,73h,3Fh,44h,4Ch,2Eh,5Ch,45h,58h ;........s?DL.\EX
+            DB 45h,4Dh,45h,55h,52h,2Eh,44h,41h,54h,00h,00h,00h,1Fh,00h,00h,00h ;EMEUR.DAT.......
+            DB 10h,00h,00h,00h,11h,00h,00h,00h,12h,00h,00h,00h,13h,00h,00h,00h ;................
+            DB 14h,00h,00h,00h,15h,00h,00h,00h,16h,00h,00h,00h,17h,00h,00h,00h ;................
+            DB 28h,00h,00h,00h,29h,00h,00h,00h,2Ah,00h,00h,00h,2Bh,00h,00h,00h ;(...)...\*...+...
+            DB 2Ch,00h,00h,00h,2Dh,00h,00h,00h,2Eh,00h,00h,00h,2Fh,00h,00h,00h ;,...-......./...
+            DB 20h,00h,00h,00h,21h,00h,00h,00h,22h,00h,00h,00h,23h,00h,00h,00h ; ...!..."...#...
+            DB 24h,00h,00h,00h,25h,00h,00h,00h,26h,00h,00h,00h,27h,00h,00h,00h ;$...%...&...'...
+            DB 38h,00h,00h,00h,39h,00h,00h,00h,3Ah,00h,00h,00h,3Bh,00h,00h,00h ;8...9...:...;...
+            DB 3Ch,00h,00h,00h,3Dh,00h,00h,00h,3Eh,00h,00h,00h,3Fh,00h,00h,00h ;<...=...>...?...
+            DB 30h,00h,00h,00h,31h,00h,00h,00h,32h,00h,00h,00h,33h,00h,00h,00h ;0...1...2...3...
+            DB 34h,00h,00h,00h,35h,00h,00h,00h,36h,00h,00h,00h,37h,00h,00h,00h ;4...5...6...7...
+            DB 48h,00h,00h,00h,49h,00h,00h,00h,4Ah,00h,00h,00h,4Bh,00h,00h,00h ;H...I...J...K...
+            DB 4Ch,00h,00h,00h,4Dh,00h,00h,00h,4Eh,00h,00h,00h,4Fh,00h,00h,00h ;L...M...N...O...
+            DB 40h,00h,00h,00h,41h,00h,00h,00h,42h,00h,00h,00h,43h,00h,00h,00h ;@...A...B...C...
+            DB 44h,00h,00h,00h,45h,00h,00h,00h,46h,00h,00h,00h,47h,00h,00h,00h ;D...E...F...G...
+            DB 58h,00h,00h,00h,59h,00h,00h,00h,5Bh,08h,64h,6Fh,68h,6Fh,64h,6Fh ;X...Y...[.dohodo
+            DB 6Eh,67h,00h,00h,5Dh,00h,00h,00h,5Eh,00h,00h,00h,5Fh,00h,00h,00h ;ng...]...^..._...
+            DB 50h,00h,00h,00h,51h,00h,00h,00h,52h,00h,00h,00h,53h,00h,00h,00h ;P...Q...R...S...
+            DB 54h,00h,00h,00h,55h,00h,00h,00h,56h,00h,00h,00h,57h,00h,00h,00h ;T...U...V...W...
+            DB 68h,00h,00h,00h,69h,00h,00h,00h,6Ah,00h,00h,00h,6Bh,00h,00h,00h ;h...i...j...k...
+            DB 6Ch,00h,00h,00h,6Dh,00h,00h,00h,6Eh,00h,00h,00h,6Fh,00h,00h,00h ;l...m...n...o...
+            DB 60h,00h,00h,00h,61h,00h,00h,00h,62h,00h,00h,00h,63h,00h,00h,00h ;`...a...b...c...
+            DB 64h,00h,00h,00h,65h,00h,00h,00h,66h,00h,00h,00h,67h,00h,00h,00h ;d...e...f...g...
+            DB 78h,00h,00h,00h,79h,00h,00h,00h,7Ah,00h,00h,00h,7Bh,00h,00h,00h ;x...y...z...{...
+            DB 7Ch,00h,00h,00h,7Dh,00h,00h,00h,7Eh,00h,00h,00h,7Fh,00h,00h,00h ;|...}...~......
+            DB 70h,00h,00h,00h,71h,00h,00h,00h,72h,00h,00h,00h,73h,00h,00h,00h ;p...q...r...s...
+            DB 74h,00h,00h,00h,75h,00h,00h,00h,76h,00h,00h,00h,77h,00h,00h,00h ;t...u...v...w...
+            DB 88h,00h,00h,00h,89h,00h,00h,00h,8Ah,00h,00h,00h,8Bh,00h,00h,00h ;................
+            DB 8Ch,00h,00h,00h,8Dh,00h,00h,00h,8Eh,00h,00h,00h,8Fh,00h,00h,00h ;................
+            DB 80h,00h,00h,00h,81h,00h,00h,00h,82h,00h,00h,00h,83h,00h,00h,00h ;................
+            DB 84h,00h,00h,00h,85h,00h,00h,00h,86h,00h,00h,00h,87h,00h,00h,00h ;................
+            DB 98h,00h,00h,00h,99h,00h,00h,00h,49h,47h,45h,52h,01h,00h,00h,00h ;........IGER....
+            DB 01h,00h,00h,00h,49h,47h,45h,52h,45h,53h,00h,00h,44h,53h,00h,00h ;....IGERES..DS..
+            DB 90h,00h,00h,00h,91h,00h,00h,00h,92h,00h,00h,00h,93h,00h,00h,00h ;................
+            DB 94h,00h,00h,00h,8Bh,0Ch,6Eh,67h,73h,69h,6Eh,67h,6Ch,65h,00h,00h ;......ngsingle..
+            DB 0A8h,00h,00h,00h,0A9h,00h,00h,00h,0AAh,00h,00h,00h,0ABh,00h,00h,00h ;................
+            DB 0ACh,00h,00h,00h,0ADh,00h,00h,00h   
+
+.code
+
+DllEntry proc hInstance:HINSTANCE, reason:DWORD, reserved1:DWORD
+      mov eax,TRUE
+      ret
+DllEntry Endp
+
+Call_ebp_20 proc
+      push ebp
+      mov ebp,esp
+      mov eax,[ebp+10h]                      <-- 对应程序中的入口参数 EBP-18
+      mov dword ptr [eax+00h],006BE048h     <-- 可以随意，这是没有这个函数时程序的默认值，对应[004256E0]
+      mov dword ptr [eax+04h],00000008h     <-- 可以随意，这是没有这个函数时程序的默认值，对应[004256E4]
+      mov dword ptr [eax+08h],00429FA0h     <-- 可以随意，这是没有这个函数时程序的默认值，对应[004256E8]
+      mov dword ptr [eax+0Ch],000003B2h     <-- 可以随意，这是没有这个函数时程序的默认值，对应[004256EC]
+      mov edi,[ebp+08h]                      <-- 对应程序中的入口参数 00429380
+      add edi,14                             <-- 只需要比较偏移 14 开始的数据(笨办法^^)
+      lea esi,data_decoded
+      mov ecx,[ebp+0Ch]                      <-- 对应程序中的入口参数 000002AC
+      sub ecx,14                             <-- 只需要比较 00000298 个字符(笨办法^^)
+      rep movsb
+      mov eax,00000001
+      mov esp,ebp
+      pop ebp
+      ret 0ch
+Call_ebp_20 Endp
+
+End DllEntry
+
+; Exemekey.def 和 build.bat 跟上面的一样
+```
+
+21. 将上面的程序编译成新的“`EXEMEKEY.DLL`”放在`C`盘根目录，然后重新来到步骤 12，按`F10`一步一步往下走，哈哈，现在是不是可以正大光明的走到最后啦^^, 接下来我们按`F10`返回到步骤 12 --> 步骤 11，然后从步骤 9 最后面的程序继续往下走：
+
+```asm
+0167:00411CA9 JNZ 00411CC6
+0167:00411CAB PUSH 10
+0167:00411CAD PUSH 004251BC
+0167:00411CB2 PUSH 004251C4
+0167:00411CB7 MOV EAX,[EBP+08]
+0167:00411CBA PUSH EAX
+0167:00411CBB CALL [USER32!MessageBoxA]
+0167:00411CC1 JMP 00411DD5
+```
+
+
+
+0167:00411CC6  PUSH  65 <mark>常数 65 压栈</mark>
+
+0167:00411CC8  MOV  ECX,\[EBP+08\] <mark>\[EBP+08\]为对话框句柄</mark>
+
+0167:00411CCB  PUSH  ECX
+
+0167:00411CCC  PUSH  0042009C <mark>地址 0042009C 指向字符串“.\\EXEMEUE.DAT”</mark>
+
+0167:00411CD1  LEA  EDX,\[EBP+FFFFDCA4\] <mark>\[EBP+FFFFDCA4\]为解密后的 KEY FILE 数据</mark>
+
+0167:00411CD7  PUSH  EDX
+
+0167:00411CD8  MOV  EAX,\[EBP+FFFFDC9C\] <mark>\[EBP+FFFFDC9C\]为前面验证程序的返回值</mark>
+
+0167:00411CDE  PUSH  EAX
+
+0167:00411CDF  CALL  0041A240 <mark>继续验证 KEY FILE“\.EXEMEUE.DAT”，作用和 98 系列的 CALL 0040C780 完全一样</mark>
+
+0167:00411CE4  TEST  EAX,EAX
+
+0167:00411CE6  JZ  00411DA9
+
+0167:00411CEC  PUSH  00
+
+0167:00411CEE  LEA  ECX,\[EBP\-50\]
+
+0167:00411CF1  PUSH  ECX
+
+0167:00411CF2  CALL  \[KERNEL32!\_lopen\] <mark>打开 KEY FILE 文件“c:\\EXEMEUE.DAT”</mark>
+
+0167:00411CF8  MOV  \[EBP\-00A8\],EAX
+
+0167:00411CFE  PUSH  00
+
+0167:00411D00  PUSH  0042009C
+
+0167:00411D05  CALL  \[KERNEL32!\_lcreat\] <mark>在 EXESPYME 的当前目录创建文件“\.EXEMEUE.DAT”</mark>
+
+0167:00411D0B  MOV  \[EBP\-00AC\],EAX
+
+0167:00411D11  CMP  DWORD PTR \[EBP\-00AC\],-01
+
+0167:00411D18  JNZ  00411D3F
+
+0167:00411D1A  PUSH  10
+
+0167:00411D1C  PUSH  004251F0
+
+0167:00411D21  PUSH  004251F8
+
+0167:00411D26  MOV  EDX,\[EBP+08\]
+
+0167:00411D29  PUSH  EDX
+
+0167:00411D2A  CALL  \[USER32!MessageBoxA\]
+
+0167:00411D30  MOV  EAX,\[EBP\-00A8\]
+
+0167:00411D36  PUSH  EAX
+
+0167:00411D37  CALL  \[KERNEL32!\_lclose\]
+
+0167:00411D3D  JMP  00411DA7
+
+0167:00411D3F  PUSH  50
+
+0167:00411D41  LEA  ECX,\[EBP\-00A0\]
+
+0167:00411D47  PUSH  ECX
+
+0167:00411D48  MOV  EDX,\[EBP\-00A8\]
+
+0167:00411D4E  PUSH  EDX
+
+0167:00411D4F  CALL  \[KERNEL32!\_hread\] <mark>读文件“c:\\EXEMEUE.DAT”</mark>
+
+0167:00411D55  MOV  \[EBP+FFFFDC98\],EAX
+
+0167:00411D5B  CMP  DWORD PTR \[EBP+FFFFDC98\],00
+
+0167:00411D62  JLE  00411D81
+
+0167:00411D64  MOV  EAX,\[EBP+FFFFDC98\]
+
+0167:00411D6A  PUSH  EAX
+
+0167:00411D6B  LEA  ECX,\[EBP\-00A0\]
+
+0167:00411D71  PUSH  ECX
+
+0167:00411D72  MOV  EDX,\[EBP\-00AC\]
+
+0167:00411D78  PUSH  EDX
+
+0167:00411D79  CALL  \[KERNEL32!\_hwrite\] <mark>写文件“\.EXEMEUE.DAT”</mark>
+
+0167:00411D7F  JMP  00411D3F
+
+0167:00411D81  MOV  EAX,\[EBP\-00AC\]
+
+0167:00411D87  PUSH  EAX
+
+0167:00411D88  CALL  \[KERNEL32!\_lclose\] <mark>关闭文件“\.EXEMEUE.DAT”</mark>
+
+0167:00411D8E  MOV  ECX,\[EBP\-00A8\]
+
+0167:00411D94  PUSH  ECX
+
+0167:00411D95  CALL  \[KERNEL32!\_lclose\] <mark>关闭文件“c:\\EXEMEUE.DAT”</mark>
+
+0167:00411D9B  PUSH  01
+
+0167:00411D9D  MOV  EDX,\[EBP+08\]
+
+0167:00411DA0  PUSH  EDX
+
+0167:00411DA1  CALL  \[USER32!EndDialog\]
+
+0167:00411DA7  JMP  00411DD5
+
+0167:00411DA9  PUSH  00
+
+0167:00411DAB  PUSH  0042009C
+
+0167:00411DB0  CALL  \[KERNEL32!\_lcreat\]
+
+0167:00411DB6  MOV  \[EBP\-00AC\],EAX
+
+0167:00411DBC  MOV  EAX,\[EBP\-00A8\]
+
+0167:00411DC2  PUSH  EAX
+
+0167:00411DC3  CALL  \[KERNEL32!\_lclose\]
+
+0167:00411DC9  PUSH  00
+
+0167:00411DCB  MOV  ECX,\[EBP+08\]
+
+0167:00411DCE  PUSH  ECX
+
+0167:00411DCF  CALL  \[USER32!EndDialog\]
+
+0167:00411DD5  JMP  00411DED
+
+0167:00411DD7  PUSH  10
+
+0167:00411DD9  PUSH  00425220
+
+0167:00411DDE  PUSH  00425228
+
+0167:00411DE3  MOV  EDX,\[EBP+08\]
+
+0167:00411DE6  PUSH  EDX
+
+0167:00411DE7  CALL  \[USER32!MessageBoxA\]
+
+0167:00411DED  JMP  00411DFB
+
+0167:00411DEF  PUSH  00
+
+0167:00411DF1  MOV  EAX,\[EBP+08\]
+
+0167:00411DF4  PUSH  EAX
+
+0167:00411DF5  CALL  \[USER32!EndDialog\]
+
+0167:00411DFB  JMP  00411E0F
+
+0167:00411DFD  PUSH  00
+
+0167:00411DFF  MOV  ECX,\[EBP+08\]
+
+0167:00411E02  PUSH  ECX
+
+0167:00411E03  CALL  \[USER32!EndDialog\]
+
+0167:00411E09  JMP  00411E0F
+
+0167:00411E0B  XOR  EAX,EAX
+
+0167:00411E0D  JMP  00411E14
+
+0167:00411E0F  MOV  EAX,00000001
+
+0167:00411E14  MOV  ESP,EBP
+
+0167:00411E16  POP  EBP
+
+0167:00411E17  RET  0010
+
+...
+
+22. 上面的程序跟 98 系列是一样的，只不过验证“.DAT” KEY FILE 时其验证字符串多了个前缀“\.”（98 系列为“SET98UR.DAT”, ME 系列为“\.EXEMEUE.DAT”)，程序后面同样是将 KEY FILE“EXEMEUE.DAT”拷贝到 EXESPYME 的当前目录下；
+
+23. 好了，到这里我就不再往后讲了，因为这篇文章主要是讨论 98 系列跟 ME 系列的不同之处（主要是针对 KEY FILE“EXEMEKEY.DLL”），从这里以后的程序虽然跟 98 系列的不完全一样（因为 ME 系列是“SPY2”型的嘛！），但是对于有效的注册 KEY FILE 来说（REG_TYPE="REGI"），程序功能作用完全一致，也就是说从这里以后可以继续沿用 98 系列的注册机算法，只需要将相应的字符串信息换掉即可，后面程序的具体细节自己去看吧，这篇文章的目的已经达到，我要休息啦，真的好累，啊啊啊。。。！！！
+
+24. 注意：附件所带的注册机 C 语言源程序中 KEY FILE“EXEMEKEY.DLL”的产生方法是先用汇编生成“EXEMEKEY.DLL”，然后将整个“EXEMEKEY.DLL”文件的数据放在源程序中，并根据程序需要修改相应部分的数据（对应产生的 KEY FILE“EXEMEUR.DAT”），另外程序中“EXEMEKEY.DLL”对应的汇编源程序和上面讲解的汇编源程序有一点不同，所以希望大家不要奇怪为什么源程序中的程序结构和破解文件中不一致；
+
+25. 附录：下面放上程序中用到的几个相关 API 函数的原型：
+
+```
 HINSTANCE LoadLibrary(   
-  
-    LPCTSTR lpLibFileName     // address of filename  of executable module   
-  );   
-    
+    LPCTSTR lpLibFileName     // address of filename  of executable module   
+ );   
+
 FARPROC GetProcAddress(   
-  
-    HMODULE hModule,    // handle to DLL module     
-    LPCSTR lpProcName     // name of function   
-  );   
-    
+    HMODULE hModule,    // handle to DLL module    
+    LPCSTR lpProcName     // name of function   
+ );   
+
 BOOL FreeLibrary(   
-  
-    HMODULE hLibModule     // handle to loaded library  module    
-  ); 
+    HMODULE hLibModule     // handle to loaded library  module   
+ );
+```
 
-* * *
+***
 
-标 题:注册机 (33 千字) 
+标题:注册机 (33 千字)
 
-*   作 者：:娃娃\[CCG\] 
-*   时 间：2001-11-19 17:47:43   
-    详细信息:  
-    
+- 作 者：:娃娃[CCG]
+- 时 间：2001-11-19 17:47:43
 
-> /\* key\_file Generator for ExeSpyME V5.0 Author: ddcrack  Written by: 2001/10/08 \*/   
->   
-> /\* #define Program\_name  "ExeSpy Millennium Edition for Windows ME/98/95"\*/ /\* addr: ebp+0x018 \*/   
->   #define key\_file\_name  "EXEMEUR.DAT"    /\* addr: ebp+0x060 \*/   
->   #define dll\_file\_name  "EXEMEKEY.DLL"  /\* generated dll file name\*/   
->   #define dll\_data\_memo\_addr 0x00429394  /\* the location of dll data in system memory \*/   
->                                           /\* got by finding "00000298" in W32Dasm or tracing in softice \*/   
->   #define Version        0x00000005      /\* addr: ebp+0x000 \*/   
-> /\* #define Username      input by user    /\* addr: ebp+0x160 \*/   
-> /\* #define SN\_Header      "PD"          /\* addr: ebp+0x26C \*/   
-> /\* #define SN\_Tail      "ES"          /\* addr: ebp+0x28C \*/   
->   #define VersionEx      0x00000001      /\* addr: ebp+0x260 \*/   
-> /\* #define User\_ID        generated by random addr: ebp+0x264 \*/   
->   #define Reg\_Type      0x52454749      /\* addr: ebp+0x268 \*/   
->   /\* Reg\_Type: 0x52454749 --> "REGI"   
->                 0x53485050 --> "SHPP"   
->         0x4556414C --> "EVAL" \*/   
->   #define Free\_year    2025          /\* free update date addr: ebp+0x05C \*/   
->   #define Free\_month    12                /\* Free\_year=year+7CD, max year=0x3F\*/   
->   #define Free\_day      12                /\* year<=0x1F=31, so Free\_year<=2028\*/   
->   #define Free\_hour    12   
->   #define Free\_minute  12   
->   #define Free\_second  12   
->   
->   #define addr\_004256EC \*\*\*\*\*\*\*\*\*\*        /\* function unknown, can be any value \*/   
->   #define addr\_004256E8 0x00429FA0        /\* one of XOR factors, can be any value \*/   
->   #define addr\_004256E4 0x00000008        /\* one of XOR factors, can be any value \*/   
->   #define addr\_004256E0 0x006BE048        /\* one of XOR factors, can be any value \*/   
->   
->   
-> #include <stdio.h>   
-> #include <string.h>   
-> #include <conio.h>   
-> #include <stdlib.h>   
-> #include <time.h>   
->   
-> void main(void)   
-> {   
->     unsigned char key\_file\[\]=   
->     {'S','P','Y','2',0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,/\*encoded data start addr: ebp+0x00\*/   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,/\* addr offset: 0x014 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=1 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=2 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=3 \*/   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=A3 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=A4 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=A5 \*/   
->     0x00,0x00,0x00,0x00,/\*  first    \*/  /\*Next\_XOR\_Factor1=first^addr\_004256E8+second^addr\_004256E4+third^addr\_004256E0 \*/   
->     0x00,0x00,0x00,0x00,/\*  second  \*/   
->     0x00,0x00,0x00,0x00,/\*  third    \*/   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,/\* new addr offset1: 0x14+000002B8 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=1 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=2 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=3 \*/   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=A3 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=A4 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=A5 \*/   
->     0x00,0x00,0x00,0x00,/\*  first    \*/ /\*Next\_XOR\_Factor2=(first^addr\_004256E8)^(second^addr\_004256E4)+third^addr\_004256E0 \*/   
->     0x00,0x00,0x00,0x00,/\*  second  \*/   
->     0x00,0x00,0x00,0x00,/\*  third    \*/   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,/\* new addr offset2: 0x14+000002B8+000002B8 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=1 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=2 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=3 \*/   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=A3 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=A4 \*/   
->     0x00,0x00,0x00,0x00,/\* XOR\_NO=A5 \*/   
->         'T','H','E','E','N','D'};   
->   
->     const unsigned char \* Program\_name="ExeSpy Millennium Edition for Windows ME/98/95";   
->     const unsigned char \* key\_name=".\\\\EXEMEUR.DAT";   
->     const unsigned char \* SN\_Header="PD";   
->     const unsigned char \* SN\_Tail="ES";   
->         unsigned char \* Username="";   
->   
->         void put\_dword\_value();   
->     unsigned long get\_dword\_value();   
->         void create\_key\_file();   
->     void create\_dll\_file();   
->     void data\_encryptor();   
->   
->     unsigned long eax,edx,temp,XOR\_Factor,XOR\_NO,User\_ID;   
->     unsigned char i,dword\_count;   
->     unsigned char \* pkey,\* p1,\* p2;   
->   
->     unsigned char char\_data\[0x40\]=   
->     {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->      0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->      0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->         0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};   
->        
->   
->     randomize();   
->   
->     /\* XOR\_Factor can not equal to 0x00000000 or 0x00000001 \*/   
->     /\* Here assume \[key\_file+0x0C\]=addr\_004256E8,\[key\_file+0x10\]=addr\_004256E4,\[key\_file+0x14\]=random number \*/   
->     temp=addr\_004256E8;   
->     put\_dword\_value(temp,key\_file+0x0C);   
->     temp=random(65536);   
->     if((temp^addr\_004256E4)<=1) temp+=2;   
->     put\_dword\_value(temp,key\_file+0x10);   
->     temp=addr\_004256E0;   
->     put\_dword\_value(temp,key\_file+0x14);   
->         XOR\_Factor=(get\_dword\_value(key\_file+0x0C)^addr\_004256E8)^(get\_dword\_value(key\_file+0x10)^addr\_004256E4)^(get\_dword\_value(key\_file+0x14)^addr\_004256E0);   
->     /\* then, XOR\_Factor=addr\_004256E4^random(65536) \*/   
->   
+详细信息:
 
-> /\* think about next calculator \*/   
-> /\*    eax\=get\_dword\_value(key\_file+0x04);   
->     eax^=get\_dword\_value(key\_file+0x08);   
->     if(eax&0x80000000) edx\=0xFFFFFFFF;   
->     else edx\=0x00000000;   
->     edx&=0x03;   
->     eax+=edx;   
->     eax\=eax\>>0x02;   
->     eax+=0x06; \*/   
->     /\* now eax must less than 0x00002800 \*/   
->     /\* so, here assume \[key\_file+0x04\]=\[key\_file+0x08\], then eax\=0x06 \*/   
->     temp=(unsigned long)random(65536);   
->     put\_dword\_value(temp,key\_file+0x04);   
->         put\_dword\_value(temp,key\_file+0x08);   
->   
->     eax\=get\_dword\_value(key\_file+0x04);   
->     eax^=get\_dword\_value(key\_file+0x08);   
->     if(eax&0x80000000) edx\=0xFFFFFFFF;   
->     else edx\=0x00000000;   
->     edx&=0x03;   
->     eax+=edx;   
->     eax\=eax\>>0x02;   
->     eax+=0x06;    
->   
->   
->     /\* think about next calculator \*/   
-> /\*    temp=eax;   
->     eax\=get\_dword\_value(key\_file+(unsigned char)temp\*0x04);   
->     if(eax&0x80000000) edx\=0xFFFFFFFF;   
->     else edx\=0x00000000;   
->     edx&=0x03;   
->     eax+=edx;   
->     eax\=eax\>>0x02;   
->     edx\=eax+temp+1;\*/   
->     /\* now edx must less than 0x00002800  more than 0x00000000\*/   
->     /\* because temp=0x06, so here assume \[key\_file+0x04\*6\]=\[key\_file+0x18\]=0, then edx\=0x07 \*/   
->     temp=0x00000000;   
->     put\_dword\_value(temp,key\_file+(unsigned char)eax\*0x04);   
->   
->     temp=eax;   
->     eax\=get\_dword\_value(key\_file+(unsigned char)temp\*0x04);   
->     if(eax&0x80000000) edx\=0xFFFFFFFF;   
->     else edx\=0x00000000;   
->     edx&=0x03;   
->     eax+=edx;   
->     eax\=eax\>>0x02;   
->     edx\=eax+temp+1;   
->   
->   
->     /\* think about next calculator \*/   
-> /\*    temp=edx;   
->     eax\=get\_dword\_value(key\_file+(unsigned char)temp\*0x04);   
->         edx\=eax+temp+1; \*/   
->     /\* now edx must less than 0x00002800 and more than 0x00000000\*/   
->     /\* because temp=0x07, so here assume \[key\_file+0x04\*7\]=\[key\_file+0x1C\]=0, then edx\=0x08 \*/   
->     temp=0x00000000;   
->     put\_dword\_value(temp,key\_file+(unsigned char)edx\*0x04);   
->   
->     /\* Now ebp=key\_file+edx\*0x04+0x04 \*/   
->   
->     clrscr();   
->     printf("\\n\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\\n");   
->     printf("ExeSpyME Key File Generator\\n");   
->     printf("Author: ddcrack ( 2001/10/08 )\\n");   
->     printf("\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\\n\\n");   
->   
-> /\* -------------- create "ExeSpy Millennium Edition for Windows ME/98/95" --------------------\*/   
->        
->     temp=0x00000000;   
->   
->     for(i=0;i<(unsigned char)strlen(Program\_name);i++) char\_data\[i\]=\*(Program\_name+i);   
->     dword\_count=strlen(Program\_name)/4+1;   
->     for(i=strlen(Program\_name);i<(strlen(Program\_name)+4-strlen(Program\_name)%4);i++) char\_data\[i\]=0x00;   
->     XOR\_NO=(0x18-0x14)/4;   
->     pkey=&key\_file\[edx\*4+0x04+0x18\];   
->         data\_encryptor(char\_data,dword\_count,XOR\_Factor,XOR\_NO,pkey,temp);   
->       
-> /\* -------------- create "ExeSpy Millennium Edition for Windows ME/98/95" end--------------------\*/   
->   
-> /\* -------------- create Free\_update\_date and ".\\EXEMEUR.DAT" --------------------\*/   
->         temp=Free\_year-0x07CD;   
->     temp=temp<<4;   
->     temp=temp|Free\_month;   
->     temp=temp<<5;   
->     temp=temp|Free\_day;   
->     temp=temp<<5;   
->         temp=temp|Free\_hour;   
->     temp=temp<<6;   
->     temp=temp|Free\_minute;   
->     temp=temp<<6;   
->     temp=temp|Free\_second;   
->   
->     put\_dword\_value(temp,char\_data);   
->     temp=0x00000000;   
->     for(i=0;i<(unsigned char)strlen(key\_name);i++) char\_data\[i+4\]=\*(key\_name+i);   
->     dword\_count=strlen(key\_name)/4+1+1;   
->     for(i=(strlen(key\_name)+4);i<(strlen(key\_name)+4+4-strlen(key\_name)%4);i++) char\_data\[i\]=0x00;   
->         XOR\_NO=(0x5C-0x14)/4;   
->         pkey=&key\_file\[edx\*4+0x04+0x5C\];   
->         data\_encryptor(char\_data,dword\_count,XOR\_Factor,XOR\_NO,pkey,temp);   
->   
-> /\* -------------- create Free\_update\_date and ".\\EXEMEUR.DAT" end--------------------\*/   
->   
-> /\* -----set value of addr ebp+260, ebp+264 and ebp+268------\*/   
->     temp=VersionEx;   
->     put\_dword\_value(temp,char\_data);   
->         User\_ID=random(50000)\*20;                  /\* User\_ID has six digits \*/   
->     put\_dword\_value(User\_ID,char\_data+0x04);   
->     temp=Reg\_Type;   
->     put\_dword\_value(temp,char\_data+0x08);   
->   
->     temp=0x00000000;    
->     dword\_count=3;   
->         XOR\_NO=(0x260-0x14)/4;   
->     pkey=&key\_file\[edx\*4+0x04+0x260\];   
->         data\_encryptor(char\_data,dword\_count,XOR\_Factor,XOR\_NO,pkey,temp);   
->   
-> /\* -----set value of addr ebp+260, ebp+264 and ebp+268 end------\*/   
->   
-> /\* -----set value of addr ebp+160 : Username ------\*/   
->     printf("Input your name : ");   
->     scanf("%s",Username);   
->   
->     temp=0x00000000;   
->     for(i=0;i<(unsigned char)strlen(Username);i++) char\_data\[i\]=\*(Username+i);   
->     dword\_count=strlen(Username)/4+1;   
->     for(i=strlen(Username);i<(strlen(Username)+4-strlen(Username)%4);i++) char\_data\[i\]=0x00;   
->         XOR\_NO=(0x160-0x14)/4;   
->         pkey=&key\_file\[edx\*4+0x04+0x160\];   
->         data\_encryptor(char\_data,dword\_count,XOR\_Factor,XOR\_NO,pkey,temp);   
->   
-> /\* -----set value of addr ebp+160 : Username end------\*/   
->   
-> /\* -----set value of addr ebp+26C/ebp+28C : S\_N head/tail ------\*/   
->     temp=get\_dword\_value(&key\_file\[edx\*4+0x04+0x268\]);   
->   
->     for(i=0;i<(unsigned char)strlen(SN\_Header);i++) char\_data\[i\]=\*(SN\_Header+i);   
->     dword\_count=strlen(SN\_Header)/4+1;   
->     for(i=strlen(SN\_Header);i<(strlen(SN\_Header)+4-strlen(SN\_Header)%4);i++) char\_data\[i\]=0x00;   
->         XOR\_NO=(0x26C-0x14)/4;   
->         pkey=&key\_file\[edx\*4+0x04+0x26C\];   
->         data\_encryptor(char\_data,dword\_count,XOR\_Factor,XOR\_NO,pkey,temp);   
->   
->     temp=0x00000000;   
->     for(i=0;i<(unsigned char)strlen(SN\_Tail);i++) char\_data\[i\]=\*(SN\_Tail+i);   
->     dword\_count=strlen(SN\_Tail)/4+1;   
->     for(i=strlen(SN\_Tail);i<(strlen(SN\_Tail)+4-strlen(SN\_Tail)%4);i++) char\_data\[i\]=0x00;   
->         XOR\_NO=(0x28C-0x14)/4;   
->         pkey=&key\_file\[edx\*4+0x04+0x28C\];   
->         data\_encryptor(char\_data,dword\_count,XOR\_Factor,XOR\_NO,pkey,temp);   
->   
-> /\* -----set value of addr ebp+26C/ebp+28C : S\_N head/tail end------\*/   
->   
-> /\* -----set value of addr ebp+0x00, ebp+0x04, ebp+0x08, 0x0C ------ \*/   
->   
-> /\* each value can not equal to 0x00000000 \*/   
->        
->     pkey=&key\_file\[edx\*4+0x04\];   
->   
->     temp=Version;   
->         put\_dword\_value(temp,pkey);   
->     temp=0x00000001;   
->         put\_dword\_value(temp,pkey+0x04); /\* let \[ebp+0x04\]=0x00000001 \*/   
->     temp=0x00000001;   
->         put\_dword\_value(temp,pkey+0x08); /\* let \[ebp+0x08\]=0x00000001 \*/   
->     temp=0x00000001;   
->         put\_dword\_value(temp,pkey+0x0C); /\* let \[ebp+0x0C\]=0x00000001 \*/   
->   
-> /\* -----set value of Next\_XOR\_Factor1 ------\*/   
->   
->         pkey=&key\_file\[edx\*0x04+0x04+0x02AC\];   
->   
->         /\*  Next\_XOR\_Factor1=\[pkey+0x00\]=(\[pkey+0x04\]^addr\_004256E8)+(\[pkey+0x08\]^addr\_004256E4)+(\[pkey+0x0C\]^addr\_004256E0) \*/   
->         /\*  here let us make Next\_XOR\_Factor1=XOR\_Factor \*/   
->   
->     temp=addr\_004256E8;   
->     put\_dword\_value(temp,pkey+0x00); /\* first \*/   
->     temp=get\_dword\_value(key\_file+0x10);   
->     put\_dword\_value(temp,pkey+0x04); /\* second \*/   
->     temp=addr\_004256E0;   
->     put\_dword\_value(temp,pkey+0x08); /\* third \*/   
->   
-> /\* -----set value of Next\_XOR\_Factor1 end------\*/   
->   
-> /\* -----set value of Next\_XOR\_Factor2 ------\*/   
->       
->     pkey=&key\_file\[edx\*0x04+0x04+0x02AC+0x02B8\];   
->   
->         /\*  Next\_XOR\_Factor2=\[pkey+0x00\]=(\[pkey+0x04\]^addr\_004256E8)^(\[pkey+0x08\]^addr\_004256E4)+(\[pkey+0x0C\]^addr\_004256E0) \*/   
->         /\*  here let us make Next\_XOR\_Factor2=XOR\_Factor \*/   
->   
->     temp=addr\_004256E8;   
->     put\_dword\_value(temp,pkey+0x00); /\* first \*/   
->     temp=get\_dword\_value(key\_file+0x10);                  
->     put\_dword\_value(temp,pkey+0x04); /\* second \*/   
->     temp=addr\_004256E0;   
->     put\_dword\_value(temp,pkey+0x08); /\* third \*/   
->   
-> /\* -----set value of Next\_XOR\_Factor2 end------\*/   
->   
->     p1=&key\_file\[edx\*4+0x04+0x14\];   
->     p2=&key\_file\[edx\*4+0x04+0x14+0x02B8\];   
->     for(i=0;i<=0xA5;i++) put\_dword\_value(get\_dword\_value(p1+i\*4),p2+i\*4);   
->   
->     p1=&key\_file\[edx\*4+0x04+0x14\];   
->     p2=&key\_file\[edx\*4+0x04+0x14+0x02B8+0x02B8\];   
->     for(i=0;i<=0xA5;i++) put\_dword\_value(get\_dword\_value(p1+i\*4),p2+i\*4);   
->        
->     create\_key\_file(key\_file);   
->         create\_dll\_file(key\_file+0x20+0x14,XOR\_Factor);   
->   
->         getch();   
-> }   
->   
-> unsigned long get\_dword\_value(addr)   
-> unsigned char \* addr;   
-> {   
->     unsigned long number=0;   
->   
->     number=\*(addr+3);   
->     number=number<<0x08;   
->     number=number|\*(addr+2);   
->     number=number<<0x08;   
->     number=number|\*(addr+1);   
->     number=number<<0x08;   
->     number=number|\*addr;   
->     return number;   
-> }   
->   
-> void put\_dword\_value(number,addr)   
-> unsigned char \* addr;   
-> unsigned long number;   
-> {   
->     unsigned char al\=0;   
->   
->     al\=(unsigned char)(number&0x000000FF);   
->     \*(addr+0)=al;   
->     al\=(unsigned char)((number&0x0000FF00)>>0x08);   
->     \*(addr+1)=al;   
->     al\=(unsigned char)((number&0x00FF0000)>>0x10);   
->     \*(addr+2)=al;   
->     al\=(unsigned char)((number&0xFF000000)>>0x18);   
->     \*(addr+3)=al;   
-> }   
->   
-> void data\_encryptor(char\_data,dword\_count,XOR\_Factor,XOR\_NO,pkey,forward\_data)   
-> unsigned char \* char\_data;   
-> unsigned char dword\_count;   
-> unsigned long XOR\_Factor;   
-> unsigned long XOR\_NO;   
-> unsigned char \* pkey;   
-> unsigned long forward\_data;   
-> {   
->     void put\_dword\_value();   
->     unsigned long get\_dword\_value();   
->   
->     unsigned long temp;   
->     unsigned char i;   
->   
->     temp=forward\_data;   
->     put\_dword\_value(temp,pkey-0x04);   
->     for(i=0;i<dword\_count;i++)   
->     {   
->         temp=get\_dword\_value(pkey+0x04\*i-0x04)^get\_dword\_value(char\_data+0x04\*i)^XOR\_Factor^(XOR\_NO+i);   
->         put\_dword\_value(temp,pkey+0x04\*i);   
->     }   
-> }   
->   
-> void create\_key\_file(key\_file)   
-> unsigned char key\_file\[\];   
-> {   
->     FILE \*fp;   
->     int i=0;   
->     unsigned char \* file\_name=key\_file\_name;   
->   
->     if((fp=fopen(file\_name,"wb+"))==NULL)   
->     {   
->         printf("\\nCan not create %s !\\n",file\_name);   
->         exit(0);   
->     }   
->     for(;;)   
->     {   
->         if(key\_file\[i\]=='T'&&key\_file\[i+1\]=='H'&&key\_file\[i+2\]=='E'&&key\_file\[i+3\]=='E'&&key\_file\[i+4\]=='N'&&key\_file\[i+5\]=='D') break;   
->         if(fputc(key\_file\[i\],fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->             fclose(fp);   
->             exit(0);   
->         }   
->         i++;   
->     }   
->     fclose(fp);   
->     printf("\\n%s has been created successfully !\\n",file\_name);   
->   
-> }   
->   
-> void create\_dll\_file(data\_addr,XOR\_Factor)   
-> unsigned char \* data\_addr;   
-> unsigned long XOR\_Factor;   
-> {   
->     unsigned char data\_000h\_to\_25Fh\[0x0260\]=   
->     {0x4D,0x5A,0x90,0x00,0x03,0x00,0x00,0x00,0x04,0x00,0x00,0x00,0xFF,0xFF,0x00,0x00,   
->     0xB8,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x40,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xC0,0x00,0x00,0x00,   
->     0x0E,0x1F,0xBA,0x0E,0x00,0xB4,0x09,0xCD,0x21,0xB8,0x01,0x4C,0xCD,0x21,0x54,0x68,   
->     0x69,0x73,0x20,0x70,0x72,0x6F,0x67,0x72,0x61,0x6D,0x20,0x63,0x61,0x6E,0x6E,0x6F,   
->     0x74,0x20,0x62,0x65,0x20,0x72,0x75,0x6E,0x20,0x69,0x6E,0x20,0x44,0x4F,0x53,0x20,   
->     0x6D,0x6F,0x64,0x65,0x2E,0x0D,0x0D,0x0A,0x24,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x71,0xD4,0xF7,0xDB,0x35,0xB5,0x99,0x88,0x35,0xB5,0x99,0x88,0x35,0xB5,0x99,0x88,   
->     0xC9,0x95,0x8B,0x88,0x34,0xB5,0x99,0x88,0xBB,0xAA,0x8A,0x88,0x34,0xB5,0x99,0x88,   
->     0x52,0x69,0x63,0x68,0x35,0xB5,0x99,0x88,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x50,0x45,0x00,0x00,0x4C,0x01,0x04,0x00,0x34,0x02,0xBC,0x3B,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0xE0,0x00,0x0E,0x21,0x0B,0x01,0x05,0x0C,0x00,0x02,0x00,0x00,   
->     0x00,0x08,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x10,0x00,0x00,0x00,0x10,0x00,0x00,   
->     0x00,0x20,0x00,0x00,0x00,0x00,0x00,0x10,0x00,0x10,0x00,0x00,0x00,0x02,0x00,0x00,   
->     0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x50,0x00,0x00,0x00,0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x02,0x00,0x00,0x00,   
->     0x00,0x00,0x10,0x00,0x00,0x10,0x00,0x00,0x00,0x00,0x10,0x00,0x00,0x10,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x10,0x00,0x00,0x00,0x00,0x20,0x00,0x00,0x4B,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x40,0x00,0x00,0x0C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x2E,0x74,0x65,0x78,0x74,0x00,0x00,0x00,   
->     0x49,0x00,0x00,0x00,0x00,0x10,0x00,0x00,0x00,0x02,0x00,0x00,0x00,0x04,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x20,0x00,0x00,0x60,   
->     0x2E,0x72,0x64,0x61,0x74,0x61,0x00,0x00,0x4B,0x00,0x00,0x00,0x00,0x20,0x00,0x00,   
->     0x00,0x02,0x00,0x00,0x00,0x06,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x40,0x00,0x00,0x40,0x2E,0x64,0x61,0x74,0x61,0x00,0x00,0x00,   
->     0x98,0x02,0x00,0x00,0x00,0x30,0x00,0x00,0x00,0x04,0x00,0x00,0x00,0x08,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x40,0x00,0x00,0xC0,   
->     0x2E,0x72,0x65,0x6C,0x6F,0x63,0x00,0x00,0x0C,0x00,0x00,0x00,0x00,0x40,0x00,0x00,   
->     0x00,0x02,0x00,0x00,0x00,0x0C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,   
->     0x00,0x00,0x00,0x00,0x40,0x00,0x00,0x42,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};   
->   
->     /\* FROM 260H TO 3FFH, TOTAL 1A0H BYTES \*/   
->   
->     unsigned char data\_400h\_to\_44Fh\[0x0050\]=   
->     {0x55,0x8B,0xEC,0x83,0x7D,0x0C,0x01,0x75,0x12,0xBF,'?','?','?','?',0x8D,0x35,/\* '?' -->the location of dll data in system memory \*/   
->     0x00,0x30,0x00,0x10,0xB9,0x98,0x02,0x00,0x00,0xF3,0xA4,0xB8,0x01,0x00,0x00,0x00,   
->     0xC9,0xC2,0x0C,0x00,0x55,0x8B,0xEC,0x8B,0x45,0x10,0xC7,0x00,'#','#','#','#',/\* '#' -->the value of addr\_004256E0 \*/   
->     0xC7,0x40,0x04,'$','$','$','$',0xC7,0x40,0x08,'&','&','&','&',0xB8,0x01,/\* '$' -->the value of addr\_004256E4 \*/   
->     0x00,0x00,0x00,0x8B,0xE5,0x5D,0xC2,0x0C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};/\* '&' -->the value of addr\_004256E4 \*/   
->   
->     /\* FROM 450H TO 5FFH, TOTAL 1B0H BYTES \*/   
->   
->     unsigned char data\_600h\_to\_64Fh\[0x0050\]=   
->     {0x00,0x00,0x00,0x00,0x34,0x02,0xBC,0x3B,0x00,0x00,0x00,0x00,0x32,0x20,0x00,0x00,   
->     0x65,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x28,0x20,0x00,0x00,   
->     0x2C,0x20,0x00,0x00,0x30,0x20,0x00,0x00,0x24,0x10,0x00,0x00,0x3F,0x20,0x00,0x00,   
->     0x00,0x00,0x45,0x78,0x65,0x6D,0x65,0x6B,0x65,0x79,0x2E,0x64,0x6C,0x6C,0x00,0x43,   
->     0x61,0x6C,0x6C,0x5F,0x65,0x62,0x70,0x5F,0x32,0x30,0x00,0x00,0x00,0x00,0x00,0x00};   
->   
->     /\* FROM 650H TO 7FFH, TOTAL 1B0H BYTES \*/   
->   
->     unsigned char data\_800h\_to\_A97h\[0x0298\];   
->   
->     /\* FROM A98H TO BFFH, TOTAL 168H BYTES \*/   
->   
->     unsigned char data\_C00h\_to\_C0Fh\[0x0010\]=   
->     {0x00,0x10,0x00,0x00,0x0C,0x00,0x00,0x00,0x10,0x30,0x00,0x00,0x00,0x00,0x00,0x00};   
->   
->     /\* FROM C10H TO DFFH, TOTAL 1F0H BYTES \*/   
->   
->     /\* DLL FILE TOTAL 3,584 BYTES \*/   
->   
->         void put\_dword\_value();   
->     unsigned long get\_dword\_value();   
->   
->     FILE \*fp;   
->     unsigned char \* file\_name=dll\_file\_name;   
->     unsigned char i;   
->     unsigned int j;   
->     unsigned long temp;   
->   
->     for(i=0;i<0xA5;i++)/\* decode data \*/   
->     {   
->         temp=get\_dword\_value(data\_addr+(0xA5-i)\*4);   
->         temp^=get\_dword\_value(data\_addr+(0xA5-i-1)\*4);   
->         temp^=XOR\_Factor^(0xA5-i);   
->         put\_dword\_value(temp,&data\_800h\_to\_A97h\[(0xA5-i)\*4\]);   
->     }   
->     temp=get\_dword\_value(data\_addr);   
->         put\_dword\_value(temp,data\_800h\_to\_A97h);   
->   
->     temp=dll\_data\_memo\_addr;   
->         put\_dword\_value(temp,&data\_400h\_to\_44Fh\[0x0A\]);   
->       
->     temp=addr\_004256E0;   
->         put\_dword\_value(temp,&data\_400h\_to\_44Fh\[0x2C\]);   
->         temp=addr\_004256E4;   
->         put\_dword\_value(temp,&data\_400h\_to\_44Fh\[0x33\]);   
->         temp=addr\_004256E8;   
->         put\_dword\_value(temp,&data\_400h\_to\_44Fh\[0x3A\]);   
->        
->     if((fp=fopen(file\_name,"wb+"))==NULL)   
->     {   
->         printf("\\nCan not create %s !\\n",file\_name);   
->         exit(0);   
->     }   
->   
->     for(j=0;j<0x0260;j++)/\* FROM 000H TO 25FH, TOTAL 260H BYTES \*/   
->     {   
->         if(fputc(data\_000h\_to\_25Fh\[j\],fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->                         fclose(fp);   
->             exit(0);   
->         }   
->     }   
->   
->   
->     for(j=0;j<0x01A0;j++)/\* FROM 260H TO 3FFH, TOTAL 1A0H BYTES \*/   
->     {   
->         if(fputc(0x00,fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->                         fclose(fp);   
->             exit(0);   
->         }   
->     }   
->   
->     for(j=0;j<0x0050;j++)/\* FROM 400H TO 44FH, TOTAL 050H BYTES \*/   
->     {   
->         if(fputc(data\_400h\_to\_44Fh\[j\],fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->                         fclose(fp);   
->             exit(0);   
->         }   
->     }   
->   
->     for(j=0;j<0x01B0;j++) /\* FROM 450H TO 5FFH, TOTAL 1B0H BYTES \*/   
->     {   
->         if(fputc(0x00,fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->                         fclose(fp);   
->             exit(0);   
->         }   
->     }   
->   
->   
->   
->     for(j=0;j<0x01A0;j++)/\* FROM 260H TO 3FFH, TOTAL 1A0H BYTES \*/   
->     {   
->         if(fputc(0x00,fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->                         fclose(fp);   
->             exit(0);   
->         }   
->     }   
->   
->     for(j=0;j<0x0050;j++)/\* FROM 400H TO 44FH, TOTAL 050H BYTES \*/   
->     {   
->         if(fputc(data\_400h\_to\_44Fh\[j\],fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->                         fclose(fp);   
->             exit(0);   
->         }   
->     }   
->   
->     for(j=0;j<0x01B0;j++) /\* FROM 450H TO 5FFH, TOTAL 1B0H BYTES \*/   
->     {   
->         if(fputc(0x00,fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->                         fclose(fp);   
->             exit(0);   
->         }   
->     }   
->   
->     for(j=0;j<0x0050;j++)/\* FROM 600H TO 64FH, TOTAL 050H BYTES \*/   
->     {   
->         if(fputc(data\_600h\_to\_64Fh\[j\],fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->                         fclose(fp);   
->             exit(0);   
->         }   
->     }   
->   
->     for(j=0;j<0x01B0;j++)/\* FROM 650H TO 7FFH, TOTAL 1B0H BYTES \*/   
->     {   
->         if(fputc(0x00,fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->                         fclose(fp);   
->             exit(0);   
->         }   
->     }   
->   
->     for(j=0;j<0x0298;j++)/\* FROM 800H TO A97H, TOTAL 298H BYTES \*/   
->     {   
->         if(fputc(data\_800h\_to\_A97h\[j\],fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->                         fclose(fp);   
->             exit(0);   
->         }   
->     }   
->   
->     for(j=0;j<0x0168;j++)/\* FROM A98H TO BFFH, TOTAL 168H BYTES \*/   
->     {   
->         if(fputc(0x00,fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->                         fclose(fp);   
->             exit(0);   
->         }   
->     }   
->   
->     for(j=0;j<0x0010;j++)/\* FROM C00H TO C0FH, TOTAL 010H BYTES \*/   
->     {   
->         if(fputc(data\_C00h\_to\_C0Fh\[j\],fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->                         fclose(fp);   
->             exit(0);   
->         }   
->     }   
->   
->     for(j=0;j<0x01F0;j++)/\* FROM C10H TO DFFH, TOTAL 1F0H BYTES \*/   
->     {   
->         if(fputc(0x00,fp)==EOF)   
->         {   
->             printf("\\nWrite file %s error !\\n",file\_name);   
->                         fclose(fp);   
->             exit(0);   
->         }   
->     }   
->   
->     fclose(fp);   
->     printf("\\n%s has been created successfully !\\n\\n",file\_name);   
->   
-> }  4dd466d0e1e0cc123afbe504da2462ca
+/* key_file Generator for ExeSpyME V5.0 Author: ddcrack  Written by: 2001/10/08 */
+
+/* #define Program_name  "ExeSpy Millennium Edition for Windows ME/98/95"*/ /* addr: ebp+0x018 */
+
+  #define key_file_name  "EXEMEUR.DAT"   /* addr: ebp+0x060 */
+
+  #define dll_file_name  "EXEMEKEY.DLL"  /* generated dll file name*/
+
+  #define dll_data_memo_addr 0x00429394  /* the location of dll data in system memory */
+
+                                 /* got by finding "00000298" in W32Dasm or tracing in softice */
+
+  #define Version        0x00000005       /* addr: ebp+0x000 */
+
+/* #define Username       input by user    /* addr: ebp+0x160 */
+
+/* #define SN_Header       "PD"             /* addr: ebp+0x26C */
+
+/* #define SN_Tail         "ES"             /* addr: ebp+0x28C */
+
+  #define VersionEx       0x00000001       /* addr: ebp+0x260 */
+
+/* #define User_ID         generated by random addr: ebp+0x264 */
+
+  #define Reg_Type       0x52454749       /* addr: ebp+0x268 */
+
+  /* Reg_Type: 0x52454749 --> "REGI"
+
+               0x53485050 --> "SHPP"
+
+         0x4556414C --> "EVAL" */
+
+  #define Free_year     2025             /* free update date addr: ebp+0x05C */
+
+  #define Free_month     12                 /* Free_year=year+7CD, max year=0x3F*/
+
+  #define Free_day       12                 /* year<=0x1F=31, so Free_year<=2028*/
+
+  #define Free_hour     12
+
+  #define Free_minute   12
+
+  #define Free_second   12
+
+  #define addr_004256EC ***********       /* function unknown, can be any value */
+
+  #define addr_004256E8 0x00429FA0        /* one of XOR factors, can be any value */
+
+  #define addr_004256E4 0x00000008        /* one of XOR factors, can be any value */
+
+  #define addr_004256E0 0x006BE048        /* one of XOR factors, can be any value */
+
+
+#include <stdio.h>
+
+#include <string.h>
+
+#include <conio.h>
+
+#include <stdlib.h>
+
+#include <time.h>
+
+
+void main(void)
+
+{
+
+    unsigned char key_file[]=
+
+    {'S','P','Y','2',0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+
+         0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,/*encoded data start addr: ebp+0x00*/
+
+    0x00,0x00,0x00,0x00,
+
+
+
+```
+0x00,0x00,0x00,0x00, /* addr offset: 0x014 */
+0x00,0x00,0x00,0x00, /* XOR_NO=1 */
+0x00,0x00,0x00,0x00, /* XOR_NO=2 */
+0x00,0x00,0x00,0x00, /* XOR_NO=3 */
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00, /* XOR_NO=A3 */
+0x00,0x00,0x00,0x00, /* XOR_NO=A4 */
+0x00,0x00,0x00,0x00, /* XOR_NO=A5 */
+0x00,0x00,0x00,0x00, /*  first    */ /* Next_XOR_Factor1=first^addr_004256E8+second^addr_004256E4+third^addr_004256E0 */
+0x00,0x00,0x00,0x00, /*  second  */
+0x00,0x00,0x00,0x00, /*  third    */
+0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00, /* new addr offset1: 0x14+000002B8 */
+0x00,0x00,0x00,0x00, /* XOR_NO=1 */
+0x00,0x00,0x00,0x00, /* XOR_NO=2 */
+0x00,0x00,0x00,0x00, /* XOR_NO=3 */
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+```
+
+
+
+```
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,
+```
+
+
+
+```
+    0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,/* XOR_NO=A3 */
+    0x00,0x00,0x00,0x00,/* XOR_NO=A4 */
+    0x00,0x00,0x00,0x00,/* XOR_NO=A5 */
+        'T','H','E','E','N','D'};
+
+    const unsigned char * Program_name="ExeSpy Millennium Edition for Windows ME/98/95";
+    const unsigned char * key_name=".\\EXEMEUR.DAT";
+    const unsigned char * SN_Header="PD";
+    const unsigned char * SN_Tail="ES";
+        unsigned char * Username="";
+
+    void put_dword_value();
+    unsigned long get_dword_value();
+    void create_key_file();
+    void create_dll_file();
+    void data_encryptor();
+
+    unsigned long eax,edx,temp,XOR_Factor,XOR_NO,User_ID;
+    unsigned char i,dword_count;
+    unsigned char * pkey,* p1,* p2;
+
+    unsigned char char_data[0x40]=
+    {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+
+randomize();
+
+/* XOR_Factor can not equal to 0x00000000 or 0x00000001 */
+/* Here assume [key_file+0x0C]=addr_004256E8,[key_file+0x10]=addr_004256E4,[key_file+0x14]=random number */
+temp=addr_004256E8;
+put_dword_value(temp,key_file+0x0C);
+temp=random(65536);
+if((temp^addr_004256E4)<=1) temp+=2;
+put_dword_value(temp,key_file+0x10);
+temp=addr_004256E0;
+put_dword_value(temp,key_file+0x14);
+    XOR_Factor=(get_dword_value(key_file+0x0C)^addr_004256E8)^(get_dword_value(key_file+0x10)^addr_004256E4)^(get_dword_value(key_file+0x14)^addr_004256E0);
+/* then, XOR_Factor=addr_004256E4^random(65536) */
+
+/* think about next calculator */
+/*    eax=get_dword_value(key_file+0x04);
+    eax^=get_dword_value(key_file+0x08);
+    if(eax&0x80000000) edx=0xFFFFFFFF;
+    else edx=0x00000000;
+    edx&=0x03;
+    eax+=edx;
+    eax=eax>>0x02;
+    eax+=0x06; */
+    /* now eax must less than 0x00002800 */
+    /* so, here assume [key_file+0x04]=[key_file+0x08], then eax=0x06 */
+    temp=(unsigned long)random(65536);
+    put_dword_value(temp,key_file+0x04);
+    put_dword_value(temp,key_file+0x08);
+
+    eax=get_dword_value(key_file+0x04);
+    eax^=get_dword_value(key_file+0x08);
+    if(eax&0x80000000) edx=0xFFFFFFFF;
+    else edx=0x00000000;
+    edx&=0x03;
+    eax+=edx;
+    eax=eax>>0x02;
+    eax+=0x06;
+
+
+    /* think about next calculator */
+/*    temp=eax;
+    eax=get_dword_value(key_file+(unsigned char)temp*0x04);
+    if(eax&0x80000000) edx=0xFFFFFFFF;
+    else edx=0x00000000;
+    edx&=0x03;
+    eax+=edx;
+    eax=eax>>0x02;
+    edx=eax+temp+1;*/
+    /* now edx must less than 0x00002800  more than 0x00000000*/
+    /* because temp=0x06, so here assume [key_file+0x04*6]=[key_file+0x18]=0, then edx=0x07 */
+    temp=0x00000000;
+    put_dword_value(temp,key_file+(unsigned char)eax*0x04);
+
+    temp=eax;
+    eax=get_dword_value(key_file+(unsigned char)temp*0x04);
+    if(eax&0x80000000) edx=0xFFFFFFFF;
+    else edx=0x00000000;
+    edx&=0x03;
+    eax+=edx;
+    eax=eax>>0x02;
+    edx=eax+temp+1;
+
+
+    /* think about next calculator */
+/*    temp=edx;
+    eax=get_dword_value(key_file+(unsigned char)temp*0x04);
+        edx=eax+temp+1; */
+    /* now edx must less than 0x00002800 and more than 0x00000000*/
+    /* because temp=0x07, so here assume [key_file+0x04*7]=[key_file+0x1C]=0, then edx=0x08 */
+    temp=0x00000000;
+    put_dword_value(temp,key_file+(unsigned char)edx*0x04);
+
+    /* Now ebp=key_file+edx*0x04+0x04 */
+
+    clrscr();
+    printf("\n**************************************************************************************************************************************\n");
+    printf("ExeSpyME Key File Generator\n");
+    printf("Author: ddcrack ( 2001/10/08 )\n");
+    printf("**********************************************************************\n\n");
+
+/* -------------- create "ExeSpy Millennium Edition for Windows ME/98/95" --------------------*/
+    temp=0x00000000;
+
+    for(i=0;i<(unsigned char)strlen(Program_name);i++) char_data[i]=*(Program_name+i);
+    dword_count=strlen(Program_name)/4+1;
+    for(i=strlen(Program_name);i<(strlen(Program_name)+4-strlen(Program_name)%4);i++) char_data[i]=0x00;
+    XOR_NO=(0x18-0x14)/4;
+    pkey=&key_file[edx*4+0x04+0x18];
+    data_encryptor(char_data,dword_count,XOR_Factor,XOR_NO,pkey,temp);
+
+/* -------------- create "ExeSpy Millennium Edition for Windows ME/98/95" end--------------------*/
+
+/* -------------- create Free_update_date and ".\\EXEMEUR.DAT" --------------------*/
+        temp=Free_year-0x07CD;
+    temp=temp<<4;
+    temp=temp|Free_month;
+    temp=temp<<5;
+    temp=temp|Free_day;
+    temp=temp<<5;
+        temp=temp|Free_hour;
+    temp=temp<<6;
+    temp=temp|Free_minute;
+    temp=temp<<6;
+    temp=temp|Free_second;
+
+    put_dword_value(temp,char_data);
+    temp=0x00000000;
+    for(i=0;i<(unsigned char)strlen(key_name);i++) char_data[i+4]=*(key_name+i);
+    dword_count=strlen(key_name)/4+1+1;
+    for(i=(strlen(key_name)+4);i<(strlen(key_name)+4+4-strlen(key_name)%4);i++) char_data[i]=0x00;
+    XOR_NO=(0x5C-0x14)/4;
+    pkey=&key_file[edx*4+0x04+0x5C];
+    data_encryptor(char_data,dword_count,XOR_Factor,XOR_NO,pkey,temp);
+
+/* -------------- create Free_update_date and ".\\EXEMEUR.DAT" end--------------------*/
+
+/* -----set value of addr ebp+260, ebp+264 and ebp+268------*/
+    temp=VersionEx;
+    put_dword_value(temp,char_data);
+    User_ID=random(50000)*20;               /* User_ID has six digits */
+    put_dword_value(User_ID,char_data+0x04);
+    temp=Reg_Type;
+    put_dword_value(temp,char_data+0x08);
+
+    temp=0x00000000;
+    dword_count=3;
+    XOR_NO=(0x260-0x14)/4;
+    pkey=&key_file[edx*4+0x04+0x260];
+    data_encryptor(char_data,dword_count,XOR_Factor,XOR_NO,pkey,temp);
+
+/* -----set value of addr ebp+260, ebp+264 and ebp+268 end------*/
+
+/* -----set value of addr ebp+160 : Username ------*/
+    printf("Input your name : ");
+    scanf("%s",Username);
+
+    temp=0x00000000;
+```
+
+
+
+```c
+for(i=0;i<(unsigned char)strlen(Username);i++) char_data[i]=*(Username+i);
+
+dword_count=strlen(Username)/4+1;
+
+for(i=strlen(Username);i<(strlen(Username)+4-strlen(Username)%4);i++) char_data[i]=0x00;
+
+XOR_NO=(0x160-0x14)/4;
+
+pkey=&key_file[edx*4+0x04+0x160];
+
+data_encryptor(char_data,dword_count,XOR_Factor,XOR_NO,pkey,temp);
+
+/* -----set value of addr ebp+160 : Username end------*/
+
+/* -----set value of addr ebp+26C/ebp+28C : S_N head/tail ------*/
+
+temp=get_dword_value(&key_file[edx*4+0x04+0x268]);
+
+for(i=0;i<(unsigned char)strlen(SN_Header);i++) char_data[i]=*(SN_Header+i);
+
+dword_count=strlen(SN_Header)/4+1;
+
+for(i=strlen(SN_Header);i<(strlen(SN_Header)+4-strlen(SN_Header)%4);i++) char_data[i]=0x00;
+
+XOR_NO=(0x26C-0x14)/4;
+
+pkey=&key_file[edx*4+0x04+0x26C];
+
+data_encryptor(char_data,dword_count,XOR_Factor,XOR_NO,pkey,temp);
+
+temp=0x00000000;
+
+for(i=0;i<(unsigned char)strlen(SN_Tail);i++) char_data[i]=*(SN_Tail+i);
+
+dword_count=strlen(SN_Tail)/4+1;
+
+for(i=strlen(SN_Tail);i<(strlen(SN_Tail)+4-strlen(SN_Tail)%4);i++) char_data[i]=0x00;
+
+XOR_NO=(0x28C-0x14)/4;
+
+pkey=&key_file[edx*4+0x04+0x28C];
+
+data_encryptor(char_data,dword_count,XOR_Factor,XOR_NO,pkey,temp);
+
+/* -----set value of addr ebp+26C/ebp+28C : S_N head/tail end------*/
+
+/* -----set value of addr ebp+0x00, ebp+0x04, ebp+0x08, 0x0C ------ */
+
+/* each value can not equal to 0x00000000 */
+
+pkey=&key_file[edx*4+0x04];
+
+temp=Version;
+
+put_dword_value(temp,pkey);
+
+temp=0x00000001;
+
+put_dword_value(temp,pkey+0x04); /* let [ebp+0x04]=0x00000001 */
+
+temp=0x00000001;
+
+put_dword_value(temp,pkey+0x08); /* let [ebp+0x08]=0x00000001 */
+
+temp=0x00000001;
+
+put_dword_value(temp,pkey+0x0C); /* let [ebp+0x0C]=0x00000001 */
+
+/* -----set value of Next_XOR_Factor1 ------*/
+
+pkey=&key_file[edx*0x04+0x04+0x02AC];
+
+/*  Next_XOR_Factor1=[pkey+0x00]=([pkey+0x04]^addr_004256E8)+([pkey+0x08]^addr_004256E4)+([pkey+0x0C]^addr_004256E0) */
+/*  here let us make Next_XOR_Factor1=XOR_Factor */
+
+temp=addr_004256E8;
+
+put_dword_value(temp,pkey+0x00); /* first */
+
+temp=get_dword_value(key_file+0x10);
+
+put_dword_value(temp,pkey+0x04); /* second */
+
+temp=addr_004256E0;
+
+put_dword_value(temp,pkey+0x08); /* third */
+
+/* -----set value of Next_XOR_Factor1 end------*/
+
+/* -----set value of Next_XOR_Factor2 ------*/
+
+pkey=&key_file[edx*0x04+0x04+0x02AC+0x02B8];
+
+/*  Next_XOR_Factor2=[pkey+0x00]=([pkey+0x04]^addr_004256E8)^([pkey+0x08]^addr_004256E4)+([pkey+0x0C]^addr_004256E0) */
+/*  here let us make Next_XOR_Factor2=XOR_Factor */
+
+temp=addr_004256E8;
+
+put_dword_value(temp,pkey+0x00); /* first */
+
+temp=get_dword_value(key_file+0x10);
+
+put_dword_value(temp,pkey+0x04); /* second */
+
+temp=addr_004256E0;
+
+put_dword_value(temp,pkey+0x08); /* third */
+
+/* -----set value of Next_XOR_Factor2 end------*/
+
+p1=&key_file[edx*4+0x04+0x14];
+
+p2=&key_file[edx*4+0x04+0x14+0x02B8];
+
+for(i=0;i<=0xA5;i++) put_dword_value(get_dword_value(p1+i*4),p2+i*4);
+
+p1=&key_file[edx*4+0x04+0x14];
+
+p2=&key_file[edx*4+0x04+0x14+0x02B8+0x02B8];
+
+for(i=0;i<=0xA5;i++) put_dword_value(get_dword_value(p1+i*4),p2+i*4);
+
+create_key_file(key_file);
+
+create_dll_file(key_file+0x20+0x14,XOR_Factor);
+
+getch();
+}
+
+unsigned long get_dword_value(addr)
+unsigned char * addr;
+{
+    unsigned long number=0;
+
+    number=*(addr+3);
+    number=number<<0x08;
+    number=number|*(addr+2);
+    number=number<<0x08;
+    number=number|*(addr+1);
+    number=number<<0x08;
+    number=number|*addr;
+    return number;
+}
+
+void put_dword_value(number,addr)
+unsigned char * addr;
+unsigned long number;
+{
+    unsigned char al=0;
+
+    al=(unsigned char)(number&0x000000FF);
+    *(addr+0)=al;
+    al=(unsigned char)((number&0x0000FF00)>>0x08);
+    *(addr+1)=al;
+    al=(unsigned char)((number&0x00FF0000)>>0x10);
+    *(addr+2)=al;
+    al=(unsigned char)((number&0xFF000000)>>0x18);
+    *(addr+3)=al;
+}
+
+void data_encryptor(char_data,dword_count,XOR_Factor,XOR_NO,pkey,forward_data)
+unsigned char * char_data;
+unsigned char dword_count;
+unsigned long XOR_Factor;
+unsigned long XOR_NO;
+unsigned char * pkey;
+unsigned long forward_data;
+{
+    void put_dword_value();
+    unsigned long get_dword_value();
+
+    unsigned long temp;
+    unsigned char i;
+
+    temp=forward_data;
+    put_dword_value(temp,pkey-0x04);
+    for(i=0;i<dword_count;i++)
+    {
+        temp=get_dword_value(pkey+0x04*i-0x04)^get_dword_value(char_data+0x04*i)^XOR_Factor^(XOR_NO+i);
+        put_dword_value(temp,pkey+0x04*i);
+    }
+}
+
+void create_key_file(key_file)
+unsigned char key_file[];
+{
+    FILE *fp;
+    int i=0;
+    unsigned char * file_name=key_file_name;
+
+    if((fp=fopen(file_name,"wb+"))==NULL)
+    {
+        printf("\nCan not create %s !\n",file_name);
+        exit(0);
+    }
+    for(;;)
+    {
+        if(key_file[i]=='T'&&key_file[i+1]=='H'&&key_file[i+2]=='E'&&key_file[i+3]=='E'&&key_file[i+4]=='N'&&key_file[i+5]=='D') break;
+        if(fputc(key_file[i],fp)==EOF)
+        {
+            printf("\nWrite file %s error !\n",file_name);
+            fclose(fp);
+            exit(0);
+        }
+        i++;
+    }
+    fclose(fp);
+    printf("\n%s has been created successfully !\n",file_name);
+}
+
+void create_dll_file(data_addr,XOR_Factor)
+unsigned char * data_addr;
+unsigned long XOR_Factor;
+{
+    unsigned char data_000h_to_25Fh[0x0260]=
+    {0x4D,0x5A,0x90,0x00,0x03,0x00,0x00,0x00,0x04,0x00,0x00,0x00,0xFF,0xFF,0x00,0x00,
+     0xB8,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x40,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xC0,0x00,0x00,0x00,
+     0x0E,0x1F,0xBA,0x0E,0x00,0xB4,0x09,0xCD,0x21,0xB8,0x01,0x4C,0xCD,0x21,0x54,0x68,
+     0x69,0x73,0x20,0x70,0x72,0x6F,0x67,0x72,0x61,0x6D,0x20,0x63,0x61,0x6E,0x6E,0x6F,
+     0x74,0x20,0x62,0x65,0x20,0x72,0x75,0x6E,0x20,0x69,0x6E,0x20,0x44,0x4F,0x53,0x20,
+     0x6D,0x6F,0x64,0x65,0x2E,0x0D,0x0D,0x0A,0x24,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+     0x71,0xD4,0xF7,0xDB,0x35,0xB5,0x99,0x88,0x35,0xB5,0x99,0x88,0x35,0xB5,0x99,0x88,
+     0xC9,0x95,0x8B,0x88,0x34,0xB5,0x99,0x88,0xBB,0xAA,0x8A,0x88,0x34,0xB5,0x99,0x88,
+     0x52,0x69,0x63,0x68,0x35,0xB5,0x99,0x88,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+```
+
+
+
+```c
+/* FROM 260H TO 3FFH, TOTAL 1A0H BYTES */
+unsigned char data_400h_to_44Fh[0x0050] = {
+    0x50,0x45,0x00,0x00,0x4C,0x01,0x04,0x00,0x34,0x02,0xBC,0x3B,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0xE0,0x00,0x0E,0x21,0x0B,0x01,0x05,0x0C,0x00,0x02,0x00,0x00,
+    0x00,0x08,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x10,0x00,0x00,0x00,0x10,0x00,0x00,
+    0x00,0x20,0x00,0x00,0x00,0x00,0x00,0x10,0x00,0x10,0x00,0x00,0x00,0x02,0x00,0x00,
+    0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x50,0x00,0x00,0x00,0x04,0x00,0x00,0x00,0x00,0x00,0x00,0x02,0x00,0x00,0x00,
+    0x00,0x00,0x10,0x00,0x00,0x10,0x00,0x00,0x00,0x00,0x10,0x00,0x00,0x10,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x10,0x00,0x00,0x00,0x00,0x20,0x00,0x00,0x4B,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x40,0x00,0x00,0x0C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x2E,0x74,0x65,0x78,0x74,0x00,0x00,0x00,
+    0x49,0x00,0x00,0x00,0x00,0x10,0x00,0x00,0x00,0x02,0x00,0x00,0x00,0x04,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x20,0x00,0x00,0x60,
+    0x2E,0x72,0x64,0x61,0x74,0x61,0x00,0x00,0x4B,0x00,0x00,0x00,0x00,0x20,0x00,0x00,
+    0x00,0x02,0x00,0x00,0x00,0x06,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x40,0x00,0x00,0x40,0x2E,0x64,0x61,0x74,0x61,0x00,0x00,0x00,
+    0x98,0x02,0x00,0x00,0x00,0x30,0x00,0x00,0x00,0x04,0x00,0x00,0x00,0x08,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x40,0x00,0x00,0xC0,
+    0x2E,0x72,0x65,0x6C,0x6F,0x63,0x00,0x00,0x0C,0x00,0x00,0x00,0x00,0x40,0x00,0x00,
+    0x00,0x02,0x00,0x00,0x00,0x0C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x40,0x00,0x00,0x42,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+};
+
+/* FROM 450H TO 5FFH, TOTAL 1B0H BYTES */
+unsigned char data_600h_to_64Fh[0x0050] = {
+    0x55,0x8B,0xEC,0x83,0x7D,0x0C,0x01,0x75,0x12,0xBF,'?','?','?','?',0x8D,0x35, /* '?' --> the location of dll data in system memory */
+    0x00,0x30,0x00,0x10,0xB9,0x98,0x02,0x00,0x00,0xF3,0xA4,0xB8,0x01,0x00,0x00,0x00,
+    0xC9,0xC2,0x0C,0x00,0x55,0x8B,0xEC,0x8B,0x45,0x10,0xC7,0x00,'#','#','#','#', /* '#' --> the value of addr_004256E0 */
+    0xC7,0x40,0x04,'$','$','$','$',0xC7,0x40,0x08,'&','&','&','&',0xB8,0x01, /* '$' --> the value of addr_004256E4 */
+    0x00,0x00,0x00,0x8B,0xE5,0x5D,0xC2,0x0C,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
+}; /* '&' --> the value of addr_004256E4 */
+
+/* FROM 650H TO 7FFH, TOTAL 1B0H BYTES */
+unsigned char data_800h_to_A97h[0x0298];
+
+/* FROM A98H TO BFFH, TOTAL 168H BYTES */
+unsigned char data_C00h_to_C0Fh[0x0010] = {
+    0x00,0x10,0x00,0x00,0x0C,0x00,0x00,0x00,0x10,0x30,0x00,0x00,0x00,0x00,0x00,0x00
+};
+
+/* FROM C10H TO DFFH, TOTAL 1F0H BYTES */
+
+/* DLL FILE TOTAL 3,584 BYTES */
+
+void put_dword_value();
+unsigned long get_dword_value();
+
+FILE *fp;
+unsigned char *file_name = dll_file_name;
+unsigned char i;
+unsigned int j;
+unsigned long temp;
+
+for(i=0; i<0xA5; i++) /* decode data */
+{
+    temp = get_dword_value(data_addr + (0xA5 - i) * 4);
+    temp ^= get_dword_value(data_addr + (0xA5 - i - 1) * 4);
+    temp ^= XOR_Factor ^ (0xA5 - i);
+    put_dword_value(temp, &data_800h_to_A97h[(0xA5 - i) * 4]);
+}
+
+temp = get_dword_value(data_addr);
+put_dword_value(temp, data_800h_to_A97h);
+
+temp = dll_data_memo_addr;
+put_dword_value(temp, &data_400h_to_44Fh[0x0A]);
+
+temp = addr_004256E0;
+put_dword_value(temp, &data_400h_to_44Fh[0x2C]);
+
+temp = addr_004256E4;
+put_dword_value(temp, &data_400h_to_44Fh[0x33]);
+
+temp = addr_004256E8;
+put_dword_value(temp, &data_400h_to_44Fh[0x3A]);
+
+if((fp = fopen(file_name, "wb+")) == NULL)
+{
+    printf("\nCan not create %s !\n", file_name);
+    exit(0);
+}
+
+for(j=0; j<0x0260; j++) /* FROM 000H TO 25FH, TOTAL 260H BYTES */
+{
+    if(fputc(data_000h_to_25Fh[j], fp) == EOF)
+    {
+        printf("\nWrite file %s error !\n", file_name);
+        fclose(fp);
+        exit(0);
+    }
+}
+
+for(j=0; j<0x01A0; j++) /* FROM 260H TO 3FFH, TOTAL 1A0H BYTES */
+{
+    if(fputc(0x00, fp) == EOF)
+    {
+        printf("\nWrite file %s error !\n", file_name);
+        fclose(fp);
+        exit(0);
+    }
+}
+
+for(j=0; j<0x0050; j++) /* FROM 400H TO 44FH, TOTAL 050H BYTES */
+{
+    if(fputc(data_400h_to_44Fh[j], fp) == EOF)
+    {
+        printf("\nWrite file %s error !\n", file_name);
+        fclose(fp);
+        exit(0);
+    }
+}
+
+for(j=0; j<0x01B0; j++) /* FROM 450H TO 5FFH, TOTAL 1B0H BYTES */
+{
+    if(fputc(0x00, fp) == EOF)
+    {
+        printf("\nWrite file %s error !\n", file_name);
+        fclose(fp);
+        exit(0);
+    }
+}
+
+for(j=0; j<0x01A0; j++) /* FROM 260H TO 3FFH, TOTAL 1A0H BYTES */
+{
+    if(fputc(0x00, fp) == EOF)
+    {
+        printf("\nWrite file %s error !\n", file_name);
+        fclose(fp);
+        exit(0);
+    }
+}
+
+for(j=0; j<0x0050; j++) /* FROM 400H TO 44FH, TOTAL 050H BYTES */
+{
+    if(fputc(data_400h_to_44Fh[j], fp) == EOF)
+    {
+        printf("\nWrite file %s error !\n", file_name);
+        fclose(fp);
+        exit(0);
+    }
+}
+
+for(j=0; j<0x01B0; j++) /* FROM 450H TO 5FFH, TOTAL 1B0H BYTES */
+{
+    if(fputc(0x00, fp) == EOF)
+    {
+        printf("\nWrite file %s error !\n", file_name);
+        fclose(fp);
+        exit(0);
+    }
+}
+
+for(j=0; j<0x0050; j++) /* FROM 600H TO 64FH, TOTAL 050H BYTES */
+{
+    if(fputc(data_600h_to_64Fh[j], fp) == EOF)
+    {
+        printf("\nWrite file %s error !\n", file_name);
+        fclose(fp);
+        exit(0);
+    }
+}
+```
+
+
+
+```
+    }   
+
+  }   
+
+  for(j=0;j<0x01B0;j++)/* FROM 650H TO 7FFH, TOTAL 1B0H BYTES */   
+  {   
+    if(fputc(0x00,fp)==EOF)   
+    {   
+      printf("\nWrite file %s error !\n",file_name);   
+                  fclose(fp);   
+      exit(0);   
+    }   
+  }   
+
+  for(j=0;j<0x0298;j++)/* FROM 800H TO A97H, TOTAL 298H BYTES */   
+  {   
+    if(fputc(data_800h_to_A97h[j],fp)==EOF)   
+    {   
+      printf("\nWrite file %s error !\n",file_name);   
+                  fclose(fp);   
+      exit(0);   
+    }   
+  }   
+
+  for(j=0;j<0x0168;j++)/* FROM A98H TO BFFH, TOTAL 168H BYTES */   
+  {   
+    if(fputc(0x00,fp)==EOF)   
+    {   
+      printf("\nWrite file %s error !\n",file_name);   
+                  fclose(fp);   
+      exit(0);   
+    }   
+  }   
+
+  for(j=0;j<0x0010;j++)/* FROM C00H TO C0FH, TOTAL 010H BYTES */   
+  {   
+    if(fputc(data_C00h_to_C0Fh[j],fp)==EOF)   
+    {   
+      printf("\nWrite file %s error !\n",file_name);   
+                  fclose(fp);   
+      exit(0);   
+    }   
+  }   
+
+  for(j=0;j<0x01F0;j++)/* FROM C10H TO DFFH, TOTAL 1F0H BYTES */   
+  {   
+    if(fputc(0x00,fp)==EOF)   
+    {   
+      printf("\nWrite file %s error !\n",file_name);   
+                  fclose(fp);   
+      exit(0);   
+    }   
+  }   
+
+  fclose(fp);   
+  printf("\n%s has been created successfully !\n\n",file_name);   
+
+}  4dd466d0e1e0cc123afbe504da2462ca
+```

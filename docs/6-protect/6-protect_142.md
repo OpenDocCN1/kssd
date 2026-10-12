@@ -1,215 +1,155 @@
 
-
-# 彩虹精灵狗(2.0)的破解心得
+# 彩虹精灵狗 (2.0) 的破解心得
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-601.htm`](https://www.pediy.com/kssd/pediy07/pediy7-601.htm)
 
-经过 2 个星期的奋斗终于搞定了彩虹精灵狗，在这个过程中对精灵狗的狗壳和常用的检测方法有了一些心得希望能与大家共享。  
-  
-总的来说精灵狗的狗壳强度不高，加密算法很简单可以通过穷举算出解码的数值。而且限制使用日期的功能设计简单，给我们留下了脱壳的简单方法。  
-  
-精灵狗 api 的版本,精灵狗 api 有 3 个版本（1.0、2.0、2.1）其中从 2.0 还是支持 usb 狗狗（本文中谈到的是 2.0 版本）。要确定程序适用的狗版本，可以在程序的.gdata 段查找字符串”gawin32c.c”，找到这个字符串后再向下看如果后面的字符串是”zhangzh”就表示使用的是 2.0 版本，如果是”PeterCheng”就表示使用的是 2.1 版本。你也可以到 http://cn.safenet-nc.com/download/dog/ga.asp 取下载精灵狗的开发套件在安装目录的 Utility 下有一个 GetVer.exe 文件运行后能检测程序使用的 api 版本 2.001->2.0 版本 2.019->2.1 版本。这两个版本的区别在于（精灵狗开发套件 V2.1 是在 V2.0 套件产品基础上进行的一次较大的升级。采用了我公司自主研发的第二代安全加密引擎，其中集成了最新的密码学理论和高强度加密算法，可以极大地提高受保护软件的防破解能力。同时增加了 EncryptEx()和 DecryptEx()接口函数。）  
-  
-精灵狗狗壳使用的全局变量：  
-  
-n         .gdata+28 dowrd 程序的真实入口  
-  
-n         .gdata+2c dowrd 限时模式时间值 1  
-  
-n         .gdata+3e dword 限时模式时间值 2  
-  
-n         .gdata+7c dword 狗壳加密数据的地址  
-  
-n         .gdata+8c dword 运行在限时模式的标记 1:OK 0:NO  
-  
-n         .gdata+94 dword 限时模式下的解码 key  
-  
-n         .gdata+98 byte\[\] 限时模式时的时间文件  
-  
-n         .gdata+2ca dword 狗壳加密数据的长度（一般为 1k）  
-  
-n         .gdata+2ce dword 解码 key  
-  
-我们可以利用精灵狗的限时模式快速的打掉狗狗，在限时模式下 运行的时间期限 = （限时模式时间值 1 xor 限时模式时间值 2）其格式为 FFFF(年)FF(月)FF(日) 其中(日)的数据还作为解码 key 是用。打狗是把.gdata+8c=1 .gdata+3e=0 .gdata+94=0 .gdata+98=”时间数据文件名”(自己创建一个包含 20 个字节零的二进制文件)。下面重要的是要算出解码 key 作为运行时间的(日)字段。  
-  
-狗壳的解码算法如下  
-  
-len=0;  
-  
-while (len < .gdata+2ca)  
-  
-{  
-  
-       .gdata+7c\[len\] = .gdata+7c\[len\] – get\_key();  
-  
-       len++;  
-  
-}  
-  
-下面是狗壳里面算”解码 key”的代码 get\_key()，看着是不是很复杂其实很简单” ((0x35 \* 输入值) + 1) & 0xFF ”一行就行了够简单吧 J 。现在的任务就是找到开始算解码时用的初值，.gdata+7c 开始的 4 个字节原值都是 0(不能保证每个程序都是，如果不是就只能从 0-255 一个的一个的去试了)，那我们就知道第一个 key 就是.gdata+7c\[0\]的值，根据 get\_key()的算法我们很容易写一个程序去推算出那个初值。算出初值后我们就可以设置.gdata+2c 的值了=270F(9999)0C(12)?(key)  
-  
-.gtide:00453978 get\_key         proc near               ; CODE XREF: call\_api\_func+DD5p  
-  
-.gtide:00453978                                         ; read\_last\_rundate+30Ap ...  
-  
-.gtide:00453978   
-  
-.gtide:00453978 var\_18          = dword ptr -18h  
-  
-.gtide:00453978 var\_14          = dword ptr -14h  
-  
-.gtide:00453978 var\_10          = dword ptr -10h  
-  
-.gtide:00453978 var\_C           = dword ptr -0Ch  
-  
-.gtide:00453978 var\_8           = dword ptr -8  
-  
-.gtide:00453978 var\_4           = dword ptr -4  
-  
-.gtide:00453978   
-  
-.gtide:00453978                 push    ebp  
-  
-.gtide:00453979                 mov     ebp, esp  
-  
-.gtide:0045397B                 sub     esp, 18h  
-  
-.gtide:0045397E                 push    ebx  
-  
-.gtide:0045397F                 push    esi  
-  
-.gtide:00453980                 push    edi  
-  
-.gtide:00453981                 mov     eax, ds:key\_value  
-  
-.gtide:00453986                 shr     eax, 10h  
-  
-.gtide:00453989                 mov     \[ebp+var\_4\], eax  
-  
-.gtide:0045398C                 mov     eax, ds:key\_value  
-  
-.gtide:00453991                 and     eax, 0FFFFh  
-  
-.gtide:00453996                 mov     \[ebp+var\_8\], eax  
-  
-.gtide:00453999                 mov     \[ebp+var\_C\], 15Ah  
-  
-.gtide:004539A0                 mov     \[ebp+var\_14\], 4E35h  
-  
-.gtide:004539A7                 mov     eax, \[ebp+var\_C\]  
-  
-.gtide:004539AA                 imul    eax, \[ebp+var\_8\]  
-  
-.gtide:004539AE                 and     eax, 0FFFFh  
-  
-.gtide:004539B3                 mov     \[ebp+var\_10\], eax  
-  
-.gtide:004539B6                 cmp     \[ebp+var\_4\], 0  
-  
-.gtide:004539BA                 jz      short loc\_0\_4539CB  
-  
-.gtide:004539BC                 mov     eax, \[ebp+var\_14\]  
-  
-.gtide:004539BF                 imul    eax, \[ebp+var\_4\]  
-  
-.gtide:004539C3                 and     eax, 0FFFFh  
-  
-.gtide:004539C8                 add     \[ebp+var\_10\], eax  
-  
-.gtide:004539CB   
-  
-.gtide:004539CB loc\_0\_4539CB:                           ; CODE XREF: get\_key+42j  
-  
-.gtide:004539CB                 mov     eax, \[ebp+var\_14\]  
-  
-.gtide:004539CE                 imul    eax, \[ebp+var\_8\]  
-  
-.gtide:004539D2                 mov     ecx, \[ebp+var\_10\]  
-  
-.gtide:004539D5                 shl     ecx, 10h  
-  
-.gtide:004539D8                 and     ecx, 0FFFF0000h  
-  
-.gtide:004539DE                 add     eax, ecx  
-  
-.gtide:004539E0                 inc     eax  
-  
-.gtide:004539E1                 mov     \[ebp+var\_18\], eax  
-  
-.gtide:004539E4                 mov     eax, \[ebp+var\_18\]  
-  
-.gtide:004539E7                 mov     ds:key\_value, eax  
-  
-.gtide:004539EC                 shr     \[ebp+var\_18\], 10h  
-  
-.gtide:004539F0                 and     \[ebp+var\_18\], 7FFFh  
-  
-.gtide:004539F7                 mov     ax, word ptr \[ebp+var\_18\]  
-  
-.gtide:004539FB                 jmp     short $+2  
-  
-.gtide:004539FD                 pop     edi  
-  
-.gtide:004539FE                 pop     esi  
-  
-.gtide:004539FF                 pop     ebx  
-  
-.gtide:00453A00                 leave  
-  
-.gtide:00453A01                 retn  
-  
-.gtide:00453A01 get\_key         endp  
-  
-打掉狗狗后就要应付程序对狗狗的检测了，程序读狗是用了 CreateFile DeviceIoControl 等函数可以在那里下断点不过这些函数调用都很复杂，更好的方法是下载狗狗的开发包，根据程序的开发语言找到 GAW32?.OBJ 文件，程序都是用这个去操作狗，这个就以 GAW32VC.OBJ 为例。  
-  
-GAW32VC.obj 模块中提供了 6 个外部函数，分别为:      
-  
-unsigned long  CreateRandom()       产生 128 位随机数  
-  
-    unsigned long  GetCurrentNumber()   获取狗的流水号  
-  
-    unsigned long  Encrypt()            加密函数  
-  
-    unsigned long  Decrypt()            解密函数  
-  
-    unsigned long  EncryptEx()          扩展加密函数(2.1 版新加)  
-  
-    unsigned long  DecryptEx()          扩展解密函数(2.1 版新加)  
-  
-   
-  
-   它们要求调用者定义 4 个全局变量：  
-  
-    unsigned long  SerialNumber;      存放精灵狗系列号  
-  
-    unsigned long  UserKey;             存放用户密钥  
-  
-    void \* InDogData;             存放输入数据的指针   
-  
-    void \* OutDogData;            存放输出数据的指针  
-  
-大家可以好好地看一下这些函数的实现，里面有很多的花指令看的时候注意。一般情况下这些代码都会出现在代码段的开头部分。我们来关注一下下面的几行代码，我们看到了一个重要的全局变量\_OutDogData 如果 你在程序的代码段看到了这个，你就去看一下 ds:\_OutDogData 的地址，在那里你应该还能看到其他的几个全局变量，这几个变量的位置相对比较固定一般会被定义在一起，我们找到一个就可能全部找到，有了这几个关键的变量再加上那几个函数要弄清程序检测狗狗的方式和位置就很容易了，打狗就不在话下了。  
-  
-.text:00000003                 push    ecx  
-  
-.text:00000004                 push    ebx  
-  
-.text:00000005                 xor     ebx, ebx  
-  
-.text:00000007                 cmp     dword ptr ds:\_OutDogData, ebx  
-  
-最后我们再来关注一下 api 调用加密问题，狗狗加壳后会修改程序中的 api 调用代码，把调用 api 的代码替换为自己实现的代码。调用的过程  
-  
-比较复杂不好说清楚，我用一个实例来解释  
-  
-call    CloseHandle 原始的调用代码  
-  
-call    loc\_0\_456D4C 狗狗修改后的调用代码  
-  
-   
-  
-.gtide:00456D4C                 call    sub\_XXXXX          ; 这个就是狗狗的 api 调用代码，里面一通乱跳还有检测狗狗，最后用下面公式计算出来的地址去修改堆栈中的函数返回地址，来调用 api  
-  
-.gtide:00456D51                 dd 463FA5h                         ; 0x463FA5 – (0x00456D51& 0xFFFF) = api 的地址 
+## 概述
 
- 4dd466d0e1e0cc123afbe504da2462ca
+经过 2 个星期的奋斗终于搞定了彩虹精灵狗，在这个过程中对精灵狗的狗壳和常用的检测方法有了一些心得希望能与大家共享。
+
+总的来说精灵狗的狗壳强度不高，加密算法很简单可以通过穷举算出解码的数值。而且限制使用日期的功能设计简单，给我们留下了脱壳的简单方法。
+
+## 版本检测
+
+`精灵狗 api` 的版本，`精灵狗 api` 有 3 个版本（`1.0`、`2.0`、`2.1`）其中从 `2.0` 还是支持 `usb` 狗狗（本文中谈到的是 `2.0` 版本）。
+
+要确定程序适用的狗版本，可以在程序的 `.gdata` 段查找字符串 `"gawin32c.c"`，找到这个字符串后再向下看如果后面的字符串是 `"zhangzh"` 就表示使用的是 `2.0` 版本，如果是 `"PeterCheng"` 就表示使用的是 `2.1` 版本。
+
+你也可以到 `http://cn.safenet-nc.com/download/dog/ga.asp` 取下载精灵狗的开发套件在 `安装目录` 的 `Utility` 下有一个 `GetVer.exe` 文件运行后能检测程序使用的 `api` 版本 `2.001`->`2.0` 版本 `2.019`->`2.1` 版本。这两个版本的区别在于（`精灵狗开发套件 V2.1` 是在 `V2.0` 套件产品基础上进行的一次较大的升级。采用了`我公司`自主研发的第二代安全加密引擎，其中集成了最新的密码学理论和高强度加密算法，可以极大地提高受保护软件的防破解能力。同时增加了 `EncryptEx()` 和 `DecryptEx()` 接口函数。）
+
+## 全局变量
+
+精灵狗狗壳使用的全局变量：
+
+- `n` `.gdata+28` `dowrd` 程序的真实入口
+- `n` `.gdata+2c` `dowrd` 限时模式时间值 1
+- `n` `.gdata+3e` `dword` 限时模式时间值 2
+- `n` `.gdata+7c` `dword` 狗壳加密数据的地址
+- `n` `.gdata+8c` `dword` 运行在限时模式的标记 `1:OK` `0:NO`
+- `n` `.gdata+94` `dword` 限时模式下的解码 `key`
+- `n` `.gdata+98` `byte[]` 限时模式时的时间文件
+- `n` `.gdata+2ca` `dword` 狗壳加密数据的长度（一般为 `1k`）
+- `n` `.gdata+2ce` `dword` 解码 `key`
+
+## 限时模式与解码算法
+
+我们可以利用精灵狗的限时模式快速的打掉狗狗，在限时模式下 运行的时间期限 = （`限时模式时间值 1` xor `限时模式时间值 2`）其格式为 `FFF(F)(年)FF(月)FF(日)` 其中 `(日)` 的数据还作为解码 `key` 是用。
+
+打狗是把 `.gdata+8c=1` `.gdata+3e=0` `.gdata+94=0` `.gdata+98="时间数据文件名"` (自己创建一个包含 20 个字节零的二进制文件)。下面重要的是要算出解码 `key` 作为运行时间的 `(日)` 字段。
+
+狗壳的解码算法如下：
+
+```c
+len=0;
+while (len < .gdata+2ca)
+{
+    .gdata+7c[len] = .gdata+7c[len] – get_key();
+    len++;
+}
+```
+
+下面是狗壳里面算 “解码 `key`” 的代码 `get_key()`，看着是不是很复杂其实很简单 “ `((0x35 * 输入值) + 1) & 0xFF` ” 一行就行了够简单吧 J 。现在的任务就是找到开始算解码时用的初值，`.gdata+7c` 开始的 4 个字节原值都是 0(不能保证每个程序都是，如果不是就只能从 0-255 一个的一个的去试了)，那我们就知道第一个 `key` 就是 `.gdata+7c[0]` 的值，根据 `get_key()` 的算法我们很容易写一个程序去推算出那个初值。算出初值后我们就可以设置 `.gdata+2c` 的值了=`270F(9999)0C(12)?(key)`
+
+## 代码分析
+
+`get_key` 函数反汇编代码：
+
+```asm
+.gtide:00453978  get_key         proc near              ; CODE XREF: call_api_func+DD5p
+.gtide:00453978                                    ; read_last_rundate+30Ap ...
+.gtide:00453978 
+.gtide:00453978  var_18          = dword ptr -18h 
+.gtide:00453978  var_14          = dword ptr -14h 
+.gtide:00453978  var_10          = dword ptr -10h 
+.gtide:00453978  var_C           = dword ptr -0Ch 
+.gtide:00453978  var_8           = dword ptr -8 
+.gtide:00453978  var_4           = dword ptr -4 
+.gtide:00453978 
+.gtide:00453978                   push    ebp 
+.gtide:00453979                   mov     ebp, esp 
+.gtide:0045397B                   sub     esp, 18h 
+.gtide:0045397E                   push    ebx 
+.gtide:0045397F                   push    esi 
+.gtide:00453980                   push    edi 
+.gtide:00453981                   mov     eax, ds:key_value 
+.gtide:00453986                   shr     eax, 10h 
+.gtide:00453989                   mov     [ebp+var_4], eax 
+.gtide:0045398C                   mov     eax, ds:key_value 
+.gtide:00453991                   and     eax, 0FFFFh 
+.gtide:00453996                   mov     [ebp+var_8], eax 
+.gtide:00453999                   mov     [ebp+var_C], 15Ah 
+.gtide:004539A0                   mov     [ebp+var_14], 4E35h 
+.gtide:004539A7                   mov     eax, [ebp+var_C] 
+.gtide:004539AA                   imul    eax, [ebp+var_8] 
+.gtide:004539AE                   and     eax, 0FFFFh 
+.gtide:004539B3                   mov     [ebp+var_10], eax 
+.gtide:004539B6                   cmp     [ebp+var_4], 0 
+.gtide:004539BA                   jz      short loc_0_4539CB 
+.gtide:004539BC                   mov     eax, [ebp+var_14] 
+.gtide:004539BF                   imul    eax, [ebp+var_4] 
+.gtide:004539C3                   and     eax, 0FFFFh 
+.gtide:004539C8                   add     [ebp+var_10], eax 
+.gtide:004539CB 
+.gtide:004539CB  loc_0_4539CB:    ; CODE XREF: get_key+42j 
+.gtide:004539CB                   mov     eax, [ebp+var_14] 
+.gtide:004539CE                   imul    eax, [ebp+var_8] 
+.gtide:004539D2                   mov     ecx, [ebp+var_10] 
+.gtide:004539D5                   shl     ecx, 10h 
+.gtide:004539D8                   and     ecx, 0FFFF0000h 
+.gtide:004539DE                   add     eax, ecx 
+.gtide:004539E0                   inc     eax 
+.gtide:004539E1                   mov     [ebp+var_18], eax 
+.gtide:004539E4                   mov     eax, [ebp+var_18] 
+.gtide:004539E7                   mov     ds:key_value, eax 
+.gtide:004539EC                   shr     [ebp+var_18], 10h 
+.gtide:004539F0                   and     [ebp+var_18], 7FFFh 
+.gtide:004539F7                   mov     ax, word ptr [ebp+var_18] 
+.gtide:004539FB                   jmp     short $+2 
+.gtide:004539FD                   pop     edi 
+.gtide:004539FE                   pop     esi 
+.gtide:004539FF                   pop     ebx 
+.gtide:00453A00                   leave 
+.gtide:00453A01                   retn 
+.gtide:00453A01  get_key         endp
+```
+
+## 狗狗检测与模块分析
+
+打掉狗狗后就要应付程序对狗狗的检测了，程序读狗是用了 `CreateFile` `DeviceIoControl` 等函数可以在那里下断点不过这些函数调用都很复杂，更好的方法是下载狗狗的开发包，根据程序的开发语言找到 `GAW32?.OBJ` 文件，程序都是用这个去操作狗，这个就以 `GAW32VC.OBJ` 为例。
+
+`GAW32VC.obj` 模块中提供了 6 个外部函数，分别为:
+
+- `unsigned long CreateRandom()` 产生 128 位随机数
+- `unsigned long GetCurrentNumber()` 获取狗的流水号
+- `unsigned long Encrypt()` 加密函数
+- `unsigned long Decrypt()` 解密函数
+- `unsigned long EncryptEx()` 扩展加密函数(`2.1` 版新加)
+- `unsigned long DecryptEx()` 扩展解密函数(`2.1` 版新加)
+
+它们要求调用者定义 4 个全局变量：
+
+- `unsigned long SerialNumber;` 存放精灵狗系列号
+- `unsigned long UserKey;` 存放用户密钥
+- `void * InDogData;` 存放输入数据的指针
+- `void * OutDogData;` 存放输出数据的指针
+
+大家可以好好地看一下这些函数的实现，里面有很多的花指令看的时候注意。一般情况下这些代码都会出现在代码段的开头部分。我们来关注一下下面的几行代码，我们看到了一个重要的全局变量 `_OutDogData` 如果 你在程序的代码段看到了这个，你就去看一下 `ds:_OutDogData` 的地址，在那里你应该还能看到其他的几个全局变量，这几个变量的位置相对比较固定一般会被定义在一起，我们找到一个就可能全部找到，有了这几个关键的变量再加上那几个函数要弄清程序检测狗狗的方式和位置就很容易了，打狗就不在话下了。
+
+```asm
+.text:00000003             push    ecx 
+.text:00000004             push    ebx 
+.text:00000005             xor     ebx, ebx 
+.text:00000007             cmp     dword ptr ds:_OutDogData, ebx 
+```
+
+## API 调用加密
+
+最后我们再来关注一下 `api` 调用加密问题，狗狗加壳后会修改程序中的 `api` 调用代码，把调用 `api` 的代码替换为自己实现的代码。调用的过程 比较复杂不好说清楚，我用一个实例来解释：
+
+- `call CloseHandle` 原始的调用代码
+- `call loc_0_456D4C` 狗狗修改后的调用代码
+
+```asm
+.gtide:00456D4C             call    sub_XXXXX        ; 这个就是狗狗的 api 调用代码，里面一通乱跳还有检测狗狗，最后用下面公式计算出来的地址去修改堆栈中的函数返回地址，来调用 api
+.gtide:00456D51             dd 463FA5h              ; 0x463FA5 – (0x00456D51& 0xFFFF) = api 的地址 
+```

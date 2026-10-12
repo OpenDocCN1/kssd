@@ -1,249 +1,421 @@
 
-
 # KeyGenMeRSA
 
 > 原文：[`www.pediy.com/kssd/pediy04/kanxue107.htm`](https://www.pediy.com/kssd/pediy04/kanxue107.htm)
 
+```c
 #include "lip.h"   
+
 #include <string.h>   
-  
+
 void main()   
+
 {   
-    int i=0,j=0,f=0;   
-    verylong n=0;   
-    verylong d=0;   
-    verylong m=0;   
-    unsigned long M\[5\],M2\[5\];   
-    unsigned long temp;   
-    char modulus\_n\[\]="D2E9BF9B3D258E479D8CC23C7A33E1F8EBB3ADB1";   
-    char private\_d\[\]="C6546E0C11ACCE2543DD1150C4CE7A05A4C8FA3D";   
-    char UserName\[40\];   
-    char Company\[40\];   
-    int LenOfName=0,LenOfCompany=0;   
-  
-    for(i=0;i<5;i++)   
-    {   
-        M\[i\]=0;   
-        M2\[i\]=0;   
-    }   
-    i=0;   
-    j=0;   
-  
-    printf("\\n \*\*\*\*\*\*\* KeyGen of TMG KeyGenMeRSA (KeyGenMe#2) \*\*\*\*\*\*\* ");   
-    printf("\\n \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\* used freelip v1.1 \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\* ");   
-    printf("\\n \*\*\*\*\*\*\*\*\*\*\*\*\*\*\* by lancelot \[CCG\] \[FCG\] \*\*\*\*\*\*\*\*\*\*\*\*\*\* ");   
-       
-    do   
-    {   
-        printf("\\n\\n Please enter the username: ");   
-        gets(UserName);   
-        LenOfName=strlen(UserName);   
-        if(LenOfName<5)   
-            printf("\\n The username can't be less than 5 characters, please try again\\n");   
-    }   
-    while(LenOfName<5);   
-  
-    do   
-    {   
-        printf("\\n Please enter the company: ");   
-        gets(Company);   
-        LenOfCompany=strlen(Company);   
-        if(LenOfCompany<5)   
-            printf("\\n The company can't be less than 5 characters, please try again\\n");   
-    }   
-    while(LenOfCompany<5);   
-  
-/\* \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*UserName\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\* \*/   
-    M\[j\]=0xffffffff;   
-    M\[j\]&=0xffffff00;   
-    M\[j\]+=UserName\[i\];   
-    M\[j\]^=(UserName\[i\]\*0x100);   
-    M\[j\]\*=0x89177313;   
-    M\[j\]&=0x55aa55aa;   
-    M\[j\]\*=0x12299381;   
-    M\[j\]^=0xaa55aa11;   
-    M\[j\]\*=0x00000061;   
-    M\[j\]^=((M\[j\]&0x000000ff)\*0x100);   
-    M\[j\]|=0x10030118;   
-    M\[j\]\*=0x00988279;   
-                          /\* rcl (LenOfName-i) \*/   
-    \_asm   
-    {   
-        lahf   
-        mov f,eax   
-    }   
-    f=f&0x100;   
-  
-    if(f)   
-        M\[j\]=(((M\[j\]<<(LenOfName-i))|((M\[j\]&(0xffffffff<<(32-(LenOfName-i))))>>(33-(LenOfName-i))))|(0x00000001<<(LenOfName-1-i)));   
-       
-    else   
-        M\[j\]=((M\[j\]<<(LenOfName-i))|((M\[j\]&(0xffffffff<<(32-(LenOfName-i))))>>(33-(LenOfName-i))));   
-  
-    temp=M\[j\];   
-    M2\[j\]^=M\[j\];   
-  
-    for(i=1;i<LenOfName;i++)   
-    {   
-        j=(((0+(i-1)\*4)&0xf)/4)+1;   
-  
-        M\[j\]=temp;   
-        M\[j\]&=0xffffff00;   
-        M\[j\]+=UserName\[i\];   
-        M\[j\]^=(UserName\[i\]\*0x100);   
-        M\[j\]\*=0x89177313;   
-        M\[j\]&=0x55aa55aa;   
-        M\[j\]\*=0x12299381;   
-        M\[j\]^=0xaa55aa11;   
-        M\[j\]\*=0x00000061;   
-        M\[j\]^=((M\[j\]&0x000000ff)\*0x100);   
-        M\[j\]|=0x10030118;   
-        M\[j\]\*=0x00988279;   
-                              /\* rcl (LenOfName-i) \*/   
-           
-        \_asm   
-        {   
-            lahf   
-            mov f,eax   
-        }   
-        f=f&0x100;   
-  
-        if(f)   
-            M\[j\]=(((M\[j\]<<(LenOfName-i))|((M\[j\]&(0xffffffff<<(32-(LenOfName-i))))>>(33-(LenOfName-i))))|(0x00000001<<(LenOfName-1-i)));   
-        else   
-            M\[j\]=((M\[j\]<<(LenOfName-i))|((M\[j\]&(0xffffffff<<(32-(LenOfName-i))))>>(33-(LenOfName-i))));   
-  
-        temp=M\[j\];   
-        M2\[j\]^=M\[j\];   
-    }   
-  
-/\* \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*Company\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\* \*/   
-  
-    i=0;                              
-    M\[0\]=temp;   
-    for(i=1;i<5;i++) { M\[i\]=0; }   
-    i=0;   
-    j=0;   
-    M\[j\]&=0xffffff00;   
-    M\[j\]+=Company\[i\];   
-    M\[j\]=(M\[j\]&0xffff00ff)|(((M\[j\]&0x0000ff00)-(Company\[i\]\*0x100))&0x0000ff00);   
-    M\[j\]\*=0x89157313;   
-    M\[j\]&=0x55aa55aa;   
-    M\[j\]\*=0x12299387;   
-    M\[j\]|=0xaa55aa11;   
-    M\[j\]\*=0x00000061;   
-    M\[j\]^=0x10010114;   
-    M\[j\]\*=0x07918279;   
-    M\[j\]^=((M\[j\]&0x000000ff)\*0x100);   
-                                    /\* rcr (LenOfCompany-i) \*/   
-       
-    \_asm   
-    {   
-        lahf   
-        mov f,eax   
-    }   
-    f=f&0x100;   
-  
-    if(f)   
-        M\[j\]=(((M\[j\]>>(LenOfCompany-i))|((M\[j\]&(0xffffffff>>(32-(LenOfCompany-i))))<<(33-(LenOfCompany-i))))|(0x80000000>>(LenOfCompany-1-i)));       
-    else   
-        M\[j\]=((M\[j\]>>(LenOfCompany-i))|((M\[j\]&(0xffffffff>>(32-(LenOfCompany-i))))<<(33-(LenOfCompany-i))));   
-  
-    temp=M\[j\];   
-    M2\[j\]^=M\[j\];   
-  
-    for(i=1;i<LenOfCompany;i++)   
-    {   
-        j=(((0+(i-1)\*4)&0xf)/4)+1;   
-  
-        M\[j\]=temp;   
-        M\[j\]&=0xffffff00;   
-        M\[j\]+=Company\[i\];   
-        M\[j\]=(M\[j\]&0xffff00ff)|(((M\[j\]&0x0000ff00)-(Company\[i\]\*0x100))&0x0000ff00);   
-        M\[j\]\*=0x89157313;   
-        M\[j\]&=0x55aa55aa;   
-        M\[j\]\*=0x12299387;   
-        M\[j\]|=0xaa55aa11;   
-        M\[j\]\*=0x00000061;   
-        M\[j\]^=0x10010114;   
-        M\[j\]\*=0x07918279;   
-        M\[j\]^=((M\[j\]&0x000000ff)\*0x100);   
-                                          /\* rcr (LenOfCompany-i) \*/   
-           
-        \_asm   
-        {   
-            lahf   
-            mov f,eax   
-        }   
-        f=f&0x100;   
-  
-        if(f)   
-            M\[j\]=(((M\[j\]>>(LenOfCompany-i))|((M\[j\]&(0xffffffff>>(32-(LenOfCompany-i))))<<(33-(LenOfCompany-i))))|(0x80000000>>(LenOfCompany-1-i)));       
-        else   
-            /\* M\[j\]=((M\[j\]>>(LenOfCompany-i))|((M\[j\]&(0xffffffff>>(32-(LenOfCompany-i))))<<(33-(LenOfCompany-i)))); \*/   
-        {   
-            temp=M\[j\]&(0xffffffff>>(32-(LenOfCompany-i)));   
-            if(i==(LenOfCompany-1))   
-                temp=0;   
-            else   
-                temp=temp<<(33-(LenOfCompany-i));   
-            M\[j\]=((M\[j\]>>(LenOfCompany-i))|temp);   
-        }   
-  
-        temp=M\[j\];   
-        M2\[j\]^=M\[j\];   
-    }   
-  
-    temp-=M2\[2\];   
-    temp\*=0x34814815;   
-    M2\[4\]+=temp;   
-    temp=(temp>>0x0000000b);   
-    temp&=0x00000003;   
-    M2\[0\]&=0xffffff00;   
-    M2\[0\]+=temp;   
-       
-    for(i=0;i<5;i++)   
-    {   
-        temp=0;   
-        temp|=((M2\[i\]&0x000000ff)<<24);   
-        temp|=((M2\[i\]&0x0000ff00)<<8);   
-        temp|=((M2\[i\]&0x00ff0000)>>8);   
-        temp|=((M2\[i\]&0xff000000)>>24);   
-        M\[4-i\]=temp;   
-    }   
-  
-    zultoz(M, (long) 5,&m);           
-    zstrtozbas(modulus\_n, (long) 16, &n);   
-    zstrtozbas(private\_d, (long) 16, &d);   
-  
-    zexpmod(m,d,n,&m); /\* m = m^d % n \*/   
-      
-    printf("\\n your registration code is: "); /\* out put the result \*/   
-    zhwrite(m);   
-    printf("\\n\\n Please remove the space between the registration code manually.");   
-    printf("\\n\\n Press any key to continue...");   
-    getchar();   
-      
-    zfree(&d); /\* Clean up \*/   
-    zfree(&m);   
-    zfree(&n);   
-}   
-\======================================================================================   
-惭愧,这个 KeyGen 编译后,比那个 KeyGenMe 大了 20 几倍。   
-  
-感谢看雪论坛上众多前辈的热情帮助，特别感谢 arbiter 、伪装者\[CCG\], 我感觉我好像快要摸到   
-crack 的大门了，呵呵。   
-\========================================================   
-          ,;~;,   
-                /\\\_   
-              (  /   
-              (()      //)   
-              | \\\\  ,,;;'\\   
-          \_\_ \_(  )m=(lancelot(================--------   
-        /'  ' '()/~' '.(, |   
-      ,;(      )||    |  ~   
-    ,;' \\    /-(.;,  )            兰斯洛特\[CCG\]\[FCG\]   
-          ) /      ) /   
-        //        ||                      2001.10.11   
-        )\_\\        )\_\\   
-\==========================================================  4dd466d0e1e0cc123afbe504da2462ca
+
+  int i=0,j=0,f=0;   
+
+  verylong n=0;   
+
+  verylong d=0;   
+
+  verylong m=0;   
+
+  unsigned long M[5],M2[5];   
+
+  unsigned long temp;   
+
+  char modulus_n[]="D2E9BF9B3D258E479D8CC23C7A33E1F8EBB3ADB1";   
+
+  char private_d[]="C6546E0C11ACCE2543DD1150C4CE7A05A4C8FA3D";   
+
+  char UserName[40];   
+
+  char Company[40];   
+
+  int LenOfName=0,LenOfCompany=0;   
+
+  for(i=0;i<5;i++)   
+
+  {   
+
+    M[i]=0;   
+
+    M2[i]=0;   
+
+  }   
+
+  i=0;   
+
+  j=0;   
+
+  printf("\n ****** KeyGen of TMG KeyGenMeRSA (KeyGenMe#2) ****** ");   
+
+  printf("\n ***************** used freelip v1.1 ***************** ");   
+
+  printf("\n **************** by lancelot [CCG] [FCG] **************** ");   
+
+  do   
+
+  {   
+
+    printf("\n\n Please enter the username: ");   
+
+    gets(UserName);   
+
+    LenOfName=strlen(UserName);   
+
+    if(LenOfName<5)   
+
+      printf("\n The username can't be less than 5 characters, please try again\n");   
+
+  }   
+
+  while(LenOfName<5);   
+
+  do   
+
+  {   
+
+    printf("\n Please enter the company: ");   
+
+    gets(Company);   
+
+    LenOfCompany=strlen(Company);   
+
+    if(LenOfCompany<5)   
+
+      printf("\n The company can't be less than 5 characters, please try again\n");   
+
+  }   
+
+  while(LenOfCompany<5);   
+
+/* ****************************UserName************************************ */   
+
+  M[j]=0xffffffff;   
+
+ M[j]&=0xffffff00;   
+
+ M[j]+=UserName[i];   
+
+ M[j]^=(UserName[i]*0x100);   
+
+ M[j]*=0x89177313;   
+
+ M[j]&=0x55aa55aa;   
+
+ M[j]*=0x12299381;   
+
+ M[j]^=0xaa55aa11;   
+
+ M[j]*=0x00000061;   
+
+ M[j]^=((M[j]&0x000000ff)*0x100);   
+
+ M[j]|=0x10030118;   
+
+ M[j]*=0x00988279;   
+
+                 /* rcl (LenOfName-i) */   
+
+ _asm   
+
+ {   
+
+   lahf   
+
+   mov f,eax   
+
+ }   
+
+ f=f&0x100;   
+
+ if(f)   
+
+   M[j]=(((M[j]<<(LenOfName-i))|((M[j]&(0xffffffff<<(32-(LenOfName-i))))>>(33-(LenOfName-i))))|(0x00000001<<(LenOfName-1-i)));   
+
+ else   
+
+   M[j]=((M[j]<<(LenOfName-i))|((M[j]&(0xffffffff<<(32-(LenOfName-i))))>>(33-(LenOfName-i))));   
+
+ temp=M[j];   
+
+ M2[j]^=M[j];   
+
+ for(i=1;i<LenOfName;i++)   
+
+ {   
+
+   j=(((0+(i-1)*4)&0xf)/4)+1;   
+
+   M[j]=temp;   
+
+   M[j]&=0xffffff00;   
+
+   M[j]+=UserName[i];   
+
+   M[j]^=(UserName[i]*0x100);   
+
+   M[j]*=0x89177313;   
+
+   M[j]&=0x55aa55aa;   
+
+   M[j]*=0x12299381;   
+
+   M[j]^=0xaa55aa11;   
+
+   M[j]*=0x00000061;   
+
+   M[j]^=((M[j]&0x000000ff)*0x100);   
+
+   M[j]|=0x10030118;   
+
+   M[j]*=0x00988279;   
+
+                   /* rcl (LenOfName-i) */   
+
+   _asm   
+
+   {   
+
+     lahf   
+
+     mov f,eax   
+
+   }   
+
+   f=f&0x100;   
+
+   if(f)   
+
+     M[j]=(((M[j]<<(LenOfName-i))|((M[j]&(0xffffffff<<(32-(LenOfName-i))))>>(33-(LenOfName-i))))|(0x00000001<<(LenOfName-1-i)));   
+
+   else   
+
+     M[j]=((M[j]<<(LenOfName-i))|((M[j]&(0xffffffff<<(32-(LenOfName-i))))>>(33-(LenOfName-i))));   
+
+   temp=M[j];   
+
+   M2[j]^=M[j];   
+
+ }   
+
+/* ****************************Company************************************ */   
+
+ i=0;                              
+
+ M[0]=temp;   
+
+ for(i=1;i<5;i++) { M[i]=0; }   
+
+ i=0;   
+
+ j=0;   
+
+ M[j]&=0xffffff00;   
+
+ M[j]+=Company[i];   
+
+ M[j]=(M[j]&0xffff00ff)|(((M[j]&0x0000ff00)-(Company[i]*0x100))&0x0000ff00);   
+
+ M[j]*=0x89157313;   
+
+ M[j]&=0x55aa55aa;   
+
+ M[j]*=0x12299387;   
+
+ M[j]|=0xaa55aa11;   
+
+ M[j]*=0x00000061;   
+
+ M[j]^=0x10010114;   
+
+ M[j]*=0x07918279;   
+
+ M[j]^=((M[j]&0x000000ff)*0x100);   
+
+                /* rcr (LenOfCompany-i) */   
+
+ _asm   
+
+ {   
+
+   lahf   
+
+   mov f,eax   
+
+ }   
+
+ f=f&0x100;   
+
+ if(f)   
+
+   M[j]=(((M[j]>>(LenOfCompany-i))|((M[j]&(0xffffffff>>(32-(LenOfCompany-i))))<<(33-(LenOfCompany-i))))|(0x80000000>>(LenOfCompany-1-i)));   
+
+ else   
+
+   M[j]=((M[j]>>(LenOfCompany-i))|((M[j]&(0xffffffff>>(32-(LenOfCompany-i))))<<(33-(LenOfCompany-i))));   
+
+ temp=M[j];   
+
+ M2[j]^=M[j];   
+
+ for(i=1;i<LenOfCompany;i++)   
+
+ {   
+
+   j=(((0+(i-1)*4)&0xf)/4)+1;   
+
+   M[j]=temp;   
+
+   M[j]&=0xffffff00;   
+
+   M[j]+=Company[i];   
+
+   M[j]=(M[j]&0xffff00ff)|(((M[j]&0x0000ff00)-(Company[i]*0x100))&0x0000ff00);   
+
+   M[j]*=0x89157313;   
+
+   M[j]&=0x55aa55aa;   
+
+   M[j]*=0x12299387;   
+
+   M[j]|=0xaa55aa11;   
+
+   M[j]*=0x00000061;   
+
+   M[j]^=0x10010114;   
+
+   M[j]*=0x07918279;   
+
+   M[j]^=((M[j]&0x000000ff)*0x100);   
+
+                   /* rcr (LenOfCompany-i) */   
+
+   _asm   
+
+   {   
+
+     lahf   
+
+     mov f,eax   
+
+   }   
+
+   f=f&0x100;   
+
+   if(f)   
+
+     M[j]=(((M[j]>>(LenOfCompany-i))|((M[j]&(0xffffffff>>(32-(LenOfCompany-i))))<<(33-(LenOfCompany-i))))|(0x80000000>>(LenOfCompany-1-i)));   
+
+   else   
+
+     /* M[j]=((M[j]>>(LenOfCompany-i))|((M[j]&(0xffffffff>>(32-(LenOfCompany-i))))<<(33-(LenOfCompany-i)))); */   
+
+     {   
+
+       temp=M[j]&(0xffffffff>>(32-(LenOfCompany-i)));   
+
+       if(i==(LenOfCompany-1))   
+
+         temp=0;   
+
+       else   
+
+         temp=temp<<(33-(LenOfCompany-i));   
+
+       M[j]=((M[j]>>(LenOfCompany-i))|temp);   
+
+     }   
+
+   temp=M[j];   
+
+   M2[j]^=M[j];   
+
+ }   
+
+ temp-=M2[2];   
+
+ temp*=0x34814815;   
+
+ M2[4]+=temp;   
+
+ temp=(temp>>0x0000000b);   
+
+ temp&=0x00000003;   
+
+ M2[0]&=0xffffff00;   
+
+ M2[0]+=temp;   
+
+ for(i=0;i<5;i++)   
+
+ {   
+
+   temp=0;   
+
+   temp|=((M2[i]&0x000000ff)<<24);   
+
+   temp|=((M2[i]&0x0000ff00)<<8);   
+
+   temp|=((M2[i]&0x00ff0000)>>8);   
+
+   temp|=((M2[i]&0xff000000)>>24);   
+
+   M[4-i]=temp;   
+
+ }   
+
+ zultoz(M, (long) 5,&m);         
+
+ zstrtozbas(modulus_n, (long) 16, &n);   
+
+ zstrtozbas(private_d, (long) 16, &d);   
+
+ zexpmod(m,d,n,&m); /* m = m^d % n */   
+
+ printf("\n your registration code is: "); /* out put the result */   
+
+ zhwrite(m);   
+
+ printf("\n\n Please remove the space between the registration code manually.");   
+
+ printf("\n\n Press any key to continue...");   
+
+ getchar();   
+
+ zfree(&d); /* Clean up */   
+
+ zfree(&m);   
+
+ zfree(&n);   
+
+}
+```
+
+======================================================================================
+
+惭愧,这个 `KeyGen` 编译后,比那个 `KeyGenMe` 大了 20 几倍。
+
+感谢看雪论坛上众多前辈的热情帮助，特别感谢 `arbiter`、`伪装者[CCG]`，我感觉我好像快要摸到 `crack` 的大门了，呵呵。
+
+========================================================
+
+```
+          ,;~;,
+              /\\_
+              ( /
+              (()      //)
+              | \\  ,,;;'\
+              _\_(  )m=(lancelot(================--------
+           /'  ' '()/~' '.(, |
+       ,;(      )||   |  ~
+     ,;' \   /-(.;,  )             兰斯洛特[CCG][FCG]
+         ) /     ) /
+         //       ||                    2001.10.11
+         )_\       )_\
+```
+
+
+
+`==========================================================`  `4dd466d0e1e0cc123afbe504da2462ca`

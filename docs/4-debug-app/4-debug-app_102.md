@@ -1,318 +1,510 @@
 
-
 # 51 彩虹逆向分析
 
 > 原文：[`www.pediy.com/kssd/pediy12/131916.html`](https://www.pediy.com/kssd/pediy12/131916.html)
 
-51 彩虹协议分析(版本号：2010 Beta1 1.5.0.51)  
-登录号：4209379  
-昵称：rerealed  
-错误登录密码：123456  
-打开彩虹 QQ，用 Ollydbg 附加程序。  
-设置 2 个断点 send 和 sendto  
-运行程序，断在下面  
-0012F8A4   004D7027  /CALL 到 send 来自 CommonLi.004D7021  
-0012F8A8   0000093C  |Socket = 93C  
-0012F8AC   04DF8568  |Data = 04DF8568  
-0012F8B0   0000003B  |DataSize = 3B (59.)  
-0012F8B4   00000000  \\Flags = 0  
-  
-我们查看下 Data 中数据，如下：  
-  
-04DF8568  00 00 3B 00 0B 00 10 00 00 04 04 66 03 44 83 9A  ..;.  
+51 彩虹协议分析(版本号：2010 Beta1 1.5.0.51)
+
+登录号：`4209379`
+
+昵称：`rerealed`
+
+错误登录密码：`123456`
+
+打开彩虹 QQ，用 `Ollydbg` 附加程序。
+
+设置 2 个断点 `send` 和 `sendto`
+
+运行程序，断在下面
+
+```
+0012F8A4   004D7027  /CALL 到 send 来自 CommonLi.004D7021  
+0012F8A8   0000093C  |Socket = 93C  
+0012F8AC   04DF8568  |Data = 04DF8568  
+0012F8B0   0000003B  |DataSize = 3B (59.)  
+0012F8B4   00000000  \\Flags = 0  
+```
+
+我们查看下 `Data` 中数据，如下：
+
+```
+04DF8568  00 00 3B 00 0B 00 10 00 00 04 04 66 03 44 83 9A  ..;.  
 ...fD  
-04DF8578  66 2D 4E 4F 5F 1B D7 EF 67 4C 5F AB 9A 14 CD 48  f-NO\_ 罪 gL\_  
-04DF8588  DE EF E2 E1 1D 65 BB E8 E3 52 5F BC 41 F9 DA 14  揎忉 e 昏\_  
-04DF8598  41 39 2F F1 D0 47 32 CE D0 87 A6                 A9/裥 G2 涡...  
-  
-这个是经过处理的数据，于是我们跟随 send 函数，来到 004d7021。  
-向上查找：  
-004D6FB0    55              push    ebp  
-004D6FB1    8BEC            mov     ebp, esp  
-004D6FB3    83E4 F8         and     esp, FFFFFFF8  
-004D6FB6    83EC 14         sub     esp, 14  
-004D6FB9    8379 10 02      cmp     dword ptr \[ecx+10\], 2  
-004D6FBD    53              push    ebx  
-004D6FBE    56              push    esi  
-004D6FBF    57              push    edi  
-004D6FC0    894C24 10       mov     dword ptr \[esp+10\], ecx  
-004D6FC4    0F85 C2000000   jnz     004D708C  
-004D6FCA    8B41 18         mov     eax, dword ptr \[ecx+18\]  
-004D6FCD    85C0            test    eax, eax  
-004D6FCF    8D79 14         lea     edi, dword ptr \[ecx+14\]  
-004D6FD2    74 0B           je      short 004D6FDF  
-004D6FD4    8B4F 08         mov     ecx, dword ptr \[edi+8\]  
-004D6FD7    2BC8            sub     ecx, eax  
-004D6FD9    0F85 AD000000   jnz     004D708C  
-004D6FDF    8B5D 0C         mov     ebx, dword ptr \[ebp+C\]  
-004D6FE2    0FB753 01       movzx   edx, word ptr \[ebx+1\]  
-004D6FE6    0FB773 01       movzx   esi, word ptr \[ebx+1\]  
-004D6FEA    52              push    edx  
-004D6FEB    897424 18       mov     dword ptr \[esp+18\], esi  
-004D6FEF    FF15 380B4E00   call    dword ptr \[<&WS2\_32.#9>\]         ; WS2\_32.ntohs  
-004D6FF5    66:8943 01      mov     word ptr \[ebx+1\], ax  
-004D6FF9    8B43 09         mov     eax, dword ptr \[ebx+9\]  
-004D6FFC    85C0            test    eax, eax  
-004D6FFE    74 07           je      short 004D7007  
-004D7000    8B4B 0D         mov     ecx, dword ptr \[ebx+D\]  
-004D7003    2BC8            sub     ecx, eax  
-004D7005    75 06           jnz     short 004D700D  
-004D7007    FF15 68094E00   call    dword ptr \[<&MSVCR80.\_invalid\_pa>; MSVCR80.\_invalid\_parameter\_noinfo  
-004D700D    8B5424 10       mov     edx, dword ptr \[esp+10\]  
-004D7011    8B42 0C         mov     eax, dword ptr \[edx+C\]  
-004D7014    83F8 FF         cmp     eax, -1  
-004D7017    8B4B 09         mov     ecx, dword ptr \[ebx+9\]  
-004D701A    74 11           je      short 004D702D  
-004D701C    6A 00           push    0  
-004D701E    56              push    esi  
-004D701F    51              push    ecx  
-004D7020    50              push    eax  
-004D7021    FF15 600B4E00   call    dword ptr \[<&WS2\_32.#19>\]        ; WS2\_32.send  
-  
-向上逐层设置断点，并在内存中查找固定长度的报头，直到没有产生报头处：  
-0040A59B  |> \\837C24 64 00  cmp     dword ptr \[esp+64\], 0  
-0040A5A0  |.  0F84 8B000000 je      0040A631  
-  
-从这里开始，查找内存，能查到用户名和登录号的 unicode，但是没有 send 包的内容，于是断在此处。  
-从这里向下直到 send 函数，程序多次调用 IM.dll 模块，猜想用户名和登录号的加密可能在 im.dll 中经行。  
-调用 rand 函数生成随机数：  
-05C0A390    FF15 8C44C205   call    dword ptr \[<&MSVCR80.srand>\]     ; MSVCR80.srand  
-05C0A396    83C4 04         add     esp, 4  
-05C0A399    C605 F8F5C305 0>mov     byte ptr \[5C3F5F8\], 1  
-05C0A3A0    8B35 8844C205   mov     esi, dword ptr \[<&MSVCR80.rand>\] ; MSVCR80.rand  
-05C0A3A6    FFD6            call    esi  
-  
-0013F7B0   05C0A396  /CALL 到 srand 来自 im.05C0A390  
-0013F7B4   4CAE8928  \\seed = 4CAE8928 (1286506792.)  
-把再调用 rand 函数处理 seed  
-  
-7816D5F5    8B48 14         mov     ecx, dword ptr \[eax+14\]  
-7816D5F8    69C9 FD430300   imul    ecx, ecx, 343FD  
-7816D5FE    81C1 C39E2600   add     ecx, 269EC3  
-7816D604    8948 14         mov     dword ptr \[eax+14\], ecx  
-7816D607    8BC1            mov     eax, ecx  
-7816D609    C1E8 10         shr     eax, 10  
-7816D60C    25 FF7F0000     and     eax, 7FFF  
-  
-05C0A3A8    25 FFFFFF7F     and     eax, 7FFFFFFF  
-05C0A3AD    83C0 01         add     eax, 1  
-05C0A3B0    A3 A4E7C305     mov     dword ptr \[5C3E7A4\], eax  
-  
-7816D5F5    8B48 14         mov     ecx, dword ptr \[eax+14\]  
-7816D5F8    69C9 FD430300   imul    ecx, ecx, 343FD  
-7816D5FE    81C1 C39E2600   add     ecx, 269EC3  
-7816D604    8948 14         mov     dword ptr \[eax+14\], ecx  
-7816D607    8BC1            mov     eax, ecx  
-7816D609    C1E8 10         shr     eax, 10  
-7816D60C    25 FF7F0000     and     eax, 7FFF  
-2 次处理后产生一个随机数，比如 00002362.  
-05C0A3C8    25 FF3F0000     and     eax, 3FFF  
-05C0A3CD    66:A3 ACEFC305  mov     word ptr \[5C3EFAC\], ax  
-05C0A3D3    A1 A4E7C305     mov     eax, dword ptr \[5C3E7A4\]  
-05C0A3D8    C605 B8DFC305 0>mov     byte ptr \[5C3DFB8\], 0  
-05C0A3DF    5E              pop     esi  
-05C0A3E0    A3 A8EFC305     mov     dword ptr \[5C3EFA8\], eax  
-05C0A3E5    83C4 08         add     esp, 8  
-再次调用 2 次 rand，最后产生一个比如 7E74 的数。  
-下面是对登录号具体的操作过程：  
-  
-把登录号从 0013f900copy 到 0013E649 里面。  
-05C0DAF4    3B77 14         cmp     esi, dword ptr \[edi+14\]  
-05C0DAF7    76 06           jbe     short 05C0DAFF  
-05C0DAF9    FF15 3044C205   call    dword ptr \[<&MSVCR80.\_invalid\_pa>; MSVCR80.\_invalid\_parameter\_noinfo  
-05C0DAFF    837F 18 10      cmp     dword ptr \[edi+18\], 10  
-05C0DB03    72 05           jb      short 05C0DB0A  
-05C0DB05    8B45 00         mov     eax, dword ptr \[ebp\]  
-05C0DB08    EB 02           jmp     short 05C0DB0C  
-05C0DB0A    8BC5            mov     eax, ebp                         ; 对登录号的操作  
-05C0DB0C    8A0430          mov     al, byte ptr \[eax+esi\]  
-05C0DB0F    884434 1D       mov     byte ptr \[esp+esi+1D\], al  
-05C0DB13    83C6 01         add     esi, 1  
-05C0DB16    3BF3            cmp     esi, ebx  
-05C0DB18  ^ 72 DA           jb      short 05C0DAF4  
-  
-把字串 IM\_CLIENT 拷贝到 0013E6AC。  
-7814448A    8A0A            mov     cl, byte ptr \[edx\]  
-7814448C    8808            mov     byte ptr \[eax\], cl  
-7814448E    40              inc     eax  
-7814448F    42              inc     edx  
-78144490    3ACB            cmp     cl, bl  
-78144492    74 08           je      short 7814449C  
-78144494    4F              dec     edi  
-78144495    74 05           je      short 7814449C  
-78144497    FF4D 14         dec     dword ptr \[ebp+14\]  
-7814449A  ^ 75 EE           jnz     short 7814448A  
-  
-拷贝 md5 码到 0013E7D4.  
-05C0DBE0    3B75 14         cmp     esi, dword ptr \[ebp+14\]  
-05C0DBE3    76 06           jbe     short 05C0DBEB  
-05C0DBE5    FF15 3044C205   call    dword ptr \[<&MSVCR80.\_invalid\_pa>; MSVCR80.\_invalid\_parameter\_noinfo  
-05C0DBEB    837D 18 10      cmp     dword ptr \[ebp+18\], 10  
-05C0DBEF    72 04           jb      short 05C0DBF5  
-05C0DBF1    8B03            mov     eax, dword ptr \[ebx\]  
-05C0DBF3    EB 02           jmp     short 05C0DBF7  
-05C0DBF5    8BC3            mov     eax, ebx  
-05C0DBF7    8A0430          mov     al, byte ptr \[eax+esi\]  
-05C0DBFA    888434 A8010000 mov     byte ptr \[esp+esi+1A8\], al  
-05C0DC01    83C6 01         add     esi, 1  
-05C0DC04    3BF7            cmp     esi, edi  
-05C0DC06  ^ 72 D8           jb      short 05C0DBE0  
-调用随机数函数：  
-05C179A6    FF15 8844C205   call    dword ptr \[<&MSVCR80.rand>\]      ; MSVCR80.rand  
-EAX 的返回值为 00007316  
-05C179AC    24 F8           and     al, 0F8  
-05C179AE    0AC3            or      al, bl  
-05C179B0    BD 01000000     mov     ebp, 1  
-05C179B5    3BDD            cmp     ebx, ebp  
-05C179B7    884424 2C       mov     byte ptr \[esp+2C\], al            ; al 放入 00136e10  
-05C179BB    7C 14           jl      short 05C179D1  
-05C179BD    8D49 00         lea     ecx, dword ptr \[ecx\]             ; ecx 等于 73163D9D  
-看的出 EAX 去的是随机数的前 16 位。随后又进行了一番运算，al 等于 12.  
-05C179C0    FF15 8844C205   call    dword ptr \[<&MSVCR80.rand>\]      ; MSVCR80.rand  
-再次调用 rand 函数，这次产生的随机数为 481899EC  
-EAX 返回前 16 位，为 00004818  
-05C179C6    88442C 2C       mov     byte ptr \[esp+ebp+2C\], al  
-05C179CA    83C5 01         add     ebp, 1  
-05C179CD    3BEB            cmp     ebp, ebx  
-05C179CF  ^ 7E EF           jle     short 05C179C0  
-这边 ebp 和 ebx 比较，再次调用 rand 函数：  
-产生随机数 7E8380FF。  
-下面是把 51AUTH 复制的操作：  
-05C179EB    E8 261B0000     call    <jmp.&MSVCR80.memcpy>  
-复制到 0013E613.  
-  
-复制登录号到 0013e819  
-78145048    23D1            and     edx, ecx  
-7814504A    8A06            mov     al, byte ptr \[esi\]  
-7814504C    8807            mov     byte ptr \[edi\], al  
-7814504E    8A46 01         mov     al, byte ptr \[esi+1\]             ; 把登录号复制到 0013e819  
-78145051    8847 01         mov     byte ptr \[edi+1\], al  
-78145054    8A46 02         mov     al, byte ptr \[esi+2\]  
-78145057    C1E9 02         shr     ecx, 2  
-7814505A    8847 02         mov     byte ptr \[edi+2\], al  
-7814505D    83C6 03         add     esi, 3  
-78145060    83C7 03         add     edi, 3  
-78145063    83F9 08         cmp     ecx, 8  
-  
-登录号异或：  
-05C17A89    E8 C2FDFFFF     call    05C17850  
-05C17A8E    0FB655 00       movzx   edx, byte ptr \[ebp\]  
-05C17A92    3017            xor     byte ptr \[edi\], dl  
-05C17A94    0FB645 01       movzx   eax, byte ptr \[ebp+1\]  
-05C17A98    3047 01         xor     byte ptr \[edi+1\], al  
-05C17A9B    0FB64D 02       movzx   ecx, byte ptr \[ebp+2\]  
-05C17A9F    304F 02         xor     byte ptr \[edi+2\], cl  
-05C17AA2    0FB655 03       movzx   edx, byte ptr \[ebp+3\]  
-05C17AA6    3057 03         xor     byte ptr \[edi+3\], dl  
-05C17AA9    0FB645 04       movzx   eax, byte ptr \[ebp+4\]  
-05C17AAD    3047 04         xor     byte ptr \[edi+4\], al  
-05C17AB0    0FB64D 05       movzx   ecx, byte ptr \[ebp+5\]  
-05C17AB4    304F 05         xor     byte ptr \[edi+5\], cl  
-05C17AB7    0FB655 06       movzx   edx, byte ptr \[ebp+6\]  
-05C17ABB    3057 06         xor     byte ptr \[edi+6\], dl  
-05C17ABE    0FB645 07       movzx   eax, byte ptr \[ebp+7\]  
-05C17AC2    3047 07         xor     byte ptr \[edi+7\], al  
-05C17AC5    8B4424 18       mov     eax, dword ptr \[esp+18\]  
-  
-下面是用 TEA 算法对登录号经行加密，加密后如下：  
-05C17850    85D2            test    edx, edx  
-05C17852    8B08            mov     ecx, dword ptr \[eax\]            ; 登录号 9？4  
-05C17854    8B40 04         mov     eax, dword ptr \[eax+4\]           ; 登录号 2093  
-05C17857    53              push    ebx  
-05C17858    8B5C24 08       mov     ebx, dword ptr \[esp+8\]  
-05C1785C    55              push    ebp  
-05C1785D    57              push    edi  
-05C1785E    7E 64           jle     short 05C178C4  
-05C17860    69D2 B979379E   imul    edx, edx, 9E3779B9               ; edx==sum  
-05C17866    8BFA            mov     edi, edx  
-05C17868    33D2            xor     edx, edx  
-05C1786A    85FF            test    edi, edi  
-05C1786C    0F84 A3000000   je      05C17915  
-05C17872    8BD8            mov     ebx, eax  
-05C17874    C1EB 05         shr     ebx, 5  
-05C17877    8BE8            mov     ebp, eax  
-05C17879    C1E5 04         shl     ebp, 4  
-05C1787C    33DD            xor     ebx, ebp  
-05C1787E    03D8            add     ebx, eax  
-05C17880    8BEA            mov     ebp, edx  
-05C17882    83E5 03         and     ebp, 3  
-05C17885    8B2CAE          mov     ebp, dword ptr \[esi+ebp\*4\]  
-05C17888    03EA            add     ebp, edx  
-05C1788A    33DD            xor     ebx, ebp  
-05C1788C    03CB            add     ecx, ebx  
-05C1788E    8BD9            mov     ebx, ecx  
-05C17890    C1EB 05         shr     ebx, 5  
-05C17893    8BE9            mov     ebp, ecx  
-05C17895    C1E5 04         shl     ebp, 4  
-05C17898    33DD            xor     ebx, ebp  
-05C1789A    81EA 4786C861   sub     edx, 61C88647  
-05C178A0    8BEA            mov     ebp, edx  
-05C178A2    C1ED 0B         shr     ebp, 0B  
-05C178A5    83E5 03         and     ebp, 3  
-05C178A8    8B2CAE          mov     ebp, dword ptr \[esi+ebp\*4\]  
-05C178AB    03D9            add     ebx, ecx  
-05C178AD    03EA            add     ebp, edx  
-05C178AF    33DD            xor     ebx, ebp  
-05C178B1    03C3            add     eax, ebx  
-05C178B3    3BD7            cmp     edx, edi  
-05C178B5  ^ 75 BB           jnz     short 05C17872  
-  
-加密后的 48 字节：  
-0013F018  66 CD 95 62 FB A2 56 B9 3A E5 CD 9E 82 5E 4E D7  fbV?逋^N  
-0013F028  65 A7 28 4D 0F 90 3A 1E 93 2B BA 06 FE 9A A0 AB  e?M?????  
-0013F038  09 9F 9A C5 A5 52 DF 9F CC 9C 6E 3E C2 78 CC 7A  .钮 Rn>  
-  
-11 个固定字节报头 00 00 3B 00 0B 00 10 00 00 04 04 生成：  
-05C0DD44    83C4 0C         add     esp, 0C  
-05C0DD47    8BF0            mov     esi, eax  
-05C0DD49    8B9C24 08010000 mov     ebx, dword ptr \[esp+108\]  
-05C0DD50    0FB68C24 040100>movzx   ecx, byte ptr \[esp+104\]  
-05C0DD58    8D2C1E          lea     ebp, dword ptr \[esi+ebx\]  
-05C0DD5B    66:89AC24 06010>mov     word ptr \[esp+106\], bp  
-05C0DD63    8B9424 06010000 mov     edx, dword ptr \[esp+106\]  
-05C0DD6A    52              push    edx  
-05C0DD6B    880D A8E7C305   mov     byte ptr \[5C3E7A8\], cl  
-05C0DD71    FFD7            call    edi  
-  
-05C0DD73    53              push    ebx  
-05C0DD74    66:A3 A9E7C305  mov     word ptr \[5C3E7A9\], ax  
-05C0DD7A    FFD7            call    edi  
-05C0DD7C    66:A3 ABE7C305  mov     word ptr \[5C3E7AB\], ax  
-05C0DD82    8B8424 0A010000 mov     eax, dword ptr \[esp+10A\]  
-05C0DD89    50              push    eax  
-05C0DD8A    FFD7            call    edi  
-05C0DD8C    8B8C24 0C010000 mov     ecx, dword ptr \[esp+10C\]  
-05C0DD93    51              push    ecx  
-05C0DD94    66:A3 ADE7C305  mov     word ptr \[5C3E7AD\], ax  
-05C0DD9A    FFD7            call    edi  
-05C0DD9C    0FBFBC24 100100>movsx   edi, word ptr \[esp+110\]  
-05C0DDA4    66:8B9424 0E010>mov     dx, word ptr \[esp+10E\]  
-05C0DDAC    66:A3 AFE7C305  mov     word ptr \[5C3E7AF\], ax  
-05C0DDB2    57              push    edi  
-05C0DDB3    8D8424 16010000 lea     eax, dword ptr \[esp+116\]  
-05C0DDBA    50              push    eax  
-05C0DDBB    68 B3E7C305     push    05C3E7B3  
-05C0DDC0    66:8915 B1E7C30>mov     word ptr \[5C3E7B1\], dx  
-  
-此时内存中：  
-05C3E79D  00 00 00 00 00 00 00 00 00 00 00 00 00 3B 00 0B  .............;.  
-05C3E7AD  00 10 00 00 04 04 00 00 00 00 00 00 00 00 00 00  .............  
-在报头后面加入加密后的报文：  
-05C0DDDF    E8 32B70000     call    <jmp.&MSVCR80.memcpy>  
-0013E620   05C3E7B3  |dest = im.05C3E7B3  
-0013E624   0013F018  |src = 0013F018  
-0013E628   00000030  \\n = 30 (48.)  
-后面的加密报文：  
-05C3E7A3  00 00 00 00 00 00 00 3B 00 0B 00 10 00 00 04 04  .......;....  
-05C3E7B3  66 CD 95 62 FB A2 56 B9 3A E5 CD 9E 82 5E 4E D7  fbV?逋^N  
-05C3E7C3  65 A7 28 4D 0F 90 3A 1E 93 2B BA 06 FE 9A A0 AB  e?M?????  
-05C3E7D3  09 9F 9A C5 A5 52 DF 9F CC 9C 6E 3E C2 78 CC 7A  .钮 Rn>  
-经过验证，send 函数发送的内容与次报文一致。  
-具体算法如下，IDA f5 给出的  
-do  
-  {  
-    v5 += (v6 + \*(\_DWORD \*)(a3 + 4 \* (v6 & 3))) ^ (result + (16 \* result ^ (result >> 5)));  
-    v6 -= 0x61C88647u;  
-    result += (v6 + \*(\_DWORD \*)(a3 + 4 \* ((v6 >> 11) & 3))) ^ (v5 + (16 \* v5 ^ (v5 >> 5)));  
-  }  
+
+04DF8578  66 2D 4E 4F 5F 1B D7 EF 67 4C 5F AB 9A 14 CD 48  f-NO\_ 罪 gL\_  
+
+04DF8588  DE EF E2 E1 1D 65 BB E8 E3 52 5F BC 41 F9 DA 14  揎忉 e 昏\_  
+
+04DF8598  41 39 2F F1 D0 47 32 CE D0 87 A6                 A9/裥 G2 涡...  
+```
+
+这个是经过处理的数据，于是我们跟随 `send` 函数，来到 `004d7021`。
+
+向上查找：
+
+```
+004D6FB0    55                 push    ebp  
+004D6FB1    8BEC               mov     ebp, esp  
+004D6FB3    83E4 F8            and     esp, FFFFFFF8  
+004D6FB6    83EC 14            sub     esp, 14  
+004D6FB9    8379 10 02         cmp     dword ptr [ecx+10], 2  
+004D6FBD    53                 push    ebx  
+004D6FBE    56                 push    esi  
+004D6FBF    57                 push    edi  
+004D6FC0    894C24 10          mov     dword ptr [esp+10], ecx  
+004D6FC4    0F85 C2000000      jnz     004D708C  
+004D6FCA    8B41 18            mov     eax, dword ptr [ecx+18]  
+004D6FCD    85C0               test    eax, eax  
+004D6FCF    8D79 14            lea     edi, dword ptr [ecx+14]  
+004D6FD2    74 0B              je      short 004D6FDF  
+004D6FD4    8B4F 08            mov     ecx, dword ptr [edi+8]  
+004D6FD7    2BC8               sub     ecx, eax  
+004D6FD9    0F85 AD000000      jnz     004D708C  
+004D6FDF    8B5D 0C            mov     ebx, dword ptr [ebp+C]  
+004D6FE2    0FB753 01          movzx   edx, word ptr [ebx+1]  
+004D6FE6    0FB773 01          movzx   esi, word ptr [ebx+1]  
+004D6FEA    52                 push    edx  
+004D6FEB    897424 18          mov     dword ptr [esp+18], esi  
+004D6FEF    FF15 380B4E00      call    dword ptr [<&WS2_32.#9>]             ; WS2_32.ntohs  
+004D6FF5    66:8943 01         mov     word ptr [ebx+1], ax  
+004D6FF9    8B43 09            mov     eax, dword ptr [ebx+9]  
+004D6FFC    85C0               test    eax, eax  
+004D6FFE    74 07              je      short 004D7007  
+004D7000    8B4B 0D            mov     ecx, dword ptr [ebx+D]  
+004D7003    2BC8               sub     ecx, eax  
+004D7005    75 06              jnz     short 004D700D  
+004D7007    FF15 68094E00      call    dword ptr [<&MSVCR80._invalid_pa>; MSVCR80._invalid_parameter_noinfo  
+004D700D    8B5424 10          mov     edx, dword ptr [esp+10]  
+004D7011    8B42 0C            mov     eax, dword ptr [edx+C]  
+004D7014    83F8 FF            cmp     eax, -1  
+004D7017    8B4B 09            mov     ecx, dword ptr [ebx+9]  
+004D701A    74 11              je      short 004D702D  
+004D701C    6A 00              push    0  
+004D701E    56                 push    esi  
+004D701F    51                 push    ecx  
+004D7020    50                 push    eax  
+004D7021    FF15 600B4E00      call    dword ptr [<&WS2_32.#19>]            ; WS2_32.send  
+```
+
+向上逐层设置断点，并在内存中查找固定长度的报头，直到没有产生报头处：
+
+```
+0040A59B  |> \\837C24 64 00  cmp     dword ptr [esp+64], 0  
+0040A5A0  |.  0F84 8B000000   je      0040A631  
+```
+
+从这里开始，查找内存，能查到用户名和登录号的 `unicode`，但是没有 `send` 包的内容，于是断在此处。
+
+从这里向下直到 `send` 函数，程序多次调用 `IM.dll` 模块，猜想用户名和登录号的加密可能在 `im.dll` 中经行。
+
+调用 `rand` 函数生成随机数：
+
+```
+05C0A390    FF15 8C44C205   call    dword ptr [<&MSVCR80.srand>]     ; MSVCR80.srand  
+05C0A396    83C4 04         add     esp, 4  
+05C0A399    C605 F8F5C305 0>mov     byte ptr [5C3F5F8], 1  
+05C0A3A0    8B35 8844C205   mov     esi, dword ptr [<&MSVCR80.rand>] ; MSVCR80.rand  
+05C0A3A6    FFD6            call    esi  
+0013F7B0   05C0A396  /CALL 到 srand 来自 im.05C0A390  
+0013F7B4   4CAE8928  \\seed = 4CAE8928 (1286506792.)  
+```
+
+把再调用 `rand` 函数处理 `seed`
+
+```
+7816D5F5    8B48 14         mov     ecx, dword ptr [eax+14]  
+7816D5F8    69C9 FD430300   imul    ecx, ecx, 343FD  
+7816D5FE    81C1 C39E2600   add     ecx, 269EC3  
+7816D604    8948 14         mov     dword ptr [eax+14], ecx  
+7816D607    8BC1            mov     eax, ecx  
+7816D609    C1E8 10         shr     eax, 10  
+7816D60C    25 FF7F0000     and     eax, 7FFF  
+
+05C0A3A8    25 FFFFFFFF7F   and     eax, 7FFFFFFF  
+05C0A3AD    83C0 01         add     eax, 1  
+05C0A3B0    A3 A4E7C305     mov     dword ptr [5C3E7A4], eax  
+
+7816D5F5    8B48 14         mov     ecx, dword ptr [eax+14]  
+7816D5F8    69C9 FD430300   imul    ecx, ecx, 343FD  
+7816D5FE    81C1 C39E2600   add     ecx, 269EC3  
+7816D604    8948 14         mov     dword ptr [eax+14], ecx  
+7816D607    8BC1            mov     eax, ecx  
+7816D609    C1E8 10         shr     eax, 10  
+7816D60C    25 FF7F0000     and     eax, 7FFF  
+```
+
+2 次处理后产生一个随机数，比如 `00002362`。
+
+```
+05C0A3C8    25 FF3F0000     and     eax, 3FFF  
+05C0A3CD    66:A3 ACEFC305  mov     word ptr [5C3EFAC], ax  
+05C0A3D3    A1 A4E7C305     mov     eax, dword ptr [5C3E7A4]  
+05C0A3D8    C605 B8DFC305 0>mov     byte ptr [5C3DFB8], 0  
+05C0A3DF    5E              pop     esi  
+05C0A3E0    A3 A8EFC305     mov     dword ptr [5C3EFA8], eax  
+05C0A3E5    83C4 08         add     esp, 8  
+```
+
+再次调用 2 次 `rand`，最后产生一个比如 `7E74` 的数。
+
+下面是对登录号具体的操作过程：
+
+把登录号从 `0013f900` copy 到 `0013E649` 里面。
+
+```
+05C0DAF4    3B77 14         cmp     esi, dword ptr [edi+14]  
+05C0DAF7    76 06           jbe     short 05C0DAFF  
+05C0DAF9    FF15 3044C205   call    dword ptr [<&MSVCR80._invalid_pa>; MSVCR80._invalid_parameter_noinfo  
+05C0DAFF    837F 18 10      cmp     dword ptr [edi+18], 10  
+05C0DB03    72 05           jb      short 05C0DB0A  
+05C0DB05    8B45 00         mov     eax, dword ptr [ebp]  
+05C0DB08    EB 02           jmp     short 05C0DB0C  
+05C0DB0A    8BC5            mov     eax, ebp                     ; 对登录号的操作  
+05C0DB0C    8A0430          mov     al, byte ptr [eax+esi]  
+05C0DB0F    884434 1D       mov     byte ptr [esp+esi+1D], al  
+05C0DB13    83C6 01         add     esi, 1  
+05C0DB16    3BF3            cmp     esi, ebx  
+05C0DB18  ^ 72 DA           jb      short 05C0DAF4  
+```
+
+把字串 `IM_CLIENT` 拷贝到 `0013E6AC`。
+
+```
+7814448A    8A0A            mov     cl, byte ptr [edx]  
+7814448C    8808            mov     byte ptr [eax], cl  
+7814448E    40              inc     eax  
+7814448F    42              inc     edx  
+78144490    3ACB            cmp     cl, bl  
+78144492    74 08           je      short 7814449C  
+78144494    4F              dec     edi  
+78144495    74 05           je      short 7814449C  
+78144497    FF4D 14         dec     dword ptr [ebp+14]  
+7814449A  ^ 75 EE           jnz     short 7814448A  
+```
+
+拷贝 `md5` 码到 `0013E7D4`。
+
+```
+05C0DBE0    3B75 14         cmp     esi, dword ptr [ebp+14]  
+05C0DBE3    76 06           jbe     short 05C0DBEB  
+05C0DBE5    FF15 3044C205   call    dword ptr [<&MSVCR80._invalid_pa>; MSVCR80._invalid_parameter_noinfo  
+05C0DBEB    837D 18 10      cmp     dword ptr [ebp+18], 10  
+05C0DBEF    72 04           jb      short 05C0DBF5  
+05C0DBF1    8B03            mov     eax, dword ptr [ebx]  
+05C0DBF3    EB 02           jmp     short 05C0DBF7  
+05C0DBF5    8BC3            mov     eax, ebx  
+05C0DBF7    8A0430          mov     al, byte ptr [eax+esi]  
+05C0DBFA    888434 A8010000 mov     byte ptr [esp+esi+1A8], al  
+05C0DC01    83C6 01         add     esi, 1  
+05C0DC04    3BF7            cmp     esi, edi  
+05C0DC06  ^ 72 D8           jb      short 05C0DBE0  
+```
+
+调用随机数函数：
+
+```
+05C179A6    FF15 8844C205   call    dword ptr [<&MSVCR80.rand>]      ; MSVCR80.rand  
+```
+
+`EAX` 的返回值为 `00007316`
+
+```
+05C179AC    24 F8           and     al, 0F8  
+05C179AE    0AC3            or      al, bl  
+05C179B0    BD 01000000     mov     ebp, 1  
+05C179B5    3BDD            cmp     ebx, ebp  
+05C179B7    884424 2C       mov     byte ptr [esp+2C], al            ; al 放入 00136e10  
+```
+
+
+
+## 汇编代码分析与执行流程
+
+### 循环与随机数生成
+`05C179BB`    `7C 14`           `jl`      `short 05C179D1`  
+
+`05C179BD`    `8D49 00`        `lea`     `ecx, dword ptr [ecx]`               `; ecx 等于 73163D9D`  
+
+可以看出 `EAX` 取的是随机数的前 16 位。随后又进行了一番运算，`al` 等于 12。
+
+`05C179C0`    `FF15 8844C205`  `call`    `dword ptr [<&MSVCR80.rand>]`        `; MSVCR80.rand`  
+
+再次调用 `rand` 函数，这次产生的随机数为 `481899EC`。
+
+`EAX` 返回前 16 位，为 `00004818`。
+
+`05C179C6`    `88442C 2C`      `mov`     `byte ptr [esp+ebp+2C], al`  
+
+`05C179CA`    `83C5 01`        `add`     `ebp, 1`  
+
+`05C179CD`    `3BEB`           `cmp`     `ebp, ebx`  
+
+`05C179CF`    `7E EF`          `jle`     `short 05C179C0`  
+
+此处 `ebp` 和 `ebx` 比较，再次调用 `rand` 函数：
+
+产生随机数 `7E8380FF`。
+
+### 内存复制操作
+下面是把 `51AUTH` 复制的操作：
+
+`05C179EB`    `E8 261B0000`    `call`    `<jmp.&MSVCR80.memcpy>`  
+
+复制到 `0013E613`。
+
+复制登录号到 `0013e819`。
+
+`78145048`    `23D1`           `and`     `edx, ecx`  
+
+`7814504A`    `8A06`           `mov`     `al, byte ptr [esi]`  
+
+`7814504C`    `8807`           `mov`     `byte ptr [edi], al`  
+
+`7814504E`    `8A46 01`        `mov`     `al, byte ptr [esi+1]`             `; 把登录号复制到 0013e819`  
+
+`78145051`    `8847 01`        `mov`     `byte ptr [edi+1], al`  
+
+`78145054`    `8A46 02`        `mov`     `al, byte ptr [esi+2]`  
+
+`78145057`    `C1E9 02`        `shr`     `ecx, 2`  
+
+`7814505A`    `8847 02`        `mov`     `byte ptr [edi+2], al`  
+
+`7814505D`    `83C6 03`        `add`     `esi, 3`  
+
+`78145060`    `83C7 03`        `add`     `edi, 3`  
+
+`78145063`    `83F9 08`        `cmp`     `ecx, 8`  
+
+### 登录号异或处理
+`05C17A89`    `E8 C2FDFFFF`    `call`    `05C17850`  
+
+`05C17A8E`    `0FB655 00`      `movzx`   `edx, byte ptr [ebp]`  
+
+`05C17A92`    `3017`           `xor`     `byte ptr [edi], dl`  
+
+`05C17A94`    `0FB645 01`      `movzx`   `eax, byte ptr [ebp+1]`  
+
+`05C17A98`    `3047 01`        `xor`     `byte ptr [edi+1], al`  
+
+`05C17A9B`    `0FB64D 02`      `movzx`   `ecx, byte ptr [ebp+2]`  
+
+`05C17A9F`    `304F 02`        `xor`     `byte ptr [edi+2], cl`  
+
+`05C17AA2`    `0FB655 03`      `movzx`   `edx, byte ptr [ebp+3]`  
+
+`05C17AA6`    `3057 03`        `xor`     `byte ptr [edi+3], dl`  
+
+`05C17AA9`    `0FB645 04`      `movzx`   `eax, byte ptr [ebp+4]`  
+
+`05C17AAD`    `3047 04`        `xor`     `byte ptr [edi+4], al`  
+
+`05C17AB0`    `0FB64D 05`      `movzx`   `ecx, byte ptr [ebp+5]`  
+
+`05C17AB4`    `304F 05`        `xor`     `byte ptr [edi+5], cl`  
+
+`05C17AB7`    `0FB655 06`      `movzx`   `edx, byte ptr [ebp+6]`  
+
+`05C17ABB`    `3057 06`        `xor`     `byte ptr [edi+6], dl`  
+
+`05C17ABE`    `0FB645 07`      `movzx`   `eax, byte ptr [ebp+7]`  
+
+`05C17AC2`    `3047 07`        `xor`     `byte ptr [edi+7], al`  
+
+`05C17AC5`    `8B4424 18`      `mov`     `eax, dword ptr [esp+18]`  
+
+### TEA 加密算法
+下面是用 `TEA` 算法对登录号进行加密，加密后如下：
+
+`05C17850`    `85D2`           `test`    `edx, edx`  
+
+`05C17852`    `8B08`           `mov`     `ecx, dword ptr [eax]`             `; 登录号 9？4`  
+
+`05C17854`    `8B40 04`        `mov`     `eax, dword ptr [eax+4]`           `; 登录号 2093`  
+
+`05C17857`    `53`             `push`    `ebx`  
+
+`05C17858`    `8B5C24 08`      `mov`     `ebx, dword ptr [esp+8]`  
+
+`05C1785C`    `55`             `push`    `ebp`  
+
+`05C1785D`    `57`             `push`    `edi`  
+
+`05C1785E`    `7E 64`          `jle`     `short 05C178C4`  
+
+`05C17860`    `69D2 B979379E`  `imul`    `edx, edx, 9E3779B9`             `; edx==sum`  
+
+`05C17866`    `8BFA`           `mov`     `edi, edx`  
+
+`05C17868`    `33D2`           `xor`     `edx, edx`  
+
+`05C1786A`    `85FF`           `test`    `edi, edi`  
+
+`05C1786C`    `0F84 A3000000`  `je`      `05C17915`  
+
+`05C17872`    `8BD8`           `mov`     `ebx, eax`  
+
+`05C17874`    `C1EB 05`        `shr`     `ebx, 5`  
+
+`05C17877`    `8BE8`           `mov`     `ebp, eax`  
+
+`05C17879`    `C1E5 04`        `shl`     `ebp, 4`  
+
+`05C1787C`    `33DD`           `xor`     `ebx, ebp`  
+
+`05C1787E`    `03D8`           `add`     `ebx, eax`  
+
+`05C17880`    `8BEA`           `mov`     `ebp, edx`  
+
+`05C17882`    `83E5 03`        `and`     `ebp, 3`  
+
+`05C17885`    `8B2CAE`         `mov`     `ebp, dword ptr [esi+ebp*4]`  
+
+`05C17888`    `03EA`           `add`     `ebp, edx`  
+
+`05C1788A`    `33DD`           `xor`     `ebx, ebp`  
+
+`05C1788C`    `03CB`           `add`     `ecx, ebx`  
+
+`05C1788E`    `8BD9`           `mov`     `ebx, ecx`  
+
+`05C17890`    `C1EB 05`        `shr`     `ebx, 5`  
+
+`05C17893`    `8BE9`           `mov`     `ebp, ecx`  
+
+`05C17895`    `C1E5 04`        `shl`     `ebp, 4`  
+
+`05C17898`    `33DD`           `xor`     `ebx, ebp`  
+
+`05C1789A`    `81EA 4786C861`  `sub`     `edx, 61C88647`  
+
+`05C178A0`    `8BEA`           `mov`     `ebp, edx`  
+
+`05C178A2`    `C1ED 0B`        `shr`     `ebp, 0B`  
+
+`05C178A5`    `83E5 03`        `and`     `ebp, 3`  
+
+`05C178A8`    `8B2CAE`         `mov`     `ebp, dword ptr [esi+ebp*4]`  
+
+`05C178AB`    `03D9`           `add`     `ebx, ecx`  
+
+`05C178AD`    `03EA`           `add`     `ebp, edx`  
+
+`05C178AF`    `33DD`           `xor`     `ebx, ebp`  
+
+`05C178B1`    `03C3`           `add`     `eax, ebx`  
+
+`05C178B3`    `3BD7`           `cmp`     `edx, edi`  
+
+`05C178B5`    `75 BB`          `jnz`     `short 05C17872`  
+
+加密后的 48 字节：
+
+```text
+0013F018  66 CD 95 62 FB A2 56 B9 3A E5 CD 9E 82 5E 4E D7  fbV?逋^N
+0013F028  65 A7 28 4D 0F 90 3A 1E 93 2B BA 06 FE 9A A0 AB  e?M?????
+0013F038  09 9F 9A C5 A5 52 DF 9F CC 9C 6E 3E C2 78 CC 7A  .钮 Rn>
+```
+
+### 报头生成
+11 个固定字节报头 `00 00 3B 00 0B 00 10 00 00 04 04` 生成：
+
+`05C0DD44`    `83C4 0C`         `add`     `esp, 0C`  
+
+`05C0DD47`    `8BF0`            `mov`     `esi, eax`  
+
+`05C0DD49`    `8B9C24 08010000` `mov`     `ebx, dword ptr [esp+108]`  
+
+`05C0DD50`    `0FB68C24 040100>` `movzx`  `ecx, byte ptr [esp+104]`  
+
+`05C0DD58`    `8D2C1E`          `lea`     `ebp, dword ptr [esi+ebx]`  
+
+`05C0DD5B`    `66:89AC24 06010>` `mov`    `word ptr [esp+106], bp`  
+
+`05C0DD63`    `8B9424 06010000` `mov`     `edx, dword ptr [esp+106]`  
+
+`05C0DD6A`    `52`              `push`    `edx`  
+
+`05C0DD6B`    `880D A8E7C305`   `mov`     `byte ptr [5C3E7A8], cl`  
+
+`05C0DD71`    `FFD7`            `call`    `edi`  
+
+`05C0DD73`    `53`              `push`    `ebx`  
+
+`05C0DD74`    `66:A3 A9E7C305`  `mov`     `word ptr [5C3E7A9], ax`  
+
+`05C0DD7A`    `FFD7`            `call`    `edi`  
+
+`05C0DD7C`    `66:A3 ABE7C305`  `mov`     `word ptr [5C3E7AB], ax`  
+
+`05C0DD82`    `8B8424 0A010000` `mov`     `eax, dword ptr [esp+10A]`  
+
+`05C0DD89`    `50`              `push`    `eax`  
+
+`05C0DD8A`    `FFD7`            `call`    `edi`  
+
+`05C0DD8C`    `8B8C24 0C010000` `mov`     `ecx, dword ptr [esp+10C]`  
+
+`05C0DD93`    `51`              `push`    `ecx`  
+
+`05C0DD94`    `66:A3 ADE7C305`  `mov`     `word ptr [5C3E7AD], ax`  
+
+`05C0DD9A`    `FFD7`            `call`    `edi`  
+
+`05C0DD9C`    `0FBFBC24 100100>` `movsx`  `edi, word ptr [esp+110]`  
+
+`05C0DDA4`    `66:8B9424 0E010>` `mov`    `dx, word ptr [esp+10E]`  
+
+`05C0DDAC`    `66:A3 AFE7C305`  `mov`     `word ptr [5C3E7AF], ax`  
+
+`05C0DDB2`    `57`              `push`    `edi`  
+
+`05C0DDB3`    `8D8424 16010000` `lea`     `eax, dword ptr [esp+116]`  
+
+`05C0DDBA`    `50`              `push`    `eax`  
+
+`05C0DDBB`    `68 B3E7C305`     `push`    `05C3E7B3`  
+
+`05C0DDC0`    `66:8915 B1E7C30>` `mov`    `word ptr [5C3E7B1], dx`  
+
+此时内存中：
+
+```text
+05C3E79D  00 00 00 00 00 00 00 00 00 00 00 00 00 3B 00 0B  .............;.
+05C3E7AD  00 10 00 00 04 04 00 00 00 00 00 00 00 00 00 00  ............
+```
+
+### 拼接加密报文
+在报头后面加入加密后的报文：
+
+`05C0DDDF`    `E8 32B70000`     `call`    `<jmp.&MSVCR80.memcpy>`  
+
+```text
+0013E620   05C3E7B3  |dest = im.05C3E7B3
+0013E624   0013F018  |src  = 0013F018
+0013E628   00000030  \\n  = 30 (48.)
+```
+
+后面的加密报文：
+
+```text
+05C3E7A3  00 00 00 00 00 00 00 3B 00 0B 00 10 00 00 04 04  ........;....
+05C3E7B3  66 CD 95 62 FB A2 56 B9 3A E5 CD 9E 82 5E 4E D7  fbV?逋^N
+05C3E7C3  65 A7 28 4D 0F 90 3A 1E 93 2B BA 06 FE 9A A0 AB  e?M?????
+05C3E7D3  09 9F 9A C5 A5 52 DF 9F CC 9C 6E 3E C2 78 CC 7A  .钮 Rn>
+```
+
+经过验证，`send` 函数发送的内容与此报文一致。
+
+具体算法如下，`IDA f5` 给出的：
+
+```c
+do
+  {
+    v5 += (v6 + *(_DWORD *)(a3 + 4 * (v6 & 3))) ^ (result + (16 * result ^ (result >> 5)));
+    v6 -= 0x61C88647u;
+    result += (v6 + *(_DWORD *)(a3 + 4 * ((v6 >> 11) & 3))) ^ (v5 + (16 * v5 ^ (v5 >> 5)));
+  }
+```
+
 分析的可能不是很细致，新手，希望大家一起研究

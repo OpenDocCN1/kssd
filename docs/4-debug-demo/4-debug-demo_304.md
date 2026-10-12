@@ -1,54 +1,71 @@
 
-
 # 分析家 V4.0
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum841.htm`](https://www.pediy.com/kssd/pediy03/forum841.htm)
 
-首先用 SOFT-ICE 的 SYMBOL LOADER 加载 SUPERSTK.EXE，发现无法加载，程序入口不对。   
-本人水平幼稚园一年级，不懂修改程序入口，用 TPY 查看没有加壳，试在 SOFT-ICE 平台上   
-运行没问题，看来还有点点希望，就搞搞吧！   
-  
-1.改系统时间=2001-06-01；（五一节就过期，六一节可要关心小朋友哦！）   
-2.BPX GETSYSTEMTIME；   
-3.运行 SUPERSTK.EXEV4.0，中断成功；   
-4.按 F5 键 3 次，第 4 次就出现过期提示，小心哦！   
-5.按 F12 键 1 次，停在下面程序段；   
-:00495053 FF15F4224E00            Call dword ptr\[004E22F4\]----\[GETSYSTEMTIME\]   
-:00495059 668B45EA                mov ax, word ptr \[ebp\-16\]   
-:0049505D 663B05D2FB5100          cmp ax, word ptr \[0051FBD2\]   
-:00495064 753B                    jne 004950A1   
-:00495066 668B45E8                mov ax, word ptr \[ebp\-18\]   
-:0049506A 663B05D0FB5100          cmp ax, word ptr \[0051FBD0\]   
-:00495071 752E                    jne 004950A1   
-:00495073 668B45E6                mov ax, word ptr \[ebp\-1A\]---\[当前 DAY\]   
-:00495077 663B05CEFB5100          cmp ax, word ptr \[0051FBCE\]   
-:0049507E 7521                    jne 004950A1   
-:00495080 668B45E2                mov ax, word ptr \[ebp\-1E\]---\[当前 MONTH\]   
-:00495084 663B05CAFB5100          cmp ax, word ptr \[0051FBCA\]   
-:0049508B 7514                    jne 004950A1   
-:0049508D 668B45E0                mov ax, word ptr \[ebp\-20\]----\[当前 YEAR\]   
-:00495091 663B05C8FB5100          cmp ax, word ptr \[0051FBC8\]   
-:00495098 7507                    jne 004950A1   
-:0049509A A1C0FB5100              mov eax, dword ptr \[0051FBC0\]   
-:0049509F EB45                    jmp 004950E6   
-6.慢慢来吧，再按 F12 键 1 次，停在下面程序段   
-:00483E63 E8D4110100              call 0049503C   
-:00483E68 3D008CED3A              cmp eax, 3AED8C00 --比较点   
-:00483E6D 59                      pop ecx   
-:00483E6E 7E11                    jle 00483E81---NO JUMP 就出现时间过期提示   
-:00483E70 53                      push ebx   
-:00483E71 53                      push ebx   
-  
-\* Possible StringData Ref from Data Obj ->"测试版已经过期，请与深圳汇天奇联系升级!"-----在 W32DASM 中这段中文可是乱码，COPY 到记事本中就一清二楚，哇噻！                                  |   
-:00483E72 68089B5100              push 00519B08   
-:00483E77 E8D4320300              call 004B7150----时间过期提示   
-:00483E7C E9E0050000              jmp 00484461   
-7.一切都清楚了，  除错方法改 JLE 00483E81 为 EB 00483E81；   
-  机器码：3D008CED3A597E11   
-          ------------EB--      
-希望大家从中得到一些启发，有谁愿意做成补丁放到网上，给大家方便方便！？    
-    
-  
-                                                          KINGSUN   
-    
-                                                          2001-4-15  4dd466d0e1e0cc123afbe504da2462ca
+首先用 `SOFT-ICE` 的 `SYMBOL LOADER` 加载 `SUPERSTK.EXE`，发现无法加载，程序入口不对。
+
+本人水平幼稚园一年级，不懂修改程序入口，用 `TPY` 查看没有加壳，试在 `SOFT-ICE` 平台上
+
+运行没问题，看来还有点点希望，就搞搞吧！
+
+1. 改系统时间=`2001-06-01`；（五一节就过期，六一节可要关心小朋友哦！）
+2. `BPX GETSYSTEMTIME`；
+3. 运行 `SUPERSTK.EXEV4.0`，中断成功；
+4. 按 `F5` 键 3 次，第 4 次就出现过期提示，小心哦！
+5. 按 `F12` 键 1 次，停在下面程序段；
+
+```
+:00495053 FF15F4224E00          Call dword ptr[004E22F4]----[GETSYSTEMTIME]
+:00495059 668B45EA             mov ax, word ptr [ebp-16]
+:0049505D 663B05D2FB5100       cmp ax, word ptr [0051FBD2]
+:00495064 753B                 jne 004950A1
+:00495066 668B45E8             mov ax, word ptr [ebp-18]
+:0049506A 663B05D0FB5100       cmp ax, word ptr [0051FBD0]
+:00495071 752E                 jne 004950A1
+:00495073 668B45E6             mov ax, word ptr [ebp-1A]---[当前 DAY]
+:00495077 663B05CEFB5100       cmp ax, word ptr [0051FBCE]
+:0049507E 7521                 jne 004950A1
+:00495080 668B45E2             mov ax, word ptr [ebp-1E]---[当前 MONTH]
+:00495084 663B05CAFB5100       cmp ax, word ptr [0051FBCA]
+:0049508B 7514                 jne 004950A1
+:0049508D 668B45E0             mov ax, word ptr [ebp-20]----[当前 YEAR]
+:00495091 663B05C8FB5100       cmp ax, word ptr [0051FBC8]
+:00495098 7507                 jne 004950A1
+:0049509A A1C0FB5100           mov eax, dword ptr [0051FBC0]
+:0049509F EB45                 jmp 004950E6
+```
+
+6. 慢慢来吧，再按 `F12` 键 1 次，停在下面程序段
+
+```
+:00483E63 E8D4110100           call 0049503C
+:00483E68 3D008CED3A           cmp eax, 3AED8C00 --比较点
+:00483E6D 59                   pop ecx
+:00483E6E 7E11                 jle 00483E81---NO JUMP 就出现时间过期提示
+:00483E70 53                   push ebx
+:00483E71 53                   push ebx
+```
+
+`* Possible StringData Ref from Data Obj ->"测试版已经过期，请与深圳汇天奇联系升级!"-----在 W32DASM 中这段中文可是乱码，COPY 到记事本中就一清二楚，哇噻！`
+
+```
+:00483E72 68089B5100           push 00519B08
+:00483E77 E8D4320300           call 004B7150----时间过期提示
+:00483E7C E9E0050000           jmp 00484461
+```
+
+7. 一切都清楚了，除错方法改 `JLE 00483E81` 为 `EB 00483E81`；
+
+机器码：`3D008CED3A597E11`
+
+```
+------------EB--
+```
+
+希望大家从中得到一些启发，有谁愿意做成补丁放到网上，给大家方便方便！？
+
+```
+KINGSUN
+2001-4-15  4dd466d0e1e0cc123afbe504da2462ca
+```

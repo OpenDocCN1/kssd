@@ -1,58 +1,82 @@
 
-
 # VC6 环境下 C/C++ 32 位函数调用约定
 
 > 原文：[`www.pediy.com/kssd/pediy12/91541.html`](https://www.pediy.com/kssd/pediy12/91541.html)
 
-俺是新来的,发贴想混个邀请码,不知是否能如愿，无论如何希望对有些人有用(我在“安全编程论坛”中看到有人讨论相关问题)。  
-  
-    在此只是讨论 VC6 环境下 C/C++ 32 位函数调用约定,其它环境感兴趣的自己去发掘与验证。  
-  
-    函数调用约定(call convention)涉及函数参数如何传递, 谁平栈(还有命名，返回值等问题不在此讨论), 在 VC6 环境下有 4 种调用约定, 分别说明如下:  
-  
-      \_\_cdecl  参数全部参过栈传递, 压栈顺序从右到左, 即最后一个参数先入栈; 调用者负责平栈。举例如下：  
-    print("",1);的汇码如下：  
-      004010B6 6A 01                push        1  
-      004010B8 68 7C 20 42 00       push        offset string "" (0042207c)  
-      004010BD E8 7E 06 00 00       call        printf (00401740)  
-      004010C2 83 C4 08             add         esp,8  
-    最后一句 add esp,8 就是平栈的，因为调用函数 print 时压入了两个 DWORD 大小的参数。  
-  
-      \_\_stdcall  参数全部通过栈传递，压栈顺序从右到左; 被调用者负责平栈。  
-    CreateFileA("\\\\\\\\.\\\\PHYSICALDRIVE0",GENERIC\_READ,FILE\_SHARE\_READ|FILE\_SHARE\_WRITE|FILE\_SHARE\_DELETE,0,OPEN\_EXISTING,0,0);的实现代码如下：  
-    004010F4 6A 00                push        0  
-    004010F6 6A 00                push        0  
-    004010F8 6A 03                push        3  
-    004010FA 6A 00                push        0  
-    004010FC 6A 07                push        7  
-    004010FE 68 00 00 00 80       push        80000000h  
-    00401103 68 34 20 42 00       push        offset string "\\\\\\\\.\\\\PHYSICALDRIVE0" (00422034)  
-    00401108 FF 15 60 A1 42 00    call        dword ptr \[\_\_imp\_\_CreateFileA@28 (0042a160)\]  
-    调用 CreateFileA 的代码并没有去平栈，再看 CreateFileA 的部分代码如下  
-    7C801A28 8B FF                mov         edi,edi  
-    7C801A2A 55                   push        ebp  
-    7C801A2B 8B EC                mov         ebp,esp  
-    7C801A2D FF 75 08             push        dword ptr \[ebp+8\]  
-    7C801A30 E8 DF C6 00 00       call        7C80E114  
-    7C801A35 85 C0                test        eax,eax  
-    7C801A37 74 1E                je          7C801A57  
-    7C801A39 FF 75 20             push        dword ptr \[ebp+20h\]  
-    7C801A3C FF 75 1C             push        dword ptr \[ebp+1Ch\]  
-    7C801A3F FF 75 18             push        dword ptr \[ebp+18h\]  
-    7C801A42 FF 75 14             push        dword ptr \[ebp+14h\]  
-    7C801A45 FF 75 10             push        dword ptr \[ebp+10h\]  
-    7C801A48 FF 75 0C             push        dword ptr \[ebp+0Ch\]  
-    7C801A4B FF 70 04             push        dword ptr \[eax+4\]  
-    7C801A4E E8 AD ED 00 00       call        7C810800  
-    7C801A53 5D                   pop         ebp  
-    7C801A54 C2 1C 00             ret         1Ch  
-    可以看到， 函数返回 ret 1ch， 函数返回时弹出了 1Ch 字节，因为它有 7 个 DWORD 大小的参数，7\*4=1Ch  
-  
-       \_\_fastcall,  前两个(如果有的话)DWORD 或更小大小的参数通过 REG 传递,第一个在 ecx 中，第二个在 edx 中，如果还有更多的参数, 则通过栈传递, 同样是从右到左，由被调用者负责平栈  
-    \_\_thiscall,  类(包括 class/struct/union)非静态成员函数默认的调用约定类型,C++中不能显式声明它,这种调用约定有点象是\_\_fastcall 与\_\_stdcall 的混合体, 隐含的 this 指针通过 ecx 传递，其它参数从右到左压栈， 被调用者负责平栈。  
-  
-    \_\_cdecl 类型的函数可以实现特殊的功能，即参数数量可变，如 printf，其它调用类型不可以实现。  
-WINDOWS API 大部声明为  WINAPI,实际上它是\_\_stdcall，不过并非所有的 WINDOWS API 都是 WINAPI 调用约定的, 有许多\_\_cdecl 调用的。  
-    \_\_fastcall 也是比较常见的，WINDOWS 内核的许多 API 是\_\_fastcall 类型，写驱动的要注意。  
-  
-    有一点是很少有资料提到,就是类的非静态成员调用约定不是一定是\_\_thiscall, 你可以为一个非静态成员函数指定调用约定类型为\_\_cdecl, \_\_stdcall, 或\_\_fastcall， 这种情况下,隐含的 this 指针总是函数的第一个参数, 对于\_\_cdecl/\_\_stdcall 来说 this 指针被最后一个压入栈中,对于\_\_fastcall 来说, this 指针仍然由 ecx 传递。所以对于类成员函数也可以实现可变参数，也可以强制要求将 this 指针通过栈传递。
+俺是新来的，发贴想混个邀请码，不知是否能如愿，无论如何希望对有些人有用（我在“安全编程论坛”中看到有人讨论相关问题）。
+
+在此只是讨论 VC6 环境下 C/C++ 32 位函数调用约定，其它环境感兴趣的自己去发掘与验证。
+
+函数调用约定（`call convention`）涉及函数参数如何传递，谁平栈（还有命名，返回值等问题不在此讨论），在 VC6 环境下有 4 种调用约定，分别说明如下：
+
+### `__cdecl`
+
+参数全部通过栈传递，压栈顺序从右到左，即最后一个参数先入栈；调用者负责平栈。举例如下：
+
+`print("", 1);` 的汇码如下：
+
+```
+004010B6 6A 01          push        1
+004010B8 68 7C 20 42 00 push        offset string "" (0042207c)
+004010BD E8 7E 06 00 00 call        printf (00401740)
+004010C2 83 C4 08      add         esp, 8
+```
+
+最后一句 `add esp, 8` 就是平栈的，因为调用函数 `print` 时压入了两个 `DWORD` 大小的参数。
+
+### `__stdcall`
+
+参数全部通过栈传递，压栈顺序从右到左；被调用者负责平栈。
+
+`CreateFileA("\\\\.\PHYSICALDRIVE0", GENERIC_READ, FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE, 0, OPEN_EXISTING, 0, 0);` 的实现代码如下：
+
+```
+004010F4 6A 00          push        0
+004010F6 6A 00          push        0
+004010F8 6A 03          push        3
+004010FA 6A 00          push        0
+004010FC 6A 07          push        7
+004010FE 68 00 00 00 80 push        80000000h
+00401103 68 34 20 42 00 push        offset string "\\\\.\\PHYSICALDRIVE0" (00422034)
+00401108 FF 15 60 A1 42 00 call      dword ptr [__imp__CreateFileA@28 (0042a160)]
+```
+
+调用 `CreateFileA` 的代码并没有去平栈，再看 `CreateFileA` 的部分代码如下：
+
+```
+7C801A28 8B FF          mov         edi, edi
+7C801A2A 55            push        ebp
+7C801A2B 8B EC          mov         ebp, esp
+7C801A2D FF 75 08      push        dword ptr [ebp+8]
+7C801A30 E8 DF C6 00 00 call      7C80E114
+7C801A35 85 C0          test        eax, eax
+7C801A37 74 1E          je          7C801A57
+7C801A39 FF 75 20      push        dword ptr [ebp+20h]
+7C801A3C FF 75 1C      push        dword ptr [ebp+1Ch]
+7C801A3F FF 75 18      push        dword ptr [ebp+18h]
+7C801A42 FF 75 14      push        dword ptr [ebp+14h]
+7C801A45 FF 75 10      push        dword ptr [ebp+10h]
+7C801A48 FF 75 0C      push        dword ptr [ebp+0Ch]
+7C801A4B FF 70 04      push        dword ptr [eax+4]
+7C801A4E E8 AD ED 00 00 call      7C810800
+7C801A53 5D            pop         ebp
+7C801A54 C2 1C 00      ret         1Ch
+```
+
+可以看到，函数返回 `ret 1ch`，函数返回时弹出了 `1Ch` 字节，因为它有 7 个 `DWORD` 大小的参数，7*4=1Ch。
+
+### `__fastcall`
+
+前两个（如果有的话）`DWORD` 或更小大小的参数通过 REG 传递，第一个在 `ecx` 中，第二个在 `edx` 中。如果还有更多的参数，则通过栈传递，同样是从右到左，由被调用者负责平栈。
+
+### `__thiscall`
+
+类（包括 `class`/`struct`/`union`）非静态成员函数默认的调用约定类型，C++ 中不能显式声明它。这种调用约定有点像是 `__fastcall` 与 `__stdcall` 的混合体，隐含的 `this` 指针通过 `ecx` 传递，其它参数从右到左压栈，被调用者负责平栈。
+
+`__cdecl` 类型的函数可以实现特殊的功能，即参数数量可变，如 `printf`，其它调用类型不可以实现。
+
+`WINDOWS API` 大部声明为 `WINAPI`，实际上它是 `__stdcall`，不过并非所有的 `WINDOWS API` 都是 `WINAPI` 调用约定的，有许多 `__cdecl` 调用的。
+
+`__fastcall` 也是比较常见的，`WINDOWS` 内核的许多 API 是 `__fastcall` 类型，写驱动的要注意。
+
+有一点是很少有资料提到，就是类的非静态成员调用约定不是一定是 `__thiscall`，你可以为一个非静态成员函数指定调用约定类型为 `__cdecl`、`__stdcall` 或 `__fastcall`。这种情况下，隐含的 `this` 指针总是函数的第一个参数。对于 `__cdecl`/`__stdcall` 来说 `this` 指针被最后一个压入栈中；对于 `__fastcall` 来说，`this` 指针仍然由 `ecx` 传递。所以对于类成员函数也可以实现可变参数，也可以强制要求将 `this` 指针通过栈传递。

@@ -1,638 +1,679 @@
 
-
 # SuperGame V1.5.8 注册算法分析和破解
 
 > 原文：[`www.pediy.com/kssd/pediy09/pediy09-36.htm`](https://www.pediy.com/kssd/pediy09/pediy09-36.htm)
 
-> 【文章标题】: SuperGame V1.5.8 注册算法分析和破解  
-> 【文章作者】: drcool  
-> 【作者邮箱】: drui118@163.com  
-> 【作者主页】: 无  
-> 【生产日期】: 20070131  
-> 【软件名称】: SuperGame V1.5.8  
-> 【保护方式】: 机器码＋注册码，RSA 签名保护  
-> 【编写语言】: VC＋＋  
-> 【使用工具】: OD  
-> 【作者声明】: 本文仅供研究学习，本人对因这篇文章而导致的一切后果，不承担任何法律责任。本文中的不足之处请各位多多指教  
-> 【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
-> \--------------------------------------------------------------------------------  
-> 【详细过程】  
-> 这是一个共享小游戏合集，非注册版本只有两分钟试玩时间。通过查壳发现，这个程序并没有加壳，还发现是用 VC++编写的。注册机制是通过机器码来保证一台机器一码。  
-> 如果注册码错误则会出现一个错误对话框。我们就从这个错误对话框入手来发掘算法。  
-> 通过跟踪发现，重要的代码在这里：  
-> 0045C534   > 51             PUSH ECX  
-> 0045C535   . 8BCC           MOV ECX,ESP  
-> 0045C537   . 896424 14      MOV DWORD PTR SS:\[ESP+14\],ESP  
-> 0045C53B   . 55             PUSH EBP  
-> 0045C53C   . E8 84320400    CALL SuperGam.0049F7C5  
-> 0045C541   . 8D4C24 14      LEA ECX,DWORD PTR SS:\[ESP+14\]  
-> 0045C545   . 51             PUSH ECX  
-> 0045C546   . E8 95060000    CALL SuperGam.0045CBE0   //在这个函数里面进行运算  
-> 0045C54B   . 8B00           MOV EAX,DWORD PTR DS:\[EAX\]               ; |//这两行是保存结果地址  
-> 0045C54D   . 8B4E 68        MOV ECX,DWORD PTR DS:\[ESI+68\]            ; |  
-> 0045C550   . 50             PUSH EAX                                 ; |Arg2//这两行压入运算结果和机器码地址  
-> 0045C551   . 51             PUSH ECX                                 ; |Arg1  
-> 0045C552   . E8 30DF0200    CALL SuperGam.0048A487                   ; \\SuperGam.0048A487 //比较，如果不相等就完了  
-> 0045C557   . 83C4 10        ADD ESP,10  
-> 0045C55A   . 8D4C24 10      LEA ECX,DWORD PTR SS:\[ESP+10\]  
-> 0045C55E   . 85C0           TEST EAX,EAX  
-> 0045C560   . 0F94C3         SETE BL  
-> 0045C563   . E8 E8340400    CALL SuperGam.0049FA50  
-> 0045C568   . 84DB           TEST BL,BL       
-> 0045C56A   . 0F84 A1000000  JE SuperGam.0045C611                      //千万不能跳，否则就是出错对话框了，如果爆破可以考虑这里  
-> 0045C570   . 8BCE           MOV ECX,ESI                               //但是我们是要写注册机的哦呵呵  
-> 0045C572   . C746 5C 010000>MOV DWORD PTR DS:\[ESI+5C\],1  
-> 0045C579   . E8 B6520400    CALL SuperGam.004A1834  
-> 0045C57E   . 8B46 64        MOV EAX,DWORD PTR DS:\[ESI+64\]  
-> 0045C581   . 8B3D 00F04A00  MOV EDI,DWORD PTR DS:\[<&ADVAPI32.RegSetV>;  ADVAPI32.RegSetValueA  
-> 0045C587   . 8B48 F8        MOV ECX,DWORD PTR DS:\[EAX-8\]  
-> 0045C58A   . 51             PUSH ECX                                 ; /Length  
-> 0045C58B   . 50             PUSH EAX                                 ; |Value  
-> 0045C58C   . 6A 01          PUSH 1                                   ; |ValueType = REG\_SZ  
-> 0045C58E   . 68 40094D00    PUSH SuperGam.004D0940                   ; |Subkey = "SOFTWARE\\SuperGames\\UserName"  
-> 0045C593   . 68 02000080    PUSH 80000002                            ; |hKey = HKEY\_LOCAL\_MACHINE  
-> 0045C598   . FFD7           CALL EDI                                 ; \\RegSetValueA  
-> 0045C59A   . 85C0           TEST EAX,EAX  
-> 0045C59C   . 74 13          JE SHORT SuperGam.0045C5B1  
-> 0045C59E   . 6A 30          PUSH 30  
-> 0045C5A0   . 68 60F64C00    PUSH SuperGam.004CF660  
-> 0045C5A5   . 68 30094D00    PUSH SuperGam.004D0930  
-> 0045C5AA   . 8BCE           MOV ECX,ESI  
-> 0045C5AC   . E8 C4180400    CALL SuperGam.0049DE75  
-> 0045C5B1   > 8B46 60        MOV EAX,DWORD PTR DS:\[ESI+60\]  
-> 0045C5B4   . 8B48 F8        MOV ECX,DWORD PTR DS:\[EAX-8\]  
-> 0045C5B7   . 51             PUSH ECX  
-> 0045C5B8   . 50             PUSH EAX  
-> 0045C5B9   . 6A 01          PUSH 1  
-> 0045C5BB   . 68 10094D00    PUSH SuperGam.004D0910                   ;  ASCII "SOFTWARE\\SuperGames\\CompanyName"  
-> 0045C5C0   . 68 02000080    PUSH 80000002  
-> 0045C5C5   . FFD7           CALL EDI  
-> 0045C5C7   . 85C0           TEST EAX,EAX  
-> 0045C5C9   . 74 13          JE SHORT SuperGam.0045C5DE  
-> 0045C5CB   . 6A 30          PUSH 30  
-> 0045C5CD   . 68 60F64C00    PUSH SuperGam.004CF660  
-> 0045C5D2   . 68 30094D00    PUSH SuperGam.004D0930  
-> 0045C5D7   . 8BCE           MOV ECX,ESI  
-> 0045C5D9   . E8 97180400    CALL SuperGam.0049DE75  
-> 0045C5DE   > 8B45 00        MOV EAX,DWORD PTR SS:\[EBP\]  
-> 0045C5E1   . 8B48 F8        MOV ECX,DWORD PTR DS:\[EAX-8\]  
-> 0045C5E4   . 51             PUSH ECX  
-> 0045C5E5   . 50             PUSH EAX  
-> 0045C5E6   . 6A 01          PUSH 1  
-> 0045C5E8   . 68 F0084D00    PUSH SuperGam.004D08F0                   ;  ASCII "SOFTWARE\\SuperGames\\SerialNo"  
-> 0045C5ED   . 68 02000080    PUSH 80000002  
-> 0045C5F2   . FFD7           CALL EDI  
-> 0045C5F4   . 85C0           TEST EAX,EAX  
-> 0045C5F6   . 74 2C          JE SHORT SuperGam.0045C624  
-> 0045C5F8   . 6A 30          PUSH 30  
-> 0045C5FA   . 68 60F64C00    PUSH SuperGam.004CF660  
-> 0045C5FF   . 68 30094D00    PUSH SuperGam.004D0930  
-> 0045C604   . 8BCE           MOV ECX,ESI  
-> 0045C606   . E8 6A180400    CALL SuperGam.0049DE75  
-> 0045C60B   . 5F             POP EDI  
-> 0045C60C   . 5E             POP ESI  
-> 0045C60D   . 5D             POP EBP  
-> 0045C60E   . 5B             POP EBX  
-> 0045C60F   . 59             POP ECX  
-> 0045C610   . C3             RETN  
->   
-> 让我们跟进 SuperGam.0045CBE0 里面看看  
-> 0045CBE0  /$ 6A FF          PUSH -1  
-> 0045CBE2  |. 68 4EBB4A00    PUSH SuperGam.004ABB4E                   ;  SE handler installation  
-> 0045CBE7  |. 64:A1 00000000 MOV EAX,DWORD PTR FS:\[0\]  
-> 0045CBED  |. 50             PUSH EAX  
-> 0045CBEE  |. 64:8925 000000>MOV DWORD PTR FS:\[0\],ESP  
-> 0045CBF5  |. 81EC 30010000  SUB ESP,130  
-> 0045CBFB  |. 56             PUSH ESI  
-> 0045CBFC  |. 57             PUSH EDI  
-> 0045CBFD  |. C74424 10 0000>MOV DWORD PTR SS:\[ESP+10\],0  
-> 0045CC05  |. 8D8C24 A800000>LEA ECX,DWORD PTR SS:\[ESP+A8\]  
-> 0045CC0C  |. C78424 4001000>MOV DWORD PTR SS:\[ESP+140\],1  
-> 0045CC17  |. E8 446DFAFF    CALL SuperGam.00403960  
-> 0045CC1C  |. 8D4C24 18      LEA ECX,DWORD PTR SS:\[ESP+18\]  
-> 0045CC20  |. C68424 4001000>MOV BYTE PTR SS:\[ESP+140\],2  
-> 0045CC28  |. E8 336DFAFF    CALL SuperGam.00403960  
-> 0045CC2D  |. A1 585E4D00    MOV EAX,DWORD PTR DS:\[4D5E58\]  
-> 0045CC32  |. 894424 0C      MOV DWORD PTR SS:\[ESP+C\],EAX  
-> 0045CC36  |. 894424 08      MOV DWORD PTR SS:\[ESP+8\],EAX  
-> 0045CC3A  |. 68 9C094D00    PUSH SuperGam.004D099C                   ;  ASCII "CFBCC6EC474AE5CD0F7BC8DBBA353A11"  
-> 0045CC3F  |. 8D4C24 10      LEA ECX,DWORD PTR SS:\[ESP+10\]  
-> 0045CC43  |. C68424 4401000>MOV BYTE PTR SS:\[ESP+144\],5  
-> 0045CC4B  |. E8 452F0400    CALL SuperGam.0049FB95                   //把上面的字符串转换成 16 进制数  
-> 0045CC50  |. 68 78094D00    PUSH SuperGam.004D0978                   ;  ASCII "8231FC324594496514663D91E6C19989"  
-> 0045CC55  |. 8D4C24 0C      LEA ECX,DWORD PTR SS:\[ESP+C\]              //把上面的字符串转换成 16 进制数  
-> 0045CC59  |. E8 372F0400    CALL SuperGam.0049FB95                 
-> 0045CC5E  |. 8D4424 0C      LEA EAX,DWORD PTR SS:\[ESP+C\]  
-> 0045CC62  |. 6A 10          PUSH 10                                  ; /Arg2 = 00000010  
-> 0045CC64  |. 50             PUSH EAX                                 ; |Arg1  
-> 0045CC65  |. 8D8C24 B000000>LEA ECX,DWORD PTR SS:\[ESP+B0\]            ; |  
-> 0045CC6C  |. E8 5F75FAFF    CALL SuperGam.004041D0                   ; \\SuperGam.004041D0  
-> 0045CC71  |. 8D4C24 08      LEA ECX,DWORD PTR SS:\[ESP+8\]  
-> 0045CC75  |. 6A 10          PUSH 10                                  ; /Arg2 = 00000010  
-> 0045CC77  |. 51             PUSH ECX                                 ; |Arg1  
-> 0045CC78  |. 8D4C24 20      LEA ECX,DWORD PTR SS:\[ESP+20\]            ; |  
-> 0045CC7C  |. E8 4F75FAFF    CALL SuperGam.004041D0                   ; \\SuperGam.004041D0  
-> 0045CC81  |. 81EC 90000000  SUB ESP,90  
-> 0045CC87  |. B9 24000000    MOV ECX,24  
-> 0045CC8C  |. 8DB424 3801000>LEA ESI,DWORD PTR SS:\[ESP+138\]  
-> 0045CC93  |. 8BFC           MOV EDI,ESP  
-> 0045CC95  |. F3:A5          REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS>  
-> 0045CC97  |. 81EC 90000000  SUB ESP,90  
-> 0045CC9D  |. B9 24000000    MOV ECX,24  
-> 0045CCA2  |. 8DB424 3801000>LEA ESI,DWORD PTR SS:\[ESP+138\]  
-> 0045CCA9  |. 8BFC           MOV EDI,ESP  
-> 0045CCAB  |. F3:A5          REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS>  
-> 0045CCAD  |. 51             PUSH ECX  
-> 0045CCAE  |. 8D9424 7002000>LEA EDX,DWORD PTR SS:\[ESP+270\]  
-> 0045CCB5  |. 8BCC           MOV ECX,ESP  
-> 0045CCB7  |. 89A424 3801000>MOV DWORD PTR SS:\[ESP+138\],ESP  
-> 0045CCBE  |. 52             PUSH EDX  
-> 0045CCBF  |. E8 012B0400    CALL SuperGam.0049F7C5  
-> 0045CCC4  |. 8BB424 6C02000>MOV ESI,DWORD PTR SS:\[ESP+26C\]  
-> 0045CCCB  |. 56             PUSH ESI  
-> 0045CCCC  |. E8 FFFCFFFF    CALL SuperGam.0045C9D0   //到这里，我们输入的注册码已经被读入了，然后进行计算，这是个核心函数！  
-> 0045CCD1  |. 81C4 28010000  ADD ESP,128  
-> 0045CCD7  |. C74424 10 0100>MOV DWORD PTR SS:\[ESP+10\],1  
-> 0045CCDF  |. 8D4C24 08      LEA ECX,DWORD PTR SS:\[ESP+8\]  
-> 0045CCE3  |. C68424 4001000>MOV BYTE PTR SS:\[ESP+140\],4  
-> 0045CCEB  |. E8 602D0400    CALL SuperGam.0049FA50  
-> 0045CCF0  |. 8D4C24 0C      LEA ECX,DWORD PTR SS:\[ESP+C\]  
-> 0045CCF4  |. C68424 4001000>MOV BYTE PTR SS:\[ESP+140\],3  
-> 0045CCFC  |. E8 4F2D0400    CALL SuperGam.0049FA50  
-> 0045CD01  |. 8D4C24 18      LEA ECX,DWORD PTR SS:\[ESP+18\]  
-> 0045CD05  |. C68424 4001000>MOV BYTE PTR SS:\[ESP+140\],2  
-> 0045CD0D  |. E8 3E82FCFF    CALL SuperGam.00424F50  
-> 0045CD12  |. 8D8C24 A800000>LEA ECX,DWORD PTR SS:\[ESP+A8\]  
-> 0045CD19  |. C68424 4001000>MOV BYTE PTR SS:\[ESP+140\],1  
-> 0045CD21  |. E8 2A82FCFF    CALL SuperGam.00424F50  
-> 0045CD26  |. 8D8C24 4C01000>LEA ECX,DWORD PTR SS:\[ESP+14C\]  
-> 0045CD2D  |. C68424 4001000>MOV BYTE PTR SS:\[ESP+140\],0  
-> 0045CD35  |. E8 162D0400    CALL SuperGam.0049FA50  
-> 0045CD3A  |. 8B8C24 3801000>MOV ECX,DWORD PTR SS:\[ESP+138\]  
-> 0045CD41  |. 8BC6           MOV EAX,ESI  
-> 0045CD43  |. 5F             POP EDI  
-> 0045CD44  |. 64:890D 000000>MOV DWORD PTR FS:\[0\],ECX  
-> 0045CD4B  |. 5E             POP ESI  
-> 0045CD4C  |. 81C4 3C010000  ADD ESP,13C  
-> 0045CD52  \\. C3             RETN  
->   
->   
-> 核心函数 1：  
-> 0045C9D0  /$ 6A FF          PUSH -1  
-> 0045C9D2  |. 68 F1BA4A00    PUSH SuperGam.004ABAF1                   ;  SE handler installation  
-> 0045C9D7  |. 64:A1 00000000 MOV EAX,DWORD PTR FS:\[0\]  
-> 0045C9DD  |. 50             PUSH EAX  
-> 0045C9DE  |. 64:8925 000000>MOV DWORD PTR FS:\[0\],ESP  
-> 0045C9E5  |. 81EC B8010000  SUB ESP,1B8  
-> 0045C9EB  |. 33C9           XOR ECX,ECX  
-> 0045C9ED  |. 56             PUSH ESI  
-> 0045C9EE  |. 57             PUSH EDI  
-> 0045C9EF  |. 894C24 0C      MOV DWORD PTR SS:\[ESP+C\],ECX  
-> 0045C9F3  |. BF 01000000    MOV EDI,1  
-> 0045C9F8  |. 89BC24 C801000>MOV DWORD PTR SS:\[ESP+1C8\],EDI  
-> 0045C9FF  |. A1 585E4D00    MOV EAX,DWORD PTR DS:\[4D5E58\]  
-> 0045CA04  |. 894424 08      MOV DWORD PTR SS:\[ESP+8\],EAX  
-> 0045CA08  |. 8BB424 D401000>MOV ESI,DWORD PTR SS:\[ESP+1D4\]  
-> 0045CA0F  |. C68424 C801000>MOV BYTE PTR SS:\[ESP+1C8\],4  
-> 0045CA17  |. 8B56 F8        MOV EDX,DWORD PTR DS:\[ESI-8\]  
-> 0045CA1A  |. 81FA 00010000  CMP EDX,100  
-> 0045CA20  |. 7E 1C          JLE SHORT SuperGam.0045CA3E  
-> 0045CA22  |. 8BB424 D001000>MOV ESI,DWORD PTR SS:\[ESP+1D0\]  
-> 0045CA29  |. 8D4C24 08      LEA ECX,DWORD PTR SS:\[ESP+8\]  
-> 0045CA2D  |. 51             PUSH ECX  
-> 0045CA2E  |. 8BCE           MOV ECX,ESI  
-> 0045CA30  |. E8 902D0400    CALL SuperGam.0049F7C5  
-> 0045CA35  |. 897C24 0C      MOV DWORD PTR SS:\[ESP+C\],EDI  
-> 0045CA39  |. E9 2D010000    JMP SuperGam.0045CB6B  
-> 0045CA3E  |> 3BD1           CMP EDX,ECX  
-> 0045CA40  |. 7E 20          JLE SHORT SuperGam.0045CA62  
-> 0045CA42  |> 8A0431         /MOV AL,BYTE PTR DS:\[ECX+ESI\]  
-> 0045CA45  |. 3C 30          |CMP AL,30  
-> 0045CA47  |. 7C 6D          |JL SHORT SuperGam.0045CAB6  
-> 0045CA49  |. 3C 39          |CMP AL,39  
-> 0045CA4B  |. 7E 04          |JLE SHORT SuperGam.0045CA51  
-> 0045CA4D  |. 3C 41          |CMP AL,41  
-> 0045CA4F  |. 7C 65          |JL SHORT SuperGam.0045CAB6  
-> 0045CA51  |> 3C 46          |CMP AL,46  
-> 0045CA53  |. 7E 04          |JLE SHORT SuperGam.0045CA59  
-> 0045CA55  |. 3C 61          |CMP AL,61  
-> 0045CA57  |. 7C 5D          |JL SHORT SuperGam.0045CAB6  
-> 0045CA59  |> 3C 66          |CMP AL,66  
-> 0045CA5B  |. 7F 59          |JG SHORT SuperGam.0045CAB6  
-> 0045CA5D  |. 41             |INC ECX  
-> 0045CA5E  |. 3BCA           |CMP ECX,EDX  
-> 0045CA60  |.⁷C E0          \\JL SHORT SuperGam.0045CA42   //通过这个循环把我们输入的码字转换成 16 进制数  
-> 0045CA62  |> 8D4C24 10      LEA ECX,DWORD PTR SS:\[ESP+10\]  
-> 0045CA66  |. E8 F56EFAFF    CALL SuperGam.00403960  
-> 0045CA6B  |. 8D8C24 A000000>LEA ECX,DWORD PTR SS:\[ESP+A0\]  
-> 0045CA72  |. C68424 C801000>MOV BYTE PTR SS:\[ESP+1C8\],5  
-> 0045CA7A  |. E8 E16EFAFF    CALL SuperGam.00403960  
-> 0045CA7F  |. 8D8424 D401000>LEA EAX,DWORD PTR SS:\[ESP+1D4\]  
-> 0045CA86  |. 6A 10          PUSH 10                                  ; /Arg2 = 00000010  
-> 0045CA88  |. 50             PUSH EAX                                 ; |Arg1  
-> 0045CA89  |. 8D4C24 18      LEA ECX,DWORD PTR SS:\[ESP+18\]            ; |  
-> 0045CA8D  |. C68424 D001000>MOV BYTE PTR SS:\[ESP+1D0\],6              ; |  
-> 0045CA95  |. E8 3677FAFF    CALL SuperGam.004041D0                   ; \\SuperGam.004041D0  
-> 0045CA9A  |. 8D8C24 6802000>LEA ECX,DWORD PTR SS:\[ESP+268\]  
-> 0045CAA1  |. 51             PUSH ECX  
-> 0045CAA2  |. 8D4C24 14      LEA ECX,DWORD PTR SS:\[ESP+14\]  
-> 0045CAA6  |. E8 D56EFAFF    CALL SuperGam.00403980  
-> 0045CAAB  |. 85C0           TEST EAX,EAX  
-> 0045CAAD  |. 7C 23          JL SHORT SuperGam.0045CAD2  
-> 0045CAAF  |. 8D5424 08      LEA EDX,DWORD PTR SS:\[ESP+8\]  
-> 0045CAB3  |. 52             PUSH EDX  
-> 0045CAB4  |. EB 7E          JMP SHORT SuperGam.0045CB34  
-> 0045CAB6  |> 8BB424 D001000>MOV ESI,DWORD PTR SS:\[ESP+1D0\]  
-> 0045CABD  |. 8D5424 08      LEA EDX,DWORD PTR SS:\[ESP+8\]  
-> 0045CAC1  |. 52             PUSH EDX  
-> 0045CAC2  |. 8BCE           MOV ECX,ESI  
-> 0045CAC4  |. E8 FC2C0400    CALL SuperGam.0049F7C5  
-> 0045CAC9  |. 897C24 0C      MOV DWORD PTR SS:\[ESP+C\],EDI  
-> 0045CACD  |. E9 99000000    JMP SuperGam.0045CB6B  
-> 0045CAD2  |> 8D8424 6802000>LEA EAX,DWORD PTR SS:\[ESP+268\]  
-> 0045CAD9  |. 8D8C24 D801000>LEA ECX,DWORD PTR SS:\[ESP+1D8\]  
-> 0045CAE0  |. 50             PUSH EAX                                 ; /Arg3  
-> 0045CAE1  |. 8D9424 3401000>LEA EDX,DWORD PTR SS:\[ESP+134\]           ; |  
-> 0045CAE8  |. 51             PUSH ECX                                 ; |Arg2  
-> 0045CAE9  |. 52             PUSH EDX                                 ; |Arg1  
-> 0045CAEA  |. 8D4C24 1C      LEA ECX,DWORD PTR SS:\[ESP+1C\]            ; |  
-> 0045CAEE  |. E8 DD78FAFF    CALL SuperGam.004043D0                   ; \\SuperGam.004043D0 ；注意这里传入的几个参数，它们是我们在上面见到的两个字符串转换后的 16 进制数，以及我们自己的码字，呵呵核心啊，跟进！  
-> 0045CAF3  |. 50             PUSH EAX  
-> 0045CAF4  |. 8D8C24 A400000>LEA ECX,DWORD PTR SS:\[ESP+A4\]  
-> 0045CAFB  |. C68424 CC01000>MOV BYTE PTR SS:\[ESP+1CC\],7  
-> 0045CB03  |. E8 C86EFAFF    CALL SuperGam.004039D0  
-> 0045CB08  |. 8D8C24 3001000>LEA ECX,DWORD PTR SS:\[ESP+130\]  
-> 0045CB0F  |. C68424 C801000>MOV BYTE PTR SS:\[ESP+1C8\],6  
-> 0045CB17  |. E8 3484FCFF    CALL SuperGam.00424F50  
-> 0045CB1C  |. 8D4424 08      LEA EAX,DWORD PTR SS:\[ESP+8\]  
-> 0045CB20  |. 6A 10          PUSH 10                                  ; /Arg2 = 00000010  
-> 0045CB22  |. 50             PUSH EAX                                 ; |Arg1  
-> 0045CB23  |. 8D8C24 A800000>LEA ECX,DWORD PTR SS:\[ESP+A8\]            ; |  
-> 0045CB2A  |. E8 7177FAFF    CALL SuperGam.004042A0                   ; \\SuperGam.004042A0  
-> 0045CB2F  |. 8D4C24 08      LEA ECX,DWORD PTR SS:\[ESP+8\]  
-> 0045CB33  |. 51             PUSH ECX  
-> 0045CB34  |> 8BB424 D401000>MOV ESI,DWORD PTR SS:\[ESP+1D4\]  
-> 0045CB3B  |. 8BCE           MOV ECX,ESI  
-> 0045CB3D  |. E8 832C0400    CALL SuperGam.0049F7C5  
-> 0045CB42  |. 8D8C24 A000000>LEA ECX,DWORD PTR SS:\[ESP+A0\]  
-> 0045CB49  |. 897C24 0C      MOV DWORD PTR SS:\[ESP+C\],EDI  
-> 0045CB4D  |. C68424 C801000>MOV BYTE PTR SS:\[ESP+1C8\],5  
-> 0045CB55  |. E8 F683FCFF    CALL SuperGam.00424F50  
-> 0045CB5A  |. 8D4C24 10      LEA ECX,DWORD PTR SS:\[ESP+10\]  
-> 0045CB5E  |. C68424 C801000>MOV BYTE PTR SS:\[ESP+1C8\],4  
-> 0045CB66  |. E8 E583FCFF    CALL SuperGam.00424F50  
-> 0045CB6B  |> 8D4C24 08      LEA ECX,DWORD PTR SS:\[ESP+8\]  
-> 0045CB6F  |. C68424 C801000>MOV BYTE PTR SS:\[ESP+1C8\],3  
-> 0045CB77  |. E8 D42E0400    CALL SuperGam.0049FA50  
-> 0045CB7C  |. 8D8C24 D401000>LEA ECX,DWORD PTR SS:\[ESP+1D4\]  
-> 0045CB83  |. C68424 C801000>MOV BYTE PTR SS:\[ESP+1C8\],2  
-> 0045CB8B  |. E8 C02E0400    CALL SuperGam.0049FA50  
-> 0045CB90  |. 8D8C24 D801000>LEA ECX,DWORD PTR SS:\[ESP+1D8\]  
-> 0045CB97  |. C68424 C801000>MOV BYTE PTR SS:\[ESP+1C8\],1  
-> 0045CB9F  |. E8 AC83FCFF    CALL SuperGam.00424F50  
-> 0045CBA4  |. 8D8C24 6802000>LEA ECX,DWORD PTR SS:\[ESP+268\]  
-> 0045CBAB  |. C68424 C801000>MOV BYTE PTR SS:\[ESP+1C8\],0  
-> 0045CBB3  |. E8 9883FCFF    CALL SuperGam.00424F50  
-> 0045CBB8  |. 8B8C24 C001000>MOV ECX,DWORD PTR SS:\[ESP+1C0\]  
-> 0045CBBF  |. 8BC6           MOV EAX,ESI  
-> 0045CBC1  |. 5F             POP EDI  
-> 0045CBC2  |. 5E             POP ESI  
-> 0045CBC3  |. 64:890D 000000>MOV DWORD PTR FS:\[0\],ECX  
-> 0045CBCA  |. 81C4 C4010000  ADD ESP,1C4  
-> 0045CBD0  \\. C3             RETN  
->   
-> 我们跟进 SuperGam.004043D0 这个核心函数：  
-> 004043D0  /$ 6A FF          PUSH -1  
-> 004043D2  |. 68 768B4A00    PUSH SuperGam.004A8B76                   ;  SE handler installation  
-> 004043D7  |. 64:A1 00000000 MOV EAX,DWORD PTR FS:\[0\]  
-> 004043DD  |. 50             PUSH EAX  
-> 004043DE  |. 64:8925 000000>MOV DWORD PTR FS:\[0\],ESP  
-> 004043E5  |. 81EC C4060000  SUB ESP,6C4  
-> 004043EB  |. 53             PUSH EBX  
-> 004043EC  |. 55             PUSH EBP  
-> 004043ED  |. 8BD9           MOV EBX,ECX  
-> 004043EF  |. 56             PUSH ESI  
-> 004043F0  |. 33ED           XOR EBP,EBP  
-> 004043F2  |. 57             PUSH EDI  
-> 004043F3  |. 8D8C24 A400000>LEA ECX,DWORD PTR SS:\[ESP+A4\]  
-> 004043FA  |. 896C24 10      MOV DWORD PTR SS:\[ESP+10\],EBP  
-> 004043FE  |. E8 5DF5FFFF    CALL SuperGam.00403960  
-> 00404403  |. 8D4C24 14      LEA ECX,DWORD PTR SS:\[ESP+14\]  
-> 00404407  |. 89AC24 DC06000>MOV DWORD PTR SS:\[ESP+6DC\],EBP  
-> 0040440E  |. E8 4DF5FFFF    CALL SuperGam.00403960  
-> 00404413  |. 8B8C24 E806000>MOV ECX,DWORD PTR SS:\[ESP+6E8\]  
-> 0040441A  |. C68424 DC06000>MOV BYTE PTR SS:\[ESP+6DC\],1  
->   
-> //注意看下面这几行代码  
-> 00404422  |. 8B01           MOV EAX,DWORD PTR DS:\[ECX\]      
-> 00404424  |. 8BF0           MOV ESI,EAX  
-> 00404426  |. 8B0481         MOV EAX,DWORD PTR DS:\[ECX+EAX\*4\]  
-> 00404429  |. C1E6 05        SHL ESI,5  
-> 0040442C  |. 83EE 20        SUB ESI,20  
-> 0040442F  |. 3BC5           CMP EAX,EBP  
-> 00404431  |. 74 07          JE SHORT SuperGam.0040443A  
-> 00404433  |> D1E8           /SHR EAX,1  
-> 00404435  |. 46             |INC ESI  
-> 00404436  |. 3BC5           |CMP EAX,EBP  
-> 00404438  |.⁷⁵ F9          \\JNZ SHORT SuperGam.00404433  
-> //注意看上面这几行代码  
-> //发现是做什么了吗？注意到传入的是 8231FC324594496514663D91E6C19989，它把最高 32bit 拿出来，在寻找最高非 0 比特位！  
-> //也就是说它是在计算这个大数的实际比特长度！（最高比特位不算在内，我在后面要解释为什么）  
-> 0040443A  |> 53             PUSH EBX  
-> 0040443B  |. 8D8C24 A800000>LEA ECX,DWORD PTR SS:\[ESP+A8\]  
-> 00404442  |. E8 89F5FFFF    CALL SuperGam.004039D0  
-> 00404447  |. 83C6 FE        ADD ESI,-2  
-> 0040444A  |. 3BF5           CMP ESI,EBP  
-> 0040444C  |. 897424 10      MOV DWORD PTR SS:\[ESP+10\],ESI  
-> 00404450  |. 0F8C 99020000  JL SuperGam.004046EF  
-> 00404456  |. 8BBC24 EC06000>MOV EDI,DWORD PTR SS:\[ESP+6EC\]  
-> 0040445D  |> 8B8424 A400000>/MOV EAX,DWORD PTR SS:\[ESP+A4\]  
-> 00404464  |. 8D9424 7403000>|LEA EDX,DWORD PTR SS:\[ESP+374\]  
-> 0040446B  |. 8B8C84 A400000>|MOV ECX,DWORD PTR SS:\[ESP+EAX\*4+A4\]  
-> 00404472  |. 51             |PUSH ECX                                ; /Arg2  
-> 00404473  |. 52             |PUSH EDX                                ; |Arg1  
-> 00404474  |. 8D8C24 AC00000>|LEA ECX,DWORD PTR SS:\[ESP+AC\]           ; |  
-> 0040447B  |. E8 50F9FFFF    |CALL SuperGam.00403DD0                  ; \\SuperGam.00403DD0  
-> 00404480  |. 50             |PUSH EAX  
-> 00404481  |. 8D4C24 18      |LEA ECX,DWORD PTR SS:\[ESP+18\]  
-> 00404485  |. E8 46F5FFFF    |CALL SuperGam.004039D0  
-> 0040448A  |. 8D8C24 7403000>|LEA ECX,DWORD PTR SS:\[ESP+374\]  
-> 00404491  |. E8 BA0A0200    |CALL SuperGam.00424F50  
-> 00404496  |. 8D8424 5402000>|LEA EAX,DWORD PTR SS:\[ESP+254\]  
-> 0040449D  |. 57             |PUSH EDI                                ; /Arg2  
-> 0040449E  |. 50             |PUSH EAX                                ; |Arg1  
-> 0040449F  |. 8D4C24 1C      |LEA ECX,DWORD PTR SS:\[ESP+1C\]           ; |  
-> 004044A3  |. E8 98FAFFFF    |CALL SuperGam.00403F40                  ; \\SuperGam.00403F40  
-> 004044A8  |. 50             |PUSH EAX  
-> 004044A9  |. 8D4C24 18      |LEA ECX,DWORD PTR SS:\[ESP+18\]  
-> 004044AD  |. E8 1EF5FFFF    |CALL SuperGam.004039D0  
-> 004044B2  |. 8D8C24 5402000>|LEA ECX,DWORD PTR SS:\[ESP+254\]  
-> 004044B9  |. E8 920A0200    |CALL SuperGam.00424F50  
-> 004044BE  |. 8B9424 A400000>|MOV EDX,DWORD PTR SS:\[ESP+A4\]  
-> 004044C5  |. BE 01000000    |MOV ESI,1  
-> 004044CA  |. 3BD6           |CMP EDX,ESI  
-> 004044CC  |. 0F86 B0000000  |JBE SuperGam.00404582  
-> 004044D2  |> 8B4C24 14      |/MOV ECX,DWORD PTR SS:\[ESP+14\]  
-> 004044D6  |. 3BCD           ||CMP ECX,EBP  
-> 004044D8  |. 7E 15          ||JLE SHORT SuperGam.004044EF  
-> 004044DA  |. 8D448C 18      ||LEA EAX,DWORD PTR SS:\[ESP+ECX\*4+18\]  
-> 004044DE  |> 8B68 FC        ||/MOV EBP,DWORD PTR DS:\[EAX-4\]  
-> 004044E1  |. 8928           |||MOV DWORD PTR DS:\[EAX\],EBP  
-> 004044E3  |. 83C0 FC        |||ADD EAX,-4  
-> 004044E6  |. 49             |||DEC ECX  
-> 004044E7  |.⁷⁵ F5          ||\\JNZ SHORT SuperGam.004044DE  
-> 004044E9  |. 8B4C24 14      ||MOV ECX,DWORD PTR SS:\[ESP+14\]  
-> 004044ED  |. 33ED           ||XOR EBP,EBP  
-> 004044EF  |> 41             ||INC ECX  
-> 004044F0  |. 2BD6           ||SUB EDX,ESI  
-> 004044F2  |. 894C24 14      ||MOV DWORD PTR SS:\[ESP+14\],ECX  
-> 004044F6  |. 896C24 18      ||MOV DWORD PTR SS:\[ESP+18\],EBP  
-> 004044FA  |. 8B8C94 A400000>||MOV ECX,DWORD PTR SS:\[ESP+EDX\*4+A4\]  
-> 00404501  |. 8D9424 3401000>||LEA EDX,DWORD PTR SS:\[ESP+134\]  
-> 00404508  |. 51             ||PUSH ECX                               ; /Arg2  
-> 00404509  |. 52             ||PUSH EDX                               ; |Arg1  
-> 0040450A  |. 8D8C24 AC00000>||LEA ECX,DWORD PTR SS:\[ESP+AC\]          ; |  
-> 00404511  |. E8 BAF8FFFF    ||CALL SuperGam.00403DD0                 ; \\SuperGam.00403DD0  
-> 00404516  |. 50             ||PUSH EAX                               ; /Arg2  
-> 00404517  |. 8D8424 9804000>||LEA EAX,DWORD PTR SS:\[ESP+498\]         ; |  
-> 0040451E  |. 50             ||PUSH EAX                               ; |Arg1  
-> 0040451F  |. 8D4C24 1C      ||LEA ECX,DWORD PTR SS:\[ESP+1C\]          ; |  
-> 00404523  |. E8 18F5FFFF    ||CALL SuperGam.00403A40                 ; \\SuperGam.00403A40  //实际是进行乘法之后的模运算啊！  
-> 00404528  |. 50             ||PUSH EAX  
-> 00404529  |. 8D4C24 18      ||LEA ECX,DWORD PTR SS:\[ESP+18\]  
-> 0040452D  |. E8 9EF4FFFF    ||CALL SuperGam.004039D0  
-> 00404532  |. 8D8C24 9404000>||LEA ECX,DWORD PTR SS:\[ESP+494\]  
-> 00404539  |. E8 120A0200    ||CALL SuperGam.00424F50  
-> 0040453E  |. 8D8C24 3401000>||LEA ECX,DWORD PTR SS:\[ESP+134\]  
-> 00404545  |. E8 060A0200    ||CALL SuperGam.00424F50  
-> 0040454A  |. 8D8C24 B405000>||LEA ECX,DWORD PTR SS:\[ESP+5B4\]  
-> 00404551  |. 57             ||PUSH EDI                               ; /Arg2  
-> 00404552  |. 51             ||PUSH ECX                               ; |Arg1  
-> 00404553  |. 8D4C24 1C      ||LEA ECX,DWORD PTR SS:\[ESP+1C\]          ; |  
-> 00404557  |. E8 E4F9FFFF    ||CALL SuperGam.00403F40                 ; \\SuperGam.00403F40  
-> 0040455C  |. 50             ||PUSH EAX  
-> 0040455D  |. 8D4C24 18      ||LEA ECX,DWORD PTR SS:\[ESP+18\]  
-> 00404561  |. E8 6AF4FFFF    ||CALL SuperGam.004039D0  
-> 00404566  |. 8D8C24 B405000>||LEA ECX,DWORD PTR SS:\[ESP+5B4\]  
-> 0040456D  |. E8 DE090200    ||CALL SuperGam.00424F50  
-> 00404572  |. 8B9424 A400000>||MOV EDX,DWORD PTR SS:\[ESP+A4\]  
-> 00404579  |. 46             ||INC ESI  
-> 0040457A  |. 3BF2           ||CMP ESI,EDX  
-> 0040457C  |.⁰F82 50FFFFFF  |\\JB SuperGam.004044D2  
-> 00404582  |> 8D5424 14      |LEA EDX,DWORD PTR SS:\[ESP+14\]  
-> 00404586  |. 8D8C24 A400000>|LEA ECX,DWORD PTR SS:\[ESP+A4\]  
-> 0040458D  |. 52             |PUSH EDX  
-> 0040458E  |. E8 3DF4FFFF    |CALL SuperGam.004039D0  
-> 00404593  |. 8B4C24 10      |MOV ECX,DWORD PTR SS:\[ESP+10\]  
-> 00404597  |. 8B9424 E806000>|MOV EDX,DWORD PTR SS:\[ESP+6E8\]  
-> 0040459E  |. 8BC1           |MOV EAX,ECX  
-> 004045A0  |. 83E1 1F        |AND ECX,1F  
-> 004045A3  |. C1F8 05        |SAR EAX,5  
-> 004045A6  |. 8B4482 04      |MOV EAX,DWORD PTR DS:\[EDX+EAX\*4+4\]  
-> 004045AA  |. D3E8           |SHR EAX,CL  
-> 004045AC  |. A8 01          |TEST AL,1  
-> 004045AE  |. 0F84 2C010000  |JE SuperGam.004046E0  
-> 004045B4  |. 8B8C24 A400000>|MOV ECX,DWORD PTR SS:\[ESP+A4\]  
-> 004045BB  |. 8D8424 C401000>|LEA EAX,DWORD PTR SS:\[ESP+1C4\]  
-> 004045C2  |. 8B948C A400000>|MOV EDX,DWORD PTR SS:\[ESP+ECX\*4+A4\]  
-> 004045C9  |. 8BCB           |MOV ECX,EBX  
-> 004045CB  |. 52             |PUSH EDX                                ; /Arg2  
-> 004045CC  |. 50             |PUSH EAX                                ; |Arg1  
-> 004045CD  |. E8 FEF7FFFF    |CALL SuperGam.00403DD0                  ; \\SuperGam.00403DD0  
-> 004045D2  |. 50             |PUSH EAX  
-> 004045D3  |. 8D4C24 18      |LEA ECX,DWORD PTR SS:\[ESP+18\]  
-> 004045D7  |. E8 F4F3FFFF    |CALL SuperGam.004039D0  
-> 004045DC  |. 8D8C24 C401000>|LEA ECX,DWORD PTR SS:\[ESP+1C4\]  
-> 004045E3  |. E8 68090200    |CALL SuperGam.00424F50  
-> 004045E8  |. 8D8C24 E402000>|LEA ECX,DWORD PTR SS:\[ESP+2E4\]  
-> 004045EF  |. 57             |PUSH EDI                                ; /Arg2  
-> 004045F0  |. 51             |PUSH ECX                                ; |Arg1  
-> 004045F1  |. 8D4C24 1C      |LEA ECX,DWORD PTR SS:\[ESP+1C\]           ; |  
-> 004045F5  |. E8 46F9FFFF    |CALL SuperGam.00403F40                  ; \\SuperGam.00403F40  
-> 004045FA  |. 50             |PUSH EAX  
-> 004045FB  |. 8D4C24 18      |LEA ECX,DWORD PTR SS:\[ESP+18\]  
-> 004045FF  |. E8 CCF3FFFF    |CALL SuperGam.004039D0  
-> 00404604  |. 8D8C24 E402000>|LEA ECX,DWORD PTR SS:\[ESP+2E4\]  
-> 0040460B  |. E8 40090200    |CALL SuperGam.00424F50  
-> 00404610  |. 8B9424 A400000>|MOV EDX,DWORD PTR SS:\[ESP+A4\]  
-> 00404617  |. BE 01000000    |MOV ESI,1  
-> 0040461C  |. 3BD6           |CMP EDX,ESI  
-> 0040461E  |. 0F86 AB000000  |JBE SuperGam.004046CF  
-> 00404624  |> 8B4C24 14      |/MOV ECX,DWORD PTR SS:\[ESP+14\]  
-> 00404628  |. 3BCD           ||CMP ECX,EBP  
-> 0040462A  |. 7E 15          ||JLE SHORT SuperGam.00404641  
-> 0040462C  |. 8D448C 18      ||LEA EAX,DWORD PTR SS:\[ESP+ECX\*4+18\]  
-> 00404630  |> 8B68 FC        ||/MOV EBP,DWORD PTR DS:\[EAX-4\]  
-> 00404633  |. 8928           |||MOV DWORD PTR DS:\[EAX\],EBP  
-> 00404635  |. 83C0 FC        |||ADD EAX,-4  
-> 00404638  |. 49             |||DEC ECX  
-> 00404639  |.⁷⁵ F5          ||\\JNZ SHORT SuperGam.00404630  
-> 0040463B  |. 8B4C24 14      ||MOV ECX,DWORD PTR SS:\[ESP+14\]  
-> 0040463F  |. 33ED           ||XOR EBP,EBP  
-> 00404641  |> 2BD6           ||SUB EDX,ESI  
-> 00404643  |. 41             ||INC ECX  
-> 00404644  |. 8D8424 2405000>||LEA EAX,DWORD PTR SS:\[ESP+524\]  
-> 0040464B  |. 894C24 14      ||MOV DWORD PTR SS:\[ESP+14\],ECX  
-> 0040464F  |. 8B9494 A400000>||MOV EDX,DWORD PTR SS:\[ESP+EDX\*4+A4\]  
-> 00404656  |. 8BCB           ||MOV ECX,EBX  
-> 00404658  |. 52             ||PUSH EDX                               ; /Arg2  
-> 00404659  |. 50             ||PUSH EAX                               ; |Arg1  
-> 0040465A  |. 896C24 20      ||MOV DWORD PTR SS:\[ESP+20\],EBP          ; |  
-> 0040465E  |. E8 6DF7FFFF    ||CALL SuperGam.00403DD0                 ; \\SuperGam.00403DD0  
-> 00404663  |. 8D8C24 0404000>||LEA ECX,DWORD PTR SS:\[ESP+404\]  
-> 0040466A  |. 50             ||PUSH EAX                               ; /Arg2  
-> 0040466B  |. 51             ||PUSH ECX                               ; |Arg1  
-> 0040466C  |. 8D4C24 1C      ||LEA ECX,DWORD PTR SS:\[ESP+1C\]          ; |  
-> 00404670  |. E8 CBF3FFFF    ||CALL SuperGam.00403A40                 ; \\SuperGam.00403A40  
-> 00404675  |. 50             ||PUSH EAX  
-> 00404676  |. 8D4C24 18      ||LEA ECX,DWORD PTR SS:\[ESP+18\]  
-> 0040467A  |. E8 51F3FFFF    ||CALL SuperGam.004039D0  
-> 0040467F  |. 8D8C24 0404000>||LEA ECX,DWORD PTR SS:\[ESP+404\]  
-> 00404686  |. E8 C5080200    ||CALL SuperGam.00424F50  
-> 0040468B  |. 8D8C24 2405000>||LEA ECX,DWORD PTR SS:\[ESP+524\]  
-> 00404692  |. E8 B9080200    ||CALL SuperGam.00424F50  
-> 00404697  |. 8D9424 4406000>||LEA EDX,DWORD PTR SS:\[ESP+644\]  
-> 0040469E  |. 57             ||PUSH EDI                               ; /Arg2  
-> 0040469F  |. 52             ||PUSH EDX                               ; |Arg1  
-> 004046A0  |. 8D4C24 1C      ||LEA ECX,DWORD PTR SS:\[ESP+1C\]          ; |  
-> 004046A4  |. E8 97F8FFFF    ||CALL SuperGam.00403F40                 ; \\SuperGam.00403F40  
-> 004046A9  |. 50             ||PUSH EAX  
-> 004046AA  |. 8D4C24 18      ||LEA ECX,DWORD PTR SS:\[ESP+18\]  
-> 004046AE  |. E8 1DF3FFFF    ||CALL SuperGam.004039D0  
-> 004046B3  |. 8D8C24 4406000>||LEA ECX,DWORD PTR SS:\[ESP+644\]  
-> 004046BA  |. E8 91080200    ||CALL SuperGam.00424F50  
-> 004046BF  |. 8B9424 A400000>||MOV EDX,DWORD PTR SS:\[ESP+A4\]  
-> 004046C6  |. 46             ||INC ESI  
-> 004046C7  |. 3BF2           ||CMP ESI,EDX  
-> 004046C9  |.⁰F82 55FFFFFF  |\\JB SuperGam.00404624  
-> 004046CF  |> 8D4424 14      |LEA EAX,DWORD PTR SS:\[ESP+14\]  
-> 004046D3  |. 8D8C24 A400000>|LEA ECX,DWORD PTR SS:\[ESP+A4\]  
-> 004046DA  |. 50             |PUSH EAX  
-> 004046DB  |. E8 F0F2FFFF    |CALL SuperGam.004039D0  
-> 004046E0  |> 8B4424 10      |MOV EAX,DWORD PTR SS:\[ESP+10\]  
-> 004046E4  |. 48             |DEC EAX  
-> 004046E5  |. 894424 10      |MOV DWORD PTR SS:\[ESP+10\],EAX  
-> 004046E9  |.⁰F89 6EFDFFFF  \\JNS SuperGam.0040445D  
-> 004046EF  |> 8B9C24 E406000>MOV EBX,DWORD PTR SS:\[ESP+6E4\]  
-> 004046F6  |. B9 24000000    MOV ECX,24  
-> 004046FB  |. 8DB424 A400000>LEA ESI,DWORD PTR SS:\[ESP+A4\]  
-> 00404702  |. 8BFB           MOV EDI,EBX  
-> 00404704  |. F3:A5          REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS>  
-> 00404706  |. 8D4C24 14      LEA ECX,DWORD PTR SS:\[ESP+14\]  
-> 0040470A  |. E8 41080200    CALL SuperGam.00424F50  
-> 0040470F  |. 8D8C24 A400000>LEA ECX,DWORD PTR SS:\[ESP+A4\]  
-> 00404716  |. E8 35080200    CALL SuperGam.00424F50  
-> 0040471B  |. 8B8C24 D406000>MOV ECX,DWORD PTR SS:\[ESP+6D4\]  
-> 00404722  |. 5F             POP EDI  
-> 00404723  |. 5E             POP ESI  
-> 00404724  |. 8BC3           MOV EAX,EBX  
-> 00404726  |. 5D             POP EBP  
-> 00404727  |. 5B             POP EBX  
-> 00404728  |. 64:890D 000000>MOV DWORD PTR FS:\[0\],ECX  
-> 0040472F  |. 81C4 D0060000  ADD ESP,6D0  
-> 00404735  \\. C2 0C00        RETN 0C  
->   
-> 代码里平凡出现调用这个函数，我们来看它是干什么的  
-> 00403DD0  /$ 81EC 94000000  SUB ESP,94  
-> 00403DD6  |. 53             PUSH EBX  
-> 00403DD7  |. 55             PUSH EBP  
-> 00403DD8  |. 56             PUSH ESI  
-> 00403DD9  |. 8BF1           MOV ESI,ECX  
-> 00403DDB  |. 33DB           XOR EBX,EBX  
-> 00403DDD  |. 57             PUSH EDI  
-> 00403DDE  |. 8D4C24 14      LEA ECX,DWORD PTR SS:\[ESP+14\]  
-> 00403DE2  |. 895C24 10      MOV DWORD PTR SS:\[ESP+10\],EBX  
-> 00403DE6  |. E8 75FBFFFF    CALL SuperGam.00403960  
-> 00403DEB  |. 56             PUSH ESI  
-> 00403DEC  |. 8D4C24 18      LEA ECX,DWORD PTR SS:\[ESP+18\]  
-> 00403DF0  |. E8 DBFBFFFF    CALL SuperGam.004039D0  
-> 00403DF5  |. 8B2E           MOV EBP,DWORD PTR DS:\[ESI\]  
-> 00403DF7  |. 3BEB           CMP EBP,EBX  
-> 00403DF9  |. 76 40          JBE SHORT SuperGam.00403E3B  
-> 00403DFB  |. 8D7C24 18      LEA EDI,DWORD PTR SS:\[ESP+18\]  
-> 00403DFF  |. 83C6 04        ADD ESI,4  
-> 00403E02  |> 8B0E           /MOV ECX,DWORD PTR DS:\[ESI\]  
-> 00403E04  |. 33C0           |XOR EAX,EAX  
-> 00403E06  |. 50             |PUSH EAX  
-> 00403E07  |. 8B8424 B000000>|MOV EAX,DWORD PTR SS:\[ESP+B0\]  
-> 00403E0E  |. 50             |PUSH EAX  
-> 00403E0F  |. 6A 00          |PUSH 0  
-> 00403E11  |. 51             |PUSH ECX  
-> 00403E12  |. E8 29520800    |CALL SuperGam.00489040 // 一直在循环调用这个函数，跟进去看看  
-> 00403E17  |. 33C9           |XOR ECX,ECX  
-> 00403E19  |. 03C3           |ADD EAX,EBX  
-> 00403E1B  |. 13D1           |ADC EDX,ECX  
-> 00403E1D  |. 8907           |MOV DWORD PTR DS:\[EDI\],EAX  
-> 00403E1F  |. 83C6 04        |ADD ESI,4  
-> 00403E22  |. 83C7 04        |ADD EDI,4  
-> 00403E25  |. 4D             |DEC EBP  
-> 00403E26  |. 8BDA           |MOV EBX,EDX  
-> 00403E28  |.⁷⁵ D8          \\JNZ SHORT SuperGam.00403E02  
-> 00403E2A  |. 85DB           TEST EBX,EBX  
-> 00403E2C  |. 74 0D          JE SHORT SuperGam.00403E3B  
-> 00403E2E  |. 8B4424 14      MOV EAX,DWORD PTR SS:\[ESP+14\]  
-> 00403E32  |. 40             INC EAX  
-> 00403E33  |. 894424 14      MOV DWORD PTR SS:\[ESP+14\],EAX  
-> 00403E37  |. 895C84 14      MOV DWORD PTR SS:\[ESP+EAX\*4+14\],EBX  
-> 00403E3B  |> 8B9C24 A800000>MOV EBX,DWORD PTR SS:\[ESP+A8\]  
-> 00403E42  |. B9 24000000    MOV ECX,24  
-> 00403E47  |. 8D7424 14      LEA ESI,DWORD PTR SS:\[ESP+14\]  
-> 00403E4B  |. 8BFB           MOV EDI,EBX  
-> 00403E4D  |. F3:A5          REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS>  
-> 00403E4F  |. 8D4C24 14      LEA ECX,DWORD PTR SS:\[ESP+14\]  
-> 00403E53  |. E8 F8100200    CALL SuperGam.00424F50  
-> 00403E58  |. 5F             POP EDI  
-> 00403E59  |. 5E             POP ESI  
-> 00403E5A  |. 8BC3           MOV EAX,EBX  
-> 00403E5C  |. 5D             POP EBP  
-> 00403E5D  |. 5B             POP EBX  
-> 00403E5E  |. 81C4 94000000  ADD ESP,94  
-> 00403E64  \\. C2 0800        RETN 8  
->   
->   
-> //仔细看下面代码的动作：是在做乘法，注意里面是有个选择分之的  
-> 00489040  /$ 8B4424 08      MOV EAX,DWORD PTR SS:\[ESP+8\]  
-> 00489044  |. 8B4C24 10      MOV ECX,DWORD PTR SS:\[ESP+10\]  
-> 00489048  |. 0BC8           OR ECX,EAX  
-> 0048904A  |. 8B4C24 0C      MOV ECX,DWORD PTR SS:\[ESP+C\]  
-> 0048904E  |. 75 09          JNZ SHORT SuperGam.00489059  
-> 00489050  |. 8B4424 04      MOV EAX,DWORD PTR SS:\[ESP+4\]  
-> 00489054  |. F7E1           MUL ECX  
-> 00489056  |. C2 1000        RETN 10  
-> 00489059  |> 53             PUSH EBX  
-> 0048905A  |. F7E1           MUL ECX  
-> 0048905C  |. 8BD8           MOV EBX,EAX  
-> 0048905E  |. 8B4424 08      MOV EAX,DWORD PTR SS:\[ESP+8\]  
-> 00489062  |. F76424 14      MUL DWORD PTR SS:\[ESP+14\]  
-> 00489066  |. 03D8           ADD EBX,EAX  
-> 00489068  |. 8B4424 08      MOV EAX,DWORD PTR SS:\[ESP+8\]  
-> 0048906C  |. F7E1           MUL ECX  
-> 0048906E  |. 03D3           ADD EDX,EBX  
-> 00489070  |. 5B             POP EBX  
-> 00489071  \\. C2 1000        RETN 10  
->   
-> 我们还注意到，这个函数出去后，在后续的代码里还有相应的带进位的加法！仔细实际跟一下我们可以发现，这就是一个  
-> 模幂乘的子部分啊！自己写过大数运算库的朋友们应该再清楚不过了。SuperGam.004043D0 里的那个大循环就是一个整个的  
-> 模幂乘过程，指数就是 8231FC324594496514663D91E6C19989，模就是 CFBCC6EC474AE5CD0F7BC8DBBA353A11。那个模函数里用的  
-> 就是这个模数！请大家自己带数进去仔细跟一跟就清楚拉，我是跟了两个小时才全部弄明白的哦！现在已经弄清楚了是模幂乘  
-> 运算，指数是 8231FC324594496514663D91E6C19989，那么前面统计它的非 0 最长比特位是为了干什么也就清楚了，自然是不用把  
-> 最高位算在内的。这是模幂乘算法中最普通的平方乘算法啊！  
->    好了，我们现在已经清楚了它用的是 RSA 签名算法，是把你发给它的机器码用私钥 e 加密，然后在程序里用公钥验证签名！  
-> 不错，的确是很好的方法，那么我们就没有办法了吗？呵呵不是，我们发现它的公钥很长，是模数一样长，那么它的私钥 e 会不会  
-> 很短呢？之所以会有这个想法是因为：  一般在应用 RSA 签名算法时，出于速度的考虑，e 和 d 的选取是有技巧的，一般的考虑是，签名可以  
-> 慢一点，但是验证签名一定要快！这是应为，验证签名比签名运算的情况要多的多，这就好比国家只会给你发一次身份证（签名），但是在很多情况下  
-> 别人会验证你的身份证，比如买飞机票，办手续等（验证）。  
->    这也就是说，一般 e 都比较长，而 d 比较短，但是作者在这里把 d 取的这么长，那么他会不会错误的把 e 选择的比较短呢？也就是说他会  
-> 不会恰巧把公私钥搞颠倒了呢？这只是猜测而已。我们试验一下吧，一般来说，我们用的小指数有 7，2⁸+1,2¹⁶+1,选择它们的原因是：  
-> 它们都是素数，而且二进制展开里只有一个比特的 1（最高比特不算在内），这样的话模幂运算是非常快的！好了我们实验一下，经过试验，  
-> 我们发现他的私钥恰好是 2¹⁶+1,也就是 0x10001.哈哈，真是运气好啊！这只能怪作者对 RSA 的应用理解不够深入啊。  
->    其实，他把 8231FC324594496514663D91E6C19989 当作私钥不是很好吗？在程序里用 0X10001 来验证签名，很快的啊。而且私钥也更难以猜测的啊！  
-> 那么是不是他真的这样做我们就没有招数了呢？不是！！我们注意到模数只有 128 比特长，4 个 DWORD 而已啊！如果我们能够分解开这个数，那么我们就  
-> 可以自己算出私钥来啊！经过分解我们发现：CFBCC6EC474AE5CD0F7BC8DBBA353A11＝17132309568144694951×16117522303433191559，这里的数都是以 16 进制表示。  
-> 呵呵，有了这个分解，我们只需要求出 8231FC324594496514663D91E6C19989 相对于 17132309568144694950×16117522303433191558（这个乘积就是 fi（N），fi 表示欧拉函数，N 表示模数）的乘法逆就可以了，经过  
-> 计算，我们也可以得到相同的结果 0X10001，呵呵！整个系统告破！  
-> 好了有了私钥，那么写个注册机就不成问题了，我在这里就不罗嗦了，剩下的事情就是大数运算了。  
-> 说一说问题：1.私钥太好猜测了，建议都用和模数一样长的数。 2.模数的长度太短，导致直接分解的成功！建议使用至少 512 比特的 N。  
->     好了，讲完了，代码贴了不少，但是注释不多，不过核心的东西我都列出来了，并有说到，很多东西要大家亲自去跟才能体会。欢迎大家一起讨论。 
+> 【文章标题】: SuperGame V1.5.8 注册算法分析和破解  
+> 【文章作者】: drcool  
+> 【作者邮箱】: drui118@163.com  
+> 【作者主页】: 无  
+> 【生产日期】: 20070131  
+> 【软件名称】: SuperGame V1.5.8  
+> 【保护方式】: 机器码＋注册码，RSA 签名保护  
+> 【编写语言】: VC＋＋  
+> 【使用工具】: OD  
+> 【作者声明】: 本文仅供研究学习，本人对因这篇文章而导致的一切后果，不承担任何法律责任。本文中的不足之处请各位多多指教  
+> 【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
 
- 4dd466d0e1e0cc123afbe504da2462ca
+--------------------------------------------------------------------------------
+
+【详细过程】
+
+这是一个共享小游戏合集，非注册版本只有两分钟试玩时间。通过查壳发现，这个程序并没有加壳，还发现是用 VC++ 编写的。注册机制是通过机器码来保证一台机器一码。
+
+如果注册码错误则会出现一个错误对话框。我们就从这个错误对话框入手来发掘算法。
+
+通过跟踪发现，重要的代码在这里：
+
+```
+0045C534   > 51              PUSH ECX
+0045C535   . 8BCC            MOV ECX,ESP
+0045C537   . 896424 14       MOV DWORD PTR SS:[ESP+14],ESP
+0045C53B   . 55              PUSH EBP
+0045C53C   . E8 84320400     CALL SuperGam.0049F7C5
+0045C541   . 8D4C24 14       LEA ECX,DWORD PTR SS:[ESP+14]
+0045C545   . 51              PUSH ECX
+0045C546   . E8 95060000     CALL SuperGam.0045CBE0    //在这个函数里面进行运算
+0045C54B   . 8B00            MOV EAX,DWORD PTR DS:[EAX]                  ; |//这两行是保存结果地址
+0045C54D   . 8B4E 68         MOV ECX,DWORD PTR DS:[ESI+68]               ; |
+0045C550   . 50              PUSH EAX                                     ; |Arg2//这两行压入运算结果和机器码地址
+0045C551   . 51              PUSH ECX                                     ; |Arg1
+0045C552   . E8 30DF0200     CALL SuperGam.0048A487                       ; \\SuperGam.0048A487 //比较，如果不相等就完了
+0045C557   . 83C4 10         ADD ESP,10
+0045C55A   . 8D4C24 10       LEA ECX,DWORD PTR SS:[ESP+10]
+0045C55E   . 85C0            TEST EAX,EAX
+0045C560   . 0F94C3          SETE BL
+0045C563   . E8 E8340400     CALL SuperGam.0049FA50
+0045C568   . 84DB            TEST BL,BL
+0045C56A   . 0F84 A1000000   JE SuperGam.0045C611                          //千万不能跳，否则就是出错对话框了，如果爆破可以考虑这里
+0045C570   . 8BCE            MOV ECX,ESI                                   //但是我们是要写注册机的哦呵呵
+0045C572   . C746 5C 010000> MOV DWORD PTR DS:[ESI+5C],1
+0045C579   . E8 B6520400     CALL SuperGam.004A1834
+0045C57E   . 8B46 64         MOV EAX,DWORD PTR DS:[ESI+64]
+0045C581   . 8B3D 00F04A00   MOV EDI,DWORD PTR DS:[<&ADVAPI32.RegSetV>;  ADVAPI32.RegSetValueA
+0045C587   . 8B48 F8         MOV ECX,DWORD PTR DS:[EAX-8]
+0045C58A   . 51              PUSH ECX                                     ; /Length
+0045C58B   . 50              PUSH EAX                                     ; |Value
+0045C58C   . 6A 01           PUSH 1                                        ; |ValueType = REG_SZ
+0045C58E   . 68 40094D00     PUSH SuperGam.004D0940                        ; |Subkey = "SOFTWARE\\SuperGames\\UserName"
+0045C593   . 68 02000080     PUSH 80000002                                 ; |hKey = HKEY_LOCAL_MACHINE
+0045C598   . FFD7            CALL EDI                                      ; \\RegSetValueA
+0045C59A   . 85C0            TEST EAX,EAX
+0045C59C   . 74 13           JE SHORT SuperGam.0045C5B1
+0045C59E   . 6A 30           PUSH 30
+0045C5A0   . 68 60F64C00     PUSH SuperGam.004CF660
+0045C5A5   . 68 30094D00     PUSH SuperGam.004D0930
+0045C5AA   . 8BCE            MOV ECX,ESI
+0045C5AC   . E8 C4180400     CALL SuperGam.0049DE75
+0045C5B1   > 8B46 60         MOV EAX,DWORD PTR DS:[ESI+60]
+0045C5B4   . 8B48 F8         MOV ECX,DWORD PTR DS:[EAX-8]
+0045C5B7   . 51              PUSH ECX
+0045C5B8   . 50              PUSH EAX
+0045C5B9   . 6A 01           PUSH 1
+0045C5BB   . 68 10094D00     PUSH SuperGam.004D0910                        ;  ASCII "SOFTWARE\\SuperGames\\CompanyName"
+0045C5C0   . 68 02000080     PUSH 80000002
+0045C5C5   . FFD7            CALL EDI
+0045C5C7   . 85C0            TEST EAX,EAX
+0045C5C9   . 74 13           JE SHORT SuperGam.0045C5DE
+0045C5CB   . 6A 30           PUSH 30
+0045C5CD   . 68 60F64C00     PUSH SuperGam.004CF660
+0045C5D2   . 68 30094D00     PUSH SuperGam.004D0930
+0045C5D7   . 8BCE            MOV ECX,ESI
+0045C5D9   . E8 97180400     CALL SuperGam.0049DE75
+0045C5DE   > 8B45 00         MOV EAX,DWORD PTR SS:[EBP]
+0045C5E1   . 8B48 F8         MOV ECX,DWORD PTR DS:[EAX-8]
+0045C5E4   . 51              PUSH ECX
+0045C5E5   . 50              PUSH EAX
+0045C5E6   . 6A 01           PUSH 1
+0045C5E8   . 68 F0084D00     PUSH SuperGam.004D08F0                        ;  ASCII "SOFTWARE\\SuperGames\\SerialNo"
+0045C5ED   . 68 02000080     PUSH 80000002
+0045C5F2   . FFD7            CALL EDI
+0045C5F4   . 85C0            TEST EAX,EAX
+0045C5F6   . 74 2C           JE SHORT SuperGam.0045C624
+0045C5F8   . 6A 30           PUSH 30
+0045C5FA   . 68 60F64C00     PUSH SuperGam.004CF660
+0045C5FF   . 68 30094D00     PUSH SuperGam.004D0930
+0045C604   . 8BCE            MOV ECX,ESI
+0045C606   . E8 6A180400     CALL SuperGam.0049DE75
+0045C60B   . 5F              POP EDI
+0045C60C   . 5E              POP ESI
+0045C60D   . 5D              POP EBP
+0045C60E   . 5B              POP EBX
+0045C60F   . 59              POP ECX
+0045C610   . C3              RETN
+```
+
+让我们跟进 `SuperGam.0045CBE0` 里面看看
+
+```
+0045CBE0  /$ 6A FF           PUSH -1
+0045CBE2  |. 68 4EBB4A00    PUSH SuperGam.004ABB4E                        ;  SE handler installation
+0045CBE7  |. 64:A1 00000000 MOV EAX,DWORD PTR FS:[0]
+0045CBED  |. 50             PUSH EAX
+0045CBEE  |. 64:8925 000000> MOV DWORD PTR FS:[0],ESP
+0045CBF5  |. 81EC 30010000  SUB ESP,130
+0045CBFB  |. 56             PUSH ESI
+0045CBFC  |. 57             PUSH EDI
+0045CBFD  |. C74424 10 0000> MOV DWORD PTR SS:[ESP+10],0
+0045CC05  |. 8D8C24 A800000> LEA ECX,DWORD PTR SS:[ESP+A8]
+0045CC0C  |. C78424 4001000> MOV DWORD PTR SS:[ESP+140],1
+0045CC17  |. E8 446DFAFF    CALL SuperGam.00403960
+0045CC1C  |. 8D4C24 18      LEA ECX,DWORD PTR SS:[ESP+18]
+0045CC20  |. C68424 4001000> MOV BYTE PTR SS:[ESP+140],2
+0045CC28  |. E8 336DFAFF    CALL SuperGam.00403960
+0045CC2D  |. A1 585E4D00    MOV EAX,DWORD PTR DS:[4D5E58]
+0045CC32  |. 894424 0C      MOV DWORD PTR SS:[ESP+C],EAX
+0045CC36  |. 894424 08      MOV DWORD PTR SS:[ESP+8],EAX
+0045CC3A  |. 68 9C094D00    PUSH SuperGam.004D099C                        ;  ASCII "CFBCC6EC474AE5CD0F7BC8DBBA353A11"
+0045CC3F  |. 8D4C24 10      LEA ECX,DWORD PTR SS:[ESP+10]
+0045CC43  |. C68424 4401000> MOV BYTE PTR SS:[ESP+144],5
+0045CC4B  |. E8 452F0400    CALL SuperGam.0049FB95                        //把上面的字符串转换成 16 进制数
+0045CC50  |. 68 78094D00    PUSH SuperGam.004D0978                        ;  ASCII "8231FC324594496514663D91E6C19989"
+0045CC55  |. 8D4C24 0C      LEA ECX,DWORD PTR SS:[ESP+C]                  //把上面的字符串转换成 16 进制数
+0045CC59  |. E8 372F0400    CALL SuperGam.0049FB95
+0045CC5E  |. 8D4424 0C      LEA EAX,DWORD PTR SS:[ESP+C]
+0045CC62  |. 6A 10          PUSH 10                                       ; /Arg2 = 00000010
+0045CC64  |. 50             PUSH EAX                                      ; |Arg1
+0045CC65  |. 8D8C24 B000000> LEA ECX,DWORD PTR SS:[ESP+B0]               ; |
+0045CC6C  |. E8 5F75FAFF    CALL SuperGam.004041D0                        ; \\SuperGam.004041D0
+0045CC71  |. 8D4C24 08      LEA ECX,DWORD PTR SS:[ESP+8]
+0045CC75  |. 6A 10          PUSH 10                                       ; /Arg2 = 00000010
+0045CC77  |. 51             PUSH ECX                                      ; |Arg1
+0045CC78  |. 8D4C24 20      LEA ECX,DWORD PTR SS:[ESP+20]                 ; |
+0045CC7C  |. E8 4F75FAFF    CALL SuperGam.004041D0                        ; \\SuperGam.004041D0
+0045CC81  |. 81EC 90000000  SUB ESP,90
+0045CC87  |. B9 24000000    MOV ECX,24
+0045CC8C  |. 8DB424 3801000> LEA ESI,DWORD PTR SS:[ESP+138]
+```
+
+
+
+## 核心代码片段
+
+```
+0045CC93  .  8BFC           MOV EDI,ESP
+0045CC95  .  F3:A5          REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS:
+0045CC97  .  81EC 90000000  SUB ESP,90
+0045CC9D  .  B9 24000000    MOV ECX,24
+0045CCA2  .  8DB424 3801000> LEA ESI,DWORD PTR SS:[ESP+138]
+0045CCA9  .  8BFC           MOV EDI,ESP
+0045CCAB  .  F3:A5          REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS:
+0045CCAD  .  51             PUSH ECX
+0045CCAE  .  8D9424 7002000> LEA EDX,DWORD PTR SS:[ESP+270]
+0045CCB5  .  8BCC           MOV ECX,ESP
+0045CCB7  .  89A424 3801000> MOV DWORD PTR SS:[ESP+138],ESP
+0045CCBE  .  52             PUSH EDX
+0045CCBF  .  E8 012B0400    CALL SuperGam.0049F7C5
+0045CCC4  .  8BB424 6C02000> MOV ESI,DWORD PTR SS:[ESP+26C]
+0045CCCB  .  56             PUSH ESI
+0045CCCC  .  E8 FFFCFFFF    CALL SuperGam.0045C9D0   //到这里，我们输入的注册码已经被读入了，然后进行计算，这是个核心函数！
+0045CCD1  .  81C4 28010000  ADD ESP,128
+0045CCD7  .  C74424 10 0100> MOV DWORD PTR SS:[ESP+10],1
+0045CCDF  .  8D4C24 08      LEA ECX,DWORD PTR SS:[ESP+8]
+0045CCE3  .  C68424 4001000> MOV BYTE PTR SS:[ESP+140],4
+0045CCEB  .  E8 602D0400    CALL SuperGam.0049FA50
+0045CCF0  .  8D4C24 0C      LEA ECX,DWORD PTR SS:[ESP+C]
+0045CCF4  .  C68424 4001000> MOV BYTE PTR SS:[ESP+140],3
+0045CCFC  .  E8 4F2D0400    CALL SuperGam.0049FA50
+0045CD01  .  8D4C24 18      LEA ECX,DWORD PTR SS:[ESP+18]
+0045CD05  .  C68424 4001000> MOV BYTE PTR SS:[ESP+140],2
+0045CD0D  .  E8 3E82FCFF    CALL SuperGam.00424F50
+0045CD12  .  8D8C24 A800000> LEA ECX,DWORD PTR SS:[ESP+A8]
+0045CD19  .  C68424 4001000> MOV BYTE PTR SS:[ESP+140],1
+0045CD21  .  E8 2A82FCFF    CALL SuperGam.00424F50
+0045CD26  .  8D8C24 4C01000> LEA ECX,DWORD PTR SS:[ESP+14C]
+0045CD2D  .  C68424 4001000> MOV BYTE PTR SS:[ESP+140],0
+0045CD35  .  E8 162D0400    CALL SuperGam.0049FA50
+0045CD3A  .  8B8C24 3801000> MOV ECX,DWORD PTR SS:[ESP+138]
+0045CD41  .  8BC6           MOV EAX,ESI
+0045CD43  .  5F             POP EDI
+0045CD44  .  64:890D 000000> MOV DWORD PTR FS:[0],ECX
+0045CD4B  .  5E             POP ESI
+0045CD4C  .  81C4 3C010000  ADD ESP,13C
+0045CD52  .  C3             RETN
+```
+
+## 核心函数 1
+
+```
+0045C9D0  /$  6A FF          PUSH -1
+0045C9D2  |.  68 F1BA4A00    PUSH SuperGam.004ABAF1 ; SE handler installation
+0045C9D7  |.  64:A1 00000000 MOV EAX,DWORD PTR FS:[0]
+0045C9DD  |.  50             PUSH EAX
+0045C9DE  |.  64:8925 000000> MOV DWORD PTR FS:[0],ESP
+0045C9E5  |.  81EC B8010000  SUB ESP,1B8
+0045C9EB  |.  33C9           XOR ECX,ECX
+0045C9ED  |.  56             PUSH ESI
+0045C9EE  |.  57             PUSH EDI
+0045C9EF  |.  894C24 0C      MOV DWORD PTR SS:[ESP+C],ECX
+0045C9F3  |.  BF 01000000    MOV EDI,1
+0045C9F8  |.  89BC24 C801000> MOV DWORD PTR SS:[ESP+1C8],EDI
+0045C9FF  |.  A1 585E4D00    MOV EAX,DWORD PTR DS:[4D5E58]
+0045CA04  |.  894424 08      MOV DWORD PTR SS:[ESP+8],EAX
+0045CA08  |.  8BB424 D401000> MOV ESI,DWORD PTR SS:[ESP+1D4]
+0045CA0F  |.  C68424 C801000> MOV BYTE PTR SS:[ESP+1C8],4
+0045CA17  |.  8B56 F8        MOV EDX,DWORD PTR DS:[ESI-8]
+0045CA1A  |.  81FA 00010000  CMP EDX,100
+0045CA20  |.  7E 1C          JLE SHORT SuperGam.0045CA3E
+0045CA22  |.  8BB424 D001000> MOV ESI,DWORD PTR SS:[ESP+1D0]
+0045CA29  |.  8D4C24 08      LEA ECX,DWORD PTR SS:[ESP+8]
+0045CA2D  |.  51             PUSH ECX
+0045CA2E  |.  8BCE           MOV ECX,ESI
+0045CA30  |.  E8 902D0400    CALL SuperGam.0049F7C5
+0045CA35  |.  897C24 0C      MOV DWORD PTR SS:[ESP+C],EDI
+0045CA39  |.  E9 2D010000    JMP SuperGam.0045CB6B
+0045CA3E  |>  3BD1           CMP EDX,ECX
+0045CA40  |.  7E 20          JLE SHORT SuperGam.0045CA62
+0045CA42  |>  8A0431         /MOV AL,BYTE PTR DS:[ECX+ESI]
+0045CA45  |.  3C 30          |CMP AL,30
+0045CA47  |.  7C 6D          |JL SHORT SuperGam.0045CAB6
+0045CA49  |.  3C 39          |CMP AL,39
+0045CA4B  |.  7E 04          |JLE SHORT SuperGam.0045CA51
+0045CA4D  |.  3C 41          |CMP AL,41
+0045CA4F  |.  7C 65          |JL SHORT SuperGam.0045CAB6
+0045CA51  |>  3C 46          |CMP AL,46
+0045CA53  |.  7E 04          |JLE SHORT SuperGam.0045CA59
+0045CA55  |.  3C 61          |CMP AL,61
+0045CA57  |.  7C 5D          |JL SHORT SuperGam.0045CAB6
+0045CA59  |>  3C 66          |CMP AL,66
+0045CA5B  |.  7F 59          |JG SHORT SuperGam.0045CAB6
+0045CA5D  |.  41             |INC ECX
+0045CA5E  |.  3BCA           |CMP ECX,EDX
+0045CA60  |.  7C E0          \JL SHORT SuperGam.0045CA42   //通过这个循环把我们输入的码字转换成 16 进制数
+0045CA62  |>  8D4C24 10      LEA ECX,DWORD PTR SS:[ESP+10]
+0045CA66  |.  E8 F56EFAFF    CALL SuperGam.00403960
+0045CA6B  |.  8D8C24 A000000> LEA ECX,DWORD PTR SS:[ESP+A0]
+0045CA72  |.  C68424 C801000> MOV BYTE PTR SS:[ESP+1C8],5
+0045CA7A  |.  E8 E16EFAFF    CALL SuperGam.00403960
+0045CA7F  |.  8D8424 D401000> LEA EAX,DWORD PTR SS:[ESP+1D4]
+0045CA86  |.  6A 10          PUSH 10 ; /Arg2 = 00000010
+0045CA88  |.  50             PUSH EAX ; |Arg1
+0045CA89  |.  8D4C24 18      LEA ECX,DWORD PTR SS:[ESP+18] ; |
+0045CA8D  |.  C68424 D001000> MOV BYTE PTR SS:[ESP+1D0],6 ; |
+0045CA95  |.  E8 3677FAFF    CALL SuperGam.004041D0 ; \SuperGam.004041D0
+0045CA9A  |.  8D8C24 6802000> LEA ECX,DWORD PTR SS:[ESP+268]
+0045CAA1  |.  51             PUSH ECX
+0045CAA2  |.  8D4C24 14      LEA ECX,DWORD PTR SS:[ESP+14]
+0045CAA6  |.  E8 D56EFAFF    CALL SuperGam.00403980
+0045CAAB  |.  85C0           TEST EAX,EAX
+0045CAAD  |.  7C 23          JL SHORT SuperGam.0045CAD2
+0045CAAF  |.  8D5424 08      LEA EDX,DWORD PTR SS:[ESP+8]
+0045CAB3  |.  52             PUSH EDX
+0045CAB4  |.  EB 7E          JMP SHORT SuperGam.0045CB34
+0045CAB6  |>  8BB424 D001000> MOV ESI,DWORD PTR SS:[ESP+1D0]
+0045CABD  |.  8D5424 08      LEA EDX,DWORD PTR SS:[ESP+8]
+0045CAC1  |.  52             PUSH EDX
+0045CAC2  |.  8BCE           MOV ECX,ESI
+0045CAC4  |.  E8 FC2C0400    CALL SuperGam.0049F7C5
+0045CAC9  |.  897C24 0C      MOV DWORD PTR SS:[ESP+C],EDI
+0045CACD  |.  E9 99000000    JMP SuperGam.0045CB6B
+0045CAD2  |>  8D8424 6802000> LEA EAX,DWORD PTR SS:[ESP+268]
+0045CAD9  |.  8D8C24 D801000> LEA ECX,DWORD PTR SS:[ESP+1D8]
+0045CAE0  |.  50             PUSH EAX ; /Arg3
+0045CAE1  |.  8D9424 3401000> LEA EDX,DWORD PTR SS:[ESP+134] ; |
+0045CAE8  |.  51             PUSH ECX ; |Arg2
+0045CAE9  |.  52             PUSH EDX ; |Arg1
+0045CAEA  |.  8D4C24 1C      LEA ECX,DWORD PTR SS:[ESP+1C] ; |
+0045CAEE  |.  E8 DD78FAFF    CALL SuperGam.004043D0 ; \SuperGam.004043D0 ；注意这里传入的几个参数，它们是我们在上面见到的两个字符串转换后的 16 进制数，以及我们自己的码字，呵呵核心啊，跟进！
+0045CAF3  |.  50             PUSH EAX
+0045CAF4  |.  8D8C24 A400000> LEA ECX,DWORD PTR SS:[ESP+A4]
+0045CAFB  |.  C68424 CC01000> MOV BYTE PTR SS:[ESP+1CC],7
+0045CB03  |.  E8 C86EFAFF    CALL SuperGam.004039D0
+0045CB08  |.  8D8C24 3001000> LEA ECX,DWORD PTR SS:[ESP+130]
+0045CB0F  |.  C68424 C801000> MOV BYTE PTR SS:[ESP+1C8],6
+0045CB17  |.  E8 3484FCFF    CALL SuperGam.00424F50
+0045CB1C  |.  8D4424 08      LEA EAX,DWORD PTR SS:[ESP+8]
+0045CB20  |.  6A 10          PUSH 10 ; /Arg2 = 00000010
+0045CB22  |.  50             PUSH EAX ; |Arg1
+0045CB23  |.  8D8C24 A800000> LEA ECX,DWORD PTR SS:[ESP+A8] ; |
+0045CB2A  |.  E8 7177FAFF    CALL SuperGam.004042A0 ; \SuperGam.004042A0
+```
+
+
+
+```
+0045CB2F  |. 8D4C24 08      LEA ECX,DWORD PTR SS:[ESP+8]  
+0045CB33  |. 51           PUSH ECX  
+0045CB34  |> 8BB424 D401000>MOV ESI,DWORD PTR SS:[ESP+1D4]  
+0045CB3B  |. 8BCE         MOV ECX,ESI  
+0045CB3D  |. E8 832C0400  CALL SuperGam.0049F7C5  
+0045CB42  |. 8D8C24 A000000>LEA ECX,DWORD PTR SS:[ESP+A0]  
+0045CB49  |. 897C24 0C    MOV DWORD PTR SS:[ESP+C],EDI  
+0045CB4D  |. C68424 C801000>MOV BYTE PTR SS:[ESP+1C8],5  
+0045CB55  |. E8 F683FCFF  CALL SuperGam.00424F50  
+0045CB5A  |. 8D4C24 10    LEA ECX,DWORD PTR SS:[ESP+10]  
+0045CB5E  |. C68424 C801000>MOV BYTE PTR SS:[ESP+1C8],4  
+0045CB66  |. E8 E583FCFF  CALL SuperGam.00424F50  
+0045CB6B  |> 8D4C24 08    LEA ECX,DWORD PTR SS:[ESP+8]  
+0045CB6F  |. C68424 C801000>MOV BYTE PTR SS:[ESP+1C8],3  
+0045CB77  |. E8 D42E0400  CALL SuperGam.0049FA50  
+0045CB7C  |. 8D8C24 D401000>LEA ECX,DWORD PTR SS:[ESP+1D4]  
+0045CB83  |. C68424 C801000>MOV BYTE PTR SS:[ESP+1C8],2  
+0045CB8B  |. E8 C02E0400  CALL SuperGam.0049FA50  
+0045CB90  |. 8D8C24 D801000>LEA ECX,DWORD PTR SS:[ESP+1D8]  
+0045CB97  |. C68424 C801000>MOV BYTE PTR SS:[ESP+1C8],1  
+0045CB9F  |. E8 AC83FCFF  CALL SuperGam.00424F50  
+0045CBA4  |. 8D8C24 6802000>LEA ECX,DWORD PTR SS:[ESP+268]  
+0045CBAB  |. C68424 C801000>MOV BYTE PTR SS:[ESP+1C8],0  
+0045CBB3  |. E8 9883FCFF  CALL SuperGam.00424F50  
+0045CBB8  |. 8B8C24 C001000>MOV ECX,DWORD PTR SS:[ESP+1C0]  
+0045CBBF  |. 8BC6         MOV EAX,ESI  
+0045CBC1  |. 5F           POP EDI  
+0045CBC2  |. 5E           POP ESI  
+0045CBC3  |. 64:890D 000000>MOV DWORD PTR FS:[0],ECX  
+0045CBCA  |. 81C4 C4010000 ADD ESP,1C4  
+0045CBD0  \\. C3         RETN  
+```
+
+我们跟进 `SuperGam.004043D0` 这个核心函数：
+
+```
+004043D0  /$ 6A FF        PUSH -1  
+004043D2  |. 68 768B4A00  PUSH SuperGam.004A8B76             ;  SE handler installation  
+004043D7  |. 64:A1 00000000 MOV EAX,DWORD PTR FS:[0]  
+004043DD  |. 50           PUSH EAX  
+004043DE  |. 64:8925 000000>MOV DWORD PTR FS:[0],ESP  
+004043E5  |. 81EC C4060000 SUB ESP,6C4  
+004043EB  |. 53           PUSH EBX  
+004043EC  |. 55           PUSH EBP  
+004043ED  |. 8BD9         MOV EBX,ECX  
+004043EF  |. 56           PUSH ESI  
+004043F0  |. 33ED         XOR EBP,EBP  
+004043F2  |. 57           PUSH EDI  
+004043F3  |. 8D8C24 A400000>LEA ECX,DWORD PTR SS:[ESP+A4]  
+004043FA  |. 896C24 10    MOV DWORD PTR SS:[ESP+10],EBP  
+004043FE  |. E8 5DF5FFFF  CALL SuperGam.00403960  
+00404403  |. 8D4C24 14    LEA ECX,DWORD PTR SS:[ESP+14]  
+00404407  |. 89AC24 DC06000>MOV DWORD PTR SS:[ESP+6DC],EBP  
+0040440E  |. E8 4DF5FFFF  CALL SuperGam.00403960  
+00404413  |. 8B8C24 E806000>MOV ECX,DWORD PTR SS:[ESP+6E8]  
+0040441A  |. C68424 DC06000>MOV BYTE PTR SS:[ESP+6DC],1  
+
+//注意看下面这几行代码
+00404422  |. 8B01         MOV EAX,DWORD PTR DS:[ECX]      
+00404424  |. 8BF0         MOV ESI,EAX  
+00404426  |. 8B0481       MOV EAX,DWORD PTR DS:[ECX+EAX*4]  
+00404429  |. C1E6 05      SHL ESI,5  
+0040442C  |. 83EE 20      SUB ESI,20  
+0040442F  |. 3BC5         CMP EAX,EBP  
+00404431  |. 74 07        JE SHORT SuperGam.0040443A  
+00404433  |> D1E8         /SHR EAX,1  
+00404435  |. 46           |INC ESI  
+00404436  |. 3BC5         |CMP EAX,EBP  
+00404438  |. 75 F9        \\JNZ SHORT SuperGam.00404433  
+
+//注意看上面这几行代码
+//发现是做什么了吗？注意到传入的是 8231FC324594496514663D91E6C19989，它把最高 32bit 拿出来，在寻找最高非 0 比特位！
+//也就是说它是在计算这个大数的实际比特长度！（最高比特位不算在内，我在后面要解释为什么）
+0040443A  |> 53           PUSH EBX  
+0040443B  |. 8D8C24 A800000>LEA ECX,DWORD PTR SS:[ESP+A8]  
+00404442  |. E8 89F5FFFF  CALL SuperGam.004039D0  
+00404447  |. 83C6 FE      ADD ESI,-2  
+0040444A  |. 3BF5         CMP ESI,EBP  
+0040444C  |. 897424 10    MOV DWORD PTR SS:[ESP+10],ESI  
+00404450  |. 0F8C 99020000 JL SuperGam.004046EF  
+00404456  |. 8BBC24 EC06000>MOV EDI,DWORD PTR SS:[ESP+6EC]  
+0040445D  |> 8B8424 A400000>/MOV EAX,DWORD PTR SS:[ESP+A4]  
+00404464  |. 8D9424 7403000>|LEA EDX,DWORD PTR SS:[ESP+374]  
+0040446B  |. 8B8C84 A400000>|MOV ECX,DWORD PTR SS:[ESP+EAX*4+A4]  
+00404472  |. 51           |PUSH ECX                               ; /Arg2  
+00404473  |. 52           |PUSH EDX                               ; |Arg1  
+00404474  |. 8D8C24 AC00000>|LEA ECX,DWORD PTR SS:[ESP+AC]          ; |  
+0040447B  |. E8 50F9FFFF  |CALL SuperGam.00403DD0                 ; \\SuperGam.00403DD0  
+00404480  |. 50           |PUSH EAX  
+00404481  |. 8D4C24 18    |LEA ECX,DWORD PTR SS:[ESP+18]  
+00404485  |. E8 46F5FFFF  |CALL SuperGam.004039D0  
+0040448A  |. 8D8C24 7403000>|LEA ECX,DWORD PTR SS:[ESP+374]  
+00404491  |. E8 BA0A0200  |CALL SuperGam.00424F50  
+00404496  |. 8D8424 5402000>|LEA EAX,DWORD PTR SS:[ESP+254]  
+0040449D  |. 57           |PUSH EDI                               ; /Arg2  
+0040449E  |. 50           |PUSH EAX                               ; |Arg1  
+0040449F  |. 8D4C24 1C    |LEA ECX,DWORD PTR SS:[ESP+1C]          ; |  
+004044A3  |. E8 98FAFFFF  |CALL SuperGam.00403F40                 ; \\SuperGam.00403F40  
+004044A8  |. 50           |PUSH EAX  
+004044A9  |. 8D4C24 18    |LEA ECX,DWORD PTR SS:[ESP+18]  
+004044AD  |. E8 1EF5FFFF  |CALL SuperGam.004039D0  
+004044B2  |. 8D8C24 5402000>|LEA ECX,DWORD PTR SS:[ESP+254]  
+004044B9  |. E8 920A0200  |CALL SuperGam.00424F50  
+004044BE  |. 8B9424 A400000>|MOV EDX,DWORD PTR SS:[ESP+A4]  
+004044C5  |. BE 01000000  |MOV ESI,1  
+004044CA  |. 3BD6         |CMP EDX,ESI  
+004044CC  |. 0F86 B0000000 |JBE SuperGam.00404582  
+004044D2  |> 8B4C24 14    |/MOV ECX,DWORD PTR SS:[ESP+14]  
+004044D6  |. 3BCD         ||CMP ECX,EBP  
+004044D8  |. 7E 15        ||JLE SHORT SuperGam.004044EF  
+004044DA  |. 8D448C 18    ||LEA EAX,DWORD PTR SS:[ESP+ECX*4+18]  
+004044DE  |> 8B68 FC      ||/MOV EBP,DWORD PTR DS:[EAX-4]  
+004044E1  |. 8928         |||MOV DWORD PTR DS:[EAX],EBP  
+004044E3  |. 83C0 FC      |||ADD EAX,-4  
+004044E6  |. 49           |||DEC ECX  
+004044E7  |. 75 F5        ||\\JNZ SHORT SuperGam.004044DE  
+004044E9  |. 8B4C24 14    ||MOV ECX,DWORD PTR SS:[ESP+14]  
+004044ED  |. 33ED         ||XOR EBP,EBP  
+004044EF  |> 41           ||INC ECX  
+004044F0  |. 2BD6         ||SUB EDX,ESI  
+004044F2  |. 894C24 14    ||MOV DWORD PTR SS:[ESP+14],ECX  
+004044F6  |. 896C24 18    ||MOV DWORD PTR SS:[ESP+18],EBP  
+004044FA  |. 8B8C94 A400000>||MOV ECX,DWORD PTR SS:[ESP+EDX*4+A4]  
+00404501  |. 8D9424 3401000>||LEA EDX,DWORD PTR SS:[ESP+134]  
+00404508  |. 51           ||PUSH ECX                              ; /Arg2  
+00404509  |. 52           ||PUSH EDX                              ; |Arg1  
+0040450A  |. 8D8C24 AC00000>||LEA ECX,DWORD PTR SS:[ESP+AC]        ; |  
+00404511  |. E8 BAF8FFFF  ||CALL SuperGam.00403DD0                ; \\SuperGam.00403DD0  
+00404516  |. 50           ||PUSH EAX                              ; /Arg2  
+00404517  |. 8D8424 9804000>||LEA EAX,DWORD PTR SS:[ESP+498]       ; |  
+0040451E  |. 50           ||PUSH EAX                              ; |Arg1  
+0040451F  |. 8D4C24 1C    ||LEA ECX,DWORD PTR SS:[ESP+1C]        ; |  
+00404523  |. E8 18F5FFFF  ||CALL SuperGam.00403A40                ; \\SuperGam.00403A40  //实际是进行乘法之后的模运算啊！
+00404528  |. 50           ||PUSH EAX  
+00404529  |. 8D4C24 18    ||LEA ECX,DWORD PTR SS:[ESP+18]  
+0040452D  |. E8 9EF4FFFF  ||CALL SuperGam.004039D0  
+00404532  |. 8D8C24 9404000>||LEA ECX,DWORD PTR SS:[ESP+494]  
+00404539  |. E8 120A0200  ||CALL SuperGam.00424F50  
+```
+
+
+
+```asm
+0040453E  |. 8D8C24 3401000>||LEA ECX,DWORD PTR SS:[ESP+134]
+00404545  |. E8 060A0200    ||CALL SuperGam.00424F50
+0040454A  |. 8D8C24 B405000>||LEA ECX,DWORD PTR SS:[ESP+5B4]
+00404551  |. 57             ||PUSH EDI                             ; /Arg2
+00404552  |. 51             ||PUSH ECX                             ; |Arg1
+00404553  |. 8D4C24 1C      ||LEA ECX,DWORD PTR SS:[ESP+1C]         ; |
+00404557  |. E8 E4F9FFFF    ||CALL SuperGam.00403F40               ; \SuperGam.00403F40
+0040455C  |. 50             ||PUSH EAX
+0040455D  |. 8D4C24 18      ||LEA ECX,DWORD PTR SS:[ESP+18]
+00404561  |. E8 6AF4FFFF    ||CALL SuperGam.004039D0
+00404566  |. 8D8C24 B405000>||LEA ECX,DWORD PTR SS:[ESP+5B4]
+0040456D  |. E8 DE090200    ||CALL SuperGam.00424F50
+00404572  |. 8B9424 A400000>||MOV EDX,DWORD PTR SS:[ESP+A4]
+00404579  |. 46             ||INC ESI
+0040457A  |. 3BF2           ||CMP ESI,EDX
+0040457C  |. 0F82 50FFFFFF  |\JB SuperGam.004044D2
+00404582  |> 8D5424 14      |LEA EDX,DWORD PTR SS:[ESP+14]
+00404586  |. 8D8C24 A400000>|LEA ECX,DWORD PTR SS:[ESP+A4]
+0040458D  |. 52             |PUSH EDX
+0040458E  |. E8 3DF4FFFF    |CALL SuperGam.004039D0
+00404593  |. 8B4C24 10      |MOV ECX,DWORD PTR SS:[ESP+10]
+00404597  |. 8B9424 E806000>|MOV EDX,DWORD PTR SS:[ESP+6E8]
+0040459E  |. 8BC1           |MOV EAX,ECX
+004045A0  |. 83E1 1F        |AND ECX,1F
+004045A3  |. C1F8 05        |SAR EAX,5
+004045A6  |. 8B4482 04      |MOV EAX,DWORD PTR DS:[EDX+EAX*4+4]
+004045AA  |. D3E8           |SHR EAX,CL
+004045AC  |. A8 01          |TEST AL,1
+004045AE  |. 0F84 2C010000  |JE SuperGam.004046E0
+004045B4  |. 8B8C24 A400000>|MOV ECX,DWORD PTR SS:[ESP+A4]
+004045BB  |. 8D8424 C401000>|LEA EAX,DWORD PTR SS:[ESP+1C4]
+004045C2  |. 8B948C A400000>|MOV EDX,DWORD PTR SS:[ESP+ECX*4+A4]
+004045C9  |. 8BCB           |MOV ECX,EBX
+004045CB  |. 52             |PUSH EDX                               ; /Arg2
+004045CC  |. 50             |PUSH EAX                               ; |Arg1
+004045CD  |. E8 FEF7FFFF    |CALL SuperGam.00403DD0                 ; \SuperGam.00403DD0
+004045D2  |. 50             |PUSH EAX
+004045D3  |. 8D4C24 18      |LEA ECX,DWORD PTR SS:[ESP+18]
+004045D7  |. E8 F4F3FFFF    |CALL SuperGam.004039D0
+004045DC  |. 8D8C24 C401000>|LEA ECX,DWORD PTR SS:[ESP+1C4]
+004045E3  |. E8 68090200    |CALL SuperGam.00424F50
+004045E8  |. 8D8C24 E402000>|LEA ECX,DWORD PTR SS:[ESP+2E4]
+004045EF  |. 57             |PUSH EDI                               ; /Arg2
+004045F0  |. 51             |PUSH ECX                               ; |Arg1
+004045F1  |. 8D4C24 1C      |LEA ECX,DWORD PTR SS:[ESP+1C]          ; |
+004045F5  |. E8 46F9FFFF    |CALL SuperGam.00403F40                 ; \SuperGam.00403F40
+004045FA  |. 50             |PUSH EAX
+004045FB  |. 8D4C24 18      |LEA ECX,DWORD PTR SS:[ESP+18]
+004045FF  |. E8 CCF3FFFF    |CALL SuperGam.004039D0
+00404604  |. 8D8C24 E402000>|LEA ECX,DWORD PTR SS:[ESP+2E4]
+0040460B  |. E8 40090200    |CALL SuperGam.00424F50
+00404610  |. 8B9424 A400000>|MOV EDX,DWORD PTR SS:[ESP+A4]
+00404617  |. BE 01000000    |MOV ESI,1
+0040461C  |. 3BD6           |CMP EDX,ESI
+0040461E  |. 0F86 AB000000  |JBE SuperGam.004046CF
+00404624  |> 8B4C24 14      |/MOV ECX,DWORD PTR SS:[ESP+14]
+00404628  |. 3BCD           ||CMP ECX,EBP
+0040462A  |. 7E 15          ||JLE SHORT SuperGam.00404641
+0040462C  |. 8D448C 18      ||LEA EAX,DWORD PTR SS:[ESP+ECX*4+18]
+00404630  |> 8B68 FC        ||/MOV EBP,DWORD PTR DS:[EAX-4]
+00404633  |. 8928           |||MOV DWORD PTR DS:[EAX],EBP
+00404635  |. 83C0 FC       |||ADD EAX,-4
+00404638  |. 49             |||DEC ECX
+00404639  |. 75 F5         ||\JNZ SHORT SuperGam.00404630
+0040463B  |. 8B4C24 14      ||MOV ECX,DWORD PTR SS:[ESP+14]
+0040463F  |. 33ED           ||XOR EBP,EBP
+00404641  |> 2BD6           ||SUB EDX,ESI
+00404643  |. 41             ||INC ECX
+00404644  |. 8D8424 2405000>||LEA EAX,DWORD PTR SS:[ESP+524]
+0040464B  |. 894C24 14      ||MOV DWORD PTR SS:[ESP+14],ECX
+0040464F  |. 8B9494 A400000>||MOV EDX,DWORD PTR SS:[ESP+EDX*4+A4]
+00404656  |. 8BCB           ||MOV ECX,EBX
+00404658  |. 52             ||PUSH EDX                             ; /Arg2
+00404659  |. 50             ||PUSH EAX                             ; |Arg1
+0040465A  |. 896C24 20      ||MOV DWORD PTR SS:[ESP+20],EBP        ; |
+0040465E  |. E8 6DF7FFFF    ||CALL SuperGam.00403DD0               ; \SuperGam.00403DD0
+00404663  |. 8D8C24 0404000>||LEA ECX,DWORD PTR SS:[ESP+404]
+0040466A  |. 50             ||PUSH EAX                             ; /Arg2
+0040466B  |. 51             ||PUSH ECX                             ; |Arg1
+0040466C  |. 8D4C24 1C      ||LEA ECX,DWORD PTR SS:[ESP+1C]        ; |
+00404670  |. E8 CBF3FFFF    ||CALL SuperGam.00403A40               ; \SuperGam.00403A40
+00404675  |. 50             ||PUSH EAX
+00404676  |. 8D4C24 18      ||LEA ECX,DWORD PTR SS:[ESP+18]
+0040467A  |. E8 51F3FFFF    ||CALL SuperGam.004039D0
+0040467F  |. 8D8C24 0404000>||LEA ECX,DWORD PTR SS:[ESP+404]
+00404686  |. E8 C5080200    ||CALL SuperGam.00424F50
+0040468B  |. 8D8C24 2405000>||LEA ECX,DWORD PTR SS:[ESP+524]
+00404692  |. E8 B9080200    ||CALL SuperGam.00424F50
+00404697  |. 8D9424 4406000>||LEA EDX,DWORD PTR SS:[ESP+644]
+0040469E  |. 57             ||PUSH EDI                             ; /Arg2
+0040469F  |. 52             ||PUSH EDX                             ; |Arg1
+004046A0  |. 8D4C24 1C      ||LEA ECX,DWORD PTR SS:[ESP+1C]        ; |
+004046A4  |. E8 97F8FFFF    ||CALL SuperGam.00403F40               ; \SuperGam.00403F40
+004046A9  |. 50             ||PUSH EAX
+004046AA  |. 8D4C24 18      ||LEA ECX,DWORD PTR SS:[ESP+18]
+004046AE  |. E8 1DF3FFFF    ||CALL SuperGam.004039D0
+004046B3  |. 8D8C24 4406000>||LEA ECX,DWORD PTR SS:[ESP+644]
+004046BA  |. E8 91080200    ||CALL SuperGam.00424F50
+004046BF  |. 8B9424 A400000>||MOV EDX,DWORD PTR SS:[ESP+A4]
+004046C6  |. 46             ||INC ESI
+004046C7  |. 3BF2           ||CMP ESI,EDX
+004046C9  |. 0F82 55FFFFFF  |\JB SuperGam.00404624
+004046CF  |> 8D4424 14      |LEA EAX,DWORD PTR SS:[ESP+14]
+004046D3  |. 8D8C24 A400000>|LEA ECX,DWORD PTR SS:[ESP+A4]
+004046DA  |. 50             |PUSH EAX
+004046DB  |. E8 F0F2FFFF    |CALL SuperGam.004039D0
+004046E0  |> 8B4424 10      |MOV EAX,DWORD PTR SS:[ESP+10]
+004046E4  |. 48             |DEC EAX
+004046E5  |. 894424 10      |MOV DWORD PTR SS:[ESP+10],EAX
+004046E9  |. 0F89 6EFDFFFF  \JNS SuperGam.0040445D
+004046EF  |> 8B9C24 E406000>MOV EBX,DWORD PTR SS:[ESP+6E4]
+004046F6  |. B9 24000000    MOV ECX,24
+004046FB  |. 8DB424 A400000>LEA ESI,DWORD PTR SS:[ESP+A4]
+00404702  |. 8BFB           MOV EDI,EBX
+00404704  |. F3:A5          REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS>
+00404706  |. 8D4C24 14      LEA ECX,DWORD PTR SS:[ESP+14]
+0040470A  |. E8 41080200    CALL SuperGam.00424F50
+0040470F  |. 8D8C24 A400000>LEA ECX,DWORD PTR SS:[ESP+A4]
+00404716  |. E8 35080200    CALL SuperGam.00424F50
+0040471B  |. 8B8C24 D406000>MOV ECX,DWORD PTR SS:[ESP+6D4]
+00404722  |. 5F             POP EDI
+00404723  |. 5E             POP ESI
+00404724  |. 8BC3           MOV EAX,EBX
+00404726  |. 5D             POP EBP
+00404727  |. 5B             POP EBX
+00404728  |. 64:890D 000000>MOV DWORD PTR FS:[0],ECX
+0040472F  |. 81C4 D0060000  ADD ESP,6D0
+00404735  \. C2 0C00        RETN 0C
+```
+
+
+
+## 函数调用分析
+
+代码中频繁出现调用此函数，我们来看它是做什么的。
+
+```asm
+00403DD0  /$ 81EC 94000000  SUB ESP,94
+00403DD6  |. 53           PUSH EBX
+00403DD7  |. 55           PUSH EBP
+00403DD8  |. 56           PUSH ESI
+00403DD9  |. 8BF1         MOV ESI,ECX
+00403DDB  |. 33DB         XOR EBX,EBX
+00403DDD  |. 57           PUSH EDI
+00403DDE  |. 8D4C24 14    LEA ECX,DWORD PTR SS:[ESP+14]
+00403DE2  |. 895C24 10    MOV DWORD PTR SS:[ESP+10],EBX
+00403DE6  |. E8 75FBFFFF  CALL SuperGam.00403960
+00403DEB  |. 56           PUSH ESI
+00403DEC  |. 8D4C24 18    LEA ECX,DWORD PTR SS:[ESP+18]
+00403DF0  |. E8 DBFBFFFF  CALL SuperGam.004039D0
+00403DF5  |. 8B2E         MOV EBP,DWORD PTR DS:[ESI]
+00403DF7  |. 3BEB         CMP EBP,EBX
+00403DF9  |. 76 40        JBE SHORT SuperGam.00403E3B
+00403DFB  |. 8D7C24 18    LEA EDI,DWORD PTR SS:[ESP+18]
+00403DFF  |. 83C6 04      ADD ESI,4
+00403E02  |> 8B0E         /MOV ECX,DWORD PTR DS:[ESI]
+00403E04  |. 33C0         |XOR EAX,EAX
+00403E06  |. 50           |PUSH EAX
+00403E07  |. 8B8424 B00000>|MOV EAX,DWORD PTR SS:[ESP+B0]
+00403E0E  |. 50           |PUSH EAX
+00403E0F  |. 6A 00        |PUSH 0
+00403E11  |. 51           |PUSH ECX
+00403E12  |. E8 29520800  |CALL SuperGam.00489040 // 一直在循环调用这个函数，跟进去看看
+00403E17  |. 33C9         |XOR ECX,ECX
+00403E19  |. 03C3         |ADD EAX,EBX
+00403E1B  |. 13D1         |ADC EDX,ECX
+00403E1D  |. 8907         |MOV DWORD PTR DS:[EDI],EAX
+00403E1F  |. 83C6 04      |ADD ESI,4
+00403E22  |. 83C7 04      |ADD EDI,4
+00403E25  |. 4D           |DEC EBP
+00403E26  |. 8BDA         |MOV EBX,EDX
+00403E28  |. 75 D8        \JNZ SHORT SuperGam.00403E02
+00403E2A  |. 85DB         TEST EBX,EBX
+00403E2C  |. 74 0D        JE SHORT SuperGam.00403E3B
+00403E2E  |. 8B4424 14    MOV EAX,DWORD PTR SS:[ESP+14]
+00403E32  |. 40           INC EAX
+00403E33  |. 894424 14    MOV DWORD PTR SS:[ESP+14],EAX
+00403E37  |. 895C84 14    MOV DWORD PTR SS:[ESP+EAX*4+14],EBX
+00403E3B  |> 8B9C24 A800000>MOV EBX,DWORD PTR SS:[ESP+A8]
+00403E42  |. B9 24000000  MOV ECX,24
+00403E47  |. 8D7424 14    LEA ESI,DWORD PTR SS:[ESP+14]
+00403E4B  |. 8BFB         MOV EDI,EBX
+00403E4D  |. F3:A5        REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS>
+00403E4F  |. 8D4C24 14    LEA ECX,DWORD PTR SS:[ESP+14]
+00403E53  |. E8 F8100200  CALL SuperGam.00424F50
+00403E58  |. 5F          POP EDI
+00403E59  |. 5E          POP ESI
+00403E5A  |. 8BC3        MOV EAX,EBX
+00403E5C  |. 5D          POP EBP
+00403E5D  |. 5B          POP EBX
+00403E5E  |. 81C4 94000000 ADD ESP,94
+00403E64  \. C2 0800      RETN 8
+```
+
+## 内部函数逻辑
+
+仔细分析下面代码的动作：是在做乘法，注意里面是有个选择分支的。
+
+```asm
+00489040  /$ 8B4424 08    MOV EAX,DWORD PTR SS:[ESP+8]
+00489044  |. 8B4C24 10   MOV ECX,DWORD PTR SS:[ESP+10]
+00489048  |. 0BC8        OR ECX,EAX
+0048904A  |. 8B4C24 0C   MOV ECX,DWORD PTR SS:[ESP+C]
+0048904E  |. 75 09       JNZ SHORT SuperGam.00489059
+00489050  |. 8B4424 04   MOV EAX,DWORD PTR SS:[ESP+4]
+00489054  |. F7E1        MUL ECX
+00489056  |. C2 1000     RETN 10
+00489059  |> 53          PUSH EBX
+0048905A  |. F7E1        MUL ECX
+0048905C  |. 8BD8        MOV EBX,EAX
+0048905E  |. 8B4424 08   MOV EAX,DWORD PTR SS:[ESP+8]
+00489062  |. F76424 14   MUL DWORD PTR SS:[ESP+14]
+00489066  |. 03D8        ADD EBX,EAX
+00489068  |. 8B4424 08   MOV EAX,DWORD PTR SS:[ESP+8]
+0048906C  |. F7E1        MUL ECX
+0048906E  |. 03D3        ADD EDX,EBX
+00489070  |. 5B          POP EBX
+00489071  \. C2 1000     RETN 10
+```
+
+## 算法原理与密钥分析
+
+我们还注意到，这个函数返回后，在后续的代码里还有相应的带进位的加法！仔细实际跟一下我们可以发现，这就是一个模幂乘的子部分。自己写过大数运算库的朋友们应该再清楚不过了。`SuperGam.004043D0` 里的那个大循环就是一个完整的模幂乘过程，指数就是 `8231FC324594496514663D91E6C19989`，模就是 `CFBCC6EC474AE5CD0F7BC8DBBA353A11`。那个模函数里用的就是这个模数！请大家自己带数进去仔细跟一下就清楚了，我是跟了两个小时才全部弄明白的哦！现在已经弄清楚了是模幂乘运算，指数是 `8231FC324594496514663D91E6C19989`，那么前面统计它的非 0 最长比特位是为了干什么也就清楚了，自然是不用把最高位算在内的。这是模幂乘算法中最普通的平方乘算法啊！
+
+现在，我们已经清楚它用的是 `RSA` 签名算法，是把你发给它的机器码用私钥 `e` 加密，然后在程序里用公钥验证签名！不错，的确是很好的方法，那么我们就没有办法了吗？呵呵不是，我们发现它的公钥很长，是模数一样长，那么它的私钥 `e` 会不会很短呢？之所以会有这个想法是因为：一般在应用 `RSA` 签名算法时，出于速度的考虑，`e` 和 `d` 的选取是有技巧的，一般的考虑是，签名可以慢一点，但是验证签名一定要快！这是因为验证签名比签名运算的情况要多得多，这就好比国家只会给你发一次身份证（签名），但是在很多情况下别人会验证你的身份证，比如买飞机票，办手续等（验证）。
+
+这也就是说，一般 `e` 都比较长，而 `d` 比较短，但是作者在这里把 `d` 取得这么长，那么他会不会错误地把 `e` 选择得比较短呢？也就是说他会不会恰巧把公私钥搞颠倒了呢？这只是猜测而已。我们试验一下吧，一般来说，我们用的小指数有 7，`2^8+1`，`2^16+1`，选择它们的原因是：它们都是素数，而且二进制展开里只有一个比特的 1（最高比特不算在内），这样的话模幂运算是非常快的！好了我们实验一下，经过试验，我们发现他的私钥恰好是 `2^16+1`，也就是 `0x10001`。哈哈，真是运气好啊！这只能怪作者对 `RSA` 的应用理解不够深入啊。
+
+其实，他把 `8231FC324594496514663D91E6C19989` 当作私钥不是很好吗？在程序里用 `0X10001` 来验证签名，很快的啊。而且私钥也更难以猜测的啊！那么是不是他真的这样做我们就没有招数了呢？不是！！我们注意到模数只有 128 比特长，4 个 `DWORD` 而已啊！如果我们能够分解开这个数，那么我们就可以自己算出私钥来啊！经过分解我们发现：`CFBCC6EC474AE5CD0F7BC8DBBA353A11` = `17132309568144694951` * `16117522303433191559`，这里的数都是以 16 进制表示。
+
+呵呵，有了这个分解，我们只需要求出 `8231FC324594496514663D91E6C19989` 相对于 `17132309568144694950` * `16117522303433191558`（这个乘积就是 $\phi(N)$，$\phi$ 表示欧拉函数，`N` 表示模数）的乘法逆就可以了，经过计算，我们也可以得到相同的结果 `0X10001`，呵呵！整个系统告破！
+
+有了私钥，那么写个注册机就不成问题了，我在这里就不罗嗦了，剩下的事情就是大数运算了。
+
+## 安全建议与总结
+
+*   1. 私钥太好猜测了，建议都用和模数一样长的数。
+*   2. 模数的长度太短，导致直接分解成功！建议使用至少 512 比特的 `N`。
+
+好了，讲完了，代码贴了不少，但是注释不多，不过核心的东西我都列出来了，并有所说到，很多东西要大家亲自去跟才能体会。欢迎大家一起讨论。
+
+4dd466d0e1e0cc123afbe504da2462ca

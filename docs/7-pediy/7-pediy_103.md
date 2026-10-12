@@ -1,65 +1,100 @@
 
-
 # SMC 破解应用
 
 > 原文：[`www.pediy.com/kssd/pediy04/kanxue060.htm`](https://www.pediy.com/kssd/pediy04/kanxue060.htm)
 
-:00000000 C705E1C74B0068200340    mov dword ptr \[004BC7E1\], 40032068   
-:0000000A 66C705E5C74B0000C3      mov word ptr \[004BC7E5\], C300   
-:00000013 68E6FA4900              push 0049FAE6   
-:00000018 C3                      ret   
-把程序的某个地方改成跳去执行我们的代码   
-然后返回程序 oep 执行。   
-:00000019 00000000000000          BYTE  7 DUP(0)   
-  
-  
-:00000020 B30A                    mov bl, 0A   
-:00000022 A0207F5300              mov al, byte ptr \[00537F20\]   
-:00000027 8A3D217F5300            mov bh, byte ptr \[00537F21\]   
-:0000002D E851000000              call 00000083   
-:00000032 8844240A                mov byte ptr \[esp+0A\], al   
-取内存中的 2 个字符，转成数值，然后放到\[esp+0A\]   
-:00000036 A0237F5300              mov al, byte ptr \[00537F23\]   
-:0000003B 8A3D247F5300            mov bh, byte ptr \[00537F24\]   
-:00000041 E83D000000              call 00000083   
-:00000046 88442406                mov byte ptr \[esp+06\], al   
-:0000004A A0267F5300              mov al, byte ptr \[00537F26\]   
-:0000004F 8A3D277F5300            mov bh, byte ptr \[00537F27\]   
-:00000055 E829000000              call 00000083   
-:0000005A 6605D007                add ax, 07D0   
-:0000005E 6689442404              mov word ptr \[esp+04\], ax   
-:00000063 66B8002C                mov ax, 2C00   
-:00000067 6633DB                  xor bx, bx   
-把寄存器的内容改成执行我们的代码前的样子   
-:0000006A C705E1C74B00668B4C24    mov dword ptr \[004BC7E1\], 244C8B66   
-:00000074 66C705E5C74B000A66      mov word ptr \[004BC7E5\], 660A   
-把一开始修改过的程序码改回原样，否则会出错。   
-:0000007D 68E1C74B00              push 004BC7E1   
-:00000082 C3                      ret   
-  
-  
-:00000083 2C30                    sub al, 30   
-:00000085 80EF30                  sub bh, 30   
-:00000088 F6E3                    mul bl   
-:0000008A 00F8                    add al, bh   
-:0000008C C3                      ret 
+```
+:00000000 C705E1C74B0068200340    mov dword ptr [004BC7E1], 40032068   
+:0000000A 66C705E5C74B0000C3      mov word ptr [004BC7E5], C300   
+:00000013 68E6FA4900             push 0049FAE6   
+:00000018 C3                     ret   
+```
 
-:00000000 C705E1C74B0068200340    mov dword ptr \[004BC7E1\], 40032068   
-:0000000A 66C705E5C74B0000C3      mov word ptr \[004BC7E5\], C300   
-:00000013 68E6FA4900              push 0049FAE6   
-:00000018 C3                      ret   
-这一小段是在运行完壳后运行的(aspack1.07 的壳)，   
-是把这一行   
-:004BC7E1 668B4C240A              mov cx, word ptr \[esp+0A\]   
-改成   
+把程序的某个地方改成跳去执行我们的代码
+
+然后返回程序 `oep` 执行。
+
+```
+:00000019 00000000000000         BYTE  7 DUP(0)   
+:00000020 B30A                   mov bl, 0A   
+:00000022 A0207F5300            mov al, byte ptr [00537F20]   
+:00000027 8A3D217F5300          mov bh, byte ptr [00537F21]   
+:0000002D E851000000            call 00000083   
+:00000032 8844240A              mov byte ptr [esp+0A], al   
+```
+
+取内存中的 2 个字符，转成数值，然后放到 `[esp+0A]`
+
+```
+:00000036 A0237F5300            mov al, byte ptr [00537F23]   
+:0000003B 8A3D247F5300          mov bh, byte ptr [00537F24]   
+:00000041 E83D000000            call 00000083   
+:00000046 88442406              mov byte ptr [esp+06], al   
+:0000004A A0267F5300            mov al, byte ptr [00537F26]   
+:0000004F 8A3D277F5300          mov bh, byte ptr [00537F27]   
+:00000055 E829000000            call 00000083   
+:0000005A 6605D007              add ax, 07D0   
+:0000005E 6689442404            mov word ptr [esp+04], ax   
+:00000063 66B8002C              mov ax, 2C00   
+:00000067 6633DB                xor bx, bx   
+```
+
+把寄存器的内容改成执行我们的代码前的样子
+
+```
+:0000006A C705E1C74B00668B4C24  mov dword ptr [004BC7E1], 244C8B66   
+:00000074 66C705E5C74B000A66    mov word ptr [004BC7E5], 660A   
+```
+
+把一开始修改过的程序码改回原样，否则会出错。
+
+```
+:0000007D 68E1C74B00            push 004BC7E1   
+:00000082 C3                    ret   
+```
+
+```
+:00000083 2C30                  sub al, 30   
+:00000085 80EF30                sub bh, 30   
+:00000088 F6E3                  mul bl   
+:0000008A 00F8                  add al, bh   
+:0000008C C3                    ret 
+```
+
+```
+:00000000 C705E1C74B0068200340  mov dword ptr [004BC7E1], 40032068   
+:0000000A 66C705E5C74B0000C3    mov word ptr [004BC7E5], C300   
+:00000013 68E6FA4900           push 0049FAE6   
+:00000018 C3                   ret   
+```
+
+这一小段是在运行完壳后运行的 (`aspack1.07` 的壳)，
+
+是把这一行
+
+```
+:004BC7E1 668B4C240A           mov cx, word ptr [esp+0A]   
+```
+
+改成
+
+```
 6820034000 push dword ptr, 00400320   
-c3        ret   
-然后跳回 oep 去运行，   
-当程序运行到 4BC7E1 时就会跳去运行我的代码，   
-然后我的代码再把 4BC7E1 处的代码改回原样。   
-\* Reference To: KERNEL32.GetLocalTime, Ord:011Bh   
-                                  |   
-:004BC7DB FF15B4635000            Call dword ptr \[005063B4\]   
-:004BC7E1 668B4C240A              mov cx, word ptr \[esp+0A\]   
-:004BC7E6 668B542406              mov dx, word ptr \[esp+06\]   
-:004BC7EB 668B442404              mov ax, word ptr \[esp+04\]  4dd466d0e1e0cc123afbe504da2462ca
+c3        ret   
+```
+
+然后跳回 `oep` 去运行，
+
+当程序运行到 `4BC7E1` 时就会跳去运行我的代码，
+
+然后我的代码再把 `4BC7E1` 处的代码改回原样。
+
+\* Reference To: `KERNEL32.GetLocalTime`, Ord: `011Bh`
+
+```
+:004BC7DB FF15B4635000         Call dword ptr [005063B4]   
+:004BC7E1 668B4C240A           mov cx, word ptr [esp+0A]   
+:004BC7E6 668B542406           mov dx, word ptr [esp+06]   
+:004BC7EB 668B442404           mov ax, word ptr [esp+04]  
+```
+`4dd466d0e1e0cc123afbe504da2462ca`

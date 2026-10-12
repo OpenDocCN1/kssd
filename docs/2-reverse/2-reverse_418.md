@@ -1,29 +1,24 @@
 
-
 # 编写 IDA 插件
 
 > 原文：[`www.pediy.com/kssd/pediy08/pediy8-780.htm`](https://www.pediy.com/kssd/pediy08/pediy8-780.htm)
 
-| 
-
 ## 编写交互式反汇编器（*IDA*）插件
 
- |
-| --- |
-| 译者　　：月中人 (\[PTG\])  |
-| 时间　　：2006.8.28  |
-| 原文标题：Writing Interactive Disassembler (*IDA*) Plugins  |
-| 原文来源："Reverse Engineering and Program Understanding"第 6 小节  |
-| 原文作者：Greg Hoglund, Gary McGraw.  |
+| 译者：月中人 (`[PTG]`) |
+| :--- |
+| 时间：2006.8.28 |
+| 原文标题：Writing Interactive Disassembler (*IDA*) Plugins |
+| 原文来源："Reverse Engineering and Program Understanding" 第 6 小节 |
+| 原文作者：Greg Hoglund, Gary McGraw. |
 
-　　*IDA*是对 Interactive Disassembler\交互式反汇编器\)的简称，它是软件逆向工程最常用的工具之一。*IDA*支持插件模块，因此客户能够扩充功能和自动化任务。为了写这本书我们创建了一个简单的*IDA*插件，它能扫描两个二进制文件并且比较它们。该插件会加亮任何被改变了的代码区域。这可以被用来比较打补丁前的和打补丁后的可执行文件，确定哪几行被修补过。 
+*IDA*是对 Interactive Disassembler (交互式反汇编器) 的简称，它是软件逆向工程最常用的工具之一。*IDA*支持插件模块，因此客户能够扩充功能和自动化任务。为了写这本书我们创建了一个简单的*IDA*插件，它能扫描两个二进制文件并且比较它们。该插件会加亮任何被改变了的代码区域。这可以被用来比较打补丁前的和打补丁后的可执行文件，确定哪几行被修补过。
 
-　　在许多情况下，软件厂商“秘密地”修补安全缺陷。我们在这里提供的工具能帮助一个攻击者找到这些秘密补丁。事先声明，这个插件可能会标注许多根本没有改变的位置。如果编译器选项被改变或者在函数之间的填充码被变更，该插件会返回相当多的假阳性\[误报\]。尽管如此，这仍是一个用来举例说明该如何开始编写*IDA*插件的很棒的例子。 
+在许多情况下，软件厂商“秘密地”修补安全缺陷。我们在这里提供的工具能帮助一个攻击者找到这些秘密补丁。事先声明，这个插件可能会标注许多根本没有改变的位置。如果编译器选项被改变或者在函数之间的填充码被变更，该插件会返回相当多的假阳性 [误报]。尽管如此，这仍是一个用来举例说明该如何开始编写*IDA*插件的很棒的例子。
 
-　　我们的例子也强调与‘penetrate-and-patch\[潜入和补丁\]安全’相关的最大问题。补丁简直就是攻击地图，而且聪明的攻击者知道该如何读他们。为了编译这个代码，你需要有*IDA*软件开发工具箱（*SDK*），这可以从你的*IDA*产品中得到。它们在源代码行内有注解，而且都是标准的头文件。你需要包含其他哪些头文件，取决于你要使用哪些 API 调用。注意，我们禁止了某一个警告信息而且也包含了 Windows 头文件。因为这样我们才能够使用 Windows 图形用户接口（*GUI*）代码实现弹出对话框等等。当你使用标准模板库的时候，会抛出警告 4273，所以习惯上我们禁止它。 
+我们的例子也强调与 'penetrate-and-patch [潜入和补丁] 安全' 相关的最大问题。补丁简直就是攻击地图，而且聪明的攻击者知道该如何读他们。为了编译这个代码，你需要有*IDA*软件开发工具箱（*SDK*），这可以从你的*IDA*产品中得到。它们在源代码行内有注解，而且都是标准的头文件。你需要包含其他哪些头文件，取决于你要使用哪些 API 调用。注意，我们禁止了某一个警告信息而且也包含了 Windows 头文件。因为这样我们才能够使用 Windows 图形用户接口（*GUI*）代码实现弹出对话框等等。当你使用标准模板库的时候，会抛出警告 4273，所以习惯上我们禁止它。
 
 ```
-
 #include <windows.h>
 #pragma warning( disable:4273 )
 #include <ida.hpp>
@@ -32,15 +27,11 @@
 #include <loader.hpp>
 #include <kernwin.hpp>
 #include <name.hpp>
-
 ```
 
-    
-
-　　因为我们的插件是以*SDK*提供的一个插件样本为基础，所以下列代码只是样本的一部份。这些都是必需要的函数，而且样本中已经有注解这部份。 
+因为我们的插件是以*SDK*提供的一个插件样本为基础，所以下列代码只是样本的一部份。这些都是必需要的函数，而且样本中已经有注解这部份。
 
 ```
-
 //--------------------------------------------------------------------------
 // This callback is called for UI notification events.
 static int sample\_callback(void \* /\*user\_data\*/, int event\_id, va\_list /\*va\*/)
@@ -140,30 +131,22 @@ void term(void)
  unhook\_from\_notification\_point(HT\_UI, sample\_callback);
  set\_user\_defined\_prefix(0, NULL);
 }
-
 ```
-
-    
 
 这里还要包含其他几个头文件和一些全局变量：
 
 ```
-
 #include <process.h>
 #include "resource.h"
 
 DWORD g\_tempest\_state = 0;
 LPVOID g\_mapped\_file = NULL;
 DWORD g\_file\_size = 0;
-
 ```
 
-    
-
-这个函数把一个文件载入内存。这个文件将作为目标，和我们之前装入*IDA*的二进制文件做对比。典型地，你应该是先把未打补丁的文件装入*IDA*，然后用它比较打过补丁的文件： 
+这个函数把一个文件载入内存。这个文件将作为目标，和我们之前装入*IDA*的二进制文件做对比。典型地，你应该是先把未打补丁的文件装入*IDA*，然后用它比较打过补丁的文件：
 
 ```
-
 bool load\_file( char \*theFilename )
 {
     HANDLE aFileH =
@@ -213,46 +196,45 @@ bool load\_file( char \*theFilename )
 }
 ```
 
-  
+这个函数 [根据用户提供的内存地址和长度从*IDA*的数据库中] 取一串操作码，然后在目标文件中扫描这些字节。如果在目标文件中没能找到操作码，那个内存位置将会被标记为有改变。显然这是简单的技术，但是它在许多情况下是有效力的。由于存在这一小节开始处所列出的那些问题，这种方式会引起假阳性问题。
 
-这个函数\[根据用户提供的内存地址和长度从*IDA*的数据库中\]取一串操作码，然后在目标文件中扫描这些字节。如果在目标文件中没能找到操作码，那个内存位置将会被标记为有改变。显然这是简单的技术，但是它在许多情况下是有效力的。由于存在这一小节开始处所列出的那些问题，这种方式会引起假阳性问题。 
 
-```
 
-bool check\_target\_for\_string(ea\_t theAddress, DWORD theLen)
+```c
+bool check_target_for_string(ea_t theAddress, DWORD theLen)
 {
     bool ret = FALSE;
     if(theLen > 4096)
     {
-        msg("skipping large buffer\\n");
+        msg("skipping large buffer\n");
         return TRUE;
     }
     try
     {
         // Scan the target binary for the string.
-        static char g\_c\[4096\];
+        static char g_c[4096];
 
         // I don't know any other way to copy the data string
         // out of the IDA database?!
         for(DWORD i=0;i<theLen;i++)
         {
-            g\_c\[i\] = get\_byte(theAddress + i);
+            g_c[i] = get_byte(theAddress + i);
         }
         // Here we have the opcode string; perform a search.
-        LPVOID curr = g\_mapped\_file;
-        DWORD sz = g\_file\_size;
+        LPVOID curr = g_mapped_file;
+        DWORD sz = g_file_size;
 
         while(curr && sz)
         {
-            LPVOID tp = memchr(curr, g\_c\[0\], sz);
+            LPVOID tp = memchr(curr, g_c[0], sz);
             if(tp)
             {
-                sz -= ((char \*)tp - (char \*)curr);
+                sz -= ((char *)tp - (char *)curr);
             }
 
             if(tp && sz >= theLen)
             {
-                if(0 == memcmp(tp, g\_c, theLen))
+                if(0 == memcmp(tp, g_c, theLen))
                 {
                     // We found a match!
                     ret = TRUE;
@@ -260,7 +242,7 @@ bool check\_target\_for\_string(ea\_t theAddress, DWORD theLen)
                 }
                 if(sz > 1)
                 {
-                    curr = ((char \*)tp)+1;
+                    curr = ((char *)tp)+1;
                 }
                 else
                 {
@@ -276,70 +258,58 @@ bool check\_target\_for\_string(ea\_t theAddress, DWORD theLen)
     }
     catch(...)
     {
-        msg("\[!\] critical failure.");
+        msg("[!] critical failure.");
         return TRUE;
     }
     return ret;
 }
-
 ```
 
-    
+这个线程`[从装入*IDA*的二进制文件中]`找出所有函数，并且拿它们和目标二进制文件做比较：
 
-这个线程\[从装入*IDA*的二进制文件中\]找出所有函数，并且拿它们和目标二进制文件做比较：
-
-```
-
-void \_\_cdecl \_test(void \*p)
+```c
+void __cdecl _test(void *p)
 {
     // Wait for start signal.
-    while(g\_tempest\_state == 0)
+    while(g_tempest_state == 0)
     {
         Sleep(10);
     }
-
 ```
 
-    
+我们调用`get_func_qty()`求得装入`IDA`的二进制文件中函数的个数：
 
-我们调用`get\_func\_qty()`求得装入*IDA*的二进制文件中函数的个数：
-
-```
-
+```c
     /////////////////////////////////////
     // Enumerate through all functions.
     /////////////////////////////////////
-    int total\_functions = get\_func\_qty();
-    int total\_diff\_matches = 0;
-
+    int total_functions = get_func_qty();
+    int total_diff_matches = 0;
 ```
 
-    
+我们现在循环处理每个函数。我们为每个函数调用`getn_func()`取得函数结构。函数结构是`func_t`类型数据。`ea_t`类型即是“有效地址”，它实际上只是一个无符号长整型。我们从函数结构中取得函数的开始地址和结束地址。然后我们把这个字节序列与目标二进制文件做比较：
 
-我们现在循环处理每个函数。我们为每个函数调用`getn\_func()`取得函数结构。函数结构是`func\_t`类型数据。`ea\_t`类型即是“有效地址”，它实际上只是一个无符号长整型。我们从函数结构中取得函数的开始地址和结束地址。然后我们把这个字节序列与目标二进制文件做比较： 
-
-```
-
-    for(int n=0;n<total\_functions;n++)
+```c
+    for(int n=0;n<total_functions;n++)
     {
-        // msg("getting next function \\n");
-        func\_t \*f = getn\_func(n);
+        // msg("getting next function \n");
+        func_t *f = getn_func(n);
 
         ///////////////////////////////////////////////
         // The start and end addresses of the function
         // are in the structure.
         ///////////////////////////////////////////////
-        ea\_t myea = f->startEA;
-        ea\_t last\_location = myea;
+        ea_t myea = f->startEA;
+        ea_t last_location = myea;
 
         while((myea <= f->endEA) && (myea != BADADDR))
         {
             // If the user has requested a stop we should return here.
-            if(0 == g\_tempest\_state) return;
+            if(0 == g_tempest_state) return;
 
-            ea\_t nextea = get\_first\_cref\_from(myea);
-            ea\_t amloc = get\_first\_cref\_to(nextea);
-            ea\_t amloc2 = get\_next\_cref\_to(nextea, amloc);
+            ea_t nextea = get_first_cref_from(myea);
+            ea_t amloc = get_first_cref_to(nextea);
+            ea_t amloc2 = get_next_cref_to(nextea, amloc);
 
             // The cref will be the previous instruction, but we
             // also check for multiple references.
@@ -357,38 +327,34 @@ void \_\_cdecl \_test(void \*p)
                     // down the scan.
                     // ----------------------------------------------
                     // jumpto(myea);
-                    // refresh\_idaview();
+                    // refresh_idaview();
                 }
                 else myea = BADADDR;
             }
             else
             {
-                // I am a location. Reference is not last instruction \_OR\_
+                // I am a location. Reference is not last instruction _OR_
                 // I have multiple references.
 
                 // Diff from the previous location to here and make a comment
                 // if we don't match
 
-                // msg("diffing location... \\n");
-
+                // msg("diffing location... \n");
 ```
 
-    
+如果目标文件没有包含我们的操作码字串，我们就在`[装入*IDA*的二进制文件的]`静止代码列表中放上一个注解（用`add_long_cmt`函数）：
 
-如果目标文件没有包含我们的操作码字串，我们就在\[装入*IDA*的二进制文件的\]静止代码列表中放上一个注解（用`add\_long\_cmt`函数）： 
-
-```
-
-                bool pause\_for\_effect = FALSE;
-                int size = myea - last\_location;
-                if(FALSE == check\_target\_for\_string(last\_location, size))
+```c
+                bool pause_for_effect = FALSE;
+                int size = myea - last_location;
+                if(FALSE == check_target_for_string(last_location, size))
                 {
-                    add\_long\_cmt(last\_location, TRUE,
-                           "====================================================\\n"
-                           "= \*\* This code location differs from the target \*\* =\\n" 
-                           "====================================================\\n");
-                    msg("Found location 0x%08X that didn't match target!\\n", last\_location);
-                    total\_diff\_matches++;
+                    add_long_cmt(last_location, TRUE,
+                           "====================================================\n"
+                           "= ** This code location differs from the target ** =\n" 
+                           "====================================================\n");
+                    msg("Found location 0x%08X that didn't match target!\n", last_location);
+                    total_diff_matches++;
                 }
 
                 if(nextea > myea)
@@ -399,32 +365,28 @@ void \_\_cdecl \_test(void \*p)
 
                 // goto next address.
                 jumpto(myea);
-                refresh\_idaview();
+                refresh_idaview();
             }
         }
     }
-    msg("Finished! Found %d locations that diff from the target.\\n", total\_diff\_matches);
+    msg("Finished! Found %d locations that diff from the target.\n", total_diff_matches);
 }
-
 ```
-
-    
 
 这个函数显示一个对话框提示用户输入一个文件名。这是一个外观漂亮的文件选择对话框：
 
-```
-
-char \* GetFilenameDialog(HWND theParentWnd)
+```c
+char * GetFilenameDialog(HWND theParentWnd)
 {
-    static TCHAR szFile\[MAX\_PATH\] = "\\0";
+    static TCHAR szFile[MAX_PATH] = "\0";
 
     strcpy( szFile, "");
 
     OPENFILENAME OpenFileName;
     OpenFileName.lStructSize = sizeof (OPENFILENAME);
     OpenFileName.hwndOwner = theParentWnd;
-    OpenFileName.hInstance = GetModuleHandle("diff\_scanner.plw");
-    OpenFileName.lpstrFilter = "w00t! all files\\0\*.\*\\0\\0";
+    OpenFileName.hInstance = GetModuleHandle("diff_scanner.plw");
+    OpenFileName.lpstrFilter = "w00t! all files\0*.*\0\0";
     OpenFileName.lpstrCustomFilter = NULL;
     OpenFileName.nMaxCustFilter = 0;
     OpenFileName.nFilterIndex = 1;
@@ -436,11 +398,11 @@ char \* GetFilenameDialog(HWND theParentWnd)
     OpenFileName.lpstrTitle = "Open";
     OpenFileName.nFileOffset = 0;
     OpenFileName.nFileExtension = 0;
-    OpenFileName.lpstrDefExt = "\*.\*";
+    OpenFileName.lpstrDefExt = "*.*";
     OpenFileName.lCustData = 0;
     OpenFileName.lpfnHook           = NULL;
     OpenFileName.lpTemplateName  = NULL;
-    OpenFileName.Flags = OFN\_EXPLORER | OFN\_NOCHANGEDIR;
+    OpenFileName.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR;
 
     if(GetOpenFileName( &OpenFileName ))
     {
@@ -448,46 +410,44 @@ char \* GetFilenameDialog(HWND theParentWnd)
     }
     return NULL;
 }
-
 ```
 
-    
+与所有“自定义的”对话框一样，我们需要`DialogProc`处理窗口消息：
 
-与所有“自定义的”对话框一样，我们需要`DialogProc`处理窗口消息： 
 
-```
 
+```c
 BOOL CALLBACK MyDialogProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch(msg)
     {
-        case WM\_COMMAND:
-            if (LOWORD(wParam) == IDC\_BROWSE)
+        case WM_COMMAND:
+            if (LOWORD(wParam) == IDC_BROWSE)
             {
-                char \*p = GetFilenameDialog(hDlg);
-                SetDlgItemText(hDlg, IDC\_EDIT\_FILENAME, p);
+                char *p = GetFilenameDialog(hDlg);
+                SetDlgItemText(hDlg, IDC_EDIT_FILENAME, p);
             }
-            if (LOWORD(wParam) == IDC\_START)
+            if (LOWORD(wParam) == IDC_START)
             {
-                char filename\[255\];
-                GetDlgItemText(hDlg, IDC\_EDIT\_FILENAME, filename, 254);
+                char filename[255];
+                GetDlgItemText(hDlg, IDC_EDIT_FILENAME, filename, 254);
                 if(0 == strlen(filename))
                 {
-                    MessageBox(hDlg, "You have not selected a target file", "Try again", MB\_OK);
+                    MessageBox(hDlg, "You have not selected a target file", "Try again", MB_OK);
                 }
-                else if(load\_file(filename))
+                else if(load_file(filename))
                 {
-                    g\_tempest\_state = 1;
-                    EnableWindow( GetDlgItem(hDlg, IDC\_START), FALSE);
+                    g_tempest_state = 1;
+                    EnableWindow( GetDlgItem(hDlg, IDC_START), FALSE);
                 }
                 else
                 {
-                    MessageBox(hDlg, "The target file could not be opened", "Error", MB\_OK);
+                    MessageBox(hDlg, "The target file could not be opened", "Error", MB_OK);
                 }
             }
-            if (LOWORD(wParam) == IDC\_STOP)
+            if (LOWORD(wParam) == IDC_STOP)
             {
-                g\_tempest\_state = 0;
+                g_tempest_state = 0;
             }
             if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
             {
@@ -504,11 +464,12 @@ BOOL CALLBACK MyDialogProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
     }
     return FALSE;
 }
-void \_\_cdecl \_test2(void \*p)
+
+void __cdecl _test2(void *p)
 {
-    DialogBox( GetModuleHandle("diff\_scanner.plw"), MAKEINTRESOURCE(IDD\_DIALOG1), NULL, MyDialogProc);
+    DialogBox( GetModuleHandle("diff_scanner.plw"), MAKEINTRESOURCE(IDD_DIALOG1), NULL, MyDialogProc);
 }
-   
+
 //--------------------------------------------------------------------------
 //
 //   The plugin method.
@@ -520,60 +481,51 @@ void \_\_cdecl \_test2(void \*p)
 //       Arg - the input argument. It can be specified in the
 //          plugins.cfg file. The default is zero.
 //
-//
-
 ```
 
-    
+当用户激活插件的时候，`run`函数被调用。在本例中我们启动两个线程，同时给 log 窗口发送一个短消息：
 
-当用户激活插件的时候，`run`函数被调用。在本例中我们启动两个线程，同时给 log 窗口发送一个短消息： 
-
-```
-
+```c
 void run(int arg)
 {
     // Testing.
-    msg("starting diff scanner plugin\\n");
-    \_beginthread(\_test, 0, NULL);
-    \_beginthread(\_test2, 0, NULL);
+    msg("starting diff scanner plugin\n");
+    _beginthread(_test, 0, NULL);
+    _beginthread(_test2, 0, NULL);
 }
-
 ```
 
-    
+这些全局数据项给 `IDA` 用来显示关于插件的信息。
 
-这些全局数据项给*IDA*用来显示关于插件的信息。 
-
-```
-
+```c
 //--------------------------------------------------------------------------
-char comment\[\] = "Diff Scanner Plugin, written by Greg Hoglund (www.rootkit.com)";
-char help\[\] =
-    "A plugin to find diffs in binary code\\n"
-    "\\n"
-    "This module highlights code locations that have changed.\\n"
-    "\\n";
+char comment[] = "Diff Scanner Plugin, written by Greg Hoglund (www.rootkit.com)";
+char help[] =
+    "A plugin to find diffs in binary code\n"
+    "\n"
+    "This module highlights code locations that have changed.\n"
+    "\n";
 
 //--------------------------------------------------------------------------
 // This is the preferred name of the plugin module in the menu system.
 // The preferred name may be overridden in the plugins.cfg file.
 
-char wanted\_name\[\] = "Diff Scanner";
+char wanted_name[] = "Diff Scanner";
 
 // This is the preferred hot key for the plugin module.
 // The preferred hot key may be overridden in the plugins.cfg file.
 // Note: IDA won't tell you if the hot key is not correct.
 //    It will just disable the hot key.
 
-char wanted\_hotkey\[\] = "Alt-0";
+char wanted_hotkey[] = "Alt-0";
 //--------------------------------------------------------------------------
 //
 //   PLUGIN DESCRIPTION BLOCK
 //
 //--------------------------------------------------------------------------
 
-extern "C" plugin\_t PLUGIN = {
- IDP\_INTERFACE\_VERSION,
+extern "C" plugin_t PLUGIN = {
+ IDP_INTERFACE_VERSION,
  0,               // Plugin flags.
  init,            // Initialize.
 
@@ -587,10 +539,9 @@ extern "C" plugin\_t PLUGIN = {
 
  help,            // Multiline help about the plugin
 
- wanted\_name,     // The preferred short name of the plugin
- wanted\_hotkey    // The preferred hot key to run the plugin
+ wanted_name,     // The preferred short name of the plugin
+ wanted_hotkey    // The preferred hot key to run the plugin
 };
-
 ```
 
-   4dd466d0e1e0cc123afbe504da2462ca
+`4dd466d0e1e0cc123afbe504da2462ca`

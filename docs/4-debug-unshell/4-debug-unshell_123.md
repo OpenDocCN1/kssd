@@ -1,838 +1,950 @@
 
-
 # ACProtect V1.09 Pro
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6377.htm`](https://www.pediy.com/kssd/pediy06/pediy6377.htm)
 
-梦幻 Ollydbg —— 浅谈 ACProtect V1.09 Pro 的反跟踪 And 脱壳   
-    
-    
-    
-ACPr 下载：  http://www.ultraprotect.com acpro\_up.exe      
-软件大小：  1.44 M   
-  
-【软件简介】：ACProtect is an application that allows you to protect Windows executable files against piracy,using public keys encryption algorithms (RSA) to create and verify the registration keys and unlock some RSA key locked code,it has embedded cryptor against dump and unpacker.it also has many anti debug tricks.  And you can use it to  create  evaluation and trial application versions. with specialized API system, mutual communication between loader and application is also can be achieved.   
-  
-【作者声明】：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！   
-  
-【调试环境】：WinXP、Ollydbg1.09D 修改版、LordPE、ImportREC   
-  
-—————————————————————————————————    
-【过    程】：   
-         
-      
-  
-偶的试炼品：用 ACProtect V1.09 Pro 未注册版加壳的某个小程序。上传在本贴后的附件里。   
-  
-           
-首先郑重申明：偶仅仅是刚开始学习脱壳的菜鸟，错误之处肯定多多，烦请诸位朋友批评、指点！偶洗耳恭听。以下的一点笔记只是偶跟踪这个试炼品所记录的，不适用于 ACProtect 主程序;其他用 ACProtect 注册版加壳的程序偶没看过不清楚。   
-  
-篇名的所谓“梦幻 Ollydbg”云云只是仿 123112 脱侠的《妖幻 TRW and videofixer 的脱壳方法之我之拙见》，因为用偶修改后的 Ollydbg 可以避开 ACProtect 的反跟踪，不会被 ACProtect 自动关闭。有点“哗众取宠”，无他意。   
-  
-“严重” :-) 感谢 jingulong 老兄三番五次的指点！如果不是老兄的指教偶现在还找不到思路，jingulong 兄真是深藏不露的脱侠！佩服佩服！   
-  
-由于 ACProtect 比较新，侦壳工具均不认识。用 ACProtect 加壳的程序一般会有一个“.perplex”区段，某些程序运行时会在临时文件夹下释放一个 perplex.dll 文件，如：videofixer.exe；Win XP 的释放在 Documents and Settings 用户名 Local SettingsTemp 下。当然，还是载入调试器跟踪一下关键代码看的清楚点。   
-  
-—————————————————————————————————   
-一、反跟踪   
-  
-  
-ACProtect 的反跟踪比起 幻影 来说可谓是很“照顾”CRACKER 了，:-) 作者别生气呀，其实已经做的很好了。   
-偶简单整理了一下，分作 5 类，欢迎朋友们补充！  为了分析这点东西，偶大约调试了两周，比较笨啦。  :-(   
-  
-  
-1、调用 CreateFileA 检测诸多 CRACK 工具。即《加密与解密》上说的“MeltICE”类型   
-  
-  
-如果发现“违禁”产品则用 TerminateProcess 杀掉其进程。123112 脱侠已经说的很清楚啦。   
-  
-0040A46E     56                   push esi   
-0040A46F     50                   push eax   
-0040A470     8B85 0D454000        mov eax,dword ptr ss:\[ebp+40450D\]    
-0040A476     8038 CC              cmp byte ptr ds:\[eax\],0CC   
-0040A479     74 10                je short 试炼 ACP.0040A48B   
-0040A47B     90                   nop   
-0040A47C     90                   nop   
-0040A47D     90                   nop   
-0040A47E     90                   nop   
-0040A47F     58                   pop eax   
-0040A480     FF95 0D454000        call dword ptr ss:\[ebp+40450D\]   ; kernel32.CreateFileA   
-  
-0040A609     58                   pop eax   
-0040A60A     46                   inc esi   
-0040A60B     803E 00              cmp byte ptr ds:\[esi\],0   
-0040A60E     75 FA                jnz short 试炼 ACP.0040A60A   
-0040A610     46                   inc esi   
-0040A611     803E 00              cmp byte ptr ds:\[esi\],0   
-0040A614     0F84 66010000        je 试炼 ACP.0040A780   
-0040A61A     E9 3DFEFFFF          jmp 试炼 ACP.0040A45C   
-  
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-“上榜”产品： :-)   
-  
-0040A6C5  5C 5C 2E 5C 53 49 43 45 00 5C 5C 2E 5C 4E 54 49  \\.SICE.\\.NTI   
-0040A6D5  43 45 00 5C 5C 2E 5C 4E 54 49 43 45 37 38 37 31  CE.\\.NTICE7871   
-0040A6E5  00 5C 5C 2E 5C 4E 54 49 43 45 44 30 35 32 00 5C  .\\.NTICED052.   
-0040A6F5  5C 2E 5C 54 52 57 44 45 42 55 47 00 5C 5C 2E 5C  .TRWDEBUG.\\.   
-0040A705  54 52 57 00 5C 5C 2E 5C 54 52 57 32 30 30 30 00  TRW.\\.TRW2000.   
-0040A715  5C 5C 2E 5C 53 55 50 45 52 42 50 4D 00 5C 5C 2E  \\.SUPERBPM.\\.   
-0040A725  5C 49 43 45 44 55 4D 50 00 5C 5C 2E 5C 52 45 47  ICEDUMP.\\.REG   
-0040A735  4D 4F 4E 00 5C 5C 2E 5C 46 49 4C 45 4D 4F 4E 00  MON.\\.FILEMON.   
-0040A745  5C 5C 2E 5C 52 45 47 56 58 44 00 5C 5C 2E 5C 46  \\.REGVXD.\\.F   
-0040A755  49 4C 45 56 58 44 00 5C 5C 2E 5C 56 4B 45 59 50  ILEVXD.\\.VKEYP   
-0040A765  52 4F 44 00 5C 5C 2E 5C 42 57 32 4B 00 5C 5C 2E  ROD.\\.BW2K.\\.   
-0040A775  5C 53 49 57 44 45 42 55 47 00 00 60 E8 00 00 00  SIWDEBUG..\`....   
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-  
-^O^ ^O^ →对付方法：修改跳转或用 TRW 娃娃修改版或用 Ollydbg 或你自己“照顾”好 SoftICE。   
-  
-  
-————————————————————————   
-2、检测 API 断点   
-  
-  
-检测关键 API 的入口的第 1 个字节是否为 INT 3（0xCC）？是则 OVER   
-  
-00408DF6     53                   push ebx   
-00408DF7     50                   push eax   
-00408DF8     52                   push edx   
-00408DF9     03C5                 add eax,ebp   
-00408DFB     50                   push eax   
-00408DFC     53                   push ebx   
-00408DFD     50                   push eax   
-00408DFE     8B85 68C24100        mov eax,dword ptr ss:\[ebp+41C268\]   
-00408E04     8038 CC              cmp byte ptr ds:\[eax\],0CC   
-                                  ====>比较第 1 个字节是否为 CC？是则被设置了 BPX 断点   
-00408E07     74 10                je short 试炼 ACP.00408E19   
-00408E09     90                   nop   
-00408E0A     90                   nop   
-00408E0B     90                   nop   
-00408E0C     90                   nop   
-00408E0D     58                   pop eax   
-00408E0E     FF95 68C24100        call dword ptr ss:\[ebp+41C268\]   
-00408E14     E9 AD000000          jmp 试炼 ACP.00408EC6   
-  
-下面的每 1 处 CALL 检测一个关键 API，并且其他地方也随处可见这种方式的检测。   
-  
-0040C091     B8 72434000          mov eax,试炼 ACP.00404372   
-0040C096     BA E1444000          mov edx,试炼 ACP.004044E1   
-0040C09B     E8 56CDFFFF          call 试炼 ACP.00408DF6   
-0040C0A0     B8 7E434000          mov eax,试炼 ACP.0040437E   
-0040C0A5     BA E5444000          mov edx,试炼 ACP.004044E5   
-0040C0AA     E8 47CDFFFF          call 试炼 ACP.00408DF6   
-0040C0AF     B8 89434000          mov eax,试炼 ACP.00404389   
-0040C0B4     BA F9444000          mov edx,试炼 ACP.004044F9   
-0040C0B9     E8 38CDFFFF          call 试炼 ACP.00408DF6   
-0040C0BE     B8 9D434000          mov eax,试炼 ACP.0040439D   
-0040C0C3     BA FD444000          mov edx,试炼 ACP.004044FD   
-0040C0C8     E8 29CDFFFF          call 试炼 ACP.00408DF6   
-0040C0CD     B8 B6434000          mov eax,试炼 ACP.004043B6   
-0040C0D2     BA 01454000          mov edx,试炼 ACP.00404501   
-0040C0D7     E8 1ACDFFFF          call 试炼 ACP.00408DF6   
-0040C0DC     B8 C5434000          mov eax,试炼 ACP.004043C5   
-0040C0E1     BA 05454000          mov edx,试炼 ACP.00404505   
-0040C0E6     E8 0BCDFFFF          call 试炼 ACP.00408DF6   
-0040C0EB     B8 D3434000          mov eax,试炼 ACP.004043D3   
-0040C0F0     BA 09454000          mov edx,试炼 ACP.00404509   
-0040C0F5     E8 FCCCFFFF          call 试炼 ACP.00408DF6   
-0040C0FA     B8 DF434000          mov eax,试炼 ACP.004043DF   
-0040C0FF     BA 0D454000          mov edx,试炼 ACP.0040450D   
-0040C104     E8 EDCCFFFF          call 试炼 ACP.00408DF6   
-0040C109     B8 EB434000          mov eax,试炼 ACP.004043EB   
-0040C10E     BA 11454000          mov edx,试炼 ACP.00404511   
-0040C113     E8 DECCFFFF          call 试炼 ACP.00408DF6   
-0040C118     B8 FC434000          mov eax,试炼 ACP.004043FC   
-0040C11D     BA 29454000          mov edx,试炼 ACP.00404529   
-0040C122     E8 CFCCFFFF          call 试炼 ACP.00408DF6   
-0040C127     B8 0E444000          mov eax,试炼 ACP.0040440E   
-0040C12C     BA 2D454000          mov edx,试炼 ACP.0040452D   
-0040C131     E8 C0CCFFFF          call 试炼 ACP.00408DF6   
-0040C136     B8 1A444000          mov eax,试炼 ACP.0040441A   
-0040C13B     BA 31454000          mov edx,试炼 ACP.00404531   
-0040C140     E8 B1CCFFFF          call 试炼 ACP.00408DF6   
-0040C145     B8 23444000          mov eax,试炼 ACP.00404423   
-0040C14A     BA 35454000          mov edx,试炼 ACP.00404535   
-0040C14F     E8 A2CCFFFF          call 试炼 ACP.00408DF6   
-0040C154     B8 2D444000          mov eax,试炼 ACP.0040442D   
-0040C159     BA 39454000          mov edx,试炼 ACP.00404539   
-0040C15E     E8 93CCFFFF          call 试炼 ACP.00408DF6   
-0040C163     B8 39444000          mov eax,试炼 ACP.00404439   
-0040C168     BA 3D454000          mov edx,试炼 ACP.0040453D   
-0040C16D     E8 84CCFFFF          call 试炼 ACP.00408DF6   
-0040C172     B8 46444000          mov eax,试炼 ACP.00404446   
-0040C177     BA 41454000          mov edx,试炼 ACP.00404541   
-0040C17C     E8 75CCFFFF          call 试炼 ACP.00408DF6   
-0040C181     B8 5F444000          mov eax,试炼 ACP.0040445F   
-0040C186     BA 49454000          mov edx,试炼 ACP.00404549   
-0040C18B     E8 66CCFFFF          call 试炼 ACP.00408DF6   
-0040C190     B8 70444000          mov eax,试炼 ACP.00404470   
-0040C195     BA 4D454000          mov edx,试炼 ACP.0040454D   
-0040C19A     E8 57CCFFFF          call 试炼 ACP.00408DF6   
-0040C19F     B8 81444000          mov eax,试炼 ACP.00404481   
-0040C1A4     BA 51454000          mov edx,试炼 ACP.00404551   
-0040C1A9     E8 48CCFFFF          call 试炼 ACP.00408DF6   
-0040C1AE     B8 81454000          mov eax,试炼 ACP.00404581   
-0040C1B3     BA 7D454000          mov edx,试炼 ACP.0040457D   
-0040C1B8     E8 39CCFFFF          call 试炼 ACP.00408DF6   
-0040C1BD     83BD F1204000 00     cmp dword ptr ss:\[ebp+4020F1\],0   
-                                  ====>\[ebp+4020F1\]应＝0   
-0040C1C4     74 24                je short 试炼 ACP.0040C1EA   
-   …… …… 省 略 …… ……   
-0040C396     B8 9D444000          mov eax,试炼 ACP.0040449D   
-0040C39B     BA E9444000          mov edx,试炼 ACP.004044E9   
-0040C3A0     E8 51CAFFFF          call 试炼 ACP.00408DF6   
-0040C3A5     B8 A9444000          mov eax,试炼 ACP.004044A9   
-0040C3AA     BA ED444000          mov edx,试炼 ACP.004044ED   
-0040C3AF     E8 42CAFFFF          call 试炼 ACP.00408DF6   
-0040C3B4     B8 B8444000          mov eax,试炼 ACP.004044B8   
-0040C3B9     BA F1444000          mov edx,试炼 ACP.004044F1   
-0040C3BE     E8 33CAFFFF          call 试炼 ACP.00408DF6   
-0040C3C3     B8 C6444000          mov eax,试炼 ACP.004044C6   
-0040C3C8     BA F5444000          mov edx,试炼 ACP.004044F5   
-0040C3CD     E8 24CAFFFF          call 试炼 ACP.00408DF6   
-0040C3D2     C3                   retn   
-  
-^O^ ^O^ →对付方法：可下断如   BP GetProcAddress+1  避开第 1 字节的检测！   
-  
-  
-————————————————————————   
-3、调用 IsDebuggerPresent 检测使用 Debug API 跟踪程序的调试器   
-      
-    
-0040B88B     FF95 29454000        call dword ptr ss:\[ebp+404529\]   
-0040B891     0BC0                 or eax,eax   
-0040B893     0F84 B4000000        je 试炼 ACP.0040B94D   
-  
-77E52E92     64:A1 18000000       mov eax,dword ptr fs:\[18\]   
-77E52E98     8B40 30              mov eax,dword ptr ds:\[eax+30\]   
-77E52E9B     0FB640 02            movzx eax,byte ptr ds:\[eax+2\]   
-                                  ====>或者把这里的返回值改为：0   
-77E52E9F     C3                   retn   
-  
-^O^ ^O^ →对付方法：最方便的直接用 Ollydbg 的 IsDebug 插件 去掉调试器标志 即可。   
-  
-  
-————————————————————————   
-4、黑名单   
-  
-  
-0040A100     FF95 01454000        call dword ptr ss:\[ebp+404501\] ; kernel32.Process32First   
-   …… …… 省 略 …… ……   
-0040A14D     47                   inc edi   
-0040A14E     8BF0                 mov esi,eax   
-0040A150     E8 01F1FFFF          call 试炼 ACP.00409256   
-                                  ====>里面逐位比较是否有黑名单中的成员：0040928E cmp dh,dl   
-0040A155     80FE 01              cmp dh,1   
-0040A158     74 1C                je short 试炼 ACP.0040A176   
-0040A15A     90                   nop   
-0040A15B     90                   nop   
-0040A15C     90                   nop   
-0040A15D     90                   nop   
-0040A15E     EB D7                jmp short 试炼 ACP.0040A137   
-0040A160     B8 3D424000          mov eax,试炼 ACP.0040423D   
-0040A165     03C5                 add eax,ebp   
-0040A167     50                   push eax   
-0040A168     FFB5 39424000        push dword ptr ss:\[ebp+404239\]   
-0040A16E     FF95 05454000        call dword ptr ss:\[ebp+404505\] ; kernel32.Process32Next   
-0040A174     EB 90                jmp short 试炼 ACP.0040A106   
-                                  ====>循环取进程名   
-  
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-黑名单：  作者想的很“周全”，还有没有“漏网之鱼”？ :-)   
-  
-004092A1  45 58 45 53 50 59 00 57 58 52 39 35 00 52 45 47  EXESPY.WXR95.REG   
-004092B1  4D 4F 4E 00 46 49 4C 45 20 4D 4F 4E 49 54 4F 52  MON.FILE MONITOR   
-004092C1  00 52 45 47 4D 4F 4E 45 58 00 57 49 4E 44 4F 57  .REGMONEX.WINDOW   
-004092D1  20 44 45 54 45 43 54 49 56 45 00 44 45 42 55 47   DETECTIVE.DEBUG   
-004092E1  56 49 45 57 00 52 45 53 53 50 59 00 41 44 56 41  VIEW.RESSPY.ADVA   
-004092F1  4E 43 45 44 20 52 45 47 49 53 54 52 59 20 54 52  NCED REGISTRY TR   
-00409301  41 43 45 52 00 52 45 47 53 4E 41 50 00 4D 45 4D  ACER.REGSNAP.MEM   
-00409311  53 50 59 00 4D 45 4D 4F 52 59 20 44 4F 43 54 4F  SPY.MEMORY DOCTO   
-00409321  52 00 50 52 4F 43 44 55 4D 50 33 32 00 4D 45 4D  R.PROCDUMP32.MEM   
-00409331  4F 52 59 20 45 44 49 54 4F 52 00 46 52 4F 47 53  ORY EDITOR.FROGS   
-00409341  49 43 45 00 53 4D 55 20 57 49 4E 53 50 45 43 54  ICE.SMU WINSPECT   
-00409351  4F 52 00 4D 45 4D 4F 52 59 20 44 55 4D 50 45 52  OR.MEMORY DUMPER   
-00409361  00 4D 45 4D 4F 52 59 4D 4F 4E 49 54 4F 52 00 4E  .MEMORYMONITOR.N   
-00409371  55 4D 45 47 41 20 53 4F 46 54 49 43 45 20 4C 4F  UMEGA SOFTICE LO   
-00409381  41 44 45 52 00 55 52 53 4F 46 54 20 57 33 32 44  ADER.URSOFT W32D   
-00409391  41 53 4D 00 2D 3D 43 48 49 4E 41 20 43 52 41 43  ASM.-=CHINA CRAC   
-004093A1  4B 49 4E 47 20 47 52 4F 55 50 3D 2D 00 4F 6C 6C  KING GROUP=-.Oll   
-004093B1  79 44 62 67 00 54 52 57 32 30 30 30 00 4F 4C 4C  yDbg.TRW2000.OLL   
-004093C1  59 44 42 47 00 00 00 00 00 00 00 00 00 00 00 00  YDBG............   
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-  
-^O^ ^O^ →对付方法：修改跳转、改掉黑名单 或者 用偶修改的 Ollydbg 来跟踪。   
-  
-  
-————————————————————————   
-5、检查加壳程序的父进程名   
-  
-  
-现在偶觉得 ACProtect 的反跟踪算是比较“温柔”的了，只是用 TerminateProcess 悄悄关掉你，而不是让人心悸的蓝屏死机！感谢作者 :-)  唯独这个“检查加壳程序的父进程名”比较别出心裁，可以让一般修改版的 Ollydbg 难逃此劫！   
-  
-  
-004097B9     FF95 01454000        call dword ptr ss:\[ebp+404501\] ; kernel32.Process32First   
-004097BF     E9 AD000000          jmp 试炼 ACP.00409871   
-  
-00409871     0BC0                 or eax,eax   
-00409873     0F84 A7050000        je 试炼 ACP.00409E20   
-00409879     8B95 45424000        mov edx,dword ptr ss:\[ebp+404245\]   
-0040987F     3B95 31424000        cmp edx,dword ptr ss:\[ebp+404231\]   
-                                  ====>比较自身程序的进程 ID，然后取其父进程 ID   
-   …… …… 省 略 …… ……   
-  
-00409CE7     8DB5 61424000        lea esi,dword ptr ss:\[ebp+404261\]   
-00409CED     E8 E7F0FFFF          call 试炼 ACP.00408DD9   
-                                  ====>把自身进程的父进程名转为大写字母   
-00409CF2     803E 00              cmp byte ptr ds:\[esi\],0   
-00409CF5     74 07                je short 试炼 ACP.00409CFE   
-  
-00409D35     5E                   pop esi   
-00409D36     8BFE                 mov edi,esi   
-00409D38     83EF 07              sub edi,7   
-00409D3B     813F 434D442E        cmp dword ptr ds:\[edi\],2E444D43   
-                                  ====>①、比较 EXE 前是否是 CMD.   
-00409D41     0F84 D9000000        je 试炼 ACP.00409E20   
-                                  ====>可以强迫跳转   
-00409D47     83EE 0C              sub esi, 0C   
-00409D4A     AD                   lods dword ptr ds:\[esi\]   
-00409D4B     0306                 add eax, dword ptr ds:\[esi\]   
-00409D4D     0346 04              add eax, dword ptr ds:\[esi+4\]   
-00409D50     8BD8                 mov ebx, eax   
-00409D52     8DB5 AF554000        lea esi, dword ptr ss:\[ebp+4055AF\]   
-00409D58     AD                   lods dword ptr ds:\[esi\]   
-00409D59     0BC0                 or eax, eax   
-00409D5B     74 0E                je short 试炼 ACP.00409D6B   
-00409D5D     90                   nop   
-00409D5E     90                   nop   
-00409D5F     90                   nop   
-00409D60     90                   nop   
-00409D61     2BC3                 sub eax, ebx   
-                                  ====>②、这里 EAX 必须=0   
-00409D63     0F84 B7000000        je 试炼 ACP.00409E20   
-                                  ====>不跳就要被 KILL 啦！  :-(   
-00409D69     EB ED                jmp short 试炼 ACP.00409D58   
-  
-00409E1A     FF95 11454000        call dword ptr ss:\[ebp+404511\] ; kernel32.TerminateProcess   
-                                  ====>呵呵，很小心的关掉你！让你休息休息   :-)   
-  
-  
-^O^ ^O^ →对付方法：改掉上面的跳转避开被杀。或者用偶修改的 Ollydbg 来跟踪。     
-如果不是 jingulong 兄的指教，偶现在可能还没找到这个地方，也就没有这篇笔记。 再次感谢！   
-  
-  
-  
-—————————————————————————————————   
-二、脱壳实例   
-  
-  
-OK，用偶修改的 Ollydbg 来脱壳。隐藏 Ollydbg、设置不忽略所有异常。   
-  
-  
-0040B08E     CD 01                int 1   
-                                  ====>第 1 次异常    
-0040B090     40                   inc eax   
-0040B091     40                   inc eax   
-0040B092     0BC0                 or eax,eax   
-0040B094     0F85 B6000000        jnz 试炼 ACP.0040B150   
-  
-0040B394     CC                   int3   
-                                  ====>第 2 次异常   
-0040B395     90                   nop   
-0040B396     64:67:8F06 0000      pop dword ptr fs:\[0\]   
-0040B39C     83C4 04              add esp,4   
-0040B39F     60                   pushad   
-0040B3A0     E8 00000000          call 试炼 ACP.0040B3A5   
-  
-————————————————————————   
-下断：BP GetProcAddress+1   然后 CTRL+F9 走，因为偶用的是未注册的 ACProtect 加壳，所以一直 CTRL+F9 走直至弹出 “Protected by Unregistered ACProtect!”的提示停下！   
-  
-留意看看堆栈的函数名，或许对以后脱这种壳的其他程序有参考价值。   
-  
-  
-77E5A5FD     55                   push ebp   
-77E5A5FE     8BEC                 mov ebp,esp   
-                                  ====>断在这里       GetProcAddress+1   
-  
-   …… …… 省 略 …… ……   
-  
-77D3AADF     FF15 E412D177        call dword ptr ds:\[<&KERNEL32.HeapFree>\]    
-77D3AAE5     33F6                 xor esi,esi   
-77D3AAE7     3975 04              cmp dword ptr ss:\[ebp+4\],esi   
-77D3AAEA     0F85 C7840100        jnz USER32.77D52FB7   
-77D3AAF0     3975 18              cmp dword ptr ss:\[ebp+18\],esi   
-77D3AAF3     0F85 D3840100        jnz USER32.77D52FCC   
-77D3AAF9     8B45 40              mov eax,dword ptr ss:\[ebp+40\]   
-77D3AAFC     5F                   pop edi   
-77D3AAFD     5E                   pop esi   
-77D3AAFE     5B                   pop ebx   
-77D3AAFF     83C5 74              add ebp,74   
-77D3AB02     C9                   leave   
-77D3AB03     C2 0400              retn 4   
-                                  ====>确定那个未注册保护提示后返回到这里！   
-  
-————————————————————————   
-77D3AC40     66:837E 2C 00        cmp word ptr ds:\[esi+2C\],0   
-77D3AC45     8BF8                 mov edi,eax   
-77D3AC47     0F85 F0840100        jnz USER32.77D5313D   
-77D3AC4D     8BC7                 mov eax,edi   
-77D3AC4F     5F                   pop edi   
-77D3AC50     5E                   pop esi   
-77D3AC51     5B                   pop ebx   
-77D3AC52     83C5 74              add ebp,74   
-77D3AC55     C9                   leave   
-77D3AC56     C2 0400              retn 4   
-  
-77D3ADCC     C9                   leave   
-77D3ADCD     C2 1800              retn 18   
-  
-77D3AE8A     FF75 FC              push dword ptr ss:\[ebp\-4\]   
-77D3AE8D     8B35 E412D177        mov esi,dword ptr ds:\[<&KERNEL32.HeapFree>\]    
-77D3AE93     57                   push edi   
-77D3AE94     FF35 A4D1D677        push dword ptr ds:\[77D6D1A4\]   
-77D3AE9A     8BD8                 mov ebx,eax   
-77D3AE9C     FFD6                 call esi   
-77D3AE9E     397D F8              cmp dword ptr ss:\[ebp\-8\],edi   
-77D3AEA1     74 0C                je short USER32.77D3AEAF   
-77D3AEA3     FF75 F8              push dword ptr ss:\[ebp\-8\]   
-77D3AEA6     57                   push edi   
-77D3AEA7     FF35 A4D1D677        push dword ptr ds:\[77D6D1A4\]   
-77D3AEAD     FFD6                 call esi   
-77D3AEAF     8BC3                 mov eax,ebx   
-77D3AEB1     5F                   pop edi   
-77D3AEB2     5E                   pop esi   
-77D3AEB3     5B                   pop ebx   
-77D3AEB4     C9                   leave   
-77D3AEB5     C2 1800              retn 18   
-  
-77D3AE17     5D                   pop ebp   
-77D3AE18     C2 1400              retn 14   
-  
-77D3ADFB     C2 1000              retn 10   
-                                  ====>返回到 0041F78B   看见希望啦 :-)   
-  
-————————————————————————   
-下面用 F7 单步走，简单循环用 F4 跳过即可。需要一点耐心，有些东东要走很长时间   
-  
-  
-0041F78B     45                   inc ebp   
-0041F78C     4B                   dec ebx   
-0041F78D     81CB D350FA80        or ebx,80FA50D3   
-0041F793     66:81F5 F613         xor bp,13F6   
-0041F798     E8 01000000          call 试炼 ACP.0041F79E   
-  
-0041F79E     83C4 04              add esp,4   
-0041F7A1     C1ED AF              shr ebp,0AF   
-0041F7A4     E8 01000000          call 试炼 ACP.0041F7AA   
-  
-0041F7AA     83C4 04              add esp,4   
-0041F7AD     8BD9                 mov ebx,ecx   
-0041F7AF     E8 01000000          call 试炼 ACP.0041F7B5   
-  
-0041F7B5     830424 06            add dword ptr ss:\[esp\],6   
-0041F7B9     C3                   retn   
-0041F7BA     66:BB EDA2           mov bx,0A2ED   
-0041F7BE     50                   push eax   
-0041F7BF     E8 01000000          call 试炼 ACP.0041F7C5   
-  
-0041F7C5     58                   pop eax   
-0041F7C6     58                   pop eax   
-0041F7C7     F8                   clc   
-0041F7C8     50                   push eax   
-0041F7C9     E8 01000000          call 试炼 ACP.0041F7CF   
-  
-0041F7CF     58                   pop eax   
-0041F7D0     58                   pop eax   
-0041F7D1     0F83 02000000        jnb 试炼 ACP.0041F7D9   
-  
-0041F7D9     E8 01000000          call 试炼 ACP.0041F7DF   
-  
-0041F7DF     83C4 04              add esp,4   
-0041F7E2     0F85 02000000        jnz 试炼 ACP.0041F7EA   
-  
-0041F7EA     E8 01000000          call 试炼 ACP.0041F7F0   
-  
-0041F7F0     830424 06            add dword ptr ss:\[esp\],6   
-0041F7F4     C3                   retn   
-0041F7F5     FC                   cld   
-0041F7F6     78 03                js short 试炼 ACP.0041F7FB   
-0041F7F8     79 01                jns short 试炼 ACP.0041F7FB   
-  
-0041F7FB     49                   dec ecx   
-0041F7FC     50                   push eax   
-0041F7FD     E8 01000000          call 试炼 ACP.0041F803   
-  
-0041F803     58                   pop eax   
-0041F804     58                   pop eax   
-0041F805     85D9                 test ecx,ebx   
-0041F807     50                   push eax   
-0041F808     E8 01000000          call 试炼 ACP.0041F80E   
-  
-0041F80E     58                   pop eax   
-0041F80F     58                   pop eax   
-0041F810     85CB                 test ebx,ecx   
-0041F812     E8 01000000          call 试炼 ACP.0041F818   
-  
-0041F818     83C4 04              add esp,4   
-0041F81B     87EB                 xchg ebx,ebp   
-0041F81D     E8 01000000          call 试炼 ACP.0041F823   
-  
-0041F823     83C4 04              add esp,4   
-0041F826     7C 01                jl short 试炼 ACP.0041F829   
-0041F828     FC                   cld   
-0041F829     50                   push eax   
-0041F82A     E8 01000000          call 试炼 ACP.0041F830   
-  
-0041F830     58                   pop eax   
-0041F831     58                   pop eax   
-0041F832     4D                   dec ebp   
-0041F833     7C 03                jl short 试炼 ACP.0041F838   
-0041F835     7D 01                jge short 试炼 ACP.0041F838   
-  
-0041F838     66:13E8              adc bp,ax   
-0041F83B     50                   push eax   
-0041F83C     E8 01000000          call 试炼 ACP.0041F842   
-  
-0041F842     58                   pop eax   
-0041F843     58                   pop eax   
-0041F844     66:8BDE              mov bx,si   
-0041F847     E8 01000000          call 试炼 ACP.0041F84D   
-  
-0041F84D     830424 06            add dword ptr ss:\[esp\],6   
-0041F851     C3                   retn   
-0041F852     79 04                jns short 试炼 ACP.0041F858   
-0041F854     66:BD 303E           mov bp,3E30   
-0041F858     50                   push eax   
-0041F859     E8 01000000          call 试炼 ACP.0041F85F   
-  
-0041F85F     58                   pop eax   
-0041F860     58                   pop eax   
-0041F861     0F86 02000000        jbe 试炼 ACP.0041F869   
-0041F867     87CB                 xchg ebx,ecx   
-0041F869     74 03                je short 试炼 ACP.0041F86E   
-0041F86B     75 01                jnz short 试炼 ACP.0041F86E   
-  
-0041F86E     87DD                 xchg ebp,ebx   
-0041F870     EB 01                jmp short 试炼 ACP.0041F873   
-  
-0041F873     66:13EE              adc bp,si   
-0041F876     72 03                jb short 试炼 ACP.0041F87B   
-0041F878     73 01                jnb short 试炼 ACP.0041F87B   
-  
-0041F87B     66:81C1 FEEE         add cx,0EEFE   
-0041F880     EB 01                jmp short 试炼 ACP.0041F883   
-  
-0041F883     4D                   dec ebp   
-0041F884     50                   push eax   
-0041F885     E8 01000000          call 试炼 ACP.0041F88B   
-  
-0041F88B     58                   pop eax   
-0041F88C     58                   pop eax   
-0041F88D     66:C1D5 54           rcl bp,54   
-0041F891     E8 01000000          call 试炼 ACP.0041F897   
-  
-0041F897     830424 06            add dword ptr ss:\[esp\],6   
-0041F89B     C3                   retn   
-0041F89C     FC                   cld   
-0041F89D     EB 01                jmp short 试炼 ACP.0041F8A0   
-  
-0041F8A0     87CB                 xchg ebx,ecx   
-0041F8A2     72 03                jb short 试炼 ACP.0041F8A7   
-0041F8A4     73 01                jnb short 试炼 ACP.0041F8A7   
-  
-0041F8A7     77 03                ja short 试炼 ACP.0041F8AC   
-  
-0041F8AC     E8 01000000          call 试炼 ACP.0041F8B2   
-  
-0041F8B2     830424 06            add dword ptr ss:\[esp\],6   
-0041F8B6     C3                   retn   
-0041F8B7     66:81E9 352E         sub cx,2E35   
-0041F8BC     EB 01                jmp short 试炼 ACP.0041F8BF   
-  
-0041F8BF     0F88 04000000        js 试炼 ACP.0041F8C9   
-0041F8C5    |66:C1FB C9           sar bx,0C9   
-0041F8C9     E8 01000000          call 试炼 ACP.0041F8CF   
-  
-0041F8CF     830424 06            add dword ptr ss:\[esp\],6   
-0041F8D3     C3                   retn   
-0041F8D4     8BEB                 mov ebp,ebx   
-0041F8D6     7A 03                jpe short 试炼 ACP.0041F8DB   
-  
-0041F8DB     0F82 06000000        jb 试炼 ACP.0041F8E7   
-0041F8E1    |E8 00000000          call 试炼 ACP.0041F8E6   
-0041F8E6    |59                   pop ecx   
-0041F8E7     EB 01                jmp short 试炼 ACP.0041F8EA   
-  
-0041F8EA     41                   inc ecx   
-0041F8EB     E8 01000000          call 试炼 ACP.0041F8F1   
-  
-0041F8F1     830424 06            add dword ptr ss:\[esp\],6   
-0041F8F5     C3                   retn   
-0041F8F6     F9                   stc   
-0041F8F7     50                   push eax   
-0041F8F8     E8 01000000          call 试炼 ACP.0041F8FE   
-  
-0041F8FE     58                   pop eax   
-0041F8FF     58                   pop eax   
-0041F900     F8                   clc   
-0041F901     E8 01000000          call 试炼 ACP.0041F907   
-  
-0041F907     83C4 04              add esp,4   
-0041F90A     0F8D 04000000        jge 试炼 ACP.0041F914   
-  
-0041F914     E8 01000000          call 试炼 ACP.0041F91A   
-  
-0041F91A     830424 06            add dword ptr ss:\[esp\],6   
-0041F91E     C3                   retn   
-0041F91F     4D                   dec ebp   
-0041F920     EB 01                jmp short 试炼 ACP.0041F923   
-  
-0041F923     8BDE                 mov ebx,esi   
-0041F925     50                   push eax   
-0041F926     E8 01000000          call 试炼 ACP.0041F92C   
-  
-0041F92C     58                   pop eax   
-0041F92D     58                   pop eax   
-0041F92E     66:13E9              adc bp,cx   
-0041F931     E8 01000000          call 试炼 ACP.0041F937   
-  
-0041F937     830424 06            add dword ptr ss:\[esp\],6   
-0041F93B     C3                   retn   
-0041F93C     FC                   cld   
-0041F93D     E8 01000000          call 试炼 ACP.0041F943   
-  
-0041F943     830424 06            add dword ptr ss:\[esp\],6   
-0041F947     C3                   retn   
-0041F948     85CB                 test ebx,ecx   
-0041F94A     76 03                jbe short 试炼 ACP.0041F94F   
-0041F94C     77 01                ja short 试炼 ACP.0041F94F   
-  
-0041F94F     0F8B 05000000        jpo 试炼 ACP.0041F95A   
-  
-0041F95A     EB 01                jmp short 试炼 ACP.0041F95D   
-  
-0041F95D     66:03CE              add cx,si   
-0041F960     E8 01000000          call 试炼 ACP.0041F966   
-  
-0041F966     830424 06            add dword ptr ss:\[esp\],6   
-0041F96A     C3                   retn   
-0041F96B     4B                   dec ebx   
-0041F96C     E8 01000000          call 试炼 ACP.0041F972   
-  
-0041F972     830424 06            add dword ptr ss:\[esp\],6   
-0041F976     C3                   retn   
-0041F977     1BCF                 sbb ecx,edi   
-0041F979     E8 00000000          call 试炼 ACP.0041F97E   
-0041F97E     5D                   pop ebp   
-0041F97F     8BC5                 mov eax,ebp   
-0041F981     3B45 1C              cmp eax,dword ptr ss:\[ebp+1C\]   
-0041F984     7C 06                jl short 试炼 ACP.0041F98C   
-0041F986     0345 1C              add eax,dword ptr ss:\[ebp+1C\]   
-0041F989     8945 1C              mov dword ptr ss:\[ebp+1C\],eax   
-0041F98C     EB 01                jmp short 试炼 ACP.0041F98F   
-  
-0041F98F     66:C1D5 58           rcl bp,58   
-0041F993     87EB                 xchg ebx,ebp   
-0041F995     D3ED                 shr ebp,cl   
-0041F997     85CD                 test ebp,ecx   
-0041F999     68 C5FA4100          push 试炼 ACP.0041FAC5   
-0041F99E     66:D3EB              shr bx,cl   
-0041F9A1     5A                   pop edx   
-0041F9A2     E8 01000000          call 试炼 ACP.0041F9A8   
-  
-0041F9A8     830424 06            add dword ptr ss:\[esp\],6   
-0041F9AC     C3                   retn   
-0041F9AD     4B                   dec ebx   
-0041F9AE     C1C3 E9              rol ebx,0E9   
-0041F9B1     E9 05000000          jmp 试炼 ACP.0041F9BB   
-  
-0041F9BB     BE 38CEF63E          mov esi,3EF6CE38   
-0041F9C0     75 04                jnz short 试炼 ACP.0041F9C6   
-  
-0041F9C6     81F6 F74B5C74        xor esi,745C4BF7   
-0041F9CC     E8 01000000          call 试炼 ACP.0041F9D2   
-  
-0041F9D2     83C4 04              add esp,4   
-0041F9D5     85EB                 test ebx,ebp   
-0041F9D7     C1E3 79              shl ebx,79   
-0041F9DA     B8 0C000000          mov eax,0C   
-0041F9DF     EB 01                jmp short 试炼 ACP.0041F9E2   
-  
-0041F9E2     E9 03000000          jmp 试炼 ACP.0041F9EA   
-  
-0041F9EA     66:8BEF              mov bp,di   
-0041F9ED     8B3A                 mov edi,dword ptr ds:\[edx\]   
-0041F9EF     E8 01000000          call 试炼 ACP.0041F9F5   
-  
-0041F9F5     830424 06            add dword ptr ss:\[esp\],6   
-0041F9F9     C3                   retn   
-0041F9FA     F8                   clc   
-0041F9FB     D3D5                 rcl ebp,cl   
-0041F9FD     E9 08000000          jmp 试炼 ACP.0041FA0A   
-  
-0041FA0A     33FE                 xor edi,esi   
-0041FA0C     E8 01000000          call 试炼 ACP.0041FA12   
-  
-0041FA12     83C4 04              add esp,4   
-0041FA15     E9 05000000          jmp 试炼 ACP.0041FA1F   
-  
-0041FA1F     8BCF                 mov ecx,edi   
-0041FA21     C1CF 19              ror edi,19   
-0041FA24     E8 01000000          call 试炼 ACP.0041FA2A   
-  
-0041FA2A     83C4 04              add esp,4   
-0041FA2D     7A 05                jpe short 试炼 ACP.0041FA34   
-0041FA2F     B9 021E239D          mov ecx,9D231E02   
-0041FA34     4D                   dec ebp   
-0041FA35     E9 02000000          jmp 试炼 ACP.0041FA3C   
-  
-0041FA3C     337A 04              xor edi,dword ptr ds:\[edx+4\]   
-0041FA3F     50                   push eax   
-0041FA40     E8 01000000          call 试炼 ACP.0041FA46   
-  
-0041FA46     58                   pop eax    
-0041FA47     58                   pop eax   
-0041FA48     E9 05000000          jmp 试炼 ACP.0041FA52   
-  
-0041FA52     85CD                 test ebp,ecx   
-0041FA54     85E9                 test ecx,ebp   
-0041FA56     893A                 mov dword ptr ds:\[edx\],edi   
-0041FA58     50                   push eax   
-0041FA59     E8 01000000          call 试炼 ACP.0041FA5F   
-  
-0041FA5F     58                   pop eax   
-0041FA60     58                   pop eax   
-0041FA61     F8                   clc   
-0041FA62     E9 06000000          jmp 试炼 ACP.0041FA6D   
-  
-0041FA6D     81C6 097B16A2        add esi,A2167B09   
-0041FA73     E8 01000000          call 试炼 ACP.0041FA79   
-  
-0041FA79     83C4 04              add esp,4   
-0041FA7C     F9                   stc   
-0041FA7D     87EB                 xchg ebx,ebp   
-0041FA7F     83C2 04              add edx,4   
-0041FA82     E8 01000000          call 试炼 ACP.0041FA88   
-  
-0041FA88     830424 06            add dword ptr ss:\[esp\],6   
-0041FA8C     C3                   retn   
-0041FA8D     E9 07000000          jmp 试炼 ACP.0041FA99   
-  
-0041FA99     E9 08000000          jmp 试炼 ACP.0041FAA6   
-  
-0041FAA6     83C0 FF              add eax,-1   
-0041FAA9     0F85 3EFFFFFF        jnz 试炼 ACP.0041F9ED   
-                                  ====>F4 下去   
-0041FAAF     78 03                js short 试炼 ACP.0041FAB4   
-0041FAB1     79 01                jns short 试炼 ACP.0041FAB4   
-  
-0041FAB4     E9 01000000          jmp 试炼 ACP.0041FABA   
-  
-0041FABA     0F82 05000000        jb 试炼 ACP.0041FAC5   
-  
-0041FAC5     E8 8790FEFF          call 试炼 ACP.00408B51   
-                                  ====>F8 带过   
-0041FACA     8B85 D4BE4100        mov eax,dword ptr ss:\[ebp+41BED4\]   
-                                  ====>EAX\=00001000   
-0041FAD0     0385 28404000        add eax,dword ptr ss:\[ebp+404028\]   
-                                  ====>EAX\=00001000 + 00400000=00401000  这就是 OEP 值  :-)   
-  
-0041FAD6     8985 D4BE4100        mov dword ptr ss:\[ebp+41BED4\],eax   
-                                  ====>\[ebp+41BED4\]＝\[41FED4\]=EAX\=00401000   
-  
-当然，可以一步步 F7 跟踪下去，但是偶还是快点吧。在内存 0041FED4 的 001040 下 内存访问 断点。   
-F9 运行，数秒钟后程序自动停下！偶的机子速度还可以  :-)   
-  
-0041FECE     FF25 D4FE4100        jmp dword ptr ds:\[41FED4\]   ; 试炼 ACP.00401000   
-                                  ====>飞向光明之巅！   
-  
-  
-———————————————————————   
-  
-00401000     33DB                 xor ebx,ebx   
-                                  ====>在这儿用 LordPE 完全 DUMP 这个进程   
-00401002     53                   push ebx   
-00401003     E8 28020000          call 试炼 ACP.00401230   ; jmp to offset 试炼 ACP.<ModuleEntryPoint>   
-00401008     A3 4C314000          mov dword ptr ds:\[40314C\],eax   
-0040100D     53                   push ebx   
-0040100E     68 22104000          push 试炼 ACP.00401022   
-00401013     53                   push ebx   
-00401014     6A 67                push 67   
-00401016     50                   push eax   
-00401017     E8 20020000          call 试炼 ACP.0040123C   
-  
-  
-————————————————————————   
-  
-重新运行试炼 ACP.exe，运行 ImportREC，选择这个进程。把 OEP 改为 00001000，点 IT AutoSearch，点“Get Import”，函数无效，用“追踪层次 3”全部修复。FixDump，正常运行！ 114K ->136K  用 FileScan 优化后是 115K。   
-  
-  
-  
-—————————————————————————————————   
-三、关于输入表及其他问题   
-  
-  
-因为偶用 ImportREC 能够修复输入表，没有出现无法修复的问题，所以只是看了一下 123112 所说的需要 NOP 的地方。   
-  
-0040E319     FF95 68C24100        call dword ptr ss:\[ebp+41C268\]   
-0040E31F     3B9D 28404000        cmp ebx,dword ptr ss:\[ebp+404028\]   
-0040E325     7C 0F                jl short 试炼 ACP.0040E336   
-0040E327     90                   nop   
-0040E328     90                   nop   
-0040E329     90                   nop   
-0040E32A     90                   nop   
-0040E32B     60                   pushad   
-0040E32C     2BC0                 sub eax,eax   
-0040E32E     8803                 mov byte ptr ds:\[ebx\],al   
-0040E330     43                   inc ebx   
-0040E331     3803                 cmp byte ptr ds:\[ebx\],al   
-0040E333     75 F9                jnz short 试炼 ACP.0040E32E   
-0040E335     61                   popad   
-0040E336     0BC0                 or eax,eax   
-0040E338     0F84 2EFFFFFF        je 试炼 ACP.0040E26C   
-0040E33E     3B85 78C24100        cmp eax,dword ptr ss:\[ebp+41C278\]   
-0040E344     75 0A                jnz short 试炼 ACP.0040E350   
-  
-————————————————   
-  
-0040E296     FF95 74C24100        call dword ptr ss:\[ebp+41C274\]   
-0040E29C     60                   pushad   
-0040E29D     2BC0                 sub eax, eax   
-0040E29F     8803                 mov byte ptr ds:\[ebx\], al   
-0040E2A1     43                   inc ebx   
-0040E2A2     3803                 cmp byte ptr ds:\[ebx\], al   
-0040E2A4     75 F9                jnz short 试炼 ACP.0040E29F   
-0040E2A6     61                   popad   
-0040E2A7     8985 20404000        mov dword ptr ss:\[ebp+404020\], eax   
-0040E2AD     C785 24404000 000000>mov dword ptr ss:\[ebp+404024\], 0   
-0040E2B7     8B95 28404000        mov edx, dword ptr ss:\[ebp+404028\]   
-0040E2BD     8B06                 mov eax, dword ptr ds:\[esi\]   
-0040E2BF     0BC0                 or eax, eax   
-0040E2C1     75 07                jnz short 试炼 ACP.0040E2CA   
-  
-注：这 2 个地方的地址差值：0040E32C-0040E29D＝8F 好像是固定的  :-)   
-  
-  
-其他问题：偶发现用 ACProtect 相同选项加壳的某些程序入口处的 6 个字节被替换了，某些程序却又正常。以上只是偶的一点肤浅之见，欢迎朋友们讨论、指正！   
-  
-  
-—————————————————————————————————   
-       
-                                   
-         ,     \_/    
-        /| \_.-~/            \_     ,        青春都一饷   
-       ( /~   /              ~-.\_ |   
-       \`\\  \_/                   ~ )          忍把浮名    
-   \_-~~~-.)  )\_\_/;;,.          \_  //'    
-  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂   
- \`~ \_( ,\_..-- (     ,;'' /    ~--   /.\_\`    
-  /~~//'   /' \`~         ) /--..\_, )\_  \`~    
-  "  \`~"  "      \`"      /~'\`    \`\\~~      
-                         "     "   "~'  ""   
-  
-       
-  
-            Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]   
-  
-                    2003-11-01 01:10  
- 4dd466d0e1e0cc123afbe504da2462ca
+## 梦幻 Ollydbg —— 浅谈 ACProtect V1.09 Pro 的反跟踪 And 脱壳
+
+**ACPr 下载**： [`http://www.ultraprotect.com`](http://www.ultraprotect.com) `acpro_up.exe`
+
+**软件大小**： `1.44 M`
+
+**【软件简介】**： `ACProtect` is an application that allows you to protect Windows executable files against piracy, using public keys encryption algorithms (`RSA`) to create and verify the registration keys and unlock some `RSA` key locked code, it has embedded cryptor against dump and unpacker. it also has many anti debug tricks. And you can use it to create evaluation and trial application versions. with specialized `API` system, mutual communication between loader and application is also can be achieved.
+
+**【作者声明】**：初学 `Crack`，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+**【调试环境】**：`WinXP`、`Ollydbg1.09D` 修改版、`LordPE`、`ImportREC`
+
+—————————————————————————————————
+
+**【过 程】**：
+
+偶的试炼品：用 `ACProtect V1.09 Pro` 未注册版加壳的某个小程序。上传在本贴后的附件里。
+
+首先郑重申明：偶仅仅是刚开始学习脱壳的菜鸟，错误之处肯定多多，烦请诸位朋友批评、指点！偶洗耳恭听。以下的一点笔记只是偶跟踪这个试炼品所记录的，不适用于 `ACProtect` 主程序;其他用 `ACProtect` 注册版加壳的程序偶没看过不清楚。
+
+篇名的所谓“梦幻 `Ollydbg`”云云只是仿 `123112` 脱侠的《妖幻 `TRW` and `videofixer` 的脱壳方法之我之拙见》，因为用偶修改后的 `Ollydbg` 可以避开 `ACProtect` 的反跟踪，不会被 `ACProtect` 自动关闭。有点“哗众取宠”，无他意。
+
+“严重” :-) 感谢 `jingulong` 老兄三番五次的指点！如果不是老兄的指教偶现在还找不到思路，`jingulong` 兄真是深藏不露的脱侠！佩服佩服！
+
+由于 `ACProtect` 比较新，侦壳工具均不认识。用 `ACProtect` 加壳的程序一般会有一个`.perplex`区段，某些程序运行时会在临时文件夹下释放一个 `perplex.dll` 文件，如：`videofixer.exe`；`Win XP` 的释放在 `Documents and Settings` 用户名 `Local SettingsTemp` 下。当然，还是载入调试器跟踪一下关键代码看的清楚点。
+
+—————————————————————————————————
+
+## 一、反跟踪
+
+`ACProtect` 的反跟踪比起 `幻影` 来说可谓是很“照顾”`CRACKER` 了，:-) 作者别生气呀，其实已经做的很好了。
+
+偶简单整理了一下，分作 5 类，欢迎朋友们补充！ 为了分析这点东西，偶大约调试了两周，比较笨啦。 :-(
+
+### 1、调用 `CreateFileA` 检测诸多 `CRACK` 工具
+
+即《加密与解密》上说的“`MeltICE`”类型
+
+如果发现“违禁”产品则用 `TerminateProcess` 杀掉其进程。`123112` 脱侠已经说的很清楚啦。
+
+```
+0040A46E     56                  push esi
+
+0040A46F     50                  push eax
+
+0040A470     8B85 0D454000       mov eax,dword ptr ss:[ebp+40450D]
+
+0040A476     8038 CC             cmp byte ptr ds:[eax],0CC
+
+0040A479     74 10               je short 试炼 ACP.0040A48B
+
+0040A47B     90                  nop
+
+0040A47C     90                  nop
+
+0040A47D     90                  nop
+
+0040A47E     90                  nop
+
+0040A47F     58                  pop eax
+
+0040A480     FF95 0D454000       call dword ptr ss:[ebp+40450D]   ; kernel32.CreateFileA
+
+0040A609     58                  pop eax
+
+0040A60A     46                  inc esi
+
+0040A60B     803E 00             cmp byte ptr ds:[esi],0
+
+0040A60E     75 FA               jnz short 试炼 ACP.0040A60A
+
+0040A610     46                  inc esi
+
+0040A611     803E 00             cmp byte ptr ds:[esi],0
+
+0040A614     0F84 66010000       je 试炼 ACP.0040A780
+
+0040A61A     E9 3DFeFFFF         jmp 试炼 ACP.0040A45C
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+“上榜”产品： :-)
+
+```
+0040A6C5  5C 5C 2E 5C 53 49 43 45 00 5C 5C 2E 5C 4E 54 49  SICE..\SICE
+0040A6D5  43 45 00 5C 5C 2E 5C 4E 54 49 43 45 37 38 37 31  CE..\NTICE7871
+0040A6E5  00 5C 5C 2E 5C 4E 54 49 43 45 44 30 35 32 00 5C  ..\NTICED052\.
+0040A6F5  5C 2E 5C 54 52 57 44 45 42 55 47 00 5C 5C 2E 5C  .TRWDEBUG..\
+0040A705  54 52 57 00 5C 5C 2E 5C 54 52 57 32 30 30 30 00   TRW..\TRW2000.
+0040A715  5C 5C 2E 5C 53 55 50 45 52 42 50 4D 00 5C 5C 2E  \.SUPERBPM\..
+0040A725  5C 49 43 45 44 55 4D 50 00 5C 5C 2E 5C 52 45 47   ICEDUMP\.REG
+0040A735  4D 4F 4E 00 5C 5C 2E 5C 46 49 4C 45 4D 4F 4E 00   MON..\FILEMON
+0040A745  5C 5C 2E 5C 52 45 47 56 58 44 00 5C 5C 2E 5C 46  \.REGVXD\..F
+0040A755  49 4C 45 56 58 44 00 5C 5C 2E 5C 56 4B 45 59 50  ILEVXD\.VKEYP
+0040A765  52 4F 44 00 5C 5C 2E 5C 42 57 32 4B 00 5C 5C 2E  ROD\.BW2K\..
+0040A775  5C 53 49 57 44 45 42 55 47 00 00 60 E8 00 00 00  SIWDEBUG..\`....
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+^O^ ^O^ →对付方法：修改跳转或用 `TRW` 娃娃修改版或用 `Ollydbg` 或你自己“照顾”好 `SoftICE`。
+
+————————————————————————
+
+### 2、检测 `API` 断点
+
+检测关键 `API` 的入口的第 1 个字节是否为 `INT 3` (`0xCC`)？是则 `OVER`
+
+```
+00408DF6     53                  push ebx
+
+00408DF7     50                  push eax
+
+00408DF8     52                  push edx
+
+00408DF9     03C5                add eax,ebp
+
+00408DFB     50                  push eax
+
+00408DFC     53                  push ebx
+
+00408DFD     50                  push eax
+
+00408DFE     8B85 68C24100       mov eax,dword ptr ss:[ebp+41C268]
+
+00408E04     8038 CC             cmp byte ptr ds:[eax],0CC
+
+                            ====>比较第 1 个字节是否为 CC？是则被设置了 BPX 断点
+
+00408E07     74 10               je short 试炼 ACP.00408E19
+
+00408E09     90                  nop
+
+00408E0A     90                  nop
+
+00408E0B     90                  nop
+
+00408E0C     90                  nop
+
+00408E0D     58                  pop eax
+
+00408E0E     FF95 68C24100       call dword ptr ss:[ebp+41C268]
+
+00408E14     E9 AD000000         jmp 试炼 ACP.00408EC6
+```
+
+下面的每 1 处 `CALL` 检测一个关键 `API`，并且其他地方也随处可见这种方式的检测。
+
+```
+0040C091     B8 72434000         mov eax,试炼 ACP.00404372
+
+0040C096     BA E1444000         mov edx,试炼 ACP.004044E1
+
+0040C09B     E8 56CDFFFF         call 试炼 ACP.00408DF6
+
+0040C0A0     B8 7E434000         mov eax,试炼 ACP.0040437E
+
+0040C0A5     BA E5444000         mov edx,试炼 ACP.004044E5
+
+0040C0AA     E8 47CDFFFF         call 试炼 ACP.00408DF6
+
+0040C0AF     B8 89434000         mov eax,试炼 ACP.00404389
+
+0040C0B4     BA F9444000         mov edx,试炼 ACP.004044F9
+
+0040C0B9     E8 38CDFFFF         call 试炼 ACP.00408DF6
+
+0040C0BE     B8 9D434000         mov eax,试炼 ACP.0040439D
+
+0040C0C3     BA FD444000         mov edx,试炼 ACP.004044FD
+
+0040C0C8     E8 29CDFFFF         call 试炼 ACP.00408DF6
+
+0040C0CD     B8 B6434000         mov eax,试炼 ACP.004043B6
+
+0040C0D2     BA 01454000         mov edx,试炼 ACP.00404501
+
+0040C0D7     E8 1ACDFFFF         call 试炼 ACP.00408DF6
+
+0040C0DC     B8 C5434000         mov eax,试炼 ACP.004043C5
+
+0040C0E1     BA 05454000         mov edx,试炼 ACP.00404505
+
+0040C0E6     E8 0BCDFFFF         call 试炼 ACP.00408DF6
+
+0040C0EB     B8 D3434000         mov eax,试炼 ACP.004043D3
+
+0040C0F0     BA 09454000         mov edx,试炼 ACP.00404509
+
+0040C0F5     E8 FCCCFFFF         call 试炼 ACP.00408DF6
+
+0040C0FA     B8 DF434000         mov eax,试炼 ACP.004043DF
+
+0040C0FF     BA 0D454000         mov edx,试炼 ACP.0040450D
+
+0040C104     E8 EDCCFFFF         call 试炼 ACP.00408DF6
+
+0040C109     B8 EB434000         mov eax,试炼 ACP.004043EB
+
+0040C10E     BA 11454000         mov edx,试炼 ACP.00404511
+
+0040C113     E8 DECCFFFF         call 试炼 ACP.00408DF6
+
+0040C118     B8 FC434000         mov eax,试炼 ACP.004043FC
+
+0040C11D     BA 29454000         mov edx,试炼 ACP.00404529
+
+0040C122     E8 CFCCFFFF         call 试炼 ACP.00408DF6
+
+0040C127     B8 0E444000         mov eax,试炼 ACP.0040440E
+
+0040C12C     BA 2D454000         mov edx,试炼 ACP.0040452D
+
+0040C131     E8 C0CCFFFF         call 试炼 ACP.00408DF6
+
+0040C136     B8 1A444000         mov eax,试炼 ACP.0040441A
+
+0040C13B     BA 31454000         mov edx,试炼 ACP.00404531
+
+0040C140     E8 B1CCFFFF         call 试炼 ACP.00408DF6
+
+0040C145     B8 23444000         mov eax,试炼 ACP.00404423
+
+0040C14A     BA 35454000         mov edx,试炼 ACP.00404535
+
+0040C14F     E8 A2CCFFFF         call 试炼 ACP.00408DF6
+
+0040C154     B8 2D444000         mov eax,试炼 ACP.0040442D
+
+0040C159     BA 39454000         mov edx,试炼 ACP.00404539
+
+0040C15E     E8 93CCFFFF         call 试炼 ACP.00408DF6
+
+0040C163     B8 39444000         mov eax,试炼 ACP.00404439
+
+0040C168     BA 3D454000         mov edx,试炼 ACP.0040453D
+
+0040C16D     E8 84CCFFFF         call 试炼 ACP.00408DF6
+
+0040C172     B8 46444000         mov eax,试炼 ACP.00404446
+
+0040C177     BA 41454000         mov edx,试炼 ACP.00404541
+
+0040C17C     E8 75CCFFFF         call 试炼 ACP.00408DF6
+```
+
+
+
+```
+0040C181     B8 5F444000           mov eax,试炼 ACP.0040445F   
+0040C186     BA 49454000           mov edx,试炼 ACP.00404549   
+0040C18B     E8 66CCFFFF           call 试炼 ACP.00408DF6   
+0040C190     B8 70444000           mov eax,试炼 ACP.00404470   
+0040C195     BA 4D454000           mov edx,试炼 ACP.0040454D   
+0040C19A     E8 57CCFFFF           call 试炼 ACP.00408DF6   
+0040C19F     B8 81444000           mov eax,试炼 ACP.00404481   
+0040C1A4     BA 51454000           mov edx,试炼 ACP.00404551   
+0040C1A9     E8 48CCFFFF           call 试炼 ACP.00408DF6   
+0040C1AE     B8 81454000           mov eax,试炼 ACP.00404581   
+0040C1B3     BA 7D454000           mov edx,试炼 ACP.0040457D   
+0040C1B8     E8 39CCFFFF           call 试炼 ACP.00408DF6   
+0040C1BD     83BD F1204000 00      cmp dword ptr ss:[ebp+4020F1],0   
+                                  ==>[ebp+4020F1]应＝0   
+0040C1C4     74 24                 je short 试炼 ACP.0040C1EA   
+   …… …… 省 略 …… ……   
+0040C396     B8 9D444000           mov eax,试炼 ACP.0040449D   
+0040C39B     BA E9444000           mov edx,试炼 ACP.004044E9   
+0040C3A0     E8 51CAFFFF           call 试炼 ACP.00408DF6   
+0040C3A5     B8 A9444000           mov eax,试炼 ACP.004044A9   
+0040C3AA     BA ED444000           mov edx,试炼 ACP.004044ED   
+0040C3AF     E8 42CAFFFF           call 试炼 ACP.00408DF6   
+0040C3B4     B8 B8444000           mov eax,试炼 ACP.004044B8   
+0040C3B9     BA F1444000           mov edx,试炼 ACP.004044F1   
+0040C3BE     E8 33CAFFFF           call 试炼 ACP.00408DF6   
+0040C3C3     B8 C6444000           mov eax,试炼 ACP.004044C6   
+0040C3C8     BA F5444000           mov edx,试炼 ACP.004044F5   
+0040C3CD     E8 24CAFFFF           call 试炼 ACP.00408DF6   
+0040C3D2     C3                    retn   
+```
+
+^O^ ^O^ →对付方法：可下断如 `BP GetProcAddress+1` 避开第 1 字节的检测！
+
+————————————————————————
+
+### 3、调用 `IsDebuggerPresent` 检测使用 `Debug API` 跟踪程序的调试器
+
+```
+0040B88B     FF95 29454000        call dword ptr ss:[ebp+404529]   
+0040B891     0BC0                 or eax,eax   
+0040B893     0F84 B4000000        je 试炼 ACP.0040B94D   
+77E52E92     64:A1 18000000       mov eax,dword ptr fs:[18]   
+77E52E98     8B40 30              mov eax,dword ptr ds:[eax+30]   
+77E52E9B     0FB640 02            movzx eax,byte ptr ds:[eax+2]   
+                                  ==>或者把这里的返回值改为：0   
+77E52E9F     C3                    retn   
+```
+
+^O^ ^O^ →对付方法：最方便的直接用 `Ollydbg` 的 `IsDebug` 插件 去掉调试器标志 即可。
+
+————————————————————————
+
+### 4、黑名单
+
+```
+0040A100     FF95 01454000        call dword ptr ss:[ebp+404501] ; kernel32.Process32First   
+   …… …… 省 略 …… ……   
+0040A14D     47                   inc edi   
+0040A14E     8BF0                 mov esi,eax   
+0040A150     E8 01F1FFFF          call 试炼 ACP.00409256   
+                                  ==>里面逐位比较是否有黑名单中的成员：0040928E cmp dh,dl   
+0040A155     80FE 01              cmp dh,1   
+0040A158     74 1C                je short 试炼 ACP.0040A176   
+0040A15A     90                   nop   
+0040A15B     90                   nop   
+0040A15C     90                   nop   
+0040A15D     90                   nop   
+0040A15E     EB D7                jmp short 试炼 ACP.0040A137   
+0040A160     B8 3D424000          mov eax,试炼 ACP.0040423D   
+0040A165     03C5                 add eax,ebp   
+0040A167     50                   push eax   
+0040A168     FFB5 39424000        push dword ptr ss:[ebp+404239]   
+0040A16E     FF95 05454000        call dword ptr ss:[ebp+404505] ; kernel32.Process32Next   
+0040A174     EB 90                jmp short 试炼 ACP.0040A106   
+                                  ==>循环取进程名   
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+黑名单： 作者想的很“周全”，还有没有“漏网之鱼”？ :-)
+
+```
+004092A1  45 58 45 53 50 59 00 57 58 52 39 35 00 52 45 47   EXESPY.WXR95.REG   
+004092B1  4D 4F 4E 00 46 49 4C 45 20 4D 4F 4E 49 54 4F 52   MON.FILE MONITOR   
+004092C1  00 52 45 47 4D 4F 4E 45 58 00 57 49 4E 44 4F 57   .REGMONEX.WINDOW   
+004092D1  20 44 45 54 45 43 54 49 56 45 00 44 45 42 55 47    DETECTIVE.DEBUG   
+004092E1  56 49 45 57 00 52 45 53 53 50 59 00 41 44 56 41   VIEW.RESSPY.ADVA   
+004092F1  4E 43 45 44 20 52 45 47 49 53 54 52 59 20 54 52   NCED REGISTRY TR   
+00409301  41 43 45 52 00 52 45 47 53 4E 41 50 00 4D 45 4D   ACER.REGSNAP.MEM   
+00409311  53 50 59 00 4D 45 4D 4F 52 59 20 44 4F 43 54 4F   SPY.MEMORY DOCTO   
+00409321  52 00 50 52 4F 43 44 55 4D 50 33 32 00 4D 45 4D   R.PROCDUMP32.MEM   
+00409331  4F 52 59 20 45 44 49 54 4F 52 00 46 52 4F 47 53   ORY EDITOR.FROGS   
+00409341  49 43 45 00 53 4D 55 20 57 49 4E 53 50 45 43 54   ICE.SMU WINSPECT   
+00409351  4F 52 00 4D 45 4D 4F 52 59 20 44 55 4D 50 45 52   OR.MEMORY DUMPER   
+00409361  00 4D 45 4D 4F 52 59 4D 4F 4E 49 54 4F 52 00 4E   .MEMORYMONITOR.N   
+00409371  55 4D 45 47 41 20 53 4F 46 54 49 43 45 20 4C 4F   UMEGA SOFTICE LO   
+00409381  41 44 45 52 00 55 52 53 4F 46 54 20 57 33 32 44   ADER.URSOFT W32D   
+00409391  41 53 4D 00 2D 3D 43 48 49 4E 41 20 43 52 41 43   ASM.-=CHINA CRAC   
+004093A1  4B 49 4E 47 20 47 52 4F 55 50 3D 2D 00 4F 6C 6C   KING GROUP=-.Oll   
+004093B1  79 44 62 67 00 54 52 57 32 30 30 30 00 4F 4C 4C   yDbg.TRW2000.OLL   
+004093C1  59 44 42 47 00 00 00 00 00 00 00 00 00 00 00 00   YDBG............   
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+^O^ ^O^ →对付方法：修改跳转、改掉黑名单 或者 用偶修改的 `Ollydbg` 来跟踪。
+
+————————————————————————
+
+### 5、检查加壳程序的父进程名
+
+现在偶觉得 `ACProtect` 的反跟踪算是比较“温柔”的了，只是用 `TerminateProcess` 悄悄关掉你，而不是让人心悸的蓝屏死机！感谢作者 :-) 唯独这个“检查加壳程序的父进程名”比较别出心裁，可以让一般修改版的 `Ollydbg` 难逃此劫！
+
+```
+004097B9     FF95 01454000        call dword ptr ss:[ebp+404501] ; kernel32.Process32First   
+004097BF     E9 AD000000          jmp 试炼 ACP.00409871   
+00409871     0BC0                 or eax,eax   
+00409873     0F84 A7050000        je 试炼 ACP.00409E20   
+00409879     8B95 45424000        mov edx,dword ptr ss:[ebp+404245]   
+0040987F     3B95 31424000        cmp edx,dword ptr ss:[ebp+404231]   
+                                  ==>比较自身程序的进程 ID，然后取其父进程 ID   
+   …… …… 省 略 …… ……   
+00409CE7     8DB5 61424000        lea esi,dword ptr ss:[ebp+404261]   
+00409CED     E8 E7F0FFFF          call 试炼 ACP.00408DD9   
+                                  ==>把自身进程的父进程名转为大写字母   
+00409CF2     803E 00              cmp byte ptr ds:[esi],0   
+00409CF5     74 07                je short 试炼 ACP.00409CFE   
+00409D35     5E                   pop esi   
+00409D36     8BFE                 mov edi,esi   
+00409D38     83EF 07              sub edi,7   
+00409D3B     813F 434D442E        cmp dword ptr ds:[edi],2E444D43   
+                                  ==>①、比较 EXE 前是否是 CMD.   
+00409D41     0F84 D9000000        je 试炼 ACP.00409E20   
+                                  ==>可以强迫跳转   
+00409D47     83EE 0C              sub esi, 0C   
+00409D4A     AD                   lods dword ptr ds:[esi]   
+00409D4B     0306                 add eax, dword ptr ds:[esi]   
+00409D4D     0346 04              add eax, dword ptr ds:[esi+4]   
+00409D50     8BD8                 mov ebx, eax   
+00409D52     8DB5 AF554000        lea esi, dword ptr ss:[ebp+4055AF]   
+00409D58     AD                   lods dword ptr ds:[esi]   
+00409D59     0BC0                 or eax, eax   
+00409D5B     74 0E                je short 试炼 ACP.00409D6B   
+00409D5D     90                   nop   
+00409D5E     90                   nop   
+00409D5F     90                   nop   
+00409D60     90                   nop   
+00409D61     2BC3                 sub eax, ebx   
+                                  ==>②、这里 EAX 必须=0   
+00409D63     0F84 B7000000        je 试炼 ACP.00409E20   
+                                  ==>不跳就要被 KILL 啦！  :-(   
+00409D69     EB ED                jmp short 试炼 ACP.00409D58   
+00409E1A     FF95 11454000        call dword ptr ss:[ebp+404511] ; kernel32.TerminateProcess   
+                                  ==>呵呵，很小心的关掉你！让你休息休息    :-)   
+```
+
+^O^ ^O^ →对付方法：改掉上面的跳转避开被杀。或者用偶修改的 `Ollydbg` 来跟踪。   
+
+如果不是 `jingulong` 兄的指教，偶现在可能还没找到这个地方，也就没有这篇笔记。 再次感谢！
+
+—————————————————————————————————
+
+## 二、脱壳实例
+
+
+
+OK，用偶修改的`Ollydbg`来脱壳。隐藏`Ollydbg`、设置不忽略所有异常。
+
+```text
+0040B08E     CD 01                int 1
+
+                       ==== > 第 1 次异常
+
+0040B090     40                 inc eax
+0040B091     40                 inc eax
+0040B092     0BC0               or eax,eax
+0040B094     0F85 B6000000      jnz 试炼 ACP.0040B150
+0040B394     CC                 int3
+
+                       ==== > 第 2 次异常
+
+0040B395     90                 nop
+0040B396     64:67:8F06 0000    pop dword ptr fs:[0]
+0040B39C     83C4 04            add esp,4
+0040B39F     60                 pushad
+0040B3A0     E8 00000000        call 试炼 ACP.0040B3A5
+```
+
+————————————————————————
+
+下断：`BP GetProcAddress+1` 然后 `CTRL+F9` 走，因为偶用的是未注册的`ACProtect`加壳，所以一直 `CTRL+F9` 走直至弹出 “`Protected by Unregistered ACProtect!`” 的提示停下！
+
+留意看看堆栈的函数名，或许对以后脱这种壳的其他程序有参考价值。
+
+```text
+77E5A5FD     55                 push ebp
+77E5A5FE     8BEC               mov ebp,esp
+
+                       ==== > 断在这里       GetProcAddress+1
+
+   …… …… 省 略 …… ……
+
+77D3AADF     FF15 E412D177      call dword ptr ds:[<&KERNEL32.HeapFree>]
+77D3AAE5     33F6               xor esi,esi
+77D3AAE7     3975 04            cmp dword ptr ss:[ebp+4],esi
+77D3AAEA     0F85 C7840100      jnz USER32.77D52FB7
+77D3AAF0     3975 18            cmp dword ptr ss:[ebp+18],esi
+77D3AAF3     0F85 D3840100      jnz USER32.77D52FCC
+77D3AAF9     8B45 40            mov eax,dword ptr ss:[ebp+40]
+77D3AAFC     5F                 pop edi
+77D3AAFD     5E                 pop esi
+77D3AAFE     5B                 pop ebx
+77D3AAFF     83C5 74            add ebp,74
+77D3AB02     C9                 leave
+77D3AB03     C2 0400            retn 4
+
+                       ==== > 确定那个未注册保护提示后返回到这里！
+```
+
+————————————————————————
+
+```text
+77D3AC40     66:837E 2C 00      cmp word ptr ds:[esi+2C],0
+77D3AC45     8BF8               mov edi,eax
+77D3AC47     0F85 F0840100      jnz USER32.77D5313D
+77D3AC4D     8BC7               mov eax,edi
+77D3AC4F     5F                 pop edi
+77D3AC50     5E                 pop esi
+77D3AC51     5B                 pop ebx
+77D3AC52     83C5 74            add ebp,74
+77D3AC55     C9                 leave
+77D3AC56     C2 0400            retn 4
+77D3ADCC     C9                 leave
+77D3ADCD     C2 1800            retn 18
+77D3AE8A     FF75 FC            push dword ptr ss:[ebp-4]
+77D3AE8D     8B35 E412D177      mov esi,dword ptr ds:[<&KERNEL32.HeapFree>]
+77D3AE93     57                 push edi
+77D3AE94     FF35 A4D1D677      push dword ptr ds:[77D6D1A4]
+77D3AE9A     8BD8               mov ebx,eax
+77D3AE9C     FFD6               call esi
+77D3AE9E     397D F8            cmp dword ptr ss:[ebp-8],edi
+77D3AEA1     74 0C              je short USER32.77D3AEAF
+77D3AEA3     FF75 F8            push dword ptr ss:[ebp-8]
+77D3AEA6     57                 push edi
+77D3AEA7     FF35 A4D1D677      push dword ptr ds:[77D6D1A4]
+77D3AEAD     FFD6               call esi
+77D3AEAF     8BC3               mov eax,ebx
+77D3AEB1     5F                 pop edi
+77D3AEB2     5E                 pop esi
+77D3AEB3     5B                 pop ebx
+77D3AEB4     C9                 leave
+77D3AEB5     C2 1800            retn 18
+77D3AE17     5D                 pop ebp
+77D3AE18     C2 1400            retn 14
+77D3ADFB     C2 1000            retn 10
+
+                       ==== > 返回到 0041F78B   看见希望啦 :-)
+```
+
+————————————————————————
+
+下面用 `F7` 单步走，简单循环用 `F4` 跳过即可。需要一点耐心，有些东东要走很长时间
+
+```text
+0041F78B     45                 inc ebp
+0041F78C     4B                 dec ebx
+0041F78D     81CB D350FA80      or ebx,80FA50D3
+0041F793     66:81F5 F613       xor bp,13F6
+0041F798     E8 01000000        call 试炼 ACP.0041F79E
+0041F79E     83C4 04            add esp,4
+0041F7A1     C1ED AF            shr ebp,0AF
+0041F7A4     E8 01000000        call 试炼 ACP.0041F7AA
+0041F7AA     83C4 04            add esp,4
+0041F7AD     8BD9               mov ebx,ecx
+0041F7AF     E8 01000000        call 试炼 ACP.0041F7B5
+0041F7B5     830424 06          add dword ptr ss:[esp],6
+0041F7B9     C3                 retn
+0041F7BA     66:BB EDA2         mov bx,0A2ED
+0041F7BE     50                 push eax
+0041F7BF     E8 01000000        call 试炼 ACP.0041F7C5
+0041F7C5     58                 pop eax
+0041F7C6     58                 pop eax
+0041F7C7     F8                 clc
+0041F7C8     50                 push eax
+0041F7C9     E8 01000000        call 试炼 ACP.0041F7CF
+0041F7CF     58                 pop eax
+0041F7D0     58                 pop eax
+0041F7D1     0F83 02000000      jnb 试炼 ACP.0041F7D9
+0041F7D9     E8 01000000        call 试炼 ACP.0041F7DF
+0041F7DF     83C4 04            add esp,4
+0041F7E2     0F85 02000000      jnz 试炼 ACP.0041F7EA
+0041F7EA     E8 01000000        call 试炼 ACP.0041F7F0
+0041F7F0     830424 06          add dword ptr ss:[esp],6
+0041F7F4     C3                 retn
+0041F7F5     FC                 cld
+0041F7F6     78 03              js short 试炼 ACP.0041F7FB
+0041F7F8     79 01              jns short 试炼 ACP.0041F7FB
+0041F7FB     49                 dec ecx
+0041F7FC     50                 push eax
+0041F7FD     E8 01000000        call 试炼 ACP.0041F803
+0041F803     58                 pop eax
+0041F804     58                 pop eax
+0041F805     85D9               test ecx,ebx
+0041F807     50                 push eax
+0041F808     E8 01000000        call 试炼 ACP.0041F80E
+0041F80E     58                 pop eax
+0041F80F     58                 pop eax
+0041F810     85CB               test ebx,ecx
+0041F812     E8 01000000        call 试炼 ACP.0041F818
+0041F818     83C4 04            add esp,4
+0041F81B     87EB               xchg ebx,ebp
+0041F81D     E8 01000000        call 试炼 ACP.0041F823
+0041F823     83C4 04            add esp,4
+0041F826     7C 01              jl short 试炼 ACP.0041F829
+0041F828     FC                 cld
+0041F829     50                 push eax
+0041F82A     E8 01000000        call 试炼 ACP.0041F830
+0041F830     58                 pop eax
+0041F831     58                 pop eax
+0041F832     4D                 dec ebp
+0041F833     7C 03              jl short 试炼 ACP.0041F838
+0041F835     7D 01              jge short 试炼 ACP.0041F838
+0041F838     66:13E8            adc bp,ax
+0041F83B     50                 push eax
+0041F83C     E8 01000000        call 试炼 ACP.0041F842
+0041F842     58                 pop eax
+0041F843     58                 pop eax
+0041F844     66:8BDE            mov bx,si
+0041F847     E8 01000000        call 试炼 ACP.0041F84D
+0041F84D     830424 06          add dword ptr ss:[esp],6
+0041F851     C3                 retn
+0041F852     79 04              jns short 试炼 ACP.0041F858
+0041F854     66:BD 303E         mov bp,3E30
+0041F858     50                 push eax
+0041F859     E8 01000000        call 试炼 ACP.0041F85F
+0041F85F     58                 pop eax
+0041F860     58                 pop eax
+0041F861     0F86 02000000      jbe 试炼 ACP.0041F869
+0041F867     87CB               xchg ebx,ecx
+0041F869     74 03              je short 试炼 ACP.0041F86E
+0041F86B     75 01              jnz short 试炼 ACP.0041F86E
+0041F86E     87DD               xchg ebp,ebx
+0041F870     EB 01              jmp short 试炼 ACP.0041F873
+0041F873     66:13EE            adc bp,si
+```
+
+
+
+```
+0041F876 72 03          jb short 试炼 ACP.0041F87B
+0041F878 73 01          jnb short 试炼 ACP.0041F87B
+0041F87B 66:81C1 FEEE   add cx,0EEFE
+0041F880 EB 01          jmp short 试炼 ACP.0041F883
+0041F883 4D             dec ebp
+0041F884 50             push eax
+0041F885 E8 01000000    call 试炼 ACP.0041F88B
+0041F88B 58             pop eax
+0041F88C 58             pop eax
+0041F88D 66:C1D5 54     rcl bp,54
+0041F891 E8 01000000    call 试炼 ACP.0041F897
+0041F897 830424 06      add dword ptr ss:[esp],6
+0041F89B C3             retn
+0041F89C FC             cld
+0041F89D EB 01          jmp short 试炼 ACP.0041F8A0
+0041F8A0 87CB           xchg ebx,ecx
+0041F8A2 72 03          jb short 试炼 ACP.0041F8A7
+0041F8A4 73 01          jnb short 试炼 ACP.0041F8A7
+0041F8A7 77 03          ja short 试炼 ACP.0041F8AC
+0041F8AC E8 01000000    call 试炼 ACP.0041F8B2
+0041F8B2 830424 06      add dword ptr ss:[esp],6
+0041F8B6 C3             retn
+0041F8B7 66:81E9 352E   sub cx,2E35
+0041F8BC EB 01          jmp short 试炼 ACP.0041F8BF
+0041F8BF 0F88 04000000  js 试炼 ACP.0041F8C9
+0041F8C5 |66:C1FB C9    sar bx,0C9
+0041F8C9 E8 01000000    call 试炼 ACP.0041F8CF
+0041F8CF 830424 06      add dword ptr ss:[esp],6
+0041F8D3 C3             retn
+0041F8D4 8BEB           mov ebp,ebx
+0041F8D6 7A 03          jpe short 试炼 ACP.0041F8DB
+0041F8DB 0F82 06000000  jb 试炼 ACP.0041F8E7
+0041F8E1 |E8 00000000   call 试炼 ACP.0041F8E6
+0041F8E6 |59            pop ecx
+0041F8E7 EB 01          jmp short 试炼 ACP.0041F8EA
+0041F8EA 41             inc ecx
+0041F8EB E8 01000000    call 试炼 ACP.0041F8F1
+0041F8F1 830424 06      add dword ptr ss:[esp],6
+0041F8F5 C3             retn
+0041F8F6 F9             stc
+0041F8F7 50             push eax
+0041F8F8 E8 01000000    call 试炼 ACP.0041F8FE
+0041F8FE 58             pop eax
+0041F8FF 58             pop eax
+0041F900 F8             clc
+0041F901 E8 01000000    call 试炼 ACP.0041F907
+0041F907 83C4 04        add esp,4
+0041F90A 0F8D 04000000  jge 试炼 ACP.0041F914
+0041F914 E8 01000000    call 试炼 ACP.0041F91A
+0041F91A 830424 06      add dword ptr ss:[esp],6
+0041F91E C3             retn
+0041F91F 4D             dec ebp
+0041F920 EB 01          jmp short 试炼 ACP.0041F923
+0041F923 8BDE           mov ebx,esi
+0041F925 50             push eax
+0041F926 E8 01000000    call 试炼 ACP.0041F92C
+0041F92C 58             pop eax
+0041F92D 58             pop eax
+0041F92E 66:13E9        adc bp,cx
+0041F931 E8 01000000    call 试炼 ACP.0041F937
+0041F937 830424 06      add dword ptr ss:[esp],6
+0041F93B C3             retn
+0041F93C FC             cld
+0041F93D E8 01000000    call 试炼 ACP.0041F943
+0041F943 830424 06      add dword ptr ss:[esp],6
+0041F947 C3             retn
+0041F948 85CB           test ebx,ecx
+0041F94A 76 03          jbe short 试炼 ACP.0041F94F
+0041F94C 77 01          ja short 试炼 ACP.0041F94F
+0041F94F 0F8B 05000000  jpo 试炼 ACP.0041F95A
+0041F95A EB 01          jmp short 试炼 ACP.0041F95D
+0041F95D 66:03CE        add cx,si
+0041F960 E8 01000000    call 试炼 ACP.0041F966
+0041F966 830424 06      add dword ptr ss:[esp],6
+0041F96A C3             retn
+0041F96B 4B             dec ebx
+0041F96C E8 01000000    call 试炼 ACP.0041F972
+0041F972 830424 06      add dword ptr ss:[esp],6
+0041F976 C3             retn
+0041F977 1BCF           sbb ecx,edi
+0041F979 E8 00000000    call 试炼 ACP.0041F97E
+0041F97E 5D             pop ebp
+0041F97F 8BC5           mov eax,ebp
+0041F981 3B45 1C        cmp eax,dword ptr ss:[ebp+1C]
+0041F984 7C 06          jl short 试炼 ACP.0041F98C
+0041F986 0345 1C        add eax,dword ptr ss:[ebp+1C]
+0041F989 8945 1C        mov dword ptr ss:[ebp+1C],eax
+0041F98C EB 01          jmp short 试炼 ACP.0041F98F
+0041F98F 66:C1D5 58     rcl bp,58
+0041F993 87EB           xchg ebx,ebp
+0041F995 D3ED           shr ebp,cl
+0041F997 85CD           test ebp,ecx
+0041F999 68 C5FA4100    push 试炼 ACP.0041FAC5
+0041F99E 66:D3EB        shr bx,cl
+0041F9A1 5A             pop edx
+0041F9A2 E8 01000000    call 试炼 ACP.0041F9A8
+0041F9A8 830424 06      add dword ptr ss:[esp],6
+0041F9AC C3             retn
+0041F9AD 4B             dec ebx
+0041F9AE C1C3 E9        rol ebx,0E9
+0041F9B1 E9 05000000    jmp 试炼 ACP.0041F9BB
+0041F9BB BE 38CEF63E    mov esi,3EF6CE38
+0041F9C0 75 04          jnz short 试炼 ACP.0041F9C6
+0041F9C6 81F6 F74B5C74  xor esi,745C4BF7
+0041F9CC E8 01000000    call 试炼 ACP.0041F9D2
+0041F9D2 83C4 04        add esp,4
+0041F9D5 85EB           test ebx,ebp
+0041F9D7 C1E3 79        shl ebx,79
+0041F9DA B8 0C000000    mov eax,0C
+0041F9DF EB 01          jmp short 试炼 ACP.0041F9E2
+0041F9E2 E9 03000000    jmp 试炼 ACP.0041F9EA
+0041F9EA 66:8BEF        mov bp,di
+0041F9ED 8B3A           mov edi,dword ptr ds:[edx]
+0041F9EF E8 01000000    call 试炼 ACP.0041F9F5
+0041F9F5 830424 06      add dword ptr ss:[esp],6
+0041F9F9 C3             retn
+0041F9FA F8             clc
+0041F9FB D3D5           rcl ebp,cl
+0041F9FD E9 08000000    jmp 试炼 ACP.0041FA0A
+0041FA0A 33FE           xor edi,esi
+0041FA0C E8 01000000    call 试炼 ACP.0041FA12
+0041FA12 83C4 04        add esp,4
+0041FA15 E9 05000000    jmp 试炼 ACP.0041FA1F
+0041FA1F 8BCF           mov ecx,edi
+0041FA21 C1CF 19        ror edi,19
+0041FA24 E8 01000000    call 试炼 ACP.0041FA2A
+0041FA2A 83C4 04        add esp,4
+0041FA2D 7A 05          jpe short 试炼 ACP.0041FA34
+0041FA2F B9 021E239D    mov ecx,9D231E02
+0041FA34 4D             dec ebp
+0041FA35 E9 02000000    jmp 试炼 ACP.0041FA3C
+0041FA3C 337A 04        xor edi,dword ptr ds:[edx+4]
+0041FA3F 50             push eax
+0041FA40 E8 01000000    call 试炼 ACP.0041FA46
+0041FA46 58             pop eax
+0041FA47 58             pop eax
+0041FA48 E9 05000000    jmp 试炼 ACP.0041FA52
+0041FA52 85CD           test ebp,ecx
+0041FA54 85E9           test ecx,ebp
+0041FA56 893A           mov dword ptr ds:[edx],edi
+0041FA58 50             push eax
+0041FA59 E8 01000000    call 试炼 ACP.0041FA5F
+0041FA5F 58             pop eax
+0041FA60 58             pop eax
+0041FA61 F8             clc
+0041FA62 E9 06000000    jmp 试炼 ACP.0041FA6D
+0041FA6D 81C6 097B16A2  add esi,A2167B09
+```
+
+
+
+### 代码段分析
+
+```
+0041FA73     E8 01000000          call 试炼 ACP.0041FA79
+
+0041FA79     83C4 04            add esp,4
+
+0041FA7C     F9                 stc
+
+0041FA7D     87EB               xchg ebx,ebp
+
+0041FA7F     83C2 04            add edx,4
+
+0041FA82     E8 01000000        call 试炼 ACP.0041FA88
+
+0041FA88     830424 06          add dword ptr ss:[esp],6
+
+0041FA8C     C3                 retn
+
+0041FA8D     E9 07000000        jmp 试炼 ACP.0041FA99
+
+0041FA99     E9 08000000        jmp 试炼 ACP.0041FAA6
+
+0041FAA6     83C0 FF            add eax,-1
+
+0041FAA9     0F85 3EFFFFFF      jnz 试炼 ACP.0041F9ED
+
+                             ==== > F4 下去
+
+0041FAAF     78 03              js short 试炼 ACP.0041FAB4
+
+0041FAB1     79 01              jns short 试炼 ACP.0041FAB4
+
+0041FAB4     E9 01000000        jmp 试炼 ACP.0041FABA
+
+0041FABA     0F82 05000000      jb 试炼 ACP.0041FAC5
+
+0041FAC5     E8 8790FEFF        call 试炼 ACP.00408B51
+
+                             ==== > F8 带过
+
+0041FACA     8B85 D4BE4100      mov eax,dword ptr ss:[ebp+41BED4]
+
+                             ==== > EAX = 00001000
+
+0041FAD0     0385 28404000      add eax,dword ptr ss:[ebp+404028]
+
+                             ==== > EAX = 00001000 + 00400000 = 00401000 这就是 OEP 值 :-)
+
+0041FAD6     8985 D4BE4100      mov dword ptr ss:[ebp+41BED4],eax
+
+                             ==== > [ebp+41BED4] = [41FED4] = EAX = 00401000
+```
+
+当然，可以一步步 `F7` 跟踪下去，但是偶还是快点吧。在内存 `0041FED4` 的 `001040` 下 内存访问 断点。
+
+`F9` 运行，数秒钟后程序自动停下！偶的机子速度还可以 :-)
+
+```
+0041FECE     FF25 D4FE4100      jmp dword ptr ds:[41FED4] ; 试炼 ACP.00401000
+
+                             ==== > 飞向光明之巅！
+```
+
+———————————————————————
+
+```
+00401000     33DB               xor ebx,ebx
+
+                             ==== > 在这儿用 LordPE 完全 DUMP 这个进程
+
+00401002     53                 push ebx
+
+00401003     E8 28020000        call 试炼 ACP.00401230 ; jmp to offset 试炼 ACP.<ModuleEntryPoint>
+
+00401008     A3 4C314000        mov dword ptr ds:[40314C],eax
+
+0040100D     53                 push ebx
+
+0040100E     68 22104000        push 试炼 ACP.00401022
+
+00401013     53                 push ebx
+
+00401014     6A 67              push 67
+
+00401016     50                 push eax
+
+00401017     E8 20020000        call 试炼 ACP.0040123C
+```
+
+————————————————————————
+
+重新运行 `试炼 ACP.exe`，运行 `ImportREC`，选择这个进程。把 `OEP` 改为 `00001000`，点 `IT AutoSearch`，点“`Get Import`”，函数无效，用“`追踪层次 3`”全部修复。`FixDump`，正常运行！ `114K` -> `136K` 用 `FileScan` 优化后是 `115K`。
+
+—————————————————————————————————
+
+### 三、关于输入表及其他问题
+
+因为偶用 `ImportREC` 能够修复输入表，没有出现无法修复的问题，所以只是看了一下 `123112` 所说的需要 `NOP` 的地方。
+
+```
+0040E319     FF95 68C24100      call dword ptr ss:[ebp+41C268]
+
+0040E31F     3B9D 28404000      cmp ebx,dword ptr ss:[ebp+404028]
+
+0040E325     7C 0F              jl short 试炼 ACP.0040E336
+
+0040E327     90                 nop
+
+0040E328     90                 nop
+
+0040E329     90                 nop
+
+0040E32A     90                 nop
+
+0040E32B     60                 pushad
+
+0040E32C     2BC0               sub eax,eax
+
+0040E32E     8803               mov byte ptr ds:[ebx],al
+
+0040E330     43                 inc ebx
+
+0040E331     3803               cmp byte ptr ds:[ebx],al
+
+0040E333     75 F9              jnz short 试炼 ACP.0040E32E
+
+0040E335     61                 popad
+
+0040E336     0BC0               or eax,eax
+
+0040E338     0F84 2EFFFFFF      je 试炼 ACP.0040E26C
+
+0040E33E     3B85 78C24100      cmp eax,dword ptr ss:[ebp+41C278]
+
+0040E344     75 0A              jnz short 试炼 ACP.0040E350
+```
+
+————————————————
+
+```
+0040E296     FF95 74C24100      call dword ptr ss:[ebp+41C274]
+
+0040E29C     60                 pushad
+
+0040E29D     2BC0               sub eax, eax
+
+0040E29F     8803               mov byte ptr ds:[ebx], al
+
+0040E2A1     43                 inc ebx
+
+0040E2A2     3803               cmp byte ptr ds:[ebx], al
+
+0040E2A4     75 F9              jnz short 试炼 ACP.0040E29F
+
+0040E2A6     61                 popad
+
+0040E2A7     8985 20404000      mov dword ptr ss:[ebp+404020], eax
+
+0040E2AD     C785 24404000 000000> mov dword ptr ss:[ebp+404024], 0
+
+0040E2B7     8B95 28404000      mov edx, dword ptr ss:[ebp+404028]
+
+0040E2BD     8B06               mov eax, dword ptr ds:[esi]
+
+0040E2BF     0BC0               or eax, eax
+
+0040E2C1     75 07              jnz short 试炼 ACP.0040E2CA
+```
+
+注：这 2 个地方的地址差值：`0040E32C` - `0040E29D` = `8F` 好像是固定的 :-)
+
+其他问题：偶发现用 `ACProtect` 相同选项加壳的某些程序入口处的 6 个字节被替换了，某些程序却又正常。以上只是偶的一点肤浅之见，欢迎朋友们讨论、指正！
+
+—————————————————————————————————
+
+```
+              ,     \_/  
+            /| \_.-~/            \_     ,        青春都一饷
+           ( /~   /              ~-\_ |
+           \`\\   \_/               ~ )           忍把浮名
+      _-~~~-.)  )\_\_/;;,.          \_  //'    
+  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂
+ \`~ \_( ,\_..-- (      ,;'' /    ~--   /.\_\` 
+  /~~//'   /' \`~           ) /--..\_, )\_  \`~    
+  "  \`~"  "      \`"      /~'\`    \`\\~~   
+    
+            "     "   "~'  ""
+
+            Cracked By 巢水工作坊——fly [OCN][FCG]
+
+                    2003-11-01 01:10
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

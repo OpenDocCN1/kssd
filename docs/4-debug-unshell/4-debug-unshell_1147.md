@@ -1,195 +1,221 @@
 
-
 # Authorware 7.0
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6638.htm`](https://www.pediy.com/kssd/pediy06/pediy6638.htm)
 
-Vbox\_462 之 Authorware 7.0 脱壳+修复  
-  
-【破解作者】 clide2000 \[DFCG\]\[OCN\]  2003.5.13  
-【使用工具】 Ollydbg1.10 汉化版  
-【破解平台】 win2003  
-【软件名称】 Authorware 7.0  
-【软件简介】 这个就不用说了吧，地球人都知道了。看了一篇关于"Unpacking Adobe Pagemaker V7 "（Vbox\_462）的文章，  
-             其作者是 hobferret。又因为手里正好有 Authorware 7.0，也是用 Vbox\_462 保护的，所以才有了此文。  
-            （关于"Unpacking Adobe Pagemaker V7 with Olydebug“"的原文可以去"www.exetools.com"的论坛查找）  
-【软件大小】 52M  
-【加壳方式】 Vbox\_462  
-【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）  
-\--------------------------------------------------------------------------------  
-【破解内容】  
-  
-  
-Unpacking  
-在调试设置(按 ALT-O)中，异常只忽略前三项(只前三项打勾),跟踪设置中选中执行到 RET 以后步过 RET 命令.  
-OK,载入 Authorware 7.0,如果出现在"入口点预警"提示,按确定.正常载入后程序停在以下地方:  
-008B3230 >  48                  dec eax  
-008B3231    75 00               jnz short Authorwa.008B3233  
-008B3233    03C5                add eax, ebp  
-008B3235    8BC5                mov eax, ebp  
-008B3237    33C0                xor eax, eax  
-008B3239    85C0                test eax, eax  
-008B323B    F7D0                not eax  
-008B323D    86E0                xchg al, ah  
-008B323F    75 00               jnz short Authorwa.008B3241  
-008B3241    2BC4                sub eax, esp  
-008B3243    33C5                xor eax, ebp  
-008B3245    48                  dec eax  
-008B3246    85C0                test eax, eax  
-008B3248    86E0                xchg al, ah  
-008B324A    75 00               jnz short Authorwa.008B324C  
-008B324C    48                  dec eax  
-008B324D    40                  inc eax  
-008B324E    03C4                add eax, esp  
-  
-  
-F9 直接运行,遇到异常直接按 Shift+F9 跳过(我只遇到两次),直到出现试用窗口,然后按下 Try 按钮,再次中断在异常处,这次异常内容如下:  
-0176F10D    FFFF                ???                                                    ; 未知命令  
-0176F10F    FFFF                ???                                                    ; 未知命令  
-0176F111    FFFF                ???                                                    ; 未知命令  
-0176F113    FFFF                ???                                                    ; 未知命令  
-0176F115    FFFF                ???                                                    ; 未知命令  
-0176F117    FF5E 33             call far fword ptr ds:\[esi+33\]                         ; 远距呼叫  
-0176F11A    4D                  dec ebp  
-0176F11B    75 3B               jnz short 0176F158  
-0176F11D    9D                  popfd  
-0176F11E    99                  cdq  
-0176F11F    A5                  movs dword ptr es:\[edi\], dword ptr ds:\[esi\]  
-0176F120    85CC                test esp, ecx  
-0176F122    A7                  cmps dword ptr ds:\[esi\], dword ptr es:\[edi\]  
-0176F123    52                  push edx  
-0176F124    6381 4BD13D6D       arpl word ptr ds:\[ecx+6D3DD14B\], ax  
-  
-  
-还是 Shift+F9 跳过,之后会中断在  
-017B2756    FFFF                ???                                                    ; 未知命令  
-017B2758    FFFF                ???                                                    ; 未知命令  
-017B275A    FFFF                ???                                                    ; 未知命令  
-017B275C    FFFF                ???                                                    ; 未知命令  
-017B275E    FFFF                ???                                                    ; 未知命令  
-017B2760    5E                  pop esi  
-017B2761    334D 75             xor ecx, dword ptr ss:\[ebp+75\]  
-017B2764    3B9D 99A585CC       cmp ebx, dword ptr ss:\[ebp+CC85A599\]  
-017B276A    A7                  cmps dword ptr ds:\[esi\], dword ptr es:\[edi\]  
-017B276B    52                  push edx  
-017B276C    6381 4BD13D6D       arpl word ptr ds:\[ecx+6D3DD14B\], ax  
-017B2772    F2:                 prefix repne:                                          ; 多余的前缀  
-017B2773    8BC2                mov eax, edx  
-017B2775    5F                  pop edi  
-017B2776    5E                  pop esi  
-017B2777    5D                  pop ebp  
-017B2778    C3                  retn  
-  
-  
-按 Alt+M,在 Authorwa 的.text 段上下内存访问断点.方法在 00401000 一行上,右击->设置内存访问断点。  
-关闭内存窗口,Shift+F9 运行,程序又中断在:  
-07028153    F3:A5               rep movs dword ptr es:\[edi\], dword ptr ds:\[esi\]  
-07028155    FF2495 68820207     jmp dword ptr ds:\[edx\*4+7028268\]  
-0702815C    8BC7                mov eax, edi  
-0702815E    BA 03000000         mov edx, 3  
-07028163    83E9 04             sub ecx, 4  
-07028166    72 0C               jb short vboxta.07028174  
-07028168    83E0 03             and eax, 3  
-0702816B    03C8                add ecx, eax  
-0702816D    FF2485 80810207     jmp dword ptr ds:\[eax\*4+7028180\]  
-07028174    FF248D 78820207     jmp dword ptr ds:\[ecx\*4+7028278\]  
-0702817B    90                  nop  
-0702817C    FF248D FC810207     jmp dword ptr ds:\[ecx\*4+70281FC\]  
-07028183    90                  nop  
-07028184    90                  nop  
-07028185    8102 07BC8102       add dword ptr ds:\[edx\], 281BC07  
-0702818B    07                  pop es                                                 ; 修正的段位寄存器  
-0702818C  ^ E0 81               loopdne short vboxta.0702810F  
-0702818E    0207                add al, byte ptr ds:\[edi\]  
-07028190    23D1                and edx, ecx  
-  
-  
-右键->断点->清除内存断点.然后按 Crtl+F9,直到出现返回到 call edi,     然后在 call edi 上下硬件执行断点,F9 运行  
-013F04A8    53                  push ebx  
-013F04A9    FFD7                call edi              ;即右击此行->断点->硬件执行  
-013F04AB    8945 10             mov dword ptr ss:\[ebp+10\], eax         ;返回在这里  
-013F04AE    5B                  pop ebx  
-013F04AF    8B5D 08             mov ebx, dword ptr ss:\[ebp+8\]  
-013F04B2    57                  push edi  
-  
-  
-若出现"您的程序已经被挂起并且不能运行.请恢复主要的线程",提示,直接确定.在弹出的新窗口中,右击,选择恢复命令  
-即可再次中断在 013F04A9    FFD7                call edi         这一行,此时用 F7 进入.来到:  
-014A0000    0BC5                or eax, ebp  
-014A0002    8BC5                mov eax, ebp  
-014A0004    F7D0                not eax  
-014A0006    2BC4                sub eax, esp  
-014A0008    90                  nop  
-014A0009    33C5                xor eax, ebp  
-014A000B    0BC4                or eax, esp  
-014A000D    EB 00               jmp short 014A000F  
-014A000F    0BC0                or eax, eax  
-014A0011    EB 00               jmp short 014A0013  
-014A0013    2BC5                sub eax, ebp  
-014A0015    74 00               je short 014A0017  
-014A0017    74 00               je short 014A0019  
-014A0019    90                  nop  
-014A001A    2BC5                sub eax, ebp  
-  
-  
-此时一直用 F7 跟踪,直到出现 jmp ebx:  
-014A09A8    8B5D F0             mov ebx, dword ptr ss:\[ebp\-10\]  
-014A09AB    EB 02               jmp short 014A09AF  
-014A09AD    CD 20               int 20  
-014A09AF  - FFE3                jmp ebx                  ; Authorwa.006336A0    注意这里,就要跳到 OEP 去了,在此行按 F7 来到  
-014A09B1    EB 01               jmp short 014A09B4  
-014A09B3  ^ EB 8B               jmp short 014A0940  
-014A09B5    55                  push ebp  
-014A09B6    F8                  clc  
-  
-  
-由上面的 jmp ebx 会来到(如果来到这里后看到的不是下面的内容,请用右键->分析->分析代码即可:  
-006336A0    64:A1 00000000      mov eax, dword ptr fs:\[0\]  
-006336A6    55                  push ebp                    ;OEP   此处就是程序的 OEP 了  
-006336A7    8BEC                mov ebp, esp  
-006336A9    6A FF               push -1  
-006336AB    68 783A6400         push Authorwa.00643A78  
-006336B0    68 94A56300         push Authorwa.0063A594  
-006336B5    50                  push eax  
-006336B6    64:8925 00000000    mov dword ptr fs:\[0\], esp  
-006336BD    83EC 60             sub esp, 60  
-006336C0    53                  push ebx  
-006336C1    56                  push esi  
-006336C2    57                  push edi  
-006336C3    8965 E8             mov dword ptr ss:\[ebp\-18\], esp  
-006336C6    FF15 7C036400       call dword ptr ds:\[64037C\]            ; kernel32.GetVersion  
-006336CC    A3 40156500         mov dword ptr ds:\[651540\], eax  
-  
-  
-此时用 LordPE 执行 correct ImageSize 后 dump Full 出 dump.exe 文件.  
-  
-  
-  
-  
-  
-IAT 的修复：  
-好了,让我们来用 ImportREC16 修复 IAT。运行 ImportREC16,选择 Authorware 7.exe 进程后,在 oep 填入 2336a6(等于 6336A6-400000)  
-按下 IAT AotoSearch 后,点击 Get Imports 按钮。然后用 Show Invalid 检查一下出现的错误的调用。  
-其它的经过检测除了前两处需手动修复外，其它全部为无效数据,直接 Cut 掉即可。修复时可以用右键命令中的 Disassemble/HexView 命令,  
-查找到真正的调用函数后修复即可。经过查找发现:  
-     
-    24052c 处调用的是 GetMessageA         
-    2406e0 处调用的是 PeekMessageA  
-  
-最后修复 dump.exe 文件。修复之后即可直接运行。好了收工。  
-  
-  
-  
-\--------------------------------------------------------------------------------  
-【破解总结】  
-  
-  
-这是我第一次写脱文，所以比较乱，有错误的地方还请大家指正。这篇脱文是在参考 Unpacking Adobe Pagemaker V7 才有的，所以我在这里也  
-非常感谢其作者能写出这么好的脱文，我这里差不多只是用中文在描述一遍而已。  
-最后谢谢你浪费的这么多时间看完了这篇文章。  
-  
-  
-\--------------------------------------------------------------------------------  
-【版权声明】 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+`Vbox_462` 之 `Authorware 7.0` 脱壳+修复
 
- 4dd466d0e1e0cc123afbe504da2462ca
+**【破解作者】** `clide2000` `[DFCG][OCN]` `2003.5.13`
+
+**【使用工具】** `Ollydbg1.10` 汉化版
+
+**【破解平台】** `win2003`
+
+**【软件名称】** `Authorware 7.0`
+
+**【软件简介】** 这个就不用说了吧，地球人都知道了。看了一篇关于 `"Unpacking Adobe Pagemaker V7 "` (`Vbox_462`) 的文章，其作者是 `hobferret`。又因为手里正好有 `Authorware 7.0`，也是用 `Vbox_462` 保护的，所以才有了此文。
+（关于 `"Unpacking Adobe Pagemaker V7 with Olydebug"` 的原文可以去 `"www.exetools.com"` 的论坛查找）
+
+**【软件大小】** `52M`
+
+**【加壳方式】** `Vbox_462`
+
+**【破解声明】** 我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+---
+
+## 破解内容
+
+### Unpacking
+
+在调试设置(按 `ALT-O`)中，异常只忽略前三项(只前三项打勾),跟踪设置中选中执行到 `RET` 以后步过 `RET` 命令.
+
+OK,载入 `Authorware 7.0`,如果出现在 `"入口点预警"` 提示,按确定.正常载入后程序停在以下地方:
+
+```
+008B3230 >   48               dec eax
+008B3231     75 00            jnz short Authorwa.008B3233
+008B3233     03C5             add eax, ebp
+008B3235     8BC5             mov eax, ebp
+008B3237     33C0             xor eax, eax
+008B3239     85C0             test eax, eax
+008B323B     F7D0             not eax
+008B323D     86E0             xchg al, ah
+008B323F     75 00            jnz short Authorwa.008B3241
+008B3241     2BC4             sub eax, esp
+008B3243     33C5             xor eax, ebp
+008B3245     48               dec eax
+008B3246     85C0             test eax, eax
+008B3248     86E0             xchg al, ah
+008B324A     75 00            jnz short Authorwa.008B324C
+008B324C     48               dec eax
+008B324D     40               inc eax
+008B324E     03C4             add eax, esp
+```
+
+`F9` 直接运行,遇到异常直接按 `Shift+F9` 跳过(我只遇到两次),直到出现试用窗口,然后按下 `Try` 按钮,再次中断在异常处,这次异常内容如下:
+
+```
+0176F10D     FFFF             ???                           ; 未知命令
+0176F10F     FFFF             ???                           ; 未知命令
+0176F111     FFFF             ???                           ; 未知命令
+0176F113     FFFF             ???                           ; 未知命令
+0176F115     FFFF             ???                           ; 未知命令
+0176F117     FF5E 33          call far fword ptr ds:[esi+33]  ; 远距呼叫
+0176F11A     4D               dec ebp
+0176F11B     75 3B            jnz short 0176F158
+0176F11D     9D               popfd
+0176F11E     99               cdq
+0176F11F     A5               movs dword ptr es:[edi], dword ptr ds:[esi]
+0176F120     85CC             test esp, ecx
+0176F122     A7               cmps dword ptr ds:[esi], dword ptr es:[edi]
+0176F123     52               push edx
+0176F124     6381 4BD13D6D    arpl word ptr ds:[ecx+6D3DD14B], ax
+```
+
+还是 `Shift+F9` 跳过,之后会中断在
+
+```
+017B2756     FFFF             ???                           ; 未知命令
+017B2758     FFFF             ???                           ; 未知命令
+017B275A     FFFF             ???                           ; 未知命令
+017B275C     FFFF             ???                           ; 未知命令
+017B275E     FFFF             ???                           ; 未知命令
+017B2760     5E               pop esi
+017B2761     334D 75          xor ecx, dword ptr ss:[ebp+75]
+017B2764     3B9D 99A585CC    cmp ebx, dword ptr ss:[ebp+CC85A599]
+017B276A     A7               cmps dword ptr ds:[esi], dword ptr es:[edi]
+017B276B     52               push edx
+017B276C     6381 4BD13D6D    arpl word ptr ds:[ecx+6D3DD14B], ax
+017B2772     F2:              prefix repne:                 ; 多余的前缀
+017B2773     8BC2             mov eax, edx
+017B2775     5F               pop edi
+017B2776     5E               pop esi
+017B2777     5D               pop ebp
+017B2778     C3               retn
+```
+
+按 `Alt+M`,在 `Authorwa` 的 `.text` 段上下内存访问断点.方法在 `00401000` 一行上,右击->设置内存访问断点。
+
+关闭内存窗口,`Shift+F9` 运行,程序又中断在:
+
+```
+07028153     F3:A5            rep movs dword ptr es:[edi], dword ptr ds:[esi]
+07028155     FF2495 68820207  jmp dword ptr ds:[edx*4+7028268]
+0702815C     8BC7             mov eax, edi
+0702815E     BA 03000000      mov edx, 3
+07028163     83E9 04          sub ecx, 4
+07028166     72 0C            jb short vboxta.07028174
+07028168     83E0 03          and eax, 3
+0702816B     03C8             add ecx, eax
+0702816D     FF2485 80810207  jmp dword ptr ds:[eax*4+7028180]
+07028174     FF248D 78820207  jmp dword ptr ds:[ecx*4+7028278]
+0702817B     90               nop
+0702817C     FF248D FC810207  jmp dword ptr ds:[ecx*4+70281FC]
+07028183     90               nop
+07028184     90               nop
+07028185     8102 07BC8102    add dword ptr ds:[edx], 281BC07
+0702818B     07               pop es                        ; 修正的段位寄存器
+0702818C    ^ E0 81          loopdne short vboxta.0702810F
+0702818E     0207             add al, byte ptr ds:[edi]
+07028190     23D1             and edx, ecx
+```
+
+右键->断点->清除内存断点.然后按 `Ctrl+F9`,直到出现返回到 `call edi`，然后在 `call edi` 上下硬件执行断点,`F9` 运行
+
+```
+013F04A8     53               push ebx
+013F04A9     FFD7             call edi           ; 即右击此行->断点->硬件执行
+013F04AB     8945 10          mov dword ptr ss:[ebp+10], eax    ; 返回在这里
+013F04AE     5B               pop ebx
+013F04AF     8B5D 08          mov ebx, dword ptr ss:[ebp+8]
+013F04B2     57               push edi
+```
+
+若出现 `"您的程序已经被挂起并且不能运行.请恢复主要的线程"` 提示,直接确定.在弹出的新窗口中,右击,选择恢复命令
+
+即可再次中断在 `013F04A9     FFD7             call edi` 这一行,此时用 `F7` 进入.来到:
+
+```
+014A0000     0BC5             or eax, ebp
+014A0002     8BC5             mov eax, ebp
+014A0004     F7D0             not eax
+014A0006     2BC4             sub eax, esp
+014A0008     90               nop
+014A0009     33C5             xor eax, ebp
+014A000B     0BC4             or eax, esp
+014A000D     EB 00            jmp short 014A000F
+014A000F     0BC0             or eax, eax
+014A0011     EB 00            jmp short 014A0013
+014A0013     2BC5             sub eax, ebp
+014A0015     74 00            je short 014A0017
+014A0017     74 00            je short 014A0019
+014A0019     90               nop
+014A001A     2BC5             sub eax, ebp
+```
+
+此时一直用 `F7` 跟踪,直到出现 `jmp ebx`:
+
+```
+014A09A8     8B5D F0          mov ebx, dword ptr ss:[ebp-10]
+014A09AB     EB 02            jmp short 014A09AF
+014A09AD     CD 20            int 20
+014A09AF    - FFE3            jmp ebx                ; Authorwa.006336A0    注意这里,就要跳到 OEP 去了,在此行按 F7 来到
+014A09B1     EB 01            jmp short 014A09B4
+014A09B3     ^ EB 8B          jmp short 014A0940
+014A09B5     55               push ebp
+014A09B6     F8               clc
+```
+
+由上面的 `jmp ebx` 会来到(如果来到这里后看到的不是下面的内容,请用右键->分析->分析代码即可:
+
+```
+006336A0     64:A1 00000000   mov eax, dword ptr fs:[0]
+006336A6     55               push ebp               ; OEP   此处就是程序的 OEP 了
+006336A7     8BEC             mov ebp, esp
+006336A9     6A FF            push -1
+006336AB     68 783A6400      push Authorwa.00643A78
+006336B0     68 94A56300      push Authorwa.0063A594
+006336B5     50               push eax
+006336B6     64:8925 00000000 mov dword ptr fs:[0], esp
+006336BD     83EC 60          sub esp, 60
+006336C0     53               push ebx
+006336C1     56               push esi
+006336C2     57               push edi
+006336C3     8965 E8          mov dword ptr ss:[ebp-18], esp
+006336C6     FF15 7C036400    call dword ptr ds:[64037C]      ; kernel32.GetVersion
+```
+
+
+
+`006336CC    A3 40156500         mov dword ptr ds:[651540], eax`
+
+此时用 `LordPE` 执行 `correct ImageSize` 后 `dump Full` 出 `dump.exe` 文件。
+
+`IAT` 的修复：
+
+好了，让我们来用 `ImportREC16` 修复 `IAT`。运行 `ImportREC16`，选择 `Authorware 7.exe` 进程后，在 `oep` 填入 `2336a6`（等于 `6336A6-400000`）
+
+按下 `IAT AutoSearch` 后，点击 `Get Imports` 按钮。然后用 `Show Invalid` 检查一下出现的错误的调用。
+
+其它的经过检测除了前两处需手动修复外，其它全部为无效数据，直接 `Cut` 掉即可。修复时可以用右键命令中的 `Disassemble/HexView` 命令，查找到真正的调用函数后修复即可。经过查找发现：
+
+`24052c` 处调用的是 `GetMessageA`
+
+`2406e0` 处调用的是 `PeekMessageA`
+
+最后修复 `dump.exe` 文件。修复之后即可直接运行。好了收工。
+
+--------------------------------------------------------------------------------
+
+【破解总结】
+
+这是我第一次写脱文，所以比较乱，有错误的地方还请大家指正。这篇脱文是在参考 `Unpacking Adobe Pagemaker V7` 才有的，所以我在这里也非常感谢其作者能写出这么好的脱文，我这里差不多只是用中文在描述一遍而已。
+
+最后谢谢你浪费的这么多时间看完了这篇文章。
+
+--------------------------------------------------------------------------------
+
+【版权声明】 本文纯属技术交流，转载请注明作者并保持文章的完整，谢谢!
+
+`4dd466d0e1e0cc123afbe504da2462ca`

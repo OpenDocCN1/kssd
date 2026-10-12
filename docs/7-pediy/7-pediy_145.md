@@ -1,583 +1,486 @@
 
-
 # Inline Patch ASProtect 2.X 学习笔记
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-594.htm`](https://www.pediy.com/kssd/pediy07/pediy7-594.htm)
 
-【软件名称】：Bee Icons v4.0.2.1  
-【软件大小】：1803 KB  
-【下载地址】：http://www.onlinedown.net/soft/3159.htm  
-【软件简介】：Bee Icons 是一个图标工具，可以替换系统图标和已注册文件类型的图标!  
+【软件名称】：`Bee Icons` v4.0.2.1  
+
+【软件大小】：1803 KB  
+
+【下载地址】：`http://www.onlinedown.net/soft/3159.htm`  
+
+【软件简介】：`Bee Icons` 是一个图标工具，可以替换系统图标和已注册文件类型的图标!  
+
 【软件限制】：Trial  
-【破解声明】：初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！  
-【操作系统】：Windows XP SP2  
-【破解工具】：OllyDbg、Hex Workshop、LordPE  
-  
+
+【破解声明】：初学 `Crack`，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！  
+
+【操作系统】：`Windows XP SP2`  
+
+【破解工具】：`OllyDbg`、`Hex Workshop`、`LordPE`  
+
 ———————————————————————————————————————————  
-　  
-【破解过程】：  
-   
-这只是学习 JohnWho 的文章的一篇笔记，可能存在错误，错误之处，敬请各位大侠指点。原文对这种方法的阐述精辟准确，建议以他的文章为主  
-  
-进行研究，原文下载地址：http://rapidshare.de/files/2498869/ASProtect.Patching.by.JW.zip.html  
-  
-Bee Icons v4.0.2.1 用的是 ASPr 较新的版本，用 ASPrAPI 是无效的，否则用那个工具将方便得多。  
-  
-首先这里需要概述一下 Patch 的思路：  
-  
-1、我们需要越过几个解码循环(JohnWho 说是 4 个，这个我觉得不一定)，来到关键的第 2 个 VirtualAlloc 前不远处(这段代码就是解码出来的)。  
-  
-2、在第 2 个 VirtualAlloc 调用后获得壳重定位后的基址。  
-  
-3、壳会进行 CRC 校验，在此之前会调用 MapViewOfFileEx 使内存中的 EXE 映像不可写，所以要在调用 MapViewOfFileEx 之前 Patch 其参数使内存可  
-  
-写，以便进行 Patch。  
-  
-4、调用 MapViewOfFileEx 之后会返回内存中 EXE 映像的地址，利用这个地址将 EXE 映像 Patch 回原始的状态，逃过 CRC 检验。  
-  
-5、Patch 注册名的 Pre-dip 及壳试用信息读写的三个跳转(fly 老大的“Patch 注册 ASProtect V1.X 壳保护程序的方法”文章中说到)。  
-  
-从上面的下载页面下载原版安装，安装完毕后到安装目录将 BeeIcons.exe 复制一份为其它名字，我这里复制为 org.BeeIcons.exe。用 Hex   
-  
-Workshop 打开 BeeIcons.exe，在文件最后添加大小为 1000 的 90，用 PE Editor 将.adata 区段的 RSize 改为 1000。这是因为 BeeIcons.exe 文件内没  
-  
-有什么区段间的空隙放置 Patch 代码，而 JohnWho 的文章中就是采用这种方法。我想如果有区段间空隙，将 Patch 代码放在那些空隙里应该也是可  
-  
-以的。  
-  
-用 OllyDbg 打开 org.BeeIcons.exe，隐藏 OllyDbg(以下不再赘述)，寻找注册名的 Pre-dip 和那三个跳转。  
-  
 
-> 引用:
-> 
-> * * *
-> 
-> 0103CAB9    50              push eax                                 ; EAX=01023A29  
-> 0103CABA    8B47 04         mov eax,dword ptr ds:\[edi+4\]             ; org\_BeeI.005321B0  
-> 0103CABD    FFD0            call eax                                 ; Pre-dip
-> 
-> * * *
+【破解过程】：
 
-  
-  
+这只是学习 `JohnWho` 的文章的一篇笔记，可能存在错误，错误之处，敬请各位大侠指点。原文对这种方法的阐述精辟准确，建议以他的文章为主进行研究，原文下载地址：`http://rapidshare.de/files/2498869/ASProtect.Patching.by.JW.zip.html`  
 
-> 引用:
-> 
-> * * *
-> 
-> 005321B0    55              push ebp  
-> 005321B1    8BEC            mov ebp,esp  
-> 005321B3    8B45 08         mov eax,dword ptr ss:\[ebp+8\]             ; 01023A29，存放注册名  
-> 005321B6    85C0            test eax,eax                             ; org\_BeeI.005321B0  
-> 005321B8    74 0C           je short org\_BeeI.005321C6  
-> 005321BA    8038 00         cmp byte ptr ds:\[eax\],0  
-> 005321BD    74 07           je short org\_BeeI.005321C6  
-> 005321BF    C605 686A5700 0>mov byte ptr ds:\[576A68\],1  
-> 005321C6    8B15 5C6A5700   mov edx,dword ptr ds:\[576A5C\]  
-> 005321CC    8915 586A5700   mov dword ptr ds:\[576A58\],edx  
-> 005321D2    A3 5C6A5700     mov dword ptr ds:\[576A5C\],eax            ; org\_BeeI.005321B0  
-> 005321D7    5D              pop ebp                                  ; 0012FF78  
-> 005321D8    C2 0400         retn 4
-> 
-> * * *
+`Bee Icons` v4.0.2.1 用的是 `ASPr` 较新的版本，用 `ASPrAPI` 是无效的，否则用那个工具将方便得多。
 
-  
-  
-005321D8 处返回到壳的代码之后查找全部命令——>push 20019，可以找到 6 个跳转：  
-  
-0102A2A0   /0F85 84000000   jnz 0102A32A  
-0102A3E9   /75 66           jnz short 0102A451  
-0102A49C   /0F85 93000000   jnz 0102A535  
-0102A584   /75 30           jnz short 0102A5B6  
-0103E1CA   /75 42           jnz short 0103E20E  
-0103E267   /0F85 88000000   jnz 0103E2F5  
-  
-跟一下就可以发现，0102A2A0 处在注册名的 Pre-dip 前执行，打开注册表相应位置的 Key 键的键值，估计是准备运算出注册名，0102A3E9 那段代码打开 Software\\ASProtect\\SpecData 项下的某个键，0102A49C 段代码打开 CLSID 项，0102A584 段代码打开该下某项的某个键值。最后那两个也许更先执行，没有断下，也没有再去观察。我觉得这里修改第 2、3、4 个跳转即可。  
-  
-现在要 Patch 的地方已经清楚了，Ctrl+F2 重新载入，放在一边待命。  
-  
-新开 OllyDbg 载入 BeeIcons.exe，忽略所有异常，F9 运行，会弹出消息框说文件损坏云云，不用管它，定位到.adata 段，可以发现那片本应全是 Nop 的代码前面有一块被壳覆盖为 0 了，往下看没有被覆盖的地方，那里就是我们可以写入 Patch 代码的地方了。我这里选择 00649AF0。  
-  
-Ctrl+F2 重新载入，F7 步进，来到第 1 个解码循环处：  
-  
+首先这里需要概述一下 `Patch` 的思路：
 
-> 引用:
-> 
-> * * *
-> 
-> 00617169   /0F85 0B000000   jnz org\_BeeI.0061717A  
-> 0061716F   |E9 1B000000     jmp org\_BeeI.0061718F
-> 
-> * * *
+1、我们需要越过几个解码循环(`JohnWho` 说是 4 个，这个我觉得不一定)，来到关键的第 2 个 `VirtualAlloc` 前不远处(这段代码就是解码出来的)。
 
-  
-  
-在 0061716F 处 F4，可以看到下面的代码发生了变化，我想这个可以作为是否是解码循环的判断依据吧。0061716F 处是最先要 Patch 的地方。  
-  
-继续往下走，来到第二个循环处：  
-  
+2、在第 2 个 `VirtualAlloc` 调用后获得壳重定位后的基址。
 
-> 引用:
-> 
-> * * *
-> 
-> 00617240   /0F85 2B000000   jnz org\_BeeI.00617271  
-> 00617246   |0F83 0C000000   jnb org\_BeeI.00617258  
-> 0061724C   |68 9B0C494E     push 4E490C9B  
-> 00617251   |81E2 4D0CA950   and edx,50A90C4D  
-> 00617257   |58              pop eax                                  ; org\_BeeI.00617048  
-> 00617258   |E9 26000000     jmp org\_BeeI.00617283
-> 
-> * * *
+3、壳会进行 `CRC` 校验，在此之前会调用 `MapViewOfFileEx` 使内存中的 `EXE` 映像不可写，所以要在调用 `MapViewOfFileEx` 之前 `Patch` 其参数使内存可写，以便进行 `Patch`。
 
-  
-  
-00617258 是第 2 个要 Patch 的地方。  
-  
-第三个循环：  
-  
+4、调用 `MapViewOfFileEx` 之后会返回内存中 `EXE` 映像的地址，利用这个地址将 `EXE` 映像 `Patch` 回原始的状态，逃过 `CRC` 检验。
 
-> 引用:
-> 
-> * * *
-> 
-> 00617310  ^\\0F85 A3FFFFFF   jnz org\_BeeI.006172B9  
-> 00617316    66:81CA F57B    or dx,7BF5
-> 
-> * * *
+5、`Patch` 注册名的 `Pre-dip` 及壳试用信息读写的三个跳转(`fly` 老大的“`Patch` 注册 `ASProtect V1.X` 壳保护程序的方法”文章中说到)。
 
-  
-  
-在 00617316 处 F4，发现以下代码发生变化，而本行代码并未变化，因而选择此行进行 Patch  
-  
-第四个循环：  
-  
+从上面的下载页面下载原版安装，安装完毕后到安装目录将 `BeeIcons.exe` 复制一份为其它名字，我这里复制为 `org.BeeIcons.exe`。用 `Hex Workshop` 打开 `BeeIcons.exe`，在文件最后添加大小为 `1000` 的 `90`，用 `PE Editor` 将 `.adata` 区段的 `RSize` 改为 `1000`。这是因为 `BeeIcons.exe` 文件内没有什么区段间的空隙放置 `Patch` 代码，而 `JohnWho` 的文章中就是采用这种方法。我想如果有区段间空隙，将 `Patch` 代码放在那些空隙里应该也是可以的。
 
-> 引用:
-> 
-> * * *
-> 
-> 0061737E  ^\\0F85 C2FFFFFF   jnz org\_BeeI.00617346  
-> 00617384    ......
-> 
-> * * *
+用 `OllyDbg` 打开 `org.BeeIcons.exe`，隐藏 `OllyDbg`(以下不再赘述)，寻找注册名的 `Pre-dip` 和那三个跳转。
 
-  
-  
-在 00617384 处 F4，发现本行代码也发生变化，因而只有选择 0061737E 进行 Patch  
-  
-第五个循环：  
-  
+```
+0103CAB9    50               push eax                         ; EAX=01023A29
+0103CABA    8B47 04          mov eax,dword ptr ds:[edi+4]     ; org_BeeI.005321B0
+0103CABD    FFD0            call eax                         ; Pre-dip
+```
 
-> 引用:
-> 
-> * * *
-> 
-> 006173F8  ^\\0F85 A8FFFFFF   jnz org\_BeeI.006173A6  
-> 006173FE    68 4F35D557     push 57D5354F
-> 
-> * * *
+```
+005321B0    55               push ebp
+005321B1    8BEC             mov ebp,esp
+005321B3    8B45 08          mov eax,dword ptr ss:[ebp+8]     ; 01023A29，存放注册名
+005321B6    85C0             test eax,eax                     ; org_BeeI.005321B0
+005321B8    74 0C            je short org_BeeI.005321C6
+005321BA    8038 00          cmp byte ptr ds:[eax],0
+005321BD    74 07            je short org_BeeI.005321C6
+005321BF    C605 686A5700 0> mov byte ptr ds:[576A68],1
+005321C6    8B15 5C6A5700    mov edx,dword ptr ds:[576A5C]
+005321CC    8915 586A5700    mov dword ptr ds:[576A58],edx
+005321D2    A3 5C6A5700      mov dword ptr ds:[576A5C],eax    ; org_BeeI.005321B0
+005321D7    5D               pop ebp                           ; 0012FF78
+005321D8    C2 0400          retn 4
+```
 
-  
-  
-选择 006173FE 作为 Patch 点  
-  
-再往下，发现没有解码循环了(至于上面是否五个循环，我想也不一定，可以仔细看看)，来到以下调用 VirtualAlloc 的地方：  
-  
+`005321D8` 处返回到壳的代码之后查找全部命令——>`push 20019`，可以找到 6 个跳转：
 
-> 引用:
-> 
-> * * *
-> 
-> 006174A7    89A5 29040000   mov dword ptr ss:\[ebp+429\],esp  
-> 006174AD    6A 40           push 40  
-> 006174AF    68 00100000     push 1000  
-> 006174B4    FFB5 08040000   push dword ptr ss:\[ebp+408\]  
-> 006174BA    6A 00           push 0  
-> 006174BC    FF95 F0030000   call dword ptr ss:\[ebp+3F0\]              ; kernel32.VirtualAlloc  
-> 006174C2    8985 CC010000   mov dword ptr ss:\[ebp+1CC\],eax           ; org\_BeeI.<ModuleEntryPoint>  
-> 006174C8    8B9D 00040000   mov ebx,dword ptr ss:\[ebp+400\]  
-> 006174CE    039D 0D040000   add ebx,dword ptr ss:\[ebp+40D\]           ; org\_BeeI.00400000  
-> 006174D4    50              push eax                                 ; org\_BeeI.<ModuleEntryPoint>  
-> 006174D5    53              push ebx                                 ; kernel32.GetModuleHandleA  
-> 006174D6    E8 04010000     call org\_BeeI.006175DF  
-> 006174DB    6A 40           push 40  
-> 006174DD    68 00100000     push 1000  
-> 006174E2    FFB5 08040000   push dword ptr ss:\[ebp+408\]  
-> 006174E8    6A 00           push 0  
-> 006174EA    FF95 F0030000   call dword ptr ss:\[ebp+3F0\]              ; kernel32.VirtualAlloc  
-> 006174F0    8985 31040000   mov dword ptr ss:\[ebp+431\],eax           ; org\_BeeI.<ModuleEntryPoint>  
-> 006174F6    8985 D0010000   mov dword ptr ss:\[ebp+1D0\],eax           ; org\_BeeI.<ModuleEntryPoint>  
-> 006174FC    64:67:A1 0000   mov eax,dword ptr fs:\[0\]  
-> 00617501    8985 2D040000   mov dword ptr ss:\[ebp+42D\],eax           ; org\_BeeI.<ModuleEntryPoint>  
-> 00617507    8B55 5B         mov edx,dword ptr ss:\[ebp+5B\]            ; org\_BeeI.00617048  
-> 0061750A    8B85 D0010000   mov eax,dword ptr ss:\[ebp+1D0\]  
-> 00617510    8902            mov dword ptr ds:\[edx\],eax               ; org\_BeeI.<ModuleEntryPoint>  
-> 00617512    8B85 08040000   mov eax,dword ptr ss:\[ebp+408\]  
-> 00617518    8942 04         mov dword ptr ds:\[edx+4\],eax             ; org\_BeeI.<ModuleEntryPoint>  
-> 0061751B    8D85 9F030000   lea eax,dword ptr ss:\[ebp+39F\]  
-> 00617521    8B40 55         mov eax,dword ptr ds:\[eax+55\]  
-> 00617524    8942 08         mov dword ptr ds:\[edx+8\],eax             ; org\_BeeI.<ModuleEntryPoint>  
-> 00617527    8B85 EC030000   mov eax,dword ptr ss:\[ebp+3EC\]           ; kernel32.LoadLibraryA  
-> 0061752D    8942 10         mov dword ptr ds:\[edx+10\],eax            ; org\_BeeI.<ModuleEntryPoint>  
-> 00617530    8B85 E8030000   mov eax,dword ptr ss:\[ebp+3E8\]           ; kernel32.GetModuleHandleA  
-> 00617536    8942 14         mov dword ptr ds:\[edx+14\],eax            ; org\_BeeI.<ModuleEntryPoint>  
-> 00617539    8B95 CC010000   mov edx,dword ptr ss:\[ebp+1CC\]  
-> 0061753F    BB F8010000     mov ebx,1F8  
-> 00617544    8B7C1A 0C       mov edi,dword ptr ds:\[edx+ebx+C\]  
-> 00617548    0BFF            or edi,edi                               ; org\_BeeI.0040100C  
-> 0061754A    74 1E           je short org\_BeeI.0061756A  
-> 0061754C    8B4C1A 10       mov ecx,dword ptr ds:\[edx+ebx+10\]  
-> 00617550    0BC9            or ecx,ecx  
-> 00617552    74 11           je short org\_BeeI.00617565  
-> 00617554    03BD D0010000   add edi,dword ptr ss:\[ebp+1D0\]  
-> 0061755A    8B741A 14       mov esi,dword ptr ds:\[edx+ebx+14\]  
-> 0061755E    03F2            add esi,edx                              ; org\_BeeI.0061792A  
-> 00617560    C1F9 02         sar ecx,2  
-> 00617563    F3:A5           rep movs dword ptr es:\[edi\],dword ptr ds>  
-> 00617565    83C3 28         add ebx,28  
-> 00617568  ^ EB DA           jmp short org\_BeeI.00617544  
-> 0061756A    8B85 CC010000   mov eax,dword ptr ss:\[ebp+1CC\]  
-> 00617570    50              push eax                                 ; org\_BeeI.<ModuleEntryPoint>  
-> 00617571    8B95 D0010000   mov edx,dword ptr ss:\[ebp+1D0\]  
-> 00617577    52              push edx                                 ; org\_BeeI.0061792A  
-> 00617578    8B18            mov ebx,dword ptr ds:\[eax\]  
-> 0061757A    03DA            add ebx,edx                              ; org\_BeeI.0061792A  
-> 0061757C    8B85 E4030000   mov eax,dword ptr ss:\[ebp+3E4\]           ; kernel32.GetProcAddress  
-> 00617582    8903            mov dword ptr ds:\[ebx\],eax               ; org\_BeeI.<ModuleEntryPoint>  
-> 00617584    8B85 E8030000   mov eax,dword ptr ss:\[ebp+3E8\]           ; kernel32.GetModuleHandleA  
-> 0061758A    8943 04         mov dword ptr ds:\[ebx+4\],eax             ; org\_BeeI.<ModuleEntryPoint>  
-> 0061758D    8B85 EC030000   mov eax,dword ptr ss:\[ebp+3EC\]           ; kernel32.LoadLibraryA  
-> 00617593    8943 08         mov dword ptr ds:\[ebx+8\],eax             ; org\_BeeI.<ModuleEntryPoint>  
-> 00617596    5F              pop edi                                  ; ntdll.7C930738  
-> 00617597    5E              pop esi                                  ; ntdll.7C930738  
-> 00617598    8B46 04         mov eax,dword ptr ds:\[esi+4\]  
-> 0061759B    03C7            add eax,edi                              ; org\_BeeI.0040100C  
-> 0061759D    8985 C7010000   mov dword ptr ss:\[ebp+1C7\],eax           ; org\_BeeI.<ModuleEntryPoint>  
-> 006175A3    8B55 5B         mov edx,dword ptr ss:\[ebp+5B\]            ; org\_BeeI.00617048  
-> 006175A6    8B85 C7010000   mov eax,dword ptr ss:\[ebp+1C7\]  
-> 006175AC    8942 0C         mov dword ptr ds:\[edx+C\],eax             ; org\_BeeI.<ModuleEntryPoint>  
-> 006175AF    8D9D 0D040000   lea ebx,dword ptr ss:\[ebp+40D\]  
-> 006175B5    53              push ebx                                 ; kernel32.GetModuleHandleA  
-> 006175B6    6A 00           push 0  
-> 006175B8    6A 00           push 0  
-> 006175BA    6A 01           push 1  
-> 006175BC    57              push edi                                 ; org\_BeeI.0040100C  
-> 006175BD    8B5E 08         mov ebx,dword ptr ds:\[esi+8\]  
-> 006175C0    03DF            add ebx,edi                              ; org\_BeeI.0040100C  
-> 006175C2    53              push ebx                                 ; kernel32.GetModuleHandleA  
-> 006175C3    68 00800000     push 8000
-> 
-> * * *
+```
+0102A2A0   /0F85 84000000   jnz 0102A32A
+0102A3E9   /75 66           jnz short 0102A451
+0102A49C   /0F85 93000000   jnz 0102A535
+0102A584   /75 30           jnz short 0102A5B6
+0103E1CA   /75 42           jnz short 0103E20E
+0103E267   /0F85 88000000   jnz 0103E2F5
+```
 
-  
-  
-006174BC 和 006174EA 分别是第 1 次和第 2 次调用 VirtualAlloc，在第 2 次调用以后可以 Patch 以获得壳的基址，这里我沿用 JohnWho 的方法，选择 006175C3 处作为 Patch 点，EDI 保存了基址。  
-  
-现在得到基址，要寻找壳代码填充完毕的时候(臆测)，bp VirtualAlloc 继续运行，断在第 3 个调用处：  
-  
+跟一下就可以发现，`0102A2A0` 处在注册名的 `Pre-dip` 前执行，打开注册表相应位置的 `Key` 键的键值，估计是准备运算出注册名，`0102A3E9` 那段代码打开 `Software\ASProtect\SpecData` 项下的某个键，`0102A49C` 段代码打开 `CLSID` 项，`0102A584` 段代码打开该下某项的某个键值。最后那两个也许更先执行，没有断下，也没有再去观察。我觉得这里修改第 2、3、4 个跳转即可。
 
-> 引用:
-> 
-> * * *
-> 
-> 010510C4    FF95 79294400   call dword ptr ss:\[ebp+442979\]           ; kernel32.VirtualAlloc  
-> 010510CA    8985 75294400   mov dword ptr ss:\[ebp+442975\],eax  
-> 010510D0    8D9D 452A4400   lea ebx,dword ptr ss:\[ebp+442A45\]  
-> 010510D6    50              push eax  
-> 010510D7    53              push ebx  
-> 010510D8    E8 74050000     call 01051651  
-> 010510DD    8BC8            mov ecx,eax  
-> 010510DF    8DBD 452A4400   lea edi,dword ptr ss:\[ebp+442A45\]  
-> 010510E5    8BB5 75294400   mov esi,dword ptr ss:\[ebp+442975\]  
-> 010510EB    F3:A4           rep movs byte ptr es:\[edi\],byte ptr ds:\[>  
-> 010510ED    8B85 75294400   mov eax,dword ptr ss:\[ebp+442975\]  
-> 010510F3    68 00800000     push 8000
-> 
-> * * *
+现在要 `Patch` 的地方已经清楚了，`Ctrl+F2` 重新载入，放在一边待命。
 
-  
-  
-010510F3 为 Patch 点  
-  
-第 4 个调用：  
-  
+新开 `OllyDbg` 载入 `BeeIcons.exe`，忽略所有异常，`F9` 运行，会弹出消息框说文件损坏云云，不用管它，定位到 `.adata` 段，可以发现那片本应全是 `Nop` 的代码前面有一块被壳覆盖为 `0` 了，往下看没有被覆盖的地方，那里就是我们可以写入 `Patch` 代码的地方了。我这里选择 `00649AF0`。
 
-> 引用:
-> 
-> * * *
-> 
-> 01051343    FF95 79294400   call dword ptr ss:\[ebp+442979\]           ; kernel32.VirtualAlloc  
-> 01051349    8985 75294400   mov dword ptr ss:\[ebp+442975\],eax  
-> ......  
-> 010515C1    61              popad  
-> 010515C2    75 08           jnz short 010515CC  
-> 010515C4    B8 01000000     mov eax,1  
-> 010515C9    C2 0C00         retn 0C
-> 
-> * * *
+`Ctrl+F2` 重新载入，`F7` 步进，来到第 1 个解码循环处：
 
-  
-  
-注意 010515C1 处的 popad，这意味着壳代码将运行到下一阶段。这里就选择 010515C1 作为 Patch 点。——为什么不直接 Patch 这里，而第 3 个调用处也要进行 Patch 呢？这个我没有来得及跟，应该是因为第 3 个调用之前这里的代码还没有填充好吧。  
-  
-接下来一步是要逃过 CRC 检验，清除 VirtualAlloc 处的断点，然后 bp MapViewOfFileEx，断下后返回到壳代码：  
-  
+```
+00617169   /0F85 0B000000   jnz org_BeeI.0061717A
+0061716F   |E9 1B000000      jmp org_BeeI.0061718F
+```
 
-> 引用:
-> 
-> * * *
-> 
-> 01038668    6A 04           push 4  
-> 0103866A    A1 14B40401     mov eax,dword ptr ds:\[104B414\]  
-> 0103866F    50              push eax  
-> 01038670    A1 E4970401     mov eax,dword ptr ds:\[10497E4\]  
-> 01038675    8B40 08         mov eax,dword ptr ds:\[eax+8\]  
-> 01038678    FFD0            call eax  
-> 0103867A    8BD8            mov ebx,eax                              ; 返回到这里
-> 
-> * * *
+在 `0061716F` 处 `F4`，可以看到下面的代码发生了变化，我想这个可以作为是否是解码循环的判断依据吧。`0061716F` 处是最先要 `Patch` 的地方。
 
-  
-  
-只要修改 01038668 处的 4 改为 1，EXE 文件的内存映像就会是可写的；而返回到 0103867A 后，EAX 保存了 EXE 文件内存映像的开始地址，在我这里是 01260000，因而选择这一行作为 Patch 点。  
-  
-最后一个 Patch 点我选择了 0103CAB9，就是进入注册名 Pre-dip 前的地方。  
-  
-所有的 Patch 点都清楚了。试一下成功与否。Ctrl+F2 重来。  
-  
-现在直接将 0061716F 处修改为 jmp 00649AF0  
-  
-下面是 Patch 代码，这时候放在一边待命的 OllyDbg 可以起作用了，将它的 org.BeeIcons.exe 运行到要 Patch 的地方，修改代码为 Patch 要达到的效果，来决定 Patch 代码：  
-  
+继续往下走，来到第二个循环处：
 
-> 引用:
-> 
-> * * *
-> 
-> 00649AF0    C705 70716100 1B000000    mov dword ptr ds:\[617170\],1B             ; 还原 Patch 点代码  
-> 00649AFA    C705 59726100 AC280300    mov dword ptr ds:\[617259\],328AC          ; Patch 00617258 处的跳转  
-> 00649B04  - E9 66D6FCFF               jmp BeeIcons.0061716F                    ; 返回原处继续
-> 
-> * * *
+```
+00617240   /0F85 2B000000   jnz org_BeeI.00617271
+00617246   |0F83 0C000000   jnb org_BeeI.00617258
+0061724C   |68 9B0C494E     push 4E490C9B
+00617251   |81E2 4D0CA950   and edx,50A90C4D
+00617257   |58              pop eax                        ; org_BeeI.00617048
+00617258   |E9 26000000     jmp org_BeeI.00617283
+```
 
-  
-  
-00649AFA Patch 之后：  
-00617258  - E9 AC280300               jmp BeeIcons.00649B09  
-  
+`00617258` 是第 2 个要 `Patch` 的地方。
 
-> 引用:
-> 
-> * * *
-> 
-> 00649B09    C705 59726100 26000000    mov dword ptr ds:\[617259\],26             ; 还原 Patch 点代码  
-> 00649B13    C705 16736100 E90E2803    mov dword ptr ds:\[617316\],3280EE9        ; Patch 00617316 处的代码  
-> 00649B1D    C605 1A736100 00          mov byte ptr ds:\[61731A\],0  
-> 00649B24  - E9 2FD7FCFF               jmp BeeIcons.00617258                    ; 返回原处继续
-> 
-> * * *
+第三个循环：
 
-  
-  
-00649B1D Patch 之后：  
-00617316  - E9 0E280300               jmp BeeIcons.00649B29  
-  
+```
+00617310  ^\0F85 A3FFFFFF   jnz org_BeeI.006172B9
+00617316    66:81CA F57B    or dx,7BF5
+```
 
-> 引用:
-> 
-> * * *
-> 
-> 00649B29    C705 16736100 6681CAF5    mov dword ptr ds:\[617316\],F5CA8166       ; 还原 Patch 点代码  
-> 00649B33    C605 1A736100 7B          mov byte ptr ds:\[61731A\],7B  
-> 00649B3A    C705 7E736100 E9CD2703    mov dword ptr ds:\[61737E\],327CDE9        ; Patch 0061737E 处的代码  
-> 00649B44    C605 82736100 00          mov byte ptr ds:\[617382\],0  
-> 00649B4B  - E9 C6D7FCFF               jmp BeeIcons.00617316                    ; 返回原处继续
-> 
-> * * *
+在 `00617316` 处 `F4`，发现以下代码发生变化，而本行代码并未变化，因而选择此行进行 `Patch`
 
-  
-  
-00649B44 Patch 之后：  
-0061737E  - E9 CD270300               jmp BeeIcons.00649B50  
-  
+第四个循环：
 
-> 引用:
-> 
-> * * *
-> 
-> 00649B50  - 0F85 F0D7FCFF             jnz BeeIcons.00617346                    ; 将 0061737E 原句放到这里执行  
-> 00649B56    C705 7E736100 0F85C2FF    mov dword ptr ds:\[61737E\],FFC2850F       ; 还原 Patch 点代码  
-> 00649B60    C605 82736100 FF          mov byte ptr ds:\[617382\],0FF  
-> 00649B67    C705 FE736100 E97A2703    mov dword ptr ds:\[6173FE\],3277AE9        ; Patch 006173FE 处的代码  
-> 00649B71    C605 02746100 00          mov byte ptr ds:\[617402\],0  
-> 00649B78  - E9 07D8FCFF               jmp BeeIcons.00617384                    ; 返回到 0061737E 的下一句执行
-> 
-> * * *
+```
+0061737E  ^\0F85 C2FFFFFF   jnz org_BeeI.00617346
+00617384    ......
+```
 
-  
-  
-注：0061737E 处代码不再执行，不进行还原可能也没有问题，JohnWho 的文章里，不需要还原执行的代码他是不进行还原的，但他文章的目标是 ASPr 试用版加壳，所以我作练习时谨慎起见还是进行还原。  
-  
-00649B71 Patch 之后：  
-006173FE  - E9 7A270300               jmp BeeIcons.00649B7D  
-  
+在 `00617384` 处 `F4`，发现本行代码也发生变化，因而只有选择 `0061737E` 进行 `Patch`
 
-> 引用:
-> 
-> * * *
-> 
-> 00649B7D    C705 FE736100 684F35D5    mov dword ptr ds:\[6173FE\],D5354F68       ; 还原 Patch 点代码  
-> 00649B87    C605 02746100 57          mov byte ptr ds:\[617402\],57  
-> 00649B8E    C705 C3756100 E9D52503    mov dword ptr ds:\[6175C3\],325D5E9        ; Patch 006175C3 处的代码  
-> 00649B98  - E9 61D8FCFF               jmp BeeIcons.006173FE                    ; 返回原处继续
-> 
-> * * *
+第五个循环：
 
-  
-  
-00649B8E Patch 之后：  
-006175C3  - E9 D5250300               jmp BeeIcons.00649B9D  
-  
+```
+006173F8  ^\0F85 A8FFFFFF   jnz org_BeeI.006173A6
+006173FE    68 4F35D557     push 57D5354F
+```
 
-> 引用:
-> 
-> * * *
-> 
-> 00649B9D    C705 C3756100 68008000    mov dword ptr ds:\[6175C3\],800068         ; 还原 Patch 点代码  
-> 00649BA7    893D FC9F6400             mov dword ptr ds:\[649FFC\],edi            ; 找个位置存放壳的基址，我这里选择 00649FFC  
-> 00649BAD    60                        pushad                                   ; 保存现场  
-> 00649BAE    9C                        pushfd  
-> 00649BAF    A1 FC9F6400               mov eax,dword ptr ds:\[649FFC\]            ; 取得基址  
-> 00649BB4    C780 F3100300 E9D48A5F    mov dword ptr ds:\[eax+310F3\],5F8AD4E9    ; Patch 010510F3 处的代码  
-> 00649BBE    C680 F7100300 FF          mov byte ptr ds:\[eax+310F7\],0FF  
-> 00649BC5    9D                        popfd                                    ; 恢复现场  
-> 00649BC6    61                        popad  
-> 00649BC7  - E9 F7D9FCFF               jmp BeeIcons.006175C3                    ; 返回原处继续
-> 
-> * * *
+选择 `006173FE` 作为 `Patch` 点
 
-  
-  
-00649BBE Patch 之后：  
-010510F3  - E9 D48A5FFF               jmp BeeIcons.00649BCC  
-  
+再往下，发现没有解码循环了(至于上面是否五个循环，我想也不一定，可以仔细看看)，来到以下调用 `VirtualAlloc` 的地方：
 
-> 引用:
-> 
-> * * *
-> 
-> 00649BCC    60                        pushad                                   ; 保存现场  
-> 00649BCD    9C                        pushfd  
-> 00649BCE    A1 FC9F6400               mov eax,dword ptr ds:\[649FFC\]            ; 取得基址  
-> 00649BD3    C780 F3100300 68008000    mov dword ptr ds:\[eax+310F3\],800068      ; 还原 Patch 点代码  
-> 00649BDD    C680 F7100300 00          mov byte ptr ds:\[eax+310F7\],0  
-> 00649BE4    C780 C1150300 680E9C64    mov dword ptr ds:\[eax+315C1\],649C0E68    ; Patch 010515C1 处的代码  
-> 00649BEE    C680 C5150300 00          mov byte ptr ds:\[eax+315C5\],0  
-> 00649BF5    C680 C6150300 C3          mov byte ptr ds:\[eax+315C6\],0C3  
-> 00649BFC    05 F3100300               add eax,310F3                            ; 取得 Patch 点地址  
-> 00649C01    A3 099C6400               mov dword ptr ds:\[649C09\],eax            ; 修改下面 Push 的地址  
-> 00649C06    9D                        popfd                                    ; 恢复现场  
-> 00649C07    61                        popad  
-> 00649C08    68 00000000               push 0                                   ; Push 返回地址，由 00649C01 处设定  
-> 00649C0D    C3                        retn
-> 
-> * * *
+```
+006174A7    89A5 29040000   mov dword ptr ss:[ebp+429],esp
+006174AD    6A 40           push 40
+006174AF    68 00100000     push 1000
+006174B4    FFB5 08040000   push dword ptr ss:[ebp+408]
+006174BA    6A 00           push 0
+006174BC    FF95 F0030000   call dword ptr ss:[ebp+3F0]     ; kernel32.VirtualAlloc
+006174C2    8985 CC010000   mov dword ptr ss:[ebp+1CC],eax  ; org_BeeI.<ModuleEntryPoint>
+006174C8    8B9D 00040000   mov ebx,dword ptr ss:[ebp+400]
+006174CE    039D 0D040000   add ebx,dword ptr ss:[ebp+40D]  ; org_BeeI.00400000
+006174D4    50              push eax                         ; org_BeeI.<ModuleEntryPoint>
+006174D5    53              push ebx                         ; kernel32.GetModuleHandleA
+006174D6    E8 04010000     call org_BeeI.006175DF
+006174DB    6A 40           push 40
+006174DD    68 00100000     push 1000
+006174E2    FFB5 08040000   push dword ptr ss:[ebp+408]
+006174E8    6A 00           push 0
+006174EA    FF95 F0030000   call dword ptr ss:[ebp+3F0]     ; kernel32.VirtualAlloc
+006174F0    8985 31040000   mov dword ptr ss:[ebp+431],eax  ; org_BeeI.<ModuleEntryPoint>
+006174F6    8985 D0010000   mov dword ptr ss:[ebp+1D0],eax  ; org_BeeI.<ModuleEntryPoint>
+006174FC    64:67:A1 0000   mov eax,dword ptr fs:[0]
+00617501    8985 2D040000   mov dword ptr ss:[ebp+42D],eax  ; org_BeeI.<ModuleEntryPoint>
+00617507    8B55 5B          mov edx,dword ptr ss:[ebp+5B]   ; org_BeeI.00617048
+0061750A    8B85 D0010000   mov eax,dword ptr ss:[ebp+1D0]
+00617510    8902             mov dword ptr ds:[edx],eax      ; org_BeeI.<ModuleEntryPoint>
+00617512    8B85 08040000   mov eax,dword ptr ss:[ebp+408]
+00617518    8942 04          mov dword ptr ds:[edx+4],eax    ; org_BeeI.<ModuleEntryPoint>
+0061751B    8D85 9F030000   lea eax,dword ptr ss:[ebp+39F]
+00617521    8B40 55          mov eax,dword ptr ds:[eax+55]
+00617524    8942 08          mov dword ptr ds:[edx+8],eax    ; org_BeeI.<ModuleEntryPoint>
+00617527    8B85 EC030000   mov eax,dword ptr ss:[ebp+3EC]   ; kernel32.LoadLibraryA
+0061752D    8942 10          mov dword ptr ds:[edx+10],eax   ; org_BeeI.<ModuleEntryPoint>
+00617530    8B85 E8030000   mov eax,dword ptr ss:[ebp+3E8]   ; kernel32.GetModuleHandleA
+00617536    8942 14          mov dword ptr ds:[edx+14],eax   ; org_BeeI.<ModuleEntryPoint>
+00617539    8B95 CC010000   mov edx,dword ptr ss:[ebp+1CC]
+0061753F    BB F8010000     mov ebx,1F8
+00617544    8B7C1A 0C       mov edi,dword ptr ds:[edx+ebx+C]
+00617548    0BFF             or edi,edi                       ; org_BeeI.0040100C
+0061754A    74 1E            je short org_BeeI.0061756A
+0061754C    8B4C1A 10       mov ecx,dword ptr ds:[edx+ebx+10]
+00617550    0BC9             or ecx,ecx
+00617552    74 11            je short org_BeeI.00617565
+```
 
-  
-  
-00649BF5 Patch 之后：  
-010515C1    68 0E9C6400               push 649C0E  
-010515C6    C3                        retn  
-  
 
-> 引用:
-> 
-> * * *
-> 
-> 00649C0E    60                        pushad                                   ; 保存现场  
-> 00649C0F    9C                        pushfd  
-> 00649C10    A1 FC9F6400               mov eax,dword ptr ds:\[649FFC\]            ; 取得基址  
-> 00649C15    C780 C1150300 617508B8    mov dword ptr ds:\[eax+315C1\],B8087561    ; 还原 Patch 点代码  
-> 00649C1F    C680 C5150300 01          mov byte ptr ds:\[eax+315C5\],1  
-> 00649C26    C680 C6150300 00          mov byte ptr ds:\[eax+315C6\],0  
-> 00649C2D    C680 69860100 01          mov byte ptr ds:\[eax+18669\],1            ; 修改 01038668 处的 Push 4 为 Push 1，使内存映像可写  
-> 00649C34    C780 7A860100 685E9C64    mov dword ptr ds:\[eax+1867A\],649C5E68    ; Patch 0103867A 处的代码  
-> 00649C3E    C680 7E860100 00          mov byte ptr ds:\[eax+1867E\],0  
-> 00649C45    C680 7F860100 C3          mov byte ptr ds:\[eax+1867F\],0C3  
-> 00649C4C    05 C1150300               add eax,315C1                            ; 取得 Patch 点地址  
-> 00649C51    A3 599C6400               mov dword ptr ds:\[649C59\],eax            ; 修改下面 Push 的地址  
-> 00649C56    9D                        popfd                                    ; 恢复现场  
-> 00649C57    61                        popad  
-> 00649C58    68 00000000               push 0                                   ; Push 返回地址，由 00649C51 处设定  
-> 00649C5D    C3                        retn
-> 
-> * * *
 
-  
-  
-00649C45 Patch 之后：  
-0103867A    68 5E9C6400               push 649C5E  
-0103867F    C3                        retn  
-  
+```
+00617554    03BD D0010000   add edi,dword ptr ss:[ebp+1D0]
+0061755A    8B741A 14       mov esi,dword ptr ds:[edx+ebx+14]
+0061755E    03F2            add esi,edx                       ; org_BeeI.0061792A
+00617560    C1F9 02         sar ecx,2
+00617563    F3:A5           rep movs dword ptr es:[edi],dword ptr ds:
+00617565    83C3 28         add ebx,28
+00617568    EB DA           jmp short org_BeeI.00617544
+0061756A    8B85 CC010000   mov eax,dword ptr ss:[ebp+1CC]
+00617570    50              push eax                          ; org_BeeI.<ModuleEntryPoint>
+00617571    8B95 D0010000   mov edx,dword ptr ss:[ebp+1D0]
+00617577    52              push edx                          ; org_BeeI.0061792A
+00617578    8B18            mov ebx,dword ptr ds:[eax]
+0061757A    03DA            add ebx,edx                       ; org_BeeI.0061792A
+0061757C    8B85 E4030000   mov eax,dword ptr ss:[ebp+3E4]    ; kernel32.GetProcAddress
+00617582    8903            mov dword ptr ds:[ebx],eax        ; org_BeeI.<ModuleEntryPoint>
+00617584    8B85 E8030000   mov eax,dword ptr ss:[ebp+3E8]    ; kernel32.GetModuleHandleA
+0061758A    8943 04         mov dword ptr ds:[ebx+4],eax      ; org_BeeI.<ModuleEntryPoint>
+0061758D    8B85 EC030000   mov eax,dword ptr ss:[ebp+3EC]    ; kernel32.LoadLibraryA
+00617593    8943 08         mov dword ptr ds:[ebx+8],eax      ; org_BeeI.<ModuleEntryPoint>
+00617596    5F              pop edi                           ; ntdll.7C930738
+00617597    5E              pop esi                           ; ntdll.7C930738
+00617598    8B46 04         mov eax,dword ptr ds:[esi+4]
+0061759B    03C7            add eax,edi                       ; org_BeeI.0040100C
+0061759D    8985 C7010000   mov dword ptr ss:[ebp+1C7],eax    ; org_BeeI.<ModuleEntryPoint>
+006175A3    8B55 5B         mov edx,dword ptr ss:[ebp+5B]     ; org_BeeI.00617048
+006175A6    8B85 C7010000   mov eax,dword ptr ss:[ebp+1C7]
+006175AC    8942 0C         mov dword ptr ds:[edx+C],eax      ; org_BeeI.<ModuleEntryPoint>
+006175AF    8D9D 0D040000   lea ebx,dword ptr ss:[ebp+40D]
+006175B5    53              push ebx                          ; kernel32.GetModuleHandleA
+006175B6    6A 00           push 0
+006175B8    6A 00           push 0
+006175BA    6A 01           push 1
+006175BC    57              push edi                          ; org_BeeI.0040100C
+006175BD    8B5E 08         mov ebx,dword ptr ds:[esi+8]
+006175C0    03DF            add ebx,edi                       ; org_BeeI.0040100C
+006175C2    53              push ebx                          ; kernel32.GetModuleHandleA
+006175C3    68 00800000     push 8000
+```
 
-> 引用:
-> 
-> * * *
-> 
-> 00649C5E    C780 6F3B0A00 E91B0000    mov dword ptr ds:\[eax+A3B6F\],1BE9        ; 还原 0061716F 在内存映像中相应位置的代码  
-> 00649C68    C680 99030000 00          mov byte ptr ds:\[eax+399\],0              ; 还原内存映像中.adata 段的 RSize 为 0，这两句是为了逃过 CRC 校验  
-> 00649C6F    60                        pushad                                   ; 保存现场  
-> 00649C70    9C                        pushfd  
-> 00649C71    A1 FC9F6400               mov eax,dword ptr ds:\[649FFC\]            ; 取得基址  
-> 00649C76    C680 69860100 04          mov byte ptr ds:\[eax+18669\],4            ; 还原 01038668 处的代码  
-> 00649C7D    C780 7A860100 8BD850E8    mov dword ptr ds:\[eax+1867A\],E850D88B    ; 还原 0103867A 的代码  
-> 00649C87    C680 7E860100 4A          mov byte ptr ds:\[eax+1867E\],4A  
-> 00649C8E    C680 7F860100 01          mov byte ptr ds:\[eax+1867F\],1  
-> 00649C95    C780 B9CA0100 E9F3D160    mov dword ptr ds:\[eax+1CAB9\],60D1F3E9    ; Patch 0103CAB9，即 Pre-dip 前的位置  
-> 00649C9F    05 7A860100               add eax,1867A                            ; 取得返回地址  
-> 00649CA4    A3 AC9C6400               mov dword ptr ds:\[649CAC\],eax            ; 修改下面 Push 的地址  
-> 00649CA9    9D                        popfd  
-> 00649CAA    61                        popad  
-> 00649CAB    68 00000000               push 0                                   ; Push 返回地址，由 00649CA4 处设定  
-> 00649CB0    C3                        retn
-> 
-> * * *
+`006174BC` 和 `006174EA` 分别是第 1 次和第 2 次调用 `VirtualAlloc`，在第 2 次调用以后可以 Patch 以获得壳的基址，这里我沿用 `JohnWho` 的方法，选择 `006175C3` 处作为 Patch 点，`EDI` 保存了基址。
 
-  
-  
-00649C95 Patch 之后：0103CAB9  - E9 F3D160FF               jmp BeeIcons.00649CB1  
-这里解释一下为什么选择 0103CAB9 处进行 Patch。我试了一下直接修改 01023A29 的内容会出错，而到达 00649C5E 处时，005321B0 处是一片空地，还没有填充代码。  
-  
+现在得到基址，要寻找壳代码填充完毕的时候(臆测)，`bp VirtualAlloc` 继续运行，断在第 3 个调用处：
 
-> 引用:
-> 
-> * * *
-> 
-> 00649CB1    68 F59C6400               push BeeIcons.XXXXXXXX                   ; Push 注册名的存放位置，取代原来的 Push eax，这个可以在这些 Patch 代码后面找个地方，并填上自己的大名，不过在这个程序里好像不显示。  
-> 00649CB6    60                        pushad                                   ; 保存现场  
-> 00649CB7    9C                        pushfd  
-> 00649CB8    A1 FC9F6400               mov eax,dword ptr ds:\[649FFC\]            ; 取得基址  
-> 00649CBD    C780 B9CA0100 508B4704    mov dword ptr ds:\[eax+1CAB9\],4478B50     ; 还原 0103CAB9 处代码  
-> 00649CC7    C780 9CA40000 E9940000    mov dword ptr ds:\[eax+A49C\],94E9         ; Patch 试用信息读写跳转  
-> 00649CD1    C680 E9A30000 EB          mov byte ptr ds:\[eax+A3E9\],0EB  
-> 00649CD8    C680 84A50000 EB          mov byte ptr ds:\[eax+A584\],0EB  
-> 00649CDF    05 BACA0100               add eax,1CABA                            ; 取得返回地址  
-> 00649CE4    A3 EC9C6400               mov dword ptr ds:\[649CEC\],eax            ; 修改下面 Push 的地址  
-> 00649CE9    9D                        popfd  
-> 00649CEA    61                        popad  
-> 00649CEB    68 00000000               push 0                                   ; Push 返回地址，由 00649CE4 处设定  
-> 00649CF0    C3                        retn
-> 
-> * * *
+```
+010510C4    FF95 79294400   call dword ptr ss:[ebp+442979]    ; kernel32.VirtualAlloc
+010510CA    8985 75294400   mov dword ptr ss:[ebp+442975],eax
+010510D0    8D9D 452A4400   lea ebx,dword ptr ss:[ebp+442A45]
+010510D6    50              push eax
+010510D7    53              push ebx
+010510D8    E8 74050000     call 01051651
+010510DD    8BC8            mov ecx,eax
+010510DF    8DBD 452A4400   lea edi,dword ptr ss:[ebp+442A45]
+010510E5    8BB5 75294400   mov esi,dword ptr ss:[ebp+442975]
+010510EB    F3:A4           rep movs byte ptr es:[edi],byte ptr ds:[
+010510ED    8B85 75294400   mov eax,dword ptr ss:[ebp+442975]
+010510F3    68 00800000     push 8000
+```
 
-  
-  
-好了，现在 Patch 完毕，保存文件，试着运行，成功了！即使在已经过期，原版出现过期提示的情况下也不会过期，但是遗憾的是点击关于窗口的确定按钮就会退出！我试着不补丁读写试用信息的三个跳转，在未过期的情况下不会出现这个问题，但是过期之后问题一样。请大虾们指点啊。同时这个问题是否发生在所有这样进行 Patch 的文件上，还不得而知，因为这方法我也是刚学。  
-  
-过程到此完毕，写得急，也不知道是否将意思表达清楚了，有什么问题望批评指出。  
-  
-temerata  
+`010510F3` 为 Patch 点
+
+第 4 个调用：
+
+```
+01051343    FF95 79294400   call dword ptr ss:[ebp+442979]    ; kernel32.VirtualAlloc
+01051349    8985 75294400   mov dword ptr ss:[ebp+442975],eax
+......
+010515C1    61              popad
+010515C2    75 08           jnz short 010515CC
+010515C4    B8 01000000     mov eax,1
+010515C9    C2 0C00         retn 0C
+```
+
+注意 `010515C1` 处的 `popad`，这意味着壳代码将运行到下一阶段。这里就选择 `010515C1` 作为 Patch 点。——为什么不直接 Patch 这里，而第 3 个调用处也要进行 Patch 呢？这个我没有来得及跟，应该是因为第 3 个调用之前这里的代码还没有填充好吧。
+
+接下来一步是要逃过 CRC 检验，清除 `VirtualAlloc` 处的断点，然后 `bp MapViewOfFileEx`，断下后返回到壳代码：
+
+```
+01038668    6A 04           push 4
+0103866A    A1 14B40401     mov eax,dword ptr ds:[104B414]
+0103866F    50              push eax
+01038670    A1 E4970401     mov eax,dword ptr ds:[10497E4]
+01038675    8B40 08         mov eax,dword ptr ds:[eax+8]
+01038678    FFD0            call eax
+0103867A    8BD8            mov ebx,eax                     ; 返回到这里
+```
+
+只要修改 `01038668` 处的 `4` 改为 `1`，`EXE` 文件的内存映像就会是可写的；而返回到 `0103867A` 后，`EAX` 保存了 `EXE` 文件内存映像的开始地址，在我这里是 `01260000`，因而选择这一行作为 Patch 点。
+
+最后一个 Patch 点我选择了 `0103CAB9`，就是进入注册名 `Pre-dip` 前的地方。
+
+所有的 Patch 点都清楚了。试一下成功与否。`Ctrl+F2` 重来。
+
+现在直接将 `0061716F` 处修改为 `jmp 00649AF0`
+
+下面是 Patch 代码，这时候放在一边待命的 `OllyDbg` 可以起作用了，将它的 `org.BeeIcons.exe` 运行到要 Patch 的地方，修改代码为 Patch 要达到的效果，来决定 Patch 代码：
+
+```
+00649AF0    C705 70716100 1B000000    mov dword ptr ds:[617170],1B           ; 还原 Patch 点代码
+00649AFA    C705 59726100 AC280300    mov dword ptr ds:[617259],328AC        ; Patch 00617258 处的跳转
+00649B04    E9 66D6FCFF               jmp BeeIcons.0061716F                  ; 返回原处继续
+```
+
+`00649AFA` Patch 之后：
+
+`00617258` `E9 AC280300` `jmp BeeIcons.00649B09`
+
+```
+00649B09    C705 59726100 26000000    mov dword ptr ds:[617259],26           ; 还原 Patch 点代码
+00649B13    C705 16736100 E90E2803    mov dword ptr ds:[617316],3280EE9      ; Patch 00617316 处的代码
+00649B1D    C605 1A736100 00           mov byte ptr ds:[61731A],0
+00649B24    E9 2FD7FCFF                jmp BeeIcons.00617258                  ; 返回原处继续
+```
+
+`00649B1D` Patch 之后：
+
+`00617316` `E9 0E280300` `jmp BeeIcons.00649B29`
+
+```
+00649B29    C705 16736100 6681CAF5    mov dword ptr ds:[617316],F5CA8166     ; 还原 Patch 点代码
+00649B33    C605 1A736100 7B           mov byte ptr ds:[61731A],7B
+00649B3A    C705 7E736100 E9CD2703    mov dword ptr ds:[61737E],327CDE9      ; Patch 0061737E 处的代码
+00649B44    C605 82736100 00           mov byte ptr ds:[617382],0
+00649B4B    E9 C6D7FCFF                jmp BeeIcons.00617316                  ; 返回原处继续
+```
+
+`00649B44` Patch 之后：
+
+`0061737E` `E9 CD270300` `jmp BeeIcons.00649B50`
+
+```
+00649B50    0F85 F0D7FCFF              jnz BeeIcons.00617346                  ; 将 0061737E 原句放到这里执行
+00649B56    C705 7E736100 0F85C2FF    mov dword ptr ds:[61737E],FFC2850F     ; 还原 Patch 点代码
+00649B60    C605 82736100 FF           mov byte ptr ds:[617382],0FF
+00649B67    C705 FE736100 E97A2703    mov dword ptr ds:[6173FE],3277AE9      ; Patch 006173FE 处的代码
+00649B71    C605 02746100 00           mov byte ptr ds:[617402],0
+00649B78    E9 07D8FCFF                jmp BeeIcons.00617384                  ; 返回到 0061737E 的下一句执行
+```
+
+注：`0061737E` 处代码不再执行，不进行还原可能也没有问题，`JohnWho` 的文章里，不需要还原执行的代码他是不进行还原的，但他文章的目标是 `ASPr` 试用版加壳，所以我作练习时谨慎起见还是进行还原。
+
+`00649B71` Patch 之后：
+
+`006173FE` `E9 7A270300` `jmp BeeIcons.00649B7D`
+
+```
+00649B7D    C705 FE736100 684F35D5    mov dword ptr ds:[6173FE],D5354F68     ; 还原 Patch 点代码
+00649B87    C605 02746100 57           mov byte ptr ds:[617402],57
+00649B8E    C705 C3756100 E9D52503    mov dword ptr ds:[6175C3],325D5E9      ; Patch 006175C3 处的代码
+```
+
+
+
+# 汇编代码 Patch 分析与执行
+
+## 00649B98 代码段
+
+```
+00649B98  - E9 61D8FCFF                 jmp BeeIcons.006173FE                  ; 返回原处继续
+```
+
+### 00649B8E Patch 之后
+
+```
+006175C3  - E9 D5250300                 jmp BeeIcons.00649B9D
+```
+
+**引用代码：**
+
+```
+00649B9D    C705 C3756100 68008000     mov dword ptr ds:[6175C3],800068        ; 还原 Patch 点代码
+00649BA7    893D FC9F6400               mov dword ptr ds:[649FFC],edi           ; 找个位置存放壳的基址，我这里选择 00649FFC
+00649BAD    60                           pushad                                  ; 保存现场
+00649BAE    9C                           pushfd
+00649BAF    A1 FC9F6400                 mov eax,dword ptr ds:[649FFC]           ; 取得基址
+00649BB4    C780 F3100300 E9D48A5F      mov dword ptr ds:[eax+310F3],5F8AD4E9   ; Patch 010510F3 处的代码
+00649BBE    C680 F7100300 FF            mov byte ptr ds:[eax+310F7],0FF
+00649BC5    9D                           popfd                                 ; 恢复现场
+00649BC6    61                           popad
+00649BC7  - E9 F7D9FCFF                 jmp BeeIcons.006175C3                   ; 返回原处继续
+```
+
+## 00649BBE 代码段
+
+### 00649BBE Patch 之后
+
+```
+010510F3  - E9 D48A5FFF                 jmp BeeIcons.00649BCC
+```
+
+**引用代码：**
+
+```
+00649BCC    60                           pushad                                  ; 保存现场
+00649BCD    9C                           pushfd
+00649BCE    A1 FC9F6400                 mov eax,dword ptr ds:[649FFC]           ; 取得基址
+00649BD3    C780 F3100300 68008000      mov dword ptr ds:[eax+310F3],800068     ; 还原 Patch 点代码
+00649BDD    C680 F7100300 00             mov byte ptr ds:[eax+310F7],0
+00649BE4    C780 C1150300 680E9C64      mov dword ptr ds:[eax+315C1],649C0E68  ; Patch 010515C1 处的代码
+00649BEE    C680 C5150300 00             mov byte ptr ds:[eax+315C5],0
+00649BF5    C680 C6150300 C3             mov byte ptr ds:[eax+315C6],0C3
+00649BFC    05 F3100300                 add eax,310F3                           ; 取得 Patch 点地址
+00649C01    A3 099C6400                 mov dword ptr ds:[649C09],eax           ; 修改下面 Push 的地址
+00649C06    9D                           popfd                                 ; 恢复现场
+00649C07    61                           popad
+00649C08    68 00000000                 push 0                                  ; Push 返回地址，由 00649C01 处设定
+00649C0D    C3                           retn
+```
+
+## 00649BF5 代码段
+
+### 00649BF5 Patch 之后
+
+```
+010515C1    68 0E9C6400                 push 649C0E
+010515C6    C3                           retn
+```
+
+**引用代码：**
+
+```
+00649C0E    60                           pushad                                  ; 保存现场
+00649C0F    9C                           pushfd
+00649C10    A1 FC9F6400                 mov eax,dword ptr ds:[649FFC]           ; 取得基址
+00649C15    C780 C1150300 617508B8      mov dword ptr ds:[eax+315C1],B8087561   ; 还原 Patch 点代码
+00649C1F    C680 C5150300 01             mov byte ptr ds:[eax+315C5],1
+00649C26    C680 C6150300 00             mov byte ptr ds:[eax+315C6],0
+00649C2D    C680 69860100 01             mov byte ptr ds:[eax+18669],1            ; 修改 01038668 处的 Push 4 为 Push 1，使内存映像可写
+00649C34    C780 7A860100 685E9C64      mov dword ptr ds:[eax+1867A],649C5E68   ; Patch 0103867A 处的代码
+00649C3E    C680 7E860100 00             mov byte ptr ds:[eax+1867E],0
+00649C45    C680 7F860100 C3             mov byte ptr ds:[eax+1867F],0C3
+00649C4C    05 C1150300                 add eax,315C1                           ; 取得 Patch 点地址
+00649C51    A3 599C6400                 mov dword ptr ds:[649C59],eax           ; 修改下面 Push 的地址
+00649C56    9D                           popfd                                 ; 恢复现场
+00649C57    61                           popad
+00649C58    68 00000000                 push 0                                  ; Push 返回地址，由 00649C51 处设定
+00649C5D    C3                           retn
+```
+
+## 00649C45 代码段
+
+### 00649C45 Patch 之后
+
+```
+0103867A    68 5E9C6400                 push 649C5E
+0103867F    C3                           retn
+```
+
+**引用代码：**
+
+```
+00649C5E    C780 6F3B0A00 E91B0000      mov dword ptr ds:[eax+A3B6F],1BE9        ; 还原 0061716F 在内存映像中相应位置的代码
+00649C68    C680 99030000 00            mov byte ptr ds:[eax+399],0               ; 还原内存映像中.adata 段的 RSize 为 0，这两句是为了逃过 CRC 校验
+00649C6F    60                           pushad                                  ; 保存现场
+00649C70    9C                           pushfd
+00649C71    A1 FC9F6400                 mov eax,dword ptr ds:[649FFC]           ; 取得基址
+00649C76    C680 69860100 04            mov byte ptr ds:[eax+18669],4            ; 还原 01038668 处的代码
+00649C7D    C780 7A860100 8BD850E8      mov dword ptr ds:[eax+1867A],E850D88B    ; 还原 0103867A 的代码
+00649C87    C680 7E860100 4A            mov byte ptr ds:[eax+1867E],4A
+00649C8E    C680 7F860100 01            mov byte ptr ds:[eax+1867F],1
+00649C95    C780 B9CA0100 E9F3D160      mov dword ptr ds:[eax+1CAB9],60D1F3E9   ; Patch 0103CAB9，即 Pre-dip 前的位置
+00649C9F    05 7A860100                 add eax,1867A                           ; 取得返回地址
+00649CA4    A3 AC9C6400                 mov dword ptr ds:[649CAC],eax           ; 修改下面 Push 的地址
+00649CA9    9D                           popfd
+00649CAA    61                           popad
+00649CAB    68 00000000                 push 0                                  ; Push 返回地址，由 00649CA4 处设定
+00649CB0    C3                           retn
+```
+
+### 00649C95 Patch 之后
+
+```
+0103CAB9  - E9 F3D160FF                 jmp BeeIcons.00649CB1
+```
+
+这里解释一下为什么选择 `0103CAB9` 处进行 `Patch`。我试了一下直接修改 `01023A29` 的内容会出错，而到达 `00649C5E` 处时，`005321B0` 处是一片空地，还没有填充代码。
+
+**引用代码：**
+
+```
+00649CB1    68 F59C6400                 push BeeIcons.XXXXXXXX                  ; Push 注册名的存放位置，取代原来的 Push eax，这个可以在这些 Patch 代码后面找个地方，并填上自己的大名，不过在这个程序里好像不显示。
+00649CB6    60                           pushad                                  ; 保存现场
+00649CB7    9C                           pushfd
+00649CB8    A1 FC9F6400                 mov eax,dword ptr ds:[649FFC]           ; 取得基址
+00649CBD    C780 B9CA0100 508B4704      mov dword ptr ds:[eax+1CAB9],4478B50    ; 还原 0103CAB9 处代码
+00649CC7    C780 9CA40000 E9940000      mov dword ptr ds:[eax+A49C],94E9         ; Patch 试用信息读写跳转
+00649CD1    C680 E9A30000 EB            mov byte ptr ds:[eax+A3E9],0EB
+00649CD8    C680 84A50000 EB            mov byte ptr ds:[eax+A584],0EB
+00649CDF    05 BACA0100                 add eax,1CABA                           ; 取得返回地址
+00649CE4    A3 EC9C6400                 mov dword ptr ds:[649CEC],eax           ; 修改下面 Push 的地址
+00649CE9    9D                           popfd
+00649CEA    61                           popad
+00649CEB    68 00000000                 push 0                                  ; Push 返回地址，由 00649CE4 处设定
+00649CF0    C3                           retn
+```
+
+好了，现在 `Patch` 完毕，保存文件，试着运行，成功了！即使在已经过期，原版出现过期提示的情况下也不会过期，但是遗憾的是点击关于窗口的确定按钮就会退出！我试着不补丁读写试用信息的三个跳转，在未过期的情况下不会出现这个问题，但是过期之后问题一样。请大虾们指点啊。同时这个问题是否发生在所有这样进行 `Patch` 的文件上，还不得而知，因为这方法我也是刚学。
+
+过程到此完毕，写得急，也不知道是否将意思表达清楚了，有什么问题望批评指出。
+
+`temerata`
+
 05.07.21
 
- 4dd466d0e1e0cc123afbe504da2462ca
+`4dd466d0e1e0cc123afbe504da2462ca`

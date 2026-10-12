@@ -1,379 +1,544 @@
 
-
 # iTime
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum893.htm`](https://www.pediy.com/kssd/pediy03/forum893.htm)
 
-iTime 破解实录   
-iTime International Version   
-http://www.touchstone.de   
-一个可以同步你的电脑时钟的程序，在 2000 下不需要了。小弟还是比较喜欢用 98 作为破解平台，经常泡在 SoftICE 里面一转就是好几个小时。时钟经常不灵，最近在网上闲逛发现这个程序可以同步时钟，就抓了一个回来。居然还要注册，不然时间到了就不让用。我现在是一看到 Register 就会条件反射:)，还是写个注册机出来吧。OK，Let's go!   
-1、工具：DeDe v2.50,TRW2000 or SoftICE，TC2.0 or asm(你喜欢的编译器)   
-2、用 DeDe 打开 iTime.exe，在 DeDe 中点击 Procedures 按钮，找到 options(unit name)那一项双击，在右边的窗口中找到 mnuRegisterClick 这一项，再双击，WOW!   
-来到这里你已经成功一半啦!^\*^(这么简单?)   
-\* Reference to: controls.TControl.GetText(TControl):System.String;   
-|   
-004078B4  E80F0C0300            call    004384C8   
-004078B9  8D45F8                lea    eax, \[ebp\-$08\] <--d \*eax 看到你输入的名字   
-  
-|   
-004078BC  E827670500            call    0045DFE8   
-004078C1  8BF0                  mov    esi, eax   
-004078C3  83FE32                cmp    esi, +$32   
-004078C6  7E04                  jle    004078CC   
-004078C8  B232                  mov    dl, $32   
-004078CA  EB02                  jmp    004078CE   
-004078CC  8BD6                  mov    edx, esi   
-004078CE  889528FFFFFF          mov    \[ebp+$FFFFFF28\], dl   
-004078D4  33C0                  xor    eax, eax   
-004078D6  8A8528FFFFFF          mov    al, byte ptr \[ebp+$FFFFFF28\]   
-004078DC  50                    push    eax   
-004078DD  837DF800              cmp    dword ptr \[ebp\-$08\], +$00   
-004078E1  7405                  jz      004078E8   
-004078E3  8B4DF8                mov    ecx, \[ebp\-$08\]   
-004078E6  EB05                  jmp    004078ED   
-004078E8  B9C8AF4600            mov    ecx, $0046AFC8   
-004078ED  51                    push    ecx   
-004078EE  8D8529FFFFFF          lea    eax, \[ebp+$FFFFFF29\]   
-004078F4  50                    push    eax   
-  
-\* Reference to: \_strncpy()   
-|   
-004078F5  E86C1C0600            call    00469566   
-004078FA  83C40C                add    esp, +$0C   
-004078FD  FF4DD4                dec    dword ptr \[ebp\-$2C\]   
-00407900  8D45F8                lea    eax, \[ebp\-$08\]   
-00407903  BA02000000            mov    edx, $00000002   
-  
-|   
-00407908  E8DF650500            call    0045DEEC   
-0040790D  8D9528FFFFFF          lea    edx, \[ebp+$FFFFFF28\]   
-00407913  8D855CFFFFFF          lea    eax, \[ebp+$FFFFFF5C\]   
-  
-|   
-00407919  E8C2B9FFFF            call    004032E0   
-0040791E  66C745C82C00          mov    word ptr \[ebp\-$38\], $002C   
-00407924  33C9                  xor    ecx, ecx   
-00407926  894DF4                mov    \[ebp\-$0C\], ecx   
-00407929  8D55F4                lea    edx, \[ebp\-$0C\]   
-0040792C  FF45D4                inc    dword ptr \[ebp\-$2C\]   
-0040792F  8B45B4                mov    eax, \[ebp\-$4C\]   
-  
-\* Reference to control btnDel : TResButton   
-|   
-00407932  8B80EC010000          mov    eax, \[eax+$01EC\]   
-  
-\* Reference to: controls.TControl.GetText(TControl):System.String;   
-|   
-00407938  E88B0B0300            call    004384C8   
-0040793D  8D45F4                lea    eax, \[ebp\-$0C\] <--d \*eax 看到你输入的密码   
-  
-|   
-00407940  E8A3660500            call    0045DFE8   
-为了更快的找到关键比对核心，可以下 bpr,或者，bpm 等断点。当你看到这段代码：   
-0167:0040CA38  PUSH    EBP   
-0167:0040CA39  MOV      EBP,ESP   
-0167:0040CA3B  ADD      ESP,BYTE -1C   
-0167:0040CA3E  MOV      \[EBP\-0C\],ECX   
-0167:0040CA41  MOV      \[EBP\-08\],EDX   
-0167:0040CA44  MOV      \[EBP\-04\],EAX   
-0167:0040CA47  MOV      BYTE \[EBP\-16\],00   
-0167:0040CA4B  LEA      EAX,\[EBP\-16\]   
-0167:0040CA4E  MOV      EDX,0040CB90   
-0167:0040CA53  MOV      CL,09   
-0167:0040CA55  CALL    0045B014   
-0167:0040CA5A  LEA      EAX,\[EBP\-1C\]   
-0167:0040CA5D  MOV      EDX,\[EBP\-08\]   
-0167:0040CA60  SHR      EDX,1C   
-0167:0040CA63  AND      EDX,BYTE +0F   
-0167:0040CA66  MOV      DL,\[EDX+0046EE4C\]   
-0167:0040CA6C  MOV      \[EAX+01\],DL   
-0167:0040CA6F  MOV      BYTE \[EAX\],01   
-0167:0040CA72  LEA      EDX,\[EBP\-1C\]   
-0167:0040CA75  LEA      EAX,\[EBP\-16\]   
-0167:0040CA78  MOV      CL,09   
-0167:0040CA7A  CALL    0045B014   
-0167:0040CA7F  LEA      EAX,\[EBP\-1C\]   
-0167:0040CA82  MOV      EDX,\[EBP\-08\]   
-0167:0040CA85  SHR      EDX,18   
-0167:0040CA88  AND      EDX,BYTE +0F   
-0167:0040CA8B  MOV      DL,\[EDX+0046EE4C\]   
-0167:0040CA91  MOV      \[EAX+01\],DL   
-0167:0040CA94  MOV      BYTE \[EAX\],01   
-0167:0040CA97  LEA      EDX,\[EBP\-1C\]   
-0167:0040CA9A  LEA      EAX,\[EBP\-16\]   
-0167:0040CA9D  MOV      CL,09   
-0167:0040CA9F  CALL    0045B014   
-0167:0040CAA4  LEA      EAX,\[EBP\-1C\]   
-0167:0040CAA7  MOV      EDX,\[EBP\-08\]   
-0167:0040CAAA  SHR      EDX,14   
-0167:0040CAAD  AND      EDX,BYTE +0F   
-0167:0040CAB0  MOV      DL,\[EDX+0046EE4C\]   
-0167:0040CAB6  MOV      \[EAX+01\],DL   
-0167:0040CAB9  MOV      BYTE \[EAX\],01   
-0167:0040CABC  LEA      EDX,\[EBP\-1C\]   
-0167:0040CABF  LEA      EAX,\[EBP\-16\]   
-0167:0040CAC2  MOV      CL,09   
-0167:0040CAC4  CALL    0045B014   
-0167:0040CAC9  LEA      EAX,\[EBP\-1C\]   
-0167:0040CACC  MOV      EDX,\[EBP\-08\]   
-0167:0040CACF  SHR      EDX,10   
-0167:0040CAD2  AND      EDX,BYTE +0F   
-0167:0040CAD5  MOV      DL,\[EDX+0046EE4C\]   
-0167:0040CADB  MOV      \[EAX+01\],DL   
-0167:0040CADE  MOV      BYTE \[EAX\],01   
-0167:0040CAE1  LEA      EDX,\[EBP\-1C\]   
-0167:0040CAE4  LEA      EAX,\[EBP\-16\]   
-0167:0040CAE7  MOV      CL,09   
-0167:0040CAE9  CALL    0045B014   
-0167:0040CAEE  LEA      EAX,\[EBP\-1C\]   
-0167:0040CAF1  MOV      EDX,\[EBP\-08\]   
-0167:0040CAF4  SHR      EDX,0C   
-0167:0040CAF7  AND      EDX,BYTE +0F   
-0167:0040CAFA  MOV      DL,\[EDX+0046EE4C\]   
-0167:0040CB00  MOV      \[EAX+01\],DL   
-0167:0040CB03  MOV      BYTE \[EAX\],01   
-0167:0040CB06  LEA      EDX,\[EBP\-1C\]   
-0167:0040CB09  LEA      EAX,\[EBP\-16\]   
-0167:0040CB0C  MOV      CL,09   
-0167:0040CB0E  CALL    0045B014   
-0167:0040CB13  LEA      EAX,\[EBP\-1C\]   
-0167:0040CB16  MOV      EDX,\[EBP\-08\]   
-0167:0040CB19  SHR      EDX,08   
-0167:0040CB1C  AND      EDX,BYTE +0F   
-0167:0040CB1F  MOV      DL,\[EDX+0046EE4C\]   
-0167:0040CB25  MOV      \[EAX+01\],DL   
-0167:0040CB28  MOV      BYTE \[EAX\],01   
-0167:0040CB2B  LEA      EDX,\[EBP\-1C\]   
-0167:0040CB2E  LEA      EAX,\[EBP\-16\]   
-0167:0040CB31  MOV      CL,09   
-0167:0040CB33  CALL    0045B014   
-0167:0040CB38  LEA      EAX,\[EBP\-1C\]   
-0167:0040CB3B  MOV      EDX,\[EBP\-08\]   
-0167:0040CB3E  SHR      EDX,04   
-0167:0040CB41  AND      EDX,BYTE +0F   
-0167:0040CB44  MOV      DL,\[EDX+0046EE4C\]   
-0167:0040CB4A  MOV      \[EAX+01\],DL   
-0167:0040CB4D  MOV      BYTE \[EAX\],01   
-0167:0040CB50  LEA      EDX,\[EBP\-1C\]   
-0167:0040CB53  LEA      EAX,\[EBP\-16\]   
-0167:0040CB56  MOV      CL,09   
-0167:0040CB58  CALL    0045B014   
-0167:0040CB5D  LEA      EAX,\[EBP\-1C\]   
-0167:0040CB60  MOV      EDX,\[EBP\-08\]   
-0167:0040CB63  AND      EDX,BYTE +0F   
-0167:0040CB66  MOV      DL,\[EDX+0046EE4C\]   
-0167:0040CB6C  MOV      \[EAX+01\],DL   
-0167:0040CB6F  MOV      BYTE \[EAX\],01   
-0167:0040CB72  LEA      EDX,\[EBP\-1C\]   
-0167:0040CB75  LEA      EAX,\[EBP\-16\]   
-0167:0040CB78  MOV      CL,09   
-0167:0040CB7A  CALL    0045B014   
-0167:0040CB7F  MOV      EAX,\[EBP\-0C\]   
-0167:0040CB82  LEA      EDX,\[EBP\-16\]   
-0167:0040CB85  MOV      CL,09   
-0167:0040CB87  CALL    0045B060   
-0167:0040CB8C  MOV      ESP,EBP   
-0167:0040CB8E  POP      EBP   
-0167:0040CB8F  RET      
-  
-其实就是把一个 4 字节的十六进制数转换为字符串。比如它第一次是把一个 0x426B2FA9 转换为$426B2FA9   
-第二次把 0x6FB73A24 转换为$6FB73A24.   
-\-----------------------------------------   
-0167:0040CBBF  MOV      AL,\[EBP\-4D\]   
-0167:0040CBC2  INC      EAX   
-0167:0040CBC3  CMP      EAX,BYTE +32   
-0167:0040CBC6  JG      0040CBDC   
-0167:0040CBC8  MOV      \[EBP\-10\],EAX   
-0167:0040CBCB  MOV      EAX,\[EBP\-10\]   
-0167:0040CBCE  MOV      BYTE \[EBP+EAX\-4D\],2A   
-0167:0040CBD3  INC      DWORD \[EBP\-10\]   
-0167:0040CBD6  CMP      DWORD \[EBP\-10\],BYTE +33   
-0167:0040CBDA  JNZ      0040CBCB   
-0167:0040CBDC  LEA      EAX,\[EBP+FFFFFF6C\]   
-0167:0040CBE2  MOV      \[EBP\-0C\],EAX   
-0167:0040CBE5  LEA      ECX,\[EBP+FFFFFF60\]   
-0167:0040CBEB  MOV      EAX,\[EBP\-04\]   
-0167:0040CBEE  MOV      EDX,\[EAX+0224\]   
-0167:0040CBF4  MOV      EAX,\[EBP\-04\]   
-0167:0040CBF7  CALL    0040CA38   
-这段代码就是把 name 不足 50 个字符的地方全部用'\*'添满。然后再把上面的两个字符串加到你的名字像下面那样   
-\--------------------------------------------------------------   
-    $426B2FA9CoolBob\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*    $6FB73A24   
-  
-|－－－－－－－－－－－－－－－－－－一共 71 个字符－－－－－－－－－－－－－－－－－－|   
-  
-下面就要小心跟踪了，来到这里：   
-0167:0040C9E3  MOV      \[EBP\-08\],EDX   
-0167:0040C9E6  MOV      \[EBP\-04\],EAX   
-0167:0040C9E9  MOV      BYTE \[EBP\-15\],00   
-0167:0040C9ED  MOV      EAX,\[EBP\-08\]    <---EAX 初始化为 0xABCDEF   
-0167:0040C9F0  SHR      EAX,08   
-0167:0040C9F3  AND      EAX,00FFFFFF   
-0167:0040C9F8  MOV      \[EBP\-10\],EAX   
-0167:0040C9FB  XOR      EAX,EAX   
-0167:0040C9FD  MOV      AL,\[EBP\-15\]   
-0167:0040CA00  MOVZX    EAX,BYTE \[EBP+EAX\-5C\] <---这里也就是刚才那个 71 个字符了   
-0167:0040CA05  XOR      EAX,\[EBP\-08\]   
-0167:0040CA08  AND      EAX,FF   
-0167:0040CA0D  MOV      EAX,\[EAX\*4+0046EA44\]  <----在 TRW2000 下把这段数据用                                                  <----w 46EA44 fe\*4+46EA44 c:\\data.bin 抓下来   
-                          <----后面作注册机少不了这个。   
-0167:0040CA14  MOV      \[EBP\-14\],EAX   
-0167:0040CA17  MOV      EAX,\[EBP\-10\]   
-0167:0040CA1A  XOR      EAX,\[EBP\-14\]   
-0167:0040CA1D  MOV      \[EBP\-08\],EAX   
-0167:0040CA20  INC      BYTE \[EBP\-15\]   
-0167:0040CA23  CMP      BYTE \[EBP\-15\],47   
-0167:0040CA27  JNZ      0040C9ED          <----循环 0x47 次，也就是 71 次   
-这里算出来的 EAX 就是注册码的原型了，只是要把 EAX 包含的十六进制数转换为字符串输出即可！   
-－－－－－－－－－－－－－－－－－－－－－－－－－－－－   
-0167:0040CE14  MOV      CL,\[EAX+0375\]   
-0167:0040CE1A  LEA      EDX,\[EBP\-42\]   
-0167:0040CE1D  MOV      EAX,\[EBP\-04\]   
-0167:0040CE20  CALL    0040CB94   
-0167:0040CE25  LEA      EAX,\[EBP\-50\]     <-----d EAX (real code)   
-0167:0040CE28  LEA      EDX,\[EBP\-0E\]    <-----d edx (our  code)   
-0167:0040CE2B  XOR      ECX,ECX   
-0167:0040CE2D  MOV      CL,\[EAX\]   
-0167:0040CE2F  INC      ECX   
-0167:0040CE30  CALL    0045B114    <-----比较是否相等   
-0167:0040CE35  SETZ    \[EBP\-0F\]    <-----相等的话置注册成功标志 1 到\[EBP\-0F\]   
-0167:0040CE39  CMP      BYTE \[EBP\-0F\],00   
-0167:0040CE3D  JNZ      0040CE85    <-----if jump good boy:)   
-0167:0040CE3F  MOV      EAX,\[EBP\-04\]   
-0167:0040CE42  MOV      BYTE \[EAX+0375\],01   
-0167:0040CE49  LEA      EAX,\[EBP\-50\]   
-0167:0040CE4C  PUSH    EAX   
-0167:0040CE4D  MOV      EAX,\[EBP\-04\]   
-0167:0040CE50  MOV      CL,\[EAX+0375\]   
-0167:0040CE56  LEA      EDX,\[EBP\-42\]   
-0167:0040CE59  MOV      EAX,\[EBP\-04\]   
-0167:0040CE5C  CALL    0040CB94   
-0167:0040CE61  LEA      EAX,\[EBP\-50\]   
-0167:0040CE64  LEA      EDX,\[EBP\-0E\]   
-0167:0040CE67  XOR      ECX,ECX   
-0167:0040CE69  MOV      CL,\[EAX\]   
-0167:0040CE6B  INC      ECX   
-0167:0040CE6C  CALL    0045B114   
-0167:0040CE71  SETZ    \[EBP\-0F\]   
-0167:0040CE75  CMP      BYTE \[EBP\-0F\],01   
-0167:0040CE79  JNZ      0040CE85   
-0167:0040CE7B  MOV      EAX,\[EBP\-04\]   
-0167:0040CE7E  MOV      BYTE \[EAX+0375\],01   
-0167:0040CE85  MOV      AL,\[EBP\-0F\]   
-0167:0040CE88  POP      EDI   
-0167:0040CE89  POP      ESI   
-0167:0040CE8A  MOV      ESP,EBP   
-0167:0040CE8C  POP      EBP   
-0167:0040CE8D  RET      
-该程序注册正确后，会在其目录下生成一个叫 iTime.key 的文件。   
-  
-3、在作注册机前的准备：   
-    我们要对那个 TRW2000 抓下来的 data.bin 进行一番处理。可以编个小程序来处理：   
-\------------------------------------Start here--------------------------------------   
-#include <stdio.h>   
-main(){   
-FILE \*fp1,\*fp2;   
-unsigned long buffer\[0xfe\];   
-int i;   
-clrscr();   
-fp=fopen("c:\\\\data.bin","rb+");   
-fp2=fopen("c:\\\\x.bin","w+");   
-for(i=0;i<0xfe;i++)   
-{fread(&buffer\[i\],4,1,fp1);   
-printf("0x%lX,",buffer\[i\]);   
-fprintf(fp2,"0x%lX,",buffer\[i\]);   
-if (i%6==0) fprintf(fp2,"\\n");   
-}   
-}   
-\------------------------------------Cut here----------------------------------------       
-上面这个程序就是把 data.bin 里面的二进制数据转换成 4 字节的长整数。   
-4、注册机   
-－－－－－－－－－－－－－－－－－－－start here－－－－－－－－－－－－－－－－－－   
-#include <stdio.h>   
-#include <string.h>   
-main()   
-{   
-char string1\[\]={0x9,0x24,0x34,0x32,0x36,0x42,0x32,0x46,0x41,0x39};   
-char string2\[\]={0x9,0x24,0x36,0x46,0x42,0x37,0x33,0x41,0x32,0x34};   
-char name\[50\];   
-char code\[8\];   
-char sns\[71\];   
-unsigned long data\[\]={0x0,   
-0x77073096,0xEE0E612C,0x990951BA,0x76DC419,0x706AF48F,0xE963A535,   
-0x9E6495A3,0xEDB8832,0x79DCB8A4,0xE0D5E91E,0x97D2D988,0x9B64C2B,   
-0x7EB17CBD,0xE7B82D07,0x90BF1D91,0x1DB71064,0x6AB020F2,0xF3B97148,   
-0x84BE41DE,0x1ADAD47D,0x6DDDE4EB,0xF4D4B551,0x83D385C7,0x136C9856,   
-0x646BA8C0,0xFD62F97A,0x8A65C9EC,0x14015C4F,0x63066CD9,0xFA0F3D63,   
-0x8D080DF5,0x3B6E20C8,0x4C69105E,0xD56041E4,0xA2677172,0x3C03E4D1,   
-0x4B04D447,0xD20D85FD,0xA50AB56B,0x35B5A8FA,0x42B2986C,0xDBBBC9D6,   
-0xACBCF940,0x32D86CE3,0x45DF5C75,0xDCD60DCF,0xABD13D59,0x26D930AC,   
-0x51DE003A,0xC8D75180,0xBFD06116,0x21B4F4B5,0x56B3C423,0xCFBA9599,   
-0xB8BDA50F,0x2802B89E,0x5F058808,0xC60CD9B2,0xB10BE924,0x2F6F7C87,   
-0x58684C11,0xC1611DAB,0xB6662D3D,0x76DC4190,0x1DB7106,0x98D220BC,   
-0xEFD5102A,0x71B18589,0x6B6B51F,0x9FBFE4A5,0xE8B8D433,0x7807C9A2,   
-0xF00F934,0x9609A88E,0xE10E9818,0x7F6A0DBB,0x86D3D2D,0x91646C97,   
-0xE6635C01,0x6B6B51F4,0x1C6C6162,0x856530D8,0xF262004E,0x6C0695ED,   
-0x1B01A57B,0x8208F4C1,0xF50FC457,0x65B0D9C6,0x12B7E950,0x8BBEB8EA,   
-0xFCB9887C,0x62DD1DDF,0x15DA2D49,0x8CD37CF3,0xFBD44C65,0x4DB26158,   
-0x3AB551CE,0xA3BC0074,0xD4BB30E2,0x4ADFA541,0x3DD895D7,0xA4D1C46D,   
-0xD3D6F4FB,0x4369E96A,0x346ED9FC,0xAD678846,0xDA60B8D0,0x44042D73,   
-0x33031DE5,0xAA0A4C5F,0xDD0D7CC9,0x5005713C,0x270241AA,0xBE0B1010,   
-0xC90C2086,0x5768B525,0x206F85B3,0xB966D409,0xCE61E49F,0x5EDEF90E,   
-0x29D9C998,0xB0D09822,0xC7D7A8B4,0x59B33D17,0x2EB40D81,0xB7BD5C3B,   
-0xC0BA6CAD,0xEDB88320,0x9ABFB3B6,0x3B6E20C,0x74B1D29A,0xEAD54739,   
-0x9DD277AF,0x4DB2615,0x73DC1683,0xE3630B12,0x94643B84,0xD6D6A3E,   
-0x7A6A5AA8,0xE40ECF0B,0x9309FF9D,0xA00AE27,0x7D079EB1,0xF00F9344,   
-0x8708A3D2,0x1E01F268,0x6906C2FE,0xF762575D,0x806567CB,0x196C3671,   
-0x6E6B06E7,0xFED41B76,0x89D32BE0,0x10DA7A5A,0x67DD4ACC,0xF9B9DF6F,   
-0x8EBEEFF9,0x17B7BE43,0x60B08ED5,0xD6D6A3E8,0xA1D1937E,0x38D8C2C4,   
-0x4FDFF252,0xD1BB67F1,0xA6BC5767,0x3FB506DD,0x48B2364B,0xD80D2BDA,   
-0xAF0A1B4C,0x36034AF6,0x41047A60,0xDF60EFC3,0xA867DF55,0x316E8EEF,   
-0x4669BE79,0xCB61B38C,0xBC66831A,0x256FD2A0,0x5268E236,0xCC0C7795,   
-0xBB0B4703,0x220216B9,0x5505262F,0xC5BA3BBE,0xB2BD0B28,0x2BB45A92,   
-0x5CB36A04,0xC2D7FFA7,0xB5D0CF31,0x2CD99E8B,0x5BDEAE1D,0x9B64C2B0,   
-0xEC63F226,0x756AA39C,0x26D930A,0x9C0906A9,0xEB0E363F,0x72076785,   
-0x5005713,0x95BF4A82,0xE2B87A14,0x7BB12BAE,0xCB61B38,0x92D28E9B,   
-0xE5D5BE0D,0x7CDCEFB7,0xBDBDF21,0x86D3D2D4,0xF1D4E242,0x68DDB3F8,   
-0x1FDA836E,0x81BE16CD,0xF6B9265B,0x6FB077E1,0x18B74777,0x88085AE6,   
-0xFF0F6A70,0x66063BCA,0x11010B5C,0x8F659EFF,0xF862AE69,0x616BFFD3,   
-0x166CCF45,0xA00AE278,0xD70DD2EE,0x4E048354,0x3903B3C2,0xA7672661,   
-0xD06016F7,0x4969474D,0x3E6E77DB,0xAED16A4A,0xD9D65ADC,0x40DF0B66,   
-0x37D83BF0,0xA9BCAE53,0xDEBB9EC5,0x47B2CF7F,0x30B5FFE9,0xBDBDF21C,   
-0xCABAC28A,0x53B39330,0x24B4A3A6,0xBAD03605,0xCDD70693,0x54DE5729,   
-0x23D967BF,0xB3667A2E,0xC4614AB8,0x5D681B02,0x2A6F2B94,0xB40BBE37,   
-0xC30C8EA1};   
-int i,j;unsigned long ebp\=0xABCDEF,eax;   
-clrscr();   
-printf("iTime (International Version) Keymaker by CoolBob\[CCG\]\\n");   
-printf("written at 2001.4.25\\n");   
-printf("name: ");   
-scanf("%s",name);printf("\\n");   
-for(i=0;i<10;i++)sns\[i\]=string1\[i\];   
-sns\[10\]=strlen(name);   
-for(i=11;i<strlen(name)+11;i++)sns\[i\]=name\[i-11\];   
-if (strlen(name)<50) {for(i=strlen(name)+11;i<61;i++) sns\[i\]='\*';};   
-for(i=61;i<71;i++) sns\[i\]=string2\[i-61\];   
+## iTime 破解实录
+
+iTime International Version
+
+`http://www.touchstone.de`
+
+一个可以同步你的电脑时钟的程序，在 2000 下不需要了。小弟还是比较喜欢用 98 作为破解平台，经常泡在 `SoftICE` 里面一转就是好几个小时。时钟经常不灵，最近在网上闲逛发现这个程序可以同步时钟，就抓了一个回来。居然还要注册，不然时间到了就不让用。我现在是一看到 `Register` 就会条件反射:)，还是写个注册机出来吧。OK，Let's go!
+
+### 1. 工具
+
+`DeDe` v2.50, `TRW2000` or `SoftICE`，`TC2.0` or `asm`(你喜欢的编译器)
+
+### 2. 使用 `DeDe` 定位
+
+用 `DeDe` 打开 `iTime.exe`，在 `DeDe` 中点击 `Procedures` 按钮，找到 `options(unit name)` 那一项双击，在右边的窗口中找到 `mnuRegisterClick` 这一项，再双击，WOW!
+
+来到这里你已经成功一半啦!^\*^(这么简单?)
+
+\* Reference to: `controls.TControl.GetText(TControl):System.String;`
+
+|
+
+```
+004078B4  E80F0C0300          call    004384C8
+004078B9  8D45F8              lea     eax, [ebp-$08] <--d *eax 看到你输入的名字
+```
+
+|
+
+```
+004078BC  E827670500          call    0045DFE8
+004078C1  8BF0                mov     esi, eax
+004078C3  83FE32              cmp     esi, +$32
+004078C6  7E04                jle     004078CC
+004078C8  B232                mov     dl, $32
+004078CA  EB02                jmp     004078CE
+004078CC  8BD6                mov     edx, esi
+004078CE  889528FFFFFF        mov     [ebp+$FFFFFF28], dl
+004078D4  33C0                xor     eax, eax
+004078D6  8A8528FFFFFF        mov     al, byte ptr [ebp+$FFFFFF28]
+004078DC  50                  push    eax
+004078DD  837DF800            cmp     dword ptr [ebp-$08], +$00
+004078E1  7405                jz      004078E8
+004078E3  8B4DF8              mov     ecx, [ebp-$08]
+004078E6  EB05                jmp     004078ED
+004078E8  B9C8AF4600          mov     ecx, $0046AFC8
+004078ED  51                  push    ecx
+004078EE  8D8529FFFFFF        lea     eax, [ebp+$FFFFFF29]
+004078F4  50                  push    eax
+```
+
+\* Reference to: `_strncpy()`
+
+|
+
+```
+004078F5  E86C1C0600          call    00469566
+004078FA  83C40C              add     esp, +$0C
+004078FD  FF4DD4              dec     dword ptr [ebp-$2C]
+00407900  8D45F8              lea     eax, [ebp-$08]
+00407903  BA02000000          mov     edx, $00000002
+```
+
+|
+
+```
+00407908  E8DF650500          call    0045DEEC
+0040790D  8D9528FFFFFF        lea     edx, [ebp+$FFFFFF28]
+00407913  8D855CFFFFFF        lea     eax, [ebp+$FFFFFF5C]
+```
+
+|
+
+```
+00407919  E8C2B9FFFF          call    004032E0
+0040791E  66C745C82C00        mov     word ptr [ebp-$38], $002C
+00407924  33C9                xor     ecx, ecx
+00407926  894DF4              mov     [ebp-$0C], ecx
+00407929  8D55F4              lea     edx, [ebp-$0C]
+0040792C  FF45D4              inc     dword ptr [ebp-$2C]
+0040792F  8B45B4              mov     eax, [ebp-$4C]
+```
+
+\* Reference to control `btnDel` : `TResButton`
+
+|
+
+```
+00407932  8B80EC010000        mov     eax, [eax+$01EC]
+```
+
+\* Reference to: `controls.TControl.GetText(TControl):System.String;`
+
+|
+
+```
+00407938  E88B0B0300          call    004384C8
+0040793D  8D45F4              lea     eax, [ebp-$0C] <--d *eax 看到你输入的密码
+```
+
+|
+
+```
+00407940  E8A3660500          call    0045DFE8
+```
+
+为了更快的找到关键比对核心，可以下 `bpr`，或者，`bpm` 等断点。当你看到这段代码：
+
+```
+0167:0040CA38  PUSH    EBP
+0167:0040CA39  MOV     EBP,ESP
+0167:0040CA3B  ADD     ESP,BYTE -1C
+0167:0040CA3E  MOV     [EBP-0C],ECX
+0167:0040CA41  MOV     [EBP-08],EDX
+0167:0040CA44  MOV     [EBP-04],EAX
+0167:0040CA47  MOV     BYTE [EBP-16],00
+0167:0040CA4B  LEA     EAX,[EBP-16]
+0167:0040CA4E  MOV     EDX,0040CB90
+0167:0040CA53  MOV     CL,09
+0167:0040CA55  CALL    0045B014
+0167:0040CA5A  LEA     EAX,[EBP-1C]
+0167:0040CA5D  MOV     EDX,[EBP-08]
+0167:0040CA60  SHR     EDX,1C
+0167:0040CA63  AND     EDX,BYTE +0F
+0167:0040CA66  MOV     DL,[EDX+0046EE4C]
+0167:0040CA6C  MOV     [EAX+01],DL
+0167:0040CA6F  MOV     BYTE [EAX],01
+0167:0040CA72  LEA     EDX,[EBP-1C]
+0167:0040CA75  LEA     EAX,[EBP-16]
+0167:0040CA78  MOV     CL,09
+0167:0040CA7A  CALL    0045B014
+0167:0040CA7F  LEA     EAX,[EBP-1C]
+0167:0040CA82  MOV     EDX,[EBP-08]
+0167:0040CA85  SHR     EDX,18
+0167:0040CA88  AND     EDX,BYTE +0F
+0167:0040CA8B  MOV     DL,[EDX+0046EE4C]
+0167:0040CA91  MOV     [EAX+01],DL
+0167:0040CA94  MOV     BYTE [EAX],01
+0167:0040CA97  LEA     EDX,[EBP-1C]
+0167:0040CA9A  LEA     EAX,[EBP-16]
+0167:0040CA9D  MOV     CL,09
+0167:0040CA9F  CALL    0045B014
+0167:0040CAA4  LEA     EAX,[EBP-1C]
+0167:0040CAA7  MOV     EDX,[EBP-08]
+0167:0040CAAA  SHR     EDX,14
+0167:0040CAAD  AND     EDX,BYTE +0F
+0167:0040CAB0  MOV     DL,[EDX+0046EE4C]
+0167:0040CAB6  MOV     [EAX+01],DL
+0167:0040CAB9  MOV     BYTE [EAX],01
+0167:0040CABC  LEA     EDX,[EBP-1C]
+0167:0040CABF  LEA     EAX,[EBP-16]
+0167:0040CAC2  MOV     CL,09
+0167:0040CAC4  CALL    0045B014
+0167:0040CAC9  LEA     EAX,[EBP-1C]
+0167:0040CACC  MOV     EDX,[EBP-08]
+0167:0040CACF  SHR     EDX,10
+0167:0040CAD2  AND     EDX,BYTE +0F
+0167:0040CAD5  MOV     DL,[EDX+0046EE4C]
+0167:0040CADB  MOV     [EAX+01],DL
+0167:0040CADE  MOV     BYTE [EAX],01
+0167:0040CAE1  LEA     EDX,[EBP-1C]
+0167:0040CAE4  LEA     EAX,[EBP-16]
+0167:0040CAE7  MOV     CL,09
+0167:0040CAE9  CALL    0045B014
+0167:0040CAEE  LEA     EAX,[EBP-1C]
+0167:0040CAF1  MOV     EDX,[EBP-08]
+0167:0040CAF4  SHR     EDX,0C
+0167:0040CAF7  AND     EDX,BYTE +0F
+0167:0040CAFA  MOV     DL,[EDX+0046EE4C]
+0167:0040CB00  MOV     [EAX+01],DL
+0167:0040CB03  MOV     BYTE [EAX],01
+0167:0040CB06  LEA     EDX,[EBP-1C]
+0167:0040CB09  LEA     EAX,[EBP-16]
+0167:0040CB0C  MOV     CL,09
+0167:0040CB0E  CALL    0045B014
+0167:0040CB13  LEA     EAX,[EBP-1C]
+0167:0040CB16  MOV     EDX,[EBP-08]
+0167:0040CB19  SHR     EDX,08
+0167:0040CB1C  AND     EDX,BYTE +0F
+0167:0040CB1F  MOV     DL,[EDX+0046EE4C]
+0167:0040CB25  MOV     [EAX+01],DL
+0167:0040CB28  MOV     BYTE [EAX],01
+0167:0040CB2B  LEA     EDX,[EBP-1C]
+0167:0040CB2E  LEA     EAX,[EBP-16]
+0167:0040CB31  MOV     CL,09
+0167:0040CB33  CALL    0045B014
+0167:0040CB38  LEA     EAX,[EBP-1C]
+0167:0040CB3B  MOV     EDX,[EBP-08]
+0167:0040CB3E  SHR     EDX,04
+0167:0040CB41  AND     EDX,BYTE +0F
+0167:0040CB44  MOV     DL,[EDX+0046EE4C]
+0167:0040CB4A  MOV     [EAX+01],DL
+0167:0040CB4D  MOV     BYTE [EAX],01
+0167:0040CB50  LEA     EDX,[EBP-1C]
+0167:0040CB53  LEA     EAX,[EBP-16]
+0167:0040CB56  MOV     CL,09
+0167:0040CB58  CALL    0045B014
+0167:0040CB5D  LEA     EAX,[EBP-1C]
+0167:0040CB60  MOV     EDX,[EBP-08]
+0167:0040CB63  AND     EDX,BYTE +0F
+0167:0040CB66  MOV     DL,[EDX+0046EE4C]
+0167:0040CB6C  MOV     [EAX+01],DL
+0167:0040CB6F  MOV     BYTE [EAX],01
+0167:0040CB72  LEA     EDX,[EBP-1C]
+0167:0040CB75  LEA     EAX,[EBP-16]
+0167:0040CB78  MOV     CL,09
+0167:0040CB7A  CALL    0045B014
+0167:0040CB7F  MOV     EAX,[EBP-0C]
+0167:0040CB82  LEA     EDX,[EBP-16]
+0167:0040CB85  MOV     CL,09
+0167:0040CB87  CALL    0045B060
+0167:0040CB8C  MOV     ESP,EBP
+0167:0040CB8E  POP     EBP
+0167:0040CB8F  RET
+```
+
+其实就是把一个 4 字节的十六进制数转换为字符串。比如它第一次是把一个 `0x426B2FA9` 转换为 `$426B2FA9`
+
+第二次把 `0x6FB73A24` 转换为 `$6FB73A24`.
+
+\-----------------------------------------
+
+```
+0167:0040CBBF  MOV     AL,[EBP-4D]
+0167:0040CBC2  INC     EAX
+0167:0040CBC3  CMP     EAX,BYTE +32
+0167:0040CBC6  JG      0040CBDC
+0167:0040CBC8  MOV     [EBP-10],EAX
+0167:0040CBCB  MOV     EAX,[EBP-10]
+0167:0040CBCE  MOV     BYTE [EBP+EAX-4D],2A
+```
+
+
+
+### 01. 寄存器操作与字符串填充
+
+```
+0167:0040CBD3  INC       DWORD [EBP-10]   
+0167:0040CBD6  CMP       DWORD [EBP-10],BYTE +33   
+0167:0040CBDA  JNZ       0040CBCB   
+0167:0040CBDC  LEA       EAX,[EBP+FFFFFF6C]   
+0167:0040CBE2  MOV       [EBP-0C],EAX   
+0167:0040CBE5  LEA       ECX,[EBP+FFFFFF60]   
+0167:0040CBEB  MOV       EAX,[EBP-04]   
+0167:0040CBEE  MOV       EDX,[EAX+0224]   
+0167:0040CBF4  MOV       EAX,[EBP-04]   
+0167:0040CBF7  CALL      0040CA38
+```
+
+这段代码就是把 `name` 不足 `50` 个字符的地方全部用 `'*'` 添满。然后再把上面的两个字符串加到你的名字像下面那样：
+
+```
+--------------------------------------------------------------
+    $426B2FA9CoolBob*******************************************************************    $6FB73A24
+|—————————————————————————————————————————————一共 71 个字符—————————————————————————————————————————————|
+```
+
+下面就要小心跟踪了，来到这里：
+
+```
+0167:0040C9E3  MOV       [EBP-08],EDX   
+0167:0040C9E6  MOV       [EBP-04],EAX   
+0167:0040C9E9  MOV       BYTE [EBP-15],00   
+0167:0040C9ED  MOV       EAX,[EBP-08]    <---EAX 初始化为 0xABCDEF   
+0167:0040C9F0  SHR       EAX,08   
+0167:0040C9F3  AND       EAX,00FFFFFF   
+0167:0040C9F8  MOV       [EBP-10],EAX   
+0167:0040C9FB  XOR       EAX,EAX   
+0167:0040C9FD  MOV       AL,[EBP-15]   
+0167:0040CA00  MOVZX     EAX,BYTE [EBP+EAX-5C] <---这里也就是刚才那个 71 个字符了   
+0167:0040CA05  XOR       EAX,[EBP-08]   
+0167:0040CA08  AND       EAX,FF   
+0167:0040CA0D  MOV       EAX,[EAX*4+0046EA44]  <----在 TRW2000 下把这段数据用    c:\data.bin 抓下来   
+    <----后面作注册机少不了这个。   
+0167:0040CA14  MOV       [EBP-14],EAX   
+0167:0040CA17  MOV       EAX,[EBP-10]   
+0167:0040CA1A  XOR       EAX,[EBP-14]   
+0167:0040CA1D  MOV       [EBP-08],EAX   
+0167:0040CA20  INC       BYTE [EBP-15]   
+0167:0040CA23  CMP       BYTE [EBP-15],47   
+0167:0040CA27  JNZ       0040C9ED    <----循环 0x47 次，也就是 71 次   
+```
+
+这里算出来的 `EAX` 就是注册码的原型了，只是要把 `EAX` 包含的十六进制数转换为字符串输出即可！
+
+### 02. 比较与验证
+
+```
+0167:0040CE14  MOV       CL,[EAX+0375]   
+0167:0040CE1A  LEA       EDX,[EBP-42]   
+0167:0040CE1D  MOV       EAX,[EBP-04]   
+0167:0040CE20  CALL      0040CB94   
+0167:0040CE25  LEA       EAX,[EBP-50]     <-----d EAX (real code)   
+0167:0040CE28  LEA       EDX,[EBP-0E]    <-----d edx (our  code)   
+0167:0040CE2B  XOR       ECX,ECX   
+0167:0040CE2D  MOV       CL,[EAX]   
+0167:0040CE2F  INC       ECX   
+0167:0040CE30  CALL      0045B114    <-----比较是否相等   
+0167:0040CE35  SETZ      [EBP-0F]    <-----相等的话置注册成功标志 1 到[EBP-0F]   
+0167:0040CE39  CMP       BYTE [EBP-0F],00   
+0167:0040CE3D  JNZ       0040CE85    <-----if jump good boy:)   
+0167:0040CE3F  MOV       EAX,[EBP-04]   
+0167:0040CE42  MOV       BYTE [EAX+0375],01   
+0167:0040CE49  LEA       EAX,[EBP-50]   
+0167:0040CE4C  PUSH      EAX   
+0167:0040CE4D  MOV       EAX,[EBP-04]   
+0167:0040CE50  MOV       CL,[EAX+0375]   
+0167:0040CE56  LEA       EDX,[EBP-42]   
+0167:0040CE59  MOV       EAX,[EBP-04]   
+0167:0040CE5C  CALL      0040CB94   
+0167:0040CE61  LEA       EAX,[EBP-50]   
+0167:0040CE64  LEA       EDX,[EBP-0E]   
+0167:0040CE67  XOR       ECX,ECX   
+0167:0040CE69  MOV       CL,[EAX]   
+0167:0040CE6B  INC       ECX   
+0167:0040CE6C  CALL      0045B114   
+0167:0040CE71  SETZ      [EBP-0F]   
+0167:0040CE75  CMP       BYTE [EBP-0F],01   
+0167:0040CE79  JNZ       0040CE85   
+0167:0040CE7B  MOV       EAX,[EBP-04]   
+0167:0040CE7E  MOV       BYTE [EAX+0375],01   
+0167:0040CE85  MOV       AL,[EBP-0F]   
+0167:0040CE88  POP       EDI   
+0167:0040CE89  POP       ESI   
+0167:0040CE8A  MOV       ESP,EBP   
+0167:0040CE8C  POP       EBP   
+0167:0040CE8D  RET      
+```
+
+该程序注册正确后，会在其目录下生成一个叫 `iTime.key` 的文件。
+
+### 03. 注册机前的准备
+
+我们要对那个 `TRW2000` 抓下来的 `data.bin` 进行一番处理。可以编个小程序来处理：
+
+```c
+#include <stdio.h>
+
+main(){
+
+FILE *fp1,*fp2;
+
+unsigned long buffer[0xfe];
+
+int i;
+
+clrscr();
+
+fp1=fopen("c:\\data.bin","rb+");
+
+fp2=fopen("c:\\x.bin","w+");
+
+for(i=0;i<0xfe;i++)
+
+{fread(&buffer[i],4,1,fp1);
+
+printf("0x%lX,",buffer[i]);
+
+fprintf(fp2,"0x%lX,",buffer[i]);
+
+if (i%6==0) fprintf(fp2,"\n");
+
+}
+
+}
+```
+
+上面这个程序就是把 `data.bin` 里面的二进制数据转换成 `4` 字节的长整数。
+
+### 04. 注册机代码
+
+```c
+#include <stdio.h>
+
+#include <string.h>
+
+main()
+
+{
+
+char string1[]={0x9,0x24,0x34,0x32,0x36,0x42,0x32,0x46,0x41,0x39};
+
+char string2[]={0x9,0x24,0x36,0x46,0x42,0x37,0x33,0x41,0x32,0x34};
+
+char name[50];
+
+char code[8];
+
+char sns[71];
+
+unsigned long data[]={0x0,
+
+0x77073096,0xEE0E612C,0x990951BA,0x76DC419,0x706AF48F,0xE963A535,
+
+0x9E6495A3,0xEDB8832,0x79DCB8A4,0xE0D5E91E,0x97D2D988,0x9B64C2B,
+
+0x7EB17CBD,0xE7B82D07,0x90BF1D91,0x1DB71064,0x6AB020F2,0xF3B97148,
+
+0x84BE41DE,0x1ADAD47D,0x6DDDE4EB,0xF4D4B551,0x83D385C7,0x136C9856,
+
+0x646BA8C0,0xFD62F97A,0x8A65C9EC,0x14015C4F,0x63066CD9,0xFA0F3D63,
+
+0x8D080DF5,0x3B6E20C8,0x4C69105E,0xD56041E4,0xA2677172,0x3C03E4D1,
+
+0x4B04D447,0xD20D85FD,0xA50AB56B,0x35B5A8FA,0x42B2986C,0xDBBBC9D6,
+
+0xACBCF940,0x32D86CE3,0x45DF5C75,0xDCD60DCF,0xABD13D59,0x26D930AC,
+
+0x51DE003A,0xC8D75180,0xBFD06116,0x21B4F4B5,0x56B3C423,0xCFBA9599,
+
+0xB8BDA50F,0x2802B89E,0x5F058808,0xC60CD9B2,0xB10BE924,0x2F6F7C87,
+
+0x58684C11,0xC1611DAB,0xB6662D3D,0x76DC4190,0x1DB7106,0x98D220BC,
+
+0xEFD5102A,0x71B18589,0x6B6B51F,0x9FBFE4A5,0xE8B8D433,0x7807C9A2,
+
+0xF00F934,0x9609A88E,0xE10E9818,0x7F6A0DBB,0x86D3D2D,0x91646C97,
+
+0xE6635C01,0x6B6B51F4,0x1C6C6162,0x856530D8,0xF262004E,0x6C0695ED,
+
+0x1B01A57B,0x8208F4C1,0xF50FC457,0x65B0D9C6,0x12B7E950,0x8BBEB8EA,
+
+0xFCB9887C,0x62DD1DDF,0x15DA2D49,0x8CD37CF3,0xFBD44C65,0x4DB26158,
+
+0x3AB551CE,0xA3BC0074,0xD4BB30E2,0x4ADFA541,0x3DD895D7,0xA4D1C46D,
+
+0xD3D6F4FB,0x4369E96A,0x346ED9FC,0xAD678846,0xDA60B8D0,0x44042D73,
+
+0x33031DE5,0xAA0A4C5F,0xDD0D7CC9,0x5005713C,0x270241AA,0xBE0B1010,
+
+0xC90C2086,0x5768B525,0x206F85B3,0xB966D409,0xCE61E49F,0x5EDEF90E,
+
+0x29D9C998,0xB0D09822,0xC7D7A8B4,0x59B33D17,0x2EB40D81,0xB7BD5C3B,
+
+0xC0BA6CAD,0xEDB88320,0x9ABFB3B6,0x3B6E20C,0x74B1D29A,0xEAD54739,
+
+0x9DD277AF,0x4DB2615,0x73DC1683,0xE3630B12,0x94643B84,0xD6D6A3E,
+
+0x7A6A5AA8,0xE40ECF0B,0x9309FF9D,0xA00AE27,0x7D079EB1,0xF00F9344,
+
+0x8708A3D2,0x1E01F268,0x6906C2FE,0xF762575D,0x806567CB,0x196C3671,
+
+0x6E6B06E7,0xFED41B76,0x89D32BE0,0x10DA7A5A,0x67DD4ACC,0xF9B9DF6F,
+
+0x8EBEEFF9,0x17B7BE43,0x60B08ED5,0xD6D6A3E8,0xA1D1937E,0x38D8C2C4,
+
+0x4FDFF252,0xD1BB67F1,0xA6BC5767,0x3FB506DD,0x48B2364B,0xD80D2BDA,
+
+0xAF0A1B4C,0x36034AF6,0x41047A60,0xDF60EFC3,0xA867DF55,0x316E8EEF,
+
+0x4669BE79,0xCB61B38C,0xBC66831A,0x256FD2A0,0x5268E236,0xCC0C7795,
+
+0xBB0B4703,0x220216B9,0x5505262F,0xC5BA3BBE,0xB2BD0B28,0x2BB45A92,
+
+0x5CB36A04,0xC2D7FFA7,0xB5D0CF31,0x2CD99E8B,0x5BDEAE1D,0x9B64C2B0,
+
+0xEC63F226,0x756AA39C,0x26D930A,0x9C0906A9,0xEB0E363F,0x72076785,
+
+0x5005713,0x95BF4A82,0xE2B87A14,0x7BB12BAE,0xCB61B38,0x92D28E9B,
+
+0xE5D5BE0D,0x7CDCEFB7,0xBDBDF21,0x86D3D2D4,0xF1D4E242,0x68DDB3F8,
+
+0x1FDA836E,0x81BE16CD,0xF6B9265B,0x6FB077E1,0x18B74777,0x88085AE6,
+
+0xFF0F6A70,0x66063BCA,0x11010B5C,0x8F659EFF,0xF862AE69,0x616BFFD3,
+
+0x166CCF45,0xA00AE278,0xD70DD2EE,0x4E048354,0x3903B3C2,0xA7672661,
+
+0xD06016F7,0x4969474D,0x3E6E77DB,0xAED16A4A,0xD9D65ADC,0x40DF0B66,
+
+0x37D83BF0,0xA9BCAE53,0xDEBB9EC5,0x47B2CF7F,0x30B5FFE9,0xBDBDF21C,
+
+0xCABAC28A,0x53B39330,0x24B4A3A6,0xBAD03605,0xCDD70693,0x54DE5729,
+
+0x23D967BF,0xB3667A2E,0xC4614AB8,0x5D681B02,0x2A6F2B94,0xB40BBE37,
+
+0xC30C8EA1};
+
+int i,j;unsigned long ebp=0xABCDEF,eax;
+
+clrscr();
+
+printf("iTime (International Version) Keymaker by CoolBob[CCG]\n");
+
+printf("written at 2001.4.25\n");
+
+printf("name: ");
+
+scanf("%s",name);printf("\n");
+
+for(i=0;i<10;i++)sns[i]=string1[i];
+```
+
+
+
+```
+sns[10]=strlen(name);   
+
+for(i=11;i<strlen(name)+11;i++)sns[i]=name[i-11];   
+
+if (strlen(name)<50) {for(i=strlen(name)+11;i<61;i++) sns[i]='\*';};   
+
+for(i=61;i<71;i++) sns[i]=string2[i-61];   
+
 for(i=0;i<0x47;i++)   
+
 {   
-eax\=ebp;   
-eax\=(eax\>>8)&0x00FFFFFF;   
-j=(sns\[i\]^ebp)&0xFF;   
-ebp\=eax^data\[j\];   
+
+eax=ebp;   
+
+eax=(eax>>8)&0x00FFFFFF;   
+
+j=(sns[i]^ebp)&0xFF;   
+
+ebp=eax^data[j];   
+
 }   
+
 printf("code: %lX\\n\\n",ebp);   
+
 printf("Hmm,OK,that's your code!!enjoy yourself! Contact me at CoolBob@21cn.com :-)\\n");   
+
 printf("press any key to exit!!");   
+
 getch();   
+
 }   
-  
-  
-  
-－－－－－－－－－－－－－－－－－－－－cut here－－－－－－－－－－－－－－－－－－－－－   
-  
-written by CoolBob\[CCG\]   
-2001.4.26   
-(CIH??)   
+```
+－－－－－－－－－－－－－－－－－－－－cut here－－－－－－－－－－－－－－－－－－－－－
+
+written by `CoolBob[CCG]`
+
+2001.4.26
+
+(CIH??)
+
 CopyRight reserved by China Cracker Group
 
- 4dd466d0e1e0cc123afbe504da2462ca
+`4dd466d0e1e0cc123afbe504da2462ca`

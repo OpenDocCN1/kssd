@@ -1,455 +1,636 @@
 
-
 # 解决自校验 + 注册爆破——DirectX 随意卸 V1.98B
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-766.htm`](https://www.pediy.com/kssd/pediy07/pediy7-766.htm)
 
-解决自校验 + 注册爆破——DirectX 随意卸 V1.98B  
-      
-下载页面：  <<软件直通车>> 2005.43 辑  
-软件大小：  122 KB   
-软件语言：  简体中文 00402398  
-软件类别：  国产软件 / 共享版   
-应用平台：  Win9x/NT/2000/XP   
-发布日期：  2003 年 9 月 30 日  
-难    度：  入门级（献给和我一样初学破解的小菜们吧）  
-  
-【软件限制】：功能限制  
-  
-【作者声明】：初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！   
-  
-【破解工具】：PEID V0.93、W32Dasm 、GetVBResgood V0.8、Ollydbg1.10  
-  
-【备    注】：看雪学院曾注明破解的程序最好是外国的软件，但小弟一时找不到。而且这个软件发布日期为 2003 年 9 月 30 日，已经很久了，  
-       
-              DirectX 随意卸新版本也出来很久了，所以希望编写此软件的黄雄波不要介意。  
-  
-\------------------------------------------------------------------------------------------------------------------------   
-【过    程】：   
-  
-          DirectX 随意卸 V1.98 用 PEID V0.93 查看壳是 yoda's cryptor 1.x / modified 这个壳还是小弟第一次遇到。没办法，谁叫我菜，  
-  
-用 PEID V0.93 自带的脱壳 plugins 脱掉，呵呵倒也真方便。脱壳后的文件 780 KB，再用 PEID V0.93 查看脱壳的程序，原来是 Microsoft Visual  
-  
- Basic 5.0 / 6.0 程序。运行，嗯？还有自校验，软件运行了一下就没了。怎么办？没办法，(DirectX 随意卸 V1.98 在一旁得意的笑，小菜，  
-  
-敢脱我！呵呵！可知道咱的历害了吧！）。不过即然在看雪学院已有一年了，可不能知难而退吧！OK！先试试。  
-  
-          打开 Ollydbg，加载脱壳后的 DirectX 随意卸.exe，在 CreateFileA 函数中下断。运行，怎么没有中断下来，直接就退出了。嗯？  
-  
-确实是有点麻烦，好了，不管了，重新加载脱壳后的 DirectX 随意卸.exe，查找所有参考文本串，在每个命令中设置断点。运行！  
-  
-\-------------------------------------------------------------------------------------------------------------------------  
-004AE47D    BA F0C84100           mov edx,DirectX?0041C8F0          ; UNICODE "Windows NT "   第一次中断  
-中间代码省略.............  
-004AE5B8    68 0CC94100           push DirectX?0041C90C             ; UNICODE "5.1"           第二次中断  
-中间代码省略.............  
-00492BF0    68 B8944100           push DirectX?004194B8             ; UNICODE ".exe"          第三次中断  
-00492BF5    FF15 9C824B00         call dword ptr ds:\[<&MSVBVM50.\_\_v>; MSVBVM50.\_\_vbaStrCat  
-00492BFB    8BD0                  mov edx,eax  
-00492BFD    8D4D B4               lea ecx,dword ptr ss:\[ebp-4C\]  
-00492C00    FF15 10844B00         call dword ptr ds:\[<&MSVBVM50.\_\_v>; MSVBVM50.\_\_vbaStrMove  
-00492C06    50                    push eax  
-00492C07    FF15 C0834B00         call dword ptr ds:\[<&MSVBVM50.rtc>; MSVBVM50.rtcFileLen  
-00492C0D    33C9                  xor ecx,ecx  
-00492C0F    3D D0FB0100           cmp eax,1FBD0  
-00492C14    0F9FC1                setg cl  
-00492C17    F7D9                  neg ecx  
-00492C19    66:898D 6CFDFFFF      mov word ptr ss:\[ebp-294\],cx  
-00492C20    8D55 B4               lea edx,dword ptr ss:\[ebp-4C\]  
-00492C23    52                    push edx  
-00492C24    8D45 B8               lea eax,dword ptr ss:\[ebp-48\]  
-00492C27    50                    push eax  
-00492C28    8D4D BC               lea ecx,dword ptr ss:\[ebp-44\]  
-00492C2B    51                    push ecx  
-00492C2C    6A 03                 push 3  
-00492C2E    FF15 B0834B00         call dword ptr ds:\[<&MSVBVM50.\_\_v>; MSVBVM50.\_\_vbaFreeStrList  
-00492C34    83C4 10               add esp,10  
-00492C37    8D4D 98               lea ecx,dword ptr ss:\[ebp-68\]  
-00492C3A    FF15 3C844B00         call dword ptr ds:\[<&MSVBVM50.\_\_v>; MSVBVM50.\_\_vbaFreeObj  
-00492C40    0FBF95 6CFDFFFF       movsx edx,word ptr ss:\[ebp-294\]  
-00492C47    85D2                  test edx,edx  
-00492C49    74 0D                 je short DirectX?00492C58                                ；这个一定要跳！  
-00492C4B    C745 FC 08000000      mov dword ptr ss:\[ebp-4\],8  
-00492C52    FF15 68824B00         call dword ptr ds:\[<&MSVBVM50.\_\_v>; MSVBVM50.\_\_vbaEnd    ；到这里就结束进程了  ！    
-00492C58    C745 FC 0A000000      mov dword ptr ss:\[ebp-4\],0A  
-00492C5F    833D 701D4B00 00      cmp dword ptr ds:\[4B1D70\],0  
-00492C66    75 1C                 jnz short DirectX?00492C84  
-下面代码省略.............  
-\-----------------------------------------------------------------------------------------------------------------------  
-  
-       第四次还没有中断程序就直接退出了。看看最后一次中断处，它的 UNICODE 是".exe"，嗯！肯定这里有问题，重新来过，在第三次  
-  
-中断时按 F8 一步一步追踪，看是哪里结束的。当步进到 00492C52 时 DirectX 随意卸就结束了。向上找跳转，将 00492C49 处 je 00492C58 改  
-  
-成 jmp 00492C58 在 OD 中保存改写的文件，运行！OK！自校验去除！（呵呵！这下该我得意的笑了吧！看你还小看我，清蒸，油炸，小炒就  
-  
-看我怎么收拾你）。  
-  
-       接下来我们来爆破——DirectX 随意卸 V1.98.exe。运行程序输入注册名“siaoxing"注册申请码“2797”注册认证码“168988”点  
-  
-注册确认得到“注册码不正确，请认真检查输入是否有误。”反汇编 W32dsm 查找菜单参考、对话框、字符串，什么都没有呀。怎么办！别  
-  
-泄气，对于 Visual Basic 程序我们还有 GetVBResgood V0.8，GetVBResgood 是一个 VB 程式汉化软件，加载 DirectX 随意卸 V1.98.exe，时间  
-  
-可能要长一点，耐心的等待一会吧！OK！加载完毕，点查找查找注册相关有用的字符串，一共是八条。分别如下，左边是字符串，右边是  
-  
-对应的偏移值。  
-  
-\-----------------------------------------------------------------------------------------------------------------------  
-DirectX 随意卸 V1.98b （未注册!）       0000A3DB  
-DirectX 随意卸 V1.98b （未注册!）       000190EC  
-DirectX 随意卸 V1.98b （注册版!）       0001A750  
-DirectX 随意卸 V1.98b 注册版用户          0001AB54  
-你已经成功注册，请重新启动本软件。     0001BE3C   \*注意这句  
-注册码不正确，请认真检查输入是否有误。 0001BE64  
-对不起，此功能是留给注册用户使用的。   0001BDE4  
-这是未注册版本，会有功能上的限制，     0001D3C7  
-\-----------------------------------------------------------------------------------------------------------------------  
-  
-       我们再次打开 W32Dasm，查找 0041BE3C 文本（为什么 0041BE3C 呢？我的理解是偏移值+基地值，即 0001BE3C+00400000，理解的不对  
-  
-还请谅解），共找到两处，只有一处有用，地址在 004A6822。  
-  
-\-------------------------------------------------------------------------------------------------------------------------  
-:004A6653 FF15B0834B00            Call dword ptr \[004B83B0\]  
-:004A6659 83C40C                  add esp, 0000000C  
-:004A665C 8D4DD0                  lea ecx, dword ptr \[ebp-30\]  
-:004A665F 8D55D4                  lea edx, dword ptr \[ebp-2C\]  
-:004A6662 51                      push ecx  
-:004A6663 52                      push edx  
-:004A6664 6A02                    push 00000002  
-  
-\* Reference To: MSVBVM50.\_\_vbaFreeObjList, Ord:00E2h  
-                                  |  
-:004A6666 FF1578824B00            Call dword ptr \[004B8278\]             \*注册关键 CALL，要做注册机可以跟进此 CALL，  
-                                                                        \*因本人功力有限，只好爆破。  
-:004A666C 33C0                    xor eax, eax  
-:004A666E 83C40C                  add esp, 0000000C  
-:004A6671 663BF0                  cmp si, ax  
-:004A6674 A3D8104B00              mov dword ptr \[004B10D8\], eax  
-:004A6679 0F84F5010000            je 004A6874                           \*跳到“注册码不正确，请认真检查输入是否有误。”对话框  
-:004A667F 53                      push ebx  
-:004A6680 66C705DC104B00FFFF      mov word ptr \[004B10DC\], FFFF         \*移如注册标志（全局变量）  
-:004A6689 FF9528FFFFFF            call dword ptr \[ebp+FFFFFF28\]  
-:004A668F 50                      push eax  
-:004A6690 8D45D4                  lea eax, dword ptr \[ebp-2C\]  
-:004A6693 50                      push eax  
-  
-\* Reference To: MSVBVM50.\_\_vbaObjSet, Ord:014Eh  
-                                  |  
-:004A6694 FF15BC824B00            Call dword ptr \[004B82BC\]  
-:004A669A 8BF0                    mov esi, eax  
-:004A669C 8D55E8                  lea edx, dword ptr \[ebp-18\]  
-:004A669F 52                      push edx  
-:004A66A0 56                      push esi  
-:004A66A1 8B0E                    mov ecx, dword ptr \[esi\]  
-:004A66A3 FF91A0000000            call dword ptr \[ecx+000000A0\]  
-:004A66A9 85C0                    test eax, eax  
-:004A66AB 7D12                    jge 004A66BF  
-:004A66AD 68A0000000              push 000000A0  
-:004A66B2 68549F4100              push 00419F54  
-:004A66B7 56                      push esi  
-:004A66B8 50                      push eax  
-  
-\* Reference To: MSVBVM50.\_\_vbaHresultCheckObj, Ord:00F5h  
-                                  |  
-:004A66B9 FF15A8824B00            Call dword ptr \[004B82A8\]  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:004A66AB(C)  
-|  
-:004A66BF 8B45E8                  mov eax, dword ptr \[ebp-18\]  
-:004A66C2 50                      push eax  
-  
-\* Reference To: MSVBVM50.rtcTrimBstr, Ord:0207h  
-                                  |  
-:004A66C3 FF158C824B00            Call dword ptr \[004B828C\]  
-:004A66C9 8BD0                    mov edx, eax  
-:004A66CB 8D4DE4                  lea ecx, dword ptr \[ebp-1C\]  
-:004A66CE FFD7                    call edi  
-:004A66D0 50                      push eax  
-:004A66D1 68D4974100              push 004197D4  
-  
-\* Reference To: MSVBVM50.\_\_vbaStrCat, Ord:017Eh  
-                                  |  
-:004A66D6 FF159C824B00            Call dword ptr \[004B829C\]  
-:004A66DC 8BD0                    mov edx, eax  
-:004A66DE 8D4DD8                  lea ecx, dword ptr \[ebp-28\]  
-:004A66E1 FFD7                    call edi  
-  
-\* Reference To: MSVBVM50.\_\_vbaStrCopy, Ord:0084h  
-                                  |  
-:004A66E3 8B35AC834B00            mov esi, dword ptr \[004B83AC\]  
-  
-\* Possible StringData Ref from Code Obj ->"Registered Name"               
-                                  |  
-:004A66E9 BA30AB4100              mov edx, 0041AB30  
-:004A66EE 8D4DDC                  lea ecx, dword ptr \[ebp-24\]  
-:004A66F1 FFD6                    call esi  
-  
-\* Possible StringData Ref from Code Obj ->"Software\\SuperFox\\DirectX"   
-                                  |  
-:004A66F3 BA90A54100              mov edx, 0041A590  
-:004A66F8 8D4DE0                  lea ecx, dword ptr \[ebp-20\]  
-:004A66FB FFD6                    call esi  
-:004A66FD 8D4DD8                  lea ecx, dword ptr \[ebp-28\]  
-:004A6700 8D55DC                  lea edx, dword ptr \[ebp-24\]  
-:004A6703 51                      push ecx  
-:004A6704 8D45E0                  lea eax, dword ptr \[ebp-20\]  
-:004A6707 52                      push edx  
-:004A6708 8D8D4CFFFFFF            lea ecx, dword ptr \[ebp+FFFFFF4C\]  
-:004A670E 50                      push eax  
-:004A670F 51                      push ecx  
-:004A6710 C7854CFFFFFF02000080    mov dword ptr \[ebp+FFFFFF4C\], 80000002  
-:004A671A E8E19FFFFF              call 004A0700  
-:004A671F 8D55D8                  lea edx, dword ptr \[ebp-28\]  
-:004A6722 8D45DC                  lea eax, dword ptr \[ebp-24\]  
-:004A6725 52                      push edx  
-:004A6726 8D4DE0                  lea ecx, dword ptr \[ebp-20\]  
-:004A6729 50                      push eax  
-:004A672A 8D55E4                  lea edx, dword ptr \[ebp-1C\]  
-:004A672D 51                      push ecx  
-:004A672E 8D45E8                  lea eax, dword ptr \[ebp-18\]  
-:004A6731 52                      push edx  
-:004A6732 50                      push eax  
-:004A6733 6A05                    push 00000005  
-  
-\* Reference To: MSVBVM50.\_\_vbaFreeStrList, Ord:00E4h  
-                                  |  
-:004A6735 FF15B0834B00            Call dword ptr \[004B83B0\]  
-:004A673B 83C418                  add esp, 00000018  
-:004A673E 8D4DD4                  lea ecx, dword ptr \[ebp-2C\]  
-  
-\* Reference To: MSVBVM50.\_\_vbaFreeObj, Ord:007Bh  
-                                  |  
-:004A6741 FF153C844B00            Call dword ptr \[004B843C\]  
-:004A6747 53                      push ebx  
-:004A6748 FF9524FFFFFF            call dword ptr \[ebp+FFFFFF24\]  
-:004A674E 8D4DD4                  lea ecx, dword ptr \[ebp-2C\]  
-:004A6751 50                      push eax  
-:004A6752 51                      push ecx  
-  
-\* Reference To: MSVBVM50.\_\_vbaObjSet, Ord:014Eh  
-                                  |  
-:004A6753 FF15BC824B00            Call dword ptr \[004B82BC\]  
-:004A6759 8BD8                    mov ebx, eax  
-:004A675B 8D45E8                  lea eax, dword ptr \[ebp-18\]  
-:004A675E 50                      push eax  
-:004A675F 53                      push ebx  
-:004A6760 8B13                    mov edx, dword ptr \[ebx\]  
-:004A6762 FF92A0000000            call dword ptr \[edx+000000A0\]  
-:004A6768 85C0                    test eax, eax  
-:004A676A 7D12                    jge 004A677E  
-:004A676C 68A0000000              push 000000A0  
-:004A6771 68549F4100              push 00419F54  
-:004A6776 53                      push ebx  
-:004A6777 50                      push eax  
-  
-\* Reference To: MSVBVM50.\_\_vbaHresultCheckObj, Ord:00F5h  
-                                  |  
-:004A6778 FF15A8824B00            Call dword ptr \[004B82A8\]  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:004A676A(C)  
-|  
-:004A677E 8B4DE8                  mov ecx, dword ptr \[ebp-18\]  
-:004A6781 51                      push ecx  
-  
-\* Reference To: MSVBVM50.rtcTrimBstr, Ord:0207h  
-                                  |  
-:004A6782 FF158C824B00            Call dword ptr \[004B828C\]  
-:004A6788 8BD0                    mov edx, eax  
-:004A678A 8D4DE4                  lea ecx, dword ptr \[ebp-1C\]  
-:004A678D FFD7                    call edi  
-:004A678F 50                      push eax  
-:004A6790 68D4974100              push 004197D4  
-  
-\* Reference To: MSVBVM50.\_\_vbaStrCat, Ord:017Eh  
-                                  |  
-:004A6795 FF159C824B00            Call dword ptr \[004B829C\]  
-:004A679B 8BD0                    mov edx, eax  
-:004A679D 8D4DD8                  lea ecx, dword ptr \[ebp-28\]  
-:004A67A0 FFD7                    call edi  
-  
-\* Possible StringData Ref from Code Obj ->"Registered Code"  
-                                  |  
-:004A67A2 BA58B94100              mov edx, 0041B958  
-:004A67A7 8D4DDC                  lea ecx, dword ptr \[ebp-24\]  
-:004A67AA FFD6                    call esi  
-  
-\* Possible StringData Ref from Code Obj ->"Software\\SuperFox\\DirectX"  
-                                  |  
-:004A67AC BA90A54100              mov edx, 0041A590  
-:004A67B1 8D4DE0                  lea ecx, dword ptr \[ebp-20\]  
-:004A67B4 FFD6                    call esi  
-:004A67B6 8D55D8                  lea edx, dword ptr \[ebp-28\]  
-:004A67B9 8D45DC                  lea eax, dword ptr \[ebp-24\]  
-:004A67BC 52                      push edx  
-:004A67BD 8D4DE0                  lea ecx, dword ptr \[ebp-20\]  
-:004A67C0 50                      push eax  
-:004A67C1 8D954CFFFFFF            lea edx, dword ptr \[ebp+FFFFFF4C\]  
-:004A67C7 51                      push ecx  
-:004A67C8 52                      push edx  
-:004A67C9 C7854CFFFFFF02000080    mov dword ptr \[ebp+FFFFFF4C\], 80000002  
-:004A67D3 E8289FFFFF              call 004A0700  
-:004A67D8 8D45D8                  lea eax, dword ptr \[ebp-28\]  
-:004A67DB 8D4DDC                  lea ecx, dword ptr \[ebp-24\]  
-:004A67DE 50                      push eax  
-:004A67DF 8D55E0                  lea edx, dword ptr \[ebp-20\]  
-:004A67E2 51                      push ecx  
-:004A67E3 8D45E4                  lea eax, dword ptr \[ebp-1C\]  
-:004A67E6 52                      push edx  
-:004A67E7 8D4DE8                  lea ecx, dword ptr \[ebp-18\]  
-:004A67EA 50                      push eax  
-:004A67EB 51                      push ecx  
-:004A67EC 6A05                    push 00000005  
-  
-\* Reference To: MSVBVM50.\_\_vbaFreeStrList, Ord:00E4h  
-                                  |  
-:004A67EE FF15B0834B00            Call dword ptr \[004B83B0\]  
-:004A67F4 83C418                  add esp, 00000018  
-:004A67F7 8D4DD4                  lea ecx, dword ptr \[ebp-2C\]  
-  
-\* Reference To: MSVBVM50.\_\_vbaFreeObj, Ord:007Bh  
-                                  |  
-:004A67FA FF153C844B00            Call dword ptr \[004B843C\]  
-:004A6800 B904000280              mov ecx, 80020004  
-:004A6805 B80A000000              mov eax, 0000000A  
-:004A680A 894D98                  mov dword ptr \[ebp-68\], ecx  
-:004A680D 894DA8                  mov dword ptr \[ebp-58\], ecx  
-:004A6810 894DB8                  mov dword ptr \[ebp-48\], ecx  
-:004A6813 8D5580                  lea edx, dword ptr \[ebp-80\]  
-:004A6816 8D4DC0                  lea ecx, dword ptr \[ebp-40\]  
-:004A6819 894590                  mov dword ptr \[ebp-70\], eax  
-:004A681C 8945A0                  mov dword ptr \[ebp-60\], eax  
-:004A681F 8945B0                  mov dword ptr \[ebp-50\], eax  
-:004A6822 C745883CBE4100          mov \[ebp-78\], 0041BE3C           \*这里就是我们找到的地方。  
-:004A6829 C7458008000000          mov \[ebp-80\], 00000008  
-  
-\* Reference To: MSVBVM50.\_\_vbaVarDup, Ord:008Ah  
-                                  |  
-:004A6830 FF15E0834B00            Call dword ptr \[004B83E0\]  
-:004A6836 8D5590                  lea edx, dword ptr \[ebp-70\]  
-:004A6839 8D45A0                  lea eax, dword ptr \[ebp-60\]  
-:004A683C 52                      push edx  
-:004A683D 8D4DB0                  lea ecx, dword ptr \[ebp-50\]  
-:004A6840 50                      push eax  
-:004A6841 51                      push ecx  
-:004A6842 8D55C0                  lea edx, dword ptr \[ebp-40\]  
-:004A6845 6A00                    push 00000000  
-:004A6847 52                      push edx  
-  
-\* Reference To: MSVBVM50.rtcMsgBox, Ord:0253h  
-                                  |  
-:004A6848 FF15C4824B00            Call dword ptr \[004B82C4\]         \*跳出“你已经成功注册，请重新启动本软件。”对话框  
-:004A684E 8D4590                  lea eax, dword ptr \[ebp-70\]  
-:004A6851 8D4DA0                  lea ecx, dword ptr \[ebp-60\]  
-:004A6854 50                      push eax  
-:004A6855 8D55B0                  lea edx, dword ptr \[ebp-50\]  
-:004A6858 51                      push ecx  
-:004A6859 8D45C0                  lea eax, dword ptr \[ebp-40\]  
-:004A685C 52                      push edx  
-:004A685D 50                      push eax  
-:004A685E 6A04                    push 00000004  
-\------------------------------------------------------------------------------------------------------------------------  
-       
-     向上翻看是最近的远跳转在 004A6679  je 004A6874 当然如果你不信的话，可以将 je 004A6874 改成 jmp 004A6874 看是否注册成功了。  
-  
-当然也别高兴太早，重启运行程序是不是又变成了未注册了。呵呵！注意到 004A6679 下一地址 004A6680 了吗？这个是干嘛的呀！这个可是  
-  
-注册成功的标志呀！回到 W32Dasm，查找文本\[004B10DC\]所有相关的记下来。  
-  
-\------------------------------------------------------------------------------------------------------------------------  
-:0049534F 662335DC104B00          and si, word ptr \[004B10DC\]  
-:00497210 0FBF15DC104B00          movsx edx, word ptr \[004B10DC\]  
-:0049D699 66833DDC104B0000        cmp word ptr \[004B10DC\], 0000  
-:0049E94B 66833DDC104B0000        cmp word ptr \[004B10DC\], 0000  
-:0049EB6C 66833DDC104B0000        cmp word ptr \[004B10DC\], 0000  
-:004A34FD 663935DC104B00          cmp word ptr \[004B10DC\], si  
-:004A386C 66893DDC104B00          mov word ptr \[004B10DC\], di  
-:004A6680 66C705DC104B00FFFF      mov word ptr \[004B10DC\], FFFF      
-:004A687A 66A3DC104B00            mov word ptr \[004B10DC\], ax  
-:004AA487 66391DDC104B00          cmp word ptr \[004B10DC\], bx  
-:004AB5A7 66391DDC104B00          cmp word ptr \[004B10DC\], bx  
-:004AD927 66833DDC104B0000        cmp word ptr \[004B10DC\], 0000  
-:004B0255 663935DC104B00          cmp word ptr \[004B10DC\], si  
-:004B05D2 663935DC104B00          cmp word ptr \[004B10DC\], si  
-\-------------------------------------------------------------------------------------------------------------------------  
-  
-     打开 Ollydbg1.10。加载 DirectX 随意卸.exe,在找到的地址上全部下断点。动态调试，（因过程比较烦索，也省得浪费大家的时间我  
-  
-就略去了）以下是我修改的代码  
-  
-\--------------------------------------------------------------------------------------------------------------------------  
-(1)  
-00497205    0FBFC8              movsx ecx,ax  
-00497208    85C9                test ecx,ecx  
-0049720A    0F847C010000        je DirectX?0049738C  
-00497210    0FBF15 DC104B00     movsx edx,word ptr ds:\[4B10DC\]  
-改为  
-00497205    66:C705 DC104B00 FFFF mov word ptr ds:\[4B10DC\],0FFFF   \*放入全局变量  
-0049720E    90                    nop  
-0049720F    90                    nop  
-00497210    0FBF15 DC104B00       movsx edx,word ptr ds:\[4B10DC\]  
-(2)  
-004A3864   /75 10                 jnz short DirectX?004A3876  
-004A3866   |8935 D8104B00         mov dword ptr ds:\[4B10D8\],esi  
-004A386C   |66:893D DC104B00      mov word ptr ds:\[4B10DC\],di  
-改为  
-004A3864   /9090                                                 
-004A3866   |8935 D8104B00         mov dword ptr ds:\[4B10D8\],esi  
-004A386C   |66:893D DC104B00      mov word ptr ds:\[4B10DC\],di     \*去除退出时要注册对话框。  
-(3)  
-004AB5A5   /74 0D                 je short DirectX?004AB5B4  
-004AB5A7   |66:391D DC104B00      cmp word ptr ds:\[4B10DC\],bx  
-改为  
-004AB5A5   /9090            
-004AB5A7   |66:391D DC104B00      cmp word ptr ds:\[4B10DC\],bx     \*去除还原后是否检查彻底限制。  
-\-------------------------------------------------------------------------------------------------------------------------  
-  
-        OK！现在运行没有限制了吧！(怎么样，这下乖乖就范了吧！看你的小样）当然运行关于对话框没有注册用户名显示在上面，你可  
-  
-以将以下文本保存成\*.reg 文件导入就可以了。  
-  
-\-------------------------------------------------------------------------------------------------------------------------  
-Windows Registry Editor Version 5.00  
-  
-\[HKEY\_LOCAL\_MACHINE\\SOFTWARE\\SuperFox\\DirectX 随意卸\]  
-"Version"="1.98b"  
-"Registered Name"="siaoxing"  
-"Registered Quest"="2797"  
-"Registered Code"="new year 8 998"  
-\-------------------------------------------------------------------------------------------------------------------------  
-  
-【后    话】  
-          
-        破解此软件，没用我多少时间。写这篇破文，呵呵！用了一晚的时间呀！主要是以前没写过，还有就是写得详细了一点，加上了  
-  
-一点自己的破解经验。希望这篇破文对刚学破解初学者有所帮助，也肯请老鸟多多指点。  
-  
-                    新春就要来到了。祝看雪学院越办越好，也祝我等小菜们早成老鸟。呵呵！                                                                                                                                                                
-       .   
-               |                                                                           |  
-           \\   \*  ./                                                                   \\   \*  ./  
-          .  \* \* \* .                                                                  .  \* \* \* .  
-         -=\* ping! \*=-             2          0           0          6                -=\* ping! \*=-              
-         .  .\* \* \*  .                                                                .  .\* \* \*  .  
-          /    \*  .\\                                                                  /    \*  .\\      
-               |                      \_   \_   \_                                            |  
-               .                 |\_| |\_| |\_| |\_| |\_|                                       .  
-                                 | | | | |   |    |       
-                                                      new  
-             \*/.    .   .    \*      .  
-               .\\\*    .    \[\]           \*               ( )   ( )  
-               \*/ .   ./\\~~~~~~~~~~~~'\\. |◆            \`\\\`\\\_/'/'\_\_     \_ \_  \_ \_\_  
-                \\\*   ,/,.\\,...........,\\.◆              \`\\ /'/'\_\_\`\\ /'\_\` )( '\_\_)  
-                || .. ▎# ▎田  田 ▎ | ▎◆               | |(  \_\_\_/( (\_| || |  
-                || && ▎  ▎       ▎'|'▎ o               (\_)\`\\\_\_\_\_)\`\\\_\_,\_)(\_)  
-                || ##■■■■■■■■■■〓      
-                                                 
-                                                                                siaoxing  
-                                                                         
-                                                                               2005 年 12 月 18 日 
+解决自校验 + 注册爆破——DirectX 随意卸 V1.98B
 
- 4dd466d0e1e0cc123afbe504da2462ca
+下载页面： <<软件直通车>> 2005.43 辑
+
+软件大小： 122 KB
+
+软件语言： 简体中文 00402398
+
+软件类别： 国产软件 / 共享版
+
+应用平台： `Win9x/NT/2000/XP`
+
+发布日期： 2003 年 9 月 30 日
+
+难 度： 入门级（献给和我一样初学破解的小菜们吧）
+
+【软件限制】：功能限制
+
+【作者声明】：初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+【破解工具】：`PEID V0.93`、`W32Dasm`、`GetVBResgood V0.8`、`Ollydbg1.10`
+
+【备 注】：看雪学院曾注明破解的程序最好是外国的软件，但小弟一时找不到。而且这个软件发布日期为 2003 年 9 月 30 日，已经很久了， DirectX 随意卸新版本也出来很久了，所以希望编写此软件的黄雄波不要介意。
+
+------------------------------------------------------------------------------------------------------------------------
+
+【过 程】：
+
+ DirectX 随意卸 V1.98 用 `PEID V0.93` 查看壳是 `yoda's cryptor 1.x / modified` 这个壳还是小弟第一次遇到。没办法，谁叫我菜， 用 `PEID V0.93` 自带的脱壳 `plugins` 脱掉，呵呵倒也真方便。脱壳后的文件 780 KB，再用 `PEID V0.93` 查看脱壳的程序，原来是 `Microsoft Visual Basic 5.0 / 6.0` 程序。运行，嗯？还有自校验，软件运行了一下就没了。怎么办？没办法，(`DirectX 随意卸 V1.98` 在一旁得意的笑，小菜， 敢脱我！呵呵！可知道咱的历害了吧！）。不过即然在看雪学院已有一年了，可不能知难而退吧！OK！先试试。
+
+ 打开 `Ollydbg`，加载脱壳后的 `DirectX 随意卸.exe`，在 `CreateFileA` 函数中下断。运行，怎么没有中断下来，直接就退出了。嗯？ 确实是有点麻烦，好了，不管了，重新加载脱壳后的 `DirectX 随意卸.exe`，查找所有参考文本串，在每个命令中设置断点。运行！
+
+-------------------------------------------------------------------------------------------------------------------------
+
+```
+004AE47D    BA F0C84100           mov edx,DirectX?0041C8F0          ; UNICODE "Windows NT "   第一次中断
+中间代码省略.............
+004AE5B8    68 0CC94100           push DirectX?0041C90C             ; UNICODE "5.1"            第二次中断
+中间代码省略.............
+00492BF0    68 B8944100           push DirectX?004194B8             ; UNICODE ".exe"          第三次中断
+00492BF5    FF15 9C824B00         call dword ptr ds:[<&MSVBVM50.__v>; MSVBVM50.__vbaStrCat
+00492BFB    8BD0                  mov edx,eax
+00492BFD    8D4D B4               lea ecx,dword ptr ss:[ebp-4C]
+00492C00    FF15 10844B00         call dword ptr ds:[<&MSVBVM50.__v>; MSVBVM50.__vbaStrMove
+00492C06    50                   push eax
+00492C07    FF15 C0834B00         call dword ptr ds:[<&MSVBVM50.rtc>; MSVBVM50.rtcFileLen
+00492C0D    33C9                  xor ecx,ecx
+00492C0F    3D D0FB0100          cmp eax,1FBD0
+00492C14    0F9FC1               setg cl
+00492C17    F7D9                  neg ecx
+00492C19    66:898D 6CFDFFFF      mov word ptr ss:[ebp-294],cx
+00492C20    8D55 B4               lea edx,dword ptr ss:[ebp-4C]
+00492C23    52                   push edx
+00492C24    8D45 B8               lea eax,dword ptr ss:[ebp-48]
+00492C27    50                   push eax
+00492C28    8D4D BC               lea ecx,dword ptr ss:[ebp-44]
+00492C2B    51                   push ecx
+00492C2C    6A 03                push 3
+00492C2E    FF15 B0834B00         call dword ptr ds:[<&MSVBVM50.__v>; MSVBVM50.__vbaFreeStrList
+00492C34    83C4 10              add esp,10
+00492C37    8D4D 98              lea ecx,dword ptr ss:[ebp-68]
+00492C3A    FF15 3C844B00        call dword ptr ds:[<&MSVBVM50.__v>; MSVBVM50.__vbaFreeObj
+00492C40    0FBF95 6CFDFFFF      movsx edx,word ptr ss:[ebp-294]
+00492C47    85D2                 test edx,edx
+00492C49    74 0D                je short DirectX?00492C58          ；这个一定要跳！
+00492C4B    C745 FC 08000000     mov dword ptr ss:[ebp-4],8
+00492C52    FF15 68824B00        call dword ptr ds:[<&MSVBVM50.__v>; MSVBVM50.__vbaEnd    ；到这里就结束进程了 ！
+00492C58    C745 FC 0A000000     mov dword ptr ss:[ebp-4],0A
+00492C5F    833D 701D4B00 00     cmp dword ptr ds:[4B1D70],0
+00492C66    75 1C                jnz short DirectX?00492C84
+下面代码省略.............
+-----------------------------------------------------------------------------------------------------------------------
+```
+
+ 第四次还没有中断程序就直接退出了。看看最后一次中断处，它的 `UNICODE` 是".exe"，嗯！肯定这里有问题，重新来过，在第三次 中断时按 `F8` 一步一步追踪，看是哪里结束的。当步进到 `00492C52` 时 `DirectX 随意卸`就结束了。向上找跳转，将 `00492C49` 处 `je 00492C58` 改 成 `jmp 00492C58` 在 `OD` 中保存改写的文件，运行！OK！自校验去除！（呵呵！这下该我得意的笑了吧！看你还小看我，清蒸，油炸，小炒就 看我怎么收拾你）。
+
+ 接下来我们来爆破——`DirectX 随意卸 V1.98.exe`。运行程序输入注册名“siaoxing"注册申请码“2797”注册认证码“168988”点 注册确认得到“注册码不正确，请认真检查输入是否有误。”反汇编 `W32dsm` 查找菜单参考、对话框、字符串，什么都没有呀。怎么办！别 泄气，对于 `Visual Basic` 程序我们还有 `GetVBResgood V0.8`，`GetVBResgood` 是一个 `VB` 程式汉化软件，加载 `DirectX 随意卸 V1.98.exe`，时间 可能要长一点，耐心的等待一会吧！OK！加载完毕，点查找查找注册相关有用的字符串，一共是八条。分别如下，左边是字符串，右边是 对应的偏移值。
+
+-----------------------------------------------------------------------------------------------------------------------
+
+```
+DirectX 随意卸 V1.98b （未注册!）       0000A3DB
+DirectX 随意卸 V1.98b （未注册!）       000190EC
+DirectX 随意卸 V1.98b （注册版!）       0001A750
+DirectX 随意卸 V1.98b 注册版用户         0001AB54
+你已经成功注册，请重新启动本软件。     0001BE3C   *注意这句
+注册码不正确，请认真检查输入是否有误。 0001BE64
+对不起，此功能是留给注册用户使用的。   0001BDE4
+这是未注册版本，会有功能上的限制，     0001D3C7
+-----------------------------------------------------------------------------------------------------------------------
+```
+
+ 我们再次打开 `W32Dasm`，查找 `0041BE3C` 文本（为什么 `0041BE3C` 呢？我的理解是偏移值+基地值，即 `0001BE3C+00400000`，理解的不对 还请谅解），共找到两处，只有一处有用，地址在 `004A6822`。
+
+-------------------------------------------------------------------------------------------------------------------------
+
+```
+:004A6653 FF15B0834B00             Call dword ptr [004B83B0]
+:004A6659 83C40C                   add esp, 0000000C
+:004A665C 8D4DD0                   lea ecx, dword ptr [ebp-30]
+:004A665F 8D55D4                   lea edx, dword ptr [ebp-2C]
+:004A6662 51                       push ecx
+:004A6663 52                       push edx
+:004A6664 6A02                     push 00000002
+* Reference To: MSVBVM50.__vbaFreeObjList, Ord:00E2h
+                                       |
+:004A6666 FF1578824B00             Call dword ptr [004B8278]           *注册关键 CALL，要做注册机可以跟进此 CALL，
+                                                                        *因本人功力有限，只好爆破。
+:004A666C 33C0                     xor eax, eax
+:004A666E 83C40C                   add esp, 0000000C
+:004A6671 663BF0                   cmp si, ax
+:004A6674 A3D8104B00               mov dword ptr [004B10D8], eax
+:004A6679 0F84F5010000             je 004A6874                         *跳到“注册码不正确，请认真检查输入是否有误。”对话框
+:004A667F 53                       push ebx
+:004A6680 66C705DC104B00FFFF       mov word ptr [004B10DC], FFFFF     *移如注册标志（全局变量）
+:004A6689 FF9528FFFFFF             call dword ptr [ebp+FFFFFF28]
+:004A668F 50                       push eax
+:004A6690 8D45D4                   lea eax, dword ptr [ebp-2C]
+:004A6693 50                       push eax
+* Reference To: MSVBVM50.__vbaObjSet, Ord:014Eh
+                                       |
+:004A6694 FF15BC824B00             Call dword ptr [004B82BC]
+:004A669A 8BF0                     mov esi, eax
+:004A669C 8D55E8                   lea edx, dword ptr [ebp-18]
+:004A669F 52                       push edx
+:004A66A0 56                       push esi
+:004A66A1 8B0E                     mov ecx, dword ptr [esi]
+:004A66A3 FF91A0000000             call dword ptr [ecx+000000A0]
+:004A66A9 85C0                     test eax, eax
+:004A66AB 7D12                     jge 004A66BF
+:004A66AD 68A0000000               push 000000A0
+:004A66B2 68549F4100               push 00419F54
+:004A66B7 56                       push esi
+:004A66B8 50                       push eax
+* Reference To: MSVBVM50.__vbaHresultCheckObj, Ord:00F5h
+                                       |
+:004A66B9 FF15A8824B00             Call dword ptr [004B82A8]
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004A66AB(C)
+|
+:004A66BF 8B45E8                   mov eax, dword ptr [ebp-18]
+:004A66C2 50                       push eax
+* Reference To: MSVBVM50.rtcTrimBstr, Ord:0207h
+                                       |
+```
+
+
+
+```assembly
+:004A66C3 FF158C824B00            Call dword ptr [004B828C]  
+
+:004A66C9 8BD0                    mov edx, eax  
+
+:004A66CB 8D4DE4                  lea ecx, dword ptr [ebp-1C]  
+
+:004A66CE FFD7                    call edi  
+
+:004A66D0 50                      push eax  
+
+:004A66D1 68D4974100              push 004197D4  
+
+* Reference To: MSVBVM50.__vbaStrCat, Ord:017Eh  
+
+                            |  
+
+:004A66D6 FF159C824B00            Call dword ptr [004B829C]  
+
+:004A66DC 8BD0                    mov edx, eax  
+
+:004A66DE 8D4DD8                  lea ecx, dword ptr [ebp-28]  
+
+:004A66E1 FFD7                    call edi  
+
+* Reference To: MSVBVM50.__vbaStrCopy, Ord:0084h  
+
+                            |  
+
+:004A66E3 8B35AC834B00            mov esi, dword ptr [004B83AC]  
+
+* Possible StringData Ref from Code Obj ->"Registered Name"              
+
+                            |  
+
+:004A66E9 BA30AB4100              mov edx, 0041AB30  
+
+:004A66EE 8D4DDC                  lea ecx, dword ptr [ebp-24]  
+
+:004A66F1 FFD6                    call esi  
+
+* Possible StringData Ref from Code Obj ->"Software\\SuperFox\\DirectX"   
+
+                            |  
+
+:004A66F3 BA90A54100              mov edx, 0041A590  
+
+:004A66F8 8D4DE0                  lea ecx, dword ptr [ebp-20]  
+
+:004A66FB FFD6                    call esi  
+
+:004A66FD 8D4DD8                  lea ecx, dword ptr [ebp-28]  
+
+:004A6700 8D55DC                  lea edx, dword ptr [ebp-24]  
+
+:004A6703 51                      push ecx  
+
+:004A6704 8D45E0                  lea eax, dword ptr [ebp-20]  
+
+:004A6707 52                      push edx  
+
+:004A6708 8D8D4CFFFF FFFFFF      lea ecx, dword ptr [ebp+FFFFFF4C]  
+
+:004A670E 50                      push eax  
+
+:004A670F 51                      push ecx  
+
+:004A6710 C7854CFFFF FFFFFF02    mov dword ptr [ebp+FFFFFF4C], 80000002  
+
+:004A671A E8E19FFFFF             call 004A0700  
+
+:004A671F 8D55D8                  lea edx, dword ptr [ebp-28]  
+
+:004A6722 8D45DC                  lea eax, dword ptr [ebp-24]  
+
+:004A6725 52                      push edx  
+
+:004A6726 8D4DE0                  lea ecx, dword ptr [ebp-20]  
+
+:004A6729 50                      push eax  
+
+:004A672A 8D55E4                  lea edx, dword ptr [ebp-1C]  
+
+:004A672D 51                      push ecx  
+
+:004A672E 8D45E8                  lea eax, dword ptr [ebp-18]  
+
+:004A6731 52                      push edx  
+
+:004A6732 50                      push eax  
+
+:004A6733 6A05                    push 00000005  
+
+* Reference To: MSVBVM50.__vbaFreeStrList, Ord:00E4h  
+
+                            |  
+
+:004A6735 FF15B0834B00            Call dword ptr [004B83B0]  
+
+:004A673B 83C418                  add esp, 00000018  
+
+:004A673E 8D4DD4                  lea ecx, dword ptr [ebp-2C]  
+
+* Reference To: MSVBVM50.__vbaFreeObj, Ord:007Bh  
+
+                            |  
+
+:004A6741 FF153C844B00            Call dword ptr [004B843C]  
+
+:004A6747 53                      push ebx  
+
+:004A6748 FF9524FFFF FFFFFF      call dword ptr [ebp+FFFFFF24]  
+
+:004A674E 8D4DD4                  lea ecx, dword ptr [ebp-2C]  
+
+:004A6751 50                      push eax  
+
+:004A6752 51                      push ecx  
+
+* Reference To: MSVBVM50.__vbaObjSet, Ord:014Eh  
+
+                            |  
+
+:004A6753 FF15BC824B00            Call dword ptr [004B82BC]  
+
+:004A6759 8BD8                    mov ebx, eax  
+
+:004A675B 8D45E8                  lea eax, dword ptr [ebp-18]  
+
+:004A675E 50                      push eax  
+
+:004A675F 53                      push ebx  
+
+:004A6760 8B13                    mov edx, dword ptr [ebx]  
+
+:004A6762 FF92A000 0000          call dword ptr [edx+000000A0]  
+
+:004A6768 85C0                    test eax, eax  
+
+:004A676A 7D12                    jge 004A677E  
+
+:004A676C 68A0000000              push 000000A0  
+
+:004A6771 68549F4100              push 00419F54  
+
+:004A6776 53                      push ebx  
+
+:004A6777 50                      push eax  
+
+* Reference To: MSVBVM50.__vbaHresultCheckObj, Ord:00F5h  
+
+                            |  
+
+:004A6778 FF15A8824B00            Call dword ptr [004B82A8]  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+
+|:004A676A(C)  
+
+|  
+
+:004A677E 8B4DE8                  mov ecx, dword ptr [ebp-18]  
+
+:004A6781 51                      push ecx  
+
+* Reference To: MSVBVM50.rtcTrimBstr, Ord:0207h  
+
+                            |  
+
+:004A6782 FF158C824B00            Call dword ptr [004B828C]  
+
+:004A6788 8BD0                    mov edx, eax  
+
+:004A678A 8D4DE4                  lea ecx, dword ptr [ebp-1C]  
+
+:004A678D FFD7                    call edi  
+
+:004A678F 50                      push eax  
+
+:004A6790 68D4974100              push 004197D4  
+
+* Reference To: MSVBVM50.__vbaStrCat, Ord:017Eh  
+
+                            |  
+
+:004A6795 FF159C824B00            Call dword ptr [004B829C]  
+
+:004A679B 8BD0                    mov edx, eax  
+
+:004A679D 8D4DD8                  lea ecx, dword ptr [ebp-28]  
+
+:004A67A0 FFD7                    call edi  
+
+* Possible StringData Ref from Code Obj ->"Registered Code"  
+
+                            |  
+
+:004A67A2 BA58B94100              mov edx, 0041B958  
+
+:004A67A7 8D4DDC                  lea ecx, dword ptr [ebp-24]  
+
+:004A67AA FFD6                    call esi  
+
+* Possible StringData Ref from Code Obj ->"Software\\SuperFox\\DirectX"  
+
+                            |  
+
+:004A67AC BA90A54100              mov edx, 0041A590  
+
+:004A67B1 8D4DE0                  lea ecx, dword ptr [ebp-20]  
+
+:004A67B4 FFD6                    call esi  
+
+:004A67B6 8D55D8                  lea edx, dword ptr [ebp-28]  
+
+:004A67B9 8D45DC                  lea eax, dword ptr [ebp-24]  
+
+:004A67BC 52                      push edx  
+
+:004A67BD 8D4DE0                  lea ecx, dword ptr [ebp-20]  
+
+:004A67C0 50                      push eax  
+
+:004A67C1 8D954CFFFF FFFFFF      lea edx, dword ptr [ebp+FFFFFF4C]  
+
+:004A67C7 51                      push ecx  
+
+:004A67C8 52                      push edx  
+
+:004A67C9 C7854CFFFF FFFFFF02    mov dword ptr [ebp+FFFFFF4C], 80000002  
+
+:004A67D3 E8289FFFFF             call 004A0700  
+
+:004A67D8 8D45D8                  lea eax, dword ptr [ebp-28]  
+
+:004A67DB 8D4DDC                  lea ecx, dword ptr [ebp-24]  
+
+:004A67DE 50                      push eax  
+
+:004A67DF 8D55E0                  lea edx, dword ptr [ebp-20]  
+
+:004A67E2 51                      push ecx  
+
+:004A67E3 8D45E4                  lea eax, dword ptr [ebp-1C]  
+
+:004A67E6 52                      push edx  
+
+:004A67E7 8D4DE8                  lea ecx, dword ptr [ebp-18]  
+
+:004A67EA 50                      push eax  
+
+:004A67EB 51                      push ecx  
+
+:004A67EC 6A05                    push 00000005  
+
+* Reference To: MSVBVM50.__vbaFreeStrList, Ord:00E4h  
+
+                            |  
+
+:004A67EE FF15B0834B00            Call dword ptr [004B83B0]  
+
+:004A67F4 83C418                  add esp, 00000018  
+
+:004A67F7 8D4DD4                  lea ecx, dword ptr [ebp-2C]  
+
+* Reference To: MSVBVM50.__vbaFreeObj, Ord:007Bh  
+
+                            |  
+
+:004A67FA FF153C844B00            Call dword ptr [004B843C]  
+
+:004A6800 B904000280              mov ecx, 80020004  
+
+:004A6805 B80A000000              mov eax, 0000000A  
+
+:004A680A 894D98                  mov dword ptr [ebp-68], ecx  
+
+:004A680D 894DA8                  mov dword ptr [ebp-58], ecx  
+
+:004A6810 894DB8                  mov dword ptr [ebp-48], ecx  
+
+:004A6813 8D5580                  lea edx, dword ptr [ebp-80]  
+
+:004A6816 8D4DC0                  lea ecx, dword ptr [ebp-40]  
+
+:004A6819 894590                  mov dword ptr [ebp-70], eax  
+
+:004A681C 8945A0                  mov dword ptr [ebp-60], eax  
+```
+
+
+
+# 汇编代码分析与修改
+
+```asm
+:004A681F 8945B0           mov dword ptr [ebp-50], eax  
+
+:004A6822 C745883CBE4100   mov [ebp-78], 0041BE3C           *这里就是我们找到的地方。  
+
+:004A6829 C7458008000000   mov [ebp-80], 00000008  
+
+* Reference To: MSVBVM50.__vbaVarDup, Ord:008Ah  
+
+                             |  
+
+:004A6830 FF15E0834B00      Call dword ptr [004B83E0]  
+
+:004A6836 8D5590            lea edx, dword ptr [ebp-70]  
+
+:004A6839 8D45A0            lea eax, dword ptr [ebp-60]  
+
+:004A683C 52               push edx  
+
+:004A683D 8D4DB0            lea ecx, dword ptr [ebp-50]  
+
+:004A6840 50               push eax  
+
+:004A6841 51               push ecx  
+
+:004A6842 8D55C0            lea edx, dword ptr [ebp-40]  
+
+:004A6845 6A00             push 00000000  
+
+:004A6847 52               push edx  
+
+* Reference To: MSVBVM50.rtcMsgBox, Ord:0253h  
+
+                             |  
+
+:004A6848 FF15C4824B00      Call dword ptr [004B82C4]       *跳出“你已经成功注册，请重新启动本软件。”对话框  
+
+:004A684E 8D4590            lea eax, dword ptr [ebp-70]  
+
+:004A6851 8D4DA0            lea ecx, dword ptr [ebp-60]  
+
+:004A6854 50               push eax  
+
+:004A6855 8D55B0            lea edx, dword ptr [ebp-50]  
+
+:004A6858 51               push ecx  
+
+:004A6859 8D45C0            lea eax, dword ptr [ebp-40]  
+
+:004A685C 52               push edx  
+
+:004A685D 50               push eax  
+
+:004A685E 6A04             push 00000004  
+```
+
+向上翻看是最近的远跳转在 `004A6679` `je 004A6874`。当然如果你不信的话，可以将 `je 004A6874` 改成 `jmp 004A6874` 看是否注册成功了。
+
+当然也别高兴太早，重启运行程序是不是又变成了未注册了。呵呵！注意到 `004A6679` 下一地址 `004A6680` 了吗？这个是干嘛的呀！这个可是注册成功的标志呀！回到 W32Dasm，查找文本 `[004B10DC]` 所有相关的记下来。
+
+```asm
+:0049534F 662335DC104B00     and si, word ptr [004B10DC]  
+
+:00497210 0FBF15DC104B00     movsx edx, word ptr [004B10DC]  
+
+:0049D699 66833DDC104B0000   cmp word ptr [004B10DC], 0000  
+
+:0049E94B 66833DDC104B0000   cmp word ptr [004B10DC], 0000  
+
+:0049EB6C 66833DDC104B0000   cmp word ptr [004B10DC], 0000  
+
+:004A34FD 663935DC104B00     cmp word ptr [004B10DC], si  
+
+:004A386C 66893DDC104B00     mov word ptr [004B10DC], di  
+
+:004A6680 66C705DC104B00FFFF mov word ptr [004B10DC], FFFF     
+
+:004A687A 66A3DC104B00       mov word ptr [004B10DC], ax  
+
+:004AA487 66391DDC104B00     cmp word ptr [004B10DC], bx  
+
+:004AB5A7 66391DDC104B00     cmp word ptr [004B10DC], bx  
+
+:004AD927 66833DDC104B0000   cmp word ptr [004B10DC], 0000  
+
+:004B0255 663935DC104B00     cmp word ptr [004B10DC], si  
+
+:004B05D2 663935DC104B00     cmp word ptr [004B10DC], si  
+```
+
+## 动态调试与代码修改
+
+打开 Ollydbg1.10。加载 `DirectX 随意卸.exe`，在找到的地址上全部下断点。动态调试，（因过程比较烦索，也省得浪费大家的时间我就略去了）以下是我修改的代码
+
+### (1)
+
+```asm
+00497205   0FBFC8             movsx ecx,ax  
+00497208   85C9              test ecx,ecx  
+0049720A   0F847C010000      je DirectX?0049738C  
+00497210   0FBF15 DC104B00   movsx edx,word ptr ds:[4B10DC]  
+```
+
+改为
+
+```asm
+00497205   66:C705 DC104B00 FFFFF mov word ptr ds:[4B10DC],0FFFF   *放入全局变量  
+0049720E   90                 nop  
+0049720F   90                 nop  
+00497210   0FBF15 DC104B00    movsx edx,word ptr ds:[4B10DC]  
+```
+
+### (2)
+
+```asm
+004A3864   /75 10             jnz short DirectX?004A3876  
+004A3866   |8935 D8104B00     mov dword ptr ds:[4B10D8],esi  
+004A386C   |66:893D DC104B00  mov word ptr ds:[4B10DC],di  
+```
+
+改为
+
+```asm
+004A3864   /9090                                  
+004A3866   |8935 D8104B00     mov dword ptr ds:[4B10D8],esi  
+004A386C   |66:893D DC104B00  mov word ptr ds:[4B10DC],di      *去除退出时要注册对话框。  
+```
+
+### (3)
+
+```asm
+004AB5A5   /74 0D             je short DirectX?004AB5B4  
+004AB5A7   |66:391D DC104B00  cmp word ptr ds:[4B10DC],bx  
+```
+
+改为
+
+```asm
+004AB5A5   /9090              
+004AB5A7   |66:391D DC104B00  cmp word ptr ds:[4B10DC],bx      *去除还原后是否检查彻底限制。  
+```
+
+OK！现在运行没有限制了吧！(怎么样，这下乖乖就范了吧！看你的小样）当然运行关于对话框没有注册用户名显示在上面，你可以将以下文本保存成 `*.reg` 文件导入就可以了。
+
+## 注册表修改
+
+```reg
+Windows Registry Editor Version 5.00  
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\SuperFox\DirectX 随意卸]  
+
+"Version"="1.98b"  
+
+"Registered Name"="siaoxing"  
+
+"Registered Quest"="2797"  
+
+"Registered Code"="new year 8 998"  
+```
+
+## 后记
+
+破解此软件，没用我多少时间。写这篇破文，呵呵！用了一晚的时间呀！主要是以前没写过，还有就是写得详细了一点，加上了有点自己的破解经验。希望这篇破文对刚学破解初学者有所帮助，也肯请老鸟多多指点。
+
+新春就要来到了。祝看雪学院越办越好，也祝我等小菜们早成老鸟。呵呵！
+
+```text
+       . 
+          |                                                                 |
+           \*  ./                                                          \*  ./
+          . * * .                                                          . * * .
+          -*- ping! -*-              2       0      0      6             -*- ping! -*-           
+          . . * * .                                                          . . * * .
+          /    *  .\                                                          /    *  .\  
+           |                      _   _   _                                   |
+           .                    |.| |.| |.| |.| |.| |.|                         .
+                                | | | | |   |    |      new
+                        */.    .   .    *      .
+                            .\\*    .    []       *               ( )   ( )
+                            */ .   ./\~~~~~~~~~~~~'\. |◆          \`\\_/
+                            \\*   ,/,.\\,...........,\\.◆           \`\\ /'__`\\ /'_)( '_)
+                            || .. # 田  田 ▎ | ▎◆              |( ___/( (|_ || |
+                            || &&  ▎  ▎       ▎'|'▎ o            (_)\`___)`\__,_)(_)
+                            || ##■■■■■■■■■■〓
+                                                                                      siaoxing
+                                                                                   2005 年 12 月 18 日
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,485 +1,474 @@
 
-
 # 某游戏登陆器脱壳修复记录~!
 
 > 原文：[`www.pediy.com/kssd/pediy11/110555.html`](https://www.pediy.com/kssd/pediy11/110555.html)
 
-有朋友让我帮他整一下,查壳发现是 ASP,好一整欢喜,没想到跟了两步,发现我是那么的天真![](img/b0e6af7069663aededb11e4e29a3e6d1.jpg "碌眼")~!(联想到 XX 说过的,"很傻很天真~!"![](img/c1376e2bd59b6be48d07a70822c7e47d.jpg "伤心")).  
-  
-下面把脱壳和修复记录复制上上来,分享给大家,希望能给大家有点帮助.  
-  
+有朋友让我帮他整一下,查壳发现是`ASP`,好一整欢喜,没想到跟了两步,发现我是那么的天真![](img/b0e6af7069663aededb11e4e29a3e6d1.jpg "碌眼")~!(联想到`XX`说过的,"很傻很天真~!"![](img/c1376e2bd59b6be48d07a70822c7e47d.jpg "伤心")).
+
+下面把脱壳和修复记录复制上上来,分享给大家,希望能给大家有点帮助.
 
 代码:
 
+
+
 ```
-
 //始加的候是:
-367C1000 > $  68 01503237   push    37325001
-367C1005   ?  E8 01000000   call    367C100B
-367C100A   .  C3            retn
-367C100B   ?  C3            retn
-367C100C   .  7B 56         jpo     short 367C1064
-367C100E   ?  FF48 C6       dec     dword ptr \[eax-3A\]
-
+367C1000 > $  68 01503237   push    37325001
+367C1005   ?  E8 01000000   call    367C100B
+367C100A   .  C3           retn
+367C100B   ?  C3           retn
+367C100C   .  7B 56        jpo     short 367C1064
+367C100E   ?  FF48 C6      dec     dword ptr [eax-3A]
 
 //F7 跟到
-37325001    60              pushad
-37325002    E8 03000000     call    3732500A
-37325007  - E9 EB045D45     jmp     shell32.7C8F54F7
-3732500C    55              push    ebp
-3732500D    C3              retn
+37325001    60           pushad
+37325002    E8 03000000  call    3732500A
+37325007  - E9 EB045D45  jmp     shell32.7C8F54F7
+3732500C    55           push    ebp
+3732500D    C3           retn
 
 //然後在代段地址下:
-//如果有心思可以 F7 一直跟,不算,我不到 10 分就到下面,按 F2 ^\_^
-Memory map, 条目 35
- 地址=367C1000
- 大小=000F1000 (987136.)
- 属主=奇迹     367C0000
- 区段=
- 包含=代码
- 类型=Imag 01001002
- 访问=R
- 初始访问=RWE
-
+//如果有心思可以 F7 一直跟,不算,我不到 10 分就到下面,按 F2 ^_^
+Memory map, 条目 35
+ 地址=367C1000
+ 大小=000F1000 (987136.)
+ 属主=奇迹     367C0000
+ 区段=
+ 包含=代码
+ 类型=Imag 01001002
+ 访问=R
+ 初始访问=RWE
 
 //F9 就到,不要按 F8,否了的.
 //直接 F7
-37325503    0BC0            or      eax, eax
-37325505    74 1B           je      short 37325522
-37325507    8BF8            mov     edi, eax
-37325509    B9 0C000000     mov     ecx, 0C
-3732550E    F3:A4           rep     movs byte ptr es:\[edi\], byte ptr>
-37325510    EB 10           jmp     short 37325522
-
+37325503    0BC0         or      eax, eax
+37325505    74 1B        je      short 37325522
+37325507    8BF8         mov     edi, eax
+37325509    B9 0C000000  mov     ecx, 0C
+3732550E    F3:A4        rep     movs byte ptr es:[edi], byte ptr>
+37325510    EB 10        jmp     short 37325522
 
 //F7 跟到下面
-37325522    89A5 29040000   mov     dword ptr \[ebp+429\], esp
-37325528    6A 40           push    40
-3732552A    68 00100000     push    1000
-3732552F    FFB5 08040000   push    dword ptr \[ebp+408\]
-37325535    6A 00           push    0
-37325537    FF95 F0030000   call    dword ptr \[ebp+3F0\]
-3732553D    8985 CC010000   mov     dword ptr \[ebp+1CC\], eax
-37325543    8B9D 00040000   mov     ebx, dword ptr \[ebp+400\]
-37325549    039D 0D040000   add     ebx, dword ptr \[ebp+40D\]
-3732554F    50              push    eax
-37325550    53              push    ebx
-37325551    E8 04010000     call    3732565A
-37325556    6A 40           push    40
-37325558    68 00100000     push    1000
-3732555D    FFB5 08040000   push    dword ptr \[ebp+408\]
-37325563    6A 00           push    0
-37325565    FF95 F0030000   call    dword ptr \[ebp+3F0\]
+37325522    89A5 29040000   mov     dword ptr [ebp+429], esp
+37325528    6A 40          push    40
+3732552A    68 00100000    push    1000
+3732552F    FFB5 08040000  push    dword ptr [ebp+408]
+37325535    6A 00          push    0
+37325537    FF95 F0030000  call    dword ptr [ebp+3F0]
+3732553D    8985 CC010000  mov     dword ptr [ebp+1CC], eax
+37325543    8B9D 00040000  mov     ebx, dword ptr [ebp+400]
+37325549    039D 0D040000  add     ebx, dword ptr [ebp+40D]
+3732554F    50           push    eax
+37325550    53           push    ebx
+37325551    E8 04010000  call    3732565A
+37325556    6A 40          push    40
+37325558    68 00100000    push    1000
+3732555D    FFB5 08040000  push    dword ptr [ebp+408]
+37325563    6A 00          push    0
+37325565    FF95 F0030000  call    dword ptr [ebp+3F0]
 
 //再按上面的方法,在代段下
 //F9 一下到
-00D026B7    F3:A5           rep     movs dword ptr es:\[edi\], dword p>
-00D026B9    89C1            mov     ecx, eax
-00D026BB    83E1 03         and     ecx, 3
-00D026BE    F3:A4           rep     movs byte ptr es:\[edi\], byte ptr>
-00D026C0    5F              pop     edi
-00D026C1    5E              pop     esi
-00D026C2    C3              retn
-00D026C3    8D740E FC       lea     esi, dword ptr \[esi+ecx-4\]
-00D026C7    8D7C0F FC       lea     edi, dword ptr \[edi+ecx-4\]
-00D026CB    C1F9 02         sar     ecx, 2
+00D026B7    F3:A5        rep     movs dword ptr es:[edi], dword p>
+00D026B9    89C1         mov     ecx, eax
+00D026BB    83E1 03      and     ecx, 3
+00D026BE    F3:A4        rep     movs byte ptr es:[edi], byte ptr>
+00D026C0    5F           pop     edi
+00D026C1    5E           pop     esi
+00D026C2    C3           retn
+00D026C3    8D740E FC    lea     esi, dword ptr [esi+ecx-4]
+00D026C7    8D7C0F FC    lea     edi, dword ptr [edi+ecx-4]
+00D026CB    C1F9 02      sar     ecx, 2
 
-// F7 跟到下面
-00D40686    8B1424          mov     edx, dword ptr \[esp\]
-00D40689    B9 08000000     mov     ecx, 8
-00D4068E    8BC3            mov     eax, ebx
-00D40690    8B28            mov     ebp, dword ptr \[eax\]
-00D40692    FF55 04         call    dword ptr \[ebp+4\]
-00D40695    8BC3            mov     eax, ebx
-00D40697    8B10            mov     edx, dword ptr \[eax\]
-00D40699    FF52 08         call    dword ptr \[edx+8\]
-00D4069C    8B03            mov     eax, dword ptr \[ebx\]
-00D4069E    FF50 10         call    dword ptr \[eax+10\]
-00D406A1    50              push    eax
-00D406A2    8BC3            mov     eax, ebx
-00D406A4    8B10            mov     edx, dword ptr \[eax\]
-00D406A6    FF52 0C         call    dword ptr \[edx+C\]
-00D406A9    8BC8            mov     ecx, eax
-00D406AB    8BD7            mov     edx, edi
-00D406AD    83EA 08         sub     edx, 8
-00D406B0    8B4424 04       mov     eax, dword ptr \[esp+4\]
-00D406B4    83C0 08         add     eax, 8
-00D406B7    E8 6CBFFCFF     call    00D0C628
-00D406BC    83C6 0C         add     esi, 0C
-00D406BF    837E 04 00      cmp     dword ptr \[esi+4\], 0
-00D406C3  ^ 77 98           ja      short 00D4065D
-00D406C5    8BC3            mov     eax, ebx  ;F4
-00D406C7    E8 EC25FCFF     call    00D02CB8
-00D406CC    5A              pop     edx
-00D406CD    5D              pop     ebp
-00D406CE    5F              pop     edi
-00D406CF    5E              pop     esi
-00D406D0    5B              pop     ebx
-00D406D1    C3              retn
-
+// F7 跟到下面
+00D40686    8B1424       mov     edx, dword ptr [esp]
+00D40689    B9 08000000  mov     ecx, 8
+00D4068E    8BC3         mov     eax, ebx
+00D40690    8B28         mov     ebp, dword ptr [eax]
+00D40692    FF55 04      call    dword ptr [ebp+4]
+00D40695    8BC3         mov     eax, ebx
+00D40697    8B10         mov     edx, dword ptr [eax]
+00D40699    FF52 08      call    dword ptr [edx+8]
+00D4069C    8B03         mov     eax, dword ptr [ebx]
+00D4069E    FF50 10      call    dword ptr [eax+10]
+00D406A1    50           push    eax
+00D406A2    8BC3         mov     eax, ebx
+00D406A4    8B10         mov     edx, dword ptr [eax]
+00D406A6    FF52 0C      call    dword ptr [edx+C]
+00D406A9    8BC8         mov     ecx, eax
+00D406AB    8BD7         mov     edx, edi
+00D406AD    83EA 08      sub     edx, 8
+00D406B0    8B4424 04    mov     eax, dword ptr [esp+4]
+00D406B4    83C0 08      add     eax, 8
+00D406B7    E8 6CBFFCFF  call    00D0C628
+00D406BC    83C6 0C      add     esi, 0C
+00D406BF    837E 04 00   cmp     dword ptr [esi+4], 0
+00D406C3  ^ 77 98        ja      short 00D4065D
+00D406C5    8BC3         mov     eax, ebx  ;F4
+00D406C7    E8 EC25FCFF  call    00D02CB8
+00D406CC    5A           pop     edx
+00D406CD    5D           pop     ebp
+00D406CE    5F           pop     edi
+00D406CF    5E           pop     esi
+00D406D0    5B           pop     ebx
+00D406D1    C3           retn
 
 //F7 跟到下面:
-00D40A80    55              push    ebp
-00D40A81    8BEC            mov     ebp, esp
-00D40A83    83C4 EC         add     esp, -14
-00D40A86    53              push    ebx
-00D40A87    56              push    esi
-00D40A88    57              push    edi
-00D40A89    A1 CC64D400     mov     eax, dword ptr \[D464CC\]
-00D40A8E    C600 E2         mov     byte ptr \[eax\], 0E2
-00D40A91    A1 3065D400     mov     eax, dword ptr \[D46530\]
-00D40A96    8B00            mov     eax, dword ptr \[eax\]
-00D40A98    8B40 08         mov     eax, dword ptr \[eax+8\]
-00D40A9B    8945 F4         mov     dword ptr \[ebp-C\], eax
-00D40A9E    A1 3065D400     mov     eax, dword ptr \[D46530\]
-
+00D40A80    55           push    ebp
+00D40A81    8BEC         mov     ebp, esp
+00D40A83    83C4 EC      add     esp, -14
+00D40A86    53           push    ebx
+00D40A87    56           push    esi
+00D40A88    57           push    edi
+00D40A89    A1 CC64D400  mov     eax, dword ptr [D464CC]
+00D40A8E    C600 E2      mov     byte ptr [eax], 0E2
+00D40A91    A1 3065D400  mov     eax, dword ptr [D46530]
+00D40A96    8B00         mov     eax, dword ptr [eax]
+00D40A98    8B40 08      mov     eax, dword ptr [eax+8]
+00D40A9B    8945 F4      mov     dword ptr [ebp-C], eax
+00D40A9E    A1 3065D400  mov     eax, dword ptr [D46530]
 
 //往下看到
 //(段是解密代用的,仔看了,在去看看,就代段已解密,IAT 依然解密)
-00D40B33    8B45 FC         mov     eax, dword ptr \[ebp-4\]
-00D40B36    E8 3958FCFF     call    00D06374
-00D40B3B    8B53 04         mov     edx, dword ptr \[ebx+4\]
-00D40B3E    8BC6            mov     eax, esi
-00D40B40    E8 6B1AFCFF     call    00D025B0
-00D40B45    83C3 0C         add     ebx, 0C
-00D40B48    8B43 04         mov     eax, dword ptr \[ebx+4\]
-00D40B4B    85C0            test    eax, eax
-00D40B4D  ^ 77 88           ja      short 00D40AD7
-00D40B4F    837D F4 00      cmp     dword ptr \[ebp-C\], 0  ;在 F4
-00D40B53    74 08           je      short 00D40B5D
-00D40B55    8B45 F4         mov     eax, dword ptr \[ebp-C\]
-00D40B58    8B55 F0         mov     edx, dword ptr \[ebp-10\]
-00D40B5B    8910            mov     dword ptr \[eax\], edx
-00D40B5D    5F              pop     edi
-00D40B5E    5E              pop     esi
-00D40B5F    5B              pop     ebx
-00D40B60    8BE5            mov     esp, ebp
-00D40B62    5D              pop     ebp
-00D40B63    C3              retn
+00D40B33    8B45 FC      mov     eax, dword ptr [ebp-4]
+00D40B36    E8 3958FCFF  call    00D06374
+00D40B3B    8B53 04      mov     edx, dword ptr [ebx+4]
+00D40B3E    8BC6         mov     eax, esi
+00D40B40    E8 6B1AFCFF  call    00D025B0
+00D40B45    83C3 0C      add     ebx, 0C
+00D40B48    8B43 04      mov     eax, dword ptr [ebx+4]
+00D40B4B    85C0         test    eax, eax
+00D40B4D  ^ 77 88        ja      short 00D40AD7
+00D40B4F    837D F4 00   cmp     dword ptr [ebp-C], 0  ;在 F4
+00D40B53    74 08        je      short 00D40B5D
+00D40B55    8B45 F4      mov     eax, dword ptr [ebp-C]
+00D40B58    8B55 F0      mov     edx, dword ptr [ebp-10]
+00D40B5B    8910         mov     dword ptr [eax], edx
+00D40B5D    5F           pop     edi
+00D40B5E    5E           pop     esi
+00D40B5F    5B           pop     ebx
+00D40B60    8BE5         mov     esp, ebp
+00D40B62    5D           pop     ebp
+00D40B63    C3           retn
 
 //F8,之後 IAT 表解密:
-00D40DA8    68 E00FD400     push    0D40FE0                          ; ASCII "85"
-00D40DAD    E8 7A56FDFF     call    00D1642C
-00D40DB2    A1 2464D400     mov     eax, dword ptr \[D46424\]
-00D40DB7    8B00            mov     eax, dword ptr \[eax\]
-00D40DB9    E8 9E54FFFF     call    00D3625C
-00D40DBE    84C0            test    al, al
-00D40DC0    75 0A           jnz     short 00D40DCC
-
+00D40DA8    68 E00FD400  push    0D40FE0                 ; ASCII "85"
+00D40DAD    E8 7A56FDFF  call    00D1642C
+00D40DB2    A1 2464D400  mov     eax, dword ptr [D46424]
+00D40DB7    8B00         mov     eax, dword ptr [eax]
+00D40DB9    E8 9E54FFFF  call    00D3625C
+00D40DBE    84C0         test    al, al
+00D40DC0    75 0A        jnz     short 00D40DCC
 
 //F8 一直到:
-00D41B08    68 A6E47DF1     push    F17DE4A6
-00D41B0D    68 E0020000     push    2E0
-00D41B12    68 60600100     push    16060
-00D41B17    68 14150000     push    1514
-00D41B1C    68 F0050400     push    405F0
-00D41B21    68 00900500     push    59000
-00D41B26    FF35 D474D400   push    dword ptr \[D474D4\]
-00D41B2C    E8 01000000     call    00D41B32  ;F7 跟去看看
+00D41B08    68 A6E47DF1  push    F17DE4A6
+00D41B0D    68 E0020000  push    2E0
+00D41B12    68 60600100  push    16060
+00D41B17    68 14150000  push    1514
+00D41B1C    68 F0050400  push    405F0
+00D41B21    68 00900500  push    59000
+00D41B26    FF35 D474D400 push   dword ptr [D474D4]
+00D41B2C    E8 01000000  call    00D41B32 ;F7 跟去看看
 
-// 一整忙乎後到下面
-// 耐心要好一整才到下面
-00D413CE    A1 E45CD500     mov     eax, dword ptr \[D55CE4\]
-00D413D3    894424 04       mov     dword ptr \[esp+4\], eax
-00D413D7    897C24 10       mov     dword ptr \[esp+10\], edi
-00D413DB    A1 4464D400     mov     eax, dword ptr \[D46444\]
-00D413E0    8B00            mov     eax, dword ptr \[eax\]
-00D413E2    E8 D118FCFF     call    00D02CB8
-00D413E7    A1 B45CD500     mov     eax, dword ptr \[D55CB4\]
-00D413EC    E8 C718FCFF     call    00D02CB8
-00D413F1    A1 CC64D400     mov     eax, dword ptr \[D464CC\]
-00D413F6    C600 E3         mov     byte ptr \[eax\], 0E3
-00D413F9    8BD4            mov     edx, esp
-00D413FB    A1 F05CD500     mov     eax, dword ptr \[D55CF0\]
-00D41400    E8 2FC0FFFF     call    00D3D434
-00D41405    E8 9E39FFFF     call    00D34DA8
-00D4140A    E8 51F1FFFF     call    00D40560  ;就跳 OEP
-00D4140F    83C4 24         add     esp, 24
-00D41412    5F              pop     edi
-00D41413    5E              pop     esi
-00D41414    5B              pop     ebx
-00D41415    C3              retn
+// 一整忙乎後到下面
+// 耐心要好一整才到下面
+00D413CE    A1 E45CD500  mov     eax, dword ptr [D55CE4]
+00D413D3    894424 04    mov     dword ptr [esp+4], eax
+00D413D7    897C24 10    mov     dword ptr [esp+10], edi
+00D413DB    A1 4464D400  mov     eax, dword ptr [D46444]
+00D413E0    8B00         mov     eax, dword ptr [eax]
+00D413E2    E8 D118FCFF  call    00D02CB8
+00D413E7    A1 B45CD500  mov     eax, dword ptr [D55CB4]
+00D413EC    E8 C718FCFF  call    00D02CB8
+00D413F1    A1 CC64D400  mov     eax, dword ptr [D464CC]
+00D413F6    C600 E3      mov     byte ptr [eax], 0E3
+00D413F9    8BD4         mov     edx, esp
+00D413FB    A1 F05CD500  mov     eax, dword ptr [D55CF0]
+00D41400    E8 2FC0FFFF  call    00D3D434
+00D41405    E8 9E39FFFF  call    00D34DA8
+00D4140A    E8 51F1FFFF  call    00D40560 ;就跳 OEP
+00D4140F    83C4 24      add     esp, 24
+00D41412    5F           pop     edi
+00D41413    5E           pop     esi
+00D41414    5B           pop     ebx
+00D41415    C3           retn
 
 //F7 跟後的子:
-00D40560    23F7            and     esi, edi                         ; 奇迹.367C0000
-00D40562    337424 08       xor     esi, dword ptr \[esp+8\]
-00D40566    C1CE 6D         ror     esi, 6D
-00D40569    68 00000000     push    0
-00D4056E    EB 02           jmp     short 00D40572
-00D40570    CD20 2BF65E0B   vxdjump B5EF62B
-00D40576    F6              ???                                      ; 未知命令
-00D40577    0F85 DD000000   jnz     00D4065A
+00D40560    23F7         and     esi, edi                  ; 奇迹.367C0000
+00D40562    337424 08    xor     esi, dword ptr [esp+8]
+00D40566    C1CE 6D      ror     esi, 6D
+00D40569    68 00000000  push    0
+00D4056E    EB 02        jmp     short 00D40572
+00D40570    CD20 2BF65E0B vxdjump B5EF62B
+00D40576    F6           ???                           ; 未知命令
+00D40577    0F85 DD000000 jnz    00D4065A
 
 //跟了一翻後在了:
-01E40000    68 C7F54A50     push    504AF5C7
-01E40005    B9 6327F71F     mov     ecx, 1FF72763
-01E4000A    59              pop     ecx
-01E4000B    E8 14000000     call    01E40024
-01E40010    8CD5            mov     bp, ss
-01E40012    EA DB7851B6 B72>jmp     far 24B7:B65178DB
+01E40000    68 C7F54A50  push    504AF5C7
+01E40005    B9 6327F71F  mov     ecx, 1FF72763
+01E4000A    59           pop     ecx
+01E4000B    E8 14000000  call    01E40024
+01E40010    8CD5         mov     bp, ss
+01E40012    EA DB7851B6 B72>jmp    far 24B7:B65178DB
 
 //
-01E40048    FF3403          push    dword ptr \[ebx+eax\]
-01E4004B    5A              pop     edx
-01E4004C    81C2 2EE48208   add     edx, 882E42E
-01E40052    66:BE 4D07      mov     si, 74D
-01E40056    81F2 CF5BD52A   xor     edx, 2AD55BCF
-01E4005C    8BF0            mov     esi, eax
-01E4005E    81F2 5C59EB4F   xor     edx, 4FEB595C
-01E40064    BF 68067B2F     mov     edi, 2F7B0668
-01E40069    52              push    edx
-01E4006A    66:81D9 B2AF    sbb     cx, 0AFB2
-01E4006F    8F0418          pop     dword ptr \[eax+ebx\]
-01E40072    0FBFF6          movsx   esi, si
-01E40075    81F7 F1252920   xor     edi, 202925F1
-01E4007B    83EB 02         sub     ebx, 2
-01E4007E    BE F3EA2544     mov     esi, 4425EAF3
-01E40083    4B              dec     ebx
-01E40084    4B              dec     ebx
-01E40085    66:81EE DCEA    sub     si, 0EADC
-01E4008A    81FB D4FFFFFF   cmp     ebx, -2C
-01E40090    0F85 0B000000   jnz     01E400A1
-01E40096    E9 1F000000     jmp     01E400BA    ;F4
-01E4009B    8647 74         xchg    byte ptr \[edi+74\], al
-01E4009E    9D              popfd
-01E4009F    12E3            adc     ah, bl
-01E400A1  ^ E9 A2FFFFFF     jmp     01E40048
+01E40048    FF3403       push    dword ptr [ebx+eax]
+01E4004B    5A           pop     edx
+01E4004C    81C2 2EE48208 add    edx, 882E42E
+01E40052    66:BE 4D07   mov     si, 74D
+01E40056    81F2 CF5BD52A xor    edx, 2AD55BCF
+01E4005C    8BF0         mov     esi, eax
+01E4005E    81F2 5C59EB4F xor    edx, 4FEB595C
+01E40064    BF 68067B2F  mov     edi, 2F7B0668
+01E40069    52           push    edx
+01E4006A    66:81D9 B2AF sbb    cx, 0AFB2
+01E4006F    8F0418       pop     dword ptr [eax+ebx]
+01E40072    0FBFF6       movsx   esi, si
+01E40075    81F7 F1252920 xor    edi, 202925F1
+01E4007B    83EB 02      sub     ebx, 2
+01E4007E    BE F3EA2544  mov     esi, 4425EAF3
+01E40083    4B           dec     ebx
+01E40084    4B           dec     ebx
+01E40085    66:81EE DCEA sub    si, 0EADC
+01E4008A    81FB D4FFFFFF cmp    ebx, -2C
+01E40090    0F85 0B000000 jnz    01E400A1
+01E40096    E9 1F000000  jmp     01E400BA    ;F4
+01E4009B    8647 74      xchg    byte ptr [edi+74], al
+01E4009E    9D           popfd
+01E4009F    12E3         adc     ah, bl
+01E400A1  ^ E9 A2FFFFFF  jmp     01E40048
 
-// 算出 OEP,最後 JMP 跳去,^\_^於跟到 OEP 了,向光明之了.
-01E400BA    BB 2AA24A00     mov     ebx, 4AA22A
-01E400BF    335C24 08       xor     ebx, dword ptr \[esp+8\]
-01E400C3    5B              pop     ebx
-01E400C4    8D4435 0E       lea     eax, dword ptr \[ebp+esi+E\]
-01E400C8    8D4428 F2       lea     eax, dword ptr \[eax+ebp-E\]
-01E400CC    2BC5            sub     eax, ebp
-01E400CE    58              pop     eax
-01E400CF    8D8428 9B345E5E lea     eax, dword ptr \[eax+ebp+5E5E349B>
-01E400D6    2BC5            sub     eax, ebp
-01E400D8    03C3            add     eax, ebx
-01E400DA    5C              pop     esp
-01E400DB  - FFE0            jmp     eax                              ; 奇迹.368B1204
-01E400DD    C3              retn
-
+// 算出 OEP,最後 JMP 跳去,^_^於跟到 OEP 了,向光明之了.
+01E400BA    BB 2AA24A00  mov     ebx, 4AA22A
+01E400BF    335C24 08    xor     ebx, dword ptr [esp+8]
+01E400C3    5B           pop     ebx
+01E400C4    8D4435 0E    lea     eax, dword ptr [ebp+esi+E]
+01E400C8    8D4428 F2    lea     eax, dword ptr [eax+ebp-E]
+01E400CC    2BC5         sub     eax, ebp
+01E400CE    58           pop     eax
+01E400CF    8D8428 9B345E5E lea eax, dword ptr [eax+ebp+5E5E349B]
+01E400D6    2BC5         sub     eax, ebp
+01E400D8    03C3         add     eax, ebx
+01E400DA    5C           pop     esp
+01E400DB  - FFE0         jmp     eax                   ; 奇迹.368B1204
+01E400DD    C3           retn
 
 //在可以 DUMP 了.
 //再用 ImportRec 修後,出,仔跟看,到底是原因:
 //入口是有的
-368B1204   .  55            push    ebp
-368B1205   .  8BEC          mov     ebp, esp
-368B1207   .  83C4 F0       add     esp, -10
-368B120A   .  53            push    ebx
-368B120B   .  B8 340C8B36   mov     eax, 368B0C34
-368B1210   .  E8 875AF1FF   call    367C6C9C
-368B1215   .- E9 823DA700   jmp     37324F9C  ;跟去
-368B121A      2F            das
-368B121B      96            xchg    eax, esi
-368B121C      D5 EA         aad     0EA
-368B121E      5B            pop     ebx
-368B121F      3B9E 9E8BBDD4 cmp     ebx, dword ptr \[esi+D4BD8B9E\]
-368B1225      1321          adc     esp, dword ptr \[ecx\]
-368B1227    ^ 7F EA         jg      short 368B1213
-368B1229      3D EBECE829   cmp     eax, 29E8ECEB
-368B122E      52            push    edx
-368B122F      B2 A7         mov     dl, 0A7
-368B1231      847C1E CB     test    byte ptr \[esi+ebx-35\], bh
-
-
+368B1204   . 55           push    ebp
+368B1205   . 8BEC         mov     ebp, esp
+368B1207   . 83C4 F0      add     esp, -10
+368B120A   . 53           push    ebx
+368B120B   . B8 340C8B36  mov     eax, 368B0C34
+368B1210   . E8 875AF1FF  call    367C6C9C
+368B1215   .- E9 823DA700 jmp     37324F9C  ;跟去
+368B121A     2F           das
+368B121B     96           xchg    eax, esi
+368B121C     D5 EA        aad     0EA
+368B121E     5B           pop     ebx
+368B121F     3B9E 9E8BBDD4 cmp    ebx, dword ptr [esi+D4BD8B9E]
+368B1225     1321         adc     esp, dword ptr [ecx]
+368B1227    ^ 7F EA        jg      short 368B1213
+368B1229     3D EBECE829  cmp     eax, 29E8ECEB
+368B122E     52           push    edx
+368B122F     B2 A7        mov     dl, 0A7
+368B1231     847C1E CB    test    byte ptr [esi+ebx-35], bh
 
 //最的了,偷代了,不了很正常.
 //打破一次 SF 花了很多和精力後,凡是碰到的,一般都放.
 //
-37324F9C    68 9F4A3237     push    37324A9F
-37324FA1  ^ E9 3E07FDFF     jmp     372F56E4  ;的方式想起了 VMP,TMD.
-37324FA6    0000            add     byte ptr \[eax\], al
-37324FA8    0000            add     byte ptr \[eax\], al
+37324F9C    68 9F4A3237  push    37324A9F
+37324FA1  ^ E9 3E07FDFF  jmp     372F56E4  ;的方式想起了 VMP,TMD.
+37324FA6    0000         add     byte ptr [eax], al
+37324FA8    0000         add     byte ptr [eax], al
 
-//是不是我有,越越像 VMP 了, T\_T
-372F56E4    60              pushad
-372F56E5    9C              pushfd
-372F56E6    FC              cld
-372F56E7    E8 00000000     call    372F56EC
-372F56EC    5F              pop     edi
-372F56ED    81EF EC562F37   sub     edi, 372F56EC
-372F56F3    8BC7            mov     eax, edi
-372F56F5    81C7 00542F37   add     edi, 372F5400
-372F56FB    3B47 2C         cmp     eax, dword ptr \[edi+2C\]
-372F56FE    75 02           jnz     short 372F5702
-372F5700    EB 36           jmp     short 372F5738
+//是不是我有,越越像 VMP 了, T_T
+372F56E4    60           pushad
+372F56E5    9C           pushfd
+372F56E6    FC           cld
+372F56E7    E8 00000000  call    372F56EC
+372F56EC    5F           pop     edi
+372F56ED    81EF EC562F37 sub    edi, 372F56EC
+372F56F3    8BC7         mov     eax, edi
+372F56F5    81C7 00542F37 add    edi, 372F5400
+372F56FB    3B47 2C      cmp     eax, dword ptr [edi+2C]
+372F56FE    75 02        jnz     short 372F5702
+372F5700    EB 36        jmp     short 372F5738
 
 //一下
-372F8208    872C24          xchg    dword ptr \[esp\], ebp
-372F820B    8B2424          mov     esp, dword ptr \[esp\]
-372F820E    68 CB3C0000     push    3CCB
-372F8213    891C24          mov     dword ptr \[esp\], ebx
-372F8216    B3 76           mov     bl, 76
-372F8218    C0E3 05         shl     bl, 5
-372F821B    80C3 37         add     bl, 37
-372F821E  ^ 0F8E 53E1FFFF   jle     372F6377
+372F8208    872C24       xchg    dword ptr [esp], ebp
+372F820B    8B2424       mov     esp, dword ptr [esp]
+372F820E    68 CB3C0000  push    3CCB
+372F8213    891C24       mov     dword ptr [esp], ebx
+372F8216    B3 76        mov     bl, 76
+372F8218    C0E3 05      shl     bl, 5
+372F821B    80C3 37      add     bl, 37
+372F821E  ^ 0F8E 53E1FFFF jle    372F6377
 
 //了次跳
-372F6379    FEC3            inc     bl
-372F637B    0F8F 23170000   jg      372F7AA4
-372F6381    80E3 7D         and     bl, 7D
-372F6384    0F86 AD550000   jbe     372FB937
-372F638A    50              push    eax
-372F638B    E9 4E450000     jmp     372FA8DE
+372F6379    FEC3         inc     bl
+372F637B    0F8F 23170000 jg    372F7AA4
+372F6381    80E3 7D      and     bl, 7D
+372F6384    0F86 AD550000 jbe   372FB937
+372F638A    50           push    eax
+372F638B    E9 4E450000  jmp     372FA8DE
 
 //一翻跟後在有耐心了
-//了,用快捷的法,始不是 PUSHFD PUSHAD 嘛,都是成出的,我找
-//POPAD POPFD
-372FA948    BB 30000000     mov     ebx, 30  ;F4 在碰碰,果真下了^\_^
-372FA94D    01D3            add     ebx, edx
-372FA94F    C703 00000000   mov     dword ptr \[ebx\], 0
-372FA955    5B              pop     ebx
-372FA956    61              popad    ;在找到了
-372FA957  ^ E9 7BDBFFFF     jmp     372F84D7
+//了,用快捷的法,始不是 PUSHFD PUSHAD 嘛,都是成出的,我找
+//POPAD POPFD
+372FA948    BB 30000000  mov     ebx, 30 ;F4 在碰碰,果真下了^_^
+372FA94D    01D3         add     ebx, edx
+372FA94F    C703 00000000 mov   dword ptr [ebx], 0
+372FA955    5B           pop     ebx
+372FA956    61           popad   ;在找到了
+372FA957  ^ E9 7BDBFFFF  jmp     372F84D7
 
 //跳後到
-372F84D7    9D              popfd  ;找到,果真
-372F84D8  ^ E9 0CDAFFFF     jmp     372F5EE9
-372F84DD    80EB DD         sub     bl, 0DD
-372F84E0  ^ E9 24DEFFFF     jmp     372F6309
+372F84D7    9D           popfd   ;找到,果真
+372F84D8  ^ E9 0CDAFFFF  jmp     372F5EE9
+372F84DD    80EB DD      sub     bl, 0DD
+372F84E0  ^ E9 24DEFFFF  jmp     372F6309
 
 //跳後返回了,具嘛了,我也不知道,在心思看了
-372F5EE9    C3              retn  ;返回了
-372F5EEA    E9 B1430000     jmp     372FA2A0
+372F5EE9    C3           retn    ;返回了
+372F5EEA    E9 B1430000  jmp     372FA2A0
 
 //返回後用函?
-367C7024   $- FF25 08648C36 jmp     dword ptr \[<&kernel32.GetLastErr>;  ntdll.RtlGetLastWin32Error
+367C7024   $- FF25 08648C36 jmp   dword ptr [<&kernel32.GetLastErr>; ntdll.RtlGetLastWin32Error
 
 //看有束,的是最我的了.
-37324A6D    68 CE4B3237     push    37324BCE
-37324A72  ^ E9 6D0CFDFF     jmp     372F56E4
+37324A6D    68 CE4B3237  push    37324BCE
+37324A72  ^ E9 6D0CFDFF  jmp     372F56E4
 
 //看好上面的 RETN,就不至於跟了.
 //不知道是函被加密了.
 //返回後到入口~!
-368B1281      A1 CC978B36   mov     eax, dword ptr \[368B97CC\]
-368B1286      8B00          mov     eax, dword ptr \[eax\]
-368B1288      E8 1706F7FF   call    368218A4
+368B1281     A1 CC978B36  mov     eax, dword ptr [368B97CC]
+368B1286     8B00         mov     eax, dword ptr [eax]
+368B1288     E8 1706F7FF  call    368218A4
 
 //我在找到了
-368189A6      8B53 08       mov     edx, dword ptr \[ebx+8\]
-368189A9      8BC5          mov     eax, ebp
-368189AB      E8 C005FBFF   call    367C8F70
-368189B0      85C0          test    eax, eax
-
+368189A6     8B53 08      mov     edx, dword ptr [ebx+8]
+368189A9     8BC5         mov     eax, ebp
+368189AB     E8 C005FBFF  call    367C8F70
+368189B0     85C0         test    eax, eax
 
 //正好是地方,我跟去看看,希望不要太 BT
-367C8F70   $- E9 8B7068CB   jmp     01E50000
-367C8F75      98            db      98
-367C8F76      5E            db      5E                               ;  CHAR '^'
-367C8F77      04            db      04
-367C8F78      10            db      10
-367C8F79      16            db      16
+367C8F70   $- E9 8B7068CB jmp     01E50000
+367C8F75     98           db      98
+367C8F76     5E           db      5E                  ;   CHAR '^'
+367C8F77     04           db      04
+367C8F78     10           db      10
+367C8F79     16           db      16
 
-//@\_@,不吧,我要把代中出???
-01E50000    F2:             prefix repne:
-01E50001    EB 01           jmp     short 01E50004
-01E50003    F2:             prefix repne:
-01E50004    56              push    esi
-01E50005    57              push    edi
-01E50006    53              push    ebx
-01E50007    BE 168E4100     mov     esi, 418E16
-01E5000C    65:EB 01        jmp     short 01E50010
-01E5000F    9A C1E66681 DEF>call    far FEDE:8166E6C1
-01E50016    8BC7            mov     eax, edi
-01E50018    EC              in      al, dx
-01E50019    8DB41D 88BB4200 lea     esi, dword ptr \[ebp+ebx+42BB88\]
-01E50020    F2:             prefix repne:
+//@\_,不吧,我要把代中出???
+01E50000    F2:          prefix repne:
+01E50001    EB 01        jmp     short 01E50004
+01E50003    F2:          prefix repne:
+01E50004    56           push    esi
+01E50005    57           push    edi
+01E50006    53           push    ebx
+01E50007    BE 168E4100  mov     esi, 418E16
+01E5000C    65:EB 01     jmp     short 01E50010
+01E5000F    9A C1E66681 DEF>call  far FEDE:8166E6C1
+01E50016    8BC7         mov     eax, edi
+01E50018    EC           in      al, dx
+01E50019    8DB41D 88BB4200 lea esi, dword ptr [ebp+ebx+42BB88]
+01E50020    F2:          prefix repne:
 
 //我把可疑的代全部略出看看
-01E50004    56              push    esi
-01E50005    57              push    edi
-01E50006    53              push    ebx
-01E50007    BE 168E4100     mov     esi, 418E16
-01E50010    C1E6 66         shl     esi, 66
-01E50013    81DE FE8BC7EC   sbb     esi, ECC78BFE
-01E50019    8DB41D 88BB4200 lea     esi, dword ptr \[ebp+ebx+42BB88\]
-01E50024    2BF3            sub     esi, ebx
-01E50026    8D7408 2B       lea     esi, dword ptr \[eax+ecx+2B\]
-01E5002A    2BF1            sub     esi, ecx
-01E50034    8D740E D5       lea     esi, dword ptr \[esi+ecx-2B\]
-01E50038    2BF1            sub     esi, ecx
-01E5003A    037C24 38       add     edi, dword ptr \[esp+38\]
-01E5003E    C1DF CB         rcr     edi, 0CB
-01E50045    BF 524A4900     mov     edi, 494A52
-01E5004A    83EF 25         sub     edi, 25
-01E50052    0BFD            or      edi, ebp
-01E50058    8D7C0A 4A       lea     edi, dword ptr \[edx+ecx+4A\]
-01E5005C    2BF9            sub     edi, ecx
-01E50063    8D7C1F B6       lea     edi, dword ptr \[edi+ebx-4A\]
-01E50067    2BFB            sub     edi, ebx
-01E50069    09C0            or      eax, eax
-01E5006B    74 03           je      short 01E50070
-01E5006D    8B40 FC         mov     eax, dword ptr \[eax-4\]
-01E50070    09D2            or      edx, edx
-01E50072    74 03           je      short 01E50077
-01E50074    8B52 FC         mov     edx, dword ptr \[edx-4\]
-01E5007B    8D4C11 FF       lea     ecx, dword ptr \[ecx+edx-1\]
-01E5007F    2BCA            sub     ecx, edx
-01E5008A    33CF            xor     ecx, edi
-01E5008C    8D48 1B         lea     ecx, dword ptr \[eax+1B\]
-01E5008F    83E9 1B         sub     ecx, 1B
-01E50092    39D1            cmp     ecx, edx
-01E50094    76 02           jbe     short 01E50098
-01E50096    89D1            mov     ecx, edx
-01E50098    39C9            cmp     ecx, ecx
-01E5009A    F3:A6           repe    cmps byte ptr es:\[edi\], byte ptr>
-01E5009C    74 2A           je      short 01E500C8
-01E5009E    8A5E FF         mov     bl, byte ptr \[esi-1\]
-01E500A1    80FB 61         cmp     bl, 61
-01E500A4    72 08           jb      short 01E500AE
-01E500A6    80FB 7A         cmp     bl, 7A
-01E500A9    77 03           ja      short 01E500AE
-01E500AB    80EB 20         sub     bl, 20
-01E500AE    8A7F FF         mov     bh, byte ptr \[edi-1\]
-01E500B1    80FF 61         cmp     bh, 61
-01E500B4    72 08           jb      short 01E500BE
-01E500B6    80FF 7A         cmp     bh, 7A
-01E500B9    77 03           ja      short 01E500BE
-01E500BB    80EF 20         sub     bh, 20
-01E500BE    38FB            cmp     bl, bh
-01E500C0  ^ 74 D8           je      short 01E5009A
-01E500C2    0FB6C3          movzx   eax, bl
-01E500C5    0FB6D7          movzx   edx, bh
-01E500C8    29D0            sub     eax, edx
-01E500CA    5B              pop     ebx
-01E500CB    5F              pop     edi
-01E500CC    5E              pop     esi
-01E500CD    C3              retn
+01E50004    56           push    esi
+01E50005    57           push    edi
+01E50006    53           push    ebx
+01E50007    BE 168E4100  mov     esi, 418E16
+01E50010    C1E6 66      shl     esi, 66
+01E50013    81DE FE8BC7EC sbb   esi, ECC78BFE
+01E50019    8DB41D 88BB4200 lea esi, dword ptr [ebp+ebx+42BB88]
+01E50024    2BF3         sub     esi, ebx
+01E50026    8D7408 2B    lea     esi, dword ptr [eax+ecx+2B]
+01E5002A    2BF1         sub     esi, ecx
+01E50034    8D740E D5    lea     esi, dword ptr [esi+ecx-2B]
+01E50038    2BF1         sub     esi, ecx
+01E5003A    037C24 38    add     edi, dword ptr [esp+38]
+01E5003E    C1DF CB      rcr     edi, 0CB
+01E50045    BF 524A4900  mov     edi, 494A52
+01E5004A    83EF 25      sub     edi, 25
+01E50052    0BFD         or      edi, ebp
+01E50058    8D7C0A 4A    lea     edi, dword ptr [edx+ecx+4A]
+01E5005C    2BF9         sub     edi, ecx
+01E50063    8D7C1F B6    lea     edi, dword ptr [edi+ebx-4A]
+01E50067    2BFB         sub     edi, ebx
+01E50069    09C0         or      eax, eax
+01E5006B    74 03        je      short 01E50070
+01E5006D    8B40 FC      mov     eax, dword ptr [eax-4]
+01E50070    09D2         or      edx, edx
+01E50072    74 03        je      short 01E50077
+01E50074    8B52 FC      mov     edx, dword ptr [edx-4]
+01E5007B    8D4C11 FF    lea     ecx, dword ptr [ecx+edx-1]
+01E5007F    2BCA         sub     ecx, edx
+01E5008A    33CF         xor     ecx, edi
+01E5008C    8D48 1B      lea     ecx, dword ptr [eax+1B]
+01E5008F    83E9 1B      sub     ecx, 1B
+01E50092    39D1         cmp     ecx, edx
+01E50094    76 02        jbe     short 01E50098
+01E50096    89D1         mov     ecx, edx
+01E50098    39C9         cmp     ecx, ecx
+01E5009A    F3:A6        repe    cmps byte ptr es:[edi], byte ptr>
+01E5009C    74 2A        je      short 01E500C8
+01E5009E    8A5E FF      mov     bl, byte ptr [esi-1]
+01E500A1    80FB 61      cmp     bl, 61
+01E500A4    72 08        jb      short 01E500AE
+01E500A6    80FB 7A      cmp     bl, 7A
+01E500A9    77 03        ja      short 01E500AE
+01E500AB    80EB 20      sub     bl, 20
+01E500AE    8A7F FF      mov     bh, byte ptr [edi-1]
+01E500B1    80FF 61      cmp     bh, 61
+01E500B4    72 08        jb      short 01E500BE
+01E500B6    80FF 7A      cmp     bh, 7A
+01E500B9    77 03        ja      short 01E500BE
+01E500BB    80EF 20      sub     bh, 20
+01E500BE    38FB         cmp     bl, bh
+01E500C0  ^ 74 D8        je      short 01E5009A
+01E500C2    0FB6C3       movzx   eax, bl
+01E500C5    0FB6D7       movzx   edx, bh
+01E500C8    29D0         sub     eax, edx
+01E500CA    5B           pop     ebx
+01E500CB    5F           pop     edi
+01E500CC    5E           pop     esi
+01E500CD    C3           retn
 
 //上面一段的二制代
-56 57 53 BE 16 8E 41 00 C1 E6 66 81 DE FE 8B C7 EC 8D B4 1D 88 BB 42 00 2B F3 8D 74 08 2B 2B F1
-8D 74 0E D5 2B F1 03 7C 24 38 C1 DF CB BF 52 4A 49 00 83 EF 25 0B FD 8D 7C 0A 4A 2B F9 8D 7C 1F
-B6 2B FB 09 C0 74 03 8B 40 FC 09 D2 74 03 8B 52 FC 8D 4C 11 FF 2B CA 33 CF 8D 48 1B 83 E9 1B 39
-D1 76 02 89 D1 39 C9 F3 A6 74 2A 8A 5E FF 80 FB 61 72 08 80 FB 7A 77 03 80 EB 20 8A 7F FF 80 FF
-61 72 08 80 FF 7A 77 03 80 EF 20 38 FB 74 D8 0F B6 C3 0F B6 D7 29 D0 5B 5F 5E C3 C3
+56 57 53 BE 16 8E 41 00 C1 E6 66 81 DE FE 8B C7 EC 8D B4 1D 88 BB 42 00 2B F3 8D 74 08 2B 2B F1
+8D 74 0E D5 2B F1 03 7C 24 38 C1 DF CB BF 52 4A 49 00 83 EF 25 0B FD 8D 7C 0A 4A 2B F9 8D 7C 1F
+B6 2B FB 09 C0 74 03 8B 40 FC 09 D2 74 03 8B 52 FC 8D 4C 11 FF 2B CA 33 CF 8D 48 1B 83 E9 1B 39
+D1 76 02 89 D1 39 C9 F3 A6 74 2A 8A 5E FF 80 FB 61 72 08 80 FB 7A 77 03 80 EB 20 8A 7F FF 80 FF
+61 72 08 80 FF 7A 77 03 80 EF 20 38 FB 74 D8 0F B6 C3 0F B6 D7 29 D0 5B 5F 5E C3 C3
 
-//我加了段,把代了去~!行正^\_^,有例的做法,不,最好的法就是
+//我加了段,把代了去~!行正^_^,有例的做法,不,最好的法就是
 //找函原始位置,去,就不用再加段了,但是方便操作.
-367C8F70    - E9 8B10BD00   jmp     3739A000  ;新加段的地址
-367C8F75      98            db      98
-367C8F76      5E            db      5E                               ;  CHAR '^'
-367C8F77      04            db      04
-367C8F78      10            db      10
+367C8F70    - E9 8B10BD00  jmp     3739A000  ;新加段的地址
+367C8F75     98           db      98
+367C8F76     5E           db      5E                  ;   CHAR '^'
+367C8F77     04           db      04
+367C8F78     10           db      10
 
 //
-Memory map, 条目 62
- 地址=3739A000
- 大小=00010000 (65536.)
- 属主=dumped\_  367C0000
- 区段=.mgAdd
- 类型=Imag 01001002
- 访问=R
- 初始访问=RWE
+Memory map, 条目 62
+ 地址=3739A000
+ 大小=00010000 (65536.)
+ 属主=dumped_  367C0000
+ 区段=.mgAdd
+ 类型=Imag 01001002
+ 访问=R
+ 初始访问=RWE
 
-
-//有好多,到是在行起了^\_^.
-
+//有好多,到是在行起了^_^.
 ```
 
- 先就这样了,以后碰到了,慢慢补,这个不一定能把全部偷走的代码一次补全,慢慢来~~!Yeah~~!  
-  
-                                                                     - By Menting   
-                                                                     2010.04.09
+
+
+先就这样了,以后碰到了,慢慢补,这个不一定能把全部偷走的代码一次补全,慢慢来~~!Yeah~~!
+
+- By Menting  
+2010.04.09

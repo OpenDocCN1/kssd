@@ -1,615 +1,846 @@
 
-
 # 大数计算器的 VB 代码
 
 > 原文：[`www.pediy.com/kssd/pediy05/pediy50393.htm`](https://www.pediy.com/kssd/pediy05/pediy50393.htm)
 
-Attribute VB\_Name = "BigNumbers"   
-Option Explicit   
-  
-Public Const MaxLenth = 20000   
-  
-Dim Pom0(MaxLenth) As Long   
-Dim Pom1(MaxLenth) As Long   
-Dim Pom2(MaxLenth) As Long   
-Dim Pom3(MaxLenth) As Long   
-Dim Pom4(MaxLenth) As Long   
-Dim Pom5(MaxLenth) As Long   
-Dim Pom6(MaxLenth) As Long   
-Dim Pom7(MaxLenth) As Long   
-  
-Dim LengthPom0 As Long   
-Dim LengthPom1 As Long   
-Dim LengthPom2 As Long   
-Dim LengthPom3 As Long   
-Dim LengthPom4 As Long   
-Dim LengthPom5 As Long   
-Dim LengthPom6 As Long   
-Dim LengthPom7 As Long   
-  
-Dim K1(MaxLenth) As Long   
-Dim K10(MaxLenth) As Long   
-Dim K100(MaxLenth) As Long   
-Dim K200(MaxLenth) As Long   
-Dim K10000(MaxLenth) As Long   
-  
-Dim A(MaxLenth) As Long   
-Dim B(MaxLenth) As Long   
-Dim C(MaxLenth) As Long   
-Dim D(MaxLenth) As Long   
-  
-Dim LengthA As Long   
-Dim LengthB As Long   
-Dim LengthC As Long   
-Dim LengthD As Long   
-Function CompareB(A() As Long, LengthA As Long, B() As Long, LengthB As Long) As Long   
-Dim I As Long   
-Select Case LengthA - LengthB   
-Case Is < 0   
-    CompareB = -1   
-Case Is = 0   
-    CompareB = 0   
-    For I = 1 To LengthA   
-        Select Case A(LengthA - I + 1) - B(LengthA - I + 1)   
-        Case Is < 0   
-            CompareB = -1   
-            Exit For   
-        Case Is = 0   
-        Case Is > 0   
-            CompareB = 1   
-            Exit For   
-        End Select   
-    Next I   
-Case Is > 0   
-    CompareB = 1   
-End Select   
-  
-End Function   
-Function BigNumberToText(C() As Long, Length As Long) As String   
-Dim I As Long   
-Dim Pom As String   
-If C(0) = -1 Then   
-    Pom = "-"   
-Else   
-    Pom = ""   
-End If   
-Pom = Pom & Format$(C(Length), "0")   
-For I = Length - 1 To 1 Step -1   
-    Pom = Pom & Format$(C(I), "0000")   
-Next I   
-BigNumberToText = Pom   
-End Function   
-Sub TextToBigNumber(Tekst As String, A() As Long, LengthA As Long)   
-Dim I As Long   
-Dim Prvi As String   
-Dim MaxLenthPrvi As Long   
-Dim Ostatak As Long   
-Prvi = Trim$(Tekst)   
-If IsItBigNumber(Prvi) Then   
-    A(0) = 0   
-    If Left$(Prvi, 1) = "+" Then   
-        Prvi = Right$(Prvi, Len(Prvi) - 1)   
-    End If   
-    If Left$(Prvi, 1) = "-" Then   
-        Prvi = Right$(Prvi, Len(Prvi) - 1)   
-        A(0) = -1   
-    End If   
-      
-    MaxLenthPrvi = Len(Prvi)   
-    If (MaxLenthPrvi \\ 4) \* 4 = MaxLenthPrvi Then   
-        LengthA = MaxLenthPrvi \\ 4   
-        For I = 1 To LengthA   
-            A(I) = Mid$(Prvi, MaxLenthPrvi - I \* 4 + 1, 4)   
-        Next I   
-    Else   
-        LengthA = MaxLenthPrvi \\ 4 + 1   
-        Ostatak = MaxLenthPrvi Mod 4   
-        For I = 1 To LengthA - 1   
-            A(I) = Mid$(Prvi, MaxLenthPrvi - I \* 4 + 1, 4)   
-        Next I   
-        A(LengthA) = Mid$(Prvi, 1, Ostatak)   
-    End If   
-Else   
-    A(1) = 0   
-    LengthA = 1   
-End If   
-End Sub   
-  
-Sub MinusB(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)   
-Select Case CompareB(A, LengthA, B, LengthB)   
-Case Is < 0   
-    Call MinusBV(B, LengthB, A, LengthA, C, LengthC)   
-    C(0) = -1   
-Case Is = 0   
-    C(1) = 0   
-    LengthC = 1   
-    C(0) = 0   
-Case Is > 0   
-    Call MinusBV(A, LengthA, B, LengthB, C, LengthC)   
-    C(0) = 0   
-End Select   
-  
-End Sub   
-  
-  
-Function IsItBigNumber(Ulaz As String) As Boolean   
-Dim Pom As String   
-Dim Pom1 As String   
-Dim I As Long   
-Dim IsItBigNumber1 As Boolean   
-Pom1 = Ulaz   
-Pom = Left$(Pom1, 300)   
-If IsNumeric(Pom) Then   
-    If InStr(1, Pom, "e", 1) > 0 Then   
-        IsItBigNumber1 = False   
-    Else   
-        If InStr(1, Pom, ".", 1) > 0 Then   
-            IsItBigNumber1 = False   
-        Else   
-          If InStr(1, Pom, ",", 1) > 0 Then   
-              IsItBigNumber1 = False   
-          Else   
-              IsItBigNumber1 = True   
-          End If   
-        End If   
-    End If   
-Else   
-    IsItBigNumber1 = False   
-End If   
-  
-If IsItBigNumber1 Then   
-    For I = 1 To Len(Pom1) \\ 300   
-        Pom = Mid$(Pom1, 300 \* I, 300)   
-        If IsNumeric(Pom) Then   
-            If InStr(1, Pom, "e", 1) > 0 Then   
-                IsItBigNumber1 = False   
-            Else   
-                If InStr(1, Pom, ".", 1) > 0 Then   
-                    IsItBigNumber1 = False   
-                Else   
-                    If InStr(1, Pom, ",", 1) > 0 Then   
-                        IsItBigNumber1 = False   
-                    Else   
-                        If InStr(1, Pom, "-", 1) > 0 Then   
-                            IsItBigNumber1 = False   
-                        Else   
-                            If InStr(1, Pom, "+", 1) > 0 Then   
-                                IsItBigNumber1 = False   
-                            Else   
-                                IsItBigNumber1 = True   
-                            End If   
-                        End If   
-                    End If   
-                End If   
-            End If   
-        Else   
-            IsItBigNumber1 = False   
-        End If   
-          
-    Next I   
-End If   
-IsItBigNumber = IsItBigNumber1   
-End Function   
-  
-Sub AddBSigned(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)   
-If A(0) = 0 And B(0) = 0 Then   
-    Call AddB(A, LengthA, B, LengthB, C, LengthC)   
-End If   
-If A(0) < 0 And B(0) < 0 Then   
-    Call AddB(A, LengthA, B, LengthB, C, LengthC)   
-    C(0) = -1   
-End If   
-If A(0) = 0 And B(0) < 0 Then   
-    Call MinusB(A, LengthA, B, LengthB, C, LengthC)   
-End If   
-If A(0) < 0 And B(0) = 0 Then   
-    Call MinusB(B, LengthB, A, LengthA, C, LengthC)   
-End If   
-  
-End Sub   
-  
-Sub MinusBSigned(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)   
-If A(0) = 0 And B(0) = 0 Then   
-    Call MinusB(A, LengthA, B, LengthB, C, LengthC)   
-End If   
-If A(0) < 0 And B(0) < 0 Then   
-    Call MinusB(B, LengthB, A, LengthA, C, LengthC)   
-End If   
-If A(0) = 0 And B(0) < 0 Then   
-    Call AddB(A, LengthA, B, LengthB, C, LengthC)   
-    C(0) = 0   
-      
-End If   
-If A(0) < 0 And B(0) = 0 Then   
-    Call AddB(B, LengthB, A, LengthA, C, LengthC)   
-    C(0) = -1   
-End If   
-  
-End Sub   
-  
-Sub MultBSigned(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)   
-Call MultB(A, LengthA, B, LengthB, C, LengthC)   
-If (A(0) = 0 And B(0) = 0) Or (A(0) < 0 And B(0) < 0) Then   
-    C(0) = 0   
-Else   
-    If LengthC = 1 And C(1) = 0 Then   
-        C(0) = 0   
-    Else   
-        C(0) = -1   
-    End If   
-End If   
-End Sub   
-  
-Sub CopyB(A() As Long, LengthA As Long, B() As Long, LengthB As Long)   
-Dim I As Long   
-LengthB = LengthA   
-For I = 0 To LengthA   
-    B(I) = A(I)   
-Next I   
-End Sub   
-  
-  
-Sub DivBSigned(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long, D() As Long, LengthD As Long)   
-Call DivB(A, LengthA, B, LengthB, C, LengthC, D, LengthD)   
-If (A(0) = 0 And B(0) = 0) Or (A(0) < 0 And B(0) < 0) Then   
-    C(0) = 0   
-Else   
-    If LengthC = 1 And C(1) = 0 Then   
-        C(0) = 0   
-    Else   
-        C(0) = -1   
-    End If   
-End If   
-  
-End Sub   
-  
-Sub DivB(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long, D() As Long, LengthD As Long)   
-If LengthB = 1 And B(1) = 0 Then   
-    C(1) = 0   
-    LengthC = 1   
-    C(0) = 0   
-    Exit Sub   
-End If   
-If LengthB = 1 And B(1) = 1 Then   
-    Call CopyB(A, LengthA, C, LengthC)   
-    Exit Sub   
-End If   
-If LengthA = 1 And A(1) = 0 Then   
-    C(1) = 0   
-    LengthC = 1   
-    C(0) = 0   
-    Exit Sub   
-End If   
-Select Case CompareB(A, LengthA, B, LengthB)   
-Case Is < 0   
-    C(1) = 0   
-    LengthC = 1   
-    C(0) = 0   
-Case Is = 0   
-    C(1) = 1   
-    LengthC = 1   
-    C(0) = 0   
-Case Is > 0   
-    Call DivBInt(A, LengthA, B, LengthB, C, LengthC, D, LengthD)   
-End Select   
-  
-End Sub   
-Sub DivBInt(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long, D() As Long, LengthD As Long)   
-Dim I As Long   
-Dim J As Long   
-Dim StrA As String   
-Dim StrB As String   
-Dim StrC As String   
-Dim MaxLenthStrA As Long   
-Dim MaxLenthStrB As Long   
-Dim TR As String   
-K10(1) = 10   
-StrA = BigNumberToText(A, LengthA)   
-If Left$(StrA, 1) = "-" Then StrA = Right$(StrA, Len(StrA) - 1)   
-StrB = BigNumberToText(B, LengthB)   
-If Left$(StrA, 1) = "-" Then StrA = Right$(StrA, Len(StrA) - 1)   
-MaxLenthStrA = Len(StrA)   
-MaxLenthStrB = Len(StrB)   
-J = 0   
-Call TextToBigNumber(Left$(StrA, MaxLenthStrB), Pom2, LengthPom2)   
-Do While CompareB(Pom2, LengthPom2, B, LengthB) >= 0   
-    J = J + 1   
-    Call MinusBV(Pom2, LengthPom2, B, LengthB, Pom3, LengthPom3)   
-    Call CopyB(Pom3, LengthPom3, Pom2, LengthPom2)   
-Loop   
-StrC = Format$(J, "0")   
-  
-For I = 1 To MaxLenthStrA - MaxLenthStrB   
-    J = 0   
-    Call MultB(Pom2, LengthPom2, K10, 1, Pom1, LengthPom1)   
-    Call TextToBigNumber(Mid$(StrA, MaxLenthStrB + I, 1), Pom2, LengthPom2)   
-    TR = BigNumberToText(Pom1, LengthPom1)   
-    TR = BigNumberToText(Pom2, LengthPom2)   
-      
-    Call AddB(Pom1, LengthPom1, Pom2, LengthPom2, Pom3, LengthPom3)   
-    Call CopyB(Pom3, LengthPom3, Pom2, LengthPom2)   
-    Do While CompareB(Pom2, LengthPom2, B, LengthB) >= 0   
-        J = J + 1   
-        Call MinusBV(Pom2, LengthPom2, B, LengthB, Pom3, LengthPom3)   
-        Call CopyB(Pom3, LengthPom3, Pom2, LengthPom2)   
-    Loop   
-    StrC = StrC & Format$(J, "0")   
-Next I   
-Call CopyB(Pom2, LengthPom2, D, LengthD)   
-Call TextToBigNumber(StrC, C, LengthC)   
-  
-  
-End Sub   
-Sub AddB(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)   
-Dim Prenos As Long   
-Dim I As Long   
-Dim J As Long   
-Prenos = 0   
-If LengthA > LengthB Then   
-    LengthC = LengthA + 1   
-    For I = 1 To LengthB   
-        C(I) = A(I) + B(I) + Prenos   
-        Prenos = C(I) \\ 10000   
-        C(I) = C(I) Mod 10000   
-    Next I   
-    I = LengthB + 1   
-    Do While Prenos > 0 And I <= LengthA   
-        C(I) = A(I) + Prenos   
-        Prenos = C(I) \\ 10000   
-        C(I) = C(I) Mod 10000   
-        I = I + 1   
-    Loop   
-    If I > LengthA Then   
-        C(I) = Prenos   
-    Else   
-        For J = I To LengthA   
-            C(J) = A(J)   
-        Next J   
-        C(LengthA + 1) = 0   
-    End If   
-Else   
-    LengthC = LengthB + 1   
-    For I = 1 To LengthA   
-        C(I) = A(I) + B(I) + Prenos   
-        Prenos = C(I) \\ 10000   
-        C(I) = C(I) Mod 10000   
-    Next I   
-    I = LengthA + 1   
-    Do While Prenos > 0 And I <= LengthB   
-        C(I) = B(I) + Prenos   
-        Prenos = C(I) \\ 10000   
-        C(I) = C(I) Mod 10000   
-        I = I + 1   
-    Loop   
-    If I > LengthB Then   
-        C(I) = Prenos   
-    Else   
-        For J = I To LengthB   
-            C(J) = B(J)   
-        Next J   
-        C(LengthB + 1) = 0   
-    End If   
-End If   
-If C(LengthC) = 0 Then LengthC = LengthC - 1   
-  
-End Sub   
-  
-Sub MinusBV(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)   
-Dim Prenos As Long   
-Dim I As Long   
-Dim J As Long   
-Prenos = 0   
-LengthC = LengthA   
-For I = 1 To LengthB   
-    C(I) = A(I) - B(I) - Prenos   
-    If C(I) < 0 Then   
-        C(I) = C(I) + 10000   
-        Prenos = 1   
-    Else   
-        Prenos = 0   
-    End If   
-Next I   
-I = LengthB + 1   
-Do While Prenos > 0 And I <= LengthA   
-    C(I) = A(I) - Prenos   
-    If C(I) < 0 Then   
-        C(I) = C(I) + 10000   
-        Prenos = 1   
-    Else   
-        Prenos = 0   
-    End If   
-    I = I + 1   
-Loop   
-If I > LengthA Then   
-    C(I) = Prenos   
-Else   
-    For J = I To LengthA   
-        C(J) = A(J)   
-    Next J   
-End If   
-Do Until C(LengthC) <> 0 Or LengthC = 1   
-    LengthC = LengthC - 1   
-Loop   
-  
-End Sub   
-  
-  
-Sub PowerB(A() As Long, LengthA As Long, PowerB As Long, C() As Long, LengthC As Long)   
-Dim I As Long   
-C(1) = 1   
-LengthC = 1   
-For I = 1 To PowerB   
-        Call MultBSigned(A, LengthA, C, LengthC, C, LengthC)   
-Next I   
-  
-End Sub   
-  
-  
-Sub MultB(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)   
-Dim Prenos As Long   
-Dim I As Long   
-Dim J As Long   
-If (LengthB = 1 And B(1) = 0) Or (LengthA = 1 And A(1) = 0) Then   
-    C(1) = 0   
-    LengthC = 1   
-    C(0) = 0   
-    Exit Sub   
-End If   
-If LengthB = 1 And B(1) = 1 Then   
-    Call CopyB(A, LengthA, C, LengthC)   
-    Exit Sub   
-End If   
-If LengthA = 1 And A(1) = 1 Then   
-    Call CopyB(B, LengthB, C, LengthC)   
-    Exit Sub   
-End If   
-Prenos = 0   
-For I = 1 To LengthA + LengthB   
-    Pom0(I) = 0   
-Next I   
-For I = 1 To LengthB   
-    For J = 1 To LengthA   
-        Pom0(I + J - 1) = Pom0(I + J - 1) + A(J) \* B(I)   
-        Prenos = Pom0(I + J - 1) \\ 10000   
-        Pom0(I + J - 1) = Pom0(I + J - 1) Mod 10000   
-        Pom0(I + J) = Pom0(I + J) + Prenos   
-    Next J   
-Next I   
-  
-LengthPom0 = LengthA + LengthB   
-Do Until Pom0(LengthPom0) <> 0 Or LengthPom0 = 1   
-    LengthPom0 = LengthPom0 - 1   
-Loop   
-Call CopyB(Pom0, LengthPom0, C, LengthC)   
-End Sub   
-  
-Sub Factorial(Ulaz As Long, C() As Long, LengthC As Long)   
-Dim I As Long   
-C(1) = 1   
-LengthC = 1   
-For I = 2 To Ulaz   
-    Pom4(1) = I   
-    LengthPom4 = 1   
-    Call MultB(C, LengthC, Pom4, LengthPom4, C, LengthC)   
-Next I   
-  
-  
-End Sub   
-  
-Sub SqrtB(A() As Long, LengthA As Long, C() As Long, LengthC As Long, D() As Long, LengthD As Long)   
-Dim Prvi As Long   
-Dim I As Long   
-Dim J As Long   
-Dim TR As String   
-For I = 0 To MaxLenth   
-    Pom4(I) = 0   
-    Pom5(I) = 0   
-    Pom6(I) = 0   
-    Pom7(I) = 0   
-    D(I) = 0   
-Next I   
-LengthPom4 = 1   
-LengthPom5 = 1   
-LengthPom6 = 1   
-LengthPom7 = 1   
-LengthD = 1   
-K100(1) = 100   
-K200(1) = 200   
-K10000(2) = 1   
-K1(1) = 1   
-If A(0) = 0 Then   
-    Prvi = Int(Sqr(A(LengthA)))   
-    C(1) = Prvi   
-    C(0) = 0   
-    LengthC = 1   
-    D(1) = A(LengthA) - Prvi \* Prvi   
-    LengthD = 1   
-    For I = LengthA - 1 To 1 Step -1   
-        Call MultB(D, LengthD, K10000, 2, D, LengthD)   
-        D(1) = A(I)   
-        TR = BigNumberToText(D, LengthD)   
-        Call MultB(C, LengthC, K200, 1, Pom4, LengthPom4)   
-        TR = BigNumberToText(Pom4, LengthPom4)   
-        Call DivB(D, LengthD, Pom4, LengthPom4, Pom5, LengthPom5, Pom7, LengthPom7)   
-        TR = BigNumberToText(Pom5, LengthPom5)   
-        Call AddB(Pom5, LengthPom5, Pom4, LengthPom4, Pom4, LengthPom4)   
-        TR = BigNumberToText(Pom4, LengthPom4)   
-        Call MultB(Pom5, LengthPom5, Pom4, LengthPom4, Pom6, LengthPom6)   
-        TR = BigNumberToText(Pom6, LengthPom6)   
-        Do While CompareB(D, LengthD, Pom6, LengthPom6) < 0 And Pom5(1) > 0   
-            Call MinusB(Pom4, LengthPom4, K1, 1, Pom4, LengthPom4)   
-            TR = BigNumberToText(Pom4, LengthPom4)   
-            Call MinusB(Pom5, LengthPom5, K1, 1, Pom5, LengthPom5)   
-            TR = BigNumberToText(Pom5, LengthPom5)   
-            Call MultB(Pom5, LengthPom5, Pom4, LengthPom4, Pom6, LengthPom6)   
-            TR = BigNumberToText(Pom6, LengthPom6)   
-        Loop   
-        Call MinusB(D, LengthD, Pom6, LengthPom6, D, LengthD)   
-        TR = BigNumberToText(D, LengthD)   
-        Call MultB(C, LengthC, K100, 1, C, LengthC)   
-        TR = BigNumberToText(C, LengthC)   
-        Call AddB(C, LengthC, Pom5, LengthPom5, C, LengthC)   
-        TR = BigNumberToText(C, LengthC)   
-    Next I   
-Else   
-    C(1) = 0   
-    C(0) = 0   
-    LengthC = 1   
-End If   
-End Sub   
-Function BigAddition(ByVal aString As String, ByVal bString As String) As String   
-  
-Call TextToBigNumber(aString, A, LengthA)   
-Call TextToBigNumber(bString, B, LengthB)   
-Call AddBSigned(A, LengthA, B, LengthB, C, LengthC)   
-BigAddition = BigNumberToText(C, LengthC)   
-  
-End Function   
-  
-Function BigSubtration(ByVal aString As String, ByVal bString As String) As String   
-  
-Call TextToBigNumber(aString, A, LengthA)   
-Call TextToBigNumber(bString, B, LengthB)   
-  
-Call MinusBSigned(A, LengthA, B, LengthB, C, LengthC)   
-BigSubtration = BigNumberToText(C, LengthC)   
-  
-End Function   
-  
-Function BigMultiplication(ByVal aString As String, ByVal bString As String) As String   
-  
-Call TextToBigNumber(aString, A, LengthA)   
-Call TextToBigNumber(bString, B, LengthB)   
-Call MultBSigned(A, LengthA, B, LengthB, C, LengthC)   
-BigMultiplication = BigNumberToText(C, LengthC)   
-  
-End Function   
-  
-Function BigPower(ByVal aString As String, ByVal bString As String) As String   
-Call TextToBigNumber(aString, A, LengthA)   
-If IsItBigNumber(bString) Then   
-    If Abs(Val(bString)) <= 32767 Then   
-        Call PowerB(A, LengthA, Val(bString), C, LengthC)   
-        BigPower = BigNumberToText(C, LengthC)   
-    End If   
-Else   
-    BigPower = "0"   
-End If   
-  
-End Function   
-  
-Function BigDivisionMod(ByVal aString As String, ByVal bString As String, aMod As Boolean) As String   
-  
-Call TextToBigNumber(aString, A, LengthA)   
-Call TextToBigNumber(bString, B, LengthB)   
-Call DivBSigned(A, LengthA, B, LengthB, C, LengthC, D, LengthD)   
-If aMod Then   
-    BigDivisionMod = BigNumberToText(D, LengthD)   
-Else   
-    BigDivisionMod = BigNumberToText(C, LengthC)   
-End If   
-  
-End Function   
-  
-完整代码下载：点击下载   
- 4dd466d0e1e0cc123afbe504da2462ca
+```vb
+Attribute VB_Name = "BigNumbers"
+
+Option Explicit
+
+Public Const MaxLenth = 20000
+
+Dim Pom0(MaxLenth) As Long
+Dim Pom1(MaxLenth) As Long
+Dim Pom2(MaxLenth) As Long
+Dim Pom3(MaxLenth) As Long
+Dim Pom4(MaxLenth) As Long
+Dim Pom5(MaxLenth) As Long
+Dim Pom6(MaxLenth) As Long
+Dim Pom7(MaxLenth) As Long
+
+Dim LengthPom0 As Long
+Dim LengthPom1 As Long
+Dim LengthPom2 As Long
+Dim LengthPom3 As Long
+Dim LengthPom4 As Long
+Dim LengthPom5 As Long
+Dim LengthPom6 As Long
+Dim LengthPom7 As Long
+
+Dim K1(MaxLenth) As Long
+Dim K10(MaxLenth) As Long
+Dim K100(MaxLenth) As Long
+Dim K200(MaxLenth) As Long
+Dim K10000(MaxLenth) As Long
+
+Dim A(MaxLenth) As Long
+Dim B(MaxLenth) As Long
+Dim C(MaxLenth) As Long
+Dim D(MaxLenth) As Long
+
+Dim LengthA As Long
+Dim LengthB As Long
+Dim LengthC As Long
+Dim LengthD As Long
+
+Function CompareB(A() As Long, LengthA As Long, B() As Long, LengthB As Long) As Long
+    Dim I As Long
+    Select Case LengthA - LengthB
+        Case Is < 0
+            CompareB = -1
+        Case Is = 0
+            CompareB = 0
+            For I = 1 To LengthA
+                Select Case A(LengthA - I + 1) - B(LengthA - I + 1)
+                    Case Is < 0
+                        CompareB = -1
+                        Exit For
+                    Case Is = 0
+                    Case Is > 0
+                        CompareB = 1
+                        Exit For
+                End Select
+            Next I
+        Case Is > 0
+            CompareB = 1
+    End Select
+End Function
+
+Function BigNumberToText(C() As Long, Length As Long) As String
+    Dim I As Long
+    Dim Pom As String
+    If C(0) = -1 Then
+        Pom = "-"
+    Else
+        Pom = ""
+    End If
+    Pom = Pom & Format$(C(Length), "0")
+    For I = Length - 1 To 1 Step -1
+        Pom = Pom & Format$(C(I), "0000")
+    Next I
+    BigNumberToText = Pom
+End Function
+
+Sub TextToBigNumber(Tekst As String, A() As Long, LengthA As Long)
+    Dim I As Long
+    Dim Prvi As String
+    Dim MaxLenthPrvi As Long
+    Dim Ostatak As Long
+    Prvi = Trim$(Tekst)
+    If IsItBigNumber(Prvi) Then
+        A(0) = 0
+        If Left$(Prvi, 1) = "+" Then
+            Prvi = Right$(Prvi, Len(Prvi) - 1)
+        End If
+        If Left$(Prvi, 1) = "-" Then
+            Prvi = Right$(Prvi, Len(Prvi) - 1)
+            A(0) = -1
+        End If
+        MaxLenthPrvi = Len(Prvi)
+        If (MaxLenthPrvi \ 4) * 4 = MaxLenthPrvi Then
+            LengthA = MaxLenthPrvi \ 4
+            For I = 1 To LengthA
+                A(I) = Mid$(Prvi, MaxLenthPrvi - I * 4 + 1, 4)
+            Next I
+        Else
+            LengthA = MaxLenthPrvi \ 4 + 1
+            Ostatak = MaxLenthPrvi Mod 4
+            For I = 1 To LengthA - 1
+                A(I) = Mid$(Prvi, MaxLenthPrvi - I * 4 + 1, 4)
+            Next I
+            A(LengthA) = Mid$(Prvi, 1, Ostatak)
+        End If
+    Else
+        A(1) = 0
+        LengthA = 1
+    End If
+End Sub
+
+Sub MinusB(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)
+    Select Case CompareB(A, LengthA, B, LengthB)
+        Case Is < 0
+            Call MinusBV(B, LengthB, A, LengthA, C, LengthC)
+            C(0) = -1
+        Case Is = 0
+            C(1) = 0
+            LengthC = 1
+            C(0) = 0
+        Case Is > 0
+            Call MinusBV(A, LengthA, B, LengthB, C, LengthC)
+            C(0) = 0
+    End Select
+End Sub
+
+Function IsItBigNumber(Ulaz As String) As Boolean
+    Dim Pom As String
+    Dim Pom1 As String
+    Dim I As Long
+    Dim IsItBigNumber1 As Boolean
+    Pom1 = Ulaz
+    Pom = Left$(Pom1, 300)
+    If IsNumeric(Pom) Then
+        If InStr(1, Pom, "e", 1) > 0 Then
+            IsItBigNumber1 = False
+        Else
+            If InStr(1, Pom, ".", 1) > 0 Then
+                IsItBigNumber1 = False
+            Else
+                If InStr(1, Pom, ",", 1) > 0 Then
+                    IsItBigNumber1 = False
+                Else
+                    IsItBigNumber1 = True
+                End If
+            End If
+        End If
+    Else
+        IsItBigNumber1 = False
+    End If
+    If IsItBigNumber1 Then
+        For I = 1 To Len(Pom1) \ 300
+            Pom = Mid$(Pom1, 300 * I, 300)
+            If IsNumeric(Pom) Then
+                If InStr(1, Pom, "e", 1) > 0 Then
+                    IsItBigNumber1 = False
+                Else
+                    If InStr(1, Pom, ".", 1) > 0 Then
+                        IsItBigNumber1 = False
+                    Else
+                        If InStr(1, Pom, ",", 1) > 0 Then
+                            IsItBigNumber1 = False
+                        Else
+                            If InStr(1, Pom, "-", 1) > 0 Then
+                                IsItBigNumber1 = False
+                            Else
+                                If InStr(1, Pom, "+", 1) > 0 Then
+                                    IsItBigNumber1 = False
+                                Else
+                                    IsItBigNumber1 = True
+                                End If
+                            End If
+                        End If
+                    End If
+                End If
+            Else
+                IsItBigNumber1 = False
+            End If
+        Next I
+    End If
+    IsItBigNumber = IsItBigNumber1
+End Function
+
+Sub AddBSigned(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)
+    If A(0) = 0 And B(0) = 0 Then
+        Call AddB(A, LengthA, B, LengthB, C, LengthC)
+    End If
+    If A(0) < 0 And B(0) < 0 Then
+        Call AddB(A, LengthA, B, LengthB, C, LengthC)
+        C(0) = -1
+    End If
+    If A(0) = 0 And B(0) < 0 Then
+        Call MinusB(A, LengthA, B, LengthB, C, LengthC)
+    End If
+    If A(0) < 0 And B(0) = 0 Then
+        Call MinusB(B, LengthB, A, LengthA, C, LengthC)
+    End If
+End Sub
+
+Sub MinusBSigned(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)
+    If A(0) = 0 And B(0) = 0 Then
+        Call MinusB(A, LengthA, B, LengthB, C, LengthC)
+    End If
+    If A(0) < 0 And B(0) < 0 Then
+        Call MinusB(B, LengthB, A, LengthA, C, LengthC)
+    End If
+    If A(0) = 0 And B(0) < 0 Then
+        Call AddB(A, LengthA, B, LengthB, C, LengthC)
+        C(0) = 0
+    End If
+    If A(0) < 0 And B(0) = 0 Then
+        Call AddB(B, LengthB, A, LengthA, C, LengthC)
+        C(0) = -1
+    End If
+End Sub
+
+Sub MultBSigned(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)
+    Call MultB(A, LengthA, B, LengthB, C, LengthC)
+    If (A(0) = 0 And B(0) = 0) Or (A(0) < 0 And B(0) < 0) Then
+        C(0) = 0
+    Else
+        If LengthC = 1 And C(1) = 0 Then
+            C(0) = 0
+        Else
+            C(0) = -1
+        End If
+    End If
+End Sub
+
+Sub CopyB(A() As Long, LengthA As Long, B() As Long, LengthB As Long)
+    Dim I As Long
+    LengthB = LengthA
+    For I = 0 To LengthA
+        B(I) = A(I)
+    Next I
+End Sub
+
+Sub DivBSigned(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long, D() As Long, LengthD As Long)
+    Call DivB(A, LengthA, B, LengthB, C, LengthC, D, LengthD)
+    If (A(0) = 0 And B(0) = 0) Or (A(0) < 0 And B(0) < 0) Then
+        C(0) = 0
+    Else
+        If LengthC = 1 And C(1) = 0 Then
+            C(0) = 0
+        Else
+            C(0) = -1
+        End If
+    End If
+End Sub
+
+Sub DivB(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long, D() As Long, LengthD As Long)
+    If LengthB = 1 And B(1) = 0 Then
+        C(1) = 0
+        LengthC = 1
+        C(0) = 0
+        Exit Sub
+    End If
+    If LengthB = 1 And B(1) = 1 Then
+        Call CopyB(A, LengthA, C, LengthC)
+        Exit Sub
+    End If
+    If LengthA = 1 And A(1) = 0 Then
+        C(1) = 0
+        LengthC = 1
+        C(0) = 0
+        Exit Sub
+    End If
+    Select Case CompareB(A, LengthA, B, LengthB)
+        Case Is < 0
+            C(1) = 0
+
+
+
+```vb
+LengthC = 1
+
+C(0) = 0
+
+Case Is = 0
+
+C(1) = 1
+
+LengthC = 1
+
+C(0) = 0
+
+Case Is > 0
+
+Call DivBInt(A, LengthA, B, LengthB, C, LengthC, D, LengthD)
+
+End Select
+
+End Sub
+
+Sub DivBInt(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long, D() As Long, LengthD As Long)
+
+Dim I As Long
+
+Dim J As Long
+
+Dim StrA As String
+
+Dim StrB As String
+
+Dim StrC As String
+
+Dim MaxLenthStrA As Long
+
+Dim MaxLenthStrB As Long
+
+Dim TR As String
+
+K10(1) = 10
+
+StrA = BigNumberToText(A, LengthA)
+
+If Left$(StrA, 1) = "-" Then StrA = Right$(StrA, Len(StrA) - 1)
+
+StrB = BigNumberToText(B, LengthB)
+
+If Left$(StrA, 1) = "-" Then StrA = Right$(StrA, Len(StrA) - 1)
+
+MaxLenthStrA = Len(StrA)
+
+MaxLenthStrB = Len(StrB)
+
+J = 0
+
+Call TextToBigNumber(Left$(StrA, MaxLenthStrB), Pom2, LengthPom2)
+
+Do While CompareB(Pom2, LengthPom2, B, LengthB) >= 0
+
+J = J + 1
+
+Call MinusBV(Pom2, LengthPom2, B, LengthB, Pom3, LengthPom3)
+
+Call CopyB(Pom3, LengthPom3, Pom2, LengthPom2)
+
+Loop
+
+StrC = Format$(J, "0")
+
+For I = 1 To MaxLenthStrA - MaxLenthStrB
+
+J = 0
+
+Call MultB(Pom2, LengthPom2, K10, 1, Pom1, LengthPom1)
+
+Call TextToBigNumber(Mid$(StrA, MaxLenthStrB + I, 1), Pom2, LengthPom2)
+
+TR = BigNumberToText(Pom1, LengthPom1)
+
+TR = BigNumberToText(Pom2, LengthPom2)
+
+Call AddB(Pom1, LengthPom1, Pom2, LengthPom2, Pom3, LengthPom3)
+
+Call CopyB(Pom3, LengthPom3, Pom2, LengthPom2)
+
+Do While CompareB(Pom2, LengthPom2, B, LengthB) >= 0
+
+J = J + 1
+
+Call MinusBV(Pom2, LengthPom2, B, LengthB, Pom3, LengthPom3)
+
+Call CopyB(Pom3, LengthPom3, Pom2, LengthPom2)
+
+Loop
+
+StrC = StrC & Format$(J, "0")
+
+Next I
+
+Call CopyB(Pom2, LengthPom2, D, LengthD)
+
+Call TextToBigNumber(StrC, C, LengthC)
+
+End Sub
+
+Sub AddB(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)
+
+Dim Prenos As Long
+
+Dim I As Long
+
+Dim J As Long
+
+Prenos = 0
+
+If LengthA > LengthB Then
+
+LengthC = LengthA + 1
+
+For I = 1 To LengthB
+
+C(I) = A(I) + B(I) + Prenos
+
+Prenos = C(I) \ 10000
+
+C(I) = C(I) Mod 10000
+
+Next I
+
+I = LengthB + 1
+
+Do While Prenos > 0 And I <= LengthA
+
+C(I) = A(I) + Prenos
+
+Prenos = C(I) \ 10000
+
+C(I) = C(I) Mod 10000
+
+I = I + 1
+
+Loop
+
+If I > LengthA Then
+
+C(I) = Prenos
+
+Else
+
+For J = I To LengthA
+
+C(J) = A(J)
+
+Next J
+
+C(LengthA + 1) = 0
+
+End If
+
+Else
+
+LengthC = LengthB + 1
+
+For I = 1 To LengthA
+
+C(I) = A(I) + B(I) + Prenos
+
+Prenos = C(I) \ 10000
+
+C(I) = C(I) Mod 10000
+
+Next I
+
+I = LengthA + 1
+
+Do While Prenos > 0 And I <= LengthB
+
+C(I) = B(I) + Prenos
+
+Prenos = C(I) \ 10000
+
+C(I) = C(I) Mod 10000
+
+I = I + 1
+
+Loop
+
+If I > LengthB Then
+
+C(I) = Prenos
+
+Else
+
+For J = I To LengthB
+
+C(J) = B(J)
+
+Next J
+
+C(LengthB + 1) = 0
+
+End If
+
+End If
+
+If C(LengthC) = 0 Then LengthC = LengthC - 1
+
+End Sub
+
+Sub MinusBV(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)
+
+Dim Prenos As Long
+
+Dim I As Long
+
+Dim J As Long
+
+Prenos = 0
+
+LengthC = LengthA
+
+For I = 1 To LengthB
+
+C(I) = A(I) - B(I) - Prenos
+
+If C(I) < 0 Then
+
+C(I) = C(I) + 10000
+
+Prenos = 1
+
+Else
+
+Prenos = 0
+
+End If
+
+Next I
+
+I = LengthB + 1
+
+Do While Prenos > 0 And I <= LengthA
+
+C(I) = A(I) - Prenos
+
+If C(I) < 0 Then
+
+C(I) = C(I) + 10000
+
+Prenos = 1
+
+Else
+
+Prenos = 0
+
+End If
+
+I = I + 1
+
+Loop
+
+If I > LengthA Then
+
+C(I) = Prenos
+
+Else
+
+For J = I To LengthA
+
+C(J) = A(J)
+
+Next J
+
+End If
+
+Do Until C(LengthC) <> 0 Or LengthC = 1
+
+LengthC = LengthC - 1
+
+Loop
+
+End Sub
+
+Sub PowerB(A() As Long, LengthA As Long, PowerB As Long, C() As Long, LengthC As Long)
+
+Dim I As Long
+
+C(1) = 1
+
+LengthC = 1
+
+For I = 1 To PowerB
+
+Call MultBSigned(A, LengthA, C, LengthC, C, LengthC)
+
+Next I
+
+End Sub
+
+Sub MultB(A() As Long, LengthA As Long, B() As Long, LengthB As Long, C() As Long, LengthC As Long)
+
+Dim Prenos As Long
+
+Dim I As Long
+
+Dim J As Long
+
+If (LengthB = 1 And B(1) = 0) Or (LengthA = 1 And A(1) = 0) Then
+
+C(1) = 0
+
+LengthC = 1
+
+C(0) = 0
+
+Exit Sub
+
+End If
+
+If LengthB = 1 And B(1) = 1 Then
+
+Call CopyB(A, LengthA, C, LengthC)
+
+Exit Sub
+
+End If
+
+If LengthA = 1 And A(1) = 1 Then
+
+Call CopyB(B, LengthB, C, LengthC)
+
+Exit Sub
+
+End If
+
+Prenos = 0
+
+For I = 1 To LengthA + LengthB
+
+Pom0(I) = 0
+
+Next I
+
+For I = 1 To LengthB
+
+For J = 1 To LengthA
+
+Pom0(I + J - 1) = Pom0(I + J - 1) + A(J) * B(I)
+
+Prenos = Pom0(I + J - 1) \ 10000
+
+Pom0(I + J - 1) = Pom0(I + J - 1) Mod 10000
+
+Pom0(I + J) = Pom0(I + J) + Prenos
+
+Next J
+
+Next I
+
+LengthPom0 = LengthA + LengthB
+
+Do Until Pom0(LengthPom0) <> 0 Or LengthPom0 = 1
+
+LengthPom0 = LengthPom0 - 1
+
+Loop
+
+Call CopyB(Pom0, LengthPom0, C, LengthC)
+
+End Sub
+
+Sub Factorial(Ulaz As Long, C() As Long, LengthC As Long)
+
+Dim I As Long
+
+C(1) = 1
+
+LengthC = 1
+
+For I = 2 To Ulaz
+
+Pom4(1) = I
+
+LengthPom4 = 1
+
+Call MultB(C, LengthC, Pom4, LengthPom4, C, LengthC)
+
+Next I
+
+End Sub
+
+Sub SqrtB(A() As Long, LengthA As Long, C() As Long, LengthC As Long, D() As Long, LengthD As Long)
+
+Dim Prvi As Long
+
+Dim I As Long
+
+Dim J As Long
+
+Dim TR As String
+
+For I = 0 To MaxLenth
+
+Pom4(I) = 0
+
+Pom5(I) = 0
+
+Pom6(I) = 0
+
+Pom7(I) = 0
+
+D(I) = 0
+
+Next I
+
+LengthPom4 = 1
+
+LengthPom5 = 1
+
+LengthPom6 = 1
+
+LengthPom7 = 1
+
+LengthD = 1
+
+K100(1) = 100
+
+K200(1) = 200
+
+K10000(2) = 1
+
+K1(1) = 1
+
+If A(0) = 0 Then
+
+Prvi = Int(Sqr(A(LengthA)))
+
+C(1) = Prvi
+
+C(0) = 0
+
+LengthC = 1
+
+D(1) = A(LengthA) - Prvi * Prvi
+
+LengthD = 1
+
+For I = LengthA - 1 To 1 Step -1
+
+Call MultB(D, LengthD, K10000, 2, D, LengthD)
+
+D(1) = A(I)
+
+TR = BigNumberToText(D, LengthD)
+
+Call MultB(C, LengthC, K200, 1, Pom4, LengthPom4)
+
+TR = BigNumberToText(Pom4, LengthPom4)
+
+Call DivB(D, LengthD, Pom4, LengthPom4, Pom5, LengthPom5, Pom7, LengthPom7)
+
+TR = BigNumberToText(Pom5, LengthPom5)
+
+Call AddB(Pom5, LengthPom5, Pom4, LengthPom4, Pom4, LengthPom4)
+
+TR = BigNumberToText(Pom4, LengthPom4)
+
+Call MultB(Pom5, LengthPom5, Pom4, LengthPom4, Pom6, LengthPom6)
+
+TR = BigNumberToText(Pom6, LengthPom6)
+
+Do While CompareB(D, LengthD, Pom6, LengthPom6) < 0 And Pom5(1) > 0
+
+Call MinusB(Pom4, LengthPom4, K1, 1, Pom4, LengthPom4)
+
+TR = BigNumberToText(Pom4, LengthPom4)
+
+Call MinusB(Pom5, LengthPom5, K1, 1, Pom5, LengthPom5)
+
+TR = BigNumberToText(Pom5, LengthPom5)
+
+Call MultB(Pom5, LengthPom5, Pom4, LengthPom4, Pom6, LengthPom6)
+
+TR = BigNumberToText(Pom6, LengthPom6)
+
+Loop
+
+Call MinusB(D, LengthD, Pom6, LengthPom6, D, LengthD)
+
+TR = BigNumberToText(D, LengthD)
+
+Call MultB(C, LengthC, K100, 1, C, LengthC)
+
+TR = BigNumberToText(C, LengthC)
+
+Call AddB(C, LengthC, Pom5, LengthPom5, C, LengthC)
+```
+
+
+
+`TR = BigNumberToText(C, LengthC)`
+
+Next `I`
+
+Else
+
+`C(1) = 0`
+
+`C(0) = 0`
+
+`LengthC = 1`
+
+End If
+
+End Sub
+
+```vb
+Function BigAddition(ByVal aString As String, ByVal bString As String) As String
+    Call TextToBigNumber(aString, A, LengthA)
+    Call TextToBigNumber(bString, B, LengthB)
+    Call AddBSigned(A, LengthA, B, LengthB, C, LengthC)
+    BigAddition = BigNumberToText(C, LengthC)
+End Function
+
+Function BigSubtration(ByVal aString As String, ByVal bString As String) As String
+    Call TextToBigNumber(aString, A, LengthA)
+    Call TextToBigNumber(bString, B, LengthB)
+    Call MinusBSigned(A, LengthA, B, LengthB, C, LengthC)
+    BigSubtration = BigNumberToText(C, LengthC)
+End Function
+
+Function BigMultiplication(ByVal aString As String, ByVal bString As String) As String
+    Call TextToBigNumber(aString, A, LengthA)
+    Call TextToBigNumber(bString, B, LengthB)
+    Call MultBSigned(A, LengthA, B, LengthB, C, LengthC)
+    BigMultiplication = BigNumberToText(C, LengthC)
+End Function
+
+Function BigPower(ByVal aString As String, ByVal bString As String) As String
+    Call TextToBigNumber(aString, A, LengthA)
+    
+    If IsItBigNumber(bString) Then
+        If Abs(Val(bString)) <= 32767 Then
+            Call PowerB(A, LengthA, Val(bString), C, LengthC)
+            BigPower = BigNumberToText(C, LengthC)
+        End If
+    Else
+        BigPower = "0"
+    End If
+End Function
+
+Function BigDivisionMod(ByVal aString As String, ByVal bString As String, aMod As Boolean) As String
+    Call TextToBigNumber(aString, A, LengthA)
+    Call TextToBigNumber(bString, B, LengthB)
+    Call DivBSigned(A, LengthA, B, LengthB, C, LengthC, D, LengthD)
+    
+    If aMod Then
+        BigDivisionMod = BigNumberToText(D, LengthD)
+    Else
+        BigDivisionMod = BigNumberToText(C, LengthC)
+    End If
+End Function
+```
+
+完整代码下载：点击下载 `4dd466d0e1e0cc123afbe504da2462ca`

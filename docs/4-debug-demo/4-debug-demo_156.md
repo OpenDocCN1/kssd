@@ -1,63 +1,84 @@
 
-
 # Erlang 4.08
 
 > 原文：[`www.pediy.com/kssd/pediy05/pediy50197.htm`](https://www.pediy.com/kssd/pediy05/pediy50197.htm)
 
-《Erlang 4.08》另类破解手记  
-Cracked by  WksWlj999@sohu.com
+《Erlang 4.08》另类破解手记
 
-软件说明:  
-   出差刚回来，打开电脑收到网友传来一个小软件叫 Erlang 版本 4.08，大概是个用于建模分析通讯堵塞/队列延迟（to help model traffic blockage (loss), and/or queuing delays）等的工具。让我看看，pj 完后觉得这个软件的保护太脆弱，就写出来供初学者借鉴，换一个方式去 pj 软件，或许会有奇效呢！
+Cracked by `WksWlj999@sohu.com`
+
+**软件说明:**
+
+出差刚回来，打开电脑收到网友传来一个小软件叫 `Erlang` 版本 `4.08`，大概是个用于建模分析通讯堵塞/队列延迟（to help model traffic blockage (loss), and/or queuing delays）等的工具。让我看看，`pj` 完后觉得这个软件的保护太脆弱，就写出来供初学者借鉴，换一个方式去 `pj` 软件，或许会有奇效呢！
 
 ![](img/b359cf420fc711db6895a335357d05cb.jpg)
 
-   本人刚刚涉足加密与解密，水平有限，文中有不足之处还望各位大虾不吝指教！此文仅供初学者参考。
+本人刚刚涉足加密与解密，水平有限，文中有不足之处还望各位大虾不吝指教！此文仅供初学者参考。
 
-\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-目    的： pj（暴力 or 另类）  
-加密方式： 注册码(License)  
-破解工具:  SoftICE 4.05 For Win9X，W32DASM8.92  
-日    期： 2002 年 6 月 24 日  
-\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
 
-  
-1)暴力破解,这个是大家的一般思路就不多讲了，
+**目 的：** `pj`（暴力 or 另类）
 
-W32DASM 反汇编后找到此处是剩余时间天数对比：
+**加密方式：** 注册码(License)
 
-:0041095C D82D840B4100            fsubr dword ptr \[00410B84\]
+**破解工具:** `SoftICE 4.05 For Win9X`，`W32DASM8.92`
 
-\* Reference To: cw3220.\_\_ftol, Ord:0000h  
-                                 |  
-:00410962 E899250000              Call 00412F00  
-:00410967 85C0                    test eax, eax<==是这里啦！eax 里是可用的天数  
-:00410969 7D04                    jge 0041096F<==这里改为 jmp 0041096F(机器码 EB06)就可以暴破此软件了^\_^  
-:0041096B 33C0                    xor eax, eax  
-:0041096D EB0A                    jmp 00410979
+**日 期：** 2002 年 6 月 24 日
 
-2）以子之矛攻子之盾，让软件自己把 RegKey 计算给我们:=)，这里才是另类的破解法。
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
 
-安装 Erlang4.08 后，用 RegMon 监测发现一个可疑读取键值：HKEY\_LOCALMACHINE\\Software\\Erlang\\Version  4\\Generate  
-在 SoftICE 里下断点 bpx regqueryvalueexa if \*(esp\->8)=='Gene',运行程序，SoftICE 拦截中断后，按 F11 返回程序领空
+### 1) 暴力破解,这个是大家的一般思路就不多讲了，
 
-\* Possible StringData Ref from Data Obj ->"Generate"  
-                                 |  
-:00406D16 6804604100              push 00416004  
-:00406D1B 53                      push ebx
+`W32DASM` 反汇编后找到此处是剩余时间天数对比：
 
-\* Reference To: ADVAPI32.RegQueryvalueExA, Ord:0000h  
-                                 |  
-:00406D1C E839C50000              Call 0041325A  
-:00406D21 85C0                    test eax, eax<==返回后停在此处，若 Generate 存在且有值则 eax=0,否则 eax 不为零；此处下命令 r eax 0  
-:00406D23 7505                    jne 00406D2A <==我们的关键点！！！由于上行我们强制 eax=0，模拟了返回真值，此处就不跳转了  
-:00406D25 BE01000000              mov esi, 00000001  
+```
+:0041095C D82D840B4100          fsubr dword ptr [00410B84]
+
+* Reference To: cw3220.__ftol, Ord:0000h
+
+                          |
+:00410962 E899250000       Call 00412F00
+
+:00410967 85C0            test eax, eax<==是这里啦！eax 里是可用的天数
+
+:00410969 7D04            jge 0041096F<==这里改为 jmp 0041096F(机器码 EB06)就可以暴破此软件了^\_^
+
+:0041096B 33C0            xor eax, eax
+
+:0041096D EB0A            jmp 00410979
+```
+
+### 2）以子之矛攻子之盾，让软件自己把 RegKey 计算给我们:=)，这里才是另类的破解法。
+
+安装 `Erlang4.08` 后，用 `RegMon` 监测发现一个可疑读取键值：`HKEY_LOCALMACHINE\Software\Erlang\Version 4\Generate`
+
+在 `SoftICE` 里下断点 `bpx regqueryvalueexa if *(esp->8)=='Gene',运行程序，` `SoftICE` 拦截中断后，按 `F11` 返回程序领空
+
+```
+* Possible StringData Ref from Data Obj ->"Generate"
+
+                          |
+:00406D16 6804604100       push 00416004
+
+:00406D1B 53              push ebx
+
+* Reference To: ADVAPI32.RegQueryvalueExA, Ord:0000h
+
+                          |
+:00406D1C E839C50000      Call 0041325A
+
+:00406D21 85C0            test eax, eax<==返回后停在此处，若 Generate 存在且有值则 eax=0,否则 eax 不为零；此处下命令 r eax 0
+
+:00406D23 7505            jne 00406D2A <==我们的关键点！！！由于上行我们强制 eax=0，模拟了返回真值，此处就不跳转了
+
+:00406D25 BE01000000      mov esi, 00000001
+```
 。。。。。。
 
-继续调试会发现程序调用了一些菜单操作相关的 API 函数，添加了一个 Key 菜单并在其下建立了一个子菜单 Generate（实际上这就是我们要的结果！！！）
+继续调试会发现程序调用了一些菜单操作相关的 API 函数，添加了一个 `Key` 菜单并在其下建立了一个子菜单 `Generate`（实际上这就是我们要的结果！！！）
 
-F5 返回程序，还是出现要求试用的对话框，别管它，点 Run Trial,细心的你会发现在 Edit 和 Model 菜单之间多了一个 Key 菜单！点击 Key 下的子菜单 Generate 出现对话框，哈哈，这下你该明白它是干什么的吧！这是一个 License 的 Key 生成器，在 Seed(种子)栏输入数值，比如 8；Version(版本)保持默认；点击“Caculate”,mmmm~~~~~~~~看看发生了什么？哈哈！Key 栏出现一个 8 位编码"87A776E0"，Check（检查）栏出现“OK”,这个 Key 可是程序作者为我们亲自计算的 RegKey 呀！！赶紧用它来注册吧！！！\*\_@，注册后会多一个键 RegKey="87A776E0"
+`F5` 返回程序，还是出现要求试用的对话框，别管它，点 `Run Trial`,细心的你会发现在 `Edit` 和 `Model` 菜单之间多了一个 `Key` 菜单！点击 `Key` 下的子菜单 `Generate` 出现对话框，哈哈，这下你该明白它是干什么的吧！这是一个 `License` 的 `Key` 生成器，在 `Seed`(种子)栏输入数值，比如 8；`Version`(版本)保持默认；点击“Caculate”,mmmm~~~~~~~~看看发生了什么？哈哈！`Key` 栏出现一个 8 位编码"87A776E0"，`Check`（检查）栏出现“OK”,这个 `Key` 可是程序作者为我们亲自计算的 `RegKey` 呀！！赶紧用它来注册吧！！！*\_@，注册后会多一个键 `RegKey="87A776E0"`
 
-实际上可以直接在注册表 HKEY\_LOCALMACHINE\\Software\\Erlang\\Version  4\\下建立字符串值 Generate,值设为 1，然后启动 Erlang.exe 就多出了 Key 菜单，其他我就不用多讲了，是吧？
+实际上可以直接在注册表 `HKEY_LOCALMACHINE\Software\Erlang\Version 4\` 下建立字符串值 `Generate`,值设为 1，然后启动 `Erlang.exe` 就多出了 `Key` 菜单，其他我就不用多讲了，是吧？
 
-祝大家：工作顺利，破解顺利！  4dd466d0e1e0cc123afbe504da2462ca
+祝大家：工作顺利，破解顺利！ `4dd466d0e1e0cc123afbe504da2462ca`

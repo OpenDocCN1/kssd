@@ -1,59 +1,103 @@
 
-
 # SoftICE 技巧九则
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-128.htm`](https://www.pediy.com/kssd/pediy07/pediy7-128.htm)
 
-SoftICE 技巧九则  
-ShackSing  
-sharksing@163.com  
-  
-SoftICE 是由美国 Compuware （NUMEGA）公司出品的系统级的程序调试工具, 原本单独发行，但自 4.0.5 版本后不再单独发行，而是包含在 DriverStudio 和 SoftICE Driver Suite 之中，最新版本为 4.3.0。它出色的性能不仅得到专业用户的喜爱，似我等菜鸟更是深深为其强大的功能所折服！在此以我使用 SoftICE 过程中积累的一点小小技巧形成涂鸦之作奉献给大家，希望你能喜欢。（注意：以 Windows XP、DriverStudio 3.0 为讲解平台，在其他版本中执行可能会有所不同）  
-  
-1、配置：在 DriverStudio Configuration 中的 SoftICE Initialization  General 项中，Initialization 的字符串长度可能有一定限制，不能超过 128 个字符（含空格），例如输入：  
-  
-“Faults off;set font 2;lines 40;width 80;wd.1 1;dd;dex 1 @esp;wd.2 1;dd;dex 2 esp->4;wd.3 2;dd;dex 3 ss:esp;wd.0 2;wc 18;code on;x;”  
-  
-在 window 系统目录下 system32\\driver\\winice.dat 文件中则保存为：  
-  
-INIT=“Faults off;set font 2;lines 40;width 80;wd.1 1;dd;dex 1 @esp;wd.2 1;dd;dex 2 esp->4;wd.3 2;dd;dex 3 ss:esp;wd.0 2;wc 18;code o”  
-  
-显然不能正确的保存，启动 SoftICE 时将出现错误指令 “code o”，须输入“X”才能退出。  
-解决办法很简单，直接在 winice.dat 文件中输入两条 INIT 指令即可：  
-  
-INIT=“Faults off;set font 2;lines 40;width 80;wd.1 1;dd;dex 1 @esp;wd.2 1;dd;dex 2 esp->4;wd.3 2;dd;dex 3 ss:esp;wd.0 2;wc 18;”  
-INIT=“code on;x;”  
-  
-2、宏命令：设置宏命令时，最好直接在 winice.dat 文件中输入，当在 SoftICE Initialization Micro Definitions 中输入时，例如输入：  
-"bpx GetDlgItemTextA DO \\"D esp->c\\";bpx GetWindowTextA DO \\"D esp->8\\""  
-  
-被保存为：  
-  
-"bpx GetDlgItemTextA DO \\D esp->c\\;bpx GetWindowTextA DO \\D esp->8\\"  
-  
- 可见有时 DriverStudio Configuration 程序无法正确保存宏命令中的引号而导致宏命令失败。但是如果用“记事本”直接在 winice.dat 中输入宏命令，就可以正确保存并正确装载。  
-  
-3、点号（.）有妙用：一般情况下，.命令可以使代码窗口回复显示当前执行的代码，当调试源代码时，“.n”可以回到第 n 行代码，例如执行“u .n”命令，代码窗将显示第 n 行源代码。  
-  
-4、用好下划线（\_）：设置断点时，在参数前加“\_”可以代表参数当前的数值，从而得到动态条件断点，例如：  
-bpx eip if eax==\_eax ；表示当寄存器 eax 的值再次等于现在的值时中断；  
-bpx MessageBoxA if pid==\_pid ;表示该断点仅仅对当前的进程（process）有效。  
-  
-5、运用命令修改符 .t .p ：命令修改符.t、.p 可以加在 bpm、bpx 等命令后面，分别表示断点仅仅对当前线程、进程有效，例如：  
-bpx.t GetWindowTextA  
-  
-6、利用 SoftICE 内置函数 bpindex 设置一次性断点：bpindex 代表引起当前中断的断点序号，利用这个函数可以设置动态的或一次性的断点，例如：  
-bpint 3 do "bc bpindex"  这个断点可以用来中断在程序入口处之后再删除这个断点，以防某些 int 3 的反调试方法。  
-  
-7、ctrl+L 速清屏：当新的线程创建时，常常使 SoftICE 窗口出现窗口碎片而覆盖了 SoftICE 的窗口字符，这时同时按下 ctrl 和 L 键即可快速清屏。  
-  
-8、让 SoftICE 窗口与全屏显示自由切换：一般情况下，DriverStudio Configuration SoftICE  Video 设置为 Universal Video Driver 时，SoftICE 将显示在窗口中，设置为 Full screen VGA mode 时将全屏显示，两种显示改变之前要重启动计算机。其实设置为 Universal Video Driver 时，也可以实现全屏显示，方法为：  
-启动命令行方式 cmd.com 并激活为当前窗口,同时按 Alt 和 Enter 键，将启动到全屏 VGA 模式，此时按 Ctrl + D 即可启动到 VGA 全屏方式，该方式比设置为 Full screen VGA mode 的方式更好，可以通过 cmd.com 来设置字体、字符大小等，简直酷呆了！  
-  
-9、用 G 命令代替 BPX、BPM 的部分功能，可以对付部分设有断点清除的反调试程序：用 BPM、BPX 设断时，反调试程序会清除断点使得断点失效，而改为 G 命令可以避免这个问题，例如：  
-bpx GetWindowTextA  改为  G GetWindowTextA  
-bpmb 0040AAAA X    改为  G 0040AAAA  
-  
-SoftICE 的功能太强大了，行文至此，无法继续，且作抛砖引玉之举，希望各位大虾不吝赐教，各位菜鸟也勿忘多多探讨。 
+**作者：** ShackSing  
+**邮箱：** `sharksing@163.com`
 
- 4dd466d0e1e0cc123afbe504da2462ca
+`SoftICE` 是由美国 `Compuware`（`NUMEGA`）公司出品的系统级的程序调试工具，原本单独发行，但自 `4.0.5` 版本后不再单独发行，而是包含在 `DriverStudio` 和 `SoftICE Driver Suite` 之中，最新版本为 `4.3.0`。它出色的性能不仅得到专业用户的喜爱，似我等菜鸟更是深深为其强大的功能所折服！在此以我使用 `SoftICE` 过程中积累的一点小小技巧形成涂鸦之作奉献给大家，希望你能喜欢。（注意：以 `Windows XP`、`DriverStudio 3.0` 为讲解平台，在其他版本中执行可能会有所不同）
+
+## 1. 配置
+
+在 `DriverStudio Configuration` 中的 `SoftICE Initialization General` 项中，`Initialization` 的字符串长度可能有一定限制，不能超过 128 个字符（含空格），例如输入：
+
+```
+“Faults off;set font 2;lines 40;width 80;wd.1 1;dd;dex 1 @esp;wd.2 1;dd;dex 2 esp->4;wd.3 2;dd;dex 3 ss:esp;wd.0 2;wc 18;code on;x;”
+```
+
+在 `window` 系统目录下 `system32\\driver\\winice.dat` 文件中则保存为：
+
+```
+INIT=“Faults off;set font 2;lines 40;width 80;wd.1 1;dd;dex 1 @esp;wd.2 1;dd;dex 2 esp->4;wd.3 2;dd;dex 3 ss:esp;wd.0 2;wc 18;code o”
+```
+
+显然不能正确的保存，启动 `SoftICE` 时将出现错误指令 `“code o”`，须输入 `“X”` 才能退出。
+
+解决办法很简单，直接在 `winice.dat` 文件中输入两条 `INIT` 指令即可：
+
+```
+INIT=“Faults off;set font 2;lines 40;width 80;wd.1 1;dd;dex 1 @esp;wd.2 1;dd;dex 2 esp->4;wd.3 2;dd;dex 3 ss:esp;wd.0 2;wc 18;”
+
+INIT=“code on;x;”
+```
+
+## 2. 宏命令
+
+设置宏命令时，最好直接在 `winice.dat` 文件中输入，当在 `SoftICE Initialization Micro Definitions` 中输入时，例如输入：
+
+```
+"bpx GetDlgItemTextA DO \\"D esp->c\\";bpx GetWindowTextA DO \\"D esp->8\\""
+```
+
+被保存为：
+
+```
+"bpx GetDlgItemTextA DO \\D esp->c\\;bpx GetWindowTextA DO \\D esp->8\\"
+```
+
+可见有时 `DriverStudio Configuration` 程序无法正确保存宏命令中的引号而导致宏命令失败。但是如果用“记事本”直接在 `winice.dat` 中输入宏命令，就可以正确保存并正确装载。
+
+## 3. 点号（.）有妙用
+
+一般情况下，`.` 命令可以使代码窗口回复显示当前执行的代码，当调试源代码时，`“.n”` 可以回到第 `n` 行代码，例如执行 `“u .n”` 命令，代码窗将显示第 `n` 行源代码。
+
+## 4. 用好下划线（\_）
+
+设置断点时，在参数前加 `“\_”` 可以代表参数当前的数值，从而得到动态条件断点，例如：
+
+```
+bpx eip if eax==_eax ；表示当寄存器 eax 的值再次等于现在的值时中断；
+
+bpx MessageBoxA if pid==_pid ;表示该断点仅仅对当前的进程（process）有效。
+```
+
+## 5. 运用命令修改符 .t .p
+
+命令修改符 `.t`、`.p` 可以加在 `bpm`、`bpx` 等命令后面，分别表示断点仅仅对当前线程、进程有效，例如：
+
+```
+bpx.t GetWindowTextA
+```
+
+## 6. 利用 SoftICE 内置函数 bpindex 设置一次性断点
+
+`bpindex` 代表引起当前中断的断点序号，利用这个函数可以设置动态的或一次性的断点，例如：
+
+```
+bpint 3 do "bc bpindex"  这个断点可以用来中断在程序入口处之后再删除这个断点，以防某些 int 3 的反调试方法。
+```
+
+## 7. ctrl+L 速清屏
+
+当新的线程创建时，常常使 `SoftICE` 窗口出现窗口碎片而覆盖了 `SoftICE` 的窗口字符，这时同时按下 `ctrl` 和 `L` 键即可快速清屏。
+
+## 8. 让 SoftICE 窗口与全屏显示自由切换
+
+一般情况下，`DriverStudio Configuration SoftICE Video` 设置为 `Universal Video Driver` 时，`SoftICE` 将显示在窗口中，设置为 `Full screen VGA mode` 时将全屏显示，两种显示改变之前要重启动计算机。其实设置为 `Universal Video Driver` 时，也可以实现全屏显示，方法为：
+
+启动命令行方式 `cmd.com` 并激活为当前窗口，同时按 `Alt` 和 `Enter` 键，将启动到全屏 `VGA` 模式，此时按 `Ctrl + D` 即可启动到 `VGA` 全屏方式，该方式比设置为 `Full screen VGA mode` 的方式更好，可以通过 `cmd.com` 来设置字体、字符大小等，简直酷呆了！
+
+## 9. 用 G 命令代替 BPX、BPM 的部分功能
+
+可以对付部分设有断点清除的反调试程序：用 `BPM`、`BPX` 设断时，反调试程序会清除断点使得断点失效，而改为 `G` 命令可以避免这个问题，例如：
+
+```
+bpx GetWindowTextA  改为  G GetWindowTextA
+
+bpmb 0040AAAA X    改为  G 0040AAAA
+```
+
+`SoftICE` 的功能太强大了，行文至此，无法继续，且作抛砖引玉之举，希望各位大虾不吝赐教，各位菜鸟也勿忘多多探讨。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

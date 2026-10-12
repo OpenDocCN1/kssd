@@ -1,94 +1,83 @@
 
-
 # 无需 naked 打造 dll 劫持
 
 > 原文：[`www.pediy.com/kssd/pediy12/131397.html`](https://www.pediy.com/kssd/pediy12/131397.html)
 
-首先百度百科解释一下 dll 劫持：  
-  
-DLL 劫持技术当一个可执行文件运行时，Windows 加载器将可执行模块映射到进程的地址空间中，加载器分析可执行模块的输入表，并设法找出任何需要的 DLL，并将它们映射到进程的地址空间中。  
-　　由于输入表中只包含 DLL 名而没有它的路径名，因此加载程序必须在磁盘上搜索 DLL 文件。首先会尝试从当前程序所在的目录加载 DLL，如果没找到，则在 Windows 系统目录中查找，最后是在环境变量中列出的各个目录下查找。利用这个特点，先伪造一个系统同名的 DLL，提供同样的输出表，每个输出函数转向真正的系统 DLL。程序调用系统 DLL 时会先调用当前目录下伪造的 DLL，完成相关功能后，再跳到系统 DLL 同名函数里执行。这个过程用个形象的词来描述就是系统 DLL 被劫持（hijack）了。  
-  
-分割线  
-既然是劫持，那当然不能影响原始 dll 的功能了。你可能会问，那我怎么知道我要劫持的 dll 的功能是怎么实现的呢？我们不用去实现，只需要实现一个跳转就行了，把 exe 请求的功能转发到原始 dll 的地址就行了。这方面，其实可以用 AheadLib 来实现，它可以直接生成最终代码![](img/d23858dd221cce728a3a61b46badb044.jpg "恐怖!")真的强悍啊。  
-  
-但是这种方式需要把函数申明成\_declspec(naked)形式，这样的函数将会非常干净，不会有一些额外的代码控制堆栈平衡。然后在这样的函数内写上一个 JMP，也就不会影响参数的传递了。  
-  
-  
-但是遗憾的是 gcc（MingW）并不支持\_declspec(naked)的申明。  
-所以我自己手动打造了一个 JMP，采用 inline hook 的方法，把自己的导出函数给修改了。  
-  
-  
-分割线  
-这里我要劫持的是 msimg32.dll。  
-首先写好导出函数，都是空函数  
+首先百度百科解释一下 dll 劫持：
 
-代码:
+DLL 劫持技术当一个可执行文件运行时，Windows 加载器将可执行模块映射到进程的地址空间中，加载器分析可执行模块的输入表，并设法找出任何需要的 DLL，并将它们映射到进程的地址空间中。
 
+由于输入表中只包含 DLL 名而没有它的路径名，因此加载程序必须在磁盘上搜索 DLL 文件。首先会尝试从当前程序所在的目录加载 DLL，如果没找到，则在 Windows 系统目录中查找，最后是在环境变量中列出的各个目录下查找。利用这个特点，先伪造一个系统同名的 DLL，提供同样的输出表，每个输出函数转向真正的系统 DLL。程序调用系统 DLL 时会先调用当前目录下伪造的 DLL，完成相关功能后，再跳到系统 DLL 同名函数里执行。这个过程用个形象的词来描述就是系统 DLL 被劫持（hijack）了。
+
+分割线
+
+既然是劫持，那当然不能影响原始 dll 的功能了。你可能会问，那我怎么知道我要劫持的 dll 的功能是怎么实现的呢？我们不用去实现，只需要实现一个跳转就行了，把 exe 请求的功能转发到原始 dll 的地址就行了。这方面，其实可以用 `AheadLib` 来实现，它可以直接生成最终代码![](img/d23858dd221cce728a3a61b46badb044.jpg "恐怖!")真的强悍啊。
+
+但是这种方式需要把函数申明成`_declspec(naked)`形式，这样的函数将会非常干净，不会有一些额外的代码控制堆栈平衡。然后在这样的函数内写上一个 `JMP`，也就不会影响参数的传递了。
+
+但是遗憾的是 `gcc`（`MingW`）并不支持`_declspec(naked)`的申明。
+
+所以我自己手动打造了一个 `JMP`，采用 `inline hook` 的方法，把自己的导出函数给修改了。
+
+分割线
+
+这里我要劫持的是 `msimg32.dll`。
+
+首先写好导出函数，都是空函数
+
+```c
+#define EXTERNC extern "C"
+#define EXPORT EXTERNC __declspec(dllexport) void __cdecl
+
+EXPORT vSetDdrawflag() {}
+EXPORT AlphaBlend() {}
+EXPORT DllInitialize() {}
+EXPORT GradientFill() {}
+EXPORT TransparentBlt() {}
 ```
-#define EXTERNC extern "C"
-#define EXPORT EXTERNC \_\_declspec(dllexport) void \_\_cdecl
 
-EXPORT vSetDdrawflag() {}
-EXPORT AlphaBlend() {}
-EXPORT DllInitialize() {}
-EXPORT GradientFill() {}
-EXPORT TransparentBlt() {}
+然后需要一个写入 `JMP` 的函数，因为需要计算偏移嘛。
 
-```
-
-  
-然后需要一个写入 JMP 的函数，因为需要计算偏移嘛。  
-代码:
-
-```
-void WriteJMP(DWORD TargetProc, DWORD NewProc)
+```c
+void WriteJMP(DWORD TargetProc, DWORD NewProc)
 {
-    BYTE JMP = 0xE9;
-    WriteProcessMemory(g\_process,(LPVOID)TargetProc, &JMP, sizeof(JMP), NULL);
-    DWORD offset = NewProc - TargetProc - 5;
-    WriteProcessMemory(g\_process,(LPVOID)(TargetProc+1), &offset, sizeof(offset), NULL);
+    BYTE JMP = 0xE9;
+    WriteProcessMemory(g_process,(LPVOID)TargetProc, &JMP, sizeof(JMP), NULL);
+    DWORD offset = NewProc - TargetProc - 5;
+    WriteProcessMemory(g_process,(LPVOID)(TargetProc+1), &offset, sizeof(offset), NULL);
 }
-
 ```
 
-  
-对了，忘记介绍了，一个关键的函数：DllMain，这个函数将会在 dll 被加载时自动执行，因此初始化放在这里面。  
-代码:
+对了，忘记介绍了，一个关键的函数：`DllMain`，这个函数将会在 dll 被加载时自动执行，因此初始化放在这里面。
 
-```
-EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
+```c
+EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
 {
-    if(dwReason==DLL\_PROCESS\_ATTACH)
-    {
-        MSIMG32\_HOOK();
-    }
+    if(dwReason==DLL_PROCESS_ATTACH)
+    {
+        MSIMG32_HOOK();
+    }
 }
-
 ```
 
-然后启动 hook 的函数。从系统目录载入原始 msimg32.dll，获得原始函数的地址，进行写入跳转。  
-  
-代码:
+然后启动 hook 的函数。从系统目录载入原始 `msimg32.dll`，获得原始函数的地址，进行写入跳转。
 
-```
-void MSIMG32\_HOOK()
+```c
+void MSIMG32_HOOK()
 {
-    TCHAR szDLL\[MAX\_PATH+1\]= {0};
-    GetSystemDirectory(szDLL,MAX\_PATH);
-    lstrcat(szDLL,TEXT("\\\\msimg32.dll"));
-    HINSTANCE hDll = LoadLibrary(szDLL);
-    if (hDll!=NULL)
-    {
-        WriteJMP((DWORD)AlphaBlend,(DWORD)GetProcAddress(hDll,"AlphaBlend"));
-        WriteJMP((DWORD)GradientFill,(DWORD)GetProcAddress(hDll,"GradientFill"));
-        WriteJMP((DWORD)vSetDdrawflag,(DWORD)GetProcAddress(hDll,"vSetDdrawflag"));
-        WriteJMP((DWORD)DllInitialize,(DWORD)GetProcAddress(hDll,"DllInitialize"));
-        WriteJMP((DWORD)TransparentBlt,(DWORD)GetProcAddress(hDll,"TransparentBlt"));
-    }
+    TCHAR szDLL[MAX_PATH+1]= {0};
+    GetSystemDirectory(szDLL,MAX_PATH);
+    lstrcat(szDLL,TEXT("\\msimg32.dll"));
+    HINSTANCE hDll = LoadLibrary(szDLL);
+    if (hDll!=NULL)
+    {
+        WriteJMP((DWORD)AlphaBlend,(DWORD)GetProcAddress(hDll,"AlphaBlend"));
+        WriteJMP((DWORD)GradientFill,(DWORD)GetProcAddress(hDll,"GradientFill"));
+        WriteJMP((DWORD)vSetDdrawflag,(DWORD)GetProcAddress(hDll,"vSetDdrawflag"));
+        WriteJMP((DWORD)DllInitialize,(DWORD)GetProcAddress(hDll,"DllInitialize"));
+        WriteJMP((DWORD)TransparentBlt,(DWORD)GetProcAddress(hDll,"TransparentBlt"));
+    }
 }
-
 ```
 
-  
-这样就完成了一个 dll 的劫持和转发，在 MSIMG32\_HOOK()的后面写上你自己要的功能就行了。![](img/2aa97d64a7e0b211d2f8f207eb382aa7.jpg "酷")
+这样就完成了一个 dll 的劫持和转发，在 `MSIMG32_HOOK()`的后面写上你自己要的功能就行了。![](img/2aa97d64a7e0b211d2f8f207eb382aa7.jpg "酷")

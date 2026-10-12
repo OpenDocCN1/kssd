@@ -1,503 +1,797 @@
 
-
 # 全能上网计费器
 
 > 原文：[`www.pediy.com/kssd/pediy08/pediy8-376.htm`](https://www.pediy.com/kssd/pediy08/pediy8-376.htm)
 
-【文章标题】: \[原创\]简单 RSA128 的笔记  
-【文章作者】: rdsnow\[BCG\]\[PYG\]\[D.4s\]  
-【作者邮箱】: rdsnow@163.com  
-【作者主页】: [`rdsnow.ys168.com`](http://rdsnow.ys168.com)  
-【作者 QQ 号】: 83757177  
-【软件名称】: 全能上网计费器 - GPRS 版  
-【下载地址】: [`www.newhua.com/soft/16628.htm`](http://www.newhua.com/soft/16628.htm)  
-【保护方式】: 序列号保护  
-【使用工具】: ODbyDYK v1.10\[05.09\]  
-【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
-【软件介绍】:   
-\--------------------------------------------------------------------------------  
-最近学习脱壳没有什么成果，帮朋友破解了一个软件，朋友跟我要笔记，才发现自己现在已经懒得整理笔记了，花时间整理了下，索性也放一份论坛上。程序的破解不是很复杂，给刚学破解的朋友参考吧。没有技术含量，高手不要看了。  
-注册码长度 19 位，程序对注册码的 5、10、15 位没有验证，估计注册码形式该是"XXXX-XXXX-XXXX-XXXX"，所以输入用户名"rdsnow\[BCG\]\[PYG\]\[D.4s\]"，注册码"9876-5432-ABCD-CDEF"  
-  
-00412BB0   .  6A 04         push 4  
-00412BB2   .  50            push eax  
-00412BB3   .  8BCE          mov ecx,esi  
-00412BB5   .  E8 4B7C0500   call OnlineTi.0046A805                   ;  注册码的第 1 段  
-00412BBA   .  50            push eax  
-00412BBB   .  8D4D EC       lea ecx,dword ptr ss:\[ebp-14\]  
-00412BBE   .  C645 FC 02    mov byte ptr ss:\[ebp-4\],2  
-00412BC2   .  E8 8A9A0500   call OnlineTi.0046C651  
-00412BC7   .  8D4D F0       lea ecx,dword ptr ss:\[ebp-10\]  
-00412BCA   .  C645 FC 01    mov byte ptr ss:\[ebp-4\],1  
-00412BCE   .  E8 45990500   call OnlineTi.0046C518                   ;  ....  
-00412BD3   .  6A 04         push 4  
-00412BD5   .  8D45 F0       lea eax,dword ptr ss:\[ebp-10\]  
-00412BD8   .  6A 05         push 5  
-00412BDA   .  50            push eax  
-00412BDB   .  8BCE          mov ecx,esi  
-00412BDD   .  E8 117B0500   call OnlineTi.0046A6F3                   ;  注册码的第 2 段  
-00412BE2   .  50            push eax  
-00412BE3   .  8D4D EC       lea ecx,dword ptr ss:\[ebp-14\]  
-00412BE6   .  C645 FC 03    mov byte ptr ss:\[ebp-4\],3  
-00412BEA   .  E8 B89C0500   call OnlineTi.0046C8A7                   ;  注册码的第 1 段 + 第 2 段  
-00412BEF   .  8D4D F0       lea ecx,dword ptr ss:\[ebp-10\]  
-00412BF2   .  C645 FC 01    mov byte ptr ss:\[ebp-4\],1  
-00412BF6   .  E8 1D990500   call OnlineTi.0046C518                   ;  ....  
-00412BFB   .  6A 04         push 4  
-00412BFD   .  8D45 F0       lea eax,dword ptr ss:\[ebp-10\]  
-00412C00   .  6A 0A         push 0A  
-00412C02   .  50            push eax  
-00412C03   .  8BCE          mov ecx,esi  
-00412C05   .  E8 E97A0500   call OnlineTi.0046A6F3                   ;  注册码的第 3 段  
-00412C0A   .  50            push eax  
-00412C0B   .  8D4D EC       lea ecx,dword ptr ss:\[ebp-14\]  
-00412C0E   .  C645 FC 04    mov byte ptr ss:\[ebp-4\],4  
-00412C12   .  E8 909C0500   call OnlineTi.0046C8A7                   ;  注册码的第 1 段 + 第 2 段 + 第 3 段  
-00412C17   .  8D4D F0       lea ecx,dword ptr ss:\[ebp-10\]  
-00412C1A   .  C645 FC 01    mov byte ptr ss:\[ebp-4\],1  
-00412C1E   .  E8 F5980500   call OnlineTi.0046C518                   ;  ....  
-00412C23   .  6A 04         push 4  
-00412C25   .  8D45 E0       lea eax,dword ptr ss:\[ebp-20\]  
-00412C28   .  6A 0F         push 0F  
-00412C2A   .  50            push eax  
-00412C2B   .  8BCE          mov ecx,esi  
-00412C2D   .  E8 C17A0500   call OnlineTi.0046A6F3                   ;  注册码的第 4 段  
-00412C32   .  50            push eax  
-00412C33   .  8D4D EC       lea ecx,dword ptr ss:\[ebp-14\]  
-00412C36   .  C645 FC 05    mov byte ptr ss:\[ebp-4\],5  
-00412C3A   .  E8 689C0500   call OnlineTi.0046C8A7                   ;  注册码的第 1 段 + 第 2 段 + 第 3 段 + 第 4 段  
-00412C3F   .  8D4D E0       lea ecx,dword ptr ss:\[ebp-20\]            ;  相当于去掉注册码中的 "-" 得到 "98765432ABCDCDEF"  
-00412C42   .  C645 FC 01    mov byte ptr ss:\[ebp-4\],1  
-00412C46   .  E8 CD980500   call OnlineTi.0046C518                   ;  ....  
-00412C4B   .  53            push ebx  
-00412C4C   .  8D4D E4       lea ecx,dword ptr ss:\[ebp-1C\]  
-00412C4F   .  893D 94564A00 mov dword ptr ds:\[4A5694\],edi  
-00412C55   .  E8 F7990500   call OnlineTi.0046C651  
-00412C5A   .  8B75 E4       mov esi,dword ptr ss:\[ebp-1C\]  
-00412C5D   .  33DB          xor ebx,ebx                              ;  i = 0  
-00412C5F   .  8B46 F8       mov eax,dword ptr ds:\[esi-8\]  
-00412C62   .  3BC7          cmp eax,edi  
-00412C64   .  7E 31         jle short OnlineTi.00412C97  
-00412C66   .  8D85 E0FDFFFF lea eax,dword ptr ss:\[ebp-220\]  
-00412C6C   .  8975 F0       mov dword ptr ss:\[ebp-10\],esi  
-00412C6F   .  2945 F0       sub dword ptr ss:\[ebp-10\],eax  
-00412C72   >  8BC3          mov eax,ebx                              ;  while ( i < 22 ) 用户名的长度是 22  
-00412C74   .  6A 08         push 8  
-00412C76   .  99            cdq  
-00412C77   .  59            pop ecx  
-00412C78   .  8DBC1D E0FDFF>lea edi,dword ptr ss:\[ebp+ebx-220\]  
-00412C7F   .  F7F9          idiv ecx                                 ;  i mod 8  
-00412C81   .  0C FF         or al,0FF                                ;  al = 0xFF  
-00412C83   .  8BCA          mov ecx,edx  
-00412C85   .  D2E0          shl al,cl                                ;  0xFF << ( i mod 8 )  
-00412C87   .  8B4D F0       mov ecx,dword ptr ss:\[ebp-10\]  
-00412C8A   .  320439        xor al,byte ptr ds:\[ecx+edi\]             ;  UseName\[i\] = UseName\[i\] xor ( 0xFF << i )  
-00412C8D   .  43            inc ebx                                  ;  i = i + 1  
-00412C8E   .  8807          mov byte ptr ds:\[edi\],al  
-00412C90   .  3B5E F8       cmp ebx,dword ptr ds:\[esi-8\]  
-00412C93   .^ 7C DD         jl short OnlineTi.00412C72               ;  end loop  
-00412C95   .  33FF          xor edi,edi  
-00412C97   >  FF76 F8       push dword ptr ds:\[esi-8\]  
-00412C9A   .  8B4D E8       mov ecx,dword ptr ss:\[ebp-18\]  
-00412C9D   .  8D85 E0FDFFFF lea eax,dword ptr ss:\[ebp-220\]  
-00412CA3   .  50            push eax  
-00412CA4   .  E8 78000000   call OnlineTi.00412D21                   ;  写入注册表 HKLM\\Software\\GrassSoft\\OnlineTime\\ \[RemoteName\]  
-00412CA9   .  8B5D EC       mov ebx,dword ptr ss:\[ebp-14\]  
-00412CAC   .  397B F8       cmp dword ptr ds:\[ebx-8\],edi  
-00412CAF   .  7E 2F         jle short OnlineTi.00412CE0  
-00412CB1   .  8D85 E0FDFFFF lea eax,dword ptr ss:\[ebp-220\]  
-00412CB7   .  895D F0       mov dword ptr ss:\[ebp-10\],ebx  
-00412CBA   .  2945 F0       sub dword ptr ss:\[ebp-10\],eax  
-00412CBD   >  8BC7          mov eax,edi                              ;  while ( i < 16 ) 注册码的长度是 16  
-00412CBF   .  6A 08         push 8  
-00412CC1   .  99            cdq  
-00412CC2   .  59            pop ecx  
-00412CC3   .  8DB43D E0FDFF>lea esi,dword ptr ss:\[ebp+edi-220\]  
-00412CCA   .  F7F9          idiv ecx                                 ;  i mod 8  
-00412CCC   .  0C FF         or al,0FF                                ;  al = 0xFF  
-00412CCE   .  8BCA          mov ecx,edx  
-00412CD0   .  D2E0          shl al,cl                                ;  0xFF << ( i mod 8 )  
-00412CD2   .  8B4D F0       mov ecx,dword ptr ss:\[ebp-10\]  
-00412CD5   .  320431        xor al,byte ptr ds:\[ecx+esi\]             ;  RegCode\[i\] = RegCode\[i\] xor ( 0xFF << i )  
-00412CD8   .  47            inc edi  
-00412CD9   .  8806          mov byte ptr ds:\[esi\],al  
-00412CDB   .  3B7B F8       cmp edi,dword ptr ds:\[ebx-8\]  
-00412CDE   .^ 7C DD         jl short OnlineTi.00412CBD               ;  end loop  
-00412CE0   >  FF73 F8       push dword ptr ds:\[ebx-8\]  
-00412CE3   .  8B4D E8       mov ecx,dword ptr ss:\[ebp-18\]  
-00412CE6   .  8D85 E0FDFFFF lea eax,dword ptr ss:\[ebp-220\]  
-00412CEC   .  50            push eax  
-00412CED   .  E8 BA000000   call OnlineTi.00412DAC                   ;  写入注册表 HKLM\\Software\\GrassSoft\\OnlineTime\\ \[Mac\]  
-00412CF2   .  8B4D E8       mov ecx,dword ptr ss:\[ebp-18\]  
-00412CF5   .  E8 D61C0300   call OnlineTi.004449D0  
-00412CFA   >  8065 FC 00    and byte ptr ss:\[ebp-4\],0  
-00412CFE   .  8D4D EC       lea ecx,dword ptr ss:\[ebp-14\]  
-00412D01   .  E8 12980500   call OnlineTi.0046C518                   ;  ....  
-00412D06   .  834D FC FF    or dword ptr ss:\[ebp-4\],FFFFFFFF  
-00412D0A   .  8D4D E4       lea ecx,dword ptr ss:\[ebp-1C\]  
-00412D0D   .  E8 06980500   call OnlineTi.0046C518                   ;  ....  
-00412D12   .  8B4D F4       mov ecx,dword ptr ss:\[ebp-C\]  
-00412D15   .  5F            pop edi  
-00412D16   .  5E            pop esi  
-00412D17   .  5B            pop ebx  
-00412D18   .  64:890D 00000>mov dword ptr fs:\[0\],ecx  
-00412D1F   .  C9            leave  
-00412D20   .  C3            retn  
-  
+【文章标题】: [原创]简单 RSA128 的笔记  
 
-引用:  以上是将输入的用户名和注册码经过简单的异或加密后保存到注册表中，那么他以后必定会读取这两个注册键，搜索文本串"RemoteName"
+【文章作者】: rdsnow[BCG][PYG][D.4s]  
 
-  
-  
-00422639  |.  8BCF          |mov ecx,edi  
-0042263B  |.  E8 B0F8FFFF   |call OnlineTi.00421EF0                  ;  读取保存的注册表中的两键  
-00422640  |.  8BCF          |mov ecx,edi                             ;  OnlineTi.004A3810  
-00422642  |.  E8 97FAFFFF   |call OnlineTi.004220DE                  ;  检验是否是合法的注册码  
-  
-跟进 00422642:call 004220DE：  
-  
-004221DA  |.  33DB          xor ebx,ebx                              ;  i = 0  
-004221DC  |.  85C9          test ecx,ecx  
-004221DE  |.  7E 1C         jle short OnlineTi.004221FC              ;  while ( i < 16 ) Mac 的长度是 16  
-004221E0  |>  8BC3          /mov eax,ebx  
-004221E2  |.  6A 08         |push 8  
-004221E4  |.  99            |cdq  
-004221E5  |.  59            |pop ecx  
-004221E6  |.  F7F9          |idiv ecx                                ;  i mod 8  
-004221E8  |.  0C FF         |or al,0FF                               ;  al = 0xFF  
-004221EA  |.  8BCA          |mov ecx,edx  
-004221EC  |.  D2E0          |shl al,cl                               ;  0xFF << ( i mod 8 )  
-004221EE  |.  8AC8          |mov cl,al  
-004221F0  |.  8B45 DC       |mov eax,dword ptr ss:\[ebp-24\]  
-004221F3  |.  300C03        |xor byte ptr ds:\[ebx+eax\],cl            ;  Mac\[i\] = Mac\[i\] ^ ( 0xFF << ( i mod 8 ))  
-004221F6  |.  43            |inc ebx                                 ;  i = i + 1  
-004221F7  |.  3B5D E8       |cmp ebx,dword ptr ss:\[ebp-18\]  
-004221FA  |.^ 7C E4         \\jl short OnlineTi.004221E0              ;  以上循环将加密的注册码还原为 "98765432ABCDCDEF"  
-004221FC  |>  33DB          xor ebx,ebx  
-004221FE  |.  85FF          test edi,edi  
-00422200  |.  7E 22         jle short OnlineTi.00422224  
-00422202  |>  8B45 CC       /mov eax,dword ptr ss:\[ebp-34\]           ;  while ( i < 22 ) RemoteName 的长度是 22  
-00422205  |.  6A 08         |push 8  
-00422207  |.  03C3          |add eax,ebx  
-00422209  |.  59            |pop ecx  
-0042220A  |.  8945 E8       |mov dword ptr ss:\[ebp-18\],eax  
-0042220D  |.  8BC3          |mov eax,ebx  
-0042220F  |.  99            |cdq  
-00422210  |.  F7F9          |idiv ecx                                ;  i mod 8  
-00422212  |.  0C FF         |or al,0FF                               ;  al = 0xFF  
-00422214  |.  8BCA          |mov ecx,edx  
-00422216  |.  D2E0          |shl al,cl                               ;  0xFF << ( i mod 8 )  
-00422218  |.  8AC8          |mov cl,al  
-0042221A  |.  8B45 E8       |mov eax,dword ptr ss:\[ebp-18\]  
-0042221D  |.  3008          |xor byte ptr ds:\[eax\],cl                ;  RemoteName\[i\] = RemoteName\[i\] ^ ( 0xFF << ( i mod 8 ))  
-0042221F  |.  43            |inc ebx                                 ;  i = i + 1  
-00422220  |.  3BDF          |cmp ebx,edi  
-00422222  |.^ 7C DE         \\jl short OnlineTi.00422202              ;  以上循环将加密的用户名还原为 "rdsnow\[BCG\]\[PYG\]\[D.4s\]"  
-00422224  |>  8B5D CC       mov ebx,dword ptr ss:\[ebp-34\]  
-00422227  |.  8D8E 601E0000 lea ecx,dword ptr ds:\[esi+1E60\]  
-0042222D  |.  53            push ebx  
-0042222E  |.  E8 6EA40400   call OnlineTi.0046C6A1  
-00422233  |.  A1 5CAD4900   mov eax,dword ptr ds:\[49AD5C\]  
-00422238  |.  8945 C0       mov dword ptr ss:\[ebp-40\],eax  
-0042223B  |.  33C9          xor ecx,ecx  
-0042223D  |.  8945 EC       mov dword ptr ss:\[ebp-14\],eax  
-00422240  |.  894D FC       mov dword ptr ss:\[ebp-4\],ecx  
-00422243  |.  83FF 08       cmp edi,8  
-00422246  |.  C645 FC 01    mov byte ptr ss:\[ebp-4\],1  
-0042224A  |.  76 40         jbe short OnlineTi.0042228C              ;  若用户名的长度大于 8 ,则从中抽取 8 个字符组成字符串  
-0042224C  |.  897D E4       mov dword ptr ss:\[ebp-1C\],edi  
-0042224F  |.  894D E8       mov dword ptr ss:\[ebp-18\],ecx  
-00422252  |.  DF6D E4       fild qword ptr ss:\[ebp-1C\]  
-00422255  |.  894D E8       mov dword ptr ss:\[ebp-18\],ecx  
-00422258  |.  D80D 74544800 fmul dword ptr ds:\[485474\]               ;  22 × 0.125， 22 是用户名的长度  
-0042225E  |>  DB45 E8       /fild dword ptr ss:\[ebp-18\]  
-00422261  |.  D8C9          |fmul st,st(1)                           ;  22 × 0.125 × i  
-00422263  |.  E8 F41C0100   |call OnlineTi.00433F5C                  ;  22 × 0.125 × i 结果取整得到 j  
-00422268  |.  8B4D E8       |mov ecx,dword ptr ss:\[ebp-18\]  
-0042226B  |.  FF45 E8       |inc dword ptr ss:\[ebp-18\]               ;  i = i + 1  
-0042226E  |.  8A0418        |mov al,byte ptr ds:\[eax+ebx\]  
-00422271  |.  837D E8 08    |cmp dword ptr ss:\[ebp-18\],8             ;  while ( i < 8 )  
-00422275  |.  88440D B8     |mov byte ptr ss:\[ebp+ecx-48\],al         ;  保存 Name\[j\]  
-00422279  |.^ 7C E3         \\jl short OnlineTi.0042225E  
-0042227B  |.  8D45 B8       lea eax,dword ptr ss:\[ebp-48\]  
-0042227E  |.  6A 08         push 8  
-00422280  |.  50            push eax  
-00422281  |.  53            push ebx  
-00422282  |.  DDD8          fstp st  
-00422284  |.  E8 070D0100   call OnlineTi.00432F90                   ;  按照上面规律抽取用户名的 8 个字符，得到"rswC\[Y\[4"  
-00422289  |.  83C4 0C       add esp,0C  
-0042228C  |>  6A 08         push 8  
-0042228E  |.  59            pop ecx  
-0042228F  |.  3BF9          cmp edi,ecx  
-00422291  |.  73 2C         jnb short OnlineTi.004222BF              ;  若用户名的长度小于 8 ，则在用户名前面补空格凑足 8 位字符串  
-00422293  |.  2BCF          sub ecx,edi  
-00422295  |.  4F            dec edi  
-00422296  |.  85FF          test edi,edi  
-00422298  |.  7C 0C         jl short OnlineTi.004222A6  
-0042229A  |.  8D0419        lea eax,dword ptr ds:\[ecx+ebx\]  
-0042229D  |>  8A141F        /mov dl,byte ptr ds:\[edi+ebx\]  
-004222A0  |.  881438        |mov byte ptr ds:\[eax+edi\],dl            ;  这个循环将用户名的各字符搬到后面  
-004222A3  |.  4F            |dec edi  
-004222A4  |.^ 79 F7         \\jns short OnlineTi.0042229D  
-004222A6  |>  85C9          test ecx,ecx  
-004222A8  |.  7E 15         jle short OnlineTi.004222BF  
-004222AA  |.  8BD1          mov edx,ecx  
-004222AC  |.  B8 20202020   mov eax,20202020  
-004222B1  |.  8BFB          mov edi,ebx  
-004222B3  |.  C1E9 02       shr ecx,2  
-004222B6  |.  F3:AB         rep stos dword ptr es:\[edi\]              ;  在用户名前补空格凑足 8 位字符串  
-004222B8  |.  8BCA          mov ecx,edx  
-004222BA  |.  83E1 03       and ecx,3  
-004222BD  |.  F3:AA         rep stos byte ptr es:\[edi\]               ;  在用户名前补空格凑足 8 位字符串  
-004222BF  |>  8D4D EC       lea ecx,dword ptr ss:\[ebp-14\]  
-004222C2  |.  E8 DCA10400   call OnlineTi.0046C4A3  
-004222C7  |.  33FF          xor edi,edi                              ;  i = 0  
-004222C9  |>  8A041F        /mov al,byte ptr ds:\[edi+ebx\]            ;  Name\[i\]  
-004222CC  |.  84C0          |test al,al  
-004222CE  |.  8845 F3       |mov byte ptr ss:\[ebp-D\],al  
-004222D1  |.  7D 04         |jge short OnlineTi.004222D7  
-004222D3  |.  8045 F3 64    |add byte ptr ss:\[ebp-D\],64              ;  若 Name\[i\] 是中文字符，Name\[i\] =  Name\[i\] + 100  
-004222D7  |>  8D45 E0       |lea eax,dword ptr ss:\[ebp-20\]  
-004222DA  |.  6A 10         |push 10  
-004222DC  |.  50            |push eax  
-004222DD  |.  0FBE45 F3     |movsx eax,byte ptr ss:\[ebp-D\]  
-004222E1  |.  50            |push eax  
-004222E2  |.  E8 083A0100   |call OnlineTi.00435CEF                  ;  数值转为 16 进制文本  
-004222E7  |.  8D45 E0       |lea eax,dword ptr ss:\[ebp-20\]  
-004222EA  |.  50            |push eax  
-004222EB  |.  E8 401B0100   |call OnlineTi.00433E30                  ;  文本长度  
-004222F0  |.  83C4 10       |add esp,10  
-004222F3  |.  83F8 02       |cmp eax,2  
-004222F6  |.  8D45 E0       |lea eax,dword ptr ss:\[ebp-20\]  
-004222F9  |.  50            |push eax  
-004222FA  |.  76 0E         |jbe short OnlineTi.0042230A  
-004222FC  |.  E8 2F1B0100   |call OnlineTi.00433E30  
-00422301  |.  59            |pop ecx  
-00422302  |.  8D4D E0       |lea ecx,dword ptr ss:\[ebp-20\]  
-00422305  |.  49            |dec ecx  
-00422306  |.  49            |dec ecx  
-00422307  |.  03C1          |add eax,ecx  
-00422309  |.  50            |push eax  
-0042230A  |>  8D4D EC       |lea ecx,dword ptr ss:\[ebp-14\]  
-0042230D  |.  E8 6EA50400   |call OnlineTi.0046C880                  ;  连接每轮得到的文本  
-00422312  |.  47            |inc edi  
-00422313  |.  83FF 08       |cmp edi,8                               ;  while ( i < 8 )  
-00422316  |.^ 7C B1         \\jl short OnlineTi.004222C9              ;  经循环 "rswC\[Y\[4" 转为 "727377435b595b34"  
-00422318  |.  FF75 EC       push dword ptr ss:\[ebp-14\]               ;  "727377435b595b34" 用于后面跟 RSA( 注册码 ) 比较  
-0042231B  |.  8D85 78FDFFFF lea eax,dword ptr ss:\[ebp-288\]  
-00422321  |.  50            push eax  
-00422322  |.  E8 49170100   call OnlineTi.00433A70  
-00422327  |.  FF75 DC       push dword ptr ss:\[ebp-24\]  
-0042232A  |.  8D85 78F8FFFF lea eax,dword ptr ss:\[ebp-788\]  
-00422330  |.  50            push eax  
-00422331  |.  E8 3A170100   call OnlineTi.00433A70  
-00422336  |.  83C4 10       add esp,10  
-00422339  |.  33C9          xor ecx,ecx                              ;  i = 0  
-0042233B  |>  8D840D 78FEFF>/lea eax,dword ptr ss:\[ebp+ecx-188\]  
-00422342  |.  83F9 0F       |cmp ecx,0F                              ;  Switch (cases 0..F)  
-00422345  |.  C600 20       |mov byte ptr ds:\[eax\],20  
-00422348  |.  77 28         |ja short OnlineTi.00422372  
-0042234A  |.  FF248D 832542>|jmp dword ptr ds:\[ecx\*4+422583\]  
-00422351  |>  C600 43       |mov byte ptr ds:\[eax\],43                ;  Cases 0,D of switch 00422342  
-00422354  |.  EB 1C         |jmp short OnlineTi.00422372  
-00422356  |>  C600 30       |mov byte ptr ds:\[eax\],30                ;  Cases 1,8 of switch 00422342  
-00422359  |.  EB 17         |jmp short OnlineTi.00422372  
-0042235B  |>  C600 31       |mov byte ptr ds:\[eax\],31                ;  Cases 2,A,B,E,F of switch 00422342  
-0042235E  |.  EB 12         |jmp short OnlineTi.00422372  
-00422360  |>  C600 41       |mov byte ptr ds:\[eax\],41                ;  Case 3 of switch 00422342  
-00422363  |.  EB 0D         |jmp short OnlineTi.00422372  
-00422365  |>  C600 37       |mov byte ptr ds:\[eax\],37                ;  Cases 4,6,9 of switch 00422342  
-00422368  |.  EB 08         |jmp short OnlineTi.00422372  
-0042236A  |>  C600 38       |mov byte ptr ds:\[eax\],38                ;  Case 5 of switch 00422342  
-0042236D  |.  EB 03         |jmp short OnlineTi.00422372  
-0042236F  |>  C600 39       |mov byte ptr ds:\[eax\],39                ;  Case C of switch 00422342  
-00422372  |>  41            |inc ecx                                 ;  Default case of switch 00422342  
-00422373  |.  83F9 10       |cmp ecx,10  
-00422376  |.^ 7C C3         \\jl short OnlineTi.0042233B              ;  这里得到固定文本"C01A787 07119C11"  
-00422378  |.  E8 B07BFFFF   call OnlineTi.00419F2D  
-0042237D  |.  8D85 78F8FFFF lea eax,dword ptr ss:\[ebp-788\]  
-00422383  |.  50            push eax  
-00422384  |.  E8 A71A0100   call OnlineTi.00433E30  
-00422389  |.  8BD8          mov ebx,eax  
-0042238B  |.  8D85 78F8FFFF lea eax,dword ptr ss:\[ebp-788\]  
-00422391  |.  50            push eax  
-00422392  |.  C1EB 04       shr ebx,4  
-00422395  |.  E8 961A0100   call OnlineTi.00433E30  
-0042239A  |.  59            pop ecx  
-0042239B  |.  A8 0F         test al,0F  
-0042239D  |.  59            pop ecx  
-0042239E  |.  76 01         jbe short OnlineTi.004223A1  
-004223A0  |.  43            inc ebx  
-004223A1  |>  8A85 87FEFFFF mov al,byte ptr ss:\[ebp-179\]  
-004223A7  |.  FEC0          inc al                                   ;  "C01A787 07119C11"的最后一位 +1  
-004223A9  |.  80A5 88FEFFFF>and byte ptr ss:\[ebp-178\],0  
-004223B0  |.  8885 7FFEFFFF mov byte ptr ss:\[ebp-181\],al             ;  填补到第 8 位得到 "C01A787207119C11"  
-004223B6  |.  33C0          xor eax,eax                              ;  i = 0  
-004223B8  |>  85C0          /test eax,eax  
-004223BA  |.  74 0F         |je short OnlineTi.004223CB  
-004223BC  |.  83F8 04       |cmp eax,4  
-004223BF  |.  74 0A         |je short OnlineTi.004223CB  
-004223C1  |.  C68405 78FFFF>|mov byte ptr ss:\[ebp+eax-88\],30         ;  0 和 4 位是 '1'  
-004223C9  |.  EB 08         |jmp short OnlineTi.004223D3  
-004223CB  |>  C68405 78FFFF>|mov byte ptr ss:\[ebp+eax-88\],31         ;  1 2 3 位是 '0'  
-004223D3  |>  40            |inc eax  
-004223D4  |.  83F8 05       |cmp eax,5                               ;  while ( i < 5 )  
-004223D7  |.^ 7C DF         \\jl short OnlineTi.004223B8              ;  这样得到 "10001"  
-004223D9  |.  80A5 7DFFFFFF>and byte ptr ss:\[ebp-83\],0  
-004223E0  |.  8D4D EC       lea ecx,dword ptr ss:\[ebp-14\]  
-004223E3  |.  E8 BBA00400   call OnlineTi.0046C4A3  
-004223E8  |.  8365 E8 00    and dword ptr ss:\[ebp-18\],0  
-004223EC  |.  85DB          test ebx,ebx  
-004223EE  |.  0F8E 92000000 jle OnlineTi.00422486  
-004223F4  |.  8DBD 88F8FFFF lea edi,dword ptr ss:\[ebp-778\]  
-004223FA  |>  8D43 FF       /lea eax,dword ptr ds:\[ebx-1\]  
-004223FD  |.  3945 E8       |cmp dword ptr ss:\[ebp-18\],eax  
-00422400  |.  7D 08         |jge short OnlineTi.0042240A  
-00422402  |.  8A07          |mov al,byte ptr ds:\[edi\]  
-00422404  |.  8027 00       |and byte ptr ds:\[edi\],0  
-00422407  |.  8845 F3       |mov byte ptr ss:\[ebp-D\],al  
-0042240A  |>  8D45 D8       |lea eax,dword ptr ss:\[ebp-28\]  
-0042240D  |.  50            |push eax  
-0042240E  |.  8D47 F0       |lea eax,dword ptr ds:\[edi-10\]  
-00422411  |.  50            |push eax  
-00422412  |.  E8 B3A4FFFF   |call OnlineTi.0041C8CA                  ;  "98765432ABCDCDEF"转为大数 M  
-00422417  |.  8D45 D4       |lea eax,dword ptr ss:\[ebp-2C\]  
-0042241A  |.  50            |push eax  
-0042241B  |.  8D85 78FFFFFF |lea eax,dword ptr ss:\[ebp-88\]  
-00422421  |.  50            |push eax  
-00422422  |.  E8 A3A4FFFF   |call OnlineTi.0041C8CA                  ;  "10001"转为大数 E  
-00422427  |.  8D45 D0       |lea eax,dword ptr ss:\[ebp-30\]  
-0042242A  |.  50            |push eax  
-0042242B  |.  8D85 78FEFFFF |lea eax,dword ptr ss:\[ebp-188\]  
-00422431  |.  50            |push eax  
-00422432  |.  E8 93A4FFFF   |call OnlineTi.0041C8CA                  ;  "C01A787207119C11"转为大数 N  
-00422437  |.  8D45 C8       |lea eax,dword ptr ss:\[ebp-38\]  
-0042243A  |.  50            |push eax  
-0042243B  |.  FF75 D0       |push dword ptr ss:\[ebp-30\]  
-0042243E  |.  FF75 D4       |push dword ptr ss:\[ebp-2C\]  
-00422441  |.  FF75 D8       |push dword ptr ss:\[ebp-28\]  
-00422444  |.  E8 239EFFFF   |call OnlineTi.0041C26C                  ;  大数运算 C = M ^ E mod N  
-00422449  |.  FF75 C8       |push dword ptr ss:\[ebp-38\]  
-0042244C  |.  8D85 78FCFFFF |lea eax,dword ptr ss:\[ebp-388\]  
-00422452  |.  50            |push eax  
-00422453  |.  E8 58A6FFFF   |call OnlineTi.0041CAB0  
-00422458  |.  83C4 30       |add esp,30                              ;  C 转为文本得到 "2FC3A1BA03F5A964"  
-0042245B  |.  8D85 78FCFFFF |lea eax,dword ptr ss:\[ebp-388\]  
-00422461  |.  8D4D EC       |lea ecx,dword ptr ss:\[ebp-14\]  
-00422464  |.  50            |push eax  
-00422465  |.  E8 16A40400   |call OnlineTi.0046C880  
-0042246A  |.  8D43 FF       |lea eax,dword ptr ds:\[ebx-1\]  
-0042246D  |.  3945 E8       |cmp dword ptr ss:\[ebp-18\],eax  
-00422470  |.  7D 05         |jge short OnlineTi.00422477  
-00422472  |.  8A45 F3       |mov al,byte ptr ss:\[ebp-D\]  
-00422475  |.  8807          |mov byte ptr ds:\[edi\],al  
-00422477  |>  FF45 E8       |inc dword ptr ss:\[ebp-18\]  
-0042247A  |.  83C7 10       |add edi,10  
-0042247D  |.  395D E8       |cmp dword ptr ss:\[ebp-18\],ebx  
-00422480  |.^ 0F8C 74FFFFFF \\jl OnlineTi.004223FA  
-00422486  |>  8D4D EC       lea ecx,dword ptr ss:\[ebp-14\]  
-00422489  |.  E8 DAA40400   call OnlineTi.0046C968  
-0042248E  |.  8B45 EC       mov eax,dword ptr ss:\[ebp-14\]  
-00422491  |.  33D2          xor edx,edx  
-00422493  |.  8B58 F8       mov ebx,dword ptr ds:\[eax-8\]  
-00422496  |.  85DB          test ebx,ebx  
-00422498  |.  7E 20         jle short OnlineTi.004224BA  
-0042249A  |.  8BF8          mov edi,eax  
-0042249C  |.  8D85 78FDFFFF lea eax,dword ptr ss:\[ebp-288\]  
-004224A2  |.  2BF8          sub edi,eax  
-004224A4  |>  8D8415 78FDFF>/lea eax,dword ptr ss:\[ebp+edx-288\]  
-004224AB  |.  8A0C07        |mov cl,byte ptr ds:\[edi+eax\]  
-004224AE  |.  3808          |cmp byte ptr ds:\[eax\],cl                ;  RSA 运算结果的每一位跟用户名取得的 8 位字符比较  
-004224B0  |.  74 03         |je short OnlineTi.004224B5  
-004224B2  |.  0155 C4       |add dword ptr ss:\[ebp-3C\],edx  
-004224B5  |>  42            |inc edx  
-004224B6  |.  3BD3          |cmp edx,ebx  
-004224B8  |.^ 7C EA         \\jl short OnlineTi.004224A4  
-  
-因 "2FC3A1BA03F5A964" 不等于 "727377435b595b34"，所以注册不成功哦！  
-  
-用大数计算器计算：0x98765432ABCDCDEF 的 0x10001 次方对 0xC01A787207119C11 取模确实得到 0x2FC3A1BA03F5A964 所以确认是 RSA128  
-  
+【作者邮箱】: rdsnow@163.com  
 
-引用:  大致流程：  
-1、用户名和注册码异或加密后存入注册表  
-2、解密出用户名和注册码  
-3、从用户名中抽取 8 个字符转的 ASC 码转为十六进制字符串  
-       用户名少于 6 位则用户名前面补空格  
-       用户名中有中文，则中文字符的 ASC 要加上 100  
-4、注册码经过 RSA 运算后跟上面字符串比较
+【作者主页】: [`rdsnow.ys168.com`](http://rdsnow.ys168.com)  
 
-  
-  
-解密过程：  
-  
-1、将模数 N = 0xC01A787207119C11 因式分解得 0x108BEF9A3 × 0xB9C1D6BB  
-2、将公钥 E = 0x10001 N = 0xC01A787207119C11 输入到 RSATOOLS  
-3、RSATOOLS 计算得到密钥：D = 0x642A693A40C62F31  
-4、有了公钥就可以写出程序的注册机了  
-  
-应该说 128 位的密钥已经不具有保护能力了，建议使用 1024 位或更高  
-\--------------------------------------------------------------------------------  
-【注册源码】  
-  
-extern "C"  
-{  
-#include "miracl.h"  
-#include "mirdef.h"  
-}  
-  
-#pragma comment( lib, "ms32.lib" )  
-  
-void CKeygenDlg::OnOK()   
-{  
-  // TODO: Add extra validation here  
-  Beep(1000,10);  
-  char szUseName\[256\] = {0};  
-  char szRemoteName\[16\]="        ";  
-  char szRegCode\[24\];  
-  byte i;  
-  UpdateData(true);  
-  strcpy(szUseName,m\_Edit1);  
-  int len = strlen(szUseName);  
-  if( len > 8 )  
-    for (i=0;i<8;i++)  
-      szRemoteName\[i\] = szUseName\[len\*i/8\];  
-    else strcpy(szRemoteName+8-len,szUseName);  
-  for (i=0;i<8;i++)  
-    sprintf(szUseName+2\*i,"%02X",  
-    szRemoteName\[i\]>0?szRemoteName\[i\]:szRemoteName\[i\]+100);    
-  
-  char cBuff\[16\]={0};  //用于放大数运算结果  
-//MIRACL 大数运算库运算   
-  miracl \*mip=mirsys(100,0);  
-  mip->IOBASE=16;      //16 进制模式  
-//定义并初始化变量  
-  big m=mirvar(0);    //m 放明文  
-  big c=mirvar(0);    //c 放密文  
-  big n=mirvar(0);    //n 模数  
-  big d=mirvar(0);    //d 私钥    
-  cinstr(c,szUseName);    //初始化密文 c  
-  cinstr(n,"C01A787207119C11");  //初始化模数 n     
-  cinstr(d,"642A693A40C62F31");  //初始化私钥 d  
-  powmod(c,d,n,m);    //计算 m=c^d mod n  
-  big\_to\_bytes(0,m,cBuff,FALSE);  //将 c 转换成数组写入 buff  
-  mirkill(m);  
-  mirkill(c);  
-  mirkill(n);  
-  mirkill(d);  
-  mirexit();  
-  
-//输出运算结果  
-  for(i=0;i<8;i++)  sprintf(szRegCode+2\*i,"%02X",(byte)cBuff\[i\]);  
-  m\_Edit2 = szRegCode;  
-  m\_Edit2.Insert (4,'-');  
-  m\_Edit2.Insert (9,'-');  
-  m\_Edit2.Insert (14,'-');  
-  UpdateData(false);  
-}  
-\--------------------------------------------------------------------------------  
-【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
-  
-                                                       2007 年 10 月 21 日 22:46:16 
+【作者 QQ 号】: 83757177  
 
- 4dd466d0e1e0cc123afbe504da2462ca
+【软件名称】: 全能上网计费器 - GPRS 版  
+
+【下载地址】: [`www.newhua.com/soft/16628.htm`](http://www.newhua.com/soft/16628.htm)  
+
+【保护方式】: 序列号保护  
+
+【使用工具】: `ODbyDYK v1.10[05.09]`  
+
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
+
+【软件介绍】:  
+
+--------------------------------------------------------------------------------
+
+最近学习脱壳没有什么成果，帮朋友破解了一个软件，朋友跟我要笔记，才发现自己现在已经懒得整理笔记了，花时间整理了下，索性也放一份论坛上。程序的破解不是很复杂，给刚学破解的朋友参考吧。没有技术含量，高手不要看了。
+
+注册码长度 19 位，程序对注册码的 5、10、15 位没有验证，估计注册码形式该是 "XXXX-XXXX-XXXX-XXXX"，所以输入用户名 "rdsnow[BCG][PYG][D.4s]"，注册码 "9876-5432-ABCD-CDEF"
+
+```
+00412BB0   .  6A 04         push 4
+00412BB2   .  50           push eax
+00412BB3   .  8BCE         mov ecx,esi
+00412BB5   .  E8 4B7C0500  call OnlineTi.0046A805                 ;  注册码的第 1 段
+00412BBA   .  50           push eax
+00412BBB   .  8D4D EC      lea ecx,dword ptr ss:[ebp-14]
+00412BBE   .  C645 FC 02   mov byte ptr ss:[ebp-4],2
+00412BC2   .  E8 8A9A0500  call OnlineTi.0046C651
+00412BC7   .  8D4D F0      lea ecx,dword ptr ss:[ebp-10]
+00412BCA   .  C645 FC 01   mov byte ptr ss:[ebp-4],1
+00412BCE   .  E8 45990500  call OnlineTi.0046C518                 ;  ....
+00412BD3   .  6A 04        push 4
+00412BD5   .  8D45 F0      lea eax,dword ptr ss:[ebp-10]
+00412BD8   .  6A 05        push 5
+00412BDA   .  50          push eax
+00412BDB   .  8BCE         mov ecx,esi
+00412BDD   .  E8 117B0500  call OnlineTi.0046A6F3                 ;  注册码的第 2 段
+00412BE2   .  50          push eax
+00412BE3   .  8D4D EC      lea ecx,dword ptr ss:[ebp-14]
+00412BE6   .  C645 FC 03   mov byte ptr ss:[ebp-4],3
+00412BEA   .  E8 B89C0500  call OnlineTi.0046C8A7                 ;  注册码的第 1 段 + 第 2 段
+00412BEF   .  8D4D F0      lea ecx,dword ptr ss:[ebp-10]
+00412BF2   .  C645 FC 01   mov byte ptr ss:[ebp-4],1
+00412BF6   .  E8 1D990500  call OnlineTi.0046C518                 ;  ....
+00412BFB   .  6A 04        push 4
+00412BFD   .  8D45 F0      lea eax,dword ptr ss:[ebp-10]
+00412C00   .  6A 0A        push 0A
+00412C02   .  50          push eax
+00412C03   .  8BCE         mov ecx,esi
+00412C05   .  E8 E97A0500  call OnlineTi.0046A6F3                 ;  注册码的第 3 段
+00412C0A   .  50          push eax
+00412C0B   .  8D4D EC      lea ecx,dword ptr ss:[ebp-14]
+00412C0E   .  C645 FC 04   mov byte ptr ss:[ebp-4],4
+00412C12   .  E8 909C0500  call OnlineTi.0046C8A7                 ;  注册码的第 1 段 + 第 2 段 + 第 3 段
+00412C17   .  8D4D F0      lea ecx,dword ptr ss:[ebp-10]
+00412C1A   .  C645 FC 01   mov byte ptr ss:[ebp-4],1
+00412C1E   .  E8 F5980500  call OnlineTi.0046C518                 ;  ....
+00412C23   .  6A 04        push 4
+00412C25   .  8D45 E0      lea eax,dword ptr ss:[ebp-20]
+00412C28   .  6A 0F        push 0F
+00412C2A   .  50          push eax
+00412C2B   .  8BCE         mov ecx,esi
+00412C2D   .  E8 C17A0500  call OnlineTi.0046A6F3                 ;  注册码的第 4 段
+00412C32   .  50          push eax
+00412C33   .  8D4D EC      lea ecx,dword ptr ss:[ebp-14]
+00412C36   .  C645 FC 05   mov byte ptr ss:[ebp-4],5
+00412C3A   .  E8 689C0500  call OnlineTi.0046C8A7                 ;  注册码的第 1 段 + 第 2 段 + 第 3 段 + 第 4 段
+00412C3F   .  8D4D E0      lea ecx,dword ptr ss:[ebp-20]          ;  相当于去掉注册码中的 "-" 得到 "98765432ABCDCDEF"
+00412C42   .  C645 FC 01   mov byte ptr ss:[ebp-4],1
+00412C46   .  E8 CD980500  call OnlineTi.0046C518                 ;  ....
+00412C4B   .  53          push ebx
+00412C4C   .  8D4D E4      lea ecx,dword ptr ss:[ebp-1C]
+00412C4F   .  893D 94564A00 mov dword ptr ds:[4A5694],edi
+00412C55   .  E8 F7990500  call OnlineTi.0046C651
+00412C5A   .  8B75 E4      mov esi,dword ptr ss:[ebp-1C]
+00412C5D   .  33DB        xor ebx,ebx                            ;  i = 0
+00412C5F   .  8B46 F8      mov eax,dword ptr ds:[esi-8]
+00412C62   .  3BC7        cmp eax,edi
+00412C64   .  7E 31       jle short OnlineTi.00412C97
+00412C66   .  8D85 E0FDFFFF lea eax,dword ptr ss:[ebp-220]
+00412C6C   .  8975 F0      mov dword ptr ss:[ebp-10],esi
+00412C6F   .  2945 F0      sub dword ptr ss:[ebp-10],eax
+00412C72   >  8BC3         mov eax,ebx                            ;  while ( i < 22 ) 用户名的长度是 22
+00412C74   .  6A 08        push 8
+00412C76   .  99          cdq
+00412C77   .  59          pop ecx
+00412C78   .  8DBC1D E0FDFF>lea edi,dword ptr ss:[ebp+ebx-220]
+00412C7F   .  F7F9        idiv ecx                               ;  i mod 8
+00412C81   .  0C FF      or al,0FF                              ;  al = 0xFF
+00412C83   .  8BCA        mov ecx,edx
+00412C85   .  D2E0        shl al,cl                              ;  0xFF << ( i mod 8 )
+00412C87   .  8B4D F0      mov ecx,dword ptr ss:[ebp-10]
+00412C8A   .  320439      xor al,byte ptr ds:[ecx+edi]           ;  UseName[i] = UseName[i] xor ( 0xFF << i )
+00412C8D   .  43          inc ebx                                ;  i = i + 1
+00412C8E   .  8807        mov byte ptr ds:[edi],al
+00412C90   .  3B5E F8      cmp ebx,dword ptr ds:[esi-8]
+00412C93   .  ^ 7C DD       jl short OnlineTi.00412C72            ;  end loop
+00412C95   .  33FF        xor edi,edi
+00412C97   >  FF76 F8      push dword ptr ds:[esi-8]
+00412C9A   .  8B4D E8      mov ecx,dword ptr ss:[ebp-18]
+00412C9D   .  8D85 E0FDFFFF lea eax,dword ptr ss:[ebp-220]
+00412CA3   .  50          push eax
+00412CA4   .  E8 78000000  call OnlineTi.00412D21                 ;  写入注册表 HKLM\Software\GrassSoft\OnlineTime\ [RemoteName]
+00412CA9   .  8B5D EC      mov ebx,dword ptr ss:[ebp-14]
+00412CAC   .  397B F8      cmp dword ptr ds:[ebx-8],edi
+00412CAF   .  7E 2F       jle short OnlineTi.00412CE0
+00412CB1   .  8D85 E0FDFFFF lea eax,dword ptr ss:[ebp-220]
+00412CB7   .  895D F0      mov dword ptr ss:[ebp-10],ebx
+00412CBA   .  2945 F0      sub dword ptr ss:[ebp-10],eax
+00412CBD   >  8BC7         mov eax,edi                            ;  while ( i < 16 ) 注册码的长度是 16
+00412CBF   .  6A 08        push 8
+00412CC1   .  99          cdq
+00412CC2   .  59          pop ecx
+00412CC3   .  8DB43D E0FDFF>lea esi,dword ptr ss:[ebp+edi-220]
+00412CCA   .  F7F9        idiv ecx                               ;  i mod 8
+00412CCC   .  0C FF      or al,0FF                              ;  al = 0xFF
+00412CCE   .  8BCA        mov ecx,edx
+00412CD0   .  D2E0        shl al,cl                              ;  0xFF << ( i mod 8 )
+00412CD2   .  8B4D F0      mov ecx,dword ptr ss:[ebp-10]
+00412CD5   .  320431      xor al,byte ptr ds:[ecx+esi]           ;  RegCode[i] = RegCode[i] xor ( 0xFF << i )
+00412CD8   .  47          inc edi
+00412CD9   .  8806        mov byte ptr ds:[esi],al
+00412CDB   .  3B7B F8      cmp edi,dword ptr ds:[ebx-8]
+00412CDE   .  ^ 7C DD       jl short OnlineTi.00412CBD            ;  end loop
+00412CE0   >  FF73 F8      push dword ptr ds:[ebx-8]
+00412CE3   .  8B4D E8      mov ecx,dword ptr ss:[ebp-18]
+00412CE6   .  8D85 E0FDFFFF lea eax,dword ptr ss:[ebp-220]
+00412CEC   .  50          push eax
+00412CED   .  E8 BA000000  call OnlineTi.00412DAC                 ;  写入注册表 HKLM\Software\GrassSoft\OnlineTime\ [Mac]
+00412CF2   .  8B4D E8      mov ecx,dword ptr ss:[ebp-18]
+00412CF5   .  E8 D61C0300  call OnlineTi.004449D0
+00412CFA   >  8065 FC 00   and byte ptr ss:[ebp-4],0
+00412CFE   .  8D4D EC      lea ecx,dword ptr ss:[ebp-14]
+```
+
+
+
+### 00412D01
+
+```
+00412D01   .  E8 12980500   call OnlineTi.0046C518                   ;  ....  
+
+00412D06   .  834D FC FF    or dword ptr ss:[ebp-4],FFFFFFFF  
+
+00412D0A   .  8D4D E4       lea ecx,dword ptr ss:[ebp-1C]  
+
+00412D0D   .  E8 06980500   call OnlineTi.0046C518                   ;  ....  
+
+00412D12   .  8B4D F4       mov ecx,dword ptr ss:[ebp-C]  
+
+00412D15   .  5F            pop edi  
+
+00412D16   .  5E            pop esi  
+
+00412D17   .  5B            pop ebx  
+
+00412D18   .  64:890D 00000>mov dword ptr fs:[0],ecx  
+
+00412D1F   .  C9            leave  
+
+00412D20   .  C3            retn  
+```
+
+引用: 以上是将输入的用户名和注册码经过简单的异或加密后保存到注册表中，那么他以后必定会读取这两个注册键，搜索文本串 `"RemoteName"`
+
+### 00422639
+
+```
+00422639  |.  8BCF          |mov ecx,edi  
+
+0042263B  |.  E8 B0F8FFFF   |call OnlineTi.00421EF0                  ;  读取保存的注册表中的两键  
+
+00422640  |.  8BCF          |mov ecx,edi                             ;  OnlineTi.004A3810  
+
+00422642  |.  E8 97FAFFFF   |call OnlineTi.004220DE                  ;  检验是否是合法的注册码  
+```
+
+### 跟进 00422642
+
+```
+004221DA  |.  33DB          xor ebx,ebx                               ;  i = 0  
+
+004221DC  |.  85C9          test ecx,ecx  
+
+004221DE  |.  7E 1C         jle short OnlineTi.004221FC               ;  while ( i < 16 ) Mac 的长度是 16  
+
+004221E0  |>  8BC3          /mov eax,ebx  
+
+004221E2  |.  6A 08         |push 8  
+
+004221E4  |.  99            |cdq  
+
+004221E5  |.  59            |pop ecx  
+
+004221E6  |.  F7F9          |idiv ecx                                  ;  i mod 8  
+
+004221E8  |.  0C FF         |or al,0FF                                 ;  al = 0xFF  
+
+004221EA  |.  8BCA          |mov ecx,edx  
+
+004221EC  |.  D2E0          |shl al,cl                                 ;  0xFF << ( i mod 8 )  
+
+004221EE  |.  8AC8          |mov cl,al  
+
+004221F0  |.  8B45 DC       |mov eax,dword ptr ss:[ebp-24]  
+
+004221F3  |.  300C03        |xor byte ptr ds:[ebx+eax],cl              ;  Mac[i] = Mac[i] ^ ( 0xFF << ( i mod 8 ))  
+
+004221F6  |.  43            |inc ebx                                   ;  i = i + 1  
+
+004221F7  |.  3B5D E8       |cmp ebx,dword ptr ss:[ebp-18]  
+
+004221FA  |.^ 7C E4         \jl short OnlineTi.004221E0               ;  以上循环将加密的注册码还原为 "98765432ABCDCDEF"  
+
+004221FC  |>  33DB          xor ebx,ebx  
+
+004221FE  |.  85FF          test edi,edi  
+
+00422200  |.  7E 22         jle short OnlineTi.00422224  
+
+00422202  |>  8B45 CC       /mov eax,dword ptr ss:[ebp-34]             ;  while ( i < 22 ) RemoteName 的长度是 22  
+
+00422205  |.  6A 08         |push 8  
+
+00422207  |.  03C3          |add eax,ebx  
+
+00422209  |.  59            |pop ecx  
+
+0042220A  |.  8945 E8       |mov dword ptr ss:[ebp-18],eax  
+
+0042220D  |.  8BC3          |mov eax,ebx  
+
+0042220F  |.  99            |cdq  
+
+00422210  |.  F7F9          |idiv ecx                                  ;  i mod 8  
+
+00422212  |.  0C FF         |or al,0FF                                 ;  al = 0xFF  
+
+00422214  |.  8BCA          |mov ecx,edx  
+
+00422216  |.  D2E0          |shl al,cl                                 ;  0xFF << ( i mod 8 )  
+
+00422218  |.  8AC8          |mov cl,al  
+
+0042221A  |.  8B45 E8       |mov eax,dword ptr ss:[ebp-18]  
+
+0042221D  |.  3008          |xor byte ptr ds:[eax],cl                  ;  RemoteName[i] = RemoteName[i] ^ ( 0xFF << ( i mod 8 ))  
+
+0042221F  |.  43            |inc ebx                                   ;  i = i + 1  
+
+00422220  |.  3BDF          |cmp ebx,edi  
+
+00422222  |.^ 7C DE         \jl short OnlineTi.00422202               ;  以上循环将加密的用户名还原为 "rdsnow[BCG][PYG][D.4s]"  
+
+00422224  |>  8B5D CC       mov ebx,dword ptr ss:[ebp-34]  
+
+00422227  |.  8D8E 601E0000 lea ecx,dword ptr ds:[esi+1E60]  
+
+0042222D  |.  53            push ebx  
+
+0042222E  |.  E8 6EA40400   call OnlineTi.0046C6A1  
+
+00422233  |.  A1 5CAD4900   mov eax,dword ptr ds:[49AD5C]  
+
+00422238  |.  8945 C0       mov dword ptr ss:[ebp-40],eax  
+
+0042223B  |.  33C9          xor ecx,ecx  
+
+0042223D  |.  8945 EC       mov dword ptr ss:[ebp-14],eax  
+
+00422240  |.  894D FC       mov dword ptr ss:[ebp-4],ecx  
+
+00422243  |.  83FF 08       cmp edi,8  
+
+00422246  |.  C645 FC 01    mov byte ptr ss:[ebp-4],1  
+
+0042224A  |.  76 40         jbe short OnlineTi.0042228C               ;  若用户名的长度大于 8 ,则从中抽取 8 个字符组成字符串  
+
+0042224C  |.  897D E4       mov dword ptr ss:[ebp-1C],edi  
+
+0042224F  |.  894D E8       mov dword ptr ss:[ebp-18],ecx  
+
+00422252  |.  DF6D E4       fild qword ptr ss:[ebp-1C]  
+
+00422255  |.  894D E8       mov dword ptr ss:[ebp-18],ecx  
+
+00422258  |.  D80D 74544800 fmul dword ptr ds:[485474]               ;  22 × 0.125， 22 是用户名的长度  
+
+0042225E  |>  DB45 E8       /fild dword ptr ss:[ebp-18]  
+
+00422261  |.  D8C9          |fmul st,st(1)                            ;  22 × 0.125 × i  
+
+00422263  |.  E8 F41C0100   |call OnlineTi.00433F5C                   ;  22 × 0.125 × i 结果取整得到 j  
+
+00422268  |.  8B4D E8       |mov ecx,dword ptr ss:[ebp-18]  
+
+0042226B  |.  FF45 E8       |inc dword ptr ss:[ebp-18]                ;  i = i + 1  
+
+0042226E  |.  8A0418        |mov al,byte ptr ds:[eax+ebx]  
+
+00422271  |.  837D E8 08    |cmp dword ptr ss:[ebp-18],8               ;  while ( i < 8 )  
+
+00422275  |.  88440D B8     |mov byte ptr ss:[ebp+ecx-48],al           ;  保存 Name[j]  
+
+00422279  |.^ 7C E3         \jl short OnlineTi.0042225E  
+
+0042227B  |.  8D45 B8       lea eax,dword ptr ss:[ebp-48]  
+
+0042227E  |.  6A 08         push 8  
+
+00422280  |.  50            push eax  
+
+00422281  |.  53            push ebx  
+
+00422282  |.  DDD8          fstp st  
+
+00422284  |.  E8 070D0100   call OnlineTi.00432F90                   ;  按照上面规律抽取用户名的 8 个字符，得到"rswC[Y[4"  
+
+00422289  |.  83C4 0C       add esp,0C  
+
+0042228C  |>  6A 08         push 8  
+
+0042228E  |.  59            pop ecx  
+
+0042228F  |.  3BF9          cmp edi,ecx  
+
+00422291  |.  73 2C         jnb short OnlineTi.004222BF               ;  若用户名的长度小于 8 ，则在用户名前面补空格凑足 8 位字符串  
+
+00422293  |.  2BCF          sub ecx,edi  
+
+00422295  |.  4F            dec edi  
+
+00422296  |.  85FF          test edi,edi  
+
+00422298  |.  7C 0C         jl short OnlineTi.004222A6  
+
+0042229A  |.  8D0419        lea eax,dword ptr ds:[ecx+ebx]  
+
+0042229D  |>  8A141F        /mov dl,byte ptr ds:[edi+ebx]  
+
+004222A0  |.  881438        |mov byte ptr ds:[eax+edi],dl             ;  这个循环将用户名的各字符搬到后面  
+
+004222A3  |.  4F            |dec edi  
+
+004222A4  |.^ 79 F7         \jns short OnlineTi.0042229D  
+
+004222A6  |>  85C9          test ecx,ecx  
+
+004222A8  |.  7E 15         jle short OnlineTi.004222BF  
+
+004222AA  |.  8BD1          mov edx,ecx  
+
+004222AC  |.  B8 20202020   mov eax,20202020  
+
+004222B1  |.  8BFB          mov edi,ebx  
+
+004222B3  |.  C1E9 02       shr ecx,2  
+
+004222B6  |.  F3:AB        rep stos dword ptr es:[edi]                ;  在用户名前补空格凑足 8 位字符串  
+
+004222B8  |.  8BCA          mov ecx,edx  
+
+004222BA  |.  83E1 03       and ecx,3  
+
+004222BD  |.  F3:AA        rep stos byte ptr es:[edi]                  ;  在用户名前补空格凑足 8 位字符串  
+
+004222BF  |>  8D4D EC       lea ecx,dword ptr ss:[ebp-14]  
+
+004222C2  |.  E8 DCA10400   call OnlineTi.0046C4A3  
+
+004222C7  |.  33FF          xor edi,edi                                ;  i = 0  
+
+004222C9  |>  8A041F        /mov al,byte ptr ds:[edi+ebx]              ;  Name[i]  
+
+004222CC  |.  84C0          |test al,al  
+
+004222CE  |.  8845 F3       |mov byte ptr ss:[ebp-D],al  
+
+004222D1  |.  7D 04         |jge short OnlineTi.004222D7  
+
+004222D3  |.  8045 F3 64    |add byte ptr ss:[ebp-D],64                ;  若 Name[i] 是中文字符，Name[i] = Name[i] + 100  
+
+004222D7  |>  8D45 E0       |lea eax,dword ptr ss:[ebp-20]  
+
+004222DA  |.  6A 10         |push 10  
+
+004222DC  |.  50            |push eax  
+
+004222DD  |.  0FBE45 F3     |movsx eax,byte ptr ss:[ebp-D]  
+
+004222E1  |.  50            |push eax  
+
+004222E2  |.  E8 083A0100   |call OnlineTi.00435CEF                   ;  数值转为 16 进制文本  
+
+004222E7  |.  8D45 E0       |lea eax,dword ptr ss:[ebp-20]  
+
+004222EA  |.  50            |push eax
+```
+
+
+
+```
+004222EB  |.  E8 401B0100   |call OnlineTi.00433E30                     ; 文本长度  
+
+004222F0  |.  83C4 10       |add esp,10  
+
+004222F3  |.  83F8 02       |cmp eax,2  
+
+004222F6  |.  8D45 E0       |lea eax,dword ptr ss:[ebp-20]  
+
+004222F9  |.  50           |push eax  
+
+004222FA  |.  76 0E        |jbe short OnlineTi.0042230A  
+
+004222FC  |.  E8 2F1B0100   |call OnlineTi.00433E30  
+
+00422301  |.  59           |pop ecx  
+
+00422302  |.  8D4D E0       |lea ecx,dword ptr ss:[ebp-20]  
+
+00422305  |.  49           |dec ecx  
+
+00422306  |.  49           |dec ecx  
+
+00422307  |.  03C1        |add eax,ecx  
+
+00422309  |.  50           |push eax  
+
+0042230A  |>  8D4D EC       |lea ecx,dword ptr ss:[ebp-14]  
+
+0042230D  |.  E8 6EA50400   |call OnlineTi.0046C880                     ; 连接每轮得到的文本  
+
+00422312  |.  47           |inc edi  
+
+00422313  |.  83FF 08       |cmp edi,8                                  ; while ( i < 8 )  
+
+00422316  |.^ 7C B1        \\jl short OnlineTi.004222C9                 ; 经循环 "rswC[Y[4" 转为 "727377435b595b34"  
+
+00422318  |.  FF75 EC       push dword ptr ss:[ebp-14]                   ; "727377435b595b34" 用于后面跟 RSA( 注册码 ) 比较  
+
+0042231B  |.  8D85 78FDFFFF lea eax,dword ptr ss:[ebp-288]  
+
+00422321  |.  50           push eax  
+
+00422322  |.  E8 49170100   call OnlineTi.00433A70  
+
+00422327  |.  FF75 DC       push dword ptr ss:[ebp-24]  
+
+0042232A  |.  8D85 78F8FFFF lea eax,dword ptr ss:[ebp-788]  
+
+00422330  |.  50           push eax  
+
+00422331  |.  E8 3A170100   call OnlineTi.00433A70  
+
+00422336  |.  83C4 10       add esp,10  
+
+00422339  |.  33C9         xor ecx,ecx                                 ; i = 0  
+
+0042233B  |>  8D840D 78FEFF>/lea eax,dword ptr ss:[ebp+ecx-188]  
+
+00422342  |.  83F9 0F       |cmp ecx,0F                                 ; Switch (cases 0..F)  
+
+00422345  |.  C600 20       |mov byte ptr ds:[eax],20  
+
+00422348  |.  77 28        |ja short OnlineTi.00422372  
+
+0042234A  |.  FF248D 832542>|jmp dword ptr ds:[ecx*4+422583]  
+
+00422351  |>  C600 43       |mov byte ptr ds:[eax],43                   ; Cases 0,D of switch 00422342  
+
+00422354  |.  EB 1C        |jmp short OnlineTi.0042372  
+
+00422356  |>  C600 30       |mov byte ptr ds:[eax],30                   ; Cases 1,8 of switch 00422342  
+
+00422359  |.  EB 17        |jmp short OnlineTi.0042372  
+
+0042235B  |>  C600 31       |mov byte ptr ds:[eax],31                   ; Cases 2,A,B,E,F of switch 00422342  
+
+0042235E  |.  EB 12        |jmp short OnlineTi.0042372  
+
+00422360  |>  C600 41       |mov byte ptr ds:[eax],41                   ; Case 3 of switch 00422342  
+
+00422363  |.  EB 0D        |jmp short OnlineTi.0042372  
+
+00422365  |>  C600 37       |mov byte ptr ds:[eax],37                   ; Cases 4,6,9 of switch 00422342  
+
+00422368  |.  EB 08        |jmp short OnlineTi.0042372  
+
+0042236A  |>  C600 38       |mov byte ptr ds:[eax],38                   ; Case 5 of switch 00422342  
+
+0042236D  |.  EB 03        |jmp short OnlineTi.0042372  
+
+0042236F  |>  C600 39       |mov byte ptr ds:[eax],39                   ; Case C of switch 00422342  
+
+00422372  |>  41           |inc ecx                                     ; Default case of switch 00422342  
+
+00422373  |.  83F9 10       |cmp ecx,10  
+
+00422376  |.^ 7C C3        \\jl short OnlineTi.0042233B                 ; 这里得到固定文本"C01A787 07119C11"  
+
+00422378  |.  E8 B07BFFFF   call OnlineTi.00419F2D  
+
+0042237D  |.  8D85 78F8FFFF lea eax,dword ptr ss:[ebp-788]  
+
+00422383  |.  50           push eax  
+
+00422384  |.  E8 A71A0100   call OnlineTi.00433E30  
+
+00422389  |.  8BD8         mov ebx,eax  
+
+0042238B  |.  8D85 78F8FFFF lea eax,dword ptr ss:[ebp-788]  
+
+00422391  |.  50           push eax  
+
+00422392  |.  C1EB 04       shr ebx,4  
+
+00422395  |.  E8 961A0100   call OnlineTi.00433E30  
+
+0042239A  |.  59           pop ecx  
+
+0042239B  |.  A8 0F        test al,0F  
+
+0042239D  |.  59           pop ecx  
+
+0042239E  |.  76 01        jbe short OnlineTi.004223A1  
+
+004223A0  |.  43           inc ebx  
+
+004223A1  |>  8A85 87FEFFFF mov al,byte ptr ss:[ebp-179]  
+
+004223A7  |.  FEC0         inc al                                      ; "C01A787 07119C11"的最后一位 +1  
+
+004223A9  |.  80A5 88FEFFFF>and byte ptr ss:[ebp-178],0  
+
+004223B0  |.  8885 7FFEFFFF mov byte ptr ss:[ebp-181],al               ; 填补到第 8 位得到 "C01A787207119C11"  
+
+004223B6  |.  33C0         xor eax,eax                                 ; i = 0  
+
+004223B8  |>  85C0         /test eax,eax  
+
+004223BA  |.  74 0F        |je short OnlineTi.004223CB  
+
+004223BC  |.  83F8 04       |cmp eax,4  
+
+004223BF  |.  74 0A        |je short OnlineTi.004223CB  
+
+004223C1  |.  C68405 78FFFF>|mov byte ptr ss:[ebp+eax-88],30           ; 0 和 4 位是 '1'  
+
+004223C9  |.  EB 08        |jmp short OnlineTi.00423D3  
+
+004223CB  |>  C68405 78FFFF>|mov byte ptr ss:[ebp+eax-88],31           ; 1 2 3 位是 '0'  
+
+004223D3  |>  40           |inc eax  
+
+004223D4  |.  83F8 05       |cmp eax,5                                  ; while ( i < 5 )  
+
+004223D7  |.^ 7C DF        \\jl short OnlineTi.004223B8                 ; 这样得到 "10001"  
+
+004223D9  |.  80A5 7DFFFFFF>and byte ptr ss:[ebp-83],0  
+
+004223E0  |.  8D4D EC       lea ecx,dword ptr ss:[ebp-14]  
+
+004223E3  |.  E8 BBA00400   call OnlineTi.0046C4A3  
+
+004223E8  |.  8365 E8 00    and dword ptr ss:[ebp-18],0  
+
+004223EC  |.  85DB         test ebx,ebx  
+
+004223EE  |.  0F8E 92000000 jle OnlineTi.00422486  
+
+004223F4  |.  8DBD 88F8FFFF lea edi,dword ptr ss:[ebp-778]  
+
+004223FA  |>  8D43 FF       /lea eax,dword ptr ds:[ebx-1]  
+
+004223FD  |.  3945 E8       |cmp dword ptr ss:[ebp-18],eax  
+
+00422400  |.  7D 08        |jge short OnlineTi.004240A  
+
+00422402  |.  8A07         |mov al,byte ptr ds:[edi]  
+
+00422404  |.  8027 00       |and byte ptr ds:[edi],0  
+
+00422407  |.  8845 F3       |mov byte ptr ss:[ebp-D],al  
+
+0042240A  |>  8D45 D8       |lea eax,dword ptr ss:[ebp-28]  
+
+0042240D  |.  50           |push eax  
+
+0042240E  |.  8D47 F0       |lea eax,dword ptr ds:[edi-10]  
+
+00422411  |.  50           |push eax  
+
+00422412  |.  E8 B3A4FFFF   |call OnlineTi.0041C8CA                     ; "98765432ABCDCDEF"转为大数 M  
+
+00422417  |.  8D45 D4       |lea eax,dword ptr ss:[ebp-2C]  
+
+0042241A  |.  50           |push eax  
+
+0042241B  |.  8D85 78FFFFFF |lea eax,dword ptr ss:[ebp-88]  
+
+00422421  |.  50           |push eax  
+
+00422422  |.  E8 A3A4FFFF   |call OnlineTi.0041C8CA                     ; "10001"转为大数 E  
+
+00422427  |.  8D45 D0       |lea eax,dword ptr ss:[ebp-30]  
+
+0042242A  |.  50           |push eax  
+
+0042242B  |.  8D85 78FEFFFF |lea eax,dword ptr ss:[ebp-188]  
+
+00422431  |.  50           |push eax  
+
+00422432  |.  E8 93A4FFFF   |call OnlineTi.0041C8CA                     ; "C01A787207119C11"转为大数 N  
+
+00422437  |.  8D45 C8       |lea eax,dword ptr ss:[ebp-38]  
+
+0042243A  |.  50           |push eax  
+
+0042243B  |.  FF75 D0       |push dword ptr ss:[ebp-30]  
+
+0042243E  |.  FF75 D4       |push dword ptr ss:[ebp-2C]  
+
+00422441  |.  FF75 D8       |push dword ptr ss:[ebp-28]  
+
+00422444  |.  E8 239EFFFF   |call OnlineTi.0041C26C                     ; 大数运算 C = M ^ E mod N  
+
+00422449  |.  FF75 C8       |push dword ptr ss:[ebp-38]  
+
+0042244C  |.  8D85 78FCFFFF |lea eax,dword ptr ss:[ebp-388]  
+
+00422452  |.  50           |push eax  
+
+00422453  |.  E8 58A6FFFF   |call OnlineTi.0041CAB0  
+
+00422458  |.  83C4 30       |add esp,30                                 ; C 转为文本得到 "2FC3A1BA03F5A964"  
+
+0042245B  |.  8D85 78FCFFFF |lea eax,dword ptr ss:[ebp-388]  
+
+00422461  |.  8D4D EC       |lea ecx,dword ptr ss:[ebp-14]  
+
+00422464  |.  50           |push eax  
+
+00422465  |.  E8 16A40400   |call OnlineTi.0046C880  
+
+0042246A  |.  8D43 FF       |lea eax,dword ptr ds:[ebx-1]  
+
+0042246D  |.  3945 E8       |cmp dword ptr ss:[ebp-18],eax  
+
+00422470  |.  7D 05        |jge short OnlineTi.0042477  
+
+00422472  |.  8A45 F3       |mov al,byte ptr ss:[ebp-D]  
+```
+
+
+
+```
+00422475  .  8807          |mov byte ptr ds:[edi],al
+00422477  |>  FF45 E8       |inc dword ptr ss:[ebp-18]
+0042247A  .  83C7 10       |add edi,10
+0042247D  .  395D E8       |cmp dword ptr ss:[ebp-18],ebx
+00422480  .^ 0F8C 74FFFFFF \jl OnlineTi.004223FA
+00422486  >  8D4D EC       lea ecx,dword ptr ss:[ebp-14]
+00422489  .  E8 DAA40400   call OnlineTi.0046C968
+0042248E  .  8B45 EC       mov eax,dword ptr ss:[ebp-14]
+00422491  .  33D2          xor edx,edx
+00422493  .  8B58 F8       mov ebx,dword ptr ds:[eax-8]
+00422496  .  85DB          test ebx,ebx
+00422498  .  7E 20         jle short OnlineTi.004224BA
+0042249A  .  8BF8          mov edi,eax
+0042249C  .  8D85 78FDFFFF lea eax,dword ptr ss:[ebp-288]
+004224A2  .  2BF8          sub edi,eax
+004224A4  >  8D8415 78FDFF>/lea eax,dword ptr ss:[ebp+edx-288]
+004224AB  .  8A0C07        |mov cl,byte ptr ds:[edi+eax]
+004224AE  .  3808          |cmp byte ptr ds:[eax],cl                ;  RSA 运算结果的每一位跟用户名取得的 8 位字符比较
+004224B0  .  74 03         |je short OnlineTi.004224B5
+004224B2  .  0155 C4       |add dword ptr ss:[ebp-3C],edx
+004224B5  >  42            |inc edx
+004224B6  .  3BD3          |cmp edx,ebx
+004224B8  .^ 7C EA         \jl short OnlineTi.004224A4
+```
+
+因 `"2FC3A1BA03F5A964"` 不等于 `"727377435b595b34"`，所以注册不成功哦！
+
+用大数计算器计算：`0x98765432ABCDCDEF` 的 `0x10001` 次方对 `0xC01A787207119C11` 取模确实得到 `0x2FC3A1BA03F5A964` 所以确认是 `RSA128`
+
+### 大致流程：
+
+1、用户名和注册码异或加密后存入注册表
+
+2、解密出用户名和注册码
+
+3、从用户名中抽取 8 个字符转的 `ASC` 码转为十六进制字符串
+
+       用户名少于 6 位则用户名前面补空格
+
+       用户名中有中文，则中文字符的 `ASC` 要加上 100
+
+4、注册码经过 `RSA` 运算后跟上面字符串比较
+
+### 解密过程：
+
+1、将模数 `N = 0xC01A787207119C11` 因式分解得 `0x108BEF9A3` × `0xB9C1D6BB`
+
+2、将公钥 `E = 0x10001` `N = 0xC01A787207119C11` 输入到 `RSATOOLS`
+
+3、`RSATOOLS` 计算得到密钥：`D = 0x642A693A40C62F31`
+
+4、有了公钥就可以写出程序的注册机了
+
+应该说 128 位的密钥已经不具有保护能力了，建议使用 1024 位或更高
+
+--------------------------------------------------------------------------------
+
+【注册源码】
+
+```
+extern "C"
+{
+#include "miracl.h"
+#include "mirdef.h"
+}
+
+#pragma comment( lib, "ms32.lib" )
+
+void CKeygenDlg::OnOK()
+{
+  // TODO: Add extra validation here
+  Beep(1000,10);
+  char szUseName[256] = {0};
+  char szRemoteName[16]="        ";
+  char szRegCode[24];
+  byte i;
+  UpdateData(true);
+  strcpy(szUseName,m_Edit1);
+  int len = strlen(szUseName);
+  if( len > 8 )
+    for (i=0;i<8;i++)
+      szRemoteName[i] = szUseName[len*i/8];
+    else strcpy(szRemoteName+8-len,szUseName);
+  for (i=0;i<8;i++)
+    sprintf(szUseName+2*i,"%02X",
+    szRemoteName[i]>0?szRemoteName[i]:szRemoteName[i]+100);
+
+  char cBuff[16]={0};  //用于放大数运算结果
+
+//MIRACL 大数运算库运算
+  miracl *mip=mirsys(100,0);
+  mip->IOBASE=16;      //16 进制模式
+
+//定义并初始化变量
+  big m=mirvar(0);     //m 放明文
+  big c=mirvar(0);     //c 放密文
+  big n=mirvar(0);     //n 模数
+  big d=mirvar(0);     //d 私钥
+
+  cinstr(c,szUseName);    //初始化密文 c
+  cinstr(n,"C01A787207119C11");  //初始化模数 n
+  cinstr(d,"642A693A40C62F31");  //初始化私钥 d
+  powmod(c,d,n,m);     //计算 m=c^d mod n
+  big_to_bytes(0,m,cBuff,FALSE);  //将 c 转换成数组写入 buff
+  mirkill(m);
+  mirkill(c);
+  mirkill(n);
+  mirkill(d);
+  mirexit();
+
+//输出运算结果
+  for(i=0;i<8;i++)  sprintf(szRegCode+2*i,"%02X",(byte)cBuff[i]);
+  m_Edit2 = szRegCode;
+  m_Edit2.Insert (4,'-');
+  m_Edit2.Insert (9,'-');
+  m_Edit2.Insert (14,'-');
+  UpdateData(false);
+}
+```
+
+--------------------------------------------------------------------------------
+
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2007 年 10 月 21 日 22:46:16
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,2 +1,0 @@
-
-# VMProtect 使用

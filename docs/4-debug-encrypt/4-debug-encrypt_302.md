@@ -1,725 +1,960 @@
 
-
 # 象棋世家 RSA128+MD5+BASE64+AES Rijndael 注册算法分析
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-454.htm`](https://www.pediy.com/kssd/pediy07/pediy7-454.htm)
 
-象棋世家 V5  RSA128 + MD5 + BASE64 + AES Rijndael 注册算法分析   
-  
-仅用于技术交流,  程序启动的时候就要输入注册码, 输入后用 Base64\_encode 保存到注册表中, 下面就是验证流程.  
-  
-  
-00429680   > \\64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]                 ; // 启动时检查注册码  
-00429686   .  6A FF         PUSH -1  
-00429688   .  68 12634600   PUSH XQSJ.00466312  
-0042968D   .  50            PUSH EAX  
-0042968E   .  64:8925 00000>MOV DWORD PTR FS:\[0\],ESP  
-00429695   .  81EC 48070000 SUB ESP,748  
-0042969B   .  53            PUSH EBX  
-0042969C   .  56            PUSH ESI  
-0042969D   .  57            PUSH EDI  
-0042969E   .  68 742D4700   PUSH XQSJ.00472D74                       ;  ASCII "www.ai-master.com"  
-004296A3   .  8BF1          MOV ESI,ECX  
-004296A5   .  E8 0E7B0300   CALL <JMP.&MFC71.#5975>  
-004296AA   .  6A 01         PUSH 1  
-004296AC   .  68 08194700   PUSH XQSJ.00471908                       ;  ASCII "lantype"  
-004296B1   .  68 FC184700   PUSH XQSJ.004718FC                       ;  ASCII "language"  
-004296B6   .  8BCE          MOV ECX,ESI  
-004296B8   .  E8 F57A0300   CALL <JMP.&MFC71.#3109>  
-004296BD   .  8986 14020000 MOV DWORD PTR DS:\[ESI+214\],EAX  
-004296C3   .  83E8 00       SUB EAX,0                                ;  Switch (cases 0..2)  
-004296C6   .  74 2E         JE SHORT XQSJ.004296F6  
-004296C8   .  48            DEC EAX  
-004296C9   .  74 17         JE SHORT XQSJ.004296E2  
-004296CB   .  48            DEC EAX  
-004296CC   .  75 35         JNZ SHORT XQSJ.00429703  
-004296CE   .  6A 03         PUSH 3                                   ;  Case 2 of switch 004296C3  
-004296D0   .  8D8E A8000000 LEA ECX,DWORD PTR DS:\[ESI+A8\]  
-004296D6   .  E8 3C85FDFF   CALL XQSJ.00401C17  
-004296DB   .  68 642D4700   PUSH XQSJ.00472D64                       ;  ASCII "Lan\_en.dll"  
-004296E0   .  EB 26         JMP SHORT XQSJ.00429708  
-004296E2   >  6A 01         PUSH 1                                   ;  Case 1 of switch 004296C3  
-004296E4   .  8D8E A8000000 LEA ECX,DWORD PTR DS:\[ESI+A8\]  
-004296EA   .  E8 2885FDFF   CALL XQSJ.00401C17  
-004296EF   .  68 542D4700   PUSH XQSJ.00472D54                       ;  ASCII "Lan\_big5.dll"  
-004296F4   .  EB 12         JMP SHORT XQSJ.00429708  
-004296F6   >  6A 02         PUSH 2                                   ;  Case 0 of switch 004296C3  
-004296F8   .  8D8E A8000000 LEA ECX,DWORD PTR DS:\[ESI+A8\]  
-004296FE   .  E8 1485FDFF   CALL XQSJ.00401C17  
-00429703   >  68 442D4700   PUSH XQSJ.00472D44                       ; /FileName = "Lan\_gb.dll"; Default case of switch 004296C3  
-00429708   >  FF15 FCE44402 CALL DWORD PTR DS:\[<&KERNEL32.LoadLibrar>; \\LoadLibraryA,  根据用户选项加载资源 DLL  
-0042970E   .  8BF8          MOV EDI,EAX  
-00429710   .  85FF          TEST EDI,EDI  
-00429712   .  8986 A4000000 MOV DWORD PTR DS:\[ESI+A4\],EAX  
-00429718   .  74 08         JE SHORT XQSJ.00429722  
-0042971A   .  E8 C1760300   CALL <JMP.&MFC71.#1084>  
-0042971F   .  8978 0C       MOV DWORD PTR DS:\[EAX+C\],EDI  
-00429722   >  68 19CB4600   PUSH XQSJ.0046CB19  
-00429727   .  68 402D4700   PUSH XQSJ.00472D40                       ;  ASCII "sn"  
-0042972C   .  68 402D4700   PUSH XQSJ.00472D40                       ;  ASCII "sn"  
-00429731   .  8D4424 18     LEA EAX,DWORD PTR SS:\[ESP+18\]  
-00429735   .  50            PUSH EAX                                 ; // 12F7B8  
-00429736   .  8BCE          MOV ECX,ESI  
-00429738   .  E8 6F7A0300   CALL <JMP.&MFC71.#3110>                  ; // 从注册表中读入加密过的注册码,  12F7B8 -> sn 密文  
-0042973D   .  8D4C24 18     LEA ECX,DWORD PTR SS:\[ESP+18\]  
-00429741   .  C78424 5C0700>MOV DWORD PTR SS:\[ESP+75C\],0  
-0042974C   .  FF15 E0EF4402 CALL DWORD PTR DS:\[<&MSVCP71.??0?$basic\_>;  MSVCP71.??0?$basic\_string@DU?$char\_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ  
-00429752   .  8D4C24 0C     LEA ECX,DWORD PTR SS:\[ESP+C\]  
-00429756   .  C68424 5C0700>MOV BYTE PTR SS:\[ESP+75C\],1  
-0042975E   .  FF15 58EC4402 CALL DWORD PTR DS:\[<&MFC71.#2902>\]       ; strlen(sn)        
-00429764   .  50            PUSH EAX  
-00429765   .  8D4C24 10     LEA ECX,DWORD PTR SS:\[ESP+10\]  
-00429769   .  FF15 44EC4402 CALL DWORD PTR DS:\[<&MFC71.#2468>\]        
-0042976F   .  50            PUSH EAX                                 ;  
-00429770   .  8D4C24 1C     LEA ECX,DWORD PTR SS:\[ESP+1C\]  
-00429774   .  FF15 DCEF4402 CALL DWORD PTR DS:\[<&MSVCP71.??4?$basic\_>;  MSVCP71.??4?$basic\_string@DU?$char\_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV01@PBD@Z  
-0042977A   .  83EC 1C       SUB ESP,1C  
-0042977D   .  8D5424 34     LEA EDX,DWORD PTR SS:\[ESP+34\]  
-00429781   .  8BCC          MOV ECX,ESP  
-00429783   .  896424 30     MOV DWORD PTR SS:\[ESP+30\],ESP  
-00429787   .  52            PUSH EDX  
-00429788   .  FF15 88F04402 CALL DWORD PTR DS:\[<&MSVCP71.??0?$basic\_>;  MSVCP71.??0?$basic\_string@DU?$char\_traits@D@std@@V?$allocator@D@2@@std@@QAE@ABV01@@Z  
-0042978E   .  8D4424 74     LEA EAX,DWORD PTR SS:\[ESP+74\]  
-00429792   .  50            PUSH EAX                                 ; // 12F804  
-00429793   .  E8 6481FDFF   CALL XQSJ.004018FC                       ; // base64\_decode(sn 密文),  12F808 -> sn  
-00429798   .  83C4 20       ADD ESP,20  
-0042979B   .  50            PUSH EAX  
-0042979C   .  8D4C24 1C     LEA ECX,DWORD PTR SS:\[ESP+1C\]  
-004297A0   .  C68424 600700>MOV BYTE PTR SS:\[ESP+760\],2  
-004297A8   .  FF15 E4EF4402 CALL DWORD PTR DS:\[<&MSVCP71.??4?$basic\_>;  MSVCP71.?assign@?$basic\_string@DU?$char\_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@ABV12@@Z  
-004297AE   .  8D4C24 58     LEA ECX,DWORD PTR SS:\[ESP+58\]  
-004297B2   .  C68424 5C0700>MOV BYTE PTR SS:\[ESP+75C\],1  
-004297BA   .  FF15 90F04402 CALL DWORD PTR DS:\[<&MSVCP71.??1?$basic\_>;  MSVCP71.??1?$basic\_string@DU?$char\_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ  
-004297C0   .  8D8C24 000100>LEA ECX,DWORD PTR SS:\[ESP+100\]  
-004297C7   .  E8 298DFDFF   CALL XQSJ.004024F5                       ; // 初始化 RSA, ,  下面详细分析  
-004297CC   .  8D4C24 10     LEA ECX,DWORD PTR SS:\[ESP+10\]  
-004297D0   .  FF15 38EC4402 CALL DWORD PTR DS:\[<&MFC71.#310>\]  
-004297D6   .  8B4424 30     MOV EAX,DWORD PTR SS:\[ESP+30\]  
-004297DA   .  BF 10000000   MOV EDI,10  
-004297DF   .  BB 04000000   MOV EBX,4  
-004297E4   .  3BC7          CMP EAX,EDI  
-004297E6   .  8B4424 1C     MOV EAX,DWORD PTR SS:\[ESP+1C\]            ; // EAX -> sn  
-004297EA   .  889C24 5C0700>MOV BYTE PTR SS:\[ESP+75C\],BL  
-004297F1   .  73 04         JNB SHORT XQSJ.004297F7  
-004297F3   .  8D4424 1C     LEA EAX,DWORD PTR SS:\[ESP+1C\]  
-004297F7   >  50            PUSH EAX  
-004297F8   .  8D4C24 10     LEA ECX,DWORD PTR SS:\[ESP+10\]  
-004297FC   .  FF15 04E64402 CALL DWORD PTR DS:\[<&MFC71.#784>\]  
-00429802   .  8D4C24 0C     LEA ECX,DWORD PTR SS:\[ESP+C\]  
-00429806   .  51            PUSH ECX                                 ; // ECX -> sn  
-00429807   .  8D8C24 040100>LEA ECX,DWORD PTR SS:\[ESP+104\]  
-0042980E   .  E8 F989FDFF   CALL XQSJ.0040220C                       ; // 验证注册码的正伪, 下面详细分析             
-00429813   .  85C0          TEST EAX,EAX  
-00429815   .  0F85 B5000000 JNZ XQSJ.004298D0                        ; // 返回 eax=1 ok  
-.....  
-  
-  
-  
-  
-//  初始化 RSA, AES Rijndael 192  
-  
-//  RSA 大数如下表示  
-  struct  
-    {   
-       dword  length;  
-       dword  bignum\[35\];  
-    }  
-      
-如 0      ->  01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ....  
-如 10001h ->  01 00 00 00 01 00 01 00 00 00 00 00 00 00 00 00 ....  
-  
-004024F5   $ /E9 46D20500   JMP XQSJ.0045F740  
-  
-0045F740   > \\6A FF         PUSH -1  
-0045F742   .  68 84814600   PUSH XQSJ.00468184                                    ;  SE handler installation  
-0045F747   .  64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]  
-0045F74D   .  50            PUSH EAX  
-0045F74E   .  64:8925 00000>MOV DWORD PTR FS:\[0\],ESP  
-0045F755   .  51            PUSH ECX  
-0045F756   .  56            PUSH ESI  
-0045F757   .  8BF1          MOV ESI,ECX  
-0045F759   .  8D8E 04040000 LEA ECX,DWORD PTR DS:\[ESI+404\]  
-0045F75F   .  897424 04     MOV DWORD PTR SS:\[ESP+4\],ESI  
-0045F763   .  C706 506C4700 MOV DWORD PTR DS:\[ESI\],XQSJ.00476C50  
-0045F769   .  FF15 38EC4402 CALL DWORD PTR DS:\[<&MFC71.#310>\]                      
-0045F76F   .  8D8E 08040000 LEA ECX,DWORD PTR DS:\[ESI+408\]  
-0045F775   .  C74424 10 000>MOV DWORD PTR SS:\[ESP+10\],0  
-0045F77D   .  FF15 38EC4402 CALL DWORD PTR DS:\[<&MFC71.#310>\]                     
-0045F783   .  8D8E 0C040000 LEA ECX,DWORD PTR DS:\[ESI+40C\]  
-0045F789   .  FF15 38EC4402 CALL DWORD PTR DS:\[<&MFC71.#310>\]                     
-0045F78F   .  8D8E 10040000 LEA ECX,DWORD PTR DS:\[ESI+410\]  
-0045F795   .  FF15 38EC4402 CALL DWORD PTR DS:\[<&MFC71.#310>\]                     
-0045F79B   .  8D8E 14040000 LEA ECX,DWORD PTR DS:\[ESI+414\]  
-0045F7A1   .  C64424 10 03  MOV BYTE PTR SS:\[ESP+10\],3  
-0045F7A6   .  E8 C32CFAFF   CALL XQSJ.0040246E                                    ; // Ecx -> buffer(size 90h), 大数初始化 0  
-0045F7AB   .  8D8E A4040000 LEA ECX,DWORD PTR DS:\[ESI+4A4\]  
-0045F7B1   .  C64424 10 04  MOV BYTE PTR SS:\[ESP+10\],4  
-0045F7B6   .  E8 B32CFAFF   CALL XQSJ.0040246E                                    ; // Ecx -> buffer(size 90h),   
-0045F7BB   .  8D8E 34050000 LEA ECX,DWORD PTR DS:\[ESI+534\]  
-0045F7C1   .  C64424 10 05  MOV BYTE PTR SS:\[ESP+10\],5  
-0045F7C6   .  E8 A32CFAFF   CALL XQSJ.0040246E                                    ; // Ecx -> buffer(size 90h),  
-0045F7CB   .  8D8E C4050000 LEA ECX,DWORD PTR DS:\[ESI+5C4\]  
-0045F7D1   .  C64424 10 06  MOV BYTE PTR SS:\[ESP+10\],6  
-0045F7D6   .  E8 932CFAFF   CALL XQSJ.0040246E                                    ; // Ecx -> buffer(size 90h),  
-0045F7DB   .  8BCE          MOV ECX,ESI  
-0045F7DD   .  C64424 10 07  MOV BYTE PTR SS:\[ESP+10\],7  
-0045F7E2   .  E8 0932FAFF   CALL XQSJ.004029F0                                    ; // 关键, F7  
-0045F7E7   .  8B4C24 08     MOV ECX,DWORD PTR SS:\[ESP+8\]  
-0045F7EB   .  8BC6          MOV EAX,ESI  
-0045F7ED   .  5E            POP ESI  
-0045F7EE   .  64:890D 00000>MOV DWORD PTR FS:\[0\],ECX  
-0045F7F5   .  83C4 10       ADD ESP,10  
-0045F7F8   .  C3            RETN  
-  
-  
-  
-  
-  
-  
-004029F0   $ /E9 3BC60500   JMP XQSJ.0045F030  
-  
-0045F030   > \\6A FF         PUSH -1  
-0045F032   .  68 B3804600   PUSH XQSJ.004680B3                                    ;  SE handler installation  
-0045F037   .  64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]  
-0045F03D   .  50            PUSH EAX  
-0045F03E   .  64:8925 00000>MOV DWORD PTR FS:\[0\],ESP  
-0045F045   .  81EC 94010000 SUB ESP,194  
-0045F04B   .  53            PUSH EBX  
-0045F04C   .  55            PUSH EBP  
-0045F04D   .  8BE9          MOV EBP,ECX  
-0045F04F   .  B0 D7         MOV AL,0D7                                            ; // 填充局部变量, 密文  
-0045F051   .  884424 0E     MOV BYTE PTR SS:\[ESP+E\],AL  
-0045F055   .  884424 10     MOV BYTE PTR SS:\[ESP+10\],AL  
-0045F059   .  B1 9A         MOV CL,9A  
-0045F05B   .  884C24 23     MOV BYTE PTR SS:\[ESP+23\],CL  
-0045F05F   .  884C24 12     MOV BYTE PTR SS:\[ESP+12\],CL  
-0045F063   .  33C9          XOR ECX,ECX  
-0045F065   .  B0 87         MOV AL,87  
-0045F067   .  884424 14     MOV BYTE PTR SS:\[ESP+14\],AL  
-0045F06B   .  884424 15     MOV BYTE PTR SS:\[ESP+15\],AL  
-0045F06F   .  33C0          XOR EAX,EAX  
-0045F071   .  894C24 34     MOV DWORD PTR SS:\[ESP+34\],ECX  
-0045F075   .  894424 48     MOV DWORD PTR SS:\[ESP+48\],EAX  
-0045F079   .  894C24 38     MOV DWORD PTR SS:\[ESP+38\],ECX  
-0045F07D   .  56            PUSH ESI  
-0045F07E   .  894424 50     MOV DWORD PTR SS:\[ESP+50\],EAX  
-0045F082   .  894C24 40     MOV DWORD PTR SS:\[ESP+40\],ECX  
-0045F086   .  57            PUSH EDI  
-0045F087   .  894C24 48     MOV DWORD PTR SS:\[ESP+48\],ECX  
-0045F08B   .  894424 58     MOV DWORD PTR SS:\[ESP+58\],EAX  
-0045F08F   .  68 5C6C4700   PUSH XQSJ.00476C5C                                    ; // ASCII "F2A490UPQCV73BM8ZS",  AES Rijndael 密钥  
-0045F094   .  33DB          XOR EBX,EBX  
-0045F096   .  894424 60     MOV DWORD PTR SS:\[ESP+60\],EAX  
-0045F09A   .  884C24 50     MOV BYTE PTR SS:\[ESP+50\],CL  
-0045F09E   .  6A 18         PUSH 18                                               ; // AES 密钥长度 192bit   
-0045F0A0   .  8D4C24 7C     LEA ECX,DWORD PTR SS:\[ESP+7C\]  
-0045F0A4   .  C64424 2C DD  MOV BYTE PTR SS:\[ESP+2C\],0DD  
-0045F0A9   .  C64424 2D 4B  MOV BYTE PTR SS:\[ESP+2D\],4B  
-0045F0AE   .  C64424 2E 53  MOV BYTE PTR SS:\[ESP+2E\],53  
-0045F0B3   .  C64424 2F B1  MOV BYTE PTR SS:\[ESP+2F\],0B1  
-0045F0B8   .  C64424 30 22  MOV BYTE PTR SS:\[ESP+30\],22  
-0045F0BD   .  C64424 31 FA  MOV BYTE PTR SS:\[ESP+31\],0FA  
-0045F0C2   .  C64424 32 0C  MOV BYTE PTR SS:\[ESP+32\],0C  
-0045F0C7   .  C64424 34 32  MOV BYTE PTR SS:\[ESP+34\],32  
-0045F0CC   .  C64424 35 BB  MOV BYTE PTR SS:\[ESP+35\],0BB  
-0045F0D1   .  C64424 36 4F  MOV BYTE PTR SS:\[ESP+36\],4F  
-0045F0D6   .  C64424 37 D8  MOV BYTE PTR SS:\[ESP+37\],0D8  
-0045F0DB   .  C64424 38 E5  MOV BYTE PTR SS:\[ESP+38\],0E5  
-0045F0E0   .  C64424 39 67  MOV BYTE PTR SS:\[ESP+39\],67  
-0045F0E5   .  C64424 3A FC  MOV BYTE PTR SS:\[ESP+3A\],0FC  
-0045F0EA   .  C64424 3B 06  MOV BYTE PTR SS:\[ESP+3B\],6  
-0045F0EF   .  885C24 3C     MOV BYTE PTR SS:\[ESP+3C\],BL  
-0045F0F3   .  C64424 18 B4  MOV BYTE PTR SS:\[ESP+18\],0B4  
-0045F0F8   .  C64424 19 E6  MOV BYTE PTR SS:\[ESP+19\],0E6  
-0045F0FD   .  C64424 1A 7C  MOV BYTE PTR SS:\[ESP+1A\],7C  
-0045F102   .  C64424 1B F7  MOV BYTE PTR SS:\[ESP+1B\],0F7  
-0045F107   .  C64424 1C 9F  MOV BYTE PTR SS:\[ESP+1C\],9F  
-0045F10C   .  C64424 1D AC  MOV BYTE PTR SS:\[ESP+1D\],0AC  
-0045F111   .  C64424 1F EB  MOV BYTE PTR SS:\[ESP+1F\],0EB  
-0045F116   .  C64424 21 3A  MOV BYTE PTR SS:\[ESP+21\],3A  
-0045F11B   .  C64424 23 0E  MOV BYTE PTR SS:\[ESP+23\],0E  
-0045F120   .  C64424 26 0F  MOV BYTE PTR SS:\[ESP+26\],0F  
-0045F125   .  C64424 27 23  MOV BYTE PTR SS:\[ESP+27\],23  
-0045F12A   .  885C24 28     MOV BYTE PTR SS:\[ESP+28\],BL  
-0045F12E   .  884424 68     MOV BYTE PTR SS:\[ESP+68\],AL                          ; // 填充结束后密文数据如下  
-  
-  
-  0012F5F0  B4 E6 7C F7  9F AC D7 EB   D7 3A 9A 0E  87 87 0F 23  
-  0012F600  00 00 C7 02  DD 4B 53 B1   22 FA 0C 9A  32 BB 4F D8  
-  0012F610  E5 67 FC 06  00 4E C7 02   C0 F6 12 00  00 00 00 00  
-  0012F620  00 00 00 00  00 00 00 00   00 00 00 00  00 00 00 00  
-  0012F630  00 00 00 00  00 00 00 00   00 00 00 00  00 00 00 00  
-  
-  
-0045F132   .  E8 2F3BFAFF   CALL XQSJ.00402C66                                   ; // AES Key Expansion, 下面详细分析    
-0045F137   .  8D5424 50     LEA EDX,DWORD PTR SS:\[ESP+50\]                        ; // 12F630 -> 结果 buffer  
-0045F13B   .  52            PUSH EDX  
-0045F13C   .  8D4424 28     LEA EAX,DWORD PTR SS:\[ESP+28\]                        ; // 12F604 -> 密文(16byte) 06FC67E5D84FBB329A0CFA22B1534BDD  
-0045F140   .  50            PUSH EAX  
-0045F141   .  8D4C24 7C     LEA ECX,DWORD PTR SS:\[ESP+7C\]  
-0045F145   .  899C24 B40100>MOV DWORD PTR SS:\[ESP+1B4\],EBX  
-0045F14C   .  E8 C724FAFF   CALL XQSJ.00401618                                   ; // rijndaelDecrypt,  解密, 请见源码  
-0045F151   .  8D4C24 3C     LEA ECX,DWORD PTR SS:\[ESP+3C\]                        ; // 12F61C -> 结果 buffer  
-0045F155   .  51            PUSH ECX  
-0045F156   .  8D5424 14     LEA EDX,DWORD PTR SS:\[ESP+14\]                        ; // 12F5F0 -> 密文(16byte) 230F87870E9A3AD7EBD7AC9FF77CE6B4  
-0045F15A   .  52            PUSH EDX  
-0045F15B   .  8D4C24 7C     LEA ECX,DWORD PTR SS:\[ESP+7C\]  
-0045F15F   .  E8 B424FAFF   CALL XQSJ.00401618                                   ; // rijndaelDecrypt, 解密, 结果如下  
-  
-  0012F5F0  B4 E6 7C F7 9F AC D7 EB D7 3A 9A 0E 87 87 0F 23  
-  0012F600  00 00 C7 02 DD 4B 53 B1 22 FA 0C 9A 32 BB 4F D8  
-  0012F610  E5 67 FC 06 00 4E C7 02 C0 F6 12 00 30 31 43 31  ............01C1  
-  0012F620  34 35 35 34 37 36 42 37 34 31 39 00 00 00 00 00  455476B7419.....  
-  0012F630  38 31 32 46 46 33 44 37 34 30 41 38 45 31 39 30  812FF3D740A8E190  
-    
-0045F164   .  8D4424 3C     LEA EAX,DWORD PTR SS:\[ESP+3C\]                         ; // 连接上面两数得到 RSA 的 N  
-0045F168   .  8BF0          MOV ESI,EAX  
-0045F16A   .  8D9B 00000000 LEA EBX,DWORD PTR DS:\[EBX\]  
-0045F170   >  8A08          MOV CL,BYTE PTR DS:\[EAX\]  
-0045F172   .  40            INC EAX  
-0045F173   .  3ACB          CMP CL,BL  
-0045F175   .^ 75 F9         JNZ SHORT XQSJ.0045F170  
-0045F177   .  8D7C24 50     LEA EDI,DWORD PTR SS:\[ESP+50\]  
-0045F17B   .  2BC6          SUB EAX,ESI  
-0045F17D   .  4F            DEC EDI  
-0045F17E   .  8BFF          MOV EDI,EDI  
-0045F180   >  8A4F 01       MOV CL,BYTE PTR DS:\[EDI+1\]  
-0045F183   .  47            INC EDI  
-0045F184   .  3ACB          CMP CL,BL  
-0045F186   .^ 75 F8         JNZ SHORT XQSJ.0045F180  
-0045F188   .  8BC8          MOV ECX,EAX  
-0045F18A   .  C1E9 02       SHR ECX,2  
-0045F18D   .  F3:A5         REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS:\[ESI\]  
-0045F18F   .  8BC8          MOV ECX,EAX  
-0045F191   .  83E1 03       AND ECX,3  
-0045F194   .  8D4424 50     LEA EAX,DWORD PTR SS:\[ESP+50\]  
-0045F198   .  F3:A4         REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]  
-0045F19A   .  50            PUSH EAX                                             ; 12F630 -> "812FF3D740A8E19001C1455476B7419", RSA N  
-0045F19B   .  8D4C24 3C     LEA ECX,DWORD PTR SS:\[ESP+3C\]  
-0045F19F   .  FF15 84EB4402 CALL DWORD PTR DS:\[<&MFC71.#308>\]           
-0045F1A5   .  8DB5 10040000 LEA ESI,DWORD PTR SS:\[EBP+410\]  
-0045F1AB   .  50            PUSH EAX  
-0045F1AC   .  8BCE          MOV ECX,ESI  
-0045F1AE   .  C68424 B00100>MOV BYTE PTR SS:\[ESP+1B0\],1  
-0045F1B6   .  FF15 40EC4402 CALL DWORD PTR DS:\[<&MFC71.#781>\]     
-0045F1BC   .  8D4C24 38     LEA ECX,DWORD PTR SS:\[ESP+38\]  
-0045F1C0   .  889C24 AC0100>MOV BYTE PTR SS:\[ESP+1AC\],BL  
-0045F1C7   .  FF15 68EC4402 CALL DWORD PTR DS:\[<&MFC71.#578>\]         
-0045F1CD   .  68 546C4700   PUSH XQSJ.00476C54                                    ;  ASCII "10001",  RSA E  
-0045F1D2   .  8D4C24 3C     LEA ECX,DWORD PTR SS:\[ESP+3C\]  
-0045F1D6   .  FF15 3CEC4402 CALL DWORD PTR DS:\[<&MFC71.#304>\]        
-0045F1DC   .  8DBD 0C040000 LEA EDI,DWORD PTR SS:\[EBP+40C\]  
-0045F1E2   .  50            PUSH EAX  
-0045F1E3   .  8BCF          MOV ECX,EDI  
-0045F1E5   .  C68424 B00100>MOV BYTE PTR SS:\[ESP+1B0\],2  
-0045F1ED   .  FF15 40EC4402 CALL DWORD PTR DS:\[<&MFC71.#781>\]          
-0045F1F3   .  8D4C24 38     LEA ECX,DWORD PTR SS:\[ESP+38\]  
-0045F1F7   .  889C24 AC0100>MOV BYTE PTR SS:\[ESP+1AC\],BL  
-0045F1FE   .  FF15 68EC4402 CALL DWORD PTR DS:\[<&MFC71.#578>\]           
-0045F204   .  6A 10         PUSH 10                                               ; hex  
-0045F206   .  56            PUSH ESI                                              ; ESI -> RSA N ASCII  
-0045F207   .  8D8D 34050000 LEA ECX,DWORD PTR SS:\[EBP+534\]                        ;   
-0045F20D   .  E8 8A27FAFF   CALL XQSJ.0040199C                                    ; ASCII 转换为大数  
-0045F212   .  6A 10         PUSH 10                                               ; hex  
-0045F214   .  57            PUSH EDI                                              ; EDI -> RSA E ASCII  
-0045F215   .  8D8D C4050000 LEA ECX,DWORD PTR SS:\[EBP+5C4\]  
-0045F21B   .  E8 7C27FAFF   CALL XQSJ.0040199C                                    ; ASCII 转换为大数  
-0045F220   .  33C0          XOR EAX,EAX  
-0045F222   .  B9 40000000   MOV ECX,40  
-0045F227   .  8D7D 04       LEA EDI,DWORD PTR SS:\[EBP+4\]                          ; 12F8B0 开始数据清除  
-0045F22A   .  F3:AB         REP STOS DWORD PTR ES:\[EDI\]  
-0045F22C   .  B9 40000000   MOV ECX,40  
-0045F231   .  8DBD 04010000 LEA EDI,DWORD PTR SS:\[EBP+104\]  
-0045F237   .  F3:AB         REP STOS DWORD PTR ES:\[EDI\]  
-0045F239   .  B9 40000000   MOV ECX,40  
-0045F23E   .  8DBD 04020000 LEA EDI,DWORD PTR SS:\[EBP+204\]  
-0045F244   .  F3:AB         REP STOS DWORD PTR ES:\[EDI\]  
-0045F246   .  B9 40000000   MOV ECX,40  
-0045F24B   .  8DBD 04030000 LEA EDI,DWORD PTR SS:\[EBP+304\]  
-0045F251   .  F3:AB         REP STOS DWORD PTR ES:\[EDI\]  
-0045F253   .  8D4C24 74     LEA ECX,DWORD PTR SS:\[ESP+74\]                         ; ecx = 12F654  
-0045F257   .  C78424 AC0100>MOV DWORD PTR SS:\[ESP+1AC\],-1  
-0045F262   .  E8 E22EFAFF   CALL XQSJ.00402149                                    ; mov \[ecx\], 476c3c  
-0045F267   .  8B8C24 A40100>MOV ECX,DWORD PTR SS:\[ESP+1A4\]  
-0045F26E   .  5F            POP EDI  
-0045F26F   .  5E            POP ESI  
-0045F270   .  5D            POP EBP  
-0045F271   .  B8 01000000   MOV EAX,1  
-0045F276   .  5B            POP EBX  
-0045F277   .  64:890D 00000>MOV DWORD PTR FS:\[0\],ECX  
-0045F27E   .  81C4 A0010000 ADD ESP,1A0  
-0045F284   .  C3            RETN  
-  
-  
-  
-  
-  
-  
-// AES Key Expansion  
-  
-00402C66   $ /E9 E5BE0500   JMP XQSJ.0045EB50  
-  
-0045EB50   > \\53            PUSH EBX  
-0045EB51   .  8BD9          MOV EBX,ECX  
-0045EB53   .  8B4C24 08     MOV ECX,DWORD PTR SS:\[ESP+8\]  
-0045EB57   .  83F9 10       CMP ECX,10                                            ;  // AES 密钥 128 bit ?  
-0045EB5A   .  B8 04000000   MOV EAX,4                                             ;  // block size,  一次只能处理 128bit 信息  
-0045EB5F   .  56            PUSH ESI  
-0045EB60   .  57            PUSH EDI  
-0045EB61   .  C703 3C6C4700 MOV DWORD PTR DS:\[EBX\],XQSJ.00476C3C  
-0045EB67   .  8943 14       MOV DWORD PTR DS:\[EBX+14\],EAX  
-0045EB6A   .  8943 18       MOV DWORD PTR DS:\[EBX+18\],EAX  
-0045EB6D   .  75 0C         JNZ SHORT XQSJ.0045EB7B  
-0045EB6F   .  8943 18       MOV DWORD PTR DS:\[EBX+18\],EAX                         ;  // 128 密钥 4 dword  
-0045EB72   .  C743 1C 0A000>MOV DWORD PTR DS:\[EBX+1C\],0A                          ;  // 128 要计算 10 round  
-0045EB79   .  EB 28         JMP SHORT XQSJ.0045EBA3  
-0045EB7B   >  83F9 18       CMP ECX,18                                            ;  // AES 密钥 192 bit ?  这个程序就是 192 bit  
-0045EB7E   .  75 10         JNZ SHORT XQSJ.0045EB90  
-0045EB80   .  C743 18 06000>MOV DWORD PTR DS:\[EBX+18\],6                           ;  // 192 密钥 6 dword  
-0045EB87   .  C743 1C 0C000>MOV DWORD PTR DS:\[EBX+1C\],0C                          ;  // 192 要计算 12 round  
-0045EB8E   .  EB 13         JMP SHORT XQSJ.0045EBA3  
-0045EB90   >  83F9 20       CMP ECX,20                                            ;  // AES 密钥 256 bit ?  
-0045EB93   .  75 0E         JNZ SHORT XQSJ.0045EBA3  
-0045EB95   .  C743 18 08000>MOV DWORD PTR DS:\[EBX+18\],8                           ;  // 256 密钥 8 dword  
-0045EB9C   .  C743 1C 0E000>MOV DWORD PTR DS:\[EBX+1C\],0E                          ;  // 256 要计算 14 round  
-0045EBA3   >  8B7424 14     MOV ESI,DWORD PTR SS:\[ESP+14\]                         ;  // ESI ->  "F2A490UPQCV73BM8ZS"  
-0045EBA7   .  8BC1          MOV EAX,ECX                                           ;  // ASCII -> HEX  0000535A384D4233375643515055303934413246h  
-0045EBA9   .  C1E9 02       SHR ECX,2  
-0045EBAC   .  8D7B 20       LEA EDI,DWORD PTR DS:\[EBX+20\]  
-0045EBAF   .  F3:A5         REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS:\[ESI\]  
-0045EBB1   .  8BC8          MOV ECX,EAX  
-0045EBB3   .  83E1 03       AND ECX,3  
-0045EBB6   .  F3:A4         REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]  
-0045EBB8   .  8BCB          MOV ECX,EBX  
-0045EBBA   .  E8 DB34FAFF   CALL XQSJ.0040209A                                    ;  // rijndaelKeySetupDec, 请看源码, 结果如下  
-0045EBBF   .  5F            POP EDI  
-0045EBC0   .  5E            POP ESI  
-0045EBC1   .  8BC3          MOV EAX,EBX  
-0045EBC3   .  5B            POP EBX  
-0045EBC4   .  C2 0800       RETN 8  
-  
-struct {  
-    int   BlockSize;                /\* Block size? \*/  
-    int   keyLen;                   /\* Length of the key: 4 , 6,  8 \*/  
-    int   Nr;                       /\* key-length-dependent number of rounds \*/  
-    char  keyMaterial\[32\];          /\* Raw key data in ASCII \*/  
-    u32   rk\[4\*(MAXNR + 1)\];        /\* key schedule, MAXNR=14 \*/  
-}  
-  
-0012F664              04 00 00 00 06 00 00 00 0C 00 00 00      ............  
-  
-0012F674  46 32 41 34 39 30 55 50 51 43 56 37 33 42 4D 38  F2A490UPQCV73BM8  
-0012F684  5A 53 00 00 00 00 00 00 64 7E FB 77 90 16 F8 77  ZS......(后面 8 字节无用)  
-  
-0012F694  46 32 41 34 39 30 55 50 51 43 56 37 33 42 4D 38  F2A490UPQCV73BM8  
-0012F6A4  5A 53 00 00 00 00 00 00 24 51 22 57 1D 61 77 07  ZS......$Q"W.aw.  
-0012F6B4  4C 22 21 30 7F 60 6C 08 25 33 6C 08 25 33 6C 08  L"!0.\`l.%3l.%3l.  
-0012F6C4  E5 01 12 68 F8 60 65 6F B4 42 44 5F CB 22 28 57  ...h.\`eo.BD\_."(W  
-0012F6D4  EE 11 44 5F CB 22 28 57 72 35 49 77 8A 55 2C 18  ..D\_."(Wr5Iw.U,.  
-0012F6E4  3E 17 68 47 F5 35 40 10 1B 24 04 4F D0 06 2C 18  >.hG.5@..$.O..,.  
-0012F6F4  15 44 E4 07 9F 11 C8 1F A1 06 A0 58 54 33 E0 48  .D.........XT3.H  
-0012F704  4F 17 E4 07 9F 11 C8 1F 87 AC 24 DC 18 BD EC C3  O.........$.....  
-0012F714  B9 BB 4C 9B ED 88 AC D3 A2 9F 48 D4 3D 8E 80 CB  ..L.......H.=...  
-0012F724  BE 61 3B FB A6 DC D7 38 1F 67 9B A3 F2 EF 37 70  .a;....8.g....7p  
-0012F734  50 70 7F A4 6D FE FF 6F 45 77 93 C7 E3 AB 44 FF  Pp..m..oEw....D.  
-0012F744  FC CC DF 5C 0E 23 E8 2C 5E 53 97 88 33 AD 68 E7  ...\\.#.,^S..3.h.  
-0012F754  50 32 07 04 B3 99 43 FB 4F 55 9C A7 41 76 74 8B  P2....C.OU..Avt.  
-0012F764  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
-0012F774  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
-  
-  
-  
-  
-  
-验证注册码的正伪  
-  
-0040220C   $ /E9 4FD20500   JMP XQSJ.0045F460  
-  
-0045F460   > \\55            PUSH EBP  
-0045F461   .  8BEC          MOV EBP,ESP  
-0045F463   .  83E4 F8       AND ESP,FFFFFFF8  
-0045F466   .  6A FF         PUSH -1  
-0045F468   .  68 FB804600   PUSH XQSJ.004680FB                                    ;  SE handler installation  
-0045F46D   .  64:A1 0000000>MOV EAX,DWORD PTR FS:\[0\]  
-0045F473   .  50            PUSH EAX  
-0045F474   .  64:8925 00000>MOV DWORD PTR FS:\[0\],ESP  
-0045F47B   .  81EC A0010000 SUB ESP,1A0  
-0045F481   .  53            PUSH EBX  
-0045F482   .  56            PUSH ESI  
-0045F483   .  8B75 08       MOV ESI,DWORD PTR SS:\[EBP+8\]  
-0045F486   .  8BD9          MOV EBX,ECX  
-0045F488   .  57            PUSH EDI  
-0045F489   .  8BCE          MOV ECX,ESI  
-0045F48B   .  FF15 58EC4402 CALL DWORD PTR DS:\[<&MFC71.#2902>\]                    ; strlen(sn)                     
-0045F491   .  83F8 1E       CMP EAX,1E  
-0045F494   .  0F8C EF010000 JL XQSJ.0045F689                                      ; len<1E 则 over  
-0045F49A   .  6A 05         PUSH 5                                                ; // 5   
-0045F49C   .  8D4424 10     LEA EAX,DWORD PTR SS:\[ESP+10\]  
-0045F4A0   .  50            PUSH EAX  
-0045F4A1   .  8BCE          MOV ECX,ESI  
-0045F4A3   .  FF15 88EB4402 CALL DWORD PTR DS:\[<&MFC71.#3997>\]                    ; // 取 sn 前 5 个字符到新字符串 name                  
-0045F4A9   .  894424 10     MOV DWORD PTR SS:\[ESP+10\],EAX                         ; EAX -> name  
-  
-0045F4AD   .  BF FCE34700   MOV EDI,XQSJ.0047E3FC                                 ; 47E3FC 开始放黑名单, 目前只有两个(TEST0, TEST1) ^\_^  
-0045F4B2   >  8B0F          MOV ECX,DWORD PTR DS:\[EDI\]  
-0045F4B4   .  51            PUSH ECX                                              ; ECX -> black\_name  
-0045F4B5   .  8B4C24 14     MOV ECX,DWORD PTR SS:\[ESP+14\]  
-0045F4B9   .  FF15 48EC4402 CALL DWORD PTR DS:\[<&MFC71.#1482>\]                    ; \_mbscmp(name, black\_name);                     
-0045F4BF   .  85C0          TEST EAX,EAX  
-0045F4C1   .  0F84 B8010000 JE XQSJ.0045F67F                                      ; 相等则跳出循环, 设置 EDI=1 后返回 0045F4D4  
-0045F4C7   .  83C7 04       ADD EDI,4  
-0045F4CA   .  81FF 04E44700 CMP EDI,XQSJ.0047E404                                 ; 黑名单比较完了吗?  
-0045F4D0   .^ 7C E0         JL SHORT XQSJ.0045F4B2  
-  
-0045F4D2   .  33FF          XOR EDI,EDI                                           ; 不在黑名单上, 则 EDI=0                                         
-  
-0045F4D4   >  8D4C24 0C     LEA ECX,DWORD PTR SS:\[ESP+C\]  
-0045F4D8   .  FF15 68EC4402 CALL DWORD PTR DS:\[<&MFC71.#578>\]                       
-0045F4DE   .  33C0          XOR EAX,EAX                                           ; EAX = 0 注册码失败标志                                          ;   
-0045F4E0   .  85FF          TEST EDI,EDI  
-0045F4E2   .  0F85 A3010000 JNZ XQSJ.0045F68B                                     ; 是黑名则 over  
-0045F4E8   .  B9 40000000   MOV ECX,40  
-0045F4ED   .  8D7C24 18     LEA EDI,DWORD PTR SS:\[ESP+18\]  
-0045F4F1   .  F3:AB         REP STOS DWORD PTR ES:\[EDI\]  
-0045F4F3   .  8BCE          MOV ECX,ESI  
-0045F4F5   .  FF15 58EC4402 CALL DWORD PTR DS:\[<&MFC71.#2902>\]                     
-0045F4FB   .  50            PUSH EAX  
-0045F4FC   .  8BCE          MOV ECX,ESI  
-0045F4FE   .  FF15 44EC4402 CALL DWORD PTR DS:\[<&MFC71.#2468>\]                     
-0045F504   .  8D5424 18     LEA EDX,DWORD PTR SS:\[ESP+18\]                         ; 12F600  
-0045F508   >  8A08          MOV CL,BYTE PTR DS:\[EAX\]  
-0045F50A   .  40            INC EAX  
-0045F50B   .  880A          MOV BYTE PTR DS:\[EDX\],CL  
-0045F50D   .  42            INC EDX  
-0045F50E   .  84C9          TEST CL,CL  
-0045F510   .^ 75 F6         JNZ SHORT XQSJ.0045F508                               ; 12F600 -> sn                                
-0045F512   .  8B5424 18     MOV EDX,DWORD PTR SS:\[ESP+18\]                         ; 取前 5 个字符( 就是 name)  
-0045F516   .  8A4C24 1C     MOV CL,BYTE PTR SS:\[ESP+1C\]  
-0045F51A   .  8D43 04       LEA EAX,DWORD PTR DS:\[EBX+4\]                          ; 12F8B0  
-0045F51D   .  8910          MOV DWORD PTR DS:\[EAX\],EDX  
-0045F51F   .  8848 04       MOV BYTE PTR DS:\[EAX+4\],CL                            ; 12F8B0 -> name  
-0045F522   .  8BCE          MOV ECX,ESI  
-0045F524   .  8DBB 04010000 LEA EDI,DWORD PTR DS:\[EBX+104\]                        ; 12F9B0 buffer  
-0045F52A   .  FF15 58EC4402 CALL DWORD PTR DS:\[<&MFC71.#2902>\]                    ; strlen(sn)                     
-0045F530   .  8BC8          MOV ECX,EAX  
-0045F532   .  83E9 05       SUB ECX,5                                             ; 去掉前 5 个后的长度  
-0045F535   .  8BD1          MOV EDX,ECX  
-0045F537   .  C1E9 02       SHR ECX,2  
-0045F53A   .  8D7424 1D     LEA ESI,DWORD PTR SS:\[ESP+1D\]  
-0045F53E   .  F3:A5         REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS:\[ESI\]  
-0045F540   .  8BCA          MOV ECX,EDX  
-0045F542   .  8D83 04010000 LEA EAX,DWORD PTR DS:\[EBX+104\]  
-0045F548   .  83E1 03       AND ECX,3  
-0045F54B   .  50            PUSH EAX                                              ; 12F9B0 -> sn2 (sn2 就是 sn 去掉前 5 个字符)  
-0045F54C   .  F3:A4         REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]            
-0045F54E   .  8DB3 08040000 LEA ESI,DWORD PTR DS:\[EBX+408\]                        ; esi = 12FCB4  
-0045F554   .  68 1C194700   PUSH XQSJ.0047191C                                    ;  ASCII "%s"  
-0045F559   .  56            PUSH ESI  
-0045F55A   .  FF15 90E74402 CALL DWORD PTR DS:\[<&MFC71.#2322>\]                    ; sprintf(esi, "%s", sn2)                   
-0045F560   .  83C4 0C       ADD ESP,0C  
-0045F563   .  6A 10         PUSH 10                                               ; hex  
-0045F565   .  8DBB A4040000 LEA EDI,DWORD PTR DS:\[EBX+4A4\]  
-0045F56B   .  56            PUSH ESI                                              ; esi -> sn2  
-0045F56C   .  8BCF          MOV ECX,EDI  
-0045F56E   .  E8 2924FAFF   CALL XQSJ.0040199C                                    ; sn2 转换为大数  
-0045F573   .  8D83 34050000 LEA EAX,DWORD PTR DS:\[EBX+534\]                        ; RSA N 大数  
-0045F579   .  50            PUSH EAX  
-0045F57A   .  8D8B C4050000 LEA ECX,DWORD PTR DS:\[EBX+5C4\]                        ; RSA E 大数  
-0045F580   .  51            PUSH ECX  
-0045F581   .  8D9424 200100>LEA EDX,DWORD PTR SS:\[ESP+120\]                        ; 12F700 buffer  
-0045F588   .  52            PUSH EDX  
-0045F589   .  8BCF          MOV ECX,EDI                                           ; sn2 大数  
-0045F58B   .  E8 2F2EFAFF   CALL XQSJ.004023BF                                    ; RSA\_encrypt(N, E, sn2) -> sn3  
-0045F590   .  8DBB 14040000 LEA EDI,DWORD PTR DS:\[EBX+414\]                        ; 12FCC0  
-0045F596   .  50            PUSH EAX                                              ; 12F700 -> sn3  
-0045F597   .  8BCF          MOV ECX,EDI  
-0045F599   .  C78424 B80100>MOV DWORD PTR SS:\[ESP+1B8\],0  
-0045F5A4   .  E8 3B3BFAFF   CALL XQSJ.004030E4                                    ; sn3 大数复制到 12FCC0  
-0045F5A9   .  8D8C24 180100>LEA ECX,DWORD PTR SS:\[ESP+118\]  
-0045F5B0   .  C78424 B40100>MOV DWORD PTR SS:\[ESP+1B4\],-1  
-0045F5BB   .  E8 473BFAFF   CALL XQSJ.00403107  
-0045F5C0   .  6A 10         PUSH 10                                               ; hex  
-0045F5C2   .  8DB3 04040000 LEA ESI,DWORD PTR DS:\[EBX+404\]                        ; 12FCB0 buffer  
-0045F5C8   .  56            PUSH ESI  
-0045F5C9   .  8BCF          MOV ECX,EDI                                           ; sn3 大数  
-0045F5CB   .  E8 162AFAFF   CALL XQSJ.00401FE6                                    ; sn3 大数转换为 str( 应该是由 0-9 组成的 10 进制数)  
-0045F5D0   .  8BCE          MOV ECX,ESI                                           ; esi -> sn3 str  
-0045F5D2   .  FF15 58EC4402 CALL DWORD PTR DS:\[<&MFC71.#2902>\]                    ; strlen(sn3)                     
-0045F5D8   .  50            PUSH EAX  
-0045F5D9   .  8BCE          MOV ECX,ESI  
-0045F5DB   .  FF15 44EC4402 CALL DWORD PTR DS:\[<&MFC71.#2468>\]                      
-0045F5E1   .  50            PUSH EAX                                              ; eax -> sn3 str  
-0045F5E2   .  FF15 70F14402 CALL DWORD PTR DS:\[<&MSVCR71.\_atoi64>\]                ; MSVCR71.\_atoi64 (EDX:EAX) 记为 temp1  
-0045F5E8   .  894424 14     MOV DWORD PTR SS:\[ESP+14\],EAX                         ; 低位  
-0045F5EC   .  8D43 04       LEA EAX,DWORD PTR DS:\[EBX+4\]                          ; eax -> name str  
-0045F5EF   .  83C4 04       ADD ESP,4  
-0045F5F2   .  895424 14     MOV DWORD PTR SS:\[ESP+14\],EDX                         ; 高位  
-0045F5F6   .  8D70 01       LEA ESI,DWORD PTR DS:\[EAX+1\]  
-0045F5F9   .  8DA424 000000>LEA ESP,DWORD PTR SS:\[ESP\]  
-0045F600   >  8A08          MOV CL,BYTE PTR DS:\[EAX\]  
-0045F602   .  40            INC EAX  
-0045F603   .  84C9          TEST CL,CL  
-0045F605   .^ 75 F9         JNZ SHORT XQSJ.0045F600  
-0045F607   .  2BC6          SUB EAX,ESI  
-0045F609   .  50            PUSH EAX                                              ; strlen(name)  
-0045F60A   .  8DB3 04020000 LEA ESI,DWORD PTR DS:\[EBX+204\]                        ; 12FAB0 buffer  
-0045F610   .  56            PUSH ESI  
-0045F611   .  8D43 04       LEA EAX,DWORD PTR DS:\[EBX+4\]                          ; EAX -> name  
-0045F614   .  50            PUSH EAX  
-0045F615   .  8BCB          MOV ECX,EBX  
-0045F617   .  E8 5030FAFF   CALL XQSJ.0040266C                                    ; MD5(name), 这次 MD5 没有变形哦  
-0045F61C   .  81C3 04030000 ADD EBX,304                                           ; 12FBB0  
-0045F622   .  895C24 0C     MOV DWORD PTR SS:\[ESP+C\],EBX  
-0045F626   .  33C9          XOR ECX,ECX                                           ; 对 MD5 的结果再处理一下  
-0045F628   >  0FB6040E      MOVZX EAX,BYTE PTR DS:\[ESI+ECX\]                       ; ESI -> MD5(name)  
-0045F62C   .  85C0          TEST EAX,EAX  
-0045F62E   .  74 0E         JE SHORT XQSJ.0045F63E  
-0045F630   .  99            CDQ  
-0045F631   .  BF 0A000000   MOV EDI,0A                                              
-0045F636   .  F7FF          IDIV EDI  
-0045F638   .  80C2 30       ADD DL,30                                             ; MD5(name)(i) % 10 + 30  
-0045F63B   .  8813          MOV BYTE PTR DS:\[EBX\],DL  
-0045F63D   .  43            INC EBX  
-0045F63E   >  41            INC ECX  
-0045F63F   .  81F9 00010000 CMP ECX,100                                           ; // 循环 100h 次  
-0045F645   .^ 7C E1         JL SHORT XQSJ.0045F628  
-0045F647   .  8B4424 0C     MOV EAX,DWORD PTR SS:\[ESP+C\]                          ; 12FBB0  
-0045F64B   .  50            PUSH EAX  
-0045F64C   .  FF15 70F14402 CALL DWORD PTR DS:\[<&MSVCR71.\_atoi64>\]                ;  MSVCR71.\_atoi64, 记为 temp2  
-0045F652   .  8B4C24 14     MOV ECX,DWORD PTR SS:\[ESP+14\]  
-0045F656   .  83C4 04       ADD ESP,4  
-0045F659   .  3BC8          CMP ECX,EAX                                           ; 比较 temp1, temp2  
-0045F65B   .  75 2C         JNZ SHORT XQSJ.0045F689  
-0045F65D   .  395424 14     CMP DWORD PTR SS:\[ESP+14\],EDX  
-0045F661   .  75 26         JNZ SHORT XQSJ.0045F689  
-0045F663   .  B8 01000000   MOV EAX,1                                             ; 相等 OK  
-0045F668   .  8B8C24 AC0100>MOV ECX,DWORD PTR SS:\[ESP+1AC\]  
-0045F66F   .  64:890D 00000>MOV DWORD PTR FS:\[0\],ECX  
-0045F676   .  5F            POP EDI  
-0045F677   .  5E            POP ESI  
-0045F678   .  5B            POP EBX  
-0045F679   .  8BE5          MOV ESP,EBP  
-0045F67B   .  5D            POP EBP  
-0045F67C   .  C2 0400       RETN 4  
-0045F67F   > \\BF 01000000   MOV EDI,1                                             ; 黑名单, over  
-0045F684   .^ E9 4BFEFFFF   JMP XQSJ.0045F4D4  
-0045F689   >  33C0          XOR EAX,EAX                                           ; 不等 over  
-0045F68B   >  8B8C24 AC0100>MOV ECX,DWORD PTR SS:\[ESP+1AC\]  
-0045F692   .  5F            POP EDI  
-0045F693   .  5E            POP ESI  
-0045F694   .  64:890D 00000>MOV DWORD PTR FS:\[0\],ECX  
-0045F69B   .  5B            POP EBX  
-0045F69C   .  8BE5          MOV ESP,EBP  
-0045F69E   .  5D            POP EBP  
-0045F69F   .  C2 0400       RETN 4  
-  
-  
-  
-算法总结如下:  
-  
-注册码 sn 长度 30 位以上  
-  
-char temp1\[256\], temp2\[256\];  
-  
-sn = name(5 位) + sn2  
-  
-MD5(name)  ->  16 字节  
-  
-for (i=0; i<256; i++)  
-{  
-    temp1\[i\] = MD5(name)\[i\] % 10 + 30h;  
-}  
-  
-RSA N = RijndaelDecrypt(密文);  // 由于 Rijndael 一次只能处理 128bit 的信息, 所以分成两部分  
-RSA E = 10001  
-  
-sn3 = RSA\_encrypt(N, E, sn2)  
-  
-temp2 = BigToStr(sn3)   
-  
-if (temp1 == temp2)   
-{  
-    base64\_encode(sn) -> 注册表;  
-}  
-  
-MD5, RSA, BASE64 已经讨论的很多了, 写注册机不难, 我就不写了,   
-  
-N=812FF3D740A8E19001C1455476B7419  
-D=521247C43134D90C468CF296819E5ED  
-E=10001  
-  
-其中 N 在程序中是用 AES Rijndael 192bit 加密的, 简单介绍一下:   
-  
-AES（The Advanced Encryption Standard）是美国国家标准与技术研究所(NTIS)用于加密电子数据的规范。  
-具体请参考 FIPS 197 (Federal Information Processing Standards Publication 197)  
-  
-这是一种对称密钥加密算法, 可以使用 128, 192, 256bit 的密钥, 每次能加密 128bit 的信息.  
-  
-根据密钥长度不同, 分别要经过 10, 12, 14 轮计算.  
-  
-                  Key Length      Block Size      Number of Rounds  
-                   (Nk words)      (Nb words)      (Nr)  
-AES-128             4               4               10  
-AES-192             6               4               12  
-AES-256             8               4               14  
-  
-note:上面 words 是 32bit                    
-  
-给定密钥后, 要先生成轮密钥, 然后就可以加解密了.  
-  
-附件中有 Rijndael 核心算法的 C 程序, 然后我自己写了一个调用的例子, 仅供参考.  
-  
-  
-\===================================================================================  
-From FIPS 197  
-  
-KeyExpansion(byte key\[4\*Nk\], word w\[Nb\*(Nr+1)\], Nk)  
-begin  
-      word temp  
-        
-      i = 0  
-      while (i < Nk)  
-              w\[i\] = word(key\[4\*i\], key\[4\*i+1\], key\[4\*i+2\], key\[4\*i+3\])  
-              i = i+1  
-      end while  
-        
-      i = Nk  
-      while (i < Nb \* (Nr+1)\]  
-              temp = w\[i-1\]  
-              if (i mod Nk = 0)  
-                    temp = SubWord(RotWord(temp)) xor Rcon\[i/Nk\]  
-              else if (Nk > 6 and i mod Nk = 4)  
-                    temp = SubWord(temp)  
-              end if  
-                
-              w\[i\] = w\[i-Nk\] xor temp  
-              i = i + 1  
-      end while  
-end  
-  
-  
-Cipher(byte in\[4\*Nb\], byte out\[4\*Nb\], word w\[Nb\*(Nr+1)\])  
-begin  
-      byte state\[4,Nb\]  
-      state = in  
-      AddRoundKey(state, w\[0, Nb-1\]) // 轮密钥加, 预处理  
-  
-      for round = 1 step 1 to Nr–1  // 1 到 Nr-1 轮要经过 4 个运算  
-            SubBytes(state)          // 字节替换  
-            ShiftRows(state)         // 行位移变换  
-            MixColumns(state)        // 列混合变换  
-            AddRoundKey(state, w\[round\*Nb, (round+1)\*Nb-1\])  
-      end for  
-  
-      SubBytes(state)                // 最后一轮三种运算  
-      ShiftRows(state)  
-      AddRoundKey(state, w\[Nr\*Nb, (Nr+1)\*Nb-1\])  
-        
-      out = state  
-end  
-  
-\=====================================================================================  
-  
-附件:v5.rar 
+象棋世家 V5 `RSA128` + `MD5` + `BASE64` + `AES` `Rijndael` 注册算法分析
 
- 4dd466d0e1e0cc123afbe504da2462ca
+仅用于技术交流, 程序启动的时候就要输入注册码, 输入后用 `Base64_encode` 保存到注册表中, 下面就是验证流程.
+
+```assembly
+00429680   > \64:A1 0000000>MOV EAX,DWORD PTR FS:[0]                 ; // 启动时检查注册码
+
+00429686   .  6A FF          PUSH -1
+
+00429688   .  68 12634600    PUSH XQSJ.00466312
+
+0042968D   .  50            PUSH EAX
+
+0042968E   .  64:8925 00000>MOV DWORD PTR FS:[0],ESP
+
+00429695   .  81EC 48070000 SUB ESP,748
+
+0042969B   .  53            PUSH EBX
+
+0042969C   .  56            PUSH ESI
+
+0042969D   .  57            PUSH EDI
+
+0042969E   .  68 742D4700   PUSH XQSJ.00472D74                       ;  ASCII "www.ai-master.com"
+
+004296A3   .  8BF1          MOV ESI,ECX
+
+004296A5   .  E8 0E7B0300   CALL <JMP.&MFC71.#5975>
+
+004296AA   .  6A 01         PUSH 1
+
+004296AC   .  68 08194700   PUSH XQSJ.00471908                       ;  ASCII "lantype"
+
+004296B1   .  68 FC184700   PUSH XQSJ.004718FC                       ;  ASCII "language"
+
+004296B6   .  8BCE          MOV ECX,ESI
+
+004296B8   .  E8 F57A0300   CALL <JMP.&MFC71.#3109>
+
+004296BD   .  8986 14020000 MOV DWORD PTR DS:[ESI+214],EAX
+
+004296C3   .  83E8 00       SUB EAX,0                                 ;  Switch (cases 0..2)
+
+004296C6   .  74 2E         JE SHORT XQSJ.004296F6
+
+004296C8   .  48            DEC EAX
+
+004296C9   .  74 17         JE SHORT XQSJ.004296E2
+
+004296CB   .  48            DEC EAX
+
+004296CC   .  75 35         JNZ SHORT XQSJ.00429703
+
+004296CE   .  6A 03         PUSH 3                                    ;  Case 2 of switch 004296C3
+
+004296D0   .  8D8E A8000000 LEA ECX,DWORD PTR DS:[ESI+A8]
+
+004296D6   .  E8 3C85FDFF   CALL XQSJ.00401C17
+
+004296DB   .  68 642D4700   PUSH XQSJ.00472D64                       ;  ASCII "Lan_en.dll"
+
+004296E0   .  EB 26         JMP SHORT XQSJ.00429708
+
+004296E2   >  6A 01         PUSH 1                                    ;  Case 1 of switch 004296C3
+
+004296E4   .  8D8E A8000000 LEA ECX,DWORD PTR DS:[ESI+A8]
+
+004296EA   .  E8 2885FDFF   CALL XQSJ.00401C17
+
+004296EF   .  68 542D4700   PUSH XQSJ.00472D54                       ;  ASCII "Lan_big5.dll"
+
+004296F4   .  EB 12         JMP SHORT XQSJ.00429708
+
+004296F6   >  6A 02         PUSH 2                                    ;  Case 0 of switch 004296C3
+
+004296F8   .  8D8E A8000000 LEA ECX,DWORD PTR DS:[ESI+A8]
+
+004296FE   .  E8 1485FDFF   CALL XQSJ.00401C17
+
+00429703   >  68 442D4700   PUSH XQSJ.00472D44                       ; /FileName = "Lan_gb.dll"; Default case of switch 004296C3
+
+00429708   >  FF15 FCE44402 CALL DWORD PTR DS:[<&KERNEL32.LoadLibrar>; \LoadLibraryA,  根据用户选项加载资源 DLL
+
+0042970E   .  8BF8          MOV EDI,EAX
+
+00429710   .  85FF          TEST EDI,EDI
+
+00429712   .  8986 A4000000 MOV DWORD PTR DS:[ESI+A4],EAX
+
+00429718   .  74 08        JE SHORT XQSJ.00429722
+
+0042971A   .  E8 C1760300   CALL <JMP.&MFC71.#1084>
+
+0042971F   .  8978 0C       MOV DWORD PTR DS:[EAX+C],EDI
+
+00429722   >  68 19CB4600   PUSH XQSJ.0046CB19
+
+00429727   .  68 402D4700   PUSH XQSJ.00472D40                       ;  ASCII "sn"
+
+0042972C   .  68 402D4700   PUSH XQSJ.00472D40                       ;  ASCII "sn"
+
+00429731   .  8D4424 18     LEA EAX,DWORD PTR SS:[ESP+18]
+
+00429735   .  50            PUSH EAX                                  ; // 12F7B8
+
+00429736   .  8BCE          MOV ECX,ESI
+
+00429738   .  E8 6F7A0300   CALL <JMP.&MFC71.#3110>                   ; // 从注册表中读入加密过的注册码,  12F7B8 -> sn 密文
+
+0042973D   .  8D4C24 18     LEA ECX,DWORD PTR SS:[ESP+18]
+
+00429741   .  C78424 5C0700>MOV DWORD PTR SS:[ESP+75C],0
+
+0042974C   .  FF15 E0EF4402 CALL DWORD PTR DS:[<&MSVCP71.??0?$basic\_>;  MSVCP71.??0?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ
+
+00429752   .  8D4C24 0C     LEA ECX,DWORD PTR SS:[ESP+C]
+
+00429756   .  C68424 5C0700>MOV BYTE PTR SS:[ESP+75C],1
+
+0042975E   .  FF15 58EC4402 CALL DWORD PTR DS:[<&MFC71.#2902>\]       ; strlen(sn)      
+
+
+00429764   .  50            PUSH EAX
+
+00429765   .  8D4C24 10     LEA ECX,DWORD PTR SS:[ESP+10]
+
+00429769   .  FF15 44EC4402 CALL DWORD PTR DS:[<&MFC71.#2468>\]     
+
+
+0042976F   .  50            PUSH EAX                                  ;
+
+00429770   .  8D4C24 1C     LEA ECX,DWORD PTR SS:[ESP+1C]
+
+00429774   .  FF15 DCEF4402 CALL DWORD PTR DS:[<&MSVCP71.??4?$basic\_>;  MSVCP71.??4?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV01@PBD@Z
+
+0042977A   .  83EC 1C       SUB ESP,1C
+
+0042977D   .  8D5424 34     LEA EDX,DWORD PTR SS:[ESP+34]
+
+00429781   .  8BCC          MOV ECX,ESP
+
+00429783   .  896424 30     MOV DWORD PTR SS:[ESP+30],ESP
+
+00429787   .  52            PUSH EDX
+
+00429788   .  FF15 88F04402 CALL DWORD PTR DS:[<&MSVCP71.??0?$basic\_>;  MSVCP71.??0?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@ABV01@@Z
+
+0042978E   .  8D4424 74     LEA EAX,DWORD PTR SS:[ESP+74]
+
+00429792   .  50            PUSH EAX                                  ; // 12F804
+
+00429793   .  E8 6481FDFF   CALL XQSJ.004018FC                        ; // base64_decode(sn 密文),  12F808 -> sn
+
+00429798   .  83C4 20       ADD ESP,20
+
+0042979B   .  50            PUSH EAX
+
+0042979C   .  8D4C24 1C     LEA ECX,DWORD PTR SS:[ESP+1C]
+
+004297A0   .  C68424 600700>MOV BYTE PTR SS:[ESP+760],2
+
+004297A8   .  FF15 E4EF4402 CALL DWORD PTR DS:[<&MSVCP71.??4?$basic\_>;  MSVCP71.?assign@?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAEAAV12@ABV12@@Z
+
+004297AE   .  8D4C24 58     LEA ECX,DWORD PTR SS:[ESP+58]
+
+004297B2   .  C68424 5C0700>MOV BYTE PTR SS:[ESP+75C],1
+
+004297BA   .  FF15 90F04402 CALL DWORD PTR DS:[<&MSVCP71.??1?$basic\_>;  MSVCP71.??1?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ
+
+004297C0   .  8D8C24 000100>LEA ECX,DWORD PTR SS:[ESP+100]
+
+004297C7   .  E8 298DFDFF   CALL XQSJ.004024F5                        ; // 初始化 RSA, ,,  下面详细分析
+
+004297CC   .  8D4C24 10     LEA ECX,DWORD PTR SS:[ESP+10]
+
+004297D0   .  FF15 38EC4402 CALL DWORD PTR DS:[<&MFC71.#310>\]
+
+004297D6   .  8B4424 30     MOV EAX,DWORD PTR SS:[ESP+30]
+
+004297DA   .  BF 10000000   MOV EDI,10
+
+004297DF   .  BB 04000000   MOV EBX,4
+
+004297E4   .  3BC7          CMP EAX,EDI
+
+004297E6   .  8B4424 1C     MOV EAX,DWORD PTR SS:[ESP+1C]             ; // EAX -> sn
+
+004297EA   .  889C24 5C0700>MOV BYTE PTR SS:[ESP+75C],BL
+
+004297F1   .  73 04         JNB SHORT XQSJ.004297F7
+
+004297F3   .  8D4424 1C     LEA EAX,DWORD PTR SS:[ESP+1C]
+
+004297F7   >  50            PUSH EAX
+
+004297F8   .  8D4C24 10     LEA ECX,DWORD PTR SS:[ESP+10]
+
+004297FC   .  FF15 04E64402 CALL DWORD PTR DS:[<&MFC71.#784>\]
+
+00429802   .  8D4C24 0C     LEA ECX,DWORD PTR SS:[ESP+C]
+
+00429806   .  51            PUSH ECX                                  ; // ECX -> sn
+
+00429807   .  8D8C24 040100>LEA ECX,DWORD PTR SS:[ESP+104]
+
+0042980E   .  E8 F989FDFF   CALL XQSJ.0040220C                        ; // 验证注册码的正伪, 下面详细分析           
+
+00429813   .  85C0          TEST EAX,EAX
+
+00429815   .  0F85 B5000000 JNZ XQSJ.004298D0                         ; // 返回 eax=1 ok
+```
+
+...
+
+//  初始化 `RSA`, `AES` `Rijndael` `192`
+
+//  `RSA` 大数如下表示
+
+```c
+struct
+  {  
+       dword  length;
+       dword  bignum[35];
+  }
+```
+
+如 `0`     ->  `01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 ....`
+
+如 `10001h` ->  `01 00 00 00 01 00 01 00 00 00 00 00 00 00 00 00 ....`
+
+```assembly
+004024F5   $ /E9 46D20500   JMP XQSJ.0045F740
+
+0045F740   > \6A FF          PUSH -1
+
+0045F742   .  68 84814600   PUSH XQSJ.00468184                       ;  SE handler installation
+
+0045F747   .  64:A1 0000000>MOV EAX,DWORD PTR FS:[0]
+
+0045F74D   .  50            PUSH EAX
+
+0045F74E   .  64:8925 00000>MOV DWORD PTR FS:[0],ESP
+```
+
+
+
+```
+0045F755   .  51              PUSH ECX  
+0045F756   .  56              PUSH ESI  
+0045F757   .  8BF1            MOV ESI,ECX  
+0045F759   .  8D8E 04040000 LEA ECX,DWORD PTR DS:[ESI+404]  
+0045F75F   .  897424 04      MOV DWORD PTR SS:[ESP+4],ESI  
+0045F763   .  C706 506C4700 MOV DWORD PTR DS:[ESI],XQSJ.00476C50  
+0045F769   .  FF15 38EC4402 CALL DWORD PTR DS:[<&MFC71.#310>]                   
+0045F76F   .  8D8E 08040000 LEA ECX,DWORD PTR DS:[ESI+408]  
+0045F775   .  C74424 10 000>MOV DWORD PTR SS:[ESP+10],0  
+0045F77D   .  FF15 38EC4402 CALL DWORD PTR DS:[<&MFC71.#310>]                   
+0045F783   .  8D8E 0C040000 LEA ECX,DWORD PTR DS:[ESI+40C]  
+0045F789   .  FF15 38EC4402 CALL DWORD PTR DS:[<&MFC71.#310>]                   
+0045F78F   .  8D8E 10040000 LEA ECX,DWORD PTR DS:[ESI+410]  
+0045F795   .  FF15 38EC4402 CALL DWORD PTR DS:[<&MFC71.#310>]                   
+0045F79B   .  8D8E 14040000 LEA ECX,DWORD PTR DS:[ESI+414]  
+0045F7A1   .  C64424 10 03   MOV BYTE PTR SS:[ESP+10],3  
+0045F7A6   .  E8 C32CFAFF   CALL XQSJ.0040246E                              ; // Ecx -> buffer(size 90h), 大数初始化 0  
+0045F7AB   .  8D8E A4040000 LEA ECX,DWORD PTR DS:[ESI+4A4]  
+0045F7B1   .  C64424 10 04   MOV BYTE PTR SS:[ESP+10],4  
+0045F7B6   .  E8 B32CFAFF   CALL XQSJ.0040246E                              ; // Ecx -> buffer(size 90h),  
+0045F7BB   .  8D8E 34050000 LEA ECX,DWORD PTR DS:[ESI+534]  
+0045F7C1   .  C64424 10 05   MOV BYTE PTR SS:[ESP+10],5  
+0045F7C6   .  E8 A32CFAFF   CALL XQSJ.0040246E                              ; // Ecx -> buffer(size 90h),  
+0045F7CB   .  8D8E C4050000 LEA ECX,DWORD PTR DS:[ESI+5C4]  
+0045F7D1   .  C64424 10 06   MOV BYTE PTR SS:[ESP+10],6  
+0045F7D6   .  E8 932CFAFF   CALL XQSJ.0040246E                              ; // Ecx -> buffer(size 90h),  
+0045F7DB   .  8BCE           MOV ECX,ESI  
+0045F7DD   .  C64424 10 07   MOV BYTE PTR SS:[ESP+10],7  
+0045F7E2   .  E8 0932FAFF   CALL XQSJ.004029F0                              ; // 关键, F7  
+0045F7E7   .  8B4C24 08      MOV ECX,DWORD PTR SS:[ESP+8]  
+0045F7EB   .  8BC6           MOV EAX,ESI  
+0045F7ED   .  5E             POP ESI  
+0045F7EE   .  64:890D 00000>MOV DWORD PTR FS:[0],ECX  
+0045F7F5   .  83C4 10        ADD ESP,10  
+0045F7F8   .  C3             RETN  
+004029F0   $ /E9 3BC60500   JMP XQSJ.0045F030  
+0045F030   > \\6A FF        PUSH -1  
+0045F032   .  68 B3804600   PUSH XQSJ.004680B3                              ;  SE handler installation  
+0045F037   .  64:A1 0000000>MOV EAX,DWORD PTR FS:[0]  
+0045F03D   .  50             PUSH EAX  
+0045F03E   .  64:8925 00000>MOV DWORD PTR FS:[0],ESP  
+0045F045   .  81EC 94010000 SUB ESP,194  
+0045F04B   .  53             PUSH EBX  
+0045F04C   .  55             PUSH EBP  
+0045F04D   .  8BE9           MOV EBP,ECX  
+0045F04F   .  B0 D7         MOV AL,0D7                                     ; // 填充局部变量, 密文  
+0045F051   .  884424 0E      MOV BYTE PTR SS:[ESP+E],AL  
+0045F055   .  884424 10      MOV BYTE PTR SS:[ESP+10],AL  
+0045F059   .  B1 9A         MOV CL,9A  
+0045F05B   .  884C24 23      MOV BYTE PTR SS:[ESP+23],CL  
+0045F05F   .  884C24 12      MOV BYTE PTR SS:[ESP+12],CL  
+0045F063   .  33C9           XOR ECX,ECX  
+0045F065   .  B0 87         MOV AL,87  
+0045F067   .  884424 14      MOV BYTE PTR SS:[ESP+14],AL  
+0045F06B   .  884424 15      MOV BYTE PTR SS:[ESP+15],AL  
+0045F06F   .  33C0           XOR EAX,EAX  
+0045F071   .  894C24 34      MOV DWORD PTR SS:[ESP+34],ECX  
+0045F075   .  894424 48      MOV DWORD PTR SS:[ESP+48],EAX  
+0045F079   .  894C24 38      MOV DWORD PTR SS:[ESP+38],ECX  
+0045F07D   .  56             PUSH ESI  
+0045F07E   .  894424 50      MOV DWORD PTR SS:[ESP+50],EAX  
+0045F082   .  894C24 40      MOV DWORD PTR SS:[ESP+40],ECX  
+0045F086   .  57             PUSH EDI  
+0045F087   .  894C24 48      MOV DWORD PTR SS:[ESP+48],ECX  
+0045F08B   .  894424 58      MOV DWORD PTR SS:[ESP+58],EAX  
+0045F08F   .  68 5C6C4700   PUSH XQSJ.00476C5C                              ; // ASCII "F2A490UPQCV73BM8ZS",  AES Rijndael 密钥  
+0045F094   .  33DB           XOR EBX,EBX  
+0045F096   .  894424 60      MOV DWORD PTR SS:[ESP+60],EAX  
+0045F09A   .  884C24 50      MOV BYTE PTR SS:[ESP+50],CL  
+0045F09E   .  6A 18         PUSH 18                                          ; // AES 密钥长度 192bit  
+0045F0A0   .  8D4C24 7C      LEA ECX,DWORD PTR SS:[ESP+7C]  
+0045F0A4   .  C64424 2C DD   MOV BYTE PTR SS:[ESP+2C],0DD  
+0045F0A9   .  C64424 2D 4B   MOV BYTE PTR SS:[ESP+2D],4B  
+0045F0AE   .  C64424 2E 53   MOV BYTE PTR SS:[ESP+2E],53  
+0045F0B3   .  C64424 2F B1   MOV BYTE PTR SS:[ESP+2F],0B1  
+0045F0B8   .  C64424 30 22   MOV BYTE PTR SS:[ESP+30],22  
+0045F0BD   .  C64424 31 FA   MOV BYTE PTR SS:[ESP+31],0FA  
+0045F0C2   .  C64424 32 0C   MOV BYTE PTR SS:[ESP+32],0C  
+0045F0C7   .  C64424 34 32   MOV BYTE PTR SS:[ESP+34],32  
+0045F0CC   .  C64424 35 BB   MOV BYTE PTR SS:[ESP+35],0BB  
+0045F0D1   .  C64424 36 4F   MOV BYTE PTR SS:[ESP+36],4F  
+0045F0D6   .  C64424 37 D8   MOV BYTE PTR SS:[ESP+37],0D8  
+0045F0DB   .  C64424 38 E5   MOV BYTE PTR SS:[ESP+38],0E5  
+0045F0E0   .  C64424 39 67   MOV BYTE PTR SS:[ESP+39],67  
+0045F0E5   .  C64424 3A FC   MOV BYTE PTR SS:[ESP+3A],0FC  
+0045F0EA   .  C64424 3B 06   MOV BYTE PTR SS:[ESP+3B],6  
+0045F0EF   .  885C24 3C      MOV BYTE PTR SS:[ESP+3C],BL  
+0045F0F3   .  C64424 18 B4   MOV BYTE PTR SS:[ESP+18],0B4  
+0045F0F8   .  C64424 19 E6   MOV BYTE PTR SS:[ESP+19],0E6  
+0045F0FD   .  C64424 1A 7C   MOV BYTE PTR SS:[ESP+1A],7C  
+0045F102   .  C64424 1B F7   MOV BYTE PTR SS:[ESP+1B],0F7  
+0045F107   .  C64424 1C 9F   MOV BYTE PTR SS:[ESP+1C],9F  
+0045F10C   .  C64424 1D AC   MOV BYTE PTR SS:[ESP+1D],0AC  
+0045F111   .  C64424 1F EB   MOV BYTE PTR SS:[ESP+1F],0EB  
+0045F116   .  C64424 21 3A   MOV BYTE PTR SS:[ESP+21],3A  
+0045F11B   .  C64424 23 0E   MOV BYTE PTR SS:[ESP+23],0E  
+0045F120   .  C64424 26 0F   MOV BYTE PTR SS:[ESP+26],0F  
+0045F125   .  C64424 27 23   MOV BYTE PTR SS:[ESP+27],23  
+0045F12A   .  885C24 28      MOV BYTE PTR SS:[ESP+28],BL  
+0045F12E   .  884424 68      MOV BYTE PTR SS:[ESP+68],AL                     ; // 填充结束后密文数据如下  
+  0012F5F0  B4 E6 7C F7  9F AC D7 EB   D7 3A 9A 0E  87 87 0F 23  
+  0012F600  00 00 C7 02  DD 4B 53 B1   22 FA 0C 9A  32 BB 4F D8  
+  0012F610  E5 67 FC 06  00 4E C7 02   C0 F6 12 00  00 00 00 00  
+  0012F620  00 00 00 00  00 00 00 00   00 00 00 00  00 00 00 00  
+  0012F630  00 00 00 00  00 00 00 00   00 00 00 00  00 00 00 00  
+0045F132   .  E8 2F3BFAFF   CALL XQSJ.00402C66                             ; // AES Key Expansion, 下面详细分析   
+0045F137   .  8D5424 50      LEA EDX,DWORD PTR SS:[ESP+50]                ; // 12F630 -> 结果 buffer  
+0045F13B   .  52             PUSH EDX  
+0045F13C   .  8D4424 28      LEA EAX,DWORD PTR SS:[ESP+28]                ; // 12F604 -> 密文(16byte) 06FC67E5D84FBB329A0CFA22B1534BDD  
+0045F140   .  50             PUSH EAX  
+0045F141   .  8D4C24 7C      LEA ECX,DWORD PTR SS:[ESP+7C]  
+0045F145   .  899C24 B40100>MOV DWORD PTR SS:[ESP+1B4],EBX  
+0045F14C   .  E8 C724FAFF   CALL XQSJ.00401618                             ; // rijndaelDecrypt,  解密, 请见源码  
+0045F151   .  8D4C24 3C      LEA ECX,DWORD PTR SS:[ESP+3C]                ; // 12F61C -> 结果 buffer  
+0045F155   .  51             PUSH ECX  
+0045F156   .  8D5424 14      LEA EDX,DWORD PTR SS:[ESP+14]                ; // 12F5F0 -> 密文(16byte) 230F87870E9A3AD7EBD7AC9FF77CE6B4  
+0045F15A   .  52             PUSH EDX  
+0045F15B   .  8D4C24 7C      LEA ECX,DWORD PTR SS:[ESP+7C]  
+0045F15F   .  E8 B424FAFF   CALL XQSJ.00401618                             ; // rijndaelDecrypt, 解密, 结果如下  
+  0012F5F0  B4 E6 7C F7 9F AC D7 EB D7 3A 9A 0E 87 87 0F 23
+```
+
+
+
+```
+  0012F600  00 00 C7 02 DD 4B 53 B1 22 FA 0C 9A 32 BB 4F D8
+
+  0012F610  E5 67 FC 06 00 4E C7 02 C0 F6 12 00 30 31 43 31  ............01C1
+
+  0012F620  34 35 35 34 37 36 42 37 34 31 39 00 00 00 00 00  455476B7419.....
+
+  0012F630  38 31 32 46 46 33 44 37 34 30 41 38 45 31 39 30  812FF3D740A8E190
+```
+
+```
+0045F164   .  8D4424 3C     LEA EAX,DWORD PTR SS:\[ESP+3C\]                     ; // 连接上面两数得到 RSA 的 N
+
+0045F168   .  8BF0          MOV ESI,EAX
+
+0045F16A   .  8D9B 00000000 LEA EBX,DWORD PTR DS:\[EBX\]
+
+0045F170   >  8A08          MOV CL,BYTE PTR DS:\[EAX\]
+
+0045F172   .  40            INC EAX
+
+0045F173   .  3ACB          CMP CL,BL
+
+0045F175   .^ 75 F9        JNZ SHORT XQSJ.0045F170
+
+0045F177   .  8D7C24 50     LEA EDI,DWORD PTR SS:\[ESP+50\]
+
+0045F17B   .  2BC6          SUB EAX,ESI
+
+0045F17D   .  4F            DEC EDI
+
+0045F17E   .  8BFF          MOV EDI,EDI
+
+0045F180   >  8A4F 01       MOV CL,BYTE PTR DS:\[EDI+1\]
+
+0045F183   .  47            INC EDI
+
+0045F184   .  3ACB          CMP CL,BL
+
+0045F186   .^ 75 F8        JNZ SHORT XQSJ.0045F180
+
+0045F188   .  8BC8          MOV ECX,EAX
+
+0045F18A   .  C1E9 02       SHR ECX,2
+
+0045F18D   .  F3:A5         REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS:\[ESI\]
+
+0045F18F   .  8BC8          MOV ECX,EAX
+
+0045F191   .  83E1 03       AND ECX,3
+
+0045F194   .  8D4424 50     LEA EAX,DWORD PTR SS:\[ESP+50\]
+
+0045F198   .  F3:A4         REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]
+
+0045F19A   .  50            PUSH EAX                                            ; 12F630 -> "812FF3D740A8E19001C1455476B7419", RSA N
+
+0045F19B   .  8D4C24 3C     LEA ECX,DWORD PTR SS:\[ESP+3C\]
+
+0045F19F   .  FF15 84EB4402 CALL DWORD PTR DS:\[<&MFC71.#308>\]
+
+0045F1A5   .  8DB5 10040000 LEA ESI,DWORD PTR SS:\[EBP+410\]
+
+0045F1AB   .  50            PUSH EAX
+
+0045F1AC   .  8BCE          MOV ECX,ESI
+
+0045F1AE   .  C68424 B00100>MOV BYTE PTR SS:\[ESP+1B0\],1
+
+0045F1B6   .  FF15 40EC4402 CALL DWORD PTR DS:\[<&MFC71.#781>\]
+
+0045F1BC   .  8D4C24 38     LEA ECX,DWORD PTR SS:\[ESP+38\]
+
+0045F1C0   .  889C24 AC0100>MOV BYTE PTR SS:\[ESP+1AC\],BL
+
+0045F1C7   .  FF15 68EC4402 CALL DWORD PTR DS:\[<&MFC71.#578>\]
+
+0045F1CD   .  68 546C4700   PUSH XQSJ.00476C54                                  ;  ASCII "10001",  RSA E
+
+0045F1D2   .  8D4C24 3C     LEA ECX,DWORD PTR SS:\[ESP+3C\]
+
+0045F1D6   .  FF15 3CEC4402 CALL DWORD PTR DS:\[<&MFC71.#304>\]
+
+0045F1DC   .  8DBD 0C040000 LEA EDI,DWORD PTR SS:\[EBP+40C\]
+
+0045F1E2   .  50            PUSH EAX
+
+0045F1E3   .  8BCF          MOV ECX,EDI
+
+0045F1E5   .  C68424 B00100>MOV BYTE PTR SS:\[ESP+1B0\],2
+
+0045F1ED   .  FF15 40EC4402 CALL DWORD PTR DS:\[<&MFC71.#781>\]
+
+0045F1F3   .  8D4C24 38     LEA ECX,DWORD PTR SS:\[ESP+38\]
+
+0045F1F7   .  889C24 AC0100>MOV BYTE PTR SS:\[ESP+1AC\],BL
+
+0045F1FE   .  FF15 68EC4402 CALL DWORD PTR DS:\[<&MFC71.#578>\]
+
+0045F204   .  6A 10         PUSH 10                                             ; hex
+
+0045F206   .  56            PUSH ESI                                            ; ESI -> RSA N ASCII
+
+0045F207   .  8D8D 34050000 LEA ECX,DWORD PTR SS:\[EBP+534\]                  ;
+
+0045F20D   .  E8 8A27FAFF   CALL XQSJ.0040199C                                  ; ASCII 转换为大数
+
+0045F212   .  6A 10         PUSH 10                                             ; hex
+
+0045F214   .  57            PUSH EDI                                            ; EDI -> RSA E ASCII
+
+0045F215   .  8D8D C4050000 LEA ECX,DWORD PTR SS:\[EBP+5C4\]
+
+0045F21B   .  E8 7C27FAFF   CALL XQSJ.0040199C                                  ; ASCII 转换为大数
+
+0045F220   .  33C0          XOR EAX,EAX
+
+0045F222   .  B9 40000000   MOV ECX,40
+
+0045F227   .  8D7D 04       LEA EDI,DWORD PTR SS:\[EBP+4\]                      ; 12F8B0 开始数据清除
+
+0045F22A   .  F3:AB         REP STOS DWORD PTR ES:\[EDI\]
+
+0045F22C   .  B9 40000000   MOV ECX,40
+
+0045F231   .  8DBD 04010000 LEA EDI,DWORD PTR SS:\[EBP+104\]
+
+0045F237   .  F3:AB         REP STOS DWORD PTR ES:\[EDI\]
+
+0045F239   .  B9 40000000   MOV ECX,40
+
+0045F23E   .  8DBD 04020000 LEA EDI,DWORD PTR SS:\[EBP+204\]
+
+0045F244   .  F3:AB         REP STOS DWORD PTR ES:\[EDI\]
+
+0045F246   .  B9 40000000   MOV ECX,40
+
+0045F24B   .  8DBD 04030000 LEA EDI,DWORD PTR SS:\[EBP+304\]
+
+0045F251   .  F3:AB         REP STOS DWORD PTR ES:\[EDI\]
+
+0045F253   .  8D4C24 74     LEA ECX,DWORD PTR SS:\[ESP+74\]                     ; ecx = 12F654
+
+0045F257   .  C78424 AC0100>MOV DWORD PTR SS:\[ESP+1AC\],-1
+
+0045F262   .  E8 E22EFAFF   CALL XQSJ.00402149                                  ; mov \[ecx\], 476c3c
+
+0045F267   .  8B8C24 A40100>MOV ECX,DWORD PTR SS:\[ESP+1A4\]
+
+0045F26E   .  5F            POP EDI
+
+0045F26F   .  5E            POP ESI
+
+0045F270   .  5D            POP EBP
+
+0045F271   .  B8 01000000   MOV EAX,1
+
+0045F276   .  5B            POP EBX
+
+0045F277   .  64:890D 00000>MOV DWORD PTR FS:\[0\],ECX
+
+0045F27E   .  81C4 A0010000 ADD ESP,1A0
+
+0045F284   .  C3            RETN
+```
+
+// `AES Key Expansion`
+
+```
+00402C66   $ /E9 E5BE0500   JMP XQSJ.0045EB50
+
+0045EB50   > \\53           PUSH EBX
+
+0045EB51   .  8BD9          MOV EBX,ECX
+
+0045EB53   .  8B4C24 08     MOV ECX,DWORD PTR SS:\[ESP+8\]
+
+0045EB57   .  83F9 10       CMP ECX,10                                      ; // AES 密钥 128 bit ?
+
+0045EB5A   .  B8 04000000   MOV EAX,4                                       ; // block size,  一次只能处理 128bit 信息
+
+0045EB5F   .  56            PUSH ESI
+
+0045EB60   .  57            PUSH EDI
+
+0045EB61   .  C703 3C6C4700 MOV DWORD PTR DS:\[EBX\],XQSJ.00476C3C
+
+0045EB67   .  8943 14       MOV DWORD PTR DS:\[EBX+14\],EAX
+
+0045EB6A   .  8943 18       MOV DWORD PTR DS:\[EBX+18\],EAX
+
+0045EB6D   .  75 0C         JNZ SHORT XQSJ.0045EB7B
+
+0045EB6F   .  8943 18       MOV DWORD PTR DS:\[EBX+18\],EAX               ; // 128 密钥 4 dword
+
+0045EB72   .  C743 1C 0A000>MOV DWORD PTR DS:\[EBX+1C\],0A               ; // 128 要计算 10 round
+
+0045EB79   .  EB 28         JMP SHORT XQSJ.0045EBA3
+
+0045EB7B   >  83F9 18       CMP ECX,18                                      ; // AES 密钥 192 bit ?  这个程序就是 192 bit
+
+0045EB7E   .  75 10         JNZ SHORT XQSJ.0045EB90
+
+0045EB80   .  C743 18 06000>MOV DWORD PTR DS:\[EBX+18\],6               ; // 192 密钥 6 dword
+
+0045EB87   .  C743 1C 0C000>MOV DWORD PTR DS:\[EBX+1C\],0C               ; // 192 要计算 12 round
+
+0045EB8E   .  EB 13         JMP SHORT XQSJ.0045EBA3
+
+0045EB90   >  83F9 20       CMP ECX,20                                      ; // AES 密钥 256 bit ?
+
+0045EB93   .  75 0E         JNZ SHORT XQSJ.0045EBA3
+
+0045EB95   .  C743 18 08000>MOV DWORD PTR DS:\[EBX+18\],8               ; // 256 密钥 8 dword
+
+0045EB9C   .  C743 1C 0E000>MOV DWORD PTR DS:\[EBX+1C\],0E               ; // 256 要计算 14 round
+
+0045EBA3   >  8B7424 14     MOV ESI,DWORD PTR SS:\[ESP+14\]               ; // ESI ->  "F2A490UPQCV73BM8ZS"
+
+0045EBA7   .  8BC1          MOV EAX,ECX                                   ; // ASCII -> HEX  0000535A384D4233375643515055303934413246h
+
+0045EBA9   .  C1E9 02       SHR ECX,2
+
+0045EBAC   .  8D7B 20       LEA EDI,DWORD PTR DS:\[EBX+20\]
+
+0045EBAF   .  F3:A5         REP MOVS DWORD PTR ES:\[EDI\],DWORD PTR DS:\[ESI\]
+
+0045EBB1   .  8BC8          MOV ECX,EAX
+
+0045EBB3   .  83E1 03       AND ECX,3
+
+0045EBB6   .  F3:A4         REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]
+
+0045EBB8   .  8BCB          MOV ECX,EBX
+
+0045EBBA   .  E8 DB34FAFF   CALL XQSJ.0040209A                              ; // rijndaelKeySetupDec, 请看源码, 结果如下
+
+0045EBBF   .  5F            POP EDI
+
+0045EBC0   .  5E            POP ESI
+
+0045EBC1   .  8BC3          MOV EAX,EBX
+
+0045EBC3   .  5B            POP EBX
+```
+
+
+
+### 代码段 1
+
+`0045EBC4   .  C2 0800       RETN 8`
+
+`struct {`
+`    int   BlockSize;        /* Block size? */`
+`    int   keyLen;           /* Length of the key: 4 , 6,  8 */`
+`    int   Nr;               /* key-length-dependent number of rounds */`
+`    char  keyMaterial[32];   /* Raw key data in ASCII */`
+`    u32   rk[4*(MAXNR + 1)];   /* key schedule, MAXNR=14 */`
+`}`
+
+### 内存数据段
+
+```
+0012F664         04 00 00 00 06 00 00 00 0C 00 00 00     ........
+0012F674  46 32 41 34 39 30 55 50 51 43 56 37 33 42 4D 38  F2A490UPQCV73BM8
+0012F684  5A 53 00 00 00 00 00 00 64 7E FB 77 90 16 F8 77  ZS......(后面 8 字节无用)
+0012F694  46 32 41 34 39 30 55 50 51 43 56 37 33 42 4D 38  F2A490UPQCV73BM8
+0012F6A4  5A 53 00 00 00 00 00 00 24 51 22 57 1D 61 77 07  ZS......$Q"W.aw.
+0012F6B4  4C 22 21 30 7F 60 6C 08 25 33 6C 08 25 33 6C 08  L"!0.`l.%3l.%3l.
+0012F6C4  E5 01 12 68 F8 60 65 6F B4 42 44 5F CB 22 28 57  ...h.`eo.BD_."(W
+0012F6D4  EE 11 44 5F CB 22 28 57 72 35 49 77 8A 55 2C 18  ..D_."(Wr5Iw.U,.
+0012F6E4  3E 17 68 47 F5 35 40 10 1B 24 04 4F D0 06 2C 18  >.hG.5@..$.O..,.
+0012F6F4  15 44 E4 07 9F 11 C8 1F A1 06 A0 58 54 33 E0 48  .D.........XT3.H
+0012F704  4F 17 E4 07 9F 11 C8 1F 87 AC 24 DC 18 BD EC C3  O.........$.....
+0012F714  B9 BB 4C 9B ED 88 AC D3 A2 9F 48 D4 3D 8E 80 CB  ..L.......H.=...
+0012F724  BE 61 3B FB A6 DC D7 38 1F 67 9B A3 F2 EF 37 70  .a;....8.g....7p
+0012F734  50 70 7F A4 6D FE FF 6F 45 77 93 C7 E3 AB 44 FF  Pp..m..oEw....D.
+0012F744  FC CC DF 5C 0E 23 E8 2C 5E 53 97 88 33 AD 68 E7  ...\. #.,^S..3.h.
+0012F754  50 32 07 04 B3 99 43 FB 4F 55 9C A7 41 76 74 8B  P2....C.OU..Avt.
+0012F764  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+0012F774  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+```
+
+### 验证注册码的正伪
+
+`0040220C   $ /E9 4FD20500   JMP XQSJ.0045F460`
+
+`0045F460   > \55           PUSH EBP`
+`0045F461   .  8BEC         MOV EBP,ESP`
+`0045F463   .  83E4 F8       AND ESP,FFFFFFF8`
+`0045F466   .  6A FF         PUSH -1`
+`0045F468   .  68 FB804600   PUSH XQSJ.004680FB                     ;  SE handler installation`
+`0045F46D   .  64:A1 000000>MOV EAX,DWORD PTR FS:[0]`
+`0045F473   .  50           PUSH EAX`
+`0045F474   .  64:8925 00000>MOV DWORD PTR FS:[0],ESP`
+`0045F47B   .  81EC A0010000 SUB ESP,1A0`
+`0045F481   .  53           PUSH EBX`
+`0045F482   .  56           PUSH ESI`
+`0045F483   .  8B75 08       MOV ESI,DWORD PTR SS:[EBP+8]`
+`0045F486   .  8BD9          MOV EBX,ECX`
+`0045F488   .  57           PUSH EDI`
+`0045F489   .  8BCE          MOV ECX,ESI`
+`0045F48B   .  FF15 58EC4402 CALL DWORD PTR DS:[<&MFC71.#2902>]        ; strlen(sn)`
+`0045F491   .  83F8 1E       CMP EAX,1E`
+`0045F494   .  0F8C EF010000 JL XQSJ.0045F689                     ; len<1E 则 over`
+`0045F49A   .  6A 05         PUSH 5                                 ; // 5`
+`0045F49C   .  8D4424 10     LEA EAX,DWORD PTR SS:[ESP+10]`
+`0045F4A0   .  50           PUSH EAX`
+`0045F4A1   .  8BCE          MOV ECX,ESI`
+`0045F4A3   .  FF15 88EB4402 CALL DWORD PTR DS:[<&MFC71.#3997>]        ; // 取 sn 前 5 个字符到新字符串 name`
+`0045F4A9   .  894424 10     MOV DWORD PTR SS:[ESP+10],EAX       ; EAX -> name`
+`0045F4AD   .  BF FCE34700   MOV EDI,XQSJ.0047E3FC             ; 47E3FC 开始放黑名单, 目前只有两个(TEST0, TEST1) ^_^`
+`0045F4B2   >  8B0F          MOV ECX,DWORD PTR DS:[EDI]`
+`0045F4B4   .  51           PUSH ECX                             ; ECX -> black_name`
+`0045F4B5   .  8B4C24 14     MOV ECX,DWORD PTR SS:[ESP+14]`
+`0045F4B9   .  FF15 48EC4402 CALL DWORD PTR DS:[<&MFC71.#1482>]        ; _mbscmp(name, black_name);`
+`0045F4BF   .  85C0          TEST EAX,EAX`
+`0045F4C1   .  0F84 B8010000 JE XQSJ.0045F67F                     ; 相等则跳出循环, 设置 EDI=1 后返回 0045F4D4`
+`0045F4C7   .  83C7 04       ADD EDI,4`
+`0045F4CA   .  81FF 04E44700 CMP EDI,XQSJ.0047E404            ; 黑名单比较完了吗?`
+`0045F4D0   .^ 7C E0         JL SHORT XQSJ.0045F4B2`
+`0045F4D2   .  33FF          XOR EDI,EDI                          ; 不在黑名单上, 则 EDI=0`
+`0045F4D4   >  8D4C24 0C     LEA ECX,DWORD PTR SS:[ESP+C]`
+`0045F4D8   .  FF15 68EC4402 CALL DWORD PTR DS:[<&MFC71.#578>]`
+`0045F4DE   .  33C0          XOR EAX,EAX                          ; EAX = 0 注册码失败标志`
+`0045F4E0   .  85FF          TEST EDI,EDI`
+`0045F4E2   .  0F85 A3010000 JNZ XQSJ.0045F68B                   ; 是黑名则 over`
+`0045F4E8   .  B9 40000000   MOV ECX,40`
+`0045F4ED   .  8D7C24 18     LEA EDI,DWORD PTR SS:[ESP+18]`
+`0045F4F1   .  F3:AB         REP STOS DWORD PTR ES:[EDI]`
+`0045F4F3   .  8BCE          MOV ECX,ESI`
+`0045F4F5   .  FF15 58EC4402 CALL DWORD PTR DS:[<&MFC71.#2902>]`
+`0045F4FB   .  50           PUSH EAX`
+`0045F4FC   .  8BCE          MOV ECX,ESI`
+`0045F4FE   .  FF15 44EC4402 CALL DWORD PTR DS:[<&MFC71.#2468>]`
+`0045F504   .  8D5424 18     LEA EDX,DWORD PTR SS:[ESP+18]       ; 12F600`
+`0045F508   >  8A08          MOV CL,BYTE PTR DS:[EAX]`
+`0045F50A   .  40           INC EAX`
+`0045F50B   .  880A          MOV BYTE PTR DS:[EDX],CL`
+`0045F50D   .  42           INC EDX`
+`0045F50E   .  84C9          TEST CL,CL`
+`0045F510   .^ 75 F6         JNZ SHORT XQSJ.0045F508             ; 12F600 -> sn`
+`0045F512   .  8B5424 18     MOV EDX,DWORD PTR SS:[ESP+18]       ; 取前 5 个字符( 就是 name)`
+`0045F516   .  8A4C24 1C     MOV CL,BYTE PTR SS:[ESP+1C]`
+`0045F51A   .  8D43 04       LEA EAX,DWORD PTR DS:[EBX+4]        ; 12F8B0`
+`0045F51D   .  8910          MOV DWORD PTR DS:[EAX],EDX`
+`0045F51F   .  8848 04       MOV BYTE PTR DS:[EAX+4],CL          ; 12F8B0 -> name`
+`0045F522   .  8BCE          MOV ECX,ESI`
+`0045F524   .  8DBB 04010000 LEA EDI,DWORD PTR DS:[EBX+104]      ; 12F9B0 buffer`
+`0045F52A   .  FF15 58EC4402 CALL DWORD PTR DS:[<&MFC71.#2902>]`
+`0045F530   .  8BC8          MOV ECX,EAX`
+`0045F532   .  83E9 05       SUB ECX,5                            ; 去掉前 5 个后的长度`
+`0045F535   .  8BD1          MOV EDX,ECX`
+`0045F537   .  C1E9 02       SHR ECX,2`
+`0045F53A   .  8D7424 1D     LEA ESI,DWORD PTR SS:[ESP+1D]`
+`0045F53E   .  F3:A5         REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ESI]`
+`0045F540   .  8BCA          MOV ECX,EDX`
+`0045F542   .  8D83 04010000 LEA EAX,DWORD PTR DS:[EBX+104]`
+`0045F548   .  83E1 03       AND ECX,3`
+`0045F54B   .  50           PUSH EAX                               ; 12F9B0 -> sn2 (sn2 就是 sn 去掉前 5 个字符)`
+`0045F54C   .  F3:A4         REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]`
+`0045F54E   .  8DB3 08040000 LEA ESI,DWORD PTR DS:[EBX+408]       ; esi = 12FCB4`
+`0045F554   .  68 1C194700   PUSH XQSJ.0047191C                   ;  ASCII "%s"`
+`0045F559   .  56           PUSH ESI`
+`0045F55A   .  FF15 90E74402 CALL DWORD PTR DS:[<&MFC71.#2322>]   ; sprintf(esi, "%s", sn2)`
+`0045F560   .  83C4 0C       ADD ESP,0C`
+`0045F563   .  6A 10         PUSH 10                                ; hex`
+`0045F565   .  8DBB A4040000 LEA EDI,DWORD PTR DS:[EBX+4A4]`
+`0045F56B   .  56           PUSH ESI                               ; esi -> sn2`
+`0045F56C   .  8BCF          MOV ECX,EDI`
+`0045F56E   .  E8 2924FAFF   CALL XQSJ.0040199C                   ; sn2 转换为大数`
+
+
+
+```
+0045F573   .  8D83 34050000 LEA EAX,DWORD PTR DS:[EBX+534]                  ; RSA N 大数
+0045F579   .  50            PUSH EAX
+0045F57A   .  8D8B C4050000 LEA ECX,DWORD PTR DS:[EBX+5C4]                  ; RSA E 大数
+0045F580   .  51            PUSH ECX
+0045F581   .  8D9424 200100>LEA EDX,DWORD PTR SS:[ESP+120]                  ; 12F700 buffer
+0045F588   .  52            PUSH EDX
+0045F589   .  8BCF          MOV ECX,EDI                                      ; sn2 大数
+0045F58B   .  E8 2F2EFAFF  CALL XQSJ.004023BF                                ; RSA_encrypt(N, E, sn2) -> sn3
+0045F590   .  8DBB 14040000 LEA EDI,DWORD PTR DS:[EBX+414]                  ; 12FCC0
+0045F596   .  50            PUSH EAX                                         ; 12F700 -> sn3
+0045F597   .  8BCF          MOV ECX,EDI
+0045F599   .  C78424 B80100>MOV DWORD PTR SS:[ESP+1B8],0
+0045F5A4   .  E8 3B3BFAFF  CALL XQSJ.004030E4                                ; sn3 大数复制到 12FCC0
+0045F5A9   .  8D8C24 180100>LEA ECX,DWORD PTR SS:[ESP+118]
+0045F5B0   .  C78424 B40100>MOV DWORD PTR SS:[ESP+1B4],-1
+0045F5BB   .  E8 473BFAFF  CALL XQSJ.00403107
+0045F5C0   .  6A 10         PUSH 10                                          ; hex
+0045F5C2   .  8DB3 04040000 LEA ESI,DWORD PTR DS:[EBX+404]                  ; 12FCB0 buffer
+0045F5C8   .  56            PUSH ESI
+0045F5C9   .  8BCF          MOV ECX,EDI                                      ; sn3 大数
+0045F5CB   .  E8 162AFAFF  CALL XQSJ.00401FE6                                ; sn3 大数转换为 str( 应该是由 0-9 组成的 10 进制数)
+0045F5D0   .  8BCE          MOV ECX,ESI                                      ; esi -> sn3 str
+0045F5D2   .  FF15 58EC4402 CALL DWORD PTR DS:[<&MFC71.#2902>]              ; strlen(sn3)
+0045F5D8   .  50            PUSH EAX
+0045F5D9   .  8BCE          MOV ECX,ESI
+0045F5DB   .  FF15 44EC4402 CALL DWORD PTR DS:[<&MFC71.#2468>]
+0045F5E1   .  50            PUSH EAX                                         ; eax -> sn3 str
+0045F5E2   .  FF15 70F14402 CALL DWORD PTR DS:[<&MSVCR71._atoi64>]          ; MSVCR71._atoi64 (EDX:EAX) 记为 temp1
+0045F5E8   .  894424 14     MOV DWORD PTR SS:[ESP+14],EAX                  ; 低位
+0045F5EC   .  8D43 04       LEA EAX,DWORD PTR DS:[EBX+4]                   ; eax -> name str
+0045F5EF   .  83C4 04       ADD ESP,4
+0045F5F2   .  895424 14     MOV DWORD PTR SS:[ESP+14],EDX                  ; 高位
+0045F5F6   .  8D70 01       LEA ESI,DWORD PTR DS:[EAX+1]
+0045F5F9   .  8DA424 000000>LEA ESP,DWORD PTR SS:[ESP]
+0045F600   >  8A08          MOV CL,BYTE PTR DS:[EAX]
+0045F602   .  40            INC EAX
+0045F603   .  84C9          TEST CL,CL
+0045F605   .^ 75 F9        JNZ SHORT XQSJ.0045F600
+0045F607   .  2BC6          SUB EAX,ESI
+0045F609   .  50            PUSH EAX                                         ; strlen(name)
+0045F60A   .  8DB3 04020000 LEA ESI,DWORD PTR DS:[EBX+204]                  ; 12FAB0 buffer
+0045F610   .  56            PUSH ESI
+0045F611   .  8D43 04       LEA EAX,DWORD PTR DS:[EBX+4]                    ; EAX -> name
+0045F614   .  50            PUSH EAX
+0045F615   .  8BCB          MOV ECX,EBX
+0045F617   .  E8 5030FAFF  CALL XQSJ.0040266C                                ; MD5(name), 这次 MD5 没有变形哦
+0045F61C   .  81C3 04030000 ADD EBX,304                                      ; 12FBB0
+0045F622   .  895C24 0C     MOV DWORD PTR SS:[ESP+C],EBX
+0045F626   .  33C9          XOR ECX,ECX                                      ; 对 MD5 的结果再处理一下
+0045F628   >  0FB6040E      MOVZX EAX,BYTE PTR DS:[ESI+ECX]                 ; ESI -> MD5(name)
+0045F62C   .  85C0          TEST EAX,EAX
+0045F62E   .  74 0E         JE SHORT XQSJ.0045F63E
+0045F630   .  99            CDQ
+0045F631   .  BF 0A000000   MOV EDI,0A
+0045F636   .  F7FF          IDIV EDI
+0045F638   .  80C2 30       ADD DL,30                                        ; MD5(name)(i) % 10 + 30
+0045F63B   .  8813          MOV BYTE PTR DS:[EBX],DL
+0045F63D   .  43            INC EBX
+0045F63E   >  41            INC ECX
+0045F63F   .  81F9 00010000 CMP ECX,100                                      ; // 循环 100h 次
+0045F645   .^ 7C E1        JL SHORT XQSJ.0045F628
+0045F647   .  8B4424 0C     MOV EAX,DWORD PTR SS:[ESP+C]                    ; 12FBB0
+0045F64B   .  50            PUSH EAX
+0045F64C   .  FF15 70F14402 CALL DWORD PTR DS:[<&MSVCR71._atoi64>]          ;  MSVCR71._atoi64, 记为 temp2
+0045F652   .  8B4C24 14     MOV ECX,DWORD PTR SS:[ESP+14]
+0045F656   .  83C4 04       ADD ESP,4
+0045F659   .  3BC8          CMP ECX,EAX                                      ; 比较 temp1, temp2
+0045F65B   .  75 2C         JNZ SHORT XQSJ.0045F689
+0045F65D   .  395424 14     CMP DWORD PTR SS:[ESP+14],EDX
+0045F661   .  75 26         JNZ SHORT XQSJ.0045F689
+0045F663   .  B8 01000000   MOV EAX,1                                        ; 相等 OK
+0045F668   .  8B8C24 AC0100>MOV ECX,DWORD PTR SS:[ESP+1AC]
+0045F66F   .  64:890D 00000>MOV DWORD PTR FS:[0],ECX
+0045F676   .  5F            POP EDI
+0045F677   .  5E            POP ESI
+0045F678   .  5B            POP EBX
+0045F679   .  8BE5          MOV ESP,EBP
+0045F67B   .  5D            POP EBP
+0045F67C   .  C2 0400       RETN 4
+0045F67F   >  \BF 01000000   MOV EDI,1                                        ; 黑名单, over
+0045F684   .^ E9 4BFEFFFF   JMP XQSJ.0045F4D4
+0045F689   >  33C0          XOR EAX,EAX                                      ; 不等 over
+0045F68B   >  8B8C24 AC0100>MOV ECX,DWORD PTR SS:[ESP+1AC]
+0045F692   .  5F            POP EDI
+0045F693   .  5E            POP ESI
+0045F694   .  64:890D 00000>MOV DWORD PTR FS:[0],ECX
+0045F69B   .  5B            POP EBX
+0045F69C   .  8BE5          MOV ESP,EBP
+0045F69E   .  5D            POP EBP
+0045F69F   .  C2 0400       RETN 4
+```
+
+### 算法总结
+
+注册码 `sn` 长度 `30` 位以上
+
+`char temp1[256], temp2[256];`
+
+`sn = name(5 位) + sn2`
+
+`MD5(name) -> 16 字节`
+
+```
+for (i=0; i<256; i++)
+{
+    temp1[i] = MD5(name)[i] % 10 + 30h;
+}
+```
+
+`RSA N = RijndaelDecrypt(密文); // 由于 Rijndael 一次只能处理 128bit 的信息, 所以分成两部分`
+
+`RSA E = 10001`
+
+`sn3 = RSA_encrypt(N, E, sn2)`
+
+`temp2 = BigToStr(sn3)`
+
+```
+if (temp1 == temp2)
+{
+    base64_encode(sn) -> 注册表;
+}
+```
+
+`MD5`, `RSA`, `BASE64` 已经讨论的很多了, 写注册机不难, 我就不写了,
+
+`N=812FF3D740A8E19001C1455476B7419`
+
+`D=521247C43134D90C468CF296819E5ED`
+
+`E=10001`
+
+其中 `N` 在程序中是用 `AES Rijndael 192bit` 加密的, 简单介绍一下:
+
+`AES（The Advanced Encryption Standard）`是美国国家标准与技术研究所(NTIS)用于加密电子数据的规范。
+
+具体请参考 `FIPS 197` (`Federal Information Processing Standards Publication 197`)
+
+这是一种对称密钥加密算法, 可以使用 `128`, `192`, `256bit` 的密钥, 每次能加密 `128bit` 的信息.
+
+根据密钥长度不同, 分别要经过 `10`, `12`, `14` 轮计算.
+
+```
+                      Key Length      Block Size      Number of Rounds
+                       (Nk words)      (Nb words)          (Nr)
+AES-128                4               4               10
+AES-192                6               4               12
+AES-256                8               4               14
+```
+
+`note:上面 words 是 32bit`
+
+给定密钥后, 要先生成轮密钥, 然后就可以加解密了.
+
+附件中有 `Rijndael` 核心算法的 `C` 程序, 然后我自己写了一个调用的例子, 仅供参考.
+
+\===============================================
+
+From `FIPS 197`
+
+```
+KeyExpansion(byte key[4*Nk], word w[Nb*(Nr+1)], Nk)
+begin
+    word temp
+    i = 0
+    while (i < Nk)
+        w[i] = word(key[4*i], key[4*i+1], key[4*i+2], key[4*i+3])
+        i = i+1
+    end while
+    i = Nk
+    while (i < Nb * (Nr+1)]
+        temp = w[i-1]
+        if (i mod Nk = 0)
+```
+
+
+
+```
+                temp = SubWord(RotWord(temp)) xor Rcon[i/Nk]
+        else if (Nk > 6 and i mod Nk = 4)
+                temp = SubWord(temp)
+        end if
+        w[i] = w[i-Nk] xor temp
+        i = i + 1
+    end while
+end
+
+Cipher(byte in[4*Nb], byte out[4*Nb], word w[Nb*(Nr+1)])
+
+begin
+    byte state[4,Nb]
+    state = in
+    AddRoundKey(state, w[0, Nb-1]) // 轮密钥加, 预处理
+    for round = 1 step 1 to Nr–1  // 1 到 Nr-1 轮要经过 4 个运算
+        SubBytes(state)          // 字节替换
+        ShiftRows(state)         // 行位移变换
+        MixColumns(state)        // 列混合变换
+        AddRoundKey(state, w[round*Nb, (round+1)*Nb-1])
+    end for
+    SubBytes(state)              // 最后一轮三种运算
+    ShiftRows(state)
+    AddRoundKey(state, w[Nr*Nb, (Nr+1)*Nb-1])
+    out = state
+end
+
+=====================================================================================
+
+附件:`v5.rar`
+`4dd466d0e1e0cc123afbe504da2462ca`

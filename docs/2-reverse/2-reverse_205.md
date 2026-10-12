@@ -1,123 +1,152 @@
 
-
 # 如何写 windbg 高级脚本---以访问文件的 windbg 脚本为例说明
 
 > 原文：[`www.pediy.com/kssd/pediy10/83946.html`](https://www.pediy.com/kssd/pediy10/83946.html)
 
-最近需要在访问指定文件时中断下来，但不知道如何下断，在网上搜索了一番无果，只好自己摸索了。听大侠说 windbg 的条件断点功能异常强大，可以实现，不禁心痒，特尝试一番，顺便熟悉一下 windbg 的脚本语法。  
-  
-先来了解简单的，得到当前访问的文件名  
-先写段 C 代码，创建 C:\\a.txt 并往文件中写任意几个字符，代码如下：  
-    HANDLE hFile=CreateFile("C:\\\\a.txt",  
-      GENERIC\_WRITE|GENERIC\_READ,  
-      0,  
-      NULL,  
-      OPEN\_ALWAYS,  
-      FILE\_ATTRIBUTE\_NORMAL,  
-      NULL);  
-    if (hFile == INVALID\_HANDLE\_VALUE)   
-    {  
-      return ;  
-    }  
-    char Buffer\[\]={"abcdefghijklemn"};  
-    DWORD dwReturn;  
-    WriteFile(hFile,Buffer,strlen(Buffer),&dwReturn,NULL);  
-  
-    CloseHandle(hFile);  
-把以上代码放到对话框的按钮点击响应事件中去。编译链接得到 test.Exe.  
-文件名为 CreateFile API 的第一个参数，因而在执行到该 API 的入口时，esp+4 即表示第一个参数的地址。故可这样下断：  
-bp kernel32!CreateFileW "r $t1=poi(esp+4);.echo;.printf\\"FileName:%mu\\",$t1;.echo;g"  
-  
-$t0~$t19 为伪寄存器，可用来存储临时值，poi 表示取地址的值，  
-也可将脚本保存为文件，然后在 windbg 中输入： $$><脚本文件路径 来运行。  
-我把以上脚本保存为 ”C:\\script.txt”  
-用 windbg 打开以上代码编译得到的 test.exe,   
-Ctrl+Break 中断 windbg，然后下断，即输入：$$><C:\\script.txt，再输入 g，让进程运行起来，  
-点击按钮，果其然，得到文件名了，见下图，  
-   
-![](img/b577f331dc3e2364d74e286a660ba506.jpg)  
-  
-访问的文件获取了，那如何在访问指定文件时中断下来呢？字符串比较的脚本如何写呀？  
-上网查资料吧，不大一会，发现了$scmp/$sicmp/$spat 是用来字符串操作的。$spat 正合我意呀。  
-  $spat（"string1”, "pattern”）：判断参数 1 指定的字符串是否符合参数 2 指定的模式。模式字符串中可以包含?、\*、#等特殊符号，WinDBG 帮助文件中 String Wildcard Syntax 一节包含了详细的说明；  
-  这样摸索了一番，写了如下脚本：  
-bp kernel32!CreateFileW "  
-r $t1=poi(esp+4)  
- as /mu $FileName $t1  
- .echo  
- .printf\\"File:%mu\\",$t1  
- .echo  
-.block  
-{  
- .if($spat(\\"${$FileName}\\",\\"\*a.txt\\"))   
- {  
-  .echo 'find...';  
-  ad ${/v:$FileName}  
- }  
- .else   
- {  
-  .echo no find...  
-  ad ${/v:$FileName}  
-  gc  
- }  
-}"  
-  
-以上脚本，不复杂，实现当访问文件名类似“a.txt”时，windbg 中断执行。  
-  
-对脚本解析几个要点：  
-1.  使用伪寄存器，更快速的方法是在$前加上一个@符号。这样，WinDBG 就知道@后面是一个伪寄存器，不需要搜索其他符号；  
-2.  r $t1=poi(esp+4)，poi(esp+4)取地址的值，并赋给伪寄存器$t1 ；  
-3.  as /mu $FileName $t1 ，定义$t1 所指地址一个别名$FileName，用来在下面的$spat 中使用。别名会在脚本加载时被解析程序替换一次。为何要用别名？你不用试试就知道了，直接用$t1 不行，windbg 提示你语法错误；  
-4.  .block 是啥东西，看 windbg 帮助就知道了。代码块，如果需要每次运行进入替换，请用.block 括起来；我这里有个别名，需要每次替换，所以用了个.block 括起来；  
-5.  $spat 为模式匹配函数，其他类似函数$scmp/$sicmp。  
-6.  ${$FileName}、${/v:$FileName}这呢？听我说来，${ aliase} 明确的指出了, 大括号 {} 内的变量名是可以被替换的，即使 aliase 和其它文本相连。如果要求 ${} 这个别名不被替换, 即不被解析程序替换成其他值, 只保留它当前的字面值.如下面的 ad ${/v:$FileName}，删除别名，此时用/v 选项来了阻止对该别名的替换, 保留它原来的字面值；  
-7.  别名用完记得要删除；删除方法用 ad 命令。  
-试试看看结果，在访问 a.txt 时断下来了。  
- ![](img/cdd629d6d33cd76e5cebd19c3910d911.jpg)  
-  
-如果我要在往该文件写数据时断下来，如何设断？直接在 writeFile 下断？但不知道当前访问的是哪个文件呀？在脚本里，通过文件句柄能得到相应的文件名吗？我反正还不知道，如果你知道请一定不要忘了告我呀？以下为我的脚本：  
-$$Written by shakesky  
-$$10:44 2009-2-12  
-$$访问文件之 windbg 下断脚本  
-  
-bp kernel32!CreateFileW "  
-r $t0=poi(esp+4)  
-  as /mu $FileName $t0  
-.echo  
-.printf \\"Prepare to visit file:%mu\\",$t0  
-.echo  
-.block  
-{  
-  $$ 判断是否是访问我所需观察的文件  
-  .if($spat(\\"${$FileName}\\",\\"\*a.txt\\"))   
-  {  
-    .echo 'Match...'  
-    ~.gu  
-    $$ 得到文件句柄  
-    r @$t1=eax  
-    .if(@$t1!=0xFFFFFFFF)  
-    {  
-      $$往该文件写数据时下断  
-      .printf \\"File Handle:%08x\\",$t1  
-      .echo  
-      bp kernel32!WriteFile \\"  
-      r @$t2=poi(esp+4)  
-      .if(@$t2!=@$t1) {gc}  
-      \\"  
-    }  
-    ad ${/v:$FileName}  
-    gc  
-    
-  }  
-  .else   
-  {  
-    .echo No Match...  
-    ad ${/v:$FileName}  
-    gc  
-  }  
-}  
-"  
-运行结果截图：  
- ![](img/741dcf7252af085d698a7de485b63036.jpg)  
-  
+最近需要在访问指定文件时中断下来，但不知道如何下断，在网上搜索了一番无果，只好自己摸索了。听大侠说 `windbg` 的条件断点功能异常强大，可以实现，不禁心痒，特尝试一番，顺便熟悉一下 `windbg` 的脚本语法。
+
+先来了解简单的，得到当前访问的文件名。
+
+先写段 `C` 代码，创建 `C:\a.txt` 并往文件中写任意几个字符，代码如下：
+
+```c
+HANDLE hFile=CreateFile("C:\\a.txt",
+  GENERIC_WRITE|GENERIC_READ,
+  0,
+  NULL,
+  OPEN_ALWAYS,
+  FILE_ATTRIBUTE_NORMAL,
+  NULL);
+
+if (hFile == INVALID_HANDLE_VALUE)
+{
+  return ;
+}
+
+char Buffer[]={"abcdefghijklemn"};
+DWORD dwReturn;
+
+WriteFile(hFile,Buffer,strlen(Buffer),&dwReturn,NULL);
+
+CloseHandle(hFile);
+```
+
+把以上代码放到对话框的按钮点击响应事件中去。编译链接得到 `test.Exe`。
+
+文件名为 `CreateFile` `API` 的第一个参数，因而在执行到该 `API` 的入口时，`esp+4` 即表示第一个参数的地址。故可这样下断：
+
+```windbg
+bp kernel32!CreateFileW "r $t1=poi(esp+4);.echo;.printf\"FileName:%mu\",$t1;.echo;g"
+```
+
+`$t0`~`$t19` 为伪寄存器，可用来存储临时值，`poi` 表示取地址的值。
+
+也可将脚本保存为文件，然后在 `windbg` 中输入：`$$><脚本文件路径` 来运行。
+
+我把以上脚本保存为 `"C:\script.txt"`。
+
+用 `windbg` 打开以上代码编译得到的 `test.exe`。
+
+`Ctrl+Break` 中断 `windbg`，然后下断，即输入：`$$><C:\script.txt`，再输入 `g`，让进程运行起来。
+
+点击按钮，果其然，得到文件名了，见下图：
+
+![](img/b577f331dc3e2364d74e286a660ba506.jpg)
+
+访问的文件获取了，那如何在访问指定文件时中断下来呢？字符串比较的脚本如何写呀？
+
+上网查资料吧，不大一会，发现了`$scmp`/`$sicmp`/`$spat` 是用来字符串操作的。`$spat` 正合我意呀。
+
+`$spat("string1", "pattern")`：判断参数 1 指定的字符串是否符合参数 2 指定的模式。模式字符串中可以包含`?`、`*`、`#`等特殊符号，`WinDBG` 帮助文件中 `String Wildcard Syntax` 一节包含了详细的说明。
+
+这样摸索了一番，写了如下脚本：
+
+```windbg
+bp kernel32!CreateFileW "
+r $t1=poi(esp+4)
+ as /mu $FileName $t1
+ .echo
+ .printf\"File:%mu\",$t1
+ .echo
+.block
+{
+ .if($spat(\"${$FileName}\",\"\*a.txt\"))
+ {
+  .echo 'find...';
+  ad ${/v:$FileName}
+ }
+ .else
+ {
+  .echo no find...
+  ad ${/v:$FileName}
+  gc
+ }
+}"
+```
+
+以上脚本，不复杂，实现当访问文件名类似“`a.txt`”时，`windbg` 中断执行。
+
+对脚本解析几个要点：
+
+1. 使用伪寄存器，更快速的方法是在`$`前加上一个`@`符号。这样，`WinDBG` 就知道`@`后面是一个伪寄存器，不需要搜索其他符号。
+2. `r $t1=poi(esp+4)`，`poi(esp+4)`取地址的值，并赋给伪寄存器`$t1`。
+3. `as /mu $FileName $t1`，定义`$t1` 所指地址一个别名`$FileName`，用来在下面的`$spat` 中使用。别名会在脚本加载时被解析程序替换一次。为何要用别名？你不用试试就知道了，直接用`$t1` 不行，`windbg` 提示你语法错误。
+4. `.block` 是啥东西，看 `windbg` 帮助就知道了。代码块，如果需要每次运行进入替换，请用`.block` 括起来；我这里有个别名，需要每次替换，所以用了个`.block` 括起来。
+5. `$spat` 为模式匹配函数，其他类似函数`$scmp`/`$sicmp`。
+6. `${$FileName}`、`${/v:$FileName}`这呢？听我说来，`${ aliase}` 明确的指出了，大括号 `{}` 内的变量名是可以被替换的，即使 `aliase` 和其它文本相连。如果要求 `${}` 这个别名不被替换，即不被解析程序替换成其他值，只保留它当前的字面值。如下面的 `ad ${/v:$FileName}`，删除别名，此时用`/v` 选项来了阻止对该别名的替换，保留它原来的字面值。
+7. 别名用完记得要删除；删除方法用 `ad` 命令。
+
+试试看看结果，在访问 `a.txt` 时断下来了。
+
+![](img/cdd629d6d33cd76e5cebd19c3910d911.jpg)
+
+如果我要在往该文件写数据时断下来，如何设断？直接在 `writeFile` 下断？但不知道当前访问的是哪个文件呀？在脚本里，通过文件句柄能得到相应的文件名吗？我反正还不知道，如果你知道请一定不要忘了告我呀？以下为我的脚本：
+
+```windbg
+$$Written by shakesky
+$$10:44 2009-2-12
+$$访问文件之 windbg 下断脚本
+
+bp kernel32!CreateFileW "
+r $t0=poi(esp+4)
+  as /mu $FileName $t0
+.echo
+.printf \"Prepare to visit file:%mu\",$t0
+.echo
+.block
+{
+  $$ 判断是否是访问我所需观察的文件
+  .if($spat(\"${$FileName}\",\"\*a.txt\"))
+  {
+    .echo 'Match...'
+    ~.gu
+    $$ 得到文件句柄
+    r @$t1=eax
+    .if(@$t1!=0xFFFFFFFF)
+    {
+      $$往该文件写数据时下断
+      .printf \"File Handle:%08x\",$t1
+      .echo
+      bp kernel32!WriteFile \"
+      r @$t2=poi(esp+4)
+      .if(@$t2!=@$t1) {gc}
+      \"
+    }
+    ad ${/v:$FileName}
+    gc
+  }
+  .else
+  {
+    .echo No Match...
+    ad ${/v:$FileName}
+    gc
+  }
+}
+"
+```
+
+运行结果截图：
+
+![](img/741dcf7252af085d698a7de485b63036.jpg)
+
 全文完，不当处请不吝指教。

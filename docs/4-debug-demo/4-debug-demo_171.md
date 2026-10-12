@@ -1,382 +1,233 @@
 
-
 # 图章制作系统 1.0
 
 > 原文：[`www.pediy.com/kssd/pediy08/pediy8-520.htm`](https://www.pediy.com/kssd/pediy08/pediy8-520.htm)
 
-首先需要说明的是，因为在这里着重谈 Reverse，而不是 KenGen，所以，我们并不对其算法进行过多的描述。事实上，这个算法很简单，用到了硬盘逻辑序列号和 MD5 算法，有兴趣的可以跟踪一下。  
-  
-**一、先进行基本的分析：**  
-  
-    1、用 PEiD 察看得知该软件用 Delphi 编写但未加壳；  
-  
-    2、用 ResScope 察看得知“注册”按钮对应 B\_doClick 事件(eXeScope 和 ResHacker 可能分析不出来)；  
-  
-3、用 DeDe 察看得知 B\_doClick 事件的执行代码地址为 0046AD9C(用 Hex Workshop 或 WinHex 查找字符串 B\_doClick 更快)；
+首先需要说明的是，因为在这里着重谈 `Reverse`，而不是 `KenGen`，所以，我们并不对其算法进行过多的描述。事实上，这个算法很简单，用到了硬盘逻辑序列号和 `MD5` 算法，有兴趣的可以跟踪一下。
 
-![](img/7724574d1534c472a2783cb2854e358b.jpg)  
-  
-   4、在未下断点前先试着注册一下，会弹出“警告”-----〉“注册失败！注册码错误”的消息。  
-  
-   
-  
-**二、OllyDbg 上场小试牛刀：**  
-  
-    1、载入程序并下断“bp 0046AD9C”，在“注册 id”文本框随便输入几个数字，比如 7654321，点击“注册”。  
-  
-    2、程序被断：  
-  
-   
-  
-0046AD9C    55              push ebp  
-  
-0046AD9D    8BEC            mov ebp,esp  
-  
-0046AD9F    33C9            xor ecx,ecx  
-  
-0046ADA1    51              push ecx  
-  
-0046ADA2    51              push ecx  
-  
-0046ADA3    51              push ecx  
-  
-0046ADA4    51              push ecx  
-  
-0046ADA5    53              push ebx  
-  
-0046ADA6    56              push esi  
-  
-0046ADA7    57              push edi  
-  
-0046ADA8    8BD8            mov ebx,eax  
-  
-0046ADAA    33C0            xor eax,eax  
-  
-0046ADAC    55              push ebp  
-  
-0046ADAD    68 A0AE4600     push 图章制作.0046AEA0  
-  
-0046ADB2    64:FF30         push dword ptr fs:\[eax\]  
-  
-0046ADB5    64:8920         mov dword ptr fs:\[eax\],esp  
-  
-0046ADB8    8D55 F8         lea edx,dword ptr ss:\[ebp-8\]  
-  
-0046ADBB    8BB3 00030000   mov esi,dword ptr ds:\[ebx+300\]  
-  
-0046ADC1    8BC6            mov eax,esi  
-  
-0046ADC3    E8 1859FDFF     call 图章制作.004406E0  
-  
-0046ADC8    8B45 F8         mov eax,dword ptr ss:\[ebp-8\]  
-  
-0046ADCB    8D55 FC         lea edx,dword ptr ss:\[ebp-4\]  
-  
-0046ADCE    E8 45D9F9FF     call 图章制作.00408718  
-  
-0046ADD3    8B55 FC         mov edx,dword ptr ss:\[ebp-4\]  
-  
-0046ADD6    8BC6            mov eax,esi  
-  
-0046ADD8    E8 3359FDFF     call 图章制作.00440710  
-  
-0046ADDD    8D55 F4         lea edx,dword ptr ss:\[ebp-C\]  
-  
-0046ADE0    8B83 00030000   mov eax,dword ptr ds:\[ebx+300\]  
-  
-0046ADE6    E8 F558FDFF     call 图章制作.004406E0  
-  
-0046ADEB    837D F4 00      cmp dword ptr ss:\[ebp-C\],0  
-  
-0046ADEF    0F84 88000000   je 图章制作.0046AE7D  
-  
-0046ADF5    B9 B8AE4600     mov ecx,图章制作.0046AEB8    ; ASCII "HsjSoft.ini"  
-  
-0046ADFA    B2 01           mov dl,1  
-  
-0046ADFC    A1 085D4600     mov eax,dword ptr ds:\[465D08\]  
-  
-0046AE01    E8 B2AFFFFF     call 图章制作.00465DB8  
-  
-0046AE06    8BF0            mov esi,eax  
-  
-0046AE08    8D55 F0         lea edx,dword ptr ss:\[ebp-10\]  
-  
-0046AE0B    8B83 00030000   mov eax,dword ptr ds:\[ebx+300\]  
-  
-0046AE11    E8 CA58FDFF     call 图章制作.004406E0  
-  
-0046AE16    8B45 F0         mov eax,dword ptr ss:\[ebp-10\]  
-  
-0046AE19    50              push eax  
-  
-0046AE1A    B9 CCAE4600     mov ecx,图章制作.0046AECC    ; ASCII "reg\_code"  
-  
-0046AE1F    8B93 10030000   mov edx,dword ptr ds:\[ebx+310\]  
-  
-0046AE25    8BC6            mov eax,esi  
-  
-0046AE27    8B38            mov edi,dword ptr ds:\[eax\]  
-  
-0046AE29    FF57 04         call dword ptr ds:\[edi+4\]  
-  
-0046AE2C    8BC6            mov eax,esi  
-  
-0046AE2E    E8 4587F9FF     call 图章制作.00403578  
-  
-0046AE33    8B83 10030000   mov eax,dword ptr ds:\[ebx+310\]  
-  
-0046AE39    E8 B60B0000     call 图章制作.0046B9F4  
-  
-0046AE3E    84C0            test al,al                    
-  
-0046AE40    75 1B           jnz short 图章制作.0046AE5D  ;不跳则错  
-  
-0046AE42    6A 00           push 0  
-  
-0046AE44    68 D8AE4600     push 图章制作.0046AED8       ; 警告  
-  
-0046AE49    68 E0AE4600     push 图章制作.0046AEE0      ; 注册失败!注册码错误  
-  
-0046AE4E    8BC3            mov eax,ebx  
-  
-0046AE50    E8 A3BFFDFF     call 图章制作.00446DF8  
-  
-0046AE55    50              push eax  
-  
-0046AE56    E8 DDC2F9FF     call <jmp.&USER32.MessageBoxA>  
-  
-0046AE5B    EB 20           jmp short 图章制作.0046AE7D  
-  
-   
-  
-    2.1  初步跟踪并分析上面的代码，看来注册码应该放在"HsjSoft.ini"文件中，软件目录下并没有这个文件，会在哪里呢？一种情况是只有注册成功才会生成这个文件；另一种情况是该文件存放在 windows 目录下。搜索一下，果然在 windows 目录下，打开看看，“reg\_code=7654321”正躺在里面。  
-  
-   
-  
-    2.2  猜一下从 0046AE42 到 0046AE56 这段代码是干什么用的？呵呵，你肯定猜对了：是弹出错误注册码的消息框。在命令行分别执行“d 0046AED8”和“d 0046AEE0”可以检测出来，所以我在后面加上了注释。  
-  
-   
-  
-    2.3  关键 Call 在“0046AE39  call 图章制作.0046B9F4”吗？重新载入程序进去看看它是干什么的：  
-  
-   
-  
-0046B9F4    55              push ebp  
-  
-0046B9F5    8BEC            mov ebp,esp  
-  
-0046B9F7    33C9            xor ecx,ecx  
-  
-0046B9F9    51              push ecx  
-  
-0046B9FA    51              push ecx  
-  
-0046B9FB    51              push ecx  
-  
-0046B9FC    51              push ecx  
-  
-0046B9FD    51              push ecx  
-  
-0046B9FE    53              push ebx  
-  
-0046B9FF    56              push esi  
-  
-0046BA00    8945 FC         mov dword ptr ss:\[ebp-4\],eax  
-  
-0046BA03    8B45 FC         mov eax,dword ptr ss:\[ebp-4\]  
-  
-0046BA06    E8 FD8DF9FF     call 图章制作.00404808  
-  
-0046BA0B    33C0            xor eax,eax  
-  
-0046BA0D    55              push ebp  
-  
-0046BA0E    68 91BA4600     push 图章制作.0046BA91  
-  
-0046BA13    64:FF30         push dword ptr fs:\[eax\]  
-  
-0046BA16    64:8920         mov dword ptr fs:\[eax\],esp  
-  
-0046BA19    8D55 F4         lea edx,dword ptr ss:\[ebp-C\]  
-  
-0046BA1C    8B45 FC         mov eax,dword ptr ss:\[ebp-4\]  
-  
-0046BA1F    E8 DCFDFFFF     call 图章制作.0046B800  
-  
-0046BA24    8D55 F8         lea edx,dword ptr ss:\[ebp-8\]  
-  
-0046BA27    8B45 F4         mov eax,dword ptr ss:\[ebp-C\]   ; 用户 id  
-  
-0046BA2A    E8 D9FEFFFF     call 图章制作.0046B908  
-  
-0046BA2F    B9 A8BA4600     mov ecx,图章制作.0046BAA8       ; ASCII "HsjSoft.ini"  
-  
-0046BA34    B2 01           mov dl,1  
-  
-0046BA36    A1 085D4600     mov eax,dword ptr ds:\[465D08\]  
-  
-0046BA3B    E8 78A3FFFF     call 图章制作.00465DB8  
-  
-0046BA40    8BD8            mov ebx,eax  
-  
-0046BA42    6A 00           push 0  
-  
-0046BA44    8D45 EC         lea eax,dword ptr ss:\[ebp-14\]  
-  
-0046BA47    50              push eax  
-  
-0046BA48    B9 BCBA4600     mov ecx,图章制作.0046BABC        ; ASCII "reg\_code"  
-  
-0046BA4D    8B55 FC         mov edx,dword ptr ss:\[ebp-4\]  
-  
-0046BA50    8BC3            mov eax,ebx  
-  
-0046BA52    8B30            mov esi,dword ptr ds:\[eax\]  
-  
-0046BA54    FF16            call dword ptr ds:\[esi\]  
-  
-0046BA56    8B45 EC         mov eax,dword ptr ss:\[ebp-14\] ; 假注册 id:7654321  
-  
-0046BA59    8D55 F0         lea edx,dword ptr ss:\[ebp-10\]  
-  
-0046BA5C    E8 B7CCF9FF     call 图章制作.00408718  
-  
-0046BA61    8BC3            mov eax,ebx  
-  
-0046BA63    E8 107BF9FF     call 图章制作.00403578  
-  
-0046BA68    8B45 F8         mov eax,dword ptr ss:\[ebp-8\]              ; 这是什么?:7c1ba05a9823c55dc03ede46944003af(我机器上的,你的应该不是这个数字)  
-  
-0046BA6B    8B55 F0         mov edx,dword ptr ss:\[ebp-10\]  ; 假注册 id:7654321  
-  
-0046BA6E    E8 F18CF9FF     call 图章制作.00404764  
-  
-0046BA73    0F94C3          sete bl  
-  
-0046BA76    33C0            xor eax,eax  
-  
-0046BA78    5A              pop edx  
-  
-0046BA79    59              pop ecx  
-  
-0046BA7A    59              pop ecx  
-  
-0046BA7B    64:8910         mov dword ptr fs:\[eax\],edx  
-  
-0046BA7E    68 98BA4600     push 图章制作.0046BA98  
-  
-0046BA83    8D45 EC         lea eax,dword ptr ss:\[ebp-14\]  
-  
-0046BA86    BA 05000000     mov edx,5  
-  
-0046BA8B    E8 FC88F9FF     call 图章制作.0040438C  
-  
-0046BA90    C3              retn  
-  
-0046BA91  ^ E9 7682F9FF     jmp 图章制作.00403D0C  
-  
-0046BA96  ^ EB EB           jmp short 图章制作.0046BA83  
-  
-0046BA98    8BC3            mov eax,ebx  
-  
-0046BA9A    5E              pop esi  
-  
-0046BA9B    5B              pop ebx  
-  
-0046BA9C    8BE5            mov esp,ebp  
-  
-0046BA9E    5D              pop ebp  
-  
-0046BA9F    C3              retn  
-  
-   
-  
-    这一长串数据是真正的注册 id 吗？试一下，果真是。为了继续后面的事情，我们故意删除 windows 目录下的"HsjSoft.ini"文件。  
-  
-   
-  
-**三、注册码已经找到了，下面我们来 Reverse 它^\_^：**  
-  
-   
-  
-    1、应该在哪里显示出正确注册码？我们发现 2.2 中提到的错误注册码的消息框是个不错的选择：当我们输入假码并点击“注册”后让错误消息直接变成真正的注册码(即“注册 id”)，好了，就是它了。  
-  
-   
-  
-    2、这一行“0046BA68    mov eax,dword ptr ss:\[ebp-8\]”指向真正注册码，就利用它吧。但当“0046AE39  call 图章制作.0046B9F4”返回后，注册码的那段内存\[0012F26C\]没能传递出来，MessageBox 函数无法指向\[0012F26C\]的内容(是一地址，该地址会变化，但内容不变，均为正确注册码)所指向的注册码，我们的路选择错了吗？  
-  
-   
-  
-    3、能不能在“0046AE39   call 图章制作.0046B9F4”返回前把真正注册码保存起来以供 MessageBox 函数使用？经过反复跟踪，我们发现下面这两句从来都没有起过作用(我的跟踪有 Bug 吗？我下了断点，从来都没有断住过，所以我就姑且认为没有 Bug 吧)：  
-  
-   
-  
-0046BA91  ^\\E9 7682F9FF     jmp 图章制作.00403D0C  
-  
-0046BA96  ^ EB EB           jmp short 图章制作.0046BA83  
-  
-   
-  
-好了，就从它下刀。  
-  
-   
-  
-    4、先理一下思路，然后再修改也不迟：(1)在“0046AE39   call 图章制作.0046B9F4”返回前，把 0046BA68 的\ebp-8\保存到一全局变量;(2)再把 MessageBox 函数的 lpText 参数指向该全局变量。全局变量利用程序文件的剩余空间吗？嗯，的确如此。找找看，哪里有。0047E11B 处往后可以吗？当然可以。  
-  
-   
-  
-    5、继续前进：我们发现在执行完 0046BA90 的 retn 指令后，总是直接跳到 0046BA98。也就是说 0046BA91 和 0046BA96 两行没用(忘了吗？向上翻)，能不能从这里跳向 0047E11B 保存\[ebp-8\]后再跳回来？当然可以，只要使用 pushad/popad 指令保护并恢复好寄存器即可。呵呵，我没有这么做，但和它差不多，只不过是从 0046BA83 开始修改的。  
-  
-   
-  
-**四、Hiew 坐不住了，蹬着腿跑了出来，但留给它的都是些体力活:**  
-  
-    具体怎么修改，不同的人有不同的方法，这里我给出我的方法和步骤：  
-  
-   
-  
-1、修改原执行文件为下图 1 所示：  
-![](img/294263dc5855e20fd1da3ca18c2f2722.jpg)  
-  
-2、把注册码保存到一全局变量，如下图 2 所示：  
-![](img/4aa8068db44ef773064b74659a94a532.jpg)  
-3、修改消息框的 lpCaption 和 lpText 参数为下图 3 所示：  
+## 一、先进行基本的分析
+
+1、用 `PEiD` 察看得知该软件用 `Delphi` 编写但未加壳；
+
+2、用 `ResScope` 察看得知“注册”按钮对应 `B_doClick` 事件（`eXeScope` 和 `ResHacker` 可能分析不出来）；
+
+3、用 `DeDe` 察看得知 `B_doClick` 事件的执行代码地址为 `0046AD9C`（用 `Hex Workshop` 或 `WinHex` 查找字符串 `B_doClick` 更快）；
+
+![](img/7724574d1534c472a2783cb2854e358b.jpg)
+
+4、在未下断点前先试着注册一下，会弹出“警告”-----〉“注册失败！注册码错误”的消息。
+
+## 二、OllyDbg 上场小试牛刀
+
+1、载入程序并下断“`bp 0046AD9C`”，在“注册 id”文本框随便输入几个数字，比如 `7654321`，点击“注册”。
+
+2、程序被断：
+
+```
+0046AD9C    55               push ebp  
+0046AD9D    8BEC             mov ebp,esp  
+0046AD9F    33C9             xor ecx,ecx  
+0046ADA1    51               push ecx  
+0046ADA2    51               push ecx  
+0046ADA3    51               push ecx  
+0046ADA4    51               push ecx  
+0046ADA5    53               push ebx  
+0046ADA6    56               push esi  
+0046ADA7    57               push edi  
+0046ADA8    8BD8             mov ebx,eax  
+0046ADAA    33C0             xor eax,eax  
+0046ADAC    55               push ebp  
+0046ADAD    68 A0AE4600      push 图章制作.0046AEA0  
+0046ADB2    64:FF30          push dword ptr fs:[eax]  
+0046ADB5    64:8920          mov dword ptr fs:[eax],esp  
+0046ADB8    8D55 F8          lea edx,dword ptr ss:[ebp-8]  
+0046ADBB    8BB3 00030000    mov esi,dword ptr ds:[ebx+300]  
+0046ADC1    8BC6             mov eax,esi  
+0046ADC3    E8 1859FDFF      call 图章制作.004406E0  
+0046ADC8    8B45 F8          mov eax,dword ptr ss:[ebp-8]  
+0046ADCB    8D55 FC          lea edx,dword ptr ss:[ebp-4]  
+0046ADCE    E8 45D9F9FF      call 图章制作.00408718  
+0046ADD3    8B55 FC          mov edx,dword ptr ss:[ebp-4]  
+0046ADD6    8BC6             mov eax,esi  
+0046ADD8    E8 3359FDFF      call 图章制作.00440710  
+0046ADDD    8D55 F4          lea edx,dword ptr ss:[ebp-C]  
+0046ADE0    8B83 00030000    mov eax,dword ptr ds:[ebx+300]  
+0046ADE6    E8 F558FDFF      call 图章制作.004406E0  
+0046ADEB    837D F4 00       cmp dword ptr ss:[ebp-C],0  
+0046ADEF    0F84 88000000    je 图章制作.0046AE7D  
+0046ADF5    B9 B8AE4600      mov ecx,图章制作.0046AEB8    ; ASCII "HsjSoft.ini"  
+0046ADFA    B2 01            mov dl,1  
+0046ADFC    A1 085D4600      mov eax,dword ptr ds:[465D08]  
+0046AE01    E8 B2AFFFFF      call 图章制作.00465DB8  
+0046AE06    8BF0             mov esi,eax  
+0046AE08    8D55 F0          lea edx,dword ptr ss:[ebp-10]  
+0046AE0B    8B83 00030000    mov eax,dword ptr ds:[ebx+300]  
+0046AE11    E8 CA58FDFF      call 图章制作.004406E0  
+0046AE16    8B45 F0          mov eax,dword ptr ss:[ebp-10]  
+0046AE19    50               push eax  
+0046AE1A    B9 CCAE4600      mov ecx,图章制作.0046AECC    ; ASCII "reg_code"  
+0046AE1F    8B93 10030000    mov edx,dword ptr ds:[ebx+310]  
+0046AE25    8BC6             mov eax,esi  
+0046AE27    8B38             mov edi,dword ptr ds:[eax]  
+0046AE29    FF57 04          call dword ptr ds:[edi+4]  
+0046AE2C    8BC6             mov eax,esi  
+0046AE2E    E8 4587F9FF      call 图章制作.00403578  
+0046AE33    8B83 10030000    mov eax,dword ptr ds:[ebx+310]  
+0046AE39    E8 B60B0000      call 图章制作.0046B9F4  
+0046AE3E    84C0             test al,al                     
+0046AE40    75 1B            jnz short 图章制作.0046AE5D  ;不跳则错  
+0046AE42    6A 00            push 0  
+0046AE44    68 D8AE4600      push 图章制作.0046AED8       ; 警告  
+0046AE49    68 E0AE4600      push 图章制作.0046AEE0      ; 注册失败!注册码错误  
+0046AE4E    8BC3             mov eax,ebx  
+0046AE50    E8 A3BFFDFF      call 图章制作.00446DF8  
+0046AE55    50               push eax  
+0046AE56    E8 DDC2F9FF      call <jmp.&USER32.MessageBoxA>  
+0046AE5B    EB 20            jmp short 图章制作.0046AE7D
+```
+
+2.1 初步跟踪并分析上面的代码，看来注册码应该放在 `"HsjSoft.ini"` 文件中，软件目录下并没有这个文件，会在哪里呢？一种情况是只有注册成功才会生成这个文件；另一种情况是该文件存放在 `windows` 目录下。搜索一下，果然在 `windows` 目录下，打开看看，`"reg_code=7654321"` 正躺在里面。
+
+2.2 猜一下从 `0046AE42` 到 `0046AE56` 这段代码是干什么用的？呵呵，你肯定猜对了：是弹出错误注册码的消息框。在命令行分别执行 `"d 0046AED8"` 和 `"d 0046AEE0"` 可以检测出来，所以我在后面加上了注释。
+
+2.3 关键 `Call` 在 `"0046AE39 call 图章制作.0046B9F4"` 吗？重新载入程序进去看看它是干什么的：
+
+```
+0046B9F4    55               push ebp  
+0046B9F5    8BEC             mov ebp,esp  
+0046B9F7    33C9             xor ecx,ecx  
+0046B9F9    51               push ecx  
+0046B9FA    51               push ecx  
+0046B9FB    51               push ecx  
+0046B9FC    51               push ecx  
+0046B9FD    51               push ecx  
+0046B9FE    53               push ebx  
+0046B9FF    56               push esi  
+0046BA00    8945 FC          mov dword ptr ss:[ebp-4],eax  
+0046BA03    8B45 FC          mov eax,dword ptr ss:[ebp-4]  
+0046BA06    E8 FD8DF9FF      call 图章制作.00404808  
+0046BA0B    33C0             xor eax,eax  
+0046BA0D    55               push ebp  
+0046BA0E    68 91BA4600      push 图章制作.0046BA91  
+0046BA13    64:FF30          push dword ptr fs:[eax]  
+0046BA16    64:8920          mov dword ptr fs:[eax],esp  
+0046BA19    8D55 F4          lea edx,dword ptr ss:[ebp-C]  
+0046BA1C    8B45 FC          mov eax,dword ptr ss:[ebp-4]  
+0046BA1F    E8 DCFDFFFF      call 图章制作.0046B800  
+0046BA24    8D55 F8          lea edx,dword ptr ss:[ebp-8]  
+0046BA27    8B45 F4          mov eax,dword ptr ss:[ebp-C]   ; 用户 id  
+0046BA2A    E8 D9FEFFFF      call 图章制作.0046B908  
+0046BA2F    B9 A8BA4600      mov ecx,图章制作.0046BAA8       ; ASCII "HsjSoft.ini"  
+0046BA34    B2 01            mov dl,1  
+0046BA36    A1 085D4600      mov eax,dword ptr ds:[465D08]  
+0046BA3B    E8 78A3FFFF      call 图章制作.00465DB8  
+0046BA40    8BD8             mov ebx,eax  
+0046BA42    6A 00            push 0  
+0046BA44    8D45 EC          lea eax,dword ptr ss:[ebp-14]  
+0046BA47    50               push eax  
+0046BA48    B9 BCBA4600      mov ecx,图章制作.0046BABC        ; ASCII "reg_code"  
+0046BA4D    8B55 FC          mov edx,dword ptr ss:[ebp-4]  
+0046BA50    8BC3             mov eax,ebx  
+0046BA52    8B30             mov esi,dword ptr ds:[eax]  
+0046BA54    FF16             call dword ptr ds:[esi]  
+0046BA56    8B45 EC          mov eax,dword ptr ss:[ebp-14] ; 假注册 id:7654321  
+0046BA59    8D55 F0          lea edx,dword ptr ss:[ebp-10]  
+0046BA5C    E8 B7CCF9FF      call 图章制作.00408718  
+0046BA61    8BC3             mov eax,ebx  
+0046BA63    E8 107BF9FF      call 图章制作.00403578  
+0046BA68    8B45 F8          mov eax,dword ptr ss:[ebp-8]               ; 这是什么?:7c1ba05a9823c55dc03ede46944003af(我机器上的,你的应该不是这个数字)  
+0046BA6B    8B55 F0          mov edx,dword ptr ss:[ebp-10]  ; 假注册 id:7654321  
+0046BA6E    E8 F18CF9FF      call 图章制作.00404764  
+0046BA73    0F94C3           sete bl  
+0046BA76    33C0             xor eax,eax  
+0046BA78    5A               pop edx  
+0046BA79    59               pop ecx  
+0046BA7A    59               pop ecx  
+0046BA7B    64:8910          mov dword ptr fs:[eax],edx  
+0046BA7E    68 98BA4600      push 图章制作.0046BA98  
+0046BA83    8D45 EC          lea eax,dword ptr ss:[ebp-14]  
+0046BA86    BA 05000000      mov edx,5  
+0046BA8B    E8 FC88F9FF      call 图章制作.0040438C  
+0046BA90    C3               retn  
+0046BA91   ^ E9 7682F9FF     jmp 图章制作.00403D0C  
+0046BA96   ^ EB EB           jmp short 图章制作.0046BA83  
+0046BA98    8BC3             mov eax,ebx  
+0046BA9A    5E               pop esi  
+0046BA9B    5B               pop ebx  
+0046BA9C    8BE5             mov esp,ebp  
+0046BA9E    5D               pop ebp  
+0046BA9F    C3               retn
+```
+
+这一长串数据是真正的注册 `id` 吗？试一下，果真是。为了继续后面的事情，我们故意删除 `windows` 目录下的 `"HsjSoft.ini"` 文件。
+
+## 三、注册码已经找到了，下面我们来 Reverse 它^_^
+
+1、应该在哪里显示出正确注册码？我们发现 2.2 中提到的错误注册码的消息框是个不错的选择：当我们输入假码并点击“注册”后让错误消息直接变成真正的注册码（即“注册 `id`”），好了，就是它了。
+
+2、这一行 `"0046BA68 mov eax,dword ptr ss:[ebp-8]"` 指向真正注册码，就利用它吧。但当 `"0046AE39 call 图章制作.0046B9F4"` 返回后，注册码的那段内存 `[0012F26C]` 没能传递出来，`MessageBox` 函数无法指向 `[0012F26C]` 的内容（是一地址，该地址会变化，但内容不变，均为正确注册码）所指向的注册码，我们的路选择错了吗？
+
+
+
+### 3、能不能在`0046AE39 call 图章制作.0046B9F4`返回前把真正注册码保存起来以供`MessageBox`函数使用？
+
+经过反复跟踪，我们发现下面这两句从来都没有起过作用(我的跟踪有 Bug 吗？我下了断点，从来都没有断住过，所以我就姑且认为没有 Bug 吧)：
+
+```
+0046BA91 ^ \E9 7682F9FF     jmp 图章制作.00403D0C
+0046BA96 ^ EB EB            jmp short 图章制作.0046BA83
+```
+
+好了，就从它下刀。
+
+### 4、先理一下思路，然后再修改也不迟
+
+(1)在`0046AE39 call 图章制作.0046B9F4`返回前，把`0046BA68`的`\[ebp-8\]`保存到一全局变量;(2)再把`MessageBox`函数的`lpText`参数指向该全局变量。
+
+全局变量利用程序文件的剩余空间吗？嗯，的确如此。找找看，哪里有。`0047E11B`处往后可以吗？当然可以。
+
+### 5、继续前进
+
+我们发现在执行完`0046BA90`的`retn`指令后，总是直接跳到`0046BA98`。也就是说`0046BA91`和`0046BA96`两行没用(忘了吗？向上翻)，能不能从这里跳向`0047E11B`保存`[ebp-8]`后再跳回来？当然可以，只要使用`pushad`/`popad`指令保护并恢复好寄存器即可。
+
+呵呵，我没有这么做，但和它差不多，只不过是从`0046BA83`开始修改的。
+
+## 四、Hiew 坐不住了，蹬着腿跑了出来，但留给它的都是些体力活
+
+具体怎么修改，不同的人有不同的方法，这里我给出我的方法和步骤：
+
+1. 修改原执行文件为下图 1 所示：
+
+![](img/294263dc5855e20fd1da3ca18c2f2722.jpg)
+
+2. 把注册码保存到一全局变量，如下图 2 所示：
+
+![](img/4aa8068db44ef773064b74659a94a532.jpg)
+
+3. 修改消息框的`lpCaption`和`lpText`参数为下图 3 所示：
+
 ![](img/e9c5b4f39931aed05add2b8046b1d0f4.jpg)
 
-  
-**五、收工：**  
-  
-Hiew 修改并保存后，随便输入几位注册假码并点击“注册”，弹出真正注册码，再输入真码，看是否顺利注册。下面是弹出注册码的截图：  
-  
- ![](img/8666d47e184d3fa4644f605fbff33cc8.jpg)  
-  
-**六、回头看看：**  
-  
-1、是否明码比较的软件都可以修改成自动弹出正确注册码的这种类型？理论上应该是如此，哪怕是加壳、带校验、抗调试等等的只要是明码比较都可以实现。J，须先去掉这些限制，有些可能还需要给可执行文件加节和 API 函数。  
-  
-   
-  
-2、也可以跟踪这个软件的注册算法，一题多解总是收获更大些，还有别的吗？  
-  
-   
-  
-3、用内存注册机更快！  
-  
-   
-**  
-七、小技巧：**  
-  
-在弹出的消息框上，按 Ctrl+C 拷贝，然后打开纪事本，Ctrl+V 粘贴，看到了什么？Ctrl+C 能够把消息框的文字内容全复制下来，这样注册码就不用手动输入了，方便了很多。  
-  
-   
-  
-**八、最后：**  
-  
-啰里啰唆写了上面这些东西，感谢你看完。  
-  
-   
-  
-【版权声明】 本文纯属技术交流, 转载请注明作者及来自看雪学院，并保持文章的完整性。  
+## 五、收工
 
- 4dd466d0e1e0cc123afbe504da2462ca
+`Hiew`修改并保存后，随便输入几位注册假码并点击“注册”，弹出真正注册码，再输入真码，看是否顺利注册。下面是弹出注册码的截图：
+
+![](img/8666d47e184d3fa4644f605fbff33cc8.jpg)
+
+## 六、回头看看
+
+1. 是否明码比较的软件都可以修改成自动弹出正确注册码的这种类型？理论上应该是如此，哪怕是加壳、带校验、抗调试等等的只要是明码比较都可以实现。J，须先去掉这些限制，有些可能还需要给可执行文件加节和`API`函数。
+2. 也可以跟踪这个软件的注册算法，一题多解总是收获更大些，还有别的吗？
+3. 用内存注册机更快！
+
+## 七、小技巧
+
+在弹出的消息框上，按`Ctrl+C`拷贝，然后打开记事本，`Ctrl+V`粘贴，看到了什么？`Ctrl+C`能够把消息框的文字内容全复制下来，这样注册码就不用手动输入了，方便了很多。
+
+## 八、最后
+
+啰里啰唆写了上面这些东西，感谢你看完。
+
+**【版权声明】** 本文纯属技术交流，转载请注明作者及来自看雪学院，并保持文章的完整性。
+
+4dd466d0e1e0cc123afbe504da2462ca

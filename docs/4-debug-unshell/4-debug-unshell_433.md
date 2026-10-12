@@ -1,979 +1,1384 @@
 
-
 # ASProtect V1.23 RC1
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6329.htm`](https://www.pediy.com/kssd/pediy06/pediy6329.htm)
 
-ASProtect V1.23 RC1 脱壳——天桥 Crack Me VC++Ultra Killer Edition   
-    
-    
-    
-相关页面：  http://www.51itcool.com/fcg/Announce/Announce.asp?BoardID=4&ID=2604    
-软件大小：  104K   
-  
-【程序要求】：脱壳：专业级；破解：杀手级   
-  
-【作者声明】：初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！   
-  
-【破解工具】：Ollydbg1.09、PEiD、LordPE、ImportREC   
-  
-—————————————————————————————————    
-【脱壳过程】：   
-             
-            
-  
-脱壳——偶顶多也只能算是低低的业余级水平，幸好是 ASProtect v1.23 RC1 加壳，如果是最新版的 1.23 RC4 加壳，偶就无能为力啦。由于采用了动态地址，每次在 DLL 里的地址是不同的，以后面的代码为准。想给以后留点参考，所以记录的比较详细，高手们就不必浪费时间看了。可以用 AsprStripper 2.03 自动脱壳。   
-  
-———————————————————————         
-用 Ollydbg 手动脱壳,老规矩：载入后弹出“是压缩代码——要继续进行分析吗？”，点“否”。   
-  
-  
-00401000 T>  68 01204200          push TqCrackM.00422001   
-                                  ====>进入 OD 后断在这！   
-  
-00401005     E8 01000000          call TqCrackM.0040100B   
-0040100A     C3                   retn   
-  
-F9 运行，程序会在异常处中断。   
-  
-  
-003F335C     3100                 xor dword ptr ds:\[eax\],eax   
-                                  ====>第一个异常   
-  
-003F335E     EB 01                jmp short 003F3361   
-  
-  
-Shift+F9 通过异常，26 次程序运行。好了，Try Again，按 25 次 Shift+F9，停下来。   
-  
-  
-003F2CB4     8B4424 0C            mov eax,dword ptr ss:\[esp+C\]   
-                                  ====>堆栈区的第二条地址        下断点！   
-  
-003F2CB8     8380 B8000000 02     add dword ptr ds:\[eax+B8\],2   
-003F2CBF     C740 18 00000000     mov dword ptr ds:\[eax+18\],0   
-003F2CC6     31C0                 xor eax,eax   
-003F2CC8     C3                   retn   
-003F2CC9     31C0                 xor eax,eax   
-003F2CCB     64:FF30              push dword ptr fs:\[eax\]   
-003F2CCE     64:8920              mov dword ptr fs:\[eax\],esp   
-003F2CD1     3100                 xor dword ptr ds:\[eax\],eax   
-                                  ====>第 25 次异常在这儿！          :-)   
-                                  ====>看看堆栈区的第二条地址是：003F2CB4  设断   
-                                  ====>也在下面的 RET 处设断！   
-  
-003F2CD3     64:8F05 00000000     pop dword ptr fs:\[0\]   
-003F2CDA     58                   pop eax   
-003F2CDB     833D 7C6D3F00 00     cmp dword ptr ds:\[3F6D7C\],0   
-003F2CE2     74 14                je short 003F2CF8   
-003F2CE4     6A 0C                push 0C   
-003F2CE6     B9 7C6D3F00          mov ecx,3F6D7C   
-003F2CEB     8D45 F8              lea eax,dword ptr ss:\[ebp\-8\]   
-003F2CEE     BA 04000000          mov edx,4   
-003F2CF3     E8 54E1FFFF          call 003F0E4C   
-003F2CF8     FF75 FC              push dword ptr ss:\[ebp\-4\]   
-003F2CFB     FF75 F8              push dword ptr ss:\[ebp\-8\]   
-003F2CFE     8B45 F4              mov eax,dword ptr ss:\[ebp\-C\]   
-003F2D01     8338 00              cmp dword ptr ds:\[eax\],0   
-003F2D04     74 02                je short 003F2D08   
-003F2D06     FF30                 push dword ptr ds:\[eax\]   
-003F2D08     FF75 F0              push dword ptr ss:\[ebp\-10\]   
-003F2D0B     FF75 EC              push dword ptr ss:\[ebp\-14\]   
-003F2D0E     C3                   retn   
-                                  ====>这里也设断！返回 00AA34A0   
-  
-  
-在 003F2CB4 处设断后，Shift+F9 运行，程序会中断在 003F2CB4   
-F7 走，程序会进入系统 DLL。F9 运行，会中断在 003F2D0E 处！:-)    
-  
-  
-00AA34A0    /E9 D6070000          jmp 00AA3C7B   
-                                  ====>跳   
-  
-00AA3C7B     66:0FBEC9            movsx cx,cl   
-00AA3C7F     0FBEDF               movsx ebx,bh   
-00AA3C82     B8 39EA1808          mov eax,818EA39   
-00AA3C87     81C0 8C15E2F3        add eax,F3E2158C   
-00AA3C8D     C1C8 79              ror eax,79                 
-00AA3C90     8BF0                 mov esi,eax   
-00AA3C92     C1CE FA              ror esi,0FA                
-00AA3C95     F7D6                 not esi   
-00AA3C97     C1CE 2B              ror esi,2B                 
-00AA3C9A     66:0FBAF3 BD         btr bx,0BD   
-00AA3C9F     BA DDFED411          mov edx,11D4FEDD   
-00AA3CA4     81C2 8AED8A7B        add edx,7B8AED8A   
-00AA3CAA     8BEA                 mov ebp,edx   
-00AA3CAC     81D1 372D8F0B        adc ecx,0B8F2D37   
-00AA3CB2     BA B0AC29BB          mov edx,BB29ACB0   
-00AA3CB7     81C2 C81184C5        add edx,C58411C8   
-00AA3CBD     81EA 79BEAD80        sub edx,80ADBE79   
-00AA3CC3     F7D2                 not edx   
-00AA3CC5     8BDA                 mov ebx,edx   
-00AA3CC7     C1CB 7B              ror ebx,7B                 
-00AA3CCA     8BFB                 mov edi,ebx   
-00AA3CCC     46                   inc esi   
-00AA3CCD     8BFE                 mov edi,esi   
-00AA3CCF     D1C7                 rol edi,1   
-00AA3CD1     81F7 A38FD7AC        xor edi,ACD78FA3   
-00AA3CD7     3BFD                 cmp edi,ebp   
-00AA3CD9   ^ 0F85 EDFFFFFF        jnz 00AA3CCC   
-                                  ====>F4 下去   
-  
-00AA3CDF     0FB7C7               movzx eax,di   
-00AA3CE2     8BCE                 mov ecx,esi   
-00AA3CE4     66:8BEC              mov bp,sp   
-00AA3CE7     81E9 E8001410        sub ecx,101400E8   
-00AA3CED     66:81CE BB21         or si,21BB   
-00AA3CF2     B8 EF05D811          mov eax,11D805EF   
-00AA3CF7     C1C0 B9              rol eax,0B9                
-00AA3CFA     F7D0                 not eax   
-00AA3CFC     8BD8                 mov ebx,eax   
-00AA3CFE     C1CB E2              ror ebx,0E2                
-00AA3D01     F7D3                 not ebx   
-00AA3D03     81C3 FD1377F7        add ebx,F77713FD   
-00AA3D09     C1CB 77              ror ebx,77                 
-00AA3D0C     F7D3                 not ebx   
-00AA3D0E     FECB                 dec bl   
-00AA3D10   ^ 0F85 F8FFFFFF        jnz 00AA3D0E   
-                                  ====>F4 下去   
-  
-00AA3D16     81C1 4D254B65        add ecx,654B254D   
-00AA3D1C     8BF5                 mov esi,ebp   
-00AA3D1E     B6 E7                mov dh,0E7   
-00AA3D20     E8 0A000000          call 00AA3D2F   
-                                  ====>F7 走   
-  
-00AA3D2F     D3E0                 shl eax,cl   
-00AA3D31     66:0FBAF8 39         btc ax,39   
-00AA3D36     5D                   pop ebp   
-00AA3D37     E8 06000000          call 00AA3D42   
-00AA3D3C     E9 14000000          jmp 00AA3D55   
-                                  ====>跳   
-  
-00AA3D55     BF F3E3D672          mov edi,72D6E3F3   
-00AA3D5A     81EF 016B1727        sub edi,27176B01   
-00AA3D60     8BD7                 mov edx,edi   
-00AA3D62     F7D2                 not edx   
-00AA3D64     8BFA                 mov edi,edx   
-00AA3D66     81C7 4A85678D        add edi,8D67854A   
-00AA3D6C     81C7 8FF957BE        add edi,BE57F98F   
-00AA3D72     03FD                 add edi,ebp   
-00AA3D74     13D9                 adc ebx,ecx   
-00AA3D76     BB FFFFFDFF          mov ebx,FFFDFFFF   
-00AA3D7B     F7D3                 not ebx   
-00AA3D7D     C1CB 88              ror ebx,88                 
-00AA3D80     C1C3 09              rol ebx,9   
-00AA3D83     8BC3                 mov eax,ebx   
-00AA3D85     C1C8 6F              ror eax,6F                 
-00AA3D88     8BF0                 mov esi,eax   
-00AA3D8A     03F5                 add esi,ebp   
-00AA3D8C     81EE E7FEFFFF        sub esi,-119   
-00AA3D92     FFD6                 call esi   
-                                  ====>F7 走，至 00AA3D9C   
-  
-  
-00AA3D9C     5E                   pop esi        
-00AA3D9D     BB 13F2E77B          mov ebx,7BE7F213   
-00AA3DA2     81E6 9327CEEA        and esi,EACE2793   
-00AA3DA8     BA F4E83A9A          mov edx,9A3AE8F4   
-00AA3DAD     F7D2                 not edx   
-00AA3DAF     C1CA F0              ror edx,0F0                
-00AA3DB2     F7D2                 not edx   
-00AA3DB4     C1CA 29              ror edx,29                 
-00AA3DB7     C1CA 9D              ror edx,9D                 
-00AA3DBA     8BDA                 mov ebx,edx   
-00AA3DBC     81C3 08917CCD        add ebx,CD7C9108   
-00AA3DC2     81EB 716320B9        sub ebx,B9206371   
-00AA3DC8     8BF3                 mov esi,ebx   
-00AA3DCA     03F5                 add esi,ebp   
-00AA3DCC     51                   push ecx   
-00AA3DCD     5B                   pop ebx   
-00AA3DCE     66:BB 7DB5           mov bx,0B57D   
-00AA3DD2     D1C9                 ror ecx,1   
-00AA3DD4     BA B0000000          mov edx,0B0   
-00AA3DD9     C1CA 83              ror edx,83                 
-00AA3DDC     03D5                 add edx,ebp   
-00AA3DDE     81EA 95FEFFFF        sub edx,-16B   
-00AA3DE4     FFE2                 jmp edx   
-                                  ====>跳 00AA3DFC   
-  
-00AA3DFC     300E                 xor byte ptr ds:\[esi\],cl   
-00AA3DFE     E8 08000000          call 00AA3E0B   
-                                  ====>F7 走   
-  
-00AA3E0B     58                   pop eax     
-00AA3E0C     66:0FABEA            bts dx,bp   
-00AA3E10     4E                   dec esi   
-00AA3E11     66:BB 4F31           mov bx,314F   
-00AA3E15     66:8BD8              mov bx,ax   
-00AA3E18     F607 80              test byte ptr ds:\[edi\],80   
-00AA3E1B     66:B8 09FE           mov ax,0FE09   
-00AA3E1F     0F83 00000000        jnb 00AA3E25   
-00AA3E25     0F85 1B000000        jnz 00AA3E46   
-                                  ====>跳    
-  
-00AA3E46     FE0F                 dec byte ptr ds:\[edi\]   
-00AA3E48     66:6A DF             push 0FFDF   
-00AA3E4B     66:5B                pop bx   
-00AA3E4D     F607 7F              test byte ptr ds:\[edi\],7F   
-00AA3E50     E8 06000000          call 00AA3E5B   
-                                  ====>F7 走   
-  
-00AA3E5B     5B                   pop ebx     
-00AA3E5C   ^ 0F85 6AFFFFFF        jnz 00AA3DCC   
-00AA3E62     2AC1                 sub al,cl   
-00AA3E64     B0 6E                mov al,6E   
-00AA3E66     F607 80              test byte ptr ds:\[edi\],80   
-00AA3E69     E9 12000000          jmp 00AA3E80   
-                                  ====>跳   
-  
-00AA3E80     8AF3                 mov dh,bl   
-00AA3E82     0F85 64000000        jnz 00AA3EEC   
-                                  ====>跳   
-  
-00AA3EEC     F647 01 80           test byte ptr ds:\[edi+1\],80   
-00AA3EF0     0FBEDB               movsx ebx,bl   
-00AA3EF3     8AF1                 mov dh,cl   
-00AA3EF5     0F85 09000000        jnz 00AA3F04   
-                                  ====>跳   
-  
-00AA3F04     81C1 D1CF783B        add ecx,3B78CFD1   
-00AA3F0A     55                   push ebp   
-00AA3F0B     5B                   pop ebx   
-00AA3F0C     C1E2 EA              shl edx,0EA                
-00AA3F0F     E9 0B000000          jmp 00AA3F1F   
-                                  ====>跳   
-  
-00AA3F1F     47                   inc edi   
-00AA3F20     B8 4FCE464A          mov eax,4A46CE4F   
-00AA3F25     C1C0 11              rol eax,11   
-00AA3F28     C1C8 B4              ror eax,0B4                
-00AA3F2B     C1C8 1F              ror eax,1F   
-00AA3F2E     C1C0 3D              rol eax,3D                 
-00AA3F31     81C0 ACC9AD85        add eax,85ADC9AC   
-00AA3F37     03C5                 add eax,ebp   
-00AA3F39     81E8 3AFDFFFF        sub eax,-2C6   
-00AA3F3F     FFE0                 jmp eax   
-                                  ====>跳 00AA3F5F   
-  
-00AA3F5F     66:8BDD              mov bx,bp   
-00AA3F62     B8 2D6D0F89          mov eax,890F6D2D   
-00AA3F67     81F0 B94FABEB        xor eax,EBAB4FB9   
-00AA3F6D     C1C8 40              ror eax,40                 
-00AA3F70     F7D0                 not eax   
-00AA3F72     F7D0                 not eax   
-00AA3F74     8BD8                 mov ebx,eax   
-00AA3F76     C1CB D2              ror ebx,0D2                
-00AA3F79     81F3 8BBECD86        xor ebx,86CDBE8B   
-00AA3F7F     81C3 D49D6263        add ebx,63629DD4   
-00AA3F85     81C3 FDC1340E        add ebx,0E34C1FD   
-00AA3F8B     03DD                 add ebx,ebp   
-00AA3F8D     3BDF                 cmp ebx,edi   
-00AA3F8F     E9 11000000          jmp 00AA3FA5   
-                                  ====>跳   
-  
-00AA3FA5    /0F85 26000000        jnz 00AA3FD1   
-                                  ====>跳   
-  
-00AA3FD1     BA 2557A18E          mov edx,8EA15725   
-00AA3FD6     81EA 815C5116        sub edx,16515C81   
-00AA3FDC     C1CA BE              ror edx,0BE                
-00AA3FDF     81C2 BB1CC01E        add edx,1EC01CBB   
-00AA3FE5     03D5                 add edx,ebp   
-00AA3FE7     3BD7                 cmp edx,edi   
-00AA3FE9     8AF5                 mov dh,ch   
-00AA3FEB     66:BB E284           mov bx,84E2   
-00AA3FEF     0F85 26000000        jnz 00AA401B   
-                                  ====>跳   
-  
-00AA401B     BB D6A0A6B7          mov ebx,B7A6A0D6   
-00AA4020     81C3 67A9F760        add ebx,60F7A967   
-00AA4026     81EB 258F2363        sub ebx,63238F25   
-00AA402C     81F3 11E5FF49        xor ebx,49FFE511   
-00AA4032     81C3 F7B2D7E2        add ebx,E2D7B2F7   
-00AA4038     81C3 57F6A220        add ebx,20A2F657   
-00AA403E     03DD                 add ebx,ebp   
-00AA4040     3BDF                 cmp ebx,edi   
-00AA4042     66:0FBEDA            movsx bx,dl   
-00AA4046     8AE1                 mov ah,cl   
-00AA4048     0F85 1C000000        jnz 00AA406A   
-                                  ====>跳   
-  
-00AA406A     BB 7A39ED79          mov ebx,79ED397A   
-00AA406F     81EB 2DCBEE19        sub ebx,19EECB2D   
-00AA4075     C1CB 6E              ror ebx,6E                 
-00AA4078     81F3 9571062D        xor ebx,2D067195   
-00AA407E     8BD3                 mov edx,ebx   
-00AA4080     C1C2 A7              rol edx,0A7                
-00AA4083     81EA D9F8F95E        sub edx,5EF9F8D9   
-00AA4089     81C2 9F0DABB1        add edx,B1AB0D9F   
-00AA408F     81F2 11D0692A        xor edx,2A69D011   
-00AA4095     81C2 9F6EAEB9        add edx,B9AE6E9F   
-00AA409B     03D5                 add edx,ebp   
-00AA409D     3BD7                 cmp edx,edi   
-00AA409F     E9 18000000          jmp 00AA40BC   
-                                  ====>跳   
-  
-00AA40BC    /0F85 27000000        jnz 00AA40E9   
-                                  ====>跳   
-  
-00AA40E9     BA 1C57FC07          mov edx,7FC571C   
-00AA40EE     C1CA D0              ror edx,0D0                
-00AA40F1     81F2 A90DF507        xor edx,7F50DA9   
-00AA40F7     F7D2                 not edx   
-00AA40F9     81F2 216F8BBB        xor edx,BB8B6F21   
-00AA40FF     C1CA 96              ror edx,96                 
-00AA4102     8BDA                 mov ebx,edx   
-00AA4104     C1C3 01              rol ebx,1   
-00AA4107     81C3 0AB12B13        add ebx,132BB10A   
-00AA410D     03DD                 add ebx,ebp   
-00AA410F     3BDF                 cmp ebx,edi   
-00AA4111     0FBFD2               movsx edx,dx   
-00AA4114     E8 0C000000          call 00AA4125   
-                                  ====>F7 走   
-  
-00AA4125     58                   pop eax     
-00AA4126     0F85 14000000        jnz 00AA4140   
-                                  ====>跳   
-  
-00AA4140     80E6 30              and dh,30   
-00AA4143     66:0BDD              or bx,bp   
-00AA4146     66:C1FB 93           sar bx,93                  
-00AA414A     BA 038C24BE          mov edx,BE248C03   
-00AA414F     81C2 AEDD779B        add edx,9B77DDAE   
-00AA4155     8BC2                 mov eax,edx   
-00AA4157     F7D0                 not eax   
-00AA4159     8BD0                 mov edx,eax   
-00AA415B     81C2 E66D9C59        add edx,599C6DE6   
-00AA4161     8BDA                 mov ebx,edx   
-00AA4163     66:C1E2 25           shl dx,25                  
-00AA4167     03DD                 add ebx,ebp   
-00AA4169     66:0FBAE8 89         bts ax,89   
-00AA416E     81C3 E6050000        add ebx,5E6   
-00AA4174     80D6 6D              adc dh,6D   
-00AA4177     3BDF                 cmp ebx,edi   
-00AA4179     E9 10000000          jmp 00AA418E   
-                                  ====>跳   
-  
-00AA418E   ^F85 38FCFFFF        jnz 00AA3DCC   
-                                  ====>F4 下去   
-  
-00AA4194     66:0FA3FA            bt dx,di   
-                                  ====>F4 到这！   
-  
-00AA4198     66:0FABF7            bts di,si   
-00AA419C     BB D3F89F84          mov ebx,849FF8D3   
-00AA41A1     81EB 21C8E15F        sub ebx,5FE1C821   
-00AA41A7     81F3 092225EC        xor ebx,EC252209   
-00AA41AD     8BFB                 mov edi,ebx   
-00AA41AF     C1CF 27              ror edi,27                 
-00AA41B2     C1CF 2C              ror edi,2C                 
-00AA41B5     81F7 318C55AB        xor edi,AB558C31   
-00AA41BB     8BCF                 mov ecx,edi   
-00AA41BD     81C1 5D20F936        add ecx,36F9205D   
-00AA41C3     C1C9 07              ror ecx,7   
-00AA41C6     66:BE 059E           mov si,9E05   
-00AA41CA     8BDA                 mov ebx,edx   
-00AA41CC     03CD                 add ecx,ebp   
-00AA41CE     8AFD                 mov bh,ch   
-00AA41D0     0F87 00000000        ja 00AA41D6   
-00AA41D6     FFE1                 jmp ecx   
-                                  ====>跳 00AA34A5   
-  
-00AA34A5     BE 3A553CEB          mov esi,EB3C553A   
-00AA34AA     81C6 D9AAC314        add esi,14C3AAD9   
-00AA34B0     8BCE                 mov ecx,esi   
-00AA34B2   - E2 FE                loopd short 00AA34B2   
-                                  ====>F4 下去   
-  
-00AA34B4     E8 00000000          call 00AA34B9   
-                                  ====>F7 走   
-  
-00AA34B9     5B                   pop ebx      
-00AA34BA     81C3 C4000000        add ebx,0C4   
-00AA34C0     BA 9154BCF1          mov edx,F1BC5491   
-00AA34C5     F7D2                 not edx   
-00AA34C7     81C2 B2F5E0B9        add edx,B9E0F5B2   
-00AA34CD     C1CA 02              ror edx,2   
-00AA34D0     81C2 D90C91BE        add edx,BE910CD9   
-00AA34D6     C1CA 23              ror edx,23                 
-00AA34D9     8BCA                 mov ecx,edx   
-00AA34DB     81F1 BB46133E        xor ecx,3E1346BB   
-00AA34E1     8BE9                 mov ebp,ecx   
-00AA34E3     4D                   dec ebp   
-00AA34E4   ^ 0F85 F9FFFFFF        jnz 00AA34E3   
-                                  ====>F4 下去   
-  
-00AA34EA     B8 13D4F730          mov eax,30F7D413   
-00AA34EF     C1C0 65              rol eax,65                 
-00AA34F2     F7D0                 not eax   
-00AA34F4     8BC8                 mov ecx,eax   
-00AA34F6     F7D1                 not ecx   
-00AA34F8     8BE9                 mov ebp,ecx   
-00AA34FA     8BD1                 mov edx,ecx   
-00AA34FC     BA 4AC8339E          mov edx,9E33C84A   
-00AA3501     81F2 49C39320        xor edx,2093C349   
-00AA3507     C1CA 84              ror edx,84                 
-00AA350A     F7D2                 not edx   
-00AA350C     8BC2                 mov eax,edx   
-00AA350E     C1C8 8F              ror eax,8F                 
-00AA3511     8BC8                 mov ecx,eax   
-00AA3513     C1C1 F1              rol ecx,0F1                
-00AA3516     8BF9                 mov edi,ecx   
-00AA3518     D3CE                 ror esi,cl   
-00AA351A     66:81DE 7130         sbb si,3071   
-00AA351F     313B                 xor dword ptr ds:\[ebx\],edi   
-00AA3521     66:68 F9DF           push 0DFF9   
-00AA3525     66:59                pop cx   
-00AA3527     83C3 04              add ebx,4   
-00AA352A     8AC5                 mov al,ch   
-00AA352C     45                   inc ebp   
-00AA352D     E9 12000000          jmp 00AA3544   
-                                  ====>跳   
-  
-00AA3544     81FD 2584FA1E        cmp ebp,1EFA8425   
-00AA354A     66:0FBECF            movsx cx,bh   
-00AA354E     E9 13000000          jmp 00AA3566   
-                                  ====>跳   
-  
-00AA3566   ^F85 ACFFFFFF        jnz 00AA3518   
-                                  ====>F4 下去   
-  
-00AA356C     66:8BF2              mov si,dx   
-00AA356F     81CE 7DC264CF        or esi,CF64C27D   
-00AA3575     90                   nop   
-00AA3576     90                   nop   
-00AA3577     90                   nop   
-00AA3578     90                   nop   
-00AA3579     90                   nop   
-00AA357A     90                   nop   
-00AA357B     90                   nop   
-00AA357C     90                   nop   
-00AA357D     66:BA 38D2           mov dx,0D238   
-00AA3581     E8 06000000          call 00AA358C   
-                                  ====>F7 走   
-  
-00AA358C     66:BF 7C81           mov di,817C   
-00AA3590     5B                   pop ebx   
-00AA3591     68 8BC41D20          push 201DC48B   
-00AA3596     66:81D7 BD84         adc di,84BD   
-00AA359B     5A                   pop edx   
-00AA359C     81C3 F0060000        add ebx,6F0   
-00AA35A2     E9 13000000          jmp 00AA35BA   
-                                  ====>跳   
-  
-00AA35BA     68 8D010000          push 18D   
-00AA35BF     0FBFF8               movsx edi,ax   
-00AA35C2     58                   pop eax   
-00AA35C3     66:8BF8              mov di,ax   
-00AA35C6     8B33                 mov esi,dword ptr ds:\[ebx\]   
-00AA35C8     81DA 5B3E271E        sbb edx,1E273E5B   
-00AA35CE     81C6 DDD3F91E        add esi,1EF9D3DD   
-00AA35D4     66:81D9 102D         sbb cx,2D10   
-00AA35D9     81C6 52BBDA48        add esi,48DABB52   
-00AA35DF     66:81F7 41E7         xor di,0E741   
-00AA35E4     81EE 23EEA05D        sub esi,5DA0EE23   
-00AA35EA     66:81EF 1F17         sub di,171F   
-00AA35EF     8933                 mov dword ptr ds:\[ebx\],esi   
-00AA35F1     66:81D7 B122         adc di,22B1   
-00AA35F6     81EB 17CBB934        sub ebx,34B9CB17   
-00AA35FC     E9 07000000          jmp 00AA3608   
-                                  ====>跳   
-  
-00AA3608     81C3 13CBB934        add ebx,34B9CB13   
-00AA360E     68 8840902A          push 2A904088   
-00AA3613     8BCF                 mov ecx,edi   
-00AA3615     5A                   pop edx   
-00AA3616     48                   dec eax   
-00AA3617     0F85 11000000        jnz 00AA362E   
-                                  ====>跳   
-00AA361D     B5 90                mov ch,90   
-00AA361F     E9 22000000          jmp 00AA3646   
-                                  ====>此处下断，F9，断在这！ :-)   跳出循环！   
-  
-00AA362E     66:B9 854D           mov cx,4D85   
-00AA3632   ^ E9 8FFFFFFF          jmp 00AA35C6   
-                                  ====>跳   注意这个循环！向上找发现 00AA361F 可以跳过！   
-  
-00AA3646     0FBFF6               movsx esi,si   
-00AA3649     B5 1C                mov ch,1C   
-00AA364B     E8 0C000000          call 00AA365C   
-                                  ====>F7 走   
-  
-00AA365C     66:81F1 32FB         xor cx,0FB32   
-00AA3661     5B                   pop ebx   
-00AA3662     66:81E1 2C6E         and cx,6E2C   
-00AA3667     E8 0F000000          call 00AA367B   
-                                  ====>F7 走   
-  
-00AA367B     8BD6                 mov edx,esi   
-00AA367D     59                   pop ecx   
-00AA367E     81C3 24060000        add ebx,624   
-00AA3684     66:8BCA              mov cx,dx   
-00AA3687     66:81D1 DE2D         adc cx,2DDE   
-00AA368C     68 00000000          push 0   
-00AA3691     E9 0F000000          jmp 00AA36A5   
-                                  ====>跳   
-  
-00AA36A5     5F                   pop edi   
-00AA36A6     81F6 669D1D73        xor esi,731D9D66   
-00AA36AC     FF341F               push dword ptr ds:\[edi+ebx\]   
-00AA36AF     B1 C8                mov cl,0C8   
-00AA36B1     58                   pop eax   
-00AA36B2     68 9FA5B073          push 73B0A59F   
-00AA36B7     0FB7CF               movzx ecx,di   
-00AA36BA     5A                   pop edx   
-00AA36BB     0FBFF1               movsx esi,cx   
-00AA36BE     81F0 46414055        xor eax,55404146   
-00AA36C4     E9 0E000000          jmp 00AA36D7   
-                                  ====>跳   
-  
-00AA36D7     0FBFC9               movsx ecx,cx   
-00AA36DA     81F0 074F6322        xor eax,22634F07   
-00AA36E0     E9 10000000          jmp 00AA36F5   
-                                  ====>跳   
-  
-00AA36F5     E8 06000000          call 00AA3700   
-                                  ====>F7 走   
-  
-00AA3700     8BD1                 mov edx,ecx   
-00AA3702     5E                   pop esi   
-00AA3703     81C0 34F8C64C        add eax,4CC6F834   
-00AA3709     81EE B094622B        sub esi,2B6294B0   
-00AA370F     BE 4F88D852          mov esi,52D8884F   
-00AA3714     89043B               mov dword ptr ds:\[ebx+edi\],eax   
-00AA3717     E9 0B000000          jmp 00AA3727   
-                                  ====>跳   
-  
-00AA3727     66:BE D1CD           mov si,0CDD1   
-00AA372B     83EF 02              sub edi,2   
-00AA372E     66:BA 102B           mov dx,2B10   
-00AA3732     4F                   dec edi   
-00AA3733     4F                   dec edi   
-00AA3734     B6 E8                mov dh,0E8   
-00AA3736     57                   push edi   
-00AA3737     66:BE 7DFC           mov si,0FC7D   
-00AA373B     59                   pop ecx   
-00AA373C     81FF 0CFBFFFF        cmp edi,-4F4   
-00AA3742     0F85 16000000        jnz 00AA375E   
-                                  ====>跳   
-  
-00AA3748     B6 D8                mov dh,0D8   
-00AA374A     E9 35000000          jmp 00AA3784   
-                                  ====>此处下断，F9，断在这！ :-)   跳出循环！   
-  
-00AA375E    /E9 0D000000          jmp 00AA3770   
-                                  ====>跳   
-  
-00AA3770   ^E9 37FFFFFF          jmp 00AA36AC   
-                                  ====>跳   注意这个循环！向上找发现 00AA374A 可以跳过！   
-  
-00AA3784     B8 9FCC6112          mov eax,1261CC9F   
-00AA3789     E8 0F000000          call 00AA379D   
-                                  ====>F7 走   
-  
-00AA379D     66:8BD9              mov bx,cx   
-00AA37A0     5A                   pop edx   
-00AA37A1     B1 DB                mov cl,0DB   
-00AA37A3     81C2 E8040000        add edx,4E8   
-00AA37A9     B8 9526F753          mov eax,53F72695   
-00AA37AE     8AC6                 mov al,dh   
-00AA37B0     BF 00000000          mov edi,0   
-00AA37B5     B0 D3                mov al,0D3   
-00AA37B7     E9 13000000          jmp 00AA37CF   
-                                  ====>跳   
-  
-00AA37CF     8B343A               mov esi,dword ptr ds:\[edx+edi\]   
-00AA37D2     52                   push edx   
-00AA37D3     80E4 62              and ah,62   
-00AA37D6     58                   pop eax   
-00AA37D7     81F6 A8ED255C        xor esi,5C25EDA8   
-00AA37DD     80E3 47              and bl,47   
-00AA37E0     81C6 C1907F42        add esi,427F90C1   
-00AA37E6     0FB7CF               movzx ecx,di   
-00AA37E9     81F6 66A0B124        xor esi,24B1A066   
-00AA37EF     66:81C8 6A6A         or ax,6A6A   
-00AA37F4     80E9 36              sub cl,36   
-00AA37F7     56                   push esi   
-00AA37F8     8AD8                 mov bl,al   
-00AA37FA     8F043A               pop dword ptr ds:\[edx+edi\]   
-00AA37FD     66:81E8 28D7         sub ax,0D728   
-00AA3802     0F85 07000000        jnz 00AA380F   
-                                  ====>跳   
-  
-00AA380F     52                   push edx   
-00AA3810     58                   pop eax   
-00AA3811     83EF 03              sub edi,3   
-00AA3814     8AC3                 mov al,bl   
-00AA3816     0FBFC1               movsx eax,cx   
-00AA3819     4F                   dec edi   
-00AA381A     81C0 2A91CC5D        add eax,5DCC912A   
-00AA3820     81FF 00FCFFFF        cmp edi,-400   
-00AA3826     0F85 24000000        jnz 00AA3850   
-                                  ====>跳   
-00AA382C    /E9 0B000000          jmp 00AA383C   
-                                  ====>此处下断，F9，断在这！ :-)   
-  
-00AA383B     85E9                 test ecx,ebp   
-                                  ====>花指令 改为 90E9   
-00AA383D     3900                 cmp dword ptr ds:\[eax\],eax   
-  
-00AA383B     90                   nop //改后的变化    
-00AA383C     E9 39000000          jmp 00AA387A   
-                                  ====>跳出循环！   
-  
-00AA3850     51                   push ecx   
-00AA3851     E8 0C000000          call 00AA3862   
-                                  ====>F7 走   
-  
-00AA3862     0FB7CF               movzx ecx,di   
-00AA3865     58                   pop eax   
-00AA3866     66:B8 BF91           mov ax,91BF   
-00AA386A     59                   pop ecx   
-00AA386B   ^ E9 5FFFFFFF          jmp 00AA37CF   
-                                  ====>这个循环可以在 00AA382C 下断，在 00AA383C 跳出循环！   
-  
-00AA387A     80DD FE              sbb ch,0FE   
-00AA387D     E8 14000000          call 00AA3896   
-                                  ====>F7 走   
-  
-00AA3896    /E9 0B000000          jmp 00AA38A6   
-                                  ====>跳   
-  
-00AA38A6     5B                   pop ebx       
-00AA38A7     81C0 C2E24132        add eax,3241E2C2   
-00AA38AD     81C3 F4030000        add ebx,3F4   
-00AA38B3     66:BA 0E69           mov dx,690E   
-00AA38B7     68 00000000          push 0   
-00AA38BC     E8 0F000000          call 00AA38D0   
-                                  ====>F7 走   
-  
-00AA38D0     66:81E0 96BA         and ax,0BA96   
-00AA38D5     5A                   pop edx   
-00AA38D6     0F8B 21000000        jpo 00AA38FD   
-                                  ====>跳   
-  
-00AA38FD     5F                   pop edi   
-00AA38FE     0FB7D7               movzx edx,di   
-00AA3901     80C6 DF              add dh,0DF   
-00AA3904     8B343B               mov esi,dword ptr ds:\[ebx+edi\]   
-00AA3907     0FBFD0               movsx edx,ax   
-00AA390A     81F6 5A71E976        xor esi,76E9715A   
-00AA3910     BA E2882F70          mov edx,702F88E2   
-00AA3915     68 302FB752          push 52B72F30   
-00AA391A     66:81F1 3A52         xor cx,523A   
-00AA391F     5A                   pop edx   
-00AA3920     81EE 8BDF8A47        sub esi,478ADF8B   
-00AA3926     81F6 68B8BF76        xor esi,76BFB868   
-00AA392C     52                   push edx   
-00AA392D     0FB7C3               movzx eax,bx   
-00AA3930     80DD 78              sbb ch,78   
-00AA3933     59                   pop ecx   
-00AA3934     B0 F6                mov al,0F6   
-00AA3936     B4 6E                mov ah,6E   
-00AA3938     56                   push esi   
-00AA3939     E8 0F000000          call 00AA394D   
-                                  ====>F7 走   
-  
-00AA394D     8BD1                 mov edx,ecx   
-00AA394F     BA A2E78934          mov edx,3489E7A2   
-00AA3954     58                   pop eax   
-00AA3955     B9 256F0206          mov ecx,6026F25   
-00AA395A     8F043B               pop dword ptr ds:\[ebx+edi\]   
-00AA395D     E8 0D000000          call 00AA396F   
-                                  ====>F7 走   
-  
-00AA396F     66:81E2 7763         and dx,6377   
-00AA3974     66:8BD7              mov dx,di   
-00AA3977     81D8 7CB36E44        sbb eax,446EB37C   
-00AA397D     5A                   pop edx   
-00AA397E     0F8B 08000000        jpo 00AA398C   
-                                  ====>跳   
-  
-00AA398C     B2 9E                mov dl,9E   
-00AA398E     83EF 04              sub edi,4   
-00AA3991     81C0 B0A8E23F        add eax,3FE2A8B0   
-00AA3997     8BD6                 mov edx,esi   
-00AA3999     81FF 3CFDFFFF        cmp edi,-2C4   
-00AA399F   ^ 0F85 5FFFFFFF        jnz 00AA3904   
-                                  ====>F4 下去    :-)   
-  
-00AA39A5     0FBFC1               movsx eax,cx   
-00AA39A8     50                   push eax   
-00AA39A9     68 99A87218          push 1872A899   
-00AA39AE     66:B8 5535           mov ax,3555   
-00AA39B2     5A                   pop edx   
-00AA39B3     B4 DF                mov ah,0DF   
-00AA39B5     59                   pop ecx   
-00AA39B6     53                   push ebx   
-00AA39B7     81D1 5E40953A        adc ecx,3A95405E   
-00AA39BD     58                   pop eax   
-00AA39BE     E8 0A000000          call 00AA39CD   
-                                  ====>F7 走   
-  
-00AA39CD     50                   push eax   
-00AA39CE     B0 53                mov al,53   
-00AA39D0     58                   pop eax   
-00AA39D1     5B                   pop ebx   
-00AA39D2     68 7D9D2400          push 249D7D   
-00AA39D7     8BC8                 mov ecx,eax   
-00AA39D9     5F                   pop edi   
-00AA39DA     81C3 B1020000        add ebx,2B1   
-00AA39E0     80CD 58              or ch,58   
-00AA39E3     2BD2                 sub edx,edx   
-00AA39E5     66:81C1 22BE         add cx,0BE22   
-00AA39EA     FF341A               push dword ptr ds:\[edx+ebx\]   
-00AA39ED     8ACC                 mov cl,ah   
-00AA39EF     5E                   pop esi   
-00AA39F0     B4 11                mov ah,11   
-00AA39F2     81C6 DCB08862        add esi,6288B0DC   
-00AA39F8     BF A06B7342          mov edi,42736BA0   
-00AA39FD     81F6 E5853E40        xor esi,403E85E5   
-00AA3A03     E9 14000000          jmp 00AA3A1C   
-                                  ====>跳   
-  
-00AA3A1C     81EE BAF8881B        sub esi,1B88F8BA   
-00AA3A22     81E8 32C31934        sub eax,3419C332   
-00AA3A28     56                   push esi   
-00AA3A29     81D1 2CF67B25        adc ecx,257BF62C   
-00AA3A2F     8F0413               pop dword ptr ds:\[ebx+edx\]   
-00AA3A32     E8 10000000          call 00AA3A47   
-                                  ====>F7 走   
-  
-00AA3A47     B9 C782B920          mov ecx,20B982C7   
-00AA3A4C     59                   pop ecx   
-00AA3A4D     E8 08000000          call 00AA3A5A   
-                                  ====>F7 走   
-  
-00AA3A5A     68 B6622565          push 652562B6   
-00AA3A5F     8ACE                 mov cl,dh   
-00AA3A61     58                   pop eax   
-00AA3A62     5F                   pop edi   
-00AA3A63     81EA C1C94941        sub edx,4149C9C1   
-00AA3A69     68 54899603          push 3968954   
-00AA3A6E     80C1 3E              add cl,3E   
-00AA3A71     59                   pop ecx   
-00AA3A72     81C2 BDC94941        add edx,4149C9BD   
-00AA3A78     E9 06000000          jmp 00AA3A83   
-                                  ====>跳   
-  
-00AA3A83     81FA 1CFEFFFF        cmp edx,-1E4   
-00AA3A89   ^ 0F85 5BFFFFFF        jnz 00AA39EA   
-                                  ====>F4 下去    :-)   
-  
-00AA3A8F     66:81E8 FA1C         sub ax,1CFA   
-00AA3A94     68 475C3B34          push 343B5C47   
-00AA3A99     5E                   pop esi   
-00AA3A9A     E8 14000000          call 00AA3AB3   
-                                  ====>F7 走   
-  
-00AA3AB3     66:81C8 D4E4         or ax,0E4D4   
-00AA3AB8     5B                   pop ebx   
-00AA3AB9     81C3 D5010000        add ebx,1D5   
-00AA3ABF     0FBFC0               movsx eax,ax   
-00AA3AC2     68 00000000          push 0   
-00AA3AC7     E8 07000000          call 00AA3AD3   
-                                  ====>F7 走   
-  
-00AA3AD3     66:B8 219A           mov ax,9A21   
-00AA3AD7     58                   pop eax   
-00AA3AD8     5A                   pop edx   
-00AA3AD9     81E7 FF109606        and edi,69610FF   
-00AA3ADF     8B0C13               mov ecx,dword ptr ds:\[ebx+edx\]   
-00AA3AE2     66:81DF 914D         sbb di,4D91   
-00AA3AE7     81E9 AE44D73D        sub ecx,3DD744AE   
-00AA3AED     66:81DE D0E9         sbb si,0E9D0   
-00AA3AF2     81E9 4F722938        sub ecx,3829724F   
-00AA3AF8     81D6 DA374916        adc esi,164937DA   
-00AA3AFE     81E9 DCED9302        sub ecx,293EDDC   
-00AA3B04     66:8BC3              mov ax,bx   
-00AA3B07     51                   push ecx   
-00AA3B08     0FB7F2               movzx esi,dx   
-00AA3B0B     8F0413               pop dword ptr ds:\[ebx+edx\]   
-00AA3B0E     BE FB650328          mov esi,280365FB   
-00AA3B13     0F86 05000000        jbe 00AA3B1E   
-00AA3B19     BF E2C1C536          mov edi,36C5C1E2   
-00AA3B1E     81EA 30909E36        sub edx,369E9030   
-00AA3B24     68 CF59731E          push 1E7359CF   
-00AA3B29     66:81F0 4835         xor ax,3548   
-00AA3B2E     5E                   pop esi   
-00AA3B2F     81C2 2C909E36        add edx,369E902C   
-00AA3B35     81FA E0FEFFFF        cmp edx,-120   
-00AA3B3B   ^ 0F85 9EFFFFFF        jnz 00AA3ADF   
-                                  ====>F4 下去    :-)   
-  
-00AA3B41     E8 0E000000          call 00AA3B54   
-                                  ====>F7 走   
-  
-00AA3B54     66:8BC6              mov ax,si   
-00AA3B57     5F                   pop edi   
-00AA3B58     E9 06000000          jmp 00AA3B63   
-                                  ====>跳   
-  
-00AA3B63     66:81EE ACFA         sub si,0FAAC   
-00AA3B68     E8 0A000000          call 00AA3B77   
-                                  ====>F7 走   
-  
-00AA3B77     68 AED55836          push 3658D5AE   
-00AA3B7C     0F83 05000000        jnb 00AA3B87   
-00AA3B82     66:81F0 86EC         xor ax,0EC86   
-00AA3B87     58                   pop eax   
-00AA3B88     5B                   pop ebx   
-00AA3B89     E9 14000000          jmp 00AA3BA2   
-                                  ====>跳   
-  
-00AA3BA2     8BC2                 mov eax,edx   
-00AA3BA4     81C3 09010000        add ebx,109   
-00AA3BAA     66:B8 C34E           mov ax,4EC3   
-00AA3BAE     BF BE0B8E74          mov edi,748E0BBE   
-00AA3BB3     68 00000000          push 0   
-00AA3BB8     80E8 58              sub al,58   
-00AA3BBB     5A                   pop edx   
-00AA3BBC     66:8BC7              mov ax,di   
-00AA3BBF     FF341A               push dword ptr ds:\[edx+ebx\]   
-00AA3BC2     50                   push eax   
-00AA3BC3     66:B8 216F           mov ax,6F21   
-00AA3BC7     8BF2                 mov esi,edx   
-00AA3BC9     58                   pop eax   
-00AA3BCA     59                   pop ecx   
-00AA3BCB     52                   push edx   
-00AA3BCC     68 CCD79C5A          push 5A9CD7CC   
-00AA3BD1     57                   push edi   
-00AA3BD2     5E                   pop esi   
-00AA3BD3     5E                   pop esi   
-00AA3BD4     58                   pop eax   
-00AA3BD5     51                   push ecx   
-00AA3BD6     0FBFC6               movsx eax,si   
-00AA3BD9     5E                   pop esi   
-00AA3BDA     81E9 50997271        sub ecx,71729950   
-00AA3BE0     8AE7                 mov ah,bh   
-00AA3BE2     BE FBB22733          mov esi,3327B2FB   
-00AA3BE7     81C1 49D7611C        add ecx,1C61D749   
-00AA3BED     56                   push esi   
-00AA3BEE     66:BE 7386           mov si,8673   
-00AA3BF2     5E                   pop esi   
-00AA3BF3     81F1 4E18B770        xor ecx,70B7184E   
-00AA3BF9     E8 10000000          call 00AA3C0E   
-                                  ====>F7 走   
-  
-00AA3C0E     8BF0                 mov esi,eax   
-00AA3C10     58                   pop eax   
-00AA3C11     51                   push ecx   
-00AA3C12     66:B8 450C           mov ax,0C45   
-00AA3C16     8F0413               pop dword ptr ds:\[ebx+edx\]   
-00AA3C19     0FBFC6               movsx eax,si   
-00AA3C1C     66:81E6 3E01         and si,13E   
-00AA3C21     83EA 01              sub edx,1   
-00AA3C24     66:8BF2              mov si,dx   
-00AA3C27     BF A2A11647          mov edi,4716A1A2   
-00AA3C2C     4A                   dec edx   
-00AA3C2D     4A                   dec edx   
-00AA3C2E     4A                   dec edx   
-00AA3C2F     E9 0E000000          jmp 00AA3C42   
-                                  ====>跳   
-  
-00AA3C42     66:81D7 958D         adc di,8D95   
-00AA3C47     81FA F0FFFFFF        cmp edx,-10   
-00AA3C4D   ^ 0F85 6CFFFFFF        jnz 00AA3BBF   
-                                  ====>F4 下去    :-)   
-  
-00AA3C53     8BFA                 mov edi,edx   
-00AA3C55     0F8A 0F000000        jpe 00AA3C6A   
-                                  ====>跳   
-  
-00AA3C6A     5B                   pop ebx   
-00AA3C6B     58                   pop eax   
-00AA3C6C     05 E43243A7          add eax,A74332E4   
-00AA3C71     5C                   pop esp   
-00AA3C72     03C3                 add eax,ebx   
-                                  ====>EAX\=000066A0 + 00400000=004066A0   这就是 OEP 值  :-)   
-  
-00AA3C74     894424 1C            mov dword ptr ss:\[esp+1C\],eax   
-00AA3C78     61                   popad   
-00AA3C79     FFE0                 jmp eax   
-                                  ====>飞向光明之巅！OEP=EAX\=004066A0   
-  
-  
-———————————————————————   
-004066A0    /E9 F32D0100          jmp TqCrackM.00419498   
-                                  ====>晕  玩了花样   :-)     
-  
-00419498     9C                   pushfd   
-00419499     60                   pushad   
-0041949A     E8 00000000          call TqCrackM.0041949F   
-0041949F     5D                   pop ebp   
-004194A0     8DB5 32010000        lea esi,dword ptr ss:\[ebp+132\]   
-004194A6     8B5C24 24            mov ebx,dword ptr ss:\[esp+24\]   
-004194AA     81E3 0000E0FF        and ebx,FFE00000   
-004194B0     8DBD 2D020000        lea edi,dword ptr ss:\[ebp+22D\]   
-004194B6     E8 D6000000          call TqCrackM.00419591   
-004194BB     8D4D 2B              lea ecx,dword ptr ss:\[ebp+2B\]   
-004194BE     51                   push ecx   
-004194BF     8D5D 4E              lea ebx,dword ptr ss:\[ebp+4E\]   
-004194C2     89DE                 mov esi,ebx   
-004194C4     E8 C8000000          call TqCrackM.00419591   
-004194C9     C3                   retn   
-                                  ====>返回到 004066A0！又是动态解码！   
-  
-  
-———————————————————————   
-  
-004066A0     55                   push ebp   
-                                  ====>在这儿用 LordPE 完全 DUMP 这个进程  :-)   
-  
-004066A1     8BEC                 mov ebp,esp   
-004066A3     6A FF                push -1   
-004066A5     68 80B64100          push TqCrackM.0041B680   
-004066AA     68 08694000          push TqCrackM.00406908   
-  
-  
-———————————————————————   
-  
-重新运行程序，运行 ImportREC，选择这个进程。把 OEP 改为 000066A0，点 IT AutoSearch，改 RAV 为：0001E000，改大小为：00001000，点“Get Import”，用插件手动修复后还有几个函数无效，剪之， FixDump，正常运行！  104K->208K  用 LordPE 重建修复后的程序，208K->188K   
-  
-  
-    
-—————————————————————————————————    
-  
-【关 于  破 解】：   
-  
-  
-  
-至于破解：作者说是 “杀手级：断点设置，简单加密，复杂算法，耐心灵感”。   
-呵呵，数千次的循环……  :-(    偶 晕 ……    算法留给杀手级的兄弟吧！ :-)    
-  
-  
-下面是逐位比较的地方。提供一组 注册码 吧，作者 天桥 兄弟写的也够辛苦的  :-)    
-  
-00404DA5     DC5D D8              fcomp qword ptr ss:\[ebp\-28\] //比较 ①    
-00404EB2     DC5D D8              fcomp qword ptr ss:\[ebp\-28\] //比较 ②    
-004050CC     DC5D D8              fcomp qword ptr ss:\[ebp\-28\] //比较 ③     
-00404FBF     DC5D D8              fcomp qword ptr ss:\[ebp\-28\] //比较 ④    
-  
-  
-用户名：fly\[FCG\]   
-注册码：fhlr-defj-bacb-a998   
-  
-—————————————————————————————————   
-  
-                                   
-         ,     \_/    
-        /| \_.-~/            \_     ,        青春都一饷   
-       ( /~   /              ~-.\_ |   
-       \`\\  \_/                   ~ )          忍把浮名    
-   \_-~~~-.)  )\_\_/;;,.          \_  //'    
-  /'\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂   
- \`~ \_( ,\_..-- (     ,;'' /    ~--   /.\_\`    
-  /~~//'   /' \`~         ) /--..\_, )\_  \`~    
-  "  \`~"  "      \`"      /~'\`    \`\\~~      
-                         "     "   "~'  ""   
-  
-       
-  
-               Cracked By 巢水工作坊——fly \[OCN\]\[FCG\]   
-  
-                       2003-09-27  21:50 
+ASProtect V1.23 RC1 脱壳——天桥 Crack Me VC++ Ultra Killer Edition
 
- 
+相关页面：[http://www.51itcool.com/fcg/Announce/Announce.asp?BoardID=4&ID=2604](http://www.51itcool.com/fcg/Announce/Announce.asp?BoardID=4&ID=2604)
 
-  
- 4dd466d0e1e0cc123afbe504da2462ca
+软件大小：104K
+
+【程序要求】：脱壳：专业级；破解：杀手级
+
+【作者声明】：初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+【破解工具】：`Ollydbg1.09`、`PEiD`、`LordPE`、`ImportREC`
+
+—————————————————————————————————
+
+【脱壳过程】：
+
+脱壳——偶顶多也只能算是低低的业余级水平，幸好是 `ASProtect` `v1.23` `RC1` 加壳，如果是最新版的 `1.23` `RC4` 加壳，偶就无能为力啦。由于采用了动态地址，每次在 DLL 里的地址是不同的，以后面的代码为准。想给以后留点参考，所以记录的比较详细，高手们就不必浪费时间看了。可以用 `AsprStripper` `2.03` 自动脱壳。
+
+———————————————————————
+
+用 `Ollydbg` 手动脱壳，老规矩：载入后弹出“是压缩代码——要继续进行分析吗？”，点“否”。
+
+```
+00401000 T>  68 01204200           push TqCrackM.00422001
+                                   ==>进入 OD 后断在这！
+
+00401005     E8 01000000          call TqCrackM.0040100B
+
+0040100A     C3                   retn
+```
+
+`F9` 运行，程序会在异常处中断。
+
+```
+003F335C     3100                 xor dword ptr ds:[eax],eax
+                                   ==>第一个异常
+003F335E     EB 01                jmp short 003F3361
+```
+
+`Shift+F9` 通过异常，26 次程序运行。好了，`Try` `Again`，按 25 次 `Shift+F9`，停下来。
+
+```
+003F2CB4     8B4424 0C            mov eax,dword ptr ss:[esp+C]
+                                   ==>堆栈区的第二条地址        下断点！
+003F2CB8     8380 B8000000 02     add dword ptr ds:[eax+B8],2
+003F2CBF     C740 18 00000000     mov dword ptr ds:[eax+18],0
+003F2CC6     31C0                 xor eax,eax
+003F2CC8     C3                   retn
+003F2CC9     31C0                 xor eax,eax
+003F2CCB     64:FF30              push dword ptr fs:[eax]
+003F2CCE     64:8920              mov dword ptr fs:[eax],esp
+003F2CD1     3100                 xor dword ptr ds:[eax],eax
+                                   ==>第 25 次异常在这儿！          :-)
+                                   ==>看看堆栈区的第二条地址是：003F2CB4  设断
+                                   ==>也在下面的 RET 处设断！
+003F2CD3     64:8F05 00000000     pop dword ptr fs:[0]
+003F2CDA     58                   pop eax
+003F2DDB     833D 7C6D3F00 00     cmp dword ptr ds:[3F6D7C],0
+003F2CE2     74 14                je short 003F2CF8
+003F2CE4     6A 0C                push 0C
+003F2CE6     B9 7C6D3F00          mov ecx,3F6D7C
+003F2CEB     8D45 F8              lea eax,dword ptr ss:[ebp-8]
+003F2CEE     BA 04000000          mov edx,4
+003F2CF3     E8 54E1FFFF          call 003F0E4C
+003F2CF8     FF75 FC              push dword ptr ss:[ebp-4]
+003F2CFB     FF75 F8              push dword ptr ss:[ebp-8]
+003F2CFE     8B45 F4              mov eax,dword ptr ss:[ebp-C]
+003F2D01     8338 00              cmp dword ptr ds:[eax],0
+003F2D04     74 02                je short 003F2D08
+003F2D06     FF30                 push dword ptr ds:[eax]
+003F2D08     FF75 F0              push dword ptr ss:[ebp-10]
+003F2D0B     FF75 EC              push dword ptr ss:[ebp-14]
+003F2D0E     C3                   retn
+                                   ==>这里也设断！返回 00AA34A0
+```
+
+在 `003F2CB4` 处设断后，`Shift+F9` 运行，程序会中断在 `003F2CB4`。
+
+`F7` 走，程序会进入系统 DLL。`F9` 运行，会中断在 `003F2D0E` 处！:-)
+
+```
+00AA34A0   /E9 D6070000           jmp 00AA3C7B
+                                   ==>跳
+00AA3C7B     66:0FBEC9            movsx cx,cl
+00AA3C7F     0FBEDF               movsx ebx,bh
+00AA3C82     B8 39EA1808          mov eax,818EA39
+00AA3C87     81C0 8C15E2F3        add eax,F3E2158C
+00AA3C8D     C1C8 79              ror eax,79
+00AA3C90     8BF0                 mov esi,eax
+00AA3C92     C1CE FA              ror esi,0FA
+00AA3C95     F7D6                 not esi
+00AA3C97     C1CE 2B              ror esi,2B
+00AA3C9A     66:0FBAF3 BD         btr bx,0BD
+00AA3C9F     BA DDFED411          mov edx,11D4FEDD
+00AA3CA4     81C2 8AED8A7B        add edx,7B8AED8A
+00AA3CAA     8BEA                 mov ebp,edx
+00AA3CAC     81D1 372D8F0B        adc ecx,0B8F2D37
+00AA3CB2     BA B0AC29BB          mov edx,BB29ACB0
+00AA3CB7     81C2 C81184C5        add edx,C58411C8
+00AA3CBD     81EA 79BEAD80        sub edx,80ADBE79
+00AA3CC3     F7D2                 not edx
+00AA3CC5     8BDA                 mov ebx,edx
+00AA3CC7     C1CB 7B              ror ebx,7B
+00AA3CCA     8BFB                 mov edi,ebx
+00AA3CCC     46                   inc esi
+00AA3CCD     8BFE                 mov edi,esi
+00AA3CCF     D1C7                 rol edi,1
+00AA3CD1     81F7 A38FD7AC        xor edi,ACD78FA3
+00AA3CD7     3BFD                 cmp edi,ebp
+00AA3CD9   ^ 0F85 EDFFFFFF        jnz 00AA3CCC
+                                   ==>F4 下去
+00AA3CDF     0FB7C7               movzx eax,di
+00AA3CE2     8BCE                 mov ecx,esi
+00AA3CE4     66:8BEC              mov bp,sp
+00AA3CE7     81E9 E8001410        sub ecx,101400E8
+00AA3CED     66:81CE BB21         or si,21BB
+00AA3CF2     B8 EF05D811          mov eax,11D805EF
+00AA3CF7     C1C0 B9              rol eax,0B9
+00AA3CFA     F7D0                 not eax
+00AA3CFC     8BD8                 mov ebx,eax
+00AA3CFE     C1CB E2              ror ebx,0E2
+00AA3D01     F7D3                 not ebx
+00AA3D03     81C3 FD1377F7        add ebx,F77713FD
+00AA3D09     C1CB 77              ror ebx,77
+00AA3D0C     F7D3                 not ebx
+00AA3D0E     FECB                 dec bl
+00AA3D10   ^ 0F85 F8FFFFFF        jnz 00AA3D0E
+                                   ==>F4 下去
+00AA3D16     81C1 4D254B65        add ecx,654B254D
+00AA3D1C     8BF5                 mov esi,ebp
+00AA3D1E     B6 E7                mov dh,0E7
+00AA3D20     E8 0A000000          call 00AA3D2F
+                                   ==>F7 走
+00AA3D2F     D3E0                 shl eax,cl
+00AA3D31     66:0FBAF8 39         btc ax,39
+00AA3D36     5D                   pop ebp
+00AA3D37     E8 06000000          call 00AA3D42
+00AA3D3C     E9 14000000          jmp 00AA3D55
+                                   ==>跳
+00AA3D55     BF F3E3D672          mov edi,72D6E3F3
+00AA3D5A     81EF 016B1727        sub edi,27176B01
+00AA3D60     8BD7                 mov edx,edi
+00AA3D62     F7D2                 not edx
+00AA3D64     8BFA                 mov edi,edx
+00AA3D66     81C7 4A85678D        add edi,8D67854A
+00AA3D6C     81C7 8FF957BE        add edi,BE57F98F
+00AA3D72     03FD                 add edi,ebp
+00AA3D74     13D9                 adc ebx,ecx
+00AA3D76     BB FFFFFDFF          mov ebx,FFFDFFFF
+00AA3D7B     F7D3                 not ebx
+00AA3D7D     C1CB 88              ror ebx,88
+00AA3D80     C1C3 09              rol ebx,9
+00AA3D83     8BC3                 mov eax,ebx
+00AA3D85     C1C8 6F              ror eax,6F
+00AA3D88     8BF0                 mov esi,eax
+00AA3D8A     03F5                 add esi,ebp
+00AA3D8C     81EE E7FEFFFF        sub esi,-119
+00AA3D92     FFD6                 call esi
+                                   ==>F7 走，至 00AA3D9C
+00AA3D9C     5E                   pop esi
+00AA3D9D     BB 13F2E77B          mov ebx,7BE7F213
+00AA3DA2     81E6 9327CEEA        and esi,EACE2793
+00AA3DA8     BA F4E83A9A          mov edx,9A3AE8F4
+00AA3DAD     F7D2                 not edx
+00AA3DAF     C1CA F0              ror edx,0F0
+00AA3DB2     F7D2                 not edx
+00AA3DB4     C1CA 29              ror edx,29
+00AA3DB7     C1CA 9D              ror edx,9D
+00AA3DBA     8BDA                 mov ebx,edx
+00AA3DBC     81C3 08917CCD        add ebx,CD7C9108
+00AA3DC2     81EB 716320B9        sub ebx,B9206371
+00AA3DC8     8BF3                 mov esi,ebx
+```
+
+
+
+# 汇编代码分析
+
+## 代码段 1
+
+```
+00AA3DCA     03F5                 add esi,ebp
+
+00AA3DCC     51                   push ecx
+
+00AA3DCD     5B                   pop ebx
+
+00AA3DCE     66:BB 7DB5           mov bx,0B57D
+
+00AA3DD2     D1C9                 ror ecx,1
+
+00AA3DD4     BA B0000000          mov edx,0B0
+
+00AA3DD9     C1CA 83              ror edx,83
+
+00AA3DDC     03D5                 add edx,ebp
+
+00AA3DDE     81EA 95FEFFFF        sub edx,-16B
+
+00AA3DE4     FFE2                 jmp edx
+
+                     ==== >跳 00AA3DFC
+
+00AA3DFC     300E                 xor byte ptr ds:[esi],cl
+
+00AA3DFE     E8 08000000          call 00AA3E0B
+
+                     ==== >F7 走
+
+00AA3E0B     58                   pop eax
+
+00AA3E0C     66:0FABEA            bts dx,bp
+
+00AA3E10     4E                   dec esi
+
+00AA3E11     66:BB 4F31           mov bx,314F
+
+00AA3E15     66:8BD8              mov bx,ax
+
+00AA3E18     F607 80              test byte ptr ds:[edi],80
+
+00AA3E1B     66:B8 09FE           mov ax,0FE09
+
+00AA3E1F     0F83 00000000        jnb 00AA3E25
+
+00AA3E25     0F85 1B000000        jnz 00AA3E46
+
+                     ==== >跳
+
+00AA3E46     FE0F                 dec byte ptr ds:[edi]
+
+00AA3E48     66:6A DF             push 0FFDF
+
+00AA3E4B     66:5B                pop bx
+
+00AA3E4D     F607 7F              test byte ptr ds:[edi],7F
+
+00AA3E50     E8 06000000          call 00AA3E5B
+
+                     ==== >F7 走
+
+00AA3E5B     5B                   pop ebx
+
+00AA3E5C   ^ 0F85 6AFFFFFF        jnz 00AA3DCC
+
+00AA3E62     2AC1                 sub al,cl
+
+00AA3E64     B0 6E                mov al,6E
+
+00AA3E66     F607 80              test byte ptr ds:[edi],80
+
+00AA3E69     E9 12000000          jmp 00AA3E80
+
+                     ==== >跳
+
+00AA3E80     8AF3                 mov dh,bl
+
+00AA3E82     0F85 64000000        jnz 00AA3EEC
+
+                     ==== >跳
+
+00AA3EEC     F647 01 80           test byte ptr ds:[edi+1],80
+
+00AA3EF0     0FBEDB               movsx ebx,bl
+
+00AA3EF3     8AF1                 mov dh,cl
+
+00AA3EF5     0F85 09000000        jnz 00AA3F04
+
+                     ==== >跳
+
+00AA3F04     81C1 D1CF783B        add ecx,3B78CFD1
+
+00AA3F0A     55                   push ebp
+
+00AA3F0B     5B                   pop ebx
+
+00AA3F0C     C1E2 EA              shl edx,0EA
+
+00AA3F0F     E9 0B000000          jmp 00AA3F1F
+
+                     ==== >跳
+
+00AA3F1F     47                   inc edi
+
+00AA3F20     B8 4FCE464A          mov eax,4A46CE4F
+
+00AA3F25     C1C0 11              rol eax,11
+
+00AA3F28     C1C8 B4              ror eax,0B4
+
+00AA3F2B     C1C8 1F              ror eax,1F
+
+00AA3F2E     C1C0 3D              rol eax,3D
+
+00AA3F31     81C0 ACC9AD85        add eax,85ADC9AC
+
+00AA3F37     03C5                 add eax,ebp
+
+00AA3F39     81E8 3AFDFFFF        sub eax,-2C6
+
+00AA3F3F     FFE0                 jmp eax
+
+                     ==== >跳 00AA3F5F
+
+00AA3F5F     66:8BDD              mov bx,bp
+
+00AA3F62     B8 2D6D0F89          mov eax,890F6D2D
+
+00AA3F67     81F0 B94FABEB        xor eax,EBAB4FB9
+
+00AA3F6D     C1C8 40              ror eax,40
+
+00AA3F70     F7D0                 not eax
+
+00AA3F72     F7D0                 not eax
+
+00AA3F74     8BD8                 mov ebx,eax
+
+00AA3F76     C1CB D2              ror ebx,0D2
+
+00AA3F79     81F3 8BBECD86        xor ebx,86CDBE8B
+
+00AA3F7F     81C3 D49D6263        add ebx,63629DD4
+
+00AA3F85     81C3 FDC1340E        add ebx,0E34C1FD
+
+00AA3F8B     03DD                 add ebx,ebp
+
+00AA3F8D     3BDF                 cmp ebx,edi
+
+00AA3F8F     E9 11000000          jmp 00AA3FA5
+
+                     ==== >跳
+
+00AA3FA5    /0F85 26000000        jnz 00AA3FD1
+
+                     ==== >跳
+
+00AA3FD1     BA 2557A18E          mov edx,8EA15725
+
+00AA3FD6     81EA 815C5116        sub edx,16515C81
+
+00AA3FDC     C1CA BE              ror edx,0BE
+
+00AA3FDF     81C2 BB1CC01E        add edx,1EC01CBB
+
+00AA3FE5     03D5                 add edx,ebp
+
+00AA3FE7     3BD7                 cmp edx,edi
+
+00AA3FE9     8AF5                 mov dh,ch
+
+00AA3FEB     66:BB E284           mov bx,84E2
+
+00AA3FEF     0F85 26000000        jnz 00AA401B
+
+                     ==== >跳
+
+00AA401B     BB D6A0A6B7          mov ebx,B7A6A0D6
+
+00AA4020     81C3 67A9F760        add ebx,60F7A967
+
+00AA4026     81EB 258F2363        sub ebx,63238F25
+
+00AA402C     81F3 11E5FF49        xor ebx,49FFE511
+
+00AA4032     81C3 F7B2D7E2        add ebx,E2D7B2F7
+
+00AA4038     81C3 57F6A220        add ebx,20A2F657
+
+00AA403E     03DD                 add ebx,ebp
+
+00AA4040     3BDF                 cmp ebx,edi
+
+00AA4042     66:0FBEDA            movsx bx,dl
+
+00AA4046     8AE1                 mov ah,cl
+
+00AA4048     0F85 1C000000        jnz 00AA406A
+
+                     ==== >跳
+
+00AA406A     BB 7A39ED79          mov ebx,79ED397A
+
+00AA406F     81EB 2DCBEE19        sub ebx,19EECB2D
+
+00AA4075     C1CB 6E              ror ebx,6E
+
+00AA4078     81F3 9571062D        xor ebx,2D067195
+
+00AA407E     8BD3                 mov edx,ebx
+
+00AA4080     C1C2 A7              rol edx,0A7
+
+00AA4083     81EA D9F8F95E        sub edx,5EF9F8D9
+
+00AA4089     81C2 9F0DABB1        add edx,B1AB0D9F
+
+00AA408F     81F2 11D0692A        xor edx,2A69D011
+
+00AA4095     81C2 9F6EAEB9        add edx,B9AE6E9F
+
+00AA409B     03D5                 add edx,ebp
+
+00AA409D     3BD7                 cmp edx,edi
+
+00AA409F     E9 18000000          jmp 00AA40BC
+
+                     ==== >跳
+
+00AA40BC    /0F85 27000000        jnz 00AA40E9
+
+                     ==== >跳
+
+00AA40E9     BA 1C57FC07          mov edx,7FC571C
+
+00AA40EE     C1CA D0              ror edx,0D0
+
+00AA40F1     81F2 A90DF507        xor edx,7F50DA9
+
+00AA40F7     F7D2                 not edx
+
+00AA40F9     81F2 216F8BBB        xor edx,BB8B6F21
+
+00AA40FF     C1CA 96              ror edx,96
+
+00AA4102     8BDA                 mov ebx,edx
+
+00AA4104     C1C3 01              rol ebx,1
+
+00AA4107     81C3 0AB12B13        add ebx,132BB10A
+
+00AA410D     03DD                 add ebx,ebp
+
+00AA410F     3BDF                 cmp ebx,edi
+
+00AA4111     0FBFD2               movsx edx,dx
+
+00AA4114     E8 0C000000          call 00AA4125
+
+                     ==== >F7 走
+
+00AA4125     58                   pop eax
+
+00AA4126     0F85 14000000        jnz 00AA4140
+
+                     ==== >跳
+
+00AA4140     80E6 30              and dh,30
+
+00AA4143     66:0BDD              or bx,bp
+
+00AA4146     66:C1FB 93           sar bx,93
+
+00AA414A     BA 038C24BE          mov edx,BE248C03
+
+00AA414F     81C2 AEDD779B        add edx,9B77DDAE
+
+00AA4155     8BC2                 mov eax,edx
+
+00AA4157     F7D0                 not eax
+
+00AA4159     8BD0                 mov edx,eax
+
+00AA415B     81C2 E66D9C59        add edx,599C6DE6
+
+00AA4161     8BDA                 mov ebx,edx
+
+00AA4163     66:C1E2 25           shl dx,25
+
+00AA4167     03DD                 add ebx,ebp
+
+00AA4169     66:0FBAE8 89         bts ax,89
+
+00AA416E     81C3 E6050000        add ebx,5E6
+
+00AA4174     80D6 6D              adc dh,6D
+
+00AA4177     3BDF                 cmp ebx,edi
+
+00AA4179     E9 10000000          jmp 00AA418E
+
+                     ==== >跳
+
+00AA418E   ^F85 38FCFFFF        jnz 00AA3DCC
+
+                     ==== >F4 下去
+```
+
+
+
+00AA4194 66:0FA3FA bt dx,di
+====>F4 到这！
+
+00AA4198 66:0FABF7 bts di,si
+
+00AA419C BB D3F89F84 mov ebx,849FF8D3
+
+00AA41A1 81EB 21C8E15F sub ebx,5FE1C821
+
+00AA41A7 81F3 092225EC xor ebx,EC252209
+
+00AA41AD 8BFB mov edi,ebx
+
+00AA41AF C1CF 27 ror edi,27
+
+00AA41B2 C1CF 2C ror edi,2C
+
+00AA41B5 81F7 318C55AB xor edi,AB558C31
+
+00AA41BB 8BCF mov ecx,edi
+
+00AA41BD 81C1 5D20F936 add ecx,36F9205D
+
+00AA41C3 C1C9 07 ror ecx,7
+
+00AA41C6 66:BE 059E mov si,9E05
+
+00AA41CA 8BDA mov ebx,edx
+
+00AA41CC 03CD add ecx,ebp
+
+00AA41CE 8AFD mov bh,ch
+
+00AA41D0 0F87 00000000 ja 00AA41D6
+
+00AA41D6 FFE1 jmp ecx
+====>跳 00AA34A5
+
+00AA34A5 BE 3A553CEB mov esi,EB3C553A
+
+00AA34AA 81C6 D9AAC314 add esi,14C3AAD9
+
+00AA34B0 8BCE mov ecx,esi
+
+00AA34B2 - E2 FE loopd short 00AA34B2
+====>F4 下去
+
+00AA34B4 E8 00000000 call 00AA34B9
+====>F7 走
+
+00AA34B9 5B pop ebx
+
+00AA34BA 81C3 C4000000 add ebx,0C4
+
+00AA34C0 BA 9154BCF1 mov edx,F1BC5491
+
+00AA34C5 F7D2 not edx
+
+00AA34C7 81C2 B2F5E0B9 add edx,B9E0F5B2
+
+00AA34CD C1CA 02 ror edx,2
+
+00AA34D0 81C2 D90C91BE add edx,BE910CD9
+
+00AA34D6 C1CA 23 ror edx,23
+
+00AA34D9 8BCA mov ecx,edx
+
+00AA34DB 81F1 BB46133E xor ecx,3E1346BB
+
+00AA34E1 8BE9 mov ebp,ecx
+
+00AA34E3 4D dec ebp
+
+00AA34E4 ^ 0F85 FFFFFFF jnz 00AA34E3
+====>F4 下去
+
+00AA34EA B8 13D4F730 mov eax,30F7D413
+
+00AA34EF C1C0 65 rol eax,65
+
+00AA34F2 F7D0 not eax
+
+00AA34F4 8BC8 mov ecx,eax
+
+00AA34F6 F7D1 not ecx
+
+00AA34F8 8BE9 mov ebp,ecx
+
+00AA34FA 8BD1 mov edx,ecx
+
+00AA34FC BA 4AC8339E mov edx,9E33C84A
+
+00AA3501 81F2 49C39320 xor edx,2093C349
+
+00AA3507 C1CA 84 ror edx,84
+
+00AA350A F7D2 not edx
+
+00AA350C 8BC2 mov eax,edx
+
+00AA350E C1C8 8F ror eax,8F
+
+00AA3511 8BC8 mov ecx,eax
+
+00AA3513 C1C1 F1 rol ecx,0F1
+
+00AA3516 8BF9 mov edi,ecx
+
+00AA3518 D3CE ror esi,cl
+
+00AA351A 66:81DE 7130 sbb si,3071
+
+00AA351F 313B xor dword ptr ds:\[ebx\],edi
+
+00AA3521 66:68 F9DF push 0DFF9
+
+00AA3525 66:59 pop cx
+
+00AA3527 83C3 04 add ebx,4
+
+00AA352A 8AC5 mov al,ch
+
+00AA352C 45 inc ebp
+
+00AA352D E9 12000000 jmp 00AA3544
+====>跳
+
+00AA3544 81FD 2584FA1E cmp ebp,1EFA8425
+
+00AA354A 66:0FBECF movsx cx,bh
+
+00AA354E E9 13000000 jmp 00AA3566
+====>跳
+
+00AA3566 ^F85 ACFFFFFF jnz 00AA3518
+====>F4 下去
+
+00AA356C 66:8BF2 mov si,dx
+
+00AA356F 81CE 7DC264CF or esi,CF64C27D
+
+00AA3575 90 nop
+
+00AA3576 90 nop
+
+00AA3577 90 nop
+
+00AA3578 90 nop
+
+00AA3579 90 nop
+
+00AA357A 90 nop
+
+00AA357B 90 nop
+
+00AA357C 90 nop
+
+00AA357D 66:BA 38D2 mov dx,0D238
+
+00AA3581 E8 06000000 call 00AA358C
+====>F7 走
+
+00AA358C 66:BF 7C81 mov di,817C
+
+00AA3590 5B pop ebx
+
+00AA3591 68 8BC41D20 push 201DC48B
+
+00AA3596 66:81D7 BD84 adc di,84BD
+
+00AA359B 5A pop edx
+
+00AA359C 81C3 F0060000 add ebx,6F0
+
+00AA35A2 E9 13000000 jmp 00AA35BA
+====>跳
+
+00AA35BA 68 8D010000 push 18D
+
+00AA35BF 0FBFF8 movsx edi,ax
+
+00AA35C2 58 pop eax
+
+00AA35C3 66:8BF8 mov di,ax
+
+00AA35C6 8B33 mov esi,dword ptr ds:\[ebx\]
+
+00AA35C8 81DA 5B3E271E sbb edx,1E273E5B
+
+00AA35CE 81C6 DDD3F91E add esi,1EF9D3DD
+
+00AA35D4 66:81D9 102D sbb cx,2D10
+
+00AA35D9 81C6 52BBDA48 add esi,48DABB52
+
+00AA35DF 66:81F7 41E7 xor di,0E741
+
+00AA35E4 81EE 23EEA05D sub esi,5DA0EE23
+
+00AA35EA 66:81EF 1F17 sub di,171F
+
+00AA35EF 8933 mov dword ptr ds:\[ebx\],esi
+
+00AA35F1 66:81D7 B122 adc di,22B1
+
+00AA35F6 81EB 17CBB934 sub ebx,34B9CB17
+
+00AA35FC E9 07000000 jmp 00AA3608
+====>跳
+
+00AA3608 81C3 13CBB934 add ebx,34B9CB13
+
+00AA360E 68 8840902A push 2A904088
+
+00AA3613 8BCF mov ecx,edi
+
+00AA3615 5A pop edx
+
+00AA3616 48 dec eax
+
+00AA3617 0F85 11000000 jnz 00AA362E
+====>跳
+
+00AA361D B5 90 mov ch,90
+
+00AA361F E9 22000000 jmp 00AA3646
+====>此处下断，F9，断在这！ :-) 跳出循环！
+
+00AA362E 66:B9 854D mov cx,4D85
+
+00AA3632 ^ E9 8FFFFFFF jmp 00AA35C6
+====>跳 注意这个循环！向上找发现 00AA361F 可以跳过！
+
+00AA3646 0FBFF6 movsx esi,si
+
+00AA3649 B5 1C mov ch,1C
+
+00AA364B E8 0C000000 call 00AA365C
+====>F7 走
+
+00AA365C 66:81F1 32FB xor cx,0FB32
+
+00AA3661 5B pop ebx
+
+00AA3662 66:81E1 2C6E and cx,6E2C
+
+00AA3667 E8 0F000000 call 00AA367B
+====>F7 走
+
+00AA367B 8BD6 mov edx,esi
+
+00AA367D 59 pop ecx
+
+00AA367E 81C3 24060000 add ebx,624
+
+00AA3684 66:8BCA mov cx,dx
+
+00AA3687 66:81D1 DE2D adc cx,2DDE
+
+00AA368C 68 00000000 push 0
+
+00AA3691 E9 0F000000 jmp 00AA36A5
+====>跳
+
+00AA36A5 5F pop edi
+
+00AA36A6 81F6 669D1D73 xor esi,731D9D66
+
+00AA36AC FF341F push dword ptr ds:\[edi+ebx\]
+
+00AA36AF B1 C8 mov cl,0C8
+
+00AA36B1 58 pop eax
+
+00AA36B2 68 9FA5B073 push 73B0A59F
+
+00AA36B7 0FB7CF movzx ecx,di
+
+00AA36BA 5A pop edx
+
+00AA36BB 0FBFF1 movsx esi,cx
+
+00AA36BE 81F0 46414055 xor eax,55404146
+
+00AA36C4 E9 0E000000 jmp 00AA36D7
+====>跳
+
+00AA36D7 0FBFC9 movsx ecx,cx
+
+00AA36DA 81F0 074F6322 xor eax,22634F07
+
+00AA36E0 E9 10000000 jmp 00AA36F5
+====>跳
+
+
+
+00AA36F5 `E8 06000000` `call 00AA3700`
+
+`====>F7 走`
+
+00AA3700 `8BD1` `mov edx,ecx`
+
+00AA3702 `5E` `pop esi`
+
+00AA3703 `81C0 34F8C64C` `add eax,4CC6F834`
+
+00AA3709 `81EE B094622B` `sub esi,2B6294B0`
+
+00AA370F `BE 4F88D852` `mov esi,52D8884F`
+
+00AA3714 `89043B` `mov dword ptr ds:[ebx+edi],eax`
+
+00AA3717 `E9 0B000000` `jmp 00AA3727`
+
+`====>跳`
+
+00AA3727 `66:BE D1CD` `mov si,0CDD1`
+
+00AA372B `83EF 02` `sub edi,2`
+
+00AA372E `66:BA 102B` `mov dx,2B10`
+
+00AA3732 `4F` `dec edi`
+
+00AA3733 `4F` `dec edi`
+
+00AA3734 `B6 E8` `mov dh,0E8`
+
+00AA3736 `57` `push edi`
+
+00AA3737 `66:BE 7DFC` `mov si,0FC7D`
+
+00AA373B `59` `pop ecx`
+
+00AA373C `81FF 0CFBFFFF` `cmp edi,-4F4`
+
+00AA3742 `0F85 16000000` `jnz 00AA375E`
+
+`====>跳`
+
+00AA3748 `B6 D8` `mov dh,0D8`
+
+00AA374A `E9 35000000` `jmp 00AA3784`
+
+`====>此处下断，F9，断在这！ :-) 跳出循环！`
+
+00AA375E `/E9 0D000000` `jmp 00AA3770`
+
+`====>跳`
+
+00AA3770 `^E9 37FFFFFF` `jmp 00AA36AC`
+
+`====>跳 注意这个循环！向上找发现 00AA374A 可以跳过！`
+
+00AA3784 `B8 9FCC6112` `mov eax,1261CC9F`
+
+00AA3789 `E8 0F000000` `call 00AA379D`
+
+`====>F7 走`
+
+00AA379D `66:8BD9` `mov bx,cx`
+
+00AA37A0 `5A` `pop edx`
+
+00AA37A1 `B1 DB` `mov cl,0DB`
+
+00AA37A3 `81C2 E8040000` `add edx,4E8`
+
+00AA37A9 `B8 9526F753` `mov eax,53F72695`
+
+00AA37AE `8AC6` `mov al,dh`
+
+00AA37B0 `BF 00000000` `mov edi,0`
+
+00AA37B5 `B0 D3` `mov al,0D3`
+
+00AA37B7 `E9 13000000` `jmp 00AA37CF`
+
+`====>跳`
+
+00AA37CF `8B343A` `mov esi,dword ptr ds:[edx+edi]`
+
+00AA37D2 `52` `push edx`
+
+00AA37D3 `80E4 62` `and ah,62`
+
+00AA37D6 `58` `pop eax`
+
+00AA37D7 `81F6 A8ED255C` `xor esi,5C25EDA8`
+
+00AA37DD `80E3 47` `and bl,47`
+
+00AA37E0 `81C6 C1907F42` `add esi,427F90C1`
+
+00AA37E6 `0FB7CF` `movzx ecx,di`
+
+00AA37E9 `81F6 66A0B124` `xor esi,24B1A066`
+
+00AA37EF `66:81C8 6A6A` `or ax,6A6A`
+
+00AA37F4 `80E9 36` `sub cl,36`
+
+00AA37F7 `56` `push esi`
+
+00AA37F8 `8AD8` `mov bl,al`
+
+00AA37FA `8F043A` `pop dword ptr ds:[edx+edi]`
+
+00AA37FD `66:81E8 28D7` `sub ax,0D728`
+
+00AA3802 `0F85 07000000` `jnz 00AA380F`
+
+`====>跳`
+
+00AA380F `52` `push edx`
+
+00AA3810 `58` `pop eax`
+
+00AA3811 `83EF 03` `sub edi,3`
+
+00AA3814 `8AC3` `mov al,bl`
+
+00AA3816 `0FBFC1` `movsx eax,cx`
+
+00AA3819 `4F` `dec edi`
+
+00AA381A `81C0 2A91CC5D` `add eax,5DCC912A`
+
+00AA3820 `81FF 00FCFFFF` `cmp edi,-400`
+
+00AA3826 `0F85 24000000` `jnz 00AA3850`
+
+`====>跳`
+
+00AA382C `/E9 0B000000` `jmp 00AA383C`
+
+`====>此处下断，F9，断在这！ :-)`
+
+00AA383B `85E9` `test ecx,ebp`
+
+`====>花指令 改为 90E9`
+
+00AA383D `3900` `cmp dword ptr ds:[eax],eax`
+
+00AA383B `90` `nop //改后的变化`
+
+00AA383C `E9 39000000` `jmp 00AA387A`
+
+`====>跳出循环！`
+
+00AA3850 `51` `push ecx`
+
+00AA3851 `E8 0C000000` `call 00AA3862`
+
+`====>F7 走`
+
+00AA3862 `0FB7CF` `movzx ecx,di`
+
+00AA3865 `58` `pop eax`
+
+00AA3866 `66:B8 BF91` `mov ax,91BF`
+
+00AA386A `59` `pop ecx`
+
+00AA386B `^ E9 5FFFFFFF` `jmp 00AA37CF`
+
+`====>这个循环可以在 00AA382C 下断，在 00AA383C 跳出循环！`
+
+00AA387A `80DD FE` `sbb ch,0FE`
+
+00AA387D `E8 14000000` `call 00AA3896`
+
+`====>F7 走`
+
+00AA3896 `/E9 0B000000` `jmp 00AA38A6`
+
+`====>跳`
+
+00AA38A6 `5B` `pop ebx`
+
+00AA38A7 `81C0 C2E24132` `add eax,3241E2C2`
+
+00AA38AD `81C3 F4030000` `add ebx,3F4`
+
+00AA38B3 `66:BA 0E69` `mov dx,690E`
+
+00AA38B7 `68 00000000` `push 0`
+
+00AA38BC `E8 0F000000` `call 00AA38D0`
+
+`====>F7 走`
+
+00AA38D0 `66:81E0 96BA` `and ax,0BA96`
+
+00AA38D5 `5A` `pop edx`
+
+00AA38D6 `0F8B 21000000` `jpo 00AA38FD`
+
+`====>跳`
+
+00AA38FD `5F` `pop edi`
+
+00AA38FE `0FB7D7` `movzx edx,di`
+
+00AA3901 `80C6 DF` `add dh,0DF`
+
+00AA3904 `8B343B` `mov esi,dword ptr ds:[ebx+edi]`
+
+00AA3907 `0FBFD0` `movsx edx,ax`
+
+00AA390A `81F6 5A71E976` `xor esi,76E9715A`
+
+00AA3910 `BA E2882F70` `mov edx,702F88E2`
+
+00AA3915 `68 302FB752` `push 52B72F30`
+
+00AA391A `66:81F1 3A52` `xor cx,523A`
+
+00AA391F `5A` `pop edx`
+
+00AA3920 `81EE 8BDF8A47` `sub esi,478ADF8B`
+
+00AA3926 `81F6 68B8BF76` `xor esi,76BFB868`
+
+00AA392C `52` `push edx`
+
+00AA392D `0FB7C3` `movzx eax,bx`
+
+00AA3930 `80DD 78` `sbb ch,78`
+
+00AA3933 `59` `pop ecx`
+
+00AA3934 `B0 F6` `mov al,0F6`
+
+00AA3936 `B4 6E` `mov ah,6E`
+
+00AA3938 `56` `push esi`
+
+00AA3939 `E8 0F000000` `call 00AA394D`
+
+`====>F7 走`
+
+00AA394D `8BD1` `mov edx,ecx`
+
+00AA394F `BA A2E78934` `mov edx,3489E7A2`
+
+00AA3954 `58` `pop eax`
+
+00AA3955 `B9 256F0206` `mov ecx,6026F25`
+
+00AA395A `8F043B` `pop dword ptr ds:[ebx+edi]`
+
+00AA395D `E8 0D000000` `call 00AA396F`
+
+`====>F7 走`
+
+00AA396F `66:81E2 7763` `and dx,6377`
+
+00AA3974 `66:8BD7` `mov dx,di`
+
+00AA3977 `81D8 7CB36E44` `sbb eax,446EB37C`
+
+00AA397D `5A` `pop edx`
+
+00AA397E `0F8B 08000000` `jpo 00AA398C`
+
+`====>跳`
+
+00AA398C `B2 9E` `mov dl,9E`
+
+00AA398E `83EF 04` `sub edi,4`
+
+00AA3991 `81C0 B0A8E23F` `add eax,3FE2A8B0`
+
+00AA3997 `8BD6` `mov edx,esi`
+
+00AA3999 `81FF 3CFDFFFF` `cmp edi,-2C4`
+
+00AA399F `^ 0F85 5FFFFFFF` `jnz 00AA3904`
+
+`====>F4 下去 :-)`
+
+00AA39A5 `0FBFC1` `movsx eax,cx`
+
+00AA39A8 `50` `push eax`
+
+00AA39A9 `68 99A87218` `push 1872A899`
+
+00AA39AE `66:B8 5535` `mov ax,3555`
+
+00AA39B2 `5A` `pop edx`
+
+00AA39B3 `B4 DF` `mov ah,0DF`
+
+00AA39B5 `59` `pop ecx`
+
+00AA39B6 `53` `push ebx`
+
+00AA39B7 `81D1 5E40953A` `adc ecx,3A95405E`
+
+00AA39BD `58` `pop eax`
+
+00AA39BE `E8 0A000000` `call 00AA39CD`
+
+`====>F7 走`
+
+00AA39CD `50` `push eax`
+
+00AA39CE `B0 53` `mov al,53`
+
+
+
+```
+00AA39D0     58                   pop eax
+00AA39D1     5B                   pop ebx
+00AA39D2     68 7D9D2400          push 249D7D
+00AA39D7     8BC8                 mov ecx,eax
+00AA39D9     5F                   pop edi
+00AA39DA     81C3 B1020000        add ebx,2B1
+00AA39E0     80CD 58              or ch,58
+00AA39E3     2BD2                 sub edx,edx
+00AA39E5     66:81C1 22BE         add cx,0BE22
+00AA39EA     FF341A               push dword ptr ds:[edx+ebx]
+00AA39ED     8ACC                 mov cl,ah
+00AA39EF     5E                   pop esi
+00AA39F0     B4 11                mov ah,11
+00AA39F2     81C6 DCB08862        add esi,6288B0DC
+00AA39F8     BF A06B7342          mov edi,42736BA0
+00AA39FD     81F6 E5853E40        xor esi,403E85E5
+00AA3A03     E9 14000000          jmp 00AA3A1C
+                          ====>跳
+00AA3A1C     81EE BAF8881B        sub esi,1B88F8BA
+00AA3A22     81E8 32C31934        sub eax,3419C332
+00AA3A28     56                   push esi
+00AA3A29     81D1 2CF67B25        adc ecx,257BF62C
+00AA3A2F     8F0413               pop dword ptr ds:[ebx+edx]
+00AA3A32     E8 10000000          call 00AA3A47
+                          ====>F7 走
+00AA3A47     B9 C782B920          mov ecx,20B982C7
+00AA3A4C     59                   pop ecx
+00AA3A4D     E8 08000000          call 00AA3A5A
+                          ====>F7 走
+00AA3A5A     68 B6622565          push 652562B6
+00AA3A5F     8ACE                 mov cl,dh
+00AA3A61     58                   pop eax
+00AA3A62     5F                   pop edi
+00AA3A63     81EA C1C94941        sub edx,4149C9C1
+00AA3A69     68 54899603          push 3968954
+00AA3A6E     80C1 3E              add cl,3E
+00AA3A71     59                   pop ecx
+00AA3A72     81C2 BDC94941        add edx,4149C9BD
+00AA3A78     E9 06000000          jmp 00AA3A83
+                          ====>跳
+00AA3A83     81FA 1CFEFFFF        cmp edx,-1E4
+00AA3A89   ^ 0F85 5BFFFFFF        jnz 00AA39EA
+                          ====>F4 下去    :-)
+00AA3A8F     66:81E8 FA1C         sub ax,1CFA
+00AA3A94     68 475C3B34          push 343B5C47
+00AA3A99     5E                   pop esi
+00AA3A9A     E8 14000000          call 00AA3AB3
+                          ====>F7 走
+00AA3AB3     66:81C8 D4E4         or ax,0E4D4
+00AA3AB8     5B                   pop ebx
+00AA3AB9     81C3 D5010000        add ebx,1D5
+00AA3ABF     0FBFC0               movsx eax,ax
+00AA3AC2     68 00000000          push 0
+00AA3AC7     E8 07000000          call 00AA3AD3
+                          ====>F7 走
+00AA3AD3     66:B8 219A           mov ax,9A21
+00AA3AD7     58                   pop eax
+00AA3AD8     5A                   pop edx
+00AA3AD9     81E7 FF109606        and edi,69610FF
+00AA3ADF     8B0C13               mov ecx,dword ptr ds:[ebx+edx]
+00AA3AE2     66:81DF 914D         sbb di,4D91
+00AA3AE7     81E9 AE44D73D        sub ecx,3DD744AE
+00AA3AED     66:81DE D0E9         sbb si,0E9D0
+00AA3AF2     81E9 4F722938        sub ecx,3829724F
+00AA3AF8     81D6 DA374916        adc esi,164937DA
+00AA3AFE     81E9 DCED9302        sub ecx,293EDDC
+00AA3B04     66:8BC3              mov ax,bx
+00AA3B07     51                   push ecx
+00AA3B08     0FB7F2               movzx esi,dx
+00AA3B0B     8F0413               pop dword ptr ds:[ebx+edx]
+00AA3B0E     BE FB650328          mov esi,280365FB
+00AA3B13     0F86 05000000        jbe 00AA3B1E
+00AA3B19     BF E2C1C536          mov edi,36C5C1E2
+00AA3B1E     81EA 30909E36        sub edx,369E9030
+00AA3B24     68 CF59731E          push 1E7359CF
+00AA3B29     66:81F0 4835         xor ax,3548
+00AA3B2E     5E                   pop esi
+00AA3B2F     81C2 2C909E36        add edx,369E902C
+00AA3B35     81FA E0FEFFFF        cmp edx,-120
+00AA3B3B   ^ 0F85 9EFFFFFF        jnz 00AA3ADF
+                          ====>F4 下去    :-)
+00AA3B41     E8 0E000000          call 00AA3B54
+                          ====>F7 走
+00AA3B54     66:8BC6              mov ax,si
+00AA3B57     5F                   pop edi
+00AA3B58     E9 06000000          jmp 00AA3B63
+                          ====>跳
+00AA3B63     66:81EE ACFA         sub si,0FAAC
+00AA3B68     E8 0A000000          call 00AA3B77
+                          ====>F7 走
+00AA3B77     68 AED55836          push 3658D5AE
+00AA3B7C     0F83 05000000        jnb 00AA3B87
+00AA3B82     66:81F0 86EC         xor ax,0EC86
+00AA3B87     58                   pop eax
+00AA3B88     5B                   pop ebx
+00AA3B89     E9 14000000          jmp 00AA3BA2
+                          ====>跳
+00AA3BA2     8BC2                 mov eax,edx
+00AA3BA4     81C3 09010000        add ebx,109
+00AA3BAA     66:B8 C34E           mov ax,4EC3
+00AA3BAE     BF BE0B8E74          mov edi,748E0BBE
+00AA3BB3     68 00000000          push 0
+00AA3BB8     80E8 58              sub al,58
+00AA3BBB     5A                   pop edx
+00AA3BBC     66:8BC7              mov ax,di
+00AA3BBF     FF341A               push dword ptr ds:[edx+ebx]
+00AA3BC2     50                   push eax
+00AA3BC3     66:B8 216F           mov ax,6F21
+00AA3BC7     8BF2                 mov esi,edx
+00AA3BC9     58                   pop eax
+00AA3BCA     59                   pop ecx
+00AA3BCB     52                   push edx
+00AA3BCC     68 CCD79C5A          push 5A9CD7CC
+00AA3BD1     57                   push edi
+00AA3BD2     5E                   pop esi
+00AA3BD3     5E                   pop esi
+00AA3BD4     58                   pop eax
+00AA3BD5     51                   push ecx
+00AA3BD6     0FBFC6               movsx eax,si
+00AA3BD9     5E                   pop esi
+00AA3BDA     81E9 50997271        sub ecx,71729950
+00AA3BE0     8AE7                 mov ah,bh
+00AA3BE2     BE FBB22733          mov esi,3327B2FB
+00AA3BE7     81C1 49D7611C        add ecx,1C61D749
+00AA3BED     56                   push esi
+00AA3BEE     66:BE 7386           mov si,8673
+00AA3BF2     5E                   pop esi
+00AA3BF3     81F1 4E18B770        xor ecx,70B7184E
+00AA3BF9     E8 10000000          call 00AA3C0E
+                          ====>F7 走
+00AA3C0E     8BF0                 mov esi,eax
+00AA3C10     58                   pop eax
+00AA3C11     51                   push ecx
+00AA3C12     66:B8 450C           mov ax,0C45
+00AA3C16     8F0413               pop dword ptr ds:[ebx+edx]
+00AA3C19     0FBFC6               movsx eax,si
+00AA3C1C     66:81E6 3E01         and si,13E
+00AA3C21     83EA 01              sub edx,1
+00AA3C24     66:8BF2              mov si,dx
+00AA3C27     BF A2A11647          mov edi,4716A1A2
+00AA3C2C     4A                   dec edx
+00AA3C2D     4A                   dec edx
+00AA3C2E     4A                   dec edx
+00AA3C2F     E9 0E000000          jmp 00AA3C42
+                          ====>跳
+00AA3C42     66:81D7 958D         adc di,8D95
+00AA3C47     81FA F0FFFFFF        cmp edx,-10
+00AA3C4D   ^ 0F85 6CFFFFFF        jnz 00AA3BBF
+                          ====>F4 下去    :-)
+00AA3C53     8BFA                 mov edi,edx
+00AA3C55     0F8A 0F000000        jpe 00AA3C6A
+                          ====>跳
+00AA3C6A     5B                   pop ebx
+00AA3C6B     58                   pop eax
+00AA3C6C     05 E43243A7          add eax,A74332E4
+00AA3C71     5C                   pop esp
+00AA3C72     03C3                 add eax,ebx
+```
+
+
+
+# 逆向分析与破解记录
+
+## 1. 定位 OEP (Original Entry Point)
+
+跟踪执行流，计算跳转目标地址：
+
+```
+00AA3C74     894424 1C            mov dword ptr ss:[esp+1C],eax
+00AA3C78     61                   popad
+00AA3C79     FFE0                 jmp eax
+```
+
+`EAX` 的值计算如下：`EAX = 000066A0 + 00400000 = 004066A0`。
+因此，OEP 值为 `004066A0`。
+
+跳转至新地址：
+
+```
+004066A0     /E9 F32D0100         jmp TqCrackM.00419498
+```
+
+这里使用了动态跳转技术。
+
+## 2. 动态解码过程
+
+执行至 `00419498`：
+
+```
+00419498     9C                   pushfd
+00419499     60                   pushad
+0041949A     E8 00000000          call TqCrackM.0041949F
+0041949F     5D                   pop ebp
+004194A0     8DB5 32010000        lea esi,dword ptr ss:[ebp+132]
+004194A6     8B5C24 24            mov ebx,dword ptr ss:[esp+24]
+004194AA     81E3 0000E0FF        and ebx,FFE00000
+004194B0     8DBD 2D020000        lea edi,dword ptr ss:[ebp+22D]
+004194B6     E8 D6000000          call TqCrackM.00419591
+004194BB     8D4D 2B              lea ecx,dword ptr ss:[ebp+2B]
+004194BE     51                   push ecx
+004194BF     8D5D 4E              lea ebx,dword ptr ss:[ebp+4E]
+004194C2     89DE                 mov esi,ebx
+004194C4     E8 C8000000          call TqCrackM.00419591
+004194C9     C3                   ret
+```
+
+`ret` 指令返回至 `004066A0`。这是典型的动态解码过程，此时内存中数据已正确还原。
+
+## 3. DUMP 与修复
+
+在 `004066A0` 处：
+
+```
+004066A0     55                   push ebp
+```
+
+在此处使用 `LordPE` 完全 DUMP 当前进程。
+
+**修复步骤：**
+
+1. 重新运行被保护程序。
+2. 运行 `ImportREC`，选择当前进程。
+3. 将 OEP 改为 `000066A0`。
+4. 点击 `IT AutoSearch`。
+5. 修改 RAV (Rebase Address Value) 为 `0001E000`。
+6. 修改大小 (Size) 为 `00001000`。
+7. 点击 `Get Import`。
+8. 使用插件手动修复无效函数，删除多余项。
+9. 点击 `FixDump`。
+10. 使用 `LordPE` 重建修复后的程序。
+
+文件大小变化：从 `104K` DUMP 后变为 `208K`，重建修复后变为 `188K`，可正常运行。
+
+## 4. 注册码验证逻辑
+
+作者描述了高难度的保护机制：“杀手级：断点设置，简单加密，复杂算法，耐心灵感”。涉及数千次的循环。
+
+关键验证位置（逐位比较）：
+
+```
+00404DA5     DC5D D8              fcomp qword ptr ss:[ebp-28] //比较 ①
+00404EB2     DC5D D8              fcomp qword ptr ss:[ebp-28] //比较 ②
+004050CC     DC5D D8              fcomp qword ptr ss:[ebp-28] //比较 ③
+00404FBF     DC5D D8              fcomp qword ptr ss:[ebp-28] //比较 ④
+```
+
+**有效注册信息：**
+
+- 用户名：`fly[FCG]`
+- 注册码：`fhlr-defj-bacb-a998`
+
+---
+
+## 5. 结语
+
+```
+         ,     \_/
+       /| \_.-~/          \_     ,        青春都一饷
+      ( /~   /             ~-.\_ |
+      \`\\  \_/                   ~ )          忍把浮名
+   _-~~~-.)  )\_\_/;;,.          \_  //'
+  /\_,   --~    ~~~-  ,;;\_\_\_(  (.-~~~-.        换了破解轻狂
+ \`~ \_( ,\_..-- (      ,;'' /    ~--   /.\_\`
+  /~~//'   / \`~          ) /--..\_, )\_  \`~
+  "  \`~"  "       \`"       /~'\`    \`\\~~
+                     "     "   "~'  ""
+
+            Cracked By 巢水工作坊——fly [OCN][FCG]
+
+                  2003-09-27  21:50
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

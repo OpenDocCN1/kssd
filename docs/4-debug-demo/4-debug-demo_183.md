@@ -1,116 +1,136 @@
 
-
 # Add Remove Plus! 2000 v2.0
 
-> 原文：[`www.pediy.com/kssd/pediy03/forum586.htm`](https://www.pediy.com/kssd/pediy03/forum586.htm)
+> 原文：`www.pediy.com/kssd/pediy03/forum586.htm`
 
-Add Remove Plus! 2000 v2.0 破解手记 附:Windows 优化大师 3.3 的破解方法   
-目标软件:Add Remove Plus! 2000 v2.0   
-破 解 人:TAE!   
-保护机制:Nag 窗口   
-破解方法:暴力破解   
-下载地址:http://www.aurelitec.com/    
-    
-  
-  先运行程序,出现了一个类似 Vbox 的 Nag,着实吓了我一跳.心想:一个几百 K 的软件   
-也用 Vbox 封装?   
-  用 FileInfo 检测发现是一个 delphi 程序,顿时松了口气.   
-  用 Trw 加载程序.   
-    
-:0046B440 55                      push ebp   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:0046B3F9(C)   
-|   
-:0046B441 8BEC                    mov ebp, esp   
-:0046B443 83C4F4                  add esp, FFFFFFF4   
-:0046B446 B818B24600              mov eax, 0046B218   
-:0046B44B E8A8ADF9FF              call 004061F8   
-  
-\* Possible StringData Ref from Code Obj ->"INSTALL.DA2"   
-                                  |   
-:0046B450 B9B8B44600              mov ecx, 0046B4B8   
-  
-\* Possible StringData Ref from Code Obj ->"INSTALL.DA1"   
-                                  |   
-:0046B455 BACCB44600              mov edx, 0046B4CC   
-  
-\* Possible StringData Ref from Code Obj ->"INSTALL.DA0"   
-                                  |   
-:0046B45A B8E0B44600              mov eax, 0046B4E0   
-:0046B45F E83C90FFFF              call 004644A0    //这句运行后便出现 Nag   
-:0046B464 84C0                    test al, al      //选择 "Try"后回到了这里   
-:0046B466 7441                    je 0046B4A9      //此时不跳转;若选了 Quit,这里便会跳走   
-:0046B468 A160D04600              mov eax, dword ptr \[0046D060\]   
-:0046B46D 8B00                    mov eax, dword ptr \[eax\]   
-:0046B46F E81409FEFF              call 0044BD88   
-:0046B474 A160D04600              mov eax, dword ptr \[0046D060\]   
-:0046B479 8B00                    mov eax, dword ptr \[eax\]   
-  
-\* Possible StringData Ref from Code Obj ->"Add/Remove Plus! 2000"   
-  
-既然知道了产生 Nag 的 call,那我就用 tKC 常用的 Return 大法来超度它!   
-进入那个产生 Nag 的 call,便到了这里:   
-\* Referenced by a CALL at Address:   
-|:0046B45F    
-|   
-:004644A0 55                      push ebp  //就在这一行做做手脚吧   
-:004644A1 8BEC                    mov ebp, esp   
-:004644A3 83C4E0                  add esp, FFFFFFE0   
-:004644A6 53                      push ebx   
-:004644A7 56                      push esi   
-:004644A8 57                      push edi   
-:004644A9 33DB                    xor ebx, ebx   
-:004644AB 895DF0                  mov dword ptr \[ebp\-10\], ebx   
-:004644AE 895DF8                  mov dword ptr \[ebp\-08\], ebx   
-:004644B1 8BD8                    mov ebx, eax   
-:004644B3 33C0                    xor eax, eax   
-:004644B5 55                      push ebp   
-:004644B6 68EA464600              push 004646EA   
-:004644BB 64FF30                  push dword ptr fs:\[eax\]   
-:004644BE 648920                  mov dword ptr fs:\[eax\], esp   
-:004644C1 C645FF00                mov \[ebp\-01\], 00   
-:004644C5 33C0                    xor eax, eax   
-:004644C7 55                      push ebp   
-:004644C8 68AF464600              push 004646AF   
-:004644CD 64FF30                  push dword ptr fs:\[eax\]   
-:004644D0 648920                  mov dword ptr fs:\[eax\], esp   
-:004644D3 8D55F0                  lea edx, dword ptr \[ebp\-10\]   
-:004644D6 33C0                    xor eax, eax   
-:004644D8 E8C7E3F9FF              call 004028A4   
-:004644DD 8B45F0                  mov eax, dword ptr \[ebp\-10\]   
-  
-在 004644A0 这行,将 55 改为 C3 即 Ret   
-这样程序运行到这里后,就会立即返回调用它的地方,也就是 0046B464,程序就不会出现 Nag 了.   
-然后再将  0046B466 处的 7441   
-  改为:                9090   
-  程序已经被破解啦!   
-其实 tKC 的这种 Ret 大法非常适合于以下这种情况:   
-有许多地方调用这个 call.   
-比如:        00000000:Call 11111111   
-              00000001:test al,1   
-                
-              11111111:push   
-              XXXXXXXX: ...   
-可以改为:        
-              00000000:Call 11111111   
-              00000001:test al,1   
-                
-              11111111:mov al,1   
-              XXXXXXXX:ret   
-    这样所有调用这里的地方,返回的 al 值都是 1 了!cool 吧?   
-    当然这儿可以充分发挥你的想象力,让我们改的更好!   
-    已经 3 点多了,该睡了!   
-  
-  
-      Windows 优化大师 3.3 的破解方法   
-Aspack 2.11 加的壳,先脱壳,都会吧?   
-然后...   
-  
-查找:83f8147407bb01000000   
-改为:      EB      
-  
-查找:83f8147423bba1860100   
-改为:      EB                
-  
-成为随意注册版!  4dd466d0e1e0cc123afbe504da2462ca
+Add Remove Plus! 2000 v2.0 破解手记 附:Windows 优化大师 3.3 的破解方法
+
+目标软件:Add Remove Plus! 2000 v2.0
+
+破 解 人:TAE!
+
+保护机制:Nag 窗口
+
+破解方法:暴力破解
+
+下载地址:http://www.aurelitec.com/
+
+先运行程序,出现了一个类似 `Vbox` 的 `Nag`,着实吓了我一跳.心想:一个几百 K 的软件也用 `Vbox` 封装?
+
+用 `FileInfo` 检测发现是一个 `delphi` 程序,顿时松了口气.
+
+用 `Trw` 加载程序.
+
+```
+:0046B440 55  push ebp
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046B3F9(C)
+|
+:0046B441 8BEC  mov ebp, esp
+:0046B443 83C4F4  add esp, FFFFFFF4
+:0046B446 B818B24600  mov eax, 0046B218
+:0046B44B E8A8ADF9FF  call 004061F8
+* Possible StringData Ref from Code Obj ->"INSTALL.DA2"
+                  |
+:0046B450 B9B8B44600  mov ecx, 0046B4B8
+* Possible StringData Ref from Code Obj ->"INSTALL.DA1"
+                  |
+:0046B455 BACCB44600  mov edx, 0046B4CC
+* Possible StringData Ref from Code Obj ->"INSTALL.DA0"
+                  |
+:0046B45A B8E0B44600  mov eax, 0046B4E0
+:0046B45F E83C90FFFF  call 004644A0  //这句运行后便出现 Nag
+:0046B464 84C0  test al, al  //选择 "Try"后回到了这里
+:0046B466 7441  je 0046B4A9  //此时不跳转;若选了 Quit,这里便会跳走
+:0046B468 A160D04600  mov eax, dword ptr [0046D060]
+:0046B46D 8B00  mov eax, dword ptr [eax]
+:0046B46F E81409FEFF  call 0044BD88
+:0046B474 A160D04600  mov eax, dword ptr [0046D060]
+:0046B479 8B00  mov eax, dword ptr [eax]
+* Possible StringData Ref from Code Obj ->"Add/Remove Plus! 2000"
+```
+
+既然知道了产生 `Nag` 的 `call`,那我就用 `tKC` 常用的 `Return` 大法来超度它!
+
+进入那个产生 `Nag` 的 `call`,便到了这里:
+
+```
+* Referenced by a CALL at Address:
+|:0046B45F 
+|
+:004644A0 55  push ebp  //就在这一行做做手脚吧
+:004644A1 8BEC  mov ebp, esp
+:004644A3 83C4E0  add esp, FFFFFFE0
+:004644A6 53  push ebx
+:004644A7 56  push esi
+:004644A8 57  push edi
+:004644A9 33DB  xor ebx, ebx
+:004644AB 895DF0  mov dword ptr [ebp\-10], ebx
+:004644AE 895DF8  mov dword ptr [ebp\-08], ebx
+:004644B1 8BD8  mov ebx, eax
+:004644B3 33C0  xor eax, eax
+:004644B5 55  push ebp
+:004644B6 68EA464600  push 004646EA
+:004644BB 64FF30  push dword ptr fs:[eax]
+:004644BE 648920  mov dword ptr fs:[eax], esp
+:004644C1 C645FF00  mov [ebp\-01], 00
+:004644C5 33C0  xor eax, eax
+:004644C7 55  push ebp
+:004644C8 68AF464600  push 004646AF
+:004644CD 64FF30  push dword ptr fs:[eax]
+:004644D0 648920  mov dword ptr fs:[eax], esp
+:004644D3 8D55F0  lea edx, dword ptr [ebp\-10]
+:004644D6 33C0  xor eax, eax
+:004644D8 E8C7E3F9FF  call 004028A4
+:004644DD 8B45F0  mov eax, dword ptr [ebp\-10]
+```
+
+在 `004644A0` 这行,将 `55` 改为 `C3` 即 `Ret`
+
+这样程序运行到这里后,就会立即返回调用它的地方,也就是 `0046B464`,程序就不会出现 `Nag` 了.
+
+然后再将 `0046B466` 处的 `7441` 改为: `9090`
+
+程序已经被破解啦!
+
+其实 `tKC` 的这种 `Ret` 大法非常适合于以下这种情况: 有许多地方调用这个 `call`.
+
+比如:
+
+```
+00000000:Call 11111111
+00000001:test al,1
+11111111:push
+XXXXXXXX: ...
+```
+
+可以改为:
+
+```
+00000000:Call 11111111
+00000001:test al,1
+11111111:mov al,1
+XXXXXXXX:ret
+```
+
+这样所有调用这里的地方,返回的 `al` 值都是 `1` 了!cool 吧?
+
+当然这儿可以充分发挥你的想象力,让我们改的更好!
+
+已经 3 点多了,该睡了!
+
+## Windows 优化大师 3.3 的破解方法
+
+`Aspack` `2.11` 加的壳,先脱壳,都会吧?
+
+然后...
+
+查找:`83f8147407bb01000000`
+
+改为: `EB`
+
+查找:`83f8147423bba1860100`
+
+改为: `EB`
+
+成为随意注册版! `4dd466d0e1e0cc123afbe504da2462ca`

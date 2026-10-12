@@ -1,200 +1,411 @@
 
-
 # 对手动脱壳进阶第八篇 Skvp1.32 的修正
 
 > 原文：[`www.pediy.com/kssd/pediy11/127372.html`](https://www.pediy.com/kssd/pediy11/127372.html)
 
-新学脱壳技术不久，对脱壳感到神秘又新鲜，脱壳中学到许多有用的知识，也结交了许多好朋友。我的学习之路是从手动脱壳入门开始的，当练习到手动脱壳进阶第八篇 Skvp1.32 的时候遇到了前所未有的麻烦。  
-Skvp1.32 的壳寻找入口点 oep 相对来说比较容易，找到 oep 后 dump，使用 importICE 修复时遇到了巨大的困难。总是有两个无效指针无法修复，使用了插件也不行，想了许多方法也不行，足足折磨我两天，可谓身心憔悴。废话少说，直接开始。请大家手下留情。  
-用 Peid 测 NOTEPAD.EXE 的壳为 SVKP 1.3x -> Pavol Cerven。  
-我们把 Od 中的选项－调试选项－异常选项卡了除了忽略在内存访问异常不打勾，其余全部打勾，请检查自己的 Od 设置。我的 Od 中存在一个硬件断点，这个断点让我吃尽苦头，所以检查设置的时候也要看一下是否存在不必要的断点。这里我就不手动跟到 oep。介绍一下变通的方法。  
-用 OD 载入程序后,插件隐藏 OD.确定一个入口警告，Od 提示程序加壳，选不继续分析。  
-0040C000 >  60              pushad  
-0040C001    E8 00000000     call    0040C006  
-0040C006    5D              pop     ebp  
-0040C007    81ED 06000000   sub     ebp, 6  
-0040C00D    EB 05           jmp     short 0040C014  
-0040C00F    B8 06364200     mov     eax, 423606  
-0040C014    64:A0 23000000  mov     al, byte ptr fs:\[23\]  
-...............................................................  
-先 F9 运行看看。程序异常，是加密壳，有 SEH 陷阱语句。  
-异常 1  
-00A00492    8900            mov     dword ptr \[eax\], eax  
-00A00494    E8 01000000     call    00A0049A  
-00A00499    E8 E8020000     call    00A00786  
-00A0049E    00CD            add     ch, cl  
-00A004A0    2083 04240B83   and     byte ptr \[ebx+830B2404\], al  
-00A004A6    44              inc     esp  
-00A004A7    24 04           and     al, 4  
-00A004A9    13C3            adc     eax, ebx  
-...............................................................  
-Shift+F9 跳过运行。  
-异常 2  
-00A00571    E8 01000000     call    00A00577  
-00A00576    E8 E8020000     call    00A00863  
-00A0057B    00CD            add     ch, cl  
-00A0057D    2083 04240B83   and     byte ptr \[ebx+830B2404\], al  
-00A00583    44              inc     esp  
-00A00584    24 04           and     al, 4  
-00A00586    13C3            adc     eax, ebx  
-...............................................................  
-Shift+F9 跳过运行。  
-异常 3  
-00A603E1    8900            mov     dword ptr \[eax\], eax  
-00A603E3    60              pushad  
-00A603E4    E8 03000000     call    00A603EC  
-00A603E9    D2EB            shr     bl, cl  
-00A603EB    0A58 EB         or      bl, byte ptr \[eax-15\]  
-00A603EE    0148 40         add     dword ptr \[eax+40\], ecx  
-00A603F1    EB 01           jmp     short 00A603F4  
-...............................................................  
-Shift+F9 跳过运行。  
-异常 4  
-00A6137F    6285 0E0B0000   bound   eax, qword ptr \[ebp+B0E\]  
-00A61385    EB 02           jmp     short 00A61389  
-00A61387    0FE88B D1EB02CD psubsb  mm1, qword ptr \[ebx+CD02EBD1\]  
-00A6138E    208B C2EB02CD   and     byte ptr \[ebx+CD02EBC2\], cl  
-00A61394    208B 8A4F0800   and     byte ptr \[ebx+84F8A\], cl  
-00A6139A    007C03 EB       add     byte ptr \[ebx+eax-15\], bh  
-00A6139E    0369 74         add     ebp, dword ptr \[ecx+74\]  
-00A613A1    FB              sti  
-00A613A2    8B89 74010000   mov     ecx, dword ptr \[ecx+174\]  
-...............................................................  
-Shift+F9 跳过运行。  
-SVKP 1.32 典型最后一次异常。如果继续 Shift+F9 程序就会运行。  
-00A6C028    CD 01           int     1  
-00A6C02A    E8 01000000     call    00A6C030  
-00A6C02F  - E9 83C4047C     jmp     7CAB84B7  
-00A6C034    03EB            add     ebp, ebx  
-00A6C036    039A 74FB648F   add     ebx, dword ptr \[edx+8F64FB74\]  
-00A6C03C    05 00000000     add     eax, 0  
-00A6C041    E8 02000000     call    00A6C048  
-00A6C046    CD20 83042408   vxdcall 8240483  
-...............................................................  
-观察一下堆栈信息，查看 SEH 的处理地址。  
-0013FF74   0013FF84  指向下一个 SEH 记录的指针  
-0013FF78   00A6046F  SE 处理程序  
-0013FF7C   00A6000C  
-0013FF80   000000FF  
-00A6046F 是异常处理完毕出口。  
-因为有 stolen code 直接使用 Ctrl+G 是到不了 00A6046F 的。  
-00A6046B    C3              retn  
-00A6046C    E8 FFE1EB0B     call    0C91E670  
-00A60471    0000            add     byte ptr \[eax\], al  
-00A60473    FFCE            dec     esi  
-00A60475    0000            add     byte ptr \[eax\], al  
-所以我们先找到 00A6046F 的附近，使用 Ctrl+上下键，找到 00A6046F，下普通断点。Shift+F9 跳过运行。  
-00A6046F   /EB 0B           jmp     short 00A6047C  
-00A60471   |0000            add     byte ptr \[eax\], al  
-00A60473   |FFCE            dec     esi  
-00A60475   |0000            add     byte ptr \[eax\], al  
-00A60477   |0000            add     byte ptr \[eax\], al  
-00A60479   |0000            add     byte ptr \[eax\], al  
-00A6047B   |00EB            add     bl, ch  
-  
-Alt+M 打开内存镜像窗口。   
-内存镜像  
-地址 大小 Owner Section Contains 类型 访问 初始访问 映射为  
-00400000 00001000 NOTEPAD PE header Imag R RWE  
-00401000 00004000 NOTEPAD code Imag R RWE  
-00405000 00001000 NOTEPAD data Imag R RWE  
-00406000 00001000 NOTEPAD Imag R RWE  
-00407000 00005000 NOTEPAD resources Imag R RWE  
-0040C000 0000E000 NOTEPAD .svkp SFX,imports, Imag R RWE  
-在这行，下内存断点。  
-0040C000 0000E000 NOTEPAD .svkp SFX,imports, Imag R RWE  
-F9 运行。可能会出现异常，到达这里。  
-00A6F1E8    83C4 04         add     esp, 4  
-00A6F1EB    64:8F05 0000000>pop     dword ptr fs:\[0\]  
-00A6F1F2    7C 03           jl      short 00A6F1F7  
-00A6F1F4    EB 03           jmp     short 00A6F1F9  
-00A6F1F6  - E9 74FB83C4     jmp     C52AED6F  
-00A6F1FB    0C EB           or      al, 0EB  
-00A6F1FD    02CD            add     cl, ch  
-继续 F9 运行。  
-00AE0F51    8B89 78010000   mov     ecx, dword ptr \[ecx+178\]  
-00AE0F57    EB 02           jmp     short 00AE0F5B  
-00AE0F59    0F8B 8BAD3A0A   jpo     0AE8BCEA  
-00AE0F5F    0000            add     byte ptr \[eax\], al  
-00AE0F61    7C 03           jl      short 00AE0F66  
-00AE0F63    EB 03           jmp     short 00AE0F68  
-  
-再 Alt+M 打开内存镜像窗口。确定一个入口点警告。  
-内存镜像 00401000 00004000 NOTEPAD code Imag R RWE  
-呵呵，下内存断点,F9 运行。  
-004010CC    55              push    ebp     
-004010CD    8BEC            mov     ebp, esp  
-004010CF    83EC 44         sub     esp, 44  
-004010D2    56              push    esi  
-004010D3    FF15 E4634000   call    dword ptr \[4063E4\]  
-004010D9    8BF0            mov     esi, eax  
-到达 oep，dump。使用 importREC1.62 进行修复。使用追踪级别 1 修复时，有三个指针无法修复。三个指针分别是 0000639C、000063A0 和 000063E4。使用 SvkpIAT 插件一个都不能修复。  
-重新 OD 载入程序，一分钟到达 Oep,Ctrl＋G 填入 40639C， 下内存访问断点。F9，程序运行，断点没有发挥作用。重新 OD 载入程序，一分钟到达 Oep，向下翻页。  
-00401146    50              push    eax  
-00401147    56              push    esi  
-00401148    6A 00           push    0  
-0040114A    6A 00           push    0  
-0040114C    FF15 9C634000   call    dword ptr \[40639C\]  
-00401152    50              push    eax  
-00401153    E8 760F0000     call    004020CE  
-00401158    50              push    eax  
-00401159    8BF0            mov     esi, eax  
-0040115B    FF15 A0634000   call    dword ptr \[4063A0\]  
-...............................................................  
-0040114C    FF15 9C634000   call    dword ptr \[40639C\]，在这行下普通断点。F9 运行。在 call 指令之上有 4 个 push，估计是一个有四个输入参数的函数。  
-此时，eax=0A，esi=00151F0F。  
-观察堆栈信息。  
-0013FF68   00000000  
-0013FF6C   00000000  
-0013FF70   00151F0F  
-0013FF74   0000000A  
-0013FF78   FFFFFFFF  
-F8 路过。观察堆栈信息。  
-0013FF6C   00000000  
-0013FF70   00151F0F  
-0013FF74   0000000A  
-0013FF78   FFFFFFFF  
-貌似只使用了一个参数，难道是一个输入参数的函数？继续观察。Eax=400000，貌似是一个句柄。重新来过。  
-到达 0040114C    FF15 9C634000   call    dword ptr \[40639C\]。  
-F7 跟入。可是转来转去都不出来。重新来过。  
-到达 0040114C    FF15 9C634000   call    dword ptr \[40639C\]。  
-F7 跟入 00401153    E8 760F0000     call    004020CE  
-到达 00AF480F  - E9 B33E2277     jmp     USER32.GetDC  
-可以验证 eax 返回的是一个句柄。一个输入参数，又返回句柄的，极有可能就是 GetmoduleHandle 了。试一下吧。继续下一个。  
-000063A0 这个在原文中已经提到，应该是 ExitProcess。这里就不多介绍了。我们看一下最后一个函数 000063E4。  
-同上所述，在 4063E4 的地方下内存访问断点。  
-004010D2    56              push    esi  
-004010D3    FF15 E4634000   call    dword ptr \[4063E4\]  
-貌似是只有一个输入参数的函数，esi=FFFFFFFF=-1，难道是 void？F7 跟入。  
-跟踪过程中，发现一个不熟悉的命令 rdtsc，速度查一下，原来这个指令是获取 CPU 自启动以后的运行周期，返回的数值，高位返回到 edx，低位放回到 eax。这个有什么用呢？我们下面揭晓。继续跟入。不久，第二次发现 rdtsc。  
-00AE3448    83C4 04         add     esp, 4  
-00AE344B    2BD3            sub     edx, ebx  
-00AE344D    EB 03           jmp     short 00AE3452  
-原来如此，程序通过 rdtsc 指令记录时间存储在 edx 和 ebx 中，计算 edx 和 ebx 之间的差，如果数值过大，说明有调试工具跟踪。所以需要修改 ebx 或 edx 的数值。  
-继续。跟到 004010E2    FF15 F4644000   call    dword ptr \[4064F4\]，F7 进去后发现是  
-00AF4841  - E9 6A802377     jmp     USER32.CharNextA，这是对字符串的操作。之后的一段代码应该是对字符串的操作。Esi= 00151EE1。   
-004010E8    8BF0            mov     esi, eax  
-004010EA    8A00            mov     al, byte ptr \[eax\]  
-004010EC    84C0            test    al, al  
-004010EE    74 04           je      short 004010F4  
-004010F0    3C 22           cmp     al, 22  
-004010F2  ^ 75 ED           jnz     short 004010E1  
-004010F4    803E 22         cmp     byte ptr \[esi\], 22  
-004010F7    75 15           jnz     short 0040110E  
-004010F9    46              inc     esi  
-004010FA    EB 12           jmp     short 0040110E  
-004010FC    3C 20           cmp     al, 20  
-004010FE    7E 0E           jle     short 0040110E  
-00401100    56              push    esi  
-00401101    FF15 F4644000   call    dword ptr \[4064F4\]  
-00401107    8038 20         cmp     byte ptr \[eax\], 20  
-0040110A    8BF0            mov     esi, eax  
-0040110C  ^ 7F F2           jg      short 00401100  
-数据窗口跟随到 00151EE1 发现是程序的全路径。  
-00151EE1  46 3A 5C D1 D0 BE BF B9 A4 D7 F7 5C D2 D1 C6 C6  F:\\研究工作\\已破  
-00151EF1  BD E2 C8 ED BC FE 5C 73 76 6B 70 20 76 31 2E 33  解软件\\svkp v1.3  
-00151F01  32 5C 4E 4F 54 45 50 41 44 2E 45 58 45 22 00 AB  2\\NOTEPAD.EXE".   
-一般使用获得全路径的函数应该是 GetModuleFileNameA，可是 GetModuleFileNameA 应该有三个输入参数，应该不是它，还有一个可能就是 GetCommandLineA。  
-好了，三个无效指针都修复完毕，修复一下文件吧。没想到还真是对了。运气真是好。  
-小结：其实这个壳不是我一个人破掉的，作为一个菜鸟，没有什么经验和对 windows 函数的了解，想破解这个壳还是有一定难度的。记得《暗算》里有一句话说的好，我们需要技术、经验和耐心，最需要的是来自天外的一丝运气。对于我来说，crack 的道路崎岖曲折又满布荆棘。祝我好运吧。  
+新学脱壳技术不久，对脱壳感到神秘又新鲜，脱壳中学到许多有用的知识，也结交了许多好朋友。我的学习之路是从手动脱壳入门开始的，当练习到手动脱壳进阶第八篇 `Skvp1.32` 的时候遇到了前所未有的麻烦。
+
+`Skvp1.32` 的壳寻找入口点 `oep` 相对来说比较容易，找到 `oep` 后 dump，使用 `importICE` 修复时遇到了巨大的困难。总是有两个无效指针无法修复，使用了插件也不行，想了许多方法也不行，足足折磨我两天，可谓身心憔悴。废话少说，直接开始。请大家手下留情。
+
+用 `Peid` 测 `NOTEPAD.EXE` 的壳为 `SVKP 1.3x -> Pavol Cerven`。
+
+我们把 `Od` 中的选项－调试选项－异常选项卡了除了忽略在内存访问异常不打勾，其余全部打勾，请检查自己的 `Od` 设置。我的 `Od` 中存在一个硬件断点，这个断点让我吃尽苦头，所以检查设置的时候也要看一下是否存在不必要的断点。这里我就不手动跟到 `oep`。介绍一下变通的方法。
+
+用 `OD` 载入程序后,插件隐藏 `OD`.确定一个入口警告，`Od` 提示程序加壳，选不继续分析。
+
+```
+0040C000  >  60              pushad
+
+0040C001    E8 00000000     call    0040C006
+
+0040C006    5D              pop     ebp
+
+0040C007    81ED 06000000   sub     ebp, 6
+
+0040C00D    EB 05           jmp     short 0040C014
+
+0040C00F    B8 06364200     mov     eax, 423606
+
+0040C014    64:A0 23000000  mov     al, byte ptr fs:[23]
+
+...............................................................
+```
+
+先 `F9` 运行看看。程序异常，是加密壳，有 `SEH` 陷阱语句。
+
+异常 1
+
+```
+00A00492    8900            mov     dword ptr [eax], eax
+
+00A00494    E8 01000000     call    00A0049A
+
+00A00499    E8 E8020000     call    00A00786
+
+00A0049E    00CD            add     ch, cl
+
+00A004A0    2083 04240B83   and     byte ptr [ebx+830B2404], al
+
+00A004A6    44              inc     esp
+
+00A004A7    24 04           and     al, 4
+
+00A004A9    13C3            adc     eax, ebx
+
+...............................................................
+```
+
+`Shift+F9` 跳过运行。
+
+异常 2
+
+```
+00A00571    E8 01000000     call    00A00577
+
+00A00576    E8 E8020000     call    00A00863
+
+00A0057B    00CD            add     ch, cl
+
+00A0057D    2083 04240B83   and     byte ptr [ebx+830B2404], al
+
+00A00583    44              inc     esp
+
+00A00584    24 04           and     al, 4
+
+00A00586    13C3            adc     eax, ebx
+
+...............................................................
+```
+
+`Shift+F9` 跳过运行。
+
+异常 3
+
+```
+00A603E1    8900            mov     dword ptr [eax], eax
+
+00A603E3    60              pushad
+
+00A603E4    E8 03000000     call    00A603EC
+
+00A603E9    D2EB            shr     bl, cl
+
+00A603EB    0A58 EB         or      bl, byte ptr [eax-15]
+
+00A603EE    0148 40         add     dword ptr [eax+40], ecx
+
+00A603F1    EB 01           jmp     short 00A603F4
+
+...............................................................
+```
+
+`Shift+F9` 跳过运行。
+
+异常 4
+
+```
+00A6137F    6285 0E0B0000   bound   eax, qword ptr [ebp+B0E]
+
+00A61385    EB 02           jmp     short 00A61389
+
+00A61387    0FE88B D1EB02CD psubsb   mm1, qword ptr [ebx+CD02EBD1]
+
+00A6138E    208B C2EB02CD   and     byte ptr [ebx+CD02EBC2], cl
+
+00A61394    208B 8A4F0800   and     byte ptr [ebx+84F8A], cl
+
+00A6139A    007C03 EB       add     byte ptr [ebx+eax-15], bh
+
+00A6139E    0369 74         add     ebp, dword ptr [ecx+74]
+
+00A613A1    FB              sti
+
+00A613A2    8B89 74010000   mov     ecx, dword ptr [ecx+174]
+
+...............................................................
+```
+
+`Shift+F9` 跳过运行。
+
+`SVKP 1.32` 典型最后一次异常。如果继续 `Shift+F9` 程序就会运行。
+
+```
+00A6C028    CD 01           int     1
+
+00A6C02A    E8 01000000     call    00A6C030
+
+00A6C02F  - E9 83C4047C     jmp     7CAB84B7
+
+00A6C034    03EB            add     ebp, ebx
+
+00A6C036    039A 74FB648F   add     ebx, dword ptr [edx+8F64FB74]
+
+00A6C03C    05 00000000     add     eax, 0
+
+00A6C041    E8 02000000     call    00A6C048
+
+00A6C046    CD20 83042408   vxdcall 8240483
+
+...............................................................
+```
+
+观察一下堆栈信息，查看 `SEH` 的处理地址。
+
+```
+0013FF74   0013FF84  指向下一个 SEH 记录的指针
+
+0013FF78   00A6046F  SE 处理程序
+
+0013FF7C   00A6000C
+
+0013FF80   000000FF
+```
+
+`00A6046F` 是异常处理完毕出口。
+
+因为有 `stolen code` 直接使用 `Ctrl+G` 是到不了 `00A6046F` 的。
+
+```
+00A6046B    C3              retn
+
+00A6046C    E8 FFE1EB0B     call    0C91E670
+
+00A60471    0000            add     byte ptr [eax], al
+
+00A60473    FFCE            dec     esi
+
+00A60475    0000            add     byte ptr [eax], al
+```
+
+所以我们先找到 `00A6046F` 的附近，使用 `Ctrl+` 上下键，找到 `00A6046F`，下普通断点。`Shift+F9` 跳过运行。
+
+```
+00A6046F   /EB 0B          jmp     short 00A6047C
+
+00A60471   |0000            add     byte ptr [eax], al
+
+00A60473   |FFCE            dec     esi
+
+00A60475   |0000            add     byte ptr [eax], al
+
+00A60477   |0000            add     byte ptr [eax], al
+
+00A60479   |0000            add     byte ptr [eax], al
+
+00A6047B   |00EB            add     bl, ch
+```
+
+`Alt+M` 打开内存镜像窗口。
+
+内存镜像
+
+| 地址 | 大小 | Owner | Section | Contains | 类型 | 访问 | 初始访问 | 映射为 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 00400000 | 00001000 | NOTEPAD | PE header | Imag | R | RWE | | |
+| 00401000 | 00004000 | NOTEPAD | code | Imag | R | RWE | | |
+| 00405000 | 00001000 | NOTEPAD | data | Imag | R | RWE | | |
+| 00406000 | 00001000 | NOTEPAD | | Imag | R | RWE | | |
+| 00407000 | 00005000 | NOTEPAD | resources | Imag | R | RWE | | |
+| 0040C000 | 0000E000 | NOTEPAD | .svkp | SFX,imports, | Imag | R | RWE | |
+
+在这行，下内存断点。
+
+`0040C000 0000E000 NOTEPAD .svkp SFX,imports, Imag R RWE`
+
+`F9` 运行。可能会出现异常，到达这里。
+
+```
+00A6F1E8    83C4 04         add     esp, 4
+
+00A6F1EB    64:8F05 0000000>pop     dword ptr fs:[0]
+
+00A6F1F2    7C 03           jl      short 00A6F1F7
+
+00A6F1F4    EB 03           jmp     short 00A6F1F9
+
+00A6F1F6  - E9 74FB83C4     jmp     C52AED6F
+
+00A6F1FB    0C EB           or      al, 0EB
+
+00A6F1FD    02CD            add     cl, ch
+```
+
+继续 `F9` 运行。
+
+```
+00AE0F51    8B89 78010000   mov     ecx, dword ptr [ecx+178]
+
+00AE0F57    EB 02           jmp     short 00AE0F5B
+
+00AE0F59    0F8B 8BAD3A0A   jpo     0AE8BCEA
+
+00AE0F5F    0000            add     byte ptr [eax], al
+
+00AE0F61    7C 03           jl      short 00AE0F66
+
+00AE0F63    EB 03           jmp     short 00AE0F68
+```
+
+再 `Alt+M` 打开内存镜像窗口。确定一个入口点警告。
+
+内存镜像 `00401000 00004000 NOTEPAD code Imag R RWE`
+
+呵呵，下内存断点,`F9` 运行。
+
+```
+004010CC    55              push    ebp
+
+004010CD    8BEC            mov     ebp, esp
+
+004010CF    83EC 44         sub     esp, 44
+
+004010D2    56              push    esi
+
+004010D3    FF15 E4634000   call    dword ptr [4063E4]
+
+004010D9    8BF0            mov     esi, eax
+```
+
+到达 `oep`，dump。使用 `importREC1.62` 进行修复。使用追踪级别 1 修复时，有三个指针无法修复。三个指针分别是 `0000639C`、`000063A0` 和 `000063E4`。使用 `SvkpIAT` 插件一个都不能修复。
+
+重新 `OD` 载入程序，一分钟到达 `Oep`,`Ctrl+G` 填入 `40639C`，下内存访问断点。`F9`，程序运行，断点没有发挥作用。重新 `OD` 载入程序，一分钟到达 `Oep`，向下翻页。
+
+```
+00401146    50              push    eax
+
+00401147    56              push    esi
+
+00401148    6A 00           push    0
+
+0040114A    6A 00           push    0
+
+0040114C    FF15 9C634000   call    dword ptr [40639C]
+
+00401152    50              push    eax
+
+00401153    E8 760F0000     call    004020CE
+
+00401158    50              push    eax
+
+00401159    8BF0            mov     esi, eax
+
+0040115B    FF15 A0634000   call    dword ptr [4063A0]
+
+...............................................................
+```
+
+`0040114C    FF15 9C634000   call    dword ptr [40639C]`，在这行下普通断点。`F9` 运行。在 `call` 指令之上有 4 个 `push`，估计是一个有四个输入参数的函数。
+
+此时，`eax=0A`，`esi=00151F0F`。
+
+观察堆栈信息。
+
+```
+0013FF68   00000000
+
+0013FF6C   00000000
+
+0013FF70   00151F0F
+
+0013FF74   0000000A
+
+0013FF78   FFFFFFFF
+```
+
+`F8` 路过。观察堆栈信息。
+
+```
+0013FF6C   00000000
+
+0013FF70   00151F0F
+
+0013FF74   0000000A
+
+0013FF78   FFFFFFFF
+```
+
+貌似只使用了一个参数，难道是一个输入参数的函数？继续观察。`Eax=400000`，貌似是一个句柄。重新来过。
+
+到达 `0040114C    FF15 9C634000   call    dword ptr [40639C]`。
+
+`F7` 跟入。可是转来转去都不出来。重新来过。
+
+到达 `0040114C    FF15 9C634000   call    dword ptr [40639C]`。
+
+`F7` 跟入 `00401153    E8 760F0000     call    004020CE`
+
+到达 `00AF480F  - E9 B33E2277     jmp     USER32.GetDC`
+
+可以验证 `eax` 返回的是一个句柄。一个输入参数，又返回句柄的，极有可能就是 `GetmoduleHandle` 了。试一下吧。继续下一个。
+
+`000063A0` 这个在原文中已经提到，应该是 `ExitProcess`。这里就不多介绍了。我们看一下最后一个函数 `000063E4`。
+
+同上所述，在 `4063E4` 的地方下内存访问断点。
+
+```
+004010D2    56              push    esi
+
+004010D3    FF15 E4634000   call    dword ptr [4063E4]
+```
+
+貌似是只有一个输入参数的函数，`esi=FFFFFFFF=-1`，难道是 `void`？`F7` 跟入。
+
+跟踪过程中，发现一个不熟悉的命令 `rdtsc`，速度查一下，原来这个指令是获取 `CPU` 自启动以后的运行周期，返回的数值，高位返回到 `edx`，低位放回到 `eax`。这个有什么用呢？我们下面揭晓。继续跟入。不久，第二次发现 `rdtsc`。
+
+
+
+### 指令分析与反调试绕过
+
+```
+00AE3448    83C4 04          add     esp, 4  
+00AE344B    2BD3            sub     edx, ebx  
+00AE344D    EB 03           jmp     short 00AE3452  
+```
+
+原来如此，程序通过 `rdtsc` 指令记录时间存储在 `edx` 和 `ebx` 中，计算 `edx` 和 `ebx` 之间的差，如果数值过大，说明有调试工具跟踪。所以需要修改 `ebx` 或 `edx` 的数值。
+
+继续。跟到 `004010E2    FF15 F4644000   call    dword ptr [4064F4]`，`F7` 进去后发现是
+
+`00AF4841  - E9 6A802377     jmp     USER32.CharNextA`，这是对字符串的操作。之后的一段代码应该是对字符串的操作。`Esi= 00151EE1`。
+
+### 字符串处理代码
+
+```
+004010E8    8BF0            mov     esi, eax  
+004010EA    8A00            mov     al, byte ptr [eax]  
+004010EC    84C0            test    al, al  
+004010EE    74 04           je      short 004010F4  
+004010F0    3C 22           cmp     al, 22  
+004010F2  ^ 75 ED           jnz     short 004010E1  
+004010F4    803E 22         cmp     byte ptr [esi], 22  
+004010F7    75 15           jnz     short 0040110E  
+004010F9    46              inc     esi  
+004010FA    EB 12           jmp     short 0040110E  
+004010FC    3C 20           cmp     al, 20  
+004010FE    7E 0E           jle     short 0040110E  
+00401100    56              push    esi  
+00401101    FF15 F4644000   call    dword ptr [4064F4]  
+00401107    8038 20         cmp     byte ptr [eax], 20  
+0040110A    8BF0            mov     esi, eax  
+0040110C  ^ 7F F2           jg      short 00401100  
+```
+
+数据窗口跟随到 `00151EE1` 发现是程序的全路径。
+
+### 内存数据查看
+
+```
+00151EE1  46 3A 5C D1 D0 BE BF B9 A4 D7 F7 5C D2 D1 C6 C6  F:\\研究工作\\已破
+00151EF1  BD E2 C8 ED BC FE 5C 73 76 6B 70 20 76 31 2E 33  解软件\\svkp v1.3
+00151F01  32 5C 4E 4F 54 45 50 41 44 2E 45 58 45 22 00 AB  2\\NOTEPAD.EXE".
+```
+
+一般使用获得全路径的函数应该是 `GetModuleFileNameA`，可是 `GetModuleFileNameA` 应该有三个输入参数，应该不是它，还有一个可能就是 `GetCommandLineA`。
+
+### 总结
+
+好了，三个无效指针都修复完毕，修复一下文件吧。没想到还真是对了。运气真是好。
+
+小结：其实这个壳不是我一个人破掉的，作为一个菜鸟，没有什么经验和对 `windows` 函数的了解，想破解这个壳还是有一定难度的。记得《暗算》里有一句话说的好，我们需要技术、经验和耐心，最需要的是来自天外的一丝运气。对于我来说，`crack` 的道路崎岖曲折又满布荆棘。祝我好运吧。
+
 ![](img/45dd044a2743704cbb333715eae4a5f6.jpg "狂笑")

@@ -1,192 +1,214 @@
 
-
 # 反破解技巧 - 随机密码
 
 > 原文：[`www.pediy.com/kssd/pediy10/78473.html`](https://www.pediy.com/kssd/pediy10/78473.html)
 
-前面的话:  
-这个小技巧是我昨天中午回家吃饭的时候突然在路上想到的。文章标题的名字也许不是那么准确，我还没有想到用什么名字来概括这个技巧。  
-下午我就把这个技巧和我群上的朋友讨论了。谁知差点造成“一个馒头引发的血案”。。。 呵呵..  
-在这里也谢谢那两位激烈讨论的朋友。。。 讨论很精彩。。![](img/3e9367e5826886294bccbb08463f3e34.jpg "酷")   
-我要声明的是，虽然我标题写的是<原创>.但是由于我分析其他人写的程序较少，由于我 E 文不好。也少拜读国外牛人大作。 如果这里出现的技术已经被其他地方引用，请通知我。我将其改正。  
-  
-正文:  
-在很壳与病毒上，作者都随机加密这一手段对抗反汇编器，给破解人员造成破解时间上的消耗。  
-例如:  
+前面的话：
 
-代码:
+这个小技巧是我昨天中午回家吃饭的时候突然在路上想到的。文章标题的名字也许不是那么准确，我还没有想到用什么名字来概括这个技巧。
 
-```
+下午我就把这个技巧和我群上的朋友讨论了。谁知差点造成“一个馒头引发的血案”。。。 呵呵..
+
+在这里也谢谢那两位激烈讨论的朋友。。。 讨论很精彩。。![](img/3e9367e5826886294bccbb08463f3e34.jpg "酷")
+
+我要声明的是，虽然我标题写的是`<原创>`。但是由于我分析其他人写的程序较少，由于我 E 文不好。也少拜读国外牛人大作。 如果这里出现的技术已经被其他地方引用，请通知我。我将其改正。
+
+## 正文
+
+在很壳与病毒上，作者都随机加密这一手段对抗反汇编器，给破解人员造成破解时间上的消耗。
+
+例如：
+
+```assembly
 ;当启动后运行于此进行解密
-call GetEip
+call GetEip
 GetEip:
-pop ebp
+pop ebp
 ;获取密钥
-mov ebx, ebp
-add ebx, offset DecodeKey - GetEip
-mov bl, byte ptr \[ebx\]
-lea esi, Virus
-mov edi, esi
-mov ecx, offset End\_Virus - Virus
+mov ebx, ebp
+add ebx, offset DecodeKey - GetEip
+mov bl, byte ptr [ebx]
+lea esi, Virus
+mov edi, esi
+mov ecx, offset End_Virus - Virus
 cld
-DeCode\_Loop:
+DeCode_Loop:
 lodsb
-xor al, bl
+xor al, bl
 stosb
-loop DeCode\_Loop
+loop DeCode_Loop
 ;解密完毕
-call Virus  ;执行解密后的病毒
+call Virus  ;执行解密后的病毒
 ;退出代码---
-Virus: 
+Virus: 
 ;加密后的病毒或者壳代码
-End\_Virus:
-;之前被写入的密码 - 随机获得的
+End_Virus:
+;之前被写入的密码 - 随机获得的
 DecodeKey:
-db 0
-
+db 0
 ```
 
-以上代码是最基本实现多态的手段。  
-DecodeKey 是在病毒写入之前获取的随机值,加解密算法用了 xor 的简单的方式。  
-  
-以下的方法是我昨天中午走在路上不晓得怎么就冒出的想法，晚上用代码实现了。  
-具体原理是  
-一段代码用一个【0-N】的一个随机数加密一下例如使用简单的 XOR   
-在解码的时候 同样从【0-N】中得到一个随机值  
-如果是错误的密码 当然 解出的代码是不可以运行的  
-我们建立自己的 SEH 帧 这个时候我们的异常处理会接管这个流程  
-在我们的异常处理中在跳入到从【0-N】中取随机值 这样指导遇到正确的密码 被加密的代码可以运行  
-这个运行就是随概率的 用人动跟踪的话 要累死  
-但是可能会延迟被感染程序的启动时间 也就几秒中 这取决 N 这个数的大小  
-实验代码如下:  
-代码:
+以上代码是最基本实现多态的手段。
 
-```
-;; Try1.Asm
+`DecodeKey` 是在病毒写入之前获取的随机值,加解密算法用了 `xor` 的简单的方式。
+
+以下的方法是我昨天中午走在路上不晓得怎么就冒出的想法，晚上用代码实现了。
+
+具体原理是
+
+一段代码用一个`【0-N】`的一个随机数加密一下例如使用简单的 `XOR`
+
+在解码的时候 同样从`【0-N】`中得到一个随机值
+
+如果是错误的密码 当然 解出的代码是不可以运行的
+
+我们建立自己的 `SEH` 帧 这个时候我们的异常处理会接管这个流程
+
+在我们的异常处理中在跳入到从`【0-N】`中取随机值 这样指导遇到正确的密码 被加密的代码可以运行
+
+这个运行就是随概率的 用人动跟踪的话 要累死
+
+但是可能会延迟被感染程序的启动时间 也就几秒中 这取决 `N` 这个数的大小
+
+实验代码如下：
+
+```assembly
+;; Try1.Asm
 
 .586
-.model flat, stdcall
-option casemap:none
+.model flat, stdcall
+option casemap:none
 
-include kernel32.inc
-include msvcrt.inc
+include kernel32.inc
+include msvcrt.inc
 
-includelib kernel32.lib
-includelib msvcrt.lib
+includelib kernel32.lib
+includelib msvcrt.lib
 
 .data
-g\_szHello db "hello"
+g_szHello db "hello"
 .code
 Start:
-                ;; 获取一个随机的加密密码范围为 0-256
-  push 100h
-  call GetRandom
-  xchg ebx, eax
-  ;; encode virus
-  lea esi, Virus
-  mov edi, esi
-  mov ecx, offset End\_Virus - offset Virus
-  cld
-Loop\_EnCode:
-  lodsb
-  xor al, bl
-  stosb
-  loop Loop\_EnCode
-                ;; 建立异常处理
-  ;; setup SEH Handle
-  assume fs : nothing
-  push offset SEH\_Handle
-  push dword ptr fs:\[0\]
-  mov dword ptr fs:\[0\], esp
-  ;; run virus
-                ;; 运行
-  jmp SEH\_Handle
-;; get random number
-;; 获取随机数
+                ;; 获取一个随机的加密密码范围为 0-256
+  push 100h
+  call GetRandom
+  xchg ebx, eax
+  ;; encode virus
+  lea esi, Virus
+  mov edi, esi
+  mov ecx, offset End_Virus - offset Virus
+  cld
+Loop_EnCode:
+  lodsb
+  xor al, bl
+  stosb
+  loop Loop_EnCode
+                ;; 建立异常处理
+  ;; setup SEH Handle
+  assume fs : nothing
+  push offset SEH_Handle
+  push dword ptr fs:[0]
+  mov dword ptr fs:[0], esp
+  ;; run virus
+                ;; 运行
+  jmp SEH_Handle
+;; get random number
+;; 获取随机数
 GetRandom:
-  push edx
-                rdtsc
-  xor edx, edx
-  cmp dword ptr \[esp+8\], edx
-  je Exit\_GetRandom
-  div dword ptr \[esp+8\]
-  xchg eax, edx
-Exit\_GetRandom:  
-  pop edx
-  retn 04h
-;; 病毒本体  
+  push edx
+                rdtsc
+  xor edx, edx
+  cmp dword ptr [esp+8], edx
+  je Exit_GetRandom
+  div dword ptr [esp+8]
+  xchg eax, edx
+Exit_GetRandom:   
+  pop edx
+  retn 04h
+;; 病毒本体   
 Virus:
-  mov eax, 1
-  mov ebx, 2
-  mov ecx, 3
-  mov edx, 4
-  mov edi, 5
-  mov esi, 6
-  lea eax, g\_szHello
-  invoke crt\_printf, eax
-                ;; 卸载异常处理
-  ;; unsetup SEH Handle
-UnSetup\_SEH:
-  pop dword ptr fs:\[0\]
-  pop edx
-  invoke ExitProcess, 0
-End\_Virus:
-;; 异常处理 同时也为解码处理程序
-SEH\_Handle:
-                ;; 同样获取一个 0-256 的随机值
-  ;; get decode key
-  push 100h
-  call GetRandom
-  xchg eax, ebx
-                ;; 复制被加密的病毒体到一个运行缓冲内
-  ;; copy virus to runtime buf
-  lea esi, Virus
-  lea edi, Runtime
-  mov ecx, offset End\_Virus - offset Virus
-  cld
-  rep movsb
-                ;; 尝试使用刚才随机生成的 KEY 解码病毒
-  ;; decode virus
-  lea esi, Runtime
-  mov edi, esi
-  mov ecx, offset End\_Virus - offset Virus
-Loop\_DeCode:
-  lodsb
-  xor al, bl
-  stosb
-  loop Loop\_DeCode
-                ;; 运行病毒
-  jmp Runtime
-;; 病毒的运行环境
+  mov eax, 1
+  mov ebx, 2
+  mov ecx, 3
+  mov edx, 4
+  mov edi, 5
+  mov esi, 6
+  lea eax, g_szHello
+  invoke crt_printf, eax
+                ;; 卸载异常处理
+  ;; unsetup SEH Handle
+UnSetup_SEH:
+  pop dword ptr fs:[0]
+  pop edx
+  invoke ExitProcess, 0
+End_Virus:
+;; 异常处理 同时也为解码处理程序
+SEH_Handle:
+                ;; 同样获取一个 0-256 的随机值
+  ;; get decode key
+  push 100h
+  call GetRandom
+  xchg eax, ebx
+                ;; 复制被加密的病毒体到一个运行缓冲内
+  ;; copy virus to runtime buf
+  lea esi, Virus
+  lea edi, Runtime
+  mov ecx, offset End_Virus - offset Virus
+  cld
+  rep movsb
+                ;; 尝试使用刚才随机生成的 KEY 解码病毒
+  ;; decode virus
+  lea esi, Runtime
+  mov edi, esi
+  mov ecx, offset End_Virus - offset Virus
+Loop_DeCode:
+  lodsb
+  xor al, bl
+  stosb
+  loop Loop_DeCode
+                ;; 运行病毒
+  jmp Runtime
+;; 病毒的运行环境
 Runtime:
-  db 256 dup(0)
+  db 256 dup(0)
 Exit:
-end Start
-
+end Start
 ```
 
-如果你编译这段代码需要把代码段设置为可写  
-运行后可能会成功 可能会打印 hello  
-具体原因 OD 一下就会明白  
-  
-解释出错原因以及提出一些问题:  
-我们定义  
-病毒原体 RV  
-当被加密的病毒体 V, 正确的密码 K,K 属于\[0-N\]  
-当解密时的随机获得的密码 Kn,Kn 属于\[0-N\],n 为一个从 0 开始的增量 K1 K2 K3...  
-每次解密病毒 V 生产的代码 Vn,n 的作用同上  
-每当 Kn != K 的时候  
-Vn 产生的序列可能是可执行的代码流 但是肯定会出现异常。这个时候我们的异常可以接管再次尝试随机获取一个新的 Kn 再次对 V 进行解密.   
-但是如果 Vn 的序列产生的是一些造成严重错误,异常接管不到的代码,这个时候会产生错误.  
-  
-昨天晚上与 ivan 大哥的讨论中,希望加入一个加解密算法,使得无论 V 集合中是什么.无论 Kn 为何值  
-所产生的 Vn 都在一定集合 O 中,O 集合的错误指令产生的异常都可以被我们自己的异常接管到。  
-这样就可以做到稳定。  
-  
-不过为了稳定简单点的方法也有的。例如在病毒某位置防止一些标志。解密后判断这个标志 查看解密时候成功。  
-  
-附件中我提供了代码和编译好的 Try1.exe 大家可以 TRY 下...
+如果你编译这段代码需要把代码段设置为可写
+
+运行后可能会成功 可能会打印 `hello`
+
+具体原因 `OD` 一下就会明白
+
+解释出错原因以及提出一些问题：
+
+我们定义
+
+病毒原体 `RV`
+
+当被加密的病毒体 `V`, 正确的密码 `K`, `K` 属于`[0-N]`
+
+当解密时的随机获得的密码 `Kn`, `Kn` 属于`[0-N]`, `n` 为一个从 0 开始的增量 `K1` `K2` `K3...`
+
+每次解密病毒 `V` 生产的代码 `Vn`, `n` 的作用同上
+
+每当 `Kn` != `K` 的时候
+
+`Vn` 产生的序列可能是可执行的代码流 但是肯定会出现异常。这个时候我们的异常可以接管再次尝试随机获取一个新的 `Kn` 再次对 `V` 进行解密.
+
+但是如果 `Vn` 的序列产生的是一些造成严重错误,异常接管不到的代码,这个时候会产生错误.
+
+昨天晚上与 `ivan` 大哥的讨论中,希望加入一个加解密算法,使得无论 `V` 集合中是什么.无论 `Kn` 为何值
+
+所产生的 `Vn` 都在一定集合 `O` 中,`O` 集合的错误指令产生的异常都可以被我们自己的异常接管到。
+
+这样就可以做到稳定。
+
+不过为了稳定简单点的方法也有的。例如在病毒某位置防止一些标志。解密后判断这个标志 查看解密时候成功。
+
+附件中我提供了代码和编译好的 `Try1.exe` 大家可以 `TRY` 下...
 
 上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || Try1.rar  
- |
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || Try1.rar |

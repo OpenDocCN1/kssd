@@ -1,203 +1,207 @@
 
-
-# PECompact 双层加壳的 DLL 
+# PECompact 双层加壳的 DLL
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6859.htm`](https://www.pediy.com/kssd/pediy06/pediy6859.htm)
 
-用 Ollydbg 手脱 PECompact 双层加壳的 DLL －－Psinthk.dll  
-  
-  
-  
-【作者声明】：本文完全参考 fly 大侠的脱文。文中许多注释均出自 fly 大侠的脱文。不再一一注出。在此谢过 fly 大侠！  
-  
-【调试环境】：Win2003、Ollydbg1.10C、WinHex、PEiD、LordPE、ImportREC  
-  
-【脱壳过程】：  
-  
-附件中的 DLL 文件是一位兄弟放在论坛上的，我也不知下载链接了。所以再次贴出来。  
-  
-用 PEiD 检查为 PECompact 1.68 - 1.84 - Jeremy Collake 加壳。  
-好，用 OD 载入开始脱壳。  
-  
-  
-一、DUMP  
-  
-  
-1000B000 > /EB 06           JMP SHORT Psinthk.1000B008/////载入停在此处。  
-1000B002   |68 00600000     PUSH 6000/////入口 RVA。  
-1000B007   |C3              RETN  
-1000B008   \\9C              PUSHFD  
-1000B009    60              PUSHAD  
-1000B00A    E8 02000000     CALL Psinthk.1000B011  
-1000B00F    33C0            XOR EAX,EAX  
-1000B011    8BC4            MOV EAX,ESP  
-1000B013    83C0 04         ADD EAX,4  
-1000B016    93              XCHG EAX,EBX  
-1000B017    8BE3            MOV ESP,EBX  
-1000B019    8B5B FC         MOV EBX,DWORD PTR DS:\[EBX\-4\]  
-1000B01C    81EB 3F904000   SUB EBX,40903F  
-1000B022    87DD            XCHG EBP,EBX  
-  
-  
-  
-因为这个东东是 PECompact 2.0 以前的版本加壳，所以 OEP 很好找，壳入口的第 2 条指令 PUSH 的就是 OEP 的 RVA 地址。  
-OEP=10000000 + 6000=10006000  
-直接在 10006000 处下 硬件执行 断点，或者下内存断点，F9 运行就中断在 OEP 了。  
-  
-  
-10006000   /EB 06           JMP SHORT Psinthk.10006008//////来到此处！  
-10006002   |68 4B160000     PUSH 164B/////第二层入口 RVA。  
-10006007   |C3              RETN  
-10006008   \\9C              PUSHFD  
-10006009    60              PUSHAD  
-1000600A    E8 02000000     CALL Psinthk.10006011  
-1000600F    33C0            XOR EAX,EAX  
-10006011    8BC4            MOV EAX,ESP  
-10006013    83C0 04         ADD EAX,4  
-  
-  
-晕！一看就知道还有一层 PECompact！不管有几层，还是老办法直接到入口处下硬件执行断点，然后 F9 运行到了：  
-  
-1000164B    55              PUSH EBP/////这才象入口嘛！  
-1000164C    8BEC            MOV EBP,ESP  
-1000164E    53              PUSH EBX  
-1000164F    8B5D 08         MOV EBX,DWORD PTR SS:\[EBP+8\]  
-10001652    56              PUSH ESI  
-10001653    8B75 0C         MOV ESI,DWORD PTR SS:\[EBP+C\]  
-10001656    57              PUSH EDI  
-10001657    8B7D 10         MOV EDI,DWORD PTR SS:\[EBP+10\]  
-1000165A    85F6            TEST ESI,ESI  
-1000165C    75 09           JNZ SHORT Psinthk.10001667  
-1000165E    833D A0300010 0>CMP DWORD PTR DS:\[100030A0\],0  
-10001665    EB 26           JMP SHORT Psinthk.1000168D  
-10001667    83FE 01         CMP ESI,1  
-  
-  
-  
-用 LordPE 选中 Ollydbg 的 loaddll.exe 的进程，在下面的列表里选择 Psinthk.dll，然后完整脱壳，得到 dumped.dll。  
-Dump 完之后，不要关闭 Ollydbg，还要为下面的处理重定位表提供点准备。  
-  
-  
-二、输入表  
-  
-  
-往入口的上方看看：  
-  
-10001621   /72 12           JB SHORT Psinthk.10001635  
-10001623   |8B0E            MOV ECX,DWORD PTR DS:\[ESI\]  
-10001625   |85C9            TEST ECX,ECX  
-10001627   |74 07           JE SHORT Psinthk.10001630  
-10001629   |FFD1            CALL NEAR ECX  
-1000162B   |A1 B0300010     MOV EAX,DWORD PTR DS:\[100030B0\]  
-10001630   |83EE 04         SUB ESI,4  
-10001633  ^|EB EA           JMP SHORT Psinthk.1000161F  
-10001635   \\50              PUSH EAX  
-10001636    FF15 38200010   CALL NEAR DWORD PTR DS:\[10002038\]//////这里应该是调用函数的 CALL 吧。  
-1000163C    8325 B0300010 0>AND DWORD PTR DS:\[100030B0\],0  
-10001643    59              POP ECX  
-10001644    5E              POP ESI  
-10001645    6A 01           PUSH 1  
-  
-在内存区到 10002038 处看看：  
-  
-10002038  FB B8 B8 77 78 3F B9 77  竪 x?箇  
-  
-看来就是 IAT 表了。上下看看很明显的可以找到 IAT 开始和结束的地址：  
-  
-10002000  53 1F E1 77 28 8A E1 77  S 醱(娽 w  
-10002008  83 1C E1 77 7C 66 E1 77  ?醱|f 醱  
-10002010  31 66 E1 77 80 16 E1 77  1f 醱€醱  
-  
-10002058  ED 4E CE 77 21 EF CD 77  鞱蝫!锿 w  
-10002060  14 AD CD 77 70 E3 CD 77  wp 阃 w  
-  
-  
-  
-  
-开始地址＝10002000  
-结束地址＝10002068  
-  
-运行 ImportREC，选中 Ollydbg 的 loaddll.exe 的进程，然后点“选取 DLL”，选择 Psinthk.dll，填入 RVA＝00002000、大小＝68、OEP=0000164 ，点“Get Import”。FixDump！（这里好象不必用 PEditor 纠正 dumped.dll 的 DumpFixer 修正区块。）  
-  
-  
-三、重定位表 修复  
-  
-  
-下面来查找重定位信息。用 fly 提供的简便办法，Ctrl+G：10006000（第二层入口处），也就是前往壳的入口点。  
-然后 Ctrl+S 在整个段块搜索命令序列：  
-  
-add esi,ebx  
-xor eax,eax  
-  
-找到以下代码：  
-  
-  
-10007652    8B9D E6904000   MOV EBX,DWORD PTR SS:\[EBP+4090E6\]//\[ebp+4090E6\]=10000000  
-10007658    3B9D 5F974000   CMP EBX,DWORD PTR SS:\[EBP+40975F\]//如与映像基址不符则重定位处理！  
-1000765E    75 01           JNZ SHORT Psinthk.10007661//可以改标志位 Z=0，使这里跳转  
-10007660    C3              RETN  
-10007661    8BB5 63974000   MOV ESI,DWORD PTR SS:\[EBP+409763\]  
-10007667    03F3            ADD ESI,EBX/////找到这里。  
-10007669    33C0            XOR EAX,EAX  
-1000766B    66:8B43 3C      MOV AX,WORD PTR DS:\[EBX+3C\]  
-1000766F    03C3            ADD EAX,EBX  
-10007671    8B80 C0000000   MOV EAX,DWORD PTR DS:\[EAX+C0\]  
-10007677    85C0            TEST EAX,EAX  
-10007679    75 08           JNZ SHORT Psinthk.10007683  
-  
-  
-  
-  
-现在我们在其 retn 上面的 10007652 处下 硬件执行 断点，然后 Ctrl+F2 重新载入这个 dll，F9 运行，就中断在 10007652 处了。然后在 1000765E 时改标志位 Z=0，使其跳转。因为只有让它重定位了，我们才可以看到重定位信息。跳转后来到：  
-  
-10007661    8BB5 63974000   MOV ESI,DWORD PTR SS:\[EBP+409763\]/////SS:\[10007832\]=00005000,重定位的 RVA 就是 00005000。  
-10007667    03F3            ADD ESI,EBX  
-10007669    33C0            XOR EAX,EAX  
-1000766B    66:8B43 3C      MOV AX,WORD PTR DS:\[EBX+3C\]  
-1000766F    03C3            ADD EAX,EBX  
-10007671    8B80 C0000000   MOV EAX,DWORD PTR DS:\[EAX+C0\]  
-10007677    85C0            TEST EAX,EAX  
-10007679    75 08           JNZ SHORT Psinthk.10007683  
-1000767B    2B9D 5F974000   SUB EBX,DWORD PTR SS:\[EBP+40975F\]  
-  
-  
-跟几步来到：  
-  
-100076F2   /75 0C           JNZ SHORT Psinthk.10007700  
-100076F4   |58              POP EAX  
-100076F5   |25 FF0F0000     AND EAX,0FFF  
-100076FA   |03C2            ADD EAX,EDX  
-100076FC   |0118            ADD DWORD PTR DS:\[EAX\],EBX  
-100076FE   |EB 01           JMP SHORT Psinthk.10007701  
-10007700   \\58              POP EAX  
-10007701    49              DEC ECX  
-10007702  ^ 75 AC           JNZ SHORT Psinthk.100076B0  
-10007704  ^ EB 8C           JMP SHORT Psinthk.10007692/////循环处理重定位。  
-10007706    C3              RETN//////在此下断后直接 F9。断下后 ESI＝100050E8  
-  
-  
-到内存区看看：  
-  
-100050A0   0B 00 0D 00 0A 00 15 00   ......  
-100050A8   0C 00 06 00 22 00 12 00  ..."..  
-100050B0   5C 00 1C 00 06 00 11 00  \\....  
-100050B8   10 00 00 00 00 20 00 00  .... ..  
-100050C0   1C 00 00 00 6C 30 0C 00  ...l0..  
-100050C8   08 00 30 00 14 00 0C 00  .0....  
-100050D0   08 00 30 00 14 00 00 00  .0....  
-100050D8   00 30 00 00 0C 00 00 00  .0......  
-100050E0   04 30 04 00 00 00 00 00  0.....  
-100050E8   00 00 00 00 00 00 00 00  ........  
-  
-重定位表结束处应该是 100050E4。所以重定位表大小＝100050E4－开始地址 10005000＝E4  
-  
-用 WinHex 打开 dumped\_.dll，复制 5000－50E4 之间的 16 进制数值，另存为 noname.bin  
-运行 看雪 老师写的辅助修复 PECompact 加壳 DLL 重定位表的工具 PEComAngela.exe，打开 noname.bin，很快的提示 pediy.bin 文件创建成功！  
-  
-用 WinHex 把 pediy.bin 中的 16 进制数值全部复制、写入到 dumped\_.dll 的 5000 处，替换原先的重定位数据。  
-用 LordPE 修正 dumped\_.dll 的重定位表 RVA=0005000、大小＝0000E4，保存之。  
-  
-至此脱壳完成。可以用 OD 正常加载了。 
+用 `Ollydbg` 手脱 `PECompact` 双层加壳的 DLL －－`Psinthk.dll`
 
-  
- 4dd466d0e1e0cc123afbe504da2462ca
+【作者声明】：本文完全参考 `fly` 大侠的脱文。文中许多注释均出自 `fly` 大侠的脱文。不再一一注出。在此谢过 `fly` 大侠！
+
+【调试环境】：`Win2003`、`Ollydbg1.10C`、`WinHex`、`PEiD`、`LordPE`、`ImportREC`
+
+### 一、脱壳过程
+
+附件中的 DLL 文件是一位兄弟放在论坛上的，我也不知下载链接了。所以再次贴出来。
+
+用 `PEiD` 检查为 `PECompact 1.68 - 1.84 - Jeremy Collake` 加壳。
+
+好，用 `OD` 载入开始脱壳。
+
+#### 1. DUMP
+
+```
+1000B000  > /EB 06           JMP SHORT Psinthk.1000B008//////载入停在此处。
+1000B002   |68 00600000      PUSH 6000/////入口 RVA。
+1000B007   |C3               RETN
+1000B008   \9C               PUSHFD
+1000B009    60               PUSHAD
+1000B00A    E8 02000000      CALL Psinthk.1000B011
+1000B00F    33C0             XOR EAX,EAX
+1000B011    8BC4             MOV EAX,ESP
+1000B013    83C0 04          ADD EAX,4
+1000B016    93               XCHG EAX,EBX
+1000B017    8BE3             MOV ESP,EBX
+1000B019    8B5B FC          MOV EBX,DWORD PTR DS:[EBX-4]
+1000B01C    81EB 3F904000    SUB EBX,40903F
+1000B022    87DD             XCHG EBP,EBX
+```
+
+因为这个东东是 `PECompact 2.0` 以前的版本加壳，所以 `OEP` 很好找，壳入口的第 2 条指令 `PUSH` 的就是 `OEP` 的 `RVA` 地址。
+
+`OEP=10000000 + 6000=10006000`
+
+直接在 `10006000` 处下硬件执行断点，或者下内存断点，`F9` 运行就中断在 `OEP` 了。
+
+```
+10006000  /EB 06           JMP SHORT Psinthk.10006008//////来到此处！
+10006002  |68 4B160000     PUSH 164B/////第二层入口 RVA。
+10006007  |C3               RETN
+10006008  \9C               PUSHFD
+10006009    60               PUSHAD
+1000600A    E8 02000000      CALL Psinthk.10006011
+1000600F    33C0             XOR EAX,EAX
+10006011    8BC4             MOV EAX,ESP
+10006013    83C0 04          ADD EAX,4
+```
+
+晕！一看就知道还有一层 `PECompact`！不管有几层，还是老办法直接到入口处下硬件执行断点，然后 `F9` 运行到了：
+
+```
+1000164B   55               PUSH EBP/////这才象入口嘛！
+1000164C   8BEC             MOV EBP,ESP
+1000164E   53               PUSH EBX
+1000164F   8B5D 08          MOV EBX,DWORD PTR SS:[EBP+8]
+10001652   56               PUSH ESI
+10001653   8B75 0C          MOV ESI,DWORD PTR SS:[EBP+C]
+10001656   57               PUSH EDI
+10001657   8B7D 10          MOV EDI,DWORD PTR SS:[EBP+10]
+1000165A   85F6             TEST ESI,ESI
+1000165C   75 09            JNZ SHORT Psinthk.10001667
+1000165E   833D A0300010 0> CMP DWORD PTR DS:[100030A0],0
+10001665   EB 26            JMP SHORT Psinthk.1000168D
+10001667   83FE 01          CMP ESI,1
+```
+
+用 `LordPE` 选中 `Ollydbg` 的 `loaddll.exe` 的进程，在下面的列表里选择 `Psinthk.dll`，然后完整脱壳，得到 `dumped.dll`。
+
+`Dump` 完之后，不要关闭 `Ollydbg`，还要为下面的处理重定位表提供点准备。
+
+#### 2. 输入表
+
+往入口的上方看看：
+
+```
+10001621   /72 12           JB SHORT Psinthk.10001635
+10001623   |8B0E            MOV ECX,DWORD PTR DS:[ESI]
+10001625   |85C9            TEST ECX,ECX
+10001627   |74 07           JE SHORT Psinthk.10001630
+10001629   |FFD1            CALL NEAR ECX
+1000162B   |A1 B0300010     MOV EAX,DWORD PTR DS:[100030B0]
+10001630   |83EE 04         SUB ESI,4
+10001633  ^|EB EA           JMP SHORT Psinthk.1000161F
+10001635   \50               PUSH EAX
+10001636    FF15 38200010   CALL NEAR DWORD PTR DS:[10002038]//////这里应该是调用函数的 CALL 吧。
+1000163C    8325 B0300010 0> AND DWORD PTR DS:[100030B0],0
+10001643    59               POP ECX
+10001644    5E               POP ESI
+10001645    6A 01            PUSH 1
+```
+
+在内存区到 `10002038` 处看看：
+
+```
+10002038  FB B8 B8 77 78 3F B9 77  x?箇
+```
+
+看来就是 `IAT` 表了。上下看看很明显的可以找到 `IAT` 开始和结束的地址：
+
+```
+10002000  53 1F E1 77 28 8A E1 77  S 醱(娽 w
+10002008  83 1C E1 77 7C 66 E1 77  ?醱|f 醱
+10002010  31 66 E1 77 80 16 E1 77  1f 醱€醱
+10002058  ED 4E CE 77 21 EF CD 77  鞱蝫!锿 w
+10002060  14 AD CD 77 70 E3 CD 77  wp 阃 w
+```
+
+开始地址＝`10002000`
+
+结束地址＝`10002068`
+
+运行 `ImportREC`，选中 `Ollydbg` 的 `loaddll.exe` 的进程，然后点“选取 DLL”，选择 `Psinthk.dll`，填入 `RVA＝00002000`、大小＝`68`、`OEP=0000164`，点“`Get Import`”。`FixDump`！（这里好象不必用 `PEditor` 纠正 `dumped.dll` 的 `DumpFixer` 修正区块。）
+
+#### 3. 重定位表修复
+
+下面来查找重定位信息。用 `fly` 提供的简便办法，`Ctrl+G`：`10006000`（第二层入口处），也就是前往壳的入口点。
+
+然后 `Ctrl+S` 在整个段块搜索命令序列：
+
+```
+add esi,ebx
+xor eax,eax
+```
+
+找到以下代码：
+
+```
+10007652   8B9D E6904000    MOV EBX,DWORD PTR SS:[EBP+4090E6]//[ebp+4090E6]=10000000
+10007658   3B9D 5F974000    CMP EBX,DWORD PTR SS:[EBP+40975F]//如与映像基址不符则重定位处理！
+1000765E   75 01            JNZ SHORT Psinthk.10007661//可以改标志位 Z=0，使这里跳转
+10007660   C3               RETN
+10007661   8BB5 63974000    MOV ESI,DWORD PTR SS:[EBP+409763]
+10007667   03F3             ADD ESI,EBX/////找到这里。
+10007669   33C0             XOR EAX,EAX
+1000766B   66:8B43 3C       MOV AX,WORD PTR DS:[EBX+3C]
+1000766F   03C3             ADD EAX,EBX
+10007671   8B80 C0000000    MOV EAX,DWORD PTR DS:[EAX+C0]
+10007677   85C0             TEST EAX,EAX
+10007679   75 08            JNZ SHORT Psinthk.10007683
+```
+
+现在我们在其 `retn` 上面的 `10007652` 处下硬件执行断点，然后 `Ctrl+F2` 重新载入这个 dll，`F9` 运行，就中断在 `10007652` 处了。然后在 `1000765E` 时改标志位 `Z=0`，使其跳转。因为只有让它重定位了，我们才可以看到重定位信息。跳转后来到：
+
+```
+10007661   8BB5 63974000    MOV ESI,DWORD PTR SS:[EBP+409763]/////SS:[10007832]=00005000,重定位的 RVA 就是 00005000。
+10007667   03F3             ADD ESI,EBX
+10007669   33C0             XOR EAX,EAX
+1000766B   66:8B43 3C       MOV AX,WORD PTR DS:[EBX+3C]
+1000766F   03C3             ADD EAX,EBX
+10007671   8B80 C0000000    MOV EAX,DWORD PTR DS:[EAX+C0]
+10007677   85C0             TEST EAX,EAX
+10007679   75 08            JNZ SHORT Psinthk.10007683
+1000767B   2B9D 5F974000    SUB EBX,DWORD PTR SS:[EBP+40975F]
+```
+
+跟几步来到：
+
+```
+100076F2   /75 0C           JNZ SHORT Psinthk.10007700
+100076F4   |58               POP EAX
+100076F5   |25 FF0F0000      AND EAX,0FFF
+100076FA   |03C2             ADD EAX,EDX
+100076FC   |0118             ADD DWORD PTR DS:[EAX],EBX
+100076FE   |EB 01            JMP SHORT Psinthk.10007701
+10007700   \58               POP EAX
+10007701    49               DEC ECX
+10007702  ^ 75 AC            JNZ SHORT Psinthk.100076B0
+10007704  ^ EB 8C            JMP SHORT Psinthk.10007692/////循环处理重定位。
+10007706    C3               RETN//////在此下断后直接 F9。断下后 ESI＝100050E8
+```
+
+到内存区看看：
+
+```
+100050A0   0B 00 0D 00 0A 00 15 00   ......
+100050A8   0C 00 06 00 22 00 12 00  ..."..
+100050B0   5C 00 1C 00 06 00 11 00  \....
+100050B8   10 00 00 00 00 20 00 00  .... ..
+100050C0   1C 00 00 00 6C 30 0C 00  ...l0..
+100050C8   08 00 30 00 14 00 0C 00  .0....
+100050D0   08 00 30 00 14 00 00 00  .0....
+100050D8   00 30 00 00 0C 00 00 00  .0......
+100050E0   04 30 04 00 00 00 00 00  0.....
+100050E8   00 00 00 00 00 00 00 00  ........
+```
+
+重定位表结束处应该是 `100050E4`。所以重定位表大小＝`100050E4－开始地址 10005000＝E4`
+
+用 `WinHex` 打开 `dumped\_.dll`，复制 `5000－50E4` 之间的 16 进制数值，另存为 `noname.bin`
+
+运行 `看雪` 老师写的辅助修复 `PECompact` 加壳 DLL 重定位表的工具 `PEComAngela.exe`，打开 `noname.bin`，很快的提示 `pediy.bin` 文件创建成功！
+
+用 `WinHex` 把 `pediy.bin` 中的 16 进制数值全部复制、写入到 `dumped\_.dll` 的 `5000` 处，替换原先的重定位数据。
+
+用 `LordPE` 修正 `dumped\_.dll` 的重定位表 `RVA=0005000`、大小＝`0000E4`，保存之。
+
+至此脱壳完成。可以用 `OD` 正常加载了。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,5 +1,4 @@
 
-
 # 第一题 32 字节的
 
 > 原文：[`www.pediy.com/kssd/pediy11/123007.html`](https://www.pediy.com/kssd/pediy11/123007.html)
@@ -24,9 +23,8 @@
 0012FCA0    73 00           jnb     short 0012FCA2
 0012FCA2    0000            add     byte ptr \[eax\], al
 0012FCA4  - E9 23152D00     jmp     ExploitM.004011CC
-
 ```
 
 上传的附件
-| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || exploit.rar  
- |
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || exploit.rar |

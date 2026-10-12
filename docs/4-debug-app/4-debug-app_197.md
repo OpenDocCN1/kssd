@@ -1,180 +1,189 @@
 
-
 # DIY 扫雷 实现秒杀功能
 
-> 原文：[`www.pediy.com/kssd/pediy12/132861.html`](https://www.pediy.com/kssd/pediy12/132861.html)
+> 原文：`www.pediy.com/kssd/pediy12/132861.html`
 
-DIY 扫雷 实现秒杀功能  
-作者：DevilHand  
-转载请注明作者及出处  
-  
-适当致谢加个精啥的也不是不可以的![](img/755d44573ea0045d4eb19f2164c82d4e.jpg "扮鬼脸")  
-  
-**最终效果：**  
-![](img/4fd8d966eba8aeb52a86ca7e82a321b2.jpg)  ![](img/0fd353fe0de9cf43017ffc85f0f6104d.jpg)  
-**首先添加秒杀功能菜单项**  
-Reshack、eXeScope 等工具都可以实现，以 eXeScope 为例，添加一项菜单：  
-![](img/99a9781c55748f7a0f32f02f282fb6df.jpg)  
-然后找到点击棋子 CALL  
-突破点：查找改写 01005361（左上角棋子地址）的代码  
-得到图中代码：  
-![](img/290b9a9825308d856755552d89820e87.jpg)  
-很容易看出这句代码是改写的棋子状态，进 OD 转到这句代码看看，得到附近的代码如下：  
+DIY 扫雷 实现秒杀功能
 
-代码:
+作者：`DevilHand`
 
-```
-01003008  /$  55            push    ebp                              ;  点击棋子
-01003009  |.  8BEC          mov     ebp, esp
-0100300B  |.  53            push    ebx
-0100300C  |.  8B5D 08       mov     ebx, dword ptr \[ebp+8\]
-0100300F  |.  56            push    esi
-01003010  |.  57            push    edi
-01003011  |.  8B7D 0C       mov     edi, dword ptr \[ebp+C\]
-01003014  |.  8BF7          mov     esi, edi
-01003016  |.  C1E6 05       shl     esi, 5
-01003019  |.  03F3          add     esi, ebx
-0100301B  |.  0FBE86 405300>movsx   eax, byte ptr \[esi+1005340\]
-01003022  |.  A8 40         test    al, 40
-01003024  |.  75 57         jnz     short winmine\_.0100307D
-01003026  |.  83E0 1F       and     eax, 1F
-01003029  |.  83F8 10       cmp     eax, 10
-0100302C  |.  74 4F         je      short winmine\_.0100307D
-0100302E  |.  83F8 0E       cmp     eax, 0E
-01003031  |.  74 4A         je      short winmine\_.0100307D
-01003033  |.  FF05 A4570001 inc     dword ptr \[10057A4\]
-01003039  |.  57            push    edi
-0100303A  |.  53            push    ebx
-0100303B  |.  E8 FBFEFFFF   call    winmine\_.01002F3B
-01003040  |.  8945 0C       mov     dword ptr \[ebp+C\], eax
-01003043  |.  57            push    edi
-01003044  |.  0C 40         or      al, 40
-01003046  |.  53            push    ebx
-01003047  |.  8886 40530001 mov     byte ptr \[esi+1005340\], al
-0100304D  |.  E8 F4F5FFFF   call    winmine\_.01002646
-01003052  |.  837D 0C 00    cmp     dword ptr \[ebp+C\], 0
-01003056  |.  75 25         jnz     short winmine\_.0100307D
-01003058  |.  A1 98570001   mov     eax, dword ptr \[1005798\]
-0100305D  |.  891C85 A05100>mov     dword ptr \[eax\*4+10051A0\], ebx
-01003064  |.  893C85 C05700>mov     dword ptr \[eax\*4+10057C0\], edi
-0100306B  |.  40            inc     eax
-0100306C  |.  83F8 64       cmp     eax, 64
-0100306F  |.  A3 98570001   mov     dword ptr \[1005798\], eax
-01003074  |.  75 07         jnz     short winmine\_.0100307D
-01003076  |.  8325 98570001>and     dword ptr \[1005798\], 0
-0100307D  |>  5F            pop     edi
-0100307E  |.  5E            pop     esi
-0100307F  |.  5B            pop     ebx
-01003080  |.  5D            pop     ebp
-01003081  \\.  C2 0800       retn    8
+转载请注明作者及出处
+
+适当致谢加个精啥的也不是不可以的 `![](img/755d44573ea0045d4eb19f2164c82d4e.jpg "扮鬼脸")`
+
+**最终效果：**
+
+`![](img/4fd8d966eba8aeb52a86ca7e82a321b2.jpg)` `![](img/0fd353fe0de9cf43017ffc85f0f6104d.jpg)`
+
+**首先添加秒杀功能菜单项**
+
+`Reshack`、`eXeScope` 等工具都可以实现，以 `eXeScope` 为例，添加一项菜单：
+
+`![](img/99a9781c55748f7a0f32f02f282fb6df.jpg)`
+
+然后找到点击棋子 `CALL`
+
+突破点：查找改写 `01005361`（左上角棋子地址）的代码
+
+得到图中代码：
+
+`![](img/290b9a9825308d856755552d89820e87.jpg)`
+
+很容易看出这句代码是改写的棋子状态，进 `OD` 转到这句代码看看，得到附近的代码如下：
 
 ```
-
-其中的两个 CALL 实现了点击棋子后的重绘以及是否踩雷等判断，我们先不管他，找到调用这个函数的 CALL。在函数头部 F2，来到了这里：  
-代码:
-
-```
-01003084  /$  55            push    ebp                              ;  点击棋子外 1
-01003085  |.  8BEC          mov     ebp, esp
-01003087  |.  53            push    ebx
-01003088  |.  FF75 0C       push    dword ptr \[ebp+C\]                ;  被点击棋子所在行数入栈
-0100308B  |.  33DB          xor     ebx, ebx                         ;  清空 ebx
-0100308D  |.  FF75 08       push    dword ptr \[ebp+8\]                ;  被点击棋子所在列数入栈
-01003090  |.  43            inc     ebx
-01003091  |.  891D 98570001 mov     dword ptr \[1005798\], ebx
-01003097  |.  E8 6CFFFFFF   call    winmine\_.01003008                ;  CALL 点击棋子
-0100309C  |.  391D 98570001 cmp     dword ptr \[1005798\], ebx
-010030A2  |.  74 70         je      short winmine\_.01003114
-... ...
+01003008  /$  55            push    ebp                            ;  点击棋子
+01003009  |.  8BEC          mov     ebp, esp
+0100300B  |.  53            push    ebx
+0100300C  |.  8B5D 08       mov     ebx, dword ptr [ebp+8]
+0100300F  |.  56            push    esi
+01003010  |.  57            push    edi
+01003011  |.  8B7D 0C       mov     edi, dword ptr [ebp+C]
+01003014  |.  8BF7          mov     esi, edi
+01003016  |.  C1E6 05       shl     esi, 5
+01003019  |.  03F3          add     esi, ebx
+0100301B  |.  0FBE86 405300>movsx   eax, byte ptr [esi+1005340]
+01003022  |.  A8 40         test    al, 40
+01003024  |.  75 57         jnz     short winmine\_.0100307D
+01003026  |.  83E0 1F       and     eax, 1F
+01003029  |.  83F8 10       cmp     eax, 10
+0100302C  |.  74 4F         je      short winmine\_.0100307D
+0100302E  |.  83F8 0E       cmp     eax, 0E
+01003031  |.  74 4A         je      short winmine\_.0100307D
+01003033  |.  FF05 A4570001 inc     dword ptr [10057A4]
+01003039  |.  57            push    edi
+0100303A  |.  53            push    ebx
+0100303B  |.  E8 FBfeFFFF   call    winmine\_.01002F3B
+01003040  |.  8945 0C       mov     dword ptr [ebp+C], eax
+01003043  |.  57            push    edi
+01003044  |.  0C 40         or      al, 40
+01003046  |.  53            push    ebx
+01003047  |.  8886 40530001 mov     byte ptr [esi+1005340], al
+0100304D  |.  E8 F4F5FFFF   call    winmine\_.01002646
+01003052  |.  837D 0C 00    cmp     dword ptr [ebp+C], 0
+01003056  |.  75 25         jnz     short winmine\_.0100307D
+01003058  |.  A1 98570001   mov     eax, dword ptr [1005798]
+0100305D  |.  891C85 A05100>mov     dword ptr [eax*4+10051A0], ebx
+01003064  |.  893C85 C05700>mov     dword ptr [eax*4+10057C0], edi
+0100306B  |.  40            inc     eax
+0100306C  |.  83F8 64       cmp     eax, 64
+0100306F  |.  A3 98570001   mov     dword ptr [1005798], eax
+01003074  |.  75 07         jnz     short winmine\_.0100307D
+01003076  |.  8325 98570001>and     dword ptr [1005798], 0
+0100307D  |>  5F            pop     edi
+0100307E  |.  5E            pop     esi
+0100307F  |.  5B            pop     ebx
+01003080  |.  5D            pop     ebp
+01003081  \\.  C2 0800       retn    8
 
 ```
 
-我已经添加了注释，不难看出点击棋子函数的调用方式，好了，这个调用先放在这儿一会还要用到。  
-**找到菜单消息循环**  
-找菜单消息循环有很多方法，可以用消息断点或者 Run 跟踪之类的方法，这里采用一个非常容易的方法，在 OD 中右键->查找->所有分支（注意：使用此功能时要确保是在程序领空），然后看到了这些分支：  
-![](img/2a9c3450f7ecf9b19ac664c5d4c71b55.jpg)  
-记得我们刚才在 eXeScope 中看到的菜单项 ID 吗？对，52X，换算成 16 进制也就是 0x210 左右，双击 201..212 那一项进去看看：  
-代码:
+其中的两个 `CALL` 实现了点击棋子后的重绘以及是否踩雷等判断，我们先不管他，找到调用这个函数的 `CALL`。在函数头部 `F2`，来到了这里：
 
 ```
-01001F5F   > \\8D82 FFFDFFFF lea     eax, dword ptr \[edx-201\]         ;  Switch (cases 201..212)
-01001F65   .  83F8 11       cmp     eax, 11
-01001F68   .  0F87 3B020000 ja      winmine\_.010021A9
-01001F6E   .  0FB680 DE2100>movzx   eax, byte ptr \[eax+10021DE\]
-01001F75   .  FF2485 C22100>jmp     dword ptr \[eax\*4+10021C2\]
-01001F7C   >  393D 48510001 cmp     dword ptr \[1005148\], edi         ;  Case 207 (WM\_MBUTTONDOWN) of switch 01001F5F
-01001F82   .  74 0B         je      short winmine\_.01001F8F
-01001F84   >  893D 48510001 mov     dword ptr \[1005148\], edi
-01001F8A   .^ E9 CFFCFFFF   jmp     winmine\_.01001C5E
-01001F8F   >  841D 00500001 test    byte ptr \[1005000\], bl
-... ...
+01003084  /$  55            push    ebp                            ;  点击棋子外 1
+01003085  |.  8BEC          mov     ebp, esp
+01003087  |.  53            push    ebx
+01003088  |.  FF75 0C       push    dword ptr [ebp+C]                ;  被点击棋子所在行数入栈
+0100308B  |.  33DB          xor     ebx, ebx                        ;  清空 ebx
+0100308D  |.  FF75 08       push    dword ptr [ebp+8]                ;  被点击棋子所在列数入栈
+01003090  |.  43            inc     ebx
+01003091  |.  891D 98570001 mov     dword ptr [1005798], ebx
+01003097  |.  E8 6CFFFFFF   call    winmine\_.01003008                ;  CALL 点击棋子
+0100309C  |.  391D 98570001 cmp     dword ptr [1005798], ebx
+010030A2  |.  74 70         je      short winmine\_.01003114
+... ...
 
 ```
 
-向上看看，找到了这里：  
-代码:
+我已经添加了注释，不难看出点击棋子函数的调用方式，好了，这个调用先放在这儿一会还要用到。
+
+**找到菜单消息循环**
+
+找菜单消息循环有很多方法，可以用消息断点或者 `Run` 跟踪之类的方法，这里采用一个非常容易的方法，在 `OD` 中右键->查找->所有分支（注意：使用此功能时要确保是在程序领空），然后看到了这些分支：
+
+`![](img/2a9c3450f7ecf9b19ac664c5d4c71b55.jpg)`
+
+记得我们刚才在 `eXeScope` 中看到的菜单项 ID 吗？对，`52X`，换算成 16 进制也就是 `0x210` 左右，双击 `201..212` 那一项进去看看：
 
 ```
-01001DBC   > \\0FB745 10     movzx   eax, word ptr \[ebp+10\]           ;  菜单项 switch; Case 111 (WM\_COMMAND) of switch 01001D5B
-01001DC0   .  B9 10020000   mov     ecx, 210
-01001DC5   .  3BC1          cmp     eax, ecx
-01001DC7   .  0F8F 0F010000 jg      winmine\_.01001EDC
-01001DCD   .  0F84 FF000000 je      winmine\_.01001ED2
-01001DD3   .  3D FE010000   cmp     eax, 1FE
-01001DD8   .  0F84 EA000000 je      winmine\_.01001EC8
-01001DDE   .  3BC6          cmp     eax, esi
-01001DE0   .  0F84 B7000000 je      winmine\_.01001E9D
-01001DE6   .  3D 08020000   cmp     eax, 208
-01001DEB   .  0F8E B8030000 jle     winmine\_.010021A9
-01001DF1   .  3D 0B020000   cmp     eax, 20B
-01001DF6   .  7E 61         jle     short winmine\_.01001E59
-01001DF8   .- E9 03880100   jmp     winmine\_.0101A600
-01001DFD   .  74 50         je      short winmine\_.01001E4F
-01001DFF   .  3D 0E020000   cmp     eax, 20E
-01001E04   .  74 20         je      short winmine\_.01001E26
-01001E06   .  3D 0F020000   cmp     eax, 20F
-01001E0B   .  0F85 98030000 jnz     winmine\_.010021A9
-... ...
+01001F5F   > \\8D82 FFFDFFFF lea     eax, dword ptr [edx-201]         ;  Switch (cases 201..212)
+01001F65   .  83F8 11        cmp     eax, 11
+01001F68   .  0F87 3B020000 ja      winmine\_.010021A9
+01001F6E   .  0FB680 DE2100>movzx   eax, byte ptr [eax+10021DE]
+01001F75   .  FF2485 C22100>jmp     dword ptr [eax*4+10021C2]
+01001F7C   >  393D 48510001 cmp     dword ptr [1005148], edi           ;  Case 207 (WM\_MBUTTONDOWN) of switch 01001F5F
+01001F82   .  74 0B          je      short winmine\_.01001F8F
+01001F84   >  893D 48510001 mov     dword ptr [1005148], edi
+01001F8A   .^ E9 CFFCFFFF    jmp     winmine\_.01001C5E
+01001F8F   >  841D 00500001 test    byte ptr [1005000], bl
+... ...
 
 ```
 
-那些 208、20B 也都是菜单项，我们可以在这里动些手脚，让他跳转到我们自己的代码，执行秒杀操作后再返回这里。  
-注意一下这几句代码：  
-代码:
+向上看看，找到了这里：
 
 ```
-01001DC0   .  B9 10020000   mov     ecx, 210
-01001DC5   .  3BC1          cmp     eax, ecx
-01001DC7   .  0F8F 0F010000 jg      winmine\_.01001EDC
+01001DBC   > \\0FB745 10     movzx   eax, word ptr [ebp+10]            ;  菜单项 switch; Case 111 (WM\_COMMAND) of switch 01001D5B
+01001DC0   .  B9 10020000   mov     ecx, 210
+01001DC5   .  3BC1          cmp     eax, ecx
+01001DC7   .  0F8F 0F010000 jg      winmine\_.01001EDC
+01001DCD   .  0F84 FF000000 je      winmine\_.01001ED2
+01001DD3   .  3D FE010000   cmp     eax, 1FE
+01001DD8   .  0F84 EA000000 je      winmine\_.01001EC8
+01001DDE   .  3BC6          cmp     eax, esi
+01001DE0   .  0F84 B7000000 je      winmine\_.01001E9D
+01001DE6   .  3D 08020000   cmp     eax, 208
+01001DEB   .  0F8E B8030000 jle     winmine\_.010021A9
+01001DF1   .  3D 0B020000   cmp     eax, 20B
+01001DF6   .  7E 61         jle     short winmine\_.01001E59
+01001DF8   .- E9 03880100   jmp     winmine\_.0101A600
+01001DFD   .  74 50         je      short winmine\_.01001E4F
+01001DFF   .  3D 0E020000   cmp     eax, 20E
+01001E04   .  74 20         je      short winmine\_.01001E26
+01001E06   .  3D 0F020000   cmp     eax, 20F
+01001E0B   .  0F85 98030000 jnz     winmine\_.010021A9
+... ...
 
 ```
 
-如果菜单项 ID 大于 0x210 会跳走，不过我们添加的菜单项 ID 是 525 也就是 0x20D 所以就不必在意了。  
-**写秒杀功能代码**  
-首先找一段足够的 Code Cave，0101A600 这里就可以，然后开始写秒杀的功能，代码很好写，也就是 C 语言的一个嵌套 for 循环，大致结构如下：  
-代码:
+那些 `208`、`20B` 也都是菜单项，我们可以在这里动些手脚，让他跳转到我们自己的代码，执行秒杀操作后再返回这里。
+
+注意一下这几句代码：
 
 ```
-if (秒杀)
+01001DC0   .  B9 10020000   mov     ecx, 210
+01001DC5   .  3BC1          cmp     eax, ecx
+01001DC7   .  0F8F 0F010000 jg      winmine\_.01001EDC
+
+```
+
+如果菜单项 ID 大于 `0x210` 会跳走，不过我们添加的菜单项 ID 是 `525` 也就是 `0x20D` 所以就不必在意了。
+
+**写秒杀功能代码**
+
+首先找一段足够的 `Code Cave`，`0101A600` 这里就可以，然后开始写秒杀的功能，代码很好写，也就是 `C` 语言的一个嵌套 `for` 循环，大致结构如下：
+
+```
+if (秒杀)
 {
-  for (int i = 0; i < 总行数; i++)
-  {
-    for (int j = 0; j < 总列数; j++)
-    {
-      当前棋子无雷 ? 点击 : 跳过
-    }
-  }
+  for (int i = 0; i < 总行数; i++)
+  {
+    for (int j = 0; j < 总列数; j++)
+    {
+      当前棋子无雷 ? 点击 : 跳过
+    }
+  }
 }
 返回
 
 ```
 
-接下来是汇编实现，为了方便，我们用 CE 的自动汇编功能来写，代码如下：  
-代码:
+接下来是汇编实现，为了方便，我们用 `CE` 的自动汇编功能来写，代码如下：
 
 ```
-\[ENABLE\]
-fullaccess(0101a600,2048)  // 修改保护属性，以免出错
+[ENABLE]
+fullaccess(0101a600,2048)  // 修改保护属性，以免出错
 label(lineLoop)
 label(colLoop)
 label(endOfCol)
@@ -184,101 +193,108 @@ define(ChessClick,1003008)
 
 0101a600:
 pushad
-cmp eax,20d                 // 不是我们添加地秒杀命令则返回
-jne short exit 
-mov dword ptr\[101a700\],0  // 第几行
-// 行循环
-lineLoop: 
-mov eax,dword ptr\[1005338\]  // 获取当前游戏行数
-cmp dword ptr\[101a700\],eax
-jge short exit
-mov dword ptr\[101a704\],0  // 第几列
-// 每一行的列循环 
+cmp eax,20d                 // 不是我们添加地秒杀命令则返回
+jne short exit 
+mov dword ptr[101a700],0  // 第几行
+// 行循环
+lineLoop: 
+mov eax,dword ptr[1005338]  // 获取当前游戏行数
+cmp dword ptr[101a700],eax
+jge short exit
+mov dword ptr[101a704],0  // 第几列
+// 每一行的列循环 
 colLoop:
-mov eax,dword ptr\[1005334\]  // 获取当前游戏列数
-cmp dword ptr\[101a704\],eax
-jge short endOfLine 
-mov eax,dword ptr\[101a700\]  // 取当前行数 
-shl eax,5                   // 0x1005361 + 行数 \* 0x20 = 当前行第一颗棋子 
-add eax,1005361 
-add eax,dword ptr\[101a704\]  // 加上当前列数
-mov ebx,\[eax\]               // 取出当前棋子的状态
-shr bl,4
-cmp bl,08                   // bh = 0x08 表示当前棋子有雷
-je short endOfCol 
-// 没有雷则点击
-mov eax,dword ptr \[101a700\]
-add eax,1
-push eax                   // 行数 
-mov eax,dword ptr \[101a704\]
-add eax,1
-push eax                   // 列数
-xor ebx,ebx 
-inc ebx
-mov dword ptr \[1005798\],ebx
-call ChessClick
+mov eax,dword ptr[1005334]  // 获取当前游戏列数
+cmp dword ptr[101a704],eax
+jge short endOfLine 
+mov eax,dword ptr[101a700]  // 取当前行数 
+shl eax,5                 // 0x1005361 + 行数 * 0x20 = 当前行第一颗棋子 
+add eax,1005361 
+add eax,dword ptr[101a704]  // 加上当前列数
+mov ebx,[eax]              // 取出当前棋子的状态
+shr bl,4
+cmp bl,08                 // bh = 0x08 表示当前棋子有雷
+je short endOfCol 
+// 没有雷则点击
+mov eax,dword ptr [101a700]
+add eax,1
+push eax                 // 行数 
+mov eax,dword ptr [101a704]
+add eax,1
+push eax                 // 列数
+xor ebx,ebx 
+inc ebx
+mov dword ptr [1005798],ebx
+call ChessClick
 endOfCol:
-add dword ptr\[101a704\],1
-jmp short colLoop
+add dword ptr[101a704],1
+jmp short colLoop
 endOfLine:
-add dword ptr\[101a700\],1
-jmp short lineLoop
+add dword ptr[101a700],1
+jmp short lineLoop
 exit:
 popad
-cmp eax,20c
-jmp 1001dfd
-\[DISABLE\]
+cmp eax,20c
+jmp 1001dfd
+[DISABLE]
 
 ```
 
-代码也加了注释，很容易理解，遍历所有棋子，无雷则点，有雷跳过，值得注意一下的就是 pushad 和 popad 两个命令，这两个命令是为了防止出错做的一个备份还原工作，呵呵。编译完成的代码如下：  
-代码:
+代码也加了注释，很容易理解，遍历所有棋子，无雷则点，有雷跳过，值得注意一下的就是 `pushad` 和 `popad` 两个命令，这两个命令是为了防止出错做的一个备份还原工作，呵呵。编译完成的代码如下：
+
+
+
 
 ```
-0101A600    60              pushad
-0101A601    3D 0D020000     cmp     eax, 20D
-0101A606    75 7D           jnz     short winmine\_.0101A685
-0101A608    C705 00A70101 0>mov     dword ptr \[101A700\], 0
-0101A612    A1 38530001     mov     eax, dword ptr \[1005338\]
-0101A617    3905 00A70101   cmp     dword ptr \[101A700\], eax
-0101A61D    7D 66           jge     short winmine\_.0101A685
-0101A61F    C705 04A70101 0>mov     dword ptr \[101A704\], 0
-0101A629    A1 34530001     mov     eax, dword ptr \[1005334\]
-0101A62E    3905 04A70101   cmp     dword ptr \[101A704\], eax
-0101A634    7D 46           jge     short winmine\_.0101A67C
-0101A636    A1 00A70101     mov     eax, dword ptr \[101A700\]
-0101A63B    C1E0 05         shl     eax, 5
-0101A63E    05 61530001     add     eax, winmine\_.01005361
-0101A643    0305 04A70101   add     eax, dword ptr \[101A704\]
-0101A649    8B18            mov     ebx, dword ptr \[eax\]
-0101A64B    C0EB 04         shr     bl, 4
-0101A64E    80FB 08         cmp     bl, 8
-0101A651    74 20           je      short winmine\_.0101A673
-0101A653    A1 00A70101     mov     eax, dword ptr \[101A700\]
-0101A658    83C0 01         add     eax, 1
-0101A65B    50              push    eax
-0101A65C    A1 04A70101     mov     eax, dword ptr \[101A704\]
-0101A661    83C0 01         add     eax, 1
-0101A664    50              push    eax
-0101A665    31DB            xor     ebx, ebx
-0101A667    43              inc     ebx
-0101A668    891D 98570001   mov     dword ptr \[1005798\], ebx
-0101A66E    E8 9589FEFF     call    winmine\_.01003008
-0101A673    8305 04A70101 0>add     dword ptr \[101A704\], 1
-0101A67A  ^ EB AD           jmp     short winmine\_.0101A629
-0101A67C    8305 00A70101 0>add     dword ptr \[101A700\], 1
-0101A683  ^ EB 8D           jmp     short winmine\_.0101A612
-0101A685    61              popad
-0101A686    3D 0C020000     cmp     eax, 20C
-0101A68B  - E9 6D77FEFF     jmp     winmine\_.01001DFD
-
+0101A600    60                 pushad
+0101A601    3D 0D020000      cmp     eax, 20D
+0101A606    75 7D            jnz     short winmine\_.0101A685
+0101A608    C705 00A70101 0>mov     dword ptr [101A700], 0
+0101A612    A1 38530001      mov     eax, dword ptr [1005338]
+0101A617    3905 00A70101    cmp     dword ptr [101A700], eax
+0101A61D    7D 66            jge     short winmine\_.0101A685
+0101A61F    C705 04A70101 0>mov     dword ptr [101A704], 0
+0101A629    A1 34530001      mov     eax, dword ptr [1005334]
+0101A62E    3905 04A70101    cmp     dword ptr [101A704], eax
+0101A634    7D 46            jge     short winmine\_.0101A67C
+0101A636    A1 00A70101      mov     eax, dword ptr [101A700]
+0101A63B    C1E0 05          shl     eax, 5
+0101A63E    05 61530001      add     eax, winmine\_.01005361
+0101A643    0305 04A70101    add     eax, dword ptr [101A704]
+0101A649    8B18             mov     ebx, dword ptr [eax]
+0101A64B    C0EB 04          shr     bl, 4
+0101A64E    80FB 08          cmp     bl, 8
+0101A651    74 20            je      short winmine\_.0101A673
+0101A653    A1 00A70101      mov     eax, dword ptr [101A700]
+0101A658    83C0 01          add     eax, 1
+0101A65B    50               push    eax
+0101A65C    A1 04A70101      mov     eax, dword ptr [101A704]
+0101A661    83C0 01          add     eax, 1
+0101A664    50               push    eax
+0101A665    31DB             xor     ebx, ebx
+0101A667    43               inc     ebx
+0101A668    891D 98570001    mov     dword ptr [1005798], ebx
+0101A66E    E8 9589FEFF      call    winmine\_.01003008
+0101A673    8305 04A70101 0>add     dword ptr [101A704], 1
+0101A67A   ^ EB AD          jmp     short winmine\_.0101A629
+0101A67C    8305 00A70101 0>add     dword ptr [101A700], 1
+0101A683   ^ EB 8D          jmp     short winmine\_.0101A612
+0101A685    61               popad
+0101A686    3D 0C020000      cmp     eax, 20C
+0101A68B   - E9 6D77FEFF     jmp     winmine\_.01001DFD
 ```
 
-**修改消息循环**  
-秒杀功能代码已经写好，最后一步工作就是修改菜单项的消息循环，这步很容易，修改 01001DF8 出的代码为 jmp 0101A600 即可  
-**测试和保存**  
-保存只需要使用 OD 的“保存到文件”功能即可  
-现在点击一下秒杀功能看看，发现几个问题：  
-秒杀功能没有错但是我们还需要右键点击一下有雷的棋子  
-如果游戏已经进行了一些操作，比如在无雷的棋子上插上了小旗子秒杀功能就会出问题  
+### 修改消息循环
+
+秒杀功能代码已经写好，最后一步工作就是修改菜单项的消息循环，这步很容易，修改`01001DF8`处的代码为`jmp 0101A600`即可。
+
+### 测试和保存
+
+保存只需要使用`OD`的“保存到文件”功能即可。
+
+现在点击一下秒杀功能看看，发现几个问题：
+
+- 秒杀功能没有错但是我们还需要右键点击一下有雷的棋子
+- 如果游戏已经进行了一些操作，比如在无雷的棋子上插上了小旗子秒杀功能就会出问题
+
 这几个问题都很好解决，在我们添加的代码中再加上几个判断以及适当的右键的点击操作就轻松搞定，有兴趣的可以自己实现一下。

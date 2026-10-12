@@ -1,193 +1,265 @@
 
-
-# 打造 super trw2000 
+# 打造 super trw2000
 
 > 原文：[`www.pediy.com/kssd/pediy05/pediy50262.htm`](https://www.pediy.com/kssd/pediy05/pediy50262.htm)
 
-diype6－－－－－打造 super trw2000   
-何为 super trw2000，就是 superbpm＋trw2000，说白了就是捆绑 superbpm 到 trw2000 内部，使 trw2000 自带 superbpm 功能(现在我的 diype 只讲述关键部分   
-、基础部分如怎么添加 api，寻找消息处理等，前面的文章已经教给大家，我没有必要在罗嗦，自己也可以少打一些字）   
-  
-一、分析篇：   
-superbpm 有两个文件一个 superbpm.vxd、一个 superbpm.exe。superbpm.exe 是一个外壳程序，真正工作的是 superbpm.vxd。   
-那么 superbpm 是怎么驱动 superbpm.vxd 的，答案是使用 DeviceIoControl 的 api   
-BOOL DeviceIoControl(   
-  
-    HANDLE hDevice,    // handle to device  of interest   
-    DWORD dwIoControlCode,    // control  code of operation to perform   
-    LPVOID lpInBuffer,    //  pointer to buffer to supply input data   
-    DWORD nInBufferSize,    // size of input buffer   
-    LPVOID lpOutBuffer,    // pointer to buffer to receive output data   
-    DWORD nOutBufferSize,    // size of output buffer   
-    LPDWORD lpBytesReturned,    // pointer to variable to receive output  byte count   
-    LPOVERLAPPED lpOverlapped     //  pointer to overlapped structure for asynchronous operation   
-  );   
-控制 superbpm.vxd   
-需要两个参数 dwIoControlCode 和 hDevice   
-  参数 dwIoControlCode 是控制号：得到方法 creatfilea 函数成功后返回值   
-  hDevice 是控制句柄：一共有三个值 1、2、3。1 表示复原、2 表示 erase、3 表示 monitor   
-  其他参数都可以为 0   
-    
-知道了就简单了   
-二、资源构造篇：   
-1、trw 面板上增加两个 checkbox   
-    checkbox1        checkbox2   
-标题：    Erase            Monitor   
-Id:      621            622（10 进制）   
-    26d            26e（16 进制）   
-三、程序构造篇：   
-a.trw 的 dialog 消息处理地方：   
-0041161A              /$ 817C24 08 1001>CMP \[DWORD SS:ESP+8\],110＝＝》刘涛涛老大真是惜字节如金，传递参数连 ebp 都不用，直接使用堆栈比较   
-怪不得 trw 比 softice 小的多（偶像派人物），比较消息是否是初始化 dialog 消息   
-00411622              |. 75 2B          JNZ SHORT PLL.0041164F   
-00411624              |. FF7424 04      PUSH \[DWORD SS:ESP+4\]   
-00411628              |. E8 540D0000    CALL PLL.00412381＝＝》在初始化窗口的时候我们需要得到 checkbox 的 handle 所以这里的加上自己处理的函数   
-0041162D              |. 50            PUSH EAX   
-0041162E              |. 68 589D4100    PUSH PLL.00419D58   
-  
-找了半天竟然在 code 段没有找到足够可用的空间，都给涛涛老大用完了（对涛涛的佩服，尤如滔滔江水连绵不绝，好比黄河之水泛滥，一发......)   
-没有空间，自己加个结吧，我增加了一个结名为 pll621 大小 10000 字节（够大，想补什么就补什么）。看雪说的好，这样也便于代码维护，不要像补 w32asm 那样搞得我自己也快看不懂了:(   
-附：增加字节的地址   
-offset         rva            va            大小   
-24800        2b000        imagebase+2b000        10000   
-  
-我的规划如下   
-data1    24800-253b8    大小 3000byte    用于存放提示符号        类似 table db "good day",0   
-data2    253b8-25b88    大小 2000byte    用于变量            类似 title dd    0   
-code    25b88-26f10    大小 5000byte    用于 code            类似 start：   
-                                    push eax   
-b.分析需要的 api   
-需要的 api 如下：   
-1.DeviceIoControl    :call dword ptr \[0042E01F\]   
-2.Enablewindow        :call dword ptr \[004193E4\]   
-3.CreateFileA        :call dword ptr \[00419228\]   
-4.GetDlgItem        :call dword ptr \[0041936C\]   
-5.MessageBoxA        :call dword ptr \[0041942C\]   
-  
-观看原程序已有 2/3/4 这三个 api，只有 DeviceIoControl 没有,打开 peedit 构造（我真是越来越懒了，连一个 api 都不想手动构造）   
-增加完以后，api 调用地址如上   
-c.增加代码   
-更改原来消息处理为：   
-0041161A: 817C240810010000            cmp        d,\[esp\]\[08\],000000110 ;"   
-00411622: 0F85D8AD0100                jne        .00042C400  ----- 不等跳到自己地方比较是否为 111   
-00411628: E9E6AD0100                  jmp        .00042C413  -----跳到自己程序，目的是在窗口初始话的时候得到我们增加的两个 checkbox 的 handle   
-0041162D: 50                          push        eax   
-0041162E: 68589D4100                  push        000419D58  ----- (3)   
-00411633: E84D370000                  call      .000414D85  ----- (4)   
-00411638: 59                          pop        ecx   
-00411639: 85C0                        test        eax,eax   
-0041163B: 59                          pop        ecx   
-0041163C: 740C                        je        .00041164A  ----- (5)   
-  
-  
-变量规划如下：   
-42b010        db "\\\\.\\SuperBPM.VXD",0   
-42b030        db "Can\`t open superbpm.vxd so you can\`t use those function",0   
-42b070        db "Sorry",0   
-42bbb8        dd 0    ：也就是 253b8        \*creatfilea 得到的句柄   
-42bbbc        dd 0    ：也就是 253bc        \*erase 和 monitor 切换使用的标志，如果点击 erase 就禁止 monitor，点击 monitor 禁止 erase   
-42bbc0        dd 0    ：也就是 253c0        \*erase hadle   
-42bbc4        dd 0                \*Monitor hadle   
-42bbc8        db 0 dup(100)             \*pointer to variable to receive output byte count   
-  
-  
-  
-代码如下：   
-0042C400  817C24 08 11010000  CMP \[DWORD SS:ESP+8\],111   
-0042C408  -0F85 4152FEFF        JNZ PLL3.0041164F   
-0042C40E  E9 9D000000          JMP PLL3.0042C4B0   
-0042C413  6A 00                PUSH 0   
-0042C415  68 00000004          PUSH 4000000   
-0042C41A  6A 03                PUSH 3   
-0042C41C  6A 00                PUSH 0   
-0042C41E  6A 03                PUSH 3   
-0042C420  68 000000C0          PUSH C0000000   
-0042C425  68 10B04200          PUSH PLL3.0042B010                      ; ASCII "\\\\.\\SuperBPM.VXD"   
-0042C42A  FF15 28924100        CALL \[DWORD DS:<&KERNEL32.CreateFileA>\]   
-0042C430  A3 B8BB4200          MOV \[DWORD DS:42BBB8\],EAX   
-0042C435  68 6D020000          PUSH 26D   
-0042C43A  FF7424 08            PUSH \[DWORD SS:ESP+8\]   
-0042C43E  FF15 6C934100        CALL \[DWORD DS:<&USER32.GetDlgItem>\]   
-0042C444  A3 C0BB4200          MOV \[DWORD DS:42BBC0\],EAX   
-0042C449  68 6E020000          PUSH 26E   
-0042C44E  FF7424 08            PUSH \[DWORD SS:ESP+8\]   
-0042C452  FF15 6C934100        CALL \[DWORD DS:<&USER32.GetDlgItem>\]   
-0042C458  A3 C4BB4200          MOV \[DWORD DS:42BBC4\],EAX   
-0042C45D  A1 B8BB4200          MOV EAX,\[DWORD DS:42BBB8\]   
-0042C462  83F8 FF              CMP EAX,-1   
-0042C465  75 34                JNZ SHORT PLL3.0042C49B   
-0042C467  90                  NOP   
-0042C468  90                  NOP   
-0042C469  90                  NOP   
-0042C46A  90                  NOP   
-0042C46B  6A 30                PUSH 30   
-0042C46D  68 70B04200          PUSH PLL3.0042B070                      ; ASCII "sorry"   
-0042C472  68 30B04200          PUSH PLL3.0042B030                      ; ASCII "Can\`t open superbpm.vxd so you can\`t use those function"   
-0042C477  6A 00                PUSH 0   
-0042C479  FF15 2C944100        CALL \[DWORD DS:<&USER32.MessageBoxA>\]       
-0042C47F  6A 00                PUSH 0   
-0042C481  FF35 C0BB4200        PUSH \[DWORD DS:42BBC0\]   
-0042C487  FF15 E4934100        CALL \[DWORD DS:<&USER32.EnableWindow>\]   
-0042C48D  6A 00                PUSH 0   
-0042C48F  FF35 C4BB4200        PUSH \[DWORD DS:42BBC4\]   
-0042C495  FF15 E4934100        CALL \[DWORD DS:<&USER32.EnableWindow>\]        ;如果装载失败就 diseanble 两个按钮   
-0042C49B  FF7424 04            PUSH \[DWORD SS:ESP+4\]   
-0042C49F  E8 DD5EFEFF          CALL PLL3.00412381   
-0042C4A4  -E9 8451FEFF          JMP PLL3.0041162D   
-0042C4A9  90                  NOP   
-0042C4AA  90                  NOP   
-0042C4AB  90                  NOP   
-0042C4AC  90                  NOP   
-0042C4AD  90                  NOP   
-0042C4AE  90                  NOP   
-0042C4AF  90                  NOP   
-0042C4B0  817C24 0C 6D020000  CMP \[DWORD SS:ESP+C\],26D   
-0042C4B8  75 2D                JNZ SHORT PLL3.0042C4E7   
-0042C4BA  90                  NOP   
-0042C4BB  90                  NOP   
-0042C4BC  90                  NOP   
-0042C4BD  90                  NOP   
-0042C4BE  FF35 BCBB4200        PUSH \[DWORD DS:42BBBC\]   
-0042C4C4  FF35 C4BB4200        PUSH \[DWORD DS:42BBC4\]   
-0042C4CA  FF15 E4934100        CALL \[DWORD DS:<&USER32.EnableWindow>\]   
-0042C4D0  8335 BCBB4200 01    XOR \[DWORD DS:42BBBC\],1        ；这个变量是用来保证两个按钮一次只能点击到一个   
-0042C4D7  74 45                JE SHORT PLL3.0042C51E   
-0042C4D9  90                  NOP   
-0042C4DA  90                  NOP   
-0042C4DB  90                  NOP   
-0042C4DC  90                  NOP   
-0042C4DD  B8 02000000          MOV EAX,2   
-0042C4E2  E9 3C000000          JMP PLL3.0042C523   
-0042C4E7  817C24 0C 6E020000  CMP \[DWORD SS:ESP+C\],26E   
-0042C4EF  -0F85 5A51FEFF        JNZ PLL3.0041164F   
-0042C4F5  FF35 BCBB4200        PUSH \[DWORD DS:42BBBC\]   
-0042C4FB  FF35 C0BB4200        PUSH \[DWORD DS:42BBC0\]   
-0042C501  FF15 E4934100        CALL \[DWORD DS:<&USER32.EnableWindow>\]   
-0042C507  8335 BCBB4200 01    XOR \[DWORD DS:42BBBC\],1   
-0042C50E  74 0E                JE SHORT PLL3.0042C51E   
-0042C510  90                  NOP   
-0042C511  90                  NOP   
-0042C512  90                  NOP   
-0042C513  90                  NOP   
-0042C514  B8 03000000          MOV EAX,3   
-0042C519  E9 05000000          JMP PLL3.0042C523   
-0042C51E  B8 01000000          MOV EAX,1   
-0042C523  6A 00                PUSH 0   
-0042C525  68 C8BB4200          PUSH PLL3.0042BBC8   
-0042C52A  6A 00                PUSH 0   
-0042C52C  6A 00                PUSH 0   
-0042C52E  6A 00                PUSH 0   
-0042C530  6A 00                PUSH 0   
-0042C532  50                  PUSH EAX   
-0042C533  FF35 B8BB4200        PUSH \[DWORD DS:42BBB8\]   
-0042C539  FF15 1FE04200        CALL \[DWORD DS:<&kernel32.DeviceIoContro>   
-0042C53F  -E9 0B51FEFF          JMP PLL3.0041164F   
-  
-代码很简单，我就不说明了，看过我前面文章的朋友稍微动点脑子的就能看懂   
-  
-  
-                                        pll621   
-                                           
-                                           
-个人题外话：   
-我修改的这个 trw 是在娃娃\[CCG\]修改版（从年龄上来讲，他的确是娃娃）基础上修改的，毕竟 trw 是工作在 ring0 级,我增加的代码从 ring3 级上来讲怎么都不可能出问题，但是在 ring0 级我也不敢保证一定能正常工作，我只是给出了一个方案，大家知道应该去怎么改造一个 pe 而已，如果在各位的机器上不能运行我也爱莫能助，在我的机器上调试是没有什么问题，到现在为止，我给大家重新打造了 98 下的两把利剑 trw 和 w32asm.希望大家能用好它，技术蒸蒸日上，希望不要是我一个人写这种技术文章，我都六六大顺了。多些人写，交流的才广泛，我一个人的知识是有限的.谢谢大家捧场  4dd466d0e1e0cc123afbe504da2462ca
+diype6 －－－－－打造 super trw2000
+
+何为 super trw2000，就是 superbpm＋trw2000，说白了就是捆绑 superbpm 到 trw2000 内部，使 trw2000 自带 superbpm 功能(现在我的 diype 只讲述关键部分、基础部分如怎么添加 api，寻找消息处理等，前面的文章已经教给大家，我没有必要在罗嗦，自己也可以少打一些字）
+
+## 一、分析篇
+
+superbpm 有两个文件一个 `superbpm.vxd`、一个 `superbpm.exe`。`superbpm.exe` 是一个外壳程序，真正工作的是 `superbpm.vxd`。
+
+那么 superbpm 是怎么驱动 `superbpm.vxd` 的，答案是使用 `DeviceIoControl` 的 api
+
+```
+BOOL DeviceIoControl(
+    HANDLE hDevice,    // handle to device  of interest
+    DWORD dwIoControlCode,    // control  code of operation to perform
+    LPVOID lpInBuffer,    //  pointer to buffer to supply input data
+    DWORD nInBufferSize,    // size of input buffer
+    LPVOID lpOutBuffer,    // pointer to buffer to receive output data
+    DWORD nOutBufferSize,    // size of output buffer
+    LPDWORD lpBytesReturned,    // pointer to variable to receive output  byte count
+    LPOVERLAPPED lpOverlapped     //  pointer to overlapped structure for asynchronous operation
+);
+```
+
+控制 `superbpm.vxd`
+
+需要两个参数 `dwIoControlCode` 和 `hDevice`
+
+参数 `dwIoControlCode` 是控制号：得到方法 `creatfilea` 函数成功后返回值
+
+`hDevice` 是控制句柄：一共有三个值 1、2、3。1 表示复原、2 表示 erase、3 表示 monitor
+
+其他参数都可以为 0
+
+知道了就简单了
+
+## 二、资源构造篇
+
+1、trw 面板上增加两个 checkbox
+
+`checkbox1`    `checkbox2`
+
+标题：`Erase`    `Monitor`
+
+Id: `621`    `622`（10 进制）
+
+`26d`    `26e`（16 进制）
+
+## 三、程序构造篇
+
+a. trw 的 dialog 消息处理地方：
+
+```
+0041161A      /$ 817C24 08 1001>CMP [DWORD SS:ESP+8],110＝＝》刘涛涛老大真是惜字节如金，传递参数连 ebp 都不用，直接使用堆栈比较
+00411622      |. 75 2B           JNZ SHORT PLL.0041164F
+00411624      |. FF7424 04      PUSH [DWORD SS:ESP+4]
+00411628      |. E8 540D0000    CALL PLL.00412381＝＝》在初始化窗口的时候我们需要得到 checkbox 的 handle 所以这里的加上自己处理的函数
+0041162D      |. 50             PUSH EAX
+0041162E      |. 68 589D4100    PUSH PLL.00419D58
+```
+
+找了半天竟然在 code 段没有找到足够可用的空间，都给涛涛老大用完了（对涛涛的佩服，尤如滔滔江水连绵不绝，好比黄河之水泛滥，一发......)
+
+没有空间，自己加个结吧，我增加了一个结名为 `pll621` 大小 `10000` 字节（够大，想补什么就补什么）。看雪说的好，这样也便于代码维护，不要像补 w32asm 那样搞得我自己也快看不懂了:(
+
+附：增加字节的地址
+
+| offset | rva | va | 大小 |
+| :--- | :--- | :--- | :--- |
+| `24800` | `2b000` | `imagebase+2b000` | `10000` |
+
+我的规划如下
+
+`data1` `24800-253b8` 大小 `3000byte` 用于存放提示符号 类似 `table db "good day",0`
+
+`data2` `253b8-25b88` 大小 `2000byte` 用于变量 类似 `title dd 0`
+
+`code` `25b88-26f10` 大小 `5000byte` 用于 code 类似 `start:`
+
+```
+    push eax
+```
+
+b. 分析需要的 api
+
+需要的 api 如下：
+
+1. `DeviceIoControl` :`call dword ptr [0042E01F]`
+2. `Enablewindow` :`call dword ptr [004193E4]`
+3. `CreateFileA` :`call dword ptr [00419228]`
+4. `GetDlgItem` :`call dword ptr [0041936C]`
+5. `MessageBoxA` :`call dword ptr [0041942C]`
+
+观看原程序已有 2/3/4 这三个 api，只有 `DeviceIoControl` 没有,打开 peedit 构造（我真是越来越懒了，连一个 api 都不想手动构造）
+
+增加完以后，api 调用地址如上
+
+c. 增加代码
+
+更改原来消息处理为：
+
+```
+0041161A: 817C240810010000            cmp         d,[esp][08],000000110 ;"
+00411622: 0F85D8AD0100                 jne         .00042C400  ----- 不等跳到自己地方比较是否为 111
+00411628: E9E6AD0100                   jmp         .00042C413  -----跳到自己程序，目的是在窗口初始话的时候得到我们增加的两个 checkbox 的 handle
+0041162D: 50                             push        eax
+0041162E: 68589D4100                   push        000419D58  ----- (3)
+00411633: E84D370000                   call        .000414D85  ----- (4)
+00411638: 59                             pop         ecx
+00411639: 85C0                           test        eax,eax
+0041163B: 59                             pop         ecx
+0041163C: 740C                           je          .00041164A  ----- (5)
+```
+
+变量规划如下：
+
+`42b010`    db `\\\.\\SuperBPM.VXD`,0
+
+`42b030`    db "Can\`t open superbpm.vxd so you can\`t use those function",0
+
+`42b070`    db "Sorry",0
+
+`42bbb8`    dd 0    ：也就是 `253b8`    \*creatfilea 得到的句柄
+
+`42bbbc`    dd 0    ：也就是 `253bc`    \*erase 和 monitor 切换使用的标志，如果点击 erase 就禁止 monitor，点击 monitor 禁止 erase
+
+`42bbc0`    dd 0    ：也就是 `253c0`    \*erase hadle
+
+`42bbc4`    dd 0        \*Monitor hadle
+
+`42bbc8`    db 0 dup(100)      \*pointer to variable to receive output byte count
+
+代码如下：
+
+```
+0042C400  817C24 08 11010000  CMP [DWORD SS:ESP+8],111
+0042C408  -0F85 4152FEFF         JNZ PLL3.0041164F
+0042C40E  E9 9D000000            JMP PLL3.0042C4B0
+0042C413  6A 00                  PUSH 0
+0042C415  68 00000004            PUSH 4000000
+0042C41A  6A 03                  PUSH 3
+0042C41C  6A 00                  PUSH 0
+0042C41E  6A 03                  PUSH 3
+0042C420  68 000000C0            PUSH C0000000
+0042C425  68 10B04200            PUSH PLL3.0042B010                  ; ASCII "\\\\.\\SuperBPM.VXD"
+0042C42A  FF15 28924100          CALL [DWORD DS:<&KERNEL32.CreateFileA>]
+0042C430  A3 B8BB4200            MOV [DWORD DS:42BBB8],EAX
+0042C435  68 6D020000            PUSH 26D
+0042C43A  FF7424 08              PUSH [DWORD SS:ESP+8]
+0042C43E  FF15 6C934100          CALL [DWORD DS:<&USER32.GetDlgItem>]
+0042C444  A3 C0BB4200            MOV [DWORD DS:42BBC0],EAX
+0042C449  68 6E020000            PUSH 26E
+0042C44E  FF7424 08              PUSH [DWORD SS:ESP+8]
+0042C452  FF15 6C934100          CALL [DWORD DS:<&USER32.GetDlgItem>]
+0042C458  A3 C4BB4200            MOV [DWORD DS:42BBC4],EAX
+0042C45D  A1 B8BB4200            MOV EAX,[DWORD DS:42BBB8]
+0042C462  83F8 FF                CMP EAX,-1
+0042C465  75 34                  JNZ SHORT PLL3.0042C49B
+0042C467  90                      NOP
+0042C468  90                      NOP
+0042C469  90                      NOP
+0042C46A  90                      NOP
+0042C46B  6A 30                  PUSH 30
+0042C46D  68 70B04200            PUSH PLL3.0042B070                  ; ASCII "sorry"
+0042C472  68 30B04200            PUSH PLL3.0042B030                  ; ASCII "Can\`t open superbpm.vxd so you can\`t use those function"
+0042C477  6A 00                  PUSH 0
+0042C479  FF15 2C944100          CALL [DWORD DS:<&USER32.MessageBoxA>]    
+0042C47F  6A 00                  PUSH 0
+0042C481  FF35 C0BB4200          PUSH [DWORD DS:42BBC0]
+0042C487  FF15 E4934100          CALL [DWORD DS:<&USER32.EnableWindow>]
+0042C48D  6A 00                  PUSH 0
+0042C48F  FF35 C4BB4200          PUSH [DWORD DS:42BBC4]
+0042C495  FF15 E4934100          CALL [DWORD DS:<&USER32.EnableWindow>]         ;如果装载失败就 diseanble 两个按钮
+0042C49B  FF7424 04              PUSH [DWORD SS:ESP+4]
+0042C49F  E8 DD5EFEFF            CALL PLL3.00412381
+0042C4A4  -E9 8451FEFF             JMP PLL3.0041162D
+0042C4A9  90                      NOP
+0042C4AA  90                      NOP
+0042C4AB  90                      NOP
+0042C4AC  90                      NOP
+0042C4AD  90                      NOP
+0042C4AE  90                      NOP
+0042C4AF  90                      NOP
+0042C4B0  817C24 0C 6D020000  CMP [DWORD SS:ESP+C],26D
+0042C4B8  75 2D                  JNZ SHORT PLL3.0042C4E7
+0042C4BA  90                      NOP
+0042C4BB  90                      NOP
+0042C4BC  90                      NOP
+0042C4BD  90                      NOP
+0042C4BE  FF35 BCBB4200          PUSH [DWORD DS:42BBBC]
+0042C4C4  FF35 C4BB4200          PUSH [DWORD DS:42BBC4]
+0042C4CA  FF15 E4934100          CALL [DWORD DS:<&USER32.EnableWindow>]
+0042C4D0  8335 BCBB4200 01      XOR [DWORD DS:42BBBC],1       ；这个变量是用来保证两个按钮一次只能点击到一个
+0042C4D7  74 45                  JE SHORT PLL3.0042C51E
+0042C4D9  90                      NOP
+0042C4DA  90                      NOP
+0042C4DB  90                      NOP
+0042C4DC  90                      NOP
+0042C4DD  B8 02000000             MOV EAX,2
+0042C4E2  E9 3C000000             JMP PLL3.0042C523
+```
+
+
+
+```
+0042C4E7  817C24 0C 6E020000  CMP [DWORD SS:ESP+C],26E
+
+0042C4EF  -0F85 5A51FEFF      JNZ PLL3.0041164F
+
+0042C4F5  FF35 BCBB4200       PUSH [DWORD DS:42BBBC]
+
+0042C4FB  FF35 C0BB4200       PUSH [DWORD DS:42BBC0]
+
+0042C501  FF15 E4934100       CALL [DWORD DS:<&USER32.EnableWindow>]
+
+0042C507  8335 BCBB4200 01    XOR [DWORD DS:42BBBC],1
+
+0042C50E  74 0E               JE SHORT PLL3.0042C51E
+
+0042C510  90                  NOP
+
+0042C511  90                  NOP
+
+0042C512  90                  NOP
+
+0042C513  90                  NOP
+
+0042C514  B8 03000000         MOV EAX,3
+
+0042C519  E9 05000000         JMP PLL3.0042C523
+
+0042C51E  B8 01000000         MOV EAX,1
+
+0042C523  6A 00               PUSH 0
+
+0042C525  68 C8BB4200         PUSH PLL3.0042BBC8
+
+0042C52A  6A 00               PUSH 0
+
+0042C52C  6A 00               PUSH 0
+
+0042C52E  6A 00               PUSH 0
+
+0042C530  6A 00               PUSH 0
+
+0042C532  50                  PUSH EAX
+
+0042C533  FF35 B8BB4200       PUSH [DWORD DS:42BBB8]
+
+0042C539  FF15 1FE04200       CALL [DWORD DS:<&kernel32.DeviceIoContro>]
+
+0042C53F  -E9 0B51FEFF        JMP PLL3.0041164F
+```
+
+代码很简单，我就不说明了，看过我前面文章的朋友稍微动点脑子的就能看懂。
+
+`pll621`
+
+个人题外话：
+
+我修改的这个 `trw` 是在娃娃\[CCG\]修改版（从年龄上来讲，他的确是娃娃）基础上修改的，毕竟 `trw` 是工作在 `ring0` 级,我增加的代码从 `ring3` 级上来讲怎么都不可能出问题，但是在 `ring0` 级我也不敢保证一定能正常工作，我只是给出了一个方案，大家知道应该去怎么改造一个 `pe` 而已，如果在各位的机器上不能运行我也爱莫能助，在我的机器上调试是没有什么问题，到现在为止，我给大家重新打造了 98 下的两把利剑 `trw` 和 `w32asm`.希望大家能用好它，技术蒸蒸日上，希望不要是我一个人写这种技术文章，我都六六大顺了。多些人写，交流的才广泛，我一个人的知识是有限的.谢谢大家捧场 `4dd466d0e1e0cc123afbe504da2462ca`

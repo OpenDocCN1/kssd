@@ -1,97 +1,67 @@
 
-
 # IceExt 指令中文解释
 
-> 原文：[`www.pediy.com/kssd/pediy06/pediy6814.htm`](https://www.pediy.com/kssd/pediy06/pediy6814.htm)
+> 原文：`www.pediy.com/kssd/pediy06/pediy6814.htm`
 
-  
-\>net start IceExt  
-  
-\>开始使用,(也可在开始"菜单"点击 start IceExt)  
-  
-  
-Then you can use some SoftICE extension commands beginning with '!' symbol.  
-然后你能一起使用一些 SoftICE 以下的附加指令，前面必须用"!"符号开头(注意没有引号)  
-  
-  
-!BPR - break point on memory range   
-  
- 在一个内存范围上的设置断点  
-  
-  
-!CP - set current codepage (866 or 1251)   
-  
- 设置代码页(866 或 1251)  
-  
-  
-!DUMP - dump memory to disk   
-  
- 将内存内容写到磁盘  
-  
-  
-!DUMPSCREEN - dump SoftICE screen to disk in RAW format   
-  
- 将 SoftICE 屏幕按 EAW 格式写到磁盘  
-  
-!EB - patch byte in memory (restores PTE after patching)   
-  
- 修改内存字节内容  
-  
-  
-!FONT -set screen font   
-  
- 设定屏幕字型  
-  
-  
-!LASTBRANCH - display MSR LastBranch info   
-  
- 显示 MSR LastBranch 信息  
-  
-  
-!LOADFILE - load disk file to memory   
-  
- 将文件装入内存  
-  
-  
-!PROTECT - turn SoftICE antidetection on/off   
-  
-保护开关 ON/OFF  
-  
-  
-!HELP - display help   
-  
- 显示帮忙  
-  
-  
-!SUSPEND - suspend current thread execution (only for ring-3 threads)   
-  
- 停止当前线程(仅仅在 ring-3 层上的线程)  
-\*trw2000 主要功能之一  
-  
-!RESUME - resume thread that was suspended before.  
- 重新开始在以前被中止的线程。(与上面命令!suspend 配合使用)  
-  
-   
-!TETRIS - tetris game :)   
-  
-?游戏 :)  
-  
-  
-While plugin loaded SoftICE is protected from detection by most of the known methonds. To stop plugin type  
-当打补丁后的 SoftICE 被跟踪的程序发现时，请停止使用 IceExt  
-  
-   
-\>net stop IceExt  
-  
-  
-  
-\>停止使用 IceExt  
-  
-  
-参考资料:看雪《加密与解密——软件保护技术及完全解决方案》  
-  
-致朋友们：  
- 我是从 1999 年开始在“中原破解”发表作品的，破解师从看雪，汇编师从罗云彬，(没有见过面),v  
-vb 师从刘云松，近两年来却没有一件作品，今天考取高工，心情不错，希望从事这一行业的朋友们在技术  
-上更进一步,对程序反汇编，对程序运行机制的了解，其实是一个程序员的基本素质，希望在不远的将来，  
-我们的大学中能设这一课程。只是我英语水平很糟，现在听英语 MP3……不对之处，请指正，以免误人。
+> `net start IceExt`
+
+> 开始使用,(也可在开始"菜单"点击 `start IceExt`)
+
+Then you can use some SoftICE extension commands beginning with '!' symbol.
+
+然后你能一起使用一些 SoftICE 以下的附加指令，前面必须用"!"符号开头(注意没有引号)
+
+`!BPR` - break point on memory range
+在一个内存范围上的设置断点
+
+`!CP` - set current codepage (866 or 1251)
+设置代码页(866 或 1251)
+
+`!DUMP` - dump memory to disk
+将内存内容写到磁盘
+
+`!DUMPSCREEN` - dump SoftICE screen to disk in RAW format
+将 SoftICE 屏幕按 EAW 格式写到磁盘
+
+`!EB` - patch byte in memory (restores PTE after patching)
+修改内存字节内容
+
+`!FONT` -set screen font
+设定屏幕字型
+
+`!LASTBRANCH` - display MSR LastBranch info
+显示 MSR LastBranch 信息
+
+`!LOADFILE` - load disk file to memory
+将文件装入内存
+
+`!PROTECT` - turn SoftICE antidetection on/off
+保护开关 ON/OFF
+
+`!HELP` - display help
+显示帮忙
+
+`!SUSPEND` - suspend current thread execution (only for ring-3 threads)
+停止当前线程(仅仅在 ring-3 层上的线程)
+
+*trw2000 主要功能之一
+
+`!RESUME` - resume thread that was suspended before.
+重新开始在以前被中止的线程。(与上面命令`!suspend` 配合使用)
+
+`!TETRIS` - tetris game :)
+?游戏 :)
+
+While plugin loaded SoftICE is protected from detection by most of the known methonds. To stop plugin type
+
+当打补丁后的 SoftICE 被跟踪的程序发现时，请停止使用 IceExt
+
+> `net stop IceExt`
+
+> 停止使用 IceExt
+
+参考资料:看雪《加密与解密——软件保护技术及完全解决方案》
+
+致朋友们：
+
+我是从 1999 年开始在“中原破解”发表作品的，破解师从看雪，汇编师从罗云彬，(没有见过面),vb 师从刘云松，近两年来却没有一件作品，今天考取高工，心情不错，希望从事这一行业的朋友们在技术上更进一步,对程序反汇编，对程序运行机制的了解，其实是一个程序员的基本素质，希望在不远的将来，我们的大学中能设这一课程。只是我英语水平很糟，现在听英语 MP3……不对之处，请指正，以免误人。

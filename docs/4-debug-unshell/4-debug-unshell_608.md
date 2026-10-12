@@ -1,382 +1,462 @@
 
-
 # EncryptPE V1.2003.5.18
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6987.htm`](https://www.pediy.com/kssd/pediy06/pediy6987.htm)
 
-EncryptPE V1.2003.5.18 脱壳——Win98 的 Notepad   
-    
-    
-    
-下载地址：  http://www.EncryptPE .com/EncryptPEV12003518.zip    
-软件大小：  720 KB   
-  
-【软件简介】：1. 加密保护常规 PE 文件（EXE、DLL、OCX 等），防静态分析修改，反动态跟踪调试。2. 将普通软件变成共享软件，增加定时注册提醒、限制试用日期、限制试用次数、限制试用天数、限制每次试用多长时间等功能。3. 根据最终用户的机器信息、注册用户名计算注册码，从 100 多种加密算法中随机选择一种用于注册码的计算。4. 支持多语言，除 GB 外的其他语言形式的界面元素由“EncryptPE .INI”文件设置，便于增删改，注册窗口界面与语言相关。5. 向待加密软件提供方便的编程接口，便于设计个性注册方式，同时使被加密程序与加密壳之间融为一个整体，增加破解难度。6. 经加密软件可以运行于多种 Windows 平台，包括 9X/ME/NT/2000/XP。   
-  
-【试 炼 品】：用 EncryptPE V1.2003.5.18 加壳的 Win98 的 Notepad   
-  
-【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！   
-  
-【调试环境】：WinXP、flyODBG、PEiD、LordPE、ImportREC   
-  
-—————————————————————————————————    
-【脱壳过程】：   
-             
-            
-            
-一、寻找 OEP   
-  
-  
-用 IsDebug 1.4 插件去掉 flyODBG 的调试器标志。设置 flyODBG 忽略除了“INT3 异常”之外的所有其它异常选项。添加“同时忽略 0EEDFADE、C0000008、009B25C、00953D74”异常。   
-  
-Ollydbg1.09D 中文修改版   
-  
-————————————————————————   
-0040D000     60                   pushad//进入 OD 后停在这！    
-0040D001     9C                   pushfd   
-0040D002     64:FF35 00000000     push dword ptr fs:\[0\]   
-0040D009     E8 79010000          call Notepad.0040D187   
-  
-F9 运行，程序会中断在 INT3 异常处，Shift+F9 通过异常   
-  
-711D7B6E     CC                   int3//第 1 次异常    
-7119CAEC     CC                   int3//第 2 次异常    
-711D7B6E     CC                   int3//第 3 次异常    
-009592D0     CC                   int3//第 4 次异常    
-…… ……  省 略  …… ……   
-  
-程序会在 0EEDFADE 和 C0000008 处长时间异常，所以上面忽略了这 2 个指定异常。   
-确定弹出的注册提示，回到 OD，再次异常   
-  
-7119CF57     CC                   int3//异常 停，看看堆栈    
-7119CF58     90                   nop   
-7119CF59     64:8F05 00000000     pop dword ptr fs:\[0\]   
-7119CF60     C3                   retn   
-  
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-7119CF57 异常时的堆栈：   
-  
-0012FF98    0012FFE0  指针到下一个 SEH 记录   
-0012FF9C    7119CE8D  SE 句柄  //此处下断  ![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)   
-0012FFA0    711A37BF  返回到 V1200351.711A37BF 来自 V1200351.7119CE88   
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-  
-在 7119CE8D 断下后，下面 7119CF11 是 mov dword ptr ds:\[ebx+B0\],eax   F4 直接过去，EAX=OEP 值 ![icon\_biggrin.gif](img/40f8aa1f3e2e5f4b0b2a718e0bd5133a.jpg)  
-  
-  
-7119CE8D     53                   push ebx//此处下断，SHIFT+F9 断在这！    
-7119CE8E     52                   push edx   
-7119CE8F     8B5C24 14            mov ebx,dword ptr ss:\[esp+14\]   
-7119CE93     8B93 C4000000        mov edx,dword ptr ds:\[ebx+C4\]   
-7119CE99     8B83 C0000000        mov eax,dword ptr ds:\[ebx+C0\]   
-7119CE9F     A3 38F61B71          mov dword ptr ds:\[711BF638\],eax   
-7119CEA4     E8 8F040000          call V1200351.7119D338   
-7119CEA9     9C                   pushfd   
-7119CEAA     58                   pop eax   
-7119CEAB     A3 38F61B71          mov dword ptr ds:\[711BF638\],eax   
-7119CEB0     E8 83040000          call V1200351.7119D338   
-7119CEB5     8B83 B8000000        mov eax,dword ptr ds:\[ebx+B8\]   
-7119CEBB     40                   inc eax   
-7119CEBC     8983 B8000000        mov dword ptr ds:\[ebx+B8\],eax   
-7119CEC2     8B4424 0C            mov eax,dword ptr ss:\[esp+C\]   
-7119CEC6     8B00                 mov eax,dword ptr ds:\[eax\]   
-7119CEC8     3D 03000080          cmp eax,80000003   
-7119CECD     75 71                jnz short V1200351.7119CF40   
-7119CECF     803D 54F61B71 01     cmp byte ptr ds:\[711BF654\],1   
-7119CED6     74 4F                je short V1200351.7119CF27   
-7119CED8     8B42 0C              mov eax,dword ptr ds:\[edx+C\]   
-7119CEDB     8983 9C000000        mov dword ptr ds:\[ebx+9C\],eax   
-7119CEE1     8B42 10              mov eax,dword ptr ds:\[edx+10\]   
-7119CEE4     8983 A0000000        mov dword ptr ds:\[ebx+A0\],eax   
-7119CEEA     8B42 14              mov eax,dword ptr ds:\[edx+14\]   
-7119CEED     8983 B4000000        mov dword ptr ds:\[ebx+B4\],eax   
-7119CEF3     8B42 1C              mov eax,dword ptr ds:\[edx+1C\]   
-7119CEF6     8983 A4000000        mov dword ptr ds:\[ebx+A4\],eax   
-7119CEFC     8B42 20              mov eax,dword ptr ds:\[edx+20\]   
-7119CEFF     8983 A8000000        mov dword ptr ds:\[ebx+A8\],eax   
-7119CF05     8B42 24              mov eax,dword ptr ds:\[edx+24\]   
-7119CF08     8983 AC000000        mov dword ptr ds:\[ebx+AC\],eax   
-7119CF0E     8B42 28              mov eax,dword ptr ds:\[edx+28\]  ★ ★   
-7119CF11     8983 B0000000        mov dword ptr ds:\[ebx+B0\],eax ;Notepad.004010CC//OEP 值    
-7119CF17     8B02                 mov eax,dword ptr ds:\[edx\]   
-7119CF19     8942 24              mov dword ptr ds:\[edx+24\],eax   
-7119CF1C     89D0                 mov eax,edx   
-7119CF1E     83C0 24              add eax,24   
-7119CF21     8983 C4000000        mov dword ptr ds:\[ebx+C4\],eax   
-7119CF27     31C0                 xor eax,eax   
-7119CF29     8943 04              mov dword ptr ds:\[ebx+4\],eax   
-7119CF2C     8943 08              mov dword ptr ds:\[ebx+8\],eax   
-7119CF2F     8943 0C              mov dword ptr ds:\[ebx+C\],eax   
-7119CF32     8943 10              mov dword ptr ds:\[ebx+10\],eax   
-7119CF35     C743 18 55010000     mov dword ptr ds:\[ebx+18\],155   
-7119CF3C     5A                   pop edx   
-7119CF3D     5B                   pop ebx   
-7119CF3E     C3                   retn   
-  
-  
-在 OEP=004010CC 内存处下内存访问断点，F9 断在 OEP 处！   
-  
-———————————————————————   
-  
-004010CC     55                   push ebp  //在这儿用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程    
-004010CD     8BEC                 mov ebp,esp   
-004010CF     83EC 44              sub esp,44   
-004010D2     56                   push esi   
-004010D3     FF15 E4634000        call dword ptr ds:\[4063E4\]   
-004010D9     8BF0                 mov esi,eax   
-004010DB     8A00                 mov al,byte ptr ds:\[eax\]   
-004010DD     3C 22                cmp al,22   
-004010DF     75 1B                jnz short Notepad.004010FC   
-004010E1     56                   push esi   
-004010E2     FF15 F4644000        call dword ptr ds:\[4064F4\]   
-  
-  
-———————————————————————   
-  
-运行 ImportREC，选择这个进程。把 OEP 改为 000010CC，点 IT AutoSearch，点“Get Import”，用“追踪层次 1”修复无效函数，得到的却全是 EncryptPE\_Init，呵呵，还得修复输入表。   
-     
-  
-—————————————————————————————————   
-二、避开加密 IAT，得到正确的输入表   
-  
-  
-**EncryptPE**的 IAT 加密还是可以的，但是可以把指向壳的 IAT 加密地址替换成正确的 IAT，只要改 1 个字节就能得到正确的输入表了。但是其主程序就没这么简单了，还要修复其他代码。![icon\_sad.gif](img/6b6604f612cad8b046faadea41e25cf2.jpg)  
-  
-————————————————————————   
-这次设置 Ollydbg 忽略所有的异常选项。   
-  
-  
-1、BP IsDebuggerPresent 断下后取消断点   
-2、BP GetProcAddress    接着下断   
-  
-在 GetProcAddress 处中断几次，注意看堆栈。也可以在 IAT 下内存访问断点，确定 IAT 加密的地方。   
-  
-0012FEDC    711A41BE  /CALL 到 GetProcAddress 来自 V1200351.711A41B9//停，取消断点    
-0012FEE0    773A0000  |hModule = 773A0000 (shell32)   
-0012FEE4    009680AC  ProcNameOrOrdinal = "DragFinish"//CTRL+F9 返回程序！    
-  
-————————————————————————   
-711A41B9     E8 362BF8FF          call V1200351.71126CF4//GetProcAddress    
-711A41BE     8945 B8              mov dword ptr ss:\[ebp\-48\],eax  ; shell32.DragFinish//正确的函数    
-711A41C1     33C0                 xor eax,eax   
-711A41C3     8903                 mov dword ptr ds:\[ebx\],eax   
-711A41C5     8B45 C0              mov eax,dword ptr ss:\[ebp\-40\]   
-711A41C8     E8 3F07F8FF          call V1200351.7112490C   
-711A41CD     8BC8                 mov ecx,eax   
-711A41CF     8B45 B0              mov eax,dword ptr ss:\[ebp\-50\]   
-711A41D2     83C0 02              add eax,2   
-711A41D5     8BD3                 mov edx,ebx   
-711A41D7     E8 0834F8FF          call V1200351.711275E4   
-711A41DC     A1 74C71B71          mov eax,dword ptr ds:\[711BC774\]   
-711A41E1     8038 00              cmp byte ptr ds:\[eax\],0   
-711A41E4     0F85 D8010000        jnz V1200351.711A43C2   
-711A41EA     8A45 EF              mov al,byte ptr ss:\[ebp\-11\]   
-711A41ED     50                   push eax   
-711A41EE     A1 14C91B71          mov eax,dword ptr ds:\[711BC914\]   
-711A41F3     8B00                 mov eax,dword ptr ds:\[eax\]   
-711A41F5     8B55 E4              mov edx,dword ptr ss:\[ebp\-1C\]   
-711A41F8     8B0490               mov eax,dword ptr ds:\[eax+edx\*4\]   
-711A41FB     8B4D B4              mov ecx,dword ptr ss:\[ebp\-4C\]   
-711A41FE     8B55 B8              mov edx,dword ptr ss:\[ebp\-48\]   
-711A4201     E8 E2F0FFFF          call V1200351.711A32E8//加密 IAT! ![icon\_sad.gif](img/6b6604f612cad8b046faadea41e25cf2.jpg)   
-711A4206     E9 B7010000          jmp V1200351.711A43C2   
-  
-  
-经过跟踪，发现 711A4201 里面就是加密 IAT 的地方。   
-  
-————————————————————————   
-在 711A4201 处下个 硬件执行 断点，重新 Load，断在 711A4201 处，进入加密 CALL   
-  
-  
-711A4201     E8 E2F0FFFF          call V1200351.711A32E8//断下，取消这个硬件断点    
-  
-711A32E8     55                   push ebp   
-711A32E9     8BEC                 mov ebp,esp   
-711A32EB     83C4 F8              add esp,-8   
-711A32EE     53                   push ebx   
-711A32EF     56                   push esi   
-711A32F0     57                   push edi   
-711A32F1     8BF9                 mov edi,ecx   
-711A32F3     8955 FC              mov dword ptr ss:\[ebp\-4\],edx   
-711A32F6     8BF0                 mov esi,eax   
-711A32F8     8B45 FC              mov eax,dword ptr ss:\[ebp\-4\]   
-711A32FB     8945 F8              mov dword ptr ss:\[ebp\-8\],eax   
-711A32FE     807D 08 00           cmp byte ptr ss:\[ebp+8\],0   
-711A3302     0F84 85000000        je V1200351.711A338D   
-711A3308     B8 0F000000          mov eax,0F   
-711A330D     E8 22F4F7FF          call V1200351.71122734   
-711A3312     8BD8                 mov ebx,eax   
-711A3314     85DB                 test ebx,ebx   
-711A3316     74 75                je short V1200351.711A338D   
-711A3318     8B86 58030000        mov eax,dword ptr ds:\[esi+358\]   
-711A331E     E8 9D26F8FF          call V1200351.711259C0   
-711A3323     40                   inc eax   
-711A3324     50                   push eax   
-711A3325     8D86 58030000        lea eax,dword ptr ds:\[esi+358\]   
-711A332B     B9 01000000          mov ecx,1   
-711A3330     8B15 E8FF1971        mov edx,dword ptr ds:\[7119FFE8\]   
-711A3336     E8 4128F8FF          call V1200351.71125B7C   
-711A333B     83C4 04              add esp,4   
-711A333E     8B86 58030000        mov eax,dword ptr ds:\[esi+358\]   
-711A3344     E8 7726F8FF          call V1200351.711259C0   
-711A3349     8B96 58030000        mov edx,dword ptr ds:\[esi+358\]   
-711A334F     895C82 FC            mov dword ptr ds:\[edx+eax\*4-4\],ebx   
-711A3353     C603 E8              mov byte ptr ds:\[ebx\],0E8   
-711A3356     8BD3                 mov edx,ebx   
-711A3358     8BC2                 mov eax,edx   
-711A335A     40                   inc eax   
-711A335B     B9 CCD21971          mov ecx,V1200351.7119D2CC   
-711A3360     2BC8                 sub ecx,eax   
-711A3362     83E9 04              sub ecx,4   
-711A3365     8908                 mov dword ptr ds:\[eax\],ecx   
-711A3367     C643 05 FF           mov byte ptr ds:\[ebx+5\],0FF   
-711A336B     C643 06 25           mov byte ptr ds:\[ebx+6\],25   
-711A336F     8BC2                 mov eax,edx   
-711A3371     83C0 07              add eax,7   
-711A3374     8BCA                 mov ecx,edx   
-711A3376     83C1 0B              add ecx,0B   
-711A3379     8908                 mov dword ptr ds:\[eax\],ecx   
-711A337B     8BC3                 mov eax,ebx   
-711A337D     83C0 0B              add eax,0B   
-711A3380     8BCA                 mov ecx,edx   
-711A3382     83C1 05              add ecx,5   
-711A3385     334D FC              xor ecx,dword ptr ss:\[ebp\-4\]   
-711A3388     8908                 mov dword ptr ds:\[eax\],ecx   
-711A338A     8955 F8              mov dword ptr ss:\[ebp\-8\],edx   
-711A338D     85FF                 test edi,edi   
-711A338F     74 29                je short V1200351.711A33BA   
-711A3391     33D2                 xor edx,edx   
-711A3393     55                   push ebp   
-711A3394     68 B0331A71          push V1200351.711A33B0   
-711A3399     64:FF32              push dword ptr fs:\[edx\]   
-711A339C     64:8922              mov dword ptr fs:\[edx\],esp   
-711A339F     8BC7                 mov eax,edi   
-711A33A1     8B55 F8              mov edx,dword ptr ss:\[ebp\-8\]// ★ 呵呵，偶再来个狸猫换太子！![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)   
-711A33A4     8910                 mov dword ptr ds:\[eax\],edx   
-711A33A6     33C0                 xor eax,eax    
-711A33A8     5A                   pop edx   
-711A33A9     59                   pop ecx   
-711A33AA     59                   pop ecx   
-711A33AB     64:8910              mov dword ptr fs:\[eax\],edx   
-711A33AE     EB 0A                jmp short V1200351.711A33BA   
-711A33B0   - E9 0709F8FF          jmp V1200351.71123CBC   
-711A33B5     E8 6A0CF8FF          call V1200351.71124024   
-711A33BA     8B45 F8              mov eax,dword ptr ss:\[ebp\-8\]   
-711A33BD     5F                   pop edi   
-711A33BE     5E                   pop esi   
-711A33BF     5B                   pop ebx   
-711A33C0     59                   pop ecx   
-711A33C1     59                   pop ecx   
-711A33C2     5D                   pop ebp   
-711A33C3     C2 0400              retn 4   
-  
-  
-把  ：711A33A1 8B55 F8  mov edx,dword ptr ss:\[ebp\-8\]//加密指针 ★    
-改为：711A33A1 8B55 FC  mov edx,dword ptr ss:\[ebp\-4\]//正确函数 ★    
-  
-  
-F9 运行，虽然程序异常无法再运行，但是所有的函数均自动还原了。   
-  
-运行 ImportREC，选择这个进程。把 OEP 改为 000010CC，点“Get Import”，得到正确的输入表，FixDump，正常运行！删除 EPE1 区段，然后用 LordPE 重建 PE，344K->47.3K   
-  
-  
-—————————————————————————————————   
-三、附：看看反跟踪   
-  
-  
-7119F354     85DB                 test ebx,ebx   
-7119F356     74 0D                je short V1200351.7119F365   
-7119F358     FFD3                 call ebx                   ; kernel32.IsDebuggerPresent   
-7119F35A     85C0                 test eax,eax   
-7119F35C     74 07                je short V1200351.7119F365   
-7119F35E     C605 54F61B71 01     mov byte ptr ds:\[711BF654\],1   
-7119F365     803D 54F61B71 00     cmp byte ptr ds:\[711BF654\],0   
-7119F36C     0F85 31030000        jnz V1200351.7119F6A3   
-7119F372     8B45 F8              mov eax,dword ptr ss:\[ebp\-8\]   
-7119F375     8078 0D 00           cmp byte ptr ds:\[eax+D\],0   
-7119F379     0F85 24030000        jnz V1200351.7119F6A3   
-7119F37F     A1 50C91B71          mov eax,dword ptr ds:\[711BC950\]   
-7119F384     8B00                 mov eax,dword ptr ds:\[eax\]   
-7119F386     80B8 9C000000 00     cmp byte ptr ds:\[eax+9C\],0   
-7119F38D     0F85 10030000        jnz V1200351.7119F6A3   
-7119F393     B8 02000000          mov eax,2   
-7119F398     E8 BFECFFFF          call V1200351.7119E05C   
-  
-7119E05C     55                   push ebp   
-7119E05D     8BEC                 mov ebp,esp   
-7119E05F     83C4 D8              add esp,-28   
-7119E062     53                   push ebx   
-7119E063     56                   push esi   
-7119E064     57                   push edi   
-7119E065     33D2                 xor edx,edx   
-7119E067     8955 D8              mov dword ptr ss:\[ebp\-28\],edx   
-7119E06A     8955 F8              mov dword ptr ss:\[ebp\-8\],edx   
-7119E06D     8945 FC              mov dword ptr ss:\[ebp\-4\],eax   
-7119E070     BF 3CF61B71          mov edi,V1200351.711BF63C   
-7119E075     33C0                 xor eax,eax   
-7119E077     55                   push ebp   
-7119E078     68 30E31971          push V1200351.7119E330   
-7119E07D     64:FF30              push dword ptr fs:\[eax\]   
-7119E080     64:8920              mov dword ptr fs:\[eax\],esp   
-7119E083     33F6                 xor esi,esi   
-7119E085     8BC6                 mov eax,esi   
-7119E087     83E8 01              sub eax,1   
-7119E08A     72 07                jb short V1200351.7119E093   
-  
-7119E093     8D45 F8              lea eax,dword ptr ss:\[ebp\-8\]   
-7119E096     50                   push eax   
-7119E097     B9 16000000          mov ecx,16   
-7119E09C     BA 27000000          mov edx,27   
-7119E0A1     8B07                 mov eax,dword ptr ds:\[edi\]   
-7119E0A3     E8 BC6AF8FF          call V1200351.71124B64   
-7119E0A8     EB 2C                jmp short V1200351.7119E0D6   
-  
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-好东东：   ![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)  
-  
-009524C4   44 45 42 55 47 42 52 45 41 4B 4B 45 52 4E 45 4C  DEBUGBREAKKERNEL   
-009524D4   33 32 2E 44 4C 4C 56 65 72 49 6E 66 6F 39 38 4D  32.DLLVerInfo98M   
-009524E4   45 4E 54 34 58 50 54 52 57 32 30 30 30 20 66 6F  ENT4XPTRW2000 fo   
-009524F4   72 20 57 69 6E 64 6F 77 73 20 39 78 54 57 58 32  r Windows 9xTWX2   
-00952504   30 30 32 20 66 6F 72 20 57 69 6E 64 6F 77 73 20  002 for Windows   
-00952514   39 78 52 65 67 6D 6F 6E 43 6C 61 73 73 53 49 43  9xRegmonClassSIC   
-00952524   45 4E 54 49 43 45 52 45 47 56 58 44 53 49 57 44  ENTICEREGVXDSIWD   
-00952534   45 42 55 47 53 49 57 56 49 44 53 54 41 52 54 4E  EBUGSIWVIDSTARTN   
-00952544   4D 46 69 6C 74 65 72 53 49 57 56 49 44 49 73 44  MFilterSIWVIDIsD   
-00952554   65 62 75 67 67 65 72 50 72 65 73 65 6E 74 45 58  ebuggerPresentEX   
-00952564   45 44 4C 4C 3C 2D 57 46 53 2D 3E 5C 53 6F 66 74  EDLL<-WFS->Soft   
-☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆   
-  
-7119E0D6     8B45 F8              mov eax,dword ptr ss:\[ebp\-8\]   
-7119E0D9     E8 266AF8FF          call V1200351.71124B04   
-7119E0DE     50                   push eax   
-7119E0DF     6A 00                push 0   
-7119E0E1     E8 FE90F8FF          call V1200351.711271E4   ; jmp to USER32.FindWindowA   
-7119E0E6     8BD8                 mov ebx,eax   
-7119E0E8     EB 0C                jmp short V1200351.7119E0F6   
-  
-7119E0F6     53                   push ebx   
-7119E0F7     E8 A092F8FF          call V1200351.7112739C   ; jmp to USER32.IsWindow   
-7119E0FC     85C0                 test eax,eax   
-7119E0FE     75 EA                jnz short V1200351.7119E0EA   
-7119E100     46                   inc esi   
-7119E101     83FE 03              cmp esi,3   
-7119E104     0F85 7BFFFFFF        jnz V1200351.7119E085//循环    
-7119E10A     33F6                 xor esi,esi   
-7119E10C     8D45 F8              lea eax,dword ptr ss:\[ebp\-8\]   
-7119E10F     E8 4065F8FF          call V1200351.71124654   
-7119E114     8BC6                 mov eax,esi   
-7119E116     83F8 09              cmp eax,9   
-7119E119     0F87 1F010000        ja V1200351.7119E23E   
-7119E11F     FF2485 26E11971      jmp dword ptr ds:\[eax\*4+7119E126\]   
-  
-7119E23E     6A 00                push 0   
-7119E240     68 80000000          push 80   
-7119E245     6A 03                push 3   
-7119E247     6A 00                push 0   
-7119E249     6A 03                push 3   
-7119E24B     68 000000C0          push C0000000   
-7119E250     8D45 D8              lea eax,dword ptr ss:\[ebp\-28\]   
-7119E253     8B4D F8              mov ecx,dword ptr ss:\[ebp\-8\]   
-7119E256     BA 48E31971          mov edx,V1200351.7119E348          ; ASCII "\\.\\   
- 4dd466d0e1e0cc123afbe504da2462ca
+## EncryptPE V1.2003.5.18 脱壳——Win98 的 Notepad
+
+**下载地址**： `http://www.EncryptPE .com/EncryptPEV12003518.zip`
+
+**软件大小**： `720` `KB`
+
+### 【软件简介】
+
+1. 加密保护常规 PE 文件（`EXE`、`DLL`、`OCX` 等），防静态分析修改，反动态跟踪调试。
+2. 将普通软件变成共享软件，增加定时注册提醒、限制试用日期、限制试用次数、限制试用天数、限制每次试用多长时间等功能。
+3. 根据最终用户的机器信息、注册用户名计算注册码，从 `100` 多种加密算法中随机选择一种用于注册码的计算。
+4. 支持多语言，除 `GB` 外的其他语言形式的界面元素由“`EncryptPE .INI`”文件设置，便于增删改，注册窗口界面与语言相关。
+5. 向待加密软件提供方便的编程接口，便于设计个性注册方式，同时使被加密程序与加密壳之间融为一个整体，增加破解难度。
+6. 经加密软件可以运行于多种 `Windows` 平台，包括 `9X/ME/NT/2000/XP`。
+
+### 【试 炼 品】
+
+用 `EncryptPE` `V1.2003.5.18` 加壳的 `Win98` 的 `Notepad`
+
+### 【作者声明】
+
+只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+### 【调试环境】
+
+`WinXP`、`flyODBG`、`PEiD`、`LordPE`、`ImportREC`
+
+---
+
+## 脱壳过程
+
+### 一、寻找 OEP
+
+用 `IsDebug` `1.4` 插件去掉 `flyODBG` 的调试器标志。设置 `flyODBG` 忽略除了“`INT3` 异常”之外的所有其它异常选项。添加“同时忽略 `0EEDFADE`、`C0000008`、`009B25C`、`00953D74`”异常。
+
+`Ollydbg1.09D` 中文修改版
+
+---
+
+```
+0040D000     60                 pushad//进入 OD 后停在这！
+0040D001     9C                 pushfd
+0040D002     64:FF35 00000000   push dword ptr fs:[0]
+0040D009     E8 79010000        call Notepad.0040D187
+```
+
+`F9` 运行，程序会中断在 `INT3` 异常处，`Shift+F9` 通过异常
+
+```
+711D7B6E     CC                 int3//第 1 次异常
+7119CAEC     CC                 int3//第 2 次异常
+711D7B6E     CC                 int3//第 3 次异常
+009592D0     CC                 int3//第 4 次异常
+…… ……  省 略  …… ……
+```
+
+程序会在 `0EEDFADE` 和 `C0000008` 处长时间异常，所以上面忽略了这 2 个指定异常。
+
+确定弹出的注册提示，回到 `OD`，再次异常
+
+```
+7119CF57     CC                 int3//异常 停，看看堆栈
+7119CF58     90                 nop
+7119CF59     64:8F05 00000000   pop dword ptr fs:[0]
+7119CF60     C3                 retn
+```
+
+`7119CF57` 异常时的堆栈：
+
+```
+0012FF98    0012FFE0  指针到下一个 SEH 记录
+0012FF9C    7119CE8D  SE 句柄  //此处下断  ![icon_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)
+0012FFA0    711A37BF  返回到 V1200351.711A37BF 来自 V1200351.7119CE88
+```
+
+在 `7119CE8D` 断下后，下面 `7119CF11` 是 `mov` `dword` `ptr` `ds:[ebx+B0],eax`   `F4` 直接过去，`EAX=OEP` 值 `![icon_biggrin.gif](img/40f8aa1f3e2e5f4b0b2a718e0bd5133a.jpg)`
+
+```
+7119CE8D     53                 push ebx//此处下断，SHIFT+F9 断在这！
+7119CE8E     52                 push edx
+7119CE8F     8B5C24 14          mov ebx,dword ptr ss:[esp+14]
+7119CE93     8B93 C4000000      mov edx,dword ptr ds:[ebx+C4]
+7119CE99     8B83 C0000000      mov eax,dword ptr ds:[ebx+C0]
+7119CE9F     A3 38F61B71        mov dword ptr ds:[711BF638],eax
+7119CEA4     E8 8F040000        call V1200351.7119D338
+7119CEA9     9C                 pushfd
+7119CEAA     58                 pop eax
+7119CEAB     A3 38F61B71        mov dword ptr ds:[711BF638],eax
+7119CEB0     E8 83040000        call V1200351.7119D338
+7119CEB5     8B83 B8000000      mov eax,dword ptr ds:[ebx+B8]
+7119CEBB     40                 inc eax
+7119CEBC     8983 B8000000      mov dword ptr ds:[ebx+B8],eax
+7119CEC2     8B4424 0C          mov eax,dword ptr ss:[esp+C]
+7119CEC6     8B00               mov eax,dword ptr ds:[eax]
+7119CEC8     3D 03000080        cmp eax,80000003
+7119CECD     75 71              jnz short V1200351.7119CF40
+7119CECF     803D 54F61B71 01   cmp byte ptr ds:[711BF654],1
+7119CED6     74 4F              je short V1200351.7119CF27
+7119CED8     8B42 0C            mov eax,dword ptr ds:[edx+C]
+7119CEDB     8983 9C000000      mov dword ptr ds:[ebx+9C],eax
+7119CEE1     8B42 10            mov eax,dword ptr ds:[edx+10]
+7119CEE4     8983 A0000000      mov dword ptr ds:[ebx+A0],eax
+7119CEEA     8B42 14            mov eax,dword ptr ds:[edx+14]
+7119CEED     8983 B4000000      mov dword ptr ds:[ebx+B4],eax
+7119CEF3     8B42 1C            mov eax,dword ptr ds:[edx+1C]
+7119CEF6     8983 A4000000      mov dword ptr ds:[ebx+A4],eax
+7119CEFC     8B42 20            mov eax,dword ptr ds:[edx+20]
+7119CEFF     8983 A8000000      mov dword ptr ds:[ebx+A8],eax
+7119CF05     8B42 24            mov eax,dword ptr ds:[edx+24]
+7119CF08     8983 AC000000      mov dword ptr ds:[ebx+AC],eax
+7119CF0E     8B42 28            mov eax,dword ptr ds:[edx+28]  ★ ★
+7119CF11     8983 B0000000      mov dword ptr ds:[ebx+B0],eax ;Notepad.004010CC//OEP 值
+7119CF17     8B02               mov eax,dword ptr ds:[edx]
+7119CF19     8942 24            mov dword ptr ds:[edx+24],eax
+7119CF1C     89D0               mov eax,edx
+7119CF1E     83C0 24            add eax,24
+7119CF21     8983 C4000000      mov dword ptr ds:[ebx+C4],eax
+7119CF27     31C0               xor eax,eax
+7119CF29     8943 04            mov dword ptr ds:[ebx+4],eax
+7119CF2C     8943 08            mov dword ptr ds:[ebx+8],eax
+7119CF2F     8943 0C            mov dword ptr ds:[ebx+C],eax
+7119CF32     8943 10            mov dword ptr ds:[ebx+10],eax
+7119CF35     C743 18 55010000   mov dword ptr ds:[ebx+18],155
+7119CF3C     5A                 pop edx
+7119CF3D     5B                 pop ebx
+7119CF3E     C3                 retn
+```
+
+在 `OEP=004010CC` 内存处下内存访问断点，`F9` 断在 `OEP` 处！
+
+---
+
+```
+004010CC     55                 push ebp  //在这儿用 LordPE 纠正 ImageSize 后完全 DUMP 这个进程
+004010CD     8BEC               mov ebp,esp
+004010CF     83EC 44            sub esp,44
+004010D2     56                 push esi
+004010D3     FF15 E4634000      call dword ptr ds:[4063E4]
+004010D9     8BF0               mov esi,eax
+004010DB     8A00               mov al,byte ptr ds:[eax]
+004010DD     3C 22              cmp al,22
+004010DF     75 1B              jnz short Notepad.004010FC
+004010E1     56                 push esi
+004010E2     FF15 F4644000      call dword ptr ds:[4064F4]
+```
+
+---
+
+运行 `ImportREC`，选择这个进程。把 `OEP` 改为 `000010CC`，点 `IT` `AutoSearch`，点“`Get` `Import`”，用“追踪层次 `1`”修复无效函数，得到的却全是 `EncryptPE_Init`，呵呵，还得修复输入表。
+
+---
+
+### 二、避开加密 IAT，得到正确的输入表
+
+`EncryptPE` 的 `IAT` 加密还是可以的，但是可以把指向壳的 `IAT` 加密地址替换成正确的 `IAT`，只要改 `1` 个字节就能得到正确的输入表了。但是其主程序就没这么简单了，还要修复其他代码。`![icon_sad.gif](img/6b6604f612cad8b046faadea41e25cf2.jpg)`
+
+---
+
+这次设置 `Ollydbg` 忽略所有的异常选项。
+
+1. `BP` `IsDebuggerPresent` 断下后取消断点
+2. `BP` `GetProcAddress` 接着下断
+
+在 `GetProcAddress` 处中断几次，注意看堆栈。也可以在 `IAT` 下内存访问断点，确定 `IAT` 加密的地方。
+
+```
+0012FEDC    711A41BE  /CALL 到 GetProcAddress 来自 V1200351.711A41B9//停，取消断点
+0012FEE0    773A0000  |hModule = 773A0000 (shell32)
+0012FEE4    009680AC  ProcNameOrOrdinal = "DragFinish"//CTRL+F9 返回程序！
+```
+
+---
+
+```
+711A41B9     E8 362BF8FF        call V1200351.71126CF4//GetProcAddress
+711A41BE     8945 B8            mov dword ptr ss:[ebp-48],eax  ; shell32.DragFinish//正确的函数
+711A41C1     33C0               xor eax,eax
+711A41C3     8903               mov dword ptr ds:[ebx],eax
+711A41C5     8B45 C0            mov eax,dword ptr ss:[ebp-40]
+711A41C8     E8 3F07F8FF        call V1200351.7112490C
+711A41CD     8BC8               mov ecx,eax
+711A41CF     8B45 B0            mov eax,dword ptr ss:[ebp-50]
+711A41D2     83C0 02            add eax,2
+711A41D5     8BD3               mov edx,ebx
+711A41D7     E8 0834F8FF        call V1200351.711275E4
+711A41DC     A1 74C71B71        mov eax,dword ptr ds:[711BC774]
+711A41E1     8038 00            cmp byte ptr ds:[eax],0
+711A41E4     0F85 D8010000      jnz V1200351.711A43C2
+711A41EA     8A45 EF            mov al,byte ptr ss:[ebp-11]
+711A41ED     50                 push eax
+711A41EE     A1 14C91B71        mov eax,dword ptr ds:[711BC914]
+```
+
+
+
+### 汇编代码片段
+
+```
+711A41F3     8B00                 mov eax,dword ptr ds:[eax]
+711A41F5     8B55 E4              mov edx,dword ptr ss:[ebp-1C]
+711A41F8     8B0490              mov eax,dword ptr ds:[eax+edx*4]
+711A41FB     8B4D B4             mov ecx,dword ptr ss:[ebp-4C]
+711A41FE     8B55 B8             mov edx,dword ptr ss:[ebp-48]
+711A4201     E8 E2F0FFFF         call V1200351.711A32E8//加密 IAT!
+711A4206     E9 B7010000         jmp V1200351.711A43C2
+```
+
+经过跟踪，发现 `711A4201` 里面就是加密 IAT 的地方。
+
+### 设置硬件断点并进入加密 CALL
+
+在 `711A4201` 处下个硬件执行断点，重新 Load，断在 `711A4201` 处，进入加密 CALL
+
+```
+711A4201     E8 E2F0FFFF         call V1200351.711A32E8//断下，取消这个硬件断点
+711A32E8     55                  push ebp
+711A32E9     8BEC                mov ebp,esp
+711A32EB     83C4 F8             add esp,-8
+711A32EE     53                  push ebx
+711A32EF     56                  push esi
+711A32F0     57                  push edi
+711A32F1     8BF9                mov edi,ecx
+711A32F3     8955 FC             mov dword ptr ss:[ebp-4],edx
+711A32F6     8BF0                mov esi,eax
+711A32F8     8B45 FC             mov eax,dword ptr ss:[ebp-4]
+711A32FB     8945 F8             mov dword ptr ss:[ebp-8],eax
+711A32FE     807D 08 00          cmp byte ptr ss:[ebp+8],0
+711A3302     0F84 85000000       je V1200351.711A338D
+711A3308     B8 0F000000         mov eax,0F
+711A330D     E8 22F4F7FF         call V1200351.71122734
+711A3312     8BD8                mov ebx,eax
+711A3314     85DB                test ebx,ebx
+711A3316     74 75               je short V1200351.711A338D
+711A3318     8B86 58030000       mov eax,dword ptr ds:[esi+358]
+711A331E     E8 9D26F8FF         call V1200351.711259C0
+711A3323     40                  inc eax
+711A3324     50                  push eax
+711A3325     8D86 58030000       lea eax,dword ptr ds:[esi+358]
+711A332B     B9 01000000         mov ecx,1
+711A3330     8B15 E8FF1971       mov edx,dword ptr ds:[7119FFE8]
+711A3336     E8 4128F8FF         call V1200351.71125B7C
+711A333B     83C4 04             add esp,4
+711A333E     8B86 58030000       mov eax,dword ptr ds:[esi+358]
+711A3344     E8 7726F8FF         call V1200351.711259C0
+711A3349     8B96 58030000       mov edx,dword ptr ds:[esi+358]
+711A334F     895C82 FC          mov dword ptr ds:[edx+eax*4-4],ebx
+711A3353     C603 E8             mov byte ptr ds:[ebx],0E8
+711A3356     8BD3                mov edx,ebx
+711A3358     8BC2                mov eax,edx
+711A335A     40                  inc eax
+711A335B     B9 CCD21971         mov ecx,V1200351.7119D2CC
+711A3360     2BC8                sub ecx,eax
+711A3362     83E9 04             sub ecx,4
+711A3365     8908                mov dword ptr ds:[eax],ecx
+711A3367     C643 05 FF          mov byte ptr ds:[ebx+5],0FF
+711A336B     C643 06 25          mov byte ptr ds:[ebx+6],25
+711A336F     8BC2                mov eax,edx
+711A3371     83C0 07             add eax,7
+711A3374     8BCA                mov ecx,edx
+711A3376     83C1 0B             add ecx,0B
+711A3379     8908                mov dword ptr ds:[eax],ecx
+711A337B     8BC3                mov eax,ebx
+711A337D     83C0 0B             add eax,0B
+711A3380     8BCA                mov ecx,edx
+711A3382     83C1 05             add ecx,5
+711A3385     334D FC             xor ecx,dword ptr ss:[ebp-4]
+711A3388     8908                mov dword ptr ds:[eax],ecx
+711A338A     8955 F8             mov dword ptr ss:[ebp-8],edx
+711A338D     85FF                test edi,edi
+711A338F     74 29               je short V1200351.711A33BA
+711A3391     33D2                xor edx,edx
+711A3393     55                  push ebp
+711A3394     68 B0331A71         push V1200351.711A33B0
+711A3399     64:FF32             push dword ptr fs:[edx]
+711A339C     64:8922             mov dword ptr fs:[edx],esp
+711A339F     8BC7                mov eax,edi
+711A33A1     8B55 F8             mov edx,dword ptr ss:[ebp-8]// ★ 呵呵，偶再来个狸猫换太子！
+711A33A4     8910                mov dword ptr ds:[eax],edx
+711A33A6     33C0                xor eax,eax
+711A33A8     5A                  pop edx
+711A33A9     59                  pop ecx
+711A33AA     59                  pop ecx
+711A33AB     64:8910             mov dword ptr fs:[eax],edx
+711A33AE     EB 0A               jmp short V1200351.711A33BA
+711A33B0     E9 0709F8FF         jmp V1200351.71123CBC
+711A33B5     E8 6A0CF8FF         call V1200351.71124024
+711A33BA     8B45 F8             mov eax,dword ptr ss:[ebp-8]
+711A33BD     5F                  pop edi
+711A33BE     5E                  pop esi
+711A33BF     5B                  pop ebx
+711A33C0     59                  pop ecx
+711A33C1     59                  pop ecx
+711A33C2     5D                  pop ebp
+711A33C3     C2 0400             retn 4
+```
+
+### 修改指令并验证
+
+把：`711A33A1 8B55 F8  mov edx,dword ptr ss:[ebp-8]//加密指针 ★`
+
+改为：`711A33A1 8B55 FC  mov edx,dword ptr ss:[ebp-4]//正确函数 ★`
+
+`F9` 运行，虽然程序异常无法再运行，但是所有的函数均自动还原了。
+
+运行 `ImportREC`，选择这个进程。把 `OEP` 改为 `000010CC`，点“Get Import”，得到正确的输入表，`FixDump`，正常运行！删除 `EPE1` 区段，然后用 `LordPE` 重建 `PE`，`344K->47.3K`
+
+### 三、附：看看反跟踪
+
+```
+7119F354     85DB                test ebx,ebx
+7119F356     74 0D               je short V1200351.7119F365
+7119F358     FFD3                call ebx              ; kernel32.IsDebuggerPresent
+7119F35A     85C0                test eax,eax
+7119F35C     74 07               je short V1200351.7119F365
+7119F35E     C605 54F61B71 01     mov byte ptr ds:[711BF654],1
+7119F365     803D 54F61B71 00     cmp byte ptr ds:[711BF654],0
+7119F36C     0F85 31030000        jnz V1200351.7119F6A3
+7119F372     8B45 F8             mov eax,dword ptr ss:[ebp-8]
+7119F375     8078 0D 00          cmp byte ptr ds:[eax+D],0
+7119F379     0F85 24030000        jnz V1200351.7119F6A3
+7119F37F     A1 50C91B71          mov eax,dword ptr ds:[711BC950]
+7119F384     8B00                mov eax,dword ptr ds:[eax]
+7119F386     80B8 9C000000 00     cmp byte ptr ds:[eax+9C],0
+7119F38D     0F85 10030000        jnz V1200351.7119F6A3
+7119F393     B8 02000000          mov eax,2
+7119F398     E8 BFECFFFF          call V1200351.7119E05C
+7119E05C     55                  push ebp
+7119E05D     8BEC                mov ebp,esp
+7119E05F     83C4 D8             add esp,-28
+7119E062     53                  push ebx
+7119E063     56                  push esi
+7119E064     57                  push edi
+7119E065     33D2                xor edx,edx
+7119E067     8955 D8             mov dword ptr ss:[ebp-28],edx
+7119E06A     8955 F8             mov dword ptr ss:[ebp-8],edx
+7119E06D     8945 FC             mov dword ptr ss:[ebp-4],eax
+7119E070     BF 3CF61B71         mov edi,V1200351.711BF63C
+7119E075     33C0                xor eax,eax
+7119E077     55                  push ebp
+7119E078     68 30E31971         push V1200351.7119E330
+7119E07D     64:FF30             push dword ptr fs:[eax]
+7119E080     64:8920             mov dword ptr fs:[eax],esp
+7119E083     33F6                xor esi,esi
+7119E085     8BC6                mov eax,esi
+7119E087     83E8 01             sub eax,1
+7119E08A     72 07               jb short V1200351.7119E093
+7119E093     8D45 F8             lea eax,dword ptr ss:[ebp-8]
+7119E096     50                  push eax
+```
+
+
+
+```
+7119E097     B9 16000000          mov ecx,16   
+
+7119E09C     BA 27000000          mov edx,27   
+
+7119E0A1     8B07                 mov eax,dword ptr ds:[edi]   
+
+7119E0A3     E8 BC6AF8FF          call V1200351.71124B64   
+
+7119E0A8     EB 2C                jmp short V1200351.7119E0D6   
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+好东东： ![icon\_smile.gif](img/59da1937da424a7e6d4210c5b355f670.jpg)
+
+```
+009524C4   44 45 42 55 47 42 52 45 41 4B 4B 45 52 4E 45 4C  DEBUGBREAKKERNEL   
+
+009524D4   33 32 2E 44 4C 4C 56 65 72 49 6E 66 6F 39 38 4D  32.DLLVerInfo98M   
+
+009524E4   45 4E 54 34 58 50 54 52 57 32 30 30 30 20 66 6F  ENT4XPTRW2000 fo   
+
+009524F4   72 20 57 69 6E 64 6F 77 73 20 39 78 54 57 58 32  r Windows 9xTWX2   
+
+00952504   30 30 32 20 66 6F 72 20 57 69 6E 64 6F 77 73 20  002 for Windows   
+
+00952514   39 78 52 65 67 6D 6F 6E 43 6C 61 73 73 53 49 43  9xRegmonClassSIC   
+
+00952524   45 4E 54 49 43 45 52 45 47 56 58 44 53 49 57 44  ENTICEREGVXDSIWD   
+
+00952534   45 42 55 47 53 49 57 56 49 44 53 54 41 52 54 4E  EBUGSIWVIDSTARTN   
+
+00952544   4D 46 69 6C 74 65 72 53 49 57 56 49 44 49 73 44  MFilterSIWVIDIsD   
+
+00952554   65 62 75 67 67 65 72 50 72 65 73 65 6E 74 45 58  ebuggerPresentEX   
+
+00952564   45 44 4C 4C 3C 2D 57 46 53 2D 3E 5C 53 6F 66 74  EDLL<-WFS->Soft
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+```
+7119E0D6     8B45 F8               mov eax,dword ptr ss:[ebp-8]   
+
+7119E0D9     E8 266AF8FF          call V1200351.71124B04   
+
+7119E0DE     50                   push eax   
+
+7119E0DF     6A 00                push 0   
+
+7119E0E1     E8 FE90F8FF          call V1200351.711271E4   ; jmp to USER32.FindWindowA   
+
+7119E0E6     8BD8                 mov ebx,eax   
+
+7119E0E8     EB 0C                jmp short V1200351.7119E0F6   
+
+7119E0F6     53                   push ebx   
+
+7119E0F7     E8 A092F8FF          call V1200351.7112739C   ; jmp to USER32.IsWindow   
+
+7119E0FC     85C0                 test eax,eax   
+
+7119E0FE     75 EA                jnz short V1200351.7119E0EA   
+
+7119E100     46                   inc esi   
+
+7119E101     83FE 03              cmp esi,3   
+
+7119E104     0F85 7BFFFFFF        jnz V1200351.7119E085//循环    
+
+7119E10A     33F6                 xor esi,esi   
+
+7119E10C     8D45 F8              lea eax,dword ptr ss:[ebp-8]   
+
+7119E10F     E8 4065F8FF          call V1200351.71124654   
+
+7119E114     8BC6                 mov eax,esi   
+
+7119E116     83F8 09              cmp eax,9   
+
+7119E119     0F87 1F010000        ja V1200351.7119E23E   
+
+7119E11F     FF2485 26E11971      jmp dword ptr ds:[eax*4+7119E126]   
+
+7119E23E     6A 00                push 0   
+
+7119E240     68 80000000          push 80   
+
+7119E245     6A 03                push 3   
+
+7119E247     6A 00                push 0   
+
+7119E249     6A 03                push 3   
+
+7119E24B     68 000000C0          push C0000000   
+
+7119E250     8D45 D8              lea eax,dword ptr ss:[ebp-28]   
+
+7119E253     8B4D F8              mov ecx,dword ptr ss:[ebp-8]   
+
+7119E256     BA 48E31971          mov edx,V1200351.7119E348           ; ASCII "\.\
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

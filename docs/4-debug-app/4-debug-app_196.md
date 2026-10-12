@@ -1,262 +1,478 @@
 
-
 # 扫雷详细分析
 
 > 原文：[`www.pediy.com/kssd/pediy12/136362.html`](https://www.pediy.com/kssd/pediy12/136362.html)
 
-首先把扫雷程序载入 OD，这个就用不到 CE 了，找下下面那张图那个位置，然后下一个 hr 地址 也就是硬件访问断点，然后运行程序，点下那个笑脸就断下来了，断下来的地方就是下面初始化那个界面那个 CALL 里面。然后找到 Ret 指令也就是返回的地方，来个 F2，运行程序，断下来后就单步一下，就到下面这个算法这里了  
-0100367A  /$  A1 AC560001   MOV EAX,DWORD PTR DS:\[10056AC\]              ;  界面格子的宽度  
-0100367F  |.  8B0D A8560001 MOV ECX,DWORD PTR DS:\[10056A8\]              ;  界面格子的高度  
-01003685  |.  53            PUSH EBX  
-01003686  |.  56            PUSH ESI  
-01003687  |.  57            PUSH EDI  
-01003688  |.  33FF          XOR EDI,EDI  
-0100368A  |.  3B05 34530001 CMP EAX,DWORD PTR DS:\[1005334\]              ;  界面格子的宽度，宽度数据是否一样  
-01003690  |.  893D 64510001 MOV DWORD PTR DS:\[1005164\],EDI              ;  这个地方初始化位 0  
-01003696  |.  75 0C         JNZ SHORT ssdas.010036A4                    ;  界面宽度存放的数据不一样就跳  
-01003698  |.  3B0D 38530001 CMP ECX,DWORD PTR DS:\[1005338\]              ;  界面高度存放的数据是否一样  
-0100369E  |.  75 04         JNZ SHORT ssdas.010036A4                    ;  界面高度存放的数据不一样就跳  
-010036A0  |.  6A 04         PUSH 4                                      ;  4 放到 EBX  
-010036A2  |.  EB 02         JMP SHORT ssdas.010036A6  
-010036A4  |>  6A 06         PUSH 6  
-010036A6  |>  5B            POP EBX                                     ;  接收上面的数据，视情况而定  
-010036A7  |.  A3 34530001   MOV DWORD PTR DS:\[1005334\],EAX              ;  存入界面宽度  
-010036AC  |.  890D 38530001 MOV DWORD PTR DS:\[1005338\],ECX              ;  存入界面高度  
-010036B2  |.  E8 1EF8FFFF   CALL ssdas.01002ED5                         ;  初始化界面格子的算法，见 Call 分析  
-010036B7  |.  A1 A4560001   MOV EAX,DWORD PTR DS:\[10056A4\]              ;  取出雷的数量  
-010036BC  |.  893D 60510001 MOV DWORD PTR DS:\[1005160\],EDI  
-010036C2  |.  A3 30530001   MOV DWORD PTR DS:\[1005330\],EAX              ;  雷的数量放入 1055330 这个地方  
-010036C7  |>  FF35 34530001 PUSH DWORD PTR DS:\[1005334\]                 ;  界面的宽度  
-010036CD  |.  E8 6E020000   CALL ssdas.01003940                         ;  Call rand 除以界面宽度，余数返回  
-010036D2  |.  FF35 38530001 PUSH DWORD PTR DS:\[1005338\]                 ;  界面的高度  
-010036D8  |.  8BF0          MOV ESI,EAX                                 ;  上面返回的余数放到 ESI 里面  
-010036DA  |.  46            INC ESI                                     ;  余数加上 1  
-010036DB  |.  E8 60020000   CALL ssdas.01003940                         ;  Call rand 再除以界面高度，余数返回  
-010036E0  |.  40            INC EAX                                     ;  返回的余数加上 1  
-010036E1  |.  8BC8          MOV ECX,EAX                                 ;  加 1 后的余数放入 ECX  
-010036E3  |.  C1E1 05       SHL ECX,5                                   ;  ECX 逻辑左移 5 位  
-010036E6  |.  F68431 405300>TEST BYTE PTR DS:\[ECX+ESI+1005340\],80       ;  指定的地方是否是 80，这里应该是位运算，指定的地方是否为一个雷  
-010036EE  |.^ 75 D7         JNZ SHORT ssdas.010036C7                    ;  是个雷就重新获得下个放雷的位置  
-010036F0  |.  C1E0 05       SHL EAX,5                                   ;  EAX 再次逻辑左移 5 位  
-010036F3  |.  8D8430 405300>LEA EAX,DWORD PTR DS:\[EAX+ESI+1005340\]      ;  装入指定位置的数据，存放雷的位置  
-010036FA  |.  8008 80       OR BYTE PTR DS:\[EAX\],80                     ;  放入一个雷  
-010036FD  |.  FF0D 30530001 DEC DWORD PTR DS:\[1005330\]                  ;  计数器  
-01003703  |.^ 75 C2         JNZ SHORT ssdas.010036C7  
-01003705  |.  8B0D 38530001 MOV ECX,DWORD PTR DS:\[1005338\]              ;  取得界面格子的高度 设  X  
-0100370B  |.  0FAF0D 345300>IMUL ECX,DWORD PTR DS:\[1005334\]             ;  取得界面格子的宽度 设  Y，X\*Y 得到面积  
-01003712  |.  A1 A4560001   MOV EAX,DWORD PTR DS:\[10056A4\]              ;  取得雷的数量  
-01003717  |.  2BC8          SUB ECX,EAX  
-01003719  |.  57            PUSH EDI  
-0100371A  |.  893D 9C570001 MOV DWORD PTR DS:\[100579C\],EDI  
-01003720  |.  A3 30530001   MOV DWORD PTR DS:\[1005330\],EAX              ;  雷的数量  
-01003725  |.  A3 94510001   MOV DWORD PTR DS:\[1005194\],EAX              ;  雷的数量  
-0100372A  |.  893D A4570001 MOV DWORD PTR DS:\[10057A4\],EDI  
-  
-Call 分析 Call 分析 Call 分析 Call 分析 Call 分析 Call 分析 Call 分析 Call 分析 Call 分析 Call 分析 Call 分析 Call 分析 Call 分析 Call 分析 Call 分析 Call 分析 Call 分析 Call 分析  
-01002ED5  /$  B8 60030000   MOV EAX,360                                 ;  一个固定数据，高级扫雷的界面格子的大小  
-01002EDA  |>  48            /DEC EAX  
-01002EDB  |.  C680 40530001>|MOV BYTE PTR DS:\[EAX+1005340\],0F           ;  从最后一个开始初始化，用个空白格子  
-01002EE2  |.^ 75 F6         \\JNZ SHORT ssdas.01002EDA  
-01002EE4  |.  8B0D 34530001 MOV ECX,DWORD PTR DS:\[1005334\]              ;  界面格子的宽度  
-01002EEA  |.  8B15 38530001 MOV EDX,DWORD PTR DS:\[1005338\]              ;  界面格子的高度  
-01002EF0  |.  8D41 02       LEA EAX,DWORD PTR DS:\[ECX+2\]                ;  雷的宽度加上 2，+2 这个空间是用来放换行符的  
-01002EF3  |.  85C0          TEST EAX,EAX  
-01002EF5  |.  56            PUSH ESI  
-01002EF6  |.  74 19         JE SHORT ssdas.01002F11  
-01002EF8  |.  8BF2          MOV ESI,EDX                                 ;  雷的高度是用来计算雷的数量的  
-01002EFA  |.  C1E6 05       SHL ESI,5                                   ;  界面高度左移 5 位，得到一个数据  
-01002EFD  |.  8DB6 60530001 LEA ESI,DWORD PTR DS:\[ESI+1005360\]          ;  得到最后一个格子的位置，  
-01002F03  |>  48            /DEC EAX                                    ;  计数器，初始化界面宽度大小的换行符来表示雷的开始  
-01002F04  |.  C680 40530001>|MOV BYTE PTR DS:\[EAX+1005340\],10           ;  双链表，指向格子的起点位置，放入一个换行符，大小是界面的宽度  
-01002F0B  |.  C60406 10     |MOV BYTE PTR DS:\[ESI+EAX\],10               ;  双链表，指向格子的结束位置，放入一个换行符，大小是界面的宽度  
-01002F0F  |.^ 75 F2         \\JNZ SHORT ssdas.01002F03  
-01002F11  |>  8D72 02       LEA ESI,DWORD PTR DS:\[EDX+2\]                ;  界面高度加上 2  
-01002F14  |.  85F6          TEST ESI,ESI  
-01002F16  |.  74 21         JE SHORT ssdas.01002F39  
-01002F18  |.  8BC6          MOV EAX,ESI                                 ;  下面开始放入分隔符，也就是一排雷的开始和结束换行符  
-01002F1A  |.  C1E0 05       SHL EAX,5                                   ;  界面高度+2 后逻辑左移 5 位  
-01002F1D  |.  8D90 40530001 LEA EDX,DWORD PTR DS:\[EAX+1005340\]          ;  得到最后换行符的位置  
-01002F23  |.  8D8408 415300>LEA EAX,DWORD PTR DS:\[EAX+ECX+1005341\]      ;  得到这个位置，EAX+界面宽度+1005341 这个位置  
-01002F2A  |>  83EA 20       /SUB EDX,20                                 ;  双链表，这里指向格子开始  
-01002F2D  |.  83E8 20       |SUB EAX,20                                 ;  这里指向格子结束位置  
-01002F30  |.  4E            |DEC ESI                                    ;  计数器减去 1，初始化的排数，用高度做计数器  
-01002F31  |.  C602 10       |MOV BYTE PTR DS:\[EDX\],10                   ;  一排格子的开始位置放入换行符，代表一排格子开始  
-01002F34  |.  C600 10       |MOV BYTE PTR DS:\[EAX\],10                   ;  一排格子结束的位置放上换行符，代表一排雷结束  
-01002F37  |.^ 75 F1         \\JNZ SHORT ssdas.01002F2A  
-01002F39  |>  5E            POP ESI  
-  
-下一步开始找规律：  
-10 就代表一排的开始，下一个位置就是一排的开始那个格子，数字代表数字，比如 42 就代表 2，8F 就代表雷，0F 就代表一个没有点击的格子，点击之后就会改变。  
-  
-我们可以写个程序改变雷，首先，我们把宽和高读取出来，然后从指定位置读取  
-宽乘以高的大小，然后再比较，如果是一个雷(8F)，我们就记下下标，加上开始读取的位置，再向里面写入(不是雷)0F，  
-来张图：  
-01005340  10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10    
-01005350  10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10    
-分界线，下面是开始雷的开始位置  
-01005360  10 0F 0F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F  ?  
-01005370  8F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 10  ??  
-01005380  10 0F 8F 8F 0F 0F 0F 0F 8F 8F 0F 0F 0F 0F 0F 0F    
-01005390  0F 0F 0F 0F 0F 8F 8F 0F 8F 8F 0F 0F 0F 8F 0F 10  ?  
-010053A0  10 0F 0F 0F 0F 0F 0F 8F 0F 8F 0F 0F 8F 0F 0F 0F  ???  
-010053B0  0F 0F 0F 8F 8F 0F 0F 0F 0F 8F 0F 0F 0F 0F 0F 10  ?  
-010053C0  10 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F    
-010053D0  0F 8F 8F 0F 0F 8F 0F 0F 0F 8F 0F 8F 8F 0F 0F 10  ??  
-010053E0  10 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F    
-010053F0  0F 0F 0F 8F 0F 0F 0F 8F 0F 0F 8F 0F 0F 0F 0F 10  ???  
-01005400  10 0F 0F 0F 0F 8F 0F 0F 0F 8F 0F 0F 0F 0F 0F 8F  ??  
-01005410  0F 0F 8F 8F 0F 0F 0F 0F 0F 8F 0F 0F 0F 8F 0F 10  ??  
-01005420  10 0F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F  ?  
-01005430  0F 0F 0F 0F 0F 0F 0F 0F 0F 8F 0F 0F 0F 0F 0F 10  ?  
-01005440  10 0F 0F 0F 0F 0F 0F 0F 0F 0F 8F 0F 0F 0F 8F 0F  ??  
-01005450  0F 0F 0F 0F 8F 0F 0F 8F 8F 0F 8F 0F 8F 0F 0F 10  ???  
-01005460  10 0F 0F 0F 0F 0F 0F 0F 0F 0F 8F 8F 8F 0F 0F 8F  ?  
-01005470  0F 0F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 10  ?  
-01005480  10 0F 0F 0F 0F 0F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F  ?  
-01005490  0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 10    
-010054A0  10 0F 0F 0F 0F 8F 8F 0F 8F 0F 0F 8F 8F 0F 8F 0F  ??  
-010054B0  0F 8F 0F 0F 0F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F 10  ??  
-010054C0  10 0F 0F 0F 0F 8F 8F 0F 0F 0F 0F 0F 0F 0F 0F 0F    
-010054D0  8F 0F 0F 0F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F 0F 10  ??  
-010054E0  10 8F 8F 0F 8F 0F 0F 8F 0F 0F 0F 0F 8F 0F 0F 0F  ???  
-010054F0  0F 8F 0F 0F 8F 8F 0F 0F 8F 0F 0F 8F 0F 0F 0F 10  ???  
-01005500  10 8F 0F 8F 0F 0F 0F 0F 0F 8F 0F 0F 0F 0F 0F 8F  ???  
-01005510  0F 8F 8F 8F 8F 8F 0F 0F 0F 8F 0F 8F 8F 0F 8F 10  ???  
-01005520  10 0F 0F 0F 0F 8F 8F 0F 0F 8F 0F 0F 0F 0F 0F 0F  ?  
-01005530  0F 8F 0F 0F 0F 8F 0F 8F 0F 0F 0F 0F 8F 0F 0F 10  ????  
-01005540  10 0F 0F 0F 0F 0F 8F 8F 8F 0F 0F 0F 0F 0F 0F 0F  ?  
-01005550  0F 0F 0F 8F 8F 8F 0F 0F 0F 0F 0F 0F 0F 8F 8F 10  ?  
-分界线，结束为止，上面开始位置到这里就是雷的大小了  
-01005560  10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10    
-01005570  10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 
+首先把扫雷程序载入 `OD`，这个就用不到 `CE` 了，找下下面那张图那个位置，然后下一个 `hr` 地址 也就是硬件访问断点，然后运行程序，点下那个笑脸就断下来了，断下来的地方就是下面初始化那个界面那个 `CALL` 里面。然后找到 `Ret` 指令也就是返回的地方，来个 `F2`，运行程序，断下来后就单步一下，就到下面这个算法这里了
 
-引用: *最初由 **邓韬**发布* ![查看帖子](img/showthread.php?p=976038#post976038) 首先把扫雷程序载入 OD，这个就用不到 CE 了，找下下面那张图那个位置，然后下一个 hr 地址 也就是硬件访问断点，然后运行程序，点下那个笑脸就断下来了，断下来的地方就是下面初始化那个界面那个 CALL 里面。然后找到 Ret 指令也就是返回的地方，来个 F2，运行程序，断下来后就单步一下，就到下面这个算法这里了  
-... 
+```
+0100367A  /$  A1 AC560001    MOV EAX,DWORD PTR DS:[10056AC]              ;  界面格子的宽度
 
-#include<windows.h>  
-#pragma comment(linker,"/SECTION:.text,WR")  
-BOOL MyMessageBox(void)  
-{  
-    char DisplayMessage\[\]="Self Modify Code";  
-    char DisplayCaption\[\]="Prompt";  
-    MessageBox(NULL,DisplayMessage,DisplayCaption,MB\_OK);  
-    return TRUE;  
-}  
-BYTE ProduceHash(char \*Name)  
-{  
-    DWORD Digest=0;  
-    while(\*Name)  
-    {  
-        Digest=((Digest<<25)|(Digest>>7));  
-        Digest+=\*Name;  
-        Name++;  
-    }  
-    return (BYTE)Digest;  
-}  
-BOOL SelfModifyCode(void \*EncryptAddr,BYTE Value)  
-{  
-    DWORD MyAddr=(DWORD)EncryptAddr;  
-    while(\*(BYTE\*)MyAddr!=0xC3)  
-    {  
-        if(\*(BYTE\*)MyAddr==0x55&&\*(BYTE\*)(MyAddr+1)==0x89&&\*(BYTE\*)(MyAddr+2)==0xE5)  
-        {  
-            MyAddr+=3;  
-        }  
-        \*(BYTE\*)MyAddr^=Value;  
-        MyAddr++;  
-    }  
-    return TRUE;  
-}  
-int CheckHardwareBreakpoints()           //反硬件断点  
-{  
-    unsigned int NumBps = 0;  
-  
-    // This structure is key to the function and is the   
-    // medium for detection and removal  
-    CONTEXT ctx;  
-    ZeroMemory(&ctx, sizeof(CONTEXT));   
-  
-    // The CONTEXT structure is an in/out parameter therefore we have  
-    // to set the flags so Get/SetThreadContext knows what to set or get.  
-    ctx.ContextFlags = CONTEXT\_DEBUG\_REGISTERS;   
-  
-    // Get a handle to our thread  
-    HANDLE hThread = GetCurrentThread();  
-  
-    // Get the registers  
-    if(GetThreadContext(hThread, &ctx) == 0)  
-        return -1;  
-  
-    // Now we can check for hardware breakpoints, its not   
-    // necessary to check Dr6 and Dr7, however feel free to  
-    if(ctx.Dr0 != 0)  
-        ++NumBps;   
-    if(ctx.Dr1 != 0)  
-           ++NumBps;   
-    if(ctx.Dr2 != 0)  
-           ++NumBps;   
-    if(ctx.Dr3 != 0)  
-        ++NumBps;  
-  
-    return NumBps;  
-}  
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)  
-{  
-    if(!CheckHardwareBreakpoints())  
-    {  
-        BYTE HashValue=ProduceHash("MyMessageBox");  
-        SelfModifyCode(MyMessageBox,HashValue);  
-        SelfModifyCode(MyMessageBox,HashValue);  
-        MyMessageBox();  
-    }  
-    return 0;  
-} 
+0100367F  |.  8B0D A8560001 MOV ECX,DWORD PTR DS:[10056A8]              ;  界面格子的高度
 
-引用: *最初由 **邓韬**发布* ![查看帖子](img/showthread.php?p=976040#post976040) #include<windows.h>  
-#pragma comment(linker,"/SECTION:.text,WR")  
-BOOL MyMessageBox(void)  
-{  
-    char DisplayMessage\[\]="Self Modify Code";  
-    char ... 
+01003685  |.  53            PUSH EBX
 
-参考了 moonife 版主大侠  
-的文章  
-#include<stdio.h>  
-#include<windows.h>  
-                                      //int num 表示参数个数，void\*Addr 表示函数地址，  
-                                      //num 是用来指示该调用哪部分的  
-BOOL MyMsgBox(int num,void \*Addr,...) //可变参数的声明形式  
-{  
-    if(num==1)                        //参数有一个的 API 函数  
-    {  
-         \_asm  
-         {  
-            push dword ptr\[ebp+16\]  
-            mov eax,dword ptr\[ebp+12\]  
-            push @NextAddrA  
-            jmp eax  
-@NextAddrA:  
-         }  
-    }  
-    if(num==4)                          //参数有 4 个的 API 函数  
-    {  
-        \_asm  
-        {  
-            push dword ptr\[ebp+28\]  
-            push dword ptr\[ebp+24\]  
-            push dword ptr\[ebp+20\]  
-            push dword ptr\[ebp+16\]  
-            mov eax,dword ptr\[ebp+12\]  
-            push @NextAddr  
-            jmp eax  
-@NextAddr:  
-        }  
-    }  
-    return TRUE;  
-}  
-int main(void)  
-{  
-    MyMsgBox(4,MessageBox,(void\*)NULL,(void\*)"Test",(void\*)"Caption",(void\*)MB\_OK);//调用 MessageBox 4 个参数  
-    MyMsgBox(1,ExitProcess,(void\*)0);                                              //调用 ExitProcess 1 个参数  
-    return 0;  
+01003686  |.  56            PUSH ESI
+
+01003687  |.  57            PUSH EDI
+
+01003688  |.  33FF          XOR EDI,EDI
+
+0100368A  |.  3B05 34530001 CMP EAX,DWORD PTR DS:[1005334]              ;  界面格子的宽度，宽度数据是否一样
+
+01003690  |.  893D 64510001 MOV DWORD PTR DS:[1005164],EDI              ;  这个地方初始化位 0
+
+01003696  |.  75 0C         JNZ SHORT sspike.010036A4                 ;  界面宽度存放的数据不一样就跳
+
+01003698  |.  3B0D 38530001 CMP ECX,DWORD PTR DS:[1005338]              ;  界面高度存放的数据是否一样
+
+0100369E  |.  75 04         JNZ SHORT sspike.010036A4                 ;  界面高度存放的数据不一样就跳
+
+010036A0  |.  6A 04         PUSH 4                                ;  4 放到 EBX
+
+010036A2  |.  EB 02         JMP SHORT sspike.010036A6
+
+010036A4  |>  6A 06         PUSH 6
+
+010036A6  |>  5B            POP EBX                             ;  接收上面的数据，视情况而定
+
+010036A7  |.  A3 34530001   MOV DWORD PTR DS:[1005334],EAX              ;  存入界面宽度
+
+010036AC  |.  890D 38530001 MOV DWORD PTR DS:[1005338],ECX              ;  存入界面高度
+
+010036B2  |.  E8 1EF8FFFF   CALL sspike.01002ED5                     ;  初始化界面格子的算法，见 Call 分析
+
+010036B7  |.  A1 A4560001   MOV EAX,DWORD PTR DS:[10056A4]              ;  取出雷的数量
+
+010036BC  |.  893D 60510001 MOV DWORD PTR DS:[1005160],EDI
+
+010036C2  |.  A3 30530001   MOV DWORD PTR DS:[1005330],EAX              ;  雷的数量放入 1055330 这个地方
+
+010036C7  |>  FF35 34530001 PUSH DWORD PTR DS:[1005334]                ;  界面的宽度
+
+010036CD  |.  E8 6E020000   CALL sspike.01003940                     ;  Call rand 除以界面宽度，余数返回
+
+010036D2  |.  FF35 38530001 PUSH DWORD PTR DS:[1005338]                ;  界面的高度
+
+010036D8  |.  8BF0          MOV ESI,EAX                             ;  上面返回的余数放到 ESI 里面
+
+010036DA  |.  46            INC ESI                             ;  余数加上 1
+
+010036DB  |.  E8 60020000   CALL sspike.01003940                     ;  Call rand 再除以界面高度，余数返回
+
+010036E0  |.  40            INC EAX                             ;  返回的余数加上 1
+
+010036E1  |.  8BC8          MOV ECX,EAX                             ;  加 1 后的余数放入 ECX
+
+010036E3  |.  C1E1 05       SHL ECX,5                             ;  ECX 逻辑左移 5 位
+
+010036E6  |.  F68431 405300>TEST BYTE PTR DS:[ECX+ESI+1005340],80      ;  指定的地方是否是 80，这里应该是位运算，指定的地方是否为一个雷
+
+010036EE  |.^ 75 D7         JNZ SHORT sspike.010036C7                 ;  是个雷就重新获得下个放雷的位置
+
+010036F0  |.  C1E0 05       SHL EAX,5                             ;  EAX 再次逻辑左移 5 位
+
+010036F3  |.  8D8430 405300>LEA EAX,DWORD PTR DS:[EAX+ESI+1005340]      ;  装入指定位置的数据，存放雷的位置
+
+010036FA  |.  8008 80       OR BYTE PTR DS:[EAX],80                      ;  放入一个雷
+
+010036FD  |.  FF0D 30530001 DEC DWORD PTR DS:[1005330]                  ;  计数器
+
+01003703  |.^ 75 C2         JNZ SHORT sspike.010036C7
+
+01003705  |.  8B0D 38530001 MOV ECX,DWORD PTR DS:[1005338]              ;  取得界面格子的高度 设  X
+
+0100370B  |.  0FAF0D 345300>IMUL ECX,DWORD PTR DS:[1005334]             ;  取得界面格子的宽度 设  Y，X*Y 得到面积
+
+01003712  |.  A1 A4560001   MOV EAX,DWORD PTR DS:[10056A4]              ;  取得雷的数量
+
+01003717  |.  2BC8          SUB ECX,EAX
+
+01003719  |.  57            PUSH EDI
+
+0100371A  |.  893D 9C570001 MOV DWORD PTR DS:[100579C],EDI
+
+01003720  |.  A3 30530001   MOV DWORD PTR DS:[1005330],EAX              ;  雷的数量
+
+01003725  |.  A3 94510001   MOV DWORD PTR DS:[1005194],EAX              ;  雷的数量
+
+0100372A  |.  893D A4570001 MOV DWORD PTR DS:[10057A4],EDI
+```
+
+`Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析 `Call` 分析
+
+```
+01002ED5  /$  B8 60030000   MOV EAX,360                           ;  一个固定数据，高级扫雷的界面格子的大小
+
+01002EDA  |>  48            /DEC EAX
+
+01002EDB  |.  C680 40530001>|MOV BYTE PTR DS:[EAX+1005340],0F      ;  从最后一个开始初始化，用个空白格子
+
+01002EE2  |.^ 75 F6         \JNZ SHORT sspike.01002EDA
+
+01002EE4  |.  8B0D 34530001 MOV ECX,DWORD PTR DS:[1005334]           ;  界面格子的宽度
+
+01002EEA  |.  8B15 38530001 MOV EDX,DWORD PTR DS:[1005338]           ;  界面格子的高度
+
+01002EF0  |.  8D41 02       LEA EAX,DWORD PTR DS:[ECX+2]             ;  雷的宽度加上 2，+2 这个空间是用来放换行符的
+
+01002EF3  |.  85C0          TEST EAX,EAX
+
+01002EF5  |.  56            PUSH ESI
+
+01002EF6  |.  74 19         JE SHORT sspike.01002F11
+
+01002EF8  |.  8BF2          MOV ESI,EDX                             ;  雷的高度是用来计算雷的数量的
+
+01002EFA  |.  C1E6 05       SHL ESI,5                             ;  界面高度左移 5 位，得到一个数据
+
+01002EFD  |.  8DB6 60530001 LEA ESI,DWORD PTR DS:[ESI+1005360]      ;  得到最后一个格子的位置，
+
+01002F03  |>  48            /DEC EAX                          ;  计数器，初始化界面宽度大小的换行符来表示雷的开始
+
+01002F04  |.  C680 40530001>|MOV BYTE PTR DS:[EAX+1005340],10      ;  双链表，指向格子的起点位置，放入一个换行符，大小是界面的宽度
+
+01002F0B  |.  C60406 10     |MOV BYTE PTR DS:[ESI+EAX],10          ;  双链表，指向格子的结束位置，放入一个换行符，大小是界面的宽度
+
+01002F0F  |.^ 75 F2         \JNZ SHORT sspike.01002F03
+
+01002F11  |>  8D72 02       LEA ESI,DWORD PTR DS:[EDX+2]             ;  界面高度加上 2
+
+01002F14  |.  85F6          TEST ESI,ESI
+
+01002F16  |.  74 21         JE SHORT sspike.01002F39
+
+01002F18  |.  8BC6          MOV EAX,ESI                             ;  下面开始放入分隔符，也就是一排雷的开始和结束换行符
+
+01002F1A  |.  C1E0 05       SHL EAX,5                             ;  界面高度+2 后逻辑左移 5 位
+
+01002F1D  |.  8D90 40530001 LEA EDX,DWORD PTR DS:[EAX+1005340]      ;  得到最后换行符的位置
+
+01002F23  |.  8D8408 415300>LEA EAX,DWORD PTR DS:[EAX+ECX+1005341]  ;  得到这个位置，EAX+界面宽度+1005341 这个位置
+
+01002F2A  |>  83EA 20       /SUB EDX,20                       ;  双链表，这里指向格子开始
+
+01002F2D  |.  83E8 20       |SUB EAX,20                       ;  这里指向格子结束位置
+
+01002F30  |.  4E            |DEC ESI                          ;  计数器减去 1，初始化的排数，用高度做计数器
+
+01002F31  |.  C602 10       |MOV BYTE PTR DS:[EDX],10           ;  一排格子的开始位置放入换行符，代表一排格子开始
+
+01002F34  |.  C600 10       |MOV BYTE PTR DS:[EAX],10           ;  一排格子结束的位置放上换行符，代表一排雷结束
+
+01002F37  |.^ 75 F1         \JNZ SHORT sspike.01002F2A
+
+01002F39  |>  5E            POP ESI
+```
+
+下一步开始找规律：
+
+`10` 就代表一排的开始，下一个位置就是一排的开始那个格子，数字代表数字，比如 `42` 就代表 `2`，`8F` 就代表雷，`0F` 就代表一个没有点击的格子，点击之后就会改变。
+
+我们可以写个程序改变雷，首先，我们把宽和高读取出来，然后从指定位置读取
+
+宽乘以高的大小，然后再比较，如果是一个雷(`8F`)，我们就记下下标，加上开始读取的位置，再向里面写入(不是雷)`0F`，
+
+来张图：
+
+```
+01005340  10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10   
+
+01005350  10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10   
+
+分界线，下面是开始雷的开始位置
+
+01005360  10 0F 0F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F  ?
+
+01005370  8F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 10  ??
+
+01005380  10 0F 8F 8F 0F 0F 0F 0F 8F 8F 0F 0F 0F 0F 0F 0F   
+
+01005390  0F 0F 0F 0F 0F 8F 8F 0F 8F 8F 0F 0F 0F 8F 0F 10  ?
+
+010053A0  10 0F 0F 0F 0F 0F 0F 8F 0F 8F 0F 0F 8F 0F 0F 0F  ???
+
+010053B0  0F 0F 0F 8F 8F 0F 0F 0F 0F 8F 0F 0F 0F 0F 0F 10  ?
+
+010053C0  10 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F   
+
+010053D0  0F 8F 8F 0F 0F 8F 0F 0F 0F 8F 0F 8F 8F 0F 0F 10  ??
+
+010053E0  10 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F   
+
+010053F0  0F 0F 0F 8F 0F 0F 0F 8F 0F 0F 8F 0F 0F 0F 0F 10  ???
+
+01005400  10 0F 0F 0F 0F 8F 0F 0F 0F 8F 0F 0F 0F 0F 0F 8F  ??
+
+01005410  0F 0F 8F 8F 0F 0F 0F 0F 0F 8F 0F 0F 0F 8F 0F 10  ??
+
+01005420  10 0F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F  ?
+
+01005430  0F 0F 0F 0F 0F 0F 0F 0F 0F 8F 0F 0F 0F 0F 0F 10  ?
+```
+
+
+
+```
+01005440  10 0F 0F 0F 0F 0F 0F 0F 0F 8F 0F 0F 0F 8F 0F  ??  
+
+01005450  0F 0F 0F 0F 8F 0F 0F 8F 8F 0F 8F 0F 8F 0F 0F 10  ???  
+
+01005460  10 0F 0F 0F 0F 0F 0F 0F 0F 0F 8F 8F 8F 0F 0F 8F  ?  
+
+01005470  0F 0F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 10  ?  
+
+01005480  10 0F 0F 0F 0F 0F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F  ?  
+
+01005490  0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 0F 10  
+
+010054A0  10 0F 0F 0F 0F 8F 8F 0F 8F 0F 0F 8F 8F 0F 8F 0F  ??  
+
+010054B0  0F 8F 0F 0F 0F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F 10  ??  
+
+010054C0  10 0F 0F 0F 0F 8F 8F 0F 0F 0F 0F 0F 0F 0F 0F 0F   
+
+010054D0  8F 0F 0F 0F 0F 8F 0F 0F 0F 0F 0F 0F 0F 0F 0F 10  ??  
+
+010054E0  10 8F 8F 0F 8F 0F 0F 8F 0F 0F 0F 0F 8F 0F 0F 0F  ???  
+
+010054F0  0F 8F 0F 0F 8F 8F 0F 0F 8F 0F 0F 8F 0F 0F 0F 10  ???  
+
+01005500  10 8F 0F 8F 0F 0F 0F 0F 0F 8F 0F 0F 0F 0F 0F 8F  ???  
+
+01005510  0F 8F 8F 8F 8F 8F 0F 0F 0F 8F 0F 8F 8F 0F 8F 10  ???  
+
+01005520  10 0F 0F 0F 0F 8F 8F 0F 0F 8F 0F 0F 0F 0F 0F 0F  ?  
+
+01005530  0F 8F 0F 0F 0F 8F 0F 8F 0F 0F 0F 0F 8F 0F 0F 10  ????  
+
+01005540  10 0F 0F 0F 0F 0F 8F 8F 8F 0F 0F 0F 0F 0F 0F 0F  ?  
+
+01005550  0F 0F 0F 8F 8F 8F 0F 0F 0F 0F 0F 0F 0F 8F 8F 10  ?  
+
+分界线，结束为止，上面开始位置到这里就是雷的大小了
+
+01005560  10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10   
+
+01005570  10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 10 
+```
+
+引用：最初由 `邓韬` 发布
+![查看帖子](img/showthread.php?p=976038#post976038)
+
+首先把扫雷程序载入 `OD`，这个就用不到 `CE` 了，找下下面那张图那个位置，然后下一个 `hr` 地址（也就是硬件访问断点），然后运行程序，点下那个笑脸就断下来了，断下来的地方就是下面初始化那个界面那个 `CALL` 里面。然后找到 `Ret` 指令（也就是返回的地方），来个 `F2`，运行程序，断下来后就单步一下，就到下面这个算法这里了
+
+...
+
+```c
+#include<windows.h>
+
+#pragma comment(linker,"/SECTION:.text,WR")
+
+BOOL MyMessageBox(void)
+{
+    char DisplayMessage[]="Self Modify Code";
+    char DisplayCaption[]="Prompt";
+    MessageBox(NULL,DisplayMessage,DisplayCaption,MB_OK);
+    return TRUE;
 }
+
+BYTE ProduceHash(char *Name)
+{
+    DWORD Digest=0;
+    while(*Name)
+    {
+        Digest=((Digest<<25)|(Digest>>7));
+        Digest+=*Name;
+        Name++;
+    }
+    return (BYTE)Digest;
+}
+
+BOOL SelfModifyCode(void *EncryptAddr,BYTE Value)
+{
+    DWORD MyAddr=(DWORD)EncryptAddr;
+    while(*(BYTE*)MyAddr!=0xC3)
+    {
+        if(*(BYTE*)MyAddr==0x55&&*(BYTE*)(MyAddr+1)==0x89&&*(BYTE*)(MyAddr+2)==0xE5)
+        {
+            MyAddr+=3;
+        }
+        *(BYTE*)MyAddr^=Value;
+        MyAddr++;
+    }
+    return TRUE;
+}
+
+int CheckHardwareBreakpoints()               //反硬件断点
+{
+    unsigned int NumBps = 0;
+    // This structure is key to the function and is the  
+    // medium for detection and removal
+    CONTEXT ctx;
+    ZeroMemory(&ctx, sizeof(CONTEXT));  
+    // The CONTEXT structure is an in/out parameter therefore we have
+    // to set the flags so Get/SetThreadContext knows what to set or get.
+    ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;  
+    // Get a handle to our thread
+    HANDLE hThread = GetCurrentThread();
+    // Get the registers
+    if(GetThreadContext(hThread, &ctx) == 0)
+        return -1;
+    // Now we can check for hardware breakpoints, its not
+    // necessary to check Dr6 and Dr7, however feel free to
+    if(ctx.Dr0 != 0)
+        ++NumBps;  
+    if(ctx.Dr1 != 0)
+        ++NumBps;  
+    if(ctx.Dr2 != 0)
+        ++NumBps;  
+    if(ctx.Dr3 != 0)
+        ++NumBps;
+    return NumBps;
+}
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
+{
+    if(!CheckHardwareBreakpoints())
+    {
+        BYTE HashValue=ProduceHash("MyMessageBox");
+        SelfModifyCode(MyMessageBox,HashValue);
+        SelfModifyCode(MyMessageBox,HashValue);
+        MyMessageBox();
+    }
+    return 0;
+}
+```
+
+引用：最初由 `邓韬` 发布
+![查看帖子](img/showthread.php?p=976040#post976040)
+
+```c
+#include<windows.h>
+
+#pragma comment(linker,"/SECTION:.text,WR")
+
+BOOL MyMessageBox(void)
+{
+    char DisplayMessage[]="Self Modify Code";
+    char DisplayCaption[]="Prompt";
+    MessageBox(NULL,DisplayMessage,DisplayCaption,MB_OK);
+    return TRUE;
+}
+
+BYTE ProduceHash(char *Name)
+{
+    DWORD Digest=0;
+    while(*Name)
+    {
+        Digest=((Digest<<25)|(Digest>>7));
+        Digest+=*Name;
+        Name++;
+    }
+    return (BYTE)Digest;
+}
+
+BOOL SelfModifyCode(void *EncryptAddr,BYTE Value)
+{
+    DWORD MyAddr=(DWORD)EncryptAddr;
+    while(*(BYTE*)MyAddr!=0xC3)
+    {
+        if(*(BYTE*)MyAddr==0x55&&*(BYTE*)(MyAddr+1)==0x89&&*(BYTE*)(MyAddr+2)==0xE5)
+        {
+            MyAddr+=3;
+        }
+        *(BYTE*)MyAddr^=Value;
+        MyAddr++;
+    }
+    return TRUE;
+}
+
+int CheckHardwareBreakpoints()               //反硬件断点
+{
+    unsigned int NumBps = 0;
+    // This structure is key to the function and is the  
+    // medium for detection and removal
+    CONTEXT ctx;
+    ZeroMemory(&ctx, sizeof(CONTEXT));  
+    // The CONTEXT structure is an in/out parameter therefore we have
+    // to set the flags so Get/SetThreadContext knows what to set or get.
+    ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;  
+    // Get a handle to our thread
+    HANDLE hThread = GetCurrentThread();
+    // Get the registers
+    if(GetThreadContext(hThread, &ctx) == 0)
+        return -1;
+    // Now we can check for hardware breakpoints, its not
+    // necessary to check Dr6 and Dr7, however feel free to
+    if(ctx.Dr0 != 0)
+        ++NumBps;  
+    if(ctx.Dr1 != 0)
+        ++NumBps;  
+    if(ctx.Dr2 != 0)
+        ++NumBps;  
+    if(ctx.Dr3 != 0)
+        ++NumBps;
+    return NumBps;
+}
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
+{
+    if(!CheckHardwareBreakpoints())
+    {
+        BYTE HashValue=ProduceHash("MyMessageBox");
+        SelfModifyCode(MyMessageBox,HashValue);
+        SelfModifyCode(MyMessageBox,HashValue);
+        MyMessageBox();
+    }
+    return 0;
+}
+```
+
+参考了 `moonife` 版主大侠的文章
+
+```c
+#include<stdio.h>
+
+#include<windows.h>
+
+                       //int num 表示参数个数，void*Addr 表示函数地址，
+                       //num 是用来指示该调用哪部分的
+
+BOOL MyMsgBox(int num,void *Addr,...) //可变参数的声明形式
+{
+    if(num==1)                     //参数有一个的 API 函数
+    {
+      _asm
+      {
+        push dword ptr[ebp+16]
+        mov eax,dword ptr[ebp+12]
+        push @NextAddrA
+        jmp eax
+@NextAddrA:
+      }
+    }
+    if(num==4)                     //参数有 4 个的 API 函数
+    {
+        _asm
+        {
+            push dword ptr[ebp+28]
+            push dword ptr[ebp+24]
+            push dword ptr[ebp+20]
+            push dword ptr[ebp+16]
+            mov eax,dword ptr[ebp+12]
+            push @NextAddr
+            jmp eax
+@NextAddr:
+        }
+    }
+    return TRUE;
+}
+
+int main(void)
+{
+    MyMsgBox(4,MessageBox,(void*)NULL,(void*)"Test",(void*)"Caption",(void*)MB_OK);//调用 MessageBox 4 个参数
+    MyMsgBox(1,ExitProcess,(void*)0);                                              //调用 ExitProcess 1 个参数
+    return 0;
+}
+```

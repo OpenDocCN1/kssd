@@ -1,289 +1,492 @@
 
-
 # Obsidium V1.25 加壳 VB 程序的脱壳——超级自动注册申请王
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-569.htm`](https://www.pediy.com/kssd/pediy07/pediy7-569.htm)
 
-Obsidium V1.25 加壳 VB 程序的脱壳——超级自动注册申请王 V1.9  
-              
-             
-               
-下载页面：  http://www2.skycn.com/soft/21992.html  
-软件大小：  2894 KB  
-软件语言：  简体中文  
-软件类别：  国产软件 / 试用版 / 网络辅助  
-应用平台：  Win9x/NT/2000/XP  
-加入时间：  2005-04-12 16:54:38  
-下载次数：  26267  
-推荐等级：  \*\*\*  
-开 发 商：  http://www.5it.cn  
-软件介绍： “超级自动注册申请王”是一款能够自动注册 QQ 号、UC 号、YamQQ 号、赢财通 QQ 号、MyIM 号、联众游戏大厅、游戏茶苑大厅、E 话通号、KuGoo 号、PP 点点通帐号、浩方游戏平台号、免费相册、诸多免费邮箱、免费二级域名……管理所注册的号码密码……等等等等诸多的功能于一身的强大软件。  
-               
-【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教  
-               
-【调试环境】：WinXP、flyODBG、PEiD、LordPE、ImportREC  
-               
-—————————————————————————————————   
-【脱壳过程】：  
-            
-           
-Obsidium 新版一直没看，有兄弟提出这个程序，看看不算难，所以记录了一下。  
-—————————————————————————————————  
-一、Obsidium V1.25 的反跟踪  
-  
-               
-用 OllyDbg 修改版来调试，设置 OllyDbg 忽略所有异常选项。  
-用 IsDebug 插件去掉 OllyDbg 的调试器标志。用 UnhExcFlt.DLL 插件先 Patch 一下。  
-       
-0066E000    E8 0E000000     call 0066E013  
-//进入 Ollydbg 后暂停在这  
-0066E005    8B5424 0C       mov edx,dword ptr ss:\[esp+C\]  
-0066E009    8382 B8000000 0>add dword ptr ds:\[edx+B8\],0D  
-0066E010    33C0            xor eax,eax  
-0066E012    C3              retn  
-  
-如果没有使用 UnhandledExceptionFilter 插件 Patch，可以如下修改。  
-Ctrl+G：UnhandledExceptionFilter  
-  
-7C862B8A    68 48020000     push 248  
-7C862B8F    68 E035867C     push kernel32.7C8635E0  
-7C862B94    E8 32F9F9FF     call kernel32.7C8024CB  
-7C862B99    A1 CC36887C     mov eax,dword ptr ds:\[7C8836CC\]  
-7C862B9E    8945 E4         mov dword ptr ss:\[ebp-1C\],eax  
-7C862BA1    8B5D 08         mov ebx,dword ptr ss:\[ebp+8\]  
-7C862BA4    899D 88FEFFFF   mov dword ptr ss:\[ebp-178\],ebx  
-7C862BAA    C785 B8FEFFFF 0>mov dword ptr ss:\[ebp-148\],4  
-7C862BB4    33FF            xor edi,edi  
-7C862BB6    89BD C4FEFFFF   mov dword ptr ss:\[ebp-13C\],edi  
-7C862BBC    89BD 94FEFFFF   mov dword ptr ss:\[ebp-16C\],edi  
-7C862BC2    8B03            mov eax,dword ptr ds:\[ebx\]  
-7C862BC4    F640 04 10      test byte ptr ds:\[eax+4\],10  
-7C862BC8    74 0A           je short kernel32.7C862BD4  
-7C862BCA    FF30            push dword ptr ds:\[eax\]  
-7C862BCC    6A FF           push -1  
-7C862BCE    FF15 FC13807C   call dword ptr ds:\[<&ntdll.NtTerminateProcess>\]  
-7C862BD4    8B03            mov eax,dword ptr ds:\[ebx\]  
-7C862BD6    BE 050000C0     mov esi,C0000005  
-7C862BDB    3930            cmp dword ptr ds:\[eax\],esi  
-7C862BDD    75 1A           jnz short kernel32.7C862BF9  
-7C862BDF    8378 14 01      cmp dword ptr ds:\[eax+14\],1  
-7C862BE3    75 14           jnz short kernel32.7C862BF9  
-7C862BE5    FF70 18         push dword ptr ds:\[eax+18\]  
-7C862BE8    E8 87FCFFFF     call kernel32.7C862874  
-7C862BED    83F8 FF         cmp eax,-1  
-7C862BF0    75 07           jnz short kernel32.7C862BF9  
-7C862BF2    0BC0            or eax,eax  
-7C862BF4    E9 5F080000     jmp kernel32.7C863458  
-7C862BF9    89BD DCFEFFFF   mov dword ptr ss:\[ebp-124\],edi  
-7C862BFF    57              push edi  
-7C862C00    6A 04           push 4  
-7C862C02    8D85 DCFEFFFF   lea eax,dword ptr ss:\[ebp-124\]  
-7C862C08    50              push eax  
-7C862C09    6A 07           push 7  
-7C862C0B    E8 FDB3FAFF     call kernel32.GetCurrentProcess  
-7C862C10    50              push eax  
-7C862C11    FF15 AC10807C   call dword ptr ds:\[<&ntdll.NtQueryInformationProcess>\]  
-7C862C17    85C0            test eax,eax  
-7C862C19    0F8C A2000000   jl kernel32.7C862CC1  
-7C862C1F    39BD DCFEFFFF   cmp dword ptr ss:\[ebp-124\],edi  
-//修改为：   mov dword ptr ss:\[ebp-124\],0  
-7C862C25    0F84 96000000   je kernel32.7C862CC1  
-//修改为：   jmp 7C862CC1  
-  
-Obsidium V1.25 专门针对 WinXP 下三环调试器设置了一个检测。  
-Ctrl+G：CheckRemoteDebuggerPresent  
-  
-7C859902    8BFF            mov edi,edi  
-7C859904    55              push ebp  
-7C859905    8BEC            mov ebp,esp  
-7C859907    837D 08 00      cmp dword ptr ss:\[ebp+8\],0  
-7C85990B    56              push esi  
-7C85990C    74 35           je short kernel32.7C859943  
-7C85990E    8B75 0C         mov esi,dword ptr ss:\[ebp+C\]  
-7C859911    85F6            test esi,esi  
-7C859913    74 2E           je short kernel32.7C859943  
-7C859915    6A 00           push 0  
-7C859917    6A 04           push 4  
-7C859919    8D45 08         lea eax,dword ptr ss:\[ebp+8\]  
-7C85991C    50              push eax  
-7C85991D    6A 07           push 7  
-7C85991F    FF75 08         push dword ptr ss:\[ebp+8\]  
-7C859922    FF15 AC10807C   call dword ptr ds:\[<&ntdll.NtQueryInformationProcess>\]  
-7C859928    85C0            test eax,eax  
-7C85992A    7D 08           jge short kernel32.7C859934  
-7C85992C    50              push eax  
-7C85992D    E8 49FAFAFF     call kernel32.7C80937B  
-7C859932    EB 16           jmp short kernel32.7C85994A  
-7C859934    33C0            xor eax,eax  
-7C859936    3945 08         cmp dword ptr ss:\[ebp+8\],eax  
-7C859939    0F95C0          setne al  
-7C85993C    8906            mov dword ptr ds:\[esi\],eax  
-7C85993E    33C0            xor eax,eax  
-7C859940    40              inc eax  
-//修改为：   nop  
-7C859941    EB 09           jmp short kernel32.7C85994C  
-7C859943    6A 57           push 57  
-7C859945    E8 76F9FAFF     call kernel32.7C8092C0  
-7C85994A    33C0            xor eax,eax  
-7C85994C    5E              pop esi  
-7C85994D    5D              pop ebp  
-7C85994E    C2 0800         retn 8  
-  
-OK，现在就可以在 OllyDbg 修改版里面正常运行起来了。  
-  
-  
-—————————————————————————————————  
-二、搞定输入表  
-  
-  
-超级自动注册申请王是 VB 写的程序，许多壳对 VB 保护不佳。Obsidium 也没有对这个程序使用上特色重定位功能，因此我们直接去搞定输入表了。  
-修改完上面几处去除反跟踪后，Ctrl+G：IsProcessorFeaturePresent  
-  
-7C80ACB2    8BFF            mov edi,edi  
-7C80ACB4    55              push ebp  
-7C80ACB5    8BEC            mov ebp,esp  
-7C80ACB7    8B45 08         mov eax,dword ptr ss:\[ebp+8\]  
-7C80ACBA    83F8 40         cmp eax,40  
-7C80ACBD    73 0B           jnb short kernel32.7C80ACCA  
-7C80ACBF    0FB680 7402FE7F movzx eax,byte ptr ds:\[eax+7FFE0274\]  
-7C80ACC6    5D              pop ebp  
-7C80ACC7    C2 0400         retn 4  
-//在函数末尾下断，避开壳的检测。Shift+F9 中断后取消断点  
-  
-在 PE Header 下面的第 2 区段设置内存访问断点。Shift+F9 中断下来取消断点  
-  
-00B68155    893E            mov dword ptr ds:\[esi\],edi  
-//中断在这里  
-  
-Ctrl+F 在整个段块搜索命令：test word ptr ds:\[esi\],20  
-找到在 00B67FCE 处，下面我们来 Patch，以获得正确输入表函数。  
-  
-00B67FC8    8B75 10         mov esi,dword ptr ss:\[ebp+10\]  
-00B67FCB    8B7D 0C         mov edi,dword ptr ss:\[ebp+C\]  
-00B67FCE    66:F706 2000    test word ptr ds:\[esi\],20  
-//Patch ①：test word ptr ds:\[esi\],8  ★  
-00B67FD3    74 46           je short 00B6801B  
-//Patch ②：jne 00B6801B  ★  
-00B67FD5    66:F706 0200    test word ptr ds:\[esi\],2  
-00B67FDA    75 1F           jnz short 00B67FFB  
-00B67FDC    66:C706 0400    mov word ptr ds:\[esi\],4  
-00B67FE1    8B45 14         mov eax,dword ptr ss:\[ebp+14\]  
-00B67FE4    6A 01           push 1  
-00B67FE6    6A 00           push 0  
-00B67FE8    FF76 04         push dword ptr ds:\[esi+4\]  
-00B67FEB    6A 00           push 0  
-00B67FED    FF75 18         push dword ptr ss:\[ebp+18\]  
-00B67FF0    FF50 50         call dword ptr ds:\[eax+50\]  
-00B67FF3    85C0            test eax,eax  
-00B67FF5    74 38           je short 00B6802F  
-//Patch ③：je 00B6801B  ★  
-00B67FF7    8907            mov dword ptr ds:\[edi\],eax  
-//正确函数写入   这里可以看看\[edi\]地址，以确定 IAT RVA 和 Size  
-//第一次 EDI=00401000  
-00B67FF9    EB 20           jmp short 00B6801B  
-00B67FFB    66:C706 0400    mov word ptr ds:\[esi\],4  
-00B68000    8B45 14         mov eax,dword ptr ss:\[ebp+14\]  
-00B68003    0FB756 02       movzx edx,word ptr ds:\[esi+2\]  
-00B68007    6A 01           push 1  
-00B68009    52              push edx  
-00B6800A    6A 00           push 0  
-00B6800C    FF76 04         push dword ptr ds:\[esi+4\]  
-00B6800F    FF75 18         push dword ptr ss:\[ebp+18\]  
-00B68012    FF50 50         call dword ptr ds:\[eax+50\]  
-00B68015    85C0            test eax,eax  
-00B68017    74 16           je short 00B6802F  
-//Patch ④：je 00B6801B  ★  
-00B68019    8907            mov dword ptr ds:\[edi\],eax  
-00B6801B    83C6 08         add esi,8  
-00B6801E    83C7 04         add edi,4  
-00B68021    FF4D 08         dec dword ptr ss:\[ebp+8\]  
-00B68024    75 A8           jnz short 00B67FCE  
-00B68026    33C0            xor eax,eax  
-00B68028    40              inc eax  
-00B68029    5F              pop edi  
-00B6802A    5E              pop esi  
-00B6802B    5D              pop ebp  
-00B6802C    C2 1400         retn 14  
-  
-在 00B6802C 处下断，Shift+F9 后输入表处理完毕  
-在 00401000 处向下查看，可以发现结束地址是 004012C4  
-运行 ImportREC，选择这个进程，填入 RVA=00001000、Size=000002C4，获取输入表后发现有一个无效指针  
-00404D10    FF25 44114000   jmp dword ptr ds:\[401144\]  
-  
-VB 的东东一般加密的特殊函数是 DllFunctionCall。  
-当然，也可以跟踪得出。跟踪原版这里会来到如下地方：  
-  
-006767F7    55              push ebp  
-//这几条指令其实是把 DllFunctionCall 函数的挪移到壳里执行  
-006767F8    8BEC            mov ebp,esp  
-006767FA    83EC 0C         sub esp,0C  
-006767FD    56              push esi  
-006767FE    9C              pushfd  
-006767FF    F0:FF0D D266670>lock dec dword ptr ds:\[6766D2\]  
-00676806    9D              popfd  
-00676807    E9 14389965     jmp 6600A020; MSVBVM60.6600A020  
-  
-6600A019    55              push ebp  
-//DllFunctionCall  
-6600A01A    8BEC            mov ebp,esp  
-6600A01C    83EC 0C         sub esp,0C  
-6600A01F    56              push esi  
-6600A020    8D45 F4         lea eax,dword ptr ss:\[ebp-C\]  
-//从壳里直接跳到这里  
-6600A023    57              push edi  
-6600A024    50              push eax  
-6600A025    8D45 FC         lea eax,dword ptr ss:\[ebp-4\]  
-6600A028    8365 FC 00      and dword ptr ss:\[ebp-4\],0  
-6600A02C    50              push eax  
-6600A02D    8D45 F8         lea eax,dword ptr ss:\[ebp-8\]  
-6600A030    50              push eax  
-6600A031    6A 00           push 0  
-6600A033    FF75 08         push dword ptr ss:\[ebp+8\]  
-6600A036    E8 42000000     call 6600A07D   
-  
-  
-—————————————————————————————————  
-三、OEP  
-  
-  
-Obsidium 没有对这个东东重定位，所以直接 Alt+M 打开内存查看窗口  
-在 PE Header 下面的第 2 区段设置内存访问断点。Shift+F9 中断下来  
-  
-004050AD    E8 EEFFFFFF     call SuperAut.004050A0 ; jmp to MSVBVM60.ThunRTMain  
-//直接中断在这里。这是 OEP 处的第 2 条指令  
-  
-看看堆栈：  
-0013FFC0   004054C4  ASCII "VB5!6&vb6chs.dll"  
-  
-Obsidium 的 Stolen OEP Code 一直不算强。很容易就得到 OEP 处第一条指令  
-004050A8    68 C4544000     push SuperAut.004054C4 ; ASCII "VB5!6&vb6chs.dll"  
-004050AD    E8 EEFFFFFF     call SuperAut.004050A0 ; jmp to MSVBVM60.ThunRTMain  
-  
-运行 LordPE，完全 Dump 这个进程。  
-修正 ImportREC 里面的 OEP RVA=000050A8，FixDump，脱壳完成了。  
-  
-  
-—————————————————————————————————  
-四、关于破解  
-  
-  
-这个东东的注册信息保存在注册表中，重启验证。  
-去掉时间限制很简单，BP rtcMsgBox，改几个跳转就行了。  
-  
-               
-—————————————————————————————————                                  
-         ,     \_/   
-        /| \_.-~/            \\\_     ,        青春都一晌  
-       ( /~   /              \\~-.\_ |\\  
-       \`\\\\  \_/                \\   ~\\ )          忍把浮名   
-   \_-~~~-.)  )\_\_/;;,.          \\\_  //'  
-  /'\_,\\   --~   \\ ~~~-  ,;;\\\_\_\_(  (.-~~~-.        换了破解轻狂  
- \`~ \_( ,\_..--\\ (     ,;'' /    ~--   /.\_\`\\   
-  /~~//'   /' \`~\\         ) /--..\_, )\_  \`~  
-  "  \`~"  "      \`"      /~'\`\\    \`\\\\~~\\     
-                         "     "   "~'  ""  
-      
-              UnPacKed By :  fly  
-               2005-04-29 23:00 
+Obsidium V1.25 加壳 VB 程序的脱壳——超级自动注册申请王 V1.9
 
+下载页面： `http://www2.skycn.com/soft/21992.html`
+
+软件大小： 2894 KB
+
+软件语言： 简体中文
+
+软件类别： 国产软件 / 试用版 / 网络辅助
+
+应用平台： Win9x/NT/2000/XP
+
+加入时间： 2005-04-12 16:54:38
+
+下载次数： 26267
+
+推荐等级： ***
+
+开 发 商： `http://www.5it.cn`
+
+软件介绍： “超级自动注册申请王”是一款能够自动注册 QQ 号、UC 号、YamQQ 号、赢财通 QQ 号、MyIM 号、联众游戏大厅、游戏茶苑大厅、E 话通号、KuGoo 号、PP 点点通帐号、浩方游戏平台号、免费相册、诸多免费邮箱、免费二级域名……管理所注册的号码密码……等等等等诸多的功能于一身的强大软件。
+
+**【作者声明】**：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教
+
+**【调试环境】**：`WinXP`、`flyODBG`、`PEiD`、`LordPE`、`ImportREC`
+
+## 一、Obsidium V1.25 的反跟踪
+
+用 `OllyDbg` 修改版来调试，设置 `OllyDbg` 忽略所有异常选项。
+
+用 `IsDebug` 插件去掉 `OllyDbg` 的调试器标志。用 `UnhExcFlt.DLL` 插件先 Patch 一下。
+
+```
+0066E000    E8 0E000000     call 0066E013
+
+//进入 Ollydbg 后暂停在这
+
+0066E005    8B5424 0C       mov edx,dword ptr ss:[esp+C]
+
+0066E009    8382 B8000000 0>add dword ptr ds:[edx+B8],0D
+
+0066E010    33C0            xor eax,eax
+
+0066E012    C3              retn
+```
+
+如果没有使用 `UnhandledExceptionFilter` 插件 Patch，可以如下修改。
+
+`Ctrl+G`：`UnhandledExceptionFilter`
+
+```
+7C862B8A    68 48020000     push 248
+
+7C862B8F    68 E035867C     push kernel32.7C8635E0
+
+7C862B94    E8 32F9F9FF     call kernel32.7C8024CB
+
+7C862B99    A1 CC36887C     mov eax,dword ptr ds:[7C8836CC]
+
+7C862B9E    8945 E4         mov dword ptr ss:[ebp-1C],eax
+
+7C862BA1    8B5D 08         mov ebx,dword ptr ss:[ebp+8]
+
+7C862BA4    899D 88FEFFFF   mov dword ptr ss:[ebp-178],ebx
+
+7C862BAA    C785 B8FEFFFF 0>mov dword ptr ss:[ebp-148],4
+
+7C862BB4    33FF            xor edi,edi
+
+7C862BB6    89BD C4FEFFFF   mov dword ptr ss:[ebp-13C],edi
+
+7C862BBC    89BD 94FEFFFF   mov dword ptr ss:[ebp-16C],edi
+
+7C862BC2    8B03            mov eax,dword ptr ds:[ebx]
+
+7C862BC4    F640 04 10      test byte ptr ds:[eax+4],10
+
+7C862BC8    74 0A           je short kernel32.7C862BD4
+
+7C862BCA    FF30            push dword ptr ds:[eax]
+
+7C862BCC    6A FF           push -1
+
+7C862BCE    FF15 FC13807C   call dword ptr ds:[<&ntdll.NtTerminateProcess>]
+
+7C862BD4    8B03            mov eax,dword ptr ds:[ebx]
+
+7C862BD6    BE 050000C0     mov esi,C0000005
+
+7C862BDB    3930            cmp dword ptr ds:[eax],esi
+
+7C862BDD    75 1A           jnz short kernel32.7C862BF9
+
+7C862BDF    8378 14 01      cmp dword ptr ds:[eax+14],1
+
+7C862BE3    75 14           jnz short kernel32.7C862BF9
+
+7C862BE5    FF70 18         push dword ptr ds:[eax+18]
+
+7C862BE8    E8 87FCFFFF     call kernel32.7C862874
+
+7C862BED    83F8 FF         cmp eax,-1
+
+7C862BF0    75 07           jnz short kernel32.7C862BF9
+
+7C862BF2    0BC0            or eax,eax
+
+7C862BF4    E9 5F080000     jmp kernel32.7C863458
+
+7C862BF9    89BD DC FEFFFF  mov dword ptr ss:[ebp-124],edi
+
+7C862BFF    57              push edi
+
+7C862C00    6A 04           push 4
+
+7C862C02    8D85 DC FEFFFF  lea eax,dword ptr ss:[ebp-124]
+
+7C862C08    50              push eax
+
+7C862C09    6A 07           push 7
+
+7C862C0B    E8 FDB3FAFF     call kernel32.GetCurrentProcess
+
+7C862C10    50              push eax
+
+7C862C11    FF15 AC10807C   call dword ptr ds:[<&ntdll.NtQueryInformationProcess>]
+
+7C862C17    85C0            test eax,eax
+
+7C862C19    0F8C A2000000   jl kernel32.7C862CC1
+
+7C862C1F    39BD DC FEFFFF  cmp dword ptr ss:[ebp-124],edi
+
+//修改为：   mov dword ptr ss:[ebp-124],0
+
+7C862C25    0F84 96000000   je kernel32.7C862CC1
+
+//修改为：   jmp 7C862CC1
+```
+
+Obsidium V1.25 专门针对 `WinXP` 下三环调试器设置了一个检测。
+
+`Ctrl+G`：`CheckRemoteDebuggerPresent`
+
+```
+7C859902    8BFF            mov edi,edi
+
+7C859904    55              push ebp
+
+7C859905    8BEC            mov ebp,esp
+
+7C859907    837D 08 00      cmp dword ptr ss:[ebp+8],0
+
+7C85990B    56              push esi
+
+7C85990C    74 35           je short kernel32.7C859943
+
+7C85990E    8B75 0C         mov esi,dword ptr ss:[ebp+C]
+
+7C859911    85F6            test esi,esi
+
+7C859913    74 2E           je short kernel32.7C859943
+
+7C859915    6A 00           push 0
+
+7C859917    6A 04           push 4
+
+7C859919    8D45 08         lea eax,dword ptr ss:[ebp+8]
+
+7C85991C    50              push eax
+
+7C85991D    6A 07           push 7
+
+7C85991F    FF75 08         push dword ptr ss:[ebp+8]
+
+7C859922    FF15 AC10807C   call dword ptr ds:[<&ntdll.NtQueryInformationProcess>]
+
+7C859928    85C0            test eax,eax
+
+7C85992A    7D 08           jge short kernel32.7C859934
+
+7C85992C    50              push eax
+
+7C85992D    E8 49FAFAFF     call kernel32.7C80937B
+
+7C859932    EB 16           jmp short kernel32.7C85994A
+
+7C859934    33C0            xor eax,eax
+
+7C859936    3945 08         cmp dword ptr ss:[ebp+8],eax
+
+7C859939    0F95C0          setne al
+
+7C85993C    8906            mov dword ptr ds:[esi],eax
+
+7C85993E    33C0            xor eax,eax
+
+7C859940    40              inc eax
+
+//修改为：   nop
+
+7C859941    EB 09           jmp short kernel32.7C85994C
+
+7C859943    6A 57           push 57
+
+7C859945    E8 76F9FAFF     call kernel32.7C8092C0
+
+7C85994A    33C0            xor eax,eax
+
+7C85994C    5E              pop esi
+
+7C85994D    5D              pop ebp
+
+7C85994E    C2 0800         retn 8
+```
+
+OK，现在就可以在 `OllyDbg` 修改版里面正常运行起来了。
+
+## 二、搞定输入表
+
+超级自动注册申请王是 VB 写的程序，许多壳对 VB 保护不佳。Obsidium 也没有对这个程序使用上特色重定位功能，因此我们直接去搞定输入表了。
+
+修改完上面几处去除反跟踪后，`Ctrl+G`：`IsProcessorFeaturePresent`
+
+```
+7C80ACB2    8BFF            mov edi,edi
+
+7C80ACB4    55              push ebp
+
+7C80ACB5    8BEC            mov ebp,esp
+
+7C80ACB7    8B45 08         mov eax,dword ptr ss:[ebp+8]
+
+7C80ACBA    83F8 40         cmp eax,40
+
+7C80ACBD    73 0B           jnb short kernel32.7C80ACCA
+
+7C80ACBF    0FB680 7402FE7F movzx eax,byte ptr ds:[eax+7FFE0274]
+
+7C80ACC6    5D              pop ebp
+
+7C80ACC7    C2 0400         retn 4
+
+//在函数末尾下断，避开壳的检测。Shift+F9 中断后取消断点
+```
+
+在 `PE Header` 下面的第 2 区段设置内存访问断点。`Shift+F9` 中断下来取消断点
+
+```
+00B68155    893E            mov dword ptr ds:[esi],edi
+
+//中断在这里
+```
+
+`Ctrl+F` 在整个段块搜索命令：`test word ptr ds:[esi],20`
+
+找到在 `00B67FCE` 处，下面我们来 Patch，以获得正确输入表函数。
+
+```
+00B67FC8    8B75 10         mov esi,dword ptr ss:[ebp+10]
+
+00B67FCB    8B7D 0C         mov edi,dword ptr ss:[ebp+C]
+
+00B67FCE    66:F706 2000    test word ptr ds:[esi],20
+
+//Patch ①：test word ptr ds:[esi],8  ★
+
+00B67FD3    74 46           je short 00B6801B
+
+//Patch ②：jne 00B6801B  ★
+
+00B67FD5    66:F706 0200    test word ptr ds:[esi],2
+
+00B67FDA    75 1F           jnz short 00B67FFB
+
+00B67FDC    66:C706 0400    mov word ptr ds:[esi],4
+
+00B67FE1    8B45 14         mov eax,dword ptr ss:[ebp+14]
+
+00B67FE4    6A 01           push 1
+
+00B67FE6    6A 00           push 0
+
+00B67FE8    FF76 04         push dword ptr ds:[esi+4]
+
+00B67FEB    6A 00           push 0
+
+00B67FED    FF75 18         push dword ptr ss:[ebp+18]
+
+00B67FF0    FF50 50         call dword ptr ds:[eax+50]
+
+00B67FF3    85C0            test eax,eax
+
+00B67FF5    74 38           je short 00B6802F
+
+//Patch ③：je 00B6801B  ★
+
+00B67FF7    8907            mov dword ptr ds:[edi],eax
+
+//正确函数写入   这里可以看看[edi]地址，以确定 IAT RVA 和 Size
+
+//第一次 EDI=00401000
+
+00B67FF9    EB 20           jmp short 00B6801B
+
+00B67FFB    66:C706 0400    mov word ptr ds:[esi],4
+
+00B68000    8B45 14         mov eax,dword ptr ss:[ebp+14]
+
+00B68003    0FB756 02       movzx edx,word ptr ds:[esi+2]
+
+00B68007    6A 01           push 1
+
+00B68009    52              push edx
+
+00B6800A    6A 00           push 0
+
+00B6800C    FF76 04         push dword ptr ds:[esi+4]
+
+00B6800F    FF75 18         push dword ptr ss:[ebp+18]
+
+00B68012    FF50 50         call dword ptr ds:[eax+50]
+
+00B68015    85C0            test eax,eax
+```
+
+
+
+### 补丁 ④
+
+```
+00B68017    74 16           je short 00B6802F  
+
+//Patch ④：je 00B6801B  ★  
+
+00B68019    8907            mov dword ptr ds:[edi],eax  
+
+00B6801B    83C6 08         add esi,8  
+
+00B6801E    83C7 04         add edi,4  
+
+00B68021    FF4D 08         dec dword ptr ss:[ebp+8]  
+
+00B68024    75 A8           jnz short 00B67FCE  
+
+00B68026    33C0            xor eax,eax  
+
+00B68028    40              inc eax  
+
+00B68029    5F              pop edi  
+
+00B6802A    5E              pop esi  
+
+00B6802B    5D              pop ebp  
+
+00B6802C    C2 1400         ret 14  
+```
+
+在 `00B6802C` 处下断，`Shift+F9` 后输入表处理完毕。
+
+在 `00401000` 处向下查看，可以发现结束地址是 `004012C4`。
+
+运行 `ImportREC`，选择这个进程，填入 `RVA=00001000`、`Size=000002C4`，获取输入表后发现有一个无效指针：
+
+```
+00404D10    FF25 44114000   jmp dword ptr ds:[401144]  
+```
+
+VB 的东东一般加密的特殊函数是 `DllFunctionCall`。
+
+当然，也可以跟踪得出。跟踪原版这里会来到如下地方：
+
+```
+006767F7    55              push ebp  
+
+//这几条指令其实是把 DllFunctionCall 函数的挪移到壳里执行  
+
+006767F8    8BEC            mov ebp,esp  
+
+006767FA    83EC 0C         sub esp,0C  
+
+006767FD    56              push esi  
+
+006767FE    9C              pushfd  
+
+006767FF    F0:FF0D D266670>lock dec dword ptr ds:[6766D2]  
+
+00676806    9D              popfd  
+
+00676807    E9 14389965     jmp 6600A020; MSVBVM60.6600A020  
+
+6600A019    55              push ebp  
+
+//DllFunctionCall  
+
+6600A01A    8BEC            mov ebp,esp  
+
+6600A01C    83EC 0C         sub esp,0C  
+
+6600A01F    56              push esi  
+
+6600A020    8D45 F4         lea eax,dword ptr ss:[ebp-C]  
+
+//从壳里直接跳到这里  
+
+6600A023    57              push edi  
+
+6600A024    50              push eax  
+
+6600A025    8D45 FC         lea eax,dword ptr ss:[ebp-4]  
+
+6600A028    8365 FC 00      and dword ptr ss:[ebp-4],0  
+
+6600A02C    50              push eax  
+
+6600A02D    8D45 F8         lea eax,dword ptr ss:[ebp-8]  
+
+6600A030    50              push eax  
+
+6600A031    6A 00           push 0  
+
+6600A033    FF75 08         push dword ptr ss:[ebp+8]  
+
+6600A036    E8 42000000     call 6600A07D  
+```
+
+### 三、OEP
+
+`Obsidium` 没有对这个东东重定位，所以直接 `Alt+M` 打开内存查看窗口。
+
+在 `PE Header` 下面的第 2 区段设置内存访问断点。`Shift+F9` 中断下来：
+
+```
+004050AD    E8 EEFFFFFF     call SuperAut.004050A0 ; jmp to MSVBVM60.ThunRTMain  
+```
+
+//直接中断在这里。这是 `OEP` 处的第 2 条指令
+
+看看堆栈：
+
+```
+0013FFC0   004054C4  ASCII "VB5!6&vb6chs.dll"  
+```
+
+`Obsidium` 的 `Stolen OEP Code` 一直不算强。很容易就得到 `OEP` 处第一条指令：
+
+```
+004050A8    68 C4544000     push SuperAut.004054C4 ; ASCII "VB5!6&vb6chs.dll"  
+004050AD    E8 EEFFFFFF     call SuperAut.004050A0 ; jmp to MSVBVM60.ThunRTMain  
+```
+
+运行 `LordPE`，完全 `Dump` 这个进程。
+
+修正 `ImportREC` 里面的 `OEP RVA=000050A8`，`FixDump`，脱壳完成了。
+
+### 四、关于破解
+
+这个东东的注册信息保存在注册表中，重启验证。
+
+去掉时间限制很简单，`BP rtcMsgBox`，改几个跳转就行了。
+
+---
+
+```
+          ,     \_/  
+
+        /| \_.-~/            \\_     ,        青春都一晌  
+
+       ( /~   /              \\~-.\_ |\\  
+
+       \`\\   \_/                \\   ~\\ )          忍把浮名  
+
+  _-~~~-. )  )\_\_/;;,.          \\_  //'  
+
+ /'\,\\    --~   \\ ~~~-  ,;;\\\_(  (.-~~~-.        换了破解轻狂  
+
+ \`~ _ ( ,\_..--\\ (     ,;'' /    ~--   /.\\  
+  /~~//'   / \`~\\          ) /--..\_, )_   \`~  
+  "   \`~"  "      \`"       /~'\`\\    \`\\~~\\  
+
+            "     "   "~'  ""  
+
+             UnPacKed By :  fly  
+
+              2005-04-29 23:00 
  4dd466d0e1e0cc123afbe504da2462ca
+```

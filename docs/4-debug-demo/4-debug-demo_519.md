@@ -1,152 +1,158 @@
 
-
 # 棣南文电通（简体中文 4.80）
 
 > 原文：[`www.pediy.com/kssd/pediy04/kanxue375.htm`](https://www.pediy.com/kssd/pediy04/kanxue375.htm)
 
-软件名称：棣南文电通（简体中文 4.80）   
-下载：www.zeon.com.tw   
-工具：Dasm, softice, regmon, filemon   
-  
-几个月没破解了，此次放假，看到这个软件不错，就试着破了一下。不过刚开始解的是 5.0 英文版，回来再看 4.80 的中文版就不太认真了，可能会有错误之处。   
-  
-不知道诸位有没有想过自己做 pdf 文档。当然，使用 adobe 的 pdf driver 非常正宗，不过，不容易找到它。还有很多其他的用来做 pdf 的驱动，比如 easy pdf 之类的，说是苗条，可也在 3 兆左右。还有一点就是这些驱动很少支持中文。其实只有这个台湾人开发的 pdf 驱动最最苗条，不到 2 兆，自然也能支持我们的简体汉字。只要在 word 中写好东东，不管是不是带表格或者图片，或者文字颜色，转换一下，就成了 pdf 文件了，非常不错，至少我如此认为。   
-  
-闲言少叙，进入正题。   
-  
-下载软件的时候可以看到它说的注册方法。大意是说注册后有个启动全部功能的程序会发给你，给人的感觉好像是个打开交验的补丁。观察一下，每次打印的时候，会跳出一个对话框，告诉你现在你用的是 trial 版本，来买正式版吧，不然给你颜色看。果然，每个打印出来的文件都有水印，不忘提醒你现在是 trial version 和网站地址。好了，来试着去掉水印吧。   
-  
-经过 filemon 查找，发现程序需要 pdfdrv95.drv, zn32.dll, znsl.dll 等文件，这是三个破解时较重要的文件。全部反汇编。pdfdrv95.drv 是个 NE 的文件，我这等菜鸟脑袋开始有些大了。看看 znsl.dll 文件里面，有个注册表的东东很有意思，local\\software\\zeon\\znsl，管他呢，先写到注册表里面再说。   
-  
-<== 第一部分：去掉水印 ==>   
-\--------------------------   
-  
-然后经过多次试验，发现 zn32.dll 中个输出函数 MyGetSecurity 可以在提醒窗体前被拦住:   
-(拦不住可能和没有在注册表中写入 local\\software\\zeon\\znsl 有关?)   
-\======================================================   
-Exported fn(): MyGetSecurity - Ord:0027h  <-----  (zn32.dll)   
-:1000AB90 55                      push ebp   
-:1000AB91 8BEC                    mov ebp, esp   
-...   
-...   
-...   
-\* Reference To: KERNEL32.GetProcAddress, Ord:0153h   
-                                  |   
-:1000ABE3 FF1550D30510            Call dword ptr \[1005D350\]   
-:1000ABE9 8985F8FEFFFF            mov dword ptr \[ebp+FFFFFEF8\], eax   
-:1000ABEF 6820700710              push 10077020   
-:1000ABF4 E827030000              call 1000AF20   
-:1000ABF9 83C404                  add esp, 00000004   
-:1000ABFC 85C0                    test eax, eax   
-:1000ABFE 7417                    je 1000AC17   
-:1000AC00 8D8510FEFFFF            lea eax, dword ptr \[ebp+FFFFFE10\]   
-:1000AC06 50                      push eax   
-:1000AC07 6820700710              push 10077020   
-:1000AC0C FF95F8FEFFFF            call dword ptr \[ebp+FFFFFEF8\]  <--- 调用 znsl.dll 中的 CheckBuy 函数。   
-:1000AC12 83C408                  add esp, 00000008   
-:1000AC15 EB1B                    jmp 1000AC32   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:1000ABFE(C)   
-|   
-:1000AC17 8B8DFCFEFFFF            mov ecx, dword ptr \[ebp+FFFFFEFC\]   
-:1000AC1D 51                      push ecx   
-  
-\* Reference To: KERNEL32.FreeLibrary, Ord:00C3h   
-                                  |   
-:1000AC1E FF15D8D10510            Call dword ptr \[1005D1D8\]   
-:1000AC24 8B5514                  mov edx, dword ptr \[ebp+14\]   
-:1000AC27 C70201000000            mov dword ptr \[edx\], 00000001  <--- 确定 dx 的值，想没有水印必须为 0，edx+2 的地方必须为 1。   
-:1000AC2D E9AC000000              jmp 1000ACDE   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:1000AC15(U)   
-|   
-:1000AC32 8B85FCFEFFFF            mov eax, dword ptr \[ebp+FFFFFEFC\]   
-:1000AC38 50                      push eax   
-  
-\* Reference To: KERNEL32.FreeLibrary, Ord:00C3h   
-                                  |   
-:1000AC39 FF15D8D10510            Call dword ptr \[1005D1D8\]   
-...   
-...   
-...   
-:1000ACD6 6A00                    push 00000000   
-  
-\* Reference To: USER32.MessageBoxA, Ord:01C3h   
-                                  |   
-:1000ACD8 FF15E4D40510            Call dword ptr \[1005D4E4\]   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:1000AC2D(U), :1000AC79(U), :1000AC84(U), :1000AC8F(U), :1000AC9A(U)   
-|:1000ACA5(U), :1000ACB0(U), :1000ACBB(U), :1000ACC6(U), :1000ACC8(U)   
-|   
-:1000ACDE 5F                      pop edi   
-:1000ACDF 5E                      pop esi   
-:1000ACE0 5B                      pop ebx   
-:1000ACE1 8BE5                    mov esp, ebp   
-:1000ACE3 5D                      pop ebp   
-:1000ACE4 C21000                  ret 0010   
-\=============================================================   
-这是上面函数返回后的代码：(pdfdrv95.drv)   
-\============================================================   
-:0004.615F EB13                  jmp 6174    <---  返回这里   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:0004.6136(C)   
-|   
-:0004.6161 6A00                  push 0000   
-:0004.6163 1E                    push ds   
-:0004.6164 FF36AC17              push word ptr \[17AC\]   
-:0004.6168 1E                    push ds   
-:0004.6169 FF36B417              push word ptr \[17B4\]   
-:0004.616D 6A00                  push 0000   
-:0004.616F 9A48620000            call USER.MESSAGEBOX   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:0004.615F(U)   
-|   
-:0004.6174 8B46F6                mov ax, \[bp\-0A\]    <---- 确定 ax 的值，必须为 0.   
-:0004.6177 A38E17                mov word ptr \[178E\], ax                  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:0004.610A(U), :0004.6116(U)   
-|   
-:0004.617A 8D66FE                lea sp, \[bp\-02\]   
-:0004.617D 1F                    pop ds   
-:0004.617E 5D                    pop bp   
-:0004.617F 4D                    dec bp   
-:0004.6180 CB                    retf   
-\====================================================================   
-这是是上述函数返回的地方。(pdfdrv95.drv)   
-\===================================================================   
-:0006.0468 9AAA618E04            call 0004.61AA   
-:0006.046D 8946FA                mov \[bp\-06\], ax  <------ 返回这里。ax 必需为 0，和前面 dll 中的值相对应。   
-:0006.0470 8956FC                mov \[bp\-04\], dx  <---------------  dx 必需为 1，   
-:0006.0473 68B704                push SEG ADDR of Segment 0041   
-:0006.0476 685E05                push 055E   
-:0006.0479 1E                    push ds   
-\======================================================================   
-这样的话程序认为已经注册，trial 水印便没有了。但这仅限于编辑软件启动后没有更换壁纸的打印，如果临时更换的话，可能会有些问题，所以，需要注意的是找到合适的相对位置，写入自己的代码。   
-  
-改法就不多写了，我是在 zn32.dll 文件 1000AC27 处写入自己的代码，使得 edx 和 edx+2 处设置正确值。   
-  
-现在还有过期问题：   
-\===================================================================   
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:0004.61EB(U)   
-|   
-:0004.61DD 99                    cwd   
-:0004.61DE E9D000                jmp 62B1   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:0004.61C1(C), :0004.61CC(C), :0004.61D8(C)   
-|   
-:0004.61E1 833E8E177F            cmp word ptr \[178E\], 007F   
-:0004.61E6 7405                  je 61ED      <-----  这里必须跳，才能不过期。   
-:0004.61E8 A18E17                mov ax, word ptr \[178E\]   
-:0004.61EB EBF0                  jmp 61DD   
-  
-对于那个 checkbuy 的东东，好像注册的内容是以 blowfish 加密的，俺知难而退，哪位大侠有兴趣帮着看看。   
-  
-不管是 5.0 英文版还是 4.80 中文版，\[bp\-0A\]和\[bp\-08\]处的值和 zn32.dll 的 GetMySecurity 函数需要注意，就不难破解了。看到国外有 4.80 的破解 patch，不过是给英文版的，所以不知道它补丁的是哪些文件，或许只有 pdfdrv95.drv 一个，不过由于我对 ne 的东东实在不了解，不敢在里面妄动，还是改改 32 位的 dll 比较容易。  4dd466d0e1e0cc123afbe504da2462ca
+**软件名称：** 棣南文电通（简体中文 4.80）
+
+**下载：** `www.zeon.com.tw`
+
+**工具：** `Dasm`, `softice`, `regmon`, `filemon`
+
+几个月没破解了，此次放假，看到这个软件不错，就试着破了一下。不过刚开始解的是 5.0 英文版，回来再看 4.80 的中文版就不太认真了，可能会有错误之处。
+
+不知道诸位有没有想过自己做 `pdf` 文档。当然，使用 `adobe` 的 `pdf driver` 非常正宗，不过，不容易找到它。还有很多其他的用来做 `pdf` 的驱动，比如 `easy pdf` 之类的，说是苗条，可也在 3 兆左右。还有一点就是这些驱动很少支持中文。其实只有这个台湾人开发的 `pdf` 驱动最最苗条，不到 2 兆，自然也能支持我们的简体汉字。只要在 `word` 中写好东东，不管是不是带表格或者图片，或者文字颜色，转换一下，就成了 `pdf` 文件了，非常不错，至少我如此认为。
+
+闲言少叙，进入正题。
+
+下载软件的时候可以看到它说的注册方法。大意是说注册后有个启动全部功能的程序会发给你，给人的感觉好像是个打开交验的补丁。观察一下，每次打印的时候，会跳出一个对话框，告诉你现在你用的是 `trial` 版本，来买正式版吧，不然给你颜色看。果然，每个打印出来的文件都有水印，不忘提醒你现在是 `trial version` 和网站地址。好了，来试着去掉水印吧。
+
+经过 `filemon` 查找，发现程序需要 `pdfdrv95.drv`, `zn32.dll`, `znsl.dll` 等文件，这是三个破解时较重要的文件。全部反汇编。`pdfdrv95.drv` 是个 `NE` 的文件，我这等菜鸟脑袋开始有些大了。看看 `znsl.dll` 文件里面，有个注册表的东东很有意思，`local\software\zeon\znsl`，管他呢，先写到注册表里面再说。
+
+## 第一部分：去掉水印
+
+```
+--------------------------
+然后经过多次试验，发现 zn32.dll 中个输出函数 MyGetSecurity 可以在提醒窗体前被拦住:
+
+(拦不住可能和没有在注册表中写入 local\software\zeon\znsl 有关?)
+
+======================================================
+Exported fn(): MyGetSecurity - Ord:0027h  <-----  (zn32.dll)
+
+:1000AB90 55                       push ebp
+:1000AB91 8BEC                     mov ebp, esp
+...
+...
+...
+* Reference To: KERNEL32.GetProcAddress, Ord:0153h
+                                |
+:1000ABE3 FF1550D30510             Call dword ptr [1005D350]
+:1000ABE9 8985F8FEFFFF             mov dword ptr [ebp+FFFFFEF8], eax
+:1000ABEF 6820700710               push 10077020
+:1000ABF4 E827030000               call 1000AF20
+:1000ABF9 83C404                   add esp, 00000004
+:1000ABFC 85C0                     test eax, eax
+:1000ABFE 7417                     je 1000AC17
+:1000AC00 8D8510FEFFFF             lea eax, dword ptr [ebp+FFFFFE10]
+:1000AC06 50                       push eax
+:1000AC07 6820700710               push 10077020
+:1000AC0C FF95F8FEFFFF             call dword ptr [ebp+FFFFFEF8]  <--- 调用 znsl.dll 中的 CheckBuy 函数。
+:1000AC12 83C408                   add esp, 00000008
+:1000AC15 EB1B                     jmp 1000AC32
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:1000ABFE(C)
+|
+:1000AC17 8B8DFCFEFFFF             mov ecx, dword ptr [ebp+FFFFFEFC]
+:1000AC1D 51                       push ecx
+* Reference To: KERNEL32.FreeLibrary, Ord:00C3h
+                                |
+:1000AC1E FF15D8D10510             Call dword ptr [1005D1D8]
+:1000AC24 8B5514                   mov edx, dword ptr [ebp+14]
+:1000AC27 C70201000000             mov dword ptr [edx], 00000001  <--- 确定 dx 的值，想没有水印必须为 0，edx+2 的地方必须为 1。
+:1000AC2D E9AC000000               jmp 1000ACDE
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:1000AC15(U)
+|
+:1000AC32 8B85FCFEFFFF             mov eax, dword ptr [ebp+FFFFFEFC]
+:1000AC38 50                       push eax
+* Reference To: KERNEL32.FreeLibrary, Ord:00C3h
+                                |
+:1000AC39 FF15D8D10510             Call dword ptr [1005D1D8]
+...
+...
+...
+:1000ACD6 6A00                     push 00000000
+* Reference To: USER32.MessageBoxA, Ord:01C3h
+                                |
+:1000ACD8 FF15E4D40510             Call dword ptr [1005D4E4]
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:1000AC2D(U), :1000AC79(U), :1000AC84(U), :1000AC8F(U), :1000AC9A(U)
+|:1000ACA5(U), :1000ACB0(U), :1000ACBB(U), :1000ACC6(U), :1000ACC8(U)
+|
+:1000ACDE 5F                       pop edi
+:1000ACDF 5E                       pop esi
+:1000ACE0 5B                       pop ebx
+:1000ACE1 8BE5                     mov esp, ebp
+:1000ACE3 5D                       pop ebp
+:1000ACE4 C21000                   ret 0010
+=============================================================
+这是上面函数返回后的代码：(pdfdrv95.drv)
+
+============================================================
+:0004.615F EB13                   jmp 6174    <---  返回这里
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0004.6136(C)
+|
+:0004.6161 6A00                   push 0000
+:0004.6163 1E                     push ds
+:0004.6164 FF36AC17               push word ptr [17AC]
+:0004.6168 1E                     push ds
+:0004.6169 FF36B417               push word ptr [17B4]
+:0004.616D 6A00                   push 0000
+:0004.616F 9A48620000             call USER.MESSAGEBOX
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0004.615F(U)
+|
+:0004.6174 8B46F6                 mov ax, [bp-0A]    <---- 确定 ax 的值，必须为 0.
+:0004.6177 A38E17                 mov word ptr [178E], ax
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0004.610A(U), :0004.6116(U)
+|
+:0004.617A 8D66FE                 lea sp, [bp-02]
+:0004.617D 1F                     pop ds
+:0004.617E 5D                     pop bp
+:0004.617F 4D                     dec bp
+:0004.6180 CB                     retf
+====================================================================
+这是是上述函数返回的地方。(pdfdrv95.drv)
+
+===================================================================
+:0006.0468 9AAA618E04             call 0004.61AA
+:0006.046D 8946FA                 mov [bp-06], ax  <------ 返回这里。ax 必需为 0，和前面 dll 中的值相对应。
+:0006.0470 8956FC                 mov [bp-04], dx  <---------------  dx 必需为 1，
+:0006.0473 68B704                 push SEG ADDR of Segment 0041
+:0006.0476 685E05                 push 055E
+:0006.0479 1E                     push ds
+======================================================================
+```
+
+这样的话程序认为已经注册，`trial` 水印便没有了。但这仅限于编辑软件启动后没有更换壁纸的打印，如果临时更换的话，可能会有些问题，所以，需要注意的是找到合适的相对位置，写入自己的代码。
+
+改法就不多写了，我是在 `zn32.dll` 文件 `1000AC27` 处写入自己的代码，使得 `edx` 和 `edx+2` 处设置正确值。
+
+### 处理过期问题
+
+```
+===================================================================
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0004.61EB(U)
+|
+:0004.61DD 99                     cwd
+:0004.61DE E9D000                 jmp 62B1
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0004.61C1(C), :0004.61CC(C), :0004.61D8(C)
+|
+:0004.61E1 833E8E177F             cmp word ptr [178E], 007F
+:0004.61E6 7405                   je 61ED      <-----  这里必须跳，才能不过期。
+:0004.61E8 A18E17                 mov ax, word ptr [178E]
+:0004.61EB EBF0                   jmp 61DD
+```
+
+对于那个 `checkbuy` 的东东，好像注册的内容是以 `blowfish` 加密的，俺知难而退，哪位大侠有兴趣帮着看看。
+
+不管是 5.0 英文版还是 4.80 中文版，`[bp-0A]` 和 `[bp-08]` 处的值和 `zn32.dll` 的 `GetMySecurity` 函数需要注意，就不难破解了。看到国外有 4.80 的破解 `patch`，不过是给英文版的，所以不知道它补丁的是哪些文件，或许只有 `pdfdrv95.drv` 一个，不过由于我对 `ne` 的东东实在不了解，不敢在里面妄动，还是改改 32 位的 `dll` 比较容易。 `4dd466d0e1e0cc123afbe504da2462ca`

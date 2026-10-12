@@ -1,283 +1,197 @@
 
-
 # C 程序使用不同函数调用约定调用汇编子过程
 
 > 原文：[`www.pediy.com/kssd/pediy11/112177.html`](https://www.pediy.com/kssd/pediy11/112177.html)
 
-弄了几天的 C 调用汇编子过程，现总结一下。  
-  
-开发工具：VC ++ 6.0  MASM32  
-  
-**一、\_\_cdecl 调用方式**  
-  
-   
-  
-1．  在 VC 中新建 Win32 Console Application, TestASM  
-  
-   
-  
-2．  新建 test.c  
-  
-#include<stdio.h>  
-  
-extern void swap(int \*px, int \*py);  
-  
-int main(void)  
-  
-{  
-  
-       int a=1, b=2;  
-  
-       printf("before swaping, a=%d, b=%d\\n", a, b);  
-  
-       swap(&a, &b);  
-  
-       printf("after  swaping, a=%d, b=%d\\n", a, b);  
-  
-    return 0;  
-  
-}  
-  
-   
-  
-3．  使用 UltraEdit 编辑汇编程序 swap.asm  
-  
-.386  
-  
-.MODEL FLAT, C  
-  
-OPTION CASEMAP:NONE  
-  
-.CODE  
-  
-  swap PROC a:DWORD, b:DWORD  
-  
-    PUSH ESI  
-  
-    PUSH EDI  
-  
-      MOV ESI, \[EBP+8\]  
-  
-     MOV EAX, \[ESI\]    ;参数 1 的值->EAX  
-  
-      MOV EDI, \[EBP+12\]  
-  
-      XCHG EAX, \[EDI\]  
-  
-      MOV \[ESI\], EAX  
-  
-      POP EDI  
-  
-      POP ESI  
-  
-      RET  
-  
-  swap ENDP  
-  
-END  
-  
-   
-  
-4．  将 swap.asm 添加到 TestASM 工程中  
-  
-VC->Project->Add to project->Files, 文件类型选择“所有文件”，选中汇编源文件 swap.asm 并添加到工程  
-或直接编译 swap.asm，将生成的 swap.obj 拷贝到工程目录下  
-  
-5．  在 VC 中设置汇编程序编译选项  
-  
-在 VC 的 FileView 中，右击 swap.asm->Settings, 切换到“Custom Build”选项卡，  
-  
-在“Command”中输入：ml /c /coff  $(InputName).asm，   
-  
-“Output”中输入 ：$(InputName).obj  
-  
-   
-  
-6．  编译链接执行  
-  
-双击 test.c->Compile， 生成 test.obj  
-  
-双击 swap.asm->Compile， 生成 swap.obj  
-  
-然后 Build， 生成 TestASM.exe  
-  
-最后执行  
-  
-结果如下:  
-  
-before swaping, a=1, b=2  
-  
-after  swaping, a=2, b=1  
-  
-Press any key to continue  
-  
-   
-  
-**二、\_\_stdcall 调用方式**  
-  
-1.C 源程序  
-  
-#include<stdio.h>  
-  
-extern void \_\_stdcall swap(int \*px, int \*py);  
-  
-int main(void)  
-  
-{  
-  
-       int a=1, b=2;  
-  
-       printf("before swaping, a=%d, b=%d\\n", a, b);  
-  
-       swap(&a, &b);  
-  
-       printf("after  swaping, a=%d, b=%d\\n", a, b);  
-  
-    return 0;  
-  
-}  
-  
-   
-  
-2. 汇编源程序  
-  
-.386  
-  
-.MODEL FLAT, STDCALL  
-  
-OPTION CASEMAP:NONE  
-  
-.CODE  
-  
-  swap PROC a:DWORD, b:DWORD  
-  
-    PUSH ESI  
-  
-    PUSH EDI  
-  
-      MOV ESI, \[EBP+8\]  
-  
-     MOV EAX, \[ESI\]    ;参数 1 的值->EAX  
-  
-      MOV EDI, \[EBP+12\]  
-  
-      XCHG EAX, \[EDI\]  
-  
-      MOV \[ESI\], EAX  
-  
-      POP EDI  
-  
-      POP ESI  
-  
-      RET  
-  
-  swap ENDP  
-  
-END  
-  
-   
-  
-**三、总结**  
-  
-   
-  
-函数调用约定             \_\_cdecl                   \_\_stdcall  
-   
-相同点               自右向左反序入栈  
-   
-不同点  
- 函数名修饰符           \_FunctionName        \_FunctionName@参数字节数  
-   
- 谁清理堆栈参数         调用者               被调用者  
-   
-  
-  
-   
-  
-1.       自右向左反序入栈  
-  
-0040105B   lea         edx,\[ebp-8\]  
-  
-0040105E   push        edx  
-  
-0040105F   lea         eax,\[ebp-4\]  
-  
-00401062   push        eax  
-  
-2.       函数名修饰符  
-  
-使用 dumpbin 工具查看 swap.obj  
-  
-\_\_cdecl 调用约定： \_\_swap  
-  
-\_\_stdcall 调用约定：\_\_swap@8  
-  
-   
-  
-3.       谁清理堆栈参数  
-  
-(1)\_\_cdecl 调用约定  
-  
-调用者来清理，如下面的 add esp, 8  
-  
-8:        swap(&a, &b);  
-  
-0040105B   lea         edx,\[ebp-8\]  
-  
-0040105E   push        edx  
-  
-0040105F   lea         eax,\[ebp-4\]  
-  
-00401062   push        eax  
-  
-00401063   call        @ILT+5(\_swap) (0040100a)  
-  
-00401068   add         esp,8  
-  
-   
-  
-(2)\_\_stdcall 调用约定  
-  
-被调用者负责清理，如下面的 ret 8  
-  
-7:        swap(&a, &b);  
-  
-0040105B   lea         edx,\[ebp-8\]  
-  
-0040105E   push        edx  
-  
-0040105F   lea         eax,\[ebp-4\]  
-  
-00401062   push        eax  
-  
-00401063   call        @ILT+0(\_swap@8) (00401005)  
-  
-…  
-  
-\_swap@8:  
-  
-004010AC   push        ebp  
-  
-004010AD   mov         ebp,esp  
-  
-004010AF   push        esi  
-  
-004010B0   push        edi  
-  
-004010B1   mov         esi,dword ptr \[ebp+8\]  
-  
-004010B4   mov         eax,dword ptr \[esi\]  
-  
-004010B6   mov         edi,dword ptr \[ebp+0Ch\]  
-  
-004010B9   xchg        eax,dword ptr \[edi\]  
-  
-004010BB   mov         dword ptr \[esi\],eax  
-  
-004010BD   pop         edi  
-  
-004010BE   pop         esi  
-  
-004010BF   leave  
-  
-004010C0   ret         8
+弄了几天的 C 调用汇编子过程，现总结一下。
+
+开发工具：`VC ++ 6.0` `MASM32`
+
+## 一、`__cdecl` 调用方式
+
+1. 在 `VC` 中新建 `Win32 Console Application`, `TestASM`
+2. 新建 `test.c`
+
+```
+#include<stdio.h>
+
+extern void swap(int *px, int *py);
+
+int main(void)
+{
+    int a=1, b=2;
+    printf("before swaping, a=%d, b=%d\n", a, b);
+    swap(&a, &b);
+    printf("after  swaping, a=%d, b=%d\n", a, b);
+    return 0;
+}
+```
+
+3. 使用 `UltraEdit` 编辑汇编程序 `swap.asm`
+
+```
+.386
+.MODEL FLAT, C
+OPTION CASEMAP:NONE
+.CODE
+  swap PROC a:DWORD, b:DWORD
+    PUSH ESI
+    PUSH EDI
+    MOV ESI, [EBP+8]
+    MOV EAX, [ESI]    ;参数 1 的值->EAX
+    MOV EDI, [EBP+12]
+    XCHG EAX, [EDI]
+    MOV [ESI], EAX
+    POP EDI
+    POP ESI
+    RET
+  swap ENDP
+END
+```
+
+4. 将 `swap.asm` 添加到 `TestASM` 工程中
+
+`VC->Project->Add to project->Files`, 文件类型选择“所有文件”，选中汇编源文件 `swap.asm` 并添加到工程
+
+或直接编译 `swap.asm`，将生成的 `swap.obj` 拷贝到工程目录下
+
+5. 在 `VC` 中设置汇编程序编译选项
+
+在 `VC` 的 `FileView` 中，右击 `swap.asm->Settings`, 切换到“`Custom Build`”选项卡，
+
+在“`Command`”中输入：`ml /c /coff $(InputName).asm`，
+
+“`Output`”中输入 ：`$(InputName).obj`
+
+6. 编译链接执行
+
+双击 `test.c->Compile`， 生成 `test.obj`
+
+双击 `swap.asm->Compile`， 生成 `swap.obj`
+
+然后 `Build`， 生成 `TestASM.exe`
+
+最后执行
+
+结果如下:
+
+```
+before swaping, a=1, b=2
+
+after  swaping, a=2, b=1
+
+Press any key to continue
+```
+
+## 二、`__stdcall` 调用方式
+
+1. C 源程序
+
+```
+#include<stdio.h>
+
+extern void __stdcall swap(int *px, int *py);
+
+int main(void)
+{
+    int a=1, b=2;
+    printf("before swaping, a=%d, b=%d\n", a, b);
+    swap(&a, &b);
+    printf("after  swaping, a=%d, b=%d\n", a, b);
+    return 0;
+}
+```
+
+2. 汇编源程序
+
+```
+.386
+.MODEL FLAT, STDCALL
+OPTION CASEMAP:NONE
+.CODE
+  swap PROC a:DWORD, b:DWORD
+    PUSH ESI
+    PUSH EDI
+    MOV ESI, [EBP+8]
+    MOV EAX, [ESI]    ;参数 1 的值->EAX
+    MOV EDI, [EBP+12]
+    XCHG EAX, [EDI]
+    MOV [ESI], EAX
+    POP EDI
+    POP ESI
+    RET
+  swap ENDP
+END
+```
+
+## 三、总结
+
+| 函数调用约定 | `__cdecl` | `__stdcall` |
+| :--- | :--- | :--- |
+| 相同点 | 自右向左反序入栈 | |
+| 不同点 | | |
+| 函数名修饰符 | `_FunctionName` | `_FunctionName@参数字节数` |
+| 谁清理堆栈参数 | 调用者 | 被调用者 |
+
+1. 自右向左反序入栈
+
+```
+0040105B   lea         edx,[ebp-8]
+0040105E   push        edx
+0040105F   lea         eax,[ebp-4]
+00401062   push        eax
+```
+
+2. 函数名修饰符
+
+使用 `dumpbin` 工具查看 `swap.obj`
+
+`__cdecl` 调用约定： `__swap`
+
+`__stdcall` 调用约定：`__swap@8`
+
+3. 谁清理堆栈参数
+
+(1) `__cdecl` 调用约定
+
+调用者来清理，如下面的 `add esp, 8`
+
+```
+8:        swap(&a, &b);
+0040105B   lea         edx,[ebp-8]
+0040105E   push        edx
+0040105F   lea         eax,[ebp-4]
+00401062   push        eax
+00401063   call        @ILT+5(_swap) (0040100a)
+00401068   add         esp,8
+```
+
+(2) `__stdcall` 调用约定
+
+被调用者负责清理，如下面的 `ret 8`
+
+```
+7:        swap(&a, &b);
+0040105B   lea         edx,[ebp-8]
+0040105E   push        edx
+0040105F   lea         eax,[ebp-4]
+00401062   push        eax
+00401063   call        @ILT+0(_swap@8) (00401005)
+
+…
+
+_swap@8:
+004010AC   push        ebp
+004010AD   mov         ebp,esp
+004010AF   push        esi
+004010B0   push        edi
+004010B1   mov         esi,dword ptr [ebp+8]
+004010B4   mov         eax,dword ptr [esi]
+004010B6   mov         edi,dword ptr [ebp+0Ch]
+004010B9   xchg        eax,dword ptr [edi]
+004010BB   mov         dword ptr [esi],eax
+004010BD   pop         edi
+004010BE   pop         esi
+004010BF   leave
+004010C0   ret         8
+```

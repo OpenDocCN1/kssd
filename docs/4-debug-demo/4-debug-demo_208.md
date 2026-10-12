@@ -1,537 +1,633 @@
 
-
 # 完美爆破《驾照模拟考试系统 2005》+去 NAG 手记
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-208.htm`](https://www.pediy.com/kssd/pediy07/pediy7-208.htm)
 
-【破文标题】：完美爆破《驾照模拟考试系统 2005》+去 NAG 手记  
-【破文作者】：KuNgBiM\[DFCG\]  
-【作者邮箱】：gb\_1227@163.com  
-【软件名称】：驾照模拟考试系统 2005 1.0 版  
-【整理日期】：2005-03-28  
-【软件大小】：17.04 MB  
-【软件授权】：国产软件 / 共享版 / 教育考试  
-【使用平台】：Win9x/Me/NT/2000/XP  
-【发布公司】：http://www.btjs.com.cn/download.asp?fid=93  
-【下载地址】：http://www.shareware.cn/pub/2833.html  
-【加密方式】：功能限制+NAG  
-【编译语言】：Microsoft Visual Basic 5.0 / 6.0  
-【调试环境】：WinXP 、W32Dasm、PEiD、Ollydbg、GetVBRes  
-【破解日期】：2005-05-03  
-【破解目的】：解除所有的功能限制 及 NAG  
-【作者声明】：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！  
-  
-—————————————————————————————————  
-【破解过程】：   
-  
-1.查壳：用 PEiD0.92 查壳，无壳，程序由 Microsoft Visual Basic 5.0 / 6.0 编译。  
-2.初试：运行主程序注册，输入注册码，确认！程序无提示，回到主界面。（郁闷 ing...）  
-3.断点：用 OD 载入主程序，下断程序可能用到的几个基本 API 函数断点（VB 程序特有的），我用到了以下几个：  
-  
-消息框函数：rtcMsgBox  
-字符串比对函数：\_\_vbaStrCmp  
-窗口启动函数：rtcVarStrFromVar  
-  
-断点下完后，F9 运行程序！  
-（因为 VB 程序里窗体调用 rtcVarStrFromVar 这个 API 函数有很多，所以我 F9 运行，F2 取消断点，都不知道用了多少回，呵呵，总算是看到了程序主界面）  
-  
-\*\*\*\*\*\*\*\*\*\*  用敏锐的眼光看程序，做到“知己知彼，百战不殆”  \*\*\*\*\*\*\*\*\*\*  
-  
-这里有一点可以证实，程序是读取程序目录下“sysdata”文件夹内的“regcode.dat”进行启动验证：  
-  
-第一次验证：  
-  
-008B0DCF    6A 50           push 50  
-008B0DD1    68 40694000     push 驾照考试.00406940  
-008B0DD6    57              push edi  
-008B0DD7    50              push eax  
-008B0DD8    FF15 58104000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaHresultC>; MSVBVM60.\_\_vbaHresultCheckObj  
-008B0DDE    8B55 C4         mov edx,dword ptr ss:\[ebp\-3C\]  
-008B0DE1    52              push edx  
-008B0DE2    68 107C4000     push 驾照考试.00407C10                          ; UNICODE "\\sysdata\\regcode.dat"   //看这里！  
-008B0DE7    FF15 4C104000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaStrCat>\] ; MSVBVM60.\_\_vbaStrCat  
-008B0DED    8BD0            mov edx,eax  
-008B0DEF    8D4D D0         lea ecx,dword ptr ss:\[ebp\-30\]  
-008B0DF2    8B3D A4114000   mov edi,dword ptr ds:\[<&MSVBVM60.\_\_vbaStrMo>; MSVBVM60.\_\_vbaStrMove  
-008B0DF8    FFD7            call edi  
-008B0DFA    8D4D C4         lea ecx,dword ptr ss:\[ebp\-3C\]  
-008B0DFD    8B1D C4114000   mov ebx,dword ptr ds:\[<&MSVBVM60.\_\_vbaFreeS>; MSVBVM60.\_\_vbaFreeStr  
-008B0E03    FFD3            call ebx  
-008B0E05    8D4D BC         lea ecx,dword ptr ss:\[ebp\-44\]  
-008B0E08    FF15 C0114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaFreeObj>>; MSVBVM60.\_\_vbaFreeObj  
-008B0E0E    8D45 D0         lea eax,dword ptr ss:\[ebp\-30\]  
-008B0E11    8945 94         mov dword ptr ss:\[ebp\-6C\],eax  
-008B0E14    C745 8C 0840000>mov dword ptr ss:\[ebp\-74\],4008  
-008B0E1B    56              push esi  
-008B0E1C    8D4D 8C         lea ecx,dword ptr ss:\[ebp\-74\]  
-008B0E1F    51              push ecx  
-008B0E20    FF15 3C114000   call dword ptr ds:\[<&MSVBVM60.#645>\]        ; MSVBVM60.rtcDir  
-008B0E26    8BD0            mov edx,eax  
-008B0E28    8D4D C4         lea ecx,dword ptr ss:\[ebp\-3C\]  
-008B0E2B    FFD7            call edi  
-008B0E2D    50              push eax                                      //eax\=0014B74C, (UNICODE "regcode.dat")  
-008B0E2E    68 E0694000     push 驾照考试.004069E0  
-008B0E33    FF15 B8104000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaStrCmp>\] ; MSVBVM60.\_\_vbaStrCmp  //比对“regcode.dat”中数据  
-008B0E39    8BF0            mov esi,eax  
-008B0E3B    F7DE            neg esi  
-008B0E3D    1BF6            sbb esi,esi  
-008B0E3F    46              inc esi  
-008B0E40    F7DE            neg esi  
-008B0E42    8D4D C4         lea ecx,dword ptr ss:\[ebp\-3C\]  
-  
-来到主界面后，再次验证：  
-  
-008B0E2D    50              push eax                                      //eax\=0021BD74, (UNICODE "regcode.dat")  
-008B0E2E    68 E0694000     push 驾照考试.004069E0  
-008B0E33    FF15 B8104000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaStrCmp>\] ; MSVBVM60.\_\_vbaStrCmp  //比对“regcode.dat”中数据  
-008B0E39    8BF0            mov esi,eax  
-008B0E3B    F7DE            neg esi  
-008B0E3D    1BF6            sbb esi,esi  
-008B0E3F    46              inc esi  
-008B0E40    F7DE            neg esi  
-008B0E42    8D4D C4         lea ecx,dword ptr ss:\[ebp\-3C\]  
-  
-直捣程序的老巢！我们直接奔向“系统注册”，不过这又验证了 N 次：（愤怒之下，偶取消了 008B0E33 处的 \_\_vbaStrCmp 断点）  
-  
-008B0E2D    50              push eax                                      //eax\=001A0E34, (UNICODE "regcode.dat")  
-008B0E2E    68 E0694000     push 驾照考试.004069E0  
-008B0E33    FF15 B8104000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaStrCmp>\] ; MSVBVM60.\_\_vbaStrCmp  //比对“regcode.dat”中数据  
-008B0E39    8BF0            mov esi,eax  
-008B0E3B    F7DE            neg esi  
-008B0E3D    1BF6            sbb esi,esi  
-008B0E3F    46              inc esi  
-008B0E40    F7DE            neg esi  
-008B0E42    8D4D C4         lea ecx,dword ptr ss:\[ebp\-3C\]  
-  
-【小结】：  
-经过证实，程序是通过计时器，每 2 秒检验一次注册文件“regcode.dat”里的序列号是否合法，从而维护自身利益，这里我不敢恭维作者的能力，So。。。^o^ 偶决定用 Cracker 最基本的看家本领——爆掉它！（心中暗爽~~~~）  
-  
-  
-\*\*\*\*\*\*\*\*\*\*  软硬兼施，“既然你不吃软的，那我就来硬的，看我怎么收拾‘你’!!!”  \*\*\*\*\*\*\*\*\*\*  
-  
-这里主要用到了 vb 的 API 函数断点：rtcMsgBox  
-  
-试着去找找那些调用 rtcMsgBox 函数的地方，哟~~~还真多啊~~~~一共有 7 处，下面我们一处一处来看：  
-（为了节省篇幅，我把“使用大于 40 道题数据题库部分”一块讲解）  
-  
-第一处：  
-  
-0089C1F2    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0FFFF        //验证无误后，无限制做题，变量范围 65535  
-0089C1FA    75 12           jnz short 驾照考试.0089C20E           //爆破点 A’  
-0089C1FC    66:C786 8800000>mov word ptr ds:\[esi+88\],1  
-0089C205    66:C786 8A00000>mov word ptr ds:\[esi+8A\],97  
-0089C20E    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0            //验证失败后，弹出提示框，变量范围 0  
-0089C216    0F85 AF000000   jnz 驾照考试.0089C2CB                 //爆破点 A  
-0089C21C    B9 04000280     mov ecx,80020004  
-0089C221    B8 0A000000     mov eax,0A  
-0089C226    894D 9C         mov dword ptr ss:\[ebp\-64\],ecx  
-0089C229    894D AC         mov dword ptr ss:\[ebp\-54\],ecx  
-0089C22C    8D95 64FFFFFF   lea edx,dword ptr ss:\[ebp\-9C\]  
-0089C232    8D4D B4         lea ecx,dword ptr ss:\[ebp\-4C\]  
-0089C235    8945 94         mov dword ptr ss:\[ebp\-6C\],eax  
-0089C238    8945 A4         mov dword ptr ss:\[ebp\-5C\],eax  
-0089C23B    C785 6CFFFFFF F>mov dword ptr ss:\[ebp\-94\],驾照考试.004068F4  
-0089C245    C785 64FFFFFF 0>mov dword ptr ss:\[ebp\-9C\],8  
-0089C24F    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-0089C255    8D95 74FFFFFF   lea edx,dword ptr ss:\[ebp\-8C\]  
-0089C25B    8D4D C4         lea ecx,dword ptr ss:\[ebp\-3C\]  
-0089C25E    C785 7CFFFFFF D>mov dword ptr ss:\[ebp\-84\],驾照考试.004070DC  
-0089C268    C785 74FFFFFF 0>mov dword ptr ss:\[ebp\-8C\],8  
-0089C272    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-0089C278    8D45 94         lea eax,dword ptr ss:\[ebp\-6C\]  
-0089C27B    8D4D A4         lea ecx,dword ptr ss:\[ebp\-5C\]  
-0089C27E    50              push eax  
-0089C27F    8D55 B4         lea edx,dword ptr ss:\[ebp\-4C\]  
-0089C282    51              push ecx  
-0089C283    52              push edx  
-0089C284    8D45 C4         lea eax,dword ptr ss:\[ebp\-3C\]  
-0089C287    6A 40           push 40                                     //40 道题做完后就压栈  
-0089C289    50              push eax  
-0089C28A    FF15 7C104000   call dword ptr ds:\[<&MSVBVM60.#595>\]        ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！  
-0089C290    8BC8            mov ecx,eax  
-  
-第二处：  
-  
-0089C6EC    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0FFFF        //验证无误后，无限制做题，变量范围 65535  
-0089C6F4    75 12           jnz short 驾照考试.0089C708           //爆破点 B’  
-0089C6F6    66:C786 8800000>mov word ptr ds:\[esi+88\],98  
-0089C6FF    66:C786 8A00000>mov word ptr ds:\[esi+8A\],0E1  
-0089C708    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0            //验证失败后，弹出提示框，变量范围 0  
-0089C710    0F85 AF000000   jnz 驾照考试.0089C7C5                 //爆破点 B  
-0089C716    B9 04000280     mov ecx,80020004  
-0089C71B    B8 0A000000     mov eax,0A  
-0089C720    894D 9C         mov dword ptr ss:\[ebp\-64\],ecx  
-0089C723    894D AC         mov dword ptr ss:\[ebp\-54\],ecx  
-0089C726    8D95 64FFFFFF   lea edx,dword ptr ss:\[ebp\-9C\]  
-0089C72C    8D4D B4         lea ecx,dword ptr ss:\[ebp\-4C\]  
-0089C72F    8945 94         mov dword ptr ss:\[ebp\-6C\],eax  
-0089C732    8945 A4         mov dword ptr ss:\[ebp\-5C\],eax  
-0089C735    C785 6CFFFFFF F>mov dword ptr ss:\[ebp\-94\],驾照考试.004068F4  
-0089C73F    C785 64FFFFFF 0>mov dword ptr ss:\[ebp\-9C\],8  
-0089C749    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-0089C74F    8D95 74FFFFFF   lea edx,dword ptr ss:\[ebp\-8C\]  
-0089C755    8D4D C4         lea ecx,dword ptr ss:\[ebp\-3C\]  
-0089C758    C785 7CFFFFFF D>mov dword ptr ss:\[ebp\-84\],驾照考试.004070DC  
-0089C762    C785 74FFFFFF 0>mov dword ptr ss:\[ebp\-8C\],8  
-0089C76C    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-0089C772    8D45 94         lea eax,dword ptr ss:\[ebp\-6C\]  
-0089C775    8D4D A4         lea ecx,dword ptr ss:\[ebp\-5C\]  
-0089C778    50              push eax  
-0089C779    8D55 B4         lea edx,dword ptr ss:\[ebp\-4C\]  
-0089C77C    51              push ecx  
-0089C77D    52              push edx  
-0089C77E    8D45 C4         lea eax,dword ptr ss:\[ebp\-3C\]  
-0089C781    6A 40           push 40                                     //40 道题做完后就压栈  
-0089C783    50              push eax  
-0089C784    FF15 7C104000   call dword ptr ds:\[<&MSVBVM60.#595>\]        ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！  
-0089C78A    8BC8            mov ecx,eax  
-  
-第三处：  
-  
-0089CAE2    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0FFFF        //验证无误后，无限制做题，变量范围 65535  
-0089CAEA    75 12           jnz short 驾照考试.0089CAFE           //爆破点 C’  
-0089CAEC    66:C786 8800000>mov word ptr ds:\[esi+88\],0E2  
-0089CAF5    66:C786 8A00000>mov word ptr ds:\[esi+8A\],15F  
-0089CAFE    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0            //验证失败后，弹出提示框，变量范围 0  
-0089CB06    0F85 AF000000   jnz 驾照考试.0089CBBB                 //爆破点 C  
-0089CB0C    B9 04000280     mov ecx,80020004  
-0089CB11    B8 0A000000     mov eax,0A  
-0089CB16    894D 9C         mov dword ptr ss:\[ebp\-64\],ecx  
-0089CB19    894D AC         mov dword ptr ss:\[ebp\-54\],ecx  
-0089CB1C    8D95 64FFFFFF   lea edx,dword ptr ss:\[ebp\-9C\]  
-0089CB22    8D4D B4         lea ecx,dword ptr ss:\[ebp\-4C\]  
-0089CB25    8945 94         mov dword ptr ss:\[ebp\-6C\],eax  
-0089CB28    8945 A4         mov dword ptr ss:\[ebp\-5C\],eax  
-0089CB2B    C785 6CFFFFFF F>mov dword ptr ss:\[ebp\-94\],驾照考试.004068F4  
-0089CB35    C785 64FFFFFF 0>mov dword ptr ss:\[ebp\-9C\],8  
-0089CB3F    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-0089CB45    8D95 74FFFFFF   lea edx,dword ptr ss:\[ebp\-8C\]  
-0089CB4B    8D4D C4         lea ecx,dword ptr ss:\[ebp\-3C\]  
-0089CB4E    C785 7CFFFFFF D>mov dword ptr ss:\[ebp\-84\],驾照考试.004070DC  
-0089CB58    C785 74FFFFFF 0>mov dword ptr ss:\[ebp\-8C\],8  
-0089CB62    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-0089CB68    8D45 94         lea eax,dword ptr ss:\[ebp\-6C\]  
-0089CB6B    8D4D A4         lea ecx,dword ptr ss:\[ebp\-5C\]  
-0089CB6E    50              push eax  
-0089CB6F    8D55 B4         lea edx,dword ptr ss:\[ebp\-4C\]  
-0089CB72    51              push ecx  
-0089CB73    52              push edx  
-0089CB74    8D45 C4         lea eax,dword ptr ss:\[ebp\-3C\]  
-0089CB77    6A 40           push 40                                     //40 道题做完后就压栈  
-0089CB79    50              push eax  
-0089CB7A    FF15 7C104000   call dword ptr ds:\[<&MSVBVM60.#595>\]        ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！  
-0089CB80    8BC8            mov ecx,eax  
-  
-第四处：  
-  
-0089CED8    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0FFFF        //验证无误后，无限制做题，变量范围 65535  
-0089CEE0    75 12           jnz short 驾照考试.0089CEF4           //爆破点 D’  
-0089CEE2    66:C786 8800000>mov word ptr ds:\[esi+88\],160  
-0089CEEB    66:C786 8A00000>mov word ptr ds:\[esi+8A\],1A6  
-0089CEF4    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0            //验证失败后，弹出提示框，变量范围 0  
-0089CEFC    0F85 AF000000   jnz 驾照考试.0089CFB1                 //爆破点 D  
-0089CF02    B9 04000280     mov ecx,80020004  
-0089CF07    B8 0A000000     mov eax,0A  
-0089CF0C    894D 9C         mov dword ptr ss:\[ebp\-64\],ecx  
-0089CF0F    894D AC         mov dword ptr ss:\[ebp\-54\],ecx  
-0089CF12    8D95 64FFFFFF   lea edx,dword ptr ss:\[ebp\-9C\]  
-0089CF18    8D4D B4         lea ecx,dword ptr ss:\[ebp\-4C\]  
-0089CF1B    8945 94         mov dword ptr ss:\[ebp\-6C\],eax  
-0089CF1E    8945 A4         mov dword ptr ss:\[ebp\-5C\],eax  
-0089CF21    C785 6CFFFFFF F>mov dword ptr ss:\[ebp\-94\],驾照考试.004068F4  
-0089CF2B    C785 64FFFFFF 0>mov dword ptr ss:\[ebp\-9C\],8  
-0089CF35    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-0089CF3B    8D95 74FFFFFF   lea edx,dword ptr ss:\[ebp\-8C\]  
-0089CF41    8D4D C4         lea ecx,dword ptr ss:\[ebp\-3C\]  
-0089CF44    C785 7CFFFFFF D>mov dword ptr ss:\[ebp\-84\],驾照考试.004070DC  
-0089CF4E    C785 74FFFFFF 0>mov dword ptr ss:\[ebp\-8C\],8  
-0089CF58    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-0089CF5E    8D45 94         lea eax,dword ptr ss:\[ebp\-6C\]  
-0089CF61    8D4D A4         lea ecx,dword ptr ss:\[ebp\-5C\]  
-0089CF64    50              push eax  
-0089CF65    8D55 B4         lea edx,dword ptr ss:\[ebp\-4C\]  
-0089CF68    51              push ecx  
-0089CF69    52              push edx  
-0089CF6A    8D45 C4         lea eax,dword ptr ss:\[ebp\-3C\]  
-0089CF6D    6A 40           push 40                                     //40 道题做完后就压栈  
-0089CF6F    50              push eax  
-0089CF70    FF15 7C104000   call dword ptr ds:\[<&MSVBVM60.#595>\]        ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！  
-0089CF76    8BC8            mov ecx,eax  
-  
-第五处：  
-  
-0089D92C    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0FFFF        //验证无误后，无限制做题，变量范围 65535  
-0089D934    75 12           jnz short 驾照考试.0089D948           //爆破点 E’  
-0089D936    66:C786 8800000>mov word ptr ds:\[esi+88\],1D1  
-0089D93F    66:C786 8A00000>mov word ptr ds:\[esi+8A\],200  
-0089D948    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0            //验证失败后，弹出提示框，变量范围 0  
-0089D950    0F85 AF000000   jnz 驾照考试.0089DA05                 //爆破点 E  
-0089D956    B9 04000280     mov ecx,80020004  
-0089D95B    B8 0A000000     mov eax,0A  
-0089D960    894D 9C         mov dword ptr ss:\[ebp\-64\],ecx  
-0089D963    894D AC         mov dword ptr ss:\[ebp\-54\],ecx  
-0089D966    8D95 64FFFFFF   lea edx,dword ptr ss:\[ebp\-9C\]  
-0089D96C    8D4D B4         lea ecx,dword ptr ss:\[ebp\-4C\]  
-0089D96F    8945 94         mov dword ptr ss:\[ebp\-6C\],eax  
-0089D972    8945 A4         mov dword ptr ss:\[ebp\-5C\],eax  
-0089D975    C785 6CFFFFFF F>mov dword ptr ss:\[ebp\-94\],驾照考试.004068F4  
-0089D97F    C785 64FFFFFF 0>mov dword ptr ss:\[ebp\-9C\],8  
-0089D989    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-0089D98F    8D95 74FFFFFF   lea edx,dword ptr ss:\[ebp\-8C\]  
-0089D995    8D4D C4         lea ecx,dword ptr ss:\[ebp\-3C\]  
-0089D998    C785 7CFFFFFF D>mov dword ptr ss:\[ebp\-84\],驾照考试.004070DC  
-0089D9A2    C785 74FFFFFF 0>mov dword ptr ss:\[ebp\-8C\],8  
-0089D9AC    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-0089D9B2    8D45 94         lea eax,dword ptr ss:\[ebp\-6C\]  
-0089D9B5    8D4D A4         lea ecx,dword ptr ss:\[ebp\-5C\]  
-0089D9B8    50              push eax  
-0089D9B9    8D55 B4         lea edx,dword ptr ss:\[ebp\-4C\]  
-0089D9BC    51              push ecx  
-0089D9BD    52              push edx  
-0089D9BE    8D45 C4         lea eax,dword ptr ss:\[ebp\-3C\]  
-0089D9C1    6A 40           push 40                                     //40 道题做完后就压栈  
-0089D9C3    50              push eax  
-0089D9C4    FF15 7C104000   call dword ptr ds:\[<&MSVBVM60.#595>\]        ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！  
-0089D9CA    8BC8            mov ecx,eax  
-  
-第六处：  
-  
-0089F03C    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0FFFF        //验证无误后，无限制做题，变量范围 65535  
-0089F044    75 12           jnz short 驾照考试.0089F058           //爆破点 F’  
-0089F046    66:C786 8800000>mov word ptr ds:\[esi+88\],262  
-0089F04F    66:C786 8A00000>mov word ptr ds:\[esi+8A\],2B2  
-0089F058    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0            //验证失败后，弹出提示框，变量范围 0  
-0089F060    0F85 AF000000   jnz 驾照考试.0089F115                 //爆破点 F  
-0089F066    B9 04000280     mov ecx,80020004  
-0089F06B    B8 0A000000     mov eax,0A  
-0089F070    894D 9C         mov dword ptr ss:\[ebp\-64\],ecx  
-0089F073    894D AC         mov dword ptr ss:\[ebp\-54\],ecx  
-0089F076    8D95 64FFFFFF   lea edx,dword ptr ss:\[ebp\-9C\]  
-0089F07C    8D4D B4         lea ecx,dword ptr ss:\[ebp\-4C\]  
-0089F07F    8945 94         mov dword ptr ss:\[ebp\-6C\],eax  
-0089F082    8945 A4         mov dword ptr ss:\[ebp\-5C\],eax  
-0089F085    C785 6CFFFFFF F>mov dword ptr ss:\[ebp\-94\],驾照考试.004068F4  
-0089F08F    C785 64FFFFFF 0>mov dword ptr ss:\[ebp\-9C\],8  
-0089F099    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-0089F09F    8D95 74FFFFFF   lea edx,dword ptr ss:\[ebp\-8C\]  
-0089F0A5    8D4D C4         lea ecx,dword ptr ss:\[ebp\-3C\]  
-0089F0A8    C785 7CFFFFFF D>mov dword ptr ss:\[ebp\-84\],驾照考试.004070DC  
-0089F0B2    C785 74FFFFFF 0>mov dword ptr ss:\[ebp\-8C\],8  
-0089F0BC    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-0089F0C2    8D45 94         lea eax,dword ptr ss:\[ebp\-6C\]  
-0089F0C5    8D4D A4         lea ecx,dword ptr ss:\[ebp\-5C\]  
-0089F0C8    50              push eax  
-0089F0C9    8D55 B4         lea edx,dword ptr ss:\[ebp\-4C\]  
-0089F0CC    51              push ecx  
-0089F0CD    52              push edx  
-0089F0CE    8D45 C4         lea eax,dword ptr ss:\[ebp\-3C\]  
-0089F0D1    6A 40           push 40                                     //40 道题做完后就压栈  
-0089F0D3    50              push eax  
-0089F0D4    FF15 7C104000   call dword ptr ds:\[<&MSVBVM60.#595>\]        ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！  
-0089F0DA    8BC8            mov ecx,eax  
-  
-最后一处：  
-  
-008A10DA    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0FFFF        //验证无误后，无限制做题，变量范围 65535  
-008A10E2    75 12           jnz short 驾照考试.008A10F6           //爆破点 G’  
-008A10E4    66:C786 8800000>mov word ptr ds:\[esi+88\],321  
-008A10ED    66:C786 8A00000>mov word ptr ds:\[esi+8A\],39F  
-008A10F6    66:833D 28408B0>cmp word ptr ds:\[8B4028\],0            //验证失败后，弹出提示框，变量范围 0  
-008A10FE    0F85 AF000000   jnz 驾照考试.008A11B3                 //爆破点 G  
-008A1104    B9 04000280     mov ecx,80020004  
-008A1109    B8 0A000000     mov eax,0A  
-008A110E    894D 9C         mov dword ptr ss:\[ebp\-64\],ecx  
-008A1111    894D AC         mov dword ptr ss:\[ebp\-54\],ecx  
-008A1114    8D95 64FFFFFF   lea edx,dword ptr ss:\[ebp\-9C\]  
-008A111A    8D4D B4         lea ecx,dword ptr ss:\[ebp\-4C\]  
-008A111D    8945 94         mov dword ptr ss:\[ebp\-6C\],eax  
-008A1120    8945 A4         mov dword ptr ss:\[ebp\-5C\],eax  
-008A1123    C785 6CFFFFFF F>mov dword ptr ss:\[ebp\-94\],驾照考试.004068F4  
-008A112D    C785 64FFFFFF 0>mov dword ptr ss:\[ebp\-9C\],8  
-008A1137    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-008A113D    8D95 74FFFFFF   lea edx,dword ptr ss:\[ebp\-8C\]  
-008A1143    8D4D C4         lea ecx,dword ptr ss:\[ebp\-3C\]  
-008A1146    C785 7CFFFFFF D>mov dword ptr ss:\[ebp\-84\],驾照考试.004070DC  
-008A1150    C785 74FFFFFF 0>mov dword ptr ss:\[ebp\-8C\],8  
-008A115A    FF15 88114000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDup>\] ; MSVBVM60.\_\_vbaVarDup  
-008A1160    8D45 94         lea eax,dword ptr ss:\[ebp\-6C\]  
-008A1163    8D4D A4         lea ecx,dword ptr ss:\[ebp\-5C\]  
-008A1166    50              push eax  
-008A1167    8D55 B4         lea edx,dword ptr ss:\[ebp\-4C\]  
-008A116A    51              push ecx  
-008A116B    52              push edx  
-008A116C    8D45 C4         lea eax,dword ptr ss:\[ebp\-3C\]  
-008A116F    6A 40           push 40                                     //40 道题做完后就压栈  
-008A1171    50              push eax  
-008A1172    FF15 7C104000   call dword ptr ds:\[<&MSVBVM60.#595>\]        ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！  
-008A1178    8BC8            mov ecx,eax  
-  
-【小结】：  
-  
-总算把烦人的“非注册用户只能做前 40 道题！”的提示框 和 它所限制的 40 道题的数据完美解决了，但下面又有新问题了：“在考试时，老师在给我们批阅试卷的时候，某些题是错了的，但也不能让我们不明不白错下去撒~~~“得一失，长一智”，下面我们就来解决它的这个功能限制！  
-  
-\*\*\*\*\*\*\*\*\*\*   失足之地，患得患失 “江山是靠我们打回来的~~~哈哈哈哈~~” \*\*\*\*\*\*\*\*\*\*  
-  
-这里主要还是借助我们刚才对程序所下的 vb 的 API 函数断点：rtcMsgBox  
-  
-0088F92A    66:393D 28408B0>cmp word ptr ds:\[8B4028\],di                //注册码验证失败后，弹出提示框，di=0  
-0088F931    897D E8         mov dword ptr ss:\[ebp\-18\],edi              //计数器全部逐一清零，edi=0  
-0088F934    897D D8         mov dword ptr ss:\[ebp\-28\],edi  
-0088F937    897D C8         mov dword ptr ss:\[ebp\-38\],edi  
-0088F93A    897D B8         mov dword ptr ss:\[ebp\-48\],edi  
-0088F93D    897D A8         mov dword ptr ss:\[ebp\-58\],edi  
-0088F940    897D 98         mov dword ptr ss:\[ebp\-68\],edi  
-0088F943    897D 88         mov dword ptr ss:\[ebp\-78\],edi  
-0088F946    0F85 8B000000   jnz 驾照考试.0088F9D7                      //爆破点 H  
-0088F94C    8B35 88114000   mov esi,dword ptr ds:\[<&MSVBVM60.\_\_vbaVarDu>; MSVBVM60.\_\_vbaVarDup  
-0088F952    B9 04000280     mov ecx,80020004  
-0088F957    894D B0         mov dword ptr ss:\[ebp\-50\],ecx  
-0088F95A    B8 0A000000     mov eax,0A                                 //eax\=5  
-0088F95F    894D C0         mov dword ptr ss:\[ebp\-40\],ecx  
-0088F962    BF 08000000     mov edi,8                                  //edi\=0  
-0088F967    8D55 88         lea edx,dword ptr ss:\[ebp\-78\]  
-0088F96A    8D4D C8         lea ecx,dword ptr ss:\[ebp\-38\]  
-0088F96D    8945 A8         mov dword ptr ss:\[ebp\-58\],eax              //eax\=0A  
-0088F970    8945 B8         mov dword ptr ss:\[ebp\-48\],eax              //eax\=0A  
-0088F973    C745 90 F468400>mov dword ptr ss:\[ebp\-70\],驾照考试.004068F4  
-0088F97A    897D 88         mov dword ptr ss:\[ebp\-78\],edi              //edi\=8  
-0088F97D    FFD6            call esi  
-0088F97F    8D55 98         lea edx,dword ptr ss:\[ebp\-68\]              //eax\=4  
-0088F982    8D4D D8         lea ecx,dword ptr ss:\[ebp\-28\]  
-0088F985    C745 A0 D468400>mov dword ptr ss:\[ebp\-60\],驾照考试.004068D4  
-0088F98C    897D 98         mov dword ptr ss:\[ebp\-68\],edi              //edi\=8  
-0088F98F    FFD6            call esi  
-0088F991    8D4D A8         lea ecx,dword ptr ss:\[ebp\-58\]  
-0088F994    8D55 B8         lea edx,dword ptr ss:\[ebp\-48\]              //edx\=18  
-0088F997    51              push ecx  
-0088F998    8D45 C8         lea eax,dword ptr ss:\[ebp\-38\]  
-0088F99B    52              push edx  
-0088F99C    50              push eax  
-0088F99D    8D4D D8         lea ecx,dword ptr ss:\[ebp\-28\]  
-0088F9A0    6A 40           push 40  
-0088F9A2    51              push ecx  
-0088F9A3    FF15 7C104000   call dword ptr ds:\[<&MSVBVM60.#595>\]        ; MSVBVM60.rtcMsgBox    //注册用户可以使用此功能！  
-0088F9A9    8BC8            mov ecx,eax                                //eax\=1  
-  
-【小结】：  
-解决上面的问题是我们大家最容易做到的，但有时也会往往疏忽这一点，能做到这一步我们“势在必得”  
-  
-  
-\*\*\*\*\*\*\*\*\*\*   道高一尺，魔高一丈 “杀掉烦人的 NAG 注册框” \*\*\*\*\*\*\*\*\*\*  
-  
-最难的一个关卡来咯：程序通过计时器来，做不定时验证，并附带烦人的“注册 NAG 框”，我们决定一起来把他 Kill!!  
-  
-这里所用到的 vb 的 API 函数断点：rtcVarStrFromVar  
-  
-（这个断点让我很受伤。。。。。来回折腾了半天，主要是因为在 VB 里所有的窗体文件“Form.frm”都会调用到它!!所以。。。）  
-  
-经过 N 次的 F9 运行，F2 取消断点，最终来到了主界面，又由于程序做不定时验证，我点了只烟，经过漫长的的等待。。。。终于断下了：  
-  
-008AD1CB    83C4 10         add esp,10  
-008AD1CE    8D45 D4         lea eax,dword ptr ss:\[ebp\-2C\]  
-008AD1D1    8D4D B0         lea ecx,dword ptr ss:\[ebp\-50\]  
-008AD1D4    50              push eax  
-008AD1D5    51              push ecx  
-008AD1D6    FF15 8C114000   call dword ptr ds:\[<&MSVBVM60.#613>\]        ; MSVBVM60.rtcVarStrFromVar   //这里断下  爆破 TNT  
-008AD1DC    8D55 B0         lea edx,dword ptr ss:\[ebp\-50\]  
-008AD1DF    8D45 A0         lea eax,dword ptr ss:\[ebp\-60\]  
-008AD1E2    52              push edx  
-008AD1E3    50              push eax  
-008AD1E4    FF15 90104000   call dword ptr ds:\[<&MSVBVM60.#520>\]        ; MSVBVM60.rtcTrimVar         //搞鬼的计时器  
-008AD1EA    8D4D A0         lea ecx,dword ptr ss:\[ebp\-60\]  
-008AD1ED    51              push ecx  
-008AD1EE    FF15 24104000   call dword ptr ds:\[<&MSVBVM60.\_\_vbaStrVarMo>; MSVBVM60.\_\_vbaStrVarMove  
-008AD1F4    8BD0            mov edx,eax  
-008AD1F6    8D4D E8         lea ecx,dword ptr ss:\[ebp\-18\]                //(UNICODE "-464848367")    edx\=14  
-  
-【小结】：  
-反复跟了几次，我还是“硬性”去掉了那个烦人的 NAG 窗，哈哈，总算做完了，不过打开修改后的程序，看到那几个大大的“驾照考试模拟系统 2005  V1.0 版（未注册）”就是不爽，我决定把它“美”一下，呵呵~~~  
-  
-\*\*\*\*\*\*\*\*\*\*  人不可貌像，海水不可斗量  \*\*\*\*\*\*\*\*\*\*  
-  
-美化部分（略）  
-  
-【补充】：  
-文件：jzsjk.mdb   数据库密码：kjq88880327  
-  
-【爆破点总结①】：（硬性之道 篇）  
-\============================================  
-大于 40 道题数据题库部分：  
-  
-008A10E2   7512                    jne 008A10F6        //jne 改 je  
-0089C1FA   7512                    jne 0089C20E        //jne 改 je  
-0089C6F4   7512                    jne 0089C708        //jne 改 je  
-0089CAEA   7512                    jne 0089CAFE        //jne 改 je  
-0089CEE0   7512                    jne 0089CEF4        //jne 改 je  
-0089D934   7512                    jne 0089D948        //jne 改 je  
-0089F044   7512                    jne 0089F058        //jne 改 je  
-  
-“非注册用户只能做前 40 道题！”提示框部分：  
-  
-008A10FE   0F85AF000000            jne 008A11B3        //jne 改 je  
-0089C216   0F85AF000000            jne 0089C2CB        //jne 改 je  
-0089C710   0F85AF000000            jne 0089C7C5        //jne 改 je  
-0089CB06   0F85AF000000            jne 0089CBBB        //jne 改 je  
-0089CEFC   0F85AF000000            jne 0089CFB1        //jne 改 je  
-0089D950   0F85AF000000            jne 0089DA05        //jne 改 je  
-0089F060   0F85AF000000            jne 0089F115        //jne 改 je  
-  
-  
-“驾照考试模拟系统 2005  V1.0 版（未注册）”窗口部分：  
-  
-008AC27A   7520                    jne 008AC29C        //jne 改 je  
-  
-“驾照考试模拟系统 2005  V1.0 版”窗口部分：  
-  
-008AC2A4   7520                    jne 008AC2C6        //jne 改 je  
-  
-“驾照考试模拟系统 2005  V1.0 版（已注册）”窗口部分：  
-  
-008B2501   7510                    jne 008B2513        //jne 改 je  
-008B276B   7510                    jne 008B277D        //jne 改 je  
-  
-“注册用户可以使用此功能！”提示框部分：  
-  
-0088F946   0F858B000000            jne 0088F9D7        //jne 改 je  
-  
-\============================================  
-  
-【爆破点总结②】：（里刚外柔 篇）  
-\============================================  
-  
-008AD1D6    FF15 8C114000          call dword ptr ds:\[<&MSVBVM60.#613>\]      //nop 掉  
-  
-然后使用本人提供的“破解版通用注册码”注册：  
-  
-S/N：9B8CB-8CFBG-R9EBU-MF7G5-2AR49  
-  
-\============================================  
-  
-【内存注册机】：（顺气自然 篇）  
-  
-中断地址：008B0A97  
-中断次数：1  
-第一字节：5F  
-指令长度：1  
-  
-内存方式---->EAX---->宽字符串  
-  
-\============================================  
-  
-【精彩一刻】：  
-\============================================  
-008B0A97    5F              pop edi                ; MSVBVM60.\_\_vbaStrMove     //Find Serial Number !!!  
-\============================================  
-  
-【文章总结】：  
-  
-这个软件的算法太 BT 了，看都看花眼了，不过这次还是被我跟到了 Serial Number，呵呵~~~~，本来我是帮我一个准备考驾照的姨爹找一套考试模拟软件的，不过“当”下来，先是看到是 VB 的程序，眼睛都大了，没办法，帮人帮到底嘛，经过了漫长的时间，终于完美爆掉了，后来想研究一下该程序的算法，不过初跟了一下，真是 BT 啊~~~~所以最终还是放弃了，闲话就不多说了，收工，和朋友喝茶咯~~~~  
-  
-  
-〓全文完〓  
-  
-Copyright (C) 2005 KuNgBiM\[DFCG\]  
-  
-2005.05.03 
+【破文标题】：完美爆破《驾照模拟考试系统 2005》+去 NAG 手记
 
- 4dd466d0e1e0cc123afbe504da2462ca
+【破文作者】：`KuNgBiM[DFCG]`
+
+【作者邮箱】：`gb_1227@163.com`
+
+【软件名称】：驾照模拟考试系统 2005 1.0 版
+
+【整理日期】：2005-03-28
+
+【软件大小】：17.04 MB
+
+【软件授权】：国产软件 / 共享版 / 教育考试
+
+【使用平台】：`Win9x/Me/NT/2000/XP`
+
+【发布公司】：`http://www.btjs.com.cn/download.asp?fid=93`
+
+【下载地址】：`http://www.shareware.cn/pub/2833.html`
+
+【加密方式】：功能限制+NAG
+
+【编译语言】：`Microsoft Visual Basic 5.0 / 6.0`
+
+【调试环境】：`WinXP`、`W32Dasm`、`PEiD`、`Ollydbg`、`GetVBRes`
+
+【破解日期】：2005-05-03
+
+【破解目的】：解除所有的功能限制 及 NAG
+
+【作者声明】：初学 Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+---
+
+## 破解过程
+
+1. 查壳：用 `PEiD0.92` 查壳，无壳，程序由 `Microsoft Visual Basic 5.0 / 6.0` 编译。
+
+2. 初试：运行主程序注册，输入注册码，确认！程序无提示，回到主界面。（郁闷 ing...）
+
+3. 断点：用 `OD` 载入主程序，下断程序可能用到的几个基本 API 函数断点（VB 程序特有的），我用到了以下几个：
+   - 消息框函数：`rtcMsgBox`
+   - 字符串比对函数：`__vbaStrCmp`
+   - 窗口启动函数：`rtcVarStrFromVar`
+
+   断点下完后，`F9` 运行程序！
+
+   （因为 VB 程序里窗体调用 `rtcVarStrFromVar` 这个 API 函数有很多，所以我 `F9` 运行，`F2` 取消断点，都不知道用了多少回，呵呵，总算是看到了程序主界面）
+
+\*\*\*\*\*\*\*\*\*\* 用敏锐的眼光看程序，做到“知己知彼，百战不殆” \*\*\*\*\*\*\*\*\*\*
+
+这里有一点可以证实，程序是读取程序目录下“sysdata”文件夹内的“regcode.dat”进行启动验证：
+
+### 第一次验证
+
+```
+008B0DCF    6A 50             push 50
+008B0DD1    68 40694000       push 驾照考试.00406940
+008B0DD6    57                push edi
+008B0DD7    50                push eax
+008B0DD8    FF15 58104000     call dword ptr ds:[<&MSVBVM60.__vbaHresultC>; MSVBVM60.__vbaHresultCheckObj
+008B0DDE    8B55 C4           mov edx,dword ptr ss:[ebp-3C]
+008B0DE1    52                push edx
+008B0DE2    68 107C4000       push 驾照考试.00407C10                  ; UNICODE "\\sysdata\\regcode.dat"   //看这里！
+008B0DE7    FF15 4C104000     call dword ptr ds:[<&MSVBVM60.__vbaStrCat>] ; MSVBVM60.__vbaStrCat
+008B0DED    8BD0              mov edx,eax
+008B0DEF    8D4D D0           lea ecx,dword ptr ss:[ebp-30]
+008B0DF2    8B3D A4114000     mov edi,dword ptr ds:[<&MSVBVM60.__vbaStrMo>; MSVBVM60.__vbaStrMove
+008B0DF8    FFD7              call edi
+008B0DFA    8D4D C4           lea ecx,dword ptr ss:[ebp-3C]
+008B0DFD    8B1D C4114000     mov ebx,dword ptr ds:[<&MSVBVM60.__vbaFreeS>; MSVBVM60.__vbaFreeStr
+008B0E03    FFD3              call ebx
+008B0E05    8D4D BC           lea ecx,dword ptr ss:[ebp-44]
+008B0E08    FF15 C0114000     call dword ptr ds:[<&MSVBVM60.__vbaFreeObj>>; MSVBVM60.__vbaFreeObj
+008B0E0E    8D45 D0           lea eax,dword ptr ss:[ebp-30]
+008B0E11    8945 94           mov dword ptr ss:[ebp-6C],eax
+008B0E14    C745 8C 0840000>mov dword ptr ss:[ebp-74],4008
+008B0E1B    56                push esi
+008B0E1C    8D4D 8C           lea ecx,dword ptr ss:[ebp-74]
+008B0E1F    51                push ecx
+008B0E20    FF15 3C114000     call dword ptr ds:[<&MSVBVM60.#645>]        ; MSVBVM60.rtcDir
+008B0E26    8BD0              mov edx,eax
+008B0E28    8D4D C4           lea ecx,dword ptr ss:[ebp-3C]
+008B0E2B    FFD7              call edi
+008B0E2D    50                push eax                                  //eax=0014B74C, (UNICODE "regcode.dat")
+008B0E2E    68 E0694000       push 驾照考试.004069E0
+008B0E33    FF15 B8104000     call dword ptr ds:[<&MSVBVM60.__vbaStrCmp>] ; MSVBVM60.__vbaStrCmp  //比对“regcode.dat”中数据
+008B0E39    8BF0              mov esi,eax
+008B0E3B    F7DE              neg esi
+008B0E3D    1BF6              sbb esi,esi
+008B0E3F    46                inc esi
+008B0E40    F7DE              neg esi
+008B0E42    8D4D C4           lea ecx,dword ptr ss:[ebp-3C]
+```
+
+来到主界面后，再次验证：
+
+```
+008B0E2D    50                push eax                                  //eax=0021BD74, (UNICODE "regcode.dat")
+008B0E2E    68 E0694000       push 驾照考试.004069E0
+008B0E33    FF15 B8104000     call dword ptr ds:[<&MSVBVM60.__vbaStrCmp>] ; MSVBVM60.__vbaStrCmp  //比对“regcode.dat”中数据
+008B0E39    8BF0              mov esi,eax
+008B0E3B    F7DE              neg esi
+008B0E3D    1BF6              sbb esi,esi
+008B0E3F    46                inc esi
+008B0E40    F7DE              neg esi
+008B0E42    8D4D C4           lea ecx,dword ptr ss:[ebp-3C]
+```
+
+直捣程序的老巢！我们直接奔向“系统注册”，不过这又验证了 N 次：（愤怒之下，偶取消了 `008B0E33` 处的 `__vbaStrCmp` 断点）
+
+```
+008B0E2D    50                push eax                                  //eax=001A0E34, (UNICODE "regcode.dat")
+008B0E2E    68 E0694000       push 驾照考试.004069E0
+008B0E33    FF15 B8104000     call dword ptr ds:[<&MSVBVM60.__vbaStrCmp>] ; MSVBVM60.__vbaStrCmp  //比对“regcode.dat”中数据
+008B0E39    8BF0              mov esi,eax
+008B0E3B    F7DE              neg esi
+008B0E3D    1BF6              sbb esi,esi
+008B0E3F    46                inc esi
+008B0E40    F7DE              neg esi
+008B0E42    8D4D C4           lea ecx,dword ptr ss:[ebp-3C]
+```
+
+### 小结
+
+经过证实，程序是通过计时器，每 2 秒检验一次注册文件“regcode.dat”里的序列号是否合法，从而维护自身利益，这里我不敢恭维作者的能力，So。。。^o^ 偶决定用 Cracker 最基本的看家本领——爆掉它！（心中暗爽~~~~）
+
+\*\*\*\*\*\*\*\*\*\* 软硬兼施，“既然你不吃软的，那我就来硬的，看我怎么收拾‘你’!!!” \*\*\*\*\*\*\*\*\*\*
+
+这里主要用到了 vb 的 API 函数断点：`rtcMsgBox`
+
+试着去找找那些调用 `rtcMsgBox` 函数的地方，哟~~~还真多啊~~~~一共有 7 处，下面我们一处一处来看：
+
+（为了节省篇幅，我把“使用大于 40 道题数据题库部分”一块讲解）
+
+#### 第一处
+
+```
+0089C1F2    66:833D 28408B0>cmp word ptr ds:[8B4028],0FFFF        //验证无误后，无限制做题，变量范围 65535
+0089C1FA    75 12           jnz short 驾照考试.0089C20E           //爆破点 A’
+0089C1FC    66:C786 8800000>mov word ptr ds:[esi+88],1
+0089C205    66:C786 8A00000>mov word ptr ds:[esi+8A],97
+0089C20E    66:833D 28408B0>cmp word ptr ds:[8B4028],0            //验证失败后，弹出提示框，变量范围 0
+0089C216    0F85 AF000000   jnz 驾照考试.0089C2CB                 //爆破点 A
+0089C21C    B9 04000280     mov ecx,80020004
+0089C221    B8 0A000000     mov eax,0A
+0089C226    894D 9C         mov dword ptr ss:[ebp-64],ecx
+0089C229    894D AC         mov dword ptr ss:[ebp-54],ecx
+0089C22C    8D95 64FFFFFF   lea edx,dword ptr ss:[ebp-9C]
+0089C232    8D4D B4         lea ecx,dword ptr ss:[ebp-4C]
+0089C235    8945 94         mov dword ptr ss:[ebp-6C],eax
+0089C238    8945 A4         mov dword ptr ss:[ebp-5C],eax
+0089C23B    C785 6CFFFFFF F>mov dword ptr ss:[ebp-94],驾照考试.004068F4
+0089C245    C785 64FFFFFF 0>mov dword ptr ss:[ebp-9C],8
+0089C24F    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup
+0089C255    8D95 74FFFFFF   lea edx,dword ptr ss:[ebp-8C]
+0089C25B    8D4D C4         lea ecx,dword ptr ss:[ebp-3C]
+0089C25E    C785 7CFFFFFF D>mov dword ptr ss:[ebp-84],驾照考试.004070DC
+0089C268    C785 74FFFFFF 0>mov dword ptr ss:[ebp-8C],8
+0089C272    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup
+0089C278    8D45 94         lea eax,dword ptr ss:[ebp-6C]
+0089C27B    8D4D A4         lea ecx,dword ptr ss:[ebp-5C]
+0089C27E    50              push eax
+0089C27F    8D55 B4         lea edx,dword ptr ss:[ebp-4C]
+0089C282    51              push ecx
+0089C283    52              push edx
+0089C284    8D45 C4         lea eax,dword ptr ss:[ebp-3C]
+0089C287    6A 40           push 40                                 //40 道题做完后就压栈
+0089C289    50              push eax
+0089C28A    FF15 7C104000   call dword ptr ds:[<&MSVBVM60.#595>]        ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！
+0089C290    8BC8            mov ecx,eax
+```
+
+#### 第二处
+
+```
+0089C6EC    66:833D 28408B0>cmp word ptr ds:[8B4028],0FFFF        //验证无误后，无限制做题，变量范围 65535
+0089C6F4    75 12           jnz short 驾照考试.0089C708           //爆破点 B’
+0089C6F6    66:C786 8800000>mov word ptr ds:[esi+88],98
+0089C6FF    66:C786 8A00000>mov word ptr ds:[esi+8A],0E1
+0089C708    66:833D 28408B0>cmp word ptr ds:[8B4028],0            //验证失败后，弹出提示框，变量范围 0
+0089C710    0F85 AF000000   jnz 驾照考试.0089C7C5                 //爆破点 B
+0089C716    B9 04000280     mov ecx,80020004
+0089C71B    B8 0A000000     mov eax,0A
+0089C720    894D 9C         mov dword ptr ss:[ebp-64],ecx
+```
+
+
+
+### 第三处
+
+```
+0089C723    894D AC         mov dword ptr ss:[ebp-54],ecx  
+0089C726    8D95 64FFFFFF   lea edx,dword ptr ss:[ebp-9C]  
+0089C72C    8D4D B4         lea ecx,dword ptr ss:[ebp-4C]  
+0089C72F    8945 94         mov dword ptr ss:[ebp-6C],eax  
+0089C732    8945 A4         mov dword ptr ss:[ebp-5C],eax  
+0089C735    C785 6CFFFFFF F>mov dword ptr ss:[ebp-94],驾照考试.004068F4  
+0089C73F    C785 64FFFFFF 0>mov dword ptr ss:[ebp-9C],8  
+0089C749    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup  
+0089C74F    8D95 74FFFFFF   lea edx,dword ptr ss:[ebp-8C]  
+0089C755    8D4D C4         lea ecx,dword ptr ss:[ebp-3C]  
+0089C758    C785 7CFFFFFF D>mov dword ptr ss:[ebp-84],驾照考试.004070DC  
+0089C762    C785 74FFFFFF 0>mov dword ptr ss:[ebp-8C],8  
+0089C76C    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup  
+0089C772    8D45 94         lea eax,dword ptr ss:[ebp-6C]  
+0089C775    8D4D A4         lea ecx,dword ptr ss:[ebp-5C]  
+0089C778    50              push eax  
+0089C779    8D55 B4         lea edx,dword ptr ss:[ebp-4C]  
+0089C77C    51              push ecx  
+0089C77D    52              push edx  
+0089C77E    8D45 C4         lea eax,dword ptr ss:[ebp-3C]  
+0089C781    6A 40           push 40                                       //40 道题做完后就压栈  
+0089C783    50              push eax  
+0089C784    FF15 7C104000   call dword ptr ds:[<&MSVBVM60.#595>]        ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！  
+0089C78A    8BC8            mov ecx,eax  
+```
+
+### 第四处
+
+```
+0089CAE2    66:833D 28408B0>cmp word ptr ds:[8B4028],0FFFF        //验证无误后，无限制做题，变量范围 65535  
+0089CAEA    75 12           jnz short 驾照考试.0089CAFE           //爆破点 C’  
+0089CAEC    66:C786 8800000>mov word ptr ds:[esi+88],0E2  
+0089CAF5    66:C786 8A00000>mov word ptr ds:[esi+8A],15F  
+0089CAFE    66:833D 28408B0>cmp word ptr ds:[8B4028],0            //验证失败后，弹出提示框，变量范围 0  
+0089CB06    0F85 AF000000   jnz 驾照考试.0089CBBB                 //爆破点 C  
+0089CB0C    B9 04000280     mov ecx,80020004  
+0089CB11    B8 0A000000     mov eax,0A  
+0089CB16    894D 9C         mov dword ptr ss:[ebp-64],ecx  
+0089CB19    894D AC         mov dword ptr ss:[ebp-54],ecx  
+0089CB1C    8D95 64FFFFFF   lea edx,dword ptr ss:[ebp-9C]  
+0089CB22    8D4D B4         lea ecx,dword ptr ss:[ebp-4C]  
+0089CB25    8945 94         mov dword ptr ss:[ebp-6C],eax  
+0089CB28    8945 A4         mov dword ptr ss:[ebp-5C],eax  
+0089CB2B    C785 6CFFFFFF F>mov dword ptr ss:[ebp-94],驾照考试.004068F4  
+0089CB35    C785 64FFFFFF 0>mov dword ptr ss:[ebp-9C],8  
+0089CB3F    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup  
+0089CB45    8D95 74FFFFFF   lea edx,dword ptr ss:[ebp-8C]  
+0089CB4B    8D4D C4         lea ecx,dword ptr ss:[ebp-3C]  
+0089CB4E    C785 7CFFFFFF D>mov dword ptr ss:[ebp-84],驾照考试.004070DC  
+0089CB58    C785 74FFFFFF 0>mov dword ptr ss:[ebp-8C],8  
+0089CB62    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup  
+0089CB68    8D45 94         lea eax,dword ptr ss:[ebp-6C]  
+0089CB6B    8D4D A4         lea ecx,dword ptr ss:[ebp-5C]  
+0089CB6E    50              push eax  
+0089CB6F    8D55 B4         lea edx,dword ptr ss:[ebp-4C]  
+0089CB72    51              push ecx  
+0089CB73    52              push edx  
+0089CB74    8D45 C4         lea eax,dword ptr ss:[ebp-3C]  
+0089CB77    6A 40           push 40                                       //40 道题做完后就压栈  
+0089CB79    50              push eax  
+0089CB7A    FF15 7C104000   call dword ptr ds:[<&MSVBVM60.#595>]        ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！  
+0089CB80    8BC8            mov ecx,eax  
+```
+
+### 第五处
+
+```
+0089CED8    66:833D 28408B0>cmp word ptr ds:[8B4028],0FFFF        //验证无误后，无限制做题，变量范围 65535  
+0089CEE0    75 12           jnz short 驾照考试.0089CEF4           //爆破点 D’  
+0089CEE2    66:C786 8800000>mov word ptr ds:[esi+88],160  
+0089CEEB    66:C786 8A00000>mov word ptr ds:[esi+8A],1A6  
+0089CEF4    66:833D 28408B0>cmp word ptr ds:[8B4028],0            //验证失败后，弹出提示框，变量范围 0  
+0089CEFC    0F85 AF000000   jnz 驾照考试.0089CFB1                 //爆破点 D  
+0089CF02    B9 04000280     mov ecx,80020004  
+0089CF07    B8 0A000000     mov eax,0A  
+0089CF0C    894D 9C         mov dword ptr ss:[ebp-64],ecx  
+0089CF0F    894D AC         mov dword ptr ss:[ebp-54],ecx  
+0089CF12    8D95 64FFFFFF   lea edx,dword ptr ss:[ebp-9C]  
+0089CF18    8D4D B4         lea ecx,dword ptr ss:[ebp-4C]  
+0089CF1B    8945 94         mov dword ptr ss:[ebp-6C],eax  
+0089CF1E    8945 A4         mov dword ptr ss:[ebp-5C],eax  
+0089CF21    C785 6CFFFFFF F>mov dword ptr ss:[ebp-94],驾照考试.004068F4  
+0089CF2B    C785 64FFFFFF 0>mov dword ptr ss:[ebp-9C],8  
+0089CF35    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup  
+0089CF3B    8D95 74FFFFFF   lea edx,dword ptr ss:[ebp-8C]  
+0089CF41    8D4D C4         lea ecx,dword ptr ss:[ebp-3C]  
+0089CF44    C785 7CFFFFFF D>mov dword ptr ss:[ebp-84],驾照考试.004070DC  
+0089CF4E    C785 74FFFFFF 0>mov dword ptr ss:[ebp-8C],8  
+0089CF58    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup  
+0089CF5E    8D45 94         lea eax,dword ptr ss:[ebp-6C]  
+0089CF61    8D4D A4         lea ecx,dword ptr ss:[ebp-5C]  
+0089CF64    50              push eax  
+0089CF65    8D55 B4         lea edx,dword ptr ss:[ebp-4C]  
+0089CF68    51              push ecx  
+0089CF69    52              push edx  
+0089CF6A    8D45 C4         lea eax,dword ptr ss:[ebp-3C]  
+0089CF6D    6A 40           push 40                                       //40 道题做完后就压栈  
+0089CF6F    50              push eax  
+0089CF70    FF15 7C104000   call dword ptr ds:[<&MSVBVM60.#595>]        ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！  
+0089CF76    8BC8            mov ecx,eax  
+```
+
+### 第六处
+
+```
+0089D92C    66:833D 28408B0>cmp word ptr ds:[8B4028],0FFFF        //验证无误后，无限制做题，变量范围 65535  
+0089D934    75 12           jnz short 驾照考试.0089D948           //爆破点 E’  
+0089D936    66:C786 8800000>mov word ptr ds:[esi+88],1D1  
+0089D93F    66:C786 8A00000>mov word ptr ds:[esi+8A],200  
+0089D948    66:833D 28408B0>cmp word ptr ds:[8B4028],0            //验证失败后，弹出提示框，变量范围 0  
+0089D950    0F85 AF000000   jnz 驾照考试.0089DA05                 //爆破点 E  
+0089D956    B9 04000280     mov ecx,80020004  
+0089D95B    B8 0A000000     mov eax,0A  
+0089D960    894D 9C         mov dword ptr ss:[ebp-64],ecx  
+0089D963    894D AC         mov dword ptr ss:[ebp-54],ecx  
+0089D966    8D95 64FFFFFF   lea edx,dword ptr ss:[ebp-9C]  
+0089D96C    8D4D B4         lea ecx,dword ptr ss:[ebp-4C]  
+0089D96F    8945 94         mov dword ptr ss:[ebp-6C],eax  
+0089D972    8945 A4         mov dword ptr ss:[ebp-5C],eax  
+0089D975    C785 6CFFFFFF F>mov dword ptr ss:[ebp-94],驾照考试.004068F4  
+0089D97F    C785 64FFFFFF 0>mov dword ptr ss:[ebp-9C],8  
+0089D989    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup  
+0089D98F    8D95 74FFFFFF   lea edx,dword ptr ss:[ebp-8C]  
+0089D995    8D4D C4         lea ecx,dword ptr ss:[ebp-3C]  
+0089D998    C785 7CFFFFFF D>mov dword ptr ss:[ebp-84],驾照考试.004070DC  
+0089D9A2    C785 74FFFFFF 0>mov dword ptr ss:[ebp-8C],8  
+0089D9AC    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup  
+0089D9B2    8D45 94         lea eax,dword ptr ss:[ebp-6C]  
+0089D9B5    8D4D A4         lea ecx,dword ptr ss:[ebp-5C]  
+0089D9B8    50              push eax  
+0089D9B9    8D55 B4         lea edx,dword ptr ss:[ebp-4C]  
+0089D9BC    51              push ecx  
+0089D9BD    52              push edx  
+0089D9BE    8D45 C4         lea eax,dword ptr ss:[ebp-3C]  
+```
+
+
+
+### 第六处：
+
+```
+0089D9C1    6A 40             push 40                              //40 道题做完后就压栈  
+0089D9C3    50                push eax  
+0089D9C4    FF15 7C104000    call dword ptr ds:[<&MSVBVM60.#595>]         ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！  
+0089D9CA    8BC8             mov ecx,eax  
+
+0089F03C    66:833D 28408B0>cmp word ptr ds:[8B4028],0FFFF        //验证无误后，无限制做题，变量范围 65535  
+0089F044    75 12            jnz short 驾照考试.0089F058           //爆破点 F’  
+0089F046    66:C786 8800000>mov word ptr ds:[esi+88],262  
+0089F04F    66:C786 8A00000>mov word ptr ds:[esi+8A],2B2  
+0089F058    66:833D 28408B0>cmp word ptr ds:[8B4028],0            //验证失败后，弹出提示框，变量范围 0  
+0089F060    0F85 AF000000    jnz 驾照考试.0089F115               //爆破点 F  
+0089F066    B9 04000280     mov ecx,80020004  
+0089F06B    B8 0A000000     mov eax,0A  
+0089F070    894D 9C         mov dword ptr ss:[ebp-64],ecx  
+0089F073    894D AC         mov dword ptr ss:[ebp-54],ecx  
+0089F076    8D95 64FFFFFF   lea edx,dword ptr ss:[ebp-9C]  
+0089F07C    8D4D B4         lea ecx,dword ptr ss:[ebp-4C]  
+0089F07F    8945 94         mov dword ptr ss:[ebp-6C],eax  
+0089F082    8945 A4         mov dword ptr ss:[ebp-5C],eax  
+0089F085    C785 6CFFFFFF F>mov dword ptr ss:[ebp-94],驾照考试.004068F4  
+0089F08F    C785 64FFFFFF 0>mov dword ptr ss:[ebp-9C],8  
+0089F099    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup  
+0089F09F    8D95 74FFFFFF   lea edx,dword ptr ss:[ebp-8C]  
+0089F0A5    8D4D C4         lea ecx,dword ptr ss:[ebp-3C]  
+0089F0A8    C785 7CFFFFFF D>mov dword ptr ss:[ebp-84],驾照考试.004070DC  
+0089F0B2    C785 74FFFFFF 0>mov dword ptr ss:[ebp-8C],8  
+0089F0BC    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup  
+0089F0C2    8D45 94         lea eax,dword ptr ss:[ebp-6C]  
+0089F0C5    8D4D A4         lea ecx,dword ptr ss:[ebp-5C]  
+0089F0C8    50              push eax  
+0089F0C9    8D55 B4         lea edx,dword ptr ss:[ebp-4C]  
+0089F0CC    51              push ecx  
+0089F0CD    52              push edx  
+0089F0CE    8D45 C4         lea eax,dword ptr ss:[ebp-3C]  
+0089F0D1    6A 40           push 40                              //40 道题做完后就压栈  
+0089F0D3    50              push eax  
+0089F0D4    FF15 7C104000   call dword ptr ds:[<&MSVBVM60.#595>]         ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！  
+0089F0DA    8BC8            mov ecx,eax  
+```
+
+### 最后一处：
+
+```
+008A10DA    66:833D 28408B0>cmp word ptr ds:[8B4028],0FFFF        //验证无误后，无限制做题，变量范围 65535  
+008A10E2    75 12            jnz short 驾照考试.008A10F6           //爆破点 G’  
+008A10E4    66:C786 8800000>mov word ptr ds:[esi+88],321  
+008A10ED    66:C786 8A00000>mov word ptr ds:[esi+8A],39F  
+008A10F6    66:833D 28408B0>cmp word ptr ds:[8B4028],0            //验证失败后，弹出提示框，变量范围 0  
+008A10FE    0F85 AF000000    jnz 驾照考试.008A11B3               //爆破点 G  
+008A1104    B9 04000280     mov ecx,80020004  
+008A1109    B8 0A000000     mov eax,0A  
+008A110E    894D 9C         mov dword ptr ss:[ebp-64],ecx  
+008A1111    894D AC         mov dword ptr ss:[ebp-54],ecx  
+008A1114    8D95 64FFFFFF   lea edx,dword ptr ss:[ebp-9C]  
+008A111A    8D4D B4         lea ecx,dword ptr ss:[ebp-4C]  
+008A111D    8945 94         mov dword ptr ss:[ebp-6C],eax  
+008A1120    8945 A4         mov dword ptr ss:[ebp-5C],eax  
+008A1123    C785 6CFFFFFF F>mov dword ptr ss:[ebp-94],驾照考试.004068F4  
+008A112D    C785 64FFFFFF 0>mov dword ptr ss:[ebp-9C],8  
+008A1137    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup  
+008A113D    8D95 74FFFFFF   lea edx,dword ptr ss:[ebp-8C]  
+008A1143    8D4D C4         lea ecx,dword ptr ss:[ebp-3C]  
+008A1146    C785 7CFFFFFF D>mov dword ptr ss:[ebp-84],驾照考试.004070DC  
+008A1150    C785 74FFFFFF 0>mov dword ptr ss:[ebp-8C],8  
+008A115A    FF15 88114000   call dword ptr ds:[<&MSVBVM60.__vbaVarDup>] ; MSVBVM60.__vbaVarDup  
+008A1160    8D45 94         lea eax,dword ptr ss:[ebp-6C]  
+008A1163    8D4D A4         lea ecx,dword ptr ss:[ebp-5C]  
+008A1166    50              push eax  
+008A1167    8D55 B4         lea edx,dword ptr ss:[ebp-4C]  
+008A116A    51              push ecx  
+008A116B    52              push edx  
+008A116C    8D45 C4         lea eax,dword ptr ss:[ebp-3C]  
+008A116F    6A 40           push 40                              //40 道题做完后就压栈  
+008A1171    50              push eax  
+008A1172    FF15 7C104000   call dword ptr ds:[<&MSVBVM60.#595>]         ; MSVBVM60.rtcMsgBox   //非注册用户只能做前 40 道题！  
+008A1178    8BC8            mov ecx,eax  
+```
+
+### 【小结】：
+
+总算把烦人的“非注册用户只能做前 40 道题！”的提示框 和 它所限制的 40 道题的数据完美解决了，但下面又有新问题了：“在考试时，老师在给我们批阅试卷的时候，某些题是错了的，但也不能让我们不明不白错下去撒~~~“得一失，长一智”，下面我们就来解决它的这个功能限制！
+
+**失足之地，患得患失 “江山是靠我们打回来的~~~哈哈哈哈~~”**
+
+这里主要还是借助我们刚才对程序所下的 `vb` 的 API 函数断点：`rtcMsgBox`
+
+```
+0088F92A    66:393D 28408B0>cmp word ptr ds:[8B4028],di            //注册码验证失败后，弹出提示框，di=0  
+0088F931    897D E8         mov dword ptr ss:[ebp-18],edi          //计数器全部逐一清零，edi=0  
+0088F934    897D D8         mov dword ptr ss:[ebp-28],edi  
+0088F937    897D C8         mov dword ptr ss:[ebp-38],edi  
+0088F93A    897D B8         mov dword ptr ss:[ebp-48],edi  
+0088F93D    897D A8         mov dword ptr ss:[ebp-58],edi  
+0088F940    897D 98         mov dword ptr ss:[ebp-68],edi  
+0088F943    897D 88         mov dword ptr ss:[ebp-78],edi  
+0088F946    0F85 8B000000   jnz 驾照考试.0088F9D7                 //爆破点 H  
+0088F94C    8B35 88114000   mov esi,dword ptr ds:[<&MSVBVM60.__vbaVarDu>; MSVBVM60.__vbaVarDup  
+0088F952    B9 04000280     mov ecx,80020004  
+0088F957    894D B0         mov dword ptr ss:[ebp-50],ecx  
+0088F95A    B8 0A000000     mov eax,0A                             //eax=5  
+0088F95F    894D C0         mov dword ptr ss:[ebp-40],ecx  
+0088F962    BF 08000000     mov edi,8                              //edi=0  
+0088F967    8D55 88         lea edx,dword ptr ss:[ebp-78]  
+0088F96A    8D4D C8         lea ecx,dword ptr ss:[ebp-38]  
+0088F96D    8945 A8         mov dword ptr ss:[ebp-58],eax          //eax=0A  
+0088F970    8945 B8         mov dword ptr ss:[ebp-48],eax          //eax=0A  
+0088F973    C745 90 F468400>mov dword ptr ss:[ebp-70],驾照考试.004068F4  
+0088F97A    897D 88         mov dword ptr ss:[ebp-78],edi          //edi=8  
+0088F97D    FFD6            call esi  
+0088F97F    8D55 98         lea edx,dword ptr ss:[ebp-68]          //eax=4  
+0088F982    8D4D D8         lea ecx,dword ptr ss:[ebp-28]  
+0088F985    C745 A0 D468400>mov dword ptr ss:[ebp-60],驾照考试.004068D4  
+0088F98C    897D 98         mov dword ptr ss:[ebp-68],edi          //edi=8  
+0088F98F    FFD6            call esi  
+0088F991    8D4D A8         lea ecx,dword ptr ss:[ebp-58]  
+0088F994    8D55 B8         lea edx,dword ptr ss:[ebp-48]          //edx=18  
+0088F997    51              push ecx  
+0088F998    8D45 C8         lea eax,dword ptr ss:[ebp-38]  
+0088F99B    52              push edx  
+0088F99C    50              push eax  
+0088F99D    8D4D D8         lea ecx,dword ptr ss:[ebp-28]  
+0088F9A0    6A 40           push 40  
+0088F9A2    51              push ecx  
+0088F9A3    FF15 7C104000   call dword ptr ds:[<&MSVBVM60.#595>]         ; MSVBVM60.rtcMsgBox    //注册用户可以使用此功能！  
+0088F9A9    8BC8            mov ecx,eax                              //eax=1  
+```
+
+### 【小结】：
+
+解决上面的问题是我们大家最容易做到的，但有时也会往往疏忽这一点，能做到这一步我们“势在必得”
+
+**道高一尺，魔高一丈 “杀掉烦人的 NAG 注册框”**
+
+最难的一个关卡来咯：程序通过计时器来，做不定时验证，并附带烦人的“注册 NAG 框”，我们决定一起来把他 `Kill`!!
+
+这里所用到的 `vb` 的 API 函数断点：`rtcVarStrFromVar`
+
+（这个断点让我很受伤。。。。。来回折腾了半天，主要是因为在 `VB` 里所有的窗体文件 `Form.frm` 都会调用到它!!所以。。。）
+
+经过 N 次的 `F9` 运行，`F2` 取消断点，最终来到了主界面，又由于程序做不定时验证，我点了只烟，经过漫长的的等待。。。。终于断下了：
+
+
+
+## 代码段分析
+
+```
+008AD1CB    83C4 10            add esp,10  
+
+008AD1CE    8D45 D4            lea eax,dword ptr ss:[ebp-2C]  
+
+008AD1D1    8D4D B0            lea ecx,dword ptr ss:[ebp-50]  
+
+008AD1D4    50                 push eax  
+
+008AD1D5    51                 push ecx  
+
+008AD1D6    FF15 8C114000      call dword ptr ds:[<&MSVBVM60.#613>]        ; MSVBVM60.rtcVarStrFromVar   //这里断下  爆破 TNT  
+
+008AD1DC    8D55 B0            lea edx,dword ptr ss:[ebp-50]  
+
+008AD1DF    8D45 A0            lea eax,dword ptr ss:[ebp-60]  
+
+008AD1E2    52                 push edx  
+
+008AD1E3    50                 push eax  
+
+008AD1E4    FF15 90104000      call dword ptr ds:[<&MSVBVM60.#520>]        ; MSVBVM60.rtcTrimVar          //搞鬼的计时器  
+
+008AD1EA    8D4D A0            lea ecx,dword ptr ss:[ebp-60]  
+
+008AD1ED    51                 push ecx  
+
+008AD1EE    FF15 24104000      call dword ptr ds:[<&MSVBVM60.__vbaStrVarMove>; MSVBVM60.__vbaStrVarMove  
+
+008AD1F4    8BD0               mov edx,eax  
+
+008AD1F6    8D4D E8            lea ecx,dword ptr ss:[ebp-18]               //(UNICODE "-464848367")    edx=14  
+```
+
+## 小结
+
+反复跟了几次，我还是“硬性”去掉了那个烦人的 `NAG` 窗，哈哈，总算做完了，不过打开修改后的程序，看到那几个大大的“驾照考试模拟系统 2005  V1.0 版（未注册）”就是不爽，我决定把它“美”一下，呵呵~~~
+
+********** 人不可貌像，海水不可斗量  **********
+
+美化部分（略）
+
+## 补充
+
+文件：`jzsjk.mdb` 数据库密码：`kjq88880327`
+
+## 爆破点总结①：（硬性之道 篇）
+
+============================================
+
+大于 40 道题数据题库部分：
+
+```
+008A10E2   7512                 jne 008A10F6        //jne 改 je  
+0089C1FA   7512                 jne 0089C20E        //jne 改 je  
+0089C6F4   7512                 jne 0089C708        //jne 改 je  
+0089CAEA   7512                 jne 0089CAFE        //jne 改 je  
+0089CEE0   7512                 jne 0089CEF4        //jne 改 je  
+0089D934   7512                 jne 0089D948        //jne 改 je  
+0089F044   7512                 jne 0089F058        //jne 改 je  
+```
+
+“非注册用户只能做前 40 道题！”提示框部分：
+
+```
+008A10FE   0F85AF000000         jne 008A11B3        //jne 改 je  
+0089C216   0F85AF000000         jne 0089C2CB        //jne 改 je  
+0089C710   0F85AF000000         jne 0089C7C5        //jne 改 je  
+0089CB06   0F85AF000000         jne 0089CBBB        //jne 改 je  
+0089CEFC   0F85AF000000         jne 0089CFB1        //jne 改 je  
+0089D950   0F85AF000000         jne 0089DA05        //jne 改 je  
+0089F060   0F85AF000000         jne 0089F115        //jne 改 je  
+```
+
+“驾照考试模拟系统 2005  V1.0 版（未注册）”窗口部分：
+
+```
+008AC27A   7520                 jne 008AC29C        //jne 改 je  
+```
+
+“驾照考试模拟系统 2005  V1.0 版”窗口部分：
+
+```
+008AC2A4   7520                 jne 008AC2C6        //jne 改 je  
+```
+
+“驾照考试模拟系统 2005  V1.0 版（已注册）”窗口部分：
+
+```
+008B2501   7510                 jne 008B2513        //jne 改 je  
+008B276B   7510                 jne 008B277D        //jne 改 je  
+```
+
+“注册用户可以使用此功能！”提示框部分：
+
+```
+0088F946   0F858B000000         jne 0088F9D7        //jne 改 je  
+```
+
+============================================
+
+## 爆破点总结②：（里刚外柔 篇）
+
+============================================
+
+```
+008AD1D6    FF15 8C114000        call dword ptr ds:[<&MSVBVM60.#613>]      //nop 掉  
+```
+
+然后使用本人提供的“破解版通用注册码”注册：
+
+`S/N：9B8CB-8CFBG-R9EBU-MF7G5-2AR49`
+
+============================================
+
+## 内存注册机：（顺气自然 篇）
+
+中断地址：`008B0A97`
+
+中断次数：`1`
+
+第一字节：`5F`
+
+指令长度：`1`
+
+内存方式---->EAX---->宽字符串
+
+============================================
+
+## 精彩一刻
+
+============================================
+
+```
+008B0A97    5F                 pop edi               ; MSVBVM60.__vbaStrMove     //Find Serial Number !!!  
+```
+
+============================================
+
+## 文章总结
+
+这个软件的算法太 BT 了，看都看花眼了，不过这次还是被我跟到了 `Serial Number`，呵呵~~~~，本来我是帮我一个准备考驾照的姨爹找一套考试模拟软件的，不过“当”下来，先是看到是 VB 的程序，眼睛都大了，没办法，帮人帮到底嘛，经过了漫长的时间，终于完美爆掉了，后来想研究一下该程序的算法，不过初跟了一下，真是 BT 啊~~~~所以最终还是放弃了，闲话就不多说了，收工，和朋友喝茶咯~~~~
+
+〓全文完〓
+
+`Copyright (C) 2005 KuNgBiM[DFCG]`
+
+`2005.05.03`
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,592 +1,791 @@
 
-
 # Advanced Email Extractor PRO
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum1247.htm`](https://www.pediy.com/kssd/pediy03/forum1247.htm)
 
-Advanced Email Extractor PRO   
-http://www.mailutilities.com/aee/aeepro.zip   
-  
-首先说说 Asprotect 的反跟踪代码, SEH(Structure Exception Handling)当然是时下流行的   
-  
-Exception Handler:   
-016F:00E6097B  MOV      EAX,\[ESP+0C\]              ;EAX 是指向 CONTEXT record 的指针   
-016F:00E6097F  ADD      DWORD \[EAX+B8\],BYTE +02  ; \[EAX+B8\] 是产生异常的地址，这里加 2 就是 XOR \[EAX\],EAX 的下一条指令   
-016F:00E60986  PUSH    ECX   
-016F:00E60987  XOR      ECX,ECX   
-016F:00E60989  MOV      \[EAX+04\],ECX              ;clear dr0, 也就是清除断点, 呵呵我们有 SuperBPM 就不用担心了   
-016F:00E6098C  MOV      \[EAX+08\],ECX              ;clear dr1   
-016F:00E6098F  MOV      \[EAX+0C\],ECX              ;clear dr2   
-016F:00E60992  MOV      \[EAX+10\],ECX              ;clear dr3   
-016F:00E60995  MOV      DWORD \[EAX+18\],0155      ;clear global breakpoint enable flags   
-016F:00E6099C  POP      ECX   
-016F:00E6099D  XOR      EAX,EAX                  ;eax\=0 reload context and continue execution   
-016F:00E6099F  RET      
-  
-016F:00E609A0  XOR      EAX,EAX   
-016F:00E609A2  PUSH    DWORD \[FS:EAX\]   
-016F:00E609A5  MOV      \[FS:EAX\],ESP   
-016F:00E609A8  XOR      \[EAX\],EAX                        ;raise exception, 代码是两个字节   
-016F:00E609AA  POP      DWORD \`DOSMGR\_BackFill\_Allowed\`  ;从这里继续执行   
-016F:00E609B1  POP      EAX   
-  
-  
-好, Load AeePro.exe   
-bpx getprocaddress   
-g   
-F12   
-bd \*   
-F12   
-F8   
-F12   
-F8   
-  
-来到:   
-016F:00E616E8  PUSH    EBP   
-016F:00E616E9  MOV      EBP,ESP   
-016F:00E616EB  ADD      ESP,BYTE -0C   
-016F:00E616EE  CALL    00E53130   
-016F:00E616F3  JNZ      NEAR 00E53E0C   
-016F:00E616F9  CALL    00E542C8   
-016F:00E616FE  CALL    00E58A88   
-016F:00E61703  CALL    00E5941C   
-016F:00E61708  CALL    00E5BF00   
-016F:00E6170D  CALL    00E53E0C    ;<--这里下断点, F8 跟进去   
-016F:00E61712  MOV      ESP,EBP      ;<--不会返回到这里   
-016F:00E61714  POP      EBP   
-016F:00E61715  RET      0C   
-  
-  
-上面的 CALL 00E53E0C  F8 跟进去后, 用 F8 一步一步的跟, 当然要小心那些 Exception 啦   
-过不了多远, 来到:   
-016F:00E602F7  CALL    00E60336   
-016F:00E602FC  PUSH    DWORD 00E60305   
-016F:00E60301  INC      DWORD \[ESP\]   
-016F:00E60304  RET      
-  
-016F:00E60336  XOR      EAX,EAX   
-016F:00E60338  JMP      SHORT 00E6033C   
-016F:00E6033A  INT      20   
-016F:00E6033C  PUSH    DWORD \[FS:EAX\]   
-016F:00E6033F  JMP      SHORT 00E60342  ;跳到下面   
-  
-016F:00E60342  MOV      \[FS:EAX\],ESP   
-016F:00E60345  XOR      \[EAX\],EAX      ;raise exception   
-016F:00E60347  JMP      SHORT 00E6034A  ;exception continue execution here, 将光标移到这里按 F7   
-  
-来到:   
-016F:00E60355  POP      EAX   
-016F:00E60356  PUSH    DWORD 00E5E0EC  ;<--下断点 bpx 00E5E0EC   
-016F:00E6035B  PUSH    DWORD 00E6043C  ;g   
-016F:00E60360  PUSH    DWORD 00E5FAD8   
-016F:00E60365  PUSH    DWORD 00E5F788   
-016F:00E6036A  PUSH    DWORD 00E5F15C   
-016F:00E6036F  PUSH    DWORD 00E5EC04   
-016F:00E60374  PUSH    DWORD 00E5FE90   
-016F:00E60379  RET      
-  
-  
-到 00E5E0EC 后 F12, F8, 来到:   
-016F:00E60DDC  PUSH    DWORD E6B8DCDB   
-016F:00E60DE1  PUSH    DWORD 2364   
-016F:00E60DE6  PUSH    DWORD EA74   
-016F:00E60DEB  PUSH    DWORD 00016000   
-016F:00E60DF0  PUSH    DWORD \[00E63014\]   
-016F:00E60DF6  CALL    00E60DFC                        ;这段代码自检运行过的代码, 不是这个 call, 而是后面的代码, 被花指令盖过了   
-016F:00E60DFB  ADD      DWORD \[EBX+78E804C4\],E8FFFFBB  ;应该是 00E60DFF 的 CALL 00E5C97C   
-016F:00E60E05  ADD      \[EAX\],EAX                      ;如果你改了之前的代码, 后面就会出错   
-016F:00E60E07  ADD      \[EAX\],AL   
-016F:00E60E09  ADD      DWORD \[EBX+043104C4\],0001E824   
-016F:00E60E13  ADD      \[EAX\],AL   
-016F:00E60E15  PUSH    DWORD 8B04C483   
-016F:00E60E1A  ADD      EAX,00E63014   
-016F:00E60E1F  CALL    00E60E26      ;<--这里下断点 F8 跟进去   
-016F:00E60E24  CALL    05AA9191   
-016F:00E60E29  ADD      \[ESP\],EAX   
-016F:00E60E2C  RET      
-  
-  
-跟进 00E60E26 后几下 F8, ret 后来到:   
-016F:00E5FE78  MOV      EAX,00E639C4   
-016F:00E5FE7D  MOV      EDX,0A   
-016F:00E5FE82  CALL    00E5C288   
-016F:00E5FE87  CALL    00E5FC9C   
-016F:00E5FE8C  RET      
-  
-往上看就是: (因为按逻辑是要跟进上面的 CALL 00E5FC9C ....还有很大一堆!!! 不多写了, 自己看着办吧)   
-016F:00E5FE62  CMP      DWORD \[EAX\],BYTE +00   
-016F:00E5FE65  JZ      00E5FE69   
-016F:00E5FE67  PUSH    DWORD \[EAX\]   
-016F:00E5FE69  PUSH    DWORD \[EBP\-10\]   
-016F:00E5FE6C  JMP      NEAR \[EBP\-14\]  ;跳到 \[EBP\-14\] 后就离 OEP 不远了, 那里是一堆“垃圾代码”, 看你的啦!   
-  
-最后来到:   
-016F:00E76155  JC      00E7611A   
-016F:00E76157  POP      EBX   
-016F:00E76158  POP      EAX   
-016F:00E76159  ADD      EAX,76B922D4   
-016F:00E7615E  POP      ESP   
-016F:00E7615F  ADD      EAX,EBX   
-016F:00E76161  MOV      \[ESP+1C\],EAX   
-016F:00E76165  POPA      
-016F:00E76166  JMP      EAX          ;Jump to EOP   
-  
-  
-  
+## 下载链接
+
+`http://www.mailutilities.com/aee/aeepro.zip`
+
+## Asprotect 反跟踪代码分析
+
+首先说说 `Asprotect` 的反跟踪代码，`SEH` (Structure Exception Handling) 当然是时下流行的 `Exception Handler`：
+
+```
+016F:00E6097B  MOV      EAX,[ESP+0C]            ;EAX 是指向 CONTEXT record 的指针   
+016F:00E6097F  ADD      DWORD [EAX+B8],BYTE +02 ; [EAX+B8] 是产生异常的地址，这里加 2 就是 XOR [EAX],EAX 的下一条指令   
+016F:00E60986  PUSH     ECX   
+
+016F:00E60987  XOR      ECX,ECX   
+
+016F:00E60989  MOV      [EAX+04],ECX            ;clear dr0, 也就是清除断点, 呵呵我们有 SuperBPM 就不用担心了   
+
+016F:00E6098C  MOV      [EAX+08],ECX            ;clear dr1   
+
+016F:00E6098F  MOV      [EAX+0C],ECX            ;clear dr2   
+
+016F:00E60992  MOV      [EAX+10],ECX            ;clear dr3   
+
+016F:00E60995  MOV      DWORD [EAX+18],0155     ;clear global breakpoint enable flags   
+
+016F:00E6099C  POP      ECX   
+
+016F:00E6099D  XOR      EAX,EAX                 ;eax=0 reload context and continue execution   
+
+016F:00E6099F  RET     
+    
+016F:00E609A0  XOR      EAX,EAX   
+
+016F:00E609A2  PUSH     DWORD [FS:EAX]   
+
+016F:00E609A5  MOV      [FS:EAX],ESP   
+
+016F:00E609A8  XOR      [EAX],EAX               ;raise exception, 代码是两个字节   
+
+016F:00E609AA  POP      DWORD `DOSMGR_BackFill_Allowed` ;从这里继续执行   
+
+016F:00E609B1  POP      EAX   
+```
+
+## 调试过程
+
+好，`Load` `AeePro.exe`
+
+`bpx` `getprocaddress`
+
+`g`
+
+`F12`
+
+`bd` `*`
+
+`F12`
+
+`F8`
+
+`F12`
+
+`F8`
+
+来到：
+
+```
+016F:00E616E8  PUSH     EBP   
+
+016F:00E616E9  MOV      EBP,ESP   
+
+016F:00E616EB  ADD      ESP,BYTE -0C   
+
+016F:00E616EE  CALL     00E53130   
+
+016F:00E616F3  JNZ      NEAR 00E53E0C   
+
+016F:00E616F9  CALL     00E542C8   
+
+016F:00E616FE  CALL     00E58A88   
+
+016F:00E61703  CALL     00E5941C   
+
+016F:00E61708  CALL     00E5BF00   
+
+016F:00E6170D  CALL     00E53E0C    ;<--这里下断点, F8 跟进去   
+
+016F:00E61712  MOV      ESP,EBP     ;<--不会返回到这里   
+
+016F:00E61714  POP      EBP   
+
+016F:00E61715  RET      0C   
+```
+
+上面的 `CALL 00E53E0C` `F8` 跟进去后，用 `F8` 一步一步的跟，当然要小心那些 `Exception` 啦。
+
+过不了多远，来到：
+
+```
+016F:00E602F7  CALL     00E60336   
+
+016F:00E602FC  PUSH     DWORD 00E60305   
+
+016F:00E60301  INC      DWORD [ESP]   
+
+016F:00E60304  RET     
+    
+016F:00E60336  XOR      EAX,EAX   
+
+016F:00E60338  JMP      SHORT 00E6033C   
+
+016F:00E6033A  INT      20   
+
+016F:00E6033C  PUSH     DWORD [FS:EAX]   
+
+016F:00E6033F  JMP      SHORT 00E60342  ;跳到下面   
+
+016F:00E60342  MOV      [FS:EAX],ESP   
+
+016F:00E60345  XOR      [EAX],EAX      ;raise exception   
+
+016F:00E60347  JMP      SHORT 00E6034A  ;exception continue execution here, 将光标移到这里按 F7   
+```
+
+来到：
+
+```
+016F:00E60355  POP      EAX   
+
+016F:00E60356  PUSH     DWORD 00E5E0EC  ;<--下断点 bpx 00E5E0EC   
+
+016F:00E6035B  PUSH     DWORD 00E6043C  ;g   
+
+016F:00E60360  PUSH     DWORD 00E5FAD8   
+
+016F:00E60365  PUSH     DWORD 00E5F788   
+
+016F:00E6036A  PUSH     DWORD 00E5F15C   
+
+016F:00E6036F  PUSH     DWORD 00E5EC04   
+
+016F:00E60374  PUSH     DWORD 00E5FE90   
+
+016F:00E60379  RET      
+```
+
+到 `00E5E0EC` 后 `F12`，`F8`，来到：
+
+```
+016F:00E60DDC  PUSH     DWORD E6B8DCDB   
+
+016F:00E60DE1  PUSH     DWORD 2364   
+
+016F:00E60DE6  PUSH     DWORD EA74   
+
+016F:00E60DEB  PUSH     DWORD 00016000   
+
+016F:00E60DF0  PUSH     DWORD [00E63014]   
+
+016F:00E60DF6  CALL     00E60DFC                       ;这段代码自检运行过的代码, 不是这个 call, 而是后面的代码, 被花指令盖过了   
+
+016F:00E60DFB  ADD      DWORD [EBX+78E804C4],E8FFFFBB ;应该是 00E60DFF 的 CALL 00E5C97C   
+
+016F:00E60E05  ADD      [EAX],EAX                     ;如果你改了之前的代码, 后面就会出错   
+
+016F:00E60E07  ADD      [EAX],AL   
+
+016F:00E60E09  ADD      DWORD [EBX+043104C4],0001E824   
+
+016F:00E60E13  ADD      [EAX],AL   
+
+016F:00E60E15  PUSH     DWORD 8B04C483   
+
+016F:00E60E1A  ADD      EAX,00E63014   
+
+016F:00E60E1F  CALL     00E60E26      ;<--这里下断点 F8 跟进去   
+
+016F:00E60E24  CALL     05AA9191   
+
+016F:00E60E29  ADD      [ESP],EAX   
+
+016F:00E60E2C  RET      
+```
+
+跟进 `00E60E26` 后几下 `F8`，`ret` 后来到：
+
+```
+016F:00E5FE78  MOV      EAX,00E639C4   
+
+016F:00E5FE7D  MOV      EDX,0A   
+
+016F:00E5FE82  CALL     00E5C288   
+
+016F:00E5FE87  CALL     00E5FC9C   
+
+016F:00E5FE8C  RET      
+```
+
+往上看就是：（因为按逻辑是要跟进上面的 `CALL 00E5FC9C` .... 还有很大一堆！！！ 不多写了，自己看着办吧）
+
+```
+016F:00E5FE62  CMP      DWORD [EAX],BYTE +00   
+
+016F:00E5FE65  JZ       00E5FE69   
+
+016F:00E5FE67  PUSH     DWORD [EAX]   
+
+016F:00E5FE69  PUSH     DWORD [EBP-10]   
+
+016F:00E5FE6C  JMP      NEAR [EBP-14]  ;跳到 [EBP-14] 后就离 OEP 不远了, 那里是一堆“垃圾代码”, 看你的啦!   
+```
+
+最后来到：
+
+```
+016F:00E76155  JC       00E7611A   
+
+016F:00E76157  POP      EBX   
+
+016F:00E76158  POP      EAX   
+
+016F:00E76159  ADD      EAX,76B922D4   
+
+016F:00E7615E  POP      ESP   
+
+016F:00E7615F  ADD      EAX,EBX   
+
+016F:00E76161  MOV      [ESP+1C],EAX   
+
+016F:00E76165  POPA     
+
+016F:00E76166  JMP      EAX           ;Jump to EOP   
+```
+
+## 原程序还原和 Import Table 的重建
+
+下面看看原程序的还原和 `Import Table` 的重建（没有手动脱壳经验的，就别往下看了，很长的一部分！）
+
+```
 ;-----------------------------------------------------------------------------------   
-下面看看原程序的还原和 Import Table 的重建 (没有手动脱壳经验的, 就别往下看了, 很长的一部分!)   
-016F:00E5F1F0  JMP      SHORT 00E5F25C   
-016F:00E5F1F2  CALL    00E52568   
-016F:00E5F1F7  MOV      ESI,EAX   
-016F:00E5F1F9  MOV      EAX,\[EBX\]      ;\[EBX\]是 Section RVA   
-016F:00E5F1FB  ADD      EAX,\[EBP\-14\]  ;\[EBP\-14\]是 ImageBase   
-016F:00E5F1FE  MOV      \[EBP\-04\],EAX   
-016F:00E5F201  MOV      ECX,\[EBX+04\]  ;\[EBX+04\]是 Section size   
-016F:00E5F204  MOV      EDX,ESI   
-016F:00E5F206  MOV      EAX,\[EBP\-04\]   
-016F:00E5F209  CALL    00E5ED00      ;还原   
-016F:00E5F20E  MOV      EDI,EAX   
-016F:00E5F210  CMP      EDI,\[EBX+04\]   
-016F:00E5F213  JZ      00E5F21F      ;还原 OK 就跳?   
-016F:00E5F215  MOV      EAX,00E5F2E0   
-016F:00E5F21A  CALL    00E5EB18   
-016F:00E5F21F  CMP      BYTE \[EBP\-05\],00   
-016F:00E5F223  JNZ      00E5F243   
-016F:00E5F225  MOV      BYTE \[EBP\-05\],01   
-016F:00E5F229  PUSH    ESI   
-016F:00E5F22A  MOV      ESI,\[EBP\-04\]   
-016F:00E5F22D  ADD      ESI,BYTE +14   
-016F:00E5F230  PUSH    DWORD \[ESI\]   
-016F:00E5F232  MOV      BYTE \[ESI\],C3   
-016F:00E5F235  CALL    ESI   
-016F:00E5F237  POP      DWORD \[ESI\]   
-016F:00E5F239  POP      ESI   
-016F:00E5F23A  MOV      EDX,EDI   
-016F:00E5F23C  MOV      EAX,ESI   
-016F:00E5F23E  CALL    00E5ED20   
-016F:00E5F243  MOV      ECX,EDI   
-016F:00E5F245  MOV      EDX,ESI   
-016F:00E5F247  MOV      EAX,\[EBP\-04\]   
-016F:00E5F24A  CALL    00E5449C      ;将还原后的 data 复制到原程序的空间   
-016F:00E5F24F  MOV      EDX,\[EBX+04\]   
-016F:00E5F252  MOV      EAX,ESI   
-016F:00E5F254  CALL    00E52580   
-016F:00E5F259  ADD      EBX,BYTE +0C   
-016F:00E5F25C  MOV      EAX,\[EBX+04\]  ;eax = next section size   
-016F:00E5F25F  TEST    EAX,EAX   
-016F:00E5F261  JG      00E5F1F2      ;还没全部还原完就跳   
-016F:00E5F263  CMP      DWORD \[EBP\-0C\],BYTE +00   
-016F:00E5F267  JZ      00E5F271   
-016F:00E5F269  MOV      EAX,\[EBP\-0C\]   
-016F:00E5F26C  MOV      EDX,\[EBP\-10\]   
-016F:00E5F26F  MOV      \[EAX\],EDX   
-016F:00E5F271  CALL    00E5F2B0   
-016F:00E5F276  PUSH    DWORD 00E5F27F   
-016F:00E5F27B  INC      DWORD \[ESP\]   
-016F:00E5F27E  RET      
+
+016F:00E5F1F0  JMP      SHORT 00E5F25C   
+
+016F:00E5F1F2  CALL     00E52568   
+
+016F:00E5F1F7  MOV      ESI,EAX   
+
+016F:00E5F1F9  MOV      EAX,[EBX]      ;[EBX]是 Section RVA   
+
+016F:00E5F1FB  ADD      EAX,[EBP-14]   ;[EBP-14]是 ImageBase   
+
+016F:00E5F1FE  MOV      [EBP-04],EAX   
+
+016F:00E5F201  MOV      ECX,[EBX+04]   ;[EBX+04]是 Section size   
+
+016F:00E5F204  MOV      EDX,ESI   
+
+016F:00E5F206  MOV      EAX,[EBP-04]   
+
+016F:00E5F209  CALL     00E5ED00      ;还原   
+
+016F:00E5F20E  MOV      EDI,EAX   
+
+016F:00E5F210  CMP      EDI,[EBX+04]   
+
+016F:00E5F213  JZ       00E5F21F      ;还原 OK 就跳?   
+
+016F:00E5F215  MOV      EAX,00E5F2E0   
+
+016F:00E5F21A  CALL     00E5EB18   
+
+016F:00E5F21F  CMP      BYTE [EBP-05],00   
+
+016F:00E5F223  JNZ      00E5F243   
+
+016F:00E5F225  MOV      BYTE [EBP-05],01   
+
+016F:00E5F229  PUSH     ESI   
+
+016F:00E5F22A  MOV      ESI,[EBP-04]   
+
+016F:00E5F22D  ADD      ESI,BYTE +14   
+
+016F:00E5F230  PUSH     DWORD [ESI]   
+
+016F:00E5F232  MOV      BYTE [ESI],C3   
+
+016F:00E5F235  CALL     ESI   
+
+016F:00E5F237  POP      DWORD [ESI]   
+
+016F:00E5F239  POP      ESI   
+
+016F:00E5F23A  MOV      EDX,EDI   
+
+016F:00E5F23C  MOV      EAX,ESI   
+
+016F:00E5F23E  CALL     00E5ED20   
+
+016F:00E5F243  MOV      ECX,EDI   
+
+016F:00E5F245  MOV      EDX,ESI   
+
+016F:00E5F247  MOV      EAX,[EBP-04]   
+
+016F:00E5F24A  CALL     00E5449C      ;将还原后的 data 复制到原程序的空间   
+
+016F:00E5F24F  MOV      EDX,[EBX+04]   
+
+016F:00E5F252  MOV      EAX,ESI   
+
+016F:00E5F254  CALL     00E52580   
+
+016F:00E5F259  ADD      EBX,BYTE +0C   
+
+016F:00E5F25C  MOV      EAX,[EBX+04]   ;eax = next section size   
+
+016F:00E5F25F  TEST     EAX,EAX   
+
+016F:00E5F261  JG       00E5F1F2      ;还没全部还原完就跳   
+
+016F:00E5F263  CMP      DWORD [EBP-0C],BYTE +00   
+
+016F:00E5F267  JZ       00E5F271   
+
+016F:00E5F269  MOV      EAX,[EBP-0C]   
+
+016F:00E5F26C  MOV      EDX,[EBP-10]   
+
+016F:00E5F26F  MOV      [EAX],EDX   
+
+016F:00E5F271  CALL     00E5F2B0   
+
+016F:00E5F276  PUSH     DWORD 00E5F27F   
+
+016F:00E5F27B  INC      DWORD [ESP]   
+
+016F:00E5F27E  RET     
+
 ;-----------------------------------------------------------------------------------   
-  
-  
-;===================================================================================   
-Import Table 的重定向   
-016F:00E5F962  PUSHA    
-016F:00E5F963  CLD      
-016F:00E5F964  MOV      ESI,\[EBP\-04\]   
-016F:00E5F967  LODSD    
-016F:00E5F968  OR      EAX,EAX   
-016F:00E5F96A  JZ      00E5F9B6        ;处理完所有 DLL 了吗? 是就跳   
-016F:00E5F96C  MOV      EDI,EAX        ;EAX --> Next IAT RVA   
-016F:00E5F96E  ADD      EDI,\[00E63560\]  ;\[00E63560\] --> ImageBase   
-016F:00E5F974  MOV      \[EBP\-08\],EDI    ;EDI 指向该 DLL 的第一个 IAT   
-016F:00E5F977  MOV      EBX,ESI        ;ESI 指向 DLL Name   
-016F:00E5F979  XOR      ECX,ECX   
-016F:00E5F97B  DEC      ECX   
-016F:00E5F97C  XCHG    EDI,ESI   
-016F:00E5F97E  XOR      AL,AL   
-016F:00E5F980  REPNE SCASB   
-016F:00E5F982  XCHG    EDI,ESI   
-016F:00E5F984  LODSB    
-016F:00E5F985  CMP      AL,00   
-016F:00E5F988  JZ      00E5F967      ;该 DLL 处理完了吗?   
-016F:00E5F98A  CMP      AL,06        ;特殊 Import function ?  如 GetVersion, 下面有列出   
-016F:00E5F98D  JNZ      00E5F995      ;不是就跳(本想把这里改为 jmp, 就以为可以得到完整的 IAT, 可惜再细看后才发现该特殊 Import function name 根本就没有存起来!   
-016F:00E5F98F  ADD      DWORD \[EBP\-08\],BYTE +04  ;是特殊 Import function 就跳过不处理, 后面有说这些是怎么处理的   
-016F:00E5F993  JMP      SHORT 00E5F984   
-016F:00E5F995  PUSH    EBX          ;<--DLL name   
-016F:00E5F996  PUSH    ESI          ;<--Encrpyted Function Name   
-016F:00E5F997  PUSH    EBX   
-016F:00E5F998  LEA      EBX,\[EBP\-08\]  ;<--IAT   
-016F:00E5F99B  PUSH    EBX   
-016F:00E5F99C  CMP      AL,02        ;import function by name or ord?   
-016F:00E5F99F  JZ      00E5F9A7   
-016F:00E5F9A1  MOVZX    ECX,BYTE \[ESI\]   
-016F:00E5F9A4  INC      ECX   
-016F:00E5F9A5  JMP      SHORT 00E5F9AC   
-016F:00E5F9A7  MOV      ECX,04   
-016F:00E5F9AC  ADD      ESI,ECX  ;esi --> end of Encrpyted Function by name or import function by ord?   
-016F:00E5F9AE  CALL    00E5F674  ;<--看下面的 00E5F674   
-016F:00E5F9B3  POP      EBX   
-016F:00E5F9B4  JMP      SHORT 00E5F984   
-016F:00E5F9B6  POPA      
-016F:00E5F9B7  CALL    00E5F9F6   
-016F:00E5F9BC  PUSH    DWORD 00E5F9C5   
-016F:00E5F9C1  INC      DWORD \[ESP\]   
-016F:00E5F9C4  RET      
-  
-  
-调用 GetProcAddress, 生成重定向代码的函数:   
-016F:00E5F674  PUSH    EBP   
-016F:00E5F675  MOV      EBP,ESP   
-016F:00E5F677  ADD      ESP,FFFFFEFC   
-016F:00E5F67D  PUSH    EBX   
-016F:00E5F67E  PUSH    ESI   
-016F:00E5F67F  PUSH    EDI   
-016F:00E5F680  MOV      ESI,\[EBP+10\]   
-016F:00E5F683  MOV      EDI,\[EBP+08\]   
-016F:00E5F686  MOV      EAX,ESI   
-016F:00E5F688  DEC      EAX   
-016F:00E5F689  XOR      EBX,EBX   
-016F:00E5F68B  MOV      BL,\[EAX\]   
-016F:00E5F68D  LEA      EAX,\[EBP+FFFFFEFF\]   
-016F:00E5F693  XOR      ECX,ECX   
-016F:00E5F695  MOV      EDX,0100   
-016F:00E5F69A  CALL    00E52768      ;<--清空 eax 指向的空间   
-016F:00E5F69F  MOV      EAX,EBX   
-016F:00E5F6A1  DEC      EAX   
-016F:00E5F6A2  SUB      EAX,BYTE +02   
-016F:00E5F6A5  JC      00E5F700   
-016F:00E5F6A7  JZ      NEAR 00E5F772   
-016F:00E5F6AD  DEC      EAX   
-016F:00E5F6AE  JZ      00E5F700   
-016F:00E5F6B0  DEC      EAX   
-016F:00E5F6B1  JNZ      NEAR 00E5F77B   
-016F:00E5F6B7  MOV      AL,\[ESI\]   
-016F:00E5F6B9  MOV      \[EBP\-01\],AL   
-016F:00E5F6BC  INC      ESI   
-016F:00E5F6BD  XOR      EBX,EBX   
-016F:00E5F6BF  MOV      BL,\[EBP\-01\]   
-016F:00E5F6C2  MOV      ECX,EBX   
-016F:00E5F6C4  LEA      EAX,\[EBP+FFFFFEFF\]   
-016F:00E5F6CA  MOV      EDX,ESI   
-016F:00E5F6CC  CALL    00E5449C    ;<--Copy encrypted function name to eax 指向的空间   
-016F:00E5F6D1  PUSH    BYTE +0A   
-016F:00E5F6D3  MOV      ECX,00E639BA   
-016F:00E5F6D8  MOV      EDX,EBX   
-016F:00E5F6DA  LEA      EAX,\[EBP+FFFFFEFF\]   
-016F:00E5F6E0  CALL    00E5C3E0            ;<--还原 Import Function Name   
-016F:00E5F6E5  LEA      ESI,\[EBP+FFFFFEFF\]  ;<--esi 指向 Import Function Name   
-016F:00E5F6EB  PUSH    ESI   
-016F:00E5F6EC  MOV      EAX,\[EBP+0C\]        ;<--eax 指向 dll name   
-016F:00E5F6EF  PUSH    EAX   
-016F:00E5F6F0  CALL    00E5F30C            ;<--GetProcAddress by name，在 eax 返回地址   
-016F:00E5F6F5  CALL    00E5F578            ;<--(下面有说明) 在返回的 eax 指向的空间生成跳到 Import Function 的代码?   
-                                            ;可以将这句 call nop 掉, 直接将 EAX 放到 \[EDX\] 中,   
-                                            ;整个输入表就差那些特殊的 Import functions 了要重建了   
-                                            ;(当然 Import REConstructor v1.2 已经可以重建改输入表了, 不用这么麻烦)   
-                                            ;要是真的改了该代码, 要在处理完所有的 DLL 后, 还原该代码, 因为后面有自检   
-016F:00E5F6FA  MOV      EDX,\[EDI\]   
-016F:00E5F6FC  MOV      \[EDX\],EAX          ;<-- 重定向 IAT?   
-016F:00E5F6FE  JMP      SHORT 00E5F77B      ;<--完成   
-  
-016F:00E5F700  CMP      EBX,BYTE +01      ;encrypted funciont name?   
-016F:00E5F703  JZ      00E5F70A   
-016F:00E5F705  CMP      EBX,BYTE +04      ;Import function by ord?   
-016F:00E5F708  JNZ      00E5F741   
-016F:00E5F70A  MOV      AL,\[ESI\]   
-016F:00E5F70C  MOV      \[EBP\-01\],AL   
-016F:00E5F70F  INC      ESI   
-016F:00E5F710  XOR      ECX,ECX   
-016F:00E5F712  MOV      CL,\[EBP\-01\]   
-016F:00E5F715  LEA      EAX,\[EBP+FFFFFEFF\]   
-016F:00E5F71B  MOV      EDX,ESI   
-016F:00E5F71D  CALL    00E5449C            ;copy encrypted function name to \[eax\]   
-016F:00E5F722  PUSH    BYTE +0A   
-016F:00E5F724  MOV      ECX,00E639B0   
-016F:00E5F729  XOR      EDX,EDX   
-016F:00E5F72B  MOV      DL,\[EBP\-01\]   
-016F:00E5F72E  LEA      EAX,\[EBP+FFFFFEFF\]   
-016F:00E5F734  CALL    00E5C3E0            ;decrypt function name   
-016F:00E5F739  LEA      ESI,\[EBP+FFFFFEFF\]   
-016F:00E5F73F  JMP      SHORT 00E5F743   
-016F:00E5F741  MOV      ESI,\[ESI\]   
-016F:00E5F743  CMP      EBX,BYTE +04   
-016F:00E5F746  JNZ      00E5F762   
-016F:00E5F748  PUSH    ESI                ;<--Import function name is GetProcAddress ?   
-016F:00E5F749  MOV      EAX,\[EBP+0C\]   
-016F:00E5F74C  PUSH    EAX   
-016F:00E5F74D  CALL    00E5F30C   
-016F:00E5F752  MOV      \[00E6355C\],EAX   
-016F:00E5F757  MOV      EAX,00E5C490      ;<--00E5C490 处的代码自己看吧, 应该是 GetProcAddress   
-016F:00E5F75C  MOV      EDX,\[EDI\]   
-016F:00E5F75E  MOV      \[EDX\],EAX   
-016F:00E5F760  JMP      SHORT 00E5F77B   
-016F:00E5F762  PUSH    ESI            ;<--esi 指向 Import Function Name or esi is import function ord   
-016F:00E5F763  MOV      EAX,\[EBP+0C\]   
-016F:00E5F766  PUSH    EAX            ;<--eax 指向 dll name   
-016F:00E5F767  CALL    00E5F30C        ;<--GetProcAddress by ord，在 eax 返回地址   
-016F:00E5F76C  MOV      EDX,\[EDI\]   
-016F:00E5F76E  MOV      \[EDX\],EAX   
-016F:00E5F770  JMP      SHORT 00E5F77B   
-016F:00E5F772  MOV      EAX,00E5C468   
-016F:00E5F777  MOV      EDX,\[EDI\]   
-016F:00E5F779  MOV      \[EDX\],EAX   
-  
-016F:00E5F77B  ADD      DWORD \[EDI\],BYTE +04   
-016F:00E5F77E  POP      EDI   
-016F:00E5F77F  POP      ESI   
-016F:00E5F780  POP      EBX   
-016F:00E5F781  MOV      ESP,EBP   
-016F:00E5F783  POP      EBP   
-016F:00E5F784  RET      0C   
-  
-  
-  
-生成跳到真正 Import Function 地址的代码:   
-016F:00E5F578  PUSH    EBX   
-016F:00E5F579  PUSH    ESI   
-016F:00E5F57A  PUSH    EDI   
-016F:00E5F57B  PUSH    EBP   
-016F:00E5F57C  ADD      ESP,BYTE -10   
-016F:00E5F57F  MOV      \[ESP\],EAX   
-016F:00E5F582  MOV      EAX,C8   
-016F:00E5F587  CALL    00E52568   
-016F:00E5F58C  MOV      \[ESP+04\],EAX   
-016F:00E5F590  MOV      EAX,\[ESP+04\]   
-016F:00E5F594  MOV      \[ESP+08\],EAX   
-016F:00E5F598  MOV      EBP,\[ESP\]   
-016F:00E5F59B  CALL    00E5F524   
-016F:00E5F5A0  MOV      EBX,EAX   
-016F:00E5F5A2  MOV      BYTE \[ESP+0C\],00   
-016F:00E5F5A7  MOVZX    ESI,BYTE \[EBX\]   
-016F:00E5F5AA  LEA      EAX,\[EBX+01\]   
-016F:00E5F5AD  MOVZX    EDI,BYTE \[EAX\]   
-016F:00E5F5B0  LEA      EDX,\[EBX+02\]   
-016F:00E5F5B3  MOV      ECX,ESI   
-016F:00E5F5B5  MOV      EAX,EBP   
-016F:00E5F5B7  CALL    00E5BF44   
-016F:00E5F5BC  TEST    AL,AL   
-016F:00E5F5BE  JZ      00E5F5D8   
-016F:00E5F5C0  MOV      ECX,EDI   
-016F:00E5F5C2  MOV      EDX,EBP   
-016F:00E5F5C4  MOV      EAX,\[ESP+08\]   
-016F:00E5F5C8  CALL    00E5449C   
-016F:00E5F5CD  ADD      \[ESP+08\],EDI   
-016F:00E5F5D1  ADD      EBP,EDI   
-016F:00E5F5D3  MOV      BYTE \[ESP+0C\],01   
-016F:00E5F5D8  ADD      ESI,BYTE +02   
-016F:00E5F5DB  ADD      EBX,ESI   
-016F:00E5F5DD  CMP      BYTE \[ESP+0C\],00   
-016F:00E5F5E2  JNZ      00E5F5E9   
-016F:00E5F5E4  CMP      BYTE \[EBX\],00   
-016F:00E5F5E7  JNZ      00E5F5A7   
-016F:00E5F5E9  CMP      BYTE \[ESP+0C\],00   
-016F:00E5F5EE  JNZ      00E5F59B   
-016F:00E5F5F0  CALL    00E52698   
-016F:00E5F5F5  MOV      ESI,\[ESP+08\]   
-016F:00E5F5F9  SUB      ESI,\[ESP+04\]   
-016F:00E5F5FD  LEA      EAX,\[ESI+06\]   
-016F:00E5F600  CALL    00E52568   
-016F:00E5F605  MOV      EBX,EAX   
-016F:00E5F607  MOV      ECX,ESI   
-016F:00E5F609  MOV      EDI,\[ESP+04\]   
-016F:00E5F60D  MOV      EDX,EDI   
-016F:00E5F60F  MOV      EAX,EBX   
-016F:00E5F611  CALL    00E5449C   
-016F:00E5F616  MOV      EBP,EBX   
-016F:00E5F618  ADD      EBP,ESI   
-016F:00E5F61A  MOV      \[ESP+08\],EBP   
-016F:00E5F61E  MOV      EAX,02   
-016F:00E5F623  CALL    00E52788   
-016F:00E5F628  SUB      EAX,BYTE +01   
-016F:00E5F62B  JNC      00E5F647   
-016F:00E5F62D  MOV      EAX,\[ESP+08\]   
-016F:00E5F631  MOV      BYTE \[EAX\],E9  ;<--jmp 的代码, 上面的不说了   
-016F:00E5F634  ADD      EBP,BYTE +05   
-016F:00E5F637  MOV      EAX,\[ESP\]   
-016F:00E5F63A  SUB      EAX,EBP   
-016F:00E5F63C  ADD      ESI,EAX   
-016F:00E5F63E  MOV      EAX,\[ESP+08\]   
-016F:00E5F642  INC      EAX   
-016F:00E5F643  MOV      \[EAX\],ESI   
-016F:00E5F645  JMP      SHORT 00E5F662   
-016F:00E5F647  MOV      EAX,\[ESP+08\]  ;\[ESP+08\]是要修改的代码的首址   
-016F:00E5F64B  MOV      BYTE \[EAX\],68  ;<--push 的代码   
-016F:00E5F64E  ADD      ESI,\[ESP\]      ;\[ESP\] 为真正的 Import Function Address, 如 \[ESP\] = BFF72535,   
-016F:00E5F651  MOV      EAX,\[ESP+08\]  ;而 ESI 就是 push 前的代码字节数, 如 ESI = 1   
-016F:00E5F655  INC      EAX            ;eax 为下一个要修改的代码地址   
-016F:00E5F656  MOV      \[EAX\],ESI      ;exp: 如果 上面的 ESI = 1, \[ESP\] = BFF72535, 则这时的 ESI = BFF72536   
-016F:00E5F658  MOV      EAX,\[ESP+08\]  ;\[ESP+08\]是要修改的代码的首址   
-016F:00E5F65C  ADD      EAX,BYTE +05  ;PUSH XXXXXXXX 为 5 个字节   
-016F:00E5F65F  MOV      BYTE \[EAX\],C3  ;ret 代码   
-016F:00E5F662  MOV      EAX,EDI   
-016F:00E5F664  CALL    00E52580   
-016F:00E5F669  MOV      EAX,EBX   
-016F:00E5F66B  ADD      ESP,BYTE +10   
-016F:00E5F66E  POP      EBP   
-016F:00E5F66F  POP      EDI   
-016F:00E5F670  POP      ESI   
-016F:00E5F671  POP      EBX   
-016F:00E5F672  RET      
-  
-  
-处理特殊 Import functions:   
-016F:00E5FA60  PUSHA    
-016F:00E5FA61  PUSH    DWORD 00E621F0   
-016F:00E5FA66  LEA      EAX,\[EBP\-0C\]   
-016F:00E5FA69  PUSH    DWORD \[00E63560\]   
-016F:00E5FA6F  CALL    NEAR \[EAX\]        ;call 下面的 00E71238   
-016F:00E5FA71  POPA      
-  
-  
-016F:00E71238  CALL    00E7123D   
-016F:00E7123D  POP      EBP   
-016F:00E7123E  CLD      
-016F:00E7123F  LEA      ESI,\[EBP+2F\]  ;ESI 指向特殊 Import function 的相关信息   
-016F:00E71242  XOR      EAX,EAX   
-016F:00E71244  LODSB    
-016F:00E71245  OR      AL,AL   
-016F:00E71247  JZ      00E71265      ;完了吗?   
-016F:00E71249  DEC      AL   
-016F:00E7124B  SHL      EAX,02   
-016F:00E7124E  ADD      EAX,\[ESP+08\]  ;\[ESP+08\]就是指向第一个特殊 Import function 的重定向地址, 我看到的就有 10 个这样的 functions   
-016F:00E71252  MOV      EBX,\[EAX\]    ;EBX 为该特殊 Import function 的重定向地址   
-016F:00E71254  LODSD                  ;该 EBX 指向的代码如: mov eax, \[xxxxxxxx\]   
-016F:00E71255  ADD      EAX,\[ESP+04\]  ;                  ret , 这些就是我们要手动修改的 IAT   
-016F:00E71259  MOV      \[EAX\],EBX    ;EAX 指向 IAT   
-016F:00E7125B  XOR      EAX,EAX   
-016F:00E7125D  MOV      \[ESI\-04\],EAX  ;clear   
-016F:00E71260  MOV      \[ESI\-05\],AL  ;clear   
-016F:00E71263  JMP      SHORT 00E71244   
-016F:00E71265  RET      08   
-  
-  
-特殊的 Import functions:   
-016F:00E5C7D8  PUSH    BYTE +00   
-016F:00E5C7DA  CALL    \`KERNEL32!GetModuleHandleA\`   
-016F:00E5C7DF  MOV      \[00E635D4\],EAX   
-016F:00E5C7E4  CALL    \`KERNEL32!GetVersion\`   
-016F:00E5C7E9  MOV      \[00E635D8\],EAX   
-016F:00E5C7EE  PUSH    DWORD 00E635E4   
-016F:00E5C7F3  CALL    \`KERNEL32!GetVersionExA\`   
-016F:00E5C7F8  CALL    \`KERNEL32!GetCurrentProcess\`   
-016F:00E5C7FD  MOV      \[00E635DC\],EAX   
-016F:00E5C802  CALL    \`KERNEL32!GetCurrentProcessId\`   
-016F:00E5C807  MOV      \[00E635E0\],EAX   
-016F:00E5C80C  CALL    \`KERNEL32!GetCommandLineA\`   
-016F:00E5C811  MOV      \[00E63678\],EAX   
-016F:00E5C816  RET      
-016F:00E5C817  NOP      
-  
-016F:00E5C818  PUSH    EBP              ;<--第一个特殊 Import function 是 KERNEL32!GetModuleHandleA   
-016F:00E5C819  MOV      EBP,ESP   
-016F:00E5C81B  MOV      EAX,\[EBP+08\]   
-016F:00E5C81E  TEST    EAX,EAX   
-016F:00E5C820  JNZ      00E5C829   
-016F:00E5C822  MOV      EAX,\[00E63560\]   
-016F:00E5C827  JMP      SHORT 00E5C82F   
-016F:00E5C829  PUSH    EAX   
-016F:00E5C82A  CALL    \`KERNEL32!GetModuleHandleA\`   
-016F:00E5C82F  POP      EBP   
-016F:00E5C830  RET      04   
-016F:00E5C833  NOP      
-  
-016F:00E5C834  MOV      EAX,\[00E635D8\]    ;<--第二个 KERNEL32!GetVersion   
-016F:00E5C839  RET      
-016F:00E5C83A  MOV      EAX,EAX   
-  
-016F:00E5C83C  PUSH    EBP              ;<--第三个(暂时没见过哪个被加壳的软件有用到, 不知道是什么, 知道的朋友请指出!)   
-016F:00E5C83D  MOV      EBP,ESP   
-016F:00E5C83F  PUSH    ESI   
-016F:00E5C840  PUSH    EDI   
-016F:00E5C841  MOV      EAX,\[EBP+08\]   
-016F:00E5C844  MOV      EDI,EAX   
-016F:00E5C846  MOV      ESI,00E635E4   
-016F:00E5C84B  MOV      ECX,25   
-016F:00E5C850  REP MOVSD   
-016F:00E5C852  MOV      AL,01   
-016F:00E5C854  POP      EDI   
-016F:00E5C855  POP      ESI   
-016F:00E5C856  POP      EBP   
-016F:00E5C857  RET      04   
-016F:00E5C85A  MOV      EAX,EAX   
-  
-016F:00E5C85C  MOV      EAX,\[00E635DC\]    ;<--第四个 GetCurrentProcess   
-016F:00E5C861  RET      
-016F:00E5C862  MOV      EAX,EAX   
-  
-016F:00E5C864  MOV      EAX,\[00E635E0\]    ;<--第五个 GetCurrentProcessId   
-016F:00E5C869  RET      
-016F:00E5C86A  MOV      EAX,EAX   
-  
-016F:00E5C86C  MOV      EAX,\[00E63678\]    ;<--第六个 GetCommandLineA   
-016F:00E5C871  RET      
-016F:00E5C872  MOV      EAX,EAX   
-  
-016F:00E5C874  PUSH    EBP              ;<--第七个 KERNEL32!LockResource   
-016F:00E5C875  MOV      EBP,ESP   
-016F:00E5C877  POP      EBP   
-016F:00E5C878  RET      04   
-016F:00E5C87B  NOP      
-  
-016F:00E5C87C  PUSH    EBP              ;<--第八个 KERNEL32!FreeResource   
-016F:00E5C87D  MOV      EBP,ESP   
-016F:00E5C87F  POP      EBP   
-016F:00E5C880  RET      04   
-016F:00E5C883  NOP      
-  
-016F:00E5C884  PUSH    EBP              ;<--第九个(这个也不知道是什么!)   
-016F:00E5C885  MOV      EBP,ESP   
-016F:00E5C887  MOV      EAX,\[EBP+0C\]   
-016F:00E5C88A  ADD      EAX,BYTE +04   
-016F:00E5C88D  MOV      EAX,\[EAX\]   
-016F:00E5C88F  ADD      EAX,\[EBP+08\]   
-016F:00E5C892  POP      EBP   
-016F:00E5C893  RET      08   
-016F:00E5C896  MOV      EAX,EAX   
-  
-016F:00E5C898  PUSH    EBP              ;<--第十个   
-016F:00E5C899  MOV      EBP,ESP   
-016F:00E5C89B  PUSH    EBX   
-016F:00E5C89C  MOV      EBX,\[EBP+08\]   
-016F:00E5C89F  MOV      EAX,\[EBP+18\]   
-016F:00E5C8A2  PUSH    EAX   
-016F:00E5C8A3  MOV      EAX,\[EBP+14\]   
-016F:00E5C8A6  PUSH    EAX   
-016F:00E5C8A7  MOV      EAX,\[EBP+10\]   
-016F:00E5C8AA  PUSH    EAX   
-016F:00E5C8AB  PUSH    BYTE +05   
-016F:00E5C8AD  MOV      EAX,\[EBP+0C\]   
-016F:00E5C8B0  PUSH    EAX   
-016F:00E5C8B1  PUSH    EBX   
-016F:00E5C8B2  CALL    \`KERNEL32!FindResourceA\`   
-016F:00E5C8B7  PUSH    EAX   
-016F:00E5C8B8  PUSH    EBX   
-016F:00E5C8B9  CALL    \`KERNEL32!LoadResource\`   
-016F:00E5C8BE  PUSH    EAX   
-016F:00E5C8BF  CALL    \`KERNEL32!LockResource\`   
-016F:00E5C8C4  PUSH    EAX   
-016F:00E5C8C5  PUSH    EBX   
-016F:00E5C8C6  CALL    \`USER32!DialogBoxIndirectParamA\`   
-016F:00E5C8CB  POP      EBX   
-016F:00E5C8CC  POP      EBP   
-016F:00E5C8CD  RET      14   
-  
-其中最特殊的是第十个的 DialogBoxIndirectParamA, 但在 AeePro 中没有用到,   
-要是用到的话, 可以将该段代码 dump 下来, 加到脱壳后的程序上去, 再改该 IAT 指向我们加上去的代码的地址。   
-这十个特殊函数我想在 1.2, 1.3 中是一样的。   
-除了上面的特殊函数以外, Asprotect 提供的 API 我们也应该注意, 这我就没仔细研究了。   
-  
-用 Asprotect 加壳的程序, 脱壳后不能运行, 我知道的有:   
-1\. 原程序调用 Asprotect 的"Export Function", 最简单的就是:   
-  push ..   
-  push -1   
-  call GetProcAddress   
-看其返回值是否为 0, 为 0 就出错或退出(AeePro 就是这样的)   
-  
-2\. 原程序自检加壳后的程序(已经加壳了, 真不知道他是怎么检的)。   
-3\. Asprotect 调用原程序的“初始化”函数, 当到达 OEP 前, 某些全局变量已经初始化了, 脱壳后运行就很可能出错,   
-  解决方法是, 修改脱壳后的程序, 先运行该“初始化”函数, 再跳会到 OEP 运行就可以了。   
-4\. 再有就是 DialogBoxIndirectParamA 等的了。   
-  
-当然应该还有其他的。   
-唉, 好长的一篇!(~!@#$%^&\*台下的别扔果皮:)  4dd466d0e1e0cc123afbe504da2462ca
+
+;===================================================================================
+```
+
+### Import Table 的重定向
+
+```
+016F:00E5F962  PUSHA     
+
+016F:00E5F963  CLD      
+
+016F:00E5F964  MOV      ESI,[EBP-04]   
+
+016F:00E5F967  LODSD     
+
+016F:00E5F968  OR       EAX,EAX   
+
+016F:00E5F96A  JZ       00E5F9B6        ;处理完所有 DLL 了吗? 是就跳   
+
+016F:00E5F96C  MOV      EDI,EAX        ;EAX --> Next IAT RVA   
+
+016F:00E5F96E  ADD      EDI,[00E63560] ;[00E63560] --> ImageBase   
+
+016F:00E5F974  MOV      [EBP-08],EDI    ;EDI 指向该 DLL 的第一个 IAT   
+
+016F:00E5F977  MOV      EBX,ESI        ;ESI 指向 DLL Name   
+
+016F:00E5F979  XOR      ECX,ECX   
+
+016F:00E5F97B  DEC      ECX   
+
+016F:00E5F97C  XCHG     EDI,ESI   
+
+016F:00E5F97E  XOR      AL,AL   
+
+016F:00E5F980  REPNE SCASB   
+
+016F:00E5F982  XCHG     EDI,ESI   
+```
+
+
+
+### 016F:00E5F984 - 016F:00E5F9C4 代码段
+
+```
+016F:00E5F984  LODSB   
+016F:00E5F985  CMP      AL,00   
+016F:00E5F988  JZ       00E5F967       ;该 DLL 处理完了吗?   
+016F:00E5F98A  CMP      AL,06          ;特殊 Import function ?  如 GetVersion, 下面有列出   
+016F:00E5F98D  JNZ      00E5F995       ;不是就跳(本想把这里改为 jmp, 就以为可以得到完整的 IAT, 可惜再细看后才发现该特殊 Import function name 根本就没有存起来!   
+016F:00E5F98F  ADD      DWORD [EBP-08],BYTE +04  ;是特殊 Import function 就跳过不处理, 后面有说这些是怎么处理的   
+016F:00E5F993  JMP      SHORT 00E5F984   
+016F:00E5F995  PUSH     EBX            ;<--DLL name   
+016F:00E5F996  PUSH     ESI            ;<--Encrpyted Function Name   
+016F:00E5F997  PUSH     EBX   
+016F:00E5F998  LEA      EBX,[EBP-08]  ;<--IAT   
+016F:00E5F99B  PUSH     EBX   
+016F:00E5F99C  CMP      AL,02          ;import function by name or ord?   
+016F:00E5F99F  JZ       00E5F9A7   
+016F:00E5F9A1  MOVZX    ECX,BYTE [ESI]   
+016F:00E5F9A4  INC      ECX   
+016F:00E5F9A5  JMP      SHORT 00E5F9AC   
+016F:00E5F9A7  MOV      ECX,04   
+016F:00E5F9AC  ADD      ESI,ECX  ;esi --> end of Encrpyted Function by name or import function by ord?   
+016F:00E5F9AE  CALL     00E5F674  ;<--看下面的 00E5F674   
+016F:00E5F9B3  POP      EBX   
+016F:00E5F9B4  JMP      SHORT 00E5F984   
+016F:00E5F9B6  POPA     
+016F:00E5F9B7  CALL     00E5F9F6   
+016F:00E5F9BC  PUSH     DWORD 00E5F9C5   
+016F:00E5F9C1  INC      DWORD [ESP]   
+016F:00E5F9C4  RET      
+```
+
+调用 `GetProcAddress`, 生成重定向代码的函数:
+
+### 016F:00E5F674 - 016F:00E5F784 代码段
+
+```
+016F:00E5F674  PUSH     EBP   
+016F:00E5F675  MOV      EBP,ESP   
+016F:00E5F677  ADD      ESP,FFFFFEFC   
+016F:00E5F67D  PUSH     EBX   
+016F:00E5F67E  PUSH     ESI   
+016F:00E5F67F  PUSH     EDI   
+016F:00E5F680  MOV      ESI,[EBP+10]   
+016F:00E5F683  MOV      EDI,[EBP+08]   
+016F:00E5F686  MOV      EAX,ESI   
+016F:00E5F688  DEC      EAX   
+016F:00E5F689  XOR      EBX,EBX   
+016F:00E5F68B  MOV      BL,[EAX]   
+016F:00E5F68D  LEA      EAX,[EBP+FFFFFEFF]   
+016F:00E5F693  XOR      ECX,ECX   
+016F:00E5F695  MOV      EDX,0100   
+016F:00E5F69A  CALL     00E52768       ;<--清空 eax 指向的空间   
+016F:00E5F69F  MOV      EAX,EBX   
+016F:00E5F6A1  DEC      EAX   
+016F:00E5F6A2  SUB      EAX,BYTE +02   
+016F:00E5F6A5  JC       00E5F700   
+016F:00E5F6A7  JZ       NEAR 00E5F772   
+016F:00E5F6AD  DEC      EAX   
+016F:00E5F6AE  JZ       00E5F700   
+016F:00E5F6B0  DEC      EAX   
+016F:00E5F6B1  JNZ      NEAR 00E5F77B   
+016F:00E5F6B7  MOV      AL,[ESI]   
+016F:00E5F6B9  MOV      [EBP-01],AL   
+016F:00E5F6BC  INC      ESI   
+016F:00E5F6BD  XOR      EBX,EBX   
+016F:00E5F6BF  MOV      BL,[EBP-01]   
+016F:00E5F6C2  MOV      ECX,EBX   
+016F:00E5F6C4  LEA      EAX,[EBP+FFFFFEFF]   
+016F:00E5F6CA  MOV      EDX,ESI   
+016F:00E5F6CC  CALL     00E5449C     ;<--Copy encrypted function name to eax 指向的空间   
+016F:00E5F6D1  PUSH     BYTE +0A   
+016F:00E5F6D3  MOV      ECX,00E639BA   
+016F:00E5F6D8  MOV      EDX,EBX   
+016F:00E5F6DA  LEA      EAX,[EBP+FFFFFEFF]   
+016F:00E5F6E0  CALL     00E5C3E0            ;<--还原 Import Function Name   
+016F:00E5F6E5  LEA      ESI,[EBP+FFFFFEFF]  ;<--esi 指向 Import Function Name   
+016F:00E5F6EB  PUSH     ESI   
+016F:00E5F6EC  MOV      EAX,[EBP+0C]         ;<--eax 指向 dll name   
+016F:00E5F6EF  PUSH     EAX   
+016F:00E5F6F0  CALL     00E5F30C            ;<--GetProcAddress by name，在 eax 返回地址   
+016F:00E5F6F5  CALL     00E5F578            ;<--(下面有说明) 在返回的 eax 指向的空间生成跳到 Import Function 的代码?   
+                                          ;可以将这句 call nop 掉, 直接将 EAX 放到 [EDX] 中,   
+                                          ;整个输入表就差那些特殊的 Import functions 了要重建了   
+                                          ;(当然 Import REConstructor v1.2 已经可以重建改输入表了, 不用这么麻烦)   
+                                          ;要是真的改了该代码, 要在处理完所有的 DLL 后, 还原该代码, 因为后面有自检   
+016F:00E5F6FA  MOV      EDX,[EDI]   
+016F:00E5F6FC  MOV      [EDX],EAX           ;<-- 重定向 IAT?   
+016F:00E5F6FE  JMP      SHORT 00E5F77B       ;<--完成   
+016F:00E5F700  CMP      EBX,BYTE +01        ;encrypted funciont name?   
+016F:00E5F703  JZ       00E5F70A   
+016F:00E5F705  CMP      EBX,BYTE +04        ;Import function by ord?   
+016F:00E5F708  JNZ      00E5F741   
+016F:00E5F70A  MOV      AL,[ESI]   
+016F:00E5F70C  MOV      [EBP-01],AL   
+016F:00E5F70F  INC      ESI   
+016F:00E5F710  XOR      ECX,ECX   
+016F:00E5F712  MOV      CL,[EBP-01]   
+016F:00E5F715  LEA      EAX,[EBP+FFFFFEFF]   
+016F:00E5F71B  MOV      EDX,ESI   
+016F:00E5F71D  CALL     00E5449C            ;copy encrypted function name to [eax]   
+016F:00E5F722  PUSH     BYTE +0A   
+016F:00E5F724  MOV      ECX,00E639B0   
+016F:00E5F729  XOR      EDX,EDX   
+016F:00E5F72B  MOV      DL,[EBP-01]   
+016F:00E5F72E  LEA      EAX,[EBP+FFFFFEFF]   
+016F:00E5F734  CALL     00E5C3E0            ;decrypt function name   
+016F:00E5F739  LEA      ESI,[EBP+FFFFFEFF]   
+016F:00E5F73F  JMP      SHORT 00E5F743   
+016F:00E5F741  MOV      ESI,[ESI]   
+016F:00E5F743  CMP      EBX,BYTE +04   
+016F:00E5F746  JNZ      00E5F762   
+016F:00E5F748  PUSH     ESI                 ;<--Import function name is GetProcAddress ?   
+016F:00E5F749  MOV      EAX,[EBP+0C]   
+016F:00E5F74C  PUSH     EAX   
+016F:00E5F74D  CALL     00E5F30C   
+016F:00E5F752  MOV      [00E6355C],EAX   
+016F:00E5F757  MOV      EAX,00E5C490        ;<--00E5C490 处的代码自己看吧, 应该是 GetProcAddress   
+016F:00E5F75C  MOV      EDX,[EDI]   
+016F:00E5F75E  MOV      [EDX],EAX   
+016F:00E5F760  JMP      SHORT 00E5F77B   
+016F:00E5F762  PUSH     ESI         ;<--esi 指向 Import Function Name or esi is import function ord   
+016F:00E5F763  MOV      EAX,[EBP+0C]   
+016F:00E5F766  PUSH     EAX         ;<--eax 指向 dll name   
+016F:00E5F767  CALL     00E5F30C       ;<--GetProcAddress by ord，在 eax 返回地址   
+016F:00E5F76C  MOV      EDX,[EDI]   
+016F:00E5F76E  MOV      [EDX],EAX   
+016F:00E5F770  JMP      SHORT 00E5F77B   
+016F:00E5F772  MOV      EAX,00E5C468   
+016F:00E5F777  MOV      EDX,[EDI]   
+016F:00E5F779  MOV      [EDX],EAX   
+016F:00E5F77B  ADD      DWORD [EDI],BYTE +04   
+016F:00E5F77E  POP      EDI   
+016F:00E5F77F  POP      ESI   
+016F:00E5F780  POP      EBX   
+016F:00E5F781  MOV      ESP,EBP   
+016F:00E5F783  POP      EBP   
+016F:00E5F784  RET      0C   
+```
+
+生成跳到真正 `Import Function` 地址的代码:
+
+### 016F:00E5F578 - 016F:00E5F605 代码段
+
+```
+016F:00E5F578  PUSH     EBX   
+016F:00E5F579  PUSH     ESI   
+016F:00E5F57A  PUSH     EDI   
+016F:00E5F57B  PUSH     EBP   
+016F:00E5F57C  ADD      ESP,BYTE -10   
+016F:00E5F57F  MOV      [ESP],EAX   
+016F:00E5F582  MOV      EAX,C8   
+016F:00E5F587  CALL     00E52568   
+016F:00E5F58C  MOV      [ESP+04],EAX   
+016F:00E5F590  MOV      EAX,[ESP+04]   
+016F:00E5F594  MOV      [ESP+08],EAX   
+016F:00E5F598  MOV      EBP,[ESP]   
+016F:00E5F59B  CALL     00E5F524   
+016F:00E5F5A0  MOV      EBX,EAX   
+016F:00E5F5A2  MOV      BYTE [ESP+0C],00   
+016F:00E5F5A7  MOVZX    ESI,BYTE [EBX]   
+016F:00E5F5AA  LEA      EAX,[EBX+01]   
+016F:00E5F5AD  MOVZX    EDI,BYTE [EAX]   
+016F:00E5F5B0  LEA      EDX,[EBX+02]   
+016F:00E5F5B3  MOV      ECX,ESI   
+016F:00E5F5B5  MOV      EAX,EBP   
+016F:00E5F5B7  CALL     00E5BF44   
+016F:00E5F5BC  TEST     AL,AL   
+016F:00E5F5BE  JZ       00E5F5D8   
+016F:00E5F5C0  MOV      ECX,EDI   
+016F:00E5F5C2  MOV      EDX,EBP   
+016F:00E5F5C4  MOV      EAX,[ESP+08]   
+016F:00E5F5C8  CALL     00E5449C   
+016F:00E5F5CD  ADD      [ESP+08],EDI   
+016F:00E5F5D1  ADD      EBP,EDI   
+016F:00E5F5D3  MOV      BYTE [ESP+0C],01   
+016F:00E5F5D8  ADD      ESI,BYTE +02   
+016F:00E5F5DB  ADD      EBX,ESI   
+016F:00E5F5DD  CMP      BYTE [ESP+0C],00   
+016F:00E5F5E2  JNZ      00E5F5E9   
+016F:00E5F5E4  CMP      BYTE [EBX],00   
+016F:00E5F5E7  JNZ      00E5F5A7   
+016F:00E5F5E9  CMP      BYTE [ESP+0C],00   
+016F:00E5F5EE  JNZ      00E5F59B   
+016F:00E5F5F0  CALL     00E52698   
+016F:00E5F5F5  MOV      ESI,[ESP+08]   
+016F:00E5F5F9  SUB      ESI,[ESP+04]   
+016F:00E5F5FD  LEA      EAX,[ESI+06]   
+016F:00E5F600  CALL     00E52568   
+016F:00E5F605  MOV      EBX,EAX   
+```
+
+
+
+# 汇编代码分析
+
+## 处理特殊 Import functions
+
+```
+016F:00E5FA60  PUSHA
+016F:00E5FA61  PUSH    DWORD 00E621F0
+016F:00E5FA66  LEA     EAX,[EBP-0C]
+016F:00E5FA69  PUSH    DWORD [00E63560]
+016F:00E5FA6F  CALL    NEAR [EAX]       ;call 下面的 00E71238
+016F:00E5FA71  POPA
+
+016F:00E71238  CALL    00E7123D
+016F:00E7123D  POP     EBP
+016F:00E7123E  CLD
+016F:00E7123F  LEA     ESI,[EBP+2F]   ;ESI 指向特殊 Import function 的相关信息
+016F:00E71242  XOR     EAX,EAX
+016F:00E71244  LODSB
+016F:00E71245  OR      AL,AL
+016F:00E71247  JZ      00E71265       ;完了吗?
+016F:00E71249  DEC     AL
+016F:00E7124B  SHL     EAX,02
+016F:00E7124E  ADD     EAX,[ESP+08]  ;[ESP+08]就是指向第一个特殊 Import function 的重定向地址, 我看到的就有 10 个这样的 functions
+016F:00E71252  MOV     EBX,[EAX]     ;EBX 为该特殊 Import function 的重定向地址
+016F:00E71254  LODSD                     ;该 EBX 指向的代码如: mov eax, [xxxxxxxx]
+016F:00E71255  ADD     EAX,[ESP+04]  ;                       ret , 这些就是我们要手动修改的 IAT
+016F:00E71259  MOV     [EAX],EBX     ;EAX 指向 IAT
+016F:00E7125B  XOR     EAX,EAX
+016F:00E7125D  MOV     [ESI-04],EAX  ;clear
+016F:00E71260  MOV     [ESI-05],AL   ;clear
+016F:00E71263  JMP     SHORT 00E71244
+016F:00E71265  RET     08
+```
+
+## 特殊的 Import functions 列表
+
+```
+016F:00E5C7D8  PUSH    BYTE +00
+016F:00E5C7DA  CALL    `KERNEL32!GetModuleHandleA`
+016F:00E5C7DF  MOV     [00E635D4],EAX
+
+016F:00E5C7E4  CALL    `KERNEL32!GetVersion`
+016F:00E5C7E9  MOV     [00E635D8],EAX
+
+016F:00E5C7EE  PUSH    DWORD 00E635E4
+016F:00E5C7F3  CALL    `KERNEL32!GetVersionExA`
+
+016F:00E5C7F8  CALL    `KERNEL32!GetCurrentProcess`
+016F:00E5C7FD  MOV     [00E635DC],EAX
+
+016F:00E5C802  CALL    `KERNEL32!GetCurrentProcessId`
+016F:00E5C807  MOV     [00E635E0],EAX
+
+016F:00E5C80C  CALL    `KERNEL32!GetCommandLineA`
+016F:00E5C811  MOV     [00E63678],EAX
+
+016F:00E5C816  RET
+```
+
+### 具体函数实现
+
+#### 第一个特殊 Import function: `KERNEL32!GetModuleHandleA`
+
+```
+016F:00E5C818  PUSH    EBP               ;<--第一个特殊 Import function 是 KERNEL32!GetModuleHandleA
+016F:00E5C819  MOV     EBP,ESP
+016F:00E5C81B  MOV     EAX,[EBP+08]
+016F:00E5C81E  TEST    EAX,EAX
+016F:00E5C820  JNZ     00E5C829
+016F:00E5C822  MOV     EAX,[00E63560]
+016F:00E5C827  JMP     SHORT 00E5C82F
+016F:00E5C829  PUSH    EAX
+016F:00E5C82A  CALL    `KERNEL32!GetModuleHandleA`
+016F:00E5C82F  POP     EBP
+016F:00E5C830  RET     04
+```
+
+#### 第二个: `KERNEL32!GetVersion`
+
+```
+016F:00E5C834  MOV     EAX,[00E635D8]    ;<--第二个 KERNEL32!GetVersion
+016F:00E5C839  RET
+```
+
+#### 第三个
+
+```
+016F:00E5C83C  PUSH    EBP               ;<--第三个(暂时没见过哪个被加壳的软件有用到, 不知道是什么, 知道的朋友请指出!)
+016F:00E5C83D  MOV     EBP,ESP
+016F:00E5C83F  PUSH    ESI
+016F:00E5C840  PUSH    EDI
+016F:00E5C841  MOV     EAX,[EBP+08]
+016F:00E5C844  MOV     EDI,EAX
+016F:00E5C846  MOV     ESI,00E635E4
+016F:00E5C84B  MOV     ECX,25
+016F:00E5C850  REP MOVSD
+016F:00E5C852  MOV     AL,01
+016F:00E5C854  POP     EDI
+016F:00E5C855  POP     ESI
+016F:00E5C856  POP     EBP
+016F:00E5C857  RET     04
+```
+
+#### 第四个: `GetCurrentProcess`
+
+```
+016F:00E5C85C  MOV     EAX,[00E635DC]    ;<--第四个 GetCurrentProcess
+016F:00E5C861  RET
+```
+
+#### 第五个: `GetCurrentProcessId`
+
+```
+016F:00E5C864  MOV     EAX,[00E635E0]    ;<--第五个 GetCurrentProcessId
+016F:00E5C869  RET
+```
+
+#### 第六个: `GetCommandLineA`
+
+```
+016F:00E5C86C  MOV     EAX,[00E63678]    ;<--第六个 GetCommandLineA
+016F:00E5C871  RET
+```
+
+#### 第七个: `KERNEL32!LockResource`
+
+```
+016F:00E5C874  PUSH    EBP               ;<--第七个 KERNEL32!LockResource
+016F:00E5C875  MOV     EBP,ESP
+016F:00E5C877  POP     EBP
+016F:00E5C878  RET     04
+```
+
+#### 第八个: `KERNEL32!FreeResource`
+
+```
+016F:00E5C87C  PUSH    EBP               ;<--第八个 KERNEL32!FreeResource
+016F:00E5C87D  MOV     EBP,ESP
+016F:00E5C87F  POP     EBP
+016F:00E5C880  RET     04
+```
+
+#### 第九个
+
+```
+016F:00E5C884  PUSH    EBP               ;<--第九个(这个也不知道是什么!)
+016F:00E5C885  MOV     EBP,ESP
+016F:00E5C887  MOV     EAX,[EBP+0C]
+016F:00E5C88A  ADD     EAX,BYTE +04
+016F:00E5C88D  MOV     EAX,[EAX]
+016F:00E5C88F  ADD     EAX,[EBP+08]
+016F:00E5C892  POP     EBP
+016F:00E5C893  RET     08
+```
+
+#### 第十个: `KERNEL32!FindResourceA`, `KERNEL32!LoadResource`, `KERNEL32!LockResource`, `USER32!DialogBoxIndirectParamA`
+
+```
+016F:00E5C898  PUSH    EBP               ;<--第十个
+016F:00E5C899  MOV     EBP,ESP
+016F:00E5C89B  PUSH    EBX
+016F:00E5C89C  MOV     EBX,[EBP+08]
+016F:00E5C89F  MOV     EAX,[EBP+18]
+016F:00E5C8A2  PUSH    EAX
+016F:00E5C8A3  MOV     EAX,[EBP+14]
+016F:00E5C8A6  PUSH    EAX
+016F:00E5C8A7  MOV     EAX,[EBP+10]
+016F:00E5C8AA  PUSH    EAX
+016F:00E5C8AB  PUSH    BYTE +05
+016F:00E5C8AD  MOV     EAX,[EBP+0C]
+016F:00E5C8B0  PUSH    EAX
+016F:00E5C8B1  PUSH    EBX
+016F:00E5C8B2  CALL    `KERNEL32!FindResourceA`
+016F:00E5C8B7  PUSH    EAX
+016F:00E5C8B8  PUSH    EBX
+016F:00E5C8B9  CALL    `KERNEL32!LoadResource`
+016F:00E5C8BE  PUSH    EAX
+016F:00E5C8BF  CALL    `KERNEL32!LockResource`
+016F:00E5C8C4  PUSH    EAX
+016F:00E5C8C5  PUSH    EBX
+016F:00E5C8C6  CALL    `USER32!DialogBoxIndirectParamA`
+016F:00E5C8CB  POP     EBX
+016F:00E5C8CC  POP     EBP
+016F:00E5C8CD  RET     14
+```
+
+其中最特殊的是第十个的 `DialogBoxIndirectParamA`，但在 `AeePro` 中没有用到。要是用到的话，可以将该段代码 dump 下来，加到脱壳后的程序上去，再改该 IAT 指向我们加上去的代码的地址。这十个特殊函数我想在 1.2, 1.3 中是一样的。
+
+除了上面的特殊函数以外，`Asprotect` 提供的 API 我们也应该注意，这我就没仔细研究了。
+
+## 用 Asprotect 加壳的程序脱壳后不能运行的原因
+
+我知道的有：
+
+1. 原程序调用 `Asprotect` 的 "Export Function"，最简单的就是：
+   - `push ..`
+   - `push -1`
+   - `call GetProcAddress`
+   
+   看其返回值是否为 0，为 0 就出错或退出（`AeePro` 就是这样的）。
+
+2. 原程序自检加壳后的程序（已经加壳了，真不知道他是怎么检的）。
+
+3. `Asprotect` 调用原程序的“初始化”函数，当到达 `OEP` 前，某些全局变量已经初始化了，脱壳后运行就很可能出错。解决方法是，修改脱壳后的程序，先运行该“初始化”函数，再跳回到 `OEP` 运行就可以了。
+
+4. 再有就是 `DialogBoxIndirectParamA` 等的了。
+
+当然应该还有其他的。
+
+唉，好长的一篇！( 台下的别扔果皮 :)

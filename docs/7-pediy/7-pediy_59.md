@@ -1,258 +1,361 @@
 
-
 # 利用调试寄存器为加壳软件打补丁
 
 > 原文：[`www.pediy.com/kssd/pediy08/pediy8-439.htm`](https://www.pediy.com/kssd/pediy08/pediy8-439.htm)
 
-上篇写了通过补丁的方式利用软件本身的算法模块做出注册机的实例，但是都是针对无壳的情况。这篇来讲一下通过硬件断点利用同样的原理对加壳软件打补丁。  
-    关于调试寄存器 DRx 的作用可以查 Intel 的手册,加密软件技术内幕也有提及到.其中 Dr0-Dr3 的四个调试寄存器是存放中断的地址，用于设置硬件断点，Dr4、Dr5 英特尔保留使用功能，至少现在没什么用。Dr6、Dr7 这两个寄存器的作用是用来记录 Dr0-Dr3 中下断的地址的属性，如下的硬件断点读还是写，或者是执行；是对字节还是对字，或者是双字。  
-    我们还是以上次的那个 CRACKME 作为例子，我对它加了个简单的 ASPACK 压缩壳。  
-00405001 >  60              PUSHAD                                   ; 壳入口  
-00405002    E8 03000000     CALL crackme.0040500A  
-00405007  - E9 EB045D45     JMP 459D54F7  
-0040500C    55              PUSH EBP  
-0040500D    C3              RETN  
-...  
-//机器码运算  
-004013B4  |.  E8 01080000   call    <jmp.&user32.GetDlgItemTextA>     
-004013B9  |.  8D05 98334000 lea     eax, dword ptr \[403398\]          ;  压入机器码  
-004013BF  |?  68 98334000   push    00403398                         ;  EAX 中放着机器码  
-...  
-00401B90  |.  50            push    eax                              ;  EAX 中就是暗码  
-00401B91  |?  68 7E324000   push    0040327E                         ;  转字符串     
-00401B96  |?  68 48334000   push    00403348                          
-00401B9B  |?  E8 08000000   call    <jmp.&user32.wsprintfA>  
-00401BA0  |.  83C4 0C       add     esp, 0C  
-...  
-//注册码变形  
-0040131E  |.  E8 97080000   call    <jmp.&user32.GetDlgItemTextA>    ;  取注册码  
-00401323  |.  6A 08         push    8  
-00401325  |.  68 A8324000   push    004032A8  
-0040132A  |.  E8 B4FEFFFF   call    004011E3                         ;  转 16 进制  
-0040132F  |.  8BF0          mov     esi, eax  
-00401331  |.  81C6 A679F3FF add     esi, FFF379A6                    ;  加 FFF379A6h  
-00401337  |.  81F6 DDAEEC04 xor     esi, 4ECAEDD                     ;  异或 4ECAEDDh  
-0040133D  |.  81EE C78AA900 sub     esi, 0A98AC7                     ;  减 0A98AC7h  
-00401343  |.  56            push    esi                              ;  结果  
-00401344  |.  68 7E324000   push    0040327E                         ;  转字符串  
-00401349  |.  68 F8324000   push    004032F8                           
-0040134E  |.  E8 55080000   call    <jmp.&user32.wsprintfA>            
-...  
-//对比结果  
-004010E8  |.  68 48334000   push    00403348                         ;  机器码运算后的字符串  
-004010ED  |.  68 F8324000   push    004032F8                         ;  注册码运算后的字符串  
-004010F2  |.  E8 F30A0000   call    <jmp.&kernel32.lstrcmpA>         ;  比较  
-004010F7  |.  0BC0          or      eax, eax  
-004010F9  |.  75 19         jnz     short 00401114  
-    假如以上次的方法对 004013BF 和 00401B90 处下 INT3 断点，当外壳把程序代码解密后，所修改的 0CCh 字节就会被解密后的代码覆盖，将导致 int3 断点不起作用。所以我们改下硬件断点。  
-我们先让程序停在原始的入口处，再在 004013BF 和 00401B90 处下硬件断点，断下后就可以为所欲为了...，详细代码如下：  
-.586  
-.model flat, stdcall    
-option casemap :none    
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-include windows.inc  
-include kernel32.inc  
-include user32.inc  
-include Comctl32.inc  
-include comdlg32.inc  
-include macros.inc  
-include masm32.inc  
-  
-includelib kernel32.lib  
-includelib user32.lib  
-includelib Comctl32.lib  
-includelib comdlg32.lib  
-includelib masm32.lib  
-  
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-IDD\_DLG1                equ 1000  
-IDC\_NAME                equ 1001  
-IDC\_CODE                equ 1002  
-IDC\_OK                  equ 1005  
-IDC\_ABOUT               equ 1006  
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-dwOrgOEP       equ 00405001h ;程序原始入口  
-BREAK\_POINT1   equ 004013BFh ;第一个断点  
-BREAK\_POINT2   equ 00401B90h ;第二个断点  
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-DlgProc proto :HWND,:UINT,:WPARAM,:LPARAM  
-GetKey  proto   
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-.CONST  
-DR0\_ENABLED              EQU 000000001b  
-LOCAL\_EXACT\_BPM\_ENABLED  EQU 100000000b  
-  
-.data  
-MsgboxText    db '    -=Author: langxang=-',0dh  
-              db ' -=Email:langxang@126.com=-',0  
-MsgboxCaption db '关于',0  
-FileName      db 'crackme.exe',0  
-int3          db 0cch     
-value         db 8 dup(?)  
-buffer        db 8 dup(?)  
-oldbyte       db 8 dup(?)    
-szFormat      db "%X",0  
-dwCountSS     dd 0  
-dwCountBP     dd 0  
-ProcessInfo   db "File Handle: %lx ",0dh,0Ah   
-              db "Process Handle: %lx",0Dh,0Ah   
-              db "Thread  Handle: %lx",0Dh,0Ah   
-              db "Image   Base: %lx",0Dh,0Ah   
-              db "Start   Address: %lx",0   
-Startup       STARTUPINFO <>  
-processinfo   PROCESS\_INFORMATION <>    
-  
-.data?  
-UserID        db 80 dup (?)  
-Serial        db 80 dup (?)  
-uExitCode     dd ?  
-hInstance     HINSTANCE ?  
-hDlg          HINSTANCE ?   
-startinfo     STARTUPINFO <>   
-pi            PROCESS\_INFORMATION <>   
-DBEvent       DEBUG\_EVENT <>   
-context       CONTEXT <>  
-  
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-.code  
-start:  
-  invoke **GetModuleHandle**,NULL  
-       mov hInstance,eax  
-  invoke **DialogBoxParam**,hInstance,IDD\_DLG1,NULL,addr DlgProc,NULL  
-  invoke **ExitProcess**,0  
-;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  
-DlgProc proc hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM  
-        mov eax,uMsg  
-  .if     eax\==WM\_CLOSE  
-       invoke **EndDialog**,hWin,0  
-  .elseif eax\==WM\_INITDIALOG  
-       push hWin  
-       pop  hDlg       
-  .elseif eax\==WM\_COMMAND  
-          mov eax,wParam  
-             .if eax\==IDC\_OK                  
-                invoke **GetDlgItemText**,hDlg,IDC\_NAME,addr UserID,Sizeof UserID                                                          
-                   .if eax\==0  
-                     invoke **MessageBox**,hDlg,CTXT("请输入远程机器码"),CTXT("提示！"),MB\_OK  
-                   .elseif    
-                     invoke GetKey                       
-                   .endif  
-             .elseif eax\==IDC\_ABOUT  
-                invoke **MessageBox**,hDlg,addr MsgboxText,addr MsgboxCaption,MB\_OK  
-             .endif              
-  .else  
-    mov eax,FALSE  
-    ret  
-  .endif  
-  mov eax,TRUE  
-  ret  
-DlgProc endp  
-  
-GetKey proc    
-       pushad  
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-; 创建进程  
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*          
-       invoke **CreateProcess**, addr FileName, NULL, NULL, NULL, FALSE, DEBUG\_PROCESS or DEBUG\_ONLY\_THIS\_PROCESS, NULL, NULL, addr startinfo, addr pi   
-       .if    !eax  
-        invoke **MessageBox**,hDlg,CTXT("不能创建进程"),CTXT("错误！"),MB\_OK  
-        invoke **ExitProcess**,NULL  
-       .endif  
-        xor  eax,eax  
-  mov  dwCountBP, eax  
-  mov  dwCountSS, eax  
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-; 调试进程，进入循环调试  
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-.while TRUE    
-         invoke **WaitForDebugEvent**, addr DBEvent, INFINITE                
-.if DBEvent.dwDebugEventCode==EXIT\_PROCESS\_DEBUG\_EVENT   
-         invoke **MessageBox**, 0, CTXT("退出进程..."), CTXT("提示！"), MB\_OK+MB\_ICONINFORMATION   
-         .break   
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-; 异常中断  
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*     
-.elseif DBEvent.dwDebugEventCode==EXCEPTION\_DEBUG\_EVENT     
-         .if DBEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION\_BREAKPOINT                    
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-; 第一次中断时在原始入口点处设置断点  
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*    
-              inc     dwCountBP  
-                  .if dwCountBP==1   
-                invoke  **ReadProcessMemory**, pi.hProcess, dwOrgOEP, addr oldbyte, 1, 0   ;在 dwOrgOEP 中读出一个字节  
-                      invoke  **WriteProcessMemory**, pi.hProcess, dwOrgOEP, addr int3, 1, 0     ;写入 INT3 断点                   
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-; 第二次中断，中断在起先设置的原始入口点，恢复代码，在机器码处设置硬件断点  
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*    
-                  .elseif dwCountBP==2                         
-                       mov  context.ContextFlags, CONTEXT\_CONTROL  
-                       invoke  **GetThreadContext**, pi.hThread, addr context  
-                       dec  context.regEip  
-                       invoke  **WriteProcessMemory**, pi.hProcess, dwOrgOEP, addr oldbyte, 1, 0  ;恢复入口代码  
-                       invoke  **SetThreadContext**, pi.hThread, addr context  
-                       mov     context.ContextFlags, CONTEXT\_DEBUG\_REGISTERS  
-                       invoke  **GetThreadContext**, pi.hThread, addr context  
-                       mov    context.iDr0, BREAK\_POINT1                                       ;设置硬件断点        
-                       mov    context.iDr7, LOCAL\_EXACT\_BPM\_ENABLED + DR0\_ENABLED  
-                       invoke  **SetThreadContext**, pi.hThread, addr context                                         
-                  .endif  
-                       invoke  **ContinueDebugEvent**, DBEvent.dwProcessId, DBEvent.dwThreadId, DBG\_CONTINUE  
-                       .continue                 
-          .elseif DBEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION\_SINGLE\_STEP    ;单步运行模式       
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-; 第三次中断，中断在机器码处，清除断点，在注册码处设置硬件断点  
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
-             inc    dwCountSS                    
-        .IF dwCountSS == 1  
-                       mov     context.ContextFlags, CONTEXT\_FULL  
-                       invoke  **GetThreadContext**, pi.hThread, addr context  
-                       mov eax,context.regEax                                                      ;机器码在 EAX 中  
-                       invoke  **WriteProcessMemory**,pi.hProcess,eax,addr UserID,sizeof UserID,NULL   ;写入机器码  
-                       invoke  **SetThreadContext**, pi.hThread, addr context  
-                     ; invoke ReadProcessMemory,pi.hProcess,context.regEax,addr buffer,0ch,NULL    ;用于检测修改的机器码是否已经生效  
-                     ; invoke  MessageBox,0, addr buffer,CTXT("输入的新机器码为："), MB\_OK+MB\_ICONINFORMATION     
-                       mov     context.ContextFlags, CONTEXT\_DEBUG\_REGISTERS  
-                       invoke  **GetThreadContext**, pi.hThread, addr context  
-                       mov     context.iDr0, BREAK\_POINT2  
-                       mov     context.iDr7, LOCAL\_EXACT\_BPM\_ENABLED + DR0\_ENABLED  
-                       invoke  **SetThreadContext**, pi.hThread, addr context                            
-                       invoke  **ContinueDebugEvent**, DBEvent.dwProcessId, DBEvent.dwThreadId, DBG\_CONTINUE  
-                      .continue                       
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-; 第四次中断，中断在注册码处，读出注册码，清除硬件断点，恢复线程  
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*                 
-                 .elseif dwCountSS == 2  
-                       mov     context.ContextFlags, CONTEXT\_FULL  
-                       invoke  **GetThreadContext**, pi.hThread, addr context  
-                       mov context.ContextFlags, CONTEXT\_FULL  
-                       mov EAX,context.regEax                                                    ;暗码在 EAX 中  
-                       add EAX,0A98AC7h  
-                       xor EAX,4ECAEDDh  
-                       sub EAX,0FFF379A6h   
-                      invoke **wsprintf**,addr value,addr szFormat,eax     
-                      invoke **SetDlgItemText**,hDlg,IDC\_CODE,addr value                                
-                      mov     context.iDr0, 0  
-                      mov     context.iDr7, 0    
-                      invoke  **SetThreadContext**,pi.hThread, addr context      
-                      invoke **TerminateProcess**,pi.hProcess,uExitCode                               ;强行退出   
-                      .break                      
-                 .endif  
-             invoke  **ContinueDebugEvent**, DBEvent.dwProcessId,DBEvent.dwThreadId, DBG\_CONTINUE  
-         .endif  
-.endif  
-   invoke  **ContinueDebugEvent**, DBEvent.dwProcessId,DBEvent.dwThreadId, DBG\_EXCEPTION\_NOT\_HANDLED  
-.endw  
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-; 结束线程  
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*   
-        invoke  **CloseHandle**, pi.hThread  
-        invoke  **CloseHandle**, pi.hProcess  
-         
-    popad  
-    ret   
-GetKey endp  
-end start  
+上篇写了通过补丁的方式利用软件本身的算法模块做出注册机的实例，但是都是针对无壳的情况。这篇来讲一下通过硬件断点利用同样的原理对加壳软件打补丁。
 
-附件下载
+关于调试寄存器 `DRx` 的作用可以查 Intel 的手册，加密软件技术内幕也有提及到。其中 `Dr0`-`Dr3` 的四个调试寄存器是存放中断的地址，用于设置硬件断点，`Dr4`、`Dr5` 英特尔保留使用功能，至少现在没什么用。`Dr6`、`Dr7` 这两个寄存器的作用是用来记录 `Dr0`-`Dr3` 中下断的地址的属性，如下的硬件断点读还是写，或者是执行；是对字节还是对字，或者是双字。
 
- 4dd466d0e1e0cc123afbe504da2462ca
+我们还是以上次的那个 `CRACKME` 作为例子，我对它加了个简单的 `ASPACK` 压缩壳。
+
+```
+00405001 >  60                  PUSHAD                            ; 壳入口
+00405002    E8 03000000     CALL crackme.0040500A
+00405007  - E9 EB045D45     JMP 459D54F7
+0040500C    55               PUSH EBP
+0040500D    C3               RETN
+...
+```
+
+```
+//机器码运算
+
+004013B4  |.  E8 01080000   call    <jmp.&user32.GetDlgItemTextA>
+004013B9  |.  8D05 98334000 lea     eax, dword ptr [403398]      ; 压入机器码
+004013BF  |?  68 98334000   push    00403398                     ; EAX 中放着机器码
+
+...
+
+00401B90  |.  50            push    eax                            ; EAX 中就是暗码
+00401B91  |?  68 7E324000   push    0040327E                     ; 转字符串
+00401B96  |?  68 48334000   push    00403348
+00401B9B  |?  E8 08000000   call    <jmp.&user32.wsprintfA>
+00401BA0  |.  83C4 0C       add     esp, 0C
+
+...
+```
+
+```
+//注册码变形
+
+0040131E  |.  E8 97080000   call    <jmp.&user32.GetDlgItemTextA>  ; 取注册码
+00401323  |.  6A 08         push    8
+00401325  |.  68 A8324000   push    004032A8
+0040132A  |.  E8 B4FEFFFF   call    004011E3                     ; 转 16 进制
+0040132F  |.  8BF0          mov     esi, eax
+00401331  |.  81C6 A679F3FF add     esi, FFF379A6                 ; 加 FFF379A6h
+00401337  |.  81F6 DDAEEC04 xor     esi, 4ECAEDD                 ; 异或 4ECAEDDh
+0040133D  |.  81EE C78AA900 sub     esi, 0A98AC7                 ; 减 0A98AC7h
+00401343  |.  56            push    esi                            ; 结果
+00401344  |.  68 7E324000   push    0040327E                     ; 转字符串
+00401349  |.  68 F8324000   push    004032F8
+0040134E  |.  E8 55080000   call    <jmp.&user32.wsprintfA>
+
+...
+```
+
+```
+//对比结果
+
+004010E8  |.  68 48334000   push    00403348                     ; 机器码运算后的字符串
+004010ED  |.  68 F8324000   push    004032F8                     ; 注册码运算后的字符串
+004010F2  |.  E8 F30A0000   call    <jmp.&kernel32.lstrcmpA>     ; 比较
+004010F7  |.  0BC0          or      eax, eax
+004010F9  |.  75 19         jnz     short 00401114
+```
+
+假如以上次的方法对 `004013BF` 和 `00401B90` 处下 `INT3` 断点，当外壳把程序代码解密后，所修改的 `0CCh` 字节就会被解密后的代码覆盖，将导致 `int3` 断点不起作用。所以我们改下硬件断点。
+
+我们先让程序停在原始的入口处，再在 `004013BF` 和 `00401B90` 处下硬件断点，断下后就可以为所欲为了...，详细代码如下：
+
+```asm
+.586
+.model flat, stdcall
+option casemap :none
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+include windows.inc
+include kernel32.inc
+include user32.inc
+include Comctl32.inc
+include comdlg32.inc
+include macros.inc
+include masm32.inc
+
+includelib kernel32.lib
+includelib user32.lib
+includelib Comctl32.lib
+includelib comdlg32.lib
+includelib masm32.lib
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+IDD_DLG1             equ 1000
+IDC_NAME             equ 1001
+IDC_CODE             equ 1002
+IDC_OK               equ 1005
+IDC_ABOUT            equ 1006
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+dwOrgOEP       equ 00405001h ;程序原始入口
+BREAK_POINT1   equ 004013BFh ;第一个断点
+BREAK_POINT2   equ 00401B90h ;第二个断点
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+DlgProc  proto :HWND,:UINT,:WPARAM,:LPARAM
+GetKey   proto
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+.CONST
+DR0_ENABLED            EQU 000000001b
+LOCAL_EXACT_BPM_ENABLED EQU 100000000b
+
+.data
+MsgboxText    db '    -=Author: langxang=-',0dh
+              db ' -=Email:langxang@126.com=-',0
+MsgboxCaption db '关于',0
+FileName      db 'crackme.exe',0
+int3          db 0cch
+value         db 8 dup(?)
+buffer        db 8 dup(?)
+oldbyte       db 8 dup(?)
+szFormat      db "%X",0
+dwCountSS     dd 0
+dwCountBP     dd 0
+ProcessInfo   db "File Handle: %lx ",0dh,0Ah
+              db "Process Handle: %lx",0Dh,0Ah
+              db "Thread  Handle: %lx",0Dh,0Ah
+              db "Image   Base: %lx",0Dh,0Ah
+              db "Start   Address: %lx",0
+Startup       STARTUPINFO <>
+processinfo   PROCESS_INFORMATION <>
+
+.data?
+UserID        db 80 dup (?)
+Serial        db 80 dup (?)
+uExitCode     dd ?
+hInstance     HINSTANCE ?
+hDlg          HINSTANCE ?
+startinfo     STARTUPINFO <>
+pi            PROCESS_INFORMATION <>
+DBEvent       DEBUG_EVENT <>
+context       CONTEXT <>
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+.code
+start:
+  invoke GetModuleHandle, NULL
+       mov hInstance, eax
+  invoke DialogBoxParam, hInstance, IDD_DLG1, NULL, addr DlgProc, NULL
+  invoke ExitProcess, 0
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+DlgProc proc hWin:HWND, uMsg:UINT, wParam:WPARAM, lParam:LPARAM
+      mov eax, uMsg
+  .if     eax==WM_CLOSE
+       invoke EndDialog, hWin, 0
+  .elseif eax==WM_INITDIALOG
+       push hWin
+       pop  hDlg
+  .elseif eax==WM_COMMAND
+         mov eax, wParam
+             .if eax==IDC_OK
+                invoke GetDlgItemText, hDlg, IDC_NAME, addr UserID, sizeof UserID
+                   .if eax==0
+                     invoke MessageBox, hDlg, CTXT("请输入远程机器码"), CTXT("提示！"), MB_OK
+                   .elseif
+                     invoke GetKey
+                   .endif
+             .elseif eax==IDC_ABOUT
+                invoke MessageBox, hDlg, addr MsgboxText, addr MsgboxCaption, MB_OK
+             .endif
+  .else
+    mov eax, FALSE
+    ret
+  .endif
+  mov eax, TRUE
+  ret
+DlgProc endp
+
+GetKey proc
+       pushad
+;********************************************************************************
+; 创建进程
+;********************************************************************************
+       invoke CreateProcess, addr FileName, NULL, NULL, NULL, FALSE, DEBUG_PROCESS or DEBUG_ONLY_THIS_PROCESS, NULL, NULL, addr startinfo, addr pi
+       .if    !eax
+         invoke MessageBox, hDlg, CTXT("不能创建进程"), CTXT("错误！"), MB_OK
+         invoke ExitProcess, NULL
+       .endif
+         xor  eax, eax
+  mov  dwCountBP, eax
+  mov  dwCountSS, eax
+
+;********************************************************************************
+; 调试进程，进入循环调试
+;********************************************************************************
+.while TRUE
+         invoke WaitForDebugEvent, addr DBEvent, INFINITE
+.if DBEvent.dwDebugEventCode==EXIT_PROCESS_DEBUG_EVENT
+         invoke MessageBox, 0, CTXT("退出进程..."), CTXT("提示！"), MB_OK+MB_ICONINFORMATION
+         .break
+;********************************************************************************
+; 异常中断
+;********************************************************************************
+.elseif DBEvent.dwDebugEventCode==EXCEPTION_DEBUG_EVENT
+         .if DBEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION_BREAKPOINT
+;********************************************************************************
+; 第一次中断时在原始入口点处设置断点
+```
+
+
+
+```asm
+;*****************************************************************************  
+              inc      dwCountBP   
+               .if    dwCountBP==1   
+                   invoke   ReadProcessMemory, pi.hProcess, dwOrgOEP, addr oldbyte, 1, 0   ;在 dwOrgOEP 中读出一个字节   
+                   invoke   WriteProcessMemory, pi.hProcess, dwOrgOEP, addr int3, 1, 0     ;写入 INT3 断点                  
+
+;*****************************************************************************  
+
+; 第二次中断，中断在起先设置的原始入口点，恢复代码，在机器码处设置硬件断点  
+
+;*****************************************************************************   
+
+               .elseif dwCountBP==2                      
+
+                   mov  context.ContextFlags, CONTEXT_CONTROL
+
+                   invoke   GetThreadContext, pi.hThread, addr context 
+
+                   dec  context.regEip 
+
+                   invoke   WriteProcessMemory, pi.hProcess, dwOrgOEP, addr oldbyte, 1, 0  ;恢复入口代码
+
+                   invoke   SetThreadContext, pi.hThread, addr context 
+
+                   mov     context.ContextFlags, CONTEXT_DEBUG_REGISTERS 
+
+                   invoke   GetThreadContext, pi.hThread, addr context 
+
+                   mov    context.iDr0, BREAK_POINT1                                     ;设置硬件断点       
+
+                   mov    context.iDr7, LOCAL_EXACT_BPM_ENABLED + DR0_ENABLED 
+
+                   invoke   SetThreadContext, pi.hThread, addr context                      
+
+               .endif 
+
+                   invoke   ContinueDebugEvent, DBEvent.dwProcessId, DBEvent.dwThreadId, DBG_CONTINUE 
+
+                   .continue        
+
+     .elseif DBEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION_SINGLE_STEP    ;单步运行模式     
+
+;*****************************************************************************  
+
+; 第三次中断，中断在机器码处，清除断点，在注册码处设置硬件断点  
+
+;*****************************************************************************   
+
+          inc     dwCountSS           
+
+     .IF dwCountSS == 1 
+
+                   mov     context.ContextFlags, CONTEXT_FULL 
+
+                   invoke   GetThreadContext, pi.hThread, addr context 
+
+                   mov eax,context.regEax                                            ;机器码在 EAX 中 
+
+                   invoke   WriteProcessMemory,pi.hProcess,eax,addr UserID,sizeof UserID,NULL   ;写入机器码
+
+                   invoke   SetThreadContext, pi.hThread, addr context 
+
+                  ; invoke ReadProcessMemory,pi.hProcess,context.regEax,addr buffer,0ch,NULL    ;用于检测修改的机器码是否已经生效 
+
+                  ; invoke   MessageBox,0, addr buffer,CTXT("输入的新机器码为："), MB_OK+MB_ICONINFORMATION   
+
+                   mov     context.ContextFlags, CONTEXT_DEBUG_REGISTERS 
+
+                   invoke   GetThreadContext, pi.hThread, addr context 
+
+                   mov     context.iDr0, BREAK_POINT2 
+
+                   mov     context.iDr7, LOCAL_EXACT_BPM_ENABLED + DR0_ENABLED 
+
+                   invoke   SetThreadContext, pi.hThread, addr context   
+
+                   invoke   ContinueDebugEvent, DBEvent.dwProcessId, DBEvent.dwThreadId, DBG_CONTINUE 
+
+                   .continue          
+
+;*****************************************************************************  
+
+; 第四次中断，中断在注册码处，读出注册码，清除硬件断点，恢复线程  
+
+;*****************************************************************************        
+
+          .elseif dwCountSS == 2 
+
+                   mov     context.ContextFlags, CONTEXT_FULL 
+
+                   invoke   GetThreadContext, pi.hThread, addr context 
+
+                   mov context.ContextFlags, CONTEXT_FULL 
+
+                   mov EAX,context.regEax                             ;暗码在 EAX 中 
+
+                   add EAX,0A98AC7h 
+
+                   xor EAX,4ECAEDDh 
+
+                   sub EAX,0FFF379A6h  
+
+                invoke wsprintf,addr value,addr szFormat,eax    
+
+                invoke SetDlgItemText,hDlg,IDC_CODE,addr value                   
+
+                   mov     context.iDr0, 0 
+
+                   mov     context.iDr7, 0   
+
+                   invoke   SetThreadContext,pi.hThread, addr context     
+
+                   invoke TerminateProcess,pi.hProcess,uExitCode               ;强行退出   
+
+                   .break              
+
+          .endif 
+
+          invoke   ContinueDebugEvent, DBEvent.dwProcessId,DBEvent.dwThreadId, DBG_CONTINUE 
+
+     .endif 
+
+.endif 
+
+   invoke   ContinueDebugEvent, DBEvent.dwProcessId,DBEvent.dwThreadId, DBG_EXCEPTION_NOT_HANDLED 
+
+.endw 
+
+;*****************************************************************************  
+
+; 结束线程  
+
+;*****************************************************************************   
+
+       invoke   CloseHandle, pi.hThread 
+
+       invoke   CloseHandle, pi.hProcess 
+
+   popad 
+
+   ret   
+
+GetKey endp 
+
+end start 
+```
+
+附件下载 `4dd466d0e1e0cc123afbe504da2462ca`

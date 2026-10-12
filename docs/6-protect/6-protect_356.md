@@ -1,1283 +1,1685 @@
 
-
 # SKYPE 中的 anti-debug 分析
 
-> 原文：[`www.pediy.com/kssd/pediy08/pediy8-63.htm`](https://www.pediy.com/kssd/pediy08/pediy8-63.htm)
+> 原文：`www.pediy.com/kssd/pediy08/pediy8-63.htm`
 
-SKYPE 中的 anti-debug 分析  
-  
-软件名称: skype  
-  
-实例下载: [`www.skype.com/download`](http://www.skype.com/download)  
-  
-作    者: blackeyes  
-  
-声    明: skype 是 freeware, 没有什么要 PJ 的, 只是分析它的 anti-debug  
-  
-  
-1. 基本信息  
-  
-    入口点(OEP):        005E7A28  
-  
-    引入表(I T):        00B8F000-00B8F21B ( size: 021C )  
-  
-    引入地址表(IAT):    00B8F21C-00B8FD38 ( size: 0B1C )  
-  
-  PeID 结果: Borland Delphi 6.0 - 7.0 \[Overlay\]  
-  
-2. 调试器检测, CODE 解码, 解析第二份 IAT  
-  
-// OD 载入后停在这里 005E7A28  
-005E7A28 > $ /EB 57                JMP SHORT Skype.005E7A81  
-  
-005E7A81   > \\E8 26010000          CALL Skype.005E7BAC                               ; // detect softice (第 1 处)  
-005E7A86   .  84C0                 TEST AL,AL  
-005E7A88   .  74 1C                JE SHORT Skype.005E7AA6  
-005E7A8A   .  6A 00                PUSH 0                                            ; /Style = MB\_OK|MB\_APPLMODAL  
-005E7A8C   .  FF35 482FB800        PUSH DWORD PTR DS:\[B82F48\]                        ; |Title = "Skype"  
-005E7A92   .  FF35 4C2FB800        PUSH DWORD PTR DS:\[B82F4C\]                        ; |Text = "Error: Skype is not compatible with debuggers like SoftICE .."  
-005E7A98   .  6A 00                PUSH 0                                            ; |hOwner = NULL  
-005E7A9A   .  E8 9910E2FF          CALL <JMP.&user32.MessageBoxA>                    ; \\MessageBoxA  
-005E7A9F   .  6A 01                PUSH 1                                            ; /ExitCode = 1  
-005E7AA1   .  E8 5A04E2FF          CALL <JMP.&kernel32.ExitProcess>                  ; \\ExitProcess  
-005E7AA6   >  BA 011E1600          MOV EDX,161E01  
-005E7AAB   .  81C2 A38BA100        ADD EDX,Skype.00A18BA3                         ; // EDX = 00B7A9A4  
-005E7AB1   .  52                   PUSH EDX  
-005E7AB2   .  EB 10                JMP SHORT Skype.005E7AC4  
-005E7AB4   .  BF 287A5E00          MOV EDI,Skype.<ModuleEntryPoint>  
-005E7AB9   .  B9 C47A5E00          MOV ECX,Skype.005E7AC4  
-005E7ABE   .  29F9                 SUB ECX,EDI  
-005E7AC0   .  31C0                 XOR EAX,EAX  
-005E7AC2   .  F3:AA                REP STOS BYTE PTR ES:\[EDI\]  
-005E7AC4   >  E8 CF3F0100          CALL Skype.005FBA98  
-005E7AC9   .  E8 AAFEFFFF          CALL Skype.005E7978  
-005E7ACE   .  C3                   RETN                                              ; // return 00B7A9A4  
-  
-00B7A9A4   .  55                   PUSH EBP                       ; 感觉这儿才是程序入口点  
-00B7A9A5   .  8BEC                 MOV EBP,ESP  
-00B7A9A7   .  B9 20000000          MOV ECX,20  
-00B7A9AC   >  6A 00                PUSH 0  
-00B7A9AE   .  6A 00                PUSH 0  
-00B7A9B0   .  49                   DEC ECX  
-00B7A9B1   .^ 75 F9                JNZ SHORT Skype.00B7A9AC  
-00B7A9B3   .  53                   PUSH EBX  
-00B7A9B4   .  56                   PUSH ESI  
-00B7A9B5   .  57                   PUSH EDI  
-00B7A9B6   .  B8 749FB700          MOV EAX,Skype.00B79F74  
-00B7A9BB   .  E8 6CD088FF          CALL Skype.00407A2C                               ; // \*\*\* Init CALL \*\*\*\*  
-00B7A9C0   .  BF 78E6B800          MOV EDI,Skype.00B8E678  
-00B7A9C5   .  33C0                 XOR EAX,EAX  
-00B7A9C7   .  55                   PUSH EBP  
-00B7A9C8   .  68 1BBAB700          PUSH Skype.00B7BA1B  
-00B7A9CD   .  64:FF30              PUSH DWORD PTR FS:\[EAX\]  
-00B7A9D0   .  64:8920              MOV DWORD PTR FS:\[EAX\],ESP  
-00B7A9D3   .  A1 90B2B800          MOV EAX,DWORD PTR DS:\[B8B290\]  
-00B7A9D8   .  C600 01              MOV BYTE PTR DS:\[EAX\],1  
-00B7A9DB   .  6A 00                PUSH 0  
-00B7A9DD   .  E8 661D8AFF          CALL <JMP.&ole32.OleInitialize>  
-00B7A9E2   .  E8 3DB6A6FF          CALL Skype.005E6024                               ; // detect debug (第 2 处)  
-00B7A9E7   .  84C0                 TEST AL,AL  
-00B7A9E9   .  74 1A                JE SHORT Skype.00B7AA05  
-00B7A9EB   .  6A 00                PUSH 0                                            ; /Style = MB\_OK|MB\_APPLMODAL  
-00B7A9ED   .  68 30BAB700          PUSH Skype.00B7BA30                               ; |Title = "Skype"  
-00B7A9F2   .  68 38BAB700          PUSH Skype.00B7BA38                               ; |Text = "Skype is not compatible with system debuggers like SoftICE."  
-00B7A9F7   .  6A 00                PUSH 0                                            ; |hOwner = NULL  
-00B7A9F9   .  E8 32E188FF          CALL <JMP.&user32.MessageBoxA>                    ; \\MessageBoxA  
-00B7A9FE   .  6A 00                PUSH 0                                            ; /ExitCode = 0  
-00B7AA00   .  E8 FBD488FF          CALL <JMP.&kernel32.ExitProcess>                  ; \\ExitProcess  
-00B7AA05   >  B9 7CBAB700          MOV ECX,Skype.00B7BA7C                            ;  ASCII "Starting  .."  
-00B7AA0A   .  BA 94BAB700          MOV EDX,Skype.00B7BA94                            ;  ASCII "Skype.main"  
-  
-  
-  
-// Init call  
-00407A2C  /$  53                   PUSH EBX  
-00407A2D  |.  8BD8                 MOV EBX,EAX  
-00407A2F  |.  33C0                 XOR EAX,EAX  
-00407A31  |.  A3 A4C0B700          MOV DWORD PTR DS:\[B7C0A4\],EAX  
-00407A36  |.  6A 00                PUSH 0                                            ; /pModule = NULL  
-00407A38  |.  E8 2BFFFFFF          CALL <JMP.&kernel32.GetModuleHandleA>             ; \\GetModuleHandleA  
-00407A3D  |.  A3 68C6B800          MOV DWORD PTR DS:\[B8C668\],EAX  
-00407A42  |.  A1 68C6B800          MOV EAX,DWORD PTR DS:\[B8C668\]  
-00407A47  |.  A3 B0C0B700          MOV DWORD PTR DS:\[B7C0B0\],EAX  
-00407A4C  |.  33C0                 XOR EAX,EAX  
-00407A4E  |.  A3 B4C0B700          MOV DWORD PTR DS:\[B7C0B4\],EAX  
-00407A53  |.  33C0                 XOR EAX,EAX  
-00407A55  |.  A3 B8C0B700          MOV DWORD PTR DS:\[B7C0B8\],EAX  
-00407A5A  |.  E8 C1FFFFFF          CALL Skype.00407A20  
-00407A5F  |.  BA ACC0B700          MOV EDX,Skype.00B7C0AC  
-00407A64  |.  8BC3                 MOV EAX,EBX  
-00407A66  |.  E8 95D2FFFF          CALL Skype.00404D00                               ; // 都在这里 CALL init  
-00407A6B  |.  5B                   POP EBX  
-00407A6C  \\.  C3                   RETN  
-  
-  
-00404D00  /$  C705 14C0B800 F01240>MOV DWORD PTR DS:\[B8C014\],<JMP.&kernel32.RaiseException>  
-00404D0A  |.  C705 18C0B800 001340>MOV DWORD PTR DS:\[B8C018\],<JMP.&kernel32.RtlUnwind>  
-00404D14  |.  A3 40C6B800          MOV DWORD PTR DS:\[B8C640\],EAX  
-00404D19  |.  33C0                 XOR EAX,EAX  
-00404D1B  |.  A3 44C6B800          MOV DWORD PTR DS:\[B8C644\],EAX  
-00404D20  |.  8915 48C6B800        MOV DWORD PTR DS:\[B8C648\],EDX  
-00404D26  |.  8B42 04              MOV EAX,DWORD PTR DS:\[EDX+4\]  
-00404D29  |.  A3 30C0B800          MOV DWORD PTR DS:\[B8C030\],EAX  
-00404D2E  |.  E8 A5FEFFFF          CALL Skype.00404BD8  
-00404D33  |.  C605 38C0B800 00     MOV BYTE PTR DS:\[B8C038\],0  
-00404D3A  |.  E8 51FFFFFF          CALL Skype.00404C90                 ; // Delphi 的程序好象都是这样  
-00404D3F  \\.  C3                   RETN  
-  
-00404C90   $  55                   PUSH EBP  
-00404C91   .  8BEC                 MOV EBP,ESP  
-00404C93   .  83C4 F8              ADD ESP,-8  
-00404C96   .  53                   PUSH EBX  
-00404C97   .  56                   PUSH ESI  
-00404C98   .  57                   PUSH EDI  
-00404C99   .  BF 38C6B800          MOV EDI,Skype.00B8C638  
-00404C9E   .  8B47 08              MOV EAX,DWORD PTR DS:\[EDI+8\]  
-00404CA1   .  85C0                 TEST EAX,EAX  
-00404CA3   .  74 54                JE SHORT Skype.00404CF9  
-00404CA5   .  8B30                 MOV ESI,DWORD PTR DS:\[EAX\]  
-00404CA7   .  33DB                 XOR EBX,EBX  
-00404CA9   .  8B40 04              MOV EAX,DWORD PTR DS:\[EAX+4\]  
-00404CAC   .  8945 FC              MOV DWORD PTR SS:\[EBP-4\],EAX  
-00404CAF   .  33C0                 XOR EAX,EAX  
-00404CB1   .  55                   PUSH EBP  
-00404CB2   .  68 E54C4000          PUSH Skype.00404CE5  
-00404CB7   .  64:FF30              PUSH DWORD PTR FS:\[EAX\]  
-00404CBA   .  64:8920              MOV DWORD PTR FS:\[EAX\],ESP  
-00404CBD   .  3BF3                 CMP ESI,EBX  
-00404CBF   .  7E 1A                JLE SHORT Skype.00404CDB  
-00404CC1   >  8B45 FC              MOV EAX,DWORD PTR SS:\[EBP-4\]  
-00404CC4   .  8B04D8               MOV EAX,DWORD PTR DS:\[EAX+EBX\*8\]  
-00404CC7   .  8945 F8              MOV DWORD PTR SS:\[EBP-8\],EAX  
-00404CCA   .  43                   INC EBX  
-00404CCB   .  895F 0C              MOV DWORD PTR DS:\[EDI+C\],EBX  
-00404CCE   .  837D F8 00           CMP DWORD PTR SS:\[EBP-8\],0  
-00404CD2   .  74 03                JE SHORT Skype.00404CD7  
-00404CD4   .  FF55 F8              CALL DWORD PTR SS:\[EBP-8\]                        ; // Call each init Func, 其中 00B75AF0 最关键,   
-00404CD7   >  3BF3                 CMP ESI,EBX  
-00404CD9   .^ 7F E6                JG SHORT Skype.00404CC1  
-00404CDB   >  33C0                 XOR EAX,EAX  
-00404CDD   .  5A                   POP EDX  
-00404CDE   .  59                   POP ECX  
-00404CDF   .  59                   POP ECX  
-00404CE0   .  64:8910              MOV DWORD PTR FS:\[EAX\],EDX  
-00404CE3   .  EB 14                JMP SHORT Skype.00404CF9  
-00404CE5   .^ E9 3AF9FFFF          JMP Skype.00404624  
-00404CEA   .  E8 31FFFFFF          CALL Skype.00404C20  
-00404CEF   .  E8 08FDFFFF          CALL Skype.004049FC  
-00404CF4   .  E8 57FDFFFF          CALL Skype.00404A50  
-00404CF9   >  5F                   POP EDI  
-00404CFA   .  5E                   POP ESI  
-00404CFB   .  5B                   POP EBX  
-00404CFC   .  59                   POP ECX  
-00404CFD   .  59                   POP ECX  
-00404CFE   .  5D                   POP EBP  
-00404CFF   .  C3                   RETN  
-  
-检查调试器的两处, 下 CreateFileA, CreateFileW 断点, 很快就可以跟到, 不过它不检测 OLLYDBG.  
-  
-3. 最关键的一个 Init CALL  00B75AF0-00B75EB1  
-  
-//  对 00724F70-00B70F70 (size 0044C000) 解码, 并解析第二份 IAT  
-//  第二份 IAT:        00A09F70-00A0A38C, size: 041C  
-//  00B75AF0 返回后, 内存中全是明文.  
-  
-00B75AF0  /> /55                   PUSH EBP  
-00B75AF1  |. |8BEC                 MOV EBP,ESP  
-00B75AF3  |. |83C4 A0              ADD ESP,-60  
-00B75AF6  |. |33C0                 XOR EAX,EAX  
-00B75AF8  |. |8945 A8              MOV DWORD PTR SS:\[EBP-58\],EAX  
-00B75AFB  |. |8945 A4              MOV DWORD PTR SS:\[EBP-5C\],EAX  
-00B75AFE  |. |8945 A0              MOV DWORD PTR SS:\[EBP-60\],EAX  
-00B75B01  |. |8945 AC              MOV DWORD PTR SS:\[EBP-54\],EAX  
-00B75B04  |. |33C0                 XOR EAX,EAX  
-00B75B06  |. |55                   PUSH EBP  
-00B75B07  |. |68 A75EB700          PUSH Skype.00B75EA7  
-00B75B0C  |. |64:FF30              PUSH DWORD PTR FS:\[EAX\]  
-00B75B0F  |. |64:8920              MOV DWORD PTR FS:\[EAX\],ESP  
-00B75B12  |. |A1 18BAB800          MOV EAX,DWORD PTR DS:\[B8BA18\]  
-00B75B17  |. |C700 09000000        MOV DWORD PTR DS:\[EAX\],9  
-00B75B1D  |. |B8 287A5E00          MOV EAX,Skype.<ModuleEntryPoint>  
-00B75B22  |. |8945 D4              MOV DWORD PTR SS:\[EBP-2C\],EAX  
-00B75B25  |.  C745 D0 F4000000     MOV DWORD PTR SS:\[EBP-30\],0F4  
-00B75B2C  |.  8D45 FC              LEA EAX,DWORD PTR SS:\[EBP-4\]  
-00B75B2F  |.  50                   PUSH EAX                                          ; /pOldProtect  
-00B75B30  |.  6A 40                PUSH 40                                           ; |NewProtect = PAGE\_EXECUTE\_READWRITE  
-00B75B32  |.  8B45 D0              MOV EAX,DWORD PTR SS:\[EBP-30\]                     ; |  
-00B75B35  |.  50                   PUSH EAX                                          ; |Size  
-00B75B36  |.  8B45 D4              MOV EAX,DWORD PTR SS:\[EBP-2C\]                     ; |  
-00B75B39  |.  50                   PUSH EAX                                          ; |Address  
-00B75B3A  |.  E8 192789FF          CALL <JMP.&kernel32.VirtualProtect>               ; \\VirtualProtect  
-00B75B3F  |.  85C0                 TEST EAX,EAX  
-00B75B41  |.  75 0A                JNZ SHORT Skype.00B75B4D  
-00B75B43  |.  B8 BC5EB700          MOV EAX,Skype.00B75EBC                            ;  ASCII "0ut of memory"  
-00B75B48  |.  E8 2BFAFFFF          CALL Skype.00B75578  
-00B75B4D  |>  8B45 D4              MOV EAX,DWORD PTR SS:\[EBP-2C\]  
-00B75B50  |.  33C9                 XOR ECX,ECX  
-00B75B52  |.  8B55 D0              MOV EDX,DWORD PTR SS:\[EBP-30\]  
-00B75B55  |.  E8 96DD88FF          CALL Skype.004038F0                 ; 将 OEP 处开始的一小段代码清 0, 防止解码后的 DUMP  
-00B75B5A  |.  8D45 FC              LEA EAX,DWORD PTR SS:\[EBP-4\]  
-00B75B5D  |.  50                   PUSH EAX                                          ; /pOldProtect  
-00B75B5E  |.  6A 20                PUSH 20                                           ; |NewProtect = PAGE\_EXECUTE\_READ  
-00B75B60  |.  8B45 D0              MOV EAX,DWORD PTR SS:\[EBP-30\]                     ; |  
-00B75B63  |.  50                   PUSH EAX                                          ; |Size  
-00B75B64  |.  8B45 D4              MOV EAX,DWORD PTR SS:\[EBP-2C\]                     ; |  
-00B75B67  |.  50                   PUSH EAX                                          ; |Address  
-00B75B68  |.  E8 EB2689FF          CALL <JMP.&kernel32.VirtualProtect>               ; \\VirtualProtect  
-00B75B6D  |.  85C0                 TEST EAX,EAX  
-00B75B6F  |.  75 0A                JNZ SHORT Skype.00B75B7B  
-00B75B71  |.  B8 BC5EB700          MOV EAX,Skype.00B75EBC                            ;  ASCII "0ut of memory"  
-00B75B76  |.  E8 FDF9FFFF          CALL Skype.00B75578  
-00B75B7B  |>  C605 0C5FB800 01     MOV BYTE PTR DS:\[B85F0C\],1  
-00B75B82  |.  6A 04                PUSH 4                                            ; /Protect = PAGE\_READWRITE  
-00B75B84  |.  68 00100000          PUSH 1000                                         ; |AllocationType = MEM\_COMMIT  
-00B75B89  |.  A1 605FB800          MOV EAX,DWORD PTR DS:\[B85F60\]                     ; |  
-00B75B8E  |.  50                   PUSH EAX                                          ; |Size => 44C000 (4505600.)  
-00B75B8F  |.  6A 00                PUSH 0                                            ; |Address = NULL  
-00B75B91  |.  E8 B22689FF          CALL <JMP.&kernel32.VirtualAlloc>                 ; \\VirtualAlloc,  分配 Memory 用来解码  
-00B75B96  |.  A3 4CE1B800          MOV DWORD PTR DS:\[B8E14C\],EAX  
-00B75B9B  |.  833D 4CE1B800 00     CMP DWORD PTR DS:\[B8E14C\],0  
-00B75BA2  |.  75 0A                JNZ SHORT Skype.00B75BAE  
-00B75BA4  |.  B8 D45EB700          MOV EAX,Skype.00B75ED4                            ;  ASCII "Not enough memory!"  
-00B75BA9  |.  E8 CAF9FFFF          CALL Skype.00B75578  
-00B75BAE  |>  B8 684F7200          MOV EAX,Skype.00724F68               ; 从这儿开始是解码的 CODE, 很简单, 就一个 XOR, 只是 XOR 的值是一直在变.  
-00B75BB3  |.  BA 684F7200          MOV EDX,Skype.00724F68  
-00B75BB8  |.  0302                 ADD EAX,DWORD PTR DS:\[EDX\]  
-00B75BBA  |.  8945 CC              MOV DWORD PTR SS:\[EBP-34\],EAX  
-00B75BBD  |.  33C0                 XOR EAX,EAX  
-00B75BBF  |.  8945 F8              MOV DWORD PTR SS:\[EBP-8\],EAX  
-00B75BC2  |.  E9 83000000          JMP Skype.00B75C4A  
-00B75BC7  |>  8B45 F8              /MOV EAX,DWORD PTR SS:\[EBP-8\]  
-  
-...省略一些 CODE  
-  
-00B75C3B  |.  8345 EC 71           ||ADD DWORD PTR SS:\[EBP-14\],71  
-00B75C3F  |.  FF45 E8              ||INC DWORD PTR SS:\[EBP-18\]  
-00B75C42  |.  FF4D C8              ||DEC DWORD PTR SS:\[EBP-38\]  
-00B75C45  |.^ 75 D0                |\\JNZ SHORT Skype.00B75C17  
-00B75C47  |>  FF45 F8              |INC DWORD PTR SS:\[EBP-8\]  
-00B75C4A  |>  8B45 F8               MOV EAX,DWORD PTR SS:\[EBP-8\]  
-00B75C4D  |.  8D0480               |LEA EAX,DWORD PTR DS:\[EAX+EAX\*4\]  
-00B75C50  |.  833C85 105FB800 00   |CMP DWORD PTR DS:\[EAX\*4+B85F10\],0  
-00B75C58  |.^ 0F87 69FFFFFF        \\JA Skype.00B75BC7                 ; 解码的 CODE 到这儿为止  
-  
-  
-00B75C5E  |.  33C0                 XOR EAX,EAX                     ; 从这儿起开始解析一份内部的 IAT  
-00B75C60  |.  8945 E4              MOV DWORD PTR SS:\[EBP-1C\],EAX  
-00B75C63  |.  33C0                 XOR EAX,EAX  
-00B75C65  |.  8945 DC              MOV DWORD PTR SS:\[EBP-24\],EAX  
-00B75C68  |.  C745 E8 01000000     MOV DWORD PTR SS:\[EBP-18\],1  
-00B75C6F  |>  8B45 E8              /MOV EAX,DWORD PTR SS:\[EBP-18\]  
-  
-...省略一些 CODE  
-  
-00B75D51  |>  8B45 E0              |MOV EAX,DWORD PTR SS:\[EBP-20\]  
-00B75D54  |.  0145 DC              |ADD DWORD PTR SS:\[EBP-24\],EAX  
-00B75D57  |.  8B45 E8              |MOV EAX,DWORD PTR SS:\[EBP-18\]  
-00B75D5A  |.  8D0440               |LEA EAX,DWORD PTR DS:\[EAX+EAX\*2\]  
-00B75D5D  |.  8B0485 705FB800      |MOV EAX,DWORD PTR DS:\[EAX\*4+B85F70\]  
-00B75D64  |.  0305 4CE1B800        |ADD EAX,DWORD PTR DS:\[B8E14C\]  
-00B75D6A  |.  8B55 E0              |MOV EDX,DWORD PTR SS:\[EBP-20\]  
-00B75D6D  |.  8910                 |MOV DWORD PTR DS:\[EAX\],EDX  
-00B75D6F  |>  FF45 E8              |INC DWORD PTR SS:\[EBP-18\]  
-00B75D72  |.  817D E8 09010000     |CMP DWORD PTR SS:\[EBP-18\],109  
-00B75D79  |.^ 0F85 F0FEFFFF        \\JNZ Skype.00B75C6F  
-  
-00B75D7F  |.  8D45 FC              LEA EAX,DWORD PTR SS:\[EBP-4\]  
-00B75D82  |.  50                   PUSH EAX                                          ; /pOldProtect  
-00B75D83  |.  6A 04                PUSH 4                                            ; |NewProtect = PAGE\_READWRITE  
-00B75D85  |.  A1 605FB800          MOV EAX,DWORD PTR DS:\[B85F60\]                     ; |  
-00B75D8A  |.  50                   PUSH EAX                                          ; |Size => 44C000 (4505600.)  
-00B75D8B  |.  8B45 CC              MOV EAX,DWORD PTR SS:\[EBP-34\]                     ; |  
-00B75D8E  |.  50                   PUSH EAX                                          ; |Address  
-00B75D8F  |.  E8 C42489FF          CALL <JMP.&kernel32.VirtualProtect>               ; \\VirtualProtect  
-00B75D94  |.  85C0                 TEST EAX,EAX  
-00B75D96  |.  75 51                JNZ SHORT Skype.00B75DE9  
-00B75D98  |.  68 405FB700          PUSH Skype.00B75F40                               ;  ASCII "error 9920 ("  
-00B75D9D  |.  8D4D A4              LEA ECX,DWORD PTR SS:\[EBP-5C\]  
-00B75DA0  |.  B2 08                MOV DL,8  
-00B75DA2  |.  A1 605FB800          MOV EAX,DWORD PTR DS:\[B85F60\]  
-00B75DA7  |.  E8 E09791FF          CALL Skype.0048F58C  
-00B75DAC  |.  FF75 A4              PUSH DWORD PTR SS:\[EBP-5C\]  
-00B75DAF  |.  68 585FB700          PUSH Skype.00B75F58  
-00B75DB4  |.  E8 572289FF          CALL <JMP.&kernel32.GetLastError>                 ; GetLastError  
-00B75DB9  |.  33D2                 XOR EDX,EDX  
-00B75DBB  |.  52                   PUSH EDX                                          ; /Arg2 => 00000000  
-00B75DBC  |.  50                   PUSH EAX                                          ; |Arg1  
-00B75DBD  |.  8D45 A0              LEA EAX,DWORD PTR SS:\[EBP-60\]                     ; |  
-00B75DC0  |.  E8 9B5189FF          CALL Skype.0040AF60                               ; \\Skype.0040AF60  
-00B75DC5  |.  FF75 A0              PUSH DWORD PTR SS:\[EBP-60\]  
-00B75DC8  |.  68 645FB700          PUSH Skype.00B75F64  
-00B75DCD  |.  8D45 A8              LEA EAX,DWORD PTR SS:\[EBP-58\]  
-00B75DD0  |.  BA 05000000          MOV EDX,5  
-00B75DD5  |.  E8 52F688FF          CALL Skype.0040542C  
-00B75DDA  |.  8B45 A8              MOV EAX,DWORD PTR SS:\[EBP-58\]  
-00B75DDD  |.  E8 46468CFF          CALL Skype.0043A428  
-00B75DE2  |.  6A 00                PUSH 0                                            ; /ExitCode = 0  
-00B75DE4  |.  E8 172189FF          CALL <JMP.&kernel32.ExitProcess>                  ; \\ExitProcess  
-00B75DE9  |>  8B55 CC              MOV EDX,DWORD PTR SS:\[EBP-34\]  
-00B75DEC  |.  A1 4CE1B800          MOV EAX,DWORD PTR DS:\[B8E14C\]  
-00B75DF1  |.  8B0D 605FB800        MOV ECX,DWORD PTR DS:\[B85F60\]                     ;  Skype.0044C000  
-00B75DF7  |.  E8 14D388FF          CALL Skype.00403110                 ;   
-00B75DFC  |.  68 00800000          PUSH 8000                                         ; /FreeType = MEM\_RELEASE  
-00B75E01  |.  6A 00                PUSH 0                                            ; |Size = 0  
-00B75E03  |.  A1 4CE1B800          MOV EAX,DWORD PTR DS:\[B8E14C\]                     ; |  
-00B75E08  |.  50                   PUSH EAX                                          ; |Address => NULL  
-00B75E09  |.  E8 422489FF          CALL <JMP.&kernel32.VirtualFree>                  ; \\VirtualFree  
-00B75E0E  |.  8B45 CC              MOV EAX,DWORD PTR SS:\[EBP-34\]  
-00B75E11  |.  A3 4CE1B800          MOV DWORD PTR DS:\[B8E14C\],EAX  
-00B75E16  |.  33C0                 XOR EAX,EAX  
-00B75E18  |.  8945 E8              MOV DWORD PTR SS:\[EBP-18\],EAX  
-00B75E1B  |>  8D45 FC              /LEA EAX,DWORD PTR SS:\[EBP-4\]  
-00B75E1E  |.  50                   |PUSH EAX                                         ; /pOldProtect  
-00B75E1F  |.  8B45 E8              |MOV EAX,DWORD PTR SS:\[EBP-18\]                    ; |  
-00B75E22  |.  8D0480               |LEA EAX,DWORD PTR DS:\[EAX+EAX\*4\]                 ; |  
-00B75E25  |.  8B0485 205FB800      |MOV EAX,DWORD PTR DS:\[EAX\*4+B85F20\]              ; |  
-00B75E2C  |.  50                   |PUSH EAX                                         ; |NewProtect  
-00B75E2D  |.  8B45 E8              |MOV EAX,DWORD PTR SS:\[EBP-18\]                    ; |  
-00B75E30  |.  8D0480               |LEA EAX,DWORD PTR DS:\[EAX+EAX\*4\]                 ; |  
-00B75E33  |.  8B0485 145FB800      |MOV EAX,DWORD PTR DS:\[EAX\*4+B85F14\]              ; |  
-00B75E3A  |.  50                   |PUSH EAX                                         ; |Size  
-00B75E3B  |.  8B45 E8              |MOV EAX,DWORD PTR SS:\[EBP-18\]                    ; |  
-00B75E3E  |.  8D0480               |LEA EAX,DWORD PTR DS:\[EAX+EAX\*4\]                 ; |  
-00B75E41  |.  8B0485 105FB800      |MOV EAX,DWORD PTR DS:\[EAX\*4+B85F10\]              ; |  
-00B75E48  |.  0305 4CE1B800        |ADD EAX,DWORD PTR DS:\[B8E14C\]                    ; |  
-00B75E4E  |.  50                   |PUSH EAX                                         ; |Address  
-00B75E4F  |.  E8 042489FF          |CALL <JMP.&kernel32.VirtualProtect>              ; \\VirtualProtect  
-00B75E54  |.  FF45 E8              |INC DWORD PTR SS:\[EBP-18\]  
-00B75E57  |.  8B45 E8              |MOV EAX,DWORD PTR SS:\[EBP-18\]  
-00B75E5A  |.  8D0480               |LEA EAX,DWORD PTR DS:\[EAX+EAX\*4\]  
-00B75E5D  |.  833C85 105FB800 00   |CMP DWORD PTR DS:\[EAX\*4+B85F10\],0  
-00B75E65  |.^ 75 B4                \\JNZ SHORT Skype.00B75E1B  
-00B75E67  |.  A1 705FB800          MOV EAX,DWORD PTR DS:\[B85F70\]  
-00B75E6C  |.  0305 4CE1B800        ADD EAX,DWORD PTR DS:\[B8E14C\]  
-00B75E72  |.  6A 00                PUSH 0  
-00B75E74  |.  6A 01                PUSH 1  
-00B75E76  |.  FF35 4CE1B800        PUSH DWORD PTR DS:\[B8E14C\]  
-00B75E7C  |.  FFD0                 CALL EAX  
-00B75E7E  |.  833D 4CE1B800 00     CMP DWORD PTR DS:\[B8E14C\],0  
-00B75E85  |.  75 05                JNZ SHORT Skype.00B75E8C  
-00B75E87  |.  E8 3805A7FF          CALL Skype.005E63C4  
-00B75E8C  |>  33C0                 XOR EAX,EAX  
-00B75E8E  |.  5A                   POP EDX  
-00B75E8F  |.  59                   POP ECX  
-00B75E90  |.  59                   POP ECX  
-00B75E91  |.  64:8910              MOV DWORD PTR FS:\[EAX\],EDX  
-00B75E94  |.  68 AE5EB700          PUSH Skype.00B75EAE  
-00B75E99  |>  8D45 A0              LEA EAX,DWORD PTR SS:\[EBP-60\]  
-00B75E9C  |.  BA 04000000          MOV EDX,4  
-00B75EA1  |.  E8 FEF188FF          CALL Skype.004050A4  
-00B75EA6  \\.  C3                   RETN  
-00B75EA7   .^ E9 2CEA88FF          JMP Skype.004048D8  
-00B75EAC   .^ EB EB                JMP SHORT Skype.00B75E99  
-00B75EAE   .  8BE5                 MOV ESP,EBP  
-00B75EB0   .  5D                   POP EBP  
-00B75EB1   .  C3                   RETN  
-  
-  
-  
-整个过程用 C 写大致是:  
-  
-  VirtualProtect(OEP, size, PAGE\_EXECUTE\_READWRITE, &oldProtect);  
-  memset(OEP, 0, size);  
-  VirtualProtect(OEP, size, PAGE\_EXECUTE\_READ, &oldProtect);  
-  
-  pMem = VirtualAlloc(NULL, 0x44C000, MEM\_COMMIT, PAGE\_READWRITE);  
-  value = 0X????;  
-  for(i=0;i<SegNum;i++){  
-    for(j=0;j<Segs\[i\].size;j+=4) {  
-      offset = ....  
-      pMem\[offset\] = pOrig\[offset\] ^ value;  
-      value += xxxx;  
-    }  
-  }  
-  
-  for(i=0;i<num;i++) {  
-    if (info\[i\].flags == xxx)   
-      Handle = LoadLibrary(info\[i\].name);  
-    else {  
-      pProc = GetProcAddress(Handle, info\[i\].name)  
-      offset = info\[i\].offset;  
-      pMem\[offset\] = pProc;  
-    }  
-      
-  }  
-  VirtualProtect(pStart, 0x44C000, PAGE\_READ\_WRITE, &oldProtect);  
-  memcpy(pStart, pMem, 0x44C000);  
-  VirtualFree(pMem, 0, MEM\_RELEASE);  
-  for(i=0;i<SegNum;i++){  
-    offset = ...  
-    VirtualProtect(pStart+offset, sizexx, NewProtectxxxx, &oldProtect);  
-  }  
-  
-看看它的作用:  
-  
-a.) 解码的时候清掉了 OEP 处的一小段代码清, 可防止解码后的简单 DUMP  
-  
-b.) 调用了 VirtualProtect, 对这段 被解密的 CODE 下的 memory write 断点不再起作用.  
-  
-c.) 两份 IAT, 第一份是标准的 EXE 的, 由 Loader 解析, 另一份由 自己在解码后 解析. 所以解码后, 即使内存中全是明文, DUMP 后, IAT 也不容易修复,  
-  
-    两份 IAT 在 memory 中相差很远, ImportRec 好象不行, 总不至于手工构造 引入表(I T) 吧?  
-  
-  
-4. 程序中的 anti-debug 解除  
-  
- 用 OllyDbg 载入程序, 忽略 所有 Exception, F9 能正确运行, 但是运行不久, 就出现  
-  
-       Debugged program was unable to process exception  
-  
-但是单独运行却是好好的, 十有八九是 SetUnhandledExceptionFilter 的 anti-debug.  
-  
-Ctrl-F2 重新开始, bp SetUnhandledExceptionFilter, 然后 F9 运行, 运行不久就断下来, 果然不出所料.  
-  
-Ctrl-G UnhandledExceptionFilter, 向下一点, 将 CALL ZwQueryInformationProcess 下面的第二个条件跳转 NOP 掉,  
-  
-// UnhandledExceptionFilter  
-7C59BCDC >  55                    PUSH EBP  
-7C59BCDD    8BEC                  MOV EBP,ESP  
-7C59BCDF    6A FF                 PUSH -1  
-7C59BCE1    68 C02E577C           PUSH kernel32.7C572EC0  
-...  
-7C59BD3B    6A 07                 PUSH 7  
-7C59BD3D    E8 7BBBFFFF           CALL kernel32.GetCurrentProcess  
-7C59BD42    50                    PUSH EAX  
-7C59BD43    FF15 B810577C         CALL DWORD PTR DS:\[<&ntdll.NtQueryInformationProc>; ntdll.ZwQueryInformationProcess  
-7C59BD49    3BC3                  CMP EAX,EBX  
-7C59BD4B    7C 09                 JL SHORT kernel32.7C59BD56  
-7C59BD4D    395D C8               CMP DWORD PTR SS:\[EBP-38\],EBX  
-7C59BD50    0F85 49020000         JNZ kernel32.7C59BF9F      ; // 这儿不能跳, NOP 掉就好了  
-  
-这样, 程序总算开始听话. 由于 Windows 各个平台/版本的差异, 下载的 OLLYDBG 插件不起作用, 就只好手工改了.  
-  
-  
-4. 程序中的 anti-debug CODE 分析 (1)  
-  
-解除 anti-debug 后总想看看, 这样的 anti-debug CODE 是怎么写的, 又是如何触发的.  
-  
-bp SetUnhandledExceptionFilter, 可找到 程序的 exception filter function 地址是 0072B670  
-  
-分析一下这段 CODE:  
-  
-:0072B670 53                      push ebx  
-  
-\* Reference To: kernel32.GetCurrentThreadId, Ord:0111h  
-                                  |  
-:0072B671 FF15909FA000            Call dword ptr \[00A09F90\]          
-:0072B677 3B05F017B200            cmp eax, dword ptr \[00B217F0\]      ; ThreadId == \[00B217F0\]?  
-:0072B67D 741C                    je 0072B69B              ; YES  
-:0072B67F A1EC17B200              mov eax, dword ptr \[00B217EC\]  
-:0072B684 33DB                    xor ebx, ebx  
-:0072B686 3BC3                    cmp eax, ebx  
-:0072B688 740B                    je 0072B695  
-:0072B68A 8B4C2408                mov ecx, dword ptr \[esp+08\]  
-:0072B68E 51                      push ecx  
-:0072B68F FFD0                    call eax  
-:0072B691 5B                      pop ebx  
-:0072B692 C20400                  ret 0004  
-  
-  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B688(C)  
-|  
-:0072B695 33C0                    xor eax, eax  
-:0072B697 5B                      pop ebx  
-:0072B698 C20400                  ret 0004  
-  
-  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B67D(C)  
-|  
-:0072B69B 8B0DE817B200            mov ecx, dword ptr \[00B217E8\]      ; 一个 NUM  
-:0072B6A1 55                      push ebp  
-:0072B6A2 56                      push esi  
-:0072B6A3 8B742410                mov esi, dword ptr \[esp+10\]      ; ExceptionInfo 参数  
-:0072B6A7 8D1449                  lea edx, dword ptr \[ecx+2\*ecx\]  
-:0072B6AA 57                      push edi  
-:0072B6AB 41                      inc ecx  
-:0072B6AC B801000000              mov eax, 00000001            ; 初始化返回值  
-:0072B6B1 8D3C952018B200          lea edi, dword ptr \[4\*edx+00B21820\]  ; 00B21820 处是一个表, 每项 size=3\*4  
-:0072B6B8 890DE817B200            mov dword ptr \[00B217E8\], ecx      ; NUM 加 1 了,   
-:0072B6BE C74708FFFFFFFF          mov \[edi+08\], FFFFFFFF  
-:0072B6C5 8B0E                    mov ecx, dword ptr \[esi\]        ; ExceptionRecord  
-:0072B6C7 8B29                    mov ebp, dword ptr \[ecx\]        ; ExceptionCode  
-:0072B6C9 F7C500FFFF00            test ebp, 00FFFF00          ; 是 xx0000yy 的格式吗?  
-:0072B6CF 7516                    jne 0072B6E7  
-:0072B6D1 8BD5                    mov edx, ebp              ; xx0000yy ==> xxyy  
-:0072B6D3 C1EA10                  shr edx, 10  
-:0072B6D6 8ADA                    mov bl, dl  
-:0072B6D8 3219                    xor bl, byte ptr \[ecx\]  
-:0072B6DA 81E3FF000000            and ebx, 000000FF  
-:0072B6E0 33DA                    xor ebx, edx  
-:0072B6E2 66891F                  mov word ptr \[edi\], bx        ; 保存 xxyy   
-:0072B6E5 EB05                    jmp 0072B6EC  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B6CF(C)  
-|  
-:0072B6E7 66C707FFFF              mov word ptr \[edi\], FFFF  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B6E5(U)  
-|  
-:0072B6EC 8B0E                    mov ecx, dword ptr \[esi\]  
-:0072B6EE 33DB                    xor ebx, ebx  
-:0072B6F0 8B510C                  mov edx, dword ptr \[ecx+0C\]  
-:0072B6F3 895704                  mov dword ptr \[edi+04\], edx      ; 保存 ExceptionAddress  
-:0072B6F6 8B0E                    mov ecx, dword ptr \[esi\]  
-:0072B6F8 8B510C                  mov edx, dword ptr \[ecx+0C\]      ; edi = ExceptionAddress  
-:0072B6FB 33C9                    xor ecx, ecx  
-:0072B6FD 668B0F                  mov cx, word ptr \[edi\]  
-:0072B700 81F91DC00000            cmp ecx, 0000C01D  
-:0072B706 0F8F4E020000            jg 0072B95A  
-:0072B70C 0F84C4010000            je 0072B8D6  
-:0072B712 81E903800000            sub ecx, 00008003  
-:0072B718 0F847D010000            je 0072B89B  
-:0072B71E 49                      dec ecx  
-:0072B71F 0F845E010000            je 0072B883  
-:0072B725 81E901400000            sub ecx, 00004001  
-:0072B72B 0F8534020000            jne 0072B965  
-:0072B731 803ACD                  cmp byte ptr \[edx\], CD        ; xxyy == C005 到这,   
-:0072B734 0F8578020000            jne 0072B9B2  
-:0072B73A 807A0101                cmp byte ptr \[edx+01\], 01  
-:0072B73E 0F856E020000            jne 0072B9B2  
-:0072B744 8B7A01                  mov edi, dword ptr \[edx+01\]  
-:0072B747 32C9                    xor cl, cl  
-:0072B749 81FF01CC8DC0            cmp edi, C08DCC01  
-:0072B74F 7540                    jne 0072B791  
-:0072B751 8B5604                  mov edx, dword ptr \[esi+04\]      ; ExceptionAddress 处是 CD 01 CC 8D C0 到这  
-:0072B754 8B82B0000000            mov eax, dword ptr \[edx+000000B0\]  
-:0072B75A A3281BB200              mov dword ptr \[00B21B28\], eax      ; \[00B21B28\] = context->eax  
-:0072B75F 8B4E04                  mov ecx, dword ptr \[esi+04\]  
-:0072B762 8B91A8000000            mov edx, dword ptr \[ecx+000000A8\]  
-:0072B768 89152C1BB200            mov dword ptr \[00B21B2C\], edx      ; \[00B21B28\] = context->eax  
-:0072B76E 8B4604                  mov eax, dword ptr \[esi+04\]  
-:0072B771 8B88B8000000            mov ecx, dword ptr \[eax+000000B8\]  
-:0072B777 83C105                  add ecx, 00000005  
-:0072B77A 8988B8000000            mov dword ptr \[eax+000000B8\], ecx    ; context->eip += 5  
-:0072B780 A1681BB200              mov eax, dword ptr \[00B21B68\]  
-:0072B785 0C02                    or al, 02  
-:0072B787 A3681BB200              mov dword ptr \[00B21B68\], eax      ; \[00B21B68\] |=2  
-:0072B78C 83C8FF                  or eax, FFFFFFFF            ; eax = -1  
-:0072B78F EB6E                    jmp 0072B7FF  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B74F(C)  
-|  
-:0072B791 81FF018DC0CC            cmp edi, CCC08D01  
-:0072B797 7568                    jne 0072B801  
-:0072B799 8B15681BB200            mov edx, dword ptr \[00B21B68\]      ; ExceptionAddress 处是 CD 01 8D C0 CC 到这  
-:0072B79F 83CA04                  or edx, 00000004  
-:0072B7A2 8915681BB200            mov dword ptr \[00B21B68\], edx      ; \[00B21B68\] |=4  
-:0072B7A8 8B4604                  mov eax, dword ptr \[esi+04\]  
-:0072B7AB F6C202                  test dl, 02  
-:0072B7AE 8B80B0000000            mov eax, dword ptr \[eax+000000B0\]  
-:0072B7B4 A3201BB200              mov dword ptr \[00B21B20\], eax      ; \[00B21B20\]  = context->eax  
-:0072B7B9 8B4E04                  mov ecx, dword ptr \[esi+04\]  
-:0072B7BC 8B89A8000000            mov ecx, dword ptr \[ecx+000000A8\]  
-:0072B7C2 890D241BB200            mov dword ptr \[00B21B24\], ecx      ; \[00B21B20\]  = context->edx  
-:0072B7C8 7428                    je 0072B7F2  
-:0072B7CA 8B2D281BB200            mov ebp, dword ptr \[00B21B28\]  
-:0072B7D0 8B152C1BB200            mov edx, dword ptr \[00B21B2C\]  
-:0072B7D6 2BC5                    sub eax, ebp  
-:0072B7D8 A3701BB200              mov dword ptr \[00B21B70\], eax      ; \[00B21B70\]  = context->eax - \[00B21B28\]  
-:0072B7DD A1681BB200              mov eax, dword ptr \[00B21B68\]  
-:0072B7E2 1BCA                    sbb ecx, edx  
-:0072B7E4 80CC80                  or ah, 80  
-:0072B7E7 890D741BB200            mov dword ptr \[00B21B74\], ecx      ; \[00B21B74\]  = context->edx - \[00B21B2C\]  
-:0072B7ED A3681BB200              mov dword ptr \[00B21B68\], eax      ; \[00B21B68\] |= 00008000  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B7C8(C)  
-|  
-:0072B7F2 8B4E04                  mov ecx, dword ptr \[esi+04\]  
-:0072B7F5 83C8FF                  or eax, FFFFFFFF  
-:0072B7F8 8381B800000004          add dword ptr \[ecx+000000B8\], 00000004  ; context->eip += 5  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B78F(U)  
-|  
-:0072B7FF B101                    mov cl, 01  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B797(C)  
-|  
-:0072B801 81E7FFFF0000            and edi, 0000FFFF  
-:0072B807 81FF01CF0000            cmp edi, 0000CF01  
-:0072B80D 7565                    jne 0072B874  
-:0072B80F 8B5604                  mov edx, dword ptr \[esi+04\]      ; ExceptionAddress 处是 CD 01 CF 到这  
-:0072B812 8B82C4000000            mov eax, dword ptr \[edx+000000C4\]  
-:0072B818 8B00                    mov eax, dword ptr \[eax\]  
-:0072B81A F6C408                  test ah, 08  
-:0072B81D A36C1BB200              mov dword ptr \[00B21B6C\], eax        
-:0072B822 750A                    jne 0072B82E  
-:0072B824 810D681BB20000000100    or dword ptr \[00B21B68\], 00010000    ; \[00B21B68\] |= 00010000  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B822(C)  
-|  
-:0072B82E F6C401                  test ah, 01  
-:0072B831 750A                    jne 0072B83D  
-:0072B833 810D681BB20000000200    or dword ptr \[00B21B68\], 00020000    ; \[00B21B68\] |= 00010000  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B831(C)  
-|  
-:0072B83D 8B5604                  mov edx, dword ptr \[esi+04\]  
-:0072B840 B9E0B97200              mov ecx, 0072B9E0  
-:0072B845 41                      inc ecx  
-:0072B846 898AB8000000            mov dword ptr \[edx+000000B8\], ecx    ; context->eip  = 0072B9E1  
-:0072B84C 8B4604                  mov eax, dword ptr \[esi+04\]  
-:0072B84F 8B0D601BB200            mov ecx, dword ptr \[00B21B60\]  
-:0072B855 8988C4000000            mov dword ptr \[eax+000000C4\], ecx    ; context->esp  = \[00B21B60\]  
-:0072B85B A1681BB200              mov eax, dword ptr \[00B21B68\]  
-:0072B860 0D00000400              or eax, 00040000  
-:0072B865 A3681BB200              mov dword ptr \[00B21B68\], eax      ; \[00B21B68\] |= 00040000  
-:0072B86A E881FDFFFF              call 0072B5F0  
-:0072B86F E93B010000              jmp 0072B9AF  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B80D(C)  
-|  
-:0072B874 3ACB                    cmp cl, bl  
-:0072B876 0F8536010000            jne 0072B9B2  
-:0072B87C 33C0                    xor eax, eax  
-:0072B87E E92F010000              jmp 0072B9B2  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B71F(C)  
-|  
-:0072B883 391D641BB200            cmp dword ptr \[00B21B64\], ebx      ; xxyy == 8004 到这  
-:0072B889 0F8520010000            jne 0072B9AF  
-:0072B88F A1681BB200              mov eax, dword ptr \[00B21B68\]  
-:0072B894 0C01                    or al, 01  
-:0072B896 E90F010000              jmp 0072B9AA  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B718(C)  
-|  
-:0072B89B 803ACC                  cmp byte ptr \[edx\], CC        ; xxyy == 8004 到这  
-:0072B89E 0F850E010000            jne 0072B9B2  
-:0072B8A4 807A018D                cmp byte ptr \[edx+01\], 8D  
-:0072B8A8 750F                    jne 0072B8B9  
-:0072B8AA 807A02C0                cmp byte ptr \[edx+02\], C0          
-:0072B8AE 7509                    jne 0072B8B9  
-:0072B8B0 A1681BB200              mov eax, dword ptr \[00B21B68\]      ; ExceptionAddress 处是 CC 8D C0  
-:0072B8B5 0C08                    or al, 08                ; \[00B21B68\] |= 08  
-:0072B8B7 EB07                    jmp 0072B8C0  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:0072B8A8(C), :0072B8AE(C)  
-|  
-:0072B8B9 A1681BB200              mov eax, dword ptr \[00B21B68\]  
-:0072B8BE 0C10                    or al, 10                ; \[00B21B68\] |= 08  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B8B7(U)  
-|  
-:0072B8C0 A3681BB200              mov dword ptr \[00B21B68\], eax  
-:0072B8C5 8B4E04                  mov ecx, dword ptr \[esi+04\]  
-:0072B8C8 83C8FF                  or eax, FFFFFFFF  
-:0072B8CB FF81B8000000            inc dword ptr \[ecx+000000B8\]      ; context->eip++  
-:0072B8D1 E9DC000000              jmp 0072B9B2  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B70C(C)  
-|  
-:0072B8D6 803A0F                  cmp byte ptr \[edx\], 0F        ; xxyy == C01D 到这  
-:0072B8D9 B902000000              mov ecx, 00000002            ; ecx = 2  
-:0072B8DE 7539                    jne 0072B919  
-:0072B8E0 807A010B                cmp byte ptr \[edx+01\], 0B  
-:0072B8E4 7533                    jne 0072B919  
-:0072B8E6 8B4604                  mov eax, dword ptr \[esi+04\]      ; ExceptionAddress 处是 0F 0B  
-:0072B8E9 8BA8B8000000            mov ebp, dword ptr \[eax+000000B8\]  
-:0072B8EF 03E9                    add ebp, ecx  
-:0072B8F1 89A8B8000000            mov dword ptr \[eax+000000B8\], ebp    ; context->eip +=2   
-:0072B8F7 8B4604                  mov eax, dword ptr \[esi+04\]  
-:0072B8FA 8BB8C0000000            mov edi, dword ptr \[eax+000000C0\]  
-:0072B900 81CF00090000            or edi, 00000900            
-:0072B906 89B8C0000000            mov dword ptr \[eax+000000C0\], edi    ; context->EFlags |= 900 // OF, TF// 设置 CPU 单步 flags  
-:0072B90C 83C8FF                  or eax, FFFFFFFF  
-:0072B90F C705641BB20001000000    mov dword ptr \[00B21B64\], 00000001  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:0072B8DE(C), :0072B8E4(C)  
-|  
-:0072B919 803A8D                  cmp byte ptr \[edx\], 8D  
-:0072B91C 0F8590000000            jne 0072B9B2  
-:0072B922 807A01C0                cmp byte ptr \[edx+01\], C0  
-:0072B926 0F8586000000            jne 0072B9B2  
-:0072B92C 8B4604                  mov eax, dword ptr \[esi+04\]      ; ExceptionAddress 处是 8D C0  
-:0072B92F 8B90B8000000            mov edx, dword ptr \[eax+000000B8\]  
-:0072B935 03D1                    add edx, ecx  
-:0072B937 8990B8000000            mov dword ptr \[eax+000000B8\], edx    ; context->eip +=2   
-:0072B93D 8B4604                  mov eax, dword ptr \[esi+04\]  
-:0072B940 8B88C0000000            mov ecx, dword ptr \[eax+000000C0\]  
-:0072B946 80E5F6                  and ch, F6  
-:0072B949 8988C0000000            mov dword ptr \[eax+000000C0\], ecx    ; context->EFlags &= ~900 // 设置 CPU 单步 flags  
-:0072B94F 83C8FF                  or eax, FFFFFFFF  
-:0072B952 891D641BB200            mov dword ptr \[00B21B64\], ebx  
-:0072B958 EB58                    jmp 0072B9B2  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B706(C)  
-|  
-:0072B95A 81E995C00000            sub ecx, 0000C095  
-:0072B960 7440                    je 0072B9A2  
-:0072B962 49                      dec ecx  
-:0072B963 7411                    je 0072B976  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B72B(C)  
-|  
-:0072B965 8B0D681BB200            mov ecx, dword ptr \[00B21B68\]  
-:0072B96B 80CD08                  or ch, 08  
-:0072B96E 890D681BB200            mov dword ptr \[00B21B68\], ecx  
-:0072B974 EB3C                    jmp 0072B9B2  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B963(C)  
-|  
-:0072B976 803A0F                  cmp byte ptr \[edx\], 0F        ; xxyy == C096 到这  
-:0072B979 7537                    jne 0072B9B2  
-:0072B97B 807A0134                cmp byte ptr \[edx+01\], 34  
-:0072B97F 7531                    jne 0072B9B2  
-:0072B981 8B3D681BB200            mov edi, dword ptr \[00B21B68\]      ; ExceptionAddress 处是 0F 34  
-:0072B987 83C8FF                  or eax, FFFFFFFF  
-:0072B98A 81CF00100000            or edi, 00001000  
-:0072B990 893D681BB200            mov dword ptr \[00B21B68\], edi      ; \[00B21B68\] |= 1000;  
-:0072B996 8B4E04                  mov ecx, dword ptr \[esi+04\]  
-:0072B999 8381B800000002          add dword ptr \[ecx+000000B8\], 00000002  ; context->eip +=2   
-:0072B9A0 EB10                    jmp 0072B9B2  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B960(C)  
-|  
-:0072B9A2 A1681BB200              mov eax, dword ptr \[00B21B68\]      ; xxyy == C095 到这  
-:0072B9A7 80CC04                  or ah, 04  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072B896(U)  
-|  
-:0072B9AA A3681BB200              mov dword ptr \[00B21B68\], eax      ; \[00B21B68\] |= 400;  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:0072B86F(U), :0072B889(C)  
-|  
-:0072B9AF 83C8FF                  or eax, FFFFFFFF  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:0072B734(C), :0072B73E(C), :0072B876(C), :0072B87E(U), :0072B89E(C)  
-|:0072B8D1(U), :0072B91C(C), :0072B926(C), :0072B958(U), :0072B974(U)  
-|:0072B979(C), :0072B97F(C), :0072B9A0(U)  
-|  
-:0072B9B2 8B5604                  mov edx, dword ptr \[esi+04\]  
-:0072B9B5 5F                      pop edi  
-:0072B9B6 895A10                  mov dword ptr \[edx+10\], ebx      ; context->dr3 = 0, 清除硬件断点  
-:0072B9B9 8B4E04                  mov ecx, dword ptr \[esi+04\]  
-:0072B9BC 89590C                  mov dword ptr \[ecx+0C\], ebx      ; context->dr2 = 0  
-:0072B9BF 8B5604                  mov edx, dword ptr \[esi+04\]  
-:0072B9C2 895A08                  mov dword ptr \[edx+08\], ebx      ; context->dr1 = 0  
-:0072B9C5 8B4E04                  mov ecx, dword ptr \[esi+04\]  
-:0072B9C8 5E                      pop esi  
-:0072B9C9 5D                      pop ebp  
-:0072B9CA 895904                  mov dword ptr \[ecx+04\], ebx      ; context->dr0 = 0  
-:0072B9CD 5B                      pop ebx  
-:0072B9CE C20400                  ret 0004  
-  
-这段 CODE 只是处理 Exception, 跟完了这段, 还是不太明白, 再想跟一跟 Exception 是如何触发的.  
-  
-于是, 在 0072B9CE 处 F8 返回到 kernel32.dll 领空后, 在 Memory Map 的 00401000 CODE 段上 F2 下断, 然后 F9  
-  
-断在 0091885F  
-  
-00918854    8B49 04               MOV ECX,DWORD PTR DS:\[ECX+4\]  
-00918857    50                    PUSH EAX  
-00918858    51                    PUSH ECX  
-00918859    FF15 ACA0A000         CALL DWORD PTR DS:\[A0A0AC\]            ; kernel32.WaitForSingleObject  
-0091885F    85C0                  TEST EAX,EAX              ; 返回到这儿了????????  
-00918861    74 12                 JE SHORT Skype.00918875  
-00918863    33D2                  XOR EDX,EDX  
-00918865    3D 02010000           CMP EAX,102  
-0091886A    0F94C2                SETE DL  
-  
-前后看看, 感觉不应该是这样的. 刚开始也是一阵迷惑不解, 后来弄了好久才想可能是这样:  
-  
-程序是多线程的, 有个线程由于在 00918859 CALL kernel32.WaitForSingleObject 而进入 kernel32 的领空等待,   
-  
-而我所跟的线程在处理好 Exception 后, 回到 kernel32.dll 领空, 再 F9, 却被等待的线程抢先返回到 CODE 段的   
-  
-0091885F 而触发了在 0401000 CODE 段上 的 F2 断点.  
-  
-所以这条路走不通, 再想别的法子了.  
-  
-  
-5. 程序中的 anti-debug CODE 分析 (2)  
-  
-  
-根据 SetUnhandledExceptionFilter 找到下面的 code:  
-  
-\* Referenced by a CALL at Address:  
-|:0072BF8C     
-|  
-:0072B9F0 53                      push ebx  
-:0072B9F1 56                      push esi  
-:0072B9F2 57                      push edi  
-  
-\* Reference To: kernel32.GetCurrentThreadId, Ord:0111h  
-                                  |  
-:0072B9F3 FF15909FA000            Call dword ptr \[00A09F90\]  
-:0072B9F9 A3F017B200              mov dword ptr \[00B217F0\], eax      ; ThreadID  
-:0072B9FE E83DF2FFFF              call 0072AC40              ; 将 SEH 链的最后一项填到第一项, 实际上是 reset SEH 链  
-                                    ; 并返回第一项  
-  
-  
-\* Reference To: kernel32.SetUnhandledExceptionFilter, Ord:02BFh  
-                                  |  
-:0072BA03 8B3D949FA000            mov edi, dword ptr \[00A09F94\]  
-:0072BA09 6870B67200              push 0072B670  
-:0072BA0E 8BF0                    mov esi, eax              ; 保存第一项  
-:0072BA10 FFD7                    call edi                ; Call SetUnhandledExceptionFilter  
-:0072BA12 A3EC17B200              mov dword ptr \[00B217EC\], eax  
-:0072BA17 B904000000              mov ecx, 00000004  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BA54(C)  
-|  
-:0072BA1C A1381BB200              mov eax, dword ptr \[00B21B38\]      ; rand 的 seed  
-:0072BA21 8B1D581BB200            mov ebx, dword ptr \[00B21B58\]      ; VirtualAlloc 的一起始地址,  将用做 STACK  
-:0072BA27 8D1440                  lea edx, dword ptr \[eax+2\*eax\]    ; 下面这几行就是　rand()  
-:0072BA2A 8D1490                  lea edx, dword ptr \[eax+4\*edx\]  
-:0072BA2D C1E204                  shl edx, 04  
-:0072BA30 03D0                    add edx, eax  
-:0072BA32 C1E208                  shl edx, 08  
-:0072BA35 2BD0                    sub edx, eax  
-:0072BA37 8D8490C39E2600          lea eax, dword ptr \[eax+4\*edx+00269EC3\]  
-:0072BA3E 8B155C1BB200            mov edx, dword ptr \[00B21B5C\]      ; VirtualAlloc 的 STACK size    
-:0072BA44 2BD1                    sub edx, ecx  
-:0072BA46 83C104                  add ecx, 00000004  
-:0072BA49 A3381BB200              mov dword ptr \[00B21B38\], eax  
-:0072BA4E 83F920                  cmp ecx, 00000020  
-:0072BA51 89041A                  mov dword ptr \[edx+ebx\], eax      ; 往 memory 的最后 0x20 bytes 填上一些随机数  
-:0072BA54 7EC6                    jle 0072BA1C              ; 循环  
-  
-:0072BA56 E8F5FBFFFF              call 0072B650              ; \*\*\*\*\*\*  这里就是去产生各种 Unhandled Exception 的地方 \*\*\*\*\*\*  
-  
-:0072BA5B A1EC17B200              mov eax, dword ptr \[00B217EC\]  
-:0072BA60 50                      push eax  
-:0072BA61 FFD7                    call edi                ; 重 Call SetUnhandledExceptionFilter, 进行恢复工作  
-:0072BA63 56                      push esi  
-:0072BA64 E8C7F1FFFF              call 0072AC30              ; 恢复正常的 SEH 链  
-:0072BA69 A1E817B200              mov eax, dword ptr \[00B217E8\]      ; 下面的 CODE 检查 在 程序的 UnhandledExceptionFilter 的运行结果是否正常  
-:0072BA6E 83C404                  add esp, 00000004  
-:0072BA71 83F80B                  cmp eax, 0000000B  
-:0072BA74 7544                    jne 0072BABA  
-:0072BA76 33D2                    xor edx, edx  
-:0072BA78 B92018B200              mov ecx, 00B21820  
-:0072BA7D B888A4A000              mov eax, 00A0A488  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BA9F(C)  
-|  
-:0072BA82 668B31                  mov si, word ptr \[ecx\]  
-:0072BA85 663B30                  cmp si, word ptr \[eax\]  
-:0072BA88 7517                    jne 0072BAA1  
-:0072BA8A 0FBF7002                movsx esi, word ptr \[eax+02\]  
-:0072BA8E 397108                  cmp dword ptr \[ecx+08\], esi  
-:0072BA91 750E                    jne 0072BAA1  
-:0072BA93 83C004                  add eax, 00000004  
-:0072BA96 42                      inc edx  
-:0072BA97 83C10C                  add ecx, 0000000C  
-:0072BA9A 3DB4A4A000              cmp eax, 00A0A4B4  
-:0072BA9F 7CE1                    jl 0072BA82  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:0072BA88(C), :0072BA91(C)  
-|  
-:0072BAA1 83FA0B                  cmp edx, 0000000B            ;  结果是否正常?  
-:0072BAA4 7514                    jne 0072BABA  
-:0072BAA6 8B0D681BB200            mov ecx, dword ptr \[00B21B68\]  
-:0072BAAC 81E116840400            and ecx, 00048416  
-:0072BAB2 81F916840400            cmp ecx, 00048416            ; flags 是 00048416 ?  
-:0072BAB8 740C                    je 0072BAC6  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:0072BA74(C), :0072BAA4(C)  
-|  
-:0072BABA A1781BB200              mov eax, dword ptr \[00B21B78\]      ; 非正常结果会到这,   
-:0072BABF 0C02                    or al, 02  
-:0072BAC1 A3781BB200              mov dword ptr \[00B21B78\], eax      ; 设置 1 flag  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BAB8(C)  
-|  
-:0072BAC6 5F                      pop edi  
-:0072BAC7 5E                      pop esi  
-:0072BAC8 5B                      pop ebx  
-:0072BAC9 C3                      ret                  ; ret to 0072BF91  
-  
-  
-再跟一下返回后的 CODE:  
-  
-  
-:0072BF8C E85FFAFFFF              call 0072B9F0  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BF8A(C)  
-|  
-:0072BF91 A1681BB200              mov eax, dword ptr \[00B21B68\]      ; 返回到这  
-:0072BF96 F6C480                  test ah, 80  
-:0072BF99 7419                    je 0072BFB4  
-:0072BF9B 392D741BB200            cmp dword ptr \[00B21B74\], ebp      ; RDTSC 时间差的高 32bits  
-:0072BFA1 7C11                    jl 0072BFB4            
-:0072BFA3 7F0C                    jg 0072BFB1              ; 大于 0 就 跳去  or edi, 1,   
-:0072BFA5 813D701BB20070640800    cmp dword ptr \[00B21B70\], 00086470  ; RDTSC 时间差的低 32bits < 00086470 ?  
-:0072BFAF 7203                    jb 0072BFB4  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BFA3(C)  
-|  
-:0072BFB1 83CF01                  or edi, 00000001            ;   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:0072BF99(C), :0072BFA1(C), :0072BFAF(C)  
-|  
-:0072BFB4 F605341BB20001          test byte ptr \[00B21B34\], 01  
-:0072BFBB 7547                    jne 0072C004  
-  
-  
-  
-  
-  
-\*\*\*\*\*\*\*\*\*\* 去产生各种 Unhandled Exception  \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-  
-\* Referenced by a CALL at Address:  
-|:0072BA56     
-|  
-:0072B650 9C                      pushfd                ; 保存 Eflags  
-:0072B651 60                      pushad                ; 保存 REGs  
-:0072B652 8925601BB200            mov dword ptr \[00B21B60\], esp      ; 保存 esp  
-:0072B658 8B25581BB200            mov esp, dword ptr \[00B21B58\]      ; \*\*\*\*\* ESP 给改了, 从现在起, STACK 窗口 没有有用的信息了 \*\*\*\*\*\*\*   
-:0072B65E 03255C1BB200            add esp, dword ptr \[00B21B5C\]      ;   
-:0072B664 83EC20                  sub esp, 00000020  
-:0072B667 61                      popad                  ; \*\*\*\*\* 这儿可不对应上面的 pushad, pop 的全是随机数, 看 0072BA51  
-:0072B668 FF25501BB200            jmp dword ptr \[00B21B50\]        ; 到这, 除了 eip, esp 的值有用, 起它的 6 个 reg 中全是垃圾, 跳到...  
-  
-  
-跳到这, 每次运行可是跳到不同的地址!!!  
-  
-下面这一小段 CODE 要产生 11 (0x0B) 个 Unhandled Exception, 完成不同的功能 相当于 CALL 0072B670 - 0072B9CE  
-  
-\*\*\*\*\*\*\*\*\* 产生各种 Unhandled Exception 的 CODE \*\*\*\*\*\*\*\*\*  
-5F910152   /EB 02           JMP SHORT 5F910156            ; 跳  
-5F910154    C7              ???                                                  ; Unknown command  
-5F910155    FA              CLI  
-5F910156   /74 03           JE SHORT 5F91015B            ; 跳  
-5F910158   |75 01           JNZ SHORT 5F91015B            ; 跳  
-5F91015A    68 0F31CD01     PUSH 1CD310F  
-  
-5F91015B    0F31            RDTSC                  ; 读 CPU 的 xx counter, ==> EDX:EAX  
-5F91015D    CD 01           INT 1                  ; C0000005, eip+= 5  
-5F91015F    CC              INT3  
-5F910160    8DC0            LEA EAX,EAX                                           ; Illegal use of register  
-5F910162    EB 02           JMP SHORT 5F910166            ; 跳  
-5F910164  - 0F84 0F31CD01   JE 615E3279  
-  
-5F910166    0F31            RDTSC                  ; 再读 CPU 的 xx counter, ==> EDX:EAX  
-5F910168    CD 01           INT 1                  ; C0000005, eip+= 4  
-5F91016A    8DC0            LEA EAX,EAX                                           ; Illegal use of register  
-5F91016C    CC              INT3                  ; 80000003, eip++  
-5F91016D    0F0B            UD2                    ; C000001D, eip+= 2, set OF,TP  
-                                  ; 80000004, from 77F9FF64  
-5F91016F    CE              INTO                  ; C0000095, eip=eip  
-                                  ; 80000004, from 77F9FF64  
-5F910170    CC              INT3                  ; 80000003, eip++  
-5F910171    9C              PUSHFD  
-5F910172    8DC0            LEA EAX,EAX                              ; 80000004, eip=eip  
-                                  ; C000001D, eip+=2, clear OF, TP  
-5F910174    CD 01           INT 1                  ; C0000005, eip=0072B9E1  
-  
-5F910176    CF              IRETD                  ; 这一句没执行  
-  
-最后的 Exception 使 eip = 0072B9E1,esp=\[00B21B60\], 还有花指令  
-  
-0072B9DD    90              NOP  
-0072B9DE    90              NOP  
-0072B9DF    90              NOP  
-0072B9E0    E8 619DC37E     CALL 7F365746  
-  
-正确的应该是  
-0072B9E1    61              POPAD                    ; 这里才对应于 0072B651 的 pushad  
-0072B9E2    9D              POPFD                    ;       对应于 0072B650 的 pushfd  
-0072B9E3    C3              RETN  
-  
-  
-  
-  
-再看一下与上面 Unhandled Exception 相关的 初始化部分:  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072A8E0(U)  
-|  
-:0072BBC0 83EC0C                  sub esp, 0000000C  
-:0072BBC3 57                      push edi  
-:0072BBC4 8B3D781BB200            mov edi, dword ptr \[00B21B78\]  
-:0072BBCA 6A01                    push 00000001  
-:0072BBCC 68301BB200              push 00B21B30  
-:0072BBD1 897C2414                mov dword ptr \[esp+14\], edi  
-  
-\* Reference To: kernel32.InterlockedExchange, Ord:01D0h  
-                                  |  
-:0072BBD5 FF15A49FA000            Call dword ptr \[00A09FA4\]        ; 应该是读一 flag, 表示初始化或没有?  
-:0072BBDB 85C0                    test eax, eax  
-:0072BBDD 0F852F040000            jne 0072C012  
-:0072BBE3 8B15341BB200            mov edx, dword ptr \[00B21B34\]  
-:0072BBE9 A1381BB200              mov eax, dword ptr \[00B21B38\]  
-:0072BBEE 55                      push ebp  
-:0072BBEF 33ED                    xor ebp, ebp  
-:0072BBF1 42                      inc edx  
-:0072BBF2 3BC5                    cmp eax, ebp  
-:0072BBF4 56                      push esi  
-:0072BBF5 8915341BB200            mov dword ptr \[00B21B34\], edx  
-:0072BBFB 750B                    jne 0072BC08  
-  
-\* Reference To: kernel32.GetTickCount, Ord:018Bh  
-                                  |  
-:0072BBFD FF15A09FA000            Call dword ptr \[00A09FA0\]  
-:0072BC03 A3381BB200              mov dword ptr \[00B21B38\], eax      ; 初始化 rand 的 seed  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BBFB(C)  
-|  
-:0072BC08 833D2C60AD00FF          cmp dword ptr \[00AD602C\], FFFFFFFF  
-:0072BC0F 750F                    jne 0072BC20  
-:0072BC11 E8FAEFFFFF              call 0072AC10  
-:0072BC16 A32C60AD00              mov dword ptr \[00AD602C\], eax  
-:0072BC1B A1381BB200              mov eax, dword ptr \[00B21B38\]  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BC0F(C)  
-|  
-:0072BC20 392D401BB200            cmp dword ptr \[00B21B40\], ebp  
-:0072BC26 750A                    jne 0072BC32  
-:0072BC28 E823EFFFFF              call 0072AB50  
-:0072BC2D A1381BB200              mov eax, dword ptr \[00B21B38\]  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BC26(C)  
-|  
-:0072BC32 8A0D441BB200            mov cl, byte ptr \[00B21B44\]  
-:0072BC38 84C9                    test cl, cl  
-:0072BC3A 7517                    jne 0072BC53  
-:0072BC3C 68F817B200              push 00B217F8  
-  
-\* Reference To: kernel32.GetSystemInfo, Ord:0177h  
-                                  |  
-:0072BC41 FF159C9FA000            Call dword ptr \[00A09F9C\]        ; GetSystemInfo(), 下面用到  
-:0072BC47 A1381BB200              mov eax, dword ptr \[00B21B38\]  
-:0072BC4C C605441BB20001          mov byte ptr \[00B21B44\], 01  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BC3A(C)  
-|  
-:0072BC53 8A15341BB200            mov dl, byte ptr \[00B21B34\]  
-:0072BC59 F6C20E                  test dl, 0E  
-:0072BC5C 7555                    jne 0072BCB3  
-:0072BC5E 8A0D441BB200            mov cl, byte ptr \[00B21B44\]  
-:0072BC64 84C9                    test cl, cl  
-:0072BC66 744B                    je 0072BCB3  
-:0072BC68 8B0D4C1BB200            mov ecx, dword ptr \[00B21B4C\]  
-:0072BC6E 3BCD                    cmp ecx, ebp  
-:0072BC70 7408                    je 0072BC7A  
-:0072BC72 392D581BB200            cmp dword ptr \[00B21B58\], ebp  
-:0072BC78 7539                    jne 0072BCB3  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BC70(C)  
-|  
-:0072BC7A 80E201                  and dl, 01  
-:0072BC7D 8854240F                mov byte ptr \[esp+0F\], dl  
-:0072BC81 0F8471010000            je 0072BDF8  
-:0072BC87 3BCD                    cmp ecx, ebp  
-:0072BC89 7528                    jne 0072BCB3  
-:0072BC8B 68F817B200              push 00B217F8  
-:0072BC90 68481BB200              push 00B21B48  
-:0072BC95 6880000000              push 00000080  
-:0072BC9A C605451BB20000          mov byte ptr \[00B21B45\], 00  
-:0072BCA1 E82AFEFFFF              call 0072BAD0              ; 分配一段 Memory,来放产生各种 Unhandled Exception 的 CODE,  
- 起始地址 xxxx0000 中的 xxxx 是根据 SystemInfo 随机生成, 每次运行都不一样, 而且一般都是 5xxx, 6xxx or 7xxxx,   
- 跟系统 dll 中的地址混在一起, 在 OD 的 Memory Map 很容易被忽视掉. 刚开始的时候, 每次 exception 都在高地址空间,   
- 我还总以为是哪个系统 dll 出问题了.  
-  
-:0072BCA6 83C40C                  add esp, 0000000C  
-:0072BCA9 A34C1BB200              mov dword ptr \[00B21B4C\], eax      ; 保存地址  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BE22(C)  
-|  
-:0072BCAE A1381BB200              mov eax, dword ptr \[00B21B38\]  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:0072BC5C(C), :0072BC66(C), :0072BC78(C), :0072BC89(C), :0072BDFE(C)  
-|:0072BE5F(U)  
-|  
-:0072BCB3 392D4C1BB200            cmp dword ptr \[00B21B4C\], ebp  
-:0072BCB9 0F84EA010000            je 0072BEA9  
-:0072BCBF 8A0D451BB200            mov cl, byte ptr \[00B21B45\]  
-:0072BCC5 84C9                    test cl, cl  
-:0072BCC7 0F85DC010000            jne 0072BEA9  
-:0072BCCD 8B15481BB200            mov edx, dword ptr \[00B21B48\]  
-:0072BCD3 33C9                    xor ecx, ecx  
-:0072BCD5 3BD5                    cmp edx, ebp  
-:0072BCD7 7637                    jbe 0072BD10  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BD0E(C)  
-|  
-:0072BCD9 8D1440                  lea edx, dword ptr \[eax+2\*eax\]  
-:0072BCDC 83C104                  add ecx, 00000004  
-:0072BCDF 8D1490                  lea edx, dword ptr \[eax+4\*edx\]  
-:0072BCE2 C1E204                  shl edx, 04  
-:0072BCE5 03D0                    add edx, eax  
-:0072BCE7 C1E208                  shl edx, 08  
-:0072BCEA 2BD0                    sub edx, eax  
-:0072BCEC 8D8490C39E2600          lea eax, dword ptr \[eax+4\*edx+00269EC3\]  
-:0072BCF3 8B154C1BB200            mov edx, dword ptr \[00B21B4C\]  
-:0072BCF9 A3381BB200              mov dword ptr \[00B21B38\], eax  
-:0072BCFE 89440AFC                mov dword ptr \[edx+ecx-04\], eax    ; 将分配的 Memory 全填上随机数  
-:0072BD02 A1481BB200              mov eax, dword ptr \[00B21B48\]  
-:0072BD07 3BC8                    cmp ecx, eax  
-:0072BD09 A1381BB200              mov eax, dword ptr \[00B21B38\]  
-:0072BD0E 72C9                    jb 0072BCD9  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BCD7(C)  
-|  
-:0072BD10 392D2C60AD00            cmp dword ptr \[00AD602C\], ebp  
-:0072BD16 0F8586010000            jne 0072BEA2  
-:0072BD1C 8D0C40                  lea ecx, dword ptr \[eax+2\*eax\]  
-:0072BD1F 8B35B4A4A000            mov esi, dword ptr \[00A0A4B4\]  
-:0072BD25 53                      push ebx  
-:0072BD26 BF04000000              mov edi, 00000004  
-:0072BD2B 8D1488                  lea edx, dword ptr \[eax+4\*ecx\]  
-:0072BD2E 8B0D481BB200            mov ecx, dword ptr \[00B21B48\]      ; 分配的 size  
-:0072BD34 C1E204                  shl edx, 04  
-:0072BD37 03D0                    add edx, eax  
-:0072BD39 83C1BB                  add ecx, FFFFFFBB            ; size - 0x45  
-:0072BD3C C1E208                  shl edx, 08  
-:0072BD3F 2BD0                    sub edx, eax  
-:0072BD41 8D8490C39E2600          lea eax, dword ptr \[eax+4\*edx+00269EC3\]  
-:0072BD48 33D2                    xor edx, edx    
-:0072BD4A A3381BB200              mov dword ptr \[00B21B38\], eax      ; 随机数  
-:0072BD4F F7F1                    div ecx                ; rand() % (size - 0x45)  
-:0072BD51 A14C1BB200              mov eax, dword ptr \[00B21B4C\]  
-:0072BD56 8D4C0210                lea ecx, dword ptr \[edx+eax+10\]    ; pStart + rand() % (size - 0x45) + 0x10  
-:0072BD5A 890D501BB200            mov dword ptr \[00B21B50\], ecx      ; 代码起始地址 pAddr, 随机的, 前面的 5F910152 就是这样来的  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BE97(C)  
-|  
-:0072BD60 B829000000              mov eax, 00000029            ; 下面一段解密一小段 CODE, 放到 pAddr (也就是 5F910152:-))  
-:0072BD65 2BC7                    sub eax, edi  
-:0072BD67 83F804                  cmp eax, 00000004  
-:0072BD6A 0F87F4000000            ja 0072BE64  
-:0072BD70 0F83EE000000            jnb 0072BE64  
-:0072BD76 33DB                    xor ebx, ebx  
-:0072BD78 33D2                    xor edx, edx  
-:0072BD7A 3BC5                    cmp eax, ebp  
-:0072BD7C 762E                    jbe 0072BDAC  
-:0072BD7E 8D0CC5F8FFFFFF          lea ecx, dword ptr \[8\*eax+FFFFFFF8\]  
-:0072BD85 894C2414                mov dword ptr \[esp+14\], ecx  
-  
-...省略一些 CODE  
-  
-:0072BE91 83C704                  add edi, 00000004  
-:0072BE94 83FF29                  cmp edi, 00000029  
-:0072BE97 0F82C3FEFFFF            jb 0072BD60  
-:0072BE9D 8B7C2418                mov edi, dword ptr \[esp+18\]  
-:0072BEA1 5B                      pop ebx  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BD16(C)  
-|  
-:0072BEA2 C605451BB20001          mov byte ptr \[00B21B45\], 01      ; 解密结束  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:0072BCB9(C), :0072BCC7(C)  
-|  
-:0072BEA9 A1341BB200              mov eax, dword ptr \[00B21B34\]  
-:0072BEAE 25FF010000              and eax, 000001FF  
-:0072BEB3 83F807                  cmp eax, 00000007  
-:0072BEB6 751D                    jne 0072BED5  
-:0072BEB8 A0441BB200              mov al, byte ptr \[00B21B44\]  
-:0072BEBD 84C0                    test al, al  
-:0072BEBF 7414                    je 0072BED5  
-:0072BEC1 8B0D401BB200            mov ecx, dword ptr \[00B21B40\]  
-:0072BEC7 68F817B200              push 00B217F8  
-:0072BECC 51                      push ecx  
-:0072BECD E8BEF2FFFF              call 0072B190  
-:0072BED2 83C408                  add esp, 00000008  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:0072BEB6(C), :0072BEBF(C)  
-|  
-:0072BED5 8B15341BB200            mov edx, dword ptr \[00B21B34\]  
-:0072BEDB 81E2FF010000            and edx, 000001FF  
-:0072BEE1 81FA03010000            cmp edx, 00000103  
-:0072BEE7 7549                    jne 0072BF32  
-:0072BEE9 F605781BB20004          test byte ptr \[00B21B78\], 04  
-:0072BEF0 7540                    jne 0072BF32  
-:0072BEF2 892D681BB200            mov dword ptr \[00B21B68\], ebp  
-:0072BEF8 E863EEFFFF              call 0072AD60  
-:0072BEFD 392D2C60AD00            cmp dword ptr \[00AD602C\], ebp  
-:0072BF03 7510                    jne 0072BF15  
-:0072BF05 A1401BB200              mov eax, dword ptr \[00B21B40\]  
-:0072BF0A 50                      push eax  
-:0072BF0B E850F0FFFF              call 0072AF60  
-:0072BF10 83C404                  add esp, 00000004  
-:0072BF13 EB05                    jmp 0072BF1A  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BF03(C)  
-|  
-:0072BF15 E8A6F3FFFF              call 0072B2C0  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
-|:0072BF13(U)  
-|  
-:0072BF1A F705681BB200E0030000    test dword ptr \[00B21B68\], 000003E0  
-:0072BF24 740C                    je 0072BF32  
-:0072BF26 A1781BB200              mov eax, dword ptr \[00B21B78\]  
-:0072BF2B 0C04                    or al, 04  
-:0072BF2D A3781BB200              mov dword ptr \[00B21B78\], eax  
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
-|:0072BEE7(C), :0072BEF0(C), :0072BF24(C)  
-|  
-:0072BF32 A1341BB200              mov eax, dword ptr \[00B21B34\]  
-:0072BF37 B911000000              mov ecx, 00000011  
-:0072BF3C 99                      cdq  
-:0072BF3D F7F9                    idiv ecx  
-:0072BF3F 85D2                    test edx, edx  
-:0072BF41 0F85BD000000            jne 0072C004  
-:0072BF47 392D4C1BB200            cmp dword ptr \[00B21B4C\], ebp  
-:0072BF4D 0F84B1000000            je 0072C004  
-:0072BF53 392D581BB200            cmp dword ptr \[00B21B58\], ebp  
-:0072BF59 0F84A5000000            je 0072C004  
-:0072BF5F A12C60AD00              mov eax, dword ptr \[00AD602C\]  
-:0072BF64 892D701BB200            mov dword ptr \[00B21B70\], ebp  
-:0072BF6A 3BC5                    cmp eax, ebp  
-:0072BF6C 892D741BB200            mov dword ptr \[00B21B74\], ebp  
-:0072BF72 892D681BB200            mov dword ptr \[00B21B68\], ebp  
-:0072BF78 892D6C1BB200            mov dword ptr \[00B21B6C\], ebp  
-:0072BF7E 892DE817B200            mov dword ptr \[00B217E8\], ebp  
-:0072BF84 892D641BB200            mov dword ptr \[00B21B64\], ebp  
-:0072BF8A 7505                    jne 0072BF91  
-:0072BF8C E85FFAFFFF              call 0072B9F0            ; 这儿开始干坏事, 前面已经分析过了.  
-  
-  
-没了, 好累!!! 
+SKYPE 中的 anti-debug 分析
 
- 4dd466d0e1e0cc123afbe504da2462ca
+软件名称: `skype`
+
+实例下载: `www.skype.com/download`
+
+作者: `blackeyes`
+
+声明: `skype` 是 `freeware`, 没有什么要 PJ 的, 只是分析它的 anti-debug
+
+## 1. 基本信息
+
+入口点(OEP): `005E7A28`
+
+引入表(I T): `00B8F000-00B8F21B` ( size: `021C` )
+
+引入地址表(IAT): `00B8F21C-00B8FD38` ( size: `0B1C` )
+
+PeID 结果: `Borland Delphi 6.0 - 7.0 [Overlay]`
+
+## 2. 调试器检测, CODE 解码, 解析第二份 IAT
+
+// OD 载入后停在这里 `005E7A28`
+
+```
+005E7A28 > $ /EB 57                  JMP SHORT Skype.005E7A81
+
+005E7A81   > \E8 26010000           CALL Skype.005E7BAC                          ; // detect softice (第 1 处)
+
+005E7A86   .  84C0                 TEST AL,AL
+
+005E7A88   .  74 1C                JE SHORT Skype.005E7AA6
+
+005E7A8A   .  6A 00                PUSH 0                                        ; /Style = MB_OK|MB_APPLMODAL
+
+005E7A8C   .  FF35 482FB800        PUSH DWORD PTR DS:[B82F48]                    ; |Title = "Skype"
+
+005E7A92   .  FF35 4C2FB800        PUSH DWORD PTR DS:[B82F4C]                    ; |Text = "Error: Skype is not compatible with debuggers like SoftICE .."
+
+005E7A98   .  6A 00                PUSH 0                                        ; |hOwner = NULL
+
+005E7A9A   .  E8 9910E2FF         CALL <JMP.&user32.MessageBoxA>                ; \\MessageBoxA
+
+005E7A9F   .  6A 01                PUSH 1                                        ; /ExitCode = 1
+
+005E7AA1   .  E8 5A04E2FF         CALL <JMP.&kernel32.ExitProcess>             ; \\ExitProcess
+
+005E7AA6   >  BA 011E1600         MOV EDX,161E01
+
+005E7AAB   .  81C2 A38BA100       ADD EDX,Skype.00A18BA3                        ; // EDX = 00B7A9A4
+
+005E7AB1   .  52                   PUSH EDX
+
+005E7AB2   .  EB 10                JMP SHORT Skype.005E7AC4
+
+005E7AB4   .  BF 287A5E00         MOV EDI,Skype.<ModuleEntryPoint>
+
+005E7AB9   .  B9 C47A5E00         MOV ECX,Skype.005E7AC4
+
+005E7ABE   .  29F9                SUB ECX,EDI
+
+005E7AC0   .  31c0                XOR EAX,EAX
+
+005E7AC2   .  F3:AA              REP STOS BYTE PTR ES:[EDI]
+
+005E7AC4   >  E8 CF3F0100         CALL Skype.005FBA98
+
+005E7AC9   .  E8 AAFEFFFF         CALL Skype.005E7978
+
+005E7ACE   .  C3                  RETN                                          ; // return 00B7A9A4
+
+00B7A9A4   .  55                   PUSH EBP                                     ; 感觉这儿才是程序入口点
+
+00B7A9A5   .  8BEC                MOV EBP,ESP
+
+00B7A9A7   .  B9 20000000         MOV ECX,20
+
+00B7A9AC   >  6A 00                PUSH 0
+
+00B7A9AE   .  6A 00                PUSH 0
+
+00B7A9B0   .  49                  DEC ECX
+
+00B7A9B1   .^ 75 F9               JNZ SHORT Skype.00B7A9AC
+
+00B7A9B3   .  53                  PUSH EBX
+
+00B7A9B4   .  56                  PUSH ESI
+
+00B7A9B5   .  57                  PUSH EDI
+
+00B7A9B6   .  B8 749FB700         MOV EAX,Skype.00B79F74
+
+00B7A9BB   .  E8 6CD088FF         CALL Skype.00407A2C                           ; // **** Init CALL ****
+
+00B7A9C0   .  BF 78E6B800         MOV EDI,Skype.00B8E678
+
+00B7A9C5   .  33C0                XOR EAX,EAX
+
+00B7A9C7   .  55                  PUSH EBP
+
+00B7A9C8   .  68 1BBAB700         PUSH Skype.00B7BA1B
+
+00B7A9CD   .  64:FF30            PUSH DWORD PTR FS:[EAX]
+
+00B7A9D0   .  64:8920           MOV DWORD PTR FS:[EAX],ESP
+
+00B7A9D3   .  A1 90B2B800         MOV EAX,DWORD PTR DS:[B8B290]
+
+00B7A9D8   .  C600 01            MOV BYTE PTR DS:[EAX],1
+
+00B7A9DB   .  6A 00                PUSH 0
+
+00B7A9DD   .  E8 661D8AFF         CALL <JMP.&ole32.OleInitialize>
+
+00B7A9E2   .  E8 3DB6A6FF         CALL Skype.005E6024                          ; // detect debug (第 2 处)
+
+00B7A9E7   .  84C0                TEST AL,AL
+
+00B7A9E9   .  74 1A                JE SHORT Skype.00B7AA05
+
+00B7A9EB   .  6A 00                PUSH 0                                        ; /Style = MB_OK|MB_APPLMODAL
+
+00B7A9ED   .  68 30BAB700         PUSH Skype.00B7BA30                          ; |Title = "Skype"
+
+00B7A9F2   .  68 38BAB700         PUSH Skype.00B7BA38                          ; |Text = "Skype is not compatible with system debuggers like SoftICE."
+
+00B7A9F7   .  6A 00                PUSH 0                                        ; |hOwner = NULL
+
+00B7A9F9   .  E8 32E188FF         CALL <JMP.&user32.MessageBoxA>                ; \\MessageBoxA
+
+00B7A9FE   .  6A 00                PUSH 0                                        ; /ExitCode = 0
+
+00B7AA00   .  E8 FBD488FF         CALL <JMP.&kernel32.ExitProcess>             ; \\ExitProcess
+
+00B7AA05   >  B9 7CBAB700         MOV ECX,Skype.00B7BA7C                       ;  ASCII "Starting  .."
+
+00B7AA0A   .  BA 94BAB700         MOV EDX,Skype.00B7BA94                       ;  ASCII "Skype.main"
+```
+
+### Init call
+
+```
+00407A2C  /$  53                   PUSH EBX
+
+00407A2D  |.  8BD8                 MOV EBX,EAX
+
+00407A2F  |.  33C0                 XOR EAX,EAX
+
+00407A31  |.  A3 A4C0B700          MOV DWORD PTR DS:[B7C0A4],EAX
+
+00407A36  |.  6A 00                PUSH 0                                        ; /pModule = NULL
+
+00407A38  |.  E8 2BFFFFFF          CALL <JMP.&kernel32.GetModuleHandleA>         ; \\GetModuleHandleA
+
+00407A3D  |.  A3 68C6B800          MOV DWORD PTR DS:[B8C668],EAX
+
+00407A42  |.  A1 68C6B800          MOV EAX,DWORD PTR DS:[B8C668]
+
+00407A47  |.  A3 B0C0B700          MOV DWORD PTR DS:[B7C0B0],EAX
+
+00407A4C  |.  33C0                 XOR EAX,EAX
+
+00407A4E  |.  A3 B4C0B700          MOV DWORD PTR DS:[B7C0B4],EAX
+
+00407A53  |.  33C0                 XOR EAX,EAX
+
+00407A55  |.  A3 B8C0B700          MOV DWORD PTR DS:[B7C0B8],EAX
+
+00407A5A  |.  E8 C1FFFFFF          CALL Skype.00407A20
+
+00407A5F  |.  BA ACC0B700          MOV EDX,Skype.00B7C0AC
+
+00407A64  |.  8BC3                 MOV EAX,EBX
+
+00407A66  |.  E8 95D2FFFF          CALL Skype.00404D00                          ; // 都在这里 CALL init
+
+00407A6B  |.  5B                   POP EBX
+
+00407A6C  \\.  C3                  RETN
+
+00404D00  /$  C705 14C0B800 F01240>MOV DWORD PTR DS:[B8C014],<JMP.&kernel32.RaiseException>
+
+00404D0A  |.  C705 18C0B800 001340>MOV DWORD PTR DS:[B8C018],<JMP.&kernel32.RtlUnwind>
+
+00404D14  |.  A3 40C6B800          MOV DWORD PTR DS:[B8C640],EAX
+
+00404D19  |.  33C0                 XOR EAX,EAX
+
+00404D1B  |.  A3 44C6B800          MOV DWORD PTR DS:[B8C644],EAX
+
+00404D20  |.  8915 48C6B800        MOV DWORD PTR DS:[B8C648],EDX
+
+00404D26  |.  8B42 04              MOV EAX,DWORD PTR DS:[EDX+4]
+
+00404D29  |.  A3 30C0B800          MOV DWORD PTR DS:[B8C030],EAX
+
+00404D2E  |.  E8 A5FEFFFF          CALL Skype.00404BD8
+
+00404D33  |.  C605 38C0B800 00     MOV BYTE PTR DS:[B8C038],0
+
+00404D3A  |.  E8 51FFFFFF          CALL Skype.00404C90                         ; // Delphi 的程序好象都是这样
+
+00404D3F  \\.  C3                  RETN
+
+00404C90   $  55                   PUSH EBP
+
+00404C91   .  8BEC                 MOV EBP,ESP
+
+00404C93   .  83C4 F8              ADD ESP,-8
+
+00404C96   .  53                   PUSH EBX
+
+00404C97   .  56                   PUSH ESI
+
+00404C98   .  57                   PUSH EDI
+
+00404C99   .  BF 38C6B800          MOV EDI,Skype.00B8C638
+
+00404C9E   .  8B47 08             MOV EAX,DWORD PTR DS:[EDI+8]
+
+00404CA1   .  85C0                 TEST EAX,EAX
+
+00404CA3   .  74 54                JE SHORT Skype.00404CF9
+
+00404CA5   .  8B30                 MOV ESI,DWORD PTR DS:[EAX]
+
+00404CA7   .  33DB                 XOR EBX,EBX
+
+00404CA9   .  8B40 04             MOV EAX,DWORD PTR DS:[EAX+4]
+
+00404CAC   .  8945 FC             MOV DWORD PTR SS:[EBP-4],EAX
+
+00404CAF   .  33C0                 XOR EAX,EAX
+```
+
+
+
+```
+00404CB1   .  55                   PUSH EBP  
+00404CB2   .  68 E54C4000          PUSH Skype.00404CE5  
+00404CB7   .  64:FF30              PUSH DWORD PTR FS:[EAX]  
+00404CBA   .  64:8920              MOV DWORD PTR FS:[EAX],ESP  
+00404CBD   .  3BF3                 CMP ESI,EBX  
+00404CBF   .  7E 1A                JLE SHORT Skype.00404CDB  
+00404CC1   >  8B45 FC              MOV EAX,DWORD PTR SS:[EBP-4]  
+00404CC4   .  8B04D8               MOV EAX,DWORD PTR DS:[EAX+EBX*8]  
+00404CC7   .  8945 F8              MOV DWORD PTR SS:[EBP-8],EAX  
+00404CCA   .  43                   INC EBX  
+00404CCB   .  895F 0C              MOV DWORD PTR DS:[EDI+C],EBX  
+00404CCE   .  837D F8 00            CMP DWORD PTR SS:[EBP-8],0  
+00404CD2   .  74 03                JE SHORT Skype.00404CD7  
+00404CD4   .  FF55 F8              CALL DWORD PTR SS:[EBP-8]              ; // Call each init Func, 其中 00B75AF0 最关键,  
+00404CD7   >  3BF3                 CMP ESI,EBX  
+00404CD9   .^ 7F E6                JG SHORT Skype.00404CC1  
+00404CDB   >  33C0                 XOR EAX,EAX  
+00404CDD   .  5A                   POP EDX  
+00404CDE   .  59                   POP ECX  
+00404CDF   .  59                   POP ECX  
+00404CE0   .  64:8910              MOV DWORD PTR FS:[EAX],EDX  
+00404CE3   .  EB 14                JMP SHORT Skype.00404CF9  
+00404CE5   .^ E9 3AF9FFFF           JMP Skype.00404624  
+00404CEA   .  E8 31FFFFFF           CALL Skype.00404C20  
+00404CEF   .  E8 08FDFFFF           CALL Skype.004049FC  
+00404CF4   .  E8 57FDFFFF           CALL Skype.00404A50  
+00404CF9   >  5F                   POP EDI  
+00404CFA   .  5E                   POP ESI  
+00404CFB   .  5B                   POP EBX  
+00404CFC   .  59                   POP ECX  
+00404CFD   .  59                   POP ECX  
+00404CFE   .  5D                   POP EBP  
+00404CFF   .  C3                   RETN  
+```
+
+检查调试器的两处，下 `CreateFileA`，`CreateFileW` 断点，很快就可以跟到，不过它不检测 `OLLYDBG`。
+
+### 3. 最关键的一个 `Init` `CALL` `00B75AF0`-`00B75EB1`
+
+// 对 `00724F70`-`00B70F70` (size `0044C000`) 解码，并解析第二份 `IAT`
+
+// 第二份 `IAT`: `00A09F70`-`00A0A38C`, size: `041C`
+
+// `00B75AF0` 返回后，内存中全是明文.
+
+```
+00B75AF0  /> /55                   PUSH EBP  
+00B75AF1  |. |8BEC                  MOV EBP,ESP  
+00B75AF3  |. |83C4 A0               ADD ESP,-60  
+00B75AF6  |. |33C0                  XOR EAX,EAX  
+00B75AF8  |. |8945 A8               MOV DWORD PTR SS:[EBP-58],EAX  
+00B75AFB  |. |8945 A4               MOV DWORD PTR SS:[EBP-5C],EAX  
+00B75AFE  |. |8945 A0               MOV DWORD PTR SS:[EBP-60],EAX  
+00B75B01  |. |8945 AC               MOV DWORD PTR SS:[EBP-54],EAX  
+00B75B04  |. |33C0                  XOR EAX,EAX  
+00B75B06  |. |55                   PUSH EBP  
+00B75B07  |. |68 A75EB700           PUSH Skype.00B75EA7  
+00B75B0C  |. |64:FF30              PUSH DWORD PTR FS:[EAX]  
+00B75B0F  |. |64:8920              MOV DWORD PTR FS:[EAX],ESP  
+00B75B12  |. |A1 18BAB800           MOV EAX,DWORD PTR DS:[B8BA18]  
+00B75B17  |. |C700 09000000         MOV DWORD PTR DS:[EAX],9  
+00B75B1D  |. |B8 287A5E00           MOV EAX,Skype.<ModuleEntryPoint>  
+00B75B22  |. |8945 D4              MOV DWORD PTR SS:[EBP-2C],EAX  
+00B75B25  |.  C745 D0 F4000000      MOV DWORD PTR SS:[EBP-30],0F4  
+00B75B2C  |.  8D45 FC               LEA EAX,DWORD PTR SS:[EBP-4]  
+00B75B2F  |.  50                   PUSH EAX                              ; /pOldProtect  
+00B75B30  |.  6A 40                PUSH 40                               ; |NewProtect = PAGE_EXECUTE_READWRITE  
+00B75B32  |.  8B45 D0              MOV EAX,DWORD PTR SS:[EBP-30]        ; |  
+00B75B35  |.  50                   PUSH EAX                              ; |Size  
+00B75B36  |.  8B45 D4              MOV EAX,DWORD PTR SS:[EBP-2C]        ; |  
+00B75B39  |.  50                   PUSH EAX                              ; |Address  
+00B75B3A  |.  E8 192789FF           CALL <JMP.&kernel32.VirtualProtect>    ; \\VirtualProtect  
+00B75B3F  |.  85C0                 TEST EAX,EAX  
+00B75B41  |.  75 0A                JNZ SHORT Skype.00B75B4D  
+00B75B43  |.  B8 BC5EB700           MOV EAX,Skype.00B75EBC              ;  ASCII "0ut of memory"  
+00B75B48  |.  E8 2BFAFFFF           CALL Skype.00B75578  
+00B75B4D  |>  8B45 D4              MOV EAX,DWORD PTR SS:[EBP-2C]  
+00B75B50  |.  33C9                 XOR ECX,ECX  
+00B75B52  |.  8B55 D0              MOV EDX,DWORD PTR SS:[EBP-30]  
+00B75B55  |.  E8 96DD88FF           CALL Skype.004038F0             ; 将 OEP 处开始的一小段代码清 0, 防止解码后的 DUMP  
+00B75B5A  |.  8D45 FC               LEA EAX,DWORD PTR SS:[EBP-4]  
+00B75B5D  |.  50                   PUSH EAX                              ; /pOldProtect  
+00B75B5E  |.  6A 20                PUSH 20                               ; |NewProtect = PAGE_EXECUTE_READ  
+00B75B60  |.  8B45 D0              MOV EAX,DWORD PTR SS:[EBP-30]        ; |  
+00B75B63  |.  50                   PUSH EAX                              ; |Size  
+00B75B64  |.  8B45 D4              MOV EAX,DWORD PTR SS:[EBP-2C]        ; |  
+00B75B67  |.  50                   PUSH EAX                              ; |Address  
+00B75B68  |.  E8 EB2689FF           CALL <JMP.&kernel32.VirtualProtect>    ; \\VirtualProtect  
+00B75B6D  |.  85C0                 TEST EAX,EAX  
+00B75B6F  |.  75 0A                JNZ SHORT Skype.00B75B7B  
+00B75B71  |.  B8 BC5EB700           MOV EAX,Skype.00B75EBC              ;  ASCII "0ut of memory"  
+00B75B76  |.  E8 FDF9FFFF           CALL Skype.00B75578  
+00B75B7B  |>  C605 0C5FB800 01     MOV BYTE PTR DS:[B85F0C],1  
+00B75B82  |.  6A 04                PUSH 4                                ; /Protect = PAGE_READWRITE  
+00B75B84  |.  68 00100000           PUSH 1000                             ; |AllocationType = MEM_COMMIT  
+00B75B89  |.  A1 605FB800           MOV EAX,DWORD PTR DS:[B85F60]        ; |  
+00B75B8E  |.  50                   PUSH EAX                              ; |Size => 44C000 (4505600.)  
+00B75B8F  |.  6A 00                PUSH 0                                ; |Address = NULL  
+00B75B91  |.  E8 B22689FF           CALL <JMP.&kernel32.VirtualAlloc>      ; \\VirtualAlloc,  分配 Memory 用来解码  
+00B75B96  |.  A3 4CE1B800           MOV DWORD PTR DS:[B8E14C],EAX  
+00B75B9B  |.  833D 4CE1B800 00      CMP DWORD PTR DS:[B8E14C],0  
+00B75BA2  |.  75 0A                JNZ SHORT Skype.00B75BAE  
+00B75BA4  |.  B8 D45EB700           MOV EAX,Skype.00B75ED4              ;  ASCII "Not enough memory!"  
+00B75BA9  |.  E8 CAF9FFFF           CALL Skype.00B75578  
+00B75BAE  |>  B8 684F7200           MOV EAX,Skype.00724F68       ; 从这儿开始是解码的 CODE, 很简单, 就一个 XOR, 只是 XOR 的值是一直在变.  
+00B75BB3  |.  BA 684F7200           MOV EDX,Skype.00724F68  
+00B75BB8  |.  0302                  ADD EAX,DWORD PTR DS:[EDX]  
+00B75BBA  |.  8945 CC               MOV DWORD PTR SS:[EBP-34],EAX  
+00B75BBD  |.  33C0                  XOR EAX,EAX  
+00B75BBF  |.  8945 F8               MOV DWORD PTR SS:[EBP-8],EAX  
+00B75BC2  |.  E9 83000000           JMP Skype.00B75C4A  
+00B75BC7  |>  8B45 F8               /MOV EAX,DWORD PTR SS:[EBP-8]  
+
+...省略一些 CODE  
+
+00B75C3B  |.  8345 EC 71           ||ADD DWORD PTR SS:[EBP-14],71  
+00B75C3F  |.  FF45 E8               ||INC DWORD PTR SS:[EBP-18]  
+00B75C42  |.  FF4D C8               ||DEC DWORD PTR SS:[EBP-38]  
+00B75C45  |.^ 75 D0                 |\\JNZ SHORT Skype.00B75C17  
+00B75C47  |>  FF45 F8               |INC DWORD PTR SS:[EBP-8]  
+00B75C4A  |>  8B45 F8               MOV EAX,DWORD PTR SS:[EBP-8]  
+00B75C4D  |.  8D0480                |LEA EAX,DWORD PTR DS:[EAX+EAX*4]  
+00B75C50  |.  833C85 105FB800 00    |CMP DWORD PTR DS:[EAX*4+B85F10],0  
+```
+
+
+
+00B75C58 |.^ 0F87 69FFFFFF \JA Skype.00B75BC7 ; 解码的 CODE 到这儿为止
+
+00B75C5E |. 33C0 XOR EAX,EAX ; 从这儿起开始解析一份内部的 IAT
+
+00B75C60 |. 8945 E4 MOV DWORD PTR SS:[EBP-1C],EAX
+
+00B75C63 |. 33C0 XOR EAX,EAX
+
+00B75C65 |. 8945 DC MOV DWORD PTR SS:[EBP-24],EAX
+
+00B75C68 |. C745 E8 01000000 MOV DWORD PTR SS:[EBP-18],1
+
+00B75C6F |> 8B45 E8 /MOV EAX,DWORD PTR SS:[EBP-18]
+
+...省略一些 CODE
+
+00B75D51 |> 8B45 E0 |MOV EAX,DWORD PTR SS:[EBP-20]
+
+00B75D54 |. 0145 DC |ADD DWORD PTR SS:[EBP-24],EAX
+
+00B75D57 |. 8B45 E8 |MOV EAX,DWORD PTR SS:[EBP-18]
+
+00B75D5A |. 8D0440 |LEA EAX,DWORD PTR DS:[EAX+EAX*2]
+
+00B75D5D |. 8B0485 705FB800 |MOV EAX,DWORD PTR DS:[EAX*4+B85F70]
+
+00B75D64 |. 0305 4CE1B800 |ADD EAX,DWORD PTR DS:[B8E14C]
+
+00B75D6A |. 8B55 E0 |MOV EDX,DWORD PTR SS:[EBP-20]
+
+00B75D6D |. 8910 |MOV DWORD PTR DS:[EAX],EDX
+
+00B75D6F |> FF45 E8 |INC DWORD PTR SS:[EBP-18]
+
+00B75D72 |. 817D E8 09010000 |CMP DWORD PTR SS:[EBP-18],109
+
+00B75D79 |.^ 0F85 F0FEFFFF \JNZ Skype.00B75C6F
+
+00B75D7F |. 8D45 FC LEA EAX,DWORD PTR SS:[EBP-4]
+
+00B75D82 |. 50 PUSH EAX ; /pOldProtect
+
+00B75D83 |. 6A 04 PUSH 4 ; |NewProtect = PAGE\_READWRITE
+
+00B75D85 |. A1 605FB800 MOV EAX,DWORD PTR DS:[B85F60] ; |
+
+00B75D8A |. 50 PUSH EAX ; |Size => 44C000 (4505600.)
+
+00B75D8B |. 8B45 CC MOV EAX,DWORD PTR SS:[EBP-34] ; |
+
+00B75D8E |. 50 PUSH EAX ; |Address
+
+00B75D8F |. E8 C42489FF CALL <JMP.&kernel32.VirtualProtect> ; \VirtualProtect
+
+00B75D94 |. 85C0 TEST EAX,EAX
+
+00B75D96 |. 75 51 JNZ SHORT Skype.00B75DE9
+
+00B75D98 |. 68 405FB700 PUSH Skype.00B75F40 ; ASCII "error 9920 ("
+
+00B75D9D |. 8D4D A4 LEA ECX,DWORD PTR SS:[EBP-5C]
+
+00B75DA0 |. B2 08 MOV DL,8
+
+00B75DA2 |. A1 605FB800 MOV EAX,DWORD PTR DS:[B85F60]
+
+00B75DA7 |. E8 E09791FF CALL Skype.0048F58C
+
+00B75DAC |. FF75 A4 PUSH DWORD PTR SS:[EBP-5C]
+
+00B75DAF |. 68 585FB700 PUSH Skype.00B75F58
+
+00B75DB4 |. E8 572289FF CALL <JMP.&kernel32.GetLastError> ; GetLastError
+
+00B75DB9 |. 33D2 XOR EDX,EDX
+
+00B75DBB |. 52 PUSH EDX ; /Arg2 => 00000000
+
+00B75DBC |. 50 PUSH EAX ; |Arg1
+
+00B75DBD |. 8D45 A0 LEA EAX,DWORD PTR SS:[EBP-60] ; |
+
+00B75DC0 |. E8 9B5189FF CALL Skype.0040AF60 ; \Skype.0040AF60
+
+00B75DC5 |. FF75 A0 PUSH DWORD PTR SS:[EBP-60]
+
+00B75DC8 |. 68 645FB700 PUSH Skype.00B75F64
+
+00B75DCD |. 8D45 A8 LEA EAX,DWORD PTR SS:[EBP-58]
+
+00B75DD0 |. BA 05000000 MOV EDX,5
+
+00B75DD5 |. E8 52F688FF CALL Skype.0040542C
+
+00B75DDA |. 8B45 A8 MOV EAX,DWORD PTR SS:[EBP-58]
+
+00B75DDD |. E8 46468CFF CALL Skype.0043A428
+
+00B75DE2 |. 6A 00 PUSH 0 ; /ExitCode = 0
+
+00B75DE4 |. E8 172189FF CALL <JMP.&kernel32.ExitProcess> ; \ExitProcess
+
+00B75DE9 |> 8B55 CC MOV EDX,DWORD PTR SS:[EBP-34]
+
+00B75DEC |. A1 4CE1B800 MOV EAX,DWORD PTR DS:[B8E14C]
+
+00B75DF1 |. 8B0D 605FB800 MOV ECX,DWORD PTR DS:[B85F60] ; Skype.0044C000
+
+00B75DF7 |. E8 14D388FF CALL Skype.00403110 ;
+
+00B75DFC |. 68 00800000 PUSH 8000 ; /FreeType = MEM\_RELEASE
+
+00B75E01 |. 6A 00 PUSH 0 ; |Size = 0
+
+00B75E03 |. A1 4CE1B800 MOV EAX,DWORD PTR DS:[B8E14C] ; |
+
+00B75E08 |. 50 PUSH EAX ; |Address => NULL
+
+00B75E09 |. E8 422489FF CALL <JMP.&kernel32.VirtualFree> ; \VirtualFree
+
+00B75E0E |. 8B45 CC MOV EAX,DWORD PTR SS:[EBP-34]
+
+00B75E11 |. A3 4CE1B800 MOV DWORD PTR DS:[B8E14C],EAX
+
+00B75E16 |. 33C0 XOR EAX,EAX
+
+00B75E18 |. 8945 E8 MOV DWORD PTR SS:[EBP-18],EAX
+
+00B75E1B |> 8D45 FC /LEA EAX,DWORD PTR SS:[EBP-4]
+
+00B75E1E |. 50 |PUSH EAX ; /pOldProtect
+
+00B75E1F |. 8B45 E8 |MOV EAX,DWORD PTR SS:[EBP-18] ; |
+
+00B75E22 |. 8D0480 |LEA EAX,DWORD PTR DS:[EAX+EAX*4] ; |
+
+00B75E25 |. 8B0485 205FB800 |MOV EAX,DWORD PTR DS:[EAX*4+B85F20] ; |
+
+00B75E2C |. 50 |PUSH EAX ; |NewProtect
+
+00B75E2D |. 8B45 E8 |MOV EAX,DWORD PTR SS:[EBP-18] ; |
+
+00B75E30 |. 8D0480 |LEA EAX,DWORD PTR DS:[EAX+EAX*4] ; |
+
+00B75E33 |. 8B0485 145FB800 |MOV EAX,DWORD PTR DS:[EAX*4+B85F14] ; |
+
+00B75E3A |. 50 |PUSH EAX ; |Size
+
+00B75E3B |. 8B45 E8 |MOV EAX,DWORD PTR SS:[EBP-18] ; |
+
+00B75E3E |. 8D0480 |LEA EAX,DWORD PTR DS:[EAX+EAX*4] ; |
+
+00B75E41 |. 8B0485 105FB800 |MOV EAX,DWORD PTR DS:[EAX*4+B85F10] ; |
+
+00B75E48 |. 0305 4CE1B800 |ADD EAX,DWORD PTR DS:[B8E14C] ; |
+
+00B75E4E |. 50 |PUSH EAX ; |Address
+
+00B75E4F |. E8 042489FF |CALL <JMP.&kernel32.VirtualProtect> ; \VirtualProtect
+
+00B75E54 |. FF45 E8 |INC DWORD PTR SS:[EBP-18]
+
+00B75E57 |. 8B45 E8 |MOV EAX,DWORD PTR SS:[EBP-18]
+
+00B75E5A |. 8D0480 |LEA EAX,DWORD PTR DS:[EAX+EAX*4]
+
+00B75E5D |. 833C85 105FB800 00 |CMP DWORD PTR DS:[EAX*4+B85F10],0
+
+00B75E65 |.^ 75 B4 \JNZ SHORT Skype.00B75E1B
+
+00B75E67 |. A1 705FB800 MOV EAX,DWORD PTR DS:[B85F70]
+
+00B75E6C |. 0305 4CE1B800 ADD EAX,DWORD PTR DS:[B8E14C]
+
+00B75E72 |. 6A 00 PUSH 0
+
+00B75E74 |. 6A 01 PUSH 1
+
+00B75E76 |. FF35 4CE1B800 PUSH DWORD PTR DS:[B8E14C]
+
+00B75E7C |. FFD0 CALL EAX
+
+00B75E7E |. 833D 4CE1B800 00 CMP DWORD PTR DS:[B8E14C],0
+
+00B75E85 |. 75 05 JNZ SHORT Skype.00B75E8C
+
+00B75E87 |. E8 3805A7FF CALL Skype.005E63C4
+
+00B75E8C |> 33C0 XOR EAX,EAX
+
+00B75E8E |. 5A POP EDX
+
+00B75E8F |. 59 POP ECX
+
+00B75E90 |. 59 POP ECX
+
+00B75E91 |. 64:8910 MOV DWORD PTR FS:[EAX],EDX
+
+00B75E94 |. 68 AE5EB700 PUSH Skype.00B75EAE
+
+00B75E99 |> 8D45 A0 LEA EAX,DWORD PTR SS:[EBP-60]
+
+00B75E9C |. BA 04000000 MOV EDX,4
+
+00B75EA1 |. E8 FEF188FF CALL Skype.004050A4
+
+00B75EA6 \. C3 RETN
+
+00B75EA7 .^ E9 2CEA88FF JMP Skype.004048D8
+```
+
+
+
+# 逆向分析笔记
+
+## 代码片段
+
+以下汇编代码段展示了函数尾部恢复寄存器并返回的过程：
+
+```
+00B75EAC   .^. EB EB             JMP SHORT Skype.00B75E99
+
+00B75EAE   .  8BE5               MOV ESP, EBP
+
+00B75EB0   .  5D                 POP EBP
+
+00B75EB1   .  C3                 RETN
+```
+
+## C 语言伪代码
+
+整个过程用 C 语言写大致如下：
+
+```c
+VirtualProtect(OEP, size, PAGE_EXECUTE_READWRITE, &oldProtect);
+
+memset(OEP, 0, size);
+
+VirtualProtect(OEP, size, PAGE_EXECUTE_READ, &oldProtect);
+
+pMem = VirtualAlloc(NULL, 0x44C000, MEM_COMMIT, PAGE_READWRITE);
+
+value = 0X????;
+
+for (i = 0; i < SegNum; i++) {
+    for (j = 0; j < Segs[i].size; j += 4) {
+        offset = ....;
+        pMem[offset] = pOrig[offset] ^ value;
+        value += xxxx;
+    }
+}
+
+for (i = 0; i < num; i++) {
+    if (info[i].flags == xxx)
+        Handle = LoadLibrary(info[i].name);
+    else {
+        pProc = GetProcAddress(Handle, info[i].name);
+        offset = info[i].offset;
+        pMem[offset] = pProc;
+    }
+}
+
+VirtualProtect(pStart, 0x44C000, PAGE_READ_WRITE, &oldProtect);
+memcpy(pStart, pMem, 0x44C000);
+VirtualFree(pMem, 0, MEM_RELEASE);
+
+for (i = 0; i < SegNum; i++) {
+    offset = ...;
+    VirtualProtect(pStart + offset, sizexx, NewProtectxxxx, &oldProtect);
+}
+```
+
+### 作用分析
+
+看看它的作用：
+
+1.  **解码清理**：解码的时候清掉了 `OEP` 处的一小段代码，可防止解码后的简单 `DUMP`。
+2.  **内存保护**：调用了 `VirtualProtect`，对这段被解密的 `CODE` 下的 memory write 断点不再起作用。
+3.  **双 IAT 表机制**：两份 `IAT`，第一份是标准的 `EXE` 的，由 `Loader` 解析，另一份由自己在解码后解析。所以解码后，即使内存中全是明文，`DUMP` 后，`IAT` 也不容易修复。两份 `IAT` 在 memory 中相差很远，`ImportRec` 好像不行，总不至于手工构造引入表 (`IAT`) 吧？
+
+## 4. 程序中的 anti-debug 解除
+
+用 `OllyDbg` 载入程序，忽略所有 `Exception`，`F9` 能正确运行，但是运行不久，就出现：
+
+> `Debugged program was unable to process exception`
+
+但是单独运行却是好好的，十有八九是 `SetUnhandledExceptionFilter` 的 anti-debug。
+
+`Ctrl-F2` 重新开始，`bp SetUnhandledExceptionFilter`，然后 `F9` 运行，运行不久就断下来，果然不出所料。
+
+`Ctrl-G` 定位到 `UnhandledExceptionFilter`，向下一点，将 `CALL ZwQueryInformationProcess` 下面的第二个条件跳转 `NOP` 掉：
+
+```asm
+; UnhandledExceptionFilter
+7C59BCDC   >  55                  PUSH EBP
+7C59BCDD     8BEC                MOV EBP, ESP
+7C59BCDF     6A FF               PUSH -1
+7C59BCE1     68 C02E577C         PUSH kernel32.7C572EC0
+...
+7C59BD3B     6A 07               PUSH 7
+7C59BD3D     E8 7BBBFFFF         CALL kernel32.GetCurrentProcess
+7C59BD42     50                  PUSH EAX
+7C59BD43     FF15 B810577C      CALL DWORD PTR DS:[<&ntdll.NtQueryInformationProcess>; ntdll.ZwQueryInformationProcess
+7C59BD49     3BC3               CMP EAX, EBP
+7C59BD4B     7C 09              JL SHORT kernel32.7C59BD56
+7C59BD4D     395D C8            CMP DWORD PTR SS:[EBP-38], EBP
+7C59BD50     0F85 49020000      JNZ kernel32.7C59BF9F      ; // 这儿不能跳，NOP 掉就好了
+```
+
+这样，程序总算开始听话。由于 `Windows` 各个平台/版本的差异，下载的 `OLLYDBG` 插件不起作用，就只好手工改了。
+
+## 4. 程序中的 anti-debug CODE 分析 (1)
+
+解除 anti-debug 后总想看看，这样的 anti-debug `CODE` 是怎么写的，又是如何触发的。
+
+`bp SetUnhandledExceptionFilter`，可找到程序的 `exception filter function` 地址是 `0072B670`。
+
+分析一下这段 `CODE`：
+
+```asm
+:0072B670 53                     push ebx
+
+* Reference To: kernel32.GetCurrentThreadId, Ord:0111h
+                      |
+:0072B671 FF15909FA000           Call dword ptr [00A09F90]
+
+:0072B677 3B05F017B200           cmp eax, dword ptr [00B217F0]      ; ThreadId == [00B217F0]?
+:0072B67D 741C                   je 0072B69B                        ; YES
+:0072B67F A1EC17B200             mov eax, dword ptr [00B217EC]
+:0072B684 33DB                   xor ebx, ebx
+:0072B686 3BC3                   cmp eax, ebx
+:0072B688 740B                   je 0072B695
+:0072B68A 8B4C2408               mov ecx, dword ptr [esp+08]
+:0072B68E 51                      push ecx
+:0072B68F FFD0                   call eax
+:0072B691 5B                      pop ebx
+:0072B692 C20400                  ret 0004
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072B688(C)
+|
+:0072B695 33C0                   xor eax, eax
+:0072B697 5B                      pop ebx
+:0072B698 C20400                  ret 0004
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072B67D(C)
+|
+:0072B69B 8B0DE817B200           mov ecx, dword ptr [00B217E8]     ; 一个 NUM
+:0072B6A1 55                      push ebp
+:0072B6A2 56                      push esi
+:0072B6A3 8B742410               mov esi, dword ptr [esp+10]     ; ExceptionInfo 参数
+:0072B6A7 8D1449                 lea edx, dword ptr [ecx+2*ecx]
+:0072B6AA 57                      push edi
+:0072B6AB 41                      inc ecx
+:0072B6AC B801000000             mov eax, 00000001               ; 初始化返回值
+:0072B6B1 8D3C952018B200         lea edi, dword ptr [4*edx+00B21820] ; 00B21820 处是一个表，每项 size=3*4
+:0072B6B8 890DE817B200           mov dword ptr [00B217E8], ecx   ; NUM 加 1 了
+:0072B6BE C74708FFFFFFFF         mov [edi+08], FFFFFFFF
+:0072B6C5 8B0E                   mov ecx, dword ptr [esi]        ; ExceptionRecord
+:0072B6C7 8B29                   mov ebp, dword ptr [ecx]        ; ExceptionCode
+:0072B6C9 F7C500FFFF00           test ebp, 00FFFF00         ; 是 xx0000yy 的格式吗?
+:0072B6CF 7516                   jne 0072B6E7
+:0072B6D1 8BD5                   mov edx, ebp             ; xx0000yy ==> xxyy
+:0072B6D3 C1EA10                 shr edx, 10
+:0072B6D6 8ADA                   mov bl, dl
+:0072B6D8 3219                   xor bl, byte ptr [ecx]
+:0072B6DA 81E3FF000000           and ebx, 000000FF
+:0072B6E0 33DA                   xor ebx, edx
+:0072B6E2 66891F                 mov word ptr [edi], bx        ; 保存 xxyy
+:0072B6E5 EB05                   jmp 0072B6EC
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072B6CF(C)
+|
+:0072B6E7 66C707FFFF             mov word ptr [edi], FFFF
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072B6E5(U)
+|
+:0072B6EC 8B0E                   mov ecx, dword ptr [esi]
+:0072B6EE 33DB                   xor ebx, ebx
+:0072B6F0 8B510C                 mov edx, dword ptr [ecx+0C]
+:0072B6F3 895704                 mov dword ptr [edi+04], edx     ; 保存 ExceptionAddress
+:0072B6F6 8B0E                   mov ecx, dword ptr [esi]
+:0072B6F8 8B510C                 mov edx, dword ptr [ecx+0C]     ; edi = ExceptionAddress
+:0072B6FB 33C9                   xor ecx, ecx
+:0072B6FD 668B0F                 mov cx, word ptr [edi]
+:0072B700 81F91DC00000           cmp ecx, 0000C01D
+:0072B706 0F8F4E020000           jg 0072B95A
+:0072B70C 0F84C4010000           je 0072B8D6
+:0072B712 81E903800000           sub ecx, 00008003
+:0072B718 0F847D010000           je 0072B89B
+:0072B71E 49                      dec ecx
+:0072B71F 0F845E010000           je 0072B883
+:0072B725 81E901400000           sub ecx, 00004001
+:0072B72B 0F8534020000           jne 0072B965
+:0072B731 803ACD                 cmp byte ptr [edx], CD        ; xxyy == C005 到这
+:0072B734 0F8578020000           jne 0072B9B2
+:0072B73A 807A0101               cmp byte ptr [edx+01], 01
+:0072B73E 0F856E020000           jne 0072B9B2
+:0072B744 8B7A01                 mov edi, dword ptr [edx+01]
+:0072B747 32C9                   xor cl, cl
+:0072B749 81FF01CC8DC0           cmp edi, C08DCC01
+:0072B74F 7540                   jne 0072B791
+:0072B751 8B5604                 mov edx, dword ptr [esi+04]     ; ExceptionAddress 处是 CD 01 CC 8D C0 到这
+:0072B754 8B82B0000000           mov eax, dword ptr [edx+000000B0]
+:0072B75A A3281BB200             mov dword ptr [00B21B28], eax   ; [00B21B28] = context->eax
+:0072B75F 8B4E04                 mov ecx, dword ptr [esi+04]
+:0072B762 8B91A8000000           mov edx, dword ptr [ecx+000000A8]
+:0072B768 89152C1BB200           mov dword ptr [00B21B2C], edx   ; [00B21B28] = context->eax
+:0072B76E 8B4604                 mov eax, dword ptr [esi+04]
+```
+
+
+
+```
+:0072B771 8B88B8000000              mov ecx, dword ptr [eax+000000B8]  
+:0072B777 83C105                    add ecx, 00000005  
+:0072B77A 8988B8000000              mov dword ptr [eax+000000B8], ecx    ; context->eip += 5  
+:0072B780 A1681BB200                mov eax, dword ptr [00B21B68]  
+:0072B785 0C02                      or al, 02  
+:0072B787 A3681BB200                mov dword ptr [00B21B68], eax       ; [00B21B68] |=2  
+:0072B78C 83C8FF                    or eax, FFFFFFFF                ; eax = -1  
+:0072B78F EB6E                      jmp 0072B7FF  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  |:0072B74F(C)  
+  |  
+:0072B791 81FF018DC0CC              cmp edi, CCC08D01  
+:0072B797 7568                      jne 0072B801  
+:0072B799 8B15681BB200              mov edx, dword ptr [00B21B68]       ; ExceptionAddress 处是 CD 01 8D C0 CC 到这  
+:0072B79F 83CA04                    or edx, 00000004  
+:0072B7A2 8915681BB200              mov dword ptr [00B21B68], edx       ; [00B21B68] |=4  
+:0072B7A8 8B4604                    mov eax, dword ptr [esi+04]  
+:0072B7AB F6C202                    test dl, 02  
+:0072B7AE 8B80B0000000              mov eax, dword ptr [eax+000000B0]  
+:0072B7B4 A3201BB200                mov dword ptr [00B21B20], eax       ; [00B21B20]   = context->eax  
+:0072B7B9 8B4E04                    mov ecx, dword ptr [esi+04]  
+:0072B7BC 8B89A8000000              mov ecx, dword ptr [ecx+000000A8]  
+:0072B7C2 890D241BB200              mov dword ptr [00B21B24], ecx       ; [00B21B20]   = context->edx  
+:0072B7C8 7428                      je 0072B7F2  
+:0072B7CA 8B2D281BB200              mov ebp, dword ptr [00B21B28]  
+:0072B7D0 8B152C1BB200              mov edx, dword ptr [00B21B2C]  
+:0072B7D6 2BC5                      sub eax, ebp  
+:0072B7D8 A3701BB200                mov dword ptr [00B21B70], eax       ; [00B21B70]   = context->eax - [00B21B28]  
+:0072B7DD A1681BB200                mov eax, dword ptr [00B21B68]  
+:0072B7E2 1BCA                      sbb ecx, edx  
+:0072B7E4 80CC80                    or ah, 80  
+:0072B7E7 890D741BB200              mov dword ptr [00B21B74], ecx       ; [00B21B74]   = context->edx - [00B21B2C]  
+:0072B7ED A3681BB200                mov dword ptr [00B21B68], eax       ; [00B21B68] |= 00008000  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  |:0072B7C8(C)  
+  |  
+:0072B7F2 8B4E04                    mov ecx, dword ptr [esi+04]  
+:0072B7F5 83C8FF                    or eax, FFFFFFFF  
+:0072B7F8 8381B800000004            add dword ptr [ecx+000000B8], 00000004  ; context->eip += 5  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  |:0072B78F(U)  
+  |  
+:0072B7FF B101                      mov cl, 01  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  |:0072B797(C)  
+  |  
+:0072B801 81E7FFFF0000              and edi, 0000FFFF  
+:0072B807 81FF01CF0000              cmp edi, 0000CF01  
+:0072B80D 7565                      jne 0072B874  
+:0072B80F 8B5604                    mov edx, dword ptr [esi+04]       ; ExceptionAddress 处是 CD 01 CF 到这  
+:0072B812 8B82C4000000              mov eax, dword ptr [edx+000000C4]  
+:0072B818 8B00                      mov eax, dword ptr [eax]  
+:0072B81A F6C408                    test ah, 08  
+:0072B81D A36C1BB200                mov dword ptr [00B21B6C], eax      
+:0072B822 750A                      jne 0072B82E  
+:0072B824 810D681BB20000000100      or dword ptr [00B21B68], 00010000    ; [00B21B68] |= 00010000  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  |:0072B822(C)  
+  |  
+:0072B82E F6C401                    test ah, 01  
+:0072B831 750A                      jne 0072B83D  
+:0072B833 810D681BB20000000200      or dword ptr [00B21B68], 00020000    ; [00B21B68] |= 00010000  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  |:0072B831(C)  
+  |  
+:0072B83D 8B5604                    mov edx, dword ptr [esi+04]  
+:0072B840 B9E0B97200                mov ecx, 0072B9E0  
+:0072B845 41                      inc ecx  
+:0072B846 898AB8000000              mov dword ptr [edx+000000B8], ecx    ; context->eip   = 0072B9E1  
+:0072B84C 8B4604                    mov eax, dword ptr [esi+04]  
+:0072B84F 8B0D601BB200              mov ecx, dword ptr [00B21B60]  
+:0072B855 8988C4000000              mov dword ptr [eax+000000C4], ecx    ; context->esp   = [00B21B60]  
+:0072B85B A1681BB200                mov eax, dword ptr [00B21B68]  
+:0072B860 0D00000400                or eax, 00040000  
+:0072B865 A3681BB200                mov dword ptr [00B21B68], eax       ; [00B21B68] |= 00040000  
+:0072B86A E881FDFFFF                call 0072B5F0  
+:0072B86F E93B010000                jmp 0072B9AF  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  |:0072B80D(C)  
+  |  
+:0072B874 3ACB                      cmp cl, bl  
+:0072B876 0F8536010000              jne 0072B9B2  
+:0072B87C 33C0                      xor eax, eax  
+:0072B87E E92F010000                jmp 0072B9B2  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  |:0072B71F(C)  
+  |  
+:0072B883 391D641BB200              cmp dword ptr [00B21B64], ebx       ; xxyy == 8004 到这  
+:0072B889 0F8520010000              jne 0072B9AF  
+:0072B88F A1681BB200                mov eax, dword ptr [00B21B68]  
+:0072B894 0C01                      or al, 01  
+:0072B896 E90F010000                jmp 0072B9AA  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  |:0072B718(C)  
+  |  
+:0072B89B 803ACC                    cmp byte ptr [edx], CC        ; xxyy == 8004 到这  
+:0072B89E 0F850E010000              jne 0072B9B2  
+:0072B8A4 807A018D                  cmp byte ptr [edx+01], 8D  
+:0072B8A8 750F                      jne 0072B8B9  
+:0072B8AA 807A02C0                  cmp byte ptr [edx+02], C0        
+:0072B8AE 7509                      jne 0072B8B9  
+:0072B8B0 A1681BB200                mov eax, dword ptr [00B21B68]       ; ExceptionAddress 处是 CC 8D C0  
+:0072B8B5 0C08                      or al, 08                  ; [00B21B68] |= 08  
+:0072B8B7 EB07                      jmp 0072B8C0  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:  
+  |:0072B8A8(C), :0072B8AE(C)  
+  |  
+:0072B8B9 A1681BB200                mov eax, dword ptr [00B21B68]  
+:0072B8BE 0C10                      or al, 10                  ; [00B21B68] |= 08  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  |:0072B8B7(U)  
+  |  
+:0072B8C0 A3681BB200                mov dword ptr [00B21B68], eax  
+:0072B8C5 8B4E04                    mov ecx, dword ptr [esi+04]  
+:0072B8C8 83C8FF                    or eax, FFFFFFFF  
+:0072B8CB FF81B8000000              inc dword ptr [ecx+000000B8]       ; context->eip++  
+:0072B8D1 E9DC000000                jmp 0072B9B2  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:  
+  |:0072B70C(C)  
+  |  
+:0072B8D6 803A0F                    cmp byte ptr [edx], 0F        ; xxyy == C01D 到这  
+:0072B8D9 B902000000                mov ecx, 00000002                ; ecx = 2  
+:0072B8DE 7539                      jne 0072B919  
+:0072B8E0 807A010B                  cmp byte ptr [edx+01], 0B  
+:0072B8E4 7533                      jne 0072B919  
+:0072B8E6 8B4604                    mov eax, dword ptr [esi+04]       ; ExceptionAddress 处是 0F 0B  
+:0072B8E9 8BA8B8000000              mov ebp, dword ptr [eax+000000B8]  
+:0072B8EF 03E9                      add ebp, ecx  
+:0072B8F1 89A8B8000000              mov dword ptr [eax+000000B8], ebp    ; context->eip +=2   
+:0072B8F7 8B4604                    mov eax, dword ptr [esi+04]  
+:0072B8FA 8BB8C0000000              mov edi, dword ptr [eax+000000C0]  
+:0072B900 81CF00090000              or edi, 00000900          
+:0072B906 89B8C0000000              mov dword ptr [eax+000000C0], edi    ; context->EFlags |= 900 // OF, TF// 设置 CPU 单步 flags  
+:0072B90C 83C8FF                    or eax, FFFFFFFF
+```
+
+
+
+# 汇编代码片段 1
+
+:0072B90F C705641BB20001000000    `mov dword ptr [00B21B64], 00000001`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+`:0072B8DE(C), :0072B8E4(C)`
+
+:0072B919 803A8D                `cmp byte ptr [edx], 8D`
+:0072B91C 0F8590000000          `jne 0072B9B2`
+:0072B922 807A01C0              `cmp byte ptr [edx+01], C0`
+:0072B926 0F8586000000          `jne 0072B9B2`
+:0072B92C 8B4604                `mov eax, dword ptr [esi+04]`      ; `ExceptionAddress` 处是 `8D C0`
+:0072B92F 8B90B8000000          `mov edx, dword ptr [eax+000000B8]`
+:0072B935 03D1                  `add edx, ecx`
+:0072B937 8990B8000000          `mov dword ptr [eax+000000B8], edx`  ; `context->eip += 2`
+:0072B93D 8B4604                `mov eax, dword ptr [esi+04]`
+:0072B940 8B88C0000000          `mov ecx, dword ptr [eax+000000C0]`
+:0072B946 80E5F6                `and ch, F6`
+:0072B949 8988C0000000          `mov dword ptr [eax+000000C0], ecx`  ; `context->EFlags &= ~900` // 设置 CPU 单步 flags
+:0072B94F 83C8FF                `or eax, FFFFFFFF`
+:0072B952 891D641BB200          `mov dword ptr [00B21B64], ebx`
+:0072B958 EB58                  `jmp 0072B9B2`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:0072B706(C)`
+
+:0072B95A 81E995C00000          `sub ecx, 0000C095`
+:0072B960 7440                  `je 0072B9A2`
+:0072B962 49                    `dec ecx`
+:0072B963 7411                  `je 0072B976`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:0072B72B(C)`
+
+:0072B965 8B0D681BB200          `mov ecx, dword ptr [00B21B68]`
+:0072B96B 80CD08                `or ch, 08`
+:0072B96E 890D681BB200          `mov dword ptr [00B21B68], ecx`
+:0072B974 EB3C                  `jmp 0072B9B2`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:0072B963(C)`
+
+:0072B976 803A0F                `cmp byte ptr [edx], 0F`        ; `xxyy == C096` 到这
+:0072B979 7537                  `jne 0072B9B2`
+:0072B97B 807A0134              `cmp byte ptr [edx+01], 34`
+:0072B97F 7531                  `jne 0072B9B2`
+:0072B981 8B3D681BB200          `mov edi, dword ptr [00B21B68]`  ; `ExceptionAddress` 处是 `0F 34`
+:0072B987 83C8FF                `or eax, FFFFFFFF`
+:0072B98A 81CF00100000          `or edi, 00001000`
+:0072B990 893D681BB200          `mov dword ptr [00B21B68], edi`  ; `[00B21B68] |= 1000;`
+:0072B996 8B4E04                `mov ecx, dword ptr [esi+04]`
+:0072B999 8381B800000002        `add dword ptr [ecx+000000B8], 00000002` ; `context->eip += 2`
+:0072B9A0 EB10                  `jmp 0072B9B2`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:0072B960(C)`
+
+:0072B9A2 A1681BB200            `mov eax, dword ptr [00B21B68]`  ; `xxyy == C095` 到这
+:0072B9A7 80CC04                `or ah, 04`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:0072B896(U)`
+
+:0072B9AA A3681BB200            `mov dword ptr [00B21B68], eax`  ; `[00B21B68] |= 400;`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+`:0072B86F(U), :0072B889(C)`
+
+:0072B9AF 83C8FF                `or eax, FFFFFFFF`
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+`:0072B734(C), :0072B73E(C), :0072B876(C), :0072B87E(U), :0072B89E(C)`
+`:0072B8D1(U), :0072B91C(C), :0072B926(C), :0072B958(U), :0072B974(U)`
+`:0072B979(C), :0072B97F(C), :0072B9A0(U)`
+
+:0072B9B2 8B5604                `mov edx, dword ptr [esi+04]`
+:0072B9B5 5F                    `pop edi`
+:0072B9B6 895A10                `mov dword ptr [edx+10], ebx`     ; `context->dr3 = 0`, 清除硬件断点
+:0072B9B9 8B4E04                `mov ecx, dword ptr [esi+04]`
+:0072B9BC 89590C                `mov dword ptr [ecx+0C], ebx`     ; `context->dr2 = 0`
+:0072B9BF 8B5604                `mov edx, dword ptr [esi+04]`
+:0072B9C2 895A08                `mov dword ptr [edx+08], ebx`     ; `context->dr1 = 0`
+:0072B9C5 8B4E04                `mov ecx, dword ptr [esi+04]`
+:0072B9C8 5E                    `pop esi`
+:0072B9C9 5D                    `pop ebp`
+:0072B9CA 895904                `mov dword ptr [ecx+04], ebx`     ; `context->dr0 = 0`
+:0072B9CD 5B                    `pop ebx`
+:0072B9CE C20400                `ret 0004`
+
+这段 CODE 只是处理 `Exception`, 跟完了这段, 还是不太明白, 再想跟一跟 `Exception` 是如何触发的。
+
+于是, 在 `0072B9CE` 处 `F8` 返回到 `kernel32.dll` 领空后, 在 `Memory Map` 的 `00401000` `CODE` 段上 `F2` 下断, 然后 `F9`
+
+断在 `0091885F`
+
+```
+00918854    8B49 04               MOV ECX,DWORD PTR DS:[ECX+4]
+00918857    50                    PUSH EAX
+00918858    51                    PUSH ECX
+00918859    FF15 ACA0A000         CALL DWORD PTR DS:[A0A0AC]       ; kernel32.WaitForSingleObject
+0091885F    85C0                  TEST EAX,EAX                     ; 返回到这儿了????????
+00918861    74 12                 JE SHORT Skype.00918875
+00918863    33D2                  XOR EDX,EDX
+00918865    3D 02010000           CMP EAX,102
+0091886A    0F94C2                SETE DL
+```
+
+前后看看, 感觉不应该是这样的. 刚开始也是一阵迷惑不解, 后来弄了好久才想可能是这样:
+
+程序是多线程的, 有个线程由于在 `00918859` `CALL` `kernel32.WaitForSingleObject` 而进入 `kernel32` 的领空等待, 而我所跟的线程在处理好 `Exception` 后, 回到 `kernel32.dll` 领空, 再 `F9`, 却被等待的线程抢先返回到 `CODE` 段的 `0091885F` 而触发了在 `0401000` `CODE` 段上 的 `F2` 断点.
+
+所以这条路走不通, 再想别的法子了.
+
+# 5. 程序中的 anti-debug CODE 分析 (2)
+
+根据 `SetUnhandledExceptionFilter` 找到下面的 code:
+
+* Referenced by a CALL at Address:
+`:0072BF8C`
+
+```
+:0072B9F0 53                    push ebx
+:0072B9F1 56                    push esi
+:0072B9F2 57                    push edi
+```
+
+* Reference To: `kernel32.GetCurrentThreadId`, Ord:0111h
+
+```
+:0072B9F3 FF15909FA000          Call dword ptr [00A09F90]
+:0072B9F9 A3F017B200            mov dword ptr [00B217F0], eax      ; ThreadID
+:0072B9FE E83DF2FFFF            call 0072AC40                       ; 将 SEH 链的最后一项填到第一项, 实际上是 reset SEH 链
+                                             ; 并返回第一项
+```
+
+* Reference To: `kernel32.SetUnhandledExceptionFilter`, Ord:02BFh
+
+```
+:0072BA03 8B3D949FA000          mov edi, dword ptr [00A09F94]
+:0072BA09 6870B67200            push 0072B670
+:0072BA0E 8BF0                  mov esi, eax                        ; 保存第一项
+:0072BA10 FFD7                  call edi                            ; Call SetUnhandledExceptionFilter
+:0072BA12 A3EC17B200            mov dword ptr [00B217EC], eax
+:0072BA17 B904000000            mov ecx, 00000004
+```
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+`:0072BA54(C)`
+
+```
+:0072BA1C A1381BB200            mov eax, dword ptr [00B21B38]       ; rand 的 seed
+:0072BA21 8B1D581BB200          mov ebx, dword ptr [00B21B58]       ; VirtualAlloc 的一起始地址, 将用做 STACK
+:0072BA27 8D1440                lea edx, dword ptr [eax+2*eax]      ; 下面这几行就是 rand()
+:0072BA2A 8D1490                lea edx, dword ptr [eax+4*edx]
+:0072BA2D C1E204                shl edx, 04
+:0072BA30 03D0                  add edx, eax
+:0072BA32 C1E208                shl edx, 08
+:0072BA35 2BD0                  sub edx, eax
+:0072BA37 8D8490C39E2600        lea eax, dword ptr [eax+4*edx+00269EC3]
+:0072BA3E 8B155C1BB200          mov edx, dword ptr [00B21B5C]       ; VirtualAlloc 的 STACK size
+:0072BA44 2BD1                  sub edx, ecx
+:0072BA46 83C104                add ecx, 00000004
+:0072BA49 A3381BB200            mov dword ptr [00B21B38], eax
+:0072BA4E 83F920                cmp ecx, 00000020
+:0072BA51 89041A                mov dword ptr [edx+ebx], eax        ; 往 memory 的最后 0x20 bytes 填上一些随机数
+:0072BA54 7EC6                  jle 0072BA1C                        ; 循环
+:0072BA56 E8F5FBFFFF            call 0072B650                       ; ****** 这里就是去产生各种 Unhandled Exception 的地方 ******
+```
+
+
+
+## 汇编代码段 1：异常处理恢复逻辑
+
+```
+:0072BA5B A1EC17B200           mov eax, dword ptr [00B217EC]
+:0072BA60 50                   push eax
+:0072BA61 FFD7                 call edi                ; 重 Call SetUnhandledExceptionFilter, 进行恢复工作
+:0072BA63 56                   push esi
+:0072BA64 E8C7F1FFFF           call 0072AC30           ; 恢复正常的 SEH 链
+:0072BA69 A1E817B200           mov eax, dword ptr [00B217E8]   ; 下面的 CODE 检查 在 程序的 UnhandledExceptionFilter 的运行结果是否正常
+:0072BA6E 83C404               add esp, 00000004
+:0072BA71 83F80B               cmp eax, 0000000B
+:0072BA74 7544                 jne 0072BABA
+:0072BA76 33D2                 xor edx, edx
+:0072BA78 B92018B200           mov ecx, 00B21820
+:0072BA7D B888A4A000           mov eax, 00A0A488
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BA9F(C)
+
+:0072BA82 668B31               mov si, word ptr [ecx]
+:0072BA85 663B30               cmp si, word ptr [eax]
+:0072BA88 7517                 jne 0072BAA1
+:0072BA8A 0FBF7002             movsx esi, word ptr [eax+02]
+:0072BA8E 397108               cmp dword ptr [ecx+08], esi
+:0072BA91 750E                 jne 0072BAA1
+:0072BA93 83C004               add eax, 00000004
+:0072BA96 42                   inc edx
+:0072BA97 83C10C               add ecx, 0000000C
+:0072BA9A 3DB4A4A000           cmp eax, 00A0A4B4
+:0072BA9F 7CE1                 jl 0072BA82
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0072BA88(C), :0072BA91(C)
+
+:0072BAA1 83FA0B               cmp edx, 0000000B     ;  结果是否正常?
+:0072BAA4 7514                 jne 0072BABA
+:0072BAA6 8B0D681BB200         mov ecx, dword ptr [00B21B68]
+:0072BAAC 81E116840400         and ecx, 00048416
+:0072BAB2 81F916840400         cmp ecx, 00048416     ; flags 是 00048416 ?
+:0072BAB8 740C                 je 0072BAC6
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0072BA74(C), :0072BAA4(C)
+
+:0072BABA A1781BB200           mov eax, dword ptr [00B21B78]   ; 非正常结果会到这,
+:0072BABF 0C02                 or al, 02
+:0072BAC1 A3781BB200           mov dword ptr [00B21B78], eax   ; 设置 1 flag
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BAB8(C)
+
+:0072BAC6 5F                   pop edi
+:0072BAC7 5E                   pop esi
+:0072BAC8 5B                   pop ebx
+:0072BAC9 C3                   ret             ; ret to 0072BF91
+```
+
+再跟一下返回后的 CODE:
+
+```
+:0072BF8C E85FFAFFFF           call 0072B9F0
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BF8A(C)
+
+:0072BF91 A1681BB200           mov eax, dword ptr [00B21B68]   ; 返回到这
+:0072BF96 F6C480               test ah, 80
+:0072BF99 7419                 je 0072BFB4
+:0072BF9B 392D741BB200         cmp dword ptr [00B21B74], ebp   ; RDTSC 时间差的高 32bits
+:0072BFA1 7C11                 jl 0072BFB4
+:0072BFA3 7F0C                 jg 0072BFB1       ; 大于 0 就跳去  or edi, 1,
+:0072BFA5 813D701BB20070640800 cmp dword ptr [00B21B70], 00086470  ; RDTSC 时间差的低 32bits < 00086470 ?
+:0072BFAF 7203                 jb 0072BFB4
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BFA3(C)
+
+:0072BFB1 83CF01               or edi, 00000001
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0072BF99(C), :0072BFA1(C), :0072BFAF(C)
+
+:0072BFB4 F605341BB20001       test byte ptr [00B21B34], 01
+:0072BFBB 7547                 jne 0072C004
+```
+
+### 产生各种 Unhandled Exception 的逻辑
+
+```
+******************************** 去产生各种 Unhandled Exception  ********************************
+
+* Referenced by a CALL at Address:
+|:0072BA56
+
+:0072B650 9C                   pushfd          ; 保存 Eflags
+:0072B651 60                   pushad          ; 保存 REGs
+:0072B652 8925601BB200         mov dword ptr [00B21B60], esp   ; 保存 esp
+:0072B658 8B25581BB200         mov esp, dword ptr [00B21B58]   ; ***** ESP 给改了, 从现在起, STACK 窗口 没有有用的信息了 *******
+:0072B65E 03255C1BB200         add esp, dword ptr [00B21B5C]
+:0072B664 83EC20               sub esp, 00000020
+:0072B667 61                   popad           ; ***** 这儿可不对应上面的 pushad, pop 的全是随机数, 看 0072BA51
+:0072B668 FF25501BB200         jmp dword ptr [00B21B50]     ; 到这, 除了 eip, esp 的值有用, 起它的 6 个 reg 中全是垃圾, 跳到...
+```
+
+跳到这，每次运行可是跳到不同的地址!!!
+
+下面这一小段 CODE 要产生 11 (0x0B) 个 Unhandled Exception，完成不同的功能 相当于 CALL `0072B670` - `0072B9CE`
+
+### 产生各种 Unhandled Exception 的代码
+
+```
+5F910152   /EB 02             JMP SHORT 5F910156          ; 跳
+5F910154    C7                ???
+5F910155    FA                CLI
+5F910156   /74 03            JE SHORT 5F91015B           ; 跳
+5F910158   |75 01            JNZ SHORT 5F91015B          ; 跳
+5F91015A    68 0F31CD01       PUSH 1CD310F
+5F91015B    0F31             RDTSC          ; 读 CPU 的 xx counter, ==> EDX:EAX
+5F91015D    CD 01            INT 1          ; C0000005, eip+= 5
+5F91015F    CC                INT3
+5F910160    8DC0             LEA EAX,EAX      ; Illegal use of register
+5F910162    EB 02            JMP SHORT 5F910166        ; 跳
+5F910164  - 0F84 0F31CD01    JE 615E3279
+5F910166    0F31             RDTSC          ; 再读 CPU 的 xx counter, ==> EDX:EAX
+5F910168    CD 01            INT 1          ; C0000005, eip+= 4
+5F91016A    8DC0             LEA EAX,EAX      ; Illegal use of register
+5F91016C    CC                INT3          ; 80000003, eip++
+5F91016D    0F0B             UD2            ; C000001D, eip+= 2, set OF,TP
+                            ; 80000004, from 77F9FF64
+5F91016F    CE                INTO          ; C0000095, eip=eip
+                            ; 80000004, from 77F9FF64
+5F910170    CC                INT3          ; 80000003, eip++
+5F910171    9C                PUSHFD
+5F910172    8DC0             LEA EAX,EAX     ; 80000004, eip=eip
+                            ; C000001D, eip+=2, clear OF, TP
+5F910174    CD 01            INT 1          ; C0000005, eip=0072B9E1
+5F910176    CF                IRETD          ; 这一句没执行
+```
+
+最后的 Exception 使 `eip` = `0072B9E1`，`esp`=`[00B21B60]`，还有花指令
+
+```
+0072B9DD    90                NOP
+0072B9DE    90                NOP
+0072B9DF    90                NOP
+0072B9E0    E8 619DC37E       CALL 7F365746
+```
+
+正确的应该是
+
+```
+0072B9E1    61                POPAD            ; 这里才对应于 0072B651 的 pushad
+0072B9E2    9D                POPFD            ;        对应于 0072B650 的 pushfd
+0072B9E3    C3                RETN
+```
+
+## 汇编代码段 2：初始化部分
+
+再看一下与上面 Unhandled Exception 相关的 初始化部分:
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072A8E0(U)
+
+:0072BBC0 83EC0C               sub esp, 0000000C
+:0072BBC3 57                   push edi
+:0072BBC4 8B3D781BB200         mov edi, dword ptr [00B21B78]
+:0072BBCA 6A01                 push 00000001
+:0072BBCC 68301BB200           push 00B21B30
+:0072BBD1 897C2414             mov dword ptr [esp+14], edi
+
+* Reference To: kernel32.InterlockedExchange, Ord:01D0h
+                       |
+:0072BBD5 FF15A49FA000         Call dword ptr [00A09FA4]    ; 应该是读一 flag, 表示初始化或没有?
+:0072BBDB 85C0                 test eax, eax
+:0072BBDD 0F852F040000         jne 0072C012
+:0072BBE3 8B15341BB200         mov edx, dword ptr [00B21B34]
+```
+
+
+
+```asm
+:0072BBE9 A1381BB200             mov eax, dword ptr [00B21B38]
+
+:0072BBEE 55                     push ebp
+
+:0072BBEF 33ED                   xor ebp, ebp
+
+:0072BBF1 42                     inc edx
+
+:0072BBF2 3BC5                   cmp eax, ebp
+
+:0072BBF4 56                     push esi
+
+:0072BBF5 8915341BB200           mov dword ptr [00B21B34], edx
+
+:0072BBFB 750B                   jne 0072BC08
+
+* Reference To: kernel32.GetTickCount, Ord:018Bh
+                              |
+:0072BBFD FF15A09FA000           Call dword ptr [00A09FA0]
+
+:0072BC03 A3381BB200             mov dword ptr [00B21B38], eax      ; 初始化 rand 的 seed
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BBFB(C)
+|
+:0072BC08 833D2C60AD00          cmp dword ptr [00AD602C], FFFFFFFF
+
+:0072BC0F 750F                   jne 0072BC20
+
+:0072BC11 E8FAEFFFFF             call 0072AC10
+
+:0072BC16 A32C60AD00             mov dword ptr [00AD602C], eax
+
+:0072BC1B A1381BB200             mov eax, dword ptr [00B21B38]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BC0F(C)
+|
+:0072BC20 392D401BB200           cmp dword ptr [00B21B40], ebp
+
+:0072BC26 750A                   jne 0072BC32
+
+:0072BC28 E823EFFFFF             call 0072AB50
+
+:0072BC2D A1381BB200             mov eax, dword ptr [00B21B38]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BC26(C)
+|
+:0072BC32 8A0D441BB200           mov cl, byte ptr [00B21B44]
+
+:0072BC38 84C9                   test cl, cl
+
+:0072BC3A 7517                   jne 0072BC53
+
+:0072BC3C 68F817B200             push 00B217F8
+
+* Reference To: kernel32.GetSystemInfo, Ord:0177h
+                              |
+:0072BC41 FF159C9FA000           Call dword ptr [00A09F9C]        ; GetSystemInfo(), 下面用到
+
+:0072BC47 A1381BB200             mov eax, dword ptr [00B21B38]
+
+:0072BC4C C605441BB20001         mov byte ptr [00B21B44], 01
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BC3A(C)
+|
+:0072BC53 8A15341BB200           mov dl, byte ptr [00B21B34]
+
+:0072BC59 F6C20E                 test dl, 0E
+
+:0072BC5C 7555                   jne 0072BCB3
+
+:0072BC5E 8A0D441BB200           mov cl, byte ptr [00B21B44]
+
+:0072BC64 84C9                   test cl, cl
+
+:0072BC66 744B                   je 0072BCB3
+
+:0072BC68 8B0D4C1BB200           mov ecx, dword ptr [00B21B4C]
+
+:0072BC6E 3BCD                   cmp ecx, ebp
+
+:0072BC70 7408                   je 0072BC7A
+
+:0072BC72 392D581BB200           cmp dword ptr [00B21B58], ebp
+
+:0072BC78 7539                   jne 0072BCB3
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BC70(C)
+|
+:0072BC7A 80E201                 and dl, 01
+
+:0072BC7D 8854240F               mov byte ptr [esp+0F], dl
+
+:0072BC81 0F8471010000           je 0072BDF8
+
+:0072BC87 3BCD                   cmp ecx, ebp
+
+:0072BC89 7528                   jne 0072BCB3
+
+:0072BC8B 68F817B200             push 00B217F8
+
+:0072BC90 68481BB200             push 00B21B48
+
+:0072BC95 6880000000             push 00000080
+
+:0072BC9A C605451BB20000         mov byte ptr [00B21B45], 00
+
+:0072BCA1 E82AFEFFFF             call 0072BAD0                   ; 分配一段 Memory,来放产生各种 Unhandled Exception 的 CODE,
+                           起始地址 xxxx0000 中的 xxxx 是根据 SystemInfo 随机生成, 每次运行都不一样, 而且一般都是 5xxx, 6xxx or 7xxxx,
+                           跟系统 dll 中的地址混在一起, 在 OD 的 Memory Map 很容易被忽视掉. 刚开始的时候, 每次 exception 都在高地址空间,
+                           我还总以为是哪个系统 dll 出问题了.
+
+:0072BCA6 83C40C                 add esp, 000000C
+
+:0072BCA9 A34C1BB200             mov dword ptr [00B21B4C], eax      ; 保存地址
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BE22(C)
+|
+:0072BCAE A1381BB200             mov eax, dword ptr [00B21B38]
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0072BC5C(C), :0072BC66(C), :0072BC78(C), :0072BC89(C), :0072BDFE(C)
+|:0072BE5F(U)
+|
+:0072BCB3 392D4C1BB200           cmp dword ptr [00B21B4C], ebp
+
+:0072BCB9 0F84EA010000           je 0072BEA9
+
+:0072BCBF 8A0D451BB200           mov cl, byte ptr [00B21B45]
+
+:0072BCC5 84C9                   test cl, cl
+
+:0072BCC7 0F85DC010000           jne 0072BEA9
+
+:0072BCCD 8B15481BB200           mov edx, dword ptr [00B21B48]
+
+:0072BCD3 33C9                   xor ecx, ecx
+
+:0072BCD5 3BD5                   cmp edx, ebp
+
+:0072BCD7 7637                   jbe 0072BD10
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BD0E(C)
+|
+:0072BCD9 8D1440                 lea edx, dword ptr [eax+2*eax]
+
+:0072BCDC 83C104                 add ecx, 0000004
+
+:0072BCDF 8D1490                 lea edx, dword ptr [eax+4*edx]
+
+:0072BCE2 C1E204                 shl edx, 04
+
+:0072BCE5 03D0                   add edx, eax
+
+:0072BCE7 C1E208                 shl edx, 08
+
+:0072BCEA 2BD0                   sub edx, eax
+
+:0072BCEC 8D8490C39E2600         lea eax, dword ptr [eax+4*edx+00269EC3]
+
+:0072BCF3 8B154C1BB200           mov edx, dword ptr [00B21B4C]
+
+:0072BCF9 A3381BB200             mov dword ptr [00B21B38], eax
+
+:0072BCFE 89440AFC               mov dword ptr [edx+ecx-04], eax    ; 将分配的 Memory 全填上随机数
+
+:0072BD02 A1481BB200             mov eax, dword ptr [00B21B48]
+
+:0072BD07 3BC8                   cmp ecx, eax
+
+:0072BD09 A1381BB200             mov eax, dword ptr [00B21B38]
+
+:0072BD0E 72C9                   jb 0072BCD9
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BCD7(C)
+|
+:0072BD10 392D2C60AD00           cmp dword ptr [00AD602C], ebp
+
+:0072BD16 0F8586010000           jne 0072BEA2
+
+:0072BD1C 8D0C40                 lea ecx, dword ptr [eax+2*eax]
+
+:0072BD1F 8B35B4A4A000           mov esi, dword ptr [00A0A4B4]
+
+:0072BD25 53                     push ebx
+
+:0072BD26 BF04000000             mov edi, 0000004
+
+:0072BD2B 8D1488                 lea edx, dword ptr [eax+4*ecx]
+
+:0072BD2E 8B0D481BB200           mov ecx, dword ptr [00B21B48]      ; 分配的 size
+
+:0072BD34 C1E204                 shl edx, 04
+
+:0072BD37 03D0                   add edx, eax
+
+:0072BD39 83C1BB                 add ecx, FFFFFFB                 ; size - 0x45
+
+:0072BD3C C1E208                 shl edx, 08
+
+:0072BD3F 2BD0                   sub edx, eax
+
+:0072BD41 8D8490C39E2600         lea eax, dword ptr [eax+4*edx+00269EC3]
+
+:0072BD48 33D2                   xor edx, edx
+
+:0072BD4A A3381BB200             mov dword ptr [00B21B38], eax      ; 随机数
+
+:0072BD4F F7F1                   div ecx                              ; rand() % (size - 0x45)
+
+:0072BD51 A14C1BB200             mov eax, dword ptr [00B21B4C]
+
+:0072BD56 8D4C0210               lea ecx, dword ptr [edx+eax+10]    ; pStart + rand() % (size - 0x45) + 0x10
+
+:0072BD5A 890D501BB200           mov dword ptr [00B21B50], ecx      ; 代码起始地址 pAddr, 随机的, 前面的 5F910152 就是这样来的
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BE97(C)
+|
+:0072BD60 B829000000             mov eax, 0000029                   ; 下面一段解密一小段 CODE, 放到 pAddr (也就是 5F910152:-))
+
+:0072BD65 2BC7                   sub eax, edi
+
+:0072BD67 83F804                 cmp eax, 0000004
+
+:0072BD6A 0F87F4000000           ja 0072BE64
+
+:0072BD70 0F83EE000000           jnb 0072BE64
+
+:0072BD76 33DB                   xor ebx, ebx
+
+:0072BD78 33D2                   xor edx, edx
+
+:0072BD7A 3BC5                   cmp eax, ebp
+
+:0072BD7C 762E                   jbe 0072BDAC
+
+:0072BD7E 8D0CC5F8FFFFFF         lea ecx, dword ptr [8*eax+FFFFFFF8]
+
+:0072BD85 894C2414               mov dword ptr [esp+14], ecx
+
+...省略一些 CODE
+
+:0072BE91 83C704                 add edi, 0000004
+```
+
+
+
+```assembly
+:0072BE94 83FF29             cmp edi, 00000029  
+
+:0072BE97 0F82C3FEFFFF       jb 0072BD60  
+
+:0072BE9D 8B7C2418           mov edi, dword ptr [esp+18]  
+
+:0072BEA1 5B                 pop ebx  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BD16(C)
+|
+:0072BEA2 C605451BB20001     mov byte ptr [00B21B45], 01      ; 解密结束  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0072BCB9(C), :0072BCC7(C)
+|
+:0072BEA9 A1341BB200         mov eax, dword ptr [00B21B34]  
+
+:0072BEAE 25FF010000         and eax, 000001FF  
+
+:0072BEB3 83F807             cmp eax, 00000007  
+
+:0072BEB6 751D               jne 0072BED5  
+
+:0072BEB8 A0441BB200         mov al, byte ptr [00B21B44]  
+
+:0072BEBD 84C0               test al, al  
+
+:0072BEBF 7414               je 0072BED5  
+
+:0072BEC1 8B0D401BB200       mov ecx, dword ptr [00B21B40]  
+
+:0072BEC7 68F817B200         push 00B217F8  
+
+:0072BECC 51                 push ecx  
+
+:0072BECD E8BEF2FFFF         call 0072B190  
+
+:0072BED2 83C408             add esp, 00000008  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0072BEB6(C), :0072BEBF(C)
+|
+:0072BED5 8B15341BB200       mov edx, dword ptr [00B21B34]  
+
+:0072BEDB 81E2FF010000       and edx, 000001FF  
+
+:0072BEE1 81FA03010000       cmp edx, 00000103  
+
+:0072BEE7 7549               jne 0072BF32  
+
+:0072BEE9 F605781BB20004     test byte ptr [00B21B78], 04  
+
+:0072BEF0 7540               jne 0072BF32  
+
+:0072BEF2 892D681BB200       mov dword ptr [00B21B68], ebp  
+
+:0072BEF8 E863EEFFFF         call 0072AD60  
+
+:0072BEFD 392D2C60AD00       cmp dword ptr [00AD602C], ebp  
+
+:0072BF03 7510               jne 0072BF15  
+
+:0072BF05 A1401BB200         mov eax, dword ptr [00B21B40]  
+
+:0072BF0A 50                 push eax  
+
+:0072BF0B E850F0FFFF         call 0072AF60  
+
+:0072BF10 83C404             add esp, 00000004  
+
+:0072BF13 EB05               jmp 0072BF1A  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BF03(C)
+|
+:0072BF15 E8A6F3FFFF         call 0072B2C0  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0072BF13(U)
+|
+:0072BF1A F705681BB200E0030000 test dword ptr [00B21B68], 000003E0  
+
+:0072BF24 740C               je 0072BF32  
+
+:0072BF26 A1781BB200         mov eax, dword ptr [00B21B78]  
+
+:0072BF2B 0C04               or al, 04  
+
+:0072BF2D A3781BB200         mov dword ptr [00B21B78], eax  
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:0072BEE7(C), :0072BEF0(C), :0072BF24(C)
+|
+:0072BF32 A1341BB200         mov eax, dword ptr [00B21B34]  
+
+:0072BF37 B911000000         mov ecx, 00000011  
+
+:0072BF3C 99                 cdq  
+
+:0072BF3D F7F9               idiv ecx  
+
+:0072BF3F 85D2               test edx, edx  
+
+:0072BF41 0F85BD000000       jne 0072C004  
+
+:0072BF47 392D4C1BB200       cmp dword ptr [00B21B4C], ebp  
+
+:0072BF4D 0F84B1000000       je 0072C004  
+
+:0072BF53 392D581BB200       cmp dword ptr [00B21B58], ebp  
+
+:0072BF59 0F84A5000000       je 0072C004  
+
+:0072BF5F A12C60AD00         mov eax, dword ptr [00AD602C]  
+
+:0072BF64 892D701BB200       mov dword ptr [00B21B70], ebp  
+
+:0072BF6A 3BC5               cmp eax, ebp  
+
+:0072BF6C 892D741BB200       mov dword ptr [00B21B74], ebp  
+
+:0072BF72 892D681BB200       mov dword ptr [00B21B68], ebp  
+
+:0072BF78 892D6C1BB200       mov dword ptr [00B21B6C], ebp  
+
+:0072BF7E 892DE817B200       mov dword ptr [00B217E8], ebp  
+
+:0072BF84 892D641BB200       mov dword ptr [00B21B64], ebp  
+
+:0072BF8A 7505               jne 0072BF91  
+
+:0072BF8C E85FFAFFFF         call 0072B9F0          ; 这儿开始干坏事, 前面已经分析过了.
+```
+
+没了, 好累!!!
+
+`4dd466d0e1e0cc123afbe504da2462ca`

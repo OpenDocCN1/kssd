@@ -1,77 +1,86 @@
 
-
 # Professional Quest
 
 > 原文：[`www.pediy.com/kssd/pediy01/forum097.htm`](https://www.pediy.com/kssd/pediy01/forum097.htm)
 
-发信人: shizg (刀客☆永远的痛), 信区: Hacker   
-标  题: Professional Quest 脱壳实例(vbox4.10)   
-发信站: BBS 水木清华站 (Fri Jun 23 10:10:12 2000)   
-    
-这个东东以前就装了，是一个做问卷调查的软件。最近要用，所以拿出来一看，   
-哇塞，不能用了。然后加载 S-Ice，再运行看，出来一个框，是什么 vbox 警告框，   
-意思是说我有 debug，呵呵。知道是 vbox 保护了。   
-下面就是脱壳过程，想练手的可以照着做(找不到可以问我要)，好像上一次   
-有人问那个 codevizor 也是用 vbox4.10 保护的：   
-    
-1。打 S-Ice 补丁，就是 backdoor keeper，这样就不怕 vbox 不能脱壳弹出上面那个   
-框框了。如果用 trw 更爽，直接 faults off 命令，就可以了。   
-    
-2。S-Ice 加载执行程序 quest.exe   
-    
-3。中断在 B53000：   
-015F:00B53000  PUSH      DWORD PTR \[ESP+0C\]   
-015F:00B53004  PUSH      DWORD PTR \[ESP+0C\]   
-015F:00B53008  PUSH      DWORD PTR \[ESP+0C\]   
-015F:00B5300C  PUSH      2B08AEB1   
-015F:00B53011  PUSH      2BBD9A3E   
-015F:00B53016  PUSH      2B08AAE1   
-015F:00B5301B  PUSH      2B08AA1B   
-015F:00B53020  CALL      \[00B531F0\]   
-015F:00B53026  PUSH      FFFFFFFF   
-015F:00B5302B  CALL      EAX   
-015F:00B5302D  RET      000C   
-    
-4。单步执行到 B5302B，此时 eax=00B4E000，F8 跟进，如下：   
-015F:00B4E000  PUSH      DWORD PTR \[ESP+0C\]   
-015F:00B4E004  PUSH      DWORD PTR \[ESP+0C\]   
-015F:00B4E008  PUSH      DWORD PTR \[ESP+0C\]   
-015F:00B4E00C  PUSH      0209AF7E   
-015F:00B4E011  PUSH      FEF61153   
-015F:00B4E016  PUSH      A509A770   
-015F:00B4E01B  PUSH      DEFA1690   
-015F:00B4E020  CALL      \[00B4E1D4\]   
-015F:00B4E026  PUSH      FFFFFFFF   
-015F:00B4E02B  CALL      EAX   
-015F:00B4E02D  RET      000C   
-    
-5。注意 B4E020 就是 vbox 用来判断是否过期、有 debug 的代码，如正常则解码，并   
-返回程序正确地址于 Eax，此时 eax=00913F34   
-    
-6。到 B4E02B 跟进去，如下：   
-015F:00913F34  MOV      \[009E1F4C\],ESP   
-015F:00913F3A  XOR      EBP,EBP   
-015F:00913F3C  PUSH      EBP   
-015F:00913F3D  MOV      EBP,ESP   
-015F:00913F3F  CALL      KERNEL32!GetVersion   
-015F:00913F44  MOV      EDX,EAX   
-015F:00913F46  AND      EDX,000000FF   
-015F:00913F4C  MOV      \[009E1F40\],EDX   
-015F:00913F52  MOV      EDX,EAX   
-015F:00913F54  SHR      EDX,08   
-015F:00913F57  AND      EDX,000000FF   
-015F:00913F5D  MOV      \[009E1F44\],EAX   
-。。。   
-这就是解码后的程序啊。只需要将内存 dump 出来就可以。   
-dump 方法比较多，我就用 procdump 来 dump，选择 full dump，并且在选项里面选择   
-rebuild 新的 import 表，否则程序是不能运行的，因为找不到 dll 入口嘛，还执行   
-什么，呵呵。如果用 trw2000，可以用 makepe 命令   
-7。最后一步，dump 出一个文件，比如 quest1.exe，必须修改程序入口地址，可以   
-用 peedit，procdump，将入口地址改为前面跟得的地址，但要注意，该地址应是   
-00913F34-image 的基址（00400000)＝00513F34   
-8。这就是一个脱过壳的执行文件了，运行不需要 vbox 库，当然过期什么都没有了，   
-  
-那个干扰画面也没有了。   
-    
-愿意的话，还可以写一个 procdump 的 script，以后解 vboxb410.dll 的壳就不用这么   
-麻烦了。
+发信人: `shizg` (刀客☆永远的痛), 信区: `Hacker`
+
+标 题: `Professional Quest` 脱壳实例(`vbox4.10`)
+
+发信站: BBS 水木清华站 (`Fri Jun 23 10:10:12 2000`)
+
+这个东东以前就装了，是一个做问卷调查的软件。最近要用，所以拿出来一看，
+
+哇塞，不能用了。然后加载 `S-Ice`，再运行看，出来一个框，是什么 `vbox` 警告框，
+
+意思是说我有 `debug`，呵呵。知道是 `vbox` 保护了。
+
+下面就是脱壳过程，想练手的可以照着做(找不到可以问我要)，好像上一次
+
+有人问那个 `codevizor` 也是用 `vbox4.10` 保护的：
+
+1. 打 `S-Ice` 补丁，就是 `backdoor keeper`，这样就不怕 `vbox` 不能脱壳弹出上面那个框框了。如果用 `trw` 更爽，直接 `faults off` 命令，就可以了。
+
+2. `S-Ice` 加载执行程序 `quest.exe`
+
+3. 中断在 `B53000`：
+
+```
+015F:00B53000  PUSH       DWORD PTR [ESP+0C]
+015F:00B53004  PUSH       DWORD PTR [ESP+0C]
+015F:00B53008  PUSH       DWORD PTR [ESP+0C]
+015F:00B5300C  PUSH       2B08AEB1
+015F:00B53011  PUSH       2BBD9A3E
+015F:00B53016  PUSH       2B08AAE1
+015F:00B5301B  PUSH       2B08AA1B
+015F:00B53020  CALL       [00B531F0]
+015F:00B53026  PUSH       FFFFFFFF
+015F:00B5302B  CALL       EAX
+015F:00B5302D  RET        000C
+```
+
+4. 单步执行到 `B5302B`，此时 `eax=00B4E000`，`F8` 跟进，如下：
+
+```
+015F:00B4E000  PUSH       DWORD PTR [ESP+0C]
+015F:00B4E004  PUSH       DWORD PTR [ESP+0C]
+015F:00B4E008  PUSH       DWORD PTR [ESP+0C]
+015F:00B4E00C  PUSH       0209AF7E
+015F:00B4E011  PUSH       FEF61153
+015F:00B4E016  PUSH       A509A770
+015F:00B4E01B  PUSH       DEFA1690
+015F:00B4E020  CALL       [00B4E1D4]
+015F:00B4E026  PUSH       FFFFFFFF
+015F:00B4E02B  CALL       EAX
+015F:00B4E02D  RET        000C
+```
+
+5. 注意 `B4E020` 就是 `vbox` 用来判断是否过期、有 `debug` 的代码，如正常则解码，并返回程序正确地址于 `Eax`，此时 `eax=00913F34`
+
+6. 到 `B4E02B` 跟进去，如下：
+
+```
+015F:00913F34  MOV        [009E1F4C],ESP
+015F:00913F3A  XOR        EBP,EBP
+015F:00913F3C  PUSH       EBP
+015F:00913F3D  MOV        EBP,ESP
+015F:00913F3F  CALL       KERNEL32!GetVersion
+015F:00913F44  MOV        EDX,EAX
+015F:00913F46  AND        EDX,000000FF
+015F:00913F4C  MOV        [009E1F40],EDX
+015F:00913F52  MOV        EDX,EAX
+015F:00913F54  SHR        EDX,08
+015F:00913F57  AND        EDX,000000FF
+015F:00913F5D  MOV        [009E1F44],EAX
+...
+```
+
+这就是解码后的程序啊。只需要将内存 `dump` 出来就可以。
+
+`dump` 方法比较多，我就用 `procdump` 来 `dump`，选择 `full dump`，并且在选项里面选择 `rebuild` 新的 `import` 表，否则程序是不能运行的，因为找不到 `dll` 入口嘛，还执行什么，呵呵。如果用 `trw2000`，可以用 `makepe` 命令
+
+7. 最后一步，`dump` 出一个文件，比如 `quest1.exe`，必须修改程序入口地址，可以用 `peedit`，`procdump`，将入口地址改为前面跟得的地址，但要注意，该地址应是 `00913F34` - `image` 的基址（`00400000`) ＝ `00513F34`
+
+8. 这就是一个脱过壳的执行文件了，运行不需要 `vbox` 库，当然过期什么都没有了，那个干扰画面也没有了。
+
+愿意的话，还可以写一个 `procdump` 的 `script`，以后解 `vboxb410.dll` 的壳就不用这么麻烦了。

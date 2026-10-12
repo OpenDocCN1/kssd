@@ -1,834 +1,1011 @@
 
-
-# 从 reflector 实现看.net 的混淆与反混淆技术【原创】
+# 从 reflector 实现看 .NET 的混淆与反混淆技术【原创】
 
 > 原文：[`www.pediy.com/kssd/pediy08/pediy8-523.htm`](https://www.pediy.com/kssd/pediy08/pediy8-523.htm)
 
-【文章标题】: 从 reflector 实现看.net 的混淆与反混淆技术  
-【文章作者】: dreaman  
-【作者邮箱】: dreaman\_163@163.com  
-【作者主页】: http://dreaman.haolinju.net  
-【软件名称】: reflector 4.2.50.0  
-【软件大小】: 850KB  
-【下载地址】: http://www.aisto.com/roeder/dotnet/  
-【加壳方式】:   
-【保护方式】: 多种混淆+加密压缩主功能文件内嵌到框架程序资源段  
-【编写语言】: 未知  
-【使用工具】: reflector,vs.net 2005,自编反名称混淆工具与反编译工具  
-【操作平台】: winxp , .net 2.0  
-【软件介绍】: .net 程序反编译工具，差不多无人不知了吧。  
-【作者声明】: 主要是出于学习目的，别无他意：）  
-  
-  
-一直想利用 C#或 C++这类语言的编译优化功能来反.net 程序的流程混淆，做过一些简单的试验，这个思路是可行的  
-，但是目前的反编译工具 reflector,dis#,spices.net 对做了流程混淆的程序都不能正常反编译，不得已我只好尝  
-试自己写一个将 IL 反编译成高级语言语法的工具，我的目标与前面的反编译工具不太一样，主要在于将混淆过的 IL  
-代码反成等价的仅仅语法上可编译的高级语言结构（不使用 if,while,do-while,for,for-each 等高级语言构造，而  
-是使用 goto 语句，再经由高级语言编译器优化编译后，再用前述工具才可以看到使用这些构造的便于人看的代码）  
-，我主要针对 reflector 采用的混淆方式来进行开发，因此本文主要讲述的混淆方式都来自 reflector。  
-  
-一、reflector 的保护  
-1、名称混淆  
-reflector 使用不可见名作名称混淆，用它自己看的话都是框框。  
-  
-2、主功能文件隐藏，字节码直接装入内存使用  
-reflector 能够十分容易的查找多个文件间的交叉引用，但当我们用 reflector 来看 reflector.exe 的交叉引用时却发  
-现主要接口都没有对应实现，后来反编译后调试时才发现，reflector.exe 其实只是个框架，主要是定义了 reflector  
-的接口，另外是启动代码部分，接口的实现差不多都在另一个文件里。  
-在编译后调试还发现另一个保护，就是 reflector.exe 的关键函数都加了属性\[DebuggerHidden\]，这样在使用 vs.net  
-调试跟踪时会直接跳过这些函数，无法跟踪到函数内，当然这种保护很弱，注释掉就可以了。  
-  
-下面我们来看一下 reflector 启动的过程，首先是程序入口点函数：  
-  
-\[STAThread, DebuggerHidden\]  <--这里加了属性，如果不去掉，程序就没法调试，直接运行起来了，呵呵。  
-public static void Main()  
-{  
-      if (!T\_x2.M\_x1())  
-      {  
-            MessageBox.Show(a("\\ucf95\\uf797\\uef99\\ubc9b\\ufd9d\\uc19f\\ucca1\\ucaa3\\uc9a5\\udca7\\u8aa9\\uc0ab\\ucfad\\uc5af\\udcb1\\ud7b3\\udeb5\\u98b7\\uceb9\\ud4bb\\ud7bd\\ub3bf\\ue2c1\\ua5c3\\ub6c5\\ub8c7\\ua6c9\\ua5cb\\uadcd\\ub1cf\\ua6d1\\ubdd3\\ub9d5\\ub6d7\\ufad9\\ubadb\\uacdd\\u8fdf\\u8fe1\\uc4e3\\u87e5\\uc8e7\\u84e9\\u89eb\\u9aed\\u87ef\\u9df1\\u86f3\\u9df5\\ud8f7\\u89f9\\u94fb\\u9ffd\\u72ff\\u6701\\u2a03\\u2605\\u5807\\u6609\\u690b\\u6f0d\\u630f\\u7711\\u3413\\u6215\\u6a17\\u6319\\u3c1b\\u6c1d\\u551f\\u4c21\\u4a23\\u4f25\\u4627\\u4d29\\u0c2b\\u472d\\u442f\\u1231\\u5233\\u4435\\u5737\\u5739\\u1c3b\\u5f3d\\u603f\\u2e41\\u2b43\\u2545\\u2947\\u2649\\u6c4b\\u2a4d\\u394f\\u2051\\u3153\\u3555\\u2c57\\u3559\\u2e5b\\u275d\\u4e5f", 9), typeof(T\_x2).Assembly.Location, MessageBoxButtons.OK, MessageBoxIcon.Hand);  
-      }  
-      else  
-      {  
-            T\_x2 \_x1 = new T\_x2(null);  
-            try  
-            {  
-                  \_x1.M\_x6();  
-            }  
-            finally  
-            {  
-            }  
-      }  
+【文章标题】: 从 reflector 实现看 .NET 的混淆与反混淆技术  
+【文章作者】: dreaman  
+【作者邮箱】: dreaman\_163@163.com  
+【作者主页】: http://dreaman.haolinju.net  
+【软件名称】: reflector 4.2.50.0  
+【软件大小】: 850KB  
+【下载地址】: http://www.aisto.com/roeder/dotnet/  
+【加壳方式】:  
+【保护方式】: 多种混淆+加密压缩主功能文件内嵌到框架程序资源段  
+【编写语言】: 未知  
+【使用工具】: reflector, vs.net 2005, 自编反名称混淆工具与反编译工具  
+【操作平台】: winxp, .NET 2.0  
+【软件介绍】: .NET 程序反编译工具，差不多无人不知了吧。  
+【作者声明】: 主要是出于学习目的，别无他意：）
+
+一直想利用 C# 或 C++ 这类语言的编译优化功能来反 .NET 程序的流程混淆，做过一些简单的试验，这个思路是可行的，但是目前的反编译工具 `reflector`、`dis#`、`spices.net` 对做了流程混淆的程序都不能正常反编译，不得已我只好尝试自己写一个将 IL 反编译成高级语言语法的工具，我的目标与前面的反编译工具不太一样，主要在于将混淆过的 IL 代码反成等价的仅仅语法上可编译的高级语言结构（不使用 `if`、`while`、`do-while`、`for`、`for-each` 等高级语言构造，而是使用 `goto` 语句，再经由高级语言编译器优化编译后，再用前述工具才可以看到使用这些构造的便于人看的代码），我主要针对 `reflector` 采用的混淆方式来进行开发，因此本文主要讲述的混淆方式都来自 `reflector`。
+
+## 一、reflector 的保护
+
+### 1、名称混淆
+
+`reflector` 使用不可见名作名称混淆，用它自己看的话都是框框。
+
+### 2、主功能文件隐藏，字节码直接装入内存使用
+
+`reflector` 能够十分容易的查找多个文件间的交叉引用，但当我们用 `reflector` 来看 `reflector.exe` 的交叉引用时却发现主要接口都没有对应实现，后来反编译后调试时才发现，`reflector.exe` 其实只是个框架，主要是定义了 `reflector` 的接口，另外是启动代码部分，接口的实现差不多都在另一个文件里。
+
+在编译后调试还发现另一个保护，就是 `reflector.exe` 的关键函数都加了属性 `[DebuggerHidden]`，这样在使用 `vs.net` 调试跟踪时会直接跳过这些函数，无法跟踪到函数内，当然这种保护很弱，注释掉就可以了。
+
+下面我们来看一下 `reflector` 启动的过程，首先是程序入口点函数：
+
+```csharp
+[STAThread, DebuggerHidden]  // <--这里加了属性，如果不去掉，程序就没法调试，直接运行起来了，呵呵。
+public static void Main()
+{
+    if (!T_x2.M_x1())
+    {
+        MessageBox.Show(a("\\ucf95\\uf797\\uef99\\ubc9b\\ufd9d\\uc19f\\ucca1\\ucaa3\\uc9a5\\udca7\\u8aa9\\uc0ab\\ucfad\\uc5af\\udcb1\\ud7b3\\udeb5\\u98b7\\uceb9\\ud4bb\\ud7bd\\ub3bf\\ue2c1\\ua5c3\\ub6c5\\ub8c7\\ua6c9\\ua5cb\\uadcd\\ub1cf\\ua6d1\\ubdd3\\ub9d5\\ub6d7\\ufad9\\ubadb\\uacdd\\u8fdf\\u8fe1\\uc4e3\\u87e5\\uc8e7\\u84e9\\u89eb\\u9aed\\u87ef\\u9df1\\u86f3\\u9df5\\ud8f7\\u89f9\\u94fb\\u9ffd\\u72ff\\u6701\\u2a03\\u2605\\u5807\\u6609\\u690b\\u6f0d\\u630f\\u7711\\u3413\\u6215\\u6a17\\u6319\\u3c1b\\u6c1d\\u551f\\u4c21\\u4a23\\u4f25\\u4627\\u4d29\\u0c2b\\u472d\\u442f\\u1231\\u5233\\u4435\\u5737\\u5739\\u1c3b\\u5f3d\\u603f\\u2e41\\u2b43\\u2545\\u2947\\u2649\\u6c4b\\u2a4d\\u394f\\u2051\\u3153\\u3555\\u2c57\\u3559\\u2e5b\\u275d\\u4e5f", 9), typeof(T_x2).Assembly.Location, MessageBoxButtons.OK, MessageBoxIcon.Hand);
+    }
+    else
+    {
+        T_x2 _x1 = new T_x2(null);
+        try
+        {
+            _x1.M_x6();
+        }
+        finally
+        {
+        }
+    }
+}
+```
+
+`Main` 中的 `if` 语句调用的 `T_x2.M_x1()` 函数的内容：
+
+```csharp
+[return: MarshalAs(UnmanagedType.U1)]
+private static bool M_x1()
+{
+    try
+    {
+        new PermissionSet(PermissionState.Unrestricted).Demand();
+    }
+    catch (SecurityException)
+    {
+        return false;
+    }
+    return true;
+}
+```
+
+这个是检查权限的，如果通不过就提示说不要从网络共享里启动程序。弹出消息使用全局函数 `a()` 解密，这个函数我们后面再说。
+
+安全检查通过后会构造 `T_x2` 类实例，构造内容：
+
+```csharp
+[DebuggerHidden]  // <--又是不让调试！
+public T_x2(IWindowManager A_0)
+{
+    this.M_x1(A_0);
+}
+```
+
+调了 `M_x1(IWindowManager)`:
+
+```csharp
+[DebuggerHidden]  // <--又是不让调试！
+private void M_x1(IWindowManager A_0)
+{
+    string text1 = T_x4.M_x2();
+    object obj1 = Activator.CreateInstance(T_x3.F_x1.GetType(text1, true), new object[] { A_0 });
+    this.F_x1 = (IServiceProvider) obj1;
+}
+```
+
+这个函数时创建了一个对象，比较关键了，它的第一行使用了 `T_x4.M_x2()`:
+
+```csharp
+internal static string M_x2()
+{
+    return a("\\uc390\\uf692\\uf394\\ufb96\\ufc98\\uf89a\\ue99c\\uf09e\\ud3a0\\u8da2\\ue4a4\\ud7a6\\ud9a8\\uc7aa\\uc4ac\\uccae\\ud0b0\\uc7b2\\udcb4\\ud8b6\\ud7b8\\u95ba\\ufcbc\\ucfbe\\ub1c0\\uafc2\\uacc4\\ua4c6\\ua8c8\\ubfca\\ua4cc\\ua0ce\\ubfd0\\u9ed2\\ub4d4\\ub9d6\\ub8d8\\ubcda\\ub8dc\\uadde", 4);
+}
+```
+
+原来只是取一个字符串，跟到解密函数里看一下，是 `"Reflector.Application.ApplicationManager"`，这个名字有点意思了，`reflector.exe` 里并不包含 `Reflector.Application` 名空间，也没有 `ApplicationManager` 这个类。
+
+`M_x1(IWindowManager)` 在取出上面的字符串后就用 `T_x3.F_x1.GetType` 来取对应此名字的类型了，`T_x3.F_x1` 这个字段的类型是：
+
+```csharp
+internal static Assembly F_x1;
+```
+
+它的初化化在静态构造里：
+
+```csharp
+static T_x3()
+{
+    T_x3.F_x1 = typeof(T_x2).Assembly;
+}
+```
+
+用的 `Assembly` 是 `T_x2` 所属的 `Assembly`，其它只是用标准 .NET 的功能而已，也就是说到这里 `T_x2` 的 `Assembly` 里已经有 `Reflector.Application.ApplicationManager` 这个 `Type` 了！回头再看一下从入口点过来的代码，好象没有别的代码了，有点怪？呵呵，`reflector` 利用了类的静态构造来做实际工作了，前面的过程中一共涉及 3 个类 `T_x2`、`T_x3`、`T_x4`，`T_x2` 没有静态构造，`T_x3` 的上面刚看了，就剩下 `T_x4` 了，我们来瞧一下：
+
+```csharp
+[DebuggerHidden]  // <--汗，又来了！！！
+static T_x4()
+{
+    byte[] buffer1 = T_x4.M_x1();
+    SymmetricAlgorithm algorithm1 = new TripleDESCryptoServiceProvider();
+    string text2 = a("\\udc94\\ub096\\uf498\\ubb9a\\uee9c\\uf09e\\ud3a0\\ud1a2\\udca4\\u87a6\\udda8\\uc4aa\\u8dac\\udcae\\ud4b0\\ud6b2\\u95b4\\uceb6\\ud6b8\\uceba\\u9dbc\\udebe\\ub3c0\\ua6c2\\ue5c4\\ua3c6\\ua6c8\\ua2ca\\ua3cc\\ua8ce\\uf1d0\\ua7d2\\ubdd4\\ubed6\\uaad8\\ufbda\\uaedc\\ubede\\u85e0\\uc3e2\\u86e4\\u95e6\\u88e8\\u88ea\\u86ec\\u86ee\\u9ff0\\u94f2\\ud5f4\\u92f6\\u81f8\\u9efa\\u8ffc\\u9cfe\\u6800\\u7002\\u6004\\u2906\\u2908\\u5b0a\\u610c\\u6a0e\\u7010\\u6012\\u7014\\u3716\\u6a18\\u7e1a\\u731c\\u7b1e\\u0120\\u4e22\\u4024\\u0726\\u4828\\u452a\\u0d2c\\u6a2e\\u5c30\\u5232\\u5c34\\u5b36\\u1938\\u5a3a\\u493c\\u1f3e\\u6640\\u3142\\u2a44\\u2246\\u2d48\\u2e4a\\u3f4c\\u0f4e\\u3050\\u3a52\\u2654\\u2356\\u3658\\u755a\\u3e5c\\u305e\\u0c60\\u4462\\u4564\\u1466\\u0668\\u4b6a\\u1a6c\\u0a6e\\u5170\\u1072\\u1474\\u1976\\u5978\\u187a\\u157c\\u1e7e\\uf580\\ua382\\ue484\\ue586\\ue688\\ufe8a\\uf98c\\uaf8e\\uf090\\ub392\\uf894\\uf896\\ueb98\\ufe9a\\ubd9c\\uf29e\\uc4a0\\uc2a2\\ucba4\\ucea6\\uc7a8\\uccaa\\ucbac\\udaae\\uddb0\\u93b2\\uc6b4\\ud8b6\\ud5b8\\uceba\\uc9bc\\ud6be\\uaec0\\uadc2\\uebc4\\ue7c6\\u80c8\\uecca\\ua0cc\\uefce\\ub2d0\\ua6d2\\ua7d4\\ubed6\\ub6d8\\uaeda\\uaedc\\uffde\\u96e0\\u8be2\\u9ce4\\uc7e6\\u90e8\\u84ea\\u98ec\\ucfee\\u90f0\\u81f2\\u90f4\\ud7f6\\u9df8\\u94fa\\u94fc\\u91fe\\u6600\\u2302\\u7104\\u6f06\\u6008\\u780a\\u230c\\u2f0e\\u4510\\u7b12\\u7014\\u6516\\u7c18\\u3b1a\\u701c\\u6a1e\\u5220\\u5722\\u0524\\u4526\\u4c28\\u0b2a\\u4c2c\\u0f2e\\u5c30\\u5c32\\u4734\\u5236\\u1938\\u4b3a\\u4f3c\\u503e\\u2540\\u3642\\u2644\\u3346\\u2048\\u3d4a\\u284c\\u6f4e\\u2650\\u3252\\u2c54\\u7756\\u2d58\\u345a\\u7d5c\\u325e\`\\u0862d\\u4766\\u1068\\u046a\\u186c\\u4f6e\\u1970\\u1272\\u0574\\u0776x\\u557a", 8);
+    byte[] buffer3 = Encoding.ASCII.GetBytes(text2);
+    byte[] buffer2 = new MD5CryptoServiceProvider().ComputeHash(buffer3);
+    algorithm1.Key = buffer2;
+    algorithm1.Mode = CipherMode.ECB;
+    int num1 = buffer1.Length;
+    buffer1 = algorithm1.CreateDecryptor().TransformFinalBlock(buffer1, 0, num1);
+    T_x1 _x1 = new T_x1(new MemoryStream(buffer1));
+    _x1.M_x8();
+    T_x7 _x2 = (T_x7) _x1.M_x6();
+    ResolveEventHandler handler1 = new ResolveEventHandler(T_x4.M_x1);
+    AppDomain.CurrentDomain.AssemblyResolve += handler1;
+    string text1 = a("\\ud994\\uf896\\uf898\\uff9a", 8);  //这个字符串解出来是 Load
+    Type[] typeArray1 = new Type[1];
+    Type type1 = typeof(byte[]);
+    typeArray1[0] = type1;
+    object[] objArray1 = new object[] { _x2.M_x1() };
+    object obj1 = typeof(T_x3).GetFields(BindingFlags.NonPublic | BindingFlags.Static)[0].FieldType.GetMethod(text1, typeArray1).Invoke(null, objArray1);
+    typeof(T_x3).GetFields(BindingFlags.NonPublic | BindingFlags.Static)[0].SetValue(null, obj1);
+}
+```
+
+呵呵，看到有关加密的东东了，`TripleDES`、`MD5`！在解密之前调了 `T_x4.M_x1`:
+
+```csharp
+private static byte[] M_x1()
+{
+    byte[] buffer2 = null;
+    string text2 = typeof(T_x2).Module.FullyQualifiedName;
+    FileStream stream1 = File.OpenRead(text2);
+    try
+    {
+        BinaryReader reader1 = new BinaryReader(stream1);
+        BinaryReader reader2 = reader1;
+        try
+        {
+
+
+
+# reflector.exe 逆向分析
+
+## 1. 代码分析
+
+以下代码展示了 `reflector.exe` 中读取 `.rsrc` 段并反编译反射代码的片段：
+
+```
+T_x4.T_x2 _x1 = new T_x4.T_x2(reader1);  
+T_x4.T_x2 _x6 = _x1;  
+ushort num5 = _x1.M_x20();  
+T_x4.T_x5 _x3 = new T_x4.T_x5(reader1, num5);  
+T_x4.T_x5 _x5 = _x3;  
+string text1 = a("\ub895\uea97\ue999\uee9b\ufd9d", 9); //这个字符串解出来是.rsrc  
+T_x4.T_x6 _x2 = _x3.M_x1(text1);  
+T_x4.T_x6 _x4 = _x2;  
+uint num4 = _x2.M_x2();  
+int num3 = _x1.M_x7().M_x5();  
+reader1.BaseStream.Position = num3 + num4;  
+int num2 = reader1.ReadInt32();  
+int num6 = num2;  
+byte[] buffer1 = reader1.ReadBytes(num2);  
+byte[] buffer3 = buffer1;  
+return buffer1;  
 }  
-  
-Main 中的 if 语句调用的 T\_x2::M\_x1 函数的内容：  
-  
-\[return: MarshalAs(UnmanagedType.U1)\]  
-private static bool M\_x1()  
+finally  
 {  
-      try  
-      {  
-            new PermissionSet(PermissionState.Unrestricted).Demand();  
-      }  
-      catch (SecurityException)  
-      {  
-            return false;  
-      }  
-      return true;  
+  int num1 = 2;  
+  if (reader2 != null)  
+  {  
+    num1 = 1;  
+    num1 = 0;  
+  }  
 }  
-  
-这个是检查权限的，如果通不过就提示说不要从网络共享里启动程序。弹出消息使用全局函数 a 解密，这个函数我们后面再说。  
-安全检查通过后会构造 T\_x2 类实例，构造内容：  
-  
-\[DebuggerHidden\]  <--又是不让调试！  
-public T\_x2(IWindowManager A\_0)  
+}  
+finally  
 {  
-      this.M\_x1(A\_0);  
 }  
-  
-调了 M\_x1(IWindowManager):  
-  
-\[DebuggerHidden\]  <--又是不让调试！  
-private void M\_x1(IWindowManager A\_0)  
+return buffer2;  
+}  
+```
+
+可以看到是读 `reflector.exe` 的 `.rsrc` 段，原来 `reflector.exe` 把它的关键代码放在框架程序里了。接着看 `T_x4` 的静态构造，先解密了一个字符串：
+
+"I'm sorry to see you are doing this sad cracking exercise. Please send me an Email at 'roeder@aisto.com' so we can chat about a more meaningful solution. I'm curious why you are doing this. There must be a more productive way to make you happy."
+
+汗了，原来是让偶不要研究他的程序了。
+
+`reflector` 用了这段话的 `md5 hash` 值作 `TripleDES` 的密钥，有点搞笑了。解密完之后是一段可能是验证的过程（没细看），完了开始装入，最后两句话的本意是：
+
+```
+T_x3.F_x1=Assembly.Load(byte[]);
+```
+
+故意用了一段基于 `reflection api` 的写法，迷惑人！到这时也才发现原来 `T_x3` 的静态构造里对 `T_x3.F_x1` 的初始化居然是用来迷惑人的，`reflector` 的作者真的是别具匠心了。
+
+现在回到 `M_x1(IWindowManager):`
+
+```
+[DebuggerHidden]   
+private void M_x1(IWindowManager A_0)  
 {  
-      string text1 = T\_x4.M\_x2();  
-      object obj1 = Activator.CreateInstance(T\_x3.F\_x1.GetType(text1, true), new object\[\] { A\_0 });  
-      this.F\_x1 = (IServiceProvider) obj1;  
+   string text1 = T_x4.M_x2();  
+   object obj1 = Activator.CreateInstance(T_x3.F_x1.GetType(text1, true), new object[] { A_0 });  
+   this.F_x1 = (IServiceProvider) obj1;  
 }  
-  
-这个函数时创建了一个对象，比较关键了，它的第一行使用了 T\_x4.M\_x2():  
-  
-internal static string M\_x2()  
+```
+
+本意是：
+
+```
+object obj=Activator.CreateInstance(assembly.GetType("Reflector.Application.ApplicationManager"),new object[]{null});  
+this.F_x1 = (IServiceProvider)obj;  
+```
+
+到这里，真正的功能代码已经装入了，并且已经实例化了一个 `ApplicationManager` 对象，现在回到 `reflector.exe` 的入口函数了：
+
+```
+[STAThread, DebuggerHidden]  
+public static void Main()  
 {  
-      return a("\\uc390\\uf692\\uf394\\ufb96\\ufc98\\uf89a\\ue99c\\uf09e\\ud3a0\\u8da2\\ue4a4\\ud7a6\\ud9a8\\uc7aa\\uc4ac\\uccae\\ud0b0\\uc7b2\\udcb4\\ud8b6\\ud7b8\\u95ba\\ufcbc\\ucfbe\\ub1c0\\uafc2\\uacc4\\ua4c6\\ua8c8\\ubfca\\ua4cc\\ua0ce\\ubfd0\\u9ed2\\ub4d4\\ub9d6\\ub8d8\\ubcda\\ub8dc\\uadde", 4);  
+   if (!T_x2.M_x1())  
+   {  
+      MessageBox.Show(a("\ucf95\uf797\uef99\ubc9b\ufd9d\uc19f\ucca1\ucaa3\uc9a5\udca7\u8aa9\uc0ab\ucfad\uc5af\udcb1\ud7b3\udeb5\u98b7\uceb9\ud4bb\ud7bd\ub3bf\ue2c1\ua5c3\ub6c5\ub8c7\ua6c9\ua5cb\uadcd\ub1cf\ua6d1\ubdd3\ub9d5\ub6d7\ufad9\ubadb\uacdd\u8fdf\u8fe1\uc4e3\u87e5\uc8e7\u84e9\u89eb\u9aed\u87ef\u9df1\u86f3\u9df5\ud8f7\u89f9\u94fb\u9ffd\u72ff\u6701\u2a03\u2605\u5807\u6609\u690b\u6f0d\u630f\u7711\u3413\u6215\u6a17\u6319\u3c1b\u6c1d\u551f\u4c21\u4a23\u4f25\u4627\u4d29\u0c2b\u472d\u442f\u1231\u5233\u4435\u5737\u5739\u1c3b\u5f3d\u603f\u2e41\u2b43\u2545\u2947\u2649\u6c4b\u2a4d\u394f\u2051\u3153\u3555\u2c57\u3559\u2e5b\u275d\u4e5f", 9), typeof(T_x2).Assembly.Location, MessageBoxButtons.OK, MessageBoxIcon.Hand);  
+   }  
+   else  
+   {  
+      T_x2 _x1 = new T_x2(null);  
+      try  
+      {  
+         _x1.M_x6();  
+      }  
+      finally  
+      {  
+      }  
+   }  
 }  
-  
-原来只是取一个字符串，跟到解密函数里看一下，是"Reflector.Application.ApplicationManager",这个名字有点意思了，reflector.exe  
-里并不包含 Reflector.Application 名空间，也没有 ApplicationManager 这个类。  
-M\_x1(IWindowManager)在取出上面的字符串后就用 T\_x3.F\_x1.GetType 来取对应此名字的类型了，T\_x3.F\_x1 这个字段的类型是  
-  
-internal static Assembly F\_x1;  
-  
-它的初化化在静态构造里：  
-static T\_x3()  
+```
+
+在 `try` 块内调 `_x1.M_x6():`
+
+```
+public void M_x6()  
 {  
-      T\_x3.F\_x1 = typeof(T\_x2).Assembly;  
+   IServiceProvider provider1 = this.F_x1;  
+   if (provider1 != null)  
+   {  
+      string text1 = a("\uc899\ue99b\uf09d", 13); //这个字符串解出来是 Run  
+      provider1.GetType().GetMethod(text1).Invoke(this.F_x1, null);  
+   }  
 }  
-  
-用的 Assembly 是 T\_x2 所属的 Assembly,其它只是用标准.net 的功能而已，也就是说到这里 T\_x2 的 Assembly 里已经有 Reflector.Application.ApplicationManager  
-这个 Type 了！回头再看一下从入口点过来的代码，好象没有别的代码了，有点怪？呵呵，reflector 利用了类的静态构造来做实际工作了，前面的过程中一共  
-涉及 3 个类 T\_x2,T\_x3,T\_x4,T\_x2 没有静态构造，T\_x3 的上面刚看了，就剩下 T\_x4 了，我们来瞧一下：  
-  
-\[DebuggerHidden\]  <--汗，又来了！！！  
-static T\_x4()  
-{  
-      byte\[\] buffer1 = T\_x4.M\_x1();  
-      SymmetricAlgorithm algorithm1 = new TripleDESCryptoServiceProvider();  
-      string text2 = a("\\udc94\\ub096\\uf498\\ubb9a\\uee9c\\uf09e\\ud3a0\\ud1a2\\udca4\\u87a6\\udda8\\uc4aa\\u8dac\\udcae\\ud4b0\\ud6b2\\u95b4\\uceb6\\ud6b8\\uceba\\u9dbc\\udebe\\ub3c0\\ua6c2\\ue5c4\\ua3c6\\ua6c8\\ua2ca\\ua3cc\\ua8ce\\uf1d0\\ua7d2\\ubdd4\\ubed6\\uaad8\\ufbda\\uaedc\\ubede\\u85e0\\uc3e2\\u86e4\\u95e6\\u88e8\\u88ea\\u86ec\\u86ee\\u9ff0\\u94f2\\ud5f4\\u92f6\\u81f8\\u9efa\\u8ffc\\u9cfe\\u6800\\u7002\\u6004\\u2906\\u2908\\u5b0a\\u610c\\u6a0e\\u7010\\u6012\\u7014\\u3716\\u6a18\\u7e1a\\u731c\\u7b1e\\u0120\\u4e22\\u4024\\u0726\\u4828\\u452a\\u0d2c\\u6a2e\\u5c30\\u5232\\u5c34\\u5b36\\u1938\\u5a3a\\u493c\\u1f3e\\u6640\\u3142\\u2a44\\u2246\\u2d48\\u2e4a\\u3f4c\\u0f4e\\u3050\\u3a52\\u2654\\u2356\\u3658\\u755a\\u3e5c\\u305e\\u0c60\\u4462\\u4564\\u1466\\u0668\\u4b6a\\u1a6c\\u0a6e\\u5170\\u1072\\u1474\\u1976\\u5978\\u187a\\u157c\\u1e7e\\uf580\\ua382\\ue484\\ue586\\ue688\\ufe8a\\uf98c\\uaf8e\\uf090\\ub392\\uf894\\uf896\\ueb98\\ufe9a\\ubd9c\\uf29e\\uc4a0\\uc2a2\\ucba4\\ucea6\\uc7a8\\uccaa\\ucbac\\udaae\\uddb0\\u93b2\\uc6b4\\ud8b6\\ud5b8\\uceba\\uc9bc\\ud6be\\uaec0\\uadc2\\uebc4\\ue7c6\\u80c8\\uecca\\ua0cc\\uefce\\ub2d0\\ua6d2\\ua7d4\\ubed6\\ub6d8\\uaeda\\uaedc\\uffde\\u96e0\\u8be2\\u9ce4\\uc7e6\\u90e8\\u84ea\\u98ec\\ucfee\\u90f0\\u81f2\\u90f4\\ud7f6\\u9df8\\u94fa\\u94fc\\u91fe\\u6600\\u2302\\u7104\\u6f06\\u6008\\u780a\\u230c\\u2f0e\\u4510\\u7b12\\u7014\\u6516\\u7c18\\u3b1a\\u701c\\u6a1e\\u5220\\u5722\\u0524\\u4526\\u4c28\\u0b2a\\u4c2c\\u0f2e\\u5c30\\u5c32\\u4734\\u5236\\u1938\\u4b3a\\u4f3c\\u503e\\u2540\\u3642\\u2644\\u3346\\u2048\\u3d4a\\u284c\\u6f4e\\u2650\\u3252\\u2c54\\u7756\\u2d58\\u345a\\u7d5c\\u325e\`\\u0862d\\u4766\\u1068\\u046a\\u186c\\u4f6e\\u1970\\u1272\\u0574\\u0776x\\u557a", 8);  
-      byte\[\] buffer3 = Encoding.ASCII.GetBytes(text2);  
-      byte\[\] buffer2 = new MD5CryptoServiceProvider().ComputeHash(buffer3);  
-      algorithm1.Key = buffer2;  
-      algorithm1.Mode = CipherMode.ECB;  
-      int num1 = buffer1.Length;  
-      buffer1 = algorithm1.CreateDecryptor().TransformFinalBlock(buffer1, 0, num1);  
-      T\_x1 \_x1 = new T\_x1(new MemoryStream(buffer1));  
-      \_x1.M\_x8();  
-      T\_x7 \_x2 = (T\_x7) \_x1.M\_x6();  
-      ResolveEventHandler handler1 = new ResolveEventHandler(T\_x4.M\_x1);  
-      AppDomain.CurrentDomain.AssemblyResolve += handler1;  
-      string text1 = a("\\ud994\\uf896\\uf898\\uff9a", 8);  //这个字符串解出来是 Load  
-      Type\[\] typeArray1 = new Type\[1\];  
-      Type type1 = typeof(byte\[\]);  
-      typeArray1\[0\] = type1;  
-      object\[\] objArray1 = new object\[\] { \_x2.M\_x1() };  
-      object obj1 = typeof(T\_x3).GetFields(BindingFlags.NonPublic | BindingFlags.Static)\[0\].FieldType.GetMethod(text1, typeArray1).Invoke(null, objArray1);  
-      typeof(T\_x3).GetFields(BindingFlags.NonPublic | BindingFlags.Static)\[0\].SetValue(null, obj1);  
-}  
-  
-呵呵，看到有关加密的东东了，TripleDES、MD5！在解密之前调了 T\_x4.M\_x1:  
-  
-private static byte\[\] M\_x1()  
-{  
-      byte\[\] buffer2 = null;  
-      string text2 = typeof(T\_x2).Module.FullyQualifiedName;  
-      FileStream stream1 = File.OpenRead(text2);  
-      try  
-      {  
-            BinaryReader reader1 = new BinaryReader(stream1);  
-            BinaryReader reader2 = reader1;  
-            try  
-            {  
-                  T\_x4.T\_x2 \_x1 = new T\_x4.T\_x2(reader1);  
-                  T\_x4.T\_x2 \_x6 = \_x1;  
-                  ushort num5 = \_x1.M\_x20();  
-                  T\_x4.T\_x5 \_x3 = new T\_x4.T\_x5(reader1, num5);  
-                  T\_x4.T\_x5 \_x5 = \_x3;  
-                  string text1 = a("\\ub895\\uea97\\ue999\\uee9b\\ufd9d", 9); //这个字符串解出来是.rsrc  
-                  T\_x4.T\_x6 \_x2 = \_x3.M\_x1(text1);  
-                  T\_x4.T\_x6 \_x4 = \_x2;  
-                  uint num4 = \_x2.M\_x2();  
-                  int num3 = \_x1.M\_x7().M\_x5();  
-                  reader1.BaseStream.Position = num3 + num4;  
-                  int num2 = reader1.ReadInt32();  
-                  int num6 = num2;  
-                  byte\[\] buffer1 = reader1.ReadBytes(num2);  
-                  byte\[\] buffer3 = buffer1;  
-                  return buffer1;  
-            }  
-            finally  
-            {  
-                  int num1 = 2;  
-                  if (reader2 != null)  
-                  {  
-                        num1 = 1;  
-                        num1 = 0;  
-                  }  
-            }  
-      }  
-      finally  
-      {  
-      }  
-      return buffer2;  
-}  
-  
-可以看到是读 reflector.exe 的.rsrc 段，原来 reflector.exe 把它的关键代码放在框架程序里了。接着看 T\_x4 的静态构造，  
-先解密了一个字符串：  
-  
-"I'm sorry to see you are doing this sad cracking exercise. Please send me an Email at 'roeder@aisto.com'   
-so we can chat about a more meaningful solution. I'm curious why you are doing this. There must be a more   
-productive way to make you happy."   
-   
-汗了，原来是让偶不要研究他的程序了。  
-reflector 用了这段话的 md5 hash 值作 TripleDES 的密钥，有点搞笑了。解密完之后是一段可能是验证的过程（没细看），  
-完了开始装入，最后两句话的本意是  
-T\_x3.F\_x1=Assembly.Load(byte\[\]);  
-故意用了一段基于 reflection api 的写法，迷惑人！到这时也才发现原来 T\_x3 的静态构造里对 T\_x3.F\_x1 的初始化居然也  
-是用来迷惑人的，reflector 的作者真的是别具匠心了。  
-  
-现在回到 M\_x1(IWindowManager):  
-  
-\[DebuggerHidden\]    
-private void M\_x1(IWindowManager A\_0)  
-{  
-      string text1 = T\_x4.M\_x2();  
-      object obj1 = Activator.CreateInstance(T\_x3.F\_x1.GetType(text1, true), new object\[\] { A\_0 });  
-      this.F\_x1 = (IServiceProvider) obj1;  
-}  
-  
-本意是：  
-  
-object obj=Activator.CreateInstance(assembly.GetType("Reflector.Application.ApplicationManager"),new object\[\]{null});   
-this.F\_x1 = (IServiceProvider)obj;  
-  
-到这里，真正的功能代码已经装入了，并且已经实例化了一个 ApplicationManager 对象，现在回到 reflector.exe 的入口  
-函数了：  
-  
-\[STAThread, DebuggerHidden\]  
-public static void Main()  
-{  
-      if (!T\_x2.M\_x1())  
-      {  
-            MessageBox.Show(a("\\ucf95\\uf797\\uef99\\ubc9b\\ufd9d\\uc19f\\ucca1\\ucaa3\\uc9a5\\udca7\\u8aa9\\uc0ab\\ucfad\\uc5af\\udcb1\\ud7b3\\udeb5\\u98b7\\uceb9\\ud4bb\\ud7bd\\ub3bf\\ue2c1\\ua5c3\\ub6c5\\ub8c7\\ua6c9\\ua5cb\\uadcd\\ub1cf\\ua6d1\\ubdd3\\ub9d5\\ub6d7\\ufad9\\ubadb\\uacdd\\u8fdf\\u8fe1\\uc4e3\\u87e5\\uc8e7\\u84e9\\u89eb\\u9aed\\u87ef\\u9df1\\u86f3\\u9df5\\ud8f7\\u89f9\\u94fb\\u9ffd\\u72ff\\u6701\\u2a03\\u2605\\u5807\\u6609\\u690b\\u6f0d\\u630f\\u7711\\u3413\\u6215\\u6a17\\u6319\\u3c1b\\u6c1d\\u551f\\u4c21\\u4a23\\u4f25\\u4627\\u4d29\\u0c2b\\u472d\\u442f\\u1231\\u5233\\u4435\\u5737\\u5739\\u1c3b\\u5f3d\\u603f\\u2e41\\u2b43\\u2545\\u2947\\u2649\\u6c4b\\u2a4d\\u394f\\u2051\\u3153\\u3555\\u2c57\\u3559\\u2e5b\\u275d\\u4e5f", 9), typeof(T\_x2).Assembly.Location, MessageBoxButtons.OK, MessageBoxIcon.Hand);  
-      }  
-      else  
-      {  
-            T\_x2 \_x1 = new T\_x2(null);  
-            try  
-            {  
-                  \_x1.M\_x6();  
-            }  
-            finally  
-            {  
-            }  
-      }  
-}  
-  
-在 try 块内调\_x1.M\_x6():  
-  
-public void M\_x6()  
-{  
-      IServiceProvider provider1 = this.F\_x1;  
-      if (provider1 != null)  
-      {  
-            string text1 = a("\\uc899\\ue99b\\uf09d", 13); //这个字符串解出来是 Run  
-            provider1.GetType().GetMethod(text1).Invoke(this.F\_x1, null);  
-      }  
-}  
-  
-又是一段 reflection api 的写法，本意是：  
-  
-((IServiceProvider)(this.F\_x1)).Run();  
-  
-其实这才是程序真正的入口！  
-  
-3、流程混淆及结构类混淆技术  
-reflector 在混淆上用的花样实在太多，这个在下一部分说了。  
-  
-4、获取真正功能实现文件  
-主要是改两个地方，一个是读文件的地方，一个是解密后：  
-1）将 T\_x4.M\_x1()里的 FileStream stream1 = File.OpenRead(text2);改为  
-FileStream stream1 = File.OpenRead("d:\\\\reflector.exe");//假设原始的 reflector.exe 放在这个地方  
-2）在 T\_x4 的静态构造里 buffer1 = algorithm1.CreateDecryptor().TransformFinalBlock(buffer1, 0, num1);后面加上  
-FileStream fs = new FileStream("d:\\\\reflector.application.dll", FileMode.Create, FileAccess.Write);  
+```
+
+又是一段 `reflection api` 的写法，本意是：
+
+```
+((IServiceProvider)(this.F_x1)).Run();  
+```
+
+其实这才是程序真正的入口！
+
+### 3、流程混淆及结构类混淆技术
+
+`reflector` 在混淆上用的花样实在太多，这个在下一部分说了。
+
+### 4、获取真正功能实现文件
+
+主要是改两个地方，一个是读文件的地方，一个是解密后：
+
+1）将 `T_x4.M_x1()` 里的 `FileStream stream1 = File.OpenRead(text2);` 改为：
+
+```
+FileStream stream1 = File.OpenRead("d:\\reflector.exe"); //假设原始的 reflector.exe 放在这个地方  
+```
+
+2）在 `T_x4` 的静态构造里 `buffer1 = algorithm1.CreateDecryptor().TransformFinalBlock(buffer1, 0, num1);` 后面加上：
+
+```
+FileStream fs = new FileStream("d:\\reflector.application.dll", FileMode.Create, FileAccess.Write);  
 fs.Write(bArr,0,bArr.Length);  
 fs.Close();  
-  
-之后执行到 fs.Close();后，我们就得到 reflector.application.dll，这个文件大小是 1756KB,在它的托管资源部分还嵌了  
-一个可执行文件 reflector.install.exe  
-  
-二、reflector 用到的混淆技术  
-我觉得可以将 reflector 用到的混淆技术除名称混淆外分为两类，一类是防止反编译的混淆，另一类是防止重编译的混淆  
-（一）防止反编译的混淆(数据流或控制流混淆)  
-1、无用条件跳转或永真条件跳转  
-      L\_000f: ldc.i4.0   
-      L\_0010: dup   
-      L\_0011: ldc.i4.1   
-      L\_0012: blt.s L\_0047  
-上面这段代码的条件跳转是 if(0<1)goto L\_0047;这是永远成立的跳转，等价于一条 goto 语句，与之对应，还有一类条件跳  
-转是永远不成立的跳转，就是可以删除的跳转。  
-  
-2、块间来回跳转  
-这应该就是流程混淆的最初形态了，简单说就是将顺序执行的指令序列分为若干块，然后打乱顺序，再用 goto 将这些块连接  
-为原来的执行顺序。  
-  
-\--附带说一下，1 与 2 这两种情形都是可以经过编译优化处理的。  
-  
-3、用 switch 作跳转  
-用 switch 作跳转是比较有意思的，这里用一段 C#说明，比用 IL 应该更清楚:  
-  
-  int v=0;  
-  goto IL\_01;  
-IL\_01:  
-  switch(v)  
-  {  
-    case 0:goto IL\_02;  
-    case 1:goto IL\_03;  
-    case 2:goto IL\_04;  
-    case 3:goto IL\_05;  
-    default:goto IL\_06;  
-  }  
-IL\_02:  
-  ...做实际工作  
-  v=1;  
-  goto IL\_01;  
-IL\_03:  
-  ...做实际工作  
-  v=2;  
-  goto IL\_01;  
-IL\_04:  
-  ...做实际工作  
-  v=3;  
-  goto IL\_01;  
-IL\_05:  
-  ...做实际工作  
-  v=4;  
-  goto IL\_01;  
-IL\_06:  
-  ...做实际工作  
-  return  
-  
-上面这段代码实际上是顺序执行的，这段代码如果用 C#编译，IL\_02 到 IL\_06 的代码会嵌到 switch 里面各个标签处，也就是说  
-编译器将这些 goto 连接起来了，但这种优化却不能实现反混淆，这个 switch 的所有跳转其实都是编译时能计算的  
-  v=1;  
-  goto IL\_01;  
-这样模式的句子实际上就是无条件跳转 goto IL\_03，真正原始的代码就是去掉上面的 v 变量定义,switch 语句、所有对 v 的赋值  
-以及所有 goto 语句后剩下的代码。  
-  
-4、catch 块跳往 try 块  
-  try  
-  {  
-IL\_0001:  
-  ...  
-  }  
-  catch(Exception)  
-  {  
-  ...  
-  leave.s IL\_0001  
-  }  
-这样的可能算不上混淆，不过直接反编译为 C#或 C++时这样的跳转是不合法的，在高级语言中 goto 只能跳转同一块或者是外层块  
-，而不能跳到嵌入块或其它块中。此外，有多层 try-catch 时在块间跳转在 IL 级也是合法的，这种混淆会成为反混淆的难题。（  
-手工反应该不难，应该主要难在自动处理上，特别是使用了 filter 与 fault 块的情况）  
-  
-5、用堆栈储存值  
-这种方式对付目前的反编译软件是最有效的，这里我们看一下 reflector 用来解密字符串的函数,函数 IL 指令后面的//注释开始的  
-代码是按 IL 指令序列反出来的 C#代码，()包括的内容是执行完 IL 指令后的堆栈内容，右边是栈顶，我们用这种方式模拟反编译的  
-过程，因为 IL 指令是基于堆栈计算的，函数的数据流主要反映在堆栈中，而高级语言是基于变量与表达式的，将堆栈计算还原到  
-到变量与表达式就是反编译了。  
-  
-.method privatescope hidebysig static string a(string A\_0\_1, int32 A\_1\_2) cil managed  
-{  
-      .maxstack 8  
-      .locals init (  
-            \[0\] char\[\] loc0,  
-            \[1\] int32 loc1,  
-            \[2\] int32 loc2,  
-            \[3\] unsigned int8 loc3,  
-            \[4\] unsigned int8 loc4)  
-      L\_0000: ldarg.0   
-      L\_0001: callvirt instance char\[\] string::ToCharArray()  
-      L\_0006: stloc.0         //loc0=A\_0\_1.ToCharArray();  
-      L\_0007: ldc.i4 832044172  
-      L\_000c: ldarg.1   
-      L\_000d: add   
-      L\_000e: stloc.1        //loc1=832044172+A\_1\_2;  
-      L\_000f: ldc.i4.0         (0)  
-      L\_0010: br.s L\_0045  
-\-----------------------------------------------------------------------------------------------------------------------        
-      L\_0012: dup   
-      L\_0013: stloc.2        //loc2=stack\_top;        
-      L\_0014: ldloc.0           
-      L\_0015: ldloc.2   
-      L\_0016: ldloc.0        
-      L\_0017: ldloc.2   
-      L\_0018: ldelem.i2       (0,loc0,loc2,loc0\[loc2\])  
-      L\_0019: dup         (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\])  
-      L\_001a: ldc.i4 255    
-      L\_001f: and             (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] & 255)  
-      L\_0020: ldloc.1       
-      L\_0021: dup         (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] & 255,loc1,loc1)  
-      L\_0022: ldc.i4.1       
-      L\_0023: add             (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] & 255,loc1,loc1+1)  
-      L\_0024: stloc.1         (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] & 255,loc1)      
-            //loc1=loc1+1  
-              
-      L\_0025: xor           
-      L\_0026: conv.u1   
-      L\_0027: stloc.3         (0,loc0,loc2,loc0\[loc2\])  
-            //loc3=(loc0\[loc2\] & 255) ^ loc1    
-            //这里的 loc1 不是上面+1 后的 loc1，而应该是+1 操作前的 loc1  
-        
-      L\_0028: dup   
-      L\_0029: ldc.i4.8       
-      L\_002a: shr         (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] >> 8)  
-      L\_002b: ldloc.1       
-      L\_002c: dup         (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] >> 8,loc1,loc1)  
-      L\_002d: ldc.i4.1       
-      L\_002e: add         (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] >> 8,loc1,loc1+1)  
-      L\_002f: stloc.1         (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] >> 8,loc1)  
-            //loc1=loc1+1  
-        
-      L\_0030: xor               
-      L\_0031: conv.u1   
-      L\_0032: stloc.s num4      (0,loc0,loc2,loc0\[loc2\])     
-            //loc4=(loc0\[loc2\] >> 8) ^ loc1       
-            //这里的 loc1 不是上面+1 后的 loc1，而应该是+1 操作前的 loc1  
-  
-      L\_0034: pop         (0,loc0,loc2)  
-      L\_0035: ldloc.s num4      (0,loc0,loc2,loc4)  
-      L\_0037: ldloc.3   
-      L\_0038: stloc.s num4      (0,loc0,loc2,loc4)      
-            //loc4=loc3        
-      L\_003a: stloc.3         (0,loc0,loc2)  
-            //loc3=loc4   
-            //这里的 loc4 是栈中保存的原来的 loc4，并不是上一语句改变过其值的 loc4  
-        
-      L\_003b: ldloc.s num4      
-      L\_003d: ldc.i4.8   
-      L\_003e: shl         (0,loc0,loc2,loc4 << 8)  
-      L\_003f: ldloc.3         (0,loc0,loc2,loc4 << 8,loc3)  
-      L\_0040: or         (0,loc0,loc2,((loc4 << 8) | loc3))  
-      L\_0041: conv.u2           
-      L\_0042: stelem.i2       (0)          
-            //loc0\[loc2\]=((loc4 << 8) | loc3)  
-      L\_0043: ldc.i4.1           
-\----------------------------------------------------------------------------------------------------------------------------------------------  
-      L\_0044: add                                                 (0 + 1)  
-      L\_0045: dup         (0,0)        第二次执行的堆栈内容：(1,1)  
-      L\_0046: ldloc.0         (0,0,loc0)      第二次执行的堆栈内容：(1,1,loc0)  
-      L\_0047: ldlen         (0,0,len(loc0))      第二次执行的堆栈内容：(1,1,len(loc0))  
-      L\_0048: conv.i4           
-      L\_0049: blt.s L\_0012      (0)        第二次执行的堆栈内容：(1)  
-            //if(0<len(loc0)) goto L\_0012;            //if(1<len(loc0)) goto L\_0012  
-\----------------------------------------------------------------------------------------------------------------------------------------------  
-      L\_004b: pop               
-      L\_004c: ldloc.0                                               
-      L\_004d: newobj instance void string::.ctor(char\[\])            
-      L\_0052: call string string::Intern(string)                    
-      L\_0057: ret         //return String.Intern(new string(loc0))                                        return string.Intern(new String(loc0))  
-}  
-  
-上面代码中有二类导致反编译失效的情形：  
-1）、观察我们用括号列出的堆栈分析，可以看到在 L\_0012 到 L\_0042 指令，堆栈一直不为空，有一个值在整个块中从未出过堆栈，此值在 L\_0044 时执行+1 操作，仍然不  
-出栈，直到 L\_0049 跳转回 L\_0012，可以看到这是一个循环，从函数入口跳到 L\_0044 开始执行，之后每次循环栈底的值被加 1，此值同时用作循环条件。如果我们简单  
-按照注释部分生成 C#代码，则此循环被忘记了（因为循环变量是用栈作的）。  
-  
-2）、L\_0023、L\_002e 两处对栈顶值执行+1 操作，此时栈中保存着对应变量的两份值，稍后栈顶值再次赋给原变量，原变量值改变，但栈中仍保存了一份此变量被必变  
-前的值;这种情况还有一处出现，L\_0038 处对变量 loc4 赋值，赋值后栈中仍保存着原来的 loc4 值，紧接着对 loc3 赋值时使用了。也就是说，栈在操作中起到了临时变量  
-的作用。我们来看与 L\_0023 处堆栈操作相关的反编译：  
-  loc1=loc1+1;  
-  loc4=(loc0\[loc2\] >> 8) ^ loc1  
-这样结果就不正确了，考虑到栈起到临时变量的作用，实际上可以写成：  
-  temp1=loc1;  
-  loc1=temp1+1;  
-  loc4=(loc0\[loc2\] >> 8) ^ temp1;  
-这样三句就与原 IL 程序等价了。我们再看一下 L\_0038 处的反编译：  
-  loc4=loc3;  
-  loc3=loc4;  
-这也是不正确的，考虑栈的临时变量作用，写成：  
-  temp2=loc4;  
-  loc4=loc3;  
-  loc3=temp2;  
-这样就正确了。  
-大家可以用 dis#,spices.net 分别反一下 reflector 的这个函数，看看他们的反编译能力。(reflector 比较狡猾，它只要发现堆栈有问题就说可以是混淆代码，不给反  
-了，呵呵)  
-  
-（二）防止重编译的混淆(结构混淆)  
-这种混淆我把它称为结构混淆，就是通过使用高级语言没有对应实现的语法结构来混淆，使得反编译后的程序无法通过编译，一般的反编译程序是不会考虑这个问题  
-的，因为它们通常不是为了让大家重新编译的，呵呵。  
-1、使用 filter,fault 的异常块，在 C#中没有对应构造，C++中对应也不太明确。  
-  
-2、引用与非引用参数在 C++中是不区分的，不过 C#与.net 里是区分的，如  
-ref class A  
-{  
-  void Test(int i);  
-  void Test(int% i);  
-};  
-这样的定义虽然可以通过编译，但是却不能被调用  
-A^ a=gcnew A();  
-a->Test(1);  
-编译时会说无法决定使用哪个重载。  
-  
-3、外层类与嵌入类同名，这在 C#与 C++中都是不允许的，如  
-class A  
-{  
-  Class A  
-  {  
-  }  
-}  
-这样的定义是不合法的。  
-4、类的完全限定名不能恰好是另一个类的完全限定名的后缀，这在定义时不会出错，但在引用时往往引起错误,如  
-Class A  
-{  
-}  
-Class B  
-{  
-  Class A  
-  {  
-  }  
-}  
-这里的 A 成为了 B.A 的后缀，如果在类 B 中定义一个 A 的实例变量,不使用完全限定名的情况下有时会引起混淆，这种情  
-况只出现在没有名空间包含的全局类与这样类的嵌入类之间，所以有一个简单办法解决，就是为所有全局类指定一个  
-名空间，比如 Root（dis#就是这么干的，相信它是考虑到这一点了）,这样上面的类变成 Root.A 与 Root.B.A，不再是  
-后缀了。  
-5、引用 assembly 与被引用 assembly 类型重名，reflector.exe 与 reflector.application.dll 在名称混淆后就有这种情  
-况，因为它们这此类实际上互不相干，在运行时不会倒致问题，但是反编译时如果我们对这些混淆成相同名称的类还  
-是采用相同的名称，那么编译 reflector.exe 能过去，因为它不引用 reflector.application.dll(它使用动态装入)，  
-但是编译 reflector.application.dll 则不行，因为它要引用前者，要使用里面定义的接口，虽然那些接口定义与它不  
-冲突，但因为引用的不相干的类与它有冲突，会倒致编译失败，因为这种冲突只出现互不相干的类之间，所以可以为  
-某一方指定一个不同的名空间。  
-6、改变访问许可，访问许可看起来像是编译时检查的东西，混淆时如果将某些方法改为私有，似乎并不会影响调用它  
-的方法的执行，但是编译时这是错误的。（事实上我们用 reflection api 调用方法时就不受访问许可的限制，呵呵）  
-7、重载换名，就是方法重载使用.override 指示一个不同的名称，C#对此没有支持，mc++对此也不支持，只在较新的  
-c++/cli 中有支持。  
-8、父类或实现接口名与特性名称相同，这在 C++使用类外函数实现语法时会无法编译（因为 C++不像 C#会自动解决交叉  
-引用，而.net 程序的交叉引用泛滥，类外函数实现是反编译大工程时的必然先择），C#中倒无此问题。  
-  
-三、针对这些混淆的反编译  
-1、目标高级语言的选择  
-目标语言的选择主要考虑前面提到的结构混淆的问题，因为重载换名 C#完全不支持，而其它情形的混淆均可以通过修改  
-让 C++通过编译，C++在语法结构的丰富性胜过 C#，另一方面，比较了一下 C#与 C++的编译优化，虽然二者在处理流程混淆  
-的无用跳转与来回跳转都很有效，但 C#在处理变量使用优化时明显不如 C++，优化选项也不 C++丰富。综合这两点，C++  
-是较好的选择，不过 C++语言不够动态，vs.net 的调试与源代码编辑方面都不如 C#，只可惜鱼与熊掌不能兼得。  
-  
-2、反混淆的关键点  
-在前面介绍混淆方式时大多已经提到了反混淆的方法，这里着重提一下针对 switch 混淆的反混淆与利用堆栈混淆的反混淆  
-，其它混淆一般不影响反编译结果的正确性，可以利用 C++的优化编译处理，利用异常的混淆在 reflector 中用得较简单，  
-所以我也没有深入探索。  
-1）反编译与反混淆的基础  
-这里说的基础是在编译原理之类书藉在讲到编译优化时要说的东东，就是要建立程序流图，因为将基于栈的 IL 反编译成基于  
-变量与表达式的高级语言关键在于保证数据流的正确性，而数据流是在控制流的框架内维持的，所以我们首先需要为每个  
-函数建立其程序流图，流图的每个结点就是一个基本块，基本块内我们只要按前面说堆栈混淆时的那种堆栈分析方法来生成  
-表达式即可（相当于解释执行 IL），在基本块与基本块之间则需要考虑块间暂存在堆栈中的数据的一致性问题。  
-事实上，程序流图的建立还用于像来回跳转这种优化以及识别分支与循环结构这种高级语言结构上，不过这些都有现成工具  
-来做，我就没有重复做这些事了。  
-  
-2）用 switch 作跳转的反混淆  
-还是拿前面讲混淆时的例子，反混淆的办法就是分析每个 switch 语句的判断表达式与 switch 块的入口点，然后在每个跳往  
-switch 块入口的跳转时计算 switch 判断表达式的值，将跳转目标直接用对应 switch 分支目标代替，这样 C++编译器就能优化  
-掉 switch 了（因为这样处理后 switch 块就是一个空架子了），前面的例子这样处理的结果如下：  
-  int v=0;  
-  goto IL\_01;  改为 switch(0)的分支目标-->goto IL\_02;  
-IL\_01:  
-  switch(v)  
-  {  
-    case 0:goto IL\_02;  
-    case 1:goto IL\_03;  
-    case 2:goto IL\_04;  
-    case 3:goto IL\_05;  
-    default:goto IL\_06;  
-  }  
-IL\_02:  
-  ...做实际工作  
-  v=1;  
-  goto IL\_01;  改为 switch(1)的分支目标-->goto IL\_03;  
-IL\_03:  
-  ...做实际工作  
-  v=2;  
-  goto IL\_01;  改为 switch(2)的分支目标-->goto IL\_04;  
-IL\_04:  
-  ...做实际工作  
-  v=3;  
-  goto IL\_01;  改为 switch(3)的分支目标-->goto IL\_05;  
-IL\_05:  
-  ...做实际工作  
-  v=4;  
-  goto IL\_01;  改为 switch(default)的分支目标-->goto IL\_06;  
-IL\_06:  
-  ...做实际工作  
-  return  
-  
-3）用堆栈储存值的混淆的反混淆  
-前面说的时候已经提到了基本办法，就是引入临时变量，相当于为堆栈中暂存的值命名。这里说一下引入临时变量的几种情形：  
-1、变量值更新倒致原变量值需要临时变量记录  
-在编译优化中处理基本块时一般使用一种称为 DAG 的结构来描述，在构造 DAG 的过程中如果一个结点被指定给某一个变量时，此变  
-量需要与先前关联的结点断开，我们这里所处理的情形与此类似，只需要跟踪变量的赋值，也就是 stloc,starg 语句即可，当执  
-行赋值语句时，我们检查当前堆栈中是否有引用该变量的值存在，如果有，则对原引用赋一个昨时变量。还是以先前堆栈混淆的  
-代码为例：  
-L\_0020: ldloc.1       
-L\_0021: dup         (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] & 255,loc1,loc1)  
-L\_0022: ldc.i4.1     
-L\_0023: add             (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] & 255,loc1,loc1+1)  
-L\_0024: stloc.1        (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] & 255,loc1)      
-          //loc1=loc1+1  
-在 L\_0024 时，我们要对 loc1 赋值，此时栈顶值引用了原 loc1，所以我们需要对原 loc1 引入一个临时变量 temp1，不过 temp1 这个变  
-量生成 C#的地方要放到该值进栈的那条 IL 语句也就是 L\_0020 上，也就是说记录变为:  
-L\_0020: ldloc.1       //temp1=loc1  
-L\_0021: dup         (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] & 255,temp1,temp1)  
-L\_0022: ldc.i4.1     
-L\_0023: add             (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] & 255,temp1,temp1+1)  
-L\_0024: stloc.1        (0,loc0,loc2,loc0\[loc2\],loc0\[loc2\] & 255,temp1)      
-          //loc1=temp1+1  
-这样生成的 C#代码序列为：  
-temp1=loc1;  
-loc1=temp1+1;  
-因为栈中记录的是 temp1，对 loc1 的赋值不会影响栈中值的使用。  
-  
-2、过程调用返回值需要使用临时变量暂存  
-过程调用有可能改变当前函数的上下文，也就是说过程调用语句的顺序可能是不能改变的,不过我们用堆栈分析 IL 指令时，栈中的  
-值是用产生该值的表达式表示的（除非该表达式值赋给了临时变量），对于过程调用的返回值，在栈中是用过程调用表示的，仅当  
-值出栈时才会生成 C#语句，由于栈的后进先出特性，将过程调用表达式放在栈中就有可能改变语句的顺序。  
-如果能够进行全程序优化，过程调用的影响是可以确切知道的，但不做这种优化的话，我们需要保证调用语句的执行顺序，此时就  
-需要为返回值的调用引入临时变量。  
-  
-3、数组访问、指针需要引入临时变量  
-如果数组元素与指针指向的值进栈后再被修改，则与 1 中所说变量被修改情形是一样的，需要对栈中记录的原值引入临时变量。  
-  
-4、块间利用堆栈传值需要为栈中变量引入临时变量名  
-前面说的 1、2、3 都是基本块内的处理办法，除了块内有用堆栈混淆外，块间也会有这样的混淆：  
-IL\_0041:            ldstr        L"\\xDA8E\\xE290\\xF692\\xF194\\xB796\\xDB98\\xE29A"  
-IL\_0046:            ldloc        V\_1  
-IL\_004a:            call        System::String^ undefined\_type::a(System::String^,System::Int32)  
-IL\_004f:            br.s        IL\_007f  
-\-----------------------------------------------------------------------------------------------------------------------------------------------------------  
-IL\_0051:            ldstr        L"\\xDA8E\\xE290\\xF692\\xF194\\xB796\\xD098\\xF59A\\xBD9C\\xB89E"  
-IL\_0056:            ldloc        V\_1  
-IL\_005a:            call        System::String^ undefined\_type::a(System::String^,System::Int32)  
-IL\_005f:            ldarg.0  
-IL\_0060:            ldfld        Reflector::CodeModel::IAssembly^ Root::T\_x32::T\_x1 F\_x2  
-IL\_0065:            callvirt        System::String^ Reflector::CodeModel::IAssemblyReference::get\_Name()  
-IL\_006a:            ldstr        L"\\xA88E\\xB190\\xD192\\xEC94"  
-IL\_006f:            ldloc        V\_1  
-IL\_0073:            call        System::String^ undefined\_type::a(System::String^,System::Int32)  
-IL\_0078:            call        System::String^ System::String::Concat(System::String^,System::String^,System::String^)  
-IL\_007d:            br.s        IL\_007f  
-\-----------------------------------------------------------------------------------------------------------------------------------------------------------  
-IL\_007f:            call        void System::Windows::Forms::TreeNode::set\_Text(System::String^)  
-IL\_0084:            ldarg.0  
-IL\_0085:            call        System::Windows::Forms::TreeNodeCollection^ System::Windows::Forms::TreeNode::get\_Nodes()  
-IL\_008a:            newobj        void Root::T\_x32::T\_x14::.ctor()  
-IL\_008f:            callvirt        System::Int32 System::Windows::Forms::TreeNodeCollection::Add(System::Windows::Forms::TreeNode^)  
-IL\_0094:            pop  
-IL\_0095:            ret  
-  
-上面这段代码由三个基本块组成，第一块与第二块为第三块的前导，我们看到第一块与第二块执行结束时最后一次函数调用的返回值在堆栈中并未出栈，在第三块  
-开始的调用直接使用了栈中传入的参数（高级语言基于变量与表达式的语法是不会产生这种情况的）。  
-当我们反编译这段代码时，反编译到第三块时，函数调用的参数用哪个呢？它有两个前导块，各自通过堆栈传入一个值，程序的原意是根据条件不同使用不同的参数  
-，如果我们用高级语言这样的功能，我们会写成：  
-string s;  
-if(...)  
-{  
-  s=xxCall1();  
-}  
-else  
-{  
-  s=xxCall2();  
-}  
-xxCall3(s);  
-  
-也就是说，我们使用一个局部变量来统一两个分支的返回值，然后用这个变量作参数调用 xxCall3。这样一类比就比较清楚了，仍然是需要引入临时变量，  
-只不过这次不只是引入临时变量，还需要两个分支块的临时变量是同一个变量。  
-上面的是一个分支结构的例子，其实块间传值还有一种情形发生在循环时（从这个角度看，循环其实是可以归入分支结构的），这里的一个例子是我们  
-前面用来说明堆栈存值混淆的 refelctor 的字符串解密函数，在循环的全过程中栈中有个值一直未出栈，L\_0049->L\_0012，前者是一个基本块的结束，后者是  
-一个基本块的开始，所以栈中的值也是在基本块间传递的，按照前面的方法，我们也需要为它引入一个临时变量，这个变量便是循环变量了。  
-  
-最后我贴出我写的反混淆反编译程序对字符串解密函数反出来的代码（相对原始的代码，呵呵）与经过 C++优化编译后再用 refelctor 看到的代码，大家有兴趣可以仔细看  
-一下，这里面有关于堆栈混淆与反混淆的主要信息。  
-反混淆反编译的结果：  
-System::String^ a(System::String^ A\_0,System::Int32 A\_1)  
-{  
-  //temp variables , should be optimized by C++/cli compiler.  
-  array<System::Char>^ Temp\_0 = nullptr;  
-  System::Int32 Temp\_1 = 0;  
-  System::Int32 Temp\_2 = 0;  
-  System::Int32 Temp\_3 = 0;  
-  System::Byte Temp\_4 = 0;  
-  System::String^ Temp\_5 = nullptr;  
-  System::String^ Temp\_6 = nullptr;  
-  System::Int32 Temp\_7 = 0;  
-  System::Int32 Temp\_8 = 0;  
-  System::Int32 Temp\_9 = 0;  
-  //local variables.  
-  array<System::Char>^ V\_0 = nullptr;  
-  System::Int32 V\_1 = 0;  
-  System::Int32 V\_2 = 0;  
-  System::Byte V\_3 = 0;  
-  System::Byte V\_4 = 0;  
-  //method body -------   
-  IL\_0000:                                                                        //ldarg.0  
-  IL\_0001:            Temp\_0=A\_0->ToCharArray();                                  //callvirt        array<System::Char>^ System::String::ToCharArray()  
-  IL\_0006:            V\_0=Temp\_0;                                                 //stloc.0  
-  IL\_0007:                                                                        //ldc.i4        0x3197fc8c  
-  IL\_000c:                                                                        //ldarg.1  
-  IL\_000d:                                                                        //add  
-  IL\_000e:            V\_1=(832044172 + A\_1);                                      //stloc.1  
-  IL\_000f:                                                                        //ldc.i4.0  
-  IL\_0010:                                                                        //dup  
-  IL\_0011:                                                                        //ldc.i4.1  
-  IL\_0012:            Temp\_8=0;goto IL\_0047;                                      //blt.s        IL\_0047  
-  IL\_0014:                                                                        //dup  
-  IL\_0015:            Temp\_9=Temp\_8;                                              //stloc.2  
-  IL\_0016:                                                                        //ldloc.0  
-  IL\_0017:                                                                        //ldloc.2  
-  IL\_0018:                                                                        //ldloc.0  
-  IL\_0019:                                                                        //ldloc.2  
-  IL\_001a:                                                                        //ldelem.i2  
-  IL\_001b:                                                                        //dup  
-  IL\_001c:                                                                        //ldc.i4        0xff  
-  IL\_0021:                                                                        //and  
-  IL\_0022:            Temp\_2=V\_1;                                                 //ldloc.1  
-  IL\_0023:                                                                        //dup  
-  IL\_0024:                                                                        //ldc.i4.1  
-  IL\_0025:                                                                        //add  
-  IL\_0026:            Temp\_3=(Temp\_2 + 1);                                        //stloc.1  
-  IL\_0027:                                                                        //xor  
-  IL\_0028:                                                                        //conv.u1  
-  IL\_0029:            V\_3=safe\_cast<System::Byte>(((V\_0\[Temp\_9\] & (System::Char)255) ^ Temp\_2));//stloc.3  
-  IL\_002a:                                                                        //dup  
-  IL\_002b:                                                                        //ldc.i4.8  
-  IL\_002c:                                                                        //shr  
-  IL\_002d:                                                                        //ldloc.1  
-  IL\_002e:                                                                        //dup  
-  IL\_002f:                                                                        //ldc.i4.1  
-  IL\_0030:                                                                        //add  
-  IL\_0031:            V\_1=(Temp\_3 + 1);                                           //stloc.1  
-  IL\_0032:                                                                        //xor  
-  IL\_0033:                                                                        //conv.u1  
-  IL\_0034:            Temp\_4=safe\_cast<System::Byte>(((V\_0\[Temp\_9\] >> 8) ^ safe\_cast<System::Char>(Temp\_3)));//stloc.s        V\_4  
-  IL\_0036:                                                                        //pop  
-  IL\_0037:                                                                        //ldloc.s        V\_4  
-  IL\_0039:                                                                        //ldloc.3  
-  IL\_003a:            V\_4=V\_3;                                                    //stloc.s        V\_4  
-  IL\_003c:            V\_3=Temp\_4;                                                 //stloc.3  
-  IL\_003d:                                                                        //ldloc.s        V\_4  
-  IL\_003f:                                                                        //ldc.i4.8  
-  IL\_0040:                                                                        //shl  
-  IL\_0041:                                                                        //ldloc.3  
-  IL\_0042:                                                                        //or  
-  IL\_0043:                                                                        //conv.u2  
-  IL\_0044:            V\_0\[Temp\_9\]=safe\_cast<System::Char>(safe\_cast<System::UInt16>(((V\_4 << 8) | V\_3)));//stelem.i2  
-  IL\_0045:                                                                        //ldc.i4.1  
-  IL\_0046:            Temp\_8=(Temp\_9 + 1);                                        //add  
-  IL\_0047:            /\*warning ! semantic stack doesn't empty at joint !;\*/      //dup  
-  IL\_0048:                                                                        //ldloc.0  
-  IL\_0049:            Temp\_1=V\_0->Length;                                         //ldlen  
-  IL\_004a:                                                                        //conv.i4  
-  IL\_004b:            if(Temp\_8<Temp\_1)goto IL\_0014;                              //blt.s        IL\_0014  
-  IL\_004d:                                                                        //pop  
-  IL\_004e:                                                                        //ldloc.0  
-  IL\_004f:            Temp\_5=gcnew System::String(V\_0);                           //newobj        void System::String::.ctor(array<System::Char>^)  
-  IL\_0054:            Temp\_6=System::String::Intern(Temp\_5);                      //call        System::String^ System::String::Intern(System::String^)  
-  IL\_0059:            return Temp\_6;                                              //ret  
-}  
-经过 C++优化编译后再用 reflector 看到的 C++/cli 代码：  
-String^  a(String^ A\_0, int A\_1)  
-{  
-      array<wchar\_t>^ chArray1 = A\_0->ToCharArray();  
-      int num2 = (A\_1 + 832044172);  
-      int num1 = 0;  
-      if ((0 < chArray1->Length))  
-      {  
-            do  
-            {  
-                  int num4 = num2;  
-                  int num3 = (num2 + 1);  
-                  num2 = (num3 + 1);  
-                  wchar\_t ch1 = chArray1\[num1\];  
-                  chArray1\[num1\] = ((wchar\_t) (((unsigned short) ((((unsigned char) ch1) << 8) ^ (((unsigned char) num4) << 8))) | ((unsigned short) (((unsigned char) (ch1 >> 8)) ^ ((unsigned char) num3)))));  
-                  num1++;  
-            }  
-            while((num1 < chArray1->Length));  
-      }  
-      return String::Intern(gcnew String(chArray1) );  
-}  
-C#代码：  
-internal static string a(string A\_0, int A\_1)  
-{  
-      char\[\] chArray1 = A\_0.ToCharArray();  
-      int num2 = A\_1 + 0x3197fc8c;  
-      int num1 = 0;  
-      if (0 < chArray1.Length)  
-      {  
-            do  
-            {  
-                  int num4 = num2;  
-                  int num3 = num2 + 1;  
-                  num2 = num3 + 1;  
-                  char ch1 = chArray1\[num1\];  
-                  chArray1\[num1\] = (char) (((ushort) ((((byte) ch1) << 8) ^ (((byte) num4) << 8))) | ((ushort) (((byte) (ch1 >> 8)) ^ ((byte) num3))));  
-                  num1++;  
-            }  
-            while (num1 < chArray1.Length);  
-      }  
-      return string.Intern(new string(chArray1));  
-}  
-  
-四、反编译成高级语言后...  
-反编译成可编译的高级语言的一个用处是利用高级语言编译器的优化功能处理混淆，另外还有一个便是调试，对于.net 程序，还是在有源码的情况下用 vs.net 调试来得  
-直观，我写的反编译工具输出的源码是高级语言与 IL 对应的，主要是考虑到反编译如果出错，便于人工修改。  
-  
-现在的程序还只是个初步的程序，对于 COM，generic 的支持还不行，当混淆程序使用了结构混淆时生成的代码会出现编译错误，类型转换与推导有时也会出错，还需要  
-人工作一些调整，就 reflector 的反编译来说，reflector.exe 反编译后只有两处类型转换错误了，但 reflector.application.dll 则有数十处错误（其中主要的错误都源  
-于引用参数与非引用参数的重载混淆所致）。  
-最终我重新编译通过了 reflector.exe,reflector.application.dll，但是运行时刚显示主界面就会异常退出，跟踪调试时发现是使用 IOleObject::SetClientSite 时出  
-错了，现在原因还没搞清楚，汗。  
-  
-附件是我写的反名称混淆程序与反编译程序（均是未加壳未混淆的，用 reflector 可直接阅读代码的）。  
-反编译程序的用法如下：  
-1、用 ildasm 反汇编.net 程序并保存成 IL 文件;  
-2、在命令行执行反编译程序 test.exe:  
-  test 目标文件.il  
-此时在 test.exe 所在目录生成一个子目录 il2cpp，其下是反编译出来的 c++源文件;  
-3、用 vs.net 2005 新建立一个 C++/cli 项目（视目标程序是 console 还是 winform 选不同类型），若是 winform 生成后删除主 form 文件，将 2 中生成的文件拷到项目源文件目录，  
-再用“添加现有项”将这些文件添加项目中，并将所有\*.cpp 文件的预编译头设为“不使用预编译头”;  
-4、在项目主程序 cpp 文件添加包含头文件  
-  #include "global\_xref.h"  
-在 main 函数里调用原程序对应的入口函数调用;  
-5、编译、改错、再编译直到通过，呵呵;  
-6、发现问题请发信息至 dreaman\_163@163.com，此程序目前还相当初级，需要完善。  
-  
-\--------------------------------------------------------------------------------------------------  
-谢谢阅读，呵呵                  
-                  2006.12.31 
+```
 
-可能我表达的不太清楚，我主要是想利用高级语言编译器的优化能力来实现反混淆，因为要利用高级语言编译器，所以首先得将 IL 反编译成高级语言语法。  
-switch 的处理主要是考虑用 switch 跳转表作 goto 的这种情况，reflector 里就有很多这样的，我在文中给出的变换就是将这种 goto 直接还原，之后的工作由 C++编译器来优化。  
-后面说的程序流图不是有许多现成工具会生成，而是说用程序流图来识别循环与  
-来回跳转的优化是多数编译器的基本优化功能。  
-反编译工具的主要思路是将 IL 等价变换为高级语言，我主要是考虑到现有的反编译工具多数不能正确处理基于堆栈的混淆，重点也是解决这个问题，至于来回跳转那些混淆，编译优化能很好处理，所以我在反编译时不处理。  
-反编译工具的工作过程：  
-1、对 IL 文件进行词法、语法分析（我用的 gppg 语法分析程序生成器，你用 flex+bison 也可以，这个看你用的编程语言了），提取名空间、类、方法、方法实现指令的信息；  
-2、建立类之间的依赖关系图（因为我要生成的 C++，必须自己解决交叉引用问题，若是 C#则不需要建立这个）；  
-3、对方法实现部分建立程序流图，异常块表；  
-4、对流图的每个基本块进行模拟 IL 执行（主要是堆栈的操作），生成计算表达式，临时变量，异常块间跳转的 goto 目标调整，用 switch 跳转表实现的 goto 的调整等；  
-5、将基本块间堆栈传递的数据记录为临时变量；  
-6、输出最终 C++代码。  
+之后执行到 `fs.Close();` 后，我们就得到 `reflector.application.dll`，这个文件大小是 `1756KB`, 在它的托管资源部分还嵌了一个可执行文件 `reflector.install.exe`
+
+## 二、reflector 用到的混淆技术
+
+我觉得可以将 `reflector` 用到的混淆技术除名称混淆外分为两类，一类是防止反编译的混淆，另一类是防止重编译的混淆
+
+### （一）防止反编译的混淆(数据流或控制流混淆)
+
+#### 1、无用条件跳转或永真条件跳转
+
+```
+L_000f: ldc.i4.0  
+L_0010: dup  
+L_0011: ldc.i4.1  
+L_0012: blt.s L_0047  
+```
+
+上面这段代码的条件跳转是 `if(0<1)goto L_0047;` 这是永远成立的跳转，等价于一条 `goto` 语句，与之对应，还有一类条件跳转是永远不成立的跳转，就是可以删除的跳转。
+
+#### 2、块间来回跳转
+
+这应该就是流程混淆的最初形态了，简单说就是将顺序执行的指令序列分为若干块，然后打乱顺序，再用 `goto` 将这些块连接为原来的执行顺序。
+
+--附带说一下，1 与 2 这两种情形都是可以经过编译优化处理的。
+
+#### 3、用 switch 作跳转
+
+用 `switch` 作跳转是比较有意思的，这里用一段 C#说明，比用 IL 应该更清楚:
+
+```
+  int v=0;  
+  goto IL_01;  
+
+IL_01:  
+  switch(v)  
+  {  
+    case 0:goto IL_02;  
+    case 1:goto IL_03;  
+    case 2:goto IL_04;  
+    case 3:goto IL_05;  
+    default:goto IL_06;  
+  }  
+
+IL_02:  
+  ...做实际工作  
+  v=1;  
+  goto IL_01;  
+
+IL_03:  
+  ...做实际工作  
+  v=2;  
+  goto IL_01;  
+
+IL_04:  
+  ...做实际工作  
+  v=3;  
+  goto IL_01;  
+
+IL_05:  
+  ...做实际工作  
+  v=4;  
+  goto IL_01;  
+
+IL_06:  
+  ...做实际工作  
+  return  
+```
+
+上面这段代码实际上是顺序执行的，这段代码如果用 C#编译，`IL_02` 到 `IL_06` 的代码会嵌到 `switch` 里面各个标签处，也就是说编译器将这些 `goto` 连接起来了，但这种优化却不能实现反混淆，这个 `switch` 的所有跳转其实都是编译时能计算的
+
+```
+  v=1;  
+  goto IL_01;  
+```
+
+这样模式的句子实际上就是无条件跳转 `goto IL_03`，真正原始的代码就是去掉上面的 `v` 变量定义,`switch` 语句、所有对 `v` 的赋值以及所有 `goto` 语句后剩下的代码。
+
+#### 4、catch 块跳往 try 块
+
+```
+  try  
+  {  
+IL_0001:  
+  ...  
+  }  
+  catch(Exception)  
+  {  
+  ...  
+  leave.s IL_0001  
+  }  
+```
+
+这样的可能算不上混淆，不过直接反编译为 C#或 C++时这样的跳转是不合法的，在高级语言中 `goto` 只能跳转同一块或者是外层块，而不能跳到嵌入块或其它块中。此外，有多层 `try-catch` 时在块间跳转在 IL 级也是合法的，这种混淆会成为反混淆的难题。（手工反应该不难，应该主要难在自动处理上，特别是使用了 `filter` 与 `fault` 块的情况）
+
+#### 5、用堆栈储存值
+
+这种方式对付目前的反编译软件是最有效的，这里我们看一下 `reflector` 用来解密字符串的函数,函数 IL 指令后面的//注释开始的代码是按 IL 指令序列反出来的 C#代码，()包括的内容是执行完 IL 指令后的堆栈内容，右边是栈顶，我们用这种方式模拟反编译的过程，因为 IL 指令是基于堆栈计算的，函数的数据流主要反映在堆栈中，而高级语言是基于变量与表达式的，将堆栈计算还原到变量与表达式就是反编译了。
+
+```
+.method privatescope hidebysig static string a(string A_0_1, int32 A_1_2) cil managed  
+{  
+   .maxstack 8  
+   .locals init (  
+      [0] char[] loc0,  
+      [1] int32 loc1,  
+      [2] int32 loc2,  
+      [3] unsigned int8 loc3,  
+      [4] unsigned int8 loc4)  
+   L_0000: ldarg.0  
+   L_0001: callvirt instance char[] string::ToCharArray()  
+   L_0006: stloc.0         //loc0=A_0_1.ToCharArray();  
+   L_0007: ldc.i4 832044172  
+   L_000c: ldarg.1  
+   L_000d: add  
+   L_000e: stloc.1        //loc1=832044172+A_1_2;  
+   L_000f: ldc.i4.0        (0)  
+   L_0010: br.s L_0045  
+---------------------------------------------------  
+   L_0012: dup  
+   L_0013: stloc.2        //loc2=stack_top;      
+   L_0014: ldloc.0         
+   L_0015: ldloc.2  
+   L_0016: ldloc.0       
+   L_0017: ldloc.2  
+   L_0018: ldelem.i2      (0,loc0,loc2,loc0[loc2])  
+   L_0019: dup        (0,loc0,loc2,loc0[loc2],loc0[loc2])  
+   L_001a: ldc.i4 255   
+   L_001f: and           (0,loc0,loc2,loc0[loc2],loc0[loc2] & 255)  
+   L_0020: ldloc.1      
+   L_0021: dup        (0,loc0,loc2,loc0[loc2],loc0[loc2] & 255,loc1,loc1)  
+   L_0022: ldc.i4.1      
+   L_0023: add           (0,loc0,loc2,loc0[loc2],loc0[loc2] & 255,loc1,loc1+1)
+```
+
+
+
+## IL 指令流与堆栈分析
+
+`L_0024`: `stloc.1` (0,loc0,loc2,loc0[loc2],loc0[loc2] & 255,loc1)  
+//loc1=loc1+1
+
+`L_0025`: `xor`
+
+`L_0026`: `conv.u1`
+
+`L_0027`: `stloc.3` (0,loc0,loc2,loc0[loc2])  
+//loc3=(loc0[loc2] & 255) ^ loc1  
+//这里的 loc1 不是上面+1 后的 loc1，而应该是+1 操作前的 loc1
+
+`L_0028`: `dup`
+
+`L_0029`: `ldc.i4.8`
+
+`L_002a`: `shr` (0,loc0,loc2,loc0[loc2],loc0[loc2] >> 8)
+
+`L_002b`: `ldloc.1`
+
+`L_002c`: `dup` (0,loc0,loc2,loc0[loc2],loc0[loc2] >> 8,loc1,loc1)
+
+`L_002d`: `ldc.i4.1`
+
+`L_002e`: `add` (0,loc0,loc2,loc0[loc2],loc0[loc2] >> 8,loc1,loc1+1)
+
+`L_002f`: `stloc.1` (0,loc0,loc2,loc0[loc2],loc0[loc2] >> 8,loc1)  
+//loc1=loc1+1
+
+`L_0030`: `xor`
+
+`L_0031`: `conv.u1`
+
+`L_0032`: `stloc.s num4` (0,loc0,loc2,loc0[loc2])  
+//loc4=(loc0[loc2] >> 8) ^ loc1  
+//这里的 loc1 不是上面+1 后的 loc1，而应该是+1 操作前的 loc1
+
+`L_0034`: `pop` (0,loc0,loc2)
+
+`L_0035`: `ldloc.s num4` (0,loc0,loc2,loc4)
+
+`L_0037`: `ldloc.3`
+
+`L_0038`: `stloc.s num4` (0,loc0,loc2,loc4)  
+//loc4=loc3
+
+`L_003a`: `stloc.3` (0,loc0,loc2,loc4)  
+//loc3=loc4  
+//这里的 loc4 是栈中保存的原来的 loc4，并不是上一语句改变过其值的 loc4
+
+`L_003b`: `ldloc.s num4`
+
+`L_003d`: `ldc.i4.8`
+
+`L_003e`: `shl` (0,loc0,loc2,loc4 << 8)
+
+`L_003f`: `ldloc.3` (0,loc0,loc2,loc4 << 8,loc3)
+
+`L_0040`: `or` (0,loc0,loc2,((loc4 << 8) | loc3))
+
+`L_0041`: `conv.u2`
+
+`L_0042`: `stelem.i2` (0)  
+//loc0[loc2]=((loc4 << 8) | loc3)
+
+`L_0043`: `ldc.i4.1`
+
+--------------------------------------------------------------------------------
+
+`L_0044`: `add` (0 + 1)
+
+`L_0045`: `dup` (0,0)  第二次执行的堆栈内容：(1,1)
+
+`L_0046`: `ldloc.0` (0,0,loc0)  第二次执行的堆栈内容：(1,1,loc0)
+
+`L_0047`: `ldlen` (0,0,len(loc0))  第二次执行的堆栈内容：(1,1,len(loc0))
+
+`L_0048`: `conv.i4`
+
+`L_0049`: `blt.s L_0012` (0)  第二次执行的堆栈内容：(1)  
+//if(0<len(loc0)) goto L_0012;          //if(1<len(loc0)) goto L_0012
+
+--------------------------------------------------------------------------------
+
+`L_004b`: `pop`
+
+`L_004c`: `ldloc.0`
+
+`L_004d`: `newobj instance void string::.ctor(char[])`
+
+`L_0052`: `call string string::Intern(string)`
+
+`L_0057`: `ret` //return String.Intern(new string(loc0))                  return string.Intern(new String(loc0))
+
+}
+
+上面代码中有二类导致反编译失效的情形：
+
+1、观察我们用括号列出的堆栈分析，可以看到在 `L_0012` 到 `L_0042` 指令，堆栈一直不为空，有一个值在整个块中从未出过堆栈，此值在 `L_0044` 时执行+1 操作，仍然不出栈，直到 `L_0049` 跳转回 `L_0012`，可以看到这是一个循环，从函数入口跳到 `L_0044` 开始执行，之后每次循环栈底的值被加 1，此值同时用作循环条件。如果我们简单按照注释部分生成 C# 代码，则此循环被忘记了（因为循环变量是用栈作的）。
+
+2、`L_0023`、`L_002e` 两处对栈顶值执行+1 操作，此时栈中保存着对应变量的两份值，稍后栈顶值再次赋给原变量，原变量值改变，但栈中仍保存了一份此变量被改变前的值;这种情况还有一处出现，`L_0038` 处对变量 `loc4` 赋值，赋值后栈中仍保存着原来的 `loc4` 值，紧接着对 `loc3` 赋值时使用了。也就是说，栈在操作中起到了临时变量的作用。我们来看与 `L_0023` 处堆栈操作相关的反编译：
+
+```csharp
+loc1=loc1+1;
+loc4=(loc0[loc2] >> 8) ^ loc1
+```
+
+这样结果就不正确了，考虑到栈起到临时变量的作用，实际上可以写成：
+
+```csharp
+temp1=loc1;
+loc1=temp1+1;
+loc4=(loc0[loc2] >> 8) ^ temp1;
+```
+
+这样三句就与原 IL 程序等价了。我们再看一下 `L_0038` 处的反编译：
+
+```csharp
+loc4=loc3;
+loc3=loc4;
+```
+
+这也是不正确的，考虑栈的临时变量作用，写成：
+
+```csharp
+temp2=loc4;
+loc4=loc3;
+loc3=temp2;
+```
+
+这样就正确了。
+
+大家可以用 `dis#`, `spices.net` 分别反一下 `reflector` 的这个函数，看看他们的反编译能力。(reflector 比较狡猾，它只要发现堆栈有问题就说可以是混淆代码，不给反了，呵呵)
+
+## （二）防止重编译的混淆(结构混淆)
+
+这种混淆我把它称为结构混淆，就是通过使用高级语言没有对应实现的语法结构来混淆，使得反编译后的程序无法通过编译，一般的反编译程序是不会考虑这个问题的，因为它们通常不是为了让大家重新编译的，呵呵。
+
+1、使用 `filter`, `fault` 的异常块，在 C# 中没有对应构造，C++ 中对应也不太明确。
+
+2、引用与非引用参数在 C++ 中是不区分的，不过 C# 与 .net 里是区分的，如：
+
+```cpp
+ref class A
+{
+  void Test(int i);
+  void Test(int% i);
+};
+```
+
+这样的定义虽然可以通过编译，但是却不能被调用：
+
+```cpp
+A^ a=gcnew A();
+a->Test(1);
+```
+
+编译时会说无法决定使用哪个重载。
+
+3、外层类与嵌入类同名，这在 C# 与 C++ 中都是不允许的，如：
+
+```cpp
+class A
+{
+  Class A
+  {
+  }
+}
+```
+
+这样的定义是不合法的。
+
+4、类的完全限定名不能恰好是另一个类的完全限定名的后缀，这在定义时不会出错，但在引用时往往引起错误,如：
+
+```cpp
+Class A
+{
+}
+
+Class B
+{
+  Class A
+  {
+  }
+}
+```
+
+这里的 `A` 成为了 `B.A` 的后缀，如果在类 `B` 中定义一个 `A` 的实例变量,不使用完全限定名的情况下有时会引起混淆，这种情况只出现在没有名空间包含的全局类与这样类的嵌入类之间，所以有一个简单办法解决，就是为所有全局类指定一个名空间，比如 `Root`（dis# 就是这么干的，相信它是考虑到这一点了）,这样上面的类变成 `Root.A` 与 `Root.B.A`，不再是后缀了。
+
+5、引用 assembly 与被引用 assembly 类型重名，`reflector.exe` 与 `reflector.application.dll` 在名称混淆后就有这种情况，因为它们此类实际上互不相干，在运行时不会导致问题，但是反编译时如果我们对这些混淆成相同名称的类还是采用相同的名称，那么编译 `reflector.exe` 能过去，因为它不引用 `reflector.application.dll`(它使用动态装入)，但是编译 `reflector.application.dll` 则不行，因为它要引用前者，要使用里面定义的接口，虽然那些接口定义与它不冲突，但因为引用的不相干的类与它有冲突，会导致编译失败，因为这种冲突只出现互不相干的类之间，所以可以为某一方指定一个不同的名空间。
+
+6、改变访问许可，访问许可看起来像是编译时检查的东西，混淆时如果将某些方法改为私有，似乎并不会影响调用它的方法的执行，但是编译时这是错误的。（事实上我们用 reflection api 调用方法时就不受访问许可的限制，呵呵）
+
+7、重载换名，就是方法重载使用 `.override` 指示一个不同的名称，C# 对此没有支持，mc++ 对此也不支持，只在较新的 c++/cli 中有支持。
+
+8、父类或实现接口名与特性名称相同，这在 C++ 使用类外函数实现语法时会无法编译（因为 C++ 不像 C# 会自动解决交叉引用，而 .net 程序的交叉引用泛滥，类外函数实现是反编译大工程时的必然选择），C# 中倒无此问题。
+
+## 三、针对这些混淆的反编译
+
+### 1、目标高级语言的选择
+
+目标语言的选择主要考虑前面提到的结构混淆的问题，因为重载换名 C# 完全不支持，而其它情形的混淆均可以通过修改让 C++ 通过编译，C++ 在语法结构的丰富性胜过 C#，另一方面，比较了一下 C# 与 C++ 的编译优化，虽然二者在处理流程混淆的无用跳转与来回跳转都很有效，但 C# 在处理变量使用优化时明显不如 C++，优化选项也不 C++ 丰富。综合这两点，C++ 是较好的选择，不过 C++ 语言不够动态，vs.net 的调试与源代码编辑方面都不如 C#，只可惜鱼与熊掌不能兼得。
+
+### 2、反混淆的关键点
+
+在前面介绍混淆方式时大多已经提到了反混淆的方法，这里着重提一下针对 `switch` 混淆的反混淆与利用堆栈混淆的反混淆，其它混淆一般不影响反编译结果的正确性，可以利用 C++ 的优化编译处理，利用异常的混淆在 reflector 中用得较简单，所以我也没有深入探索。
+
+#### 1）反编译与反混淆的基础
+
+这里说的基础是在编译原理之类书籍在讲到编译优化时要说的东东，就是要建立程序流图，因为将基于栈的 IL 反编译成基于变量与表达式的高级语言关键在于保证数据流的正确性，而数据流是在控制流的框架内维持的，所以我们首先需要为每个函数建立其程序流图，流图的每个结点就是一个基本块，基本块内我们只要按前面说堆栈混淆时的那种堆栈分析方法来生成表达式即可（相当于解释执行 IL），在基本块与基本块之间则需要考虑块间暂存在堆栈中的数据的一致性问题。
+
+事实上，程序流图的建立还用于像来回跳转这种优化以及识别分支与循环结构这种高级语言结构上，不过这些都有现成工具来做，我就没有重复做这些事了。
+
+#### 2）用 `switch` 作跳转的反混淆
+
+还是拿前面讲混淆时的例子，反混淆的办法就是分析每个 `switch` 语句的判断表达式与 `switch` 块的入口点，然后在每个跳往 `switch` 块入口的跳转时计算 `switch` 判断表达式的值，将跳转目标直接用对应 `switch` 分支目标代替，这样 C++ 编译器就能优化掉 `switch` 了（因为这样处理后 `switch` 块就是一个空架子了），前面的例子这样处理的结果如下：
+
+```cpp
+int v=0;
+goto IL_01;  改为 switch(0)的分支目标-->goto IL_02;
+
+IL_01:
+  switch(v)
+  {
+    case 0:goto IL_02;
+    case 1:goto IL_03;
+    case 2:goto IL_04;
+    case 3:goto IL_05;
+    default:goto IL_06;
+  }
+
+IL_02:
+  ...做实际工作
+  v=1;
+  goto IL_01;  改为 switch(1)的分支目标-->goto IL_03;
+
+IL_03:
+  ...做实际工作
+  v=2;
+  goto IL_01;  改为 switch(2)的分支目标-->goto IL_04;
+
+IL_04:
+  ...做实际工作
+  v=3;
+  goto IL_01;  改为 switch(3)的分支目标-->goto IL_05;
+
+IL_05:
+  ...做实际工作
+  v=4;
+  goto IL_01;  改为 switch(default)的分支目标-->goto IL_06;
+
+IL_06:
+  ...做实际工作
+  return
+```
+
+#### 3）用堆栈储存值的混淆的反混淆
+
+前面说的时候已经提到了基本办法，就是引入临时变量，相当于为堆栈中暂存的值命名。这里说一下引入临时变量的几种情形：
+
+**1、变量值更新导致原变量值需要临时变量记录**
+
+在编译优化中处理基本块时一般使用一种称为 `DAG` 的结构来描述，在构造 `DAG` 的过程中如果一个结点被指定给某一个变量时，此变量需要与先前关联的结点断开，我们这里所处理的情形与此类似，只需要跟踪变量的赋值，也就是 `stloc`, `starg` 语句即可，当执行赋值语句时，我们检查当前堆栈中是否有引用该变量的值存在，如果有，则对原引用赋一个临时变量。还是以先前堆栈混淆的代码为例：
+
+`L_0020`: `ldloc.1`
+`L_0021`: `dup` (0,loc0,loc2,loc0[loc2],loc0[loc2] & 255,loc1,loc1)
+`L_0022`: `ldc.i4.1`
+`L_0023`: `add` (0,loc0,loc2,loc0[loc2],loc0[loc2] & 255,loc1,loc1+1)
+`L_0024`: `stloc.1` (0,loc0,loc2,loc0[loc2],loc0[loc2] & 255,loc1)
+//loc1=loc1+1
+
+在 `L_0024` 时，我们要对 `loc1` 赋值，此时栈顶值引用了原 `loc1`，所以我们需要对原 `loc1` 引入一个临时变量 `temp1`，不过 `temp1` 这个变量生成 C# 的地方要放到该值进栈的那条 IL 语句也就是 `L_0020` 上，也就是说记录变为:
+
+`L_0020`: `ldloc.1` //temp1=loc1
+`L_0021`: `dup` (0,loc0,loc2,loc0[loc2],loc0[loc2] & 255,temp1,temp1)
+`L_0022`: `ldc.i4.1`
+`L_0023`: `add` (0,loc0,loc2,loc0[loc2],loc0[loc2] & 255,temp1,temp1+1)
+
+
+
+`L_0024`: `stloc.1` `(0,loc0,loc2,loc0[loc2],loc0[loc2] & 255,temp1)`
+
+`//loc1=temp1+1`
+
+这样生成的 C#代码序列为：
+
+`temp1=loc1;`
+
+`loc1=temp1+1;`
+
+因为栈中记录的是`temp1`，对`loc1`的赋值不会影响栈中值的使用。
+
+## 2、过程调用返回值需要使用临时变量暂存
+
+过程调用有可能改变当前函数的上下文，也就是说过程调用语句的顺序可能是不能改变的,不过我们用堆栈分析 `IL` 指令时，栈中的值是用产生该值的表达式表示的（除非该表达式值赋给了临时变量），对于过程调用的返回值，在栈中是用过程调用表示的，仅当值出栈时才会生成 C#语句，由于栈的后进先出特性，将过程调用表达式放在栈中就有可能改变语句的顺序。
+
+如果能够进行全程序优化，过程调用的影响是可以确切知道的，但不做这种优化的话，我们需要保证调用语句的执行顺序，此时就需要为返回值的调用引入临时变量。
+
+## 3、数组访问、指针需要引入临时变量
+
+如果数组元素与指针指向的值进栈后再被修改，则与 `1` 中所说变量被修改情形是一样的，需要对栈中记录的原值引入临时变量。
+
+## 4、块间利用堆栈传值需要为栈中变量引入临时变量名
+
+前面说的 `1`、`2`、`3` 都是基本块内的处理办法，除了块内有用堆栈混淆外，块间也会有这样的混淆：
+
+```
+IL_0041:                ldstr        L"\\xDA8E\\xE290\\xF692\\xF194\\xB796\\xDB98\\xE29A"
+IL_0046:                ldloc        V_1
+IL_004a:                call        System::String^ undefined_type::a(System::String^,System::Int32)
+IL_004f:                br.s        IL_007f
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+IL_0051:                ldstr        L"\\xDA8E\\xE290\\xF692\\xF194\\xB796\\xD098\\xF59A\\xBD9C\\xB89E"
+IL_0056:                ldloc        V_1
+IL_005a:                call        System::String^ undefined_type::a(System::String^,System::Int32)
+IL_005f:                ldarg.0
+IL_0060:                ldfld        Reflector::CodeModel::IAssembly^ Root::T_x32::T_x1 F_x2
+IL_0065:                callvirt        System::String^ Reflector::CodeModel::IAssemblyReference::get_Name()
+IL_006a:                ldstr        L"\\xA88E\\xB190\\xD192\\xEC94"
+IL_006f:                ldloc        V_1
+IL_0073:                call        System::String^ undefined_type::a(System::String^,System::Int32)
+IL_0078:                call        System::String^ System::String::Concat(System::String^,System::String^,System::String^)
+IL_007d:                br.s        IL_007f
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+IL_007f:                call        void System::Windows::Forms::TreeNode::set_Text(System::String^)
+IL_0084:                ldarg.0
+IL_0085:                call        System::Windows::Forms::TreeNodeCollection^ System::Windows::Forms::TreeNode::get_Nodes()
+IL_008a:                newobj        void Root::T_x32::T_x14::.ctor()
+IL_008f:                callvirt        System::Int32 System::Windows::Forms::TreeNodeCollection::Add(System::Windows::Forms::TreeNode^)
+IL_0094:                pop
+IL_0095:                ret
+```
+
+上面这段代码由三个基本块组成，第一块与第二块为第三块的前导，我们看到第一块与第二块执行结束时最后一次函数调用的返回值在堆栈中并未出栈，在第三块开始的调用直接使用了栈中传入的参数（高级语言基于变量与表达式的语法是不会产生这种情况的）。
+
+当我们反编译这段代码时，反编译到第三块时，函数调用的参数用哪个呢？它有两个前导块，各自通过堆栈传入一个值，程序的原意是根据条件不同使用不同的参数，如果我们用高级语言这样的功能，我们会写成：
+
+```
+string s;
+
+if(...)
+{
+  s=xxCall1();
+}
+else
+{
+  s=xxCall2();
+}
+
+xxCall3(s);
+```
+
+也就是说，我们使用一个局部变量来统一两个分支的返回值，然后用这个变量作参数调用 `xxCall3`。这样一类比就比较清楚了，仍然是需要引入临时变量，只不过这次不只是引入临时变量，还需要两个分支块的临时变量是同一个变量。
+
+上面的是一个分支结构的例子，其实块间传值还有一种情形发生在循环时（从这个角度看，循环其实是可以归入分支结构的），这里的一个例子是我们前面用来说明堆栈存值混淆的 `refelctor` 的字符串解密函数，在循环的全过程中栈中有个值一直未出栈，`L_0049`->`L_0012`，前者是一个基本块的结束，后者是一个基本块的开始，所以栈中的值也是在基本块间传递的，按照前面的方法，我们也需要为它引入一个临时变量，这个变量便是循环变量了。
+
+最后我贴出我写的反混淆反编译程序对字符串解密函数反出来的代码（相对原始的代码，呵呵）与经过 C++优化编译后再用 `refelctor` 看到的代码，大家有兴趣可以仔细看一下，这里面有关于堆栈混淆与反混淆的主要信息。
+
+### 反混淆反编译的结果：
+
+```
+System::String^ a(System::String^ A_0,System::Int32 A_1)
+{
+  //temp variables , should be optimized by C++/cli compiler.
+  array<System::Char>^ Temp_0 = nullptr;
+  System::Int32 Temp_1 = 0;
+  System::Int32 Temp_2 = 0;
+  System::Int32 Temp_3 = 0;
+  System::Byte Temp_4 = 0;
+  System::String^ Temp_5 = nullptr;
+  System::String^ Temp_6 = nullptr;
+  System::Int32 Temp_7 = 0;
+  System::Int32 Temp_8 = 0;
+  System::Int32 Temp_9 = 0;
+  //local variables.
+  array<System::Char>^ V_0 = nullptr;
+  System::Int32 V_1 = 0;
+  System::Int32 V_2 = 0;
+  System::Byte V_3 = 0;
+  System::Byte V_4 = 0;
+  //method body -------
+  IL_0000:                                                    //ldarg.0
+  IL_0001:                Temp_0=A_0->ToCharArray();                           //callvirt        array<System::Char>^ System::String::ToCharArray()
+  IL_0006:                V_0=Temp_0;                                  //stloc.0
+  IL_0007:                                                    //ldc.i4        0x3197fc8c
+  IL_000c:                                                    //ldarg.1
+  IL_000d:                                                    //add
+  IL_000e:                V_1=(832044172 + A_1);                          //stloc.1
+  IL_000f:                                                    //ldc.i4.0
+  IL_0010:                                                    //dup
+  IL_0011:                                                    //ldc.i4.1
+  IL_0012:                Temp_8=0;goto IL_0047;                          //blt.s        IL_0047
+  IL_0014:                                                    //dup
+  IL_0015:                Temp_9=Temp_8;                              //stloc.2
+  IL_0016:                                                    //ldloc.0
+  IL_0017:                                                    //ldloc.2
+  IL_0018:                                                    //ldloc.0
+  IL_0019:                                                    //ldloc.2
+  IL_001a:                                                    //ldelem.i2
+  IL_001b:                                                    //dup
+  IL_001c:                                                    //ldc.i4        0xff
+  IL_0021:                                                    //and
+  IL_0022:                Temp_2=V_1;                              //ldloc.1
+  IL_0023:                                                    //dup
+  IL_0024:                                                    //ldc.i4.1
+  IL_0025:                                                    //add
+  IL_0026:                Temp_3=(Temp_2 + 1);                        //stloc.1
+  IL_0027:                                                    //xor
+  IL_0028:                                                    //conv.u1
+  IL_0029:                V_3=safe_cast<System::Byte>(((V_0[Temp_9] & (System::Char)255) ^ Temp_2));//stloc.3
+  IL_002a:                                                    //dup
+  IL_002b:                                                    //ldc.i4.8
+  IL_002c:                                                    //shr
+  IL_002d:                                                    //ldloc.1
+  IL_002e:                                                    //dup
+  IL_002f:                                                    //ldc.i4.1
+  IL_0030:                                                    //add
+  IL_0031:                V_1=(Temp_3 + 1);                           //stloc.1
+  IL_0032:                                                    //xor
+  IL_0033:                                                    //conv.u1
+}
+```
+
+
+
+```
+IL_0034:         Temp_4=safe_cast<System::Byte>(((V_0[Temp_9] >> 8) ^ safe_cast<System::Char>(Temp_3)));//stloc.s        V_4
+IL_0036:                                                                                     //pop
+IL_0037:                                                                                     //ldloc.s        V_4
+IL_0039:                                                                                     //ldloc.3
+IL_003a:         V_4=V_3;                                                                      //stloc.s        V_4
+IL_003c:         V_3=Temp_4;                                                                   //stloc.3
+IL_003d:                                                                                     //ldloc.s        V_4
+IL_003f:                                                                                     //ldc.i4.8
+IL_0040:                                                                                     //shl
+IL_0041:                                                                                     //ldloc.3
+IL_0042:                                                                                     //or
+IL_0043:                                                                                     //conv.u2
+IL_0044:         V_0[Temp_9]=safe_cast<System::Char>(safe_cast<System::UInt16>(((V_4 << 8) | V_3)));//stelem.i2
+IL_0045:                                                                                     //ldc.i4.1
+IL_0046:         Temp_8=(Temp_9 + 1);                                                         //add
+IL_0047:         /*warning ! semantic stack doesn't empty at joint !;*/    //dup
+IL_0048:                                                                                     //ldloc.0
+IL_0049:         Temp_1=V_0->Length;                                                           //ldlen
+IL_004a:                                                                                     //conv.i4
+IL_004b:         if(Temp_8<Temp_1)goto IL_0014;                                                //blt.s        IL_0014
+IL_004d:                                                                                     //pop
+IL_004e:                                                                                     //ldloc.0
+IL_004f:         Temp_5=gcnew System::String(V_0);                                            //newobj        void System::String::.ctor(array<System::Char>^)
+IL_0054:         Temp_6=System::String::Intern(Temp_5);                                       //call        System::String^ System::String::Intern(System::String^)
+IL_0059:         return Temp_6;                                                                //ret
+}
+```
+
+经过 C++ 优化编译后再用 `reflector` 看到的 C++/cli 代码：
+
+```cpp
+String^ a(String^ A_0, int A_1)
+{
+    array<wchar_t>^ chArray1 = A_0->ToCharArray();
+    int num2 = (A_1 + 832044172);
+    int num1 = 0;
+    if ((0 < chArray1->Length))
+    {
+        do
+        {
+            int num4 = num2;
+            int num3 = (num2 + 1);
+            num2 = (num3 + 1);
+            wchar_t ch1 = chArray1[num1];
+            chArray1[num1] = ((wchar_t) (((unsigned short) ((((unsigned char) ch1) << 8) ^ (((unsigned char) num4) << 8))) | ((unsigned short) (((unsigned char) (ch1 >> 8)) ^ ((unsigned char) num3)))));
+            num1++;
+        }
+        while((num1 < chArray1->Length));
+    }
+    return String::Intern(gcnew String(chArray1));
+}
+```
+
+C# 代码：
+
+```csharp
+internal static string a(string A_0, int A_1)
+{
+    char[] chArray1 = A_0.ToCharArray();
+    int num2 = A_1 + 0x3197fc8c;
+    int num1 = 0;
+    if (0 < chArray1.Length)
+    {
+        do
+        {
+            int num4 = num2;
+            int num3 = num2 + 1;
+            num2 = num3 + 1;
+            char ch1 = chArray1[num1];
+            chArray1[num1] = (char) (((ushort) ((((byte) ch1) << 8) ^ (((byte) num4) << 8))) | ((ushort) (((byte) (ch1 >> 8)) ^ ((byte) num3))));
+            num1++;
+        }
+        while (num1 < chArray1.Length);
+    }
+    return string.Intern(new string(chArray1));
+}
+```
+
+## 四、反编译成高级语言后...
+
+反编译成可编译的高级语言的一个用处是利用高级语言编译器的优化功能处理混淆，另外还有一个便是调试，对于 .net 程序，还是在有源码的情况下用 `vs.net` 调试来得直观，我写的反编译工具输出的源码是高级语言与 IL 对应的，主要是考虑到反编译如果出错，便于人工修改。
+
+现在的程序还只是个初步的程序，对于 COM，generic 的支持还不行，当混淆程序使用了结构混淆时生成的代码会出现编译错误，类型转换与推导有时也会出错，还需要人工作一些调整，就 `reflector` 的反编译来说，`reflector.exe` 反编译后只有两处类型转换错误了，但 `reflector.application.dll` 则有数十处错误（其中主要的错误都源于引用参数与非引用参数的重载混淆所致）。
+
+最终我重新编译通过了 `reflector.exe`,`reflector.application.dll`，但是运行时刚显示主界面就会异常退出，跟踪调试时发现是使用 `IOleObject::SetClientSite` 时出错了，现在原因还没搞清楚，汗。
+
+附件是我写的反名称混淆程序与反编译程序（均是未加壳未混淆的，用 `reflector` 可直接阅读代码的）。
+
+反编译程序的用法如下：
+
+1. 用 `ildasm` 反汇编 .net 程序并保存成 IL 文件;
+2. 在命令行执行反编译程序 `test.exe`:
+   ```
+   test 目标文件.il
+   ```
+   此时在 `test.exe` 所在目录生成一个子目录 `il2cpp`，其下是反编译出来的 c++ 源文件;
+3. 用 `vs.net 2005` 新建立一个 C++/cli 项目（视目标程序是 console 还是 winform 选不同类型），若是 winform 生成后删除主 form 文件，将 2 中生成的文件拷到项目源文件目录，再用“添加现有项”将这些文件添加项目中，并将所有 `*.cpp` 文件的预编译头设为“不使用预编译头”;
+4. 在项目主程序 cpp 文件添加包含头文件
+   ```cpp
+   #include "global_xref.h"
+   ```
+   在 `main` 函数里调用原程序对应的入口函数调用;
+5. 编译、改错、再编译直到通过，呵呵;
+6. 发现问题请发信息至 dreaman_163@163.com，此程序目前还相当初级，需要完善。
+
+--------------------------------------------------------------------------------------------------
+
+谢谢阅读，呵呵
+
+2006.12.31
+
+可能我表达的不太清楚，我主要是想利用高级语言编译器的优化能力来实现反混淆，因为要利用高级语言编译器，所以首先得将 IL 反编译成高级语言语法。
+
+switch 的处理主要是考虑用 switch 跳转表作 goto 的这种情况，`reflector` 里就有很多这样的，我在文中给出的变换就是将这种 goto 直接还原，之后的工作由 C++ 编译器来优化。
+
+后面说的程序流图不是有许多现成工具会生成，而是说用程序流图来识别循环与来回跳转的优化是多数编译器的基本优化功能。
+
+反编译工具的主要思路是将 IL 等价变换为高级语言，我主要是考虑到现有的反编译工具多数不能正确处理基于堆栈的混淆，重点也是解决这个问题，至于来回跳转那些混淆，编译优化能很好处理，所以我在反编译时不处理。
+
+反编译工具的工作过程：
+
+1. 对 IL 文件进行词法、语法分析（我用的 `gppg` 语法分析程序生成器，你用 `flex+bison` 也可以，这个看你用的编程语言了），提取名空间、类、方法、方法实现指令的信息；
+2. 建立类之间的依赖关系图（因为我要生成的 C++，必须自己解决交叉引用问题，若是 C# 则不需要建立这个）；
+3. 对方法实现部分建立程序流图，异常块表；
+4. 对流图的每个基本块进行模拟 IL 执行（主要是堆栈的操作），生成计算表达式，临时变量，异常块间跳转的 goto 目标调整，用 switch 跳转表实现的 goto 的调整等；
+5. 将基本块间堆栈传递的数据记录为临时变量；
+6. 输出最终 C++ 代码。
+
 这个程序目前写得比较乱，现在总代码量约 16000 行，还是比较麻烦的。

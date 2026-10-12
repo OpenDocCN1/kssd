@@ -1,158 +1,278 @@
 
-
 # Security setup II
 
 > 原文：[`www.pediy.com/kssd/pediy04/kanxue167.htm`](https://www.pediy.com/kssd/pediy04/kanxue167.htm)
 
-小弟天天玩狗，结果被疯狗咬得全身是伤，这次换一点口味了，来一个 security setup II 的爆破，呵呵，没办法啦，习惯用暴力啊。   
-  
-好，我们先分析它是不是加壳的，分析的工具就不用我说了吧（废话），结果它是用 UPX 来加壳的（听说是很温柔的壳呵，我的 MM 有那么温柔就好了），我们先用 procdump32 把它脱掉（不是脱衣服啦，别想歪啦）。脱掉后你发现它不能运行，呵呵，它有 CRC 校检，当然是不能运行啦。好，我们用 TRW2000 跟踪它，看它的 CRC 在什么地方：   
-  
-:0045159F E8F822FBFF              call 0040389C   
-:004515A4 8B0DF0344500            mov ecx, dword ptr \[004534F0\]   
-:004515AA A148344500              mov eax, dword ptr \[00453448\]   
-:004515AF 8B00                    mov eax, dword ptr \[eax\]   
-:004515B1 8B15ACCA4400            mov edx, dword ptr \[0044CAAC\]   
-:004515B7 E83CB1FDFF              call 0042C6F8  <=====F8 进入,为什么要进入?我倒....当然是用 F10 带过就 S La S La 啦   
-:004515BC 8B0D44334500            mov ecx, dword ptr \[00453344\]   
-:004515C2 A148344500              mov eax, dword ptr \[00453448\]   
-  
-进入后继续 F10:   
-  
-:0042C717 33C0                    xor eax, eax   
-:0042C719 55                      push ebp   
-:0042C71A 683BC74200              push 0042C73B   
-:0042C71F 64FF30                  push dword ptr fs:\[eax\]   
-:0042C722 648920                  mov dword ptr fs:\[eax\], esp   
-:0042C725 8BCB                    mov ecx, ebx   
-:0042C727 33D2                    xor edx, edx   
-:0042C729 8B45F8                  mov eax, dword ptr \[ebp\-08\]   
-:0042C72C 8B30                    mov esi, dword ptr \[eax\]   
-:0042C72E FF5624                  call \[esi+24\]    <=====F8 进入   
-:0042C731 33C0                    xor eax, eax   
-:0042C733 5A                      pop edx   
-  
-GO.....   
-  
-:00427999 68CD794200              push 004279CD   
-:0042799E 64FF30                  push dword ptr fs:\[eax\]   
-:004279A1 648920                  mov dword ptr fs:\[eax\], esp   
-:004279A4 8B45FC                  mov eax, dword ptr \[ebp\-04\]   
-:004279A7 6683B8CE01000000        cmp word ptr \[eax+000001CE\], 0000   
-:004279AF 7412                    je 004279C3   
-:004279B1 8B5DFC                  mov ebx, dword ptr \[ebp\-04\]   
-:004279B4 8B55FC                  mov edx, dword ptr \[ebp\-04\]   
-:004279B7 8B83D0010000            mov eax, dword ptr \[ebx+000001D0\]   
-:004279BD FF93CC010000            call dword ptr \[ebx+000001CC\]  <=====F8 进入   
-  
-F10.....停:   
-  
-:0044D436 3B05EC474500            cmp eax, dword ptr \[004547EC\]   
-:0044D43C 741A                    je 0044D458   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:0044D448(C)   
-|   
-:0044D43E 813DEC474500E7030000    cmp dword ptr \[004547EC\], 000003E7   
-:0044D448 75F4                    jne 0044D43E    <=====当你走到这里的时候,你会发现你一直在这里循环,这里就是程序让我们 S 翘翘的地方,所以要把它改为 90 90   
-:0044D44A EB0C                    jmp 0044D458   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:0044D42F(C), :0044D456(C)   
-|   
-:0044D44C 813DEC474500E7030000    cmp dword ptr \[004547EC\], 000003E7   
-:0044D456 75F4                    jne 0044D44C   
-  
-好了,下面我们要去掉它的时间限制,通常是把日期改大，结果是运行后就会有一个警告框说你是非法使用者呵：   
-  
-:0044D37D DB7DE8                  fstp tbyte ptr \[ebp\-18\]   
-:0044D380 9B                      wait   
-:0044D381 E836AAFBFF              call 00407DBC  <=====调用日期比较的 CALL   
-:0044D386 DB6DE8                  fld tbyte ptr \[ebp\-18\]   
-:0044D389 DED9                    fcompp  <=====呵呵,这些都是 80X87 指令,我也不是很了解啊,反正是比较日期就是了   
-:0044D38B DFE0                    fstsw ax   
-:0044D38D 9E                      sahf   
-:0044D38E 7325                    jnb 0044D3B5  <====如果过期就不跳,你就 S La S La 的了,当然是改为 JMPS 0044D4B5 啦   
-:0044D390 6A00                    push 00000000   
-:0044D392 8D4DF8                  lea ecx, dword ptr \[ebp\-08\]   
-:0044D395 BA0A000000              mov edx, 0000000A   
-:0044D39A B804D64400              mov eax, 0044D604   
-:0044D39F E8DC74FFFF              call 00444880   
-:0044D3A4 8B45F8                  mov eax, dword ptr \[ebp\-08\]   
-:0044D3A7 668B0D5CD64400          mov cx, word ptr \[0044D65C\]   
-:0044D3AE 33D2                    xor edx, edx   
-:0044D3B0 E8A394FEFF              call 00436858  <====出错信息框   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:0044D350(C), :0044D38E(C)   
-|   
-:0044D3B5 33C0                    xor eax, eax   
-  
-  
-破完了吗?还没有,如果没有注册,在运行时会有一个延迟窗口,你很讨厌它是吗?呵呵,让我们来收拾它,我们用 REGMON 监视软件,发现它多次查询 SOFTWARE\\IDP\\REG\\SSU20 这个注册键,看名称就知道它和注册有关的了,我们用 W32DASM 反汇编程序,在串式参考中找到 SOFTWARE\\IDP\\REG\\SSU20 这个字符串,然后找到下面的位置:   
-  
-:0044592C 8D45E8                  lea eax, dword ptr \[ebp\-18\]   
-:0044592F 50                      push eax   
-  
-\* Possible StringData Ref from Data Obj ->"30"   
-                                  |   
-:00445930 B99C614400              mov ecx, 0044619C   
-  
-\* Possible StringData Ref from Data Obj ->"SOFTWARE\\IDP\\REG\\SSU20"   
-                                  |   
-:00445935 BAA8614400              mov edx, 004461A8  <====我们可以在这里设断点   
-:0044593A B802000080              mov eax, 80000002   
-:0044593F E87CEEFFFF              call 004447C0   
-:00445944 837DE800                cmp dword ptr \[ebp\-18\], 00000000   
-:00445948 752A                    jne 00445974   
-:0044594A 8D4DE8                  lea ecx, dword ptr \[ebp\-18\]   
-:0044594D BA0A000000              mov edx, 0000000A   
-  
-\* Possible StringData Ref from Data Obj ->"\_DXOMCY^OXON"   
-  
-程序中断后不要清除断点,然后一直按 F10,中间会有一个 CALL 被再次中断,直到看到下面的代码:   
-  
-:00450547 E89C95FEFF              call 00439AE8   
-:0045054C 5A                      pop edx   
-:0045054D E82295FEFF              call 00439A74   
-:00450552 E89953FFFF              call 004458F0  <=====关键 CALL   
-:00450557 84C0                    test al, al    <=====未注册时不跳,所以这里可以改为 mov al,1   
-:00450559 0F85B5000000            jne 00450614    <=====这里改为 JMPS 00450614   
-:0045055F 8D4DF8                  lea ecx, dword ptr \[ebp\-08\]   
-:00450562 BA24000000              mov edx, 00000024   
-:00450567 B8200A4500              mov eax, 00450A20   
-:0045056C E80F43FFFF              call 00444880   
-:00450571 8B45F8                  mov eax, dword ptr \[ebp\-08\]   
-:00450574 E813E9FFFF              call 0044EE8C   
-:00450579 8D4DF8                  lea ecx, dword ptr \[ebp\-08\]   
-:0045057C BA24000000              mov edx, 00000024   
-:00450581 B8200A4500              mov eax, 00450A20   
-:00450586 E8F542FFFF              call 00444880   
-:0045058B 8D45F8                  lea eax, dword ptr \[ebp\-08\]   
-:0045058E BA480A4500              mov edx, 00450A48   
-:00450593 E83435FBFF              call 00403ACC   
-:00450598 8B55F8                  mov edx, dword ptr \[ebp\-08\]   
-:0045059B 8B8624050000            mov eax, dword ptr \[esi+00000524\]   
-:004505A1 E81AC1FCFF              call 0041C6C0   
-:004505A6 8B0D48344500            mov ecx, dword ptr \[00453448\]   
-:004505AC 8B09                    mov ecx, dword ptr \[ecx\]   
-:004505AE B201                    mov dl, 01   
-:004505B0 A1F0C54400              mov eax, dword ptr \[0044C5F0\]   
-:004505B5 E8EA72FDFF              call 004278A4   
-:004505BA 8B15EC324500            mov edx, dword ptr \[004532EC\]   
-:004505C0 8902                    mov dword ptr \[edx\], eax   
-:004505C2 33C0                    xor eax, eax   
-:004505C4 55                      push ebp   
-:004505C5 680D064500              push 0045060D   
-:004505CA 64FF30                  push dword ptr fs:\[eax\]   
-:004505CD 648920                  mov dword ptr fs:\[eax\], esp   
-:004505D0 A1EC324500              mov eax, dword ptr \[004532EC\]   
-:004505D5 8B00                    mov eax, dword ptr \[eax\]   
-:004505D7 E870A3FDFF              call 0042A94C  <=====用 F10 带过时,延迟画面就出现了,所以往上看什么地方能跳过这里   
-:004505DC A1EC324500              mov eax, dword ptr \[004532EC\]   
-:004505E1 8B00                    mov eax, dword ptr \[eax\]   
-:004505E3 B201                    mov dl, 01   
-:004505E5 E8767DFDFF              call 00428360   
-  
-  
-其实如果你想做出注册文件,可以跟踪并分析它的算法,小弟我一看到算法就头痛,所以只能用点暴力了,呵呵  4dd466d0e1e0cc123afbe504da2462ca
+小弟天天玩狗，结果被疯狗咬得全身是伤，这次换一点口味了，来一个 security setup II 的爆破，呵呵，没办法啦，习惯用暴力啊。
+
+好，我们先分析它是不是加壳的，分析的工具就不用我说了吧（废话），结果它是用 `UPX` 来加壳的（听说是很温柔的壳呵，我的 `MM` 有那么温柔就好了），我们先用 `procdump32` 把它脱掉（不是脱衣服啦，别想歪啦）。脱掉后你发现它不能运行，呵呵，它有 `CRC` 校检，当然是不能运行啦。好，我们用 `TRW2000` 跟踪它，看它的 `CRC` 在什么地方：
+
+```
+:0045159F E8F822FBFF                  call 0040389C
+
+:004515A4 8B0DF0344500                mov ecx, dword ptr [004534F0]
+
+:004515AA A148344500                  mov eax, dword ptr [00453448]
+
+:004515AF 8B00                        mov eax, dword ptr [eax]
+
+:004515B1 8B15ACCA4400                mov edx, dword ptr [0044CAAC]
+
+:004515B7 E83CB1FDFF                  call 0042C6F8  <=====F8 进入,为什么要进入?我倒....当然是用 F10 带过就 S La S La 啦
+
+:004515BC 8B0D44334500                mov ecx, dword ptr [00453344]
+
+:004515C2 A148344500                  mov eax, dword ptr [00453448]
+```
+
+进入后继续 `F10`:
+
+```
+:0042C717 33C0                        xor eax, eax
+
+:0042C719 55                          push ebp
+
+:0042C71A 683BC74200                  push 0042C73B
+
+:0042C71F 64FF30                      push dword ptr fs:[eax]
+
+:0042C722 648920                      mov dword ptr fs:[eax], esp
+
+:0042C725 8BCB                        mov ecx, ebx
+
+:0042C727 33D2                        xor edx, edx
+
+:0042C729 8B45F8                      mov eax, dword ptr [ebp-08]
+
+:0042C72C 8B30                        mov esi, dword ptr [eax]
+
+:0042C72E FF5624                      call [esi+24]    <=====F8 进入
+
+:0042C731 33C0                        xor eax, eax
+
+:0042C733 5A                          pop edx
+```
+
+GO.....
+
+```
+:00427999 68CD794200                  push 004279CD
+
+:0042799E 64FF30                      push dword ptr fs:[eax]
+
+:004279A1 648920                      mov dword ptr fs:[eax], esp
+
+:004279A4 8B45FC                      mov eax, dword ptr [ebp-04]
+
+:004279A7 6683B8CE01000000            cmp word ptr [eax+000001CE], 0000
+
+:004279AF 7412                        je 004279C3
+
+:004279B1 8B5DFC                      mov ebx, dword ptr [ebp-04]
+
+:004279B4 8B55FC                      mov edx, dword ptr [ebp-04]
+
+:004279B7 8B83D0010000                mov eax, dword ptr [ebx+000001D0]
+
+:004279BD FF93CC010000                call dword ptr [ebx+000001CC]  <=====F8 进入
+```
+
+`F10`.....停:
+
+```
+:0044D436 3B05EC474500                cmp eax, dword ptr [004547EC]
+
+:0044D43C 741A                        je 0044D458
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0044D448(C)
+
+|
+
+:0044D43E 813DEC474500E7030000        cmp dword ptr [004547EC], 000003E7
+
+:0044D448 75F4                        jne 0044D43E    <=====当你走到这里的时候,你会发现你一直在这里循环,这里就是程序让我们 S 翘翘的地方,所以要把它改为 90 90
+
+:0044D44A EB0C                        jmp 0044D458
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:0044D42F(C), :0044D456(C)
+
+|
+
+:0044D44C 813DEC474500E7030000        cmp dword ptr [004547EC], 000003E7
+
+:0044D456 75F4                        jne 0044D44C
+```
+
+好了,下面我们要去掉它的时间限制,通常是把日期改大，结果是运行后就会有一个警告框说你是非法使用者呵：
+
+```
+:0044D37D DB7DE8                      fstp tbyte ptr [ebp-18]
+
+:0044D380 9B                          wait
+
+:0044D381 E836AAFBFF                  call 00407DBC  <=====调用日期比较的 CALL
+
+:0044D386 DB6DE8                      fld tbyte ptr [ebp-18]
+
+:0044D389 DED9                        fcompp  <=====呵呵,这些都是 80X87 指令,我也不是很了解啊,反正是比较日期就是了
+
+:0044D38B DFE0                        fstsw ax
+
+:0044D38D 9E                          sahf
+
+:0044D38E 7325                        jnb 0044D3B5  <====如果过期就不跳,你就 S La S La 的了,当然是改为 JMPS 0044D4B5 啦
+
+:0044D390 6A00                        push 00000000
+
+:0044D392 8D4DF8                      lea ecx, dword ptr [ebp-08]
+
+:0044D395 BA0A000000                  mov edx, 0000000A
+
+:0044D39A B804D64400                  mov eax, 0044D604
+
+:0044D39F E8DC74FFFF                  call 00444880
+
+:0044D3A4 8B45F8                      mov eax, dword ptr [ebp-08]
+
+:0044D3A7 668B0D5CD64400               mov cx, word ptr [0044D65C]
+
+:0044D3AE 33D2                        xor edx, edx
+
+:0044D3B0 E8A394FEFF                  call 00436858  <====出错信息框
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:0044D350(C), :0044D38E(C)
+
+|
+
+:0044D3B5 33C0                        xor eax, eax
+```
+
+破完了吗?还没有,如果没有注册,在运行时会有一个延迟窗口,你很讨厌它是吗?呵呵,让我们来收拾它,我们用 `REGMON` 监视软件,发现它多次查询 `SOFTWARE\IDP\REG\SSU20` 这个注册键,看名称就知道它和注册有关的了,我们用 `W32DASM` 反汇编程序,在串式参考中找到 `SOFTWARE\IDP\REG\SSU20` 这个字符串,然后找到下面的位置:
+
+```
+:0044592C 8D45E8                      lea eax, dword ptr [ebp-18]
+
+:0044592F 50                          push eax
+
+* Possible StringData Ref from Data Obj ->"30"
+
+                                      |
+
+:00445930 B99C614400                  mov ecx, 0044619C
+
+* Possible StringData Ref from Data Obj ->"SOFTWARE\IDP\REG\SSU20"
+
+                                      |
+
+:00445935 BAA8614400                  mov edx, 004461A8  <====我们可以在这里设断点
+
+:0044593A B802000080                  mov eax, 80000002
+
+:0044593F E87CEEFFFF                  call 004447C0
+
+:00445944 837DE800                    cmp dword ptr [ebp-18], 00000000
+
+:00445948 752A                        jne 00445974
+
+:0044594A 8D4DE8                      lea ecx, dword ptr [ebp-18]
+
+:0044594D BA0A000000                  mov edx, 0000000A
+
+* Possible StringData Ref from Data Obj ->"\_DXOMCY^OXON"
+```
+
+程序中断后不要清除断点,然后一直按 `F10`,中间会有一个 `CALL` 被再次中断,直到看到下面的代码:
+
+```
+:00450547 E89C95FEFF                  call 00439AE8
+
+:0045054C 5A                          pop edx
+
+:0045054D E82295FEFF                  call 00439A74
+
+:00450552 E89953FFFF                  call 004458F0  <=====关键 CALL
+
+:00450557 84C0                        test al, al    <=====未注册时不跳,所以这里可以改为 mov al,1
+
+:00450559 0F85B5000000                jne 00450614    <=====这里改为 JMPS 00450614
+
+:0045055F 8D4DF8                      lea ecx, dword ptr [ebp-08]
+
+:00450562 BA24000000                  mov edx, 00000024
+
+:00450567 B8200A4500                  mov eax, 00450A20
+
+:0045056C E80F43FFFF                  call 00444880
+
+:00450571 8B45F8                      mov eax, dword ptr [ebp-08]
+
+:00450574 E813E9FFFF                  call 0044EE8C
+
+:00450579 8D4DF8                      lea ecx, dword ptr [ebp-08]
+
+:0045057C BA24000000                  mov edx, 00000024
+
+:00450581 B8200A4500                  mov eax, 00450A20
+
+:00450586 E8F542FFFF                  call 00444880
+
+:0045058B 8D45F8                      lea eax, dword ptr [ebp-08]
+
+:0045058E BA480A4500                  mov edx, 00450A48
+
+:00450593 E83435FBFF                  call 00403ACC
+
+:00450598 8B55F8                      mov edx, dword ptr [ebp-08]
+
+:0045059B 8B8624050000                mov eax, dword ptr [esi+00000524]
+
+:004505A1 E81AC1FCFF                  call 0041C6C0
+
+:004505A6 8B0D48344500                mov ecx, dword ptr [00453448]
+
+:004505AC 8B09                        mov ecx, dword ptr [ecx]
+
+:004505AE B201                        mov dl, 01
+
+:004505B0 A1F0C54400                  mov eax, dword ptr [0044C5F0]
+
+:004505B5 E8EA72FDFF                  call 004278A4
+
+:004505BA 8B15EC324500                mov edx, dword ptr [004532EC]
+
+:004505C0 8902                        mov dword ptr [edx], eax
+
+:004505C2 33C0                        xor eax, eax
+
+:004505C4 55                          push ebp
+
+:004505C5 680D064500                  push 0045060D
+
+:004505CA 64FF30                      push dword ptr fs:[eax]
+
+:004505CD 648920                      mov dword ptr fs:[eax], esp
+
+:004505D0 A1EC324500                  mov eax, dword ptr [004532EC]
+
+:004505D5 8B00                        mov eax, dword ptr [eax]
+
+:004505D7 E870A3FDFF                  call 0042A94C  <=====用 F10 带过时,延迟画面就出现了,所以往上看什么地方能跳过这里
+
+:004505DC A1EC324500                  mov eax, dword ptr [004532EC]
+
+:004505E1 8B00                        mov eax, dword ptr [eax]
+
+:004505E3 B201                        mov dl, 01
+
+:004505E5 E8767DFDFF                  call 00428360
+```
+
+
+
+其实如果你想做出注册文件，可以跟踪并分析它的算法，小弟我一看到算法就头痛，所以只能用点暴力了，呵呵 `4dd466d0e1e0cc123afbe504da2462ca`

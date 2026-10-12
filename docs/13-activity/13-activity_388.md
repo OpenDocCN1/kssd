@@ -1,13 +1,9 @@
 
-
 # 第二阶段第一题 VM 代码还原，附虚拟机代码翻译工具
 
 > 原文：[`www.pediy.com/kssd/pediy11/123978.html`](https://www.pediy.com/kssd/pediy11/123978.html)
 
-虚拟机命令列表：  
-  
-
-代码:
+虚拟机命令列表：
 
 ```
 0040D8D0  00401380        00 = vm\_ret
@@ -40,16 +36,19 @@
 0040D93C  00401E50        1B = vm\_shlf vm\_tmp\[0\],vm\_tmp\[1\]    set vm\_ELF
 0040D940  00401F00        1C = nop
 0040D944  00401F00        1D = nop
-
 ```
 
-  
-VM ENGINE 1:  
-ENTRY: 40111E  
-VM CMD: 40CDD0  
-VM CMD len: 4A0  
-  
+VM ENGINE 1:
+
+ENTRY: `40111E`
+
+VM CMD: `40CDD0`
+
+VM CMD len: `4A0`
+
 代码:
+
+
 
 ```
 0040CDD0  01 00 00 00 00 00 00 00 00 00 00 00  vm\_mov vm\_ELF,ELF
@@ -167,13 +166,11 @@ pop vm\_ret\_addr
 0040D250  02 00 00 00 00 00 00 00 00 00 00 00  vm\_mov ELF,vm\_ELF
 0040D260  00 00 00 00 00 00 00 00 00 00 00 00  vm\_ret
 ret
-
 ```
 
-总结汇编代码为：  
-  
-代码:
+总结汇编代码为：
 
+代码:
 ```
 push esi
 xor edx,edx
@@ -200,15 +197,20 @@ jl 0040CEB0
 pop esi
 pop vm\_ret\_addr
 ret
-
 ```
 
-VM ENGINE 2:  
-ENTRY: 401126  
-VM CMD: 40D948  
-VM CMD len: 240  
-  
+VM ENGINE 2:
+
+ENTRY: 401126
+
+VM CMD: 40D948
+
+VM CMD len: 240
+
 代码:
+```
+
+
 
 ```
 0040D948  01 00 00 00 00 00 00 00 00 00 00 00   vm\_mov vm\_ELF,ELF
@@ -219,21 +221,18 @@ VM CMD len: 240
 0040D998  04 00 00 00 01 00 00 00 02 00 00 00   vm\_mov vm\_tmp\[1\],ESI
 0040D9A8  07 00 00 00 00 00 00 00 01 00 00 00   vm\_mov \[vm\_tmp\[0\]\],vm\_tmp\[1\]
 push esi
-
 0040D9B8  04 00 00 00 00 00 00 00 03 00 00 00   vm\_mov vm\_tmp\[0\],EBP
 0040D9C8  06 00 00 00 01 00 00 00 30 00 00 00   vm\_mov vm\_tmp\[1\],00000030
 0040D9D8  0A 00 00 00 00 00 00 00 00 00 00 00   vm\_sub vm\_tmp\[0\],vm\_tmp\[1\]
 0040D9E8  08 00 00 00 00 00 00 00 00 00 00 00   vm\_mov vm\_tmp\[0\],\[vm\_tmp\[0\]\]
 0040D9F8  03 00 00 00 02 00 00 00 00 00 00 00   vm\_mov ESI,vm\_tmp\[0\]
 mov esi,\[ebp-30\]
-
 0040DA08  04 00 00 00 00 00 00 00 02 00 00 00   vm\_mov vm\_tmp\[0\],ESI
 0040DA18  06 00 00 00 01 00 00 00 08 00 00 00   vm\_mov vm\_tmp\[1\],00000008
 0040DA28  09 00 00 00 00 00 00 00 00 00 00 00   vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
 0040DA38  08 00 00 00 00 00 00 00 00 00 00 00   vm\_mov vm\_tmp\[0\],\[vm\_tmp\[0\]\]
 0040DA48  03 00 00 00 08 00 00 00 00 00 00 00   vm\_mov EAX,vm\_tmp\[0\]
 mov eax,\[esi+8\]
-
 0040DA58  04 00 00 00 00 00 00 00 04 00 00 00   vm\_mov vm\_tmp\[0\],ESP
 0040DA68  06 00 00 00 01 00 00 00 FC FF FF FF   vm\_mov vm\_tmp\[1\],FFFFFFFC
 0040DA78  09 00 00 00 00 00 00 00 00 00 00 00   vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
@@ -241,17 +240,14 @@ mov eax,\[esi+8\]
 0040DA98  04 00 00 00 01 00 00 00 08 00 00 00   vm\_mov vm\_tmp\[1\],EAX
 0040DAA8  07 00 00 00 00 00 00 00 01 00 00 00   vm\_mov \[vm\_tmp\[0\]\],vm\_tmp\[1\]
 push eax
-
 0040DAB8  04 00 00 00 00 00 00 00 02 00 00 00   vm\_mov vm\_tmp\[0\],ESI
 0040DAC8  03 00 00 00 08 00 00 00 00 00 00 00   vm\_mov EAX,vm\_tmp\[0\]
 mov eax,esi
-
 0040DAD8  04 00 00 00 00 00 00 00 08 00 00 00   vm\_mov vm\_tmp\[0\],EAX
 0040DAE8  06 00 00 00 01 00 00 00 10 00 00 00   vm\_mov vm\_tmp\[1\],00000010
 0040DAF8  0F 00 00 00 00 00 00 00 00 00 00 00   vm\_addf vm\_tmp\[0\],vm\_tmp\[1\]
 0040DB08  03 00 00 00 08 00 00 00 00 00 00 00   vm\_mov EAX,vm\_tmp\[0\]
 add eax,10
-
 0040DB18  04 00 00 00 00 00 00 00 04 00 00 00   vm\_mov vm\_tmp\[0\],ESP
 0040DB28  06 00 00 00 01 00 00 00 FC FF FF FF   vm\_mov vm\_tmp\[1\],FFFFFFFC
 0040DB38  09 00 00 00 00 00 00 00 00 00 00 00   vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
@@ -259,15 +255,12 @@ add eax,10
 0040DB58  04 00 00 00 01 00 00 00 08 00 00 00   vm\_mov vm\_tmp\[1\],EAX
 0040DB68  07 00 00 00 00 00 00 00 01 00 00 00   vm\_mov \[vm\_tmp\[0\]\],vm\_tmp\[1\]
 push eax
-
 0040DB78  02 00 00 00 00 00 00 00 00 00 00 00   vm\_mov ELF,vm\_ELF
-
 ```
 
-总结汇编代码为：  
-  
-代码:
+总结汇编代码为：
 
+代码:
 ```
 push esi
 mov esi,\[ebp-30\]
@@ -276,15 +269,19 @@ push eax
 mov eax,esi
 add eax,10
 push eax
-
 ```
 
-VM ENGINE 3:  
-ENTRY:401160  
-VM CMD:40D270  
-VM CMD len:660  
-  
+### VM ENGINE 3
+
+`ENTRY:401160`
+
+`VM CMD:40D270`
+
+`VM CMD len:660`
+
 代码:
+
+
 
 ```
 0040D270  01 00 00 00 00 00 00 00 00 00 00 00  vm\_mov vm\_ELF,ELF
@@ -437,188 +434,184 @@ ret
 
 ```
 
-总结汇编代码为：  
-  
+总结汇编代码为：
+
 代码:
 
+
+
 ```
-push esi
-mov esi,\[esp+C\]
-or eax,FFFFFFFF
-test esi,esi
-jbe 0040D7B0
-mov ecx,\[esp+8\]
-push ebx
+push esi
+mov esi,[esp+C]
+or eax,FFFFFFFF
+test esi,esi
+jbe 0040D7B0
+mov ecx,[esp+8]
+push ebx
 0040D470:
-mov edx,eax
-xor ebx,ebx
-mov ebx,byte ptr \[ecx\]
-and edx,FF
-xor edx,ebx
-shr eax,8
-mov edx,\[0040ECE0+edx\*4\]
-or eax,edx
-inc ecx
-dec esi
-jnz 0040D470
-pop ebx
+mov edx,eax
+xor ebx,ebx
+mov ebx,byte ptr [ecx]
+and edx,FF
+xor edx,ebx
+shr eax,8
+mov edx,[0040ECE0+edx*4]
+or eax,edx
+inc ecx
+dec esi
+jnz 0040D470
+pop ebx
 0040D7B0:
-not eax
-pop esi
-pop vm\_ret\_addr
+not eax
+pop esi
+pop vm_ret_addr
 ret
-
 ```
 
-VM ENGINE 4:  
-ENTRY:401168  
-VM CMD:40DB88  
-VM CMD len:1A0  
-  
+### VM ENGINE 4:
+
+ENTRY: `401168`
+
+VM CMD: `40DB88`
+
+VM CMD len: `1A0`
+
 代码:
-
 ```
-0040DB88  01 00 00 00 00 00 00 00 00 00 00 00  vm\_mov vm\_ELF,ELF
-0040DB98  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
-0040DBA8  06 00 00 00 01 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[1\],8
-0040DBB8  0F 00 00 00 00 00 00 00 00 00 00 00  vm\_addf vm\_tmp\[0\],vm\_tmp\[1\]
-0040DBC8  03 00 00 00 04 00 00 00 00 00 00 00  vm\_mov ESP,vm\_tmp\[0\]
-add esp,8
+0040DB88  01 00 00 00 00 00 00 00 00 00 00 00  vm_mov vm_ELF,ELF
+0040DB98  04 00 00 00 00 00 00 00 04 00 00 00  vm_mov vm_tmp[0],ESP
+0040DBA8  06 00 00 00 01 00 00 00 08 00 00 00  vm_mov vm_tmp[1],8
+0040DBB8  0F 00 00 00 00 00 00 00 00 00 00 00  vm_addf vm_tmp[0],vm_tmp[1]
+0040DBC8  03 00 00 00 04 00 00 00 00 00 00 00  vm_mov ESP,vm_tmp[0]
+add esp,8
 
-0040DBD8  04 00 00 00 00 00 00 00 02 00 00 00  vm\_mov vm\_tmp\[0\],ESI
-0040DBE8  06 00 00 00 01 00 00 00 0C 00 00 00  vm\_mov vm\_tmp\[1\],C
-0040DBF8  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
-0040DC08  08 00 00 00 01 00 00 00 00 00 00 00  vm\_mov vm\_tmp\[1\],\[vm\_tmp\[0\]\]
-0040DC18  04 00 00 00 00 00 00 00 08 00 00 00  vm\_mov vm\_tmp\[0\],EAX
-0040DC28  10 00 00 00 00 00 00 00 00 00 00 00  vm\_subf vm\_tmp\[0\],vm\_tmp\[1\]
-sub eax,\[esi+C\]
+0040DBD8  04 00 00 00 00 00 00 00 02 00 00 00  vm_mov vm_tmp[0],ESI
+0040DBE8  06 00 00 00 01 00 00 00 0C 00 00 00  vm_mov vm_tmp[1],C
+0040DBF8  09 00 00 00 00 00 00 00 00 00 00 00  vm_add vm_tmp[0],vm_tmp[1]
+0040DC08  08 00 00 00 01 00 00 00 00 00 00 00  vm_mov vm_tmp[1],[vm_tmp[0]]
+0040DC18  04 00 00 00 00 00 00 08 00 00 00  vm_mov vm_tmp[0],EAX
+0040DC28  10 00 00 00 00 00 00 00 00 00 00 00  vm_subf vm_tmp[0],vm_tmp[1]
+sub eax,[esi+C]
 
-0040DC38  0D 00 00 00 02 00 00 00 00 00 00 00  vm\_test\_ELF 2
-0040DC48  0E 00 00 00 05 00 00 00 00 00 00 00  vm\_jmp\_by\_FLAG +5:0040DCA8
-jnz 0040DCA8
+0040DC38  0D 00 00 00 02 00 00 00 00 00 00 00  vm_test_ELF 2
+0040DC48  0E 00 00 00 05 00 00 00 00 00 00 00  vm_jmp_by_FLAG +5:0040DCA8
+jnz 0040DCA8
 
-0040DC58  04 00 00 00 00 00 00 00 03 00 00 00  vm\_mov vm\_tmp\[0\],EBP
-0040DC68  06 00 00 00 01 00 00 00 2C 00 00 00  vm\_mov vm\_tmp\[1\],0000002C
-0040DC78  0A 00 00 00 00 00 00 00 00 00 00 00  vm\_sub vm\_tmp\[0\],vm\_tmp\[1\]
-0040DC88  06 00 00 00 01 00 00 00 01 00 00 00  vm\_mov vm\_tmp\[1\],1
-0040DC98  07 00 00 00 00 00 00 00 01 00 00 00  vm\_mov \[vm\_tmp\[0\]\],vm\_tmp\[1\]
-mov \[ebp-2C\],1
+0040DC58  04 00 00 00 00 00 00 00 03 00 00 00  vm_mov vm_tmp[0],EBP
+0040DC68  06 00 00 00 01 00 00 00 2C 00 00 00  vm_mov vm_tmp[1],0000002C
+0040DC78  0A 00 00 00 00 00 00 00 00 00 00 00  vm_sub vm_tmp[0],vm_tmp[1]
+0040DC88  06 00 00 00 01 00 00 00 01 00 00 00  vm_mov vm_tmp[1],1
+0040DC98  07 00 00 00 00 00 00 01 00 00 00  vm_mov [vm_tmp[0]],vm_tmp[1]
+mov [ebp-2C],1
 
-0040DCA8  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
-0040DCB8  08 00 00 00 01 00 00 00 00 00 00 00  vm\_mov vm\_tmp\[1\],\[vm\_tmp\[0\]\]
-0040DCC8  03 00 00 00 02 00 00 00 01 00 00 00  vm\_mov ESI,vm\_tmp\[1\]
-0040DCD8  04 00 00 00 00 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[0\],ESP
-0040DCE8  06 00 00 00 01 00 00 00 04 00 00 00  vm\_mov vm\_tmp\[1\],4
-0040DCF8  09 00 00 00 00 00 00 00 00 00 00 00  vm\_add vm\_tmp\[0\],vm\_tmp\[1\]
-0040DD08  03 00 00 00 04 00 00 00 00 00 00 00  vm\_mov ESP,vm\_tmp\[0\]
-pop esi
+0040DCA8  04 00 00 00 00 00 00 00 04 00 00 00  vm_mov vm_tmp[0],ESP
+0040DCB8  08 00 00 00 01 00 00 00 00 00 00 00  vm_mov vm_tmp[1],[vm_tmp[0]]
+0040DCC8  03 00 00 00 02 00 00 00 01 00 00 00  vm_mov ESI,vm_tmp[1]
+0040DCD8  04 00 00 00 00 00 00 00 04 00 00 00  vm_mov vm_tmp[0],ESP
+0040DCE8  06 00 00 00 01 00 00 00 04 00 00 00  vm_mov vm_tmp[1],4
+0040DCF8  09 00 00 00 00 00 00 00 00 00 00 00  vm_add vm_tmp[0],vm_tmp[1]
+0040DD08  03 00 00 00 04 00 00 00 00 00 00 00  vm_mov ESP,vm_tmp[0]
+pop esi
 
-0040DD18  02 00 00 00 00 00 00 00 00 00 00 00  vm\_mov ELF,vm\_ELF
-
+0040DD18  02 00 00 00 00 00 00 00 00 00 00 00  vm_mov ELF,vm_ELF
 ```
 
-总结汇编代码为：  
-  
+总结汇编代码为：
+
 代码:
-
 ```
-add esp,8
-sub eax,\[esi+C\]
-jnz 0040DCA8
-mov \[ebp-2C\],1
+add esp,8
+sub eax,[esi+C]
+jnz 0040DCA8
+mov [ebp-2C],1
 0040DCA8:
-pop esi
-
+pop esi
 ```
 
-  
-下面是还原出来的汇编代码，已经修正题目中的二处考点，可以直接 PATCH 到虚拟机入口位置：  
-  
+下面是还原出来的汇编代码，已经修正题目中的二处考点，可以直接 PATCH 到虚拟机入口位置：
+
 代码:
-
 ```
-00408D50  /$  56            push    esi                               ; vm 1
-00408D51  |.  33D2          xor     edx, edx
-00408D53  |.  B9 E0EC4000   mov     ecx, 0040ECE0
-00408D58  |>  8BC2          /mov     eax, edx
-00408D5A  |.  BE 08000000   |mov     esi, 8
-00408D5F  |>  A8 01         |/test    al, 1
-00408D61  |.  74 09         ||je      short 00408D6C
-00408D63  |.  D1E8          ||shr     eax, 1
-00408D65  |.  35 2083B0ED   ||xor     eax, EDB08320
-00408D6A  |.  EB 02         ||jmp     short 00408D6E
-00408D6C  |>  D1E8          ||shr     eax, 1
-00408D6E  |>  4E            ||dec     esi
-00408D6F  |.^ 75 EE         |\\jnz     short 00408D5F
-00408D71  |.  8901          |mov     dword ptr \[ecx\], eax
-00408D73  |.  83C1 04       |add     ecx, 4
-00408D76  |.  42            |inc     edx
-00408D77  |.  81F9 E0F04000 |cmp     ecx, 0040F0E0
-00408D7D  |.^ 7C D9         \\jl      short 00408D58
-00408D7F  |.  5E            pop     esi
-00408D80  \\.  C3            retn
-00408D81      90            nop
-00408D82      90            nop
-00408D83      90            nop
-00408D84      90            nop
-00408D85      90            nop
-00408D86      90            nop
-00408D87      90            nop
-00408D88      90            nop
-00408D89      90            nop
-00408D8A      90            nop
-00408D8B      90            nop
-00408D8C      90            nop
-00408D8D      90            nop
-00408D8E      90            nop
-00408D8F      90            nop
-00408D90   $  56            push    esi                               ; vm 2
-00408D91   .  8B75 D0       mov     esi, dword ptr \[ebp-30\]
-00408D94   .  8B46 08       mov     eax, dword ptr \[esi+8\]
-00408D97   .  3B45 E0       cmp     eax, dword ptr \[ebp-20\]           ; 这二句是我加的长度校验，对应考点 2
-00408D9A   .  77 1B         ja      short 00408DB7                    ; 这二句是我加的长度校验，对应考点 2
-00408D9C   .  50            push    eax
-00408D9D   .  8BC6          mov     eax, esi
-00408D9F   .  83C0 10       add     eax, 10
-00408DA2   .  50            push    eax
-00408DA3   .  E8 18000000   call    00408DC0                          ; call vm 3
-00408DA8   .  83C4 08       add     esp, 8                            ; vm 4
-00408DAB   .  2B46 0C       sub     eax, dword ptr \[esi+C\]
-00408DAE   .  75 07         jnz     short 00408DB7
-00408DB0   .  C745 D4 01000>mov     dword ptr \[ebp-2C\], 1
-00408DB7   >  5E            pop     esi
-00408DB8   .^ E9 E583FFFF   jmp     004011A2
-00408DBD      90            nop
-00408DBE      90            nop
-00408DBF      90            nop
-00408DC0  /$  56            push    esi                               ; vm 3
-00408DC1  |.  8B7424 0C     mov     esi, dword ptr \[esp+C\]
-00408DC5  |.  83C8 FF       or      eax, FFFFFFFF
-00408DC8  |.  85F6          test    esi, esi
-00408DCA  |.  74 04         je      short 00408DD0
-00408DCC  |.  8B4C24 08     mov     ecx, dword ptr \[esp+8\]
-00408DD0  |>  53            push    ebx
-00408DD1  |>  8BD0          /mov     edx, eax
-00408DD3  |.  33DB          |xor     ebx, ebx
-00408DD5  |.  0FB619        |movzx   ebx, byte ptr \[ecx\]
-00408DD8  |.  81E2 FF000000 |and     edx, 0FF
-00408DDE  |.  33D3          |xor     edx, ebx
-00408DE0  |.  C1E8 08       |shr     eax, 8
-00408DE3  |.  8B1495 E0EC40>|mov     edx, dword ptr \[edx\*4+40ECE0\]
-00408DEA  |.  33C2          |xor     eax, edx                         ; 这一处修改对应考点 1
-00408DEC  |.  41            |inc     ecx
-00408DED  |.  4E            |dec     esi
-00408DEE  |.^ 75 E1         \\jnz     short 00408DD1
-00408DF0  |.  5B            pop     ebx
-00408DF1  |.  F7D0          not     eax
-00408DF3  |.  5E            pop     esi
-00408DF4  \\.  C3            retn
-
+00408D50  /$  56            push    esi                               ; vm 1
+00408D51  |.  33D2          xor     edx, edx
+00408D53  |.  B9 E0EC4000   mov     ecx, 0040ECE0
+00408D58  |>  8BC2          /mov     eax, edx
+00408D5A  |.  BE 08000000   |mov     esi, 8
+00408D5F  |>  A8 01         |/test    al, 1
+00408D61  |.  74 09         ||je      short 00408D6C
+00408D63  |.  D1E8          ||shr     eax, 1
+00408D65  |.  35 2083B0ED   ||xor     eax, EDB08320
+00408D6A  |.  EB 02         ||jmp     short 00408D6E
+00408D6C  |>  D1E8          ||shr     eax, 1
+00408D6E  |>  4E            ||dec     esi
+00408D6F  |.^ 75 EE         |\\jnz     short 00408D5F
+00408D71  |.  8901          |mov     dword ptr [ecx], eax
+00408D73  |.  83C1 04       |add     ecx, 4
+00408D76  |.  42            |inc     edx
+00408D77  |.  81F9 E0F04000 |cmp     ecx, 0040F0E0
+00408D7D  |.^ 7C D9         \\jl      short 00408D58
+00408D7F  |.  5E            pop     esi
+00408D80  \.  C3            retn
+00408D81      90            nop
+00408D82      90            nop
+00408D83      90            nop
+00408D84      90            nop
+00408D85      90            nop
+00408D86      90            nop
+00408D87      90            nop
+00408D88      90            nop
+00408D89      90            nop
+00408D8A      90            nop
+00408D8B      90            nop
+00408D8C      90            nop
+00408D8D      90            nop
+00408D8E      90            nop
+00408D8F      90            nop
+00408D90  $  56            push    esi                               ; vm 2
+00408D91  .  8B75 D0       mov     esi, dword ptr [ebp-30]
+00408D94  .  8B46 08       mov     eax, dword ptr [esi+8]
+00408D97  .  3B45 E0       cmp     eax, dword ptr [ebp-20]           ; 这二句是我加的长度校验，对应考点 2
+00408D9A  .  77 1B         ja      short 00408DB7                    ; 这二句是我加的长度校验，对应考点 2
+00408D9C  .  50            push    eax
+00408D9D  .  8BC6          mov     eax, esi
+00408D9F  .  83C0 10       add     eax, 10
+00408DA2  .  50            push    eax
+00408DA3  .  E8 18000000   call    00408DC0                          ; call vm 3
+00408DA8  .  83C4 08       add     esp, 8                            ; vm 4
+00408DAB  .  2B46 0C       sub     eax, dword ptr [esi+C]
+00408DAE  .  75 07         jnz     short 00408DB7
+00408DB0  .  C745 D4 01000>mov     dword ptr [ebp-2C], 1
+00408DB7  >  5E            pop     esi
+00408DB8  .^ E9 E583FFFF   jmp     004011A2
+00408DBD      90            nop
+00408DBE      90            nop
+00408DBF      90            nop
+00408DC0  /$  56            push    esi                               ; vm 3
+00408DC1  |.  8B7424 0C     mov     esi, dword ptr [esp+C]
+00408DC5  |.  83C8 FF       or      eax, FFFFFFFF
+00408DC8  |.  85F6          test    esi, esi
+00408DCA  |.  74 04         je      short 00408DD0
+00408DCC  |.  8B4C24 08     mov     ecx, dword ptr [esp+8]
+00408DD0  |>  53            push    ebx
+00408DD1  |>  8BD0          /mov     edx, eax
+00408DD3  |.  33DB          |xor     ebx, ebx
+00408DD5  |.  0FB619        |movzx   ebx, byte ptr [ecx]
+00408DD8  |.  81E2 FF000000 |and     edx, 0FF
+00408DDE  |.  33D3          |xor     edx, ebx
+00408DE0  |.  C1E8 08       |shr     eax, 8
+00408DE3  |.  8B1495 E0EC40>|mov     edx, dword ptr [edx*4+40ECE0]
+00408DEA  |.  33C2          |xor     eax, edx                         ; 这一处修改对应考点 1
+00408DEC  |.  41            |inc     ecx
+00408DED  |.  4E            |dec     esi
+00408DEE  |.^ 75 E1         \\jnz     short 00408DD1
+00408DF0  |.  5B            pop     ebx
+00408DF1  |.  F7D0          not     eax
+00408DF3  |.  5E            pop     esi
+00408DF4  \.  C3            retn
 ```
 
-  
 附件是 VB6 写的虚拟机代码翻译工具（含源码），使用方法是把 OD 的 DUMP 窗口 16 进制显示直接复制到工具中，点击按钮即可
 
 上传的附件
-| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || VMTranslater.rar  
- |
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || VMTranslater.rar |

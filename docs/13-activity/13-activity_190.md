@@ -1,3 +1,2 @@
 
-
-# \====Exploit Me 挑战赛 2007====
+# Exploit Me 挑战赛 2007

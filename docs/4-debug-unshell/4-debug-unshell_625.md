@@ -1,361 +1,392 @@
 
-
 # Enigma 1.66 正式版试练品脱壳笔记
 
 > 原文：[`www.pediy.com/kssd/pediy11/107804.html`](https://www.pediy.com/kssd/pediy11/107804.html)
 
-这是我脱的第一个不能用 esp 定律搞定的壳，不好的地方还望大家指出。  
-  
-壳简介：  
-壳的主要加解密代码在 DLL\_Loader.dll 这个 dll 中，它由程序在运行时动态解密在最后一个区段中，初始化后就在这个 dll 中解密原程序及加密输入表了，我们可以 dump 出完整的 dll  
-  
-。  
-  
-关于这个 dll 及壳的详细介绍:  
-    http://www.52pojie.cn/thread-32962-1-1.html  
-  
-试练品下载:http://www.unpack.cn/thread-35381-1-1.html  
-  
-先要设置一下 OD，StrongOD 设置 hidePEB，patchfloat 勾上，忽略所有异常，而且 OD 的窗口名改一下。重启 OD，载入程序 test，开始我们的不归路。  
-  
-不管有没有试用，它都会访问注册表或者自建的文件或别的什么来查看次数吧。那就先下断 RegCreateKeyA，Ctrl+G，输入 RegCreateKeyA，来到代码处。下断点就要注意了。因为  
-  
-壳会将要用到的函数的代码抽取到自己申请的空间中，然后调用。所以在这里下硬件执行断点是段不下来的。像下面这段代码就会被抽取。  
-  
-vista 上的 RegCreateKeyA：  
-  
-77CAB8AE >  8BFF              MOV EDI,EDI  
-77CAB8B0    55                PUSH EBP  
-77CAB8B1    8BEC              MOV EBP,ESP  
-77CAB8B3    8B55 10           MOV EDX,DWORD PTR SS:\[EBP+10\]  
-77CAB8B6    33C0              XOR EAX,EAX  
-77CAB8B8    3BD0              CMP EDX,EAX  
-77CAB8BA    0F84 0AA90300     JE ADVAPI32.77CE61CA  
-77CAB8C0    8B4D 0C           MOV ECX,DWORD PTR SS:\[EBP+C\]  
-77CAB8C3    3BC8              CMP ECX,EAX  
-77CAB8C5    0F84 07A90300     JE ADVAPI32.77CE61D2  
-77CAB8CB    3801              CMP BYTE PTR DS:\[ECX\],AL  
-77CAB8CD    0F84 FFA80300     JE ADVAPI32.77CE61D2  
-77CAB8D3    50                PUSH EAX  
-77CAB8D4    50                PUSH EAX  
-77CAB8D5    52                PUSH EDX  
-77CAB8D6    50                PUSH EAX  
-77CAB8D7    68 00000002       PUSH 2000000  
-77CAB8DC    50                PUSH EAX  
-77CAB8DD    50                PUSH EAX  
-77CAB8DE    50                PUSH EAX  
-77CAB8DF    51                PUSH ECX  
-77CAB8E0    FF75 08           PUSH DWORD PTR SS:\[EBP+8\]  
-77CAB8E3    E8 82FEFFFF       CALL ADVAPI32.\_RegCreateKeyExInternalA@40  
-77CAB8E8    5D                POP EBP  
-77CAB8E9    C2 0C00           RETN 0C  
-  
-大家看到 CALL ADVAPI32.\_RegCreateKeyExInternalA@40，我们可以跟进在它里面下硬件执行断点。顺便说一下 xp 上与这不同，要找别的地方了。  
-  
-F9 运行，会断下来几次，这些都不管，直到点了 try 断下后，Alt+F9 来到程序领空，  
-  
-01C24AC5    FF75 10           PUSH DWORD PTR SS:\[EBP+10\]  
-01C24AC8    FF75 0C           PUSH DWORD PTR SS:\[EBP+C\]  
-01C24ACB    FF75 08           PUSH DWORD PTR SS:\[EBP+8\]  
-01C24ACE    E8 976C0876       CALL ADVAPI32.\_RegCreateKeyExInternalA@40  
-01C24AD3    5D                POP EBP                                                ; 0012FF44  
-01C24AD4    C2 2400           RETN 24  
-  
-看并不在 advapi32.dll 领空，F7 走出去：  
-  
-0058DBF8    85C0              TEST EAX,EAX  
-0058DBFA    74 04             JE SHORT test.0058DC00  
-0058DBFC    33C0              XOR EAX,EAX  
-0058DBFE    EB 02             JMP SHORT test.0058DC02  
-0058DC00    B0 01             MOV AL,1  
-0058DC02    8BD8              MOV EBX,EAX  
-0058DC04    84DB              TEST BL,BL  
-0058DC06    74 25             JE SHORT test.0058DC2D  
-0058DC08    8D4424 0C         LEA EAX,DWORD PTR SS:\[ESP+C\]  
-0058DC0C    50                PUSH EAX  
-0058DC0D    8D4424 14         LEA EAX,DWORD PTR SS:\[ESP+14\]  
-0058DC11    50                PUSH EAX  
-0058DC12    8D4424 10         LEA EAX,DWORD PTR SS:\[ESP+10\]  
-0058DC16    50                PUSH EAX  
-0058DC17    6A 00             PUSH 0  
-0058DC19    E8 DEFEFFFF       CALL test.0058DAFC  
-0058DC1E    50                PUSH EAX  
-0058DC1F    8B4424 14         MOV EAX,DWORD PTR SS:\[ESP+14\]  
-0058DC23    50                PUSH EAX  
-0058DC24    E8 0F57F7FF       CALL test.00503338  
-0058DC29    85C0              TEST EAX,EAX  
-0058DC2B    74 04             JE SHORT test.0058DC31  
-0058DC2D    33C0              XOR EAX,EAX  
-0058DC2F    EB 02             JMP SHORT test.0058DC33  
-0058DC31    B0 01             MOV AL,1  
-0058DC33    8BD8              MOV EBX,EAX  
-0058DC35    833C24 00         CMP DWORD PTR SS:\[ESP\],0  
-0058DC39    74 09             JE SHORT test.0058DC44  
-0058DC3B    8B0424            MOV EAX,DWORD PTR SS:\[ESP\]  
-0058DC3E    50                PUSH EAX  
-0058DC3F    E8 C456F7FF       CALL test.00503308  
-0058DC44    8BC3              MOV EAX,EBX                       ；无使用次数是 ebx 为 1  
-0058DC46    81C4 10010000     ADD ESP,110  
-0058DC4C    5B                POP EBX  
-0058DC4D    C3                RETN  
-  
-这个地方就是对使用次数的验证了，结果放在 eax 中，只要 eax 返回 0 就行了。该 eax 为 0 删除断点，一路 F8（有的时候到了关键代码的附近，最有效的办法就是 F8，看看停在那个 Call  
-  
-处）。一直到这：  
-  
-0059D368    80B8 5E040000 00  CMP BYTE PTR DS:\[EAX+45E\],0  
-0059D36F    74 05             JE SHORT test.0059D376  
-0059D371    E8 9AA4FFFF       CALL test.00597810  
-0059D376    E8 1180FEFF       CALL test.0058538C  
-0059D37B    E8 14E7FFFF       CALL test.0059BA94  
-0059D380    E8 8F13FFFF       CALL test.0058E714        ；从这个 Call 出来  
-0059D385    E8 EE1AFFFF       CALL test.0058EE78  
-0059D38A    E8 F916FFFF       CALL test.0058EA88  
-0059D38F    E8 8C7FFEFF       CALL test.00585320  
-0059D394    E8 FB80FEFF       CALL test.00585494  
-0059D399    E8 DE60FEFF       CALL test.0058347C  
-0059D39E    E8 C581FEFF       CALL test.00585568              ；这里要注意  
-0059D3A3    50                PUSH EAX  
-0059D3A4    89C1              MOV ECX,EAX  
-0059D3A6    B8 E4D35900       MOV EAX,test.0059D3E4  
-0059D3AB    E8 6481FEFF       CALL test.00585514  
-0059D3B0    010424            ADD DWORD PTR SS:\[ESP\],EAX  
-0059D3B3    C3                RETN  
-  
-到这里后，就不能 F8 了，可能有时间验证吧，直接 F4 到 ADD DWORD PTR SS:\[ESP\],EAX，，再往下 F8 就不行了。  
-  
-在这里下硬件执行断点 记作 “第一个断点”  
-  
-Ctrl+F2 重新载入，再来看看壳对输入表的处理，下断 CreateWindowExA，这次就直接在函数入口下硬件访问断点，为了直接到关键代码处，可以在注册框出来后下断。点 try 按钮，  
-  
-断下：  
-  
-0057ECF4    55                PUSH EBP  
-0057ECF5    8BEC              MOV EBP,ESP  
-0057ECF7    53                PUSH EBX  
-0057ECF8    56                PUSH ESI  
-0057ECF9    57                PUSH EDI  
-0057ECFA    8BF0              MOV ESI,EAX  
-0057ECFC    33FF              XOR EDI,EDI  
-0057ECFE    C602 00           MOV BYTE PTR DS:\[EDX\],0  
-0057ED01    33C0              XOR EAX,EAX  
-0057ED03    8901              MOV DWORD PTR DS:\[ECX\],EAX  
-0057ED05    8B45 10           MOV EAX,DWORD PTR SS:\[EBP+10\]  
-0057ED08    33DB              XOR EBX,EBX  
-0057ED0A    8918              MOV DWORD PTR DS:\[EAX\],EBX  
-0057ED0C    8B45 0C           MOV EAX,DWORD PTR SS:\[EBP+C\]  
-0057ED0F    33DB              XOR EBX,EBX  
-0057ED11    8918              MOV DWORD PTR DS:\[EAX\],EBX  
-0057ED13    8B45 08           MOV EAX,DWORD PTR SS:\[EBP+8\]  
-0057ED16    33DB              XOR EBX,EBX  
-0057ED18    8918              MOV DWORD PTR DS:\[EAX\],EBX  
-0057ED1A    33C0              XOR EAX,EAX  
-0057ED1C    8A06              MOV AL,BYTE PTR DS:\[ESI\]  
-0057ED1E    3D FF000000       CMP EAX,0FF                          ；断在这  
-0057ED23    0F87 BC3E0000     JA test.00582BE5  
-0057ED29    8A80 36ED5700     MOV AL,BYTE PTR DS:\[EAX+57ED36\]  
-0057ED2F    FF2485 36EE5700   JMP DWORD PTR DS:\[EAX\*4+57EE36\]  
-0057ED36    0001              ADD BYTE PTR DS:\[ECX\],AL  
-0057ED38    0203              ADD AL,BYTE PTR DS:\[EBX\]  
-0057ED3A    04 00             ADD AL,0  
-0057ED3C    0000              ADD BYTE PTR DS:\[EAX\],AL  
-0057ED3E    0005 00060000     ADD BYTE PTR DS:\[600\],AL  
-0057ED44    0007              ADD BYTE PTR DS:\[EDI\],AL  
-0057ED46    0000              ADD BYTE PTR DS:\[EAX\],AL  
-  
-这里就是壳抽取函数代码及重定向输入表的地方，看看堆栈：  
-  
-0012FEC0  |00000000  
-0012FEC4  |00000000  
-0012FEC8  |00000008  
-0012FECC  |00000005  
-0012FED0  |00AFFEF4  UNICODE "3B0"  
-0012FED4  |01BAFA30  
-0012FED8  |01BB472B  
-0012FEDC  |01BB46FD  
-0012FEE0  |00000000  
-0012FEE4  |0059D317  test.0059D317  
-0012FEE8  |01BAE718  
-  
-0012FEDC 里就是存放 CreateWindowExA 的代码的地址，那么这个地址肯定要写入程序输入表的 IAT 中，在 0012FEDC 下内存访问断点，断在这里：  
-  
-005958FC    8B55 FC           MOV EDX,DWORD PTR SS:\[EBP-4\]  
-005958FF    8B4D F0           MOV ECX,DWORD PTR SS:\[EBP-10\]           ；读取重定向地址  
-00595902    894C82 04         MOV DWORD PTR DS:\[EDX+EAX\*4+4\],ECX      ；放入程序输入表，要将这 这里 nop 掉  
-00595906    47                INC EDI                                   
-00595907    FF4D D0           DEC DWORD PTR SS:\[EBP-30\]  
-  
-开始准备跟一下输入表加密的，跟着跟着就迷糊了，就放弃了。于是就走了一条不归路。  
-  
-从输入表加密中出来,就到这：  
-  
-0059D556    8B00              MOV EAX,DWORD PTR DS:\[EAX\]  
-0059D558    E8 CF7DFFFF       CALL test.0059532C              ；输入表加密  
-0059D55D    A1 E0EF5A00       MOV EAX,DWORD PTR DS:\[5AEFE0\]  
-0059D562    80B8 705E0000 00  CMP BYTE PTR DS:\[EAX+5E70\],0  
-0059D569    74 07             JE SHORT test.0059D572  
-0059D56B    E8 007BFFFF       CALL test.00595070  
-0059D570    EB 05             JMP SHORT test.0059D577  
-0059D572    E8 BD7BFFFF       CALL test.00595134  
-0059D577    E8 B4F3FFFF       CALL test.0059C930  
-0059D57C    E8 EF82FEFF       CALL test.00585870  
-0059D581    E8 02E7FEFF       CALL test.0058BC88  
-0059D586    E8 71A1FFFF       CALL test.005976FC  
-0059D58B    E8 E0A0FFFF       CALL test.00597670  
-0059D590    E8 6B86FFFF       CALL test.00595C00  
-0059D595    E8 DED7FDFF       CALL test.0057AD78  
-0059D59A    E8 C919FFFF       CALL test.0058EF68  
-0059D59F    33C0              XOR EAX,EAX  
-0059D5A1    5A                POP EDX  
-0059D5A2    59                POP ECX  
-0059D5A3    59                POP ECX  
-0059D5A4    64:8910           MOV DWORD PTR FS:\[EAX\],EDX  
-0059D5A7    EB 1D             JMP SHORT test.0059D5C6  
-0059D5A9  ^ E9 C630F6FF       JMP test.00500674  
-0059D5AE    6A 00             PUSH 0  
-0059D5B0    68 94D75900       PUSH test.0059D794               ; ASCII "The Enigma Protector"  
-0059D5B5    68 ACD75900       PUSH test.0059D7AC                 ; ASCII "Internal Protection Error, please contact to author!"  
-0059D5BA    6A 00             PUSH 0  
-0059D5BC    E8 6768F6FF       CALL test.00503E28  
-0059D5C1    E8 1634F6FF       CALL test.005009DC  
-0059D5C6    B2 01             MOV DL,1  
-0059D5C8    33C0              XOR EAX,EAX  
-0059D5CA    E8 415DFEFF       CALL test.00583310  
-0059D5CF    E8 947FFEFF       CALL test.00585568         ；到这里大家是不是很熟悉啊，就是上面叫大家注意的地方一样  
-0059D5D4    50                PUSH EAX                  ；自效验返回值入栈  
-0059D5D5    89C1              MOV ECX,EAX               ；将 eax 值放入 ecx  
-0059D5D7    B8 15D65900       MOV EAX,test.0059D615     ；将 0059D615 放入 eax  
-0059D5DC    E8 337FFEFF       CALL test.00585514        ；计算 大家有兴趣可以跟一下  
-0059D5E1    010424            ADD DWORD PTR SS:\[ESP\],EAX   ；返回值如上面 Call 的返回值相加  
-0059D5E4    C3                RETN                         ；相加的结果 ret 到 eip  
-  
-其实这个地方是一段自效验代码，然后通过结果计算 eip，只要代码被修改那么 eip 就是一个错误的值，不过这个地方很好跳过，大家看到没，eip 已经给我们了，就是 0059D615 ，  
-  
-执行 retn 时，只要将【esp】改为 0059D615 就可以了。  
-  
-在 RETN 处下硬件执行断点，记作 “第二个断点”  
-  
-再次一路 F8  
-  
-0059D711    8B92 1C010000     MOV EDX,DWORD PTR DS:\[EDX+11C\]  
-0059D717    E8 B825FFFF       CALL test.0058FCD4  
-0059D71C    8B45 FC           MOV EAX,DWORD PTR SS:\[EBP-4\]  
-0059D71F    50                PUSH EAX  
-0059D720    A1 E0EF5A00       MOV EAX,DWORD PTR DS:\[5AEFE0\]  
-0059D725    8B80 1C010000     MOV EAX,DWORD PTR DS:\[EAX+11C\]  
-0059D72B    50                PUSH EAX  
-0059D72C    8B45 F8           MOV EAX,DWORD PTR SS:\[EBP-8\]  
-0059D72F    50                PUSH EAX  
-0059D730    E8 AF25FFFF       CALL test.0058FCE4                ；到这跟进  
-0059D735    E8 D6A0FFFF       CALL test.00597810  
-0059D73A    33C0              XOR EAX,EAX  
-0059D73C    5A                POP EDX  
-0059D73D    59                POP ECX  
-0059D73E    59                POP ECX  
-0059D73F    64:8910           MOV DWORD PTR FS:\[EAX\],EDX  
-0059D742    68 5CD75900       PUSH test.0059D75C  
-0059D747    8D45 D4           LEA EAX,DWORD PTR SS:\[EBP-2C\]  
-0059D74A    BA 05000000       MOV EDX,5  
-0059D74F    E8 3C39F6FF       CALL test.00501090  
-0059D754    C3                RETN  
-  
-进去之后，你可以一路 F8，也可以拖动滚动条到程序最后，或者查找 jmp eax，都可以到：  
-  
-005903C8    E8 5FD8FAFF       CALL test.0053DC2C  
-005903CD    8B45 FC           MOV EAX,DWORD PTR SS:\[EBP-4\]  
-005903D0    FFE0              JMP EAX             ；到这就差不多到壳抽取的程序 oep 了  
-005903D2    5F                POP EDI  
-005903D3    5E                POP ESI  
-005903D4    5B                POP EBX  
-005903D5    8BE5              MOV ESP,EBP  
-005903D7    5D                POP EBP  
-005903D8    C2 0C00           RETN 0C  
-  
-进入后就是大量的跳转及花指令，还有程序自效验，一断程序被修改就会出错，我们再次查找 jmp eax，记住不能选择“整个块”查找，找到后，F7 进入，就到了 oep 处了。  
-  
-01B77950    55                PUSH EBP  
-01B77951    8BEC              MOV EBP,ESP  
-01B77953    83C4 F0           ADD ESP,-10  
-01B77956    B8 30E74700       MOV EAX,47E730  
-01B7795B    E8 E4E888FE       CALL test.00406244               ；更正  
-01B77960    8B05 BC024800     MOV EAX,DWORD PTR DS:\[4802BC\]                     ; test.00481BDC  
-01B77966    8B40 00           MOV EAX,DWORD PTR DS:\[EAX\]  
-01B77969    E8 E6B98DFE       CALL test.00453354               ；更正  
-01B7796E    8B0D B0034800     MOV ECX,DWORD PTR DS:\[4803B0\]                     ; test.00481CF4  
-01B77974    8B05 BC024800     MOV EAX,DWORD PTR DS:\[4802BC\]                     ; test.00481BDC  
-01B7797A    8B40 00           MOV EAX,DWORD PTR DS:\[EAX\]  
-01B7797D    8B15 D4E44700     MOV EDX,DWORD PTR DS:\[47E4D4\]                     ; test.0047E520  
-01B77983    E8 E4B98DFE       CALL test.0045336C                ；更正  
-01B77988    8B05 BC024800     MOV EAX,DWORD PTR DS:\[4802BC\]                     ; test.00481BDC  
-01B7798E    8B40 00           MOV EAX,DWORD PTR DS:\[EAX\]  
-01B77991    E8 56BA8DFE       CALL test.004533EC                ；更正  
-01B77996    E8 99C788FE       CALL test.00404134                ；更正  
-01B7799B    8D40 00           LEA EAX,DWORD PTR DS:\[EAX\]  
-01B7799E  - E9 357090FE       JMP test.0047E9D8                 ；更正  
-  
-将这段程序的二进制代码保存，重新载入程序运行，在“第一个断点”时，查找 “MOV DWORD PTR DS:\[EDX+EAX\*4+4\],ECX”，将这段 nop 掉，总共有四处，改后 F9 继续运行，在“  
-  
-第二个断点”，必须将【esp】改为 0059D615，原因上面已经说过。按上面的，来到第一个 jmp eax，到这里就不能跟进了。  
-  
-然后在程序代码段最后全为零的地方，将上面保存的代码粘贴在那，Call 地址要更正啊，改变 eip 指向这里。  
-  
-到这里似乎就差不多了，只要将输入表修复一下就 OK 了，相信大部分人是这么想的，当时我也是这么想的，事实是你们错了，我也错了，鬼才知道下面有多难。  
-  
-下面是壳对输入表一部分的处理：  
-  
-00401202      8BC0            MOV EAX,EAX  
-00401204   $- FF25 20ACBF01   JMP DWORD PTR DS:\[1BFAC20\]   ; kernel32.GetStdHandle  
-0040120A      8BC0            MOV EAX,EAX  
-0040120C   .- FF25 14ACBF01   JMP DWORD PTR DS:\[1BFAC14\]   ;  kernel32.RaiseException  
-00401212      8BC0            MOV EAX,EAX  
-00401214   .- FF25 08ACBF01   JMP DWORD PTR DS:\[1BFAC08\]   ;  ntdll.RtlUnwind  
-0040121A      8BC0            MOV EAX,EAX  
-0040121C   $- FF25 FCABBF01   JMP DWORD PTR DS:\[1BFABFC\]   ;  kernel32.UnhandledExceptionFilter  
-00401222      8BC0            MOV EAX,EAX  
-00401224   $- FF25 F0ABBF01   JMP DWORD PTR DS:\[1BFABF0\]   ;  kernel32.WriteFile  
-0040122A      8BC0            MOV EAX,EAX  
-0040122C   $- FF25 50ACBF01   JMP DWORD PTR DS:\[1BFAC50\]   ;  user32.CharNextA  
-00401232      8BC0            MOV EAX,EAX  
-00401234   $- FF25 E4ABBF01   JMP DWORD PTR DS:\[1BFABE4\]   ;  kernel32.ExitProcess  
-0040123A      8BC0            MOV EAX,EAX  
-0040123C   $- FF25 44ACBF01   JMP DWORD PTR DS:\[1BFAC44\]   ;  user32.MessageBoxA  
-00401242      8BC0            MOV EAX,EAX  
-00401244   $- FF25 D8ABBF01   JMP DWORD PTR DS:\[1BFABD8\]   ;  kernel32.FindClose  
-0040124A      8BC0            MOV EAX,EAX  
-0040124C   $- FF25 CCABBF01   JMP DWORD PTR DS:\[1BFABCC\]   ;  kernel32.FindFirstFileA  
-  
-看这里：  
-00406F1A      8BC0            MOV EAX,EAX  
-00406F1C  /$  E8 3FFFFFFF     CALL test.00406E60  
-00406F21  \\.  C3              RETN  
-00406F22      8BC0            MOV EAX,EAX  
-00406F24   $- FF25 F4B3BF01   JMP DWORD PTR DS:\[1BFB3F4\]   ;  user32.CreateWindowExA  
-00406F2A      8BC0            MOV EAX,EAX  
-00406F2C  /$  55              PUSH EBP  
-00406F2D  |.  8BEC            MOV EBP,ESP  
-  
-还有这里：  
-0040DCE0   .  30 78 00        ASCII "0x",0  
-0040DCE3      00              DB 00  
-0040DCE4   $- FF25 88BCBF01   JMP DWORD PTR DS:\[1BFBC88\]    ;  oleaut32.VariantInit  
-0040DCEA      8BC0            MOV EAX,EAX  
-0040DCEC   $- FF25 7CBCBF01   JMP DWORD PTR DS:\[1BFBC7C\]    ;  oleaut32.VariantClear  
-0040DCF2      8BC0            MOV EAX,EAX  
-0040DCF4   $- FF25 70BCBF01   JMP DWORD PTR DS:\[1BFBC70\]    ;  oleaut32.VariantCopy  
-0040DCFA      8BC0            MOV EAX,EAX  
-0040DCFC   $- FF25 64BCBF01   JMP DWORD PTR DS:\[1BFBC64\]    ;  oleaut32.VariantChangeType  
-0040DD02      8BC0            MOV EAX,EAX  
-0040DD04  /.  55              PUSH EBP  
-0040DD05  |.  8BEC            MOV EBP,ESP  
-  
-壳将输入表 IAT 全部打烂，不仅不放在一起，而且相互夹杂，真是变态啊，这样 ImportREC 根本不能修复。这时我想到了“脚本”，虽然我从来没有写过，但脚本这两个字已是如雷  
-  
-贯耳。首先用 zeroadd 为 test 加一个节，大小 2000，然后写个脚本将所有的函数地址写入新加的节中，并将 IAT 改回，再就是大家熟悉的 loader，ImportREC 修复了。  
-  
-至此，壳就脱了，当然还要优化，就留给感兴趣的人去做了。  
-  
-ps：这个壳脱得很繁琐，输入表也没有优化，而且要找到所以的 IAT 地址，是很麻烦的。期待高手更好的方法。
+这是我脱的第一个不能用 `esp` 定律搞定的壳，不好的地方还望大家指出。
 
-上传的附件
-| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || dump 及脚本.rar  
- |
+## 壳简介
+
+壳的主要加解密代码在 `DLL_Loader.dll` 这个 `dll` 中，它由程序在运行时动态解密在最后一个区段中，初始化后就在这个 `dll` 中解密原程序及加密输入表了，我们可以 `dump` 出完整的 `dll`。
+
+关于这个 `dll` 及壳的详细介绍:
+http://www.52pojie.cn/thread-32962-1-1.html
+
+试练品下载:http://www.unpack.cn/thread-35381-1-1.html
+
+先要设置一下 `OD`，`StrongOD` 设置 `hidePEB`，`patchfloat` 勾上，忽略所有异常，而且 `OD` 的窗口名改一下。重启 `OD`，载入程序 `test`，开始我们的不归路。
+
+不管有没有试用，它都会访问注册表或者自建的文件或别的什么来查看次数吧。那就先下断 `RegCreateKeyA`，`Ctrl+G`，输入 `RegCreateKeyA`，来到代码处。下断点就要注意了。因为壳会将要用到的函数的代码抽取到自己申请的空间中，然后调用。所以在这里下硬件执行断点是断不下来的。像下面这段代码就会被抽取。
+
+`vista` 上的 `RegCreateKeyA`：
+
+```
+77CAB8AE  >  8BFF               MOV EDI,EDI
+77CAB8B0     55                PUSH EBP
+77CAB8B1     8BEC              MOV EBP,ESP
+77CAB8B3     8B55 10           MOV EDX,DWORD PTR SS:[EBP+10]
+77CAB8B6     33C0              XOR EAX,EAX
+77CAB8B8     3BD0              CMP EDX,EAX
+77CAB8BA     0F84 0AA90300     JE ADVAPI32.77CE61CA
+77CAB8C0     8B4D 0C           MOV ECX,DWORD PTR SS:[EBP+C]
+77CAB8C3     3BC8              CMP ECX,EAX
+77CAB8C5     0F84 07A90300     JE ADVAPI32.77CE61D2
+77CAB8CB     3801              CMP BYTE PTR DS:[ECX],AL
+77CAB8CD     0F84 FFA80300     JE ADVAPI32.77CE61D2
+77CAB8D3     50                PUSH EAX
+77CAB8D4     50                PUSH EAX
+77CAB8D5     52                PUSH EDX
+77CAB8D6     50                PUSH EAX
+77CAB8D7     68 00000002       PUSH 2000000
+77CAB8DC     50                PUSH EAX
+77CAB8DD     50                PUSH EAX
+77CAB8DE     50                PUSH EAX
+77CAB8DF     51                PUSH ECX
+77CAB8E0     FF75 08           PUSH DWORD PTR SS:[EBP+8]
+77CAB8E3     E8 82FEFFFF       CALL ADVAPI32._RegCreateKeyExInternalA@40
+77CAB8E8     5D                POP EBP
+77CAB8E9     C2 0C00          RETN 0C
+```
+
+大家看到 `CALL ADVAPI32._RegCreateKeyExInternalA@40`，我们可以跟进在它里面下硬件执行断点。顺便说一下 `xp` 上与这不同，要找别的地方了。
+
+`F9` 运行，会断下来几次，这些都不管，直到点了 `try` 断下后，`Alt+F9` 来到程序领空，
+
+```
+01C24AC5     FF75 10           PUSH DWORD PTR SS:[EBP+10]
+01C24AC8     FF75 0C           PUSH DWORD PTR SS:[EBP+C]
+01C24ACB     FF75 08           PUSH DWORD PTR SS:[EBP+8]
+01C24ACE     E8 976C0876       CALL ADVAPI32._RegCreateKeyExInternalA@40
+01C24AD3     5D                POP EBP                                     ; 0012FF44
+01C24AD4     C2 2400          RETN 24
+```
+
+看并不在 `advapi32.dll` 领空，`F7` 走出去：
+
+```
+0058DBF8     85C0              TEST EAX,EAX
+0058DBFA     74 04             JE SHORT test.0058DC00
+0058DBFC     33C0              XOR EAX,EAX
+0058DBFE     EB 02             JMP SHORT test.0058DC02
+0058DC00     B0 01             MOV AL,1
+0058DC02     8BD8              MOV EBX,EAX
+0058DC04     84DB              TEST BL,BL
+0058DC06     74 25             JE SHORT test.0058DC2D
+0058DC08     8D4424 0C         LEA EAX,DWORD PTR SS:[ESP+C]
+0058DC0C     50                PUSH EAX
+0058DC0D     8D4424 14         LEA EAX,DWORD PTR SS:[ESP+14]
+0058DC11     50                PUSH EAX
+0058DC12     8D4424 10         LEA EAX,DWORD PTR SS:[ESP+10]
+0058DC16     50                PUSH EAX
+0058DC17     6A 00             PUSH 0
+0058DC19     E8 DEFEFFFF       CALL test.0058DAFC
+0058DC1E     50                PUSH EAX
+0058DC1F     8B4424 14         MOV EAX,DWORD PTR SS:[ESP+14]
+0058DC23     50                PUSH EAX
+0058DC24     E8 0F57F7FF       CALL test.00503338
+0058DC29     85C0              TEST EAX,EAX
+0058DC2B     74 04             JE SHORT test.0058DC31
+0058DC2D     33C0              XOR EAX,EAX
+0058DC2F     EB 02             JMP SHORT test.0058DC33
+0058DC31     B0 01             MOV AL,1
+0058DC33     8BD8              MOV EBX,EAX
+0058DC35     833C24 00         CMP DWORD PTR SS:[ESP],0
+0058DC39     74 09             JE SHORT test.0058DC44
+0058DC3B     8B0424            MOV EAX,DWORD PTR SS:[ESP]
+0058DC3E     50                PUSH EAX
+0058DC3F     E8 C456F7FF       CALL test.00503308
+0058DC44     8BC3              MOV EAX,EBX               ；无使用次数是 ebx 为 1
+0058DC46     81C4 10010000     ADD ESP,110
+0058DC4C     5B                POP EBX
+0058DC4D     C3                RETN
+```
+
+这个地方就是对使用次数的验证了，结果放在 `eax` 中，只要 `eax` 返回 `0` 就行了。该 `eax` 为 `0` 删除断点，一路 `F8`（有的时候到了关键代码的附近，最有效的办法就是 `F8`，看看停在那个 `Call` 处）。一直到这：
+
+```
+0059D368     80B8 5E040000 00  CMP BYTE PTR DS:[EAX+45E],0
+0059D36F     74 05             JE SHORT test.0059D376
+0059D371     E8 9AA4FFFF       CALL test.00597810
+0059D376     E8 1180FEFF       CALL test.0058538C
+0059D37B     E8 14E7FFFF       CALL test.0059BA94
+0059D380     E8 8F13FFFF       CALL test.0058E714        ；从这个 Call 出来
+0059D385     E8 EE1AFFFF       CALL test.0058EE78
+0059D38A     E8 F916FFFF       CALL test.0058EA88
+0059D38F     E8 8C7FFEFF       CALL test.00585320
+0059D394     E8 FB80FEFF       CALL test.00585494
+0059D399     E8 DE60FEFF       CALL test.0058347C
+0059D39E     E8 C581FEFF       CALL test.00585568                 ；这里要注意
+0059D3A3     50                PUSH EAX
+0059D3A4     89C1              MOV ECX,EAX
+0059D3A6     B8 E4D35900       MOV EAX,test.0059D3E4
+0059D3AB     E8 6481FEFF       CALL test.00585514
+0059D3B0     010424            ADD DWORD PTR SS:[ESP],EAX
+0059D3B3     C3                RETN
+```
+
+到这里后，就不能 `F8` 了，可能有时间验证吧，直接 `F4` 到 `ADD DWORD PTR SS:[ESP],EAX`，再往下 `F8` 就不行了。
+
+在这里下硬件执行断点 记作 “第一个断点”
+
+`Ctrl+F2` 重新载入，再来看看壳对输入表的处理，下断 `CreateWindowExA`，这次就直接在函数入口下硬件访问断点，为了直接到关键代码处，可以在注册框出来后下断。点 `try` 按钮，断下：
+
+```
+0057ECF4     55                PUSH EBP
+0057ECF5     8BEC              MOV EBP,ESP
+0057ECF7     53                PUSH EBX
+0057ECF8     56                PUSH ESI
+0057ECF9     57                PUSH EDI
+0057ECFA     8BF0              MOV ESI,EAX
+0057ECFC     33FF              XOR EDI,EDI
+0057ECFE     C602 00           MOV BYTE PTR DS:[EDX],0
+0057ED01     33C0              XOR EAX,EAX
+0057ED03     8901              MOV DWORD PTR DS:[ECX],EAX
+0057ED05     8B45 10           MOV EAX,DWORD PTR SS:[EBP+10]
+0057ED08     33DB              XOR EBX,EBX
+0057ED0A     8918              MOV DWORD PTR DS:[EAX],EBX
+0057ED0C     8B45 0C           MOV EAX,DWORD PTR SS:[EBP+C]
+0057ED0F     33DB              XOR EBX,EBX
+0057ED11     8918              MOV DWORD PTR DS:[EAX],EBX
+0057ED13     8B45 08           MOV EAX,DWORD PTR SS:[EBP+8]
+0057ED16     33DB              XOR EBX,EBX
+0057ED18     8918              MOV DWORD PTR DS:[EAX],EBX
+0057ED1A     33C0              XOR EAX,EAX
+0057ED1C     8A06              MOV AL,BYTE PTR DS:[ESI]
+0057ED1E     3D FF000000       CMP EAX,0FF                   ；断在这
+0057ED23     0F87 BC3E0000     JA test.00582BE5
+0057ED29     8A80 36ED5700     MOV AL,BYTE PTR DS:[EAX+57ED36]
+0057ED2F     FF2485 36EE5700   JMP DWORD PTR DS:[EAX*4+57EE36]
+0057ED36     0001              ADD BYTE PTR DS:[ECX],AL
+0057ED38     0203              ADD AL,BYTE PTR DS:[EBX]
+0057ED3A     04 00             ADD AL,0
+0057ED3C     0000              ADD BYTE PTR DS:[EAX],AL
+0057ED3E     0005 00060000     ADD BYTE PTR DS:[600],AL
+0057ED44     0007              ADD BYTE PTR DS:[EDI],AL
+0057ED46     0000              ADD BYTE PTR DS:[EAX],AL
+```
+
+这里就是壳抽取函数代码及重定向输入表的地方，看看堆栈：
+
+```
+0012FEC0  |00000000
+0012FEC4  |00000000
+0012FEC8  |00000008
+0012FECC  |00000005
+0012FED0  |00AFFEF4  UNICODE "3B0"
+0012FED4  |01BAFA30
+0012FED8  |01BB472B
+0012FEDC  |01BB46FD
+0012FEE0  |00000000
+0012FEE4  |0059D317  test.0059D317
+0012FEE8  |01BAE718
+```
+
+`0012FEDC` 里就是存放 `CreateWindowExA` 的代码的地址，那么这个地址肯定要写入程序输入表的 `IAT` 中，在 `0012FEDC` 下内存访问断点，断在这里：
+
+```
+005958FC     8B55 FC           MOV EDX,DWORD PTR SS:[EBP-4]
+005958FF     8B4D F0           MOV ECX,DWORD PTR SS:[EBP-10]       ；读取重定向地址
+00595902     894C82 04         MOV DWORD PTR DS:[EDX+EAX*4+4],ECX   ；放入程序输入表，要将这 这里 nop 掉
+```
+
+
+
+```
+00595906    47                 INC EDI
+00595907    FF4D D0            DEC DWORD PTR SS:[EBP-30]
+```
+
+开始准备跟一下输入表加密的，跟着跟着就迷糊了，就放弃了。于是就走了一条不归路。
+
+从输入表加密中出来,就到这：
+
+```
+0059D556    8B00               MOV EAX,DWORD PTR DS:[EAX]
+0059D558    E8 CF7DFFFF        CALL test.0059532C           ；输入表加密
+0059D55D    A1 E0EF5A00        MOV EAX,DWORD PTR DS:[5AEFE0]
+0059D562    80B8 705E0000 00   CMP BYTE PTR DS:[EAX+5E70],0
+0059D569    74 07              JE SHORT test.0059D572
+0059D56B    E8 007BFFFF        CALL test.00595070
+0059D570    EB 05              JMP SHORT test.0059D577
+0059D572    E8 BD7BFFFF        CALL test.00595134
+0059D577    E8 B4F3FFFF        CALL test.0059C930
+0059D57C    E8 EF82FEFF        CALL test.00585870
+0059D581    E8 02E7FEFF        CALL test.0058BC88
+0059D586    E8 71A1FFFF        CALL test.005976FC
+0059D58B    E8 E0A0FFFF        CALL test.00597670
+0059D590    E8 6B86FFFF        CALL test.00595C00
+0059D595    E8 DED7FDFF        CALL test.0057AD78
+0059D59A    E8 C919FFFF        CALL test.0058EF68
+0059D59F    33C0               XOR EAX,EAX
+0059D5A1    5A                 POP EDX
+0059D5A2    59                 POP ECX
+0059D5A3    59                 POP ECX
+0059D5A4    64:8910            MOV DWORD PTR FS:[EAX],EDX
+0059D5A7    EB 1D              JMP SHORT test.0059D5C6
+0059D5A9   ^ E9 C630F6FF       JMP test.00500674
+0059D5AE    6A 00              PUSH 0
+0059D5B0    68 94D75900        PUSH test.0059D794            ; ASCII "The Enigma Protector"
+0059D5B5    68 ACD75900        PUSH test.0059D7AC            ; ASCII "Internal Protection Error, please contact to author!"
+0059D5BA    6A 00              PUSH 0
+0059D5BC    E8 6768F6FF        CALL test.00503E28
+0059D5C1    E8 1634F6FF        CALL test.005009DC
+0059D5C6    B2 01              MOV DL,1
+0059D5C8    33C0               XOR EAX,EAX
+0059D5CA    E8 415DFEFF        CALL test.00583310
+0059D5CF    E8 947FFEFF        CALL test.00585568          ；到这里大家是不是很熟悉啊，就是上面叫大家注意的地方一样
+0059D5D4    50                 PUSH EAX           ；自效验返回值入栈
+0059D5D5    89C1               MOV ECX,EAX        ；将 eax 值放入 ecx
+0059D5D7    B8 15D65900        MOV EAX,test.0059D615 ；将 0059D615 放入 eax
+0059D5DC    E8 337FFEFF        CALL test.00585514 ；计算 大家有兴趣可以跟一下
+0059D5E1    010424             ADD DWORD PTR SS:[ESP],EAX ；返回值如上面 Call 的返回值相加
+0059D5E4    C3                 RETN               ；相加的结果 ret 到 eip
+```
+
+其实这个地方是一段自效验代码，然后通过结果计算 `eip`，只要代码被修改那么 `eip` 就是一个错误的值，不过这个地方很好跳过，大家看到没，`eip` 已经给我们了，就是 `0059D615`，
+
+执行 `retn` 时，只要将【esp】改为 `0059D615` 就可以了。
+
+在 `RETN` 处下硬件执行断点，记作 “第二个断点”
+
+再次一路 `F8`
+
+```
+0059D711    8B92 1C010000      MOV EDX,DWORD PTR DS:[EDX+11C]
+0059D717    E8 B825FFFF        CALL test.0058FCD4
+0059D71C    8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]
+0059D71F    50                 PUSH EAX
+0059D720    A1 E0EF5A00        MOV EAX,DWORD PTR DS:[5AEFE0]
+0059D725    8B80 1C010000      MOV EAX,DWORD PTR DS:[EAX+11C]
+0059D72B    50                 PUSH EAX
+0059D72C    8B45 F8            MOV EAX,DWORD PTR SS:[EBP-8]
+0059D72F    50                 PUSH EAX
+0059D730    E8 AF25FFFF        CALL test.0058FCE4       ；到这跟进
+0059D735    E8 D6A0FFFF        CALL test.00597810
+0059D73A    33C0               XOR EAX,EAX
+0059D73C    5A                 POP EDX
+0059D73D    59                 POP ECX
+0059D73E    59                 POP ECX
+0059D73F    64:8910            MOV DWORD PTR FS:[EAX],EDX
+0059D742    68 5CD75900        PUSH test.0059D75C
+0059D747    8D45 D4            LEA EAX,DWORD PTR SS:[EBP-2C]
+0059D74A    BA 05000000        MOV EDX,5
+0059D74F    E8 3C39F6FF        CALL test.00501090
+0059D754    C3                 RETN
+```
+
+进去之后，你可以一路 `F8`，也可以拖动滚动条到程序最后，或者查找 `jmp eax`，都可以到：
+
+```
+005903C8    E8 5FD8FAFF        CALL test.0053DC2C
+005903CD    8B45 FC            MOV EAX,DWORD PTR SS:[EBP-4]
+005903D0    FFE0               JMP EAX        ；到这就差不多到壳抽取的程序 oep 了
+005903D2    5F                 POP EDI
+005903D3    5E                 POP ESI
+005903D4    5B                 POP EBX
+005903D5    8BE5               MOV ESP,EBP
+005903D7    5D                 POP EBP
+005903D8    C2 0C00            RETN 0C
+```
+
+进入后就是大量的跳转及花指令，还有程序自效验，一断程序被修改就会出错，我们再次查找 `jmp eax`，记住不能选择“整个块”查找，找到后，`F7` 进入，就到了 `oep` 处了。
+
+```
+01B77950    55                 PUSH EBP
+01B77951    8BEC               MOV EBP,ESP
+01B77953    83C4 F0            ADD ESP,-10
+01B77956    B8 30E74700        MOV EAX,47E730
+01B7795B    E8 E4E888FE        CALL test.00406244       ；更正
+01B77960    8B05 BC024800      MOV EAX,DWORD PTR DS:[4802BC] ; test.00481BDC
+01B77966    8B40 00            MOV EAX,DWORD PTR DS:[EAX]
+01B77969    E8 E6B98DFE        CALL test.00453354       ；更正
+01B7796E    8B0D B0034800      MOV ECX,DWORD PTR DS:[4803B0] ; test.00481CF4
+01B77974    8B05 BC024800      MOV EAX,DWORD PTR DS:[4802BC] ; test.00481BDC
+01B7797A    8B40 00            MOV EAX,DWORD PTR DS:[EAX]
+01B7797D    8B15 D4E44700      MOV EDX,DWORD PTR DS:[47E4D4] ; test.0047E520
+01B77983    E8 E4B98DFE        CALL test.0045336C       ；更正
+01B77988    8B05 BC024800      MOV EAX,DWORD PTR DS:[4802BC] ; test.00481BDC
+01B7798E    8B40 00            MOV EAX,DWORD PTR DS:[EAX]
+01B77991    E8 56BA8DFE        CALL test.004533EC       ；更正
+01B77996    E8 99C788FE        CALL test.00404134       ；更正
+01B7799B    8D40 00            LEA EAX,DWORD PTR DS:[EAX]
+01B7799E   - E9 357090FE       JMP test.0047E9D8        ；更正
+```
+
+将这段程序的二进制代码保存，重新载入程序运行，在“第一个断点”时，查找 “`MOV DWORD PTR DS:[EDX+EAX*4+4],ECX`”，将这段 `nop` 掉，总共有四处，改后 `F9` 继续运行，在“
+
+第二个断点”，必须将【esp】改为 `0059D615`，原因上面已经说过。按上面的，来到第一个 `jmp eax`，到这里就不能跟进了。
+
+然后在程序代码段最后全为零的地方，将上面保存的代码粘贴在那，`Call` 地址要更正啊，改变 `eip` 指向这里。
+
+到这里似乎就差不多了，只要将输入表修复一下就 `OK` 了，相信大部分人是这么想的，当时我也是这么想的，事实是你们错了，我也错了，鬼才知道下面有多难。
+
+下面是壳对输入表一部分的处理：
+
+```
+00401202     8BC0             MOV EAX,EAX
+00401204   $- FF25 20ACBF01   JMP DWORD PTR DS:[1BFAC20]   ; kernel32.GetStdHandle
+0040120A     8BC0             MOV EAX,EAX
+0040120C   .- FF25 14ACBF01   JMP DWORD PTR DS:[1BFAC14]   ;  kernel32.RaiseException
+00401212     8BC0             MOV EAX,EAX
+00401214   .- FF25 08ACBF01   JMP DWORD PTR DS:[1BFAC08]   ;  ntdll.RtlUnwind
+0040121A     8BC0             MOV EAX,EAX
+0040121C   $- FF25 FCABBF01   JMP DWORD PTR DS:[1BFABFC]   ;  kernel32.UnhandledExceptionFilter
+00401222     8BC0             MOV EAX,EAX
+00401224   $- FF25 F0ABBF01   JMP DWORD PTR DS:[1BFABF0]   ;  kernel32.WriteFile
+0040122A     8BC0             MOV EAX,EAX
+0040122C   $- FF25 50ACBF01   JMP DWORD PTR DS:[1BFAC50]   ;  user32.CharNextA
+00401232     8BC0             MOV EAX,EAX
+00401234   $- FF25 E4ABBF01   JMP DWORD PTR DS:[1BFABE4]   ;  kernel32.ExitProcess
+0040123A     8BC0             MOV EAX,EAX
+0040123C   $- FF25 44ACBF01   JMP DWORD PTR DS:[1BFAC44]   ;  user32.MessageBoxA
+00401242     8BC0             MOV EAX,EAX
+00401244   $- FF25 D8ABBF01   JMP DWORD PTR DS:[1BFABD8]   ;  kernel32.FindClose
+0040124A     8BC0             MOV EAX,EAX
+0040124C   $- FF25 CCABBF01   JMP DWORD PTR DS:[1BFABCC]   ;  kernel32.FindFirstFileA
+```
+
+看这里：
+
+```
+00406F1A     8BC0             MOV EAX,EAX
+00406F1C  /$  E8 3FFFFFFF     CALL test.00406E60
+00406F21  \\.  C3             RETN
+00406F22     8BC0             MOV EAX,EAX
+00406F24   $- FF25 F4B3BF01   JMP DWORD PTR DS:[1BFB3F4]   ;  user32.CreateWindowExA
+00406F2A     8BC0             MOV EAX,EAX
+00406F2C  /$  55              PUSH EBP
+00406F2D  |.  8BEC            MOV EBP,ESP
+```
+
+还有这里：
+
+```
+0040DCE0   .  30 78 00        ASCII "0x",0
+0040DCE3     00               DB 00
+```
+
+
+
+```
+0040DCE4   $- FF25 88BCBF01   JMP DWORD PTR DS:[1BFBC88]    ;  oleaut32.VariantInit  
+0040DCEA     8BC0            MOV EAX,EAX  
+0040DCEC   $- FF25 7CBCBF01   JMP DWORD PTR DS:[1BFBC7C]    ;  oleaut32.VariantClear  
+0040DCF2     8BC0            MOV EAX,EAX  
+0040DCF4   $- FF25 70BCBF01   JMP DWORD PTR DS:[1BFBC70]    ;  oleaut32.VariantCopy  
+0040DCFA     8BC0            MOV EAX,EAX  
+0040DCFC   $- FF25 64BCBF01   JMP DWORD PTR DS:[1BFBC64]    ;  oleaut32.VariantChangeType  
+0040DD02     8BC0            MOV EAX,EAX  
+0040DD04  /.  55              PUSH EBP  
+0040DD05  |.  8BEC            MOV EBP,ESP  
+```
+
+壳将输入表 `IAT` 全部打烂，不仅不放在一起，而且相互夹杂，真是变态啊，这样 `ImportREC` 根本不能修复。这时我想到了“脚本”，虽然我从来没有写过，但脚本这两个字已是如雷贯耳。首先用 `zeroadd` 为 `test` 加一个节，大小 `2000`，然后写个脚本将所有的函数地址写入新加的节中，并将 `IAT` 改回，再就是大家熟悉的 `loader`，`ImportREC` 修复了。
+
+至此，壳就脱了，当然还要优化，就留给感兴趣的人去做了。
+
+`ps`：这个壳脱得很繁琐，输入表也没有优化，而且要找到所以的 `IAT` 地址，是很麻烦的。期待高手更好的方法。
+
+## 上传的附件
+
+![附件](img/0623e01110d741fd20f66acbc8ec6f9d.jpg)
+`dump` 及 `脚本.rar`

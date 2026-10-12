@@ -1,310 +1,314 @@
 
-
 # UltraISO7me
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6505.htm`](https://www.pediy.com/kssd/pediy06/pediy6505.htm)
 
-本来想回复先前的帖子，却始终没法发贴，所以重新开了一个帖子。  
-  
-感谢 blowfish 的指点，否则我还在晕头转向的在找什么算法。  
-这个程序用了 RSA 和 MD5 的算法。具体分析如下：  
+本来想回复先前的帖子，却始终没法发贴，所以重新开了一个帖子。
 
-> ```
-> 代码:
-> 
-> .text:004017C0 sub\_4017C0      proc near         ; CODE XREF: WinMain+262p
-> .text:004017C0 
-> .text:004017C0 var\_4B0         = dword ptr -4B0h
-> .text:004017C0 s1         = dword ptr -458h
-> .text:004017C0 buffer         = byte ptr -448h
-> .text:004017C0 var\_344         = dword ptr -344h
-> .text:004017C0 var\_340         = byte ptr -340h
-> .text:004017C0 var\_33F         = byte ptr -33Fh
-> .text:004017C0 var\_33E         = byte ptr -33Eh
-> .text:004017C0 var\_33D         = byte ptr -33Dh
-> .text:004017C0 var\_33A         = byte ptr -33Ah
-> .text:004017C0 var\_339         = byte ptr -339h
-> .text:004017C0 var\_338         = byte ptr -338h
-> .text:004017C0 var\_337         = byte ptr -337h
-> .text:004017C0 var\_336         = byte ptr -336h
-> .text:004017C0 var\_335         = byte ptr -335h
-> .text:004017C0 var\_334         = byte ptr -334h
-> .text:004017C0 var\_130         = dword ptr -130h
-> .text:004017C0 var\_12A         = byte ptr -12Ah
-> .text:004017C0 var\_129         = byte ptr -129h
-> .text:004017C0 var\_128         = byte ptr -128h
-> .text:004017C0 var\_127         = byte ptr -127h
-> .text:004017C0 var\_122         = byte ptr -122h
-> .text:004017C0 var\_121         = byte ptr -121h
-> .text:004017C0 var\_30         = dword ptr -30h
-> .text:004017C0 var\_2C         = dword ptr -2Ch
-> .text:004017C0 var\_28         = dword ptr -28h
-> .text:004017C0 s         = dword ptr -1Ch
-> .text:004017C0 var\_18         = byte ptr -18h
-> .text:004017C0 var\_17         = byte ptr -17h
-> .text:004017C0 var\_14         = dword ptr -14h
-> .text:004017C0 var\_10         = dword ptr -10h
-> .text:004017C0 var\_C         = dword ptr -0Ch
-> .text:004017C0 var\_8         = dword ptr -8
-> .text:004017C0 var\_4         = dword ptr -4
-> .text:004017C0 arg\_0         = dword ptr  8
-> .text:004017C0 arg\_4         = dword ptr  0Ch
-> .text:004017C0 
-> .text:004017C0           push    ebp
-> .text:004017C1           mov     ebp, esp
-> .text:004017C3           add     esp, 0FFFFFB50h
-> .text:004017C9           xor     eax, eax
-> .text:004017CB           mov     \[ebp+var\_4\], eax
-> .text:004017CE           xor     edx, edx
-> .text:004017D0           mov     \[ebp+var\_8\], edx
-> .text:004017D3           xor     ecx, ecx
-> .text:004017D5           mov     \[ebp+var\_C\], ecx
-> .text:004017D8           xor     eax, eax
-> .text:004017DA           mov     \[ebp+var\_10\], eax
-> .text:004017DD           xor     edx, edx
-> .text:004017DF           mov     \[ebp+var\_14\], edx
-> .text:004017E2           push    5         ; n
-> .text:004017E4           push    30h         ; c
-> .text:004017E6           lea     ecx, \[ebp+s\]
-> .text:004017E9           push    ecx         ; s
-> .text:004017EA           call    \_memset
-> .text:004017EF           add     esp, 0Ch
-> .text:004017F2           mov     byte ptr  \[ebp+s\], 31h
-> .text:004017F6           mov     \[ebp+var\_18\], 31h
-> .text:004017FA           mov     \[ebp+var\_17\], 0         -------->D="10001"
-> .text:004017FE           push    10h         ; n
-> .text:00401800           push    41h         ; c
-> .text:00401802           lea     eax, \[ebp+var\_344\]
-> .text:00401808           push    eax         ; s
-> .text:00401809           call    \_memset
-> .text:0040180E           add     esp, 0Ch
-> .text:00401811           mov     \[ebp+var\_335\], 31h
-> .text:00401818           mov     \[ebp+var\_336\], 44h
-> .text:0040181F           mov     byte ptr  \[ebp+var\_344+2\], 30h
-> .text:00401826           mov     byte ptr  \[ebp+var\_344+3\], 46h
-> .text:0040182D           mov     \[ebp+var\_33F\], 46h
-> .text:00401834           mov     \[ebp+var\_340\], 38h
-> .text:0040183B           mov     \[ebp+var\_33D\], 32h
-> .text:00401842           mov     \[ebp+var\_33A\], 36h
-> .text:00401849           mov     \[ebp+var\_33E\], 36h
-> .text:00401850           mov     \[ebp+var\_339\], 45h
-> .text:00401857           mov     \[ebp+var\_338\], 39h
-> .text:0040185E           mov     \[ebp+var\_337\], 37h
-> .text:00401865           mov     byte ptr  \[ebp+var\_344+1\], 37h
-> .text:0040186C           mov     \[ebp+var\_334\], 0     ---->N="A70F8F62AA6E97D1"
-> .text:00401873           xor     edx, edx
-> .text:00401875           mov     dword\_52E770, edx
-> .text:0040187B           lea     ecx, \[ebp+var\_C\]
-> .text:0040187E           push    ecx
-> .text:0040187F           push    \[ebp+arg\_4\]          ----->读入注册码
-> .text:00401882           call    zhsread
-> .text:00401887           add     esp, 8
-> .text:0040188A           mov     dword\_55DE68, 30h
-> .text:00401894           lea     eax, \[ebp+var\_4\]
-> .text:00401897           push    eax
-> .text:00401898           lea     edx, \[ebp+var\_344\]  ------>读入 N
-> .text:0040189E           push    edx
-> .text:0040189F           call    zhsread
-> .text:004018A4           add     esp, 8
-> .text:004018A7           lea     ecx, \[ebp+var\_8\]
-> .text:004018AA           push    ecx
-> .text:004018AB           lea     eax, \[ebp+s\]         ------>读入 D
-> .text:004018AE           push    eax
-> .text:004018AF           call    zhsread
-> .text:004018B4           add     esp, 8
-> .text:004018B7           lea     edx, \[ebp+var\_14\]
-> .text:004018BA           push    edx
-> .text:004018BB           push    \[ebp+var\_4\]
-> .text:004018BE           push    \[ebp+var\_8\]
-> .text:004018C1           push    \[ebp+var\_C\]
-> .text:004018C4           call    zexpmod         
-> .text:004018C9           add     esp, 10h
-> .text:004018CC           push    \[ebp+var\_14\]
-> .text:004018CF           lea     ecx, \[ebp+var\_130\]
-> .text:004018D5           push    ecx
-> .text:004018D6           call    zswrite
-> .text:004018DB           add     esp, 8
-> .text:004018DE           mov     dword\_55DE68, 30h
-> .text:004018E8           mov     al, byte  ptr \[ebp+var\_130\]   ------->RSA 解密后结果
-> .text:004018EE           mov     dl, byte\_52F404
-> .text:004018F4           cmp     al, dl                       ----->第一位是否等于'5'
-> .text:004018F6           jz      short loc\_401904
-> .text:004018F8           movsx   ecx, byte ptr \[ebp+var\_130\]
-> .text:004018FF           cmp     ecx, 34h                     ----->第一位是否等于'4'
-> .text:00401902           jnz     short loc\_40190A
-> .text:00401904 
-> .text:00401904 loc\_401904:             ; CODE XREF: sub\_4017C0+136j
-> .text:00401904           inc     dword\_55DE68
-> .text:0040190A 
-> .text:0040190A loc\_40190A:             ; CODE XREF: sub\_4017C0+142j
-> .text:0040190A           mov     al, byte  ptr \[ebp+var\_130+1\]
-> .text:00401910           mov     dl, byte\_52F405
-> .text:00401916           cmp     al, dl                      ----->第二位是否等于'5'    
-> .text:00401918           jz      short loc\_401926
-> .text:0040191A           movsx   ecx, byte ptr \[ebp+var\_130+1\]
-> .text:00401921           cmp     ecx, 36h                    ----->第二位是否等于'6’
-> .text:00401924           jnz     short loc\_40192C
-> .text:00401926 
-> .text:00401926 loc\_401926:             ; CODE XREF: sub\_4017C0+158j
-> .text:00401926           inc     dword\_55DE68
-> .text:0040192C 
-> .text:0040192C loc\_40192C:             ; CODE XREF: sub\_4017C0+164j
-> .text:0040192C           movsx   eax, \[ebp+var\_12A\]
-> .text:00401933           cmp     eax, 32h                   ----->第七位是否等于'2’
-> .text:00401936           jl      short loc\_401944
-> .text:00401938           movsx   edx, \[ebp+var\_12A\]
-> .text:0040193F           cmp     edx, 32h
-> .text:00401942           jle     short loc\_40194A
-> .text:00401944 
-> .text:00401944 loc\_401944:             ; CODE XREF: sub\_4017C0+176j
-> .text:00401944           dec     dword\_55DE68
-> .text:0040194A 
-> .text:0040194A loc\_40194A:             ; CODE XREF: sub\_4017C0+182j
-> .text:0040194A           movsx   ecx, \[ebp+var\_128\]
-> .text:00401951           cmp     ecx, 35h                   ----->第九位是否等于'5’
-> .text:00401954           jnz     short loc\_40195C
-> .text:00401956           inc     dword\_55DE68
-> .text:0040195C 
-> .text:0040195C loc\_40195C:             ; CODE XREF: sub\_4017C0+194j
-> .text:0040195C           movsx   eax, \[ebp+var\_127\]
-> .text:00401963           cmp     eax, 33h                  ----->第十位是否等于'3’
-> .text:00401966           jnz     short loc\_40196E
-> .text:00401968           inc     dword\_55DE68
-> .text:0040196E 
-> .text:0040196E loc\_40196E:             ; CODE XREF: sub\_4017C0+1A6j
-> .text:0040196E           movsx   edx, \[ebp+var\_129\]
-> .text:00401975           cmp     edx, 61h                ----->第八位是否等于'a'
-> .text:00401978           jz      short loc\_40198C
-> .text:0040197A           movsx   ecx, \[ebp+var\_129\]
-> .text:00401981           cmp     ecx, 63h                ----->第八位是否等于'c'
-> .text:00401984           jz      short loc\_40198C
-> .text:00401986           dec     dword\_55DE68
-> .text:0040198C 
-> .text:0040198C loc\_40198C:             ; CODE XREF: sub\_4017C0+1B8j
-> .text:0040198C                 ; sub\_4017C0+1C4j
-> .text:0040198C           movsx   eax, \[ebp+var\_122\]
-> .text:00401993           cmp     eax, 34h                ----->第十五位是否等于'4'
-> .text:00401996           jnz     short loc\_40199E
-> .text:00401998           inc     dword\_55DE68
-> .text:0040199E 
-> .text:0040199E loc\_40199E:             ; CODE XREF: sub\_4017C0+1D6j
-> .text:0040199E           movsx   edx, \[ebp+var\_121\]
-> .text:004019A5           cmp     edx, 66h               ----->第十六位是否等于'f' 
-> .text:004019A8           jnz     short loc\_4019B0
-> .text:004019AA           inc     dword\_55DE68
-> .text:004019B0 
-> .text:004019B0 loc\_4019B0:             ; CODE XREF: sub\_4017C0+1E8j
-> .text:004019B0           mov     ecx, dword\_55DE68
-> .text:004019B6           cmp     ecx, 36h             ----->看看结果是否符合要求
->                                               
-> .text:004019B9           jnz     loc\_401A9D
-> .text:004019BF           mov     \[ebp+var\_2C\], 86A0h
-> .text:004019C6           mov     \[ebp+var\_30\], offset unk\_5260C0
-> .text:004019CD           lea     eax, \[ebp+var\_4B0\]
-> .text:004019D3           push    eax
-> .text:004019D4           call    MD5init
-> .text:004019D9           pop     ecx
-> .text:004019DA           push    \[ebp+var\_2C\]
-> .text:004019DD           push    \[ebp+var\_30\]
-> .text:004019E0           lea     edx, \[ebp+var\_4B0\]
-> .text:004019E6           push    edx
-> .text:004019E7           call    MD5\_452710
-> .text:004019EC           add     esp, 0Ch
-> .text:004019EF           lea     ecx, \[ebp+var\_4B0\]
-> .text:004019F5           push    ecx
-> .text:004019F6           lea     eax, \[ebp+s1\]
-> .text:004019FC           push    eax
-> .text:004019FD           call    MD5\_4527f8     ----->把 52600c0 开始长 86a0 的数据求 MD5
-> .text:00401A02           add     esp, 8
-> .text:00401A05           push    10h         ; n
-> .text:00401A07           push    offset unk\_52E760 ; s2
-> .text:00401A0C           lea     edx, \[ebp+s1\]
-> .text:00401A12           push    edx         ; s1
-> .text:00401A13           call    \_memcmp       ------>看看有没有被修改
-> .text:00401A18           add     esp, 0Ch
-> .text:00401A1B           test    eax, eax
-> .text:00401A1D           jnz     short loc\_401A9D
-> .text:00401A1F           push    \[ebp+arg\_4\]
-> .text:00401A22           push    \[ebp+arg\_0\]
-> .text:00401A25           push    offset aUtriso  ; "UTRISO"
-> .text:00401A2A           push    offset aSSS     ; format
-> .text:00401A2F           lea     ecx, \[ebp+buffer\]
-> .text:00401A35           push    ecx         ; buffer
-> .text:00401A36           call    \_sprintf     ---->连接"UTRISO"和注册名和注册码
-> .text:00401A3B           add     esp, 14h
-> .text:00401A3E           lea     eax, \[ebp+buffer\]
-> .text:00401A44           push    eax
-> .text:00401A45           lea     edx, \[ebp+s1\]
-> .text:00401A4B           push    edx
-> .text:00401A4C           call    MD5\_40177C   ---->求 MD5
-> .text:00401A51           add     esp, 8
-> .text:00401A54           xor     ecx, ecx
-> .text:00401A56           mov     \[ebp+var\_28\], ecx
-> .text:00401A59 
-> .text:00401A59 loc\_401A59:             ; CODE XREF: sub\_4017C0+2DBj
-> .text:00401A59           push    10h         ; n
-> .text:00401A5B           mov     eax, \[ebp+var\_28\]
-> .text:00401A5E           shl     eax, 4
-> .text:00401A61           mov     edx, \[ebp+var\_30\]
-> .text:00401A64           add     eax, edx
-> .text:00401A66           push    eax         ; s2
-> .text:00401A67           lea     ecx, \[ebp+s1\]
-> .text:00401A6D           push    ecx         ; s1
-> .text:00401A6E           call    \_memcmp
-> .text:00401A73           add     esp, 0Ch
-> .text:00401A76           test    eax, eax
-> .text:00401A78           jnz     short loc\_401A90   ----->在刚才的数据区中查找，找到则
->                                                                 置标志
-> .text:00401A7A           mov     dword\_52E770, 1         \*\*\*\*\*\*\*\*
-> .text:00401A84           mov     dword\_55DE68, 6550h     \*\*\*\*\*\*\*\*
-> .text:00401A8E           jmp     short loc\_401A9D
-> .text:00401A90 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
-> .text:00401A90 
-> .text:00401A90 loc\_401A90:             ; CODE XREF: sub\_4017C0+2B8j
-> .text:00401A90           inc     \[ebp+var\_28\]
-> .text:00401A93           mov     eax, \[ebp+var\_28\]
-> .text:00401A96           cmp     eax, 86Ah
-> .text:00401A9B           jl      short loc\_401A59
-> .text:00401A9D 
-> .text:00401A9D loc\_401A9D:             ; CODE XREF: sub\_4017C0+1F9j
-> .text:00401A9D                 ; sub\_4017C0+25Dj ...
-> .text:00401A9D           lea     edx, \[ebp+var\_10\]
-> .text:00401AA0           push    edx
-> .text:00401AA1           push    \[ebp+arg\_0\]
-> .text:00401AA4           call    zshread
-> .text:00401AA9           add     esp, 8
-> .text:00401AAC           mov     ecx, dword\_52E770
-> .text:00401AB2           test    ecx, ecx
-> .text:00401AB4           jnz     short loc\_401AC0
-> .text:00401AB6           mov     dword\_55DE68, 24h
-> .text:00401AC0 
-> .text:00401AC0 loc\_401AC0:             ; CODE XREF: sub\_4017C0+2F4j
-> .text:00401AC0           push    \[ebp+var\_14\]
-> .text:00401AC3           push    \[ebp+var\_10\]
-> .text:00401AC6           call    zcompare
-> .text:00401ACB           add     esp, 8
-> .text:00401ACE           test    eax, eax
-> .text:00401AD0           jz      short loc\_401AD6
-> .text:00401AD2           xor     eax, eax
-> .text:00401AD4           jmp     short loc\_401ADB
-> .text:00401AD6 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
-> .text:00401AD6 
-> .text:00401AD6 loc\_401AD6:             ; CODE XREF: sub\_4017C0+310j
-> .text:00401AD6           mov     eax, 1
-> .text:00401ADB 
-> .text:00401ADB loc\_401ADB:             ; CODE XREF: sub\_4017C0+314j
-> .text:00401ADB           mov     esp, ebp
-> .text:00401ADD           pop     ebp
-> .text:00401ADE           retn
-> .text:00401ADE sub\_4017C0      endp
-> 
-> ```
-> 
->   
+感谢 `blowfish` 的指点，否则我还在晕头转向的在找什么算法。
 
-   
-看到这里想必都明白了，想做注册机是不可能了。这个程序只能爆破。  
-把 004019B9  jnz  loc\_401A9D 改成 jz loc\_401a7a 即可。共有七处，一一修改即可。  
-我刚学破解不久，有什么错误之处欢迎指正。  
-再次谢谢 blowfish.  
-  4dd466d0e1e0cc123afbe504da2462ca
+这个程序用了 `RSA` 和 `MD5` 的算法。具体分析如下：
+
+
+
+## 代码
+
+```
+.text:004017C0 sub_4017C0      proc near         ; CODE XREF: WinMain+262p
+.text:004017C0 
+.text:004017C0 var_4B0         = dword ptr -4B0h
+.text:004017C0 s1              = dword ptr -458h
+.text:004017C0 buffer          = byte ptr -448h
+.text:004017C0 var_344         = dword ptr -344h
+.text:004017C0 var_340         = byte ptr -340h
+.text:004017C0 var_33F         = byte ptr -33Fh
+.text:004017C0 var_33E         = byte ptr -33Eh
+.text:004017C0 var_33D         = byte ptr -33Dh
+.text:004017C0 var_33A         = byte ptr -33Ah
+.text:004017C0 var_339         = byte ptr -339h
+.text:004017C0 var_338         = byte ptr -338h
+.text:004017C0 var_337         = byte ptr -337h
+.text:004017C0 var_336         = byte ptr -336h
+.text:004017C0 var_335         = byte ptr -335h
+.text:004017C0 var_334         = byte ptr -334h
+.text:004017C0 var_130         = dword ptr -130h
+.text:004017C0 var_12A         = byte ptr -12Ah
+.text:004017C0 var_129         = byte ptr -129h
+.text:004017C0 var_128         = byte ptr -128h
+.text:004017C0 var_127         = byte ptr -127h
+.text:004017C0 var_122         = byte ptr -122h
+.text:004017C0 var_121         = byte ptr -121h
+.text:004017C0 var_30          = dword ptr -30h
+.text:004017C0 var_2C          = dword ptr -2Ch
+.text:004017C0 var_28          = dword ptr -28h
+.text:004017C0 s               = dword ptr -1Ch
+.text:004017C0 var_18          = byte ptr -18h
+.text:004017C0 var_17          = byte ptr -17h
+.text:004017C0 var_14          = dword ptr -14h
+.text:004017C0 var_10          = dword ptr -10h
+.text:004017C0 var_C           = dword ptr -0Ch
+.text:004017C0 var_8           = dword ptr -8
+.text:004017C0 var_4           = dword ptr -4
+.text:004017C0 arg_0           = dword ptr  8
+.text:004017C0 arg_4           = dword ptr  0Ch
+.text:004017C0 
+.text:004017C0            push    ebp
+.text:004017C1            mov     ebp, esp
+.text:004017C3            add     esp, 0FFFFFB50h
+.text:004017C9            xor     eax, eax
+.text:004017CB            mov     [ebp+var_4], eax
+.text:004017CE            xor     edx, edx
+.text:004017D0            mov     [ebp+var_8], edx
+.text:004017D3            xor     ecx, ecx
+.text:004017D5            mov     [ebp+var_C], ecx
+.text:004017D8            xor     eax, eax
+.text:004017DA            mov     [ebp+var_10], eax
+.text:004017DD            xor     edx, edx
+.text:004017DF            mov     [ebp+var_14], edx
+.text:004017E2            push    5         ; n
+.text:004017E4            push    30h       ; c
+.text:004017E6            lea     ecx, [ebp+s]
+.text:004017E9            push    ecx         ; s
+.text:004017EA            call    _memset
+.text:004017EF            add     esp, 0Ch
+.text:004017F2            mov     byte ptr  [ebp+s], 31h
+.text:004017F6            mov     [ebp+var_18], 31h
+.text:004017FA            mov     [ebp+var_17], 0        -------->D="10001"
+.text:004017FE            push    10h       ; n
+.text:00401800            push    41h       ; c
+.text:00401802            lea     eax, [ebp+var_344]
+.text:00401808            push    eax         ; s
+.text:00401809            call    _memset
+.text:0040180E            add     esp, 0Ch
+.text:00401811            mov     [ebp+var_335], 31h
+.text:00401818            mov     [ebp+var_336], 44h
+.text:0040181F            mov     byte ptr  [ebp+var_344+2], 30h
+.text:00401826            mov     byte ptr  [ebp+var_344+3], 46h
+.text:0040182D            mov     [ebp+var_33F], 46h
+.text:00401834            mov     [ebp+var_340], 38h
+.text:0040183B            mov     [ebp+var_33D], 32h
+.text:00401842            mov     [ebp+var_33A], 36h
+.text:00401849            mov     [ebp+var_33E], 36h
+.text:00401850            mov     [ebp+var_339], 45h
+.text:00401857            mov     [ebp+var_338], 39h
+.text:0040185E            mov     [ebp+var_337], 37h
+.text:00401865            mov     byte ptr  [ebp+var_344+1], 37h
+.text:0040186C            mov     [ebp+var_334], 0      ---->N="A70F8F62AA6E97D1"
+.text:00401873            xor     edx, edx
+.text:00401875            mov     dword_52E770, edx
+.text:0040187B            lea     ecx, [ebp+var_C]
+.text:0040187E            push    ecx
+.text:0040187F            push    [ebp+arg_4]          ----->读入注册码
+.text:00401882            call    zhsread
+.text:00401887            add     esp, 8
+.text:0040188A            mov     dword_55DE68, 30h
+.text:00401894            lea     eax, [ebp+var_4]
+.text:00401897            push    eax
+.text:00401898            lea     edx, [ebp+var_344]  ------>读入 N
+.text:0040189E            push    edx
+.text:0040189F            call    zhsread
+.text:004018A4            add     esp, 8
+.text:004018A7            lea     ecx, [ebp+var_8]
+.text:004018AA            push    ecx
+.text:004018AB            lea     eax, [ebp+s]          ------>读入 D
+.text:004018AE            push    eax
+.text:004018AF            call    zhsread
+.text:004018B4            add     esp, 8
+.text:004018B7            lea     edx, [ebp+var_14]
+.text:004018BA            push    edx
+.text:004018BB            push    [ebp+var_4]
+.text:004018BE            push    [ebp+var_8]
+.text:004018C1            push    [ebp+var_C]
+.text:004018C4            call    zexpmod         
+.text:004018C9            add     esp, 10h
+.text:004018CC            push    [ebp+var_14]
+.text:004018CF            lea     ecx, [ebp+var_130]
+.text:004018D5            push    ecx
+.text:004018D6            call    zswrite
+.text:004018DB            add     esp, 8
+.text:004018DE            mov     dword_55DE68, 30h
+.text:004018E8            mov     al, byte  ptr [ebp+var_130]   ------->RSA 解密后结果
+.text:004018EE            mov     dl, byte_52F404
+.text:004018F4            cmp     al, dl                        ----->第一位是否等于'5'
+.text:004018F6            jz      short loc_401904
+.text:004018F8            movsx   ecx, byte ptr [ebp+var_130]
+.text:004018FF            cmp     ecx, 34h                       ----->第一位是否等于'4'
+.text:00401902            jnz     short loc_40190A
+.text:00401904 
+.text:00401904 loc_401904:          ; CODE XREF: sub_4017C0+136j
+.text:00401904            inc     dword_55DE68
+.text:0040190A 
+.text:0040190A loc_40190A:          ; CODE XREF: sub_4017C0+142j
+.text:0040190A            mov     al, byte  ptr [ebp+var_130+1]
+.text:00401910            mov     dl, byte_52F405
+.text:00401916            cmp     al, dl                       ----->第二位是否等于'5'     
+.text:00401918            jz      short loc_401926
+.text:0040191A            movsx   ecx, byte ptr [ebp+var_130+1]
+.text:00401921            cmp     ecx, 36h                     ----->第二位是否等于'6’
+.text:00401924            jnz     short loc_40192C
+.text:00401926 
+.text:00401926 loc_401926:          ; CODE XREF: sub_4017C0+158j
+.text:00401926            inc     dword_55DE68
+.text:0040192C 
+.text:0040192C loc_40192C:          ; CODE XREF: sub_4017C0+164j
+.text:0040192C            movsx   eax, [ebp+var_12A]
+.text:00401933            cmp     eax, 32h                    ----->第七位是否等于'2’
+.text:00401936            jl      short loc_401944
+.text:00401938            movsx   edx, [ebp+var_12A]
+.text:0040193F            cmp     edx, 32h
+.text:00401942            jle     short loc_40194A
+.text:00401944 
+.text:00401944 loc_401944:          ; CODE XREF: sub_4017C0+176j
+.text:00401944            dec     dword_55DE68
+.text:0040194A 
+.text:0040194A loc_40194A:          ; CODE XREF: sub_4017C0+182j
+.text:0040194A            movsx   ecx, [ebp+var_128]
+.text:00401951            cmp     ecx, 35h                    ----->第九位是否等于'5’
+.text:00401954            jnz     short loc_40195C
+.text:00401956            inc     dword_55DE68
+.text:0040195C 
+.text:0040195C loc_40195C:          ; CODE XREF: sub_4017C0+194j
+.text:0040195C            movsx   eax, [ebp+var_127]
+.text:00401963            cmp     eax, 33h                   ----->第十位是否等于'3’
+.text:00401966            jnz     short loc_40196E
+.text:00401968            inc     dword_55DE68
+.text:0040196E 
+.text:0040196E loc_40196E:          ; CODE XREF: sub_4017C0+1A6j
+.text:0040196E            movsx   edx, [ebp+var_129]
+.text:00401975            cmp     edx, 61h               ----->第八位是否等于'a'
+.text:00401978            jz      short loc_40198C
+.text:0040197A            movsx   ecx, [ebp+var_129]
+.text:00401981            cmp     ecx, 63h               ----->第八位是否等于'c'
+.text:00401984            jz      short loc_40198C
+.text:00401986            dec     dword_55DE68
+.text:0040198C 
+.text:0040198C loc_40198C:          ; CODE XREF: sub_4017C0+1B8j
+.text:0040198C                  ; sub_4017C0+1C4j
+.text:0040198C            movsx   eax, [ebp+var_122]
+.text:00401993            cmp     eax, 34h               ----->第十五位是否等于'4'
+.text:00401996            jnz     short loc_40199E
+.text:00401998            inc     dword_55DE68
+.text:0040199E 
+.text:0040199E loc_40199E:          ; CODE XREF: sub_4017C0+1D6j
+.text:0040199E            movsx   edx, [ebp+var_121]
+.text:004019A5            cmp     edx, 66h              ----->第十六位是否等于'f' 
+.text:004019A8            jnz     short loc_4019B0
+.text:004019AA            inc     dword_55DE68
+.text:004019B0 
+.text:004019B0 loc_4019B0:          ; CODE XREF: sub_4017C0+1E8j
+.text:004019B0            mov     ecx, dword_55DE68
+.text:004019B6            cmp     ecx, 36h           ----->看看结果是否符合要求
+                                                               
+.text:004019B9            jnz     loc_401A9D
+.text:004019BF            mov     [ebp+var_2C], 86A0h
+.text:004019C6            mov     [ebp+var_30], offset unk_5260C0
+.text:004019CD            lea     eax, [ebp+var_4B0]
+.text:004019D3            push    eax
+.text:004019D4            call    MD5init
+.text:004019D9            pop     ecx
+.text:004019DA            push    [ebp+var_2C]
+.text:004019DD            push    [ebp+var_30]
+.text:004019E0            lea     edx, [ebp+var_4B0]
+.text:004019E6            push    edx
+.text:004019E7            call    MD5_452710
+.text:004019EC            add     esp, 0Ch
+.text:004019EF            lea     ecx, [ebp+var_4B0]
+.text:004019F5            push    ecx
+.text:004019F6            lea     eax, [ebp+s1]
+.text:004019FC            push    eax
+.text:004019FD            call    MD5_4527f8      ----->把 52600c0 开始长 86a0 的数据求 MD5
+.text:00401A02            add     esp, 8
+.text:00401A05            push    10h       ; n
+.text:00401A07            push    offset unk_52E760 ; s2
+.text:00401A0C            lea     edx, [ebp+s1]
+.text:00401A12            push    edx         ; s1
+.text:00401A13            call    _memcmp       ------>看看有没有被修改
+.text:00401A18            add     esp, 0Ch
+.text:00401A1B            test    eax, eax
+.text:00401A1D            jnz     short loc_401A9D
+.text:00401A1F            push    [ebp+arg_4]
+.text:00401A22            push    [ebp+arg_0]
+.text:00401A25            push    offset aUtriso  ; "UTRISO"
+.text:00401A2A            push    offset aSSS     ; format
+.text:00401A2F            lea     ecx, [ebp+buffer]
+.text:00401A35            push    ecx         ; buffer
+.text:00401A36            call    _sprintf     ---->连接"UTRISO"和注册名和注册码
+.text:00401A3B            add     esp, 14h
+.text:00401A3E            lea     eax, [ebp+buffer]
+.text:00401A44            push    eax
+.text:00401A45            lea     edx, [ebp+s1]
+.text:00401A4B            push    edx
+.text:00401A4C            call    MD5_40177C   ---->求 MD5
+.text:00401A51            add     esp, 8
+.text:00401A54            xor     ecx, ecx
+.text:00401A56            mov     [ebp+var_28], ecx
+.text:00401A59 
+.text:00401A59 loc_401A59:          ; CODE XREF: sub_4017C0+2DBj
+.text:00401A59            push    10h       ; n
+.text:00401A5B            mov     eax, [ebp+var_28]
+.text:00401A5E            shl     eax, 4
+.text:00401A61            mov     edx, [ebp+var_30]
+.text:00401A64            add     eax, edx
+.text:00401A66            push    eax         ; s2
+.text:00401A67            lea     ecx, [ebp+s1]
+.text:00401A6D            push    ecx         ; s1
+.text:00401A6E            call    _memcmp
+.text:00401A73            add     esp, 0Ch
+.text:00401A76            test    eax, eax
+.text:00401A78            jnz     short loc_401A90   ----->在刚才的数据区中查找，找到则
+                                                        置标志
+.text:00401A7A            mov     dword_52E770, 1          *********
+.text:00401A84            mov     dword_55DE68, 6550h     *********
+.text:00401A8E            jmp     short loc_401A9D
+.text:00401A90 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+.text:00401A90 
+.text:00401A90 loc_401A90:          ; CODE XREF: sub_4017C0+2B8j
+.text:00401A90            inc     [ebp+var_28]
+.text:00401A93            mov     eax, [ebp+var_28]
+.text:00401A96            cmp     eax, 86Ah
+.text:00401A9B            jl      short loc_401A59
+.text:00401A9D 
+.text:00401A9D loc_401A9D:          ; CODE XREF: sub_4017C0+1F9j
+.text:00401A9D                  ; sub_4017C0+25Dj ...
+.text:00401A9D            lea     edx, [ebp+var_10]
+.text:00401AA0            push    edx
+.text:00401AA1            push    [ebp+arg_0]
+.text:00401AA4            call    zshread
+.text:00401AA9            add     esp, 8
+.text:00401AAC            mov     ecx, dword_52E770
+.text:00401AB2            test    ecx, ecx
+.text:00401AB4            jnz     short loc_401AC0
+.text:00401AB6            mov     dword_55DE68, 24h
+.text:00401AC0 
+.text:00401AC0 loc_401AC0:          ; CODE XREF: sub_4017C0+2F4j
+.text:00401AC0            push    [ebp+var_14]
+.text:00401AC3            push    [ebp+var_10]
+.text:00401AC6            call    zcompare
+.text:00401ACB            add     esp, 8
+.text:00401ACE            test    eax, eax
+.text:00401AD0            jz      short loc_401AD6
+.text:00401AD2            xor     eax, eax
+.text:00401AD4            jmp     short loc_401ADB
+.text:00401AD6 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+.text:00401AD6 
+.text:00401AD6 loc_401AD6:          ; CODE XREF: sub_4017C0+310j
+.text:00401AD6            mov     eax, 1
+.text:00401ADB 
+.text:00401ADB loc_401ADB:          ; CODE XREF: sub_4017C0+314j
+.text:00401ADB            mov     esp, ebp
+.text:00401ADD            pop     ebp
+.text:00401ADE            retn
+.text:00401ADE sub_4017C0      endp
+```
+
+
+
+看到这里想必都明白了，想做注册机是不可能了。这个程序只能爆破。
+
+把`004019B9  jnz  loc_401A9D`改成`jz loc_401a7a`即可。共有七处，一一修改即可。
+
+我刚学破解不久，有什么错误之处欢迎指正。
+
+再次谢谢`blowfish`。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

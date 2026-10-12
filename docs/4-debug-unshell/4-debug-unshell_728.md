@@ -1,682 +1,675 @@
 
-
 # 申请加入 DFCG No.3－－如何得到 jexepackv4.1a 的 java 源码
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-442.htm`](https://www.pediy.com/kssd/pediy07/pediy7-442.htm)
 
-如何得到 jexepackv4.1a 的 java 源码  
-【破解作者】 winndy\[FCG\]\[PYG\]  
-【作者邮箱】 CNwinndy@hotmail.com  
-【使用工具】 DJ Java Decompiler 3.8 ，ollydbg v1.10fly 修改版 ，EasyRecovery Professional v6.10   
-【破解平台】 Winxp   
-【软件名称】 jexepackv4.1a  
-【官方网址】 http://www.duckware.com/jexepack/index.html  
-【编写语言】 java(jexepack) vc(j2exestubc,j2exestubw)  
-【软件介绍】 可以把 java 的 class 文件打包成 exe 文件，但存在极大漏洞，我正是通过此漏洞，获得了其自身的 java 源码，也就完成了破解。  
-             我是在国庆节以前下载的，现在已是 5.1a 的版本。  
-【破解声明】 For Study ,For Fun  
-【破解过程】   
-             $$1.漏洞的发现  
-               我用 jexepack 将自己写的一个程序转化为了 Example.exe，但是未注册版本会弹出一个画面。于是操起 ollydbg，  
- 对 Example.exe 进行分析，发现程序会在临时目录：  
-C:\\Documents and Settings\\User\\Local Settings\\Temp 下新建一个目录  
-注意 Local Settings 是隐藏目录。  
-  
+## 如何得到 jexepackv4.1a 的 java 源码
 
->  
-> 
-> ```
-> 代码:
-> 
-> * * *
-> 
-> 004018AD    . /0F85 5B0600>jnz write2.00401F0E
-> 004018B3    . |8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 004018B9    . |50          push eax                                         ; /Buffer
-> 004018BA    . |68 E6000000 push 0E6                                         ; |BufSize = E6 (230.)
-> 004018BF    . |FF15 543040>call dword ptr ds:\[<&KERNEL32.GetTempPathA>\]     ; \\GetTempPathA
-> 004018C5    . |85C0        test eax,eax
-> 004018C7    . |7E 52       jle short write2.0040191B
-> 004018C9    . |80BC05 C3FE>cmp byte ptr ss:\[ebp+eax-13D\],5C
-> 004018D1    . |74 13       je short write2.004018E6                         ;  jump
-> 004018D3    . |8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 004018D9    . |68 58444000 push write2.00404458                             ; /src = "\\"
-> 004018DE    . |50          push eax                                         ; |dest
-> 004018DF    . |E8 78080000 call <jmp.&MSVCRT.strcat>                        ; \\strcat
-> 004018E4    . |59          pop ecx
-> 004018E5    . |59          pop ecx
-> 004018E6    > |8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 004018EC    . |50          push eax
-> 004018ED    . |68 4C444000 push write2.0040444C                             ;  ASCII "temppath"
-> 004018F2    . |E8 2EF7FFFF call write2.00401025
-> 004018F7    . |59          pop ecx
-> 004018F8    . |8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 004018FE    . |59          pop ecx
-> 004018FF    . |50          push eax                                         ; /FileName
-> 00401900    . |FF15 503040>call dword ptr ds:\[<&KERNEL32.GetFileAttributesA>; \\GetFileAttributesA
-> 00401906    . |83F8 FF     cmp eax,-1
-> 00401909    . |74 04       je short write2.0040190F
-> 0040190B    . |A8 10       test al,10
-> 0040190D    . |75 18       jnz short write2.00401927
-> 0040190F    > |C745 F8 192>mov dword ptr ss:\[ebp-8\],2719
-> 00401916    . |E9 25030000 jmp write2.00401C40
-> 0040191B    > |C745 F8 172>mov dword ptr ss:\[ebp-8\],2717
-> 00401922    . |E9 19030000 jmp write2.00401C40
-> 00401927    > |FF15 4C3040>call dword ptr ds:\[<&KERNEL32.GetTickCount>\]     ; \[GetTickCount
-> 0040192D    . |50          push eax
-> 0040192E    . |6A 00       push 0                                           ; /timer = NULL
-> 00401930    . |FF15 A43040>call dword ptr ds:\[<&MSVCRT.time>\]               ; \\time
-> 00401936    . |59          pop ecx
-> 00401937    . |50          push eax
-> 00401938    . |8D85 60FEFF>lea eax,dword ptr ss:\[ebp-1A0\]
-> 0040193E    . |68 44444000 push write2.00404444                             ;  ASCII "%X%X"
-> 00401943    . |50          push eax
-> 00401944    . |FFD7        call edi
-> 
-> * * *
-> 
-> 
-> ```
+【破解作者】 `winndy[FCG][PYG]`  
+【作者邮箱】 `CNwinndy@hotmail.com`  
+【使用工具】 `DJ Java Decompiler 3.8`，`ollydbg v1.10fly 修改版`，`EasyRecovery Professional v6.10`  
+【破解平台】 `Winxp`  
+【软件名称】 `jexepackv4.1a`  
+【官方网址】 `http://www.duckware.com/jexepack/index.html`  
+【编写语言】 `java(jexepack)` `vc(j2exestubc,j2exestubw)`  
+【软件介绍】 可以把 `java` 的 `class` 文件打包成 `exe` 文件，但存在极大漏洞，我正是通过此漏洞，获得了其自身的 `java` 源码，也就完成了破解。  
+我是在国庆节以前下载的，现在已是 `5.1a` 的版本。  
+【破解声明】 `For Study ,For Fun`  
+【破解过程】  
 
-  
-这一句执行后在面板内看到  
-堆栈地址=0012FD90, (ASCII "434C6FD14A8564")  
-eax=0000000E  
-利用 GetTickCount 函数得到一个 16 进制数，用作 temp 下的文件名。  
+### 1. 漏洞的发现
 
->  
-> 
-> ```
-> 代码:
-> 
-> * * *
-> 
-> 00401946    . |8D85 60FEFF>lea eax,dword ptr ss:\[ebp-1A0\]
-> 0040194C    . |50          push eax                                         ; /src
-> 0040194D    . |8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]                   ; |
-> 00401953    . |50          push eax                                         ; |dest
-> 00401954    . |E8 03080000 call <jmp.&MSVCRT.strcat>                        ; \\strcat
-> 00401959    . |8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 0040195F    . |50          push eax
-> 00401960    . |68 3C444000 push write2.0040443C                             ;  ASCII "tempdir"
-> 00401965    . |E8 BBF6FFFF call write2.00401025
-> 0040196A    . |83C4 20     add esp,20
-> 0040196D    . |8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 00401973    . |6A 00       push 0                                           ; /pSecurity = NULL
-> 00401975    . |50          push eax                                         ; |Path
-> 00401976    . |FF15 483040>call dword ptr ds:\[<&KERNEL32.CreateDirectoryA>\] ; \\CreateDirectoryA
-> 0040197C    . |85C0        test eax,eax
-> 0040197E    . |0F84 FD0100>je write2.00401B81
-> 00401984    . |6A 00       push 0                                           ; /BufSize = 0
-> 00401986    . |BB 34444000 mov ebx,write2.00404434                          ; |ASCII "path"
-> 0040198B    . |6A 00       push 0                                           ; |Buffer = NULL
-> 0040198D    . |53          push ebx                                         ; |VarName => "path"
-> 0040198E    . |FF15 443040>call dword ptr ds:\[<&KERNEL32.GetEnvironmentVari>; \\GetEnvironmentVariableA
-> 
-> * * *
-> 
-> 
-> ```
+我用 `jexepack` 将自己写的一个程序转化为了 `Example.exe`，但是未注册版本会弹出一个画面。于是操起 `ollydbg`，对 `Example.exe` 进行分析，发现程序会在临时目录：
 
-  
-继续跟踪下去，程序首先在临时文件夹中生成 jexepackboot.class，然后写入实际文件内容。  
+`C:\Documents and Settings\User\Local Settings\Temp`
 
->  
-> 
-> ```
-> 代码:
-> 
-> * * *
-> 
-> 00401B8D    > \\FF35 144040>push dword ptr ds:\[404014\]                       ;  write2.00404070
-> 00401B93    .  8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 00401B99    .  50          push eax
-> 00401B9A    .  8D85 58FCFF>lea eax,dword ptr ss:\[ebp-3A8\]
-> 00401BA0    .  68 F0434000 push write2.004043F0                             ;  ASCII "%s\\%sboot.class"
-> 00401BA5    .  50          push eax
-> 00401BA6    .  FFD7        call edi
-> 00401BA8    .  83C4 10     add esp,10
-> 00401BAB    .  33C0        xor eax,eax
-> 00401BAD    .  50          push eax                                         ; /hTemplateFile => NULL
-> 00401BAE    .  50          push eax                                         ; |Attributes => 0
-> 00401BAF    .  6A 02       push 2                                           ; |Mode = CREATE\_ALWAYS
-> 00401BB1    .  50          push eax                                         ; |pSecurity => NULL
-> 00401BB2    .  6A 03       push 3                                           ; |ShareMode = FILE\_SHARE\_READ|FILE\_SHARE\_WRITE
-> 00401BB4    .  8D85 58FCFF>lea eax,dword ptr ss:\[ebp-3A8\]                   ; |
-> 00401BBA    .  68 000000C0 push C0000000                                    ; |Access = GENERIC\_READ|GENERIC\_WRITE
-> 00401BBF    .  50          push eax                                         ; |FileName
-> 00401BC0    .  FF15 383040>call dword ptr ds:\[<&KERNEL32.CreateFileA>\]      ; \\CreateFileA
->                                                                             ；jexepackboot.class 生成，但无内容
-> 00401BC6    .  83F8 FF     cmp eax,-1
-> 00401BC9    .  8945 F0     mov dword ptr ss:\[ebp-10\],eax
-> 00401BCC    .  74 6B       je short write2.00401C39
-> 00401BCE    .  8B45 E8     mov eax,dword ptr ss:\[ebp-18\]
-> 00401BD1    .  8B4D DC     mov ecx,dword ptr ss:\[ebp-24\]
-> 00401BD4    .  6A 01       push 1
-> 00401BD6    .  8B5C01 18   mov ebx,dword ptr ds:\[ecx+eax+18\]
-> 00401BDA    .  53          push ebx
-> 00401BDB    .  FFD6        call esi
-> 00401BDD    .  8945 F4     mov dword ptr ss:\[ebp-C\],eax
-> 00401BE0    .  59          pop ecx
-> 00401BE1    .  33C0        xor eax,eax
-> 00401BE3    .  59          pop ecx
-> 00401BE4    .  85DB        test ebx,ebx
-> 00401BE6    .  7E 28       jle short write2.00401C10
-> 00401BE8    .  8B55 DC     mov edx,dword ptr ss:\[ebp-24\]
-> 00401BEB    .  2B55 F4     sub edx,dword ptr ss:\[ebp-C\]
-> 00401BEE    .  8955 E0     mov dword ptr ss:\[ebp-20\],edx
-> 00401BF1    .  EB 03       jmp short write2.00401BF6
-> 00401BF3    >  8B55 E0     mov edx,dword ptr ss:\[ebp-20\]
-> 00401BF6    >  8B4D F4     mov ecx,dword ptr ss:\[ebp-C\]
-> 00401BF9    .  8B75 E8     mov esi,dword ptr ss:\[ebp-18\]
-> 00401BFC    .  03C8        add ecx,eax
-> 00401BFE    .  03D1        add edx,ecx
-> 00401C00    .  8A5432 1C   mov dl,byte ptr ds:\[edx+esi+1C\]
-> 00401C04    .  32D0        xor dl,al
-> 00401C06    .  80EA 64     sub dl,64
-> 00401C09    .  40          inc eax
-> 00401C0A    .  3BC3        cmp eax,ebx
-> 00401C0C    .  8811        mov byte ptr ds:\[ecx\],dl
-> 00401C0E    .^ 7C E3       jl short write2.00401BF3
-> 00401C10    >  8D45 C8     lea eax,dword ptr ss:\[ebp-38\]
-> 00401C13    .  6A 00       push 0                                           ; /pOverlapped = NULL
-> 00401C15    .  50          push eax                                         ; |pBytesWritten
-> 00401C16    .  53          push ebx                                         ; |nBytesToWrite
-> 00401C17    .  FF75 F4     push dword ptr ss:\[ebp-C\]                        ; |Buffer
-> 00401C1A    .  FF75 F0     push dword ptr ss:\[ebp-10\]                       ; |hFile
-> 00401C1D    .  FF15 3C3040>call dword ptr ds:\[<&KERNEL32.WriteFile>\]        ; \\WriteFile
->                                                                             ；写入 jexepackboot.class
-> 00401C23    .  85C0        test eax,eax
-> 00401C25    .  75 07       jnz short write2.00401C2E
-> 00401C27    .  C745 F8 112>mov dword ptr ss:\[ebp-8\],2711
-> 00401C2E    >  FF75 F0     push dword ptr ss:\[ebp-10\]                       ; /hObject
-> 00401C31    .  FF15 083040>call dword ptr ds:\[<&KERNEL32.CloseHandle>\]      ; \\CloseHandle
-> 00401C37    .  EB 07       jmp short write2.00401C40
-> 00401C39    >  C745 F8 112>mov dword ptr ss:\[ebp-8\],2711
-> 00401C40    >  33DB        xor ebx,ebx
-> 00401C42    .  53          push ebx
-> 00401C43    .  68 EC434000 push write2.004043EC                             ;  ASCII "mf"
-> 00401C48    .  FF75 E4     push dword ptr ss:\[ebp-1C\]
-> 00401C4B    .  E8 AEF7FFFF call write2.004013FE
-> 00401C50    .  53          push ebx
-> 00401C51    .  68 E4434000 push write2.004043E4                             ;  ASCII "minver"
-> 00401C56    .  FF75 E4     push dword ptr ss:\[ebp-1C\]
-> 00401C59    .  8945 F4     mov dword ptr ss:\[ebp-C\],eax
-> 00401C5C    .  E8 9DF7FFFF call write2.004013FE
-> 00401C61    .  68 D4444000 push write2.004044D4
-> 00401C66    .  68 E0434000 push write2.004043E0                             ;  ASCII "jop"
-> 00401C6B    .  FF75 E4     push dword ptr ss:\[ebp-1C\]
-> 00401C6E    .  8945 F0     mov dword ptr ss:\[ebp-10\],eax
-> 00401C71    .  E8 88F7FFFF call write2.004013FE
-> 00401C76    .  FF75 E8     push dword ptr ss:\[ebp-18\]                       ; /block
-> 00401C79    .  A3 CC444000 mov dword ptr ds:\[4044CC\],eax                    ; |
-> 00401C7E    .  FF15 A03040>call dword ptr ds:\[<&MSVCRT.free>\]               ; \\free
-> 00401C84    .  83C4 28     add esp,28
-> 00401C87       395D F8     cmp dword ptr ss:\[ebp-8\],ebx
-> 00401C8A    .  895D E8     mov dword ptr ss:\[ebp-18\],ebx
-> 00401C8D    .  0F85 350200>jnz write2.00401EC8
-> 00401C93    .  BE E8424000 mov esi,write2.004042E8                          ;  ASCII "This EXE was produced using an          
-> 
->                                                                       UNREGISTERED version of JexePack.  Any                  
-> 
->                                                               distribution
-> of this EXE is prohibited 
->                                                                                and a violation of US Copyright law and        
-> 
->                                                                          international treaty.
-> 
-> An EXE produced 
->                                                                                with a registered JexePack does not display    
-> 
->                                                                             this "...
-> 00401C98    .  56          push esi                                         ; /s => "This EXE was produced using an           
-> 
->                                                                     UNREGISTERED version of JexePack.  Any                    
-> 
->                                                            distribution
-> of this EXE is prohibited and a                       
-> 
->                                                         violation of US Copyright law and                                     
-> 
->                                           international treaty.
-> 
-> An EXE produced with a                                       
-> 
->                                         registered JexePack does not display this "...
-> 00401C99    .  E8 B8040000 call <jmp.&MSVCRT.strlen>                        ; \\strlen
-> 00401C9E    .  59          pop ecx
-> 00401C9F    .  33C9        xor ecx,ecx
-> 00401CA1    .  85C0        test eax,eax
-> 00401CA3    .  EB 6A       jmp short write2.00401D0F
-> 00401CA5    >  0FBE91 E842>movsx edx,byte ptr ds:\[ecx+4042E8\]
-> 00401CAC    .  03D1        add edx,ecx
-> 00401CAE    .  69D2 71FEC5>imul edx,edx,1FC5FE71
-> 00401CB4    .  33DA        xor ebx,edx
-> 00401CB6    .  41          inc ecx
-> 00401CB7    .  3BC8        cmp ecx,eax
-> 00401CB9    .^ 7C EA       jl short write2.00401CA5
-> 00401CBB    .  81FB B70D15>cmp ebx,94150DB7
-> 00401CC1    .  75 40       jnz short write2.00401D03
-> 00401CC3    .  FF15 4C3040>call dword ptr ds:\[<&KERNEL32.GetTickCount>\]     ; \[GetTickCount
-> 00401CC9    .  8945 E0     mov dword ptr ss:\[ebp-20\],eax
-> 00401CCC    .  33DB        xor ebx,ebx
-> 00401CCE    >  FF15 4C3040>call dword ptr ds:\[<&KERNEL32.GetTickCount>\]     ; \[GetTickCount
-> 00401CD4    .  2B45 E0     sub eax,dword ptr ss:\[ebp-20\]                    ；两次得到的 tick 数相减
-> 00401CD7    .  3D E8030000 cmp eax,3E8   
-> 
-> * * *
-> 
-> 
-> ```
+下新建一个目录。注意 `Local Settings` 是隐藏目录。
 
-  
-与 1000ms 相比较  
-实际运行中两次的 tick 数之差为 0，这是不可能的。注定要显示 nag。  
-这里可以修改 3E8 为 0，暴破！  
-  
+```
+代码:
 
->  
-> 
-> ```
-> 代码:
-> 
-> * * *
-> 
->                                     
->                                                                                 
-> 00401CDC    .  73 20       jnb short write2.00401CFE
-> 00401CDE    .  A1 C8444000 mov eax,dword ptr ds:\[4044C8\]
-> 00401CE3    .  85C0        test eax,eax
-> 00401CE5    .  75 05       jnz short write2.00401CEC
-> 00401CE7    .  A1 14404000 mov eax,dword ptr ds:\[404014\]
-> 00401CEC    >  6A 10       push 10                                          ; /Style = MB\_OK|MB\_ICONHAND|MB\_APPLMODAL
-> 00401CEE    .  50          push eax                                         ; |Title
-> 00401CEF    .  56          push esi                                         ; |Text
-> 00401CF0    .  6A 00       push 0                                           ; |hOwner = NULL
-> 00401CF2    .  FF15 E03040>call dword ptr ds:\[<&USER32.MessageBoxA>\]        ; \\MessageBoxA
-> 00401CF8    .  43          inc ebx
-> 00401CF9    .  83FB 64     cmp ebx,64
-> 00401CFC    .^ 7C D0       jl short write2.00401CCE
-> 00401CFE    >  83FB 14     cmp ebx,14
-> 00401D01    .  7E 0C       jle short write2.00401D0F
-> 00401D03    >  C745 F8 382>mov dword ptr ss:\[ebp-8\],2738
-> 00401D0A    .  E9 B9010000 jmp write2.00401EC8
-> 00401D0F    >  8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 00401D15    .  50          push eax
-> 00401D16    .  8D85 00FAFF>lea eax,dword ptr ss:\[ebp-600\]
-> 00401D1C    .  68 DC424000 push write2.004042DC                             ;  ASCII "%s\\Jz.Ky.Tx"
->                                                                             ；这是个长为 0x64 字节，每个字节都是 0 的文件
-> 00401D21    .  50          push eax
-> 00401D22    .  FFD7        call edi
-> 00401D24    .  8B5D CC     mov ebx,dword ptr ss:\[ebp-34\]
-> 00401D27    .  83C4 0C     add esp,0C
-> 00401D2A    .  33F6        xor esi,esi
-> 00401D2C    .  8A03        mov al,byte ptr ds:\[ebx\]
-> 00401D2E    .  8975 DC     mov dword ptr ss:\[ebp-24\],esi
-> 00401D31    .  84C0        test al,al
-> 00401D33    .  0F84 500100>je write2.00401E89                               ;  no jump
-> 00401D39    >  85F6        test esi,esi
-> 00401D3B    .  0F85 870100>jnz write2.00401EC8
-> 00401D41    .  3975 F4     cmp dword ptr ss:\[ebp-C\],esi
-> 00401D44    .  75 05       jnz short write2.00401D4B
-> 00401D46    .  3975 D4     cmp dword ptr ss:\[ebp-2C\],esi
-> 00401D49    .  74 07       je short write2.00401D52                         ;  jump
-> 00401D4B    >  B9 D8424000 mov ecx,write2.004042D8
-> 00401D50    .  EB 05       jmp short write2.00401D57
-> 00401D52    >  B9 D4424000 mov ecx,write2.004042D4                          ;  ASCII "ER"
-> 00401D57    >  6A 00       push 0
-> 00401D59    .  8D95 5CFDFF>lea edx,dword ptr ss:\[ebp-2A4\]
-> 00401D5F    .  FF75 08     push dword ptr ss:\[ebp+8\]
-> 00401D62    .  52          push edx
-> 00401D63    .  8D95 C4FEFF>lea edx,dword ptr ss:\[ebp-13C\]
-> 00401D69    .  FF35 144040>push dword ptr ds:\[404014\]                       ;  write2.00404070
-> 00401D6F    .  52          push edx
-> 00401D70    .  FF75 FC     push dword ptr ss:\[ebp-4\]
-> 00401D73    .  51          push ecx
-> 00401D74    .  50          push eax
-> 00401D75    .  E8 F2F7FFFF call write2.0040156C
-> 00401D7A    .  50          push eax
-> 00401D7B    .  E8 FDF2FFFF call write2.0040107D                            
-> 
-> * * *
-> 
-> 
-> ```
+004018AD    . /0F85 5B0600> jnz write2.00401F0E
+004018B3    . |8D85 C4FEFF> lea eax,dword ptr ss:[ebp-13C]
+004018B9    . |50           push eax                             ; /Buffer
+004018BA    . |68 E6000000  push 0E6                             ; |BufSize = E6 (230.)
+004018BF    . |FF15 543040> call dword ptr ds:[<&KERNEL32.GetTempPathA>]    ; \GetTempPathA
+004018C5    . |85C0         test eax,eax
+004018C7    . |7E 52        jle short write2.0040191B
+004018C9    . |80BC05 C3FE> cmp byte ptr ss:[ebp+eax-13D],5C
+004018D1    . |74 13        je short write2.004018E6             ;  jump
+004018D3    . |8D85 C4FEFF> lea eax,dword ptr ss:[ebp-13C]
+004018D9    . |68 58444000  push write2.00404458                 ; /src = "\\"
+004018DE    . |50           push eax                             ; |dest
+004018DF    . |E8 78080000  call <jmp.&MSVCRT.strcat>            ; \strcat
+004018E4    . |59           pop ecx
+004018E5    . |59           pop ecx
+004018E6    > |8D85 C4FEFF> lea eax,dword ptr ss:[ebp-13C]
+004018EC    . |50           push eax
+004018ED    . |68 4C444000  push write2.0040444C                 ;  ASCII "temppath"
+004018F2    . |E8 2EF7FFFF  call write2.00401025
+004018F7    . |59           pop ecx
+004018F8    . |8D85 C4FEFF> lea eax,dword ptr ss:[ebp-13C]
+004018FE    . |59           pop ecx
+004018FF    . |50           push eax                             ; /FileName
+00401900    . |FF15 503040> call dword ptr ds:[<&KERNEL32.GetFileAttributesA>; \GetFileAttributesA
+00401906    . |83F8 FF      cmp eax,-1
+00401909    . |74 04        je short write2.0040190F
+0040190B    . |A8 10        test al,10
+0040190D    . |75 18        jnz short write2.00401927
+0040190F    > |C745 F8 192> mov dword ptr ss:[ebp-8],2719
+00401916    . |E9 25030000  jmp write2.00401C40
+0040191B    > |C745 F8 172> mov dword ptr ss:[ebp-8],2717
+00401922    . |E9 19030000  jmp write2.00401C40
+00401927    > |FF15 4C3040> call dword ptr ds:[<&KERNEL32.GetTickCount>]    ; [GetTickCount
+0040192D    . |50           push eax
+0040192E    . |6A 00        push 0                               ; /timer = NULL
+00401930    . |FF15 A43040> call dword ptr ds:[<&MSVCRT.time>]      ; \time
+00401936    . |59           pop ecx
+00401937    . |50           push eax
+00401938    . |8D85 60FEFF> lea eax,dword ptr ss:[ebp-1A0]
+0040193E    . |68 44444000  push write2.00404444                 ;  ASCII "%X%X"
+00401943    . |50           push eax
+00401944    . |FFD7         call edi
+```
 
-  
- write source to temp dir  
-这是整个跟踪过程中最激动人心的时刻了  
-上面的 call，把 exe 的原 class 文件，连同原有的目录，全部写到了临时文件夹中，  
-这时只要打开临时文件夹，就完全可以把 class 文件拷走，再用 DJ 反编译，源码到手了！  
-真是一个很大的漏洞！  
-  
-$$2.更进一步思考  
-    既然被 jexepack 保护的 class 我完全可以得到，那么如果这个 jexepack 主程序就是用这种方法来生成的，  
-那么跟踪一下 jexepack 主程序，不久可以得到 jexepack 的源码了吗？  
-   马上行动。  
-   用 OD 载入 jexepack.exe，发现入口和刚才跟踪的程序一样，其中的代码都很熟悉。太好了，看来我的猜想是对的。  
-     
-  生成临时文件夹的代码为，代码很简单，不用注释了：  
+这一句执行后在面板内看到：
 
->  
-> 
-> ```
-> 代码:
-> 
-> * * *
-> 
-> 0040193C   |> \\8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 00401942   |.  50          push eax
-> 00401943   |.  68 60434000 push jexepack.00404360                           ;  ASCII "temppath"
-> 00401948   |.  E8 D8F6FFFF call jexepack.00401025
-> 0040194D   |.  59          pop ecx
-> 0040194E   |.  8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 00401954   |.  59          pop ecx
-> 00401955   |.  50          push eax                                         ; /FileName
-> 00401956   |.  FF15 543040>call dword ptr ds:\[<&KERNEL32.GetFileAttributesA>; \\GetFileAttributesA
-> 0040195C   |.  83F8 FF     cmp eax,-1
-> 0040195F   |.  74 04       je short jexepack.00401965
-> 00401961   |.  A8 10       test al,10
-> 00401963   |.  75 18       jnz short jexepack.0040197D
-> 00401965   |>  C745 F8 192>mov dword ptr ss:\[ebp-8\],2719
-> 0040196C   |.  E9 30030000 jmp jexepack.00401CA1
-> 00401971   |>  C745 F8 172>mov dword ptr ss:\[ebp-8\],2717
-> 00401978   |.  E9 24030000 jmp jexepack.00401CA1
-> 0040197D   |>  FF15 503040>call dword ptr ds:\[<&KERNEL32.GetCurrentProcessI>; \[GetCurrentProcessId
-> 00401983   |.  50          push eax
-> 00401984   |.  FF15 003040>call dword ptr ds:\[<&KERNEL32.GetTickCount>\]     ; \[GetTickCount
-> 0040198A   |.  33D2        xor edx,edx
-> 0040198C   |.  B9 E8030000 mov ecx,3E8
-> 00401991   |.  F7F1        div ecx
-> 00401993   |.  25 FFFF0000 and eax,0FFFF
-> 00401998   |.  50          push eax
-> 00401999   |.  8D85 60FEFF>lea eax,dword ptr ss:\[ebp-1A0\]
-> 0040199F   |.  68 58434000 push jexepack.00404358                           ;  ASCII "%X%X"
-> 004019A4   |.  50          push eax
-> 004019A5   |.  FFD6        call esi
-> 004019A7   |.  8D85 60FEFF>lea eax,dword ptr ss:\[ebp-1A0\]
-> 004019AD   |.  50          push eax                                         ; /src
-> 004019AE   |.  8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]                   ; |
-> 004019B4   |.  50          push eax                                         ; |dest
-> 004019B5   |.  E8 82070000 call <jmp.&MSVCRT.strcat>                        ; \\strcat
-> 004019BA   |.  8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 004019C0   |.  50          push eax
-> 004019C1   |.  68 50434000 push jexepack.00404350                           ;  ASCII "tempdir"
-> 004019C6   |.  E8 5AF6FFFF call jexepack.00401025
-> 004019CB   |.  83C4 20     add esp,20
-> 004019CE   |.  8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 004019D4   |.  6A 00       push 0                                           ; /pSecurity = NULL
-> 004019D6   |.  50          push eax                                         ; |Path
-> 004019D7   |.  FF15 4C3040>call dword ptr ds:\[<&KERNEL32.CreateDirectoryA>\] ; \\CreateDirectoryA
-> 004019DD   |.  85C0        test eax,eax
-> 004019DF   |.  0F84 FD0100>je jexepack.00401BE2
-> 
-> * * *
-> 
-> 
-> ```
+堆栈地址=`0012FD90`, (ASCII `"434C6FD14A8564"`)  
+`eax=0000000E`
 
-  
-  
-继续往下看，生成 jexepackboot.class 文件：  
+利用 `GetTickCount` 函数得到一个 16 进制数，用作 `temp` 下的文件名。
 
->  
-> 
-> ```
-> 代码:
-> 
-> * * *
-> 
-> 00401BF4   |.  8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 00401BFA   |.  50          push eax
-> 00401BFB   |.  8D85 58FCFF>lea eax,dword ptr ss:\[ebp-3A8\]
-> 00401C01   |.  68 04434000 push jexepack.00404304                           ;  ASCII "%s\\%sboot.class"
-> 00401C06   |.  50          push eax
-> 00401C07   |.  FFD6        call esi
-> 00401C09   |.  83C4 10     add esp,10
-> 00401C0C   |.  33C0        xor eax,eax
-> 00401C0E   |.  50          push eax                                         ; /hTemplateFile => NULL
-> 00401C0F   |.  50          push eax                                         ; |Attributes => 0
-> 00401C10   |.  6A 02       push 2                                           ; |Mode = CREATE\_ALWAYS
-> 00401C12   |.  50          push eax                                         ; |pSecurity => NULL
-> 00401C13   |.  6A 03       push 3                                           ; |ShareMode = FILE\_SHARE\_READ|FILE\_SHARE\_WRITE
-> 00401C15   |.  8D85 58FCFF>lea eax,dword ptr ss:\[ebp-3A8\]                   ; |
-> 00401C1B   |.  68 000000C0 push C0000000                                    ; |Access = GENERIC\_READ|GENERIC\_WRITE
-> 00401C20   |.  50          push eax                                         ; |FileName
-> 00401C21   |.  FF15 3C3040>call dword ptr ds:\[<&KERNEL32.CreateFileA>\]      ; \\CreateFileA
-> 00401C27   |.  83F8 FF     cmp eax,-1
-> 00401C2A   |.  8945 F4     mov dword ptr ss:\[ebp-C\],eax
-> 00401C2D   |.  74 6B       je short jexepack.00401C9A
-> 00401C2F   |.  8B45 E4     mov eax,dword ptr ss:\[ebp-1C\]
-> 00401C32   |.  8B4D E0     mov ecx,dword ptr ss:\[ebp-20\]
-> 00401C35   |.  6A 01       push 1
-> 00401C37   |.  8B5C01 18   mov ebx,dword ptr ds:\[ecx+eax+18\]
-> 00401C3B   |.  53          push ebx
-> 00401C3C   |.  FFD7        call edi
-> 00401C3E   |.  8945 F0     mov dword ptr ss:\[ebp-10\],eax
-> 00401C41   |.  59          pop ecx
-> 00401C42   |.  33C0        xor eax,eax
-> 00401C44   |.  59          pop ecx
-> 00401C45   |.  85DB        test ebx,ebx
-> 00401C47   |.  7E 28       jle short jexepack.00401C71
-> 00401C49   |.  8B55 E0     mov edx,dword ptr ss:\[ebp-20\]
-> 00401C4C   |.  2B55 F0     sub edx,dword ptr ss:\[ebp-10\]
-> 00401C4F   |.  8955 D8     mov dword ptr ss:\[ebp-28\],edx
-> 00401C52   |.  EB 03       jmp short jexepack.00401C57
-> 00401C54   |>  8B55 D8     /mov edx,dword ptr ss:\[ebp-28\]
-> 00401C57   |>  8B4D F0      mov ecx,dword ptr ss:\[ebp-10\]
-> 00401C5A   |.  8B7D E4     |mov edi,dword ptr ss:\[ebp-1C\]
-> 00401C5D   |.  03C8        |add ecx,eax
-> 00401C5F   |.  03D1        |add edx,ecx
-> 00401C61   |.  8A543A 1C   |mov dl,byte ptr ds:\[edx+edi+1C\]
-> 00401C65   |.  32D0        |xor dl,al
-> 00401C67   |.  80EA 64     |sub dl,64
-> 00401C6A   |.  40          |inc eax
-> 00401C6B   |.  3BC3        |cmp eax,ebx
-> 00401C6D   |.  8811        |mov byte ptr ds:\[ecx\],dl
-> 00401C6F   |.^ 7C E3       \\jl short jexepack.00401C54
-> 00401C71   |>  8D45 C8     lea eax,dword ptr ss:\[ebp-38\]
-> 00401C74   |.  6A 00       push 0                                           ; /pOverlapped = NULL
-> 00401C76   |.  50          push eax                                         ; |pBytesWritten
-> 00401C77   |.  53          push ebx                                         ; |nBytesToWrite
-> 00401C78   |.  FF75 F0     push dword ptr ss:\[ebp-10\]                       ; |Buffer
-> 00401C7B   |.  FF75 F4     push dword ptr ss:\[ebp-C\]                        ; |hFile
-> 00401C7E   |.  FF15 403040>call dword ptr ds:\[<&KERNEL32.WriteFile>\]        ; \\WriteFile
-> 00401C84   |.  85C0        test eax,eax
-> 00401C86   |.  75 07       jnz short jexepack.00401C8F
-> 00401C88   |.  C745 F8 112>mov dword ptr ss:\[ebp-8\],2711
-> 00401C8F   |>  FF75 F4     push dword ptr ss:\[ebp-C\]                        ; /hObject
-> 00401C92   |.  FF15 0C3040>call dword ptr ds:\[<&KERNEL32.CloseHandle>\]      ; \\CloseHandle
-> 00401C98   |.  EB 07       jmp short jexepack.00401CA1
-> 
-> * * *
-> 
-> 
-> ```
+```
+代码:
 
-  
-  
-下面会看到预料中的源码吗？  
-下面这段代码和 example.exe 有区别，下面有一个循环。  
-  
+00401946    . |8D85 60FEFF> lea eax,dword ptr ss:[ebp-1A0]
+0040194C    . |50           push eax                             ; /src
+0040194D    . |8D85 C4FEFF> lea eax,dword ptr ss:[ebp-13C]       ; |
+00401953    . |50           push eax                             ; |dest
+00401954    . |E8 03080000  call <jmp.&MSVCRT.strcat>            ; \strcat
+00401959    . |8D85 C4FEFF> lea eax,dword ptr ss:[ebp-13C]
+0040195F    . |50           push eax
+00401960    . |68 3C444000  push write2.0040443C                 ;  ASCII "tempdir"
+00401965    . |E8 BBF6FFFF  call write2.00401025
+0040196A    . |83C4 20      add esp,20
+0040196D    . |8D85 C4FEFF> lea eax,dword ptr ss:[ebp-13C]
+00401973    . |6A 00        push 0                               ; /pSecurity = NULL
+00401975    . |50           push eax                             ; |Path
+00401976    . |FF15 483040> call dword ptr ds:[<&KERNEL32.CreateDirectoryA>] ; \CreateDirectoryA
+0040197C    . |85C0         test eax,eax
+0040197E    . |0F84 FD0100> je write2.00401B81
+00401984    . |6A 00        push 0                               ; /BufSize = 0
+00401986    . |BB 34444000  mov ebx,write2.00404434              ; |ASCII "path"
+0040198B    . |6A 00        push 0                               ; |Buffer = NULL
+0040198D    . |53           push ebx                             ; |VarName => "path"
+0040198E    . |FF15 443040> call dword ptr ds:[<&KERNEL32.GetEnvironmentVari>; \GetEnvironmentVariableA
+```
 
->  
-> 
-> ```
-> 代码:
-> 
-> * * *
-> 
-> 00401CF4   |.  8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
-> 00401CFA   |.  50          push eax
-> 00401CFB   |.  8D85 00FAFF>lea eax,dword ptr ss:\[ebp-600\]
-> 00401D01   |.  68 E8424000 push jexepack.004042E8                           ;  ASCII "%s\\Jz.Ky.Tx"
-> 00401D06   |.  50          push eax
-> 00401D07   |.  FFD6        call esi
-> 00401D09   |.  8B5D CC     mov ebx,dword ptr ss:\[ebp-34\]
-> 00401D0C   |.  83C4 0C     add esp,0C
-> 00401D0F   |.  897D E0     mov dword ptr ss:\[ebp-20\],edi
-> 00401D12   |.  8A03        mov al,byte ptr ds:\[ebx\]
-> 00401D14   |.  84C0        test al,al
-> 00401D16   |.  0F84 500100>je jexepack.00401E6C
-> 00401D1C   |>  85FF        /test edi,edi
-> 00401D1E   |.  0F85 870100>|jnz jexepack.00401EAB
-> 00401D24   |.  397D F0     |cmp dword ptr ss:\[ebp-10\],edi
-> 00401D27   |.  75 05       |jnz short jexepack.00401D2E
-> 00401D29   |.  397D D4     |cmp dword ptr ss:\[ebp-2C\],edi
-> 00401D2C   |.  74 07       |je short jexepack.00401D35
-> 00401D2E   |>  B9 E4424000 |mov ecx,jexepack.004042E4
-> 00401D33   |.  EB 05       |jmp short jexepack.00401D3A
-> 00401D35   |>  B9 E0424000 |mov ecx,jexepack.004042E0                       ;  ASCII "ER"
-> 00401D3A   |>  6A 00       |push 0
-> 00401D3C   |.  8D95 5CFDFF>|lea edx,dword ptr ss:\[ebp-2A4\]
-> 00401D42   |.  FF75 08     |push dword ptr ss:\[ebp+8\]
-> 00401D45   |.  52          |push edx
-> 00401D46   |.  8D95 C4FEFF>|lea edx,dword ptr ss:\[ebp-13C\]
-> 00401D4C   |.  FF35 104040>|push dword ptr ds:\[404010\]                      ;  jexepack.0040406C
-> 00401D52   |.  52          |push edx
-> 00401D53   |.  FF75 FC     |push dword ptr ss:\[ebp-4\]
-> 00401D56   |.  51          |push ecx
-> 00401D57   |.  50          |push eax
-> 00401D58   |.  E8 1CF8FFFF |call jexepack.00401579                          ;  nothing
-> 00401D5D   |.  50          |push eax
-> 00401D5E   |.  E8 27F3FFFF |call jexepack.0040108A                          ;  关键，这个 call 后，控制台出现提示
-> 
-> * * *
-> 
-> 
-> ```
+继续跟踪下去，程序首先在临时文件夹中生成 `jexepackboot.class`，然后写入实际文件内容。
 
-  
-第一次经过这个 call 时，临时文件夹没法现任何文件  
-第二次经过的时候，发现 dos 控制台出现了 jexepack 的使用方法，  
-但仍未发现临时文件夹下面有源码。  
-奇怪了？  
-  
 
->  
-> 
-> ```
-> 代码:
-> 
-> * * *
-> 
-> 00401D63   |.  8BF8        |mov edi,eax
-> 00401D65   |.  83C4 24     |add esp,24
-> 00401D68   |.  85FF        |test edi,edi
-> 00401D6A   |.  74 79       |je short jexepack.00401DE5
-> 00401D6C   |.  57          |push edi
-> 00401D6D   |.  C745 E0 010>|mov dword ptr ss:\[ebp-20\],1
-> 00401D74   |.  E8 95F3FFFF |call jexepack.0040110E
-> 00401D79   |.  3D 39300000 |cmp eax,3039
-> 00401D7E   |.  59          |pop ecx
-> 00401D7F   |.  8945 E8     |mov dword ptr ss:\[ebp-18\],eax
-> 00401D82   |.  75 42       |jnz short jexepack.00401DC6
-> 00401D84   |.  FF75 F0     |push dword ptr ss:\[ebp-10\]
-> 00401D87   |.  8D85 5CFDFF>|lea eax,dword ptr ss:\[ebp-2A4\]
-> 00401D8D   |.  FF75 08     |push dword ptr ss:\[ebp+8\]
-> 00401D90   |.  50          |push eax
-> 00401D91   |.  8D85 C4FEFF>|lea eax,dword ptr ss:\[ebp-13C\]
-> 00401D97   |.  FF35 104040>|push dword ptr ds:\[404010\]                      ;  jexepack.0040406C
-> 00401D9D   |.  50          |push eax
-> 00401D9E   |.  8A03        |mov al,byte ptr ds:\[ebx\]
-> 00401DA0   |.  FF75 FC     |push dword ptr ss:\[ebp-4\]
-> 00401DA3   |.  68 DC424000 |push jexepack.004042DC
-> 00401DA8   |.  50          |push eax
-> 00401DA9   |.  E8 CBF7FFFF |call jexepack.00401579
-> 00401DAE   |.  50          |push eax
-> 00401DAF   |.  E8 D6F2FFFF |call jexepack.0040108A
-> 00401DB4   |.  50          |push eax
-> 00401DB5   |.  E8 54F3FFFF |call jexepack.0040110E
-> 00401DBA   |.  83C4 28     |add esp,28
-> 00401DBD   |.  837D F0 00  |cmp dword ptr ss:\[ebp-10\],0
-> 00401DC1   |.  8945 E8     |mov dword ptr ss:\[ebp-18\],eax
-> 00401DC4   |.  75 2B       |jnz short jexepack.00401DF1
-> 00401DC6   |>  8D85 00FAFF>|lea eax,dword ptr ss:\[ebp-600\]
-> 00401DCC   |.  6A 00       |push 0
-> 00401DCE   |.  50          |push eax
-> 00401DCF   |.  E8 8BF4FFFF |call jexepack.0040125F
-> 00401DD4   |.  59          |pop ecx
-> 00401DD5   |.  85C0        |test eax,eax
-> 00401DD7   |.  59          |pop ecx
-> 00401DD8   |.  7D 0B       |jge short jexepack.00401DE5
-> 00401DDA   |.  33FF        |xor edi,edi
-> 00401DDC   |.  817D E8 102>|cmp dword ptr ss:\[ebp-18\],2710
-> 00401DE3   |.  77 1D       |ja short jexepack.00401E02
-> 00401DE5   |>  8A43 01     |mov al,byte ptr ds:\[ebx+1\]
-> 00401DE8   |.  43          |inc ebx
-> 00401DE9   |.  84C0        |test al,al
-> 00401DEB   |.^ 0F85 2BFFFF>\\jnz jexepack.00401D1C
-> 00401DF1   |>  85FF        test edi,edi
-> 00401DF3   |.  0F85 B20000>jnz jexepack.00401EAB
-> 00401DF9   |.  817D E8 102>cmp dword ptr ss:\[ebp-18\],2710
-> 00401E00   |.  76 0B       jbe short jexepack.00401E0D
-> 
-> * * *
-> 
-> 
-> ```
 
-  
-  
-   现在对基本情况有了了解，jexepack 先在临时文件夹中生成 class 文件，然后再运行。最后再删除临时文件夹。  
-这个时候我想到了 EasyRecovery，为什么不去恢复删除的文件？  
-还有一个思路，那就是拦截 createfile，writefile，这是在我千辛万苦恢复了源码后又尝试的，  
-主要是看有没有更简单的办法，但是不奏效，不知道为什么，好像 jexepack 的 class 文件突然生成，又突然消失一样，哪位知道，请指教。  
-  
-  
-$$3.不怕失败，垃圾堆里捡源码  
-  
-    打开 EasyRecovery，然后恢复被删除的文件，这里，就像发明电灯泡一样，我做了上百次的恢复工作。  
-因为，有时候只能恢复部分文件，这个时候你就得重新运行 jexepack，然后马上打开 EasyRecovery 进行恢复，以免硬盘被写入其他程序，  
-破坏了原来的文件。但是，即使这样，也还是存在不可避免的覆盖，因为 jexepack 自身并不是一次生成，再一次删除，其自身可能就已经  
-破坏了先删除的文件。  
-   打起精神，一次一次重复地试验，与其说是破解，不如说是玩耐心，拼体力.  
-   要恢复的文件有 5 个：  
-  j2exestubw.exe，j2exestubc.exe，boot.bin，PE.java，jexepack.java。  
-  检验 exe 文件是否正确可以首先用 ultraedit 观察其文件头，如果可以运行(有时恢复出来的就是文本文件)，然后再运行它试试看。  
-  .class 文件可以用 DJ 打开看看，能正确反编译的自然就是好文件。  
-  但 boot.bin 的检验，就没有合适的方法。在前一天晚上，我还在冥思苦想这个文件怎么恢复，第二天早上起床前的瞬间，  
-我想到 boot.bin 这个文件大约是 10k，顾名思义，boot，引导作用，而 jexepackboot 也是一个这样的文件，文件大小也差不多，  
-难道它们是同一个文件，仅仅是文件名的差别吗？马上起床，运行(我已用 jbuilder 2005 得到了 jexepack.jar 文件)，结果正确！这个难题终于  
-  
-被我解决！  
-   经过一个下午，还有一个晚上的恢复工作，再加上早上的灵感，5 个文件完全找到。  
-    
-$$4.重建代码，测试  
-   在没有得到 j2exestubw.exe，j2exestubc.exe，boot.bin 这三个文件之前，就用 jbuilder2005 开始了 jexepack 的工程，  
-并得到了 jexepack.jar 文件。  
-   其源代码估计被 Jobfuscate(作者网站的另一款 java 保护工具)保护过，因而代码不具有可读性了。  
-   未注册版本有个限制，不能使用/nosign,这是数字签名校验，如果文件被修改，文件就不会运行了。  
-   它是利用一个 bool 量来判断的，去读 j2exestubw.exe，如果 UNREGISTERED 在文件里面找到，则设定一个 bool 值，被轻松搞定。  
-  在得到那三个文件后，在 dos 窗口下，我用 jexepack 打包了成一个 exe 文件。  
-  发现还是出现那个讨厌的 nag。  
-  打开 j2exestubw.exe 分析，发现其关键在两次 Gettickcount 处，在破解的时候两次 Gettickcount 的差值一般都会大于 1000ms，  
-然后就不会出现 nag，代码可以见上面。  
-00401CD7    .  3D E8030000 cmp eax,3E8   
-00401CDC    .  73 20       jnb short write2.00401CFE     ==>要跳   
-实际运行中，两次 Gettickcount 的差值一般是 0，所以会出现 nag。  
-这个小花样，对破解还是造成了一定的难度。  
-后来我改 3E8 为 0  
-  
-同样修改 j2exestubc.exe。  
-再 jexepack 自己的程序，nag 消失！  
-  
-     
-  
-  
-  
-【破解总结】 要细心，还要有耐心(恢复五个文件)，还要学会联想(jexepackboot 即为 boot.bin)  
-             
-【Greetings】  看雪论坛,FCG 论坛,DFCG 论坛，PYG 论坛等  
-                 
-【完稿时间等】2005.10.12，上午 11:06,天气:晴  
-              武汉  
-  
-  
-【jexepack 源码】  
- 若要使用，使用 jexepack.jar 即可。  
-编译环境：jbuilder 2005。   
+## 代码
+
+```
+00401B8D    > \FF35 144040>push dword ptr ds:\[404014\]                        ;  write2.00404070
+00401B93    .  8D85 C4FEFF>lea eax,dword ptr ss:\[ebp-13C\]
+00401B99    .  50           push eax
+00401B9A    .  8D85 58FCFF>lea eax,dword ptr ss:\[ebp-3A8\]
+00401BA0    .  68 F0434000 push write2.004043F0                                ;  ASCII "%s\\%sboot.class"
+00401BA5    .  50           push eax
+00401BA6    .  FFD7        call edi
+00401BA8    .  83C4 10     add esp,10
+00401BAB    .  33C0        xor eax,eax
+00401BAD    .  50           push eax                                           ; /hTemplateFile => NULL
+00401BAE    .  50           push eax                                           ; |Attributes => 0
+00401BAF    .  6A 02       push 2                                             ; |Mode = CREATE_ALWAYS
+00401BB1    .  50           push eax                                           ; |pSecurity => NULL
+00401BB2    .  6A 03       push 3                                             ; |ShareMode = FILE_SHARE_READ|FILE_SHARE_WRITE
+00401BB4    .  8D85 58FCFF>lea eax,dword ptr ss:\[ebp-3A8\]                   ; |
+00401BBA    .  68 000000C0 push C0000000                                       ; |Access = GENERIC_READ|GENERIC_WRITE
+00401BBF    .  50           push eax                                           ; |FileName
+00401BC0    .  FF15 383040>call dword ptr ds:\[<&KERNEL32.CreateFileA>\]      ; \CreateFileA
+                                ；jexepackboot.class 生成，但无内容
+00401BC6    .  83F8 FF     cmp eax,-1
+00401BC9    .  8945 F0     mov dword ptr ss:\[ebp-10\],eax
+00401BCC    .  74 6B       je short write2.00401C39
+00401BCE    .  8B45 E8     mov eax,dword ptr ss:\[ebp-18\]
+00401BD1    .  8B4D DC     mov ecx,dword ptr ss:\[ebp-24\]
+00401BD4    .  6A 01       push 1
+00401BD6    .  8B5C01 18   mov ebx,dword ptr ds:\[ecx+eax+18\]
+00401BDA    .  53           push ebx
+00401BDB    .  FFD6        call esi
+00401BDD    .  8945 F4     mov dword ptr ss:\[ebp-C\],eax
+00401BE0    .  59           pop ecx
+00401BE1    .  33C0        xor eax,eax
+00401BE3    .  59           pop ecx
+00401BE4    .  85DB        test ebx,ebx
+00401BE6    .  7E 28       jle short write2.00401C10
+00401BE8    .  8B55 DC     mov edx,dword ptr ss:\[ebp-24\]
+00401BEB    .  2B55 F4     sub edx,dword ptr ss:\[ebp-C\]
+00401BEE    .  8955 E0     mov dword ptr ss:\[ebp-20\],edx
+00401BF1    .  EB 03       jmp short write2.00401BF6
+00401BF3    >  8B55 E0     mov edx,dword ptr ss:\[ebp-20\]
+00401BF6    >  8B4D F4     mov ecx,dword ptr ss:\[ebp-C\]
+00401BF9    .  8B75 E8     mov esi,dword ptr ss:\[ebp-18\]
+00401BFC    .  03C8        add ecx,eax
+00401BFE    .  03D1        add edx,ecx
+00401C00    .  8A5432 1C   mov dl,byte ptr ds:\[edx+esi+1C\]
+00401C04    .  32D0        xor dl,al
+00401C06    .  80EA 64     sub dl,64
+00401C09    .  40           inc eax
+00401C0A    .  3BC3        cmp eax,ebx
+00401C0C    .  8811        mov byte ptr ds:\[ecx\],dl
+00401C0E    .^ 7C E3       jl short write2.00401BF3
+00401C10    >  8D45 C8     lea eax,dword ptr ss:\[ebp-38\]
+00401C13    .  6A 00       push 0                                             ; /pOverlapped = NULL
+00401C15    .  50           push eax                                           ; |pBytesWritten
+00401C16    .  53           push ebx                                           ; |nBytesToWrite
+00401C17    .  FF75 F4     push dword ptr ss:\[ebp-C\]                        ; |Buffer
+00401C1A    .  FF75 F0     push dword ptr ss:\[ebp-10\]                       ; |hFile
+00401C1D    .  FF15 3C3040>call dword ptr ds:\[<&KERNEL32.WriteFile>\]        ; \WriteFile
+                                ；写入 jexepackboot.class
+00401C23    .  85C0        test eax,eax
+00401C25    .  75 07       jnz short write2.00401C2E
+00401C27    .  C745 F8 112>mov dword ptr ss:\[ebp-8\],2711
+00401C2E    >  FF75 F0     push dword ptr ss:\[ebp-10\]                       ; /hObject
+00401C31    .  FF15 083040>call dword ptr ds:\[<&KERNEL32.CloseHandle>\]     ; \CloseHandle
+00401C37    .  EB 07       jmp short write2.00401C40
+00401C39    >  C745 F8 112>mov dword ptr ss:\[ebp-8\],2711
+00401C40    >  33DB        xor ebx,ebx
+00401C42    .  53           push ebx
+00401C43    .  68 EC434000 push write2.004043EC                                ;  ASCII "mf"
+00401C48    .  FF75 E4     push dword ptr ss:\[ebp-1C\]
+00401C4B    .  E8 AEF7FFFF call write2.004013FE
+00401C50    .  53           push ebx
+00401C51    .  68 E4434000 push write2.004043E4                                ;  ASCII "minver"
+00401C56    .  FF75 E4     push dword ptr ss:\[ebp-1C\]
+00401C59    .  8945 F4     mov dword ptr ss:\[ebp-C\],eax
+00401C5C    .  E8 9DF7FFFF call write2.004013FE
+00401C61    .  68 D4444000 push write2.004044D4
+00401C66    .  68 E0434000 push write2.004043E0                                ;  ASCII "jop"
+00401C6B    .  FF75 E4     push dword ptr ss:\[ebp-1C\]
+00401C6E    .  8945 F0     mov dword ptr ss:\[ebp-10\],eax
+00401C71    .  E8 88F7FFFF call write2.004013FE
+00401C76    .  FF75 E8     push dword ptr ss:\[ebp-18\]                       ; /block
+00401C79    .  A3 CC444000 mov dword ptr ds:\[4044CC\],eax                   ; |
+00401C7E    .  FF15 A03040>call dword ptr ds:\[<&MSVCRT.free>\]               ; \free
+00401C84    .  83C4 28     add esp,28
+00401C87     395D F8     cmp dword ptr ss:\[ebp-8\],ebx
+00401C8A    .  895D E8     mov dword ptr ss:\[ebp-18\],ebx
+00401C8D    .  0F85 350200>jnz write2.00401EC8
+00401C93    .  BE E8424000 mov esi,write2.004042E8                             ;  ASCII "This EXE was produced using an           
+
+                        UNREGISTERED version of JexePack.  Any                
+
+
+                        distribution of this EXE is prohibited 
+
+                        and a violation of US Copyright law and              
+
+                        international treaty.
+
+An EXE produced 
+
+                        with a registered JexePack does not display          
+
+                        this "..."
+00401C98    .  56           push esi                                           ; /s => "This EXE was produced using an            
+
+                        UNREGISTERED version of JexePack.  Any                
+
+
+                        distribution of this EXE is prohibited and a          
+
+                        violation of US Copyright law and                    
+
+                        international treaty.
+
+An EXE produced with a                    
+
+                        registered JexePack does not display this "..."
+00401C99    .  E8 B8040000 call <jmp.&MSVCRT.strlen>                          ; \strlen
+00401C9E    .  59           pop ecx
+00401C9F    .  33C9        xor ecx,ecx
+00401CA1    .  85C0        test eax,eax
+00401CA3    .  EB 6A       jmp short write2.00401D0F
+00401CA5    >  0FBE91 E842>movsx edx,byte ptr ds:\[ecx+4042E8\]
+00401CAC    .  03D1        add edx,ecx
+00401CAE    .  69D2 71FEC5>imul edx,edx,1FC5FE71
+00401CB4    .  33DA        xor ebx,edx
+00401CB6    .  41           inc ecx
+00401CB7    .  3BC8        cmp ecx,eax
+00401CB9    .^ 7C EA       jl short write2.00401CA5
+00401CBB    .  81FB B70D15>cmp ebx,94150DB7
+00401CC1    .  75 40       jnz short write2.00401D03
+00401CC3    .  FF15 4C3040>call dword ptr ds:\[<&KERNEL32.GetTickCount>\]     ; [GetTickCount
+00401CC9    .  8945 E0     mov dword ptr ss:\[ebp-20\],eax
+00401CCC    .  33DB        xor ebx,ebx
+00401CCE    >  FF15 4C3040>call dword ptr ds:\[<&KERNEL32.GetTickCount>\]     ; [GetTickCount
+00401CD4    .  2B45 E0     sub eax,dword ptr ss:\[ebp-20\]                   ；两次得到的 tick 数相减
+00401CD7    .  3D E8030000 cmp eax,3E8    
+```
+
+
+
+与 `1000ms` 相比较
+
+实际运行中两次的 `tick` 数之差为 `0`，这是不可能的。注定要显示 `nag`。
+
+这里可以修改 `3E8` 为 `0`，暴破！
+
+```text
+代码:
+
+* * *
+
+00401CDC    .  73 20       jnb short write2.00401CFE
+00401CDE    .  A1 C8444000 mov eax,dword ptr ds:[4044C8]
+00401CE3    .  85C0        test eax,eax
+00401CE5    .  75 05       jnz short write2.00401CEC
+00401CE7    .  A1 14404000 mov eax,dword ptr ds:[404014]
+00401CEC    >  6A 10       push 10                            ; /Style = MB_OK|MB_ICONHAND|MB_APPLMODAL
+00401CEE    .  50          push eax                           ; |Title
+00401CEF    .  56          push esi                           ; |Text
+00401CF0    .  6A 00       push 0                             ; |hOwner = NULL
+00401CF2    .  FF15 E03040>call dword ptr ds:[<&USER32.MessageBoxA>]        ; \MessageBoxA
+00401CF8    .  43          inc ebx
+00401CF9    .  83FB 64     cmp ebx,64
+00401CFC    .^ 7C D0       jl short write2.00401CCE
+00401CFE    >  83FB 14     cmp ebx,14
+00401D01    .  7E 0C       jle short write2.00401D0F
+00401D03    >  C745 F8 382>mov dword ptr ss:[ebp-8],2738
+00401D0A    .  E9 B9010000 jmp write2.00401EC8
+00401D0F    >  8D85 C4FEFF>lea eax,dword ptr ss:[ebp-13C]
+00401D15    .  50          push eax
+00401D16    .  8D85 00FAFF>lea eax,dword ptr ss:[ebp-600]
+00401D1C    .  68 DC424000 push write2.004042DC               ;  ASCII "%s\Jz.Ky.Tx"
+                                                            ；这是个长为 0x64 字节，每个字节都是 0 的文件
+00401D21    .  50          push eax
+00401D22    .  FFD7        call edi
+00401D24    .  8B5D CC     mov ebx,dword ptr ss:[ebp-34]
+00401D27    .  83C4 0C     add esp,0C
+00401D2A    .  33F6        xor esi,esi
+00401D2C    .  8A03        mov al,byte ptr ds:[ebx]
+00401D2E    .  8975 DC     mov dword ptr ss:[ebp-24],esi
+00401D31    .  84C0        test al,al
+00401D33    .  0F84 500100>je write2.00401E89                ;  no jump
+00401D39    >  85F6        test esi,esi
+00401D3B    .  0F85 870100>jnz write2.00401EC8
+00401D41    .  3975 F4     cmp dword ptr ss:[ebp-C],esi
+00401D44    .  75 05       jnz short write2.00401D4B
+00401D46    .  3975 D4     cmp dword ptr ss:[ebp-2C],esi
+00401D49    .  74 07       je short write2.00401D52          ;  jump
+00401D4B    >  B9 D8424000 mov ecx,write2.004042D8
+00401D50    .  EB 05       jmp short write2.00401D57
+00401D52    >  B9 D4424000 mov ecx,write2.004042D4          ;  ASCII "ER"
+00401D57    >  6A 00       push 0
+00401D59    .  8D95 5CFDFF>lea edx,dword ptr ss:[ebp-2A4]
+00401D5F    .  FF75 08     push dword ptr ss:[ebp+8]
+00401D62    .  52          push edx
+00401D63    .  8D95 C4FEFF>lea edx,dword ptr ss:[ebp-13C]
+00401D69    .  FF35 144040>push dword ptr ds:[404014]       ;  write2.00404070
+00401D6F    .  52          push edx
+00401D70    .  FF75 FC     push dword ptr ss:[ebp-4]
+00401D73    .  51          push ecx
+00401D74    .  50          push eax
+00401D75    .  E8 F2F7FFFF call write2.0040156C
+00401D7A    .  50          push eax
+00401D7B    .  E8 FDF2FFFF call write2.0040107D           
+
+* * *
+
+```
+
+`write source to temp dir`
+
+这是整个跟踪过程中最激动人心的时刻了
+
+上面的 `call`，把 `exe` 的原 `class` 文件，连同原有的目录，全部写到了临时文件夹中，
+
+这时只要打开临时文件夹，就完全可以把 `class` 文件拷走，再用 `DJ` 反编译，源码到手了！
+
+真是一个很大的漏洞！
+
+2. 更进一步思考
+
+既然被 `jexepack` 保护的 `class` 我完全可以得到，那么如果这个 `jexepack` 主程序就是用这种方法来生成的，
+
+那么跟踪一下 `jexepack` 主程序，不久可以得到 `jexepack` 的源码了吗？
+
+马上行动。
+
+用 `OD` 载入 `jexepack.exe`，发现入口和刚才跟踪的程序一样，其中的代码都很熟悉。太好了，看来我的猜想是对的。
+
+生成临时文件夹的代码为，代码很简单，不用注释了：
+
+```text
+代码:
+
+* * *
+
+0040193C   |> \8D85 C4FEFF>lea eax,dword ptr ss:[ebp-13C]
+00401942   |.  50          push eax
+00401943   |.  68 60434000 push jexepack.00404360            ;  ASCII "temppath"
+00401948   |.  E8 D8F6FFFF call jexepack.00401025
+0040194D   |.  59          pop ecx
+0040194E   |.  8D85 C4FEFF>lea eax,dword ptr ss:[ebp-13C]
+00401954   |.  59          pop ecx
+00401955   |.  50          push eax                            ; /FileName
+00401956   |.  FF15 543040>call dword ptr ds:[<&KERNEL32.GetFileAttributesA>; \GetFileAttributesA
+0040195C   |.  83F8 FF     cmp eax,-1
+0040195F   |.  74 04       je short jexepack.00401965
+00401961   |.  A8 10       test al,10
+00401963   |.  75 18       jnz short jexepack.0040197D
+00401965   |>  C745 F8 192>mov dword ptr ss:[ebp-8],2719
+0040196C   |.  E9 30030000 jmp jexepack.00401CA1
+00401971   |>  C745 F8 172>mov dword ptr ss:[ebp-8],2717
+00401978   |.  E9 24030000 jmp jexepack.00401CA1
+0040197D   |>  FF15 503040>call dword ptr ds:[<&KERNEL32.GetCurrentProcessI>; [GetCurrentProcessId
+00401983   |.  50          push eax
+00401984   |.  FF15 003040>call dword ptr ds:[<&KERNEL32.GetTickCount>]     ; [GetTickCount
+0040198A   |.  33D2        xor edx,edx
+0040198C   |.  B9 E8030000 mov ecx,3E8
+00401991   |.  F7F1        div ecx
+00401993   |.  25 FFFF0000 and eax,0FFFF
+00401998   |.  50          push eax
+00401999   |.  8D85 60FEFF>lea eax,dword ptr ss:[ebp-1A0]
+0040199F   |.  68 58434000 push jexepack.00404358            ;  ASCII "%X%X"
+004019A4   |.  50          push eax
+004019A5   |.  FFD6        call esi
+004019A7   |.  8D85 60FEFF>lea eax,dword ptr ss:[ebp-1A0]
+004019AD   |.  50          push eax                            ; /src
+004019AE   |.  8D85 C4FEFF>lea eax,dword ptr ss:[ebp-13C]            ; |
+004019B4   |.  50          push eax                            ; |dest
+004019B5   |.  E8 82070000 call <jmp.&MSVCRT.strcat>         ; \strcat
+004019BA   |.  8D85 C4FEFF>lea eax,dword ptr ss:[ebp-13C]
+004019C0   |.  50          push eax
+004019C1   |.  68 50434000 push jexepack.00404350            ;  ASCII "tempdir"
+004019C6   |.  E8 5AF6FFFF call jexepack.00401025
+004019CB   |.  83C4 20     add esp,20
+004019CE   |.  8D85 C4FEFF>lea eax,dword ptr ss:[ebp-13C]
+004019D4   |.  6A 00       push 0                              ; /pSecurity = NULL
+004019D6   |.  50          push eax                            ; |Path
+004019D7   |.  FF15 4C3040>call dword ptr ds:[<&KERNEL32.CreateDirectoryA>] ; \CreateDirectoryA
+004019DD   |.  85C0        test eax,eax
+004019DF   |.  0F84 FD0100>je jexepack.00401BE2
+
+* * *
+
+```
+
+继续往下看，生成 `jexepackboot.class` 文件：
+
+
+
+# 二进制分析
+
+## 代码段：文件创建与写入
+
+```
+代码:
+
+* * *
+
+00401BF4   |.  8D85 C4FEFF>lea eax,dword ptr ss:[ebp-13C]
+00401BFA   |.  50          push eax
+00401BFB   |.  8D85 58FCFF>lea eax,dword ptr ss:[ebp-3A8]
+00401C01   |.  68 04434000 push jexepack.00404304                          ;  ASCII "%s\%sboot.class"
+00401C06   |.  50          push eax
+00401C07   |.  FFD6        call esi
+00401C09   |.  83C4 10     add esp,10
+00401C0C   |.  33C0        xor eax,eax
+00401C0E   |.  50          push eax                                    ; /hTemplateFile => NULL
+00401C0F   |.  50          push eax                                    ; |Attributes => 0
+00401C10   |.  6A 02       push 2                                      ; |Mode = CREATE_ALWAYS
+00401C12   |.  50          push eax                                    ; |pSecurity => NULL
+00401C13   |.  6A 03       push 3                                      ; |ShareMode = FILE_SHARE_READ|FILE_SHARE_WRITE
+00401C15   |.  8D85 58FCFF>lea eax,dword ptr ss:[ebp-3A8]                ; |
+00401C1B   |.  68 000000C0 push C0000000                               ; |Access = GENERIC_READ|GENERIC_WRITE
+00401C20   |.  50          push eax                                    ; |FileName
+00401C21   |.  FF15 3C3040>call dword ptr ds:[<&KERNEL32.CreateFileA>]   ; \CreateFileA
+00401C27   |.  83F8 FF     cmp eax,-1
+00401C2A   |.  8945 F4     mov dword ptr ss:[ebp-C],eax
+00401C2D   |.  74 6B       je short jexepack.00401C9A
+00401C2F   |.  8B45 E4     mov eax,dword ptr ss:[ebp-1C]
+00401C32   |.  8B4D E0     mov ecx,dword ptr ss:[ebp-20]
+00401C35   |.  6A 01       push 1
+00401C37   |.  8B5C01 18   mov ebx,dword ptr ds:[ecx+eax+18]
+00401C3B   |.  53          push ebx
+00401C3C   |.  FFD7        call edi
+00401C3E   |.  8945 F0     mov dword ptr ss:[ebp-10],eax
+00401C41   |.  59          pop ecx
+00401C42   |.  33C0        xor eax,eax
+00401C44   |.  59          pop ecx
+00401C45   |.  85DB        test ebx,ebx
+00401C47   |.  7E 28       jle short jexepack.00401C71
+00401C49   |.  8B55 E0     mov edx,dword ptr ss:[ebp-20]
+00401C4C   |.  2B55 F0     sub edx,dword ptr ss:[ebp-10]
+00401C4F   |.  8955 D8     mov dword ptr ss:[ebp-28],edx
+00401C52   |.  EB 03       jmp short jexepack.00401C57
+00401C54   |>  8B55 D8     /mov edx,dword ptr ss:[ebp-28]
+00401C57   |>  8B4D F0     mov ecx,dword ptr ss:[ebp-10]
+00401C5A   |.  8B7D E4     |mov edi,dword ptr ss:[ebp-1C]
+00401C5D   |.  03C8        |add ecx,eax
+00401C5F   |.  03D1        |add edx,ecx
+00401C61   |.  8A543A 1C   |mov dl,byte ptr ds:[edx+edi+1C]
+00401C65   |.  32D0        |xor dl,al
+00401C67   |.  80EA 64     |sub dl,64
+00401C6A   |.  40          |inc eax
+00401C6B   |.  3BC3        |cmp eax,ebx
+00401C6D   |.  8811        |mov byte ptr ds:[ecx],dl
+00401C6F   |.^ 7C E3       \jl short jexepack.00401C54
+00401C71   |>  8D45 C8     lea eax,dword ptr ss:[ebp-38]
+00401C74   |.  6A 00       push 0                                      ; /pOverlapped = NULL
+00401C76   |.  50          push eax                                    ; |pBytesWritten
+00401C77   |.  53          push ebx                                    ; |nBytesToWrite
+00401C78   |.  FF75 F0     push dword ptr ss:[ebp-10]                  ; |Buffer
+00401C7B   |.  FF75 F4     push dword ptr ss:[ebp-C]                   ; |hFile
+00401C7E   |.  FF15 403040>call dword ptr ds:[<&KERNEL32.WriteFile>]    ; \WriteFile
+00401C84   |.  85C0        test eax,eax
+00401C86   |.  75 07       jnz short jexepack.00401C8F
+00401C88   |.  C745 F8 112>mov dword ptr ss:[ebp-8],2711
+00401C8F   |>  FF75 F4     push dword ptr ss:[ebp-C]                   ; /hObject
+00401C92   |.  FF15 0C3040>call dword ptr ds:[<&KERNEL32.CloseHandle>]  ; \CloseHandle
+00401C98   |.  EB 07       jmp short jexepack.00401CA1
+
+* * *
+
+```
+
+## 代码段：循环与调用
+
+下面会看到预料中的源码吗？
+
+下面这段代码和 `example.exe` 有区别，下面有一个循环。
+
+```
+代码:
+
+* * *
+
+00401CF4   |.  8D85 C4FEFF>lea eax,dword ptr ss:[ebp-13C]
+00401CFA   |.  50          push eax
+00401CFB   |.  8D85 00FAFF>lea eax,dword ptr ss:[ebp-600]
+00401D01   |.  68 E8424000 push jexepack.004042E8                          ;  ASCII "%s\Jz.Ky.Tx"
+00401D06   |.  50          push eax
+00401D07   |.  FFD6        call esi
+00401D09   |.  8B5D CC     mov ebx,dword ptr ss:[ebp-34]
+00401D0C   |.  83C4 0C     add esp,0C
+00401D0F   |.  897D E0     mov dword ptr ss:[ebp-20],edi
+00401D12   |.  8A03        mov al,byte ptr ds:[ebx]
+00401D14   |.  84C0        test al,al
+00401D16   |.  0F84 500100>je jexepack.00401E6C
+00401D1C   |>  85FF        /test edi,edi
+00401D1E   |.  0F85 870100>|jnz jexepack.00401EAB
+00401D24   |.  397D F0     |cmp dword ptr ss:[ebp-10],edi
+00401D27   |.  75 05       |jnz short jexepack.00401D2E
+00401D29   |.  397D D4     |cmp dword ptr ss:[ebp-2C],edi
+00401D2C   |.  74 07       |je short jexepack.00401D35
+00401D2E   |>  B9 E4424000 |mov ecx,jexepack.004042E4
+00401D33   |.  EB 05       |jmp short jexepack.00401D3A
+00401D35   |>  B9 E0424000 |mov ecx,jexepack.004042E0                    ;  ASCII "ER"
+00401D3A   |>  6A 00       |push 0
+00401D3C   |.  8D95 5CFDFF>|lea edx,dword ptr ss:[ebp-2A4]
+00401D42   |.  FF75 08     |push dword ptr ss:[ebp+8]
+00401D45   |.  52          |push edx
+00401D46   |.  8D95 C4FEFF>|lea edx,dword ptr ss:[ebp-13C]
+00401D4C   |.  FF35 104040>|push dword ptr ds:[404010]                   ;  jexepack.0040406C
+00401D52   |.  52          |push edx
+00401D53   |.  FF75 FC     |push dword ptr ss:[ebp-4]
+00401D56   |.  51          |push ecx
+00401D57   |.  50          |push eax
+00401D58   |.  E8 1CF8FFFF |call jexepack.00401579                      ;  nothing
+00401D5D   |.  50          |push eax
+00401D5E   |.  E8 27F3FFFF |call jexepack.0040108A                      ;  关键，这个 call 后，控制台出现提示
+
+* * *
+
+```
+
+## 执行观察
+
+第一次经过这个 `call` 时，临时文件夹没法现任何文件。
+
+第二次经过的时候，发现 `dos` 控制台出现了 `jexepack` 的使用方法。
+
+但仍未发现临时文件夹下面有源码。
+
+奇怪了？
+
+
+
+```
+代码:
+
+* * *
+
+00401D63   |.  8BF8        |mov edi,eax
+00401D65   |.  83C4 24     |add esp,24
+00401D68   |.  85FF        |test edi,edi
+00401D6A   |.  74 79       |je short jexepack.00401DE5
+00401D6C   |.  57          |push edi
+00401D6D   |.  C745 E0 010>|mov dword ptr ss:[ebp-20],1
+00401D74   |.  E8 95F3FFFF |call jexepack.0040110E
+00401D79   |.  3D 39300000 |cmp eax,3039
+00401D7E   |.  59          |pop ecx
+00401D7F   |.  8945 E8     |mov dword ptr ss:[ebp-18],eax
+00401D82   |.  75 42       |jnz short jexepack.00401DC6
+00401D84   |.  FF75 F0     |push dword ptr ss:[ebp-10]
+00401D87   |.  8D85 5CFDFF>|lea eax,dword ptr ss:[ebp-2A4]
+00401D8D   |.  FF75 08     |push dword ptr ss:[ebp+8]
+00401D90   |.  50          |push eax
+00401D91   |.  8D85 C4FEFF>|lea eax,dword ptr ss:[ebp-13C]
+00401D97   |.  FF35 104040>|push dword ptr ds:[404010]                    ;  jexepack.0040406C
+00401D9D   |.  50          |push eax
+00401D9E   |.  8A03        |mov al,byte ptr ds:[ebx]
+00401DA0   |.  FF75 FC     |push dword ptr ss:[ebp-4]
+00401DA3   |.  68 DC424000 |push jexepack.004042DC
+00401DA8   |.  50          |push eax
+00401DA9   |.  E8 CBF7FFFF |call jexepack.00401579
+00401DAE   |.  50          |push eax
+00401DAF   |.  E8 D6F2FFFF |call jexepack.0040108A
+00401DB4   |.  50          |push eax
+00401DB5   |.  E8 54F3FFFF |call jexepack.0040110E
+00401DBA   |.  83C4 28     |add esp,28
+00401DBD   |.  837D F0 00  |cmp dword ptr ss:[ebp-10],0
+00401DC1   |.  8945 E8     |mov dword ptr ss:[ebp-18],eax
+00401DC4   |.  75 2B       |jnz short jexepack.00401DF1
+00401DC6   |>  8D85 00FAFF>|lea eax,dword ptr ss:[ebp-600]
+00401DCC   |.  6A 00       |push 0
+00401DCE   |.  50          |push eax
+00401DCF   |.  E8 8BF4FFFF |call jexepack.0040125F
+00401DD4   |.  59          |pop ecx
+00401DD5   |.  85C0        |test eax,eax
+00401DD7   |.  59          |pop ecx
+00401DD8   |.  7D 0B       |jge short jexepack.00401DE5
+00401DDA   |.  33FF        |xor edi,edi
+00401DDC   |.  817D E8 102>|cmp dword ptr ss:[ebp-18],2710
+00401DE3   |.  77 1D       |ja short jexepack.00401E02
+00401DE5   |>  8A43 01     |mov al,byte ptr ds:[ebx+1]
+00401DE8   |.  43          |inc ebx
+00401DE9   |.  84C0        |test al,al
+00401DEB   |.^ 0F85 2BFFFF>\jnz jexepack.00401D1C
+00401DF1   |>  85FF        test edi,edi
+00401DF3   |.  0F85 B20000>jnz jexepack.00401EAB
+00401DF9   |.  817D E8 102>cmp dword ptr ss:[ebp-18],2710
+00401E00   |.  76 0B       jbe short jexepack.00401E0D
+
+* * *
+```
+
+现在对基本情况有了了解，`jexepack` 先在临时文件夹中生成 `class` 文件，然后再运行。最后再删除临时文件夹。
+
+这个时候我想到了 `EasyRecovery`，为什么不去恢复删除的文件？
+
+还有一个思路，那就是拦截 `createfile`，`writefile`，这是在我千辛万苦恢复了源码后又尝试的，主要是看有没有更简单的办法，但是不奏效，不知道为什么，好像 `jexepack` 的 `class` 文件突然生成，又突然消失一样，哪位知道，请指教。
+
+### 3. 不怕失败，垃圾堆里捡源码
+
+打开 `EasyRecovery`，然后恢复被删除的文件，这里，就像发明电灯泡一样，我做了上百次的恢复工作。
+
+因为，有时候只能恢复部分文件，这个时候你就得重新运行 `jexepack`，然后马上打开 `EasyRecovery` 进行恢复，以免硬盘被写入其他程序，破坏了原来的文件。但是，即使这样，也还是存在不可避免的覆盖，因为 `jexepack` 自身并不是一次生成，再一次删除，其自身可能就已经破坏了先删除的文件。
+
+打起精神，一次一次重复地试验，与其说是破解，不如说是玩耐心，拼体力。
+
+要恢复的文件有 5 个：
+
+`j2exestubw.exe`，`j2exestubc.exe`，`boot.bin`，`PE.java`，`jexepack.java`。
+
+检验 `exe` 文件是否正确可以首先用 `ultraedit` 观察其文件头，如果可以运行(有时恢复出来的就是文本文件)，然后再运行它试试看。
+
+`.class` 文件可以用 `DJ` 打开看看，能正确反编译的自然就是好文件。
+
+但 `boot.bin` 的检验，就没有合适的方法。在前一天晚上，我还在冥思苦想这个文件怎么恢复，第二天早上起床前的瞬间，我想到 `boot.bin` 这个文件大约是 10k，顾名思义，`boot`，引导作用，而 `jexepackboot` 也是一个这样的文件，文件大小也差不多，难道它们是同一个文件，仅仅是文件名的差别吗？马上起床，运行(我已用 `jbuilder 2005` 得到了 `jexepack.jar` 文件)，结果正确！这个难题终于被我解决！
+
+经过一个下午，还有一个晚上的恢复工作，再加上早上的灵感，5 个文件完全找到。
+
+### 4. 重建代码，测试
+
+在没有得到 `j2exestubw.exe`，`j2exestubc.exe`，`boot.bin` 这三个文件之前，就用 `jbuilder2005` 开始了 `jexepack` 的工程，并得到了 `jexepack.jar` 文件。
+
+其源代码估计被 `Jobfuscate`(作者网站的另一款 `java` 保护工具)保护过，因而代码不具有可读性了。
+
+未注册版本有个限制，不能使用 `/nosign`,这是数字签名校验，如果文件被修改，文件就不会运行了。
+
+它是利用一个 `bool` 量来判断的，去读 `j2exestubw.exe`，如果 `UNREGISTERED` 在文件里面找到，则设定一个 `bool` 值，被轻松搞定。
+
+在得到那三个文件后，在 `dos` 窗口下，我用 `jexepack` 打包了成一个 `exe` 文件。
+
+发现还是出现那个讨厌的 `nag`。
+
+打开 `j2exestubw.exe` 分析，发现其关键在两次 `Gettickcount` 处，在破解的时候两次 `Gettickcount` 的差值一般都会大于 1000ms，然后就不会出现 `nag`，代码可以见上面。
+
+```
+00401CD7    .  3D E8030000 cmp eax,3E8  
+00401CDC    .  73 20       jnb short write2.00401CFE     ==>要跳  
+```
+
+实际运行中，两次 `Gettickcount` 的差值一般是 0，所以会出现 `nag`。
+
+这个小花样，对破解还是造成了一定的难度。
+
+后来我改 `3E8` 为 `0`
+
+同样修改 `j2exestubc.exe`。
+
+再 `jexepack` 自己的程序，`nag` 消失！
+
+**【破解总结】** 要细心，还要有耐心(恢复五个文件)，还要学会联想(`jexepackboot` 即为 `boot.bin`)
+
+**【Greetings】** 看雪论坛,`FCG` 论坛,`DFCG` 论坛，`PYG` 论坛等
+
+**【完稿时间等】** 2005.10.12，上午 11:06,天气:晴
+
+武汉
+
+**【jexepack 源码】**
+
+若要使用，使用 `jexepack.jar` 即可。
+
+编译环境：`jbuilder 2005`。
+
 附件下载
 
- 4dd466d0e1e0cc123afbe504da2462ca
+`4dd466d0e1e0cc123afbe504da2462ca`

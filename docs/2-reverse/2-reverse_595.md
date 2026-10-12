@@ -1,198 +1,311 @@
 
-
 # Turbo C 2.0 中读取零字节文件的研究
 
 > 原文：[`www.pediy.com/kssd/pediy05/pediy50361.htm`](https://www.pediy.com/kssd/pediy05/pediy50361.htm)
 
-关于 Turbo C 2.0 中读取零字节文件的研究   
-                dOSKEY lEE   
-    在 Turbo C 2.0（下简称 TC）中读取零字节文件可以读取出数据吗？我做了以下研究：用 TC 写一个简单的读取文件的程序，然后让其读取一个零字节的文件。首先我们研究用 fread 读取数据。稍后我们将研究用 fgetc 读取数据。以下研究都不判断文件结束（EOF）。   
-  
-源码：   
-#include <stdio.h>   
-#define BYTE unsigned char        /\*定义字节型\*/   
-  
-#define BUFFERLENGTH 255        /\*缓冲大小\*/   
-#define INPUTFILE "EMPTY.BIN"  /\*目标文件的文件名\*/   
-  
-int main(void)   
-{   
-    BYTE bBuff\[BUFFERLENGTH\];    /\*数据缓冲\*/   
-    FILE \*pInputFile;            /\*文件指针\*/   
-    int nReadItem;                /\*读取项目的总数\*/   
-    int i;                        /\*循环控制变量\*/   
-  
-    pInputFile=fopen(INPUTFILE,"r+b");    /\*以“只读、二进制”的方式打开文件\*/   
-    if(!pInputFile)                        /\*文件是否打开成功，不成功便提示推出返回 1\*/   
-    {   
-        printf("Error! Cannot open target file.");   
-        return 1;   
-    }   
-  
-/\*从文件里读取数据，共读取一个项目，每个项目 255 个字节\*/   
-    nReadItem=fread(bBuff,BUFFERLENGTH,1,pInputFile);   
-    if(nReadItem>0)    /\*是否顺利从文件读取出项目\*/   
-    {   
-        printf("Read %d item(s) from target file.\\n",nReadItem);    /\*读取的项目数\*/   
-  
-/\*读取的字节数=（项目数\*255）\*/   
-        printf("Read %d byte(s) from target file.\\n",nReadItem\*BUFFERLENGTH);       
-  
-        printf("Data:\\n");    /\*提示开始输出数据\*/   
-  
-/\*由于 0 取模任何数等于 0，无法控制格式，所以从 1 开始计数\*/   
-        for(i=1;i<=BUFFERLENGTH;i++)   
-        {   
-/\*输出数据，由于控制变量从 1 开始，故下标减一\*/   
-            printf("0x%02X ",bBuff\[i-1\]);   
-            if(i%15==0)    /\*控制歌颂，每行输出 15 个数据\*/   
-                printf("\\n");   
-        }   
-    }   
-    else    /\*从文件不能读取数据\*/   
-        printf("Sorry! Cannot read data from target file.");   
-  
-    fclose(pInputFile);    /\*关闭文件指针\*/   
-    return 0;    /\*正常结束，返回 0\*/   
-}   
-  
-将其在 TC 中编译。然后找到一个零字节文件，将它更名为 EMPTY.BIN。然后在 DOS 提示符号下键入 test1 回车。输入如下：   
-C:\\>test1   
-Sorry! Cannot read data from target file.   
-文件被成功打开，但是没有任何数据被读取。然后将 EMPTY.BIN 改名为 A.BIN。找一个大小为 254 字节的文件，将起文件名改为 EMPTY.BIN，然后再在 DOS 提示符号下键入 test1 回车。由于在程序中一次读取的数据是 255 字节。所以有和上面相同的结果。如果 EMPTY.BIN 文件的大小等于 255 字节或者大于 255 字节，那么就会有如下的输出结果：   
-C:\\>test1   
-Read 1 item(s) from target file.   
-Read 255 byte(s) from target file.   
-Data:   
-0x80 0x09 0x00 0x07 0x54 0x45 0x53 0x54 0x31 0x2E 0x43 0x8E 0x88 0x1D 0x00   
-0x00 0x00 0x19 0x54 0x43 0x38 0x36 0x20 0x42 0x6F 0x72 0x6C 0x61 0x6E 0x64   
-0x20 0x54 0x75 0x72 0x62 0x6F 0x20 0x43 0x20 0x32 0x2E 0x30 0x20 0xFC 0x88   
-0x0F 0x00 0x00 0xE9 0xF5 0x59 0x7E 0x2D 0x07 0x54 0x45 0x53 0x54 0x31 0x2E   
-0x43 0x9E 0x88 0x17 0x00 0x00 0xE9 0x00 0x10 0x1D 0x11 0x0F 0x44 0x3A 0x5C   
-0x54 0x43 0x32 0x30 0x5C 0x53 0x54 0x44 0x49 0x4F 0x2E 0x48 0x03 0x88 0x18   
-0x00 0x00 0xE9 0x00 0x10 0x1D 0x11 0x10 0x44 0x3A 0x5C 0x54 0x43 0x32 0x30   
-0x5C 0x53 0x54 0x44 0x41 0x52 0x47 0x2E 0x48 0xBF 0x88 0x06 0x00 0x00 0xE5   
-0x01 0x00 0x00 0x8C 0x88 0x06 0x00 0x00 0xE5 0x01 0x09 0x00 0x83 0x88 0x0A   
-0x00 0x00 0xE3 0x1A 0x00 0x02 0x00 0x15 0x08 0x04 0x4E 0x88 0x48 0x00 0x00   
-0xE2 0x00 0x05 0x6C 0x65 0x76 0x65 0x6C 0x04 0x00 0x05 0x66 0x6C 0x61 0x67   
-0x73 0x0A 0x00 0x02 0x66 0x64 0x02 0x00 0x04 0x68 0x6F 0x6C 0x64 0x08 0x00   
-0x05 0x62 0x73 0x69 0x7A 0x65 0x04 0x00 0x06 0x62 0x75 0x66 0x66 0x65 0x72   
-0x1A 0x00 0x04 0x63 0x75 0x72 0x70 0x1A 0x00 0x06 0x69 0x73 0x74 0x65 0x6D   
-0x70 0x0A 0x80 0x05 0x74 0x6F 0x6B 0x65 0x6E 0x04 0xAC 0x88 0x08 0x00 0x00   
-0xE3 0x19 0x00 0x10 0x00 0x1E 0x46 0x88 0x0A 0x00 0x00 0xE3 0x18 0x00 0x02   
-0x00 0x15 0x19 0x04 0x3F 0x88 0x09 0x00 0x00 0xE3 0x1B 0x00 0xFF 0x00 0x1A   
-  
-C:\\>   
-  
-反汇编：   
-\_main: int main(void)   
-cs:01FA 55            push  bp    ;保护原堆栈寄存器   
-cs:01FB 8BEC          mov    bp,sp    ;堆栈寄存器初始化   
-cs:01FD 81EC0201      sub    sp,0102    ;堆栈指针初始化   
-cs:0201 56            push  si    ;保护 SI   
-cs:0202 57            push  di    ;保护 DI   
-TEST1#14:  pInputFile=fopen(INPUTFILE,"r+b");   
-cs:0203 B89E01        mov    ax,019E    ;取得参数一"r+b"的指针   
-cs:0206 50            push  ax    ;压入参数一   
-cs:0207 B89401        mov    ax,0194    ;取得参数二 INPUTFILE,即"EMPTY.BIN"的指针   
-cs:020A 50            push  ax    ;压入参数二   
-cs:020B E8DC05        call  \_fopen    ;调用 fopen 打开文件并取得文件指针,保存到 AX   
-cs:020E 59            pop    cx    ;清除参数二   
-cs:020F 59            pop    cx    ;清除参数一   
-cs:0210 8BF8          mov    di,ax    ;将文件指针保存到 DI,以便下面的比较操作   
-TEST1#15:  if(!pInputFile)   
-cs:0212 0BFF          or    di,di    ;文件指针是否为空   
-cs:0214 750E          jne    #TEST1#21 (0224)    ;如果不为空便跳转到 224H   
-TEST1#17:  printf("Error! Cannot open target file.");   
-cs:0216 B8A201        mov    ax,01A2    ;取得参数一"Error! Cannot open target file."的指针   
-cs:0219 50            push  ax    ;压入参数一   
-cs:021A E8C413        call  \_printf    ;调用 printf   
-cs:021D 59            pop    cx    ;清除参数一   
-TEST1#18:  return 1;   
-cs:021E B80100        mov    ax,0001    ;将返回值 1 保存到 AX   
-cs:0221 E98600        jmp    #TEST1#39    ;跳转到程序结束处并返回 AX 中的值,即 1   
-TEST1#21:  nReadItem=fread(bBuff,BUFFERLENGTH,1,pInputFile);   
-cs:0224 57            push  di    ;压入参数一,文件指针   
-cs:0225 B80100        mov    ax,0001    ;取得项目数   
-cs:0228 50            push  ax    ;压入参数二,项目数   
-cs:0229 B8FF00        mov    ax,00FF    ;取得项目大小,即缓冲大小   
-cs:022C 50            push  ax    ;压入参数三,项目大小   
-cs:022D 8D86FEFE      lea    ax,\[bp-0102\]    ;取得缓冲区首地址(在堆栈中)   
-cs:0231 50            push  ax    ;压入参数四,缓冲区首地址   
-cs:0232 E8A00D        call  \_fread    ;调用 fread 读取文件数据,返回的是已经读取的项目数   
-cs:0235 83C408        add    sp,0008    ;堆栈指针向后偏移 8   
-cs:0238 8946FE        mov    \[bp-02\],ax    ;将已读取的项目数保存到变量中(在堆栈中)   
-TEST1#22:  if(nReadItem>0)   
-cs:023B 837EFE00      cmp    word ptr \[bp-02\],0000    ;已读取的项目数是否为 0   
-cs:023F 7E58          jle    #TEST1#35 (0299)    ;如果小于等于 0(即 IF 条件不成立),跳转到 299H 处,处理不成立   
-TEST1#24:  printf("Read %d item(s) from target file.\\n",nReadItem);   
-cs:0241 FF76FE        push  word ptr \[bp-02\]    ;压入参数一,已读取项目数   
-cs:0244 B8C201        mov    ax,01C2    ;取得参数二,"Read %d item(s) from target file.\\n"的指针   
-cs:0247 50            push  ax    ;压入参数二   
-cs:0248 E89613        call  \_printf    ;调用 printf   
-cs:024B 59            pop    cx    ;清除参数一   
-cs:024C 59            pop    cx    ;清除参数二   
-TEST1#25:  printf("Read %d byte(s) from target file.\\n",nReadItem\*BUFFERLENGTH);   
-cs:024D 8B46FE        mov    ax,\[bp-02\]    ;取得已读取的项目数(nReadItem),被乘数   
-cs:0250 BAFF00        mov    dx,00FF        ;取得项目大小,即缓冲大小(BUFFERLENGHT),乘数   
-cs:0253 F7E2          mul    dx    ;做乘运算,积保存在 AX 中   
-cs:0255 50            push  ax    ;压入参数一,已读取的项目数和缓冲大小的乘积   
-cs:0256 B8E501        mov    ax,01E5    ;取得参数二"Read %d byte(s) from target file.\\n"的指针   
-cs:0259 50            push  ax    ;压入参数二   
-cs:025A E88413        call  \_printf    ;调用 printf   
-cs:025D 59            pop    cx    ;清除参数二   
-cs:025E 59            pop    cx    ;清除参数一   
-TEST1#26:  printf("Data:\\n");   
-cs:025F B80802        mov    ax,0208    ;取得参数一"Data:\\n"的指针   
-cs:0262 50            push  ax    ;压入参数一   
-cs:0263 E87B13        call  \_printf    ;调用 printf   
-cs:0266 59            pop    cx    ;清除参数一   
-TEST1#27:  for(i=1;i<=BUFFERLENGTH;i++)   
-cs:0267 BE0100        mov    si,0001    ;循环控制变量 i 的初始化   
-cs:026A EB25          jmp    0291    ;跳转到循环尾部,准备第一次循环   
-TEST1#29:  printf("0x%02X ",bBuff\[i-1\]);   
-cs:026C 8A82FDFE      mov    al,\[bp+si-0103\]    ;取得参数一的低位,其中 bp-si-0103 便是下标,si 是循环控制变量   
-cs:0270 B400          mov    ah,00    ;参数一的高位设 0   
-cs:0272 50            push  ax    ;压入参数一   
-cs:0273 B80F02        mov    ax,020F    ;取得参数二"0x%02X "的指针   
-cs:0276 50            push  ax    ;压入参数二   
-cs:0277 E86713        call  \_printf    ;调用 printf   
-cs:027A 59            pop    cx    ;清除参数二   
-cs:027B 59            pop    cx    ;清除参数一   
-TEST1#30:  if(i%15==0)   
-cs:027C 8BC6          mov    ax,si    ;将循环控制变量 SI 保存到 AX   
-cs:027E BB0F00        mov    bx,000F    ;将格式控制常量 15 保存到 BX   
-cs:0281 99            cwd        ;将 AX 中的值转换为双字型,DX:AX,DX 放高位,AX 放底位   
-cs:0282 F7FB          idiv  bx    ;做有符号除法运算,商在 AX 中,余数在 DX 中   
-cs:0284 0BD2          or    dx,dx    ;余数是否为 0   
-cs:0286 7508          jne    0290    ;不等于跳转到 290H   
-TEST1#31:  printf("\\n");   
-cs:0288 B81702        mov    ax,0217    ;取得参数一"\\n"的指针   
-cs:028B 50            push  ax    ;压入参数一   
-cs:028C E85213        call  \_printf    ;调用 printf   
-cs:028F 59            pop    cx    ;清除参数一   
-cs:0290 46            inc    si    ;循环控制变量加一   
-cs:0291 81FEFF00      cmp    si,00FF    ;循环控制变量是否为 255   
-cs:0295 7ED5          jle    #TEST1#29 (026C)    ;小于跳转到 26CH,继续循环   
-TEST1#33:  }   
-cs:0297 EB08          jmp    #TEST1#37 (02A1)    ;跳转到 2A1H,结束 IF..ELSE 语句   
-TEST1#35:  printf("Sorry! Cannot read data from target file.");   
-cs:0299 B81902        mov    ax,0219    ;取得参数一"Sorry! Cannot read data from target file."的指针   
-cs:029C 50            push  ax    ;压入参数一   
-cs:029D E84113        call  \_printf    ;调用 printf   
-cs:02A0 59            pop    cx    ;清除参数一   
-TEST1#37:  fclose(pInputFile);   
-cs:02A1 57            push  di    ;压入参数一,文件指针   
-cs:02A2 E8320B        call  \_fclose    ;调用 fclose   
-cs:02A5 59            pop    cx    ;清除参数一   
-TEST1#38:  return 0;   
-cs:02A6 33C0          xor    ax,ax    ;AX 设 0,准备作为返回值返回   
-cs:02A8 EB00          jmp    #TEST1#39 (02AA)    ;跳转到程序结束处   
-TEST1#39: }   
-cs:02AA 5F            pop    di    ;恢复 DI   
-cs:02AB 5E            pop    si    ;恢复 SI   
-cs:02AC 8BE5          mov    sp,bp    ;恢复原堆栈指针   
-cs:02AE 5D            pop    bp    ;恢复堆栈寄存器   
-cs:02AF C3            ret    ;程序返回结束   
-  
-结论：在 TC 中用 fread 读取零字节文件是不能够读出任何数据的。  4dd466d0e1e0cc123afbe504da2462ca
+## 研究概述
+
+关于 Turbo C 2.0 中读取零字节文件的研究
+
+**dOSKEY lEE**
+
+在 Turbo C 2.0（下简称 `TC`）中读取零字节文件可以读取出数据吗？我做了以下研究：用 `TC` 写一个简单的读取文件的程序，然后让其读取一个零字节的文件。首先我们研究用 `fread` 读取数据。稍后我们将研究用 `fgetc` 读取数据。以下研究都不判断文件结束（`EOF`）。
+
+## 源码
+
+```c
+#include <stdio.h>
+
+#define BYTE unsigned char    /*定义字节型*/
+
+#define BUFFERLENGTH 255      /*缓冲大小*/
+
+#define INPUTFILE "EMPTY.BIN" /*目标文件的文件名*/
+
+int main(void)
+
+{
+
+    BYTE bBuff[BUFFERLENGTH];    /*数据缓冲*/
+
+    FILE *pInputFile;            /*文件指针*/
+
+    int nReadItem;              /*读取项目的总数*/
+
+    int i;                     /*循环控制变量*/
+
+    pInputFile=fopen(INPUTFILE,"r+b");    /*以“只读、二进制”的方式打开文件*/
+
+    if(!pInputFile)            /*文件是否打开成功，不成功便提示推出返回 1*/
+
+    {
+
+        printf("Error! Cannot open target file.");
+
+        return 1;
+
+    }
+
+    /*从文件里读取数据，共读取一个项目，每个项目 255 个字节*/
+
+    nReadItem=fread(bBuff,BUFFERLENGTH,1,pInputFile);
+
+    if(nReadItem>0)    /*是否顺利从文件读取出项目*/
+
+    {
+
+        printf("Read %d item(s) from target file.\n",nReadItem);    /*读取的项目数*/
+
+        /*读取的字节数=（项目数*255）*/
+
+        printf("Read %d byte(s) from target file.\n",nReadItem*BUFFERLENGTH);
+
+        printf("Data:\n");    /*提示开始输出数据*/
+
+        /*由于 0 取模任何数等于 0，无法控制格式，所以从 1 开始计数*/
+
+        for(i=1;i<=BUFFERLENGTH;i++)
+
+        {
+
+            /*输出数据，由于控制变量从 1 开始，故下标减一*/
+
+            printf("0x%02X ",bBuff[i-1]);
+
+            if(i%15==0)    /*控制歌颂，每行输出 15 个数据*/
+
+                printf("\n");
+
+        }
+
+    }
+
+    else    /*从文件不能读取数据*/
+
+        printf("Sorry! Cannot read data from target file.");
+
+    fclose(pInputFile);    /*关闭文件指针*/
+
+    return 0;    /*正常结束，返回 0*/
+
+}
+```
+
+将其在 `TC` 中编译。然后找到一个零字节文件，将它更名为 `EMPTY.BIN`。然后在 `DOS` 提示符号下键入 `test1` 回车。输入如下：
+
+```
+C:\>test1
+
+Sorry! Cannot read data from target file.
+```
+
+文件被成功打开，但是没有任何数据被读取。然后将 `EMPTY.BIN` 改名为 `A.BIN`。找一个大小为 254 字节的文件，将起文件名改为 `EMPTY.BIN`，然后再在 `DOS` 提示符号下键入 `test1` 回车。由于在程序中一次读取的数据是 255 字节。所以有和上面相同的结果。如果 `EMPTY.BIN` 文件的大小等于 255 字节或者大于 255 字节，那么就会有如下的输出结果：
+
+```
+C:\>test1
+
+Read 1 item(s) from target file.
+
+Read 255 byte(s) from target file.
+
+Data:
+
+0x80 0x09 0x00 0x07 0x54 0x45 0x53 0x54 0x31 0x2E 0x43 0x8E 0x88 0x1D 0x00
+
+0x00 0x00 0x19 0x54 0x43 0x38 0x36 0x20 0x42 0x6F 0x72 0x6C 0x61 0x6E 0x64
+
+0x20 0x54 0x75 0x72 0x62 0x6F 20 0x43 0x20 0x32 0x2E 0x30 0x20 0xFC 0x88
+
+0x0F 0x00 0x00 0xE9 0xF5 0x59 0x7E 0x2D 0x07 0x54 0x45 0x53 0x54 0x31 0x2E
+
+0x43 0x9E 0x88 0x17 0x00 0x00 0xE9 0x00 0x10 0x1D 0x11 0x0F 0x44 0x3A 0x5C
+
+0x54 0x43 0x32 0x30 0x5C 0x53 0x54 0x44 0x49 0x4F 0x2E 0x48 0x03 0x88 0x18
+
+0x00 0x00 0xE9 0x00 0x10 0x1D 0x11 0x10 0x44 0x3A 0x5C 0x54 0x43 0x32 0x30
+
+0x5C 0x53 0x54 0x44 0x41 0x52 0x47 0x2E 0x48 0xBF 0x88 0x06 0x00 0x00 0xE5
+
+0x01 0x00 0x00 0x8C 0x88 0x06 0x00 0x00 0xE5 0x01 0x09 0x00 0x83 0x88 0x0A
+
+0x00 0x00 0xE3 0x1A 0x00 0x02 0x00 0x15 0x08 0x04 0x4E 0x88 0x48 0x00 0x00
+
+0xE2 0x00 0x05 0x6C 0x65 0x76 0x65 0x6C 0x04 0x00 0x05 0x66 0x6C 0x61 0x67
+
+0x73 0x0A 0x00 0x02 0x66 0x64 0x02 0x00 0x04 0x68 0x6F 0x6C 0x64 0x08 0x00
+
+0x05 0x62 0x73 0x69 0x7A 0x65 0x04 0x00 0x06 0x62 0x75 0x66 0x66 0x65 0x72
+
+0x1A 0x00 0x04 0x63 0x75 0x72 0x70 0x1A 0x00 0x06 0x69 0x73 0x74 0x65 0x6D
+
+0x70 0x0A 0x80 0x05 0x74 0x6F 0x6B 0x65 0x6E 0x04 0xAC 0x88 0x08 0x00 0x00
+
+0xE3 0x19 0x00 0x10 0x00 0x1E 0x46 0x88 0x0A 0x00 0x00 0xE3 0x18 0x00 0x02
+
+0x00 0x15 0x19 0x04 0x3F 0x88 0x09 0x00 0x00 0xE3 0x1B 0x00 0xFF 0x00 0x1A
+
+C:\>
+```
+
+## 反汇编
+
+```asm
+_main: int main(void)
+
+cs:01FA 55             push  bp    ;保护原堆栈寄存器
+cs:01FB 8BEC          mov   bp,sp   ;堆栈寄存器初始化
+cs:01FD 81EC0201      sub   sp,0102   ;堆栈指针初始化
+cs:0201 56             push  si    ;保护 SI
+cs:0202 57             push  di    ;保护 DI
+
+TEST1#14:  pInputFile=fopen(INPUTFILE,"r+b");
+cs:0203 B89E01        mov   ax,019E   ;取得参数一"r+b"的指针
+cs:0206 50             push  ax    ;压入参数一
+cs:0207 B89401        mov   ax,0194   ;取得参数二 INPUTFILE,即"EMPTY.BIN"的指针
+cs:020A 50             push  ax    ;压入参数二
+cs:020B E8DC05        call  _fopen   ;调用 fopen 打开文件并取得文件指针,保存到 AX
+cs:020E 59             pop   cx    ;清除参数二
+cs:020F 59             pop   cx    ;清除参数一
+cs:0210 8BF8          mov   di,ax   ;将文件指针保存到 DI,以便下面的比较操作
+
+TEST1#15:  if(!pInputFile)
+cs:0212 0BFF          or    di,di   ;文件指针是否为空
+cs:0214 750E          jne   #TEST1#21 (0224)   ;如果不为空便跳转到 224H
+
+TEST1#17:  printf("Error! Cannot open target file.");
+cs:0216 B8A201        mov   ax,01A2   ;取得参数一"Error! Cannot open target file."的指针
+cs:0219 50             push  ax    ;压入参数一
+cs:021A E8C413        call  _printf  ;调用 printf
+cs:021D 59             pop   cx    ;清除参数一
+
+TEST1#18:  return 1;
+cs:021E B80100        mov   ax,0001   ;将返回值 1 保存到 AX
+cs:0221 E98600        jmp   #TEST1#39   ;跳转到程序结束处并返回 AX 中的值,即 1
+
+TEST1#21:  nReadItem=fread(bBuff,BUFFERLENGTH,1,pInputFile);
+cs:0224 57             push  di    ;压入参数一,文件指针
+cs:0225 B80100        mov   ax,0001   ;取得项目数
+cs:0228 50             push  ax    ;压入参数二,项目数
+cs:0229 B8FF00        mov   ax,00FF   ;取得项目大小,即缓冲大小
+cs:022C 50             push  ax    ;压入参数三,项目大小
+cs:022D 8D86FEFE      lea   ax,[bp-0102]   ;取得缓冲区首地址(在堆栈中)
+cs:0231 50             push  ax    ;压入参数四,缓冲区首地址
+cs:0232 E8A00D        call  _fread   ;调用 fread 读取文件数据,返回的是已经读取的项目数
+cs:0235 83C408        add   sp,0008   ;堆栈指针向后偏移 8
+cs:0238 8946FE        mov   [bp-02],ax  ;将已读取的项目数保存到变量中(在堆栈中)
+
+TEST1#22:  if(nReadItem>0)
+cs:023B 837EFE00      cmp   word ptr [bp-02],0000  ;已读取的项目数是否为 0
+cs:023F 7E58          jle   #TEST1#35 (0299)   ;如果小于等于 0(即 IF 条件不成立),跳转到 299H 处,处理不成立
+
+TEST1#24:  printf("Read %d item(s) from target file.\n",nReadItem);
+cs:0241 FF76FE        push  word ptr [bp-02]  ;压入参数一,已读取项目数
+cs:0244 B8C201        mov   ax,01C2   ;取得参数二,"Read %d item(s) from target file.\n"的指针
+cs:0247 50             push  ax    ;压入参数二
+cs:0248 E89613        call  _printf  ;调用 printf
+cs:024B 59             pop   cx    ;清除参数一
+cs:024C 59             pop   cx    ;清除参数二
+
+TEST1#25:  printf("Read %d byte(s) from target file.\n",nReadItem*BUFFERLENGTH);
+cs:024D 8B46FE        mov   ax,[bp-02]  ;取得已读取的项目数(nReadItem),被乘数
+cs:0250 BAFF00        mov   dx,00FF     ;取得项目大小,即缓冲大小(BUFFERLENGHT),乘数
+cs:0253 F7E2          mul   dx    ;做乘运算,积保存在 AX 中
+cs:0255 50             push  ax    ;压入参数一,已读取的项目数和缓冲大小的乘积
+cs:0256 B8E501        mov   ax,01E5   ;取得参数二"Read %d byte(s) from target file.\n"的指针
+cs:0259 50             push  ax    ;压入参数二
+cs:025A E88413        call  _printf  ;调用 printf
+cs:025D 59             pop   cx    ;清除参数二
+cs:025E 59             pop   cx    ;清除参数一
+
+TEST1#26:  printf("Data:\n");
+cs:025F B80802        mov   ax,0208   ;取得参数一"Data:\n"的指针
+cs:0262 50             push  ax    ;压入参数一
+cs:0263 E87B13        call  _printf  ;调用 printf
+cs:0266 59             pop   cx    ;清除参数一
+
+TEST1#27:  for(i=1;i<=BUFFERLENGTH;i++)
+cs:0267 BE0100        mov   si,0001   ;循环控制变量 i 的初始化
+cs:026A EB25          jmp   0291    ;跳转到循环尾部,准备第一次循环
+
+TEST1#29:  printf("0x%02X ",bBuff[i-1]);
+cs:026C 8A82FDFE      mov   al,[bp+si-0103]  ;取得参数一的低位,其中 bp-si-0103 便是下标,si 是循环控制变量
+cs:0270 B400          mov   ah,00   ;参数一的高位设 0
+cs:0272 50             push  ax    ;压入参数一
+cs:0273 B80F02        mov   ax,020F   ;取得参数二"0x%02X "的指针
+cs:0276 50             push  ax    ;压入参数二
+cs:0277 E86713        call  _printf  ;调用 printf
+cs:027A 59             pop   cx    ;清除参数二
+cs:027B 59             pop   cx    ;清除参数一
+
+TEST1#30:  if(i%15==0)
+cs:027C 8BC6          mov   ax,si   ;将循环控制变量 SI 保存到 AX
+cs:027E BB0F00        mov   bx,000F   ;将格式控制常量 15 保存到 BX
+```
+
+
+
+`cs:0281 99` `cwd` ;将 `AX` 中的值转换为双字型,`DX:AX`, `DX` 放高位,`AX` 放底位
+
+`cs:0282 F7FB` `idiv bx` ;做有符号除法运算,商在 `AX` 中,余数在 `DX` 中
+
+`cs:0284 0BD2` `or dx,dx` ;余数是否为 0
+
+`cs:0286 7508` `jne 0290` ;不等于跳转到 `290H`
+
+`TEST1#31:` `printf("\n")`
+
+`cs:0288 B81702` `mov ax,0217` ;取得参数一`"\n"`的指针
+
+`cs:028B 50` `push ax` ;压入参数一
+
+`cs:028C E85213` `call _printf` ;调用 `printf`
+
+`cs:028F 59` `pop cx` ;清除参数一
+
+`cs:0290 46` `inc si` ;循环控制变量加一
+
+`cs:0291 81FEFF00` `cmp si,00FF` ;循环控制变量是否为 `255`
+
+`cs:0295 7ED5` `jle #TEST1#29 (026C)` ;小于跳转到 `26CH`,继续循环
+
+`TEST1#33:` `}`
+
+`cs:0297 EB08` `jmp #TEST1#37 (02A1)` ;跳转到 `2A1H`,结束 `IF..ELSE` 语句
+
+`TEST1#35:` `printf("Sorry! Cannot read data from target file.")`
+
+`cs:0299 B81902` `mov ax,0219` ;取得参数一`"Sorry! Cannot read data from target file."`的指针
+
+`cs:029C 50` `push ax` ;压入参数一
+
+`cs:029D E84113` `call _printf` ;调用 `printf`
+
+`cs:02A0 59` `pop cx` ;清除参数一
+
+`TEST1#37:` `fclose(pInputFile)`
+
+`cs:02A1 57` `push di` ;压入参数一,文件指针
+
+`cs:02A2 E8320B` `call _fclose` ;调用 `fclose`
+
+`cs:02A5 59` `pop cx` ;清除参数一
+
+`TEST1#38:` `return 0`
+
+`cs:02A6 33C0` `xor ax,ax` ;`AX` 设 0,准备作为返回值返回
+
+`cs:02A8 EB00` `jmp #TEST1#39 (02AA)` ;跳转到程序结束处
+
+`TEST1#39:` `}`
+
+`cs:02AA 5F` `pop di` ;恢复 `DI`
+
+`cs:02AB 5E` `pop si` ;恢复 `SI`
+
+`cs:02AC 8BE5` `mov sp,bp` ;恢复原堆栈指针
+
+`cs:02AE 5D` `pop bp` ;恢复堆栈寄存器
+
+`cs:02AF C3` `ret` ;程序返回结束
+
+结论：在 `TC` 中用 `fread` 读取零字节文件是不能够读出任何数据的。 `4dd466d0e1e0cc123afbe504da2462ca`

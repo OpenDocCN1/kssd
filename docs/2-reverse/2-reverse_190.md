@@ -1,121 +1,178 @@
 
-
 # WinDbg 简单扩展 DLL
 
 > 原文：[`www.pediy.com/kssd/pediy10/87790.html`](https://www.pediy.com/kssd/pediy10/87790.html)
 
-WinDbg 简单扩展 DLL  
-  
-    听说 WinDBG 很强大,自己试了试.确实如此..命令超级的多..都摸不着北..前一段时间.一直用 OD..很简洁.也习惯了.不过听说 WinDBG 集成了 Window 系统中所有的调试方法..就爱不释手了..反正我想.如果学会了这个..那其它的调试工具.我还用花时间学吗...不过.这个 WinDBG 大多都是命令..很难记的..只有多用了..并且.这个 WinDBG..也不像 VS2008 那样.窗口可以停靠且可以自动隐藏..如果未来版本能有这样的功能真是太爽了..现在最新版本 .6.11.打开窗口多的话,,总感觉命令,或其它窗口太小...  
-  
-   从网上查 Windbg 相关资料.翻来覆去.都是那几篇 ,就发现唯一篇讲 WinDBG 怎么脱壳的..不过跟 OD 基本一样.让人感觉着还不如 OD 呢.使用起来方便..不过建议大家好好摸索一下 WinDBg 这个微软出的超强的调试工具..用熟练了.确实比 OD 强..比如有些段点,在 OD 中断不下来的..在 Windbg 中就可以断下来.  
-  
-    我得好好学习一下 WinDBG.我这个人就喜欢就用一样..不喜欢多..多了我就不知道用哪个了..比如编程以前用 MFC 写..后来呢.感觉那东西.封装的太严实..效率也不怎么强..就用 ATL..搞 COM..又发现这东西虽然挺强..脚本也可以调用...不过.双接口了,还有 COM 套间了..还有那繁索的使用过程.无奈..就不想再写下去了..再后来呢.就用 C 语法.写纯 DLL..没有用 C++语法,它太强悍了..里边很多东西..到现在.我自己的代码都没有用得上,比如:继承了.友元了..虚函数了..重载了...这些东西..估计还是用的少...以后还得多多使用..WinDBg 开始就是纯 C..后来.当然也撑了七八年了.,.没有办法扩展了...就重新用 C++写了....以后呢..我打算用 C++写纯 DLL.然后呢.再用 C#做界面...界面,用 C++写起来太受不了了..C#调用 C++写的 DLL.如果自己做 COM 组件,外层就 C#包装一下..底层还是 C++.C#做 COM,也相当的简单啊.大部分人的电脑上都已经有了.net 了..不用担心啊..并且 CPU..,内存条也便宜吗..  
-  
-  以后,我会多写一些关于我学习这个 WinDBG 的使用教程...因为我想用它来脱壳..破解呢...还有很多东西要学呢..今天呢..就从实现 WinDbug 的扩展命令开始吧..想实现我的想法..只能写扩展 DLL 了...windbg 本身并不是破解方面的顺手调试工具..下面开始给大家介绍方法:并介绍一些相关的知识点.  
-  
-用 VS 建立一个 DLL 工程,这个就不用抓图了..很简单了..  
-  
-#include <dbgeng.h>   
-#pragma comment (lib ,"dbgeng.lib")  
-在头文件中包含这个东西..扩展命令有三种写法..  
-①第一种写法:就是包含这个头文件,,wdbgexts.h 就可以调用里边的各种函数.来实现扩展命令.这种方法功能相对较弱.  
-②第二种,也就是本文介绍的方法.功能最强..要求对调试引擎有所了解，并熟悉 COM 接口.  
-③第三种.也就是 EngExtCpp 方法使用的 C++类框架思想，EngExtCpp 的基类是 ExtException。扩展模块应该从这个基类来派生一个子类..sdk/samples/extcpp 目录下的 extcpp 模块就是使用的这种方法..  
-读者可以从网上搜索这篇文章:WinDBG 扩展命令的工作原理  
-  
-在.CPP 文件中加如下面代码..  
-PDEBUG\_CONTROL4 gExtControl; ①  
-///////////////////////////////////////////////////   
-HRESULT CALLBACK DebugExtensionInitialize( PULONG Version, PULONG Flags ) ②  
-{   
-        \*Version = DEBUG\_EXTENSION\_VERSION(1,0);③   
-        \*Flags = 0; ④   
-        return S\_OK;  
-}   
-  
-  
-HRESULT CALLBACK MeHello(IDebugClient \* Client ,PCSTR Args) ⑤  
-{   
-         HRESULT hr ;  
-         hr = Client->QueryInterface(\_\_uuidof(IDebugControl4) ,(void \* \*)&gExtControl);⑥  
-         if(SUCCEEDED(hr))  
-         {   
-                gExtControl->Output(DEBUG\_OUTPUT\_NORMAL ,"Hello!扩展 DLL 成功!");⑦  
-                return S\_OK;   
-          }  
-        gExtControl  != NULL ? (gExtControl->Release(), gExtControl = NULL) :NULL;⑧  
-        return S\_FALSE;   
-}            
-我们来解释这些代码...我写代码都会带注释的..看着清晰...  
-①  PDEBUG\_CONTROL4 是一个接口指针.  
-typedef interface DECLSPEC\_UUID("94e60ce9-9b41-4b19-9fc0-6d9eb35272b3") IDebugControl4\* PDEBUG\_CONTROL4;  
-IDebugControl4 这个就是接口.可能已经是第 4 个版本了..当然也存在 IDebugControl3.这个接口了..这就是 COM 的版本管理吧..软件升级很方便.不影响已经发布的版本..我想这些只有微软,或者一些大软件公司可能会用的到..像我..组件当中不会出现 IDebugControl3 这样的接口..如果我要修改接口,我直接在 IDebugControl 接口中添加我的功能...不需要考虑我的以前版本的软件是否工作良好 ...因为.我的客户可没有微软那么多..这个接口干什么用的呢..IDebugControl 接口用于控制调试目标(如段点).反汇编.评估表达式.执行命令,和设置调试引擎的选项..说这些都是根据该接口实现了哪些方法来说的..该方法可能很多..不过我们的扩展命令只用到一个方法..就是 Output(⑦)用于向命令窗口输出白纸黑字..查看 Windbg 的帮助文件.(都是英文的..)  
-这样定义:  
-HRESULT  
-  IDebugControl::Output(  
-    IN ULONG  Mask,  
-    IN PCSTR  Format,  
-    ...  
-    );  
-  
-HRESULT  
-  IDebugControl4::OutputWide(  
-    IN ULONG  Mask,  
-    IN PCWSTR  Format,  
-    ...  
-    );  
-上面的那个是 A 型的.下面的那个是 U 型的.无所谓..反正在我们自己电脑上用...不会乱码的.用哪个都可以.  
-  
-  
-Mask   
-Specifies the output-type bit field. See DEBUG\_OUTPUT\_XXX for possible values.   
-确定输出的类型..  
-  
-后面的那个参数 就是要输出的格式化字符串...   
-  
-②DebugExtensionInitialize 这个函数必须要有的.并且一定要导出的,.它的两个参数都是输出参数..我们必须在函数体内给其赋值.第一个参数是版本号..第二个参数微软保留.现在不用..版本号我们可以用 DEBUG\_EXTENSION\_VERSION 宏..设置高版本号和低版本号.  
-  
-.⑤.这个函数就是我们的扩展命令..很简单调用 Output 输出 Hello!扩展 DLL 成功!Client 是调试器传给我们的.IDebugClient 负责启动和结束调试会话.管理各种回调对象.处理转转储文件等.我们用 QueryInterface 查询 PDEBUG\_CONTROL4 接口..保存在全局变量 gExtControl 中,如果成功.我们就可以调用 PDEBUG\_CONTROL4 中的各种函数了..  
-  
-⑧ gExtControl  != NULL ? (gExtControl->Release(), gExtControl) = NULL :NULL;这里只是判断 gExtControl  是不是空.如果还是就释放该接口..并设置为 NULL..如果已经为空.就什么也不做了..  
-COM 中是靠引用计数来管理生命周期的..Release 计数就减 1..QueryInterface 计数就加 1..当为 0 的时候..COM 就可以释放该接口了.因为释放动作不能用客户来实现..多个客户可能同时引用该接口的..这时候,就不能一个客户去释放该接口,别的客户还正在使用呢...不过软件调试上说..这些东西不是纯粹的 COM,,也不是用 COM 技术来实现的..因为使用这些接口不需要调用 CoInitialize 来初始化 COM.另外创建这些接口也不是用 CoCreateIntance 来实现的..   
-       4 .最后,建一个.def 文件就 OK 了.把这两个文件导出:  
-        LIBRARY "05"   
-        EXPORTS   
-        ;core exports function   
-  
-        DebugExtensionInitialize   
-  
-        ;our exports function   
-  
-        MeHello  
-  
-这样就 OK 了..把项目文件目录抓上来吧..  
-  
-05.cpp 就是那两个函数的位置  
-  
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////  
-编译上面的工程.就会得到 05.DLL.文件.  
-下面说说怎么在 WinDBG 中使用..打开 WInDBG,随便加载一个.exe 文件...然后在命令窗口下面输入  
-  
-①.load D:\\C++\\test\\04\\Debug\\05.dll //路径换成你自己 的..  
-  
-②!MeHello 回车就 OK 了.  
-  
-  
-  
-这里要注意大小写..看到结果了吧..就这么简单...  
-  
-这个 DLL,没有什么功能..不过这种方法是最强的方法...一定得会..好了..大家有什么好的见解..欢迎同我交流..  
-  
-最后,,如果大家编译不通过.可能没有头文件,和对应的 lib 文件...这些文件在你的 windbg 安装目录下的  
-  
-  
-lib 就是库文件,inc 就是头文件..添加到 vs 调试器当中就 OK 了..添加方法.vs-tools(工具)-options(选项)如图:  
-  
-  
-  
-这样就 OK 了..前提是你必须全整的安装 windbg.  
-  
+听说 WinDBG 很强大,自己试了试.确实如此..命令超级的多..都摸不着北..前一段时间.一直用 OD..很简洁.也习惯了.不过听说 WinDBG 集成了 Window 系统中所有的调试方法..就爱不释手了..反正我想.如果学会了这个..那其它的调试工具.我还用花时间学吗...不过.这个 WinDBG 大多都是命令..很难记的..只有多用了..并且.这个 WinDBG..也不像 `VS2008` 那样.窗口可以停靠且可以自动隐藏..如果未来版本能有这样的功能真是太爽了..现在最新版本 .6.11.打开窗口多的话,,总感觉命令,或其它窗口太小...
+
+从网上查 WinDBG 相关资料.翻来覆去.都是那几篇 ,就发现唯一篇讲 WinDBG 怎么脱壳的..不过跟 OD 基本一样.让人感觉着还不如 OD 呢.使用起来方便..不过建议大家好好摸索一下 WinDBg 这个微软出的超强的调试工具..用熟练了.确实比 OD 强..比如有些断点,在 OD 中断不下来的..在 WinDBG 中就可以断下来.
+
+我得好好学习一下 WinDBG.我这个人就喜欢就用一样..不喜欢多..多了我就不知道用哪个了..比如编程以前用 MFC 写..后来呢.感觉那东西.封装的太严实..效率也不怎么强..就用 ATL..搞 COM..又发现这东西虽然挺强..脚本也可以调用...不过.双接口了,还有 COM 套间了..还有那繁索的使用过程.无奈..就不想再写下去了..再后来呢.就用 C 语法.写纯 DLL..没有用 C++语法,它太强悍了..里边很多东西..到现在.我自己的代码都没有用得上,比如:继承了.友元了..虚函数了..重载了...这些东西..估计还是用的少...以后还得多多使用..WinDBG 开始就是纯 C..后来.当然也撑了七八年了.,.没有办法扩展了...就重新用 C++写了....以后呢..我打算用 C++写纯 DLL.然后呢.再用 C#做界面...界面,用 C++写起来太受不了了..C#调用 C++写的 DLL.如果自己做 COM 组件,外层就 C#包装一下..底层还是 C++.C#做 COM,也相当的简单啊.大部分人的电脑上都已经有了.net 了..不用担心啊..并且 CPU..,内存条也便宜吗..
+
+以后,我会多写一些关于我学习这个 WinDBG 的使用教程...因为我想用它来脱壳..破解呢...还有很多东西要学呢..今天呢..就从实现 WinDBG 的扩展命令开始吧..想实现我的想法..只能写扩展 DLL 了...WinDBG 本身并不是破解方面的顺手调试工具..下面开始给大家介绍方法:并介绍一些相关的知识点.
+
+## 创建扩展 DLL
+
+用 `VS` 建立一个 DLL 工程,这个就不用抓图了..很简单了..
+
+```c
+#include <dbgeng.h> 
+
+#pragma comment (lib ,"dbgeng.lib") 
+```
+
+在头文件中包含这个东西..扩展命令有三种写法..
+
+1. 第一种写法:就是包含这个头文件 `wdbgexts.h` 就可以调用里边的各种函数.来实现扩展命令.这种方法功能相对较弱.
+2. 第二种,也就是本文介绍的方法.功能最强..要求对调试引擎有所了解，并熟悉 COM 接口.
+3. 第三种.也就是 `EngExtCpp` 方法使用的 C++类框架思想，`EngExtCpp` 的基类是 `ExtException`。扩展模块应该从这个基类来派生一个子类..`sdk/samples/extcpp` 目录下的 `extcpp` 模块就是使用的这种方法..
+
+读者可以从网上搜索这篇文章:WinDBG 扩展命令的工作原理
+
+在 `.CPP` 文件中加如下面代码..
+
+```cpp
+PDEBUG_CONTROL4 gExtControl; ①
+
+/////////////////////////////////////////////////// 
+
+HRESULT CALLBACK DebugExtensionInitialize( PULONG Version, PULONG Flags ) ②
+
+{ 
+
+    *Version = DEBUG_EXTENSION_VERSION(1,0);③ 
+
+    *Flags = 0; ④ 
+
+    return S_OK;
+
+} 
+
+HRESULT CALLBACK MeHello(IDebugClient * Client ,PCSTR Args) ⑤
+
+{ 
+
+    HRESULT hr ;
+
+    hr = Client->QueryInterface(__uuidof(IDebugControl4) ,(void * *)&gExtControl);⑥
+
+    if(SUCCEEDED(hr))
+
+    { 
+
+        gExtControl->Output(DEBUG_OUTPUT_NORMAL ,"Hello!扩展 DLL 成功!");⑦
+
+        return S_OK; 
+
+    }
+
+    gExtControl != NULL ? (gExtControl->Release(), gExtControl = NULL) :NULL;⑧
+
+    return S_FALSE; 
+
+}
+```
+
+我们来解释这些代码...我写代码都会带注释的..看着清晰...
+
+① `PDEBUG_CONTROL4` 是一个接口指针.
+
+```c
+typedef interface DECLSPEC_UUID("94e60ce9-9b41-4b19-9fc0-6d9eb35272b3") IDebugControl4* PDEBUG_CONTROL4;
+```
+
+`IDebugControl4` 这个就是接口.可能已经是第 4 个版本了..当然也存在 `IDebugControl3`.这个接口了..这就是 COM 的版本管理吧..软件升级很方便.不影响已经发布的版本..我想这些只有微软,或者一些大软件公司可能会用的到..像我..组件当中不会出现 `IDebugControl3` 这样的接口..如果我要修改接口,我直接在 `IDebugControl` 接口中添加我的功能...不需要考虑我的以前版本的软件是否工作良好 ...因为.我的客户可没有微软那么多..这个接口干什么用的呢..`IDebugControl` 接口用于控制调试目标(如断点).反汇编.评估表达式.执行命令,和设置调试引擎的选项..说这些都是根据该接口实现了哪些方法来说的..该方法可能很多..不过我们的扩展命令只用到一个方法..就是 `Output(⑦)`用于向命令窗口输出白纸黑字..查看 Windbg 的帮助文件.(都是英文的..)
+
+这样定义:
+
+```cpp
+HRESULT
+
+  IDebugControl::Output(
+
+    IN ULONG  Mask,
+
+    IN PCSTR  Format,
+
+    ...
+
+    );
+
+HRESULT
+
+  IDebugControl4::OutputWide(
+
+    IN ULONG  Mask,
+
+    IN PCWSTR  Format,
+
+    ...
+
+    );
+```
+
+上面的那个是 A 型的.下面的那个是 U 型的.无所谓..反正在我们自己电脑上用...不会乱码的.用哪个都可以.
+
+`Mask`
+
+Specifies the output-type bit field. See `DEBUG_OUTPUT_XXX` for possible values. 
+
+确定输出的类型..
+
+后面的那个参数 就是要输出的格式化字符串... 
+
+② `DebugExtensionInitialize` 这个函数必须要有的.并且一定要导出的,.它的两个参数都是输出参数..我们必须在函数体内给其赋值.第一个参数是版本号..第二个参数微软保留.现在不用..版本号我们可以用 `DEBUG_EXTENSION_VERSION` 宏..设置高版本号和低版本号.
+
+⑤.这个函数就是我们的扩展命令..很简单调用 `Output` 输出 `Hello!扩展 DLL 成功!` `Client` 是调试器传给我们的.`IDebugClient` 负责启动和结束调试会话.管理各种回调对象.处理转转储文件等.我们用 `QueryInterface` 查询 `PDEBUG_CONTROL4` 接口..保存在全局变量 `gExtControl` 中,如果成功.我们就可以调用 `PDEBUG_CONTROL4` 中的各种函数了..
+
+⑧ `gExtControl != NULL ? (gExtControl->Release(), gExtControl) = NULL :NULL;`这里只是判断 `gExtControl` 是不是空.如果还是就释放该接口..并设置为 `NULL`..如果已经为空.就什么也不做了..
+
+COM 中是靠引用计数来管理生命周期的..`Release` 计数就减 1..`QueryInterface` 计数就加 1..当为 0 的时候..COM 就可以释放该接口了.因为释放动作不能用客户来实现..多个客户可能同时引用该接口的..这时候,就不能一个客户去释放该接口,别的客户还正在使用呢...不过软件调试上说..这些东西不是纯粹的 COM,,也不是用 COM 技术来实现的..因为使用这些接口不需要调用 `CoInitialize` 来初始化 COM.另外创建这些接口也不是用 `CoCreateInstance` 来实现的.. 
+
+## 导出函数
+
+最后,建一个 `.def` 文件就 OK 了.把这两个文件导出:
+
+```ini
+LIBRARY "05" 
+
+EXPORTS 
+
+;core exports function 
+
+DebugExtensionInitialize 
+
+;our exports function 
+
+MeHello
+```
+
+这样就 OK 了..把项目文件目录抓上来吧..
+
+`05.cpp` 就是那两个函数的位置 
+
+```cpp
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+```
+
+编译上面的工程.就会得到 `05.DLL` 文件.
+
+## 使用扩展命令
+
+下面说说怎么在 WinDBG 中使用..打开 `WINDBG`,随便加载一个 `.exe` 文件...然后在命令窗口下面输入
+
+① `.load D:\C++\test\04\Debug\05.dll //路径换成你自己 的..` 
+
+② `!MeHello` 回车就 OK 了.
+
+这里要注意大小写..看到结果了吧..就这么简单...
+
+这个 DLL,没有什么功能..不过这种方法是最强的方法...一定得会..好了..大家有什么好的见解..欢迎同我交流..
+
+最后,,如果大家编译不通过.可能没有头文件,和对应的 `lib` 文件...这些文件在你的 windbg 安装目录下的
+
+`lib` 就是库文件,`inc` 就是头文件..添加到 `vs` 调试器当中就 OK 了..添加方法.`vs-tools(工具)-options(选项)` 如图:
+
+这样就 OK 了..前提是你必须全整的安装 windbg.
+
 带图片的请查看我的博客:[`blog.csdn.net/memese/archive/...3/4145867.aspx`](http://blog.csdn.net/memese/archive/2009/05/03/4145867.aspx)

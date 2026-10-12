@@ -1,97 +1,134 @@
 
-
 # EncryptPE V2.2004.7.27 脱壳
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-558.htm`](https://www.pediy.com/kssd/pediy07/pediy7-558.htm)
 
-一、破解目标：EncryptPE V2.2004.7.27 加壳的 XX 软件  
-二、破解工具：OllyDbg v1.10，ImportREC 1.6 Final  
-三、破解作者：DarkBull@email.com.cn  
-四、破解过程：  
-1.用 OllyDbg 载入，提示该程序为坏的或未知格式的 32 位执行文件，不必理会。该壳程序运行流程大致为：第一次运行时，先在系统目录内创建 V22004727.EPE，然后加载该模块，初始化时通过 SetWindowsHookEx 设置远程系统钩子，再给 Explorer.exe 的 Progman 发送消息，将该钩子插入 Explorer.exe 中，如果用 OD 调试，该钩子会调用 TerminateProcess 结束 OD 进程，最后通过调用 V22004727.EPE 模块的 EncryptPE\_Init 函数给 Explorer.exe 的 Progman 发送特定的消息，该消息被钩子函数捕获后，V22004727.EPE 就创建一个新的进程，通过调用一系列调试函数来完成解压缩工作；第二次运行时，由于该钩子已被插入 Explorer.exe 中，所以程序自己跳过 SetWindowsHookEx 过程，我们就可以用 OD 调试了。  
-2.OK！第二次加载，程序停在如下处：  
-GraspNet.>  60         PUSHAD  
-009C0001    9C         PUSHFD  
-009C0002    64:FF35 00>PUSH DWORD PTR FS:\[0\]  
-009C0009    E8 7A01000>CALL GraspNet.009C0188  
-下断点 BP EncryptPE\_Init，拦截后代码如下：  
-V2200472.>  55         PUSH EBP            
-711E39F9    8BEC       MOV EBP,ESP  
-711E39FB    51         PUSH ECX  
-711E39FC    E8 0100000>CALL V2200472.711E3A02      ；有花指令，F7 步入  
-711E3A01    EB 58      JMP SHORT V2200472.711E3A5B          
-711E3A03    8B4424 40  MOV EAX,DWORD PTR SS:\[ESP+40\]  
-711E3A07    8945 FC    MOV DWORD PTR SS:\[EBP-4\],EAX  
-直到如下代码处：  
-711E3C2E    6A 01      PUSH 1          ；lParam=1  
-711E3C30    68 C81B000>PUSH 1BC8        ；wParam=1BC8  
-711E3C35    A1 0CDC1F7>MOV EAX,DWORD PTR DS:\[711FDC0C\]  
-711E3C3A    8B00       MOV EAX,DWORD PTR DS:\[EAX\]  
-711E3C3C    50         PUSH EAX          ；MSG=IsDebuggerPresentExEdLl(=wfs=)32EXPLORER.EXE  
-711E3C3D    A1 20DE1F7>MOV EAX,DWORD PTR DS:\[711FDE20\]  
-711E3C42    8B00       MOV EAX,DWORD PTR DS:\[EAX\]  
-711E3C44    50         PUSH EAX  
-711E3C45    E8 063DF4F>CALL V2200472.71127950                  ；JMP to USER32.SendMessageA  
-711E3C4A    EB 0A      JMP SHORT V2200472.711E3C56  
-711E3C4C    E8 FB7FFCF>CALL V2200472.711ABC4C  
-711E3C51    E8 3E81FCF>CALL V2200472.711ABD94  
-711E3C56    E8 E188FCF>CALL V2200472.711AC53C      ；ExitProcess  
-该进程已完成任务，新的进程已被创建。  
-3.在出现 EncryptPE 注册窗口时，用 OD 附加于 explorer.exe，下断 HE WaitForDebugEvent，拦截后堆栈为：  
-0166FD28   711B081C  /CALL to WaitForDebugEvent from V2200472.711B0817  
-0166FD2C   0166FE8C  |pDebugEvent = 0166FE8C  
-0166FD30   FFFFFFFF  \\Timeout = INFINITE  
-注意 0166FE8C 处为：  
-0166FE8C  01 00 00 00 74 01 00 00 3C 07 00 00 03 00 00 80  ...t..<....€  
-0166FE9C  00 00 00 00 00 00 00 00 B7 F1 1A 71 03 00 00 00  ........否 q...  
-按 F9 运行，直到 0166FEA4 处为 711AC53A 时，向上观察发现：  
-0166FE4C  00 00 00 00 3B 00 00 00 23 00 00 00 23 00 00 00  ....;...#...#...  
-0166FE5C  00 00 00 00 00 00 00 00 00 F0 FD 7F 04 03 FE 7F  .........瘕?  
-0166FE6C  B0 FF 12 00 38 2C 72 00 F0 FF 12 00 38 2C 72 00  ?.8,r.?.8,r.  
-0166FE7C  1B 00 00 00 86 02 00 00 C4 FF 12 00 23 00 00 00  ...?..?.#...  
-OK，此时 OEP 为 00722C38。  
-4.DUMP 下整个进程，用 ImportREC 结合 OD 修复 IAT，以下为加密 IAT 的关键部分（以 CloseHandle 为例）：  
-711AC910   /74 04      JE SHORT V2200472.711AC916  
-711AC912   |75 02      JNZ SHORT V2200472.711AC916  
-711AC914   |FF25 9C505>JMP NEAR DWORD PTR DS:\[7453509C\]  
-711AC91A    0375 01    ADD ESI,DWORD PTR SS:\[EBP+1\]  
-711AC91D    E8 E845A7F>CALL 68C20F0A  
-711AC922    FF9C58 A35>CALL FAR FWORD PTR DS:\[EAX+EBX\*2+2006>  
-711AC929    71 74      JNO SHORT V2200472.711AC99F  
-711AC92B    04 75      ADD AL,75  
-711AC92D    02FF       ADD BH,BH  
-711AC92F    15 E8BF000>ADC EAX,0BFE8  
-711AC934    0031       ADD BYTE PTR DS:\[ECX\],DH  
-711AC936    C0A0 85062>SHL BYTE PTR DS:\[EAX+71200685\],83  
-711AC93D    F8         CLC  
-711AC93E    0075 36    ADD BYTE PTR SS:\[EBP+36\],DH  
-711AC941    8B4424 0C  MOV EAX,DWORD PTR SS:\[ESP+C\]  
-711AC945    89C3       MOV EBX,EAX  
-711AC947    83C0 02    ADD EAX,2  
-711AC94A    8B00       MOV EAX,DWORD PTR DS:\[EAX\]  
-711AC94C    8B00       MOV EAX,DWORD PTR DS:\[EAX\]  
-711AC94E    31D8       XOR EAX,EBX  
-711AC950    89C3       MOV EBX,EAX        ；kernel32.CloseHandle  
-711AC952    894424 0C  MOV DWORD PTR SS:\[ESP+C\],EAX  
-711AC956    8B03       MOV EAX,DWORD PTR DS:\[EBX\]  
-711AC958    3C CC      CMP AL,0CC        ；断点检查  
-711AC95A    74 14      JE SHORT V2200472.711AC970  
-711AC95C    80FC CC    CMP AH,0CC          
-711AC95F    74 0F      JE SHORT V2200472.711AC970  
-711AC961    C1E8 10    SHR EAX,10  
-711AC964    3C CC      CMP AL,0CC  
-711AC966    74 08      JE SHORT V2200472.711AC970  
-711AC968    80FC CC    CMP AH,0CC  
-711AC96B    74 03      JE SHORT V2200472.711AC970  
-711AC96D    EB 08      JMP SHORT V2200472.711AC977  
-711AC96F  - E9 C605850>JMP SHELL32.779FCF3A  
-711AC974    2071 01    AND BYTE PTR DS:\[ECX+1\],DH  
-711AC977    5B         POP EBX  
-711AC978    58         POP EAX  
-711AC979    9D         POPFD  
-711AC97A    C3         RETN          ；返回到函数入口  
-5.后记：老王老师的 EPEv2 真的很厉害啊，偶等菜鸟苦心钻研多日，也才略知皮毛。  
-  
-![](img/a7e67d4f8f4afe4c3cd0617906cb3d9d.jpg) ![](img/a7e67d4f8f4afe4c3cd0617906cb3d9d.jpg) ![](img/a7e67d4f8f4afe4c3cd0617906cb3d9d.jpg)
+## 一、破解目标
+`EncryptPE` V2.2004.7.27 加壳的 XX 软件
 
- 4dd466d0e1e0cc123afbe504da2462ca
+## 二、破解工具
+`OllyDbg` v1.10，`ImportREC` 1.6 Final
+
+## 三、破解作者
+DarkBull@email.com.cn
+
+## 四、破解过程
+
+1. 用 `OllyDbg` 载入，提示该程序为坏的或未知格式的 32 位执行文件，不必理会。该壳程序运行流程大致为：第一次运行时，先在系统目录内创建 `V22004727.EPE`，然后加载该模块，初始化时通过 `SetWindowsHookEx` 设置远程系统钩子，再给 `Explorer.exe` 的 `Progman` 发送消息，将该钩子插入 `Explorer.exe` 中，如果用 OD 调试，该钩子会调用 `TerminateProcess` 结束 OD 进程，最后通过调用 `V22004727.EPE` 模块的 `EncryptPE_Init` 函数给 `Explorer.exe` 的 `Progman` 发送特定的消息，该消息被钩子函数捕获后，`V22004727.EPE` 就创建一个新的进程，通过调用一系列调试函数来完成解压缩工作；第二次运行时，由于该钩子已被插入 `Explorer.exe` 中，所以程序自己跳过 `SetWindowsHookEx` 过程，我们就可以用 OD 调试了。
+
+2. OK！第二次加载，程序停在如下处：
+
+```
+GraspNet.>  60         PUSHAD
+009C0001    9C         PUSHFD
+009C0002    64:FF35 00>PUSH DWORD PTR FS:[0]
+009C0009    E8 7A01000>CALL GraspNet.009C0188
+```
+
+下断点 `BP EncryptPE_Init`，拦截后代码如下：
+
+```
+V2200472.>  55         PUSH EBP
+711E39F9    8BEC       MOV EBP,ESP
+711E39FB    51         PUSH ECX
+711E39FC    E8 0100000>CALL V2200472.711E3A02     ；有花指令，F7 步入
+711E3A01    EB 58      JMP SHORT V2200472.711E3A5B
+711E3A03    8B4424 40  MOV EAX,DWORD PTR SS:[ESP+40]
+711E3A07    8945 FC    MOV DWORD PTR SS:[EBP-4],EAX
+```
+
+直到如下代码处：
+
+```
+711E3C2E    6A 01      PUSH 1          ；lParam=1
+711E3C30    68 C81B000>PUSH 1BC8       ；wParam=1BC8
+711E3C35    A1 0CDC1F7>MOV EAX,DWORD PTR DS:[711FDC0C]
+711E3C3A    8B00       MOV EAX,DWORD PTR DS:[EAX]
+711E3C3C    50         PUSH EAX        ；MSG=IsDebuggerPresentExEdLl(=wfs=)32EXPLORER.EXE
+711E3C3D    A1 20DE1F7>MOV EAX,DWORD PTR DS:[711FDE20]
+711E3C42    8B00       MOV EAX,DWORD PTR DS:[EAX]
+711E3C44    50         PUSH EAX
+711E3C45    E8 063DF4F>CALL V2200472.71127950          ；JMP to USER32.SendMessageA
+711E3C4A    EB 0A      JMP SHORT V2200472.711E3C56
+711E3C4C    E8 FB7FFCF>CALL V2200472.711ABC4C
+711E3C51    E8 3E81FCF>CALL V2200472.711ABD94
+711E3C56    E8 E188FCF>CALL V2200472.711AC53C      ；ExitProcess
+```
+
+该进程已完成任务，新的进程已被创建。
+
+3. 在出现 `EncryptPE` 注册窗口时，用 OD 附加于 `explorer.exe`，下断 `HE WaitForDebugEvent`，拦截后堆栈为：
+
+```
+0166FD28   711B081C  /CALL to WaitForDebugEvent from V2200472.711B0817
+0166FD2C   0166FE8C  |pDebugEvent = 0166FE8C
+0166FD30   FFFFFFFF  \Timeout = INFINITE
+```
+
+注意 `0166FE8C` 处为：
+
+```
+0166FE8C  01 00 00 00 74 01 00 00 3C 07 00 00 03 00 00 80  ...t..<....€
+0166FE9C  00 00 00 00 00 00 00 00 B7 F1 1A 71 03 00 00 00  ........否 q...
+```
+
+按 `F9` 运行，直到 `0166FEA4` 处为 `711AC53A` 时，向上观察发现：
+
+```
+0166FE4C  00 00 00 00 3B 00 00 00 23 00 00 00 23 00 00 00  ....;...#...#...
+0166FE5C  00 00 00 00 00 00 00 00 00 F0 FD 7F 04 03 FE 7F  ........瘕?
+0166FE6C  B0 FF 12 00 38 2C 72 00 F0 FF 12 00 38 2C 72 00  ?.8,r.?.8,r.
+0166FE7C  1B 00 00 00 86 02 00 00 C4 FF 12 00 23 00 00 00  ...?..?.#...
+```
+
+OK，此时 `OEP` 为 `00722C38`。
+
+4. `DUMP` 下整个进程，用 `ImportREC` 结合 OD 修复 `IAT`，以下为加密 `IAT` 的关键部分（以 `CloseHandle` 为例）：
+
+```
+711AC910   /74 04      JE SHORT V2200472.711AC916
+711AC912   |75 02      JNZ SHORT V2200472.711AC916
+711AC914   |FF25 9C505>JMP NEAR DWORD PTR DS:[7453509C]
+711AC91A    0375 01    ADD ESI,DWORD PTR SS:[EBP+1]
+711AC91D    E8 E845A7F>CALL 68C20F0A
+711AC922    FF9C58 A35>CALL FAR FWORD PTR DS:[EAX+EBX*2+2006>
+711AC929    71 74      JNO SHORT V2200472.711AC99F
+711AC92B    04 75      ADD AL,75
+711AC92D    02FF       ADD BH,BH
+711AC92F    15 E8BF000>ADC EAX,0BFE8
+711AC934    0031       ADD BYTE PTR DS:[ECX],DH
+711AC936    C0A0 85062>SHL BYTE PTR DS:[EAX+71200685],83
+711AC93D    F8         CLC
+711AC93E    0075 36    ADD BYTE PTR SS:[EBP+36],DH
+711AC941    8B4424 0C  MOV EAX,DWORD PTR SS:[ESP+C]
+711AC945    89C3       MOV EBX,EAX
+711AC947    83C0 02    ADD EAX,2
+711AC94A    8B00       MOV EAX,DWORD PTR DS:[EAX]
+711AC94C    8B00       MOV EAX,DWORD PTR DS:[EAX]
+711AC94E    31D8       XOR EAX,EBX
+711AC950    89C3       MOV EBX,EAX       ；kernel32.CloseHandle
+711AC952    894424 0C  MOV DWORD PTR SS:[ESP+C],EAX
+711AC956    8B03       MOV EAX,DWORD PTR DS:[EBX]
+711AC958    3C CC      CMP AL,0CC        ；断点检查
+711AC95A    74 14      JE SHORT V2200472.711AC970
+711AC95C    80FC CC    CMP AH,0CC
+711AC95F    74 0F      JE SHORT V2200472.711AC970
+711AC961    C1E8 10    SHR EAX,10
+711AC964    3C CC      CMP AL,0CC
+711AC966    74 08      JE SHORT V2200472.711AC970
+711AC968    80FC CC    CMP AH,0CC
+711AC96B    74 03      JE SHORT V2200472.711AC970
+711AC96D    EB 08      JMP SHORT V2200472.711AC977
+711AC96F   - E9 C605850>JMP SHELL32.779FCF3A
+711AC974    2071 01    AND BYTE PTR DS:[ECX+1],DH
+711AC977    5B         POP EBX
+711AC978    58         POP EAX
+711AC979    9D         POPFD
+711AC97A    C3         RETN          ；返回到函数入口
+```
+
+5. 后记：老王老师的 `EPEv2` 真的很厉害啊，偶等菜鸟苦心钻研多日，也才略知皮毛。
+
+![](img/a7e67d4f8f4afe4c3cd0617906cb3d9d.jpg) ![](img/a7e67d4f8f4afe4c3cd0617906cb3d9d.jpg) ![](img/a7e67d4f8f4afe4c3cd0617906cb3d9d.jpg)
+
+`4dd466d0e1e0cc123afbe504da2462ca`

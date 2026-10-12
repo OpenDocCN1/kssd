@@ -1,337 +1,354 @@
 
-
-# PE 文件添加区段\[逆向分析+asm 代码实现\]
+# PE 文件添加区段 [逆向分析 + asm 代码实现]
 
 > 原文：[`www.pediy.com/kssd/pediy10/77279.html`](https://www.pediy.com/kssd/pediy10/77279.html)
 
-【文章标题】: PE 文件添加区段\[逆向分析+asm 代码实现\]  
-【文章作者】: eASYSCt  
-【作者主页】: http://blog.sina.com.cn/77muyulong  
-【软件名称】: zeroadd  
-【下载地址】: 自己搜索下载  
-【加壳方式】: 无壳  
-【保护方式】: 无  
-【编写语言】: 汇编  
-【使用工具】: ODB  
-【软件介绍】: 一款为 PE 文件添加区段的小工具  
-【作者声明】: 只是为学习原理 并无其他目的 大侠指教~  
-   
-   
-   
-【详细过程】  
-   
-   
-闲来无事 逛至编程区 发现了好多教程 其中专题系列更是十分值得学习 看了玩命大侠的 第一篇文章  
-【成果 6.1】软件保护壳技术专题 - 添加新节  
-http://bbs.pediy.com/showthread.php?p=467116  
-之后才明白自己为何平时用 LDPE 给文件加区段总是失败 呵呵 自以为收益颇丰  
-   
-转念一想平时常用一工具 名曰 zeroadd 跟文中提到之方甚为相似 遂肢解其文件 以求知  
-   
-撰写此文 仅为笔记 高手嘲笑之余 望指点一二 愚弟拜谢……  
-   
-此工具可谓清晰之至 win32ASM 写的 反汇编出来基本根源码一样 奈何自己只是一只小菜虫 研究了整整一个晚上~  
-   
-首先是看下流程   
-   
-摘自 玩命 大侠 壳 专题 文章   
-   
+【文章标题】: `PE 文件添加区段[逆向分析+asm 代码实现]`
+【文章作者】: `eASYSCt`
+【作者主页】: `http://blog.sina.com.cn/77muyulong`
+【软件名称】: `zeroadd`
+【下载地址】: 自己搜索下载
+【加壳方式】: 无壳
+【保护方式】: 无
+【编写语言】: 汇编
+【使用工具】: `ODB`
+【软件介绍】: 一款为 PE 文件添加区段的小工具
+【作者声明】: 只是为学习原理 并无其他目的 大侠指教~
 
-引用:    
-添加新节相关的 PE 头属性:  
-位于 IMAGE\_NT\_HEADERS 结构中的属性:  
-ImageBase(4 字节)  
-SizeOfImage(4 字节)  
-NumberOfSections(2 字节)  
-AddressOfEntryPoint(4 字节)  
-SectionAlignment(4 字节)  
-FileAlignment(4 字节)  
-   
-位于 IMAGE\_SECTION\_HEADER 结构的属性:  
-最后节表 VirtualSize(4 字节)  
-最后节表的 VirtualAddress(4 字节)  
-最后节表的 SizeOfRawData(4 字节)  
-最后节表的 PointerToRawData(4 字节)  
-最后节表的 Characteristics(4 字节)  
-   
-添加新节算法描述:  
-1.建立文件映射  
-2.判断是否是 PE 文件  
-3.移动到最后一个节表  
-4.添加新节节表  
-5.设置新节的 VirtualAddress,VirtualSize,SizeOfRawData,PointerToRawData,Characteristics 等属性  
-※6.将新节的内容写入文件  
-7.增加 NumberOfSections 属性  
-8.设置 SizeOfImage,AddressOfEntryPoint 属性  
-9.将内存映射回文件 
+### 详细过程
 
-  
-其中 第 6 条 略过 因为在本文这不是重点。。  
-  
-了解了大概思路就要开始动手了  
-  
-OD 加载 zercadd.exe  
-  
-先看主体函数  
-  
+闲来无事 逛至编程区 发现了好多教程 其中专题系列更是十分值得学习 看了玩命大侠的 第一篇文章
+
+【成果 6.1】软件保护壳技术专题 - 添加新节
+
+`http://bbs.pediy.com/showthread.php?p=467116`
+
+之后才明白自己为何平时用 `LDPE` 给文件加区段总是失败 呵呵 自以为收益颇丰
+
+转念一想平时常用一工具 名曰 `zeroadd` 跟文中提到之方甚为相似 遂肢解其文件 以求知
+
+撰写此文 仅为笔记 高手嘲笑之余 望指点一二 愚弟拜谢……
+
+此工具可谓清晰之至 `win32ASM` 写的 反汇编出来基本根源码一样 奈何自己只是一只小菜虫 研究了整整一个晚上~
+
+首先是看下流程
+
+摘自 玩命 大侠 壳 专题 文章
+
+引用:
+
+**添加新节相关的 PE 头属性:**
+
+位于 `IMAGE_NT_HEADERS` 结构中的属性:
+
+*   `ImageBase`(4 字节)
+*   `SizeOfImage`(4 字节)
+*   `NumberOfSections`(2 字节)
+*   `AddressOfEntryPoint`(4 字节)
+*   `SectionAlignment`(4 字节)
+*   `FileAlignment`(4 字节)
+
+位于 `IMAGE_SECTION_HEADER` 结构的属性:
+
+*   最后节表 `VirtualSize`(4 字节)
+*   最后节表的 `VirtualAddress`(4 字节)
+*   最后节表的 `SizeOfRawData`(4 字节)
+*   最后节表的 `PointerToRawData`(4 字节)
+*   最后节表的 `Characteristics`(4 字节)
+
+**添加新节算法描述:**
+
+1.  建立文件映射
+2.  判断是否是 PE 文件
+3.  移动到最后一个节表
+4.  添加新节节表
+5.  设置新节的 `VirtualAddress`,`VirtualSize`,`SizeOfRawData`,`PointerToRawData`,`Characteristics` 等属性
+6.  将新节的内容写入文件
+7.  增加 `NumberOfSections` 属性
+8.  设置 `SizeOfImage`,`AddressOfEntryPoint` 属性
+9.  将内存映射回文件
+
+其中 第 6 条 略过 因为在本文这不是重点。。
+
+了解了大概思路就要开始动手了
+
+`OD` 加载 `zercadd.exe`
+
+**先看主体函数**
+
 代码:
 
 ```
-00401000 z>/$  6A 00              push    0                                 ; /pModule = NULL
-00401002   |.  E8 7F050000        call      ; \\GetModuleHandleA
-00401007   |.  6A 00              push    0                                 ; /lParam = NULL
-00401009   |.  68 1F104000        push    0040101F                          ; |DlgProc = zeroadd.0040101F
-0040100E   |.  6A 00              push    0                                 ; |hOwner = NULL
-00401010   |.  6A 01              push    1                                 ; |pTemplate = 1
-00401012   |.  50                 push    eax                               ; |hInst
-00401013   |.  E8 20050000        call         ; \\DialogBoxParamA
-00401018   |.  6A 00              push    0                                 ; /ExitCode = 0
-0040101A   \\.  E8 5B050000        call           ; \\ExitProcess
- 
-
+00401000  z>/$  6A 00               push    0                               ; /pModule = NULL
+00401002   |.   E8 7F050000        call    \GetModuleHandleA
+00401007   |.   6A 00               push    0                               ; /lParam = NULL
+00401009   |.   68 1F104000        push    0040101F                        ; |DlgProc = zeroadd.0040101F
+0040100E   |.   6A 00               push    0                               ; |hOwner = NULL
+00401010   |.   6A 01               push    1                               ; |pTemplate = 1
+00401012   |.   50                  push    eax                             ; |hInst
+00401013   |.   E8 20050000        call    \DialogBoxParamA
+00401018   |.   6A 00               push    0                               ; /ExitCode = 0
+0040101A   \.   E8 5B050000        call    \ExitProcess
 ```
 
-哈哈 会编写的果然好 看上去一目了然  
-  
-DialogBoxParamA 的参数 hInst 为上面 GetModuleHandleA 得到的返回值 pTemplate 为对话框资源 ID DlgProc 为对话框主函数体  
-  
-我们跟随到主函数看看  
-  
-又是很清晰的代码  
-  
-主函数体很长 只做有用的摘录  
-  
+哈哈 会编写的果然好 看上去一目了然
+
+`DialogBoxParamA` 的参数 `hInst` 为上面 `GetModuleHandleA` 得到的返回值 `pTemplate` 为对话框资源 ID `DlgProc` 为对话框主函数体
+
+我们跟随到主函数看看
+
+又是很清晰的代码
+
+主函数体很长 只做有用的摘录
+
 代码:
 
 ```
-00401030   |> \\837D 0C 10         cmp     dword ptr \[ebp+C\], 10
-00401034   |.  75 0F              jnz     short 00401045
-00401036   |.  6A 00              push    0                                 ; /Result = 0
-00401038   |.  FF75 08            push    dword ptr \[ebp+8\]                 ; |hWnd
-0040103B   |.  E8 FE040000        call               ; \\EndDialog
-
+00401030   |> \837D 0C 10           cmp     dword ptr [ebp+C], 10
+00401034   |.   75 0F               jnz     short 00401045
+00401036   |.   6A 00               push    0                               ; /Result = 0
+00401038   |.   FF75 08             push    dword ptr [ebp+8]             ; |hWnd
+0040103B   |.   E8 FE040000        call    \EndDialog
 ```
 
-  
-判断消息是否为 WM\_CLOSE 是的话不跳 call EndDialog 结束对话框  
-  
-  
+判断消息是否为 `WM_CLOSE` 是的话不跳 `call EndDialog` 结束对话框
+
 代码:
 
 ```
-00401045   |> \\817D 0C 11010000   cmp     dword ptr \[ebp+C\], 111
-0040104C   |.  0F85 31040000      jnz     00401483
-00401052   |.  8B45 10            mov     eax, dword ptr \[ebp+10\]
-00401055   |.  66:83F8 02         cmp     ax, 2
-00401059   |.  75 58              jnz     short 004010B3
-0040105B   |.  C1E8 10            shr     eax, 10
-0040105E   |.  66:0BC0            or      ax, ax
-00401061   |.  75 50              jnz     short 004010B3
-00401063   |.  C705 F3324000 4C00>mov     dword ptr \[4032F3\], 4C
-0040106D   |.  C705 FF324000 3F33>mov     dword ptr \[4032FF\], 0040333F      ;  ASCII "Executable Files (\*.exe, \*.dll)"
-00401077   |.  C705 0F334000 7C33>mov     dword ptr \[40330F\], 0040337C
-00401081   |.  C705 13334000 0002>mov     dword ptr \[403313\], 200
-0040108B   |.  C705 27334000 0418>mov     dword ptr \[403327\], 281804
-00401095   |.  68 F3324000        push    004032F3                          ; /pOpenFileName = zeroadd.004032F3
-0040109A   |.  E8 11050000        call      ; \\GetOpenFileNameA
-
+00401045   |> \817D 0C 11010000    cmp     dword ptr [ebp+C], 111
+0040104C   |.   0F85 31040000      jnz     00401483
+00401052   |.   8B45 10             mov     eax, dword ptr [ebp+10]
+00401055   |.   66:83F8 02          cmp     ax, 2
+00401059   |.   75 58               jnz     short 004010B3
+0040105B   |.   C1E8 10             shr     eax, 10
+0040105E   |.   66:0BC0             or      ax, ax
+00401061   |.   75 50               jnz     short 004010B3
+00401063   |.   C705 F3324000 4C00>mov     dword ptr [4032F3], 4C
+0040106D   |.   C705 FF324000 3F33>mov     dword ptr [4032FF], 0040333F    ;  ASCII "Executable Files (*.exe, *.dll)"
+00401077   |.   C705 0F334000 7C33>mov     dword ptr [40330F], 0040337C
+00401081   |.   C705 13334000 0002>mov     dword ptr [403313], 200
+0040108B   |.   C705 27334000 0418>mov     dword ptr [403327], 281804
+00401095   |.   68 F3324000        push    004032F3                        ; /pOpenFileName = zeroadd.004032F3
+0040109A   |.   E8 11050000        call    \GetOpenFileNameA
 ```
 
-  
-判断消息是否为 WM\_COMMAND 是则不跳 判断是否 ID=2 按下 之后初始化 ofn 结构 调用 GetOpenFileNameA 函数用系统对话框获得文件名  
-  
-onf 结构  
-  
-typedef struct tagOFN {   
-DWORD lStructSize;   
-HWND hwndOwner;   
-HINSTANCE hInstance;   
-LPCTSTR lpstrFilter;   
-LPTSTR lpstrCustomFilter;   
-DWORD nMaxCustFilter;   
-DWORD nFilterIndex;   
-LPTSTR lpstrFile;   
-DWORD nMaxFile;   
-LPTSTR lpstrFileTitle;   
-DWORD nMaxFileTitle;   
-LPCTSTR lpstrInitialDir;   
-LPCTSTR lpstrTitle;   
-DWORD Flags;   
-WORD nFileOffset;   
-WORD nFileExtension;   
-LPCTSTR lpstrDefExt;   
-LPARAM lCustData;   
-LPOFNHOOKPROC lpfnHook;   
-LPCTSTR lpTemplateName;   
-#if (\_WIN32\_WINNT >= 0x0500)  
-void \* pvReserved;  
-DWORD dwReserved;  
-DWORD FlagsEx;  
-#endif // (\_WIN32\_WINNT >= 0x0500)  
-} OPENFILENAME, \*LPOPENFILENAME;   
-  
-VC++的介绍 详见 http://dev.csdn.net/article/13/13461.shtm   
-  
+判断消息是否为 `WM_COMMAND` 是则不跳 判断是否 `ID=2` 按下 之后初始化 `ofn` 结构 调用 `GetOpenFileNameA` 函数用系统对话框获得文件名
+
+`onf` 结构
+
+```
+typedef struct tagOFN {
+
+DWORD lStructSize;
+
+HWND hwndOwner;
+
+HINSTANCE hInstance;
+
+LPCTSTR lpstrFilter;
+
+LPTSTR lpstrCustomFilter;
+
+DWORD nMaxCustFilter;
+
+DWORD nFilterIndex;
+
+LPTSTR lpstrFile;
+
+DWORD nMaxFile;
+
+LPTSTR lpstrFileTitle;
+
+DWORD nMaxFileTitle;
+
+LPCTSTR lpstrInitialDir;
+
+LPCTSTR lpstrTitle;
+
+DWORD Flags;
+
+WORD nFileOffset;
+
+WORD nFileExtension;
+
+LPCTSTR lpstrDefExt;
+
+LPARAM lCustData;
+
+LPOFNHOOKPROC lpfnHook;
+
+LPCTSTR lpTemplateName;
+
+#if (_WIN32_WINNT >= 0x0500)
+
+void * pvReserved;
+
+DWORD dwReserved;
+
+DWORD FlagsEx;
+
+#endif // (_WIN32_WINNT >= 0x0500)
+
+} OPENFILENAME, *LPOPENFILENAME;
+```
+
+`VC++` 的介绍 详见 `http://dev.csdn.net/article/13/13461.shtm`
+
 代码:
 
 ```
-004010A4   |.  68 7C334000        push    0040337C                          ; /Text = ""
-004010A9   |.  6A 03              push    3                                 ; |ControlID = 3
-004010AB   |.  FF75 08            push    dword ptr \[ebp+8\]                 ; |hWnd
-004010AE   |.  E8 A3040000        call         ; \\SetDlgItemTextA
-
+004010A4   |.   68 7C334000        push    0040337C                        ; /Text = ""
+004010A9   |.   6A 03               push    3                               ; |ControlID = 3
+004010AB   |.   FF75 08             push    dword ptr [ebp+8]             ; |hWnd
+004010AE   |.   E8 A3040000        call    \SetDlgItemTextA
 ```
 
-  
-得到文件名后将其显示到 ID=3 的 EDIT 控件里  
-  
+得到文件名后将其显示到 `ID=3` 的 `EDIT` 控件里
+
 代码:
 
 ```
-004010B3   |> \\66:83F8 06         cmp     ax, 6
-004010B7   |.  0F85 7A030000      jnz     00401437
-004010BD   |.  C1E8 10            shr     eax, 10
-004010C0   |.  66:0BC0            or      ax, ax
-004010C3   |.  0F85 6E030000      jnz     00401437
-004010C9   |.  68 00020000        push    200                               ; /Count = 200 (512.)
-004010CE   |.  68 20304000        push    00403020                          ; |Buffer = zeroadd.00403020
-004010D3   |.  6A 03              push    3                                 ; |ControlID = 3
-004010D5   |.  FF75 08            push    dword ptr \[ebp+8\]                 ; |hWnd
-004010D8   |.  E8 67040000        call         ; \\GetDlgItemTextA
-004010DD   |.  68 00020000        push    200                               ; /Count = 200 (512.)
-004010E2   |.  68 00304000        push    00403000                          ; |Buffer = zeroadd.00403000
-004010E7   |.  6A 04              push    4                                 ; |ControlID = 4
-004010E9   |.  FF75 08            push    dword ptr \[ebp+8\]                 ; |hWnd
-004010EC   |.  E8 53040000        call         ; \\GetDlgItemTextA
-004010F1   |.  68 00020000        push    200                               ; /Count = 200 (512.)
-004010F6   |.  68 08304000        push    00403008                          ; |Buffer = zeroadd.00403008
-004010FB   |.  6A 05              push    5                                 ; |ControlID = 5
-004010FD   |.  FF75 08            push    dword ptr \[ebp+8\]                 ; |hWnd
-00401100   |.  E8 3F040000        call         ; \\GetDlgItemTextA
-00401105   |.  6A 0F              push    0F                                ; /ButtonID = F (15.)
-00401107   |.  FF75 08            push    dword ptr \[ebp+8\]                 ; |hWnd
-0040110A   |.  E8 3B040000        call      ; \\IsDlgButtonChecked
+004010B3   |> \66:83F8 06          cmp     ax, 6
+004010B7   |.   0F85 7A030000      jnz     00401437
+004010BD   |.   C1E8 10             shr     eax, 10
+004010C0   |.   66:0BC0             or      ax, ax
+004010C3   |.   0F85 6E030000      jnz     00401437
+004010C9   |.   68 00020000        push    200                             ; /Count = 200 (512.)
+004010CE   |.   68 20304000        push    00403020                        ; |Buffer = zeroadd.00403020
+004010D3   |.   6A 03               push    3                               ; |ControlID = 3
+004010D5   |.   FF75 08             push    dword ptr [ebp+8]             ; |hWnd
+004010D8   |.   E8 67040000        call    \GetDlgItemTextA
+004010DD   |.   68 00020000        push    200                             ; /Count = 200 (512.)
+004010E2   |.   68 00304000        push    00403000                        ; |Buffer = zeroadd.00403000
+004010E7   |.   6A 04               push    4                               ; |ControlID = 4
+004010E9   |.   FF75 08             push    dword ptr [ebp+8]             ; |hWnd
+004010EC   |.   E8 53040000        call    \GetDlgItemTextA
+004010F1   |.   68 00020000        push    200                             ; /Count = 200 (512.)
+004010F6   |.   68 08304000        push    00403008                        ; |Buffer = zeroadd.00403008
+004010FB   |.   6A 05               push    5                               ; |ControlID = 5
+004010FD   |.   FF75 08             push    dword ptr [ebp+8]             ; |hWnd
+00401100   |.   E8 3F040000        call    \GetDlgItemTextA
+00401105   |.   6A 0F               push    0F                              ; /ButtonID = F (15.)
+00401107   |.   FF75 08             push    dword ptr [ebp+8]             ; |hWnd
+0040110A   |.   E8 3B040000        call    \IsDlgButtonChecked
+```
+
+如果按下的是 `ID=6` 的 `BUTTON` 则读取三个 `EDIT` 控件的文字和一个 `CheckBox` 的状态
+
+它们分别是 完整文件名 补区段的段名 段的大小 和是否备份源文件
+
+
+
+```
+0040110F   |.  83F8 01                cmp     eax, 1
+00401112   |.  75 38                 jnz     short 0040114C
+00401114   |.  68 20304000         push    00403020                         ; /String2 = ""
+00401119   |.  68 85304000         push    00403085                         ; |String1 = zeroadd.00403085
+0040111E   |.  E8 81040000         call                      ; \\lstrcpyA
+00401123   |.  68 1B314000         push    0040311B                         ; /StringToAdd = ".bak"
+00401128   |.  68 85304000         push    00403085                         ; |ConcatString = ""
+0040112D   |.  E8 6C040000         call                      ; \\lstrcatA
+00401132   |.  6A 00               push    0                            ; /FailIfExists = FALSE
+00401134   |.  68 85304000         push    00403085                         ; |NewFileName = ""
+00401139   |.  68 20304000         push    00403020                         ; |ExistingFileName = ""
+0040113E   |.  E8 1F040000         call                     ; \\CopyFileA
+00401143   |.  83F8 00               cmp     eax, 0
+00401146   |.  0F84 51020000       je      0040139D
+0040114C   |>  6A 00               push    0                            ; /FailIfExists = FALSE
+0040114E   |.  68 29314000         push    00403129                         ; |NewFileName = "swapit.sca"
+00401153   |.  68 20304000         push    00403020                         ; |ExistingFileName = ""
+00401158   |.  E8 05040000         call                     ; \\CopyFileA
 
 ```
 
-  
-如果按下的是 ID=6 的 BUTTEN 则读取三个 EDIT 控件的文字和一个 CheckBox 的状态   
-它们分别是 完整文件名 补区段的段名 段的大小 和是否备份源文件  
-  
+如果 `call IsDlgButtonChecked` 的返回结构是 `1` 就是说明选中了备份文件 那么复制完整文件名 再文件名后面加上`".bak"`
+
+之后拷贝文件 即完成了原文件的备份工作 呵呵 很简单哦~
+
+再之后过程就和玩命大侠在文中叙述的几乎一样了 由于玩命大侠写得太清楚透彻了 我不再赘述 以免班门弄斧…
+
+不过有一个函数引起了我的注意
+
 代码:
 
 ```
-0040110F   |.  83F8 01            cmp     eax, 1
-00401112   |.  75 38              jnz     short 0040114C
-00401114   |.  68 20304000        push    00403020                          ; /String2 = ""
-00401119   |.  68 85304000        push    00403085                          ; |String1 = zeroadd.00403085
-0040111E   |.  E8 81040000        call              ; \\lstrcpyA
-00401123   |.  68 1B314000        push    0040311B                          ; /StringToAdd = ".bak"
-00401128   |.  68 85304000        push    00403085                          ; |ConcatString = ""
-0040112D   |.  E8 6C040000        call              ; \\lstrcatA
-00401132   |.  6A 00              push    0                                 ; /FailIfExists = FALSE
-00401134   |.  68 85304000        push    00403085                          ; |NewFileName = ""
-00401139   |.  68 20304000        push    00403020                          ; |ExistingFileName = ""
-0040113E   |.  E8 1F040000        call             ; \\CopyFileA
-00401143   |.  83F8 00            cmp     eax, 0
-00401146   |.  0F84 51020000      je      0040139D
-0040114C   |>  6A 00              push    0                                 ; /FailIfExists = FALSE
-0040114E   |.  68 29314000        push    00403129                          ; |NewFileName = "swapit.sca"
-00401153   |.  68 20304000        push    00403020                          ; |ExistingFileName = ""
-00401158   |.  E8 05040000        call             ; \\CopyFileA
+00401190   |.  68 08304000         push    00403008                         ; /Arg1 = 00403008
+00401195   |.  E8 13030000         call    Hex>                     ; \\zeroadd.004014AD
 
 ```
 
-  
-如果 call IsDlgButtonChecked 的返回结构是 1 就是说明选中了备份文件 那么复制完整文件名 再文件名后面加上".bak"  
-之后拷贝文件 即完成了原文件的备份工作 呵呵 很简单哦~  
-  
-再之后过程就和玩命大侠在文中叙述的几乎一样了 由于玩命大侠写得太清楚透彻了 我不再赘述 以免班门弄斧…  
-  
-不过有一个函数引起了我的注意  
-  
+标签是我后来加的 原来是 `call 004014AD` 这是这个程序为数不多的自己写的函数
+
+跟过去看个究竟 看看他到底是干什么的
+
 代码:
 
 ```
-00401190   |.  68 08304000        push    00403008                          ; /Arg1 = 00403008
-00401195   |.  E8 13030000        call    Hex>                      ; \\zeroadd.004014AD
-
+004014AD <>/$  55                     push    ebp
+004014AE   |.  8BEC                   mov     ebp, esp
+004014B0   |.  83C4 FC               add     esp, -4
+004014B3   |.  53                     push    ebx
+004014B4   |.  51                     push    ecx
+004014B5   |.  57                     push    edi
+004014B6   |.  52                     push    edx
+004014B7   |.  56                     push    esi
+004014B8   |.  C745 FC 00000000    mov     dword ptr \[ebp-4\], 0
+004014BF   |.  33C9                   xor     ecx, ecx
+004014C1   |.  8B7D 08               mov     edi, dword ptr \[ebp+8\]
+004014C4   |.  FF75 08               push    dword ptr \[ebp+8\]            ; /String
+004014C7   |.  E8 DE000000         call                      ; \\lstrlenA
+004014CC   |.  BB 10000000         mov     ebx, 10
+004014D1   |.  8BF0                   mov     esi, eax
+004014D3   |.  EB 35                 jmp     short 0040150A
+004014D5   |>  8A07                   /mov     al, byte ptr \[edi\]
+004014D7   |.  3C 30                 |cmp     al, 30                         ;  Switch (cases 30..39)
+004014D9   |.  72 08                 |jb      short 004014E3                   ;  小于 30 跳
+004014DB   |.  3C 39                 |cmp     al, 39
+004014DD   |.  77 04                 |ja      short 004014E3                   ;  大于 39 跳
+004014DF   |.  2C 30                 |sub     al, 30                         ;  不跳就-30 即为 0~9
+004014E1   |.  EB 12                 |jmp     short 004014F5
+004014E3   |>  3C 61                 |cmp     al, 61                         ;  Default case of switch 004014D7
+004014E5   |.  72 0A                 |jb      short 004014F1
+004014E7   |.  3C 66                 |cmp     al, 66
+004014E9   |.  77 06                 |ja      short 004014F1
+004014EB   |.  2C 61                 |sub     al, 61
+004014ED   |.  04 0A                 |add     al, 0A
+004014EF   |.  EB 04                 |jmp     short 004014F5
+004014F1   |>  2C 41                 |sub     al, 41
+004014F3   |.  04 0A                 |add     al, 0A
+004014F5   |>  0FB6C0                |movzx   eax, al                        ;  Cases 30 ('0'),31 ('1'),32 ('2'),33 ('3'),34 ('4'),35 ('5'),36 ('6'),37 ('7'),38 ('8'),39 ('9') of switch 004014D7
+004014F8   |.  8BCE                   |mov     ecx, esi
+004014FA   |.  49                     |dec     ecx
+004014FB   |.  EB 03                 |jmp     short 00401500
+004014FD   |>  F7E3                   |/mul     ebx
+004014FF   |.  49                     ||dec     ecx
+00401500   |>  83F9 00               | cmp      ecx, 0
+00401503   |.^ 77 F8                 |\\ja      short 004014FD
+00401505   |.  0145 FC               |add      dword ptr \[ebp-4\], eax
+00401508   |.  47                     |inc     edi
+00401509   |.  4E                     |dec     esi
+0040150A   |>  0BF6                  or      esi, esi
+0040150C   |.^ 75 C7                 \\jnz      short 004014D5
+0040150E   |.  8B45 FC               mov      eax, dword ptr \[ebp-4\]
+00401511   |.  5E                     pop      esi
+00401512   |.  5A                     pop      edx
+00401513   |.  5F                     pop      edi
+00401514   |.  59                     pop      ecx
+00401515   |.  5B                     pop      ebx
+00401516   |.  C9                     leave
+00401517   \\.  C2 0400               retn    4
+ 
 ```
 
-  
-标签是我后来加的 原来是 call 004014AD 这是这个程序为数不多的自己写的函数  
-  
-跟过去看个究竟 看看他到底是干什么的  
-  
+一个完整的小函数 设计的相当精巧 类似于
+
 代码:
 
 ```
-004014AD <>/$  55                 push    ebp
-004014AE   |.  8BEC               mov     ebp, esp
-004014B0   |.  83C4 FC            add     esp, -4
-004014B3   |.  53                 push    ebx
-004014B4   |.  51                 push    ecx
-004014B5   |.  57                 push    edi
-004014B6   |.  52                 push    edx
-004014B7   |.  56                 push    esi
-004014B8   |.  C745 FC 00000000   mov     dword ptr \[ebp-4\], 0
-004014BF   |.  33C9               xor     ecx, ecx
-004014C1   |.  8B7D 08            mov     edi, dword ptr \[ebp+8\]
-004014C4   |.  FF75 08            push    dword ptr \[ebp+8\]                 ; /String
-004014C7   |.  E8 DE000000        call              ; \\lstrlenA
-004014CC   |.  BB 10000000        mov     ebx, 10
-004014D1   |.  8BF0               mov     esi, eax
-004014D3   |.  EB 35              jmp     short 0040150A
-004014D5   |>  8A07               /mov     al, byte ptr \[edi\]
-004014D7   |.  3C 30              |cmp     al, 30                           ;  Switch (cases 30..39)
-004014D9   |.  72 08              |jb      short 004014E3                   ;  小于 30 跳
-004014DB   |.  3C 39              |cmp     al, 39
-004014DD   |.  77 04              |ja      short 004014E3                   ;  大于 39 跳
-004014DF   |.  2C 30              |sub     al, 30                           ;  不跳就-30 即为 0~9
-004014E1   |.  EB 12              |jmp     short 004014F5
-004014E3   |>  3C 61              |cmp     al, 61                           ;  Default case of switch 004014D7
-004014E5   |.  72 0A              |jb      short 004014F1
-004014E7   |.  3C 66              |cmp     al, 66
-004014E9   |.  77 06              |ja      short 004014F1
-004014EB   |.  2C 61              |sub     al, 61
-004014ED   |.  04 0A              |add     al, 0A
-004014EF   |.  EB 04              |jmp     short 004014F5
-004014F1   |>  2C 41              |sub     al, 41
-004014F3   |.  04 0A              |add     al, 0A
-004014F5   |>  0FB6C0             |movzx   eax, al                          ;  Cases 30 ('0'),31 ('1'),32 ('2'),33 ('3'),34 ('4'),35 ('5'),36 ('6'),37 ('7'),38 ('8'),39 ('9') of switch 004014D7
-004014F8   |.  8BCE               |mov     ecx, esi
-004014FA   |.  49                 |dec     ecx
-004014FB   |.  EB 03              |jmp     short 00401500
-004014FD   |>  F7E3               |/mul     ebx
-004014FF   |.  49                 ||dec     ecx
-00401500   |>  83F9 00            | cmp     ecx, 0
-00401503   |.^ 77 F8              |\\ja      short 004014FD
-00401505   |.  0145 FC            |add     dword ptr \[ebp-4\], eax
-00401508   |.  47                 |inc     edi
-00401509   |.  4E                 |dec     esi
-0040150A   |>  0BF6                or      esi, esi
-0040150C   |.^ 75 C7              \\jnz     short 004014D5
-0040150E   |.  8B45 FC            mov     eax, dword ptr \[ebp-4\]
-00401511   |.  5E                 pop     esi
-00401512   |.  5A                 pop     edx
-00401513   |.  5F                 pop     edi
-00401514   |.  59                 pop     ecx
-00401515   |.  5B                 pop     ebx
-00401516   |.  C9                 leave
-00401517   \\.  C2 0400            retn    4
- 
-
-```
-
-  
-一个完整的小函数 设计的相当精巧 类似于  
-  
-代码:
-
-```
-long Fanc(LPSTR)
+long Fanc(LPSTR)
 {
-long dwM;
+long dwM;
 ....
 ...
 ..
@@ -340,537 +357,534 @@ long dwM;
 
 ```
 
-  
-传入的参数是 ID=5 的 EDIT 里面的字符串 这个 EDIT 里面是我们输入的区段大小 猜想都可以知道 这个函数是把字符串转化为  
-HEX 整型变量的 对于这个函数我十分感兴趣 但起初是觉得这一定是现成的函数 不用太在意 一定可以在网上找到 不过我错  
-了 的确是翻了很久 很久 在网上也没有找到一个比较完整好用的函数 于是分析了一下  
-  
-先调用 lstrlenA 得到字符串的长度 之后就进入循环 读入一个字节 比较该字节的 ascii 值 30h～39h 就直接减去 30h 即为 0～9  
-如果是 61h～66h 就减去 61h 之后在加上 0Ah 就是 0Ah～0Fh 之后用这个值去乘以 10h 分别乘以当前 esi-1 次 即实现了进位  
-之后出乘法小循环 把中间结果保存在局部变量里 字符串指针+1 esi 变量-1 再去循环 知道最后 esi 为 0 退出大循环  
-  
-最后的结果保存在 EAX 寄存器里……  
-  
-好了 大概经过我们都明白了 这个程序就像是自己的了 看哪里都知道原理 呵呵 但这还不是我们的最终目的 嘻嘻  
-  
-知道原理就要实现 逆向高级语言都不怕难 何况这种会编写的清晰的都告诉你 API 的程序呢  
-  
-所以 ASM 写了自己的一个小工具 对他的代码某些部分进行了优化  
-  
-代码里引用了 玩命 大侠 在《【成果 6.1】软件保护壳技术专题 - 添加新节》 一文中的代码 稍作修改 主要是不敢班门弄斧  
-  
-代码中引用了 罗云斌 @公用子程序部分：窗口部分 将窗口移动到屏幕中间函数  
+传入的参数是 `ID=5` 的 `EDIT` 里面的字符串 这个 `EDIT` 里面是我们输入的区段大小 猜想都可以知道 这个函数是把字符串转化为
+
+`HEX` 整型变量的 对于这个函数我十分感兴趣 但起初是觉得这一定是现成的函数 不用太在意 一定可以在网上找到 不过我错
+
+了 的确是翻了很久 很久 在网上也没有找到一个比较完整好用的函数 于是分析了一下
+
+先调用 `lstrlenA` 得到字符串的长度 之后就进入循环 读入一个字节 比较该字节的 `ascii` 值 `30h`～`39h` 就直接减去 `30h` 即为 `0`～`9`
+
+如果是 `61h`～`66h` 就减去 `61h` 之后在加上 `0Ah` 就是 `0Ah`～`0Fh` 之后用这个值去乘以 `10h` 分别乘以当前 `esi-1` 次 即实现了进位
+
+之后出乘法小循环 把中间结果保存在局部变量里 字符串指针`+1` `esi` 变量`-1` 再去循环 知道最后 `esi` 为 `0` 退出大循环
+
+最后的结果保存在 `EAX` 寄存器里……
+
+好了 大概经过我们都明白了 这个程序就像是自己的了 看哪里都知道原理 呵呵 但这还不是我们的最终目的 嘻嘻
+
+知道原理就要实现 逆向高级语言都不怕难 何况这种会编写的清晰的都告诉你 `API` 的程序呢
+
+所以 `ASM` 写了自己的一个小工具 对他的代码某些部分进行了优化
+
+代码里引用了 玩命 大侠 在《【成果 6.1】软件保护壳技术专题 - 添加新节》 一文中的代码 稍作修改 主要是不敢班门弄斧
+
+代码中引用了 罗云斌 @公用子程序部分：窗口部分 将窗口移动到屏幕中间函数
+
 代码:
+
+
 
 ```
 .386
-.model flat, stdcall
-option casemap:none
- 
-;; ----------------------------------------
-;; header file and lib file
-;; ----------------------------------------
-include kernel32.inc
-include user32.inc
-include comdlg32.inc
-includelib kernel32.lib
-includelib user32.lib
-includelib comdlg32.lib
-include windows.inc
-PEAlign proto dwTarNum : DWORD, dwAlignTo : DWORD
-AddSection proto pMem : LPVOID, 
-                 pSectionName : LPVOID, 
-                 dwSectionSize : DWORD
-;DLGproc proto dlghwnd:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
-;\_CenterWindow    proto    :DWORD        ;将窗口移动到屏幕中间 by 罗云彬@公用子程序部分：窗口部分
-APPEND\_SIZE                     equ 2000h
+.model flat, stdcall
+option casemap:none
+ 
+;; ----------------------------------------
+;; header file and lib file
+;; ----------------------------------------
+include kernel32.inc
+include user32.inc
+include comdlg32.inc
+includelib kernel32.lib
+includelib user32.lib
+includelib comdlg32.lib
+include windows.inc
+PEAlign proto dwTarNum : DWORD, dwAlignTo : DWORD
+AddSection proto pMem : LPVOID, 
+                pSectionName : LPVOID, 
+                dwSectionSize : DWORD
+;DLGproc proto dlghwnd:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
+;\_CenterWindow    proto    :DWORD        ;将窗口移动到屏幕中间 by 罗云彬@公用子程序部分：窗口部分
+APPEND\_SIZE                 equ 2000h
 .data
-ofn OPENFILENAME <>
-lpstrFilter db "eXe Files(\*.eXe)",0
-lpstrFile db 255 dup(0)
-lpstrBAKFile db 255 dup(0)
-lpBAK db ".bak",0
-lpsectionName db 8 dup(0)
-lpsectionSize db 8 dup(0)
- 
+ofn OPENFILENAME <>
+lpstrFilter db "eXe Files(\*.eXe)",0
+lpstrFile db 255 dup(0)
+lpstrBAKFile db 255 dup(0)
+lpBAK db ".bak",0
+lpsectionName db 8 dup(0)
+lpsectionSize db 8 dup(0)
+ 
 ;////////////////////////////////////////////////////////////////
-;以下变量定义摘自"玩命"大侠 【成果 6.1】软件保护壳技术专题 - 添加新节
+;以下变量定义摘自"玩命"大侠 【成果 6.1】软件保护壳技术专题 - 添加新节
 ;////////////////////////////////////////////////////////////////
-g\_szErr                     db "错误",0
-g\_szDone                    db "文件加密成功!",0
-g\_szDoneCap                 db "^\_^",0
-g\_szOpenFileFailed          db "打不开文件",0
-g\_szGetFileSizeFailed       db "获取文件大小失败",0
-g\_szCreateMapFailed         db "创建文件映射失败",0
-g\_szMapFileFailed           db "映射文件到内存失败",0
-g\_szInvalidPE               db "无效的 PE 文件",0
-g\_bError                db 0
-g\_dwNewSectionSize      dd 0
- 
+g\_szErr                   db "错误",0
+g\_szDone                  db "文件加密成功!",0
+g\_szDoneCap               db "^\_^",0
+g\_szOpenFileFailed        db "打不开文件",0
+g\_szGetFileSizeFailed     db "获取文件大小失败",0
+g\_szCreateMapFailed       db "创建文件映射失败",0
+g\_szMapFileFailed         db "映射文件到内存失败",0
+g\_szInvalidPE             db "无效的 PE 文件",0
+g\_bError            db 0
+g\_dwNewSectionSize  dd 0
+ 
 .code
 ;////////////////////////////////////////////////////////////////
-;以下函数修改自"玩命"大侠 【成果 6.1】软件保护壳技术专题 - 添加新节
+;以下函数修改自"玩命"大侠 【成果 6.1】软件保护壳技术专题 - 添加新节
 ;http://bbs.pediy.com/showthread.php?p=467116
 ;一文，稍作改动
 ;////////////////////////////////////////////////////////////////
-CryptFile proc szFname : LPSTR,szSectionName:LPSTR,dwSectionSize:DWORD
-     LOCAL hFile : HANDLE
-     LOCAL hMap : HANDLE
-     LOCAL pMem : LPVOID
-     LOCAL dwOrigFileSize : DWORD
-     LOCAL dwNTHeaderAddr : DWORD
- 
-     ;; init data
-     xor eax, eax
-     mov g\_bError, al
-     mov eax, dwSectionSize
-     mov g\_dwNewSectionSize, eax
- 
-     ;; open file
-      invoke CreateFile, szFname,\\
-                          GENERIC\_WRITE + GENERIC\_READ,\\
-                          FILE\_SHARE\_WRITE + FILE\_SHARE\_READ,\\
-                          NULL,\\
-                          OPEN\_EXISTING,\\
-                          FILE\_ATTRIBUTE\_NORMAL,\\
-                          0
-     .IF eax == INVALID\_HANDLE\_VALUE
-         jmp OpenFileFailed                
-     .ENDIF
-     mov hFile, eax 
-     invoke GetFileSize, hFile, NULL
-    .IF eax == 0
-        invoke CloseHandle, hFile  
-        jmp GetFileSizeFailed
-    .ENDIF
-     mov dwOrigFileSize, eax   
- 
-     add eax, APPEND\_SIZE
- 
-     xchg eax, ecx
-     ;; create memory map
-     xor ebx, ebx     
-     invoke CreateFileMapping, hFile, ebx, PAGE\_READWRITE, ebx, ecx, ebx
-     .IF eax == 0
-         invoke CloseHandle, hFile
-         jmp CreateMapFailed                
-     .ENDIF
-     mov hMap, eax
-     ;; map file to memory
-     invoke MapViewOfFile, hMap,
-                           FILE\_MAP\_WRITE+FILE\_MAP\_READ+FILE\_MAP\_COPY, 
-                           ebx, ebx, ebx
-     .IF eax == 0
-         invoke CloseHandle, hMap
-         invoke CloseHandle, hFile
-         jmp MapFileFailed
-     .ENDIF
-     mov pMem, eax                               
-     ;; check it's PE file or not ?
-     xchg eax, esi
-     assume esi : ptr IMAGE\_DOS\_HEADER
-     .IF \[esi\].e\_magic != 'ZM'
-         invoke UnmapViewOfFile, pMem
-         invoke CloseHandle, hMap
-         invoke CloseHandle, hFile
-         jmp InvalidPE        
-     .ENDIF       
-     add esi, \[esi\].e\_lfanew
-     assume esi : ptr IMAGE\_NT\_HEADERS   
-     .IF word ptr \[esi\].Signature != 'EP'
-         invoke UnmapViewOfFile, pMem
-         invoke CloseHandle, hMap
-         invoke CloseHandle, hFile
-         jmp InvalidPE        
-     .ENDIF
-     mov dwNTHeaderAddr, esi
- 
- 
-    invoke AddSection, pMem,szSectionName, g\_dwNewSectionSize
-    push eax
-    mov esi, dwNTHeaderAddr
-    assume esi : ptr IMAGE\_NT\_HEADERS
- 
- LogicShellExit:
-     ;; close handle & write it
-     invoke UnmapViewOfFile, pMem
-     invoke CloseHandle, hMap
-     invoke CloseHandle, hFile
-     .IF g\_bError == 0
-         ;; show success message  
-         invoke MessageBox, NULL, offset g\_szDone, offset g\_szDoneCap, MB\_ICONINFORMATION
-     .ENDIF        
-     ret
-;; ----- Show error message ----- 
+CryptFile proc szFname : LPSTR,szSectionName:LPSTR,dwSectionSize:DWORD
+    LOCAL hFile : HANDLE
+    LOCAL hMap : HANDLE
+    LOCAL pMem : LPVOID
+    LOCAL dwOrigFileSize : DWORD
+    LOCAL dwNTHeaderAddr : DWORD
+ 
+    ;; init data
+    xor eax, eax
+    mov g\_bError, al
+    mov eax, dwSectionSize
+    mov g\_dwNewSectionSize, eax
+ 
+    ;; open file
+    invoke CreateFile, szFname,\
+                     GENERIC\_WRITE + GENERIC\_READ,\
+                     FILE\_SHARE\_WRITE + FILE\_SHARE\_READ,\
+                     NULL,\
+                     OPEN\_EXISTING,\
+                     FILE\_ATTRIBUTE\_NORMAL,\
+                     0
+    .IF eax == INVALID\_HANDLE\_VALUE
+        jmp OpenFileFailed                
+    .ENDIF
+    mov hFile, eax 
+    invoke GetFileSize, hFile, NULL
+    .IF eax == 0
+        invoke CloseHandle, hFile   
+        jmp GetFileSizeFailed
+    .ENDIF
+    mov dwOrigFileSize, eax    
+    
+    add eax, APPEND\_SIZE
+ 
+    xchg eax, ecx
+    ;; create memory map
+    xor ebx, ebx     
+    invoke CreateFileMapping, hFile, ebx, PAGE\_READWRITE, ebx, ecx, ebx
+    .IF eax == 0
+        invoke CloseHandle, hFile
+        jmp CreateMapFailed               
+    .ENDIF
+    mov hMap, eax
+    ;; map file to memory
+    invoke MapViewOfFile, hMap,
+                       FILE\_MAP\_WRITE+FILE\_MAP\_READ+FILE\_MAP\_COPY, 
+                       ebx, ebx, ebx
+    .IF eax == 0
+        invoke CloseHandle, hMap
+        invoke CloseHandle, hFile
+        jmp MapFileFailed
+    .ENDIF
+    mov pMem, eax                                  
+    ;; check it's PE file or not ?
+    xchg eax, esi
+    assume esi : ptr IMAGE\_DOS\_HEADER
+    .IF [esi].e\_magic != 'ZM'
+        invoke UnmapViewOfFile, pMem
+        invoke CloseHandle, hMap
+        invoke CloseHandle, hFile
+        jmp InvalidPE        
+    .ENDIF       
+    add esi, [esi].e\_lfanew
+    assume esi : ptr IMAGE\_NT\_HEADERS    
+    .IF word ptr [esi].Signature != 'EP'
+        invoke UnmapViewOfFile, pMem
+        invoke CloseHandle, hMap
+        invoke CloseHandle, hFile
+        jmp InvalidPE        
+    .ENDIF
+    mov dwNTHeaderAddr, esi
+ 
+ 
+    invoke AddSection, pMem,szSectionName, g\_dwNewSectionSize
+    push eax
+    mov esi, dwNTHeaderAddr
+    assume esi : ptr IMAGE\_NT\_HEADERS
+ 
+ 
+LogicShellExit:
+    ;; close handle & write it
+    invoke UnmapViewOfFile, pMem
+    invoke CloseHandle, hMap
+    invoke CloseHandle, hFile
+    .IF g\_bError == 0
+        ;; show success message   
+        invoke MessageBox, NULL, offset g\_szDone, offset g\_szDoneCap, MB\_ICONINFORMATION
+    .ENDIF         
+    ret
+;; ----- Show error message ----- 
 OpenFileFailed:
-     lea eax, g\_szOpenFileFailed
-     jmp ShowErr
+    lea eax, g\_szOpenFileFailed
+    jmp ShowErr
 GetFileSizeFailed:
-     lea eax, g\_szGetFileSizeFailed
-     jmp ShowErr    
+    lea eax, g\_szGetFileSizeFailed
+    jmp ShowErr     
 CreateMapFailed:
-     lea eax, g\_szCreateMapFailed
-     jmp ShowErr
+    lea eax, g\_szCreateMapFailed
+    jmp ShowErr
 MapFileFailed:
-     lea eax, g\_szMapFileFailed
-     jmp ShowErr        
-InvalidPE:          
-     lea eax, g\_szInvalidPE
-     jmp ShowErr   
+    lea eax, g\_szMapFileFailed
+    jmp ShowErr        
+InvalidPE:           
+    lea eax, g\_szInvalidPE
+    jmp ShowErr    
 ShowErr:
-     invoke MessageBox, NULL, eax, offset g\_szErr, MB\_ICONERROR
-     mov al, 1
-     mov g\_bError, al
-     jmp LogicShellExit
- 
-CryptFile endp 
- 
-AddSection proc uses ebx ecx edx esi edi, pMem : LPVOID,
-                                          pSectionName : LPVOID,
-                                          dwSectionSize : DWORD
-;; add a new section
-;; ret: eax =  new section table file offset
-    LOCAL dwNTHeader : LPVOID
-    LOCAL dwLastSecTbl : LPVOID    
-    LOCAL dwFileAlig : DWORD
-    LOCAL dwSecAlig : DWORD
- 
-    ;; move to section table
-    mov esi, pMem
- 
-    ;; assume esi : ptr IMAGE\_DOS\_HEADER
-    ;; add esi, dword ptr \[esi\].e\_lfanew
-    add esi, dword ptr \[esi+3ch\]
-    mov dwNTHeader, esi  
-    assume esi : ptr IMAGE\_NT\_HEADERS
-    ;; update the number of section
-    mov cx, word ptr \[esi\].FileHeader.NumberOfSections
-    movzx ecx, cx
- 
-    inc word ptr \[esi\].FileHeader.NumberOfSections
-    push dword ptr \[esi\].OptionalHeader.FileAlignment
-    pop dwFileAlig
-    push dword ptr \[esi\].OptionalHeader.SectionAlignment
-    pop dwSecAlig        
-    ;; move esi point to section table
- 
-    add esi, sizeof IMAGE\_NT\_HEADERS
-    ;; store the last section table
- 
-    mov eax, sizeof IMAGE\_SECTION\_HEADER
-    mov ebx, ecx
-    imul ebx
- 
-    add esi, eax                            ; esi = the end of orig last section fva
-    push esi
- 
-    sub esi, sizeof IMAGE\_SECTION\_HEADER    ; esi = the orig last section fva
-    mov dwLastSecTbl, esi
-    pop esi
-    ;; set new section table
- 
-    assume esi : ptr IMAGE\_SECTION\_HEADER
-    ;; set section name
-    push esi
-    lea edi, \[esi\].Name1
-    mov esi, pSectionName
-CopySectionNameLoop:   
-    lodsb
-    test al, al
-    jz EndCopySectionNameLoop
-    stosb
-    jmp CopySectionNameLoop
-EndCopySectionNameLoop:  
-    pop esi  
- 
-    push 0E00000E0h
-    pop dword ptr \[esi\].Characteristics
- 
-    push dwSectionSize
-    pop dword ptr \[esi\].Misc.VirtualSize
- 
-    invoke PEAlign, dwSectionSize, dwFileAlig
-    mov dword ptr \[esi\].SizeOfRawData, eax
- 
-    mov eax, dwLastSecTbl                       ; eax = orig last section table fva
-    assume eax : ptr IMAGE\_SECTION\_HEADER
-    mov ecx, dword ptr \[eax\].VirtualAddress
-    add ecx, dword ptr \[eax\].Misc.VirtualSize        ; ecx = new section rva
-    mov ebx, dword ptr \[eax\].PointerToRawData
-    add ebx, dword ptr \[eax\].SizeOfRawData           ; ebx = new section fva
-    invoke PEAlign, ecx, dwSecAlig
-    mov dword ptr \[esi\].VirtualAddress, eax
-    ;; set section pointertorawdata
-    invoke PEAlign, ebx, dwFileAlig
-    mov dword ptr \[esi\].PointerToRawData, eax
- 
-    mov eax, dword ptr \[esi\].VirtualAddress
-    add eax, dword ptr \[esi\].Misc.VirtualSize
-    invoke PEAlign, eax, dwSecAlig
-    mov edx, dwNTHeader
-    assume edx : ptr IMAGE\_NT\_HEADERS
-    mov dword ptr \[edx\].OptionalHeader.SizeOfImage, eax
-    push dword ptr \[esi\].PointerToRawData
-    pop edi
-    add edi, pMem
-    ;; clear the new sec
- 
-    mov ecx, dwSectionSize
-    xor eax, eax
-    cld
-    rep stosb
- 
- 
-    mov eax, esi
-    assume esi : nothing
-    assume eax : nothing
-    assume edx : nothing
-    ret
-AddSection endp
- 
-PEAlign proc uses ecx edx, dwTarNum : DWORD, dwAlignTo : DWORD
-;; returns aligned value    
-    ;; Algorithms:
-    ;; $1 = dwTarNum / dwAlignTo
-    ;; if remain != 0
-    ;; $r = $1 + 1 \* dwAlignTo
-    ;; return $r
-    mov ecx, dwAlignTo
-    mov eax, dwTarNum
-    xor edx, edx
-    div ecx
-    cmp edx, 0
-    jz AlreadyAligned
-    inc eax
+    invoke MessageBox, NULL, eax, offset g\_szErr, MB\_ICONERROR
+    mov al, 1
+    mov g\_bError, al
+    jmp LogicShellExit
+ 
+CryptFile endp 
+ 
+AddSection proc uses ebx ecx edx esi edi, pMem : LPVOID,
+                          pSectionName : LPVOID,
+                          dwSectionSize : DWORD
+;; add a new section
+;; ret: eax =  new section table file offset
+    LOCAL dwNTHeader : LPVOID
+    LOCAL dwLastSecTbl : LPVOID     
+    LOCAL dwFileAlig : DWORD
+    LOCAL dwSecAlig : DWORD
+ 
+    ;; move to section table
+    mov esi, pMem
+ 
+    ;; assume esi : ptr IMAGE\_DOS\_HEADER
+    ;; add esi, dword ptr [esi].e\_lfanew
+    add esi, dword ptr [esi+3ch]
+    mov dwNTHeader, esi   
+    assume esi : ptr IMAGE\_NT\_HEADERS
+    ;; update the number of section
+    mov cx, word ptr [esi].FileHeader.NumberOfSections
+    movzx ecx, cx
+ 
+    inc word ptr [esi].FileHeader.NumberOfSections
+    push dword ptr [esi].OptionalHeader.FileAlignment
+    pop dwFileAlig
+    push dword ptr [esi].OptionalHeader.SectionAlignment
+    pop dwSecAlig         
+    ;; move esi point to section table
+ 
+    add esi, sizeof IMAGE\_NT\_HEADERS
+    ;; store the last section table
+ 
+    mov eax, sizeof IMAGE\_SECTION\_HEADER
+    mov ebx, ecx
+    imul ebx
+ 
+    add esi, eax                        ; esi = the end of orig last section fva
+    push esi
+ 
+    sub esi, sizeof IMAGE\_SECTION\_HEADER    ; esi = the orig last section fva
+    mov dwLastSecTbl, esi
+    pop esi
+    ;; set new section table
+ 
+    assume esi : ptr IMAGE\_SECTION\_HEADER
+    ;; set section name
+    push esi
+    lea edi, [esi].Name1
+    mov esi, pSectionName
+CopySectionNameLoop:    
+    lodsb
+    test al, al
+    jz EndCopySectionNameLoop
+    stosb
+    jmp CopySectionNameLoop
+EndCopySectionNameLoop:   
+    pop esi   
+ 
+    push 0E00000E0h
+    pop dword ptr [esi].Characteristics
+ 
+    push dwSectionSize
+    pop dword ptr [esi].Misc.VirtualSize
+ 
+    invoke PEAlign, dwSectionSize, dwFileAlig
+    mov dword ptr [esi].SizeOfRawData, eax
+ 
+    mov eax, dwLastSecTbl                 ; eax = orig last section table fva
+    assume eax : ptr IMAGE\_SECTION\_HEADER
+    mov ecx, dword ptr [eax].VirtualAddress
+    add ecx, dword ptr [eax].Misc.VirtualSize        ; ecx = new section rva
+    mov ebx, dword ptr [eax].PointerToRawData
+    add ebx, dword ptr [eax].SizeOfRawData           ; ebx = new section fva
+    invoke PEAlign, ecx, dwSecAlig
+    mov dword ptr [esi].VirtualAddress, eax
+    ;; set section pointertorawdata
+    invoke PEAlign, ebx, dwFileAlig
+    mov dword ptr [esi].PointerToRawData, eax
+ 
+    mov eax, dword ptr [esi].VirtualAddress
+    add eax, dword ptr [esi].Misc.VirtualSize
+    invoke PEAlign, eax, dwSecAlig
+    mov edx, dwNTHeader
+    assume edx : ptr IMAGE\_NT\_HEADERS
+    mov dword ptr [edx].OptionalHeader.SizeOfImage, eax
+    push dword ptr [esi].PointerToRawData
+    pop edi
+    add edi, pMem
+    ;; clear the new sec
+ 
+    mov ecx, dwSectionSize
+    xor eax, eax
+    cld
+    rep stosb
+ 
+ 
+    mov eax, esi
+    assume esi : nothing
+    assume eax : nothing
+    assume edx : nothing
+    ret
+AddSection endp
+ 
+PEAlign proc uses ecx edx, dwTarNum : DWORD, dwAlignTo : DWORD
+;; returns aligned value     
+    ;; Algorithms:
+    ;; $1 = dwTarNum / dwAlignTo
+    ;; if remain != 0
+    ;; $r = $1 + 1 \* dwAlignTo
+    ;; return $r
+    mov ecx, dwAlignTo
+    mov eax, dwTarNum
+    xor edx, edx
+    div ecx
+    cmp edx, 0
+    jz AlreadyAligned
+    inc eax
 AlreadyAligned:
-    mul ecx      
-    ret
- 
-PEAlign endp   
- 
+    mul ecx       
+    ret
+ 
+PEAlign endp    
+ 
 ;////////////////////////////////////////////////////////////////////////
 ;引用代码结束
 ;////////////////////////////////////////////////////////////////////////
-\_CenterWindow    proc    hWnd:DWORD
-        local    @stRectDeskTop:RECT,@stRectWin:RECT
-        local    @dwWidth:DWORD,@dwHeight:DWORD
- 
-        invoke    GetWindowRect,hWnd,addr @stRectWin
-        invoke    GetDesktopWindow
-        mov    ebx,eax
-        invoke    GetWindowRect,ebx,addr @stRectDeskTop
- 
-        mov    eax,@stRectWin.bottom
-        sub    eax,@stRectWin.top
-        mov    @dwHeight,eax
-        mov    eax,@stRectWin.right
-        sub    eax,@stRectWin.left
-        mov    @dwWidth,eax
- 
-        mov    ebx,@stRectDeskTop.bottom
-        sub    ebx,@dwHeight
-        shr    ebx,1
-        mov    ecx,@stRectDeskTop.right
-        sub    ecx,@dwWidth
-        shr    ecx,1
- 
-        invoke    MoveWindow,hWnd,ecx,ebx,@dwWidth,@dwHeight,FALSE
-        ret
- 
-\_CenterWindow    endp
- 
-LpstrToHex proc uses esi edi ecx edx ebx, lpstr:LPSTR
- 
-    LOCAL dwM:DWORD
-    mov ebx,10h
-    mov edi,lpstr
-    mov dwM,0
-    invoke lstrlen,lpstr
-    mov esi,eax
-looop3:  
-        .if esi\>0
-        mov al,byte ptr \[edi\]
-                .if al\>=30h
-              .if al<=39h
-            sub al,30h
-                        jmp looop
-              .elseif al\>=61h
-                   .if al<=66h
-                sub al,61h
-                add al,0ah
-                jmp looop
- 
-                   .elseif al\>=41h
-                        .if al<=46h
-                    sub al,41h
-                    add al,0ah
-                    jmp looop
-                    .endif
-                   .endif
-              .endif
-        looop:  
-                movzx eax,al
-            mov ecx,esi
-            dec ecx
-            looop2: 
-                    .if ecx\>0
-                mul ebx
-                dec ecx
-                jmp looop2
-            .endif
-            add dwM,eax
-            inc edi
-            dec esi
-            jmp looop3
-        .endif
-    .endif
-    mov eax,dwM
-    ret
- 
-LpstrToHex endp
-DLGproc proc dlghwnd:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
-        mov    eax,uMsg
-        .if    eax == WM\_CLOSE
-            invoke    EndDialog,dlghwnd,NULL
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-        .elseif    eax == WM\_INITDIALOG
-            invoke    \_CenterWindow,dlghwnd
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-        .elseif    eax == WM\_COMMAND
-            mov    eax,wParam
-            movzx    eax,ax
-            .if    eax ==    1001
-                      mov ofn.lStructSize,sizeof ofn
-                                  mov eax,offset lpstrFilter  ;初始化 ofn 结构
-                  mov ofn.lpstrFilter,eax
-                  mov eax,offset lpstrFile
-                  mov ofn.lpstrFile,eax
-                  mov ofn.nMaxFile,sizeof lpstrFile
-                  mov ofn.Flags,OFN\_FILEMUSTEXIST or OFN\_PATHMUSTEXIST
-                invoke GetOpenFileName,addr ofn
-                .if eax\==1
-                    invoke SetDlgItemText,dlghwnd,1003,ofn.lpstrFile
-                .endif
-            .elseif    eax\==1008
-                      invoke IsDlgButtonChecked,dlghwnd,1002
-                      .if eax\==1
-                          invoke lstrcpy,offset lpstrBAKFile,offset lpstrFile
-                          invoke lstrcat,offset lpstrBAKFile,offset lpBAK
-                          invoke CopyFile,offset lpstrFile,offset lpstrBAKFile,0
-                      .endif
-                  invoke GetDlgItemText,dlghwnd,1003,offset lpstrFile,255
-                  invoke GetDlgItemText,dlghwnd,1005,offset lpsectionName,8
-                  invoke GetDlgItemText,dlghwnd,1007,offset lpsectionSize,8
-                  invoke LpstrToHex,offset lpsectionSize
-                  invoke CryptFile,offset lpstrFile,offset lpsectionName,eax
-            .endif
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-;    注意：对话框的消息处理后，要返回 TRUE,对没有处理的消息
-;    要返回 FALSE
-;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
-        .else
-            mov    eax,FALSE
-            ret
-        .endif
-        mov    eax,TRUE
-        ret
- 
-DLGproc endp
+\_CenterWindow    proc    hWnd:DWORD
+        local    @stRectDeskTop:RECT,@stRectWin:RECT
+        local    @dwWidth:DWORD,@dwHeight:DWORD
+ 
+        invoke    GetWindowRect,hWnd,addr @stRectWin
+        invoke    GetDesktopWindow
+        mov    ebx,eax
+        invoke    GetWindowRect,ebx,addr @stRectDeskTop
+ 
+        mov    eax,@stRectWin.bottom
+        sub    eax,@stRectWin.top
+        mov    @dwHeight,eax
+        mov    eax,@stRectWin.right
+        sub    eax,@stRectWin.left
+        mov    @dwWidth,eax
+ 
+        mov    ebx,@stRectDeskTop.bottom
+        sub    ebx,@dwHeight
+        shr    ebx,1
+        mov    ecx,@stRectDeskTop.right
+        sub    ecx,@dwWidth
+        shr    ecx,1
+ 
+        invoke    MoveWindow,hWnd,ecx,ebx,@dwWidth,@dwHeight,FALSE
+        ret
+ 
+\_CenterWindow    endp
+ 
+LpstrToHex proc uses esi edi ecx edx ebx, lpstr:LPSTR
+ 
+    LOCAL dwM:DWORD
+    mov ebx,10h
+    mov edi,lpstr
+    mov dwM,0
+    invoke lstrlen,lpstr
+    mov esi,eax
+looop3:   
+        .if esi\>0
+        mov al,byte ptr [edi]
+                .if al\>=30h
+              .if al<=39h
+            sub al,30h
+                    jmp looop
+              .elseif al\>=61h
+                   .if al<=66h
+                    sub al,61h
+                    add al,0ah
+                    jmp looop
+ 
+                   .elseif al\>=41h
+                        .if al<=46h
+                    sub al,41h
+                    add al,0ah
+                    jmp looop
+                    .endif
+                   .endif
+              .endif
+        looop:   
+                movzx eax,al
+            mov ecx,esi
+            dec ecx
+            looop2: 
+                    .if ecx\>0
+                mul ebx
+                dec ecx
+                jmp looop2
+            .endif
+            add dwM,eax
+            inc edi
+            dec esi
+            jmp looop3
+        .endif
+    .endif
+    mov eax,dwM
+    ret
+ 
+LpstrToHex endp
+DLGproc proc dlghwnd:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
+        mov    eax,uMsg
+        .if    eax == WM\_CLOSE
+            invoke    EndDialog,dlghwnd,NULL
+;*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+        .elseif    eax == WM\_INITDIALOG
+            invoke    \_CenterWindow,dlghwnd
+;*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+        .elseif    eax == WM\_COMMAND
+            mov    eax,wParam
+            movzx    eax,ax
+            .if    eax ==    1001
+                   mov ofn.lStructSize,sizeof ofn
+                              mov eax,offset lpstrFilter  ;初始化 ofn 结构
+              mov ofn.lpstrFilter,eax
+              mov eax,offset lpstrFile
+              mov ofn.lpstrFile,eax
+              mov ofn.nMaxFile,sizeof lpstrFile
+              mov ofn.Flags,OFN\_FILEMUSTEXIST or OFN\_PATHMUSTEXIST
+            invoke GetOpenFileName,addr ofn
+            .if eax\==1
+                invoke SetDlgItemText,dlghwnd,1003,ofn.lpstrFile
+            .endif
+        .elseif    eax\==1008
+                   invoke IsDlgButtonChecked,dlghwnd,1002
+                   .if eax\==1
+                     invoke lstrcpy,offset lpstrBAKFile,offset lpstrFile
+                     invoke lstrcat,offset lpstrBAKFile,offset lpBAK
+                     invoke CopyFile,offset lpstrFile,offset lpstrBAKFile,0
+                 .endif
+              invoke GetDlgItemText,dlghwnd,1003,offset lpstrFile,255
+              invoke GetDlgItemText,dlghwnd,1005,offset lpsectionName,8
+              invoke GetDlgItemText,dlghwnd,1007,offset lpsectionSize,8
+              invoke LpstrToHex,offset lpsectionSize
+              invoke CryptFile,offset lpstrFile,offset lpsectionName,eax
+            .endif
+;*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+;    注意：对话框的消息处理后，要返回 TRUE,对没有处理的消息
+;    要返回 FALSE
+;*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+        .else
+            mov    eax,FALSE
+            ret
+        .endif
+        mov    eax,TRUE
+        ret
+ 
+DLGproc endp
 start:
-invoke GetModuleHandle,0
-invoke DialogBoxParam,eax,1000,0,addr DLGproc,0
-invoke ExitProcess,0
-end start
- 
- 
-
+invoke GetModuleHandle,0
+invoke DialogBoxParam,eax,1000,0,addr DLGproc,0
+invoke ExitProcess,0
+end start
+ 
+ 
 ```
 
-  
-附上资源脚本  
-  
-代码:
+
+
+附上资源脚本
+
+代码：
 
 ```
-#define IDD\_DLG1 1000
-#define IDC\_BTN1 1001
-#define IDC\_CHK1 1002
-#define IDC\_STC1 1003
-#define IDC\_STC2 1004
-#define IDC\_EDT1 1005
-#define IDC\_STC3 1006
-#define IDC\_EDT2 1007
-#define IDC\_BTN2 1008
-#define IDR\_VERSION 1
-IDD\_DLG1 DIALOGEX 6,6,99,108
-CAPTION "SCTaDD\_BY\_eASYSCt"
-FONT 8,"MS Sans Serif",0,0
-STYLE 0x10CA0000
+#define IDD\_DLG1 1000
+#define IDC\_BTN1 1001
+#define IDC\_CHK1 1002
+#define IDC\_STC1 1003
+#define IDC\_STC2 1004
+#define IDC\_EDT1 1005
+#define IDC\_STC3 1006
+#define IDC\_EDT2 1007
+#define IDC\_BTN2 1008
+#define IDR\_VERSION 1
+IDD\_DLG1 DIALOGEX 6,6,99,108
+CAPTION "SCTaDD\_BY\_eASYSCt"
+FONT 8,"MS Sans Serif",0,0
+STYLE 0x10CA0000
 BEGIN
-  CONTROL "打开文件",IDC\_BTN1,"Button",0x50010000,4,1,92,15
-  CONTROL "备份源文件",IDC\_CHK1,"Button",0x50010003,4,20,92,15
-  CONTROL "",IDC\_STC1,"Static",0x50000000,2,40,94,13
-  CONTROL "新区段名",IDC\_STC2,"Static",0x50000000,2,60,36,9
-  CONTROL "",IDC\_EDT1,"Edit",0x50010000,46,57,50,15,0x00000200
-  CONTROL "新区段大小",IDC\_STC3,"Static",0x50000000,2,77,42,9
-  CONTROL "",IDC\_EDT2,"Edit",0x50010000,46,73,50,15,0x00000200
-  CONTROL "增加区段",IDC\_BTN2,"Button",0x50010000,4,90,92,13
+  CONTROL "打开文件",IDC\_BTN1,"Button",0x50010000,4,1,92,15
+  CONTROL "备份源文件",IDC\_CHK1,"Button",0x50010003,4,20,92,15
+  CONTROL "",IDC\_STC1,"Static",0x50000000,2,40,94,13
+  CONTROL "新区段名",IDC\_STC2,"Static",0x50000000,2,60,36,9
+  CONTROL "",IDC\_EDT1,"Edit",0x50010000,46,57,50,15,0x00000200
+  CONTROL "新区段大小",IDC\_STC3,"Static",0x50000000,2,77,42,9
+  CONTROL "",IDC\_EDT2,"Edit",0x50010000,46,73,50,15,0x00000200
+  CONTROL "增加区段",IDC\_BTN2,"Button",0x50010000,4,90,92,13
 END
-IDR\_VERSION VERSIONINFO
-FILEVERSION 1,0,0,0
-PRODUCTVERSION 1,0,0,0
-FILEOS 0x00000004
-FILETYPE 0x00000000
+IDR\_VERSION VERSIONINFO
+FILEVERSION 1,0,0,0
+PRODUCTVERSION 1,0,0,0
+FILEOS 0x00000004
+FILETYPE 0x00000000
 BEGIN
-  BLOCK "StringFileInfo"
-  BEGIN
-    BLOCK "FFFF0000"
-    BEGIN
-      VALUE "FileVersion", "1.0.0.0\\0"
-      VALUE "ProductVersion", "1.0.0.0\\0"
-      VALUE "CompanyName", "hIMcrACk\\0"
-    END
-  END
-  BLOCK "VarFileInfo"
-  BEGIN
-    VALUE "Translation", 0xFFFF, 0x0000
-  END
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "FFFF0000"
+    BEGIN
+      VALUE "FileVersion", "1.0.0.0\\0"
+      VALUE "ProductVersion", "1.0.0.0\\0"
+      VALUE "CompanyName", "hIMcrACk\\0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0xFFFF, 0x0000
+  END
 END
-
 ```
 
-  
-玩命 大侠的代码在 http://bbs.pediy.com/showthread.php?p=467116 有详细注释的 像我一样的小菜虫可以去阅读~  
-   
-其中 函数 LpstrToHex 为自己优化后的字符串转 16 进制整型变量的函数 算法上不算高明 结构上不算美观 不过能够达到效用  
-有需要的朋友可以拿去使用~~  
-   
-期待大牛们逆出效率更高 结构更漂亮的函数 以供收藏……  
-   
-天快亮了 就不多写了 最后把工具上传 喜欢就拿去用~  
-   
-感谢你耐心的看到这里 为能忍受菜菜的笔记所感谢~  
-   
-   
-   
-   
-【经验总结】  
-PE 文件结构基础 asm 的练习 细心 coding 耐心 debuging 是最大收获  
-   
-tHAT is ALl  
-   
-THX!!!!  
-   
-   
-   
-   
-   
-   
-   
-2008 年 11 月 23 日 6:16:55   
-   
-   
+玩命 大侠的代码在 http://bbs.pediy.com/showthread.php?p=467116 有详细注释的，像我一样的小菜虫可以去阅读~
+
+其中函数 `LpstrToHex` 为自己优化后的字符串转 16 进制整型变量的函数，算法上不算高明，结构上不算美观，不过能够达到效用。
+
+有需要的朋友可以拿去使用~~
+
+期待大牛们逆出效率更高、结构更漂亮的函数，以供收藏……
+
+天快亮了，就不多写了，最后把工具上传，喜欢就拿去用~
+
+感谢你耐心的看到这里，为能忍受菜菜的笔记所感谢~
+
+### 【经验总结】
+
+PE 文件结构基础、asm 的练习、细心 coding、耐心 debuging 是最大收获
+
+`tHAT is ALl`
+
+THX!!!!
+
+2008 年 11 月 23 日 6:16:55
 
 上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || SCTaDD.rar  
- |
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | `SCTaDD.rar` |
+| :--- | :--- |

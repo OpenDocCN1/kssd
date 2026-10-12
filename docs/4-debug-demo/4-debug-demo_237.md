@@ -1,72 +1,142 @@
 
-
 # CuteFTP V4.0
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum912.htm`](https://www.pediy.com/kssd/pediy03/forum912.htm)
 
-如何来破解有时间限制的软件呢？当然，方法有很多了。如果可以算到它的注册码，那是最理想的了。如果没有注册窗口或是算法非常复杂呢？那么采用爆破的方法就是最佳的途径。爆破，也就是通过修改程序本身来解除某种限制，也是很多初学者可以很容易掌握的方法！   
-下面我们举个例子来具体说明一下：   
-CuteFTP V4.0 上传软件，据说很是好用。很多网站都推崇它来上传主页！软件下载地址： http://www.ty.sx.cn/software/down/cute4b10.exe   
-安装完毕后，有 30 天的使用限制。30 天一过，就会有讨厌的提示框。我们来除掉它。你可以找到注册框。但是它是在线注册的，那就只有爆破了！(除非你向他注册)   
-首先备份一下，然后检查一下是否有壳的保护，幸好它没有！   
-然后呢？当然是调一下时钟，使它过期。你运行试试，是不是有提示框弹出。调出 ice 或是 trw2000，我用 ice。   
-下断 bpx getsystemtime   
-回到程序，再运行它，程序会被中断，再按 30 几下 F12 来到它的领空：   
-:004AEE69 FF1548525000            Call dword ptr \[00505248\]   
-:004AEE6F 668B45EA                mov ax, word ptr \[ebp\-16\]  \*\*停在这里   
-:004AEE73 663B05B2345400          cmp ax, word ptr \[005434B2\]   
-:004AEE7A 753B                    jne 004AEEB7   
-:004AEE7C 668B45E8                mov ax, word ptr \[ebp\-18\]   
-:004AEE80 663B05B0345400          cmp ax, word ptr \[005434B0\]   
-:004AEE87 752E                    jne 004AEEB7   
-:004AEE89 668B45E6                mov ax, word ptr \[ebp\-1A\]   
-:004AEE8D 663B05AE345400          cmp ax, word ptr \[005434AE\]   
-:004AEE94 7521                    jne 004AEEB7   
-:004AEE96 668B45E2                mov ax, word ptr \[ebp\-1E\]   
-:004AEE9A 663B05AA345400          cmp ax, word ptr \[005434AA\]   
-:004AEEA1 7514                    jne 004AEEB7   
-:004AEEA3 668B45E0                mov ax, word ptr \[ebp\-20\]   
-:004AEEA7 663B05A8345400          cmp ax, word ptr \[005434A8\]   
-:004AEEAE 7507                    jne 004AEEB7   
-:004AEEB0 A1A0345400              mov eax, dword ptr \[005434A0\]   
-:004AEEB5 EB45                    jmp 004AEEFC   
-上面是程序在取一些关于时间的信息。如果你仔细查找的话，也许会找到蛛丝马迹。   
-下面你只要按住 F10 让它继续执行下去，等待它出错。ok，出错了是吗？把它关掉。你又会马上回到 ice 中：   
-:0043ACD5 E8ACC10800              call 004C6E86   
-:0043ACDA 8D4C2454                lea ecx, dword ptr \[esp+54\]   
-:0043ACDE E89C7C0800              call 004C297F \*\*\*这就是那个出错框的调用   
-:0043ACE3 8D8C24B0000000          lea ecx, dword ptr \[esp+000000B0\] \*\*\*如果没有错的话，你应该是停到这儿。   
-现在按 ctrl+向上键找到可以跳过此地的跳转！   
-:0043AC6C FF1548505000            Call dword ptr \[00505048\]   
-:0043AC72 8B8668060000            mov eax, dword ptr \[esi+00000668\]   
-:0043AC78 C7866008000001000000    mov dword ptr \[esi+00000860\], 00000001   
-:0043AC82 3BC3                    cmp eax, ebx   
-:0043AC84 0F849C020000            je 0043AF26      \*\*\*\*\*这里可以哦！把它改为 jne，我用 hiew 比较方便。   
-:0043AC8A 53                      push ebx   
-:0043AC8B 8D4C2458                lea ecx, dword ptr \[esp+58\]   
-:0043AC8F E8ACE00600              call 004A8D40   
-:0043AC94 8B442418                mov eax, dword ptr \[esp+18\]   
-:0043AC98 8B4C2424                mov ecx, dword ptr \[esp+24\]   
-:0043AC9C 50                      push eax   
-:0043AC9D 51                      push ecx   
-你再运行一下试试？什么？出错了？提示程序被破坏或是被病毒感染？呵呵..这是作者下的圈套。他在程序中加了自校验，发现程序被改后马上报错！没有关系，我们把它也跳过去！呵呵...毒辣..   
-在 W32Dsam 中查找出错的标志，比如：consistency。找到了，在这儿：   
-  
-:0043A65D FF1500565000            Call dword ptr \[00505600\]   
-:0043A663 C7833C06000001000000    mov dword ptr \[ebx+0000063C\], 00000001   
-:0043A66D E88ED90400              call 00488000   
-:0043A672 85C0                    test eax, eax   
-:0043A674 7567                    jne 0043A6DD    \*当然是改这里咯！改为 je。   
-:0043A676 8D4DEC                  lea ecx, dword ptr \[ebp\-14\]   
-  
-\* Possible Reference to String Resource ID=00426: "CuteFTP consistency check failed. This means that you are pr"   
-                                  |   
-:0043A679 68AA010000              push 000001AA   
-:0043A67E 51                      push ecx   
-:0043A67F E85CAAFEFF              call 004250E0    \*\*\*\*这里是哦！   
-:0043A684 83C408                  add esp, 00000008   
-:0043A687 8B00                    mov eax, dword ptr \[eax\]   
-:0043A689 6A00                    push 00000000   
-运行看看！是不是正常了呢？虽然显示未注册，但是讨厌的的提示框却没有了！呵呵...到此完毕，收工！   
-  
-欢迎到访我们的网站：http:\\\\freecracker.myetang.com  4dd466d0e1e0cc123afbe504da2462ca
+## 背景介绍
+
+如何来破解有时间限制的软件呢？当然，方法有很多了。如果可以算到它的注册码，那是最理想的了。如果没有注册窗口或是算法非常复杂呢？那么采用爆破的方法就是最佳的途径。爆破，也就是通过修改程序本身来解除某种限制，也是很多初学者可以很容易掌握的方法！
+
+## 操作演示
+
+下面我们举个例子来具体说明一下：
+
+`CuteFTP V4.0` 上传软件，据说很是好用。很多网站都推崇它来上传主页！软件下载地址：`http://www.ty.sx.cn/software/down/cute4b10.exe`
+
+安装完毕后，有 30 天的使用限制。30 天一过，就会有讨厌的提示框。我们来除掉它。你可以找到注册框。但是它是在线注册的，那就只有爆破了！(除非你向他注册)
+
+首先备份一下，然后检查一下是否有壳的保护，幸好它没有！
+
+然后呢？当然是调一下时钟，使它过期。你运行试试，是不是有提示框弹出。调出 `ice` 或是 `trw2000`，我用 `ice`。
+
+下断 `bpx getsystemtime`
+
+回到程序，再运行它，程序会被中断，再按 30 几下 `F12` 来到它的领空：
+
+```
+:004AEE69 FF1548525000                 Call dword ptr [00505248]
+
+:004AEE6F 668B45EA                     mov ax, word ptr [ebp-16]   **停在这里
+
+:004AEE73 663B05B2345400               cmp ax, word ptr [005434B2]
+
+:004AEE7A 753B                         jne 004AEEB7
+
+:004AEE7C 668B45E8                     mov ax, word ptr [ebp-18]
+
+:004AEE80 663B05B0345400               cmp ax, word ptr [005434B0]
+
+:004AEE87 752E                         jne 004AEEB7
+
+:004AEE89 668B45E6                     mov ax, word ptr [ebp-1A]
+
+:004AEE8D 663B05AE345400               cmp ax, word ptr [005434AE]
+
+:004AEE94 7521                         jne 004AEEB7
+
+:004AEE96 668B45E2                     mov ax, word ptr [ebp-1E]
+
+:004AEE9A 663B05AA345400               cmp ax, word ptr [005434AA]
+
+:004AEEA1 7514                         jne 004AEEB7
+
+:004AEEA3 668B45E0                     mov ax, word ptr [ebp-20]
+
+:004AEEA7 663B05A8345400               cmp ax, word ptr [005434A8]
+
+:004AEEAE 7507                         jne 004AEEB7
+
+:004AEEB0 A1A0345400                   mov eax, dword ptr [005434A0]
+
+:004AEEB5 EB45                         jmp 004AEEFC
+```
+
+上面是程序在取一些关于时间的信息。如果你仔细查找的话，也许会找到蛛丝马迹。
+
+下面你只要按住 `F10` 让它继续执行下去，等待它出错。ok，出错了是吗？把它关掉。你又会马上回到 `ice` 中：
+
+```
+:0043ACD5 E8ACC10800                   call 004C6E86
+
+:0043ACDA 8D4C2454                     lea ecx, dword ptr [esp+54]
+
+:0043ACDE E89C7C0800                   call 004C297F ***这就是那个出错框的调用
+
+:0043ACE3 8D8C24B0000000               lea ecx, dword ptr [esp+000000B0] ***如果没有错的话，你应该是停到这儿。
+```
+
+现在按 `ctrl`+向上键找到可以跳过此地的跳转！
+
+```
+:0043AC6C FF1548505000                 Call dword ptr [00505048]
+
+:0043AC72 8B8668060000                 mov eax, dword ptr [esi+00000668]
+
+:0043AC78 C7866008000001000000         mov dword ptr [esi+00000860], 00000001
+
+:0043AC82 3BC3                         cmp eax, ebx
+
+:0043AC84 0F849C020000                 je 0043AF26        *****这里可以哦！把它改为 jne，我用 hiew 比较方便。
+
+:0043AC8A 53                           push ebx
+
+:0043AC8B 8D4C2458                     lea ecx, dword ptr [esp+58]
+
+:0043AC8F E8ACE00600                   call 004A8D40
+
+:0043AC94 8B442418                     mov eax, dword ptr [esp+18]
+
+:0043AC98 8B4C2424                     mov ecx, dword ptr [esp+24]
+
+:0043AC9C 50                           push eax
+
+:0043AC9D 51                           push ecx
+```
+
+你再运行一下试试？什么？出错了？提示程序被破坏或是被病毒感染？呵呵..这是作者下的圈套。他在程序中加了自校验，发现程序被改后马上报错！没有关系，我们把它也跳过去！呵呵...毒辣..
+
+在 `W32Dsam` 中查找出错的标志，比如：`consistency`。找到了，在这儿：
+
+```
+:0043A65D FF1500565000                 Call dword ptr [00505600]
+
+:0043A663 C7833C06000001000000         mov dword ptr [ebx+0000063C], 00000001
+
+:0043A66D E88ED90400                   call 00488000
+
+:0043A672 85C0                         test eax, eax
+
+:0043A674 7567                         jne 0043A6DD    *当然是改这里咯！改为 je。
+
+:0043A676 8D4DEC                       lea ecx, dword ptr [ebp-14]
+
+* Possible Reference to String Resource ID=00426: "CuteFTP consistency check failed. This means that you are pr"
+
+                                |
+
+:0043A679 68AA010000                   push 000001AA
+
+:0043A67E 51                           push ecx
+
+:0043A67F E85CAAFEFF                   call 004250E0    ****这里是哦！
+
+:0043A684 83C408                       add esp, 00000008
+
+:0043A687 8B00                         mov eax, dword ptr [eax]
+
+:0043A689 6A00                         push 00000000
+```
+
+运行看看！是不是正常了呢？虽然显示未注册，但是讨厌的的提示框却没有了！呵呵...到此完毕，收工！
+
+欢迎到访我们的网站：`http://freecracker.myetang.com` `4dd466d0e1e0cc123afbe504da2462ca`

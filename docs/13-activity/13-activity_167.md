@@ -1,13 +1,13 @@
 
-
 # 【代码之美】试题 1
 
 > 原文：[`www.pediy.com/kssd/pediy10/76542.html`](https://www.pediy.com/kssd/pediy10/76542.html)
 
-输入文件：in.txt  
-输出文件：out.txt  
-编译环境：ddk 2003  
-  
+输入文件：`in.txt`
+
+输出文件：`out.txt`
+
+编译环境：`ddk 2003`
 
 代码:
 
@@ -85,5 +85,4 @@ int \_\_cdecl main(void)
         fprintf(output\_file, "%d\\n", result\_array\[9\]);
     }
 }
-
 ```

@@ -1,134 +1,268 @@
 
-
 # PECompact 2.07 主程序
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6657.htm`](https://www.pediy.com/kssd/pediy06/pediy6657.htm)
 
-【  标题  】 PECompact 2.07 主程序的脱壳+日期破解  
-【  作者  】 实习生  
-【破解平台】 Win98  
-【下载地址】 [`www.bitsum.com/files/pec2setup.zip`](http://www.bitsum.com/files/pec2setup.zip)  
-【软件简介】 PECompact 是一个能压缩可执行文件的工具，通过压缩代码、数据、相关资源使压缩能达到 100%，由于在运行时不需要恢复磁盘上压缩后的数据，所以与没有压缩的程序在运行时没有明显的速度差异，在某种程度上还有所改善  
-【  声明  】 我是我，你是你，我只是学习你，研究你，打扰了 I'm Sorry!  
-OD 异常设置忽略所有异常，  
-pec2gui.exe  
-00401000 >  B8 B4F14100     MOV EAX,PEC2GUI.0041F1B4 //OD 载入停在这，保存 Seh 入口（记住它），先在 Seh 入口下断，F9 运行。  
-00401005    50              PUSH EAX  
-00401006    64:FF35 0000000>PUSH DWORD PTR FS:\[0\]  
-0040100D    64:8925 0000000>MOV DWORD PTR FS:\[0\],ESP  
-00401014    33C0            XOR EAX,EAX  
-00401016    8908            MOV DWORD PTR DS:\[EAX\],ECX //典型 PECompact 2.0X 内存异常。  
-  
-0041F1B4    B8 5DE141F0     MOV EAX,F041E15D //Seh 入口  
-0041F1B9    8D88 7A100010   LEA ECX,DWORD PTR DS:\[EAX+1000107A\]  
-0041F1BF    8941 01         MOV DWORD PTR DS:\[ECX+1\],EAX  
-0041F1C2    8B5424 04       MOV EDX,DWORD PTR SS:\[ESP+4\]  
-0041F1C6    8B52 0C         MOV EDX,DWORD PTR DS:\[EDX+C\]  
-0041F1C9    C602 E9         MOV BYTE PTR DS:\[EDX\],0E9  
-0041F1CC    83C2 05         ADD EDX,5  
-0041F1CF    2BCA            SUB ECX,EDX  
-0041F1D1    894A FC         MOV DWORD PTR DS:\[EDX\-4\],ECX  
-0041F1D4    33C0            XOR EAX,EAX  
-0041F1D6    C3              RETN  
-//直接运行或 Shif+F9 会停在这条死循环指令上：  
-0041F1D7  - E9 FBFFFFFF     JMP PEC2GUI.0041F1D7 //Die for ever!  
-0041F1DC    64:8F05 0000000>POP DWORD PTR FS:\[0\]  
-  
-//取消断点，Ctrl+F9，内存异常取消打钩，F8 一下停在这个异常指令上  
-0041F1C9    C602 E9         MOV BYTE PTR DS:\[EDX\],0E9  
-//重新忽略内存异常，重复在 Seh 入口 41F1B4 下断，Shift+F9 过异常，中断后取消断点，在当前位置直接 Ctrl+F 向下找 jmp eax ，并在上面 F2 下断点，F9 运行，停在 jmp eax 指令上，F7 或 F8 一下就到 OEP 了！  
-  
-0040D037    6A 18           PUSH 18 //OEP，破解了日期后再用 Lordpe 脱壳,ImportREC 进行 Fixed!  
-0040D039    68 A04C4100     PUSH PEC2GUI.00414CA0  
-0040D03E    E8 1D020000     CALL PEC2GUI.0040D260  
-  
-破解过期线索：Software\\Microsoft\\Windows\\CurrentVersion\\COMCTL  
-//反汇编查找字符串"Software\\Microsoft\\Windows\\CurrentVersion\\COMCTL"，它的位置在下面：  
-00402202    68 C0444100     PUSH PEC2GUI.004144C0                    ; ASCII "Software\\Microsoft\\Windows\\CurrentVersion\\COMCTL"  
-找到了再向下找到这样的代码：  
-004022EA    2BC6            SUB EAX,ESI  //eax 为试用的天数，esi 为使用过压缩以来的天数。  
-004022EC    5F              POP EDI  
-004022ED    8903            MOV DWORD PTR DS:\[EBX\],EAX //这个是你剩下使用的天数。  
-004022EF    85C0            TEST EAX,EAX  
-004022F1    5E              POP ESI  
-004022F2    0F9EC0          SETLE AL  
-004022F5    5B              POP EBX  
-004022F6    83C4 1C         ADD ESP,1C  
-004022F9    C2 0C00         RETN 0C  
-  
-修改（随你喜欢怎么改）后：  
-004022EA    5F              POP EDI  
-004022EB    C703 6D010000   MOV DWORD PTR DS:\[EBX\],16D //每年都有 365 日给你用啦！  
-004022F1    5E              POP ESI  
-004022F2    33C0            XOR EAX,EAX  
-004022F4    90              NOP  
-004022F5    5B              POP EBX  
-004022F6    83C4 1C         ADD ESP,1C  
-004022F9    C2 0C00         RETN 0C  
-//日期破解完毕，就 Dump 和 Fixed 吧！  
-  
-  
-PEC2.exe 脱壳破解与 Gui 主程序方法相同：  
-00401000 >  B8 5C4C4200     MOV EAX,PEC2.00424C5C //OD 载入停在这，保存 Seh 入口。  
-00401005    50              PUSH EAX  
-00401006    64:FF35 0000000>PUSH DWORD PTR FS:\[0\]  
-0040100D    64:8925 0000000>MOV DWORD PTR FS:\[0\],ESP  
-00401014    33C0            XOR EAX,EAX  
-00401016    8908            MOV DWORD PTR DS:\[EAX\],ECX //典型 PECompact 2.0X 内存异常。  
-//直接去 SEH 入口下断点，F9 运行停在 Seh 入口，清除断点  
-  
-00424C5C    B8 053C42F0     MOV EAX,F0423C05 // here!  
-00424C61    8D88 7A100010   LEA ECX,DWORD PTR DS:\[EAX+1000107A\]  
-00424C67    8941 01         MOV DWORD PTR DS:\[ECX+1\],EAX  
-00424C6A    8B5424 04       MOV EDX,DWORD PTR SS:\[ESP+4\]  
-00424C6E    8B52 0C         MOV EDX,DWORD PTR DS:\[EDX+C\]  
-00424C71    C602 E9         MOV BYTE PTR DS:\[EDX\],0E9 //存放解码  
-00424C74    83C2 05         ADD EDX,5  
-00424C77    2BCA            SUB ECX,EDX  
-00424C79    894A FC         MOV DWORD PTR DS:\[EDX\-4\],ECX //存放解码  
-00424C7C    33C0            XOR EAX,EAX  
-00424C7E    C3              RETN  
-直接运行或 Shif+F9 会停在这条死循环指令上：  
-00424C7F  - E9 FBFFFFFF     JMP PEC2.00424C7F //Die for ever  
-00424C84    64:8F05 0000000>POP DWORD PTR FS:\[0\]  
-//取消断点，Ctrl+F9，内存异常取消打钩，F8 一下停在这个异常指令上  
-00424C71    C602 E9         MOV BYTE PTR DS:\[EDX\],0E9 //上面的 F8 到了这里异常了  
-  
-00424C5C    B8 053C42F0     MOV EAX,F0423C05 //再次在这设断，Shif+F9 运行又停在这，该动手了，直接 Ctrl+F 向下找 jmp eax   
-  
-00424D2C    FFE0            JMP EAX //F2 下断点，F9 运行停在这，eax 为 00413392，借用一下“飞向光明之巅”。  
-00424D2E    0000            ADD BYTE PTR DS:\[EAX\],AL  
-00424D30    0000            ADD BYTE PTR DS:\[EAX\],AL  
-  
-00413392    6A 18           PUSH 18 //OEP，破解了日期后再用 Lordpe 脱壳,ImportREC 进行 Fixed!  
-00413394    68 C8D64100     PUSH PEC2.0041D6C8  
-00413399    E8 22020000     CALL PEC2.004135C0  
-  
-00401CA0  /$  83EC 1C       SUB ESP,1C  // call 入口  
-……找到关键地方  
-00401CC2  |.  68 90B24100   PUSH PEC2.0041B290                       ; |Subkey = "Software\\Microsoft\\Windows\\CurrentVersion\\COMCTL"  
-  
-向下找到这样的代码：  
-00401DAA  |.  2BC6          SUB EAX,ESI  //eax 为试用的天数，esi 为使用过压缩以来的天数。  
-00401DAC  |.  5F            POP EDI  
-00401DAD  |.  8903          MOV DWORD PTR DS:\[EBX\],EAX //这个是你剩下使用的天数。  
-00401DAF  |.  85C0          TEST EAX,EAX  
-00401DB1  |.  5E            POP ESI  
-00401DB2  |.  0F9EC0        SETLE AL  
-00401DB5  |.  5B            POP EBX  
-00401DB6  |.  83C4 1C       ADD ESP,1C  
-00401DB9  \\.  C2 0C00       RETN 0C  
-修改后：  
-00401DAA      5F            POP EDI  
-00401DAB      C703 6D010000 MOV DWORD PTR DS:\[EBX\],16D //每年都有 365 日给你用啦！  
-00401DB1      5E            POP ESI  
-00401DB2      33C0          XOR EAX,EAX  
-00401DB4      90            NOP  
-00401DB5  |.  5B            POP EBX  
-00401DB6  |.  83C4 1C       ADD ESP,1C  
-00401DB9  \\.  C2 0C00       RETN 0C  
-//日期破解完毕，就 Dump 和 Fixed 吧！  
-测试一下，正常运行加壳！破解日期方面简单点你也可以让其检测 Software\\Microsoft\\Windows\\CurrentVersion\\COMCTL 下面的判断不跳，则每次启动都作为首次使用日期登记到注册表。Enjoy!  
- ![](img/adbec7498846cbd1d0554bb891dc3e88.jpg)
+## 标题
+PECompact 2.07 主程序的脱壳+日期破解
 
- 4dd466d0e1e0cc123afbe504da2462ca
+## 作者
+实习生
+
+## 破解平台
+Win98
+
+## 下载地址
+[`www.bitsum.com/files/pec2setup.zip`](http://www.bitsum.com/files/pec2setup.zip)
+
+## 软件简介
+PECompact 是一个能压缩可执行文件的工具，通过压缩代码、数据、相关资源使压缩能达到 100%，由于在运行时不需要恢复磁盘上压缩后的数据，所以与没有压缩的程序在运行时没有明显的速度差异，在某种程度上还有所改善
+
+## 声明
+我是我，你是你，我只是学习你，研究你，打扰了 I'm Sorry!
+
+OD 异常设置忽略所有异常，
+
+```
+pec2gui.exe
+```
+
+```
+00401000 >   B8 B4F14100     MOV EAX,PEC2GUI.0041F1B4 //OD 载入停在这，保存 Seh 入口（记住它），先在 Seh 入口下断，F9 运行。
+
+00401005    50              PUSH EAX
+
+00401006    64:FF35 0000000>PUSH DWORD PTR FS:\[0\]
+
+0040100D    64:8925 0000000>MOV DWORD PTR FS:\[0\],ESP
+
+00401014    33C0            XOR EAX,EAX
+
+00401016    8908            MOV DWORD PTR DS:\[EAX\],ECX //典型 PECompact 2.0X 内存异常。
+
+0041F1B4    B8 5DE141F0     MOV EAX,F041E15D //Seh 入口
+
+0041F1B9    8D88 7A100010   LEA ECX,DWORD PTR DS:\[EAX+1000107A\]
+
+0041F1BF    8941 01         MOV DWORD PTR DS:\[ECX+1\],EAX
+
+0041F1C2    8B5424 04       MOV EDX,DWORD PTR SS:\[ESP+4\]
+
+0041F1C6    8B52 0C         MOV EDX,DWORD PTR DS:\[EDX+C\]
+
+0041F1C9    C602 E9         MOV BYTE PTR DS:\[EDX\],0E9
+
+0041F1CC    83C2 05         ADD EDX,5
+
+0041F1CF    2BCA            SUB ECX,EDX
+
+0041F1D1    894A FC         MOV DWORD PTR DS:\[EDX\-4\],ECX
+
+0041F1D4    33C0            XOR EAX,EAX
+
+0041F1D6    C3              RETN
+```
+
+//直接运行或 Shif+F9 会停在这条死循环指令上：
+
+```
+0041F1D7  - E9 FBFFFFFF     JMP PEC2GUI.0041F1D7 //Die for ever!
+
+0041F1DC    64:8F05 0000000>POP DWORD PTR FS:\[0\]
+```
+
+//取消断点，Ctrl+F9，内存异常取消打钩，F8 一下停在这个异常指令上
+
+```
+0041F1C9    C602 E9         MOV BYTE PTR DS:\[EDX\],0E9
+```
+
+//重新忽略内存异常，重复在 Seh 入口 41F1B4 下断，Shift+F9 过异常，中断后取消断点，在当前位置直接 Ctrl+F 向下找 jmp eax ，并在上面 F2 下断点，F9 运行，停在 jmp eax 指令上，F7 或 F8 一下就到 OEP 了！
+
+```
+0040D037    6A 18           PUSH 18 //OEP，破解了日期后再用 Lordpe 脱壳,ImportREC 进行 Fixed!
+
+0040D039    68 A04C4100     PUSH PEC2GUI.00414CA0
+
+0040D03E    E8 1D020000     CALL PEC2GUI.0040D260
+```
+
+破解过期线索：`Software\\Microsoft\\Windows\\CurrentVersion\\COMCTL`
+
+//反汇编查找字符串"Software\\Microsoft\\Windows\\CurrentVersion\\COMCTL"，它的位置在下面：
+
+```
+00402202    68 C0444100     PUSH PEC2GUI.004144C0                    ; ASCII "Software\\Microsoft\\Windows\\CurrentVersion\\COMCTL"
+```
+
+找到了再向下找到这样的代码：
+
+```
+004022EA    2BC6            SUB EAX,ESI  //eax 为试用的天数，esi 为使用过压缩以来的天数。
+
+004022EC    5F              POP EDI
+
+004022ED    8903            MOV DWORD PTR DS:\[EBX\],EAX //这个是你剩下使用的天数。
+
+004022EF    85C0            TEST EAX,EAX
+
+004022F1    5E              POP ESI
+
+004022F2    0F9EC0          SETLE AL
+
+004022F5    5B              POP EBX
+
+004022F6    83C4 1C         ADD ESP,1C
+
+004022F9    C2 0C00         RETN 0C
+```
+
+修改（随你喜欢怎么改）后：
+
+```
+004022EA    5F              POP EDI
+
+004022EB    C703 6D010000   MOV DWORD PTR DS:\[EBX\],16D //每年都有 365 日给你用啦！
+
+004022F1    5E              POP ESI
+
+004022F2    33C0            XOR EAX,EAX
+
+004022F4    90              NOP
+
+004022F5    5B              POP EBX
+
+004022F6    83C4 1C         ADD ESP,1C
+
+004022F9    C2 0C00         RETN 0C
+```
+
+//日期破解完毕，就 Dump 和 Fixed 吧！
+
+## PEC2.exe 脱壳破解与 Gui 主程序方法相同：
+
+```
+00401000 >   B8 5C4C4200     MOV EAX,PEC2.00424C5C //OD 载入停在这，保存 Seh 入口。
+
+00401005    50              PUSH EAX
+
+00401006    64:FF35 0000000>PUSH DWORD PTR FS:\[0\]
+
+0040100D    64:8925 0000000>MOV DWORD PTR FS:\[0\],ESP
+
+00401014    33C0            XOR EAX,EAX
+
+00401016    8908            MOV DWORD PTR DS:\[EAX\],ECX //典型 PECompact 2.0X 内存异常。
+```
+
+//直接去 SEH 入口下断点，F9 运行停在 Seh 入口，清除断点
+
+```
+00424C5C    B8 053C42F0     MOV EAX,F0423C05 // here!
+
+00424C61    8D88 7A100010   LEA ECX,DWORD PTR DS:\[EAX+1000107A\]
+
+00424C67    8941 01         MOV DWORD PTR DS:\[ECX+1\],EAX
+
+00424C6A    8B5424 04       MOV EDX,DWORD PTR SS:\[ESP+4\]
+
+00424C6E    8B52 0C         MOV EDX,DWORD PTR DS:\[EDX+C\]
+
+00424C71    C602 E9         MOV BYTE PTR DS:\[EDX\],0E9 //存放解码
+
+00424C74    83C2 05         ADD EDX,5
+
+00424C77    2BCA            SUB ECX,EDX
+
+00424C79    894A FC         MOV DWORD PTR DS:\[EDX\-4\],ECX //存放解码
+
+00424C7C    33C0            XOR EAX,EAX
+
+00424C7E    C3              RETN
+```
+
+直接运行或 Shif+F9 会停在这条死循环指令上：
+
+```
+00424C7F  - E9 FBFFFFFF     JMP PEC2.00424C7F //Die for ever
+
+00424C84    64:8F05 0000000>POP DWORD PTR FS:\[0\]
+```
+
+//取消断点，Ctrl+F9，内存异常取消打钩，F8 一下停在这个异常指令上
+
+```
+00424C71    C602 E9         MOV BYTE PTR DS:\[EDX\],0E9 //上面的 F8 到了这里异常了
+
+00424C5C    B8 053C42F0     MOV EAX,F0423C05 //再次在这设断，Shif+F9 运行又停在这，该动手了，直接 Ctrl+F 向下找 jmp eax
+
+00424D2C    FFE0            JMP EAX //F2 下断点，F9 运行停在这，eax 为 00413392，借用一下“飞向光明之巅”。
+
+00424D2E    0000            ADD BYTE PTR DS:\[EAX\],AL
+
+00424D30    0000            ADD BYTE PTR DS:\[EAX\],AL
+
+00413392    6A 18           PUSH 18 //OEP，破解了日期后再用 Lordpe 脱壳,ImportREC 进行 Fixed!
+
+00413394    68 C8D64100     PUSH PEC2.0041D6C8
+
+00413399    E8 22020000     CALL PEC2.004135C0
+
+00401CA0  /$  83EC 1C       SUB ESP,1C  // call 入口
+```
+
+……找到关键地方
+
+```
+00401CC2  |.  68 90B24100   PUSH PEC2.0041B290                       ; |Subkey = "Software\\Microsoft\\Windows\\CurrentVersion\\COMCTL"
+```
+
+向下找到这样的代码：
+
+```
+00401DAA  |.  2BC6          SUB EAX,ESI  //eax 为试用的天数，esi 为使用过压缩以来的天数。
+
+00401DAC  |.  5F            POP EDI
+
+00401DAD  |.  8903          MOV DWORD PTR DS:\[EBX\],EAX //这个是你剩下使用的天数。
+
+00401DAF  |.  85C0          TEST EAX,EAX
+
+00401DB1  |.  5E            POP ESI
+
+00401DB2  |.  0F9EC0        SETLE AL
+
+00401DB5  |.  5B            POP EBX
+
+00401DB6  |.  83C4 1C       ADD ESP,1C
+
+00401DB9  \\. C2 0C00       RETN 0C
+```
+
+修改后：
+
+```
+00401DAA      5F            POP EDI
+
+00401DAB      C703 6D010000 MOV DWORD PTR DS:\[EBX\],16D //每年都有 365 日给你用啦！
+
+00401DB1      5E            POP ESI
+
+00401DB2      33C0          XOR EAX,EAX
+
+00401DB4      90            NOP
+
+00401DB5  |.  5B            POP EBX
+
+00401DB6  |.  83C4 1C       ADD ESP,1C
+
+00401DB9  \\. C2 0C00       RETN 0C
+```
+
+//日期破解完毕，就 Dump 和 Fixed 吧！
+
+测试一下，正常运行加壳！破解日期方面简单点你也可以让其检测 `Software\\Microsoft\\Windows\\CurrentVersion\\COMCTL` 下面的判断不跳，则每次启动都作为首次使用日期登记到注册表。Enjoy!
+
+![](img/adbec7498846cbd1d0554bb891dc3e88.jpg)
+
+`4dd466d0e1e0cc123afbe504da2462ca`

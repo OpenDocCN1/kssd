@@ -1,11 +1,9 @@
 
-
 # 【代码之美】题 4
 
 > 原文：[`www.pediy.com/kssd/pediy10/73525.html`](https://www.pediy.com/kssd/pediy10/73525.html)
 
-哈哈我也来发一个。  
-  
+哈哈我也来发一个。
 
 代码:
 
@@ -114,9 +112,8 @@ int main(void)
   
     return 0;
 }
-
 ```
 
 上传的附件
-| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || 4.rar  
- |
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) || 4.rar |

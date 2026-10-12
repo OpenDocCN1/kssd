@@ -1,1587 +1,2107 @@
 
-
 # 神州数码 DCBA 认证逆向分析
 
 > 原文：[`www.pediy.com/kssd/pediy10/66258.html`](https://www.pediy.com/kssd/pediy10/66258.html)
 
-【文章标题】:神州数码 DCBA 认证逆向分析  
-【程序版本】:3.5.4.118  
-【文章作者】:51713137  
-【作者邮箱】:zhangding2003china@sina.com  
-【下载地址】:无  
-【使用工具】:ollyice,peid,科来网络分析仪,  
-【软件介绍】:网络认证系统  
-【作者声明】:只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
-此软件主流大学网实名认证系统。网上流传的大多为 802.1X 认证。DCBA 认证的文章还是很少的，今天就把我的逆向成果跟大家分享一下。  
-主程序文件名:DigitalChinaSupplicant.exe,大小 1.66 MB (1,750,272 字节)  
-peid 查壳是 Acpr1.41,主程序扔进 ollyice 脚本脱掉,脱壳后可以运行,大小 1.84 MB (1,933,312 字节)。  
-  
-把脱壳后的神州扔进 OLLYICE，开始逆向。在左下角的 COMMAND 下打命令 "bp Sento"（神州是 UDP 数据包进行验证，所以在发 UDP 的函数下断点）F9 运行，断下  
-![](img/5c92386c280dad9baa2c58524cf7eaa5.jpg)  
-在右下方的堆栈窗口返回到程序空间  
-![](img/cf9b1ff3cfcc008c052f878a11e48bd3.jpg)  
-向前看，找到  004048E6      call    00405390    这个函数  F7 跟进  
-00405390  /$>sub     esp, 30  
-00405393  |.>push    ebx  
-00405394  |.>push    ebp  
-00405395  |.>mov     ebp, dword ptr \[esp+3C\]  
-00405399  |.>xor     eax, eax  
-0040539B  |.>xor     ecx, ecx  
-0040539D  |.>mov     dword ptr \[esp+14\], eax  
-004053A1  |.>mov     byte ptr \[ebp\], 1                ;  写 1  
-004053A5  |.>inc     ebp  
-004053A6  |.>mov     edx, ebp  
-004053A8  |.>mov     dword ptr \[esp+18\], eax  
-004053AC  |.>mov     dword ptr \[esp+10\], ebp  
-004053B0  |.>add     ebp, 11  
-004053B3  |.>mov     dword ptr \[edx\], ecx  
-004053B5  |.>mov     dword ptr \[esp+1C\], eax  
-004053B9  |.>mov     dword ptr \[esp+20\], eax  
-004053BD  |.>inc     ebp  
-004053BE  |.>mov     dword ptr \[edx+4\], ecx  
-004053C1  |.>push    esi  
-004053C2  |.>push    edi  
-004053C3  |.>mov     dword ptr \[edx+8\], ecx  
-004053C6  |.>mov     dword ptr \[edx+C\], ecx  
-004053C9  |.>mov     byte ptr \[edx+10\], cl  
-004053CC  |.>mov     byte ptr \[ebp-1\], 1              ;  跳过 17 字节写 1  
-004053D0  |.>mov     eax, dword ptr \[42CB54\]  
-004053D5  |.>mov     eax, dword ptr \[eax-8\]  
-004053D8  |.>mov     cl, al  
-004053DA  |.>add     cl, 2  
-004053DD  |.>lea     ebx, dword ptr \[eax+14\]  
-004053E0  |.>mov     byte ptr \[ebp\], cl               ;  用户名长度+2  
-004053E3  |.>mov     esi, dword ptr \[42CB54\]  
-004053E9  |.>mov     ecx, eax  
-004053EB  |.>inc     ebp  
-004053EC  |.>mov     edx, ecx  
-004053EE  |.>mov     edi, ebp  
-004053F0  |.>shr     ecx, 2  
-004053F3  |.>rep     movs dword ptr es:\[edi\], dword p>;  写用户名  
-004053F5  |.>mov     ecx, edx  
-004053F7  |.>add     ebp, eax  
-004053F9  |.>and     ecx, 3  
-004053FC  |.>inc     ebp  
-004053FD  |.>rep     movs byte ptr es:\[edi\], byte ptr>;  写用户名  
-004053FF  |.>mov     byte ptr \[ebp-1\], 2  
-00405403  |.>mov     eax, dword ptr \[42CB58\]          ;  写 2  
-00405408  |.>mov     eax, dword ptr \[eax-8\]  
-0040540B  |.>mov     cl, al  
-0040540D  |.>add     cl, 2  
-00405410  |.>lea     ebx, dword ptr \[ebx+eax+2\]  
-00405414  |.>mov     byte ptr \[ebp\], cl               ;  密码长度+2  
-00405417  |.>mov     esi, dword ptr \[42CB58\]  
-0040541D  |.>mov     ecx, eax  
-0040541F  |.>inc     ebp  
-00405420  |.>mov     edx, ecx  
-00405422  |.>mov     edi, ebp  
-00405424  |.>shr     ecx, 2  
-00405427  |.>rep     movs dword ptr es:\[edi\], dword p>;  写密码  
-00405429  |.>mov     ecx, edx  
-0040542B  |.>add     ebp, eax  
-0040542D  |.>and     ecx, 3  
-00405430  |.>inc     ebp  
-00405431  |.>rep     movs byte ptr es:\[edi\], byte ptr>;  写密码  
-00405433  |.>mov     byte ptr \[ebp-1\], 7              ;  写 07  
-00405437  |.>mov     byte ptr \[ebp\], 8                ;  写 08  
-0040543B  |.>mov     eax, dword ptr \[453FA8\]  
-00405440  |.>inc     ebp  
-00405441  |.>add     eax, 10  
-00405444  |.>mov     ecx, ebp  
-00405446  |.>add     ebp, 6  
-00405449  |.>add     ebx, 8  
-0040544C  |.>mov     edx, dword ptr \[eax\]  
-0040544E  |.>inc     ebp  
-0040544F  |.>mov     dword ptr \[ecx\], edx  
-00405451  |.>mov     ax, word ptr \[eax+4\]  
-00405455  |.>mov     word ptr \[ecx+4\], ax             ;  写 MAC 地址  
-00405459  |.>mov     byte ptr \[ebp-1\], 9              ;  写 09  
-0040545D  |.>mov     ecx, dword ptr \[453FA8\]          ;  已脱壳未.00450B64  
-00405463  |.>mov     eax, dword ptr \[ecx+674\]  
-00405469  |.>mov     edx, eax  
-0040546B  |.>mov     dword ptr \[esp+10\], eax  
-0040546F  |.>shr     edx, 18  
-00405472  |.>push    edx                              ; /<%d>  
-00405473  |.>xor     ecx, ecx                         ; |  
-00405475  |.>mov     cl, byte ptr \[esp+16\]            ; |  
-00405479  |.>xor     edx, edx                         ; |  
-0040547B  |.>mov     dl, ah                           ; |  
-0040547D  |.>push    ecx                              ; |<%d>  
-0040547E  |.>and     eax, 0FF                         ; |  
-00405483  |.>push    edx                              ; |<%d>  
-00405484  |.>push    eax                              ; |<%d>  
-00405485  |.>lea     eax, dword ptr \[esp+3C\]          ; |  
-00405489  |.>push    00423F68                        ;|%d.%d.%d.%d servicename:%s \\n  
-0040548E  |.>push    eax                              ; |s  
-0040548F  |.>call    dword ptr \[<&msvcrt.sprintf>\]    ; \\sprintf  
-00405495  |.>lea     ecx, dword ptr \[esp+44\]  
-00405499  |.>push    ecx  
-0040549A  |.>push    00423F88                         ;   localip:%s \\n  
-0040549F  |.>push    1  
-004054A1  |.>call    0041BE30  
-004054A6  |.>lea     edi, dword ptr \[esp+50\]  
-004054AA  |.>or      ecx, FFFFFFFF  
-004054AD  |.>xor     eax, eax  
-004054AF  |.>lea     esi, dword ptr \[esp+50\]  
-004054B3  |.>repne   scas byte ptr es:\[edi\]  
-004054B5  |.>not     ecx  
-004054B7  |.>dec     ecx  
-004054B8  |.>mov     eax, ecx  
-004054BA  |.>mov     dl, al  
-004054BC  |.>add     dl, 2  
-004054BF  |.>mov     byte ptr \[ebp\], dl               ;  ip 地址长度+2  
-004054C2  |.>inc     ebp  
-004054C3  |.>mov     edx, ecx  
-004054C5  |.>mov     edi, ebp  
-004054C7  |.>shr     ecx, 2  
-004054CA  |.>rep     movs dword ptr es:\[edi\], dword p>;  写 IP  
-004054CC  |.>mov     ecx, edx  
-004054CE  |.>add     ebp, eax  
-004054D0  |.>and     ecx, 3  
-004054D3  |.>lea     eax, dword ptr \[ebx+eax+2\]  
-004054D7  |.>rep     movs byte ptr es:\[edi\], byte ptr>;  写 IP  
-004054D9  |.>mov     byte ptr \[ebp\], 0A               ;  写 0A  
-004054DD  |.>mov     ecx, dword ptr \[42CB80\]  
-004054E3  |.>inc     ebp  
-004054E4  |.>mov     dword ptr \[esp+34\], eax  
-004054E8  |.>mov     ebx, dword ptr \[ecx-8\]  
-004054EB  |.>mov     dl, bl  
-004054ED  |.>mov     dword ptr \[esp+38\], ebx  
-004054F1  |.>add     dl, 2  
-004054F4  |.>mov     byte ptr \[ebp\], dl               ;  写 0A  
-004054F7  |.>mov     eax, dword ptr \[42CB80\]  
-004054FC  |.>push    eax  
-004054FD  |.>push    00423F74                         ;   servicename:%s \\n  
-00405502  |.>push    1  
-00405504  |.>inc     ebp  
-00405505  |.>call    0041BE30  
-0040550A  |.>mov     esi, dword ptr \[42CB80\]  
-00405510  |.>mov     ecx, ebx  
-00405512  |.>mov     edx, ecx  
-00405514  |.>mov     edi, ebp  
-00405516  |.>shr     ecx, 2  
-00405519  |.>rep    movs dword ptr es:\[edi\], dword p>;  写服务类型 此处为"internet"  
-0040551B  |.>mov     ecx, edx  
-0040551D  |.>add     ebp, ebx  
-0040551F  |.>and     ecx, 3  
-00405522  |.>inc     ebp  
-00405523  |.>rep     movs byte ptr es:\[edi\], byte ptr>  
-00405525  |.>mov     byte ptr \[ebp-1\], 1F             ;  写 1F  
-00405529  |.>mov     byte ptr \[ebp\], 0F               ;  写 0F  
-0040552D  |.>mov     ecx, dword ptr \[454B80\]  
-00405533  |.>inc     ebp  
-00405534  |.>mov     eax, ebp  
-00405536  |.>add     ebp, 0D  
-00405539  |.>inc     ebp  
-0040553A  |.>push    1  
-0040553C  |.>mov     dword ptr \[eax\], ecx  
-0040553E  |.>mov     edx, dword ptr \[454B84\]  
-00405544  |.>mov     dword ptr \[eax+4\], edx  
-00405547  |.>mov     ecx, dword ptr \[454B88\]  
-0040554D  |.>mov     dword ptr \[eax+8\], ecx  
-00405550  |.>mov     dl, byte ptr \[454B8C\]  
-00405556  |.>mov     byte ptr \[eax+C\], dl             ;  写版本号 此处为"3.5.04.0118"  
-00405559  |.>mov     byte ptr \[ebp-1\], 25             ;  写 25  
-0040555D  |.>mov     byte ptr \[ebp\], 47               ;  写 47  
-00405561  |.>call    00417170  
-00405566  |.>mov     ebx, eax  
-00405568  |.>add     esp, 34  
-0040556B  |.>mov     ax, word ptr \[ebx+41\]  
-0040556F  |.>push    eax                              ; /NetShort  
-00405570  |.>call    dword ptr \[<&ws2\_32.htons>\]      ; \\ntohs  
-00405576  |.>lea     edi, dword ptr \[ebp+1\]  
-00405579  |.>mov     ecx, 11  
-0040557E  |.>mov     esi, ebx  
-00405580  |.>mov     word ptr \[ebx+41\], ax  
-00405584  |.>rep     movs dword ptr es:\[edi\], dword p>  
-00405586  |.>movs    byte ptr es:\[edi\], byte ptr \[esi>  
-00405587  |.>mov     cx, word ptr \[ebx+41\]  
-0040558B  |.>push    ecx                              ; /NetShort  
-0040558C  |.>call    dword ptr \[<&ws2\_32.htons>\]      ; \\ntohs  
-00405592  |.>mov     edx, dword ptr \[esp+10\]  
-00405596  |.>mov     esi, dword ptr \[esp+44\]  
-0040559A  |.>mov     edi, dword ptr \[esp+18\]  
-0040559E  |.>mov     word ptr \[ebx+41\], ax  
-004055A2  |.>mov     eax, dword ptr \[esp+14\]  
-004055A6  |.>lea     ecx, dword ptr \[esp+1C\]  
-004055AA  |.>lea     ebx, dword ptr \[edx+eax+58\]  
-004055AE  |.>push    ebx  
-004055AF  |.>push    esi  
-004055B0  |.>push    ecx  
-004055B1  |.>mov     byte ptr \[edi\], bl               ;  写报文长度,位置在报文的第 2 个字节  
-004055B3  |.>call    0040FD10                         ;  类 MD5 算法（不标准）,填充报文的 3-18 字节处  
-004055B8  |.>mov     edx, dword ptr \[esp+28\]  
-004055BC  |.>mov     eax, dword ptr \[esp+2C\]  
-004055C0  |.>mov     ecx, dword ptr \[esp+30\]  
-004055C4  |.>inc     edi  
-004055C5  |.>push    ebx  
-004055C6  |.>push    esi  
-004055C7  |.>mov     dword ptr \[edi\], edx  
-004055C9  |.>mov     edx, dword ptr \[esp+3C\]  
-004055CD  |.>mov     dword ptr \[edi+4\], eax  
-004055D0  |.>mov     dword ptr \[edi+8\], ecx  
-004055D3  |.>mov     dword ptr \[edi+C\], edx  
-004055D6  |.>call    dword ptr \[429E34\]               ;  报文加密算法  
-004055DC  |.>add     esp, 14  
-004055DF  |.>mov     eax, ebx  
-004055E1  |.>pop     edi  
-004055E2  |.>pop     esi  
-004055E3  |.>pop     ebp  
-004055E4  |.>pop     ebx  
-004055E5  |.>add     esp, 30  
-004055E8  \\.>retn  
-  
-堆栈的数据如下图  
-![](img/cc19e554826b482f6a8d7b5e8ec2770b.jpg)  
-  
-  
-  
-0040FEA0   /$>sub     esp, 40              //类 MD5 算法  
-0040FEA3   |.>mov     ecx, dword ptr \[esp+48\]  
-0040FEA7   |.>push    ebx  
-0040FEA8   |.>push    ebp  
-0040FEA9   |.>push    esi  
-0040FEAA   |.>mov     esi, dword ptr \[esp+50\]  
-0040FEAE   |.>push    edi  
-0040FEAF   |.>push    40  
-0040FEB1   |.>lea     edx, dword ptr \[esp+14\]  
-0040FEB5   |.>mov     eax, dword ptr \[esi\]      ;链值  
-0040FEB7   |.>mov     edi, dword ptr \[esi+4\]     ;链值  
-0040FEBA   |.>mov     ebx, dword ptr \[esi+8\]   ;链值  
-0040FEBD   |.>mov     ebp, dword ptr \[esi+C\]      ;链值  
-0040FEC0   |.>push    ecx               
-0040FEC1   |.>push    edx  
-0040FEC2   |.>mov     dword ptr \[esp+60\], eax  
-0040FEC6   |.>call    00410840          
-0040FECB   |.>mov     eax, edi  
-0040FECD   |.>mov     edx, dword ptr \[esp+60\]  
-0040FED1   |.>not     eax  
-0040FED3   |.>mov     ecx, ebx  
-0040FED5   |.>and     eax, ebp  
-0040FED7   |.>and     ecx, edi  
-0040FED9   |.>or      eax, ecx  
-0040FEDB   |.>mov     ecx, dword ptr \[esp+1C\]       ;取报文前 4 个字节进行运算,以下这个语句就是取数，略。  
-0040FEDF   |.>add     eax, ecx  
-0040FEE1   |.>lea     ecx, dword ptr \[edx+eax+D76AA478>  
-0040FEE8   |.>mov     edx, edi  
-0040FEEA   |.>mov     eax, ecx  
-0040FEEC   |.>shr     eax, 19  
-0040FEEF   |.>shl     ecx, 7  
-0040FEF2   |.>or      eax, ecx  
-0040FEF4   |.>add     eax, edi  
-0040FEF6   |.>mov     ecx, eax  
-0040FEF8   |.>and     edx, eax  
-0040FEFA   |.>not     ecx  
-0040FEFC   |.>and     ecx, ebx  
-0040FEFE   |.>or      ecx, edx  
-0040FF00   |.>mov     edx, dword ptr \[esp+20\]  
-0040FF04   |.>add     ecx, edx  
-0040FF06   |.>lea     edx, dword ptr \[ecx+ebp+E8C7B756>  
-0040FF0D   |.>mov     ecx, edx  
-0040FF0F   |.>shr     ecx, 14  
-0040FF12   |.>shl     edx, 0C  
-0040FF15   |.>or      ecx, edx  
-0040FF17   |.>add     ecx, eax  
-0040FF19   |.>mov     edx, ecx  
-0040FF1B   |.>mov     ebp, ecx  
-0040FF1D   |.>not     edx  
-0040FF1F   |.>and     edx, edi  
-0040FF21   |.>and     ebp, eax  
-0040FF23   |.>or      edx, ebp  
-0040FF25   |.>mov     ebp, dword ptr \[esp+24\]  
-0040FF29   |.>add     edx, ebp  
-0040FF2B   |.>mov     ebp, ecx  
-0040FF2D   |.>lea     ebx, dword ptr \[ebx+edx+242070DB>  
-0040FF34   |.>mov     edx, ebx  
-0040FF36   |.>shr     edx, 0F  
-0040FF39   |.>shl     ebx, 11  
-0040FF3C   |.>or      edx, ebx  
-0040FF3E   |.>add     edx, ecx  
-0040FF40   |.>mov     ebx, edx  
-0040FF42   |.>and     ebp, edx  
-0040FF44   |.>not     ebx  
-0040FF46   |.>and     ebx, eax  
-0040FF48   |.>or      ebx, ebp  
-0040FF4A   |.>mov     ebp, dword ptr \[esp+28\]  
-0040FF4E   |.>add     ebx, ebp  
-0040FF50   |.>lea     ebx, dword ptr \[edi+ebx+C1BDCEEE>  
-0040FF57   |.>mov     edi, ebx  
-0040FF59   |.>shl     edi, 16  
-0040FF5C   |.>shr     ebx, 0A  
-0040FF5F   |.>or      edi, ebx  
-0040FF61   |.>mov     ebx, edx  
-0040FF63   |.>add     edi, edx  
-0040FF65   |.>mov     dword ptr \[esp+60\], edi  
-0040FF69   |.>mov     ebp, dword ptr \[esp+60\]  
-0040FF6D   |.>not     edi  
-0040FF6F   |.>and     edi, ecx  
-0040FF71   |.>and     ebx, ebp  
-0040FF73   |.>mov     ebp, dword ptr \[esp+2C\]  
-0040FF77   |.>or      edi, ebx  
-0040FF79   |.>add     edi, ebp  
-0040FF7B   |.>mov     ebx, dword ptr \[esp+60\]  
-0040FF7F   |.>mov     ebp, ebx  
-0040FF81   |.>lea     eax, dword ptr \[eax+edi+F57C0FAF>  
-0040FF88   |.>mov     edi, eax  
-0040FF8A   |.>shr     edi, 19  
-0040FF8D   |.>shl     eax, 7  
-0040FF90   |.>or      edi, eax  
-0040FF92   |.>add     edi, ebx  
-0040FF94   |.>mov     eax, edi  
-0040FF96   |.>and     ebp, edi  
-0040FF98   |.>not     eax  
-0040FF9A   |.>and     eax, edx  
-0040FF9C   |.>or      eax, ebp  
-0040FF9E   |.>mov     ebp, dword ptr \[esp+30\]  
-0040FFA2   |.>add     eax, ebp  
-0040FFA4   |.>lea     ecx, dword ptr \[ecx+eax+4787C62A>  
-0040FFAB   |.>mov     eax, ecx  
-0040FFAD   |.>shr     eax, 14  
-0040FFB0   |.>shl     ecx, 0C  
-0040FFB3   |.>or      eax, ecx  
-0040FFB5   |.>add     eax, edi  
-0040FFB7   |.>mov     ecx, eax  
-0040FFB9   |.>mov     ebp, eax  
-0040FFBB   |.>not     ecx  
-0040FFBD   |.>and     ecx, ebx  
-0040FFBF   |.>and     ebp, edi  
-0040FFC1   |.>or      ecx, ebp  
-0040FFC3   |.>mov     ebp, dword ptr \[esp+34\]  
-0040FFC7   |.>add     ecx, ebp  
-0040FFC9   |.>mov     ebp, eax  
-0040FFCB   |.>lea     edx, dword ptr \[edx+ecx+A8304613>  
-0040FFD2   |.>mov     ecx, edx  
-0040FFD4   |.>shr     ecx, 0F  
-0040FFD7   |.>shl     edx, 11  
-0040FFDA   |.>or      ecx, edx  
-0040FFDC   |.>add     ecx, eax  
-0040FFDE   |.>mov     edx, ecx  
-0040FFE0   |.>and     ebp, ecx  
-0040FFE2   |.>not     edx  
-0040FFE4   |.>and     edx, edi  
-0040FFE6   |.>or      edx, ebp  
-0040FFE8   |.>mov     ebp, dword ptr \[esp+38\]  
-0040FFEC   |.>add     edx, ebp  
-0040FFEE   |.>lea     ebx, dword ptr \[ebx+edx+FD469501>  
-0040FFF5   |.>mov     edx, ebx  
-0040FFF7   |.>shl     edx, 16  
-0040FFFA   |.>shr     ebx, 0A  
-0040FFFD   |.>or      edx, ebx  
-0040FFFF   |.>mov     ebx, ecx  
-00410001   |.>add     edx, ecx  
-00410003   |.>mov     dword ptr \[esp+60\], edx  
-00410007   |.>mov     ebp, dword ptr \[esp+60\]  
-0041000B   |.>not     edx  
-0041000D   |.>and     edx, eax  
-0041000F   |.>and     ebx, ebp  
-00410011   |.>mov     ebp, dword ptr \[esp+3C\]  
-00410015   |.>or      edx, ebx  
-00410017   |.>add     edx, ebp  
-00410019   |.>mov     ebx, dword ptr \[esp+60\]  
-0041001D   |.>mov     ebp, ebx  
-0041001F   |.>lea     edi, dword ptr \[edi+edx+698098D8>  
-00410026   |.>mov     edx, edi  
-00410028   |.>shr     edx, 19  
-0041002B   |.>shl     edi, 7  
-0041002E   |.>or      edx, edi  
-00410030   |.>add     edx, ebx  
-00410032   |.>mov     edi, edx  
-00410034   |.>and     ebp, edx  
-00410036   |.>not     edi  
-00410038   |.>and     edi, ecx  
-0041003A   |.>or      edi, ebp  
-0041003C   |.>mov     ebp, dword ptr \[esp+40\]  
-00410040   |.>add     edi, ebp  
-00410042   |.>lea     eax, dword ptr \[eax+edi+8B44F7AF>  
-00410049   |.>mov     edi, eax  
-0041004B   |.>shr     edi, 14  
-0041004E   |.>shl     eax, 0C  
-00410051   |.>or      edi, eax  
-00410053   |.>add     edi, edx  
-00410055   |.>mov     eax, edi  
-00410057   |.>not     eax  
-00410059   |.>mov     ebp, edi  
-0041005B   |.>and     eax, ebx  
-0041005D   |.>and     ebp, edx  
-0041005F   |.>or      eax, ebp  
-00410061   |.>mov     ebp, dword ptr \[esp+44\]  
-00410065   |.>add     eax, ebp  
-00410067   |.>mov     ebp, edi  
-00410069   |.>lea     ecx, dword ptr \[ecx+eax+FFFF5BB1>  
-00410070   |.>mov     eax, ecx  
-00410072   |.>shr     eax, 0F  
-00410075   |.>shl     ecx, 11  
-00410078   |.>or      eax, ecx  
-0041007A   |.>add     eax, edi  
-0041007C   |.>mov     ecx, eax  
-0041007E   |.>and     ebp, eax  
-00410080   |.>not     ecx  
-00410082   |.>and     ecx, edx  
-00410084   |.>or      ecx, ebp  
-00410086   |.>mov     ebp, dword ptr \[esp+48\]  
-0041008A   |.>add     ecx, ebp  
-0041008C   |.>lea     ebx, dword ptr \[ebx+ecx+895CD7BE>  
-00410093   |.>mov     ecx, ebx  
-00410095   |.>shl     ecx, 16  
-00410098   |.>shr     ebx, 0A  
-0041009B   |.>or      ecx, ebx  
-0041009D   |.>mov     ebx, eax  
-0041009F   |.>add     ecx, eax  
-004100A1   |.>mov     dword ptr \[esp+60\], ecx  
-004100A5   |.>mov     ebp, dword ptr \[esp+60\]  
-004100A9   |.>not     ecx  
-004100AB   |.>and     ecx, edi  
-004100AD   |.>and     ebx, ebp  
-004100AF   |.>mov     ebp, dword ptr \[esp+4C\]  
-004100B3   |.>or      ecx, ebx  
-004100B5   |.>add     ecx, ebp  
-004100B7   |.>mov     ebx, dword ptr \[esp+60\]  
-004100BB   |.>mov     ebp, ebx  
-004100BD   |.>lea     edx, dword ptr \[edx+ecx+6B901122>  
-004100C4   |.>mov     ecx, edx  
-004100C6   |.>shr     ecx, 19  
-004100C9   |.>shl     edx, 7  
-004100CC   |.>or      ecx, edx  
-004100CE   |.>add     ecx, ebx  
-004100D0   |.>mov     edx, ecx  
-004100D2   |.>and     ebp, ecx  
-004100D4   |.>not     edx  
-004100D6   |.>and     edx, eax  
-004100D8   |.>or      edx, ebp  
-004100DA   |.>mov     ebp, dword ptr \[esp+50\]  
-004100DE   |.>add     edx, ebp  
-004100E0   |.>lea     edi, dword ptr \[edi+edx+FD987193>  
-004100E7   |.>mov     edx, edi  
-004100E9   |.>shr     edx, 14  
-004100EC   |.>shl     edi, 0C  
-004100EF   |.>or      edx, edi  
-004100F1   |.>add     edx, ecx  
-004100F3   |.>mov     ebp, edx  
-004100F5   |.>mov     edi, edx  
-004100F7   |.>not     ebp  
-004100F9   |.>and     edi, ecx  
-004100FB   |.>and     ebx, ebp  
-004100FD   |.>or      edi, ebx  
-004100FF   |.>mov     ebx, dword ptr \[esp+54\]  
-00410103   |.>add     edi, ebx  
-00410105   |.>mov     ebx, edx  
-00410107   |.>lea     eax, dword ptr \[eax+edi+A679438E>  
-0041010E   |.>mov     edi, eax  
-00410110   |.>shr     edi, 0F  
-00410113   |.>shl     eax, 11  
-00410116   |.>or      edi, eax  
-00410118   |.>add     edi, edx  
-0041011A   |.>mov     eax, edi  
-0041011C   |.>and     ebx, edi  
-0041011E   |.>not     eax  
-00410120   |.>mov     dword ptr \[esp+64\], eax  
-00410124   |.>and     eax, ecx  
-00410126   |.>or      eax, ebx  
-00410128   |.>mov     ebx, dword ptr \[esp+58\]  
-0041012C   |.>add     eax, ebx  
-0041012E   |.>mov     ebx, dword ptr \[esp+60\]  
-00410132   |.>lea     ebx, dword ptr \[ebx+eax+49B40821>  
-00410139   |.>mov     eax, ebx  
-0041013B   |.>shl     eax, 16  
-0041013E   |.>shr     ebx, 0A  
-00410141   |.>or      eax, ebx  
-00410143   |.>mov     ebx, edx  
-00410145   |.>add     eax, edi  
-00410147   |.>mov     dword ptr \[esp+60\], eax  
-0041014B   |.>and     ebx, eax  
-0041014D   |.>mov     eax, edi  
-0041014F   |.>and     eax, ebp  
-00410151   |.>mov     ebp, dword ptr \[esp+20\]  
-00410155   |.>or      ebx, eax  
-00410157   |.>add     ebx, ebp  
-00410159   |.>mov     ebp, edi  
-0041015B   |.>lea     ecx, dword ptr \[ecx+ebx+F61E2562>  
-00410162   |.>mov     ebx, dword ptr \[esp+60\]  
-00410166   |.>mov     eax, ecx  
-00410168   |.>shr     eax, 1B  
-0041016B   |.>shl     ecx, 5  
-0041016E   |.>or      eax, ecx  
-00410170   |.>mov     ecx, dword ptr \[esp+64\]  
-00410174   |.>add     eax, ebx  
-00410176   |.>and     ecx, ebx  
-00410178   |.>and     ebp, eax  
-0041017A   |.>or      ecx, ebp  
-0041017C   |.>mov     ebp, dword ptr \[esp+34\]  
-00410180   |.>add     ecx, ebp  
-00410182   |.>mov     ebp, dword ptr \[esp+60\]  
-00410186   |.>not     ebx  
-00410188   |.>lea     edx, dword ptr \[edx+ecx+C040B340>  
-0041018F   |.>and     ebx, eax  
-00410191   |.>mov     ecx, edx  
-00410193   |.>shr     ecx, 17  
-00410196   |.>shl     edx, 9  
-00410199   |.>or      ecx, edx  
-0041019B   |.>add     ecx, eax  
-0041019D   |.>mov     edx, ecx  
-0041019F   |.>and     edx, ebp  
-004101A1   |.>mov     ebp, dword ptr \[esp+48\]  
-004101A5   |.>or      ebx, edx  
-004101A7   |.>add     ebx, ebp  
-004101A9   |.>lea     edi, dword ptr \[edi+ebx+265E5A51>  
-004101B0   |.>mov     edx, edi  
-004101B2   |.>shr     edx, 12  
-004101B5   |.>shl     edi, 0E  
-004101B8   |.>or      edx, edi  
-004101BA   |.>mov     edi, eax  
-004101BC   |.>add     edx, ecx  
-004101BE   |.>not     edi  
-004101C0   |.>mov     ebx, edx  
-004101C2   |.>and     edi, ecx  
-004101C4   |.>and     ebx, eax  
-004101C6   |.>or      edi, ebx  
-004101C8   |.>mov     ebx, dword ptr \[esp+1C\]  
-004101CC   |.>add     edi, ebx  
-004101CE   |.>mov     ebx, dword ptr \[esp+60\]  
-004101D2   |.>lea     ebx, dword ptr \[ebx+edi+E9B6C7AA>  
-004101D9   |.>mov     edi, ebx  
-004101DB   |.>shl     edi, 14  
-004101DE   |.>shr     ebx, 0C  
-004101E1   |.>or      edi, ebx  
-004101E3   |.>mov     ebx, ecx  
-004101E5   |.>add     edi, edx  
-004101E7   |.>mov     dword ptr \[esp+60\], edi  
-004101EB   |.>mov     edi, ecx  
-004101ED   |.>mov     ebp, dword ptr \[esp+60\]  
-004101F1   |.>not     edi  
-004101F3   |.>and     edi, edx  
-004101F5   |.>and     ebx, ebp  
-004101F7   |.>mov     ebp, dword ptr \[esp+30\]  
-004101FB   |.>or      edi, ebx  
-004101FD   |.>add     edi, ebp  
-004101FF   |.>mov     ebx, dword ptr \[esp+60\]  
-00410203   |.>lea     eax, dword ptr \[eax+edi+D62F105D>  
-0041020A   |.>mov     edi, eax  
-0041020C   |.>shr     edi, 1B  
-0041020F   |.>shl     eax, 5  
-00410212   |.>or      edi, eax  
-00410214   |.>mov     eax, edx  
-00410216   |.>add     edi, ebx  
-00410218   |.>not     eax  
-0041021A   |.>mov     ebp, edx  
-0041021C   |.>and     eax, ebx  
-0041021E   |.>and     ebp, edi  
-00410220   |.>or      eax, ebp  
-00410222   |.>mov     ebp, dword ptr \[esp+44\]  
-00410226   |.>add     eax, ebp  
-00410228   |.>mov     ebp, dword ptr \[esp+60\]  
-0041022C   |.>not     ebx  
-0041022E   |.>lea     ecx, dword ptr \[ecx+eax+2441453\]  
-00410235   |.>and     ebx, edi  
-00410237   |.>mov     eax, ecx  
-00410239   |.>shr     eax, 17  
-0041023C   |.>shl     ecx, 9  
-0041023F   |.>or      eax, ecx  
-00410241   |.>add     eax, edi  
-00410243   |.>mov     ecx, eax  
-00410245   |.>and     ecx, ebp  
-00410247   |.>mov     ebp, dword ptr \[esp+58\]  
-0041024B   |.>or      ebx, ecx  
-0041024D   |.>add     ebx, ebp  
-0041024F   |.>lea     edx, dword ptr \[edx+ebx+D8A1E681>  
-00410256   |.>mov     ecx, edx  
-00410258   |.>shr     ecx, 12  
-0041025B   |.>shl     edx, 0E  
-0041025E   |.>or      ecx, edx  
-00410260   |.>mov     edx, edi  
-00410262   |.>add     ecx, eax  
-00410264   |.>not     edx  
-00410266   |.>mov     ebx, ecx  
-00410268   |.>and     edx, eax  
-0041026A   |.>and     ebx, edi  
-0041026C   |.>or      edx, ebx  
-0041026E   |.>mov     ebx, dword ptr \[esp+2C\]  
-00410272   |.>add     edx, ebx  
-00410274   |.>mov     ebx, dword ptr \[esp+60\]  
-00410278   |.>lea     ebx, dword ptr \[ebx+edx+E7D3FBC8>  
-0041027F   |.>mov     edx, ebx  
-00410281   |.>shl     edx, 14  
-00410284   |.>shr     ebx, 0C  
-00410287   |.>or      edx, ebx  
-00410289   |.>mov     ebx, eax  
-0041028B   |.>add     edx, ecx  
-0041028D   |.>mov     dword ptr \[esp+60\], edx  
-00410291   |.>mov     edx, eax  
-00410293   |.>mov     ebp, dword ptr \[esp+60\]  
-00410297   |.>not     edx  
-00410299   |.>and     edx, ecx  
-0041029B   |.>and     ebx, ebp  
-0041029D   |.>mov     ebp, dword ptr \[esp+40\]  
-004102A1   |.>or      edx, ebx  
-004102A3   |.>add     edx, ebp  
-004102A5   |.>mov     ebx, dword ptr \[esp+60\]  
-004102A9   |.>mov     ebp, ecx  
-004102AB   |.>lea     edi, dword ptr \[edi+edx+21E1CDE6>  
-004102B2   |.>mov     edx, edi  
-004102B4   |.>shr     edx, 1B  
-004102B7   |.>shl     edi, 5  
-004102BA   |.>or      edx, edi  
-004102BC   |.>mov     edi, ecx  
-004102BE   |.>add     edx, ebx  
-004102C0   |.>not     edi  
-004102C2   |.>and     edi, ebx  
-004102C4   |.>and     ebp, edx  
-004102C6   |.>or      edi, ebp  
-004102C8   |.>mov     ebp, dword ptr \[esp+54\]  
-004102CC   |.>add     edi, ebp  
-004102CE   |.>mov     ebp, dword ptr \[esp+60\]  
-004102D2   |.>not     ebx  
-004102D4   |.>lea     eax, dword ptr \[eax+edi+C33707D6>  
-004102DB   |.>and     ebx, edx  
-004102DD   |.>mov     edi, eax  
-004102DF   |.>shr     edi, 17  
-004102E2   |.>shl     eax, 9  
-004102E5   |.>or      edi, eax  
-004102E7   |.>add     edi, edx  
-004102E9   |.>mov     eax, edi  
-004102EB   |.>and     eax, ebp  
-004102ED   |.>mov     ebp, dword ptr \[esp+28\]  
-004102F1   |.>or      ebx, eax  
-004102F3   |.>add     ebx, ebp  
-004102F5   |.>lea     ecx, dword ptr \[ecx+ebx+F4D50D87>  
-004102FC   |.>mov     eax, ecx  
-004102FE   |.>shr     eax, 12  
-00410301   |.>shl     ecx, 0E  
-00410304   |.>or      eax, ecx  
-00410306   |.>mov     ecx, edx  
-00410308   |.>add     eax, edi  
-0041030A   |.>not     ecx  
-0041030C   |.>mov     ebx, eax  
-0041030E   |.>and     ecx, edi  
-00410310   |.>and     ebx, edx  
-00410312   |.>or      ecx, ebx  
-00410314   |.>mov     ebx, dword ptr \[esp+3C\]  
-00410318   |.>add     ecx, ebx  
-0041031A   |.>mov     ebx, dword ptr \[esp+60\]  
-0041031E   |.>lea     ebx, dword ptr \[ebx+ecx+455A14ED>  
-00410325   |.>mov     ecx, ebx  
-00410327   |.>shl     ecx, 14  
-0041032A   |.>shr     ebx, 0C  
-0041032D   |.>or      ecx, ebx  
-0041032F   |.>mov     ebx, edi  
-00410331   |.>add     ecx, eax  
-00410333   |.>mov     dword ptr \[esp+60\], ecx  
-00410337   |.>mov     ecx, edi  
-00410339   |.>mov     ebp, dword ptr \[esp+60\]  
-0041033D   |.>not     ecx  
-0041033F   |.>and     ecx, eax  
-00410341   |.>and     ebx, ebp  
-00410343   |.>mov     ebp, dword ptr \[esp+50\]  
-00410347   |.>or      ecx, ebx  
-00410349   |.>add     ecx, ebp  
-0041034B   |.>mov     ebx, dword ptr \[esp+60\]  
-0041034F   |.>mov     ebp, eax  
-00410351   |.>lea     edx, dword ptr \[edx+ecx+A9E3E905>  
-00410358   |.>mov     ecx, edx  
-0041035A   |.>shr     ecx, 1B  
-0041035D   |.>shl     edx, 5  
-00410360   |.>or      ecx, edx  
-00410362   |.>mov     edx, eax  
-00410364   |.>add     ecx, ebx  
-00410366   |.>not     edx  
-00410368   |.>and     edx, ebx  
-0041036A   |.>and     ebp, ecx  
-0041036C   |.>or      edx, ebp  
-0041036E   |.>mov     ebp, dword ptr \[esp+24\]  
-00410372   |.>add     edx, ebp  
-00410374   |.>mov     ebp, dword ptr \[esp+60\]  
-00410378   |.>not     ebx  
-0041037A   |.>lea     edi, dword ptr \[edi+edx+FCEFA3F8>  
-00410381   |.>and     ebx, ecx  
-00410383   |.>mov     edx, edi  
-00410385   |.>shr     edx, 17  
-00410388   |.>shl     edi, 9  
-0041038B   |.>or      edx, edi  
-0041038D   |.>add     edx, ecx  
-0041038F   |.>mov     edi, edx  
-00410391   |.>and     edi, ebp  
-00410393   |.>mov     ebp, dword ptr \[esp+38\]  
-00410397   |.>or      ebx, edi  
-00410399   |.>add     ebx, ebp  
-0041039B   |.>lea     eax, dword ptr \[eax+ebx+676F02D9>  
-004103A2   |.>mov     edi, eax  
-004103A4   |.>shr     edi, 12  
-004103A7   |.>shl     eax, 0E  
-004103AA   |.>or      edi, eax  
-004103AC   |.>mov     eax, ecx  
-004103AE   |.>add     edi, edx  
-004103B0   |.>not     eax  
-004103B2   |.>mov     ebx, edi  
-004103B4   |.>and     eax, edx  
-004103B6   |.>and     ebx, ecx  
-004103B8   |.>or      eax, ebx  
-004103BA   |.>mov     ebx, dword ptr \[esp+4C\]  
-004103BE   |.>add     eax, ebx  
-004103C0   |.>mov     ebx, dword ptr \[esp+60\]  
-004103C4   |.>lea     ebx, dword ptr \[ebx+eax+8D2A4C8A>  
-004103CB   |.>mov     eax, ebx  
-004103CD   |.>shl     eax, 14  
-004103D0   |.>shr     ebx, 0C  
-004103D3   |.>or      eax, ebx  
-004103D5   |.>add     eax, edi  
-004103D7   |.>mov     ebp, dword ptr \[esp+30\]  
-004103DB   |.>mov     ebx, edx  
-004103DD   |.>xor     ebx, edi  
-004103DF   |.>xor     ebx, eax  
-004103E1   |.>add     ebx, ebp  
-004103E3   |.>mov     ebp, dword ptr \[esp+3C\]  
-004103E7   |.>lea     ecx, dword ptr \[ecx+ebx+FFFA3942>  
-004103EE   |.>mov     ebx, ecx  
-004103F0   |.>shr     ebx, 1C  
-004103F3   |.>shl     ecx, 4  
-004103F6   |.>or      ebx, ecx  
-004103F8   |.>mov     ecx, edi  
-004103FA   |.>add     ebx, eax  
-004103FC   |.>xor     ecx, eax  
-004103FE   |.>xor     ecx, ebx  
-00410400   |.>add     ecx, ebp  
-00410402   |.>mov     ebp, dword ptr \[esp+48\]  
-00410406   |.>lea     ecx, dword ptr \[edx+ecx+8771F681>  
-0041040D   |.>mov     edx, ecx  
-0041040F   |.>shr     edx, 15  
-00410412   |.>shl     ecx, 0B  
-00410415   |.>or      edx, ecx  
-00410417   |.>add     edx, ebx  
-00410419   |.>mov     ecx, edx  
-0041041B   |.>xor     ecx, eax  
-0041041D   |.>xor     ecx, ebx  
-0041041F   |.>add     ecx, ebp  
-00410421   |.>mov     ebp, dword ptr \[esp+54\]  
-00410425   |.>lea     ecx, dword ptr \[edi+ecx+6D9D6122>  
-0041042C   |.>mov     edi, ecx  
-0041042E   |.>shr     edi, 10  
-00410431   |.>shl     ecx, 10  
-00410434   |.>or      edi, ecx  
-00410436   |.>mov     ecx, edx  
-00410438   |.>add     edi, edx  
-0041043A   |.>xor     ecx, edi  
-0041043C   |.>mov     dword ptr \[esp+60\], ecx  
-00410440   |.>xor     ecx, ebx  
-00410442   |.>add     ecx, ebp  
-00410444   |.>mov     ebp, dword ptr \[esp+20\]  
-00410448   |.>lea     eax, dword ptr \[eax+ecx+FDE5380C>  
-0041044F   |.>mov     ecx, eax  
-00410451   |.>shl     ecx, 17  
-00410454   |.>shr     eax, 9  
-00410457   |.>or      ecx, eax  
-00410459   |.>mov     eax, dword ptr \[esp+60\]  
-0041045D   |.>add     ecx, edi  
-0041045F   |.>xor     eax, ecx  
-00410461   |.>add     eax, ebp  
-00410463   |.>mov     ebp, dword ptr \[esp+2C\]  
-00410467   |.>lea     ebx, dword ptr \[ebx+eax+A4BEEA44>  
-0041046E   |.>mov     eax, ebx  
-00410470   |.>shr     eax, 1C  
-00410473   |.>shl     ebx, 4  
-00410476   |.>or      eax, ebx  
-00410478   |.>mov     ebx, edi  
-0041047A   |.>add     eax, ecx  
-0041047C   |.>xor     ebx, ecx  
-0041047E   |.>xor     ebx, eax  
-00410480   |.>add     ebx, ebp  
-00410482   |.>mov     ebp, dword ptr \[esp+38\]  
-00410486   |.>lea     edx, dword ptr \[edx+ebx+4BDECFA9>  
-0041048D   |.>mov     ebx, edx  
-0041048F   |.>shr     ebx, 15  
-00410492   |.>shl     edx, 0B  
-00410495   |.>or      ebx, edx  
-00410497   |.>add     ebx, eax  
-00410499   |.>mov     edx, ebx  
-0041049B   |.>xor     edx, ecx  
-0041049D   |.>xor     edx, eax  
-0041049F   |.>add     edx, ebp  
-004104A1   |.>lea     edi, dword ptr \[edi+edx+F6BB4B60>  
-004104A8   |.>mov     edx, edi  
-004104AA   |.>shr     edx, 10  
-004104AD   |.>shl     edi, 10  
-004104B0   |.>or      edx, edi  
-004104B2   |.>mov     edi, ebx  
-004104B4   |.>add     edx, ebx  
-004104B6   |.>xor     edi, edx  
-004104B8   |.>mov     ebp, edi  
-004104BA   |.>xor     ebp, eax  
-004104BC   |.>add     ebp, dword ptr \[esp+44\]  
-004104C0   |.>lea     ebp, dword ptr \[ecx+ebp+BEBFBC70>  
-004104C7   |.>mov     ecx, ebp  
-004104C9   |.>shl     ecx, 17  
-004104CC   |.>shr     ebp, 9  
-004104CF   |.>or      ecx, ebp  
-004104D1   |.>mov     ebp, dword ptr \[esp+50\]  
-004104D5   |.>add     ecx, edx  
-004104D7   |.>xor     edi, ecx  
-004104D9   |.>add     edi, ebp  
-004104DB   |.>mov     ebp, dword ptr \[esp+1C\]  
-004104DF   |.>lea     edi, dword ptr \[eax+edi+289B7EC6>  
-004104E6   |.>mov     eax, edi  
-004104E8   |.>shr     eax, 1C  
-004104EB   |.>shl     edi, 4  
-004104EE   |.>or      eax, edi  
-004104F0   |.>mov     edi, edx  
-004104F2   |.>add     eax, ecx  
-004104F4   |.>xor     edi, ecx  
-004104F6   |.>xor     edi, eax  
-004104F8   |.>add     edi, ebp  
-004104FA   |.>mov     ebp, dword ptr \[esp+28\]  
-004104FE   |.>lea     ebx, dword ptr \[ebx+edi+EAA127FA>  
-00410505   |.>mov     edi, ebx  
-00410507   |.>shr     edi, 15  
-0041050A   |.>shl     ebx, 0B  
-0041050D   |.>or      edi, ebx  
-0041050F   |.>add     edi, eax  
-00410511   |.>mov     ebx, edi  
-00410513   |.>xor     ebx, ecx  
-00410515   |.>xor     ebx, eax  
-00410517   |.>add     ebx, ebp  
-00410519   |.>lea     edx, dword ptr \[edx+ebx+D4EF3085>  
-00410520   |.>mov     ebx, edx  
-00410522   |.>shr     ebx, 10  
-00410525   |.>shl     edx, 10  
-00410528   |.>or      ebx, edx  
-0041052A   |.>mov     edx, edi  
-0041052C   |.>add     ebx, edi  
-0041052E   |.>xor     edx, ebx  
-00410530   |.>mov     ebp, edx  
-00410532   |.>xor     ebp, eax  
-00410534   |.>add     ebp, dword ptr \[esp+34\]  
-00410538   |.>lea     ebp, dword ptr \[ecx+ebp+4881D05\]  
-0041053F   |.>mov     ecx, ebp  
-00410541   |.>shl     ecx, 17  
-00410544   |.>shr     ebp, 9  
-00410547   |.>or      ecx, ebp  
-00410549   |.>mov     ebp, dword ptr \[esp+40\]  
-0041054D   |.>add     ecx, ebx  
-0041054F   |.>xor     edx, ecx  
-00410551   |.>add     edx, ebp  
-00410553   |.>lea     edx, dword ptr \[eax+edx+D9D4D039>  
-0041055A   |.>mov     eax, edx  
-0041055C   |.>shr     eax, 1C  
-0041055F   |.>shl     edx, 4  
-00410562   |.>or      eax, edx  
-00410564   |.>mov     edx, ebx  
-00410566   |.>add     eax, ecx  
-00410568   |.>xor     edx, ecx  
-0041056A   |.>xor     edx, eax  
-0041056C   |.>add     edx, dword ptr \[esp+4C\]  
-00410570   |.>lea     edi, dword ptr \[edi+edx+E6DB99E5>  
-00410577   |.>mov     edx, edi  
-00410579   |.>shr     edx, 15  
-0041057C   |.>shl     edi, 0B  
-0041057F   |.>or      edx, edi  
-00410581   |.>add     edx, eax  
-00410583   |.>mov     edi, edx  
-00410585   |.>xor     edi, ecx  
-00410587   |.>xor     edi, eax  
-00410589   |.>add     edi, dword ptr \[esp+58\]  
-0041058D   |.>lea     ebx, dword ptr \[ebx+edi+1FA27CF8>  
-00410594   |.>mov     edi, ebx  
-00410596   |.>shr     edi, 10  
-00410599   |.>shl     ebx, 10  
-0041059C   |.>or      edi, ebx  
-0041059E   |.>mov     ebx, edx  
-004105A0   |.>add     edi, edx  
-004105A2   |.>xor     ebx, edi  
-004105A4   |.>xor     ebx, eax  
-004105A6   |.>add     ebx, dword ptr \[esp+24\]  
-004105AA   |.>lea     ecx, dword ptr \[ecx+ebx+C4AC5665>  
-004105B1   |.>mov     ebx, ecx  
-004105B3   |.>shl     ebx, 17  
-004105B6   |.>shr     ecx, 9  
-004105B9   |.>or      ebx, ecx  
-004105BB   |.>mov     ecx, edx  
-004105BD   |.>add     ebx, edi  
-004105BF   |.>not     ecx  
-004105C1   |.>or      ecx, ebx  
-004105C3   |.>xor     ecx, edi  
-004105C5   |.>add     ecx, dword ptr \[esp+1C\]  
-004105C9   |.>lea     eax, dword ptr \[eax+ecx+F4292244>  
-004105D0   |.>mov     ecx, eax  
-004105D2   |.>shr     ecx, 1A  
-004105D5   |.>shl     eax, 6  
-004105D8   |.>or      ecx, eax  
-004105DA   |.>mov     eax, edi  
-004105DC   |.>add     ecx, ebx  
-004105DE   |.>not     eax  
-004105E0   |.>or      eax, ecx  
-004105E2   |.>xor     eax, ebx  
-004105E4   |.>add     eax, dword ptr \[esp+38\]  
-004105E8   |.>lea     edx, dword ptr \[edx+eax+432AFF97>  
-004105EF   |.>mov     eax, edx  
-004105F1   |.>shr     eax, 16  
-004105F4   |.>shl     edx, 0A  
-004105F7   |.>or      eax, edx  
-004105F9   |.>mov     edx, ebx  
-004105FB   |.>add     eax, ecx  
-004105FD   |.>not     edx  
-004105FF   |.>or      edx, eax  
-00410601   |.>xor     edx, ecx  
-00410603   |.>add     edx, dword ptr \[esp+54\]  
-00410607   |.>lea     edi, dword ptr \[edi+edx+AB9423A7>  
-0041060E   |.>mov     edx, edi  
-00410610   |.>shr     edx, 11  
-00410613   |.>shl     edi, 0F  
-00410616   |.>or      edx, edi  
-00410618   |.>mov     edi, ecx  
-0041061A   |.>add     edx, eax  
-0041061C   |.>not     edi  
-0041061E   |.>or      edi, edx  
-00410620   |.>xor     edi, eax  
-00410622   |.>add     edi, dword ptr \[esp+30\]  
-00410626   |.>lea     ebx, dword ptr \[ebx+edi+FC93A039>  
-0041062D   |.>mov     edi, ebx  
-0041062F   |.>shl     edi, 15  
-00410632   |.>shr     ebx, 0B  
-00410635   |.>or      edi, ebx  
-00410637   |.>mov     ebx, eax  
-00410639   |.>add     edi, edx  
-0041063B   |.>not     ebx  
-0041063D   |.>or      ebx, edi  
-0041063F   |.>xor     ebx, edx  
-00410641   |.>add     ebx, dword ptr \[esp+4C\]  
-00410645   |.>lea     ecx, dword ptr \[ecx+ebx+655B59C3>  
-0041064C   |.>mov     ebx, ecx  
-0041064E   |.>shr     ebx, 1A  
-00410651   |.>shl     ecx, 6  
-00410654   |.>or      ebx, ecx  
-00410656   |.>mov     ecx, edx  
-00410658   |.>add     ebx, edi  
-0041065A   |.>not     ecx  
-0041065C   |.>or      ecx, ebx  
-0041065E   |.>xor     ecx, edi  
-00410660   |.>add     ecx, dword ptr \[esp+28\]  
-00410664   |.>lea     eax, dword ptr \[eax+ecx+8F0CCC92>  
-0041066B   |.>mov     ecx, eax  
-0041066D   |.>shr     ecx, 16  
-00410670   |.>shl     eax, 0A  
-00410673   |.>or      ecx, eax  
-00410675   |.>mov     eax, edi  
-00410677   |.>add     ecx, ebx  
-00410679   |.>not     eax  
-0041067B   |.>or      eax, ecx  
-0041067D   |.>xor     eax, ebx  
-0041067F   |.>add     eax, dword ptr \[esp+44\]  
-00410683   |.>lea     edx, dword ptr \[edx+eax+FFEFF47D>  
-0041068A   |.>mov     eax, edx  
-0041068C   |.>shr     eax, 11  
-0041068F   |.>shl     edx, 0F  
-00410692   |.>or      eax, edx  
-00410694   |.>mov     edx, ebx  
-00410696   |.>add     eax, ecx  
-00410698   |.>not     edx  
-0041069A   |.>or      edx, eax  
-0041069C   |.>xor     edx, ecx  
-0041069E   |.>add     edx, dword ptr \[esp+20\]  
-004106A2   |.>lea     edi, dword ptr \[edi+edx+85845DD1>  
-004106A9   |.>mov     edx, edi  
-004106AB   |.>shl     edx, 15  
-004106AE   |.>shr     edi, 0B  
-004106B1   |.>or      edx, edi  
-004106B3   |.>mov     edi, ecx  
-004106B5   |.>add     edx, eax  
-004106B7   |.>not     edi  
-004106B9   |.>or      edi, edx  
-004106BB   |.>xor     edi, eax  
-004106BD   |.>add     edi, dword ptr \[esp+3C\]  
-004106C1   |.>lea     ebx, dword ptr \[ebx+edi+6FA87E4F>  
-004106C8   |.>mov     edi, ebx  
-004106CA   |.>shr     edi, 1A  
-004106CD   |.>shl     ebx, 6  
-004106D0   |.>or      edi, ebx  
-004106D2   |.>mov     ebx, eax  
-004106D4   |.>add     edi, edx  
-004106D6   |.>not     ebx  
-004106D8   |.>or      ebx, edi  
-004106DA   |.>xor     ebx, edx  
-004106DC   |.>add     ebx, dword ptr \[esp+58\]  
-004106E0   |.>lea     ecx, dword ptr \[ecx+ebx+FE2CE6E0>  
-004106E7   |.>mov     ebx, ecx  
-004106E9   |.>shr     ebx, 16  
-004106EC   |.>shl     ecx, 0A  
-004106EF   |.>or      ebx, ecx  
-004106F1   |.>mov     ecx, edx  
-004106F3   |.>add     ebx, edi  
-004106F5   |.>not     ecx  
-004106F7   |.>or      ecx, ebx  
-004106F9   |.>xor     ecx, edi  
-004106FB   |.>add     ecx, dword ptr \[esp+34\]  
-004106FF   |.>lea     eax, dword ptr \[eax+ecx+A3014314>  
-00410706   |.>mov     ecx, eax  
-00410708   |.>shr     ecx, 11  
-0041070B   |.>shl     eax, 0F  
-0041070E   |.>or      ecx, eax  
-00410710   |.>mov     eax, edi  
-00410712   |.>add     ecx, ebx  
-00410714   |.>not     eax  
-00410716   |.>or      eax, ecx  
-00410718   |.>xor     eax, ebx  
-0041071A   |.>add     eax, dword ptr \[esp+50\]  
-0041071E   |.>lea     edx, dword ptr \[edx+eax+4E0811A1>  
-00410725   |.>mov     eax, edx  
-00410727   |.>shl     eax, 15  
-0041072A   |.>shr     edx, 0B  
-0041072D   |.>or      eax, edx  
-0041072F   |.>mov     edx, ebx  
-00410731   |.>add     eax, ecx  
-00410733   |.>not     edx  
-00410735   |.>or      edx, eax  
-00410737   |.>xor     edx, ecx  
-00410739   |.>add     edx, dword ptr \[esp+2C\]  
-0041073D   |.>lea     edi, dword ptr \[edi+edx+F7537E82>  
-00410744   |.>mov     edx, edi  
-00410746   |.>shr     edx, 1A  
-00410749   |.>shl     edi, 6  
-0041074C   |.>or      edx, edi  
-0041074E   |.>mov     edi, ecx  
-00410750   |.>add     edx, eax  
-00410752   |.>not     edi  
-00410754   |.>or      edi, edx  
-00410756   |.>xor     edi, eax  
-00410758   |.>add     edi, dword ptr \[esp+48\]  
-0041075C   |.>lea     ebx, dword ptr \[ebx+edi+BD3AF235>  
-00410763   |.>mov     edi, ebx  
-00410765   |.>shr     edi, 16  
-00410768   |.>shl     ebx, 0A  
-0041076B   |.>or      edi, ebx  
-0041076D   |.>mov     ebx, eax  
-0041076F   |.>add     edi, edx  
-00410771   |.>not     ebx  
-00410773   |.>or      ebx, edi  
-00410775   |.>push    40  
-00410777   |.>xor     ebx, edx  
-00410779   |.>push    0  
-0041077B   |.>add     ebx, dword ptr \[esp+2C\]  
-0041077F   |.>lea     ecx, dword ptr \[ecx+ebx+2AD7D2BB>  
-00410786   |.>mov     ebx, ecx  
-00410788   |.>shr     ebx, 11  
-0041078B   |.>shl     ecx, 0F  
-0041078E   |.>or      ebx, ecx  
-00410790   |.>mov     ecx, edx  
-00410792   |.>add     ebx, edi  
-00410794   |.>not     ecx  
-00410796   |.>or      ecx, ebx  
-00410798   |.>xor     ecx, edi  
-0041079A   |.>add     ecx, ebp  
-0041079C   |.>mov     ebp, dword ptr \[esi+8\]  
-0041079F   |.>add     ebp, ebx  
-004107A1   |.>lea     eax, dword ptr \[eax+ecx+EB86D391>  
-004107A8   |.>mov     ecx, dword ptr \[esi\]  
-004107AA   |.>add     ecx, edx  
-004107AC   |.>mov     edx, eax  
-004107AE   |.>shl     edx, 15  
-004107B1   |.>shr     eax, 0B  
-004107B4   |.>or      edx, eax  
-004107B6   |.>mov     eax, dword ptr \[esi+4\]  
-004107B9   |.>add     edx, ebx  
-004107BB   |.>mov     ebx, dword ptr \[esi+C\]  
-004107BE   |.>add     eax, edx  
-004107C0   |.>add     ebx, edi  
-004107C2   |.>mov     dword ptr \[esi+4\], eax;保存本次加密数值,为下次的链值  
-004107C5   |.>lea     eax, dword ptr \[esp+24\]  
-004107C9   |.>push    eax  
-004107CA   |.>mov     dword ptr \[esi\], ecx        ;保存本次加密数值,为下次的链值  
-004107CC   |.>mov     dword ptr \[esi+8\], ebp;保存本次加密数值,为下次的链值  
-004107CF   |.>mov     dword ptr \[esi+C\], ebx;保存本次加密数值,为下次的链值  
-004107D2   |.>call    004108B0  
-004107D7   |.>add     esp, 18  
-004107DA   |.>pop     edi  
-004107DB   |.>pop     esi  
-004107DC   |.>pop     ebp  
-004107DD   |.>pop     ebx  
-004107DE   |.>add     esp, 40  
-004107E1   \\.>retn           //很惭愧没有能分析出怎么一个算法。。。。。  
-  
-第一次加密的数据；  
-0129F8C4  01 98 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ?.............  
-0129F8D4  00 00 01 08 73 79 32 30 39 32 02 08 38 38 38 38  ..sy20928888  
-0129F8E4  38 38 07 08 00 0C 29 D8 23 40 09 0E 31 37 32 2E  88..)?@.172.  
-0129F8F4  31 36 2E 37 2E 31 31 31 0A 0A 69 6E 74 65 72 6E  16.7.111..intern  
-对应的类 MD5  
-0129F940  14 84 0F 04 8A 50 08 F1 A1 15 3E 8A E3 90 2E AE  ?瘛>?  
-第二次加密的数据；  
-0129F8D0  65 74 1F 0F 33 2E 35 2E 30 34 2E 30 31 31 38 00  et3.5.04.0118.  
-0129F8E0  00 25 47 00 00 00 00 00 00 00 00 00 00 00 00 00  .%G.............  
-0129F8F0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
-0129F900  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
-对应的类 MD5  
-0129F940  A7 8C 17 1D 42 87 E8 8D 8A 6A B8 BB A9 33 9B 0B  Bj 富??  
-第三次加密的数据（注意）；  
-0129F890  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
-0129F8A0  00 00 00 00 00 00 00 00 80 00 00 00 00 00 00 00  ...............  
-0129F8B0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
-0129F8C0  00 00 00 00 00 00 00 00 C0 04 00 00 00 00 00 00  ........?......  
-其中的 80 报文结束标识符，MD5 里都有，最后 8 字节 C0 04 00 00 00 00 00 00  为报文长度\*8,本次也就是 0x98\*8=4c0  
-对应的类 MD5 填充在报文的第 3-19 字节处  
-0129F940  01 23 47 F9 DF DD 70 D9 48 E4 8F 70 9F 0E 2A FB  #Gp?\*  
-  
-最后得到报文如下 红色标记处为 类 MD5 算法的到的密文  
-0129FBB8  01 98 01 23 47 F9 DF DD 70 D9 48 E4 8F 70 9F 0E  ?#Gp?  
-0129FBC8  2A FB 01 08 73 79 32 30 39 32 02 08 38 38 38 38  \*?sy20928888  
-0129FBD8  38 38 07 08 00 0C 29 D8 23 40 09 0E 31 37 32 2E  88..)?@.172.  
-0129FBE8  31 36 2E 37 2E 31 31 31 0A 0A 69 6E 74 65 72 6E  16.7.111..intern  
-0129FBF8  65 74 1F 0F 33 2E 35 2E 30 34 2E 30 31 31 38 00  et3.5.04.0118.  
-0129FC08  00 25 47 00                                      .%G.  
-  
-最后一步就是加密了  
-004055D6  |. call    dword ptr \[429E34\]               ;  报文加密算法 F7 跟进  
-  
-00F714B8 >  55              push    ebp  
-00F714B9    8BEC            mov     ebp, esp  
-00F714BB    83C4 F8         add     esp, -8  
-00F714BE    837D 0C 00      cmp     dword ptr \[ebp+C\], 0  
-00F714C2    7F 07           jg      short 00F714CB  
-00F714C4    33C0            xor     eax, eax  
-00F714C6    E9 CB000000     jmp     00F71596  
-00F714CB    837D 08 00      cmp     dword ptr \[ebp+8\], 0  
-00F714CF    75 07           jnz     short 00F714D8  
-00F714D1    33C0            xor     eax, eax  
-00F714D3    E9 BE000000     jmp     00F71596  
-00F714D8    33D2            xor     edx, edx  
-00F714DA    8955 FC         mov     dword ptr \[ebp-4\], edx  
-00F714DD    8B4D FC         mov     ecx, dword ptr \[ebp-4\]  
-00F714E0    3B4D 0C         cmp     ecx, dword ptr \[ebp+C\]  
-00F714E3    0F8D A8000000   jge     00F71591  
-00F714E9    8B45 FC         mov     eax, dword ptr \[ebp-4\]  
-00F714EC    8B55 08         mov     edx, dword ptr \[ebp+8\]  
-00F714EF    8A0C02          mov     cl, byte ptr \[edx+eax\]           ; 读取报文的数据  
-00F714F2    80E1 01         and     cl, 1                            ; 保留最后一位  
-00F714F5    C1E1 07         shl     ecx, 7                           ; 左移 7 位  
-00F714F8    8B45 FC         mov     eax, dword ptr \[ebp-4\]  
-00F714FB    8B55 08         mov     edx, dword ptr \[ebp+8\]  
-00F714FE    0FB60402        movzx   eax, byte ptr \[edx+eax\]  
-00F71502    83E0 02         and     eax, 2                           ; 保留倒数第二位  
-00F71505    D1F8            sar     eax, 1                           ; 全部位右移 1 位  
-00F71507    0AC8            or      cl, al                           ; 跟 cl 做或运算  
-00F71509    8B55 FC         mov     edx, dword ptr \[ebp-4\]  
-00F7150C    8B45 08         mov     eax, dword ptr \[ebp+8\]  
-00F7150F    8A1410          mov     dl, byte ptr \[eax+edx\]  
-00F71512    80E2 04         and     dl, 4                            ; 保留倒数第三位  
-00F71515    C1E2 02         shl     edx, 2                           ; 左移 2 位  
-00F71518    0ACA            or      cl, dl                           ; 跟 cl 做或运算  
-00F7151A    8B45 FC         mov     eax, dword ptr \[ebp-4\]  
-00F7151D    8B55 08         mov     edx, dword ptr \[ebp+8\]  
-00F71520    8A0402          mov     al, byte ptr \[edx+eax\]  
-00F71523    24 08           and     al, 8                            ; 保留倒数第四位  
-00F71525    C1E0 02         shl     eax, 2                           ; 左移 2 位  
-00F71528    0AC8            or      cl, al                           ; 跟 cl 做或运算  
-00F7152A    8B55 FC         mov     edx, dword ptr \[ebp-4\]  
-00F7152D    8B45 08         mov     eax, dword ptr \[ebp+8\]  
-00F71530    8A1410          mov     dl, byte ptr \[eax+edx\]  
-00F71533    80E2 10         and     dl, 10                           ; 保留倒数第五位  
-00F71536    C1E2 02         shl     edx, 2                           ; 左移 2 位  
-00F71539    0ACA            or      cl, dl                           ; 跟 cl 做或运算  
-00F7153B    8B45 FC         mov     eax, dword ptr \[ebp-4\]  
-00F7153E    8B55 08         mov     edx, dword ptr \[ebp+8\]  
-00F71541    0FB60402        movzx   eax, byte ptr \[edx+eax\]  
-00F71545    83E0 20         and     eax, 20                          ; 保留倒数第六位  
-00F71548    C1F8 02         sar     eax, 2                           ; 全位右移 2 位  
-00F7154B    0AC8            or      cl, al                           ; 跟 cl 做或运算  
-00F7154D    8B55 FC         mov     edx, dword ptr \[ebp-4\]  
-00F71550    8B45 08         mov     eax, dword ptr \[ebp+8\]  
-00F71553    0FB61410        movzx   edx, byte ptr \[eax+edx\]  
-00F71557    83E2 40         and     edx, 40                          ; 保留倒数第七位  
-00F7155A    C1FA 04         sar     edx, 4                           ; 全位右移 4 位  
-00F7155D    0ACA            or      cl, dl                           ; 跟 cl 做或运算  
-00F7155F    8B45 FC         mov     eax, dword ptr \[ebp-4\]  
-00F71562    8B55 08         mov     edx, dword ptr \[ebp+8\]  
-00F71565    0FB60402        movzx   eax, byte ptr \[edx+eax\]  
-00F71569    25 80000000     and     eax, 80                          ; 保留倒数第八位  
-00F7156E    C1F8 06         sar     eax, 6                           ; 全位右移 6 位  
-00F71571    0AC8            or      cl, al                           ; 跟 cl 做或运算  
-00F71573    884D FB         mov     byte ptr \[ebp-5\], cl  
-00F71576    8A55 FB         mov     dl, byte ptr \[ebp-5\]  
-00F71579    8B4D FC         mov     ecx, dword ptr \[ebp-4\]  
-00F7157C    8B45 08         mov     eax, dword ptr \[ebp+8\]  
-00F7157F    881408          mov     byte ptr \[eax+ecx\], dl  
-00F71582    FF45 FC         inc     dword ptr \[ebp-4\]                ; 加一  
-00F71585    8B55 FC         mov     edx, dword ptr \[ebp-4\]  
-00F71588    3B55 0C         cmp     edx, dword ptr \[ebp+C\]  
-00F7158B  ^ 0F8C 58FFFFFF   jl      00F714E9                         ; 判断是否加密完成（也就是报文中的第 2 字节的数据判断）  
-00F71591    B8 01000000     mov     eax, 1  
-00F71596    59              pop     ecx  
-00F71597    59              pop     ecx  
-00F71598    5D              pop     ebp  
-00F71599    C3              retn  
-  
-加密后的报文,已经看不懂啦！！  
-0129FBB8  80 62 80 89 95 EE F7 F6 4C E6 24 1E B3 4C F3 31  b 铟??  
-0129FBC8  29 EF 80 20 CD EC 49 48 E8 49 01 20 68 68 68 68  ) 挽 IH hhhh  
-0129FBD8  68 68 91 20 00 30 A8 66 89 04 A0 31 C8 D9 49 39  hh?.0??荣 I9  
-0129FBE8  C8 59 39 D9 39 C8 C8 C8 21 21 AC 3D 5C 9C 4D 3D  9?热?!?\\=  
-0129FBF8  9C 5C F1 B1 C9 39 D8 39 48 58 39 48 C8 C8 68 00  癖??HX9H 热 h.  
-0129FC08  00 98 95 00                                      ...  
-  
-开始发包,我们来截取一个包看看数据（我用的是科来 6.7 交流）,下图高亮为数据域  
-![](img/3235d28b1f4a05d11abb21eb327c7621.jpg)  
-服务器返回数据  
-![](img/a9d2f6119f79aedc2a5700d2efed955a.jpg)  
-  
-堆栈中搜索返回数据  
-0129FBB8  01 9C 1D 12 B9 38 CB 63 B4 4F 9A 50 A3 06 0A E2  ???.  
-0129FBC8  22 57 81 81 80 20 40 49 D8 E8 E8 48 D9 58 C8 E8  "W @I 罔辱  
-0129FBD8  C8 59 68 68 D8 49 E8 90 81 78 11 81 10 98 50 80  hh?  
-0129FBE8  00 00 01 00 00 81 00 00 10 00 00 90 00 00 00 00  ....?...?...  
-0129FBF8  00 58 11 00 00 00 00 D8 11 00 00 00 00 59 11 00  .X....?....Y.  
-0129FC08  00 00 00 D9 11 00 00 00 00 68 11 00 00 00 00 89  ...?....h....  
-0129FC18  81 80 08 81 00                                   ?..  
-  
-解密他！！用 OD 在此数据区上下内存访问中断，F9 放飞程序。段在这个函数中  
-00405A0B   .  FF15 389E4200 call    dword ptr \[429E38\]               ;  接收数据包数据解密  
-  
-00F7159C > >push    ebp  
-00F7159D   >mov     ebp, esp  
-00F7159F   >add     esp, -8  
-00F715A2   >cmp     dword ptr \[ebp+C\], 0  
-00F715A6   >jg      short 00F715AF  
-00F715A8   >xor     eax, eax  
-00F715AA   >jmp     00F71679  
-00F715AF   >cmp     dword ptr \[ebp+8\], 0  
-00F715B3   >jnz     short 00F715BC  
-00F715B5   >xor     eax, eax  
-00F715B7   >jmp     00F71679  
-00F715BC   >xor     edx, edx  
-00F715BE   >mov     dword ptr \[ebp-4\], edx  
-00F715C1   >mov     ecx, dword ptr \[ebp-4\]  
-00F715C4   >cmp     ecx, dword ptr \[ebp+C\]  
-00F715C7   >jge     00F71674  
-00F715CD   >mov     eax, dword ptr \[ebp-4\]  
-00F715D0   >mov     edx, dword ptr \[ebp+8\]  
-00F715D3   >mov     cl, byte ptr \[edx+eax\]           ; 取加密字符串  
-00F715D6   >and     cl, 1                            ; 保留最后一位  
-00F715D9   >add     ecx, ecx                         ; 自加  
-00F715DB   >mov     eax, dword ptr \[ebp-4\]  
-00F715DE   >mov     edx, dword ptr \[ebp+8\]  
-00F715E1   >mov     al, byte ptr \[edx+eax\]           ; 取加密字符串  
-00F715E4   >and     al, 2                            ; 保留倒数第二位  
-00F715E6   >shl     eax, 6                           ; 左移 6 位  
-00F715E9   >or      cl, al                           ; 再或运算,以下同理  
-00F715EB   >mov     edx, dword ptr \[ebp-4\]  
-00F715EE   >mov     eax, dword ptr \[ebp+8\]  
-00F715F1   >mov     dl, byte ptr \[eax+edx\]  
-00F715F4   >and     dl, 4  
-00F715F7   >shl     edx, 4  
-00F715FA   >or      cl, dl  
-00F715FC   >mov     eax, dword ptr \[ebp-4\]  
-00F715FF   >mov     edx, dword ptr \[ebp+8\]  
-00F71602   >mov     al, byte ptr \[edx+eax\]  
-00F71605   >and     al, 8  
-00F71607   >shl     eax, 2  
-00F7160A   >or      cl, al  
-00F7160C   >mov     edx, dword ptr \[ebp-4\]  
-00F7160F   >mov     eax, dword ptr \[ebp+8\]  
-00F71612   >movzx   edx, byte ptr \[eax+edx\]  
-00F71616   >and     edx, 10  
-00F71619   >sar     edx, 2  
-00F7161C   >or      cl, dl  
-00F7161E   >mov     eax, dword ptr \[ebp-4\]  
-00F71621   >mov     edx, dword ptr \[ebp+8\]  
-00F71624   >movzx   eax, byte ptr \[edx+eax\]  
-00F71628   >and     eax, 20  
-00F7162B   >sar     eax, 2  
-00F7162E   >or      cl, al  
-00F71630   >mov     edx, dword ptr \[ebp-4\]  
-00F71633   >mov     eax, dword ptr \[ebp+8\]  
-00F71636   >movzx   edx, byte ptr \[eax+edx\]  
-00F7163A   >and     edx, 40  
-00F7163D   >sar     edx, 2  
-00F71640   >or      cl, dl  
-00F71642   >mov     eax, dword ptr \[ebp-4\]  
-00F71645   >mov     edx, dword ptr \[ebp+8\]  
-00F71648   >movzx   eax, byte ptr \[edx+eax\]  
-00F7164C   >and     eax, 80  
-00F71651   >sar     eax, 7  
-00F71654   >or      cl, al  
-00F71656   >mov     byte ptr \[ebp-5\], cl  
-00F71659   >mov     dl, byte ptr \[ebp-5\]  
-00F7165C   >mov     ecx, dword ptr \[ebp-4\]  
-00F7165F   >mov     eax, dword ptr \[ebp+8\]  
-00F71662   >mov     byte ptr \[eax+ecx\], dl         ;写入解密数据  
-00F71665   >inc     dword ptr \[ebp-4\]  
-00F71668   >mov     edx, dword ptr \[ebp-4\]  
-00F7166B   >cmp     edx, dword ptr \[ebp+C\]  
-00F7166E  ^>jl      00F715CD         ;判断是否解密完成  
-00F71674   >mov     eax, 1  
-00F71679   >pop     ecx  
-00F7167A   >pop     ecx  
-00F7167B   >pop     ebp  
-00F7167C   >retn  
-  
-解密完成的数据如下（注意红色标记，那个为密钥，每次都不一样）  
-0129FDB8  02 65 66 84 2F 2C B3 9A 4D F2 A5 14 8B C0 A0 99  ef?,M 颔  
-0129FDC8  88 D6 03 03 01 08 10 32 35 39 39 30 37 34 31 39  259907419  
-0129FDD8  31 36 38 38 35 32 39 05 03 3C 06 03 04 25 14 01  1688529<%  
-0129FDE8  00 00 02 00 00 03 00 00 04 00 00 05 00 00 00 00  ............  
-0129FDF8  00 34 06 00 00 00 00 35 06 00 00 00 00 36 06 00  .4....5....6.  
-0129FE08  00 00 00 37 06 00 00 00 00 38 06 00 00 00 00 23  ...7....8....#  
-0129FE18  03 01 20 03 00                                    .  
-  
-红色标记前 1 位 0x10 位密钥长度 16 字节 红色标记的为密钥  
-0129FDC8                       32 35 39 39 30 37 34 31 39         59907419  
-0129FDD8  31 36 38 38 35 32                                168852  
-  
-继续分析第二个包是怎么构造的！慢慢跟，来到下面这个函数  
-00404E3C   >call    00405DD0      ；第二个包的构造函数   F7  
-00405DD0  />sub     esp, 34  
-00405DD3  |>push    ebx  
-00405DD4  |>push    ebp  
-00405DD5  |>mov     ebp, dword ptr \[esp+40\]  
-00405DD9  |>push    esi  
-00405DDA  |>push    edi  
-00405DDB  |>mov     edi, 0042CC10                    ;  9488171348284164  
-00405DE0  |>mov     byte ptr \[ebp\], 3                ;  写 03  
-00405DE4  |>inc     ebp  
-00405DE5  |>mov     dword ptr \[esp+1C\], ebp  
-00405DE9  |>add     ebp, 11  
-00405DEC  |>mov     esi, 0042CC10                    ;  9488171348284164  
-00405DF1  |>mov     byte ptr \[ebp\], 7                ;  跳过 17 字节写 07  
-00405DF5  |>inc     ebp  
-00405DF6  |>mov     byte ptr \[ebp\], 8                ;  写 08  
-00405DFA  |>mov     eax, dword ptr \[453FA8\]  
-00405DFF  |>inc     ebp  
-00405E00  |>add     eax, 10  
-00405E03  |>mov     ecx, ebp  
-00405E05  |>add     ebp, 6  
-00405E08  |>mov     edx, dword ptr \[eax\]  
-00405E0A  |>inc     ebp  
-00405E0B  |>mov     dword ptr \[ecx\], edx             ;  写 MAC  
-00405E0D  |>mov     ax, word ptr \[eax+4\]  
-00405E11  |>mov     word ptr \[ecx+4\], ax             ;  写 MAC  
-00405E15  |>mov     byte ptr \[ebp-1\], 8              ;  写 08  
-00405E19  |>or      ecx, FFFFFFFF  
-00405E1C  |>xor     eax, eax  
-00405E1E  |>repne   scas byte ptr es:\[edi\]  
-00405E20  |>not     ecx  
-00405E22  |>dec     ecx  
-00405E23  |>mov     eax, ecx  
-00405E25  |>mov     cl, al  
-00405E27  |>add     cl, 2  
-00405E2A  |>mov     byte ptr \[ebp\], cl               ;  写密钥长度+2  
-00405E2D  |>mov     ecx, eax  
-00405E2F  |>inc     ebp  
-00405E30  |>mov     edx, ecx  
-00405E32  |>mov     edi, ebp  
-00405E34  |>add     ebp, eax  
-00405E36  |>shr     ecx, 2  
-00405E39  |>rep     movs dword ptr es:\[edi\], dword p>;  写密钥  
-00405E3B  |>mov     ecx, edx  
-00405E3D  |>add     eax, 1C  
-00405E40  |>and     ecx, 3  
-00405E43  |>mov     dword ptr \[esp+18\], eax  
-00405E47  |>rep     movs byte ptr es:\[edi\], byte ptr>  
-00405E49  |>mov     eax, dword ptr \[453FA8\]          ;  没用  
-00405E4E  |>xor     edx, edx  
-00405E50  |>mov     eax, dword ptr \[eax+674\]  
-00405E56  |>mov     ecx, eax  
-00405E58  |>mov     dword ptr \[esp+10\], eax  
-00405E5C  |>mov     dl, byte ptr \[esp+12\]  
-00405E60  |>shr     ecx, 18  
-00405E63  |>push    ecx  
-00405E64  |>xor     ecx, ecx  
-00405E66  |>mov     cl, ah  
-00405E68  |>push    edx  
-00405E69  |>and     eax, 0FF  
-00405E6E  |>push    ecx  
-00405E6F  |>push    eax                              ; |<%d>  
-00405E70  |>lea     edx, dword ptr \[esp+40\]          ; |  
-00405E74  |>push    00423F68                         ; |%d.%d.%d.%d servicename:%s \\n  
-00405E79  |>push    edx                              ; |s  
-00405E7A  |>call    dword ptr \[<&msvcrt.sprintf>\]    ; \\sprintf  
-00405E80  |>lea     edi, dword ptr \[esp+48\]  
-00405E84  |>or      ecx, FFFFFFFF  
-00405E87  |>xor     eax, eax  
-00405E89  |>add     esp, 18  
-00405E8C  |>repne   scas byte ptr es:\[edi\]  
-00405E8E  |>not     ecx  
-00405E90  |>dec     ecx  
-00405E91  |>mov     byte ptr \[ebp\], 9                ;  写 09  
-00405E95  |>mov     ebx, ecx  
-00405E97  |>inc     ebp  
-00405E98  |>mov     al, bl  
-00405E9A  |>lea     esi, dword ptr \[esp+30\]  
-00405E9E  |>add     al, 2  
-00405EA0  |>mov     edx, ecx  
-00405EA2  |>mov     byte ptr \[ebp\], al               ;  写 IP 长度+2  
-00405EA5  |>inc     ebp  
-00405EA6  |>mov     edi, ebp  
-00405EA8  |>shr     ecx, 2  
-00405EAB  |>rep     movs dword ptr es:\[edi\], dword p>;  写 IP  
-00405EAD  |>mov     ecx, edx  
-00405EAF  |>mov     byte ptr \[esp+10\], 14  
-00405EB4  |>and     ecx, 3  
-00405EB7  |>mov     byte ptr \[esp+11\], 6  
-00405EBC  |>rep     movs byte ptr es:\[edi\], byte ptr>  
-00405EBE  |>mov     eax, dword ptr \[42361C\]  
-00405EC3  |>push    eax                              ; /NetLong => 1000000  
-00405EC4  |>call    dword ptr \[<&ws2\_32.htonl>\]      ; \\ntohl  
-00405ECA  |>mov     dword ptr \[esp+12\], eax  
-00405ECE  |>mov     edx, dword ptr \[esp+10\]  
-00405ED2  |>mov     ax, word ptr \[esp+14\]  
-00405ED7  |>lea     ecx, dword ptr \[ebx+ebp\]  
-00405EDA  |>mov     esi, dword ptr \[esp+48\]  
-00405EDE  |>mov     edi, dword ptr \[esp+1C\]  
-00405EE2  |>mov     dword ptr \[ecx\], edx  
-00405EE4  |>xor     edx, edx  
-00405EE6  |>mov     word ptr \[ecx+4\], ax  
-00405EEA  |>mov     ecx, dword ptr \[esp+18\]  
-00405EEE  |>mov     dword ptr \[esp+20\], edx  
-00405EF2  |>lea     eax, dword ptr \[esp+20\]  
-00405EF6  |>lea     ebx, dword ptr \[ecx+ebx+8\]  
-00405EFA  |>mov     dword ptr \[esp+24\], edx  
-00405EFE  |>push    ebx  
-00405EFF  |>mov     dword ptr \[esp+2C\], edx  
-00405F03  |>push    esi  
-00405F04  |>push    eax  
-00405F05  |>mov     dword ptr \[esp+38\], edx  
-00405F09  |>mov     byte ptr \[edi\], bl               ;  写包的长度  
-00405F0B  |>call    0040FD10                         ;  类 MD5 算法  
-00405F10  |>mov     ecx, dword ptr \[esp+2C\]  
-00405F14  |>mov     edx, dword ptr \[esp+30\]  
-00405F18  |>mov     eax, dword ptr \[esp+34\]  
-00405F1C  |>inc     edi  
-00405F1D  |>push    ebx  
-00405F1E  |>push    esi  
-00405F1F  |>mov     dword ptr \[edi\], ecx  
-00405F21  |>mov     ecx, dword ptr \[esp+40\]  
-00405F25  |>mov     dword ptr \[edi+4\], edx  
-00405F28  |>mov     dword ptr \[edi+8\], eax  
-00405F2B  |>mov     dword ptr \[edi+C\], ecx  
-00405F2E   >call    dword ptr \[429E34\]               ;  加密函数  
-00405F34  |>add     esp, 14  
-00405F37  |>mov     eax, ebx  
-00405F39  |>pop     edi  
-00405F3A  |>pop     esi  
-00405F3B  |>pop     ebp  
-00405F3C  |>pop     ebx  
-00405F3D  |>add     esp, 34  
-00405F40  \\>retn  
-  
-得到第二个包的数据如下  
-0129FBB8  03 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00  @..............  
-0129FBC8  00 00 07 08 00 0C 29 D8 23 40 08 12 32 35 39 39  ....)?@2599  
-0129FBD8  30 37 34 31 39 31 36 38 38 35 32 39 09 0E 31 37  074191688529.17  
-0129FBE8  32 2E 31 36 2E 37 2E 31 31 31 14 06 01 00 00 00  2.16.7.111...  
-最后的 6 个字节 14 06 01 00 00 00  不变  
-  
-再冲进这个函数进行类 MD5，前面有贴过，太长了，这里就不贴出来了。我只把加密的数据跟加密值贴出。  
-00405F0B  |>call    0040FD10                         ;  类 MD5 算法  
-  
-第一次加密的数据；  
-0129F8C0  03 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00  @..............  
-0129F8D0  00 00 07 08 00 0C 29 D8 23 40 08 12 32 35 39 39  ....)?@2599  
-0129F8E0  30 37 34 31 39 31 36 38 38 35 32 39 09 0E 31 37  074191688529.17  
-0129F8F0  32 2E 31 36 2E 37 2E 31 31 31 14 06 01 00 00 00  2.16.7.111...  
-对应的类 MD5  
-0129F93C  FC 0F 1C F4 62 09 68 BA D1 87 E7 F8 B0 73 51 D0  ?.h 貉 sQ  
-第二次加密的数据；  
-0129F88C  80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ...............  
-0129F89C  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
-0129F8AC  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
-0129F8BC  00 00 00 00 00 00 00 00 00 02 00 00 00 00 00 00  ...............  
-其中的 80 为 MD5 结束标志，后 8 个字节的 00 02 00 00 00 00 00 00  为报文长度\*8  
-本报文长度 0x40\*8=0200  
-对应的类 MD5  
-0129F93C  6D 43 5E C5 FE D9 3D 34 E4 3F 4B 6B 41 B7 72 B8  mC^毗?4?KkA  
-  
-最后补齐数据为（红色为类 MD5 加密填充的数据）  
-0129FBB8  03 40 6D 43 5E C5 FE D9 3D 34 E4 3F 4B 6B 41 B7  @mC^毗?4?KkA  
-0129FBC8  72 B8 07 08 00 0C 29 D8 23 40 08 12 32 35 39 39  r?..)?@2599  
-0129FBD8  30 37 34 31 39 31 36 38 38 35 32 39 09 0E 31 37  074191688529.17  
-0129FBE8  32 2E 31 36 2E 37 2E 31 31 31 14 06 01 00 00 00  2.16.7.111...  
-  
-  
-向下进入到加密函数   F7  
-00405F2E   >call    dword ptr \[429E34\]               ;  加密函数 跟第一个包用的同样的加密 F7  
-  
-  
-00F714B8 > >push    ebp  
-00F714B9   >mov     ebp, esp  
-00F714BB   >add     esp, -8  
-00F714BE   >cmp     dword ptr \[ebp+C\], 0  
-00F714C2   >jg      short 00F714CB  
-00F714C4   >xor     eax, eax  
-00F714C6   >jmp     00F71596  
-00F714CB   >cmp     dword ptr \[ebp+8\], 0  
-00F714CF   >jnz     short 00F714D8  
-00F714D1   >xor     eax, eax  
-00F714D3   >jmp     00F71596  
-00F714D8   >xor     edx, edx  
-00F714DA   >mov     dword ptr \[ebp-4\], edx  
-00F714DD   >mov     ecx, dword ptr \[ebp-4\]  
-00F714E0   >cmp     ecx, dword ptr \[ebp+C\]  
-00F714E3   >jge     00F71591  
-00F714E9   >mov     eax, dword ptr \[ebp-4\]  
-00F714EC   >mov     edx, dword ptr \[ebp+8\]  
-00F714EF   >mov     cl, byte ptr \[edx+eax\]           ; 输入加密数  
-00F714F2   >and     cl, 1                            ; 保留最后一位  
-00F714F5   >shl     ecx, 7                           ; 左移 7 位  
-00F714F8   >mov     eax, dword ptr \[ebp-4\]  
-00F714FB   >mov     edx, dword ptr \[ebp+8\]  
-00F714FE   >movzx   eax, byte ptr \[edx+eax\]  
-00F71502   >and     eax, 2                           ; 保留倒数第二位  
-00F71505   >sar     eax, 1                           ; 全部位右移 1 位  
-00F71507   >or      cl, al                           ; 跟 cl 做或运算  
-00F71509   >mov     edx, dword ptr \[ebp-4\]  
-00F7150C   >mov     eax, dword ptr \[ebp+8\]  
-00F7150F   >mov     dl, byte ptr \[eax+edx\]  
-00F71512   >and     dl, 4                            ; 保留倒数第三位  
-00F71515   >shl     edx, 2                           ; 左移 2 位  
-00F71518   >or      cl, dl                           ; 跟 cl 做或运算  
-00F7151A   >mov     eax, dword ptr \[ebp-4\]  
-00F7151D   >mov     edx, dword ptr \[ebp+8\]  
-00F71520   >mov     al, byte ptr \[edx+eax\]  
-00F71523   >and     al, 8                            ; 保留倒数第四位  
-00F71525   >shl     eax, 2                           ; 左移 2 位  
-00F71528   >or      cl, al                           ; 跟 cl 做或运算  
-00F7152A   >mov     edx, dword ptr \[ebp-4\]  
-00F7152D   >mov     eax, dword ptr \[ebp+8\]  
-00F71530   >mov     dl, byte ptr \[eax+edx\]  
-00F71533   >and     dl, 10                           ; 保留倒数第五位  
-00F71536   >shl     edx, 2                           ; 左移 2 位  
-00F71539   >or      cl, dl                           ; 跟 cl 做或运算  
-00F7153B   >mov     eax, dword ptr \[ebp-4\]  
-00F7153E   >mov     edx, dword ptr \[ebp+8\]  
-00F71541   >movzx   eax, byte ptr \[edx+eax\]  
-00F71545   >and     eax, 20                          ; 保留倒数第六位  
-00F71548   >sar     eax, 2                           ; 全位右移 2 位  
-00F7154B   >or      cl, al                           ; 跟 cl 做或运算  
-00F7154D   >mov     edx, dword ptr \[ebp-4\]  
-00F71550   >mov     eax, dword ptr \[ebp+8\]  
-00F71553   >movzx   edx, byte ptr \[eax+edx\]  
-00F71557   >and     edx, 40                          ; 保留倒数第七位  
-00F7155A   >sar     edx, 4                           ; 全位右移 4 位  
-00F7155D   >or      cl, dl                           ; 跟 cl 做或运算  
-00F7155F   >mov     eax, dword ptr \[ebp-4\]  
-00F71562   >mov     edx, dword ptr \[ebp+8\]  
-00F71565   >movzx   eax, byte ptr \[edx+eax\]  
-00F71569   >and     eax, 80                          ; 保留倒数第八位  
-00F7156E   >sar     eax, 6                           ; 全位右移 6 位  
-00F71571   >or      cl, al                           ; 跟 cl 做或运算  
-00F71573   >mov     byte ptr \[ebp-5\], cl  
-00F71576   >mov     dl, byte ptr \[ebp-5\]  
-00F71579   >mov     ecx, dword ptr \[ebp-4\]  
-00F7157C   >mov     eax, dword ptr \[ebp+8\]  
-00F7157F   >mov     byte ptr \[eax+ecx\], dl  
-00F71582   >inc     dword ptr \[ebp-4\]                ; 加一  
-00F71585   >mov     edx, dword ptr \[ebp-4\]  
-00F71588   >cmp     edx, dword ptr \[ebp+C\]  
-00F7158B  ^>jl      00F714E9                         ; 小于 9D 跳  
-00F71591   >mov     eax, 1  
-00F71596   >pop     ecx  
-00F71597   >pop     ecx  
-00F71598   >pop     ebp  
-00F71599   >retn  
-  
-  
-得到加密好的第 2 个包  
-0129FBB8  81 04 BC 85 75 96 7F E6 F8 58 1E F9 A5 AD 84 DB  ?u?骧 X  
-0129FBC8  4D 6A 91 20 00 30 A8 66 89 04 20 41 49 D8 E8 E8  Mj?.0? AI 罔  
-0129FBD8  48 D9 58 C8 E8 C8 59 68 68 D8 49 E8 A0 31 C8 D9  H 辱 hh1 荣  
-0129FBE8  49 39 C8 59 39 D9 39 C8 C8 C8 50 11 80 00 00 00  I99?热...  
-  
-然后程序发包，我们抓下来看看（高亮为数据区）  
-![](img/b5331ee4e7280239b754f3a61bb86375.jpg)  
-  
-分析完毕,有这些东西，差不多可以写登录器了，呵呵。  
+【文章标题】: 神州数码 DCBA 认证逆向分析
+【程序版本】: `3.5.4.118`
+【文章作者】: `51713137`
+【作者邮箱】: `zhangding2003china@sina.com`
+【下载地址】: 无
+【使用工具】: `ollyice`, `peid`, 科来网络分析仪
+【软件介绍】: 网络认证系统
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+此软件主流大学网实名认证系统。网上流传的大多为 802.1X 认证。DCBA 认证的文章还是很少的，今天就把我的逆向成果跟大家分享一下。
+
+主程序文件名：`DigitalChinaSupplicant.exe`，大小 1.66 MB (1,750,272 字节)
+
+`peid` 查壳是 `Acpr1.41`，主程序扔进 `ollyice` 脚本脱掉，脱壳后可以运行，大小 1.84 MB (1,933,312 字节)。
+
+把脱壳后的神州扔进 `OLLYICE`，开始逆向。在左下角的 `COMMAND` 下打命令 `"bp Sento"`（神州是 UDP 数据包进行验证，所以在发 UDP 的函数下断点）`F9` 运行，断下
+
+![](img/5c92386c280dad9baa2c58524cf7eaa5.jpg)
+
+在右下方的堆栈窗口返回到程序空间
+
+![](img/cf9b1ff3cfcc008c052f878a11e48bd3.jpg)
+
+向前看，找到 `004048E6 call 00405390` 这个函数 `F7` 跟进
+
+```
+00405390  $>sub     esp, 30
+00405393  |.>push    ebx
+00405394  |.>push    ebp
+00405395  |.>mov     ebp, dword ptr [esp+3C]
+00405399  |.>xor     eax, eax
+0040539B  |.>xor     ecx, ecx
+0040539D  |.>mov     dword ptr [esp+14], eax
+004053A1  |.>mov     byte ptr [ebp], 1                 ;  写 1
+004053A5  |.>inc     ebp
+004053A6  |.>mov     edx, ebp
+004053A8  |.>mov     dword ptr [esp+18], eax
+004053AC  |.>mov     dword ptr [esp+10], ebp
+004053B0  |.>add     ebp, 11
+004053B3  |.>mov     dword ptr [edx], ecx
+004053B5  |.>mov     dword ptr [esp+1C], eax
+004053B9  |.>mov     dword ptr [esp+20], eax
+004053BD  |.>inc     ebp
+004053BE  |.>mov     dword ptr [edx+4], ecx
+004053C1  |.>push    esi
+004053C2  |.>push    edi
+004053C3  |.>mov     dword ptr [edx+8], ecx
+004053C6  |.>mov     dword ptr [edx+C], ecx
+004053C9  |.>mov     byte ptr [edx+10], cl
+004053CC  |.>mov     byte ptr [ebp-1], 1               ;  跳过 17 字节写 1
+004053D0  |.>mov     eax, dword ptr [42CB54]
+004053D5  |.>mov     eax, dword ptr [eax-8]
+004053D8  |.>mov     cl, al
+004053DA  |.>add     cl, 2
+004053DD  |.>lea     ebx, dword ptr [eax+14]
+004053E0  |.>mov     byte ptr [ebp], cl                ;  用户名长度+2
+004053E3  |.>mov     esi, dword ptr [42CB54]
+004053E9  |.>mov     ecx, eax
+004053EB  |.>inc     ebp
+004053EC  |.>mov     edx, ecx
+004053EE  |.>mov     edi, ebp
+004053F0  |.>shr     ecx, 2
+004053F3  |.>rep     movs dword ptr es:[edi], dword p>;  写用户名
+004053F5  |.>mov     ecx, edx
+004053F7  |.>add     ebp, eax
+004053F9  |.>and     ecx, 3
+004053FC  |.>inc     ebp
+004053FD  |.>rep     movs byte ptr es:[edi], byte ptr>;  写用户名
+004053FF  |.>mov     byte ptr [ebp-1], 2
+00405403  |.>mov     eax, dword ptr [42CB58]           ;  写 2
+00405408  |.>mov     eax, dword ptr [eax-8]
+0040540B  |.>mov     cl, al
+0040540D  |.>add     cl, 2
+00405410  |.>lea     ebx, dword ptr [ebx+eax+2]
+00405414  |.>mov     byte ptr [ebp], cl                ;  密码长度+2
+00405417  |.>mov     esi, dword ptr [42CB58]
+0040541D  |.>mov     ecx, eax
+0040541F  |.>inc     ebp
+00405420  |.>mov     edx, ecx
+00405422  |.>mov     edi, ebp
+00405424  |.>shr     ecx, 2
+00405427  |.>rep     movs dword ptr es:[edi], dword p>;  写密码
+00405429  |.>mov     ecx, edx
+0040542B  |.>add     ebp, eax
+0040542D  |.>and     ecx, 3
+00405430  |.>inc     ebp
+00405431  |.>rep     movs byte ptr es:[edi], byte ptr>;  写密码
+00405433  |.>mov     byte ptr [ebp-1], 7               ;  写 07
+00405437  |.>mov     byte ptr [ebp], 8                 ;  写 08
+0040543B  |.>mov     eax, dword ptr [453FA8]
+00405440  |.>inc     ebp
+00405441  |.>add     eax, 10
+00405444  |.>mov     ecx, ebp
+00405446  |.>add     ebp, 6
+00405449  |.>add     ebx, 8
+0040544C  |.>mov     edx, dword ptr [eax]
+0040544E  |.>inc     ebp
+0040544F  |.>mov     dword ptr [ecx], edx
+00405451  |.>mov     ax, word ptr [eax+4]
+00405455  |.>mov     word ptr [ecx+4], ax              ;  写 MAC 地址
+00405459  |.>mov     byte ptr [ebp-1], 9               ;  写 09
+0040545D  |.>mov     ecx, dword ptr [453FA8]           ;  已脱壳未.00450B64
+00405463  |.>mov     eax, dword ptr [ecx+674]
+00405469  |.>mov     edx, eax
+0040546B  |.>mov     dword ptr [esp+10], eax
+0040546F  |.>shr     edx, 18
+00405472  |.>push    edx                                 ; /<%d>
+00405473  |.>xor     ecx, ecx                            ; |
+00405475  |.>mov     cl, byte ptr [esp+16]               ; |
+00405479  |.>xor     edx, edx                            ; |
+0040547B  |.>mov     dl, ah                              ; |
+0040547D  |.>push    ecx                                 ; |<%d>
+0040547E  |.>and     eax, 0FF                            ; |
+00405483  |.>push    edx                                 ; |<%d>
+00405484  |.>push    eax                                 ; |<%d>
+00405485  |.>lea     eax, dword ptr [esp+3C]             ; |
+00405489  |.>push    00423F68                          ;|%d.%d.%d.%d servicename:%s \n
+0040548E  |.>push    eax                                 ; |s
+0040548F  |.>call    dword ptr [<&msvcrt.sprintf>]       ; \sprintf
+00405495  |.>lea     ecx, dword ptr [esp+44]
+00405499  |.>push    ecx
+0040549A  |.>push    00423F88                           ;  localip:%s \n
+0040549F  |.>push    1
+004054A1  |.>call    0041BE30
+004054A6  |.>lea     edi, dword ptr [esp+50]
+004054AA  |.>or      ecx, FFFFFFFF
+004054AD  |.>xor     eax, eax
+004054AF  |.>lea     esi, dword ptr [esp+50]
+004054B3  |.>repne   scas byte ptr es:[edi]
+004054B5  |.>not     ecx
+004054B7  |.>dec     ecx
+004054B8  |.>mov     eax, ecx
+004054BA  |.>mov     dl, al
+004054BC  |.>add     dl, 2
+004054BF  |.>mov     byte ptr [ebp], dl                  ;  ip 地址长度+2
+004054C2  |.>inc     ebp
+004054C3  |.>mov     edx, ecx
+004054C5  |.>mov     edi, ebp
+004054C7  |.>shr     ecx, 2
+004054CA  |.>rep     movs dword ptr es:[edi], dword p>;  写 IP
+004054CC  |.>mov     ecx, edx
+004054CE  |.>add     ebp, eax
+004054D0  |.>and     ecx, 3
+004054D3  |.>lea     eax, dword ptr [ebx+eax+2]
+004054D7  |.>rep     movs byte ptr es:[edi], byte ptr>;  写 IP
+004054D9  |.>mov     byte ptr [ebp], 0A                  ;  写 0A
+004054DD  |.>mov     ecx, dword ptr [42CB80]
+004054E3  |.>inc     ebp
+004054E4  |.>mov     dword ptr [esp+34], eax
+004054E8  |.>mov     ebx, dword ptr [ecx-8]
+004054EB  |.>mov     dl, bl
+004054ED  |.>mov     dword ptr [esp+38], ebx
+004054F1  |.>add     dl, 2
+004054F4  |.>mov     byte ptr [ebp], dl                  ;  写 0A
+004054F7  |.>mov     eax, dword ptr [42CB80]
+004054FC  |.>push    eax
+004054FD  |.>push    00423F74                           ;  servicename:%s \n
+00405502  |.>push    1
+00405504  |.>inc     ebp
+00405505  |.>call    0041BE30
+0040550A  |.>mov     esi, dword ptr [42CB80]
+00405510  |.>mov     ecx, ebx
+00405512  |.>mov     edx, ecx
+00405514  |.>mov     edi, ebp
+00405516  |.>shr     ecx, 2
+00405519  |.>rep    movs dword ptr es:[edi], dword p>;  写服务类型 此处为"internet"
+0040551B  |.>mov     ecx, edx
+0040551D  |.>add     ebp, ebx
+0040551F  |.>and     ecx, 3
+00405522  |.>inc     ebp
+00405523  |.>rep     movs byte ptr es:[edi], byte ptr>
+00405525  |.>mov     byte ptr [ebp-1], 1F                ;  写 1F
+00405529  |.>mov     byte ptr [ebp], 0F                  ;  写 0F
+0040552D  |.>mov     ecx, dword ptr [454B80]
+00405533  |.>inc     ebp
+00405534  |.>mov     eax, ebp
+00405536  |.>add     ebp, 0D
+00405539  |.>inc     ebp
+0040553A  |.>push    1
+0040553C  |.>mov     dword ptr [eax], ecx
+0040553E  |.>mov     edx, dword ptr [454B84]
+00405544  |.>mov     dword ptr [eax+4], edx
+00405547  |.>mov     ecx, dword ptr [454B88]
+0040554D  |.>mov     dword ptr [eax+8], ecx
+00405550  |.>mov     dl, byte ptr [454B8C]
+00405556  |.>mov     byte ptr [eax+C], dl                ;  写版本号 此处为"3.5.04.0118"
+```
+
+
+
+```
+00405559   .|>mov     byte ptr [ebp-1], 25                ;  写 25  
+0040555D   .|>mov     byte ptr [ebp], 47                  ;  写 47  
+00405561   .|>call    00417170  
+00405566   .|>mov     ebx, eax  
+00405568   .|>add     esp, 34  
+0040556B   .|>mov     ax, word ptr [ebx+41]  
+0040556F   .|>push    eax                                 ; /NetShort  
+00405570   .|>call    dword ptr [&ws2_32.htons]           ; \ntohs  
+00405576   .|>lea     edi, dword ptr [ebp+1]  
+00405579   .|>mov     ecx, 11  
+0040557E   .|>mov     esi, ebx  
+00405580   .|>mov     word ptr [ebx+41], ax  
+00405584   .|>rep     movs dword ptr es:[edi], dword p>  
+00405586   .|>movs    byte ptr es:[edi], byte ptr [esi>  
+00405587   .|>mov     cx, word ptr [ebx+41]  
+0040558B   .|>push    ecx                                 ; /NetShort  
+0040558C   .|>call    dword ptr [&ws2_32.htons]           ; \ntohs  
+00405592   .|>mov     edx, dword ptr [esp+10]  
+00405596   .|>mov     esi, dword ptr [esp+44]  
+0040559A   .|>mov     edi, dword ptr [esp+18]  
+0040559E   .|>mov     word ptr [ebx+41], ax  
+004055A2   .|>mov     eax, dword ptr [esp+14]  
+004055A6   .|>lea     ecx, dword ptr [esp+1C]  
+004055AA   .|>lea     ebx, dword ptr [edx+eax+58]  
+004055AE   .|>push    ebx  
+004055AF   .|>push    esi  
+004055B0   .|>push    ecx  
+004055B1   .|>mov     byte ptr [edi], bl                  ;  写报文长度,位置在报文的第 2 个字节  
+004055B3   .|>call    0040FD10                     ;  类 MD5 算法（不标准）,填充报文的 3-18 字节处  
+004055B8   .|>mov     edx, dword ptr [esp+28]  
+004055BC   .|>mov     eax, dword ptr [esp+2C]  
+004055C0   .|>mov     ecx, dword ptr [esp+30]  
+004055C4   .|>inc     edi  
+004055C5   .|>push    ebx  
+004055C6   .|>push    esi  
+004055C7   .|>mov     dword ptr [edi], edx  
+004055C9   .|>mov     edx, dword ptr [esp+3C]  
+004055CD   .|>mov     dword ptr [edi+4], eax  
+004055D0   .|>mov     dword ptr [edi+8], ecx  
+004055D3   .|>mov     dword ptr [edi+C], edx  
+004055D6   .|>call    dword ptr [429E34]             ;  报文加密算法  
+004055DC   .|>add     esp, 14  
+004055DF   .|>mov     eax, ebx  
+004055E1   .|>pop     edi  
+004055E2   .|>pop     esi  
+004055E3   .|>pop     ebp  
+004055E4   .|>pop     ebx  
+004055E5   .|>add     esp, 30  
+004055E8   \.>retn  
+```
+
+堆栈的数据如下图
+
+![](img/cc19e554826b482f6a8d7b5e8ec2770b.jpg)
+
+```
+0040FEA0   /$>sub     esp, 40                  //类 MD5 算法  
+0040FEA3   .|>mov     ecx, dword ptr [esp+48]  
+0040FEA7   .|>push    ebx  
+0040FEA8   .|>push    ebp  
+0040FEA9   .|>push    esi  
+0040FEAA   .|>mov     esi, dword ptr [esp+50]  
+0040FEAE   .|>push    edi  
+0040FEAF   .|>push    40  
+0040FEB1   .|>lea     edx, dword ptr [esp+14]  
+0040FEB5   .|>mov     eax, dword ptr [esi]       ;链值  
+0040FEB7   .|>mov     edi, dword ptr [esi+4]     ;链值  
+0040FEBA   .|>mov     ebx, dword ptr [esi+8]    ;链值  
+0040FEBD   .|>mov     ebp, dword ptr [esi+C]     ;链值  
+0040FEC0   .|>push    ecx      
+0040FEC1   .|>push    edx  
+0040FEC2   .|>mov     dword ptr [esp+60], eax  
+0040FEC6   .|>call    00410840        
+0040FECB   .|>mov     eax, edi  
+0040FECD   .|>mov     edx, dword ptr [esp+60]  
+0040FED1   .|>not     eax  
+0040FED3   .|>mov     ecx, ebx  
+0040FED5   .|>and     eax, ebp  
+0040FED7   .|>and     ecx, edi  
+0040FED9   .|>or      eax, ecx  
+0040FEDB   .|>mov     ecx, dword ptr [esp+1C]     ;取报文前 4 个字节进行运算,以下这个语句就是取数，略。  
+0040FEDF   .|>add     eax, ecx  
+0040FEE1   .|>lea     ecx, dword ptr [edx+eax+D76AA478>  
+0040FEE8   .|>mov     edx, edi  
+0040FEEA   .|>mov     eax, ecx  
+0040FEEC   .|>shr     eax, 19  
+0040FEEF   .|>shl     ecx, 7  
+0040FEF2   .|>or      eax, ecx  
+0040FEF4   .|>add     eax, edi  
+0040FEF6   .|>mov     ecx, eax  
+0040FEF8   .|>and     edx, eax  
+0040FEFA   .|>not     ecx  
+0040FEFC   .|>and     ecx, ebx  
+0040FEFE   .|>or      ecx, edx  
+0040FF00   .|>mov     edx, dword ptr [esp+20]  
+0040FF04   .|>add     ecx, edx  
+0040FF06   .|>lea     edx, dword ptr [ecx+ebp+E8C7B756>  
+0040FF0D   .|>mov     ecx, edx  
+0040FF0F   .|>shr     ecx, 14  
+0040FF12   .|>shl     edx, 0C  
+0040FF15   .|>or      ecx, edx  
+0040FF17   .|>add     ecx, eax  
+0040FF19   .|>mov     edx, ecx  
+0040FF1B   .|>mov     ebp, ecx  
+0040FF1D   .|>not     edx  
+0040FF1F   .|>and     edx, edi  
+0040FF21   .|>and     ebp, eax  
+0040FF23   .|>or      edx, ebp  
+0040FF25   .|>mov     ebp, dword ptr [esp+24]  
+0040FF29   .|>add     edx, ebp  
+0040FF2B   .|>mov     ebp, ecx  
+0040FF2D   .|>lea     ebx, dword ptr [ebx+edx+242070DB>  
+0040FF34   .|>mov     edx, ebx  
+0040FF36   .|>shr     edx, 0F  
+0040FF39   .|>shl     ebx, 11  
+0040FF3C   .|>or      edx, ebx  
+0040FF3E   .|>add     edx, ecx  
+0040FF40   .|>mov     ebx, edx  
+0040FF42   .|>and     ebp, edx  
+0040FF44   .|>not     ebx  
+0040FF46   .|>and     ebx, eax  
+0040FF48   .|>or      ebx, ebp  
+0040FF4A   .|>mov     ebp, dword ptr [esp+28]  
+0040FF4E   .|>add     ebx, ebp  
+0040FF50   .|>lea     ebx, dword ptr [edi+ebx+C1BDCEEE>  
+0040FF57   .|>mov     edi, ebx  
+0040FF59   .|>shl     edi, 16  
+0040FF5C   .|>shr     ebx, 0A  
+0040FF5F   .|>or      edi, ebx  
+0040FF61   .|>mov     ebx, edx  
+0040FF63   .|>add     edi, edx  
+0040FF65   .|>mov     dword ptr [esp+60], edi  
+0040FF69   .|>mov     ebp, dword ptr [esp+60]  
+0040FF6D   .|>not     edi  
+0040FF6F   .|>and     edi, ecx  
+0040FF71   .|>and     ebx, ebp  
+0040FF73   .|>mov     ebp, dword ptr [esp+2C]  
+0040FF77   .|>or      edi, ebx  
+0040FF79   .|>add     edi, ebp  
+0040FF7B   .|>mov     ebx, dword ptr [esp+60]  
+0040FF7F   .|>mov     ebp, ebx  
+0040FF81   .|>lea     eax, dword ptr [eax+edi+F57C0FAF>  
+0040FF88   .|>mov     edi, eax  
+0040FF8A   .|>shr     edi, 19  
+0040FF8D   .|>shl     eax, 7  
+0040FF90   .|>or      edi, eax  
+0040FF92   .|>add     edi, ebx  
+0040FF94   .|>mov     eax, edi  
+0040FF96   .|>and     ebp, edi  
+0040FF98   .|>not     eax  
+0040FF9A   .|>and     eax, edx  
+0040FF9C   .|>or      eax, ebp  
+0040FF9E   .|>mov     ebp, dword ptr [esp+30]  
+0040FFA2   .|>add     eax, ebp  
+0040FFA4   .|>lea     ecx, dword ptr [ecx+eax+4787C62A>  
+0040FFAB   .|>mov     eax, ecx  
+0040FFAD   .|>shr     eax, 14  
+0040FFB0   .|>shl     ecx, 0C  
+0040FFB3   .|>or      eax, ecx  
+0040FFB5   .|>add     eax, edi  
+0040FFB7   .|>mov     ecx, eax  
+0040FFB9   .|>mov     ebp, eax  
+0040FFBB   .|>not     ecx  
+0040FFBD   .|>and     ecx, ebx  
+0040FFBF   .|>and     ebp, edi  
+0040FFC1   .|>or      ecx, ebp  
+0040FFC3   .|>mov     ebp, dword ptr [esp+34]  
+0040FFC7   .|>add     ecx, ebp  
+0040FFC9   .|>mov     ebp, eax  
+0040FFCB   .|>lea     edx, dword ptr [edx+ecx+A8304613>  
+0040FFD2   .|>mov     ecx, edx  
+0040FFD4   .|>shr     ecx, 0F  
+0040FFD7   .|>shl     edx, 11  
+0040FFDA   .|>or      ecx, edx  
+0040FFDC   .|>add     ecx, eax  
+0040FFDE   .|>mov     edx, ecx  
+0040FFE0   .|>and     ebp, ecx  
+0040FFE2   .|>not     edx  
+0040FFE4   .|>and     edx, edi  
+0040FFE6   .|>or      edx, ebp  
+0040FFE8   .|>mov     ebp, dword ptr [esp+38]  
+0040FFEC   .|>add     edx, ebp  
+0040FFEE   .|>lea     ebx, dword ptr [ebx+edx+FD469501>  
+0040FFF5   .|>mov     edx, ebx  
+0040FFF7   .|>shl     edx, 16  
+0040FFFA   .|>shr     ebx, 0A  
+0040FFFD   .|>or      edx, ebx  
+0040FFFF   .|>mov     ebx, ecx  
+00410001   .|>add     edx, ecx  
+00410003   .|>mov     dword ptr [esp+60], edx  
+00410007   .|>mov     ebp, dword ptr [esp+60]  
+0041000B   .|>not     edx  
+0041000D   .|>and     edx, eax  
+0041000F   .|>and     ebx, ebp  
+00410011   .|>mov     ebp, dword ptr [esp+3C]  
+00410015   .|>or      edx, ebx  
+00410017   .|>add     edx, ebp  
+00410019   .|>mov     ebx, dword ptr [esp+60]  
+0041001D   .|>mov     ebp, ebx  
+0041001F   .|>lea     edi, dword ptr [edi+edx+698098D8>  
+00410026   .|>mov     edx, edi  
+00410028   .|>shr     edx, 19  
+0041002B   .|>shl     edi, 7  
+```
+
+
+
+```
+0041002E   |.>or      edx, edi  
+
+00410030   |.>add     edx, ebx  
+
+00410032   |.>mov     edi, edx  
+
+00410034   |.>and     ebp, edx  
+
+00410036   |.>not     edi  
+
+00410038   |.>and     edi, ecx  
+
+0041003A   |.>or      edi, ebp  
+
+0041003C   |.>mov     ebp, dword ptr [esp+40]  
+
+00410040   |.>add     edi, ebp  
+
+00410042   |.>lea     eax, dword ptr [eax+edi+8B44F7AF]  
+
+00410049   |.>mov     edi, eax  
+
+0041004B   |.>shr     edi, 14  
+
+0041004E   |.>shl     eax, 0C  
+
+00410051   |.>or      edi, eax  
+
+00410053   |.>add     edi, edx  
+
+00410055   |.>mov     eax, edi  
+
+00410057   |.>not     eax  
+
+00410059   |.>mov     ebp, edi  
+
+0041005B   |.>and     eax, ebx  
+
+0041005D   |.>and     ebp, edx  
+
+0041005F   |.>or      eax, ebp  
+
+00410061   |.>mov     ebp, dword ptr [esp+44]  
+
+00410065   |.>add     eax, ebp  
+
+00410067   |.>mov     ebp, edi  
+
+00410069   |.>lea     ecx, dword ptr [ecx+eax+FFFF5BB1]  
+
+00410070   |.>mov     eax, ecx  
+
+00410072   |.>shr     eax, 0F  
+
+00410075   |.>shl     ecx, 11  
+
+00410078   |.>or      eax, ecx  
+
+0041007A   |.>add     eax, edi  
+
+0041007C   |.>mov     ecx, eax  
+
+0041007E   |.>and     ebp, eax  
+
+00410080   |.>not     ecx  
+
+00410082   |.>and     ecx, edx  
+
+00410084   |.>or      ecx, ebp  
+
+00410086   |.>mov     ebp, dword ptr [esp+48]  
+
+0041008A   |.>add     ecx, ebp  
+
+0041008C   |.>lea     ebx, dword ptr [ebx+ecx+895CD7BE]  
+
+00410093   |.>mov     ecx, ebx  
+
+00410095   |.>shl     ecx, 16  
+
+00410098   |.>shr     ebx, 0A  
+
+0041009B   |.>or      ecx, ebx  
+
+0041009D   |.>mov     ebx, eax  
+
+0041009F   |.>add     ecx, eax  
+
+004100A1   |.>mov     dword ptr [esp+60], ecx  
+
+004100A5   |.>mov     ebp, dword ptr [esp+60]  
+
+004100A9   |.>not     ecx  
+
+004100AB   |.>and     ecx, edi  
+
+004100AD   |.>and     ebx, ebp  
+
+004100AF   |.>mov     ebp, dword ptr [esp+4C]  
+
+004100B3   |.>or      ecx, ebx  
+
+004100B5   |.>add     ecx, ebp  
+
+004100B7   |.>mov     ebx, dword ptr [esp+60]  
+
+004100BB   |.>mov     ebp, ebx  
+
+004100BD   |.>lea     edx, dword ptr [edx+ecx+6B901122]  
+
+004100C4   |.>mov     ecx, edx  
+
+004100C6   |.>shr     ecx, 19  
+
+004100C9   |.>shl     edx, 7  
+
+004100CC   |.>or      ecx, edx  
+
+004100CE   |.>add     ecx, ebx  
+
+004100D0   |.>mov     edx, ecx  
+
+004100D2   |.>and     ebp, ecx  
+
+004100D4   |.>not     edx  
+
+004100D6   |.>and     edx, eax  
+
+004100D8   |.>or      edx, ebp  
+
+004100DA   |.>mov     ebp, dword ptr [esp+50]  
+
+004100DE   |.>add     edx, ebp  
+
+004100E0   |.>lea     edi, dword ptr [edi+edx+FD987193]  
+
+004100E7   |.>mov     edx, edi  
+
+004100E9   |.>shr     edx, 14  
+
+004100EC   |.>shl     edi, 0C  
+
+004100EF   |.>or      edx, edi  
+
+004100F1   |.>add     edx, ecx  
+
+004100F3   |.>mov     ebp, edx  
+
+004100F5   |.>mov     edi, edx  
+
+004100F7   |.>not     ebp  
+
+004100F9   |.>and     edi, ecx  
+
+004100FB   |.>and     ebx, ebp  
+
+004100FD   |.>or      edi, ebx  
+
+004100FF   |.>mov     ebx, dword ptr [esp+54]  
+
+00410103   |.>add     edi, ebx  
+
+00410105   |.>mov     ebx, edx  
+
+00410107   |.>lea     eax, dword ptr [eax+edi+A679438E]  
+
+0041010E   |.>mov     edi, eax  
+
+00410110   |.>shr     edi, 0F  
+
+00410113   |.>shl     eax, 11  
+
+00410116   |.>or      edi, eax  
+
+00410118   |.>add     edi, edx  
+
+0041011A   |.>mov     eax, edi  
+
+0041011C   |.>and     ebx, edi  
+
+0041011E   |.>not     eax  
+
+00410120   |.>mov     dword ptr [esp+64], eax  
+
+00410124   |.>and     eax, ecx  
+
+00410126   |.>or      eax, ebx  
+
+00410128   |.>mov     ebx, dword ptr [esp+58]  
+
+0041012C   |.>add     eax, ebx  
+
+0041012E   |.>mov     ebx, dword ptr [esp+60]  
+
+00410132   |.>lea     ebx, dword ptr [ebx+eax+49B40821]  
+
+00410139   |.>mov     eax, ebx  
+
+0041013B   |.>shl     eax, 16  
+
+0041013E   |.>shr     ebx, 0A  
+
+00410141   |.>or      eax, ebx  
+
+00410143   |.>mov     ebx, edx  
+
+00410145   |.>add     eax, edi  
+
+00410147   |.>mov     dword ptr [esp+60], eax  
+
+0041014B   |.>and     ebx, eax  
+
+0041014D   |.>mov     eax, edi  
+
+0041014F   |.>and     eax, ebp  
+
+00410151   |.>mov     ebp, dword ptr [esp+20]  
+
+00410155   |.>or      ebx, eax  
+
+00410157   |.>add     ebx, ebp  
+
+00410159   |.>mov     ebp, edi  
+
+0041015B   |.>lea     ecx, dword ptr [ecx+ebx+F61E2562]  
+
+00410162   |.>mov     ebx, dword ptr [esp+60]  
+
+00410166   |.>mov     eax, ecx  
+
+00410168   |.>shr     eax, 1B  
+
+0041016B   |.>shl     ecx, 5  
+
+0041016E   |.>or      eax, ecx  
+
+00410170   |.>mov     ecx, dword ptr [esp+64]  
+
+00410174   |.>add     eax, ebx  
+
+00410176   |.>and     ecx, ebx  
+
+00410178   |.>and     ebp, eax  
+
+0041017A   |.>or      ecx, ebp  
+
+0041017C   |.>mov     ebp, dword ptr [esp+34]  
+
+00410180   |.>add     ecx, ebp  
+
+00410182   |.>mov     ebp, dword ptr [esp+60]  
+
+00410186   |.>not     ebx  
+
+00410188   |.>lea     edx, dword ptr [edx+ecx+C040B340]  
+
+0041018F   |.>and     ebx, eax  
+
+00410191   |.>mov     ecx, edx  
+
+00410193   |.>shr     ecx, 17  
+
+00410196   |.>shl     edx, 9  
+
+00410199   |.>or      ecx, edx  
+
+0041019B   |.>add     ecx, eax  
+
+0041019D   |.>mov     edx, ecx  
+
+0041019F   |.>and     edx, ebp  
+
+004101A1   |.>mov     ebp, dword ptr [esp+48]  
+
+004101A5   |.>or      ebx, edx  
+
+004101A7   |.>add     ebx, ebp  
+
+004101A9   |.>lea     edi, dword ptr [edi+ebx+265E5A51]  
+
+004101B0   |.>mov     edx, edi  
+
+004101B2   |.>shr     edx, 12  
+
+004101B5   |.>shl     edi, 0E  
+
+004101B8   |.>or      edx, edi  
+
+004101BA   |.>mov     edi, eax  
+
+004101BC   |.>add     edx, ecx  
+
+004101BE   |.>not     edi  
+
+004101C0   |.>mov     ebx, edx  
+
+004101C2   |.>and     edi, ecx  
+
+004101C4   |.>and     ebx, eax  
+
+004101C6   |.>or      edi, ebx  
+
+004101C8   |.>mov     ebx, dword ptr [esp+1C]  
+
+004101CC   |.>add     edi, ebx  
+
+004101CE   |.>mov     ebx, dword ptr [esp+60]  
+
+004101D2   |.>lea     ebx, dword ptr [ebx+edi+E9B6C7AA]  
+
+004101D9   |.>mov     edi, ebx  
+
+004101DB   |.>shl     edi, 14  
+
+004101DE   |.>shr     ebx, 0C  
+
+004101E1   |.>or      edi, ebx  
+
+004101E3   |.>mov     ebx, ecx  
+
+004101E5   |.>add     edi, edx  
+
+004101E7   |.>mov     dword ptr [esp+60], edi  
+
+004101EB   |.>mov     edi, ecx  
+
+004101ED   |.>mov     ebp, dword ptr [esp+60]  
+
+004101F1   |.>not     edi  
+
+004101F3   |.>and     edi, edx  
+
+004101F5   |.>and     ebx, ebp  
+
+004101F7   |.>mov     ebp, dword ptr [esp+30]  
+
+004101FB   |.>or      edi, ebx  
+
+004101FD   |.>add     edi, ebp  
+
+004101FF   |.>mov     ebx, dword ptr [esp+60]  
+
+00410203   |.>lea     eax, dword ptr [eax+edi+D62F105D]  
+
+0041020A   |.>mov     edi, eax  
+
+0041020C   |.>shr     edi, 1B  
+
+0041020F   |.>shl     eax, 5  
+
+00410212   |.>or      edi, eax  
+
+00410214   |.>mov     eax, edx  
+
+00410216   |.>add     edi, ebx  
+
+00410218   |.>not     eax  
+
+0041021A   |.>mov     ebp, edx  
+
+0041021C   |.>and     eax, ebx  
+
+0041021E   |.>and     ebp, edi  
+
+00410220   |.>or      eax, ebp  
+
+00410222   |.>mov     ebp, dword ptr [esp+44]  
+
+00410226   |.>add     eax, ebp  
+
+00410228   |.>mov     ebp, dword ptr [esp+60]  
+
+0041022C   |.>not     ebx  
+
+0041022E   |.>lea     ecx, dword ptr [ecx+eax+2441453]  
+
+00410235   |.>and     ebx, edi  
+
+00410237   |.>mov     eax, ecx  
+
+00410239   |.>shr     eax, 17  
+
+0041023C   |.>shl     ecx, 9  
+
+0041023F   |.>or      eax, ecx  
+
+00410241   |.>add     eax, edi  
+
+00410243   |.>mov     ecx, eax  
+
+00410245   |.>and     ecx, ebp  
+
+00410247   |.>mov     ebp, dword ptr [esp+58]  
+
+0041024B   |.>or      ebx, ecx  
+
+0041024D   |.>add     ebx, ebp  
+
+0041024F   |.>lea     edx, dword ptr [edx+ebx+D8A1E681]  
+
+00410256   |.>mov     ecx, edx  
+
+00410258   |.>shr     ecx, 12  
+
+0041025B   |.>shl     edx, 0E  
+
+0041025E   |.>or      ecx, edx  
+
+00410260   |.>mov     edx, edi  
+
+00410262   |.>add     ecx, eax  
+
+00410264   |.>not     edx  
+
+00410266   |.>mov     ebx, ecx  
+
+00410268   |.>and     edx, eax  
+
+0041026A   |.>and     ebx, edi  
+
+0041026C   |.>or      edx, ebx  
+
+0041026E   |.>mov     ebx, dword ptr [esp+2C]  
+
+00410272   |.>add     edx, ebx
+```
+
+
+
+```
+00410274   |.>mov     ebx, dword ptr [esp+60]
+00410278   |.>lea     ebx, dword ptr [ebx+edx+E7D3FBC8]
+0041027F   |.>mov     edx, ebx
+00410281   |.>shl     edx, 14
+00410284   |.>shr     ebx, 0C
+00410287   |.>or      edx, ebx
+00410289   |.>mov     ebx, eax
+0041028B   |.>add     edx, ecx
+0041028D   |.>mov     dword ptr [esp+60], edx
+00410291   |.>mov     edx, eax
+00410293   |.>mov     ebp, dword ptr [esp+60]
+00410297   |.>not     edx
+00410299   |.>and     edx, ecx
+0041029B   |.>and     ebx, ebp
+0041029D   |.>mov     ebp, dword ptr [esp+40]
+004102A1   |.>or      edx, ebx
+004102A3   |.>add     edx, ebp
+004102A5   |.>mov     ebx, dword ptr [esp+60]
+004102A9   |.>mov     ebp, ecx
+004102AB   |.>lea     edi, dword ptr [edi+edx+21E1CDE6]
+004102B2   |.>mov     edx, edi
+004102B4   |.>shr     edx, 1B
+004102B7   |.>shl     edi, 5
+004102BA   |.>or      edx, edi
+004102BC   |.>mov     edi, ecx
+004102BE   |.>add     edx, ebx
+004102C0   |.>not     edi
+004102C2   |.>and     edi, ebx
+004102C4   |.>and     ebp, edx
+004102C6   |.>or      edi, ebp
+004102C8   |.>mov     ebp, dword ptr [esp+54]
+004102CC   |.>add     edi, ebp
+004102CE   |.>mov     ebp, dword ptr [esp+60]
+004102D2   |.>not     ebx
+004102D4   |.>lea     eax, dword ptr [eax+edi+C33707D6]
+004102DB   |.>and     ebx, edx
+004102DD   |.>mov     edi, eax
+004102DF   |.>shr     edi, 17
+004102E2   |.>shl     eax, 9
+004102E5   |.>or      edi, eax
+004102E7   |.>add     edi, edx
+004102E9   |.>mov     eax, edi
+004102EB   |.>and     eax, ebp
+004102ED   |.>mov     ebp, dword ptr [esp+28]
+004102F1   |.>or      ebx, eax
+004102F3   |.>add     ebx, ebp
+004102F5   |.>lea     ecx, dword ptr [ecx+ebx+F4D50D87]
+004102FC   |.>mov     eax, ecx
+004102FE   |.>shr     eax, 12
+00410301   |.>shl     ecx, 0E
+00410304   |.>or      eax, ecx
+00410306   |.>mov     ecx, edx
+00410308   |.>add     eax, edi
+0041030A   |.>not     ecx
+0041030C   |.>mov     ebx, eax
+0041030E   |.>and     ecx, edi
+00410310   |.>and     ebx, edx
+00410312   |.>or      ecx, ebx
+00410314   |.>mov     ebx, dword ptr [esp+3C]
+00410318   |.>add     ecx, ebx
+0041031A   |.>mov     ebx, dword ptr [esp+60]
+0041031E   |.>lea     ebx, dword ptr [ebx+ecx+455A14ED]
+00410325   |.>mov     ecx, ebx
+00410327   |.>shl     ecx, 14
+0041032A   |.>shr     ebx, 0C
+0041032D   |.>or      ecx, ebx
+0041032F   |.>mov     ebx, edi
+00410331   |.>add     ecx, eax
+00410333   |.>mov     dword ptr [esp+60], ecx
+00410337   |.>mov     ecx, edi
+00410339   |.>mov     ebp, dword ptr [esp+60]
+0041033D   |.>not     ecx
+0041033F   |.>and     ecx, eax
+00410341   |.>and     ebx, ebp
+00410343   |.>mov     ebp, dword ptr [esp+50]
+00410347   |.>or      ecx, ebx
+00410349   |.>add     ecx, ebp
+0041034B   |.>mov     ebx, dword ptr [esp+60]
+0041034F   |.>mov     ebp, eax
+00410351   |.>lea     edx, dword ptr [edx+ecx+A9E3E905]
+00410358   |.>mov     ecx, edx
+0041035A   |.>shr     ecx, 1B
+0041035D   |.>shl     edx, 5
+00410360   |.>or      ecx, edx
+00410362   |.>mov     edx, eax
+00410364   |.>add     ecx, ebx
+00410366   |.>not     edx
+00410368   |.>and     edx, ebx
+0041036A   |.>and     ebp, ecx
+0041036C   |.>or      edx, ebp
+0041036E   |.>mov     ebp, dword ptr [esp+24]
+00410372   |.>add     edx, ebp
+00410374   |.>mov     ebp, dword ptr [esp+60]
+00410378   |.>not     ebx
+0041037A   |.>lea     edi, dword ptr [edi+edx+FCEFA3F8]
+00410381   |.>and     ebx, ecx
+00410383   |.>mov     edx, edi
+00410385   |.>shr     edx, 17
+00410388   |.>shl     edi, 9
+0041038B   |.>or      edx, edi
+0041038D   |.>add     edx, ecx
+0041038F   |.>mov     edi, edx
+00410391   |.>and     edi, ebp
+00410393   |.>mov     ebp, dword ptr [esp+38]
+00410397   |.>or      ebx, edi
+00410399   |.>add     ebx, ebp
+0041039B   |.>lea     eax, dword ptr [eax+ebx+676F02D9]
+004103A2   |.>mov     edi, eax
+004103A4   |.>shr     edi, 12
+004103A7   |.>shl     eax, 0E
+004103AA   |.>or      edi, eax
+004103AC   |.>mov     eax, ecx
+004103AE   |.>add     edi, edx
+004103B0   |.>not     eax
+004103B2   |.>mov     ebx, edi
+004103B4   |.>and     eax, edx
+004103B6   |.>and     ebx, ecx
+004103B8   |.>or      eax, ebx
+004103BA   |.>mov     ebx, dword ptr [esp+4C]
+004103BE   |.>add     eax, ebx
+004103C0   |.>mov     ebx, dword ptr [esp+60]
+004103C4   |.>lea     ebx, dword ptr [ebx+eax+8D2A4C8A]
+004103CB   |.>mov     eax, ebx
+004103CD   |.>shl     eax, 14
+004103D0   |.>shr     ebx, 0C
+004103D3   |.>or      eax, ebx
+004103D5   |.>add     eax, edi
+004103D7   |.>mov     ebp, dword ptr [esp+30]
+004103DB   |.>mov     ebx, edx
+004103DD   |.>xor     ebx, edi
+004103DF   |.>xor     ebx, eax
+004103E1   |.>add     ebx, ebp
+004103E3   |.>mov     ebp, dword ptr [esp+3C]
+004103E7   |.>lea     ecx, dword ptr [ecx+ebx+FFFA3942]
+004103EE   |.>mov     ebx, ecx
+004103F0   |.>shr     ebx, 1C
+004103F3   |.>shl     ecx, 4
+004103F6   |.>or      ebx, ecx
+004103F8   |.>mov     ecx, edi
+004103FA   |.>add     ebx, eax
+004103FC   |.>xor     ecx, eax
+004103FE   |.>xor     ecx, ebx
+00410400   |.>add     ecx, ebp
+00410402   |.>mov     ebp, dword ptr [esp+48]
+00410406   |.>lea     ecx, dword ptr [edx+ecx+8771F681]
+0041040D   |.>mov     edx, ecx
+0041040F   |.>shr     edx, 15
+00410412   |.>shl     ecx, 0B
+00410415   |.>or      edx, ecx
+00410417   |.>add     edx, ebx
+00410419   |.>mov     ecx, edx
+0041041B   |.>xor     ecx, eax
+0041041D   |.>xor     ecx, ebx
+0041041F   |.>add     ecx, ebp
+00410421   |.>mov     ebp, dword ptr [esp+54]
+00410425   |.>lea     ecx, dword ptr [edi+ecx+6D9D6122]
+0041042C   |.>mov     edi, ecx
+0041042E   |.>shr     edi, 10
+00410431   |.>shl     ecx, 10
+00410434   |.>or      edi, ecx
+00410436   |.>mov     ecx, edx
+00410438   |.>add     edi, edx
+0041043A   |.>xor     ecx, edi
+0041043C   |.>mov     dword ptr [esp+60], ecx
+00410440   |.>xor     ecx, ebx
+00410442   |.>add     ecx, ebp
+00410444   |.>mov     ebp, dword ptr [esp+20]
+00410448   |.>lea     eax, dword ptr [eax+ecx+FDE5380C]
+0041044F   |.>mov     ecx, eax
+00410451   |.>shl     ecx, 17
+00410454   |.>shr     eax, 9
+00410457   |.>or      ecx, eax
+00410459   |.>mov     eax, dword ptr [esp+60]
+0041045D   |.>add     ecx, edi
+0041045F   |.>xor     eax, ecx
+00410461   |.>add     eax, ebp
+00410463   |.>mov     ebp, dword ptr [esp+2C]
+00410467   |.>lea     ebx, dword ptr [ebx+eax+A4BEEA44]
+0041046E   |.>mov     eax, ebx
+00410470   |.>shr     eax, 1C
+00410473   |.>shl     ebx, 4
+00410476   |.>or      eax, ebx
+00410478   |.>mov     ebx, edi
+0041047A   |.>add     eax, ecx
+0041047C   |.>xor     ebx, ecx
+0041047E   |.>xor     ebx, eax
+00410480   |.>add     ebx, ebp
+00410482   |.>mov     ebp, dword ptr [esp+38]
+00410486   |.>lea     edx, dword ptr [edx+ebx+4BDECFA9]
+0041048D   |.>mov     ebx, edx
+0041048F   |.>shr     ebx, 15
+00410492   |.>shl     edx, 0B
+00410495   |.>or      ebx, edx
+00410497   |.>add     ebx, eax
+00410499   |.>mov     edx, ebx
+0041049B   |.>xor     edx, ecx
+0041049D   |.>xor     edx, eax
+0041049F   |.>add     edx, ebp
+004104A1   |.>lea     edi, dword ptr [edi+edx+F6BB4B60]
+004104A8   |.>mov     edx, edi
+004104AA   |.>shr     edx, 10
+004104AD   |.>shl     edi, 10
+004104B0   |.>or      edx, edi
+004104B2   |.>mov     edi, ebx
+004104B4   |.>add     edx, ebx
+004104B6   |.>xor     edi, edx
+004104B8   |.>mov     ebp, edi
+004104BA   |.>xor     ebp, eax
+004104BC   |.>add     ebp, dword ptr [esp+44]
+004104C0   |.>lea     ebp, dword ptr [ecx+ebp+BEBFBC70]
+```
+
+
+
+```
+004104C7   .>mov     ecx, ebp  
+004104C9   .>shl     ecx, 17  
+004104CC   .>shr     ebp, 9  
+004104CF   .>or      ecx, ebp  
+004104D1   .>mov     ebp, dword ptr [esp+50]  
+004104D5   .>add     ecx, edx  
+004104D7   .>xor     edi, ecx  
+004104D9   .>add     edi, ebp  
+004104DB   .>mov     ebp, dword ptr [esp+1C]  
+004104DF   .>lea     edi, dword ptr [eax+edi+289B7EC6>  
+004104E6   .>mov     eax, edi  
+004104E8   .>shr     eax, 1C  
+004104EB   .>shl     edi, 4  
+004104EE   .>or      eax, edi  
+004104F0   .>mov     edi, edx  
+004104F2   .>add     eax, ecx  
+004104F4   .>xor     edi, ecx  
+004104F6   .>xor     edi, eax  
+004104F8   .>add     edi, ebp  
+004104FA   .>mov     ebp, dword ptr [esp+28]  
+004104FE   .>lea     ebx, dword ptr [ebx+edi+EAA127FA>  
+00410505   .>mov     edi, ebx  
+00410507   .>shr     edi, 15  
+0041050A   .>shl     ebx, 0B  
+0041050D   .>or      edi, ebx  
+0041050F   .>add     edi, eax  
+00410511   .>mov     ebx, edi  
+00410513   .>xor     ebx, ecx  
+00410515   .>xor     ebx, eax  
+00410517   .>add     ebx, ebp  
+00410519   .>lea     edx, dword ptr [edx+ebx+D4EF3085>  
+00410520   .>mov     ebx, edx  
+00410522   .>shr     ebx, 10  
+00410525   .>shl     edx, 10  
+00410528   .>or      ebx, edx  
+0041052A   .>mov     edx, edi  
+0041052C   .>add     ebx, edi  
+0041052E   .>xor     edx, ebx  
+00410530   .>mov     ebp, edx  
+00410532   .>xor     ebp, eax  
+00410534   .>add     ebp, dword ptr [esp+34]  
+00410538   .>lea     ebp, dword ptr [ecx+ebp+4881D05]  
+0041053F   .>mov     ecx, ebp  
+00410541   .>shl     ecx, 17  
+00410544   .>shr     ebp, 9  
+00410547   .>or      ecx, ebp  
+00410549   .>mov     ebp, dword ptr [esp+40]  
+0041054D   .>add     ecx, ebx  
+0041054F   .>xor     edx, ecx  
+00410551   .>add     edx, ebp  
+00410553   .>lea     edx, dword ptr [eax+edx+D9D4D039>  
+0041055A   .>mov     eax, edx  
+0041055C   .>shr     eax, 1C  
+0041055F   .>shl     edx, 4  
+00410562   .>or      eax, edx  
+00410564   .>mov     edx, ebx  
+00410566   .>add     eax, ecx  
+00410568   .>xor     edx, ecx  
+0041056A   .>xor     edx, eax  
+0041056C   .>add     edx, dword ptr [esp+4C]  
+00410570   .>lea     edi, dword ptr [edi+edx+E6DB99E5>  
+00410577   .>mov     edx, edi  
+00410579   .>shr     edx, 15  
+0041057C   .>shl     edi, 0B  
+0041057F   .>or      edx, edi  
+00410581   .>add     edx, eax  
+00410583   .>mov     edi, edx  
+00410585   .>xor     edi, ecx  
+00410587   .>xor     edi, eax  
+00410589   .>add     edi, dword ptr [esp+58]  
+0041058D   .>lea     ebx, dword ptr [ebx+edi+1FA27CF8>  
+00410594   .>mov     edi, ebx  
+00410596   .>shr     edi, 10  
+00410599   .>shl     ebx, 10  
+0041059C   .>or      edi, ebx  
+0041059E   .>mov     ebx, edx  
+004105A0   .>add     edi, edx  
+004105A2   .>xor     ebx, edi  
+004105A4   .>xor     ebx, eax  
+004105A6   .>add     ebx, dword ptr [esp+24]  
+004105AA   .>lea     ecx, dword ptr [ecx+ebx+C4AC5665>  
+004105B1   .>mov     ebx, ecx  
+004105B3   .>shl     ebx, 17  
+004105B6   .>shr     ecx, 9  
+004105B9   .>or      ebx, ecx  
+004105BB   .>mov     ecx, edx  
+004105BD   .>add     ebx, edi  
+004105BF   .>not     ecx  
+004105C1   .>or      ecx, ebx  
+004105C3   .>xor     ecx, edi  
+004105C5   .>add     ecx, dword ptr [esp+1C]  
+004105C9   .>lea     eax, dword ptr [eax+ecx+F4292244>  
+004105D0   .>mov     ecx, eax  
+004105D2   .>shr     ecx, 1A  
+004105D5   .>shl     eax, 6  
+004105D8   .>or      ecx, eax  
+004105DA   .>mov     eax, edi  
+004105DC   .>add     ecx, ebx  
+004105DE   .>not     eax  
+004105E0   .>or      eax, ecx  
+004105E2   .>xor     eax, ebx  
+004105E4   .>add     eax, dword ptr [esp+38]  
+004105E8   .>lea     edx, dword ptr [edx+eax+432AFF97>  
+004105EF   .>mov     eax, edx  
+004105F1   .>shr     eax, 16  
+004105F4   .>shl     edx, 0A  
+004105F7   .>or      eax, edx  
+004105F9   .>mov     edx, ebx  
+004105FB   .>add     eax, ecx  
+004105FD   .>not     edx  
+004105FF   .>or      edx, eax  
+00410601   .>xor     edx, ecx  
+00410603   .>add     edx, dword ptr [esp+54]  
+00410607   .>lea     edi, dword ptr [edi+edx+AB9423A7>  
+0041060E   .>mov     edx, edi  
+00410610   .>shr     edx, 11  
+00410613   .>shl     edi, 0F  
+00410616   .>or      edx, edi  
+00410618   .>mov     edi, ecx  
+0041061A   .>add     edx, eax  
+0041061C   .>not     edi  
+0041061E   .>or      edi, edx  
+00410620   .>xor     edi, eax  
+00410622   .>add     edi, dword ptr [esp+30]  
+00410626   .>lea     ebx, dword ptr [ebx+edi+FC93A039>  
+0041062D   .>mov     edi, ebx  
+0041062F   .>shl     edi, 15  
+00410632   .>shr     ebx, 0B  
+00410635   .>or      edi, ebx  
+00410637   .>mov     ebx, eax  
+00410639   .>add     edi, edx  
+0041063B   .>not     ebx  
+0041063D   .>or      ebx, edi  
+0041063F   .>xor     ebx, edx  
+00410641   .>add     ebx, dword ptr [esp+4C]  
+00410645   .>lea     ecx, dword ptr [ecx+ebx+655B59C3>  
+0041064C   .>mov     ebx, ecx  
+0041064E   .>shr     ebx, 1A  
+00410651   .>shl     ecx, 6  
+00410654   .>or      ebx, ecx  
+00410656   .>mov     ecx, edx  
+00410658   .>add     ebx, edi  
+0041065A   .>not     ecx  
+0041065C   .>or      ecx, ebx  
+0041065E   .>xor     ecx, edi  
+00410660   .>add     ecx, dword ptr [esp+28]  
+00410664   .>lea     eax, dword ptr [eax+ecx+8F0CCC92>  
+0041066B   .>mov     ecx, eax  
+0041066D   .>shr     ecx, 16  
+00410670   .>shl     eax, 0A  
+00410673   .>or      ecx, eax  
+00410675   .>mov     eax, edi  
+00410677   .>add     ecx, ebx  
+00410679   .>not     eax  
+0041067B   .>or      eax, ecx  
+0041067D   .>xor     eax, ebx  
+0041067F   .>add     eax, dword ptr [esp+44]  
+00410683   .>lea     edx, dword ptr [edx+eax+FFEFF47D>  
+0041068A   .>mov     eax, edx  
+0041068C   .>shr     eax, 11  
+0041068F   .>shl     edx, 0F  
+00410692   .>or      eax, edx  
+00410694   .>mov     edx, ebx  
+00410696   .>add     eax, ecx  
+00410698   .>not     edx  
+0041069A   .>or      edx, eax  
+0041069C   .>xor     edx, ecx  
+0041069E   .>add     edx, dword ptr [esp+20]  
+004106A2   .>lea     edi, dword ptr [edi+edx+85845DD1>  
+004106A9   .>mov     edx, edi  
+004106AB   .>shl     edx, 15  
+004106AE   .>shr     edi, 0B  
+004106B1   .>or      edx, edi  
+004106B3   .>mov     edi, ecx  
+004106B5   .>add     edx, eax  
+004106B7   .>not     edi  
+004106B9   .>or      edi, edx  
+004106BB   .>xor     edi, eax  
+004106BD   .>add     edi, dword ptr [esp+3C]  
+004106C1   .>lea     ebx, dword ptr [ebx+edi+6FA87E4F>  
+004106C8   .>mov     edi, ebx  
+004106CA   .>shr     edi, 1A  
+004106CD   .>shl     ebx, 6  
+004106D0   .>or      edi, ebx  
+004106D2   .>mov     ebx, eax  
+004106D4   .>add     edi, edx  
+004106D6   .>not     ebx  
+004106D8   .>or      ebx, edi  
+004106DA   .>xor     ebx, edx  
+004106DC   .>add     ebx, dword ptr [esp+58]  
+004106E0   .>lea     ecx, dword ptr [ecx+ebx+FE2CE6E0>  
+004106E7   .>mov     ebx, ecx  
+004106E9   .>shr     ebx, 16  
+004106EC   .>shl     ecx, 0A  
+004106EF   .>or      ebx, ecx  
+004106F1   .>mov     ecx, edx  
+004106F3   .>add     ebx, edi  
+004106F5   .>not     ecx  
+004106F7   .>or      ecx, ebx  
+004106F9   .>xor     ecx, edi  
+004106FB   .>add     ecx, dword ptr [esp+34]  
+004106FF   .>lea     eax, dword ptr [eax+ecx+A3014314>  
+00410706   .>mov     ecx, eax  
+00410708   .>shr     ecx, 11  
+0041070B   .>shl     eax, 0F  
+0041070E   .>or      ecx, eax  
+00410710   .>mov     eax, edi  
+00410712   .>add     ecx, ebx  
+00410714   .>not     eax  
+00410716   .>or      eax, ecx  
+00410718   .>xor     eax, ebx  
+0041071A   .>add     eax, dword ptr [esp+50]  
+0041071E   .>lea     edx, dword ptr [edx+eax+4E0811A1>  
+```
+
+
+
+### 汇编代码分析
+
+```asm
+00410725   |.>mov     eax, edx  
+00410727   |.>shl     eax, 15  
+0041072A   |.>shr     edx, 0B  
+0041072D   |.>or      eax, edx  
+0041072F   |.>mov     edx, ebx  
+00410731   |.>add     eax, ecx  
+00410733   |.>not     edx  
+00410735   |.>or      edx, eax  
+00410737   |.>xor     edx, ecx  
+00410739   |.>add     edx, dword ptr [esp+2C]  
+0041073D   |.>lea     edi, dword ptr [edi+edx+F7537E82>  
+00410744   |.>mov     edx, edi  
+00410746   |.>shr     edx, 1A  
+00410749   |.>shl     edi, 6  
+0041074C   |.>or      edx, edi  
+0041074E   |.>mov     edi, ecx  
+00410750   |.>add     edx, eax  
+00410752   |.>not     edi  
+00410754   |.>or      edi, edx  
+00410756   |.>xor     edi, eax  
+00410758   |.>add     edi, dword ptr [esp+48]  
+0041075C   |.>lea     ebx, dword ptr [ebx+edi+BD3AF235>  
+00410763   |.>mov     edi, ebx  
+00410765   |.>shr     edi, 16  
+00410768   |.>shl     ebx, 0A  
+0041076B   |.>or      edi, ebx  
+0041076D   |.>mov     ebx, eax  
+0041076F   |.>add     edi, edx  
+00410771   |.>not     ebx  
+00410773   |.>or      ebx, edi  
+00410775   |.>push    40  
+00410777   |.>xor     ebx, edx  
+00410779   |.>push    0  
+0041077B   |.>add     ebx, dword ptr [esp+2C]  
+0041077F   |.>lea     ecx, dword ptr [ecx+ebx+2AD7D2BB>  
+00410786   |.>mov     ebx, ecx  
+00410788   |.>shr     ebx, 11  
+0041078B   |.>shl     ecx, 0F  
+0041078E   |.>or      ebx, ecx  
+00410790   |.>mov     ecx, edx  
+00410792   |.>add     ebx, edi  
+00410794   |.>not     ecx  
+00410796   |.>or      ecx, ebx  
+00410798   |.>xor     ecx, edi  
+0041079A   |.>add     ecx, ebp  
+0041079C   |.>mov     ebp, dword ptr [esi+8]  
+0041079F   |.>add     ebp, ebx  
+004107A1   |.>lea     eax, dword ptr [eax+ecx+EB86D391>  
+004107A8   |.>mov     ecx, dword ptr [esi]  
+004107AA   |.>add     ecx, edx  
+004107AC   |.>mov     edx, eax  
+004107AE   |.>shl     edx, 15  
+004107B1   |.>shr     eax, 0B  
+004107B4   |.>or      edx, eax  
+004107B6   |.>mov     eax, dword ptr [esi+4]  
+004107B9   |.>add     edx, ebx  
+004107BB   |.>mov     ebx, dword ptr [esi+C]  
+004107BE   |.>add     eax, edx  
+004107C0   |.>add     ebx, edi  
+004107C2   |.>mov     dword ptr [esi+4], eax;保存本次加密数值,为下次的链值  
+004107C5   |.>lea     eax, dword ptr [esp+24]  
+004107C9   |.>push    eax  
+004107CA   |.>mov     dword ptr [esi], ecx        ;保存本次加密数值,为下次的链值  
+004107CC   |.>mov     dword ptr [esi+8], ebp;保存本次加密数值,为下次的链值  
+004107CF   |.>mov     dword ptr [esi+C], ebx;保存本次加密数值,为下次的链值  
+004107D2   |.>call    004108B0  
+004107D7   |.>add     esp, 18  
+004107DA   |.>pop     edi  
+004107DB   |.>pop     esi  
+004107DC   |.>pop     ebp  
+004107DD   |.>pop     ebx  
+004107DE   |.>add     esp, 40  
+004107E1   \\.>retn              //很惭愧没有能分析出怎么一个算法。。。。。
+```
+
+### 第一次加密的数据
+
+```
+0129F8C4  01 98 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ?.............
+0129F8D4  00 00 01 08 73 79 32 30 39 32 02 08 38 38 38 38  ..sy20928888
+0129F8E4  38 38 07 08 00 0C 29 D8 23 40 09 0E 31 37 32 2E  88..)?@.172.
+0129F8F4  31 36 2E 37 2E 31 31 31 0A 0A 69 6E 74 65 72 6E  16.7.111..intern
+```
+
+对应的类 `MD5`
+
+```
+0129F940  14 84 0F 04 8A 50 08 F1 A1 15 3E 8A E3 90 2E AE  ?瘛>?
+```
+
+### 第二次加密的数据
+
+```
+0129F8D0  65 74 1F 0F 33 2E 35 2E 30 34 2E 30 31 31 38 00  et3.5.04.0118.
+0129F8E0  00 25 47 00 00 00 00 00 00 00 00 00 00 00 00 00  .%G.............
+0129F8F0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+0129F900  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+```
+
+对应的类 `MD5`
+
+```
+0129F940  A7 8C 17 1D 42 87 E8 8D 8A 6A B8 BB A9 33 9B 0B  Bj 富??
+```
+
+### 第三次加密的数据（注意）
+
+```
+0129F890  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+0129F8A0  00 00 00 00 00 00 00 00 80 00 00 00 00 00 00 00  .............
+0129F8B0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+0129F8C0  00 00 00 00 00 00 00 00 C0 04 00 00 00 00 00 00  ........?......
+```
+
+其中的 `80` 报文结束标识符，`MD5` 里都有，最后 8 字节 `C0 04 00 00 00 00 00 00` 为报文长度*8,本次也就是 `0x98*8=4c0`
+
+对应的类 `MD5` 填充在报文的第 3-19 字节处
+
+```
+0129F940  01 23 47 F9 DF DD 70 D9 48 E4 8F 70 9F 0E 2A FB  #Gp?*
+```
+
+最后得到报文如下 红色标记处为 类 `MD5` 算法的到的密文
+
+```
+0129FBB8  01 98 01 23 47 F9 DF DD 70 D9 48 E4 8F 70 9F 0E  ?#Gp?
+0129FBC8  2A FB 01 08 73 79 32 30 39 32 02 08 38 38 38 38  *?sy20928888
+0129FBD8  38 38 07 08 00 0C 29 D8 23 40 09 0E 31 37 32 2E  88..)?@.172.
+0129FBE8  31 36 2E 37 2E 31 31 31 0A 0A 69 6E 74 65 72 6E  16.7.111..intern
+0129FBF8  65 74 1F 0F 33 2E 35 2E 30 34 2E 30 31 31 38 00  et3.5.04.0118.
+0129FC08  00 25 47 00                                          .%G.
+```
+
+### 最后一步就是加密了
+
+```asm
+004055D6  |. call    dword ptr [429E34]               ;  报文加密算法 F7 跟进
+00F714B8 >  55              push    ebp
+00F714B9   8BEC            mov     ebp, esp
+00F714BB   83C4 F8         add     esp, -8
+00F714BE   837D 0C 00      cmp     dword ptr [ebp+C], 0
+00F714C2   7F 07           jg      short 00F714CB
+00F714C4   33C0            xor     eax, eax
+00F714C6   E9 CB000000     jmp     00F71596
+00F714CB   837D 08 00      cmp     dword ptr [ebp+8], 0
+00F714CF   75 07           jnz     short 00F714D8
+00F714D1   33C0            xor     eax, eax
+00F714D3   E9 BE000000     jmp     00F71596
+00F714D8   33D2            xor     edx, edx
+00F714DA   8955 FC         mov     dword ptr [ebp-4], edx
+00F714DD   8B4D FC         mov     ecx, dword ptr [ebp-4]
+00F714E0   3B4D 0C         cmp     ecx, dword ptr [ebp+C]
+00F714E3   0F8D A8000000   jge     00F71591
+00F714E9   8B45 FC         mov     eax, dword ptr [ebp-4]
+00F714EC   8B55 08         mov     edx, dword ptr [ebp+8]
+00F714EF   8A0C02          mov     cl, byte ptr [edx+eax]           ; 读取报文的数据
+00F714F2   80E1 01         and     cl, 1                             ; 保留最后一位
+00F714F5   C1E1 07         shl     ecx, 7                            ; 左移 7 位
+00F714F8   8B45 FC         mov     eax, dword ptr [ebp-4]
+00F714FB   8B55 08         mov     edx, dword ptr [ebp+8]
+00F714FE   0FB60402        movzx   eax, byte ptr [edx+eax]
+00F71502   83E0 02         and     eax, 2                            ; 保留倒数第二位
+00F71505   D1F8            sar     eax, 1                            ; 全部位右移 1 位
+00F71507   0AC8            or      cl, al                            ; 跟 cl 做或运算
+00F71509   8B55 FC         mov     edx, dword ptr [ebp-4]
+00F7150C   8B45 08         mov     eax, dword ptr [ebp+8]
+00F7150F   8A1410          mov     dl, byte ptr [eax+edx]
+00F71512   80E2 04         and     dl, 4                             ; 保留倒数第三位
+00F71515   C1E2 02         shl     edx, 2                            ; 左移 2 位
+00F71518   0ACA            or      cl, dl                            ; 跟 cl 做或运算
+00F7151A   8B45 FC         mov     eax, dword ptr [ebp-4]
+00F7151D   8B55 08         mov     edx, dword ptr [ebp+8]
+00F71520   8A0402          mov     al, byte ptr [edx+eax]
+00F71523   24 08           and     al, 8                             ; 保留倒数第四位
+00F71525   C1E0 02         shl     eax, 2                            ; 左移 2 位
+00F71528   0AC8            or      cl, al                            ; 跟 cl 做或运算
+00F7152A   8B55 FC         mov     edx, dword ptr [ebp-4]
+00F7152D   8B45 08         mov     eax, dword ptr [ebp+8]
+00F71530   8A1410          mov     dl, byte ptr [eax+edx]
+00F71533   80E2 10         and     dl, 10                            ; 保留倒数第五位
+00F71536   C1E2 02         shl     edx, 2                            ; 左移 2 位
+00F71539   0ACA            or      cl, dl                            ; 跟 cl 做或运算
+00F7153B   8B45 FC         mov     eax, dword ptr [ebp-4]
+00F7153E   8B55 08         mov     edx, dword ptr [ebp+8]
+00F71541   0FB60402        movzx   eax, byte ptr [edx+eax]
+00F71545   83E0 20         and     eax, 20                           ; 保留倒数第六位
+```
+
+
+
+### 汇编代码片段（加密逻辑）
+
+```asm
+00F71548    C1F8 02         sar     eax, 2                 ; 全位右移 2 位  
+00F7154B    0AC8            or      cl, al                 ; 跟 cl 做或运算  
+00F7154D    8B55 FC         mov     edx, dword ptr [ebp-4]  
+00F71550    8B45 08         mov     eax, dword ptr [ebp+8]  
+00F71553    0FB61410        movzx   edx, byte ptr [eax+edx]  
+00F71557    83E2 40         and     edx, 40                ; 保留倒数第七位  
+00F7155A    C1FA 04         sar     edx, 4                 ; 全位右移 4 位  
+00F7155D    0ACA            or      cl, dl                 ; 跟 cl 做或运算  
+00F7155F    8B45 FC         mov     eax, dword ptr [ebp-4]  
+00F71562    8B55 08         mov     edx, dword ptr [ebp+8]  
+00F71565    0FB60402        movzx   eax, byte ptr [edx+eax]  
+00F71569    25 80000000     and     eax, 80                ; 保留倒数第八位  
+00F7156E    C1F8 06         sar     eax, 6                 ; 全位右移 6 位  
+00F71571    0AC8            or      cl, al                 ; 跟 cl 做或运算  
+00F71573    884D FB         mov     byte ptr [ebp-5], cl  
+00F71576    8A55 FB         mov     dl, byte ptr [ebp-5]  
+00F71579    8B4D FC         mov     ecx, dword ptr [ebp-4]  
+00F7157C    8B45 08         mov     eax, dword ptr [ebp+8]  
+00F7157F    881408          mov     byte ptr [eax+ecx], dl  
+00F71582    FF45 FC         inc     dword ptr [ebp-4]     ; 加一  
+00F71585    8B55 FC         mov     edx, dword ptr [ebp-4]  
+00F71588    3B55 0C         cmp     edx, dword ptr [ebp+C]  
+00F7158B    ^ 0F8C 58FFFFFF jl      00F714E9               ; 判断是否加密完成（也就是报文中的第 2 字节的数据判断）  
+00F71591    B8 01000000     mov     eax, 1  
+00F71596    59              pop     ecx  
+00F71597    59              pop     ecx  
+00F71598    5D              pop     ebp  
+00F71599    C3              retn  
+```
+
+### 加密后的报文数据
+
+加密后的报文，已经看不懂啦！！
+
+```
+0129FBB8  80 62 80 89 95 EE F7 F6 4C E6 24 1E B3 4C F3 31  b 铟??  
+0129FBC8  29 EF 80 20 CD EC 49 48 E8 49 01 20 68 68 68 68  ) 挽 IH hhhh  
+0129FBD8  68 68 91 20 00 30 A8 66 89 04 A0 31 C8 D9 49 39  hh?.0??荣 I9  
+0129FBE8  C8 59 39 D9 39 C8 C8 C8 21 21 AC 3D 5C 9C 4D 3D  9?热?!?\=  
+0129FBF8  9C 5C F1 B1 C9 39 D8 39 48 58 39 48 C8 C8 68 00  癖??HX9H 热 h.  
+0129FC08  00 98 95 00                             ...  
+```
+
+开始发包，我们来截取一个包看看数据（我用的是科来 6.7 交流），下图高亮为数据域：
+
+![](img/3235d28b1f4a05d11abb21eb327c7621.jpg)
+
+### 服务器返回数据
+
+![](img/a9d2f6119f79aedc2a5700d2efed955a.jpg)
+
+#### 堆栈中搜索返回数据
+
+```
+0129FBB8  01 9C 1D 12 B9 38 CB 63 B4 4F 9A 50 A3 06 0A E2  ???.  
+0129FBC8  22 57 81 81 80 20 40 49 D8 E8 E8 48 D9 58 C8 E8  "W @I 罔辱  
+0129FBD8  C8 59 68 68 D8 49 E8 90 81 78 11 81 10 98 50 80  hh?  
+0129FBE8  00 00 01 00 00 81 00 00 10 00 00 90 00 00 00 00  ....?...?...  
+0129FBF8  00 58 11 00 00 00 00 D8 11 00 00 00 00 59 11 00  .X....?....Y.  
+0129FC08  00 00 00 D9 11 00 00 00 00 68 11 00 00 00 00 89  ...?....h....  
+0129FC18  81 80 08 81 00                       ?..  
+```
+
+### 解密操作
+
+解密他！！用 `OD` 在此数据区上下内存访问中断，`F9` 放飞程序。段在这个函数中：
+
+```asm
+00405A0B   .  FF15 389E4200 call    dword ptr [429E38]           ;  接收数据包数据解密  
+```
+
+#### 解密函数逻辑
+
+```asm
+00F7159C  >>push    ebp  
+00F7159D   >mov     ebp, esp  
+00F7159F   >add     esp, -8  
+00F715A2   >cmp     dword ptr [ebp+C], 0  
+00F715A6   >jg      short 00F715AF  
+00F715A8   >xor     eax, eax  
+00F715AA   >jmp     00F71679  
+00F715AF   >cmp     dword ptr [ebp+8], 0  
+00F715B3   >jnz     short 00F715BC  
+00F715B5   >xor     eax, eax  
+00F715B7   >jmp     00F71679  
+00F715BC   >xor     edx, edx  
+00F715BE   >mov     dword ptr [ebp-4], edx  
+00F715C1   >mov     ecx, dword ptr [ebp-4]  
+00F715C4   >cmp     ecx, dword ptr [ebp+C]  
+00F715C7   >jge     00F71674  
+00F715CD   >mov     eax, dword ptr [ebp-4]  
+00F715D0   >mov     edx, dword ptr [ebp+8]  
+00F715D3   >mov     cl, byte ptr [edx+eax]        ; 取加密字符串  
+00F715D6   >and     cl, 1                       ; 保留最后一位  
+00F715D9   >add     ecx, ecx                    ; 自加  
+00F715DB   >mov     eax, dword ptr [ebp-4]  
+00F715DE   >mov     edx, dword ptr [ebp+8]  
+00F715E1   >mov     al, byte ptr [edx+eax]        ; 取加密字符串  
+00F715E4   >and     al, 2                       ; 保留倒数第二位  
+00F715E6   >shl     eax, 6                     ; 左移 6 位  
+00F715E9   >or      cl, al                     ; 再或运算,以下同理  
+00F715EB   >mov     edx, dword ptr [ebp-4]  
+00F715EE   >mov     eax, dword ptr [ebp+8]  
+00F715F1   >mov     dl, byte ptr [eax+edx]  
+00F715F4   >and     dl, 4  
+00F715F7   >shl     edx, 4  
+00F715FA   >or      cl, dl  
+00F715FC   >mov     eax, dword ptr [ebp-4]  
+00F715FF   >mov     edx, dword ptr [ebp+8]  
+00F71602   >mov     al, byte ptr [edx+eax]  
+00F71605   >and     al, 8  
+00F71607   >shl     eax, 2  
+00F7160A   >or      cl, al  
+00F7160C   >mov     edx, dword ptr [ebp-4]  
+00F7160F   >mov     eax, dword ptr [ebp+8]  
+00F71612   >movzx   edx, byte ptr [eax+edx]  
+00F71616   >and     edx, 10  
+00F71619   >sar     edx, 2  
+00F7161C   >or      cl, dl  
+00F7161E   >mov     eax, dword ptr [ebp-4]  
+00F71621   >mov     edx, dword ptr [ebp+8]  
+00F71624   >movzx   eax, byte ptr [edx+eax]  
+00F71628   >and     eax, 20  
+00F7162B   >sar     eax, 2  
+00F7162E   >or      cl, al  
+00F71630   >mov     edx, dword ptr [ebp-4]  
+00F71633   >mov     eax, dword ptr [ebp+8]  
+00F71636   >movzx   edx, byte ptr [eax+edx]  
+00F7163A   >and     edx, 40  
+00F7163D   >sar     edx, 2  
+00F71640   >or      cl, dl  
+00F71642   >mov     eax, dword ptr [ebp-4]  
+00F71645   >mov     edx, dword ptr [ebp+8]  
+00F71648   >movzx   eax, byte ptr [edx+eax]  
+00F7164C   >and     eax, 80  
+00F71651   >sar     eax, 7  
+00F71654   >or      cl, al  
+00F71656   >mov     byte ptr [ebp-5], cl  
+00F71659   >mov     dl, byte ptr [ebp-5]  
+00F7165C   >mov     ecx, dword ptr [ebp-4]  
+00F7165F   >mov     eax, dword ptr [ebp+8]  
+00F71662   >mov     byte ptr [eax+ecx], dl      ; 写入解密数据  
+00F71665   >inc     dword ptr [ebp-4]  
+00F71668   >mov     edx, dword ptr [ebp-4]  
+00F7166B   >cmp     edx, dword ptr [ebp+C]  
+00F7166E  ^>jl      00F715CD            ; 判断是否解密完成  
+00F71674   >mov     eax, 1  
+00F71679   >pop     ecx  
+00F7167A   >pop     ecx  
+00F7167B   >pop     ebp  
+00F7167C   >retn  
+```
+
+### 解密后的数据
+
+解密完成的数据如下（注意红色标记，那个为密钥，每次都不一样）：
+
+```
+0129FDB8  02 65 66 84 2F 2C B3 9A 4D F2 A5 14 8B C0 A0 99  ef?,M 颔  
+0129FDC8  88 D6 03 03 01 08 10 32 35 39 39 30 37 34 31 39  259907419  
+0129FDD8  31 36 38 38 35 32 39 05 03 3C 06 03 04 25 14 01  1688529<%  
+0129FDE8  00 00 02 00 00 03 00 00 04 00 00 05 00 00 00 00  ............  
+0129FDF8  00 34 06 00 00 00 00 35 06 00 00 00 00 36 06 00  .4....5....6.  
+0129FE08  00 00 00 37 06 00 00 00 00 38 06 00 00 00 00 23  ...7....8....#  
+0129FE18  03 01 20 03 00                              .  
+```
+
+#### 密钥分析
+
+红色标记前 1 位 `0x10` 位密钥长度 16 字节，红色标记的为密钥：
+
+```
+0129FDC8                 32 35 39 39 30 37 34 31 39       59907419  
+0129FDD8  31 36 38 38 35 32                              168852  
+```
+
+### 第二个包的构造分析
+
+继续分析第二个包是怎么构造的！慢慢跟，来到下面这个函数：
+
+```asm
+00404E3C   >call    00405DD0      ；第二个包的构造函数 F7  
+```
+
+#### 构造函数 `00405DD0` 细节
+
+```asm
+00405DD0  />sub     esp, 34  
+00405DD3  |>push    ebx  
+00405DD4  |>push    ebp  
+00405DD5  |>mov     ebp, dword ptr [esp+40]  
+00405DD9  |>push    esi  
+00405DDA  |>push    edi  
+00405DDB  |>mov     edi, 0042CC10               ;  9488171348284164  
+00405DE0  |>mov     byte ptr [ebp], 3           ;  写 03  
+00405DE4  |>inc     ebp  
+00405DE5  |>mov     dword ptr [esp+1C], ebp  
+00405DE9  |>add     ebp, 11  
+00405DEC  |>mov     esi, 0042CC10               ;  9488171348284164  
+00405DF1  |>mov     byte ptr [ebp], 7           ;  跳过 17 字节写 07  
+00405DF5  |>inc     ebp  
+00405DF6  |>mov     byte ptr [ebp], 8           ;  写 08  
+00405DFA  |>mov     eax, dword ptr [453FA8]  
+00405DFF  |>inc     ebp  
+00405E00  |>add     eax, 10  
+00405E03  |>mov     ecx, ebp  
+```
+
+
+
+```
+00405E05  |>add      ebp, 6  
+
+00405E08  |>mov      edx, dword ptr [eax]  
+
+00405E0A  |>inc      ebp  
+
+00405E0B  |>mov      dword ptr [ecx], edx                 ;  写 MAC  
+
+00405E0D  |>mov      ax, word ptr [eax+4]  
+
+00405E11  |>mov      word ptr [ecx+4], ax                 ;  写 MAC  
+
+00405E15  |>mov      byte ptr [ebp-1], 8                  ;  写 08  
+
+00405E19  |>or       ecx, FFFFFFFF  
+
+00405E1C  |>xor      eax, eax  
+
+00405E1E  |>repne    scas byte ptr es:[edi]  
+
+00405E20  |>not      ecx  
+
+00405E22  |>dec      ecx  
+
+00405E23  |>mov      eax, ecx  
+
+00405E25  |>mov      cl, al  
+
+00405E27  |>add      cl, 2  
+
+00405E2A  |>mov      byte ptr [ebp], cl                   ;  写密钥长度+2  
+
+00405E2D  |>mov      ecx, eax  
+
+00405E2F  |>inc      ebp  
+
+00405E30  |>mov      edx, ecx  
+
+00405E32  |>mov      edi, ebp  
+
+00405E34  |>add      ebp, eax  
+
+00405E36  |>shr      ecx, 2  
+
+00405E39  |>rep      movs dword ptr es:[edi], dword p>;   写密钥  
+
+00405E3B  |>mov      ecx, edx  
+
+00405E3D  |>add      eax, 1C  
+
+00405E40  |>and      ecx, 3  
+
+00405E43  |>mov      dword ptr [esp+18], eax  
+
+00405E47  |>rep      movs byte ptr es:[edi], byte ptr>  
+
+00405E49  |>mov      eax, dword ptr [453FA8]              ;  没用  
+
+00405E4E  |>xor      edx, edx  
+
+00405E50  |>mov      eax, dword ptr [eax+674]  
+
+00405E56  |>mov      ecx, eax  
+
+00405E58  |>mov      dword ptr [esp+10], eax  
+
+00405E5C  |>mov      dl, byte ptr [esp+12]  
+
+00405E60  |>shr      ecx, 18  
+
+00405E63  |>push     ecx  
+
+00405E64  |>xor      ecx, ecx  
+
+00405E66  |>mov      cl, ah  
+
+00405E68  |>push     edx  
+
+00405E69  |>and      eax, 0FF  
+
+00405E6E  |>push     ecx  
+
+00405E6F  |>push     eax                        ;  |<%d>  
+
+00405E70  |>lea      edx, dword ptr [esp+40]    ;  |  
+
+00405E74  |>push     00423F68                        ;  |%d.%d.%d.%d servicename:%s \\n  
+
+00405E79  |>push     edx                         ;  |s  
+
+00405E7A  |>call     dword ptr [<&msvcrt.sprintf>] ;  \\sprintf  
+
+00405E80  |>lea      edi, dword ptr [esp+48]  
+
+00405E84  |>or       ecx, FFFFFFFF  
+
+00405E87  |>xor      eax, eax  
+
+00405E89  |>add      esp, 18  
+
+00405E8C  |>repne    scas byte ptr es:[edi]  
+
+00405E8E  |>not      ecx  
+
+00405E90  |>dec      ecx  
+
+00405E91  |>mov      byte ptr [ebp], 9                  ;  写 09  
+
+00405E95  |>mov      ebx, ecx  
+
+00405E97  |>inc      ebp  
+
+00405E98  |>mov      al, bl  
+
+00405E9A  |>lea      esi, dword ptr [esp+30]  
+
+00405E9E  |>add      al, 2  
+
+00405EA0  |>mov      edx, ecx  
+
+00405EA2  |>mov      byte ptr [ebp], al                 ;  写 IP 长度+2  
+
+00405EA5  |>inc      ebp  
+
+00405EA6  |>mov      edi, ebp  
+
+00405EA8  |>shr      ecx, 2  
+
+00405EAB  |>rep      movs dword ptr es:[edi], dword p>;  写 IP  
+
+00405EAD  |>mov      ecx, edx  
+
+00405EAF  |>mov      byte ptr [esp+10], 14  
+
+00405EB4  |>and      ecx, 3  
+
+00405EB7  |>mov      byte ptr [esp+11], 6  
+
+00405EBC  |>rep      movs byte ptr es:[edi], byte ptr>  
+
+00405EBE  |>mov      eax, dword ptr [42361C]  
+
+00405EC3  |>push     eax                        ;  /NetLong => 1000000  
+
+00405EC4  |>call     dword ptr [<&ws2_32.htonl>]     ;  \\ntohl  
+
+00405ECA  |>mov      dword ptr [esp+12], eax  
+
+00405ECE  |>mov      edx, dword ptr [esp+10]  
+
+00405ED2  |>mov      ax, word ptr [esp+14]  
+
+00405ED7  |>lea      ecx, dword ptr [ebx+ebp]  
+
+00405EDA  |>mov      esi, dword ptr [esp+48]  
+
+00405EDE  |>mov      edi, dword ptr [esp+1C]  
+
+00405EE2  |>mov      dword ptr [ecx], edx  
+
+00405EE4  |>xor      edx, edx  
+
+00405EE6  |>mov      word ptr [ecx+4], ax  
+
+00405EEA  |>mov      ecx, dword ptr [esp+18]  
+
+00405EEE  |>mov      dword ptr [esp+20], edx  
+
+00405EF2  |>lea      eax, dword ptr [esp+20]  
+
+00405EF6  |>lea      ebx, dword ptr [ecx+ebx+8]  
+
+00405EFA  |>mov      dword ptr [esp+24], edx  
+
+00405EFE  |>push     ebx  
+
+00405EFF  |>mov      dword ptr [esp+2C], edx  
+
+00405F03  |>push     esi  
+
+00405F04  |>push     eax  
+
+00405F05  |>mov      dword ptr [esp+38], edx  
+
+00405F09  |>mov      byte ptr [edi], bl                 ;  写包的长度  
+
+00405F0B  |>call     0040FD10                     ;  类 MD5 算法  
+
+00405F10  |>mov      ecx, dword ptr [esp+2C]  
+
+00405F14  |>mov      edx, dword ptr [esp+30]  
+
+00405F18  |>mov      eax, dword ptr [esp+34]  
+
+00405F1C  |>inc      edi  
+
+00405F1D  |>push     ebx  
+
+00405F1E  |>push     esi  
+
+00405F1F  |>mov      dword ptr [edi], ecx  
+
+00405F21  |>mov      ecx, dword ptr [esp+40]  
+
+00405F25  |>mov      dword ptr [edi+4], edx  
+
+00405F28  |>mov      dword ptr [edi+8], eax  
+
+00405F2B  |>mov      dword ptr [edi+C], ecx  
+
+00405F2E   >call    dword ptr [429E34]              ;  加密函数  
+
+00405F34  |>add      esp, 14  
+
+00405F37  |>mov      eax, ebx  
+
+00405F39  |>pop      edi  
+
+00405F3A  |>pop      esi  
+
+00405F3B  |>pop      ebp  
+
+00405F3C  |>pop      ebx  
+
+00405F3D  |>add      esp, 34  
+
+00405F40  \\>retn  
+```
+
+得到第二个包的数据如下
+
+```
+0129FBB8  03 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00  @..............  
+
+0129FBC8  00 00 07 08 00 0C 29 D8 23 40 08 12 32 35 39 39  ....)?@2599  
+
+0129FBD8  30 37 34 31 39 31 36 38 38 35 32 39 09 0E 31 37  074191688529.17  
+
+0129FBE8  32 2E 31 36 2E 37 2E 31 31 31 14 06 01 00 00 00  2.16.7.111...  
+```
+
+最后的 6 个字节 `14 06 01 00 00 00` 不变
+
+再冲进这个函数进行类 MD5，前面有贴过，太长了，这里就不贴出来了。我只把加密的数据跟加密值贴出。
+
+```
+00405F0B  |>call     0040FD10                     ;  类 MD5 算法  
+```
+
+第一次加密的数据；
+
+```
+0129F8C0  03 40 00 00 00 00 00 00 00 00 00 00 00 00 00 00  @..............  
+
+0129F8D0  00 00 07 08 00 0C 29 D8 23 40 08 12 32 35 39 39  ....)?@2599  
+
+0129F8E0  30 37 34 31 39 31 36 38 38 35 32 39 09 0E 31 37  074191688529.17  
+
+0129F8F0  32 2E 31 36 2E 37 2E 31 31 31 14 06 01 00 00 00  2.16.7.111...  
+```
+
+对应的类 MD5
+
+```
+0129F93C  FC 0F 1C F4 62 09 68 BA D1 87 E7 F8 B0 73 51 D0  ?.h 貉 sQ  
+```
+
+第二次加密的数据；
+
+```
+0129F88C  80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ...............  
+
+0129F89C  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+
+0129F8AC  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................  
+
+0129F8BC  00 00 00 00 00 00 00 00 00 02 00 00 00 00 00 00  ...............  
+```
+
+其中的 `80` 为 `MD5` 结束标志，后 8 个字节的 `00 02 00 00 00 00 00 00` 为报文长度 * 8
+
+本报文长度 `0x40*8=0200`
+
+对应的类 MD5
+
+```
+0129F93C  6D 43 5E C5 FE D9 3D 34 E4 3F 4B 6B 41 B7 72 B8  mC^毗?4?KkA  
+```
+
+最后补齐数据为（红色为类 MD5 加密填充的数据）
+
+```
+0129FBB8  03 40 6D 43 5E C5 FE D9 3D 34 E4 3F 4B 6B 41 B7  @mC^毗?4?KkA  
+
+0129FBC8  72 B8 07 08 00 0C 29 D8 23 40 08 12 32 35 39 39  r?..)?@2599  
+
+0129FBD8  30 37 34 31 39 31 36 38 38 35 32 39 09 0E 31 37  074191688529.17  
+
+0129FBE8  32 2E 31 36 2E 37 2E 31 31 31 14 06 01 00 00 00  2.16.7.111...  
+```
+
+向下进入到加密函数 `F7`
+
+```
+00405F2E   >call    dword ptr [429E34]              ;  加密函数 跟第一个包用的同样的加密 F7  
+
+00F714B8  > >push    ebp  
+
+00F714B9   >mov      ebp, esp  
+
+00F714BB   >add      esp, -8  
+
+00F714BE   >cmp      dword ptr [ebp+C], 0  
+
+00F714C2   >jg       short 00F714CB  
+
+00F714C4   >xor      eax, eax  
+
+00F714C6   >jmp      00F71596  
+
+00F714CB   >cmp      dword ptr [ebp+8], 0  
+
+00F714CF   >jnz      short 00F714D8  
+
+00F714D1   >xor      eax, eax  
+
+00F714D3   >jmp      00F71596  
+
+00F714D8   >xor      edx, edx  
+
+00F714DA   >mov      dword ptr [ebp-4], edx  
+
+00F714DD   >mov      ecx, dword ptr [ebp-4]  
+
+00F714E0   >cmp      ecx, dword ptr [ebp+C]  
+
+00F714E3   >jge      00F71591  
+
+00F714E9   >mov      eax, dword ptr [ebp-4]  
+
+00F714EC   >mov      edx, dword ptr [ebp+8]  
+
+00F714EF   >mov      cl, byte ptr [edx+eax]          ; 输入加密数  
+
+00F714F2   >and      cl, 1                   ; 保留最后一位  
+
+00F714F5   >shl      ecx, 7                  ; 左移 7 位  
+
+00F714F8   >mov      eax, dword ptr [ebp-4]  
+
+00F714FB   >mov      edx, dword ptr [ebp+8]  
+
+00F714FE   >movzx    eax, byte ptr [edx+eax]  
+
+00F71502   >and      eax, 2                  ; 保留倒数第二位  
+
+00F71505   >sar      eax, 1                  ; 全部位右移 1 位  
+
+00F71507   >or       cl, al                  ; 跟 cl 做或运算  
+
+00F71509   >mov      edx, dword ptr [ebp-4]  
+
+00F7150C   >mov      eax, dword ptr [ebp+8]  
+```
+
+
+
+```
+00F7150F   >mov     dl, byte ptr [eax+edx]  
+00F71512   >and     dl, 4                        ; 保留倒数第三位  
+00F71515   >shl     edx, 2                       ; 左移 2 位  
+00F71518   >or      cl, dl                       ; 跟 cl 做或运算  
+00F7151A   >mov     eax, dword ptr [ebp-4]  
+00F7151D   >mov     edx, dword ptr [ebp+8]  
+00F71520   >mov     al, byte ptr [edx+eax]  
+00F71523   >and     al, 8                        ; 保留倒数第四位  
+00F71525   >shl     eax, 2                       ; 左移 2 位  
+00F71528   >or      cl, al                       ; 跟 cl 做或运算  
+00F7152A   >mov     edx, dword ptr [ebp-4]  
+00F7152D   >mov     eax, dword ptr [ebp+8]  
+00F71530   >mov     dl, byte ptr [eax+edx]  
+00F71533   >and     dl, 10                       ; 保留倒数第五位  
+00F71536   >shl     edx, 2                       ; 左移 2 位  
+00F71539   >or      cl, dl                       ; 跟 cl 做或运算  
+00F7153B   >mov     eax, dword ptr [ebp-4]  
+00F7153E   >mov     edx, dword ptr [ebp+8]  
+00F71541   >movzx   eax, byte ptr [edx+eax]  
+00F71545   >and     eax, 20                      ; 保留倒数第六位  
+00F71548   >sar     eax, 2                       ; 全位右移 2 位  
+00F7154B   >or      cl, al                       ; 跟 cl 做或运算  
+00F7154D   >mov     edx, dword ptr [ebp-4]  
+00F71550   >mov     eax, dword ptr [ebp+8]  
+00F71553   >movzx   edx, byte ptr [eax+edx]  
+00F71557   >and     edx, 40                      ; 保留倒数第七位  
+00F7155A   >sar     edx, 4                       ; 全位右移 4 位  
+00F7155D   >or      cl, dl                       ; 跟 cl 做或运算  
+00F7155F   >mov     eax, dword ptr [ebp-4]  
+00F71562   >mov     edx, dword ptr [ebp+8]  
+00F71565   >movzx   eax, byte ptr [edx+eax]  
+00F71569   >and     eax, 80                      ; 保留倒数第八位  
+00F7156E   >sar     eax, 6                       ; 全位右移 6 位  
+00F71571   >or      cl, al                       ; 跟 cl 做或运算  
+00F71573   >mov     byte ptr [ebp-5], cl  
+00F71576   >mov     dl, byte ptr [ebp-5]  
+00F71579   >mov     ecx, dword ptr [ebp-4]  
+00F7157C   >mov     eax, dword ptr [ebp+8]  
+00F7157F   >mov     byte ptr [eax+ecx], dl  
+00F71582   >inc     dword ptr [ebp-4]            ; 加一  
+00F71585   >mov     edx, dword ptr [ebp-4]  
+00F71588   >cmp     edx, dword ptr [ebp+C]  
+00F7158B  ^>jl      00F714E9                     ; 小于 9D 跳  
+00F71591   >mov     eax, 1  
+00F71596   >pop     ecx  
+00F71597   >pop     ecx  
+00F71598   >pop     ebp  
+00F71599   >retn  
+```
+
+得到加密好的第 2 个包
+
+```
+0129FBB8  81 04 BC 85 75 96 7F E6 F8 58 1E F9 A5 AD 84 DB  ?u?骧 X  
+0129FBC8  4D 6A 91 20 00 30 A8 66 89 04 20 41 49 D8 E8 E8  Mj?.0? AI 罔  
+0129FBD8  48 D9 58 C8 E8 C8 59 68 68 D8 49 E8 A0 31 C8 D9  H 辱 hh1 荣  
+0129FBE8  49 39 C8 59 39 D9 39 C8 C8 C8 50 11 80 00 00 00  I99?热...  
+```
+
+然后程序发包，我们抓下来看看（高亮为数据区）
+
+![](img/b5331ee4e7280239b754f3a61bb86375.jpg)
+
+分析完毕,有这些东西，差不多可以写登录器了，呵呵。
+
 最后只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!

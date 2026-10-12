@@ -1,251 +1,372 @@
 
-
 # Unpacking US\_unpackMe\_1
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-545.htm`](https://www.pediy.com/kssd/pediy07/pediy7-545.htm)
 
-By:来自轻院的狼【+Immlep+】  
-Site:http://ptteam.com  
-Blog:http://immlep.blogone.net  
-  
-  
-US\_unpackMe\_5 是 Unpacking Saga（简称 US）出的来验证成员的五个 UnpackMe 中的一个,之前发过一篇 unpackme\_5 的,今天趁着五一放假，整理了前面两个(unpackMe\_1 和 unpackMe\_2)，这里讨论的是 US\_unpackMe\_1，用 acprotect 加壳的，跟踪上没有什么难度，不过 acp 对 delphi 程序的 stolenbyte 偷了一些，今天我们要讨论的主要是把这里字节还原回去，然后基本上就脱壳成功了，至于脱壳后跨平台方面的问题可以参考 fly 兄以前的脱文，我这里就偷懒一下:  
-  
-  
-1.躲过 acp 的 anti：  
-载入壳，在 kernel32.Process32Next 下硬件断点  
-断下后放回，会见到类似的这断代码：  
-00474FA6  ^\\EB 90           JMP SHORT unpackme.00474F38  
-  
-01023F38    0BC0            OR EAX,EAX  
-01023F3A    74 7F           JE SHORT NOTEPAD1.01023FBB     ; 看是不是取完了所有的进程!让它跳的(改标志位)就可以去掉这段反跟踪了，按 F9 就可以让 od 飞起来了  
-  
-2.如何恢复 stolenbyte：  
-其实很多壳的 stolenbyte 是偷得很 bt 的，但有些就偷的就像鸡肋(pespin 就是一个例子)，不管怎么样，最重要的是要有耐心，不过 acp 的 stolenbyte 也偷得不是很好，缺乏多态和变形，充其量也只不过是在代码之间加了很多得花指令，算算也和 pespin 差不多，呵呵：  
-被偷的代码在壳中的基本没被加密过，像这样:  
-stolenbyte\_part\_1  
-junk\_code（很多）  
-stolenbyte\_part\_2  
-junk\_code（很多）  
-stolenbyte\_part\_3  
-junk\_code（很多）  
-stolenbyte\_part\_4  
-.....  
-  
-  
-stolenbyte 都被包含在类似这样的一段代码中:  
-－－－－－－－－－－  
-  XCHG EDX, EBP  
-  DEC EDX  
-  POPAD  
-  POP DWORD PTR \[464BFD\]  
-  MOV DWORD PTR \[ESI\], ECX  
-  POP DWORD PTR \[464CBD\]  
-  PUSH DWORD PTR \[464CBD\]  
-  POP ESI  
-  PUSH DWORD PTR \[464C9D\]  
-  PUSH EDX  
-  POP DWORD PTR \[464CB5\]  
-  PUSH DWORD PTR \[464CB5\]  
-  MOV DWORD PTR \[464E6D\], unpackme.00464D45  
-  PUSH DWORD PTR \[464E6D\]  
-  POP EDX  
-  MOV DWORD PTR \[EDX\], EAX  
-  POP DWORD PTR \[464D61\]  
-  MOV EDX, DWORD PTR \[464D61\]  
-  PUSH DWORD PTR \[464D45\]  
-  NOP  
-  NOP  
-  PUSHAD  
-－－－－－－－－－－  
-  
-junk\_code 是由一段段垃圾指令组成，每一段垃圾指令由一个;  
-0047CD88  ^\\0F85 86FFFFFF         JNZ unpackme.0047CD14  
-构成循环，所以在跟踪垃圾指令时可以向下翻找：  
-JNZ XXXXXX   （六个字节的 jnz 指令）  
-也可以查找:  
-FFFFFF??850F  
-然后 F4 到 JNZ XXXXXX 的下一条指令  
-不过我们其实根本不用去跟踪花指令,用 esp 定律,呵呵，你可看到把 stolenbyte 夹在中间的  
-POPAD  
-PUSHAD  
-3.DELPHI 程序中被偷的代码：  
-其实我对 delphi 并不是很熟悉，只不过脱些被偷字节的 delphi 时，一边参考一下没有加过壳的 delphi 程序，所以基本上就  
-知道了 delphi 入口一些代码的规律了，delphi 入口代码一般有 5 个 CALL(6 个的也见过，7 个过的也见过，恢复时最好跟进壳里去看看就可以看出点眉目来了)  
-第一个 CALL 跟进，在这里会调用函数 kernel32.GetModuleHandleA，所以你有时大可以在 GetModuleHandleA 下断，断下后返回再返回，就基本可以确定第一个 CALL 的位置了,在恢复这些代码前找了几个 delphi 样本看了一下,delphi 程序基本是这样的(这里是六个 CALL 的):  
-  PUSH EBP   
-  MOV EBP, ESP  
-  ADD ESP, -xx  
-  MOV EAX, XXXXXX\_1  
-  CALL XXXXXX\_ADDR\_1  
-  MOV EAX, DWORD PTR \[XXXXXX\_3\]  
-  MOV EAX, DWORD PTR \[EAX\]  
-  CALL XXXXXX\_ADDR\_2  
-  MOV EAX, DWORD PTR \[XXXXXX\_3\]  
-  MOV EAX, DWORD PTR \[EAX\]  
-  MOV EDX,XXXXXX\_2  
-  CALL XXXXXX\_ADDR\_3  
-  MOV ECX, DWORD PTR \[54FF4C\]  
-  MOV EAX, DWORD PTR \[XXXXXX\_3\]  
-  MOV EAX, DWORD PTR \[EAX\]  
-  MOV EDX, DWORD PTR \[54E154\]  
-  CALL XXXXXX\_ADDR\_4  
-  MOV EAX, DWORD PTR \[XXXXXX\_3\]  
-  MOV EAX, DWORD PTR \[EAX\]  
-  CALL XXXXXX\_ADDR\_5  
-  CALL XXXXXX\_ADDR\_6  
-  
-我们可以很明显的看到每个 CALL 指令的中间到带有：  
-  MOV EAX, DWORD PTR \[XXXXXX\_3\]  
-  MOV EAX, DWORD PTR \[EAX\]  
-后面两个 CALL 是连着的。  
-呵呵，这是很好的特征  
-4.以上面的代码为例本，现在就来试试修复这些代码:  
-载入壳时，忽略所有异常，撤销所有软断点,下硬件断点：  
-hr 0012FFA4  
-bp Process32Next  
-  
-用上面的方法躲过 acp 的 anti，再第二次 Process32Next 断点处理后，就会频繁在第一个断点 0012FFA4 断下了，每次断在这样的代码出，就要注意了，被偷的字节有可能就在这里了，我们现在在 GetModuleHandleA 下断，看看第一个 call 的位置，免得做些无用功,二次断下时，发现时返回到程序里去得，跟：  
-  
-0012FFAC   0047E083   RETURN to unpackme.0047E083 from unpackme.00406610  
-  
-到 0047E083 看看：  
-part:  
-0047E05A    61                    POPAD  
-0047E05B    52                    PUSH EDX  
-0047E05C    893424                MOV DWORD PTR \[ESP\], ESI  
-0047E05F    891C24                MOV DWORD PTR \[ESP\], EBX                               ; unpackme.00453A4C  
-0047E062    8F05 4D4D4600         POP DWORD PTR \[464D4D\]                                 ; 7FFDF000  
-0047E068    8F05 6D4D4600         POP DWORD PTR \[464D6D\]                                 ; 7FFDF000  
-0047E06E    FF35 6D4D4600         PUSH DWORD PTR \[464D6D\]  
-0047E074    8B1C24                MOV EBX, DWORD PTR \[ESP\]  
-0047E077    8F05 254D4600         POP DWORD PTR \[464D25\]                                 ; 7FFDF000  
-0047E07D    FF15 4D4D4600         CALL NEAR DWORD PTR \[464D4D\]                           ; unpackme.00406610  ;被偷得 CALL 都被换成这样的..  
-0047E083    A1 744E4500           MOV EAX, DWORD PTR \[454E74\]        //这个是不是很熟悉咧。。  
-0047E088    8B00                  MOV EAX, DWORD PTR \[EAX\]              //这个是不是很熟悉咧。。  
-0047E08A    53                    PUSH EBX                                               ; unpackme.00453A4C  
-0047E08B    891424                MOV DWORD PTR \[ESP\], EDX  
-0047E08E    893C24                MOV DWORD PTR \[ESP\], EDI  
-0047E091    C70424 44214500       MOV DWORD PTR \[ESP\], unpackme.00452144                 ; ASCII "S◆ME"  
-0047E098    8F05 814C4600         POP DWORD PTR \[464C81\]                                 ; 7FFDF000  
-0047E09E    FF15 814C4600         CALL NEAR DWORD PTR \[464C81\]         //被偷的 CALL\_2 unpackme.00452144  
-0047E0A4    8935 8D4C4600         MOV DWORD PTR \[464C8D\], ESI  
-0047E0AA    90                    NOP  
-0047E0AB    60                    PUSHAD  
-  
-继续 F9,hr 0012FFA4 断下多处，捉有用的下来：  
-part:  
-0047F57A    61                    POPAD  
-0047F57B    8B3D A14D4600         MOV EDI, DWORD PTR \[464DA1\]  
-0047F581    8F05 1D4C4600         POP DWORD PTR \[464C1D\]                                 ; 7FFDF000  
-0047F587    57                    PUSH EDI                                               ; unpackme.00454F4C  
-0047F588    BF 1D4C4600           MOV EDI, unpackme.00464C1D                             ; ASCII "e\_1.exe"  
-0047F58D    8B1F                  MOV EBX, DWORD PTR \[EDI\]                               ; unpackme.00455C48  
-0047F58F    5F                    POP EDI                                                ; 7FFDF000  
-0047F590    8B08                  MOV ECX, DWORD PTR \[EAX\]                //这个有点熟悉咧 ; unpackme.00455C48   EAX=00454F4C  
-0047F592    8F05 854E4600         POP DWORD PTR \[464E85\]                                 ; 7FFDF000  
-0047F598    FF35 854E4600         PUSH DWORD PTR \[464E85\]  
-0047F59E    8F05 154F4600         POP DWORD PTR \[464F15\]                                 ; 7FFDF000  
-0047F5A4    8B05 154F4600         MOV EAX, DWORD PTR \[464F15\]                 
-0047F5AA    A1 744E4500           MOV EAX, DWORD PTR \[454E74\]               //这个是不是很熟悉咧。。  
-0047F5AF    8B00                  MOV EAX, DWORD PTR \[EAX\]                  //这个是不是很熟悉咧。。  
-0047F5B1    8915 4D4E4600         MOV DWORD PTR \[464E4D\], EDX  
-0047F5B7    FF35 4D4E4600         PUSH DWORD PTR \[464E4D\]  
-0047F5BD    890C24                MOV DWORD PTR \[ESP\], ECX  
-0047F5C0    891C24                MOV DWORD PTR \[ESP\], EBX                               ; unpackme.00454F4C  
-0047F5C3    8905 E54C4600         MOV DWORD PTR \[464CE5\], EAX                            ; unpackme.00454F4C  
-0047F5C9    90                    NOP  
-0047F5CA    90                    NOP  
-0047F5CB    60                    PUSHAD  
-  
-part:  
-00480000    61                    POPAD  
-00480001    FF35 E54C4600         PUSH DWORD PTR \[464CE5\]  
-00480007    C70424 30364500       MOV DWORD PTR \[ESP\], unpackme.00453630  
-0048000E    8B1C24                MOV EBX, DWORD PTR \[ESP\]  
-00480011    8F05 0D4D4600         POP DWORD PTR \[464D0D\]                                 ; 7FFDF000  
-00480017    8B13                  MOV EDX, DWORD PTR \[EBX\]         //这个有点熟悉咧 ; unpackme.00455C48   EBX=00453630  
-00480019    8B1C24                MOV EBX, DWORD PTR \[ESP\]  
-0048001C    8F05 694D4600         POP DWORD PTR \[464D69\]                                 ; 7FFDF000  
-00480022    50                    PUSH EAX  
-00480023    891C24                MOV DWORD PTR \[ESP\], EBX                               ; unpackme.00453630  
-00480026    8F05 014D4600         POP DWORD PTR \[464D01\]                                 ; 7FFDF000  
-0048002C    FF35 014D4600         PUSH DWORD PTR \[464D01\]  
-00480032    57                    PUSH EDI  
-00480033    BF 5C214500           MOV EDI, unpackme.0045215C  
-00480038    893D 214C4600         MOV DWORD PTR \[464C21\], EDI  
-0048003E    5F                    POP EDI                                                ; 7FFDF000  
-0048003F    FF35 214C4600         PUSH DWORD PTR \[464C21\]  
-00480045    8F05 D94D4600         POP DWORD PTR \[464DD9\]                                 ; 7FFDF000  
-0048004B    50                    PUSH EAX  
-0048004C    B8 D94D4600           MOV EAX, unpackme.00464DD9  
-00480051    60                    PUSHAD  
-  
-  
-part:  
-004809E5    61                    POPAD  
-004809E6    8B18                  MOV EBX, DWORD PTR \[EAX\]                               ; unpackme.0045215C  
-004809E8    58                    POP EAX                                                ; 009712DC  
-004809E9    50                    PUSH EAX                                               ; unpackme.00464DD9  
-004809EA    B8 E14E4600           MOV EAX, unpackme.00464EE1  
-004809EF    8930                  MOV DWORD PTR \[EAX\], ESI  
-004809F1    58                    POP EAX                                                ; 009712DC  
-004809F2    FF35 E14E4600         PUSH DWORD PTR \[464EE1\]  
-004809F8    68 F94E4600           PUSH unpackme.00464EF9  
-004809FD    8F05 F94C4600         POP DWORD PTR \[464CF9\]                                 ; 009712DC  
-00480A03    52                    PUSH EDX                                               ; unpackme.0045367C  
-00480A04    BA F94C4600           MOV EDX, unpackme.00464CF9  
-00480A09    8B32                  MOV ESI, DWORD PTR \[EDX\]                               ; unpackme.00439BD0  
-00480A0B    5A                    POP EDX                                                ; 009712DC  
-00480A0C    891E                  MOV DWORD PTR \[ESI\], EBX  
-00480A0E    8B3424                MOV ESI, DWORD PTR \[ESP\]  
-00480A11    8F05 E54D4600         POP DWORD PTR \[464DE5\]                                 ; 009712DC  
-00480A17    8B1C24                MOV EBX, DWORD PTR \[ESP\]  
-00480A1A    8F05 494D4600         POP DWORD PTR \[464D49\]                                 ; 009712DC  
-00480A20    FF15 F94E4600         CALL NEAR DWORD PTR \[464EF9\]                 //被偷的 CALL\_3 unpackme.0045215C  
-00480A26    A1 744E4500           MOV EAX, DWORD PTR \[454E74\]                  //这个是不是很熟悉咧。  
-00480A2B    8B00                  MOV EAX, DWORD PTR \[EAX\]                     //这个是不是很熟悉咧。  
-00480A2D    90                    NOP  
-00480A2E    90                    NOP  
-00480A2F    60                    PUSHAD  
-  
-捉到这些用的之后在 F9 就没见什么动静了，程序运行了起来，可是我们只捉到了三个 call 啊，哈哈，没关系，因为 acp 就只偷了这些 CALL，剩下的那两个最后的 call 是连在一起的,到我们捉到最后一片代码（00480A2F）时，手动来跟踪一下，用上面的方法步过垃圾指令:  
-发现：  
-00480E76    61                    POPAD  
-00480E77    EB 01                 JMP SHORT unpackme.00480E7A  
-  
-00480E7A  - FF25 BC0E4800         JMP NEAR DWORD PTR \[480EBC\]                            ; unpackme.00453BF7  
-  
-哈哈，找到了：  
-00453BF7    E8 E0E5FFFF           CALL unpackme.004521DC  
-00453BFC    E8 5705FBFF           CALL unpackme.00404158  
-  
-现在来整理一下：  
-  PUSH EBP   
-  MOV EBP, ESP  
-  ADD ESP, -10                           //跟到 0047E07D：CALL 00406610 时看 ESP 的值分析，这里要-10  
-  MOV EAX, 00453A4C                   //跟到 0047E07D：CALL 00406610 时看 EAX 的值 00453A4C  
-  CALL 00406610    
-  MOV EAX, DWORD PTR \[454E74\]  
-  MOV EAX, DWORD PTR \[EAX\]  
-  CALL 00452144  
-  MOV ECX, DWORD PTR \[00454F4C\]  
-  MOV EAX, DWORD PTR \[454E74\]  
-  MOV EAX, DWORD PTR \[EAX\]  
-  MOV EDX, DWORD PTR \[00453630\]                
-  CALL 0045215C  
-  MOV EAX, DWORD PTR \[454E74\]  
-  MOV EAX, DWORD PTR \[EAX\]  
-  CALL 004521DC  
-  CALL 0404158  
-  
-  
-补完代码，dump，用 Import RECfixdump，OK  
-运行。。。可以运行。。。退出－－有点小错误，呵呵，自己搞定吧。。。  
-  
-Special thx:  
-eaton,ama,catking668, www.pediy.com,www.crackslatinos.hispadominio.net,luocong's scc and you!  
-  
-Ps:但要记住，虽然我没提到你，我还是记得你的，感谢着你的。。。 
+By: 来自轻院的狼【+Immlep+】  
+Site: `http://ptteam.com`  
+Blog: `http://immlep.blogone.net`  
 
- 4dd466d0e1e0cc123afbe504da2462ca
+`US\_unpackMe\_5` 是 `Unpacking Saga`（简称 `US`）出的来验证成员的五个 `UnpackMe` 中的一个,之前发过一篇 `unpackme\_5` 的,今天趁着五一放假，整理了前面两个(`unpackMe\_1` 和 `unpackMe\_2`)，这里讨论的是 `US\_unpackMe\_1`，用 `acprotect` 加壳的，跟踪上没有什么难度，不过 `acp` 对 `delphi` 程序的 `stolenbyte` 偷了一些，今天我们要讨论的主要是把这里字节还原回去，然后基本上就脱壳成功了，至于脱壳后跨平台方面的问题可以参考 `fly` 兄以前的脱文，我这里就偷懒一下:  
+
+### 1. 躲过 acp 的 anti：
+
+载入壳，在 `kernel32.Process32Next` 下硬件断点
+
+断下后放回，会见到类似的这断代码：
+
+```
+00474FA6   ^\EB 90          JMP SHORT unpackme.00474F38
+
+01023F38    0BC0           OR EAX,EAX
+
+01023F3A    74 7F          JE SHORT NOTEPAD1.01023FBB      ; 看是不是取完了所有的进程!让它跳的(改标志位)就可以去掉这段反跟踪了，按 F9 就可以让 od 飞起来了
+```
+
+### 2. 如何恢复 stolenbyte：
+
+其实很多壳的 `stolenbyte` 是偷得很 `bt` 的，但有些就偷的就像鸡肋(`pespin` 就是一个例子)，不管怎么样，最重要的是要有耐心，不过 `acp` 的 `stolenbyte` 也偷得不是很好，缺乏多态和变形，充其量也只不过是在代码之间加了很多得花指令，算算也和 `pespin` 差不多，呵呵：
+
+被偷的代码在壳中的基本没被加密过，像这样:
+
+`stolenbyte_part_1`
+
+`junk_code`（很多）
+
+`stolenbyte_part_2`
+
+`junk_code`（很多）
+
+`stolenbyte_part_3`
+
+`junk_code`（很多）
+
+`stolenbyte_part_4`
+
+.....
+
+`stolenbyte` 都被包含在类似这样的一段代码中:
+
+```
+－－－－－－－－－－
+  XCHG EDX, EBP
+  DEC EDX
+  POPAD
+  POP DWORD PTR [464BFD]
+  MOV DWORD PTR [ESI], ECX
+  POP DWORD PTR [464CBD]
+  PUSH DWORD PTR [464CBD]
+  POP ESI
+  PUSH DWORD PTR [464C9D]
+  PUSH EDX
+  POP DWORD PTR [464CB5]
+  PUSH DWORD PTR [464CB5]
+  MOV DWORD PTR [464E6D], unpackme.00464D45
+  PUSH DWORD PTR [464E6D]
+  POP EDX
+  MOV DWORD PTR [EDX], EAX
+  POP DWORD PTR [464D61]
+  MOV EDX, DWORD PTR [464D61]
+  PUSH DWORD PTR [464D45]
+  NOP
+  NOP
+  PUSHAD
+－－－－－－－－－－
+```
+
+`junk_code` 是由一段段垃圾指令组成，每一段垃圾指令由一个;
+
+`0047CD88   ^\0F85 86FFFFFF       JNZ unpackme.0047CD14`
+
+构成循环，所以在跟踪垃圾指令时可以向下翻找：
+
+`JNZ XXXXXX` （六个字节的 `jnz` 指令）
+
+也可以查找:
+
+`FFFFFF??850F`
+
+然后 `F4` 到 `JNZ XXXXXX` 的下一条指令
+
+不过我们其实根本不用去跟踪花指令,用 `esp` 定律,呵呵，你可看到把 `stolenbyte` 夹在中间的
+
+`POPAD`
+
+`PUSHAD`
+
+### 3. DELPHI 程序中被偷的代码：
+
+其实我对 `delphi` 并不是很熟悉，只不过脱些被偷字节的 `delphi` 时，一边参考一下没有加过壳的 `delphi` 程序，所以基本上就
+
+知道了 `delphi` 入口一些代码的规律了，`delphi` 入口代码一般有 5 个 `CALL`(6 个的也见过，7 个过的也见过，恢复时最好跟进壳里去看看就可以看出点眉目来了)
+
+第一个 `CALL` 跟进，在这里会调用函数 `kernel32.GetModuleHandleA`，所以你有时大可以在 `GetModuleHandleA` 下断，断下后返回再返回，就基本可以确定第一个 `CALL` 的位置了,在恢复这些代码前找了几个 `delphi` 样本看了一下,`delphi` 程序基本是这样的(这里是六个 `CALL` 的):
+
+```
+  PUSH EBP  
+  MOV EBP, ESP  
+  ADD ESP, -xx  
+  MOV EAX, XXXXXX_1  
+  CALL XXXXXX_ADDR_1  
+  MOV EAX, DWORD PTR [XXXXXX_3]  
+  MOV EAX, DWORD PTR [EAX]  
+  CALL XXXXXX_ADDR_2  
+  MOV EAX, DWORD PTR [XXXXXX_3]  
+  MOV EAX, DWORD PTR [EAX]  
+  MOV EDX,XXXXXX_2  
+  CALL XXXXXX_ADDR_3  
+  MOV ECX, DWORD PTR [54FF4C]  
+  MOV EAX, DWORD PTR [XXXXXX_3]  
+  MOV EAX, DWORD PTR [EAX]  
+  MOV EDX, DWORD PTR [54E154]  
+  CALL XXXXXX_ADDR_4  
+  MOV EAX, DWORD PTR [XXXXXX_3]  
+  MOV EAX, DWORD PTR [EAX]  
+  CALL XXXXXX_ADDR_5  
+  CALL XXXXXX_ADDR_6
+```
+
+我们可以很明显的看到每个 `CALL` 指令的中间到带有：
+
+```
+  MOV EAX, DWORD PTR [XXXXXX_3]
+  MOV EAX, DWORD PTR [EAX]
+```
+
+后面两个 `CALL` 是连着的。
+
+呵呵，这是很好的特征
+
+### 4. 以上面的代码为例本，现在就来试试修复这些代码:
+
+载入壳时，忽略所有异常，撤销所有软断点,下硬件断点：
+
+```
+hr 0012FFA4
+
+bp Process32Next
+```
+
+用上面的方法躲过 `acp` 的 `anti`，再第二次 `Process32Next` 断点处理后，就会频繁在第一个断点 `0012FFA4` 断下了，每次断在这样的代码出，就要注意了，被偷的字节有可能就在这里了，我们现在在 `GetModuleHandleA` 下断，看看第一个 `call` 的位置，免得做些无用功,二次断下时，发现时返回到程序里去得，跟：
+
+`0012FFAC   0047E083   RETURN to unpackme.0047E083 from unpackme.00406610`
+
+到 `0047E083` 看看：
+
+part:
+
+```
+0047E05A    61                 POPAD
+0047E05B    52                 PUSH EDX
+0047E05C    893424             MOV DWORD PTR [ESP], ESI
+0047E05F    891C24             MOV DWORD PTR [ESP], EBX                   ; unpackme.00453A4C
+0047E062    8F05 4D4D4600      POP DWORD PTR [464D4D]                     ; 7FFDF000
+0047E068    8F05 6D4D4600      POP DWORD PTR [464D6D]                     ; 7FFDF000
+0047E06E    FF35 6D4D4600      PUSH DWORD PTR [464D6D]
+0047E074    8B1C24             MOV EBX, DWORD PTR [ESP]
+0047E077    8F05 254D4600      POP DWORD PTR [464D25]                     ; 7FFDF000
+0047E07D    FF15 4D4D4600      CALL NEAR DWORD PTR [464D4D]               ; unpackme.00406610  ;被偷得 CALL 都被换成这样的..
+0047E083    A1 744E4500        MOV EAX, DWORD PTR [454E74]        //这个是不是很熟悉咧。。
+0047E088    8B00               MOV EAX, DWORD PTR [EAX]               //这个是不是很熟悉咧。。
+0047E08A    53                 PUSH EBX                                 ; unpackme.00453A4C
+0047E08B    891424             MOV DWORD PTR [ESP], EDX
+0047E08E    893C24             MOV DWORD PTR [ESP], EDI
+0047E091    C70424 44214500    MOV DWORD PTR [ESP], unpackme.00452144     ; ASCII "S◆ME"
+0047E098    8F05 814C4600      POP DWORD PTR [464C81]                     ; 7FFDF000
+0047E09E    FF15 814C4600      CALL NEAR DWORD PTR [464C81]      //被偷的 CALL_2 unpackme.00452144
+0047E0A4    8935 8D4C4600      MOV DWORD PTR [464C8D], ESI
+0047E0AA    90                 NOP
+0047E0AB    60                 PUSHAD
+```
+
+继续 `F9`,`hr 0012FFA4` 断下多处，捉有用的下来：
+
+part:
+
+```
+0047F57A    61                 POPAD
+0047F57B    8B3D A14D4600      MOV EDI, DWORD PTR [464DA1]
+0047F581    8F05 1D4C4600      POP DWORD PTR [464C1D]                     ; 7FFDF000
+0047F587    57                 PUSH EDI                                 ; unpackme.00454F4C
+0047F588    BF 1D4C4600        MOV EDI, unpackme.00464C1D               ; ASCII "e_1.exe"
+0047F58D    8B1F               MOV EBX, DWORD PTR [EDI]               ; unpackme.00455C48
+0047F58F    5F                 POP EDI                                 ; 7FFDF000
+0047F590    8B08               MOV ECX, DWORD PTR [EAX]          //这个有点熟悉咧 ; unpackme.00455C48   EAX=00454F4C
+0047F592    8F05 854E4600      POP DWORD PTR [464E85]                     ; 7FFDF000
+0047F598    FF35 854E4600      PUSH DWORD PTR [464E85]
+0047F59E    8F05 154F4600      POP DWORD PTR [464F15]                     ; 7FFDF000
+0047F5A4    8B05 154F4600      MOV EAX, DWORD PTR [464F15]          
+0047F5AA    A1 744E4500        MOV EAX, DWORD PTR [454E74]             //这个是不是很熟悉咧。。
+0047F5AF    8B00               MOV EAX, DWORD PTR [EAX]               //这个是不是很熟悉咧。。
+0047F5B1    8915 4D4E4600      MOV DWORD PTR [464E4D], EDX
+0047F5B7    FF35 4D4E4600      PUSH DWORD PTR [464E4D]
+0047F5BD    890C24             MOV DWORD PTR [ESP], ECX
+0047F5C0    891C24             MOV DWORD PTR [ESP], EBX               ; unpackme.00454F4C
+0047F5C3    8905 E54C4600      MOV DWORD PTR [464CE5], EAX            ; unpackme.00454F4C
+0047F5C9    90                 NOP
+0047F5CA    90                 NOP
+0047F5CB    60                 PUSHAD
+```
+
+part:
+
+```
+00480000    61                 POPAD
+00480001    FF35 E54C4600      PUSH DWORD PTR [464CE5]
+00480007    C70424 30364500    MOV DWORD PTR [ESP], unpackme.00453630
+0048000E    8B1C24             MOV EBX, DWORD PTR [ESP]
+00480011    8F05 0D4D4600      POP DWORD PTR [464D0D]                     ; 7FFDF000
+00480017    8B13               MOV EDX, DWORD PTR [EBX]     //这个有点熟悉咧 ; unpackme.00455C48   EBX=00453630
+00480019    8B1C24             MOV EBX, DWORD PTR [ESP]
+0048001C    8F05 694D4600      POP DWORD PTR [464D69]                     ; 7FFDF000
+00480022    50                 PUSH EAX
+00480023    891C24             MOV DWORD PTR [ESP], EBX               ; unpackme.00453630
+```
+
+
+
+```
+00480026    8F05 014D4600          POP DWORD PTR [464D01]                   ; 7FFDF000  
+
+0048002C    FF35 014D4600          PUSH DWORD PTR [464D01]  
+
+00480032    57                    PUSH EDI  
+
+00480033    BF 5C214500           MOV EDI, unpackme.0045215C  
+
+00480038    893D 214C4600         MOV DWORD PTR [464C21], EDI  
+
+0048003E    5F                    POP EDI                                ; 7FFDF000  
+
+0048003F    FF35 214C4600         PUSH DWORD PTR [464C21]  
+
+00480045    8F05 D94D4600         POP DWORD PTR [464DD9]                 ; 7FFDF000  
+
+0048004B    50                    PUSH EAX  
+
+0048004C    B8 D94D4600           MOV EAX, unpackme.00464DD9  
+
+00480051    60                    PUSHAD  
+
+part:  
+
+004809E5    61                    POPAD  
+
+004809E6    8B18                  MOV EBX, DWORD PTR [EAX]               ; unpackme.0045215C  
+
+004809E8    58                    POP EAX                                ; 009712DC  
+
+004809E9    50                    PUSH EAX                               ; unpackme.00464DD9  
+
+004809EA    B8 E14E4600           MOV EAX, unpackme.00464EE1  
+
+004809EF    8930                  MOV DWORD PTR [EAX], ESI  
+
+004809F1    58                    POP EAX                                ; 009712DC  
+
+004809F2    FF35 E14E4600         PUSH DWORD PTR [464EE1]  
+
+004809F8    68 F94E4600           PUSH unpackme.00464EF9  
+
+004809FD    8F05 F94C4600         POP DWORD PTR [464CF9]                 ; 009712DC  
+
+00480A03    52                    PUSH EDX                               ; unpackme.0045367C  
+
+00480A04    BA F94C4600           MOV EDX, unpackme.00464CF9  
+
+00480A09    8B32                  MOV ESI, DWORD PTR [EDX]               ; unpackme.00439BD0  
+
+00480A0B    5A                    POP EDX                                ; 009712DC  
+
+00480A0C    891E                  MOV DWORD PTR [ESI], EBX  
+
+00480A0E    8B3424                MOV ESI, DWORD PTR [ESP]  
+
+00480A11    8F05 E54D4600         POP DWORD PTR [464DE5]                 ; 009712DC  
+
+00480A17    8B1C24                MOV EBX, DWORD PTR [ESP]  
+
+00480A1A    8F05 494D4600         POP DWORD PTR [464D49]                 ; 009712DC  
+
+00480A20    FF15 F94E4600         CALL NEAR DWORD PTR [464EF9]          //被偷的 CALL_3 unpackme.0045215C  
+
+00480A26    A1 744E4500           MOV EAX, DWORD PTR [454E74]           //这个是不是很熟悉咧。  
+
+00480A2B    8B00                  MOV EAX, DWORD PTR [EAX]              //这个是不是很熟悉咧。  
+
+00480A2D    90                    NOP  
+
+00480A2E    90                    NOP  
+
+00480A2F    60                    PUSHAD  
+```
+
+捉到这些用的之后在 `F9` 就没见什么动静了，程序运行了起来，可是我们只捉到了三个 `call` 啊，哈哈，没关系，因为 `acp` 就只偷了这些 `CALL`，剩下的那两个最后的 `call` 是连在一起的,到我们捉到最后一片代码（`00480A2F`）时，手动来跟踪一下，用上面的方法步过垃圾指令:
+
+发现：
+
+```
+00480E76    61                    POPAD  
+
+00480E77    EB 01                 JMP SHORT unpackme.00480E7A  
+
+00480E7A   - FF25 BC0E4800        JMP NEAR DWORD PTR [480EBC]             ; unpackme.00453BF7  
+```
+
+哈哈，找到了：
+
+```
+00453BF7    E8 E0E5FFFF           CALL unpackme.004521DC  
+
+00453BFC    E8 5705FBFF           CALL unpackme.00404158  
+```
+
+现在来整理一下：
+
+```
+  PUSH EBP  
+  
+  MOV EBP, ESP  
+  
+  ADD ESP, -10                     //跟到 0047E07D：CALL 00406610 时看 ESP 的值分析，这里要-10  
+  
+  MOV EAX, 00453A4C                //跟到 0047E07D：CALL 00406610 时看 EAX 的值 00453A4C  
+  
+  CALL 00406610   
+  
+  MOV EAX, DWORD PTR [454E74]  
+  
+  MOV EAX, DWORD PTR [EAX]  
+  
+  CALL 00452144  
+  
+  MOV ECX, DWORD PTR [00454F4C]  
+  
+  MOV EAX, DWORD PTR [454E74]  
+  
+  MOV EAX, DWORD PTR [EAX]  
+  
+  MOV EDX, DWORD PTR [00453630]                  
+  
+  CALL 0045215C  
+  
+  MOV EAX, DWORD PTR [454E74]  
+  
+  MOV EAX, DWORD PTR [EAX]  
+  
+  CALL 004521DC  
+  
+  CALL 0404158  
+```
+
+补完代码，`dump`，用 `Import RECfixdump`，`OK`
+
+运行。。。可以运行。。。退出－－有点小错误，呵呵，自己搞定吧。。。
+
+`Special thx`:
+
+`eaton`, `ama`, `catking668`, `www.pediy.com`, `www.crackslatinos.hispadominio.net`, `luocong's scc` and you!
+
+`Ps`:但要记住，虽然我没提到你，我还是记得你的，感谢着你的。。。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

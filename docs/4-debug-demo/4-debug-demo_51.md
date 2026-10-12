@@ -1,215 +1,232 @@
 
-
 # 内存注册机的工作原理及 masm 源码
 
 > 原文：[`www.pediy.com/kssd/pediy09/pediy09-169.htm`](https://www.pediy.com/kssd/pediy09/pediy09-169.htm)
 
-> ［编程工具］masm32(9.00)＋RadAsm2.2.0.9  
-> ［调试工具］OD1.10  
-> ［调试平台］WinXP/SP2  
->   
-> 　　先说明一下，我编写这个内存注册机只是为了学习一点程序的调试原理，它的实用性不说也罢，因为现的软件保护谁都知道，想这么容易取得注册码，门都没有，这也许正是刘健英放弃 KeyMake 的原因吧。我不想，也没有能力去步他的后尘，只是好奇，玩玩而已。  
-> 　　内存注册机实际是个超小的调试器，以调试的方式打开目标软件进程，在特定的地址设置 int 3 断点，程序运行到断点处被挂起，这个时候就可以用 ReadProcessMemory 或 GetThreadContext 函数取得目标软件特定内存或特定寄存器中的内容，显示出来就好了。只是前面提到的地址、寄存器等只有你跟踪了目标软件的注册算法后才会得到。根据注册算法的不同，注册机中的某些代码也可能要调整，所以我的代码对不会编程的人来说就是 1000%的垃圾。  
-> 　　有些软件加了壳，不过我终于想出办法来对付它了，有壳我照样可以断下来，取到我想要的数据。杀毒软件对我的注册机也不感兴趣，大概是太臭了吧~O~。  
->   
->   
-> 内存注册机.Asm 文件：  
->   
-> .386  
-> .model flat, stdcall  ;32 bit memory model  
-> option casemap :none  ;case sensitive  
->   
-> include 内存注册机.inc  
->   
-> .code  
->   
-> start:  
->         invoke InitCommonControls  
->         invoke GetRegKey  
->     invoke ExitProcess,0  
->   
-> ;########################################################################  
->   
-> GetRegKey proc uses edi esi  
->     LOCAL @ThreadConText:CONTEXT  
->     LOCAL @StartInfo:STARTUPINFO  
->         LOCAL @DBGEvent:DEBUG\_EVENT  
->         LOCAL @TmpCode,@BakCode  
->         LOCAL @FullPath\[512\]:byte  
->   
->         invoke GetCommandLine  
->         lea    esi,@FullPath  
->         invoke lstrcpy,esi,eax  
->         mov    edi,esi  
->         xor    edx,edx  
->         xor    ecx,ecx  
->         cld  
->        .while TRUE  ;找最后一个“\\”  
->                lods   byte ptr\[esi\]  
->                inc    ecx  
->                .break .if !al  
->                .continue .if al!='\\'  
->                mov    edx,ecx  ;记下最后一个“\\”的位置  
->         .endw  
->         add    edi,edx  
->         invoke lstrcpy,edi,addr szEXEName  ;生成绝对路径，否则由 CreateProcess 创建的进程可能会出问题  
->   
->         invoke GetStartupInfo,addr @StartInfo   
->         invoke CreateProcess,NULL,addr @FullPath,NULL,NULL,FALSE,DEBUG\_PROCESS+DEBUG\_ONLY\_THIS\_PROCESS,NULL,NULL,addr @StartInfo,addr PI  
->         .if !eax  ;创建 debugee 进程失败的话提示、结束  
->               invoke MessageBox,NULL,addr szMsgErr,NULL,MB\_ICONERROR  
->               jmp ENDPROC  
->         .endif  
->   
->        .while TRUE  
->               invoke WaitForDebugEvent,addr @DBGEvent,INFINITE  ;等待调试事件的发生  
->               .break .if @DBGEvent.dwDebugEventCode==EXIT\_PROCESS\_DEBUG\_EVENT  ;你退出了我也就退出吧!  
->   
->               .if  TimesBreak  ;debugee 执行第一条指令之前我们不必做无用功  
->                       .if TimesBreak<BREAKFLAG  ;已经取过注册码了吗？  
->                             mov   eax,@BakCode  
->                             .if al!=byte ptr\[OldCode\]  ;如果 debugee 加了壳，而且还没正确设置 int 3 断点  
->                               invoke ReadProcessMemory,PI.hProcess,BreakPoint,addr @TmpCode,sizeof @TmpCode,NULL  
->                                   mov    eax,@TmpCode  
->                                   .if al\==byte ptr\[OldCode\]  ;壳已经解码完毕，可以设断点了  
->                                          mov  @BakCode,eax   ;记住，我们在此已经役过断点了，用它作标志，还要用它恢复现场  
->                                        invoke WriteProcessMemory,PI.hProcess,BreakPoint,addr BreakCode,sizeof BreakCode,NULL  ;设断点  
->                                   .endif  
->                             .endif  
->                       .endif  
->               .endif  
->   
->              .if @DBGEvent.dwDebugEventCode==EXCEPTION\_DEBUG\_EVENT  
->                     .if @DBGEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION\_BREAKPOINT  
->                           .if TimesBreak  ;已经不止一次发生 int 3 中断的话  
->                                  invoke CloseHandle,PI.hThread ;释放旧 hThread 的内存  
->                                  invoke OpenThread,THREAD\_GET\_CONTEXT or THREAD\_QUERY\_INFORMATION,FALSE,@DBGEvent.dwThreadId  ;由 ThreadID 得到 hThread 想依此来解决多线程问题，会不会有问题，请高人指点  
->                                  mov PI.hThread,eax ;保存备用  
->   
->                                  mov @ThreadConText.ContextFlags,CONTEXT\_FULL    ;访问所有的寄存器  
->                                  invoke GetThreadContext,PI.hThread,addr @ThreadConText  ;取 debugee 的数据  
->                                  dec @ThreadConText.regEip  ;EIP 已经指向 int 3 中断的下一条代码了，让它重新指向 int 3  
->                                  mov ecx,@ThreadConText.regEip  ;取 debugee 的 EIP  
->                                  .if ecx\==BreakPoint  ;是我们要断下的地方吗？是就取出数据，并恢复现场  
->                                         invoke WriteProcessMemory,PI.hProcess,ecx,addr @BakCode,sizeof @BakCode,NULL  ;恢复 debugee 原来的代码  
->                                         invoke SetThreadContext,PI.hThread,addr @ThreadConText  ;修改 debugee 的 EIP,让其继续运行  
->       
->                                     invoke GetModuleHandle,NULL  
->                                     lea edx,@ThreadConText    ;把此结构的地址传给窗口，以便于显示  
->                                     invoke DialogBoxParam,eax,IDD\_DLGMAIN,NULL,addr DlgProc,edx   ;弹出窗口，输出注册码  
->                                     mov TimesBreak,BREAKFLAG  ;设置标志，已经取过注册码了  
->                                  .endif  
->                           .else  ;如果 debugee 未加壳，就此两句可以设好断点，若加了壳就不起作用了，因为壳会修改掉我们的修改  
->                                invoke ReadProcessMemory,PI.hProcess,BreakPoint,addr @BakCode,sizeof @BakCode,NULL  
->                                  invoke WriteProcessMemory,PI.hProcess,BreakPoint,addr BreakCode,sizeof BreakCode,NULL  
->                           .endif  
->                          inc TimesBreak  
->                     .endif  
->                     mov eax,DBG\_CONTINUE  
->                     jmp @F  
->               .endif  
->               mov eax,DBG\_EXCEPTION\_NOT\_HANDLED  
-> @@:  
->               invoke ContinueDebugEvent,@DBGEvent.dwProcessId,@DBGEvent.dwThreadId,eax  
->        .endw   
->   
->        invoke CloseHandle,PI.hProcess   
->        invoke CloseHandle,PI.hThread   
-> ENDPROC:  
->     ret  
->   
-> GetRegKey endp  
->   
-> DlgProc proc uses ebx hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM  
->   
->     mov eax,uMsg  
->     .if eax\==WM\_INITDIALOG  
->                 mov     ebx,lParam  
->             assume    ebx:ptr CONTEXT  ;ebx 作为 CONTEXT 类型指针使用  
->                 ;要显示什么数据，怎么显示，那你就去分析 debugee 的注册算法吧，我这里只是示例  
->                 ;invoke ReadProcessMemory,PI.hProcess,RegKeyAddr,addr Buffer,sizeof Buffer,NULL   ;从特定内存地址中取注册码  
->   
->                 invoke wsprintf,addr Buffer,addr szFmt,\[ebx\].regEax  ;从特定寄存器中取注册码  
->                 invoke SetDlgItemText,hWin,IDC\_REGKEY,addr Buffer  
->   
->                 assume    ebx:nothing  
->     .elseif eax\==WM\_CLOSE  
->         invoke EndDialog,hWin,0  
->     .else  
->         mov    eax,FALSE  
->         jmp    @F  
->     .endif  
->     mov    eax,TRUE  
-> @@:  
->     ret  
->   
-> DlgProc endp  
->   
-> end start  
->   
-> 内存注册机.Inc 文件：  
->   
->   
-> include windows.inc  
-> include kernel32.inc  
-> include user32.inc  
-> include Comctl32.inc  
-> include shell32.inc  
->   
-> includelib kernel32.lib  
-> includelib user32.lib  
-> includelib Comctl32.lib  
-> includelib shell32.lib  
->   
-> DlgProc            PROTO    :HWND,:UINT,:WPARAM,:LPARAM  
-> GetRegKey               PROTO  
->   
-> .const  
->   
-> IDD\_DLGMAIN        equ 101  
-> IDC\_REGKEY        equ 1003  
-> BREAKFLAG               equ 100000h  
->   
->   
-> .data  
-> szFmt                   db '%1X',0  
-> szMsgErr                db '本注册机必须与下面的软件放在同一目录内：',0dh  ;中间不要有其它变量定义  
-> szEXEName               db '例子.exe',0   ;换成要注册的软件可执行文件名  
->   
-> BreakPoint              dd 0401131h  ;可以改成要设断点的地址  
-> OldCode                 db 050h      ;BreakPoint 处的第一字节内容，帮我们判断壳是否操作完毕，完毕才能设断点  
-> ;RegKeyAddr             dd 40305ch   ;注册码在 debugee 中的存放地址  
->   
-> BreakCode               db 0CCh,90h,90h,90h  ;最好别改动  
-> TimesBreak              dd 0  ;最好别改动  
->   
-> ;#########################################################################  
-> .data?  
->   
-> PI                      PROCESS\_INFORMATION<>  
-> Buffer                  db 256dup(?)  
->   
-> \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> 我这个贴子只说了内存注册机的一般原理，未做成通用模板，因此需要会编程的使用者视具体情况添加或改动代码，比如多线程、多次中断在同一地址等。后面有人跟贴提到这两个问题。对于多线程问题，我想了个对策，代码见上文，调试了没问题。对于第二个问题，最好去读一下我转贴的《Win32 调试 API 教程》之第三部分。我的大致思路是：  
-> 　　１.第一次正确发生 int3 中断时，设为单步模式，为的是后面有机会再写入断点。也可以设硬件断点，那是另一套思路了。  
->   
-> 　　２.在单步事件到来时，重写入断点代码，暂不单步了  
-> 　　　　　　.if DBEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION\_BREAKPOINT   
-> 　　　　　　　　(前面的判断代码此处略)  
-> 　　　　　　　　mov @ThreadConText.ContextFlags, CONTEXT\_CONTROL   
-> 　　　　　　　　invoke GetThreadContext, PI.hThread, addr @ThreadConText   
-> 　　　　　　　　or @ThreadConText.regFlag,100h ;设为单步模式，为的是后面有机会再写入断点  
-> 　　　　　　　　invoke WriteProcessMemory,PI.hProcess,ecx,addr @BakCode,sizeof @BakCode,NULL  ;恢复 debugee 原来的代码  
-> 　　　　　　　　invoke SetThreadContext,PI.hThread,addr @ThreadConText  ;修改 debugee 的 EIP,让其继续运行  
-> 　　　　　　　　inc TimesBreak  
-> 　　　　　　　　(后面的代码此处略)  
-> 　　　　　　.elseif DBEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION\_SINGLE\_STEP ;int3 中断后紧接着单步一次  
-> 　　　　　　　　invoke WriteProcessMemory,PI.hProcess,BreakPoint,addr BreakCode,sizeof BreakCode,NULL ;再次写入中断代码，对付同一地址多次中断。  
->   
->   
-> 　　马上要放假了，比较忙，没有时间详细设计和调试，只能这样了，算是抛砖引玉吧。假期我要好好休息一下，不会来这里了（要扔砖头的尽管扔，反正我不知道^O^）。希望收假后能看到更好的解决方法。  
-> \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
->   
-> 附件中是 asm 源码和例子程序 
+> ［编程工具］`masm32`(9.00) ＋ `RadAsm` 2.2.0.9  
+> ［调试工具］`OD` 1.10  
+> ［调试平台］`WinXP`/SP2  
 
- 4dd466d0e1e0cc123afbe504da2462ca
+先说明一下，我编写这个内存注册机只是为了学习一点程序的调试原理，它的实用性不说也罢，因为现的软件保护谁都知道，想这么容易取得注册码，门都没有，这也许正是刘健英放弃 `KeyMake` 的原因吧。我不想，也没有能力去步他的后尘，只是好奇，玩玩而已。  
+
+内存注册机实际是个超小的调试器，以调试的方式打开目标软件进程，在特定的地址设置 `int 3` 断点，程序运行到断点处被挂起，这个时候就可以用 `ReadProcessMemory` 或 `GetThreadContext` 函数取得目标软件特定内存或特定寄存器中的内容，显示出来就好了。只是前面提到的地址、寄存器等只有你跟踪了目标软件的注册算法后才会得到。根据注册算法的不同，注册机中的某些代码也可能要调整，所以我的代码对不会编程的人来说就是 1000% 的垃圾。  
+
+有些软件加了壳，不过我终于想出办法来对付它了，有壳我照样可以断下来，取到我想要的数据。杀毒软件对我的注册机也不感兴趣，大概是太臭了吧~O~。  
+
+### 内存注册机.Asm 文件：
+
+```asm
+.386
+.model flat, stdcall  ;32 bit memory model
+option casemap :none  ;case sensitive
+
+include 内存注册机.inc
+
+.code
+
+start:
+       invoke InitCommonControls
+       invoke GetRegKey
+   invoke ExitProcess,0
+
+;########################################################################
+
+GetRegKey proc uses edi esi
+   LOCAL @ThreadConText:CONTEXT
+   LOCAL @StartInfo:STARTUPINFO
+       LOCAL @DBGEvent:DEBUG\_EVENT
+       LOCAL @TmpCode,@BakCode
+       LOCAL @FullPath\[512\]:byte
+
+       invoke GetCommandLine
+       lea    esi,@FullPath
+       invoke lstrcpy,esi,eax
+       mov    edi,esi
+       xor    edx,edx
+       xor    ecx,ecx
+       cld
+      .while TRUE  ;找最后一个“\\”
+             lods   byte ptr\[esi\]
+             inc    ecx
+             .break .if !al
+             .continue .if al!='\\'
+             mov    edx,ecx  ;记下最后一个“\\”的位置
+      .endw
+      add    edi,edx
+      invoke lstrcpy,edi,addr szEXEName  ;生成绝对路径，否则由 CreateProcess 创建的进程可能会出问题
+
+      invoke GetStartupInfo,addr @StartInfo  
+
+      invoke CreateProcess,NULL,addr @FullPath,NULL,NULL,FALSE,DEBUG\_PROCESS+DEBUG\_ONLY\_THIS\_PROCESS,NULL,NULL,addr @StartInfo,addr PI
+      .if !eax  ;创建 debugee 进程失败的话提示、结束
+             invoke MessageBox,NULL,addr szMsgErr,NULL,MB\_ICONERROR
+             jmp ENDPROC
+      .endif
+
+      .while TRUE
+             invoke WaitForDebugEvent,addr @DBGEvent,INFINITE  ;等待调试事件的发生
+             .break .if @DBGEvent.dwDebugEventCode==EXIT\_PROCESS\_DEBUG\_EVENT  ;你退出了我也就退出吧!
+
+             .if  TimesBreak  ;debugee 执行第一条指令之前我们不必做无用功
+                 .if TimesBreak<BREAKFLAG  ;已经取过注册码了吗？
+                       mov   eax,@BakCode
+                       .if al!=byte ptr\[OldCode\]  ;如果 debugee 加了壳，而且还没正确设置 int 3 断点
+                           invoke ReadProcessMemory,PI.hProcess,BreakPoint,addr @TmpCode,sizeof @TmpCode,NULL
+                          mov    eax,@TmpCode
+                          .if al\==byte ptr\[OldCode\]  ;壳已经解码完毕，可以设断点了
+                               mov  @BakCode,eax   ;记住，我们在此已经役过断点了，用它作标志，还要用它恢复现场
+                           invoke WriteProcessMemory,PI.hProcess,BreakPoint,addr BreakCode,sizeof BreakCode,NULL  ;设断点
+                          .endif
+                       .endif
+                 .endif
+             .endif
+
+             .if @DBGEvent.dwDebugEventCode==EXCEPTION\_DEBUG\_EVENT
+                .if @DBGEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION\_BREAKPOINT
+                   .if TimesBreak  ;已经不止一次发生 int 3 中断的话
+                          invoke CloseHandle,PI.hThread ;释放旧 hThread 的内存
+                          invoke OpenThread,THREAD\_GET\_CONTEXT or THREAD\_QUERY\_INFORMATION,FALSE,@DBGEvent.dwThreadId  ;由 ThreadID 得到 hThread 想依此来解决多线程问题，会不会有问题，请高人指点
+                          mov PI.hThread,eax ;保存备用
+
+                          mov @ThreadConText.ContextFlags,CONTEXT\_FULL    ;访问所有的寄存器
+                          invoke GetThreadContext,PI.hThread,addr @ThreadConText  ;取 debugee 的数据
+                          dec @ThreadConText.regEip  ;EIP 已经指向 int 3 中断的下一条代码了，让它重新指向 int 3
+                          mov ecx,@ThreadConText.regEip  ;取 debugee 的 EIP
+                          .if ecx\==BreakPoint  ;是我们要断下的地方吗？是就取出数据，并恢复现场
+                             invoke WriteProcessMemory,PI.hProcess,ecx,addr @BakCode,sizeof @BakCode,NULL  ;恢复 debugee 原来的代码
+                             invoke SetThreadContext,PI.hThread,addr @ThreadConText  ;修改 debugee 的 EIP,让其继续运行
+   
+
+
+                             invoke GetModuleHandle,NULL
+                             lea edx,@ThreadConText    ;把此结构的地址传给窗口，以便于显示
+                             invoke DialogBoxParam,eax,IDD\_DLGMAIN,NULL,addr DlgProc,edx   ;弹出窗口，输出注册码
+                             mov TimesBreak,BREAKFLAG  ;设置标志，已经取过注册码了
+                          .endif
+                   .else  ;如果 debugee 未加壳，就此两句可以设好断点，若加了壳就不起作用了，因为壳会修改掉我们的修改
+                         invoke ReadProcessMemory,PI.hProcess,BreakPoint,addr @BakCode,sizeof @BakCode,NULL
+                           invoke WriteProcessMemory,PI.hProcess,BreakPoint,addr BreakCode,sizeof BreakCode,NULL
+                   .endif
+                       inc TimesBreak
+                .endif
+                mov eax,DBG\_CONTINUE
+                jmp @F
+             .endif
+             mov eax,DBG\_EXCEPTION\_NOT\_HANDLED
+ @@:
+             invoke ContinueDebugEvent,@DBGEvent.dwProcessId,@DBGEvent.dwThreadId,eax
+      .endw  
+
+      invoke CloseHandle,PI.hProcess  
+      invoke CloseHandle,PI.hThread  
+
+ENDPROC:
+   ret
+
+GetRegKey endp
+
+DlgProc proc uses ebx hWin:HWND,uMsg:UINT,wParam:WPARAM,lParam:LPARAM
+
+   mov eax,uMsg
+   .if eax\==WM\_INITDIALOG
+           mov     ebx,lParam
+       assume    ebx:ptr CONTEXT  ;ebx 作为 CONTEXT 类型指针使用
+           ;要显示什么数据，怎么显示，那你就去分析 debugee 的注册算法吧，我这里只是示例
+           ;invoke ReadProcessMemory,PI.hProcess,RegKeyAddr,addr Buffer,sizeof Buffer,NULL   ;从特定内存地址中取注册码
+
+           invoke wsprintf,addr Buffer,addr szFmt,\[ebx\].regEax  ;从特定寄存器中取注册码
+           invoke SetDlgItemText,hWin,IDC\_REGKEY,addr Buffer
+
+           assume    ebx:nothing
+   .elseif eax\==WM\_CLOSE
+       invoke EndDialog,hWin,0
+   .else
+       mov    eax,FALSE
+       jmp    @F
+   .endif
+   mov    eax,TRUE
+@@:
+   ret
+
+DlgProc endp
+
+end start
+```
+
+### 内存注册机.Inc 文件：
+
+```asm
+include windows.inc
+include kernel32.inc
+include user32.inc
+include Comctl32.inc
+include shell32.inc
+
+includelib kernel32.lib
+includelib user32.lib
+includelib Comctl32.lib
+includelib shell32.lib
+
+DlgProc           PROTO    :HWND,:UINT,:WPARAM,:LPARAM
+GetRegKey        PROTO
+
+.const
+
+IDD\_DLGMAIN       equ 101
+IDC\_REGKEY       equ 1003
+BREAKFLAG         equ 100000h
+
+
+.data
+szFmt             db '%1X',0
+szMsgErr          db '本注册机必须与下面的软件放在同一目录内：',0dh  ;中间不要有其它变量定义
+szEXEName         db '例子.exe',0   ;换成要注册的软件可执行文件名
+
+BreakPoint        dd 0401131h  ;可以改成要设断点的地址
+OldCode           db 050h      ;BreakPoint 处的第一字节内容，帮我们判断壳是否操作完毕，完毕才能设断点
+;RegKeyAddr        dd 40305ch   ;注册码在 debugee 中的存放地址
+
+BreakCode         db 0CCh,90h,90h,90h  ;最好别改动
+TimesBreak        dd 0  ;最好别改动
+
+;#########################################################################
+```
+
+
+
+### `.data?`
+
+```
+PI PROCESS_INFORMATION<>
+Buffer db 256dup(?)
+```
+
+`********************************************************************`
+
+我这个帖子只说了内存注册机的一般原理，未做成通用模板，因此需要会编程的使用者视具体情况添加或改动代码，比如多线程、多次中断在同一地址等。后面有人跟贴提到这两个问题。对于多线程问题，我想了个对策，代码见上文，调试了没问题。对于第二个问题，最好去读一下我转贴的《Win32 调试 API 教程》之第三部分。我的大致思路是：
+
+1. 第一次正确发生`int3`中断时，设为单步模式，为的是后面有机会再写入断点。也可以设硬件断点，那是另一套思路了。
+
+2. 在单步事件到来时，重写入断点代码，暂不单步了
+
+   ```
+   .if DBEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION_BREAKPOINT
+       (前面的判断代码此处略)
+       mov @ThreadConText.ContextFlags, CONTEXT_CONTROL
+       invoke GetThreadContext, PI.hThread, addr @ThreadConText
+       or @ThreadConText.regFlag,100h ;设为单步模式，为的是后面有机会再写入断点
+       invoke WriteProcessMemory,PI.hProcess,ecx,addr @BakCode,sizeof @BakCode,NULL  ;恢复 debugee 原来的代码
+       invoke SetThreadContext,PI.hThread,addr @ThreadConText  ;修改 debugee 的 EIP,让其继续运行
+       inc TimesBreak
+       (后面的代码此处略)
+   .elseif DBEvent.u.Exception.pExceptionRecord.ExceptionCode==EXCEPTION_SINGLE_STEP ;int3 中断后紧接着单步一次
+       invoke WriteProcessMemory,PI.hProcess,BreakPoint,addr BreakCode,sizeof BreakCode,NULL ;再次写入中断代码，对付同一地址多次中断。
+   ```
+
+马上要放假了，比较忙，没有时间详细设计和调试，只能这样了，算是抛砖引玉吧。假期我要好好休息一下，不会来这里了（要扔砖头的尽管扔，反正我不知道^O^）。希望收假后能看到更好的解决方法。
+
+`********************************************************************`
+
+附件中是`asm`源码和例子程序
+
+`4dd466d0e1e0cc123afbe504da2462ca`

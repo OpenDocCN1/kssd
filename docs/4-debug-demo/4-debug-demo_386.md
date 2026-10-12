@@ -1,100 +1,127 @@
 
-
 # EasyRecovery 5.0
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum334.htm`](https://www.pediy.com/kssd/pediy03/forum334.htm)
 
- EasyRecovery 5.0  5 个文件限制的破解全攻略。   
-破解者：小牧童    
-Url: http://www.newhua.com.cn/down/ERPERFRE.exe   
-简介：这是一个非常好的反删除软件，实际使用功能强于 Recover 4 all 等其它反删除软件，正好一个朋友的计算机不小删除了很重的数据，请我帮忙恢复，于是到华军的软件园下载了几个反删除软件，其它几个软件都找不到他删除了的目录，唯有这个东东能找到被删除的目录和文件，但每执行一次操作只能保存 5 个被删除的文件，而且有超过 5 个以上的文件时有时不能保存 10K 以上的文件(保存为 0 字)，由于在朋友的大硬盘上执行一次反删除操作要 20 多分钟，要想破解实在受不了。   
-  
-破解步骤：   
-1．    找来 Pqmagic 对我的硬盘进行分区，分出一个 15M 小区，目的使其运行时间尽可能变短。   
-2．    用 W32DASM 对其进行静态反汇编查找关键代码。   
-根据出错信息找不到关键点，出现出错信息 5 个文件早已存完了，关键点在出错信息之前。   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:0041A6DC(C)   
-|   
-:0041A81D 8B0D38865200            mov ecx, dword ptr \[00528638\]   
-:0041A823 85C9                    test ecx, ecx   
-:0041A825 0F84F0FEFFFF            je 0041A71B   
-:0041A82B 8B01                    mov eax, dword ptr \[ecx\]   
-  
-\* Possible StringData Ref from Data Obj ->"Data Recovery Limited to five "   
-                                        ->"files."        ／／这里是限制提示。   
-                                  |   
-:0041A82D 68C4B35100              push 0051B3C4   
-:0041A832 E9E1FEFFFF              jmp 0041A718   
-  
-＊＊＊这段代码从 0041A6DC 而来，往上去看看。   
-  
-\* Referenced by a CALL at Address:   
-|:00417FAB    
-|   
-:0041A6D0 8A442404                mov al, byte ptr \[esp+04\]   
-:0041A6D4 81ECD8010000            sub esp, 000001D8   
-:0041A6DA 84C0                    test al, al   
-:0041A6DC 0F853B010000            jne 0041A81D   
-:0041A6E2 8B0D34865200            mov ecx, dword ptr \[00528634\]   
-:0041A6E8 85C9                    test ecx, ecx   
-:0041A6EA 7407                    je 0041A6F3   
-:0041A6EC 6A64                    push 00000064   
-:0041A6EE E8AD920000              call 004239A0   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:0041A6EA(C)   
-|   
-:0041A6F3 8B0D38865200            mov ecx, dword ptr \[00528638\]   
-:0041A6F9 85C9                    test ecx, ecx   
-:0041A6FB 740A                    je 0041A707   
-:0041A6FD 8B11                    mov edx, dword ptr \[ecx\]   
-  
-\* Possible StringData Ref from Data Obj ->"EasyRecovery has successfully "   
-                                        ->"copied your files.  You will find "   
-                                        ->"the data stored on the destination "   
-                                        ->"you specified."   
-                                  |   
-:0041A6FF 6840B55100              push 0051B540   
-  
-这里竟有一段"EasyRecovery has successfully "的提示。更改上面的几处跳转语句仍不能解决问题，看来关键点仍在这之前。这段代码是由 00417FAB 调用的，再看看 00417FAB 处的语句:   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:00417F6B(C)   
-|   
-:00417F81 8B0DC87C5200            mov ecx, dword ptr \[00527CC8\]   
-:00417F87 68C8745200              push 005274C8   
-:00417F8C 53                      push ebx   
-:00417F8D 51                      push ecx   
-:00417F8E 8B0D3C7F5200            mov ecx, dword ptr \[00527F3C\]   
-:00417F94 E817F6FFFF              call 004175B0   
-:00417F99 68D0070000              push 000007D0   
-  
-\* Reference To: KERNEL32.Sleep, Ord:0296h   
-                                  |   
-:00417F9E FF1588524B00            Call dword ptr \[004B5288\]   
-:00417FA4 8A15FC805200            mov dl, byte ptr \[005280FC\]   
-:00417FAA 52                      push edx   
-:00417FAB E820270000              call 0041A6D0    //这里就是调用上面的提示代码   
-:00417FB0 A078AA5100              mov al, byte ptr \[0051AA78\]   
-:00417FB5 83C404                  add esp, 00000004   
-:00417FB8 3AC3                    cmp al, bl   
-:00417FBA 881DFD805200            mov byte ptr \[005280FD\], bl   
-:00417FC0 891DA47F5200            mov dword ptr \[00527FA4\], ebx   
-  
-为了验证自已的判断，我将 00417FAB 处的代码“E820270000“改为“9090909090“（空操作）果真在提示之前 5 个文件已存完。真正的比较应还在这个 CALL 之前。于是在 00417F94 处设断点。拦到后用 F8 进去。再下 BPX WRITEFILE 然后一直按Ｆ10 看哪个ＣＡＬＬ调用是写文件的。不想却发现了下面的代码。   
-:00417BC1 A1306C5200              mov eax, dword ptr \[00526C30\]   
-:00417BC6 83C408                  add esp, 00000008   
-:00417BC9 40                      inc eax   
-:00417BCA 83F805                  cmp eax, 00000005  ／／哈哈！职业最敏感的地方   
-:00417BCD A3306C5200              mov dword ptr \[00526C30\], eax   
-:00417BD2 7207                    jb 00417BDB  //这里改为 JMP 破解完毕。   
-:00417BD4 C605FC80520001          mov byte ptr \[005280FC\], 01  ／／５个文件之后这里是设标志了。   
-  
-  
-经此破解后 10K 限制也解除了。   
-  
-３．修改：查 83 f8 05 a3 30 6c 52 00 72 07  将 72 改为 EB   
-  
-谨以此文拯救被误除文件的朋友们。   4dd466d0e1e0cc123afbe504da2462ca
+EasyRecovery 5.0 5 个文件限制的破解全攻略。
+
+破解者：小牧童
+
+Url: `http://www.newhua.com.cn/down/ERPERFRE.exe`
+
+简介：这是一个非常好的反删除软件，实际使用功能强于 `Recover` 4 all 等其它反删除软件，正好一个朋友的计算机不小删除了很重的数据，请我帮忙恢复，于是到华军的软件园下载了几个反删除软件，其它几个软件都找不到他删除了的目录，唯有这个东东能找到被删除的目录和文件，但每执行一次操作只能保存 5 个被删除的文件，而且有超过 5 个以上的文件时有时不能保存 10K 以上的文件(保存为 0 字)，由于在朋友的大硬盘上执行一次反删除操作要 20 多分钟，要想破解实在受不了。
+
+## 破解步骤
+
+1. 找来 `Pqmagic` 对我的硬盘进行分区，分出一个 15M 小区，目的使其运行时间尽可能变短。
+2. 用 `W32DASM` 对其进行静态反汇编查找关键代码。
+
+根据出错信息找不到关键点，出现出错信息 5 个文件早已存完了，关键点在出错信息之前。
+
+### 反汇编代码分析
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+| `:0041A6DC` (C) |
+| --- |
+
+|
+:0041A81D 8B0D38865200    mov ecx, dword ptr `[00528638]`
+:0041A823 85C9            test ecx, ecx
+:0041A825 0F84F0FEFFFF    je 0041A71B
+:0041A82B 8B01            mov eax, dword ptr `[ecx]`
+
+\* Possible StringData Ref from Data Obj ->"Data Recovery Limited to five "
+
+->"files." ／／这里是限制提示。
+
+|
+:0041A82D 68C4B35100      push 0051B3C4
+:0041A832 E9E1FeFFFF      jmp 0041A718
+
+***这段代码从 `0041A6DC` 而来，往上去看看。
+
+\* Referenced by a CALL at Address:
+
+| `:00417FAB` |
+| --- |
+
+|
+:0041A6D0 8A442404        mov al, byte ptr `[esp+04]`
+:0041A6D4 81ECD8010000    sub esp, 000001D8
+:0041A6DA 84C0            test al, al
+:0041A6DC 0F853B010000    jne 0041A81D
+:0041A6E2 8B0D34865200    mov ecx, dword ptr `[00528634]`
+:0041A6E8 85C9            test ecx, ecx
+:0041A6EA 7407            je 0041A6F3
+:0041A6EC 6A64            push 00000064
+:0041A6EE E8AD920000      call 004239A0
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+| `:0041A6EA` (C) |
+| --- |
+
+|
+:0041A6F3 8B0D38865200    mov ecx, dword ptr `[00528638]`
+:0041A6F9 85C9            test ecx, ecx
+:0041A6FB 740A            je 0041A707
+:0041A6FD 8B11            mov edx, dword ptr `[ecx]`
+
+\* Possible StringData Ref from Data Obj ->"EasyRecovery has successfully "
+
+->"copied your files.  You will find "
+->"the data stored on the destination "
+->"you specified."
+
+|
+:0041A6FF 6840B55100      push 0051B540
+
+这里竟有一段"EasyRecovery has successfully "的提示。更改上面的几处跳转语句仍不能解决问题，看来关键点仍在这之前。这段代码是由 `00417FAB` 调用的，再看看 `00417FAB` 处的语句:
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+| `:00417F6B` (C) |
+| --- |
+
+|
+:00417F81 8B0DC87C5200    mov ecx, dword ptr `[00527CC8]`
+:00417F87 68C8745200      push 005274C8
+:00417F8C 53              push ebx
+:00417F8D 51              push ecx
+:00417F8E 8B0D3C7F5200    mov ecx, dword ptr `[00527F3C]`
+:00417F94 E817F6FFFF      call 004175B0
+:00417F99 68D0070000      push 000007D0
+
+\* Reference To: `KERNEL32.Sleep`, Ord:0296h
+
+|
+:00417F9E FF1588524B00    Call dword ptr `[004B5288]`
+:00417FA4 8A15FC805200    mov dl, byte ptr `[005280FC]`
+:00417FAA 52              push edx
+:00417FAB E820270000      call 0041A6D0    //这里就是调用上面的提示代码
+:00417FB0 A078AA5100      mov al, byte ptr `[0051AA78]`
+:00417FB5 83C404          add esp, 00000004
+:00417FB8 3AC3            cmp al, bl
+:00417FBA 881DFD805200    mov byte ptr `[005280FD]`, bl
+:00417FC0 891DA47F5200    mov dword ptr `[00527FA4]`, ebx
+
+为了验证自已的判断，我将 `00417FAB` 处的代码“`E820270000`“改为“`9090909090`“（空操作）果真在提示之前 5 个文件已存完。真正的比较应还在这个 CALL 之前。于是在 `00417F94` 处设断点。拦到后用 `F8` 进去。再下 `BPX WRITEFILE` 然后一直按Ｆ10 看哪个ＣＡＬＬ调用是写文件的。不想却发现了下面的代码。
+
+:00417BC1 A1306C5200      mov eax, dword ptr `[00526C30]`
+:00417BC6 83C408          add esp, 00000008
+:00417BC9 40              inc eax
+:00417BCA 83F805          cmp eax, 00000005  ／／哈哈！职业最敏感的地方
+:00417BCD A3306C5200      mov dword ptr `[00526C30]`, eax
+:00417BD2 7207            jb 00417BDB  //这里改为 JMP 破解完毕。
+:00417BD4 C605FC80520001  mov byte ptr `[005280FC]`, 01  ／／５个文件之后这里是设标志了。
+
+经此破解后 10K 限制也解除了。
+
+### 修改方法
+
+3. 修改：查 `83 f8 05 a3 30 6c 52 00 72 07` 将 `72` 改为 `EB`
+
+谨以此文拯救被误除文件的朋友们。
+
+`4dd466d0e1e0cc123afbe504da2462ca`

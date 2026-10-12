@@ -1,473 +1,748 @@
 
-
 # Alex-Protect v1.0 beta2
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6904.htm`](https://www.pediy.com/kssd/pediy06/pediy6904.htm)
 
-Alex-protect 外壳完全分析  
-【目     标】:Alex-Protect v1.0 beta2  
-【工     具】:Olydbg1.1(diy 版)、LORDPE、ImportREC1.6F   
-【任     务】:分析外壳    
-【操作平台】:WinXP sp2   
-【作     者】: LOVEBOOM\[DFCG\]\[FCG\]\[US\]  
-【实例下载】: 点击下载  
-【简要说明】： 快到圣诞节了，献上文章一篇.这个壳不算强，不过花指令到不少。  
-【详细过程】:  
-OD 设置：打开全部异常。我先自己写了一个去花指令脚本，方便我分析。因为壳后面分检查代码，所以实际跟时可以不去掉垃圾代码的。  
-载入程序开始我们的旅程:  
-00438000 >  60                 PUSHAD                                   ; 保护现场  
-00438001    E8 00000000        CALL 00438006  
-00438006    5D                 POP EBP  
-00438007    81ED 06104000      SUB EBP,00401006                         ; 取 BASE=37000  
-……                ;这里有一堆垃圾，我清除了先。  
-00438103   /E9 B3000000        JMP 004381BB                             ; 清完垃圾就直接到这里了  
-……  
-004381BB    8B85 C4244000      MOV EAX,DWORD PTR SS:\[EBP+4024C4\]        ; 把 GetProcAddress 的地址放到 EAX 中，用于后面的比较有没有下 CC 断  
-……  
-00438266    E8 46FFFFFF        CALL 004381B1                            ; 这里进去就是比较有没有在相关的 api 上下断,第一次我们时去看看  
-进入后:  
-004381B1    8038 CC            CMP BYTE PTR DS:\[EAX\],0CC                ; 看到了吧，这里比较相关 API 的第一位是否为 CC，也就是判断有没有下断  
-004381B4    74 01              JE SHORT 004381B7                        ; 如果下断了，就跳，也就 over 了  
-004381B6    C3                 RETN  
-004381B7    F0:0FC7C8     LOCK CMPXCHG8B EAX                         
-好了，知道情况后，后面的 CALL 4381B1 就不用再跟进去.  
-00438310    8B85 C8244000      MOV EAX,DWORD PTR SS:\[EBP+4024C8\]        ; 比较 GetModuleHandleA 有没有下断  
-00438367    E8 45FEFFFF        CALL 004381B1  
-……  
-00438411    8B85 CC244000      MOV EAX,DWORD PTR SS:\[EBP+4024CC\]        ; 判断 LoadLibraryA 有没有下断  
-00438417    E8 95FDFFFF        CALL 004381B1                            ; 同上，进去检测  
-00438512    8B85 BC244000      MOV EAX,DWORD PTR SS:\[EBP+4024BC\]        ; 判断 MessageBoxA  
-00438518    E8 94FCFFFF        CALL 004381B1                            ; 同上  
-……  
-004385C2    E8 35060000        CALL 00438BFC                            ; 这里跟进  
-……  
-00438CA1    8D85 25244000      LEA EAX,DWORD PTR SS:\[EBP+402425\]  
-00438CA7    50                 PUSH EAX  
-00438CA8    FF95 C8244000      CALL DWORD PTR SS:\[EBP+4024C8\]           ; 获取 Kernel32 的 handle  
-00438CAE    8BF8               MOV EDI,EAX                              ; 获取到的 handle 入 edi  
-00438CB0    8D9D 3D244000      LEA EBX,DWORD PTR SS:\[EBP+40243D\]        ; 把 VirtualAlloc 所在的地址传递到 ebx 中  
-00438CB6    53                 PUSH EBX  
-00438CB7    50                 PUSH EAX                                 ; push handle  
-00438CB8    E8 B4030000        CALL 00439071  
-再跟进:  
-00439071    60                 PUSHAD  
-00439072    8B5C24 24          MOV EBX,DWORD PTR SS:\[ESP+24\]            ; handle 入 ebx  
-0043911B    8B43 3C            MOV EAX,DWORD PTR DS:\[EBX+3C\]            ; 定位 pe 头  
-004391C3    03C3               ADD EAX,EBX  
-004391C5    8B48 7C            MOV ECX,DWORD PTR DS:\[EAX+7C\]            ; Size Export Table 入 ecx(6c7b)  
-004391C8    E3 2F              JECXZ SHORT 004391F9  
-004391CA    8B68 78            MOV EBP,DWORD PTR DS:\[EAX+78\]            ; RVA Export table 导出表相对虚拟地址(262C)  
-004391CD    03EB               ADD EBP,EBX  
-004391CF    8B4424 28          MOV EAX,DWORD PTR SS:\[ESP+28\]  
-004391D3    8B00               MOV EAX,DWORD PTR DS:\[EAX\]  
-004391D5    A9 0000FFFF        TEST EAX,FFFF0000  
-004391DA    51                 PUSH ECX  
-004391DB    74 21              JE SHORT 004391FE  
-004391DD    8B55 20            MOV EDX,DWORD PTR SS:\[EBP+20\]  
-004391E0    FC                 CLD  
-004391E1    03D3               ADD EDX,EBX  
-004391E3    33C0               XOR EAX,EAX  
-004391E5    8B4D 18            MOV ECX,DWORD PTR SS:\[EBP+18\]  
-004391E8    8BF3               MOV ESI,EBX  
-004391EA    8B7C24 2C          MOV EDI,DWORD PTR SS:\[ESP+2C\]  
-004391EE    033482             ADD ESI,DWORD PTR DS:\[EDX+EAX\*4\]  
-004391F1    A6                 CMPS BYTE PTR DS:\[ESI\],BYTE PTR ES:\[EDI\]  
-004391F2    74 12              JE SHORT 00439206  
-004391F4    40                 INC EAX  
-004391F5    49                 DEC ECX  
-004391F6  ^ 75 F0              JNZ SHORT 004391E8                       ; 通过遍历的方法找到 VirtualAlloc 的地址  
-004391F8    59                 POP ECX  
-004391F9    E9 7F010000        JMP 0043937D  
-004391FE    2B45 10            SUB EAX,DWORD PTR SS:\[EBP+10\]  
-00439201    E9 B5000000        JMP 004392BB  
-……  
-004392B2    8B55 24            MOV EDX,DWORD PTR SS:\[EBP+24\]  
-004392B5    03D3               ADD EDX,EBX  
-004392B7    0FB70442           MOVZX EAX,WORD PTR DS:\[EDX+EAX\*2\]  
-004392BB    3B45 14            CMP EAX,DWORD PTR SS:\[EBP+14\]  
-004392BE  ^ 0F83 35FFFFFF      JNB 004391F9  
-004392C4    8B55 1C            MOV EDX,DWORD PTR SS:\[EBP+1C\]  
-004392C7    03D3               ADD EDX,EBX  
-004392C9    031C82             ADD EBX,DWORD PTR DS:\[EDX+EAX\*4\]  
-004392CC    8BC3               MOV EAX,EBX                              ; 获取到的地址入 eax  
-004392CE    90                 NOP  
-00439373    2BDD               SUB EBX,EBP  
-00439375    3BD9               CMP EBX,ECX  
-00439377  ^ 0F82 7CFEFFFF      JB 004391F9  
-0043937D    894424 1C          MOV DWORD PTR SS:\[ESP+1C\],EAX            ; 取出的值入\esp+c\  
-00439381    61                 POPAD  
-00439382    C2 0800            RETN 8  
-出来后我们就可以知道:  
-CALL 00439071 实际上就是 call GetProcAddress.  
-……  
-00438D62    E8 4AF4FFFF        CALL 004381B1                            ; 无聊，又进去检查有没有下断  
-00438D67    8985 11244000      MOV DWORD PTR SS:\[EBP+402411\],EAX        ; 取出 VirtualAlloc 的实际地址放到变量\[EBP+402411\]中  
-00438D6D    8D9D 4A244000      LEA EBX,DWORD PTR SS:\[EBP+40244A\]  
-00438D73    53                 PUSH EBX                                 ; /ProcNameOrOrdinal = "VirtualFree"  
-00438D74    57                 PUSH EDI                                 ; |hModule = 7C800000 (kernel32)  
-00438D75    E8 F7020000        CALL 00439071                            ; \\GetProcAddress  
-……  
-00438E1F    E8 8DF3FFFF        CALL 004381B1                            ; 又是无聊的判断  
-00438E24    8985 15244000      MOV DWORD PTR SS:\[EBP+402415\],EAX        ; 取出 VirtualFree 地址放到变量\[EBP+402415\]处  
-00438E2A    8D9D 56244000      LEA EBX,DWORD PTR SS:\[EBP+402456\]  
-00438E30    53                 PUSH EBX                                 ; /ProcNameOrOrdinal = "GetstdHandle"  
-00438E31    57                 PUSH EDI                                 ; |hModule = 7C800000 (kernel32)  
-00438E32    E8 3A020000        CALL 00439071                            ; \\GetProcAddress  
-……  
-00438EDC    E8 D0F2FFFF        CALL 004381B1                            ; 无聊判断  
-00438EE1    8985 19244000      MOV DWORD PTR SS:\[EBP+402419\],EAX        ; 取出 GetStdHandle 的地址放入变量\[EBP+402419\]处  
-00438EE7    8D9D 63244000      LEA EBX,DWORD PTR SS:\[EBP+402463\]  
-00438EED    53                 PUSH EBX                                 ; /ProcNameOrOrdinal = "CreateThread"  
-00438EEE    57                 PUSH EDI                                 ; |hModule = 7C800000 (kernel32)  
-00438EEF    E8 7D010000        CALL 00439071                            ; \\GetProcAddress  
-……  
-00438F99    E8 13F2FFFF        CALL 004381B1                            ; 无聊的判断  
-00438F9E    8985 21244000      MOV DWORD PTR SS:\[EBP+402421\],EAX        ; 取出 CreateThread 的地址入变量\[EBP+402421\]处  
-00438FA4    8D85 32244000      LEA EAX,DWORD PTR SS:\[EBP+402432\]        ; 准备获取 USER32.DLL 中要用的 API  
-00438FAA    50                 PUSH EAX                                 ; /FileName = "user32.dll"  
-00438FAB    FF95 CC244000      CALL DWORD PTR SS:\[EBP+4024CC\]           ; \\LoadLibraryA  
-00438FB1    8BF8               MOV EDI,EAX                              ; 这个作者为了"节省"代码，不用 GetModuleHandleA 来判断有没有加载  
-00438FB3    8D9D 70244000      LEA EBX,DWORD PTR SS:\[EBP+402470\]  
-00438FB9    53                 PUSH EBX                                 ; /ProcNameOrOrdinal = "FindWindowA"  
-00438FBA    57                 PUSH EDI                                 ; |hModule = 77D10000 (USER32)  
-00438FBB    E8 B1000000        CALL 00439071                            ; \\GetProcAddress  
-……  
-00439065    E8 47F1FFFF        CALL 004381B1                            ; 又一个无聊的判断  
-0043906A    8985 1D244000      MOV DWORD PTR SS:\[EBP+40241D\],EAX        ; 取出 FindWindowA 的地址入变量\[EBP+40241D\]处  
-00439070    C3                 RETN                                     ; 取完这么几个 API 后返回  
-……  
-004386BD    8D85 00104000      LEA EAX,DWORD PTR SS:\[EBP+401000\]        ; EP(438000)入 EAX  
-004386C3    B9 85130000        MOV ECX,1385                             ; 这里开始 CRC 前面的代码了检查范围是 438000-439385(438000+1385)  
-004386C8    E8 E7040000        CALL 00438BB4                            ; 这里进去就是 CRC(35FAFA4B,每次的值不同)  
-004386CD    8DBD 31254000      LEA EDI,DWORD PTR SS:\[EBP+402531\]        ; \[EBP+402531\]=439531  
-004386D3    EB 01              JMP SHORT 004386D6  
-……  
-004386F7    8BC3               MOV EAX,EBX  
-004386F9    8B8D B5234000      MOV ECX,DWORD PTR SS:\[EBP+4023B5\]        ; 准备解压的大小(4B7)  
-004386FF    3007               XOR BYTE PTR DS:\[EDI\],AL                 ; 从 439531 处开始解压下一段代码  
-00438701    47                 INC EDI  
-00438702    49                 DEC ECX  
-00438703  ^ 75 FA              JNZ SHORT 004386FF                       ; 没解压完继续  
-……  
-00438756    6A 04              PUSH 4                                   ; 解压完准备分配空间  
-004388AE    FF95 11244000      CALL DWORD PTR SS:\[EBP+402411\]           ; VirtualAlloc  
-004388B4    8985 BD234000      MOV DWORD PTR SS:\[EBP+4023BD\],EAX        ; 申请到的空间入\EBP+4023BD\  
-……  
-0012FF84   004388B4  /CALL to **VirtualAlloc** from alexprot.004388AE  
-0012FF88   00000000  |Address = NULL  
-0012FF8C   0000EF74  |Size = EF74 (61300.)  
-0012FF90   00001000  |AllocationType = MEM\_COMMIT  
-……  
-0043895F    8BF8               MOV EDI,EAX                              ; 申请到的地址放入 EDI 中 EDI=3D0000  
-00438961    57                 PUSH EDI                                 ; 地址入栈  
-……  
-00438A07    8D85 31254000      LEA EAX,DWORD PTR SS:\[EBP+402531\]        ; EAX=439531  
-00438A0D    50                 PUSH EAX                                 ; PUSH 439531  
-……  
-00438AB4    E8 4FF6FFFF        CALL 00438108                            ; apLib 解压代码  
-00438AB9    83C4 08            ADD ESP,8  
-……  
-00438BB2  - FFE7               JMP EDI                                  ; 解压完毕跳去已经解压的代码处  
-……  
-003D0015    E8 88130000        CALL 003D13A2                            ; 这里进去看看  
-进来首先看到的就是清除断点:  
-003D138B    8948 04            MOV DWORD PTR DS:\[EAX+4\],ECX             ; 开始清除断点  
-003D138E    8948 08            MOV DWORD PTR DS:\[EAX+8\],ECX  
-003D1391    8948 0C            MOV DWORD PTR DS:\[EAX+C\],ECX  
-003D1394    8948 10            MOV DWORD PTR DS:\[EAX+10\],ECX  
-003D1397    C740 18 55010000   MOV DWORD PTR DS:\[EAX+18\],155  
-003D139E    59                 POP ECX  
-003D139F    33C0               XOR EAX,EAX  
-003D13A1    C3                 RETN  
-……  
-返回后，分析一下就会发现 CALL 003D13A2 就是清除断点 CALL.  
-003D001A    6A 04              PUSH 4  
-003D00C1    68 00100000        PUSH 1000  
-003D00C6    8B85 A1234000      MOV EAX,DWORD PTR SS:\[EBP+4023A1\]        ; EAX=F0  
-003D0171    BB 4A000000        MOV EBX,4A  
-003D0176    F7E3               MUL EBX  
-003D0178    50                 PUSH EAX            ‘计算要申请空间的 size  
-003D021E    6A 00              PUSH 0  
-003D0220    FF95 11244000      CALL DWORD PTR SS:\[EBP+402411\]           ; VirtualAlloc  
-003D0226    8985 A5234000      MOV DWORD PTR SS:\[EBP+4023A5\],EAX        ; 第二次申请的空间地址 3E0000 入\[EBP+4023A5\]  
-……  
-0012FF78   003D0226  /CALL to **VirtualAlloc** from 003D0220  
-0012FF7C   00000000  |Address = NULL  
-0012FF80   00004560  |Size = 4560 (17760.)  
-0012FF84   00001000  |AllocationType = MEM\_COMMIT  
-  
-……  
-003D02D1    8DB5 C1234000      LEA ESI,DWORD PTR SS:\[EBP+4023C1\]        ; ESI=4393C1  
-003D02D7    8B46 04            MOV EAX,DWORD PTR DS:\[ESI+4\]             ; EAX=9BE8(text 段的大小)  
-003D02DA    6A 04              PUSH 4  
-003D02DC    68 00100000        PUSH 1000  
-003D02E1    50                 PUSH EAX  
-003D0387    6A 00              PUSH 0  
-003D0389    FF95 11244000      CALL DWORD PTR SS:\[EBP+402411\]           ; VirtualAlloc  
-003D038F    8985 9D234000      MOV DWORD PTR SS:\[EBP+40239D\],EAX        ; 第三次申请到的空间地址 3F0000 存放在\[EBP+40239D\]处  
-……  
-0012FF78   003D038F  /CALL to **VirtualAlloc** from 003D0389  
-0012FF7C   00000000  |Address = NULL  
-0012FF80   00009BE8  |Size = 9BE8 (39912.)  
-0012FF84   00001000  |AllocationType = MEM\_COMMIT  
-……  
-003D0395    56                 PUSH ESI  
-003D0396    8B1E               MOV EBX,DWORD PTR DS:\[ESI\]               ; Voffset 1000  
-003D0398    039D 99234000      ADD EBX,DWORD PTR SS:\[EBP+402399\]        ; 转为 VA(401000)  
-003D039E    50                 PUSH EAX                                 ; 刚才申请的空间入栈 003D0444    53                 PUSH EBX                                 ; push Text section 地址  
-003D0445    8D8D 08114000      LEA ECX,DWORD PTR SS:\[EBP+401108\]        ; ECX=438108  
-003D044B    FFD1               CALL ECX                                 ; 这里进去就是 ApLib 解压 text 段  
-003D044D    83C4 08            ADD ESP,8  
-003D0450    8BC8               MOV ECX,EAX                              ; text 段的大小 9BE8 入 ECX  
-003D0452    8B3E               MOV EDI,DWORD PTR DS:\[ESI\]               ; text 段的 RVA 入 edi  
-……  
-003D04F9    03BD 99234000      ADD EDI,DWORD PTR SS:\[EBP+402399\]        ; 转换成 VA(401000)  
-003D04FF    8BB5 9D234000      MOV ESI,DWORD PTR SS:\[EBP+40239D\]        ; 这里实际就是先申请一个空间把 Text 段解压数据临时到到申请空间里，完毕后，写回实际地址  
-003D0505    F3:A4              REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[>  
-003D0507    5E                 POP ESI  
-003D0508    8B85 9D234000      MOV EAX,DWORD PTR SS:\[EBP+40239D\]  
-003D050E    68 00800000        PUSH 8000  
-003D0513    6A 00              PUSH 0  
-003D0515    50                 PUSH EAX  
-003D0516    FF95 15244000      CALL DWORD PTR SS:\[EBP+402415\]           ; 还原出 text 段的数据后，释放临时空间(3F0000)  
-……  
-003D05C1    83C6 08            ADD ESI,8  
-003D05C4    833E 00            CMP DWORD PTR DS:\[ESI\],0  
-003D05C7  ^ 0F85 0AFDFFFF      JNZ 003D02D7                             ; 判断有没有解压完全部段,没有则回去继续解压  
-003D05CD    E8 D00D0000        CALL 003D13A2                            ; 这里前面说是是清除断点的，所以不用跟进去  
-003D05D2    6A 04              PUSH 4  
-003D05D4    68 00100000        PUSH 1000  
-003D05D9    8B85 91234000      MOV EAX,DWORD PTR SS:\[EBP+402391\]        ; EAX=C5E  
-003D05DF    6BC0 02            IMUL EAX,EAX,2  
-003D0687    50                 PUSH EAX        ;push 申请空间大小  
-003D0688    6A 00              PUSH 0  
-003D068A    FF95 11244000      CALL DWORD PTR SS:\[EBP+402411\]           ; VirtualAlloc  
-……  
-0012FF74   003D0690  /CALL to **VirtualAlloc** from 003D068A  
-0012FF78   00000000  |Address = NULL  
-0012FF7C   000018BC  |Size = 18BC (6332.)  
-0012FF80   00001000  |AllocationType = MEM\_COMMIT  
-……  
-003D0690    8985 AD234000      MOV DWORD PTR SS:\[EBP+4023AD\],EAX        ; 申请的空间 3F0000 入\[EBP+4023AD\]处  
-003D0696    6A 04              PUSH 4  
-003D0698    68 00100000        PUSH 1000  
-003D069D    8B85 8D234000      MOV EAX,DWORD PTR SS:\[EBP+40238D\]        ; EAX=830(申请空间大小)  
-……  
-003D0748    50                 PUSH EAX  
-003D0749    6A 00              PUSH 0  
-003D074B    FF95 11244000      CALL DWORD PTR SS:\[EBP+402411\]           ; VirtualAlloc  
-……  
-0012FF74   003D0751  /CALL to **VirtualAlloc** from 003D074B  
-0012FF78   00000000  |Address = NULL  
-0012FF7C   00000830  |Size = 830 (2096.)  
-0012FF80   00001000  |AllocationType = MEM\_COMMIT  
-……  
-003D0757    8D85 00104000      LEA EAX,DWORD PTR SS:\[EBP+401000\]        ; EP 入 EAX  
-003D075D    B9 85130000        MOV ECX,1385                        ;要解压的大小  
-003D0762    8D95 B41B4000      LEA EDX,DWORD PTR SS:\[EBP+401BB4\]        ; 下一段要解压的起始地址 438bb4  
-003D0768    FFD2               CALL EDX                                 ; 这个 CALL 就是计算 CRC 的值  
-……  
-003D080F    8DBD 31254000      LEA EDI,DWORD PTR SS:\[EBP+402531\]        ; 这里又开始解压下一面的代码  
-003D0815    03BD B5234000      ADD EDI,DWORD PTR SS:\[EBP+4023B5\]  
-003D081B    33D2               XOR EDX,EDX  
-003D081D    B9 00010000        MOV ECX,100  
-003D0822    F7F1               DIV ECX  
-003D0824    8BDA               MOV EBX,EDX  
-003D0826    F7F1               DIV ECX  
-003D0828    03DA               ADD EBX,EDX  
-003D082A    F7F1               DIV ECX  
-003D082C    03DA               ADD EBX,EDX  
-003D082E    F7F1               DIV ECX  
-003D0830    03DA               ADD EBX,EDX  
-003D0832    59                 POP ECX  
-003D0833    8BC3               MOV EAX,EBX  
-003D0835    8B8D B9234000      MOV ECX,DWORD PTR SS:\[EBP+4023B9\]  
-003D083B    3007               XOR BYTE PTR DS:\[EDI\],AL                 ; 这次从 4399e8 处开始解码  
-003D083D    47                 INC EDI  
-003D083E    49                 DEC ECX  
-003D083F  ^ 75 FA              JNZ SHORT 003D083B                       ; 没解压完跳回去继续  
-……  
-003D08E6    E8 B70A0000        CALL 003D13A2                            ; 又清除断点  
-003D08EB    8B85 A9234000      MOV EAX,DWORD PTR SS:\[EBP+4023A9\]        ; 把上面申请的地址空间 920000 入 EAX  
-003D08F1    8BF0               MOV ESI,EAX  
-003D08F3    50                 PUSH EAX  
-003D08F4    8D9D 31254000      LEA EBX,DWORD PTR SS:\[EBP+402531\]  
-003D08FA    039D B5234000      ADD EBX,DWORD PTR SS:\[EBP+4023B5\]        ; 004399E8  
-……  
-003D09A5    53                 PUSH EBX  
-003D09A6    8D95 08114000      LEA EDX,DWORD PTR SS:\[EBP+401108\]  
-003D09AC    FFD2               CALL EDX                                 ; ApLib 解码  
-003D09AE    83C4 08            ADD ESP,8  
-003D09B1    8BBD A9234000      MOV EDI,DWORD PTR SS:\[EBP+4023A9\]        ; 申请的空间 920000 入 EDI  
-003D09B7    803F C3            CMP BYTE PTR DS:\[EDI\],0C3                ; 判断是否开始处理相关的 DLL(也就是就是否第一次处理相应的 DLL 中的 API)  
-003D09BA    0F85 CC000000      JNZ 003D0A8C                             ; 如果不是则跳  
-003D09C0    83C7 02            ADD EDI,2  
-003D09C3    57                 PUSH EDI                                 ; /Push "User32.dll"  
-003D09C4    FF95 C8244000      CALL DWORD PTR SS:\[EBP+4024C8\]           ; \\GetModuleHandleA 判断 DLL 有没有载入  
-003D09CA    85C0               TEST EAX,EAX  
-003D09CC    0F85 AC000000      JNZ 003D0A7E                             ; 如果已经加载则跳  
-……  
-003D0A77    57                 PUSH EDI                                 ; 如果没有载入则加载 user32.dll  
-003D0A78    FF95 CC244000      CALL DWORD PTR SS:\[EBP+4024CC\]           ; LoadLibraryA  
-003D0A7E    8985 7C244000      MOV DWORD PTR SS:\[EBP+40247C\],EAX        ; hModule(77D1000.USER32.DLL)入\[EBP+40247C\]处  
-003D0A84    33DB               XOR EBX,EBX  
-003D0A86    8A5F FF            MOV BL,BYTE PTR DS:\[EDI\-1\]  
-003D0A89    03FB               ADD EDI,EBX  
-003D0A8B    47                 INC EDI  
-003D0A8C    803F C4            CMP BYTE PTR DS:\[EDI\],0C4                ; 对输入表的几种不同情况进行处理??  
-003D0A8F    0F84 98010000      JE 003D0C2D                              ; 第一次这里没有跳,主程序没有跳。  
-003D0A95    47                 INC EDI  
-003D0A96    57                 PUSH EDI                                 ; /PUSH "TranslateMessage"  
-003D0A97    FFB5 7C244000      PUSH DWORD PTR SS:\[EBP+40247C\]           ; |hModule = 77D10000 (USER32)  
-003D0A9D    FF95 C4244000      CALL DWORD PTR SS:\[EBP+4024C4\]           ; \\GetProcAddress  
-……  
-  
-003D0B4A    8A5F FF            MOV BL,BYTE PTR DS:\[EDI\-1\]               ; 加地址  
-003D0B4D    03FB               ADD EDI,EBX  
-003D0B4F    47                 INC EDI  
-003D0B50    8A1F               MOV BL,BYTE PTR DS:\[EDI\]  
-003D0B52    47                 INC EDI  
-003D0B53    E9 B5000000        JMP 003D0C0D  
-……  
-003D0C0D    80FB 00            CMP BL,0                                 ; 如果 BL 大于 0 就跳  
-003D0C10  ^ 0F87 42FFFFFF      JA 003D0B58  
-……  
-003D0B58    50                 PUSH EAX                                 ; PUSH API(77D18bce)  
-003D0B59    8B0F               MOV ECX,DWORD PTR DS:\[EDI\]               ; 把要写入 iat 的地址入 ECX  
-003D0B5B    E8 62090000        CALL 003D14C2                            ; 这看到这里我就猜它里面应该填充 API，进去看看  
-003D14C2    60                 PUSHAD                                   ; 进入后到这里  
-003D14C3    8BF0               MOV ESI,EAX                              ; API 地址入 esi  
-003D14C5    8B85 A5234000      MOV EAX,DWORD PTR SS:\[EBP+4023A5\]        ; EAX=003E0000  
-……  
-003D1570    0385 B1234000      ADD EAX,DWORD PTR SS:\[EBP+4023B1\]        ; \EBP+4023B1\处保存放后的值，比如第一没写就是 0，第二的话就是 4 了  
-003D1576    894424 1C          MOV DWORD PTR SS:\[ESP+1C\],EAX            ; 这里的用意就是把 API 的部分放到申请的空间里，真正的 IAT 调用申请的地址  
-003D157A    E8 00000000        CALL 003D157F  
-003D157F    5B                 POP EBX  
-003D1580    81C3 61020000      ADD EBX,261                              ; 3d157F+261=3D17E0 处临时保存 API 的地址  
-003D1586    8933               MOV DWORD PTR DS:\[EBX\],ESI               ; API 临时保存到 3D17E0 处  
-003D1588    8BF8               MOV EDI,EAX                              ; EDI=3E0000  
-……  
-003D162F    8BF3               MOV ESI,EBX                                      ; 再把 API 存放的地址放到 ESI 中  
-003D1631    81EE 38000000      SUB ESI,38  
-003D1637    B9 4A000000        MOV ECX,4A  
-003D163C    FC                 CLD  
-003D163D    F3:A4              REP MOVS BYTE PTR ES:\[EDI\],BYTE PTR DS:\[ESI\]     ; 这里把作者自己搞的花指令先填在我们去 API 的代码前  
-003D163F    8B85 A5234000      MOV EAX,DWORD PTR SS:\[EBP+4023A5\]  
-003D1645    0385 B1234000      ADD EAX,DWORD PTR SS:\[EBP+4023B1\]                ; EAX=3E0000  
-……  
-003D16F0    8BD8               MOV EBX,EAX                                      ; 再把 003E0000 的地址放到 ebx 上去  
-003D16F2    83C3 04            ADD EBX,4  
-003D179A    8918               MOV DWORD PTR DS:\[EAX\],EBX  
-003D179C    8185 B1234000 4A00>ADD DWORD PTR SS:\[EBP+4023B1\],4A                 ; 这也就是说代码指定大小为 4A  
-003D17A6    61                 POPAD  
-003D17A7    C3                 RETN                        ;返回上去  
-……  
-003D0C05    8901               MOV DWORD PTR DS:\[ECX\],EAX                       ; 把加密后的地址放到 IAT 中,这个值是壳计算生成的.  
-003D0C07    83C7 04            ADD EDI,4                                        ; 继续指向下一个要处理的 API  
-003D0C0A    FECB               DEC BL  
-003D0C0C    58                 POP EAX  
-003D0C0D    80FB 00            CMP BL,0                                         ; 如果 BL 大于 0 就跳  
-003D0C10  ^ 0F87 42FFFFFF      JA 003D0B58  
-003D0C16    803F C3            CMP BYTE PTR DS:\[EDI\],0C3                        ; 到这里跟过就会发现壳是通过两个 C3 来判断有没有处理完当前的 DLL  
-003D0C19  ^ 0F84 A1FDFFFF      JE 003D09C0                                      ; 判断当前 DLL 是否已经处理完,处理则跳去下一个 DLL 的 api 处理  
-003D0C1F    833F 00            CMP DWORD PTR DS:\[EDI\],0  
-003D0C22    0F84 DE000000      JE 003D0D06                                      ; 判断有没有处理完全部的 API，如果处理完就跳  
-003D0C28  ^ E9 8AFDFFFF        JMP 003D09B7                                     ; 没处理完则回去继续  
-好了，处理完输入表，到这里:  
-003D0D06    E8 97060000        CALL 003D13A2                                    ; 处理完 IAT 就到这里,清除断点，不用跟进  
-003D0D0B    8D9D 31254000      LEA EBX,DWORD PTR SS:\[EBP+402531\]                ; EBX=439531  
-……  
-003D0DB6    039D B5234000      ADD EBX,DWORD PTR SS:\[EBP+4023B5\]  
-003D0DBC    039D B9234000      ADD EBX,DWORD PTR SS:\[EBP+4023B9\]                ; 00439C6D  
-……  
-003D0E67    8B8D 95234000      MOV ECX,DWORD PTR SS:\[EBP+402395\]                ; ECX=A1E  
-……  
-003D0F12    8B85 AD234000      MOV EAX,DWORD PTR SS:\[EBP+4023AD\]                ; EAX=3F0000  
-003D0F18    50                 PUSH EAX  
-003D0F19    53                 PUSH EBX                                         ; 解开 439c6d 开始,大小为 A1E 的代码段  
-003D0F1A    8D95 08114000      LEA EDX,DWORD PTR SS:\[EBP+401108\]  
-003D0F20    FFD2               CALL EDX                                         ; ApLib 解压  
-003D0F22    90                 NOP  
-……  
-003D0FC7    83C4 08            ADD ESP,8  
-003D0FCA    8B85 AD234000      MOV EAX,DWORD PTR SS:\[EBP+4023AD\]                ; EAX=3F0000  
-003D0FD0    8B9D 91234000      MOV EBX,DWORD PTR SS:\[EBP+402391\]                ; EBX=C5E  
-……  
-003D107B    8BB5 85234000      MOV ESI,DWORD PTR SS:\[EBP+402385\]                ; ESI=406B07(这个就是 OEP 后的第二条指令来的,第一行代码被壳抽掉了)  
-003D1081    03C3               ADD EAX,EBX                                      ; EAX=eax+ebx=3F0000+C5E  
-003D1083    C600 E9            MOV BYTE PTR DS:\[EAX\],0E9                        ; 003F0C5E 处写入 E9 远程跳  
-003D1086    40                 INC EAX  
-003D1087    8BCE               MOV ECX,ESI                                      ; alexprot.00406B07  
-……  
-003D112E    2BC8               SUB ECX,EAX                                      ; 计算跳去 OEP 后第二条指令的代码的值  
-003D1130    83E9 04            SUB ECX,4  
-003D1133    8908               MOV DWORD PTR DS:\[EAX\],ECX                       ; 计算出来值当然要填到上面的地址了  
-……  
-003D11DA    8B85 AD234000      MOV EAX,DWORD PTR SS:\[EBP+4023AD\]                ; 好了快到站了  
-003D11E0    894424 1C          MOV DWORD PTR SS:\[ESP+1C\],EAX                    ; 这里还要再玩一下,先跳去申请的 3F0000 的那里再跳去 OEP 后的第二条指令  
-003D11E4    61                 POPAD  
-003D11E5  - FFE0               JMP EAX                                          ; 跳去壳里,然后壳再跳去 OEP 后的第二条指令  
-进入壳抽代码处一下就可以找到第一行代码。好了，分析到此结束。  
-  
-输入表的处理:  
-  
-我取的以下两个地址  
-411000  开始写入数据地址  
-410FD0  记录地址  
-  
-003D0A61   /EB 11              JMP SHORT 003D0A74  
-003D0A63   |90                 NOP  
-003D0A64   |8305 D00F4100 04   ADD DWORD PTR DS:\[410FD0\],4                      ; 当处理不同 DLL 时加 8(第一次自己写个地址)  
-003D0A6B   |8985 7C244000      MOV DWORD PTR SS:\[EBP+40247C\],EAX                ; 执行原壳的代码  
-003D0A71   |C3                 RETN  
-003D0A72   |90                 NOP  
-003D0A73   |90                 NOP  
-003D0A74   \\90                 NOP  
-003D0A75    90                 NOP  
-003D0A76    90                 NOP                                              ; ---------------------------  
-003D0A77    57                 PUSH EDI                                         ; 原壳代码  
-003D0A78    FF95 CC244000      CALL DWORD PTR SS:\[EBP+4024CC\]                   ; ---------------------------  
-003D0A7E    E8 E1FFFFFF        CALL 003D0A64                                    ; 这里修改 Call 上面的代码  
-003D0A83    90                 NOP  
-……  
-  
-第二处就是写入输入表:  
-003D0BEC    58                 POP EAX                                          ; 出栈  
-003D0BED    53                 PUSH EBX  
-003D0BEE    8B1D D00F4100      MOV EBX,DWORD PTR DS:\[410FD0\]                    ; 把要写入 IAT 的地址放到 EBX 中  
-003D0BF4    8903               MOV DWORD PTR DS:\[EBX\],EAX                       ; API 写到 IAT 中  
-003D0BF6    8919               MOV DWORD PTR DS:\[ECX\],EBX                       ; IAT 地址写到程序调用中  
-003D0BF8    8305 D00F4100 04   ADD DWORD PTR DS:\[410FD0\],4                      ; 调用完毕递增  
-003D0BFF    5B                 POP EBX                                          ; EBX 出栈  
-003D0C00    90                 NOP  
-003D0C01    90                 NOP  
-003D0C02    90                 NOP  
-003D0C03    90                 NOP  
-003D0C04    90                 NOP  
-003D0C05    90                 NOP                                              ; 去除原来的代码  
-003D0C06    90                 NOP  
-003D0C07    83C7 04            ADD EDI,4  
-003D0C0A    FECB               DEC BL  
-003D0C0C    90                 NOP                                              ; 前面已经出栈了，所以不用再出栈  
-  
-附两个去花指令脚本:  
-PatList\_Alex=\_alex\_push01,\_alex\_call01  
-  
-\[CODE\_alex\_push01\]  
-S =60EB03EB03??EBFBE801000000??83C4040F318BD8EB03EB03??EBFBE801000000??83C4048BCAEB03EB03??EBFBE801000000??83C4040F312BC3EB03EB03??EBFBE801000000??83C4041BD10F3103C3EB03EB03??EBFBE801000000??83C40413D10F312BC3EB03EB03??EBFBE801000000??83C404EB05??????????EB03EB03??EBFBE801000000??83C4041BD1EB03EB03??EBFBE801000000??83C40485D275D661  
-R =909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090  
-  
-\[CODE\_alex\_call01\]  
-S =E824000000EB01E98B44240CEB03EB03C7EBFBE801000000A883C4048380B80000000233C0EB01E9C35883C404EB03EB03C7EBFBE801000000A883C4045064FF350000000064892500000000EB01??FFFF  
-R =909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090  
-  
-全文完，跟完后才发现这个壳原来……:-)  
-  
-圣诞节快到了，先祝大家圣诞节愉快!身体健康!  
-Greetz:  
- Fly.Jingulong,yock,tDasm.David.hexer,hmimys,ahao.UFO(brother).alan(sister).all of my friends and you!  
-  
-By loveboom\[DFCG\]\[FCG\]\[US\]  
-Email:bmd2chen#tom.com  
+Alex-protect 外壳完全分析
 
- 4dd466d0e1e0cc123afbe504da2462ca
+【目 标】: Alex-Protect v1.0 beta2
+
+【工 具】: `Olydbg1.1(diy 版)`、`LORDPE`、`ImportREC1.6F`
+
+【任 务】: 分析外壳
+
+【操作平台】: `WinXP sp2`
+
+【作 者】: `LOVEBOOM[DFCG][FCG][US]`
+
+【实例下载】: 点击下载
+
+【简要说明】：快到圣诞节了，献上文章一篇。这个壳不算强，不过花指令到不少。
+
+【详细过程】:
+
+`OD` 设置：打开全部异常。我先自己写了一个去花指令脚本，方便我分析。因为壳后面分检查代码，所以实际跟时可以不去掉垃圾代码的。
+
+载入程序开始我们的旅程:
+
+```
+00438000 >   60                 PUSHAD                                ; 保护现场
+00438001     E8 00000000        CALL 00438006
+00438006     5D                 POP EBP
+00438007     81ED 06104000      SUB EBP,00401006                        ; 取 BASE=37000
+……            ;这里有一堆垃圾，我清除了先。
+00438103   /E9 B3000000        JMP 004381BB                            ; 清完垃圾就直接到这里了
+……
+004381BB     8B85 C4244000      MOV EAX,DWORD PTR SS:[EBP+4024C4]       ; 把 GetProcAddress 的地址放到 EAX 中，用于后面的比较有没有下 CC 断
+……
+00438266     E8 46FFFFFF        CALL 004381B1                           ; 这里进去就是比较有没有在相关的 api 上下断,第一次我们时去看看
+```
+
+进入后:
+
+```
+004381B1     8038 CC            CMP BYTE PTR DS:[EAX],0CC               ; 看到了吧，这里比较相关 API 的第一位是否为 CC，也就是判断有没有下断
+004381B4     74 01             JE SHORT 004381B7                         ; 如果下断了，就跳，也就 over 了
+004381B6     C3                RETN
+004381B7     F0:0FC7C8         LOCK CMPXCHG8B EAX                      
+```
+
+好了，知道情况后，后面的 `CALL 4381B1` 就不用再跟进去。
+
+```
+00438310     8B85 C8244000      MOV EAX,DWORD PTR SS:[EBP+4024C8]       ; 比较 GetModuleHandleA 有没有下断
+00438367     E8 45FEFFFF        CALL 004381B1
+……
+00438411     8B85 CC244000      MOV EAX,DWORD PTR SS:[EBP+4024CC]       ; 判断 LoadLibraryA 有没有下断
+00438417     E8 95FDFFFF        CALL 004381B1                           ; 同上，进去检测
+00438512     8B85 BC244000      MOV EAX,DWORD PTR SS:[EBP+4024BC]       ; 判断 MessageBoxA
+00438518     E8 94FCFFFF        CALL 004381B1                           ; 同上
+……
+004385C2     E8 35060000        CALL 00438BFC                            ; 这里跟进
+……
+00438CA1     8D85 25244000      LEA EAX,DWORD PTR SS:[EBP+402425]
+00438CA7     50                PUSH EAX
+00438CA8     FF95 C8244000      CALL DWORD PTR SS:[EBP+4024C8]           ; 获取 Kernel32 的 handle
+00438CAE     8BF8              MOV EDI,EAX                               ; 获取到的 handle 入 edi
+00438CB0     8D9D 3D244000      LEA EBX,DWORD PTR SS:[EBP+40243D]        ; 把 VirtualAlloc 所在的地址传递到 ebx 中
+00438CB6     53                PUSH EBX
+00438CB7     50                PUSH EAX                                  ; push handle
+00438CB8     E8 B4030000        CALL 00439071
+```
+
+再跟进:
+
+```
+00439071     60                PUSHAD
+00439072     8B5C24 24         MOV EBX,DWORD PTR SS:[ESP+24]            ; handle 入 ebx
+0043911B     8B43 3C           MOV EAX,DWORD PTR DS:[EBX+3C]            ; 定位 pe 头
+004391C3     03C3              ADD EAX,EBX
+004391C5     8B48 7C           MOV ECX,DWORD PTR DS:[EAX+7C]            ; Size Export Table 入 ecx(6c7b)
+004391C8     E3 2F             JECXZ SHORT 004391F9
+004391CA     8B68 78           MOV EBP,DWORD PTR DS:[EAX+78]            ; RVA Export table 导出表相对虚拟地址(262C)
+004391CD     03EB              ADD EBP,EBX
+004391CF     8B4424 28         MOV EAX,DWORD PTR SS:[ESP+28]
+004391D3     8B00              MOV EAX,DWORD PTR DS:[EAX]
+004391D5     A9 0000FFFF       TEST EAX,FFFF0000
+004391DA     51                PUSH ECX
+004391DB     74 21             JE SHORT 004391FE
+004391DD     8B55 20           MOV EDX,DWORD PTR SS:[EBP+20]
+004391E0     FC                CLD
+004391E1     03D3              ADD EDX,EBX
+004391E3     33C0              XOR EAX,EAX
+004391E5     8B4D 18           MOV ECX,DWORD PTR SS:[EBP+18]
+004391E8     8BF3              MOV ESI,EBX
+004391EA     8B7C24 2C         MOV EDI,DWORD PTR SS:[ESP+2C]
+004391EE     033482            ADD ESI,DWORD PTR DS:[EDX+EAX*4]
+004391F1     A6                CMPS BYTE PTR DS:[ESI],BYTE PTR ES:[EDI]
+004391F2     74 12             JE SHORT 00439206
+004391F4     40                INC EAX
+004391F5     49                DEC ECX
+004391F6   ^ 75 F0             JNZ SHORT 004391E8                       ; 通过遍历的方法找到 VirtualAlloc 的地址
+004391F8     59                POP ECX
+004391F9     E9 7F010000       JMP 0043937D
+004391FE     2B45 10           SUB EAX,DWORD PTR SS:[EBP+10]
+00439201     E9 B5000000       JMP 004392BB
+……
+004392B2     8B55 24           MOV EDX,DWORD PTR SS:[EBP+24]
+004392B5     03D3              ADD EDX,EBX
+004392B7     0FB70442          MOVZX EAX,WORD PTR DS:[EDX+EAX*2]
+004392BB     3B45 14           CMP EAX,DWORD PTR SS:[EBP+14]
+004392BE   ^ 0F83 35FFFFFF     JNB 004391F9
+004392C4     8B55 1C           MOV EDX,DWORD PTR SS:[EBP+1C]
+004392C7     03D3              ADD EDX,EBX
+004392C9     031C82            ADD EBX,DWORD PTR DS:[EDX+EAX*4]
+004392CC     8BC3              MOV EAX,EBX                               ; 获取到的地址入 eax
+004392CE     90                NOP
+00439373     2BDD              SUB EBX,EBP
+00439375     3BD9              CMP EBX,ECX
+00439377   ^ 0F82 7CFEFFFF     JB 004391F9
+0043937D     894424 1C         MOV DWORD PTR SS:[ESP+1C],EAX             ; 取出的值入\esp+c\
+00439381     61                POPAD
+00439382     C2 0800           RETN 8
+```
+
+出来后我们就可以知道:
+
+`CALL 00439071` 实际上就是 `call GetProcAddress`.
+
+……
+
+```
+00438D62     E8 4AF4FFFF        CALL 004381B1                             ; 无聊，又进去检查有没有下断
+00438D67     8985 11244000      MOV DWORD PTR SS:[EBP+402411],EAX        ; 取出 VirtualAlloc 的实际地址放到变量[EBP+402411]中
+00438D6D     8D9D 4A244000      LEA EBX,DWORD PTR SS:[EBP+40244A]
+00438D73     53                PUSH EBX                                  ; /ProcNameOrOrdinal = "VirtualFree"
+00438D74     57                PUSH EDI                                  ; |hModule = 7C800000 (kernel32)
+00438D75     E8 F7020000        CALL 00439071                             ; \GetProcAddress
+……
+00438E1F     E8 8DF3FFFF        CALL 004381B1                             ; 又是无聊的判断
+00438E24     8985 15244000      MOV DWORD PTR SS:[EBP+402415],EAX        ; 取出 VirtualFree 地址放到变量[EBP+402415]处
+00438E2A     8D9D 56244000      LEA EBX,DWORD PTR SS:[EBP+402456]
+00438E30     53                PUSH EBX                                  ; /ProcNameOrOrdinal = "GetstdHandle"
+00438E31     57                PUSH EDI                                  ; |hModule = 7C800000 (kernel32)
+00438E32     E8 3A020000        CALL 00439071                             ; \GetProcAddress
+……
+00438EDC     E8 D0F2FFFF        CALL 004381B1                             ; 无聊判断
+00438EE1     8985 19244000      MOV DWORD PTR SS:[EBP+402419],EAX        ; 取出 GetStdHandle 的地址放入变量[EBP+402419]处
+00438EE7     8D9D 63244000      LEA EBX,DWORD PTR SS:[EBP+402463]
+00438EED     53                PUSH EBX                                  ; /ProcNameOrOrdinal = "CreateThread"
+00438EEE     57                PUSH EDI                                  ; |hModule = 7C800000 (kernel32)
+00438EEF     E8 7D010000        CALL 00439071                             ; \GetProcAddress
+……
+00438F99     E8 13F2FFFF        CALL 004381B1                             ; 无聊的判断
+00438F9E     8985 21244000      MOV DWORD PTR SS:[EBP+402421],EAX        ; 取出 CreateThread 的地址入变量[EBP+402421]处
+00438FA4     8D85 32244000      LEA EAX,DWORD PTR SS:[EBP+402432]        ; 准备获取 USER32.DLL 中要用的 API
+00438FAA     50                PUSH EAX                                  ; /FileName = "user32.dll"
+00438FAB     FF95 CC244000      CALL DWORD PTR SS:[EBP+4024CC]           ; \LoadLibraryA
+00438FB1     8BF8              MOV EDI,EAX                               ; 这个作者为了"节省"代码，不用 GetModuleHandleA 来判断有没有加载
+00438FB3     8D9D 70244000      LEA EBX,DWORD PTR SS:[EBP+402470]
+```
+
+
+
+### 汇编代码片段 1
+
+```
+00438FB9    53                 PUSH EBX                         ; /ProcNameOrOrdinal = "FindWindowA"
+
+00438FBA    57                 PUSH EDI                         ; |hModule = 77D10000 (USER32)
+
+00438FBB    E8 B1000000        CALL 00439071                    ; \\GetProcAddress
+
+……
+
+00439065    E8 47F1FFFF        CALL 004381B1                    ; 又一个无聊的判断
+
+0043906A    8985 1D244000      MOV DWORD PTR SS:[EBP+40241D],EAX        ; 取出 FindWindowA 的地址入变量[EBP+40241D]处
+
+00439070    C3                 RETN                             ; 取完这么几个 API 后返回
+
+……
+
+004386BD    8D85 00104000      LEA EAX,DWORD PTR SS:[EBP+401000]        ; EP(438000)入 EAX
+
+004386C3    B9 85130000        MOV ECX,1385                       ; 这里开始 CRC 前面的代码了检查范围是 438000-439385(438000+1385)
+
+004386C8    E8 E7040000        CALL 00438BB4                    ; 这里进去就是 CRC(35FAFA4B,每次的值不同)
+
+004386CD    8DBD 31254000      LEA EDI,DWORD PTR SS:[EBP+402531]        ; [EBP+402531]=439531
+
+004386D3    EB 01              JMP SHORT 004386D6
+
+……
+
+004386F7    8BC3               MOV EAX,EBX
+
+004386F9    8B8D B5234000      MOV ECX,DWORD PTR SS:[EBP+4023B5]        ; 准备解压的大小(4B7)
+
+004386FF    3007               XOR BYTE PTR DS:[EDI],AL                ; 从 439531 处开始解压下一段代码
+
+00438701    47                 INC EDI
+
+00438702    49                 DEC ECX
+
+00438703    ^ 75 FA            JNZ SHORT 004386FF                     ; 没解压完继续
+
+……
+
+00438756    6A 04              PUSH 4                               ; 解压完准备分配空间
+
+004388AE    FF95 11244000      CALL DWORD PTR SS:[EBP+402411]         ; VirtualAlloc
+
+004388B4    8985 BD234000      MOV DWORD PTR SS:[EBP+4023BD],EAX      ; 申请到的空间入\EBP+4023BD\
+
+……
+
+0012FF84   004388B4  /CALL to `VirtualAlloc` from alexprot.004388AE
+
+0012FF88   00000000  |Address = NULL
+
+0012FF8C   0000EF74  |Size = EF74 (61300.)
+
+0012FF90   00001000  |AllocationType = `MEM_COMMIT`
+
+……
+
+0043895F    8BF8               MOV EDI,EAX                         ; 申请到的地址放入 EDI 中 EDI=3D0000
+
+00438961    57                 PUSH EDI                             ; 地址入栈
+
+……
+
+00438A07    8D85 31254000      LEA EAX,DWORD PTR SS:[EBP+402531]        ; EAX=439531
+
+00438A0D    50                 PUSH EAX                             ; PUSH 439531
+
+……
+
+00438AB4    E8 4FF6FFFF        CALL 00438108                    ; apLib 解压代码
+
+00438AB9    83C4 08            ADD ESP,8
+
+……
+
+00438BB2    - FFE7             JMP EDI                            ; 解压完毕跳去已经解压的代码处
+
+……
+```
+
+### 汇编代码片段 2
+
+```
+003D0015    E8 88130000        CALL 003D13A2                    ; 这里进去看看
+```
+
+进来首先看到的就是清除断点:
+
+```
+003D138B    8948 04            MOV DWORD PTR DS:[EAX+4],ECX      ; 开始清除断点
+
+003D138E    8948 08            MOV DWORD PTR DS:[EAX+8],ECX
+
+003D1391    8948 0C            MOV DWORD PTR DS:[EAX+C],ECX
+
+003D1394    8948 10            MOV DWORD PTR DS:[EAX+10],ECX
+
+003D1397    C740 18 55010000   MOV DWORD PTR DS:[EAX+18],155
+
+003D139E    59                 POP ECX
+
+003D139F    33C0               XOR EAX,EAX
+
+003D13A1    C3                 RETN
+
+……
+```
+
+返回后，分析一下就会发现 `CALL 003D13A2` 就是清除断点 `CALL`。
+
+### 汇编代码片段 3
+
+```
+003D001A    6A 04              PUSH 4
+
+003D00C1    68 00100000        PUSH 1000
+
+003D00C6    8B85 A1234000      MOV EAX,DWORD PTR SS:[EBP+4023A1]        ; EAX=F0
+
+003D0171    BB 4A000000        MOV EBX,4A
+
+003D0176    F7E3               MUL EBX
+
+003D0178    50                 PUSH EAX          ‘计算要申请空间的 size
+
+003D021E    6A 00              PUSH 0
+
+003D0220    FF95 11244000      CALL DWORD PTR SS:[EBP+402411]         ; VirtualAlloc
+
+003D0226    8985 A5234000      MOV DWORD PTR SS:[EBP+4023A5],EAX      ; 第二次申请的空间地址 3E0000 入[EBP+4023A5]
+
+……
+
+0012FF78   003D0226  /CALL to `VirtualAlloc` from 003D0220
+
+0012FF7C   00000000  |Address = NULL
+
+0012FF80   00004560  |Size = 4560 (17760.)
+
+0012FF84   00001000  |AllocationType = `MEM_COMMIT`
+
+……
+```
+
+### 汇编代码片段 4
+
+```
+003D02D1    8DB5 C1234000      LEA ESI,DWORD PTR SS:[EBP+4023C1]        ; ESI=4393C1
+
+003D02D7    8B46 04            MOV EAX,DWORD PTR DS:[ESI+4]           ; EAX=9BE8(text 段的大小)
+
+003D02DA    6A 04              PUSH 4
+
+003D02DC    68 00100000        PUSH 1000
+
+003D02E1    50                 PUSH EAX
+
+003D0387    6A 00              PUSH 0
+
+003D0389    FF95 11244000      CALL DWORD PTR SS:[EBP+402411]         ; VirtualAlloc
+
+003D038F    8985 9D234000      MOV DWORD PTR SS:[EBP+40239D],EAX      ; 第三次申请到的空间地址 3F0000 存放在[EBP+40239D]处
+
+……
+
+0012FF78   003D038F  /CALL to `VirtualAlloc` from 003D0389
+
+0012FF7C   00000000  |Address = NULL
+
+0012FF80   00009BE8  |Size = 9BE8 (39912.)
+
+0012FF84   00001000  |AllocationType = `MEM_COMMIT`
+
+……
+
+003D0395    56                 PUSH ESI
+
+003D0396    8B1E               MOV EBX,DWORD PTR DS:[ESI]             ; Voffset 1000
+
+003D0398    039D 99234000      ADD EBX,DWORD PTR SS:[EBP+402399]      ; 转为 VA(401000)
+
+003D039E    50                 PUSH EAX                                 ; 刚才申请的空间入栈 003D0444    53                 PUSH EBX                                 ; push Text section 地址
+
+003D0445    8D8D 08114000      LEA ECX,DWORD PTR SS:[EBP+401108]      ; ECX=438108
+
+003D044B    FFD1               CALL ECX                                 ; 这里进去就是 ApLib 解压 text 段
+
+003D044D    83C4 08            ADD ESP,8
+
+003D0450    8BC8               MOV ECX,EAX                            ; text 段的大小 9BE8 入 ECX
+
+003D0452    8B3E               MOV EDI,DWORD PTR DS:[ESI]             ; text 段的 RVA 入 edi
+
+……
+
+003D04F9    03BD 99234000      ADD EDI,DWORD PTR SS:[EBP+402399]      ; 转换成 VA(401000)
+
+003D04FF    8BB5 9D234000      MOV ESI,DWORD PTR SS:[EBP+40239D]      ; 这里实际就是先申请一个空间把 Text 段解压数据临时到到申请空间里，完毕后，写回实际地址
+
+003D0505    F3:A4              REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[>
+
+003D0507    5E                 POP ESI
+
+003D0508    8B85 9D234000      MOV EAX,DWORD PTR SS:[EBP+40239D]
+
+003D050E    68 00800000        PUSH 8000
+
+003D0513    6A 00              PUSH 0
+
+003D0515    50                 PUSH EAX
+
+003D0516    FF95 15244000      CALL DWORD PTR SS:[EBP+402415]         ; 还原出 text 段的数据后，释放临时空间(3F0000)
+
+……
+```
+
+### 汇编代码片段 5
+
+```
+003D05C1    83C6 08            ADD ESI,8
+
+003D05C4    833E 00            CMP DWORD PTR DS:[ESI],0
+
+003D05C7    ^ 0F85 0AFDFFFF      JNZ 003D02D7                         ; 判断有没有解压完全部段,没有则回去继续解压
+
+003D05CD    E8 D00D0000        CALL 003D13A2                    ; 这里前面说是是清除断点的，所以不用跟进去
+
+003D05D2    6A 04              PUSH 4
+
+003D05D4    68 00100000        PUSH 1000
+
+003D05D9    8B85 91234000      MOV EAX,DWORD PTR SS:[EBP+402391]        ; EAX=C5E
+
+003D05DF    6BC0 02            IMUL EAX,EAX,2
+
+003D0687    50                 PUSH EAX        ;push 申请空间大小
+
+003D0688    6A 00              PUSH 0
+
+003D068A    FF95 11244000      CALL DWORD PTR SS:[EBP+402411]         ; VirtualAlloc
+
+……
+
+0012FF74   003D0690  /CALL to `VirtualAlloc` from 003D068A
+
+0012FF78   00000000  |Address = NULL
+
+0012FF7C   000018BC  |Size = 18BC (6332.)
+
+0012FF80   00001000  |AllocationType = `MEM_COMMIT`
+
+……
+```
+
+### 汇编代码片段 6
+
+```
+003D0690    8985 AD234000      MOV DWORD PTR SS:[EBP+4023AD],EAX      ; 申请的空间 3F0000 入[EBP+4023AD]处
+
+003D0696    6A 04              PUSH 4
+
+003D0698    68 00100000        PUSH 1000
+
+003D069D    8B85 8D234000      MOV EAX,DWORD PTR SS:[EBP+40238D]      ; EAX=830(申请空间大小)
+
+……
+
+003D0748    50                 PUSH EAX
+
+003D0749    6A 00              PUSH 0
+
+003D074B    FF95 11244000      CALL DWORD PTR SS:[EBP+402411]         ; VirtualAlloc
+
+……
+
+0012FF74   003D0751  /CALL to `VirtualAlloc` from 003D074B
+
+0012FF78   00000000  |Address = NULL
+
+0012FF7C   00000830  |Size = 830 (2096.)
+
+0012FF80   00001000  |AllocationType = `MEM_COMMIT`
+
+……
+```
+
+
+
+以下内容为汇编代码反汇编片段，展示了解压、解码及输入表（IAT）处理过程：
+
+```asm
+003D0757    8D85 00104000       LEA EAX,DWORD PTR SS:[EBP+401000]        ; EP 入 EAX
+003D075D    B9 85130000         MOV ECX,1385                             ; 要解压的大小
+003D0762    8D95 B41B4000       LEA EDX,DWORD PTR SS:[EBP+401BB4]        ; 下一段要解压的起始地址 438bb4
+003D0768    FFD2                CALL EDX                                   ; 这个 CALL 就是计算 CRC 的值
+...
+003D080F    8DBD 31254000       LEA EDI,DWORD PTR SS:[EBP+402531]        ; 这里又开始解压下一面的代码
+003D0815    03BD B5234000       ADD EDI,DWORD PTR SS:[EBP+4023B5]
+003D081B    33D2                XOR EDX,EDX
+003D081D    B9 00010000         MOV ECX,100
+003D0822    F7F1                DIV ECX
+003D0824    8BDA                MOV EBX,EDX
+003D0826    F7F1                DIV ECX
+003D0828    03DA                ADD EBX,EDX
+003D082A    F7F1                DIV ECX
+003D082C    03DA                ADD EBX,EDX
+003D082E    F7F1                DIV ECX
+003D0830    03DA                ADD EBX,EDX
+003D0832    59                  POP ECX
+003D0833    8BC3                MOV EAX,EBX
+003D0835    8B8D B9234000       MOV ECX,DWORD PTR SS:[EBP+4023B9]
+003D083B    3007                XOR BYTE PTR DS:[EDI],AL                 ; 这次从 4399e8 处开始解码
+003D083D    47                  INC EDI
+003D083E    49                  DEC ECX
+003D083F    75 FA               JNZ SHORT 003D083B                       ; 没解压完跳回去继续
+...
+003D08E6    E8 B70A0000         CALL 003D13A2                              ; 又清除断点
+003D08EB    8B85 A9234000       MOV EAX,DWORD PTR SS:[EBP+4023A9]        ; 把上面申请的地址空间 920000 入 EAX
+003D08F1    8BF0                MOV ESI,EAX
+003D08F3    50                  PUSH EAX
+003D08F4    8D9D 31254000       LEA EBX,DWORD PTR SS:[EBP+402531]
+003D08FA    039D B5234000       ADD EBX,DWORD PTR SS:[EBP+4023B5]        ; 004399E8
+...
+003D09A5    53                  PUSH EBX
+003D09A6    8D95 08114000       LEA EDX,DWORD PTR SS:[EBP+401108]
+003D09AC    FFD2                CALL EDX                                   ; ApLib 解码
+003D09AE    83C4 08             ADD ESP,8
+003D09B1    8BBD A9234000       MOV EDI,DWORD PTR SS:[EBP+4023A9]        ; 申请的空间 920000 入 EDI
+003D09B7    803F C3             CMP BYTE PTR DS:[EDI],0C3                ; 判断是否开始处理相关的 DLL(也就是就是否第一次处理相应的 DLL 中的 API)
+003D09BA    0F85 CC000000       JNZ 003D0A8C                               ; 如果不是则跳
+003D09C0    83C7 02             ADD EDI,2
+003D09C3    57                  PUSH EDI                                   ; /Push "User32.dll"
+003D09C4    FF95 C8244000       CALL DWORD PTR SS:[EBP+4024C8]            ; \GetModuleHandleA 判断 DLL 有没有载入
+003D09CA    85C0                TEST EAX,EAX
+003D09CC    0F85 AC000000       JNZ 003D0A7E                               ; 如果已经加载则跳
+...
+003D0A77    57                  PUSH EDI                                   ; 如果没有载入则加载 user32.dll
+003D0A78    FF95 CC244000       CALL DWORD PTR SS:[EBP+4024CC]            ; LoadLibraryA
+003D0A7E    8985 7C244000       MOV DWORD PTR SS:[EBP+40247C],EAX        ; hModule(77D1000.USER32.DLL)入[EBP+40247C]处
+003D0A84    33DB                XOR EBX,EBX
+003D0A86    8A5F FF             MOV BL,BYTE PTR DS:[EDI-1]
+003D0A89    03FB                ADD EDI,EBX
+003D0A8B    47                  INC EDI
+003D0A8C    803F C4             CMP BYTE PTR DS:[EDI],0C4                ; 对输入表的几种不同情况进行处理??
+003D0A8F    0F84 98010000       JE 003D0C2D                                ; 第一次这里没有跳,主程序没有跳。
+003D0A95    47                  INC EDI
+003D0A96    57                  PUSH EDI                                   ; /PUSH "TranslateMessage"
+003D0A97    FFB5 7C244000       PUSH DWORD PTR SS:[EBP+40247C]            ; |hModule = 77D10000 (USER32)
+003D0A9D    FF95 C4244000       CALL DWORD PTR SS:[EBP+4024C4]            ; \GetProcAddress
+...
+003D0B4A    8A5F FF             MOV BL,BYTE PTR DS:[EDI-1]               ; 加地址
+003D0B4D    03FB                ADD EDI,EBX
+003D0B4F    47                  INC EDI
+003D0B50    8A1F                MOV BL,BYTE PTR DS:[EDI]
+003D0B52    47                  INC EDI
+003D0B53    E9 B5000000         JMP 003D0C0D
+...
+003D0C0D    80FB 00             CMP BL,0                                   ; 如果 BL 大于 0 就跳
+003D0C10    0F87 42FFFFFF       JA 003D0B58
+...
+003D0B58    50                  PUSH EAX                                   ; PUSH API(77D18bce)
+003D0B59    8B0F                MOV ECX,DWORD PTR DS:[EDI]               ; 把要写入 iat 的地址入 ECX
+003D0B5B    E8 62090000         CALL 003D14C2                              ; 这看到这里我就猜它里面应该填充 API，进去看看
+003D14C2    60                  PUSHAD                                     ; 进入后到这里
+003D14C3    8BF0                MOV ESI,EAX                                ; API 地址入 esi
+003D14C5    8B85 A5234000       MOV EAX,DWORD PTR SS:[EBP+4023A5]        ; EAX=003E0000
+...
+003D1570    0385 B1234000       ADD EAX,DWORD PTR SS:[EBP+4023B1]        ; [EBP+4023B1]处保存放后的值，比如第一没写就是 0，第二的话就是 4 了
+003D1576    894424 1C           MOV DWORD PTR SS:[ESP+1C],EAX            ; 这里的用意就是把 API 的部分放到申请的空间里，真正的 IAT 调用申请的地址
+003D157A    E8 00000000         CALL 003D157F
+003D157F    5B                  POP EBX
+003D1580    81C3 61020000       ADD EBX,261                                ; 3d157F+261=3D17E0 处临时保存 API 的地址
+003D1586    8933                MOV DWORD PTR DS:[EBX],ESI                 ; API 临时保存到 3D17E0 处
+003D1588    8BF8                MOV EDI,EAX                                ; EDI=3E0000
+...
+003D162F    8BF3                MOV ESI,EBX                                ; 再把 API 存放的地址放到 ESI 中
+003D1631    81EE 38000000       SUB ESI,38
+003D1637    B9 4A000000         MOV ECX,4A
+003D163C    FC                  CLD
+003D163D    F3:A4               REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI] ; 这里把作者自己搞的花指令先填在我们去 API 的代码前
+003D163F    8B85 A5234000       MOV EAX,DWORD PTR SS:[EBP+4023A5]
+003D1645    0385 B1234000       ADD EAX,DWORD PTR SS:[EBP+4023B1]          ; EAX=3E0000
+...
+003D16F0    8BD8                MOV EBX,EAX                                ; 再把 003E0000 的地址放到 ebx 上去
+003D16F2    83C3 04             ADD EBX,4
+003D179A    8918                MOV DWORD PTR DS:[EAX],EBX
+003D179C    8185 B1234000 4A00>ADD DWORD PTR SS:[EBP+4023B1],4A            ; 这也就是说代码指定大小为 4A
+003D17A6    61                  POPAD
+003D17A7    C3                  RETN                                         ; 返回上去
+...
+003D0C05    8901                MOV DWORD PTR DS:[ECX],EAX                   ; 把加密后的地址放到 IAT 中,这个值是壳计算生成的.
+003D0C07    83C7 04             ADD EDI,4                                    ; 继续指向下一个要处理的 API
+003D0C0A    FECB                DEC BL
+003D0C0C    58                  POP EAX
+003D0C0D    80FB 00             CMP BL,0                                     ; 如果 BL 大于 0 就跳
+003D0C10    0F87 42FFFFFF       JA 003D0B58
+003D0C16    803F C3             CMP BYTE PTR DS:[EDI],0C3                    ; 到这里跟过就会发现壳是通过两个 C3 来判断有没有处理完当前的 DLL
+003D0C19    0F84 A1FDFFFF       JE 003D09C0                                  ; 判断当前 DLL 是否已经处理完,处理则跳去下一个 DLL 的 api 处理
+003D0C1F    833F 00             CMP DWORD PTR DS:[EDI],0
+003D0C22    0F84 DE000000       JE 003D0D06                                  ; 判断有没有处理完全部的 API，如果处理完就跳
+003D0C28    E9 8AFDFFFF         JMP 003D09B7                                 ; 没处理完则回去继续
+```
+
+好了，处理完输入表，到这里：
+
+```asm
+003D0D06    E8 97060000         CALL 003D13A2                              ; 处理完 IAT 就到这里,清除断点，不用跟进
+003D0D0B    8D9D 31254000       LEA EBX,DWORD PTR SS:[EBP+402531]          ; EBX=439531
+...
+003D0DB6    039D B5234000       ADD EBX,DWORD PTR SS:[EBP+4023B5]
+003D0DBC    039D B9234000       ADD EBX,DWORD PTR SS:[EBP+4023B9]          ; 00439C6D
+...
+003D0E67    8B8D 95234000       MOV ECX,DWORD PTR SS:[EBP+402395]          ; ECX=A1E
+...
+```
+
+
+
+```
+003D0F12    8B85 AD234000       MOV EAX,DWORD PTR SS:[EBP+4023AD]             ; EAX=3F0000  
+
+003D0F18    50                 PUSH EAX  
+
+003D0F19    53                 PUSH EBX                     ; 解开 439c6d 开始,大小为 A1E 的代码段  
+
+003D0F1A    8D95 08114000      LEA EDX,DWORD PTR SS:[EBP+401108]  
+
+003D0F20    FFD2               CALL EDX                     ; ApLib 解压  
+
+003D0F22    90                 NOP  
+
+……  
+
+003D0FC7    83C4 08            ADD ESP,8  
+
+003D0FCA    8B85 AD234000      MOV EAX,DWORD PTR SS:[EBP+4023AD]             ; EAX=3F0000  
+
+003D0FD0    8B9D 91234000      MOV EBX,DWORD PTR SS:[EBP+402391]             ; EBX=C5E  
+
+……  
+
+003D107B    8BB5 85234000      MOV ESI,DWORD PTR SS:[EBP+402385]             ; ESI=406B07(这个就是 OEP 后的第二条指令来的,第一行代码被壳抽掉了)  
+
+003D1081    03C3               ADD EAX,EBX                  ; EAX=eax+ebx=3F0000+C5E  
+
+003D1083    C600 E9            MOV BYTE PTR DS:[EAX],0E9    ; 003F0C5E 处写入 E9 远程跳  
+
+003D1086    40                 INC EAX  
+
+003D1087    8BCE               MOV ECX,ESI                  ; alexprot.00406B07  
+
+……  
+
+003D112E    2BC8               SUB ECX,EAX                  ; 计算跳去 OEP 后第二条指令的代码的值  
+
+003D1130    83E9 04            SUB ECX,4  
+
+003D1133    8908               MOV DWORD PTR DS:[EAX],ECX   ; 计算出来值当然要填到上面的地址了  
+
+……  
+
+003D11DA    8B85 AD234000      MOV EAX,DWORD PTR SS:[EBP+4023AD]             ; 好了快到站了  
+
+003D11E0    894424 1C          MOV DWORD PTR SS:[ESP+1C],EAX; 这里还要再玩一下,先跳去申请的 3F0000 的那里再跳去 OEP 后的第二条指令  
+
+003D11E4    61                 POPAD  
+
+003D11E5  - FFE0               JMP EAX                      ; 跳去壳里,然后壳再跳去 OEP 后的第二条指令  
+```
+
+进入壳抽代码处一下就可以找到第一行代码。好了，分析到此结束。
+
+## 输入表的处理
+
+我取的以下两个地址：
+
+*   `411000` 开始写入数据地址
+*   `410FD0` 记录地址
+
+```
+003D0A61   /EB 11             JMP SHORT 003D0A74  
+
+003D0A63   |90                NOP  
+
+003D0A64   |8305 D00F4100 04  ADD DWORD PTR DS:[410FD0],4    ; 当处理不同 DLL 时加 8(第一次自己写个地址)  
+
+003D0A6B   |8985 7C244000     MOV DWORD PTR SS:[EBP+40247C],EAX; 执行原壳的代码  
+
+003D0A71   |C3                RETN  
+
+003D0A72   |90                NOP  
+
+003D0A73   |90                NOP  
+
+003D0A74   \\90               NOP  
+
+003D0A75    90                NOP  
+
+003D0A76    90                NOP                     ; ---------------------------  
+
+003D0A77    57                PUSH EDI                ; 原壳代码  
+
+003D0A78    FF95 CC244000     CALL DWORD PTR SS:[EBP+4024CC]    ; ---------------------------  
+
+003D0A7E    E8 E1FFFFFF       CALL 003D0A64           ; 这里修改 Call 上面的代码  
+
+003D0A83    90                NOP  
+
+……  
+```
+
+第二处就是写入输入表:
+
+```
+003D0BEC    58                 POP EAX                 ; 出栈  
+
+003D0BED    53                 PUSH EBX  
+
+003D0BEE    8B1D D00F4100      MOV EBX,DWORD PTR DS:[410FD0]   ; 把要写入 IAT 的地址放到 EBX 中  
+
+003D0BF4    8903               MOV DWORD PTR DS:[EBX],EAX      ; API 写到 IAT 中  
+
+003D0BF6    8919               MOV DWORD PTR DS:[ECX],EBX      ; IAT 地址写到程序调用中  
+
+003D0BF8    8305 D00F4100 04   ADD DWORD PTR DS:[410FD0],4     ; 调用完毕递增  
+
+003D0BFF    5B                 POP EBX                 ; EBX 出栈  
+
+003D0C00    90                 NOP  
+
+003D0C01    90                 NOP  
+
+003D0C02    90                 NOP  
+
+003D0C03    90                 NOP  
+
+003D0C04    90                 NOP  
+
+003D0C05    90                 NOP                     ; 去除原来的代码  
+
+003D0C06    90                 NOP  
+
+003D0C07    83C7 04            ADD EDI,4  
+
+003D0C0A    FECB               DEC BL  
+
+003D0C0C    90                 NOP                     ; 前面已经出栈了，所以不用再出栈  
+```
+
+## 附两个去花指令脚本
+
+`PatList_Alex=_alex_push01,_alex_call01`
+
+### [CODE_alex_push01]
+
+```
+S =60EB03EB03??EBFBE801000000??83C4040F318BD8EB03EB03??EBFBE801000000??83C4048BCAEB03EB03??EBFBE801000000??83C4040F312BC3EB03EB03??EBFBE801000000??83C4041BD10F3103C3EB03EB03??EBFBE801000000??83C40413D10F312BC3EB03EB03??EBFBE801000000??83C404EB05??????????EB03EB03??EBFBE801000000??83C4041BD1EB03EB03??EBFBE801000000??83C40485D275D661  
+
+R =90909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090  
+```
+
+### [CODE_alex_call01]
+
+```
+S =E824000000EB01E98B44240CEB03EB03C7EBFBE801000000A883C4048380B80000000233C0EB01E9C35883C404EB03EB03C7EBFBE801000000A883C4045064FF350000000064892500000000EB01??FFFF  
+
+R =90909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090  
+```
+
+全文完，跟完后才发现这个壳原来……:-)
+
+圣诞节快到了，先祝大家圣诞节愉快!身体健康!
+
+### Greetz
+
+*   `Fly.Jingulong,yock,tDasm.David.hexer,hmimys,ahao.UFO(brother).alan(sister).all of my friends and you!`
+*   `By loveboom[DFCG][FCG][US]`
+*   `Email:bmd2chen#tom.com`
+*   `4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,309 +1,318 @@
 
-
 # 【学习逆向工程，分析机器代码】（一）
 
 > 原文：[`www.pediy.com/kssd/pediy09/pediy09-395.htm`](https://www.pediy.com/kssd/pediy09/pediy09-395.htm)
 
-> 1、序  
->   
->    由于最近对逆向工程产生了浓厚的兴趣，所以就利用 UltraEdit32 撰写了一个麻雀虽小，但五脏俱全的“test.c”程序。然后用 OD 对它进行逆向工程，逐步分析机器代码。主要目的是：探索 C/C++编译器是如何产生机器代码；及验证 CRT 函数及带参数的自定义函数的 call 对栈产生的影响；push 和 pop 对栈具体的实现；分析 for 结构和 if 结构及 while 产生的机器代码。为此我分别生成了一个优化版本及另一个未经优化版本。  
->   
->   
-> 2、一个具体而微的 C 程序  
->   
->    包括以下内容：  
->   
-> 1）主函数 main：主函数 main 内有一个变量及一些 CRT 函数的调用和一个 if 结构；  
->   
-> 2）函数 my\_strcmp：它是一个字节串比较的自定义函数。函数有两个参数：一个源字节串，另一个目标字节串；并且函数体内则有三个变量；另外在程序结构上，有一个 for 循环及 if 结构。  
->   
-> \------------------------------------------------------------------------  
->   
-> 源程序如下：  
->   
-> #include <windows.h>  
-> #include <stdio.h>  
-> #include <conio.h>  
-> //#include <ctype.h>  
->   
-> int main()  
-> {  
->     char buffer\[100\];  
->       
->     printf("请输入序列号：\\n");  
->       
->     scanf( "%s", buffer );  
->       
->     if ( my\_strcmp( buffer, "SN12345" ) == 0 )  
->         printf("注册成功！\\n");  
->     else  
->         printf( "注册失败！\\n" );  
->       
->     getche();  
->       
->     return 0;  
-> }  
->   
-> // 为了测试，代码并没有优化，并且还特意使用了三个局部变量  
-> //  
-> int my\_strcmp( const char\* pszSrc, const char\* pszDest )  
-> {  
->     char\* pSrc = (char\*)pszSrc;  
->     char\* pDest = (char\*)pszDest;  
->     int iResult = 0;  
->       
->     for ( ; \*pSrc != 0 && \*pDest != 0 ; pSrc++, pDest++ )  
->     {  
->         iResult = \*pSrc - \*pDest;  
->         if ( iResult != 0 )  
->             return iResult;  
->     }  
->     return 0;  
-> }  
->   
-> \------------------------------------------------------------------------  
->   
->   
-> 3、编译  
->   
->   在 XP SP2 环境下，开一个 cmd.exe，键入 VC6，进入我们的 text.c 目录，键入 b，完成未优化版本编译。键入 b\_opt，完成优化版本编译。  
-> 以下是 vc6.bat 和 b.bat 及 b\_opt.bat 的批处理内容：  
->   
-> VC6.bat  
-> \-----------------------------------------------------------------------  
-> @echo off  
-> set VC6DIR=I:\\Program Files\\Microsoft Visual Studio\\VC98  
-> set include=I:\\DXSDK\\Include;%VC6DIR%\\Include;%VC6DIR%\\atl\\include;%VC6DIR%\\mfc\\include  
-> set lib=I:\\DXSDK\\Lib;%VC6DIR%\\lib;%VC6DIR%\\mfc\\lib  
-> set path=c:\\;I:\\Program Files\\Microsoft Visual Studio\\Common\\MSDev98\\Bin;%VC6DIR%\\Bin  
-> set %VC6DIR%=  
-> echo on  
-> \-----------------------------------------------------------------------  
->   
-> b.bat  
-> \-----------------------------------------------------------------------  
-> cl.exe /c /Gz test.c  
-> link.exe /subsystem:console test\_opt.obj LIBC.LIB kernel32.lib  
-> \-----------------------------------------------------------------------  
->   
-> b\_opt.bat  
-> \-----------------------------------------------------------------------  
-> cl.exe /c /Gz /O2 /Fotest\_opt.obj test.c  
-> link.exe /subsystem:console /OUT:test\_opt.exe test\_opt.obj LIBC.LIB kernel32.lib  
-> \-----------------------------------------------------------------------  
->   
->   
-> 4、逆向过程  
->   
->    打开 OllyDBG，加载 test\_opt.exe，然后在 00401000 地址设置断点。按下 F9 后我们来到断点处，接着便是 F8 一路逐行分析代码：  
->   
->   
-> 4.1 〖O2 优化版本〗  
-> \------------------------------------------------------------------------------------------------------------------------  
-> // 主函数: int main()  
->   
-> imgae 地址     机器代码      汇编代码                            注释  
-> \---------     -----------   ---------------------------------   ---------------------------------------------------------  
-> 00401000  /$  83EC 64       sub     esp, 64                     ;  char buffer\[100\]; //esp - 100  
->   
-> 00401003  |.  68 5C804000   push    0040805C                    ;  push \["请输入序列号：\\n"\] //esp - 4  
-> 00401008  |.  E8 AA000000   call    <printf>                    ;  call printf  
->   
-> 0040100D  |.  8D4424 04     lea     eax, dword ptr \[esp+4\]      ;  lea eax, \[buffer\] //获取 buffer 的指针  
-> 00401011  |.  50            push    eax                         ;  push \[buffer\] //esp - 4  
-> 00401012  |.  68 58804000   push    00408058                    ;  push \["%s"\] //esp - 4  
-> 00401017  |.  E8 84000000   call    <scanf>                     ;  call scanf  
->   
-> 0040101C  |.  83C4 0C       add     esp, 0C                     ;  esp + 12 // 释放刚刚函数的参数调用的 3 个 push，堆栈平衡。  
->                                                                 ;           // 此时 esp 的值又指向 buffer 了  
->   
-> 0040101F  |.  8D4C24 00     lea     ecx, dword ptr \[esp\]        ;  lea eax, \[buffer\] //获取 buffer 的指针。  
-> 00401023  |.  68 48804000   push    00408048                    ;  push \["SN12345"\] // 传入我们的序列号, esp - 4  
-> 00401028  |.  51            push    ecx                         ;  push \[buffer\] // esp - 4  
-> 00401029  |.  E8 42000000   call    <my\_strcmp>                 ;  调用自定义函数比较字节串。注意！自定义的函数在执行完后，  
->                                                                 ;  会执行 retn <stack used bytes>释放参数栈。而 CRT 的则不会。  
->                                                                 ;  call 指令内部实现: esp - 4, <my\_strcmp>，  
->                                                                 ;  然后在那函数内的 retn 也会释放这个 esp 占用的 4 字节。  
->   
-> 0040102E  |.  85C0          test    eax, eax                    ;  测试结果  
-> 00401030  |.  75 18         jnz     short 0040104A              ;  如果刚刚键入的序列号和系统的不配备，就跳到“注册失败”  
->   
-> 00401032  |.  68 3C804000   push    0040803C                    ;  push \["注册成功！\\n"\] // esp - 4  
-> 00401037  |.  E8 7B000000   call    <printf>                    ;  call printf  
-> 0040103C  |.  83C4 04       add     esp, 4                      ;  释放 printf 参数调用占用的 stack，堆栈平衡  
->   
-> 0040103F  |.  E8 7D590000   call    <getche>                    ;  call getche  
->   
-> 00401044  |.  33C0          xor     eax, eax                    ;  执行 return 0; 清空返回值 EAX  
->   
-> 00401046  |.  83C4 64       add     esp, 64                     ;  释放 buffer\[100\]  
->   
-> 00401049  |.  C3            retn                                ;  结束 main 函数  
->   
-> 0040104A  |>  68 30804000   push    00408030                    ;  push \["注册失败！\\n"\] // esp - 4  
-> 0040104F  |.  E8 63000000   call    <printf>                    ;  call printf  
-> 00401054  |.  83C4 04       add     esp, 4                      ;  释放 printf 参数调用占用的 stack，堆栈平衡  
->   
-> 00401057  |.  E8 65590000   call    <getche>                    ;  call getche  
->   
-> 0040105C  |.  33C0          xor     eax, eax                    ;  执行 return 0; 清空返回值 EAX  
->   
-> 0040105E  |.  83C4 64       add     esp, 64                     ;  释放 buffer\[100\]  
->   
-> 00401061  \\.  C3            retn                                ;  结束 main 函数  
-> \------------------------------------------------------------------------------------------------------------------------  
-> // 自定义函数: int my\_strcmp( const char\* pszSrc, const char\* pszDest )  
->   
-> imgae 地址     机器代码      汇编代码                            注释  
-> \---------     -----------   ---------------------------------   ---------------------------------------------------------  
-> 00401070 >/$  8B4C24 04     mov     ecx, dword ptr \[esp+4\]      ;  获取参数 pszSrc。由于 CPU 执行了 call 指令，esp 目前指向  
->                                                                 ;  本函数地址，esp+4 则指向第一个参数 pszSrc，  
->                                                                 ;  压参数时是由右至左，所以+4 则是指最后入栈的参数  
->   
-> 00401074  |.  56            push    esi                         ;  备份 esi 寄存器，esp - 4  
->   
-> 00401075  |.  8039 00       cmp     byte ptr \[ecx\], 0           ;  判断 pszSrc 指向的第一个字符是否为 NULL  
-> 00401078  |.  74 1F         je      short 00401099              ;  如果为 NULL 就退出函数  
->   
-> 0040107A  |.  8B7424 0C     mov     esi, dword ptr \[esp+C\]      ;  获取第二个参数指针 pszDest。因为 esp+8 是 esi 的备份，so...  
->   
-> 0040107E  |.  2BF1          sub     esi, ecx                    ;  pszDest -= pszSrc，得到一个 pszDest 的偏移，  
->                                                                 ;  从而让下一条指令的 esi+ecx 完成索引 pszDest 串操作  
->   
-> 00401080  |>  8A140E        /mov     dl, byte ptr \[esi+ecx\]     ;  for 结构。获取 pszDest 指向的字符到 dl 中  
->   
-> 00401083  |.  84D2          |test    dl, dl                     ;  测试 \*pszDest == 0  
-> 00401085  |.  74 12         |je      short 00401099             ;  如果为 0 就退出函数。表示已到 pszDest 串尾  
->   
-> 00401087  |.  0FBE01        |movsx   eax, byte ptr \[ecx\]        ;  获取 pszSrc 指向的当前字符到 eax 中  
-> 0040108A  |.  0FBED2        |movsx   edx, dl                    ;  获取 pszDest 指向的当前字符到 edx 中  
-> 0040108D  |.  2BC2          |sub     eax, edx                   ;  iResult = \*pSrc - \*pDest。O2 优化的结果。优化为这三条  
->   
-> 0040108F  |.  75 0A         |jnz     short 0040109B             ;  if ( iResult != 0 ) return iResult;  
->   
-> 00401091  |.  8A41 01       |mov     al, byte ptr \[ecx+1\]       ;  al = \*(pszSrc + 1); 下一个 pszSrc 指向的字符  
-> 00401094  |.  41            |inc     ecx                        ;  pszSrc++; pszSrc 指针+1  
-> 00401095  |.  84C0          |test    al, al                     ;  测试是否为 0  
-> 00401097  |.^ 75 E7         \\jnz     short 00401080             ;  如果不为 0 表示还未到串尾，继续进行下一轮比较  
->   
-> 00401099  |>  33C0          xor     eax, eax                    ;  返回 0 表示相等，和 strcmp 一样  
->   
-> 0040109B  |>  5E            pop     esi                         ;  恢复 esi  
->   
-> 0040109C  \\.  C2 0800       retn    8                           ;  执行 retn <stack used bytes>释放参数栈(pszSrc 和 pszDest)  
-> \------------------------------------------------------------------------------------------------------------------------  
->   
-> 4.2 〖未经优化版本〗  
-> \-------------------------------------------------------------------------------------------------------------------------  
-> // 主函数: int main()  
->   
-> imgae 地址     机器代码      汇编代码                            注释  
-> \---------     -----------   ---------------------------------   ---------------------------------------------------------  
-> 00401000  /$  55            push    ebp                         ;  backup ebp  
-> 00401001  |.  8BEC          mov     ebp, esp                    ;  backup esp  
-> 00401003  |.  83EC 64       sub     esp, 64                     ;  char buffer\[100\];  
-> 00401006  |.  68 30804000   push    408030                      ;  ASCII "请输入序列号：\\n"  
-> 0040100B      E8 CB000000   call    <printf>  
-> 00401010  |.  83C4 04       add     esp, 4  
-> 00401013  |.  8D45 9C       lea     eax, dword ptr \[ebp-64\]  
-> 00401016  |.  50            push    eax  
-> 00401017  |.  68 40804000   push    408040                      ;  ASCII "%s"  
-> 0040101C  |.  E8 A3000000   call    <scanf>                     ;  call scanf  
-> 00401021  |.  83C4 08       add     esp, 8  
-> 00401024  |.  68 44804000   push    408044                      ; /Arg2 = ASCII "SN12345"  
-> 00401029  |.  8D4D 9C       lea     ecx, dword ptr \[ebp-64\]     ; |  
-> 0040102C  |.  51            push    ecx                         ; |Arg1 = \[buffer\]  
-> 0040102D  |.  E8 2B000000   call    <my\_strcmp>                 ; \\call my\_strcmp  
-> 00401032  |.  85C0          test    eax, eax  
-> 00401034  |.  75 0F         jnz     short 00401045  
-> 00401036  |.  68 54804000   push    408054                      ;  ASCII "注册成功！\\n"  
-> 0040103B  |.  E8 9B000000   call    <printf>  
-> 00401040  |.  83C4 04       add     esp, 4  
-> 00401043  |.  EB 0D         jmp     short 00401052  
-> 00401045  |>  68 60804000   push    408060                      ;  ASCII "注册失败！\\n"  
-> 0040104A  |.  E8 8C000000   call    <printf>  
-> 0040104F  |.  83C4 04       add     esp, 4  
-> 00401052  |>  E8 8A590000   call    <getche>  
-> 00401057  |.  33C0          xor     eax, eax  
-> 00401059  |.  8BE5          mov     esp, ebp                    ;  resume esp  
-> 0040105B  |.  5D            pop     ebp                         ;  resume ebp  
-> 0040105C  \\.  C3            retn  
-> \-------------------------------------------------------------------------------------------------------------------------  
-> // 自定义函数: int my\_strcmp( const char\* pszSrc, const char\* pszDest )  
->   
-> imgae 地址     机器代码      汇编代码                            注释  
-> \---------     -----------   ---------------------------------   ---------------------------------------------------------  
-> 0040105D >/$  55            push    ebp                         ;  backup ebp //call+2parms + current = 4 \* 4 = 16D = 10H  
-> 0040105E  |.  8BEC          mov     ebp, esp                    ;  backup esp  
-> 00401060  |.  83EC 0C       sub     esp, 0C                     ;  定义三个变量 = 12D = 0CH  
-> 00401063  |.  8B45 08       mov     eax, dword ptr \[ebp+8\]      ;  char\* pSrc = (char\*)pszSrc;    
->                                                                    // ebp=push ebp, ebp-4=call, ebp-8=last push param...  
-> 00401066  |.  8945 F4       mov     dword ptr \[ebp-C\], eax  
-> 00401069  |.  8B4D 0C       mov     ecx, dword ptr \[ebp+C\]      ;  char\* pDest = (char\*)pszDest;  
-> 0040106C  |.  894D F8       mov     dword ptr \[ebp-8\], ecx  
-> 0040106F  |.  C745 FC 00000>mov     dword ptr \[ebp-4\], 0        ;  int iResult = 0;  
-> 00401076  |.  EB 12         jmp     short 0040108A  
-> 00401078  |>  8B55 F4       /mov     edx, dword ptr \[ebp-C\]     ;  edx = pSrc  
-> 0040107B  |.  83C2 01       |add     edx, 1                     ;  pSrc++  
-> 0040107E  |.  8955 F4       |mov     dword ptr \[ebp-C\], edx     ;  
-> 00401081  |.  8B45 F8       |mov     eax, dword ptr \[ebp-8\]     ;  eax = pDest  
-> 00401084  |.  83C0 01       |add     eax, 1                     ;  pDest++  
-> 00401087  |.  8945 F8       |mov     dword ptr \[ebp-8\], eax  
-> 0040108A  |>  8B4D F4        mov     ecx, dword ptr \[ebp-C\]     ;  \*pSrc != 0  
-> 0040108D  |.  0FBE11        |movsx   edx, byte ptr \[ecx\]  
-> 00401090  |.  85D2          |test    edx, edx                   ;  测试是否到串尾  
-> 00401092  |.  74 28         |je      short 004010BC             ;  如果是就退出函数  
-> 00401094  |.  8B45 F8       |mov     eax, dword ptr \[ebp-8\]     ;  \*pDest != 0  
-> 00401097  |.  0FBE08        |movsx   ecx, byte ptr \[eax\]  
-> 0040109A  |.  85C9          |test    ecx, ecx                   ;  测试是否到串尾  
-> 0040109C  |.  74 1E         |je      short 004010BC             ;  如果是就退出函数  
-> 0040109E  |.  8B55 F4       |mov     edx, dword ptr \[ebp-C\]     ;  将 pSrc 指向的字符赋给 EDX  
-> 004010A1  |.  0FBE02        |movsx   eax, byte ptr \[edx\]        ;  将 pSrc 指向的字符赋给 EAX  
-> 004010A4  |.  8B4D F8       |mov     ecx, dword ptr \[ebp-8\]     ;  将 pDest 指针赋给 ECX  
-> 004010A7  |.  0FBE11        |movsx   edx, byte ptr \[ecx\]        ;  将 pDest 指向的字符赋给 EDX  
-> 004010AA  |.  2BC2          |sub     eax, edx                   ;  iResult = \*pSrc - \*pDest;  
-> 004010AC  |.  8945 FC       |mov     dword ptr \[ebp-4\], eax  
-> 004010AF  |.  837D FC 00    |cmp     dword ptr \[ebp-4\], 0       ;  if ( iResult != 0 )  
-> 004010B3  |.  74 05         |je      short 004010BA             ;  如果==0 就继续比较下一字符  
-> 004010B5  |.  8B45 FC       |mov     eax, dword ptr \[ebp-4\]     ;  否则就 return iResult;  
-> 004010B8  |.  EB 04         |jmp     short 004010BE             ;  否则就 return iResult;  
-> 004010BA  |>^ EB BC         \\jmp     short 00401078             ;  继续比较下一字符  
-> 004010BC  |>  33C0          xor     eax, eax  
-> 004010BE  |>  8BE5          mov     esp, ebp                    ;  resume esp  
-> 004010C0  |.  5D            pop     ebp                         ;  resume ebp  
-> 004010C1  \\.  C2 0800       retn    8                           ;  执行 retn <stack used bytes>释放参数栈(pszSrc 和 pszDest)  
-> \------------------------------------------------------------------------------------------------------------------------  
->   
->    由上面的代码可看出：  
->   
->   1）由于在编译时我给 cl.exe 添加了优化选项 O2（大写字母 o 和阿拉伯数字 2），这个选项将会尽最大程度的优化 PE 的执行速度。  
->      所以这机器代码看起来和 C 的源程序不太像（具体参照 my\_strcmp 内 C 程序的实现及未经优化版本的反汇编代码）；  
->   
->   2）if 和 while 及 for：根据它们条件的复杂度，相应的编译成适合地跳转指令；  
->   
->   3）全局变量：被统一放在 PE 的.data 区。在需要使用的代码处都是以地址操作的；  
->   
->   4）局部变量和参数：都是放在栈中。一般以 esp 来操作，由于栈是向下伸长的，所以每增加一个参数的传递（push 操作）或是  
->      增加局部变量，都是以“sub esp,<N>”完成的，而它的释放则是“add esp,<N>”。  
->   
->    另外，在跟踪的过程中，我发现 CPU 在执行 call 指令时，是先 esp-4 存<func\_next\_addr>入栈再 jmp <func\_addr>的，当执行函数的 retn 指令时便回收 esp+4 出栈<func\_next\_addr>，继续执行下一条指令。虽然这个过程中我们在代码中看不见，不过这些具体的操作是由 call 及 retn 内部实现的。另外，push、pop 指令都是一样的，成对操作！从而完成堆栈平衡的机制。^\_^  
->   
->   
-> 5、总结  
->   
->    在跟踪代码的过程中，明白了之前看别人反汇编代码郁闷的几个地方。那就是一般 CRT 函数在进行 call 之后，编译器不会主动地在 CRT 函数内帮你释放参数占用的栈，而是在 call 之后主动插上一条“add esp, <参数占用的栈数量，以机器字为单位>”来维持堆栈平衡。在自定义的函数中，我们则无须担心这个问题。编译器会在 return 处释放参数占用的栈（retn <N>）。像这种东西只有真正分析过机器代码才知道的。  
->   
->    另外，在未经优化的版本中，所产生的机器代码几乎和 C 源程序一模一样。并且在每个函数的实现细节几乎如下：  
->   
->    开头必有：  
->           push ebp  
->           mov ebp, esp  
->    结尾必有：  
->           mov esp, ebp  
->           pop ebp  
->   
->    由此大家都可见，未经优化的版本内的局部变量及参数不是直接用 esp 而是 ebp！  
->   
->    分析完整个流程后，那个心情呀，可真舒畅！ 
+### 1、序
 
- 4dd466d0e1e0cc123afbe504da2462ca
+由于最近对逆向工程产生了浓厚的兴趣，所以就利用 `UltraEdit32` 撰写了一个麻雀虽小，但五脏俱全的“test.c”程序。然后用 `OD` 对它进行逆向工程，逐步分析机器代码。主要目的是：探索 `C/C++` 编译器是如何产生机器代码；及验证 `CRT` 函数及带参数的自定义函数的 `call` 对栈产生的影响；`push` 和 `pop` 对栈具体的实现；分析 `for` 结构和 `if` 结构及 `while` 产生的机器代码。为此我分别生成了一个优化版本及另一个未经优化版本。
+
+### 2、一个具体而微的 C 程序
+
+包括以下内容：
+
+1）主函数 `main`：主函数 `main` 内有一个变量及一些 `CRT` 函数的调用和一个 `if` 结构；
+
+2）函数 `my_strcmp`：它是一个字节串比较的自定义函数。函数有两个参数：一个源字节串，另一个目标字节串；并且函数体内则有三个变量；另外在程序结构上，有一个 `for` 循环及 `if` 结构。
+
+--------------------------------------------------------------------------------
+
+源程序如下：
+
+```c
+#include <windows.h>
+#include <stdio.h>
+#include <conio.h>
+//#include <ctype.h>
+
+int main()
+{
+    char buffer[100];
+    
+    printf("请输入序列号：\n");
+    
+    scanf( "%s", buffer );
+    
+    if ( my_strcmp( buffer, "SN12345" ) == 0 )
+        printf("注册成功！\n");
+    else
+        printf( "注册失败！\n" );
+    
+    getche();
+    
+    return 0;
+}
+
+// 为了测试，代码并没有优化，并且还特意使用了三个局部变量
+//
+int my_strcmp( const char* pszSrc, const char* pszDest )
+{
+    char* pSrc = (char*)pszSrc;
+    char* pDest = (char*)pszDest;
+    int iResult = 0;
+    
+    for ( ; *pSrc != 0 && *pDest != 0 ; pSrc++, pDest++ )
+    {
+        iResult = *pSrc - *pDest;
+        if ( iResult != 0 )
+            return iResult;
+    }
+    return 0;
+}
+```
+
+### 3、编译
+
+在 `XP SP2` 环境下，开一个 `cmd.exe`，键入 `VC6`，进入我们的 `test.c` 目录，键入 `b`，完成未优化版本编译。键入 `b_opt`，完成优化版本编译。
+
+以下是 `vc6.bat` 和 `b.bat` 及 `b_opt.bat` 的批处理内容：
+
+**VC6.bat**
+
+```bat
+@echo off
+set VC6DIR=I:\Program Files\Microsoft Visual Studio\VC98
+set include=I:\DXSDK\Include;%VC6DIR%\Include;%VC6DIR%\atl\include;%VC6DIR%\mfc\include
+set lib=I:\DXSDK\Lib;%VC6DIR%\lib;%VC6DIR%\mfc\lib
+set path=c:\;I:\Program Files\Microsoft Visual Studio\Common\MSDev98\Bin;%VC6DIR%\Bin
+set %VC6DIR%=
+echo on
+```
+
+**b.bat**
+
+```bat
+cl.exe /c /Gz test.c
+link.exe /subsystem:console test_opt.obj LIBC.LIB kernel32.lib
+```
+
+**b_opt.bat**
+
+```bat
+cl.exe /c /Gz /O2 /Fotest_opt.obj test.c
+link.exe /subsystem:console /OUT:test_opt.exe test_opt.obj LIBC.LIB kernel32.lib
+```
+
+### 4、逆向过程
+
+打开 `OllyDBG`，加载 `test_opt.exe`，然后在 `00401000` 地址设置断点。按下 `F9` 后我们来到断点处，接着便是 `F8` 一路逐行分析代码：
+
+#### 4.1 〖O2 优化版本〗
+
+```asm
+// 主函数: int main()
+
+imgae 地址     机器代码      汇编代码                               注释
+\---------     -----------   ---------------------------------   ---------------------------------------------------------
+00401000  /$  83EC 64       sub     esp, 64                        ;  char buffer[100]; //esp - 100
+
+00401003  |.  68 5C804000   push    0040805C                       ;  push ["请输入序列号：\n"] //esp - 4
+00401008  |.  E8 AA000000   call    <printf>                        ;  call printf
+
+0040100D  |.  8D4424 04     lea     eax, dword ptr [esp+4]          ;  lea eax, [buffer] //获取 buffer 的指针
+00401011  |.  50            push    eax                              ;  push [buffer] //esp - 4
+00401012  |.  68 58804000   push    00408058                       ;  push ["%s"] //esp - 4
+00401017  |.  E8 84000000   call    <scanf>                         ;  call scanf
+
+0040101C  |.  83C4 0C       add     esp, 0C                         ;  esp + 12 // 释放刚刚函数的参数调用的 3 个 push，堆栈平衡。
+                                                                 ;  // 此时 esp 的值又指向 buffer 了
+
+0040101F  |.  8D4C24 00     lea     ecx, dword ptr [esp]            ;  lea eax, [buffer] //获取 buffer 的指针。
+00401023  |.  68 48804000   push    00408048                       ;  push ["SN12345"] // 传入我们的序列号, esp - 4
+00401028  |.  51            push    ecx                              ;  push [buffer] // esp - 4
+00401029  |.  E8 42000000   call    <my_strcmp>                      ;  调用自定义函数比较字节串。注意！自定义的函数在执行完后，
+                                                                 ;  会执行 retn <stack used bytes>释放参数栈。而 CRT 的则不会。
+                                                                 ;  call 指令内部实现: esp - 4, <my_strcmp>，
+                                                                 ;  然后在那函数内的 retn 也会释放这个 esp 占用的 4 字节。
+
+0040102E  |.  85C0          test    eax, eax                         ;  测试结果
+00401030  |.  75 18         jnz     short 0040104A                   ;  如果刚刚键入的序列号和系统的不配备，就跳到“注册失败”
+
+00401032  |.  68 3C804000   push    0040803C                       ;  push ["注册成功！\n"] // esp - 4
+00401037  |.  E8 7B000000   call    <printf>                        ;  call printf
+0040103C  |.  83C4 04       add     esp, 4                           ;  释放 printf 参数调用占用的 stack，堆栈平衡
+
+0040103F  |.  E8 7D590000   call    <getche>                        ;  call getche
+
+00401044  |.  33C0          xor     eax, eax                         ;  执行 return 0; 清空返回值 EAX
+
+00401046  |.  83C4 64       add     esp, 64                          ;  释放 buffer[100]
+
+00401049  |.  C3            retn                                      ;  结束 main 函数
+
+0040104A  |>  68 30804000   push    00408030                       ;  push ["注册失败！\n"] // esp - 4
+0040104F  |.  E8 63000000   call    <printf>                        ;  call printf
+00401054  |.  83C4 04       add     esp, 4                           ;  释放 printf 参数调用占用的 stack，堆栈平衡
+
+00401057  |.  E8 65590000   call    <getche>                        ;  call getche
+
+0040105C  |.  33C0          xor     eax, eax                         ;  执行 return 0; 清空返回值 EAX
+
+0040105E  |.  83C4 64       add     esp, 64                          ;  释放 buffer[100]
+
+00401061  \.  C3            retn                                      ;  结束 main 函数
+```
+
+```asm
+// 自定义函数: int my_strcmp( const char* pszSrc, const char* pszDest )
+
+imgae 地址     机器代码      汇编代码                               注释
+\---------     -----------   ---------------------------------   ---------------------------------------------------------
+00401070  >/$  8B4C24 04    mov     ecx, dword ptr [esp+4]          ;  获取参数 pszSrc。由于 CPU 执行了 call 指令，esp 目前指向
+                                                                 ;  本函数地址，esp+4 则指向第一个参数 pszSrc，
+                                                                 ;  压参数时是由右至左，所以+4 则是指最后入栈的参数
+
+00401074  |.  56            push    esi                              ;  备份 esi 寄存器，esp - 4
+
+00401075  |.  8039 00       cmp     byte ptr [ecx], 0               ;  判断 pszSrc 指向的第一个字符是否为 NULL
+00401078  |.  74 1F         je      short 00401099                   ;  如果为 NULL 就退出函数
+
+0040107A  |.  8B7424 0C     mov     esi, dword ptr [esp+C]          ;  获取第二个参数指针 pszDest。因为 esp+8 是 esi 的备份，so...
+
+0040107E  |.  2BF1          sub     esi, ecx                         ;  pszDest -= pszSrc，得到一个 pszDest 的偏移，
+```
+
+
+
+### 汇编代码分析
+
+```asm
+00401080  |>  8A140E        /mov     dl, byte ptr [esi+ecx]      ;  for 结构。获取 pszDest 指向的字符到 dl 中
+00401083  |.   84D2         |test    dl, dl                       ;  测试 *pszDest == 0
+00401085  |.   74 12        |je      short 00401099               ;  如果为 0 就退出函数。表示已到 pszDest 串尾
+00401087  |.   0FBE01       |movsx   eax, byte ptr [ecx]          ;  获取 pszSrc 指向的当前字符到 eax 中
+0040108A  |.   0FBED2       |movsx   edx, dl                      ;  获取 pszDest 指向的当前字符到 edx 中
+0040108D  |.   2BC2         |sub     eax, edx                      ;  iResult = *pSrc - *pDest。O2 优化的结果。优化为这三条
+0040108F  |.   75 0A        |jnz     short 0040109B               ;  if ( iResult != 0 ) return iResult;
+00401091  |.   8A41 01      |mov     al, byte ptr [ecx+1]         ;  al = *(pszSrc + 1); 下一个 pszSrc 指向的字符
+00401094  |.   41           |inc     ecx                          ;  pszSrc++; pszSrc 指针+1
+00401095  |.   84C0         |test    al, al                       ;  测试是否为 0
+00401097  |.^  75 E7        \jnz     short 00401080               ;  如果不为 0 表示还未到串尾，继续进行下一轮比较
+00401099  |>   33C0         xor     eax, eax                       ;  返回 0 表示相等，和 strcmp 一样
+0040109B  |>   5E           pop     esi                            ;  恢复 esi
+0040109C  \.   C2 0800      retn    8                              ;  执行 retn <stack used bytes>释放参数栈(pszSrc 和 pszDest)
+```
+
+### 4.2 未经优化版本
+
+// 主函数: `int main()`
+
+```asm
+image 地址     机器代码       汇编代码                          注释
+---------     -----------   ---------------------------------   ---------------------------------------------------------
+00401000   /$   55          push    ebp                          ;  backup ebp
+00401001   |.   8BEC        mov     ebp, esp                     ;  backup esp
+00401003   |.   83EC 64     sub     esp, 64                      ;  char buffer[100];
+00401006   |.   68 30804000 push    408030                       ;  ASCII "请输入序列号：\n"
+0040100B       E8 CB000000 call    <printf>
+00401010   |.   83C4 04     add     esp, 4
+00401013   |.   8D45 9C     lea     eax, dword ptr [ebp-64]
+00401016   |.   50          push    eax
+00401017   |.   68 40804000 push    408040                       ;  ASCII "%s"
+0040101C   |.   E8 A3000000 call    <scanf>                      ;  call scanf
+00401021   |.   83C4 08     add     esp, 8
+00401024   |.   68 44804000 push    408044                       ;  /Arg2 = ASCII "SN12345"
+00401029   |.   8D4D 9C     lea     ecx, dword ptr [ebp-64]      ;  |
+0040102C   |.   51          push    ecx                          ;  |Arg1 = [buffer]
+0040102D   |.   E8 2B000000 call    <my_strcmp>                  ;  \call my_strcmp
+00401032   |.   85C0        test    eax, eax
+00401034   |.   75 0F       jnz     short 00401045
+00401036   |.   68 54804000 push    408054                       ;  ASCII "注册成功！\n"
+0040103B   |.   E8 9B000000 call    <printf>
+00401040   |.   83C4 04     add     esp, 4
+00401043   |.   EB 0D       jmp     short 00401052
+00401045   |>   68 60804000 push    408060                       ;  ASCII "注册失败！\n"
+0040104A   |.   E8 8C000000 call    <printf>
+0040104F   |.   83C4 04     add     esp, 4
+00401052   |>   E8 8A590000 call    <getche>
+00401057   |.   33C0        xor     eax, eax
+00401059   |.   8BE5        mov     esp, ebp                     ;  resume esp
+0040105B   |.   5D          pop     ebp                          ;  resume ebp
+0040105C   \.   C3          retn
+```
+
+// 自定义函数: `int my_strcmp(const char* pszSrc, const char* pszDest)`
+
+```asm
+image 地址     机器代码       汇编代码                          注释
+---------     -----------   ---------------------------------   ---------------------------------------------------------
+0040105D  >/$  55           push    ebp                          ;  backup ebp //call+2parms + current = 4 * 4 = 16D = 10H
+0040105E   |.   8BEC        mov     ebp, esp                     ;  backup esp
+00401060   |.   83EC 0C     sub     esp, 0C                      ;  定义三个变量 = 12D = 0CH
+00401063   |.   8B45 08     mov     eax, dword ptr [ebp+8]       ;  char* pSrc = (char*)pszSrc;
+                         ;  // ebp=push ebp, ebp-4=call, ebp-8=last push param...
+00401066   |.   8945 F4     mov     dword ptr [ebp-C], eax
+00401069   |.   8B4D 0C     mov     ecx, dword ptr [ebp+C]       ;  char* pDest = (char*)pszDest;
+0040106C   |.   894D F8     mov     dword ptr [ebp-8], ecx
+0040106F   |.   C745 FC 00000>mov    dword ptr [ebp-4], 0        ;  int iResult = 0;
+00401076   |.   EB 12       jmp     short 0040108A
+00401078   |>   8B55 F4     /mov    edx, dword ptr [ebp-C]       ;  edx = pSrc
+0040107B   |.   83C2 01     |add    edx, 1                       ;  pSrc++
+0040107E   |.   8955 F4     |mov    dword ptr [ebp-C], edx       ;
+00401081   |.   8B45 F8     |mov    eax, dword ptr [ebp-8]       ;  eax = pDest
+00401084   |.   83C0 01     |add    eax, 1                       ;  pDest++
+00401087   |.   8945 F8     |mov    dword ptr [ebp-8], eax
+0040108A   |>   8B4D F4      mov    ecx, dword ptr [ebp-C]       ;  *pSrc != 0
+0040108D   |.   0FBE11       |movsx edx, byte ptr [ecx]
+00401090   |.   85D2         |test  edx, edx                     ;  测试是否到串尾
+00401092   |.   74 28        |je    short 004010BC               ;  如果是就退出函数
+00401094   |.   8B45 F8      |mov   eax, dword ptr [ebp-8]       ;  *pDest != 0
+00401097   |.   0FBE08       |movsx ecx, byte ptr [eax]
+0040109A   |.   85C9         |test  ecx, ecx                     ;  测试是否到串尾
+0040109C   |.   74 1E        |je    short 004010BC               ;  如果是就退出函数
+0040109E   |.   8B55 F4      |mov   edx, dword ptr [ebp-C]       ;  将 pSrc 指向的字符赋给 EDX
+004010A1   |.   0FBE02       |movsx eax, byte ptr [edx]          ;  将 pSrc 指向的字符赋给 EAX
+004010A4   |.   8B4D F8      |mov   ecx, dword ptr [ebp-8]       ;  将 pDest 指针赋给 ECX
+004010A7   |.   0FBE11       |movsx edx, byte ptr [ecx]          ;  将 pDest 指向的字符赋给 EDX
+004010AA   |.   2BC2         |sub   eax, edx                     ;  iResult = *pSrc - *pDest;
+004010AC   |.   8945 FC      |mov   dword ptr [ebp-4], eax
+004010AF   |.   837D FC 00   |cmp   dword ptr [ebp-4], 0         ;  if ( iResult != 0 )
+004010B3   |.   74 05        |je    short 004010BA               ;  如果==0 就继续比较下一字符
+004010B5   |.   8B45 FC      |mov   eax, dword ptr [ebp-4]       ;  否则就 return iResult;
+004010B8   |.   EB 04        |jmp   short 004010BE               ;  否则就 return iResult;
+004010BA   |>^  EB BC        \jmp    short 00401078               ;  继续比较下一字符
+004010BC   |>   33C0         xor    eax, eax
+004010BE   |>   8BE5        mov    esp, ebp                      ;  resume esp
+004010C0   |.   5D          pop    ebp                            ;  resume ebp
+004010C1   \.   C2 0800     retn   8                              ;  执行 retn <stack used bytes>释放参数栈(pszSrc 和 pszDest)
+```
+
+由上面的代码可看出：
+
+1. 由于在编译时给 `cl.exe` 添加了优化选项 `O2`（大写字母 `o` 和阿拉伯数字 `2`），这个选项将会尽最大程度的优化 PE 的执行速度。
+
+
+
+所以这机器代码看起来和 C 的源程序不太像（具体参照 `my_strcmp` 内 C 程序的实现及未经优化版本的反汇编代码）；
+
+2）`if` 和 `while` 及 `for`：根据它们条件的复杂度，相应的编译成适合地跳转指令；
+
+3）全局变量：被统一放在 PE 的`.data`区。在需要使用的代码处都是以地址操作的；
+
+4）局部变量和参数：都是放在栈中。一般以`esp`来操作，由于栈是向下伸长的，所以每增加一个参数的传递（`push`操作）或是增加局部变量，都是以“`sub esp,<N>`”完成的，而它的释放则是“`add esp,<N>`”。
+
+另外，在跟踪的过程中，我发现 CPU 在执行`call`指令时，是先`esp-4`存`<func_next_addr>`入栈再`jmp <func_addr>`的，当执行函数的`retn`指令时便回收`esp+4`出栈`<func_next_addr>`，继续执行下一条指令。虽然这个过程中我们在代码中看不见，不过这些具体的操作是由`call`及`retn`内部实现的。另外，`push`、`pop`指令都是一样的，成对操作！从而完成堆栈平衡的机制。^\_^
+
+5、总结
+
+在跟踪代码的过程中，明白了之前看别人反汇编代码郁闷的几个地方。那就是一般 CRT 函数在进行`call`之后，编译器不会主动地在 CRT 函数内帮你释放参数占用的栈，而是在`call`之后主动插上一条“`add esp, <参数占用的栈数量，以机器字为单位>`”来维持堆栈平衡。在自定义的函数中，我们则无须担心这个问题。编译器会在`return`处释放参数占用的栈（`retn <N>`）。像这种东西只有真正分析过机器代码才知道的。
+
+另外，在未经优化的版本中，所产生的机器代码几乎和 C 源程序一模一样。并且在每个函数的实现细节几乎如下：
+
+开头必有：
+
+```
+push ebp
+mov ebp, esp
+```
+
+结尾必有：
+
+```
+mov esp, ebp
+pop ebp
+```
+
+由此大家都可见，未经优化的版本内的局部变量及参数不是直接用`esp`而是`ebp`！
+
+分析完整个流程后，那个心情呀，可真舒畅！

@@ -1,359 +1,491 @@
 
-
 # Armadillo v3.xx 手工脱壳
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-713.htm`](https://www.pediy.com/kssd/pediy07/pediy7-713.htm)
 
-注意:附件(6 楼)包涵例程...  
-以下是预览版本,附件含插图.  
-  
-由 4nil 翻译,感谢 linhanshi 提供原文件....  
-由于学术问题,翻译不是周到...请指正....  
-  
-  
-Copyright 2004 Unpacking Gods  
-  
-  
-Armadillo v3.xx 手工脱壳  
-适用于 Windows XP  
-   
-用 OD+DEBUG BLOCKER 手脱标准 Armadillo  
-然后给它打补丁，这样我们就可以用 ImpReC 为它重建输入表 目标........: FlashFavorite v1.31  
-                     Download Target Version HERE  
-   
-地址......: http://www.pipisoft.com/  or HERE  
-   
-壳的种类..: ARMADiLLO v3.60 + Debug Blocker  
-   
-难度....: 中高级  (需要了解一些调试技巧..)  
-   
-需要的工具:  
-1.) Olly Debug v1.08 或更高版本  
-2.) LordPE Deluxe  
-3.) Import Reconstructor v1.6 Final  
-  
-开始..  
-   
-加载 Flash Favorite's Armadillo Protected exe 到 Olly Debug 这个是 Armadillo's 入口...  
-入口看起来和 ASPACK.. 差不多，还有一些 armadillo 看起来象 C++编写.. 但事实是这是 Armadillo..  
-   
-这个 Armadillo 检测是否被调试  
-所以我们下个 IsDebuggerPresent 的断点 (或者用插件跳过这个部分..) :P  
-   
-设好断点，按 SHIFT+F9 3 次. 我们就在 IsDebuggerPresent 断下.  
-  
-提示：  
-   
-你可以使用  
-任何  
-olly 调试插件  
-来修改他 :P 好，修改完垃圾的调试检测...  
-我们开始脱除 Armadillo Debug Blocker feature  
-   
-我们要获得子进程入口, 然后无限循环 (hex; EB FE)  
-我们找到这个无限循环,然后就可以在子进程入口断下:)  
-我们用 API: WriteProcessMemory 来达到这个目的  
-   
-设断点 WriteProcessMemory - 按 SHIFT+F9...    
-你会在一个特权指令停下..   
-按 Shift+F9 跳过.  
-   
-我们就在 WriteProcessMemory 断下.  
-   
-第一次断, 没什么用..  
-我们要的是第二次的.  
-例子:First off..  
-ARMADILLO 和 Debug Blocker Feature 是父子进程的关系.:   
-父进程用于加载-子进程是一般的被 armadillo 保护的文件.  
-   
-我们每个人载入的时候在 OllyDebug 中的地址都是不一样的.  
-更新版本的 Armadillo (v3.70) 会检测 OllyDebug.exe - 所以你就会想修改 OllyDebug 的文件名称...   
-这个方法对于 所有 Armadillo v3.xx 的壳都有效,除了 CopyMEM2 和 armadillo 的其他一些自定义特性.  
-   
-2..  
-Armadillo 有很多读写违例(ACCESS VIOLATION)..   
-所以你可能要把 C0000005 (ACCESS VIOLATION)添加到忽略列表  
-  
-第二次在 WriteProcessMemory 断下:  
-看栈窗口 (右下的窗口)  
-   
-查看 缓冲(BUFFER)   > buffer is writing the 2 bytes  
-查看地址 (Address)  > 地址是缓冲要写的区域.  
-   
-右击缓冲(BUFFER) 选择 跟踪入堆(Follow in DUMP)  
-   
-有 2 个字节被改写  
-在我这里是: 60 E8  记住他们.  
-(我们要把他们改写回子进程一旦我们绑定它.)  
-   
-现在我们将 nbsp;60 E8 改写为 EB FE (相当于指令 JUMP EIP)  
-我们让缓冲(buffer) 写的指令是直接跳转入口点(译者注:子进程),我们就可以恰好停在子进程的入口了. :) 如上图所示.现在我们把子进程的入口放到一个循环里面..  
-我们就可以绑定子进程...  
-   
-但是 Armadillo 不允许!我们必须修改他 ...  
-   
-在 olly 用 SHIFT+F9 运行, 当它在运行的时候, 在 WaitForDebugEvent 下断  
-(我们会一直在 WaitForDebugEvent 停下来,因为这是一个循环体)  
-   
-当你在 WaitForDebugEvent 停下的时候,按 CTRL+F9 (跟踪直到 RETN)  
-它会创建一个新线程.. :P (OLLY 底部窗口回有提示.)  
-   
-现在你会来到从 WaitForDebugEvent 回来的 RETN 按 F7 to 跟入 RETN.   
-确保 EAX = 0 当你从 WaitForDebugEvent retn 时  
-你会到这里 TEST EAX,EAX - 举例:我们这样写:  
-PUSH PID    (PID=Process ID)  
-CALL DebugActiveProcessStop <多亏是 winxp!>  
-   
-你就可以在 OD 得到 正确的 PID.单击. 文件(File) > 附加(Attach) >   
-你会看见 2 个 FlashFavorite.exe's 在运行 -选择那个没有红色高亮显示的.这个是我们要的 PID.  
-   
-我的真实 PID 是 03D0  
-所以我写成 PUSH 03D0  
-举例:  
-   
-   
-   
- 将这些汇编后..  
-按 F8 直到 NOP 指令 -  
-另外打开一个 OLLY DEBUG (这个让它开着).  
-   
-注意: 电脑运行会很慢.. :|  
-   
-现在到了 Olly Debug 新程序 of .  
-单击 文件(File)>附加(Attach)> 选择你要 PUSH (PID)的进程当你绑定了 Olly 的新进程  
-你会来到这里: (或相似的地方)  
-   
-77F7F571   C3               RETN  
-77F7F572   8BFF             MOV EDI,EDI  
-77F7F574   CC               INT3  
-77F7F575   C3               RETN  
-77F7F576   8BFF             MOV EDI,EDI  
-77F7F578   8B4424 04        MOV EAX,DWORD PTR SS:\[ESP+4\]  
-77F7F57C   CC               INT3  
-77F7F57D   C2 0400          RETN 4  
-77F7F580   64:A1 18000000   MOV EAX,DWORD PTR FS:\[18\]  
-   
-现在按下 F9 运行,按 F12 暂停  
-我们来到那个我们先前设定的 无限循环!! :D  AKA: 子进程入口  
-举例:你的 OD 是不是看起来和上面的图一样啊..  
-恭喜! 你已经成功解除 Armadillo 的 Debug Blocker Feature.  
-我们现在已经进入 Armadillo 创建的子进程里面了.  
-给我们机会破解这个\*\*\*\*\*的程序:) - 现在它就和一般的 armadillo 壳一样了.  
-   
-停下休息一会继续我们的 Armadillo 脱壳教程 :)  
-   
-\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*..  
-剩下的工作就是...   
-把 EB FE \[JMP EIP\] 改回 原来的数据.  
-还记得吗,我要你记住的那个,在我这里是 60 E8 ..  
-把他改回 60 E8 就象下图所示.现在我们把 JMP EIP 改好了..  
-在子进程里面有个调试器检测  
-   
-所以我们下个断在 on IsDebuggerPresent (或者用 OD 插件)  
-shift +F9 运行 直到 在 IsDebuggerPresent 断下再次锁定在子进程 IsDebuggerPresent .  
-   
-现在  
-我们设个 断点在 CreateThread <有些 armadillo.. 你必须设在 SetProcessWorkingSetSize>  
-SHIFT+F9 运行直到被断在 CreateThread  
-好  
-当我们用 Shift+F9 运行的时候, 有时(在这个程序可以) 我们会看到一个弹出窗口  
-那个是 Armadillo's 时间检验弹出窗口 :) 这个是个好现象 :)  
-   
-我们展开我们要破解的程序 :) (非常接近了^\_^)  
-   
-在 Armadillo 的弹出窗口单击 OK ..  
-我们在 CreateThread  
-断下,当你在 on CreateThread 断下的时候, 按一次 CTRL+F9, 你停在 RETN 18, 按 F7 跟入 RETN...  
-   
-我们又来到 Armadillo 的代码段,就是 Right Near 那个 调用原始入口的 CALL!就会到这里..:  
-   
-5E               POP ESI  
-C9               LEAVE  
-C3               RETN  
-跟入这个 RETN   --^^^  
-   
-我们来到 RETN 到的地方:  
- 设置 断点在 CALL EDI  
-   
-按 F9 一次我们被断在 CALL EDI  
-   
-当我们断在 CALL EDI 的时候.. 这个 就是调用 OEP 的 CALL !! :D  
-   
-用 F7 跟进 CALL EDI 哈，我们搞到原入口了!!! = 00414BCC  
-现在我们可以 LordPE 把文件给 脱出来了!  
-让 Olly Debug 开着..  
-   
-打开 LordPE, 选中 FlashFavorite.EXE(就是刚才绑定的真实的那个进程 ID) .  
-好,现在右击它,选择 DUMP (FULL)..  
-保存 DUMP 出来的文件到目标文件夹.. :)  
-   
-不错,虽然仅仅得到了 armadillo + debug blocker 的原入口 ;);)  
-但是接下来的任务比较艰巨了..  
-   
-你的 OD 还开着把..  
-现在打开 Imprec ...  
-同样在 Imprec 里.. 选择 FlashFavorite.EXE 的真实进程 ID  
-   
-在 ImpREC 输入 OEP = 00414BCC - imagebase = 00014BCC .. 单击 IAT Auto SEARCH  
-举例:  
- 当我们单击 IAT Auto Search 后..  
-RVA 填入.. 这个例子里面 RVA 是:  
-00017000 +imagebase= 00417000  
-   
-总是保存 RVA 地址(Always Save the RVA Address down). 当你获得 RVA 地址后,你可以关闭 Imprec..  
-好,我们搞定快了,现在重新开始.. 再次破解 Debug Blocker ...  
-你要确保你已经从 olly 用 LordPE 包程序 DUMP 下来了 .  
-   
-用文本保存 OEP 和 RVA 地址... 重新启动所有 OD...   
-(别担心, 我们会再一次破解 debug blocker,为了解决 armadillo 的入口窃取技术.) 第一部分:  
-   
-破解 Armadillo 的 Debug Blocker,获得 Original Entry Point,还有 Dump 出程序. 第二部分:  
-   
-破解 Armadillo 的入口(Import) 伪装技术,用 ImpREC 重建所有入口有些 Armadillo 很好修改.. 我写的所有就是让你更好的理解 Armadillo 的入口(Import)伪装技术.. 有时候很简单.. 有时候很复杂..  
-   
-(虽然这个 Armadillo 有 Debug Blocker)..(更加费力)  
-   
-对于很多 Armadillo 我们这里要讨论一下同样的修改技巧.. (有些可能有小小不同..) 所以这个对你以后的脱壳有帮助.在这里我们需要再次破解 Debug Blocker Again  
-   
-重复上面所以步骤..   
-   
-当你再次绑定真实进程 ID 后..   
-把 EB FE,改为 60 E8...   
-   
-   
-在堆(Dump) 窗口... (左下的窗口) 右击,选择反汇编(Dissassemble)  
-来查看反汇编模式...  
-   
-在堆窗口按 CTRL+G: 输入先前从 Imprec 得到的 RVA ... 你不会没保存吧!?  
-RVA 地址是 00417000.. 所以在堆窗口按 CTRL+G , 输入 00417000 确定.  
-我们就来到地址 417000...  
-   
-右击 RVA 地址(417000) 选择断点(BreakPoint) > 硬件(Hardware) > 写内存(on Write) > DWORD------------->--------->如上图,我们对 RVA (这个例子里是 417000..)下硬件断点(HARDWARE BREAKPOINT)>写内存(on Write)>双字(Dword)..  
-   
-记住: 我们仍需要修改 IsDebuggerPresent...   
-   
-所以我们下个断点在 IsDebuggerPresent.. Shift+F9 直到断下.. 然后修改 IsDebuggerPresent.  
-   
-按 SHIFT+F9 直到我们又看到那个弹出窗口..  
-弹出窗口 按 OK...  
-   
-好!  
-我们被断了: Hardware BreakPoint 1 at 00xxxxxx <地址不一样没关系  
-举例:按 CTRL+F9 回到最近的 RETN... 按 F7 跟入...  
-到了这里:现在:   
-当你到了这个地方,记住它是什么样子的.. (大多数情况下有 VirtualProtect Calls 在 ADD ESP,0C 下面...) 这样很容易辨认!  
-(很多时候都是这样修改... 但是有时候不一样.)我们到了如上图所示的地方..  
-   
-按 CTRL+F9 你可能会被警告读写错误(access violation) ,怎么样不会呢.. 按 F7 假如你被警告读写错误(access violation)..  
-假如你被硬件断点断下  
-再按 CTRL+F9 ... 不管怎么样,你最终会停在这里: ..我们到这里.. (在本例子里..) 你一会可能还会停在这里 (下图..)  
-   
-调用 VirtualProtect 的 Call 别弄糊涂了... 你用多了就小菜一碟了.  
-   
-执行上图的 JNZ ...   
-来到这里                                          
-我们要打补丁的数据..这个 Armadillo 的技术在于他加密这部分数据然后再解密..  
-简单的是.. Armadillo 为我们解密了..我们在解密代码内部打一个 jump 补丁.  
-进入上图指出的 CALL? :)  
-   
-我们可以这样辨认这个 CALL,它旁边有 3 条指令:  
-FFB5 BCE9FFFF    PUSH DWORD PTR SS:\[EBP-1644\]     <--  
-E8 A0B1FEFF      CALL 00D45A1E  
-8985 94E7FFFF    MOV DWORD PTR SS:\[EBP-186C\],EAX  <--  
-83BD 94E7FFFF    CMP DWORD PTR SS:\[EBP-186C\],0    <--  
-   
-这个解密 Call 我们要打补丁, 这样我们就可以重建输入表  
-   
-选中那个 Call , 回车> 回车跟入 CALL 地址  
-(你发现这个 call 还没有执行!!)  
-到这里                                        
-但首先...好,当你到这里...  
-这些跳来跳去就是用来解密的..  
-   
-所以我们往下翻 直到看到几个 NOP (4,5 个 NOP)  
-如下图  
-..保存这个 NOP 的地址.. (我们会需要调用它: 解密 NOP :))  
-这个就是我们给 armadillo 打补丁的地方,这样我们就可以用 Imprec 重建输入表 :)  
-   
-但是我们的目标程序有 debug blocker.. 所以要在子进程下硬件断点,硬件 bpx 不会被保存..  
-so 我们要保存这个 NOP 的地址 把地址保存到文本文档.  
-   
-现在我们又要重启 OD 了...   
-   
-又要破解 Debug Blocker ..  
-再次绑定子进程..略..  
-现在当我们绑定那个进程后, 记住:  
-我们 仍旧需要修改 IsDebuggerPresent...   
-   
-所以我们在 OD 主窗口..  
-设断点在 on IsDebuggerPresent... (它现在还不会被断下... 假如你被断了, 改..)  
-   
-按 SHIFT+F9 2 次 > 按 CTRL+G,输入解密 NOP 的地址:  
-在这个解密 NOP 上下一个断点  
-   
-SHIFT+F9 运行,你在 IsDebuggerPresent 断下..: 修改 IsDebuggerPresent....  
-修改完 IsDebuggerPresent 后..  
-按 Press Shift+F9 再次运行.. 来到弹出窗口, 单击 OK :) 在解密 NOP 断下 :D<---------我们在 NOP 断下:)  
-  
-现在.. 我们可以辨认这个 jump 了,找 TEST DL,0..  
-有 2 个 Jump 在 TEST DL,80 下面 :)  
-所以我们 NOP 掉这个 JE :)  
-打了这个补丁,armadillo 就一个输入也没碰到了:)  
-留下 6 个 THUNK 要剪切  
-   
-现在取消 NOP 的硬件断点..  
-你可以单击 > 调试(Debug) > OD 内的硬件断点(Hardware Breakpoints in olly debug)..  
-   
-现在,以 SHIFT+F9 运行 ONE TIME  
-(注意):  
-(大多数情况下: 你打完补丁后,程序就不能执行.. 你会到一个特级指令,或者.. 你可以用 imprec 修改..)  
-   
-但是这个例子里面.. 当我们打补丁后这个程序可以运行 !!!   
-我们已经给 Arma-Fucking-DILLO 脱壳!先不要关闭 OD.. 让它开着  
-   
-打开 ImpREC..  
-1.) 输入 OEP (00414BCC)-ImageBase= 00014BCC  
-2.)选择 IAT AutoSearch:  
-3.) 选择 Get Imports (呵呵,所有输入都在那边)  
-4.) 选择 Show Invalid  (显示错误,选择所有)  
-5.) Right click on the Invalid THUNK's and Click CUT THUNKS!  
-   
-错误是 armadillo 留下的.. 仅仅在 IAT 周围... (我们只要剪掉剩下的 thunk)  
-   
-好,所有 THUNKS 都可以用了!!   
-选择 ImpREC 底部的 FIX DUMP   
-接着选择我们先前 DUMP 的文件!!!!  
-   
-现在关掉 OD.. 现在运行 DUMP 后并且修改输入表后的文件..   
-OK!!可以运行了!  
-   
-假如你的也可以运行了,恭喜你!! 假如没有,继续努力 :)  
-Armadillo 不是很难,仔细看看就可以 :)我希望你从这篇教程学到了一些关于 Armadillo v3 的知识!  
-   
-注意:  
-这些脱 debug blocker,修复输入表的方法对其他 armadillo 也有效..  
-还有另外一种偷取输入表的方式, 和这个差不多,别混淆了.  
-   
-尽情享受吧..  
-   
-Sincerly..  
-MEPHiST0  
-Unpacking Gods 感谢所有帮助过我的人..  
-   
-特别感谢 l0sts0ul, 他给予我莫大帮助. :)谢阅 have fUn with armadillo!   
-  
-   
-这个教程会具体清楚的给你讲述如何用 debug blocker 的特性手工脱 armadillo v3 的壳。  
-smoke a bowl, and enjoy.  
-  
-:LEGAL:  
-This Tutorial is to NOT BE READ by ANYONE  
-Unpacking Gods 是一个专门以学习为目的而研究壳的组织  
-本文章技术版权归作者所有.  
-所有图标，文件，和名称所有权归作者所有，并只用于教学目的.  
-本教程只用于研究学习之用.  
-3 goats, and every ford mustang were harmed in the making of this tutorial.  
-   
-.. ...Unpacking Gods 没有责任对任何人因使用本教程而造成的后果负责.  
+注意：附件（6 楼）包含例程...
 
- 4dd466d0e1e0cc123afbe504da2462ca
+以下是预览版本，附件含插图。
+
+由 4nil 翻译，感谢 linhanshi 提供原文件....
+
+由于学术问题，翻译不是周到...请指正....
+
+Copyright 2004 Unpacking Gods
+
+## Armadillo v3.xx 手工脱壳
+
+适用于 Windows XP
+
+用 OD+DEBUG BLOCKER 手脱标准 Armadillo
+
+然后给它打补丁，这样我们就可以用 ImpReC 为它重建输入表。
+
+- **目标**：FlashFavorite v1.31
+- **下载地址**：[Download Target Version HERE](http://www.pipisoft.com/ or HERE)
+- **地址**：http://www.pipisoft.com/ or HERE
+- **壳的种类**：ARMADiLLO v3.60 + Debug Blocker
+- **难度**：中高级（需要了解一些调试技巧..）
+
+### 需要的工具
+
+1. Olly Debug v1.08 或更高版本
+2. LordPE Deluxe
+3. Import Reconstructor v1.6 Final
+
+### 开始
+
+加载 `Flash Favorite` 的 Armadillo Protected exe 到 Olly Debug。
+
+这是 Armadillo 的入口...
+
+入口看起来和 ASPACK 差不多，还有一些 Armadillo 看起来像 C++ 编写.. 但事实是这是 Armadillo..
+
+这个 Armadillo 检测是否被调试
+
+所以我们下个 `IsDebuggerPresent` 的断点（或者用插件跳过这个部分..）:P
+
+设好断点，按 `SHIFT+F9` 3 次。我们就在 `IsDebuggerPresent` 断下。
+
+**提示**：
+
+你可以使用任何 Olly 调试插件来修改他 :P
+
+好，修改完垃圾的调试检测...
+
+### 脱除 Armadillo Debug Blocker feature
+
+我们要获得子进程入口，然后无限循环（`hex; EB FE`）
+
+我们找到这个无限循环，然后就可以在子进程入口断下:)
+
+我们用 API: `WriteProcessMemory` 来达到这个目的
+
+设断点 `WriteProcessMemory` - 按 `SHIFT+F9`...
+
+你会在一个特权指令停下..
+
+按 `Shift+F9` 跳过。
+
+我们就在 `WriteProcessMemory` 断下。
+
+第一次断，没什么用..
+
+我们要的是第二次的。
+
+例子：First off..
+
+ARMADILLO 和 Debug Blocker Feature 是父子进程的关系。
+
+父进程用于加载 - 子进程是一般的被 armadillo 保护的文件。
+
+我们每个人载入的时候在 OllyDebug 中的地址都是不一样的。
+
+更新版本的 Armadillo (v3.70) 会检测 `OllyDebug.exe` - 所以你就会想修改 `OllyDebug` 的文件名称...
+
+这个方法对于所有 Armadillo v3.xx 的壳都有效，除了 `CopyMEM2` 和 armadillo 的其他一些自定义特性。
+
+#### 2.
+
+Armadillo 有很多读写违例（ACCESS VIOLATION)..
+
+所以你可能要把 `C0000005` (ACCESS VIOLATION) 添加到忽略列表
+
+**第二次在 `WriteProcessMemory` 断下：**
+
+看栈窗口（右下的窗口）
+
+- 查看缓冲 (BUFFER) > buffer is writing the 2 bytes
+- 查看地址 (Address) > 地址是缓冲要写的区域.
+
+右击缓冲 (BUFFER) 选择跟踪入堆 (Follow in DUMP)
+
+有 2 个字节被改写
+
+在我这里是: `60 E8` 记住他们.
+
+(我们要把他们改写回子进程一旦我们绑定它.)
+
+现在我们将 `60 E8` 改写为 `EB FE` (相当于指令 `JUMP EIP`)
+
+我们让缓冲 (buffer) 写的指令是直接跳转入口点(译者注:子进程)，我们就可以恰好停在子进程的入口了. :), 如上图所示。现在我们把子进程的入口放到一个循环里面..
+
+我们就可以绑定子进程...
+
+但是 Armadillo 不允许! 我们必须修改他...
+
+在 olly 用 `SHIFT+F9` 运行，当它在运行的时候，在 `WaitForDebugEvent` 下断
+
+(我们会一直在 `WaitForDebugEvent` 停下来，因为这是一个循环体)
+
+当你在 `WaitForDebugEvent` 停下的时候，按 `CTRL+F9` (跟踪直到 `RETN`)
+
+它会创建一个新线程.. :P (OLLY 底部窗口回有提示.)
+
+现在你会来到从 `WaitForDebugEvent` 回来的 `RETN`。按 `F7` to 跟入 `RETN`.
+
+确保 `EAX = 0` 当你从 `WaitForDebugEvent` retn 时
+
+你会到这里 `TEST EAX,EAX` - 举例：我们这样写：
+
+```
+PUSH PID (PID=Process ID)
+CALL DebugActiveProcessStop <多亏是 winxp!>
+```
+
+你就可以在 OD 得到正确的 PID。单击. 文件(File) > 附加(Attach) >
+
+你会看见 2 个 `FlashFavorite.exe` 的在运行 - 选择那个没有红色高亮显示的。这个是我们要的 PID。
+
+我的真实 PID 是 `03D0`
+
+所以我写成 `PUSH 03D0`
+
+举例：
+
+将这些汇编后..
+
+按 `F8` 直到 `NOP` 指令 -
+
+另外打开一个 OLLY DEBUG (这个让它开着).
+
+注意: 电脑运行会很慢.. :|
+
+现在到了 Olly Debug 新程序 of .
+
+单击 文件(File)>附加(Attach)> 选择你要 `PUSH` (PID)的进程当你绑定了 Olly 的新进程
+
+你会来到这里：(或相似的地方)
+
+```
+77F7F571   C3             RETN
+77F7F572   8BFF           MOV EDI,EDI
+77F7F574   CC             INT3
+77F7F575   C3             RETN
+77F7F576   8BFF           MOV EDI,EDI
+77F7F578   8B4424 04      MOV EAX,DWORD PTR SS:[ESP+4]
+77F7F57C   CC             INT3
+77F7F57D   C2 0400        RETN 4
+77F7F580   64:A1 18000000 MOV EAX,DWORD PTR FS:[18]
+```
+
+现在按下 `F9` 运行，按 `F12` 暂停
+
+我们来到那个我们先前设定的 无限循环!! :D AKA: 子进程入口
+
+举例：你的 OD 是不是看起来和上面的图一样啊..
+
+恭喜! 你已经成功解除 Armadillo 的 Debug Blocker Feature.
+
+我们现在已经进入 Armadillo 创建的子进程里面了。
+
+给我们机会破解这个\*\*\*\*\*的程序:) - 现在它就和一般的 armadillo 壳一样了。
+
+停下休息一会继续我们的 Armadillo 脱壳教程 :)
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*..
+
+剩下的工作就是...
+
+把 `EB FE` `[JMP EIP]` 改回原来的数据。
+
+还记得吗，我要你记住的那个，在我这里是 `60 E8` ..
+
+把他改回 `60 E8` 就象下图所示。现在我们把 `JMP EIP` 改好了..
+
+在子进程里面有个调试器检测
+
+所以我们下个断在 on `IsDebuggerPresent` (或者用 OD 插件)
+
+`shift` + `F9` 运行直到在 `IsDebuggerPresent` 断下再次锁定在子进程 `IsDebuggerPresent` .
+
+现在我们设个断点在 `CreateThread` <有些 armadillo.. 你必须设在 `SetProcessWorkingSetSize>`
+
+`SHIFT+F9` 运行直到被断在 `CreateThread`
+
+好
+
+当我们用 `Shift+F9` 运行的时候，有时(在这个程序可以) 我们会看到一个弹出窗口
+
+那个是 Armadillo's 时间检验弹出窗口 :) 这个是个好现象 :)
+
+我们展开我们要破解的程序 :) (非常接近了^\_^)
+
+在 Armadillo 的弹出窗口单击 OK ..
+
+我们在 `CreateThread` 断下，当你在 on `CreateThread` 断下的时候，按一次 `CTRL+F9`，你停在 `RETN 18`，按 `F7` 跟入 `RETN`...
+
+我们又来到 Armadillo 的代码段，就是 Right Near 那个 调用原始入口的 CALL!就会到这里..:
+
+```
+5E             POP ESI
+C9             LEAVE
+C3             RETN
+```
+
+跟入这个 `RETN` --^^^
+
+我们来到 `RETN` 到的地方:
+
+设置断点在 `CALL EDI`
+
+按 `F9` 一次我们被断在 `CALL EDI`
+
+当我们断在 `CALL EDI` 的时候.. 这个 就是调用 OEP 的 CALL !! :D
+
+用 `F7` 跟进 `CALL EDI` 哈，我们搞到原入口了!!! = `00414BCC`
+
+现在我们可以 LordPE 把文件给脱出来了!
+
+让 Olly Debug 开着..
+
+打开 `LordPE`，选中 `FlashFavorite.EXE` (就是刚才绑定的真实的那个进程 ID).
+
+好，现在右击它，选择 DUMP (FULL)..
+
+保存 DUMP 出来的文件到目标文件夹.. :)
+
+不错，虽然仅仅得到了 armadillo + debug blocker 的原入口 ;);)
+
+但是接下来的任务比较艰巨了..
+
+你的 OD 还开着把..
+
+现在打开 Imprec ...
+
+同样在 Imprec 里.. 选择 `FlashFavorite.EXE` 的真实进程 ID
+
+在 `ImpREC` 输入 `OEP = 00414BCC` - `imagebase = 00014BCC` .. 单击 IAT Auto SEARCH
+
+举例：
+
+当我们单击 IAT Auto Search 后..
+
+RVA 填入.. 这个例子里面 RVA 是:
+
+`00017000` + imagebase= `00417000`
+
+总是保存 RVA 地址(Always Save the RVA Address down). 当你获得 RVA 地址后，你可以关闭 Imprec..
+
+好，我们搞定快了，现在重新开始.. 再次破解 Debug Blocker ...
+
+你要确保你已经从 olly 用 LordPE 包程序 DUMP 下来了.
+
+用文本保存 OEP 和 RVA 地址... 重新启动所有 OD...
+
+(别担心，我们会再一次破解 debug blocker,为了解决 armadillo 的入口窃取技术.)
+
+### 第一部分: 破解 Armadillo 的 Debug Blocker, 获得 Original Entry Point, 还有 Dump 出程序.
+
+重复上面所以步骤..
+
+当你再次绑定真实进程 ID 后..
+
+把 `EB FE`，改为 `60 E8`...
+
+在堆(Dump) 窗口... (左下的窗口) 右击，选择反汇编(Dissassemble)
+
+来查看反汇编模式...
+
+在堆窗口按 `CTRL+G`: 输入先前从 Imprec 得到的 RVA ... 你不会没保存吧!?
+
+RVA 地址是 `00417000`.. 所以在堆窗口按 `CTRL+G` , 输入 `00417000` 确定.
+
+我们就来到地址 `417000`...
+
+右击 RVA 地址(417000) 选择断点(BreakPoint) > 硬件(Hardware) > 写内存(on Write) > DWORD------------->--------->如上图，我们对 RVA (这个例子里是 `417000`..)下硬件断点(HARDWARE BREAKPOINT)>写内存(on Write)>双字(Dword)..
+
+记住: 我们仍需要修改 `IsDebuggerPresent`...
+
+所以我们下个断点在 `IsDebuggerPresent`.. `Shift+F9` 直到断下.. 然后修改 `IsDebuggerPresent`.
+
+按 `SHIFT+F9` 直到我们又看到那个弹出窗口..
+
+弹出窗口 按 OK...
+
+好!
+
+我们被断了: Hardware BreakPoint 1 at `00xxxxxx` <地址不一样没关系
+
+举例：按 `CTRL+F9` 回到最近的 `RETN`... 按 `F7` 跟入...
+
+到了这里:现在:
+
+当你到了这个地方，记住它是什么样子的.. (大多数情况下有 `VirtualProtect` Calls 在 `ADD ESP,0C` 下面...) 这样很容易辨认!
+
+(很多时候都是这样修改... 但是有时候不一样.)我们到了如上图所示的地方..
+
+按 `CTRL+F9` 你可能会被警告读写错误(access violation)，怎么样不会呢.. 按 `F7` 假如你被警告读写错误(access violation)..
+
+假如你被硬件断点断下
+
+再按 `CTRL+F9` ... 不管怎么样，你最终会停在这里: ..我们到这里.. (在本例子里..) 你一会可能还会停在这里 (下图..)
+
+调用 `VirtualProtect` 的 Call 别弄糊涂了... 你用多了就小菜一碟了.
+
+执行上图的 `JNZ` ...
+
+来到这里
+
+我们要打补丁的数据..这个 Armadillo 的技术在于他加密这部分数据然后再解密..
+
+简单的是.. Armadillo 为我们解密了..我们在解密代码内部打一个 jump 补丁.
+
+进入上图指出的 CALL? :)
+
+我们可以这样辨认这个 CALL，它旁边有 3 条指令:
+
+```
+FFB5 BCE9FFFF    PUSH DWORD PTR SS:[EBP-1644]     <--
+E8 A0B1FeFF      CALL 00D45A1E
+8985 94E7FFFF    MOV DWORD PTR SS:[EBP-186C],EAX  <--
+83BD 94E7FFFF    CMP DWORD PTR SS:[EBP-186C],0    <--
+```
+
+这个解密 Call 我们要打补丁，这样我们就可以重建输入表
+
+选中那个 Call，回车 > 回车跟入 CALL 地址
+
+(你发现这个 call 还没有执行!!)
+
+到这里
+
+但首先...好，当你到这里...
+
+这些跳来跳去就是用来解密的..
+
+所以我们往下翻 直到看到几个 `NOP` (4,5 个 `NOP`)
+
+如下图
+
+..保存这个 NOP 的地址.. (我们会需要调用它: 解密 NOP :))
+
+这个就是我们给 armadillo 打补丁的地方，这样我们就可以用 Imprec 重建输入表 :)
+
+但是我们的目标程序有 debug blocker.. 所以要在子进程下硬件断点，硬件 `bpx` 不会被保存..
+
+so 我们要保存这个 NOP 的地址 把地址保存到文本文档.
+
+现在我们又要重启 OD 了...
+
+又要破解 Debug Blocker ..
+
+再次绑定子进程..略..
+
+现在当我们绑定那个进程后，记住:
+
+我们 仍旧需要修改 `IsDebuggerPresent`...
+
+所以我们在 OD 主窗口..
+
+设断点在 on `IsDebuggerPresent`... (它现在还不会被断下... 假如你被断了，改..)
+
+按 `SHIFT+F9` 2 次 > 按 `CTRL+G`,输入解密 NOP 的地址:
+
+在这个解密 NOP 上下一个断点
+
+`SHIFT+F9` 运行，你在 `IsDebuggerPresent` 断下..: 修改 `IsDebuggerPresent`....
+
+修改完 `IsDebuggerPresent` 后..
+
+按 Press `Shift+F9` 再次运行.. 来到弹出窗口，单击 OK :) 在解密 NOP 断下 :D<---------我们在 NOP 断下:)
+
+现在.. 我们可以辨认这个 jump 了，找 `TEST DL,0`..
+
+有 2 个 Jump 在 `TEST DL,80` 下面 :)
+
+### 第二部分: 破解 Armadillo 的入口(Import) 伪装技术, 用 ImpREC 重建所有入口
+
+有些 Armadillo 很好修改.. 我写的所有就是让你更好的理解 Armadillo 的入口(Import)伪装技术.. 有时候很简单.. 有时候很复杂..
+
+(虽然这个 Armadillo 有 Debug Blocker)..(更加费力)
+
+对于很多 Armadillo 我们这里要讨论一下同样的修改技巧.. (有些可能有小小不同..) 所以这个对你以后的脱壳有帮助。
+
+
+
+所以我们 NOP 掉这个 JE :)
+
+打了这个补丁,`armadillo` 就一个输入也没碰到了 :)
+
+留下 `6` 个 `THUNK` 要剪切
+
+现在取消 NOP 的硬件断点..
+
+你可以单击 > 调试(Debug) > `OD` 内的硬件断点(Hardware Breakpoints in olly debug)..
+
+现在,以 `SHIFT+F9` 运行 ONE TIME
+
+(注意):
+
+(大多数情况下: 你打完补丁后,程序就不能执行.. 你会到一个特级指令,或者.. 你可以用 `imprec` 修改..)
+
+但是这个例子里面.. 当我们打补丁后这个程序可以运行 !!!
+
+我们已经给 `Arma-Fucking-DILLO` 脱壳!先不要关闭 `OD`.. 让它开着
+
+打开 `ImpREC`..
+
+1.) 输入 OEP (`00414BCC`) - ImageBase = `00014BCC`
+
+2.) 选择 `IAT AutoSearch`:
+
+3.) 选择 `Get Imports` (呵呵,所有输入都在那边)
+
+4.) 选择 `Show Invalid` (显示错误,选择所有)
+
+5.) `Right click on the Invalid THUNK's and Click CUT THUNKS!`
+
+错误是 `armadillo` 留下的.. 仅仅在 `IAT` 周围... (我们只要剪掉剩下的 thunk)
+
+好,所有 `THUNKS` 都可以用了!!
+
+选择 `ImpREC` 底部的 `FIX DUMP`
+
+接着选择我们先前 `DUMP` 的文件!!!!
+
+现在关掉 `OD`.. 现在运行 `DUMP` 后并且修改输入表后的文件..
+
+OK!!可以运行了!
+
+假如你的也可以运行了,恭喜你!! 假如没有,继续努力 :)
+
+`Armadillo` 不是很难,仔细看看就可以 :)我希望你从这篇教程学到了一些关于 `Armadillo v3` 的知识!
+
+注意:
+
+这些脱 debug blocker,修复输入表的方法对其他 `armadillo` 也有效..
+
+还有另外一种偷取输入表的方式, 和这个差不多,别混淆了.
+
+尽情享受吧..
+
+Sincerly..
+
+`MEPHiST0`
+
+`Unpacking Gods` 感谢所有帮助过我的人..
+
+特别感谢 `l0sts0ul`, 他给予我莫大帮助. :)谢阅 have fUn with armadillo!
+
+这个教程会具体清楚的给你讲述如何用 debug blocker 的特性手工脱 `armadillo v3` 的壳。
+
+smoke a bowl, and enjoy.
+
+:LEGAL:
+
+This Tutorial is to NOT BE READ by ANYONE
+
+`Unpacking Gods` 是一个专门以学习为目的而研究壳的组织
+
+本文章技术版权归作者所有.
+
+所有图标，文件，和名称所有权归作者所有，并只用于教学目的.
+
+本教程只用于研究学习之用.
+
+3 goats, and every ford mustang were harmed in the making of this tutorial.
+
+.. ...`Unpacking Gods` 没有责任对任何人因使用本教程而造成的后果负责.
+
+`4dd466d0e1e0cc123afbe504da2462ca`

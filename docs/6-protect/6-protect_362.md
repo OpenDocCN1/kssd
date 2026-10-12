@@ -1,204 +1,233 @@
 
-
 # 铁棒计划<1>
 
 > 原文：[`www.pediy.com/kssd/pediy09/pediy09-119.htm`](https://www.pediy.com/kssd/pediy09/pediy09-119.htm)
 
 > 铁棒计划<1>  
-> kflnig  
->   有比 cracker 更加了解破解所在吗？所以就让我这个 cracker 来谈谈软件保护的方法。本文基于 borland c++6.0 调试通过。你最好懂点内联汇编。如有错误告诉我。我家里没有上网，手头的开发资料只有 borland 的帮助文档（其实很不错）。  
-> 首先是 anti   OD。  
-> 1、IsDebuggerPresent  
->   BOOL IsDebuggerPresent(VOID)  
->   这个函数相信大家用得最多。但是也没有什么用处。随便都可以被搞定。  
+> `kflnig`  
+
+> 有比 `cracker` 更加了解破解所在吗？所以就让我这个 `cracker` 来谈谈软件保护的方法。本文基于 `borland c++6.0` 调试通过。你最好懂点内联汇编。如有错误告诉我。我家里没有上网，手头的开发资料只有 `borland` 的帮助文档（其实很不错）。  
+> 首先是 `anti OD`。  
+
+## 1、`IsDebuggerPresent`
+
+> `BOOL IsDebuggerPresent(VOID)`  
+> 这个函数相信大家用得最多。但是也没有什么用处。随便都可以被搞定。  
 > 微软说：  
-> If the current process is running in the context of a debugger, the return value is nonzero.   
-> If the current process is not running in the context of a debugger, the return value is zero.  
+> 
+> ```
+> If the current process is running in the context of a debugger, the return value is nonzero.  
+> If the current process is not running in the context of a debugger, the return value is zero.  
+> ```
+> 
 > 翻译过来就是：  
 > 如果当前的应用程序在调试器下运行，则返回值不为 0，如果不在调试器下运行，则返回值为 0。  
 > 通常我们可以这么写：  
->   bool isdebuggeron;  
-> isdebuggeron=IsDebuggerPresent();  
-> if (isdebuggeron)  
->   {……  
->   }  
-> 省略号表示你想要的代码。当然傻子才会这么写。我们用 OD 一调试就可以在输入函数中看到 IsDebuggerPresent，而 IsDebuggerPresent 的作用只有用来发现调试器。所以，这个东西绝对不可以出现在输入函数列表之中。  
->   让它不显示在输入表中方法很多，我来介绍一种不常用的。  
->   我们用 IDA 分析 kernel32.dll。找到 IsDebuggerPresent 如下：  
-> ; BOOL IsDebuggerPresent(void)  
-> .text:7C812E03                 public IsDebuggerPresent  
-> .text:7C812E03 IsDebuggerPresent proc near             ; CODE XREF: .text:loc\_7C874FB1 p  
-> .text:7C812E03                 mov     eax, large fs:18h  
-> .text:7C812E09                 mov     eax, \[eax+30h\]  
-> .text:7C812E0C                 movzx   eax, byte ptr \[eax+2\]  
-> .text:7C812E10                 retn  
-> .text:7C812E10  
-> .text:7C812E10 IsDebuggerPresent endp  
->   然后我们来自己写一个 my IsDebuggerPresent 函数。  
-> bool my IsDebuggerPresent ()  
-> {  
-> \_\_asm  
-> {  
->         mov     eax, large fs:18h  
->         mov     eax, \[eax+30h\]  
->         movzx   eax, byte ptr \[eax+2\]  
-> }  
-> }  
-> 这个就是我们自己的 IsDebuggerPresent，不会再在输入表中出现 IsDebuggerPresent 啦！  
+> 
+> ```
+> bool isdebuggeron;
+> isdebuggeron=IsDebuggerPresent();
+> if (isdebuggeron)
+> {……}
+> ```
+> 
+> 省略号表示你想要的代码。当然傻子才会这么写。我们用 `OD` 一调试就可以在输入函数中看到 `IsDebuggerPresent`，而 `IsDebuggerPresent` 的作用只有用来发现调试器。所以，这个东西绝对不可以出现在输入函数列表之中。  
+> 让它不显示在输入表中方法很多，我来介绍一种不常用的。  
+> 我们用 `IDA` 分析 `kernel32.dll`。找到 `IsDebuggerPresent` 如下：  
+> 
+> ```
+> ; BOOL IsDebuggerPresent(void)
+> .text:7C812E03                 public IsDebuggerPresent
+> .text:7C812E03 IsDebuggerPresent proc near             ; CODE XREF: .text:loc_7C874FB1 p
+> .text:7C812E03                 mov     eax, large fs:18h
+> .text:7C812E09                 mov     eax, [eax+30h]
+> .text:7C812E0C                 movzx   eax, byte ptr [eax+2]
+> .text:7C812E10                 retn
+> .text:7C812E10
+> .text:7C812E10 IsDebuggerPresent endp
+> ```
+> 
+> 然后我们来自己写一个 `my IsDebuggerPresent` 函数。  
+> 
+> ```
+> bool my IsDebuggerPresent ()
+> {
+> __asm
+> {
+>       mov     eax, large fs:18h
+>       mov     eax, [eax+30h]
+>       movzx   eax, byte ptr [eax+2]
+> }
+> }
+> ```
+> 
+> 这个就是我们自己的 `IsDebuggerPresent`，不会再在输入表中出现 `IsDebuggerPresent` 啦！  
 > 简单实用！  
-> 2、FindWindow  
-> HWND FindWindow(  
->   
->     LPCTSTR lpClassName,  // pointer to class name  
->     LPCTSTR lpWindowName   // pointer to window name  
->    );    
->    
->   
-> Parameters  
->   
-> lpClassName  
->   
-> Points to a null-terminated string that specifies the class name or is an atom that identifies the class-name string. If this parameter is an atom, it must be a global atom created by a previous call to the GlobalAddAtom function. The atom, a 16-bit value, must be placed in the low-order word of lpClassName; the high-order word must be zero.   
->   
-> lpWindowName  
->   
-> Points to a null-terminated string that specifies the window name (the window's title). If this parameter is NULL, all window names match.   
->   
->    
->   
-> Return Values  
-> If the function succeeds, the return value is the handle to the window that has the specified class name and window name.  
-> If the function fails, the return value is NULL. To get extended error information, call GetLastError.  
+
+## 2、`FindWindow`
+
+> ```
+> HWND FindWindow(
+> 
+>     LPCTSTR lpClassName,  // pointer to class name
+>     LPCTSTR lpWindowName   // pointer to window name
+>   );
+> ```
+>
+> **Parameters**
+>
+> `lpClassName`
+>
+> Points to a null-terminated string that specifies the class name or is an atom that identifies the class-name string. If this parameter is an atom, it must be a global atom created by a previous call to the `GlobalAddAtom` function. The atom, a 16-bit value, must be placed in the low-order word of `lpClassName`; the high-order word must be zero.
+>
+> `lpWindowName`
+>
+> Points to a null-terminated string that specifies the window name (the window's title). If this parameter is `NULL`, all window names match.
+>
+> **Return Values**
+>
+> If the function succeeds, the return value is the handle to the window that has the specified class name and window name.  
+> If the function fails, the return value is `NULL`. To get extended error information, call `GetLastError`.  
 > 上面的是很简单的英语。  
-> lpClassName 是指向类名字符串的指针。  
-> lpWindowName 是窗口标题。如果这个参数值为 NULL，则所有的类名都会受到检测。  
-> 返回值，如果函数调用成功，返回窗口的句柄。如果不成功，返回 NULL。  
-> 我们用 OD 自己的插件窗口工具，就可以知道，它的类名是 OllyDBG。lpWindowName 我们传入 NULL 就好了。  
-> char \*str="OllyDBG";  
-> h\_od=FindWindow(str,NULL);  
-> if (h\_od)   
-> {  
-> ……  
-> }  
-> 这样写就好了。如果 OD 开着，那么，我们就可以发现它。  
-> 3、GetTickCount  
+> `lpClassName` 是指向类名字符串的指针。  
+> `lpWindowName` 是窗口标题。如果这个参数值为 `NULL`，则所有的类名都会受到检测。  
+> 返回值，如果函数调用成功，返回窗口的句柄。如果不成功，返回 `NULL`。  
+> 我们用 `OD` 自己的插件窗口工具，就可以知道，它的类名是 `OllyDBG`。`lpWindowName` 我们传入 `NULL` 就好了。  
+> 
+> ```
+> char *str="OllyDBG";
+> h_od=FindWindow(str,NULL);
+> if (h_od) 
+> {
+> ……
+> }
+> ```
+> 
+> 这样写就好了。如果 `OD` 开着，那么，我们就可以发现它。  
+
+## 3、`GetTickCount`
+
 > 这个可是老牌的检测方法了。老，但是经典。  
-> 我们可以根据因为在调试的时候，在某些地方时间和原来的直接载入相比暂停太多了。所以可以根据时间的长短来猜测是否被调试。我这边设置的是 1s。  
-> int t1,t2;  
-> t1=GetTickCount();  
-> ……  
-> t2=GetTickCount();  
-> if (t2-t1>1000)  
-> {  
-> ……  
-> }  
->   
+> 我们可以根据因为在调试的时候，在某些地方时间和原来的直接载入相比暂停太多了。所以可以根据时间的长短来猜测是否被调试。我这边设置的是 `1s`。  
+> 
+> ```
+> int t1,t2;
+> t1=GetTickCount();
+> ……
+> t2=GetTickCount();
+> if (t2-t1>1000)
+> {
+> ……
+> }
+> ```
+>
 > 上面是最简单和最常用的三个。  
->   
 > 我们听说过虚拟机吧。听起来怎么都不像是一种简单的菜鸟可以实现的方法。其实，有些时候是我们自己太低估自己了。虚拟机，最通俗的讲就是把一条指令用另外的方式实现。  
 > 我们可以在设计算法的时候可以先把算法高级语言汇编化，然后再把汇编中的，这些指令用这些函数代替。当然我们有一些个我们自己的原则  
-> 1、  逻辑关系复杂的要  
-> 2、  能够让 cracker 看懂了之后赞叹的要  
-> 3、  废代码和效率低下的不要  
-> 4、  执行速度特别慢的不要  
+> 1、 逻辑关系复杂的要  
+> 2、 能够让 `cracker` 看懂了之后赞叹的要  
+> 3、 废代码和效率低下的不要  
+> 4、 执行速度特别慢的不要  
 > 我想了一个礼拜。终于想到一点可以见人的代码。所以就贴出来给大家看看。  
 > 我们知道  
-> 0 xor 0=0  
-> 0 xor 1=1  
-> 1 xor 0=1  
-> 1 xor 1=0  
->   
-> 0 and 0=0  
-> 0 and 1=0  
-> 1 and 0=0  
-> 1 and 1=1  
->   
-> 0 or 0=0  
-> 0 or 1=1  
-> 1 or 0=1  
-> 1 or 1=1  
-> 得出一条定律：xor+and=or。  
-> int and\_(int a,int b)  
-> {  
-> \_\_asm  
-> {  
->         mov eax,a  
->         mov ebx,eax  
->         or eax,b  
->         xor ebx,b  
->         sub eax,ebx  
-> }  
-> }  
->   
-> int or\_(int a,int b)  
-> {  
-> \_\_asm  
-> {  
->         mov eax,a  
->         mov ebx,eax  
->         and eax,b  
->         or ebx,b  
->         add eax,ebx  
-> }  
-> }  
->   
-> int xor\_(int a,int b)  
-> {  
->         \_\_asm  
->         {  
->                 mov eax,a  
->                 mov ebx,eax  
->                 or eax,b  
->                 and ebx,b  
->                 sub eax,ebx  
->         }  
-> }  
->   
-> 上面这写个 xor，and，or 是通过逻辑关系模拟实现的。让我们再来根据它们的定义来写一些个函数。  
+> 
+> ```
+> 0 xor 0=0
+> 0 xor 1=1
+> 1 xor 0=1
+> 1 xor 1=0
+> 
+> 0 and 0=0
+> 0 and 1=0
+> 1 and 0=0
+> 1 and 1=1
+> 
+> 0 or 0=0
+> 0 or 1=1
+> 1 or 0=1
+> 1 or 1=1
+> ```
+>
+> 得出一条定律：`xor+and=or`。  
+> 
+> ```
+> int and_(int a,int b)
+> {
+> __asm
+> {
+>       mov eax,a
+>       mov ebx,eax
+>       or eax,b
+>       xor ebx,b
+>       sub eax,ebx
+> }
+> }
+> 
+> int or_(int a,int b)
+> {
+> __asm
+> {
+>       mov eax,a
+>       mov ebx,eax
+>       and eax,b
+>       or ebx,b
+>       add eax,ebx
+> }
+> }
+> 
+> int xor_(int a,int b)
+> {
+>       __asm
+>       {
+>               mov eax,a
+>               mov ebx,eax
+>               or eax,b
+>               and ebx,b
+>               sub eax,ebx
+>       }
+> }
+> ```
+> 
+> 上面这写个 `xor`，`and`，`or` 是通过逻辑关系模拟实现的。让我们再来根据它们的定义来写一些个函数。  
 > 二进制下：  
-> and 是同为 1 时则为 1 否则为 0  
-> int myand(int a,int b)  
-> {  
->         \_\_asm  
->         {  
->                 mov eax,a  
->                 mov ebx,b  
->                 mov ecx,32  
->                 xor edx,edx  
-> l4:  
->                 shl edx,1  
->                 shl eax,1  
->                 jc l1  
->                 shl ebx,1  
->                 jmp l3  
->                 l1:  
->                 shl ebx,1  
->                 adc edx,0  
->                 l3:  
->                 dec ecx  
->                 jnz l4  
->                 mov eax,edx  
->         }  
-> }  
-> 这个东西代码质量一般，但是为了符合我上面的代码，所以我为了易读性，舍弃了一些效率。稍微解释一下。我们依次把 a 和 b 依次左移 1 位，如果两个都有溢出，那么 edx＝edx＋1，否则就是 edx＝edx＋0。还要依次让 EDX 左移。如果你非要把上面的代码看懂，那么对汇编指令的了解是不可以少的。比如说只有你了解了 ADC,SHL 指令会对标志寄存器有影响，再加上对它们本身的了解才能看懂。  
-> 写这个东西太费脑力了。or 和 xor 我不写了。 
-
+> `and` 是同为 1 时则为 1 否则为 0  
+> 
+> ```
+> int myand(int a,int b)
+> {
+>       __asm
+>       {
+>               mov eax,a
+>               mov ebx,b
+>               mov ecx,32
+>               xor edx,edx
+> l4:
+>               shl edx,1
+>               shl eax,1
+>               jc l1
+>               shl ebx,1
+>               jmp l3
+>               l1:
+>               shl ebx,1
+>               adc edx,0
+>               l3:
+>               dec ecx
+>               jnz l4
+>               mov eax,edx
+>       }
+> }
+> ```
+> 
+> 这个东西代码质量一般，但是为了符合我上面的代码，所以我为了易读性，舍弃了一些效率。稍微解释一下。我们依次把 `a` 和 `b` 依次左移 1 位，如果两个都有溢出，那么 `edx＝edx＋1`，否则就是 `edx＝edx＋0`。还要依次让 `EDX` 左移。如果你非要把上面的代码看懂，那么对汇编指令的了解是不可以少的。比如说只有你了解了 `ADC,SHL` 指令会对标志寄存器有影响，再加上对它们本身的了解才能看懂。  
+> 写这个东西太费脑力了。`or` 和 `xor` 我不写了。  
 > 这个我初中好像推过，当时的想法大概是：  
->   
-> A xor B 的意思是相同的为 0，不同的为 1  
->   
+> 
+> `A xor B` 的意思是相同的为 0，不同的为 1  
 > 那要怎么获得相同的呢？  
->   
-> A and B 结果是都为 1 的为 1  
->   
-> A or B 结果是有一个 1 的就为 1  
->   
+> `A and B` 结果是都为 1 的为 1  
+> `A or B` 结果是有一个 1 的就为 1  
 > 只有一个 1 叫做不同，那么含 1 的去掉两个都是 1 的就是只有 1 个 1  
->   
 > 于是  
->   
-> A or B - A and B = A xor B  
->   
-> or-and=xor 
-
- 4dd466d0e1e0cc123afbe504da2462ca
+> `A or B - A and B = A xor B`  
+> `or-and=xor`  
+> `4dd466d0e1e0cc123afbe504da2462ca`

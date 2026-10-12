@@ -1,177 +1,164 @@
 
-
 # VBExplorer
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6860.htm`](https://www.pediy.com/kssd/pediy06/pediy6860.htm)
 
-【破解作者】 stasi\[DCM\]\[BCG\]\[DFCG\]\[FCG\]\[OCN\]\[CZG\]\[D.4s\]  
-【作者邮箱】 stasi@163.com  
-【作者主页】 stasi.7169.com  
-【使用工具】 olldby(loveboom 赠送版！)+fi+PeDumper+RecImport  
-【破解平台】 Win9x/NT/2000/XP  
-【软件名称】 VBExplorer.exe  
-【下载地址】 就是二哥在龙族号召大家玩的东东  
-【软件简介】 学习脱壳而已：）  
-             pangzi2k@yahoo.com.cn  
-【软件大小】 561k  
-【加壳方式】 EXE32Pack 1.38 -> SteelBytes  
-【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）  
-\--------------------------------------------------------------------------------  
-【破解内容】  
-  
-  
-fi 上查是 EXE32Pack 1.38 -> SteelBytes  
-  
-fi 下，换 olldby  
-  
-0054D00C V>  3BC0              cmp eax,eax  
-0054D00E     74 02             je short VBExplor.0054D012  
-0054D010     8183 553BC074 028>add dword ptr ds:\[ebx+74C03B55>  
-0054D01A     3BC9              cmp ecx,ecx  
-0054D01C     74 01             je short VBExplor.0054D01F  
-0054D01E     BC 563BD274       mov esp,74D23B56  
-0054D023     0281 8557E800     add al,byte ptr ds:\[ecx+E85785>  
-0054D029     0000              add byte ptr ds:\[eax\],al  
-0054D02B     003B              add byte ptr ds:\[ebx\],bh  
-0054D02D     DB                ???                            ; 未知命令  
-0054D02E     74 01             je short VBExplor.0054D031  
-0054D030     BE 5D8BD581       mov esi,81D58B5D  
-0054D035     ED                in eax,dx  
-0054D036     DC8D 40003BE4     fmul qword ptr ss:\[ebp+E43B004>  
-0054D03C     74 02             je short VBExplor.0054D040  
-  
-  
-command--->BP IsDebuggerPresent  
-  
-我笔记上找到的，正是世界上本没有路，走的人多了就成了路：）我也就在这路上走走  
-  
-alt-b 看断点  
-断点，项目 0  
- 地址=77E6191E KERNEL32.IsDebuggerPresent  
- 模块=KERNEL32  
- 激活=永远  
-  
-没问题就走...  
-  
-77E6191E K>  64:A1 18000000    mov eax,dword ptr fs:\[18\]      断点去掉  
-77E61924     8B40 30           mov eax,dword ptr ds:\[eax+30\]  
-77E61927     0FB640 02         movzx eax,byte ptr ds:\[eax+2\]  
-77E6192B     C3                retn  
-  
-return 到下面：  
-005D3E05     8BBD F18E4000     mov edi,dword ptr ss:\[ebp+408E>  
-005D3E0B     03BD 178F4000     add edi,dword ptr ss:\[ebp+408F>; VBExplor.00400000     
-  
-到头了 edi\=25342 就是偏移了  
-005D3E11     3BED              cmp ebp,ebp  
-005D3E13     74 02             je short VBExplor.005D3E17  
-005D3E15     8180 69C0D204 000>add dword ptr ds:\[eax+4D2C069\]>  
-005D3E1F     81FB CC000000     cmp ebx,0CC  
-005D3E25     75 05             jnz short VBExplor.005D3E2C  
-005D3E27     05 59010000       add eax,159  
-  
-加上内存基址  
-  
-到 00425342  
-  
-00425342     55                push ebp                        oep=00425342  
-00425343     8BEC              mov ebp,esp  
-00425345     6A FF             push -1  
-00425347     68 58124D00       push VBExplor.004D1258  
-0042534C     68 CE544200       push VBExplor.004254CE         ; jmp to MSVCRT.\_except\_handler3  
-00425351     64:A1 00000000    mov eax,dword ptr fs:\[0\]  
-00425357     50                push eax  
-00425358     64:8925 00000000  mov dword ptr fs:\[0\],esp  
-0042535F     83EC 68           sub esp,68  
-00425362     53                push ebx  
-00425363     56                push esi  
-  
-dump 下来不能用：（  
-  
-olldby 下，RecImport 上  
-  
-进程原始 IAT 数据信息发现在: 000CCF24 区块 RVA:000CC000 大小:00023000  
-  
-但还是初始化失败，不知道原因。  
-  
-RecImport 下，olldby 上  
-  
-77FB17A4     C9                leave                   pe 头不正常，要修复，但手动麻烦的  
-77FB17A5     C2 0400           retn 4  
-77FB17A8     55                push ebp  
-77FB17A9     8BEC              mov ebp,esp  
-77FB17AB     8B45 08           mov eax,dword ptr ss:\[ebp+8\]  
-77FB17AE     53                push ebx  
-77FB17AF     56                push esi  
-77FB17B0     57                push edi  
-77FB17B1     8B7D 10           mov edi,dword ptr ss:\[ebp+10\]  
-  
-olldby 下，PeDumper 上  
-  
-删除未知区段，修复 pe 头，总算可以了。cool！  
-  
-【脱壳脚本】  
-  
-/\*   
-/////////////////////////////////////////////////////////////////////////////////////  
-  EXE32Pack 1.38 -> SteelBytes OEP finder  
-  Author  : stasi\[DCM\]\[BCG\]\[DFCG\]\[FCG\]\[OCN\]\[CZG\]\[D.4s\]      
-  Email   : stasi@163.com  
-  Homepage: [`stasi.7169.com`](http://stasi.7169.com)  
-  OS      : Win2kADV sp4,OllyDbg 1.1c,OllyScript v0.92  
-  Date    : 2004-11-20   
-  Config  : Exceptions:uncheck all. you don't need to hide the DeBugger,i'll do for u!  
-  Note    : If you have one or more question, email me please,thank you!   
-//////////////////////////////////////////////////////////////////////////////////////   
-\*/   
-  
-  var stasi   
-  
-  lblset:  
-  cmp $VERSION, "0.9"  
-  ja start  
-  msgyn "Your ollyscript is too old,maybe have something wrong,Continue?"  
-  cmp $RESULT,0  
-  je end  
-  jmp start  
-  
-  start:  
-  dbh  
-  gpa "IsDebuggerPresent", "KERNEL32.dll"   
-  bp $RESULT  
-  run  
-  bpmc  
-  sto          
-  sto          
-  sto  
-  sto  
-  sto  
-  sto  
-  mov stasi, edi  
-  bp stasi  
-  run  
-  jmp lblend  
-  
-  lblend:  
-  cmt eip, "here is the OEP of EXE32Pack 1.38 -> SteelBytes!"  
-  msg "Script by stasi\[DCM\]\[BCG\]\[DFCG\]\[FCG\]\[OCN\]\[CZG\]\[D.4s\],Thank you for using my Scripts!"  
-  jmp end  
-  
-  end:  
-  ret  
-    
-  //the end!  
-  
-\--------------------------------------------------------------------------------  
-【破解总结】  
-  
- 德语的四六级考试都通过了，又有时间到论坛看看，轻松多了！  
-  
- Greetz:  
-  Fly.loveboom.David.xikug.heXpe.LeNgHoSt.all of my friends and you!  
-  
- By stasi\[DCM\]\[BCG\]\[DFCG\]\[FCG\]\[OCN\]\[CZG\]\[D.4s\]  
- Email:stasi@163.com  
-\--------------------------------------------------------------------------------  
-【版权声明】 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!  
- 4dd466d0e1e0cc123afbe504da2462ca
+【破解作者】 stasi[DCM][BCG][DFCG][FCG][OCN][CZG][D.4s]
+【作者邮箱】 stasi@163.com
+【作者主页】 stasi.7169.com
+【使用工具】 olldby(loveboom 赠送版！)+fi+PeDumper+RecImport
+【破解平台】 Win9x/NT/2000/XP
+【软件名称】 VBExplorer.exe
+【下载地址】 就是二哥在龙族号召大家玩的东东
+【软件简介】 学习脱壳而已：）
+pangzi2k@yahoo.com.cn
+【软件大小】 561k
+【加壳方式】 EXE32Pack 1.38 -> SteelBytes
+【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+--------------------------------------------------------------------------------
+## 破解内容
+
+`fi` 上查是 `EXE32Pack 1.38` -> `SteelBytes`
+`fi` 下，换 `olldby`
+
+`0054D00C` V> `3BC0` cmp eax,eax
+`0054D00E` 74 02 je short `VBExplor.0054D012`
+`0054D010` 8183 553BC074 028>add dword ptr ds:[ebx+74C03B55>
+`0054D01A` 3BC9 cmp ecx,ecx
+`0054D01C` 74 01 je short `VBExplor.0054D01F`
+`0054D01E` BC 563BD274 mov esp,74D23B56
+`0054D023` 0281 8557E800 add al,byte ptr ds:[ecx+E85785>
+`0054D029` 0000 add byte ptr ds:[eax],al
+`0054D02B` 003B add byte ptr ds:[ebx],bh
+`0054D02D` DB ??? ; 未知命令
+`0054D02E` 74 01 je short `VBExplor.0054D031`
+`0054D030` BE 5D8BD581 mov esi,81D58B5D
+`0054D035` ED in eax,dx
+`0054D036` DC8D 40003BE4 fmul qword ptr ss:[ebp+E43B004>
+`0054D03C` 74 02 je short `VBExplor.0054D040`
+
+`command--->BP IsDebuggerPresent`
+
+我笔记上找到的，正是世界上本没有路，走的人多了就成了路：）我也就在这路上走走
+
+`alt-b` 看断点
+断点，项目 0
+地址=`77E6191E` `KERNEL32.IsDebuggerPresent`
+模块=`KERNEL32`
+激活=永远
+没问题就走...
+
+`77E6191E` K> 64:A1 18000000 mov eax,dword ptr fs:[18] 断点去掉
+`77E61924` 8B40 30 mov eax,dword ptr ds:[eax+30]
+`77E61927` 0FB640 02 movzx eax,byte ptr ds:[eax+2]
+`77E6192B` C3 retn
+
+return 到下面：
+`005D3E05` 8BBD F18E4000 mov edi,dword ptr ss:[ebp+408E>
+`005D3E0B` 03BD 178F4000 add edi,dword ptr ss:[ebp+408F>; `VBExplor.00400000`
+
+到头了 `edi`=25342 就是偏移了
+`005D3E11` 3BED cmp ebp,ebp
+`005D3E13` 74 02 je short `VBExplor.005D3E17`
+`005D3E15` 8180 69C0D204 000>add dword ptr ds:[eax+4D2C069]>
+`005D3E1F` 81FB CC000000 cmp ebx,0CC
+`005D3E25` 75 05 jnz short `VBExplor.005D3E2C`
+`005D3E27` 05 59010000 add eax,159
+
+加上内存基址
+到 `00425342`
+`00425342` 55 push ebp oep=`00425342`
+`00425343` 8BEC mov ebp,esp
+`00425345` 6A FF push -1
+`00425347` 68 58124D00 push `VBExplor.004D1258`
+`0042534C` 68 CE544200 push `VBExplor.004254CE` ; jmp to `MSVCRT._except_handler3`
+`00425351` 64:A1 00000000 mov eax,dword ptr fs:[0]
+`00425357` 50 push eax
+`00425358` 64:8925 00000000 mov dword ptr fs:[0],esp
+`0042535F` 83EC 68 sub esp,68
+`00425362` 53 push ebx
+`00425363` 56 push esi
+`dump` 下来不能用：（
+
+`olldby` 下，`RecImport` 上
+进程原始 IAT 数据信息发现在: `000CCF24` 区块 RVA:`000CC000` 大小:`00023000`
+但还是初始化失败，不知道原因。
+
+`RecImport` 下，`olldby` 上
+`77FB17A4` C9 leave pe 头不正常，要修复，但手动麻烦的
+`77FB17A5` C2 0400 retn 4
+`77FB17A8` 55 push ebp
+`77FB17A9` 8BEC mov ebp,esp
+`77FB17AB` 8B45 08 mov eax,dword ptr ss:[ebp+8]
+`77FB17AE` 53 push ebx
+`77FB17AF` 56 push esi
+`77FB17B0` 57 push edi
+`77FB17B1` 8B7D 10 mov edi,dword ptr ss:[ebp+10]
+
+`olldby` 下，`PeDumper` 上
+删除未知区段，修复 pe 头，总算可以了。cool！
+
+## 脱壳脚本
+
+``` 
+/*
+/////////////////////////////////////////////////////////////////////////////////////
+  EXE32Pack 1.38 -> SteelBytes OEP finder
+  Author  : stasi[DCM][BCG][DFCG][FCG][OCN][CZG][D.4s]
+  Email   : stasi@163.com
+  Homepage: [`stasi.7169.com`](http://stasi.7169.com)
+  OS      : Win2kADV sp4,OllyDbg 1.1c,OllyScript v0.92
+  Date    : 2004-11-20
+  Config  : Exceptions:uncheck all. you don't need to hide the DeBugger,i'll do for u!
+  Note    : If you have one or more question, email me please,thank you!
+//////////////////////////////////////////////////////////////////////////////////////
+*/
+  var stasi
+  lblset:
+  cmp $VERSION, "0.9"
+  ja start
+  msgyn "Your ollyscript is too old,maybe have something wrong,Continue?"
+  cmp $RESULT,0
+  je end
+  jmp start
+  start:
+  dbh
+  gpa "IsDebuggerPresent", "KERNEL32.dll"
+  bp $RESULT
+  run
+  bpmc
+  sto
+  sto
+  sto
+  sto
+  sto
+  sto
+  mov stasi, edi
+  bp stasi
+  run
+  jmp lblend
+  lblend:
+  cmt eip, "here is the OEP of EXE32Pack 1.38 -> SteelBytes!"
+  msg "Script by stasi[DCM][BCG][DFCG][FCG][OCN][CZG][D.4s],Thank you for using my Scripts!"
+  jmp end
+  end:
+  ret
+  //the end!
+```
+
+--------------------------------------------------------------------------------
+## 破解总结
+
+德语的四六级考试都通过了，又有时间到论坛看看，轻松多了！
+Greetz:
+Fly.loveboom.David.xikug.heXpe.LeNgHoSt.all of my friends and you!
+By stasi[DCM][BCG][DFCG][FCG][OCN][CZG][D.4s]
+Email:stasi@163.com
+
+--------------------------------------------------------------------------------
+## 版权声明
+
+本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+4dd466d0e1e0cc123afbe504da2462ca

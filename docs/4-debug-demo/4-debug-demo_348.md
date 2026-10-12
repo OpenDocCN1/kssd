@@ -1,144 +1,165 @@
 
-
 # unEbookEdit 1.51
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6045.htm`](https://www.pediy.com/kssd/pediy06/pediy6045.htm)
 
-国华软件（http://www.etextwizard.com）可能是比较看好的软件，其代表做 eTextWizard 由 pcode 写成，令人望而却步，但是几款反编译 eBook 的是由 Delphi+Upx 而成，让我想来尝试一下。   
-  
-  首先根据前辈的经历，我们把相关的工具（OD、dede、ProcDump）伪装一下，其中我的 OD 标题以及 ClassName 变动了，ProcDump 通过 ini 也改变了，dede 就放到同学机器上使用，准备就绪后，开始 pj。   
-  
-  这里选择的对象是（http://www.etextwizard.com/download/uneep/uneepsetup.exe）Ver1.51 Build660。   
-  
-  用变态 OD 载入，很容易来到 OEP 处，此时用变态 ProcDump 来 Dump Full，另存一个 unpacked 作为参考。用 UE 打开 unpacked 和 chinesegb2312.lng（这是程序的语言文件，它是整个 pj 过程的突破口），其中的：   
-  
-Form3.u3BT1.Hint=马上校验注册信息   
-Form3.u3BT1.Caption=确定   
-  
-  告诉我们注册窗口的确定按钮名称，根据它可以在 unpacked 中查找字符串 u3BT1Click，也就是按钮的响应事件，也就找到了代码位置＝004D6668。在 OD 中断这个位置，中断以后发现大量的花指令，这里就看基本功了：   
-  
-004D668D  .  8B83 00030000 MOV EAX, DWORD PTR DS:\[EBX+300\]   
-004D6693  .  E8 0C2FF7FF  CALL unEbookE.004495A4   
-004D6698  .  837D FC 00    CMP DWORD PTR SS:\[EBP\-4\], 0              ；获得用户名   
-  
-004D66A7  .  8B83 04030000 MOV EAX, DWORD PTR DS:\[EBX+304\]   
-004D66AD  .  E8 F22EF7FF  CALL unEbookE.004495A4   
-004D66B2  .  837D F8 00    CMP DWORD PTR SS:\[EBP\-8\], 0              ；获得注册码   
-  
-004D66DE  .  8B45 F0      MOV EAX, DWORD PTR SS:\[EBP\-10\]          ；用户名   
-004D66E1  .  5A            POP EDX                                  ；注册码   
-004D66E2  .  E8 B18B0000  CALL unEbookE.004DF298                  ；跟进去啊！   
-  
-  进来了看：   
-004DF2D7  >  E8 6877FEFF  CALL unEbookE.004C6A44                  ；这里的两个函数会频繁一起出现   
-004DF2DC  .  E8 A381FEFF  CALL unEbookE.004C7484                  ；就是 Anti-Debug 的   
-  
-004DF322  >  E8 B977FEFF  CALL unEbookE.004C6AE0   
-004DF327  .  E8 A0BAFFFF  CALL unEbookE.004DADCC   
-  
-004DF334  >  E8 E386FEFF  CALL unEbookE.004C7A1C   
-004DF339  .  E8 4681FEFF  CALL unEbookE.004C7484   
-  
-004DF386  >  E8 D978FEFF  CALL unEbookE.004C6C64   
-004DF38B  .  E8 F480FEFF  CALL unEbookE.004C7484                  ；一样讨厌的代码   
-  
-  在此软件中经常出现上面的代码，习惯就好了，现在开始检查注册码了：   
-004DF3AE  >  8B45 F8      MOV EAX, DWORD PTR SS:\[EBP\-8\]   
-004DF3B1  .  E8 BA54F2FF  CALL unEbookE.00404870                  ；注册码长度   
-004DF3B6  .  83F8 0F      CMP EAX, 0F   
-004DF3B9  .  0F8C 8D010000 JL unEbookE.004DF54C                    ；长度大于等于 15   
-004DF3C2  .  8B45 FC      MOV EAX, DWORD PTR SS:\[EBP\-4\]   
-004DF3C5  .  E8 FA54FEFF  CALL unEbookE.004C48C4                  ；用户名的 ASCII 拼接串   
-                                                                    ；例如 upfeed -> 757066656564   
-  
-004DF3E1  .  E8 FE5BFEFF  CALL unEbookE.004C4FE4                  ；这是个非常非常非常重要的函数，解密字符串的   
-                                                                    ；可惜算法极其简单   
-  
-  接下来的是把注册信息写入 unEbookEdit.ini 文件保存，我的是这样的：   
-\[EOptions\]   
-appfontcolor=645321（软件的大小的上限）   
-EXEtype=757066656564（用户名）   
-EXEfmt=37352D656570373837383132333435（注册码）   
-  
-  往下走，又是很多的 Anti 代码，直到：   
-004DF5F4  .  8B45 F8      MOV EAX, DWORD PTR SS:\[EBP\-8\]   
-004DF5F7  .  E8 7452F2FF  CALL unEbookE.00404870                  ；注册码长度要大于 14   
-004DF5FC  .  83F8 0E      CMP EAX, 0E   
-  
-004DF610  .  66:BA 0500    MOV DX, 5   
-004DF614  .  8B45 FC      MOV EAX, DWORD PTR SS:\[EBP\-4\]            ；用户名   
-004DF617  .  E8 6854FEFF  CALL unEbookE.004C4A84                  ；用户名各位 ASCII 值 xor 5 连接成字符串   
-                                                                    ；例如 upfeed -> 707563606061   
-  
-  接下来的是把注册信息写入 win.ini 文件保存，我的是这样的：   
-\[EOptions\]   
-sysinfo=707563606061（用户名 xor 5）   
-infosys=3E3C246C6C793E313E31383B3A3D3C（注册码 xor 9）   
-appfontcolor=645321（软件的大小的上限）   
-  
-  
-  然后如何提示没有就退出来了，不由得发呆一会，应该何去何从呢？还是看 help 把。原来未注册的版本在处理的时候会有小动作，好吧去下一本 Ebook 来看，于是好不容易找到了（http://home.eshunet.com/a/a2300/2276.htm）莫泊桑的大作，处理完毕发现果然很多页面是空白的，现在就来到“开始”按钮处理的地方看，怎么到这里完全参考前面的方法：004D9B80 就是的。   
-  
-  在这里中断后，我们不得不读很多无关代码，比如检查 Ebook 的有效性等等，耐心的读过去，一直到：   
-  
-004E272B  .  8B45 FC      MOV EAX, DWORD PTR SS:\[EBP\-4\]            ；就是 Ebook 的名字   
-004E272E  .  E8 9D6DF2FF  CALL unEbookE.004094D0                  ；可以敏感的觉察到这个就是 FileExists 函数   
-  
-  在 004094D0 处断，那么检查 keyfile 的时候肯定会经过这里，果然就是，需要一个名为“eep27953735.dat”的文件，我们看看怎么得到的这个文件名：   
-  
-004E135D  .  8B45 E8      MOV EAX, DWORD PTR SS:\[EBP\-18\]   
-004E1360  .  8D4D F8      LEA ECX, DWORD PTR SS:\[EBP\-8\]   
-004E1363  .  66:BA 0500    MOV DX, 5   
-004E1367  .  E8 1838FEFF  CALL unEbookE.004C4B84                  ；读出 ini 解密得到用户名   
-  
-004E13D4  .  8B45 CC      MOV EAX, DWORD PTR SS:\[EBP\-34\]   
-004E13D7  .  8D4D F4      LEA ECX, DWORD PTR SS:\[EBP\-C\]   
-004E13DA  .  66:BA 0900    MOV DX, 9   
-004E13DE  .  E8 A137FEFF  CALL unEbookE.004C4B84                  ；读出 ini 解密得到注册码   
-  
-004E13E9  >  8B45 F4      MOV EAX, DWORD PTR SS:\[EBP\-C\]   
-004E13EC  .  E8 7F34F2FF  CALL unEbookE.00404870                  ；看看处理第几页，是否需要判断注册成功否   
-004E13F1  .  83F8 0D      CMP EAX, 0D   
-004E13F4  .  7C 34        JL SHORT unEbookE.004E142A   
-  
-004E140E  .  8B45 B0      MOV EAX, DWORD PTR SS:\[EBP\-50\]          ；‘-eep’   
-004E1411  .  8B55 F4      MOV EDX, DWORD PTR SS:\[EBP\-C\]            ；注册码   
-004E1414  .  E8 9337F2FF  CALL unEbookE.00404BAC                  ；是否包含子串   
-  
-004E1473  .  B9 02000000  MOV ECX, 2   
-004E1478  .  BA 01000000  MOV EDX, 1   
-004E147D  .  8B45 F4      MOV EAX, DWORD PTR SS:\[EBP\-C\]   
-004E1480  .  E8 9B17FBFF  CALL unEbookE.00492C20                  ；Copy(Code, 1, 2)注册码前 2 位   
-  
-004E14B5  .  83EA 03      SUB EDX, 3   
-004E14B8  .  B9 04000000  MOV ECX, 4   
-004E14BD  .  8B45 F4      MOV EAX, DWORD PTR SS:\[EBP\-C\]   
-004E14C0  .  E8 0336F2FF  CALL unEbookE.00404AC8                  ；Copy(Code, Length-3, 4)注册码后 4 位   
-  
-  下面变幻用户名的时候，作者可能出现了 BUG，把 Delphi 中的字符串从 0 开始计算，导致一些隐患：   
-  
-004E14E3  >  8B4D F8      MOV ECX, DWORD PTR SS:\[EBP\-8\]   
-004E14E6  .  8A4C11 FF    MOV CL, BYTE PTR DS:\[ECX+EDX\-1\]   
-004E14EA  .  80F1 52      XOR CL, 52   
-004E14ED  .  81E1 FF000000 AND ECX, 0FF   
-004E14F3  .  03D9          ADD EBX, ECX   
-004E14F5  .  42            INC EDX   
-004E14F6  .  48            DEC EAX   
-004E14F7  .^ 75 E4        JNZ SHORT unEbookE.004E14DD   
-  
-  上面的算法描速如下：   
-  
-for i:=0 to Length(Name)-1 do   
-begin   
-  sum := sum + Ord(Name\[i\]) xor $52;//Name\[0\]=0   
-end//结果存放在 EBX 中   
-  
-004E1511  >  8B45 F4      MOV EAX, DWORD PTR SS:\[EBP\-C\]   
-004E1514  .  E8 737DF2FF  CALL unEbookE.0040928C                  ；注册码后四位变成数值   
-  
-004E1519  .  81F3 FF000000 XOR EBX, 0FF   
-004E151F  .  03C3          ADD EAX, EBX   
-004E1521  .  8D55 A0      LEA EDX, DWORD PTR SS:\[EBP\-60\]   
-004E1524  .  E8 837CF2FF  CALL unEbookE.004091AC                  ；形成了文件名的一部分   
-  
-  原来文件名是由 'eep' + 用户名变幻的结果 + 注册码前两位的 ACSII 值 + '.dat'而成。  4dd466d0e1e0cc123afbe504da2462ca
+国华软件（`http://www.etextwizard.com`）可能是比较看好的软件，其代表作 `eTextWizard` 由 `pcode` 写成，令人望而却步，但是几款反编译 `eBook` 的是由 `Delphi`+`Upx` 而成，让我想来尝试一下。
+
+首先根据前辈的经历，我们把相关的工具（`OD`、`dede`、`ProcDump`）伪装一下，其中我的 `OD` 标题以及 `ClassName` 变动了，`ProcDump` 通过 `ini` 也改变了，`dede` 就放到同学机器上使用，准备就绪后，开始 `pj`。
+
+这里选择的对象是（`http://www.etextwizard.com/download/uneep/uneepsetup.exe`）`Ver1.51` `Build660`。
+
+用变态 `OD` 载入，很容易来到 `OEP` 处，此时用变态 `ProcDump` 来 `Dump` `Full`，另存一个 `unpacked` 作为参考。用 `UE` 打开 `unpacked` 和 `chinesegb2312.lng`（这是程序的语言文件，它是整个 `pj` 过程的突破口），其中的：
+
+```
+Form3.u3BT1.Hint=马上校验注册信息
+
+Form3.u3BT1.Caption=确定
+```
+
+告诉我们注册窗口的确定按钮名称，根据它可以在 `unpacked` 中查找字符串 `u3BT1Click`，也就是按钮的响应事件，也就找到了代码位置＝`004D6668`。在 `OD` 中断这个位置，中断以后发现大量的花指令，这里就看基本功了：
+
+```
+004D668D  .  8B83 00030000 MOV EAX, DWORD PTR DS:\[EBX+300\]
+004D6693  .  E8 0C2FF7FF   CALL unEbookE.004495A4
+004D6698  .  837D FC 00    CMP DWORD PTR SS:\[EBP\-4\], 0                 ；获得用户名
+004D66A7  .  8B83 04030000 MOV EAX, DWORD PTR DS:\[EBX+304\]
+004D66AD  .  E8 F22EF7FF   CALL unEbookE.004495A4
+004D66B2  .  837D F8 00    CMP DWORD PTR SS:\[EBP\-8\], 0                 ；获得注册码
+004D66DE  .  8B45 F0       MOV EAX, DWORD PTR SS:\[EBP\-10\]              ；用户名
+004D66E1  .  5A            POP EDX                                        ；注册码
+004D66E2  .  E8 B18B0000   CALL unEbookE.004DF298                         ；跟进去啊！
+```
+
+进来了看：
+
+```
+004DF2D7  >  E8 6877FEFF   CALL unEbookE.004C6A44                         ；这里的两个函数会频繁一起出现
+004DF2DC  .  E8 A381FEFF   CALL unEbookE.004C7484                         ；就是 Anti-Debug 的
+004DF322  >  E8 B977FEFF   CALL unEbookE.004C6AE0
+004DF327  .  E8 A0BAFFFF   CALL unEbookE.004DADCC
+004DF334  >  E8 E386FEFF   CALL unEbookE.004C7A1C
+004DF339  .  E8 4681FEFF   CALL unEbookE.004C7484
+004DF386  >  E8 D978FEFF   CALL unEbookE.004C6C64
+004DF38B  .  E8 F480FEFF   CALL unEbookE.004C7484                         ；一样讨厌的代码
+```
+
+在此软件中经常出现上面的代码，习惯就好了，现在开始检查注册码了：
+
+```
+004DF3AE  >  8B45 F8       MOV EAX, DWORD PTR SS:\[EBP\-8\]
+004DF3B1  .  E8 BA54F2FF   CALL unEbookE.00404870                         ；注册码长度
+004DF3B6  .  83F8 0F       CMP EAX, 0F
+004DF3B9  .  0F8C 8D010000 JL unEbookE.004DF54C                           ；长度大于等于 15
+004DF3C2  .  8B45 FC       MOV EAX, DWORD PTR SS:\[EBP\-4\]
+004DF3C5  .  E8 FA54FEFF   CALL unEbookE.004C48C4                         ；用户名的 ASCII 拼接串
+                                                                            ；例如 upfeed -> 757066656564
+004DF3E1  .  E8 FE5BFEFF   CALL unEbookE.004C4FE4                         ；这是个非常非常非常重要的函数，解密字符串的
+                                                                            ；可惜算法极其简单
+```
+
+接下来的是把注册信息写入 `unEbookEdit.ini` 文件保存，我的是这样的：
+
+```
+\[EOptions\]
+
+appfontcolor=645321（软件的大小的上限）
+
+EXEtype=757066656564（用户名）
+
+EXEfmt=37352D656570373837383132333435（注册码）
+```
+
+往下走，又是很多的 `Anti` 代码，直到：
+
+```
+004DF5F4  .  8B45 F8       MOV EAX, DWORD PTR SS:\[EBP\-8\]
+004DF5F7  .  E8 7452F2FF   CALL unEbookE.00404870                         ；注册码长度要大于 14
+004DF5FC  .  83F8 0E       CMP EAX, 0E
+004DF610  .  66:BA 0500    MOV DX, 5
+004DF614  .  8B45 FC       MOV EAX, DWORD PTR SS:\[EBP\-4\]              ；用户名
+004DF617  .  E8 6854FEFF   CALL unEbookE.004C4A84                         ；用户名各位 ASCII 值 xor 5 连接成字符串
+                                                                            ；例如 upfeed -> 707563606061
+```
+
+接下来的是把注册信息写入 `win.ini` 文件保存，我的是这样的：
+
+```
+\[EOptions\]
+
+sysinfo=707563606061（用户名 xor 5）
+
+infosys=3E3C246C6C793E313E31383B3A3D3C（注册码 xor 9）
+
+appfontcolor=645321（软件的大小的上限）
+```
+
+然后如何提示没有就退出来了，不由得发呆一会，应该何去何从呢？还是看 `help` 把。原来未注册的版本在处理的时候会有小动作，好吧去下一本 `Ebook` 来看，于是好不容易找到了（`http://home.eshunet.com/a/a2300/2276.htm`）莫泊桑的大作，处理完毕发现果然很多页面是空白的，现在就来到“开始”按钮处理的地方看，怎么到这里完全参考前面的方法：`004D9B80` 就是的。
+
+在这里中断后，我们不得不读很多无关代码，比如检查 `Ebook` 的有效性等等，耐心的读过去，一直到：
+
+```
+004E272B  .  8B45 FC       MOV EAX, DWORD PTR SS:\[EBP\-4\]              ；就是 Ebook 的名字
+004E272E  .  E8 9D6DF2FF   CALL unEbookE.004094D0                         ；可以敏感的觉察到这个就是 FileExists 函数
+```
+
+在 `004094D0` 处断，那么检查 `keyfile` 的时候肯定会经过这里，果然就是，需要一个名为“`eep27953735.dat`”的文件，我们看看怎么得到的这个文件名：
+
+```
+004E135D  .  8B45 E8       MOV EAX, DWORD PTR SS:\[EBP\-18\]
+004E1360  .  8D4D F8       LEA ECX, DWORD PTR SS:\[EBP\-8\]
+004E1363  .  66:BA 0500    MOV DX, 5
+004E1367  .  E8 1838FEFF   CALL unEbookE.004C4B84                         ；读出 ini 解密得到用户名
+004E13D4  .  8B45 CC       MOV EAX, DWORD PTR SS:\[EBP\-34\]
+004E13D7  .  8D4D F4       LEA ECX, DWORD PTR SS:\[EBP\-C\]
+004E13DA  .  66:BA 0900    MOV DX, 9
+004E13DE  .  E8 A137FEFF   CALL unEbookE.004C4B84                         ；读出 ini 解密得到注册码
+004E13E9  >  8B45 F4       MOV EAX, DWORD PTR SS:\[EBP\-C\]
+004E13EC  .  E8 7F34F2FF   CALL unEbookE.00404870                         ；看看处理第几页，是否需要判断注册成功否
+004E13F1  .  83F8 0D       CMP EAX, 0D
+004E13F4  .  7C 34         JL SHORT unEbookE.004E142A
+004E140E  .  8B45 B0       MOV EAX, DWORD PTR SS:\[EBP\-50\]             ；‘-eep’
+004E1411  .  8B55 F4       MOV EDX, DWORD PTR SS:\[EBP\-C\]             ；注册码
+004E1414  .  E8 9337F2FF   CALL unEbookE.00404BAC                         ；是否包含子串
+004E1473  .  B9 02000000   MOV ECX, 2
+004E1478  .  BA 01000000   MOV EDX, 1
+004E147D  .  8B45 F4       MOV EAX, DWORD PTR SS:\[EBP\-C\]
+004E1480  .  E8 9B17FBFF   CALL unEbookE.00492C20                         ；Copy(Code, 1, 2)注册码前 2 位
+004E14B5  .  83EA 03       SUB EDX, 3
+004E14B8  .  B9 04000000   MOV ECX, 4
+004E14BD  .  8B45 F4       MOV EAX, DWORD PTR SS:\[EBP\-C\]
+004E14C0  .  E8 0336F2FF   CALL unEbookE.00404AC8                         ；Copy(Code, Length-3, 4)注册码后 4 位
+```
+
+下面变幻用户名的时候，作者可能出现了 `BUG`，把 `Delphi` 中的字符串从 `0` 开始计算，导致一些隐患：
+
+```
+004E14E3  >  8B4D F8       MOV ECX, DWORD PTR SS:\[EBP\-8\]
+004E14E6  .  8A4C11 FF     MOV CL, BYTE PTR DS:\[ECX+EDX\-1\]
+004E14EA  .  80F1 52       XOR CL, 52
+004E14ED  .  81E1 FF000000 AND ECX, 0FF
+004E14F3  .  03D9          ADD EBX, ECX
+004E14F5  .  42            INC EDX
+004E14F6  .  48            DEC EAX
+004E14F7  .^ 75 E4        JNZ SHORT unEbookE.004E14DD
+```
+
+上面的算法描速如下：
+
+```
+for i:=0 to Length(Name)-1 do
+begin
+  sum := sum + Ord(Name\[i\]) xor $52;//Name\[0\]=0
+end//结果存放在 EBX 中
+```
+
+```
+004E1511  >  8B45 F4       MOV EAX, DWORD PTR SS:\[EBP\-C\]
+004E1514  .  E8 737DF2FF   CALL unEbookE.0040928C                         ；注册码后四位变成数值
+004E1519  .  81F3 FF000000 XOR EBX, 0FF
+004E151F  .  03C3          ADD EAX, EBX
+004E1521  .  8D55 A0       LEA EDX, DWORD PTR SS:\[EBP\-60\]
+004E1524  .  E8 837CF2FF   CALL unEbookE.004091AC                         ；形成了文件名的一部分
+```
+
+原来文件名是由 `'eep'` + 用户名变幻的结果 + 注册码前两位的 `ACSII` 值 + `'.dat'`而成。

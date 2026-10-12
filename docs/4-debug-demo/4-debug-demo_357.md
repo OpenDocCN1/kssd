@@ -1,352 +1,581 @@
 
-
 # WinHex9.9 sr-3
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum1118.htm`](https://www.pediy.com/kssd/pediy03/forum1118.htm)
 
-用 user.txt 使 winhex 认为已注册……   
-:004585C0 803C2400                cmp byte ptr \[esp\], 00   
-:004585C4 7412                    je 004585D8   
-:004585C6 8B4610                  mov eax, dword ptr \[esi+10\]   
-:004585C9 B201                    mov dl, 01   
-:004585CB E85C43FBFF              call 0040C92C   
-:004585D0 84C0                    test al, al        <-从提示是否更新文件的提示框中出来   
-:004585D2 0F84DF000000            je 004586B7   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:004585B5(C), :004585BE(C), :004585C4(C)   
-|   
-:004585D8 DF6E14                  fild qword ptr \[esi+14\]   
-:004585DB D81DC4864500            fcomp dword ptr \[004586C4\]   
-:004585E1 DFE0                    fstsw ax   
-:004585E3 9E                      sahf   
-:004585E4 760D                    jbe 004585F3   
-:004585E6 803DE352460000          cmp byte ptr \[004652E3\], 00   
-:004585ED 0F84C4000000            je 004586B7   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:004585E4(C)   
-|   
-  
-\* Possible Reference to Menu: MenuID\_0002   
-                                  |   
-:004585F3 6A02                    push 00000002   
-:004585F5 668B864C210000          mov ax, word ptr \[esi+0000214C\]   
-:004585FC E8CB55FBFF              call 0040DBCC        <-这个是生成 TMP 文件的 CALL   
-:00458601 8BD0                    mov edx, eax   
-:00458603 8B4E10                  mov ecx, dword ptr \[esi+10\]   
-:00458606 8D4608                  lea eax, dword ptr \[esi+08\]   
-:00458609 E80E05FCFF              call 00418B1C        <-这个是写入文件的 CALL   
-:0045860E 84C0                    test al, al   
-:00458610 0F84A1000000            je 004586B7   
-:00458616 807E3A03                cmp byte ptr \[esi+3A\], 03   
-:0045861A 750D                    jne 00458629   
-:0045861C A0364B4600              mov al, byte ptr \[00464B36\]   
-:00458621 888671210000            mov byte ptr \[esi+00002171\], al   
-:00458627 EB26                    jmp 0045864F   
-  
-  
-\------------------------------------------------------------------------   
-下面是写文件的 CALL 内……   
-:00418B1C 55                      push ebp   
-:00418B1D 8BEC                    mov ebp, esp   
-:00418B1F 51                      push ecx   
-:00418B20 53                      push ebx   
-:00418B21 56                      push esi   
-:00418B22 57                      push edi   
-:00418B23 8BF1                    mov esi, ecx   
-:00418B25 8955FC                  mov dword ptr \[ebp\-04\], edx   
-:00418B28 8BF8                    mov edi, eax   
-:00418B2A 807F3203                cmp byte ptr \[edi+32\], 03    <--这个是当未注册时，文件小于 250K 的就在就进入，否则跳……   
-:00418B2E 752D                    jne 00418B5D   
-:00418B30 8D471C                  lea eax, dword ptr \[edi+1C\]   
-:00418B33 50                      push eax   
-:00418B34 8A4D08                  mov cl, byte ptr \[ebp+08\]   
-:00418B37 8BD6                    mov edx, esi   
-:00418B39 8B45FC                  mov eax, dword ptr \[ebp\-04\]   
-:00418B3C E85BF4FFFF              call 00417F9C            <--这个是写入文件小于 250K 的 CALL，大老兄可能是用这个 CALL 作写入文件的   
-:00418B41 84C0                    test al, al   
-:00418B43 0F94C3                  sete bl   
-:00418B46 834F2020                or dword ptr \[edi+20\], 00000020   
-:00418B4A 8B4720                  mov eax, dword ptr \[edi+20\]   
-:00418B4D 83C820                  or eax, 00000020   
-:00418B50 50                      push eax   
-:00418B51 684C564600              push 0046564C   
-  
-\* Reference To: kernel32.SetFileAttributesA, Ord:0000h   
-                                  |   
-:00418B56 E869BEFEFF              Call 004049C4   
-:00418B5B EB7D                    jmp 00418BDA   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:00418B2E(C)   
-|   
-:00418B5D 33DB                    xor ebx, ebx   
-:00418B5F 56                      push esi   
-:00418B60 8B4708                  mov eax, dword ptr \[edi+08\]   
-:00418B63 50                      push eax   
-  
-\* Reference To: kernel32.lstrcmpiA, Ord:0000h   
-                                  |   
-:00418B64 E82BBFFEFF              Call 00404A94           
-:00418B69 85C0                    test eax, eax   
-:00418B6B 7413                    je 00418B80   
-:00418B6D 6A00                    push 00000000   
-:00418B6F 8B4708                  mov eax, dword ptr \[edi+08\]   
-:00418B72 8A4D08                  mov cl, byte ptr \[ebp+08\]   
-:00418B75 8BD6                    mov edx, esi   
-:00418B77 E820F4FFFF              call 00417F9C        <-作另存为写入的 CALL，   
-:00418B7C 84C0                    test al, al   
-:00418B7E 755A                    jne 00418BDA   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:00418B6B(C)   
-|   
-:00418B80 807F3300                cmp byte ptr \[edi+33\], 00   
-:00418B84 742C                    je 00418BB2   
-:00418B86 E8A5F1FFFF              call 00417D30        <-这个 CALL 是判断注册码是否正确的 CALL，所有判断是否注册正确都会进入 417D30 的！   
-:00418B8B 84C0                    test al, al   
-:00418B8D 744B                    je 00418BDA   
-:00418B8F B9C05A4600              mov ecx, 00465AC0   
-:00418B94 8BD6                    mov edx, esi   
-:00418B96 8B45FC                  mov eax, dword ptr \[ebp\-04\]   
-:00418B99 E876E9FFFF              call 00417514        <-这个我想是当上面的 CALL 判断正确后，这段程序是作写入文件的 CALL，但现在一进入会出错！   
-:00418B9E 85C0                    test eax, eax   
-:00418BA0 740C                    je 00418BAE   
-:00418BA2 BAC05A4600              mov edx, 00465AC0   
-:00418BA7 E85C15FFFF              call 0040A108   
-:00418BAC EB2C                    jmp 00418BDA   
-  
-\---------------------------------------------------------------   
-下面是判断注册码是否正确的 CALL 内的程序   
-:00417D30 53                      push ebx   
-:00417D31 56                      push esi   
-:00417D32 81C408F9FFFF            add esp, FFFFF908   
-:00417D38 33DB                    xor ebx, ebx   
-:00417D3A A178ED4500              mov eax, dword ptr \[0045ED78\]   
-:00417D3F 05BC060000              add eax, 000006BC   
-:00417D44 48                      dec eax   
-:00417D45 A3EC534600              mov dword ptr \[004653EC\], eax   
-:00417D4A 803DB465460000          cmp byte ptr \[004665B4\], 00    <-判断这个标记是否已经执行过下面的程序   
-:00417D51 7407                    je 00417D5A   
-:00417D53 B301                    mov bl, 01   
-:00417D55 E9DF010000              jmp 00417F39   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:00417D51(C)   
-|   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: " "   
-                                  |   
-:00417D5A 6A1C                    push 0000001C   
-:00417D5C 8D442410                lea eax, dword ptr \[esp+10\]   
-:00417D60 50                      push eax   
-:00417D61 6800004000              push 00400000   
-  
-\* Reference To: kernel32.VirtualQuery, Ord:0000h   
-                                  |   
-:00417D66 E8B9CCFEFF              Call 00404A24   
-:00417D6B 54                      push esp   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: "Position markieren  Strg+I"   
-                                  |   
-:00417D6C 6A40                    push 00000040   
-:00417D6E 8B442420                mov eax, dword ptr \[esp+20\]   
-:00417D72 50                      push eax   
-:00417D73 8B442418                mov eax, dword ptr \[esp+18\]   
-:00417D77 50                      push eax   
-  
-\* Reference To: kernel32.VirtualProtect, Ord:0000h   
-                                  |   
-:00417D78 E897CCFEFF              Call 00404A14   
-:00417D7D 85C0                    test eax, eax   
-:00417D7F 0F8497010000            je 00417F1C   
-:00417D85 8D442439                lea eax, dword ptr \[esp+39\]   
-:00417D89 B9BC060000              mov ecx, 000006BC   
-:00417D8E 8B1578ED4500            mov edx, dword ptr \[0045ED78\]   
-:00417D94 E857D3FEFF              call 004050F0   
-:00417D99 E826FEFFFF              call 00417BC4   
-:00417D9E BAB8654600              mov edx, 004665B8   
-:00417DA3 8D442428                lea eax, dword ptr \[esp+28\]   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: "Sicherung laden..."   
-                                  |   
-:00417DA7 B910000000              mov ecx, 00000010   
-:00417DAC E83FD3FEFF              call 004050F0   
-:00417DB1 6A00                    push 00000000   
-:00417DB3 8D4C242C                lea ecx, dword ptr \[esp+2C\]   
-:00417DB7 BA08574000              mov edx, 00405708   
-:00417DBC 33C0                    xor eax, eax   
-:00417DBE E835DCFEFF              call 004059F8   
-:00417DC3 8BF0                    mov esi, eax   
-:00417DC5 6A00                    push 00000000   
-:00417DC7 8D54243D                lea edx, dword ptr \[esp+3D\]   
-:00417DCB B9BC060000              mov ecx, 000006BC   
-:00417DD0 8BC6                    mov eax, esi   
-:00417DD2 E80DDDFEFF              call 00405AE4            <-这个 CALL 是得到将注册信息转为程序的 CALL   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: "Hex-Werte  Strg+Shift+C"   
-                                  |   
-:00417DD7 BA2C000000              mov edx, 0000002C   
-:00417DDC 8BC6                    mov eax, esi   
-:00417DDE E8B1A7FEFF              call 00402594   
-:00417DE3 8D442428                lea eax, dword ptr \[esp+28\]   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: "Sicherung laden..."   
-                                  |   
-:00417DE7 BA10000000              mov edx, 00000010   
-:00417DEC E807D3FEFF              call 004050F8   
-:00417DF1 B8B8654600              mov eax, 004665B8   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: "Sicherung laden..."   
-                                  |   
-:00417DF6 BA10000000              mov edx, 00000010   
-:00417DFB E8F8D2FEFF              call 004050F8   
-:00417E00 8D442408                lea eax, dword ptr \[esp+08\]   
-:00417E04 50                      push eax   
-:00417E05 68BC060000              push 000006BC   
-:00417E0A 8D442441                lea eax, dword ptr \[esp+41\]   
-:00417E0E 50                      push eax   
-:00417E0F A178ED4500              mov eax, dword ptr \[0045ED78\]   
-:00417E14 50                      push eax   
-  
-\* Reference To: kernel32.GetCurrentProcess, Ord:0000h   
-                                  |   
-:00417E15 E822CAFEFF              Call 0040483C   
-:00417E1A 50                      push eax   
-  
-\* Reference To: kernel32.WriteProcessMemory, Ord:0000h   
-                                  |   
-:00417E1B E82CCCFEFF              Call 00404A4C        <-这个是将注册信息转为程序，再将其写入自身的程序中……这段程序可能是作写入文件的程序   
-:00417E20 85C0                    test eax, eax   
-:00417E22 0F84F4000000            je 00417F1C   
-:00417E28 817C2408BC060000        cmp dword ptr \[esp+08\], 000006BC   
-:00417E30 0F85E6000000            jne 00417F1C   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: "einf 黦 en...  Strg+V"   
-                                  |   
-:00417E36 6A20                    push 00000020   
-:00417E38 68B8514600              push 004651B8   
-:00417E3D 8D442441                lea eax, dword ptr \[esp+41\]   
-:00417E41 50                      push eax   
-  
-\* Reference To: kernel32.lstrcpynA, Ord:0000h   
-                                  |   
-:00417E42 E855CCFEFF              Call 00404A9C   
-:00417E47 8D442428                lea eax, dword ptr \[esp+28\]   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: "Sicherung laden..."   
-                                  |   
-:00417E4B BA10000000              mov edx, 00000010   
-:00417E50 E8A3D2FEFF              call 004050F8   
-  
-\* Possible StringData Ref from Data Obj ->"Offset"   
-                                  |   
-:00417E55 BAE4E14500              mov edx, 0045E1E4   
-:00417E5A 8D442428                lea eax, dword ptr \[esp+28\]   
-:00417E5E E899D3FEFF              call 004051FC   
-:00417E63 6A00                    push 00000000   
-:00417E65 8D4C242C                lea ecx, dword ptr \[esp+2C\]   
-:00417E69 BA08574000              mov edx, 00405708   
-:00417E6E 33C0                    xor eax, eax   
-:00417E70 E883DBFEFF              call 004059F8   
-:00417E75 8BF0                    mov esi, eax   
-:00417E77 6A00                    push 00000000   
-:00417E79 8D54243D                lea edx, dword ptr \[esp+3D\]   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: "einf 黦 en...  Strg+V"   
-                                  |   
-:00417E7D B920000000              mov ecx, 00000020   
-:00417E82 8BC6                    mov eax, esi   
-:00417E84 E85BDCFEFF              call 00405AE4   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: "Hex-Werte  Strg+Shift+C"   
-                                  |   
-:00417E89 BA2C000000              mov edx, 0000002C   
-:00417E8E 8BC6                    mov eax, esi   
-:00417E90 E8FFA6FEFF              call 00402594   
-:00417E95 8D442428                lea eax, dword ptr \[esp+28\]   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: "Sicherung laden..."   
-                                  |   
-:00417E99 BA10000000              mov edx, 00000010   
-:00417E9E E855D2FEFF              call 004050F8   
-:00417EA3 8D442408                lea eax, dword ptr \[esp+08\]   
-:00417EA7 50                      push eax   
-  
-\* Possible Ref to Menu: MenuID\_0001, Item: "einf 黦 en...  Strg+V"   
-                                  |   
-:00417EA8 6A20                    push 00000020   
-:00417EAA 8D442441                lea eax, dword ptr \[esp+41\]   
-:00417EAE 50                      push eax   
-:00417EAF A178ED4500              mov eax, dword ptr \[0045ED78\]   
-:00417EB4 05A0010000              add eax, 000001A0   
-:00417EB9 50                      push eax   
-  
-\* Reference To: kernel32.GetCurrentProcess, Ord:0000h   
-                                  |   
-:00417EBA E87DC9FEFF              Call 0040483C   
-:00417EBF 50                      push eax   
-  
-\* Reference To: kernel32.WriteProcessMemory, Ord:0000h   
-                                  |   
-:00417EC0 E887CBFEFF              Call 00404A4C        <-这段写入自身的程序可能是作写入内存的程序   
-:00417EC5 8D442439                lea eax, dword ptr \[esp+39\]   
-:00417EC9 BABC060000              mov edx, 000006BC   
-:00417ECE E825D2FEFF              call 004050F8   
-:00417ED3 8D442404                lea eax, dword ptr \[esp+04\]   
-:00417ED7 50                      push eax   
-:00417ED8 8B442404                mov eax, dword ptr \[esp+04\]   
-:00417EDC 50                      push eax   
-:00417EDD 8B442420                mov eax, dword ptr \[esp+20\]   
-:00417EE1 50                      push eax   
-:00417EE2 8B442418                mov eax, dword ptr \[esp+18\]   
-:00417EE6 50                      push eax   
-  
-\* Reference To: kernel32.VirtualProtect, Ord:0000h   
-                                  |   
-:00417EE7 E828CBFEFF              Call 00404A14   
-:00417EEC 8B442418                mov eax, dword ptr \[esp+18\]   
-:00417EF0 50                      push eax   
-:00417EF1 8B442410                mov eax, dword ptr \[esp+10\]   
-:00417EF5 50                      push eax   
-  
-\* Reference To: kernel32.GetCurrentProcess, Ord:0000h   
-                                  |   
-:00417EF6 E841C9FEFF              Call 0040483C   
-:00417EFB 50                      push eax   
-  
-\* Reference To: kernel32.FlushInstructionCache, Ord:0000h   
-                                  |   
-:00417EFC E81BC9FEFF              Call 0040481C   
-:00417F01 C605B465460001          mov byte ptr \[004665B4\], 01        <-给个标记表明已经更改过自身的程序   
-:00417F08 A178ED4500              mov eax, dword ptr \[0045ED78\]   
-:00417F0D 05BC060000              add eax, 000006BC   
-:00417F12 48                      dec eax   
-:00417F13 803800                  cmp byte ptr \[eax\], 00   
-:00417F16 7504                    jne 00417F1C   
-:00417F18 B301                    mov bl, 01   
-:00417F1A EB1D                    jmp 00417F39   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:00417D7F(C), :00417E22(C), :00417E30(C), :00417F16(C)   
-|   
-  
-\* Possible StringData Ref from Data Obj ->"f4"   
-                                  |   
-:00417F1C B8E0EB4500              mov eax, 0045EBE0   
-:00417F21 E8665CFFFF              call 0040DB8C   
-:00417F26 B8C05A4600              mov eax, 00465AC0   
-:00417F2B E86059FFFF              call 0040D890        <-查找 user.txt 文件是否存在   
-:00417F30 84C0                    test al, al   
-:00417F32 7405                    je 00417F39   
-:00417F34 E8BF18FFFF              call 004097F8        <-提示出错信息“Invalid file: user.txt”   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:00417D55(U), :00417F1A(U), :00417F32(C)   
-|   
-:00417F39 8BC3                    mov eax, ebx   
-:00417F3B 81C4F8060000            add esp, 000006F8   
-:00417F41 5E                      pop esi   
-:00417F42 5B                      pop ebx   
-:00417F43 C3                      ret  4dd466d0e1e0cc123afbe504da2462ca
+用 `user.txt` 使 `winhex` 认为已注册……
+
+```
+:004585C0 803C2400                 cmp byte ptr [esp], 00
+
+:004585C4 7412                     je 004585D8
+
+:004585C6 8B4610                   mov eax, dword ptr [esi+10]
+
+:004585C9 B201                     mov dl, 01
+
+:004585CB E85C43FBFF               call 0040C92C
+
+:004585D0 84C0                     test al, al              <-从提示是否更新文件的提示框中出来
+
+:004585D2 0F84DF000000             je 004586B7
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:004585B5(C), :004585BE(C), :004585C4(C)
+
+|
+
+:004585D8 DF6E14                   fild qword ptr [esi+14]
+
+:004585DB D81DC4864500             fcomp dword ptr [004586C4]
+
+:004585E1 DFE0                     fstsw ax
+
+:004585E3 9E                       sahf
+
+:004585E4 760D                     jbe 004585F3
+
+:004585E6 803DE352460000           cmp byte ptr [004652E3], 00
+
+:004585ED 0F84C4000000             je 004586B7
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004585E4(C)
+
+|
+
+* Possible Reference to Menu: MenuID_0002
+
+|
+
+:004585F3 6A02                     push 00000002
+
+:004585F5 668B864C210000           mov ax, word ptr [esi+0000214C]
+
+:004585FC E8CB55FBFF               call 0040DBCC              <-这个是生成 TMP 文件的 CALL
+
+:00458601 8BD0                     mov edx, eax
+
+:00458603 8B4E10                   mov ecx, dword ptr [esi+10]
+
+:00458606 8D4608                   lea eax, dword ptr [esi+08]
+
+:00458609 E80E05FCFF               call 00418B1C              <-这个是写入文件的 CALL
+
+:0045860E 84C0                     test al, al
+
+:00458610 0F84A1000000             je 004586B7
+
+:00458616 807E3A03                 cmp byte ptr [esi+3A], 03
+
+:0045861A 750D                     jne 00458629
+
+:0045861C A0364B4600               mov al, byte ptr [00464B36]
+
+:00458621 888671210000             mov byte ptr [esi+00002171], al
+
+:00458627 EB26                     jmp 0045864F
+
+---------------------------------------------------------------
+```
+
+下面是写文件的 CALL 内……
+
+```
+:00418B1C 55                       push ebp
+
+:00418B1D 8BEC                     mov ebp, esp
+
+:00418B1F 51                       push ecx
+
+:00418B20 53                       push ebx
+
+:00418B21 56                       push esi
+
+:00418B22 57                       push edi
+
+:00418B23 8BF1                     mov esi, ecx
+
+:00418B25 8955FC                   mov dword ptr [ebp-04], edx
+
+:00418B28 8BF8                     mov edi, eax
+
+:00418B2A 807F3203                 cmp byte ptr [edi+32], 03     <--这个是当未注册时，文件小于 250K 的就在就进入，否则跳……
+
+:00418B2E 752D                     jne 00418B5D
+
+:00418B30 8D471C                   lea eax, dword ptr [edi+1C]
+
+:00418B33 50                       push eax
+
+:00418B34 8A4D08                   mov cl, byte ptr [ebp+08]
+
+:00418B37 8BD6                     mov edx, esi
+
+:00418B39 8B45FC                   mov eax, dword ptr [ebp-04]
+
+:00418B3C E85BF4FFFF               call 00417F9C                 <--这个是写入文件小于 250K 的 CALL，大老兄可能是用这个 CALL 作写入文件的
+
+:00418B41 84C0                     test al, al
+
+:00418B43 0F94C3                   sete bl
+
+:00418B46 834F2020                 or dword ptr [edi+20], 00000020
+
+:00418B4A 8B4720                   mov eax, dword ptr [edi+20]
+
+:00418B4D 83C820                   or eax, 00000020
+
+:00418B50 50                       push eax
+
+:00418B51 684C564600               push 0046564C
+
+* Reference To: kernel32.SetFileAttributesA, Ord:0000h
+
+|
+
+:00418B56 E869BEFEFF               Call 004049C4
+
+:00418B5B EB7D                     jmp 00418BDA
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00418B2E(C)
+
+|
+
+:00418B5D 33DB                     xor ebx, ebx
+
+:00418B5F 56                       push esi
+
+:00418B60 8B4708                   mov eax, dword ptr [edi+08]
+
+:00418B63 50                       push eax
+
+* Reference To: kernel32.lstrcmpiA, Ord:0000h
+
+|
+
+:00418B64 E82BBFFEFF               Call 00404A94
+
+:00418B69 85C0                     test eax, eax
+
+:00418B6B 7413                     je 00418B80
+
+:00418B6D 6A00                     push 00000000
+
+:00418B6F 8B4708                   mov eax, dword ptr [edi+08]
+
+:00418B72 8A4D08                   mov cl, byte ptr [ebp+08]
+
+:00418B75 8BD6                     mov edx, esi
+
+:00418B77 E820F4FFFF               call 00417F9C              <-作另存为写入的 CALL，
+
+:00418B7C 84C0                     test al, al
+
+:00418B7E 755A                     jne 00418BDA
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00418B6B(C)
+
+|
+
+:00418B80 807F3300                 cmp byte ptr [edi+33], 00
+
+:00418B84 742C                     je 00418BB2
+
+:00418B86 E8A5F1FFFF               call 00417D30              <-这个 CALL 是判断注册码是否正确的 CALL，所有判断是否注册正确都会进入 417D30 的！
+
+:00418B8B 84C0                     test al, al
+
+:00418B8D 744B                     je 00418BDA
+
+:00418B8F B9C05A4600               mov ecx, 00465AC0
+
+:00418B94 8BD6                     mov edx, esi
+
+:00418B96 8B45FC                   mov eax, dword ptr [ebp-04]
+
+:00418B99 E876E9FFFF               call 00417514              <-这个我想是当上面的 CALL 判断正确后，这段程序是作写入文件的 CALL，但现在一进入会出错！
+
+:00418B9E 85C0                     test eax, eax
+
+:00418BA0 740C                     je 00418BAE
+
+:00418BA2 BAC05A4600               mov edx, 00465AC0
+
+:00418BA7 E85C15FFFF               call 0040A108
+
+:00418BAC EB2C                     jmp 00418BDA
+```
+
+下面是判断注册码是否正确的 CALL 内的程序
+
+```
+:00417D30 53                       push ebx
+
+:00417D31 56                       push esi
+
+:00417D32 81C408F9FFFF             add esp, FFFFF908
+
+:00417D38 33DB                     xor ebx, ebx
+
+:00417D3A A178ED4500               mov eax, dword ptr [0045ED78]
+
+:00417D3F 05BC060000               add eax, 000006BC
+
+:00417D44 48                       dec eax
+
+:00417D45 A3EC534600               mov dword ptr [004653EC], eax
+
+:00417D4A 803DB465460000           cmp byte ptr [004665B4], 00    <-判断这个标记是否已经执行过下面的程序
+
+:00417D51 7407                     je 00417D5A
+
+:00417D53 B301                     mov bl, 01
+
+:00417D55 E9DF010000               jmp 00417F39
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00417D51(C)
+
+|
+
+* Possible Ref to Menu: MenuID_0001, Item: " "
+
+|
+
+:00417D5A 6A1C                     push 0000001C
+
+:00417D5C 8D442410                 lea eax, dword ptr [esp+10]
+
+:00417D60 50                       push eax
+
+:00417D61 6800004000               push 00400000
+
+* Reference To: kernel32.VirtualQuery, Ord:0000h
+
+|
+
+:00417D66 E8B9CCFEFF               Call 00404A24
+
+:00417D6B 54                       push esp
+
+* Possible Ref to Menu: MenuID_0001, Item: "Position markieren  Strg+I"
+
+|
+
+:00417D6C 6A40                     push 00000040
+
+:00417D6E 8B442420                 mov eax, dword ptr [esp+20]
+
+:00417D72 50                       push eax
+
+:00417D73 8B442418                 mov eax, dword ptr [esp+18]
+
+:00417D77 50                       push eax
+
+* Reference To: kernel32.VirtualProtect, Ord:0000h
+
+|
+
+:00417D78 E897CCFEFF               Call 00404A14
+
+:00417D7D 85C0                     test eax, eax
+
+:00417D7F 0F8497010000             je 00417F1C
+
+:00417D85 8D442439                 lea eax, dword ptr [esp+39]
+
+:00417D89 B9BC060000               mov ecx, 000006BC
+```
+
+
+
+:00417D8E `8B1578ED4500` `mov edx, dword ptr [0045ED78]`
+
+:00417D94 `E857D3FEFF` `call 004050F0`
+
+:00417D99 `E826FEFFFF` `call 00417BC4`
+
+:00417D9E `BAB8654600` `mov edx, 004665B8`
+
+:00417DA3 `8D442428` `lea eax, dword ptr [esp+28]`
+
+* Possible Ref to Menu: `MenuID_0001`, Item: "Sicherung laden..."
+
+:00417DA7 `B910000000` `mov ecx, 00000010`
+
+:00417DAC `E83FD3FEFF` `call 004050F0`
+
+:00417DB1 `6A00` `push 00000000`
+
+:00417DB3 `8D4C242C` `lea ecx, dword ptr [esp+2C]`
+
+:00417DB7 `BA08574000` `mov edx, 00405708`
+
+:00417DBC `33C0` `xor eax, eax`
+
+:00417DBE `E835DCFEFF` `call 004059F8`
+
+:00417DC3 `8BF0` `mov esi, eax`
+
+:00417DC5 `6A00` `push 00000000`
+
+:00417DC7 `8D54243D` `lea edx, dword ptr [esp+3D]`
+
+:00417DCB `B9BC060000` `mov ecx, 000006BC`
+
+:00417DD0 `8BC6` `mov eax, esi`
+
+:00417DD2 `E80DDDFEFF` `call 00405AE4` <-这个 CALL 是得到将注册信息转为程序的 CALL
+
+* Possible Ref to Menu: `MenuID_0001`, Item: "Hex-Werte Strg+Shift+C"
+
+:00417DD7 `BA2C000000` `mov edx, 0000002C`
+
+:00417DDC `8BC6` `mov eax, esi`
+
+:00417DDE `E8B1A7FEFF` `call 00402594`
+
+:00417DE3 `8D442428` `lea eax, dword ptr [esp+28]`
+
+* Possible Ref to Menu: `MenuID_0001`, Item: "Sicherung laden..."
+
+:00417DE7 `BA10000000` `mov edx, 00000010`
+
+:00417DEC `E807D3FEFF` `call 004050F8`
+
+:00417DF1 `B8B8654600` `mov eax, 004665B8`
+
+* Possible Ref to Menu: `MenuID_0001`, Item: "Sicherung laden..."
+
+:00417DF6 `BA10000000` `mov edx, 00000010`
+
+:00417DFB `E8F8D2FEFF` `call 004050F8`
+
+:00417E00 `8D442408` `lea eax, dword ptr [esp+08]`
+
+:00417E04 `50` `push eax`
+
+:00417E05 `68BC060000` `push 000006BC`
+
+:00417E0A `8D442441` `lea eax, dword ptr [esp+41]`
+
+:00417E0E `50` `push eax`
+
+:00417E0F `A178ED4500` `mov eax, dword ptr [0045ED78]`
+
+:00417E14 `50` `push eax`
+
+* Reference To: `kernel32.GetCurrentProcess`, Ord:`0000h`
+
+:00417E15 `E822CAFEFF` `Call 0040483C`
+
+:00417E1A `50` `push eax`
+
+* Reference To: `kernel32.WriteProcessMemory`, Ord:`0000h`
+
+:00417E1B `E82CCCFEFF` `Call 00404A4C` <-这个是将注册信息转为程序，再将其写入自身的程序中……这段程序可能是作写入文件的程序
+
+:00417E20 `85C0` `test eax, eax`
+
+:00417E22 `0F84F4000000` `je 00417F1C`
+
+:00417E28 `817C2408BC060000` `cmp dword ptr [esp+08], 000006BC`
+
+:00417E30 `0F85E6000000` `jne 00417F1C`
+
+* Possible Ref to Menu: `MenuID_0001`, Item: "einf ü gen... Strg+V"
+
+:00417E36 `6A20` `push 00000020`
+
+:00417E38 `68B8514600` `push 004651B8`
+
+:00417E3D `8D442441` `lea eax, dword ptr [esp+41]`
+
+:00417E41 `50` `push eax`
+
+* Reference To: `kernel32.lstrcpynA`, Ord:`0000h`
+
+:00417E42 `E855CCFEFF` `Call 00404A9C`
+
+:00417E47 `8D442428` `lea eax, dword ptr [esp+28]`
+
+* Possible Ref to Menu: `MenuID_0001`, Item: "Sicherung laden..."
+
+:00417E4B `BA10000000` `mov edx, 00000010`
+
+:00417E50 `E8A3D2FEFF` `call 004050F8`
+
+* Possible StringData Ref from Data Obj ->"Offset"
+
+:00417E55 `BAE4E14500` `mov edx, 0045E1E4`
+
+:00417E5A `8D442428` `lea eax, dword ptr [esp+28]`
+
+:00417E5E `E899D3FEFF` `call 004051FC`
+
+:00417E63 `6A00` `push 00000000`
+
+:00417E65 `8D4C242C` `lea ecx, dword ptr [esp+2C]`
+
+:00417E69 `BA08574000` `mov edx, 00405708`
+
+:00417E6E `33C0` `xor eax, eax`
+
+:00417E70 `E883DBFEFF` `call 004059F8`
+
+:00417E75 `8BF0` `mov esi, eax`
+
+:00417E77 `6A00` `push 00000000`
+
+:00417E79 `8D54243D` `lea edx, dword ptr [esp+3D]`
+
+* Possible Ref to Menu: `MenuID_0001`, Item: "einf ü gen... Strg+V"
+
+:00417E7D `B920000000` `mov ecx, 00000020`
+
+:00417E82 `8BC6` `mov eax, esi`
+
+:00417E84 `E85BDCFEFF` `call 00405AE4`
+
+* Possible Ref to Menu: `MenuID_0001`, Item: "Hex-Werte Strg+Shift+C"
+
+:00417E89 `BA2C000000` `mov edx, 0000002C`
+
+:00417E8E `8BC6` `mov eax, esi`
+
+:00417E90 `E8FFA6FEFF` `call 00402594`
+
+:00417E95 `8D442428` `lea eax, dword ptr [esp+28]`
+
+* Possible Ref to Menu: `MenuID_0001`, Item: "Sicherung laden..."
+
+:00417E99 `BA10000000` `mov edx, 00000010`
+
+:00417E9E `E855D2FEFF` `call 004050F8`
+
+:00417EA3 `8D442408` `lea eax, dword ptr [esp+08]`
+
+:00417EA7 `50` `push eax`
+
+* Possible Ref to Menu: `MenuID_0001`, Item: "einf ü gen... Strg+V"
+
+:00417EA8 `6A20` `push 00000020`
+
+:00417EAA `8D442441` `lea eax, dword ptr [esp+41]`
+
+:00417EAE `50` `push eax`
+
+:00417EAF `A178ED4500` `mov eax, dword ptr [0045ED78]`
+
+:00417EB4 `05A0010000` `add eax, 000001A0`
+
+:00417EB9 `50` `push eax`
+
+* Reference To: `kernel32.GetCurrentProcess`, Ord:`0000h`
+
+:00417EBA `E87DC9FEFF` `Call 0040483C`
+
+:00417EBF `50` `push eax`
+
+* Reference To: `kernel32.WriteProcessMemory`, Ord:`0000h`
+
+:00417EC0 `E887CBFEFF` `Call 00404A4C` <-这段写入自身的程序可能是作写入内存的程序
+
+:00417EC5 `8D442439` `lea eax, dword ptr [esp+39]`
+
+:00417EC9 `BABC060000` `mov edx, 000006BC`
+
+:00417ECE `E825D2FEFF` `call 004050F8`
+
+:00417ED3 `8D442404` `lea eax, dword ptr [esp+04]`
+
+:00417ED7 `50` `push eax`
+
+:00417ED8 `8B442404` `mov eax, dword ptr [esp+04]`
+
+:00417EDC `50` `push eax`
+
+:00417EDD `8B442420` `mov eax, dword ptr [esp+20]`
+
+:00417EE1 `50` `push eax`
+
+:00417EE2 `8B442418` `mov eax, dword ptr [esp+18]`
+
+:00417EE6 `50` `push eax`
+
+* Reference To: `kernel32.VirtualProtect`, Ord:`0000h`
+
+:00417EE7 `E828CBFEFF` `Call 00404A14`
+
+:00417EEC `8B442418` `mov eax, dword ptr [esp+18]`
+
+:00417EF0 `50` `push eax`
+
+:00417EF1 `8B442410` `mov eax, dword ptr [esp+10]`
+
+:00417EF5 `50` `push eax`
+
+* Reference To: `kernel32.GetCurrentProcess`, Ord:`0000h`
+
+:00417EF6 `E841C9FEFF` `Call 0040483C`
+
+:00417EFB `50` `push eax`
+
+* Reference To: `kernel32.FlushInstructionCache`, Ord:`0000h`
+
+:00417EFC `E81BC9FEFF` `Call 0040481C`
+
+:00417F01 `C605B465460001` `mov byte ptr [004665B4], 01` <-给个标记表明已经更改过自身的程序
+
+:00417F08 `A178ED4500` `mov eax, dword ptr [0045ED78]`
+
+:00417F0D `05BC060000` `add eax, 000006BC`
+
+:00417F12 `48` `dec eax`
+
+:00417F13 `803800` `cmp byte ptr [eax], 00`
+
+
+
+```
+:00417F16 7504                  jne 00417F1C
+:00417F18 B301                  mov bl, 01
+:00417F1A EB1D                  jmp 00417F39
+```
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+`:00417D7F(C), :00417E22(C), :00417E30(C), :00417F16(C)`
+
+\* Possible StringData Ref from Data Obj -> `"f4"`
+
+```
+:00417F1C B8E0EB4500           mov eax, 0045EBE0
+:00417F21 E8665CFFFF           call 0040DB8C
+:00417F26 B8C05A4600          mov eax, 00465AC0
+:00417F2B E86059FFFF          call 0040D890    <-查找 user.txt 文件是否存在
+:00417F30 84C0                 test al, al
+:00417F32 7405                 je 00417F39
+:00417F34 E8BF18FFFF          call 004097F8    <-提示出错信息“Invalid file: user.txt”
+```
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+`:00417D55(U), :00417F1A(U), :00417F32(C)`
+
+```
+:00417F39 8BC3                 mov eax, ebx
+:00417F3B 81C4F8060000         add esp, 000006F8
+:00417F41 5E                   pop esi
+:00417F42 5B                   pop ebx
+:00417F43 C3                   ret
+```
+4dd466d0e1e0cc123afbe504da2462ca

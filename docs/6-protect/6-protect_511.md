@@ -1,153 +1,131 @@
 
-
 # 一段仿真 PE 加载器行为的程序
 
 > 原文：[`www.pediy.com/kssd/pediy08/pediy8-731.htm`](https://www.pediy.com/kssd/pediy08/pediy8-731.htm)
 
-【  标题  】 一段仿真 PE 加载器行为的程序  
-【  声明  】 水平有限，不对之处敬请各位大侠赐教！  
-  
-以下程序假定 PE 文件是合法的，所以很多地方都没有提供容错处理  
-  
-bool PELoader(char \*lpStaticPEBuff, long lStaticPELen)  
-{  
-  long lPESignOffset = \*(long \*)(lpStaticPEBuff + 0x3c);  
-  IMAGE\_NT\_HEADERS \*pINH = (IMAGE\_NT\_HEADERS \*)(lpStaticPEBuff + lPESignOffset);  
-  
-  //取加载到内存中大小  
-  long lImageSize = pINH->OptionalHeader.SizeOfImage;  
-  char \*lpDynPEBuff = new char\[lImageSize\];  
-  if(lpDynPEBuff == NULL)  
-  {  
-    return false;  
-  }  
-  memset(lpDynPEBuff, 0, lImageSize);  
-  
-  //取 PE 文件的节数量  
-  long lSectionNum = pINH->FileHeader.NumberOfSections;  
-  
-  IMAGE\_SECTION\_HEADER \*pISH = (IMAGE\_SECTION\_HEADER \*)((char \*)pINH + sizeof(IMAGE\_NT\_HEADERS));  
-    
-  //加载 PE 文件第一个节前的信息  
-  memcpy(lpDynPEBuff, lpStaticPEBuff, pISH->VirtualAddress);  
-  
-  //加载各个节  
-  long lFileAlignMask = pINH->OptionalHeader.FileAlignment - 1;        //各节在磁盘中的对齐掩码  
-  long lSectionAlignMask = pINH->OptionalHeader.SectionAlignment - 1;  //各节在 load 后内存中的对齐掩码  
-    
-  for(int nIndex = 0; nIndex < lSectionNum; nIndex++, pISH++)  
-  {  
-    /\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-    在对 FSG1.33 加壳程序进行 loader 的时候，其节对齐属性  
-    比较怪异，对 PE 文件接触时间不长，不过地方不知道为什么，  
-    请各位大虾指点迷津，故注掉节属性验证代码  
-    \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*/  
-    //判定各节的对齐属性，合法不  
-    /\*if((pISH->VirtualAddress & lSectionAlignMask) || (pISH->SizeOfRawData & lFileAlignMask))  
-    {  
-      //出现非法节  
-      delete lpDynPEBuff;  
-      return false;  
-    }\*/  
-  
-    //加载改节  
-    memcpy(lpDynPEBuff + pISH->VirtualAddress, lpStaticPEBuff + pISH->PointerToRawData, pISH->SizeOfRawData);  
-  }  
-  
-  //修改导入表，导入程序执行过程中要用到的 API 函数地址  
-  if(pINH->OptionalHeader.DataDirectory\[IMAGE\_DIRECTORY\_ENTRY\_IMPORT\].Size > 0) //大于 0 说明有导入表  
-  {  
-    IMAGE\_IMPORT\_DESCRIPTOR \*pIID = (IMAGE\_IMPORT\_DESCRIPTOR \*)(lpDynPEBuff + \\  
-      pINH->OptionalHeader.DataDirectory\[IMAGE\_DIRECTORY\_ENTRY\_IMPORT\].VirtualAddress);  
-  
-    //循环扫描每个将有函数导入的 dll  
-    for(; pIID->Name != NULL; pIID++)  
-    {  
-      /\*曾看过 OllyDump 源代码，那里在重建导入表的时候，并没有初始化 OriginalFirstThunk 这个字段,  
-      所以这里也不对 OriginalFirstThunk 这个字段进行处理了\*/  
-      IMAGE\_THUNK\_DATA \*pITD = (IMAGE\_THUNK\_DATA \*)(lpDynPEBuff + pIID->FirstThunk);  
-  
-      HINSTANCE hInstance = LoadLibrary(lpDynPEBuff + pIID->Name);  
-      if(hInstance == NULL)  
-      {  
-        //导入这个 dll 失败  
-        delete lpDynPEBuff;  
-        return false;  
-      }  
-  
-      //循环扫描 dll 内每个被导入函数  
-      for(; pITD->u1.Ordinal != 0; pITD++)  
-      {  
-        FARPROC fpFun;  
-        if(pITD->u1.Ordinal & IMAGE\_ORDINAL\_FLAG32)  
-        {  
-          //函数是以序号的方式导入的  
-          fpFun = GetProcAddress(hInstance, (LPCSTR)(pITD->u1.Ordinal & 0x0000ffff));  
-        }  
-        else  
-        {  
-          //函数是以名称方式导入的  
-          IMAGE\_IMPORT\_BY\_NAME \* pIIBN = (IMAGE\_IMPORT\_BY\_NAME \*)(lpDynPEBuff + pITD->u1.Ordinal);  
-          fpFun = GetProcAddress(hInstance, (LPCSTR)pIIBN->Name);  
-        }  
-  
-        if(fpFun == NULL)  
-        {  
-          //导出这个函数失败  
-          delete lpDynPEBuff;  
-          return false;  
-        }  
-  
-        pITD->u1.Ordinal = (long)fpFun;  
-      }  
-  
-      FreeLibrary(hInstance);  
-    }  
-  }  
-  
-  
-  //重定位处理  
-  if(pINH->OptionalHeader.DataDirectory\[IMAGE\_DIRECTORY\_ENTRY\_BASERELOC\].Size > 0)  
-  {  
-    //取第一个重定位块  
-    IMAGE\_BASE\_RELOCATION \*pIBR = (IMAGE\_BASE\_RELOCATION \*)(lpDynPEBuff + \\  
-      pINH->OptionalHeader.DataDirectory\[IMAGE\_DIRECTORY\_ENTRY\_BASERELOC\].VirtualAddress);  
-  
-    long lDifference = (long)lpDynPEBuff - pINH->OptionalHeader.ImageBase;  
-  
-    //循环每个重定位块  
-    for(; pIBR->VirtualAddress != 0; )  
-    {  
-      char \*lpMemPage = lpDynPEBuff + pIBR->VirtualAddress;  
-      long lCount = (pIBR->SizeOfBlock - sizeof(IMAGE\_BASE\_RELOCATION)) >> 1;  
-  
-      //对这个页面中的每个需重定位的项进行处理  
-      short int \*pRelocationItem = (short int \*)((char \*)pIBR + sizeof(IMAGE\_BASE\_RELOCATION));  
-      for(int nIndex = 0; nIndex < lCount; nIndex++)  
-      {  
-        int nOffset = pRelocationItem\[nIndex\] & 0x0fff;  
-        int nType = pRelocationItem\[nIndex\] >> 12;  
-  
-        //虽然 windows 定义了很多重定位类型，但是在 PE 文件中只能见到 0 和 3 两种  
-        if(nType == 3)  
-        {  
-          \*(long \*)(lpMemPage + nOffset) += lDifference;  
-        }  
-        else if(nType == 0)  
-        {  
-          //什么也不做  
-        }  
-      }  
-  
-      //pIBR 指向下一个重定位块  
-      pIBR = (IMAGE\_BASE\_RELOCATION \*)(pRelocationItem + lCount);  
-    }  
-  
-  }  
-  
-  delete lpDynPEBuff;  
-  
-  return true;  
-} 
+**标题**：一段仿真 PE 加载器行为的程序
 
->    4dd466d0e1e0cc123afbe504da2462ca
+**声明**：水平有限，不对之处敬请各位大侠赐教！
+
+以下程序假定 PE 文件是合法的，所以很多地方都没有提供容错处理。
+
+```
+bool PELoader(char *lpStaticPEBuff, long lStaticPELen)  
+{  
+  long lPESignOffset = *(long *)(lpStaticPEBuff + 0x3c);  
+  IMAGE_NT_HEADERS *pINH = (IMAGE_NT_HEADERS *)(lpStaticPEBuff + lPESignOffset);  
+  //取加载到内存中大小  
+  long lImageSize = pINH->OptionalHeader.SizeOfImage;  
+  char *lpDynPEBuff = new char[lImageSize];  
+  if(lpDynPEBuff == NULL)  
+  {  
+    return false;  
+  }  
+  memset(lpDynPEBuff, 0, lImageSize);  
+  //取 PE 文件的节数量  
+  long lSectionNum = pINH->FileHeader.NumberOfSections;  
+  IMAGE_SECTION_HEADER *pISH = (IMAGE_SECTION_HEADER *)((char *)pINH + sizeof(IMAGE_NT_HEADERS));  
+  //加载 PE 文件第一个节前的信息  
+  memcpy(lpDynPEBuff, lpStaticPEBuff, pISH->VirtualAddress);  
+  //加载各个节  
+  long lFileAlignMask = pINH->OptionalHeader.FileAlignment - 1;        //各节在磁盘中的对齐掩码  
+  long lSectionAlignMask = pINH->OptionalHeader.SectionAlignment - 1;  //各节在 load 后内存中的对齐掩码  
+  for(int nIndex = 0; nIndex < lSectionNum; nIndex++, pISH++)  
+  {  
+    /**********************************************************************
+    在对 FSG1.33 加壳程序进行 loader 的时候，其节对齐属性
+    比较怪异，对 PE 文件接触时间不长，不过地方不知道为什么，
+    请各位大虾指点迷津，故注掉节属性验证代码
+    **********************************************************************/
+    //判定各节的对齐属性，合法不  
+    /*if((pISH->VirtualAddress & lSectionAlignMask) || (pISH->SizeOfRawData & lFileAlignMask))
+    {
+      //出现非法节
+      delete lpDynPEBuff;
+      return false;
+    }*/
+    //加载改节  
+    memcpy(lpDynPEBuff + pISH->VirtualAddress, lpStaticPEBuff + pISH->PointerToRawData, pISH->SizeOfRawData);  
+  }  
+  //修改导入表，导入程序执行过程中要用到的 API 函数地址  
+  if(pINH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size > 0) //大于 0 说明有导入表  
+  {  
+    IMAGE_IMPORT_DESCRIPTOR *pIID = (IMAGE_IMPORT_DESCRIPTOR *)(lpDynPEBuff + \
+      pINH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);  
+    //循环扫描每个将有函数导入的 dll  
+    for(; pIID->Name != NULL; pIID++)  
+    {  
+      /*曾看过 OllyDump 源代码，那里在重建导入表的时候，并没有初始化 OriginalFirstThunk 这个字段,
+      所以这里也不对 OriginalFirstThunk 这个字段进行处理了*/
+      IMAGE_THUNK_DATA *pITD = (IMAGE_THUNK_DATA *)(lpDynPEBuff + pIID->FirstThunk);  
+      HINSTANCE hInstance = LoadLibrary(lpDynPEBuff + pIID->Name);  
+      if(hInstance == NULL)  
+      {  
+        //导入这个 dll 失败  
+        delete lpDynPEBuff;  
+        return false;  
+      }  
+      //循环扫描 dll 内每个被导入函数  
+      for(; pITD->u1.Ordinal != 0; pITD++)  
+      {  
+        FARPROC fpFun;  
+        if(pITD->u1.Ordinal & IMAGE_ORDINAL_FLAG32)  
+        {  
+          //函数是以序号的方式导入的  
+          fpFun = GetProcAddress(hInstance, (LPCSTR)(pITD->u1.Ordinal & 0x0000ffff));  
+        }  
+        else  
+        {  
+          //函数是以名称方式导入的  
+          IMAGE_IMPORT_BY_NAME * pIIBN = (IMAGE_IMPORT_BY_NAME *)(lpDynPEBuff + pITD->u1.Ordinal);  
+          fpFun = GetProcAddress(hInstance, (LPCSTR)pIIBN->Name);  
+        }  
+        if(fpFun == NULL)  
+        {  
+          //导出这个函数失败  
+          delete lpDynPEBuff;  
+          return false;  
+        }  
+        pITD->u1.Ordinal = (long)fpFun;  
+      }  
+      FreeLibrary(hInstance);  
+    }  
+  }  
+  //重定位处理  
+  if(pINH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size > 0)  
+  {  
+    //取第一个重定位块  
+    IMAGE_BASE_RELOCATION *pIBR = (IMAGE_BASE_RELOCATION *)(lpDynPEBuff + \
+      pINH->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress);  
+    long lDifference = (long)lpDynPEBuff - pINH->OptionalHeader.ImageBase;  
+    //循环每个重定位块  
+    for(; pIBR->VirtualAddress != 0; )  
+    {  
+      char *lpMemPage = lpDynPEBuff + pIBR->VirtualAddress;  
+      long lCount = (pIBR->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) >> 1;  
+      //对这个页面中的每个需重定位的项进行处理  
+      short int *pRelocationItem = (short int *)((char *)pIBR + sizeof(IMAGE_BASE_RELOCATION));  
+      for(int nIndex = 0; nIndex < lCount; nIndex++)  
+      {  
+        int nOffset = pRelocationItem[nIndex] & 0x0fff;  
+        int nType = pRelocationItem[nIndex] >> 12;  
+        //虽然 windows 定义了很多重定位类型，但是在 PE 文件中只能见到 0 和 3 两种  
+        if(nType == 3)  
+        {  
+          *(long *)(lpMemPage + nOffset) += lDifference;  
+        }  
+        else if(nType == 0)  
+        {  
+          //什么也不做  
+        }  
+      }  
+      //pIBR 指向下一个重定位块  
+      pIBR = (IMAGE_BASE_RELOCATION *)(pRelocationItem + lCount);  
+    }  
+  }  
+  delete lpDynPEBuff;  
+  return true;  
+}
+```
+
+> 4dd466d0e1e0cc123afbe504da2462ca

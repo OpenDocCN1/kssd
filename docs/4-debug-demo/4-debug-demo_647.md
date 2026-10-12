@@ -1,57 +1,76 @@
 
-
 # 瑞星杀毒软件 2001
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum622.htm`](https://www.pediy.com/kssd/pediy03/forum622.htm)
 
-破解瑞星杀毒软件 2001 版，半字节，没搞错吧？？（破解手记）   
-  
-非常棒的国产精品杀毒软件，从瑞星网站下载最新版，   
-目前为 2001 版，安装时需瑞星密钥盘。   
-图形版 ravcpic.exe  字符版 ravcchar.exe   
-下面以图形版为例。   
-1。用 winzip 等解压缩软件将 ravcpic.exe 展到一个目录下   
-2。将其中的 SETUP.DLL 的 UPX1.03 壳给脱了。   
-脱壳可用 UPX1.06，参数-D 即可（UPX SETUP.DLL -D）   
-3。用打开 w32dasm 黄金版打开 SETUP.DLL==》串式参考   
-"请插入瑞星 A 号盘，如果该提示仍出现请与经销商联?   
-共四处，我们只看最早的一处   
-  
-:10001916 85C0                    test eax, eax   
-:10001918 7407                    je 10001921                    (74 改 75)   
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:10001947(C)   
-|   
-:1000191A B801000000              mov eax, 00000001   
-:1000191F 5E                      pop esi   
-:10001920 C3                      ret   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:10001918(C)   
-| ^^^^^^^^^^^   
-:10001921 A180CD0010              mov eax, dword ptr \[1000CD80\]   
-  
-\* Reference To: USER32.MessageBoxA, Ord:0000h   
-                                  |   
-:10001926 8B356C910010            mov esi, dword ptr \[1000916C\]   
-:1000192C 6A31                    push 00000031   
-  
-\* Possible StringData Ref from Data Obj ->"提示"   
-                                  |   
-:1000192E 6884B20010              push 1000B284   
-  
-\* Possible StringData Ref from Data Obj ->"请插入瑞星 A 号盘，如果该提示仍出现请与经销商联?   
-                                        ->"怠?   
-                                  |   
-:10001933 6850B20010              push 1000B250   
-4。运行目录下的安装主程序 setup.exe，哇塞，省掉一百多大洋，   
-情人节 is coming,party 的门票钱出来了。   
-5。请保存修改后的 setup.dll，可将瑞星 2001 图形版毙掉（难得瑞星三天两头的升级）   
-6。字符版可参考 1~5，原理同。   
-  
-本文曾参考看雪论坛 http://210.77.146.78/forum/toye/5520.html(作者 conanxu)   
-顺向 conanxu 兄,toye 师，洋白菜兄问好，祝论坛旺，旺，旺上加旺！！！！   
-  
-作者：风飘雪   
-主页 http://duba.126.com  4dd466d0e1e0cc123afbe504da2462ca
+破解瑞星杀毒软件 2001 版，半字节，没搞错吧？？（破解手记）
+
+非常棒的国产精品杀毒软件，从瑞星网站下载最新版，目前为 2001 版，安装时需瑞星密钥盘。
+
+图形版 `ravcpic.exe` 字符版 `ravcchar.exe`
+
+下面以图形版为例。
+
+1. 用 `winzip` 等解压缩软件将 `ravcpic.exe` 展到一个目录下
+2. 将其中的 `SETUP.DLL` 的 `UPX1.03` 壳给脱了。
+
+脱壳可用 `UPX1.06`，参数 `-D` 即可（`UPX SETUP.DLL -D`）
+
+3. 用 `w32dasm` 黄金版打开 `SETUP.DLL`==》串式参考
+
+"请插入瑞星 A 号盘，如果该提示仍出现请与经销商联?"
+
+共四处，我们只看最早的一处
+
+```
+:10001916 85C0                     test eax, eax
+:10001918 7407                     je 10001921                (74 改 75)
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:10001947(C)
+|
+
+:1000191A B801000000              mov eax, 00000001
+:1000191F 5E                       pop esi
+:10001920 C3                       ret
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:10001918(C)
+
+| ^^^^^^^^^^^
+:10001921 A180CD0010              mov eax, dword ptr [1000CD80]
+* Reference To: USER32.MessageBoxA, Ord:0000h
+                                  |
+
+:10001926 8B356C910010            mov esi, dword ptr [1000916C]
+:1000192C 6A31                    push 00000031
+* Possible StringData Ref from Data Obj ->"提示"
+                                  |
+
+:1000192E 6884B20010              push 1000B284
+* Possible StringData Ref from Data Obj ->"请插入瑞星 A 号盘，如果该提示仍出现请与经销商联?
+                                  ->"怠?
+                                  |
+
+:10001933 6850B20010              push 1000B250
+```
+
+4. 运行目录下的安装主程序 `setup.exe`，哇塞，省掉一百多大洋，
+
+情人节 is coming, party 的门票钱出来了。
+
+5. 请保存修改后的 `setup.dll`，可将瑞星 2001 图形版毙掉（难得瑞星三天两头的升级）
+
+6. 字符版可参考 1~5，原理同。
+
+本文曾参考看雪论坛 `http://210.77.146.78/forum/toye/5520.html`(作者 `conanxu`)
+
+顺向 `conanxu` 兄,`toye` 师，洋白菜兄问好，祝论坛旺，旺，旺上加旺！！！！
+
+作者：风飘雪
+
+主页 `http://duba.126.com`  `4dd466d0e1e0cc123afbe504da2462ca`

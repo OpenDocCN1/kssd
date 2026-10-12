@@ -1,313 +1,799 @@
-+   [第4篇 调试篇：加密算法](README.md)
-+   [KSSD 第 4 篇 调试篇：加密算法](4-debug-encrypt_1.md)
-+   [密码学入门系列](4-debug-encrypt_10.md)
-+   [.NET 中 RAS 加解密和签名与验证的 c#实现代码讲解，及实现程序提供，源码自己 Reflector。](4-debug-encrypt_100.md)
-+   [植基於 RSA 加密演算法率特性之研究](4-debug-encrypt_101.md)
-+   [使用 RSA1024 算法防止软件被 Keygen](4-debug-encrypt_102.md)
-+   [RSA 保护的程序 注册机制作思路总结](4-debug-encrypt_103.md)
-+   [关于 1024 位的 RSA 因式分解速度的问题](4-debug-encrypt_104.md)
-+   [RSA Tool](4-debug-encrypt_105.md)
-+   [RSA Tool Help](4-debug-encrypt_106.md)
-+   [rsa 计算的小工具](4-debug-encrypt_107.md)
-+   [算法应用](4-debug-encrypt_108.md)
-+   [Absolute MP3 Splitter Converter v2.5.6 算法分析(RSA)兼 FGInt 库的使用](4-debug-encrypt_109.md)
-+   [密码学入门系列(一) 之 移位密码(古典)](4-debug-encrypt_11.md)
-+   [Allok Video Splitter](4-debug-encrypt_110.md)
-+   [A-one Home Looker 1.13](4-debug-encrypt_111.md)
-+   [Apex MPEG VCD DVD Converter 4.94](4-debug-encrypt_112.md)
-+   [API Spy 32 v2.4](4-debug-encrypt_113.md)
-+   [Api32 V2.5](4-debug-encrypt_114.md)
-+   [Aplus DVD to MP3 Ripper 3.1.3](4-debug-encrypt_115.md)
-+   [Arila Sound Recorder (RSA)分析](4-debug-encrypt_116.md)
-+   [Awave Studio v7.0](4-debug-encrypt_117.md)
-+   [A 变速器算法分析](4-debug-encrypt_118.md)
-+   [成功的保护——Calendarscope 注册算法分析](4-debug-encrypt_119.md)
-+   [密码学入门系列(二) 之 仿射密码(古典)](4-debug-encrypt_12.md)
-+   [EasyBoot](4-debug-encrypt_120.md)
-+   [IP-Tools 2.50](4-debug-encrypt_121.md)
-+   [KeyGenMeRSA](4-debug-encrypt_122.md)
-+   [Okoker Shutdown Expert](4-debug-encrypt_123.md)
-+   [Plato Video To iPod Converter V3.46 算法分析](4-debug-encrypt_124.md)
-+   [protectz v1.53](4-debug-encrypt_125.md)
-+   [罕见奇难的大数算法-Registry Winner 多语版注册算法分析（VB 注册机源码）](4-debug-encrypt_126.md)
-+   [RM to AVI MPEG WMV VCD SVCD DVD Converter 2.7](4-debug-encrypt_127.md)
-+   [在 rsatools 中已知(Q-1)\*(P-1),E,求 D 的反汇编过程及分析](4-debug-encrypt_128.md)
-+   [RSA 算法](4-debug-encrypt_129.md)
-+   [密码学入门系列(三) 之 希尔密码(古典)](4-debug-encrypt_13.md)
-+   [Speed Video Converter 3.0.16.8](4-debug-encrypt_130.md)
-+   [Speed Video Splitter 算法分析兼 RSA 实例教程](4-debug-encrypt_131.md)
-+   [SuperGame V1.5.8 注册算法分析和破解](4-debug-encrypt_132.md)
-+   [TMG keygenmersa](4-debug-encrypt_133.md)
-+   [Total Video Converter(3.01 版)注册算法全揭密](4-debug-encrypt_134.md)
-+   [UltraISO7me](4-debug-encrypt_135.md)
-+   [Winace v2.04](4-debug-encrypt_136.md)
-+   [Windows 优化大师](4-debug-encrypt_137.md)
-+   [Windows 优化大师](4-debug-encrypt_138.md)
-+   [Windows 优化大师](4-debug-encrypt_139.md)
-+   [密码学入门系列(四) 之 维吉尼亚密码(古典)](4-debug-encrypt_14.md)
-+   [Windows 优化大师 v2.9+](4-debug-encrypt_140.md)
-+   [Windows 优化大师 V7.2](4-debug-encrypt_141.md)
-+   [Windows 优化大师](4-debug-encrypt_142.md)
-+   [Windows 优化大师 5.35](4-debug-encrypt_143.md)
-+   [Windows 优化大师 v3.0-v3.4 的注册机源代码](4-debug-encrypt_144.md)
-+   [WMV to AVI MPEG DVD WMV Converter 1.4.8](4-debug-encrypt_145.md)
-+   [楚汉棋缘 v1.42](4-debug-encrypt_146.md)
-+   [楚汉棋缘 V1.36](4-debug-encrypt_147.md)
-+   [公务员之路 5.1](4-debug-encrypt_148.md)
-+   [RSA-开心小闹钟 2.7 Build 0107](4-debug-encrypt_149.md)
-+   [密码学入门系列(五) 之 DES(现代)](4-debug-encrypt_15.md)
-+   [批量更名专家 V2.2 Build 0801](4-debug-encrypt_150.md)
-+   [破解 BestCrypt v8.20.6.2](4-debug-encrypt_151.md)
-+   [全能上网计费器](4-debug-encrypt_152.md)
-+   [象棋世家](4-debug-encrypt_153.md)
-+   [一个窗口隐藏工具的注册验证流程分析](4-debug-encrypt_154.md)
-+   [珠联网络棋牌游戏(共享版)V2.94 (RSA 算法 N 和 E 比较小)](4-debug-encrypt_155.md)
-+   [ElGamal 算法](4-debug-encrypt_156.md)
-+   [ElGamal 算法](4-debug-encrypt_157.md)
-+   [Solid Encryption 注册算法分析(Elgamal Signature)](4-debug-encrypt_158.md)
-+   [keygen of TMG Official Keygenme #3](4-debug-encrypt_159.md)
-+   [密码学入门系列(六) 之 Enigma 密码机(古典)](4-debug-encrypt_16.md)
-+   [ECC](4-debug-encrypt_160.md)
-+   [算法理论](4-debug-encrypt_161.md)
-+   [ECC 加密算法入门介绍](4-debug-encrypt_162.md)
-+   [探讨 ECC 加密被破译的可能性---看雪学院 2006 金秋读书季【讨论】](4-debug-encrypt_163.md)
-+   [magma,/PARI/GP 中文文档 ECC 初步:](4-debug-encrypt_164.md)
-+   [算法应用](4-debug-encrypt_165.md)
-+   [逆向分析 Microsoft.Office.2007.Applications.Keygen.Only-MiCROSOFT（修订版）](4-debug-encrypt_166.md)
-+   [一个比较另类的 ECC stuff](4-debug-encrypt_167.md)
-+   [逆向 Microsoft.Windows.Server.2003.x64.Edition.VOL.Keymaker.Only-ZWT](4-debug-encrypt_168.md)
-+   [CloneCD](4-debug-encrypt_169.md)
-+   [\====Hash====](4-debug-encrypt_17.md)
-+   [\====对称加密====](4-debug-encrypt_170.md)
-+   [概述](4-debug-encrypt_171.md)
-+   [常见密码算法总结--(1)分组对称密码](4-debug-encrypt_172.md)
-+   [AES](4-debug-encrypt_173.md)
-+   [算法理论](4-debug-encrypt_174.md)
-+   [发一个这个学期写的 AES 工具源码](4-debug-encrypt_175.md)
-+   [一个介绍 aes 加密算法的 Flash 录像](4-debug-encrypt_176.md)
-+   [AES 官方文档翻译](4-debug-encrypt_177.md)
-+   [AES 的 C 语言源码](4-debug-encrypt_178.md)
-+   [简单文件加密工具 VC6](4-debug-encrypt_179.md)
-+   [介绍](4-debug-encrypt_18.md)
-+   [128 位 AES 加密算法图解](4-debug-encrypt_180.md)
-+   [算法应用](4-debug-encrypt_181.md)
-+   [PasteItInV1.2 注册算法分析--AES128+Base128](4-debug-encrypt_182.md)
-+   [一个建站软件的注册算法分析（最新版）](4-debug-encrypt_183.md)
-+   [视维视频会议 5.1 体验版](4-debug-encrypt_184.md)
-+   [Base64](4-debug-encrypt_185.md)
-+   [算法理论](4-debug-encrypt_186.md)
-+   [Base64 编码解码算法 Cpp+sdk 源码](4-debug-encrypt_187.md)
-+   [用 Win32 汇编写的 Base64 编码程序](4-debug-encrypt_188.md)
-+   [算法应用](4-debug-encrypt_189.md)
-+   [【作品提交】Hash 计算器](4-debug-encrypt_19.md)
-+   [生活小管家 1.0](4-debug-encrypt_190.md)
-+   [Base64 算法分析＋VC 注册机代码【原创】](4-debug-encrypt_191.md)
-+   [用 VB6.0 做出的字串加密 dll（带源码）！！](4-debug-encrypt_192.md)
-+   [（BASE64）冰盾系统安全专家 V3.3 破解教程](4-debug-encrypt_193.md)
-+   [Turbo Note+ V4.4](4-debug-encrypt_194.md)
-+   [PerformanceTest 3.4](4-debug-encrypt_195.md)
-+   [DSA 算法](4-debug-encrypt_196.md)
-+   [DSA 算法](4-debug-encrypt_197.md)
-+   [DSA 算法理论及应用](4-debug-encrypt_198.md)
-+   [简单的研究 DSA 算法 12 楼进行更新 提供乘法、幂运算的特征应用](4-debug-encrypt_199.md)
-+   [\====基础知识====](4-debug-encrypt_2.md)
-+   [各种 Hash 算法（翻译的应用密码学里面的）（原创）](4-debug-encrypt_20.md)
-+   [Blowfish](4-debug-encrypt_200.md)
-+   [算法理论](4-debug-encrypt_201.md)
-+   [BLOWFISH 算法](4-debug-encrypt_202.md)
-+   [BlowFish 尝试](4-debug-encrypt_203.md)
-+   [菜鸟学习《加密与解密》BlowFish 笔记](4-debug-encrypt_204.md)
-+   [算法应用](4-debug-encrypt_205.md)
-+   [SWF Browser](4-debug-encrypt_206.md)
-+   [英语会话精灵 3.2](4-debug-encrypt_207.md)
-+   [亿特代理服务器简易版 1.5 build0626](4-debug-encrypt_208.md)
-+   [AZR](4-debug-encrypt_209.md)
-+   [自编 Hash 值计算工具+源码](4-debug-encrypt_21.md)
-+   [DES](4-debug-encrypt_210.md)
-+   [算法理论](4-debug-encrypt_211.md)
-+   [DES 算法](4-debug-encrypt_212.md)
-+   [纯汇编实现 DES64 加密算法,求邀请码.](4-debug-encrypt_213.md)
-+   [DES 官方文档翻译](4-debug-encrypt_214.md)
-+   [DES 加密算法图解](4-debug-encrypt_215.md)
-+   [DES(Weakkey,X)=X 的分析](4-debug-encrypt_216.md)
-+   [浅析一个 DES 源码(WjcDes.cpp)的错误以及测试的重要性](4-debug-encrypt_217.md)
-+   [DES 测试工具(含源码)](4-debug-encrypt_218.md)
-+   [DES 算法加密解密及雪崩效应验证](4-debug-encrypt_219.md)
-+   [HASH 算法简单介绍](4-debug-encrypt_22.md)
-+   [算法应用](4-debug-encrypt_220.md)
-+   [我酷单词连连看 1.00(DES+Base64)](4-debug-encrypt_221.md)
-+   [xp 变脸王的注册算法](4-debug-encrypt_222.md)
-+   [实战 DES 算法注册机（破解教程）](4-debug-encrypt_223.md)
-+   [请教一下这个是什么加密算法？？？](4-debug-encrypt_224.md)
-+   [XPSecurity 2005c](4-debug-encrypt_225.md)
-+   [快速抠图 1.08](4-debug-encrypt_226.md)
-+   [税务师 200306](4-debug-encrypt_227.md)
-+   [某国产软件注册算法分析(DES 加密算法)](4-debug-encrypt_228.md)
-+   [谜----同益起名大师 3.36 注册算法分析](4-debug-encrypt_229.md)
-+   [几个标准 Hash 算法的说明及实现（一）](4-debug-encrypt_23.md)
-+   [正确获得同益起名大师 v337 的注册号――解读 moon 帮主的妙文](4-debug-encrypt_230.md)
-+   [CD MP3 Burner V2.15 - DES 算法简析](4-debug-encrypt_231.md)
-+   [流星网络电视 V1.9.2.0 的注册](4-debug-encrypt_232.md)
-+   [AHOO 通群发器](4-debug-encrypt_233.md)
-+   [公路坐标计算系统 1.0](4-debug-encrypt_234.md)
-+   [流星网络电视 2.15](4-debug-encrypt_235.md)
-+   [变脸王](4-debug-encrypt_236.md)
-+   [标准的 DES 算法分析详细过程](4-debug-encrypt_237.md)
-+   [中国劳动人事法规大全 200601](4-debug-encrypt_238.md)
-+   [蓝光介绍信管理软件 V3.2-算法分析](4-debug-encrypt_239.md)
-+   [CRC](4-debug-encrypt_24.md)
-+   [cooolftp](4-debug-encrypt_240.md)
-+   [Diffie-Hellman](4-debug-encrypt_241.md)
-+   [Diffie-Hellman 协议以及安全研究](4-debug-encrypt_242.md)
-+   [Twofish 算法](4-debug-encrypt_243.md)
-+   [TextPad 4.7.3 序列号算法分析](4-debug-encrypt_244.md)
-+   [Twofish 加密算法详解](4-debug-encrypt_245.md)
-+   [TEA 算法](4-debug-encrypt_246.md)
-+   [LFS S2 0.5P ALPHA 注册算法分析](4-debug-encrypt_247.md)
-+   [IDEA 算法](4-debug-encrypt_248.md)
-+   [IDEA 中 2¹⁶ + 1 的模乘运算的一种优化实现。](4-debug-encrypt_249.md)
-+   [算法理论](4-debug-encrypt_25.md)
-+   [FlipBook V4.5 注册算法分析--IDEA+custom](4-debug-encrypt_250.md)
-+   [MARS](4-debug-encrypt_251.md)
-+   [锲而不舍，终破 bt 仓库](4-debug-encrypt_252.md)
-+   [MyVideoConverter 1.18.1](4-debug-encrypt_253.md)
-+   [Cast-128 算法](4-debug-encrypt_254.md)
-+   [Cast-128 加密算法的另类分析](4-debug-encrypt_255.md)
-+   [MyPassWord](4-debug-encrypt_256.md)
-+   [RC 算法](4-debug-encrypt_257.md)
-+   [Matlab2007b PLP 之不完全分析](4-debug-encrypt_258.md)
-+   [冷雨飘心的 CrkMe2](4-debug-encrypt_259.md)
-+   [CRC 简介](4-debug-encrypt_26.md)
-+   [足彩缩水大师专业版 V7.10.1000](4-debug-encrypt_260.md)
-+   [一个 RC4 加密程序（Secure PE V1.6）的分析](4-debug-encrypt_261.md)
-+   [Internet Download Manager 3.15](4-debug-encrypt_262.md)
-+   [XOR](4-debug-encrypt_263.md)
-+   [The XOR Secret in Our Computer System--延伸討論](4-debug-encrypt_264.md)
-+   [无 KEY 还原简单 XOR 加密字符探索](4-debug-encrypt_265.md)
-+   [The XOR Secret in Our Computer System](4-debug-encrypt_266.md)
-+   [【分享+讨论】对 XOR\_password 及 XOR\_cryptanalyiss 等相关论文研讨。(No. 2)](4-debug-encrypt_267.md)
-+   [\====更多算法====](4-debug-encrypt_268.md)
-+   [Enigma](4-debug-encrypt_269.md)
-+   [请教查表法计算 CRC 的原理](4-debug-encrypt_27.md)
-+   [恩尼格玛(Enigma)加密机 模拟程序](4-debug-encrypt_270.md)
-+   [代换密码](4-debug-encrypt_271.md)
-+   [跳棋大战 V2.28](4-debug-encrypt_272.md)
-+   [Vigenere](4-debug-encrypt_273.md)
-+   [现学现卖 Vigenere 加密法](4-debug-encrypt_274.md)
-+   [流密码内嵌魔方阵](4-debug-encrypt_275.md)
-+   [流密嵌魔方於存之研究](4-debug-encrypt_276.md)
-+   [流密码内嵌魔方阵于随机存档之研究-- Magic Square 之神奇篇](4-debug-encrypt_277.md)
-+   [流密嵌魔方於存之研究-- Magic Square 篇](4-debug-encrypt_278.md)
-+   [其他](4-debug-encrypt_279.md)
-+   [CRC32 碰撞的实现](4-debug-encrypt_28.md)
-+   [On the 2ROT13 Encryption Algorithm](4-debug-encrypt_280.md)
-+   [两个世纪破解总统密码](4-debug-encrypt_281.md)
-+   [\====加密库====](4-debug-encrypt_282.md)
-+   [Crypto API](4-debug-encrypt_283.md)
-+   [Crypto API 学习笔记一](4-debug-encrypt_284.md)
-+   [Crypto API 学习笔记二](4-debug-encrypt_285.md)
-+   [Crypto API 学习笔记三](4-debug-encrypt_286.md)
-+   [使用 CryptoAPI 解析 X509 证书和 P12 证书](4-debug-encrypt_287.md)
-+   [CRYPTOAPI](4-debug-encrypt_288.md)
-+   [The Cryptography API, or How to Keep a Secret](4-debug-encrypt_289.md)
-+   [CRC-32 的算法小议](4-debug-encrypt_29.md)
-+   [更多](4-debug-encrypt_290.md)
-+   [自己写的一些加密算法实现](4-debug-encrypt_291.md)
-+   [\====明文攻击====](4-debug-encrypt_292.md)
-+   [实战！关键词加密法破译](4-debug-encrypt_293.md)
-+   [统计分析攻击实例](4-debug-encrypt_294.md)
-+   [旧文新贴，关于一个古典密码破解的实例](4-debug-encrypt_295.md)
-+   [\====综合应用====](4-debug-encrypt_296.md)
-+   [几个加密算法 C++](4-debug-encrypt_297.md)
-+   [有知道 openssl 的进来帮帮忙](4-debug-encrypt_298.md)
-+   [Radmin Password Encrypt](4-debug-encrypt_299.md)
-+   [概述](4-debug-encrypt_3.md)
-+   [密码小游戏：暴力破解 CRC32 密码](4-debug-encrypt_30.md)
-+   [Core 的 crackme2](4-debug-encrypt_300.md)
-+   [电子日记本（Ediary V2.53）口令验证算法分析](4-debug-encrypt_301.md)
-+   [象棋世家 RSA128+MD5+BASE64+AES Rijndael 注册算法分析](4-debug-encrypt_302.md)
-+   [大整数计算器(VC6 源码&二进制)](4-debug-encrypt_303.md)
-+   [一个软件注册算法分析及注册机, 加密算法:SHA1, Tiger, Base64, Blowfish](4-debug-encrypt_304.md)
-+   [唠一唠 mysql 的口令算法](4-debug-encrypt_305.md)
-+   [软件脱壳+变形 MD5+BlowFish+Base64“变态”注册算法分析+汇编注册机](4-debug-encrypt_306.md)
-+   [XXDownload1.14](4-debug-encrypt_307.md)
-+   [炒股理财\_3.21](4-debug-encrypt_308.md)
-+   [EasyCHM 3.5](4-debug-encrypt_309.md)
-+   [CRC16 和 CRC32 的计算](4-debug-encrypt_31.md)
-+   [ChrisTWEAK 1.50](4-debug-encrypt_310.md)
-+   [\[TEA+RSA+RC5/6\]-总管家个人办公与客户管理系统 T30.03](4-debug-encrypt_311.md)
-+   [一个基于数字签名的 KeygenMe（已增加注册机算法）](4-debug-encrypt_312.md)
-+   [CRC 技术的实现与破解（10.21 更新）](4-debug-encrypt_32.md)
-+   [CRC32 算法分析、逆向（附源码）](4-debug-encrypt_33.md)
-+   [根据 CRC32 值，是否能够快速获得其原始值？](4-debug-encrypt_34.md)
-+   [算法应用](4-debug-encrypt_35.md)
-+   [3DMark2000v1.1](4-debug-encrypt_36.md)
-+   [CRC32 算法的妙用](4-debug-encrypt_37.md)
-+   [小菜也来 CRC32 的分析,哈哈- =..以及自己的代码,职业菜鸟灌水,](4-debug-encrypt_38.md)
-+   [Iparmor 木马克星 V5.40 Build 0414](4-debug-encrypt_39.md)
-+   [群论的一些基础知识](4-debug-encrypt_4.md)
-+   [木马克星 5.33.6](4-debug-encrypt_40.md)
-+   [Extra Drive Pro](4-debug-encrypt_41.md)
-+   [iTime](4-debug-encrypt_42.md)
-+   [一个国外程序的算法分析\[CRC32 算法\]](4-debug-encrypt_43.md)
-+   [MD5](4-debug-encrypt_44.md)
-+   [算法理论](4-debug-encrypt_45.md)
-+   [MD5 算法](4-debug-encrypt_46.md)
-+   [继 MD5 算发汇编代码\[着重优化\] 之后的 MD5 神奇优化（欢迎高手前来指点）](4-debug-encrypt_47.md)
-+   [【作品提交】文件 MD5 值计算工具](4-debug-encrypt_48.md)
-+   [MD5 算法研究](4-debug-encrypt_49.md)
-+   [标 题：](4-debug-encrypt_5.md)
-+   [MD5 的 VB 类模块源码](4-debug-encrypt_50.md)
-+   [MD5 程序（Delphi）](4-debug-encrypt_51.md)
-+   [MD5 算法汇编代码\[着重优化\]](4-debug-encrypt_52.md)
-+   [MD5 的介绍，算法和实现](4-debug-encrypt_53.md)
-+   [算法应用](4-debug-encrypt_54.md)
-+   [许源华程序之 MD5](4-debug-encrypt_55.md)
-+   [变形的 MD5](4-debug-encrypt_56.md)
-+   [菜鸟初学 Crack 破解，学习 MD5 算法【原创】](4-debug-encrypt_57.md)
-+   [Flash ScreenSaver Maker 1.3](4-debug-encrypt_58.md)
-+   [AdSubtract PRO Version 2.04](4-debug-encrypt_59.md)
-+   [菜鸟教学--密码学概述](4-debug-encrypt_6.md)
-+   [oicq 目录下面的 hash.dat](4-debug-encrypt_60.md)
-+   [Audio Sphere v2.57](4-debug-encrypt_61.md)
-+   [ImTOO DVD Audio Ripper 4.0.50.0522](4-debug-encrypt_62.md)
-+   [ACS Capture 专业屏捕软件(md5) 2.11 注册算法分析【原创】](4-debug-encrypt_63.md)
-+   [网络叔叔 1.0 简单 MD5 注册算法分析 + VB 注册机](4-debug-encrypt_64.md)
-+   [土地拍卖竞标助手 专业版 6.31-MD5 算法分析+VB 注册机](4-debug-encrypt_65.md)
-+   [AVI Joiner MD5 的暴力破解](4-debug-encrypt_66.md)
-+   [A+ Pop Up Blocker 2.1 - MD5 算法分析](4-debug-encrypt_67.md)
-+   [MD5 加密算法破解--莱鸟入门破文之三【原创】](4-debug-encrypt_68.md)
-+   [A+ File Protection 2.6 注册算法分析(MD5)](4-debug-encrypt_69.md)
-+   [PE 简单签名验证实现](4-debug-encrypt_7.md)
-+   [一个桌面工具的 MD5 算法分析(国庆献礼)](4-debug-encrypt_70.md)
-+   [三江门诊收费系统注册算法分析](4-debug-encrypt_71.md)
-+   [变形 Md5(常数+填充+变换)反汇编代码简单注释](4-debug-encrypt_72.md)
-+   [crypto++5.0 应用一例](4-debug-encrypt_73.md)
-+   [XXXX 快速邮件地址搜索器](4-debug-encrypt_74.md)
-+   [Disk Medic v3.0 算法分析](4-debug-encrypt_75.md)
-+   [IP 查看器 V6.1](4-debug-encrypt_76.md)
-+   [NetWatch 网络监控与入侵检测系统专业版 2.01](4-debug-encrypt_77.md)
-+   [一个小软件的注册算法研究（MD5 算法）](4-debug-encrypt_78.md)
-+   [CyberArticle V4.361](4-debug-encrypt_79.md)
-+   [菜鸟对密码学的理解](4-debug-encrypt_8.md)
-+   [SHA](4-debug-encrypt_80.md)
-+   [SHA1 标准文档翻译](4-debug-encrypt_81.md)
-+   [AuctionSleuth 2.6.4](4-debug-encrypt_82.md)
-+   [Tarma QuickInstall V2.99.3016 注册算法分析\[变异 SHA1 算法\]](4-debug-encrypt_83.md)
-+   [Hash 工具](4-debug-encrypt_84.md)
-+   [【原创】用 windows cryptoAPI 写的 HASH 小工具（附 asm 源码）](4-debug-encrypt_85.md)
-+   [Hash 算法工具](4-debug-encrypt_86.md)
-+   [\====公钥系统====](4-debug-encrypt_87.md)
-+   [RSA](4-debug-encrypt_88.md)
-+   [算法理论](4-debug-encrypt_89.md)
-+   [各加密算法的简单原理总结](4-debug-encrypt_9.md)
-+   [R.S.A](4-debug-encrypt_90.md)
-+   [RSA 算法](4-debug-encrypt_91.md)
-+   [怎样攻破 RSA-1024 的算法保护 ?(翻译部分)](4-debug-encrypt_92.md)
-+   [RSA 与大数运算](4-debug-encrypt_93.md)
-+   [openssl RSA 加密](4-debug-encrypt_94.md)
-+   [如何破解 RSA-1024？—— Asprotect 1.0/1.1/1.11c 前半篇](4-debug-encrypt_95.md)
-+   [【作品提交】RSA 加密解密的实现](4-debug-encrypt_96.md)
-+   [浅谈利用 RSA 算法防止非法注册机的制作](4-debug-encrypt_97.md)
-+   [公钥密码 RSA 算法优化分析](4-debug-encrypt_98.md)
-+   [RSA 相关数学基础与算法简析](4-debug-encrypt_99.md)
+
+# 第4篇 调试篇：加密算法
+
+[第4篇 调试篇：加密算法](README.md)
+
+## KSSD 第 4 篇 调试篇：加密算法
+
+[KSSD 第 4 篇 调试篇：加密算法](4-debug-encrypt_1.md)
+
+## 密码学入门系列
+
+[密码学入门系列](4-debug-encrypt_10.md)
+
+## .NET 中 RAS 加解密和签名与验证的 `c#`实现代码讲解，及实现程序提供，源码自己 `Reflector`。
+
+[.NET 中 RAS 加解密和签名与验证的 `c#`实现代码讲解，及实现程序提供，源码自己 `Reflector`。](4-debug-encrypt_100.md)
+
+## 植基於 `RSA` 加密演算法率特性之研究
+
+[植基於 `RSA` 加密演算法率特性之研究](4-debug-encrypt_101.md)
+
+## 使用 `RSA1024` 算法防止软件被 `Keygen`
+
+[使用 `RSA1024` 算法防止软件被 `Keygen`](4-debug-encrypt_102.md)
+
+## `RSA` 保护的程序 注册机制作思路总结
+
+[`RSA` 保护的程序 注册机制作思路总结](4-debug-encrypt_103.md)
+
+## 关于 1024 位的 `RSA` 因式分解速度的问题
+
+[关于 1024 位的 `RSA` 因式分解速度的问题](4-debug-encrypt_104.md)
+
+## `RSA Tool`
+
+[`RSA Tool`](4-debug-encrypt_105.md)
+
+## `RSA Tool Help`
+
+[`RSA Tool Help`](4-debug-encrypt_106.md)
+
+## `rsa` 计算的小工具
+
+[`rsa` 计算的小工具](4-debug-encrypt_107.md)
+
+## 算法应用
+
+[算法应用](4-debug-encrypt_108.md)
+
+## `Absolute MP3 Splitter Converter` `v2.5.6` 算法分析(`RSA`)兼 `FGInt` 库的使用
+
+[`Absolute MP3 Splitter Converter` `v2.5.6` 算法分析(`RSA`)兼 `FGInt` 库的使用](4-debug-encrypt_109.md)
+
+## 密码学入门系列(一) 之 移位密码(古典)
+
+[密码学入门系列(一) 之 移位密码(古典)](4-debug-encrypt_11.md)
+
+## `Allok Video Splitter`
+
+[`Allok Video Splitter`](4-debug-encrypt_110.md)
+
+## `A-one Home Looker` `1.13`
+
+[`A-one Home Looker` `1.13`](4-debug-encrypt_111.md)
+
+## `Apex MPEG VCD DVD Converter` `4.94`
+
+[`Apex MPEG VCD DVD Converter` `4.94`](4-debug-encrypt_112.md)
+
+## `API Spy 32` `v2.4`
+
+[`API Spy 32` `v2.4`](4-debug-encrypt_113.md)
+
+## `Api32` `V2.5`
+
+[`Api32` `V2.5`](4-debug-encrypt_114.md)
+
+## `Aplus DVD to MP3 Ripper` `3.1.3`
+
+[`Aplus DVD to MP3 Ripper` `3.1.3`](4-debug-encrypt_115.md)
+
+## `Arila Sound Recorder` (`RSA`)分析
+
+[`Arila Sound Recorder` (`RSA`)分析](4-debug-encrypt_116.md)
+
+## `Awave Studio` `v7.0`
+
+[`Awave Studio` `v7.0`](4-debug-encrypt_117.md)
+
+## `A` 变速器算法分析
+
+[`A` 变速器算法分析](4-debug-encrypt_118.md)
+
+## 成功的保护——`Calendarscope` 注册算法分析
+
+[成功的保护——`Calendarscope` 注册算法分析](4-debug-encrypt_119.md)
+
+## 密码学入门系列(二) 之 仿射密码(古典)
+
+[密码学入门系列(二) 之 仿射密码(古典)](4-debug-encrypt_12.md)
+
+## `EasyBoot`
+
+[`EasyBoot`](4-debug-encrypt_120.md)
+
+## `IP-Tools` `2.50`
+
+[`IP-Tools` `2.50`](4-debug-encrypt_121.md)
+
+## `KeyGenMeRSA`
+
+[`KeyGenMeRSA`](4-debug-encrypt_122.md)
+
+## `Okoker Shutdown Expert`
+
+[`Okoker Shutdown Expert`](4-debug-encrypt_123.md)
+
+## `Plato Video To iPod Converter` `V3.46` 算法分析
+
+[`Plato Video To iPod Converter` `V3.46` 算法分析](4-debug-encrypt_124.md)
+
+## `protectz` `v1.53`
+
+[`protectz` `v1.53`](4-debug-encrypt_125.md)
+
+## 罕见奇难的大数算法-`Registry Winner` 多语版注册算法分析（`VB` 注册机源码）
+
+[罕见奇难的大数算法-`Registry Winner` 多语版注册算法分析（`VB` 注册机源码）](4-debug-encrypt_126.md)
+
+## `RM to AVI MPEG WMV VCD SVCD DVD Converter` `2.7`
+
+[`RM to AVI MPEG WMV VCD SVCD DVD Converter` `2.7`](4-debug-encrypt_127.md)
+
+## 在 `rsatools` 中已知(`Q-1`)*(`P-1`),`E`,求 `D` 的反汇编过程及分析
+
+[在 `rsatools` 中已知(`Q-1`)*(`P-1`),`E`,求 `D` 的反汇编过程及分析](4-debug-encrypt_128.md)
+
+## `RSA` 算法
+
+[`RSA` 算法](4-debug-encrypt_129.md)
+
+## 密码学入门系列(三) 之 希尔密码(古典)
+
+[密码学入门系列(三) 之 希尔密码(古典)](4-debug-encrypt_13.md)
+
+## `Speed Video Converter` `3.0.16.8`
+
+[`Speed Video Converter` `3.0.16.8`](4-debug-encrypt_130.md)
+
+## `Speed Video Splitter` 算法分析兼 `RSA` 实例教程
+
+[`Speed Video Splitter` 算法分析兼 `RSA` 实例教程](4-debug-encrypt_131.md)
+
+## `SuperGame` `V1.5.8` 注册算法分析和破解
+
+[`SuperGame` `V1.5.8` 注册算法分析和破解](4-debug-encrypt_132.md)
+
+## `TMG keygenmersa`
+
+[`TMG keygenmersa`](4-debug-encrypt_133.md)
+
+## `Total Video Converter`(`3.01` 版)注册算法全揭密
+
+[`Total Video Converter`(`3.01` 版)注册算法全揭密](4-debug-encrypt_134.md)
+
+## `UltraISO7me`
+
+[`UltraISO7me`](4-debug-encrypt_135.md)
+
+## `Winace` `v2.04`
+
+[`Winace` `v2.04`](4-debug-encrypt_136.md)
+
+## `Windows` 优化大师
+
+[`Windows` 优化大师](4-debug-encrypt_137.md)
+
+## `Windows` 优化大师
+
+[`Windows` 优化大师](4-debug-encrypt_138.md)
+
+## `Windows` 优化大师
+
+[`Windows` 优化大师](4-debug-encrypt_139.md)
+
+## 密码学入门系列(四) 之 维吉尼亚密码(古典)
+
+[密码学入门系列(四) 之 维吉尼亚密码(古典)](4-debug-encrypt_14.md)
+
+## `Windows` 优化大师 `v2.9+`
+
+[`Windows` 优化大师 `v2.9+`](4-debug-encrypt_140.md)
+
+## `Windows` 优化大师 `V7.2`
+
+[`Windows` 优化大师 `V7.2`](4-debug-encrypt_141.md)
+
+## `Windows` 优化大师
+
+[`Windows` 优化大师](4-debug-encrypt_142.md)
+
+## `Windows` 优化大师 `5.35`
+
+[`Windows` 优化大师 `5.35`](4-debug-encrypt_143.md)
+
+## `Windows` 优化大师 `v3.0-v3.4` 的注册机源代码
+
+[`Windows` 优化大师 `v3.0-v3.4` 的注册机源代码](4-debug-encrypt_144.md)
+
+## `WMV to AVI MPEG DVD WMV Converter` `1.4.8`
+
+[`WMV to AVI MPEG DVD WMV Converter` `1.4.8`](4-debug-encrypt_145.md)
+
+## 楚汉棋缘 `v1.42`
+
+[楚汉棋缘 `v1.42`](4-debug-encrypt_146.md)
+
+## 楚汉棋缘 `V1.36`
+
+[楚汉棋缘 `V1.36`](4-debug-encrypt_147.md)
+
+## 公务员之路 `5.1`
+
+[公务员之路 `5.1`](4-debug-encrypt_148.md)
+
+## `RSA`-开心小闹钟 `2.7` `Build` `0107`
+
+[`RSA`-开心小闹钟 `2.7` `Build` `0107`](4-debug-encrypt_149.md)
+
+## 密码学入门系列(五) 之 `DES`(现代)
+
+[密码学入门系列(五) 之 `DES`(现代)](4-debug-encrypt_15.md)
+
+## 批量更名专家 `V2.2` `Build` `0801`
+
+[批量更名专家 `V2.2` `Build` `0801`](4-debug-encrypt_150.md)
+
+## 破解 `BestCrypt` `v8.20.6.2`
+
+[破解 `BestCrypt` `v8.20.6.2`](4-debug-encrypt_151.md)
+
+## 全能上网计费器
+
+[全能上网计费器](4-debug-encrypt_152.md)
+
+## 象棋世家
+
+[象棋世家](4-debug-encrypt_153.md)
+
+## 一个窗口隐藏工具的注册验证流程分析
+
+[一个窗口隐藏工具的注册验证流程分析](4-debug-encrypt_154.md)
+
+## 珠联网络棋牌游戏(共享版)`V2.94` (`RSA` 算法 `N` 和 `E` 比较小)
+
+[珠联网络棋牌游戏(共享版)`V2.94` (`RSA` 算法 `N` 和 `E` 比较小)](4-debug-encrypt_155.md)
+
+## `ElGamal` 算法
+
+[`ElGamal` 算法](4-debug-encrypt_156.md)
+
+## `ElGamal` 算法
+
+[`ElGamal` 算法](4-debug-encrypt_157.md)
+
+## `Solid Encryption` 注册算法分析(`Elgamal Signature`)
+
+[`Solid Encryption` 注册算法分析(`Elgamal Signature`)](4-debug-encrypt_158.md)
+
+## `keygen` of `TMG Official Keygenme #3`
+
+[`keygen` of `TMG Official Keygenme #3`](4-debug-encrypt_159.md)
+
+## 密码学入门系列(六) 之 `Enigma` 密码机(古典)
+
+[密码学入门系列(六) 之 `Enigma` 密码机(古典)](4-debug-encrypt_16.md)
+
+## `ECC`
+
+[`ECC`](4-debug-encrypt_160.md)
+
+## 算法理论
+
+[算法理论](4-debug-encrypt_161.md)
+
+## `ECC` 加密算法入门介绍
+
+[`ECC` 加密算法入门介绍](4-debug-encrypt_162.md)
+
+## 探讨 `ECC` 加密被破译的可能性---看雪学院 2006 金秋读书季【讨论】
+
+[探讨 `ECC` 加密被破译的可能性---看雪学院 2006 金秋读书季【讨论】](4-debug-encrypt_163.md)
+
+## `magma`/`PARI`/`GP` 中文文档 `ECC` 初步:
+
+[`magma`/`PARI`/`GP` 中文文档 `ECC` 初步:](4-debug-encrypt_164.md)
+
+## 算法应用
+
+[算法应用](4-debug-encrypt_165.md)
+
+## 逆向分析 `Microsoft.Office.2007.Applications.Keygen.Only-MiCROSOFT`（修订版）
+
+[逆向分析 `Microsoft.Office.2007.Applications.Keygen.Only-MiCROSOFT`（修订版）](4-debug-encrypt_166.md)
+
+## 一个比较另类的 `ECC` `stuff`
+
+[一个比较另类的 `ECC` `stuff`](4-debug-encrypt_167.md)
+
+## 逆向 `Microsoft.Windows.Server.2003.x64.Edition.VOL.Keymaker.Only-ZWT`
+
+[逆向 `Microsoft.Windows.Server.2003.x64.Edition.VOL.Keymaker.Only-ZWT`](4-debug-encrypt_168.md)
+
+## `CloneCD`
+
+[`CloneCD`](4-debug-encrypt_169.md)
+
+## \====`Hash`====
+
+[\====`Hash`====](4-debug-encrypt_17.md)
+
+## \====对称加密====
+
+[\====对称加密====](4-debug-encrypt_170.md)
+
+## 概述
+
+[概述](4-debug-encrypt_171.md)
+
+## 常见密码算法总结--(1)分组对称密码
+
+[常见密码算法总结--(1)分组对称密码](4-debug-encrypt_172.md)
+
+## `AES`
+
+[`AES`](4-debug-encrypt_173.md)
+
+## 算法理论
+
+[算法理论](4-debug-encrypt_174.md)
+
+## 发一个这个学期写的 `AES` 工具源码
+
+[发一个这个学期写的 `AES` 工具源码](4-debug-encrypt_175.md)
+
+## 一个介绍 `aes` 加密算法的 `Flash` 录像
+
+[一个介绍 `aes` 加密算法的 `Flash` 录像](4-debug-encrypt_176.md)
+
+## `AES` 官方文档翻译
+
+[`AES` 官方文档翻译](4-debug-encrypt_177.md)
+
+## `AES` 的 `C` 语言源码
+
+[`AES` 的 `C` 语言源码](4-debug-encrypt_178.md)
+
+## 简单文件加密工具 `VC6`
+
+[简单文件加密工具 `VC6`](4-debug-encrypt_179.md)
+
+## 介绍
+
+[介绍](4-debug-encrypt_18.md)
+
+## 128 位 `AES` 加密算法图解
+
+[128 位 `AES` 加密算法图解](4-debug-encrypt_180.md)
+
+## 算法应用
+
+[算法应用](4-debug-encrypt_181.md)
+
+## `PasteItInV1.2` 注册算法分析--`AES128+Base128`
+
+[`PasteItInV1.2` 注册算法分析--`AES128+Base128`](4-debug-encrypt_182.md)
+
+## 一个建站软件的注册算法分析（最新版）
+
+[一个建站软件的注册算法分析（最新版）](4-debug-encrypt_183.md)
+
+## 视维视频会议 `5.1` 体验版
+
+[视维视频会议 `5.1` 体验版](4-debug-encrypt_184.md)
+
+## `Base64`
+
+[`Base64`](4-debug-encrypt_185.md)
+
+## 算法理论
+
+[算法理论](4-debug-encrypt_186.md)
+
+## `Base64` 编码解码算法 `Cpp+sdk` 源码
+
+[`Base64` 编码解码算法 `Cpp+sdk` 源码](4-debug-encrypt_187.md)
+
+## 用 `Win32` 汇编写的 `Base64` 编码程序
+
+[用 `Win32` 汇编写的 `Base64` 编码程序](4-debug-encrypt_188.md)
+
+## 算法应用
+
+[算法应用](4-debug-encrypt_189.md)
+
+## 【作品提交】`Hash` 计算器
+
+[【作品提交】`Hash` 计算器](4-debug-encrypt_19.md)
+
+## 生活小管家 `1.0`
+
+[生活小管家 `1.0`](4-debug-encrypt_190.md)
+
+## `Base64` 算法分析＋`VC` 注册机代码【原创】
+
+[`Base64` 算法分析＋`VC` 注册机代码【原创】](4-debug-encrypt_191.md)
+
+## 用 `VB6.0` 做出的字串加密 `dll`（带源码）！！
+
+[用 `VB6.0` 做出的字串加密 `dll`（带源码）！！](4-debug-encrypt_192.md)
+
+## （`BASE64`）冰盾系统安全专家 `V3.3` 破解教程
+
+[（`BASE64`）冰盾系统安全专家 `V3.3` 破解教程](4-debug-encrypt_193.md)
+
+## `Turbo Note+` `V4.4`
+
+[`Turbo Note+` `V4.4`](4-debug-encrypt_194.md)
+
+## `PerformanceTest` `3.4`
+
+[`PerformanceTest` `3.4`](4-debug-encrypt_195.md)
+
+## `DSA` 算法
+
+[`DSA` 算法](4-debug-encrypt_196.md)
+
+## `DSA` 算法
+
+[`DSA` 算法](4-debug-encrypt_197.md)
+
+## `DSA` 算法理论及应用
+
+[`DSA` 算法理论及应用](4-debug-encrypt_198.md)
+
+## 简单的研究 `DSA` 算法 12 楼进行更新 提供乘法、幂运算的特征应用
+
+[简单的研究 `DSA` 算法 12 楼进行更新 提供乘法、幂运算的特征应用](4-debug-encrypt_199.md)
+
+## \====基础知识====
+
+[\====基础知识====](4-debug-encrypt_2.md)
+
+## 各种 `Hash` 算法（翻译的应用密码学里面的）（原创）
+
+[各种 `Hash` 算法（翻译的应用密码学里面的）（原创）](4-debug-encrypt_20.md)
+
+## `Blowfish`
+
+[`Blowfish`](4-debug-encrypt_200.md)
+
+## 算法理论
+
+[算法理论](4-debug-encrypt_201.md)
+
+## `BLOWFISH` 算法
+
+[`BLOWFISH` 算法](4-debug-encrypt_202.md)
+
+## `BlowFish` 尝试
+
+[`BlowFish` 尝试](4-debug-encrypt_203.md)
+
+## 菜鸟学习《加密与解密》`BlowFish` 笔记
+
+[菜鸟学习《加密与解密》`BlowFish` 笔记](4-debug-encrypt_204.md)
+
+## 算法应用
+
+[算法应用](4-debug-encrypt_205.md)
+
+## `SWF Browser`
+
+[`SWF Browser`](4-debug-encrypt_206.md)
+
+## 英语会话精灵 `3.2`
+
+[英语会话精灵 `3.2`](4-debug-encrypt_207.md)
+
+## 亿特代理服务器简易版 `1.5` `build0626`
+
+[亿特代理服务器简易版 `1.5` `build0626`](4-debug-encrypt_208.md)
+
+## `AZR`
+
+[`AZR`](4-debug-encrypt_209.md)
+
+## 自编 `Hash` 值计算工具+源码
+
+[自编 `Hash` 值计算工具+源码](4-debug-encrypt_21.md)
+
+## `DES`
+
+[`DES`](4-debug-encrypt_210.md)
+
+## 算法理论
+
+[算法理论](4-debug-encrypt_211.md)
+
+## `DES` 算法
+
+[`DES` 算法](4-debug-encrypt_212.md)
+
+## 纯汇编实现 `DES64` 加密算法,求邀请码.
+
+[纯汇编实现 `DES64` 加密算法,求邀请码.](4-debug-encrypt_213.md)
+
+## `DES` 官方文档翻译
+
+[`DES` 官方文档翻译](4-debug-encrypt_214.md)
+
+## `DES` 加密算法图解
+
+[`DES` 加密算法图解](4-debug-encrypt_215.md)
+
+## `DES(Weakkey,X)=X` 的分析
+
+[`DES(Weakkey,X)=X` 的分析](4-debug-encrypt_216.md)
+
+## 浅析一个 `DES` 源码(`WjcDes.cpp`)的错误以及测试的重要性
+
+[浅析一个 `DES` 源码(`WjcDes.cpp`)的错误以及测试的重要性](4-debug-encrypt_217.md)
+
+## `DES` 测试工具(含源码)
+
+[`DES` 测试工具(含源码)](4-debug-encrypt_218.md)
+
+## `DES` 算法加密解密及雪崩效应验证
+
+[`DES` 算法加密解密及雪崩效应验证](4-debug-encrypt_219.md)
+
+## `HASH` 算法简单介绍
+
+[`HASH` 算法简单介绍](4-debug-encrypt_22.md)
+
+## 算法应用
+
+[算法应用](4-debug-encrypt_220.md)
+
+## 我酷单词连连看 `1.00`(`DES+Base64`)
+
+[我酷单词连连看 `1.00`(`DES+Base64`)](4-debug-encrypt_221.md)
+
+## `xp` 变脸王的注册算法
+
+[`xp` 变脸王的注册算法](4-debug-encrypt_222.md)
+
+## 实战 `DES` 算法注册机（破解教程）
+
+[实战 `DES` 算法注册机（破解教程）](4-debug-encrypt_223.md)
+
+## 请教一下这个是什么加密算法？？？
+
+[请教一下这个是什么加密算法？？？](4-debug-encrypt_224.md)
+
+## `XPSecurity` `2005c`
+
+[`XPSecurity` `2005c`](4-debug-encrypt_225.md)
+
+## 快速抠图 `1.08`
+
+[快速抠图 `1.08`](4-debug-encrypt_226.md)
+
+## 税务师 `200306`
+
+[税务师 `200306`](4-debug-encrypt_227.md)
+
+## 某国产软件注册算法分析(`DES` 加密算法)
+
+[某国产软件注册算法分析(`DES` 加密算法)](4-debug-encrypt_228.md)
+
+## 谜----同益起名大师 `3.36` 注册算法分析
+
+[谜----同益起名大师 `3.36` 注册算法分析](4-debug-encrypt_229.md)
+
+## 几个标准 `Hash` 算法的说明及实现（一）
+
+[几个标准 `Hash` 算法的说明及实现（一）](4-debug-encrypt_23.md)
+
+## 正确获得同益起名大师 `v337` 的注册号――解读 `moon` 帮主的妙文
+
+[正确获得同益起名大师 `v337` 的注册号――解读 `moon` 帮主的妙文](4-debug-encrypt_230.md)
+
+## `CD MP3 Burner` `V2.15` - `DES` 算法简析
+
+[`CD MP3 Burner` `V2.15` - `DES` 算法简析](4-debug-encrypt_231.md)
+
+## 流星网络电视 `V1.9.2.0` 的注册
+
+[流星网络电视 `V1.9.2.0` 的注册](4-debug-encrypt_232.md)
+
+## `AHOO` 通群发器
+
+[`AHOO` 通群发器](4-debug-encrypt_233.md)
+
+## 公路坐标计算系统 `1.0`
+
+[公路坐标计算系统 `1.0`](4-debug-encrypt_234.md)
+
+## 流星网络电视 `2.15`
+
+[流星网络电视 `2.15`](4-debug-encrypt_235.md)
+
+## 变脸王
+
+[变脸王](4-debug-encrypt_236.md)
+
+## 标准的 `DES` 算法分析详细过程
+
+[标准的 `DES` 算法分析详细过程](4-debug-encrypt_237.md)
+
+## 中国劳动人事法规大全 `200601`
+
+[中国劳动人事法规大全 `200601`](4-debug-encrypt_238.md)
+
+## 蓝光介绍信管理软件 `V3.2`-算法分析
+
+[蓝光介绍信管理软件 `V3.2`-算法分析](4-debug-encrypt_239.md)
+
+## `CRC`
+
+[`CRC`](4-debug-encrypt_24.md)
+
+## `cooolftp`
+
+[`cooolftp`](4-debug-encrypt_240.md)
+
+## `Diffie-Hellman`
+
+[`Diffie-Hellman`](4-debug-encrypt_241.md)
+
+## `Diffie-Hellman` 协议以及安全研究
+
+[`Diffie-Hellman` 协议以及安全研究](4-debug-encrypt_242.md)
+
+
+
+- [Twofish 算法](4-debug-encrypt_243.md)
+- [TextPad 4.7.3 序列号算法分析](4-debug-encrypt_244.md)
+- [Twofish 加密算法详解](4-debug-encrypt_245.md)
+- [TEA 算法](4-debug-encrypt_246.md)
+- [LFS S2 0.5P ALPHA 注册算法分析](4-debug-encrypt_247.md)
+- [IDEA 算法](4-debug-encrypt_248.md)
+- [IDEA 中 2¹⁶ + 1 的模乘运算的一种优化实现。](4-debug-encrypt_249.md)
+- [算法理论](4-debug-encrypt_25.md)
+- [FlipBook V4.5 注册算法分析--IDEA+custom](4-debug-encrypt_250.md)
+- [MARS](4-debug-encrypt_251.md)
+- [锲而不舍，终破 bt 仓库](4-debug-encrypt_252.md)
+- [MyVideoConverter 1.18.1](4-debug-encrypt_253.md)
+- [Cast-128 算法](4-debug-encrypt_254.md)
+- [Cast-128 加密算法的另类分析](4-debug-encrypt_255.md)
+- [MyPassWord](4-debug-encrypt_256.md)
+- [RC 算法](4-debug-encrypt_257.md)
+- [Matlab2007b PLP 之不完全分析](4-debug-encrypt_258.md)
+- [冷雨飘心的 CrkMe2](4-debug-encrypt_259.md)
+- [CRC 简介](4-debug-encrypt_26.md)
+- [足彩缩水大师专业版 V7.10.1000](4-debug-encrypt_260.md)
+- [一个 RC4 加密程序（Secure PE V1.6）的分析](4-debug-encrypt_261.md)
+- [Internet Download Manager 3.15](4-debug-encrypt_262.md)
+- [XOR](4-debug-encrypt_263.md)
+- [The XOR Secret in Our Computer System--延伸討論](4-debug-encrypt_264.md)
+- [无 KEY 还原简单 XOR 加密字符探索](4-debug-encrypt_265.md)
+- [The XOR Secret in Our Computer System](4-debug-encrypt_266.md)
+- [【分享+讨论】对 XOR\_password 及 XOR\_cryptanalyiss 等相关论文研讨。(No. 2)](4-debug-encrypt_267.md)
+- [\====更多算法====](4-debug-encrypt_268.md)
+- [Enigma](4-debug-encrypt_269.md)
+- [请教查表法计算 CRC 的原理](4-debug-encrypt_27.md)
+- [恩尼格玛(Enigma)加密机 模拟程序](4-debug-encrypt_270.md)
+- [代换密码](4-debug-encrypt_271.md)
+- [跳棋大战 V2.28](4-debug-encrypt_272.md)
+- [Vigenere](4-debug-encrypt_273.md)
+- [现学现卖 Vigenere 加密法](4-debug-encrypt_274.md)
+- [流密码内嵌魔方阵](4-debug-encrypt_275.md)
+- [流密嵌魔方於存之研究](4-debug-encrypt_276.md)
+- [流密码内嵌魔方阵于随机存档之研究-- Magic Square 之神奇篇](4-debug-encrypt_277.md)
+- [流密嵌魔方於存之研究-- Magic Square 篇](4-debug-encrypt_278.md)
+- [其他](4-debug-encrypt_279.md)
+- [CRC32 碰撞的实现](4-debug-encrypt_28.md)
+- [On the 2ROT13 Encryption Algorithm](4-debug-encrypt_280.md)
+- [两个世纪破解总统密码](4-debug-encrypt_281.md)
+- [\====加密库====](4-debug-encrypt_282.md)
+- [Crypto API](4-debug-encrypt_283.md)
+- [Crypto API 学习笔记一](4-debug-encrypt_284.md)
+- [Crypto API 学习笔记二](4-debug-encrypt_285.md)
+- [Crypto API 学习笔记三](4-debug-encrypt_286.md)
+- [使用 CryptoAPI 解析 X509 证书和 P12 证书](4-debug-encrypt_287.md)
+- [CRYPTOAPI](4-debug-encrypt_288.md)
+- [The Cryptography API, or How to Keep a Secret](4-debug-encrypt_289.md)
+- [CRC-32 的算法小议](4-debug-encrypt_29.md)
+- [更多](4-debug-encrypt_290.md)
+- [自己写的一些加密算法实现](4-debug-encrypt_291.md)
+- [\====明文攻击====](4-debug-encrypt_292.md)
+- [实战！关键词加密法破译](4-debug-encrypt_293.md)
+- [统计分析攻击实例](4-debug-encrypt_294.md)
+- [旧文新贴，关于一个古典密码破解的实例](4-debug-encrypt_295.md)
+- [\====综合应用====](4-debug-encrypt_296.md)
+- [几个加密算法 C++](4-debug-encrypt_297.md)
+- [有知道 openssl 的进来帮帮忙](4-debug-encrypt_298.md)
+- [Radmin Password Encrypt](4-debug-encrypt_299.md)
+- [概述](4-debug-encrypt_3.md)
+- [密码小游戏：暴力破解 CRC32 密码](4-debug-encrypt_30.md)
+- [Core 的 crackme2](4-debug-encrypt_300.md)
+- [电子日记本（Ediary V2.53）口令验证算法分析](4-debug-encrypt_301.md)
+- [象棋世家 RSA128+MD5+BASE64+AES Rijndael 注册算法分析](4-debug-encrypt_302.md)
+- [大整数计算器(VC6 源码&二进制)](4-debug-encrypt_303.md)
+- [一个软件注册算法分析及注册机, 加密算法:SHA1, Tiger, Base64, Blowfish](4-debug-encrypt_304.md)
+- [唠一唠 mysql 的口令算法](4-debug-encrypt_305.md)
+- [软件脱壳+变形 MD5+BlowFish+Base64“变态”注册算法分析+汇编注册机](4-debug-encrypt_306.md)
+- [XXDownload1.14](4-debug-encrypt_307.md)
+- [炒股理财\_3.21](4-debug-encrypt_308.md)
+- [EasyCHM 3.5](4-debug-encrypt_309.md)
+- [CRC16 和 CRC32 的计算](4-debug-encrypt_31.md)
+- [ChrisTWEAK 1.50](4-debug-encrypt_310.md)
+- [\[TEA+RSA+RC5/6\]-总管家个人办公与客户管理系统 T30.03](4-debug-encrypt_311.md)
+- [一个基于数字签名的 KeygenMe（已增加注册机算法）](4-debug-encrypt_312.md)
+- [CRC 技术的实现与破解（10.21 更新）](4-debug-encrypt_32.md)
+- [CRC32 算法分析、逆向（附源码）](4-debug-encrypt_33.md)
+- [根据 CRC32 值，是否能够快速获得其原始值？](4-debug-encrypt_34.md)
+- [算法应用](4-debug-encrypt_35.md)
+- [3DMark2000v1.1](4-debug-encrypt_36.md)
+- [CRC32 算法的妙用](4-debug-encrypt_37.md)
+- [小菜也来 CRC32 的分析,哈哈- =..以及自己的代码,职业菜鸟灌水,](4-debug-encrypt_38.md)
+- [Iparmor 木马克星 V5.40 Build 0414](4-debug-encrypt_39.md)
+- [群论的一些基础知识](4-debug-encrypt_4.md)
+- [木马克星 5.33.6](4-debug-encrypt_40.md)
+- [Extra Drive Pro](4-debug-encrypt_41.md)
+- [iTime](4-debug-encrypt_42.md)
+- [一个国外程序的算法分析\[CRC32 算法\]](4-debug-encrypt_43.md)
+- [MD5](4-debug-encrypt_44.md)
+- [算法理论](4-debug-encrypt_45.md)
+- [MD5 算法](4-debug-encrypt_46.md)
+- [继 MD5 算发汇编代码\[着重优化\] 之后的 MD5 神奇优化（欢迎高手前来指点）](4-debug-encrypt_47.md)
+- [【作品提交】文件 MD5 值计算工具](4-debug-encrypt_48.md)
+- [MD5 算法研究](4-debug-encrypt_49.md)
+- [标 题：](4-debug-encrypt_5.md)
+- [MD5 的 VB 类模块源码](4-debug-encrypt_50.md)
+- [MD5 程序（Delphi）](4-debug-encrypt_51.md)
+- [MD5 算法汇编代码\[着重优化\]](4-debug-encrypt_52.md)
+- [MD5 的介绍，算法和实现](4-debug-encrypt_53.md)
+- [算法应用](4-debug-encrypt_54.md)
+- [许源华程序之 MD5](4-debug-encrypt_55.md)
+- [变形的 MD5](4-debug-encrypt_56.md)
+- [菜鸟初学 Crack 破解，学习 MD5 算法【原创】](4-debug-encrypt_57.md)
+- [Flash ScreenSaver Maker 1.3](4-debug-encrypt_58.md)
+- [AdSubtract PRO Version 2.04](4-debug-encrypt_59.md)
+- [菜鸟教学--密码学概述](4-debug-encrypt_6.md)
+- [oicq 目录下面的 hash.dat](4-debug-encrypt_60.md)
+- [Audio Sphere v2.57](4-debug-encrypt_61.md)
+- [ImTOO DVD Audio Ripper 4.0.50.0522](4-debug-encrypt_62.md)
+- [ACS Capture 专业屏捕软件(md5) 2.11 注册算法分析【原创】](4-debug-encrypt_63.md)
+- [网络叔叔 1.0 简单 MD5 注册算法分析 + VB 注册机](4-debug-encrypt_64.md)
+- [土地拍卖竞标助手 专业版 6.31-MD5 算法分析+VB 注册机](4-debug-encrypt_65.md)
+- [AVI Joiner MD5 的暴力破解](4-debug-encrypt_66.md)
+- [A+ Pop Up Blocker 2.1 - MD5 算法分析](4-debug-encrypt_67.md)
+- [MD5 加密算法破解--莱鸟入门破文之三【原创】](4-debug-encrypt_68.md)
+- [A+ File Protection 2.6 注册算法分析(MD5)](4-debug-encrypt_69.md)
+- [PE 简单签名验证实现](4-debug-encrypt_7.md)
+- [一个桌面工具的 MD5 算法分析(国庆献礼)](4-debug-encrypt_70.md)
+- [三江门诊收费系统注册算法分析](4-debug-encrypt_71.md)
+- [变形 Md5(常数+填充+变换)反汇编代码简单注释](4-debug-encrypt_72.md)
+- [crypto++5.0 应用一例](4-debug-encrypt_73.md)
+- [XXXX 快速邮件地址搜索器](4-debug-encrypt_74.md)
+- [Disk Medic v3.0 算法分析](4-debug-encrypt_75.md)
+- [IP 查看器 V6.1](4-debug-encrypt_76.md)
+- [NetWatch 网络监控与入侵检测系统专业版 2.01](4-debug-encrypt_77.md)
+- [一个小软件的注册算法研究（MD5 算法）](4-debug-encrypt_78.md)
+- [CyberArticle V4.361](4-debug-encrypt_79.md)
+- [菜鸟对密码学的理解](4-debug-encrypt_8.md)
+- [SHA](4-debug-encrypt_80.md)
+- [SHA1 标准文档翻译](4-debug-encrypt_81.md)
+- [AuctionSleuth 2.6.4](4-debug-encrypt_82.md)
+- [Tarma QuickInstall V2.99.3016 注册算法分析\[变异 SHA1 算法\]](4-debug-encrypt_83.md)
+- [Hash 工具](4-debug-encrypt_84.md)
+- [【原创】用 windows cryptoAPI 写的 HASH 小工具（附 asm 源码）](4-debug-encrypt_85.md)
+- [Hash 算法工具](4-debug-encrypt_86.md)
+- [\====公钥系统====](4-debug-encrypt_87.md)
+- [RSA](4-debug-encrypt_88.md)
+- [算法理论](4-debug-encrypt_89.md)
+- [各加密算法的简单原理总结](4-debug-encrypt_9.md)
+- [R.S.A](4-debug-encrypt_90.md)
+- [RSA 算法](4-debug-encrypt_91.md)
+- [怎样攻破 RSA-1024 的算法保护 ?(翻译部分)](4-debug-encrypt_92.md)
+- [RSA 与大数运算](4-debug-encrypt_93.md)
+- [openssl RSA 加密](4-debug-encrypt_94.md)
+- [如何破解 RSA-1024？—— Asprotect 1.0/1.1/1.11c 前半篇](4-debug-encrypt_95.md)
+- [【作品提交】RSA 加密解密的实现](4-debug-encrypt_96.md)
+- [浅谈利用 RSA 算法防止非法注册机的制作](4-debug-encrypt_97.md)
+- [公钥密码 RSA 算法优化分析](4-debug-encrypt_98.md)
+- [RSA 相关数学基础与算法简析](4-debug-encrypt_99.md)

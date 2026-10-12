@@ -1,39 +1,39 @@
 
-
 # NET 程序的破解（一）
 
 > 原文：[`www.pediy.com/kssd/pediy08/pediy8-289.htm`](https://www.pediy.com/kssd/pediy08/pediy8-289.htm)
 
-NET 程序的破解（一）  
-\-------------静态分析  
+NET 程序的破解（一）
+
+## 静态分析
 
 NET 程序已经红红火火的兴起，就象 LINUX 一样势不可挡的涌来。作为一名 Cracker，你会选择躲避吗？嘿嘿，对俺而言，挑战更富有趣味。
 
 破解好几个.NET 的程序了，一直想写出来，只是时间问题，所以拖到现在，怕再不写，就忘的一干二净了;)…….
 
-一、兵器
+### 一、兵器
 
-   公欲善其事，必先励其器。在静态下反编译 NET 程序我选择 Reflector，Xenocode Fox 2006 Evaluation。他们的下载地址分别如下：
+公欲善其事，必先励其器。在静态下反编译 NET 程序我选择 `Reflector`，`Xenocode Fox 2006 Evaluation`。他们的下载地址分别如下：
 
-Reflector：   [`www.aisto.com/roeder/dotnet/`](http://www.aisto.com/roeder/dotnet/)
+`Reflector`： [`www.aisto.com/roeder/dotnet/`](http://www.aisto.com/roeder/dotnet/)
 
-Xenocode：[`www.xenocode.com/Products/Fox/Community.aspx`](http://www.xenocode.com/Products/Fox/Community.aspx)
+`Xenocode`：[`www.xenocode.com/Products/Fox/Community.aspx`](http://www.xenocode.com/Products/Fox/Community.aspx)
 
-二、破解目标：Xenocode Fox 2006 Evaluation   14 天使用限制
+### 二、破解目标：Xenocode Fox 2006 Evaluation 14 天使用限制
 
-二、破解流程
+### 二、破解流程
 
-     很多人都介绍过静态分析破解.NET 的程序，所以如果你已经是老手或者下面的部分刚好是你所不屑一看的部分，请退出 J。
+很多人都介绍过静态分析破解.NET 的程序，所以如果你已经是老手或者下面的部分刚好是你所不屑一看的部分，请退出 J。
 
-之因为破解这个程序，是在论坛里 henryouly 曾“**【推荐】两个****.NET IL****的相关工具**”，试用了一下 Xenocode Fox 2006 Evaluation，效果确实很不错，程序有点类似 Reflector，只是多了一点我认为比较好的功能：直接显示代码在程序体中的位置。Reflector 是完全免费的，但 Xenocode Fox 2006 Evaluation 却有 14 天的限制，过了 14 天想使用就需要调整计算机的日期了，而且老版本的 Reflector 还无法反编译 Xenocode Fox 2006 Evaluation。以己之矛，克己之盾，唉，军中大忌呀。
+之因为破解这个程序，是在论坛里 `henryouly` 曾“`【推荐】两个.NET IL的相关工具`”，试用了一下 `Xenocode Fox 2006 Evaluation`，效果确实很不错，程序有点类似 `Reflector`，只是多了一点我认为比较好的功能：直接显示代码在程序体中的位置。`Reflector` 是完全免费的，但 `Xenocode Fox 2006 Evaluation` 却有 14 天的限制，过了 14 天想使用就需要调整计算机的日期了，而且老版本的 `Reflector` 还无法反编译 `Xenocode Fox 2006 Evaluation`。以己之矛，克己之盾，唉，军中大忌呀。
 
-启动 Xenocode Fox 2006 Evaluation 的主程序 FOX.EXE，在没过期的时候很容易就启动了；把时间向后调整 1 个月，FOX.EXE 启动就提示 14 天的测试期到了，然后就退出了。
+启动 `Xenocode Fox 2006 Evaluation` 的主程序 `FOX.EXE`，在没过期的时候很容易就启动了；把时间向后调整 1 个月，`FOX.EXE` 启动就提示 14 天的测试期到了，然后就退出了。
 
-用新版本的.NET Reflector, Version 4.2.36.0 打开 Xenocode Fox 2006 Evaluation 主程序，发现程序代码已经被混淆过，看不出什么名堂了，就是有一点的有名函数，对我们来说也没什么太大作用了；搜索关键字串 14-day，也找不到。过期如下
+用新版本的.NET `Reflector, Version 4.2.36.0` 打开 `Xenocode Fox 2006 Evaluation` 主程序，发现程序代码已经被混淆过，看不出什么名堂了，就是有一点的有名函数，对我们来说也没什么太大作用了；搜索关键字串 `14-day`，也找不到。过期如下
 
 ![](img/4bc301bd97336a76ea70841f57413aee.jpg)
 
-在 Reflector 里用鼠标右键点程序 FOX 的名字，在出现的菜单里有一个选项“Go To Entry Point”，嘿嘿，看到了吗？
+在 `Reflector` 里用鼠标右键点程序 `FOX` 的名字，在出现的菜单里有一个选项“`Go To Entry Point`”，嘿嘿，看到了吗？
 
 ![](img/e6bef5aab1a1c11e75a997692b7d09c4.jpg)
 
@@ -41,50 +41,10 @@ Xenocode：[`www.xenocode.com/Products/Fox/Community.aspx`](http://www.xenocode.
 
 ![](img/79b94777ce1cab14853f90814b2a157e.jpg)
 
-```
-在 xc447809891322395 函数上双击，出现函数代码一如下（C#）显示：\[[STAThread](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=1 "System.STAThreadAttribute.STAThreadAttribute();")\]
-```
+在 `xc447809891322395` 函数上双击，出现函数代码一如下（C#）显示：`[[STAThread](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=1 "System.STAThreadAttribute.STAThreadAttribute();")]`
 
 ```
-private static [void](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=2 "System.Void") **xc447809891322395**()
-```
-
-```
-{
-```
-
-```
-      if (![x867eb3246b182488](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=3 "Xenocode.Fox.Gui.x867eb3246b182488").[\_c7c43f12e732db09](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=4 "bool Xenocode.Fox.Gui.x867eb3246b182488._c7c43f12e732db09();")())        ；行 1
-```
-
-```
-      {
-```
-
-```
-            [Application](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=5 "System.Windows.Forms.Application").[EnableVisualStyles](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=6 "void System.Windows.Forms.Application.EnableVisualStyles();")();
-```
-
-```
-            [Application](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=7 "System.Windows.Forms.Application").[SetCompatibleTextRenderingDefault](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=8 "void System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(bool);")(false);
-```
-
-```
-            [Application](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=9 "System.Windows.Forms.Application").[Run](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=10 "void System.Windows.Forms.Application.Run(Form);")(new [x3e4e23fadc83a77e](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=11 "Xenocode.Fox.Gui.x3e4e23fadc83a77e.x3e4e23fadc83a77e();")());
-```
-
-```
-      }
-```
-
-```
-}
-```
-
-看到上面的入口代码，你不觉得行 1 可疑吗？进入程序就调用了一个函数，然后判断的结果影响后面的所有代码的执行，嘿嘿，我们点击上面的[\_c7c43f12e732db09](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=4 "bool Xenocode.Fox.Gui.x867eb3246b182488._c7c43f12e732db09();")()进入，看到代码段二如下：
-
-```
-public static [bool](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=1 "System.Boolean") **\_c7c43f12e732db09**()
+private static [void](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=2 "System.Void") xc447809891322395()
 ```
 
 ```
@@ -92,39 +52,37 @@ public static [bool](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=1 "S
 ```
 
 ```
-      if ([x71a0073930f50f3f](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=2 "Xenocode.Fox.Gui.x71a0073930f50f3f").[xb30f5e1eb4806151](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=3 "bool Xenocode.Fox.Gui.x71a0073930f50f3f.xb30f5e1eb4806151(string x2d32ac7a8f1f8f5b, TimeSpan x5906905c888d3d98);")("XFTRL" + [x77fa6322561797a0](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=4 "Xenocode.Fox.Gui.x77fa6322561797a0").[x9c1ceef9a932f141](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=5 "string Xenocode.Fox.Gui.x77fa6322561797a0.x9c1ceef9a932f141 { ... }"), new [TimeSpan](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=6 "System.TimeSpan.TimeSpan(int, int, int, int, int);")([x867eb3246b182488](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=7 "Xenocode.Fox.Gui.x867eb3246b182488").[x7ee7e0aa39016337](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=8 "int Xenocode.Fox.Gui.x867eb3246b182488.x7ee7e0aa39016337;"), 0, 0, 0, 0)))
+      if (![x867eb3246b182488](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=3 "Xenocode.Fox.Gui.x867eb3246b182488").[\_c7c43f12e732db09](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=4 "bool Xenocode.Fox.Gui.x867eb3246b182488._c7c43f12e732db09();")())        ；行 1
 ```
 
 ```
-      {
+      {
 ```
 
 ```
-            [MessageBox](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=9 "System.Windows.Forms.MessageBox").[Show](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=10 "DialogResult System.Windows.Forms.MessageBox.Show(string, string);")([MessageTable](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=11 "Xenocode.Fox.Gui.Common.MessageTable").[TrialExpired](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=12 "string Xenocode.Fox.Gui.Common.MessageTable.TrialExpired { ... }"), [x77fa6322561797a0](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=13 "Xenocode.Fox.Gui.x77fa6322561797a0").[x6886d5a1867d55cb](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=14 "string Xenocode.Fox.Gui.x77fa6322561797a0.x6886d5a1867d55cb { ... }"));
+            [Application](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=5 "System.Windows.Forms.Application").[EnableVisualStyles](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=6 "void System.Windows.Forms.Application.EnableVisualStyles();")();
 ```
 
 ```
-            return false;
+            [Application](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=7 "System.Windows.Forms.Application").[SetCompatibleTextRenderingDefault](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=8 "void System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(bool);")(false);
 ```
 
 ```
-      }
+            [Application](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=9 "System.Windows.Forms.Application").[Run](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=10 "void System.Windows.Forms.Application.Run(Form);")(new [x3e4e23fadc83a77e](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=11 "Xenocode.Fox.Gui.x3e4e23fadc83a77e.x3e4e23fadc83a77e();")());
 ```
 
 ```
-      return false;
+      }
 ```
 
+```
 }
+```
 
-看到什么了？如果你学的外语是英语，一定可以看出来在.IF 语句里的[TimeSpan](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=6 "System.TimeSpan.TimeSpan(int, int, int, int, int);")、[TrialExpired](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=12 "string Xenocode.Fox.Gui.Common.MessageTable.TrialExpired { ... }") 是什么意思了，而且还带着[MessageBox](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=9 "System.Windows.Forms.MessageBox")，哎，是不是来的有点太容易了，J。上面语句中进入就用那些参数进行了时间比较，然后不过期的话，返回 FALSE；过期返回 TRUE。
-
-看来修改返回的 TRUE 和 FALSE 测试一下，就知道我们上面的判断的正确与否了，就是让返回的都是 FALSE，程序不就认为是在使用期限内吗？如何修改？有很多前辈高人讲了很多办法，比如直接用 ILDASM 反汇编出来，然后修改语句，再用 ILASM 编译回去等等。我对他们的方法一直操作的不好，所以我用懒人的办法。你想知道吗？呵呵，let us go!
-
-把上面代码段二切换为 IL 格式，如下代码段三：
+看到上面的入口代码，你不觉得行 1 可疑吗？进入程序就调用了一个函数，然后判断的结果影响后面的所有代码的执行，嘿嘿，我们点击上面的`[\_c7c43f12e732db09](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=4 "bool Xenocode.Fox.Gui.x867eb3246b182488._c7c43f12e732db09();")()`进入，看到代码段二如下：
 
 ```
-.method public hidebysig static [bool](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=1 "bool") **\_c7c43f12e732db09**() cil managed
+public static [bool](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=1 "System.Boolean") \_c7c43f12e732db09()
 ```
 
 ```
@@ -132,154 +90,163 @@ public static [bool](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=1 "S
 ```
 
 ```
-      .maxstack 8
+      if ([x71a0073930f50f3f](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=2 "Xenocode.Fox.Gui.x71a0073930f50f3f").[xb30f5e1eb4806151](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=3 "bool Xenocode.Fox.Gui.x71a0073930f50f3f.xb30f5e1eb4806151(string x2d32ac7a8f1f8f5b, TimeSpan x5906905c888d3d98);")("XFTRL" + [x77fa6322561797a0](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=4 "Xenocode.Fox.Gui.x77fa6322561797a0").[x9c1ceef9a932f141](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=5 "string Xenocode.Fox.Gui.x77fa6322561797a0.x9c1ceef9a932f141 { ... }"), new [TimeSpan](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=6 "System.TimeSpan.TimeSpan(int, int, int, int, int);")([x867eb3246b182488](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=7 "Xenocode.Fox.Gui.x867eb3246b182488").[x7ee7e0aa39016337](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=8 "int Xenocode.Fox.Gui.x867eb3246b182488.x7ee7e0aa39016337;"), 0, 0, 0, 0)))
 ```
 
 ```
-      L\_0000: ldstr "XFTRL"
+      {
 ```
 
 ```
-      L\_0005: call [string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=2 "string") [Xenocode.Fox.Gui.x77fa6322561797a0](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=3 "Xenocode.Fox.Gui.x77fa6322561797a0")::[get\_x9c1ceef9a932f141](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=4 "get_x9c1ceef9a932f141")()
+            [MessageBox](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=9 "System.Windows.Forms.MessageBox").[Show](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=10 "DialogResult System.Windows.Forms.MessageBox.Show(string, string);")([MessageTable](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=11 "Xenocode.Fox.Gui.Common.MessageTable").[TrialExpired](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=12 "string Xenocode.Fox.Gui.Common.MessageTable.TrialExpired { ... }"), [x77fa6322561797a0](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=13 "Xenocode.Fox.Gui.x77fa6322561797a0").[x6886d5a1867d55cb](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=14 "string Xenocode.Fox.Gui.x77fa6322561797a0.x6886d5a1867d55cb { ... }"));
 ```
 
 ```
-      L\_000a: call [string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=5 "string") [string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=6 "string")::[Concat](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=7 "Concat")([string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=8 "string"), [string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=9 "string"))
+            return false;
 ```
 
 ```
-      L\_000f: ldsfld [int32](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=10 "int32") [Xenocode.Fox.Gui.x867eb3246b182488](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=11 "Xenocode.Fox.Gui.x867eb3246b182488")::[x7ee7e0aa39016337](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=12 "x7ee7e0aa39016337")
+      }
 ```
 
 ```
-      L\_0014: ldc.i4.0 
+      return false;
+```
+
+}
+
+看到什么了？如果你学的外语是英语，一定可以看出来在`IF` 语句里的`TimeSpan`、`TrialExpired` 是什么意思了，而且还带着`MessageBox`，哎，是不是来的有点太容易了，J。上面语句中进入就用那些参数进行了时间比较，然后不过期的话，返回 `FALSE`；过期返回 `TRUE`。
+
+看来修改返回的 `TRUE` 和 `FALSE` 测试一下，就知道我们上面的判断的正确与否了，就是让返回的都是 `FALSE`，程序不就认为是在使用期限内吗？如何修改？有很多前辈高人讲了很多办法，比如直接用 `ILDASM` 反汇编出来，然后修改语句，再用 `ILASM` 编译回去等等。我对他们的方法一直操作的不好，所以我用懒人的办法。你想知道吗？呵呵，let us go!
+
+把上面代码段二切换为 `IL` 格式，如下代码段三：
+
+```
+.method public hidebysig static [bool](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=1 "bool") \_c7c43f12e732db09() cil managed
 ```
 
 ```
-      L\_0015: ldc.i4.0 
+{
 ```
 
 ```
-      L\_0016: ldc.i4.0 
+      .maxstack 8
 ```
 
 ```
-      L\_0017: ldc.i4.0 
+      L\_0000: ldstr "XFTRL"
 ```
 
 ```
-      L\_0018: newobj instance [void](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=13 "void") \[[mscorlib](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=14 "mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")\][System.TimeSpan](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=15 "System.TimeSpan")::[.ctor](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=16 ".ctor")([int32](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=17 "int32"), [int32](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=18 "int32"), [int32](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=19 "int32"), [int32](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=20 "int32"), [int32](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=21 "int32"))
+      L\_0005: call [string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=2 "string") [Xenocode.Fox.Gui.x77fa6322561797a0](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=3 "Xenocode.Fox.Gui.x77fa6322561797a0")::[get\_x9c1ceef9a932f141](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=4 "get_x9c1ceef9a932f141")()
 ```
 
 ```
-      L\_001d: call [bool](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=22 "bool") [Xenocode.Fox.Gui.x71a0073930f50f3f](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=23 "Xenocode.Fox.Gui.x71a0073930f50f3f")::[xb30f5e1eb4806151](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=24 "xb30f5e1eb4806151")([string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=25 "string"), \[[mscorlib](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=26 "mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")\][System.TimeSpan](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=27 "System.TimeSpan"))
+      L\_000a: call [string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=5 "string") [string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=6 "string")::[Concat](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=7 "Concat")([string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=8 "string"), [string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=9 "string"))
 ```
 
 ```
-      L\_0022: brfalse.s L\_0036
+      L\_000f: ldsfld [int32](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=10 "int32") [Xenocode.Fox.Gui.x867eb3246b182488](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=11 "Xenocode.Fox.Gui.x867eb3246b182488")::[x7ee7e0aa39016337](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=12 "x7ee7e0aa39016337")
 ```
 
 ```
-      L\_0024: call [string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=28 "string") [Xenocode.Fox.Gui.Common.MessageTable](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=29 "Xenocode.Fox.Gui.Common.MessageTable")::[get\_TrialExpired](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=30 "get_TrialExpired")()
+      L\_0014: ldc.i4.0 
 ```
 
 ```
-      L\_0029: call [string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=31 "string") [Xenocode.Fox.Gui.x77fa6322561797a0](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=32 "Xenocode.Fox.Gui.x77fa6322561797a0")::[get\_x6886d5a1867d55cb](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=33 "get_x6886d5a1867d55cb")()
+       L\_0015: ldc.i4.0 
 ```
 
 ```
-      L\_002e: call \[[System.Windows.Forms](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=34 "System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")\][System.Windows.Forms.DialogResult](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=35 "System.Windows.Forms.DialogResult") \[[System.Windows.Forms](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=36 "System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")\][System.Windows.Forms.MessageBox](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=37 "System.Windows.Forms.MessageBox")::[Show](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=38 "Show")([string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=39 "string"), [string](http://www.aisto.com/roeder/dotnet/Default.aspx?Object=40 "string"))
+       L\_0016: ldc.i4.0 
 ```
 
 ```
-      L\_0033: pop 
+       L\_0017: ldc.i4.0 
 ```
 
-```
-      L\_0034: ldc.i4.1 
-```
+
+
+## IL 指令分析
 
 ```
-      L\_0035: ret 
-```
-
-```
-      L\_0036: ldc.i4.0 
-```
-
-```
-      L\_0037: ret 
-```
-
-```
+L_0018: newobj instance void [mscorlib][System.TimeSpan]::.ctor(int32, int32, int32, int32, int32)
+L_001d: call bool Xenocode.Fox.Gui.x71a0073930f50f3f::xb30f5e1eb4806151(string, [mscorlib][System.TimeSpan])
+L_0022: brfalse.s L_0036
+L_0024: call string Xenocode.Fox.Gui.Common.MessageTable::get_TrialExpired()
+L_0029: call string Xenocode.Fox.Gui.x77fa6322561797a0::get_x6886d5a1867d55cb()
+L_002e: call [System.Windows.Forms][System.Windows.Forms.DialogResult] [System.Windows.Forms][System.Windows.Forms.MessageBox]::Show(string, string)
+L_0033: pop
+L_0034: ldc.i4.1
+L_0035: ret
+L_0036: ldc.i4.0
+L_0037: ret
 }
 ```
 
-```
-在 Reflector 中，当你把鼠标放在指令上停留的时候，指令的机器码和对应的指令意思立刻会显示出来，真的很感谢 Reflector 的作者，简直让我崇拜 J。比如上面的指令
-```
+在 `Reflector` 中，当你把鼠标放在指令上停留的时候，指令的机器码和对应的指令意思立刻会显示出来，真的很感谢 `Reflector` 的作者，简直让我崇拜 J。比如上面的指令：
 
 ```
-L\_0033: pop 
+L_0033: pop
+L_0034: ldc.i4.1
+L_0035: ret
+L_0036: ldc.i4.0
+L_0037: ret
 ```
 
-```
-      L\_0034: ldc.i4.1 
-```
+所对应的机器码就是 `26 17 2A 16 2A`，而我们想修改上面的 `L_0034: ldc.i4.1` 变成 `L_0034: ldc.i4.0` 就可以了。
 
-```
-      L\_0035: ret 
-```
+## 二进制修改步骤
 
-```
-      L\_0036: ldc.i4.0 
-```
+1.  使用 `HEXWORKSHOP` 打开 `FOX.EXE`。
+2.  查找上述 HEX 代码，找到后，修改 `17` 为 `16`，即可解决主要逻辑。
 
-```
-      L\_0037: ret 
-```
+这里会有个问题：如果在程序中查找出来好几个地方都一样，你如何修改？这就是我看中 `Xenocode Fox 2006 Evaluation` 的地方，它可以直接告诉你函数的入口在 `BODY` 中的地址，而且告诉你这个函数一共占有多少个字节。
 
-所对应的机器码就是 26 17 2A 16 2A ，而我们想修改上面的 L\_0034: ldc.i4.1 变成 L\_0034: ldc.i4.0 就可以了。我用 HEXWORKSHOP 打开 FOX.EXE，然后查找上面的 HEX 代码，找到后，修改 17 为 16，就可以了。这里会有个问题：如果在程序中查找出来好几个地方都一样，你如何修改？这就是我看中 Xenocode Fox 2006 Evaluation 的地方，它可以直接告诉你函数的入口在 BODY 中的地址，而且告诉你这个函数一共占有多少个字节。如下图：
+![示例图片1](img/4d29de5a0e74c9b219e4214ae7e1cf33.jpg)
+![示例图片2](img/2a4f759e2dff7e7377b04934a31d942f.jpg)
 
-![](img/4d29de5a0e74c9b219e4214ae7e1cf33.jpg)![](img/2a4f759e2dff7e7377b04934a31d942f.jpg)
+### 定位具体位置
 
-```
-用 HexWorkShop 打开 FOX.EXE，然后直接定位到文件的 111D88 处，然后向下看我们的 26 17 2A 16 2A，或者找 111D88 处的偏移，111D88+34=111DBC，怎么样？修改吧，还等什么，记得修改完后保存。
-```
+用 `HexWorkShop` 打开 `FOX.EXE`，然后直接定位到文件的 `111D88` 处，然后向下看我们的 `26 17 2A 16 2A`，或者找 `111D88` 处的偏移：`111D88 + 34 = 111DBC`。
 
-```
-![](img/641ad230d1ffd471ee3a572a9e24fa81.jpg)
-```
+修改吧，还等什么，记得修改完后保存。
 
-```
-![](img/a9201e4b9573d69c92ddf3fc1d5376fd.jpg)
-```
+![修改前状态](img/641ad230d1ffd471ee3a572a9e24fa81.jpg)
+![修改后状态](img/a9201e4b9573d69c92ddf3fc1d5376fd.jpg)
 
-```
-启动 FOX 看看效果，嘿嘿，已经在过期的情况也使用了，只是过期提示还存在，让人觉得难受。去掉提示框：①修改代码 L\_0022: brfalse.s L\_0036 这里，改为直接跳转到 L\_0036②或者把 Messagebox 函数屏蔽掉，都可以去掉过期提示。我开始用方法 1 修改，发现程序运行就出错，原来是牵扯到 OPCODE 语句执行后有堆栈平衡的问题，看来不熟悉也不行。我最终选择使用方法 2 修改，启动 Hexworkshop，把 L\_0024~ L\_0033 间的语句全替换为 NOP，在 IL 语言中就是 00，然后保存退出。
-```
+启动 `FOX` 看看效果，嘿嘿，已经在过期的情况也使用了，只是过期提示还存在，让人觉得难受。
 
-```
-再启动，世界清净了，嘿嘿，里面的 EVALUTE 就修改成 PRO 好了，嘿嘿，顺手牵牛…….。
-```
+### 去除过期提示框
 
-下次我会写点动态调试.NET 的程序，欲知后事，下回书分解 
+去掉提示框有两种方法：
+1.  修改代码 `L_0022: brfalse.s L_0036` 这里，改为直接跳转到 `L_0036`。
+2.  或者把 `MessageBox` 函数屏蔽掉。
+
+我最初选择方法 1 修改，发现程序运行就出错，原来是牵扯到 `OPCODE` 语句执行后有堆栈平衡的问题，看来不熟悉也不行。最终我选择方法 2 修改：
+
+1.  启动 `Hexworkshop`。
+2.  把 `L_0024` ~ `L_0033` 间的语句全替换为 `NOP`（在 IL 语言中就是 `00`）。
+3.  保存退出。
+
+再启动，世界清净了，嘿嘿，里面的 `EVALUTE` 就修改成 `PRO` 好了，嘿嘿，顺手牵牛…….。
+
+## 补充说明
+
+下次我会写点动态调试 .NET 的程序，欲知后事，下回书分解。
 
 注：转贴请保持信息的完整性，谢谢
 
- Oep 于 2006.4.25 凌晨
+`Oep` 于 2006.4.25 凌晨
 
-  
+### 引用讨论
 
-引用:  *最初由** dotnetcrk **发布*  
-不错的思路。  
-不过有个问题，搂主说“Xenocode Fox 可以直接告诉你函数的入口在 BODY 中的地址”，问题是 Xenocode Fox 不允许反编译自己，所以这个 Body address=0x00111D88 是怎么知道的？  
-  
-很想知道的说。 
+> **最初由 dotnetcrk 发布**
+>
+> 不错的思路。不过有个问题，搂主说“Xenocode Fox 可以直接告诉你函数的入口在 BODY 中的地址”，问题是 Xenocode Fox 不允许反编译自己，所以这个 `Body address=0x00111D88` 是怎么知道的？很想知道的说。
 
-  
-  
-请仔细看文章，用 0x00111D88 地址查找是后话，文中只是描述时提到了 Xenocode Fox 的用法顺便举例一下。  
-  
-其实是要用 16 进制特征码“26 17 2A 16 2A”在 Hexworkshop 中查找 Xenocode Fox 的函数的入口的。  
-特征码“26 17 2A 16 2A”是在 Reflector 中查找 FOX.EXE 的函数入口点后分析出来的。
+请仔细看文章，用 `0x00111D88` 地址查找是后话，文中只是描述时提到了 `Xenocode Fox` 的用法顺便举例一下。
+
+其实是要用 16 进制特征码“`26 17 2A 16 2A`”在 `Hexworkshop` 中查找 `Xenocode Fox` 的函数的入口的。
+
+特征码“`26 17 2A 16 2A`”是在 `Reflector` 中查找 `FOX.EXE` 的函数入口点后分析出来的。

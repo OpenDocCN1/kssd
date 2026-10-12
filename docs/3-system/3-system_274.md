@@ -1,821 +1,820 @@
 
-
-# 科锐三阶段项目---CreateProcess 流程分析
+# 科锐三阶段项目 --- `CreateProcess` 流程分析
 
 > 原文：[`www.pediy.com/kssd/pediy11/114611.html`](https://www.pediy.com/kssd/pediy11/114611.html)
 
-标 题: 【原创】CreateProcess 流程分析。  
-作 者: pyq 逍遥  
-时 间: 2010-06-03,16:26:42  
-链 接: http://bbs.pediy.com/showthread.php?p=819417#post819417  
-  
-工具： IDA5.2, WinDbg, Ollydbg  
-平台： Windows XP xp3  
-  
-    这个项目是本人在科锐和同学一起完成的项目，各有分工，我的任务是分析 CreateProcess 从用户态到内核态的整体流程框架(部分函数的具体实现由其他同学的完成)。  
-  
-声明：由于本人能力有限，文中必然有错漏之处，恳请读者不吝赐教.(第一次写文章![](img/cda69129882b40377a87144c782680e1.jpg "微笑"))  
-  
-这里为了方便大家查阅，给出其他同学分析的链接：  
-  
-CreateProcess 函数的整体流程分析：[`bbs.pediy.com/showthread.php?p=819417#post819417`](http://bbs.pediy.com/showthread.php?p=819417#post819417)  
-  
-NtCreateProcessEx 的分析：[`bbs.pediy.com/showthread.php?t=114958`](http://bbs.pediy.com/showthread.php?t=114958)  
-  
-MmInitializeProcessAddressSpace 的分析：[`bbs.pediy.com/showthread.php?t=114956`](http://bbs.pediy.com/showthread.php?t=114956)  
-  
-内核创建进程之创建节区分析：[`bbs.pediy.com/showthread.php?t=114943`](http://bbs.pediy.com/showthread.php?t=114943)  
-  
-线程创建流程分析：[`bbs.pediy.com/showthread.php?t=114929`](http://bbs.pediy.com/showthread.php?t=114929)  
-  
-异常分发：[`bbs.pediy.com/showthread.php?t=114945`](http://bbs.pediy.com/showthread.php?t=114945)  
-  
-进程句柄表分析：[`bbs.pediy.com/showthread.php?t=114820`](http://bbs.pediy.com/showthread.php?t=114820)  
-  
-ObCreateObject 函数的分析：[`bbs.pediy.com/showthread.php?t=114730`](http://bbs.pediy.com/showthread.php?t=114730)  
-  
-ObInsertObject 函数的分析：[`bbs.pediy.com/showthread.php?t=114734`](http://bbs.pediy.com/showthread.php?t=114734)  
-  
-  
-以下是我的分析：  
-  
-目录：  
-一：创建进程的大体流程。  
-二：3 环进程的创建分析。  
-三：0 环创建进程的分析。  
-四：3 环创建线程的分析。  
-五：0 环创建线程的分析。  
-  
-  
-一.   创建进程的大体流程：  
-  
-  创建进程的过程就是构建一个环境，这个环境包含了很多的机制 （比如自我保护， 与外界通信等等）。 构建这个环境需要两种“人”来协调完成（用户态和内核态），他们各有分工，其中用户态提供原料（提供创建的那些参数）， 内核态负责来构建这个环境，由于环境是由内核态构建的，因此他持有这个环境的控制权， 而用户由于提供了原料， 因此他具有使用权。 内核态开始构建环境中的基础设施（进程对象，等等），在构建完基础设施后，内核态通知用户态基础设施构建已经完成，是否需要继续构建其他设施，于是用户态通知内核态继续构建一条通道（既创建线程），方便两边的通信，当用户态接收到线程创建完毕的信息后，便可以开始使用这个环境(投入生产)，以后缺啥补啥![](img/6821a6175013046370981b6035d43ab4.jpg "使眼色")。  
-  
-二.   3 环进程的创建分析：  
-  
-       CreateProcesssA 的分析：  
-  
-  在 CreateProcessA 函数中调用了 CreateProcessInternalA，调用该函数时，增加了两个参数（一头一尾加了个零参数），在该函数里面也没看到对这两个参数的引用，而是直接传递给 CreateProcessInternalW 函数。  
-  
-       在 CreateProcessInternalA 中，首先检查了参数 lpCmdLine, 判断是否为 0，不为 0 则将 lpCmdLine 初始化为 UNICODE 字符串， 为 0 则做了几个局部变量赋值后跳过初始化为 UNICODE 字符串。接着继续检查参数，先将 lpStartupInfor 的内容拷贝到一个局部变量， 然后判断参数 lpApplicationName 是否为 0，不为 0 则参数转换为 UNICODE 字符串，为 0 则跳过转换继续判断参数 lpCurrentDirectory 是否为 0，这个和参数 lpAppLicationName 的判断逻辑是一样的。接着判断 STARTUPINFOA.lpReserved 域是否为 0（MSDN 上说在调用 CreateProcess 前，要把 lpReserved 设置为 NULL ，不过我试了下，不为 0 也没问题。），该域不为 0 则和其他字符串参数一样做 UNICODE 的转换，后面还判断 STARTUPINFOA 中的几个字符串的域，不为 0 的都作了下转换。最后调用了 CreateProcesssW 函数， 看上面的步骤大家应该知道了其实 CreateProcessInternalA 函数只是对字符串参数或者结构体中包含字符串类型的域的作了检查和转换工作，然后就调用了下层函数。（附图）  
-![](img/1b4aeffcc0ff890b0bbb40fa7bf10f43.jpg)  
-  
-    分析 CreateProcesssW 的大概流程：  
-  
-1.  将参数 保存到局部变量中。  
-2.  dwCreationFlags 的值至少由一个标志组合成（一些创建标志和优先级类型），首先屏蔽  CREATE\_NO\_WINDOW 标志，代码如下：  
-   
+**标 题**: 【原创】`CreateProcess` 流程分析。
+
+**作 者**: pyq 逍遥
+
+**时 间**: 2010-06-03, 16:26:42
+
+**链 接**: [`http://bbs.pediy.com/showthread.php?p=819417#post819417`](http://bbs.pediy.com/showthread.php?p=819417#post819417)
+
+**工具**: `IDA5.2`, `WinDbg`, `Ollydbg`
+
+**平台**: `Windows XP xp3`
+
+这个项目是本人在科锐和同学一起完成的项目，各有分工，我的任务是分析 `CreateProcess` 从用户态到内核态的整体流程框架(部分函数的具体实现由其他同学完成)。
+
+声明：由于本人能力有限，文中必然有错漏之处，恳请读者不吝赐教。(第一次写文章![](img/cda69129882b40377a87144c782680e1.jpg "微笑"))
+
+这里为了方便大家查阅，给出其他同学分析的链接：
+
+* `CreateProcess` 函数的整体流程分析：[`bbs.pediy.com/showthread.php?p=819417#post819417`](http://bbs.pediy.com/showthread.php?p=819417#post819417)
+* `NtCreateProcessEx` 的分析：[`bbs.pediy.com/showthread.php?t=114958`](http://bbs.pediy.com/showthread.php?t=114958)
+* `MmInitializeProcessAddressSpace` 的分析：[`bbs.pediy.com/showthread.php?t=114956`](http://bbs.pediy.com/showthread.php?t=114956)
+* 内核创建进程之创建节区分析：[`bbs.pediy.com/showthread.php?t=114943`](http://bbs.pediy.com/showthread.php?t=114943)
+* 线程创建流程分析：[`bbs.pediy.com/showthread.php?t=114929`](http://bbs.pediy.com/showthread.php?t=114929)
+* 异常分发：[`bbs.pediy.com/showthread.php?t=114945`](http://bbs.pediy.com/showthread.php?t=114945)
+* 进程句柄表分析：[`bbs.pediy.com/showthread.php?t=114820`](http://bbs.pediy.com/showthread.php?t=114820)
+* `ObCreateObject` 函数的分析：[`bbs.pediy.com/showthread.php?t=114730`](http://bbs.pediy.com/showthread.php?t=114730)
+* `ObInsertObject` 函数的分析：[`bbs.pediy.com/showthread.php?t=114734`](http://bbs.pediy.com/showthread.php?t=114734)
+
+以下是我的分析：
+
+## 目录
+
+一：创建进程的大体流程。
+
+二：3 环进程的创建分析。
+
+三：0 环创建进程的分析。
+
+四：3 环创建线程的分析。
+
+五：0 环创建线程的分析。
+
+## 一. 创建进程的大体流程
+
+创建进程的过程就是构建一个环境，这个环境包含了很多的机制（比如自我保护，与外界通信等等）。构建这个环境需要两种“人”来协调完成（用户态和内核态），他们各有分工，其中用户态提供原料（提供创建的那些参数），内核态负责来构建这个环境，由于环境是由内核态构建的，因此他持有这个环境的控制权，而用户由于提供了原料，因此他具有使用权。内核态开始构建环境中的基础设施（进程对象，等等），在构建完基础设施后，内核态通知用户态基础设施构建已经完成，是否需要继续构建其他设施，于是用户态通知内核态继续构建一条通道（既创建线程），方便两边的通信，当用户态接收到线程创建完毕的信息后，便可以开始使用这个环境(投入生产)，以后缺啥补啥![](img/6821a6175013046370981b6035d43ab4.jpg "使眼色")。
+
+## 二. 3 环进程的创建分析
+
+### `CreateProcessA` 的分析
+
+在 `CreateProcessA` 函数中调用了 `CreateProcessInternalA`，调用该函数时，增加了两个参数（一头一尾加了个零参数），在该函数里面也没看到对这两个参数的引用，而是直接传递给 `CreateProcessInternalW` 函数。
+
+在 `CreateProcessInternalA` 中，首先检查了参数 `lpCmdLine`, 判断是否为 0，不为 0 则将 `lpCmdLine` 初始化为 `UNICODE` 字符串，为 0 则做了几个局部变量赋值后跳过初始化为 `UNICODE` 字符串。接着继续检查参数，先将 `lpStartupInfor` 的内容拷贝到一个局部变量，然后判断参数 `lpApplicationName` 是否为 0，不为 0 则参数转换为 `UNICODE` 字符串，为 0 则跳过转换继续判断参数 `lpCurrentDirectory` 是否为 0，这个和参数 `lpApplicationName` 的判断逻辑是一样的。接着判断 `STARTUPINFOA.lpReserved` 域是否为 0（`MSDN` 上说在调用 `CreateProcess` 前，要把 `lpReserved` 设置为 `NULL`，不过我试了下，不为 0 也没问题。），该域不为 0 则和其他字符串参数一样做 `UNICODE` 的转换，后面还判断 `STARTUPINFOA` 中的几个字符串的域，不为 0 的都作了下转换。最后调用了 `CreateProcessW` 函数，看上面的步骤大家应该知道了其实 `CreateProcessInternalA` 函数只是对字符串参数或者结构体中包含字符串类型的域的作了检查和转换工作，然后就调用了下层函数。（附图）
+
+![](img/1b4aeffcc0ff890b0bbb40fa7bf10f43.jpg)
+
+### 分析 `CreateProcessW` 的大概流程
+
+1. 将参数保存到局部变量中。
+
+2. `dwCreationFlags` 的值至少由一个标志组合成（一些创建标志和优先级类型），首先屏蔽 `CREATE_NO_WINDOW` 标志，代码如下：
+
+```
+   mov   eax, [ebp+20h]        ;  ebp+20h = dwCreationFlags
+   and   eax, 0F7FFFFFFh       ; 屏蔽 CREATE_NO_WINDOW 标志。 
+   mov   [ebp+20h], eax
+   mov   ecx, eax
+   and   ecx, 18h    ；18h = DETACHED_PROCESS | CREATE_NEW_CONSOLE
+   cmp   cl, 18h
+   jz    loc_7C8427DE         ；如果相等，说明创建标志不合法
+```
+
+经过屏蔽标志位后，判断 `dwCreationFlags` 中是否包含 `CREATE_NEW_CONSOLE` | `DETACHED_PROCESS` 的组合, 如果包含它们的组合，参考 `MSDN` 上，存在这种组合是不合法的，因此跳转到错误处理中，该错误处理例程中，将 `57h` 与 `teb->LastErrorValue` 想比较，如果不相等，就更新 `LastErrorValue` 的值为 `57h`，实际上 `GetLastError()` 函数的返回的错误码就是从 `teb->LastErrorValue` 获取的。
+
+3. 在 2 中说到 `dwCreationFlags` 中也包含优先级类型的组合, 接着就判断优先级，判断的顺序依次是 `IDLE_PRIORITY_CLASS`, `NORMAL_PRIORITY_CLASS`, `HIGH_PRIORITY_CLASS`, `REALTIME_PRIORITY_CLASS`, 只要满足其中一个优先级，就跳过其他优先级的判断，如果都不满足，将权限级置为 0。
+
+(当满足 `IDLE_PRIORITY_CLASS` 时)，置优先级标志为 1。
+
+(当满足 `NORMAL_PRIORITY_CLASS` 时)，置优先级标志为 2。
+
+(当满足 `HIGH_PRIORITY_CLASS` 时)，置优先级标志 3。
+
+(当满足 `REALTIME_PRIORITY_CLASS` 时)，由于该优先级别很高，比操作系统优先级还高(参考 `MSDN`)，作了如下操作，申请堆空间 -->打开一个令牌对象与线程关联，并返回一个句柄可用于访问该令牌。-->调整优先级令牌。 置优先级标志 4。
+
+```
+mov   eax, [ebp+20h]        ;  ebp+20h = dwCreationFlags
+and   eax, 0F7FFFFFFh       ; 屏蔽 CREATE_NO_WINDOW 标志
+mov   [ebp+20h], eax
+mov   ecx, eax
+and   ecx, 18h
+cmp   cl, 18h  ; 判断 dwCreationFlags 是否为 CREATE_NEW_CONSOLE |DETACHED_PROCESS
+jz    loc_7C8427DE          ; 标志组合不合法， 进行错误处理并退出
+mov   [ebp+var_6D4], ebx
+mov   [ebp+var_6DC], ebx
+test  al, 40h
+jnz   IsIdlePriority        ; 优先级为 IDLE_PRIORITY_CLASS
+test  ah, 40h
+jnz   loc_7C8427F6
+test  al, 20h
+jnz   IsNormalPriority      ; 优先级为 NORMAL_PRIORITY_CLASS
+test  ah, ah
+js    loc_7C842802
+test  al, al
+js    IsHighPriotity       ; 优先级为 HIGH_PRIORITY_CLASS
+test  ah, 1
+jnz   IsRealTimePriority   ; 优先级为 REALTIME_PRIORITY_CLASS
+```
+
+4. 继续判断 `dwCreationFlag` 的情况，首先在 `dwCreationFlag` 过滤掉表示优先级的标志位，然后在判断是什么创建标志。
+
+```
+mov   [ebp+var_668], bl
+and   word ptr [ebp+dwCreateFlag], 3E1Fh ; 屏蔽权限级表示的位
+mov   edi, 800h
+mov   esi, 1000h
+test  [ebp+dwCreateFlag], edi
+jnz   loc_7C842832           ; dwCreationFlag = CREATE_SEPARATE_WOW_VDM 
+test  [ebp+dwCreateFlag], esi
+jnz   short loc_7C819A33    ; dwCreationFlag = CREATE_SHARED_WOW_VDM
+mov   eax, _BaseStaticServerData
+cmp   [eax+19F4h], bl
+jnz   loc_7C84283C
+```
+
+6. 判断 `lpEnvironment` 是否为空, 如果不为空，将 `Ansi` 字符串转换为 `UNICODE_STRING`, 为空的话跳过这一步，接着调用 `RtlDosPathNameToNtPathName_U` 函数将 `DOS` 路径转换为 `NT` 路径，由于用户给定的路径一般都是 `DOS` 路径，而内核需要的是 `NT` 路径，因此需要转换一下。
+
+7. 接着调用 `NtOpenFile()` 得到文件句柄
+
+```
+push  60h                   ；打开选项
+push  5                     ;共享模式
+lea   eax, [ebp+pIoStatusBlock]
+push  eax                   ; I/0 状态块
+lea   eax, [ebp+pObjAttribute]   
+push  eax                   ; 对象属性
+push  1000A1h              
+                    ;SYNCHRONIZE |FILE_ATTRIBUTE_NORMAL|
+                    ;FILE_ATTRIBUTE_ARCHIVE|FILE_ATTRIBUTE_READONLY
+lea   eax, [ebp+pHandleOfFile]
+push  eax                   ; 文件句柄   
+mov   esi, ds:__imp__NtOpenFile@24 ; NtOpenFile(x,x,x,x,x,x)
+call  esi ; NtOpenFile(x,x,x,x,x,x) ; NtOpenFile(x,x,x,x,x,x)
+```
+
+接着通过 `NtOpenFile` 得到的 `handle` 接着调用了 `NtCreateSection` 函数得到内存区对象句柄
+
+```
+push  [ebp+pHandleOfFile]   ; 文件句柄
+push  1000000h
+push  10h                   ; 内存区页面保护属性
+push  ebx                   ; SETION 大小
+push  ebx                   ; 对象属性
+push  0F001Fh               ; 访问掩码
+lea   eax, [ebp+pSectionHandle]
+push  eax                   ; 指向内存区对象的指针（传出参数）
+call  ds:__imp__NtCreateSection@28 ; NtCreateSection(x,x,x,x,x,x,x)
+```
+
+接着调用 `BasepIsProcessAllowed` 函数，该函数用来判断应用程序名是否在授权文件列表中, 函数实现调用了 `NtOpenKey` 函数打开了注册表中的 `\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options` 键，这个键跟以前流行的镜像劫持技术有关，但操作真正这么做的原因不是很清楚，希望知道的朋友交流一下！
+
+在得到内存区对象句柄后调用了 `NtQuerySection` 函数，返回后得到节的基本信息(节基地址，大小，属性)
+
+```
+push  ebx                   ; 接受返回的大小
+push  30h                   ; 内存区信息的长度
+lea   eax, [ebp+OepAddress]
+push  eax                   ; 接受内存区信息 Buffer
+xor   edi, edi
+inc   edi
+push  edi                   ; edi = 1 = SectionImageInformation
+push  [ebp+pSectionHandle]  ; 内存区句柄
+call  ds:__imp__NtQuerySection@20 ; 将区对象作为镜像执行文件来查询信息
+```
+
+然后判断创建标志中是否包含 `DEBUG_PROCESS` 或者 `DEBUG_ONLY_THIS_PROCESS`，如果包含该标志，判断 `PEB->ReadImageFileExecOptions` 域是否为 0，如果不为 0，调用 `LdrQueryImageFileExecutionOptions` 函数查询该信息，如果不包含该标志，也用调用 `LdrQueryImageFileExecutionOptions` 函数。
+
+下面检查镜像文件的部分信息的有效性：
+
+```
+mov   ax, [ebp+MachineType]     ;  MachineType 为机器类型，
+cmp   ax, ds:7FFE002Ch          ; ds:7FFE002Ch 中的内容为 0x014c
+jb    loc_7C84329E
+cmp   ax, ds:7FFE002Eh
+ja    loc_7C84329E
+cmp   dword ptr [ebp+ SubSystemVersion], 2
+jz    short loc_7C8191C4    ; 子系统次版本号
+cmp   dword ptr [ebp+ SubSystemVersion], 3 ; 子系统的比较版本(PE 信息中包含)
+jnz   loc_7C842D0C
+```
+
+接着调用函数 `BasepIsImageVersionOk` 判断镜像文件版本是否合法
+
+```
+
+
+
+```
+movzx eax, \[ebp+pImageFileMinorVersion\] ; 子系统次版本号
+push  eax
+movzx eax, \[ebp+pImageFileMajorVersion\] ; phSection->GpValue
+push  eax                 ; 子系统的主版本号
+call  \_BasepIsImageVersionOk@8 ; 判断镜像文件的版本是否合法。
+```
+
+然后加载 `advapi32.dll` 并获得 `CreateProcessAsUserSecure` 函数的地址：
 
 代码:
 
 ```
-   mov   eax, \[ebp+20h\]        ;  ebp+20h = dwCreationFlags
-   and   eax, 0F7FFFFFFh       ; 屏蔽 CREATE\_NO\_WINDOW 标志。 
-   mov   \[ebp+20h\], eax
-   mov   ecx, eax
-   and   ecx, 18h    ；18h = DETACHED\_PROCESS | CREATE\_NEW\_CONSOLE
-   cmp   cl, 18h
-   jz    loc\_7C8427DE         ；如果相等，说明创建标志不合法
-  
-
+push  offset LibFileName    ; "advapi32.dll"
+call  \_LoadLibraryA@4      ; LoadLibraryA(x)
+mov   esi, eax
+mov   \[ebp+phModuleOfAdvapi32.dll\], esi ; 保存模块基地址
+cmp   esi, ebx
+jz    short loc\_7C81923C
+push  offset ProcName      ; "CreateProcessAsUserSecure"
+push  esi                     ; hModule
+call  \_GetProcAddress@8   ; 获得指定模块中指定函数的地址
 ```
 
-    经过屏蔽标志位后，判断 dwCreationFlags 中是否包含 CREATE\_NEW\_CONSOLE | DETACHED\_PROCESS 的组合, 如果包含它们的组合，参考 MSDN 上， 存在这种组合是不合法的， 因此跳转到错误处理中， 该错误处理例程中，将 57h 与 teb-> LastErrorValue 想比较，如果不相等，就更新 LastErrorValue 的值为 57h， 实际上 GetLastError() 函数的返回的错误码就是从 teb-> LastErrorValue 获取的。  
-  
-3.  在 2 中说到 dwCreationFlags 中也包含优先级类型的组合, 接着就判断优先级，判断的顺序依次是 IDLE\_PRIORITY\_CLASS, NORMAL\_PRIORITY\_CLASS, HIGH\_PRIORITY\_CLASS, REALTIME\_PRIORITY\_CLASS, 只要满足其中一个优先级，就跳过其他优先级的判断，如果都不满足， 将权限级置为 0.  
-  
-(当满足 IDLE\_PRIORITY\_CLASS 时)，置优先级标志为 1.  
-(当满足 NORMAL\_PRIORITY\_CLASS 时)，置优先级标志为 2.  
-(当满足 HIGH\_PRIORITY\_CLASS 时)，置优先级标志 3.  
-(当满足 REALTIME\_PRIORITY\_CLASS 时)，由于该优先级别很高，比操作系统优先级还高(参考 MSDN)，作了如下操作， 申请堆空间 -->打开一个令牌对象与线程关联，并返回一个句柄可用于访问该令牌。-->调整优先级令牌。 置优先级标志 4。  
-  
+获得函数 `CreateProcessAsUserSecure` 地址，不过后面没有发现调用这个函数。
+
+然后调用 `BaseFormatObjectAttributes` 将安全属性结构格式为 NT 对象属性结构（得到了对象属性）。 接着调用了 `\_DbgUiConnectToDbg` 在实现通过调用 `NtCreateDebugObject` 函数来创建调试对象，调用 `DbgUiGetThreadDebugObject` 来获得调试对象（作为参数传递到 0 环）。
+
 代码:
 
 ```
-mov   eax, \[ebp+20h\]        ;  ebp+20h = dwCreationFlags
-and   eax, 0F7FFFFFFh       ; 屏蔽 CREATE\_NO\_WINDOW 标志
-mov   \[ebp+20h\], eax
-mov   ecx, eax
-and   ecx, 18h
-cmp   cl, 18h  ; 判断 dwCreationFlags 是否为 CREATE\_NEW\_CONSOLE |DETACHED\_PROCESS
-jz    loc\_7C8427DE          ; 标志组合不合法， 进行错误处理并退出
-mov   \[ebp+var\_6D4\], ebx
-mov   \[ebp+var\_6DC\], ebx
-test  al, 40h
-jnz   IsIdlePriority        ; 优先级为 IDLE\_PRIORITY\_CLASS
-test  ah, 40h
-jnz   loc\_7C8427F6
-test  al, 20h
-jnz   IsNormalPriority      ; 优先级为 NORMAL\_PRIORITY\_CLASS
-test  ah, ah
-js    loc\_7C842802
-test  al, al
-js    IsHighPriotity        ; 优先级为 HIGH\_PRIORITY\_CLASS
-test  ah, 1
-jnz   IsRealTimePriority    ; 优先级为 REALTIME\_PRIORITY\_CLASS
-
+call  \_DbgUiConnectToDbg@0  ; 实现调用中 NtCreateDebugObject
+mov   \[ebp+nReturnStatus\], eax
+cmp   eax, ebx
+jl    loc\_7C82DF58
+call  \_DbgUiGetThreadDebugObject@0 ; 获得线程调试对象 teb->0xF24,
+mov   \[ebp+phandleOfDebugObj\], eax
 ```
 
-4.  继续判断 dwCreationFlag 的情况，首先在 dwCreationFlag 过滤掉表示优先级的标志位，然后在判断是什么创建标志。  
+最后调用 `NtCreateProcessEx` 函数完成 3 环的创建过程
+
 代码:
 
 ```
-mov   \[ebp+var\_668\], bl
-and   word ptr \[ebp+dwCreateFlag\], 3E1Fh ; 屏蔽权限级表示的位
-mov   edi, 800h
-mov   esi, 1000h
-test  \[ebp+dwCreateFlag\], edi
-jnz   loc\_7C842832          ; dwCreationFlag = CREATE\_SEPARATE\_WOW\_VDM 
-test  \[ebp+dwCreateFlag\], esi
-jnz   short loc\_7C819A33    ; dwCreationFlag = CREATE\_SHARED\_WOW\_VDM
-mov   eax, \_BaseStaticServerData
-cmp   \[eax+19F4h\], bl
-jnz   loc\_7C84283C
-
+push  \[ebp+JobLevel\]              ; 作业级别
+push  ebx                            ; 异常端口对象句柄
+push  \[ebp+phandleOfDebugObj\]  ; 调试对象句柄
+push  \[ebp+pSectionHandle\]     ; 内存区对象句柄
+push  \[ebp+CreateFlag\]         ; 创建标志
+or    esi, 0FFFFFFFFh
+push  esi                            ; 父进程句柄（FFFFFFFF）
+push  \[ebp+ObjAttibute\]      ; 对象属性
+push  1F0FFFh                        ; (访问掩码)
+lea   eax, \[ebp+pHandleOfProcess\]
+push  eax                       ; 保留进程句柄值（传出参数）
+call  ds:\_\_imp\_\_NtCreateProcessEx@36 ; 创建进程(x,x,x,x,x,x,x,x,x)
 ```
 
-6. 判断 lpEnvironment 是否为空, 如果不为空，将 Ansi 字符串转换为 UNICODE\_STRING, 为空的话跳过这一步，接着调用 RtlDosPathNameToNtPathName\_U 函数将 DOS 路径转换为 NT 路径，由于用户给定的路径一般都是 DOS 路径，而内核需要的是 NT 路径，因此需要转换一下。  
-  
-7.  接着调用 NtOpenFile()得到文件句柄  
+下面附上 `CreateProcessW` 函数的流程图：
+
+![](img/a008ed7145369caa769ee96c3ed5e6dc.jpg)
+
+### 三. 0 环创建进程的分析:
+
+在 `NtCreateProcessEx` 中，首先是判断父进程是否存在，如果不存在，就返回一个 `STATUS_INVALID_PARAMETER` 错误码（即无效参数），否则调用 `PspCreateProcess`，参数都没有变，直接传递给该函数。
+
+#### 1. 在 PspCreateProcess 函数中，首先保存当前线程运行的前一个模式(r0/r3), 通过 KTHREAD->PreviousMode 可以得到前一个模式。
+
 代码:
 
 ```
-push  60h                   ；打开选项
-push  5                       ;共享模式
-lea   eax, \[ebp+pIoStatusBlock\]
-push  eax                   ; I/0 状态块
-lea   eax, \[ebp+pObjAttribute\]  
-push  eax                   ; 对象属性
-push  1000A1h    
-                        ;SYNCHRONIZE |FILE\_ATTRIBUTE\_NORMAL|
-                        ;FILE\_ATTRIBUTE\_ARCHIVE|FILE\_ATTRIBUTE\_READONLY
-lea   eax, \[ebp+pHandleOfFile\]
-push  eax                   ; 文件句柄  
-mov   esi, ds:\_\_imp\_\_NtOpenFile@24 ; NtOpenFile(x,x,x,x,x,x)
-call  esi ; NtOpenFile(x,x,x,x,x,x) ; NtOpenFile(x,x,x,x,x,x)
-
+mov     eax, large fs:124h    ; eax 保存了指向 KTHREAD 结构的指针
+mov     \[ebp+pKthread\], eax
+mov    cl, \[eax+\_KTHREAD.PreviousMode\] ; 线程的前一个模式
+mov     \[ebp+PreviousMode\], cl
 ```
 
-接着通过 NtOpenFile 得到的 handle 接着调用了 NtCreateSectiond 函数得到内存区对象句柄  
+接着判断创建标志是否包含除 `DEBUG_PROCESS`， `DEBUG_ONLY_THIS_PROCESS`，`CREATE_SUSPENDED` 的标志之外标志， 如果包含其他的标志，也报一个无效参数错误后退出该函数。
+
+#### 2. 通过参数 ParentProcess 调用 ObReferenceObjectByHandle()函数得到父进程对象的指针)
+
 代码:
 
 ```
-push  \[ebp+pHandleOfFile\]   ; 文件句柄
-push  1000000h
-push  10h                   ; 内存区页面保护属性
-push  ebx                   ; SETION 大小
-push  ebx                   ; 对象属性
-push  0F001Fh               ; 访问掩码
-lea   eax, \[ebp+pSectionHandle\]
-push  eax                   ; 指向内存区对象的指针（传出参数）
-call  ds:\_\_imp\_\_NtCreateSection@28 ; NtCreateSection(x,x,x,x,x,x,x)
-
+push    esi             ; HandleInformation
+lea  eax, \[ebp+pParentObject\] ; eax 为 EPROCESS 局部变量的地址(作传出参数)
+push    eax             ; Object
+push    dword ptr \[ebp+PreviousMode\] ; AccessMode
+push    \_PsProcessType     ; ObjectType
+push    80h             ; DesiredAccess
+push    \[ebp+ParentProcessHandle\] ; Handle
+call    \_ObReferenceObjectByHandle@24 ; 通过句柄得到父进程对象指针
 ```
 
-接着调用 BasepIsProcessAllowed 函数， 该函数用来判断应用程序名是否在授权文件列表中,函数实现调用了 NtOpenKey 函数打开了注册表中的\HKEY\_LOCAL\_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\ CurrentVersion\\Image File Execution Options 键， 这个键跟以前流行的镜像劫持技术有关，但操作真正这么做的原因不是很清楚，希望知道的朋友交流一下![。  
-  
-在得到内存区对象句柄后调用了 NtQuerySection 函数，返回后得到节的基本信息(节基地址，大小，属性)  
+接着判断了参数 `JobMemberLevel` 是否为 0， 如果为 0，判断父进程的 `EPROCESS->Job` 是否为 0，如果为 0，返回无效参数错误后推出该函数。如果不为 0，和 `JobMemberLevel` 不为同一流程，将父进程对象中的属性保存到局部变量中。
+
+#### 3. 通过 ObCreateObject 函数创建新进程对象并将对象内容初始化为 0.
+
 代码:
 
 ```
-push  ebx                   ; 接受返回的大小
-push  30h                   ; 内存区信息的长度
-lea   eax, \[ebp+OepAddress\]
-push  eax                   ; 接受内存区信息 Buffer
-xor   edi, edi
-inc   edi
-push  edi                   ; edi = 1 = SectionImageInformation
-push  \[ebp+pSectionHandle\]  ; 内存区句柄
-call  ds:\_\_imp\_\_NtQuerySection@20 ; 将区对象作为镜像执行文件来查询信息
-
+lea     eax, \[ebp+pNewProcessObj\]
+push    eax             ; 新对象指针
+push    esi             ; int
+push    esi             ; 对象的大小
+push    260h            ; paseContext
+push    esi             ; int
+push    dword ptr \[ebp+PreviousMode\] ; int
+push    \[ebp+ObjectAttributes\] ; 对象属性
+push    \_PsProcessType     ; 对象类型
+push    dword ptr \[ebp+PreviousMode\] ; 处理器模式
+call    \_ObCreateObject@36    ; 创建进程对象 
+mov     edi, eax
+cmp     edi, esi
+jl      loc\_4AAB6B          ; 判断 ObCreateObject 函数调用是否成功
+mov     ecx, 98h
+xor     eax, eax
+mov     ebx, \[ebp+pNewProcessObj\]
+mov     edi, ebx
+rep stosd             ; 将新建对象初始化为 0
 ```
 
-然后判断创建标志中是否包含 DEBUG\_PROCESS 或者 DEBUG\_ONLY\_THIS\_PROCESS，如果包含该标志，判断 PEB->ReadImageFileExecOptions 域是否为 0，如果不为 0， 调用 LdrQueryImageFileExecutionOptions 函数查询该信息，如果不包含该标志，也用调用 LdrQueryImageFileExecutionOptions 函数。  
-  
-下面检查镜像文件的部分信息的有效性：  
+从父进程继承配额信息（`PspInheritQuot` 函数完成）和设备位图信息（`ObInheritDeviceMap` 函数完成），然后将父进程对象中的部分域给新进程。
+
+#### 4. 通过参数 SectionHandle 调用 ObReferenceObjectByHandle 函数得到区对象指针，当然前提是 SectionHandle 有效，然后将区对象指针赋值给新进程 EPROCESS 的相应域中，接着就判断参数 DebugPort 是否为 0， 当不为 0 时：
+
 代码:
 
 ```
-mov   ax, \[ebp+MachineType\]     ;  MachineType 为机器类型，
-cmp   ax, ds:7FFE002Ch          ; ds:7FFE002Ch 中的内容为 0x014c
-jb    loc\_7C84329E
-cmp   ax, ds:7FFE002Eh
-ja    loc\_7C84329E
-cmp   dword ptr \[ebp+ SubSystemVersion\], 2
-jz    short loc\_7C8191C4    ; 子系统次版本号
-cmp   dword ptr \[ebp+ SubSystemVersion\], 3 ; 子系统的比较版本(PE 信息中包含)
-jnz   loc\_7C842D0C
+cmp     \[ebp+SectionHandle\], esi
+jz      loc\_4F449F          ; 判断区对象句柄是否为 0
+push    esi             ; HandleInformation
+eax, \[ebp+pSectionObj\]
+push    eax             ; 内存区对象指针
+push    dword ptr \[ebp+PreviousMode\] ; 处理器模式
+push    \_MmSectionObjectType  ; 对象类型
+push    8             ; 访问掩码
+push    \[ebp+SectionHandle\]  ; 内存去句柄
+call    \_ObReferenceObjectByHandle@24 ; 通过区对象句柄得到区对象指针
 
-```
-
-接着调用函数 BasepIsImageVersionOk 判断镜像文件版本是否合法  
-代码:
-
-```
-movzx eax, \[ebp+pImageFileMinorVersion\] ; 子系统次版本号
-push  eax
-movzx eax, \[ebp+pImageFileMajorVersion\] ; phSection->GpValue
-push  eax                   ; 子系统的主版本号
-call  \_BasepIsImageVersionOk@8 ; 判断镜像文件的版本是否合法。
-
-```
-
-然后加载 advapi32.dll 并获得 CreateProcessAsUserSecure 函数的地址：  
-代码:
-
-```
-push  offset LibFileName    ; "advapi32.dll"
-call  \_LoadLibraryA@4       ; LoadLibraryA(x)
-mov   esi, eax
-mov   \[ebp+phModuleOfAdvapi32.dll\], esi ; 保存模块基地址
-cmp   esi, ebx
-jz    short loc\_7C81923C
-push  offset ProcName       ; "CreateProcessAsUserSecure"
-push  esi                            ; hModule
-call  \_GetProcAddress@8     ; 获得指定模块中指定函数的地址
-
-```
-
-获得函数 CreateProcessAsUserSecure 地址，不过后面没有发现调用这个函数。  
-  
-然后调用 BaseFormatObjectAttributes 将安全属性结构格式为 NT 对象属性结构（得到了对象属性）。 接着调用了\_DbgUiConnectToDbg 在实现通过调用 NtCreateDebugObject 函数来创建调试对象，调用 DbgUiGetThreadDebugObject 来获得调试对象（作为参数传递到 0 环）。  
-代码:
-
-```
-call  \_DbgUiConnectToDbg@0  ; 实现调用中 NtCreateDebugObject
-mov   \[ebp+nReturnStatus\], eax
-cmp   eax, ebx
-jl    loc\_7C82DF58
-call  \_DbgUiGetThreadDebugObject@0 ; 获得线程调试对象 teb->0xF24,
-mov   \[ebp+phandleOfDebugObj\], eax
-
-```
-
-最后调用 NtCreateProcessEx 函数完成 3 环的创建过程  
-代码:
-
-```
-push  \[ebp+JobLevel\]                  ; 作业级别
-push  ebx                                    ; 异常端口对象句柄
-push  \[ebp+phandleOfDebugObj\]   ; 调试对象句柄
-push  \[ebp+pSectionHandle\]      ; 内存区对象句柄
-push  \[ebp+CreateFlag\]             ; 创建标志
-or    esi, 0FFFFFFFFh
-push  esi                                    ; 父进程句柄（FFFFFFFF）
-push  \[ebp+ObjAttibute\]           ; 对象属性
-push  1F0FFFh                            ; (访问掩码)
-lea   eax, \[ebp+pHandleOfProcess\]
-push  eax                                 ; 保留进程句柄值（传出参数）
-call  ds:\_\_imp\_\_NtCreateProcessEx@36 ; 创建进程(x,x,x,x,x,x,x,x,x)
-
-```
-
-下面附上 CreateProcessW 函数的流程图：  
-![](img/a008ed7145369caa769ee96c3ed5e6dc.jpg)  
-  
-三.  0 环创建进程的分析:  
-  
-      在 NtCreateProcessEx 中, 首先是判断父进程是否存在，如果不存在，就返回一个 STATUS\_INVALID\_PARAMETER 错误码（即无效参数），否则调用 PspCreateProcess, 参数都没有变，直接传递给该函数。  
-  
-1．  在 PspCreateProcess 函数中，首先保存当前线程运行的前一个模式(r0/r3), 通过 KTHREAD->PreviousMode 可以得到前一个模式。  
-代码:
-
-```
-mov     eax, large fs:124h    ; eax 保存了指向 KTHREAD 结构的指针
-mov     \[ebp+pKthread\], eax
-mov    cl, \[eax+\_KTHREAD.PreviousMode\] ; 线程的前一个模式
-mov     \[ebp+PreviousMode\], cl
-
-```
-
-接着判断创建标志是否包含除 DEBUG\_PROCESS， DEBUG\_ONLY\_THIS\_PROCESS，CREATE\_SUSPENDED 的标志之外标志， 如果包含其他的标志，也报一个无效参数错误后退出该函数。  
-  
-2．  通过参数 ParentProcess 调用 ObReferenceObjectByHandle()函数得到父进程对象的指针)  
-代码:
-
-```
-push    esi                   ; HandleInformation
-lea  eax, \[ebp+pParentObject\] ; eax 为 EPROCESS 局部变量的地址(作传出参数)
-push    eax                   ; Object
-push    dword ptr \[ebp+PreviousMode\] ; AccessMode
-push    \_PsProcessType        ; ObjectType
-push    80h                   ; DesiredAccess
-push    \[ebp+ParentProcessHandle\] ; Handle
-call    \_ObReferenceObjectByHandle@24 ; 通过句柄得到父进程对象指针
-
-```
-
-接着判断了参数 JobMemberLevel 是否为 0， 如果为 0，判断父进程的 EPROCESS->Job 是否为 0，如果为 0，返回无效参数错误后推出该函数。如果不为 0，和 JobMemberLevel 不为同一流程，将父进程对象中的属性保存到局部变量中。  
-  
-3．  通过 ObCreateObject 函数创建新进程对象并将对象内容初始化为 0.  
-代码:
-
-```
-lea     eax, \[ebp+pNewProcessObj\]
-push    eax                   ; 新对象指针
-push    esi                   ; int
-push    esi                   ; 对象的大小
-push    260h                  ; paseContext
-push    esi                   ; int
-push    dword ptr \[ebp+PreviousMode\] ; int
-push    \[ebp+ObjectAttributes\] ; 对象属性
-push    \_PsProcessType        ; 对象类型
-push    dword ptr \[ebp+PreviousMode\] ; 处理器模式
-call    \_ObCreateObject@36    ; 创建进程对象 
-mov     edi, eax
-cmp     edi, esi
-jl      loc\_4AAB6B            ; 判断 ObCreateObject 函数调用是否成功
-mov     ecx, 98h
-xor     eax, eax
-mov     ebx, \[ebp+pNewProcessObj\]
-mov     edi, ebx
-rep stosd                     ; 将新建对象初始化为 0
-
-```
-
-从父进程继承配额信息（PspInheritQuot 函数完成）和设备位图信息（ObInheritDeviceMap 函数完成），然后将父进程对象中的部分域给新进程。  
-  
-4．  通过参数 SectionHandle 调用 ObReferenceObjectByHandle 函数得到区对象指针，当然前提是 SectionHandle 有效，然后将区对象指针赋值给新进程 EPROCESS 的相应域中，接着就判断参数 DebugPort 是否为 0， 当不为 0 时：  
-代码:
-
-```
-cmp     \[ebp+SectionHandle\], esi
-jz      loc\_4F449F            ; 判断区对象句柄是否为 0
-push    esi                   ; HandleInformation
-eax, \[ebp+pSectionObj\]
-push    eax                   ; 内存区对象指针
-push    dword ptr \[ebp+PreviousMode\] ; 处理器模式
-push    \_MmSectionObjectType  ; 对象类型
-push    8                     ; 访问掩码
-push    \[ebp+SectionHandle\]   ; 内存去句柄
-call    \_ObReferenceObjectByHandle@24 ; 通过区对象句柄得到区对象指针
-
-mov     eax, \[ebp+HandleInformation\]
-mov     \[ebx+\_EPROCESS.SectionObject\], eax ; pNewProcessObject->SectionObject = 内存区对象指针
-cmp     \[ebp+DebugPort\], esi
-jnz     IsDebugger            ; 判断参数 DebugPort 是否为 0
+mov     eax, \[ebp+HandleInformation\]
+mov     \[ebx+\_EPROCESS.SectionObject\], eax ; pNewProcessObject->SectionObject = 内存区对象指针
+cmp     \[ebp+DebugPort\], esi
+jnz     IsDebugger          ; 判断参数 DebugPort 是否为 0
 
 IsDebugger：（DebugPort 不为 0 时）
-push    esi                   ; HandleInformation
-lea     eax, \[ebp+pDebugObj\]
-push    eax                   ; 新调试对象指针
-push    dword ptr \[ebp+PreviousMode\] ; 处理器模式
-push    \_DbgkDebugObjectType  ; 对象类型
-push    2                     ; 访问模式
-push    \[ebp+DebugPort\]       ; 调试端口句柄
-call    \_ObReferenceObjectByHandle@24 ; 通过调试对象句柄得到调试对象指针
-
+push    esi             ; HandleInformation
+lea     eax, \[ebp+pDebugObj\]
+push    eax             ; 新调试对象指针
+push    dword ptr \[ebp+PreviousMode\] ; 处理器模式
+push    \_DbgkDebugObjectType  ; 对象类型
+push    2             ; 访问模式
+push    \[ebp+DebugPort\]     ; 调试端口句柄
+call    \_ObReferenceObjectByHandle@24 ; 通过调试对象句柄得到调试对象指针
 ```
 
-当 DebugPort 为 0 时，调用 DbgkCopyProcessDebugPort 函数从父进程拷贝 DebugPort 给新进程。  
-  
-以上部分就是通过参数来得到所需要的对象指针。  
-  
-5．  接着调用 PspInitializeProcessSecurity 函数来设置新进程的安全属性， 主要是设置新进程的安全令牌对象（从父进程拷贝）：  
+当 `DebugPort` 为 0 时，调用 `DbgkCopyProcessDebugPort` 函数从父进程拷贝 `DebugPort` 给新进程。
+
+以上部分就是通过参数来得到所需要的对象指针。
+
+#### 5. 接着调用 PspInitializeProcessSecurity 函数来设置新进程的安全属性， 主要是设置新进程的安全令牌对象（从父进程拷贝）：
+
 代码:
 
 ```
-push    ebx                   ; 新进程对象
-push    \[ebp+ParentObj\]       ; 父进程对象
-call    \_PspInitializeProcessSecurity@8 ; 初始进程的安全属性(设置新进程对象的令牌对象)
-
+push    ebx             ; 新进程对象
+push    \[ebp+ParentObj\]      ; 父进程对象
+call    \_PspInitializeProcessSecurity@8 ; 初始进程的安全属性(设置新进程对象的令牌对象)
 ```
 
-其中 PspInitializeProcessSecurity 函数里面调用了 SeSubProcessToken 函数来设置新进程对象的令牌对象，这个函数在 XP sp3 下和 win2k 及 WRK 中不一样，函数原型为 SeSubProcessToken(TOKEN ParentToken, TOKEN NewToken, BOOL MarkAsActive)，MarkAsActive 参数表示 TOKEN 是否为活动的，SeSubProcessToken 函数比 WRK 中的少一个参数，比 win2k 的多一个参数。  
+其中 `PspInitializeProcessSecurity` 函数里面调用了 `SeSubProcessToken` 函数来设置新进程对象的令牌对象，这个函数在 `XP sp3` 下和 `win2k` 及 `WRK` 中不一样，函数原型为 `SeSubProcessToken(TOKEN ParentToken, TOKEN NewToken, BOOL MarkAsActive)`，`MarkAsActive` 参数表示 `TOKEN` 是否为活动的，`SeSubProcessToken` 函数比 `WRK` 中的少一个参数，比 `win2k` 的多一个参数。
+
 代码:
 
 ```
-push    1                     ; TOKEN 是否为活动
-lea     eax, \[ebp+8\]
-push    eax                   ; eax 指向父进程对象的指针
-push    edi                   ; 父进程对象中的令牌对象
-call    \_SeSubProcessToken@12 ; 将父进程的令牌对象赋值给新进程对象
-
+push    1             ; TOKEN 是否为活动
+lea     eax, \[ebp+8\]
+push    eax             ; eax 指向父进程对象的指针
+push    edi             ; 父进程对象中的令牌对象
+call    \_SeSubProcessToken@12 ; 将父进程的令牌对象赋值给新进程对象
 ```
 
-6.     接着调用 MmCreateProcessAddressSpace 为新进程创建地址空间，并构建页目录表，页表 及物理页的关系。  
+#### 6. 接着调用 MmCreateProcessAddressSpace 为新进程创建地址空间，并构建页目录表，页表 及物理页的关系。
+
 代码:
 
 ```
-lea     eax, \[ebp+pDirTableBase\]
-push    eax                   ; 页目录表基地指针
-push    ebx                   ; 新进程对象
-push    \[ebp+MinimumWorkingSet\] ; 最小工作集
-call    \_MmCreateProcessAddressSpace@12 ; 创建进程地址空间(并构建页目录表，页表 及物理页的关系)
-
+lea     eax, \[ebp+pDirTableBase\]
+push    eax             ; 页目录表基地指针
+push    ebx             ; 新进程对象
+push    \[ebp+MinimumWorkingSet\] ; 最小工作集
+call    \_MmCreateProcessAddressSpace@12 ; 创建进程地址空间(并构建页目录表，页表 及物理页的关系)
 ```
 
-之后调用 KeInitializeProcess 函数初始化新进程对象中内核对象，优先级，亲和性，页目录表物理地址帧号。  
+之后调用 `KeInitializeProcess` 函数初始化新进程对象中内核对象，优先级，亲和性，页目录表物理地址帧号。
+
 代码:
 
 ```
-push    eax
-lea     eax, \[ebp+pDirTableBase\]
-push    eax                   ; 页目录表基地址
-push    \[ebp+Affinity\]        ; 亲和性
-push    8                     ; 进程基本优先级
-push    ebx                   ; 新进程对象
-call    \_KeInitializeProcess@20 ; 
-
+push    eax
+lea     eax, \[ebp+pDirTableBase\]
+push    eax             ; 页目录表基地址
+push    \[ebp+Affinity\]       ; 亲和性
+push    8             ; 进程基本优先级
+push    ebx             ; 新进程对象
+call    \_KeInitializeProcess@20 ;
 ```
 
-接着调用 ObInitProcess 函数来初始化新进程对象的表  
+接着调用 `ObInitProcess` 函数来初始化新进程对象的表
+
 代码:
 
 ```
-push    ebx                   ; 新进程对象
-mov     eax, \[ebp+CreateFlag\]
-and     al, 4
-neg     al
-sbb     eax, eax
-and     eax, \[ebp+ParentObj\]
-push    eax                   ; 父进程对象
-call    \_ObInitProcess@8      ; 初始化新进程对象的对象表(如果父进程被指定，父进程的对象表拷贝到新进程中, 对象表 的每个对象中 HandleCount 域都+1)
-
+push    ebx             ; 新进程对象
+mov     eax, \[ebp+CreateFlag\]
+and     al, 4
+neg     al
+sbb     eax, eax
+and     eax, \[ebp+ParentObj\]
+push    eax             ; 父进程对象
+call    \_ObInitProcess@8      ; 初始化新进程对象的对象表(如果父进程被指定，父进程的对象表拷贝到新进程中, 对象表 的每个对象中 HandleCount 域都+1)
 ```
 
-7．  调用 MmInitializeProcessAddressSpace 函数初始化进程地址空间，这个函数 WRK 和 XP sp3 的不一样，XP sp3 的只有 4 个参数，WRK 中有 5 个参数, 去掉了 CreateFlags 参数，  
-该函数的实现中调用了 KiAttachProcess 函数来实现进程的切换（将当前线程挂靠到新进程中），以及初始化 EPROCESS 中的部分域和 PFN，工作集列表等。  
+#### 7. 调用 MmInitializeProcessAddressSpace 函数初始化进程地址空间，这个函数 WRK 和 XP sp3 的不一样，XP sp3 的只有 4 个参数，WRK 中有 5 个参数, 去掉了 CreateFlags 参数，
+
+该函数的实现中调用了 `KiAttachProcess` 函数来实现进程的切换（将当前线程挂靠到新进程中），以及初始化 `EPROCESS` 中的部分域和 `PFN`，工作集列表等。
+
 代码:
 
 ```
-lea     eax, \[ebx+\_EPROCESS.SeAuditProcessCreationInfo\]
-push    eax               ; 对象名称信息
-push    \[ebp+HandleInformation\] ; 映射节信息
-push    esi                   ; 克隆进程
-push    ebx                   ; 需要被初始化的新进程对象
-call    \_MmInitializeProcessAddressSpace@16 ; 这个函数 WRK 和 XP 的不一样，XP 的只有 4 个参数，WRK 中有 5 个参数
-
+lea     eax, \[ebx+\_EPROCESS.SeAuditProcessCreationInfo\]
+push    eax           ; 对象名称信息
+push    \[ebp+HandleInformation\] ; 映射节信息
+push    esi             ; 克隆进程
+push    ebx             ; 需要被初始化的新进程对象
+call    \_MmInitializeProcessAddressSpace@16 ; 这个函数 WRK 和 XP 的不一样，XP 的只有 4 个参数，WRK 中有 5 个参数
 ```
 
-8．  调用 PspMapSystemDll 函数映射指定进程的区对象(映射第一个 DLL)：  
+#### 8. 调用 PspMapSystemDll 函数映射指定进程的区对象(映射第一个 DLL)：
+
 代码:
 
 ```
-push    esi                   ; 需要映射 DLL 的基地址
-push    ebx                   ; 新进程对象
-call    \_PspMapSystemDll@8    ; 映射新进程对象的系统 DLL(NTDLL.DLL)
-
+push    esi             ; 需要映射 DLL 的基地址
+push    ebx             ; 新进程对象
+call    \_PspMapSystemDll@8    ; 映射新进程对象的系统 DLL(NTDLL.DLL)
 ```
 
-该函数的实现中调用了 MmMapViewOfSection 映射节区（调用 MiMapViewOfImageSection 函数将 DLL 作为镜像映射）  
+该函数的实现中调用了 `MmMapViewOfSection` 映射节区（调用 `MiMapViewOfImageSection` 函数将 DLL 作为镜像映射）
+
 代码:
 
 ```
-lea     eax, \[ebp+pMapAddress\]
-push    eax                   ; 映射到那个地址
-push    \[ebp+pNewObj\]         ; 进程对象（映射到那个进程）
-push    ebx                   ; 系统 DLL 映射节的地址
-call    \_MmMapViewOfSection@40 ; 映射节区
-
+lea     eax, \[ebp+pMapAddress\]
+push    eax             ; 映射到那个地址
+push    \[ebp+pNewObj\]        ; 进程对象（映射到那个进程）
+push    ebx             ; 系统 DLL 映射节的地址
+call    \_MmMapViewOfSection@40 ; 映射节区
 ```
 
-通过 MmGetSessionId 函数获得指定进程的会话 ID，调用 SeSetSessionIdToken 函数设置令牌的会话 ID，接着调用 ExCreateHandle 函数在 PspCidTable 中添加一项。  
+通过 `MmGetSessionId` 函数获得指定进程的会话 ID，调用 `SeSetSessionIdToken` 函数设置令牌的会话 ID，接着调用 `ExCreateHandle` 函数在 `PspCidTable` 中添加一项。
+
+代码:
+
+
+
+## 9. 调用 MmCreatePeb 为新进程创建 PEB
+
+首先通过调用 `KeAttachProcess` 函数将当前线程切换到新进程对象，然后 NLS 节区映射到新进程的地址空间中（`MmMapViewOfSection`）。
+
+接着调用 `MiCreatePebOrTeb` 创建 PEB/TEB。（该函数通过 `ExAllocatePoolWithTag` 来申请 `_MMVAD` 结构大小的空间，通过 `MiFindEmptyAddressRangeDownTree` 函数在 VAD 树中查找一块未被使用的地址空间范围，并返回该范围的起始地址，最后通过 `MiInsertVad` 函数将申请的地址空间插入到 VAD 树中。）在创建 PEB 结构后，初始化 PEB 中部分域的值（镜像基地址，操作系统编译号等域），最后调用 `KeDetachProcess` 函数使线程回到原来的线程中。到此创建 PEB 完成。
+
+代码：
+
+```
+mov     edi, [ebx+_EPROCESS.Token] ; 取得 pNewProcessObject->Token
+and     edi, 0FFFFFFF8h       ; 取消 Token 中的低 3 位
+push    ebx                   ; 新进程对象
+call    _MmGetSessionId@4     ; 返回指定进程的会话 ID
+push    eax                   ; 新进程对象的会话 ID
+push    edi                   ; 新进程令牌对象
+call    _SeSetSessionIdToken@8 ; 设置指定 Token->SessionId
+mov     [ebp+var_70], ebx
+mov     [ebp+var_6C], esi
+lea     eax, [ebp+var_70]
+push    eax                   ; eax = pNewProcessObject
+push    _PspCidTable          ; 该表保存了所有进程和线程对象的指针
+call    _ExCreateHandle@8     ; 在 PspCidTable 中添加一项
+
+lea     eax, [ebx+_EPROCESS.Peb]
+push    eax                   ; 指向 PEB 结构的指针（传出参数）
+lea     eax, [ebp+pInitPeb]
+push    eax                   ; 初始 PEB
+push    ebx                   ; 新进程对象
+call    MmCreatePeb@12; 创建 PEB(将线程切换到目标进程后，创建 PEB 结构及初始化部分域,
+                             
+
+mov     esi, [ebp+pNewObj]
+push    esi                   ; 新进程对象（附加到那个进程）
+call    _KeAttachProcess@4    ; KeAttachProcess(x)
+
+lea     eax, [ebp+pPeb]
+push    eax                   ; 指向 PEB 对象的地址(传出参数)
+push    210h                  ; 创建 PEB/TEB 的大小
+push    esi                   ; 进程对象结构 EPROCESS 的指针
+call    _MiCreatePebOrTeb@12  ; 创建
+
+lea     eax, [ebp+Size]
+push    eax                   ; 数据目录大小
+push    0Ah                   ; 目录表项索引
+push    1                     ; 如果不为 0， 作为镜像映射
+mov     eax, [ebp+pPeb]
+push    dword ptr [eax+8]     ; ImageBase（镜像文件或者数据文件的基地址）
+call   _RtlImageDirectoryEntryToData@16 ; 将一个镜像文件中 IMAGE_DIRECTORY_LOAD_CONFIG 节， 在该文件的那个节区，返回该节区对象指针。
+```
+
+## 9. 将新进程对象 EPROCESS.ActiveProcessLinks 更新为全局的活动进程链表
+
+更新 `EPROCESS.ActiveProcessLinks` 为全局的活动进程链表（`PsActiveProcessHead`），判断父进程是否为系统进程，调用 `SeCreateAccessStateEx` 设置访问状态，调用 `ObInsertObject` 函数将进程对象加入到进程对象的句柄表中，（省了几个函数介绍）`KeQuerySystemTime()` 结束 `PspCreateProcess` 的调用。
+
+代码：
+
+```
+mov     ecx, _PsProcessType
+add     ecx, 68h
+push    ecx                   ; GenericMapping
+push    [ebp+AccessMask]      ; 访问掩码
+lea     ecx, [ebp+var_B8]
+push    ecx                   ; 访问辅助结构指针 PAUX_ACCESS_DATA
+lea     ecx, [ebp+var_12C]
+push    ecx                   ; 访问状态（传出参数）
+push    eax                   ; 进程对象
+push    esi                   ; 线程对象
+call    _SeCreateAccessStateEx@24
+
+lea     eax, [ebp+pHandle]
+push    eax                   ; 接受返回新对象的句柄
+push    esi                   ; 接受返回新对象的的指针
+push    1                     ; 对象指针计数
+push    [ebp+AccessMask]      ; 访问掩码
+lea     eax, [ebp+AccessState]
+push    eax                   ; 访问状态
+push    ebx                   ; 新进程对象
+call    _ObInsertObject@24    ; 插入一个对象到进程的句柄表,并返回该对象的句柄值
+```
+
+在调用其他几个函数后完成 `PspCreateProcess` 调用。
+
+### 分析 KeAttachProcess
+
+`KeAttachProcess` 的实现，`KeAttachProcess` 函数实际上是对 `KiAttachProcess` 函数的封装，只是在该函数总作了些参数的检查，首先判断当前线程挂接的进程是否为当前进程，如果是退出该函数。接着 判断当前线程的 APC 与 DPC 状态是否为活动的， 如果存在上述的情况的话，会系统崩溃然后蓝屏， 我认为这应该为了防止在切换进程时被其他更高级的优先级抢占。
+
+代码：
+
+```
+mov     eax, large fs:124h
+mov     edi, [ebp+pNewProcessObj]
+mov     esi, eax              ; KTHREAD
+cmp     [esi+_KTHREAD.ApcState.Process], edi ; 判断是否为当前进程
+jz      short Exit
+cmp     [esi+_KTHREAD.ApcStateIndex], 0
+jnz     loc_445F94            ; 判断 APC 是否为活动
+mov     eax, large fs:994h    ; _KPRCB->DpcRoutineActive
+test    eax, eax
+jnz     loc_445F94            ; 判断 DPC 状态是否为活动
+```
+
+接着调用 `KeRaiseIrqlToDpcLevel` 函数将当前线程的 IRQL 提升为 `DISPATCH_LEVEL`，然后将参数线程对象，进程对象，IRQL 和 `ApcSaveState` 作为参数调用 `KiAttachProcess` 函数：
+
+代码：
+
+```
+push    eax
+push    [ebp+pNewProcessObj]
+push    edi                   ; 进程对象
+push    esi                   ; 线程对象
+call    _KiAttachProcess@16   ; 将当前线程附加到目标进程的地址空间中
+```
+
+在 `KiAttachProcess` 函数中，首先调用 `KiMoveApcState` 保存当前线程的 `ApcState`（`ETHREAD->ApcSaveState = ETHREAD->ApcState`），以便在恢复切换进程时返回。
+
+代码：
+
+```
+lea     edi, [esi+_KTHREAD.ApcState.ApcListHead.Flink]
+push    edi       ；原始 APC
+call    _KiMoveApcState@8     ; 保存当前线程的 APC 状态到 ApcSaveState
+```
+
+将 `ApcState` 中的 `KernelApcInProgress`，`KernelApcPending`，`UserApcPending` 的值都置为 0， 接着判断当前线程 `ApcSaveState` 是否为保存的 `ApcSaveState` 相等，判断挂接的目标进程是否在内存中， 如果不在进程就调用 `KiSwapProcess` 函数切换进程。在 `KiSwapProcess` 中，首先判断 LDT 是否存在，如果不存在， 获得 `KPCR->TSS` 的指针， 然后将当前进程对象的 `CR3(KPROCESS->DirectoryTableBase)` 拷贝到当前处理器的 `KPCR > TSS->CR3` 中，以及将 `IopmOffset` 给到 `TSS` 结构中的相应域中。到此进程切换完成了。
+
+最后附上 `PspCreateProcess` 函数的执行流程图：
+
+![](img/3d81a1da665dfeff42b0b9b0330536c3.jpg)
+
+## 四. 3 环创建线程的分析
+
+在创建进程返回后，此时 `EPROCESS`，`PEB` 结构已经创建，进程地址空间也已经创建并初始化了。接下处理下创建进程后的残余工作，调用 `NtSetInformationProcess` 函数设置进程的优先级和默认处理模式。
+
+代码：
+
+```
+push  2                   ; 进程信息的的大小
+lea   eax, [ebp+pProcessInforBuffer]
+push  eax                 ; 进程信息
+push  12h                 ; 进程信息类型索引(12 = ProcessPriorityClass)
+push  [ebp+pHandleOfProcess] ; 进程句柄
+call  ds:__imp__NtSetInformationProcess@16 ; 设置进程信息
+
+mov   [ebp+pInforBuffer], edi
+push  4                   ; 进程信息的长度
+lea   eax, [ebp+pInforBuffer]
+push  eax                 ; 进程信息的 Buffer
+push  0Ch                 ; 设置那个进程信息的索引(0c = ProcessDefaultHardErrorMode)
+push  [ebp+pHandleOfProcess] ; 进程句柄
+call  ds:__imp__NtSetInformationProcess@16 ; 设置进程信息
+```
+
+接着调用了 `BasepSxsCreateProcessCsrMessage` 函数，该函数的具体作用不是很清楚，不过实现中调用了 `BasepSxsGetProcessImageBaseAddress` 函数来获得进程的 PEB， 然后通过 `NtReadVirtualMemory()` 取得 `ImageBase`。 然后调用 `BasePushProcessParameters` 函数， 其中实现中调用了 `RtlCreateProcessParameters` 来创建进程参数， 该函数对 `RTL_USER_PROCESS_PARAMETERS` 结构中的字符串域的地址改为相对的偏移量。
+
+接下来要做的就是创建线程， 不过在在此之前还要构建线程的环境，调用 `BaseCreateStack` 函数创建栈：
+
+代码：
+
+```
+lea   ecx, [ebp+InitialTeb]
+push  ecx                 ; 初始 TEB
+push  eax                 ; 栈的最大值
+push  [ebp+StackSize]         ; 栈大小
+push  [ebp+pHandleOfProcess]  ; 进程句柄
+call  _BaseCreateStack@16    ; 创建栈
+```
+
+接着调用 `BaseInitializeContext` 初始化线程上下文， 然后调用 `BaseFormatObjectAttributes` 函数格式化对象（以便传递给 `NtCreateThread`）
+
+代码：
+
+```
+push  ebx                 ; 基本上下文类型
+push  [ebp+InitSp]            ; 初始化栈指针值
+push  dword ptr [ebp-834h]     ; [ebp-834] = InitPc(初始化计数值)
+push  [ebp+Param]             ; teb
+lea   eax, [ebp+pThreadContext]
+push  eax                 ; eax 为指向 CONTEXT 的指针
+call  _BaseInitializeContext@20
+```
+
+在 `BaseInitializeContext` 函数的实现中会判断参数上下文类型是否为 1，如果不为 1， 指定用户空间的线程启动函数为 `BaseProcessStartThunk`（进程的第一个线程调用这个），否则为 `BaseThreadStartThunk`（普通线程），然后 CALL OEP。其中 `BaseProcessStartThunk` 函数会调用 `BaseProcessStart`，这个函数就是调用 OEP 所在函数的上层函数：
+
+代码：
+
+```
+BaseProcessStart@4:          ; CODE XREF: BaseProcessStartThunk(x,x)+5 j
+7C817054   push  0Ch
+7C817056   push  offset stru_7C817080
+7C81705B   call  __SEH_prolog               ;安装异常注册项
+7C817060   and   dword ptr [ebp-4], 0
+7C817064   push  4
+7C817066   lea   eax, [ebp+8]
+7C817069   push  eax
+7C81706A   push  9
+7C81706C   push  0FFFFFFFEh
+7C81706E   call  ds:__imp__NtSetInformationThread@16 ; 
+7C817074   call  dword ptr [ebp+8]     ; 调用启动函数（CALL OEP）
+7C817077   push  eax                   ; dwExitCode
+7C817078   call  _ExitThread@4         ; ExitThread(x)
+```
+
+用 OD 打开应用程序，停在 OEP 处， 然后看栈窗口， 将栈顶值（即 `ESP`）的值所在的地址反汇编跟随一下：
+
+![](img/f6f574706f7c7f7951ee2ef7b76d4e23.jpg)
+
+最后调用 `NtCreateThread` 创建线程：
+
+代码：
+
+```
+push  1                     ; 是否创建后挂起
+lea   eax, [ebp+InitialTeb]
+push  eax                 ; 初始化 TEB
+lea   eax, [ebp+pThreadContext]
+push  eax                 ; 线程上下文结构指针
+lea   eax, [ebp+pClientId]
+push  eax                 ; 客户端 ID 结构指针
+push  [ebp+pHandleOfProcess] ; 进程句柄
+push  [ebp+ObjAttibute]     ; 对象属性
+push  1F03FFh               ; 访问掩码
+lea   eax, [ebp+pThreadHandle]
+push  eax                 ; 线程句柄指针
+call  ds:__imp__NtCreateThread
+```
+
+到此 3 环上的 `CreateThread` 就完成了， 流程图结合在 0 环一起给出。
+
+## 五. 0 环创建线程的分析
+
+0 环中 `NtCreateThread` 函数直接调用 `pspCreateThread` 函数：
+
+
+
+在 `pspCreateThread` 函数中，首先检查参数 `StartRoutine`（系统线程）是否为 0，如果为 0，将 `PreviousMode` 值为 1，否则值为 0。接着调用 `ObCreateObject` 函数创建线程对象并初始化为 0。
+
 代码:
 
 ```
-mov     edi, \[ebx+\_EPROCESS.Token\] ; 取得 pNewProcessObject->Token
-and     edi, 0FFFFFFF8h       ; 取消 Token 中的低 3 位
-push    ebx                   ; 新进程对象
-call    \_MmGetSessionId@4     ; 返回指定进程的会话 ID
-push    eax                   ; 新进程对象的会话 ID
-push    edi                   ; 新进程令牌对象
-call    \_SeSetSessionIdToken@8 ; 设置指定 Token->SessionId
-mov     \[ebp+var\_70\], ebx
-mov     \[ebp+var\_6C\], esi
-lea     eax, \[ebp+var\_70\]
-push    eax                   ; eax = pNewProcessObject
-push    \_PspCidTable          ; 该表保存了所有进程和线程对象的指针
-call    \_ExCreateHandle@8     ; 在 PspCidTable 中添加一项
+lea     eax, [ebp+pThreadObj]
+push    eax                 ; 新对象指针
+push    esi                 ; 不可分页面大小
+push    esi                 ; 可分页面的大小
+push    258h                ; 对象体的大小
+push    esi                 ; int
+push    dword ptr [ebp+PreviousMode] ; int
+push    [ebp+ObjAttribute]    ; 对象属性
+push    _PsThreadType         ; 对象类型
+push    dword ptr [ebp+PreviousMode] ; 处理器模式
+call    _ObCreateObject@36    ; 创建线程对象
 
+mov     ecx, 96h
+xor     eax, eax
+mov     esi, [ebp+pThreadObj]
+mov     edi, esi
+rep stosd                   ; 初始化线程对象为 0
 ```
 
-9．  调用 MmCreatePeb 为新进程创建 PEB（后面是大概是实现过程），首先通过调用 KeAttachProcess 函数将当前线程切换到新进程对象，然后 NLS 节区映射到新进程的地址空间中（MmMapViewOfSection），  
-接着调用 MiCreatePebOrTeb 创建 PEB/TEB，（该函数通过 ExAllocatePoolWithTag 来申请\_MMVAD 结构大小的空间，通过 MiFindEmptyAddressRangeDownTree 函数在 VAD 树中查找一块未被使用的地址空间范围，并返回该范围的起始地址， 最后通过 MiInsertVad 函数将申请的地址空间插入到 VAD 树中。）， 在创建 PEB 结构后，初始化 PEB 中部分域的值（镜像基地址，操作系统编译号等域），最后调用 KeDetachProcess 函数使线程回到原来的线程中。到此创建 PEB 完成。  
+接着将新进程中 `EPROCESS-> UniqueProcessId` 拷贝给线程对象 `ETHREAD-> UniqueProcess`，然后调用 `ExCreateHandle` 函数往 `CID` 表中添加线程对象。
+
 代码:
 
 ```
-lea     eax, \[ebx+\_EPROCESS.Peb\]
-push    eax                   ; 指向 PEB 结构的指针（传出参数）
-lea     eax, \[ebp+pInitPeb\]
-push    eax                   ; 初始 PEB
-push    ebx                   ; 新进程对象
-call    MmCreatePeb@12; 创建 PEB(将线程切换到目标进程后，创建 PEB 结构及初始化部分域,
-                                   
-mov     esi, \[ebp+pNewObj\]
-push    esi                   ; 新进程对象（附加到那个进程）
-call    \_KeAttachProcess@4    ; KeAttachProcess(x)
-
-lea     eax, \[ebp+pPeb\]
-push    eax                   ; 指向 PEB 对象的地址(传出参数)
-push    210h                  ; 创建 PEB/TEB 的大小
-push    esi                   ; 进程对象结构 EPROCESS 的指针
-call    \_MiCreatePebOrTeb@12  ; 创建
-
-lea     eax, \[ebp+Size\]
-push    eax                   ; 数据目录大小
-push    0Ah                   ; 目录表项索引
-push    1                     ; 如果不为 0， 作为镜像映射
-mov     eax, \[ebp+pPeb\]
-push    dword ptr \[eax+8\]     ; ImageBase（镜像文件或者数据文件的基地址）
-call  \_RtlImageDirectoryEntryToData@16 ; 将一个镜像文件中 IMAGE\_DIRECTORY\_LOAD\_CONFIG 节， 在该文件的那个节区，返回该节区对象指针。
-
+lea     eax, [ebp+pEthread]
+50          push    eax                 ; 线程对象
+push    _PspCidTable        ; CID 表指针
+call    _ExCreateHandle@8     ; 在指定的句柄表中添加一个表项
 ```
 
-9．  将新进程对象 EPROCESS.ActiveProcessLinks 更新为全局的活动进程链表（PsActiveProcessHead）， 判断父进程是否为系统进程，调用 SeCreateAccessStateEx 设置访问状态，调用 ObInsertObject 函数将进程对象加入到进程对象的句柄表中，（省了几个函数介绍）KeQuerySystemTime（）结束 PspCreateProcess 的调用。  
+接着初始化信号量对象和自旋锁对象，之后判断参数进程对象指针 `ProcessPointer` 是否为 0，如果不为 0，调用函数 `MmCreateTeb` 创建 `TEB`。
+
 代码:
 
 ```
-mov     ecx, \_PsProcessType
-add     ecx, 68h
-push    ecx                   ; GenericMapping
-push    \[ebp+AccessMask\]      ; 访问掩码
-lea     ecx, \[ebp+var\_B8\]
-push    ecx                   ; 访问辅助结构指针 PAUX\_ACCESS\_DATA
-lea     ecx, \[ebp+var\_12C\]
-push    ecx                   ; 访问状态（传出参数）
-push    eax                   ; 进程对象
-push    esi                   ; 线程对象
-call    \_SeCreateAccessStateEx@24
-
-lea     eax, \[ebp+pHandle\]
-push    eax                   ; 接受返回新对象的句柄
-push    esi                   ; 接受返回新对象的的指针
-push    1                     ; 对象指针计数
-push    \[ebp+AccessMask\]      ; 访问掩码
-lea     eax, \[ebp+AccessState\]
-push    eax                   ; 访问状态
-push    ebx                   ; 新进程对象
-call    \_ObInsertObject@24    ; 插入一个对象到进程的句柄表,并返回该对象的句柄值
-
+lea     eax, [ebp+pTeb]
+push    eax                 ; 指向 TEB 指针（传出参数）
+push    edi                 ; 客户端 ID 结构的指针
+push    [ebp+InitTeb]         ; 初始 TEB
+push    ebx                 ; 目标进程对象
+call    _MmCreateTeb@16       ; 创建 TEB
 ```
 
-在调用其他几个函数后完成 PspCreateProcess 调用。  
-  
-最后分析下 KeAttachProcess：  
-  
- KeAttachProcess 的实现，KeAttachProcess 函数实际上是对 KiAttachProcess 函数的封装，只是在该函数总作了些参数的检查，首先判断当前线程挂接的进程是否为当前进程，如果是退出该函数。接着 判断当前线程的 APC 与 DPC 状态是否为活动的， 如果存在上述的情况的话，会系统崩溃然后蓝屏， 我认为这应该为了防止在切换进程时被其他更高级的优先级抢占。  
+如果 `ProcessPointer` 为 0，`KeInitThread` 初始化线程时线程函数为 `PspUserThreadStartup`（用户线程启动函数），否则为用户线程启动函数：
+
 代码:
 
 ```
-mov     eax, large fs:124h
-mov     edi, \[ebp+pNewProcessObj\]
-mov     esi, eax              ; KTHREAD
-cmp     \[esi+\_KTHREAD.ApcState.Process\], edi ; 判断是否为当前进程
-jz      short Exit
-cmp     \[esi+\_KTHREAD.ApcStateIndex\], 0
-jnz     loc\_445F94            ; 判断 APC 是否为活动
-mov     eax, large fs:994h    ; \_KPRCB->DpcRoutineActive
-test    eax, eax
-jnz     loc\_445F94            ; 判断 DPC 状态是否为活动
-
+push    ebx                 ; 进程对象(EPROCESS)
+push    ecx                 ; teb
+push    ecx                 ; 线程上下文指针
+push    [ebp+pStartContext]   ; 启动线程上下文
+push    eax                 ; 启动线程函数指针
+push    offset _PspSystemThreadStartup@8 ; 系统线程函数指针    ， 当创建用户线程时，参数为 PspUserThreadStartup
+push    ecx                 ; 内核栈指针
+push    esi                 ; 线程对象(ETHREAD)
+call    _KeInitThread@32      ; 初始化线程对象(初始化 APC, 信号量对象,创建内核线程栈
+                             ; 初始化线程上下文)
 ```
 
-接着调用 KeRaiseIrqlToDpcLevel 函数将当前线程的 IRQL 提升为 DISPATCH\_LEVEL，然后将参数线程对象，进程对象，IRQL 和 ApcSaveState 作为参数调用 KiAttachProcess 函数：  
+该函数的实现中主要做了如下操作：创建内核线程栈然后调用 `KiInitializeContextThread` 初始化线程上下文
+
 代码:
 
 ```
-push    eax
-push    \[ebp+pNewProcessObj\]
-push    edi                   ; 进程对象
-push    esi                   ; 线程对象
-call    \_KiAttachProcess@16   ; 将当前线程附加到目标进程的地址空间中
-
+push    [ebp+pContext]        ; pContext 上下文记录
+push    [ebp+pContextStart]   ; 启动线程函数上下文
+push    [ebp+pThreadStart]    ; 启动线程函数地址
+push    [ebp+pKernelFunStart] ; 系统线程函数
+push    esi                 ; 内核线程对象（KTHREAD）
+call    _KiInitializeContextThread@20
 ```
 
-在 KiAttachProcess 函数中，首先调用 KiMoveApcState 保存当前线程的 ApcState（ETHREAD->ApcSaveState = ETHREAD->ApcState）, 以便在恢复切换进程时返回。  
-代码:
+在 `KiInitializeContextThread` 函数的实现中，在堆栈上构建了 `KTRAP_FRAME`（陷井框架，用来系统调用时保存用户空间堆栈的信息，或者在为了返回到用户空间时构建的上线文环境），并指定了线程的启动函数 `KiThreadStartup`。
 
-```
-lea     edi, \[esi+\_KTHREAD.ApcState.ApcListHead.Flink\]
-push    edi          ；原始 APC
-call    \_KiMoveApcState@8     ; 保存当前线程的 APC 状态到 ApcSaveState
+然后调用 `KeStartThread` 函数，该函数除初始化线程对象的部分域外，还将进程对象中的线程列表中的线程函数放到线程对象中的线程队列中。接着调用了 `SeCreateAccessStateEx` 函数来创建线程的访问状态，`ObInsertObject` 函数来将线程对象添加到进程中的对象表中。
 
-```
+然后调用 `ObGetObjectSecurity`，`PsReferencePrimaryToken` 设置进程对象的安全属性和令牌对象，以及调用 `SeAccessCheck` 函数设置线程的访问权限，最后调用 `KeReadyThread` 函数将线程加入到进程对象中的线程就绪队列中(`kprocess->ReadyListHead`)
 
-将 ApcState 中的 KernelApcInProgress，KernelApcPending，UserApcPending 的值都置为 0， 接着判断当前线程 ApcSaveState 是否为保存的 ApcSaveState 相等，判断挂接的目标进程是否在内存中， 如果不在进程就调用 KiSwapProcess 函数切换进程。在 KiSwapProcess 中，首先判断 LDT 是否存在，如果不存在， 获得 KPCR->TSS 的指针， 然后将当前进程对象的 CR3(KPROCESS->DirectoryTableBase)拷贝到当前处理器的 KPCR >TSS->CR3 中, 以及将 IopmOffset 给到 TSS 结构中的相应域中。到此进程切换完成了。  
-  
-最后附上 PspCreateProcess 函数的执行流程图：  
-![](img/3d81a1da665dfeff42b0b9b0330536c3.jpg)  
-  
-四.    3 环创建线程的分析：  
-  
-      在创建进程返回后，此时 EPROCESS,PEB 结构已经创建，进程地址空间也已经创建并初始化了。接下处理下创建进程后的残余工作，调用 NtSetInformationProcess 函数设置进程的优先级和默认处理模式.  
-代码:
+在以上调用完后，会调用内核中线程的启动函数 `KiThreadStartup`，该函数的实现中调用了 `PspUserThreadStartup`，该函数初始化用户 APC，将 `LdrInitializeThunk` 函数作为 APC 函数挂入 APC 队列中，最后调用 `KiDeliverApc` 发生 APC，通过中断返回 3 环。
 
-```
-push  2                     ; 进程信息的的大小
-lea   eax, \[ebp+pProcessInforBuffer\]
-push  eax                   ; 进程信息
-push  12h                   ; 进程信息类型索引(12 = ProcessPriorityClass)
-push  \[ebp+pHandleOfProcess\] ; 进程句柄
-call  ds:\_\_imp\_\_NtSetInformationProcess@16 ; 设置进程信息
+切换到 3 环 `KiUserApcDispatcher`，实现中调用 `LdrInitializeThunk` 来加载需要的 DLL，
 
-mov   \[ebp+pInforBuffer\], edi
-push  4                     ; 进程信息的长度
-lea   eax, \[ebp+pInforBuffer\]
-push  eax                   ; 进程信息的 Buffer
-push  0Ch                   ; 设置那个进程信息的索引(0c = ProcessDefaultHardErrorMode)
-push  \[ebp+pHandleOfProcess\] ; 进程句柄
-call  ds:\_\_imp\_\_NtSetInformationProcess@16 ; 设置进程信息
-
-```
-
-接着调用了 BasepSxsCreateProcessCsrMessage 函数，该函数的具体作用不是很清楚，不过实现中调用了 BasepSxsGetProcessImageBaseAddress 函数来获得进程的 PEB, 然后通过 NtReadVirtualMemory()取得 ImageBase. 然后调用 BasePushProcessParameters 函数， 其中实现中调用了 RtlCreateProcessParameters 来创建进程参数， 该函数对 RTL\_USER\_PROCESS\_PARAMETERS 结构中的字符串域的地址改为相对的偏移量。  
-  
-接下来要做的就是创建线程， 不过在在此之前还要构建线程的环境，调用 BaseCreateStack 函数创建栈：  
-代码:
-
-```
-lea   ecx, \[ebp+InitialTeb\]
-push  ecx                   ; 初始 TEB
-push  eax                   ; 栈的最大值
-push  \[ebp+StackSize\]         ; 栈大小
-push  \[ebp+pHandleOfProcess\]  ; 进程句柄
-call  \_BaseCreateStack@16    ; 创建栈
-
-```
-
-接着调用 BaseInitializeContext 初始化线程上下文， 然后调用 BaseFormatObjectAttributes 函数格式化对象（以便传递给 NtCreateThread）  
-代码:
-
-```
-push  ebx                   ; 基本上下文类型
-push  \[ebp+InitSp\]            ; 初始化栈指针值
-push  dword ptr \[ebp-834h\]     ; \[ebp-834\] = InitPc(初始化计数值)
-push  \[ebp+Param\]           ; teb
-lea   eax, \[ebp+pThreadContext\]
-push  eax                   ; eax 为指向 CONTEXT 的指针
-call  \_BaseInitializeContext@20
-
-```
-
-在 BaseInitializeContext 函数的实现中会判断参数上下文类型是否为 1，如果不为 1， 指定用户空间的线程启动函数为 BaseProcessStartThunk（进程的第一个线程调用这个），否则为 BaseThreadStartThunk（普通线程）,然后 CALL OEP。其中 BaseProcessStartThunk 函数会调用 BaseProcessStart，这个函数就是调用 OEP 所在函数的上层函数：  
-代码:
-
-```
-BaseProcessStart@4:          ; CODE XREF: BaseProcessStartThunk(x,x)+5 j
-7C817054   push  0Ch
-7C817056   push  offset stru\_7C817080
-7C81705B   call  \_\_SEH\_prolog                ;安装异常注册项
-7C817060   and   dword ptr \[ebp-4\], 0
-7C817064   push  4
-7C817066   lea   eax, \[ebp+8\]
-7C817069   push  eax
-7C81706A   push  9
-7C81706C   push  0FFFFFFFEh
-7C81706E   call  ds:\_\_imp\_\_NtSetInformationThread@16 ; 
-7C817074   call  dword ptr \[ebp+8\]     ; 调用启动函数（CALL OEP）
-7C817077   push  eax                   ; dwExitCode
-7C817078   call  \_ExitThread@4         ; ExitThread(x)
-
-```
-
-用 OD 打开应用程序，停在 OEP 处， 然后看栈窗口， 将栈顶值（即 ESP）的值所在的地址反汇编跟随一下：  
-![](img/f6f574706f7c7f7951ee2ef7b76d4e23.jpg)  
-  
-最后调用 NtCreateThread 创建线程：  
-代码:
-
-```
-push  1                     ; 是否创建后挂起
-lea   eax, \[ebp+InitialTeb\]
-push  eax                   ; 初始化 TEB
-lea   eax, \[ebp+pThreadContext\]
-push  eax                   ; 线程上下文结构指针
-lea   eax, \[ebp+pClientId\]
-push  eax                   ; 客户端 ID 结构指针
-push  \[ebp+pHandleOfProcess\] ; 进程句柄
-push  \[ebp+ObjAttibute\]     ; 对象属性
-push  1F03FFh               ; 访问掩码
-lea   eax, \[ebp+pThreadHandle\]
-push  eax                   ; 线程句柄指针
-call  ds:\_\_imp\_\_NtCreateThread
-
-```
-
-到此 3 环上的 CreateThread 就完成了， 流程图结合在 0 环一起给出。  
-  
-五. 0 环创建线程的分析：  
-  
-     0 环中 NtCreateThread 函数直接调用 pspCreateThread 函数：  
-在 pspCreateThread 函数中，首先检查参数 StartRoutine（系统线程）是否为 0， 如果为 0， 将 PreviousMode 值为 1， 否则值为 0。接着调用 ObCreateObject 函数创建线程对象并初始化为 0.  
-代码:
-
-```
-lea     eax, \[ebp+pThreadObj\]
-push    eax                   ; 新对象指针
-push    esi                   ; 不可分页面大小
-push    esi                   ; 可分页面的大小
-push    258h                  ; 对象体的大小
-push    esi                   ; int
-push    dword ptr \[ebp+PreviousMode\] ; int
-push    \[ebp+ObjAttribute\]    ; 对象属性
-push    \_PsThreadType         ; 对象类型
-push    dword ptr \[ebp+PreviousMode\] ; 处理器模式
-call    \_ObCreateObject@36    ; 创建线程对象
-
-mov     ecx, 96h
-xor     eax, eax
-mov     esi, \[ebp+pThreadObj\]
-mov     edi, esi
-rep stosd                     ; 初始化线程对象为 0
-
-```
-
-接着将新进程中 EPROCESS-> UniqueProcessId 拷贝给线程对象 ETHREAD-> UniqueProcess, 然后调用 ExCreateHandle 函数往 CID 表中添加线程对象。  
-代码:
-
-```
-lea     eax, \[ebp+pEthread\]
-50                push    eax                   ; 线程对象
-push    \_PspCidTable          ; CID 表指针
-call    \_ExCreateHandle@8     ; 在指定的句柄表中添加一个表项
-
-```
-
-接着初始化信号量对象和自旋锁对象，之后判断参数进程对象指针 ProcessPointer,是否为 0，如果不为 0，调用函数 MmCreateTeb 创建 TEB.  
-代码:
-
-```
-lea     eax, \[ebp+pTeb\]
-push    eax                   ; 指向 TEB 指针（传出参数）
-push    edi                   ; 客户端 ID 结构的指针
-push    \[ebp+InitTeb\]         ; 初始 TEB
-push    ebx                   ; 目标进程对象
-call    \_MmCreateTeb@16       ; 创建 TEB
-
-```
-
-如果 ProcessPointer 为 0，KeInitThread 初始化线程时线程函数为 PspUserThreadStartup（用户线程启动函数）， 否则为用户线程启动函数：  
-代码:
-
-```
-push    ebx                   ; 进程对象(EPROCESS)
-push    ecx                   ; teb
-push    ecx                   ; 线程上下文指针
-push    \[ebp+pStartContext\]   ; 启动线程上下文
-push    eax                   ; 启动线程函数指针
-push    offset \_PspSystemThreadStartup@8 ; 系统线程函数指针   ， 当创建用户线程时，参数为 PspUserThreadStartup
-push    ecx                   ; 内核栈指针
-push    esi                   ; 线程对象(ETHREAD)
-call    \_KeInitThread@32      ; 初始化线程对象(初始化 APC, 信号量对象,创建内核线程栈
-                                             ;初始化线程上下文)
-
-```
-
-该函数的实现中主要做了如下操作：创建内核线程栈然后调用 KiInitializeContextThread 初始化线程上下文  
-代码:
-
-```
-push    \[ebp+pContext\]        ; pContext 上下文记录
-push    \[ebp+pContextStart\]   ; 启动线程函数上下文
-push    \[ebp+pThreadStart\]    ; 启动线程函数地址
-push    \[ebp+pKernelFunStart\] ; 系统线程函数
-push    esi                   ; 内核线程对象（KTHREAD）
-call    \_KiInitializeContextThread@20
-
-```
-
-在 KiInitializeContextThread 函数的实现中，在堆栈上构建了 KTRAP\_FRAME（陷井框架， 用来系统调用时保存用户空间堆栈的信息，或者在为了返回到用户空间时构建的上线文环境）， 并指定了线程的启动函数 KiThreadStartup。  
-  
-然后调用 KeStartThread 函数，该函数除初始化线程对象的部分域外，还将进程对象中的线程列表中的线程函数放到线程对象中的线程队列中。接着调用了 SeCreateAccessStateEx 函数来创建线程的访问状态，ObInsertObject 函数来将线程对象添加到进程中的对象表中.  
-  
-然后调用 ObGetObjectSecurity，PsReferencePrimaryToken 设置进程对象的安全属性和令牌对象，以及调用 SeAccessCheck 函数设置线程的访问权限， 最后调用 KeReadyThread 函数将线程加入到进程对象中的线程就绪队列中(kprocess->ReadyListHead)  
-  
-在以上调用完后，会调用内核中线程的启动函数 KiThreadStartup, 该函数的实现中调用了 PspUserThreadStartup，该函数初始化用户 APC，将 LdrInitializeThunk 函数作为 APC 函数挂入 APC 队列中，最后调用 KiDeliverApc 发生 APC， 通过中断返回 3 环。  
-  
-切换到 3 环 KiUserApcDispatcher，实现中调用 LdrInitializeThunk 来加载需要的 DLL，  
 代码:
 
 ```
 KiUserApcDispatcher
-lea     edi, \[esp+arg\_C\]
-pop     eax
-call    eax            //LdrInitializeThunk
-push    1
-push    edi
-call    \_ZwContinue@8         ;加载完 DLL 后，调用该函数继续返回到内核
-
+lea     edi, [esp+arg_C]
+pop     eax
+call    eax        //LdrInitializeThunk
+push    1
+push    edi
+call    _ZwContinue@8         ; 加载完 DLL 后，调用该函数继续返回到内核
 ```
 
-切换到内核后作部分操作后，再次回到 3 环，调用用户空间的线程入口函数 BaseProcessStartThunk， 该函数在 3 环中 BaseInitializeContext 中有指定。  
-  
-线程创建完成后调用 CsrClientCallServer 通知 CRSS 线程创建成功，其中调用 NtRequestWaitReplyPort()来等待回应，最后调用 NtResumeThread()函数恢复线程的执行。  
-  
-在用户空间线程启动时调用 BaseProcessStartThunk， 该函数调用了 BaseProcessStart 函数, 这部分代码在上面已经贴出来了。  
-  
-附上线程创建的流程图：  
-![](img/ad1e1617b1cdb3235497315db39ebd52.jpg)  
-  
-  
-到此， 程序分析完毕，谢谢大家看完![](img/cda69129882b40377a87144c782680e1.jpg "微笑")。  
-  
-总结：通过分析 CreateProcess 的调用流程，使自己对内核有了初步的认识（以前没接触过），但对于许多核心函数的没有详细分析， 有待学习， 也希望能和大家多交流。  
-  
-  
-同时在这里感谢钱林松老师、方志强老师、赵海旭老师和岳磊老师以及各位同学的帮助，多谢他们在我分析过程给予的帮助和指导。  
-  
-                  --武汉科锐五期学员:  pyq 逍遥  
-  
-由于 IDB 文件太大了， 上传不方便， 需要的可以跟我联系。
+切换到内核后作部分操作后，再次回到 3 环，调用用户空间的线程入口函数 `BaseProcessStartThunk`，该函数在 3 环中 `BaseInitializeContext` 中有指定。
+
+线程创建完成后调用 `CsrClientCallServer` 通知 CRSS 线程创建成功，其中调用 `NtRequestWaitReplyPort()` 来等待回应，最后调用 `NtResumeThread()` 函数恢复线程的执行。
+
+在用户空间线程启动时调用 `BaseProcessStartThunk`，该函数调用了 `BaseProcessStart` 函数，这部分代码在上面已经贴出来了。
+
+附上线程创建的流程图：
+
+![](img/ad1e1617b1cdb3235497315db39ebd52.jpg)
+
+到此，程序分析完毕，谢谢大家看完 ![](img/cda69129882b40377a87144c782680e1.jpg "微笑")。
+
+总结：通过分析 `CreateProcess` 的调用流程，使自己对内核有了初步的认识（以前没接触过），但对于许多核心函数的没有详细分析，有待学习，也希望能和大家多交流。
+
+同时在这里感谢钱林松老师、方志强老师、赵海旭老师和岳磊老师以及各位同学的帮助，多谢他们在我分析过程给予的帮助和指导。
+
+--武汉科锐五期学员: pyq 逍遥
+
+由于 IDB 文件太大了，上传不方便，需要的可以跟我联系。

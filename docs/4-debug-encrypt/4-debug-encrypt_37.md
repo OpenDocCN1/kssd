@@ -1,409 +1,548 @@
 
-
 # CRC32 算法的妙用
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6971.htm`](https://www.pediy.com/kssd/pediy06/pediy6971.htm)
 
-loveasm 的 crackme 算法分析-----CRC32 算法的妙用   
-【作者】：onlyu\[FCG\]\[DFCG\]   
-【软件介绍】：loveasm\[YCG\]\[DFCG\]兄弟的 crackme，主要锻炼算法分析，要求破解成功后出现显示"恭喜您!您已经成功的注册了本软件!"的对话框。   
-【软件下载】：点击此处本地下载   
-【软件限制】：注册码   
-【作者声明】：初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！   
-【破解工具】：Ollydbg1.09   
-【破解过程】:   
-  
-运行程序，输入   
-用户名：onlyu\[FCG\]\[DFCG\]   
-注册码：78787878787878787878787878787878   
-  
-在 OD 命令行插件里下断点：bpx getdlgitemtexta   
-点注册，停在如下：   
-004014A9   .  68 A4374000   PUSH CRACKME.004037A4                       
-004014AE   .  68 91010000   PUSH 191                               
-004014B3   .  FF75 08       PUSH DWORD PTR SS:\[EBP+8\]                
-004014B6   .  E8 27020000   CALL <JMP.&user32.GetDlgItemTextA><-----获得输入的注册名      
-004014BB   .  8BC8          MOV ECX,EAX   
-004014BD   .  83F8 00       CMP EAX,0<-------------------------输入的注册名是否为空   
-004014C0   .  77 0E         JA SHORT CRACKME.004014D0<---------不空往下跳   
-004014C2   .  B8 00000000   MOV EAX,0   
-004014C7   .  59            POP ECX   
-004014C8   .  5A            POP EDX   
-跳转到这里：   
-004014D0   >  33C0          XOR EAX,EAX   
-004014D2   .  8D35 A4374000 LEA ESI,DWORD PTR DS:\[4037A4\]<----使 ESI 指向注册名"onlyu\[FCG\]\[DFCG\]"   
-004014D8   >  33DB          XOR EBX,EBX\--------------------   
-004014DA   .  8A1E          MOV BL,BYTE PTR DS:\[ESI\]       |   
-004014DC   .  03C3          ADD EAX,EBX                    |小循环   
-004014DE   .  46            INC ESI                        |   
-004014DF   .^ E2 F7         LOOPD SHORT CRACKME.004014D8---   
-上面这段小循环的功能是把输入的用户名的字符的 ASCII 码累加起来保存到 EAX 中，我的为 58B   
-004014E1   .  8845 FF       MOV BYTE PTR SS:\[EBP\-1\],AL<----把上面得到的值取后两位存到 ss:\[ebp\-1\]处   
-004014E4   .  68 FF000000   PUSH 0FF                                    
-004014E9   .  68 24364000   PUSH CRACKME.00403624     
-004014EE   .  68 92010000   PUSH 192                
-004014F3   .  FF75 08       PUSH DWORD PTR SS:\[EBP+8\]              
-004014F6   .  E8 E7010000   CALL <JMP.&user32.GetDlgItemTextA><-----获得输入的注册码   
-004014FB   .  BE 24364000   MOV ESI,CRACKME.00403624<--------ESI\->输入的注册码"78787878..."   
-00401500   .  8D3D 70394000 LEA EDI,DWORD PTR DS:\[403970\]   
-00401506   .  B9 10000000   MOV ECX,10<---------------------置循环次数   
-0040150B   >  33DB          XOR EBX,EBX<--------------------把 EBX 清 0   
-0040150D   .  33C0          XOR EAX,EAX<--------------------把 EAX 清 0   
-0040150F   .  AC            LODS BYTE PTR DS:\[ESI\]<---------取注册码的字符到 EAX 中   
-00401510   .  83F8 39       CMP EAX,39<---------------------输入字符 ASCII 码是否大于 39   
-00401513   .  7E 03         JLE SHORT CRACKME.00401518<-----小于或等于就跳   
-00401515   .  83E8 07       SUB EAX,7<----------------------EAX\=EAX\-7   
-00401518   >  83E8 30       SUB EAX,30<---------------------EAX\=EAX\-30   
-0040151B   .  0BD8          OR EBX,EAX<---------------------EBX\=EBX or EAX   
-0040151D   .  C1E3 04       SHL EBX,4<----------------------EBX\=EBX shl 4   
-00401520   .  33C0          XOR EAX,EAX<--------------------EAX 清 0   
-00401522   .  AC            LODS BYTE PTR DS:\[ESI\]<---------取注册码的下一个字符到 EAX 中   
-00401523   .  83F8 39       CMP EAX,39<---------------------输入字符 ASCII 码是否大于 39   
-00401526   .  7E 03         JLE SHORT CRACKME.0040152B<-----小于或等于就跳   
-00401528   .  83E8 07       SUB EAX,7<----------------------EAX\=EAX\-7   
-0040152B   >  83E8 30       SUB EAX,30<---------------------EAX\=EAX\-30   
-0040152E   .  0BD8          OR EBX,EAX<---------------------EBX\=EBX or EAX   
-00401530   .  881F          MOV BYTE PTR DS:\[EDI\],BL<-------把 BL 中数值存到 DS:\[EDI\]处   
-00401532   .  47            INC EDI<------------------------EDI\=EDI+1   
-00401533   .^ E2 D6         LOOPD SHORT CRACKME.0040150B<---循环到 40150B 处   
-上面这一段循环 16 次，输入的注册码按两个字符一组处理，字符若为小于或等于 39，就把它的 ASCII 值减去 30H，若大于 39 就减去 37H，不妨设两个字符为 a,b,则 c=(((a-常数) shl 4) or (b-常数))and FFH，如我输入的注册码运算后在内存中如下：   
-  
-00403970  78 78 78 78 78 78 78 78   xxxxxxxx   
-00403978  78 78 78 78 78 78 78 78   xxxxxxxx   
-这里就可以猜测它的注册码可能为 32 位的。   
-  
-00401535   .  B9 10000000   MOV ECX,10<------------------------置循环次数 10H   
-0040153A   .  8D3D 80394000 LEA EDI,DWORD PTR DS:\[403980\]   
-00401540   .  8D35 70394000 LEA ESI,DWORD PTR DS:\[403970\]<-----ESI 指向上面运行完的结果   
-00401546   >  8A06          MOV AL,BYTE PTR DS:\[ESI\]<----------把 ESI 指向的数赋给 AL   
-00401548   .  3245 FF       XOR AL,BYTE PTR SS:\[EBP\-1\]<--------AL\=AL xor SS:\[EBP\-1\]   
-0040154B   .  8807          MOV BYTE PTR DS:\[EDI\],AL<----------把 AL 的值保存到 DS:\[EDI\]中   
-0040154D   .  46            INC ESI<---------------------------ESI++   
-0040154E   .  47            INC EDI<---------------------------EDI++   
-0040154F   .^ E2 F5         LOOPD SHORT CRACKME.00401546<------循环到 401546 处   
-SS:\[EBP\-1\]中保存的是对用户名运算后得到的结果，上面的循环的功能就是把 SS:\[EBP\-1\]和上面对注册码处理得到的结果按字节异或保存到 DS:\[EDI\]中，结果在内存中如下：   
-  
-00403980  F3 F3 F3 F3 F3 F3 F3 F3  篌篌篌篌   
-00403988  F3 F3 F3 F3 F3 F3 F3 F3  篌篌篌篌   
-00403990  76 71 32 7A 79 62 6D 6D  vq2zybmm   
-00403998  74 63 54 58 6F 72 4C 68  tcTXorLh   
-004039A0  77 63 75 78 76 73 6A 74  wcuxvsjt   
-004039A8  76 50 36 6A 6F 53 30 67  vP6joS0g   
-004039B0  54 47 39 32 5A 57 46 7A  TG92ZWFz   
-004039B8  62 56 74 5A 51 30 64 64  bVtZQ0dd   
-004039C0  57 30 52 47 51 30 64 64  W0RGQ0dd   
-  
-     
-00401551   .  B9 48000000   MOV ECX,48<-----------------------置循环次数 48H   
-00401556   .  8D35 A7384000 LEA ESI,DWORD PTR DS:\[4038A7\]   
-ESI\->"I Love Asm!I Love Crack!I Love Kathy!My Email:loveasm@sohu.com QQ:127095"   
-0040155C   .  8D3D 80394000 LEA EDI,DWORD PTR DS:\[403980\]<----EDI 指向上面运算后得到的结果   
-00401562   >  8A07          MOV AL,BYTE PTR DS:\[EDI\]<---------AL\=DS:\[EDI\]   
-00401564   .  3206          XOR AL,BYTE PTR DS:\[ESI\]<---------AL\=AL xor DS:\[ESI\]   
-00401566   .  8807          MOV BYTE PTR DS:\[EDI\],AL<---------DS:\[EDI\]=AL   
-00401568   .  46            INC ESI<--------------------------ESI++   
-00401569   .  47            INC EDI<--------------------------EDI++   
-0040156A   .^ E2 F6         LOOPD SHORT CRACKME.00401562<-----循环到 401562 处   
-这一段循环的功能是把上面运算得到的结果与常串"vq2zybmmtcTXorLhwcuxvsjtvP6joS0gTG92ZWFzbVtZQ0ddW0RGQ0dd"连起来和字符串"I Love Asm!I Love Crack!I Love Kathy!My Email:loveasm@sohu.com QQ:127095"进行异或运算，结果还保存在 DS:\[403980\]处。   
-  
-    
-0040156C   .  68 F0384000   PUSH CRACKME.004038F0    
-00401571   .  68 80394000   PUSH CRACKME.00403980        
-00401576   .  E8 2CFBFFFF   CALL CRACKME.004010A7<-------F7 进去看看   
-  
-F7 进入 CALL CRACKME.004010A7，如下：   
-004010A7  /$  55            PUSH EBP   
-004010A8  |.  8BEC          MOV EBP,ESP   
-004010AA  |.  83C4 FC       ADD ESP,-4   
-004010AD  |.  53            PUSH EBX   
-004010AE  |.  57            PUSH EDI   
-004010AF  |.  56            PUSH ESI   
-004010B0  |.  FF75 08       PUSH DWORD PTR SS:\[EBP+8\]                  
-004010B3  |.  E8 90060000   CALL <JMP.&kernel32.lstrlenA>              
-004010B8  |.  8945 FC       MOV DWORD PTR SS:\[EBP\-4\],EAX<--------EAX\=48H   
-004010BB  |.  8B75 08       MOV ESI,DWORD PTR SS:\[EBP+8\]<--------ESI 指向上面得到的结果   
-004010BE  |.  8B7D 0C       MOV EDI,DWORD PTR SS:\[EBP+C\]   
-004010C1  |.  8B4D FC       MOV ECX,DWORD PTR SS:\[EBP\-4\]<--------ECX\=48H   
-004010C4  |.  C1E9 02       SHR ECX,2<---------------------------ECX\=ECX shr 2=12H   
-004010C7  |.  FC            CLD   
-004010C8  |>  51            /PUSH ECX   
-004010C9  |.  B9 04000000   |MOV ECX,4<--------------------------置大循环次数 4   
-004010CE  |.  33DB          |XOR EBX,EBX<------------------------EBX 清 0   
-004010D0  |.  AD            |LODS DWORD PTR DS:\[ESI\]<------------装入 32 位整数到 EAX   
-004010D1  |>  50            |/PUSH EAX<--------------------------EAX 压栈   
-004010D2  |.  25 FF000000   ||AND EAX,0FF<-----------------------取 AL   
-004010D7  |.  8A80 41344000 ||MOV AL,BYTE PTR DS:\[EAX+403441\]<---把 DS:\[EAX+403441\]处数据赋给 AL   
-004010DD  |.  3C FF         ||CMP AL,0FF<------------------------比较 AL 是否和 FF 相等   
-004010DF  |.  74 22         ||JE SHORT CRACKME.00401103<---------相等就跳   
-004010E1  |.  C1E3 06       ||SHL EBX,6<-------------------------EBX\=EBX shl 6，EBX 初值为 0   
-004010E4  |.  0AD8          ||OR BL,AL<--------------------------BL\=BL or AL   
-004010E6  |.  58            ||POP EAX<---------------------------重新装入 32 位整数   
-004010E7  |.  C1E8 08       ||SHR EAX,8<-------------------------EAX\=EAX shr 8   
-004010EA  |.  49            ||DEC ECX<---------------------------ECX\=ECX\-1   
-004010EB  |.^ 75 E4         |JNZ SHORT CRACKME.004010D1<--------不等就跳到 4010D1 处   
-004010ED  |.  8BC3          |MOV EAX,EBX<------------------------EAX\=EBX   
-004010EF  |.  C1E0 08       |SHL EAX,8<--------------------------EAX\=EAX shl 8   
-004010F2  |.  86E0          |XCHG AL,AH<-------------------------交换 AL 和 AH 的值   
-004010F4  |.  C1C8 10       |ROR EAX,10<-------------------------EAX\=EAX ror 10   
-004010F7  |.  86E0          |XCHG AL,AH<-------------------------再交换 AL 和 AH 的值   
-004010F9  |.  AB            |STOS DWORD PTR ES:\[EDI\]<------------把 EAX 的值保存到 ES\[EDI\]中   
-004010FA  |.  4F            |DEC EDI<----------------------------EDI\--   
-004010FB  |.  59            |POP ECX<----------------------------ECX 出栈   
-004010FC  |.  49            |DEC ECX<----------------------------ECX\--   
-004010FD  |.^ 75 C9         JNZ SHORT CRACKME.004010C8<---------不等于 0 就跳到 4010C8 处   
-004010FF  |.  33C0          XOR EAX,EAX<-------------------------EAX 清 0   
-00401101  |.  EB 05         JMP SHORT CRACKME.00401108<----------跳   
-00401103  |>  B8 FFFFFFFF   MOV EAX,-1   
-00401108  |>  5E            POP ESI   
-00401109  |.  5F            POP EDI   
-0040110A  |.  5B            POP EBX   
-0040110B  |.  C9            LEAVE   
-0040110C  .  C2 0800       RETN 8   
-这段函数好像没有用，最后总是使 EAX=0xFFFFFFFF，这是由于我们输入的注册码不正确的原因。   
-  
-从 403441 开始的常数表如下：   
-  
-00403440  3D FF FF FF FF FF FF FF     
-00403448  FF FF FF FF FF FF FF FF     
-00403450  FF FF FF FF FF FF FF FF     
-00403458  FF FF FF FF FF FF FF FF     
-00403460  FF FF FF FF FF FF FF FF     
-00403468  FF FF FF FF 3E FF FF FF     
-00403470  3F 34 35 36 37 38 39 3A     
-00403478  3B 3C 3D FF FF FF 00 FF     
-00403480  FF FF 00 01 02 03 04 05     
-00403488  06 07 08 09 0A 0B 0C 0D     
-00403490  0E 0F 10 11 12 13 14 15     
-00403498  16 17 18 19 FF FF FF FF     
-004034A0  FF FF 1A 1B 1C 1D 1E 1F     
-004034A8  20 21 22 23 24 25 26 27      
-004034B0  28 29 2A 2B 2C 2D 2E 2F     
-004034B8  30 31 32 33 FF FF FF FF     
-004034C0  FF FF FF FF FF FF FF FF     
-004034C8  FF FF FF FF FF FF FF FF     
-004034D0  FF FF FF FF FF FF FF FF     
-004034D8  FF FF FF FF FF FF FF FF     
-004034E0  FF FF FF FF FF FF FF FF     
-004034E8  FF FF FF FF FF FF FF FF     
-004034F0  FF FF FF FF FF FF FF FF     
-004034F8  FF FF FF FF FF FF FF FF     
-00403500  FF FF FF FF FF FF FF FF     
-00403508  FF FF FF FF FF FF FF FF     
-00403510  FF FF FF FF FF FF FF FF     
-00403518  FF FF FF FF FF FF FF FF     
-00403520  FF FF FF FF FF FF FF FF     
-00403528  FF FF FF FF FF FF FF FF     
-00403530  FF FF FF FF FF FF FF FF     
-00403538  FF FF FF FF FF FF FF FF     
-     
-0040157B   .  68 A4384000   PUSH CRACKME.004038A4    
-00401580   .  68 F0384000   PUSH CRACKME.004038F0    
-00401585   .  E8 B8010000   CALL <JMP.&kernel32.lstrcatA>    
-这个函数的功能是把上面运算得到的结果接在字符串"I Love Asm!I Love Crack!I Love Kathy!My Email:loveasm@sohu.com QQ:127095"的后面返回字符串地址到 EAX 中。   
-0040158A   .  E8 CCFAFFFF   CALL CRACKME.0040105B<--------------按 F7 进去看看   
-进入 CALL CRACKME.0040105B 后如下：   
-0040105B  /$  B9 00010000   MOV ECX,100<------------------------ECX\=100   
-00401060  |.  BA 2083B8ED   MOV EDX,EDB88320<-------------------EDX\=EDB88320   
-00401065  |>  8D41 FF       /LEA EAX,DWORD PTR DS:\[ECX\-1\]   
-00401068  |.  51            |PUSH ECX<--------------------------保存 ECX 到堆栈中   
-00401069  |.  B9 08000000   |MOV ECX,8<-------------------------置小循环次数 8   
-0040106E  |>  D1E8          |/SHR EAX,1<------------------------EAX\=EAX shr 1   
-00401070  |.  73 02         ||JNB SHORT CRACKME.00401074   
-00401072  |.  33C2          ||XOR EAX,EDX<----------------------EAX\=EAX xor EDX   
-00401074  |>  49            ||DEC ECX<--------------------------ECX\--   
-00401075  |.^ 75 F7         |JNZ SHORT CRACKME.0040106E<-------不等于 0 就跳到 40106E 处   
-00401077  |.  59            |POP ECX<---------------------------恢复 ECX   
-00401078  |.  89048D FC2F40>|MOV DWORD PTR DS:\[ECX\*4+402FFC\],EAX<---把 EAX 的值放到\[ECX\*4+402FFC\]中   
-0040107F  |.  49            |DEC ECX<-------------------------------ECX\--   
-00401080  |.^ 75 E3         JNZ SHORT CRACKME.00401065<--------不等于 0 就跳到 00401065 处   
-00401082  .  C3            RETN   
-  
-这一段的功能实际上是生成一个常数表，表中元素的个数为 FFH。表的起始地址为 403004。在内存中如下：   
-00403000     00000000    77073096    EE0E612C    990951BA   
-00403010     076DC419    706AF48F    E963A535    9E6495A3   
-00403020     0EDB8832    79DCB8A4    E0D5E91E    97D2D988   
-00403030     09B64C2B    7EB17CBD    E7B82D07    90BF1D91   
-00403040     1DB71064    6AB020F2    F3B97148    84BE41DE   
-00403050     1ADAD47D    6DDDE4EB    F4D4B551    83D385C7   
-00403060     136C9856    646BA8C0    FD62F97A    8A65C9EC   
-00403070     14015C4F    63066CD9    FA0F3D63    8D080DF5   
-00403080     3B6E20C8    4C69105E    D56041E4    A2677172   
-00403090     3C03E4D1    4B04D447    D20D85FD    A50AB56B   
-004030A0     35B5A8FA    42B2986C    DBBBC9D6    ACBCF940   
-004030B0     32D86CE3    45DF5C75    DCD60DCF    ABD13D59   
-004030C0     26D930AC    51DE003A    C8D75180    BFD06116   
-004030D0     21B4F4B5    56B3C423    CFBA9599    B8BDA50F   
-004030E0     2802B89E    5F058808    C60CD9B2    B10BE924   
-004030F0     2F6F7C87    58684C11    C1611DAB    B6662D3D   
-00403100     76DC4190    01DB7106    98D220BC    EFD5102A   
-00403110     71B18589    06B6B51F    9FBFE4A5    E8B8D433   
-00403120     7807C9A2    0F00F934    9609A88E    E10E9818   
-00403130     7F6A0DBB    086D3D2D    91646C97    E6635C01   
-00403140     6B6B51F4    1C6C6162    856530D8    F262004E   
-00403150     6C0695ED    1B01A57B    8208F4C1    F50FC457   
-00403160     65B0D9C6    12B7E950    8BBEB8EA    FCB9887C   
-00403170     62DD1DDF    15DA2D49    8CD37CF3    FBD44C65   
-00403180     4DB26158    3AB551CE    A3BC0074    D4BB30E2   
-00403190     4ADFA541    3DD895D7    A4D1C46D    D3D6F4FB   
-004031A0     4369E96A    346ED9FC    AD678846    DA60B8D0   
-004031B0     44042D73    33031DE5    AA0A4C5F    DD0D7CC9   
-004031C0     5005713C    270241AA    BE0B1010    C90C2086   
-004031D0     5768B525    206F85B3    B966D409    CE61E49F   
-004031E0     5EDEF90E    29D9C998    B0D09822    C7D7A8B4   
-004031F0     59B33D17    2EB40D81    B7BD5C3B    C0BA6CAD   
-00403200     EDB88320    9ABFB3B6    03B6E20C    74B1D29A   
-00403210     EAD54739    9DD277AF    04DB2615    73DC1683   
-00403220     E3630B12    94643B84    0D6D6A3E    7A6A5AA8   
-00403230     E40ECF0B    9309FF9D    0A00AE27    7D079EB1   
-00403240     F00F9344    8708A3D2    1E01F268    6906C2FE   
-00403250     F762575D    806567CB    196C3671    6E6B06E7   
-00403260     FED41B76    89D32BE0    10DA7A5A    67DD4ACC   
-00403270     F9B9DF6F    8EBEEFF9    17B7BE43    60B08ED5   
-00403280     D6D6A3E8    A1D1937E    38D8C2C4    4FDFF252   
-00403290     D1BB67F1    A6BC5767    3FB506DD    48B2364B   
-004032A0     D80D2BDA    AF0A1B4C    36034AF6    41047A60   
-004032B0     DF60EFC3    A867DF55    316E8EEF    4669BE79   
-004032C0     CB61B38C    BC66831A    256FD2A0    5268E236   
-004032D0     CC0C7795    BB0B4703    220216B9    5505262F   
-004032E0     C5BA3BBE    B2BD0B28    2BB45A92    5CB36A04   
-004032F0     C2D7FFA7    B5D0CF31    2CD99E8B    5BDEAE1D   
-00403300     9B64C2B0    EC63F226    756AA39C    026D930A   
-00403310     9C0906A9    EB0E363F    72076785    05005713   
-00403320     95BF4A82    E2B87A14    7BB12BAE    0CB61B38   
-00403330     92D28E9B    E5D5BE0D    7CDCEFB7    0BDBDF21   
-00403340     86D3D2D4    F1D4E242    68DDB3F8    1FDA836E   
-00403350     81BE16CD    F6B9265B    6FB077E1    18B74777   
-00403360     88085AE6    FF0F6A70    66063BCA    11010B5C   
-00403370     8F659EFF    F862AE69    616BFFD3    166CCF45   
-00403380     A00AE278    D70DD2EE    4E048354    3903B3C2   
-00403390     A7672661    D06016F7    4969474D    3E6E77DB   
-004033A0     AED16A4A    D9D65ADC    40DF0B66    37D83BF0   
-004033B0     A9BCAE53    DEBB9EC5    47B2CF7F    30B5FFE9   
-004033C0     BDBDF21C    CABAC28A    53B39330    24B4A3A6   
-004033D0     BAD03605    CDD70693    54DE5729    23D967BF   
-004033E0     B3667A2E    C4614AB8    5D681B02    2A6F2B94   
-004033F0     B40BBE37    C30C8EA1    5A05DF1B    2D02EF8D   
-  
-此时内存如下：   
-004038F0  20 2D 20 49 20 4C 6F 76   - I Lov   
-004038F8  65 20 41 73 6D 21 49 20  e Asm!I   
-00403900  4C 6F 76 65 20 43 72 61  Love Cra   
-00403908  63 6B 21 49 20 4C 6F 76  ck!I Lov   
-00403910  65 20 4B 61 74 68 79 21  e Kathy!   
-00403918  4D 79 20 45 6D 61 69 6C  My Email   
-00403920  3A 6C 6F 76 65 61 73 6D  :loveasm   
-00403928  40 73 6F 68 75 2E 63 6F  @sohu.co   
-00403930  6D 20 51 51 3A 31 32 37  m QQ:127   
-00403938  30 39 35 20 2D 20 49 20  095 - I   
-00403940  4C 6F 76 65 20 41 73 6D  Love Asm   
-00403948  21 49 20 4C 6F 76 65 20  !I Love   
-00403950  43 72 61 63 6B 21 49 20  Crack!I   
-00403958  4C 6F 76 65 20 4B 61 74  Love Kat   
-00403960  68 79 21 4D 79 20 45 6D  hy!My Em   
-00403968  61 69 6C 3A 6C 6F 76 65  ail:love   
-00403970  78 78 78 78 78 78 78 78  xxxxxxxx   
-00403978  78 78 78 78 78 78 78 78  xxxxxxxx   
-00403980  BA D3 BF 9C 85 96 D3 B2  河繙厲硬   
-00403988  80 9E D2 BA D3 BF 9C 85  €炓河 0 渽   
-00403990  13 51 71 08 18 01 06 4C  QqL   
-00403998  3D 43 18 37 19 17 6C 23  =C7l#   
-004039A0  16 17 1D 01 57 3E 13 54  W>T   
-004039A8  33 3D 57 03 03 69 5C 08  3=Wi   
-004039B0  22 22 58 41 37 17 35 15  ""XA75   
-004039B8  0A 23 5A 39 3E 5D 44 35  .#Z9>\]D5   
-004039C0  06 0A 63 75 66 20 2D 20  .cuf -   
-004039C8  49 20 4C 6F 76 65 20 41  I Love A   
-004039D0  73 6D 21 49 20 4C 6F 76  sm!I Lov   
-004039D8  65 20 43 72 61 63 6B 21  e Crack!   
-004039E0  49 20 4C 6F 76 65 20 4B  I Love K   
-004039E8  61 74 68 79 21 4D 79 20  athy!My   
-004039F0  45 6D 61 69 6C 3A 6C 6F  Email:lo   
-004039F8  76 65 61 73 6D 40 73 6F  veasm@so   
-00403A00  68 75 2E 63 6F 6D 20 51  hu.com Q   
-00403A08  51 3A 31 32 37 30 39 35  Q:127095   
-  
-继续往下分析：   
-    
-0040158F   .  8D1D F0384000 LEA EBX,DWORD PTR DS:\[4038F0\]<------EBX 指向上面计算得到的串   
-00401595   .  E8 E9FAFFFF   CALL CRACKME.00401083<--------------按 F7 进去看看   
-进入 CALL CRACKME.00401083 后如下：   
-00401083  /$  B8 FFFFFFFF   MOV EAX,-1<----------------------------EAX\=-1   
-00401088  |.  0BDB          OR EBX,EBX   
-0040108A  |.  74 18         JE SHORT CRACKME.004010A4<-------------EBX 若为 0 就跳   
-0040108C  |>  8A13          /MOV DL,BYTE PTR DS:\[EBX\]<-------------DL\=DS:\[EBX\]   
-0040108E  |.  0AD2          |OR DL,DL   
-00401090  |.  74 12         |JE SHORT CRACKME.004010A4<------------为 0 就跳   
-00401092  |.  32D0          |XOR DL,AL<----------------------------DL\=AL xor DL   
-00401094  |.  0FB6D2        |MOVZX EDX,DL<-------------------------EDX\=DL   
-00401097  |.  C1E8 08       |SHR EAX,8<----------------------------EAX\=EAX shr 8   
-0040109A  |.  330495 003040>|XOR EAX,DWORD PTR DS:\[EDX\*4+403000\]<--EAX\=EAX xor DS:\[EDX\*4+403000\]   
-004010A1  |.  43            |INC EBX<------------------------------EBX++   
-004010A2  |.^ EB E8         JMP SHORT CRACKME.0040108C<-----------跳到 40108C   
-004010A4  |>  F7D0          NOT EAX<-------------------------------EAX\=NOT EAX   
-004010A6  .  C3            RETN   
-又是一个循环，这个循环就是把刚刚生成的表和上面计算得到的串进行运算，运算规则见注释，最后把结果保存到 EAX 中。   
-    
-0040159A   .  3D CA86B0C4   CMP EAX,C4B086CA<-------------比较 EAX 的值是否和 C4B086CA 相等   
-0040159F   .  75 3E         JNZ SHORT CRACKME.004015DF<---对比点，不相等就跳   
-  
-通过以上的分析，我们可以知道，这个 CrackMe 的算法用到了一个有着 FF 个元素的 32 位整数表，还用了一个有着 FF 个元素的 8 位整数表。算法看起来比较复杂，但是仔细分析一下，我们知道，把 JNZ SHORT CRACKME.004015DF 改成 JZ SHORT CRACKME.004015DF,出来的提示是"I Love Asm!..."这样的提示，说明程序会把上面的字符变成"恭喜您!您已经成功的注册了本软件!"，这里为什么没有变呢，原因就在 CALL CRACKME.004010A7 里面，这个函数的功能就是读\[403980\]处开始的 16 个字节的数据，然后进行运算，运算结果保存到 ES:\[EDI\]即内存\[4038F0\]开始的地方，若注册成功，则对话框的提示字符串就是从这儿取的。那么到底是哪 16 个字节经过 CALL CRACKME.004010A7 能得到"恭喜您!您已经成功的注册了本软件!"这样正确的提示信息呢？这里作者帮了一个大忙，感谢 Loveasm 了^\_^，通过跟踪，我发现是如下的 16 个字节运算后能得到正确的提示信息:   
-3C 41 2A 3F 05 16 74 77 1C 5B 69 0C 0B 38 23 24   
-  
-当然你可以分析 CALL CRACKME.004010A7 利用"恭喜您!您已经成功的注册了本软件!"算出这 16 个字节来，这是此 CrackMe 的核心。这么一分析，我们就可以看出，这个 CrackMe 给我们设置了一个超级陷阱，正确的注册码的获得只与上面 16 个字节有关，与那个一个长整数表无关，作者算法设计得很巧妙，把这个掩盖得很好，只是作者给了一个正确的注册码给了我们以可乘之机。看来以后谁发布 CrackMe 时，最好先别把正确的注册码公布，或者把算法设计得更好些。   
-  
-给出我的注册码：   
-  
-用户名：onlyu\[FCG\]\[DFCG\]   
-注册码：B7CAA1B48E9DFFFC97D0E28780B3A8AF   
-  
-用 VC 6.0 编写注册机，单击按钮的代码如下：   
-  
-void CKeygenDlg::OnOK()    
-{   
-  // TODO: Add extra validation here   
-         int i;   
-         unsigned char num=0;   
-  unsigned char str\[17\]={0x3C,0x41,0x2A,0x3F,0x05,0x16,0x74,0x77,   
-                       0x1C,0x5B,0x69,0x0C,0x0B,0x38,0x23,0x24,0x0};   
-  char str1\[33\];   
-  str1\[33\]=0;   
-  UpdateData(TRUE);   
-  if(m\_name=="") AfxMessageBox("请输入用户名!");   
-  else   
-  {   
-   for(i=0;i<m\_name.GetLength();i++)   
-           num+=m\_name\[i\];   
-          for(i=0;i<16;i++) str\[i\]=num^str\[i\];   
-          for(i=0;i<16;i++) sprintf(str1+2\*i,"%0x",str\[i\]);   
-   m\_sn=str1;   
-   m\_sn.MakeUpper();   
-    }   
-  UpdateData(FALSE);   
-} 
+loveasm 的 crackme 算法分析-----CRC32 算法的妙用
 
-  
+**【作者】：** `onlyu\[FCG\]\[DFCG\]`
 
-* * *
+**【软件介绍】：** `loveasm\[YCG\]\[DFCG\]` 兄弟的 crackme，主要锻炼算法分析，要求破解成功后出现显示"恭喜您!您已经成功的注册了本软件!"的对话框。
 
-补充一下，对于破解中遇到的那个长度为 FFh 的 32 位整数表，好像在那里见过，拿看雪的书一查看，才发现是 CRC32 校验的常数表，这下我对这个 Crackme 的整个判断过程就清晰多了。重新总结一下，作者计算如下数据的 CRC 校验值：   
-004038F0  B9 A7 CF B2 C4 FA A3 A1  恭喜您！   
-004038F8  C4 FA D2 D1 BE AD B3 C9  您已经成   
-00403900  B9 A6 B5 C4 D7 A2 B2 E1  功的注册   
-00403908  C1 CB B1 BE C8 ED BC FE  了本软件   
-00403910  A3 A1 2D 20 4C 6F 76 65  ！- Love   
-00403918  61 73 6D 5B 59 43 47 5D  asm\[YCG\]   
-00403920  5B 44 46 43 47 5D 20 2D  \[DFCG\] -   
-00403928  20 49 20 4C 6F 76 65 20   I Love   
-00403930  41 73 6D 21 49 20 4C 6F  Asm!I Lo   
-00403938  76 65 20 43 72 61 63 6B  ve Crack   
-00403940  21 49 20 4C 6F 76 65 20  !I Love   
-00403948  4B 61 74 68 79 21 4D 79  Kathy!My   
-00403950  20 45 6D 61 69 6C 3A 6C   Email:l   
-00403958  6F 76 65 61 73 6D 40 73  oveasm@s   
-00403960  6F 68 75 2E 63 6F 6D 20  ohu.com   
-00403968  51 51 3A 31 32 37 30 39  QQ:12709   
-00403970  35                       5   
-    
-若校验值为 C4B086CA，则正确，若不相等，则错误，而这个串的获得是由用户输入的正确的注册码运算出来的，若输入的注册码不正确，则得不到正确的提示信息，爆破也没有用。   
-一般 CRC 校验算法是把注册名和注册码按某种运算之后的值进行校验，而这个 Crackme 还把要显示的正确提示信息进行了校验，算法很巧妙，故题目加上 CRC32 算法的妙用。真是佩服 Loveasm\[YCG\]\[DFCG\]，能用纯汇编实现这么好的 Crackme，真是厉害，再次感谢！  
- 4dd466d0e1e0cc123afbe504da2462ca
+**【软件下载】：** 点击此处本地下载
+
+**【软件限制】：** 注册码
+
+**【作者声明】：** 初学 Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+**【破解工具】：** `Ollydbg1.09`
+
+**【破解过程】**:
+
+运行程序，输入：
+
+- 用户名：`onlyu\[FCG\]\[DFCG\]`
+- 注册码：`78787878787878787878787878787878`
+
+在 `OD` 命令行插件里下断点：`bpx getdlgitemtexta`
+
+点注册，停在如下：
+
+```
+004014A9   .  68 A4374000   PUSH CRACKME.004037A4             
+004014AE   .  68 91010000   PUSH 191                          
+004014B3   .  FF75 08       PUSH DWORD PTR SS:[EBP+8]         
+004014B6   .  E8 27020000   CALL <JMP.&user32.GetDlgItemTextA> <-----获得输入的注册名    
+004014BB   .  8BC8          MOV ECX,EAX
+004014BD   .  83F8 00       CMP EAX,0 <-------------------------输入的注册名是否为空
+004014C0   .  77 0E         JA SHORT CRACKME.004014D0 <---------不空往下跳
+004014C2   .  B8 00000000   MOV EAX,0
+004014C7   .  59            POP ECX
+004014C8   .  5A            POP EDX
+```
+
+跳转到这里：
+
+```
+004014D0   >  33C0          XOR EAX,EAX
+004014D2   .  8D35 A4374000 LEA ESI,DWORD PTR DS:[4037A4] <----使 ESI 指向注册名"onlyu\[FCG\]\[DFCG\]"
+004014D8   >  33DB          XOR EBX,EBX \--------------------
+004014DA   .  8A1E          MOV BL,BYTE PTR DS:[ESI]       |
+004014DC   .  03C3          ADD EAX,EBX                   |小循环
+004014DE   .  46            INC ESI                       |
+004014DF   . ^ E2 F7       LOOPD SHORT CRACKME.004014D8 ---
+```
+
+上面这段小循环的功能是把输入的用户名的字符的 `ASCII` 码累加起来保存到 `EAX` 中，我的为 `58B`
+
+```
+004014E1   .  8845 FF       MOV BYTE PTR SS:[EBP\-1],AL <----把上面得到的值取后两位存到 ss:\[ebp\-1\] 处
+004014E4   .  68 FF000000   PUSH 0FF                        
+004014E9   .  68 24364000   PUSH CRACKME.00403624
+004014EE   .  68 92010000   PUSH 192                        
+004014F3   .  FF75 08       PUSH DWORD PTR SS:[EBP+8]       
+004014F6   .  E8 E7010000   CALL <JMP.&user32.GetDlgItemTextA> <-----获得输入的注册码
+004014FB   .  BE 24364000   MOV ESI,CRACKME.00403624 <--------ESI\->输入的注册码"78787878..."
+00401500   .  8D3D 70394000 LEA EDI,DWORD PTR DS:[403970]
+00401506   .  B9 10000000   MOV ECX,10 <---------------------置循环次数
+0040150B   >  33DB          XOR EBX,EBX <--------------------把 EBX 清 0
+0040150D   .  33C0          XOR EAX,EAX <--------------------把 EAX 清 0
+0040150F   .  AC            LODS BYTE PTR DS:[ESI] <---------取注册码的字符到 EAX 中
+00401510   .  83F8 39       CMP EAX,39 <---------------------输入字符 ASCII 码是否大于 39
+00401513   .  7E 03         JLE SHORT CRACKME.00401518 <-----小于或等于就跳
+00401515   .  83E8 07       SUB EAX,7 <----------------------EAX\=EAX\-7
+00401518   >  83E8 30       SUB EAX,30 <---------------------EAX\=EAX\-30
+0040151B   .  0BD8          OR EBX,EAX <---------------------EBX\=EBX or EAX
+0040151D   .  C1E3 04       SHL EBX,4 <----------------------EBX\=EBX shl 4
+00401520   .  33C0          XOR EAX,EAX <--------------------EAX 清 0
+00401522   .  AC            LODS BYTE PTR DS:[ESI] <---------取注册码的下一个字符到 EAX 中
+00401523   .  83F8 39       CMP EAX,39 <---------------------输入字符 ASCII 码是否大于 39
+00401526   .  7E 03         JLE SHORT CRACKME.0040152B <-----小于或等于就跳
+00401528   .  83E8 07       SUB EAX,7 <----------------------EAX\=EAX\-7
+0040152B   >  83E8 30       SUB EAX,30 <---------------------EAX\=EAX\-30
+0040152E   .  0BD8          OR EBX,EAX <---------------------EBX\=EBX or EAX
+00401530   .  881F          MOV BYTE PTR DS:[EDI],BL <-------把 BL 中数值存到 DS:\[EDI\] 处
+00401532   .  47            INC EDI <------------------------EDI\=EDI+1
+00401533   . ^ E2 D6       LOOPD SHORT CRACKME.0040150B <---循环到 40150B 处
+```
+
+上面这一段循环 16 次，输入的注册码按两个字符一组处理，字符若为小于或等于 `39`，就把它的 `ASCII` 值减去 `30H`，若大于 `39` 就减去 `37H`。不妨设两个字符为 `a`, `b`，则 `c=(((a-常数) shl 4) or (b-常数)) and FFH`。如我输入的注册码运算后在内存中如下：
+
+```
+00403970  78 78 78 78 78 78 78 78   xxxxxxxx
+00403978  78 78 78 78 78 78 78 78   xxxxxxxx
+```
+
+这里就可以猜测它的注册码可能为 32 位的。
+
+```
+00401535   .  B9 10000000   MOV ECX,10 <------------------------置循环次数 10H
+0040153A   .  8D3D 80394000 LEA EDI,DWORD PTR DS:[403980]
+00401540   .  8D35 70394000 LEA ESI,DWORD PTR DS:[403970] <-----ESI 指向上面运行完的结果
+00401546   >  8A06          MOV AL,BYTE PTR DS:[ESI] <----------把 ESI 指向的数赋给 AL
+00401548   .  3245 FF      XOR AL,BYTE PTR SS:[EBP\-1] <--------AL\=AL xor SS:\[EBP\-1\]
+0040154B   .  8807         MOV BYTE PTR DS:[EDI],AL <----------把 AL 的值保存到 DS:\[EDI\] 中
+0040154D   .  46            INC ESI <---------------------------ESI++
+0040154E   .  47            INC EDI <---------------------------EDI++
+0040154F   . ^ E2 F5       LOOPD SHORT CRACKME.00401546 <------循环到 401546 处
+```
+
+`SS:\[EBP\-1\]` 中保存的是对用户名运算后得到的结果，上面的循环的功能就是把 `SS:\[EBP\-1\]` 和上面对注册码处理得到的结果按字节异或保存到 `DS:\[EDI\]` 中，结果在内存中如下：
+
+```
+00403980  F3 F3 F3 F3 F3 F3 F3 F3  篌篌篌篌
+00403988  F3 F3 F3 F3 F3 F3 F3 F3  篌篌篌篌
+00403990  76 71 32 7A 79 62 6D 6D  vq2zybmm
+00403998  74 63 54 58 6F 72 4C 68  tcTXorLh
+004039A0  77 63 75 78 76 73 6A 74  wcuxvsjt
+004039A8  76 50 36 6A 6F 53 30 67  vP6joS0g
+004039B0  54 47 39 32 5A 57 46 7A  TG92ZWFz
+004039B8  62 56 74 5A 51 30 64 64  bVtZQ0dd
+004039C0  57 30 52 47 51 30 64 64  W0RGQ0dd
+```
+
+```
+00401551   .  B9 48000000   MOV ECX,48 <-----------------------置循环次数 48H
+00401556   .  8D35 A7384000 LEA ESI,DWORD PTR DS:[4038A7]
+```
+
+`ESI\->"I Love Asm!I Love Crack!I Love Kathy!My Email:loveasm@sohu.com QQ:127095"`
+
+```
+0040155C   .  8D3D 80394000 LEA EDI,DWORD PTR DS:[403980] <----EDI 指向上面运算后得到的结果
+00401562   >  8A07          MOV AL,BYTE PTR DS:[EDI] <---------AL\=DS:\[EDI\]
+00401564   .  3206          XOR AL,BYTE PTR DS:[ESI] <---------AL\=AL xor DS:\[ESI\]
+00401566   .  8807         MOV BYTE PTR DS:[EDI],AL <---------DS:\[EDI\]=AL
+00401568   .  46            INC ESI <--------------------------ESI++
+00401569   .  47            INC EDI <--------------------------EDI++
+0040156A   . ^ E2 F6       LOOPD SHORT CRACKME.00401562 <-----循环到 401562 处
+```
+
+这一段循环的功能是把上面运算得到的结果与常串 `"vq2zybmmtcTXorLhwcuxvsjtvP6joS0gTG92ZWFzbVtZQ0ddW0RGQ0dd"` 连起来和字符串 `"I Love Asm!I Love Crack!I Love Kathy!My Email:loveasm@sohu.com QQ:127095"` 进行异或运算，结果还保存在 `DS:\[403980\]` 处。
+
+```
+0040156C   .  68 F0384000   PUSH CRACKME.004038F0 
+00401571   .  68 80394000   PUSH CRACKME.00403980     
+00401576   .  E8 2CFBFFFF   CALL CRACKME.004010A7 <-------F7 进去看看
+```
+
+`F7` 进入 `CALL CRACKME.004010A7`，如下：
+
+```
+004010A7  /$  55           PUSH EBP
+004010A8  |.  8BEC         MOV EBP,ESP
+004010AA  |.  83C4 FC      ADD ESP,-4
+004010AD  |.  53           PUSH EBX
+004010AE  |.  57           PUSH EDI
+004010AF  |.  56           PUSH ESI
+004010B0  |.  FF75 08      PUSH DWORD PTR SS:[EBP+8]           
+004010B3  |.  E8 90060000  CALL <JMP.&kernel32.lstrlenA>          
+004010B8  |.  8945 FC      MOV DWORD PTR SS:[EBP\-4],EAX <--------EAX\=48H
+004010BB  |.  8B75 08      MOV ESI,DWORD PTR SS:[EBP+8] <--------ESI 指向上面得到的结果
+004010BE  |.  8B7D 0C      MOV EDI,DWORD PTR SS:[EBP+C]
+004010C1  |.  8B4D FC      MOV ECX,DWORD PTR SS:[EBP\-4] <--------ECX\=48H
+004010C4  |.  C1E9 02      SHR ECX,2 <---------------------------ECX\=ECX shr 2=12H
+004010C7  |.  FC           CLD
+004010C8  |>  51           /PUSH ECX
+004010C9  |.  B9 04000000  |MOV ECX,4 <--------------------------置大循环次数 4
+004010CE  |.  33DB         |XOR EBX,EBX <------------------------EBX 清 0
+004010D0  |.  AD           |LODS DWORD PTR DS:[ESI] <------------装入 32 位整数到 EAX
+004010D1  |>  50           |/PUSH EAX <--------------------------EAX 压栈
+004010D2  |.  25 FF000000  ||AND EAX,0FF <-----------------------取 AL
+004010D7  |.  8A80 41344000 ||MOV AL,BYTE PTR DS:[EAX+403441] <---把 DS:\[EAX+403441\] 处数据赋给 AL
+```
+
+
+
+### 汇编代码段：结果比较与处理
+
+```assembly
+004010DD  .  3C FF        ||CMP AL,0FF<------------------------比较 AL 是否和 FF 相等   
+
+004010DF  .  74 22        ||JE SHORT CRACKME.00401103<---------相等就跳   
+
+004010E1  .  C1E3 06      ||SHL EBX,6<-------------------------EBX\=EBX shl 6，EBX 初值为 0   
+
+004010E4  .  0AD8         ||OR BL,AL<--------------------------BL\=BL or AL   
+
+004010E6  .  58           ||POP EAX<---------------------------重新装入 32 位整数   
+
+004010E7  .  C1E8 08      ||SHR EAX,8<-------------------------EAX\=EAX shr 8   
+
+004010EA  .  49           ||DEC ECX<---------------------------ECX\=ECX\-1   
+
+004010EB  |.^ 75 E4       |JNZ SHORT CRACKME.004010D1<--------不等就跳到 4010D1 处   
+
+004010ED  .  8BC3         |MOV EAX,EBX<------------------------EAX\=EBX   
+
+004010EF  .  C1E0 08      |SHL EAX,8<--------------------------EAX\=EAX shl 8   
+
+004010F2  .  86E0         |XCHG AL,AH<-------------------------交换 AL 和 AH 的值   
+
+004010F4  .  C1C8 10      |ROR EAX,10<-------------------------EAX\=EAX ror 10   
+
+004010F7  .  86E0         |XCHG AL,AH<-------------------------再交换 AL 和 AH 的值   
+
+004010F9  .  AB           |STOS DWORD PTR ES:\[EDI\]<------------把 EAX 的值保存到 ES\[EDI\]中   
+
+004010FA  .  4F           |DEC EDI<----------------------------EDI\--   
+
+004010FB  .  59           |POP ECX<----------------------------ECX 出栈   
+
+004010FC  .  49           |DEC ECX<----------------------------ECX\--   
+
+004010FD  |.^ 75 C9       JNZ SHORT CRACKME.004010C8<---------不等于 0 就跳到 4010C8 处   
+
+004010FF  .  33C0         XOR EAX,EAX<-------------------------EAX 清 0   
+
+00401101  .  EB 05        JMP SHORT CRACKME.00401108<----------跳   
+
+00401103  >  B8 FFFFFFFF  MOV EAX,-1   
+
+00401108  >  5E           POP ESI   
+
+00401109  .  5F          POP EDI   
+
+0040110A  .  5B          POP EBX   
+
+0040110B  .  C9          LEAVE   
+
+0040110C  .  C2 0800     RETN 8   
+```
+
+这段函数好像没有用，最后总是使 `EAX=0xFFFFFFFF`，这是由于我们输入的注册码不正确的原因。
+
+从 `403441` 开始的常数表如下：
+
+```text
+00403440  3D FF FF FF FF FF FF FF   
+00403448  FF FF FF FF FF FF FF FF   
+00403450  FF FF FF FF FF FF FF FF   
+00403458  FF FF FF FF FF FF FF FF   
+00403460  FF FF FF FF FF FF FF FF   
+00403468  FF FF FF FF 3E FF FF FF   
+00403470  3F 34 35 36 37 38 39 3A   
+00403478  3B 3C 3D FF FF FF 00 FF   
+00403480  FF FF 00 01 02 03 04 05   
+00403488  06 07 08 09 0A 0B 0C 0D   
+00403490  0E 0F 10 11 12 13 14 15   
+00403498  16 17 18 19 FF FF FF FF   
+004034A0  FF FF 1A 1B 1C 1D 1E 1F   
+004034A8  20 21 22 23 24 25 26 27    
+004034B0  28 29 2A 2B 2C 2D 2E 2F   
+004034B8  30 31 32 33 FF FF FF FF   
+004034C0  FF FF FF FF FF FF FF FF   
+004034C8  FF FF FF FF FF FF FF FF   
+004034D0  FF FF FF FF FF FF FF FF   
+004034D8  FF FF FF FF FF FF FF FF   
+004034E0  FF FF FF FF FF FF FF FF   
+004034E8  FF FF FF FF FF FF FF FF   
+004034F0  FF FF FF FF FF FF FF FF   
+004034F8  FF FF FF FF FF FF FF FF   
+00403500  FF FF FF FF FF FF FF FF   
+00403508  FF FF FF FF FF FF FF FF   
+00403510  FF FF FF FF FF FF FF FF   
+00403518  FF FF FF FF FF FF FF FF   
+00403520  FF FF FF FF FF FF FF FF   
+00403528  FF FF FF FF FF FF FF FF   
+00403530  FF FF FF FF FF FF FF FF   
+00403538  FF FF FF FF FF FF FF FF   
+```
+
+### 字符串处理与函数调用
+
+```assembly
+0040157B   .  68 A4384000   PUSH CRACKME.004038A4   
+00401580   .  68 F0384000   PUSH CRACKME.004038F0   
+00401585   .  E8 B8010000   CALL <JMP.&kernel32.lstrcatA>   
+```
+
+这个函数的功能是把上面运算得到的结果接在字符串 `"I Love Asm!I Love Crack!I Love Kathy!My Email:loveasm@sohu.com QQ:127095"` 的后面返回字符串地址到 `EAX` 中。
+
+```assembly
+0040158A   .  E8 CCFAFFFF   CALL CRACKME.0040105B<--------------按 F7 进去看看
+```
+
+进入 `CALL CRACKME.0040105B` 后如下：
+
+```assembly
+0040105B  /$  B9 00010000   MOV ECX,100<------------------------ECX\=100   
+
+00401060  |.  BA 2083B8ED   MOV EDX,EDB88320<-------------------EDX\=EDB88320   
+
+00401065  |>  8D41 FF       /LEA EAX,DWORD PTR DS:\[ECX\-1\]   
+
+00401068  |.  51           |PUSH ECX<--------------------------保存 ECX 到堆栈中   
+
+00401069  |.  B9 08000000  |MOV ECX,8<-------------------------置小循环次数 8   
+
+0040106E  |>  D1E8         |/SHR EAX,1<------------------------EAX\=EAX shr 1   
+
+00401070  |.  73 02        ||JNB SHORT CRACKME.00401074   
+
+00401072  |.  33C2         ||XOR EAX,EDX<----------------------EAX\=EAX xor EDX   
+
+00401074  |>  49          ||DEC ECX<--------------------------ECX\--   
+
+00401075  |.^ 75 F7       |JNZ SHORT CRACKME.0040106E<-------不等于 0 就跳到 40106E 处   
+
+00401077  |.  59          |POP ECX<---------------------------恢复 ECX   
+
+00401078  |.  89048D FC2F40|MOV DWORD PTR DS:\[ECX\*4+402FFC\],EAX<---把 EAX 的值放到\[ECX\*4+402FFC\]中   
+
+0040107F  |.  49         |DEC ECX<-------------------------------ECX\--   
+
+00401080  |.^ 75 E3      JNZ SHORT CRACKME.00401065<--------不等于 0 就跳到 00401065 处   
+
+00401082  .  C3          RETN   
+```
+
+这一段的功能实际上是生成一个常数表，表中元素的个数为 `FFH`。表的起始地址为 `403004`。在内存中如下：
+
+```text
+00403000     00000000    77073096    EE0E612C    990951BA   
+00403010     076DC419    706AF48F    E963A535    9E6495A3   
+00403020     0EDB8832    79DCB8A4    E0D5E91E    97D2D988   
+00403030     09B64C2B    7EB17CBD    E7B82D07    90BF1D91   
+00403040     1DB71064    6AB020F2    F3B97148    84BE41DE   
+00403050     1ADAD47D    6DDDE4EB    F4D4B551    83D385C7   
+00403060     136C9856    646BA8C0    FD62F97A    8A65C9EC   
+00403070     14015C4F    63066CD9    FA0F3D63    8D080DF5   
+00403080     3B6E20C8    4C69105E    D56041E4    A2677172   
+00403090     3C03E4D1    4B04D447    D20D85FD    A50AB56B   
+004030A0     35B5A8FA    42B2986C    DBBBC9D6    ACBCF940   
+004030B0     32D86CE3    45DF5C75    DCD60DCF    ABD13D59   
+004030C0     26D930AC    51DE003A    C8D75180    BFD06116   
+004030D0     21B4F4B5    56B3C423    CFBA9599    B8BDA50F   
+004030E0     2802B89E    5F058808    C60CD9B2    B10BE924   
+004030F0     2F6F7C87    58684C11    C1611DAB    B6662D3D   
+00403100     76DC4190    01DB7106    98D220BC    EFD5102A   
+00403110     71B18589    06B6B51F    9FBFE4A5    E8B8D433   
+00403120     7807C9A2    0F00F934    9609A88E    E10E9818   
+00403130     7F6A0DBB    086D3D2D    91646C97    E6635C01   
+00403140     6B6B51F4    1C6C6162    856530D8    F262004E   
+00403150     6C0695ED    1B01A57B    8208F4C1    F50FC457   
+00403160     65B0D9C6    12B7E950    8BBEB8EA    FCB9887C   
+00403170     62DD1DDF    15DA2D49    8CD37CF3    FBD44C65   
+00403180     4DB26158    3AB551CE    A3BC0074    D4BB30E2   
+00403190     4ADFA541    3DD895D7    A4D1C46D    D3D6F4FB   
+004031A0     4369E96A    346ED9FC    AD678846    DA60B8D0   
+004031B0     44042D73    33031DE5    AA0A4C5F    DD0D7CC9   
+004031C0     5005713C    270241AA    BE0B1010    C90C2086   
+004031D0     5768B525    206F85B3    B966D409    CE61E49F   
+004031E0     5EDEF90E    29D9C998    B0D09822    C7D7A8B4   
+004031F0     59B33D17    2EB40D81    B7BD5C3B    C0BA6CAD   
+00403200     EDB88320    9ABFB3B6    03B6E20C    74B1D29A   
+00403210     EAD54739    9DD277AF    04DB2615    73DC1683   
+00403220     E3630B12    94643B84    0D6D6A3E    7A6A5AA8   
+00403230     E40ECF0B    9309FF9D    0A00AE27    7D079EB1   
+00403240     F00F9344    8708A3D2    1E01F268    6906C2FE   
+00403250     F762575D    806567CB    196C3671    6E6B06E7   
+00403260     FED41B76    89D32BE0    10DA7A5A    67DD4ACC   
+00403270     F9B9DF6F    8EBEEFF9    17B7BE43    60B08ED5   
+00403280     D6D6A3E8    A1D1937E    38D8C2C4    4FDFF252   
+00403290     D1BB67F1    A6BC5767    3FB506DD    48B2364B   
+004032A0     D80D2BDA    AF0A1B4C    36034AF6    41047A60   
+004032B0     DF60EFC3    A867DF55    316E8EEF    4669BE79   
+004032C0     CB61B38C    BC66831A    256FD2A0    5268E236   
+004032D0     CC0C7795    BB0B4703    220216B9    5505262F   
+004032E0     C5BA3BBE    B2BD0B28    2BB45A92    5CB36A04   
+004032F0     C2D7FFA7    B5D0CF31    2CD99E8B    5BDEAE1D   
+00403300     9B64C2B0    EC63F226    756AA39C    026D930A   
+00403310     9C0906A9    EB0E363F    72076785    05005713   
+```
+
+
+
+```
+00403320     95BF4A82    E2B87A14    7BB12BAE    0CB61B38
+
+00403330     92D28E9B    E5D5BE0D    7CDCEFB7    0BDBDF21
+
+00403340     86D3D2D4    F1D4E242    68DDB3F8    1FDA836E
+
+00403350     81BE16CD    F6B9265B    6FB077E1    18B74777
+
+00403360     88085AE6    FF0F6A70    66063BCA    11010B5C
+
+00403370     8F659EFF    F862AE69    616BFFD3    166CCF45
+
+00403380     A00AE278    D70DD2EE    4E048354    3903B3C2
+
+00403390     A7672661    D06016F7    4969474D    3E6E77DB
+
+004033A0     AED16A4A    D9D65ADC    40DF0B66    37D83BF0
+
+004033B0     A9BCAE53    DEBB9EC5    47B2CF7F    30B5FFE9
+
+004033C0     BDBDF21C    CABAC28A    53B39330    24B4A3A6
+
+004033D0     BAD03605    CDD70693    54DE5729    23D967BF
+
+004033E0     B3667A2E    C4614AB8    5D681B02    2A6F2B94
+
+004033F0     B40BBE37    C30C8EA1    5A05DF1B    2D02EF8D
+```
+
+此时内存如下：
+
+```
+004038F0  20 2D 20 49 20 4C 6F 76   - I Lov
+004038F8  65 20 41 73 6D 21 49 20   e Asm!I
+00403900  4C 6F 76 65 20 43 72 61   Love Cra
+00403908  63 6B 21 49 20 4C 6F 76   ck!I Lov
+00403910  65 20 4B 61 74 68 79 21   e Kathy!
+00403918  4D 79 20 45 6D 61 69 6C   My Email
+00403920  3A 6C 6F 76 65 61 73 6D   :loveasm
+00403928  40 73 6F 68 75 2E 63 6F   @sohu.co
+00403930  6D 20 51 51 3A 31 32 37   m QQ:127
+00403938  30 39 35 20 2D 20 49 20   095 - I
+00403940  4C 6F 76 65 20 41 73 6D   Love Asm
+00403948  21 49 20 4C 6F 76 65 20   !I Love
+00403950  43 72 61 63 6B 21 49 20   Crack!I
+00403958  4C 6F 76 65 20 4B 61 74   Love Kat
+00403960  68 79 21 4D 79 20 45 6D   hy!My Em
+00403968  61 69 6C 3A 6C 6F 76 65   ail:love
+00403970  78 78 78 78 78 78 78 78   xxxxxxxx
+00403978  78 78 78 78 78 78 78 78   xxxxxxxx
+00403980  BA D3 BF 9C 85 96 D3 B2   河繙厲硬
+00403988  80 9E D2 BA D3 BF 9C 85   €炓河 0 渽
+00403990  13 51 71 08 18 01 06 4C   QqL
+00403998  3D 43 18 37 19 17 6C 23   =C7l#
+004039A0  16 17 1D 01 57 3E 13 54   W>T
+004039A8  33 3D 57 03 03 69 5C 08   3=Wi
+004039B0  22 22 58 41 37 17 35 15   ""XA75
+004039B8  0A 23 5A 39 3E 5D 44 35   .#Z9>\]D5
+004039C0  06 0A 63 75 66 20 2D 20   .cuf -
+004039C8  49 20 4C 6F 76 65 20 41   I Love A
+004039D0  73 6D 21 49 20 4C 6F 76   sm!I Lov
+004039D8  65 20 43 72 61 63 6B 21   e Crack!
+004039E0  49 20 4C 6F 76 65 20 4B   I Love K
+004039E8  61 74 68 79 21 4D 79 20   athy!My
+004039F0  45 6D 61 69 6C 3A 6C 6F   Email:lo
+004039F8  76 65 61 73 6D 40 73 6F   veasm@so
+00403A00  68 75 2E 63 6F 6D 20 51   hu.com Q
+00403A08  51 3A 31 32 37 30 39 35   Q:127095
+```
+
+继续往下分析：
+
+```
+0040158F   .  8D1D F0384000 LEA EBX,DWORD PTR DS:[4038F0]<------EBX 指向上面计算得到的串
+00401595   .  E8 E9FAFFFF    CALL CRACKME.00401083<--------------按 F7 进去看看
+```
+
+进入 `CALL CRACKME.00401083` 后如下：
+
+```
+00401083  /$  B8 FFFFFFFF   MOV EAX,-1<----------------------------EAX\=-1
+00401088  |.  0BDB          OR EBX,EBX
+0040108A  |.  74 18         JE SHORT CRACKME.004010A4<-------------EBX 若为 0 就跳
+0040108C  |>  8A13          /MOV DL,BYTE PTR DS:[EBX]<-------------DL\=DS:[EBX]
+0040108E  |.  0AD2          |OR DL,DL
+00401090  |.  74 12         |JE SHORT CRACKME.004010A4<------------为 0 就跳
+00401092  |.  32D0          |XOR DL,AL<----------------------------DL\=AL xor DL
+00401094  |.  0FB6D2        |MOVZX EDX,DL<-------------------------EDX\=DL
+00401097  |.  C1E8 08       |SHR EAX,8<----------------------------EAX\=EAX shr 8
+0040109A  |.  330495 003040>|XOR EAX,DWORD PTR DS:[EDX*4+403000\]<--EAX\=EAX xor DS:[EDX*4+403000\]
+004010A1  |.  43            |INC EBX<------------------------------EBX++
+004010A2  |.^ EB E8         JMP SHORT CRACKME.0040108C<-----------跳到 40108C
+004010A4  |>  F7D0          NOT EAX<-------------------------------EAX\=NOT EAX
+004010A6  .  C3            RETN
+```
+
+又是一个循环，这个循环就是把刚刚生成的表和上面计算得到的串进行运算，运算规则见注释，最后把结果保存到 `EAX` 中。
+
+```
+0040159A   .  3D CA86B0C4   CMP EAX,C4B086CA<-------------比较 EAX 的值是否和 C4B086CA 相等
+0040159F   .  75 3E         JNZ SHORT CRACKME.004015DF<---对比点，不相等就跳
+```
+
+通过以上的分析，我们可以知道，这个 CrackMe 的算法用到了一个有着 `FF` 个元素的 32 位整数表，还用了一个有着 `FF` 个元素的 8 位整数表。算法看起来比较复杂，但是仔细分析一下，我们知道，把 `JNZ SHORT CRACKME.004015DF` 改成 `JZ SHORT CRACKME.004015DF`,出来的提示是"I Love Asm!..."这样的提示，说明程序会把上面的字符变成"恭喜您!您已经成功的注册了本软件!"，这里为什么没有变呢，原因就在 `CALL CRACKME.004010A7` 里面，这个函数的功能就是读 `[403980]` 处开始的 16 个字节的数据，然后进行运算，运算结果保存到 `ES:[EDI]` 即内存 `[4038F0]` 开始的地方，若注册成功，则对话框的提示字符串就是从这儿取的。那么到底是哪 16 个字节经过 `CALL CRACKME.004010A7` 能得到"恭喜您!您已经成功的注册了本软件!"这样正确的提示信息呢？这里作者帮了一个大忙，感谢 Loveasm 了^_^，通过跟踪，我发现是如下的 16 个字节运算后能得到正确的提示信息:
+
+```
+3C 41 2A 3F 05 16 74 77 1C 5B 69 0C 0B 38 23 24
+```
+
+当然你可以分析 `CALL CRACKME.004010A7` 利用"恭喜您!您已经成功的注册了本软件!"算出这 16 个字节来，这是此 CrackMe 的核心。这么一分析，我们就可以看出，这个 CrackMe 给我们设置了一个超级陷阱，正确的注册码的获得只与上面 16 个字节有关，与那个一个长整数表无关，作者算法设计得很巧妙，把这个掩盖得很好，只是作者给了一个正确的注册码给了我们以可乘之机。看来以后谁发布 CrackMe 时，最好先别把正确的注册码公布，或者把算法设计得更好些。
+
+给出我的注册码：
+
+用户名：`onlyu[FCG][DFCG]`
+
+注册码：`B7CAA1B48E9DFFFC97D0E28780B3A8AF`
+
+用 `VC 6.0` 编写注册机，单击按钮的代码如下：
+
+```
+void CKeygenDlg::OnOK()
+{
+  // TODO: Add extra validation here
+         int i;
+         unsigned char num=0;
+  unsigned char str[17]={0x3C,0x41,0x2A,0x3F,0x05,0x16,0x74,0x77,
+                   0x1C,0x5B,0x69,0x0C,0x0B,0x38,0x23,0x24,0x0};
+  char str1[33];
+  str1[33]=0;
+  UpdateData(TRUE);
+  if(m_name=="") AfxMessageBox("请输入用户名!");
+  else
+  {
+   for(i=0;i<m_name.GetLength();i++)
+            num+=m_name[i];
+           for(i=0;i<16;i++) str[i]=num^str[i];
+           for(i=0;i<16;i++) sprintf(str1+2*i,"%0x",str[i]);
+   m_sn=str1;
+   m_sn.MakeUpper();
+    }
+  UpdateData(FALSE);
+}
+```
+
+补充一下，对于破解中遇到的那个长度为 `FFh` 的 32 位整数表，好像在那里见过，拿看雪的书一查看，才发现是 `CRC32` 校验的常数表，这下我对这个 Crackme 的整个判断过程就清晰多了。重新总结一下，作者计算如下数据的 `CRC` 校验值：
+
+```
+004038F0  B9 A7 CF B2 C4 FA A3 A1  恭喜您！
+004038F8  C4 FA D2 D1 BE AD B3 C9  您已经成
+00403900  B9 A6 B5 C4 D7 A2 B2 E1  功的注册
+00403908  C1 CB B1 BE C8 ED BC FE  了本软件
+00403910  A3 A1 2D 20 4C 6F 76 65  ！- Love
+00403918  61 73 6D 5B 59 43 47 5D  asm[YCG]
+00403920  5B 44 46 43 47 5D 20 2D  [DFCG] -
+00403928  20 49 20 4C 6F 76 65 20   I Love
+00403930  41 73 6D 21 49 20 4C 6F  Asm!I Lo
+00403938  76 65 20 43 72 61 63 6B  ve Crack
+00403940  21 49 20 4C 6F 76 65 20  !I Love
+00403948  4B 61 74 68 79 21 4D 79  Kathy!My
+00403950  20 45 6D 61 69 6C 3A 6C   Email:l
+00403958  6F 76 65 61 73 6D 40 73  oveasm@s
+00403960  6F 68 75 2E 63 6F 6D 20  ohu.com
+00403968  51 51 3A 31 32 37 30 39  QQ:12709
+00403970  35                      5
+```
+
+若校验值为 `C4B086CA`，则正确，若不相等，则错误，而这个串的获得是由用户输入的正确的注册码运算出来的，若输入的注册码不正确，则得不到正确的提示信息，爆破也没有用。
+
+一般 `CRC` 校验算法是把注册名和注册码按某种运算之后的值进行校验，而这个 Crackme 还把要显示的正确提示信息进行了校验，算法很巧妙，故题目加上 `CRC32` 算法的妙用。真是佩服 `Loveasm[YCG][DFCG]`，能用纯汇编实现这么好的 Crackme，真是厉害，再次感谢！
+
+`4dd466d0e1e0cc123afbe504da2462ca`

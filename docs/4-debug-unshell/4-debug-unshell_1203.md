@@ -1,226 +1,219 @@
 
-
 # ZProtect Anti-Hook 脱壳
 
 > 原文：[`www.pediy.com/kssd/pediy12/142413.html`](https://www.pediy.com/kssd/pediy12/142413.html)
 
-【文章标题】: ZProtect Anti-Hook 脱壳  
-【文章作者】: Smoke  
-【作者邮箱】: 97463448@qq.com  
-【作者 QQ 号】: 97463448  
-【软件名称】: Project1.zp.exe  
-【下载地址】: http://dl.dbank.com/c0akiyblms  
-【保护方式】: ZProtect  
-【使用工具】: OllyDbg,LordPE,ImportREC  
-【操作平台】: Windows Xp Sp3  
-【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!  
-\--------------------------------------------------------------------------------  
-【详细过程】  
-ZProtect 的 IAT 保护里有一个 anti hook 功能，让我们修复起来很麻烦 o()o   
-我们先用 delphi7 编译一个无壳程序 然后使用 ZProtect1.49 进行加壳  
-加完壳之后 载入我们强悍的工具 OllyDbg 后,找到 oep 使用 esp 定律即可  
-载入之后显示为如下:  
+## 文章信息
 
-代码:
+* **文章标题**: ZProtect Anti-Hook 脱壳
+* **文章作者**: Smoke
+* **作者邮箱**: `97463448@qq.com`
+* **作者 QQ 号**: `97463448`
+* **软件名称**: `Project1.zp.exe`
+* **下载地址**: `http://dl.dbank.com/c0akiyblms`
+* **保护方式**: ZProtect
+* **使用工具**: `OllyDbg`, `LordPE`, `ImportREC`
+* **操作平台**: Windows Xp Sp3
+* **作者声明**: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
 
-```
-  004667F6     E8 01000000          call    004667FC
-  004667FB     A8 87                test    al, 0x87
-  004667FD     2C 24                sub     al, 0x24
-  004667FF     8DAD C1FAFFFF        lea     ebp, dword ptr ss:\[ebp-0x53F\]
-  00466805     872C24               xchg    dword ptr ss:\[esp\], ebp
+## 详细过程
+
+ZProtect 的 IAT 保护里有一个 anti hook 功能，让我们修复起来很麻烦 o()o
+
+我们先用 `delphi7` 编译一个无壳程序 然后使用 `ZProtect1.49` 进行加壳
+
+加完壳之后 载入我们强悍的工具 `OllyDbg` 后,找到 oep 使用 esp 定律即可
+
+载入之后显示为如下:
 
 ```
-
-oep 为如下:  
-代码:
-
-```
-  0044E1DC     55                   push    ebp          //下硬件执行断点 
-  0044E1DD     8BEC                 mov     ebp, esp
-  0044E1DF     83C4 F0              add     esp, -0x10
-  0044E1E2     B8 FCDF4400          mov     eax, 0044DFFC
-  0044E1E7     E8 E480FBFF          call    004062D0
-  0044E1EC     A1 1C004500          mov     eax, dword ptr ds:\[0x45001C\]
-  0044E1F1     8B00                 mov     eax, dword ptr ds:\[eax\]
-  0044E1F3     E8 9CE6FFFF          call    0044C894
-  0044E1F8     8B0D F8004500        mov     ecx, dword ptr ds:\[0x4500F8\]        ; Project1.00451BD0
-
+  004667F6     E8 01000000          call    004667FC
+  004667FB     A8 87                test    al, 0x87
+  004667FD     2C 24                sub     al, 0x24
+  004667FF     8DAD C1FAFFFF        lea     ebp, dword ptr ss:\[ebp-0x53F\]
+  00466805     872C24              xchg    dword ptr ss:\[esp\], ebp
 ```
 
-重新载入程序 既然它要模拟 dll 那么就会打开文件 我们下断点 Bp CreateFileA 断点 F9 运行  
-看到堆栈窗口显示 打开了 Kernel32.dll  
-代码:
+oep 为如下:
 
 ```
-  0012F8F8   00A0DA0D  /CALL to CreateFileA from 00A0DA07
-  0012F8FC   0012FAA8  |FileName = "C:\\WINDOWS\\system32\\kernel32.dll"
-  0012F900   80000000  |Access = GENERIC\_READ
-
+  0044E1DC     55                   push    ebp          //下硬件执行断点
+  0044E1DD     8BEC                mov     ebp, esp
+  0044E1DF     83C4 F0             add     esp, -0x10
+  0044E1E2     B8 FCDF4400         mov     eax, 0044DFFC
+  0044E1E7     E8 E480FBFF         call    004062D0
+  0044E1EC     A1 1C004500         mov     eax, dword ptr ds:\[0x45001C\]
+  0044E1F1     8B00                mov     eax, dword ptr ds:\[eax\]
+  0044E1F3     E8 9CE6FFFF         call    0044C894
+  0044E1F8     8B0D F8004500       mov     ecx, dword ptr ds:\[0x4500F8\]        ; Project1.00451BD0
 ```
 
-再下 Bp VirtualAlloc F9 运行 来到以下代码处:  
-代码:
+重新载入程序 既然它要模拟 dll 那么就会打开文件 我们下断点 `Bp CreateFileA` 断点 F9 运行
+
+看到堆栈窗口显示 打开了 `Kernel32.dll`
 
 ```
-  7C809AE1 k>  8BFF                 mov     edi, edi                            ; kernel32.ReadFile
-  7C809AE3     55                   push    ebp
-  7C809AE4     8BEC                 mov     ebp, esp
-  7C809AE6     FF75 14              push    dword ptr ss:\[ebp+0x14\]
-  7C809AE9     FF75 10              push    dword ptr ss:\[ebp+0x10\]
-  7C809AEC     FF75 0C              push    dword ptr ss:\[ebp+0xC\]
-  7C809AEF     FF75 08              push    dword ptr ss:\[ebp+0x8\]
-  7C809AF2     6A FF                push    -0x1
-  7C809AF4     E8 09000000          call    VirtualAllocEx
-  7C809AF9     5D                   pop     ebp       //F2 下断 F9 运行
-  7C809AFA     C2 1000              retn    0x10
-
+  0012F8F8   00A0DA0D  /CALL to CreateFileA from 00A0DA07
+  0012F8FC   0012FAA8  |FileName = "C:\\WINDOWS\\system32\\kernel32.dll"
+  0012F900   80000000  |Access = GENERIC\_READ
 ```
 
-F9 一次记录 Kernel32.dll 继续 F9 一次记录 user32.dll 继续 F9 一次记录 advapi32.dll   
-继续 F9 一次记录 oleaut32.dll 继续 F9 一次记录 version.dll 继续 F9 一次记录 gdi32.dll  
-继续 F9 一次记录 comctl32.dll   
-  
-继续 F9 一次 来到了 OEP 代码如下:  
-代码:
+再下 `Bp VirtualAlloc` F9 运行 来到以下代码处:
 
 ```
-  0044E1DC     55                   push    ebp
-  0044E1DD     8BEC                 mov     ebp, esp
-  0044E1DF     83C4 F0              add     esp, -0x10
-  0044E1E2     B8 FCDF4400          mov     eax, 0044DFFC
-  0044E1E7     E8 E480FBFF          call    004062D0
-  0044E1EC     A1 1C004500          mov     eax, dword ptr ds:\[0x45001C\]
-  0044E1F1     8B00                 mov     eax, dword ptr ds:\[eax\]
-
+  7C809AE1 k>   8BFF             mov     edi, edi                              ; kernel32.ReadFile
+  7C809AE3     55               push    ebp
+  7C809AE4     8BEC             mov     ebp, esp
+  7C809AE6     FF75 14          push    dword ptr ss:\[ebp+0x14\]
+  7C809AE9     FF75 10          push    dword ptr ss:\[ebp+0x10\]
+  7C809AEC     FF75 0C          push    dword ptr ss:\[ebp+0xC\]
+  7C809AEF     FF75 08          push    dword ptr ss:\[ebp+0x8\]
+  7C809AF2     6A FF            push    -0x1
+  7C809AF4     E8 09000000      call    VirtualAllocEx
+  7C809AF9     5D               pop     ebp       //F2 下断 F9 运行
+  7C809AFA     C2 1000          retn    0x10
 ```
 
-代码:
+F9 一次记录 `Kernel32.dll` 继续 F9 一次记录 `user32.dll` 继续 F9 一次记录 `advapi32.dll`
+
+继续 F9 一次记录 `oleaut32.dll` 继续 F9 一次记录 `version.dll` 继续 F9 一次记录 `gdi32.dll`
+
+继续 F9 一次记录 `comctl32.dll`
+
+继续 F9 一次 来到了 OEP 代码如下:
 
 ```
-     Dll 名           现在的基址    系统函数的基址
-  Kernel32.dll        00A90000        7C800000   
- 
-  user32.dll          00BB0000        77D10000     
- 
-  advapi32.dll        00C40000        77DA0000   
- 
-  oleaut32.dll        00CF0000        770F0000    
- 
-  version.dll         00D80000        77BD0000   
- 
-  gdi32.dll           00D90000        77EF0000   
- 
-  comctl32.dll        00DE0000        5D170000  
- 
- 
- 
-  IAT 起始地址:00452114
-  IAT 结束地址:00452708
-
+  0044E1DC     55               push    ebp
+  0044E1DD     8BEC             mov     ebp, esp
+  0044E1DF     83C4 F0          add     esp, -0x10
+  0044E1E2     B8 FCDF4400      mov     eax, 0044DFFC
+  0044E1E7     E8 E480FBFF      call    004062D0
+  0044E1EC     A1 1C004500      mov     eax, dword ptr ds:\[0x45001C\]
+  0044E1F1     8B00             mov     eax, dword ptr ds:\[eax\]
 ```
 
-  
-使用 kissy 牛的脚本 内容如下 需要的请自己修改基址  
-代码:
+```
+     Dll 名          现在的基址    系统函数的基址
+  Kernel32.dll        00A90000        7C800000    
+ 
+  user32.dll          00BB0000        77D10000     
+ 
+  advapi32.dll        00C40000        77DA0000    
+ 
+  oleaut32.dll        00CF0000        770F0000     
+ 
+  version.dll         00D80000        77BD0000    
+ 
+  gdi32.dll           00D90000        77EF0000    
+ 
+  comctl32.dll        00DE0000        5D170000   
+ 
+ 
+ 
+  IAT 起始地址:00452114
+  IAT 结束地址:00452708
+```
+
+使用 kissy 牛的脚本 内容如下 需要的请自己修改基址
 
 ```
- 
-var oep
-var fi
-var tmpesp
-var tmp
- 
+ 
+var oep
+var fi
+var tmpesp
+var tmp
+ 
 bc
 bphwc
-bphws 009E2847 ,"x"
-mov oep,eip
-mov tmpesp,esp
-mov fi,00452114
+bphws 009E2847 ,"x"
+mov oep,eip
+mov tmpesp,esp
+mov fi,00452114
 loop:
-mov esp,tmpesp
-add fi,4
-cmp fi,00452708
-jae exit
-cmp \[fi\],0
-je loop
-mov eip,\[fi\]
+mov esp,tmpesp
+add fi,4
+cmp fi,00452708
+jae exit
+cmp \[fi\],0
+je loop
+mov eip,\[fi\]
 esto
-mov tmp,\[esp\]
-cmp tmp,00F6C000
-ja fix1
-cmp tmp,00DE0000
-ja comctl32
-cmp tmp,00D90000
-ja Gdi32
-cmp tmp,00D80000
-ja Version
-cmp tmp,00CF0000
-ja Oleaut32
-cmp tmp,00C40000
-ja Advapi32
-cmp tmp,00BB0000
-ja USER32
-cmp tmp,00A90000
-ja Kernel32
- 
+mov tmp,\[esp\]
+cmp tmp,00F6C000
+ja fix1
+cmp tmp,00DE0000
+ja comctl32
+cmp tmp,00D90000
+ja Gdi32
+cmp tmp,00D80000
+ja Version
+cmp tmp,00CF0000
+ja Oleaut32
+cmp tmp,00C40000
+ja Advapi32
+cmp tmp,00BB0000
+ja USER32
+cmp tmp,00A90000
+ja Kernel32
+ 
 Kernel32:
-sub tmp,00A90000
-add tmp,7C800000
-mov \[fi\],tmp
-jmp loop
- 
+sub tmp,00A90000
+add tmp,7C800000
+mov \[fi\],tmp
+jmp loop
+ 
 USER32:
-sub tmp,00BB0000
-add tmp,77D10000
-mov \[fi\],tmp
-jmp loop
- 
+sub tmp,00BB0000
+add tmp,77D10000
+mov \[fi\],tmp
+jmp loop
+ 
 Advapi32:
-sub tmp,00C40000
-add tmp,77DA0000
-mov \[fi\],tmp
-jmp loop
- 
+sub tmp,00C40000
+add tmp,77DA0000
+mov \[fi\],tmp
+jmp loop
+ 
 Oleaut32:
-sub tmp,00CF0000
-add tmp,770F0000
-mov \[fi\],tmp
-jmp loop
- 
+sub tmp,00CF0000
+add tmp,770F0000
+mov \[fi\],tmp
+jmp loop
+ 
 Version:
-sub tmp,00D80000
-add tmp,77BD0000
-mov \[fi\],tmp
-jmp loop
- 
+sub tmp,00D80000
+add tmp,77BD0000
+mov \[fi\],tmp
+jmp loop
+ 
 Gdi32:
-sub tmp,00D90000
-add tmp,77EF0000
-mov \[fi\],tmp
-jmp loop
- 
+sub tmp,00D90000
+add tmp,77EF0000
+mov \[fi\],tmp
+jmp loop
+ 
 comctl32:
-sub tmp,00DE0000
-add tmp,5D170000
-mov \[fi\],tmp
-jmp loop
- 
- 
+sub tmp,00DE0000
+add tmp,5D170000
+mov \[fi\],tmp
+jmp loop
+ 
+ 
 fix1:
-mov \[fi\],tmp
-jmp loop
- 
+mov \[fi\],tmp
+jmp loop
+ 
 exit:
 bphwc
-mov eip,oep
-mov esp,tmpesp
+mov eip,oep
+mov esp,tmpesp
 ret
- 
-
+ 
+ 
 ```
 
-\--------------------------------------------------------------------------------  
-【版权声明】: 本文原创于 Smoke, 转载请注明作者并保持文章的完整, 谢谢!  
-  
-2011 年 11 月 05 日 23:40:08
+## 版权声明
+
+本文原创于 Smoke, 转载请注明作者并保持文章的完整, 谢谢!
+
+2011 年 11 月 05 日 23:40:08

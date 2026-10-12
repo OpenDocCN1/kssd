@@ -1,3 +1,2 @@
 
-
-# \====2011 ExploitMe 竞赛====
+# 2011 ExploitMe 竞赛

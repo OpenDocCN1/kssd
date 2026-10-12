@@ -1,364 +1,511 @@
 
-
 # DNF 驱动对内存读取的过滤分析
 
 > 原文：[`www.pediy.com/kssd/pediy11/125060.html`](https://www.pediy.com/kssd/pediy11/125060.html)
 
-下面是分析 tessafe.sys 对 NtReadVirtualMemory 调用的过滤处理方法，以及应对办法。  
-  
- 一、运行 DNF 后 打开 windbg 定位到 NtReadVirtualMemory 函数位置，内核汇编代码如下：  
-     nt!NtReadVirtualMemory:  
-      805b52b8 b808d316b3      mov     eax,0B316D308h  ;TesSafe.sys hook 位置  
-    805b52bd ffe0            jmp     eax  
-      805b52bf e8dc78f8ff      call    nt!\_SEH\_prolog (8053cba0)  
-      805b52c4 64a124010000    mov     eax,dword ptr fs:\[00000124h\]  
-      805b52ca 8bf8            mov     edi,eax  
-      805b52cc 8a8740010000    mov     al,byte ptr \[edi+140h\]  
-      805b52d2 8845e0          mov     byte ptr \[ebp-20h\],al  
-      805b52d5 8b7514          mov     esi,dword ptr \[ebp+14h\]  
-      805b52d8 84c0            test    al,al  
-      805b52da 7466            je      nt!NtReadVirtualMemory+0x8a (805b5342)  
-      805b52dc 8b450c          mov     eax,dword ptr \[ebp+0Ch\]  
-      805b52df 8d1430          lea     edx,\[eax+esi\]  
-      805b52e2 3bd0            cmp     edx,eax  
-  
-      定位到 0B316D308 位置，此部分代码就是 tessafe.sys 的过滤函数。下面是对这些会汇编代码的分析，有点乱  
-  
-  
-      b316d308 8bff            mov     edi,edi  
-      b316d30a 55              push    ebp  
-      b316d30b 8bec            mov     ebp,esp  
-      b316d30d 81ec00010000    sub     esp,100h  
-      b316d313 60              pushad  
-      b316d314 9c              pushfd  
-      b316d315 b8206f17b3      mov     eax,0B3176F20h                          ;ecx = 0B3176F20h  
-      b316d31a 33c9            xor     ecx,ecx                                ;ecx =0  
-      b316d31c 41              inc     ecx                                    ;ecx = 1  
-      b316d31d f00fc108        lock xadd dword ptr \[eax\],ecx                  ;\[0B3176F20h\] += 1  
-      b316d321 ff154c4017b3    call    dword ptr ds:\[0B317404Ch\]              ;call nt!PsGetCurrentProcess      
-      b316d327 8945f8          mov     dword ptr \[ebp-8\],eax                  ;\[ebp-8\]=current EPROCESS  
-      b316d32a 6a00            push    0                                      ; push 0  
-      b316d32c 8d45fc          lea     eax,\[ebp-4\]                              
-      b316d32f 50              push    eax                                    ;push ptr\[ebp-4\]  
-      b316d330 6a00            push    0                                      ;push 0  
-      b316d332 a15c4117b3      mov     eax,dword ptr ds:\[B317415Ch\]            ;eax = \[B317415Ch\]=805649b8  
-      b316d337 ff30            push    dword ptr \[eax\]                        ;push 805649b8  
-      b316d339 6800040000      push    400h                                    ;push 0x400  
-      b316d33e ff7508          push    dword ptr \[ebp+8\]                      ;push 目标进程 ProcessHandle  
-      b316d341 ff159c4017b3    call    dword ptr ds:\[0B317409Ch\]              ;call ObReferenceObjectByHandle  
-      b316d347 8945f4          mov     dword ptr \[ebp-0Ch\],eax                ;判断函数调用是否成功  
-      b316d34a 837df400        cmp     dword ptr \[ebp-0Ch\],0  
-      b316d34e 7d02            jge     b316d352                                  
-      b316d350 eb65            jmp     b316d3b7                                ;不成功跳转  
-      b316d352 8b4dfc          mov     ecx,dword ptr \[ebp-4\]                  ;ecx = 目标进程句柄信息  
-      b316d355 ff15584117b3    call    dword ptr ds:\[0B3174158h\]              ;call ObfDereferenceObject   撤销对象的引用计数  
-      b316d35b 8b45fc          mov     eax,dword ptr \[ebp-4\]                  ;eax = 目标的句柄信息  
-      b316d35e 3b45f8          cmp     eax,dword ptr \[ebp-8\]                  ;比较目标进程是否是本进程  
-      b316d361 7502            jne     b316d365                                ;不能，继续判断  
-      b316d363 eb52            jmp     b316d3b7                                ;相等不进行拦截  
-      b316d365 6a04            push    4                                      ;push 4  
-      b316d367 ff75fc          push    dword ptr \[ebp-4\]                      ;push 目标进程句柄信息  
-      b316d36a e8c3fdffff      call    b316d132                                ;判断目标进程是否是 DNF 进程  
-      b316d36f 0fb6c0          movzx   eax,al                                
-      b316d372 85c0            test    eax,eax  
-      b316d374 7502            jne     b316d378              
-      b316d376 eb3f            jmp     b316d3b7                                ;目标进程不是 DNF 进程，不进行拦截      
-      b316d378 6a04            push    4                                      ;push 4  
-      b316d37a ff75f8          push    dword ptr \[ebp-8\]                      ;当前进程 eprocess  
-      b316d37d e8f0fcffff      call    b316d072                                ;比较当前进程是否在白名单中  
-      b316d382 0fb6c0          movzx   eax,al  
-      b316d385 85c0            test    eax,eax  
-      b316d387 7402            je      b316d38b                                ;在白名单中，继续判断  
-      b316d389 eb2c            jmp     b316d3b7                                ;不再则跳转，将屏蔽此次调用  
-      b316d38b 6a04            push    4                                      ;push 4  
-      b316d38d ff75f8          push    dword ptr \[ebp-8\]                      ;push 目标进程结构  
-      b316d390 e81bfdffff      call    b316d0b0                                ;判断是否在另外一份白名单中    
-      b316d395 0fb6c0          movzx   eax,al  
-      b316d398 85c0            test    eax,eax  
-      b316d39a 7402            je      b316d39e                                ;在第二份白名单中    
-      b316d39c eb19            jmp     b316d3b7                                ;不在第二份白名单中，将屏蔽此次调用  
-      b316d39e b8206f17b3      mov     eax,0B3176F20h                          ;  
-      b316d3a3 83c9ff          or      ecx,0FFFFFFFFh  
-      b316d3a6 f00fc108        lock xadd dword ptr \[eax\],ecx                  ;\[0B3176F20h\] += -1  
-      b316d3aa 9d              popfd  
-      b316d3ab 61              popad  
-      b316d3ac 8be5            mov     esp,ebp                               ;  
-      b316d3ae 5d              pop     ebp  
-       b316d3af b80d0000c0      mov     eax,0C000000Dh                          ;置返回错误代码  
-      b316d3b4 c21400          ret     14h                                    ;不在白名单中，调用失败  
-      b316d3b7 b8206f17b3      mov     eax,0B3176F20h                        ;\[0B3176F20h\] += -1  
-      b316d3bc 83c9ff          or      ecx,0FFFFFFFFh  
-      b316d3bf f00fc108        lock xadd dword ptr \[eax\],ecx  
-      b316d3c3 9d              popfd  
-      b316d3c4 61              popad  
-      b316d3c5 8be5            mov     esp,ebp  
-      b316d3c7 5d              pop     ebp  
-      b316d3c8 6a1c            push    1Ch  
-      b316d3ca 68f0ae4d80      push    offset nt!MmClaimParameterAdjustDownTime+0x90 (804daef0)  
-      b316d3cf 90              nop  
-      b316d3d0 90              nop  
-      b316d3d1 90              nop  
-      b316d3d2 90              nop  
-      b316d3d3 90              nop  
-      b316d3d4 90              nop  
-      b316d3d5 90              nop  
-      b316d3d6 90              nop  
-      b316d3d7 90              nop  
-       b316d3d8 ff253c6e17b3    jmp     dword ptr ds:\[0B3176E3Ch\]          ；跳转到  
-      b316d3de cc              int     3  
-      b316d3df cc              int     3  
-              
-  //==============================================================================  
-  b316d132  如果为 DNF 进程返回 0 否则返回 1  
-   
-      b316d132 8bff            mov     edi,edi  
-      b316d134 55              push    ebp  
-      b316d135 8bec            mov     ebp,esp  
-      b316d137 51              push    ecx  
-      b316d138 53              push    ebx  
-      b316d139 56              push    esi  
-      b316d13a c645ff00        mov     byte ptr \[ebp-1\],0                  ;\[ebp-1\] = 0;  
-      b316d13e 32db            xor     bl,bl                              ;bl = 0;  
-      b316d140 ff15084017b3    call    dword ptr ds:\[0B3174008h\]          ;call KeGetCurrentIrql 得到 IRQ 级别  
-      b316d146 3c02            cmp     al,2                                ;判断是否在 DISPATCH\_LEVEL 级别  
-      b316d148 bebc7117b3      mov     esi,0B31771BCh                      ;esi = 0B31771BCh  
-      b316d14d 8bce            mov     ecx,esi                            ;ecx = 0B31771BCh  
-      b316d14f 720a            jb      b316d15b                            ;小于 DISPATCH\_LEVEL 级别 跳转  
-      b316d151 ff15784017b3    call    dword ptr ds:\[0B3174078h\]          ; call KefAcquireSpinLockAtDpcLevel  
-      b316d157 fec3            inc     bl                                  ;b1++  
-      b316d159 eb09            jmp     b316d164                        
-      b316d15b ff150c4017b3    call    dword ptr ds:\[0B317400Ch\]          ;call KfAcquireSpinLock  
-      b316d161 8845fe          mov     byte ptr \[ebp-2\],al  
-      b316d164 a1c07117b3      mov     eax,dword ptr ds:\[B31771C0h\]       ;eax = \[B31771C0h\]=88c1dee4   
-      b316d169 b9c07117b3      mov     ecx,0B31771C0h                      ;ecx = 0B31771C0h  
-      b316d16e eb0a            jmp     b316d17a  
-      b316d170 8b50cc          mov     edx,dword ptr \[eax-34h\]            ;取得链表节点对应 eprocess  
-      b316d173 3b5508          cmp     edx,dword ptr \[ebp+8\]              ;与目标进程比较  
-      b316d176 7408            je      b316d180                            ;相等 跳转  
-      b316d178 8b00            mov     eax,dword ptr \[eax\]  
-      b316d17a 3bc1            cmp     eax,ecx                            ;比较 \[B31771C0h\] == 0B31771C0h 比较是否到链表尾部  
-      b316d17c 75f2            jne     b316d170                            ;不等进行进程 eprocess 比较  
-      b316d17e eb0c            jmp     b316d18c                            ;到链表结尾，跳转  
-      b316d180 8b4d0c          mov     ecx,dword ptr \[ebp+0Ch\]            ;ECX=4  
-      b316d183 8548e0          test    dword ptr \[eax-20h\],ecx            ;0x7ff&0x04 >0      
-      b316d186 7404            je      b316d18c  
-      b316d188 c645ff01        mov     byte ptr \[ebp-1\],1                  ;\[ebp-1\]=1  
-      b316d18c 84db            test    bl,bl                              ;b1 ==0  
-      b316d18e 8bce            mov     ecx,esi                            ;ecx=0B31771BCh  
-      b316d190 7408            je      b316d19a                            ;=0 跳转  
-      b316d192 ff15744017b3    call    dword ptr ds:\[0B3174074h\]  
-       b316d198 eb09            jmp     b316d1a3  
-      b316d19a 8a55fe          mov     dl,byte ptr \[ebp-2\]                ;dl =irql 级别  
-      b316d19d ff15104017b3    call    dword ptr ds:\[0B3174010h\]          ;call KfReleaseSpinLock  
-      b316d1a3 8a45ff          mov     al,byte ptr \[ebp-1\]                a1 = 1  
-      b316d1a6 5e              pop     esi  
-      b316d1a7 5b              pop     ebx  
-      b316d1a8 c9              leave  
-      b316d1a9 c20800          ret     8  
-//=====================================================================  
-b316d072  判断是否在白名单 1 中  
-  
-      b316d072 8bff            mov     edi,edi                          
-      b316d074 55              push    ebp  
-      b316d075 8bec            mov     ebp,esp  
-      b316d077 8b0da87117b3    mov     ecx,dword ptr \[TesSafe+0xd1a8 (b31771a8)\]  ;ecx = \[b31771a8\] = 89a3442c   
-      b316d07d baa87117b3      mov     edx,offset TesSafe+0xd1a8 (b31771a8)        ;edx = b31771a8   
-      b316d082 32c0            xor     al,al                                      ;a1 = 0  
-      b316d084 3bca            cmp     ecx,edx                                    ;判断是否是空链表        
-      b316d086 741f            je      TesSafe+0x30a7 (b316d0a7)                  ;空链表跳转  
-      b316d088 56              push    esi                      
-      b316d089 8b7508          mov     esi,dword ptr \[ebp+8\]                      ;esi=当前进程 EPROCESS  
-      b316d08c 3b71dc          cmp     esi,dword ptr \[ecx-24h\]                    ;比较目标进程是否在白名单中  
-      b316d08f 7408            je      TesSafe+0x3099 (b316d099)                  ;相等则跳转  
-      b316d091 8b09            mov     ecx,dword ptr \[ecx\]                        ；取下一个节点  
-      b316d093 3bca            cmp     ecx,edx                                    ;判断是否到链表结尾  
-      b316d095 75f2            jne     TesSafe+0x3089 (b316d089)                  ;不到则继续判断  
-      b316d097 eb0d            jmp     TesSafe+0x30a6 (b316d0a6)                  ;到链表结尾，而且没有在白名单中匹配  
-      b316d099 8b550c          mov     edx,dword ptr \[ebp+0Ch\]                    ;edx =4  
-      b316d09c ff41fc          inc     dword ptr \[ecx-4\]                          ;\[ecx-4\]++  
-      b316d09f 8551e4          test    dword ptr \[ecx-1Ch\],edx                    ;\[ecx-1ch\] 是否等于 4 不等于 4 则屏蔽  
-      b316d0a2 7402            je      TesSafe+0x30a6 (b316d0a6)                    
-      b316d0a4 b001            mov     al,1  
-      b316d0a6 5e              pop     esi  
-      b316d0a7 5d              pop     ebp  
-      b316d0a8 c20800          ret     8  
-  
- 在 windbg 查看  
-   
- lkd> dd 89a3442c-24  
-89a34408  8a5aa288 00000500 000fffff e8710e72  
-89a34418  74737953 00006d65 00000000 00000000  
-89a34428  00000000 88afc274 b31771a8 005c003f  
-89a34438  0a090007 68734c4b 89d5c8f0 89ad8778  
-89a34448  896ec690 00000000 00000000 897e47a8  
-89a34458  89d5dbf0 89ad87dc 00010000 00000001  
-89a34468  0001502b 00000000 e3a67220 00000008  
-89a34478  00000000 00000000 0a080009 e174754d  
-lkd> !process 8a5aa288 0  
-Unable to read selector for PCR for processor 0  
-PROCESS 8a5aa288  SessionId: none  Cid: 0004    Peb: 00000000  ParentCid: 0000  
-    DirBase: 0aed8020  ObjectTable: e1002e38  HandleCount: 474.  
-    Image: System  
-  
-下面我找到白名单进程  
-System  
-smss.exe  
-csrss.exe  
-SERVICES.EXE  
-LSASS.EXE  
-SVCHOST.EXE  
-  
-  
-//===========================  
-判断是否在白名单 2 中  
-      b2a510b0 8bff            mov     edi,edi  
-      b2a510b2 55              push    ebp  
-      b2a510b3 8bec            mov     ebp,esp  
-      b2a510b5 51              push    ecx  
-      b2a510b6 53              push    ebx  
-      b2a510b7 56              push    esi  
-      b2a510b8 c645ff00        mov     byte ptr \[ebp-1\],0                                  ;\[ebp-1\] = 0  
-      b2a510bc 32db            xor     bl,bl                                              ;b1 = 0  
-      b2a510be ff150880a5b2    call    dword ptr \[TesSafe+0xa008 (b2a58008)\]              call KeGetCurrentIrql  
-      b2a510c4 3c02            cmp     al,2                                                比较当前 IRQL 级别是否为 DISPATCH\_LEVEL 级别  
-      b2a510c6 beb8b1a5b2      mov     esi,offset TesSafe+0xd1b8 (b2a5b1b8)                esi = b2a5b1b8  
-      b2a510cb 8bce            mov     ecx,esi                                            ecx = b2a5b1b8  
-      b2a510cd 720a            jb      TesSafe+0x30d9 (b2a510d9)                          ;小于 DISPATCH\_LEVEL 级别 跳转  
-      b2a510cf ff157880a5b2    call    dword ptr \[TesSafe+0xa078 (b2a58078)\]              ;call Ke386QueryIoAccessMap  
-      b2a510d5 fec3            inc     bl                                                  ;b1 = 1  
-      b2a510d7 eb09            jmp     TesSafe+0x30e2 (b2a510e2)                            
-      b2a510d9 ff150c80a5b2    call    dword ptr \[TesSafe+0xa00c (b2a5800c)\]              ;call KfAcquireSpinLock  
-      b2a510df 8845fe          mov     byte ptr \[ebp-2\],al                                \[ebp-2\] 保存当前 IRQL          
-      b2a510e2 a1b0b1a5b2      mov     eax,dword ptr \[TesSafe+0xd1b0 (b2a5b1b0)\]          ;eax = \[b2a5b1b0\]=8993e02c   
-      b2a510e7 b9b0b1a5b2      mov     ecx,offset TesSafe+0xd1b0 (b2a5b1b0)                ;ecx = b2a5b1b0  
-      b2a510ec eb0a            jmp     TesSafe+0x30f8 (b2a510f8)  
-      b2a510ee 8b50dc          mov     edx,dword ptr \[eax-24h\]                              
-      b2a510f1 3b5508          cmp     edx,dword ptr \[ebp+8\]                              ;白名单判断  
-      b2a510f4 7408            je      TesSafe+0x30fe (b2a510fe)  
-      b2a510f6 8b00            mov     eax,dword ptr \[eax\]  
-      b2a510f8 3bc1            cmp     eax,ecx  
-      b2a510fa 75f2            jne     TesSafe+0x30ee (b2a510ee)  
-      b2a510fc eb0f            jmp     TesSafe+0x310d (b2a5110d)  
-      b2a510fe 8b4d0c          mov     ecx,dword ptr \[ebp+0Ch\]  
-      b2a51101 ff40fc          inc     dword ptr \[eax-4\]  
-      b2a51104 8548e4          test    dword ptr \[eax-1Ch\],ecx  
-      b2a51107 7404            je      TesSafe+0x310d (b2a5110d)  
-      b2a51109 c645ff01        mov     byte ptr \[ebp-1\],1  
-      b2a5110d 84db            test    bl,bl  
-      b2a5110f 8bce            mov     ecx,esi  
-      b2a51111 7408            je      TesSafe+0x311b (b2a5111b)  
-      b2a51113 ff157480a5b2    call    dword ptr \[TesSafe+0xa074 (b2a58074)\]  
-      b2a51119 eb09            jmp     TesSafe+0x3124 (b2a51124)  
-      b2a5111b 8a55fe          mov     dl,byte ptr \[ebp-2\]  
-      b2a5111e ff151080a5b2    call    dword ptr \[TesSafe+0xa010 (b2a58010)\]  
-      b2a51124 8a45ff          mov     al,byte ptr \[ebp-1\]  
-      b2a51127 5e              pop     esi  
-      b2a51128 5b              pop     ebx  
-      b2a51129 c9              leave  
-      b2a5112a c20800          ret     8  
-  
-    
-  TXPlatform.exe  
-  QQ.exe  
-  
-  
-  
-  
-  
-二 、过滤处理函数的伪代码  
-  
-int g\_globalValue;  
- int MyNtReadVirtualMemory(IN HANDLE ProcessHandle,  
-                                              IN PVOID BaseAddress,  
-                                              OUT PVOID Buffer,  
-                                               IN SIZE\_T NumberOfBytesToRead,  
-                                               OUT PSIZE\_T NumberOfBytesRead OPTIONAL)   
+下面是分析`tessafe.sys`对`NtReadVirtualMemory`调用的过滤处理方法，以及应对办法。
+
+## 一、运行 DNF 后打开 windbg 定位到 NtReadVirtualMemory 函数位置，内核汇编代码如下：
+
+`nt!NtReadVirtualMemory:`
+
+```
+    805b52b8 b808d316b3     mov     eax,0B316D308h  ;TesSafe.sys hook 位置
+    805b52bd ffe0          jmp     eax
+    805b52bf e8dc78f8ff    call    nt!_SEH_prolog (8053cba0)
+    805b52c4 64a124010000  mov     eax,dword ptr fs:[00000124h]
+    805b52ca 8bf8          mov     edi,eax
+    805b52cc 8a8740010000  mov     al,byte ptr [edi+140h]
+    805b52d2 8845e0        mov     byte ptr [ebp-20h],al
+    805b52d5 8b7514       mov     esi,dword ptr [ebp+14h]
+    805b52d8 84c0         test    al,al
+    805b52da 7466         je      nt!NtReadVirtualMemory+0x8a (805b5342)
+    805b52dc 8b450c       mov     eax,dword ptr [ebp+0Ch]
+    805b52df 8d1430       lea     edx,[eax+esi]
+    805b52e2 3bd0         cmp     edx,eax
+```
+
+定位到`0B316D308`位置，此部分代码就是`tessafe.sys`的过滤函数。下面是对这些汇编代码的分析，有点乱
+
+```
+    b316d308 8bff         mov     edi,edi
+    b316d30a 55          push    ebp
+    b316d30b 8bec        mov     ebp,esp
+    b316d30d 81ec00010000 sub    esp,100h
+    b316d313 60          pushad
+    b316d314 9c          pushfd
+    b316d315 b8206f17b3  mov     eax,0B3176F20h                ;ecx = 0B3176F20h
+    b316d31a 33c9        xor     ecx,ecx                       ;ecx =0
+    b316d31c 41          inc     ecx                           ;ecx = 1
+    b316d31d f00fc108    lock xadd dword ptr [eax],ecx         ;[0B3176F20h] += 1
+    b316d321 ff154c4017b3 call   dword ptr ds:[0B317404Ch]      ;call nt!PsGetCurrentProcess
+    b316d327 8945f8      mov     dword ptr [ebp-8],eax         ;[ebp-8]=current EPROCESS
+    b316d32a 6a00        push    0                             ; push 0
+    b316d32c 8d45fc      lea     eax,[ebp-4]
+    b316d32f 50          push    eax                           ;push ptr[ebp-4]
+    b316d330 6a00        push    0                             ;push 0
+    b316d332 a15c4117b3  mov     eax,dword ptr ds:[B317415Ch]    ;eax = [B317415Ch]=805649b8
+    b316d337 ff30        push    dword ptr [eax]                 ;push 805649b8
+    b316d339 6800040000  push    400h                          ;push 0x400
+    b316d33e ff7508      push    dword ptr [ebp+8]             ;push 目标进程 ProcessHandle
+    b316d341 ff159c4017b3 call   dword ptr ds:[0B317409Ch]      ;call ObReferenceObjectByHandle
+    b316d347 8945f4      mov     dword ptr [ebp-0Ch],eax       ;判断函数调用是否成功
+    b316d34a 837df400    cmp     dword ptr [ebp-0Ch],0
+    b316d34e 7d02        jge     b316d352
+    b316d350 eb65        jmp     b316d3b7                      ;不成功跳转
+    b316d352 8b4dfc      mov     ecx,dword ptr [ebp-4]         ;ecx = 目标进程句柄信息
+    b316d355 ff15584117b3 call   dword ptr ds:[0B3174158h]      ;call ObfDereferenceObject   撤销对象的引用计数
+    b316d35b 8b45fc      mov     eax,dword ptr [ebp-4]         ;eax = 目标的句柄信息
+    b316d35e 3b45f8      cmp     eax,dword ptr [ebp-8]         ;比较目标进程是否是本进程
+    b316d361 7502        jne     b316d365                      ;不能，继续判断
+    b316d363 eb52        jmp     b316d3b7                      ;相等不进行拦截
+    b316d365 6a04        push    4                             ;push 4
+    b316d367 ff75fc      push    dword ptr [ebp-4]             ;push 目标进程句柄信息
+    b316d36a e8c3fdffff  call    b316d132                      ;判断目标进程是否是 DNF 进程
+    b316d36f 0fb6c0      movzx   eax,al
+    b316d372 85c0        test    eax,eax
+    b316d374 7502        jne     b316d378
+    b316d376 eb3f        jmp     b316d3b7                      ;目标进程不是 DNF 进程，不进行拦截
+    b316d378 6a04        push    4                             ;push 4
+    b316d37a ff75f8      push    dword ptr [ebp-8]             ;当前进程 eprocess
+    b316d37d e8f0fcffff  call    b316d072                      ;比较当前进程是否在白名单中
+    b316d382 0fb6c0      movzx   eax,al
+    b316d385 85c0        test    eax,eax
+    b316d387 7402        je      b316d38b                      ;在白名单中，继续判断
+    b316d389 eb2c        jmp     b316d3b7                      ;不再则跳转，将屏蔽此次调用
+    b316d38b 6a04        push    4                             ;push 4
+    b316d38d ff75f8      push    dword ptr [ebp-8]             ;push 目标进程结构
+    b316d390 e81bfdffff  call    b316d0b0                      ;判断是否在另外一份白名单中
+    b316d395 0fb6c0      movzx   eax,al
+    b316d398 85c0        test    eax,eax
+    b316d39a 7402        je      b316d39e                      ;在第二份白名单中
+    b316d39c eb19        jmp     b316d3b7                      ;不在第二份白名单中，将屏蔽此次调用
+    b316d39e b8206f17b3  mov     eax,0B3176F20h
+    b316d3a3 83c9ff      or      ecx,0FFFFFFFFh
+    b316d3a6 f00fc108    lock xadd dword ptr [eax],ecx         ;[0B3176F20h] += -1
+    b316d3aa 9d          popfd
+    b316d3ab 61          popad
+    b316d3ac 8be5        mov     esp,ebp
+    b316d3ae 5d          pop     ebp
+    b316d3af b80d0000c0  mov     eax,0C000000Dh                ;置返回错误代码
+    b316d3b4 c21400      ret     14h                           ;不在白名单中，调用失败
+    b316d3b7 b8206f17b3  mov     eax,0B3176F20h                ;[0B3176F20h] += -1
+    b316d3bc 83c9ff      or      ecx,0FFFFFFFFh
+    b316d3bf f00fc108    lock xadd dword ptr [eax],ecx
+    b316d3c3 9d          popfd
+    b316d3c4 61          popad
+    b316d3c5 8be5        mov     esp,ebp
+    b316d3c7 5d          pop     ebp
+    b316d3c8 6a1c        push    1Ch
+    b316d3ca 68f0ae4d80  push    offset nt!MmClaimParameterAdjustDownTime+0x90 (804daef0)
+    b316d3cf 90          nop
+    b316d3d0 90          nop
+    b316d3d1 90          nop
+    b316d3d2 90          nop
+    b316d3d3 90          nop
+    b316d3d4 90          nop
+    b316d3d5 90          nop
+    b316d3d6 90          nop
+    b316d3d7 90          nop
+    b316d3d8 ff253c6e17b3 jmp    dword ptr ds:[0B3176E3Ch]     ；跳转到
+    b316d3de cc          int     3
+    b316d3df cc          int     3
+```
+
+`b316d132` 如果为 DNF 进程返回 0 否则返回 1
+
+```
+    b316d132 8bff        mov     edi,edi
+    b316d134 55          push    ebp
+    b316d135 8bec        mov     ebp,esp
+    b316d137 51          push    ecx
+    b316d138 53          push    ebx
+    b316d139 56          push    esi
+    b316d13a c645ff00    mov     byte ptr [ebp-1],0           ;[ebp-1] = 0;
+    b316d13e 32db        xor     bl,bl                         ;bl = 0;
+```
+
+
+
+# 汇编代码分析
+
+## 逻辑片段 1
+
+```assembly
+     b316d140 ff15084017b3    call    dword ptr ds:[0B3174008h]           ;call KeGetCurrentIrql 得到 IRQ 级别
+
+     b316d146 3c02            cmp     al,2                                 ;判断是否在 DISPATCH_LEVEL 级别
+
+     b316d148 bebc7117b3      mov     esi,0B31771BCh                       ;esi = 0B31771BCh
+
+     b316d14d 8bce            mov     ecx,esi                              ;ecx = 0B31771BCh
+
+     b316d14f 720a            jb      b316d15b                             ;小于 DISPATCH_LEVEL 级别 跳转
+
+     b316d151 ff15784017b3    call    dword ptr ds:[0B3174078h]           ; call KefAcquireSpinLockAtDpcLevel
+
+     b316d157 fec3            inc     bl                                   ;b1++
+
+     b316d159 eb09            jmp     b316d164
+
+     b316d15b ff150c4017b3    call    dword ptr ds:[0B317400Ch]           ;call KfAcquireSpinLock
+
+     b316d161 8845fe          mov     byte ptr [ebp-2],al
+
+     b316d164 a1c07117b3      mov     eax,dword ptr ds:[B31771C0h]        ;eax = [B31771C0h]=88c1dee4
+
+     b316d169 b9c07117b3      mov     ecx,0B31771C0h                      ;ecx = 0B31771C0h
+
+     b316d16e eb0a            jmp     b316d17a
+
+     b316d170 8b50cc          mov     edx,dword ptr [eax-34h]             ;取得链表节点对应 eprocess
+
+     b316d173 3b5508          cmp     edx,dword ptr [ebp+8]              ;与目标进程比较
+
+     b316d176 7408            je      b316d180                             ;相等 跳转
+
+     b316d178 8b00            mov     eax,dword ptr [eax]
+
+     b316d17a 3bc1            cmp     eax,ecx                              ;比较 [B31771C0h] == 0B31771C0h 比较是否到链表尾部
+
+     b316d17c 75f2            jne     b316d170                             ;不等进行进程 eprocess 比较
+
+     b316d17e eb0c            jmp     b316d18c                             ;到链表结尾，跳转
+
+     b316d180 8b4d0c          mov     ecx,dword ptr [ebp+0Ch]             ;ECX=4
+
+     b316d183 8548e0          test    dword ptr [eax-20h],ecx             ;0x7ff&0x04 >0
+
+     b316d186 7404            je      b316d18c
+
+     b316d188 c645ff01        mov     byte ptr [ebp-1],1                  ;[ebp-1]=1
+
+     b316d18c 84db            test    bl,bl                                ;b1 ==0
+
+     b316d18e 8bce            mov     ecx,esi                              ;ecx=0B31771BCh
+
+     b316d190 7408            je      b316d19a                             ;=0 跳转
+
+     b316d192 ff15744017b3    call    dword ptr ds:[0B3174074h]
+
+      b316d198 eb09            jmp     b316d1a3
+
+     b316d19a 8a55fe          mov     dl,byte ptr [ebp-2]                ;dl =irql 级别
+
+     b316d19d ff15104017b3    call    dword ptr ds:[0B3174010h]          ;call KfReleaseSpinLock
+
+     b316d1a3 8a45ff          mov     al,byte ptr [ebp-1]                a1 = 1
+
+     b316d1a6 5e              pop     esi
+
+     b316d1a7 5b              pop     ebx
+
+     b316d1a8 c9              leave
+
+     b316d1a9 c20800          ret     8
+```
+
+`//=====================================================================`
+
+## 判断是否在白名单 1 中
+
+`b316d072` 判断是否在白名单 1 中
+
+```assembly
+     b316d072 8bff            mov     edi,edi
+
+     b316d074 55             push    ebp
+
+     b316d075 8bec           mov     ebp,esp
+
+     b316d077 8b0da87117b3    mov     ecx,dword ptr [TesSafe+0xd1a8 (b31771a8)]  ;ecx = [b31771a8] = 89a3442c
+
+     b316d07d baa87117b3      mov     edx,offset TesSafe+0xd1a8 (b31771a8)        ;edx = b31771a8
+
+     b316d082 32c0           xor     al,al                                     ;a1 = 0
+
+     b316d084 3bca           cmp     ecx,edx                                   ;判断是否是空链表
+
+     b316d086 741f           je      TesSafe+0x30a7 (b316d0a7)                  ;空链表跳转
+
+     b316d088 56             push    esi
+
+     b316d089 8b7508         mov     esi,dword ptr [ebp+8]                     ;esi=当前进程 EPROCESS
+
+     b316d08c 3b71dc         cmp     esi,dword ptr [ecx-24h]                   ;比较目标进程是否在白名单中
+
+     b316d08f 7408           je      TesSafe+0x3099 (b316d099)                 ;相等则跳转
+
+     b316d091 8b09           mov     ecx,dword ptr [ecx]                       ；取下一个节点
+
+     b316d093 3bca           cmp     ecx,edx                                   ;判断是否到链表结尾
+
+     b316d095 75f2          jne     TesSafe+0x3089 (b316d089)                  ;不到则继续判断
+
+     b316d097 eb0d          jmp     TesSafe+0x30a6 (b316d0a6)                 ;到链表结尾，而且没有在白名单中匹配
+
+     b316d099 8b550c         mov     edx,dword ptr [ebp+0Ch]                 ;edx =4
+
+     b316d09c ff41fc        inc     dword ptr [ecx-4]                          ;[ecx-4]++
+
+     b316d09f 8551e4        test    dword ptr [ecx-1Ch],edx                  ;[ecx-1ch] 是否等于 4 不等于 4 则屏蔽
+
+     b316d0a2 7402          je      TesSafe+0x30a6 (b316d0a6)
+
+     b316d0a4 b001          mov     al,1
+
+     b316d0a6 5e             pop     esi
+
+     b316d0a7 5d             pop     ebp
+
+     b316d0a8 c20800        ret     8
+```
+
+## 在 `windbg` 查看
+
+`lkd> dd 89a3442c-24`
+
+```text
+89a34408  8a5aa288 00000500 000fffff e8710e72
+89a34418  74737953 00006d65 00000000 00000000
+89a34428  00000000 88afc274 b31771a8 005c003f
+89a34438  0a090007 68734c4b 89d5c8f0 89ad8778
+89a34448  896ec690 00000000 00000000 897e47a8
+89a34458  89d5dbf0 89ad87dc 00010000 00000001
+89a34468  0001502b 00000000 e3a67220 00000008
+89a34478  00000000 00000000 0a080009 e174754d
+```
+
+`lkd> !process 8a5aa288 0`
+
+```text
+Unable to read selector for PCR for processor 0
+PROCESS 8a5aa288  SessionId: none  Cid: 0004    Peb: 00000000  ParentCid: 0000
+    DirBase: 0aed8020  ObjectTable: e1002e38  HandleCount: 474.
+    Image: System
+```
+
+下面我找到白名单进程
+
+`System`
+
+`smss.exe`
+
+`csrss.exe`
+
+`SERVICES.EXE`
+
+`LSASS.EXE`
+
+`SVCHOST.EXE`
+
+`//===========================`
+
+## 判断是否在白名单 2 中
+
+`b2a510b0` 判断是否在白名单 2 中
+
+```assembly
+     b2a510b0 8bff            mov     edi,edi
+
+     b2a510b2 55             push    ebp
+
+     b2a510b3 8bec           mov     ebp,esp
+
+     b2a510b5 51             push    ecx
+
+     b2a510b6 53             push    ebx
+
+     b2a510b7 56             push    esi
+
+     b2a510b8 c645ff00       mov     byte ptr [ebp-1],0                           ;[ebp-1] = 0
+
+     b2a510bc 32db           xor     bl,bl                                        ;b1 = 0
+
+     b2a510be ff150880a5b2   call    dword ptr [TesSafe+0xa008 (b2a58008)]       call KeGetCurrentIrql
+
+     b2a510c4 3c02           cmp     al,2                                         比较当前 IRQL 级别是否为 DISPATCH_LEVEL 级别
+
+     b2a510c6 beb8b1a5b2     mov     esi,offset TesSafe+0xd1b8 (b2a5b1b8)         esi = b2a5b1b8
+
+     b2a510cb 8bce           mov     ecx,esi                                      ecx = b2a5b1b8
+
+     b2a510cd 720a           jb      TesSafe+0x30d9 (b2a510d9)                   ;小于 DISPATCH_LEVEL 级别 跳转
+
+     b2a510cf ff157880a5b2   call    dword ptr [TesSafe+0xa078 (b2a58078)]       ;call Ke386QueryIoAccessMap
+
+     b2a510d5 fec3           inc     bl                                           ;b1 = 1
+
+     b2a510d7 eb09          jmp     TesSafe+0x30e2 (b2a510e2)
+
+     b2a510d9 ff150c80a5b2   call    dword ptr [TesSafe+0xa00c (b2a5800c)]       ;call KfAcquireSpinLock
+
+     b2a510df 8845fe         mov     byte ptr [ebp-2],al                          [ebp-2] 保存当前 IRQL
+
+     b2a510e2 a1b0b1a5b2     mov     eax,dword ptr [TesSafe+0xd1b0 (b2a5b1b0)]   ;eax = [b2a5b1b0]=8993e02c
+
+     b2a510e7 b9b0b1a5b2     mov     ecx,offset TesSafe+0xd1b0 (b2a5b1b0)        ;ecx = b2a5b1b0
+
+     b2a510ec eb0a          jmp     TesSafe+0x30f8 (b2a510f8)
+
+     b2a510ee 8b50dc         mov     edx,dword ptr [eax-24h]
+```
+
+
+
+#### b2a510f1 3b5508
+`cmp edx,dword ptr [ebp+8]` ;白名单判断  
+
+#### b2a510f4 7408
+`je TesSafe+0x30fe (b2a510fe)`  
+
+#### b2a510f6 8b00
+`mov eax,dword ptr [eax]`  
+
+#### b2a510f8 3bc1
+`cmp eax,ecx`  
+
+#### b2a510fa 75f2
+`jne TesSafe+0x30ee (b2a510ee)`  
+
+#### b2a510fc eb0f
+`jmp TesSafe+0x310d (b2a5110d)`  
+
+#### b2a510fe 8b4d0c
+`mov ecx,dword ptr [ebp+0Ch]`  
+
+#### b2a51101 ff40fc
+`inc dword ptr [eax-4]`  
+
+#### b2a51104 8548e4
+`test dword ptr [eax-1Ch],ecx`  
+
+#### b2a51107 7404
+`je TesSafe+0x310d (b2a5110d)`  
+
+#### b2a51109 c645ff01
+`mov byte ptr [ebp-1],1`  
+
+#### b2a5110d 84db
+`test bl,bl`  
+
+#### b2a5110f 8bce
+`mov ecx,esi`  
+
+#### b2a51111 7408
+`je TesSafe+0x311b (b2a5111b)`  
+
+#### b2a51113 ff157480a5b2
+`call dword ptr [TesSafe+0xa074 (b2a58074)]`  
+
+#### b2a51119 eb09
+`jmp TesSafe+0x3124 (b2a51124)`  
+
+#### b2a5111b 8a55fe
+`mov dl,byte ptr [ebp-2]`  
+
+#### b2a5111e ff151080a5b2
+`call dword ptr [TesSafe+0xa010 (b2a58010)]`  
+
+#### b2a51124 8a45ff
+`mov al,byte ptr [ebp-1]`  
+
+#### b2a51127 5e
+`pop esi`  
+
+#### b2a51128 5b
+`pop ebx`  
+
+#### b2a51129 c9
+`leave`  
+
+#### b2a5112a c20800
+`ret 8`  
+
+*   `TXPlatform.exe`
+*   `QQ.exe`
+
+## 二、过滤处理函数的伪代码
+
+```c
+int g_globalValue;  
+
+int MyNtReadVirtualMemory(IN HANDLE ProcessHandle,  
+                          IN PVOID BaseAddress,  
+                          OUT PVOID Buffer,  
+                          IN SIZE_T NumberOfBytesToRead,  
+                          OUT PSIZE_T NumberOfBytesRead OPTIONAL)  
+
 {  
-      PEPROCESS AimProcess;  
-      PEPROCESS curProcess;  
-      //全局变量计数器加 1 具体作用不详  
-       g\_globalValue++;  
-  
-      //得到当前进程信息  
-      curProcess = PsGetCurrentProcess();  
-  
-      //得到目标进程的进程信息  
-       int status = ObReferenceObjectByHandle(ProcessHandle, ,,,,&AimProcess);  
-       if(status  < 0)  
-      {  
-           //返回失败，跳到不 mask 标签位置  
-           goto \_ NoMask;         
-      }  
-  
-      //减少引用计数  
-      ObfDereferenceObject(&AimProcess);  
-  
-      if(curProcess  == AimProcess)  
-     {  
-         //如果当前进程等于目的进程，则不屏蔽  
-       goto \_ NoMask;         
-     }  
-  
-     if(0 == IsDnfProcess(&AimProcess， 4) )  
-     {  
-          //如果目的进程不是 DNF 进程，则不屏蔽  
-       goto \_ NoMask;         
-     }  
-          
-    //判断当前进程是否在白名单 1 中  
-    if(0 == JudeWhileList1((&curProcess， 4))  
-   {  
-          //在白名单 1 中，则不屏蔽  
-        goto \_ NoMask;     
-   }  
-      
-   //判断当前进程是否在白名单 2 中  
-  if(0 == JudeWhileList2((&curProcess， 4))  
-   {  
-          //在白名单 2 中，则不屏蔽  
-        goto \_ NoMask;     
-   }  
-  
-  
-   //目的进程时 DNF 进程，而且既不在白名单 1 中，也不在白名单 2 中，所以下面将屏蔽此次调用  
-   ret = 0C000000Dh;  
-   return   ret;  
-      
-  
-//不进行屏蔽处理     
-\_NoMask:  
-     
-   //全局变量计数器-1  
-   g\_globalValue--;  
-     
-   \_\_asm  
-  {  
-    
-   jmp NtReadVirtualMemory + 7  
-   
-  }  
+    PEPROCESS AimProcess;  
+    PEPROCESS curProcess;  
+    //全局变量计数器加 1 具体作用不详  
+    g_globalValue++;  
+    //得到当前进程信息  
+    curProcess = PsGetCurrentProcess();  
+    //得到目标进程的进程信息  
+    int status = ObReferenceObjectByHandle(ProcessHandle, ,,,, &AimProcess);  
+    if (status < 0)  
+    {  
+        //返回失败，跳到不 mask 标签位置  
+        goto _NoMask;      
+    }  
+    //减少引用计数  
+    ObfDereferenceObject(&AimProcess);  
+    if (curProcess == AimProcess)  
+    {  
+        //如果当前进程等于目的进程，则不屏蔽  
+        goto _NoMask;      
+    }  
+    if (0 == IsDnfProcess(&AimProcess, 4))  
+    {  
+        //如果目的进程不是 DNF 进程，则不屏蔽  
+        goto _NoMask;      
+    }  
+    //判断当前进程是否在白名单 1 中  
+    if (0 == JudeWhileList1(&curProcess, 4))  
+    {  
+        //在白名单 1 中，则不屏蔽  
+        goto _NoMask;    
+    }  
+    //判断当前进程是否在白名单 2 中  
+    if (0 == JudeWhileList2(&curProcess, 4))  
+    {  
+        //在白名单 2 中，则不屏蔽  
+        goto _NoMask;    
+    }  
+    //目的进程是 DNF 进程，而且既不在白名单 1 中，也不在白名单 2 中，所以下面将屏蔽此次调用  
+    ret = 0C000000Dh;  
+    return ret;  
+
+    //不进行屏蔽处理  
+    _NoMask:  
+    //全局变量计数器-1  
+    g_globalValue--;  
+    __asm  
+    {  
+        jmp NtReadVirtualMemory + 7  
+    }  
 }  
-  
-   对于白名单 1 主要为系统常驻进程如下：  
-System  
-smss.exe  
-csrss.exe  
-SERVICES.EXE  
-LSASS.EXE  
-SVCHOST.EXE  
-  
-   对于白名单 2 可能为目前用户打开的信任进程，我这里的是  
-  
-  TXPlatform.exe  
-  QQ.exe  
-  
-三、应对  
-  
-   1、tessafe.sys 对 NtReadVirtualMemory 的 hook 好像其没有对恢复进行检测  
-   2、让 IsDnfProcess 函数返回 0  
-       其实这个函数内部也是有个表，这表中存储的为 DNF 进程的 eprocess 结构，如果将  
-       其清 0 ，应该可以，我没有测试过。  
-    3、将你想要的进程添加到白名单中。  
-  
-  
-   上面的应对代码我就不写了，有兴趣的可以搜索下论坛。
+```
+
+对于白名单 1 主要为系统常驻进程如下：
+*   `System`
+*   `smss.exe`
+*   `csrss.exe`
+*   `SERVICES.EXE`
+*   `LSASS.EXE`
+*   `SVCHOST.EXE`
+
+对于白名单 2 可能为目前用户打开的信任进程，我这里的是：
+*   `TXPlatform.exe`
+*   `QQ.exe`
+
+## 三、应对
+
+1. `tessafe.sys` 对 `NtReadVirtualMemory` 的 hook 好像其没有对恢复进行检测。
+2. 让 `IsDnfProcess` 函数返回 `0`。
+    *   其实这个函数内部也是有个表，这表中存储的为 DNF 进程的 `eprocess` 结构，如果将其清 `0`，应该可以，我没有测试过。
+3. 将你想要的进程添加到白名单中。
+
+上面的应对代码我就不写了，有兴趣的可以搜索下论坛。

@@ -1,374 +1,314 @@
 
-
-# Armadillo V3.60 加壳的 DLL 
+# Armadillo V3.60 加壳的 DLL
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6652.htm`](https://www.pediy.com/kssd/pediy06/pediy6652.htm)
 
-             
-【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！  
-          
-【调试环境】：WinXP、Ollydbg1.10C、PEiD、LordPE、ImportREC 
+**【作者声明】**：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
 
-【实例下载】：点击此处下载（或右键另存为）  
-          
-—————————————————————————————————   
-【脱壳过程】：  
-            
-           
-           
-Armadillo 加壳 DLL 的脱壳笔记到现在还没兄弟整理放上来，《加密与解密》中也没有提及。这些天相当郁闷，为了转移一下心境，用了半天时间写下这点东西，其实标准壳的 DLL 关键是重定位表的问题啦。  
-          
-借用《加密与解密》第 2 版光盘中附带的 EdrLib.dll 为例子来演示吧，况且看雪老师还写了 EdrTest.exe，脱壳后测试很方便啦。  
-用 Armadillo V3.60 的 Standard Protection Plus Debug-Blocker 方式来给 EdrLib.dll 加壳，如果选择 CopyMem-II 方式给 DLL 加壳，则 Armadillo 会警告的。看来 forgot 是看不到双进程的 DLL 啦，呵呵。  
-          
-—————————————————————————————————  
-一、Magic Jump + DUMP  
-                 
-                     
-先用 LordPE 看看加壳后的 DLL 信息：基址＝00400000，入口点＝00029A93  
-          
-Ollydbg1.10C 调试 DLL 确实方便，我们不需要在入口插入 CC（SoftIce 调试 DLL），也不需要借助 DLL\_Loader.exe，所要做的就是在 DLL 上点右键，选择“Open With Ollydbg”；当然，你要先设置菜单关联，把 Ollydbg 添加进系统资源管理器里啦。或者你愿意用 Ollydbg 直接载入 DLL 也行啦。  
-          
-设置 Ollydbg 忽略所有的异常选项。老规矩：用 IsDebug 1.4 插件去掉 Ollydbg 的调试器标志。  
-          
+**【调试环境】**：`WinXP`、`Ollydbg1.10C`、`PEiD`、`LordPE`、`ImportREC`
 
-> ```
-> 代码:
-> 00899A93     55                  push ebp//进入 OD 后停在这
-> 00899A94     8BEC                mov ebp,esp
-> 00899A96     53                  push ebx
-> 00899A97     8B5D 08             mov ebx,dword ptr ss:\[ebp+8\]
-> 00899A9A     56                  push esi
-> 00899A9B     8B75 0C             mov esi,dword ptr ss:\[ebp+C\]
-> 00899A9E     57                  push edi
-> 00899A9F     8B7D 10             mov edi,dword ptr ss:\[ebp+10\]
-> 00899AA2     85F6                test esi,esi
-> 00899AA4     75 09               jnz short EdrLib.00899AAF
-> 
-> ```
-> 
->   
+**【实例下载】**：点击此处下载（或右键另存为）
 
-  
-          
-偶们下断：BP GetModuleHandleA+5，Shift+F9 运行，注意看堆栈：  
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
 
-> ```
-> 代码:
-> ☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
-> 注意看 BP GetModuleHandleA+5 时的堆栈变化：
->              
-> 0006BFA0    00A2C807  返回到 00A2C807 来自 kernel32.GetModuleHandleA
-> 0006BFA4    00A3D6C8  ASCII "kernel32.dll"
-> 0006BFA8    00A3E67C  ASCII "VirtualAlloc"
->         
-> 0006BFA0    00A2C824  返回到 00A2C824 来自 kernel32.GetModuleHandleA
-> 0006BFA4    00A3D6C8  ASCII "kernel32.dll"
-> 0006BFA8    00A3E670  ASCII "VirtualFree"
->         
-> 0006BD18    00A1799B  返回到 00A1799B 来自 kernel32.GetModuleHandleA
-> 0006BD1C    0006BE54  ASCII "kernel32.dll"//可以返回了 ★
-> ☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
-> 
-> ```
-> 
->   
+## 【脱壳过程】
 
-  
-          
-看到上面的样子就可以取消断点，Alt+F9 返回程序，修改 Magic Jump 了  
-          
+`Armadillo` 加壳 `DLL` 的脱壳笔记到现在还没兄弟整理放上来，《加密与解密》中也没有提及。这些天相当郁闷，为了转移一下心境，用了半天时间写下这点东西，其实标准壳的 `DLL` 关键是重定位表的问题啦。
 
-> ```
-> 代码:
-> 00A17995     FF15 C480A300       call dword ptr ds:\[A380C4\] ; kernel32.GetModuleHandleA
-> 00A1799B     8B0D E011A400       mov ecx,dword ptr ds:\[A411E0\]//返回这里
-> 00A179A1     89040E              mov dword ptr ds:\[esi+ecx\],eax
-> 00A179A4     A1 E011A400         mov eax,dword ptr ds:\[A411E0\]
-> 00A179A9     393C06              cmp dword ptr ds:\[esi+eax\],edi
-> 00A179AC     75 16               jnz short 00A179C4
-> 00A179AE     8D85 B4FEFFFF       lea eax,dword ptr ss:\[ebp\-14C\]
-> 00A179B4     50                  push eax
-> 00A179B5     FF15 CC80A300       call dword ptr ds:\[A380CC\] ; kernel32.LoadLibraryA
-> 00A179BB     8B0D E011A400       mov ecx,dword ptr ds:\[A411E0\]
-> 00A179C1     89040E              mov dword ptr ds:\[esi+ecx\],eax
-> 00A179C4     A1 E011A400         mov eax,dword ptr ds:\[A411E0\]
-> 00A179C9     393C06              cmp dword ptr ds:\[esi+eax\],edi
-> 00A179CC     0F84 AD000000       je 00A17A7F//Magic Jump ★   改为 JMP！
-> 00A179D2     33C9                xor ecx,ecx
-> 00A179D4     8B03                mov eax,dword ptr ds:\[ebx\]
-> 00A179D6     3938                cmp dword ptr ds:\[eax\],edi
-> 00A179D8     74 06               je short 00A179E0
-> 
-> ```
-> 
->   
+借用《加密与解密》第 2 版光盘中附带的 `EdrLib.dll` 为例子来演示吧，况且看雪老师还写了 `EdrTest.exe`，脱壳后测试很方便啦。
 
-  
-          
-          
-现在我们 Alt+M 打开内存查看窗口，看到这个 DLL 的给个区段  
-          
+用 `Armadillo V3.60` 的 `Standard Protection Plus Debug-Blocker` 方式来给 `EdrLib.dll` 加壳，如果选择 `CopyMem-II` 方式给 `DLL` 加壳，则 `Armadillo` 会警告的。看来 `forgot` 是看不到双进程的 `DLL` 啦，呵呵。
 
-> ```
-> 代码:
-> 00870000   00001000   EdrLib   00870000 (itself)     PE header
-> 00871000   00003000   EdrLib   00870000  .text //★  这里下 内存访问 断点
-> 00874000   00001000   EdrLib   00870000  .rdata      exports 
-> 00875000   00001000   EdrLib   00870000  .data       data 
-> 
-> ```
-> 
->   
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
 
-  
-          
-在第 2 个 00871000 的.text 段上设置 内存访问 断点，F9 运行，中断在 OEP  
-          
+## 一、Magic Jump + DUMP
 
-> ```
-> 代码:
-> 008711C9     55                  push ebp//OEP 啦 ★
-> 008711CA     8BEC                mov ebp,esp
-> 008711CC     53                  push ebx
-> 008711CD     8B5D 08             mov ebx,dword ptr ss:\[ebp+8\]
-> 008711D0     56                  push esi
-> 008711D1     8B75 0C             mov esi,dword ptr ss:\[ebp+C\]
-> 008711D4     57                  push edi
-> 008711D5     8B7D 10             mov edi,dword ptr ss:\[ebp+10\]
-> 008711D8     85F6                test esi,esi
-> 008711DA     75 09               jnz short EdrLib.008711E5
-> 008711DC     833D 60538700 00    cmp dword ptr ds:\[875360\],0
-> 008711E3     EB 26               jmp short EdrLib.0087120B
-> 008711E5     83FE 01             cmp esi,1
-> 008711E8     74 05               je short EdrLib.008711EF
-> 008711EA     83FE 02             cmp esi,2
-> 008711ED     75 22               jnz short EdrLib.00871211
-> 
-> ```
-> 
->   
+先用 `LordPE` 看看加壳后的 `DLL` 信息：基址=`00400000`，入口点=`00029A93`
 
-  
-          
-用 LordPE 选中 Ollydbg 的 loaddll.exe 的进程，在下面的列表里选择 EdrLib.dll，然后完整脱壳，得到 dumped.dll。  
-          
-          
-—————————————————————————————————  
-二、输入表  
-          
-          
-因为已经修改了 Magic Jump，所以现在可以得到完整的输入表。随便从程序找个 API 调用：  
-008710FD     FF15 20408700       call dword ptr ds:\[874020\]; kernel32.GetVersion  
-在转存中跟随 874020，上下看到许多函数地址，很明显的可以找到 IAT 开始和结束的地址：  
-          
+`Ollydbg1.10C` 调试 `DLL` 确实方便，我们不需要在入口插入 `CC`（`SoftIce` 调试 `DLL`），也不需要借助 `DLL_Loader.exe`，所要做的就是在 `DLL` 上点右键，选择“`Open With Ollydbg`”；当然，你要先设置菜单关联，把 `Ollydbg` 添加进系统资源管理器里啦。或者你愿意用 `Ollydbg` 直接载入 `DLL` 也行啦。
 
-> ```
-> 代码:
-> ☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
-> IAT：
->             
-> 00874000  1D 51 C4 77 1C 3A C4 77 3E E7 C4 77 CC D2 C4 77  .Q.w.:.w>..w...w
-> 00874010  50 88 A1 00 F1 7E E5 77 E1 C9 E5 77 38 C9 E5 77  P....~.w...w8..w
-> 00874020  86 C4 E5 77 B5 5C E5 77 B4 16 E4 77 90 9C E5 77  ...w.\\.w...w...w
-> 00874030  C4 7C E5 77 39 9B E5 77 B4 C5 E5 77 29 2B E5 77  .|.w9..w...w)+.w
-> 00874040  61 8B E5 77 31 C9 E5 77 3D 9C E5 77 06 84 E5 77  a..w1..w=..w...w
-> 00874050  7A 17 E4 77 75 32 F5 77 99 A0 E5 77 B1 C5 E7 77  z..wu2.w...w...w
-> 00874060  72 46 E5 77 24 99 E5 77 02 77 E4 77 E1 7E E5 77  rF.w$..w.w.w.~.w
-> 00874070  0B 6E E5 77 26 C7 E5 77 34 9E E5 77 97 15 F5 77  .n.w&..w4..w...w
-> 00874080  8C 9D E5 77 08 99 E5 77 1F E2 F7 77 00 E3 F7 77  ...w...w...w...w
-> 00874090  F8 16 F5 77 9F 84 E5 77 3F A1 E5 77 03 C7 E4 77  ...w...w?..w...w
-> 008740A0  0A 98 E5 77 2F 72 F5 77 FD A5 E5 77 D8 05 E6 77  ...w/r.w...w...w
-> 008740B0  CE 7C E5 77 05 74 E5 77 F9 81 E5 77 EB 41 E4 77  .|.w.t.w...w.A.w
-> 008740C0  66 C8 E5 77 3E 18 F6 77 C3 88 A1 00 00 00 00 00  f..w>..w........
-> ☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
-> 
-> ```
-> 
->   
+设置 `Ollydbg` 忽略所有的异常选项。老规矩：用 `IsDebug 1.4` 插件去掉 `Ollydbg` 的调试器标志。
 
-  
-          
-开始地址＝00874000  
-结束地址＝008740C9  
-          
-但是现在直接用 ImportREC 选取 EdrLib.dll,填入 RVA=00004000、大小＝C9，却提示“不能载入当前进程相关数据信息!”  
-看看 ImportREC 的日志：  
-映像基地址:00400000 大小:00097000  
-\->> 模块被选择! : e:\\试炼场\\脱壳学习\\dll 脱壳\\armadillo\\edrlib.dll\\edrlib.dll   
-原来 ImportREC 显示 EdrLib.dll 的基址还是 00400000，呵呵  
-          
-如果填入 RVA=00474000、大小＝C9，可以得到输入表，却无法完成修复抓取文件。为何？都是重定位惹的祸啦。  
-于是懒人如我就想了个移花接木的办法：再打开一个 Ollydbg，载入 Win98 的 NotePad.EXE，然后把 00874000－008740C9 的数据复制、粘贴进 NotePad.EXE 的 00404000－004040C9，然后用 ImportREC 选择 NotePad.EXE 进程，填入 RVA=00004000、大小＝C9，得到输入表，CUT 掉垃圾指针，改 OEP=000011C9，就可以 FixDump 啦！  
-          
-          
-—————————————————————————————————  
-三、重定位表 修复  
-          
-          
-麻烦就在这里！因为 Armadillo 加壳 DLL 的重定位表处理方面没有找到资料可以参考。后来我发现 Armadillo 加壳 DLL 没有加密重定位表！终于松了口气呀，我们所要做的就是找到 DLL 原来的重定位表的 RVA 和大小就行了！  
-          
-我们可以从程序中找到某处需要重定位的地方，比如 OEP 附近的：  
-008711DC     833D 60538700 00    cmp dword ptr ds:\[875360\],0  
-这里的\[875360\]肯定是重定位之后的，我们重新 Load 后对 008711E0 处下硬件或者内存访问/写入断点，然后监视程序何时把 008711E0 处的 40 变化为 87 就能找到重定位处理的代码段了！但是这样比较麻烦，琢磨了半天（呵呵，时间都花在这里了），提供一个简便寻找重定位处理代码段的方法！  
-          
-用 Ollydbg 重新载入 EdrLib.dll，下断：BP GetModuleHandleA+5，Shift+F9 运行，注意看堆栈：  
-          
+```
+00899A93     55               push ebp//进入 OD 后停在这
+00899A94     8BEC             mov ebp,esp
+00899A96     53               push ebx
+00899A97     8B5D 08          mov ebx,dword ptr ss:[ebp+8]
+00899A9A     56               push esi
+00899A9B     8B75 0C          mov esi,dword ptr ss:[ebp+C]
+00899A9E     57               push edi
+00899A9F     8B7D 10          mov edi,dword ptr ss:[ebp+10]
+00899AA2     85F6             test esi,esi
+00899AA4     75 09            jnz short EdrLib.00899AAF
+```
 
-> ```
-> 代码:
-> ☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
-> 注意看 BP GetModuleHandleA+5 时的堆栈变化：
->         
-> 0006BFA0    00A2C807  返回到 00A2C807 来自 kernel32.GetModuleHandleA
-> 0006BFA4    00A3D6C8  ASCII "kernel32.dll"
-> 0006BFA8    00A3E67C  ASCII "VirtualAlloc"
->         
-> 0006BFA0    00A2C824  返回到 00A2C824 来自 kernel32.GetModuleHandleA
-> 0006BFA4    00A3D6C8  ASCII "kernel32.dll"
-> 0006BFA8    00A3E670  ASCII "VirtualFree"
->         
-> 0006BD18    00A1799B  返回到 00A1799B 来自 kernel32.GetModuleHandleA
-> 0006BD1C    0006BE54  ASCII "kernel32.dll"//返回修改 Magic Jump 的地方 ★
->         
-> 0006BD18    00A1799B  返回到 00A1799B 来自 kernel32.GetModuleHandleA
-> 0006BD1C    0006BE54  ASCII "user32.dll"
->         
-> 0006BD18    00A1799B  返回到 00A1799B 来自 kernel32.GetModuleHandleA
-> 0006BD1C    0006BE54  ASCII "advapi32.dll"
->         
-> 0006BFA4    00A3134F  返回到 00A3134F 来自 kernel32.GetModuleHandleA
-> //★ 时机到啦
-> ☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
-> 
-> ```
-> 
->   
+偶们下断：`BP GetModuleHandleA+5`，`Shift+F9` 运行，注意看堆栈：
 
-  
-          
-这里是以前返回修改 Magic Jump 的地方，现在我利用这个时机来搞定重定位表！  
-          
-我们 Alt+M 打开内存查看窗口，看到这个 DLL 的各个区段：  
-          
+```
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+注意看 BP GetModuleHandleA+5 时的堆栈变化：
+               0006BFA0    00A2C807  返回到 00A2C807 来自 kernel32.GetModuleHandleA
+ 0006BFA4    00A3D6C8  ASCII "kernel32.dll"
+ 0006BFA8    00A3E67C  ASCII "VirtualAlloc"
+           
+ 0006BFA0    00A2C824  返回到 00A2C824 来自 kernel32.GetModuleHandleA
+ 0006BFA4    00A3D6C8  ASCII "kernel32.dll"
+ 0006BFA8    00A3E670  ASCII "VirtualFree"
+           
+ 0006BD18    00A1799B  返回到 00A1799B 来自 kernel32.GetModuleHandleA
+ 0006BD1C    0006BE54  ASCII "kernel32.dll"//可以返回了 ★
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+```
 
-> ```
-> 代码:
-> 00870000   00001000   EdrLib   00870000 (itself)     PE header//★  这里下 内存访问 断点
-> 00871000   00003000   EdrLib   00870000  .text 
-> 00874000   00001000   EdrLib   00870000  .rdata      exports 
-> 00875000   00001000   EdrLib   00870000  .data       data 
-> 
-> ```
-> 
->   
+看到上面的样子就可以取消断点，`Alt+F9` 返回程序，修改 `Magic Jump` 了
 
-  
-          
-这次我在第 1 个 00870000 的 PE header 段上设置 内存访问 断点，F9 运行，程序中断在 00A32393 处！  
+```
+00A17995     FF15 C480A300      call dword ptr ds:[A380C4] ; kernel32.GetModuleHandleA
+00A1799B     8B0D E011A400      mov ecx,dword ptr ds:[A411E0]//返回这里
+00A179A1     89040E             mov dword ptr ds:[esi+ecx],eax
+00A179A4     A1 E011A400        mov eax,dword ptr ds:[A411E0]
+00A179A9     393C06             cmp dword ptr ds:[esi+eax],edi
+00A179AC     75 16              jnz short 00A179C4
+00A179AE     8D85 B4FEFFFF      lea eax,dword ptr ss:[ebp-14C]
+00A179B4     50                 push eax
+00A179B5     FF15 CC80A300      call dword ptr ds:[A380CC] ; kernel32.LoadLibraryA
+00A179BB     8B0D E011A400      mov ecx,dword ptr ds:[A411E0]
+00A179C1     89040E             mov dword ptr ds:[esi+ecx],eax
+00A179C4     A1 E011A400        mov eax,dword ptr ds:[A411E0]
+00A179C9     393C06             cmp dword ptr ds:[esi+eax],edi
+00A179CC     0F84 AD000000      je 00A17A7F//Magic Jump ★   改为 JMP！
+00A179D2     33C9               xor ecx,ecx
+00A179D4     8B03               mov eax,dword ptr ds:[ebx]
+00A179D6     3938               cmp dword ptr ds:[eax],edi
+00A179D8     74 06              je short 00A179E0
+```
 
-> ```
-> 代码:
-> 00A32335     87FA                xchg edx,edi
-> 00A32337     C705 DCDBA300 E4E4A>mov dword ptr ds:\[A3DBDC\],0A3E4E4
-> 00A32341     A1 9C55A400         mov eax,dword ptr ds:\[A4559C\]
-> 00A32346     8B00                mov eax,dword ptr ds:\[eax\]
-> //\[EAX\]=\[008F86D1\]=00006000   ★ 这个 00006000 就是重定位表的 RVA！
-> 00A32348     8985 48ECFFFF       mov dword ptr ss:\[ebp\-13B8\],eax
-> 00A3234E     A1 9C55A400         mov eax,dword ptr ds:\[A4559C\]
-> 00A32353     83C0 04             add eax,4
-> 00A32356     A3 9C55A400         mov dword ptr ds:\[A4559C\],eax
-> 00A3235B     A1 9C55A400         mov eax,dword ptr ds:\[A4559C\]
-> 00A32360     8B00                mov eax,dword ptr ds:\[eax\]
-> //\[EAX\]=\[008F86D5\]=000003B0   ★ 这个 000003B0 就是重定位表的大小！
-> 00A32362     8985 7CECFFFF       mov dword ptr ss:\[ebp\-1384\],eax
-> 00A32368     A1 9C55A400         mov eax,dword ptr ds:\[A4559C\]
-> 00A3236D     83C0 04             add eax,4
-> 00A32370     A3 9C55A400         mov dword ptr ds:\[A4559C\],eax
-> 00A32375     83BD 48ECFFFF 00    cmp dword ptr ss:\[ebp\-13B8\],0
-> 00A3237C     74 6F               je short 00A323ED
-> 00A3237E     83BD 7CECFFFF 00    cmp dword ptr ss:\[ebp\-1384\],0
-> 00A32385     74 66               je short 00A323ED
-> 00A32387     8B85 0CEBFFFF       mov eax,dword ptr ss:\[ebp\-14F4\]
-> 00A3238D     8B8D 1CEBFFFF       mov ecx,dword ptr ss:\[ebp\-14E4\]
-> 00A32393     3B48 34             cmp ecx,dword ptr ds:\[eax+34\]; LOADDLL.00400000
-> //中断在这里！
-> 00A32396     74 55               je short 00A323ED//如与映像基址不符则重定位处理！★
-> 00A32398     FFB5 7CECFFFF       push dword ptr ss:\[ebp\-1384\]
-> 00A3239E     8B85 1CEBFFFF       mov eax,dword ptr ss:\[ebp\-14E4\]
-> 00A323A4     0385 48ECFFFF       add eax,dword ptr ss:\[ebp\-13B8\]
-> 00A323AA     50                  push eax
-> 00A323AB     8B85 0CEBFFFF       mov eax,dword ptr ss:\[ebp\-14F4\]
-> 00A323B1     FF70 34             push dword ptr ds:\[eax+34\]
-> 00A323B4     FFB5 1CEBFFFF       push dword ptr ss:\[ebp\-14E4\]
-> 00A323BA     E8 A8100000         call 00A33467//重定位处理 CALL ★
-> 00A323BF     83C4 10             add esp,10
-> 00A323C2     0FB6C0              movzx eax,al
-> 00A323C5     85C0                test eax,eax
-> 00A323C7     75 24               jnz short 00A323ED
-> 00A323C9     8B45 08             mov eax,dword ptr ss:\[ebp+8\]
-> 00A323CC     8B00                mov eax,dword ptr ds:\[eax\]
-> 00A323CE     C700 07000000       mov dword ptr ds:\[eax\],7
-> 00A323D4     68 D4E4A300         push 0A3E4D4              ; ASCII "Location CPG"
-> 00A323D9     8B45 08             mov eax,dword ptr ss:\[ebp+8\]
-> 00A323DC     FF70 04             push dword ptr ds:\[eax+4\]
-> 00A323DF     E8 68530000         call 00A3774C             ; jmp to MSVCRT.strcpy
-> 00A323E4     59                  pop ecx
-> 00A323E5     59                  pop ecx
-> 00A323E6     33C0                xor eax,eax
-> 00A323E8     E9 BB030000         jmp 00A327A8
-> 
-> ```
-> 
->   
+现在我们 `Alt+M` 打开内存查看窗口，看到这个 `DLL` 的个区段
 
-  
-          
-呵呵，00A323BA 的 CALL 里面就是重定位处理的核心，如果采用在重定位后的地址下内存断点的方法，最终会中断在这个 CALL 里面的。其实在这个 CALL 的上面我们就可以得到 DLL 原先的重定位表的 RVA 和大小！  
-          
-下硬件执行断点：HE 00A32346，Ctrl+F2 重新载入这个 DLL，Shift+F9 运行，程序中断在 00A32346 处！分析见上。  
-          
-          
-—————————————————————————————————  
-四、修正 + 优化  
-          
-          
-用 LordPE 修正 dumped\_.dll 的重定位表 RVA=00006000、大小＝000003B0，保存之。  
-如果在 00A32396 处修改为 JMP 跳过重定位处理，则不需要修改 DLL 的基址，否则修改基址为 OEP 处看到的基址，如这里为 00870000  
-          
-用 LordPE 删除 dumped\_.dll 的 text1 和其下的 adata、data1、reloc1、pdata 共 5 个区段，然后去掉“脱壳修复”和“清除重定位表”选项，重建 PE 简单优化一下脱壳后的文件，608K->17K，晕，比加壳前的原文件还小了。  
-          
-脱壳后的 DLL 用 PEiD 看依旧显示“Armadillo 2.51-3.xx DLL Stub -> Silicon Realms Toolworks”，呵呵。用 FI 看显示“MS VC++ v6.0 {DLL} ”。如果想测试脱壳后的 DLL，可以把 UnPacked-EdrLib.dll 重命名为 EdrLib.dll，然后运行 EdrTest.exe 就知道是否脱壳成功了。  
-          
-其实熟悉之后完全可以一次完成脱壳，为了说的详细点，所以分了几次。经验来自于不断的实践、总结和积累。  
-拙文一篇，仅供各位对 DLL 脱壳感兴趣的兄弟参考。  
-          
-          
-—————————————————————————————————      
+```
+00870000   00001000   EdrLib   00870000 (itself)     PE header
+00871000   00003000   EdrLib   00870000  .text //★  这里下 内存访问 断点
+00874000   00001000   EdrLib   00870000  .rdata      exports 
+00875000   00001000   EdrLib   00870000  .data        data 
+```
 
-> ```
-> 代码:                                
->          ,     \_/ 
->         /| \_.-~/            \\\_     ,        青春都一晌
->        ( /~   /              \\~-.\_ |\\
->        \`\\\\  \_/                \\   ~\\           忍把浮名 
->    \_-~~~-.)  \_\_/;;,.          \\\_  //'
->   /'\_,\\   --~   \\ ~~~-  ,;;\\\_\_\_(  (.-~~~-.        换了破解轻狂
->  \`~ \_( ,\_..--\\ (     ,;'' /    ~--   /.\_\`\\ 
->   /~~//'   /' \`~\\         ![](img/e45fac309594d4f9580d902b0ed40a73.jpg) /--..\_, ![](img/e45fac309594d4f9580d902b0ed40a73.jpg)\_  \`~
->   "  \`~"  "      \`"      /~'\`\\    \`\\\\~~\\   
->                          "     "   "~'  ""
-> 
-> ```
-> 
->   
+在第 2 个 `00871000` 的 `.text` 段上设置 内存访问 断点，`F9` 运行，中断在 `OEP`
 
-  
-      
-  
-     UnPacked By 巢水工作坊——fly \[OCN\]\[FCG\]\[NUKE\]\[DCM\]  
-  
-                2004-05-27  02:30  
-                          
+```
+008711C9     55                 push ebp//OEP 啦 ★
+008711CA     8BEC               mov ebp,esp
+008711CC     53                 push ebx
+008711CD     8B5D 08            mov ebx,dword ptr ss:[ebp+8]
+008711D0     56                 push esi
+008711D1     8B75 0C            mov esi,dword ptr ss:[ebp+C]
+008711D4     57                 push edi
+008711D5     8B7D 10            mov edi,dword ptr ss:[ebp+10]
+008711D8     85F6               test esi,esi
+008711DA     75 09              jnz short EdrLib.008711E5
+008711DC     833D 60538700 00   cmp dword ptr ds:[875360],0
+008711E3     EB 26              jmp short EdrLib.0087120B
+008711E5     83FE 01            cmp esi,1
+008711E8     74 05              je short EdrLib.008711EF
+008711EA     83FE 02            cmp esi,2
+008711ED     75 22              jnz short EdrLib.00871211
+```
 
- 4dd466d0e1e0cc123afbe504da2462ca
+用 `LordPE` 选中 `Ollydbg` 的 `loaddll.exe` 的进程，在下面的列表里选择 `EdrLib.dll`，然后完整脱壳，得到 `dumped.dll`。
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+## 二、输入表
+
+因为已经修改了 `Magic Jump`，所以现在可以得到完整的输入表。随便从程序找个 `API` 调用：
+
+`008710FD     FF15 20408700       call dword ptr ds:[874020]; kernel32.GetVersion`
+
+在转存中跟随 `874020`，上下看到许多函数地址，很明显的可以找到 `IAT` 开始和结束的地址：
+
+```
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+IAT：
+              00874000  1D 51 C4 77 1C 3A C4 77 3E E7 C4 77 CC D2 C4 77  .Q.w.:.w>..w...w
+ 00874010  50 88 A1 00 F1 7E E5 77 E1 C9 E5 77 38 C9 E5 77  P....~.w...w8..w
+ 00874020  86 C4 E5 77 B5 5C E5 77 B4 16 E4 77 90 9C E5 77  ...w.\.w...w...w
+ 00874030  C4 7C E5 77 39 9B E5 77 B4 C5 E5 77 29 2B E5 77  |.w9..w...w)+.w
+ 00874040  61 8B E5 77 31 C9 E5 77 3D 9C E5 77 06 84 E5 77  a..w1..w=..w...w
+ 00874050  7A 17 E4 77 75 32 F5 77 99 A0 E5 77 B1 C5 E7 77  z..wu2.w...w...w
+ 00874060  72 46 E5 77 24 99 E5 77 02 77 E4 77 E1 7E E5 77  rF.w$..w.w.w.~.w
+ 00874070  0B 6E E5 77 26 C7 E5 77 34 9E E5 77 97 15 F5 77  .n.w&..w4..w...w
+ 00874080  8C 9D E5 77 08 99 E5 77 1F E2 F7 77 00 E3 F7 77  ...w...w...w...w
+ 00874090  F8 16 F5 77 9F 84 E5 77 3F A1 E5 77 03 C7 E4 77  ...w...w?..w...w
+ 008740A0  0A 98 E5 77 2F 72 F5 77 FD A5 E5 77 D8 05 E6 77  ...w/r.w...w...w
+ 008740B0  CE 7C E5 77 05 74 E5 77 F9 81 E5 77 EB 41 E4 77  |.w.t.w...w.A.w
+ 008740C0  66 C8 E5 77 3E 18 F6 77 C3 88 A1 00 00 00 00 00  f..w>..w........
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+```
+
+开始地址=`00874000`
+
+结束地址=`008740C9`
+
+但是现在直接用 `ImportREC` 选取 `EdrLib.dll`,填入 `RVA=00004000`、大小=`C9`，却提示“不能载入当前进程相关数据信息!”
+
+看看 `ImportREC` 的日志：
+
+`映像基地址:00400000 大小:00097000`
+
+`->> 模块被选择! : e:\试炼场\脱壳学习\dll 脱壳\armadillo\edrlib.dll\edrlib.dll`
+
+原来 `ImportREC` 显示 `EdrLib.dll` 的基址还是 `00400000`，呵呵
+
+如果填入 `RVA=00474000`、大小=`C9`，可以得到输入表，却无法完成修复抓取文件。为何？都是重定位惹的祸啦。
+
+于是懒人如我就想了个移花接木的办法：再打开一个 `Ollydbg`，载入 `Win98` 的 `NotePad.EXE`，然后把 `00874000`－`008740C9` 的数据复制、粘贴进 `NotePad.EXE` 的 `00404000`－`004040C9`，然后用 `ImportREC` 选择 `NotePad.EXE` 进程，填入 `RVA=00004000`、大小=`C9`，得到输入表，`CUT` 掉垃圾指针，改 `OEP=000011C9`，就可以 `FixDump` 啦！
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+## 三、重定位表 修复
+
+麻烦就在这里！因为 `Armadillo` 加壳 `DLL` 的重定位表处理方面没有找到资料可以参考。后来我发现 `Armadillo` 加壳 `DLL` 没有加密重定位表！终于松了口气呀，我们所要做的就是找到 `DLL` 原来的重定位表的 `RVA` 和大小就行了！
+
+我们可以从程序中找到某处需要重定位的地方，比如 `OEP` 附近的：
+
+`008711DC     833D 60538700 00    cmp dword ptr ds:[875360],0`
+
+这里的 `[875360]` 肯定是重定位之后的，我们重新 `Load` 后对 `008711E0` 处下硬件或者内存访问/写入断点，然后监视程序何时把 `008711E0` 处的 `40` 变化为 `87` 就能找到重定位处理的代码段了！但是这样比较麻烦，琢磨了半天（呵呵，时间都花在这里了），提供一个简便寻找重定位处理代码段的方法！
+
+用 `Ollydbg` 重新载入 `EdrLib.dll`，下断：`BP GetModuleHandleA+5`，`Shift+F9` 运行，注意看堆栈：
+
+
+
+```
+代码:
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+注意看 `BP` `GetModuleHandleA+5` 时的堆栈变化：
+        
+0006BFA0    00A2C807  返回到 00A2C807 来自 `kernel32.GetModuleHandleA`
+0006BFA4    00A3D6C8  ASCII "kernel32.dll"
+0006BFA8    00A3E67C  ASCII "VirtualAlloc"
+        
+0006BFA0    00A2C824  返回到 00A2C824 来自 `kernel32.GetModuleHandleA`
+0006BFA4    00A3D6C8  ASCII "kernel32.dll"
+0006BFA8    00A3E670  ASCII "VirtualFree"
+        
+0006BD18    00A1799B  返回到 00A1799B 来自 `kernel32.GetModuleHandleA`
+0006BD1C    0006BE54  ASCII "kernel32.dll"//返回修改 `Magic Jump` 的地方 ★
+        
+0006BD18    00A1799B  返回到 00A1799B 来自 `kernel32.GetModuleHandleA`
+0006BD1C    0006BE54  ASCII "user32.dll"
+        
+0006BD18    00A1799B  返回到 00A1799B 来自 `kernel32.GetModuleHandleA`
+0006BD1C    0006BE54  ASCII "advapi32.dll"
+        
+0006BFA4    00A3134F  返回到 00A3134F 来自 `kernel32.GetModuleHandleA`
+//★ 时机到啦
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+```
+
+这里是以前返回修改 `Magic Jump` 的地方，现在我利用这个时机来搞定重定位表！
+
+我们 `Alt+M` 打开内存查看窗口，看到这个 DLL 的各个区段：
+
+```
+代码:
+00870000   00001000   EdrLib   00870000 (itself)     PE header//★   这里下 内存访问 断点
+00871000   00003000   EdrLib   00870000  .text 
+00874000   00001000   EdrLib   00870000  .rdata      exports 
+00875000   00001000   EdrLib   00870000  .data       data 
+```
+
+这次我在第 1 个 `00870000` 的 `PE header` 段上设置内存访问断点，`F9` 运行，程序中断在 `00A32393` 处！
+
+```
+代码:
+00A32335     87FA                xchg edx,edi
+00A32337     C705 DCDBA300 E4E4A>mov dword ptr ds:\[A3DBDC\],0A3E4E4
+00A32341     A1 9C55A400         mov eax,dword ptr ds:\[A4559C\]
+00A32346     8B00                mov eax,dword ptr ds:\[eax\]
+//\[EAX\]=\[008F86D1\]=00006000   ★ 这个 00006000 就是重定位表的 RVA！
+00A32348     8985 48ECFFFF       mov dword ptr ss:\[ebp\-13B8\],eax
+00A3234E     A1 9C55A400         mov eax,dword ptr ds:\[A4559C\]
+00A32353     83C0 04             add eax,4
+00A32356     A3 9C55A400         mov dword ptr ds:\[A4559C\],eax
+00A3235B     A1 9C55A400         mov eax,dword ptr ds:\[A4559C\]
+00A32360     8B00                mov eax,dword ptr ds:\[eax\]
+//\[EAX\]=\[008F86D5\]=000003B0   ★ 这个 000003B0 就是重定位表的大小！
+00A32362     8985 7CECFFFF       mov dword ptr ss:\[ebp\-1384\],eax
+00A32368     A1 9C55A400         mov eax,dword ptr ds:\[A4559C\]
+00A3236D     83C0 04             add eax,4
+00A32370     A3 9C55A400         mov dword ptr ds:\[A4559C\],eax
+00A32375     83BD 48ECFFFF 00    cmp dword ptr ss:\[ebp\-13B8\],0
+00A3237C     74 6F               je short 00A323ED
+00A3237E     83BD 7CECFFFF 00    cmp dword ptr ss:\[ebp\-1384\],0
+00A32385     74 66               je short 00A323ED
+00A32387     8B85 0CEBFFFF       mov eax,dword ptr ss:\[ebp\-14F4\]
+00A3238D     8B8D 1CEBFFFF       mov ecx,dword ptr ss:\[ebp\-14E4\]
+00A32393     3B48 34             cmp ecx,dword ptr ds:\[eax+34\]; LOADDLL.00400000
+//中断在这里！
+00A32396     74 55               je short 00A323ED//如与映像基址不符则重定位处理！★
+00A32398     FFB5 7CECFFFF       push dword ptr ss:\[ebp\-1384\]
+00A3239E     8B85 1CEBFFFF       mov eax,dword ptr ss:\[ebp\-14E4\]
+00A323A4     0385 48ECFFFF       add eax,dword ptr ss:\[ebp\-13B8\]
+00A323AA     50                  push eax
+00A323AB     8B85 0CEBFFFF       mov eax,dword ptr ss:\[ebp\-14F4\]
+00A323B1     FF70 34             push dword ptr ds:\[eax+34\]
+00A323B4     FFB5 1CEBFFFF       push dword ptr ss:\[ebp\-14E4\]
+00A323BA     E8 A8100000         call 00A33467//重定位处理 CALL ★
+00A323BF     83C4 10             add esp,10
+00A323C2     0FB6C0              movzx eax,al
+00A323C5     85C0                test eax,eax
+00A323C7     75 24               jnz short 00A323ED
+00A323C9     8B45 08             mov eax,dword ptr ss:\[ebp+8\]
+00A323CC     8B00                mov eax,dword ptr ds:\[eax\]
+00A323CE     C700 07000000       mov dword ptr ds:\[eax\],7
+00A323D4     68 D4E4A300         push 0A3E4D4           ; ASCII "Location CPG"
+00A323D9     8B45 08             mov eax,dword ptr ss:\[ebp+8\]
+00A323DC     FF70 04             push dword ptr ds:\[eax+4\]
+00A323DF     E8 68530000         call 00A3774C           ; jmp to MSVCRT.strcpy
+00A323E4     59                  pop ecx
+00A323E5     59                  pop ecx
+00A323E6     33C0                xor eax,eax
+00A323E8     E9 BB030000         jmp 00A327A8
+```
+
+呵呵，`00A323BA` 的 `CALL` 里面就是重定位处理的核心，如果采用在重定位后的地址下内存断点的方法，最终会中断在这个 `CALL` 里面的。其实在这个 `CALL` 的上面我们就可以得到 DLL 原先的重定位表的 `RVA` 和大小！
+
+下硬件执行断点：`HE 00A32346`，`Ctrl+F2` 重新载入这个 DLL，`Shift+F9` 运行，程序中断在 `00A32346` 处！分析见上。
+
+—————————————————————————————————
+
+### 四、修正 + 优化
+
+用 `LordPE` 修正 `dumped\_.dll` 的重定位表 `RVA=00006000`、大小＝`000003B0`，保存之。
+
+如果在 `00A32396` 处修改为 `JMP` 跳过重定位处理，则不需要修改 DLL 的基址，否则修改基址为 `OEP` 处看到的基址，如这里为 `00870000`。
+
+用 `LordPE` 删除 `dumped\_.dll` 的 `text1` 和其下的 `adata`、`data1`、`reloc1`、`pdata` 共 5 个区段，然后去掉“脱壳修复”和“清除重定位表”选项，重建 `PE` 简单优化一下脱壳后的文件，`608K->17K`，晕，比加壳前的原文件还小了。
+
+脱壳后的 DLL 用 `PEiD` 看依旧显示“`Armadillo 2.51-3.xx DLL Stub -> Silicon Realms Toolworks`”，呵呵。用 `FI` 看显示“`MS VC++ v6.0 {DLL}`”。如果想测试脱壳后的 DLL，可以把 `UnPacked-EdrLib.dll` 重命名为 `EdrLib.dll`，然后运行 `EdrTest.exe` 就知道是否脱壳成功了。
+
+其实熟悉之后完全可以一次完成脱壳，为了说的详细点，所以分了几次。经验来自于不断的实践、总结和积累。
+
+拙文一篇，仅供各位对 DLL 脱壳感兴趣的兄弟参考。
+
+—————————————————————————————————
+
+```
+代码:           
+        ,     \_/ 
+       /| \_.-~\          \    \    ,      青春都一晌
+      ( /~   /           \~-.\ |\\
+      \`\\   \_/              \   ~\     忍把浮名 
+  _-~~~-.)   \_/;;,.        \    \//
+  /\_,\   --~   \ ~~~-  ,;;\_\_ ( .-~~~-.     换了破解轻狂
+  `~ _( ,\..--\ (   ,;''/   ~--  /.\_\ 
+  /~~//'   / \`~\   ![](img/e45fac309594d4f9580d902b0ed40a73.jpg) /--..\_, ![](img/e45fac309594d4f9580d902b0ed40a73.jpg)  \`~
+  "  \`~"   "    \`"     /~'\`\   \`\\~~\ 
+                   "   "   "~'  ""
+```
+
+`UnPacked` By 巢水工作坊——`fly` `[OCN]` `[FCG]` `[NUKE]` `[DCM]`
+
+        2004-05-27  02:30
+
+`4dd466d0e1e0cc123afbe504da2462ca`

@@ -1,197 +1,252 @@
 
-
 # 有声有色 v3.16
 
 > 原文：[`www.pediy.com/kssd/pediy03/forum347.htm`](https://www.pediy.com/kssd/pediy03/forum347.htm)
 
- 有声有色 v3.16 破解教程   
-毫无意义的破解，请大家以后不要让我破解此类软件！没有使用价值，也没有破解价值！垃圾   
-软件一个！！   
-开始进入正题：   
-\* Referenced by a (U)nconditional or (C)onditional Jump at Address:   
-|:0046FAC2(C)   
-|   
-:0046FB29 E86E45F9FF              call 0040409C   
-:0046FB2E 50                      push eax   
-:0046FB2F 8B432C                  mov eax, dword ptr \[ebx+2C\]   
-:0046FB32 50                      push eax   
-:0046FB33 E84C7AF9FF              call 00407584   
-:0046FB38 8BF0                    mov esi, eax   
-:0046FB3A 66837B4A00              cmp word ptr \[ebx+4A\], 0000   
-:0046FB3F 7408                    je 0046FB49   
-:0046FB41 8BD3                    mov edx, ebx   
-:0046FB43 8B434C                  mov eax, dword ptr \[ebx+4C\]   
-:0046FB46 FF5348                  call \[ebx+48\]   
-从我们查看可得，46fb33 那个 call 是呼叫过期窗口的那个 call,我们可以用 trw2000 来设断   
-，带过这个 call，那个讨厌的 nag 就跑出来了！如果你想修改 46fb3f 那个跳转来让程序继续   
-运行他就会跑出来告诉你修改程序或缺少文件之类的废话！我们不用管这里，我们往上走，   
-来到如下程序段：   
-\* Referenced by a CALL at Addresses:   
-|:004E096D  , :004E0A2D  , :004E0AEF  , :004E0C1A  , :004E6635    
-|   
-:0046FAE8 55                      push ebp   
-:0046FAE9 8BEC                    mov ebp, esp   
-:0046FAEB 6A00                    push 00000000   
-:0046FAED 53                      push ebx   
-:0046FAEE 56                      push esi   
-:0046FAEF 8BD8                    mov ebx, eax   
-:0046FAF1 33C0                    xor eax, eax   
-:0046FAF3 55                      push ebp   
-:0046FAF4 685FFB4600              push 0046FB5F   
-:0046FAF9 64FF30                  push dword ptr fs:\[eax\]   
-:0046FAFC 648920                  mov dword ptr fs:\[eax\], esp   
-:0046FAFF 8D55FC                  lea edx, dword ptr \[ebp\-04\]   
-:0046FB02 8B4338                  mov eax, dword ptr \[ebx+38\]   
-:0046FB05 8B08                    mov ecx, dword ptr \[eax\]   
-:0046FB07 FF511C                  call \[ecx+1C\]   
-:0046FB0A 66837B4200              cmp word ptr \[ebx+42\], 0000   
-:0046FB0F 7408                    je 0046FB19   
-:0046FB11 8BD3                    mov edx, ebx   
-:0046FB13 8B4344                  mov eax, dword ptr \[ebx+44\]   
-:0046FB16 FF5340                  call \[ebx+40\]   
-如果程序来到这里就必然会出现过期的对话框并终止程序的使用，所以程序只要不来到这里就 OK 了！   
-可以看见有 5 个地方呼叫这个地方，我们过去看看，首先来到 4e096d，如下：   
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:004E0917(C), :004E0920(C), :004E0929(C), :004E0932(C), :004E093B(C)   
-|:004E0944(C), :004E094D(C), :004E0956(C)   
-|   
-:004E0961 8BC3                    mov eax, ebx   
-:004E0963 E8D48DFFFF              call 004D973C   
-:004E0968 A1B8BC4E00              mov eax, dword ptr \[004EBCB8\]   
-:004E096D E876F1F8FF              call 0046FAE8   
-:004E0972 EB45                    jmp 004E09B9   
-这里只是一个简单的调用，没有我们破解需要的东西，往上看，来到：   
-:004E08CF B8580F4E00              mov eax, 004E0F58   
-:004E08D4 E887D6F7FF              call 0045DF60   
-:004E08D9 8B55CC                  mov edx, dword ptr \[ebp\-34\]   
-:004E08DC A1C8BC4E00              mov eax, dword ptr \[004EBCC8\]   
-:004E08E1 59                      pop ecx   
-:004E08E2 8B30                    mov esi, dword ptr \[eax\]   
-:004E08E4 FF5610                  call \[esi+10\]   
-:004E08E7 A2B6BC4E00              mov byte ptr \[004EBCB6\], al   
-:004E08EC 803DB6BC4E0000          cmp byte ptr \[004EBCB6\], 00   
-:004E08F3 0F8581020000            jne 004E0B7A   
-我们可以修改 4e08f3 的跳转来跳过刚刚的调用，把他改成 jmp 4e0b7a 就可以了！继续我们   
-的破解历程,跳转到 4e0b7a,我看了一下没有什么，往下来到：   
-:004E0B90 B8FC114E00              mov eax, 004E11FC   
-:004E0B95 E8C6D3F7FF              call 0045DF60   
-:004E0B9A 8B55A4                  mov edx, dword ptr \[ebp\-5C\]   
-:004E0B9D A1C8BC4E00              mov eax, dword ptr \[004EBCC8\]   
-:004E0BA2 59                      pop ecx   
-:004E0BA3 8B30                    mov esi, dword ptr \[eax\]   
-:004E0BA5 FF5608                  call \[esi+08\]   
-:004E0BA8 8BD0                    mov edx, eax   
-:004E0BAA 8B8340040000            mov eax, dword ptr \[ebx+00000440\]   
-:004E0BB0 E8C714F9FF              call 0047207C   
-:004E0BB5 8B8340040000            mov eax, dword ptr \[ebx+00000440\]   
-:004E0BBB 8B9038010000            mov edx, dword ptr \[eax+00000138\]   
-:004E0BC1 83FA1E                  cmp edx, 0000001E   
-:004E0BC4 7D48                    jge 004E0C0E   
-:004E0BC6 833D6CBC4E001E          cmp dword ptr \[004EBC6C\], 0000001E   
-:004E0BCD 7D3F                    jge 004E0C0E   
-:004E0BCF 833D6CBC4E001E          cmp dword ptr \[004EBC6C\], 0000001E   
-:004E0BD6 7D36                    jge 004E0C0E   
-:004E0BD8 803DB0BC4E0001          cmp byte ptr \[004EBCB0\], 01   
-:004E0BDF 742D                    je 004E0C0E   
-:004E0BE1 803DB1BC4E0001          cmp byte ptr \[004EBCB1\], 01   
-:004E0BE8 7424                    je 004E0C0E   
-:004E0BEA 803DB2BC4E0001          cmp byte ptr \[004EBCB2\], 01   
-:004E0BF1 741B                    je 004E0C0E   
-:004E0BF3 803DB3BC4E0001          cmp byte ptr \[004EBCB3\], 01   
-:004E0BFA 7412                    je 004E0C0E   
-:004E0BFC 803DB4BC4E0001          cmp byte ptr \[004EBCB4\], 01   
-:004E0C03 7409                    je 004E0C0E   
-:004E0C05 803DB5BC4E0001          cmp byte ptr \[004EBCB5\], 01   
-:004E0C0C 7513                    jne 004E0C21   
-  
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:004E0BC4(C), :004E0BCD(C), :004E0BD6(C), :004E0BDF(C), :004E0BE8(C)   
-|:004E0BF1(C), :004E0BFA(C), :004E0C03(C)   
-|   
-:004E0C0E 8BC3                    mov eax, ebx   
-:004E0C10 E8278BFFFF              call 004D973C   
-:004E0C15 A1B8BC4E00              mov eax, dword ptr \[004EBCB8\]   
-:004E0C1A E8C9EEF8FF              call 0046FAE8   
-:004E0C1F EB46                    jmp 004E0C67   
-4e0c1a 又是一个呼叫那个过期对话框的子程序，我们可以看到上面有很多跳转，就说明有很多   
-机会了，可以把 4e0bc4 的那个跳转修改成 jmp 4e0c21 来跳过整个部分，你也可以把所有的跳转   
-都 nop 掉，然后把 4e0c0c 的那个跳转修改成 jmp 4e0c21，两种方法都可以！这样就可以完成整个   
-软件的破解了，我恢复了一便系统测试，没有过期的提示了，可以继续使用！   
-我的主页绝不会放这个垃圾软件了！坚决抛弃它！！！！   
-破解就在上面，大家自己看吧！！   
-有空来我主页：http://www.ohtop.com/wind   
-wind\[CCG\]  
+## 有声有色 v3.16 破解教程
 
- 有声有色 3.16 破解---SMC 技术应用一则   
-  
-    对于这个程序作者用 UPX0.72 进行了压缩，相应版本的 UPX 解压出错，procdump 解可以，但反汇编仍有问题，除非在 procdump 中选择 rebuild new inport table 才勉强可以，估计作者用了 UPX 的多重压缩技术。为此正好拿它训练一下 SMC 技术。   
-  
-1  过期破解：   
-    过期后用 BPX MESSAGEBOXEXA 断点，加上残缺的 dump.exe，及不断的尝试，我们知道在   
-:004E0BC1 83FA1E            cmp edx, 0000001E   
-:004E0BC4 7D48              jge 004E0C0E          <-- ×××××   
-:004E0BC6 833D6CBC4E001E    cmp dword ptr \[004EBC6C\], 0000001E   
-:004E0BCD 7D3F              jge 004E0C0E   
-:004E0BCF 833D6CBC4E001E    cmp dword ptr \[004EBC6C\], 0000001E   
-:004E0BD6 7D36              jge 004E0C0E   
-:004E0BD8 803DB0BC4E0001    cmp byte ptr \[004EBCB0\], 01   
-:004E0BDF 742D              je 004E0C0E   
-:004E0BE1 803DB1BC4E0001    cmp byte ptr \[004EBCB1\], 01   
-:004E0BE8 7424              je 004E0C0E   
-:004E0BEA 803DB2BC4E0001    cmp byte ptr \[004EBCB2\], 01   
-:004E0BF1 741B              je 004E0C0E   
-:004E0BF3 803DB3BC4E0001    cmp byte ptr \[004EBCB3\], 01   
-:004E0BFA 7412              je 004E0C0E   
-:004E0BFC 803DB4BC4E0001    cmp byte ptr \[004EBCB4\], 01   
-:004E0C03 7409              je 004E0C0E   
-:004E0C05 803DB5BC4E0001    cmp byte ptr \[004EBCB5\], 01   
-:004E0C0C 7513              jne 004E0C21          <-- ×××××   
-        
-\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:   
-|:004E0BC4(C), :004E0BCD(C), :004E0BD6(C), :004E0BDF(C), :004E0BE8(C)   
-|:004E0BF1(C), :004E0BFA(C), :004E0C03(C)   
-|   
-:004E0C0E 8BC3              mov eax, ebx   
-:004E0C10 E8278BFFFF        call 004D973C   
-:004E0C15 A1B8BC4E00        mov eax, dword ptr \[004EBCB8\]   
-:004E0C1A E8C9EEF8FF        call 0046FAE8            <--die!!!   
-最终知道使:004E0BC4  jge 004E0C0E 改为直接跳到 cs:004E0C21 就没有过期问题了。   
-即在 cs:004E0BC4 处改 7D 48 为 EB 5B。   
-  
-2  SMC 的解决   
-  思路：当程序在内存中解压完毕，跳到真正入口点前让其先跳到补丁代码处执行补丁，再回到原入口继续正常工作。   
-  步骤：   
-  （1〕下 bpmb 004E0BC4，用 TRW2000 载入主程序，被拦截后用 F6 在代码中往下看，发现程序真正入口点   
-    :0053F198 E9677DFAFF    jmp 004E6F04   
-    而在此上下没有地方给我 PATCH，所以用 TOPO 为它加了 50 个 bytes，以供我利用。这样重新用 TRW 载入后，看到程序先从我加入 CODE 处开始，运行我这 50 个 WORD（90，90...〕，再开始原本的 UPX 解压。即：   
-：0053E281 90  NOP   
-: 0053E282 90  NOP   
-......   
-: 0053E290 90  NOP   
-......   
-: 0053E2AE JMP 0053F000  此处 UPX 开始解压。所以从: 0053E286 90  NOP 就可以利用，使得直接跳到 cs:0053F000，这样多了一段空白代码供我写 PATCH CODE。   
-    (2) 在真正入口点跳转处 :0053F198 E9677DFAFF    jmp 004E6F04，让代码转到空白处 cs:0053E290   
-    (3)cs:0053E290 处写好 patch code, mov \[004E0BC4\], EB5B833D   
-                        再跳回入口，jmp 004E6F04   
-    (4)整个过程如下：   
-      (A)用 TOPO 在主程序 MusRea.exe 中加入 50 个 bytes。   
-      (B)trw 载入后，f10 走几步，在 cs:0053E286 处下汇编指令 A，回车后输入 jmp 0053F000，两次回车后 d eip,记下代码 E9 75 0D。   
-      (C)G 0053f198，   
-          a,输入 jmp 0053E290,   
-          d eip，记下 E9 F3 F0 FF FF   
-      (D)F10 一步，跳到 cs:0053E290 处   
-          a,输入 mov \[004E0BC4\], EB5B833D   
-          d eip，记下 C7 05 C4 0B 4E 00 EB 5B 83 3D   
-      (E)F10 走一步，cs:0053E29A 处   
-          a,输入 jmp 004E6F04   
-          d eip，记下 E9 65 8C FA FF   
-      (F)打开 HIEW，在上述 4 个地方修改后保存。   
-  
-job done!   
-  
-thank you for reading my tutorial.   
-  
-from china crack group    
-  
-mercury: 即西方神话中墨丘利(赫耳墨斯)神, 众神的信使. 在炼金术中指水   
-        银,依靠它能最终获得炼金术最高的成就,得到点金石,青春泉!   4dd466d0e1e0cc123afbe504da2462ca
+毫无意义的破解，请大家以后不要让我破解此类软件！没有使用价值，也没有破解价值！垃圾软件一个！！
+
+开始进入正题：
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0046FAC2(C)
+|
+:0046FB29 E86E45F9FF               call 0040409C
+:0046FB2E 50                       push eax
+:0046FB2F 8B432C                   mov eax, dword ptr [ebx+2C]
+:0046FB32 50                       push eax
+:0046FB33 E84C7AF9FF               call 00407584
+:0046FB38 8BF0                     mov esi, eax
+:0046FB3A 66837B4A00               cmp word ptr [ebx+4A], 0000
+:0046FB3F 7408                     je 0046FB49
+:0046FB41 8BD3                     mov edx, ebx
+:0046FB43 8B434C                   mov eax, dword ptr [ebx+4C]
+:0046FB46 FF5348                   call [ebx+48]
+```
+
+从我们查看可得，`46fb33` 那个 `call` 是呼叫过期窗口的那个 `call`，我们可以用 `trw2000` 来设断，带过这个 `call`，那个讨厌的 nag 就跑出来了！如果你想修改 `46fb3f` 那个跳转来让程序继续运行，它就会跑出来告诉你修改程序或缺少文件之类的废话！我们不用管这里，我们往上走，来到如下程序段：
+
+```
+* Referenced by a CALL at Addresses:
+|:004E096D , :004E0A2D , :004E0AEF , :004E0C1A , :004E6635
+|
+:0046FAE8 55                       push ebp
+:0046FAE9 8BEC                     mov ebp, esp
+:0046FAEB 6A00                     push 00000000
+:0046FAED 53                       push ebx
+:0046FAEE 56                       push esi
+:0046FAEF 8BD8                     mov ebx, eax
+:0046FAF1 33C0                     xor eax, eax
+:0046FAF3 55                       push ebp
+:0046FAF4 685FFB4600               push 0046FB5F
+:0046FAF9 64FF30                   push dword ptr fs:[eax]
+:0046FAFC 648920                   mov dword ptr fs:[eax], esp
+:0046FAFF 8D55FC                   lea edx, dword ptr [ebp-04]
+:0046FB02 8B4338                   mov eax, dword ptr [ebx+38]
+:0046FB05 8B08                     mov ecx, dword ptr [eax]
+:0046FB07 FF511C                   call [ecx+1C]
+:0046FB0A 66837B4200               cmp word ptr [ebx+42], 0000
+:0046FB0F 7408                     je 0046FB19
+:0046FB11 8BD3                     mov edx, ebx
+:0046FB13 8B4344                   mov eax, dword ptr [ebx+44]
+:0046FB16 FF5340                   call [ebx+40]
+```
+
+如果程序来到这里就必然会出现过期的对话框并终止程序的使用，所以程序只要不来到这里就 OK 了！
+
+可以看见有 5 个地方呼叫这个地方，我们过去看看，首先来到 `4e096d`，如下：
+
+```
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004E0917(C), :004E0920(C), :004E0929(C), :004E0932(C), :004E093B(C)
+|:004E0944(C), :004E094D(C), :004E0956(C)
+|
+:004E0961 8BC3                     mov eax, ebx
+:004E0963 E8D48DFFFF               call 004D973C
+:004E0968 A1B8BC4E00               mov eax, dword ptr [004EBCB8]
+:004E096D E876F1F8FF               call 0046FAE8
+:004E0972 EB45                     jmp 004E09B9
+```
+
+这里只是一个简单的调用，没有我们破解需要的东西，往上看，来到：
+
+```
+:004E08CF B8580F4E00               mov eax, 004E0F58
+:004E08D4 E887D6F7FF               call 0045DF60
+:004E08D9 8B55CC                   mov edx, dword ptr [ebp-34]
+:004E08DC A1C8BC4E00               mov eax, dword ptr [004EBCC8]
+:004E08E1 59                       pop ecx
+:004E08E2 8B30                     mov esi, dword ptr [eax]
+:004E08E4 FF5610                   call [esi+10]
+:004E08E7 A2B6BC4E00               mov byte ptr [004EBCB6], al
+:004E08EC 803DB6BC4E0000           cmp byte ptr [004EBCB6], 00
+:004E08F3 0F8581020000             jne 004E0B7A
+```
+
+我们可以修改 `4e08f3` 的跳转来跳过刚刚的调用，把它改成 `jmp 4e0b7a` 就可以了！继续我们的破解历程，跳转到 `4e0b7a`，我看了一下没有什么，往下来到：
+
+```
+:004E0B90 B8FC114E00               mov eax, 004E11FC
+:004E0B95 E8C6D3F7FF               call 0045DF60
+:004E0B9A 8B55A4                   mov edx, dword ptr [ebp-5C]
+:004E0B9D A1C8BC4E00               mov eax, dword ptr [004EBCC8]
+:004E0BA2 59                       pop ecx
+:004E0BA3 8B30                     mov esi, dword ptr [eax]
+:004E0BA5 FF5608                   call [esi+08]
+:004E0BA8 8BD0                     mov edx, eax
+:004E0BAA 8B8340040000             mov eax, dword ptr [ebx+00000440]
+:004E0BB0 E8C714F9FF               call 0047207C
+:004E0BB5 8B8340040000             mov eax, dword ptr [ebx+00000440]
+:004E0BBB 8B9038010000             mov edx, dword ptr [eax+00000138]
+:004E0BC1 83FA1E                   cmp edx, 0000001E
+:004E0BC4 7D48                     jge 004E0C0E
+:004E0BC6 833D6CBC4E001E           cmp dword ptr [004EBC6C], 0000001E
+:004E0BCD 7D3F                     jge 004E0C0E
+:004E0BCF 833D6CBC4E001E           cmp dword ptr [004EBC6C], 0000001E
+:004E0BD6 7D36                     jge 004E0C0E
+:004E0BD8 803DB0BC4E0001           cmp byte ptr [004EBCB0], 01
+:004E0BDF 742D                     je 004E0C0E
+:004E0BE1 803DB1BC4E0001           cmp byte ptr [004EBCB1], 01
+:004E0BE8 7424                     je 004E0C0E
+:004E0BEA 803DB2BC4E0001           cmp byte ptr [004EBCB2], 01
+:004E0BF1 741B                     je 004E0C0E
+:004E0BF3 803DB3BC4E0001           cmp byte ptr [004EBCB3], 01
+:004E0BFA 7412                     je 004E0C0E
+:004E0BFC 803DB4BC4E0001           cmp byte ptr [004EBCB4], 01
+:004E0C03 7409                     je 004E0C0E
+:004E0C05 803DB5BC4E0001           cmp byte ptr [004EBCB5], 01
+:004E0C0C 7513                     jne 004E0C21
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004E0BC4(C), :004E0BCD(C), :004E0BD6(C), :004E0BDF(C), :004E0BE8(C)
+|:004E0BF1(C), :004E0BFA(C), :004E0C03(C)
+|
+:004E0C0E 8BC3                     mov eax, ebx
+:004E0C10 E8278BFFFF               call 004D973C
+:004E0C15 A1B8BC4E00               mov eax, dword ptr [004EBCB8]
+:004E0C1A E8C9EEF8FF               call 0046FAE8
+:004E0C1F EB46                     jmp 004E0C67
+```
+
+`4e0c1a` 又是一个呼叫那个过期对话框的子程序，我们可以看到上面有很多跳转，就说明有很多机会了，可以把 `4e0bc4` 的那个跳转修改成 `jmp 4e0c21` 来跳过整个部分，你也可以把所有的跳转都 nop 掉，然后把 `4e0c0c` 的那个跳转修改成 `jmp 4e0c21`，两种方法都可以！这样就可以完成整个软件的破解了，我恢复了一便系统测试，没有过期的提示了，可以继续使用！
+
+我的主页绝不会放这个垃圾软件了！坚决抛弃它！！！！
+
+破解就在上面，大家自己看吧！！
+
+有空来我主页：`http://www.ohtop.com/wind`
+
+`wind[CCG]`
+
+## 有声有色 3.16 破解---SMC 技术应用一则
+
+对于这个程序作者用 `UPX0.72` 进行了压缩，相应版本的 `UPX` 解压出错，`procdump` 解可以，但反汇编仍有问题，除非在 `procdump` 中选择 `rebuild new inport table` 才勉强可以，估计作者用了 `UPX` 的多重压缩技术。为此正好拿它训练一下 SMC 技术。
+
+### 1 过期破解：
+
+过期后用 `BPX MESSAGEBOXEXA` 断点，加上残缺的 `dump.exe`，及不断的尝试，我们知道在
+
+```
+:004E0BC1 83FA1E                   cmp edx, 0000001E
+:004E0BC4 7D48                     jge 004E0C0E               <-- ×××××
+:004E0BC6 833D6CBC4E001E           cmp dword ptr [004EBC6C], 0000001E
+:004E0BCD 7D3F                     jge 004E0C0E
+:004E0BCF 833D6CBC4E001E           cmp dword ptr [004EBC6C], 0000001E
+:004E0BD6 7D36                     jge 004E0C0E
+:004E0BD8 803DB0BC4E0001           cmp byte ptr [004EBCB0], 01
+:004E0BDF 742D                     je 004E0C0E
+:004E0BE1 803DB1BC4E0001           cmp byte ptr [004EBCB1], 01
+:004E0BE8 7424                     je 004E0C0E
+:004E0BEA 803DB2BC4E0001           cmp byte ptr [004EBCB2], 01
+:004E0BF1 741B                     je 004E0C0E
+:004E0BF3 803DB3BC4E0001           cmp byte ptr [004EBCB3], 01
+:004E0BFA 7412                     je 004E0C0E
+:004E0BFC 803DB4BC4E0001           cmp byte ptr [004EBCB4], 01
+:004E0C03 7409                     je 004E0C0E
+:004E0C05 803DB5BC4E0001           cmp byte ptr [004EBCB5], 01
+:004E0C0C 7513                     jne 004E0C21               <-- ×××××
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004E0BC4(C), :004E0BCD(C), :004E0BD6(C), :004E0BDF(C), :004E0BE8(C)
+|:004E0BF1(C), :004E0BFA(C), :004E0C03(C)
+|
+:004E0C0E 8BC3                     mov eax, ebx
+:004E0C10 E8278BFFFF               call 004D973C
+:004E0C15 A1B8BC4E00               mov eax, dword ptr [004EBCB8]
+:004E0C1A E8C9EEF8FF               call 0046FAE8               <--die!!!
+```
+
+最终知道使 `:004E0BC4 jge 004E0C0E` 改为直接跳到 `cs:004E0C21` 就没有过期问题了。
+
+即在 `cs:004E0BC4` 处改 `7D 48` 为 `EB 5B`。
+
+
+
+## 2 SMC 的解决
+
+思路：当程序在内存中解压完毕，跳到真正入口点前让其先跳到补丁代码处执行补丁，再回到原入口继续正常工作。
+
+### 步骤
+
+（1）下`bp` `004E0BC4`，用`TRW2000`载入主程序，被拦截后用`F6`在代码中往下看，发现程序真正入口点
+
+```
+:0053F198 E9677DFAFF    jmp 004E6F04
+```
+
+而在此上下没有地方给我`PATCH`，所以用`TOPO`为它加了 50 个 `bytes`，以供我利用。这样重新用`TRW`载入后，看到程序先从我加入 `CODE` 处开始，运行我这 50 个 `WORD`（`90`, `90`...），再开始原本的 `UPX` 解压。即：
+
+```
+:0053E281 90   NOP
+:0053E282 90   NOP
+......
+:0053E290 90   NOP
+......
+:0053E2AE JMP 0053F000
+```
+
+此处 `UPX` 开始解压。所以从 `:0053E286 90   NOP` 就可以利用，使得直接跳到 `cs:0053F000`，这样多了一段空白代码供我写 `PATCH CODE`。
+
+（2）在真正入口点跳转处 `:0053F198 E9677DFAFF    jmp 004E6F04`，让代码转到空白处 `cs:0053E290`
+
+（3）`cs:0053E290` 处写好 `patch code`, `mov [004E0BC4], EB5B833D`
+
+再跳回入口，`jmp 004E6F04`
+
+（4）整个过程如下：
+
+(A) 用 `TOPO` 在主程序 `MusRea.exe` 中加入 50 个 `bytes`。
+
+(B) `trw` 载入后，`f10` 走几步，在 `cs:0053E286` 处下汇编指令 `A`，回车后输入 `jmp 0053F000`，两次回车后 `d eip`，记下代码 `E9 75 0D`。
+
+(C) `G 0053f198`，
+
+`a`, 输入 `jmp 0053E290`,
+
+`d eip`，记下 `E9 F3 F0 FF FF`
+
+(D) `F10` 一步，跳到 `cs:0053E290` 处
+
+`a`, 输入 `mov [004E0BC4], EB5B833D`
+
+`d eip`，记下 `C7 05 C4 0B 4E 00 EB 5B 83 3D`
+
+(E) `F10` 走一步，`cs:0053E29A` 处
+
+`a`, 输入 `jmp 004E6F04`
+
+`d eip`，记下 `E9 65 8C FA FF`
+
+(F) 打开 `HIEW`，在上述 4 个地方修改后保存。
+
+`job done!`
+
+`thank you for reading my tutorial.`
+
+`from china crack group`
+
+`mercury`: 即西方神话中墨丘利(赫耳墨斯)神, 众神的信使. 在炼金术中指水银,依靠它能最终获得炼金术最高的成就,得到点金石,青春泉!
+
+`4dd466d0e1e0cc123afbe504da2462ca`

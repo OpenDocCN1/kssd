@@ -1,58 +1,72 @@
 
-
 # 逆向 patch，突破 ollydbg 32 插件限制
 
 > 原文：[`www.pediy.com/kssd/pediy12/130518.html`](https://www.pediy.com/kssd/pediy12/130518.html)
 
-今天在看一些文章的时候，提到 od 只能加载 32 个插件，以前我也知道这点，只是今天突然心血来潮就想分析一下原因，我很多时候都是懒的去管，或者觉得自己应该没能力去做，反正今天闲着也是蛋疼，索性就去分析一把。  
-多放几个插件在插件目录，一运行 od 就崩溃了，我是把 windbg 设为默认调试器，windbg 异常中断结果如下：  
-(1718.1160): Access violation - code c0000005 (first chance)  
-First chance exceptions are reported before any exception handling.  
-This exception may be expected and handled.  
-eax=0000006a ebx=5fff0d0c ecx=0000006a edx=7c99e174 esi=06370000 edi=06371274  
-eip=004968b4 esp=0012e150 ebp=004c9198 iopl=0         nv up ei pl nz na pe nc  
-cs=001b  ss=0023  ds=0023  es=0023  fs=003b  gs=0000             efl=00210206  
-\*\*\* WARNING: Unable to verify checksum for F:\\下载\\压缩文件\\OllyDBG\_1.10\_second\_cao\_cong\_fix\\OllyDBG\_1.10\_second\_cao\_cong\_fix\\Ollydbg.exe  
-\*\*\* ERROR: Symbol file could not be found.  Defaulted to export symbols for F:\\下载\\压缩文件\\OllyDBG\_1.10\_second\_cao\_cong\_fix\\OllyDBG\_1.10\_second\_cao\_cong\_fix\\Ollydbg.exe -   
-Ollydbg!Showsourcefromaddress+0x1360:  
-004968b4 8933            mov     dword ptr \[ebx\],esi  ds:0023:5fff0d0c=????????  
-  
-  
-0:000> !address ebx  
-    5d20a000 : 5d20a000 - 049d6000  
-                    Type     00000000   
-                    Protect  00000001 PAGE\_NOACCESS  
-                    State    00010000 MEM\_FREE  
-                    Usage    RegionUsageFree  
-ebx 所在地址是没有写权限的，造成程序崩溃。记住 004968b4 这个地址，重新用令一个 od 加载插件数量多于 32 个的这个 od，来到 004968b4，下断：  
-0049689C  |> \\8B1D B4554F00 |mov     ebx, dword ptr \[4F55B4\]                ;  取插件索引号  
-004968A2  |.  C1E3 03       |shl     ebx, 3  
-004968A5  |.  8D1C5B        |lea     ebx, dword ptr \[ebx+ebx\*2\]  
-004968A8  |.  8D1C9B        |lea     ebx, dword ptr \[ebx+ebx\*4\]  
-004968AB  |.  8D1C9B        |lea     ebx, dword ptr \[ebx+ebx\*4\]  
-004968AE  |.  81C3 B40A4F00 |add     ebx, 004F0AB4  
-004968B4  |.  8933          |mov     dword ptr \[ebx\], esi                   ;  写入模块句柄  
-004968B6  |.  8D43 04       |lea     eax, dword ptr \[ebx+4\]  
-004968B9  |.  56            |push    esi  
-004968BA  |.  8BF0          |mov     esi, eax  
-004968BC  |.  57            |push    edi  
-004968BD  |.  33C0          |xor     eax, eax  
-004968BF  |.  8DBC24 441300>|lea     edi, dword ptr \[esp+1344\]  
-004968C6  |.  83C9 FF       |or      ecx, FFFFFFFF  
-004968C9  |.  F2:AE         |repne   scas byte ptr es:\[edi\]  
-004968CB  |.  F7D1          |not     ecx  
-004968CD  |.  2BF9          |sub     edi, ecx  
-004968CF  |.  8BD1          |mov     edx, ecx  
-004968D1  |.  87F7          |xchg    edi, esi  
-004968D3  |.  C1E9 02       |shr     ecx, 2  
-004968D6  |.  8BC7          |mov     eax, edi  
-004968D8  |.  F3:A5         |rep     movs dword ptr es:\[edi\], dword ptr \[es>;  写入插件  对应 dll 名称  
-004968DA  |.  8BCA          |mov     ecx, edx  
-  
-模块句柄和 dll 名称都被写入一个全局的数组中，5f55b4 中存放的是索引号，加载第一个插件的时候，004F55B4  01 00 00 00 05  ，当加载到第 32 个插件的时候，  
-EBX=004F55B4,mov     dword ptr \[ebx\], esi，当写入模块句柄执行这句时，句柄的值刚好覆盖了记录插件个数的索引值，004F55B4  00 00 2A 06 ，当下次写入模块句柄的时候，由于错误的索引值而导致向一块非预期的地址进行写操作。  
-现在我们要做的是修改这个索引值所在的地址，并在程序中修改相关地址引用，一共有 2 个关键地方需要修改，修改之后可支持 100 个左右插件  
-本文思路比较简单，技术比较菜，只是简单的实现了下，另外谢谢夜凉如水兄的提醒，原来早就有人做过了，他分析的比我好，学习了  
-http://bbs.pediy.com/showthread.php?t=12539  
-发现 ollyadvanced 也可以拓展插件个数![](img/d23858dd221cce728a3a61b46badb044.jpg "恐怖!")，哎，随便写写吧  
+今天在看一些文章的时候，提到 `od` 只能加载 32 个插件，以前我也知道这点，只是今天突然心血来潮就想分析一下原因，我很多时候都是懒的去管，或者觉得自己应该没能力去做，反正今天闲着也是蛋疼，索性就去分析一把。
+
+多放几个插件在插件目录，一运行 `od` 就崩溃了，我是把 `windbg` 设为默认调试器，`windbg` 异常中断结果如下：
+
+```
+(1718.1160): Access violation - code c0000005 (first chance)
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+eax=0000006a ebx=5fff0d0c ecx=0000006a edx=7c99e174 esi=06370000 edi=06371274
+eip=004968b4 esp=0012e150 ebp=004c9198 iopl=0 nv up ei pl nz na pe nc
+cs=001b ss=0023 ds=0023 es=0023 fs=003b gs=0000 efl=00210206
+*** WARNING: Unable to verify checksum for F:\下载\压缩文件\OllyDBG_1.10_second_cao_cong_fix\OllyDBG_1.10_second_cao_cong_fix\Ollydbg.exe
+*** ERROR: Symbol file could not be found. Defaulted to export symbols for F:\下载\压缩文件\OllyDBG_1.10_second_cao_cong_fix\OllyDBG_1.10_second_cao_cong_fix\Ollydbg.exe -
+Ollydbg!Showsourcefromaddress+0x1360:
+004968b4 8933 mov dword ptr [ebx],esi ds:0023:5fff0d0c=????????
+```
+
+```
+0:000> !address ebx
+5d20a000 : 5d20a000 - 049d6000
+Type 00000000
+Protect 00000001 PAGE_NOACCESS
+State 00010000 MEM_FREE
+Usage RegionUsageFree
+```
+
+`ebx` 所在地址是没有写权限的，造成程序崩溃。记住 `004968b4` 这个地址，重新用令一个 `od` 加载插件数量多于 32 个的这个 `od`，来到 `004968b4`，下断：
+
+```
+0049689C |> \8B1D B4554F00 |mov ebx, dword ptr [4F55B4] ; 取插件索引号
+004968A2 |. C1E3 03 |shl ebx, 3
+004968A5 |. 8D1C5B |lea ebx, dword ptr [ebx+ebx*2]
+004968A8 |. 8D1C9B |lea ebx, dword ptr [ebx+ebx*4]
+004968AB |. 8D1C9B |lea ebx, dword ptr [ebx+ebx*4]
+004968AE |. 81C3 B40A4F00 |add ebx, 004F0AB4
+004968B4 |. 8933 |mov dword ptr [ebx], esi ; 写入模块句柄
+004968B6 |. 8D43 04 |lea eax, dword ptr [ebx+4]
+004968B9 |. 56 |push esi
+004968BA |. 8BF0 |mov esi, eax
+004968BC |. 57 |push edi
+004968BD |. 33C0 |xor eax, eax
+004968BF |. 8DBC24 441300>|lea edi, dword ptr [esp+1344]
+004968C6 |. 83C9 FF |or ecx, FFFFFFFF
+004968C9 |. F2:AE |repne scas byte ptr es:[edi]
+004968CB |. F7D1 |not ecx
+004968CD |. 2BF9 |sub edi, ecx
+004968CF |. 8BD1 |mov edx, ecx
+004968D1 |. 87F7 |xchg edi, esi
+004968D3 |. C1E9 02 |shr ecx, 2
+004968D6 |. 8BC7 |mov eax, edi
+004968D8 |. F3:A5 |rep movs dword ptr es:[edi], dword ptr [es>; 写入插件 对应 dll 名称
+004968DA |. 8BCA |mov ecx, edx
+```
+
+模块句柄和 `dll` 名称都被写入一个全局的数组中，`5f55b4` 中存放的是索引号，加载第一个插件的时候，`004F55B4 01 00 00 00 05`，当加载到第 32 个插件的时候，
+
+`EBX=004F55B4,mov dword ptr [ebx], esi`，当写入模块句柄执行这句时，句柄的值刚好覆盖了记录插件个数的索引值，`004F55B4 00 00 2A 06`，当下次写入模块句柄的时候，由于错误的索引值而导致向一块非预期的地址进行写操作。
+
+现在我们要做的是修改这个索引值所在的地址，并在程序中修改相关地址引用，一共有 2 个关键地方需要修改，修改之后可支持 100 个左右插件
+
+本文思路比较简单，技术比较菜，只是简单的实现了下，另外谢谢夜凉如水兄的提醒，原来早就有人做过了，他分析的比我好，学习了
+
+[`http://bbs.pediy.com/showthread.php?t=12539`](http://bbs.pediy.com/showthread.php?t=12539)
+
+发现 `ollyadvanced` 也可以拓展插件个数![](img/d23858dd221cce728a3a61b46badb044.jpg "恐怖!")，哎，随便写写吧
+
 修改后的版本：[`u.115.com/file/f6b44997eb`](http://u.115.com/file/f6b44997eb)

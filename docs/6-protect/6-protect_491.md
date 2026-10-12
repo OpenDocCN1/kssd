@@ -1,298 +1,341 @@
 
-
-# 非 API 函数检测操作系统类型\[翻译\]
+# 非 API 函数检测操作系统类型 [翻译]
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-704.htm`](https://www.pediy.com/kssd/pediy07/pediy7-704.htm)
 
-Detecting operating systems without Microsoft Advanced Programming Interface  
-  
-                   非 API 函数检测操作系统类型  
-  
-  
-来源：  
-The Assembly-Programming-Journal, Vol. 1, No. 1 (2004)  
-http://www.Assembly-Journal.com  
-  
-作者：  
-Thomas Kruse  
-  
-翻译：  
-nbw \[NE365\]  
-  
-Universitas Virtualis  
-  
-Abstract  
-概要  
-  
-Today nearly all programmers use the Advanced Programming Interface (API) to receive information’s about given system  
-values. By using this API’s, we don’t have to take care which operating system is currently available.  
-现在几乎所有的程序员都采用扩展程序接口（API）来获取操作系统信息。采用 AIP 函数，我们不需要关心当前所用的操作系统具体状况。  
-  
-But sometimes it might be needful to avoid the usage of such API’s. This situation is given during development of software  
-protections in order to avoid importing functions which - eventually - will point a reverse engineer to a solution.  
-但是有时候不能采用 API 函数。比如开发保护软件时候，防止给逆向者透漏引用的函数信息信息。  
-  
-This essay show up a way to detect the today given operating systems from Microsoft: Windows 95, 98, ME - the non NT-based  
-operating systems - and Windows NT4, 2000, XP, 2003 - the NT-based operating systems.  
-这篇文章介绍了如何检测当前用到的操作系统，微软： Windows 95， 98， ME - 非 NT 内核，以及 Windows NT4，2000，XP -NT 内核系统。  
-  
-The shown source code is in Microsoft Assembler style (MASM \[3\]).  
-这里给出的代码是微软汇编体系（MASM\[3\]）。  
-  
-Keywords: Microsoft Operating Systems, Software Protection, Assembly Programming, System Internals  
-关键词： 微软操作系统，软件保护，汇编程序，系统内核  
-  
-The author Thomas Kruse has his main research focus on operating-system independent code optimising and software-protection development. He is Associate  
-Editor of Assembly-Journal and CodeBreakers-Journal.  
-本文作者作者 Thomas Kruse 致力于独立于操作系统的代码和软件保护系统的研究，也是 Assembly-Journal 和 CodeBreakers-Journal 的编辑。  
-  
-I. Introduction  
-介绍  
-  
-When analysing the structure of the Thread Environment Block (TEB - also known as Thread Information Block TIB) on  
-different operating systems, we find additional data followed by this structure. This additional data seems to have - on non  
-NT-based operating systems - no logical structure or length definition, where NT-based operating systems store the information  
-inside the Process Environment Block (PEB). The only way to figure out the meaning of this data for non NT-based operating  
-systems is to debug the same application on different operation systems\[2\].  
-分析不同操作系统的线程环境块（TEB --- 也叫做线程信息块 TIB），我们可以看到这个结构的附加数据。对于非 NT 内核的系统，这些附加数据没有逻辑结构或者长度定义，而对于 NT 内核的系统他们保存了进程环境块（PEB）的信息。确定非 NT 内核系统中这些数据意义的唯一方法，就是在不同的操作系统中调试同一个程序。  
-  
-II. Application start  
-程序开始  
-  
-There are many ways in detecting an operating system. It could be done by using the Windows API function GetVersionEx\[1\]  
-and checking the version values returned in structure OSVERSIONINFO(EX)\[1\], or by accessing Register CS. Another way is  
-analysing the registers during start up of an application. There are several rules for them on how operating systems prepare  
-several registers before executing the first instruction:  
-有很多方法可以检测操作系统。可以采用 Windows API 函数 GetVersionEx\[1\]，然后检查返回值或者检查 CS 寄存器。另外一个方法就是分析程序开始运行时候寄存器的值。在操作系统执行程序第一条指令以前，有很多处理寄存器的规则可以被利用。  
-  
-Startup values for Windows 95/98/ME  
-Windows 95/98/ME 启动值（译注：程序临执行以前）  
-  
-EAX == Application Entry Point  
-EAX == 程序入口  
-  
-EBX == 00530000h, a fixed value  
-确定值  
-  
-Startup values for Windows NT/2000/XP/2003  
-Windows NT/2000/XP/2003 启动值  
-  
-EAX == NULL  
-EBX == 7FFDF000h, pointer to (PEB)  
-EBX == 7FFDF000h, PEB 指针  
-  
-By knowing this rules we where able to check the operating system base during start up. But then we need to store the register  
-values of EAX and EBX for further usage - or resolve them in a different way.  
-利用上面的特点，我们可以在启动时候确定操作系统类型。但是为了以后使用我们需要存储 EAX，EBX 或者也可以采用其他方法处理。  
-  
-A. Thread Environment Block  
-A.线程环境块  
-  
-The TEB is prepared during application start up and contain pointers to thread related additional data. The TEB structure is  
-available on all operating systems. It’s size is defined to 34h Bytes. The TEB address could be resolved by accessing the  
-segment register FS in the following way:  
-程序启动前 TEB 便被初始化并且含有线程重定位数据指针。TEB 结构在所有的操作系统中都是有效的。它的大小是 34 字节。TEB 地址可以利用 FS 寄存器配合下面的方法来获取：  
-  
-assume fs:nothing  
-mov eax,fs:\[18h\]  
-  
-The register EAX will contain the base address of this block. The TEB contains - at address 18h inside the structure - a pointer  
-to itself:  
-EAX 寄存器含有 TEB 地址。TEB 结构中第 18h 位为指向该 TEB 的指针。  
-  
-pSelf DWORD ? ; 18h pointer to TEB/TIB  
-  
-The last entry of TEB is the pointer to process database. On NT-based operating systems this value will point to the address  
-of Process Environment Block (see Section II-C)  
-TEB 最后的内容为指向进程数据的指针。在 NT 内核系统中，这个值指向进程环境块（参考 II-C 部分）  
-  
-B. Additional data following TEB  
-B. TEB 附加数据  
-  
-Told in Section I, this additional data has no logical structure and differs on each non NT-based operating system. On Windows  
-NT, 2000, XP and 2003 this additional Data is defined as follows:  
-第 I 部分说过，在每个非 NT 内核系统中附加数据块没有逻辑结构和具体定义（译注：这里好像应该是 NT 内核结构）。在 Windows NT，2000，XP 和 2003，这些数据如下：  
-  
-NT\_TEB\_ADDON struct  
-LastErrorValue DWORD ? ; 00h (34h TEB)  
-LastStatusValue DWORD ? ; 04h (38h TEB)  
-CountOwnedLocks DWORD ? ; 08h (3Ch TEB)  
-HardErrorsMode DWORD ? ; 0Ch (40h TEB)  
-NT\_TEB\_ADDON ends  
-  
-Windows 95, 98, ME didn’t have such a structure; the additional data is scrambled!  
-Windows 95, 98, ME 没有这些数据结构。附加数据完全很混乱！  
-  
-C. Process Environment Block  
-C. 进程环境块  
-  
-Windows NT-based operating systems store process related data inside the Process Environment Block. The address of this  
-structure is avaliable by accessing the segment register FS:  
-NT 内核的系统把进程相关数据存储在进程环境块中。这个结构的地址可以通过操作 FS 寄存器来获取：  
-  
-assume fs:nothing  
-mov eax,fs:\[30h\]  
-  
-The register EAX will contain the base address of PEB.  
-EAX 寄存器中便是 PEB 基地址。  
-  
-pProcess DWORD ? ; 30h pointer to process database  
-  
-The version information is stored inside the PEB structure:  
-操作系统信息被存储在 PEB 结构中：  
-  
-OSMajorVersion DWORD ? ; A4h <=4->NT / 5->2K/XP/2K3  
-OSMinorVersion DWORD ? ; A8h 0->2K / 1->XP / 2->2K3  
-  
-D. NT-based definitions  
-D. NT 内核中的定义  
-  
-Windows NT, 2000, XP and 2003 use fixed addresses to store PEB and TEB. The PEB is always stored at address 7FFDF000h  
-and TEB is starting at 7FFDE000h. By knowing these two fixed values, it is possible to detect the operating system base.  
-Windows NT, 2000, XP and 2003 采用固定数据存储 PEB 和 TEB。PEB 总是被存放在 7FFDF000h，TEB 总是从 7FFDE000h 开始。知道了这 2 个固定数据，就可以检测出来操作系统类型。  
-  
-III. The Trick  
-III. 一些技巧  
-  
-Section II-B has shown an add-on structure for NT-based operating systems. The data exists on non NT-based operating  
-systems, too. But it is stored in a different way. To resolve correct memory positions - related to detect the operating system  
-第 II-B 部分介绍了附加数据在 NT 内核系统中的存储。在非 NT 内核系统中，也存在这些数据。但是存储方式不一样。通过获取这些数据的位置，可以检测出来操作系统类型。  
-  
-\- we use a trick the analyse the additional data.  
-\- 我们采用一些技巧来分析这些附加数据  
-  
-If we take a closer look to the NT TEB ADDON structure shown in Section II-B, we see the entry LastErrorValue. Nearly  
-all Windows API’s will return an error value which is accessible via GetLastError\[1\]. In addition to this, it is possible to  
-manipulate the LastErrorValue via SetLastError\[1\] API. By using this API and monitoring the memory area behind the TEB,  
-the locations for the LastErrorValue are:  
-如果仔细看一下 II-B 部分说的 NT TEB 附加数据，可以发现入口处的 LastErrorValue。几乎所有跟 GetLastError\[1\]有关系的 API 都要返回一个错误值。可以采用一些技巧来利用 SetLastError\[1\] 返回的这个 Error 值，为了使用这个 API 并且检测 TEB 后面的内存，下面列出来 LastErrorValue 的位置：  
-  
-Windows 95 - TEB-base + 60h  
-Windows 98 - TEB-base + 60h  
-Windows ME - TEB-base + 74h  
-  
-Now we are able to detect Windows ME or Windows 95/98. First step to our solution, but not the final one. It is possible to  
-detect a difference between Windows 95 and Windows 98.  
-现在就可以检测出来 Windows ME 或者 Windows 95/98。这是解决问题的第一步，并没有到最后。有可能检测出来 Windows 95 和 Windows 98 之间的不同。  
-  
-Section II showed the start up values and their rules. The start up value of EBX on non NT-based OS is 00530000h. Exactly  
-this value will be found inside the additional data part - close to the now resolved LastErrorValue. By analysing it’s location,  
-the result will be:  
-第 II 部分说明了初始化值和他们的规律。对于非 NT 内核的系统，EBX 初始为 00530000h。并且这个值可以从附加数据中查出来 - 与 LastErrorValue 非常近。为了分析这个数据，下面列出来具体位置：  
-  
-Windows 95 - TEB-base + 58h  
-Windows 98 - TEB-base + 54h  
-Windows ME - TEB-base + 7Ch  
-  
-Now we are able to differ between each non NT-based operating system.  
-现在我们就可以区分没一个非 NT 内核的系统。  
-  
-IV. Code creation  
-IV. 创建代码  
-  
-Right now, we where able the detect the version information for each operating system. We want an operating system  
-independent code, we need to structure the given information’s. Also it should be possible to resolve the version information  
-workflow independent. Section VI will show the complete solution in Assembler.  
-现在，我们可以检测每个操作系统的版本信息。为了让代码不依赖于操作系统，我们需要把需要的信息组织成一个结构。并且有必要让类型信息独立起来。第 VI 部分将给出完全的汇编解决方案。  
-  
-First of all, we get the base addresses of PEB and TEB and resolve the operating system base by analysing them:  
-首先，获取 PEB 和 TEB 的基地址，通过分析他们获取不同的操作系统信息。  
-  
-assume fs:nothing  
-mov ebx,fs:\[18h\] ; get self pointer from TEB  
-mov eax,fs:\[30h\] ; get pointer to PEB / database  
-.if eax==7FFDF000h && ebx==7FFDE000h  
-; WinNT based  
-.else  
-; Win9X based  
-.endif ; of base check NT/9X  
-  
-The version information for NT-based operation systems is stored inside PEB. We only have to analyse the values of  
-NT 内核的版本信息存储在 PEB 中。我们仅仅需要分析这些数据：  
-  
-OSMajorVersion and OSMinorVersion:  
-mov ebx,\[eax+0A8h\] ; get OSMinorVersion  
-mov eax,\[eax+0A4h\] ; get OSMajorVersion  
-.if eax==5 && ebx==0 ; is it Windows 2000?  
-.elseif eax==5 && ebx==1 ; is it Windows XP?  
-.elseif eax==5 && ebx==2 ; is it Windows 2003?  
-.elseif eax<=4 ; is it Windows NT?  
-.endif  
-  
-Non NT-based operating systems could be detected by analysing the additional data area behind TEB, searching the value  
-00530000h:  
-非 NT 内核的操作系统可以通过分析 TEB 附加数据，搜索 00530000h：  
-  
-mov edx,00530000h ; the value to search  
-mov eax,fs:\[18h\] ; get the TEB base address  
-mov ebx,\[eax+58h\] ; TEB-base + 58h (W95)  
-mov ecx,\[eax+7Ch\] ; TEB-base + 7Ch (WME)  
-mov eax,\[eax+54h\] ; TEB-base + 54h (W98)  
-.if ebx==edx ; is it Windows 95?  
-.elseif eax==edx ; is it Windows 98?  
-.elseif ecx==edx ; is it Windows ME?  
-.endif  
-  
-V. Conclusions  
-V. 结论  
-  
-Resolving the operating system by using this technique is only one possibility to avoid the usage of Advanced Programming  
-Interface functions. Other functions, for example GetCommandLine\[1\], IsDebuggerPresent\[1\] or named functions in this essay  
-could be ”rewritten” in the same way. In other words: the reverse engineer isn’t able to set breakpoints on API function calls,  
-because they didn’t exist. And mixing different operating system solutions together makes life even harder for him.  
-采用这个技术，不过是避免使用 API 函数一种方法。其他很多函数，例如 GetCommandLine\[1\], IsDebuggerPresent\[1\] 或者这篇文章中的一些函数都可以采用同样的方法被重写。换句话说：逆向人员不会拦截到相关 API 函数，因为根本就没有使用他们。并且，如果把对不同操作系统的处理都混杂在一起，对他们分析来说，会更加困难。  
-  
-  
-VI. Appendix  
-VI. 附录  
-  
-.const  
-;-- return values from OS\_GetOS  
-OS\_UNKNOWN equ -1  
-OS\_WIN95 equ 1  
-OS\_WIN98 equ 2  
-OS\_WINME equ 3  
-OS\_WINNT equ 4  
-OS\_WIN2K equ 5  
-OS\_WINXP equ 6  
-OS\_WIN2K3 equ 7  
-.code  
-OS\_GetOS proc  
-local \_theReturnValue:DWORD  
-pushad ; store all registers  
-mov \_theReturnValue,OS\_UNKNOWN  
-assume fs:nothing  
-mov ebx,fs:\[18h\] ; get self pointer from TEB  
-mov eax,fs:\[30h\] ; get pointer to PEB / database  
-.if eax==7FFDF000h && ebx==7FFDE000h ; WinNT based  
-mov ebx,\[eax+0A8h\] ; get OSMinorVersion  
-mov eax,\[eax+0A4h\] ; get OSMajorVersion  
-.if eax==5 && ebx==0 ; is it Windows 2000?  
-mov \_theReturnValue,OS\_WIN2K  
-.elseif eax==5 && ebx==1 ; is it Windows XP?  
-mov \_theReturnValue,OS\_WINXP  
-.elseif eax==5 && ebx==2 ; is it Windows 2003?  
-mov \_theReturnValue,OS\_WIN2K3  
-.elseif eax<=4 ; is it Windows NT?  
-mov \_theReturnValue,OS\_WINNT  
-.endif  
-.else ; Win9X based  
-mov edx,00530000h ; the magic value to search  
-mov eax,fs:\[18h\] ; get the TEB base address  
-mov ebx,\[eax+58h\] ; TEB-base + 58h (W95)  
-mov ecx,\[eax+7Ch\] ; TEB-base + 7Ch (WME)  
-mov eax,\[eax+54h\] ; TEB-base + 54h (W98)  
-.if ebx==edx ; is it Windows 95?  
-mov \_theReturnValue,OS\_WIN95  
-.elseif eax==edx ; is it Windows 98?  
-mov \_theReturnValue,OS\_WIN98  
-.elseif ecx==edx ; is it Windows ME?  
-mov \_theReturnValue,OS\_WINME  
-.endif  
-.endif ; of base check NT/9X  
-popad ; restore all registers  
-mov eax,\_theReturnValue  
-ret ; return to caller  
-OS\_GetOS endp 
+Detecting operating systems without Microsoft Advanced Programming Interface  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;非 API 函数检测操作系统类型  
 
- 4dd466d0e1e0cc123afbe504da2462ca
+来源：  
+
+The Assembly-Programming-Journal, Vol. 1, No. 1 (2004)  
+
+`http://www.Assembly-Journal.com`  
+
+作者：  
+
+Thomas Kruse  
+
+翻译：  
+
+nbw [NE365]  
+
+Universitas Virtualis  
+
+## Abstract
+
+概要
+
+Today nearly all programmers use the Advanced Programming Interface (API) to receive information’s about given system values. By using this API’s, we don’t have to take care which operating system is currently available.  
+
+现在几乎所有的程序员都采用扩展程序接口（API）来获取操作系统信息。采用 API 函数，我们不需要关心当前所用的操作系统具体状况。  
+
+But sometimes it might be needful to avoid the usage of such API’s. This situation is given during development of software protections in order to avoid importing functions which - eventually - will point a reverse engineer to a solution.  
+
+但是有时候不能采用 API 函数。比如开发保护软件时候，防止给逆向者透漏引用的函数信息信息。  
+
+This essay show up a way to detect the today given operating systems from Microsoft: Windows 95, 98, ME - the non NT-based operating systems - and Windows NT4, 2000, XP, 2003 - the NT-based operating systems.  
+
+这篇文章介绍了如何检测当前用到的操作系统，微软：Windows 95，98，ME - 非 NT 内核，以及 Windows NT4，2000，XP -NT 内核系统。  
+
+The shown source code is in Microsoft Assembler style (MASM [3]).  
+
+这里给出的代码是微软汇编体系（`MASM` [3]）。  
+
+Keywords: Microsoft Operating Systems, Software Protection, Assembly Programming, System Internals  
+
+关键词：微软操作系统，软件保护，汇编程序，系统内核  
+
+The author Thomas Kruse has his main research focus on operating-system independent code optimising and software-protection development. He is Associate Editor of Assembly-Journal and CodeBreakers-Journal.  
+
+本文作者 Thomas Kruse 致力于独立于操作系统的代码和软件保护系统的研究，也是 `Assembly-Journal` 和 `CodeBreakers-Journal` 的编辑。  
+
+## I. Introduction
+
+介绍
+
+When analysing the structure of the Thread Environment Block (TEB - also known as Thread Information Block TIB) on different operating systems, we find additional data followed by this structure. This additional data seems to have - on non NT-based operating systems - no logical structure or length definition, where NT-based operating systems store the information inside the Process Environment Block (PEB). The only way to figure out the meaning of this data for non NT-based operating systems is to debug the same application on different operation systems[2].  
+
+分析不同操作系统的线程环境块（TEB --- 也叫做线程信息块 TIB），我们可以看到这个结构的附加数据。对于非 NT 内核的系统，这些附加数据没有逻辑结构或者长度定义，而对于 NT 内核的系统他们保存了进程环境块（PEB）的信息。确定非 NT 内核系统中这些数据意义的唯一方法，就是在不同的操作系统中调试同一个程序。  
+
+## II. Application start
+
+程序开始
+
+There are many ways in detecting an operating system. It could be done by using the Windows API function GetVersionEx[1] and checking the version values returned in structure OSVERSIONINFO(EX)[1], or by accessing Register CS. Another way is analysing the registers during start up of an application. There are several rules for them on how operating systems prepare several registers before executing the first instruction:  
+
+有很多方法可以检测操作系统。可以采用 Windows API 函数 `GetVersionEx` [1]，然后检查返回值或者检查 `CS` 寄存器。另外一个方法就是分析程序开始运行时候寄存器的值。在操作系统执行程序第一条指令以前，有很多处理寄存器的规则可以被利用。  
+
+### Startup values for Windows 95/98/ME
+
+Windows 95/98/ME 启动值（译注：程序临执行以前）
+
+`EAX` == Application Entry Point  
+
+`EAX` == 程序入口  
+
+`EBX` == 00530000h, a fixed value  
+
+确定值  
+
+### Startup values for Windows NT/2000/XP/2003
+
+Windows NT/2000/XP/2003 启动值
+
+`EAX` == NULL  
+
+`EBX` == 7FFDF000h, pointer to (PEB)  
+
+`EBX` == 7FFDF000h, PEB 指针  
+
+By knowing this rules we where able to check the operating system base during start up. But then we need to store the register values of EAX and EBX for further usage - or resolve them in a different way.  
+
+利用上面的特点，我们可以在启动时候确定操作系统类型。但是为了以后使用我们需要存储 `EAX`，`EBX` 或者也可以采用其他方法处理。  
+
+### A. Thread Environment Block
+
+A.线程环境块
+
+The TEB is prepared during application start up and contain pointers to thread related additional data. The TEB structure is available on all operating systems. It’s size is defined to 34h Bytes. The TEB address could be resolved by accessing the segment register FS in the following way:  
+
+程序启动前 TEB 便被初始化并且含有线程重定位数据指针。TEB 结构在所有的操作系统中都是有效的。它的大小是 34 字节。TEB 地址可以利用 `FS` 寄存器配合下面的方法来获取：  
+
+```
+assume fs:nothing
+mov eax,fs:[18h]
+```
+
+The register EAX will contain the base address of this block. The TEB contains - at address 18h inside the structure - a pointer to itself:  
+
+`EAX` 寄存器含有 TEB 地址。TEB 结构中第 `18h` 位为指向该 TEB 的指针。  
+
+```
+pSelf DWORD ? ; 18h pointer to TEB/TIB
+```
+
+The last entry of TEB is the pointer to process database. On NT-based operating systems this value will point to the address of Process Environment Block (see Section II-C)  
+
+TEB 最后的内容为指向进程数据的指针。在 NT 内核系统中，这个值指向进程环境块（参考 II-C 部分）  
+
+### B. Additional data following TEB
+
+B. TEB 附加数据
+
+Told in Section I, this additional data has no logical structure and differs on each non NT-based operating system. On Windows NT, 2000, XP and 2003 this additional Data is defined as follows:  
+
+第 I 部分说过，在每个非 NT 内核系统中附加数据块没有逻辑结构和具体定义（译注：这里好像应该是 NT 内核结构）。在 Windows NT，2000，XP 和 2003，这些数据如下：  
+
+```
+NT_TEB_ADDON struct
+LastErrorValue DWORD ? ; 00h (34h TEB)
+LastStatusValue DWORD ? ; 04h (38h TEB)
+CountOwnedLocks DWORD ? ; 08h (3Ch TEB)
+HardErrorsMode DWORD ? ; 0Ch (40h TEB)
+NT_TEB_ADDON ends
+```
+
+Windows 95, 98, ME didn’t have such a structure; the additional data is scrambled!  
+
+Windows 95, 98, ME 没有这些数据结构。附加数据完全很混乱！  
+
+### C. Process Environment Block
+
+C. 进程环境块
+
+Windows NT-based operating systems store process related data inside the Process Environment Block. The address of this structure is avaliable by accessing the segment register FS:  
+
+NT 内核的系统把进程相关数据存储在进程环境块中。这个结构的地址可以通过操作 `FS` 寄存器来获取：  
+
+```
+assume fs:nothing
+mov eax,fs:[30h]
+```
+
+The register EAX will contain the base address of PEB.  
+
+`EAX` 寄存器中便是 PEB 基地址。  
+
+```
+pProcess DWORD ? ; 30h pointer to process database
+```
+
+The version information is stored inside the PEB structure:  
+
+操作系统信息被存储在 PEB 结构中：  
+
+```
+OSMajorVersion DWORD ? ; A4h <=4->NT / 5->2K/XP/2K3
+OSMinorVersion DWORD ? ; A8h 0->2K / 1->XP / 2->2K3
+```
+
+### D. NT-based definitions
+
+D. NT 内核中的定义
+
+Windows NT, 2000, XP and 2003 use fixed addresses to store PEB and TEB. The PEB is always stored at address 7FFDF000h and TEB is starting at 7FFDE000h. By knowing these two fixed values, it is possible to detect the operating system base.  
+
+Windows NT, 2000, XP and 2003 采用固定数据存储 PEB 和 TEB。PEB 总是被存放在 `7FFDF000h`，TEB 总是从 `7FFDE000h` 开始。知道了这 2 个固定数据，就可以检测出来操作系统类型。  
+
+## III. The Trick
+
+III. 一些技巧
+
+Section II-B has shown an add-on structure for NT-based operating systems. The data exists on non NT-based operating systems, too. But it is stored in a different way. To resolve correct memory positions - related to detect the operating system - we use a trick the analyse the additional data.  
+
+第 II-B 部分介绍了附加数据在 NT 内核系统中的存储。在非 NT 内核系统中，也存在这些数据。但是存储方式不一样。通过获取这些数据的位置，可以检测出来操作系统类型。 - 我们采用一些技巧来分析这些附加数据  
+
+If we take a closer look to the NT TEB ADDON structure shown in Section II-B, we see the entry LastErrorValue. Nearly all Windows API’s will return an error value which is accessible via GetLastError[1]. In addition to this, it is possible to manipulate the LastErrorValue via SetLastError[1] API. By using this API and monitoring the memory area behind the TEB, the locations for the LastErrorValue are:  
+
+如果仔细看一下 II-B 部分说的 NT TEB 附加数据，可以发现入口处的 `LastErrorValue`。几乎所有跟 `GetLastError` [1]有关系的 API 都要返回一个错误值。可以采用一些技巧来利用 `SetLastError` [1] 返回的这个 Error 值，为了使用这个 API 并且检测 TEB 后面的内存，下面列出来 `LastErrorValue` 的位置：  
+
+`Windows 95 - TEB-base + 60h`  
+
+`Windows 98 - TEB-base + 60h`  
+
+`Windows ME - TEB-base + 74h`  
+
+Now we are able to detect Windows ME or Windows 95/98. First step to our solution, but not the final one. It is possible to detect a difference between Windows 95 and Windows 98.  
+
+
+
+现在就可以检测出来`Windows ME`或者`Windows 95`/`98`。这是解决问题的第一步，并没有到最后。有可能检测出来`Windows 95`和`Windows 98`之间的不同。
+
+`Section II` showed the start up values and their rules. The start up value of `EBX` on non `NT`-based `OS` is `00530000h`. Exactly this value will be found inside the additional data part - close to the now resolved `LastErrorValue`. By analysing it’s location, the result will be:
+
+第 II 部分说明了初始化值和他们的规律。对于非 `NT` 内核的系统，`EBX` 初始为 `00530000h`。并且这个值可以从附加数据中查出来 - 与 `LastErrorValue` 非常近。为了分析这个数据，下面列出来具体位置：
+
+`Windows 95` - `TEB-base` + `58h`
+
+`Windows 98` - `TEB-base` + `54h`
+
+`Windows ME` - `TEB-base` + `7Ch`
+
+Now we are able to differ between each non `NT`-based operating system.
+
+现在我们就可以区分每个非 `NT` 内核的系统。
+
+### IV. Code creation
+
+### IV. 创建代码
+
+Right now, we where able the detect the version information for each operating system. We want an operating system independent code, we need to structure the given information’s. Also it should be possible to resolve the version information workflow independent. `Section VI` will show the complete solution in Assembler.
+
+现在，我们可以检测每个操作系统的版本信息。为了让代码不依赖于操作系统，我们需要把需要的信息组织成一个结构。并且有必要让类型信息独立起来。第 `VI` 部分将给出完全的汇编解决方案。
+
+First of all, we get the base addresses of `PEB` and `TEB` and resolve the operating system base by analysing them:
+
+首先，获取 `PEB` 和 `TEB` 的基地址，通过分析他们获取不同的操作系统信息。
+
+```
+assume fs:nothing
+mov ebx,fs:[18h] ; get self pointer from TEB
+mov eax,fs:[30h] ; get pointer to PEB / database
+
+.if eax==7FFDF000h && ebx==7FFDE000h
+; WinNT based
+.else
+; Win9X based
+.endif ; of base check NT/9X
+```
+
+The version information for `NT`-based operation systems is stored inside `PEB`. We only have to analyse the values of
+
+NT 内核的版本信息存储在 `PEB` 中。我们仅仅需要分析这些数据：
+
+`OSMajorVersion` and `OSMinorVersion`:
+
+```
+mov ebx,[eax+0A8h] ; get OSMinorVersion
+mov eax,[eax+0A4h] ; get OSMajorVersion
+
+.if eax==5 && ebx==0 ; is it Windows 2000?
+.elseif eax==5 && ebx==1 ; is it Windows XP?
+.elseif eax==5 && ebx==2 ; is it Windows 2003?
+.elseif eax<=4 ; is it Windows NT?
+.endif
+```
+
+Non `NT`-based operating systems could be detected by analysing the additional data area behind `TEB`, searching the value `00530000h`:
+
+非 `NT` 内核的操作系统可以通过分析 `TEB` 附加数据，搜索 `00530000h`：
+
+```
+mov edx,00530000h ; the value to search
+mov eax,fs:[18h] ; get the TEB base address
+mov ebx,[eax+58h] ; TEB-base + 58h (W95)
+mov ecx,[eax+7Ch] ; TEB-base + 7Ch (WME)
+mov eax,[eax+54h] ; TEB-base + 54h (W98)
+
+.if ebx==edx ; is it Windows 95?
+.elseif eax==edx ; is it Windows 98?
+.elseif ecx==edx ; is it Windows ME?
+.endif
+```
+
+### V. Conclusions
+
+### V. 结论
+
+Resolving the operating system by using this technique is only one possibility to avoid the usage of `Advanced Programming Interface` functions. Other functions, for example `GetCommandLine[1]`, `IsDebuggerPresent[1]` or named functions in this essay could be ”rewritten” in the same way. In other words: the reverse engineer isn’t able to set breakpoints on `API` function calls, because they didn’t exist. And mixing different operating system solutions together makes life even harder for him.
+
+采用这个技术，不过是避免使用 `API` 函数一种方法。其他很多函数，例如 `GetCommandLine[1]`, `IsDebuggerPresent[1]` 或者这篇文章中的一些函数都可以采用同样的方法被重写。换句话说：逆向人员不会拦截到相关 `API` 函数，因为根本就没有使用他们。并且，如果把对不同操作系统的处理都混杂在一起，对他们分析来说，会更加困难。
+
+### VI. Appendix
+
+### VI. 附录
+
+```
+.const
+;-- return values from OS_GetOS
+OS_UNKNOWN equ -1
+OS_WIN95 equ 1
+OS_WIN98 equ 2
+OS_WINME equ 3
+OS_WINNT equ 4
+OS_WIN2K equ 5
+OS_WINXP equ 6
+OS_WIN2K3 equ 7
+
+.code
+OS_GetOS proc
+local _theReturnValue:DWORD
+pushad ; store all registers
+mov _theReturnValue,OS_UNKNOWN
+assume fs:nothing
+mov ebx,fs:[18h] ; get self pointer from TEB
+mov eax,fs:[30h] ; get pointer to PEB / database
+
+.if eax==7FFDF000h && ebx==7FFDE000h ; WinNT based
+mov ebx,[eax+0A8h] ; get OSMinorVersion
+mov eax,[eax+0A4h] ; get OSMajorVersion
+
+.if eax==5 && ebx==0 ; is it Windows 2000?
+mov _theReturnValue,OS_WIN2K
+.elseif eax==5 && ebx==1 ; is it Windows XP?
+mov _theReturnValue,OS_WINXP
+.elseif eax==5 && ebx==2 ; is it Windows 2003?
+mov _theReturnValue,OS_WIN2K3
+.elseif eax<=4 ; is it Windows NT?
+mov _theReturnValue,OS_WINNT
+.endif
+.else ; Win9X based
+mov edx,00530000h ; the magic value to search
+mov eax,fs:[18h] ; get the TEB base address
+mov ebx,[eax+58h] ; TEB-base + 58h (W95)
+mov ecx,[eax+7Ch] ; TEB-base + 7Ch (WME)
+mov eax,[eax+54h] ; TEB-base + 54h (W98)
+
+.if ebx==edx ; is it Windows 95?
+mov _theReturnValue,OS_WIN95
+.elseif eax==edx ; is it Windows 98?
+mov _theReturnValue,OS_WIN98
+.elseif ecx==edx ; is it Windows ME?
+mov _theReturnValue,OS_WINME
+.endif
+.endif ; of base check NT/9X
+
+popad ; restore all registers
+mov eax,_theReturnValue
+ret ; return to caller
+OS_GetOS endp
+```

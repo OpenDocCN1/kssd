@@ -1,203 +1,257 @@
 
-
 # OD 插件编写以及与 IDC 脚本的配合使用(含 OD 插件源码及 IDC 脚本)
 
 > 原文：[`www.pediy.com/kssd/pediy11/125661.html`](https://www.pediy.com/kssd/pediy11/125661.html)
 
-OD 插件编写以及与 IDC 脚本的配合使用(含 OD 插件源码及 IDC 脚本)  天易 love   2010-11-29  
-       用 OD 调试程序时，有时对其中某一段关键代码比较感兴趣，而你想节省时间也不想为了看那一小段伪代码而用 IDA 载入那个大家伙，这个时候怎么办呢？由于 OD 下我们还不能一下子看到伪代码，所以有了这个想法：  
-1、在 OD 中选中你感兴趣的代码导出机器码到文件中；  
-2、在 IDA 中用 IDC 脚本打开机器码文件并 patch 到某个空白处；  
-3、按 F5 看伪代码。  
-   通过实验已经实现，下面具体说一下：  
-一、关于导出机器码到文件中的 OD 插件的实现；  
-    由于本人孤陋寡闻不知道有没有这种插件，所以只好用 vc  6.0 自己编程实现。网上翻出来一个模板，照猫画虎，竟然也编译成功了。下面奉献自己的一点点经验，告诉大家我是如何从一无所知到写出自己需要的插件的全过程，希望对大家有益。  
-    我起初的想法是:通过选中一段代码，得到代码的首尾地址，这样就可以把该段内存中的机器码读取并保存到一个指定的文件中。但是这个地址怎么得到呢？读取内存要用什么函数呢？对于写插件我完全是个门外汗，所以我必须先逆向一个类似插件找点感觉。发现了一个插件 Asm2Clipboard，它是把汇编代码以某种格式复制到粘贴板，看来可以先拿它开刀。  
-先静态调试直接看它的 Pluginaction 伪代码，如下：  
-int \_\_cdecl ODBG\_Pluginaction(int a1, int a2, int a3)  
-{  
-  int result; // eax@1  
-  result = a1;  
-  if ( a1 )  
-  {  
-    if ( a1 == 31 )  //CPU Disassembler 窗口调用的？  
-    {  
-      result = a2;  
-      if ( a2 )  
-      {  
-        if ( a2 == 1 ) //菜单 1？  
-        {  
-          sub\_100011F0(a3); //关键函数 入口参数是 item，可能 item 中有一些重要信息  
-          result = sub\_100019D0();  
-        }  
-      }  
-      Else   //菜单 2？  
-      {  
-        sub\_100011F0(a3);  
-        result = sub\_10001520();  
-      }  
-    }  
-  }  
-     查看 OllyDbg Plugin API v1.10 中有关的 ODBG\_Pluginaction 的解释，才得出上面的注释。  
-Optional callback function. If present, OllyDbg calls it each time the user selected menu item added to menu by ODBG\_Pluginmenu. 简单点就是 OD 会调用这个函数，当你点你自己的插件菜单时。  
-  
-void ODBG\_Pluginaction(int origin,int action,void \*item);  
-Parameters:  
-origin - code of window that calls ODBG\_Pluginaction. OllyDbg supports following codes:  
-Code  Cast item to  Who calls ODBG\_Pluginmenu  
-PM\_MAIN  item is always NULL  Main window  
-PM\_DUMP  (t\_dump \*)  Any Dump window  
-PM\_MODULES  (t\_module \*)  Modules window  
-PM\_MEMORY  (t\_memory \*)  Memory window  
-PM\_THREADS  (t\_thread \*)  Threads window  
-PM\_BREAKPOINTS  (t\_bpoint \*)  Breakpoints window  
-PM\_REFERENCES  (t\_ref \*)  References window  
-PM\_RTRACE  (int \*)  Run trace window  
-PM\_WATCHES  (1-based index)  Watches window  
-PM\_WINDOWS  (t\_window \*)  Windows window  
-PM\_DISASM  (t\_dump \*)  CPU Disassembler  
-PM\_CPUDUMP  (t\_dump \*)  CPU Dump  
-PM\_CPUSTACK  (t\_dump \*)  CPU Stack  
-PM\_CPUREGS  (t\_reg \*)  CPU Registers  
-     //第一个参数是个代码，Asm2Clipboard 显然是用的 31，那么这个 31 是哪个呢？在头文件 Plugin.h 中搜到了#define PM\_DISASM  31 这一条，显然首先判断是否是 CPU Disassembler 这个反汇编窗口调用了 Pluginaction 函数，其次判断是点了哪个菜单。那么到底该用哪个函数呢？进入 sub\_100011F0(a3)看看，发现 OLLYDBG\_101(&v16, v1, 16, 3);它的入口参数就是得到的内存数据 buffer，选中汇编代码区域的首地址，将要读取的代码字节长度，读取模式，而返回的机器码就在 buffer 中了。这个 OLLYDBG\_101 到底是什么函数呢？用 lordpe 看了下 OD 原来是 ulong Readmemory(void \*buf,ulong addr,ulong size,int mode);这样使用的函数就搞定了；接下来就是选中区域的首尾地址该上哪找呢？通过动态调试原来 Pluginaction(int a1, int a2, int a3)的第 3 个参数 item 是一个 t\_dump 结构指针。  
-  
-![](img/fcc26ca39d8fd104837c0b8100e08b68.jpg)  
-  
-typedef struct t\_dump {         // Current status of dump window  
-  t\_table    table;             // Treat dump window as custom table  
-  int        dimmed;            // Draw in lowcolor if nonzero  
-  ulong      threadid;          // Use decoding and registers if not 0  
-  int        dumptype;          // Current dump type, DU\_xxx count size  
-  SPECFUNC   \*specdump;         // Decoder of DU\_SPEC dump types  
-  int        menutype;          // Standard menus, MT\_xxx  
-  
-  int        itemwidth;         // Length of displayed item, characters  
-  int        showstackframes;   // Show stack frames in address dump  
-  int        showstacklocals;   // Show names of locals in stack  
-  int        showsource;        // Show source as comment in disassembler  
-  char       filename\[MAXPATH\]; // Name of displayed or backup file  
-  ulong      base;              // Start of memory block or file  
-  ulong      size;              // Size of memory block or file  
-  
-  ulong      addr;              // Address of first displayed byte  
-  ulong      lastaddr;          // Address of last displayed byte   1  
-  ulong      sel0;              // Address of first selected byte  
-  ulong      sel1;              // Last selected byte (not included!)  
-  ulong      startsel;          // Start of last selection  
-  int        captured;          // Mouse is captured by dump  
-  ulong      reladdr;           // Addresses relative to this  
-  char       relname\[SHORTLEN\]; // Symbol for relative zero address base  
-  
-  char       \*filecopy;         // Copy of the file or NULL  
-  char       \*backup;           // Old backup of memory/file or NULL  
-  int        runtraceoffset;    // Offset back in run trace  
-  ulong      reserved\[8\];       // Reserved for the future extentions  
-} t\_dump;  
-其中 sel0 、sel1 成员就是我想要的东西。  
- ulong      sel0;              // Address of first selected byte  
-  ulong      sel1;              // Last selected byte (not included!)  
-  
-这样剩下的就是文件的写操作了。关于调试插件代码，我是用 OD 调试 OD，设个插件用到的断点就可以断到插件的代码段中，动态调试一下以确认自己的判断。  
-  
-action - identifier of menu item (0..63), as set by ODBG\_Pluginmenu;  
-//第二个参数，判断是点击了哪个菜单  
-item - pointer either to selected element of sorted data displayed in window or, in case of dump windows, pointer to dump descriptor, or NULL. You may need this element to carry out requested action.//得到选择区域的首尾地址  
-  
-关键代码如下：  
-extc int \_export cdecl ODBG\_Pluginmenu(int origin,char data\[4096\],void \*item)  
-{  
-    t\_dump \*pd;  
-    if (origin==PM\_DISASM) //  Popup menu in Disassembler  
-    {  
-        pd = (t\_dump \*)item;  
-        if (NULL == pd || 0 == pd->size)  return 0;   // Window empty, don't add  
-        if (pd->sel1 > pd->sel0) sprintf(data,"0 &Export to C:\\\\code.txt");//右键弹出菜单文  字  
-        return 1;  
-    }  
-    return 0;  
-}  
-  
-extc void \_export cdecl ODBG\_Pluginaction(int origin,int action,void \*item)  
-{  
-    const unsigned char table\[\]="0123456789ABCDEF";  
-  byte data\[512\]={0};  
-    char out\[1024\]={0x90};  
-    t\_dump \*pd;  
-    ulong start,readbytes,size,i,index;  
-  FILE \*pFile;  
-   if(PM\_DISASM == origin)     
-   {   
-    pd = (t\_dump \*)item;  
-      start=pd->sel0;  
-      size= pd->sel1-start;  
-      readbytes= Readmemory(data, start, size, MM\_RESTORE|MM\_SILENT);   
-      pFile = fopen("c:\\\\code.txt", "w");         
-      if ( (pFile !=NULL)  &&  (readbytes=size) )  
-      {          
-        for(i=0;i< readbytes;i  )  
-        {    
-          index= data\[i\]/16;  
-          out\[3\*i\]=table\[index\];  
-          index= data\[i\] % 16;  
-          out\[3\*i 1\]=table\[index\];  
-          out\[3\*i 2\]=' ';         
-        }    
-              fwrite(out,sizeof(char),3\*readbytes-1,pFile); //去掉最后一个空格     
-          fclose(pFile);  
-      }  
-   }  
-}  
-  
-![](img/cb4d47cc55d18425c69dfa31d1f44926.jpg)  
-  
-![](img/6a3d7c58214923a46c1d3e9e8674b393.jpg)  
-  
-![](img/596bfc4479ea7dbe27f36fe067f5898d.jpg)  
-  
-  
-       二、在 IDA 中用 IDC 脚本打开机器码文件并 patch 到某个空白处的实现  
-  
-     用 vc  6.0 编写了一个 body.exe 小程序，里面做了个地址 0x401020 开头的函数，填充了几百字节的 nop 指令，用来作为 patch 的地方，用 IDA 打开 body.idb，G 到 0x401020 处，先在 OD 中选中一段汇编代码，右键在弹出菜单中选择“export to C:\\code.txt”，而后在 IDA 中执行脚本，在 0x401020 处按一下 P 键，如果不出意外的话，再 F5 一下就可以看到相应的伪 C 代码了。由于 F5 是有一定要求的，能否有用和你选择的代码也有一定的关系。脚本代码如下：  
-  
-#define base\_addr 0x401020  
-#define binaryfile "C:\\\\code.txt"  
-static main() {  
-auto  i,pos, st, st2, f, st\_new, addr,b\_new;  
-       for ( i=0; i < 0x200; i=i 1 )   
-{    
-         PatchByte(base\_addr i,0x90);      
-        }   
-        f=fopen(binaryfile,"r");  
-        if (f!=-1)          
-         {              
-               addr=base\_addr;     
-               while ((st=readstr(f))!=-1)  
-              {              
-  //处理 1 行    
-  while (strlen(st)>0)   
-                    {    
-          while (strstr(st," ")==0 & strlen(st)>0)  
-                        { // 滤去开头的空格  
-                    st2=substr(st,1,-1);  
-                              st=st2;  
-                        }  
-                         st\_new=substr(st,0,2);  
-                   b\_new=xtol(st\_new);  
-    st2=substr(st,2,-1);              st=st2;     
-    PatchByte(addr,b\_new);  
-    MakeUnkn(addr,1);  
-    addr=addr 1;    
-    }           
-                  }//while  
-            } //if  
-          fclose(f);  
-          PatchByte(addr,0xc3);  
-          Jump(base\_addr);  
-          MakeCode(base\_addr);     
+**OD 插件编写以及与 IDC 脚本的配合使用(含 OD 插件源码及 IDC 脚本)**  
+天易 love 2010-11-29
+
+用 OD 调试程序时，有时对其中某一段关键代码比较感兴趣，而你想节省时间也不想为了看那一小段伪代码而用 IDA 载入那个大家伙，这个时候怎么办呢？由于 OD 下我们还不能一下子看到伪代码，所以有了这个想法：
+
+1. 在 OD 中选中你感兴趣的代码导出机器码到文件中；
+2. 在 IDA 中用 IDC 脚本打开机器码文件并 patch 到某个空白处；
+3. 按 `F5` 看伪代码。
+
+通过实验已经实现，下面具体说一下：
+
+## 一、关于导出机器码到文件中的 OD 插件的实现
+
+由于本人孤陋寡闻不知道有没有这种插件，所以只好用 `vc 6.0` 自己编程实现。网上翻出来一个模板，照猫画虎，竟然也编译成功了。下面奉献自己的一点点经验，告诉大家我是如何从一无所知到写出自己需要的插件的全过程，希望对大家有益。
+
+我起初的想法是：通过选中一段代码，得到代码的首尾地址，这样就可以把该段内存中的机器码读取并保存到一个指定的文件中。但是这个地址怎么得到呢？读取内存要用什么函数呢？对于写插件我完全是个门外汉，所以我必须先逆向一个类似插件找点感觉。发现了一个插件 `Asm2Clipboard`，它是把汇编代码以某种格式复制到粘贴板，看来可以先拿它开刀。
+
+先静态调试直接看它的 `Pluginaction` 伪代码，如下：
+
+```c
+int __cdecl ODBG_Pluginaction(int a1, int a2, int a3)
+{
+  int result; // eax@1
+  result = a1;
+  if ( a1 )
+  {
+    if ( a1 == 31 ) //CPU Disassembler 窗口调用的？
+    {
+      result = a2;
+      if ( a2 )
+      {
+        if ( a2 == 1 ) //菜单 1？
+        {
+          sub_100011F0(a3); //关键函数 入口参数是 item，可能 item 中有一些重要信息
+          result = sub_100019D0();
+        }
+      }
+      Else //菜单 2？
+      {
+        sub_100011F0(a3);
+        result = sub_10001520();
+      }
+    }
+  }
+}
+```
+
+查看 `OllyDbg Plugin API v1.10` 中有关的 `ODBG_Pluginaction` 的解释，才得出上面的注释。
+
+> Optional callback function. If present, OllyDbg calls it each time the user selected menu item added to menu by `ODBG_Pluginmenu`. 简单点就是 OD 会调用这个函数，当你点你自己的插件菜单时。
+>
+> `void ODBG_Pluginaction(int origin, int action, void *item);`
+>
+> Parameters:
+>
+> `origin` - code of window that calls `ODBG_Pluginaction`. OllyDbg supports following codes:
+>
+> | Code | Cast item to | Who calls `ODBG_Pluginmenu` |
+> | :--- | :--- | :--- |
+> | `PM_MAIN` | item is always `NULL` | Main window |
+> | `PM_DUMP` | `(t_dump *)` | Any Dump window |
+> | `PM_MODULES` | `(t_module *)` | Modules window |
+> | `PM_MEMORY` | `(t_memory *)` | Memory window |
+> | `PM_THREADS` | `(t_thread *)` | Threads window |
+> | `PM_BREAKPOINTS` | `(t_bpoint *)` | Breakpoints window |
+> | `PM_REFERENCES` | `(t_ref *)` | References window |
+> | `PM_RTRACE` | `(int *)` | Run trace window |
+> | `PM_WATCHES` | (1-based index) | Watches window |
+> | `PM_WINDOWS` | `(t_window *)` | Windows window |
+> | `PM_DISASM` | `(t_dump *)` | CPU Disassembler |
+> | `PM_CPUDUMP` | `(t_dump *)` | CPU Dump |
+> | `PM_CPUSTACK` | `(t_dump *)` | CPU Stack |
+> | `PM_CPUREGS` | `(t_reg *)` | CPU Registers |
+
+第一个参数是个代码，`Asm2Clipboard` 显然是用的 31，那么这个 31 是哪个呢？在头文件 `Plugin.h` 中搜到了 `#define PM_DISASM 31` 这一条，显然首先判断是否是 `CPU Disassembler` 这个反汇编窗口调用了 `Pluginaction` 函数，其次判断是点了哪个菜单。那么到底该用哪个函数呢？进入 `sub_100011F0(a3)` 看看，发现 `OLLYDBG_101(&v16, v1, 16, 3);` 它的入口参数就是得到的内存数据 `buffer`，选中汇编代码区域的首地址，将要读取的代码字节长度，读取模式，而返回的机器码就在 `buffer` 中了。这个 `OLLYDBG_101` 到底是什么函数呢？用 `lordpe` 看了下 OD 原来是 `ulong Readmemory(void *buf, ulong addr, ulong size, int mode);` 这样使用的函数就搞定了；接下来就是选中区域的首尾地址该上哪找呢？通过动态调试原来 `Pluginaction(int a1, int a2, int a3)` 的第 3 个参数 `item` 是一个 `t_dump` 结构指针。
+
+![](img/fcc26ca39d8fd104837c0b8100e08b68.jpg)
+
+```c
+typedef struct t_dump {         // Current status of dump window
+  t_table    table;             // Treat dump window as custom table
+  int        dimmed;            // Draw in lowcolor if nonzero
+  ulong      threadid;          // Use decoding and registers if not 0
+  int        dumptype;          // Current dump type, DU_xxx count size
+  SPECFUNC   *specdump;         // Decoder of DU_SPEC dump types
+  int        menutype;          // Standard menus, MT_xxx
+  int        itemwidth;         // Length of displayed item, characters
+  int        showstackframes;   // Show stack frames in address dump
+  int        showstacklocals;   // Show names of locals in stack
+  int        showsource;        // Show source as comment in disassembler
+  char       filename[MAXPATH]; // Name of displayed or backup file
+  ulong      base;              // Start of memory block or file
+  ulong      size;              // Size of memory block or file
+  ulong      addr;              // Address of first displayed byte
+  ulong      lastaddr;          // Address of last displayed byte   1
+  ulong      sel0;              // Address of first selected byte
+  ulong      sel1;              // Last selected byte (not included!)
+  ulong      startsel;          // Start of last selection
+  int        captured;          // Mouse is captured by dump
+  ulong      reladdr;          // Addresses relative to this
+  char       relname[SHORTLEN]; // Symbol for relative zero address base
+  char       *filecopy;         // Copy of the file or NULL
+  char       *backup;          // Old backup of memory/file or NULL
+  int        runtraceoffset;    // Offset back in run trace
+  ulong      reserved[8];       // Reserved for the future extentions
+} t_dump;
+```
+
+其中 `sel0`、`sel1` 成员就是我想要的东西。
+
+```c
+  ulong      sel0;              // Address of first selected byte
+  ulong      sel1;              // Last selected byte (not included!)
+```
+
+这样剩下的就是文件的写操作了。关于调试插件代码，我是用 OD 调试 OD，设个插件用到的断点就可以断到插件的代码段中，动态调试一下以确认自己的判断。
+
+> `action` - identifier of menu item (0..63), as set by `ODBG_Pluginmenu`;
+>
+> //第二个参数，判断是点击了哪个菜单
+>
+> `item` - pointer either to selected element of sorted data displayed in window or, in case of dump windows, pointer to dump descriptor, or `NULL`. You may need this element to carry out requested action.//得到选择区域的首尾地址
+
+关键代码如下：
+
+```c
+extc int _export cdecl ODBG_Pluginmenu(int origin, char data[4096], void *item)
+{
+    t_dump *pd;
+    if (origin == PM_DISASM) //  Popup menu in Disassembler
+    {
+        pd = (t_dump *)item;
+        if (NULL == pd || 0 == pd->size)  return 0;   // Window empty, don't add
+        if (pd->sel1 > pd->sel0) sprintf(data, "0 &Export to C:\\code.txt"); //右键弹出菜单文  字
+        return 1;
+    }
+    return 0;
 }
 
+extc void _export cdecl ODBG_Pluginaction(int origin, int action, void *item)
+{
+    const unsigned char table[] = "0123456789ABCDEF";
+  byte data[512] = {0};
+    char out[1024] = {0x90};
+    t_dump *pd;
+    ulong start, readbytes, size, i, index;
+  FILE *pFile;
+   if(PM_DISASM == origin)   
+   {  
+    pd = (t_dump *)item;
+      start = pd->sel0;
+      size = pd->sel1 - start;
+      readbytes = Readmemory(data, start, size, MM_RESTORE|MM_SILENT);  
+      pFile = fopen("c:\\code.txt", "w");        
+      if ( (pFile != NULL)  &&  (readbytes == size) )
+      {          
+        for(i=0; i < readbytes; i++)
+        {   
+          index = data[i] / 16;
+          out[3*i] = table[index];
+          index = data[i] % 16;
+          out[3*i + 1] = table[index];
+          out[3*i + 2] = ' ';        
+        }   
+              fwrite(out, sizeof(char), 3*readbytes - 1, pFile); //去掉最后一个空格    
+          fclose(pFile);
+      }
+   }
+}
+```
+
+![](img/cb4d47cc55d18425c69dfa31d1f44926.jpg)
+
+![](img/6a3d7c58214923a46c1d3e9e8674b393.jpg)
+
+![](img/596bfc4479ea7dbe27f36fe067f5898d.jpg)
+
+## 二、在 IDA 中用 IDC 脚本打开机器码文件并 patch 到某个空白处的实现
+
+用 `vc 6.0` 编写了一个 `body.exe` 小程序，里面做了个地址 `0x401020` 开头的函数，填充了几百字节的 `nop` 指令，用来作为 patch 的地方，用 IDA 打开 `body.idb`，G 到 `0x401020` 处，先在 OD 中选中一段汇编代码，右键在弹出菜单中选择“export to `C:\\code.txt`”，而后在 IDA 中执行脚本，在 `0x401020` 处按一下 `P` 键，如果不出意外的话，再 `F5` 一下就可以看到相应的伪 C 代码了。由于 `F5` 是有一定要求的，能否有用和你选择的代码也有一定的关系。脚本代码如下：
+
+```c
+#define base_addr 0x401020
+#define binaryfile "C:\\code.txt"
+
+static main() {
+auto  i, pos, st, st2, f, st_new, addr, b_new;
+      
+  for ( i=0; i < 0x200; i++ )
+{   
+          PatchByte(base_addr + i, 0x90);     
+        }  
+        f = fopen(binaryfile, "r");
+        if (f != -1)          
+          {               
+            addr = base_addr;    
+            while ((st = readstr(f)) != -1)
+           {               
+  //处理 1 行   
+  while (strlen(st) > 0) 
+            {   
+          while (strstr(st, " ") == 0 && strlen(st) > 0)
+            { // 滤去开头的空格
+```
+
+
+
+```
+            st2=substr(st,1,-1);  
+
+                  st=st2;  
+
+              }  
+
+               st_new=substr(st,0,2);  
+
+        b_new=xtol(st_new);  
+
+    st2=substr(st,2,-1);                st=st2;    
+
+    PatchByte(addr,b_new);  
+
+    MakeUnkn(addr,1);  
+
+    addr=addr 1;   
+
+    }          
+
+            }//while  
+
+        } //if  
+
+      fclose(f);  
+
+      PatchByte(addr,0xc3);  
+
+      Jump(base_addr);  
+
+      MakeCode(base_addr);    
+
+}
+```
+
 上传的附件
+
 | ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || 测试文件.rar  
+
  |
+
 | ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || ExportBin.rar  
+
  |

@@ -1,252 +1,237 @@
 
-
 # 伪装 VC++7.0 的源代码 
 
 > 原文：[`www.pediy.com/kssd/pediy06/pediy6545.htm`](https://www.pediy.com/kssd/pediy06/pediy6545.htm)
 
 看了 LiNSoN 兄"让侦测工具把壳识别为 VC++",还不错,可惜是手动的...  
-  
-于是我顺手写了程序自动完成这一工作,经实验现在可以把不带 CRC32 的壳成功  
-伪装,如果壳带有 CRC32 就不行了  
+
+于是我顺手写了程序自动完成这一工作,经实验现在可以把不带 `CRC32` 的壳成功伪装,如果壳带有 `CRC32` 就不行了  
+
 现帖出源代码,与大家共享,有兴趣的可以加以改进  
+
 程序不复杂,我就直接帖出来了  
-  
-{  
-  Author: xIkUg  
-  Email: xikug@163.com  
-  HOMEPAGE: http://www.xp-program.com  
-  Description: 把 PE 程序伪装为 VC7.0 编译的  
-}  
-unit uMain;  
-  
-interface  
-  
-uses  
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,  
-  Dialogs, StdCtrls;  
-  
-type  
-  TForm1 = class(TForm)  
-    Label1: TLabel;  
-    edFName: TEdit;  
-    Button1: TButton;  
-    Label2: TLabel;  
-    edOEP: TEdit;  
-    Button2: TButton;  
-    Button3: TButton;  
-    Button4: TButton;  
-    Button5: TButton;  
-    OpenDialog1: TOpenDialog;  
-    procedure Button5Click(Sender: TObject);  
-    procedure Button4Click(Sender: TObject);  
-    procedure Button1Click(Sender: TObject);  
-    procedure Button2Click(Sender: TObject);  
-    procedure Button3Click(Sender: TObject);  
-  private  
-    { Private declarations }  
-    FImageBase: DWORD;  
-      
-  public  
-    { Public declarations }  
-  end;  
-  
-  THEAD = array \[0..63\] of byte;  
-  
-var  
-  Form1: TForm1;  
-  
-const  
-  MYSECTION = 'xIkUg';  
-    
-  JMPOFF = 43;  
-    
-  //这个是 HEAD.asm 中的代码的机器码  
-  OEPCODE: THEAD = ($55, $8B, $EC, $6A, $FF, $68, $2A, $2C, $0A, $00, $68, $38,  
-                    $90, $0D, $00, $64, $A1, $00, $00, $00, $00, $50, $64, $89,  
-                    $25, $00, $00, $00, $00, $58, $64, $A3, $00, $00, $00, $00,  
-                    $58, $58, $58, $58, $8B, $E8, $B8, $00, $10, $40, $00, $FF,  
-                    $E0, $90, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00,  
-                    $00, $00, $00, $00);  
-  
-procedure AddSection(FName: string);      //新加一个 Section,并把 OEPCode 写进去  
-  
-implementation  
-  
-{$R \*.dfm}  
-  
-procedure TForm1.Button5Click(Sender: TObject);  
-begin  
-  Close;  
-end;  
-  
-procedure TForm1.Button4Click(Sender: TObject);  
-begin  
-  MessageBox(Handle, 'Author: xIkUg' + #10#13 +  
-    'Email: xikug@163.com' + #10#13 +  
-    'HOMEPAGE: [`www.xp-program.com`](http://www.xp-program.com)',  
-    'About', MB\_OK);  
-end;  
-  
-procedure TForm1.Button1Click(Sender: TObject);  
-begin  
-  if OpenDialog1.Execute then  
-  begin  
-    edFName.Text := OpenDialog1.FileName;  
-  end;  
-end;  
-  
-procedure TForm1.Button2Click(Sender: TObject);  
-var  
-  DOSHEADER: IMAGE\_DOS\_HEADER;  
-  PEHEADER: IMAGE\_NT\_HEADERS;  
-  fs: TFileStream;  
-  
-begin  
-  fs := TFileStream.Create(edFName.Text, fmOpenReadWrite +  
-    fmShareDenyWrite);  
-  try  
-    fs.Seek(0, soFromBeginning);  
-    fs.Read(DOSHEADER, sizeof(DOSHEADER));  
-      
-    fs.Seek(DOSHEADER.\_lfanew, soFromBeginning);  
-    fs.Read(PEHEADER, sizeOf(PEHEADER));  
-    FImageBase := PEHEADER.OptionalHeader.ImageBase;  
-    edOEP.Text := IntToHex(PEHEADER.OptionalHeader.AddressOfEntryPoint, 8);  
-  finally  
-    fs.Free;  
-  end;  
-end;  
-  
-procedure AddSection(FName: string);  
-var  
-  DOSHEADER: IMAGE\_DOS\_HEADER;  
-  PEHEADER: IMAGE\_NT\_HEADERS;  
-  SectionHeader: IMAGE\_SECTION\_HEADER;  
-  MySectionHeader: IMAGE\_SECTION\_HEADER;  
-  fs: TFileStream;  
-  
-  AddressOfEntryPoint: DWORD;  
-    
-begin  
-  fs := TFileStream.Create(FName, fmOpenReadWrite +  
-    fmShareDenyWrite);  
-  try  
-    fs.Seek(0, soFromBeginning);  
-    fs.Read(DOSHEADER, sizeof(DOSHEADER));  
-      
-    fs.Seek(DOSHEADER.\_lfanew, soFromBeginning);  
-    fs.Read(PEHEADER, sizeOf(PEHEADER));  
-  
-    fs.Seek(sizeOf(SectionHeader) \*  
-      (PEHEADER.FileHeader.NumberOfSections - 1), soFromCurrent);  
-  
-    fs.Read(SectionHeader, sizeof(IMAGE\_SECTION\_HEADER));  
-  
-    MySectionHeader.Name\[0\] := ord('x');  
-    MySectionHeader.Name\[1\] := ord('I');  
-    MySectionHeader.Name\[2\] := ord('k');  
-    MySectionHeader.Name\[3\] := ord('U');  
-    MySectionHeader.Name\[4\] := ord('g');  
-    MySectionHeader.Name\[5\] := 0;  
-    MySectionHeader.Name\[6\] := 0;  
-    MySectionHeader.Name\[7\] := 0;  
-  
-    MySectionHeader.VirtualAddress := PEHEADER.OptionalHeader.SizeOfImage;  
-    MySectionHeader.Misc.VirtualSize := $200;  
-    MySectionHeader.SizeOfRawData := (MySectionHeader.VirtualAddress div  
-      PEHEADER.OptionalHeader.FileAlignment + 1) \* PEHEADER.OptionalHeader.FileAlignment -  
-      PEHEADER.OptionalHeader.SizeOfImage;  
-    MySectionHeader.PointerToRawData :=  
-      SectionHeader.SizeOfRawData+SectionHeader.PointerToRawData;  
-    MySectionHeader.Characteristics := $e0000020;  
-  
-    Inc(PEHEADER.FileHeader.NumberOfSections);  
-    fs.Write(MySectionHeader, sizeOf(MySectionHeader));  
-  
-    fs.Seek(DOSHEADER.\_lfanew, soFromBeginning);  
-  
-    AddressOfEntryPoint := PEHEADER.OptionalHeader.AddressOfEntryPoint;  
-  
-    PEHEADER.OptionalHeader.AddressOfEntryPoint :=  
-      MySectionHeader.VirtualAddress;  
-  
-    PEHEADER.OptionalHeader.MajorLinkerVersion := 7;  
-    PEHEADER.OptionalHeader.MinorLinkerVersion := 0;  
-    AddressOfEntryPoint := AddressOfEntryPoint +  
-      PEHEADER.OptionalHeader.ImageBase;  
-  
-    asm  
-      PUSHAD  
-      LEA eax, OEPCODE  
-      ADD eax, JMPOFF  
-      MOV edx, AddressOfEntryPoint  
-  
-      MOV DWORD ptr \[eax\], edx  
-      POPAD  
-    end;  
-  
-    PEHEADER.OptionalHeader.SizeOfImage :=  
-      PEHEADER.OptionalHeader.SizeOfImage + MySectionHeader.Misc.VirtualSize;  
-        
-    fs.Write(PEHEADER, sizeof(PEHEADER));  
-  
-  
-    fs.Seek(fs.Size, soFromBeginning);  
-    fs.Write(OEPCODE, MySectionHeader.Misc.VirtualSize)  
-  finally  
-    fs.Free;  
-  end;  
-end;  
-  
-procedure TForm1.Button3Click(Sender: TObject);  
-begin  
-  //伪装  
-  if trim(edFName.Text) = '' then  
-  begin  
-    MessageDlg('请先选择一个可执行文件', mtError, \[mbOK\], 0);  
-    Exit;  
-  end;  
-  
-  //这段其实是不需要的,我懒得删了,看看也不错  
-  if trim(edOEP.Text) = '' then  
-  begin  
-    MessageDlg('请先获取程序入口点', mtError, \[mbOK\], 0);  
-    Exit;  
-  end;  
-  
-  AddSection(edFName.Text);             //伪装  
-  MessageDlg('伪装成功!', mtInformation, \[mbOK\], 0);   
-end;  
-  
+
+```delphi
+{
+  Author: xIkUg
+  Email: xikug@163.com
+  HOMEPAGE: http://www.xp-program.com
+  Description: 把 PE 程序伪装为 VC7.0 编译的
+}
+
+unit uMain;
+
+interface 
+
+uses 
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, 
+  Dialogs, StdCtrls; 
+
+type 
+  TForm1 = class(TForm) 
+    Label1: TLabel; 
+    edFName: TEdit; 
+    Button1: TButton; 
+    Label2: TLabel; 
+    edOEP: TEdit; 
+    Button2: TButton; 
+    Button3: TButton; 
+    Button4: TButton; 
+    Button5: TButton; 
+    OpenDialog1: TOpenDialog; 
+    procedure Button5Click(Sender: TObject); 
+    procedure Button4Click(Sender: TObject); 
+    procedure Button1Click(Sender: TObject); 
+    procedure Button2Click(Sender: TObject); 
+    procedure Button3Click(Sender: TObject); 
+  private 
+    { Private declarations } 
+    FImageBase: DWORD; 
+  public 
+    { Public declarations } 
+  end; 
+  THEAD = array [0..63] of byte; 
+
+var 
+  Form1: TForm1; 
+
+const 
+  MYSECTION = 'xIkUg'; 
+  JMPOFF = 43; 
+  //这个是 HEAD.asm 中的代码的机器码 
+  OEPCODE: THEAD = ($55, $8B, $EC, $6A, $FF, $68, $2A, $2C, $0A, $00, $68, $38, 
+                    $90, $0D, $00, $64, $A1, $00, $00, $00, $00, $50, $64, $89, 
+                    $25, $00, $00, $00, $00, $58, $64, $A3, $00, $00, $00, $00, 
+                    $58, $58, $58, $58, $8B, $E8, $B8, $00, $10, $40, $00, $FF, 
+                    $E0, $90, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, 
+                    $00, $00, $00, $00); 
+
+procedure AddSection(FName: string);      //新加一个 Section,并把 OEPCode 写进去 
+
+implementation 
+
+{$R *.dfm} 
+
+procedure TForm1.Button5Click(Sender: TObject); 
+
+begin 
+  Close; 
+end; 
+
+procedure TForm1.Button4Click(Sender: TObject); 
+
+begin 
+  MessageBox(Handle, 'Author: xIkUg' + #10#13 + 
+    'Email: xikug@163.com' + #10#13 + 
+    'HOMEPAGE: [`www.xp-program.com`](http://www.xp-program.com)', 
+    'About', MB_OK); 
+end; 
+
+procedure TForm1.Button1Click(Sender: TObject); 
+
+begin 
+  if OpenDialog1.Execute then 
+  begin 
+    edFName.Text := OpenDialog1.FileName; 
+  end; 
+end; 
+
+procedure TForm1.Button2Click(Sender: TObject); 
+
+var 
+  DOSHEADER: IMAGE_DOS_HEADER; 
+  PEHEADER: IMAGE_NT_HEADERS; 
+  fs: TFileStream; 
+
+begin 
+  fs := TFileStream.Create(edFName.Text, fmOpenReadWrite + 
+    fmShareDenyWrite); 
+  try 
+    fs.Seek(0, soFromBeginning); 
+    fs.Read(DOSHEADER, sizeof(DOSHEADER)); 
+    fs.Seek(DOSHEADER._lfanew, soFromBeginning); 
+    fs.Read(PEHEADER, sizeOf(PEHEADER)); 
+    FImageBase := PEHEADER.OptionalHeader.ImageBase; 
+    edOEP.Text := IntToHex(PEHEADER.OptionalHeader.AddressOfEntryPoint, 8); 
+  finally 
+    fs.Free; 
+  end; 
+end; 
+
+procedure AddSection(FName: string); 
+
+var 
+  DOSHEADER: IMAGE_DOS_HEADER; 
+  PEHEADER: IMAGE_NT_HEADERS; 
+  SectionHeader: IMAGE_SECTION_HEADER; 
+  MySectionHeader: IMAGE_SECTION_HEADER; 
+  fs: TFileStream; 
+  AddressOfEntryPoint: DWORD; 
+
+begin 
+  fs := TFileStream.Create(FName, fmOpenReadWrite + 
+    fmShareDenyWrite); 
+  try 
+    fs.Seek(0, soFromBeginning); 
+    fs.Read(DOSHEADER, sizeof(DOSHEADER)); 
+    fs.Seek(DOSHEADER._lfanew, soFromBeginning); 
+    fs.Read(PEHEADER, sizeOf(PEHEADER)); 
+    fs.Seek(sizeOf(SectionHeader) * 
+      (PEHEADER.FileHeader.NumberOfSections - 1), soFromCurrent); 
+    fs.Read(SectionHeader, sizeof(IMAGE_SECTION_HEADER)); 
+    MySectionHeader.Name[0] := ord('x'); 
+    MySectionHeader.Name[1] := ord('I'); 
+    MySectionHeader.Name[2] := ord('k'); 
+    MySectionHeader.Name[3] := ord('U'); 
+    MySectionHeader.Name[4] := ord('g'); 
+    MySectionHeader.Name[5] := 0; 
+    MySectionHeader.Name[6] := 0; 
+    MySectionHeader.Name[7] := 0; 
+    MySectionHeader.VirtualAddress := PEHEADER.OptionalHeader.SizeOfImage; 
+    MySectionHeader.Misc.VirtualSize := $200; 
+    MySectionHeader.SizeOfRawData := (MySectionHeader.VirtualAddress div 
+      PEHEADER.OptionalHeader.FileAlignment + 1) * PEHEADER.OptionalHeader.FileAlignment - 
+      PEHEADER.OptionalHeader.SizeOfImage; 
+    MySectionHeader.PointerToRawData := 
+      SectionHeader.SizeOfRawData+SectionHeader.PointerToRawData; 
+    MySectionHeader.Characteristics := $e0000020; 
+    Inc(PEHEADER.FileHeader.NumberOfSections); 
+    fs.Write(MySectionHeader, sizeOf(MySectionHeader)); 
+    fs.Seek(DOSHEADER._lfanew, soFromBeginning); 
+    AddressOfEntryPoint := PEHEADER.OptionalHeader.AddressOfEntryPoint; 
+    PEHEADER.OptionalHeader.AddressOfEntryPoint := 
+      MySectionHeader.VirtualAddress; 
+    PEHEADER.OptionalHeader.MajorLinkerVersion := 7; 
+    PEHEADER.OptionalHeader.MinorLinkerVersion := 0; 
+    AddressOfEntryPoint := AddressOfEntryPoint + 
+      PEHEADER.OptionalHeader.ImageBase; 
+    asm 
+      PUSHAD 
+      LEA eax, OEPCODE 
+      ADD eax, JMPOFF 
+      MOV edx, AddressOfEntryPoint 
+      MOV DWORD ptr [eax], edx 
+      POPAD 
+    end; 
+    PEHEADER.OptionalHeader.SizeOfImage := 
+      PEHEADER.OptionalHeader.SizeOfImage + MySectionHeader.Misc.VirtualSize; 
+    fs.Write(PEHEADER, sizeof(PEHEADER)); 
+    fs.Seek(fs.Size, soFromBeginning); 
+    fs.Write(OEPCODE, MySectionHeader.Misc.VirtualSize) 
+  finally 
+    fs.Free; 
+  end; 
+end; 
+
+procedure TForm1.Button3Click(Sender: TObject); 
+
+begin 
+  //伪装 
+  if trim(edFName.Text) = '' then 
+  begin 
+    MessageDlg('请先选择一个可执行文件', mtError, [mbOK], 0); 
+    Exit; 
+  end; 
+  //这段其实是不需要的,我懒得删了,看看也不错 
+  if trim(edOEP.Text) = '' then 
+  begin 
+    MessageDlg('请先获取程序入口点', mtError, [mbOK], 0); 
+    Exit; 
+  end; 
+  AddSection(edFName.Text);             //伪装 
+  MessageDlg('伪装成功!', mtInformation, [mbOK], 0);  
+end; 
+
 end.
+```
 
-head.asm 的代码  
-  
-.386  
-.MODEL FLAT,STDCALL  
-  
-.code  
-  
-main:  
-  assume fs:nothing   
-  push ebp   
-  mov ebp,esp   
-  push -1   
-  push 666666   
-  push 888888   
-  mov eax,fs:\[0\]   
-  push eax   
-  mov fs:\[0\],esp   
-  
-  pop eax   
-  mov fs:\[0\],eax   
-  pop eax   
-  pop eax   
-  pop eax   
-  pop eax   
-  mov ebp,eax   
-  mov eax, 00401000H  
-  jmp eax  
-end main
+`head.asm` 的代码
 
- 4dd466d0e1e0cc123afbe504da2462ca
+```asm
+.386 
+.MODEL FLAT,STDCALL 
+.code 
+
+main: 
+  assume fs:nothing  
+  push ebp  
+  mov ebp,esp  
+  push -1  
+  push 666666  
+  push 888888  
+  mov eax,fs:[0]  
+  push eax  
+  mov fs:[0],esp  
+  pop eax  
+  mov fs:[0],eax  
+  pop eax  
+  pop eax  
+  pop eax  
+  pop eax  
+  mov ebp,eax  
+  mov eax, 00401000H  
+  jmp eax  
+end main
+```
+
+`4dd466d0e1e0cc123afbe504da2462ca`

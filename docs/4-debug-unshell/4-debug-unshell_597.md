@@ -1,176 +1,205 @@
 
-
 # Elicense System V4.0 脱壳——zMUD V7.05
 
 > 原文：[`www.pediy.com/kssd/pediy07/pediy7-621.htm`](https://www.pediy.com/kssd/pediy07/pediy7-621.htm)
 
-Elicense System V4.0 脱壳——zMUD V7.05  
-              
-             
-               
-下载页面：  http://forums.zuggsoft.com/index.php?page=4&action=viewall  
-软件大小：  6.87M    
-更新日期：  2004 年 11 月 17 日   
-软件简介：  最好的流行 MUD 客户端软件.是 IRC,MUD 网虫们喜欢的东西,让你在 Internet 上连接并玩那些令人着迷的 MUD 游戏，同时提供你很多有用的功能，是 MUD 玩家不能缺少的装备。    
-               
-【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！  
-               
-【调试环境】：WinXP、Ollydbg、PEiD、LordPE、ImportREC  
-               
-—————————————————————————————————   
-【脱壳过程】：  
-            
-           
-MUD 明日黄花，已经没多少人玩了。  
-ViaTech's eLicense System offers an integrated set of advanced e-business technologies that enables content owners (software, ebook, music, video) to securely distribute and sell products on the Internet.  
-Elicense System 看样子是个比较老的保护软件了。最大的特点是 EP=OEP，国内的比泰软件防盗版战士也是这样。Elicense System 流传不广，少有人知，脱壳一篇，留作记录。  
-—————————————————————————————————              
-设置 Ollydbg 首先暂停在“系统断点”，用 IsDebug 插件去掉 Ollydbg 的调试器标志。  
-  
-7C921231    C3              retn  
-//进入 Ollydbg 后暂停在系统断点  
-  
-Alt+B 打开断点查看窗口：  
-007A3428   Zmud       只一次      or eax,A3895A27  
-//删除 EP 处 Ollydbg 默认设置的断点。壳会对主 EXE 解码，有 CC 会导致解码错误。  
-  
-F9 运行，弹出“Powered by Elicense System”的试用对话框。  
-下断：BP GetModuleHandleA    
-点“Free Trial”，中断后取消断点 Alt+F9 返回  
-  
-02536BD7    83BD 14FDFFFF 0>cmp dword ptr ss:\[ebp-2EC\],0  
-02536BDE    75 05           jnz short s38o.02536BE5  
-02536BE0    E9 A0020000     jmp s38o.02536E85  
-//02536E85 是处理完毕则跳转的地址  
-02536BE5    8B95 14FDFFFF   mov edx,dword ptr ss:\[ebp-2EC\]  
-02536BEB    52              push edx  
-02536BEC    8B85 F0FCFFFF   mov eax,dword ptr ss:\[ebp-310\]  
-02536BF2    FF90 741F0000   call dword ptr ds:\[eax+1F74\]  
-//GetModuleHandleA   
-02536BF8    8985 18FDFFFF   mov dword ptr ss:\[ebp-2E8\],eax; oleaut32.#355  
-//返回这里  
-  
-02536DF1    FF90 6C1F0000   call dword ptr ds:\[eax+1F6C\]  
-//kernel32.GetProcAddress  
-  
-02536E49    8985 28FDFFFF   mov dword ptr ss:\[ebp-2D8\],eax  
-02536E4F    8B8D 10FDFFFF   mov ecx,dword ptr ss:\[ebp-2F0\]  
-02536E55    8B95 08FDFFFF   mov edx,dword ptr ss:\[ebp-2F8\]  
-02536E5B    8911            mov dword ptr ds:\[ecx\],edx ; oleaut32.SafeArrayPutElement  
-02536E5D    8B85 10FDFFFF   mov eax,dword ptr ss:\[ebp-2F0\]  
-02536E63    83C0 04         add eax,4  
-02536E66    8985 10FDFFFF   mov dword ptr ss:\[ebp-2F0\],eax  
-02536E6C    E9 25FEFFFF     jmp s3qg.02536C96  
-02536E71    8B8D 28FDFFFF   mov ecx,dword ptr ss:\[ebp-2D8\]  
-02536E77    83C1 04         add ecx,4  
-02536E7A    898D 9CFDFFFF   mov dword ptr ss:\[ebp-264\],ecx  
-02536E80    E9 EDFCFFFF     jmp s3qg.02536B72  
-//循环  
-02536E85    8B95 E4FEFFFF   mov edx,dword ptr ss:\[ebp-11C\]  
-//转存中可以看到处理的 IAT 地址范围  
-02536E8B    52              push edx  
-02536E8C    E8 149B0600     call s3qg.025A09A5  
-02536E91    83C4 04         add esp,4  
-02536E94    C785 BCFDFFFF 0>mov dword ptr ss:\[ebp-244\],0  
-02536E9E    EB 0F           jmp short s3qg.02536EAF  
-  
-第一个循环处理的是不加密的 DLL 函数，所以直接 F4 至 02536E85  
-继续 BP GetProcAddress   F9 运行中断后取消断点 Alt+F9 返回  
-  
-02537A9C    FF92 6C1F0000   call dword ptr ds:\[edx+1F6C\]  
-02537AA2    8985 4CFDFFFF   mov dword ptr ss:\[ebp-2B4\],eax; COMCTL32.ImageList\_SetIconSize  
-//返回这里  
-02537AA8    8B85 40FDFFFF   mov eax,dword ptr ss:\[ebp-2C0\]  
-  
-这个循环是处理一些加密 DLL 函数的，如 COMCTL32.dll、kernel32.dll 等  
-跟踪下去就能发现简单加密的地方，处理如下：  
-  
-02537C21    8B95 4CFDFFFF   mov edx,dword ptr ss:\[ebp-2B4\]; COMCTL32.ImageList\_SetIconSize  
-02537C27    3311            xor edx,dword ptr ds:\[ecx\]  
-//NOP 掉  
-02537C29    8B85 30FDFFFF   mov eax,dword ptr ss:\[ebp-2D0\]  
-//修改为：mov eax,dword ptr ss:\[ebp-2AC\]     \[ebp-2AC\]保存的是 IAT 地址  
-02537C2F    8910            mov dword ptr ds:\[eax\],edx    ; COMCTL32.ImageList\_SetIconSize  
-//这样正确的函数地址就直接填充进 IAT  
-02537CCD    8B8D 54FDFFFF   mov ecx,dword ptr ss:\[ebp-2AC\]; Zmud.007C7B08  
-02537CD3    8901            mov dword ptr ds:\[ecx\],eax  
-//NOP 掉加密地址填充  
-02537CD5    8B95 54FDFFFF   mov edx,dword ptr ss:\[ebp-2AC\]  
-02537CDB    83C2 04         add edx,4  
-02537CDE    8995 54FDFFFF   mov dword ptr ss:\[ebp-2AC\],edx  
-02537CE4    E9 59FCFFFF     jmp s74.02537942  
-02537CE9    8B85 7CFDFFFF   mov eax,dword ptr ss:\[ebp-284\]  
-02537CEF    83C0 04         add eax,4  
-02537CF2    8985 98FDFFFF   mov dword ptr ss:\[ebp-268\],eax  
-02537CF8    E9 DEFAFFFF     jmp s74.025377DB  
-//循环  
-02537CFD    8B8D E4FEFFFF   mov ecx,dword ptr ss:\[ebp-11C\]  
-//F4 到这里  
-02537D03    51              push ecx  
-02537D04    E8 9C8C0600     call s74.025A09A5  
-02537D09    83C4 04         add esp,4  
-02537D0C    C785 BCFDFFFF 0>mov dword ptr ss:\[ebp-244\],0  
-02537D16    EB 0F           jmp short s74.02537D27  
-  
-OK，输入表处理完毕，下面开始去 OEP 了，可以直接 G 007A3428 (EP=OEP)  
-也可以下断：BP DeleteFileA   中断后取消断点 Alt+F9 返回 02483C8A 处  
-  
-02483C84    FF15 60904902   call dword ptr ds:\[2499060\] ; kernel32.DeleteFileA  
-02483C8A    E8 51360100     call elicen40.024972E0  ; jmp to WS2\_32.WSACleanup  
-02483C8F    8985 08E4FFFF   mov dword ptr ss:\[ebp-1BF8\],eax  
-02483C95    83BD B0F3FFFF 0>cmp dword ptr ss:\[ebp-C50\],0  
-02483C9C    75 05           jnz short elicen40.02483CA3  
-02483C9E    E9 25010000     jmp elicen40.02483DC8  
-02483CA3    833D 4CF84902 0>cmp dword ptr ds:\[249F84C\],1  
-02483CAA    75 1D           jnz short elicen40.02483CC9  
-02483CAC    A1 3CF84902     mov eax,dword ptr ds:\[249F83C\]  
-02483CB1    50              push eax  
-02483CB2    A1 28F84902     mov eax,dword ptr ds:\[249F828\]  
-02483CB7    50              push eax  
-02483CB8    A1 74F84902     mov eax,dword ptr ds:\[249F874\]  
-02483CBD    50              push eax  
-02483CBE    A1 7CF84902     mov eax,dword ptr ds:\[249F87C\]  
-02483CC3    FFD0            call eax  
-02483CC5    85C0            test eax,eax  
-02483CC7    74 0C           je short elicen40.02483CD5  
-02483CC9    5E              pop esi  
-02483CCA    5D              pop ebp  
-02483CCB    5B              pop ebx  
-02483CCC    8BE5            mov esp,ebp  
-02483CCE    5D              pop ebp  
-02483CCF    FF25 5CF84902   jmp dword ptr ds:\[249F85C\]; Zmud.<ModuleEntryPoint>  
-//飞向光明之巅！ ^O^  
-  
-  
-007A3428    55              push ebp  
-//用 LordPE 纠正 ImageSize 后完全 Dump 这个进程  
-007A3429    8BEC            mov ebp,esp  
-007A342B    83C4 F4         add esp,-0C  
-007A342E    B8 90237A00     mov eax,Zmud.007A2390  
-007A3433    E8 504FC6FF     call Zmud.00408388  
-007A3438    A1 54597B00     mov eax,dword ptr ds:\[7B5954\]  
-007A343D    8B00            mov eax,dword ptr ds:\[eax\]  
-007A343F    E8 C82ECAFF     call Zmud.0044630C  
-  
-  
-运行 ImportREC，选择这个进程。把 OEP 改为 003A3428，IT AutoSearch，Get Import  
-所有的函数都是有效的。FixDump，脱壳完成！  
-  
-               
-—————————————————————————————————      
-                                  
-         ,     \_/   
-        /| \_.-~/            \\\_     ,        青春都一晌  
-       ( /~   /              \\~-.\_ |\\  
-       \`\\\\  \_/                \\   ~\\ )          忍把浮名   
-   \_-~~~-.)  )\_\_/;;,.          \\\_  //'  
-  /'\_,\\   --~   \\ ~~~-  ,;;\\\_\_\_(  (.-~~~-.        换了破解轻狂  
- \`~ \_( ,\_..--\\ (     ,;'' /    ~--   /.\_\`\\   
-  /~~//'   /' \`~\\         ) /--..\_, )\_  \`~  
-  "  \`~"  "      \`"      /~'\`\\    \`\\\\~~\\     
-                         "     "   "~'  ""  
-      
-              UnPacked By :  fly  
-               2005-04-02 00:00 
+`Elicense System V4.0` 脱壳——`zMUD V7.05`
 
- 4dd466d0e1e0cc123afbe504da2462ca
+下载页面： `http://forums.zuggsoft.com/index.php?page=4&action=viewall`
+
+软件大小： `6.87M`
+
+更新日期： `2004 年 11 月 17 日`
+
+软件简介： 最好的流行 `MUD` 客户端软件。是 `IRC`,`MUD` 网虫们喜欢的东西，让你在 `Internet` 上连接并玩那些令人着迷的 `MUD` 游戏，同时提供你很多有用的功能，是 `MUD` 玩家不能缺少的装备。
+
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+【调试环境】：`WinXP`、`Ollydbg`、`PEiD`、`LordPE`、`ImportREC`
+
+## 脱壳过程
+
+`MUD` 明日黄花，已经没多少人玩了。
+
+`ViaTech` 的 `eLicense System` 提供了一组先进的电子商务技术，使内容所有者（软件、电子书、音乐、视频）能够安全地在互联网上分发和销售产品。
+
+`Elicense System` 看样子是个比较老的保护软件了。最大的特点是 `EP=OEP`，国内的比泰软件防盗版战士也是这样。`Elicense System` 流传不广，少有人知，脱壳一篇，留作记录。
+
+设置 `Ollydbg` 首先暂停在“系统断点”，用 `IsDebug` 插件去掉 `Ollydbg` 的调试器标志。
+
+```
+7C921231    C3               retn
+//进入 Ollydbg 后暂停在系统断点
+```
+
+`Alt+B` 打开断点查看窗口：
+
+```
+007A3428   Zmud       只一次      or eax,A3895A27
+//删除 EP 处 Ollydbg 默认设置的断点。壳会对主 EXE 解码，有 CC 会导致解码错误。
+```
+
+`F9` 运行，弹出“`Powered by Elicense System`”的试用对话框。
+
+下断：`BP GetModuleHandleA`
+
+点“`Free Trial`”，中断后取消断点 `Alt+F9` 返回
+
+```
+02536BD7    83BD 14FDFFFF 0>cmp dword ptr ss:[ebp-2EC],0
+02536BDE    75 05         jnz short s38o.02536BE5
+02536BE0    E9 A0020000   jmp s38o.02536E85
+//02536E85 是处理完毕则跳转的地址
+
+02536BE5    8B95 14FDFFFF mov edx,dword ptr ss:[ebp-2EC]
+02536BEB    52           push edx
+02536BEC    8B85 F0FCFFFF mov eax,dword ptr ss:[ebp-310]
+02536BF2    FF90 741F0000 call dword ptr ds:[eax+1F74]
+//GetModuleHandleA
+
+02536BF8    8985 18FDFFFF mov dword ptr ss:[ebp-2E8],eax; oleaut32.#355
+
+//返回这里
+02536DF1    FF90 6C1F0000 call dword ptr ds:[eax+1F6C]
+//kernel32.GetProcAddress
+
+02536E49    8985 28FDFFFF mov dword ptr ss:[ebp-2D8],eax
+02536E4F    8B8D 10FDFFFF mov ecx,dword ptr ss:[ebp-2F0]
+02536E55    8B95 08FDFFFF mov edx,dword ptr ss:[ebp-2F8]
+02536E5B    8911          mov dword ptr ds:[ecx],edx ; oleaut32.SafeArrayPutElement
+02536E5D    8B85 10FDFFFF mov eax,dword ptr ss:[ebp-2F0]
+02536E63    83C0 04       add eax,4
+02536E66    8985 10FDFFFF mov dword ptr ss:[ebp-2F0],eax
+02536E6C    E9 25FEFFFF   jmp s3qg.02536C96
+
+02536E71    8B8D 28FDFFFF mov ecx,dword ptr ss:[ebp-2D8]
+02536E77    83C1 04       add ecx,4
+02536E7A    898D 9CFDFFFF mov dword ptr ss:[ebp-264],ecx
+02536E80    E9 EDCCFFFF   jmp s3qg.02536B72
+//循环
+
+02536E85    8B95 E4FEFFFF mov edx,dword ptr ss:[ebp-11C]
+//转存中可以看到处理的 IAT 地址范围
+02536E8B    52           push edx
+02536E8C    E8 149B0600   call s3qg.025A09A5
+02536E91    83C4 04       add esp,4
+02536E94    C785 BCFDFFFF 0>mov dword ptr ss:[ebp-244],0
+02536E9E    EB 0F         jmp short s3qg.02536EAF
+```
+
+第一个循环处理的是不加密的 `DLL` 函数，所以直接 `F4` 至 `02536E85`
+
+继续 `BP GetProcAddress`，`F9` 运行中断后取消断点 `Alt+F9` 返回
+
+```
+02537A9C    FF92 6C1F0000 call dword ptr ds:[edx+1F6C]
+02537AA2    8985 4CFDFFFF mov dword ptr ss:[ebp-2B4],eax; COMCTL32.ImageList_SetIconSize
+
+//返回这里
+02537AA8    8B85 40FDFFFF mov eax,dword ptr ss:[ebp-2C0]
+```
+
+这个循环是处理一些加密 `DLL` 函数的，如 `COMCTL32.dll`、`kernel32.dll` 等
+
+跟踪下去就能发现简单加密的地方，处理如下：
+
+```
+02537C21    8B95 4CFDFFFF mov edx,dword ptr ss:[ebp-2B4]; COMCTL32.ImageList_SetIconSize
+02537C27    3311          xor edx,dword ptr ds:[ecx]
+//NOP 掉
+
+02537C29    8B85 30FDFFFF mov eax,dword ptr ss:[ebp-2D0]
+//修改为：mov eax,dword ptr ss:[ebp-2AC]     [ebp-2AC]保存的是 IAT 地址
+
+02537C2F    8910          mov dword ptr ds:[eax],edx    ; COMCTL32.ImageList_SetIconSize
+//这样正确的函数地址就直接填充进 IAT
+
+02537CCD    8B8D 54FDFFFF mov ecx,dword ptr ss:[ebp-2AC]; Zmud.007C7B08
+02537CD3    8901          mov dword ptr ds:[ecx],eax
+
+//NOP 掉加密地址填充
+02537CD5    8B95 54FDFFFF mov edx,dword ptr ss:[ebp-2AC]
+02537CDB    83C2 04       add edx,4
+02537CDE    8995 54FDFFFF mov dword ptr ss:[ebp-2AC],edx
+02537CE4    E9 59FCFFFF   jmp s74.02537942
+
+02537CE9    8B85 7CFDFFFF mov eax,dword ptr ss:[ebp-284]
+02537CEF    83C0 04       add eax,4
+02537CF2    8985 98FDFFFF mov dword ptr ss:[ebp-268],eax
+02537CF8    E9 DEFAFFFF   jmp s74.025377DB
+//循环
+
+02537CFD    8B8D E4FEFFFF mov ecx,dword ptr ss:[ebp-11C]
+//F4 到这里
+02537D03    51           push ecx
+02537D04    E8 9C8C0600   call s74.025A09A5
+02537D09    83C4 04       add esp,4
+02537D0C    C785 BCFDFFFF 0>mov dword ptr ss:[ebp-244],0
+02537D16    EB 0F         jmp short s74.02537D27
+```
+
+`OK`，输入表处理完毕，下面开始去 `OEP` 了，可以直接 `G 007A3428` (`EP=OEP`)
+
+也可以下断：`BP DeleteFileA`，中断后取消断点 `Alt+F9` 返回 `02483C8A` 处
+
+```
+02483C84    FF15 60904902 call dword ptr ds:[2499060] ; kernel32.DeleteFileA
+02483C8A    E8 51360100   call elicen40.024972E0  ; jmp to WS2_32.WSACleanup
+02483C8F    8985 08E4FFFF mov dword ptr ss:[ebp-1BF8],eax
+02483C95    83BD B0F3FFFF 0>cmp dword ptr ss:[ebp-C50],0
+02483C9C    75 05         jnz short elicen40.02483CA3
+02483C9E    E9 25010000   jmp elicen40.02483DC8
+
+02483CA3    833D 4CF84902 0>cmp dword ptr ds:[249F84C],1
+02483CAA    75 1D         jnz short elicen40.02483CC9
+
+02483CAC    A1 3CF84902   mov eax,dword ptr ds:[249F83C]
+02483CB1    50           push eax
+02483CB2    A1 28F84902   mov eax,dword ptr ds:[249F828]
+02483CB7    50           push eax
+02483CB8    A1 74F84902   mov eax,dword ptr ds:[249F874]
+02483CBD    50           push eax
+02483CBE    A1 7CF84902   mov eax,dword ptr ds:[249F87C]
+02483CC3    FFD0         call eax
+02483CC5    85C0         test eax,eax
+02483CC7    74 0C        je short elicen40.02483CD5
+
+02483CC9    5E           pop esi
+02483CCA    5D           pop ebp
+02483CCB    5B           pop ebx
+02483CCC    8BE5         mov esp,ebp
+02483CCE    5D           pop ebp
+02483CCF    FF25 5CF84902 jmp dword ptr ds:[249F85C]; Zmud.<ModuleEntryPoint>
+
+//飞向光明之巅！ ^O^
+
+007A3428    55           push ebp
+//用 LordPE 纠正 ImageSize 后完全 Dump 这个进程
+007A3429    8BEC         mov ebp,esp
+007A342B    83C4 F4      add esp,-0C
+007A342E    B8 90237A00  mov eax,Zmud.007A2390
+007A3433    E8 504FC6FF  call Zmud.00408388
+007A3438    A1 54597B00  mov eax,dword ptr ds:[7B5954]
+007A343D    8B00         mov eax,dword ptr ds:[eax]
+007A343F    E8 C82ECAFF  call Zmud.0044630C
+```
+
+运行 `ImportREC`，选择这个进程。把 `OEP` 改为 `003A3428`，`IT AutoSearch`，`Get Import`
+
+所有的函数都是有效的。`FixDump`，脱壳完成！
+
+,     \_/  
+/| \_.-~/        \\\ ,       青春都一晌  
+( /~   /         \\~-.\ |\\  
+\`\`\\   \_/         \~\\ )     忍把浮名  
+_-~~~-.)  )\__/;;,.      \\\ '//  
+/'\_,\\   --~   \ ~~~-  ,;;\_\_\_(  (.-~~~-.       换了破解轻狂  
+\`~ \_( ,\_..--\ (     ,;'' /    ~--   /.\_\`  
+/~~//'   /`~\  ) /--..\_, )_  `~  
+" `~" "       `"      /~'\` \\\\~~\  
+                    "     "   "~'  ""
+
+UnPacked By : fly
+2005-04-02 00:00
+
+`4dd466d0e1e0cc123afbe504da2462ca`

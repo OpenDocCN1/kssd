@@ -1,45 +1,56 @@
 
-
 # securom 半脱手记（失败）
 
 > 原文：[`www.pediy.com/kssd/pediy10/93932.html`](https://www.pediy.com/kssd/pediy10/93932.html)
 
-学习脱壳也有一年多时间，强壳基本上没脱过几个，基本上是屡战屡败，屡败屡战。这个 securom 是一个叫做白发魔女的游戏，原日文版似乎是 96 年的，这个简体版是 04 年发布。游戏很早就到手，初学脱壳时，拿它完全没有办法，不管怎么调试都会跑飞。最近又试着拿它研究了一番，虽然没有脱成功，不过也小有收获。  
-  
-此版本 securom 的伎俩：  
-1、除了通用的反调试手段外，还会用 EnumWindows 或者 FindWindow 检测 OD，检测到后运行失败。  
-2、运行程序时，会调用 CreateProcessInternalA 自创建进程，并且生成一个调用参数，此参数依赖于不同的机器，并且任何时刻运行都不同，该参数有效期有时限，不过时限比较长，大概一天内没问题。  
-3、用随机数作 VirtualAlloc 的指定地址，将生成的代码分配到零散的空间去。  
-4、程序频繁异常，需要把 00000000-FFFFFFFF 异常全部忽略，并且通过这些异常，把 DRx 寄存器作通用寄存器使，也就是说硬件断点不管用，也不能用 PlantOm 插件保护 DRx，错误的 DRx 值无法使程序正常运行起来。  
-5、对一些 API（GetVersionExA 等）或者自身函数的入口作检测，如果发现是 int3 则运行出错，也就是说加断点要注意。  
-6、使用 cpuid，GetSystemInfo，GetCurrentThreadId，GetCurrentProcessId 对代码加密，前两者对于本机脱壳暂时没有影响，后两者比较棘手。  
-7、使用 GetTickCount，GetSystemTimeAsFileTime，QueryPerformanceCounter 对调用时间进行判断，时间间隔太长太短都无法正常运行。  
-  
-应对方法：  
-1、HideOD 插件能选的都选，PlantOm 插件单选一个换标题就够了。  
-2、下断 CreateProcessInternalA，获取参数，以后直接带参数运行。  
-3、设法 Hook 掉 VirtualAlloc，将非 DLL（有几个 DLL 也会调用 VirtualAlloc，如果换掉程序会挂）调用的 VirtualAlloc 指定地址的参数全部换成 0，这样可以使得分配的空间集中起来，此外最好在一开始将小于 0x00400000 空间抢先用 VirtualAlloc 占用掉，这样 securom 分配出来的空间都在 0x00400000 之后，至于判断调用者是否是 Dll 可以根据返回地址。虽然可以用 OD 脚本解决这个问题，不过这么复杂的脚本我不会，只好自己写了一个 Loader，启动游戏进程后，不 ResumeThread，让 OD 附进来去启动。不过即便如此，还是有一块内存是随机的（漏网之鱼），那块内存 VirtualAllocEx 也没有断下来，不知道是哪里分配，暂时不管，再写了一个 Loader 去帮助加载好了。  
-4、忽略除 int3 以外的所有异常，不能用硬件断点就不用吧。  
-5、加 API 断点不加在头部一般没问题，GetVersionExA 加在下面一点，可以正常跑起来。  
-6、设法 Hook 掉 GetCurrentThreadId 和 GetCurrentProcessId，如果非 DLL 调用则返回一个我们指定的值，另外对于前者，只有主线程需要偷天换日，其他线程不能换。既然第 3 步写了 Loader 了，那这里当然也让这个 Loader 去解决。值得一提的是，我这里的 Loader 的主要功能是把一个 DLL 提前注进去，Hook 代码都在 Dll 里面（编译的时候 Dll 默认基址设大一点，免得占了 VirtualAlloc 的空间）。  
-7、设法 Hook 掉 GetTickCount，GetSystemTimeAsFileTime，QueryPerformanceCounter，记录调用时刻的时间。  
-  
-半脱过程：  
-1、esp 定律不管用，而且就算管用也不能用，因为内存断点不能下（一堆异常处理），硬件断点也不能下。不过么，这类游戏一般都是 VC 写的，下断 GetVersionExA，断点不能设在头部，此外加上条件，比如\[esp\] < 0x00600000 之类，这样能过滤掉 Dll 的调用。  
-2、在不放盘的情况下，大概可以断下两次，每次回去都像极了 VC 的 EP，可惜没有一个是真的。不管它继续运行，会提示让你放盘，把盘放进去运行，GetVersionExA 再次立功了，返回后找到真正的 OEP。  
-3、OEP 是找到了，不过让它停在 OEP 倒是比较费劲，断点软硬不吃。把盘退出来，我再次运行到提示到让你放盘的时候，去 OEP 看了一下，发现还没有解出来。这时候，我试着在 OEP 下硬断，放盘后运行，断在了其他地方，因为 DRx 寄存器被修改了，再去 OEP 看了一下，还是没有解出来，继续运行，断在了同一个地方，再去 OEP 发现已经解出来了，但是 GetVersionExA 还没有调用，也就是说现在是下断的好机会。删除硬件断点，OEP 差不多是这个样子：  
-push 60  
-push xxxxxxxx  
-call xxxxxxxx  
-如果在这几条指令上下软断，程序会挂，应该有自检，不过如果下到 call 过去的第一条指令上，可以正常运行，那么运气来了，下断运行，成功断下，修改 eip 为 OEP、esp 加上 12，那么就相当于断在了 OEP 上面。这时候的 esp 不是程序刚开始的 esp，也就是说它不遵守 esp 定律（如果把 esp 强行改成原 esp，也可以正常运行）。  
-4、LordPE 选第二个引擎可以 dump，ImpRec 虽然不能自动帮你找到 IAT，不过既然在 OEP 处可以看到 GetVersionExA 的调用，估计找不到 IAT 也是不太可能的。这里 securom 比较强悍，本来 IAT 里面每一个 Dll 的导入函数表都会以一个 0 地址结尾，它这里全部换成了 0x004xxxxx 的地址，这样用 ImpRec 找不到结尾是不能直接修复的，先用它导出树文件，然后人工把这几个无法解析的 0x004xxxxx 地址去掉，做成可用的树文件去修复 dump 出来的 exe，再用 OD 加载修复好的文件，找一片空地，加几条指令把去掉的 0x004xxxxx 地址改回来，OEP 入口第三条指令先 call 到这片代码中，再 jmp 回原 call 的地址，保存，这样就完成了 IAT 修复。  
-5、接下来需要把区段补上，Hook 了 VirtualAlloc 之后，分配的空间虽然很多而且断续，不过却是比较集中，用 LordPE 把自身 Image 之后到第一个 DLL 之前的一大片内存都 dump 下来，另外还要把那个漏网之鱼的区段 dump 下来，共两个区段。写一个 Loader，除了帮助加载区段以外，还要提前加载一个 Dll 进去，此 Dll 要 Hook 掉 GetCurrentThreadId 和 GetCurrentProcessId，作与之前调试时相同的勾当，而且还要 Hook 掉 GetTickCount，GetSystemTimeAsFileTime，QueryPerformanceCounter，让时间在上次 OEP 处记录的最后一次调用时间的基础上增加，这样来欺骗 securom。  
-6、用 Loader 启动，遗憾，程序运行出错。修改 OEP 首指令 int3 后保存，OD 调试，发现每次出错原因都不一样。  
-7、企图比较运行，一大片操作让原程序停在 OEP，dump 出来的程序也停在 OEP，偶然的一次误按 F9，dump 程序居然运行起来了？看到了标题画面，选重新开始，片头动画成功观赏完毕后，出错退出。  
-  
-脱壳疑问：  
-1、后来发现，必须让原程序停在 OEP 处，dump 程序才能运行起来。这个可能性似乎比较多，比如壳可以创建一个管道、原子、事件、互斥量之类的东西，这样原程序运行起来的情况下，dump 程序才能读到这些信息得以运行起来，不过我暂时没找到确切原因。  
-2、这个疑问比较诡异，即便原程序停在 OEP 处，dump 程序也不能直接用 Loader 运行起来，不过可以是 EP 首字节 int3 被 OD 或 VC 附加运行（VC 把首字节改回来后 Detach 也可以运行起来），或者 Loader 创建进程后不 ResumeThread，让 OD 附加进来后启动线程也可以运行。不是因为调试器改指令延时后运行的原因，我直接 Sleep 也不能运行，必须借调试器之手才能运行起来，想不通这是什么原因？  
-  
-总结：  
-Hook 掉 VirtualAlloc 等借助了 http://bbs.pediy.com/showthread.php?t=52414 这帖 softbihu 的智慧，原先也正为那么多零散的空间头疼呢，再次表示感谢。不过本人太菜，还是没能将壳脱掉，不过这次脱壳学到了不少东西，积累经验，以后再战。
+学习脱壳也有一年多时间，强壳基本上没脱过几个，基本上是屡战屡败，屡败屡战。这个 `securom` 是一个叫做白发魔女的游戏，原日文版似乎是 96 年的，这个简体版是 04 年发布。游戏很早就到手，初学脱壳时，拿它完全没有办法，不管怎么调试都会跑飞。最近又试着拿它研究了一番，虽然没有脱成功，不过也小有收获。
+
+## 此版本 securom 的伎俩
+
+1. 除了通用的反调试手段外，还会用 `EnumWindows` 或者 `FindWindow` 检测 `OD`，检测到后运行失败。
+2. 运行程序时，会调用 `CreateProcessInternalA` 自创建进程，并且生成一个调用参数，此参数依赖于不同的机器，并且任何时刻运行都不同，该参数有效期有时限，不过时限比较长，大概一天内没问题。
+3. 用随机数作 `VirtualAlloc` 的指定地址，将生成的代码分配到零散的空间去。
+4. 程序频繁异常，需要把 `00000000-FFFFFFFF` 异常全部忽略，并且通过这些异常，把 `DRx` 寄存器作通用寄存器使，也就是说硬件断点不管用，也不能用 `PlantOm` 插件保护 `DRx`，错误的 `DRx` 值无法使程序正常运行起来。
+5. 对一些 API（`GetVersionExA` 等）或者自身函数的入口作检测，如果发现是 `int3` 则运行出错，也就是说加断点要注意。
+6. 使用 `cpuid`，`GetSystemInfo`，`GetCurrentThreadId`，`GetCurrentProcessId` 对代码加密，前两者对于本机脱壳暂时没有影响，后两者比较棘手。
+7. 使用 `GetTickCount`，`GetSystemTimeAsFileTime`，`QueryPerformanceCounter` 对调用时间进行判断，时间间隔太长太短都无法正常运行。
+
+## 应对方法
+
+1. `HideOD` 插件能选的都选，`PlantOm` 插件单选一个换标题就够了。
+2. 下断 `CreateProcessInternalA`，获取参数，以后直接带参数运行。
+3. 设法 Hook 掉 `VirtualAlloc`，将非 `DLL`（有几个 `DLL` 也会调用 `VirtualAlloc`，如果换掉程序会挂）调用的 `VirtualAlloc` 指定地址的参数全部换成 `0`，这样可以使得分配的空间集中起来，此外最好在一开始将小于 `0x00400000` 空间抢先用 `VirtualAlloc` 占用掉，这样 `securom` 分配出来的空间都在 `0x00400000` 之后，至于判断调用者是否是 `Dll` 可以根据返回地址。虽然可以用 `OD` 脚本解决这个问题，不过这么复杂的脚本我不会，只好自己写了一个 `Loader`，启动游戏进程后，不 `ResumeThread`，让 `OD` 附进来去启动。不过即便如此，还是有一块内存是随机的（漏网之鱼），那块内存 `VirtualAllocEx` 也没有断下来，不知道是哪里分配，暂时不管，再写了一个 `Loader` 去帮助加载好了。
+4. 忽略除 `int3` 以外的所有异常，不能用硬件断点就不用吧。
+5. 加 API 断点不加在头部一般没问题，`GetVersionExA` 加在下面一点，可以正常跑起来。
+6. 设法 Hook 掉 `GetCurrentThreadId` 和 `GetCurrentProcessId`，如果非 `DLL` 调用则返回一个我们指定的值，另外对于前者，只有主线程需要偷天换日，其他线程不能换。既然第 3 步写了 `Loader` 了，那这里当然也让这个 `Loader` 去解决。值得一提的是，我这里的 `Loader` 的主要功能是把一个 `DLL` 提前注进去，Hook 代码都在 `Dll` 里面（编译的时候 `Dll` 默认基址设大一点，免得占了 `VirtualAlloc` 的空间）。
+7. 设法 Hook 掉 `GetTickCount`，`GetSystemTimeAsFileTime`，`QueryPerformanceCounter`，记录调用时刻的时间。
+
+## 半脱过程
+
+1. `esp` 定律不管用，而且就算管用也不能用，因为内存断点不能下（一堆异常处理），硬件断点也不能下。不过么，这类游戏一般都是 `VC` 写的，下断 `GetVersionExA`，断点不能设在头部，此外加上条件，比如 `[esp] < 0x00600000` 之类，这样能过滤掉 `Dll` 的调用。
+2. 在不放盘的情况下，大概可以断下两次，每次回去都像极了 `VC` 的 `EP`，可惜没有一个是真的。不管它继续运行，会提示让你放盘，把盘放进去运行，`GetVersionExA` 再次立功了，返回后找到真正的 `OEP`。
+3. `OEP` 是找到了，不过让它停在 `OEP` 倒是比较费劲，断点软硬不吃。把盘退出来，我再次运行到提示到让你放盘的时候，去 `OEP` 看了一下，发现还没有解出来。这时候，我试着在 `OEP` 下硬断，放盘后运行，断在了其他地方，因为 `DRx` 寄存器被修改了，再去 `OEP` 看了一下，还是没有解出来，继续运行，断在了同一个地方，再去 `OEP` 发现已经解出来了，但是 `GetVersionExA` 还没有调用，也就是说现在是下断的好机会。删除硬件断点，`OEP` 差不多是这个样子：
+
+   ```
+   push 60
+
+   push xxxxxxxx
+
+   call xxxxxxxx
+   ```
+
+   如果在这几条指令上下软断，程序会挂，应该有自检，不过如果下到 `call` 过去的第一条指令上，可以正常运行，那么运气来了，下断运行，成功断下，修改 `eip` 为 `OEP`、`esp` 加上 `12`，那么就相当于断在了 `OEP` 上面。这时候的 `esp` 不是程序刚开始的 `esp`，也就是说它不遵守 `esp` 定律（如果把 `esp` 强行改成原 `esp`，也可以正常运行）。
+
+4. `LordPE` 选第二个引擎可以 `dump`，`ImpRec` 虽然不能自动帮你找到 `IAT`，不过既然在 `OEP` 处可以看到 `GetVersionExA` 的调用，估计找不到 `IAT` 也是不太可能的。这里 `securom` 比较强悍，本来 `IAT` 里面每一个 `Dll` 的导入函数表都会以一个 `0` 地址结尾，它这里全部换成了 `0x004xxxxx` 的地址，这样用 `ImpRec` 找不到结尾是不能直接修复的，先用它导出树文件，然后人工把这几个无法解析的 `0x004xxxxx` 地址去掉，做成可用的树文件去修复 `dump` 出来的 `exe`，再用 `OD` 加载修复好的文件，找一片空地，加几条指令把去掉的 `0x004xxxxx` 地址改回来，`OEP` 入口第三条指令先 `call` 到这片代码中，再 `jmp` 回原 `call` 的地址，保存，这样就完成了 `IAT` 修复。
+5. 接下来需要把区段补上，Hook 了 `VirtualAlloc` 之后，分配的空间虽然很多而且断续，不过却是比较集中，用 `LordPE` 把自身 `Image` 之后到第一个 `DLL` 之前的一大片内存都 `dump` 下来，另外还要把那个漏网之鱼的区段 `dump` 下来，共两个区段。写一个 `Loader`，除了帮助加载区段以外，还要提前加载一个 `Dll` 进去，此 `Dll` 要 Hook 掉 `GetCurrentThreadId` 和 `GetCurrentProcessId`，作与之前调试时相同的勾当，而且还要 Hook 掉 `GetTickCount`，`GetSystemTimeAsFileTime`，`QueryPerformanceCounter`，让时间在上次 `OEP` 处记录的最后一次调用时间的基础上增加，这样来欺骗 `securom`。
+6. 用 `Loader` 启动，遗憾，程序运行出错。修改 `OEP` 首指令 `int3` 后保存，`OD` 调试，发现每次出错原因都不一样。
+7. 企图比较运行，一大片操作让原程序停在 `OEP`，`dump` 出来的程序也停在 `OEP`，偶然的一次误按 `F9`，`dump` 程序居然运行起来了？看到了标题画面，选重新开始，片头动画成功观赏完毕后，出错退出。
+
+## 脱壳疑问
+
+1. 后来发现，必须让原程序停在 `OEP` 处，`dump` 程序才能运行起来。这个可能性似乎比较多，比如壳可以创建一个管道、原子、事件、互斥量之类的东西，这样原程序运行起来的情况下，`dump` 程序才能读到这些信息得以运行起来，不过我暂时没找到确切原因。
+2. 这个疑问比较诡异，即便原程序停在 `OEP` 处，`dump` 程序也不能直接用 `Loader` 运行起来，不过可以是 `EP` 首字节 `int3` 被 `OD` 或 `VC` 附加运行（`VC` 把首字节改回来后 `Detach` 也可以运行起来），或者 `Loader` 创建进程后不 `ResumeThread`，让 `OD` 附加进来后启动线程也可以运行。不是因为调试器改指令延时后运行的原因，我直接 `Sleep` 也不能运行，必须借调试器之手才能运行起来，想不通这是什么原因？
+
+## 总结
+
+Hook 掉 `VirtualAlloc` 等借助了 `http://bbs.pediy.com/showthread.php?t=52414` 这帖 `softbihu` 的智慧，原先也正为那么多零散的空间头疼呢，再次表示感谢。不过本人太菜，还是没能将壳脱掉，不过这次脱壳学到了不少东西，积累经验，以后再战。

@@ -1,177 +1,474 @@
 
-
 # CopyMinder 有 Key 脱壳 Hard Boot Life Gold V21
 
 > 原文：[`www.pediy.com/kssd/pediy09/pediy09-522.htm`](https://www.pediy.com/kssd/pediy09/pediy09-522.htm)
+>
+> 下载地址：`http://neo-the-one-resource.com/sapr/Hard_Boot_Life_Gold_v21.zip`
+>
+> 软件大小：`3.77M`
+>
+> 【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教
+>
+> 【调试环境】：`WinXP`、`OllyDbg`、`PEiD`、`LordPE`、`ImportREC`
+>
+> 【脱壳过程】：
+>
+> `CopyMinder is a copy protection system that operates differently from all other systems and achieves what has, up to now, been thought impossible: hassle free, secure, flexible copy protection. CopyMinder requires occasional Internet access to achieve this flexibility but those without Internet access are also accommodated.`
+>
+> 此壳用者稀少，壳的知名度也不高。
+>
+> 代码:
+>
+> ```
+> [CopyMinder -> Microcosm.Ltd   * Sign.By.fly]
+> signature = 83 25 ?? ?? ?? ?? EF 6A 00 E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? CC FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25
+> ep_only = true
+> ```
+>
+> 据 `csjwaman` 说可以无 key 脱壳，解密密钥就在本地，我没有研究下去。
+>
+> 下面演示的是有 key 可运行的 `CopyMinder` 保护程序的脱壳，尽量精简了脱壳流程。
 
-> 下载地址：  http://neo-the-one-resource.com/sapr/Hard\_Boot\_Life\_Gold\_v21.zip  
-> 软件大小：  3.77M  
->   
-> 【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教  
-> 【调试环境】：WinXP、OllyDbg、PEiD、LordPE、ImportREC  
-> \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_   
-> 【脱壳过程】：  
->   
->   
->   
-> CopyMinder is a copy protection system that operates differently from all other systems and achieves what has, up to now, been thought impossible: hassle free, secure, flexible copy protection.CopyMinder requires occasional Internet access to achieve this flexibility but those without Internet access are also accommodated.  
->   
-> 此壳用者稀少，壳的知名度也不高。  
-> 
-> 代码:
-> 
-> * * *
-> 
-> `[CopyMinder -> Microcosm.Ltd   * Sign.By.fly]   signature = 83 25 ?? ?? ?? ?? EF 6A 00 E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? CC FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25 ?? ?? ?? ?? FF 25   ep_only = true`
-> 
-> * * *
-> 
-> 据 csjwaman 说可以无 key 脱壳，解密密钥就在本地，我没有研究下去。  
-> 下面演示的是有 key 可运行的 CopyMinder 保护程序的脱壳，尽量精简了脱壳流程。  
-> \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-> 一.关键 Api 脱壳法  
->   
-> 众所周知，一般脱壳中用于壳要处理输入表，LoadLibraryA/GetModuleHandleA/GetProcAddress 这三个函数在脱壳中被当作断点使用的很多，但是在某些壳中使用某些 Api 可能脱起壳来更迅速更方便，这些 Api 姑且统称为脱壳关键 Api。  
-> 有很多人问我，你怎么知道这个壳的关键 Api 是这个函数？  
-> 事非所历而不知。大抵前面所说的三个 Api 可以看作大多压缩壳的脱壳关键 Api，但是某些壳的独特的关键 Api 是我跟踪调试分析得知的。  
->   
-> 设置 OllyDbg 忽略所有异常选项，用 IsDebugPresent 插件 Hide，清除以前的所有断点  
-> 代码:
-> 
-> * * *
-> 
-> `00517940    8325 14805100 EF    and dword ptr ds:[518014],FFFFFFEF   //进入 OllyDbg 后暂停在这   00517947    6A 00               push 0   00517949    E8 E5F6FFFF         call 00517033   0051794E    E8 4F000000         call 005179A2 ; <jmp.&KERNEL32.ExitProcess>   00517953    CC                  int3`
-> 
-> * * *
-> 
-> BP VirtualProtect  
-> Shift+F9，CopyMinder 会联网校验 Key，校验通过后中断，取消断点  
-> 代码:
-> 
-> * * *
-> 
-> `0013FA58   00A134DC   /CALL 到 VirtualProtect 来自 00A134D6   0013FA5C   00401000   |Address = Hard_Boo.00401000   0013FA60   0003EA00   |Size = 3EA00 (256512.)   0013FA64   00000040   |NewProtect = PAGE_EXECUTE_READWRITE   0013FA68   0013FED1   \pOldProtect = 0013FED1`
-> 
-> * * *
-> 
-> BP VirtualAlloc  
-> Shift+F9，中断后取消断点，返回调用处  
-> 代码:
-> 
-> * * *
-> 
-> `0013FA50   00516571   /CALL 到 VirtualAlloc 来自 Hard_Boo.0051656F   0013FA54   00000000   |Address = NULL   0013FA58   00000C38   |Size = C38 (3128.)   0013FA5C   00001000   |AllocationType = MEM_COMMIT   0013FA60   00000040   \Protect = PAGE_EXECUTE_READWRITE`
-> 
-> * * *
-> 
-> 代码:
-> 
-> * * *
-> 
-> `0051656F    FFD0                call eax   00516571    5A                  pop edx   //返回这里   00516572    8BF8                mov edi,eax   00516574    50                  push eax   00516575    52                  push edx   00516576    8B33                mov esi,dword ptr ds:[ebx]   00516578    8B43 20             mov eax,dword ptr ds:[ebx+20]   0051657B    03C2                add eax,edx   0051657D    8B08                mov ecx,dword ptr ds:[eax]   0051657F    894B 20             mov dword ptr ds:[ebx+20],ecx   00516582    8B43 1C             mov eax,dword ptr ds:[ebx+1C]   00516585    03C2                add eax,edx   00516587    8B08                mov ecx,dword ptr ds:[eax]   00516589    894B 1C             mov dword ptr ds:[ebx+1C],ecx   0051658C    03F2                add esi,edx   0051658E    8B4B 0C             mov ecx,dword ptr ds:[ebx+C]   00516591    03CA                add ecx,edx   00516593    8D43 1C             lea eax,dword ptr ds:[ebx+1C]   00516596    50                  push eax   00516597    57                  push edi   00516598    56                  push esi   00516599    FFD1                call ecx   0051659B    5A                  pop edx   0051659C    58                  pop eax   0051659D    0343 08             add eax,dword ptr ds:[ebx+8]   005165A0    8BF8                mov edi,eax   005165A2    52                  push edx   005165A3    8BF0                mov esi,eax   005165A5    8B46 FC             mov eax,dword ptr ds:[esi-4]   005165A8    83C0 04             add eax,4   005165AB    2BF0                sub esi,eax   005165AD    8956 08             mov dword ptr ds:[esi+8],edx   005165B0    8B4B 10             mov ecx,dword ptr ds:[ebx+10]   005165B3    894E 24             mov dword ptr ds:[esi+24],ecx   005165B6    8B4B 14             mov ecx,dword ptr ds:[ebx+14]   005165B9    51                  push ecx   005165BA    894E 28             mov dword ptr ds:[esi+28],ecx   005165BD    8B4B 0C             mov ecx,dword ptr ds:[ebx+C]   005165C0    894E 14             mov dword ptr ds:[esi+14],ecx   005165C3    FFD7                call edi   //解密程序`
-> 
-> * * *
-> 
-> 进入 005165C3  call edi，着重看输入表修复  
->   
->   
-> \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-> 二.完美修复输入表  
->   
-> Ctrl+S 搜索命令序列：  
-> 代码:
-> 
-> * * *
-> 
-> `  mov ecx,dword ptr ds:[esi+34]     test ecx,ecx`
-> 
-> * * *
-> 
-> 找到在 00AB02E1 处，F2 设断，F9 运行中断  
-> 代码:
-> 
-> * * *
-> 
-> `00AB0204    53                  push ebx   00AB0205    57                  push edi   00AB0206    56                  push esi   00AB0207    55                  push ebp   00AB0208    E8 00000000         call 00AB020D   00AB020D    5D                  pop ebp   00AB020E    81ED 30120010       sub ebp,10001230   00AB0214    8DB5 27120010       lea esi,dword ptr ss:[ebp+10001227]   00AB021A    8B46 FC             mov eax,dword ptr ds:[esi-4]   00AB021D    83C0 04             add eax,4   00AB0220    2BF0                sub esi,eax   00AB0222    8B56 08             mov edx,dword ptr ds:[esi+8]   00AB0225    8B46 1C             mov eax,dword ptr ds:[esi+1C]   00AB0228    03C2                add eax,edx   00AB022A    8B08                mov ecx,dword ptr ds:[eax]   00AB022C    898D 4A1B0010       mov dword ptr ss:[ebp+10001B4A],ecx   00AB0232    8B46 20             mov eax,dword ptr ds:[esi+20]   00AB0235    03C2                add eax,edx   00AB0237    8B08                mov ecx,dword ptr ds:[eax]   00AB0239    898D 4E1B0010       mov dword ptr ss:[ebp+10001B4E],ecx   00AB023F    8B46 24             mov eax,dword ptr ds:[esi+24]   00AB0242    03C2                add eax,edx   00AB0244    8B08                mov ecx,dword ptr ds:[eax]   00AB0246    898D 521B0010       mov dword ptr ss:[ebp+10001B52],ecx   00AB024C    8B46 28             mov eax,dword ptr ds:[esi+28]   00AB024F    03C2                add eax,edx   00AB0251    8B08                mov ecx,dword ptr ds:[eax]   00AB0253    898D 561B0010       mov dword ptr ss:[ebp+10001B56],ecx   00AB0259    FC                  cld   00AB025A    8BDE                mov ebx,esi   00AB025C    837B 48 01          cmp dword ptr ds:[ebx+48],1   00AB0260    74 15               je short 00AB0277   00AB0262    8B73 44             mov esi,dword ptr ds:[ebx+44]   00AB0265    85F6                test esi,esi   00AB0267    74 0E               je short 00AB0277   00AB0269    B9 23000000         mov ecx,23   00AB026E    03F2                add esi,edx   00AB0270    8B7B 40             mov edi,dword ptr ds:[ebx+40]   00AB0273    03FA                add edi,edx   00AB0275    F3:A4               rep movs byte ptr es:[edi],byte ptr ds:[e>   00AB0277    8BF3                mov esi,ebx   00AB0279    8DBD 3A1B0010       lea edi,dword ptr ss:[ebp+10001B3A]   00AB027F    012F                add dword ptr ds:[edi],ebp   00AB0281    016F 04             add dword ptr ds:[edi+4],ebp   00AB0284    8D8D 191A0010       lea ecx,dword ptr ss:[ebp+10001A19]   00AB028A    51                  push ecx   00AB028B    E8 26010000         call 00AB03B6   00AB0290    90                  nop   00AB0291    90                  nop   00AB0292    90                  nop   00AB0293    90                  nop   00AB0294    90                  nop   00AB0295    90                  nop   00AB0296    90                  nop   00AB0297    90                  nop   00AB0298    8B4E 2C             mov ecx,dword ptr ds:[esi+2C]   00AB029B    8B56 24             mov edx,dword ptr ds:[esi+24]   00AB029E    0356 08             add edx,dword ptr ds:[esi+8]   00AB02A1    898D 461B0010       mov dword ptr ss:[ebp+10001B46],ecx   00AB02A7    6A 40               push 40   00AB02A9    68 00100000         push 1000   00AB02AE    51                  push ecx   00AB02AF    6A 00               push 0   00AB02B1    FF12                call dword ptr ds:[edx]   00AB02B3    8985 421B0010       mov dword ptr ss:[ebp+10001B42],eax   00AB02B9    56                  push esi   00AB02BA    E8 89030000         call 00AB0648   00AB02BF    85C0                test eax,eax   00AB02C1    0F85 A6000000       jnz 00AB036D   00AB02C7    56                  push esi   00AB02C8    E8 D7020000         call 00AB05A4   00AB02CD    56                  push esi   00AB02CE    E8 DF010000         call 00AB04B2   00AB02D3    90                  nop   00AB02D4    90                  nop   00AB02D5    90                  nop   00AB02D6    90                  nop   00AB02D7    90                  nop   00AB02D8    90                  nop   00AB02D9    90                  nop   00AB02DA    90                  nop   00AB02DB    90                  nop   00AB02DC    90                  nop   00AB02DD    90                  nop   00AB02DE    90                  nop   00AB02DF    90                  nop   00AB02E0    90                  nop   00AB02E1    8B4E 34             mov ecx,dword ptr ds:[esi+34]   //找到这里，中断后取消断点   //[esi+34]=000E1914    Import Table RVA   00AB02E4    85C9                test ecx,ecx   00AB02E6    0F84 89000000       je 00AB0375   00AB02EC    034E 08             add ecx,dword ptr ds:[esi+8]   00AB02EF    51                  push ecx   00AB02F0    56                  push esi   00AB02F1    E8 38050000         call 00AB082E   //进入   00AB02F6    85C0                test eax,eax   00AB02F8    74 7B               je short 00AB0375      00AB0862    E8 18000000         call 00AB087F   //进入`
-> 
-> * * *
-> 
-> 里面看看，其实是 PECompact V2.X  
-> 代码:
-> 
-> * * *
-> 
-> `00AB087F    55                  push ebp   00AB0880    8BEC                mov ebp,esp   00AB0882    83C4 FC             add esp,-4   00AB0885    53                  push ebx   00AB0886    57                  push edi   00AB0887    56                  push esi   00AB0888    E8 00000000         call 00AB088D   00AB088D    5B                  pop ebx   00AB088E    81EB B0180010       sub ebx,100018B0   00AB0894    8B45 0C             mov eax,dword ptr ss:[ebp+C]   00AB0897    8983 9A180010       mov dword ptr ds:[ebx+1000189A],eax   00AB089D    33C0                xor eax,eax   00AB089F    8983 9E180010       mov dword ptr ds:[ebx+1000189E],eax   00AB08A5    33F6                xor esi,esi   00AB08A7    46                  inc esi   00AB08A8    46                  inc esi   00AB08A9    8B93 2E1B0010       mov edx,dword ptr ds:[ebx+10001B2E]   00AB08AF    FF75 0C             push dword ptr ss:[ebp+C]   00AB08B2    FFD2                call edx   00AB08B4    8945 FC             mov dword ptr ss:[ebp-4],eax   00AB08B7    8B93 3A1B0010       mov edx,dword ptr ds:[ebx+10001B3A]   00AB08BD    85C0                test eax,eax   00AB08BF    75 05               jnz short 00AB08C6   00AB08C1    4E                  dec esi   00AB08C2    74 73               je short 00AB0937   00AB08C4    EB E9               jmp short 00AB08AF   00AB08C6    8B75 10             mov esi,dword ptr ss:[ebp+10]   00AB08C9    8B7D 08             mov edi,dword ptr ss:[ebp+8]   00AB08CC    8B55 14             mov edx,dword ptr ss:[ebp+14]   00AB08CF    85D2                test edx,edx   00AB08D1    75 02               jnz short 00AB08D5   00AB08D3    8BD6                mov edx,esi   00AB08D5    85F6                test esi,esi   00AB08D7    75 02               jnz short 00AB08DB   00AB08D9    8BF2                mov esi,edx   00AB08DB    C783 9E180010 00000>mov dword ptr ds:[ebx+1000189E],0   00AB08E5    8B02                mov eax,dword ptr ds:[edx]   00AB08E7    85C0                test eax,eax   00AB08E9    74 43               je short 00AB092E   00AB08EB    52                  push edx   00AB08EC    8983 9E180010       mov dword ptr ds:[ebx+1000189E],eax   00AB08F2    A9 00000080         test eax,80000000   00AB08F7    74 0C               je short 00AB0905   00AB08F9    25 FFFFFF7F         and eax,7FFFFFFF   00AB08FE    68 00000000         push 0   00AB0903    EB 0E               jmp short 00AB0913   00AB0905    8B4D 08             mov ecx,dword ptr ss:[ebp+8]   00AB0908    0341 08             add eax,dword ptr ds:[ecx+8]   00AB090B    33C9                xor ecx,ecx   00AB090D    66:8B08             mov cx,word ptr ds:[eax]   00AB0910    51                  push ecx   00AB0911    40                  inc eax   00AB0912    40                  inc eax   00AB0913    50                  push eax   00AB0914    FF75 FC             push dword ptr ss:[ebp-4]   00AB0917    FF93 3E1B0010       call dword ptr ds:[ebx+10001B3E]   00AB091D    5A                  pop edx   00AB091E    85C0                test eax,eax   00AB0920    74 15               je short 00AB0937   00AB0922    8906                mov dword ptr ds:[esi],eax   //修改为：mov eax,dword ptr ds:[edx]   00AB0924    8902                mov dword ptr ds:[edx],eax   //修改为：mov dword ptr ds:[esi],eax   //这样就自动还原 ThunkRVA 了   00AB0926    83C2 04             add edx,4   00AB0929    83C6 04             add esi,4   00AB092C    EB AD               jmp short 00AB08DB   00AB092E    33C0                xor eax,eax   00AB0930    5E                  pop esi   00AB0931    5F                  pop edi   00AB0932    5B                  pop ebx   00AB0933    C9                  leave   00AB0934    C2 1000             retn 10`
-> 
-> * * *
-> 
-> 修改之后就可以运行到 00AB02F6 处了  
-> 代码:
-> 
-> * * *
-> 
-> `00AB02F6    85C0                test eax,eax   //输入表处理完毕   00AB02F8    74 7B               je short 00AB0375`
-> 
-> * * *
-> 
-> 此时程序已经解密完毕，而壳还没有把输入表填充系统函数地址，正是 dump 的最佳时机！  
-> 运行 LordPE 完全 dump 目标进程，此时 dump 出来的文件不需要使用 ImportREC 修复输入表  
->   
->   
-> \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-> 三.OEP  
->   
-> dump 后直接 F4 至 00AB03B5 处 retn  
-> 代码:
-> 
-> * * *
-> 
-> `00AB0375    8BDE                mov ebx,esi   00AB0377    837B 48 01          cmp dword ptr ds:[ebx+48],1   00AB037B    75 16               jnz short 00AB0393   00AB037D    8B43 0C             mov eax,dword ptr ds:[ebx+C]   00AB0380    8B4B 40             mov ecx,dword ptr ds:[ebx+40]   00AB0383    8BF1                mov esi,ecx   00AB0385    0373 08             add esi,dword ptr ds:[ebx+8]   00AB0388    C606 E9             mov byte ptr ds:[esi],0E9   00AB038B    83C1 05             add ecx,5   00AB038E    2BC1                sub eax,ecx   00AB0390    8946 01             mov dword ptr ds:[esi+1],eax   00AB0393    8BF3                mov esi,ebx   00AB0395    8B46 28             mov eax,dword ptr ds:[esi+28]   00AB0398    8B7E 08             mov edi,dword ptr ds:[esi+8]   00AB039B    03C7                add eax,edi   00AB039D    68 00800000         push 8000   00AB03A2    6A 00               push 0   00AB03A4    FFB5 421B0010       push dword ptr ss:[ebp+10001B42]   00AB03AA    FF10                call dword ptr ds:[eax]   00AB03AC    8B46 0C             mov eax,dword ptr ds:[esi+C]   00AB03AF    03C7                add eax,edi   00AB03B1    5D                  pop ebp   00AB03B2    5E                  pop esi   00AB03B3    5F                  pop edi   00AB03B4    5B                  pop ebx   00AB03B5    C3                  retn   //返回 005165C5，继续`
-> 
-> * * *
-> 
-> 代码:
-> 
-> * * *
-> 
-> `005165C5    8985 23120010       mov dword ptr ss:[ebp+10001223],eax   005165CB    8BF0                mov esi,eax   005165CD    59                  pop ecx   005165CE    5A                  pop edx   005165CF    03CA                add ecx,edx   005165D1    68 00800000         push 8000   005165D6    6A 00               push 0   005165D8    57                  push edi   005165D9    FF11                call dword ptr ds:[ecx] ; kernel32.VirtualFree   005165DB    8BC6                mov eax,esi   005165DD    5A                  pop edx   005165DE    5E                  pop esi   005165DF    5F                  pop edi   005165E0    59                  pop ecx   005165E1    5B                  pop ebx   005165E2    5D                  pop ebp   005165E3    FFE0                jmp eax ; Hard_Boo.00407674   //飞向光明之巅`
-> 
-> * * *
-> 
-> 代码:
-> 
-> * * *
-> 
-> `00407674    68 40404100         push 414040   //OEP   00407679    E8 EEFFFFFF         call 0040766C ; Hard_Boo.0040766C`
-> 
-> * * *
-> 
-> 用 LordPE 修正 dump.exe 的 OEP RVA=00007674/Import Table RVA=000E1914  
-> 脱壳完成  
->   
->   
-> \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-> 四.CopyMinder 的亮点  
->   
-> CopyMinder 的 Key 校验部分采用了 Int3 来控制流程  
-> 代码:
-> 
-> * * *
-> 
-> `00A00020    55                  push ebp   00A00021    8BEC                mov ebp,esp   00A00023    53                  push ebx   00A00024    57                  push edi   00A00025    56                  push esi   00A00026    8B5D 08             mov ebx,dword ptr ss:[ebp+8]   00A00029    8B75 10             mov esi,dword ptr ss:[ebp+10]   00A0002C    E8 2F010000         call 00A00160   00A00031    8B78 04             mov edi,dword ptr ds:[eax+4]   00A00034    F743 04 01000000    test dword ptr ds:[ebx+4],1   00A0003B    0F85 15010000       jnz 00A00156   00A00041    F743 04 02000000    test dword ptr ds:[ebx+4],2   00A00048    0F85 08010000       jnz 00A00156   00A0004E    8B75 10             mov esi,dword ptr ss:[ebp+10]   00A00051    8B13                mov edx,dword ptr ds:[ebx]   00A00053    81FA 04000080       cmp edx,80000004   00A00059    74 11               je short 00A0006C   00A0005B    81FA 03000080       cmp edx,80000003   00A00061    0F84 98000000       je 00A000FF   00A00067    E9 EA000000         jmp 00A00156   00A0006C    8B86 B8000000       mov eax,dword ptr ds:[esi+B8]   00A00072    56                  push esi   00A00073    3D 2D06A000         cmp eax,0A0062D   00A00078    72 76               jb short 00A000F0   00A0007A    3D 7031A100         cmp eax,0A13170   00A0007F    74 02               je short 00A00083   00A00081    73 6D               jnb short 00A000F0   00A00083    3D 3C06A000         cmp eax,0A0063C   00A00088    72 57               jb short 00A000E1   00A0008A    B1 14               mov cl,14   00A0008C    8B97 86000000       mov edx,dword ptr ds:[edi+86]   00A00092    81FA 8106A000       cmp edx,0A00681   00A00098    73 07               jnb short 00A000A1   00A0009A    E8 CA000000         call 00A00169   00A0009F    EB 14               jmp short 00A000B5   00A000A1    81FA 7031A100       cmp edx,0A13170   00A000A7    73 0C               jnb short 00A000B5   00A000A9    50                  push eax   00A000AA    B8 00000000         mov eax,0   00A000AF    E8 D3000000         call 00A00187   00A000B4    58                  pop eax   00A000B5    3D 7031A100         cmp eax,0A13170   00A000BA    74 34               je short 00A000F0   00A000BC    B1 14               mov cl,14   00A000BE    8BD0                mov edx,eax   00A000C0    81FA 8106A000       cmp edx,0A00681   00A000C6    73 07               jnb short 00A000CF   00A000C8    E8 9C000000         call 00A00169   00A000CD    EB 0C               jmp short 00A000DB   00A000CF    50                  push eax   00A000D0    B8 01000000         mov eax,1   00A000D5    E8 AD000000         call 00A00187   00A000DA    58                  pop eax   00A000DB    8987 86000000       mov dword ptr ds:[edi+86],eax   00A000E1    5E                  pop esi   00A000E2    818E C0000000 00010>or dword ptr ds:[esi+C0],100   00A000EC    33C0                xor eax,eax   00A000EE    EB 6B               jmp short 00A0015B   00A000F0    5E                  pop esi   00A000F1    81A6 C0000000 FFFEF>and dword ptr ds:[esi+C0],FFFFFEFF   00A000FB    33C0                xor eax,eax   00A000FD    EB 5C               jmp short 00A0015B   00A000FF    8B86 B8000000       mov eax,dword ptr ds:[esi+B8]   00A00105    3D 2E06A000         cmp eax,0A0062E   00A0010A    74 12               je short 00A0011E   00A0010C    3D 2D06A000         cmp eax,0A0062D   00A00111    75 1D               jnz short 00A00130   00A00113    C687 8A000000 01    mov byte ptr ds:[edi+8A],1   00A0011A    56                  push esi   00A0011B    8BF7                mov esi,edi   00A0011D    5E                  pop esi   00A0011E    B1 14               mov cl,14   00A00120    8BDF                mov ebx,edi   00A00122    81C3 D84C0000       add ebx,4CD8   00A00128    899F 86000000       mov dword ptr ds:[edi+86],ebx   00A0012E    EB 00               jmp short 00A00130   00A00130    57                  push edi   00A00131    80BF 8A000000 01    cmp byte ptr ds:[edi+8A],1   00A00138    5F                  pop edi   00A00139    75 0D               jnz short 00A00148   00A0013B    8B86 B8000000       mov eax,dword ptr ds:[esi+B8]   00A00141    40                  inc eax   00A00142    8986 B8000000       mov dword ptr ds:[esi+B8],eax   00A00148    818E C0000000 00010>or dword ptr ds:[esi+C0],100   00A00152    33C0                xor eax,eax   00A00154    EB 05               jmp short 00A0015B   00A00156    B8 01000000         mov eax,1   00A0015B    5E                  pop esi   00A0015C    5F                  pop edi   00A0015D    5B                  pop ebx   00A0015E    5D                  pop ebp   00A0015F    C3                  retn`
-> 
-> * * *
-> 
-> Armadillo 的 Nanomites 是双进程 CC 控制程序流程，而这个是单进程 CC 异常处理流程  
->   
->   
-> \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  
-> 代码:
-> 
-> * * *
-> 
-> ``         ,     _/            /| _.-~/            \_     ,        青春都一晌          ( /~   /              \~-._ |\          `\\  _/                \   ~\ )          忍把浮名       _-~~~-.)  )__/;;,.          \_  //'     /'_,\   --~   \ ~~~-  ,;;\___(  (.-~~~-.        换了脱壳轻狂    `~ _( ,_..--\ (     ,;'' /    ~--   /._`\      /~~//'   /' `~\         ) /--.._, )_  `~     "  `~"  "      `"      /~'`\    `\\~~\                               "     "   "~'  ""                        UnPacKed By : fly                http://www.unpack.cn                  2007-06-24 00:00``
-> 
-> * * *
+## 一. 关键 Api 脱壳法
 
- 4dd466d0e1e0cc123afbe504da2462ca
+众所周知，一般脱壳中用于壳要处理输入表，`LoadLibraryA` / `GetModuleHandleA` / `GetProcAddress` 这三个函数在脱壳中被当作断点使用的很多，但是在某些壳中使用某些 Api 可能脱起壳来更迅速更方便，这些 Api 姑且统称为脱壳关键 Api。
+
+有很多人问我，你怎么知道这个壳的关键 Api 是这个函数？
+
+事非所历而不知。大抵前面所说的三个 Api 可以看作大多压缩壳的脱壳关键 Api，但是某些壳的独特的关键 Api 是我跟踪调试分析得知的。
+
+设置 `OllyDbg` 忽略所有异常选项，用 `IsDebugPresent` 插件 `Hide`，清除以前的所有断点。
+
+代码:
+
+```
+00517940    8325 14805100 EF    and dword ptr ds:[518014],FFFFFFEF   //进入 OllyDbg 后暂停在这
+00517947    6A 00              push 0
+00517949    E8 E5F6FFFF        call 00517033
+0051794E    E8 4F000000        call 005179A2 ; <jmp.&KERNEL32.ExitProcess>
+00517953    CC                 int3
+```
+
+BP `VirtualProtect`
+
+`Shift+F9`，`CopyMinder` 会联网校验 Key，校验通过后中断，取消断点。
+
+代码:
+
+```
+0013FA58   00A134DC   /CALL 到 VirtualProtect 来自 00A134D6
+0013FA5C   00401000   |Address = Hard_Boo.00401000
+0013FA60   0003EA00   |Size = 3EA00 (256512.)
+0013FA64   00000040   |NewProtect = PAGE_EXECUTE_READWRITE
+0013FA68   0013FED1   \pOldProtect = 0013FED1
+```
+
+BP `VirtualAlloc`
+
+`Shift+F9`，中断后取消断点，返回调用处。
+
+代码:
+
+```
+0013FA50   00516571   /CALL 到 VirtualAlloc 来自 Hard_Boo.0051656F
+0013FA54   00000000   |Address = NULL
+0013FA58   00000C38   |Size = C38 (3128.)
+0013FA5C   00001000   |AllocationType = MEM_COMMIT
+0013FA60   00000040   \Protect = PAGE_EXECUTE_READWRITE
+```
+
+代码:
+
+```
+0051656F    FFD0         call eax
+00516571    5A           pop edx
+//返回这里
+00516572    8BF8         mov edi,eax
+00516574    50           push eax
+00516575    52           push edx
+00516576    8B33         mov esi,dword ptr ds:[ebx]
+00516578    8B43 20      mov eax,dword ptr ds:[ebx+20]
+0051657B    03C2         add eax,edx
+0051657D    8B08         mov ecx,dword ptr ds:[eax]
+0051657F    894B 20      mov dword ptr ds:[ebx+20],ecx
+00516582    8B43 1C      mov eax,dword ptr ds:[ebx+1C]
+00516585    03C2         add eax,edx
+00516587    8B08         mov ecx,dword ptr ds:[eax]
+00516589    894B 1C      mov dword ptr ds:[ebx+1C],ecx
+0051658C    03F2         add esi,edx
+0051658E    8B4B 0C      mov ecx,dword ptr ds:[ebx+C]
+00516591    03CA         add ecx,edx
+00516593    8D43 1C      lea eax,dword ptr ds:[ebx+1C]
+00516596    50           push eax
+00516597    57           push edi
+00516598    56           push esi
+00516599    FFD1         call ecx
+0051659B    5A           pop edx
+0051659C    58           pop eax
+0051659D    0343 08      add eax,dword ptr ds:[ebx+8]
+005165A0    8BF8         mov edi,eax
+005165A2    52           push edx
+005165A3    8BF0         mov esi,eax
+005165A5    8B46 FC      mov eax,dword ptr ds:[esi-4]
+005165A8    83C0 04      add eax,4
+005165AB    2BF0         sub esi,eax
+005165AD    8956 08      mov dword ptr ds:[esi+8],edx
+005165B0    8B4B 10      mov ecx,dword ptr ds:[ebx+10]
+005165B3    894E 24      mov dword ptr ds:[esi+24],ecx
+005165B6    8B4B 14      mov ecx,dword ptr ds:[ebx+14]
+005165B9    51           push ecx
+005165BA    894E 28      mov dword ptr ds:[esi+28],ecx
+005165BD    8B4B 0C      mov ecx,dword ptr ds:[ebx+C]
+005165C0    894E 14      mov dword ptr ds:[esi+14],ecx
+005165C3    FFD7         call edi   //解密程序
+```
+
+进入 `005165C3` `call edi`，着重看输入表修复。
+
+## 二. 完美修复输入表
+
+`Ctrl+S` 搜索命令序列：
+
+代码:
+
+```
+mov ecx,dword ptr ds:[esi+34]
+test ecx,ecx
+```
+
+找到在 `00AB02E1` 处，`F2` 设断，`F9` 运行中断。
+
+代码:
+
+```
+# 
+
+
+
+```
+00AB0204    53                  push ebx
+00AB0205    57                  push edi
+00AB0206    56                  push esi
+00AB0207    55                  push ebp
+00AB0208    E8 00000000         call 00AB020D
+00AB020D    5D                  pop ebp
+00AB020E    81ED 30120010       sub ebp, 10001230
+00AB0214    8DB5 27120010       lea esi, dword ptr ss:[ebp+10001227]
+00AB021A    8B46 FC             mov eax, dword ptr ds:[esi-4]
+00AB021D    83C0 04             add eax, 4
+00AB0220    2BF0                sub esi, eax
+00AB0222    8B56 08             mov edx, dword ptr ds:[esi+8]
+00AB0225    8B46 1C             mov eax, dword ptr ds:[esi+1C]
+00AB0228    03C2                add eax, edx
+00AB022A    8B08                mov ecx, dword ptr ds:[eax]
+00AB022C    898D 4A1B0010       mov dword ptr ss:[ebp+10001B4A], ecx
+00AB0232    8B46 20             mov eax, dword ptr ds:[esi+20]
+00AB0235    03C2                add eax, edx
+00AB0237    8B08                mov ecx, dword ptr ds:[eax]
+00AB0239    898D 4E1B0010       mov dword ptr ss:[ebp+10001B4E], ecx
+00AB023F    8B46 24             mov eax, dword ptr ds:[esi+24]
+00AB0242    03C2                add eax, edx
+00AB0244    8B08                mov ecx, dword ptr ds:[eax]
+00AB0246    898D 521B0010       mov dword ptr ss:[ebp+10001B52], ecx
+00AB024C    8B46 28             mov eax, dword ptr ds:[esi+28]
+00AB024F    03C2                add eax, edx
+00AB0251    8B08                mov ecx, dword ptr ds:[eax]
+00AB0253    898D 561B0010       mov dword ptr ss:[ebp+10001B56], ecx
+00AB0259    FC                  cld
+00AB025A    8BDE                mov ebx, esi
+00AB025C    837B 48 01          cmp dword ptr ds:[ebx+48], 1
+00AB0260    74 15               je short 00AB0277
+00AB0262    8B73 44             mov esi, dword ptr ds:[ebx+44]
+00AB0265    85F6                test esi, esi
+00AB0267    74 0E               je short 00AB0277
+00AB0269    B9 23000000         mov ecx, 23
+00AB026E    03F2                add esi, edx
+00AB0270    8B7B 40             mov edi, dword ptr ds:[ebx+40]
+00AB0273    03FA                add edi, edx
+00AB0275    F3:A4               rep movs byte ptr es:[edi], byte ptr ds:[esi]
+00AB0277    8BF3                mov esi, ebx
+00AB0279    8DBD 3A1B0010       lea edi, dword ptr ss:[ebp+10001B3A]
+00AB027F    012F                add dword ptr ds:[edi], ebp
+00AB0281    016F 04             add dword ptr ds:[edi+4], ebp
+00AB0284    8D8D 191A0010       lea ecx, dword ptr ss:[ebp+10001A19]
+00AB028A    51                  push ecx
+00AB028B    E8 26010000         call 00AB03B6
+00AB0290    90                  nop
+00AB0291    90                  nop
+00AB0292    90                  nop
+00AB0293    90                  nop
+00AB0294    90                  nop
+00AB0295    90                  nop
+00AB0296    90                  nop
+00AB0297    90                  nop
+00AB0298    8B4E 2C             mov ecx, dword ptr ds:[esi+2C]
+00AB029B    8B56 24             mov edx, dword ptr ds:[esi+24]
+00AB029E    0356 08             add edx, dword ptr ds:[esi+8]
+00AB02A1    898D 461B0010       mov dword ptr ss:[ebp+10001B46], ecx
+00AB02A7    6A 40               push 40
+00AB02A9    68 00100000         push 1000
+00AB02AE    51                  push ecx
+00AB02AF    6A 00               push 0
+00AB02B1    FF12                call dword ptr ds:[edx]
+00AB02B3    8985 421B0010       mov dword ptr ss:[ebp+10001B42], eax
+00AB02B9    56                  push esi
+00AB02BA    E8 89030000         call 00AB0648
+00AB02BF    85C0                test eax, eax
+00AB02C1    0F85 A6000000       jnz 00AB036D
+00AB02C7    56                  push esi
+00AB02C8    E8 D7020000         call 00AB05A4
+00AB02CD    56                  push esi
+00AB02CE    E8 DF010000         call 00AB04B2
+00AB02D3    90                  nop
+00AB02D4    90                  nop
+00AB02D5    90                  nop
+00AB02D6    90                  nop
+00AB02D7    90                  nop
+00AB02D8    90                  nop
+00AB02D9    90                  nop
+00AB02DA    90                  nop
+00AB02DB    90                  nop
+00AB02DC    90                  nop
+00AB02DD    90                  nop
+00AB02DE    90                  nop
+00AB02DF    90                  nop
+00AB02E0    90                  nop
+00AB02E1    8B4E 34             mov ecx, dword ptr ds:[esi+34]
+//找到这里，中断后取消断点
+//[esi+34]=000E1914    Import Table RVA
+00AB02E4    85C9                test ecx, ecx
+00AB02E6    0F84 89000000       je 00AB0375
+00AB02EC    034E 08             add ecx, dword ptr ds:[esi+8]
+00AB02EF    51                  push ecx
+00AB02F0    56                  push esi
+00AB02F1    E8 38050000         call 00AB082E
+//进入
+00AB02F6    85C0                test eax, eax
+00AB02F8    74 7B               je short 00AB0375
+00AB0862    E8 18000000         call 00AB087F
+//进入
+```
+
+---
+
+里面看看，其实是 `PECompact V2.X`
+
+
+
+## 逆向分析与脱壳步骤
+
+### 1. 修改跳转逻辑
+
+> `00AB087F 55 push ebp 00AB0880 8BEC mov ebp,esp 00AB0882 83C4 FC add esp,-4 00AB0885 53 push ebx 00AB0886 57 push edi 00AB0887 56 push esi 00AB0888 E8 00000000 call 00AB088D 00AB088D 5B pop ebx 00AB088E 81EB B0180010 sub ebx,100018B0 00AB0894 8B45 0C mov eax,dword ptr ss:[ebp+C] 00AB0897 8983 9A180010 mov dword ptr ds:[ebx+1000189A],eax 00AB089D 33C0 xor eax,eax 00AB089F 8983 9E180010 mov dword ptr ds:[ebx+1000189E],eax 00AB08A5 33F6 xor esi,esi 00AB08A7 46 inc esi 00AB08A8 46 inc esi 00AB08A9 8B93 2E1B0010 mov edx,dword ptr ds:[ebx+10001B2E] 00AB08AF FF75 0C push dword ptr ss:[ebp+C] 00AB08B2 FFD2 call edx 00AB08B4 8945 FC mov dword ptr ss:[ebp-4],eax 00AB08B7 8B93 3A1B0010 mov edx,dword ptr ds:[ebx+10001B3A] 00AB08BD 85C0 test eax,eax 00AB08BF 75 05 jnz short 00AB08C6 00AB08C1 4E dec esi 00AB08C2 74 73 je short 00AB0937 00AB08C4 EB E9 jmp short 00AB08AF 00AB08C6 8B75 10 mov esi,dword ptr ss:[ebp+10] 00AB08C9 8B7D 08 mov edi,dword ptr ss:[ebp+8] 00AB08CC 8B55 14 mov edx,dword ptr ss:[ebp+14] 00AB08CF 85D2 test edx,edx 00AB08D1 75 02 jnz short 00AB08D5 00AB08D3 8BD6 mov edx,esi 00AB08D5 85F6 test esi,esi 00AB08D7 75 02 jnz short 00AB08DB 00AB08D9 8BF2 mov esi,edx 00AB08DB C783 9E180010 00000>mov dword ptr ds:[ebx+1000189E],0 00AB08E5 8B02 mov eax,dword ptr ds:[edx] 00AB08E7 85C0 test eax,eax 00AB08E9 74 43 je short 00AB092E 00AB08EB 52 push edx 00AB08EC 8983 9E180010 mov dword ptr ds:[ebx+1000189E],eax 00AB08F2 A9 00000080 test eax,80000000 00AB08F7 74 0C je short 00AB0905 00AB08F9 25 FFFFFF7F and eax,7FFFFFFF 00AB08FE 68 00000000 push 0 00AB0903 EB 0E jmp short 00AB0913 00AB0905 8B4D 08 mov ecx,dword ptr ss:[ebp+8] 00AB0908 0341 08 add eax,dword ptr ds:[ecx+8] 00AB090B 33C9 xor ecx,ecx 00AB090D 66:8B08 mov cx,word ptr ds:[eax] 00AB0910 51 push ecx 00AB0911 40 inc eax 00AB0912 40 inc eax 00AB0913 50 push eax 00AB0914 FF75 FC push dword ptr ss:[ebp-4] 00AB0917 FF93 3E1B0010 call dword ptr ds:[ebx+10001B3E] 00AB091D 5A pop edx 00AB091E 85C0 test eax,eax 00AB0920 74 15 je short 00AB0937 00AB0922 8906 mov dword ptr ds:[esi],eax //修改为：mov eax,dword ptr ds:[edx] 00AB0924 8902 mov dword ptr ds:[edx],eax //修改为：mov dword ptr ds:[esi],eax //这样就自动还原 ThunkRVA 了 00AB0926 83C2 04 add edx,4 00AB0929 83C6 04 add esi,4 00AB092C EB AD jmp short 00AB08DB 00AB092E 33C0 xor eax,eax 00AB0930 5E pop esi 00AB0931 5F pop edi 00AB0932 5B pop ebx 00AB0933 C9 leave 00AB0934 C2 1000 retn 10`
+
+修改之后就可以运行到 `00AB02F6` 处了。
+
+代码:
+
+```
+00AB02F6 85C0 test eax,eax //输入表处理完毕
+00AB02F8 74 7B je short 00AB0375
+```
+
+### 2. Dump 最佳时机
+
+此时程序已经解密完毕，而壳还没有把输入表填充系统函数地址，正是 `dump` 的最佳时机！
+
+运行 `LordPE` 完全 `dump` 目标进程，此时 `dump` 出来的文件不需要使用 `ImportREC` 修复输入表。
+
+### 3. OEP 定位
+
+`dump` 后直接按 `F4` 至 `00AB03B5` 处 `retn`。
+
+代码:
+
+```
+00AB0375 8BDE mov ebx,esi
+00AB0377 837B 48 01 cmp dword ptr ds:[ebx+48],1
+00AB037B 75 16 jnz short 00AB0393
+00AB037D 8B43 0C mov eax,dword ptr ds:[ebx+C]
+00AB0380 8B4B 40 mov ecx,dword ptr ds:[ebx+40]
+00AB0383 8BF1 mov esi,ecx
+00AB0385 0373 08 add esi,dword ptr ds:[ebx+8]
+00AB0388 C606 E9 mov byte ptr ds:[esi],0E9
+00AB038B 83C1 05 add ecx,5
+00AB038E 2BC1 sub eax,ecx
+00AB0390 8946 01 mov dword ptr ds:[esi+1],eax
+00AB0393 8BF3 mov esi,ebx
+00AB0395 8B46 28 mov eax,dword ptr ds:[esi+28]
+00AB0398 8B7E 08 mov edi,dword ptr ds:[esi+8]
+00AB039B 03C7 add eax,edi
+00AB039D 68 00800000 push 8000
+00AB03A2 6A 00 push 0
+00AB03A4 FFB5 421B0010 push dword ptr ss:[ebp+10001B42]
+00AB03AA FF10 call dword ptr ds:[eax]
+00AB03AC 8B46 0C mov eax,dword ptr ds:[esi+C]
+00AB03AF 03C7 add eax,edi
+00AB03B1 5D pop ebp
+00AB03B2 5E pop esi
+00AB03B3 5F pop edi
+00AB03B4 5B pop ebx
+00AB03B5 C3 retn //返回 005165C5，继续
+```
+
+### 4. 后续执行与返回
+
+代码:
+
+```
+005165C5 8985 23120010 mov dword ptr ss:[ebp+10001223],eax
+005165CB 8BF0 mov esi,eax
+005165CD 59 pop ecx
+005165CE 5A pop edx
+005165CF 03CA add ecx,edx
+005165D1 68 00800000 push 8000
+005165D6 6A 00 push 0
+005165D8 57 push edi
+005165D9 FF11 call dword ptr ds:[ecx] ; kernel32.VirtualFree
+005165DB 8BC6 mov eax,esi
+005165DD 5A pop edx
+005165DE 5E pop esi
+005165DF 5F pop edi
+005165E0 59 pop ecx
+005165E1 5B pop ebx
+005165E2 5D pop ebp
+005165E3 FFE0 jmp eax ; Hard_Boo.00407674 //飞向光明之巅
+```
+
+### 5. 最终 OEP 修正
+
+代码:
+
+```
+00407674 68 40404100 push 414040 //OEP
+00407679 E8 EEFFFFFF call 0040766C ; Hard_Boo.0040766C
+```
+
+用 `LordPE` 修正 `dump.exe` 的 `OEP RVA=00007674` / `Import Table RVA=000E1914`。
+
+脱壳完成。
+
+### 六. CopyMinder 的亮点
+
+`CopyMinder` 的 `Key` 校验部分采用了 `Int3` 来控制流程。
+
+代码:
+
+```
+```
+
+
+
+```
+00A00020    55                 push ebp
+00A00021    8BEC               mov ebp,esp
+00A00023    53                 push ebx
+00A00024    57                 push edi
+00A00025    56                 push esi
+00A00026    8B5D 08            mov ebx,dword ptr ss:[ebp+8]
+00A00029    8B75 10            mov esi,dword ptr ss:[ebp+10]
+00A0002C    E8 2F010000        call 00A00160
+00A00031    8B78 04            mov edi,dword ptr ds:[eax+4]
+00A00034    F743 04 01000000   test dword ptr ds:[ebx+4],1
+00A0003B    0F85 15010000      jnz 00A00156
+00A00041    F743 04 02000000   test dword ptr ds:[ebx+4],2
+00A00048    0F85 08010000      jnz 00A00156
+00A0004E    8B75 10            mov esi,dword ptr ss:[ebp+10]
+00A00051    8B13               mov edx,dword ptr ds:[ebx]
+00A00053    81FA 04000080      cmp edx,80000004
+00A00059    74 11              je short 00A0006C
+00A0005B    81FA 03000080      cmp edx,80000003
+00A00061    0F84 98000000      je 00A000FF
+00A00067    E9 EA000000        jmp 00A00156
+00A0006C    8B86 B8000000      mov eax,dword ptr ds:[esi+B8]
+00A00072    56                 push esi
+00A00073    3D 2D06A000        cmp eax,0A0062D
+00A00078    72 76              jb short 00A000F0
+00A0007A    3D 7031A100        cmp eax,0A13170
+00A0007F    74 02              je short 00A00083
+00A00081    73 6D              jnb short 00A000F0
+00A00083    3D 3C06A000        cmp eax,0A0063C
+00A00088    72 57              jb short 00A000E1
+00A0008A    B1 14              mov cl,14
+00A0008C    8B97 86000000      mov edx,dword ptr ds:[edi+86]
+00A00092    81FA 8106A000      cmp edx,0A00681
+00A00098    73 07              jnb short 00A000A1
+00A0009A    E8 CA000000        call 00A00169
+00A0009F    EB 14              jmp short 00A000B5
+00A000A1    81FA 7031A100      cmp edx,0A13170
+00A000A7    73 0C              jnb short 00A000B5
+00A000A9    50                 push eax
+00A000AA    B8 00000000        mov eax,0
+00A000AF    E8 D3000000        call 00A00187
+00A000B4    58                 pop eax
+00A000B5    3D 7031A100        cmp eax,0A13170
+00A000BA    74 34              je short 00A000F0
+00A000BC    B1 14              mov cl,14
+00A000BE    8BD0               mov edx,eax
+00A000C0    81FA 8106A000      cmp edx,0A00681
+00A000C6    73 07              jnb short 00A000CF
+00A000C8    E8 9C000000        call 00A00169
+00A000CD    EB 0C              jmp short 00A000DB
+00A000CF    50                 push eax
+00A000D0    B8 01000000        mov eax,1
+00A000D5    E8 AD000000        call 00A00187
+00A000DA    58                 pop eax
+00A000DB    8987 86000000      mov dword ptr ds:[edi+86],eax
+00A000E1    5E                 pop esi
+00A000E2    818E C0000000 00010 or dword ptr ds:[esi+C0],100
+00A000EC    33C0               xor eax,eax
+00A000EE    EB 6B              jmp short 00A0015B
+00A000F0    5E                 pop esi
+00A000F1    81A6 C0000000 FFFE0F and dword ptr ds:[esi+C0],FFFFFEFF
+00A000FB    33C0               xor eax,eax
+00A000FD    EB 5C              jmp short 00A0015B
+00A000FF    8B86 B8000000      mov eax,dword ptr ds:[esi+B8]
+00A00105    3D 2E06A000        cmp eax,0A0062E
+00A0010A    74 12              je short 00A0011E
+00A0010C    3D 2D06A000        cmp eax,0A0062D
+00A00111    75 1D              jnz short 00A00130
+00A00113    C687 8A000000 01   mov byte ptr ds:[edi+8A],1
+00A0011A    56                 push esi
+00A0011B    8BF7               mov esi,edi
+00A0011D    5E                 pop esi
+00A0011E    B1 14              mov cl,14
+00A00120    8BDF               mov ebx,edi
+00A00122    81C3 D84C0000      add ebx,4CD8
+00A00128    899F 86000000      mov dword ptr ds:[edi+86],ebx
+00A0012E    EB 00              jmp short 00A00130
+00A00130    57                 push edi
+00A00131    80BF 8A000000 01   cmp byte ptr ds:[edi+8A],1
+00A00138    5F                 pop edi
+00A00139    75 0D              jnz short 00A00148
+00A0013B    8B86 B8000000      mov eax,dword ptr ds:[esi+B8]
+00A00141    40                 inc eax
+00A00142    8986 B8000000      mov dword ptr ds:[esi+B8],eax
+00A00148    818E C0000000 00010 or dword ptr ds:[esi+C0],100
+00A00152    33C0               xor eax,eax
+00A00154    EB 05              jmp short 00A0015B
+00A00156    B8 01000000        mov eax,1
+00A0015B    5E                 pop esi
+00A0015C    5F                 pop edi
+00A0015D    5B                 pop ebx
+00A0015E    5D                 pop ebp
+00A0015F    C3                 retn
+```
+
+***
+
+`Armadillo` 的 `Nanomites` 是双进程 `CC` 控制程序流程，而这个是单进程 `CC` 异常处理流程。
+
+```
+       ,     /_    /| _.-~/        _ ,      青春都一晌
+      ( /~ /         \~-._ |\      \\ _/           \   ~\ )     忍把浮名
+     -_~~~-.)  )__/;;,.     \__ //    /'\   --~   \   ~~~- ,;;\___(  (.-~~~-.     换了脱壳轻狂
+    `~ _( ,_..--\ (     ,;'' /    ~--   /._`\    /~~//'   / '~\) /--.._, )_ `~
+     " `~" "    `"    /~'\    \\~~\        "    "   "~' ""
+                     UnPacKed By : fly
+                     http://www.unpack.cn
+                     2007-06-24 00:00
+```
+
+***
+
+`4dd466d0e1e0cc123afbe504da2462ca`

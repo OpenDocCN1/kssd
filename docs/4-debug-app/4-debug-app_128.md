@@ -1,97 +1,128 @@
 
-
 # CFF Explorer 临时修改完整显示文字
 
 > 原文：[`www.pediy.com/kssd/pediy10/94129.html`](https://www.pediy.com/kssd/pediy10/94129.html)
 
-在这下的汉化版[`bbs.pediy.com/showthread.php?...Explorer+Suite`](http://bbs.pediy.com/showthread.php?t=91765&highlight=Explorer+Suite)  
-感谢 netprodiag  
-  
-之前就下了但一直没用上,不知道其他人有没有这种情况,打开个文件后表格里的文字全是显示不完的,  
-试了原版也是这样,表格能拖拉的还好,不行的话基本上什么也看不到,就一直没用,今天要用到它,实在  
-找不到解决办法,就动手改了下.  
-  
-开始以为是字体问题,它的表格查了下是用的 MFCGridCtrl,百度后有人说是画出来的,于是找到  
-CreateFontIndirectW 把字体全改成 9 号,谁知道表格也跟着缩小了,直接晕到.  
-  
-换方法,找到程序里的 DrawTextW 函数下断,果然在 00502872 处不停断下,看下面代码和堆栈  
-0050284B   .  50            push eax  
-0050284C   .  8D4D 14       lea ecx,dword ptr \[ebp+14\]  
-0050284F   .  E8 8CE7F7FF   call 00480FE0  
-00502854   .  50            push eax  
-00502855   .  6A FF         push -1  
-00502857   .  8B85 F0FEFFFF mov eax,dword ptr \[ebp-110\]  
-0050285D   .  8B10          mov edx,dword ptr \[eax\]  
-0050285F   .  8B8D F0FEFFFF mov ecx,dword ptr \[ebp-110\]  
-00502865   .  8B42 38       mov eax,dword ptr \[edx+38\]  
-00502868   .  FFD0          call eax  
-0050286A   .  50            push eax                                 ; |Text  
-0050286B   .  8B4D 08       mov ecx,dword ptr \[ebp+8\]                ; |  
-0050286E   .  8B51 04       mov edx,dword ptr \[ecx+4\]                ; |  
-00502871   .  52            push edx                                 ; |hDC  
-00502872   .  FF15 EC165800 call dword ptr \[<&USER32.DrawTextW>\]     ; \\DrawTextW  
-  
-堆栈:  
-0012D780   C6013366  |hDC = C6013366  
-0012D784   00CCD208  |Text = "属性"  
-0012D788   FFFFFFFF  |Count = FFFFFFFF (-1.)  
-0012D78C   0012D8D8  |pRect = 0012D8D8 {8.,8.,113.,14.}  
-0012D790   00008824  \\Flags = DT\_LEFT|DT\_VCENTER|DT\_SINGLELINE|DT\_NOPREFIX|DT\_END\_ELLIPSIS  
-  
-这里明显就是把所有文字不停的刷新  
-插句话,在这之前还试了改 pRect,指针里的数分别是左,上,右,下,心想把上和下改小点就应该能显示完了吧,  
-最后发现改这没用,只是文字的相对位置而已  
-  
-查了下函数原型:  
-int DrawText(HDC hdc, LPCTSTR lpString, int nCount, LPRECT lpRect, UINT uFormat)；  
-主要看这个  
-uFormat：指定格式化正文的方法。它可以下列值的任意组合，各值描述如下：  
-具体可以参考  
-[`baike.baidu.com/view/1023733.htm`](http://baike.baidu.com/view/1023733.htm)  
-发现个重要的  
-DT\_NOCLIP：无裁剪绘制当 DT\_NOCLIP 使用时 DrawText 的使用会有所加快。  
-  
-备注：函数 DrawText 用设备环境中的字体选择、正文颜色和背景颜色来写正文，除非 DT\_NOCLIP 被使用，  
-DrawText 裁剪正文，所以它不会出现在指定矩形的外面，除 DT\_SINGLELINE 格式化，其余的格式都认为  
-正文有多行。如果选择的字体对指定的矩形而言太大，DrawText 不会试图去换成一种小字体。  
-  
-看上面堆栈并没这个标志,于是手动加上,大功告成.  
-  
-下面动手改程序.  
-先查下得到 DT\_NOCLIP = $100;那么只要把 0012D790 里的 8824 Or 100 就 OK 了  
-改的地方不多,直接在 DrawTextW 前处理一下参数就行了,程序后部有不少空间,那就直接跳过去处理吧  
-  
-00502854   .  50                   push eax  
-00502855   .  6A FF                push -1  
-00502857   .  8B85 F0FEFFFF        mov eax,dword ptr \[ebp-110\]  
-0050285D   .  8B10                 mov edx,dword ptr \[eax\]  
-0050285F   .  8B8D F0FEFFFF        mov ecx,dword ptr \[ebp-110\]  
-00502865   .  8B42 38              mov eax,dword ptr \[edx+38\]  
-00502868   .  FFD0                 call eax  
-0050286A   .  50                   push eax  
-0050286B   .  E9 20DB0700          jmp 00580390  
-00502870      90                   nop  
-00502871   >  52                   push edx                                 ; |hDC  
-00502872   .  FF15 EC165800        call dword ptr \[<&USER32.DrawTextW>\]     ; \\DrawTextW  
-....  
-  
-00580390   > \\814C24 0C 00010000   or dword ptr \[esp+C\],100  
-00580398   .  8B4D 08              mov ecx,dword ptr \[ebp+8\]  
-0058039B   .  8B51 04              mov edx,dword ptr \[ecx+4\]  
-0058039E   .^ E9 CE24F8FF          jmp 00502871  
-  
-检查一下,这里的堆栈就变成这样了  
-0012D780   DA0139E5  |hDC = DA0139E5  
-0012D784   00CCD710  |Text = "属性"  
-0012D788   FFFFFFFF  |Count = FFFFFFFF (-1.)  
-0012D78C   0012D8D8  |pRect = 0012D8D8 {8.,8.,113.,14.}  
-0012D790   00008924  \\Flags = DT\_LEFT|DT\_VCENTER|DT\_SINGLELINE|DT\_NOCLIP|DT\_NOPREFIX|DT\_END\_ELLIPSIS  
-  
-至此完工,因为没对参数做判断,所以说是临时的解决方法,难以保证不出问题,不过据观察,好像参数没变过,如果有  
-其它更好的方法,请告之,谢谢.  
-  
-  
-                                                                                Sam.com\[CCG\] 2009 年 7 月 23 日  
-  
-效果图:  
+在这下的汉化版[`bbs.pediy.com/showthread.php?...Explorer+Suite`](http://bbs.pediy.com/showthread.php?t=91765&highlight=Explorer+Suite)
+
+感谢 netprodiag
+
+之前就下了但一直没用上,不知道其他人有没有这种情况,打开个文件后表格里的文字全是显示不完的,
+
+试了原版也是这样,表格能拖拉的还好,不行的话基本上什么也看不到,就一直没用,今天要用到它,实在
+
+找不到解决办法,就动手改了下.
+
+开始以为是字体问题,它的表格查了下是用的 `MFCGridCtrl`,百度后有人说是画出来的,于是找到
+
+`CreateFontIndirectW` 把字体全改成 9 号,谁知道表格也跟着缩小了,直接晕到.
+
+换方法,找到程序里的 `DrawTextW` 函数下断,果然在 `00502872` 处不停断下,看下面代码和堆栈
+
+```asm
+0050284B   .  50             push eax
+0050284C   .  8D4D 14        lea ecx,dword ptr [ebp+14]
+0050284F   .  E8 8CE7F7FF    call 00480FE0
+00502854   .  50             push eax
+00502855   .  6A FF          push -1
+00502857   .  8B85 F0FEFFFF  mov eax,dword ptr [ebp-110]
+0050285D   .  8B10           mov edx,dword ptr [eax]
+0050285F   .  8B8D F0FEFFFF  mov ecx,dword ptr [ebp-110]
+00502865   .  8B42 38        mov eax,dword ptr [edx+38]
+00502868   .  FFD0           call eax
+0050286A   .  50             push eax                               ; |Text
+0050286B   .  8B4D 08        mov ecx,dword ptr [ebp+8]              ; |
+0050286E   .  8B51 04        mov edx,dword ptr [ecx+4]              ; |
+00502871   .  52             push edx                               ; |hDC
+00502872   .  FF15 EC165800  call dword ptr [<&USER32.DrawTextW>]   ; \DrawTextW
+```
+
+堆栈:
+
+```
+0012D780   C6013366  |hDC = C6013366
+0012D784   00CCD208  |Text = "属性"
+0012D788   FFFFFFFF  |Count = FFFFFFFF (-1.)
+0012D78C   0012D8D8  |pRect = 0012D8D8 {8.,8.,113.,14.}
+0012D790   00008824  \Flags = DT_LEFT|DT_VCENTER|DT_SINGLELINE|DT_NOPREFIX|DT_END_ELLIPSIS
+```
+
+这里明显就是把所有文字不停的刷新
+
+插句话,在这之前还试了改 `pRect`,指针里的数分别是左,上,右,下,心想把上和下改小点就应该能显示完了吧,
+
+最后发现改这没用,只是文字的相对位置而已
+
+查了下函数原型:
+
+```c
+int DrawText(HDC hdc, LPCTSTR lpString, int nCount, LPRECT lpRect, UINT uFormat);
+```
+
+主要看这个
+
+`uFormat`：指定格式化正文的方法。它可以下列值的任意组合，各值描述如下：
+
+具体可以参考
+
+[`baike.baidu.com/view/1023733.htm`](http://baike.baidu.com/view/1023733.htm)
+
+发现个重要的
+
+`DT_NOCLIP`：无裁剪绘制当 `DT_NOCLIP` 使用时 `DrawText` 的使用会有所加快。
+
+备注：函数 `DrawText` 用设备环境中的字体选择、正文颜色和背景颜色来写正文，除非 `DT_NOCLIP` 被使用，
+
+`DrawText` 裁剪正文，所以它不会出现在指定矩形的外面，除 `DT_SINGLELINE` 格式化，其余的格式都认为
+
+正文有多行。如果选择的字体对指定的矩形而言太大，`DrawText` 不会试图去换成一种小字体。
+
+看上面堆栈并没这个标志,于是手动加上,大功告成.
+
+下面动手改程序.
+
+先查下得到 `DT_NOCLIP` = `$100`;那么只要把 `0012D790` 里的 `8824` Or `100` 就 OK 了
+
+改的地方不多,直接在 `DrawTextW` 前处理一下参数就行了,程序后部有不少空间,那就直接跳过去处理吧
+
+```asm
+00502854   .  50              push eax
+00502855   .  6A FF           push -1
+00502857   .  8B85 F0FEFFFF   mov eax,dword ptr [ebp-110]
+0050285D   .  8B10            mov edx,dword ptr [eax]
+0050285F   .  8B8D F0FEFFFF   mov ecx,dword ptr [ebp-110]
+00502865   .  8B42 38         mov eax,dword ptr [edx+38]
+00502868   .  FFD0            call eax
+0050286A   .  50              push eax
+0050286B   .  E9 20DB0700     jmp 00580390
+00502870     90              nop
+00502871   >  52              push edx                               ; |hDC
+00502872   .  FF15 EC165800   call dword ptr [<&USER32.DrawTextW>]   ; \DrawTextW
+
+....
+
+00580390   > \814C24 0C 00010000  or dword ptr [esp+C],100
+00580398   .  8B4D 08         mov ecx,dword ptr [ebp+8]
+0058039B   .  8B51 04         mov edx,dword ptr [ecx+4]
+0058039E   .^ E9 CE24F8FF     jmp 00502871
+```
+
+检查一下,这里的堆栈就变成这样了
+
+```
+0012D780   DA0139E5  |hDC = DA0139E5
+0012D784   00CCD710  |Text = "属性"
+0012D788   FFFFFFFF  |Count = FFFFFFFF (-1.)
+0012D78C   0012D8D8  |pRect = 0012D8D8 {8.,8.,113.,14.}
+0012D790   00008924  \Flags = DT_LEFT|DT_VCENTER|DT_SINGLELINE|DT_NOCLIP|DT_NOPREFIX|DT_END_ELLIPSIS
+```
+
+至此完工,因为没对参数做判断,所以说是临时的解决方法,难以保证不出问题,不过据观察,好像参数没变过,如果有
+
+其它更好的方法,请告之,谢谢.
+
+Sam.com[CCG] 2009 年 7 月 23 日
+
+效果图:
+
 ![](img/e910e92af7c719779e6011873288c9c9.jpg)

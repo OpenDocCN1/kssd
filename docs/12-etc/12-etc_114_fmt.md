@@ -1,2 +1,0 @@
-
-# Blackberry OS

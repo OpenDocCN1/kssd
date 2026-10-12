@@ -1,666 +1,921 @@
 
-
 # 小菜对 eTlock 全过程分析
 
 > 原文：[`www.pediy.com/kssd/pediy11/112532.html`](https://www.pediy.com/kssd/pediy11/112532.html)
 
 本人小菜..水平有限...  
 分析不对的地方,请指出..各位大侠..  
-t\_elcok..用 seh..太多...贯穿了整个壳..还有,起始和末尾的 seh..几乎是一样..  
-希望和大家一起进步...脱壳,不是太难..但 IAT 虽然可以用脚本..但是...人工跟踪,该用什么方式?这个想不明白..  
-希望高手指点  
-  
-0042DBC4    E8 00000000     call    0042DBC9  
-0042DBC9    812C24 37020000 sub     dword ptr \[esp\], 237  
-0042DBD0  ^ FF6424 04       jmp     dword ptr \[esp+4\]                ; 下面一个跳，只是解码。。没什么用，返回到这个跳  
-0042DBD4    0000            add     byte ptr \[eax\], al  
-0042DBD6 >^ E9 25E4FFFF     jmp     0042C000                         ; 起始，没什么作用  
-  
-  
-JMP 代码太多..但没有意义，只是为下面解码  
-0042C037    D4 09           aam     9  
-0042C039    49              dec     ecx  
-0042C03A  ^ 7F E9           jg      short 0042C025  
-0042C03C    67:E3 02        jcxz    short 0042C041                   ; 这里解码。。直接 F4  
-  
-然后到这个 seh..自己设置，内存异常，但没什么作用..只是 42D9F7,继续程序  
-0042D9F1    60              pushad  
-0042D9F2    E8 06000000     call    0042D9FD  
-0042D9F7    8B6424 08       mov     esp, dword ptr \[esp+8\]  
-0042D9FB    EB 0D           jmp     short 0042DA0A  
-0042D9FD    2BC9            sub     ecx, ecx  
-0042D9FF    64:FF31         push    dword ptr fs:\[ecx\]  
-0042DA02    64:8921         mov     dword ptr fs:\[ecx\], esp  
-0042DA05    F1              int1  
-0042DA06    FF01            inc     dword ptr \[ecx\]                  ; 这个 seh 貌似没干什么，就是让程序往下走  
-解除 seh  
-0042DA2C    33C9            xor     ecx, ecx                         ; wuliao11.0042D9F7  
-0042DA2E    64:8F01         pop     dword ptr fs:\[ecx\]  
-0042DA31    59              pop     ecx                              ; 这里解除了 seh  
-这个 seh..结束这后,会来到这里..这里貌似有暗桩..如果这里单步的话  
-0042DA3B    60              pushad  
-0042DA3C    E8 06000000     call    0042DA47  
-0042DA41    8B6424 08       mov     esp, dword ptr \[esp+8\]           ; seh..处理点 42DA41  
-0042DA45    EB 1A           jmp     short 0042DA61                   ;F4 的话,接下程序直接 out  
-0042DA47    64:67:FF36 0000 push    dword ptr fs:\[0\]  
-0042DA4D    64:67:8926 0000 mov     dword ptr fs:\[0\], esp  
-0042DA53    9C              pushfd  
-0042DA54    810C24 00010000 or      dword ptr \[esp\], 100               
-0042DA5B    9D              popfd  
-0042DA5C    F8              clc  
-0042DA5D  ^ 73 DC           jnb     short 0042DA3B                   ;具体为什么造成这种原因,我太不懂..seh.希望哪个大侠指点下  
-我是通过..在下面  
-0042DA45    EB 1A           jmp     short 0042DA61  
-  
-0042DA61    64:67:8F06 0000 pop     dword ptr fs:\[0\]  
-0042DA67    58              pop     eax  
-0042DA68    61              popad  
-0042DA69    EB 02           jmp     short 0042DA6D  
-  
-0042DA6D    E8 00000000     call    0042DA72  
-0042DA72    EB 02           jmp     short 0042DA76  
-  
-0042DA76    48              dec     eax   在这里 F4,就行了.可能是 pop dword ptr fs:\[0\];pop eax;对单步有检查  
-  
-接下来的是对下面的进行解码  
-0042DAFD    0D 9EE8E100     or      eax, 0E1E89E  
-0042DB02    B8 00000000     mov     eax, 0  
-0042DB07    48              dec     eax  
-0042DB08    03C1            add     eax, ecx  
-0042DB0A  ^ 79 BA           jns     short 0042DAC6     
-0042DB0C   /EB 02           jmp     short 0042DB10   直接 F4  
-  
+
+`t_elcok`..用 `seh`..太多...贯穿了整个壳..还有,起始和末尾的 `seh`..几乎是一样..  
+
+希望和大家一起进步...脱壳,不是太难..但 `IAT` 虽然可以用脚本..但是...人工跟踪,该用什么方式?这个想不明白..  
+希望高手指点
+
+```
+0042DBC4    E8 00000000     call    0042DBC9  
+0042DBC9    812C24 37020000 sub     dword ptr [esp], 237  
+0042DBD0  ^ FF6424 04       jmp     dword ptr [esp+4]               ; 下面一个跳，只是解码。。没什么用，返回到这个跳  
+0042DBD4    0000            add     byte ptr [eax], al  
+0042DBD6 >^ E9 25E4FFFF     jmp     0042C000                        ; 起始，没什么作用  
+```
+
+`JMP` 代码太多..但没有意义，只是为下面解码
+
+```
+0042C037    D4 09           aam     9  
+0042C039    49              dec     ecx  
+0042C03A  ^ 7F E9           jg      short 0042C025  
+0042C03C    67:E3 02        jcxz    short 0042C041                  ; 这里解码。。直接 F4  
+```
+
+然后到这个 `seh`..自己设置，内存异常，但没什么作用..只是 `42D9F7`,继续程序
+
+```
+0042D9F1    60              pushad  
+0042D9F2    E8 06000000     call    0042D9FD  
+0042D9F7    8B6424 08       mov     esp, dword ptr [esp+8]  
+0042D9FB    EB 0D           jmp     short 0042DA0A  
+0042D9FD    2BC9            sub     ecx, ecx  
+0042D9FF    64:FF31         push    dword ptr fs:[ecx]  
+0042DA02    64:8921         mov     dword ptr fs:[ecx], esp  
+0042DA05    F1              int1  
+0042DA06    FF01            inc     dword ptr [ecx]                 ; 这个 seh 貌似没干什么，就是让程序往下走  
+```
+
+解除 `seh`
+
+```
+0042DA2C    33C9            xor     ecx, ecx                        ; wuliao11.0042D9F7  
+0042DA2E    64:8F01         pop     dword ptr fs:[ecx]  
+0042DA31    59              pop     ecx                               ; 这里解除了 seh  
+```
+
+这个 `seh`..结束这后,会来到这里..这里貌似有暗桩..如果这里单步的话
+
+```
+0042DA3B    60              pushad  
+0042DA3C    E8 06000000     call    0042DA47  
+0042DA41    8B6424 08       mov     esp, dword ptr [esp+8]           ; seh..处理点 42DA41  
+0042DA45    EB 1A           jmp     short 0042DA61                  ;F4 的话,接下程序直接 out  
+0042DA47    64:67:FF36 0000 push    dword ptr fs:[0]  
+0042DA4D    64:67:8926 0000 mov     dword ptr fs:[0], esp  
+0042DA53    9C              pushfd  
+0042DA54    810C24 00010000 or      dword ptr [esp], 100            
+0042DA5B    9D              popfd  
+0042DA5C    F8              clc  
+0042DA5D  ^ 73 DC           jnb     short 0042DA3B                  ;具体为什么造成这种原因,我太不懂..seh.希望哪个大侠指点下  
+```
+
+我是通过..在下面
+
+```
+0042DA45    EB 1A           jmp     short 0042DA61  
+0042DA61    64:67:8F06 0000 pop     dword ptr fs:[0]  
+0042DA67    58              pop     eax  
+0042DA68    61              popad  
+0042DA69    EB 02           jmp     short 0042DA6D  
+0042DA6D    E8 00000000     call    0042DA72  
+0042DA72    EB 02           jmp     short 0042DA76  
+0042DA76    48              dec     eax   在这里 F4,就行了.可能是 pop dword ptr fs:[0];pop eax;对单步有检查  
+```
+
+接下来的是对下面的进行解码
+
+```
+0042DAFD    0D 9EE8E100     or      eax, 0E1E89E  
+0042DB02    B8 00000000     mov     eax, 0  
+0042DB07    48              dec     eax  
+0042DB08    03C1            add     eax, ecx  
+0042DB0A  ^ 79 BA           jns     short 0042DAC6    
+0042DB0C   /EB 02          jmp     short 0042DB10    直接 F4  
+```
+
 然后返回到..也是解码...但和上面不太那个的是:  
-0042D9B9    5B              pop     ebx                            ;这里是刚才解码的...运行完之后,又要消除  
-0042D9BA    E8 00000000     call    0042D9BF                         
-0042D9BF    5F              pop     edi  
-0042D9C0    B9 4A190000     mov     ecx, 194A  
-0042D9C5    43              inc     ebx  
-0042D9C6    66:0BC9         or      cx, cx  
-0042D9C9    75 02           jnz     short 0042D9CD  
-0042D9CB    CD20 C0040B05   vxdcall 50B04C0  
-0042D9D1    000C0B          add     byte ptr \[ebx+ecx\], cl  
-0042D9D4    80340B D3       xor     byte ptr \[ebx+ecx\], 0D3  
-0042D9D8    FE040B          inc     byte ptr \[ebx+ecx\]  
-0042D9DB    EB FF           jmp     short 0042D9DC  
-0042D9DD    C9              leave  
-0042D9DE  ^ 7F E6           jg      short 0042D9C6                   ; 42d991  
-0042D9E0    8BC1            mov     eax, ecx  
-0042D9E2    83C1 26         add     ecx, 26  
-0042D9E5    F3:AA           rep     stos byte ptr es:\[edi\]           ; 对上面的清零  
-0042D9E7    66:AB           stos    word ptr es:\[edi\]  
-接下,也是解码  
-0042C076    FFC9            dec     ecx  
-0042C078  ^ 7F E9           jg      short 0042C063                   ; 对下面解密  
-0042C07A    E8 00000000     call    0042C07F                         ;直接 F4..不过这个地方是上面解码出来的..  
-这里设置 seh..这里,不仅对自身代码,有单步检查..貌似在下面设置,硬件直接断点也要被发现,郁闷啊  
-不过 F2,不能检查到...这个也算暗桩吧..  
-0042C07F    5D              pop     ebp  
-0042C080    8D45 46         lea     eax, dword ptr \[ebp+46\]  
-0042C083    50              push    eax                              ; seh 42c0c5  
-0042C084    33C0            xor     eax, eax  
-0042C086    64:FF30         push    dword ptr fs:\[eax\]  
-0042C089    64:8920         mov     dword ptr fs:\[eax\], esp  
-0042C08C    CC              int3                                     ; 这个异常的处理，是继续  
-0042C08D    90              nop  
-0042C08E    8BC0            mov     eax, eax  
-0042C090    F9              stc  
-0042C091    90              nop  
-0042C092    8D045D 34120000 lea     eax, dword ptr \[ebx\*2+1234\]  
-0042C099    F8              clc  
-0042C09A    90              nop  
-0042C09B    C1EB 05         shr     ebx, 5  
-0042C09E    FC              cld  
-0042C09F    90              nop  
-0042C0A0    C1C0 07         rol     eax, 7  
-0042C0A3    90              nop  
-0042C0A4    90              nop  
-0042C0A5    33DB            xor     ebx, ebx  
-0042C0A7    F7F3            div     ebx                              ; 这个异常处理了，也是继续，但这个 seh 技术  
-0042C0A9    64:67:8F06 0000 pop     dword ptr fs:\[0\]  
-0042C0AF    83C4 04         add     esp, 4  
-0042C0B2    66:BE 4746      mov     si, 4647  
-0042C0B6    66:BF 4D4A      mov     di, 4A4D  
-0042C0BA    8A85 99000000   mov     al, byte ptr \[ebp+99\]  
-0042C0C0    E9 9C000000     jmp     0042C161  
-0042C0C5    8B4424 04       mov     eax, dword ptr \[esp+4\]  
-0042C0C9    8B4C24 0C       mov     ecx, dword ptr \[esp+C\]  
-0042C0CD    FF81 B8000000   inc     dword ptr \[ecx+B8\]  
-0042C0D3    8B00            mov     eax, dword ptr \[eax\]  
-0042C0D5    3D 940000C0     cmp     eax, C0000094                    ; 是否位内存异常错误，不是的话，继续  
-0042C0DA    75 24           jnz     short 0042C100  
-0042C0DC    FF81 B8000000   inc     dword ptr \[ecx+B8\]  
-0042C0E2    33C0            xor     eax, eax  
-0042C0E4    2141 04         and     dword ptr \[ecx+4\], eax  
-0042C0E7    2141 08         and     dword ptr \[ecx+8\], eax  
-0042C0EA    2141 0C         and     dword ptr \[ecx+C\], eax  
-0042C0ED    2141 10         and     dword ptr \[ecx+10\], eax  
-0042C0F0    8161 14 F00FFFF>and     dword ptr \[ecx+14\], FFFF0FF0  
-0042C0F7    8161 18 00DC000>and     dword ptr \[ecx+18\], 0DC00  
-0042C0FE    EB 60           jmp     short 0042C160  
-0042C100    3D 04000080     cmp     eax, 80000004                    ; 单步中段的话，程序就 over 了  
-0042C105    74 0C           je      short 0042C113  
-0042C107    3D 03000080     cmp     eax, 80000003  
-0042C10C    74 12           je      short 0042C120  
-0042C10E    6A 01           push    1  
-0042C110    58              pop     eax  
-0042C111    EB 4D           jmp     short 0042C160  
-0042C113    E8 01000000     call    0042C119  
-直接  
-0042C163    8885 99000000   mov     byte ptr \[ebp+99\], al           ;F2,shift+F9,到这里  
-下面的代码,是壳需要的 IAT 的提取...  
-0042C16F    81E2 0000FFFF   and     edx, FFFF0000  
-0042C175    8BC4            mov     eax, esp  
-0042C177    33E4            xor     esp, esp  
-0042C179    8BE0            mov     esp, eax  
-0042C17B    66:813A 4D5A    cmp     word ptr \[edx\], 5A4D             ; PE  
-0042C180    74 08           je      short 0042C18A  
-0042C182    81C2 0000FFFF   add     edx, FFFF0000  
-0042C188  ^ EB F1           jmp     short 0042C17B  
-0042C18A    8B42 3C         mov     eax, dword ptr \[edx+3C\]  
-0042C18D    3D 00020000     cmp     eax, 200  
-0042C192  ^ 77 E7           ja      short 0042C17B  
-0042C194    813C10 50450000 cmp     dword ptr \[eax+edx\], 4550  
-0042C19B  ^ 75 DE           jnz     short 0042C17B  
-0042C19D    8B4410 78       mov     eax, dword ptr \[eax+edx+78\]      ; 输出表 rva=eax  
-0042C1A1    8B5C10 1C       mov     ebx, dword ptr \[eax+edx+1C\]      ; 函数个数  
-0042C1A5    53              push    ebx  
-0042C1A6    8B5C10 24       mov     ebx, dword ptr \[eax+edx+24\]      ; 输出序列号数组  
-0042C1AA    8B7410 20       mov     esi, dword ptr \[eax+edx+20\]      ; 函数名字指针地址  
-0042C1AE    8B4C10 18       mov     ecx, dword ptr \[eax+edx+18\]      ; 函数个数  
-0042C1B2    8B4410 0C       mov     eax, dword ptr \[eax+edx+C\]       ; 函数真实名称  
-0042C1B6    03C2            add     eax, edx  
-0042C1B8    8B00            mov     eax, dword ptr \[eax\]  
-0042C1BA    25 5F5F5F5F     and     eax, 5F5F5F5F  
-0042C1BF    3D 4B45524E     cmp     eax, 4E52454B                    ; 判断是否 kernel  
-0042C1C4    74 07           je      short 0042C1CD  
-0042C1C6    68 EBFE0000     push    0FEEB  
-0042C1CB    FFE4            jmp     esp  
-0042C1CD    8D7416 FC       lea     esi, dword ptr \[esi+edx-4\]  
-0042C1D1    8D5C13 FE       lea     ebx, dword ptr \[ebx+edx-2\]  
-0042C1D5    6A 0D           push    0D  
-0042C1D7    5F              pop     edi  
-0042C1D8    83C6 04         add     esi, 4  
-0042C1DB    43              inc     ebx  
-0042C1DC    43              inc     ebx  
-0042C1DD    49              dec     ecx  
-0042C1DE  ^ 7C E6           jl      short 0042C1C6  
-0042C1E0    8B06            mov     eax, dword ptr \[esi\]  
-0042C1E2    03C2            add     eax, edx  
-0042C1E4    8138 4C6F6164   cmp     dword ptr \[eax\], 64616F4C        ; 判断是否壳自己要的函数  
-0042C1EA    75 3A           jnz     short 0042C226  
-0042C1EC    8178 04 4C69627>cmp     dword ptr \[eax+4\], 7262694C  
-0042C1F3    75 31           jnz     short 0042C226  
-0042C1F5    8178 08 6172794>cmp     dword ptr \[eax+8\], 41797261  
-0042C1FC    75 28           jnz     short 0042C226  
-0042C1FE    68 C3030000     push    3C3  
-0042C203    58              pop     eax  
-0042C204    58              pop     eax  
-0042C205    50              push    eax  
-0042C206    83EC 04         sub     esp, 4  
-0042C209    53              push    ebx  
-0042C20A    03C2            add     eax, edx  
-0042C20C    0FB71B          movzx   ebx, word ptr \[ebx\]  
-0042C20F    8B1C98          mov     ebx, dword ptr \[eax+ebx\*4\]  
-0042C212    03DA            add     ebx, edx  
-0042C214    8B4424 04       mov     eax, dword ptr \[esp+4\]  
-0042C218    891C28          mov     dword ptr \[eax+ebp\], ebx         ; 这里到 VirtualProtectEx，结束  
-0042C21B    5B              pop     ebx  
-0042C21C    58              pop     eax  
-0042C21D    4F              dec     edi  
-0042C21E  ^ 75 B8           jnz     short 0042C1D8  
-0042C220    0F84 E5010000   je      0042C40B  
-0042C226    8138 45786974   cmp     dword ptr \[eax\], 74697845  
-0042C22C    75 19           jnz     short 0042C247  
-0042C22E    8178 04 50726F6>cmp     dword ptr \[eax+4\], 636F7250  
-0042C235    75 10           jnz     short 0042C247  
-0042C237    8178 08 6573730>cmp     dword ptr \[eax+8\], 737365  
-0042C23E    75 07           jnz     short 0042C247  
-0042C240    68 C7030000     push    3C7  
-0042C245  ^ EB BC           jmp     short 0042C203  
-0042C247    8138 56697274   cmp     dword ptr \[eax\], 74726956  
-0042C24D    75 1F           jnz     short 0042C26E  
-0042C24F    8178 04 75616C4>cmp     dword ptr \[eax+4\], 416C6175  
-0042C256    75 16           jnz     short 0042C26E  
-0042C258    8178 08 6C6C6F6>cmp     dword ptr \[eax+8\], 636F6C6C  
-0042C25F    75 0D           jnz     short 0042C26E  
-0042C261    8078 0C 00      cmp     byte ptr \[eax+C\], 0  
-0042C265    75 07           jnz     short 0042C26E  
-0042C267    68 CB030000     push    3CB  
-0042C26C  ^ EB 95           jmp     short 0042C203  
-0042C26E    8138 56697274   cmp     dword ptr \[eax\], 74726956  
-0042C274    75 1C           jnz     short 0042C292  
-0042C276    8178 04 75616C4>cmp     dword ptr \[eax+4\], 466C6175  
-0042C27D    75 13           jnz     short 0042C292  
-0042C27F    8178 08 7265650>cmp     dword ptr \[eax+8\], 656572  
-0042C286    75 0A           jnz     short 0042C292  
-0042C288    68 CF030000     push    3CF  
-0042C28D  ^ E9 71FFFFFF     jmp     0042C203  
-0042C292    8138 43726561   cmp     dword ptr \[eax\], 61657243  
-0042C298    75 1C           jnz     short 0042C2B6  
-0042C29A    8178 04 74654D7>cmp     dword ptr \[eax+4\], 754D6574  
-0042C2A1    75 13           jnz     short 0042C2B6  
-0042C2A3    8178 08 7465784>cmp     dword ptr \[eax+8\], 41786574  
-0042C2AA    75 0A           jnz     short 0042C2B6  
-0042C2AC    68 D3030000     push    3D3  
-0042C2B1  ^ E9 4DFFFFFF     jmp     0042C203  
-0042C2B6    8138 4F70656E   cmp     dword ptr \[eax\], 6E65704F  
-0042C2BC    75 1C           jnz     short 0042C2DA  
-0042C2BE    8178 04 50726F6>cmp     dword ptr \[eax+4\], 636F7250  
-0042C2C5    75 13           jnz     short 0042C2DA  
-0042C2C7    8178 08 6573730>cmp     dword ptr \[eax+8\], 737365  
-0042C2CE    75 0A           jnz     short 0042C2DA  
-0042C2D0    68 DB030000     push    3DB  
-0042C2D5  ^ E9 29FFFFFF     jmp     0042C203  
-0042C2DA    8138 47657443   cmp     dword ptr \[eax\], 43746547  
-0042C2E0    75 2E           jnz     short 0042C310  
-0042C2E2    8178 04 7572726>cmp     dword ptr \[eax+4\], 65727275  
-0042C2E9    75 25           jnz     short 0042C310  
-0042C2EB    8178 08 6E74507>cmp     dword ptr \[eax+8\], 7250746E  
-0042C2F2    75 1C           jnz     short 0042C310  
-0042C2F4    8178 0C 6F63657>cmp     dword ptr \[eax+C\], 7365636F  
-0042C2FB    75 13           jnz     short 0042C310  
-0042C2FD    8178 10 7349640>cmp     dword ptr \[eax+10\], 644973  
-0042C304    75 0A           jnz     short 0042C310  
-0042C306    68 D7030000     push    3D7  
-0042C30B  ^ E9 F3FEFFFF     jmp     0042C203  
-0042C310    8138 56697274   cmp     dword ptr \[eax\], 74726956  
-0042C316    75 25           jnz     short 0042C33D  
-0042C318    8178 04 75616C5>cmp     dword ptr \[eax+4\], 506C6175  
-0042C31F    75 1C           jnz     short 0042C33D  
-0042C321    8178 08 726F746>cmp     dword ptr \[eax+8\], 65746F72  
-0042C328    75 13           jnz     short 0042C33D  
-0042C32A    8178 0C 6374457>cmp     dword ptr \[eax+C\], 78457463  
-0042C331    75 0A           jnz     short 0042C33D  
-0042C333    68 DF030000     push    3DF  
-0042C338  ^ E9 C6FEFFFF     jmp     0042C203  
-0042C33D    8138 43726561   cmp     dword ptr \[eax\], 61657243  
-0042C343    75 1C           jnz     short 0042C361  
-0042C345    8178 04 7465466>cmp     dword ptr \[eax+4\], 69466574  
-0042C34C    75 13           jnz     short 0042C361  
-0042C34E    8178 08 6C65410>cmp     dword ptr \[eax+8\], 0041656C  
-0042C355    75 0A           jnz     short 0042C361  
-0042C357    68 EB030000     push    3EB  
-0042C35C  ^ E9 A2FEFFFF     jmp     0042C203  
-0042C361    8138 436C6F73   cmp     dword ptr \[eax\], 736F6C43  
-0042C367    75 1C           jnz     short 0042C385  
-0042C369    8178 04 6548616>cmp     dword ptr \[eax+4\], 6E614865  
-0042C370    75 13           jnz     short 0042C385  
-0042C372    8178 08 646C650>cmp     dword ptr \[eax+8\], 656C64  
-0042C379    75 0A           jnz     short 0042C385  
-0042C37B    68 E3030000     push    3E3  
-0042C380  ^ E9 7EFEFFFF     jmp     0042C203  
-0042C385    8138 52656164   cmp     dword ptr \[eax\], 64616552  
-0042C38B    75 19           jnz     short 0042C3A6  
-0042C38D    8178 04 46696C6>cmp     dword ptr \[eax+4\], 656C6946  
-0042C394    75 10           jnz     short 0042C3A6  
-0042C396    8078 08 00      cmp     byte ptr \[eax+8\], 0  
-0042C39A    75 0A           jnz     short 0042C3A6  
-0042C39C    68 E7030000     push    3E7  
-0042C3A1  ^ E9 5DFEFFFF     jmp     0042C203  
-0042C3A6    8138 4765744D   cmp     dword ptr \[eax\], 4D746547  
-0042C3AC    75 2D           jnz     short 0042C3DB  
-0042C3AE    8178 04 6F64756>cmp     dword ptr \[eax+4\], 6C75646F  
-0042C3B5    75 24           jnz     short 0042C3DB  
-0042C3B7    8178 08 6546696>cmp     dword ptr \[eax+8\], 6C694665  
-0042C3BE    75 1B           jnz     short 0042C3DB  
-0042C3C0    8178 0C 654E616>cmp     dword ptr \[eax+C\], 6D614E65  
-0042C3C7    75 12           jnz     short 0042C3DB  
-0042C3C9    66:8178 10 6541 cmp     word ptr \[eax+10\], 4165  
-0042C3CF    75 0A           jnz     short 0042C3DB  
-0042C3D1    68 EF030000     push    3EF  
-0042C3D6  ^ E9 28FEFFFF     jmp     0042C203  
-0042C3DB    8138 47657450   cmp     dword ptr \[eax\], 50746547  
-0042C3E1  ^ 0F85 F1FDFFFF   jnz     0042C1D8  
-0042C3E7    8178 04 726F634>cmp     dword ptr \[eax+4\], 41636F72  
-0042C3EE  ^ 0F85 E4FDFFFF   jnz     0042C1D8  
-0042C3F4    8178 08 6464726>cmp     dword ptr \[eax+8\], 65726464  
-0042C3FB  ^ 0F85 D7FDFFFF   jnz     0042C1D8  
-0042C401    68 BF030000     push    3BF  
-0042C406  ^ E9 F8FDFFFF     jmp     0042C203  
-内存中提取的:  
-0042C43A  00000246  F..  
-0042C43E  7C80AE30  0|   kernel32.GetProcAddress  
-0042C442  7C801D7B  {|  kernel32.LoadLibraryA  
-0042C446  7C81CAFA      kernel32.ExitProcess  
-0042C44A  7C809AE1  |   kernel32.VirtualAlloc  
-0042C44E  7C809B74  t|   kernel32.VirtualFree  
-0042C452  7C80E9CF  祥|   kernel32.CreateMutexA  
-0042C456  7C8099B0  |   kernel32.GetCurrentProcessId  
-0042C45A  7C8309D1  ?    kernel32.OpenProcess  
-0042C45E  7C801A61  a|  kernel32.VirtualProtectEx  
-0042C462  7C809BD7  |   kernel32.CloseHandle  
-0042C466  7C801812  |  kernel32.ReadFile  
-0042C46A  7C801A28  (|  kernel32.CreateFileA  
-0042C46E  7C80B55F  \_|   kernel32.GetModuleFileNameA  
-0042C472  75E40B06    
-提取的这几个函数..跟踪后会发现..都是它用到的  
-接下来,也是 seh..  
-0042C693    2BC9            sub     ecx, ecx                         ; 这个出现，有又是 seh  
-  
-0042C699    64:FF31         push    dword ptr fs:\[ecx\]  
-  
-0042C6A0    64:8921         mov     dword ptr fs:\[ecx\], esp  
-0042C6A3    41              inc     ecx                              ; seh。。42C68A  
-0042C6A4    49              dec     ecx  
-  
-0042C6A8    8DC0            lea     eax, eax                         ; 非法使用寄存器..到这里了  
-  
-0042C68A    8B6424 08       mov     esp, dword ptr \[esp+8\]           ; F2,shift+f9  
-这个没什么,也是让程序继续下去的手段..  
-0042C7E2    AD              lods    dword ptr \[esi\]  
-0042C7E3    50              push    eax  
-0042C7E4    8366 FC 00      and     dword ptr \[esi-4\], 0  
-0042C7E8  ^ E2 F8           loopd   short 0042C7E2                   ; 把原来得到的函数清零，难道是 IAT，加密？  
-  
-这个是把,原理得到 IAT,消除..其实就是转到其他地方..没什么意义  
-0042C81D    58              pop     eax                              ; kernel32.CreateFileA  
-0042C81E    AB              stos    dword ptr es:\[edi\]  
-0042C81F    83EF 08         sub     edi, 8  
-0042C822  ^ E2 F9           loopd   short 0042C81D                   ; 又把 IAT，放入，42C46e 中  
-  
-0042C92A    8BC5            mov     eax, ebp  
-0042C92C    2B85 3D1C0000   sub     eax, dword ptr \[ebp+1C3D\]  
-0042C932    83E8 7F         sub     eax, 7F  
-0042C935    8985 411C0000   mov     dword ptr \[ebp+1C41\], eax  
-0042C93B    8D7D 81         lea     edi, dword ptr \[ebp-7F\]  
-0042C93E    57              push    edi  
-0042C93F    BB 00040000     mov     ebx, 400  
-0042C944    8D77 08         lea     esi, dword ptr \[edi+8\]  
-0042C947    68 04010000     push    104  
-0042C94C    57              push    edi  
-0042C94D    50              push    eax  
-0042C94E    FF95 EF030000   call    dword ptr \[ebp+3EF\]              ; GetModuleFileNameA  
-0042C954    56              push    esi  
-0042C955    33C0            xor     eax, eax  
-0042C957    8D48 FF         lea     ecx, dword ptr \[eax-1\]  
-0042C95A    FC              cld  
-0042C95B    F2:AE           repne   scas byte ptr es:\[edi\]  
-0042C95D    F7D1            not     ecx  
-0042C95F    8D51 FF         lea     edx, dword ptr \[ecx-1\]  
-0042C962    FD              std  
-0042C963    4F              dec     edi  
-0042C964    B0 5C           mov     al, 5C  
-0042C966    F2:AE           repne   scas byte ptr es:\[edi\]  
-0042C968    FC              cld  
-0042C969    47              inc     edi  
-0042C96A    85C9            test    ecx, ecx  
-0042C96C    74 02           je      short 0042C970  
-0042C96E    41              inc     ecx  
-0042C96F    47              inc     edi  
-0042C970    2BD1            sub     edx, ecx  
-0042C972    8BCA            mov     ecx, edx  
-0042C974    83E1 1F         and     ecx, 1F  
-0042C977    8BF7            mov     esi, edi  
-0042C979    8DBD 3D1D0000   lea     edi, dword ptr \[ebp+1D3D\]  
-0042C97F    F3:A4           rep     movs byte ptr es:\[edi\], byte ptr>  
-0042C981    5E              pop     esi  
-0042C982    5F              pop     edi  
-0042C983    6A 00           push    0  
-0042C985    68 80000000     push    80  
-0042C98A    6A 03           push    3  
-0042C98C    6A 00           push    0  
-0042C98E    6A 01           push    1  
-0042C990    68 00000080     push    80000000  
-0042C995    57              push    edi  
-0042C996    FF95 EB030000   call    dword ptr \[ebp+3EB\]              ; CreateFileA  
-0042C99C    50              push    eax  
-0042C99D    6A 00           push    0  
-0042C99F    57              push    edi  
-0042C9A0    53              push    ebx  
-0042C9A1    56              push    esi  
-0042C9A2    50              push    eax  
-0042C9A3    FF95 E7030000   call    dword ptr \[ebp+3E7\]              ; ReadFile  
-0042C9A9    FF95 E3030000   call    dword ptr \[ebp+3E3\]              ; CloseHandle  
-这里有设置,seh  
-0042CA85    50              push    eax                              ; wuliao11.0042CA90  
-0042CA86    33C0            xor     eax, eax  
-0042CA88    64:FF30         push    dword ptr fs:\[eax\]  
-0042CA8B    64:8920         mov     dword ptr fs:\[eax\], esp          ; 又设置，42CA90  
-  
-0042CAA1    66:F7F3         div     bx                                ;除零异常  
-  
-然后直接在 42C9A0 下端点  
-然后跟到这里                  
-0042CAE4    F8              clc                                      ;stc..改成  
-0042CAE5    0F83 1A010000   jnb     0042CC05                         ; 这个地方不能跳;跳的话,直接程序 out..还送一个框框  
-  
-跟踪到这.应该调试用.自己写了个脚本..不过郁闷的是..这么短的脚本第一次写,竟然用了很长时间,苍天啊..为了下面的跟踪用  
-/\*简单脚本\*/  
-BPHWS 42C07A,"x"  
-esto  
-bphwc  
-bp 42C220  
-esto  
-bc 42c220  
-BPHWS 42ca3D,"x"  
-esto  
-BPHWC  
-mov \[42CAE4\],#f9#  
-bphws 42cae4,"x"  
-esto  
-bphwc  
-ret  
-/\*别鄙视\*/  
-接着跟着会到一个 int3,断点  
-到这里又有个 seh...42cb03..  
-然后遇到 int3 断点  
-0042CB27    CC              int3   ;真这个  
-有很多 seh...  
-0042CC1B    8BDD            mov     ebx, ebp                         ; wuliao11.0042C07F..到这里就 OK 了  
-然后是些解码..最后到这里  
-0042CDC5    E8 06000000     call    0042CDD0  
-0042CDCA    8B6424 08       mov     esp, dword ptr \[esp+8\]          ;这个模式是我们第一个见到的,这里 F4  
-0042CDCE    EB 0D           jmp     short 0042CDDD  
-0042CDD0    33C9            xor     ecx, ecx  
-0042CDD2    64:FF31         push    dword ptr fs:\[ecx\]  
-0042CDD5    64:8921         mov     dword ptr fs:\[ecx\], esp  
-0042CDD8    F1              int1  
-0042CDD9    FF01            inc     dword ptr \[ecx\]  
-然后的到这里..  
-0042CDEF    60              pushad  
-0042CDF0    E8 06000000     call    0042CDFB  
-0042CDF5    8B6424 08       mov     esp, dword ptr \[esp+8\]  
-0042CDF9    EB 1A           jmp     short 0042CE15  
-0042CDFB    64:67:FF36 0000 push    dword ptr fs:\[0\]  
-0042CE01    64:67:8926 0000 mov     dword ptr fs:\[0\], esp  
-0042CE07    9C              pushfd  
-0042CE08    810C24 00010000 or      dword ptr \[esp\], 100  
-0042CE0F    9D              popfd  
-0042CE10    F8              clc  
-0042CE11  ^ 73 DC           jnb     short 0042CDEF  
-  
-栈一直出现,这个,不知道有没有用...  
-0012FF84   0042CC6B  ASCII "xPkWZ8Hau3EdYMn9E8dMxxZu"..问题  
-接下来跟踪没什么意义了  
-直接..bp GetProcAddress 下断点  
-0042D49E    89BD 52D44000   mov     dword ptr \[ebp+40D452\], edi  
-0042D4A4    8D85 14BB4000   lea     eax, dword ptr \[ebp+40BB14\]  
-0042D4AA    FFB5 FBCA4000   push    dword ptr \[ebp+40CAFB\]  
-0042D4B0    0FB608          movzx   ecx, byte ptr \[eax\]  
-0042D4B3    FF0C24          dec     dword ptr \[esp\]  
-0042D4B6    7E 05           jle     short 0042D4BD  
-0042D4B8    40              inc     eax  
-0042D4B9    03C1            add     eax, ecx  
-0042D4BB  ^ EB F3           jmp     short 0042D4B0  
-0042D4BD    890C24          mov     dword ptr \[esp\], ecx  
-0042D4C0    FF85 FBCA4000   inc     dword ptr \[ebp+40CAFB\]  
-0042D4C6    83A5 FBCA4000 0>and     dword ptr \[ebp+40CAFB\], 0F  
-0042D4CD    8BBD 52D44000   mov     edi, dword ptr \[ebp+40D452\]  
-0042D4D3    8B85 5AD44000   mov     eax, dword ptr \[ebp+40D45A\]  
-0042D4D9    0385 4ED34000   add     eax, dword ptr \[ebp+40D34E\]  
-0042D4DF    8B8D 56D44000   mov     ecx, dword ptr \[ebp+40D456\]  
-0042D4E5    8908            mov     dword ptr \[eax\], ecx                  ;这里就是加密..给  
-0042D4E7    58              pop     eax  
-0042D4E8    83C0 09         add     eax, 9  
-0042D4EB    0185 56D44000   add     dword ptr \[ebp+40D456\], eax  
-0042D4F1    EB 08           jmp     short 0042D4FB  
-0042D4F3    838D 52D44000 F>or      dword ptr \[ebp+40D452\], FFFFFFFF  
-0042D4FA    61              popad  
-0042D4FB    03BD 4ED34000   add     edi, dword ptr \[ebp+40D34E\]  
-0042D501    85DB            test    ebx, ebx  
-0042D503    0F84 C7000000   je      0042D5D0  
-0042D509    F7C3 00000080   test    ebx, 80000000  
-0042D50F    6A 00           push    0  
-0042D511    75 0F           jnz     short 0042D522  
-0042D513    8D5C13 02       lea     ebx, dword ptr \[ebx+edx+2\]  
-0042D517    803B 00         cmp     byte ptr \[ebx\], 0  
-0042D51A    0F84 93000000   je      0042D5B3  
-0042D520    EB 45           jmp     short 0042D567  
-0042D522    FF0424          inc     dword ptr \[esp\]  
-0042D525    66:85DB         test    bx, bx  
-0042D528    0F84 85000000   je      0042D5B3  
-0042D52E    8B85 4AD34000   mov     eax, dword ptr \[ebp+40D34A\]  
-0042D534    3B85 42D44000   cmp     eax, dword ptr \[ebp+40D442\]  
-0042D53A    75 2B           jnz     short 0042D567  
-0042D53C    81E3 FFFFFF7F   and     ebx, 7FFFFFFF  
-0042D542    8BD3            mov     edx, ebx  
-0042D544    8D1495 FCFFFFFF lea     edx, dword ptr \[edx\*4-4\]  
-0042D54B    8B9D 4AD34000   mov     ebx, dword ptr \[ebp+40D34A\]  
-0042D551    8B43 3C         mov     eax, dword ptr \[ebx+3C\]  
-0042D554    8B4418 78       mov     eax, dword ptr \[eax+ebx+78\]  
-0042D558    035C18 1C       add     ebx, dword ptr \[eax+ebx+1C\]  
-0042D55C    8B041A          mov     eax, dword ptr \[edx+ebx\]  
-0042D55F    0385 4AD34000   add     eax, dword ptr \[ebp+40D34A\]  
-0042D565    EB 13           jmp     short 0042D57A  
-0042D567    81E3 FFFFFF7F   and     ebx, 7FFFFFFF  
-0042D56D    53              push    ebx     
-0042D56E    FFB5 4AD34000   push    dword ptr \[ebp+40D34A\]  
-0042D574    FF95 E0BA4000   call    dword ptr \[ebp+40BAE0\]           ;这个是就是 GetProcAddresss  
-0042D57A    40              inc     eax                              ; user32.EndDialog  
-0042D57B    48              dec     eax  
-0042D57C    75 33           jnz     short 0042D5B1  
-0042D57E    58              pop     eax  
-0042D57F    F9              stc  
-0042D580  ^ 0F82 61FDFFFF   jb      0042D2E7  
-0042D586    47              inc     edi  
-0042D587    44              inc     esp  
-0042D588    49              dec     ecx  
-0042D589    3332            xor     esi, dword ptr \[edx\]  
-0042D58B    2E:44           inc     esp  
-0042D58D    4C              dec     esp  
-0042D58E    4C              dec     esp  
-0042D58F    55              push    ebp  
-0042D590    53              push    ebx  
-0042D591    45              inc     ebp  
-0042D592    52              push    edx  
-0042D593    3332            xor     esi, dword ptr \[edx\]  
-0042D595    2E:44           inc     esp  
-0042D597    4C              dec     esp  
-0042D598    4C              dec     esp  
-0042D599    53              push    ebx  
-0042D59A    48              dec     eax  
-0042D59B    45              inc     ebp  
-0042D59C    4C              dec     esp  
-0042D59D    4C              dec     esp  
-0042D59E    3332            xor     esi, dword ptr \[edx\]  
-0042D5A0    2E:44           inc     esp  
-0042D5A2    4C              dec     esp  
-0042D5A3    4C              dec     esp  
-0042D5A4    4B              dec     ebx  
-0042D5A5    45              inc     ebp  
-0042D5A6    52              push    edx  
-0042D5A7    4E              dec     esi  
-0042D5A8    45              inc     ebp  
-0042D5A9    4C              dec     esp  
-0042D5AA    3332            xor     esi, dword ptr \[edx\]  
-0042D5AC    2E:44           inc     esp  
-0042D5AE    4C              dec     esp  
-0042D5AF    4C              dec     esp  
-0042D5B0    0289 07584874   add     cl, byte ptr \[ecx+74485807\]   ;这里没解开,实际是对 IAT,表消除记录;  
-0042D5B6    0D 40F86689     or      eax, 8966F840  
-0042D5BB    43              inc     ebx  
-0042D5BC    FE88 03433803   dec     byte ptr \[eax+3384303\]  
-0042D5C2  ^ 75 F9           jnz     short 0042D5BD  
-0042D5C4    8385 4ED34000 0>add     dword ptr \[ebp+40D34E\], 4  
-0042D5CB  ^ E9 BAFDFFFF     jmp     0042D38A  
-  
-IAT 修复..这里不知道该怎么办..哪位能给在下解答..感激不尽..虽然可以用插件修复  
-IAT 之后,跟踪到这  
-0042D653    03C7            add     eax, edi  
-0042D655    0385 72D34000   add     eax, dword ptr \[ebp+40D372\]  
-0042D65B    50              push    eax  
-0042D65C    51              push    ecx  
-0042D65D    E8 13FAFFFF     call    0042D075  
-  
-进去  
-0042D075    60              pushad  
-0042D076    8B5C24 24       mov     ebx, dword ptr \[esp+24\]  
-0042D07A    83C3 10         add     ebx, 10  
-0042D07D    6A 04           push    4  
-0042D07F    68 00100000     push    1000  
-0042D084    53              push    ebx  
-0042D085    6A 00           push    0  
-0042D087    FF95 ECBA4000   call    dword ptr \[ebp+40BAEC\]           ; VritualAlloc  
-0042D08D    85C0            test    eax, eax                         ; 3f0000  
-0042D08F    0F84 D6000000   je      0042D16B  
-0042D095    8BF8            mov     edi, eax  
-  
-也就是解码..代码长,但就没用..  
-bp VirtualFree..  
-然后再跟踪到  
-0042D68E    FF95 F8BA4000   call    dword ptr \[ebp+40BAF8\]  
-0042D694    8BD8            mov     ebx, eax  
-0042D696    50              push    eax  
-0042D697    6A 00           push    0  
-0042D699    68 FF0F1F00     push    1F0FFF  
-0042D69E    FF95 FCBA4000   call    dword ptr \[ebp+40BAFC\]           ; OpenProcess  
-0042D6A4    40              inc     eax  
-0042D6A5    48              dec     eax  
-0042D6A6    74 2B           je      short 0042D6D3  
-0042D6A8    6A 00           push    0  
-0042D6AA    54              push    esp  
-0042D6AB    6A 04           push    4  
-0042D6AD    68 00100000     push    1000  
-0042D6B2    FFB5 62D34000   push    dword ptr \[ebp+40D362\]           ; 400000  
-0042D6B8    50              push    eax  
-0042D6B9    FF95 00BB4000   call    dword ptr \[ebp+40BB00\]           ; VitualProtectEx  
-  
-这一段是对 4,应该是 readonly..那么离 oep 不远了..^ ^  
-然后遇到几个异常..  
-最后到  
-0042D7AC    8B6424 08       mov     esp, dword ptr \[esp+8\]          ;这里应很熟悉了..第一次,也是这个 F4  
-0042D7B0    EB 0D           jmp     short 0042D7BF  
-0042D7B2    2BC9            sub     ecx, ecx                        
-0042D7B4    64:FF31         push    dword ptr fs:\[ecx\]  
-0042D7B7    64:8921         mov     dword ptr fs:\[ecx\], esp  
-0042D7BA    F1              int1  
-0042D7BB    FF01            inc     dword ptr \[ecx\]  
-0042D7BD  ^ EB E8           jmp     short 0042D7A7  
-  
-0042D7D5    2BC1            sub     eax, ecx                         ;这个很熟悉了吧..  
-0042D7D7    60              pushad  
-0042D7D8    E8 06000000     call    0042D7E3  
-0042D7DD    8B6424 08       mov     esp, dword ptr \[esp+8\]  
-0042D7E1    EB 1A           jmp     short 0042D7FD  
-0042D7E3    64:67:FF36 0000 push    dword ptr fs:\[0\]  
-0042D7E9    64:67:8926 0000 mov     dword ptr fs:\[0\], esp  
-0042D7EF    9C              pushfd  
-0042D7F0    810C24 00010000 or      dword ptr \[esp\], 100  
-0042D7F7    9D              popfd  
-0042D7F8    F8              clc  
-0042D7F9  ^ 73 DC           jnb     short 0042D7D7  
-  
-0042D8B3    F8              clc  
-0042D8B4    72 7D           jb      short 0042D933  
-0042D8B6    51              push    ecx                          
-0042D8B7    8BCB            mov     ecx, ebx  
-0042D8B9    E3 03           jecxz   short 0042D8BE  
-0042D8BB    59              pop     ecx                     
-0042D8BC  ^ EB AD           jmp     short 0042D86B  
-0042D8BE    59              pop     ecx                         ;解码,没什么意义直接 F4  
-  
-0042D791    F3:AA           rep     stos byte ptr es:\[edi\]  
-0042D793    66:AB           stos    word ptr es:\[edi\]  
-0042D795    EB 02           jmp     short 0042D799                这里,再 F7,几步直接到达,oep  
-  
-0042D799    61              popad  
-0042D79A  - FF6424 D0       jmp     dword ptr \[esp-30\]               ; wuliao11.004017B0..到 oep 了  
-  
-  
-总结,只要过前面一段 seh..也就是那个脚本..然后直接在  
-然后在 GetProcAddress,下断点..然后在 code..下断点..就行了..
+
+```
+0042D9B9    5B              pop     ebx                     ;这里是刚才解码的...运行完之后,又要消除  
+0042D9BA    E8 00000000     call    0042D9BF                
+0042D9BF    5F              pop     edi  
+0042D9C0    B9 4A190000     mov     ecx, 194A  
+0042D9C5    43              inc     ebx  
+0042D9C6    66:0BC9         or      cx, cx  
+0042D9C9    75 02           jnz     short 0042D9CD  
+0042D9CB    CD20 C0040B05   vxdcall 50B04C0  
+0042D9D1    000C0B          add     byte ptr [ebx+ecx], cl  
+0042D9D4    80340B D3       xor     byte ptr [ebx+ecx], 0D3  
+0042D9D8    FE040B          inc     byte ptr [ebx+ecx]  
+0042D9DB    EB FF           jmp     short 0042D9DC  
+0042D9DD    C9              leave  
+0042D9DE  ^ 7F E6           jg      short 0042D9C6          ; 42d991  
+0042D9E0    8BC1            mov     eax, ecx  
+0042D9E2    83C1 26         add     ecx, 26  
+0042D9E5    F3:AA           rep     stos byte ptr es:[edi]  ; 对上面的清零  
+0042D9E7    66:AB           stos    word ptr es:[edi]  
+```
+
+接下,也是解码
+
+```
+0042C076    FFC9            dec     ecx  
+0042C078  ^ 7F E9           jg      short 0042C063          ; 对下面解密  
+0042C07A    E8 00000000     call    0042C07F                ;直接 F4..不过这个地方是上面解码出来的..  
+```
+
+这里设置 `seh`..这里,不仅对自身代码,有单步检查..貌似在下面设置,硬件直接断点也要被发现,郁闷啊  
+
+不过 `F2`,不能检查到...这个也算暗桩吧..  
+
+```
+0042C07F    5D              pop     ebp  
+0042C080    8D45 46         lea     eax, dword ptr [ebp+46]  
+0042C083    50              push    eax                     ; seh 42c0c5  
+0042C084    33C0            xor     eax, eax  
+0042C086    64:FF30         push    dword ptr fs:[eax]  
+0042C089    64:8920         mov     dword ptr fs:[eax], esp  
+0042C08C    CC              int3                          ; 这个异常的处理，是继续  
+0042C08D    90              nop  
+0042C08E    8BC0            mov     eax, eax  
+0042C090    F9              stc  
+0042C091    90              nop  
+0042C092    8D045D 34120000 lea     eax, dword ptr [ebx*2+1234]  
+0042C099    F8              clc  
+0042C09A    90              nop  
+0042C09B    C1EB 05         shr     ebx, 5  
+0042C09E    FC              cld  
+0042C09F    90              nop  
+0042C0A0    C1C0 07         rol     eax, 7  
+0042C0A3    90              nop  
+0042C0A4    90              nop  
+0042C0A5    33DB            xor     ebx, ebx  
+0042C0A7    F7F3            div     ebx                     ; 这个异常处理了，也是继续，但这个 seh 技术  
+0042C0A9    64:67:8F06 0000 pop     dword ptr fs:[0]  
+0042C0AF    83C4 04         add     esp, 4  
+0042C0B2    66:BE 4746      mov     si, 4647  
+0042C0B6    66:BF 4D4A      mov     di, 4A4D  
+0042C0BA    8A85 99000000   mov     al, byte ptr [ebp+99]  
+0042C0C0    E9 9C000000     jmp     0042C161  
+0042C0C5    8B4424 04       mov     eax, dword ptr [esp+4]  
+0042C0C9    8B4C24 0C       mov     ecx, dword ptr [esp+C]  
+0042C0CD    FF81 B8000000   inc     dword ptr [ecx+B8]  
+0042C0D3    8B00            mov     eax, dword ptr [eax]  
+0042C0D5    3D 940000C0     cmp     eax, C0000094          ; 是否位内存异常错误，不是的话，继续  
+0042C0DA    75 24           jnz     short 0042C100  
+0042C0DC    FF81 B8000000   inc     dword ptr [ecx+B8]  
+0042C0E2    33C0            xor     eax, eax  
+0042C0E4    2141 04         and     dword ptr [ecx+4], eax  
+0042C0E7    2141 08         and     dword ptr [ecx+8], eax  
+0042C0EA    2141 0C         and     dword ptr [ecx+C], eax  
+0042C0ED    2141 10         and     dword ptr [ecx+10], eax  
+0042C0F0    8161 14 F00FFFF>and     dword ptr [ecx+14], FFFF0FF0  
+0042C0F7    8161 18 00DC000>and     dword ptr [ecx+18], 0DC00  
+0042C0FE    EB 60           jmp     short 0042C160  
+0042C100    3D 04000080     cmp     eax, 80000004          ; 单步中段的话，程序就 over 了  
+0042C105    74 0C           je      short 0042C113  
+0042C107    3D 03000080     cmp     eax, 80000003  
+0042C10C    74 12           je      short 0042C120  
+0042C10E    6A 01           push    1  
+0042C110    58              pop     eax  
+0042C111    EB 4D           jmp     short 0042C160  
+0042C113    E8 01000000     call    0042C119  
+```
+
+直接
+
+```
+0042C163    8885 99000000   mov     byte ptr [ebp+99], al   ;F2,shift+F9,到这里  
+```
+
+下面的代码,是壳需要的 `IAT` 的提取...  
+
+```
+0042C16F    81E2 0000FFFF   and     edx, FFFF0000  
+0042C175    8BC4            mov     eax, esp  
+0042C177    33E4            xor     esp, esp  
+0042C179    8BE0            mov     esp, eax  
+0042C17B    66:813A 4D5A    cmp     word ptr [edx], 5A4D    ; PE  
+0042C180    74 08           je      short 0042C18A  
+0042C182    81C2 0000FFFF   add     edx, FFFF0000  
+0042C188  ^ EB F1           jmp     short 0042C17B  
+```
+
+
+
+```text
+0042C18A    8B42 3C         mov     eax, dword ptr [edx+3C]
+
+0042C18D    3D 00020000     cmp     eax, 200
+
+0042C192  ^ 77 E7          ja      short 0042C17B
+
+0042C194    813C10 50450000 cmp     dword ptr [eax+edx], 4550
+
+0042C19B  ^ 75 DE          jnz     short 0042C17B
+
+0042C19D    8B4410 78       mov     eax, dword ptr [eax+edx+78]     ; 输出表 rva=eax
+
+0042C1A1    8B5C10 1C       mov     ebx, dword ptr [eax+edx+1C]     ; 函数个数
+
+0042C1A5    53              push    ebx
+
+0042C1A6    8B5C10 24       mov     ebx, dword ptr [eax+edx+24]     ; 输出序列号数组
+
+0042C1AA    8B7410 20       mov     esi, dword ptr [eax+edx+20]     ; 函数名字指针地址
+
+0042C1AE    8B4C10 18       mov     ecx, dword ptr [eax+edx+18]     ; 函数个数
+
+0042C1B2    8B4410 0C       mov     eax, dword ptr [eax+edx+C]      ; 函数真实名称
+
+0042C1B6    03C2            add     eax, edx
+
+0042C1B8    8B00            mov     eax, dword ptr [eax]
+
+0042C1BA    25 5F5F5F5F     and     eax, 5F5F5F5F
+
+0042C1BF    3D 4B45524E     cmp     eax, 4E52454B                   ; 判断是否 kernel
+
+0042C1C4    74 07           je      short 0042C1CD
+
+0042C1C6    68 EBFE0000     push    0FEEB
+
+0042C1CB    FFE4            jmp     esp
+
+0042C1CD    8D7416 FC       lea     esi, dword ptr [esi+edx-4]
+
+0042C1D1    8D5C13 FE       lea     ebx, dword ptr [ebx+edx-2]
+
+0042C1D5    6A 0D           push    0D
+
+0042C1D7    5F              pop     edi
+
+0042C1D8    83C6 04         add     esi, 4
+
+0042C1DB    43              inc     ebx
+
+0042C1DC    43              inc     ebx
+
+0042C1DD    49              dec     ecx
+
+0042C1DE  ^ 7C E6          jl      short 0042C1C6
+
+0042C1E0    8B06            mov     eax, dword ptr [esi]
+
+0042C1E2    03C2            add     eax, edx
+
+0042C1E4    8138 4C6F6164   cmp     dword ptr [eax], 64616F4C       ; 判断是否壳自己要的函数
+
+0042C1EA    75 3A           jnz     short 0042C226
+
+0042C1EC    8178 04 4C69627>cmp     dword ptr [eax+4], 7262694C
+
+0042C1F3    75 31           jnz     short 0042C226
+
+0042C1F5    8178 08 6172794>cmp     dword ptr [eax+8], 41797261
+
+0042C1FC    75 28           jnz     short 0042C226
+
+0042C1FE    68 C3030000     push    3C3
+
+0042C203    58              pop     eax
+
+0042C204    58              pop     eax
+
+0042C205    50              push    eax
+
+0042C206    83EC 04         sub     esp, 4
+
+0042C209    53              push    ebx
+
+0042C20A    03C2            add     eax, edx
+
+0042C20C    0FB71B          movzx   ebx, word ptr [ebx]
+
+0042C20F    8B1C98          mov     ebx, dword ptr [eax+ebx*4]
+
+0042C212    03DA            add     ebx, edx
+
+0042C214    8B4424 04       mov     eax, dword ptr [esp+4]
+
+0042C218    891C28          mov     dword ptr [eax+ebp], ebx        ; 这里到 VirtualProtectEx，结束
+
+0042C21B    5B              pop     ebx
+
+0042C21C    58              pop     eax
+
+0042C21D    4F              dec     edi
+
+0042C21E  ^ 75 B8          jnz     short 0042C1D8
+
+0042C220    0F84 E5010000  je      0042C40B
+
+0042C226    8138 45786974   cmp     dword ptr [eax], 74697845
+
+0042C22C    75 19           jnz     short 0042C247
+
+0042C22E    8178 04 50726F6>cmp     dword ptr [eax+4], 636F7250
+
+0042C235    75 10           jnz     short 0042C247
+
+0042C237    8178 08 6573730>cmp     dword ptr [eax+8], 737365
+
+0042C23E    75 07           jnz     short 0042C247
+
+0042C240    68 C7030000     push    3C7
+
+0042C245  ^ EB BC          jmp     short 0042C203
+
+0042C247    8138 56697274   cmp     dword ptr [eax], 74726956
+
+0042C24D    75 1F           jnz     short 0042C26E
+
+0042C24F    8178 04 75616C4>cmp     dword ptr [eax+4], 416C6175
+
+0042C256    75 16           jnz     short 0042C26E
+
+0042C258    8178 08 6C6C6F6>cmp     dword ptr [eax+8], 636F6C6C
+
+0042C25F    75 0D           jnz     short 0042C26E
+
+0042C261    8078 0C 00      cmp     byte ptr [eax+C], 0
+
+0042C265    75 07           jnz     short 0042C26E
+
+0042C267    68 CB030000     push    3CB
+
+0042C26C  ^ EB 95          jmp     short 0042C203
+
+0042C26E    8138 56697274   cmp     dword ptr [eax], 74726956
+
+0042C274    75 1C           jnz     short 0042C292
+
+0042C276    8178 04 75616C4>cmp     dword ptr [eax+4], 466C6175
+
+0042C27D    75 13           jnz     short 0042C292
+
+0042C27F    8178 08 7265650>cmp     dword ptr [eax+8], 656572
+
+0042C286    75 0A           jnz     short 0042C292
+
+0042C288    68 CF030000     push    3CF
+
+0042C28D  ^ E9 71FFFFFF    jmp     0042C203
+
+0042C292    8138 43726561   cmp     dword ptr [eax], 61657243
+
+0042C298    75 1C           jnz     short 0042C2B6
+
+0042C29A    8178 04 74654D7>cmp     dword ptr [eax+4], 754D6574
+
+0042C2A1    75 13           jnz     short 0042C2B6
+
+0042C2A3    8178 08 7465784>cmp     dword ptr [eax+8], 41786574
+
+0042C2AA    75 0A           jnz     short 0042C2B6
+
+0042C2AC    68 D3030000     push    3D3
+
+0042C2B1  ^ E9 4DFFFFFF    jmp     0042C203
+
+0042C2B6    8138 4F70656E   cmp     dword ptr [eax], 6E65704F
+
+0042C2BC    75 1C           jnz     short 0042C2DA
+
+0042C2BE    8178 04 50726F6>cmp     dword ptr [eax+4], 636F7250
+
+0042C2C5    75 13           jnz     short 0042C2DA
+
+0042C2C7    8178 08 6573730>cmp     dword ptr [eax+8], 737365
+
+0042C2CE    75 0A           jnz     short 0042C2DA
+
+0042C2D0    68 DB030000     push    3DB
+
+0042C2D5  ^ E9 29FFFFFF    jmp     0042C203
+
+0042C2DA    8138 47657443   cmp     dword ptr [eax], 43746547
+
+0042C2E0    75 2E           jnz     short 0042C310
+
+0042C2E2    8178 04 7572726>cmp     dword ptr [eax+4], 65727275
+
+0042C2E9    75 25           jnz     short 0042C310
+
+0042C2EB    8178 08 6E74507>cmp     dword ptr [eax+8], 7250746E
+
+0042C2F2    75 1C           jnz     short 0042C310
+
+0042C2F4    8178 0C 6F63657>cmp     dword ptr [eax+C], 7365636F
+
+0042C2FB    75 13           jnz     short 0042C310
+
+0042C2FD    8178 10 7349640>cmp     dword ptr [eax+10], 644973
+
+0042C304    75 0A           jnz     short 0042C310
+
+0042C306    68 D7030000     push    3D7
+
+0042C30B  ^ E9 F3FEFFFF    jmp     0042C203
+
+0042C310    8138 56697274   cmp     dword ptr [eax], 74726956
+
+0042C316    75 25           jnz     short 0042C33D
+
+0042C318    8178 04 75616C5>cmp     dword ptr [eax+4], 506C6175
+
+0042C31F    75 1C           jnz     short 0042C33D
+
+0042C321    8178 08 726F746>cmp     dword ptr [eax+8], 65746F72
+
+0042C328    75 13           jnz     short 0042C33D
+
+0042C32A    8178 0C 6374457>cmp     dword ptr [eax+C], 78457463
+
+0042C331    75 0A           jnz     short 0042C33D
+
+0042C333    68 DF030000     push    3DF
+
+0042C338  ^ E9 C6FEFFFF    jmp     0042C203
+
+0042C33D    8138 43726561   cmp     dword ptr [eax], 61657243
+
+0042C343    75 1C           jnz     short 0042C361
+
+0042C345    8178 04 7465466>cmp     dword ptr [eax+4], 69466574
+
+0042C34C    75 13           jnz     short 0042C361
+
+0042C34E    8178 08 6C65410>cmp     dword ptr [eax+8], 0041656C
+
+0042C355    75 0A           jnz     short 0042C361
+
+0042C357    68 EB030000     push    3EB
+
+0042C35C  ^ E9 A2FEFFFF    jmp     0042C203
+
+0042C361    8138 436C6F73   cmp     dword ptr [eax], 736F6C43
+
+0042C367    75 1C           jnz     short 0042C385
+
+0042C369    8178 04 6548616>cmp     dword ptr [eax+4], 6E614865
+
+0042C370    75 13           jnz     short 0042C385
+
+0042C372    8178 08 646C650>cmp     dword ptr [eax+8], 656C64
+
+0042C379    75 0A           jnz     short 0042C385
+
+0042C37B    68 E3030000     push    3E3
+
+0042C380  ^ E9 7EFEFFFF    jmp     0042C203
+
+0042C385    8138 52656164   cmp     dword ptr [eax], 64616552
+
+0042C38B    75 19           jnz     short 0042C3A6
+
+0042C38D    8178 04 46696C6>cmp     dword ptr [eax+4], 656C6946
+
+0042C394    75 10           jnz     short 0042C3A6
+
+0042C396    8078 08 00      cmp     byte ptr [eax+8], 0
+```
+
+
+
+```
+0042C39A    75 0A           jnz     short 0042C3A6  
+0042C39C    68 E7030000     push    3E7  
+0042C3A1  ^ E9 5DFEFFFF     jmp     0042C203  
+0042C3A6    8138 4765744M   cmp     dword ptr [eax], 4D746547  
+0042C3AC    75 2D           jnz     short 0042C3DB  
+0042C3AE    8178 04 6F64756>cmp     dword ptr [eax+4], 6C75646F  
+0042C3B5    75 24           jnz     short 0042C3DB  
+0042C3B7    8178 08 6546696>cmp     dword ptr [eax+8], 6C694665  
+0042C3BE    75 1B           jnz     short 0042C3DB  
+0042C3C0    8178 0C 654E616>cmp     dword ptr [eax+C], 6D614E65  
+0042C3C7    75 12           jnz     short 0042C3DB  
+0042C3C9    66:8178 10 6541 cmp     word ptr [eax+10], 4165  
+0042C3CF    75 0A           jnz     short 0042C3DB  
+0042C3D1    68 EF030000     push    3EF  
+0042C3D6  ^ E9 28FEFFFF     jmp     0042C203  
+0042C3DB    8138 47657450   cmp     dword ptr [eax], 50746547  
+0042C3E1  ^ 0F85 F1FDFFFF   jnz     0042C1D8  
+0042C3E7    8178 04 726F634>cmp     dword ptr [eax+4], 41636F72  
+0042C3EE  ^ 0F85 E4FDFFFF   jnz     0042C1D8  
+0042C3F4    8178 08 6464726>cmp     dword ptr [eax+8], 65726464  
+0042C3FB  ^ 0F85 D7FDFFFF   jnz     0042C1D8  
+0042C401    68 BF030000     push    3BF  
+0042C406  ^ E9 F8FDFFFF     jmp     0042C203  
+```
+
+内存中提取的:
+
+```
+0042C43A  00000246  F..  
+0042C43E  7C80AE30  0|    `kernel32.GetProcAddress`  
+0042C442  7C801D7B  {|   `kernel32.LoadLibraryA`  
+0042C446  7C81CAFA      `kernel32.ExitProcess`  
+0042C44A  7C809AE1  |    `kernel32.VirtualAlloc`  
+0042C44E  7C809B74  t|   `kernel32.VirtualFree`  
+0042C452  7C80E9CF  祥|   `kernel32.CreateMutexA`  
+0042C456  7C8099B0  |    `kernel32.GetCurrentProcessId`  
+0042C45A  7C8309D1  ?     `kernel32.OpenProcess`  
+0042C45E  7C801A61  a|   `kernel32.VirtualProtectEx`  
+0042C462  7C809BD7  |    `kernel32.CloseHandle`  
+0042C466  7C801812  |   `kernel32.ReadFile`  
+0042C46A  7C801A28  (|   `kernel32.CreateFileA`  
+0042C46E  7C80B55F  _|    `kernel32.GetModuleFileNameA`  
+0042C472  75E40B06    
+```
+
+提取的这几个函数..跟踪后会发现..都是它用到的
+
+接下来,也是 `seh`..
+
+```
+0042C693    2BC9            sub     ecx, ecx                       ; 这个出现，有又是 seh  
+0042C699    64:FF31         push    dword ptr fs:[ecx]  
+0042C6A0    64:8921         mov     dword ptr fs:[ecx], esp  
+0042C6A3    41              inc     ecx                             ; seh。。42C68A  
+0042C6A4    49              dec     ecx  
+0042C6A8    8DC0            lea     eax, eax                         ; 非法使用寄存器..到这里了  
+0042C68A    8B6424 08       mov     esp, dword ptr [esp+8]          ; F2,shift+f9  
+```
+
+这个没什么,也是让程序继续下去的手段..
+
+```
+0042C7E2    AD              lods    dword ptr [esi]  
+0042C7E3    50              push    eax  
+0042C7E4    8366 FC 00      and     dword ptr [esi-4], 0  
+0042C7E8  ^ E2 F8           loopd   short 0042C7E2                  ; 把原来得到的函数清零，难道是 IAT，加密？  
+```
+
+这个是把,原理得到 `IAT`,消除..其实就是转到其他地方..没什么意义
+
+```
+0042C81D    58              pop     eax                             ; kernel32.CreateFileA  
+0042C81E    AB              stos    dword ptr es:[edi]  
+0042C81F    83EF 08         sub     edi, 8  
+0042C822  ^ E2 F9           loopd   short 0042C81D                  ; 又把 IAT，放入，42C46e 中  
+0042C92A    8BC5            mov     eax, ebp  
+0042C92C    2B85 3D1C0000   sub     eax, dword ptr [ebp+1C3D]  
+0042C932    83E8 7F         sub     eax, 7F  
+0042C935    8985 411C0000   mov     dword ptr [ebp+1C41], eax  
+0042C93B    8D7D 81         lea     edi, dword ptr [ebp-7F]  
+0042C93E    57              push    edi  
+0042C93F    BB 00040000     mov     ebx, 400  
+0042C944    8D77 08         lea     esi, dword ptr [edi+8]  
+0042C947    68 04010000     push    104  
+0042C94C    57              push    edi  
+0042C94D    50              push    eax  
+0042C94E    FF95 EF030000   call    dword ptr [ebp+3EF]           ; GetModuleFileNameA  
+0042C954    56              push    esi  
+0042C955    33C0            xor     eax, eax  
+0042C957    8D48 FF         lea     ecx, dword ptr [eax-1]  
+0042C95A    FC              cld  
+0042C95B    F2:AE           repne   scas byte ptr es:[edi]  
+0042C95D    F7D1            not     ecx  
+0042C95F    8D51 FF         lea     edx, dword ptr [ecx-1]  
+0042C962    FD              std  
+0042C963    4F              dec     edi  
+0042C964    B0 5C           mov     al, 5C  
+0042C966    F2:AE           repne   scas byte ptr es:[edi]  
+0042C968    FC              cld  
+0042C969    47              inc     edi  
+0042C96A    85C9            test    ecx, ecx  
+0042C96C    74 02           je      short 0042C970  
+0042C96E    41              inc     ecx  
+0042C96F    47              inc     edi  
+0042C970    2BD1            sub     edx, ecx  
+0042C972    8BCA            mov     ecx, edx  
+0042C974    83E1 1F         and     ecx, 1F  
+0042C977    8BF7            mov     esi, edi  
+0042C979    8DBD 3D1D0000   lea     edi, dword ptr [ebp+1D3D]  
+0042C97F    F3:A4           rep     movs byte ptr es:[edi], byte ptr>  
+0042C981    5E              pop     esi  
+0042C982    5F              pop     edi  
+0042C983    6A 00           push    0  
+0042C985    68 80000000     push    80  
+0042C98A    6A 03           push    3  
+0042C98C    6A 00           push    0  
+0042C98E    6A 01           push    1  
+0042C990    68 00000080     push    80000000  
+0042C995    57              push    edi  
+0042C996    FF95 EB030000   call    dword ptr [ebp+3EB]           ; CreateFileA  
+0042C99C    50              push    eax  
+0042C99D    6A 00           push    0  
+0042C99F    57              push    edi  
+0042C9A0    53              push    ebx  
+0042C9A1    56              push    esi  
+0042C9A2    50              push    eax  
+0042C9A3    FF95 E7030000   call    dword ptr [ebp+3E7]           ; ReadFile  
+0042C9A9    FF95 E3030000   call    dword ptr [ebp+3E3]           ; CloseHandle  
+```
+
+这里有设置,`seh`
+
+```
+0042CA85    50              push    eax                             ; wuliao11.0042CA90  
+0042CA86    33C0            xor     eax, eax  
+0042CA88    64:FF30         push    dword ptr fs:[eax]  
+0042CA8B    64:8920         mov     dword ptr fs:[eax], esp         ; 又设置，42CA90  
+0042CAA1    66:F7F3         div     bx                                ;除零异常  
+```
+
+然后直接在 `42C9A0` 下端点
+
+然后跟到这里
+
+```
+0042CAE4    F8              clc                                     ;stc..改成  
+0042CAE5    0F83 1A010000   jnb     0042CC05                          ; 这个地方不能跳;跳的话,直接程序 out..还送一个框框  
+```
+
+跟踪到这.应该调试用.自己写了个脚本..不过郁闷的是..这么短的脚本第一次写,竟然用了很长时间,苍天啊..为了下面的跟踪用
+
+```
+/*简单脚本*/
+
+BPHWS 42C07A,"x"
+esto
+bphwc
+bp 42C220
+esto
+bc 42c220
+BPHWS 42ca3D,"x"
+esto
+BPHWC
+mov [42CAE4],#f9#
+bphws 42cae4,"x"
+esto
+bphwc
+ret
+/*别鄙视*/
+```
+
+接着跟着会到一个 `int3`,断点
+
+到这里又有个 `seh`...`42cb03`..
+
+然后遇到 `int3` 断点
+
+```
+0042CB27    CC              int3   ;真这个  
+```
+
+有很多 `seh`...
+
+```
+0042CC1B    8BDD            mov     ebx, ebp                         ; wuliao11.0042C07F..到这里就 OK 了  
+```
+
+然后是些解码..最后到这里
+
+```
+0042CDC5    E8 06000000     call    0042CDD0  
+0042CDCA    8B6424 08       mov     esp, dword ptr [esp+8]           ;这个模式是我们第一个见到的,这里 F4  
+0042CDCE    EB 0D           jmp     short 0042CDDD  
+0042CDD0    33C9            xor     ecx, ecx  
+0042CDD2    64:FF31         push    dword ptr fs:[ecx]  
+0042CDD5    64:8921         mov     dword ptr fs:[ecx], esp  
+0042CDD8    F1              int1  
+0042CDD9    FF01            inc     dword ptr [ecx]  
+```
+
+然后的到这里..
+
+```
+0042CDEF    60              pushad  
+0042CDF0    E8 06000000     call    0042CDFB  
+0042CDF5    8B6424 08       mov     esp, dword ptr [esp+8]  
+0042CDF9    EB 1A           jmp     short 0042CE15  
+0042CDFB    64:67:FF36 0000 push    dword ptr fs:[0]  
+0042CE01    64:67:8926 0000 mov     dword ptr fs:[0], esp  
+0042CE07    9C              pushfd  
+0042CE08    810C24 00010000 or      dword ptr [esp], 100  
+0042CE0F    9D              popfd  
+0042CE10    F8              clc  
+```
+
+
+
+`0042CE11  ^ 73 DC` `jnb` `short 0042CDEF`
+
+栈一直出现,这个,不知道有没有用...
+
+`0012FF84   0042CC6B` `ASCII` `"xPkWZ8Hau3EdYMn9E8dMxxZu"..` 问题
+
+接下来跟踪没什么意义了
+
+直接..`bp GetProcAddress` 下断点
+
+```
+0042D49E    89BD 52D44000   mov     dword ptr [ebp+40D452], edi  
+0042D4A4    8D85 14BB4000   lea     eax, dword ptr [ebp+40BB14]  
+0042D4AA    FFB5 FBCA4000   push    dword ptr [ebp+40CAFB]  
+0042D4B0    0FB608          movzx   ecx, byte ptr [eax]  
+0042D4B3    FF0C24          dec     dword ptr [esp]  
+0042D4B6    7E 05           jle     short 0042D4BD  
+0042D4B8    40              inc     eax  
+0042D4B9    03C1            add     eax, ecx  
+0042D4BB   ^ EB F3          jmp     short 0042D4B0  
+0042D4BD    890C24          mov     dword ptr [esp], ecx  
+0042D4C0    FF85 FBCA4000   inc     dword ptr [ebp+40CAFB]  
+0042D4C6    83A5 FBCA4000 0>and     dword ptr [ebp+40CAFB], 0F  
+0042D4CD    8BBD 52D44000   mov     edi, dword ptr [ebp+40D452]  
+0042D4D3    8B85 5AD44000   mov     eax, dword ptr [ebp+40D45A]  
+0042D4D9    0385 4ED34000   add     eax, dword ptr [ebp+40D34E]  
+0042D4DF    8B8D 56D44000   mov     ecx, dword ptr [ebp+40D456]  
+0042D4E5    8908            mov     dword ptr [eax], ecx               ;这里就是加密..给  
+0042D4E7    58              pop     eax  
+0042D4E8    83C0 09         add     eax, 9  
+0042D4EB    0185 56D44000   add     dword ptr [ebp+40D456], eax  
+0042D4F1    EB 08           jmp     short 0042D4FB  
+0042D4F3    838D 52D44000 F>or      dword ptr [ebp+40D452], FFFFFFFF  
+0042D4FA    61              popad  
+0042D4FB    03BD 4ED34000   add     edi, dword ptr [ebp+40D34E]  
+0042D501    85DB            test    ebx, ebx  
+0042D503    0F84 C7000000   je      0042D5D0  
+0042D509    F7C3 00000080   test    ebx, 80000000  
+0042D50F    6A 00           push    0  
+0042D511    75 0F           jnz     short 0042D522  
+0042D513    8D5C13 02       lea     ebx, dword ptr [ebx+edx+2]  
+0042D517    803B 00         cmp     byte ptr [ebx], 0  
+0042D51A    0F84 93000000   je      0042D5B3  
+0042D520    EB 45           jmp     short 0042D567  
+0042D522    FF0424          inc     dword ptr [esp]  
+0042D525    66:85DB         test    bx, bx  
+0042D528    0F84 85000000   je      0042D5B3  
+0042D52E    8B85 4AD34000   mov     eax, dword ptr [ebp+40D34A]  
+0042D534    3B85 42D44000   cmp     eax, dword ptr [ebp+40D442]  
+0042D53A    75 2B           jnz     short 0042D567  
+0042D53C    81E3 FFFFFF7F   and     ebx, 7FFFFFFF  
+0042D542    8BD3            mov     edx, ebx  
+0042D544    8D1495 FCFFFFFF lea     edx, dword ptr [edx*4-4]  
+0042D54B    8B9D 4AD34000   mov     ebx, dword ptr [ebp+40D34A]  
+0042D551    8B43 3C         mov     eax, dword ptr [ebx+3C]  
+0042D554    8B4418 78       mov     eax, dword ptr [eax+ebx+78]  
+0042D558    035C18 1C       add     ebx, dword ptr [eax+ebx+1C]  
+0042D55C    8B041A          mov     eax, dword ptr [edx+ebx]  
+0042D55F    0385 4AD34000   add     eax, dword ptr [ebp+40D34A]  
+0042D565    EB 13           jmp     short 0042D57A  
+0042D567    81E3 FFFFFF7F   and     ebx, 7FFFFFFF  
+0042D56D    53              push    ebx    
+0042D56E    FFB5 4AD34000   push    dword ptr [ebp+40D34A]  
+0042D574    FF95 E0BA4000   call    dword ptr [ebp+40BAE0]         ;这个是就是 GetProcAddresss  
+0042D57A    40              inc     eax                     ; user32.EndDialog  
+0042D57B    48              dec     eax  
+0042D57C    75 33           jnz     short 0042D5B1  
+0042D57E    58              pop     eax  
+0042D57F    F9              stc  
+0042D580   ^ 0F82 61FDFFFF jb      0042D2E7  
+0042D586    47              inc     edi  
+0042D587    44              inc     esp  
+0042D588    49              dec     ecx  
+0042D589    3332            xor     esi, dword ptr [edx]  
+0042D58B    2E:44           inc     esp  
+0042D58D    4C              dec     esp  
+0042D58E    4C              dec     esp  
+0042D58F    55              push    ebp  
+0042D590    53              push    ebx  
+0042D591    45              inc     ebp  
+0042D592    52              push    edx  
+0042D593    3332            xor     esi, dword ptr [edx]  
+0042D595    2E:44           inc     esp  
+0042D597    4C              dec     esp  
+0042D598    4C              dec     esp  
+0042D599    53              push    ebx  
+0042D59A    48              dec     eax  
+0042D59B    45              inc     ebp  
+0042D59C    4C              dec     esp  
+0042D59D    4C              dec     esp  
+0042D59E    3332            xor     esi, dword ptr [edx]  
+0042D5A0    2E:44           inc     esp  
+0042D5A2    4C              dec     esp  
+0042D5A3    4C              dec     esp  
+0042D5A4    4B              dec     ebx  
+0042D5A5    45              inc     ebp  
+0042D5A6    52              push    edx  
+0042D5A7    4E              dec     esi  
+0042D5A8    45              inc     ebp  
+0042D5A9    4C              dec     esp  
+0042D5AA    3332            xor     esi, dword ptr [edx]  
+0042D5AC    2E:44           inc     esp  
+0042D5AE    4C              dec     esp  
+0042D5AF    4C              dec     esp  
+0042D5B0    0289 07584874   add     cl, byte ptr [ecx+74485807]   ;这里没解开,实际是对 IAT,表消除记录;  
+0042D5B6    0D 40F86689     or      eax, 8966F840  
+0042D5BB    43              inc     ebx  
+0042D5BC    FE88 03433803   dec     byte ptr [eax+3384303]  
+0042D5C2   ^ 75 F9           jnz     short 0042D5BD  
+0042D5C4    8385 4ED34000 0>add     dword ptr [ebp+40D34E], 4  
+0042D5CB   ^ E9 BAFDFFFF    jmp     0042D38A  
+```
+
+`IAT` 修复..这里不知道该怎么办..哪位能给在下解答..感激不尽..虽然可以用插件修复
+
+`IAT` 之后,跟踪到这
+
+```
+0042D653    03C7            add     eax, edi  
+0042D655    0385 72D34000   add     eax, dword ptr [ebp+40D372]  
+0042D65B    50              push    eax  
+0042D65C    51              push    ecx  
+0042D65D    E8 13FAFFFF     call    0042D075  
+```
+
+进去
+
+```
+0042D075    60              pushad  
+0042D076    8B5C24 24       mov     ebx, dword ptr [esp+24]  
+0042D07A    83C3 10         add     ebx, 10  
+0042D07D    6A 04           push    4  
+0042D07F    68 00100000     push    1000  
+0042D084    53              push    ebx  
+0042D085    6A 00           push    0  
+0042D087    FF95 ECBA4000   call    dword ptr [ebp+40BAEC]         ; VritualAlloc  
+0042D08D    85C0            test    eax, eax                ; 3f0000  
+0042D08F    0F84 D6000000   je      0042D16B  
+0042D095    8BF8            mov     edi, eax  
+```
+
+也就是解码..代码长,但就没用..
+
+`bp VirtualFree`..
+
+然后再跟踪到
+
+```
+0042D68E    FF95 F8BA4000   call    dword ptr [ebp+40BAF8]  
+0042D694    8BD8            mov     ebx, eax  
+0042D696    50              push    eax  
+0042D697    6A 00           push    0  
+0042D699    68 FF0F1F00     push    1F0FFF  
+0042D69E    FF95 FCBA4000   call    dword ptr [ebp+40BAFC]         ; OpenProcess  
+0042D6A4    40              inc     eax  
+0042D6A5    48              dec     eax  
+0042D6A6    74 2B           je      short 0042D6D3  
+0042D6A8    6A 00           push    0  
+0042D6AA    54              push    esp  
+0042D6AB    6A 04           push    4  
+0042D6AD    68 00100000     push    1000  
+0042D6B2    FFB5 62D34000   push    dword ptr [ebp+40D362]         ; 400000  
+0042D6B8    50              push    eax  
+0042D6B9    FF95 00BB4000   call    dword ptr [ebp+40BB00]         ; VitualProtectEx  
+```
+
+这一段是对 `4`,应该是 `readonly`..那么离 `oep` 不远了..^ ^
+
+然后遇到几个异常..
+
+最后到
+
+```
+0042D7AC    8B6424 08       mov     esp, dword ptr [esp+8]     ;这里应很熟悉了..第一次,也是这个 F4  
+0042D7B0    EB 0D           jmp     short 0042D7BF  
+0042D7B2    2BC9            sub     ecx, ecx                
+0042D7B4    64:FF31         push    dword ptr fs:[ecx]  
+0042D7B7    64:8921         mov     dword ptr fs:[ecx], esp  
+0042D7BA    F1              int1  
+0042D7BB    FF01            inc     dword ptr [ecx]  
+0042D7BD   ^ EB E8           jmp     short 0042D7A7  
+```
+
+
+
+```
+0042D7D5    2BC1            sub     eax, ecx                  ;这个很熟悉了吧..
+0042D7D7    60              pushad
+0042D7D8    E8 06000000     call    0042D7E3
+0042D7DD    8B6424 08       mov     esp, dword ptr [esp+8]
+0042D7E1    EB 1A           jmp     short 0042D7FD
+0042D7E3    64:67:FF36 0000 push    dword ptr fs:[0]
+0042D7E9    64:67:8926 0000 mov     dword ptr fs:[0], esp
+0042D7EF    9C              pushfd
+0042D7F0    810C24 00010000 or      dword ptr [esp], 100
+0042D7F7    9D              popfd
+0042D7F8    F8              clc
+0042D7F9  ^ 73 DC           jnb     short 0042D7D7
+0042D8B3    F8              clc
+0042D8B4    72 7D           jb      short 0042D933
+0042D8B6    51              push    ecx
+0042D8B7    8BCB            mov     ecx, ebx
+0042D8B9    E3 03           jecxz   short 0042D8BE
+0042D8BB    59              pop     ecx
+0042D8BC  ^ EB AD           jmp     short 0042D86B
+0042D8BE    59              pop     ecx                   ;解码,没什么意义直接 F4
+0042D791    F3:AA           rep     stos byte ptr es:[edi]
+0042D793    66:AB           stos    word ptr es:[edi]
+0042D795    EB 02           jmp     short 0042D799      这里,再 F7,几步直接到达,oep
+0042D799    61              popad
+0042D79A  - FF6424 D0       jmp     dword ptr [esp-30]      ; wuliao11.004017B0..到 oep 了
+```
+
+总结，只要过前面一段 `seh`，也就是那个脚本。
+
+然后在 `GetProcAddress` 下断点，然后在 `code` 下断点，就行了。
 
 上传的附件
-| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) || wuliao1111.rar  
- |
+
+| ![](img/0623e01110d741fd20f66acbc8ec6f9d.jpg) | `wuliao1111.rar` |
+| :--- | :--- |
