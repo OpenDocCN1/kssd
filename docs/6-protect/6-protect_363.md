@@ -163,9 +163,7 @@ esto
 004091ED    6A 00           push    0  
 004091EF    FF15 C2304000   call    dword ptr \[<&KERNEL32.ExitProces>; KERNEL32.ExitProcess      Game Over!  
 004091F5    C3              retn  
-```
 
-```
 004033C7    FF20            jmp     dword ptr \[eax\]                   ;这里 jmp 到 SetUnHandledExceptionFilter  
 ```
 
@@ -425,20 +423,14 @@ Script:
 ```
 asm 00406286,"mov dword ptr [4052F9],1"
 asm 004063E7,"push 0C0123333"
-```
 
-```
 00750000    58              pop     eax  
 00750001    3D 5FAF2F9F     cmp     eax, 9F2FAF5F  
 00750006  - 75 FE           jnz     short 00750006  
 00750008    E8 11000000     call    0075001E  
-```
 
-```
 007513D2    FF10            call    dword ptr \[eax\]                                ; USER32.GetForegroundWindow  
-```
 
-```
 0075145D    FF10            call    dword ptr \[eax\]                                ; USER32.GetWindowThreadProcessId  
 ```
 
@@ -487,9 +479,7 @@ asm 004063E7,"push 0C0123333"
 0006FF70   00003A53  |Size = 3A53 (14931.)  
 0006FF74   00000001  |NewProtect = PAGE\_NOACCESS  
 0006FF78   0006FF7C  \\pOldProtect = 0006FF7C  
-```
 
-```
 00401014    8B0424          mov     eax, dword ptr \[esp\]             //这里放的是某个标志，在先前的代码里赋值为 0x1956DA59  
 00401017    3D 59DA5619     cmp     eax, 1956DA59                    //比较标志，如果不相等则跳去执行 ExitProcess，Game Over!  
 0040101C    75 0A           jnz     short 00401028  
@@ -500,9 +490,7 @@ asm 004063E7,"push 0C0123333"
 0040102A    E8 D1EF3600     call    00770000                         ; ExitProcess  如果标志比较没有通过就跳到这里自杀  
 0040102F    90              nop  
 00401030    90              nop  
-```
 
-```
 00401040    55              push    ebp                               //消息循环处理例程入口  
 00401041    89E5            mov     ebp, esp  
 00401043    53              push    ebx  
@@ -563,9 +551,7 @@ asm 004063E7,"push 0C0123333"
 004010D9    5B              pop     ebx  
 004010DA    C9              leave  
 004010DB    C2 1000         retn    10  
-```
 
-```
 004010DE    90              nop  
 004010DF    90              nop  
 004010E0    B8 F5204000     mov     eax, 004020F5                    ; jesus loves you, but only in a purely platonic way. i'm sure.  
@@ -624,9 +610,7 @@ asm 004063E7,"push 0C0123333"
 0040118C    C3              retn  
 0040118D    90              nop  
 0040118E    90              nop  
-```
 
-```
 0040119E    90              nop  
 0040119F    90              nop  
 004011A0  - E9 5BEE3C00     jmp     007D0000                         ; GetDlgItemTextA  
@@ -634,9 +618,7 @@ asm 004063E7,"push 0C0123333"
 004011A6  - E9 55EE3D00     jmp     007E0000                         ; MessageBoxA  
 004011AB    90              nop  
 004011AC    C3              retn  
-```
 
-```
 E930EFFFFFE92BEFFFFF9090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909079214000  
 ```
 
@@ -791,16 +773,12 @@ ret
 0006FBA0   01100077  
 0006FBA4   00000004  
 0006FBA8   00000005  
-```
 
-```
 0006FC9C   004010A2  返回到 Bustme4.004010A2 来自 Bustme4.004010E0  
 0006FCA0   00000111  
 0006FCA4   002D0454  
 0006FCA8   0046AAD0  
-```
 
-```
 > 代码:
 > 
 > * * *
@@ -810,9 +788,7 @@ ret
 > * * *
 > 
 > 
-> ```
-
-```
+> 
 > 代码:
 > 
 > * * *
@@ -822,9 +798,7 @@ ret
 > * * *
 > 
 > 
-> ```
-
-```
+> 
 4dd466d0e1e0cc123afbe504da2462ca
 ```
 
