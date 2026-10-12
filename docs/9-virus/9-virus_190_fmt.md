@@ -1,0 +1,314 @@
+
+# 一个捆绑壳病毒的分析
+
+> 原文：[`www.pediy.com/kssd/pediy12/139079.html`](https://www.pediy.com/kssd/pediy12/139079.html)
+
+作者: Netsd
+
+时间: 2011-08-19,21:45:00
+
+链接: `http://bbs.pediy.com/showthread.php?p=992928`
+
+首先上 `FFI` 看看 `PE` 的信息，发现貌似加了 `UPX` 的壳。
+
+![](img/5ab0b92d8e70683b95f69d6ab4fc334e.jpg)
+
+上 `ESP` 定律，脱之，修复下导入表。
+
+重新载入 `OD` 后，来到如下位置
+
+```
+代码:
+```
+
+
+
+```
+004A9CD4  >/$  55                   push ebp
+004A9CD5  |.  8BEC                  mov ebp,esp
+004A9CD7  |.  83C4 E0               add esp,-20
+004A9CDA  |.  53                   push ebx
+004A9CDB  |.  56                   push esi
+004A9CDC  |.  57                   push edi
+004A9CDD  |.  33C0                 xor eax,eax
+004A9CDF  |.  8945 E4              mov dword ptr ss:\[ebp-1C\],eax
+004A9CE2  |.  8945 E0              mov dword ptr ss:\[ebp-20\],eax
+004A9CE5  |.  8945 EC              mov dword ptr ss:\[ebp-14\],eax
+004A9CE8  |.  8945 E8              mov dword ptr ss:\[ebp-18\],eax
+004A9CEB  |.  B8 503F4A00          mov eax,Unpack\_.004A3F50              ;  V
+004A9CF0  |.  E8 2F05F6FF         call Unpack\_.0040A224                ;  初始化代码，申请内存等等的操作
+004A9CF5  |.  33C0                 xor eax,eax
+004A9CF7  |.  55                   push ebp
+004A9CF8  |.  68 C79E4A00         push Unpack\_.004A9EC7
+004A9CFD  |.  64:FF30             push dword ptr fs:\[eax\]
+004A9D00  |.  64:8920             mov dword ptr fs:\[eax\],esp
+004A9D03  |.  B2 01               mov dl,1
+004A9D05  |.  B8 E49E4A00         mov eax,Unpack\_.004A9EE4             ;  yslvcx.0
+004A9D0A  |.  E8 F5FCF6FF         call Unpack\_.00419A04                ;  判断 yslvcx.0 是否存在
+004A9D0F  |.  84C0                 test al,al
+004A9D11  |.  75 07               jnz short Unpack\_.004A9D1A
+004A9D13  |.  33C0                 xor eax,eax
+004A9D15  |.  E8 D6C9F5FF         call Unpack\_.004066F0                ;  如果文件不存在，这个 call 里面绕一圈，就退出了
+004A9D1A  |>  33C0                 xor eax,eax
+004A9D1C  |.  55                   push ebp
+004A9D1D  |.  68 9B9E4A00         push Unpack\_.004A9E9B
+004A9D22  |.  64:FF30             push dword ptr fs:\[eax\]
+004A9D25  |.  64:8920             mov dword ptr fs:\[eax\],esp
+004A9D28  |.  BB 01000000         mov ebx,1
+004A9D2D  |.  B2 01               mov dl,1
+004A9D2F  |.  A1 38FA4200         mov eax,dword ptr ds:\[42FA38\]
+004A9D34  |.  E8 1BB1F5FF         call Unpack\_.00404E54
+004A9D39  |.  A3 80424B00         mov dword ptr ds:\[4B4280\],eax
+004A9D3E  |.  B2 01               mov dl,1
+004A9D40  |.  A1 38FA4200         mov eax,dword ptr ds:\[42FA38\]
+004A9D45  |.  E8 0AB1F5FF         call Unpack\_.00404E54
+004A9D4A  |.  A3 84424B00         mov dword ptr ds:\[4B4284\],eax
+004A9D4F  |.  BA E49E4A00         mov edx,Unpack\_.004A9EE4             ;  yslvcx.0
+004A9D54  |.  A1 80424B00         mov eax,dword ptr ds:\[4B4280\]
+004A9D59  |.  E8 0A0FF9FF         call Unpack\_.0043AC68                ;  读取文件内容
+004A9D5E  |.  B8 80424B00         mov eax,Unpack\_.004B4280
+004A9D63  |.  E8 ECA0FFFF         call Unpack\_.004A3E54                ;  进行解密的函数
+004A9D68  |.  EB 5D               jmp short Unpack\_.004A9DC7
+004A9D6A  |>  8D55 E8            /lea edx,dword ptr ss:\[ebp-18\]
+004A9D6D  |.  8BC3               |mov eax,ebx
+004A9D6F  |.  E8 E8F6F6FF        |call Unpack\_.0041945C
+004A9D74  |.  8B4D E8            |mov ecx,dword ptr ss:\[ebp-18\]
+004A9D77  |.  8D45 EC            |lea eax,dword ptr ss:\[ebp-14\]
+004A9D7A  |.  BA 049F4A00        |mov edx,Unpack\_.004A9F04             ;  yslvcx.
+004A9D7F  |.  E8 5CD6F5FF        |call Unpack\_.004073E0
+004A9D84  |.  8B55 EC            |mov edx,dword ptr ss:\[ebp-14\]
+004A9D87  |.  A1 84424B00        |mov eax,dword ptr ds:\[4B4284\]
+004A9D8C  |.  E8 D70EF9FF        |call Unpack\_.0043AC68               ;  读取 yslvcx.1
+004A9D91  |.  B8 84424B00        |mov eax,Unpack\_.004B4284
+004A9D96  |.  E8 B9A0FFFF        |call Unpack\_.004A3E54               ;  解密 yslvcx.1
+004A9D9B  |.  66:B9 0200         |mov cx,2
+004A9D9F  |.  33D2               |xor edx,edx
+004A9DA1  |.  A1 80424B00        |mov eax,dword ptr ds:\[4B4280\]
+004A9DA6  |.  8B30               |mov esi,dword ptr ds:\[eax\]
+004A9DA8  |.  FF56 14            |call dword ptr ds:\[esi+14\]
+004A9DAB  |.  A1 84424B00        |mov eax,dword ptr ds:\[4B4284\]
+004A9DB0  |.  8B10               |mov edx,dword ptr ds:\[eax\]
+004A9DB2  |.  FF12               |call dword ptr ds:\[edx\]
+004A9DB4  |.  52                 |push edx
+004A9DB5  |.  50                 |push eax
+004A9DB6  |.  8B15 84424B00      |mov edx,dword ptr ds:\[4B4284\]
+004A9DBC  |.  A1 80424B00        |mov eax,dword ptr ds:\[4B4280\]
+004A9DC1  |.  E8 BE09F9FF        |call Unpack\_.0043A784
+004A9DC6  |.  43                 |inc ebx
+004A9DC7  |>  8D55 E0             lea edx,dword ptr ss:\[ebp-20\]
+004A9DCA  |.  8BC3               |mov eax,ebx
+004A9DCC  |.  E8 8BF6F6FF        |call Unpack\_.0041945C
+004A9DD1  |.  8B4D E0            |mov ecx,dword ptr ss:\[ebp-20\]
+004A9DD4  |.  8D45 E4            |lea eax,dword ptr ss:\[ebp-1C\]
+004A9DD7  |.  BA 049F4A00        |mov edx,Unpack\_.004A9F04             ;  yslvcx.
+004A9DDC  |.  E8 FFD5F5FF        |call Unpack\_.004073E0
+004A9DE1  |.  8B45 E4            |mov eax,dword ptr ss:\[ebp-1C\]
+004A9DE4  |.  B2 01              |mov dl,1
+004A9DE6  |.  E8 19FCF6FF        |call Unpack\_.00419A04               ;  判断 yslvcx.1 是否存在
+004A9DEB  |.  84C0               |test al,al
+004A9DED  |.^ 0F85 77FFFFFF      \\jnz Unpack\_.004A9D6A               ;  跳转进行读取 yslvcx.1，并且解密
+004A9DF3  |.  6A 00             push 0
+004A9DF5  |.  6A 00             push 0
+004A9DF7  |.  A1 80424B00        mov eax,dword ptr ds:\[4B4280\]
+004A9DFC  |.  E8 8F06F9FF        call Unpack\_.0043A490
+004A9E01  |.  33C0               xor eax,eax
+004A9E03  |.  55                 push ebp
+004A9E04  |.  68 8A9E4A00        push Unpack\_.004A9E8A
+004A9E09  |.  64:FF30           push dword ptr fs:\[eax\]
+004A9E0C  |.  64:8920           mov dword ptr fs:\[eax\],esp
+004A9E0F  |.  A1 80424B00        mov eax,dword ptr ds:\[4B4280\]
+004A9E14  |.  8B10               mov edx,dword ptr ds:\[eax\]
+004A9E16  |.  FF12               call dword ptr ds:\[edx\]
+004A9E18  |.  50                 push eax
+004A9E19  |.  B8 7C424B00        mov eax,Unpack\_.004B427C
+004A9E1E  |.  B9 01000000        mov ecx,1
+004A9E23  |.  8B15 2C3E4A00      mov edx,dword ptr ds:\[4A3E2C\]         ;  Unpack\_.004A3E30
+004A9E29  |.  E8 72E3F5FF        call Unpack\_.004081A0
+004A9E2E  |.  83C4 04            add esp,4
+004A9E31  |.  A1 80424B00        mov eax,dword ptr ds:\[4B4280\]
+004A9E36  |.  8B10               mov edx,dword ptr ds:\[eax\]
+004A9E38  |.  FF12               call dword ptr ds:\[edx\]
+004A9E3A  |.  8BC8               mov ecx,eax
+004A9E3C  |.  8B15 7C424B00      mov edx,dword ptr ds:\[4B427C\]
+004A9E42  |.  A1 80424B00        mov eax,dword ptr ds:\[4B4280\]
+004A9E47  |.  E8 7808F9FF        call Unpack\_.0043A6C4
+004A9E4C  |.  68 88424B00        push Unpack\_.004B4288
+004A9E51  |.  A1 80424B00        mov eax,dword ptr ds:\[4B4280\]
+004A9E56  |.  8B10               mov edx,dword ptr ds:\[eax\]
+004A9E58  |.  FF12               call dword ptr ds:\[edx\]
+004A9E5A  |.  8BD0               mov edx,eax
+004A9E5C  |.  A1 7C424B00        mov eax,dword ptr ds:\[4B427C\]
+004A9E61  |.  33C9               xor ecx,ecx
+004A9E63  |.  E8 209BF9FF        call Unpack\_.00443988                ;  准备修改内存，启动捆绑的程序
+004A9E68  |.  33C0               xor eax,eax
+004A9E6A  |.  5A                 pop edx
+004A9E6B  |.  59                 pop ecx
+004A9E6C  |.  59                 pop ecx
+004A9E6D  |.  64:8910           mov dword ptr fs:\[eax\],edx
+004A9E70  |.  68 919E4A00        push Unpack\_.004A9E91
+004A9E75  |>  A1 80424B00        mov eax,dword ptr ds:\[4B4280\]
+004A9E7A  |.  E8 05B0F5FF        call Unpack\_.00404E84
+004A9E7F  |.  A1 84424B00        mov eax,dword ptr ds:\[4B4284\]
+004A9E84  |.  E8 FBAFF5FF        call Unpack\_.00404E84
+004A9E89  \\.  C3                 retn
+```
+
+
+
+上面整个病毒的主要流程。下面就分析它的解密部分
+
+`Bp ReadFile`下一个读文件的断点，可以来到如下位置：
+
+代码:
+
+```
+00419919    8D40 00                lea eax,dword ptr ds:[eax]
+0041991C    53                   push ebx
+0041991D    56                   push esi
+0041991E    57                   push edi
+0041991F    51                   push ecx
+00419920    8BF9                 mov edi,ecx
+00419922    8BF2                 mov esi,edx
+00419924    8BD8                 mov ebx,eax
+00419926    6A 00                push 0
+00419928    8D4424 04            lea eax,dword ptr ss:[esp+4]
+0041992C    50                   push eax
+0041992D    57                   push edi
+0041992E    56                   push esi
+0041992F    53                   push ebx
+00419930    E8 DB17FFFF          call <jmp.&kernel32.ReadFile>
+00419935    85C0                 test eax,eax
+00419937    75 07                jnz short Unpack\_.00419940
+00419939    C70424 FFFFFFFF       mov dword ptr ss:[esp],-1
+00419940    8B0424               mov eax,dword ptr ss:[esp]
+00419943    5A                   pop edx
+00419944    5F                   pop edi
+00419945    5E                   pop esi
+00419946    5B                   pop ebx
+```
+
+查看读取的内容：
+
+![](img/bc533ac0460b951be6eda272a8ec7b73.jpg)
+
+下内存访问断点，来到
+
+代码:
+
+```
+00404554    51                   push ecx
+00404555    45                   inc ebp
+00404556    40                   inc eax
+00404557    00D2                 add dl,dl
+00404559    45                   inc ebp
+0040455A    40                   inc eax
+0040455B    00D8                 add al,bl
+0040455D    45                   inc ebp
+0040455E    40                   inc eax
+0040455F    00DF                 add bh,bl
+00404561    45                   inc ebp
+00404562    40                   inc eax
+00404563    00EC                 add ah,ch
+00404565    45                   inc ebp
+00404566    40                   inc eax
+00404567    00F1                 add cl,dh
+00404569    45                   inc ebp
+0040456A    40                   inc eax
+0040456B    00FC                 add ah,bh
+0040456D    45                   inc ebp
+0040456E    40                   inc eax
+0040456F    0009                 add byte ptr ds:[ecx],cl
+00404571    46                   inc esi
+00404572    40                   inc eax
+00404573    001446               add byte ptr ds:[esi+eax*2],dl
+00404576    40                   inc eax
+00404577    0052 DF              add byte ptr ds:[edx-21],dl
+0040457A    288D 4401F88D        sub byte ptr ss:[ebp+8DF80144],cl
+00404580    4C                   dec esp
+00404581    0AF8                 or bh,al
+00404583    DF28                 fild qword ptr ds:[eax]
+00404585    51                   push ecx
+00404586    F7D9                 neg ecx
+00404588    83E2 F8              and edx,FFFFFFF8
+0040458B    8D4C0A 08            lea ecx,dword ptr ds:[edx+ecx+8]
+0040458F    5A                   pop edx
+00404590    DF2C01               fild qword ptr ds:[ecx+eax]                 ; 循环处理数据
+00404593    DF3C11               fistp qword ptr ds:[ecx+edx]
+00404596    83C1 08              add ecx,8
+00404599   ^ 7C F5              jl short Unpack\_.00404590
+0040459B    DF3A                 fistp qword ptr ds:[edx]
+0040459D    5A                   pop edx
+0040459E    DF3A                 fistp qword ptr ds:[edx]
+004045A0    C3                   retn
+```
+
+病毒对数据的处理，分很多处，我也没完全搞明白。将就贴两个地方了。
+
+代码:
+
+```
+0040451C    39D0                 cmp eax,edx
+0040451E    74 31                je short Unpack\_.00404551
+00404520    83F9 20              cmp ecx,20
+00404523    77 7C                ja short Unpack\_.004045A1
+00404525    83E9 08              sub ecx,8
+00404528    7F 07                jg short Unpack\_.00404531
+0040452A    FF248D 74454000      jmp dword ptr ds:[ecx*4+404574]
+00404531    DF2C01               fild qword ptr ds:[ecx+eax]
+00404534    DF28                 fild qword ptr ds:[eax]
+00404536    83F9 08              cmp ecx,8
+00404539    7E 11                jle short Unpack\_.0040454C
+0040453B    DF68 08              fild qword ptr ds:[eax+8]
+0040453E    83F9 10              cmp ecx,10
+00404541    7E 06                jle short Unpack\_.00404549
+00404543    DF68 10              fild qword ptr ds:[eax+10]
+00404546    DF7A 10              fistp qword ptr ds:[edx+10]
+00404549    DF7A 08              fistp qword ptr ds:[edx+8]
+0040454C    DF3A                 fistp qword ptr ds:[edx]
+0040454E    DF3C11               fistp qword ptr ds:[ecx+edx]
+00404551    C3                   retn
+```
+
+最后生成一个`VB`的程序.
+
+![](img/7a430c530990d5a5c586b2bdb4565597.jpg)
+
+最后以挂起的方式启动自己
+
+代码:
+
+```
+0012FD54   00000000             |ModuleFileName = NULL
+0012FD58   00B14FBC             |CommandLine = "D:\\Loader\\Unpack\_.exe"
+0012FD5C   00000000             |pProcessSecurity = NULL
+0012FD60   00000000             |pThreadSecurity = NULL
+0012FD64   00000000             |InheritHandles = FALSE
+0012FD68   00000004             |CreationFlags = CREATE\_SUSPENDED
+0012FD6C   00000000             |pEnvironment = NULL
+0012FD70   00000000             |CurrentDir = NULL
+0012FD74   0012FDC0             |pStartupInfo = 0012FDC0
+0012FD78   0012FDB0             \\pProcessInfo = 0012FDB0
+```
+
+修改挂起的进程之后，让进程运行起来，修改浏览器主页。
+
+代码:
+
+```
+0012FDFC   00CF00C0             ASCII "PE"
+0012FE00   7FFDF000
+0012FE04   00001000
+0012FE08   0012FF24
+0012FE0C   004438A8             Unpack\_.004438A8
+0012FE10   00000098             |hProcess = 00000098 (窗口)
+0012FE14   00400000             |Address = 400000
+0012FE18   00CF0000             |Buffer = 00CF0000
+0012FE1C   0000A000             |BytesToWrite = A000 (40960.)
+0012FE20   0012FF0C             \\pBytesWritten = 0012FF0C
+```
+
+分析不好，高手莫笑。附件是该病毒，喜欢的自己再仔细看看。
+
+上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || `Loader.rar`(解压密码是：`muma`) |

