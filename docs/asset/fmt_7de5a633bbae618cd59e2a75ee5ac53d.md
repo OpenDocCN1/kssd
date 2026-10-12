@@ -1,0 +1,254 @@
+
+```
+0041E836    90                 nop
+
+0041E837    40                 inc eax
+
+0041E838    90                 nop
+
+0041E839    90                 nop
+
+0041E83A    03C8               add ecx,eax
+
+0041E83C    90                 nop
+
+0041E83D    90                 nop
+
+0041E83E    F7D8               neg eax
+
+0041E840    90                 nop
+
+0041E841    90                 nop
+
+0041E842    8D8D 70FEFFFF      lea ecx,dword ptr ss:[ebp-190]             开始在 `C:\program\ATI` 路径下生成文件了
+
+0041E848    8D95 70FDFFFF      lea edx,dword ptr ss:[ebp-290]
+
+0041E84E    51                 push ecx
+
+0041E84F    52                 push edx
+
+0041E850    FFD7               call edi
+
+0041E852    90                 nop
+
+0041E853    8D45 EC             lea eax,dword ptr ss:[ebp-14]             `amdk8.inf`
+
+0041E856    8D8D 70FDFFFF      lea ecx,dword ptr ss:[ebp-290]
+
+0041E85C    50                 push eax
+
+0041E85D    51                 push ecx
+
+0041E85E    FFD6               call esi                                    `lstrcatA`
+
+0041E860    90                 nop
+
+0041E861    8D95 70FEFFFF      lea edx,dword ptr ss:[ebp-190]
+
+0041E867    8D85 70FCFFFF      lea eax,dword ptr ss:[ebp-390]             `C:\program\ATI\amdk8.inf`
+
+0041E86D    52                 push edx
+
+0041E86E    50                 push eax
+
+0041E86F    FFD7               call edi
+
+0041E871    90                 nop
+
+0041E872    8D4D E0             lea ecx,dword ptr ss:[ebp-20]             `amdk8.sys` 驱动啊驱动
+
+0041E875    8D95 70FCFFFF      lea edx,dword ptr ss:[ebp-390]             `C:\program\ATI`
+
+0041E87B    51                 push ecx                                    两个参数
+
+0041E87C    52                 push edx
+
+0041E87D    FFD6               call esi                                    `lstrcatA`
+
+0041E87F    90                 nop
+
+0041E880    8D85 70FEFFFF      lea eax,dword ptr ss:[ebp-190]
+
+0041E886    8D8D 70FBFFFF      lea ecx,dword ptr ss:[ebp-490]             `C:\program\ATI\amdk8.sys`
+
+0041E88C    50                 push eax
+
+0041E88D    51                 push ecx
+
+0041E88E    FFD7               call edi
+
+0041E890    90                 nop
+
+0041E891    8D55 D4             lea edx,dword ptr ss:[ebp-2C]             `amdk8.dll`
+
+0041E894    8D85 70FBFFFF      lea eax,dword ptr ss:[ebp-490]
+
+0041E89A    52                 push edx
+
+0041E89B    50                 push eax
+
+0041E89C    FFD6               call esi                                    同理啦，和上面的一样 `lstrcatA`
+```
+
+对上面的进行一下总结，就是生成 `C:\program files\ATI`，并在里面生成三个文件 `amdk8.sys`，`amdk8.inf`，`amdk8.dll`。
+
+```
+0041E89E    90                 nop
+
+0041E89F    90                 nop
+
+0041E8A0    90                 nop
+
+0041E8A1    03C8               add ecx,eax
+
+0041E8A3    90                 nop
+
+0041E8A4    90                 nop
+
+0041E8A5    03C8               add ecx,eax
+
+0041E8A7    90                 nop
+
+0041E8A8    F7D0               not eax
+
+0041E8AA    90                 nop
+
+0041E8AB    90                 nop
+
+0041E8AC    90                 nop
+
+0041E8AD    40                 inc eax
+
+0041E8AE    90                 nop
+
+0041E8AF    90                 nop
+
+0041E8B0    03C8               add ecx,eax
+
+0041E8B2    90                 nop
+
+0041E8B3    90                 nop
+
+0041E8B4    F7D8               neg eax
+
+0041E8B6    90                 nop
+
+0041E8B7    90                 nop
+
+0041E8B8    8D8D 70FDFFFF      lea ecx,dword ptr ss:[ebp-290]             `C:\program\ATI\amdk8.inf`
+
+0041E8BE    51                 push ecx
+
+0041E8BF    E8 3CE9FFFF        call x1un_.0041D200                         此函数的作用，创建文件并写入文件
+```
+
+```
+{
+    0041D200    51                 push ecx
+    0041D201    53                 push ebx
+    0041D202    56                 push esi
+    0041D203    32DB               xor bl,bl
+    0041D205    E8 C6FFFFFF        call x1un_.0041D1D0
+    0041D20A    8B4424 10          mov eax,dword ptr ss:[esp+10]
+    0041D20E    6A 00              push 0
+    0041D210    6A 00              push 0
+    0041D212    6A 02              push 2
+    0041D214    6A 00              push 0
+    0041D216    6A 01              push 1
+    0041D218    68 00000040        push 40000000
+    0041D21D    50                 push eax
+    0041D21E    FF15 70104000      call dword ptr ds:[<&KERNEL32.CreateFileA>] ; kernel32.CreateFileA
+    0041D224    8BF0               mov esi,eax
+    0041D226    83FE FF          cmp esi,-1
+    0041D229    75 00              jnz short x1un_.0041D22B
+    0041D22B    8B15 BC354100     mov edx,dword ptr ds:[4135BC]
+    0041D231    8D4C24 08          lea ecx,dword ptr ss:[esp+8]
+    0041D235    6A 00              push 0
+    0041D237    51                 push ecx
+    0041D238    52                 push edx
+    0041D239    68 C0354100        push x1un_.004135C0 ; ASCII ";
+    ; File Name: amdk8.inf
+    ; Install information file for amdk8 Driver
+    ;
+    ; Generated by C DriverWizard 3.2.0 (Build 2485)
+    ; Requires DDK Only
+    ; File created on 6/23/2010
+    ;
+    ;--------- Version Section ------------------------------"...
+    0041D23E    56                 push esi
+    0041D23F    FF15 74104000      call dword ptr ds:[<&KERNEL32.WriteFile>] ; kernel32.WriteFile
+    0041D245    85C0               test eax,eax
+    0041D247    74 02              je short x1un_.0041D24B
+    0041D249    B3 01              mov bl,1
+    0041D24B    56                 push esi
+    0041D24C    FF15 7C104000      call dword ptr ds:[<&KERNEL32.CloseHandle>] ; kernel32.CloseHandle
+    0041D252    8AC3               mov al,bl
+    0041D254    5E                 pop esi
+    0041D255    5B                 pop ebx
+    0041D256    59                 pop ecx
+    0041D257    C3                 retn
+}
+```
+
+```
+0041E8C4    83C4 04            add esp,4
+0041E8C7    84C0               test al,al
+0041E8C9    0F84 36010000      je x1un_.0041EA05
+0041E8CF    8D95 70FCFFFF      lea edx,dword ptr ss:[ebp-390]
+0041E8D5    52                 push edx
+0041E8D6    E8 B5E9FFFF        call x1un_.0041D290                     同理创建驱动 `amdk8.sys` 并向里面写入数据，不展开了
+0041E8DB    83C4 04            add esp,4
+0041E8DE    84C0               test al,al
+0041E8E0    0F84 1F010000      je x1un_.0041EA05
+```
+
+对生成的三个文件进行创建和写入操作。
+
+在 `C:\program files\ATI` 里面生成三个文件 `amdk8.sys`，`amdk8.inf`，`amdk8.dll`。
+
+我们到 `ATI` 目录下面，找到 `amdk8.dll`，用 `OD` 载入之，分析这个 `dll` 具体实现了什么功能，分析这个病毒真是累啊~~。
+
+载入后，`Ctrl+N`，看输入表，其中发现了 `testall`（这个就是该 `dll` 里面的主要函数实现了），木马一般没什么加密，双击之，来到了：
+
+其实在这之前这个 `dll` 文件还获得了系统最高权限，通过 `LookupPrivilegeValueA` 和 `AdjustTokenPrivileges` 函数，就在 `dll` 的入口处，当然还设置了 `debug` 权限。
+
+```
+10002920  >/$  55                 push ebp
+10002921  |.   8BEC               mov ebp,esp
+10002923  |.   8B45 08            mov eax,[arg.1]
+10002926  |.   53                 push ebx
+10002927  |.   56                 push esi
+10002928  |.   57                 push edi
+10002929  |.   85C0               test eax,eax
+1000292B  |.   74 11              je short amdk8.1000293E        这里先判断了一下，在 `ATI` 路径下的 `amdk8.dll` 是否存在
+1000292D  |.   60                 pushad
+1000292E  |.   90                 nop
+1000292F  |.   2BC2               sub eax,edx
+10002931  |.   61                 popad
+10002932  |.   8B45 08            mov eax,[arg.1]
+10002935  |.   50                 push eax
+10002936  |.   E8 45FEFFFF        call amdk8.10002780            关键函数，call 进去
+1000293B  |.   83C4 04            add esp,4
+1000293E  |>    5F                 pop edi
+1000293F  |.   5E                 pop esi
+10002940  |.   5B                 pop ebx
+10002941  |.   5D                 pop ebp
+```
+
+在 `10002936` 这里的 `call` 进去，代码如下：
+
+```
+10002780  /$    55                 push ebp
+10002781  |.    8BEC               mov ebp,esp
+10002783  |.    83EC 30            sub esp,30
+10002786  |.    B0 6F              mov al,6F
+10002788  |.    53                 push ebx
+10002789  |.    8845 D2            mov byte ptr ss:[ebp-2E],al
+1000278C  |.    8845 D6            mov byte ptr ss:[ebp-2A],al
+1000278F  |.    B0 6C              mov al,6C
+10002791  |.    56                 push esi
+10002792  |.    8845 D7            mov byte ptr ss:[ebp-29],al
+10002795  |.    8845 E7            mov byte ptr ss:[ebp-19],al
+10002798  |.    8845 E8            mov byte ptr ss:[ebp-18],al
+```
