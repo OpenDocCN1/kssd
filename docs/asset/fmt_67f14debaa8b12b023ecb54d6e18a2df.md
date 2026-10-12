@@ -1,0 +1,341 @@
+
+```asm
+   ;++
+   ;
+   ; int
+   ;   GetRolHash(   
+   ;   IN char * lpApiString    
+   ;   )
+   ;
+   ; Routine Description:
+   ;
+   ;    计算 ApiString Hash 值
+   ;
+   ; Arguments:
+   ;
+   ;    (esp)          - return address
+   ;
+   ;    Data   (esp+4) - lpApiString
+   ;
+   ; Return Value:
+   ;
+   ;    eax = Hash String
+   ;
+   ;--
+   GetRolHash:
+     pop  ecx
+     pop  eax
+     push  ecx
+     push  esi
+     xor  edx, edx
+     xchg  eax, esi
+     cld
+   .Next:
+     lodsb
+     test  al, al
+     jz  .Ret
+     rol  edx, 3
+     xor  dl, al
+     jmp  .Next
+     
+   .Ret:
+     xchg  eax, edx
+     pop  esi
+     ret
+    
+```
+
+还有很多方便小巧的算法，例如 `ROR 13` 等算法。我比较喜欢 `ROL 3`，所以推荐这个。那么我们接下来，我们来实现个匹配 hash 字符串的 `GetProcAddress`，其实它和我们上面的基本一样，只不过它将函数名表的字符串通过我们的算法过程获得 hash 值后与我们之前定义的 hash 值进行匹配，匹配成功则获得对应函数的地址。
+
+过程如下:
+
+代码:
+
+```asm
+   ;++
+   ;
+   ; int
+   ;  GetApi(
+   ;   IN HINSTANCE hModule, 
+   ;   IN int      iHashApi,     
+   ;   )
+   ;
+   ; Routine Description:
+   ;
+   ;    获取指定函数的内存地址
+   ;
+   ; Arguments:
+   ;
+   ;    (esp)          - return address
+   ;
+   ;    Data   (esp+4) - hDllHandle
+   ;       (esp+8) - iHashApi
+   ; Return Value:
+   ;
+   ;    eax -> Function Mem Address。
+   ;
+   ;--
+
+  GetApi:
+    pop   edx
+    pop  eax      ;hModule
+    pop  ecx      ;lpApiString
+    push  edx   
+    pushad
+    mov  ebx, eax    ;hModule  ebx
+    mov  edi, ecx    ;iHashApi  edi   
+    
+    mov  eax, [ebx+3ch]   
+    mov  esi, [ebx+eax+78h]  ;Get Export Rva
+    lea  esi, [esi+ebx+IMAGE_EXPORT_DIRECTORY.NumberOfNames]
+    lodsd
+    xchg  eax, edx    ; edx = NumberOfNames
+    lodsd
+    push  eax      ; [esp] = AddressOfFunctions
+    lodsd
+    xchg  eax, ebp
+    lodsd
+    xchg  eax, ebp    ; ebp = AddressOfNameOrdinals, eax = AddressOfNames
+    add  eax, ebx
+    xchg  eax, esi    ; esi = AddressOfNames
+     
+    
+    .LoopScas:   
+    dec  edx
+    jz  .Ret
+    lodsd
+    add  eax, ebx
+    
+    push  edx
+    
+    ;计算 hash 字符串
+    push  eax
+    call  GetRolHash
+    
+    pop  edx
+    cmp  eax, edi
+    jz  .GetAddr
+    
+    add  ebp, 2
+    jmp  .LoopScas
+    
+    .GetAddr:
+    movzx  eax, word [ebp+ebx]
+    shl  eax, 2
+    add  eax, [esp]
+    mov  eax, [ebx+eax]
+    add  eax, ebx
+    .Ret:
+      pop  ecx
+      mov  [esp+4*7], eax
+    popad
+    ret
+```
+
+OK，为了验证没有问题。我们来写一段简单的验证过程。
+
+代码:
+
+```asm
+
+
+    format PE GUI 4.0
+    include 'win32ax.inc'
+    entry  __Entry
+    
+.text
+     
+  
+ __Entry:
+    call  GetKrnlBase3
+    
+    push  0016EF74Bh  ; Hash WinExec
+    push  eax
+    call  GetApi
+    
+    push  SW_SHOW
+    @pushsz  "cmd.exe"
+    call  eax
+    ret
+  
+
+  ;++
+  ;
+  ; int
+  ;  GetApi(
+  ;   IN HINSTANCE hModule, 
+  ;   IN int      iHashApi,     
+  ;   )
+  ;
+  ; Routine Description:
+  ;
+  ;    获取指定函数的内存地址
+  ;
+  ; Arguments:
+  ;
+  ;    (esp)          - return address
+  ;
+  ;    Data   (esp+4) - hDllHandle
+  ;       (esp+8) - iHashApi
+  ; Return Value:
+  ;
+  ;    eax -> Function Mem Address。
+  ;
+  ;--
+
+  GetApi:
+    pop   edx
+    pop  eax      ;hModule
+    pop  ecx      ;lpApiString
+    push  edx   
+    pushad
+    mov  ebx, eax    ;hModule  ebx
+    mov  edi, ecx    ;iHashApi  edi   
+    
+    mov  eax, [ebx+3ch]   
+    mov  esi, [ebx+eax+78h]  ;Get Export Rva
+    lea  esi, [esi+ebx+IMAGE_EXPORT_DIRECTORY.NumberOfNames]
+    lodsd
+    xchg  eax, edx    ; edx = NumberOfNames
+    lodsd
+    push  eax      ; [esp] = AddressOfFunctions
+    lodsd
+    xchg  eax, ebp
+    lodsd
+    xchg  eax, ebp    ; ebp = AddressOfNameOrdinals, eax = AddressOfNames
+    add  eax, ebx
+    xchg  eax, esi    ; esi = AddressOfNames
+     
+    
+    .LoopScas:   
+    dec  edx
+    jz  .Ret
+    lodsd
+    add  eax, ebx
+    
+    push  edx
+    
+    ;计算 hash 字符串
+    push  eax
+    call  GetRolHash
+    
+    pop  edx
+    cmp  eax, edi
+    jz  .GetAddr
+    
+    add  ebp, 2
+    jmp  .LoopScas
+    
+    .GetAddr:
+    movzx  eax, word [ebp+ebx]
+    shl  eax, 2
+    add  eax, [esp]
+    mov  eax, [ebx+eax]
+    add  eax, ebx
+    .Ret:
+      pop  ecx
+      mov  [esp+4*7], eax
+    popad
+    ret
+
+
+  ;++
+  ;
+  ; int
+  ;   GetKrnlBase3(
+  ;    void
+  ;   )
+  ;
+  ; Routine Description:
+  ;
+  ;    获得 kernel32 基地址
+  ;
+  ; Arguments:
+  ;
+  ;    (esp)          - return address
+  ;
+  ;
+  ; Return Value:
+  ;
+  ;    eax =  krnl32 base
+  ;
+  ;--
+  
+  GetKrnlBase3:
+    mov  eax, [fs:30h]
+    mov  eax, [eax+0ch]
+    mov  eax, [eax+1ch]
+    mov  eax, [eax]
+    mov  eax, [eax+8h]
+    ret    
+    
+     
+  ;++
+  ;
+  ; int
+  ;   GetRolHash(   
+  ;   IN char * lpApiString    
+  ;   )
+  ;
+  ; Routine Description:
+  ;
+  ;    计算 ApiString Hash 值
+  ;
+  ; Arguments:
+  ;
+  ;    (esp)          - return address
+  ;
+  ;    Data   (esp+4) - lpApiString
+  ;
+  ; Return Value:
+  ;
+  ;    eax = Hash String
+  ;
+  ;--
+  GetRolHash:
+    pop  ecx
+    pop  eax
+    push  ecx
+    push  esi
+    xor  edx, edx
+    xchg  eax, esi
+    cld
+   .Next:
+    lodsb
+    test  al, al
+    jz  .Ret
+    rol  edx, 3
+    xor  dl, al
+    jmp  .Next
+    
+   .Ret:
+     xchg  eax, edx
+    pop  esi
+    ret
+```
+
+运行后，程序运行一个 `cmd` 窗口，然后退出线程。
+
+例子:
+
+`push 0016EF74Bh ; Hash WinExec`
+
+`push eax`
+
+`call GetApi`
+
+这段例子代码我采用直接压入对应的函数字符串的 hash 值（如 `WinExec` `0016EF74Bh`），其实我们利用宏完全可以做到在预编译阶段进行 hash 计算，这个就留到下下节课来讲解吧，为了大家方便，给大家发布一个 `Hash Api String` 计算器。
+
+如下附件图。
+
+![](img/2270429ce2776b0ac867961a1b12c8f9.jpg)
+
+好了，今天这篇文章就到这里了。大家再见。总算今天下午把这篇文章给赶出来了。已经快接近 0 点，大家接着观看吧。
+
+上传的附件
+
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | Export 例子.rar |
+| :--- | :--- |
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | HashImport.rar |
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | NoImport.rar |
+| ![](img/c8c74a380a3dea7fa2460187d80ee5e0.jpg) | HashString 计算器.rar |
