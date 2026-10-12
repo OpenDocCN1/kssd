@@ -22,19 +22,19 @@
   近来坛子里加壳与脱壳版里一个奇怪的带壳 crackme 讨论的人很多，不少大牛都信手给出了 key，成了创意比拼。我等小菜，载入 OD 里还没开始跑就 GameOver 了。实在是心有不甘。  
     
   发扬一下 cracker 的风格，自己动手搞定它。感谢 skylly，我一开始茫无头绪时，是你的提示给了我前进的方向。  
-  
+
   **（一）Anti**                              （Validate 部分参见 11 楼）   
-  
+
   首先用 PDiD 查一下壳，显示 Nothing found \* 点击 EP Section 后面的按钮可以看出有 6 个段，段名都是$ 看来好像是加壳了。  
     
   OD 载入  
-  
+
   00409508 >- E9 00500000     jmp     0040E50D  
   0040950D    0000            add     byte ptr \[eax\], al  
   0040950F    0000            add     byte ptr \[eax\], al  
-  
+
   F8,来到 0040E50D,OD 提示不知如何单步，晕，才第一条指令啊。  
-  
+
   1 tlscallback+CC 保护入口    
     
   我们再次在 PEiD 中打开，点一下 Subsystem 后面的按钮，看看 PE Details  
@@ -415,16 +415,16 @@
     
 \--------------------------------------------------------------------------------  
 【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!  
-  
+
                                                        2006 年 12 月 24 日 11:28:51 
 
 **（二）Validate**  
 抛了块砖砖，咋就不见大侠们的玉来呢？![](img/45777b5dbd6b901752ab7df42fce6892.jpg) ![](img/45777b5dbd6b901752ab7df42fce6892.jpg) ![](img/45777b5dbd6b901752ab7df42fce6892.jpg) ![](img/45777b5dbd6b901752ab7df42fce6892.jpg) ![](img/45777b5dbd6b901752ab7df42fce6892.jpg) ![](img/45777b5dbd6b901752ab7df42fce6892.jpg)   
-  
+
 再接再励，不信大牛们能做到的事我们菜菜努力之后会做不到。再说了有大侠们的讨论在前，多少我们也会得到一些启发吧。  
-  
+
 用上面的脚本跑到 00401014 处，我们再用一个脚本去掉一些花花，这样看来会舒服一些。  
-  
+
 Script:  
 fill 00401027,1,90  
 fill 0040102F,1,90  
@@ -436,9 +436,9 @@ fill 0040117A,1,90
 fill 004011A5,1,90  
 fill 004011AB,1,90  
 ret  
-  
+
 其实这里的代码少得可怜，正好适合我等菜菜分析。![](img/77a5f7cfd3ec840c98be3aecc80df838.jpg) 看见大段大段的代码就有些胆怯。  
-  
+
 00401014    8B0424          mov     eax, dword ptr \[esp\]             //这里放的是某个标志，在先前的代码里赋值为 0x1956DA59  
 00401017    3D 59DA5619     cmp     eax, 1956DA59                    //比较标志，如果不相等则跳去执行 ExitProcess，Game Over!  
 0040101C    75 0A           jnz     short 00401028  
@@ -450,7 +450,7 @@ ret
 0040102F    90              nop  
 00401030    90              nop  
 ........  
-  
+
 00401040    55              push    ebp                               //消息循环处理例程入口  
 00401041    89E5            mov     ebp, esp  
 00401043    53              push    ebx  
@@ -458,26 +458,26 @@ ret
 00401045    57              push    edi  
 00401046    817D 0C 1001000>cmp     dword ptr \[ebp+C\], 110            //窗口初始化消息  
 0040104D    74 13           je      short 00401062  
-  
+
 0040104F    817D 0C 1101000>cmp     dword ptr \[ebp+C\], 111            //WM\_COMMAND  
 00401056    74 14           je      short 0040106C  
-  
+
 00401058    837D 0C 10      cmp     dword ptr \[ebp+C\], 10             //关闭窗口消息  
 0040105C    74 6C           je      short 004010CA  
-  
+
 0040105E    31C0            xor     eax, eax                          //Default 消息  
 00401060    EB 75           jmp     short 004010D7  
-  
+
 00401062    8B45 08         mov     eax, dword ptr \[ebp+8\]             //窗口初始化，这里\[ebp+8\]保存的是窗口句柄  
 00401065    A3 70214000     mov     dword ptr \[402170\], eax            //将窗口句柄保存到\[402170\]  
 0040106A    EB 66           jmp     short 004010D2  
-  
+
 0040106C    837D 10 02      cmp     dword ptr \[ebp+10\], 2              //Exit 按钮被按下了  
 00401070    74 58           je      short 004010CA  
-  
+
 00401072    837D 10 01      cmp     dword ptr \[ebp+10\], 1              //Validate 按钮被点击  
 00401076    75 5A           jnz     short 004010D2  
-  
+
 00401078    B8 00204000     mov     eax, 00402000                    ; #include <windows.h>\\n\\nint main(int argc, char \*argv\[\])\\n\\n{\\n\\n        hwnd phstart;\\n\\n        point ptwnd = {15, getsystemmetrics(sm\_cyscreen)-15 };\\n\\n        phstart = windowfrompoint(ptwnd);\\n\\n        setwindowtext(phstart,"fuck");\\n\\nreturn 0;\\n\\n  
 0040107D    D1E0            shl     eax, 1  
 0040107F    31C0            xor     eax, eax  
@@ -487,7 +487,7 @@ ret
 0040108F    A1 F6324000     mov     eax, dword ptr \[<&USER32.Message>   //检测 MessageBoxA 函数是否被下断  
 00401094    8038 CC         cmp     byte ptr \[eax\], 0CC  
 00401097  - 0F84 2AE1FFFF   je      003FF1C7                            //Game Over  
-  
+
 0040109D    E8 3E000000     call    004010E0                            //这里对输入数据进行验证  
 004010A2    83F8 00         cmp     eax, 0                              //如果结果大于等于 0 则弹出成功对话框  
 004010A5    7D 02           jge     short 004010A9  
@@ -511,9 +511,9 @@ ret
 004010D9    5B              pop     ebx  
 004010DA    C9              leave  
 004010DB    C2 1000         retn    10  
-  
+
 我们在 0040109D 处下断，然后在输入框内输入试炼码 hawking，点 Validate 按钮被断下来，F7 来到  
-  
+
 004010DE    90              nop  
 004010DF    90              nop  
 004010E0    B8 F5204000     mov     eax, 004020F5                    ; jesus loves you, but only in a purely platonic way. i'm sure.  
@@ -573,7 +573,7 @@ ret
 0040118D    90              nop  
 0040118E    90              nop  
 ........  
-  
+
 0040119E    90              nop  
 0040119F    90              nop  
 004011A0  - E9 5BEE3C00     jmp     007D0000                         ; GetDlgItemTextA  
@@ -581,25 +581,25 @@ ret
 004011A6  - E9 55EE3D00     jmp     007E0000                         ; MessageBoxA  
 004011AB    90              nop  
 004011AC    C3              retn  
-  
+
 通过我们的分析，程序会将我们输入的字符串两两一组转换成 1 个字节，但是不管我们输入的字符串长度是多少，都不能同时满足 len(hkey)>=5 and len(hkey) <=A and len(hkey) = 1C 这个条件的，看来这个 CrackMe 是不可能 Validate 成功的。除非我们改变程序的执行流程。  
 而我们执行的情况也确实如此，不管我们输入什么样的字符串，0040118C retn 到 004010A2 之后 eax 值总是-64,没戏。  
-  
+
 但是大侠们给出的 key 确实是能弹出成功的对话框框出来的，而且有的弹出的对话框还很彪捍，而我们又没有修改程序的执行代码呀，这是怎么回事呢？  
-  
+
 输入 aalloverred 大侠给出的 key  
 E930EFFFFFE92BEFFFFF9090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909079214000  
-  
+
 运行并跟踪看一下。没什么出奇，程序和我们先前看到的流程都是一样的，比较到长度是否大于 A 时就 return -64 了。看来是不会成功的了，但是 F8 几下之后竟然弹出了成功的对话框，狂晕！  
-  
+
 再仔细跟着看了看，原来这里 retn 并没有 retn 到我们先前的 004010A2 处进行 eax 值是否大于等于 0 的比较，而是来到了  
-  
+
 00402179  - E9 2BEFFFFF     jmp     004010A9                          //只是针对这个 key 会来到这里  
-  
+
 然后程序就直接跳过了返回值的检验，成功了。  
-  
+
 我们来看看关键代码![](img/f5d9879e4703d3dcc963d0743af268d2.jpg) 秘密就在这里了。  
-  
+
 004010E5    C8 000100       enter   100, 0                            //★平时没见过这条指令  
 004010E9    89E7            mov     edi, esp                          //将堆栈的指针传给了 edi  
 004010EB    68 00030000     push    300                               //★这里设置了 Count=300，表示最长可以取到 300 长度的输入字符串  
@@ -607,28 +607,28 @@ E930EFFFFFE92BEFFFFF909090909090909090909090909090909090909090909090909090909090
 004010F5    68 EA000000     push    0EA  
 004010FA    FF35 70214000   push    dword ptr \[402170\]  
 00401100    E8 9B000000     call    004011A0                         ; GetDlgItemTextA  
-  
+
 0040114B    68 74214000     push    00402174  
 00401150    57              push    edi                                //★ 这里的指向了当前栈空间  
 00401151    E8 AAEE3900     call    007A0000                         ; lstrcpy  复制字符串，由于我们可取的字符串最长可能为 300，而刚才我们分配的栈空间大小才 100，如果 Skey 长度大于 100 的时候会发生什么？  
-  
+
 0040117D   /E3 07           jecxz   short 00401186  
 0040117F   |B8 9CFFFFFF     mov     eax, -64  
 00401184   |EB 05           jmp     short 0040118B  
 00401186   \\B8 02000000     mov     eax, 2  
 0040118B    C9              leave                                       //★见过，没好好理解过  
 0040118C    C3              retn  
-  
+
 我们看看 enter 到底何方神圣  
-  
+
 ENTER—Make Stack Frame for Procedure Parameters  
 Creates a stack frame for a procedure. The first operand (size operand) specifies the  
 size of the stack frame (that is, the number of bytes of dynamic storage allocated on  
 the stack for the procedure). The second operand (nesting level operand) gives the  
 lexical nesting level (0 to 31) of the procedure.  
-  
+
 这里 enter 100 , 0 在栈里动态划分一块 100 个字节的空间  
-  
+
 之前堆栈：  
 0006FC9C   004010A2  返回到 Bustme4.004010A2 来自 Bustme4.004010E0  
 0006FCA0   00000111  
@@ -637,7 +637,7 @@ lexical nesting level (0 to 31) of the procedure.
 寄存器：  
 ESP 0006FC9C  
 EBP 0006FCAC  
-  
+
 之后堆栈：  
 0006FB98   0000003C  
 0006FB9C   00000001  
@@ -649,14 +649,14 @@ EBP 0006FCAC
 寄存器：  
 ESP 0006FB98  
 EBP 0006FC98  
-  
+
 如果我们输入的字符串长度大于 100 的话，lstrcpy 操作将会超出 enter 分配的 100 大小的空间，copy 到程序正常的堆栈空间里来。这就是所谓的溢出吧。  
-  
+
 再看看 LEAVE—High Level Procedure Exit  
 Releases the stack frame set up by an earlier ENTER instruction.  
 ESP ← EBP;  
 EBP ← Pop();  
-  
+
 之前堆栈：  
 0006FB98   1B0DACCB  
 0006FB9C   000000B0  
@@ -666,7 +666,7 @@ EBP ← Pop();
 寄存器：  
 ESP 0006FB98  
 EBP 0006FC98  
-  
+
 之后堆栈：  
 0006FC9C   004010A2  返回到 Bustme4.004010A2 来自 Bustme4.004010E0  
 0006FCA0   00000111  
@@ -675,19 +675,19 @@ EBP 0006FC98
 寄存器：  
 ESP 0006FC9C  
 EBP 0006FCAC  
-  
+
 然后的 retn 语句就会返回到 ESP 所指向的 004010A2。到这里已经很明显了，只要 lstrcpy 的时候能够覆盖掉 006FC9C 处的值，那么程序执行到后来的 retn 时，就会返回到我们修改后想让它到达的地方。来个实验，随便输入 0x208 位字符，然后再加上 A9104000 应该也能验证成功。  
-  
+
 由于程序可以 retn 到你想要 retn 到的任意地址，因此您完全可以随心所欲地作许多操作，这就要看您的创意和编程功底了。  
-  
+
 shoooo 有个 CrackMe 和这个有着异曲同工之妙。有意者可以在 CrackMe & ReverseMe 版块搜索下载试玩之。 
 
 搞了半天，终于站在各位大侠的肩膀上将这个 CrackMe 分析完了。如果没有大侠们的 key 作参考，我们菜菜还真的难以想到这种通过堆栈溢出动态改变程序执行流程的方法（好像也叫什么 ShellCode 吧），改天好好看看《The Shellcoder's handbook》，学习学习。  
-  
+
 看别的大侠写文章往往举重若轻，信手拈来。自己写来却是别有一番滋味在心头。很多东东知其然，不知其所以然，平时不写的时候感觉不到，真正想表达，特别是想清晳地阐述的时候往往失语，可能这就是高手与菜菜的区别吧。![](img/70b1b1b49da6fb968b36803b1ec24864.jpg) ![](img/70b1b1b49da6fb968b36803b1ec24864.jpg) ![](img/70b1b1b49da6fb968b36803b1ec24864.jpg)  
 
 贴一组可用的 key  
-  
+
 
 > [PRE0]
 > 
@@ -695,7 +695,7 @@ shoooo 有个 CrackMe 和这个有着异曲同工之妙。有意者可以在 Cr
 
 大家都来贴  
 看谁的有创意  
-  
+
 
 > [PRE1]
 > 
@@ -703,4 +703,4 @@ shoooo 有个 CrackMe 和这个有着异曲同工之妙。有意者可以在 Cr
 
  
 
- 4dd466d0e1e0cc123afbe504da2462ca
+4dd466d0e1e0cc123afbe504da2462ca
