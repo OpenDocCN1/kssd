@@ -1,0 +1,320 @@
+
+# 【翻译】两篇 IDA 相关文章（‘形式分析应对病毒的挑战’和‘循环检测’）
+
+> 原文：[`www.pediy.com/kssd/pediy08/pediy8-794.htm`](https://www.pediy.com/kssd/pediy08/pediy8-794.htm)
+
+**‘形式’应对病毒的挑战**
+
+| 文档编号 | S002-F025 |
+| :--- | :--- |
+| 原作者 | Arun Lakhotia 和 Prabhat K. Singh |
+| 译者 | 月中人 [PTG] |
+| 审校 | |
+| 发布时间 | 2007-01-11 |
+| 原文 | CHALLENGES IN GETTING 'FORMAL' WITH VIRUSES |
+| 关键词 | 请在属性里修改关键词 |
+| 原文链接 | [`www.cacs.louisiana.edu/cybersecurity/papers/GettingFormal-VirusBulletin-Sep2003.pdf`](http://www.cacs.louisiana.edu/cybersecurity/papers/GettingFormal-VirusBulletin-Sep2003.pdf) |
+
+Is it a virus, a worm, a Trojan, or a backdoor? Answering this question correctly for any arbitrary program is known to be an undecidable problem. That is, it is impossible to write a computer program that will identify correctly whether an arbitrary program is a virus, a worm, etc. – no matter how much computing power is thrown at the problem.
+
+判断任何任意的程序是一个病毒、蠕虫、木马，还是后门？还没有方法能从理论上得到证明。也就是说，我们不可能编出一个计算机程序，让它正确地鉴别某任意的程序是不是一个病毒、蠕虫之类–无论你为解决这个问题拼上多少计算能力。
+
+With the emergence of polymorphic and metamorphic viruses, the anti-virus community is finally beginning to face this theoretical limit. Signature-based heuristics, whether dynamic or static, for detecting malicious code are no match for a program that modifies, encrypts, and decrypts its code as it propagates.
+
+随着多态病毒和变形病毒的出现，反病毒社区终于要开始面对这个理论上的局限。基于签名的启发式程序，不管它是动态的还是静态的，都不适合用来检测一个在传播时修改、加密解密本身的恶意代码程序。
+
+Researchers in academia and industry are beginning to develop anti-virus technologies founded on formal methods of analysing programs (`Christodorescu` and `Jha` 2003, 12th `Usenix` Security Symposium, 2003; `Perriot`, 13th Virus Bulletin International Conference 2003; `Singh`, `Moinuddin` et al., 2nd European Conference on Information Warfare and Security, 2003). These methods, with rigorous mathematical foundation, have mostly been developed for optimizing compilers and, more recently, for hardware and software verification.
+
+学术界和业界的研究人员开始开发基于形式分析程序之方法的反病毒技术(`Christodorescu` 和 `Jha` 2003, 第 12 届 `Usenix` 安全座谈会，2003 年；`Perriot`, 第 13 届病毒通报国际会议，2003 年；`Singh`, `Moinuddin` et al., 第 2 届关于信息战争与安全的欧洲会议，2003 年)。这些方法有精确的数学基础，曾经主要用于改良编译器优化，近来也用于硬件和软件验证。
+
+The mathematical guarantees offered by these methods are a necessity for compilers and verifiers, for it is unimaginable that one would use a compiler or a verifier based on heuristics that give correct results only 90% of the time. The success of these techniques in compilers and verifiers has been extrapolated to offer promise in anti-virus technologies.
+
+这些方法所提供的数学保证是编译器和验证程序必需的，无法想象谁会使用一个只保证 90%正确率的基于启发式的编译器或验证程序。由于这些技术在编译器和验证程序中的成功，人们已经把它外推应用到在反病毒技术中提供承诺。
+
+We argue that the formal methods for analysing programs for compilers and verifiers when applied in anti-virus technologies are likely to produce good results for the current generation of malicious code. However, this success will be very short-lived for it is extremely easy to 'attack' these analysers to make them produce incorrect results.
+
+我们用事实证明当把编译器和验证程序中用来分析程序的形式方法应用于反病毒技术方面时，对当代恶意代码的分析可能有很好的效果。然而，成功会是非常短暂的，因为极容易‘攻击’这些分析器、使它们产生不正确的结果。
+
+The fundamental basis of our observation is that: the formal methods designed for optimizing compilers assume that the compiler and the programmer are allies. In other words, the programmer does not stand to benefit from breaking the formal analysis. On the contrary, the compiler writer can assume that a knowledgeable programmer may be willing to reorganize a program to get optimal results from the compiler.
+
+我们观察问题的基本角度是：为最优化编译器设计的形式方法它假定编译器和程序设计者是盟友。换句话说，程序设计者绝不会因破坏形式分析而获得好处。相反地，编译器作者可以假定一个在行的程序设计者愿意编译器重新组织他的程序以得到最优化结果。
+
+If there is one thing we can learn from polymorphic and metamorphic viruses it is that virus writers enjoy the challenge of beating the anti-virus technologies. Also, it would not be inaccurate to say that the virus writers, or say, the virus-engine writers are not just good programmers; they have a very good understanding of computer science. It is by no means a small feat to write a program that disassembles a host program; reorganizes the code; injects malicious code deep inside this reorganized code; reassembles the new program; and overwrites its disk image in the correct format. And this has not even touched the capabilities needed to encrypt, decrypt, and morph the malicious code.
+
+如果说我们能从多态病毒和变形病毒那里学到什么，那就是病毒作者享受打败反病毒技术这种挑战。而且，认为病毒作者或者说病毒引擎作者不是真正的好程序设计者这种说法也是不正确的；他们有非常好的计算机科学知识。仅靠一点小技巧是没办法写出这样一个程序，它能：反汇编宿主程序；重新排序代码；将恶意代码深层次地插入这个重新排序以后的代码；重新汇编该新程序；而且以正确的格式重写它的磁盘映像。这还没提到加密解密和改变恶意代码形态所需要的能力。
+
+It should, then, be safe to assume that virus writers can and will find ways to break the formal analysis techniques as well.
+
+所以我们应该保守地假设病毒作者也能够而且将会发现破坏形式分析技术的办法。
+
+Are we saying that it is not worth using formal methods in anti-virus technologies? Not really. Just as signature-based heuristics (however limited) have offered effective defences by raising the bar for the virus writer, so will the use of formal methods. However, these methods must be adapted to the new scenario where the programmer (i.e., the virus writer) and the analyser have conflicting goals.
+
+那么，在反病毒技术中使用形式方法毫无意义吗？不是的。正如基于签名的启发式（然而是有限的）曾经通过给病毒作者设置标杆而提供有效防卫，形式方法的使用也将如此。不过，必须从程序设计者（即病毒作者）和分析器的目标是对立的这一点出发，将这些方法改编成新的方案。
+
+Rather than acting like an ostrich, it is important that we assess the use of these methods and their effectiveness against attack on the analysis mechanism itself. This is not an easy challenge, for as we show, it calls for a complete rethinking of all the underlying assumptions in all phases of analysing a program.
+
+不要像驼鸟一样顾头不顾尾，我们务必要评估这些方法的使用效果以及分析机制本身抗攻击的效力。这不是容易的挑战，因为如上面说过的，它要求在分析程序的所有阶段中全盘重新考虑其中所有的潜在假设。
+
+In this article we enumerate, using an example, the promises and pitfalls of formal analysis. We then outline the steps traditionally used in performing such analyses. Next we show how the known algorithms for each step can be broken. We conclude the article with a call to rethink the process of analysing binary executables.
+
+本文使用一个例子列举出形式分析给我们提供的承诺和存在的陷阱。然后概略说明进行这些分析的几个传统步骤。再指出每一步已知算法如何能被破坏。最后我们反思分析二进制可执行文件的过程结束这篇文章。
+
+## 1. PROMISES OF FORMAL ANALYSIS
+
+### 1 形式分析的承诺
+
+The methods for formal analysis of computer programs have mostly been motivated by one of the following: (1) improve runtime performance, (2) decrease code size, and (3) increase confidence in the correctness of a program – all with minimal, if any, intervention from the programmer.
+
+计算机程序的形式分析方法主要因为有以下需求之一：(1) 改善运行时性能，(2) 减少代码大小，和 (3) 增加对程序正确性的信心 - 程序设计者几乎不用介入，既使有，也只是最低限度的干预。
+
+The formal analyses may be classified into two categories: static analyses and dynamic analyses. A static analysis finds properties that hold for all executions of a program. Such an analysis is typically performed without executing the program, hence the qualifier static. A dynamic analysis finds properties true for a specific input. It is called dynamic because it is typically performed by executing or interpreting the program.
+
+形式分析可以分为两类：静态分析和动态分析。静态分析提供为一个程序所有执行过程具有的特性。这样的分析以不需要运行程序为特色，限定词静态由此而来。动态分析提供对于某个特定输入的确切特性。它典型地通过运行或解释那个程序来完成，所以称之为动态。
+
+The classic compiler optimizations, such as dead code elimination, constant folding, constant propagation, elimination of partial redundancies, loop unrolling, etc., are static analyses. Model checking, a technique for verifying the existence or non-existence of certain temporal properties in a program is also a static analysis. Analysing coverage achieved by a given set of test cases is a dynamic analysis. Profiling a program to identify code segments or functions consuming the most time is also a dynamic analysis.
+
+经典编译器优化，如死代码消除、常数折叠、常量传播、局部冗余消除、循环展开等，都是静态分析。`Model checking` 是一种用于验证程序中某些时间属性存在或不存在的静态分析技术。分析给定测试用例组所达到的覆盖率是一种动态分析。对程序进行剖析以识别消耗最多时间的代码段或函数也是一种动态分析。
+
+
+
+典型的编译器最优化，如死代码消除、常数合并、常数传送、部分冗余的消除、循环展开等等，是静态分析。模型检查，是验证一程序中是否存在某些暂时性特性的一种技术，它也是静态分析。通过一组给定测试案例所达成的有效区域分析是动态分析。通过预演一程序来鉴别其代码段或函数，消耗最大多数时间，它也是动态分析。
+
+We now take a common analysis performed by an optimizing compiler and assess how it may be applicable in anti-virus technologies. Consider the following code segment:
+
+我们现在取某个最优化编译器所做的一个普通分析，评估它如何能被应用于反病毒技术方面。考虑下列代码段：
+
+```
+int offset, port;
+
+offset = 2.5 * 2;
+
+port = offset + 20;
+```
+
+Instead of generating code to multiply and then add the constants, as in the above code segment, most optimizing compilers will use constant folding to generate code equivalent to the following:
+
+对于上述的代码段，大多数最优化编译器将不会生成先乘后加常数的代码，而是使用常数合并生成等效代码，如下：
+
+```
+port = 25;
+```
+
+Quite coincidentally, metamorphic viruses apply transformations that go the other way around. They replace a constant by a sequence of steps that eventually produce the same constant. We call such a transformation constant unfolding. A metamorphic virus may apply constant unfolding randomly to different constants appearing in the program, thereby generating code that looks different from the original. Besides changing the signature of the program, this transformation also obfuscates the program, making its manual analysis harder.
+
+十分巧合，变形病毒使用的变换有异曲同工之妙。它们通过一序列步骤来替换一个常数，最后产生相同的常数。我们称这种变换为常数展开。变形病毒可能对程序中出现的各不同常数随机地应用常数展开，借此生成看似不同于原始的代码。这个变换除了改变程序的签名之外，也混淆了程序，使得对它人工分析更加困难。
+
+Constant folding and constant unfolding are inverses. It stands to reason that an anti-virus technology may use constant folding to undo the obfuscation created by constant unfolding. For instance, in order to determine whether a program may be sending email, an anti-virus system may check whether a program calls the `connect` function so as to connect to port `25`. If a virus writer, or a metamorphic engine, attempts to obfuscate the computation of the port number, the anti-virus system may apply constant folding to de-obfuscate it.
+
+常数合并和常数展开是相反的。顺理成章地，反病毒技术可以使用常数合并来还原由常数展开造成的混淆。例如，为了确定一个程序是否可能发送电子邮件，反病毒系统可能检查一个程序是否调用 `connect` 函数以便连接 `25` 号端口。如果某个病毒作者或变形引擎企图使端口号的计算变得混乱，反病毒系统可能运用常数合并来反混淆。
+
+Like constant folding, other optimization transformations, offer similar promises. Dead code introduced by a metamorphic virus could be removed using dead-code elimination; reordering of instructions by introducing jump statements can be undone by reordering the instructions.
+
+象常数合并一样，其他最优化变换也提供类似的承诺。变形病毒所插入的死代码会被死代码消除过程移除；藉由插入跳转语句重新排序的指令可以通过重新整理那些指令来复原。
+
+Though, at first glance, optimizing away the effects of metamorphic transformations looks like a promising technique, the real test of such analysis techniques depends on how they can be attacked. The example used above can be optimized by constant folding because the computation generating the constant is in the same control-flow block. Consider the following code:
+
+虽然乍一看，最优化去除变形变换结果看似一项有前途的技术，但是这种分析技术真正成功与否是要看它们会遭遇什么样的攻击。上面使用的那个例子能通过常数合并最优化，是因为生成常数的计算处在相同的控制流块中。考虑下列代码：
+
+```
+if (x < y) {
+  x = 10;
+  y = 15;
+} else {
+  x = 15;
+  y = 10;
+}
+
+port = x + y;
+```
+
+In this program too the variable `port` has the value `25` for all possible executions. However, constant folding will be unable to determine this fact. The reason is that `port` depends on the value of variables `x` and `y`, and neither of these variables holds a constant value at the point at which `x + y` is computed. Hence, the analysis will incorrectly determine that `port` is not a constant.
+
+在这个程序中所有可能的执行也都让变量 `port` 有数值 `25`。然而，常数合并无法确定这个事实。原因是 `port` 依赖变量 `x` 和 `y` 的值，而在计算 `x + y` 的时候这些变量都不具有一个常数值。因此该分析将会错误地判定 `port` 不是一个常数。
+
+This limitation of static analysis should not come as a surprise. Determining whether a piece of code always produces a certain constant value is the same as determining program equivalence, which is an undecidable problem. Hence, we can never develop a method that always determines correctly that a variable is a certain constant for all possible programs in which the variable is really a constant.
+
+不要对静态分析的这个局限性感到惊讶。确定一段代码是否总是产生某个常数值，等同于确定程序等效物，无法保证一定能做到。因此，我们永远不能找到这样一个方法：对于所有可能的程序，总是正确地判定某个变量是某个特定常数，即便在程序中该变量确实是一个常数。
+
+One may argue that dynamic analysis may be used to make the determination needed in the above example. But then, dynamic analyses can also be fooled. For example, to avoid getting into an infinite loop, and thereby hanging a system, an anti-virus system that uses an emulator (or a sand box) would have to determine when to terminate the analysis. The virus could attack the analysis by exhausting the patience of such an analyser.
+
+有人可能会争辨，在上述例子中可以使用动态分析做出结论。不过，动态分析也会被欺骗。例如，为了避免进入一个无限循环从而挂起系统，一个使用模拟器（或沙箱）的反病毒系统必须决定何时结束分析。病毒就可能通过消磨此类分析器的耐性来攻击该分析。
+
+## 2. PROCESS OF ANALYSING BINARIES
+
+# 2 分析二进制代码的进程
+
+The real challenge facing the anti-virus community is in analysing binary viruses. The anti-virus community knows how to handle macro viruses pretty well. In this section we outline the steps commonly used in analysing binaries. In the next section we highlight some of the assumptions at each step and how they can be attacked.
+
+反病毒社区对付宏病毒已经很有一套，他们面对的真正挑战是在分析二进制病毒代码方面。本小节我们概略说明分析二进制代码方面一般使用的几个步骤。下一小节我们着重说明每个步骤中的那些假定和攻击它们的方法。
+
+Figure 1 gives a diagrammatic representation of the steps in analysing a binary statically for the presence of malicious behaviour. For the sake of our discussion we assume that the input binary is unencrypted. This constraint disqualifies the use of this analysis for polymorphic viruses. Even without polymorphism we have enough to worry about, hence we ignore this dimension.
+
+图 1 给出静态分析二进制代码检查恶意行为的图示。出于我们的讨论目的，我们假设输入的二进制代码没有加密。由于有此约束，图中的分析不能用于多态病毒。即使没有多态也有足够多的东西要我们担心了，因此我们忽略这方面。
+
+![](img/87fdff358f0c8476831debfda4c6a502.jpg)
+
+The various stages in the analysis and the key function performed at the stage is described as follows:
+
+分析中的各个不同阶段及其主要作用描述如下：
+
+### 2.1 Disassembly
+
+## 2.1 反汇编
+
+The broad role of disassembly is to create mnemonic representation of binary code. The mnemonic representation is useful for manual analysis. However, the mnemonics are not necessary for a complete automated analysis. The key work performed in this stage is to determine which bytes of the binary hold executable instruction and which hold data.
+
+反汇编主要用来产生二进制代码的助记码表示。助记码表示法有助于人工分析。不过，对于一个完全自动化分析来说，助记码不是必需的。这个阶段要做的主要工作是确定二进制代码中哪些字节是可执行指令、哪些是数据。
+
+Since most recent architectures separate code and data, one may be tempted to believe the work at this stage to be trivial. That is indeed not the case because, while an architecture may enforce that a data segment does not contain code, there is no guarantee that the code segment does not contain data. Of course, since the code segment is write protected, the data in the code segment can only be constant. Nonetheless, there can be data, or simply garbage, in the code segment.
+
+由于大多数近代体系结构区分开代码和数据，因此你可能倾向于认为该阶段工作无足轻重。事实并非如此，因为体系结构可以强迫数据段不包含代码，但不保证代码段不包含数据。当然，由于代码段是写保护的，所以代码段中的数据只能是常数。虽然如此，在代码段中可以有数据，或者只是无用信息。
+
+The common method of disassembly, referred to as the linear sweep method, assumes that all bytes starting from the entry point of a binary (or some start location) are instructions, and disassembles the entire code segment, following successive bytes. When the content of some location does not match a valid instruction, one may assume that it is data.
+
+反汇编的通常方法，即所谓线性扫描方法，假定从二进制代码入口点（或某开始位置）开始的所有字节是指令，并且顺序反汇编整个代码段字节。当某些位置的内容不匹配一个有效指令时，会假定它是数据。
+
+This method is acceptable in a disassembler designed for interactive analysis of binaries, such as `IDA Pro`. However, it has obvious shortcomings when used for automated analysis.
+
+这个方法可以满足象 `IDA Pro` 这样，被设计用作二进制代码交互式分析的反汇编器。但是用来自动化分析的时候，它有明显的缺点。
+
+
+
+A recently reported algorithm, called `recursive traversal`, overcomes some of the shortcomings (Schwarz and Debray, 9th Working Conference on Reverse Engineering, 2002). In this method code is disassembled by tracing the flow of control in the program. Thus, whenever a branch instruction is encountered the disassembly continues simultaneously at both the address following the branch instruction and the address that is the target of the branch instruction. Some targets that are reachable only through indirect control transfers are identified using a speculative disassembly process (Cifuente and Emmerik, IEEE Computer 33(3), 2000).
+
+最近提出的一个算法，名为`recursive traversal`，克服了某些缺点（Schwarz 和 Debray，第 9 届关于逆向工程的工作会议，2002 年）。这个方法通过跟踪程序中的控制流反汇编代码。因此，无论何时遇到一个分支指令，就同时从两个地址继续反汇编：分支指令后面的地址和分支指令的目标地址。某些目标只能通过间接控制传送可到达，就使用推测性的反汇编处理来鉴定（Cifuente 和 Emmerik，`IEEE Computer 33(3)`，2000 年）。
+
+## 2.2 Procedure abstraction
+
+### 2.2 过程抽象
+
+Once the executable instructions of a program have been identified they may be segmented into groups representing procedures (or functions). This is motivated from the notion of procedures (and functions) in high-level programming languages. Since most compilers compile a procedure into a contiguous set of instructions, the procedure boundaries could be determined by identifying the entry points of successive procedures. The entry points in turn could be identified by identifying the `CALL` instructions (in the disassembly stage).
+
+一旦程序的可执行指令已经被识别，它们就可以被分割为表示过程（或函数）的组。这是起因于高级编程语言中过程（和函数）的概念。由于大多数编译器把一个过程编译成一个不间断的指令集合，因此过程边界可以通过识别相继过程的入口点来判定。入口点依次可以通过（在反汇编阶段）鉴定 `CALL` 指令来标识。
+
+Unlike its high-language counterpart, a binary program does not have any construct identifying the beginning and end of a procedure. This problem does not appear to have been discussed in the literature and may need attention.
+
+和它所对应的高级语言源码不同，二进制程序没有任何标识过程开始和结束的构造。似乎尚未有文献资料讨论过这个问题，可能需要注意一下。
+
+## 2.3 Control flow graph generation
+
+### 2.3 控制流程图生成
+
+A control flow graph (`CFG`) is a directed graph. Its nodes represent statements (or blocks of statements). Edges in the graph represent flow of control from one statement (or block) to another. A `CFG` is commonly created for a single procedure. Since a procedure in a high-level language has a single entry and a single exit point, it is common for a `CFG` to have a unique entry and exit node as well. In a `CFG` the node representing a procedure call may be linked to the `CFG` of the called procedure, thereby creating interprocedural `CFG`.
+
+控制流程图(`CFG`)是一个有向图。它的结点表示语句（或语句块）。图的弧边表示从一个语句（或块）到另一个语句或语句块的控制流。通常，为一个单一过程建立一个 `CFG`。因为在高级语言中一个过程有一个单一入口点和一个单一出口点，所以一个 `CFG` 通常也有唯一的入口结点和出口结点。在一个 `CFG` 中表示过程调用的结点可能链接到它所调用的过程的 `CFG`，由此产生过程间 `CFG`。
+
+All static analysis techniques used in compilers and model checkers assume the existence of `CFGs` for the procedures of a program. Because a `CFG` is a language-neutral representation of the flow of control in a program, algorithms based on `CFGs` can be used for any (procedural) language.
+
+编译器和模型检查器使用的所有静态分析技术假定程序的过程有 `CFGs`。因为 `CFG` 是程序控制流的一个中性语言表示法，所以基于 `CFGs` 的算法能被用于任何（程序的）语言。
+
+An algorithm for constructing `CFGs` for high-level language programs is available in text books. The same method is adapted for assembly language programs.
+
+在教科书中有一个算法用来为高级语言程序构造 `CFGs`。它同样适用于汇编语言程序。
+
+## 2.4 Data flow analysis
+
+### 2.4 数据流分析
+
+There are various analyses that qualify as data flow analysis. The most common analysis is data dependence analysis, which is to determine the instructions that use the variable (register or memory location) modified by another instruction. The analyses performed for optimizing transformations are all classified as data flow analyses, or flow analyses.
+
+许多分析都能胜任数据流分析。最通常的分析是数据依存性分析，它用来确定指令使用的变量（寄存器或内存位置）是否被另一条指令修改。在变换最优化中执行的这些分析都被划归为数据流分析或流分析。
+
+Besides assuming the existence of `CFGs`, these analyses also assume that the data area of a program is segmented into variables, where each variable has a unique name (modulo scoping rules). Also associated to a variable is its type and size. A binary program has no such segmentation. The data area is simply a continuous sequence of bytes. Though the address of a data area may be treated as its name, the type of data it holds and the size (number of such units) is not obvious from the binary. The problem of identification of variables in a binary does not appear to have been discussed in the literature, and deserves attention.
+
+除了假定 `CFGs` 存在，这些分析也假定程序的数据区被分割为变量，其中每个变量有个唯一名字（以作用域规则为模）。与一个变量相关联的还有它的类型和大小。二进制程序没有这样的分割。数据区只是一序列连续字节。虽然数据区的地址可能被赋予它名字，但是从二进制代码不能明显看出它所具有的数据类型和大小（这类单元的数目）。在二进制代码中变量鉴别的问题似乎不曾在文献资料中讨论过，值得关注。
+
+## 2.5 Property verification
+
+### 2.5 特性验证
+
+The property verification's phase determines the existence (or non-existence) of a property in a program. This phase takes two inputs: (1) a formal representation of the suspicious property (or properties) and (2) control flow graph and data flow information of the program. It outputs a determination whether or not the program satisfies the given properties. This answer is then translated into whether the program contains malicious behaviour.
+
+特性验证的阶段确定一个程序中是否存在某个特性。该阶段取两个输入：(1) 一个或多个可疑特性的形式表示，和 (2) 程序的控制流与数据流信息。它输出确定该程序是否满足给定特性。这个答案然后被转化成程序是否含有恶意行为。
+
+For example, consider the property `SendsLotsOfMail` to be true if the following holds:
+
+例如，如果以下成立，就认为特性 `SendsLotsOfMail` 为真：
+
+- 该程序包含一个循环，且该循环中有 `GetEmailAddress` 和 `SendMail`。
+
+In order to determine whether this property holds, the analyser may create a compacted `CFG` that contains only calls to `GetEmailAddress` and `SendMail`. It would then determine whether the two functions are in a loop.
+
+为了确定该特性是否有效，分析器可能产生一个紧密型 `CFG`，它只包含对 `GetEmailAddress` 和 `SendMail` 的调用。然后分析器将检定这两个函数是否在一个循环之内。
+
+Over the last decade the use of model checking to verify the presence or absence of properties has gained prominence. Loosely speaking, model checking is a way to check for the existence of a finite state machine (specification) in another finite state machine (program).
+
+近十年以来，使用模型检查来验证有无某些特性已经成为主流。不严格地说，模型检查是在一个有限状态机器（程序）中检验另一个有限状态机器（清单）存在性的一个方法。
+
+The property to be checked is described as a finite state machine that transitions on atomic predicates, properties that can be identified by cursory look at the program. The program being checked is also converted to a finite state machine, created by abstracting away all the details except the atomic predicates observed in the program. Model checking is then used to check whether a program has a given property.
+
+所要检查的特性被描述为一个有限状态机器，即原子谓词上的转变，这样粗略地查看程序就能识别出这些特性。被检查的程序也被转换为一个有限状态机器，通过摘掉所有细节、只保留程序中被观测的原子谓词。然后使用模型检查来检验一个程序是否有某个给定特性。
+
+# 3 PROBLEMS IN STATIC ANALYSIS OF BINARIES
+
+## 3 二进制代码静态分析中的问题
+
+We now discuss how a virus writer may attack the various stages in the analysis of binaries described above.
+
+我们现在讨论病毒作者可能如何攻击以上所述二进制代码分析的各不同阶段。
+
+## 3.1 Attack on disassembly
+
+### 3.1 对反汇编的攻击
+
+In the von Neumann architecture there is no definite way to differentiate code and data that is resident in memory.
+
+在冯·诺依曼体系结构中，没有明确的方法可以区别驻存于内存中的代码和数据。
+
+The linear sweep method can be fooled by introducing garbage data immediately after an unconditional jump instruction. The recursive traversal method can be fooled by placing garbage data after a conditional jump instruction and programmatically ensuring that the jump condition always succeeds. This will lead the recursive traversal algorithm to follow both the paths, the instruction immediately after the conditional jump instruction and the target of the jump instruction, potentially leading to an inconsistent state.
+
+通过在一条无条件跳转指令之后立即插入无用数据，能够欺骗线性扫描方法。通过在一个有条件跳转指令之后放置无用数据、并且有规划地确保跳转条件总是跳转成功，能够欺骗递归遍历方法。它将引导递归遍历算法跟随这两个路径：条件跳转指令之后紧接的那条指令和跳转指令的目标，潜在地导致一个不相容的状态。
+
+
+
+为了使反汇编陷入窘境，无用数据可能是由手工打造以便让它匹配某个有效指令；以此挫败启发式验证跳转指令之后的指令是否有效。可能通过在某个寄存器中计算目标地址、并且使用间接跳转指令把控制传给该寄存器中的地址，把跳转指令本身的目标隐藏起来。
+
+### 3.2 对过程抽象的攻击
+
+由于过程是大多数分析算法的基本单位，所以病毒作者会设法使得识别二进制程序中的过程更加困难从而挫败静态分析。如果分析不能够确定过程边界，就可能被攻击。比如，使用进栈指令和跳转指令的一个组合，就可以混淆调用指令而实现对这个阶段的威胁。
+
+把过程代码放在连续的存储区域也不是绝对的规矩。事实上，这只是编译器的习惯做法。并不保证手写的汇编程序也保持这个传统。病毒`Win32.Evol`就是个典型的例子。使用`IDA Pro`鉴别它的过程，你将发现该病毒挫败了`IDA Pro`所用的启发式。
+
+这类代码碎片不需要手工编写。修改象`gcc`这类的编译器不会太难，可以改变成把一个过程切碎放到不连续的块。或者也可以等到可执行文件生成之后再自动化切碎。
+
+### 3.3 对控制流程图生成的攻击
+
+通过在`CFG`中制造冗余边欺骗`CFG`生成算法，从而使`CFG`的建立受到威胁。多余边的产生可能危害以后阶段分析的准确性。攻击`CFG`生成进程也可以是通过混淆汇编代码以致它不能够正确地确定跳转指令的目标，比如使用寄存器指示跳转目标。
+
+解析这些跳转目标的一个方法是，假定跳转会把控制传送给每条指令（或每个指令块）。这个假定，虽然对编译器最优化使用的各种静态分析来说是安全的，但是由于增加了时间和空间的代价，会致反病毒技术于不利处境。
+
+### 3.4 对数据流分析的攻击
+
+在‘形式分析的承诺’这个小节中讨论了一个攻击流分析阶段的例子。大多数的流分析算法从`CFG`的一个结点到另一个结点传送数据组。当数据从两个不同的前趋流入一个结点的时候，两组数据被合并产生一个单个组。在合并数据的处理中，一些信息被遗失，导致不精确的分析。
+
+通过把`CFG`的一个语句块中一些计算移到前面的结点而且沿每条路径混淆计算，能够攻击数据流分析阶段。对该分析的攻击也能够藉由使用驻存在程序作用域以外的数据，比如在操作系统所管理的区域中。这些区域中已知的常数数值可被用于程序中的计算，以此阻挠正确分析。例如，`Win32.Evol`和其他病毒利用了`kernel32.dll`被装入特定地址的这一知识。也可能使用这些相同地址从`kernel32.dll`代码里面存取常数数据。
+
+### 3.5 对特性验证的攻击
+
+特性验证使用定理求证系统来实现。典型地，这些系统依赖人类的引导防止它们进入无限循环。象模型检查程序这种完全自动化的定理证明程序是在问题的一个抽象上操作。有时抽象本身可能是很大的工作量，以致定理证明程序可能花费过多时间和资源来完成证明。要不然，抽象会丢掉那么多信息，以致于定理证明程序产生的结果对抽象而言是正确的，但是对于正在被分析的程序而言则是不正确的了。
+
+通过了解在反病毒技术中使用的定理证明程序如何确定原子特性的存在，以及它如何把原子特性组成更复杂的特性，病毒作者能够攻击这个机制。
+
+例如，设想有一个反病毒工具使用是否存在对系统程序库的调用作为原子特性。这个`AV`工具可能搜索调用指令的目标地址以判定是否有调用一个系统程序库函数。由于`Win32.Evol`混淆对系统程序库函数的调用，所以它能逃脱这类病毒检测程序。这个病毒不使用调用指令而是使用返回指令实施调用。不过在返回指令被执行之前，被调用的函数的地址被推入栈顶上。如果分析器不能够确定一个病毒是否调用某个特定的库函数，那么分析器有两个选择。一、假定程序实际上没有调用`Win32 API`，因此让病毒蒙过去。二、假定程序确实调用库，对于实际上没有调用`API`的程序则造成假阳性。
+
+## 4 结论
+
+我们已经论证了，最优化编译器和其他编程工具所使用的形式分析方法，尽管在变形病毒检测中的应用前景乐观，但是在反病毒技术中直接使用它们是不合适的。
+
+分析一个二进制代码的通常方式有以下几个阶段：反汇编，过程抽象，控制流程图生成，数据流分析和签名验证。这每一阶段中基于编译器最优化的方法会被轻易地攻击。因此，即使在每一阶段中的处理有 90%的正确率，整个系统也只会有 59%的正确率，这近乎是掷硬币的结果。
+
+
+
+In order to use these formal analysis methods in anti-virus technologies, we may have to rethink the whole process. Unlike in the context of optimizing compilers and other similar tools, the analysis tool and the programmer (virus writer) do not have a common objective. Hence, assumptions made by analysis methods used by such compilers can be exploited by the virus writer.
+
+为了在反病毒技术中使用这些形式分析方法，我们可能必须重新考虑整个过程。与最优化编译器及其他类似工具的情况不同，分析工具和程序设计者（病毒作者）没有共同目标。因此，这些编译器使用分析方法的假设前提可能会被病毒作者利用。
+
+The good news is that a virus writer is confronted with the same theoretical limit as are anti-virus technologies. To keep ahead of anti-virus technologies, a metamorphic virus writer has to address some of the same challenges that `AV` technologies face. This is likely to have an effect on the pace at which new metamorphic transformations can be introduced. It may be worth contemplating how this could be used to the advantage of `AV` technologies.
+
+好消息是，病毒作者和反病毒技术一样也遇到相同的理论限制。为了保持领先于反病毒技术，变形病毒作者必须处理与`AV`技术共同面对的某些难题。这可能影响到变形病毒花样翻新的速度。如何才能让它为`AV`技术所用，这是值得深思的。
+
+`4dd466d0e1e0cc123afbe504da2462ca`
