@@ -1,0 +1,17 @@
+
+## 10. 判断 `dsound.dll` 是否存在
+
+代码:
+
+```
+004026A1  |.  51              push    ecx                      ; /String
+004026A2  |.  FFD6           call    esi                      ; \返回缓冲区内%windir%\system32\dsound.dll 的长度
+004026A4  |.  85C0           test    eax, eax
+004026A6  |.  7E 3C          jle     short 004026E4            ;  不存在则跳走
+```
+
+## 11. 查找区段 `.data2`
+
+正常的 `dsound.dll` 是没有 `.data2` 的,见截图.
+
+代码:
