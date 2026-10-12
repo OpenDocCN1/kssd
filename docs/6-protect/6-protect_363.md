@@ -121,9 +121,7 @@ esto   
 来到模块入口点  
 ```
 00409508 >^\\E9 73FCFFFF     jmp     00409180  
-```
 
-```
 00409180    803D E1944000 0>cmp     byte ptr \[4094E1\], 1            ;比较 4094E1 处标记，是 1 的话则 Call ExitProcess Game Over!  
 00409187    0F84 73030000   je      00409500  
 0040918D    C605 E1944000 0>mov     byte ptr \[4094E1\], 1            ;设 4094E1 处标记为 1，如果程序被 Dump 的话，则执行 Dump 后的程序会不正常  
@@ -375,13 +373,9 @@ asm 004063E7,"push 0C0123333"
 
 ```
 0040667D    FF15 12314000   call    dword ptr \[<&KERNEL32.GetTickCount>\]           ; KERNEL32.GetTickCount  
-```
 
-```
 004066B2    3D 88130000     cmp     eax, 1388  
-```
 
-```
 004066D5   /0F8F 84050000   jg      00406C5F                                        ;同上处理  
 ```
 
@@ -416,25 +410,15 @@ asm 004063E7,"push 0C0123333"
 
 ```
 0075151D    FF10            call    dword ptr \[eax\]                                ; KERNEL32.OpenProcess  
-```
 
-```
 0075162F    FF10            call    dword ptr \[eax\]                                ; KERNEL32.ReadProcessMemory  
-```
 
-```
 007516B5    FF10            call    dword ptr \[eax\]                                ; KERNEL32.CloseHandle  
-```
 
-```
 00751728    FF15 C6304000   call    dword ptr \[<&KERNEL32.lstrcmp>\]                ; KERNEL32.lstrcmpA  
-```
 
-```
 00751760    83F8 00         cmp     eax, 0  
-```
 
-```
 00751778   /75 2F           jnz     short 007517A9                                  ;这里必须跳，否则紧随其后的代码会将 004052EC 的值减 1   
 ```
 
@@ -565,40 +549,26 @@ ret
 00401045    57              push    edi  
 00401046    817D 0C 1001000>cmp     dword ptr \[ebp+C\], 110            //窗口初始化消息  
 0040104D    74 13           je      short 00401062  
-```
 
-```
 0040104F    817D 0C 1101000>cmp     dword ptr \[ebp+C\], 111            //WM\_COMMAND  
 00401056    74 14           je      short 0040106C  
-```
 
-```
 00401058    837D 0C 10      cmp     dword ptr \[ebp+C\], 10             //关闭窗口消息  
 0040105C    74 6C           je      short 004010CA  
-```
 
-```
 0040105E    31C0            xor     eax, eax                          //Default 消息  
 00401060    EB 75           jmp     short 004010D7  
-```
 
-```
 00401062    8B45 08         mov     eax, dword ptr \[ebp+8\]             //窗口初始化，这里\[ebp+8\]保存的是窗口句柄  
 00401065    A3 70214000     mov     dword ptr \[402170\], eax            //将窗口句柄保存到\[402170\]  
 0040106A    EB 66           jmp     short 004010D2  
-```
 
-```
 0040106C    837D 10 02      cmp     dword ptr \[ebp+10\], 2              //Exit 按钮被按下了  
 00401070    74 58           je      short 004010CA  
-```
 
-```
 00401072    837D 10 01      cmp     dword ptr \[ebp+10\], 1              //Validate 按钮被点击  
 00401076    75 5A           jnz     short 004010D2  
-```
 
-```
 00401078    B8 00204000     mov     eax, 00402000                    ; #include <windows.h>\\n\\nint main(int argc, char \*argv\[\])\\n\\n{\\n\\n        hwnd phstart;\\n\\n        point ptwnd = {15, getsystemmetrics(sm\_cyscreen)-15 };\\n\\n        phstart = windowfrompoint(ptwnd);\\n\\n        setwindowtext(phstart,"fuck");\\n\\nreturn 0;\\n\\n  
 0040107D    D1E0            shl     eax, 1  
 0040107F    31C0            xor     eax, eax  
@@ -608,16 +578,12 @@ ret
 0040108F    A1 F6324000     mov     eax, dword ptr \[<&USER32.Message>   //检测 MessageBoxA 函数是否被下断  
 00401094    8038 CC         cmp     byte ptr \[eax\], 0CC  
 00401097  - 0F84 2AE1FFFF   je      003FF1C7                            //Game Over  
-```
 
-```
 0040109D    E8 3E000000     call    004010E0                            //这里对输入数据进行验证  
 004010A2    83F8 00         cmp     eax, 0                              //如果结果大于等于 0 则弹出成功对话框  
 004010A5    7D 02           jge     short 004010A9  
 004010A7    EB 1F           jmp     short 004010C8  
-```
 
-```
 004010A9    6A 40           push    40  
 004010AB    68 51214000     push    00402151                         ; solved  
 004010B0    68 58214000     push    00402158                         ; you solved the crackme.  
@@ -742,15 +708,11 @@ E930EFFFFFE92BEFFFFF909090909090909090909090909090909090909090909090909090909090
 004010F5    68 EA000000     push    0EA  
 004010FA    FF35 70214000   push    dword ptr \[402170\]  
 00401100    E8 9B000000     call    004011A0                         ; GetDlgItemTextA  
-```
 
-```
 0040114B    68 74214000     push    00402174  
 00401150    57              push    edi                                //★ 这里的指向了当前栈空间  
 00401151    E8 AAEE3900     call    007A0000                         ; lstrcpy  复制字符串，由于我们可取的字符串最长可能为 300，而刚才我们分配的栈空间大小才 100，如果 Skey 长度大于 100 的时候会发生什么？  
-```
 
-```
 0040117D   /E3 07           jecxz   short 00401186  
 0040117F   |B8 9CFFFFFF     mov     eax, -64  
 00401184   |EB 05           jmp     short 0040118B  
