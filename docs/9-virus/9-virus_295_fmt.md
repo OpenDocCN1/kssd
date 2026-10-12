@@ -1,0 +1,647 @@
+
+# 使用 IDA 静态分析某恶意程序及相应解决方案
+
+> 原文：[`www.pediy.com/kssd/pediy11/119851.html`](https://www.pediy.com/kssd/pediy11/119851.html)
+
+## 问题背景
+
+在经过某论坛(这里就不提了...)时，浏览到一个悬赏帖子，要求关掉他给出的一个时钟程序，估计是隐藏进程之类的（`IDA` 后发现是 `dll` 注入线程），由于当时给出的时钟效果图确实不错，于是就想研究下它..路过的话路过，有建议的请建议
+
+样本程序：
+
+`clock.rar` `[解压密码是：kill_virus]`
+
+我写的专杀（确实只是针对它而且是 `R3` 的）一并放在这：
+
+`KillClock.rar`
+
+## 问题分析
+
+拿到这个样本程序后，所先用 `PEID` 查看其有没有加壳.
+
+![](img/86919895ba0a29c2e91d1860c2de8168.jpg)
+
+发现没有加壳...幸运~~  ^^
+
+然后操起 `IDA Pro` 来分析下
+
+代码:
+
+```
+text:00401250 ; int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
+.text:00401250 _WinMain@16      proc near                   ; CODE XREF: start+C9p
+.text:00401250
+.text:00401250 FileName         = byte ptr -12Ch
+.text:00401250 var_128          = dword ptr -128h
+.text:00401250 var_124          = dword ptr -124h
+.text:00401250 var_120          = byte ptr -120h
+.text:00401250 var_11F         = dword ptr -11Fh
+.text:00401250 var_11B         = dword ptr -11Bh
+.text:00401250 var_117         = dword ptr -117h
+.text:00401250 var_113         = dword ptr -113h
+.text:00401250 var_10F         = word ptr -10Fh
+.text:00401250 var_10D         = byte ptr -10Dh
+.text:00401250 var_10C         = byte ptr -10Ch
+.text:00401250 hInstance        = dword ptr  4
+.text:00401250 hPrevInstance    = dword ptr  8
+.text:00401250 lpCmdLine        = dword ptr  0Ch
+.text:00401250 nShowCmd         = dword ptr  10h
+.text:00401250
+.text:00401250                 sub     esp, 12Ch
+.text:00401256                 mov     ecx, dword_406080
+.text:0040125C                 mov     edx, dword_406084
+.text:00401262                 mov     eax, dword_40607C
+.text:00401267                 mov     [esp+12Ch+var_128], ecx
+.text:0040126B                 xor     ecx, ecx
+.text:0040126D                 mov     [esp+12Ch+var_124], edx
+.text:00401271                 mov     [esp+12Ch+var_11F], ecx
+.text:00401275                 lea     edx, [esp+12Ch+FileName]
+.text:00401279                 mov     [esp+12Ch+var_11B], ecx
+.text:0040127D                 push    esi
+.text:0040127E                 mov     [esp+130h+var_117], ecx
+.text:00401282                 mov     dword ptr [esp+130h+FileName], eax
+.text:00401286                 mov     al, byte_406088
+.text:0040128B                 mov     [esp+130h+var_113], ecx
+.text:0040128F                 push    edx                 ; lpFileName
+.text:00401290                 mov     [esp+134h+var_10F], cx
+.text:00401295                 push    offset Type         ; "CUSTOM"
+.text:0040129A                 push    66h                 ; lpName
+.text:0040129C                 mov     [esp+13Ch+var_120], al
+.text:004012A0                 mov     [esp+13Ch+var_10D], cl
+.text:004012A4                 call    sub_401310
+.text:004012A9                 add     esp, 0Ch
+.text:004012AC                 lea     ecx, [esp+130h+var_10C]
+.text:004012B0                 push    offset aExplorer_exe ; "explorer.exe"
+.text:004012B5                 call    sub_401000
+.text:004012BA                 push    1
+.text:004012BC                 lea     ecx, [esp+134h+var_10C]
+.text:004012C0                 call    sub_401130
+.text:004012C5                 mov     esi, ds:Sleep
+.text:004012CB
+.text:004012CB loc_4012CB:                        ; CODE XREF: WinMain(x,x,x,x)+8Fj
+.text:004012CB                 lea     ecx, [esp+130h+var_10C]
+.text:004012CF                 call    sub_401070
+.text:004012D4                 test    eax, eax
+.text:004012D6                 jnz     short loc_4012E1
+.text:004012D8                 push    1388h           ; dwMilliseconds
+.text:004012DD                 call    esi ; Sleep
+.text:004012DF                 jmp     short loc_4012CB
+.text:004012E1 ; -------------------------------------------------
+.text:004012E1
+.text:004012E1 loc_4012E1:                        ; CODE XREF: WinMain(x,x,x,x)+86j
+.text:004012E1                 push    offset dword_40607C ; lpBuffer
+.text:004012E6                 lea     ecx, [esp+134h+var_10C]
+.text:004012EA                 call    sub_4011C0
+.text:004012EF                 lea     ecx, [esp+130h+var_10C]
+.text:004012F3                 call    sub_401060
+.text:004012F8                 xor     eax, eax
+.text:004012FA                 pop     esi
+.text:004012FB                 add     esp, 12Ch
+.text:00401301                 retn    10h
+.text:00401301 _WinMain@16     endp
+```
+
+发现出现“`explorer`”字样，估计该程序隐藏在 `explorer` 进程里运行，再跟进 `sub_401310` 中：
+
+代码:
+
+
+
+```
+.text:00401310 ; int __cdecl sub_401310(LPCSTR lpName, LPCSTR lpType, LPCSTR lpFileName)
+.text:00401310 sub_401310     proc near              ; CODE XREF: WinMain(x,x,x,x)+54p
+.text:00401310
+.text:00401310 NumberOfBytesWritten= dword ptr -4
+.text:00401310 lpName          = dword ptr  4
+.text:00401310 lpType          = dword ptr  8
+.text:00401310 lpFileName      = dword ptr  0Ch
+.text:00401310
+.text:00401310             push    ecx
+.text:00401311             push    ebx
+.text:00401312             push    esi
+.text:00401313             push    0               ; lpModuleName
+.text:00401315             call    ds:GetModuleHandleA
+.text:0040131B             mov     ecx, [esp+0Ch+lpName]
+.text:0040131F             mov     esi, eax
+.text:00401321             mov     eax, [esp+0Ch+lpType]
+.text:00401325             push    eax             ; lpType
+.text:00401326             push    ecx             ; lpName
+.text:00401327             push    esi             ; hModule
+.text:00401328             call    ds:FindResourceA
+.text:0040132E             mov     ebx, eax
+.text:00401330             test    ebx, ebx
+.text:00401332             jnz     short loc_401338
+.text:00401334             pop     esi
+.text:00401335             pop     ebx
+.text:00401336             pop     ecx
+.text:00401337             retn
+.text:00401338 ; ---------------------------------------------------------------------------
+.text:00401338
+.text:00401338 loc_401338:                       ; CODE XREF: sub_401310+22j
+.text:00401338             push    ebp
+.text:00401339             push    edi
+.text:0040133A             push    ebx             ; hResInfo
+.text:0040133B             push    esi             ; hModule
+.text:0040133C             mov     [esp+1Ch+NumberOfBytesWritten], 0
+.text:00401344             call    ds:LoadResource
+.text:0040134A             mov     edi, eax
+.text:0040134C             push    edi             ; hResData
+.text:0040134D             call    ds:LockResource
+.text:00401353             push    ebx             ; hResInfo
+.text:00401354             push    esi             ; hModule
+.text:00401355             mov     ebp, eax
+.text:00401357             call    ds:SizeofResource
+.text:0040135D             mov     edx, [esp+14h+lpFileName]
+.text:00401361             push    0               ; hTemplateFile
+.text:00401363             push    6               ; dwFlagsAndAttributes
+.text:00401365             push    2               ; dwCreationDisposition
+.text:00401367             push    0               ; lpSecurityAttributes
+.text:00401369             push    7               ; dwShareMode
+.text:0040136B             push    40000000h       ; dwDesiredAccess
+.text:00401370             push    edx             ; lpFileName
+.text:00401371             mov     ebx, eax
+.text:00401373             call    ds:CreateFileA
+.text:00401379             mov     esi, eax
+.text:0040137B             lea     eax, [esp+14h+NumberOfBytesWritten]
+.text:0040137F             push    0               ; lpOverlapped
+.text:00401381             push    eax             ; lpNumberOfBytesWritten
+.text:00401382             push    ebx             ; nNumberOfBytesToWrite
+.text:00401383             push    ebp             ; lpBuffer
+.text:00401384             push    esi             ; hFile
+.text:00401385             call    ds:WriteFile
+.text:0040138B             push    esi             ; hFile
+.text:0040138C             call    ds:FlushFileBuffers
+.text:00401392             push    esi             ; hObject
+.text:00401393             call    ds:CloseHandle
+.text:00401399             push    edi             ; hResData
+.text:0040139A             call    ds:FreeResource
+.text:004013A0             pop     edi
+.text:004013A1             pop     ebp
+.text:004013A2             pop     esi
+.text:004013A3             mov     eax, 1
+.text:004013A8             pop     ebx
+.text:004013A9             pop     ecx
+.text:004013AA             retn
+.text:004013AA sub_401310     endp
+```
+
+发现它在做释放资源之类的动作，估计是作者将 `dll` 之类作为资源包含在执行文件当中，运行后再将其释放到了某个位置然后根据本函数的参数调用，回溯到 `WinMain` 开头那几个数组，跟进去，发现：
+
+代码:
+
+```
+.data:00406080 dword_406080    dd 32334955h            ; DATA XREF: WinMain(x,x,x,x)+6r
+.data:00406084 dword_406084    dd 6C6C642Eh            ; DATA XREF: WinMain(x,x,x,x)+Cr
+.data:00406088 byte_406088     db 0                     ; DATA XREF: WinMain(x,x,x,x)+36r
+```
+
+点击 `x` 按钮将其转成字符串
+
+代码:
+
+```
+data:0040607C                         ; WinMain(x,x,x,x):loc_4012E1o
+.data:0040607D             db  3Ah ; :
+.data:0040607E             db  5Ch ; \\
+.data:0040607F             db  47h ; G
+.data:00406080 dword_406080    dd '23IU'               ; DATA XREF: WinMain(x,x,x,x)+6r
+.data:00406084 dword_406084    dd 'lld.'               ; DATA XREF: WinMain(x,x,x,x)+Cr
+.data:00406088 byte_406088     db 0                     ; DATA XREF: WinMain(x,x,x,x)+36r
+```
+
+好，现在可以确定资源释放为 `"c:\\GUI.dll"` 了
+
+回到 `WinMain` 函数当中，继续追查，查看 `sub_401130`
+
+代码:
+
+
+
+```
+.text:00401130 sub_401130      proc near                ; CODE XREF: WinMain(x,x,x,x)+70p
+.text:00401130
+.text:00401130 hObject        = dword ptr -1Ch
+.text:00401130 Luid           = _LUID ptr -18h
+.text:00401130 NewState       = _TOKEN_PRIVILEGES ptr -10h
+.text:00401130 arg_0          = dword ptr  4
+.text:00401130
+.text:00401130                sub     esp, 1Ch
+.text:00401133                lea     eax, [esp+1Ch+hObject]
+.text:00401137                push    esi
+.text:00401138                push    eax             ; TokenHandle
+.text:00401139                push    20h             ; DesiredAccess
+.text:0040113B                xor     esi, esi
+.text:0040113D                call    ds:GetCurrentProcess
+.text:00401143                push    eax             ; ProcessHandle
+.text:00401144                call    ds:OpenProcessToken
+.text:0040114A                test    eax, eax
+.text:0040114C                jz      short loc_4011B3
+.text:0040114E                lea     ecx, [esp+20h+Luid]
+.text:00401152                push    ecx             ; lpLuid
+.text:00401153                push    offset Name     ; "SeDebugPrivilege"
+.text:00401158                push    esi             ; lpSystemName
+.text:00401159                call    ds:LookupPrivilegeValueA
+.text:0040115F                mov     edx, [esp+20h+Luid.LowPart]
+.text:00401163                mov     ecx, [esp+20h+arg_0]
+.text:00401167                mov     eax, [esp+20h+Luid.HighPart]
+.text:0040116B                mov     [esp+20h+NewState.Privileges.Luid.LowPart], edx
+.text:0040116F                neg     ecx
+.text:00401171                push    esi             ; ReturnLength
+.text:00401172                push    esi             ; PreviousState
+.text:00401173                lea     edx, [esp+28h+NewState]
+.text:00401177                mov     [esp+28h+NewState.Privileges.Luid.HighPart], eax
+.text:0040117B                mov     eax, [esp+28h+hObject]
+.text:0040117F                push    10h             ; BufferLength
+.text:00401181                sbb     ecx, ecx
+.text:00401183                push    edx             ; NewState
+.text:00401184                and     ecx, 2
+.text:00401187                push    esi             ; DisableAllPrivileges
+.text:00401188                push    eax             ; TokenHandle
+.text:00401189                mov     [esp+38h+NewState.PrivilegeCount], 1
+.text:00401191                mov     [esp+38h+NewState.Privileges.Attributes], ecx
+.text:00401195                call    ds:AdjustTokenPrivileges
+.text:0040119B                call    ds:GetLastError
+.text:004011A1                mov     ecx, [esp+20h+hObject]
+.text:004011A5                mov     esi, eax
+.text:004011A7                neg     esi
+.text:004011A9                sbb     esi, esi
+.text:004011AB                push    ecx             ; hObject
+.text:004011AC                inc     esi
+.text:004011AD                call    ds:CloseHandle
+.text:004011B3
+.text:004011B3 loc_4011B3:                        ; CODE XREF: sub_401130+1Cj
+.text:004011B3                mov     eax, esi
+.text:004011B5                pop     esi
+.text:004011B6                add     esp, 1Ch
+.text:004011B9                retn    4
+.text:004011B9 sub_401130      endp
+```
+
+发现这里做了一些提权的事情，估计要准备注入进程当中了，继续研究`sub_401070`。
+
+代码:
+
+
+
+```
+.text:00401070 sub_401070     proc near            ; CODE XREF: WinMain(x,x,x,x)+7Fp
+.text:00401070
+.text:00401070 pe              = PROCESSENTRY32 ptr -128h
+.text:00401070
+.text:00401070             sub     esp, 128h
+.text:00401076             push    ebx
+.text:00401077             push    ebp
+.text:00401078             push    esi
+.text:00401079             mov     ebx, ecx
+.text:0040107B             push    edi
+.text:0040107C             xor     eax, eax
+.text:0040107E             mov     ecx, 49h
+.text:00401083             lea     edi, [esp+138h+pe.cntUsage]
+.text:00401087             mov     [esp+138h+pe.dwSize], 128h
+.text:0040108F             push    eax             ; th32ProcessID
+.text:00401090             rep stosd
+.text:00401092             push    2               ; dwFlags
+.text:00401094             call    CreateToolhelp32Snapshot
+.text:00401099             mov     edi, eax
+.text:0040109B             cmp     edi, 0FFFFFFFFh
+.text:0040109E             jz      short loc_40110A
+.text:004010A0             lea     eax, [esp+138h+pe]
+.text:004010A4             push    eax             ; lppe
+.text:004010A5             push    edi             ; hSnapshot
+.text:004010A6             call    Process32First
+.text:004010AB             test    eax, eax
+.text:004010AD             jz      short loc_401103
+.text:004010AF             lea     ebp, [ebx+8]
+.text:004010B2
+.text:004010B2 loc_4010B2:                     ; CODE XREF: sub_401070+91j
+.text:004010B2             push    ebp             ; String
+.text:004010B3             call    __strlwr
+.text:004010B8             lea     ecx, [esp+13Ch+pe.szExeFile]
+.text:004010BC             mov     esi, eax
+.text:004010BE             push    ecx             ; String
+.text:004010BF             call    __strlwr
+.text:004010C4             add     esp, 8
+.text:004010C7
+.text:004010C7 loc_4010C7:                     ; CODE XREF: sub_401070+75j
+.text:004010C7             mov     dl, [eax]
+.text:004010C9             mov     cl, dl
+.text:004010CB             cmp     dl, [esi]
+.text:004010CD             jnz     short loc_4010EB
+.text:004010CF             test    cl, cl
+.text:004010D1             jz      short loc_4010E7
+.text:004010D3             mov     dl, [eax+1]
+.text:004010D6             mov     cl, dl
+.text:004010D8             cmp     dl, [esi+1]
+.text:004010DB             jnz     short loc_4010EB
+.text:004010DD             add     eax, 2
+.text:004010E0             add     esi, 2
+.text:004010E3             test    cl, cl
+.text:004010E5             jnz     short loc_4010C7
+.text:004010E7
+.text:004010E7 loc_4010E7:                     ; CODE XREF: sub_401070+61j
+.text:004010E7             xor     eax, eax
+.text:004010E9             jmp     short loc_4010F0
+.text:004010EB ; ---------------------------------------------------------------------------
+.text:004010EB
+.text:004010EB loc_4010EB:                     ; CODE XREF: sub_401070+5Dj
+.text:004010EB             ; sub_401070+6Bj
+.text:004010EB             sbb     eax, eax
+.text:004010ED             sbb     eax, 0FFFFFFFFh
+.text:004010F0
+.text:004010F0 loc_4010F0:                     ; CODE XREF: sub_401070+79j
+.text:004010F0             test    eax, eax
+.text:004010F2             jz      short loc_401117
+.text:004010F4             lea     eax, [esp+138h+pe]
+.text:004010F8             push    eax             ; lppe
+.text:004010F9             push    edi             ; hSnapshot
+.text:004010FA             call    Process32Next
+.text:004010FF             test    eax, eax
+.text:00401101             jnz     short loc_4010B2
+.text:00401103
+.text:00401103 loc_401103:                     ; CODE XREF: sub_401070+3Dj
+.text:00401103             push    edi             ; hObject
+.text:00401104             call    ds:CloseHandle
+.text:0040110A
+.text:0040110A loc_40110A:                     ; CODE XREF: sub_401070+2Ej
+.text:0040110A             pop     edi
+.text:0040110B             pop     esi
+.text:0040110C             pop     ebp
+.text:0040110D             xor     eax, eax
+.text:0040110F             pop     ebx
+.text:00401110             add     esp, 128h
+.text:00401116             retn
+.text:00401117 ; ---------------------------------------------------------------------------
+.text:00401117
+.text:00401117 loc_401117:                     ; CODE XREF: sub_401070+82j
+.text:00401117             mov     eax, [esp+138h+pe.th32ProcessID]
+.text:0040111B             pop     edi
+.text:0040111C             pop     esi
+.text:0040111D             mov     [ebx+4], eax
+.text:00401120             pop     ebp
+.text:00401121             pop     ebx
+.text:00401122             add     esp, 128h
+.text:00401128             retn
+.text:00401128 sub_401070     endp
+```
+
+这里遍历进程查找 `explorer` 进程，估计后面不用讲也知道这个程序就是一个 shell，它将 dll 释放到 c 盘下，然后提升自己的权限，找到 `explorer` 的进程，将 dll 注入其中运行以达到隐藏进程的目的。很简单。
+
+### 解决方案
+
+反过来就是了。提升自身权限，查找到 `explorer` 进程注入代码将 dll 卸载掉。等等，这样不行，还有线程没结束，会导致 `explorer` 崩溃的，所以在做 dll 卸载前要做的一件事就是将与之有关的线程结束掉。所以我们还要枚举线程，将得到 TBI 表，以便得到线程起始地址，然后通过 `GetMappedFileName` 确定是不是在 `GUI32.dll` 当中。
+
+### 完整代码
+
+代码：
+
+
+
+```cpp
+#include <windows.h>
+#include <cstdio>
+#include <tlhelp32.h>
+#include <conio.h>
+#include <psapi.h>
+#pragma comment(lib,"psapi.lib")
+
+typedef enum _THREADINFOCLASS {
+    ThreadBasicInformation,
+        ThreadTimes,
+        ThreadPriority,
+        ThreadBasePriority,
+        ThreadAffinityMask,
+        ThreadImpersonationToken,
+        ThreadDescriptorTableEntry,
+        ThreadEnableAlignmentFaultFixup,
+        ThreadEventPair_Reusable,
+        ThreadQuerySetWin32StartAddress,
+        ThreadZeroTlsCell,
+        ThreadPerformanceCount,
+        ThreadAmILastThread,
+        ThreadIdealProcessor,
+        ThreadPriorityBoost,
+        ThreadSetTlsArrayAddress,
+        ThreadIsIoPending,
+        ThreadHideFromDebugger,
+        ThreadBreakOnTermination,
+        MaxThreadInfoClass
+}THREADINFOCLASS;
+THREADINFOCLASS   ThreadInformationClass;
+
+typedef struct _CLIENT_ID{ 
+  HANDLE   UniqueProcess; 
+  HANDLE   UniqueThread; 
+}CLIENT_ID, *PCLIENT_ID; 
+
+typedef   struct   _THREAD_BASIC_INFORMATION   {   //   Information   Class   0 
+  LONG    ExitStatus; 
+  PVOID    TebBaseAddress; 
+  CLIENT_ID  ClientId; 
+  LONG    AffinityMask; 
+  LONG    Priority; 
+  LONG    BasePriority; 
+}THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION; 
+    
+typedef LONG (__stdcall *PFN_ZwQueryInformationThread)(   
+                              IN   HANDLE   ThreadHandle,   
+                              IN   THREADINFOCLASS   ThreadInformationClass,   
+                              OUT   PVOID   ThreadInformation,   
+                              IN   ULONG   ThreadInformationLength,   
+                              OUT   PULONG   ReturnLength   OPTIONAL   
+                                                );
+
+
+BOOL GetModules(HANDLE hProcess, char* Strings)
+{
+  DWORD processid[1024], needed, processcount, modulecount;
+  HMODULE hModule[1024];
+
+  DWORD cb = 0;
+  BOOL ret = 1;
+  char path[MAX_PATH] = "", temp[MAX_PATH], basename[MAX_PATH];
+  EnumProcesses(processid, sizeof(processid), &needed);
+  processcount = 1;// needed/sizeof(DWORD);
+  
+  for (DWORD i = 0; i< processcount; i++)           // 列举一下 explorer 下的模块
+  {
+    if (hProcess)
+    {     
+      EnumProcessModules(hProcess, hModule, sizeof(hModule), &needed);
+      modulecount = needed / sizeof(DWORD);
+      //_itoa(processid[i], temp, 10);
+      for (DWORD j = 0; j < modulecount; j++)
+      {
+        GetModuleFileNameEx(hProcess, hModule[j], path, sizeof(path));
+        GetModuleBaseName(hProcess, hModule[j], basename, sizeof(basename));
+        GetShortPathName(path, path, 256);
+        
+        if(!strcmp(basename, Strings))
+        {
+          ret = 1;
+        }
+        printf("%s\t\t%s\n", basename, path);
+      }
+    }
+  }
+
+return ret;
+}
+
+int main()
+{   
+  HANDLE hProcess = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+  PROCESSENTRY32 pinfo;
+  THREADENTRY32 tinfo;
+  DWORD dwHandle = 0; 
+  TOKEN_PRIVILEGES tkp;
+  HANDLE hToken;
+  THREAD_BASIC_INFORMATION  TIB;
+   
+  memset(&pinfo,0, sizeof(pinfo));
+  memset(&tinfo,0, sizeof(tinfo));
+
+  if (!OpenProcessToken(GetCurrentProcess(),TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,&hToken))
+  {
+    printf("OpenProcessToken failed!");                    //获得进程句柄失败
+  }
+  LookupPrivilegeValue(NULL, SE_DEBUG_NAME,&tkp.Privileges[0].Luid);     //获得本地机唯一的标识
+  tkp.PrivilegeCount = 1;
+  tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+  AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, (PTOKEN_PRIVILEGES) NULL, 0);  //调整获得的权限
+  PFN_ZwQueryInformationThread ZwQueryInformationThread = (PFN_ZwQueryInformationThread)GetProcAddress(GetModuleHandle("ntdll.dll"), "ZwQueryInformationThread"); 
+   
+  if (GetLastError() != ERROR_SUCCESS)
+  {
+    printf("AdjustTokenPrivileges enable failed!");               //修改权限失败
+  }
+
+  pinfo.dwSize = sizeof( PROCESSENTRY32 );
+  BOOL report = Process32First(hProcess, &pinfo);                 //调用 Process32First 使用快照返回的句柄对进程进行遍历
+  while(report)
+  {
+    if(!(strcmp(pinfo.szExeFile, "explorer.exe")))                // 查找"explorer"进程
+    {
+      DWORD dwSize, dwWritten; 
+      char str_dllname[] = "GUI32.dll";
+                                            // 打开相应的进程
+      HANDLE hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, pinfo.th32ProcessID);
+      hProcess = OpenProcess(PROCESS_ALL_ACCESS | PROCESS_QUERY_INFORMATION  | PROCESS_VM_READ, FALSE, pinfo.th32ProcessID);
+      GetModules(hProcess, str_dllname);
+      THREADENTRY32 te = { sizeof(THREADENTRY32) };
+      printf("进程(PID): %d\n", pinfo.th32ProcessID);
+      
+      if (Thread32First(hThreadSnap, &te))                   // 开始枚举线程 
+      {   
+        do 
+        {   
+          if (te.th32OwnerProcessID == pinfo.th32ProcessID)
+          {
+            HANDLE hThread = OpenThread(THREAD_TERMINATE | THREAD_QUERY_INFORMATION, FALSE, te.th32ThreadID);
+            if(hThread == NULL)                     // 以关闭与查询的方式打开线程
+            {
+              printf("Can not open the thread");
+              continue;
+            }
+
+            PVOID StarAddress = NULL;                    // 下面得到 TIB 表以及线程的起始地址
+            DWORD statue = ZwQueryInformationThread(hThread, ThreadBasicInformation, &TIB, sizeof(TIB),  NULL);
+            statue = ZwQueryInformationThread(hThread, ThreadQuerySetWin32StartAddress, &StarAddress, sizeof(StarAddress), NULL);
+            if(!statue)
+            {
+              printf("线程(TID): %d\tStartAddress: 0x%p\tPID: %d \t", te.th32ThreadID, (int)StarAddress, (int)TIB.ClientId.UniqueProcess);
+            }
+            else
+            {
+                printf("QueryInformationThread faild");
+            }
+
+            char image[MAX_PATH];
+            memset(image,0, sizeof(char));
+            GetMappedFileName(hProcess, StarAddress, image, MAX_PATH);    // 得到线程的起始地址
+             
+            char temp[MAX_PATH];
+            unsigned int j = 0;
+            unsigned int len;
+
+            if(image != NULL)
+            {
+              len = strlen(image) + 1;
+            }
+            else printf("new the len failed");
+
+            for(DWORD i = 1; i < (len % MAX_PATH); i++)                    // 得到名称
+            {
+              if(image[i - 1] == '\\')
+                j = 0;
+              temp[j] = image[i];
+              j++;
+            }
+            temp[j] = '\0';
+
+            printf("\nThe image: %s \n", temp);
+            if(!strcmp(temp, str_dllname))
+              TerminateThread(hThread, 0);
+                                                     // 关闭线程
+            CloseHandle(hThread);
+          }
+        }while (Thread32Next(hThreadSnap, &te));
+      }else printf("faild");
+
+      printf("Erro Code:%d", GetLastError());
+
+      dwSize = strlen(str_dllname) + 1; 
+      LPVOID lpBuf = VirtualAllocEx(hProcess, NULL, dwSize, MEM_COMMIT, PAGE_READWRITE ); 
+        
+      if ( !WriteProcessMemory(hProcess, lpBuf, (LPVOID)str_dllname, dwSize, &dwWritten ) )     // 写入进程
+      { 
+        VirtualFreeEx(hProcess, lpBuf, dwSize, MEM_DECOMMIT); 
+        CloseHandle(hProcess); 
+        return FALSE; 
+      }                                      
+        
+      LPVOID pFun = GetProcAddress(GetModuleHandle("Kernel32"), "GetModuleHandleA");// GetModuleHandleA; 
+      HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0,(LPTHREAD_START_ROUTINE)pFun, lpBuf, 0, NULL); 
+      if (hThread == NULL) 
+      { 
+        CloseHandle(hProcess); 
+        return FALSE; 
+      } 
+       
+      WaitForSingleObject(hThread, INFINITE );                  // 等待 GetModuleHandle 运行完毕 
+      GetExitCodeThread(hThread, &dwHandle );                    // 获得 GetModuleHandle 的返回值 
+      VirtualFreeEx(hProcess, lpBuf, dwSize, MEM_DECOMMIT );        // 释放目标进程中申请的空间 
+       
+       
+      pFun = GetProcAddress(GetModuleHandle("Kernel32"), "FreeLibrary");  // 使目标进程调用 FreeLibrary，卸载 DLL 
+      hThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)pFun, (LPVOID)dwHandle, 0, NULL); 
+      WaitForSingleObject(hThread, INFINITE);                    // 等待 FreeLibrary 卸载完毕 
+
+      CloseHandle(hThreadSnap);
+      CloseHandle(hThread);
+    }
+    report = Process32Next(hProcess, &pinfo);
+  }
+  printf("\n Clear it success!");
+  printf("\n By whitefirer");
+  _getch();
+  CloseHandle(hProcess); 
+  return 0;
+}
+```
+
+
+
+**运行结果**
+
+![](img/8e16af86c295f356f59d73384ca8c8b4.jpg)
+
+![](img/66fe98631a4ac34170df0eb01819dac3.jpg)时钟消失了
+
+使用冰刃查看后，线程已结束，`GUI32` 被卸载
+
+**后记**
+
+本次静态分析较简单，但希望比较让人容易懂![](img/cb6288ad81b189b02921e98a92da6abe.jpg "124.gif")
+
+谢谢某大牛给我的建议：学好算法与数据结构、编译原理、系统编程
