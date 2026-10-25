@@ -1,0 +1,152 @@
+
+# 反汇编分析
+
+`004159E2`  `|. E8 FAF60200`  
+`CALL AntiSpyP.004450E1`
+
+`004159E7`  `|. 8B4C24 2C`      `MOV`  
+`ECX,DWORD PTR SS:[ESP+2C]`            ; `//假码放入`  
+`ecx`
+
+`004159EB`  `|. 8B5424 28`      `MOV EDX,DWORD PTR SS:[ESP+28]`  
+`; | //真码放入 edx`
+
+`004159EF`  `|.`
+`51`            `PUSH ECX`  
+`; |Arg2`
+
+`004159F0`  `|. 52`            `PUSH`  
+`EDX`  
+`; |Arg1`
+
+`004159F1`  `|. E8 DC120200`  
+`CALL AntiSpyP.00436CD2`  
+`; \AntiSpyP.00436CD2 //比较真假注册码`
+
+`004159F6`  `|. 83C4`  
+`14`        `ADD ESP,14`
+
+`004159F9`  `|. 8D4C24 1C`  
+`LEA ECX,DWORD PTR SS:[ESP+1C]`
+
+`004159FD`  `|. 85C0`  
+`TEST EAX,EAX`
+
+`004159FF`  `|. 0F94C3`  
+`SET E BL`
+
+`00415A02`  `|. C74424 14 FFFF>MOV DWORD PTR SS:[ESP+14],-1`
+
+`00415A0A`  `|. E8 A51A0300    CALL AntiSpyP.004474B4`
+
+`00415A0F`  
+`|. 8B4C24 0C      MOV ECX,DWORD PTR SS:[ESP+C]`
+
+`00415A13`  
+`|. 5F            POP EDI`
+
+`00415A14`  `|.`
+`8AC3          MOV AL,BL`
+
+`00415A16`  `|. 5E`  
+`POP ESI`
+
+`00415A17`  `|. 64:890D 000000>MOV`  
+`DWORD PTR FS:[0],ECX`
+
+`00415A1E`  `|. 5B`  
+`POP EBX`
+
+`00415A1F`  `|. 83C4 0C        ADD ESP,0C`
+
+`00415A22`  `\. C3            RETN`
+
+## 算法总结
+
+设注册名位数为`n`，即有效循环也为`n`次，存在 `N0`、`N1`、`N2`、`N3`、`N4`、`N5`…其中 `N0=274AA5D0`，则：
+
+`N(n)=(N(n-1) shl ((注册名ASCII) mod 11)) xor (注册名ASCII)`
+
+最后的 `N(n)` 就是注册码
+
+试按照我输入的注册名“`lovefire[BCG]`”，列举如下，
+
+第一位注册名“`l`”，`N(1)=(274AA5D0 shl ((6C) mod 11)) xor 6C = (274AA5D0 shl 6) xor 6C = D2A97400 xor 6C = D2A9746C`
+
+第二位注册名“`o`”，`N(2)=(D2A9746C shl ((6F) mod 11)) xor 6F = (D2A9746C shl 9) xor 6F = 52E8D800 xor 6F = 52E8D86F`
+
+……
+
+最后一位注册名“`]`”，`N(12)=(0210025F shl ((5D) mod 11)) xor 5D = (D2A9746C shl 8) xor 5D = 10025F00 xor 5D = 10025F5D`
+
+所以得出正确的注册码：`10025F5D`
+
+至此 `AntiSpy PRO 1.02` 算法分析完成，一组可用的注册码：`Name: lovefire[BCG]  Serial: 10025F5D`
+
+## 注册信息保存
+
+`[HKEY_LOCAL_MACHINE\SOFTWARE\HT\AntiSpyPRO]`
+`"strRegNum"="10025F5D"`
+`"strUserName"="lovefire[BCG]"`
+
+----------------------------------------------------------
+
+## 注册机源代码（TC 2.0）
+
+```c
+/* KeyGen by 炎之川[BCG]，2003.4.11 */
+/* 感谢hoto兄、菩提兄、小楼兄回答我提的弱智问题^^
+*/
+
+#include <stdio.h>
+
+main()
+{
+  char name[255];
+         int name_len,i;
+      unsigned long sn1=0x274AA5D0;
+clrscr();  /*非tc的C编译程序可能不能识别此指令*/
+         printf("
+  \_/\_/\_/      \_/\_/\_/    \_/\_/\_/\n  \_/
+  \_/  \_/        \_/\n  \_/\_/\_/    \_/
+      \_/  \_/\_/\n \_/    \_/  \_/
+    \_/    \_/\n\_/\_/\_/      \_/\_/\_/
+\_/\_/\_/\n\n -= AntiSpy PRO 1.02 KeyGen by lovefire[BCG] =-\n\n\nPlease enter your
+name: ");
+         gets(name);
+  name_len=strlen(name);
+         if (name_len>0)
+         {
+    for (i=0;i<name_len;i++)
+      {
+        sn1=(sn1<<(name[i]%0x11))^name[i];
+              }
+        printf("\nok, try this serial: %08lX\n",sn1);
+                printf("\n\nNOTE: serial
+only for test!");
+printf("\nIf you like it, buy it to support the soft's author!");
+      }
+         else
+    {
+                 printf("\nI
+think you should tell me your name first ;)\n");
+}
+         printf("\n\nhave fun^^\nwelcome to http://skipli.yeah.net/");
+         getch();
+}
+```
+
+----------------------------------------------------------
+
+炎之川  
+属于中国破解组织`BCG`(Beginner's Cracking Group)
+
+`\_/\_/\_/      \_/\_/\_/    \_/\_/\_/`
+`   \_/`
+`\_/  \_/        \_/`
+`   \_/\_/\_/    \_/`
+`      \_/  \_/\_/`
+` \_/    \_/  \_/`
+`    \_/    \_/`
+` \_/\_/\_/      \_/\_/\_/`
+`  \_/\_/\_/`
