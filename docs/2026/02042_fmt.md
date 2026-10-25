@@ -1,0 +1,167 @@
+
+# CDSpace Power+注册算法 (7千字)
+
+介绍一个很好的虚拟光驱软件。非常好用，能对付很多保护光盘游戏。大家试试看，这家伙把SafeDisc系列的都搞定了。
+
+http://www.cdspace.com
+
+CDSpace Power+
+
+```
+Name:machoman[CCG]
+Evaluation:S14159212781592600
+```
+
+注册部分在`ChoiceOS.dll`文件中，非常简单。
+
+```
+:10007640 6AFF                push FFFFFFFF
+:10007642 6860C50010              push 1000C560
+:10007647 64A100000000            mov eax, dword ptr fs:[00000000]
+:1000764D 50                  push eax
+:1000764E 64892500000000          mov dword ptr fs:[00000000], esp
+:10007655 83EC10                sub esp, 00000010
+:10007658 8D4C2408                lea ecx, dword ptr [esp+08]
+:1000765C C744241800000000        mov [esp+18], 00000000
+\* Reference To: MFC42.Ordinal:021C, Ord:021Ch
+            |
+:10007664 E8C1420000              Call 1000B92A
+:10007669 8D4C2404                lea ecx, dword ptr [esp+04]
+:1000766D C644241801              mov [esp+18], 01
+\* Reference To: MFC42.Ordinal:021C, Ord:021Ch
+            |
+:10007672 E8B3420000              Call 1000B92A
+:10007677 8D4C2400                lea ecx, dword ptr [esp]
+:1000767B C644241802              mov [esp+18], 02
+\* Reference To: MFC42.Ordinal:021C, Ord:021Ch
+            |
+:10007680 E8A5420000              Call 1000B92A
+:10007685 8B442420                mov eax, dword ptr [esp+20]
+:10007689 C644241803              mov [esp+18], 03
+:1000768E 8378F812                cmp dword ptr [eax-08], 00000012;注册码长度为18个字符
+:10007692 740E                  je 100076A2
+:10007694 C644241802              mov [esp+18], 02
+:10007699 8D4C2400                lea ecx, dword ptr [esp]
+:1000769D E9E1000000              jmp 10007783
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:10007692(C)
+|
+:100076A2 8A00                  mov al, byte ptr [eax]
+:100076A4 3C73                  cmp al, 73 ;注册码第一个字符为"s"
+:100076A6 7412                  je 100076BA
+:100076A8 3C53                  cmp al, 53 ；或注册码第一个字符"S"
+:100076AA 740E                  je 100076BA
+:100076AC C644241802              mov [esp+18], 02
+:100076B1 8D4C2400                lea ecx, dword ptr [esp]
+:100076B5 E9C9000000              jmp 10007783
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:100076A6(C), :100076AA(C)
+|
+:100076BA 6A04                  push 00000004
+:100076BC 8D442410                lea eax, dword ptr [esp+10]
+:100076C0 6A07                  push 00000007
+:100076C2 50                  push eax
+:100076C3 8D4C242C                lea ecx, dword ptr [esp+2C]
+\* Reference To: MFC42.Ordinal:10B6, Ord:10B6h
+            |
+:100076C7 E848430000              Call 1000BA14
+:100076CC 50                  push eax
+:100076CD 8D4C240C                lea ecx, dword ptr [esp+0C]
+:100076D1 C644241C04              mov [esp+1C], 04
+\* Reference To: MFC42.Ordinal:035A, Ord:035Ah
+            |
+:100076D6 E8F7420000              Call 1000B9D2
+:100076DB 8D4C240C                lea ecx, dword ptr [esp+0C]
+:100076DF C644241803              mov [esp+18], 03
+\* Reference To: MFC42.Ordinal:0320, Ord:0320h
+            |
+:100076E4 E811420000              Call 1000B8FA
+:100076E9 6A06                  push 00000006
+:100076EB 8D4C2410                lea ecx, dword ptr [esp+10]
+:100076EF 6A0C                  push 0000000C
+:100076F1 51                  push ecx
+:100076F2 8D4C242C                lea ecx, dword ptr [esp+2C]
+\* Reference To: MFC42.Ordinal:10B6, Ord:10B6h
+            |
+:100076F6 E819430000              Call 1000BA14
+:100076FB 50                  push eax
+:100076FC 8D4C2408                lea ecx, dword ptr [esp+08]
+:10007700 C644241C05              mov [esp+1C], 05
+\* Reference To: MFC42.Ordinal:035A, Ord:035Ah
+            |
+:10007705 E8C8420000              Call 1000B9D2
+:1000770A 8D4C240C                lea ecx, dword ptr [esp+0C]
+:1000770E C644241803              mov [esp+18], 03
+\* Reference To: MFC42.Ordinal:0320, Ord:0320h
+            |
+:10007713 E8E2410000              Call 1000B8FA
+:10007718 8B542404                mov edx, dword ptr [esp+04]
+:1000771C 52                  push edx  ；注册码的最后6位“592600”转换为整型计算，生成8-11位注册码
+\* Reference To: MSVCRT.atoi, Ord:023Dh
+            |
+:1000771D FF15A0D20010            Call dword ptr [1000D2A0]
+:10007723 8D0C40                lea ecx, dword ptr [eax+2*eax]
+:10007726 83C404                add esp, 00000004
+:10007729 C1E104                shl ecx, 04
+:1000772C 2BC8                  sub ecx, eax
+:1000772E 8D542400                lea edx, dword ptr [esp]
+:10007732 C1E105                shl ecx, 05
+:10007735 2BC8                  sub ecx, eax
+:10007737 8D0C89                lea ecx, dword ptr [ecx+4*ecx]
+:1000773A D1E1                  shl ecx, 1
+:1000773C 2BC8                  sub ecx, eax
+:1000773E 8BC1                  mov eax, ecx
+:10007740 3511110000              xor eax, 00001111
+:10007745 2D9B460000              sub eax, 0000469B
+:1000774A 3521570000              xor eax, 00005721
+:1000774F 25A5FF0000              and eax, 0000FFA5
+:10007754 83C053                add eax, 00000053
+:10007757 50                  push eax    ；计算结果在eax中，我的是‘1278’
+\* Possible StringData Ref from Data Obj ->"%0.4X"
+            |
+:10007758 6830050110              push 10010530
+:1000775D 52                  push edx
+\* Reference To: MFC42.Ordinal:0B02, Ord:0B02h
+            |
+:1000775E E8C1410000              Call 1000B924
+:10007763 8B442414                mov eax, dword ptr [esp+14]
+:10007767 8B4C240C                mov ecx, dword ptr [esp+0C]
+:1000776B 50                  push eax；计算出来的结果
+:1000776C 51                  push ecx；你的注册玛中输入的8-11位的数据
+\* Reference To: MSVCRT.\_mbsicmp, Ord:015Fh
+            |
+:1000776D FF15B8D20010            Call dword ptr [1000D2B8]
+:10007773 83C414                add esp, 00000014
+:10007776 C644241802              mov [esp+18], 02
+:1000777B 85C0                  test eax, eax；相等吗？相等注册成功！
+:1000777D 8D4C2400                lea ecx, dword ptr [esp]
+:10007781 7445                  je 100077C8
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:1000769D(U), :100076B5(U)
+|
+\* Reference To: MFC42.Ordinal:0320, Ord:0320h
+            |
+:10007783 E872410000              Call 1000B8FA
+:10007788 8D4C2404                lea ecx, dword ptr [esp+04]
+:1000778C C644241801              mov [esp+18], 01
+\* Reference To: MFC42.Ordinal:0320, Ord:0320h
+            |
+:10007791 E864410000              Call 1000B8FA
+:10007796 8D4C2408                lea ecx, dword ptr [esp+08]
+:1000779A C644241800              mov [esp+18], 00
+\* Reference To: MFC42.Ordinal:0320, Ord:0320h
+            |
+:1000779F E856410000              Call 1000B8FA
+:100077A4 8D4C2420                lea ecx, dword ptr [esp+20]
+:100077A8 C7442418FFFFFFFF        mov [esp+18], FFFFFFFF
+\* Reference To: MFC42.Ordinal:0320, Ord:0320h
+            |
+:100077B0 E845410000              Call 1000B8FA
+:100077B5 33C0                  xor eax, eax
+:100077B7 8B4C2410                mov ecx, dword ptr [esp+10]
+:100077BB 64890D00000000          mov dword ptr fs:[00000000], ecx
+:100077C2 83C41C                add esp, 0000001C
+:100077C5 C20400                ret 0004
+```
+
+麻烦尾哥写个注册机，这真的是个非常好的软件。绝非垃圾。
