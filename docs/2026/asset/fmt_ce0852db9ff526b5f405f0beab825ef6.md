@@ -1,0 +1,181 @@
+
+# Windows 消息常量
+
+## 颜色控件消息
+
+在 Windows 绘制消息框前发送此消息给消息框的所有者窗口；通过响应这条消息，所有者窗口可以通过使用给定的相关显示设备的句柄来设置消息框的文本和背景颜色。
+
+- `WM_CTLCOLOREDIT = $0133;`：当一个编辑型控件将要被绘制时发送此消息给它的父窗口；通过响应这条消息，所有者窗口可以通过使用给定的相关显示设备的句柄来设置编辑框的文本和背景颜色。
+- `WM_CTLCOLORLISTBOX = $0134;`：当一个列表框控件将要被绘制前发送此消息给它的父窗口；通过响应这条消息，所有者窗口可以通过使用给定的相关显示设备的句柄来设置列表框的文本和背景颜色。
+- `WM_CTLCOLORBTN = $0135;`：当一个按钮控件将要被绘制时发送此消息给它的父窗口；通过响应这条消息，所有者窗口可以通过使用给定的相关显示设备的句柄来设置按钮的文本和背景颜色。
+- `WM_CTLCOLORDLG = $0136;`：当一个对话框控件将要被绘制前发送此消息给它的父窗口；通过响应这条消息，所有者窗口可以通过使用给定的相关显示设备的句柄来设置对话框的文本和背景颜色。
+- `WM_CTLCOLORSCROLLBAR = $0137;`：当一个滚动条控件将要被绘制时发送此消息给它的父窗口；通过响应这条消息，所有者窗口可以通过使用给定的相关显示设备的句柄来设置滚动条的背景颜色。
+- `WM_CTLCOLORSTATIC = $0138;`：当一个静态控件将要被绘制时发送此消息给它的父窗口；通过响应这条消息，所有者窗口可以通过使用给定的相关显示设备的句柄来设置静态控件的文本和背景颜色。
+
+## 鼠标消息
+
+- `WM_MOUSEFIRST = $0200;`
+- `WM_MOUSEMOVE = $0200;`：移动鼠标
+- `WM_LBUTTONDOWN = $0201;`：按下鼠标左键
+- `WM_LBUTTONUP = $0202;`：释放鼠标左键
+- `WM_LBUTTONDBLCLK = $0203;`：双击鼠标左键
+- `WM_RBUTTONDOWN = $0204;`：按下鼠标右键
+- `WM_RBUTTONUP = $0205;`：释放鼠标右键
+- `WM_RBUTTONDBLCLK = $0206;`：双击鼠标右键
+- `WM_MBUTTONDOWN = $0207;`：按下鼠标中键
+- `WM_MBUTTONUP = $0208;`：释放鼠标中键
+- `WM_MBUTTONDBLCLK = $0209;`：双击鼠标中键
+- `WM_MOUSEWHEEL = $020A;`：当鼠标轮子转动时发送此消息给当前有焦点的控件
+- `WM_MOUSELAST = $020A;`
+
+## 窗口、菜单与设备消息
+
+- `WM_PARENTNOTIFY = $0210;`：当 MDI 子窗口被创建或被销毁，或用户按了一下鼠标键而光标在子窗口上时发送此消息给它的父窗口。
+- `WM_ENTERMENULOOP = $0211;`：发送此消息通知应用程序的主窗口已经进入了菜单循环模式。
+- `WM_EXITMENULOOP = $0212;`：发送此消息通知应用程序的主窗口已退出了菜单循环模式。
+- `WM_NEXTMENU = $0213;`
+- `WM_SIZING = 532;`：当用户正在调整窗口大小时发送此消息给窗口；通过此消息应用程序可以监视窗口大小和位置，也可以修改它们。
+- `WM_CAPTURECHANGED = 533;`：发送此消息给窗口，当它失去捕获的鼠标时。
+- `WM_MOVING = 534;`：当用户在移动窗口时发送此消息；通过此消息应用程序可以监视窗口大小和位置，也可以修改它们。
+- `WM_POWERBROADCAST = 536;`：此消息发送给应用程序来通知它有关电源管理事件。
+- `WM_DEVICECHANGE = 537;`：当设备的硬件配置改变时发送此消息给应用程序或设备驱动程序。
+
+## 输入法消息
+
+- `WM_IME_STARTCOMPOSITION = $010D;`
+- `WM_IME_ENDCOMPOSITION = $010E;`
+- `WM_IME_COMPOSITION = $010F;`
+- `WM_IME_KEYLAST = $010F;`
+- `WM_IME_SETCONTEXT = $0281;`
+- `WM_IME_NOTIFY = $0282;`
+- `WM_IME_CONTROL = $0283;`
+- `WM_IME_COMPOSITIONFULL = $0284;`
+- `WM_IME_SELECT = $0285;`
+- `WM_IME_CHAR = $0286;`
+- `WM_IME_REQUEST = $0288;`
+- `WM_IME_KEYDOWN = $0290;`
+- `WM_IME_KEYUP = $0291;`
+
+## MDI 子窗口与其它窗口消息
+
+- `WM_MDICREATE = $0220;`：应用程序发送此消息给多文档的客户窗口来创建一个 MDI 子窗口。
+- `WM_MDIDESTROY = $0221;`：应用程序发送此消息给多文档的客户窗口来关闭一个 MDI 子窗口。
+- `WM_MDIACTIVATE = $0222;`：应用程序发送此消息给多文档的客户窗口通知客户窗口激活另一个 MDI 子窗口；当客户窗口收到此消息后，它发出 `WM_MDIACTIVATE` 消息给 MDI 子窗口（未激活）来激活它。
+- `WM_MDIRESTORE = $0223;`：程序发送此消息给 MDI 客户窗口让子窗口从最大化或最小化恢复到原来大小。
+- `WM_MDINEXT = $0224;`：程序发送此消息给 MDI 客户窗口激活下一个或前一个窗口。
+- `WM_MDIMAXIMIZE = $0225;`：程序发送此消息给 MDI 客户窗口来最大化一个 MDI 子窗口。
+- `WM_MDITILE = $0226;`：程序发送此消息给 MDI 客户窗口以平铺方式重新排列所有 MDI 子窗口。
+- `WM_MDICASCADE = $0227;`：程序发送此消息给 MDI 客户窗口以层叠方式重新排列所有 MDI 子窗口。
+- `WM_MDIICONARRANGE = $0228;`：程序发送此消息给 MDI 客户窗口重新排列所有最小化的 MDI 子窗口。
+- `WM_MDIGETACTIVE = $0229;`：程序发送此消息给 MDI 客户窗口来找到激活的子窗口的句柄。
+- `WM_MDISETMENU = $0230;`：程序发送此消息给 MDI 客户窗口用 MDI 菜单代替子窗口的菜单。
+- `WM_ENTERSIZEMOVE = $0231;`
+- `WM_EXITSIZEMOVE = $0232;`
+- `WM_DROPFILES = $0233;`
+- `WM_MDIREFRESHMENU = $0234;`
+- `WM_MOUSEHOVER = $02A1;`
+- `WM_MOUSELEAVE = $02A3;`
+
+## 剪贴板、调色板与其他消息
+
+- `WM_CUT = $0300;`：程序发送此消息给一个编辑框或 combobox 来删除当前选择的文本。
+- `WM_COPY = $0301;`：程序发送此消息给一个编辑框或 combobox 来复制当前选择的文本到剪贴板。
+- `WM_PASTE = $0302;`：程序发送此消息给 editcontrol 或 combobox 从剪贴板中得到数据。
+- `WM_CLEAR = $0303;`：程序发送此消息给 editcontrol 或 combobox 清除当前选择的内容。
+- `WM_UNDO = $0304;`：程序发送此消息给 editcontrol 或 combobox 撤消最后一次操作。
+- `WM_RENDERFORMAT = $0305;`
+- `WM_RENDERALLFORMATS = $0306;`
+- `WM_DESTROYCLIPBOARD = $0307;`：当调用 `EmptyClipboard` 函数时发送此消息给剪贴板的所有者。
+- `WM_DRAWCLIPBOARD = $0308;`：当剪贴板的内容变化时发送此消息给剪贴板观察链的第一个窗口；它允许用剪贴板观察窗口来显示剪贴板的新内容。
+- `WM_PAINTCLIPBOARD = $0309;`：当剪贴板包含 `CF_OWNERDISPLAY` 格式的数据并且剪贴板观察窗口的客户区需要重画。
+- `WM_VSCROLLCLIPBOARD = $030A;`
+- `WM_SIZECLIPBOARD = $030B;`：当剪贴板包含 `CF_OWNERDISPLAY` 格式的数据并且剪贴板观察窗口的客户区域的大小已经改变时，此消息通过剪贴板观察窗口发送给剪贴板的所有者。
+- `WM_ASKCBFORMATNAME = $030C;`：通过剪贴板观察窗口发送此消息给剪贴板的所有者来请求一个 `CF_OWNERDISPLAY` 格式的剪贴板的名字。
+- `WM_CHANGECBCHAIN = $030D;`：当一个窗口从剪贴板观察链中移去时发送此消息给剪贴板观察链的第一个窗口。
+- `WM_HSCROLLCLIPBOARD = $030E;`：此消息通过一个剪贴板观察窗口发送给剪贴板的所有者；它发生在当剪贴板包含 `CF_OWNERDISPLAY` 格式的数据并且有个事件在剪贴板观察窗的水平滚动条上；所有者应滚动剪贴板图象并更新滚动条的值。
+- `WM_QUERYNEWPALETTE = $030F;`：此消息发送给将要收到焦点的窗口，此消息能使窗口在收到焦点时同时有机会实现它的逻辑调色板。
+- `WM_PALETTEISCHANGING = $0310;`：当一个应用程序正要实现它的逻辑调色板时发此消息通知所有的应用程序。
+- `WM_PALETTECHANGED = $0311;`：此消息在一个拥有焦点的窗口实现它的逻辑调色板后发送此消息给所有顶级并重叠的窗口，以此来改变系统调色板。
+- `WM_HOTKEY = $0312;`：当用户按下由 `RegisterHotKey` 函数注册的热键时提交此消息。
+- `WM_PRINT = 791;`：应用程序发送此消息仅当 Windows 或其它应用程序发出一个请求要求绘制一个应用程序的一部分。
+- `WM_PRINTCLIENT = 792;`
+- `WM_HANDHELDFIRST = 856;`
+- `WM_HANDHELDLAST = 863;`
+- `WM_PENWINFIRST = $0380;`
+- `WM_PENWINLAST = $038F;`
+- `WM_COALESCE_FIRST = $0390;`
+- `WM_COALESCE_LAST = $039F;`
+
+## DDE 消息
+
+- `WM_DDE_FIRST = $03E0;`
+- `WM_DDE_INITIATE = WM_DDE_FIRST + 0;`：一个 DDE 客户程序提交此消息开始一个与服务器程序的会话，以响应那个指定的程序和主题名。
+- `WM_DDE_TERMINATE = WM_DDE_FIRST + 1;`：一个 DDE 应用程序（无论是客户还是服务器）提交此消息来终止一个会话。
+- `WM_DDE_ADVISE = WM_DDE_FIRST + 2;`：一个 DDE 客户程序提交此消息给一个 DDE 服务程序来请求服务器每当数据项改变时更新它。
+- `WM_DDE_UNADVISE = WM_DDE_FIRST + 3;`：一个 DDE 客户程序通过此消息通知一个 DDE 服务程序不更新指定的项或一个特殊的剪贴板格式的项。
+- `WM_DDE_ACK = WM_DDE_FIRST + 4;`：此消息通知一个 DDE（动态数据交换）程序已收到并正在处理 `WM_DDE_POKE`、`WM_DDE_EXECUTE`、`WM_DDE_DATA`、`WM_DDE_ADVISE`、`WM_DDE_UNADVISE` 或 `WM_DDE_INITIATE` 消息。
+- `WM_DDE_DATA = WM_DDE_FIRST + 5;`：一个 DDE 服务程序提交此消息给 DDE 客户程序来传递一个数据项给客户，或通知客户有一条可用数据项。
+- `WM_DDE_REQUEST = WM_DDE_FIRST + 6;`：一个 DDE 客户程序提交此消息给一个 DDE 服务程序来请求一个数据项的值。
+- `WM_DDE_POKE = WM_DDE_FIRST + 7;`：一个 DDE 客户程序提交此消息给一个 DDE 服务程序，客户使用此消息来请求服务器接收一个未经同意的数据项；服务器通过答复 `WM_DDE_ACK` 消息提示是否接收这个数据项。
+- `WM_DDE_EXECUTE = WM_DDE_FIRST + 8;`：一个 DDE 客户程序提交此消息给一个 DDE 服务程序来发送一个字符串给服务器，让它像串行命令一样被处理，服务器通过提交 `WM_DDE_ACK` 消息来作回应。
+- `WM_DDE_LAST = WM_DDE_FIRST + 8;`
+
+## 自定义消息
+
+- `WM_APP = $8000;`
+- `WM_USER = $0400;`：此消息能帮助应用程序自定义私有消息。
+
+## 通知消息
+
+通知消息（Notification message）是指这样一种消息：一个窗口内的子控件发生了一些事情，需要通知父窗口。通知消息只适用于标准的窗口控件如按钮、列表框、组合框、编辑框，以及 Windows 95 公共控件如树状视图、列表视图等。例如，单击或双击一个控件、在控件中选择部分文本、操作控件的滚动条都会产生通知消息。
+
+### 按钮
+
+```
+BN_CLICKED        // 用户单击了按钮
+BN_DISABLE        // 按钮被禁止
+BN_DOUBLECLICKED  // 用户双击了按钮
+BN_HILITE         // 用户加亮了按钮
+BN_PAINT          // 按钮应当重画
+BN_UNHILITE       // 加亮应当去掉
+```
+
+### 组合框
+
+```
+CBN_CLOSEUP         // 组合框的列表框被关闭
+CBN_DBLCLK          // 用户双击了一个字符串
+CBN_DROPDOWN        // 组合框的列表框被拉出
+CBN_EDITCHANGE      // 用户修改了编辑框中的文本
+CBN_EDITUPDATE      // 编辑框内的文本即将更新
+CBN_ERRSPACE        // 组合框内存不足
+CBN_KILLFOCUS       // 组合框失去输入焦点
+CBN_SELCHANGE       // 在组合框中选择了一项
+CBN_SELENDCANCEL    // 用户的选择应当被取消
+CBN_SELENDOK        // 用户的选择是合法的
+CBN_SETFOCUS        // 组合框获得输入焦点
+```
+
+### 编辑框
+
+```
+EN_CHANGE         // 编辑框中的文本已更新
+EN_ERRSPACE       // 编辑框内存不足
+EN_HSCROLL        // 用户点击了水平滚动条
+EN_KILLFOCUS      // 编辑框正在失去输入焦点
+EN_MAXTEXT        // 插入的内容被截断
+EN_SETFOCUS       // 编辑框获得输入焦点
+EN_UPDATE         // 编辑框中的文本将要更新
+EN_VSCROLL        // 用户点击了垂直滚动条
+```
+
+### 列表框
+
+```
+LBN_DBLCLK        // 用户双击了一项
+LBN_ERRSPACE      // 列表框内存不够
+LBN_KILLFOCUS     // 列表框正在失去输入焦点
+LBN_SELCANCEL     // 选择被取消
+LBN_SELCHANGE     // 选择了另一项
+LBN_SETFOCUS      // 列表框获得输入焦点
+```
