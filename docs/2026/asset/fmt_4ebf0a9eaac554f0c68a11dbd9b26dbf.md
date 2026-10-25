@@ -1,0 +1,341 @@
+
+# 反汇编分析
+
+``` 
+|JGE SHORT CDRWIN5.00457B9A
+00457B67  |. 8B4D A8
+       |MOV ECX,DWORD PTR SS:[EBP-58]
+00457B6A  |.
+51             |PUSH ECX
+              ; 6
+00457B6B  |. 8D4D
+08        |LEA ECX,DWORD PTR SS:[EBP+8]
+                ; 试炼码
+00457B6E
+ |. E8 FD83FCFF    |CALL CDRWIN5.0041FF70
+ ; 返回第六个字符
+00457B73  |. 0FBED0         |MOVSX
+EDX,AL
+00457B76  |. 8B45 B0        |MOV EAX,DWORD
+PTR SS:[EBP-50]
+   ;  [ebp-50] 存放加和结果
+00457B79  |. 03C2
+      |ADD EAX,EDX
+00457B7B  |. 8945 B0
+   |MOV DWORD PTR SS:[EBP-50],EAX
+00457B7E  |. 8B4D A8
+     |MOV ECX,DWORD PTR SS:[EBP-58]
+00457B81  |. 83C1 06
+       |ADD ECX,6
+       ;  字符索引+6
+00457B84  |. 51
+        |PUSH ECX
+        ;  即取试炼码第三部分的对应字符
+00457B85  |. 8D4D 08
+       |LEA ECX,DWORD PTR SS:[EBP+8]
+                ;
+00457B88  |.
+E8 E383FCFF    |CALL CDRWIN5.0041FF70
+                     ;
+00457B8D  |. 0FBED0         |MOVSX
+EDX,AL
+00457B90  |. 8B45 B0        |MOV EAX,DWORD
+PTR SS:[EBP-50]
+00457B93  |. 03C2
+|ADD EAX,EDX
+00457B95  |. 8945 B0        |MOV DWORD
+PTR SS:[EBP-50],EAX
+     ；加上
+00457B98  |.^EB BE
+ \JMP SHORT CDRWIN5.00457B58
+            ;
+ 以上循环计算第二、第三部分共十个字符的ascii码的加和。
+00457B9A  |> 8B4D B0
+     MOV ECX,DWORD PTR SS:[EBP-50]
+              ;
+00457B9D  |.
+81E1 01000080  AND ECX,80000001
+ ；检查是否为偶数
+00457BA3  |. 79 05          JNS
+SHORT CDRWIN5.00457BAA
+         ; 没有符号是肯定的。
+00457BA5  |. 49
+          DEC ECX
+            ;
+00457BA6  |. 83C9 FE
+       OR ECX,FFFFFFFE
+00457BA9  |. 41
+        INC ECX
+00457BAA  |> 85C9
+      TEST ECX,ECX
+00457BAC  |. 74 52
+     JE SHORT CDRWIN5.00457C00
+                ；必须是偶数
+00457BAE
+ |. C785 4CFFFFFF >MOV DWORD PTR SS:[EBP-B4],3
+；否则返回3失败
+.............................
+00457BFB  |. E9 E7090000
+   JMP CDRWIN5.004585E7
+00457C00  |> 8D4D D4
+   LEA ECX,DWORD PTR SS:[EBP-2C]
+            ;
+00457C03  |. E8
+9E880000    CALL
+<JMP.&MFC42.#540\_??0CString@@QAE@XZ>
+00457C08  |. C645 FC 09
+    MOV BYTE PTR SS:[EBP-4],9
+00457C0C  |. 6A 10
+     PUSH 10
+        ; 取试炼码第0x10个字符
+00457C0E  |. 8D4D 08
+     LEA ECX,DWORD PTR SS:[EBP+8]
+               ;
+00457C11  |.
+E8 5A83FCFF    CALL CDRWIN5.0041FF70
+                      ;
+00457C16  |. 50             PUSH
+EAX
+00457C17  |. 8D4D D4        LEA ECX,DWORD PTR
+SS:[EBP-2C]
+00457C1A  |. E8 A9930000    CALL
+<JMP.&MFC42.#859\_??4CString@@QAEABV0@D@Z>      ;
+ 存入数据段 [3A8360]处
+00457C1F  |. 8D4D D4
+ LEA ECX,DWORD PTR SS:[EBP-2C]
+00457C22  |. E8 49B5FAFF
+ CALL CDRWIN5.00403170
+00457C27  |. 50
+    PUSH EAX
+     ;
+00457C28  |. FF15 948A4600  CALL DWORD PTR
+DS:[<&MSVCRT.atoi>]
+   ; 转换成对应的值
+00457C2E  |. 83C4 04
+ ADD ESP,4
+00457C31  |. 8945 F0        MOV
+DWORD PTR SS:[EBP-10],EAX
+        ;  必须是一个阿拉伯数字
+00457C34  |. 837D F0 00
+    CMP DWORD PTR SS:[EBP-10],0
+              ；返回零通常表示不是数字
+00457C38
+ |. 75 70          JNZ SHORT
+CDRWIN5.00457CAA
+00457C3A  |. 6A 10
+ PUSH 10
+    ;
+00457C3C  |. 8D4D 08        LEA
+ECX,DWORD PTR SS:[EBP+8]
+       ; 但必须检查他是不是就是'0'
+00457C3F  |. E8 2C83FCFF
+   CALL CDRWIN5.0041FF70
+                  ;
+00457C44
+ |. 0FBEC0         MOVSX EAX,AL
+00457C47  |.
+83F8 30        CMP EAX,30
+         ;
+00457C4A  |. 74 5E
+       JE SHORT CDRWIN5.00457CAA
+00457C4C  |. C785
+48FFFFFF >MOV DWORD PTR SS:[EBP-B8],4
+;若不是阿拉伯数字，则返回4失败
+.............................
+00457CA5  |. E9
+3D090000    JMP CDRWIN5.004585E7
+00457CAA  |> 8B55 F0
+       MOV EDX,DWORD PTR SS:[EBP-10]
+                ;  code[0x10]对应的值加上
+5
+00457CAD  |. 83C2 05        ADD EDX,5
+00457CB0
+ |. 8955 F0        MOV DWORD PTR
+SS:[EBP-10],EDX
+00457CB3  |. 837D F0 09     CMP DWORD PTR
+SS:[EBP-10],9
+      ;  超过 9?
+00457CB7  |. 0F8E 84000000  JLE
+CDRWIN5.00457D41
+00457CBD  |. 8B45 F0        MOV
+EAX,DWORD PTR SS:[EBP-10]
+00457CC0  |. 83E8 0A
+ SUB EAX,0A
+ ;  若超过9则对10取余
+00457CC3  |. 8945 F0
+ MOV DWORD PTR SS:[EBP-10],EAX
+00457CC6  |. 8B4D F0
+   MOV ECX,DWORD PTR SS:[EBP-10]
+            ；于数加上0x41变成大写字母
+00457CC9  |.
+83C1 41        ADD ECX,41
+         ;
+00457CCC  |. 894D F0
+     MOV DWORD PTR SS:[EBP-10],ECX
+00457CCF  |. 6A 18
+         PUSH 18
+            ; 取code[0x18]
+00457CD1  |.
+8D4D 08        LEA ECX,DWORD PTR SS:[EBP+8]
+                   ;
+00457CD4  |. E8 9782FCFF    CALL CDRWIN5.0041FF70
+      ;
+00457CD9  |. 0FBED0
+MOVSX EDX,AL
+                     ;
+00457CDC  |. 3B55 F0        CMP EDX,DWORD PTR
+SS:[EBP-10]
+    ;code[0x18]必须等于刚才计算的大写字母
+00457CDF  |. 74 5E
+     JE SHORT CDRWIN5.00457D3F
+                ;
+00457CE1  |.
+C785 44FFFFFF >MOV DWORD PTR SS:[EBP-BC],5
+；否则返回5失败
+.....................
+00457D3A  |. E9 A8080000
+ JMP CDRWIN5.004585E7
+00457D3F  |> EB 79
+   JMP SHORT CDRWIN5.00457DBA
+.............
+00457DBA  |>
+C745 BC 000000>MOV DWORD PTR SS:[EBP-44],0
+00457DC1  |. C745 A0
+000000>MOV DWORD PTR SS:[EBP-60],0
+            ；字符索引，从试炼码的开头开始
+00457DC8  |.
+EB 09          JMP SHORT CDRWIN5.00457DD3
+00457DCA
+ |> 8B4D A0        /MOV ECX,DWORD PTR
+SS:[EBP-60]
+00457DCD  |. 83C1 01        |ADD
+ECX,1
+00457DD0  |. 894D A0        |MOV DWORD PTR
+SS:[EBP-60],ECX
+00457DD3  |> 837D A0 05      CMP DWORD
+PTR SS:[EBP-60],5
+     ;  0x5: 计数器
+00457DD7  |. 7D 67
+     |JGE SHORT CDRWIN5.00457E40
+00457DD9  |. 8B55 A0
+       |MOV EDX,DWORD PTR SS:[EBP-60]
+00457DDC  |.
+52             |PUSH EDX
+              ;  从第一部分取一个字符
+00457DDD
+ |. 8D4D 08        |LEA ECX,DWORD PTR SS:[EBP+8]
+;
+00457DE0  |. E8 8B81FCFF    |CALL CDRWIN5.0041FF70
+     ;
+00457DE5  |. 0FBEC0
+|MOVSX EAX,AL
+；
+00457DE8  |. 8B4D BC        |MOV ECX,DWORD PTR
+SS:[EBP-44]
+   ;  [ebp-44] 存放加和结果
+00457DEB  |. 03C8
+      |ADD ECX,EAX
+     ；加和
+00457DED  |. 894D BC
+ |MOV DWORD PTR SS:[EBP-44],ECX
+00457DF0  |. 8B55 A0
+     |MOV EDX,DWORD PTR SS:[EBP-60]
+00457DF3  |. 83C2 06
+       |ADD EDX,6
+       ;  到第二部分区对应的字符
+00457DF6  |. 52
+          |PUSH EDX
+          ;
+00457DF7  |. 8D4D 08
+   |LEA ECX,DWORD PTR SS:[EBP+8]
+            ;
+00457DFA  |. E8 7181FCFF
+   |CALL CDRWIN5.0041FF70
+                 ;
+00457DFF
+ |. 0FBEC0         |MOVSX EAX,AL
+00457E02  |.
+8B4D BC        |MOV ECX,DWORD PTR SS:[EBP-44]
+00457E05
+ |. 03C8           |ADD ECX,EAX
+             ;  也加上
+00457E07  |.
+894D BC        |MOV DWORD PTR SS:[EBP-44],ECX
+                 ;
+ 存储结果
+00457E0A  |. 8B55 A0        |MOV
+EDX,DWORD PTR SS:[EBP-60]
+00457E0D  |. 83C2 12
+ |ADD EDX,12
+                      ;
+ 到第4部分取相应的字符
+00457E10  |. 52
+  |PUSH EDX
+  ;
+00457E11  |. 8D4D 08        |LEA ECX,DWORD
+PTR SS:[EBP+8]
+    ;
+00457E14  |. E8 5781FCFF    |CALL
+CDRWIN5.0041FF70
+           ;
+00457E19  |. 0FBEC0
+      |MOVSX EAX,AL
+00457E1C  |. 8B4D BC
+   |MOV ECX,DWORD PTR SS:[EBP-44]
+00457E1F  |. 03C8
+        |ADD ECX,EAX
+       ;  加
+00457E21  |. 894D BC
+   |MOV DWORD PTR SS:[EBP-44],ECX
+           ;
+00457E24  |. 8B55 A0
+       |MOV EDX,DWORD PTR SS:[EBP-60]
+00457E27  |.
+83C2 18        |ADD EDX,18
+          ;  到第5部分取相应的字符
+00457E2A  |. 52
+            |PUSH EDX
+            ;
+00457E2B  |. 8D4D 08
+     |LEA ECX,DWORD PTR SS:[EBP+8]
+              ;
+00457E2E  |. E8
+3D81FCFF    |CALL CDRWIN5.0041FF70
+                   ;
+00457E33  |. 0FBEC0         |MOVSX
+EAX,AL
+00457E36  |. 8B4D BC        |MOV ECX,DWORD
+PTR SS:[EBP-44]
+00457E39  |. 03C8
+|ADD ECX,EAX
+00457E3B  |. 894D BC        |MOV DWORD
+PTR SS:[EBP-44],ECX
+     ;  加上
+00457E3E  |.^EB 8A
+   \JMP SHORT CDRWIN5.00457DCA
+              ;
+ 这个循环计算注册码的第1,2,4,5部分共20个字符的ascii码加和
+00457E40  |> 8D4D A4
+     LEA ECX,DWORD PTR SS:[EBP-5C]
+              ；
+00457E43  |. E8
+5E860000    CALL
+<JMP.&MFC42.#540\_??0CString@@QAE@XZ>
+00457E48  |. C645 FC 0A
+    MOV BYTE PTR SS:[EBP-4],0A
+00457E4C  |. 8B55 BC
+     MOV EDX,DWORD PTR SS:[EBP-44]
+              ;  加和结果
+00457E4F
+ |. 52             PUSH EDX
+                 ;
+ 作为参数
+00457E50  |. 68 88E04700    PUSH CDRWIN5.0047E088
+        ;  数据段=〉"%X" 格式化字符串
+00457E55  |. 8D45
+A4        LEA EAX,DWORD PTR SS:[EBP-5C]
+00457E58  |.
+50             PUSH EAX
+00457E59  |. E8
+9C860000    CALL
+```
