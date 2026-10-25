@@ -1,0 +1,58 @@
+
+# [原创]断点-你需要了解的一切（六）-消息断点
+
+消息断点是对条件记录断点的应用，是针对一个特殊函数：`winproc`函数的`Message`参数设置的件记录断点。本讲可视为对条件记录断点的实战。
+
+调试器：`OllyDbg`
+
+环境：win7 64位真机
+
+原理：windows是基于消息的操作系统，每一个消息都按照相同的格式被写入一个结构体，这个结构体叫`MSG`。消息发生后windows把该结构体传给`WinProc`函数，用它来执行消息处理功能。每一个窗口有不同控件，一个窗口至少一个消息循环。
+
+## 如何设置消息断点
+
+先把程序运行起来，让软件的主界面显示出来。打开感兴趣的窗口。
+
+![](https://bbs.kanxue.com/upload/attach/201805/803510_DZ6SQN5CMQ3ZU8P.jpg)
+
+输入假码后不要点击回车，保持现状；
+
+![](https://bbs.kanxue.com/upload/attach/201805/803510_WA7882CK9B9VZDG.jpg)
+
+接着来到点击W窗口，里面什么都没有
+
+![](https://bbs.kanxue.com/upload/attach/201805/803510_N6F5X3JXABYBUXA.jpg)
+
+刷新一下；
+
+![](https://bbs.kanxue.com/upload/attach/201805/803510_EZBD5GAEA738ZKQ.jpg)
+
+我们看到第二行，内容为验证用户名和序列号，这和按钮上的文字相同，而且它的类是`Button`也就是按钮，可见这里是按钮控件了。选中它-右击-设置消息断点、
+
+![](https://bbs.kanxue.com/upload/attach/201805/803510_P355C3QB4YHCX35.jpg)
+
+消息一栏选中`202 WM_LBUTTONUP`在按钮上抬起鼠标左键。按钮控件上发生鼠标右键抬起事件时就断下。因为单击包括两个操作，一个是鼠标左键按下，另一个是鼠标左键抬起。
+
+暂停程度：选择按消息 记录`winproc`参数：选择按消息
+
+![](https://bbs.kanxue.com/upload/attach/201805/803510_T493YGJVF3BBGR2.jpg)
+
+单击确定按钮，断在`WinProc`函数段首，即窗口过程函数，堆栈窗口里参数显示：`Message`参数里就是`202`，如图。
+
+![](https://bbs.kanxue.com/upload/attach/201805/803510_27DCRZVW92YQ6GU.jpg)
+
+然后在程序领空的`.text`代码段设置访问断点，`f9`后就到了程序领空，注：下内存断点和`alt+f9`比，返回后细节更多更细致，粗略的分析时用`alt+f9`
+
+## 如何给消息断点添加记录功能
+
+如果我们对`WinProc`函数的`Message`参数感兴趣，想让程序记录我们干了什么。，那么我们可以来到B窗口，右击消息断点，设置条件断点，然后。。。这样发生的所有事件都会被记录下来
+
+到这里我发现，消息断点本质是一个在`WinProc`函数段首设置的，判断`{esp+8}==202`，即第二参数是否等于`WM_LBUTTONUP`的条件断点。注：`Esp`指向返回地址，`Esp+4`指向第一个参数，`esp+8`指向第二个参数。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+[#病毒木马](https://bbs.kanxue.com/forum-4-1-6.htm)
+
+[#系统底层](https://bbs.kanxue.com/forum-4-1-2.htm)
+
+[#调试逆向](https://bbs.kanxue.com/forum-4-1-1.htm)
