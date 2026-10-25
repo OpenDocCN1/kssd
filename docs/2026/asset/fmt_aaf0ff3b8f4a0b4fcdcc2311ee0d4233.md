@@ -1,0 +1,290 @@
+
+# IP_tools2.06加密算法揭秘 ,雁南飞老兄务请一进,呵呵 (30千字)
+
+## IP_TOOLS2.06加密算法揭密
+
+几周前看见坛子上在讨论`IP_TOOLS2.06`，本菜鸟对`IP`工具较感兴趣，就想拿来试试手，`happy`一下。
+
+谁知试了一周，花了`n`个小时（`n>40`），晕菜无数次，都没搞定，只好走人咯，郁闷啊！这阵放假，本想再试试，整理些资料就算了，没想到竟还大致搞明白了，晕倒！（由于这个破程序`n`郁闷本菜鸟，本菜不禁多吐了些苦水，各位老兄还请多包涵啊:)）好吧，言归正传，下面我们开始吧 :)
+
+这个文件注册失败会弹出消息框，偶就想用`MessageBox`，`MessageboxEx`以及生成消息框，对话框的那些`API`来拦截，没想到都栏不到，郁闷偶半天。后来用`VC`的`SPY++`看（`softice`中用`hwnd`应该也能看得来），才发现`IP_tools`中的对话框消息框大多使用他们自己开发的类如`TRegisterDlg`,`TRegisterDlg2`,`TMessageForm`，而不是`windows`自带的`Dialog`类。乖乖，敌人的做工还很细噢，菜鸟很佩服的恨恨的说。（如果有时间，研究一下如何自定义窗口类实现模式对话框消息框的效果倒是很有意思）
+
+用`CreateWindowExa`倒是可以拦下，不过好像有点怪，菜鸟没有继续，就改拦截`HMENCPY`了。
+
+`windows 9X`下，`HMemcpy`是在`16bit`保护模式运行，被拦截下时的`ES`寄存器是目的地址的段`selector`，通过`softice`的`GDT ***`查看该段的详细信息，段的初始地址就是`32`位下的目的地址。对这个地址下`bpm`跟噢，很快程序就会被这个段点拦截下来，看一下是`32`位模式下的串拷贝，一般使用`ESI`, `EDI`，那就接着对`EDI-1`(或 `2,4`)(其实减不减都差不多啦）下`bpm`，继续跟啊。折腾了半天，发现了程序进行计算和比较的地方了，算是取得了点阶段性的成果，呵呵。不过菜鸟到这花了`7`，`8`个小时，菜啊，伤心噢。菜鸟使用用户名是`happy`，密码是`1112222`，
+
+注：
+* 本文中的数字都是`16`进制数
+* 文中有时指针与指针指向的值混用，不过应该能看出来什么时候是什么
+
+下面看程序：
+
+```
+CODE:004AC629                mov
+  eax, [ebp+var_10]     // d eax, 看到用户名happy,
+CODE:004AC62C                call
+  sub_49D94C                //对用户名进行操作，返回加密后
+              的字串长度
+CODE:004AC631                mov
+  edi, eax
+CODE:004AC633                lea
+  edx, [ebp+var_10]
+CODE:004AC636                mov
+  eax, [esi]
+CODE:004AC638                mov
+  eax, [eax+1F4h]
+CODE:004AC63E                call
+  sub_4236DC
+CODE:004AC643                mov
+  eax, [ebp+var_10]     //d eax, 看到11112222
+CODE:004AC646                call
+  sub_49D9E8        //对密码进行操作
+CODE:004AC64B                cmp
+  di, ax
+CODE:004AC64E                jnz
+  loc_4AC7CA        //到了4ac7ca我们就不happy了，
+CODE:004AC654                mov
+  eax, ds:off_4E128C    //4e128c中存放的是地址4e3434,
+               是用户名加密后的存放地址
+CODE:004AC659                mov
+  edx, 1FFh
+CODE:004AC65E                call
+  sub_49D930        //对加密后的用户名计算
+CODE:004AC663                mov
+  edi, eax
+CODE:004AC665                mov
+  eax, ds:off_4E1190    //4e1190中存放的是地址4e3634,
+               是密码加密后的存放地址
+CODE:004AC66A                mov
+  edx, 1FFh
+CODE:004AC66F                call
+  sub_49D930        //对加密后的密码计算
+CODE:004AC674                cmp
+  edi, eax
+CODE:004AC676                jnz
+  loc_4AC7CA
+CODE:004AC67C                mov
+  eax, ds:off_4E128C    //这以下按双字比较 4e3434+7，
+4e3634+7空间中的内容
+CODE:004AC681                add
+  eax, 7
+CODE:004AC684                mov
+  eax, [eax]
+CODE:004AC686                mov
+  edx, ds:off_4E1190
+CODE:004AC68C                add
+  edx, 7
+CODE:004AC68F                cmp
+  eax, [edx]
+CODE:004AC691                jnz
+  loc_4AC7CA
+CODE:004AC697                lea
+  edx, [ebp+var_8]        //三次比较都成功了，注册成功的对
+话框就跳出来了噢
+。。。。。。
+CODE:004AC6D8                mov
+  eax, offset aThankYouForReg ; "Thank you for registering IP-To"
+              //到这菜鸟才注意到这个字串，要是开始时就
+              查找这个子串也许省偶很多事噢，心痛心痛！
+。。。。。。
+CODE:004AC7CA                mov
+  eax, offset aSorryYourReg_0 ; "Sorry, your registration number or "
+              // game
+over 的字串！Go to hell!
+CODE:004AC7CF                call
+  sub_444700
+```
+
+先看一下 `int 49D930`（`int i, char *pChar`），该函数对 `(pChar+0B)`开始的字符窜按字求和， 长度为 `i-0B` (`i=1ff`)。
+
+让我们看一下重要的两个`call 49d94c`，`49d9e8`.
+
+### *** 49d94c：
+
+```
+CODE:0049D94C                push
+  ebp
+。。。。。。
+CODE:0049D9A8                push
+  eax
+CODE:0049D9A9                push
+  offset unk_4E3434
+CODE:0049D9AE                push
+  ebx
+CODE:0049D9AF                push
+  offset unk_4DCB62
+CODE:0049D9B4                push
+  offset unk_4DCC62
+CODE:0049D9B9                call
+  sub_49DFFA        //加密的核心函数
+CODE:0049D9BE                movsx
+eax, al
+。。。。。。
+CODE:0049D9D8                retn
+CODE:0049D9D8 sub_49D94C      endp ; sp = -210h
+```
+
+### *** 49d9e8:
+
+```
+CODE:0049D9E8                push
+  ebp
+CODE:0049D9E9                mov
+  ebp, esp
+CODE:0049D9EB                add
+  esp, 0FFFFFDFCh
+CODE:0049D9F1                push
+  ebx
+CODE:0049D9F2                mov
+  [ebp+var_4], eax
+CODE:0049D9F5                mov
+  eax, [ebp+var_4]
+CODE:0049D9F8                call
+  sub_4040FC
+CODE:0049D9FD                xor
+  eax, eax
+CODE:0049D9FF                push
+  ebp
+CODE:0049DA00                push
+  offset loc_49DA62
+CODE:0049DA05                push
+  dword ptr fs:[eax]
+CODE:0049DA08                mov
+  fs:[eax], esp
+CODE:0049DA0B                lea
+  edx, [ebp+var_204]
+CODE:0049DA11                mov
+  ecx, 1FFh
+CODE:0049DA16                mov
+  eax, [ebp+var_4]
+CODE:0049DA19                call
+  sub_49D880        //将输入密码当作16进制数解读，
+              如‘11112222’被转换成4个字节：
+              11 11 22
+22，称之为密码1
+CODE:0049DA1E                lea
+  eax, [ebp+var_204]
+CODE:0049DA24                push
+  eax
+CODE:0049DA25                push
+  offset unk_4E3634
+CODE:0049DA2A                mov
+  eax, [ebp+var_4]
+CODE:0049DA2D                call
+  sub_403F48        //计算密码1的字节长度
+CODE:0049DA32                sar
+  eax, 1            //计算密码1的字长度
+CODE:0049DA34                jns
+  short loc_49DA39
+CODE:0049DA36                adc
+  eax, 0
+CODE:0049DA39
+CODE:0049DA39 loc_49DA39:
+            ; CODE XREF: sub_49D9E8+4Cj
+CODE:0049DA39                push
+  eax
+CODE:0049DA3A                push
+  offset unk_4DCD66
+CODE:0049DA3F                push
+  offset unk_4DCE66
+CODE:0049DA44                call
+  sub_49DFFA        //核心加密算法
+CODE:0049DA49                movsx
+ebx, al
+CODE:0049DA4C                xor
+  eax, eax
+CODE:0049DA4E                pop
+  edx
+CODE:0049DA4F                pop
+  ecx
+CODE:0049DA50                pop
+  ecx
+CODE:0049DA51                mov
+  fs:[eax], edx
+CODE:0049DA54                push
+  offset loc_49DA69
+CODE:0049DA59
+CODE:0049DA59 loc_49DA59:
+            ; CODE XREF: CODE:0049DA67j
+CODE:0049DA59                lea
+  eax, [ebp+var_4]
+CODE:0049DA5C                call
+  sub_403CCC
+CODE:0049DA61                retn
+CODE:0049DA61 sub_49D9E8      endp ; sp = -210h
+```
+
+看到这，菜鸟就发晕了，用户名和密码1竟然都用相同算法(`49dffa`)加密，再比较其加密后的值，这不是要搞出逆算法才行吗？过分啊！
+
+下面看 一下`49dffa`的参数：
+
+`sub_49dffa(char * pBuffToCode, char *pDestBuff, int iLenBuffToCode, char *pBuff, char *pLongIntZ)`
+
+当进行用户名加密时是：
+
+`sub_49dffa('happy', 4e3434, 5, 4dcb62,4dcc62)`
+
+当进行密码1加密时是：
+
+`sub_49dffa( '11 11 22 22', 4e3634, 4, 4dcd66, 4dce66)`
+
+其中`4dce66`空间算装内容与`4dcc62`完全相同，长度为`50h`个字节。`4dcd66`与`4dcb62`空间内容不同。
+
+下面我们进 `49dffa`去看：
+
+`sub_49dffa(char * pBuffToCode, char *pDestBuff, int iLenBuffToCode, char *pBuff, char *pLongIntZ)`
+
+```
+CODE:0049DFFA                push
+  ebp
+CODE:0049DFFB                mov
+  ebp, esp
+CODE:0049DFFD                push
+  ebx
+CODE:0049DFFE                push
+  esi
+CODE:0049DFFF                mov
+  esi, [ebp+arg_0]
+CODE:0049E002                mov
+  ebx, [ebp+arg_8]
+CODE:0049E005                push
+  esi
+CODE:0049E006                call
+  sub_49F121    //返回pLoingIntZ指向字串的bit数，
+          从pLongIntZ+2a*2的字的高比特往下
+          找第一个非零bit位，这里返回280
+CODE:0049E00B                pop
+  ecx
+CODE:0049E00C                add
+  eax, 7
+CODE:0049E00F                sar
+  eax, 3        //计算修正后pLongIntZ字节数，50
+CODE:0049E012                movzx
+edx, bx
+CODE:0049E015                cmp
+  eax, edx        //比较iLenBuffTocode与pLongIntZ长度，小等于则继续
+          //从算法角度来说，这个比较很有必要噢
+CODE:0049E017                jge
+  short loc_49E01E
+CODE:0049E019                or
+    eax, 0FFFFFFFFh
+CODE:0049E01C                jmp
+  short loc_49E055
+CODE:0049E01E ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+CODE:0049E01E
+CODE:0049E01E loc_49E01E:
+            ; CODE XREF: sub_49DFFA+1Dj
+CODE:0049E01E                push
+  ebx
+CODE:0049E01F                push
+  offset unk_4E3838
+CODE:0049E024                push
+  [ebp+arg_10]
+CODE:0049E027                call
+  sub_49DF4D    //将pBufTofCode 拷到4e3838
+CODE:0049E02C                add
+  esp, 0Ch
+CODE:0049E02F                push
+  esi
+CODE:0049E030                push
+```
