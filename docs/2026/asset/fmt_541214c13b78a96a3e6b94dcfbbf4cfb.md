@@ -1,0 +1,196 @@
+
+# 大魔头,哪里跑,看剑(魔法转换1.5破解记录，新鲜出炉) (3千字)
+
+软件名称：魔法转换
+
+整理日期：2001.4.1
+
+最新版本：1.5 build 0401
+
+文件大小：528KB
+
+软件授权：共享软件
+
+使用平台：Win9x/NT/2000
+
+发布公司：Home Page
+
+## 软件简介
+
+是一个图像转换工具。它支持的图像格式有BMP，GIF，JPG，ICO等等。能将它支持的格式图像转换或批量转换为BMP，GIF，JPG格式。它之所以魔法，就是它能将图像转换为HTM，TXT，RTF格式，而且支持彩色转换和单色转换，还分为多种模式转换，比如缩小一倍。如果转换出ASCII字符不满意，还可以设置字符方案，在选项里你可以调入一幅图像来扫描字符，直到满意为止。又能导入方案和导出方案。
+
+`http://xt.onlinedown.net/down/mc0401.exe`
+
+不直接比对，较讨厌
+
+## 破解过程
+
+1. 脱`aspack`壳, `w32dasm`黄金版反汇编
+
+```
+* Possible StringData Ref from Code Obj ->"magct"
+
+            |
+
+:004B262E BAF0274B00              mov edx,
+
+004B27F0 -------(1)
+
+:004B2633 A1384F4C00              mov eax,
+
+dword ptr [004C4F38]
+
+:004B2638 E8F3BAFBFF              call
+
+0046E130
+
+:004B263D 46
+
+    inc esi
+
+:004B263E 0F85BF000000            jne 004B2703
+
+------------(2)
+
+:004B2644 8B45F8
+
+mov eax, dword ptr [ebp-08] *
+
+:004B2647 8B55F4
+
+mov edx, dword ptr [ebp-0C] *(3)
+
+:004B264A E8B116F5FF              call
+
+00403D00              **
+
+:004B264F 753D
+
+  jne 004B268E                 *
+
+:004B2651 33D2
+
+  xor edx, edx
+
+:004B2653 8B83E8010000            mov eax, dword
+
+ptr [ebx+000001E8]
+
+:004B2659 E816FFF6FF              call
+
+00422574
+
+* Possible StringData Ref from Code Obj ->"已注册！授权给："
+
+            |
+
+:004B265E 6854284B00              push
+
+004B2854
+
+:004B2663 FF75FC
+
+push [ebp-04]
+
+* Possible StringData Ref from Code Obj ->"  注册码："
+
+            |
+
+:004B2666 6870284B00              push
+
+004B2870
+
+:004B266B FF75F4
+
+push [ebp-0C]
+
+:004B266E 8D45F0
+
+lea eax, dword ptr [ebp-10]
+
+:004B2671 BA04000000              mov edx,
+
+00000004
+
+:004B2676 E83516F5FF              call
+
+00403CB0
+
+:004B267B 8B55F0
+
+mov edx, dword ptr [ebp-10]
+
+:004B267E 8B83F0010000            mov eax, dword
+
+ptr [ebx+000001F0]
+
+:004B2684 E883FFF6FF              call
+
+0042260C
+
+:004B2689 E9E5000000              jmp 004B2773
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004B264F(C)
+
+|
+
+:004B268E 8D45F0
+
+lea eax, dword ptr [ebp-10]
+
+:004B2691 E81A550000              call
+
+004B7BB0
+
+:004B2696 8B45F0
+
+mov eax, dword ptr [ebp-10]
+
+:004B2699 E8524FF5FF              call
+
+004075F0
+
+:004B269E 83F81E
+
+cmp eax, 0000001E
+
+:004B26A1 7E15
+
+  jle 004B26B8
+
+* Possible StringData Ref from Code Obj ->"这是共享软件！你已经用了30天，如果觉得满意，请"
+
+                  ->"注册！"
+
+            |
+
+:004B26A3 BA84284B00              mov edx,
+
+004B2884
+```
+
+2. 填入用户名，注册码后退出，时间后调一年
+
+`trw2000`载入
+
+`bpx 4b262e`        `(1)`
+
+`r fl z`        `(2)` 使不跳
+
+`d eax`
+
+`(3)`
+
+3. 注册码保存处
+
+`win.ini`
+
+```
+[magct]
+name=guodong
+code=670E75156F1C64236F2A6E316738
+```
+
+风飘雪 `http://duba.126.com` `gd1@yeah.net`
