@@ -1,0 +1,315 @@
+
+# 初学者(26) (9千字)
+
+**Icon Clock**
+
+**Version**
+
+5.0
+
+The shareware version of Icon Clock will only run 30 days. There are now two options for registering Icon Clock. The Standard Registration costs just $10.00. The Deluxe Registration is $20.00.
+
+* Possible StringData Ref from Data Obj ->`"clock"`
+
+安装后,输入用户名:`LiuTong`
+注册码:`987654321`(注册码要求9位)
+
+开始时,按常用方法设`bpx hmemcpy`断点
+
+找到了输入的注册码`"987654321"`的地址****:**\*\*\*\*\*\*\*\*
+设断点`bpm` ****:**\*\*\*\*\*\*\*\*
+
+但未发现比较指令.
+
+因此猜测软件将用户名和注册码存到某个地方,当下次启动时比较.
+
+追踪过程中发现软件在注册表中存了几个数据:
+`HKEY_LOCAL_MACHINE/Software/Microsoft/Windows/CurrentVersion/Icinst/lday`<---当前日期
+`HKEY_LOCAL_MACHINE/Software/Microsoft/Windows/CurrentVersion/Icinst/lhr`<---当前时间
+`HKEY_LOCAL_MACHINE/Software/Microsoft/Windows/CurrentVersion/Icinst/sday`<---安装日期
+`HKEY_LOCAL_MACHINE/Software/Microsoft/Windows/CurrentVersion/Icinst/smonth`<---安装月
+
+改用断点`bpx GetPrivateProfileStringA`
+很快便找到了用户名和输入码,并分别用`bpm`设了两个断点
+于是找到下面的程序
+
+```
+:00401B8B 68D4E14200              push 0042E1D4
+:00401B90 52
+  push edx
+:00401B91 8BC8
+  mov ecx, eax
+:00401B93 E8DE0D0200              call 00422976
+:00401B98 8B442408                mov
+eax, dword ptr [esp+08]
+:00401B9C BE02000000              mov esi,
+00000002
+:00401BA1 893518224300            mov dword ptr
+[00432218], esi
+:00401BA7 8378F809                cmp
+dword ptr [eax-08], 00000009
+:00401BAB 0F85EB020000            jne 00401E9C
+:00401BB1 8B44240C                mov
+eax, dword ptr [esp+0C]
+:00401BB5 8378F804                cmp
+dword ptr [eax-08], 00000004
+:00401BB9 0F8CDD020000            jl 00401E9C
+:00401BBF 0FBE08
+movsx ecx, byte ptr [eax]
+:00401BC2 51
+  push ecx
+:00401BC3 E8A89C0000              call 0040B870
+:00401BC8 83C404
+add esp, 00000004
+:00401BCB E8B09C0000              call 0040B880<--计算Call
+:00401BD0 99
+  cdq
+:00401BD1 B909000000              mov ecx,
+00000009
+:00401BD6 F7F9
+  idiv ecx
+:00401BD8 8B442408                mov
+eax, dword ptr [esp+08]
+:00401BDC 0FBE4806                movsx
+ecx, byte ptr [eax+06]<--输入码第7位
+:00401BE0 83C230
+add edx, 00000030 <--注册码第7位
+:00401BE3 3BD1
+  cmp edx, ecx
+:00401BE5 7406
+  je 00401BED
+:00401BE7 893D18224300            mov dword ptr
+[00432218], edi
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401BE5(C)
+|
+:00401BED E88E9C0000              call 0040B880
+:00401BF2 99
+  cdq
+:00401BF3 B909000000              mov ecx,
+00000009
+:00401BF8 F7F9
+  idiv ecx
+:00401BFA 8B442408                mov
+eax, dword ptr [esp+08]
+:00401BFE 0FBE4803                movsx
+ecx, byte ptr [eax+03]<--输入码第4位
+:00401C02 83C230
+add edx, 00000030<--注册码第4位
+:00401C05 3BD1
+  cmp edx, ecx
+:00401C07 7406
+  je 00401C0F
+:00401C09 893D18224300            mov dword ptr
+[00432218], edi
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401C07(C)
+|
+:00401C0F E86C9C0000              call 0040B880
+:00401C14 99
+  cdq
+:00401C15 B909000000              mov ecx,
+00000009
+:00401C1A F7F9
+  idiv ecx
+:00401C1C 8B442408                mov
+eax, dword ptr [esp+08]
+:00401C20 0FBE08
+movsx ecx, byte ptr [eax]<--输入码第1位
+:00401C23 83C230
+add edx, 00000030<--注册码第1位
+:00401C26 3BD1
+  cmp edx, ecx
+:00401C28 7406
+  je 00401C30
+:00401C2A 893D18224300            mov dword ptr
+[00432218], edi
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401C28(C)
+|
+:00401C30 8B54240C                mov
+edx, dword ptr [esp+0C]
+:00401C34 0FBE4201                movsx
+eax, byte ptr [edx+01]
+:00401C38 50
+  push eax
+:00401C39 E8329C0000              call 0040B870
+:00401C3E 83C404
+add esp, 00000004
+:00401C41 E83A9C0000              call 0040B880
+:00401C46 99
+  cdq
+:00401C47 B909000000              mov ecx,
+00000009
+:00401C4C F7F9
+  idiv ecx
+:00401C4E 8B442408                mov
+eax, dword ptr [esp+08]
+:00401C52 0FBE4807                movsx
+ecx, byte ptr [eax+07]<--输入码第8位
+:00401C56 83C230
+add edx, 00000030<--注册码第8位
+:00401C59 3BD1
+  cmp edx, ecx
+:00401C5B 7406
+  je 00401C63
+:00401C5D 893D18224300            mov dword ptr
+[00432218], edi
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401C5B(C)
+|
+:00401C63 E8189C0000              call 0040B880
+:00401C68 99
+  cdq
+:00401C69 B909000000              mov ecx,
+00000009
+:00401C6E F7F9
+  idiv ecx
+:00401C70 8B442408                mov
+eax, dword ptr [esp+08]
+:00401C74 0FBE4804                movsx
+ecx, byte ptr [eax+04]<--输入码第5位
+:00401C78 83C230
+add edx, 00000030<--注册码第5位
+:00401C7B 3BD1
+  cmp edx, ecx
+:00401C7D 7406
+  je 00401C85
+:00401C7F 893D18224300            mov dword ptr
+[00432218], edi
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401C7D(C)
+|
+:00401C85 E8F69B0000              call 0040B880
+:00401C8A 99
+  cdq
+:00401C8B B909000000              mov ecx,
+00000009
+:00401C90 F7F9
+  idiv ecx
+:00401C92 8B442408                mov
+eax, dword ptr [esp+08]
+:00401C96 0FBE4801                movsx
+ecx, byte ptr [eax+01]<--输入码第2位
+:00401C9A 83C230
+add edx, 00000030<--注册码第2位
+:00401C9D 3BD1
+  cmp edx, ecx
+:00401C9F 7406
+  je 00401CA7
+:00401CA1 893D18224300            mov dword ptr
+[00432218], edi
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401C9F(C)
+|
+:00401CA7 8B54240C                mov
+edx, dword ptr [esp+0C]
+:00401CAB 0FBE4202                movsx
+eax, byte ptr [edx+02]
+:00401CAF 50
+  push eax
+:00401CB0 E8BB9B0000              call 0040B870
+:00401CB5 83C404
+add esp, 00000004
+:00401CB8 E8C39B0000              call 0040B880
+:00401CBD 99
+  cdq
+:00401CBE B909000000              mov ecx,
+00000009
+:00401CC3 F7F9
+  idiv ecx
+:00401CC5 8B442408                mov
+eax, dword ptr [esp+08]
+:00401CC9 0FBE4808                movsx
+ecx, byte ptr [eax+08]<--输入码第9位
+:00401CCD 83C230
+add edx, 00000030<--注册码第9位
+:00401CD0 3BD1
+  cmp edx, ecx
+:00401CD2 7406
+  je 00401CDA
+:00401CD4 893D18224300            mov dword ptr
+[00432218], edi
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401CD2(C)
+|
+:00401CDA E8A19B0000              call 0040B880
+:00401CDF 99
+  cdq
+:00401CE0 B909000000              mov ecx,
+00000009
+:00401CE5 F7F9
+  idiv ecx
+:00401CE7 8B442408                mov
+eax, dword ptr [esp+08]
+:00401CEB 0FBE4805                movsx
+ecx, byte ptr [eax+05]<--输入码第6位
+:00401CEF 83C230
+add edx, 00000030<--注册码第6位
+:00401CF2 3BD1
+  cmp edx, ecx
+:00401CF4 7406
+  je 00401CFC
+:00401CF6 893D18224300            mov dword ptr
+[00432218], edi
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401CF4(C)
+|
+:00401CFC E87F9B0000              call 0040B880
+:00401D01 99
+  cdq
+:00401D02 B909000000              mov ecx,
+00000009
+:00401D07 F7F9
+  idiv ecx
+:00401D09 8B442408                mov
+eax, dword ptr [esp+08]
+:00401D0D 0FBE4802                movsx
+ecx, byte ptr [eax+02]<--输入码第3位
+:00401D11 83C230
+add edx, 00000030<--注册码第3位
+:00401D14 3BD1
+  cmp edx, ecx
+:00401D16 7406
+  je 00401D1E
+:00401D18 893D18224300            mov dword ptr
+[00432218], edi
+```
+计算Call见下:
+
+* Referenced by a CALL at Addresses:
+|:00401BCB  , :00401BED  , :00401C0F  , :00401C41  , :00401C63
+|:00401C85  , :00401CB8  , :00401CDA  , :00401CFC  , :00401D44
+|:00401D68  , :00401D8A  , :00401DBD  , :00401DDF  , :00401E01
+|:00401E39  , :00401E5E  , :00401E80
+|
+
+```
+:0040B880 E8FB3A0000              call 0040F380
+:0040B885 8B4814
+mov ecx, dword ptr [eax+14]
+:0040B888 8D1449
+lea edx, dword ptr [ecx+2*ecx]
+:0040B88B 8D1491
+lea edx, dword ptr [ecx+4*edx]
+:0040B88E C1E204
+shl edx, 04
+:0040B891 03D1
+  add edx, ecx
+:0040B893 C1E208
+shl edx, 08
+:0040B896 2BD1
+  sub edx, ecx
+:0040B898 8D8C91C39E2600          lea ecx, dword ptr
+[ecx+4*edx+00269EC3]
+:0040B89F 894814
+mov dword ptr [eax+14], ecx
+:0040B8A2 8BC1
+  mov eax, ecx
+:0040B8A4 C1E810
+shr eax, 10
+:0040B8A7 25FF7F0000              and eax,
+00007FFF
+:0040B8AC C3
+  ret
+```
