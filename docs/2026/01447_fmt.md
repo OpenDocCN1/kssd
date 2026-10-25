@@ -1,0 +1,91 @@
+
+# [原创]金山安全卫士`bc.sys`驱动逆向分析（附逆向工程代码）
+
+小弟来看雪时间也不短了，只是在看各位大大发帖，自己都没有奉献过。今天把自己原来逆向的一个`sys`分析和源码给拿出来。对金山安全卫士的一个`bc.sys`的驱动进行了逆向，并且用IDA把大部分改成C代码。
+
+逆向只是供研究学习，无意侵犯版权。
+
+![](https://bbs.kanxue.com/upload/attach/201311/508690_lh6swdiq12wdvhl.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/201311/508690_zfivv7okgfm90jv.jpg)
+
+附件中是`bc.sys`的文件和完整的分析的文字记录和代码分析，还有就是逆向的`idb`文件，我没从`idb`中把代码给导出来，各位童鞋就放IDA里看吧。
+
+## 先来介绍`bc.sys`是起啥作用的
+
+BC据笔者的猜测是BootClean的意思。网上也有人曾说过金山还有一个类似的驱动是`BootClean.sys`。但是笔者电脑中没有此驱动，应该是其他产品所安装的。据此推断，其实`bc`就是bootclean，boot型驱动，开机即删除需要清除的文件，达到清除顽固病毒的目的。以下是金山官方对`BootClean.sys`模块的介绍：
+
+> 病毒程序通常会将自己的文件锁定以防止被杀软删除。抢杀模块`BootClean.sys`为毒霸安全产品专门针对此情况而开发的独有专利技术，该技术可以在系统启动早期对记录在清除列表中的文件进行彻底删除。此项中记录了毒霸抢杀模块的运行信息，包括删除病毒文件的路径、病毒名称、处理方式和处理结果等。
+
+## 主要值得研究的有三点
+
+### 第一、`bc.sys`和应用层通信是通过注册表读写并用二次异或的方式进行内容加密
+
+```c
+BOOL __stdcall BC_XorEncrypt(PUNICODE_STRING pData, UINT NumberByte, CHAR Key)
+{
+    UINT i; // [sp+4h] [bp-4h]@1
+
+    for ( i = 0; i < NumberByte; ++i )
+        *(i + pData) ^= ( Key ^ (CHAR)0xBA );
+    return TRUE;
+}
+```
+
+### 第二、系统启动时候调用进行顽固文件的删除
+
+系统启动时调用`IoRegisterBootDriverReinitialization(DriverObject, (PDRIVER_REINITIALIZE)DriverReinitializationRoutine, 0);`。`bc.sys`驱动是boot型驱动，boot类型的驱动程序是启动最早的驱动程序，在系统引导时就必须加载完毕，而对于注册为boot类型驱动的完成回调函数，将会在所有的boot类型驱动执行完毕之后被调用一次，需要注意的是，这时候仍然是系统启动过程中比较早的时候。对于删除顽固病毒来说，在系统启动过程中比较早的时候进行删除效果是最好的。而`IoRegisterBootDriverReinitialization()`正是boot驱动结束之后的回调函数，会在所有boot驱动完成之后运行，在这里对顽固病毒文件进行删除是一个比较好的时机。
+
+Windows对文件删除的操作，第一步是发送一个请求打开文件，打开文件时必须设置为有删除的访问权限；如果打开失败，则直接导致无法删除文件。第二步是发出一个设置请求，表示这个文件将被删除。第三步是关闭文件，关闭时文件被系统删除。
+
+一个文件被设置了“关闭时删除”属性之后，这个文件在关闭之前依然存在，但是对这个文件的大部分操作（比如写、读、查询等），都会返回一个“文件正在删除中”的错误。
+
+不过，请注意这里的“删除”并非把文件删除到回收站。如果要测试删除，读者操作时务必需要按住Shift键彻底删除文件。文件删除到回收站只是一种改名操作。改名操作是另一种设置操作（`FileInformationClass`为`FileRenameInformation`，关于这个属性设置下面马上会讲到）。
+
+在这个函数中调用的是`BC_BootCleanRescueFile()`。
+
+删除文件使用的是`BC_DeleteFileDevice()`函数，在内核中删除文件相比应用层要轻松许多，因为权限是最大的。在内核中地址是`\??\`开头的，如`\??\c:\boot.ini`等。删除文件使用的系统API是`ZwSetInformationFile()`。这个API中最后一个参数`FileInformationClass`如果是`FileDispositionInformation`，则说明文件在关闭的时候删除。这样可以有效防止别的进程正在占用此文件而无法删除的问题。这样的原理是在这个文件中设置一个状态，使用的仍是`ZwSetInformationFile()`函数。
+
+### 第三、关机时关停认为是需要杀掉的服务
+
+```c
+signed int __cdecl BC_DisableRescueDenyServ()
+{
+  signed int flag; // [sp+8h] [bp-Ch]@1
+  KIRQL IRQL; // [sp+Fh] [bp-5h]@1
+  struct _LIST_ENTRY *pEntry; // [sp+10h] [bp-4h]@3
+
+  flag = 0;
+  IRQL = KfAcquireSpinLock(&SpinLock_RescueDenyServ);
+  if ( List_RescueDenyServ.Flink != &List_RescueDenyServ )
+  {
+    for ( pEntry = List_RescueDenyServ.Flink; pEntry != &List_RescueDenyServ; pEntry = pEntry->Flink )
+    {
+      if ( pEntry )
+      {
+        KfReleaseSpinLock(&SpinLock_RescueDenyServ, IRQL);
+        BC_Rtn_Unsuccess2((const wchar_t *)&pEntry[1]);
+        BC_Rtn_Unsuccess((const wchar_t *)&pEntry[1]);
+        IRQL = KfAcquireSpinLock(&SpinLock_RescueDenyServ);
+      }
+    }
+    flag = 1;
+  }
+  KfReleaseSpinLock(&SpinLock_RescueDenyServ, IRQL);
+  return flag;
+}
+```
+
+## 下面是打包的附件供大家下载
+
+`BC逆向分析报告.pdf` + `BC.idb` + `BC.sys`
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+[#调试逆向](https://bbs.kanxue.com/forum-4-1-1.htm)
+
+### 上传的附件
+
+- [`QQ截图20131124222453.jpg`](javascript:void(0);)（42.92kb，47次下载）
+- [`QQ截图20131124222501.jpg`](javascript:void(0);)（87.21kb，184次下载）
+- [`BC.sys逆向分析.zip`](javascript:void(0);)（480.06kb，536次下载）
