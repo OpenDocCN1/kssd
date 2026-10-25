@@ -1,0 +1,6 @@
+
+# 请教OD中：`ecx`指向`"abcdefghigklmn"`这个字符串的条件断点如何下？
+
+请教OD中：`ecx`指向`"abcdefghigklmn"`这个字符串的条件断点如何下？
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
