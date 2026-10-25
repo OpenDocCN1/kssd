@@ -1,0 +1,166 @@
+
+```assembly
+:00407C77 85D2                    test edx, edx
+:00407C79 7FE0                    jg 00407C5B        //直到相减的结果为0
+:00407C7B 83FE09                  cmp esi, 00000009
+:00407C7E 8BCE                    mov ecx, esi
+:00407C80 7FD3                    jg 00407C55        //如果ESI大于9则重来
+:00407C82 8BC6                    mov eax, esi        //返回最后的ESI
+:00407C84 5E                      pop esi
+:00407C85 C20400                  ret 0004
+```
+
+在这里，`ESI`充当了一个计数器的作用。最后用汉语翻译一下（C语言麻烦）：
+
+1. `A+B+C+D+E+FGHIJK=M`，设一计数器`COUNT=0`。
+2. `M*0x66666667`，高双字为`N`。
+3. 将`N`算术右移2位（`N/4`）得`P`。
+4. 将`P`逻辑右移`0x1F`（应该得0吧）得`Q`。
+5. `P+Q=R`。
+6. `R*4+R=S`。
+7. `S`逻辑左移1位（`S*2`）得`T`。
+8. `M-T=U`；计数器`COUNT+=U`。
+9. `M=R`，若`R`不为0，则转到第2步。
+10. 若`COUNT>9`，则`COUNT=0`并转到第2步。
+
+最后根据前面分析的要求，`COUNT`必须等于`L`。
+
+用这段代码算个合适的序列号出来，还是`MessageBox`，继续往下：
+
+```assembly
+...
+
+:0040646F E84C0F0000              call 004073C0        //这个CALL过不去
+```
+
+进去`004073C0`看看：
+
+```assembly
+:004073C0 64A100000000            mov eax, dword ptr fs:[00000000]
+:004073C6 6AFF                    push FFFFFFFF
+:004073C8 68181E4100              push 00411E18
+:004073CD 50                      push eax
+:004073CE 8B442410                mov eax, dword ptr [esp+10]        //A
+:004073D2 64892500000000          mov dword ptr fs:[00000000], esp
+:004073D9 81EC80010000            sub esp, 00000180
+:004073DF 53                      push ebx
+:004073E0 56                      push esi
+:004073E1 BE02000000              mov esi, 00000002
+:004073E6 57                      push edi
+:004073E7 2BC6                    sub eax, esi
+:004073E9 0F84A3000000            je 00407492                //不跳则MessageBox（A必须为2）
+...
+:00407499 893520A14100            mov dword ptr [0041A120], esi        //C
+:0040749F 85C0                    test eax, eax
+:004074A1 0F8EBD060000            jle 00407B64        //跳则MessageBox（C不为0）
+:004074A7 3BC6                    cmp eax, esi
+:004074A9 0F8FB5060000            jg 00407B64        //跳则MessageBox（C必须小于等于2）
+:004074AF A328A14100              mov dword ptr [0041A128], eax
+:004074B4 8B8424A0010000          mov eax, dword ptr [esp+000001A0]                //B
+:004074BB 85C0                    test eax, eax
+:004074BD 0F8EFE050000            jle 00407AC1        //跳则MessageBox（B不为0）
+:004074C3 3BC6                    cmp eax, esi
+:004074C5 0F8FF6050000            jg 00407AC1        //跳则MessageBox（B必须小于等于2）
+:004074CB A324A14100              mov dword ptr [0041A124], eax
+:004074D0 8B8424A8010000          mov eax, dword ptr [esp+000001A8]        //D
+:004074D7 48                      dec eax
+:004074D8 0F84E8020000            je 004077C6
+:004074DE 48                      dec eax
+:004074DF 0F8412020000            je 004076F7
+:004074E5 48                      dec eax
+:004074E6 0F8403010000            je 004075EF
+...                                                                        //后面是MessageBox之路，因此D必须小于等于3且大于0。
+```
+
+先看`D`为1的情况：
+
+```assembly
+:004077C6 E865CEFFFF              call 00404630
+:004077CB 84C0                    test al, al
+:004077CD 0F85A3000000            jne 00407876
+...                                                                //下面是MessageBox之路
+```
+
+看看这个`00404630`：
+
+```assembly
+:00404630 B001                    mov al, 01
+:00404632 C3                      ret
+```
+
+所以`004077CD`是肯定会跳的，进去`00407876`看看：
+
+```assembly
+:00407876 B901000000              mov ecx, 00000001
+:0040787B 8B8424AC010000          mov eax, dword ptr [esp+000001AC]        //E
+:00407882 890D2CA14100            mov dword ptr [0041A12C], ecx
+:00407888 85C0                    test eax, eax
+:0040788A 0F8E40010000            jle 004079D0        //跳则MessageBox（E不为0）
+:00407890 3BC6                    cmp eax, esi
+:00407892 0F8F38010000            jg 004079D0                //跳则MessageBox（E必须小于等于2）
+:00407898 A330A14100              mov dword ptr [0041A130], eax
+:0040789D 0F85FA000000            jne 0040799D
+:004078A3 83F903                  cmp ecx, 00000003
+:004078A6 0F85F1000000            jne 0040799D
+```
+
+再看看`D`为2的情况：
+
+```assembly
+:004076F7 E834CFFFFF              call 00404630
+:004076FC 84C0                    test al, al
+:004076FE 0F85BB000000            jne 004077BF
+```
+
+在`004077BF`处：
+
+```assembly
+:004077BF 8BCE                    mov ecx, esi
+:004077C1 E9B5000000              jmp 0040787B
+```
+
+来到`0040787B`：
+
+```assembly
+:0040787B 8B8424AC010000          mov eax, dword ptr [esp+000001AC]        //E
+:00407882 890D2CA14100            mov dword ptr [0041A12C], ecx
+:00407888 85C0                    test eax, eax
+:0040788A 0F8E40010000            jle 004079D0        //跳则MessageBox（E不为0）
+:00407890 3BC6                    cmp eax, esi
+:00407892 0F8F38010000            jg 004079D0                //跳则MessageBox（E必须小于等于2）
+:00407898 A330A14100              mov dword ptr [0041A130], eax
+:0040789D 0F85FA000000            jne 0040799D
+:004078A3 83F903                  cmp ecx, 00000003
+:004078A6 0F85F1000000            jne 0040799D        //不跳则MessageBox
+```
+
+最后看看`D`为3的情况：
+
+```assembly
+:004075EF E83CD0FFFF              call 00404630
+:004075F4 84C0                    test al, al
+:004075F6 0F85F1000000            jne 004076ED
+```
+
+来到`004076ED`：
+
+```assembly
+:004076ED B903000000              mov ecx, 00000003
+:004076F2 E984010000              jmp 0040787B
+```
+
+还是来到`0040787B`，但此时`ecx`已经为3了，故`D`不能为3。
+
+到此打完收工，总结一下。序列号的形式如：`A-BCDE-FGHIJK-L`（所有字母代表10进制数字）。`A==2`；`0<B<=2`；`0<C<=2`；`0<D<=2`；`0<E<=2`；最后根据前面讲述的方法计算出`L`。
+
+一个有效的序列号的例子：`2-1212-678987-8`
+
+弄到这里，满以为大功告成，输入序列号，运行`Xposure.exe`，居然弹出`MessageBox`，说：The X-posure Card was not found. Please check that the `X_posure` Card is inseted correctly. Contact your distributor if the problem persists. 用暴破法绕过`SmartCard`的检查，满以为大功告成，居然又弹出`MessageBox`，说：Please insert a valid card in the reader.
+
+唉，留到以后的作业。
+
+附：新用户注册后要24小时才能发贴，利用这个时间把`Xposure.exe`也弄出来了，暴破的，没有一点技术含量，不提也罢。
+
+最后发现有意思的，如果序列号的`B`为2，那么`XPosure`运行的是Demo版，为1才是正式版。
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
