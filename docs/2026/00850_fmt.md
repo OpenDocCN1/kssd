@@ -1,0 +1,66 @@
+
+# [原创]分析数组越界问题
+
+旨在熟悉调试工具。本次调试，原本是为了熟悉`WinDbg`的使用，在学习和动手调试过程中，发现`IDA`在关键字查找方面的能力明显要优于`WinDbg`。于是也有了一些反思，在实操过程中，可以通过工具看分析思路，但不能用工具奴役了自己。
+
+入正题，这是一个内存泄漏的问题，依然是无源码调试。
+
+![控制台输出表现](upload/attach/202203/940598_FMU4RXN47C95G79.png)
+
+从程序的表现来看，有32个元素正常输出，有7个元素输出异常。
+
+![IDA分析关键字](upload/attach/202203/940598_QPYJ8QBG4CAKYBH.png)
+
+通过关键字找到出现异常的代码出处。
+
+![IDA分析关键代码块](upload/attach/202203/940598_8D7259UNXW9RAQY.png)
+
+通过图文分析，基本可以很明显的找到并证明问题的发生过程,反编译代码基本可以是：
+
+```c
+int arr[32];
+arr[0] = 0x123;
+memset(arr+1, 0, 31*sizeof(int));
+for (int i=0; i<39; i++) {
+printf("arr item: %d\n", arr[i]);
+}
+```
+
+再附上一份`WinDbg`动态调试，验证控制台过程：
+
+![IDA分析关键代码块](upload/attach/202203/940598_VF9QHXT978WF97S.png)
+
+![控制台输出表现](https://bbs.kanxue.com/upload/attach/202203/940598_FMU4RXN47C95G79.png)
+
+从程序的表现来看，有32个元素正常输出，有7个元素输出异常。
+
+![IDA分析关键字](https://bbs.kanxue.com/upload/attach/202203/940598_QPYJ8QBG4CAKYBH.png)
+
+通过关键字找到出现异常的代码出处。
+
+![IDA分析关键代码块](https://bbs.kanxue.com/upload/attach/202203/940598_8D7259UNXW9RAQY.png)
+
+通过图文分析，基本可以很明显的找到并证明问题的发生过程,反编译代码基本可以是：
+
+```c
+int arr[32];
+arr[0] = 0x123;
+memset(arr+1, 0, 31*sizeof(int));
+for (int i=0; i<39; i++) {
+printf("arr item: %d\n", arr[i]);
+}
+```
+
+再附上一份`WinDbg`动态调试，验证控制台过程：
+
+![IDA分析关键代码块](https://bbs.kanxue.com/upload/attach/202203/940598_VF9QHXT978WF97S.png)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+[#基础知识](https://bbs.kanxue.com/forum-41-1-130.htm)
+
+[#开源分享](https://bbs.kanxue.com/forum-41-1-134.htm)
+
+[#开发技巧](https://bbs.kanxue.com/forum-41-1-135.htm)
+
+[#其他](https://bbs.kanxue.com/forum-41-1-138.htm)
