@@ -1,0 +1,191 @@
+
+# olldbg小解音频转换工具ezConverter！入门级&nbsp;(14千字)
+
+软件名称：`ezConverter 2.0.746(Microsoft Visual C++ 6.0)`
+
+使用工具：`olldbg 1.09c`
+
+方法：先暴破，再找注册码，生成注册文件
+
+程度：初级
+
+用peid查壳，没有加壳。使用的是`VC6.0`。比较好下手
+
+首先试运行程序，发现未注册时启动时有提示窗口，这就是突破口。在程序的注册窗口中随便输入用户名(`chenji`)和注册码(`abcdefg1234567`)，程序提示重新运行软件再进行注册检验。下面正式开始：
+
+打开`OLLDBG`选择`debug->select import libraries`将`MFC42.lib`文件载入 ，破解此软件必须使用!
+
+再载入`ezConverter.exe`文件，在`CPU`窗口点右键快捷菜单，选择`search for-->Name(label) in current module`或直接按`ctrl+N`。找到`MFC42.#1199_AfxMessageBox`和`MFC.#1200_AfxMessageBox`，在这两项上点右键选择`set breakpoint on every reference`，将每个引用这两个函数的语句都设断点，这两个函数就是显示提示窗口的。 按`F9`运行程序：很快就在`00405791`处中断：
+
+```
+00405791   .  E8 7>call            提示未注册信息
+00405796   .  8D4C>lea     ecx, dword ptr ss:[esp+8]
+0040579A   .  C784>mov     dword ptr ss:[esp+AC4], -1
+004057A5   .  E8 E>call
+004057AA   >  8BCE mov     ecx, esi                                EZCONVER.004136E0
+004057AC   .  E8 5>call    EZCONVER.00405A10
+004057B1   .  57   push    edi
+004057B2   .  8D4C>lea     ecx, dword ptr ss:[esp+7C]
+.
+.
+.
+```
+
+中断后，向上翻看发现有几个跳转语句，有两个内部调用可疑。有门！！！
+
+```
+004056AF   .  8BF1 mov     esi, ecx  先设个断点
+004056B1   .  57   push    edi
+004056B2   .  E8 7>call
+004056B7   .  83C4>add     esp, 4
+004056BA   .  E8 6>call             ；初始化运行环境
+004056BF   .  8BCE mov     ecx, esi                                EZCONVER.004136E0
+004056C1   .  E8 5>call    ；初始化运行环境
+004056C6   .  8D86>lea     eax, dword ptr ds:[esi+C4]
+004056CC   .  50   push    eax                                    /Buffer = 006CDB08
+004056CD   .  68 F>push    0FF                                    |BufSize = FF (255.)
+004056D2   .  FF15>call    near dword ptr ds:[<&KERNEL32.GetCurr>; \GetCurrentDirectoryA
+004056D8   .  8BCE mov     ecx, esi                                EZCONVER.004136E0
+004056DA   .  E8 4>call    EZCONVER.00405E20   处理注册码的调用，F7跟进去
+004056DF   .  84C0 test    al, al
+004056E1   .  0F85>jnz     EZCONVER.004057AA                     ；关键的跳转，一定要跳走
+004056E7   .  57   push    edi                                    /Arg1 = 00000000
+004056E8   .  8BCE mov     ecx, esi                               |EZCONVER.004136E0
+004056EA   .  E8 6>call    EZCONVER.00406450                      \EZCONVER.00406450
+004056EF   .  B9 1>mov     ecx, 1E
+004056F4   .  2BC8 sub     ecx, eax
+004056F6   .  83F9>cmp     ecx, -64
+004056F9   .  898E>mov     dword ptr ds:[esi+1C4], ecx
+004056FF   .  0F8C>jl      EZCONVER.004058BE
+00405705   .  83F9>cmp     ecx, 1
+00405708   .  7D 5>jge     short EZCONVER.0040575D
+0040570A   .  57   push    edi
+0040570B   .  8D4C>lea     ecx, dword ptr ss:[esp+14]
+0040570F   .  E8 2>call    EZCONVER.0040CF40
+00405714   .  8D4C>lea     ecx, dword ptr ss:[esp+10]
+00405718   .  89BC>mov     dword ptr ss:[esp+AC4], edi
+0040571F   .  E8 3>call
+00405724   .  8D4C>lea     ecx, dword ptr ss:[esp+74]
+00405728   .  C784>mov     dword ptr ss:[esp+AC4], 2
+00405733   .  E8 5>call
+00405738   .  8D4C>lea     ecx, dword ptr ss:[esp+70]
+0040573C   .  C684>mov     byte ptr ss:[esp+AC4], 1
+00405744   .  E8 4>call
+00405749   .  C784>mov     dword ptr ss:[esp+AC4], -1
+00405754   .  8D4C>lea     ecx, dword ptr ss:[esp+10]
+00405758   .  E9 5>jmp     EZCONVER.004058B9
+0040575D   >  8D4C>lea     ecx, dword ptr ss:[esp+8]
+00405761   .  E8 4>call
+00405766   .  8B8E>mov     ecx, dword ptr ds:[esi+1C4]
+0040576C   .  8D54>lea     edx, dword ptr ss:[esp+8]
+00405770   .  51   push    ecx
+00405771   .  68 9>push    92
+00405776   .  52   push    edx
+00405777   .  C784>mov     dword ptr ss:[esp+AD0], 3
+00405782   .  E8 9>call
+00405787   .  8B44>mov     eax, dword ptr ss:[esp+14]
+0040578B   .  83C4>add     esp, 0C
+0040578E   .  57   push    edi
+0040578F   .  57   push    edi
+00405790   .  50   push    eax
+00405791   .  E8 7>call            提示未注册信息
+00405796   .  8D4C>lea     ecx, dword ptr ss:[esp+8]
+0040579A   .  C784>mov     dword ptr ss:[esp+AC4], -1
+004057A5   .  E8 E>call
+004057AA   >  8BCE mov     ecx, esi                                EZCONVER.004136E0
+004057AC   .  E8 5>call    EZCONVER.00405A10
+004057B1   .  57   push    edi
+004057B2   .  8D4C>lea     ecx, dword ptr ss:[esp+7C]
+```
+
+转到`004056AF`处先设个断点，然后按`ctrl+f2`重新载入程序，再次运行在`004056AF`处停下来。用`F8`运行到`004056DA`后，再用`F7`跟进去（建议在`004056DA`处设个断点）。 跟进去后再用`F8`单步走，在`00405EA8`处得知软件的注册信息保存在`erf.dat`文件中。
+
+```
+00405E9C  |.  C7>mov     dword ptr ss:[esp+130], 0
+00405EA7  |.  51 push    ecx                                     EZCONVER.004136E0
+00405EA8  |.  68>push    EZCONVER.004133CC                       ASCII "%s\\erf.dat"
+00405EAD  |.  52 push    edx                                     KERNEL32.BFFC9490
+00405EAE  |.  E8>call
+```
+
+再继续用`F8`往下走,在`00405F93`处发现了上次输入的用户名(`chenji`)，看来跟的路是对的！！
+
+```
+00405F93  |.  8D>lea     edi, dword ptr ss:[esp+40]            ；发现了用户名
+00405F97  |.  8B>mov     ecx, ebp
+00405F99  |.  33>xor     eax, eax
+00405F9B  |.  F2>repne   scas byte ptr es:[edi]
+00405F9D  |.  F7>not     ecx
+00405F9F  |.  49 dec     ecx        ；得到用户名的长度
+00405FA0  |.  83>cmp     ecx, 1         如果是空的
+00405FA3  |.  0F>jb      EZCONVER.00406165                      跳走就完完了
+```
+
+再继续用`F8`往下走,在`00405FA9`处发现了上次输入的注册码(`abcdefg1234567`)，进行很基本的检查，同上
+
+```
+00405FA9  |.  8D>lea     edi, dword ptr ss:[esp+64] ;注册码
+00405FAD  |.  8B>mov     ecx, ebp
+00405FAF  |.  F2>repne   scas byte ptr es:[edi]
+00405FB1  |.  F7>not     ecx
+00405FB3  |.  49 dec     ecx
+00405FB4  |.  83>cmp     ecx, 1
+00405FB7  |.  0F>jb      EZCONVER.00406165                       跳走就完了
+```
+
+再继续用`F8`往下走，有一个判断语句，不用管一直走下去
+
+```
+00405FBD  |.  8D>lea     edi, dword ptr ss:[esp+40]
+00405FC1  |.  8B>mov     ecx, ebp                           KERNEL32.BFF70000
+00405FC3  |.  F2>repne   scas byte ptr es:[edi]
+00405FC5  |.  8B>mov     ebx, dword ptr ds:[<&USER32.Char>;  将用户名转为大写
+00405FCB  |.  8B>mov     esi, ebp                           KERNEL32.BFF70000
+00405FCD  |.  F7>not     ecx
+00405FCF  |.  49 dec     ecx
+00405FD0  |.  8B>mov     edi, ecx
+00405FD2  |.  8D>lea     ecx, dword ptr ss:[esp+40]
+00405FD6  |.  51 push    ecx                               /StringOrChar = "."
+00405FD7  |.  FF>call    near ebx                          \CharUpperA
+00405FD9  |.  33>xor     ecx, ecx
+00405FDB  |.  85>test    edi, edi
+00405FDD  |.  7E>jle     short EZCONVER.0040604A            可能要进行运算
+00405FDF  |>  8B>/mov     eax, ecx
+00405FE1  |.  BD>|mov     ebp, 3
+00405FE6  |.  99 |cdq
+00405FE7  |.  F7>|idiv    ebp                               KERNEL32.BFF70000
+00405FE9  |.  46 |inc     esi
+00405FEA  |.  85>|test    edx, edx                          Switch (cases 0..2)
+00405FEC  |.  75>|jnz     short EZCONVER.00406005
+00405FEE  |.  8A>|mov     al, byte ptr ss:[esp+ecx+40]      Case 0 of switch 00405FEA
+00405FF2  |.  0F>|movsx   edx, al
+00405FF5  |.  83>|sub     edx, 5
+00405FF8  |.  83>|cmp     edx, 41
+00405FFB  |.  7E>|jle     short EZCONVER.00406001
+00405FFD  |.  2C>|sub     al, 5
+00405FFF  |.  EB>|jmp     short EZCONVER.0040603B
+00406001  |>  04>|add     al, 5
+00406003  |.  EB>|jmp     short EZCONVER.0040603B
+00406005  |>  83>|cmp     edx, 1
+00406008  |.  75>|jnz     short EZCONVER.00406021
+0040600A  |.  8A>|mov     al, byte ptr ss:[esp+ecx+40]      Case 1 of switch 00405FEA
+0040600E  |.  0F>|movsx   edx, al
+00406011  |.  83>|add     edx, 7
+00406014  |.  83>|cmp     edx, 5A
+00406017  |.  7D>|jge     short EZCONVER.0040601D
+00406019  |.  04>|add     al, 7
+0040601B  |.  EB>|jmp     short EZCONVER.0040603B
+0040601D  |>  2C>|sub     al, 7
+0040601F  |.  EB>|jmp     short EZCONVER.0040603B
+00406021  |>  83>|cmp     edx, 2
+00406024  |.  75>|jnz     short EZCONVER.00406042
+00406026  |.  8A>|mov     al, byte ptr ss:[esp+ecx+40]      Case 2 of switch 00405FEA
+0040602A  |.  0F>|movsx   edx, al
+0040602D  |.  83>|sub     edx, 9
+00406030  |.  83>|cmp     edx, 41
+00406033  |.  7E>|jle     short EZCONVER.00406039
+00406035  |.  2C>|sub     al, 9
+00406037  |.  EB>|jmp     short EZCONVER.0040603B
+00406039  |>  04>|add     al, 9
+0040603B  |>  88>|mov     byte ptr ss:[esp+esi+88], al
+```
