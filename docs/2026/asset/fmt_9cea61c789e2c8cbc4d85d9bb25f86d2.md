@@ -1,0 +1,130 @@
+
+这样代码, 就可以确认为从地址`0x000D4720`处开始就是处理注册号的起始地址, 也就是处理注册号的函数的第一行代码. 这里大家会有一个疑问:为什么一定要找 `push ebp` 这行代码呢？ 这是因为`push ebp`是一个函数的入口点, 大多数情况都是这样. 因此整个处理注册号的函数全部汇编代码如下:
+
+```
+000D4720   >  55            PUSH EBP              // 处理注册号的函数的第一行代码 也是我们后期进步分析注册号处理函数时, 需要经常来到的代码处
+000D4721   .  8BEC          MOV EBP,ESP
+000D4723   .  6A FF         PUSH -1
+000D4725   .  68 64B60D00   PUSH PCtuneup.000DB664
+000D472A   .  64:A1 0000000>MOV EAX,DWORD PTR FS:[0]
+000D4730   .  50            PUSH EAX
+000D4731   .  83EC 30       SUB ESP,30
+000D4734   .  53            PUSH EBX
+000D4735   .  56            PUSH ESI
+000D4736   .  57            PUSH EDI
+000D4737   .  A1 1CC50E00   MOV EAX,DWORD PTR [EC51C]
+000D473C   .  33C5          XOR EAX,EBP
+000D473E   .  50            PUSH EAX
+000D473F   .  8D45 F4       LEA EAX,DWORD PTR [EBP-C]
+000D4742   .  64:A3 0000000>MOV DWORD PTR FS:[0],EAX
+000D4748   .  8BF1          MOV ESI,ECX
+000D474A   .  C745 E8 00000>MOV DWORD PTR [EBP-18],0
+000D4751   .  51            PUSH ECX
+000D4752   .  8D45 0C       LEA EAX,DWORD PTR [EBP+C]
+000D4755   .  8BCC          MOV ECX,ESP
+000D4757   .  8965 E0       MOV DWORD PTR [EBP-20],ESP
+000D475A   .  BF 01000000   MOV EDI,1
+000D475F   .  50            PUSH EAX
+000D4760   .  897D FC       MOV DWORD PTR [EBP-4],EDI
+000D4763   .  FF15 C4F20E00 CALL DWORD PTR [<&QtCore4.??0QString@@QA>;  QtCore4.??0QString@@QAE@ABV0@@Z
+000D4769   .  8BCE          MOV ECX,ESI
+000D476B   .  E8 8ECAFEFF   CALL PCtuneup.000C11FE
+000D4770   .  84C0          TEST AL,AL
+000D4772   .  0F84 59010000 JE PCtuneup.000D48D1
+000D4778   .  8D4D E4       LEA ECX,DWORD PTR [EBP-1C]
+000D477B   .  51            PUSH ECX
+000D477C   .  8BCE          MOV ECX,ESI
+000D477E   .  E8 1AD1FEFF   CALL PCtuneup.000C189D
+000D4783   .  6A 00         PUSH 0
+000D4785   .  57            PUSH EDI
+000D4786   .  50            PUSH EAX
+000D4787   .  8D4D D4       LEA ECX,DWORD PTR [EBP-2C]
+000D478A   .  C645 FC 02    MOV BYTE PTR [EBP-4],2
+000D478E   .  FF15 C8F00E00 CALL DWORD PTR [<&QtCore4.??0QSettings@@>;  QtCore4.??0QSettings@@QAE@ABVQString@@W4Format@0@PAVQObject@@@Z
+000D4794   .  8D4D E4       LEA ECX,DWORD PTR [EBP-1C]
+000D4797   .  C645 FC 04    MOV BYTE PTR [EBP-4],4
+000D479B   .  FF15 04F30E00 CALL DWORD PTR [<&QtCore4.??1QString@@QA>;  QtCore4.??1QXmlStreamStringRef@@QAE@XZ
+000D47A1   .  68 4C620E00   PUSH PCtuneup.000E624C                   ;  yyyy-MM-dd
+000D47A6   .  8D4D EC       LEA ECX,DWORD PTR [EBP-14]
+000D47A9   .  FF15 F8F20E00 CALL DWORD PTR [<&QtCore4.??0QString@@QA>;  QtCore4.??0QString@@QAE@PBD@Z
+000D47AF   .  8D55 EC       LEA EDX,DWORD PTR [EBP-14]
+000D47B2   .  52            PUSH EDX
+000D47B3   .  8D45 E0       LEA EAX,DWORD PTR [EBP-20]
+000D47B6   .  50            PUSH EAX
+000D47B7   .  8D4D DC       LEA ECX,DWORD PTR [EBP-24]
+000D47BA   .  51            PUSH ECX
+000D47BB   .  C645 FC 05    MOV BYTE PTR [EBP-4],5
+000D47BF   .  FF15 5CF10E00 CALL DWORD PTR [<&QtCore4.?currentDate@Q>;  QtCore4.?currentDate@QDate@@SA?AV1@XZ
+000D47C5   .  83C4 04       ADD ESP,4
+000D47C8   .  8BC8          MOV ECX,EAX
+000D47CA   .  FF15 58F10E00 CALL DWORD PTR [<&QtCore4.?toString@QDat>;  QtCore4.?toString@QDate@@QBE?AVQString@@ABV2@@Z
+000D47D0   .  8B35 A4F20E00 MOV ESI,DWORD PTR [<&QtCore4.??0QVariant>;  QtCore4.??0QVariant@@QAE@ABVQString@@@Z
+000D47D6   .  50            PUSH EAX
+000D47D7   .  8D4D C4       LEA ECX,DWORD PTR [EBP-3C]
+000D47DA   .  C645 FC 06    MOV BYTE PTR [EBP-4],6
+000D47DE   .  FFD6          CALL ESI                                 ;  <&QtCore4.??0QVariant@@QAE@ABVQString@@@Z>
+000D47E0   .  B3 07         MOV BL,7
+000D47E2   .  68 20630E00   PUSH PCtuneup.000E6320                   ;  data/date
+000D47E7   .  8D4D F0       LEA ECX,DWORD PTR [EBP-10]
+000D47EA   .  885D FC       MOV BYTE PTR [EBP-4],BL
+000D47ED   .  FF15 F8F20E00 CALL DWORD PTR [<&QtCore4.??0QString@@QA>;  QtCore4.??0QString@@QAE@PBD@Z
+000D47F3   .  8B3D F0F00E00 MOV EDI,DWORD PTR [<&QtCore4.?setValue@Q>;QtCore4.?setValue@QSettings@@QAEXABVQString@@ABVQVariant@@@Z
+000D47F9   .  8D55 C4       LEA EDX,DWORD PTR [EBP-3C]
+000D47FC   .  52            PUSH EDX
+000D47FD   .  8D45 F0       LEA EAX,DWORD PTR [EBP-10]
+000D4800   .  50            PUSH EAX
+000D4801   .  8D4D D4       LEA ECX,DWORD PTR [EBP-2C]
+000D4804   .  C645 FC 08    MOV BYTE PTR [EBP-4],8
+000D4808   .  FFD7          CALL EDI                                 ;  <&QtCore4.?setValue@QSettings@@QAEXABVQString@@ABVQVariant@@@Z>
+000D480A   .  8D4D F0       LEA ECX,DWORD PTR [EBP-10]
+000D480D   .  885D FC       MOV BYTE PTR [EBP-4],BL
+000D4810   .  FF15 04F30E00 CALL DWORD PTR [<&QtCore4.??1QString@@QA>;  QtCore4.??1QXmlStreamStringRef@@QAE@XZ
+000D4816   .  8B1D BCF20E00 MOV EBX,DWORD PTR [<&QtCore4.??1QVariant>;  QtCore4.??1QVariant@@QAE@XZ
+000D481C   .  8D4D C4       LEA ECX,DWORD PTR [EBP-3C]
+000D481F   .  C645 FC 06    MOV BYTE PTR [EBP-4],6
+000D4823   .  FFD3          CALL EBX                                 ;  <&QtCore4.??1QVariant@@QAE@XZ>
+000D4825   .  8D4D E0       LEA ECX,DWORD PTR [EBP-20]
+000D4828   .  C645 FC 05    MOV BYTE PTR [EBP-4],5
+000D482C   .  FF15 04F30E00 CALL DWORD PTR [<&QtCore4.??1QString@@QA>;  QtCore4.??1QXmlStreamStringRef@@QAE@XZ
+000D4832   .  8D4D EC       LEA ECX,DWORD PTR [EBP-14]
+000D4835   .  C645 FC 04    MOV BYTE PTR [EBP-4],4
+000D4839   .  FF15 04F30E00 CALL DWORD PTR [<&QtCore4.??1QString@@QA>;  QtCore4.??1QXmlStreamStringRef@@QAE@XZ
+000D483F   .  51            PUSH ECX
+000D4840   .  8D55 0C       LEA EDX,DWORD PTR [EBP+C]
+000D4843   .  8BCC          MOV ECX,ESP
+000D4845   .  8965 DC       MOV DWORD PTR [EBP-24],ESP
+000D4848   .  52            PUSH EDX
+000D4849   .  FF15 C4F20E00 CALL DWORD PTR [<&QtCore4.??0QString@@QA>;  QtCore4.??0QString@@QAE@ABV0@@Z
+000D484F   .  8D45 E0       LEA EAX,DWORD PTR [EBP-20]
+000D4852   .  50            PUSH EAX
+000D4853   .  E8 C3CAFEFF   CALL PCtuneup.000C131B
+000D4858   .  83C4 08       ADD ESP,8
+000D485B   .  50            PUSH EAX
+000D485C   .  8D4D C4       LEA ECX,DWORD PTR [EBP-3C]
+000D485F   .  C645 FC 09    MOV BYTE PTR [EBP-4],9
+000D4863   .  FFD6          CALL ESI                                 ;  <&QtCore4.??0QVariant@@QAE@ABVQString@@@Z>
+000D4865   .  68 10630E00   PUSH PCtuneup.000E6310                   ;  data/check
+000D486A   .  8D4D EC       LEA ECX,DWORD PTR [EBP-14]
+000D486D   .  C645 FC 0A    MOV BYTE PTR [EBP-4],0A
+000D4871   .  FF15 F8F20E00 CALL DWORD PTR [<&QtCore4.??0QString@@QA>;  QtCore4.??0QString@@QAE@PBD@Z
+000D4877   .  8D4D C4       LEA ECX,DWORD PTR [EBP-3C]
+000D487A   .  51            PUSH ECX
+000D487B   .  8D55 EC       LEA EDX,DWORD PTR [EBP-14]
+000D487E   .  52            PUSH EDX
+000D487F   .  8D4D D4       LEA ECX,DWORD PTR [EBP-2C]
+000D4882   .  C645 FC 0B    MOV BYTE PTR [EBP-4],0B
+000D4886   .  FFD7          CALL EDI                                 ;  <&QtCore4.?setValue@QSettings@@QAEXABVQString@@ABVQVariant@@@Z>
+000D4888   .  8D4D EC       LEA ECX,DWORD PTR [EBP-14]
+000D488B   .  C645 FC 0A    MOV BYTE PTR [EBP-4],0A
+000D488F   .  FF15 04F30E00 CALL DWORD PTR [<&QtCore4.??1QString@@QA>;  QtCore4.??1QXmlStreamStringRef@@QAE@XZ
+000D4895   .  8D4D C4       LEA ECX,DWORD PTR [EBP-3C]
+000D4898   .  C645 FC 09    MOV BYTE PTR [EBP-4],9
+000D489C   .  FFD3          CALL EBX                                 ;  <&QtCore4.??1QVariant@@QAE@XZ>
+000D489E   .  8D4D E0       LEA ECX,DWORD PTR [EBP-20]
+000D48A1   .  C645 FC 04    MOV BYTE PTR [EBP-4],4
+000D48A5   .  FF15 04F30E00 CALL DWORD PTR [<&QtCore4.??1QString@@QA>;  QtCore4.??1QXmlStreamStringRef@@QAE@XZ
+000D48AB   .  8B75 08       MOV ESI,DWORD PTR [EBP+8]
+000D48AE   .  68 D4550E00   PUSH PCtuneup.000E55D4                   ;  1
+000D48B3   .  8BCE          MOV ECX,ESI
+000D48B5   .  FF15 F8F20E00 CALL DWORD PTR [<&QtCore4.??0QString@@QA>;  QtCore4.??0QString@@QAE@PBD@Z
+```
