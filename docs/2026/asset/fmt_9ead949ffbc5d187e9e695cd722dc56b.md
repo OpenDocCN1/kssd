@@ -1,0 +1,522 @@
+
+```
+void ChangeByteOrder(PCHAR szString, USHORT uscStrSize)
+
+{
+
+    USHORT  i = 0;
+
+    CHAR    temp = '\0';
+
+    for (i = 0; i < uscStrSize; i += 2)
+
+    {
+
+        temp = szString[i];
+
+        szString[i] = szString[i + 1];
+
+        szString[i + 1] = temp;
+
+    }
+
+}
+
+//--------------------------------------------------------------  
+//功能：硬盘序列号
+//参数：
+//  lpszHD：传出参数，存储最终计算的硬盘信息
+//  len：默认参128
+//--------------------------------------------------------------  
+BOOL GetHDSerial(char *lpszHD, int len/*=128*/)
+
+{
+
+    BOOL        bRet = FALSE;
+
+    DWORD       bytesRtn = 0;
+
+    char        szhd[80] = { 0 };
+
+    PIDSECTOR   phdinfo;
+
+    HANDLE      hDrive = NULL;
+
+    GETVERSIONOUTPARAMS vers;
+
+    SENDCMDINPARAMS     in;
+
+    SENDCMDOUTPARAMS    out;
+
+    ZeroMemory(&vers, sizeof(vers));
+
+    ZeroMemory(&in, sizeof(in));
+
+    ZeroMemory(&out, sizeof(out));
+
+    //搜索四个物理硬盘，取第一个有数据的物理硬盘  
+
+    for (int j = 0; j < 4; j++)
+
+    {
+
+        sprintf(szhd, "\\\\.\\PhysicalDrive%d", j);
+
+        hDrive = CreateFileA(szhd,
+
+            GENERIC_READ | GENERIC_WRITE,
+
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+
+            0,
+
+            OPEN_EXISTING,
+
+            0,
+
+            0);
+
+        if (NULL == hDrive)
+
+        {
+
+            continue;
+
+        }
+
+        if (!DeviceIoControl(hDrive, DFP_GET_VERSION, 0, 0, &vers, sizeof(vers), &bytesRtn, 0))
+
+        {
+
+            CloseHandle(hDrive);
+
+            hDrive = NULL;
+
+            continue;
+
+        }
+
+        //If IDE identify command not supported, fails
+
+        if (!(vers.fCapabilities & 1))
+
+        {
+
+            CloseHandle(hDrive);
+
+            hDrive = NULL;
+
+            continue;
+
+        }
+
+        //Identify the IDE drives
+
+        if (j & 1)
+
+        {
+
+            in.irDriveRegs.bDriveHeadReg = 0xb0;
+
+        }
+
+        else
+
+        {
+
+            in.irDriveRegs.bDriveHeadReg = 0xa0;
+
+        }
+
+        if (vers.fCapabilities&(16 >> j))
+
+        {
+
+            //We don't detect a ATAPI device.
+
+            CloseHandle(hDrive);
+
+            hDrive = NULL;
+
+            continue;
+
+        }
+
+        else
+
+        {
+
+            in.irDriveRegs.bCommandReg = 0xec;
+
+        }
+
+        in.bDriveNumber = j;
+
+        in.irDriveRegs.bSectorCountReg = 1;
+
+        in.irDriveRegs.bSectorNumberReg = 1;
+
+        in.cBufferSize = 512;
+
+        if (!DeviceIoControl(hDrive, DFP_RECEIVE_DRIVE_DATA, &in, sizeof(in), &out, sizeof(out), &bytesRtn, 0))
+
+        {
+
+            //"DeviceIoControl failed:DFP_RECEIVE_DRIVE_DATA"<<endl;
+
+            CloseHandle(hDrive);
+
+            hDrive = NULL;
+
+            continue;
+
+        }
+
+        phdinfo = (PIDSECTOR)out.bBuffer;
+
+        char    s[21] = { 0 };
+
+        memcpy(s, phdinfo->sSerialNumber, 20);
+
+        s[20] = 0;
+
+        ChangeByteOrder(s, 20);
+
+        memcpy(lpszHD, s, 20);
+
+        if (strlen(lpszHD) != 0)
+
+        {
+
+            bRet = TRUE;
+
+        }
+
+        break;
+
+    }
+
+    CloseHandle(hDrive);
+
+    hDrive = NULL;
+
+    return bRet;
+
+}
+```
+
+#### 2. 取物理内存信息
+
+获取物理内存信息：
+
+```
+int  g_nTable[256] = { 0 };       //全局数组，作为表使用
+
+PFNZwOpenSection            ZwOpenSection = NULL;
+
+PFNZwMapViewOfSection       ZwMapViewOfSection = NULL;
+
+PFNZwUnmapViewOfSection     ZwUnmapViewOfSection = NULL;
+
+PFNRtlInitUnicodeString     RtlInitUnicodeString = NULL;
+
+HMODULE hLibModule = NULL;
+
+HANDLE hPhysicalMemoryHandle = NULL;
+
+//从NTDLL获取我们需要的几个函数指针，并调用ZwOpenSection
+
+BOOL sub_40CE30()
+
+{
+
+    UNICODE_STRING PhysicalMemoryUnicodeString;
+
+    OBJECT_ATTRIBUTES ObjectAttributes;
+
+    wchar_t szBuffer[100] = L"\\Device\\PhysicalMemory";
+
+    //获取函数指针
+
+    hLibModule = LoadLibraryA("ntdll.dll");
+
+    if (!hLibModule)
+
+        return FALSE;
+
+    ZwOpenSection = (PFNZwOpenSection)GetProcAddress(hLibModule, "ZwOpenSection");
+
+    if (!ZwOpenSection)
+
+        return FALSE;
+
+    ZwMapViewOfSection = (PFNZwMapViewOfSection)GetProcAddress(hLibModule, "ZwMapViewOfSection");
+
+    if (!ZwMapViewOfSection)
+
+        return FALSE;
+
+    ZwUnmapViewOfSection = (PFNZwUnmapViewOfSection)GetProcAddress(hLibModule, "ZwUnmapViewOfSection");
+
+    if (!ZwUnmapViewOfSection)
+
+        return FALSE;
+
+    RtlInitUnicodeString = (PFNRtlInitUnicodeString)GetProcAddress(hLibModule, "RtlInitUnicodeString");
+
+    if (!RtlInitUnicodeString)
+
+        return FALSE;
+
+    RtlInitUnicodeString(&PhysicalMemoryUnicodeString, szBuffer);
+
+    ObjectAttributes.Length = sizeof(OBJECT_ATTRIBUTES);
+
+    ObjectAttributes.RootDirectory = 0;
+
+    ObjectAttributes.ObjectName = &PhysicalMemoryUnicodeString;
+
+    ObjectAttributes.Attributes = 0;
+
+    ObjectAttributes.SecurityDescriptor = NULL;
+
+    ObjectAttributes.SecurityQualityOfService = NULL;
+
+    NTSTATUS status = ZwOpenSection(&hPhysicalMemoryHandle,
+
+        4,
+
+        &ObjectAttributes);
+
+    if (NT_SUCCESS(status))
+
+        return TRUE;
+
+    return FALSE;
+
+}
+
+//文件映射，拷贝数据
+
+BOOL __cdecl sub_40CFA0(PVOID pvDataBuffer, DWORD dwAddress, DWORD dwLength)
+
+{
+
+    PVOID pvVirtualAddress;          // 映射的虚地址
+
+    LARGE_INTEGER base;              // 物理内存地址 
+
+    DWORD dwOutLenth = dwLength;
+
+    base.QuadPart = (ULONGLONG)(dwAddress);
+
+    pvVirtualAddress = NULL;
+
+    NTSTATUS status = ZwMapViewOfSection(hPhysicalMemoryHandle,
+
+        (HANDLE)-1,
+
+        &pvVirtualAddress,
+
+        0,
+
+        dwLength,
+
+        &base,
+
+        &dwOutLenth,
+
+        ViewShare,
+
+        0,
+
+        PAGE_READONLY);
+
+    if (!NT_SUCCESS(status))
+
+        return FALSE;
+
+    //当前进程的虚地址空间中，复制数据到输出缓冲区
+
+    memcpy(pvDataBuffer, pvVirtualAddress, dwLength);
+
+    //完成访问，取消地址映射 
+
+    return ZwUnmapViewOfSection((HANDLE)-1, pvVirtualAddress) >= 0;
+
+}
+
+//关闭内核对象，释放空间
+
+BOOL sub_40CF70()
+
+{
+
+    BOOL bRet = FALSE;
+
+    if (&hPhysicalMemoryHandle)
+
+        bRet = CloseHandle(&hPhysicalMemoryHandle);
+
+    if (hLibModule)
+
+        bRet = FreeLibrary(hLibModule);
+
+    return bRet;
+
+}
+
+//填表函数：将数据进行一系列运算，填入全局数组
+
+int sub_40D030()
+
+{
+
+    int nResult = 0;
+
+    signed int j;
+
+    unsigned int uNum = 0;
+
+    signed int i;
+
+    for (i = 0; i < 256; ++i)
+
+    {
+
+        uNum = i;
+
+        for (j = 8; j > 0; --j)
+
+        {
+
+            if (uNum & 1)
+
+                uNum = (uNum >> 1) ^ 0xEDB88320;
+
+            else
+
+                uNum >>= 1;
+
+        }
+
+        g_nTable[i] = uNum;
+
+        nResult = i + 1;
+
+    }
+
+    return nResult;
+
+}
+
+//查表计算
+
+int __cdecl sub_40D300(BYTE bArg1, int* pArg2)
+
+{
+
+    int nResult = 0;
+
+    nResult = *pArg2 & 0xFF;
+
+    *pArg2 = g_nTable[nResult ^ bArg1] ^ ((DWORD)*pArg2 >> 8);
+
+    return nResult;
+
+}
+
+int __cdecl sub_40D0B0(char* pStr, int nLen)
+
+{
+
+    BYTE *bPTmp = NULL;
+
+    int nResult = -1;
+
+    bPTmp = (BYTE*)pStr;
+
+    for (int i = 0; i < nLen; ++i)
+
+        sub_40D300(*bPTmp++, &nResult);
+
+    return ~nResult;
+
+}
+
+//获取第二部分字符串
+
+//地址：0040D28C  call sub_40D0B0
+
+//说明：参数是我自己后来添加的
+
+BOOL GetBiosSerial(char* pBios)
+
+{
+
+    char szBuf[0x1000] = { 0 };
+
+    char szTmp[16] = { 0 };
+
+    char *pTmp = NULL;
+
+    //获取文件映射的函数指针
+
+    BOOL bRet = sub_40CE30();
+
+    if (bRet)
+
+    {
+
+        //创建文件映射，拷贝数据
+
+        bRet = sub_40CFA0(szBuf, 0x0FE000, 0x1000);
+
+        if (!bRet)
+
+        {
+
+            //关闭内核对象，释放资源
+
+            sub_40CF70();
+
+            return FALSE;
+
+        }
+
+        //填表函数
+
+        sub_40D030();
+
+        //计算最终的字符串
+
+        pTmp = szBuf;
+
+        for (int i = 0; i < 2; ++i)
+
+        {
+
+            char szTmp[32] = { 0 };
+
+            int nRet = sub_40D0B0(pTmp, 2048);
+
+            sprintf(szTmp, "%04X", nRet);
+
+            strcat(pBios, szTmp);
+
+            pTmp += 1024;
+
+        }
+
+        bRet = TRUE;
+
+    }
+
+    return bRet;
+
+}
+```
+
+#### 3. 生成机器码
+
+生成机器码：
