@@ -1,0 +1,346 @@
+
+# Photo Watermark V1.2.0.6
+
+标题: Photo Watermark V1.2.0.6
+发信人: `fly`
+时间: 2003/04/22 12:41pm
+
+## 详细信息
+
+下载页面：
+`http://www.skycn.com/soft/8210.html`
+
+软件大小：
+1265 KB
+
+软件语言： 英文
+软件类别： 国外软件 / 共享版 / 图像处理
+应用平台： Win9x/NT/2000/XP
+加入时间：
+2003-03-31 08:38:47
+下载次数： 2531
+推荐等级： ***
+
+开发商： `http://www.unidreamtech.com/`
+
+【软件简介】：`Photo Watermark` 是一款专业的给图片加水印软件，如果你想在网络上保护你的图片，可以试试这个软件。
+
+【软件限制】：15天试用、功能限制。
+
+【作者声明】：初学Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+【破解工具】：`TRW2000娃娃修改版`、`Ollydbg1.09`、`Fi2.5`、`Hex Workshop`、`UPX1.2`、`W32Dasm 9.0`白金版
+
+―――――――――――――――――――――――――――――――――
+
+## 过 程
+
+首先说明的是我手里分析的是V1.2.0.6的版本，天空下载站上的是V3.0.0.0新版，呵呵，小猫上网就不去“喜新厌旧”了。可能有许多地方是不一样的。不过我的目的只是学习CRACK技术。
+
+`watermark.exe`
+
+用`Fi2.5`看是`UPX`壳，但是这个壳再次用其它工具做了保护。如：`UPX-Scrambler RC 1.05` ――modifies files packed with `UPX` so that they cannot be unpacked with the "-d" command build into `UPX`。
+
+呵呵，看了《看雪论坛精华》里 `bottle` 朋友的帖子学习了脱壳方法。谢谢 `bottle` 朋友！为了大家方便我转贴一下我所用到的关键部分。
+
+用`Hex Workshop`打开`watermark.exe`：
+
+```
+00000400：5B66 FEFF 0410 4000 0307 426F 6F6C 6561 6E01
+0009 2A05 46B3 DFDE FF61 6C73 6504
+```
+
+把`00000400`处的：`5B66 FEFF 0410` 改为`5550 5821 0C09`
+
+保存后再用`UPX1.2`解压成功。`556K->1.53M`。Delphi编写。反汇编，根据提示很容易就找到核心了。
+
+用户名：`fly`
+电邮：`fly@263.net`
+试炼码：`13572468`
+
+程序根据注册码的不同而分为2个版本，运算流程是相似的，因此我只是记录了第二次运算“Pro”版注册码时的参数。
+
+―――――――――――――――――――――――――――――――――
+
+```
+* Possible StringData Ref from Code Obj ->"Plus"
+     |
+:00535460 BAB0565300
+   mov edx, 005356B0
+                   ====>EDX=Plus
+:00535465
+E8FAEBECFF              call 00404064
+:0053546A
+755B                    jne
+005354C7
+* Possible
+StringData Ref from Code Obj ->"Pro"
+ |
+:0053546C 68C0565300              push
+005356C0
+:00535471 8D45FC
+   lea eax, dword ptr [ebp-04]
+:00535474 50
+               push eax
+:00535475 8D55F8
+                 lea edx, dword ptr
+[ebp-08]
+:00535478 8B83D8020000            mov
+eax, dword ptr [ebx+000002D8]
+:0053547E E83DFAEFFF
+     call 00434EC0
+:00535483 8B45F8
+         mov eax, dword ptr [ebp-08]
+:00535486 50
+                     push
+eax
+:00535487 8D55F4
+ lea edx, dword ptr [ebp-0C]
+:0053548A 8B83F4020000
+     mov eax, dword ptr [ebx+000002F4]
+:00535490 E82BFAEFFF
+             call 00434EC0
+:00535495 8B55F4
+                 mov edx, dword ptr
+[ebp-0C]
+:00535498 8B83EC020000            mov
+eax, dword ptr [ebx+000002EC]
+:0053549E 59
+           pop ecx
+:0053549F E85CEDFFFF
+           call 00534200
+:005354A4 8B45FC
+               mov eax, dword ptr [ebp-04]
+:005354A7
+50                      push
+eax
+:005354A8 8D55F0
+ lea edx, dword ptr [ebp-10]
+:005354AB 8B83E0020000
+     mov eax, dword ptr [ebx+000002E0]
+:005354B1 E80AFAEFFF
+             call 00434EC0
+:005354B6 8B55F0
+                 mov edx, dword ptr
+[ebp-10]
+:005354B9 58
+     pop eax
+:005354BA E8E136EDFF
+     call 00408BA0
+:005354BF 85C0
+           test eax, eax
+:005354C1 0F84C9000000
+           je 00535590
+*
+Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0053546A(C)
+|
+*
+Possible StringData Ref from Code Obj ->"Plus"
+     |
+:005354C7 68B0565300
+   push 005356B0
+:005354CC 8D45EC
+       lea eax, dword ptr [ebp-14]
+   ====>EAX=fly@263.net
+:005354CF
+50                      push
+eax
+:005354D0 8D55E8
+ lea edx, dword ptr [ebp-18]
+:005354D3 8B83D8020000
+     mov eax, dword ptr [ebx+000002D8]
+:005354D9 E8E2F9EFFF
+             call 00434EC0
+:005354DE 8B45E8
+                 mov eax, dword ptr
+[ebp-18]
+             ====>EAX=fly@263.net
+:005354E1
+50                      push
+eax
+:005354E2 8D55E4
+ lea edx, dword ptr [ebp-1C]
+:005354E5 8B83F4020000
+     mov eax, dword ptr [ebx+000002F4]
+:005354EB E8D0F9EFFF
+             call 00434EC0
+:005354F0 8B55E4
+                 mov edx, dword ptr
+[ebp-1C]
+             ====>EDX=fly
+:005354F3
+8B83EC020000            mov eax, dword ptr [ebx+000002EC]
+:005354F9
+59                      pop
+ecx
+             ====>ECX=fly@263.net
+:005354FA
+E801EDFFFF              call 00534200
+       ====>算法CALL！运算“Plus”版本的注册码！
+:005354FF
+8B45EC                  mov eax,
+dword ptr [ebp-14]
+                 ====>EAX=Y1728-E7272
+:00535502
+50                      push
+eax
+:00535503 8D55E0
+ lea edx, dword ptr [ebp-20]
+:00535506 8B83E0020000
+     mov eax, dword ptr [ebx+000002E0]
+:0053550C E8AFF9EFFF
+             call 00434EC0
+     ====>取试炼码
+:00535511
+8B45E0                  mov eax,
+dword ptr [ebp-20]
+                 ====>EAX=13572468
+:00535514
+5A                      pop
+edx
+:00535515 E81AC5FCFF              call
+00501A34
+             ====>比较“Plus”版本的注册码！
+:0053551A
+85C0                    test
+eax, eax
+:0053551C 7572
+   jne 00535590
+                   ====>跳则“Plus”版本注册成功！
+:0053551E
+A1CC8C5400              mov eax, dword ptr
+[00548CCC]
+:00535523 8B00
+     mov eax, dword ptr [eax]
+*
+Possible StringData Ref from Code Obj ->"Watermark"
+     |
+:00535525 BACC565300
+   mov edx, 005356CC
+                   ====>EDX=Watermark
+:0053552A
+E835EBECFF              call 00404064
+:0053552F
+0F85DC000000            jne 00535611
+*
+Possible StringData Ref from Code Obj ->"Watermark"
+     |
+:00535535 68CC565300
+   push 005356CC
+:0053553A 8D45DC
+       lea eax, dword ptr [ebp-24]
+:0053553D 50
+                   push eax
+:0053553E
+8D55D8                  lea edx,
+dword ptr [ebp-28]
+:00535541 8B83D8020000
+ mov eax, dword ptr [ebx+000002D8]
+:00535547 E874F9EFFF
+         call 00434EC0
+:0053554C 8B45D8
+             mov eax, dword ptr [ebp-28]
+         ====>EAX=fly@263.net
+:0053554F
+50                      push
+eax
+:00535550 8D55D4
+ lea edx, dword ptr [ebp-2C]
+:00535553 8B83F4020000
+     mov eax, dword ptr [ebx+000002F4]
+:00535559 E862F9EFFF
+             call 00434EC0
+:0053555E 8B55D4
+                 mov edx, dword ptr
+[ebp-2C]
+             ====>EDX=fly
+:00535561
+8B83EC020000            mov eax, dword ptr [ebx+000002EC]
+:00535567
+59                      pop
+ecx
+:00535568 E893ECFFFF              call
+00534200
+             ====>算法CALL！运算“Pro”版本的注册码！进入！
+:0053556D
+8B45DC                  mov eax,
+dword ptr [ebp-24]
+                 ====>EAX=7761746572-Y1728-6D61726BE7272
+:00535570
+50                      push
+eax
+:00535571 8D55D0
+ lea edx, dword ptr [ebp-30]
+:00535574 8B83E0020000
+     mov eax, dword ptr [ebx+000002E0]
+:0053557A E841F9EFFF
+             call 00434EC0
+     ====>取试炼码
+:0053557F
+8B55D0                  mov edx,
+dword ptr [ebp-30]
+                 ====>EDX=13572468
+:00535582
+58                      pop
+eax
+:00535583 E81836EDFF              call
+00408BA0
+             ====>比较“Pro”版本的注册码！
+:00535588
+85C0                    test
+eax, eax
+:0053558A 0F8581000000            jne
+00535611
+             ====>不跳则“Pro”版本注册成功！
+*
+Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:005354C1(C),
+:0053551C(C)
+|
+:00535590 8D55CC
+     lea edx, dword ptr [ebp-34]
+:00535593 8B83D8020000
+         mov eax, dword ptr [ebx+000002D8]
+:00535599
+E822F9EFFF              call 00434EC0
+:0053559E
+8B55CC                  mov edx,
+dword ptr [ebp-34]
+:005355A1 8B83EC020000
+ mov eax, dword ptr [ebx+000002EC]
+:005355A7 E8E8EEFFFF
+         call 00534494
+:005355AC 8D55C8
+             lea edx, dword ptr [ebp-38]
+:005355AF
+8B83F4020000            mov eax, dword ptr [ebx+000002F4]
+:005355B5
+E806F9EFFF              call 00434EC0
+:005355BA
+8B55C8                  mov edx,
+dword ptr [ebp-38]
+:005355BD 8B83EC020000
+ mov eax, dword ptr [ebx+000002EC]
+:005355C3 83C034
+           add eax, 00000034
+:005355C6 E895EEECFF
+             call 00404460
+:005355CB 8B83EC020000
+           mov eax, dword ptr [ebx+000002EC]
+:005355D1
+05C0000000              add eax, 000000C0
+:005355D6
+8B15CC8C5400            mov edx, dword ptr [00548CCC]
+:005355DC
+8B12                    mov
+edx, dword ptr [edx]
+:005355DE E845E7ECFF
+   call 00403D28
+:005355E3 33D2
+         xor edx, edx
+:005355E5 8B83EC020000
+         mov eax, dword ptr [ebx+000002EC]
+:005355EB
+E844EEFFFF              call 00534434
+```
