@@ -1,0 +1,169 @@
+
+# 迷你网络电视5.1注册算法
+
+- 对象：迷你网络电视5.1
+- 作者：lordor[CCG][BCG][DFCG]
+- Mail：lordor@sina.com
+- QQ：88378557
+- 目的：属技术交流，无其它目的，请不要任意散布或用用商业用途。初学破解,如有不对的地方欢迎批评指出。
+- 工具：ollydbg1.09C,fi301
+
+## 假设
+
+- 机器码：`-58319035`（HEX：`FC861F45`）
+- 注册码：`654321`
+
+无壳，查一下，为用到blowfish算法。好像反ida,w32Dasm,但不防od。程序是输入注册信息后，不给提示，直接退出。使用了n种密技，终于发现程序有一点东西：
+
+程序把输入的注册信息保存在window安装目录下，`mntv.ini`文件中，再重启进行比较。
+
+`mntv.ini`的文件内容：
+
+```
+注册[REGISTRY]
+UNLOCKCODE=654321
+```
+
+现在有两个方法下断：
+
+1. 函数法，可以用`GetPrivateProfileStringA`
+2. 关键字符串搜索，以`mntv.ini`搜索，定位下面地址：
+
+```
+00401DA0  /$  55            PUSH EBP
+   ====>在这里下断
+00401DA1  |.  8BEC          MOV EBP,ESP
+00401DA3  |.  83C4 B8       ADD ESP,-48
+00401DA6  |.  53            PUSH EBX
+00401DA7  |.  B8 7C085300   MOV EAX,nettvprj.0053087C
+00401DAC  |.  E8 C3F60E00   CALL nettvprj.004F1474
+00401DB1  |.  66:C745 D0 14>MOV WORD PTR SS:[EBP-30],14
+00401DB7  |.  BA 94025300   MOV EDX,nettvprj.00530294
+             ;  ASCII "mntv.ini"
+00401DBC  |.  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]
+00401DBF  |.  E8 9CAB0F00   CALL nettvprj.004FC960
+00401DC4  |.  FF45 DC       INC DWORD PTR SS:[EBP-24]
+00401DC7  |.  8B08          MOV ECX,DWORD PTR DS:[EAX]
+00401DC9  |.  B2 01         MOV DL,1
+00401DCB  |.  A1 1C854500   MOV EAX,DWORD PTR DS:[45851C]
+00401DD0  |.  E8 23010000   CALL nettvprj.00401EF8
+00401DD5  |.  8945 BC       MOV DWORD PTR SS:[EBP-44],EAX
+.....(省略)......
+00401E1E  |.  8B18          MOV EBX,DWORD PTR DS:[EAX]
+00401E20  |.  FF53 08       CALL DWORD PTR DS:[EBX+8]
+ ==>取得注册码的十六进制，eax=0009FBF1
+00401E23  |.  8945 B8       MOV DWORD PTR SS:[EBP-48],EAX
+00401E26  |.  FF4D DC       DEC DWORD PTR SS:[EBP-24]
+.....(省略)......
+00402139  |.  E8 62FCFFFF   CALL nettvprj.00401DA0   ==>取得注册码
+0040213E  |.  A3 90025300   MOV DWORD PTR DS:[530290],EAX
+00402143  |.  FFB5 3CFFFFFF PUSH DWORD PTR SS:[EBP-C4]
+    ; /Arg1
+00402149  |.  E8 06030000   CALL nettvprj.00402454
+===>blowfish算法
+.....(省略)......
+00402192  |.  E8 99A80F00   CALL nettvprj.004FCA30
+00402197  |.  E8 542B0000   CALL nettvprj.00404CF0  ==>关键call，F7进入
+0040219C  |.  84C0          TEST AL,AL
+0040219E  |.  74 5D         JE SHORT nettvprj.004021FD
+ ===>关键跳
+004021A0  |.  33D2          XOR EDX,EDX
+004021A2  |.  8B85 3CFFFFFF MOV EAX,DWORD PTR SS:[EBP-C4]
+```
+
+## 关键 call
+
+```
+00404CF0  /$  55            PUSH EBP
+00404CF1  |.  8BEC          MOV EBP,ESP
+00404CF3  |.  83C4 EC       ADD ESP,-14
+00404CF6  |.  803D A4025300>CMP BYTE PTR DS:[5302A4],0
+00404CFD  |.  75 2B         JNZ SHORT nettvprj.00404D2A
+00404CFF  |.  68 39300000   PUSH 3039
+00404D04  |.  E8 2BA61200   CALL <JMP.&MC.fnMc>
+00404D09  |.  59            POP ECX
+00404D0A  |.  6BC0 1D       IMUL EAX,EAX,1D
+00404D0D  |.  05 0FCD7F00   ADD EAX,7FCD0F
+00404D12  |.  B9 1F000000   MOV ECX,1F
+00404D17  |.  99            CDQ
+00404D18  |.  F7F9          IDIV ECX
+00404D1A  |.  05 0FCD7F00   ADD EAX,7FCD0F   ==>到这里eax即为机器码
+00404D1F  |.  A3 A0025300   MOV DWORD PTR DS:[5302A0],EAX
+00404D24  |.  FE05 A4025300 INC BYTE PTR DS:[5302A4]
+00404D2A  |>  A1 A0025300   MOV EAX,DWORD PTR DS:[5302A0]
+00404D2F  |.  8945 FC       MOV DWORD PTR SS:[EBP-4],EAX
+==>注意此:[ebp-4]=FC861F45
+00404D32  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+00404D35  |.  B9 1F000000   MOV ECX,1F
+00404D3A  |.  99            CDQ
+00404D3B  |.  F7F9          IDIV ECX
+00404D3D  |.  8945 F8       MOV DWORD PTR SS:[EBP-8],EAX
+==>注意此:[ebp-8]=FFE34B55
+00404D40  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+00404D43  |.  B9 07000000   MOV ECX,7
+00404D48  |.  99            CDQ
+00404D49  |.  F7F9          IDIV ECX
+00404D4B  |.  8945 F4       MOV DWORD PTR SS:[EBP-C],EAX
+ ==>注意此:[ebp-c]=FF80DFE6
+00404D4E  |.  C605 8C025300>MOV BYTE PTR DS:[53028C],0  ==>在id后加0
+00404D55  |.  A1 90025300   MOV EAX,DWORD PTR DS:[530290]  ==>注册码的十六进制值入eax=0009FBF1
+00404D5A  |.  8945 F0       MOV DWORD PTR SS:[EBP-10],EAX
+ ==>注意此:[EBP-10]=0009FBF1
+00404D5D  |.  C745 EC 01000>MOV DWORD PTR SS:[EBP-14],1
+==>计数
+00404D64  |.  EB 0F         JMP SHORT nettvprj.00404D75
+00404D66  |>  8B55 EC       /MOV EDX,DWORD PTR SS:[EBP-14]  ==>计数器值入edx
+00404D69  |.  0155 F4       |ADD DWORD PTR SS:[EBP-C],EDX
+  ==>[ebp-c]=[ebp-c]+edx
+00404D6C  |.  8B4D EC       |MOV ECX,DWORD PTR SS:[EBP-14]
+ ==>计数器值入ecx
+00404D6F  |.  294D F0       |SUB DWORD PTR SS:[EBP-10],ECX
+ ==>[ebp-10]=[ebp-10]-ecx
+00404D72  |.  FF45 EC       |INC DWORD PTR SS:[EBP-14]
+00404D75  |>  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+00404D78  |.  99            |CDQ
+00404D79  |.  F77D F8       |IDIV DWORD PTR SS:[EBP-8]
+00404D7C  |.  3B45 EC       |CMP EAX,DWORD PTR SS:[EBP-14]
+00404D7F  |.^ 7F E5         \JG SHORT nettvprj.00404D66
+ ==>循环31次
+// [ebp-10]=[ebp-10]-465
+// [ebp-c]=[ebp-c]+465
+00404D81  |.  8B4D F0       MOV ECX,DWORD PTR SS:[EBP-10]
+00404D84  |.  3B4D F4       CMP ECX,DWORD PTR SS:[EBP-C]
+==>比较[ebp-10]与[ebp-c]是否相等
+00404D87  |.  75 16         JNZ SHORT nettvprj.00404D9F
+00404D89  |.  8B45 F0       MOV EAX,DWORD PTR SS:[EBP-10]
+00404D8C  |.  3B45 F4       CMP EAX,DWORD PTR SS:[EBP-C]
+00404D8F  |.  0F94C2        SETE DL
+00404D92  |.  83E2 01       AND EDX,1
+00404D95  |.  8815 8C025300 MOV BYTE PTR DS:[53028C],DL
+00404D9B  |.  B0 01         MOV AL,1
+00404D9D  |.  EB 19         JMP SHORT nettvprj.00404DB8
+00404D9F  |>  813D 90025300>CMP DWORD PTR DS:[530290],7FCD0F
+==>如前面不等，再比较，万能注册码？
+00404DA9  |.  75 0B         JNZ SHORT nettvprj.00404DB6
+00404DAB  |.  C605 8C025300>MOV BYTE PTR DS:[53028C],1
+00404DB2  |.  B0 01         MOV AL,1
+00404DB4  |.  EB 02         JMP SHORT nettvprj.00404DB8
+00404DB6  |>  33C0          XOR EAX,EAX
+00404DB8  |>  8BE5          MOV ESP,EBP
+00404DBA  |.  5D            POP EBP
+00404DBB  \.  C3            RETN
+```
+
+## 总结
+
+机器码`FC861F45(H)`，除以`7`得`FF80DFE6(H)`，再加上`3a2(H)`，得`FF80E388(H)`，转换为十进制即为注册码：`-8330360`。
+
+另有一个万能注册码：`8375567`。
+
+本来以为用到blowfish进行保护，但实际并为用到，不知程序有没有暗桩，希望大家测试，欢迎来mail探讨cracking问题。
+
+一个可用的注册码：
+
+- 机器码：`-58319035`
+- 注册码：`-8330360`
+
+cracked by lordor
+
+03.7.04
