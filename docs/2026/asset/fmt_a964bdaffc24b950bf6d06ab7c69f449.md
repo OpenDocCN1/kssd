@@ -1,0 +1,347 @@
+
+# rOYALaCCEZZ Trial Crackme 3.2 算法分析 (10千字)
+
+```
+:00401093 FF7508
+    push [ebp+08]
+
+* Reference To: USER32.GetDlgItemTextA, Ord:0102h
+            |
+:00401096 E8A1020000              Call 0040133C========>获取Code
+:0040109B 8BD8
+  mov ebx, eax
+:0040109D 6A40
+  push 00000040
+:0040109F 6844304000              push 00403044
+:004010A4 68E8030000              push 000003E8
+:004010A9 FF7508
+push [ebp+08]
+* Reference To: USER32.GetDlgItemTextA, Ord:0102h
+            |
+:004010AC E88B020000              Call 0040133C=======>获取Name
+:004010B1 83F805
+cmp eax, 00000005
+:004010B4 7228
+  jb 004010DE=======>出错了!
+:004010B6 83F820
+cmp eax, 00000020
+:004010B9 7723
+  ja 004010DE
+:004010BB 0BDB
+  or ebx, ebx
+:004010BD 741F
+  je 004010DE
+:004010BF 53
+  push ebx
+:004010C0 50
+  push eax
+:004010C1 E87B000000              call 00401141========>计算,注册码就在此
+:004010C6 83F801
+cmp eax, 00000001
+:004010C9 7513
+  jne 004010DE=======>出错了!
+```
+
+===================================================================
+
+```
+:00401141 55
+  push ebp
+:00401142 8BEC
+  mov ebp, esp
+:00401144 8B4508
+mov eax, dword ptr [ebp+08]
+:00401147 C705C430400000000000    mov dword ptr [004030C4], 00000000
+:00401151 BB01000000              mov ebx,
+00000001
+:00401156 EB1D
+  jmp 00401175
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401177(C)
+|
+[403044]====>UName
+:00401158 48
+  dec eax
+:00401159 0FB69044304000          movzx edx, byte ptr
+[eax+00403044]
+:00401160 33D3
+  xor edx, ebx
+:00401162 0FAFD3
+imul edx, ebx
+:00401165 83C305
+add ebx, 00000005
+:00401168 3115C4304000            xor dword ptr
+[004030C4], edx
+:0040116E C105C430400005          rol dword ptr [004030C4],
+05
+Pre:=0;
+ebx:=1;
+for index:=LenName
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401156(U)
+|
+:00401175 0BC0
+  or eax, eax
+:00401177 75DF
+  jne 00401158
+:00401179 F715C4304000            not dword ptr
+[004030C4]
+===========>>>>注册用户名>>>>>[004030C4] - 45a16b5f  \_k.E
+:0040117F 33C9
+  xor ecx, ecx
+:00401181 8B4D08
+mov ecx, dword ptr [ebp+08]===>ULen
+:00401184 D30DC4304000            ror dword ptr
+[004030C4], cl
+===========>>>>注册用户名>>>>>[004030C4] - fa2d0b5a  Z.-.
+:0040118A 33C0
+  xor eax, eax
+:0040118C C605C830400000          mov byte ptr [004030C8],
+00
+:00401193 EB17
+  jmp 004011AC
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004011AF(C)
+|
+[00403084]====>UCode
+:00401195 0FB69084304000          movzx edx, byte ptr
+[eax+00403084]
+:0040119C 40
+  inc eax
+:0040119D 83FA2D
+cmp edx, 0000002D'-'号吗?
+:004011A0 750A
+  jne 004011AC
+:004011A2 FEC8
+  dec al
+:004011A4 A2C8304000              mov byte
+ptr [004030C8], al
+:004011A9 8B450C
+mov eax, dword ptr [ebp+0C]
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:00401193(U), :004011A0(C)
+|
+:004011AC 3B450C
+cmp eax, dword ptr [ebp+0C]
+:004011AF 75E4
+  jne 00401195
+:004011B1 803DC830400000          cmp byte ptr [004030C8],
+00
+:004011B8 7506
+  jne 004011C0====>必须存在'-',否则出错
+:004011BA 33C0
+  xor eax, eax====>且不能在第一个
+:004011BC C9
+  leave
+:004011BD C20800
+ret 0008
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004011B8(C)
+|
+:004011C0 33C9
+  xor ecx, ecx
+:004011C2 8A0DC8304000            mov cl, byte
+ptr [004030C8]===>-的索引,0
+:004011C8 33C0
+  xor eax, eax
+:004011CA 33DB
+  xor ebx, ebx
+:004011CC EB14
+  jmp 004011E2
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004011E4(C)
+|
+:004011CE FEC9
+  dec cl
+:004011D0 0FB69184304000          movzx edx, byte ptr
+[ecx+00403084]
+:004011D7 83FA3F
+cmp edx, 0000003F
+:004011DA 760E
+  jbe 004011EA
+:004011DC 83FA5B
+cmp edx, 0000005B
+:004011DF 7309
+  jnb 004011EA
+:004011E1 90
+  nop
+=================-前的字符,必须($3F,$5B)[40-5A]
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004011CC(U)
+|
+:0040120E2 0AC9
+  or cl, cl
+:004012E4 75E8
+  jne 004011CE
+:004012E6 90
+  nop
+:004012E7 90
+  nop
+:004012E8 EB06
+  jmp 004011F0
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:004011DA(C), :004011DF(C)
+|
+:004011EA 33C0
+  xor eax, eax
+:004011EC C9
+  leave
+:004011ED C20800
+ret 0008
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004011E8(U)
+|
+:004011F0 33C9
+  xor ecx, ecx
+:004011F2 8A0DC8304000            mov cl, byte
+ptr [004030C8]
+:004011F8 33C0
+  xor eax, eax
+:004011FA 33DB
+  xor ebx, ebx
+:004011FC EB11
+  jmp 0040120F
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401211(C)
+|
+:004011FE FEC9
+  dec cl
+:00401200 6BDB1A
+imul ebx, 0000001A
+:00401203 0FB69184304000          movzx edx, byte ptr
+[ecx+00403084]
+:0040120A 83EA41
+sub edx, 00000041
+:0040120D 03DA
+  add ebx, edx
+===========================计算-好前的注册码
+fa2d0b5a
+mmebx=0;
+for index:=Aindex downto 1 do
+begin
+  mmebx:=mmebx*26;
+  mmebx:=mmebx+(ord(strCode[index])-$41)
+  //40-5A==-1,0..25
+end;
+......
+==============//因此，你运算可以使用Mod,DIV运算就可以完成前半部分
+01234567890123456789012345
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+fa2d0b5a mod 26=2=C
+      16=Q
+      2=C
+  16H=22=W
+6=G
+F=15=P
+D=13=N
+CQCWGPN
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004011FC(U)
+|
+:0040120F 0AC9
+  or cl, cl
+:00401211 75EB
+  jne 004011FE
+:00401213 3B1DC4304000            cmp ebx, dword
+ptr [004030C4]===>必须相等
+:00401219 7406
+  je 00401221
+:0040121B 33C0
+  xor eax, eax
+:0040121D C9
+  leave
+:0040121E C20800
+ret 0008
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00401219(C)
+|
+:00401221 8B450C
+mov eax, dword ptr [ebp+0C]==>CLen
+:00401224 2A05C8304000            sub al, byte
+ptr [004030C8]==>SIndex
+:0040122A 83F804
+cmp eax, 00000004=====>So,Len=3
+:0040122D 7406
+  je 00401235
+:0040122F 33C0
+  xor eax, eax
+:00401231 C9
+  leave
+:00401232 C20800
+ret 0008
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0040122D(C)
+|
+:00401235 33DB
+  xor ebx, ebx
+:00401237 8A1DC8304000            mov bl, byte
+ptr [004030C8]
+:0040123D FEC3
+  inc bl
+:0040123F 0FB69384304000          movzx edx, byte ptr
+[ebx+00403084]
+:00401246 8815C9304000            mov byte ptr
+[004030C9], dl====>C1
+:0040124C FEC3
+  inc bl
+:0040124E 0FB69384304000          movzx edx, byte ptr
+[ebx+00403084]
+:00401255 8815CA304000            mov byte ptr
+[004030CA], dl====>C2
+:0040125B FEC3
+  inc bl
+:0040125D 0FB69384304000          movzx edx, byte ptr
+[ebx+00403084]
+:00401264 8815CB304000            mov byte ptr
+[004030CB], dl====>C3
+:0040126A 33C0
+  xor eax, eax
+:0040126C A0C9304000              mov al,
+byte ptr [004030C9]
+:00401271 6BC003
+imul eax, 00000003
+:00401274 A3CC304000              mov dword
+ptr [004030CC], eax===>C1*3
+:00401279 33C0
+  xor eax, eax
+:0040127B 8A1DC9304000            mov bl, byte
+ptr [004030C9]
+:00401281 6BDB07
+imul ebx, 00000007      ==>0-(C1*7)
+:00401284 2BC3
+  sub eax, ebx
+:00401286 A3D0304000              mov dword
+ptr [004030D0], eax==>-C1*7
+:0040128B 33C0
+  xor eax, eax
+:0040128D A0C9304000              mov al,
+byte ptr [004030C9]
+:00401292 A3D4304000              mov dword
+ptr [004030D4], eax===>C1
+:00401297 33C0
+  xor eax, eax
+:00401299 A0CA304000              mov al,
+byte ptr [004030CA]
+:0040129E 2905CC304000            sub dword ptr
+[004030CC], eax===>Here==>C1*3-C2
+:004012A4 33C0
+  xor eax, eax
+:004012A6 A0CA304000              mov al,
+byte ptr [004030CA]
+:004012AB 6BC002
+imul eax, 00000002
+:004012AE 0105D0304000            add dword ptr
+[004030D0], eax==>(-C1*7)+(C2*2)
+:004012B4 33C0
+  xor eax, eax
+:004012B6 A0CA304000              mov al,
+byte ptr [004030CA]
+:004012BB 0105D4304000            add dword ptr
+[004030D4], eax==>C1+C2
+:004012C1 33C0
+  xor eax, eax
+:004012C3 A0CB304000              mov al,
+byte ptr [004030CB]
+:004012C8 6BC005
+imul eax, 00000005
+```
