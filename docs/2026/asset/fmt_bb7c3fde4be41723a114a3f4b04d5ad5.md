@@ -1,0 +1,40 @@
+
+
+```
+40228C: push        ebp                            ;55
+40228D: push        esi                            ;56
+40228E: push        1h                             ;6A 01
+402290: push        edi                            ;57
+402291: call        dword ptr [407034h]            ;FF 15 34 70 40 00  fread
+402297: mov        ecx, dword ptr [esp + 3Ah]      ;8B 4C 24 3A
+40229B: push        esi                            ;56
+40229C: and        ecx, FFFFh                      ;81 E1 FF FF 00 00
+4022A2: shl        ecx, 10h                        ;C1 E1 10
+4022A5: push        ecx                            ;51
+4022A6: call        Proc\_401000                    ;E8 55 ED FF FF <=
+4022AB: mov        edx, dword ptr [esp + 42h]      ;8B 54 24 42
+4022AF: mov        eax, dword ptr [esp + 40h]      ;8B 44 24 40
+4022B3: and        edx, FFFFh                      ;81 E2 FF FF 00 00
+4022B9: and        eax, FFFFh                      ;25 FF FF 00 00
+4022BE: shl        edx, 10h                        ;C1 E2 10
+4022C1: or        edx, eax                         ;0B D0
+4022C3: push        edx                            ;52
+4022C4: call        Proc\_401270                    ;E8 A7 EF FF FF <=
+4022C9: mov        ecx, dword ptr [esp + 46h]      ;8B 4C 24 46
+4022CD: mov        edx, dword ptr [esp + 44h]      ;8B 54 24 44
+4022D1: and        ecx, FFFFh                      ;81 E1 FF FF 00 00
+4022D7: and        edx, FFFFh                      ;81 E2 FF FF 00 00
+4022DD: shl        ecx, 10h                        ;C1 E1 10
+4022E0: or        ecx, edx                         ;0B CA
+4022E2: mov        dword ptr [40AB34h], 1h         ;C7 05 34 AB 40 00 01 00 00 00
+4022EC: push        ecx                            ;51
+4022ED: push        408350h                        ;68 50 83 40 00  string '%X:  realmode_entry_point:
+'
+```
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+
+- [`dasm-src-bin-samples.rar`](javascript:void(0);)
+  （231.16kb，419次下载）

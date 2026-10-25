@@ -1,0 +1,230 @@
+
+# [翻译]intel指令格式与长度反汇编引擎ADE32分析
+
+我翻译的29A#7的一篇文章：
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+   \*\*\*                          \*\*\*
+
+   \*\*  INTEL INSTRUCTION FORMAT  \*\*
+
+   \*\*\*                          \*\*\*
+
+   \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+intel指令具有特有的格式：
+
+intel指令格式
+
++-------------+--------+----------+---------+--------------+------------+
+; instruction ; opcode ;  ModR/M  ;   SIB   ; Displacement ; Immediate  ;
+;   prefixe   ;        ;          ;         ;              ;            ;
++-------------+--------+----------+---------+--------------+------------+
+    前缀         操作码  （可选）    （可选）   地址偏移(可选) 立即数(可选)
+               1 or 2    1 字节      1 字节     1,2,4字节      1,2,4字节
+               字节                            或者没有       或者没有
+                              /         \
+                             /           \
+                            /             \
+                           /               \
+                          /                 \
+                         /                   \
+             7   6 5      3 2   0         7     6 5     3 2    0
+            +-----+--------+-----+       +-------+-------+------+
+            ; Mod ;  Reg/  ; R/M ;       ; scale ; index ; base ;
+            ;     ; opcode ;     ;       ;       ;       ;      ;
+            +-----+--------+-----+       +-------+-------+------+
+
+Intel指令在长度上可以不同, 但是它们都同样具有以上的6组
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+   \*\*\*                     \*\*\*
+
+   \*\*       指令前缀        \*\*
+
+   \*\*\*                     \*\*\*
+
+   \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+指令可以有（或者没有) 0,1,2,3 or 4 个前缀，每个前缀占用一个字节
+
+包含以下五种类型:
+
+- 段寄存器(segment)前缀:指定如下段  `2E` `36` `3E` `26` `64` `65`
+- 操作数长度(Operand-Size)前缀 : 可以改变操作数长度 `66`
+- 地址长度(Address-Size)前缀 : 可以改变地址长度 `67`
+- 重复(REP/REPNE)前缀       : `F3` `F2`
+- 总线加锁(LOCK)前缀     : 控制处理器总线  `F0`
+
++----------------+
+段寄存器前缀
++----------------+
+
+段寄存器前缀改变指令的默认段，默认段为DS：
+
+`2EH` : CS  segment override prefix.
+`36H` : SS  segment override prefix.
+`3EH` : DS  segment override prefix.
+`26H` : ES  segment override prefix.
+`64H` : FS  segment override prefix.
+`65H` : GS  segment override prefix.
+
+expl:     `8B00`    `MOV EAX,DWORD PTR DS:[EAX]`   (none prefix)
+          `2E:8B00`    `MOV EAX,DWORD PTR CS:[EAX]`
+             `8B00`    `MOV EAX,DWORD PTR DS:[EAX]`   (none prefix)
+          `36:8B00`    `MOV EAX,DWORD PTR SS:[EAX]`
+
++---------------------+
+操作数长度前缀
++---------------------+
+
+该前缀允许一个程序在16 /32位 操作数长度之间转换(默认为32位）
+
+如果指定前缀`66H`，则转换为16位
+
+Quick example(in a win32 environement):
+
+`89 C0`   `MOV EAX,EAX`   (none prefix)
+
+`66 89 C0`   `MOV AX, AX`    (prefix=66h)
+
++---------------------+
+; 地址长度前缀 ;
++---------------------+
+
+同上，WIN32编程，该前缀对我们没有用处
+
+expl:     `8B00`   `MOV EAX,DWORD PTR DS:[EAX]`     32bits 寻址模式
+          `67:8B00`   `MOV EAX,DWORD PTR DS:[BX+SI]`   16bits 寻址模式
+
++--------------------+
+; 重复(REP/REPNE)前缀;
++--------------------+
+
+`AD`         `LODS DWORD PTR DS:[ESI]`
+`F3 AD`   `REP`   `LODS DWORD PTR DS:[ESI]`
+`F2 AD`   `REPNE LODS DWORD PTR DS:[ESI]`
+
+`3E F2 AD`   `REPNE LODS DWORD PTR DS:[ESI]`
+
++-----------------+
+; Bus LOCK Prefix ;
++-----------------+
+
+No use for us...Execpt if you want to know all the mystery of intel instruction
+format in order to disasm the host, find a good place for the virus inside
+the disassembled host code and reassembly all the infected file...
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+   \*\*                       \*\*
+
+   \*\*  操作码(OP CODE)        \*\*
+
+   \*\*                       \*\*
+
+   \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
++------------------+
+; 1字节操作码 ;
++------------------+
+
+在intel文档你能找到这样的描述
+
+`PUSH REG` 指令:
+
+`PUSH REG` <------> `01010reg`   (where 'reg' are 3 bits)
+
+`PUSH EAX`  --->  `50h`  --->  `01010000`   ---> 01010 000
+                                                /      \
+                                               /        \
+                                              /          \
+                                    bits   7 6 5 4 3   2 1 0
+                                         +-----------+--------+
+                                         ;  OPCODE   ;REGISTER;
+                                         +-----------+--------+
+                                         ; 0 1 0 1 0 ; 0 0 0  ;
+                                            push         eax
+                                         +-----------+--------+
+
+        Little Opcode Table:              Register Table:
+                                         REG 8bit 16bit 32bit
+
+        `01000reg` : INC  REG              000 : AL : AX : EAX
+        `01001reg` : DEC  REG              001 : CL : CX : ECX
+        `01010reg` : PUSH REG              010 : DL : DX : EDX
+        `01011reg` : POP  REG              011 : BL : BX : EBX
+        `10010reg` : XCHG EAX,REG          100 : AH : SP : ESP
+        `10111reg` : MOV  REG,IMM32        101 : CH : BP : EBP
+                                         110 : DH : SI : ESI
+                                         111 : BH : DI : EDI
+
+One another (fun) example:
+
+`90h` --->  `10010 000` ---> `XCHG EAX,EAX`  (NOP)
+
+只有指令 `inc reg`, `dec reg`, `push reg`, `pop reg`, `xchg eax,reg`, `mov reg,imm32`
+可以这样编码!
+
+其他方式编码:
+
+`89C1h` ---> `1000100111000001b`  ---> `mov ecx,eax`
+
+仍旧为一字节操作码: `C1h` 为 `[ModR/M]` 字段!
+
+               `89h`      `C1h`
+            `10001001` `11000001`
+             `[CODE]`  `[ModR/M]`
+              /          \
+             /            \
+            /              \
++----------------+   +------------------+
+; instr  ; d ; w ;   ; Mod; REG1 ; REG2 ;
++--------+---+---;   +----+------+------+ 
+; 100010 ; 0 ; 1 ;   ; 11 ; 000  ; 001  ;
++--------+---+---+   +----+------+------
+
+instr  : 操作码指令
+
+`(d)bit`: 如果 `(d)=0` 顺序为 `REG2-REG1`
+         如果 `(d)=1` 顺序为 `REG1-REG2`
+
+`(w)bit`: if `(w)=0` we are in 8  bits mode in 32bits environement(Win32)
+         if `(w)=1` we are in 32 bits mode in 32bits environement(Win32)
+         if `(w)=0` we are in 8  bits mode in 16bits environement
+         if `(w)=1` we are in 16 bits mode in 16bits environement
+
+  `Mod`  : 以后再讲
+
+                            ############################
+                            # example for the (d) bit: #
+                            ############################
+
+                              (in 32bits environement)
+
+       `[CODE]`             `[ModR/M]`            `[CODE]`             `[ModR/M]`
++----------------;;------------------+  +----------------;;------------------+
+; instr  ; d ; w ;; Mod; REG1 ; REG2 ;  ; instr  ; d ; w ;; Mod; REG1 ; REG2 ;
++--------+---+---;;----+------+------+  +--------+---+---;;----+------+------
+; 100010 ; 0 ; 1 ;; 11 ; 000  ; 001  ;  ; 100010 ; 1 ; 1 ;; 11 ; 000  ; 001  ;
++--------+---+---;;----+------+------+  +--------+---+---;;----+------+------+
+
+    !      !   \          EAX    ECX        !      !   \          EAX    ECX
+    !      !    !       or AX  or CX        !      !    !       or AX  or CX
+   \!/     !   \!/      or AL  or CL       \!/     !   \!/      or AL  or CL
+    '      !    '                           '      !    '
+   `MOV`     !   32bits                      `MOV`     !   32bits
+          \!/                                     \!/
+           '
+        the order                               the order
+      is REG2-REG1                             is REG1-REG2
+
+\\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_/      \\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_  \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_/
+                 \/                                        \/
+             `MOV ECX,EAX`                              `MOV EAX,ECX`
+
+                            ############################
+                            # example for the (w) bit: #
+                            ############################
