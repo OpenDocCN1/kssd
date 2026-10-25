@@ -1,0 +1,222 @@
+
+```
+N(1) = 6C*28+0
+
+= 10E0  //第一次循环，所以N(1-1)=N(0)=0
+
+N(2) = 6F*28+ 10E0 = 2238  //第二次循环，所以
+N(2-1)=N(1)=10E0
+
+N(3) = 76*28+ 2238 = 34A8  //以下类推
+
+N(4) = 65*28+
+34A8 = 4470
+
+N(5)= 66*28+ 4470 = 5460
+
+N(6) = 69*28+ 5460 = 64C8
+
+N(7) = 72*28+ 64C8 = 7698
+
+N(8) = 65*28+ 7698 = 8660 = 34400(十进制)
+```
+
+接下来继续对得到的数进行一些处理：
+
+```
+ 004078E1  |>  51
+  PUSH    ECX
+              ; /<%u> = 8660 (34400.)
+
+ 004078E2  |.  8D4C24 14    LEA    ECX, DWORD
+PTR SS:[ESP+14]      ; |
+ 004078E6  |.  68 503A4100
+PUSH    FolderVi.00413A50
+  ; |Format = "%u-"
+ 004078EB  |.  51
+    PUSH    ECX
+                ; |s
+ 004078EC
+|.  FF15 0C124100 CALL    DWORD PTR DS:[<&USER32.wsprintfA>;
+\wsprintfA
+
+ //将得到的 34400 加上“-”，得到注册码的第二部分 34400-，并放入ecx
+
+ 004078F2
+|.  83C4 0C      ADD    ESP, 0C
+ 004078F5
+|.  8D5424 10    LEA    EDX, DWORD PTR SS:[ESP+10]
+004078F9  |.  52            PUSH
+  EDX
+          ; /StringToAdd
+ 004078FA  |.
+53            PUSH    EBX
+          ; |ConcatString
+ 004078FB  |.  FF15 94114100 CALL
+DWORD PTR DS:[<&KERNEL32.lstrcat>; \lstrcatA  //和第一次算出的码合并为“1260-34400-”
+```
+
+至此得到一个新的字串“1260-34400-”。
+
+第三次循环：
+
+```
+ 00407901
+|.  33C9          XOR    ECX, ECX
+00407903  |.  33C0          XOR
+EAX, EAX
+ 00407905  |.  85F6          TEST
+  ESI, ESI
+ 00407907  |.  76 13
+JBE    SHORT FolderVi.0040791C
+
+ //对循环3进行一些初始设置，与循环1、2类似，不再多做解释
+
+00407909  |.  8B15 003A4100 MOV    EDX, DWORD PTR DS:[413A00]
+
+//给edx赋初始值 1E（固定值）
+
+ //下面开始的三次循环
+
+ 0040790F  |>  0FBE2C38
+    /MOVSX  EBP, BYTE PTR DS:[EAX+EDI]  //逐位取注册名的字符的ASCII值，放到
+ebp
+ 00407913  |.  03EA          |ADD
+  EBP, EDX  //ebp = ebp+edx
+ 00407915  |.  03CD
+        |ADD    ECX, EBP  //ecx = ecx+ebp
+00407917  |.  40            |INC
+  EAX  //计数器+1
+ 00407918  |.  3BC6
+    |CMP    EAX, ESI  //比较是否已取完注册名
+ 0040791A
+|.^ 72 F3        \JB      SHORT FolderVi.0040790F
+
+//没有则继续循环
+
+ //循环结束
+```
+
+这个部分的注册算法为：
+
+设 `ecx` 的值从初始到所有循环完成，分别为 `N(0)`, `N(1)`, `N(2)`, `N(3)`, `N(4)`...则：
+
+`ecx=(注册名字符的ASCII值)+1E+N(n-1)`
+
+可知，输入的注册名“lovefire”，经过循环计算后得到一个数“44C”，转换为十进制则为“1100”
+
+接下来……
+
+```
+ 0040791C  |>  51
+  PUSH    ECX
+              ; /<%u> = 44C (1100.)
+
+0040791D  |.  8D4424 14    LEA    EAX, DWORD PTR
+SS:[ESP+14]      ; |
+ 00407921  |.  68 503A4100
+PUSH    FolderVi.00413A50
+  ; |Format = "%u-"
+ 00407926  |.  50
+    PUSH    EAX
+                ; |s
+ 00407927
+|.  FF15 0C124100 CALL    DWORD PTR DS:[<&USER32.wsprintfA>;
+\wsprintfA
+ 0040792D  |.  83C4 0C      ADD
+  ESP, 0C
+ 00407930  |.  8D4C24 10    LEA
+ECX, DWORD PTR SS:[ESP+10]
+ 00407934  |.  51
+      PUSH    ECX
+                  ; /StringToAdd
+ 00407935  |.  53            PUSH
+  EBX
+          ; |ConcatString
+ 00407936  |.
+FF15 94114100 CALL    DWORD PTR DS:[<&KERNEL32.lstrcat>; \lstrcatA
+```
+
+以上分别代码先给算出的“1100”加上“-”，得到“1100-”，在和前面的字串合并，得到“1260-34400-1100”
+
+第四次循环：
+
+```
+ 0040793C  |.  33C9
+  XOR    ECX, ECX
+ 0040793E  |.  33C0
+      XOR    EAX, EAX
+ 00407940  |.  85F6
+        TEST    ESI, ESI
+ 00407942  |.
+76 14        JBE    SHORT FolderVi.00407958
+00407944  |.  8B15 043A4100 MOV    EDX, DWORD PTR DS:[413A04]
+
+//给edx赋初始值 0B（固定值）
+
+ //循环开始
+
+ 0040794A  |>  0FBE2C38
+  /MOVSX  EBP, BYTE PTR DS:[EAX+EDI]  //逐位取注册名的字符的ASCII值，放到 ebp
+ 0040794E  |.  0FAFEA        |IMUL
+EBP, EDX  //ebp = ebp*edx
+ 00407951  |.  03CD
+      |ADD    ECX, EBP  //ecx = ecx+ebp
+ 00407953
+|.  40            |INC    EAX
+//计数器+1
+ 00407954  |.  3BC6          |CMP
+  EAX, ESI  //比较是否已取完注册名？
+ 00407956  |.^ 72 F2
+    \JB      SHORT FolderVi.0040794A  //没有则继续循环
+
+ //循环结束
+```
+
+这个部分的注册算法为：
+
+设 `ecx` 的值从初始到所有循环完成，分别为 `N(0)`, `N(1)`, `N(2)`, `N(3)`, `N(4)`...则：
+
+`ecx=(注册名字符的ASCII值)*0B+N(n-1)`
+
+可知，输入的注册名“lovefire”，经过循环计算后得到一个数“24F4”，转换为十进制则为“9460”。
+
+```
+ 00407958  |>  51
+PUSH    ECX
+            ; /<%u>
+ 00407959  |.
+8D5424 14    LEA    EDX, DWORD PTR SS:[ESP+14]
+  ; |
+ 0040795D  |.  68 6C384100  PUSH    FolderVi.0041386C
+              ; |Format = "%u"
+ 00407962
+|.  52            PUSH    EDX
+    ; |s
+ 00407963  |.  FF15 0C124100 CALL
+DWORD PTR DS:[<&USER32.wsprintfA>; \wsprintfA
+ 00407969  |.
+83C4 0C      ADD    ESP, 0C
+ 0040796C  |.
+8D4424 10    LEA    EAX, DWORD PTR SS:[ESP+10]
+ 00407970
+|.  50            PUSH    EAX
+    ; /StringToAdd
+ 00407971  |.  53
+      PUSH    EBX
+                  ; |ConcatString
+ 00407972  |.  FF15 94114100 CALL    DWORD PTR DS:[<&KERNEL32.lstrcat>;
+\lstrcatA
+```
+
+以上代码将前后算出的数值合并为“1260-34400-1100-9460”，这就是真正的注册码。
+
+再继续往下走，是对比假码与真码，先对比真假注册码长度，如果相等，则逐位比较，如果输入的注册名与计算出的注册码相同，则注册成功，将注册信息写入`HKEY_CURRENT_USER\Software\FolderView\Registration`，分别是"Name"和"Code"两个子键。因为与算法关系不大，且很容易看懂，所以比较注册码这部分的代码就不复制出来了;)
+
+至此，FolderView 1.7 注册算法分析完成。
+
+一组可用的注册码：Name: lovefire
+
+S/N: 1260-34400-1100-9460
+
+;by 炎之川 2003.3.3
