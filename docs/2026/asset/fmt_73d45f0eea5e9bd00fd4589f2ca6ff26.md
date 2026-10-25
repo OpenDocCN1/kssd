@@ -1,0 +1,216 @@
+
+# 一个PostScript(RoPS)注册机分析（初学者看）
+
+（21千字）
+
+软件名称：Roger's PostScript(RoPS)  
+整理日期：2000.2.10  
+最新版本：5.2c  
+文件大小：282KB  
+软件授权：共享软件  
+使用平台：WinNT/2000/98  
+下载地址：http://www.newhua.com.cn/down/rops52c.exe  
+
+Cracking By: machoman[CCG] (China Cracking Group)  
+平台：win2000/98  
+使用工具：Softice 4.05 for NT/98，ida 4.04 或者 wdasm32 推荐汉化版  
+预定目标：学习写简单的注册机。  
+难度等级：入门级J  
+
+结果：  
+Name: [CCG]  
+Users: 1  
+Key: 4e802402618f  
+
+## 破解过程
+
+这个软件是一个读取PostScript格式的电子文档的软件，这种文档格式跟PDF文档格式一样都需要专门的软件才能打开，这个软件就是打开.ps后缀文档的一个小软件。它有30天的使用限制，如果过期会要求注册才能使用。我们的目标就是要知道其注册方法去找到注册码。以下的步骤就是达成这个目标所需要的步骤。你只要有耐心与兴趣跟我一起一步一步的做，就可以体会到破解的乐趣。当然我希望不是噩梦，要是也没办法，小弟破解水平不但低，而且表达能力更是不敢恭维，要是看不下去了千万要原谅小弟。只怪小弟才只读了正规的9年书^\_^。我尽量力争写详细，只需要你具备一些很基础的汇编知识。
+
+首先在注册框内输入名字，比如我最先输入就是：
+
+```
+Name : [CCG]
+Users : 1
+Key  :31415926
+```
+
+这些输入是很重要的，你在用Softice调试软件跟踪时需要时时参照这些值以观察其发生的变化，进而分析出注册算法正确的结果。当这里输入完成后你不要马上点OK，我想大家都可能没有个个摸大奖的手气。任意输入就搞定注册。这时就需要按住Ctrl+D调出强力调试工具，比如Softice。你的画面切换到黑色的命令行界面，进来的目的就是要下断点让程序跑动起来后在注册前停下来，让我们能够看见其计算注册码的过程。断点的方式很多，对于windows的注册输入你一般可以使用：
+
+```
+bpx  GetWindowTextA
+bpx  GetDlgItemTextA
+bpx  hmemcpy
+bpx  LockMyTask
+```
+
+这些断点。对于这个软件你可以使用`bpx GetDlgItemTextA`下断就可以阻止住程序跑动的脚步。
+
+完成这个后你再用Ctrl+D又回到了windows界面中，现在你就可以拿出吃奶的力气按下OK键^\_^。哈哈，发生了啥，程序被断下在softice的黑头下了。你可以看见光标停止在`User32!GetDlgItemTextA`这里。我们现在是在`user32.dll`这个程序空间中的，只需按F12键就会回到软件程序的空间见下面的星号部分。Mico$oft的windows操作系统就像其老板一样厚黑学学的好的很。脸皮是层一层的跟洋葱头一样。你要是在win98平台下用`hmemcpy`、`lockmytask`这样的断点也可以断下，不过那样你把操作系统的脸皮扒的更干净，你就需要多用几下F12才能到下面的位置，不过你要小心别按过头哟，Cracker就是要胆大加心细的哟。你我要是跟老比尔一样脸厚说最少也是个小土老财了。我看我们也不要妄想了，没有发财的命。要不会干破解，还不早就去花天酒地泡妹妹去了。还受破解这个穷罪个啥哟，只想哪天兄弟们能够把破功提高到能跟[伪装者]大峡一样成为专业户就就好了，嘿嘿，我这辈子是不要想了。嘿嘿不废话了。到程序中来把光标停留在下面星号的位置，下边的汇编代码是用`ida4.04`抓出来的，跟在Softice下看见的情况有些微差别，比如外边传递过来的参数都用`ebp+arg_xx`表示，而如果是内部变量就是`ebp+var_xxx`的方式表示。
+
+### PORT_1
+
+```asm
+004361A9                push [ebp+arg_8]
+004361AC                push [ebp+arg_4]
+004361AF                push [ebp+arg_0]
+004361B2                push dword ptr [ecx+1Ch]
+004361B5                call ds:GetDlgItemTextA  ; 这里就是你F12回来的位置，程序在这里的作用是把你输入的用户名提供给判断程序
+```
+
+打断解释一下：这个函数在MSDN里是这样定义的：
+
+```
+UINT GetDlgItemText( HWND hDlg, int nIDDlgItem, LPTSTR lpString, int nMaxCount);
+```
+
+也就是说，其第三个参数`lpString`也就是`[ebp+arg_4]`就是读出你对话框中的输入信息的。不过你可以在这时在Softice下记忆体显示命令：
+
+```
+D ebp+0c（注：也就是ida 中004361AC push [ebp+arg_4]）
+```
+
+显示结果为：
+
+```
+0023:0012f27c A0 F2 12 00 13 00 00 00-8C F7 12 00 60 51 44 00
+            ##########
+```
+
+然后在我的机器上显示数据的第一行是上边所示，这个东西是间接寻址的，你只需要再用一下`D`命令显示上边记忆体中#号的数据的位置就可以看见如下了，注意记忆体中的数据是高字节在后底字节在前的：
+
+```
+D 0012f2a0
+0023:0012f2a0 5B 43 43 47 5D 00 50 00-D6 02 02 00 34 0E 81 00 [CCG].P…..4…
+```
+
+看看后边的字符显示不就是输入的注册名吗？这里的操作方式在Cracker程序时经常遇到。希望能学会多用`D`命令显示内存，这样对你找到有价值的东西有帮助。
+
+解释结束。
+
+```asm
+004361BB                jmp short loc_4361CD
+004361BD ; ---------------------------------------------------------------------------
+004361BD
+004361BD loc_4361BD:
+004361BD             ; CODE XREF: sub_43619F+8 j
+004361BD                push [ebp+arg_8]
+004361C0                mov edx, [eax]
+004361C2                mov ecx, eax
+004361C4                push [ebp+arg_4]
+004361C7                push [ebp+arg_0]
+004361CA                call dword ptr [edx+78h]
+004361CD
+004361CD loc_4361CD:
+004361CD             ; CODE XREF: sub_43619F+1C j
+004361CD                pop ebp
+004361CE                retn 0Ch
+```
+
+你现在在程序中的一个子程序中，当用F10一步一步走过到`004361CE`或者用F12直接return时就会回到下面的主程序判断部分。你可以用`softice`命令：
+
+```
+BD *
+```
+
+清掉断点，然后用`F8`一步一步走。
+
+### PORT_2
+
+```asm
+; ***************************************************
+004045E4                lea eax, [ebp+var_28] ; 用户名的地址
+004045E7                push 13h
+004045E9                mov esi, 0D9h
+004045EE                push eax
+004045EF                mov edi, ecx
+004045F1                push esi
+004045F2                call sub_43619F ; 这里就是GetDlgItemText取name:[CCG]，其地址放在[ebp_var_28]中
+004045F7                lea eax, [ebp+var_3C] ; 你的光标回来后停留在这个位置
+004045FA                push 13h
+004045FC                push eax
+004045FD                push 0DAh
+00404602                mov ecx, edi
+00404604                call sub_43619F ; 再次GetDlgItemText取user:1放进[Ebp+var_3c]这个位置
+00404609                push 1
+0040460B                push 0
+0040460D                push 0DCh
+00404612                mov ecx, edi
+00404614                call sub_43616D ; 取你的测试注册码
+00404619                push eax ; 测试注册码
+0040461A                lea eax, [ebp+var_14]
+0040461D                push offset aD ; "%d"
+00404622                push eax
+00404623                call ds:wsprintfA ; 格式转换
+00404629                lea eax, [ebp+var_14] ; 31415926 Key,用Sofeice D命令可见
+0040462C                push eax
+0040462D                lea eax, [ebp+var_3C] ; 1 user
+00404630                push eax
+00404631                lea eax, [ebp+var_28] ; [CCG] Name
+00404634                push eax
+00404635                call sub_401940 ; 注册码算法就在里边，嘿嘿，爆破手就在这里打住，要想吃鸡哪就需要跟进去
+; Port3部分的汇编
+0040463A                add esp, 18h
+0040463D                cmp dword_44E168, 0 ; 公德圆满的话，这里这个dword_44e168这个位置的数据为0，否则玩完
+00404644                mov dword_453670, eax
+00404649                mov [ebp+var_4], offset aThankYouForReg ; "Thank you for registering RoPS"
+00404650                jz short loc_40465B
+00404652                mov [ebp+var_4], offset aSorryThatKeySe ; "Sorry, that key / serial number doesn't"...
+00404659                jmp short loc_404664
+0040465B ; ---------------------------------------------------------------------------
+0040465B loc_40465B:
+0040465B             ; CODE XREF: sub_4045DC+74 j
+0040465B                push 1
+0040465D                mov ecx, edi
+0040465F                call sub_431C31
+00404664 ; ---------------------------------------------------------------------------
+00404664 loc_404664:
+00404664             ; CODE XREF: sub_4045DC+7D j
+00404664                mov ecx, dword_45367C
+0040466A                push 0
+0040466C                push offset aRegisterRops ; "Register RoPS"
+00404671                push [ebp+var_4]
+00404674                call sub_434BE4
+00404679                mov ecx, dword_45367C
+0040467F                call sub_402C27
+00404684                lea eax, [ebp+var_28]
+00404687                push 13h
+00404689                push eax
+0040468A                push esi
+0040468B                mov ecx, edi
+0040468D                call sub_43619F
+00404692                lea eax, [ebp+var_28]
+00404695                mov esi, offset aRops_0 ; "rops"
+0040469A                push eax
+0040469B                push offset aReg ; "reg"
+004046A0                push esi
+004046A1                call sub_40154F
+004046A6                lea eax, [ebp+var_3C]
+004046A9                push eax
+004046AA                push offset aKey ; "key"
+004046AF                push esi
+004046B0                call sub_40154F
+004046B5                lea eax, [ebp+var_14]
+004046B8                push eax
+004046B9                push offset aUsers ; "users"
+004046BE                push esi
+004046BF                call sub_40154F
+004046C4                add esp, 24h
+004046C7                pop edi
+004046C8                pop esi
+004046C9                leave
+004046CA                retn
+004046CA sub_4045DC endp
+```
+
+### PORT 3 算法部分
+
+```asm
+00401940 ; ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+        S U B R O U T I N E ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+00401940 ; Attributes: bp-based frame
+
+00401940 sub_401940      proc near
+00401940 ; CODE XREF: sub_40176C+130 p
+00401940
+```
