@@ -1,0 +1,20 @@
+
+# [旧帖][翻译]使用OllyDbg从零开始Cracking 第一章0.00雪花
+
+## 翻译说明
+
+该系列教程目前官方已更新到第47章。本文原文为俄语，译者不才，斗胆翻译，采用了能用的所有手段。虽经本人严加审校，但难免讹误。有些词句加入了译者的理解，所以可能部分内容与原文有所出入。翻译本文也是译者学习的过程，所以错误在所难免。如发现错误，敬请指正，以免误人子弟。
+
+该系列教程链接：[122K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6S2M7$3#2Q4x3X3g2J5N6g2)9J5c8Y4y4W2M7X3W2W2M7#2)9J5k6i4m8Z5M7q4)9K6c8Y4y4A6k6q4)9K6c8o6p5%4](https://bbs.kanxue.com/elink@f85K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6S2M7$3#2Q4x3X3g2J5N6g2)9J5c8Y4y4W2M7X3W2W2M7#2)9J5k6i4m8Z5M7q4)9K6c8Y4y4A6k6q4)9K6c8o6p5%4)
+
+本文原文链接：[35cK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6S2M7$3#2Q4x3X3g2J5N6g2)9J5c8X3q4J5N6r3W2U0L8r3g2Q4x3X3g2H3K9s2m8Q4x3@1k6S2M7Y4c8A6j5$3I4W2i4K6y4p5L8$3I4D9P5h3c8T1k6K6l9I4](https://bbs.kanxue.com/elink@ea3K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6S2M7$3#2Q4x3X3g2J5N6g2)9J5c8X3q4J5N6r3W2U0L8r3g2Q4x3X3g2H3K9s2m8Q4x3@1k6S2M7Y4c8A6j5$3I4W2i4K6y4p5L8$3I4D9P5h3c8T1k6K6l9I4)
+
+附件中包含翻译的pdf格式和随文附件。
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+## 上传的附件
+
+- [使用OllyDbg从零开始Cracking 第一章翻译.rar](javascript:void(0);)
+
+  （760.66kb，5570次下载）
