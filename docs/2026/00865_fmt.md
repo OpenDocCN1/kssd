@@ -1,0 +1,33 @@
+
+# [原创]简单调试器EasyDbg源码
+
+一个星期前写的东西。
+
+一个简单的调试器, 界面简单的山寨了Windbg。
+
+主要功能 :1.单步步入 2.单步步过 3.运行 4.自动步过 5.指令记录 6.自动步入 7.跳出函数体 8.dump被调试进程 9.INT3断点 10.硬件断点 11.多内存断点 12.API断点 13.对DLL导出函数的反汇编 14.导入函数名的解析 15.内嵌了一个PE查看工具默认显示被调试程序的PE信息.可以选择查看其他的程序PE信息.
+
+所有的功能都可以使用命令和菜单 快捷键来完成，可以拖拽.代码发出来希望对你有用呵呵.
+
+具体使用参见帮助菜单
+
+附截图:
+
+![](https://bbs.kanxue.com/upload/attach/201105/324496_23hy918o9bupuzs.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/201105/324496_u9x7orlifyg1amr.jpg)
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+[#调试逆向](https://bbs.kanxue.com/forum-4-1-1.htm)
+
+上传的附件：
+
+- [jietudbg1.jpg](javascript:void(0);)
+  （202.57kb，2196次下载）
+
+- [jietudbg2.jpg](javascript:void(0);)
+  （321.75kb，2254次下载）
+
+- [EasyDbg.rar](javascript:void(0);)
+  （602.08kb，1603次下载）
