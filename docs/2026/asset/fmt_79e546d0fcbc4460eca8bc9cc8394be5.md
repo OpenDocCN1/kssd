@@ -1,0 +1,198 @@
+
+# 破解 WinAmp Skin Maker v1.05
+
+作者：Sun Bird [CCG]（我，Sun Bird 属于破解团体 China Cracking Group ^\_^）
+
+日期：2000年3月22日
+
+国外破解人 DRaCooLa（根据下文估计的，也可能是别人，记不清了^\_^）撰写了这
+
+篇使用 SoftICE 追 WinAmp Skin Maker v1.05 注册码的教程，写得非常通俗、详细，
+
+很适合初学破解的朋友学习。
+
+原文中充斥着大量国外 Cracker 专门使用的词汇。这些词汇有些是为了减少击键次
+
+数、有些是为了显示与众不同（装酷^\_^）、而有些则纯粹属于拼写错误。同样的词汇也
+
+充斥在 Internet 上。希望学习破解的朋友一定要让自己习惯这类词汇，这样才能看懂
+
+国外最新的破解教程（虽然我不愿意承认，但平心而论，国外 Cracker 的整体水平要比
+
+国内高许多）。
+
+为了帮助尚不熟悉这类词汇的朋友理解这篇好东东，我尽量保持原样翻译。鉴于本人
+
+的 E 文很蹩脚、中文又很糟糕，所以译文有错是在所难免的，请将就着对照原文看吧^\_^
+
+译文中以“SB：”开头的话是我加的评语（Sun Bird 嘛^\_^），自认为有些对初学者
+
+很有帮助呦^\_^
+
+作者在开头即强调“英语不是我的母语”，所以我也借用作者的话为自己找个借口
+
+“Please excuse my English, it's not my mother language !”^\_^
+
+翻译人：Sun Bird [CCG]（我，Sun Bird 属于破解团体 China Cracking Group
+
+^\_^）
+
+Welcome to another cracking tutor written by .......... ME !!! This time
+
+WE'll crack WinAmp Skin Maker v1.05.
+
+欢迎再次来到我写的破解教程！这次我们将破解 WinAmp Skin Maker v1.05。
+
+------------------------------------------------------------------------
+
+Please excuse my English , it's not my mother language !!!
+
+请不要介意我糟糕的 E 文，那并不是我的母语！（SB：同意！）
+
+------------------------------------------------------------------------
+
+What a fine New Year's Eve I had. I was at Keio's party with
+
+many friends
+
+of mine. We had a GREAT time and I hope you all had a good time like us. We
+
+had party till Saturday night \*COOL HUH ???\*
+
+我过了一个很棒的新年。我和许多朋友在 Keio 处聚会。我们过得非常愉快，我希望
+
+你们所有人都能拥有象我们一样的快乐。我们的聚会一直持续到星期六的晚上，呵呵，够
+
+酷吧？（SB：好象我的新年过得很平淡）
+
+Now for this little sucka !!! I've found a very good cure
+
+for it : the REAL
+
+SERIAL NUMBA !!!
+
+现在来看这个小东东！我已经找到了最好的对付它的办法：真正的注册码！（SB：相对
+
+而言，“暴力”破解是最容易的，追踪注册码要难许多，而写出某个软件的注册机才是破解
+
+的终极目标！）
+
+Tools:
+
+工具：
+
+- Soft-Ice (3.x or greater)
+
+SoftICE（3.x 或更高版本）（SB：国产的 TRW2000 更酷）
+
+- Pen and paper
+
+笔和纸（SB：非常重要！破解过程中常常要从头来过，如果不勤于记录，哭去吧……）
+
+- A little bit of brain ( this is the hardest part \*COUGH\*
+
+)
+
+一点点智慧（这是最难的部分，呃呃）（SB：其实破解最需要的还是耐心，记得曾经破解
+
+某个软件，反复达近百次，中间放弃过若干次，而最终破解成功时发现，原来离曾经放弃过
+
+的位置相隔很近）
+
+So let's nail this little sucker:
+
+让我们盯住这个小软件：
+
+1.Install the proggie and run it. It's a pretty cool proggie
+
+: you can make
+
+skins for WinAmp with only your imagination and a little bit of art skill.
+
+安装并运行软件。这是个非常棒的软件：你可以自己制作 WinAmp 的外壳，需要的仅
+
+仅是你的想象力和一点点绘画技巧。
+
+2.Try to register it: write your name , in my case DRaCooLa , and write a
+
+serial ex: 2244.
+
+尝试注册它：输入你的名字，在我的例子中用 DRaCooLa，输入注册码，例如 2244。
+
+（SB：我通常使用 Sun Bird [CCG] 和 1234567890）
+
+3.If SI ( Soft-Ice ) is loaded you now should press Ctrl+D
+
+and write: BPX
+
+GETDLGITEMTEXTA and press ENTER.. Then press Ctrl+D. If you don't know what
+
+this
+
+is then I'll tell you what this is : it's a BREAKPOINT !!! It will break in
+
+SI
+
+when WSM ( WinAmp Skin Maker ) when it checks the serial. Now press OK.
+
+当 SI（SoftICE）调入后按 Ctrl-D，输入：`BPX GETDLGITEMTEXTA` 并回车，然后再按
+
+Ctrl-D。如果你不明白这是在干什么，那么我来告诉你：那是一个断点！它告诉 SI，当 WSM
+
+（WinAmp Skin Maker）检测注册码时中断。现在按 OK。（SB：如果你对 Windows 编程比较
+
+熟悉，那么选择哪个断点会容易得多，否则你可以使用 `BPX HMEMCPY`）
+
+4.When back in SI press F5 then press F10 till you find this:
+
+当回到 SI 后按 F5，然后按 F10 直到你看到这些：
+
+```
+CMP EDI,EBX
+```
+
+I think you must press F10 about 27 times. When the green line is on the
+
+CMP EDI,EBX line write ? EBX. You should see :
+
+我想你需要按 F10 27次（SB：总有人问为什么按 F12/F10 N 次？原因很简单，通常情
+
+况是当你按 N+1 次时程序告诉你“注册码错误”并停止运行，所以最容易想到的方法就是减
+
+少一次，也就变成 N 次了。另外的原因则是，我已经追过注册码了，我知道只有按 N 次才可
+
+能成功。这个 N 可能是通过我数百次的试验最后得出的，也可能是我的运气好^\_^）。当绿色
+
+光棒位于 `CMP EDI,EBX` 行时，输入 `? EBX`（SB：显示寄存器 EBX 的值，第一个数字是 16 进
+
+制，第二个数字是 10 进制）。你应见到：
+
+`002E2ABB` `0003025595`
+
+5.Write down the second code ( 0003025595 ) but whitout the
+
+0's. Now go back
+
+to WSM and write:
+
+记下第二个号码（`0003025595`），但是不包括“0”。现在重新回到 WSM 并输入：
+
+Name:`DRaCooLa`
+
+Code:`3025595`
+
+Now you should see:
+
+现在你会看到：
+
+This program is licensed to
+
+DRaCooLa
+
+3025595
+
+Thanks for reading this tut. I hope you learned something
+
+from this tut.
+
+感谢阅读这个教程。我希望你们能够从中学到些什么。（SB：同样的话送给你^\_^）
