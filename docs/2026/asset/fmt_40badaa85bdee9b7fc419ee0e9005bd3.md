@@ -1,0 +1,228 @@
+
+# 蓝图餐饮娱乐管理系统v2.21算法分析
+
+**软件：** `蓝图餐饮娱乐管理系统V2.41试用版`
+
+**功能：** 国际级完美餐饮全面性电脑管理系统
+
+**开发者：** 圣蓝图软件技术有限公司
+
+**网址：** [www.adslt.com](http://www.adslt.com)
+
+**限制：** 60天时间限制
+
+**开发工具：** `delphi 6.0`
+
+**使用技术：** `MD5` + 明码比较 （是不是滑天下之大稽）
+
+**破解工具：** `OD1.09e`
+
+---
+
+**注册名字：** `lianzi2000`
+
+**试炼码：** `1357924680931654`
+
+**观察：** 没有注册错误提示。需要重启验证。
+
+**ACDC：** 启动时未见可疑文件访问，但有如下注册表访问：
+
+- `Ginshop.ExE:3180 CreateKeyHKLM\Software\JDGL\FoodSUCCESSKey:0xE119D368`
+- `Ginshop.ExE:3180 QueryvalueHKLM\Software\JDGL\Food\UsrNameNOTFOUND`
+- `Ginshop.ExE:3180 QueryvalueHKLM\Software\JDGL\Food\PasswdNOTFOUND`
+
+防`Dede`，会连`Dede`一起退出。防`OD`，若用`OD`载入运行会死机，必须先运行然后attach。
+
+**壳：** `aspr2.12`，用`aspdie`可脱去。
+
+**思路：** 由于当注册码错误时并不保存，所以设想验证应该在启动之前，很可能就在输入之后，只不过没有提示而已。
+
+---
+
+## 寻找验证代码：
+
+启动脱壳后的程序，进入管理员账户。主界面出来以后，运行`OD`并绑定。在`CreateWindowExA`上下断，然后再“帮助信息”菜单中选择“产品注册”，被`OD`栏下（由于`OD`绑定时的线程结束了，不如此作`OD`会失去控制）。
+
+继续运行，会看到各个控件被分别建立。然后打开窗口叶面，记下注册窗口和编辑框的句柄。Delphi不采用`GetWindowTextA`获取输入，而是利用`CallWindowProcA`发送一条`WM_GETTEXT`消息给编辑控件，其`wParam`是字符串存放地址（请参看API手册）。
+
+所以在这个函数上下条件断点 `([esp+8]==0x1a02b0) && ([esp+0xC]==WM_GETTEXT)`。
+
+不出所料，点击“正版注册”按钮后这个断点被触发。从堆栈上读出口令存放地址并记下，然后直接`F4`到返回地址，在口令存放处下内存断点，然后运行直至程序访问输入的口令串。
+
+```
+00402A38   56               PUSH ESI
+00402A39   57               PUSH EDI
+00402A3A   89C6             MOV ESI,EAX
+00402A3C   89D7             MOV EDI,EDX
+00402A3E   89C8             MOV EAX,ECX
+00402A40   39F7             CMP EDI,ESI
+00402A42   77 13            JA SHORT Ginshop.00402A57
+00402A44   74 2F            JE SHORT Ginshop.00402A75
+00402A46   C1F9 02          SAR ECX,2
+00402A49   78 2A            JS SHORT Ginshop.00402A75
+00402A4B   F3:A5            REP MOVSD
+00402A4D   89C1             MOV ECX,EAX
+00402A4F   83E1 03          AND ECX,3
+00402A52   F3:A4            REP MOVSB
+  <============ 内存断点在这里触发, 发现拷贝的是注册码的第0B个字符
+00402A54   5F               POP EDI
+                    一路F8返回可见其将目标字符的地址放在堆栈中，
+           实际上是上层函数的临时变量。
+00402A55   5E               POP ESI
+00402A56   C3               RETN
+...................................................
+最后返回到如下函数：
+0056D52C   B9 01000000
+   MOV ECX,1
+0056D531   BA 0B000000      MOV EDX,0B
+0056D536   8B45 F0          MOV EAX,DWORD PTR
+SS:[EBP-10]
+0056D539   E8 527DE9FF      CALL Ginshop.00405290
+ <=========显然是刚刚调用的函数
+0056D53E   8B45 EC          MOV EAX,DWORD PTR
+SS:[EBP-14]  <============目标字符的地址就在这里
+0056D541   E8 D6C6E9FF      CALL Ginshop.00409C1C
+                 这个函数返回字符对应的值，如'9'->9
+0056D546   8BD8             MOV EBX,EAX
+       ; ebx==value(code[0b])
+0056D548   8D45 E8          LEA EAX,DWORD PTR
+SS:[EBP-18]
+0056D54B   50               PUSH EAX
+0056D54C   B9 01000000      MOV ECX,1
+   ; 只取一个字符
+0056D551   BA 0C000000      MOV EDX,0C
+  ; 字符索引0xC
+0056D556   8B45 F0          MOV EAX,DWORD PTR
+SS:[EBP-10]            ; 试炼码
+0056D559   E8 327DE9FF      CALL Ginshop.00405290
+        <======== 取字符
+0056D55E   8B45 E8          MOV EAX,DWORD PTR
+SS:[EBP-18]
+0056D561   E8 B6C6E9FF      CALL Ginshop.00409C1C
+            ;取值
+0056D566   8BF0             MOV ESI,EAX
+0056D568   8D45 E4          LEA EAX,DWORD PTR
+SS:[EBP-1C]
+0056D56B   50               PUSH EAX
+0056D56C   B9 01000000      MOV ECX,1
+0056D571   BA 0D000000      MOV EDX,0D
+0056D576   8B45 F0          MOV EAX,DWORD PTR
+SS:[EBP-10]        ;同上
+0056D579   E8 127DE9FF      CALL Ginshop.00405290
+0056D57E   8B45 E4          MOV EAX,DWORD PTR
+SS:[EBP-1C]
+0056D581   E8 96C6E9FF      CALL Ginshop.00409C1C
+                 ; get the
+value
+0056D586   8BF8             MOV EDI,EAX
+       ; edi==value(code[0d])
+至此，取了注册码第0b,0c and 0d个字符，并转换成相应的数值，如果是"0xa0x6"的形式，取值函数会自动转换。
+0056D588   8D45 C8
+       LEA EAX,DWORD PTR SS:[EBP-38]
+     ; 临时变量
+0056D58B   8B55 F4          MOV EDX,DWORD PTR
+SS:[EBP-C]             ; 注册名字
+0056D58E   8A541A FF        MOV DL,BYTE PTR DS:[EDX+EBX-1]
+          ; 根据索引取字符get char =name(value(code[0b])-1)
+0056D592   8850 01          MOV BYTE PTR DS:[EAX+1],DL
+              ; 存放
+0056D595   C600 01          MOV BYTE PTR DS:[EAX],1
+                 ; 长度为1
+0056D598   8D55 C8          LEA EDX,DWORD PTR
+SS:[EBP-38]
+0056D59B   8D45 C4          LEA EAX,DWORD PTR
+SS:[EBP-3C]
+0056D59E   E8 D95AE9FF      CALL Ginshop.0040307C
+                 ; 取出的字符拷贝到另一处
+0056D5A3   8D45 C0          LEA EAX,DWORD PTR
+SS:[EBP-40]            ; new var
+0056D5A6   8B55 F4          MOV EDX,DWORD PTR
+SS:[EBP-C]             ; name
+0056D5A9   8A5432 FF        MOV DL,BYTE PTR DS:[EDX+ESI-1]
+          ; 取第二个字符get char =name(value(code[0c])-1)
+0056D5AD   8850 01          MOV BYTE PTR DS:[EAX+1],DL
+              ;
+0056D5B0   C600 01          MOV BYTE PTR DS:[EAX],1
+                 ;
+0056D5B3   8D55 C0          LEA EDX,DWORD PTR
+SS:[EBP-40]            ;
+0056D5B6   8D45 C4          LEA EAX,DWORD PTR
+SS:[EBP-3C]            ;
+0056D5B9   B1 02            MOV CL,2
+        ;
+0056D5BB   E8 8C5AE9FF      CALL Ginshop.0040304C
+                 ; 把两个字符连接
+0056D5C0   8D55 C4          LEA EDX,DWORD PTR
+SS:[EBP-3C]            ;
+0056D5C3   8D45 BC          LEA EAX,DWORD PTR
+SS:[EBP-44]            ;
+0056D5C6   E8 B15AE9FF      CALL Ginshop.0040307C
+                 ;
+0056D5CB   8D45 C0          LEA EAX,DWORD PTR
+SS:[EBP-40]            ;
+0056D5CE   8B55 F4          MOV EDX,DWORD PTR
+SS:[EBP-C]             ;
+0056D5D1   8A543A FF        MOV DL,BYTE PTR DS:[EDX+EDI-1]
+          ; 取第三个字符 get char =name(value(code[0d])-1)
+0056D5D5   8850 01          MOV BYTE PTR DS:[EAX+1],DL
+              ;
+0056D5D8   C600 01          MOV BYTE PTR DS:[EAX],1
+                 ;
+0056D5DB   8D55 C0          LEA EDX,DWORD PTR
+SS:[EBP-40]
+0056D5DE   8D45 BC          LEA EAX,DWORD PTR
+SS:[EBP-44]
+0056D5E1   B1 03            MOV CL,3
+0056D5E3   E8 645AE9FF      CALL Ginshop.0040304C
+                 ; 三个字符都连起来"0al"
+0056D5E8   8D55 BC          LEA EDX,DWORD PTR
+SS:[EBP-44]            ;
+0056D5EB   8D45 CC          LEA EAX,DWORD PTR
+SS:[EBP-34]            ;
+0056D5EE   E8 E979E9FF      CALL Ginshop.00404FDC
+                 ; 拷贝到内存某处
+0056D5F3   8B45 CC          MOV EAX,DWORD PTR
+SS:[EBP-34]            ;
+0056D5F6   8D55 D0          LEA EDX,DWORD PTR
+SS:[EBP-30]            ;存放结果的变量
+0056D5F9   E8 525EFEFF      CALL Ginshop.00553450
+        <============ 跟进
+0056D5FE   8D45 D0          LEA EAX,DWORD PTR
+SS:[EBP-30]            ; 函数计算结果
+0056D601   8D55 E0          LEA EDX,DWORD PTR
+SS:[EBP-20]            ; 指针用来存放返回结果
+0056D604   E8 BB5EFEFF      CALL Ginshop.005534C4
+                 ; 这个函数把上一个函数返回的数值结果转换成字符串，
+0056D609   8B55 E0          MOV EDX,DWORD PTR
+SS:[EBP-20]            ; 如0xED=>"ED"
+0056D60C   8D45 F4          LEA EAX,DWORD PTR
+SS:[EBP-C]             ; 注册名字
+0056D60F   E8 0478E9FF      CALL Ginshop.00404E18
+                 ; 这里拷贝结果字符串到另一个变量，并调整引用计数
+0056D614   8D45 B8          LEA EAX,DWORD PTR
+SS:[EBP-48]            ;
+0056D617   50               PUSH EAX
+0056D618   B9 0A000000      MOV ECX,0A
+  ; 要拷贝的字符计数
+0056D61D   BA 09000000      MOV EDX,9
+   ; 从第9个字符开始（从1算起）
+0056D622   8B45 F4          MOV EAX,DWORD PTR
+SS:[EBP-C]             ; 结果字符串ed79d869e220dc026ff71ca87cbf2fca
+0056D625   E8 667CE9FF      CALL Ginshop.00405290
+                 ; 取得子串
+0056D62A   FF75 B8          PUSH DWORD PTR SS:[EBP-48]
+              ; 子串e220dc026f
+0056D62D   8D55 B4          LEA EDX,DWORD PTR
+SS:[EBP-4C]            ; new var
+0056D630   8BC3             MOV EAX,EBX
+       ; 注册码第B为对应的数值ebx==value(code[0b])
+0056D632   E8 05C5E9FF      CALL Ginshop.00409B3C
+                 ; 这个函数用
+wsprintf("%d",x)把数值重新转成字符
+0056D637   FF75 B4          PUSH DWORD PTR SS:[EBP-4C]
+              ; 结果
+0056D63A   8D55 B0          LEA EDX,DWORD PTR
+SS:[EBP-50]
+0056D63D   8BC6             MOV EAX,ESI
+       ; 第0C位esi==value(code[0c])
+```
