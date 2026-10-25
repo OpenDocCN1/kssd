@@ -1,0 +1,192 @@
+
+# 我现在总不认真，刚才输入有错误，现在更正，toye大哥把上边的删除了吧。
+
+(10千字)
+
+## EditorPro Suite 2.0的简单破解--“W32DSM直接找注册码”
+
+下载地址在 `http://www.51soft.com/share/download.asp?url=http://dl2.51soft.com/system/wzcl/editpros.exe`。
+
+本来这个软件我是用爆破的方法来破解的，当时我没注意到详细的信息，所以费了好大的劲，今天早上来了，打开机器看看昨天写的东西，突然发现下面的代码，呵呵，灵感来了，测试使用 `EPS-#######506###` 格式注册，我尝试输入 `EPS-1234567506789`，我KAO，TNND，成功了！枉费了我那么多时间啊，下面是用 `w32dsm893` 反汇编出来的部分源代码。有兴趣的大家看看吧。
+
+```
+\* Possible StringData Ref from Code Obj ->"?A"
+            |
+:005ADB12 A1A8164100              mov eax, dword ptr [004116A8]
+:005ADB17 E87C55E5FF              call 00403098
+:005ADB1C 8B55FC                  mov edx, dword ptr [ebp-04]
+:005ADB1F 898278050000            mov dword ptr [edx+00000578], eax
+\* Possible StringData Ref from Code Obj ->"Software\D C AL CODA\EditorPro"
+            |
+:005ADB25 B82CE35A00              mov eax, 005AE32C
+:005ADB2A 8B55FC                  mov edx, dword ptr [ebp-04]
+:005ADB2D 8B8A78050000            mov ecx, dword ptr [edx+00000578]
+\* Possible StringData Ref from Code Obj ->"Reopen"
+            |
+:005ADB33 BA64E35A00              mov edx, 005AE364
+:005ADB38 E8A7DBFFFF              call 005AB6E4
+:005ADB3D 8B45FC                  mov eax, dword ptr [ebp-04]
+:005ADB40 C6807005000000          mov byte ptr [eax+00000570], 00
+:005ADB47 8B45FC                  mov eax, dword ptr [ebp-04]
+:005ADB4A C680F804000000          mov byte ptr [eax+000004F8], 00
+:005ADB51 B91E000000              mov ecx, 0000001E
+\* Possible StringData Ref from Code Obj ->"3550"
+            |
+:005ADB56 BA74E35A00              mov edx, 005AE374
+\* Possible StringData Ref from Code Obj ->"EPS-#######506###"  //--->重点啊！！！格式符合，#任意！
+    ^^^^^^^^^^^^^^^^^
+            |
+:005ADB5B B884E35A00              mov eax, 005AE384
+:005ADB60 E84781FCFF              call 00575CAC
+\* Possible StringData Ref from Code Obj ->"Software\D C AL CODA\TraySuite"
+            |
+:005ADB65 B9A0E35A00              mov ecx, 005AE3A0
+:005ADB6A B201                    mov dl, 01
+:005ADB6C A18C964500              mov eax, dword ptr [0045968C]
+:005ADB71 E872C7EAFF              call 0045A2E8
+:005ADB76 8945EC                  mov dword ptr [ebp-14], eax
+:005ADB79 6A00                    push 00000000
+:005ADB7B 8D45D8                  lea eax, dword ptr [ebp-28]
+:005ADB7E 50                      push eax
+\* Possible StringData Ref from Code Obj ->"Options"
+            |
+:005ADB7F BA54E35A00              mov edx, 005AE354
+\* Possible StringData Ref from Code Obj ->"EPSSerial"
+            |
+:005ADB84 B9C8E35A00              mov ecx, 005AE3C8
+:005ADB89 8B45EC                  mov eax, dword ptr [ebp-14]
+:005ADB8C E8EBC7EAFF              call 0045A37C
+:005ADB91 8B55D8                  mov edx, dword ptr [ebp-28]
+:005ADB94 8B45FC                  mov eax, dword ptr [ebp-04]
+:005ADB97 0564050000              add eax, 00000564
+:005ADB9C E85F62E5FF              call 00403E00
+:005ADBA1 8B45EC                  mov eax, dword ptr [ebp-14]
+:005ADBA4 E81F55E5FF              call 004030C8
+:005ADBA9 8B45FC                  mov eax, dword ptr [ebp-04]
+:005ADBAC 8D8868050000            lea ecx, dword ptr [eax+00000568]
+:005ADBB2 8B45FC                  mov eax, dword ptr [ebp-04]
+:005ADBB5 8D906C050000            lea edx, dword ptr [eax+0000056C]
+:005ADBBB 8B45FC                  mov eax, dword ptr [ebp-04]
+:005ADBBE 8B8064050000            mov eax, dword ptr [eax+00000564]
+:005ADBC4 E86782FCFF              call 00575E30
+:005ADBC9 84C0                    test al, al
+:005ADBCB 0F8595000000            jne 005ADC66
+:005ADBD1 6A00                    push 00000000
+\* Possible StringData Ref from Code Obj ->"The EditorPro Suite "
+            |
+:005ADBD3 68DCE35A00              push 005AE3DC
+:005ADBD8 8D55D0                  lea edx, dword ptr [ebp-30]
+:005ADBDB B81E000000              mov eax, 0000001E
+:005ADBE0 E8A3C1E5FF              call 00409D88
+:005ADBE5 FF75D0                  push [ebp-30]
+\* Possible StringData Ref from Code Obj ->" day Trial period has expired."
+//--->30天试用过期啦
+            |
+:005ADBE8 68FCE35A00              push 005AE3FC
+:005ADBED 6824E45A00              push 005AE424
+:005ADBF2 6830E45A00              push 005AE430
+\* Possible StringData Ref from Code Obj ->"Click Yes to enter Registration
+"
+                  ->"Code"
+            |
+:005ADBF7 683CE45A00              push 005AE43C
+:005ADBFC 6824E45A00              push 005AE424
+:005ADC01 6830E45A00              push 005AE430
+\* Possible StringData Ref from Code Obj ->"Click No to quit."
+            |
+:005ADC06 686CE45A00              push 005AE46C
+:005ADC0B 8D45D4                  lea eax, dword ptr [ebp-2C]
+:005ADC0E BA09000000              mov edx, 00000009
+:005ADC13 E80065E5FF              call 00404118
+:005ADC18 8B45D4                  mov eax, dword ptr [ebp-2C]
+:005ADC1B 668B0D80E45A00          mov cx, word ptr [005AE480]
+:005ADC22 B202                    mov dl, 02
+:005ADC24 E8E334EBFF              call 0046110C
+:005ADC29 83F806                  cmp eax, 00000006
+:005ADC2C 7527                    jne 005ADC55
+:005ADC2E 33D2                    xor edx, edx
+:005ADC30 8B45FC                  mov eax, dword ptr [ebp-04]
+:005ADC33 E8C8680000              call 005B4500
+:005ADC38 8B45FC                  mov eax, dword ptr [ebp-04]
+:005ADC3B 80B86805000000          cmp byte ptr [eax+00000568], 00
+:005ADC42 7422                    je 005ADC66
+:005ADC44 A11C306000              mov eax, dword ptr [0060301C]
+:005ADC49 8B00                    mov eax, dword ptr [eax]
+:005ADC4B E83893EAFF              call 00456F88
+:005ADC50 E98D060000              jmp 005AE2E2
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:005ADC2C(C)
+|
+:005ADC55 A11C306000              mov eax, dword ptr [0060301C]
+:005ADC5A 8B00                    mov eax, dword ptr [eax]
+:005ADC5C E82793EAFF              call 00456F88
+:005ADC61 E97C060000              jmp 005AE2E2
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+|:005ADBCB(C), :005ADC42(C)
+|
+:005ADC66 B201                    mov dl, 01
+\* Possible StringData Ref from Code Obj ->"?A"
+```
+
+### 注册和未注册的信息
+
+```
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:005A5281(U)
+|
+:005A52A6 807D1000              cmp byte ptr [ebp+10], 00
+:005A52AA 7438                  je 005A52E4
+\* Possible StringData Ref from Code Obj ->"UNREGISTERED: "  //---->未注册
+            |
+:005A52AC 68F0535A00            push 005A53F0
+:005A52B1 8D55E4                lea edx, dword ptr [ebp-1C]
+:005A52B4 8B450C                mov eax, dword ptr [ebp+0C]
+:005A52B7 E8CC4AE6FF            call 00409D88
+:005A52BC FF75E4                push [ebp-1C]
+\* Possible StringData Ref from Code Obj ->" days left"  //----->剩下的日子不多了。
+            |
+:005A52BF 6808545A00            push 005A5408
+:005A52C4 8D45E8                lea eax, dword ptr [ebp-18]
+:005A52C7 BA03000000            mov edx, 00000003
+:005A52CC E847EEE5FF            call 00404118
+:005A52D1 8B55E8                mov edx, dword ptr [ebp-18]
+:005A52D4 8B45F0                mov eax, dword ptr [ebp-10]
+:005A52D7 8B80D8020000          mov eax, dword ptr [eax+000002D8]
+:005A52DD E81634E9FF            call 004386F8
+:005A52E2 EB21                  jmp 005A5305
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:005A52AA(C)
+|
+:005A52E4 8D45E0                lea eax, dword ptr [ebp-20]
+:005A52E7 8B4D18                mov ecx, dword ptr [ebp+18]
+\* Possible StringData Ref from Code Obj ->"Registered: "  //---->注册啦。
+            |
+:005A52EA BA1C545A00            mov edx, 005A541C
+:005A52EF E8B0EDE5FF            call 004040A4
+:005A52F4 8B55E0                mov edx, dword ptr [ebp-20]
+:005A52F7 8B45F0                mov eax, dword ptr [ebp-10]
+:005A52FA 8B80D8020000          mov eax, dword ptr [eax+000002D8]
+:005A5300 E8F333E9FF            call 004386F8
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:005A52E2(U)
+|
+:005A5305 8D45DC                lea eax, dword ptr [ebp-24]
+:005A5308 8B4D1C                mov ecx, dword ptr [ebp+1C]
+\* Possible StringData Ref from Code Obj ->"Web site: "
+```
+
+感谢你的注册，呵呵，真熟悉的面容，我喜欢。
+
+```
+\* Referenced by a CALL at Address:
+|:005ADC33
+|
+:005B4500 55                    push ebp
+:005B4501 8BEC                  mov ebp, esp
+:005B4503 83C4F4                add esp, FFFFFFF4
+:005B4506 8955F4                mov dword ptr [ebp-0C], edx
+:005B4509 8945FC                mov dword ptr [ebp-04], eax
+:005B450C 8B45FC                mov eax, dword ptr [ebp-04]
+:005B450F 8D9064050000          lea edx, dword ptr [eax+00000564]
+\* Possible StringData Ref from Code Obj ->"EditorPro"
+```
