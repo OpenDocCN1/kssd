@@ -1,0 +1,285 @@
+
+# SPQuery v4.2 build 4237 (22千字)
+
+SPQuery v4.2 build 4237
+
+http://www.stbernard.com
+
+如果你是WinNT/2K的系统管理员，这个工具是非常有用的。
+
+用`isDcc`反编译`setup.ins`脚本，得到脚本源码。显然是调用`sbssetup.dll`来判断安装序列号的。关键的是下面这几个：
+
+```
+prototype SBSSETUP.VerifySN(string);
+prototype SBSSETUP.GetModeCode(string);
+prototype SBSSETUP.GetLicenseLevel(string);
+```
+
+判断序列号的部分如下（`string7`就是序列号）：
+
+```
+label18: //Ref: 001428
+00143F:00B4:        SBSSETUP.VerifySN(string7);
+      //判断序列号
+001447:0021:        lNumber0 = LAST_RESULT;
+00144F:0128:        lNumber3 = lNumber0 < 0;
+001461:0022:        if (lNumber3 = 0) then
+  goto label19;
+                    endif;
+00146F:0112:        StrLoadString("", "INVALID_SN", lString0);
+001484:002A:        MessageBox(lString0, -65535);
+00148E:002C:        goto label17;
+label19: //Ref: 001461
+001497:00B4:        SBSSETUP.GetModeCode(string7);
+  //这里
+00149F:0021:        lNumber2 = LAST_RESULT;
+0014A7:0128:        lNumber3 = lNumber2 < 0;
+0014B9:0022:        if (lNumber3 = 0) then
+  goto label20;
+                    endif;
+0014C7:0112:        StrLoadString("", "INVALID_SN", lString0);
+0014DC:002A:        MessageBox(lString0, -65535);
+0014E6:002C:        goto label17;
+label20: //Ref: 0014B9
+0014EF:00B4:        SBSSETUP.GetLicenseLevel(string7);
+//这里
+0014F7:0021:        lNumber1 = LAST_RESULT;
+0014FF:0128:        lNumber3 = lNumber1 < 0;
+001511:0022:        if (lNumber3 = 0) then
+  goto label21;
+                    endif;
+00151F:0112:        StrLoadString("", "INVALID_SN", lString0);
+001534:002A:        MessageBox(lString0, -65535);
+00153E:002C:        goto label17;
+label21: //Ref: 001511
+001547:0128:        lNumber3 = MODE = 0;
+001559:0022:        if (lNumber3 = 0) then
+  goto label26;
+                    endif;
+001567:0128:        lNumber3 = lNumber2 > 1;
+001579:0022:        if (lNumber3 = 0) then
+  goto label24;
+                    endif;
+001587:0128:        lNumber3 = lNumber1 = 0;
+001599:0022:        if (lNumber3 = 0) then
+  goto label22;
+                    endif;
+0015A7:0112:        StrLoadString("", "LICENSE_EXPLANATION", lString0);
+0015C5:0112:        StrLoadString("", "LIVE_TRIAL_UNLIMITED", lString1);
+0015E4:0104:        SprintfBox(-65535, lString0, lString1);
+0015F4:002C:        goto label23;
+label22: //Ref: 001599
+0015FD:0112:        StrLoadString("", "LICENSE_EXPLANATION", lString0);
+00161B:0112:        StrLoadString("", "LIVE_TRIAL_LIMITED", lString1);
+001638:0104:        SprintfBox(-65535, lString0, lString1, lNumber1, lNumber1);
+label23: //Ref: 0015F4
+001652:002C:        goto label26;
+label24: //Ref: 001579
+00165B:0128:        lNumber3 = lNumber1 = 0;
+00166D:0022:        if (lNumber3 = 0) then
+  goto label25;
+                    endif;
+00167B:0112:        StrLoadString("", "LICENSE_EXPLANATION", lString0);
+001699:0112:        StrLoadString("", "MACHINE_UNLIMITED", lString1);
+0016B5:0104:        SprintfBox(-65535, lString0, lString1);
+0016C5:002C:        goto label26;
+label25: //Ref: 00166D
+0016CE:0112:        StrLoadString("", "LICENSE_EXPLANATION", lString0);
+0016EC:0112:        StrLoadString("", "MACHINE_LIMITED", lString1);
+001706:0104:        SprintfBox(-65535, lString0, lString1, lNumber1, lNumber1);
+```
+
+察看文本文件`value.shl`，得到字符串宏定义如下：
+
+```
+INVALID_SN=Invalid Serial Number.
+LIVE_TRIAL_LIMITED=You have installed a license allowing you to evaluate SPQuery
+on %d machines for 15 days.  Once %d machines have been queried, any
+remaining machines will become inaccessible via SPQuery.
+SERIAL_NUMBER=Serial Number:
+MACHINE_UNLIMITED=You have installed a license allowing you to use SPQuery
+at one physical site.
+LIVE_TRIAL_UNLIMITED=You have installed a license allowing you to evaluate
+SPQuery on any number of machines for 15 days.
+MACHINE_LIMITED=You have installed a license allowing you to use SPQuery on
+%d machines.  Once %d machines have been queried, any remaining machines
+will become inaccessible via SPQuery.
+LICENSE_EXPLANATION=License Explanation
+```
+
+显然它有多种序列号，不同的序列号对应不同的license类型。最完美的当然是`MACHINE_UNLIMITED`，没有时间和机器数目的限制。
+
+那就看看如何才能让程序流程走到`MACHINE_UNLIMITED`这里来。
+
+```
+lNumber0 = SBSSETUP.VerifySN(string7);        //lNumber0应大于等于0
+lNumber2 = SBSSETUP.GetModeCode(string7);    //lNumber2应大于等于0，且小于等于1
+lNumber1 = SBSSETUP.GetLicenseLevel(string7); //lNumber1应等于0
+```
+
+得到上述条件之后启动SoftICE针对DLL中的函数设断点进行跟踪，使用其默认的序列号01-0184-4174-0909。
+
+发现它是把注册码的后两部分4174和0909用同一个函数进行变换，分别得到0B26和5005，`lNumber0`就等于0B26的高两位即0B，而`lNumber2`则等于0B26中的2，`lNumber1`则为5005的低三位即005。它还会取出0B26中的低位（即6），和5005的高位（即5）凑成一个字节0x65，并将该字节与另外一个字节（此字节是根据注册码其它部分计算出来的）进行比较，比较的地方如下：
+
+```
+001B:01972307  CALL      01971FE0
+001B:0197230C  MOV      DL,[ESP+32]
+001B:01972310  MOV      AL,[ESP+33]
+001B:01972314  ADD      ESP,20
+001B:01972317  CMP      DL,AL
+//比较
+001B:01972319  JNZ      01972368
+```
+
+再结合上面得出的`lNumber0`，`lNumber1`，`lNumber2`所要满足的条件，就可以知道变换后的两个数所要满足的条件。
+
+现在的问题就是根据变换后的数如何反推出变换前的数（即注册码的后两部分）来，从而写出keymaker。看一下变换函数，该函数只是对一个16-bit整数的16个bit进行调换位置的操作，从而得到一个新的16-bit数，这个换位变换显然是可逆的。
+
+假定变换前的整数的16个bit依次为15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0，则变换得到的新的整数16个bit依次为15,11,7,3,14,10,6,2,13,9,5,1,12,8,4,0。即变换后的整数的第15 bit等于变换前的整数的第15 bit，变换后的整数的第14 bit等于变换前的整数的第11 bit・・・依次类推。如下：
+
+```
+* Referenced by a CALL at Addresses:
+|:10002200  , :1000220A
+|
+:10001D50 8B4C2404
+mov ecx, dword ptr [esp+04]
+:10001D54 83EC08
+sub esp, 00000008
+:10001D57 8D442400
+lea eax, dword ptr [esp]
+:10001D5B 53
+    push ebx
+:10001D5C 55
+    push ebp
+:10001D5D 56
+    push esi
+:10001D5E 57
+    push edi
+:10001D5F 50
+    push eax
+:10001D60 51
+    push ecx
+:10001D61 E84AFFFFFF              call
+10001CB0                //atol()或sscanf()
+:10001D66 8B442418
+mov eax, dword ptr [esp+18]  //变换前的16-bit整数
+:10001D6A 8BC8
+  mov ecx, eax
+:10001D6C 81E10F000080            and ecx, 8000000F
+      //ecx中存放该数的3～0 bit
+:10001D72 7905
+  jns 10001D79
+:10001D74 49
+    dec ecx
+:10001D75 83C9F0
+or ecx, FFFFFFF0
+:10001D78 41
+    inc ecx
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:10001D72(C)
+|
+:10001D79 99
+    cdq
+:10001D7A 83E20F
+and edx, 0000000F
+:10001D7D 03C2
+  add eax, edx
+:10001D7F C1F804
+sar eax, 04
+:10001D82 8BF0
+  mov esi, eax
+:10001D84 81E60F000080            and esi, 8000000F
+      //esi中存放该数的7～4 bit
+:10001D8A 7905
+  jns 10001D91
+:10001D8C 4E
+    dec esi
+:10001D8D 83CEF0
+or esi, FFFFFFF0
+:10001D90 46
+    inc esi
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:10001D8A(C)
+|
+:10001D91 99
+    cdq
+:10001D92 83E20F
+and edx, 0000000F
+:10001D95 03C2
+  add eax, edx
+:10001D97 C1F804
+sar eax, 04
+:10001D9A 8BF8
+  mov edi, eax
+:10001D9C 81E70F000080            and edi, 8000000F
+      //edi中存放该数的11～8 bit
+:10001DA2 7905
+  jns 10001DA9
+:10001DA4 4F
+    dec edi
+:10001DA5 83CFF0
+or edi, FFFFFFF0
+:10001DA8 47
+    inc edi
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:10001DA2(C)
+|
+:10001DA9 99
+    cdq
+:10001DAA 83E20F
+and edx, 0000000F
+:10001DAD 03C2
+  add eax, edx
+:10001DAF C1F804
+sar eax, 04
+:10001DB2 8BD8
+  mov ebx, eax
+:10001DB4 81E30F000080            and ebx, 8000000F
+    //ebx中存放该数的15～12 bit
+:10001DBA 7905
+  jns 10001DC1
+:10001DBC 4B
+    dec ebx
+:10001DBD 83CBF0
+or ebx, FFFFFFF0
+:10001DC0 43
+    inc ebx
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:10001DBA(C)
+|
+:10001DC1 8BC3
+  mov eax, ebx
+:10001DC3 99
+    cdq
+:10001DC4 83E207
+and edx, 00000007
+:10001DC7 03C2
+  add eax, edx
+:10001DC9 C1F803
+sar eax, 03
+:10001DCC 8BE8
+  mov ebp, eax
+:10001DCE 81E501000080            and ebp, 80000001
+    //用掩码取出该数的第15 bit
+:10001DD4 7905
+  jns 10001DDB
+:10001DD6 4D
+    dec ebp
+:10001DD7 83CDFE
+or ebp, FFFFFFFE
+:10001DDA 45
+    inc ebp
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:10001DD4(C)
+|
+:10001DDB 8BC7
+  mov eax, edi
+:10001DDD 99
+    cdq
+:10001DDE 83E207
+and edx, 00000007
+:10001DE1 03C2
+  add eax, edx
+:10001DE3 C1F803
+sar eax, 03
+```
