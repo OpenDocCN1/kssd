@@ -1,0 +1,18 @@
+
+# [原创]关于XP SP3 系统下`NtUserCreateWindowEx`原型分析（修正）
+
+好久没灌水了，来一水帖。
+
+不贴再重复贴了，直接弄成PDF文档，有兴趣的可看附件![](https://bbs.kanxue.com/view/img/face/1.gif)
+
+**由于测试仓促，发现原来的分析出的参数类型有误，为了不误导他人，现已经及时进行了修正。。。。。**
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+[#系统底层](https://bbs.kanxue.com/forum-4-1-2.htm)
+
+上传的附件：
+
+- [关于XP SP3 系统下NtUserCreateWindowEx 原型分析\_修正版.pdf](javascript:void(0);)
+
+  （250.04kb，296次下载）
