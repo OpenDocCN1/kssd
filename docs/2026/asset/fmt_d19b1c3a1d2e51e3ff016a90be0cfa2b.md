@@ -3,20 +3,19 @@
 
 ## 国图图书下载系统9.0的破解过程及注册码算法
 
-**作者：** Crack007
+作者：Crack007
 
-**主页：** http://www.crack007.com ( ^-^ )
+主页：http://www.crack007.com ( ^-^ )
 
-**破解日期：** 2001-11-26
+破解日期：2001-11-26
 
-**破解工具：** `TRW2000 1.22` `Fi2.49` `Wasm 8.93黄金版`
+破解工具：`TRW2000 1.22`  `Fi2.49`  `Wasm 8.93`黄金版
 
-**难度：** 较易
+难度：较易
 
-**软件下载地址：** http://www.widenstage.com/artech/product/nlcdownload/nlcdownload.exe（1633KB）
+软件下载地址：http://www.widenstage.com/artech/product/nlcdownload/nlcdownload.exe（1633KB）
 
-### 软件简介
-国家图书馆是继超星图书馆以来的又一家大型电子数字图书馆，现有图书10余万册，并且不断增加。本软件就是专门为下载国家图书馆的电子图书而设计。共享版只能下载不足150页的图书，或者图书的前150页。
+软件简介：国家图书馆是继超星图书馆以来的又一家大型电子数字图书馆，现有图书10余万册，并且不断增加。本软件就是专门为下载国家图书馆的电子图书而设计。共享版只能下载不足150页的图书，或者图书的前150页。
 
 您注册以后，将没有此限制。
 
@@ -41,10 +40,8 @@
 重新启动系统，注册将会"
                   ->"生效!"
             |
-:0040F49D BA15E24E00              mov edx,
-004EE215
-:0040F4A2 66C746102C00            mov [esi+10],
-002C
+:0040F49D BA15E24E00              mov edx,004EE215
+:0040F4A2 66C746102C00            mov [esi+10],002C
 :0040F4A8 8D45E4
 lea eax, dword ptr [ebp-1C]
 :0040F4AB E864350C00              call 004D2A14
@@ -67,8 +64,7 @@ lea ecx, dword ptr [ebp-46]
 add esp, 0000000C
 :0040F4C6 8D45BA
 lea eax, dword ptr [ebp-46]
-:0040F4C9 804DBA04                or
-byte ptr [ebp-46], 04
+:0040F4C9 804DBA04                or byte ptr [ebp-46], 04
 :0040F4CD 668B08
 mov cx, word ptr [eax]
 :0040F4D0 58
@@ -80,8 +76,7 @@ mov cx, word ptr [eax]
 dec [esi+1C]
 :0040F4DB 8D45E4
 lea eax, dword ptr [ebp-1C]
-:0040F4DE BA02000000              mov edx,
-00000002
+:0040F4DE BA02000000              mov edx,00000002
 :0040F4E3 E8C8360C00              call 004D2BB0
 :0040F4E8 C7833402000001000000    mov dword ptr [ebx+00000234], 00000001
 :0040F4F2 8BC3
@@ -96,13 +91,11 @@ lea eax, dword ptr [ebp-1C]
   push 00000000
 * Possible StringData Ref from Data Obj ->"注册码错误!请重新输入!"
             |
-:0040F4FD BA49E24E00              mov edx,
-004EE249
-:0040F502 66C746103800            mov [esi+10],
-0038
+:0040F4FD BA49E24E00              mov edx,004EE249
+:0040F502 66C746103800            mov [esi+10],0038
 ```
 
------------------来自 `0040F492 E879030000` `call 0040F810`----
+-----------------来自 `0040F492 E879030000`        call `0040F810`----
 
 ```
 :0040F810 55
@@ -121,14 +114,12 @@ add esp, FFFFFFA8
   mov ebx, eax
 :0040F81B 8D75B8
 lea esi, dword ptr [ebp-48]
-:0040F81E B8B0E64E00              mov eax,
-004EE6B0
+:0040F81E B8B0E64E00              mov eax,004EE6B0
 :0040F823 E83C940B00              call 004C8C64
 :0040F828 8BC3
   mov eax, ebx
 :0040F82A E8BD030000              call 0040FBEC
-:0040F82F 66C746100800            mov [esi+10],
-0008
+:0040F82F 66C746100800            mov [esi+10],0008
 :0040F835 33D2
   xor edx, edx
 :0040F837 33C9
@@ -139,29 +130,24 @@ mov dword ptr [ebp-04], edx
   xor eax, eax
 :0040F83E FF461C
 inc [esi+1C]
-:0040F841 8D933C030000            lea edx, dword
-ptr [ebx+0000033C]
-:0040F847 66C746101400            mov [esi+10],
-0014
-:0040F84D 66C746102000            mov [esi+10],
-0020
+:0040F841 8D933C030000            lea edx, dword ptr [ebx+0000033C]
+:0040F847 66C746101400            mov [esi+10],0014
+:0040F84D 66C746102000            mov [esi+10],0020
 :0040F853 894DF8
 mov dword ptr [ebp-08], ecx
 :0040F856 FF461C
 inc [esi+1C]
-:0040F859 66C746101400            mov [esi+10],
-0014
-:0040F85F 66C746102C00            mov [esi+10],
-002C
+:0040F859 66C746101400            mov [esi+10],0014
+:0040F85F 66C746102C00            mov [esi+10],002C
 ```
 
 .......省略基本无关初始化的语句，来到下面的计算注册码的核心代码：
 
-```
 * Possible StringData Ref from Data Obj ->"0x"
             |
-:0040F9C6 B8F2E24E00              mov eax,
-004EE2F2
+
+```
+:0040F9C6 B8F2E24E00              mov eax,004EE2F2
 :0040F9CB E828350C00              call 004D2EF8
 :0040F9D0 8D45E4
 lea eax, dword ptr [ebp-1C]
@@ -176,18 +162,15 @@ mov dword ptr [ebp-4C], edx
 dec [esi+1C]
 :0040F9E3 8D45E4
 lea eax, dword ptr [ebp-1C]
-:0040F9E6 BA02000000              mov edx,
-00000002
+:0040F9E6 BA02000000              mov edx,00000002
 :0040F9EB E8C0310C00              call 004D2BB0
 :0040F9F0 FF4E1C
 dec [esi+1C]
 :0040F9F3 8D45E8
 lea eax, dword ptr [ebp-18]
-:0040F9F6 BA02000000              mov edx,
-00000002
+:0040F9F6 BA02000000              mov edx,00000002
 :0040F9FB E8B0310C00              call 004D2BB0
-:0040FA00 66C746101400            mov [esi+10],
-0014
+:0040FA00 66C746101400            mov [esi+10],0014
 :0040FA06 33DB
   xor ebx, ebx
 :0040FA08 EB6E
@@ -196,12 +179,11 @@ lea eax, dword ptr [ebp-18]
 
 ---------------  以上作用主要是把机器码转为16进制数，即0x......  ----------------
 
-```
 * Referenced by a (U)nconditional or (C)onditional Jump at Address:
 |:0040FAA4(C)
 |
-:0040FA0A 837DFC00                cmp
-dword ptr [ebp-04], 00000000  <---[ebp-04]保存的是我们填入的E-mail。判断是否为空
+```
+:0040FA0A 837DFC00                cmp dword ptr [ebp-04], 00000000  <---[ebp-04]保存的是我们填入的E-mail。判断是否为空
 :0040FA0E 7408
   je 0040FA18
 :0040FA10 8B45FC
@@ -255,25 +237,22 @@ mov edx, dword ptr [ebp-4C]      <---保存机器码前 8 位计算的累计结�
 :0040FA46 E8D1BE0B00              call 004CB91C
 ```
 
-----------------------call 004CB91C---start--------------------------
+----------------------call `004CB91C`---start--------------------------
 
-```
 |:0040F1DE  , :0040FA46  , :0040FA66
 |
+```
 :004CB91C 52
   push edx
 :004CB91D 50
   push eax
-:004CB91E 8B442410                mov
-eax, dword ptr [esp+10]
+:004CB91E 8B442410                mov eax, dword ptr [esp+10]
 :004CB922 F72424
 mul dword ptr [esp]
 :004CB925 8BC8
   mov ecx, eax
-:004CB927 8B442404                mov
-eax, dword ptr [esp+04]      <---[esp+04]： 原始机器码前 8 位
-:004CB92B F764240C                mul
-[esp+0C]
+:004CB927 8B442404                mov eax, dword ptr [esp+04]      <---[esp+04]： 原始机器码前 8 位
+:004CB92B F764240C                mul [esp+0C]
 <---[esp+0c]保存E-mail码地址的ASCII的值或00:A1
     并与原始机器码前 8 位相乘，结果保存在EDX（符号）和EAX（数值）
 :004CB92F 03C8
@@ -281,8 +260,7 @@ eax, dword ptr [esp+04]      <---[esp+04]： 原始机器码前 8 位
   <---ECX保存中间结果
 :004CB931 8B0424
 mov eax, dword ptr [esp]        <---[Esp]： 原始机器码后 8 位
-:004CB934 F764240C                mul
-[esp+0C]
+:004CB934 F764240C                mul [esp+0C]
 <---[esp+0c]保存E-mail码地址的ASCII的值或00:A1
     并与原始机器码后 8 位相乘，结果保存在EDX（符号）和EAX
 :004CB938 03D1
@@ -296,13 +274,13 @@ mov eax, dword ptr [esp]        <---[Esp]： 原始机器码后 8 位
 ret 0008
 ```
 
-----------------------call 004CB91C---End---------------------------
+----------------------call `004CB91C`---End---------------------------
 
 ```
 :0040FA4B 83C001
 add eax, 00000001                <----后8位计算结果加1
 :0040FA4E 83D200
-adc edx, 00000000                <----前8位计算结果加0（多此一举？\*^\_^\*）
+adc edx, 00000000                <----前8位计算结果加0（多此一举？*^_^*）
 :0040FA51 8945B0
 mov dword ptr [ebp-50], eax      <----保存前8位计算结果
 :0040FA54 8955B4
@@ -334,7 +312,7 @@ adc edx, 00000000
 mov dword ptr [ebp-50], eax        |
 :0040FA74 8955B4
 mov dword ptr [ebp-4C], edx    -----
-* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+* Referenced by a (U)nconditional or (C)nditional Jump at Address:
 |:0040FA57(U)
 |
 ```
