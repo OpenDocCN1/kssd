@@ -1,0 +1,98 @@
+
+```
+bigeast@ubuntu:~/klee-2.1$ sudo LLVM_VERSION=9 SANITIZER_BUILD= BASE=/usr/include/c++/9 REQUIRES_RTTI=1 DISABLE_ASSERTIONS=1 ENABLE_DEBUG=0 ENABLE_OPTIMIZED=1 ./scripts/build/build.sh libcxx
+```
+
+报错如下
+
+```
+Detected OS: linux
+OS=linux
+Detected distribution: ubuntu
+DISTRIBUTION=ubuntu
+Detected version: 18.04
+DISTRIBUTION_VER=18.04
+Component sanitizer not found.
+Component sanitizer not found.
+Already installed llvm
+/usr/bin/llvm-config-9
+Already installed clang
+CMake Error at /usr/share/cmake-3.10/Modules/CMakeDetermineCCompiler.cmake:48 (message):
+Could not find compiler set in environment variable CC:
+wllvm.
+Call Stack (most recent call first):
+CMakeLists.txt:49 (project)
+CMake Error: CMAKE_C_COMPILER not set, after EnableLanguage
+CMake Error: CMAKE_CXX_COMPILER not set, after EnableLanguage
+CMake Error: CMAKE_ASM_COMPILER not set, after EnableLanguage
+-- Configuring incomplete, errors occurred!
+See also "/usr/include/c++/9/libc++-build-9/CMakeFiles/CMakeOutput.log".
+make: *** No rule to make target 'cxx'. Stop.
+```
+
+安装`wllvm`解决这个问题
+
+```
+bigeast@ubuntu:~/klee-2.1$ sudo -H python3 -m pip install wllvm
+```
+
+再次执行
+
+```
+bigeast@ubuntu:~/klee-2.1$ sudo LLVM_VERSION=9 SANITIZER_BUILD= BASE=/usr/include/c++/9 REQUIRES_RTTI=1 DISABLE_ASSERTIONS=1 ENABLE_DEBUG=0 ENABLE_OPTIMIZED=1 ./scripts/build/build.sh libcxx
+```
+
+```
+mkdir build
+cd build
+cmake \
+-DENABLE_POSIX_RUNTIME=ON \
+-DENABLE_KLEE_UCLIBC=ON \
+-DENABLE_KLEE_LIBCXX=ON \
+-DKLEE_LIBCXX_DIR=/usr/include/c++/9/libc++-install-90/ \
+-DKLEE_LIBCXX_INCLUDE_DIR=/usr/include/c++/9/libc++-install-90/include/c++/v1/ \
+-DENABLE_KLEE_EH_CXX=ON \
+-DKLEE_LIBCXXABI_SRC_DIR=/usr/include/c++/9/llvm-90/libcxxabi/ \
+-DKLEE_UCLIBC_PATH=/home/bigeast/klee-uclibc/ \
+-DENABLE_UNIT_TESTS=ON \
+-DENABLE_SYSTEM_TESTS=ON \
+-DGTEST_SRC_DIR=/home/bigeast/googletest-release-1.7.0/ \
+-DLLVM_CONFIG_BINARY=/usr/bin/llvm-config-9 \
+-DLLVMCC=/usr/bin/clang-9 \
+-DLLVMCXX=/usr/bin/clang++-9 \
+-DCMAKE_C_COMPILER=clang \
+-DCMAKE_CXX_COMPILER=clang++ \
+..
+```
+
+报错如下：
+
+```
+bigeast@ubuntu:~/klee-2.1/build$ cmake -DENABLE_POSIX_RUNTIME=ON -DENABLE_KLEE_UCLIBC=ON -DENABLE_KLEE_LIBCXX=ON -DKLEE_LIBCXX_DIR=/usr/include/c++/9/libc++-install-90/ -DKLEE_LIBCXX_INCLUDE_DIR=/usr/include/c++/9/libc++-install-90/include/c++/v1/ -DENABLE_KLEE_EH_CXX=ON -DKLEE_LIBCXXABI_SRC_DIR=/usr/include/c++/9/llvm-90/libcxxabi/ -DKLEE_UCLIBC_PATH=/home/bigeast/klee-uclibc/ -DENABLE_UNIT_TESTS=ON -DENABLE_SYSTEM_TESTS=ON -DGTEST_SRC_DIR=/home/bigeast/googletest-release-1.7.0/ -DLLVM_CONFIG_BINARY=/usr/bin/llvm-config-9 -DLLVMCC=/usr/bin/clang-9 -DLLVMCXX=/usr/bin/clang++-9 -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
+-- The CXX compiler identification is unknown
+-- The C compiler identification is unknown
+CMake Error at CMakeLists.txt:43 (project):
+The CMAKE_CXX_COMPILER:
+clang++
+is not a full path and was not found in the PATH.
+Tell CMake where to find the compiler by setting either the environment
+variable "CXX" or the CMake cache entry CMAKE_CXX_COMPILER to the full path
+to the compiler, or to the compiler name if it is in the PATH.
+CMake Error at cmake/cxx_flags_override.cmake:24 (message):
+Overrides not set for compiler
+Call Stack (most recent call first):
+/usr/share/cmake-3.10/Modules/CMakeCXXInformation.cmake:89 (include)
+CMakeLists.txt:43 (project)
+CMake Error at CMakeLists.txt:43 (project):
+The CMAKE_C_COMPILER:
+clang
+is not a full path and was not found in the PATH.
+Tell CMake where to find the compiler by setting either the environment
+variable "CC" or the CMake cache entry CMAKE_C_COMPILER to the full path to
+the compiler, or to the compiler name if it is in the PATH.
+-- Configuring incomplete, errors occurred!
+See also "/home/bigeast/klee-2.1/build/CMakeFiles/CMakeOutput.log".
+See also "/home/bigeast/klee-2.1/build/CMakeFiles/CMakeError.log".
+```
+
+原因是要用`clang-9`和`clang++-9`
