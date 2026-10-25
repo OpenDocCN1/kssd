@@ -1,0 +1,167 @@
+
+# [原创]使用 `IDA` 和 `windbg` 调试 LNK1123 转换到 COFF 期间失败：文件无效或损坏（续）
+
+## 前言
+
+在前面文章中（[这里](https://bbs.pediy.com/thread-271403.htm)）总结了使用 `windbg` 和 `IDA` 找出 `cvtres.exe` 报错的根本原因，并把一些细节问题弄清楚了。但是还剩下一个小细节没有深究 —— 如果启动 `cvtres.exe` 的时候没有指定全路径，`windbg` 会报系统找不到指定的文件的错误。当时只是根据经验判断需要使用完整路径，但是为什么只使用文件名不行呢？今天就把这个问题也格尽。
+
+> **说明：** 写完本文，我犹豫了很久要不要发表出来。因为这个问题其实很简单（在设置 `PATH` 环境变量时，路径多加了双引号）。但是当时的我真的是当局者迷，完全没意识到这个问题，导致花费了很长时间。`process monitor`，`gflag`，`IDA`，`windbg`，轮番上场，甚至都调试起 `windbg` 来了（嗯，你没看错，不是用 `windbg` 调试，而是调试 `windbg`），好一阵忙活，中间还走了很多弯路（自以为是的在错误的函数中下断）。最后幡然醒悟，原来真理就在那躺着，静静的等着被发现。
+
+> 之所以决定发出来有几点原因：
+>
+> 1. 介绍了让进程自动中断到调试器中的方法，甚至是让一个调试器自动中断到另外一个调试器中的方法。
+> 2. 介绍了只对特定线程设置断点的方法、使用 `wt` 追踪函数调用的方法等。
+> 3. 提醒自己，在调试过程中一定要保持清醒的头脑。
+>
+> 没耐心的朋友直接跳到最后即可。
+
+## 问题回顾
+
+相信小伙伴儿们都已经知道可以通过 `gflags` 设置 `Image File Execution Option` 来让指定程序启动时自动中断到调试器。但是当启动 `cvtres.exe` 的时候，如果只指定文件名，`windbg` 会报错。报错截图如下：
+
+![windbg-cannot-start-cvtres-error](upload/attach/202204/873494\_ZW65V429UYVYEZ8.jpg)
+
+猜测应该是 `windbg` 在创建进程的时候根据文件名不能找到相应的应用程序。
+
+我依稀记得创建进程时，`CreateProcess()` 会到 `PATH` 环境变量指定的路径中查找文件。所以我在脚本开始的地方把 `cvtres.exe` 所在的路径添加到 `PATH` 环境变量。使用 `process explorer` 查看 `windbg` 对应的 `PATH` 环境变量的值，发现 `PATH` 环境变量已经包含了 `cvtres.exe` 所在的路径。因为 `PATH` 环境变量太长了，我把它拷贝到文件中并省略了大部分：
+
+![view-windbg-path-variable](upload/attach/202204/873494\_TJQGNNFU4CMMDWR.jpg)
+
+> **提示：** 注意上图中高亮部分。一切皆因它而起。
+
+难道 `windbg` 不是通过 `CreateProcess()` 创建的新进程？看来需要调试一下 `windbg` 了。但是 `windbg` 也是自动启动的，该如何调试呢？
+
+## 螳螂捕蝉，黄雀在后
+
+还记得我们是怎么调试 `cvtres.exe` 的吗？可以用同样的方法调试 `windbg` —— 通过 `gflags` 为 `windbg` 设置 `Image File Execution Option`。
+
+但是有一个细节需要注意：`Debugger` 字段需要写一个其它调试器的路径。
+
+`cdb` 与 `windbg` 同源，大多数命令与 `windbg` 一样，是一个非常合适的调试器。
+
+![use-cdb-debugging-windbg-with-gflags](upload/attach/202204/873494\_MP4CQH2DDH5G8HZ.jpg)
+
+按上图设置后，`windbg.exe` 在启动时会自动中断到 `cdb.exe` 中。
+
+双击启动脚本，`cvtres.exe` 会自动中断到 `windbg` 中，而 `windbg` 会自动中断到 `cdb` 中。下图是 `windbg` 中断到 `cdb` 中的截图。
+
+![cdb-auto-attach-to-windbg](upload/attach/202204/873494\_SFVGZ5S4WHP9RKV.jpg)
+
+> **小提示：** 可以使用 `|` 命令查看正在被调试的进程模块名。非常实用的小技巧。
+
+`windbg` 已经中断下来了，应该在哪里下断点呢？
+
+## 断错函数了？
+
+创建进程应该会走 `CreateProcess()` 系列中的一个，猜测 `windbg` 应该也是调用 `CreateProcess()` 创建的子进程，与创建普通进程不同的是，`windbg` 需要**调试**新启动的进程。当为 `CreateProcess()` 函数的 `dwCreationFlags` 参数设置一个特殊的标志位 `DEBUG_PROCESS` 时，在进程创建过程中就会建立相关的调试对象，`windbg` 就能调试对应的进程了。
+
+按照上面的理论，在 `cdb` 中输入 `x *!*CreateProcess*` 查看相关函数，发现了一堆相关函数。想着最终肯定会调用 `ntdll` 模块中的函数，于是在 `cdb` 中输入 `bp ntdll!NtCreateProcessEx`，然后执行 `g` 命令重新运行 `windbg`。但是居然没断下来。难道 `windbg` 不是通过 `NtCreateProcessEx()` 启动新进程的吗？还是在调用 `NtCreateProcessEx()` 之前就检查到异常返回了？
+
+## 对比正常流程
+
+通过全路径启动 `cvtres.exe` 的时候，`windbg` 可以正常启动对应的程序。可以对比查看正常情况下 `windbg` 调用的是哪些函数。
+
+通过 `process monitor` 监听相关事件，只查看进程相关的事件，可以看到启动 `cvtres.exe` 时的调用栈，如下图所示：
+
+![view-windbg-create-cvtres-call-stack](upload/attach/202204/873494\_H3EAGBDKWYGP3QZ.jpg)
+
+看来 `windbg` 是通过 `kernelbase!CreateProcessW()` 启动进程的，该函数内部最终会调用 `ntdll!NtCreateUserProcess()`。看来，前面草率了，在错误的函数中设置了断点。赶紧在 `ntdll!NtCreateUserProcess()` 处下断点。您猜怎么着？还是没断下来！！！
+
+看来，应该是在前面就出错了。尝试在 `kernelbase!CreateProcessW()` 中设置断点，再试试运气。
+
+## 重新下断
+
+在 `kernelbase!CreateProcessW()` 中设置断点，再次运行程序，这次终于断下来了。执行 `gu` 退出 `kernelbase!CreateProcessW()`，然后查看返回值，也就是查看 `eax` 的值，发现 `eax` 的值是 `0`，根据 <a href="elink@7e2K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8$3y4K6i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3P5X3S2Q4x3X3c8U0L8W2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3V1k6%4K9h3^5K6x3W2)9J5c8X3q4H3K9g2)9J5c8Y4m8J5L8$3y4W2M7%4y4@1K9s2u0W2j5h3c8K6j5i4m8A6i4K6u0r3L8X3k6Q4x3X3c8H3M7X3!0U0k6i4y4K6N6r3S2J5k6h3q4V1M7$3q4H3K9g2)9J5k6r3y4J5k6h3q4@1k6i4m8J5L8$3y4W2M7%4y4%4">msdn <code>CreateProcess</code> 文档</a> 中的描述可知，返回 `0` 表示出错了。执行 `!gle` 查看错误码，发现 `Last Error` 的值是 `2`，也就是 `ERROR_PATH_NOT_FOUND`。<a href="elink@05bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8$3y4K6i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3k6h3&6Q4x3X3c8#2M7#2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3V1k6%4K9h3^5K6x3W2)9J5c8X3c8W2j5Y4g2Y4i4K6u0r3M7%4W2K6N6r3g2E0i4K6u0V1k6i4u0J5L8%4u0Q4x3X3c8U0L8$3c8W2M7#2)9J5k6q4)9J5k6o6m8Q4x3X3b7@1z5e0W2Q4x3X3b7.">System Error Codes (0-499)</a> 中对应的描述如下：`The system cannot find the file specified.`，翻译过来就是 **系统找不到指定的文件**，与 `windbg` 的错误提示完全吻合。
+
+![run-createprocess-and-view-return-value-and-last-error](upload/attach/202204/873494\_RHN9DBGMB4AR3N4.jpg)
+
+看来问题出在 `kernelbase!CreateProcessW()` 函数内部，用 `IDA` 看了下 `kernelbase!CreateProcessW()` 的反汇编代码，发现该函数只是直接调用了 `kernelbase!CreateProcessInternalW()`。而 `kernelbase!CreateProcessInternalW()` 的反汇编代码超级多，即使用 `IDA` 的 `F5` 得到的伪代码都非常多，实在没耐心看完。那该怎么办呢？脑子中突然想起一个很久之前就知道但是一直没真正使用过的命令 —— `wt`。
+
+## `wt` 立功了
+
+重新运行程序，当 `windbg` 中断到 `cdb` 后，输入 `bp kernelbase!CreateProcessInternalW` 设置好断点，输入 `g` 重新运行 `windbg`。中断下来后，输入 `wt -l1` 只追踪一层调用。
+
+> **提示：** 因为 `wt` 的输出结果很可能会有很多，所以最好先执行 `.logopen d:\windbg.txt` 来打开日志文件，追踪完成后再执行 `.logclose` 关闭日志文件，这样就可以直接查看日志文件中的追踪结果了。
+
+查看日志文件中的调用记录，很快就发现了让我头脑瞬间清醒的几个函数调用。一个是 `SearchPathW` 一个是 `RtlSetLastWin32Error`。
+
+![view-wt-createprocessinternalw](upload/attach/202204/873494\_WQCPRPEWBBP3BT3.jpg)
+
+一看到 `RtlSetLastWin32Error`，瞬间清醒了。`GetLastError` 取到的值一定是有人设置上去的，可以直接对这个函数设置条件断点，应该很快就能定位到关键调用栈。
+
+一看到 `SearchPathW`，立刻就联想到很可能是在通过 `PATH` 环境变量在找文件。后悔最开始的时候没用 `process monitor` 观察一下文件访问失败的记录。
+
+再次运行程序，使用 `process monitor` 观察一下文件访问情况。看到下图的访问记录（红色高亮的路径，居然带着双引号），我瞬间就明白了，一定是我设置的 `PATH` 环境变量出问题了，之前的猜想错了。
+
+![view-cvtres-in-process-monitor](upload/attach/202204/873494\_2RAWKVPUAF6BK87.jpg)
+
+## 修复
+
+既然是指定的路径出问题了（不能带双引号），修改脚本内容如下：
+
+```
+set path=%path%;C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\
+cvtres.exe /machine:x86 /nologo /out:"d:\test-rc-compile-error\test.tmp" /readonly 1.res 2.res 3.res 4.res 5.res
+```
+
+再次运行脚本，果然一切正常了。
+
+## 有趣的访问方式
+
+当我在 `process monitor` 中修改过滤条件后，我还看到了下图的访问记录：
+
+![interesting-file-access-pattern](upload/attach/202204/873494\_P7TUFESCYCREU9V.jpg)
+
+有没有发现什么规律？注意对照脚本代码看，每次访问失败后都会多取一部分再次进行尝试。
+
+```
+cvtres.exe /machine:x86 /nologo /out:"d:\test-rc-compile-error\test.tmp" /readonly 1.res 2.res 3.res 4.res 5.res
+```
+
+进一步调试确认后，上面提到的对 `SearchPathW` 的调用，并不是在对 `PATH` 环境变量中的每个路径做循环。而是在对脚本中的每个部分进行循环。`SearchPathW` 会在内部处理环境变量中的值。根据 <a href="elink@2c6K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8$3y4K6i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3k6h3&6Q4x3X3c8#2M7#2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3V1k6%4K9h3^5K6x3W2)9J5c8X3c8W2j5Y4g2Y4i4K6u0r3M7%4W2K6N6r3g2E0i4K6u0V1k6i4u0J5L8%4u0Q4x3X3c8U0L8$3c8W2M7#2)9J5k6q4)9J5k6o6m8Q4x3X3b7@1z5e0W2Q4x3X3b7.">MSDN <code>SearchPathW</code> 的文档</a>，这个函数的参数如下：
+
+```c++
+DWORD SearchPathW(
+[in, optional] LPCWSTR lpPath,
+[in] LPCWSTR lpFileName,
+[in, optional] LPCWSTR lpExtension,
+[in] DWORD nBufferLength,
+[out] LPWSTR lpBuffer,
+[out, optional] LPWSTR *lpFilePart
+);
+```
+
+其中，`PATH` 环境变量的值会传给 `lpPath` 参数。上面提到的有规律的调用是通过参数 `lpFileName` 传递的。为了自动观察相应的参数情况，我使用了如下条件断点。
+
+```
+~4 bp KERNELBASE!SearchPathW ".echo \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\* bang \*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*; du /cA0 poi(esp+4) LA0; du /cA0 poi(esp+8) LA0; kv2; gc;"
+```
+
+`~4` 表示只对 `4` 号线程设置断点，其它线程调用 `KERNELBASE!SearchPathW` 不会中断下来。
+
+`/cA0` 表示显示指定显示列宽为 `0xA0`，如果不指定，则按默认列宽进行显示。
+
+`LA0` 表示只显示前 `0xA0` 个字符。
+
+运行结果如下图：
+
+![auto-display-param-and-callstack](upload/attach/202204/873494\_5ZRV8YYQM5U8Z68.jpg)
+
+## 反思
+
+其实这个问题本来应该很快就能解决的。
+
+首先，在调试之前就应该使用 `process monitor` 查看文件访问事件。只不过当时脑子不清醒，只是用 `process monitor` 查看了进程创建事件，没有什么发现就开始调试了，太草率了。
+
+其次，当时陷入了思维误区 —— 想当然的认为带空格的路径一定要加上双引号。整个排查过程中都没有怀疑是多加了双引号导致的问题。反过头来看这个问题，觉得自己太傻了，查看 `PATH` 环境变量的时候，非常明显可以发现其它带空格的路径并没有使用双引号，但是我自己添加的路径却带了双引号。
+
+## 收获
+
+- 长记性了，设置 `PATH` 环境变量的时候，即使路径中包含空格也不能加双引号。
+- 再次熟悉了使用 `gflags` 设置 `Image File Execution Option` 的方法，这次是使用调试器调试另外一个调试器。
+- 熟悉了 `wt` 的用法。很早之前就知道 `wt` 的存在，一直没实际用过。当想查看一个函数都调用了哪些子函数时，非常方便。
+- 熟悉了为指定线程设置断点的方法。语法很简单，很容易记忆。在 `bp` 之前添加 `~tid`，即可为指定的线程设置断点。
+- 知道了突破默认输出列宽的方法 —— 通过 `/c` 指定显示列宽。
+- 熟悉了 `CreateProcess` 的部分逻辑，创建进程真的是个大工程。
+
+## 参考资料
