@@ -1,0 +1,395 @@
+
+# 日语天天背单词v1.5
+
+软件名称：日语天天背单词
+
+软件版本：V1.5B1326
+
+软件性质：共享软件
+
+软件语言：简体中文版
+
+操作系统：Win98/2000/NT/XP
+
+下载页面：http://www.china690.net/homerocker/softmore.asp
+
+运行软件试注册，有错误提示。
+
+`PEID`查为`ASPack`
+
+2.11c加的壳，用`AspackDie`脱之。
+
+`W32dasm`反汇编，能很容易找到错误提示内容。用`ICE`装入文件，填入注册信息：
+
+注册名：`YQMJCH`
+
+注册码：`25256363`
+
+然后按`Ctrl+D`呼出`ICE`，下万能断点`bpx`
+
+`hmemcpy`（当然脱壳反汇编后，也可在关键`call`处直接下断），按`F5`后点现在注册拦截后按几下`F12`，换为单步跟踪，很快能来到下面代码处：
+
+```
+* Possible StringData Ref from Code Obj
+->"\SOFTWARE\白领软件工作室\日语天天背单词\"
+ |
+:004FB643 BAA4B84F00
+ mov edx, 004FB8A4
+:004FB648 E84F90F0FF
+     call 0040469C
+:004FB64D 8D45F4
+           lea eax, dword ptr [ebp-0C]
+* Possible StringData Ref from Code Obj ->"V1.4"
+     |
+:004FB650 BAD8B84F00
+   mov edx, 004FB8D8
+:004FB655 E84290F0FF
+       call 0040469C
+:004FB65A 8D55EC
+             lea edx, dword ptr
+[ebp-14]
+:004FB65D 8B45FC
+   mov eax, dword ptr [ebp-04]
+:004FB660 8B8034030000
+       mov eax, dword ptr [eax+00000334]
+:004FB666
+E895D8F4FF              call
+00448F00（取输入的注册码）
+:004FB66B 8B45EC
+     mov eax, dword ptr [ebp-14]
+:004FB66E 50
+                 push
+eax
+:004FB66F 8D55E4
+ lea edx, dword ptr [ebp-1C]
+:004FB672 8B45FC
+           mov eax, dword ptr
+[ebp-04]
+:004FB675 8B802C030000            mov
+eax, dword ptr [eax+0000032C]
+:004FB67B E880D8F4FF
+       call 00448F00（取机器码）
+:004FB680 8B45E4
+             mov eax, dword ptr
+[ebp-1C]
+:004FB683 50
+     push eax
+:004FB684 8D55E0
+         lea edx, dword ptr [ebp-20]
+:004FB687
+8B45FC                  mov eax,
+dword ptr [ebp-04]
+:004FB68A 8B8030030000
+ mov eax, dword ptr [eax+00000330]
+:004FB690 E86BD8F4FF
+         call 00448F00（取注册名）
+:004FB695 8B45E0
+               mov eax, dword ptr
+[ebp-20]
+:004FB698 8D4DE8
+   lea ecx, dword ptr [ebp-18]
+:004FB69B 5A
+               pop edx
+:004FB69C
+E81F120000              call
+004FC8C0（算法call）
+:004FB6A1 8B55E8
+     mov edx, dword ptr [ebp-18]
+:004FB6A4 58
+                 pop
+eax
+:004FB6A5 E85693F0FF              call
+00404A00（比较注册码）
+:004FB6AA 0F8577010000
+ jne 004FB827（跳则over）
+:004FB6B0 B201
+         mov dl, 01
+:004FB6B2 A1D0F24600
+           mov eax, dword ptr
+[0046F2D0]
+:004FB6B7 E8143DF7FF
+ call 0046F3D0
+:004FB6BC 8945F0
+       mov dword ptr [ebp-10],
+eax
+…
+省略:
+…
+:004FB731 8D55D0
+       lea edx, dword ptr [ebp-30]
+:004FB734 8B45FC
+                 mov eax, dword ptr [ebp-04]
+:004FB737 8B8030030000            mov
+eax, dword ptr [eax+00000330]
+:004FB73D E8BED7F4FF
+       call 00448F00
+:004FB742 8B4DD0
+             mov ecx, dword ptr [ebp-30]
+```
+
+以下程序将注册信息写入注册表：
+
+```
+* Possible StringData Ref from Code Obj
+->"username"
+                 |
+:004FB745
+BAE8B84F00              mov edx,
+004FB8E8
+:004FB74A 8B45F0
+   mov eax, dword ptr [ebp-10]
+:004FB74D E8FA3FF7FF
+         call 0046F74C
+:004FB752 8D55CC
+               lea edx, dword ptr
+[ebp-34]
+:004FB755 8B45FC
+   mov eax, dword ptr [ebp-04]
+:004FB758 8B802C030000
+       mov eax, dword ptr [eax+0000032C]
+:004FB75E
+E89DD7F4FF              call
+00448F00
+:004FB763 8B4DCC
+   mov ecx, dword ptr [ebp-34]
+* Possible StringData Ref from Code Obj ->"regstr"
+     |
+:004FB766 BAFCB84F00
+   mov edx, 004FB8FC
+:004FB76B 8B45F0
+         mov eax, dword ptr [ebp-10]
+:004FB76E
+E8D93FF7FF              call
+0046F74C
+:004FB773 8D55C8
+   lea edx, dword ptr [ebp-38]
+:004FB776 8B45FC
+             mov eax, dword ptr
+[ebp-04]
+:004FB779 8B8034030000            mov
+eax, dword ptr [eax+00000334]
+:004FB77F E87CD7F4FF
+       call 00448F00
+:004FB784 8B4DC8
+             mov ecx, dword ptr
+[ebp-38]
+:004FB787 BA0CB94F00
+ mov edx, 004FB90C
+:004FB78C 8B45F0
+       mov eax, dword ptr [ebp-10]
+:004FB78F E8B83FF7FF
+             call
+0046F74C
+…
+省略
+…
+:004FB7BB 668B0D10B94F00
+ mov cx, word ptr [004FB910]
+:004FB7C2 B202
+           mov dl, 02
+* Possible StringData Ref from Code Obj ->"输入的注册码正确，已经成功注册软件!
+ 感谢您注?
+ ->"帷度沼锾焯毂车ゴ省?请重新启动您的软件！使注册"
+       ->"有效！"
+ |
+:004FB7C4 B81CB94F00
+ mov eax, 004FB91C
+:004FB7C9 E87668F4FF
+     call 00442044
+……
+省略
+……
+:004FB820 E827F4F5FF
+             call 0045AC4C
+:004FB825 EB15
+                   jmp
+004FB83C
+* Referenced by a (U)nconditional or (C)onditional Jump at
+Address:
+|:004FB6AA(C)
+|
+:004FB827 6A00
+           push 00000000
+:004FB829
+668B0D10B94F00          mov cx, word ptr
+[004FB910]
+:004FB830 B201
+     mov dl, 01
+* Possible StringData Ref from Code Obj ->"输入的注册码错误，请重新输入!"
+         |
+:004FB832 B894B94F00
+       mov eax, 004FB994
+:004FB837 E80868F4FF
+           call 00442044
+```
+
+跟进算法`call`:
+
+```
+* Referenced by a CALL at Address:
+|:004FB69C
+|
+:004FC8C0 55
+     push ebp
+:004FC8C1 8BEC
+           mov ebp, esp
+:004FC8C3 51
+                   push
+ecx
+:004FC8C4 B95B000000              mov
+ecx, 0000005B
+* Referenced by a (U)nconditional or (C)onditional Jump at
+Address:
+|:004FC8CE(C)
+|
+:004FC8C9 6A00
+           push 00000000
+:004FC8CB 6A00
+                 push
+00000000
+:004FC8CD 49
+     dec ecx
+:004FC8CE 75F9
+         jne 004FC8C9
+:004FC8D0 874DFC
+             xchg dword ptr [ebp-04],
+ecx
+:004FC8D3 53
+     push ebx
+:004FC8D4 56
+           push esi
+:004FC8D5 57
+                 push
+edi
+:004FC8D6 894DF4
+ mov dword ptr [ebp-0C], ecx
+:004FC8D9 8955F8
+           mov dword ptr [ebp-08],
+edx
+:004FC8DC 8945FC
+ mov dword ptr [ebp-04], eax
+:004FC8DF 8B45FC
+           mov eax, dword ptr
+[ebp-04]
+:004FC8E2 E8BD81F0FF
+ call 00404AA4
+:004FC8E7 8B45F8
+       mov eax, dword ptr [ebp-08]
+:004FC8EA E8B581F0FF
+             call 00404AA4
+:004FC8EF
+8D9D3CFDFFFF            lea ebx, dword ptr
+[ebp+FFFFFD3C]
+:004FC8F5 33C0
+       xor eax, eax
+:004FC8F7 55
+               push ebp
+:004FC8F8
+68CFDB4F00              push
+004FDBCF
+:004FC8FD 64FF30
+   push dword ptr fs:[eax]
+:004FC900 648920
+           mov dword ptr fs:[eax], esp
+```
+
+以下是一张大表：有600多大写字母，晕：
+
+```
+:004FC903 C60343
+       mov byte ptr [ebx], 43
+:004FC906 C6430148
+             mov [ebx+01], 48
+:004FC90A
+C6430255                mov [ebx+02],
+55
+……………
+中间省略了600多行
+……………
+:004FD9E2 C683A002000055
+     mov byte ptr [ebx+000002A0], 55
+:004FD9E9 C683A102000041
+         mov byte ptr [ebx+000002A1], 41
+:004FD9F0
+C683A20200004E          mov byte ptr [ebx+000002A2],
+4E
+:004FD9F7 C683A302000059          mov byte ptr
+[ebx+000002A3], 59
+:004FD9FE FF75FC
+     push [ebp-04]
+:004FDA01 FF75FC
+           push [ebp-04]
+:004FDA04 FF75FC
+                 push
+[ebp-04]
+:004FDA07 8D45E8
+   lea eax, dword ptr [ebp-18]
+:004FDA0A BA03000000
+         mov edx, 00000003
+:004FDA0F E8686FF0FF
+             call
+0040497C（将注册名复制三遍）
+:004FDA14 8D45E8
+     lea eax, dword ptr [ebp-18]
+:004FDA17 50
+                 push
+eax
+:004FDA18 B90F000000              mov
+ecx, 0000000F
+:004FDA1D BA01000000
+ mov edx, 00000001
+:004FDA22 8B45E8
+       mov eax, dword ptr [ebp-18]
+:004FDA25 E8EA70F0FF
+             call
+00404B14（保留前15位，注册名最好5位以上，否则可能有麻烦）
+:004FDA2A 8D45E4
+           lea eax, dword ptr
+[ebp-1C]
+:004FDA2D E8D26BF0FF
+ call 00404604
+:004FDA32 BE0F000000
+   mov esi, 0000000F
+* Referenced by a (U)nconditional or (C)onditional Jump at
+Address:
+|:004FDA78(C)
+|
+:004FDA37 8D8534FDFFFF            lea eax,
+dword ptr [ebp+FFFFFD34]
+:004FDA3D 50
+           push eax
+:004FDA3E B901000000
+           mov ecx, 00000001
+:004FDA43 8BD6
+                   mov edx,
+esi
+:004FDA45 8B45E8
+ mov eax, dword ptr [ebp-18]
+:004FDA48 E8C770F0FF
+       call 00404B14
+:004FDA4D 8B8534FDFFFF
+       mov eax, dword ptr [ebp+FFFFFD34]
+:004FDA53 8A00
+                   mov al,
+byte ptr [eax]
+:004FDA55 E82250F0FF
+ call 00402A7C
+:004FDA5A 8BD0
+       mov edx, eax
+:004FDA5C 8D8538FDFFFF
+       lea eax, dword ptr [ebp+FFFFFD38]
+:004FDA62
+E87D6DF0FF              call
+004047E4
+:004FDA67 8B9538FDFFFF            mov
+edx, dword ptr [ebp+FFFFFD38]
+:004FDA6D 8D45E4
+         lea eax, dword ptr [ebp-1C]
+:004FDA70
+E84F6EF0FF              call
+004048C4
+:004FDA75 4E
+     dec esi
+:004FDA76 85F6
+         test esi, esi
+```
