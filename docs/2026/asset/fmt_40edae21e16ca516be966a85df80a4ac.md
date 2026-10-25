@@ -1,0 +1,165 @@
+
+# [翻译]现代化地编写LLVM Pass -- part I
+# Writing LLVM Pass in 2018-part I
+
+**(现代化地编写LLVM Pass)**
+
+原文<a href="elink@88aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0k6h3c8A6N6h3#2Q4x3X3g2U0L8$3#2Q4x3V1k6Q4y4o6m8E0M7$3S2G2j5$3E0%4j5i4k6W2i4K6u0r3N6%4u0A6N6r3W2F1k6#2)9J5k6r3I4D9N6X3#2Q4x3X3c8H3j5i4y4K6i4K6u0V1K9h3&6Q4x3X3b7J5x3o6p5^5i4K6u0V1M7r3q4J5N6q4)9J5k6r3W2Q4x3X3b7#2x3K6q4U0y4K6l9H3k6e0R3#2k6h3t1`."><mark class="encrypted">22eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0k6h3c8A6N6h3#2Q4x3X3g2U0L8$3#2Q4x3V1k6Q4y4o6m8E0M7$3S2G2j5$3E0%4j5i4k6W2i4K6u0r3N6%4u0A6N6r3W2F1k6#2)9J5k6r3I4D9N6X3#2Q4x3X3c8H3j5i4y4K6i4K6u0V1K9h3&6Q4x3X3b7J5x3o6p5^5i4K6u0V1M7r3q4J5N6q4)9J5k6r3W2Q4x3X3b7#2x3K6q4U0y4K6l9H3k6e0R3#2k6h3t1`.</mark></a>
+
+### 译者注:
+
+最近在写pass的东西，找了很多文章来看，本来也没注意到新版的PassManager，看到了mudium上的一篇文章，发现和现有的pass编写变化还是蛮大的，鉴于适配新版本llvm不太方便(api变化蛮大)，故翻译此文以作记录。之后会把剩下的几篇翻译下。
+
+LLVM文档中有详细的关于编写PASS的教程，不过那是基于老版本的PassManager的，具体可参见[官方教程]。建议按照教程了解写一个简单pass后阅读。(<mark class="encrypted">264K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3I4D9N6X3#2Q4x3X3g2G2M7X3N6Q4x3V1k6V1L8$3y4K6i4K6u0r3g2%4u0A6N6r3W2F1k6@1q4F1e0p5I4h3e0g2m8S2M7%4y4Q4x3X3g2Z5N6r3#2D9i4K6t1&6</mark>
+
+- 新版本的PassManager还没有纳入llvm9,但从dev list看，很可能融入三月发布的llvm10。
+- 新版本的PassManager一定层面上简化了pass的注册机制，对未来高版本llvm作适配，适配new PM必不可缺。目前，除了看PM源码，很少有针对new PM作阐述的文章，官网对此还处于更新阶段。
+
+本文有四个系列，即四篇文章。在第一篇里面，我会把序章一并融入其中介绍翻译。
+
+- 注:文中翻译的时候会使用一些缩写，必要的地方会保留英文原文。例如`PM`是`Pass Manager`的缩写
+
+## 序章
+
+遵循官方教程，你已经写过一个HelloWorld Pass……
+
+现在你希望学习更多、看得更多……
+
+因此你深入神奇的LLVM源代码，为了理解如何用pass实现那些著名而强大的优化……
+
+但奇怪的pass构造语法让人困惑，它和你刚学的教程一点都不像，也没有记录在官方网站的任何地方——这正是我几年前遇到的，当时我仍然是一个LLVM新手，我之前仅仅听说过LLVM pass。
+
+作为LLVM里最重要的核心组件之一，Pass与PassManager系统的改进始于2014，起因于许多优化机会缺失的情形以及编译速度退化。旧的pass实现与新的pass实现并存，整个代码也开始反映这些改变。通过提供特殊的命令行选项，使用者转向新的pass manager，同时旧的pass manager仍然是默认使用的。
+
+不过，正如前言部分指出的，目前没有官方文档谈及这个革新。虽然新的PM以及其文档越来越接近它们的发布日期，我仍然希望为那些热切想知道代码树里现在发生了什么的热心者写一篇简单的教程。我将这个系列分为四部分：
+
+- <a href="elink@bd8K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0k6h3c8A6N6h3#2Q4x3X3g2U0L8$3#2Q4x3V1k6Q4y4o6m8E0M7$3S2G2j5$3E0%4j5i4k6W2i4K6u0r3N6%4u0A6N6r3W2F1k6#2)9J5k6r3I4D9N6X3#2Q4x3X3c8H3j5i4y4K6i4K6u0V1K9h3&6Q4x3X3b7J5x3o6p5^5i4K6u0V1M7r3q4J5N6q4)9J5k6r3W2Q4x3X3b7#2x3K6q4U0y4K6l9H3k6e0R3#2k6h3u0Q4x3@1k6K6L8%4g2J5j5$3g2Q4x3@1c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3b7I4x3W2)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6l9`.`.">part I</a>：用新的PM风格编写HelloWorld Pass。
+- <a href="elink@848K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0k6h3c8A6N6h3#2Q4x3X3g2U0L8$3#2Q4x3V1k6Q4y4o6m8E0M7$3S2G2j5$3E0%4j5i4k6W2i4K6u0r3N6%4u0A6N6r3W2F1k6#2)9J5k6r3I4D9N6X3#2Q4x3X3c8H3j5i4y4K6i4K6u0V1K9h3&6Q4x3X3b7J5x3o6p5^5i4K6u0V1M7r3q4J5N6q4)9J5k6r3W2A6i4K6u0V1y4U0b7H3k6U0j5^5x3o6V1%4z5r3g2U0i4K6y4r3M7$3!0#2M7X3y4W2i4K6y4p5i4K6y4p5i4K6u0V1i4K6u0V1i4K6u0V1i4K6u0V1i4K6u0V1i4K6u0V1i4K6u0V1i4K6u0V1i4K6u0V1x3e0m8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3c8Q4x3X3b7`.">part II</a>：如何使用新的AnalysisManager来替换旧的`getAnalysis<…>()`语法。
+- <a href="elink@c3dK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0k6h3c8A6N6h3#2Q4x3X3g2U0L8$3#2Q4x3V1k6Q4y4o6m8E0M7$3S2G2j5$3E0%4j5i4k6W2i4K6u0r3N6%4u0A6N6r3W2F1k6#2)9J5k6r3I4D9N6X3#2Q4x3X3c8H3j5i4y4K6i4K6u0V1K9h3&6Q4x3X3b7J5x3o6p5^5i4K6u0V1M7r3q4J5N6q4)9J5k6r3W2A6K9g2)9J5k6r3b7@1y4r3y4V1x3r3x3J5j5K6x3#2y4l9`.`.">part III</a>：pass如何整合进LLVM源代码树。剧透：LLVM源代码树里的（旧的）pass要求一些额外的语法，这将告诉你如何做。我知道在一篇文章里谈论旧的PM有点奇怪。但考虑到LLVM项目巨大的体量以及在业界广泛的应用，迁移绝对是需要时间的。因此只需把这部分视作对那些对源代码树的演进（in-tree development）感兴趣的人迟来的教程（事实上接近10年）。
+- <a href="elink@62dK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0k6h3c8A6N6h3#2Q4x3X3g2U0L8$3#2Q4x3V1k6Q4y4o6m8E0M7$3S2G2j5$3E0%4j5i4k6W2i4K6u0r3N6%4u0A6N6r3W2F1k6#2)9J5k6r3I4D9N6X3#2Q4x3X3c8H3j5i4y4K6i4K6u0V1K9h3&6Q4x3X3b7J5x3o6p5^5i4K6u0V1M7r3q4J5N6q4)9J5k6r3W2$3i4K6u0V1k6o6j5&6k6r3q4U0y4e0M7I4y4K6q4V1i4K6y4r3M7$3!0#2M7X3y4W2i4K6y4p5i4K6u0V1i4K6u0V1i4K6u0V1i4K6u0V1i4K6u0V1i4K6u0V1i4K6u0V1i4K6u0V1i4K6u0V1z5q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6q4)9J5k6l9`.`.">part IV</a>：如何添加一个clang选项来使用我构建在LLVM里酷酷的特性？这部分将告诉你如何做。尽管这看起来与前面关于新PM无关（be orthogonal to），它总是我的“应该被官方归档的教程/提示”之一。就是这样。
+
+我将不会讨论设计细节。我将从一个PM使用者的角度来写这篇文章，关注在中端（middle-end）的优化以及分析开发。因此，不会涉及后端。
+
+## 用新的PM风格编写HelloWorld Pass
+
+通过一个简单的`HelloNewPass`的示例，本文将对新版 `PassManager` 系统进行概述。
+
+大多有关写一个传统LLVM Pass的教程都会告诉你从写一个继承`llvm::Pass`类开始，比如 `llvm:FunctionPass` .然后实现一些必要的函数，比如 `bool FunctionPass::runOnFunction(Function &F)` 
+现在你要做的第一步也类似:
+
+```c
+struct HelloNewPMPass : public PassInfoMixin<HelloNewPMPass> {
+PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM) {
+return PreservedAnalyses::all();
+}
+};
+```
+
+我们同样需要继承父类，但是这次，`PassInfoMixin`没有包含任何我们需要覆写的虚函数。他出现在这里的唯一原因就是提供一个默认的 `HelloNewPMPass::name()` 的实现。我们只使用 `run` 方法的参数(即 `Function` 和 `FunctionAnalysisManager` )来表示我们具体要实现的IR单元。
+
+`run` 方法，正如其名字的意思，和`FunctionPass::runOnFunction`, `ModulePass::runOnModule`等过去的一些方法相同。但它不在是一个虚函数，所以这里不需要 `override` 关键字。而且，返回值的类型也不同，多了一个 `FunctionAnalysisManager` 的函数参数。两者都和分析框架有关。前者被用于分析数据合法性，后者用于接收分析的结果，和以往pass中的 `getAnalysis<…>()` 类似。我们将把分析的内容留到partII。
+因为我们现在不打算修改IR，我们仅返回 `PreservedAnalyses::all()` 来告诉框架，运行这个pass吼，所有的分析结果是一致的。
+接着我们添加一些缺少的片段来丰富`run`方法。
+
+```c
+#include "llvm/IR/PassManager.h"
+#include "llvm/Support/raw_ostream.h"
+using namespace llvm;
+namespace {
+struct HelloNewPMPass : public PassInfoMixin<HelloNewPMPass> {
+PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM) {
+if(F.hasName())
+errs() << "Hello " << F.getName() << "\n";
+return PreservedAnalyses::all();
+}
+};
+} // end anonymous namespace
+```
+
+这就是构建一个新遍时我们所需要做的！然后我们只需注册它。下面是注册代码
+
+```c
+extern "C" ::llvm::PassPluginLibraryInfo LLVM_ATTRIBUTE_WEAK
+llvmGetPassPluginInfo() {
+return {
+LLVM_PLUGIN_API_VERSION, "HelloNewPMPass", "v0.1",
+[](PassBuilder &PB) {...}
+};
+}
+```
+
+和传统pass注册不同的是，我们不需要使用 `RegisterPass<…>` 实例或是别的Pass registry静态函数。我们仅仅从函数中返回了pass的入口点，也就是这里的 `llvmGetPassPluginInfo` 。return后的大括号内将会构建一个`llvm::PassPluginInfo` 对象，包含一些pass的信息（HelloNewPMPass是pass的名字，v0.1是pass的版本）。最后一个地方，lambda函数中的PassBuilder用于构建PassManager pipeline。我们打算用它将我们的pass插入到pipeline中合适的位置。
+
+让我们先看下如何用opt工具运行我们基于新版PassManager的pass。新版的PassManager使用字符串来描述我们需要使用的Pass的pipeline，而不需要命令行选项来描述pass
+
+```c
+opt -passes="sroa,instcombine" foo.ll
+```
+
+它会首先运行SROA,然后运行instruction combiner. 当然，还有很多复杂的语法，但我们只需要知道可以从这种文本描述构造Pass的pipeline。
+
+如果我们可以拦截上述的parsing过程，就可以在某个特定的Pass名字出现的地方插入我们的Pass（即可以在命令行解析的时候自定义我们的pass加载）。看下面的代码:
+
+```c
+extern "C" ::llvm::PassPluginLibraryInfo LLVM_ATTRIBUTE_WEAK
+llvmGetPassPluginInfo() {
+return {
+LLVM_PLUGIN_API_VERSION, "HelloNewPMPass", "v0.1",
+[](PassBuilder &PB) {
+PB.registerPipelineParsingCallback(
+[](StringRef PassName, FunctionPassManager &FPM, ...) {
+if(PassName == "hello-new-pm-pass"){
+FPM.addPass(HelloNewPMPass());
+return true;
+}
+return false;
+}
+);
+}
+};
+}
+```
+
+即 `registerPipelineParsingCallback` .你可以注册一个回调函数，当一个pass的名字被文本解析的时候，将会执行这个回调函数。在这里，当我们遇到pipeline中的 `hello-new-pm-pass` 字符串的时候，将会添加我们的HelloNewPMPass。于是，我们用opt来运行我们的pass:
+
+```c
+opt -passes="hello-new-pm-pass"
+```
+
+最后，附上完整的代码
+
+```c
+#include "llvm/IR/PassManager.h"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/PassPlugin.h"
+#include "llvm/Support/raw_ostream.h"
+using namespace llvm;
+namespace {
+struct HelloNewPMPass : public PassInfoMixin<HelloNewPMPass> {
+PreservedAnalyses run(Function &F,
+FunctionAnalysisManager &FAM) {
+if(F.hasName())
+errs() << "Hello " << F.getName() << "\n";
+return PreservedAnalyses::all();
+}
+};
+} // end anonymous namespace
+extern "C" ::llvm::PassPluginLibraryInfo LLVM_ATTRIBUTE_WEAK
+llvmGetPassPluginInfo() {
+return {
+LLVM_PLUGIN_API_VERSION, "HelloNewPMPass", "v0.1",
+[](PassBuilder &PB) {
+PB.registerPipelineParsingCallback(
+[](StringRef Name, FunctionPassManager &FPM,
+ArrayRef<PassBuilder::PipelineElement>) {
+if(Name == "hello-new-pm-pass"){
+FPM.addPass(HelloNewPMPass());
+return true;
+}
+return false;
+}
+);
+}
+};
+}
+```
