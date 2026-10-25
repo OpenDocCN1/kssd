@@ -1,0 +1,138 @@
+
+```
+016F:0041395B 6800894400      PUSH    DWORD 00448900
+016F:00413960 F3A4            REP MOVSB
+016F:00413962 C705345647000100+MOV      DWORD [00475634],01
+016F:0041396C FF1510C24300    CALL    KERNEL32!WritePrivateProfileStringA……写注册表
+016F:00413972 68EC894400      PUSH    DWORD 004489EC
+016F:00413977 6840FA4400      PUSH    DWORD 0044FA40
+016F:0041397C 68240E4500      PUSH    DWORD 00450E24
+016F:00413981 6810324700      PUSH    DWORD 00473210……此处为注册码。
+016F:00413986 E8C7C50000      CALL    0041FF52
+016F:0041398B 83C410          ADD ESP,BYTE +10
+016F:0041398E B9A8314700      MOV      ECX,004731A8
+016F:00413993 6A40            PUSH BYTE +40
+016F:00413995 68EC894400      PUSH    DWORD 004489EC
+016F:0041399A 6810324700      PUSH    DWORD 00473210
+016F:0041399F E838EA0100      CALL    004323DC
+016F:004139A4 B9A8314700      MOV      ECX,004731A8
+016F:004139A9 891DD8554700    MOV      [004755D8],EBX
+016F:004139AF E83BCE0100      CALL    004307EF
+016F:004139B4 E9ED010000      JMP      00413BA6
+016F:004139B9 6A0A            PUSH BYTE +0A
+016F:004139BB 6808524700      PUSH    DWORD 00475208
+016F:004139C0 6828040000      PUSH    DWORD 0428
+016F:004139C5 B9A8314700      MOV      ECX,004731A8
+016F:004139CA E858FB0100      CALL    00433527
+016F:004139CF 6808524700      PUSH    DWORD 00475208
+016F:004139D4 E827F6FFFF      CALL    00413000
+016F:004139D9 83C404          ADD ESP,BYTE +04
+016F:004139DC 3BC3            CMP EAX,EBX
+016F:004139DE A3882C4700      MOV      [00472C88],EAX
+016F:004139E3 0F8EA9010000    JNG      NEAR 00413B92
+016F:004139E9 68F0884400      PUSH    DWORD 004488F0
+016F:004139EE 6800080000      PUSH    DWORD 0800
+016F:004139F3 6810324700      PUSH    DWORD 00473210
+016F:004139F8 B900020000      MOV      ECX,0200
+016F:004139FD 33C0            XOR EAX,EAX
+016F:004139FF BF10324700      MOV      EDI,00473210
+016F:00413A04 68C0484500      PUSH    DWORD 004548C0
+016F:00413A09 6804FA4400      PUSH    DWORD 0044FA04
+016F:00413A0E F3AB            REP STOSD
+016F:00413A10 6800894400      PUSH    DWORD 00448900
+016F:00413A15 FF1514C24300    CALL    KERNEL32!GetPrivateProfileStringA
+016F:00413A1B 6810324700      PUSH    DWORD 00473210
+016F:00413A20 E8DBF5FFFF      CALL    00413000
+016F:00413A25 83C404          ADD ESP,BYTE +04
+016F:00413A28 85C0            TEST EAX,EAX
+016F:00413A2A 0F85A7000000    JNZ      NEAR 00413AD7
+016F:00413A30 BF08524700      MOV      EDI,00475208
+016F:00413A35 83C9FF          OR ECX,BYTE -01
+016F:00413A38 F2AE            REPNE SCASB
+```
+
+我已经破了这个公司的四个软件了。都还比较容易。是新手练习的好东西。
+
+这次的结果：
+
+NAME:eryl
+
+email:eryl@263.net
+
+reg code: 303439363D35
+
+另附上另外三个结果：
+
+软件：32bit Email Broadcaster v.e9.28.17 VE2.29.01
+
+name: eryl
+
+email: eryl@263.net
+
+reg code: 30353A393938
+
+软件类别：邮件处理 运行平台：Windows95/98/Me/NT/2 　
+
+授权形式：共享软件
+
+版本：e9.29.01 汉化作者：星风雪 上传日期：2001-5-8
+
+软件评级：
+
+    一个简单易用而又强有力的电子邮件群发程序.它既可以用于商业应用也可以用于个人应用.对于那些需要发送新闻,通知,广告的人来说十分有用.您可以使用它轻松的将您的讯息发送给给地址列表中的每一个人,可以是一个人乃至成千上万个收件人.当您批量发送邮件时,不会加上额外的CC头信息和广告头信息.它也可以发送HTML格式的信件.在9.29.01版本中加入了自动插入合并域的重要新特性.
+
+软件：Multi Clipboard m9.37.01
+
+Multi ClipBoard m9.37.1
+
+软件简介：Multi ClipBoard 是一个很不错的剪贴簿工具，它可以存 33 个文件或者计划，还可自行编辑按钮字串，并支持多种数据库，这样你就可以将不同的数据，放到你的计划书里。未注册的，会限功能。
+
+操作系统：Windows 95/98/NT/2000 软件大小：253KB 软件分类：剪贴工具
+
+name:eryl
+
+email:eryl@263.net
+
+reg code: 303438373935
+
+32BIT FTP p9.36.18
+
+name:luomin
+
+email: eryl@263.net
+
+reg code:303337393B36
+
+再附上几个软件的破解：
+
+PAC MANIA 3D V1。8
+
+NAME：ERYL
+
+REG CODE：15863271488901372069
+
+软件类别：娱乐游戏
+
+运行平台：Win9x&Me&NT&2000 　
+
+授权形式：共享软件
+
+上传日期：2001-5-2
+
+软件评
+
+    PacMania 3D是适用于Windows操作系统的类似于大型游艺机上的Pac-Man的游戏.与以往同类游戏的最大不同在于PacMania 3D是全三维的游戏.不仅场景是巨大的三维图形,而且您自己本身也需要以三维方式进行游戏.更为吸引人的是,以往的Pac-Man类游戏都只能在一个迷宫中移动,PacMania 3D却可以让您在游戏进行过程中在多个迷宫之间穿行,从而获得不同凡响的游戏乐趣.当然这在增加了刺激性的同时,也需要您更为高超的控制技术.PacMania 3D在让您重温儿时时光的同时,为您带来了崭新的视觉体验.
+
+WINXFILES V5。1
+
+NAME：ERICLUOM
+
+REG CODE：ZNEGKQTTXYWQQYC，OR PVUPUSXUSQTMYLZ
+
+这个软件其实也很有意思的。
+
+他的注册名要大于5，这册号为十五位。
+
+如果不满足条件，确认后就清除输入的内容。但当你输入的注册名小于7位时，你破解得来的是假的注册码。
+
+年后开始学VB，希望很快能做个像样的KEYGEN.
