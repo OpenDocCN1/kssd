@@ -1,0 +1,88 @@
+
+# [原创]关于反编译原理系列文章的说明
+
+## 反编译原理
+
+要想实现反编译器，需要熟悉反编译原理，可以认为反编译器是虚拟机JIT编译器的超集，则反编译原理可以看成是编译原理的超集，因此还需要熟悉编译原理。推荐以下相关编译原理的三本经典书籍:
+
+1、龙书
+
+英文名：Compilers: Principles,Techniques,and Tools
+
+作者：Alfred V.Aho,Ravi Sethi,Jeffrey D.Ullman
+
+2、鲸书
+
+英文名：Advanced Compiler Design and Implementation
+
+作者：Steven S.Muchnick
+
+3、虎书
+
+英文名：Modern Compiler Implementation in C
+
+作者：Andrew W.Appel,Jens Palsberg
+
+## 目录
+
+### 反编译原理(01)-高级编译器设计原理
+
+空
+
+### 反编译原理(02)-中间表示
+
+已完成。详见[中间表示](https://bbs.pediy.com/thread-247121.htm)
+
+### 反编译原理(03)-运行时支持
+
+### 反编译原理(04)-代码生成
+
+### 反编译原理(05)-控制流分析
+
+已完成。详见[控制流分析](https://bbs.pediy.com/thread-247201.htm)
+
+### 反编译原理(06)-数据流分析
+
+### 反编译原理(07)-中端优化
+
+### 反编译原理(08)-寄存器分配
+
+### 反编译原理(09)-后端优化
+
+### 反编译原理(10)-C/C++/Objective-C反编译器实现
+
+### 反编译原理(11)-Java反编译器实现
+
+### 反编译原理(12)-反混淆
+
+已完成。详见[反混淆](https://bbs.pediy.com/thread-250625.htm)
+
+### 反编译原理(13)-VMP还原
+
+### 反编译原理(14)-Hex-Rays反编译器不完全分析
+
+### 反编译原理(15)-Ghidra反编译器不完全分析
+
+### 反编译原理(16)-DFS
+
+### 反编译原理(17)-Dominator Tree
+
+### 反编译原理(18)-SPQR Tree
+
+### 反编译原理(19)-RPST Tree
+
+### 反编译原理(20)-SSA
+
+### 反编译原理(21)-Structural Analysis
+
+### 反编译原理(22)-Condition Combine
+
+已完成。详见[条件合并](https://bbs.pediy.com/thread-248211.htm)
+
+### 反编译原理(23)-Loop Refinement
+
+### 反编译原理(24)-Clang/LLVM and GCC
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+最后于 2019-4-10 04:23 被vasthao编辑，原因：
