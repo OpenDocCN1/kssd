@@ -1,0 +1,51 @@
+
+# [讨论]标准编译器什么情况下会使用`ebp`传递参数？
+
+最近分析一个程序，是`msvc`的，基于`mfc`的程序，分析一个成员函数时发现使用了`ebp`传递参数。
+
+```
+00542460   .  64:A1 0000000>	mov     eax, dword ptr fs:[0]
+00542466   .  6A FF		push    -0x1
+00542468   .  68 84E89800	push    0098E884
+0054246D   .  50		push    eax
+0054246E   .  64:8925 00000>	mov     dword ptr fs:[0], esp
+00542475   .  81EC B0000000	sub     esp, 0xB0
+0054247B   .  56		push    esi
+0054247C   .  8BF1		mov     esi, ecx
+0054247E   .  E8 EDF6EBFF	call    00401B70
+00542483   .  8B40 20		mov     eax, dword ptr ds:[eax+0x20]
+00542486   .  85C0		test    eax, eax
+00542488   .  74 1F		je      short 005424A9
+0054248A   .  8B48 20		mov     ecx, dword ptr ds:[eax+0x20]
+0054248D   .  85C9		test    ecx, ecx
+0054248F   .  74 18		je      short 005424A9
+00542491   .  E8 DAF6EBFF	call    00401B70
+00542496   .  8B40 20		mov     eax, dword ptr ds:[eax+0x20]
+00542499   .  6A 00		push    0x0
+0054249B   .  6A 0E		push    0xE
+0054249D   .  68 32040000	push    0x432
+005424A2   .  8BC8		mov     ecx, eax
+005424A4   .  E8 B7BDF6FF	call    004AE260
+005424A9   >  8B8424 C40000>	mov     eax, dword ptr ss:[esp+0xC4]
+005424B0   .  8B4E 4C		mov     ecx, dword ptr ds:[esi+0x4C]
+005424B3   .  C1E0 04		shl     eax, 0x4
+005424B6   .  8B35 F028A000	mov     esi, dword ptr ds:[<&MSVCP60.`st>;  msvcp60.`std::basic_string<char,std::char_traits<char>,std::allocator<char> >::_Nullstr'::`2'::_C
+005424BC   .  03C1		add     eax, ecx
+005424BE   .  8B40 04		mov     eax, dword ptr ds:[eax+0x4]
+005424C1   .  85C0		test    eax, eax
+005424C3   .  74 02		je      short 005424C7
+005424C5   .  8BF0		mov     esi, eax
+005424C7   >  8A4424 07		mov     al, byte ptr ss:[esp+0x7]
+[COLOR="Red"]005424CB   .  55		push    ebp[/COLOR]
+005424CC   .  57		push    edi
+005424CD   .  6A 00		push    0x0
+005424CF   .  8D4C24 14		lea     ecx, dword ptr ss:[esp+0x14]
+005424D3   .  884424 14		mov     byte ptr ss:[esp+0x14], al
+005424D7   .  FF15 2429A000	call    dword ptr ds:[<&MSVCP60.std::bas>;  msvcp60.std::basic_string<char,std::char_traits<char>,std::allocator<char> >::_Tidy
+```
+
+很好奇`vc`的编译器会使用`ebp`传递参数？就算`fastcall`，好像也只是`ecx`、`edx`吧？
+
+另外动态调试也验证了的确使用了`ebp`传递参数。
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
