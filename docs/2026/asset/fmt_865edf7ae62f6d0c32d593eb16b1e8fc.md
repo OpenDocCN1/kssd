@@ -1,0 +1,626 @@
+
+# 全面分析 卸载精灵v1.20 注册算法，仅此祝大家新年快乐！ (23千字)
+
+## 全面分析 卸载精灵v1.20 注册算法
+
+**软件名称：** 卸载精灵v1.20
+
+**软件简介：** 已经厌倦了WINDOWS控制面板那个功能很弱的“添加/删除程序”了吗？你是否发现你的电脑里面有些软件无法卸载？卸载精灵的智能卸载功能可以干净彻底地卸载软件，包括那些无法正常卸载的程序它都可以帮您卸载。
+
+**未注册版限制：** 软件只能被使用10次，即只能用该软件卸载10个程序。
+
+**下载地址：** `http://cn.geocities.com/legendsoftcn/clean120.zip`
+
+**破解工具：** `TRW2000 1.22汉化版`、`W32DASM 8.93汉化版`、`PE iDentifier 0.7 Beta 汉化版`、`Hiew6.76`。
+
+**破解人：** 飞鹰[BCG]
+
+**E-mail：** `flithawk@263.net`
+
+**网址：** `http://flithawk.longcity.net`
+
+## 破解步骤：
+
+### 一、暴破软件：（破除软件只能使用10次的限制）
+
+首先，用 `W32DASM` 编译软件，查找注册码错误信息“软件试用期已到”，找到后，向上分析就可以知道软件是如何限制使用次数的。分析过程如下：
+
+```
+* Possible StringData Ref from Data Obj ->"SOFTWARE\Legendsoft\SysCleaner"
+
+            |
+
+:00402FA2 68D0F04200
+
+          push 0042F0D0
+
+:00402FA7 8D4C2434
+
+              lea ecx, dword ptr [esp+34]
+
+:00402FAB C784248402000000000000  mov dword ptr [esp+00000284], 00000000
+
+:00402FB6 89442418
+
+mov dword ptr [esp+18], eax
+
+:00402FBA 89442430
+
+        mov dword ptr [esp+30], eax
+
+:00402FBE E8E88D0100
+
+            call 0041BDAB
+
+:00402FC3 8B542430
+
+              mov edx, dword ptr [esp+30]
+
+:00402FC7 8D4C2424                lea
+
+ecx, dword ptr [esp+24]
+
+:00402FCB 51
+
+          push ecx
+
+:00402FCC 683F000F00
+
+          push 000F003F
+
+:00402FD1 6A00
+
+                push 00000000
+
+:00402FD3
+
+52
+
+push edx
+
+:00402FD4 6802000080
+
+push 80000002
+
+:00402FD9 FFD5
+
+      call ebp
+
+:00402FDB 8D44242C
+
+        lea eax, dword ptr [esp+2C]
+
+:00402FDF 8D4C2434
+
+              lea ecx, dword ptr [esp+34]
+
+:00402FE3 50
+
+  push eax
+
+:00402FE4 8B442428
+
+    mov eax, dword ptr [esp+28]
+
+:00402FE8 8D542418
+
+            lea edx, dword ptr [esp+18]
+
+:00402FEC
+
+51
+
+push ecx
+
+:00402FED 52
+
+      push edx
+
+:00402FEE 6A00
+
+          push 00000000
+
+* Possible StringData
+
+Ref from Data Obj ->"UseCount"
+
+                      |
+
+:00402FF0 68F0F04200              push
+
+0042F0F0
+
+:00402FF5 50
+
+      push eax
+
+==>上面的大概过程是：查找并打开注册表的相关的键值
+
+* Reference
+
+To: ADVAPI32.RegQueryValueExA, Ord:017Bh
+
+==>RegQueryValueExA 的意思是：与注册表中的键值相比较
+
+            |
+
+:00402FF6 FF1504504200
+
+          Call dword ptr [00425004]
+
+:00402FFC 837C24340A
+
+            cmp dword ptr [esp+34], 0000000A
+
+==>比较软件是否已经使用了10次
+
+:00403001 7632
+
+        jbe 00403035
+
+==>如果大于10，不跳转就OVER了；小于10，跳转则可继续使用
+
+:00403003 6A10
+
+  push 00000010
+
+* Possible StringData Ref from Data Obj ->"卸载精灵"
+
+            |
+
+:00403005 689CF24200
+
+          push 0042F29C
+
+* Possible StringData
+
+Ref from Data Obj ->"软件试用期已到，如果要继续使用请注册，软件注册"
+
+        ->"方法请查看帮助信息"
+
+|
+
+==>软件的出错信息，就是我们查找到的地方
+
+:0040300A 6858F24200
+
+      push 0042F258
+
+:0040300F 8BCE
+
+            mov ecx, esi
+
+:00403011 E875700100
+
+            call 0041A08B
+
+:00403016 8B4C2424
+
+              mov ecx, dword ptr [esp+24]
+
+:0040301A 51
+
+  push ecx
+
+* Reference To: ADVAPI32.RegCloseKey, Ord:015Bh
+
+          |
+
+:0040301B FF1500504200
+
+        Call dword ptr [00425000]
+
+:00403021 C7842480020000FFFFFFFF
+
+mov dword ptr [esp+00000280], FFFFFFFF
+
+:0040302C 8D4C2430
+
+          lea ecx, dword ptr [esp+30]
+
+:00403030
+
+E9A2040000              jmp 004034D7
+```
+
+所以，最终的修改方法有两种：
+
+1、将 `00402FFC` 处的 `837C24340A` 改为：`837C2434FF`，即把只能10次，改为可以使用255次。
+
+2、将 `00403001` 处的 `7632` 改为：`9090`，即让软件没有使用次数限制。
+
+或者，你可以把注册表中 `HKEY_LOCAL_MACHINE\Software\Legendsoft` 下的 `SysCleaner` 项删除，就又可以使用10次了，不过这样做没有多少意思。
+
+### 二、追注册码：（分析出该软件真正的注册码）
+
+```
+:00403BE1 8D6E5C
+
+lea ebp, dword ptr [esi+5C]
+
+:00403BE4 8D442410
+
+        lea eax, dword ptr [esp+10]
+
+:00403BE8 50
+
+                    push eax
+
+:00403BE9 8BCD
+
+  mov ecx, ebp
+
+:00403BEB C644242C01
+
+    mov [esp+2C], 01
+
+:00403BF0 E8DD580100
+
+      call 004194D2
+
+:00403BF5 8D4C2414
+
+          lea ecx, dword ptr [esp+14]
+
+:00403BF9
+
+8DBE98000000            lea edi, dword ptr [esi+00000098]
+
+:00403BFF 51
+
+    push ecx
+
+:00403C00 8BCF
+
+        mov ecx, edi
+
+:00403C02 E8CB580100
+
+          call 004194D2
+
+:00403C07 8B542414
+
+              mov edx, dword ptr [esp+14]
+
+:00403C0B 6874134300              push 00431374
+
+:00403C10 52
+
+    push edx
+
+:00403C11 E89B830000
+
+    call 0040BFB1
+
+:00403C16 83C408
+
+        add esp, 00000008
+
+:00403C19 85C0
+
+                test eax, eax
+
+==>判断你输入注册名是否为空
+
+:00403C1B 0F8458010000            je 00403D79
+
+==>输入的注册名为空，将跳转，出现错误信息
+
+:00403C21 8B442410
+
+        mov eax, dword ptr [esp+10]
+
+:00403C25 6874134300
+
+            push 00431374
+
+:00403C2A 50
+
+                    push eax
+
+:00403C2B E881830000              call
+
+0040BFB1
+
+:00403C30 83C408
+
+    add esp, 00000008
+
+:00403C33 85C0
+
+            test eax, eax
+
+==>判断你输入注册码是否为空
+
+:00403C35 0F843E010000            je 00403D79
+
+==>输入的注册码为空，将跳转，出现错误信息
+
+:00403C3B 51
+
+          push ecx
+
+:00403C3C 8D542414
+
+            lea edx, dword ptr [esp+14]
+
+:00403C40
+
+8BCC                    mov
+
+ecx, esp
+
+:00403C42 89642420
+
+  mov dword ptr [esp+20], esp
+
+:00403C46 52
+
+              push edx
+
+:00403C47 E88F7D0100
+
+            call 0041B9DB
+
+:00403C4C 8B0D70134300
+
+          mov ecx, dword ptr [00431370]
+
+:00403C52
+
+E8D9FCFFFF              call 00403930
+
+==>此 Call 是注册码的算法部分，应该跟踪进入
+
+:00403C57 3BC3
+
+          cmp eax, ebx
+
+==>判断eax与ebx中的值是否相等
+
+:00403C59 0F84DC000000            je 00403D3B
+
+==>如果相等，跳转将注册失败；不相等，不跳转将注册成功
+
+:00403C5F A100F54200
+
+      mov eax, dword ptr [0042F500]
+
+:00403C64 8944241C
+
+              mov dword ptr [esp+1C], eax
+
+* Possible StringData Ref from Data Obj ->"SOFTWARE\Legendsoft\SysCleaner"
+
+            |
+
+:00403C68 68D0F04200
+
+          push 0042F0D0
+
+:00403C6D 8D4C2420
+
+              lea ecx, dword ptr [esp+20]
+
+:00403C71 C644242C02              mov [esp+2C],
+
+02
+
+:00403C76 E830810100              call
+
+0041BDAB
+
+:00403C7B 8B54241C
+
+  mov edx, dword ptr [esp+1C]
+
+:00403C7F 8D4C2418
+
+          lea ecx, dword ptr [esp+18]
+
+:00403C83
+
+51
+
+push ecx
+
+:00403C84 683F000F00
+
+push 000F003F
+
+:00403C89 53
+
+        push ebx
+
+:00403C8A 52
+
+              push edx
+
+:00403C8B 6802000080
+
+            push 80000002
+
+* Reference
+
+To: ADVAPI32.RegOpenKeyExA, Ord:0172h
+
+|
+
+:00403C90 FF1508504200            Call dword
+
+ptr [00425008]
+
+:00403C96 8B442410
+
+    mov eax, dword ptr [esp+10]
+
+:00403C9A 8D4C2410
+
+            lea ecx, dword ptr [esp+10]
+
+:00403C9E
+
+8B40F8                  mov eax,
+
+dword ptr [eax-08]
+
+:00403CA1 50
+
+          push eax
+
+:00403CA2 50
+
+                push eax
+
+:00403CA3
+
+E891820100              call 0041BF39
+
+:00403CA8 8B4C241C                mov
+
+ecx, dword ptr [esp+1C]
+
+* Reference To: ADVAPI32.RegSetValueExA, Ord:0186h
+
+            |
+
+:00403CAC 8B3D0C504200
+
+          mov edi, dword ptr [0042500C]
+
+:00403CB2
+
+50
+
+push eax
+
+:00403CB3 6A01
+
+    push 00000001
+
+:00403CB5 53
+
+            push ebx
+
+* Possible StringData
+
+Ref from Data Obj ->"RegCode"
+
+                    |
+
+:00403CB6
+
+6800F14200              push 0042F100
+
+:00403CBB 51
+
+  push ecx
+
+:00403CBC FFD7
+
+      call edi
+
+:00403CBE 6AFF
+
+          push FFFFFFFF
+
+:00403CC0 8D4C2414
+
+              lea ecx, dword ptr [esp+14]
+
+:00403CC4 E8BF820100              call 0041BF88
+
+:00403CC9 8B542414
+
+mov edx, dword ptr [esp+14]
+
+:00403CCD 8D4C2414
+
+        lea ecx, dword ptr [esp+14]
+
+:00403CD1 8B42F8
+
+                mov eax, dword ptr [edx-08]
+
+:00403CD4 50
+
+    push eax
+
+:00403CD5 50
+
+          push eax
+
+:00403CD6 E85E820100
+
+          call 0041BF39
+
+:00403CDB 50
+
+                  push eax
+
+:00403CDC
+
+8B442420                mov eax, dword
+
+ptr [esp+20]
+
+:00403CE0 6A01
+
+      push 00000001
+
+:00403CE2 53
+
+              push ebx
+
+* Possible
+
+StringData Ref from Data Obj ->"RegName"
+
+|
+
+:00403CE3 68C8F04200              push
+
+0042F0C8
+
+:00403CE8 50
+
+      push eax
+
+:00403CE9 FFD7
+
+          call edi
+
+:00403CEB 6AFF
+
+              push FFFFFFFF
+
+:00403CED
+
+8D4C2418                lea ecx, dword
+
+ptr [esp+18]
+
+:00403CF1 E892820100
+
+  call 0041BF88
+
+:00403CF6 8B4C2418
+
+      mov ecx, dword ptr [esp+18]
+
+:00403CFA 51
+
+                  push ecx
+
+* Reference To: ADVAPI32.RegCloseKey, Ord:015Bh
+
+  |
+
+:00403CFB FF1500504200
+
+Call dword ptr [00425000]
+
+:00403D01 6A40
+
+          push 00000040
+```
