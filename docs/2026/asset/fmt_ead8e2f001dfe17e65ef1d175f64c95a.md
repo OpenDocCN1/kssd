@@ -1,0 +1,169 @@
+
+# [原创]X64dbg源码编译避坑指南之玩转Github源码
+
+X64dbg源码编译避坑指南之玩转Github源码
+
+系统：Windows7 64位
+
+X64dbg源码：`x64dbg-development`
+
+<mark class="encrypted">a1cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6^5y4U0c8V1j5X3N6Q4x3V1k6^5y4U0c8V1j5X3M7`.</mark>
+
+MS编译器：VS2013+update5
+
+QT编译器：QT5.6.3
+
+<mark class="encrypted">ed5K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5k6i4q4@1i4K6u0W2K9h3!0Q4x3V1k6F1k6i4N6Q4y4h3k6S2M7X3y4Z5K9i4k6W2i4K6u0r3M7i4c8Q4x3V1j5#2i4K6u0W2y4W2)9J5c8U0g2Q4x3X3f1$3i4K6u0W2x3H3`.`.</mark>
+
+编译代码思路：
+1、下载源代码
+2、收集编译信息
+3、测试编译环境
+4、验证代码完整性
+5、编译源代码
+
+本帖于2021.11.08由duan首发，如有转载，请注明出处。
+
+新手小白入门贴，大神请忽视跳过，如有不当之处，敬请谅解。
+
+## 一、下载源代码
+
+通常去官方网站或者GitHub查找，这里官方指定的源码地址也是GitHub。<mark class="encrypted">fa5K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6^5y4U0c8V1j5X3N6Q4x3X3g2U0L8$3@1`.</mark>
+
+![](upload/attach/202111/934411_3YJW4TWH4A38RGG.png)
+
+下载源码最好用Git，可以指定版本下载，当然也可以手动下载，因人而异。<mark class="encrypted">537K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6^5y4U0c8V1j5X3N6Q4x3V1k6^5y4U0c8V1j5X3M7`.</mark>
+
+![](upload/attach/202111/934411_D2CHN9T9WS3984V.png)
+
+源码下载后我们解压到一个目录，注意一个常识，路径不含中文和空格，最好不要在桌面或者网络的共享文件夹内执行。 有了这个习惯，就少了焦头烂额整了大半天，最后发现是这个问题，都想骂自己蠢好，哈哈哈。。。
+
+## 二、收集信息，很重要的一个环节，希望大家仔细认真看完。
+
+所谓收集信息，就尽一切可能的对代码了解，包括对发布软件的操作熟悉
+
+获得软件支持平台例如Windows版本，Linux版本,android,IOS等
+
+获得软件开发集成环境：是VS（VB，VC，C#）编译？VS的版本；是minGW编译的么？Gcc（G++）版本，以及delphi，kotlin ，Swift等
+
+获得软件开发语言：C,C++,Java,Python,php,go等
+
+如何获得这些信息，最近的方式通过官网和官网论坛，其次是通过源码，最后是必应，谷歌，百度查找，本人今天抛砖引玉，就拿X64dbg做过示范。
+
+1、看下官网怎么介绍软件的，一般可以找到一点蛛丝马迹，此处可确定是用基于C++的QT开发，了解QT的就知道，他主推跨平台(既然是跨平台，就不用我说了吧，一定是支持各个操作系统)，如果你不知道，就搜索下吧。
+
+![](upload/attach/202111/934411_SVR7MJN7G5SXFNX.png)
+
+我们再看下GitHub源码网站的信息，一般会介绍如何编译的，点击wiki。
+
+![](upload/attach/202111/934411_Z3HVG8TMD7UEPT2.png)
+
+打开后我们看到编译的必要条件，一定要注意，别说我没有告诉你。
+
+![](upload/attach/202111/934411_Z3NJ9EH27BMVQ2X.png)
+
+做个查看信息的总结，Qt版本是MSVC2013编译的5.6.3，MSVC2013还要安装Update5的补丁，Qt编辑器是4.3.1。
+
+往下拉我看到源码的编译步骤，由图可知我需要编译两次，一次用VS2013，一次用QT编辑器，并且生成的都是正式版（笑话，Qt调试版那么大，也没人用调试版啊，太占空间了）。
+
+![](upload/attach/202111/934411_P2DZGMR7JCRGM4N.png)
+
+2、既然已经知道了编译环境和编译软件，也知道编译步骤，我们还要不要通过源码查编译信息了，对于此软件，确实不需要了，但不能保证其他源码也有这么详细的编译文档，还有就是很多源码介绍都是后边补上的，不一定准确，只有源码本身信息才是最准确哦，所以我还是继续抛砖引玉下。
+
+![](upload/attach/202111/934411_F5S385KX2PJG559.png)
+
+![](upload/attach/202111/934411_S5GXYAZ3Y53H4CF.png)
+
+现在我再次确定源码的编译软件是VS2013+update5的版本，和官网介绍一样。
+
+`src`开头一般是源码文件，我们点进去，一个个文件夹查看，重点看方案（也可称为工程或者项目文件）文件，什么？你不知道哪个是方案文件，那就搜索下吧，这个只能靠经验了，哈哈哈，这里我可以告诉你QT的工程文件扩展名是`pro`，VC2013工程扩展名是`vcxproj`。
+
+我们发现了`gui`这个文件夹里的工程文件是`pro`的扩展名，证明它需要Qt编辑器来编译，其实对Qt熟悉的人，一猜就知道`gui`要Qt编译（华丽的优美的界面一直Qt的强项，没道理不用啊，你说是不？）。
+
+![](upload/attach/202111/934411_UXS5HN7SEKMWRUM.png)
+
+可见事情总是难以一帆风顺，其实根据2013这个信息我们也能大致推断出Qt版本和编辑器版本，只是要一个个下载查看，非常麻烦。所以我回到软件根目录，查看下几个批处理文件，发现`setenv`是设置环境变量的文件，出现了Qt版本和Qt编辑器版本。
+
+![](upload/attach/202111/934411_NWBM7FV5485YYU2.png)
+
+这个软件作者真的很认真，所有信息没有一点错误，值得大家点赞。。。
+
+到此软件源码编译的所有信息，全部查看完毕，也是新手入门避坑中最重要的一环，一个好的开始是成功的一半，哈哈。。。
+
+## 三、测试编译环境
+
+这个算是比较简单的，安装完VS2013+updater5后新建一个工程，编译一个HelloWorld，如果能成功执行，初步算是没有问题了。
+
+Qt的测试也一样，下载Qt5.6.3+MSVC2013版。
+
+64位：`qt-opensource-windows-x86-msvc2013_64-5.6.3.exe`
+
+32位：`qt-opensource-windows-x86-msvc2013-5.6.3.exe`
+
+<mark class="encrypted">cf4K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5k6i4q4@1i4K6u0W2K9h3!0Q4x3V1k6F1k6i4N6Q4y4h3k6S2M7X3y4Z5K9i4k6W2i4K6u0r3M7i4c8Q4x3V1j5#2i4K6u0W2y4W2)9J5c8U0g2Q4x3X3f1$3i4K6u0W2x3H3`.`.</mark>
+
+Qt编辑器`qt-creator-opensource-windows-x86-4.3.1.exe`下载
+
+<mark class="encrypted">5fbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5k6i4q4@1i4K6u0W2K9h3!0Q4x3V1k6S2M7X3y4Z5K9i4k6W2i4K6u0r3M7i4c8U0M7X3g2S2N6r3!0J5i4K6u0r3y4q4)9J5k6e0y4Q4x3V1j5@1i4K6u0W2x3#2)9J5k6e0p5`.</mark>
+
+先装Qt5.6.3后再装Qt编辑器，一般可以自动配置好，如果没有配置好，可查询源码Wiki编译内容，上面有设置步骤，安装选项推荐设置。
+
+![](upload/attach/202111/934411_UUN9WJTFGAZEV3T.png)
+
+Qt编辑器直接默认设置下一步就好。
+
+如果换成其他源码介绍没有安装设置，搜索下安装配置就好，这些信息很容易找到。
+
+然后写个HelloWorld程序，试成功就算环境正常了。
+
+## 四、验证 代码完整性
+
+我们可以点开文件夹查看，空文件大概率是缺少文件的，特别是在SRC的源码文件夹，Git或者其他方式下载的压缩包，很多时候不全。
+
+当然了，这样查看不一定准确，作为一个码农，咱没必要查看，直接编辑源码就好，缺啥补啥即可，打开源码中的`x64dbg.sln`,重新生成解决方案。
+
+![](upload/attach/202111/934411_B6WPMKFG8YMPQGS.png)
+
+可以看到错误提示缺少两个文件夹下的文件，我直接去`src`目录搜下这个两个文件夹，打开后发现确实都是空，问题找到，我们到对应的源码目录下载就好，下面给出源码的目录和对应的下载地址。
+
+`deps`文件夹下载地址：<mark class="encrypted">a73K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6^5y4U0c8V1j5X3N6Q4x3V1k6V1k6i4m8K6i4K6u0r3N6s2u0W2k6g2)9J5c8U0y4T1z5e0p5I4x3e0b7#2k6o6j5@1x3$3p5#2y4o6b7%4y4h3x3^5k6h3x3I4j5X3y4V1k6U0t1&6x3U0f1^5z5h3t1I4x3X3j5J5j5X3f1`.</mark>
+
+`src\zydis_wrapper\zydis`文件夹下载地址：<mark class="encrypted">d5aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6^5y4U0c8V1j5X3N6Q4x3V1k6*7P5h3c8A6M7#2)9J5c8Y4c8J5k6h3g2Q4x3V1j5%4j5K6c8W2y4$3b7%4k6r3q4X3x3$3p5$3k6X3f1K6k6h3b7J5x3K6N6X3j5e0b7^5y4$3t1@1k6r3p5K6k6e0b7J5z5h3g2S2j5X3j5J5</mark>
+
+`src\dbg\btparser`文件夹下载地址：<mark class="encrypted">99aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6^5y4U0c8V1j5X3N6Q4x3V1k6T1N6s2m8S2M7Y4y4W2M7W2)9J5c8Y4c8J5k6h3g2Q4x3V1k6V1y4e0l9K6y4r3y4X3y4X3b7$3y4o6N6W2z5e0S2U0j5U0l9I4k6e0W2W2x3h3k6U0y4r3g2X3j5e0f1H3z5o6k6X3z5r3k6U0y4X3p5#2i4@1g2r3i4@1u0o6i4K6R3&6</mark>
+
+`src\gui\Translations`文件夹下载地址：<mark class="encrypted">e6bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6^5y4U0c8V1j5X3N6Q4x3V1k6f1M7X3q4F1M7$3I4S2N6r3W2G2L8Y4y4Q4x3V1k6@1M7X3g2W2i4K6u0r3y4K6b7I4y4r3b7$3y4h3x3@1y4U0R3^5x3o6y4V1j5X3b7#2y4o6S2W2x3X3j5I4x3U0V1&6z5o6j5J5y4r3b7$3y4X3p5I4x3X3u0U0x3l9`.`.</mark>
+
+此处给出了两个文件夹`zydis`和`btparser`验证方式，其他文件夹共大家研究验证缺少方式。
+
+## 五、编译代码
+
+把缺少的文件下载后拷贝到对应位置，就可以正式编译了，此软件有32位和64位两个版本，所以要编译两次，按图操作源码后再编译代码。
+
+![](upload/attach/202111/934411_SBCS9U5BCHHKZCX.png)
+
+第一步VS编译源码
+
+![](upload/attach/202111/934411_9J9PSQHX9T85YUX.png)
+
+![](upload/attach/202111/934411_RXPXNEPGH7JZBJT.png)
+
+VS2013+update5编译完成后再bin目录多出了几个文件。
+
+![](upload/attach/202111/934411_ZB3VHAFQ7VA58EH.png)
+
+第二步Qt编辑器编译代码。
+
+QT编辑器设置确认，Qt版本5.6.3，编译器64位版本amd64。
+
+![](upload/attach/202111/934411_HUCVX78NY8JHT4W.png)
+
+编译版本设置，一般是调试版和正式版修改，如过你安装x86（32位）和x86_64（64位）的话，也可以在此修改。
+
+![](upload/attach/202111/934411_H34QJKWB8XMH85F.png)
+
+编译完成，软件以可以打开运行了，建议从原软件中拷贝多语言文件夹Translations过来，我们编译只是英文版。
+
+![](upload/attach/202111/934411_845TN4Q98BFW5FY.png)
+
+到此完成了整个x64dbg的源码编译，Qt编译gui有一些警告，后边需要优化，修改。
