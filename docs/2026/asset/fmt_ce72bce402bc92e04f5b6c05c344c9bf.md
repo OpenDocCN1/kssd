@@ -1,0 +1,81 @@
+
+`0167:00401A04 7CC5`             `JL`       `004019CB`                          是，跳～
+
+;-----------------------------------------------------------------------
+
+`0167:00401A06 8D4C240C`         `LEA`      `ECX,[ESP+0C]`
+
+;【注意】`edi`每次移动4位，移5次，其值分别是：02、06、F9h、04、FFh、08h
+
+## 【总结】
+
+通过上面的分析，聪明的你一定想到了软件的注册算法--对，它就是：
+
+注册码前半截    ①       ②       ③       ④       ⑤
+
+               ↓-1     ↓+4     ↓+3     ↓+6     ↓+2
+
+注册码后半截    ⑥       ⑦       ⑧       ⑨       ⑩
+
+如果相加/减超出范围[0,9]，不计进位和借位，再求绝对值。而用户名不过是摆设
+
+## 【注册机】
+
+用`MASM32`的话，把`004019CB～00401A04`复制下来(可以利用`UltraEdit`的列编辑功能)，稍加修改即可。这里我们使用`Delphi 6`编译
+
+/////////////////////////////////////////////////////////////////////
+
+//   The KeyGen by lq7972,with Delphi 6
+
+//   E-Mail:bruceyu13@sina.com
+
+//   XDos v1.1 KeyGen
+
+////////////////////////////////////////////////////////////////////
+
+```pascal
+procedure TForm1.Button1Click(Sender: TObject);
+
+var
+  i:Integer;
+  Code1,Code2:String;
+  Temp1,Temp2,Temp3,Temp4,Temp5:Char;
+begin  Code1:=IntToStr(Random(9))+IntToStr(Random(9))+IntToStr(Random(9))+IntToStr(Random(9))+IntToStr(Random(9));
+
+for i:=1 to 5 do
+  case i of
+    1:
+    begin
+      Temp1:=Char(Ord(Code1[1])-1);
+      if Ord(Temp1) < $30 then
+        Temp1:=Char(Ord(Temp1)+$A);
+    end;
+    2:
+    begin
+      Temp2:=Char(Ord(Code1[2])+4);
+      if Ord(Temp2) > $39 then
+        Temp2:=Char(Ord(Temp2)-$A);
+    end;
+    3:
+    begin
+      Temp3:=Char(Ord(Code1[3])+3);
+      if Ord(Temp3) > $39 then
+        Temp3:=Char(Ord(Temp3)-$A);
+    end;
+    4:
+    begin
+      Temp4:=Char(Ord(Code1[4])+6);
+      if Ord(Temp4) > $39 then
+        Temp4:=Char(Ord(Temp4)-$A);
+    end;
+    5:
+    begin
+      Temp5:=Char(Ord(Code1[5])+2);
+      if Ord(Temp5) > $39 then
+        Temp5:=Char(Ord(Temp5)-$A);
+    end;
+  end;
+  Code2:=Temp1+Temp2+Temp3+Temp4+Temp5;
+  Edit2.Text:=Code1+Code2;
+end;
+```
