@@ -1,0 +1,188 @@
+
+# 书香门第&nbsp;V1.30&nbsp;Build&nbsp;1732&nbsp;算法分析&nbsp;+&nbsp;无注册机&nbsp;(18千字)
+
+## 书香门第 V1.30 Build 1732
+
+软件大小： 720 KB
+
+软件语言： 简体中文
+
+软件类别： 国产软件 / 共享版 / 电子阅读
+
+应用平台： Win9x/NT/2000/XP
+
+界面预览：
+
+加入时间： 2003-09-30 09:47:24
+
+下载次数： 12748
+
+推荐等级： ***
+
+联 系 人： gentlebreeze@vip.163.com
+
+开 发 商： <http://www.gentle-breeze.com/>
+
+## 软件介绍：
+
+《书香门第》是一款适合于真正读书迷的电子小说、文本阅读软件，它外表并不花哨，但对于长时间、大量阅读的读书迷，却最舒适、体贴、细致，因为它具有十二个鲜明特点：1． 多达27种各种质感的窗口背景、页面背景可供选择，总共超过700种背景组合，为读书迷提供最高舒适度和最大程度的视力保护。2． 强大、智能化的自动排版功能，并可以随意设定字体大小、颜色、行距、标题行。3． 极其高速的排版速度：目前主流机器上排版速度超过一万页/秒，所以通常你根本无法感觉到排版过程。
+
+4． 高速的`DirectDraw`图形引擎，翻页寻迹流畅自如。5．附带的`html`转换、合成工具能够迅速依次将一批`html`文件转换且合并为一个大的文本文件，方便阅读。6．宽广的平台适用性：从486/win95到最新P4/XP都能从容应对。7．体贴的左手键操作，使你从此摆脱长期右手操作鼠标、键盘带来的疲劳。8．与页面字数成正比的自动翻页间隔，自然优于呆板的固定翻页间隔。9．可以选择使用窗口模式（寻迹方便）或全屏幕模式（阅读效果更好）。10．全书遍历/测试功能，保护你的计算机，节约能源。11．搜索功能方便读者在书中查找。12． 具有强于`word`和`IE`的汉字乱码纠错功能。
+
+下载地址: <http://www.skycn.com/soft/9090.html>
+
+输入一个`EMAIL`和一个注册码(必须是24位,见下),用常规方法很容易找到这里:
+
+```
+:00403A3B 6A20                    push 00000020
+:00403A3D 57                      push edi      <--输入的EMAIL
+:00403A3E 8BCD                    mov ecx, ebp
+:00403A40 E881770100              call 0041B1C6 <--得到长度
+:00403A45 8D9E00010000            lea ebx, dword ptr [esi+00000100]
+:00403A4B 6A20                    push 00000020
+:00403A4D 68202C4500              push 00452C20 <--假码
+:00403A52 8BCB                    mov ecx, ebx
+:00403A54 A300204500              mov dword ptr [00452000], eax <--先把EMAIL长度存起来
+:00403A59 E868770100              call 0041B1C6 <--得到长度
+:00403A5E 83F818                  cmp eax, 00000018
+:00403A61 0F85C0000000            jne 00403B27  <--长度必须为18h
+:00403A67 A100204500              mov eax, dword ptr [00452000] <--读出EMAIL长度
+:00403A6C 83F804                  cmp eax, 00000004
+:00403A6F 0F8CB2000000            jl 00403B27   <--EMAIL长度不小于4
+:00403A75 8364241000              and dword ptr [esp+10], 00000000
+:00403A7A EB05                    jmp 00403A81
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00403A9F(C)
+|
+:00403A7C A100204500              mov eax, dword ptr [00452000]
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00403A7A(U)
+|
+:00403A81 50                      push eax
+:00403A82 0FAF442414              imul eax, dword ptr [esp+14]
+:00403A87 05402C4500              add eax, 00452C40
+:00403A8C 57                      push edi
+:00403A8D 50                      push eax
+:00403A8E E8BD570000              call 00409250 <--把[EDI]处的内存写入[eax]
+:00403A93 83C40C                  add esp, 0000000C
+:00403A96 FF442410                inc [esp+10]
+:00403A9A 837C241040              cmp dword ptr [esp+10], 00000040
+:00403A9F 7CDB                    jl 00403A7C <--把EMAIL重写40次??作者在和我兜圈子?
+:00403AA1 BF20244500              mov edi, 00452420
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00403ABF(C)
+|
+:00403AA6 6A20                    push 00000020
+:00403AA8 68202C4500              push 00452C20
+:00403AAD 57                      push edi
+:00403AAE E89D570000              call 00409250
+:00403AB3 83C720                  add edi, 00000020
+:00403AB6 83C40C                  add esp, 0000000C
+:00403AB9 81FF202C4500            cmp edi, 00452C20
+:00403ABF 7CE5                    jl 00403AA6 <--又把假码重写40次 *_*
+:00403AC1 33FF                    xor edi, edi
+:00403AC3 57                      push edi
+:00403AC4 57                      push edi
+:00403AC5 6801150000              push 00001501
+:00403ACA FF761C                  push [esi+1C]
+* Reference To: USER32.SendMessageA, Ord:0214h
+                                  |
+:00403ACD FF15F0544200            Call dword ptr [004254F0]
+:00403AD3 80BEC000000000          cmp byte ptr [esi+000000C0], 00 <--重要标志
+:00403ADA 742F                    je 00403B0B <--这里修改为JNE就成功了
+* Possible StringData Ref from Data Obj ->"     ---------  祝贺你！  ---------- "
+                                        ->"
+你已经成为了《书香门第》注册用户！"
+                                  |
+:00403ADC 6828D74200              push 0042D728
+:00403AE1 893DC83E4500            mov dword ptr [00453EC8], edi
+:00403AE7 E8AC220000              call 00405D98
+```
+
+看上去似乎没什么时候难的,很经典的判断,一个`CALL`,然后`CMP`,`JE`,可是跟进`CALL`一看,却是系统的`USER32.DLL`,
+
+百思不得其解,其它地方也找不到什么判断.怎么办呢??考虑N分钟后决定用`BPM`试一下.不是比较`[ESI+C0]`处是否为0吗,如果判断注册的话肯定要向这里写上0或者其它什么东西.我们就看看程序什么时候在这里写了东西.
+
+下指令: `BPM ESI+C0` 中断在下面:
+
+```
+:00403B4D 817C240401150000        cmp dword ptr [esp+04], 00001501
+:00403B55 56                      push esi
+:00403B56 8BF1                    mov esi, ecx
+:00403B58 750B                    jne 00403B65
+:00403B5A E81D000000              call 00403B7C <--很明显是关键的CALL
+:00403B5F 8886C0000000            mov byte ptr [esi+000000C0], al <--呵呵,中断在这里
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00403B58(C)
+|
+:00403B65 FF742410                push [esp+10]
+:00403B69 8BCE                    mov ecx, esi
+:00403B6B FF742410                push [esp+10]
+:00403B6F FF742410                push [esp+10]
+:00403B73 E8B7540100              call 0041902F
+:00403B78 5E                      pop esi
+:00403B79 C20C00                  ret 000C
+```
+
+跟进`403B5A`处的关键`CALL`:
+
+```
+* Referenced by a CALL at Addresses:
+|:004017E2   , :00402135   , :004030B9   , :00403B5A   , :00404DA0
+|
+:00403B7C 55                      push ebp
+:00403B7D 8BEC                    mov ebp, esp
+:00403B7F 81EC00010000            sub esp, 00000100
+:00403B85 56                      push esi
+:00403B86 6A20                    push 00000020
+:00403B88 E8DE5B0000              call 0040976B
+:00403B8D 6A40                    push 00000040
+:00403B8F BE20234500              mov esi, 00452320
+:00403B94 99                      cdq
+:00403B95 59                      pop ecx
+:00403B96 F7F9                    idiv ecx
+:00403B98 C1E205                  shl edx, 05
+:00403B9B 81C220244500            add edx, 00452420
+:00403BA1 52                      push edx
+:00403BA2 56                      push esi
+:00403BA3 E8A8560000              call 00409250
+:00403BA8 68FF000000              push 000000FF
+:00403BAD 8D8500FFFFFF            lea eax, dword ptr [ebp+FFFFFF00]
+:00403BB3 6A00                    push 00000000
+:00403BB5 50                      push eax
+:00403BB6 E8555A0000              call 00409610
+:00403BBB 83C418                  add esp, 00000018
+:00403BBE FF3500204500            push dword ptr [00452000]
+:00403BC4 E8A25B0000              call 0040976B
+:00403BC9 6A40                    push 00000040
+:00403BCB 99                      cdq
+:00403BCC 59                      pop ecx
+:00403BCD F7F9                    idiv ecx
+:00403BCF 8D8500FFFFFF            lea eax, dword ptr [ebp+FFFFFF00]
+:00403BD5 0FAF1500204500          imul edx, dword ptr [00452000]
+:00403BDC 81C2402C4500            add edx, 00452C40
+:00403BE2 52                      push edx
+:00403BE3 50                      push eax
+:00403BE4 E867560000              call 00409250
+:00403BE9 6A0C                    push 0000000C
+:00403BEB 56                      push esi
+:00403BEC 68A0224500              push 004522A0
+:00403BF1 E85A560000              call 00409250
+:00403BF6 6A0C                    push 0000000C
+:00403BF8 682C234500              push 0045232C
+:00403BFD 6820224500              push 00452220
+:00403C02 E849560000              call 00409250
+:00403C07 A100204500              mov eax, dword ptr [00452000]
+:00403C0C 80252C22450000          and byte ptr [0045222C], 00
+:00403C13 8025AC22450000          and byte ptr [004522AC], 00
+:00403C1A 83C424                  add esp, 00000024
+:00403C1D 33D2                    xor edx, edx
+:00403C1F 85C0                    test eax, eax
+:00403C21 7E2E                    jle 00403C51
+:00403C23 53                      push ebx
+:00403C24 57                      push edi
+:00403C25 8D58FF                  lea ebx, dword ptr [eax-01]
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00403C4D(C)
+|
+```
