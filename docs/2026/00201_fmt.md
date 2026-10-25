@@ -1,0 +1,58 @@
+
+# [求助]在shellcode中遇到疑惑的浮点指令
+
+今天看到一个样本中一段shellcode的解码头，从样本中拿出来后用IDA反汇编得到如下结果：
+
+```
+seg000:00000000                 nop
+
+seg000:00000001                 nop
+
+seg000:00000002                 nop
+
+seg000:00000003                 nop
+
+seg000:00000004                 fldz
+
+seg000:00000006                 fnstenv byte ptr [esp-0Ch]
+
+seg000:0000000A                 pop     esi
+
+seg000:0000000B                 add     esi, 20h ; ' '
+
+seg000:0000000E                 push    esi
+
+seg000:0000000F                 pop     edi
+
+seg000:00000010                 xor     ecx, ecx
+
+seg000:00000012                 mov     cx, 2FFh
+
+seg000:00000016
+
+seg000:00000016 loc_16:                                 ; CODE XREF: seg000:00000022
+
+seg000:00000016                 lodsw
+
+seg000:00000018                 sub     ax, 6161h
+
+seg000:0000001C                 shl     al, 4
+
+seg000:0000001F                 add     al, ah
+
+seg000:00000021                 stosb
+
+seg000:00000022                 loop    loc_16
+
+seg000:00000022 seg000          ends
+```
+
+【后面是编码的shellcode】
+
+看到里面`fldz`和`fnstenv`指令感到很疑惑，怀疑这段代码不能执行。于是放到OD中调试，由于`esi`被初始化指向了非法地址，导致运行产生异常。
+
+这个样本先把包括解码头的整个shellcode复制到内存，然后用`createthread`把shellocde带起来。但是直接打开样本发现shellcode被解码并成功执行，最终释放一个exe并运行。
+
+我的问题是`fldz`和`fnstenv`在线程中是如何对`esi`产生影响并完成解码工作，请各位指点。谢谢！
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)

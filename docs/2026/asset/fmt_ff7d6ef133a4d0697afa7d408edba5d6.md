@@ -1,0 +1,319 @@
+
+# [原创]保护模式-分段机制(附多篇保护模式文章)
+
+## 逻辑地址到线性地址的转换
+
+段基址
+
+如果开启了分页选项,那么线性地址就是物理地址,无需再进行转换.
+
+段基地址(Base Address): 32位
+
+段界限(Limit): 描述段的大小,20位
+
+段属性(Attributes): 属性中的最高位G(粒度位)表示字节单位还是4K字节为单位.
+
+## 段大小计算公式
+
+1. 字节方式
+
+段的上限 = 基地址 + 段界限
+
+比如:基地址:`00012345H` 段界限:`5678H`
+
+段的上限 = `00012345H` + `5678H` = `000179BDH`
+
+所以段的范围是:`000179BDH` -- `000179BDH`
+
+2. 4K方式
+
+段的上限 = `00012345H` + `5678H` * 4K + `0FFFH` = `0568B344H`
+
+### 4K方式追加FFFH的缘由
+
+上面的计算方式中,后面加了一个`0FFFH`,这是因为20位段界限表示最大值为`0FFFFFH`,那么
+
+段上限 = `0FFFFFH` * 4K = `0FFFFF000H`,不能够完全表示4G的范围,所以后面追加一个`0FFFH`,这样段上限 = `0FFFFFH` * 4K + `0FFFH` = `0FFFFF000H` + `0FFFH` = `0FFFFFFFFH`,这样
+
+`0` -- `0FFFFFFFFH`刚好可以表示4GB.
+
+## 存储段描述符
+
+描述符
+
+描述一个段可以有三个东西:1.段基址 2.段界限 3.段属性
+
+用于表示这三个东西的数据结构就是描述符,可以理解成一个结构体.
+
+描述符分类:
+
+1. 存储段描述符(存放段:存放程序可以直接访问的代码和数据的段)
+2. 系统段描述符
+3. 门描述符
+
+存储描述符的格式
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_jbamxy6ekt0vrjz.png)
+
+描述符长8个字节
+
+用位段定位该数据结构
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_3vif9s5hei66bhj.png)
+
+### 为什么段界限会分开？
+
+为了兼容以前的CPU型号
+
+## 全局(GDT)和局部描述符表(LDT)
+
+### 任务
+
+任务:可以理解成线程,每个线程需要一个描述符来描述
+
+### 描述符表
+
+描述符表:由描述符组成的线性表,描述符表包括:`GDT`,`LDT`,`IDT`.
+
+单核的系统中,`GDT`和`IDT`只有一张,`LDT`每个线程都可以有一张.
+
+多核的系统中,`GDT`和`IDT`也可能不止一张.
+
+存储描述符表的特殊数据段最多可包含8K(8192)个描述符.
+
+一个任务可使用的整个虚拟地址空间分为相等的两半，一半空间的描述符在全局描述符表中，另一半空间的描述符在局部描述符表中.
+
+由于全局和局部描述符表都可以包含多达8192个描述符，而每个描述符所描述的段的最大值可达4G字节，因此最大的虚拟地址空间可为：
+
+`4GB*8192*2=64MMB=64TB`
+
+## 段选择子
+
+段选择子是神马？
+
+段选择子替代了实模式下面的段值.也就是段描述符在段描述符表中的下标.
+
+长度:16位
+
+`OD`里面查看选择子,也就是各段寄存器里面的值
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_4dkic3gle71fjou.png)
+
+### windows的段描述符表
+
+windows没有采用Intel的`LDT`,只采用`GDT`.
+
+可以使用`windbg`来查看`GDT`
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_1iahor4redjx8o9.png)
+
+试验:显示选择子0到100的段描述符
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_ia7txabqtn6w2hc.png)
+
+### 全局描述符表寄存器GDTR
+
+`GDTR`中的低16位表示界限，`GDTR`中的高32位表示基地址,前面说了描述符表都存放在特殊的数据段中.
+
+用`windbg`查看`GDTR`的值:
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_x3kuy7oqmws8z1s.png)
+
+使用特权指令获取`GDTR`的值
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_6ozra6lxs8ocvzf.png)
+
+部分查询类特权指令3环也可以使用,但是修改类特权指令3环一般是不能用的.
+
+试验:`VC`来打印`GDTR`
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_tqssivbwo0xznel.png)
+
+效果:
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_yoxrtxxqavnct8b.png)
+
+我的机器是双核的,说明多核的情况下`GDT`表可以不止一张.
+
+### 再谈段选择子
+
+实模式下: 逻辑地址 由  段地址 + 段内偏移地址 组成
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_a8ehtrl064rx7nw.png)
+
+保护模式下: 虚拟地址(逻辑地址) 由 段选择子 + 段内偏移 组成.
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_qvo623owq5de2lk.png)
+
+很明显,段选择子取代了段地址的地位,那么说明段选择子可以确定哪一个段,以及段的起始地址.
+
+因为段描述符都存放在段描述表中的,段描述表相当于一个存放段描述符的数组,那么要确定哪一个段描述符,想想缺少什么条件？对,就是数组下标,段选择子,就是用来确定段描述符在段描述符表中的下标的.
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_cscuzzmvaz1xjqv.png)
+
+`TI`位: 取值0:从`GDT`中读取描述符  取值1:从`LDT`中读取描述符
+
+由于windows值采用了`GDT`,所以相应的`TI`位总是为0.
+
+### 解析windows某一时刻的段选择子
+
+Ring0
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_gb8euvz17m9t520.png)
+
+`ds`,`es`两个选择子为啥显得怪异？
+
+明明当前是`ring0`,为什么请求特权级(RRL)对应项是`ring3`,这是由于内核态只需要用到`cs`(代码),`ss`:(堆栈),`fs`(内核相关数据结构),而不需要用到`ds`,`es`,所以`ds`,`es`两个选择子并没有进行切换,所以显示的还是原来`ring3`的选择子的值,所以看起来有的怪异.
+
+对照`windbg`的`GDT`表
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_n34tlved0357yt5.png)
+
+和以上的手工分析是一致的.
+
+Ring3
+
+如何让选择子切换到3环呢?
+
+我们知道API实现内部都会调用`ntdll`模块中的快速系统调用这个函数
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_5kfhmsb58zdz4vu.png)
+
+所以只需要在`ntdll!KiFastSystemCall`下断点即可.
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_of0s7po1bzf298a.png)
+
+运行起来,就会断下`KiFastSystemCall`的入口处,这个时候的选择子就是3环的
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_y07ubvm1kesglx3.png)
+
+`GDT`索引 `TI` `RPL`
+
+`cs:0x001b` <=> `0000000000011`(索引号3) `0(GDT)` `11 (ring3)`
+
+`ss:0x0023` <=> `0000000000100`(索引号4) `0 (GDT)` `11(ring3)`
+
+`ds:0x0023` <=> `0000000000100`(索引号4) `0 (GDT)` `11(ring3)`
+
+`es:0x0023` <=> `0000000000100`(索引号4) `0 (GDT)` `11(ring3)`
+
+`fs:0x003b` <=> `0000000000111`(索引号7) `0(GDT)` `11(ring3)`
+
+对照`windbg`的`GDT`表
+
+![](https://bbs.kanxue.com/upload/attach/201311/603227_bnqrfkf20wfcyo4.png)
+
+和手工分析同样是一致的.
+
+### windows间接屏蔽掉了VA(虚拟地址)到线性地址的转换
+
+根据上面的各个段的起始地址都是从0开始的,所以表示的范围从0到4GB,这样就造成了虚拟机即线程地址.
+
+例如:
+
+`ss:00401000` ==> 线性地址 <==> `0 + 00401000 = 00401000`
+
+所以,`windows`里面的 虚拟地址 等价于 线性地址
+
+更多保护模式内容请参看附件,这里一并奉上.
+
+`[驱动加载工具DIY.doc](https://bbs.kanxue.com/attach-download-84263.htm)`
+
+`[windbg命令.doc](https://bbs.kanxue.com/attach-download-84264.htm)`
+
+`[应用层和驱动层的通讯.doc](https://bbs.kanxue.com/attach-download-84265.htm)`
+
+`[API Ring3切换Ring0流程.doc](https://bbs.kanxue.com/attach-download-84266.htm)`
+
+`[通过华生医生抓取崩溃Dump文件.doc](https://bbs.kanxue.com/attach-download-84267.htm)`
+
+`[保护模式-分段机制.doc](https://bbs.kanxue.com/attach-download-84268.htm)`
+
+`[分段管理之段选择子.doc](https://bbs.kanxue.com/attach-download-84269.htm)`
+
+`[分页管理机制.doc](https://bbs.kanxue.com/attach-download-84270.htm)`
+
+`[启用PAE后虚拟地址到物理地址的转换.doc](https://bbs.kanxue.com/attach-download-84271.htm)`
+
+`[解析VA(804e3a42) --》PA.doc](https://bbs.kanxue.com/attach-download-84272.htm)`
+
+`[解析explore.exe中0x77EF1000.doc](https://bbs.kanxue.com/attach-download-84273.htm)`
+
+`[在虚拟机中,对calc.exe进程做修改,让关于弹不出.doc](https://bbs.kanxue.com/attach-download-84274.htm)`
+
+`[Ring3与Ring0的通讯.doc](https://bbs.kanxue.com/attach-download-84275.htm)`
+
+`[模拟API-ReadProcessMemory.doc](https://bbs.kanxue.com/attach-download-84276.htm)`
+
+`[ReadProcessMemory简单分析.doc](https://bbs.kanxue.com/attach-download-84277.htm)`
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+
+- [1.png](javascript:void(0);)
+  （6.17kb，109次下载）
+- [2.png](javascript:void(0);)
+  （11.83kb，19次下载）
+- [3.png](javascript:void(0);)
+  （84.29kb，16次下载）
+- [4.png](javascript:void(0);)
+  （80.95kb，16次下载）
+- [5.png](javascript:void(0);)
+  （20.18kb，27次下载）
+- [6.png](javascript:void(0);)
+  （0.72kb，7次下载）
+- [7.png](javascript:void(0);)
+  （14.93kb，77次下载）
+- [8.png](javascript:void(0);)
+  （6.16kb，9次下载）
+- [9.png](javascript:void(0);)
+  （5.09kb，8次下载）
+- [10.png](javascript:void(0);)
+  （6.40kb，8次下载）
+- [11.png](javascript:void(0);)
+  （6.26kb，9次下载）
+- [12.png](javascript:void(0);)
+  （3.31kb，45次下载）
+- [13.png](javascript:void(0);)
+  （3.68kb，18次下载）
+- [14.png](javascript:void(0);)
+  （13.61kb，18次下载）
+- [15.png](javascript:void(0);)
+  （59.01kb，7次下载）
+- [16.png](javascript:void(0);)
+  （3.17kb，7次下载）
+- [17.png](javascript:void(0);)
+  （41.11kb，7次下载）
+- [18.png](javascript:void(0);)
+  （58.79kb，7次下载）
+- [驱动加载工具DIY.doc](javascript:void(0);)
+  （489.50kb，326次下载）
+- [windbg命令.doc](javascript:void(0);)
+  （485.50kb，316次下载）
+- [应用层和驱动层的通讯.doc](javascript:void(0);)
+  （189.50kb，259次下载）
+- [API Ring3切换Ring0流程.doc](javascript:void(0);)
+  （92.00kb，277次下载）
+- [通过华生医生抓取崩溃Dump文件.doc](javascript:void(0);)
+  （263.50kb，218次下载）
+- [保护模式-分段机制.doc](javascript:void(0);)
+  （167.00kb，324次下载）
+- [分段管理之段选择子.doc](javascript:void(0);)
+  （117.50kb，294次下载）
+- [分页管理机制.doc](javascript:void(0);)
+  （553.07kb，340次下载）
+- [启用PAE后虚拟地址到物理地址的转换.doc](javascript:void(0);)
+  （147.50kb，263次下载）
+- [解析VA(804e3a42) --》PA.doc](javascript:void(0);)
+  （82.00kb，201次下载）
+- [解析explore.exe中0x77EF1000.doc](javascript:void(0);)
+  （83.50kb，195次下载）
+- [在虚拟机中,对calc.exe进程做修改,让关于弹不出.doc](javascript:void(0);)
+  （232.00kb，253次下载）
+- [Ring3与Ring0的通讯.doc](javascript:void(0);)
+  （431.00kb，244次下载）
+- [模拟API-ReadProcessMemory.doc](javascript:void(0);)
+  （214.00kb，242次下载）
+- [ReadProcessMemory简单分析.doc](javascript:void(0);)
+  （669.00kb，317次下载）
