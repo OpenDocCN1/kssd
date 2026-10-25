@@ -1,0 +1,409 @@
+
+```
+:004704F8 8B55DC                  mov
+edx, dword ptr [ebp-24]
+
+:004704FB 81E2FF000000            and edx, 000000FF
+
+:00470501 899534FFFFFF            mov dword
+ptr [ebp+FFFFFF34], edx
+
+:00470507 83BD34FFFFFF0B          cmp dword ptr [ebp+FFFFFF34],
+0000000B
+
+:0047050E 730C
+jnb 0047051C
+
+:00470510 C785D4FEFFFF00000000    mov dword ptr [ebp+FFFFFED4],
+00000000
+
+:0047051A EB0C
+jmp 00470528
+
+* Referenced by a (U)nconditional or (C)onditional Jump
+at Address:
+|:0047050E(C)
+|
+
+* Reference To: MSVBVM50.__vbaGenerateBoundsError, Ord:0000h
+           |
+
+:0047051C FF1500A44700            Call dword
+ptr [0047A400]
+
+:00470522 8985D4FEFFFF            mov dword
+ptr [ebp+FFFFFED4], eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump
+at Address:
+|:0047051A(U)
+|
+
+:00470528 8B45DC                  mov
+eax, dword ptr [ebp-24]
+
+:0047052B 25FF000000              and eax,
+000000FF
+
+:00470530 898530FFFFFF            mov dword
+ptr [ebp+FFFFFF30], eax
+
+:00470536 83BD30FFFFFF0B          cmp dword ptr [ebp+FFFFFF30],
+0000000B
+
+:0047053D 730C
+jnb 0047054B
+
+:0047053F C785D0FEFFFF00000000    mov dword ptr [ebp+FFFFFED0],
+00000000
+
+:00470549 EB0C
+jmp 00470557
+
+* Referenced by a (U)nconditional or (C)onditional Jump
+at Address:
+|:0047053D(C)
+|
+
+* Reference To: MSVBVM50.__vbaGenerateBoundsError, Ord:0000h
+           |
+
+:0047054B FF1500A44700            Call dword
+ptr [0047A400]
+
+:00470551 8985D0FEFFFF            mov dword
+ptr [ebp+FFFFFED0], eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump
+at Address:
+|:00470549(U)
+|
+
+:00470557 8B4D9C                  mov
+ecx, dword ptr [ebp-64]
+
+:0047055A 038D3CFFFFFF            add ecx, dword
+ptr [ebp+FFFFFF3C]
+
+:00470560 660FB631                movzx
+si, byte ptr [ecx]
+
+:00470564 6890D44000              push
+0040D490
+
+* Reference To: MSVBVM50.rtcAnsivalueBstr, Ord:0204h
+           |
+
+:00470569 FF1534A34700            Call dword
+ptr [0047A334]
+
+:0047056F 33DB
+xor ebx, ebx
+
+:00470571 663BF0                  cmp
+si, ax
+           ====>和5A（即：Z）比较
+
+:00470574 0F9FC3
+     setg bl
+
+:00470577 8B559C                  mov
+edx, dword ptr [ebp-64]
+
+:0047057A 039538FFFFFF            add edx, dword
+ptr [ebp+FFFFFF38]
+
+:00470580 660FB632                movzx
+si, byte ptr [edx]
+
+:00470584 6898D44000              push
+0040D498
+
+* Reference To: MSVBVM50.rtcAnsivalueBstr, Ord:0204h
+           |
+
+:00470589 FF1534A34700            Call dword
+ptr [0047A334]
+
+:0047058F 33C9
+xor ecx, ecx
+
+:00470591 663BF0                  cmp
+si, ax
+           ====>和41（即：A）比较
+
+:00470594 0F9CC1
+     setl cl
+
+:00470597 0BD9
+or ebx, ecx
+
+:00470599 F7DB
+neg ebx
+
+:0047059B 1BDB
+sbb ebx, ebx
+
+:0047059D F7DB
+neg ebx
+
+:0047059F 8B559C                  mov
+edx, dword ptr [ebp-64]
+
+:004705A2 039534FFFFFF            add edx, dword
+ptr [ebp+FFFFFF34]
+
+:004705A8 660FB632                movzx
+si, byte ptr [edx]
+
+:004705AC 68A0D44000              push
+0040D4A0
+
+* Reference To: MSVBVM50.rtcAnsivalueBstr, Ord:0204h
+           |
+
+:004705B1 FF1534A34700            Call dword
+ptr [0047A334]
+
+:004705B7 899DCCFEFFFF            mov dword
+ptr [ebp+FFFFFECC], ebx
+
+:004705BD 33DB
+xor ebx, ebx
+
+:004705BF 663BF0                  cmp
+si, ax
+           ====>和39（即：9）比较
+
+:004705C2 0F9FC3
+     setg bl
+
+:004705C5 8B459C                  mov
+eax, dword ptr [ebp-64]
+
+:004705C8 038530FFFFFF            add eax, dword
+ptr [ebp+FFFFFF30]
+
+:004705CE 660FB630                movzx
+si, byte ptr [eax]
+
+:004705D2 68A8D44000              push
+0040D4A8
+
+* Reference To: MSVBVM50.rtcAnsivalueBstr, Ord:0204h
+           |
+
+:004705D7 FF1534A34700            Call dword
+ptr [0047A334]
+
+:004705DD 33C9
+xor ecx, ecx
+
+:004705DF 663BF0                  cmp
+si, ax
+           ====>和30（即：0）比较
+
+:004705E2 0F9CC1
+     setl cl
+
+:004705E5 0BD9
+or ebx, ecx
+
+:004705E7 F7DB
+neg ebx
+
+:004705E9 1BDB
+sbb ebx, ebx
+
+:004705EB F7DB
+neg ebx
+
+:004705ED 8B95CCFEFFFF            mov edx, dword
+ptr [ebp+FFFFFECC]
+
+:004705F3 23D3
+and edx, ebx
+
+:004705F5 85D2
+test edx, edx
+
+:004705F7 0F8493000000            je 00470690
+           ====>如果是大写字母和数字则直接跳下去。否则进行处理
+
+:004705FD C745FC21000000
+mov [ebp-04], 00000021
+
+:00470604 8B45DC                  mov
+eax, dword ptr [ebp-24]
+
+:00470607 25FF000000              and eax,
+000000FF
+
+:0047060C 898538FFFFFF            mov dword
+ptr [ebp+FFFFFF38], eax
+
+:00470612 83BD38FFFFFF0B          cmp dword ptr [ebp+FFFFFF38],
+0000000B
+
+:00470619 730C
+jnb 00470627
+
+:0047061B C785C8FEFFFF00000000    mov dword ptr [ebp+FFFFFEC8],
+00000000
+
+:00470625 EB0C
+jmp 00470633
+
+* Referenced by a (U)nconditional or (C)onditional Jump
+at Address:
+|:00470619(C)
+|
+
+* Reference To: MSVBVM50.__vbaGenerateBoundsError, Ord:0000h
+           |
+
+:00470627 FF1500A44700            Call dword
+ptr [0047A400]
+
+:0047062D 8985C8FEFFFF            mov dword
+ptr [ebp+FFFFFEC8], eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump
+at Address:
+|:00470625(U)
+|
+
+:00470633 8B4DDC                  mov
+ecx, dword ptr [ebp-24]
+
+:00470636 81E1FF000000            and ecx, 000000FF
+
+:0047063C 898D3CFFFFFF            mov dword
+ptr [ebp+FFFFFF3C], ecx
+
+:00470642 83BD3CFFFFFF0B          cmp dword ptr [ebp+FFFFFF3C],
+0000000B
+
+:00470649 730C
+jnb 00470657
+
+:0047064B C785C4FEFFFF00000000    mov dword ptr [ebp+FFFFFEC4],
+00000000
+
+:00470655 EB0C
+jmp 00470663
+
+* Referenced by a (U)nconditional or (C)onditional Jump
+at Address:
+|:00470649(C)
+|
+
+* Reference To: MSVBVM50.__vbaGenerateBoundsError, Ord:0000h
+           |
+
+:00470657 FF1500A44700            Call dword
+ptr [0047A400]
+
+:0047065D 8985C4FEFFFF            mov dword
+ptr [ebp+FFFFFEC4], eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump
+at Address:
+|:00470655(U)
+|
+
+:00470663 8B559C                  mov
+edx, dword ptr [ebp-64]
+
+:00470666 039538FFFFFF            add edx, dword
+ptr [ebp+FFFFFF38]
+
+:0047066C 660FB60A                movzx
+cx, byte ptr [edx]
+
+:00470670 66034DD4                add
+cx, word ptr [ebp-2C]
+           ====>如果大于5A则加FFEE，再取得数的低位
+           ====>如果小于41则加0012
+     2、    ====>处理80：80+FFEE=6E+FFEE=5C+FFEE=4A
+                     3、
+   ====>处理D4：D4+FFEE=C2+FFEE=B0+……=68+FFEE=56
+                     4、
+   ====>处理08：08+0012=1A+0012=2C+0012=3E+0012=50
+                     6、
+   ====>处理96：96+FFEE=84+FFEE=72+FFEE=60+FFEE=4E
+                     7、
+   ====>处理D6：D6+FFEE=C4+FFEE=B2+……=6A+FFEE=58
+                     8、
+   ====>处理1D：1D+0012=2F+0012=41
+                     10、
+  ====>处理94：94+0012=82+0012=70+0012=5E+0012=4C
+
+:00470674 0F80F8020000            jo 00470972
+
+* Reference To: MSVBVM50.__vbaUI1I2, Ord:0000h
+           |
+
+:0047067A FF1558A44700            Call dword
+ptr [0047A458]
+
+:00470680 8B4D9C                  mov
+ecx, dword ptr [ebp-64]
+
+:00470683 038D3CFFFFFF            add ecx, dword
+ptr [ebp+FFFFFF3C]
+
+:00470689 8801
+mov byte ptr [ecx], al
+           ====>最后得出：4A 4A 56 50 43 4E 58
+41 4B 4C
+                  4A 4A 56 50
+43 4E 58 41 4B 4C 分别所对应的字符是：JJVPCNXAKL
+
+:0047068B E902FEFFFF              jmp 00470492
+
+* Referenced by a (U)nconditional or (C)onditional Jump
+at Address:
+|:004705F7(C)
+|
+
+:00470690 C745FC23000000          mov [ebp-04], 00000023
+
+:00470697 E96AFCFFFF              jmp 00470306
+
+* Referenced by a (U)nconditional or (C)onditional Jump
+at Address:
+|:00470321(C)
+|
+
+:0047069C C745FC24000000          mov [ebp-04], 00000024
+
+:004706A3 B909000000              mov ecx,
+00000009
+
+* Reference To: MSVBVM50.__vbaUI1I2, Ord:0000h
+           |
+
+:004706A8 FF1558A44700            Call dword
+ptr [0047A458]
+
+:004706AE 888510FFFFFF            mov byte ptr
+[ebp+FFFFFF10], al
+
+:004706B4 C68514FFFFFF01          mov byte ptr [ebp+FFFFFF14],
+01
+
+:004706BB 33C9
+xor ecx, ecx
+
+* Reference To: MSVBVM50.__vbaUI1I2, Ord:0000h
+           |
+
+:004706BD FF1558A44700            Call dword
+ptr [0047A458]
+
+:004706C3 8845DC                  mov
+byte ptr [ebp-24], al
+
+:004706C6 EB12
+```
