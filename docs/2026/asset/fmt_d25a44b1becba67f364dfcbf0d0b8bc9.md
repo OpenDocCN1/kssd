@@ -1,0 +1,284 @@
+
+```
+.text:0040502E                 or      byte ptr [ebp+var_4+2], 4
+
+.text:00405032                 jmp     short loc_4050AA
+
+.text:00405034 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+
+.text:00405034
+
+.text:00405034 loc_405034:                             ; CODE XREF: sub_404D84+2A8j
+
+.text:00405034                 push    0               ; hTemplateFile
+
+.text:00405036                 push    80h             ; dwFlagsAndAttributes
+
+.text:0040503B                 push    3               ; dwCreationDisposition
+
+.text:0040503D                 push    0               ; lpSecurityAttributes
+
+.text:0040503F                 push    3               ; dwShareMode
+
+.text:00405041                 push    edi             ; dwDesiredAccess
+
+.text:00405042                 push    [ebp+var_C]     ; lpFileName
+
+.text:00405045                 call    esi ; CreateFileW
+
+.text:00405047                 mov     esi, eax
+
+.text:00405049                 cmp     esi, 0FFFFFFFFh
+
+.text:0040504C                 jz      short loc_4050AA
+
+.text:0040504E                 or      [ebp+var_4], 3
+
+.text:00405052                 lea     eax, [ebp+var_50]
+
+.text:00405055                 push    0               ; lpOverlapped
+
+.text:00405057                 push    eax             ; lpNumberOfBytesRead
+
+.text:00405058                 lea     eax, [ebp+var_32E4]
+
+.text:0040505E                 push    0FFFh           ; nNumberOfBytesToRead
+
+.text:00405063                 push    eax             ; lpBuffer
+
+.text:00405064                 push    esi             ; hFile
+
+.text:00405065                 call    ds:ReadFile
+
+.text:0040506B                 test    eax, eax
+
+.text:0040506D                 jz      short loc_40509F
+
+.text:0040506F                 mov     ecx, [ebp+var_50]
+
+.text:00405072                 cmp     ecx, 8
+
+.text:00405075                 jb      short loc_40509F
+
+.text:00405077                 lea     ecx, [ebp+ecx+var_32E4]
+
+.text:0040507E                 lea     edx, [ebp+var_32E4]
+
+.text:00405084                 cmp     edx, ecx
+
+.text:00405086                 lea     eax, [ebp+var_32E4]
+
+.text:0040508C                 jnb     short loc_405096
+
+.text:0040508E
+
+.text:0040508E loc_40508E:                             ; CODE XREF: sub_404D84+310j
+
+.text:0040508E                 xor     byte ptr [eax], 0A5h
+
+.text:00405091                 inc     eax
+
+.text:00405092                 cmp     eax, ecx
+
+.text:00405094                 jb      short loc_40508E
+
+.text:00405096
+
+.text:00405096 loc_405096:                             ; CODE XREF: sub_404D84+308j
+
+.text:00405096                 mov     [ebp+var_1C], 1
+
+.text:0040509D                 jmp     short loc_4050A3
+
+.text:0040509F ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+
+.text:0040509F
+
+.text:0040509F loc_40509F:                             ; CODE XREF: sub_404D84+2E9j
+
+.text:0040509F                                         ; sub_404D84+2F1j
+
+.text:0040509F                 or      [ebp+var_4], 4
+
+.text:004050A3
+
+.text:004050A3 loc_4050A3:                             ; CODE XREF: sub_404D84+319j
+
+.text:004050A3                 push    esi             ; hObject
+
+.text:004050A4                 call    ds:CloseHandle
+
+.text:004050AA
+
+.text:004050AA loc_4050AA:                             ; CODE XREF: sub_404D84+2AEj
+
+.text:004050AA                                         ; sub_404D84+2C8j
+
+.text:004050AA                 xor     edi, edi
+
+.text:004050AC                 cmp     [ebp+Arg_Key], edi
+
+.text:004050AF                 jz      short loc_4050CB
+
+.text:004050B1                 push    [ebp+Arg_Key]
+
+.text:004050B4                 mov     ecx, [ebp+Var_CalClassAddr]
+
+.text:004050B7                 call    sub_405679      ; 一个重要的地方
+
+.text:004050BC                 test    eax, eax
+
+.text:004050BE                 jnz     loc_4051A9
+
+.text:004050C4                 push    0FFFFFFFEh
+
+.text:004050C6                 jmp     loc_40552D
+
+.text:004050CB ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+
+.text:004050CB
+
+.text:004050CB loc_4050CB:                             ; CODE XREF: sub_404D84+32Bj
+
+.text:004050CB                 test    byte ptr [ebp+var_4], 1
+
+.text:004050CF                 jz      loc_4051A9
+
+.text:004050D5                 cmp     [ebp+var_40], edi
+
+.text:004050D8                 jz      loc_4051A1
+
+.text:004050DE                 cmp     [ebp+var_44], edi
+
+.text:004050E1                 jz      loc_4051A1
+
+.text:004050E7                 mov     eax, [ebp+NumberOfBytesRead]
+
+.text:004050EA                 lea     ecx, [eax+1]
+
+.text:004050ED                 cmp     [ebp+cbData], ecx
+
+.text:004050F0                 jnz     loc_4051A1
+
+.text:004050F6                 push    eax
+
+.text:004050F7                 lea     eax, [ebp+Buffer]
+
+.text:004050FD                 push    eax
+
+.text:004050FE                 lea     eax, [ebp+Data]
+
+.text:00405104                 push    eax
+
+.text:00405105                 call    memcmp
+
+.text:0040510A                 add     esp, 0Ch
+
+.text:0040510D                 test    eax, eax
+
+.text:0040510F                 jnz     loc_4051A1
+
+.text:00405115                 cmp     [ebp+var_54], edi
+
+.text:00405118                 mov     eax, [ebp+NumberOfBytesRead]
+
+.text:0040511B                 jz      short loc_405125
+
+.text:0040511D                 and     [ebp+eax+Data], 0
+
+.text:00405125
+
+.text:00405125 loc_405125:                             ; CODE XREF: sub_404D84+397j
+
+.text:00405125                 or      byte ptr [ebp+var_4+1], 20h
+
+.text:00405129                 cmp     [ebp+var_1C], edi
+
+.text:0040512C                 jz      short loc_405153
+
+.text:0040512E                 cmp     [ebp+var_50], eax
+
+.text:00405131                 jnz     short loc_4051A1
+
+.text:00405133                 push    eax
+
+.text:00405134                 lea     eax, [ebp+Buffer]
+
+.text:0040513A                 push    eax
+
+.text:0040513B                 lea     eax, [ebp+var_32E4]
+
+.text:00405141                 push    eax
+
+.text:00405142                 call    memcmp
+
+.text:00405147                 add     esp, 0Ch
+
+.text:0040514A                 test    eax, eax
+
+.text:0040514C                 jnz     short loc_4051A1
+
+.text:0040514E                 mov     eax, [ebp+NumberOfBytesRead]
+
+.text:00405151                 jmp     short loc_40515D
+
+.text:00405153 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+
+.text:00405153
+
+.text:00405153 loc_405153:                             ; CODE XREF: sub_404D84+3A8j
+
+.text:00405153                 cmp     [ebp+eax+Data], 0
+
+.text:0040515B                 jnz     short loc_4051A1
+
+.text:0040515D
+
+.text:0040515D loc_40515D:                             ; CODE XREF: sub_404D84+3CDj
+
+.text:0040515D                 mov     esi, [ebp+Var_CalClassAddr]
+
+.text:00405160                 mov     ecx, [ebp+Buffer]
+
+.text:00405166                 cmp     eax, 8
+
+.text:00405169                 mov     [esi+30Ch], ecx
+
+.text:0040516F                 mov     ecx, [ebp+var_22E0]
+
+.text:00405175                 mov     [esi+310h], ecx
+
+.text:0040517B                 jbe     loc_405617
+
+.text:00405181                 add     eax, 0FFFFFFF8h
+
+.text:00405184                 push    offset unk_46ABA8
+
+.text:00405189                 push    eax
+
+.text:0040518A                 lea     eax, [ebp+var_22DC]
+
+.text:00405190                 push    eax
+
+.text:00405191                 call    Sub_Cal1
+
+.text:00405196                 mov     [esi+31Ch], eax
+
+.text:0040519C                 jmp     loc_405617
+
+.text:004051A1 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+
+.text:004051A1
+
+.text:004051A1 loc_4051A1:                             ; CODE XREF: sub_404D84+354j
+
+.text:004051A1                                         ; sub_404D84+35Dj ...
+
+.text:004051A1                 or      edi, 0FFFFFFFFh
+
+.text:004051A4                 jmp     loc_40552E
+
+.text:004051A9 ; 哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪哪?
+
+.text:004051A9
+```
