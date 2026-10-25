@@ -1,0 +1,119 @@
+
+# 菜鸟破解录(17)之 BackupXpress Pro (3千字)
+
+## 软件信息
+
+- 软件名称：BackupXpress Pro
+- 版本：v2.50.058
+- 简介：BACKUPXpress有许许多多贴心的设计来帮你安排你的备份行程。你只要排除你不要备份的暂存档或无用的资料档的类型，剩下的工作都交给它来帮你搞定。甚至还能利用Email或Ftp来帮你制作远端备份哦！
+- 作者：xiA Qin
+- 级别：很菜....很菜....
+- 解密日前：2000年8月3日
+- 解密工具：Trw2000 1.22
+- 破解目的：学习注册码的破解。（简单）
+- 说明：本文是在我的软件破解记录上整理出来的。如若有纰漏，请各位大侠多指教！
+
+## 破解过程
+
+首先运行 BackupXpress Pro。
+
+输入注册信息
+
+```text
+name:          xiA Qin
+    &任意输入
+Serial Number:  9876543210          &任意输入
+```
+
+下指令 `bpx hmemcpy` //下中断点
+
+按F5回到程序，按确定，这时会被Trw2000拦截到。
+
+下指令 `bd \*` //屏障中断点
+
+下指令 `pmodule` //直接跳到程序的领空
+
+按F10来到下面指令
+
+```asm
+.................................
+
+015F:00518890  LEA      EAX,[EBP-10]
+015F:00518893  PUSH      EAX
+015F:00518894  LEA      EDX,[EBP-14]
+015F:00518897  MOV      EAX,[005322FC]
+015F:0051889C  MOV      EAX,[EAX]
+015F:0051889E  CALL      00452FF8
+015F:005188A3  MOV      EAX,[EBP-14]
+015F:005188A6  XOR      ECX,ECX
+015F:005188A8  MOV      EDX,[EBP-04]
+//载入姓名，根据姓名运算注册码
+015F:005188AB  CALL      0046A090
+015F:005188B0  LEA      EAX,[EBP-08]
+015F:005188B3  PUSH      EAX
+015F:005188B4  LEA      EDX,[EBP-18]
+015F:005188B7  MOV      EAX,[005322FC]
+015F:005188BC  MOV      EAX,[EAX]
+015F:005188BE  CALL      00452FF8
+015F:005188C3  MOV      EAX,[EBP-18]
+015F:005188C6  XOR      ECX,ECX
+015F:005188C8  MOV      EDX,[EBP-04]
+015F:005188CB  CALL      0046A090
+015F:005188D0  LEA      EAX,[EBP-0C]
+015F:005188D3  PUSH      EAX
+015F:005188D4  LEA      EDX,[EBP-1C]
+015F:005188D7  MOV      EAX,[005322FC]
+015F:005188DC  MOV      EAX,[EAX]
+015F:005188DE  CALL      00452FF8
+015F:005188E3  MOV      EAX,[EBP-1C]
+015F:005188E6  XOR      ECX,ECX
+015F:005188E8  MOV      EDX,[EBP-04]
+015F:005188EB  CALL      0046A090
+015F:005188F0  LEA      EDX,[EBP-20]
+015F:005188F3  MOV      EAX,[EBP-10]
+//正确的注册码 D EAX
+015F:005188F6  CALL      004090D4
+015F:005188FB  MOV      EAX,[EBP-20]
+015F:005188FE  PUSH      EAX
+015F:005188FF  LEA      EDX,[EBP-28]
+015F:00518902  MOV      EAX,[EBX+000002F0]
+015F:00518908  CALL      00434C24
+015F:0051890D  MOV      EAX,[EBP-28]
+015F:00518910  LEA      EDX,[EBP-24]
+015F:00518913  CALL      004090D4
+015F:00518918  MOV      EDX,[EBP-24]    //输入的注册码。
+  D EDX
+015F:0051891B  POP      EAX
+    //正确的注册码。    D EAX
+015F:0051891C  CALL      004042D0
+//注册码比较核心。
+015F:00518921  JNZ      00518AF5
+//跳到00518af5,就死定了。
+015F:00518927  LEA      EDX,[EBP-30]
+015F:0051892A  MOV      EAX,[EBX+000002EC]
+015F:00518930  CALL      00434C24
+015F:00518935  MOV      EAX,[EBP-30]
+015F:00518938  LEA      EDX,[EBP-2C]
+015F:0051893B  CALL      00468F44
+.............................
+
+015F:00518AF5  MOV      EAX,[EBP-08]
+015F:00518AF8  MOV      EDX,[EBP-0C]
+015F:00518AFB  CALL      004042D0
+015F:00518B00  JNZ      00518B0D
+015F:00518B02  MOV      EAX,[EBX+0000031C]
+015F:00518B08  CALL      0046B298
+      //注册失败对话框
+015F:00518B0D  MOV      DWORD PTR [EBX+00000234],00000001
+015F:00518B17  XOR      EAX,EAX
+015F:00518B19  POP      EDX
+015F:00518B1A  POP      ECX
+015F:00518B1B  POP      ECX
+```
+
+整理一下,输入注册信息。
+
+```text
+Name:          xiA Qin
+Serial Number: 9876-64-8636-VM
+```
