@@ -1,0 +1,135 @@
+
+# 汇编代码片段
+
+```
+0042F3A7   |.  33F6                xor esi,esi
+
+0042F3A9   |.  85C0                test eax,eax                                        ；检测字符串是否为空
+
+0042F3AB   |.  7E 2A               jle short donor.0042F3D7                        ；是就跳了
+
+0042F3AD   |.  8A4424 10           mov al,byte ptr ss:[esp+10]                        ；目标字符放入eax寄存器待用
+
+0042F3B1   |.  53                  push ebx
+
+0042F3B2   |.  55                  push ebp
+
+0042F3B3   |.  8B6C24 14           mov ebp,dword ptr ss:[esp+14]
+
+0042F3B7   |>  8B51 04             /mov edx,dword ptr ds:[ecx+4]                ; 得到待处理字符串的地址
+0042F3BA   |.  03D6                |add edx,esi
+0042F3BC   |.  0FBE1A              |movsx ebx,byte ptr ds:[edx]                        ；取出字符串的每个字符，edx相当于一个累加器
+0042F3BF   |.  3BDD                |cmp ebx,ebp                                        ；与特征字符作比较。
+0042F3C1   |.  75 03               |jnz short donor.0042F3C6                        ；如果不同则跳到下面继续
+0042F3C3   |.  8802                |mov byte ptr ds:[edx],al                        ；如果相同，则用目标字符替换该特征字符
+0042F3C5   |.  47                  |inc edi                                        ；edi相当于一个计数器，记录被转换了的字符个数
+0042F3C6   |>  8B51 08             |mov edx,dword ptr ds:[ecx+8]                ；取得字符串字符个数，检测是否到了字符串尾，
+0042F3C9   |.  46                  |inc esi                                        ；是则跳出，否则就循环
+0042F3CA   |.  3BF2                |cmp esi,edx
+0042F3CC   |.^ 7C E9               \jl short donor.0042F3B7
+0042F3CE   |.  5D                  pop ebp
+0042F3CF   |.  8BC7                mov eax,edi                                   ;  eax为互换后的个数
+0042F3D1   |.  5B                  pop ebx
+0042F3D2   |.  5F                  pop edi
+0042F3D3   |.  5E                  pop esi
+0042F3D4   |.  C2 0800             retn 8
+00402FE5   |> \8BCE                mov ecx,esi
+00402FE7   |.  E8 C4C70200         call donor.0042F7B0
+00402FEC   |.  B9 F6FFFFFF         mov ecx,-0A
+00402FF1   |.  2BCB                sub ecx,ebx
+00402FF3   |.  83C3 09             add ebx,9
+00402FF6   |.  03C1                add eax,ecx
+00402FF8   |.  8BCE                mov ecx,esi
+00402FFA   |.  50                  push eax
+00402FFB   |.  53                  push ebx
+00402FFC   |.  57                  push edi
+00402FFD   |.  E8 1EC20200         call donor.0042F220                                ；第二次解码的入口
+00403002   |.  57                  push edi
+00403003   |.  8BCE                mov ecx,esi
+00403005   |.  E8 76C00200         call donor.0042F080
+0040300A   |.  8BCE                mov ecx,esi
+0040300C   |.  E8 CFC30200         call donor.0042F3E0                                ；在这里进行具体的解码工作
+00403011   |.  68 88D04400         push donor.0044D088
+00403016   |.  8D4C24 14           lea ecx,dword ptr ss:[esp+14]
+0040301A   |.  E8 61C00200         call donor.0042F080
+0040301F   |.  33DB                xor ebx,ebx
+0042F220   /$  53                  push ebx
+0042F221   |.  56                  push esi                                        ；这一部分依然是对字符串的长度做出判断。
+0042F222   |.  8B7424 10           mov esi,dword ptr ss:[esp+10]
+0042F226   |.  57                  push edi
+0042F227   |.  8BF9                mov edi,ecx
+0042F229   |.  3B77 08             cmp esi,dword ptr ds:[edi+8]
+0042F22C   |.  7E 08               jle short donor.0042F236
+0042F22E   |.  5F                  pop edi
+0042F22F   |.  5E                  pop esi
+0042F230   |.  33C0                xor eax,eax
+0042F232   |.  5B                  pop ebx
+0042F233   |.  C2 0C00             retn 0C
+0042F236   |>  8B5C24 18           mov ebx,dword ptr ss:[esp+18]
+0042F23A   |.  83FB FF             cmp ebx,-1
+0042F23D   |.  75 1C               jnz short donor.0042F25B
+0042F25B   |> \8B47 04             mov eax,dword ptr ds:[edi+4]                        ；这里用于去掉字符串中无意义的字符串
+0042F25E   |.  8B4C24 10           mov ecx,dword ptr ss:[esp+10]                ；也就是dnmp：//这些，具体的有17个无用字符
+0042F262   |.  8D53 01             lea edx,dword ptr ds:[ebx+1]
+0042F265   |.  03C6                add eax,esi
+0042F267   |.  52                  push edx                                      ; /n
+0042F268   |.  50                  push eax                                      ; |String2
+0042F269   |.  51                  push ecx                                      ; |String1
+0042F26A   |.  FF15 C8F04300       call dword ptr ds:[<&KERNEL32.lstrcpynA>]     ; \lstrcpynA
+0042F3E0   /$  55                  push ebp
+0042F3E1   |.  56                  push esi
+0042F3E2   |.  57                  push edi
+0042F3E3   |.  8B79 08             mov edi,dword ptr ds:[ecx+8]
+0042F3E6   |.  4F                  dec edi
+0042F3E7   |.  33F6                xor esi,esi
+0042F3E9   |.  8BC7                mov eax,edi
+0042F3EB   |.  99                  cdq
+0042F3EC   |.  2BC2                sub eax,edx
+0042F3EE   |.  8BE8                mov ebp,eax
+0042F3F0   |.  D1FD                sar ebp,1
+0042F3F2   |.  78 20               js short donor.0042F414
+0042F3F4   |.  53                  push ebx
+0042F3F5   |>  8B51 04             /mov edx,dword ptr ds:[ecx+4]                ; 字符串取反
+0042F3F8   |.  8BDA                |mov ebx,edx
+0042F3FA   |.  0FBE0432            |movsx eax,byte ptr ds:[edx+esi]                ；
+0042F3FE   |.  2BDE                |sub ebx,esi
+0042F400   |.  8A1C3B              |mov bl,byte ptr ds:[ebx+edi]                ；循环得到下一个字符
+0042F403   |.  881C32              |mov byte ptr ds:[edx+esi],bl                ；放入目标字符串中
+0042F406   |.  8B51 04             |mov edx,dword ptr ds:[ecx+4]
+0042F409   |.  2BD6                |sub edx,esi
+0042F40B   |.  46                  |inc esi
+0042F40C   |.  3BF5                |cmp esi,ebp
+0042F40E   |.  88043A              |mov byte ptr ds:[edx+edi],al
+0042F411   |.^ 7E E2               \jle short donor.0042F3F5
+0042F413   |.  5B                  pop ebx
+0042F414   |>  5F                  pop edi
+0042F415   |.  5E                  pop esi
+0042F416   |.  5D                  pop ebp
+0042F417   \.  C3                  retn
+0040302C   |.  48                  dec eax                                        ；来到这里也到了解码的最后一步了
+0040302D   |.  85C0                test eax,eax
+0040302F   |.  7E 4F               jle short donor.00403080
+00403031   |>  6A 02               /push 2
+00403033   |.  53                  |push ebx
+00403034   |.  57                  |push edi
+00403035   |.  8BCE                |mov ecx,esi
+00403037   |.  E8 E4C10200         |call donor.0042F220
+0040303C   |.  8A07                |mov al,byte ptr ds:[edi]                        ；循环取字符串的下一个奇数字符
+0040303E   |.  3C 41               |cmp al,41                                        ；比较是否大于‘A’
+00403040   |.  0FBEC0              |movsx eax,al                                ；先将字符保存
+00403043   |.  7C 05               |jl short donor.0040304A                        ；如果小于就减去30，大于等于就减去37。也就相
+00403045   |.  83E8 37             |sub eax,37                                        ；当于ascii编码的数字被转化为相应的Hex值
+00403048   |.  EB 03               |jmp short donor.0040304D
+0040304A   |>  83E8 30             |sub eax,30
+0040304D   |>  8A4F 01             |mov cl,byte ptr ds:[edi+1]                        ；循环取字符串的下一个偶数字符
+00403050   |.  80F9 41             |cmp cl,41
+00403053   |.  0FBEC9              |movsx ecx,cl
+00403056   |.  7C 05               |jl short donor.0040305D
+00403058   |.  83E9 37             |sub ecx,37
+0040305B   |.  EB 03               |jmp short donor.00403060
+0040305D   |>  83E9 30             |sub ecx,30                                        ；同上作相应处理
+00403060   |>  C0E0 04             |shl al,4                                    ；左移4位，也就是乘于2的4次方等于乘于16
+00403063   |.  02C1                |add al,cl                                        ；将两个字符组合为一个新的ascii字符
+00403065   |.  8B4C24 2C           |mov ecx,dword ptr ss:[esp+2C]
+00403069   |.  83C3 02             |add ebx,2
+```
