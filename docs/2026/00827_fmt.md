@@ -1,0 +1,223 @@
+
+# [旧帖][原创]把从OD上复制下来的文本转化成为可用的shellcode的python小程序！0.00雪花
+
+刚学习python和漏洞利用，在编写完成汇编，使用OD获得机器码，然后复制需要的代码到文本中，但是机器码总是和汇编一起复制过去，让人很是郁闷，就写了一个小程序，直接获得其中的机器码，生成`\x00`的可直接使用的shellcode
+
+```
+00401028  |. FC                    CLD
+
+00401029  |. 68 6A0A381E           PUSH 1E380A6A
+
+0040102E  |. 68 6389D14F           PUSH 4FD18963
+
+00401033  |. 68 3274910C           PUSH 0C917432
+
+00401038  |. 8BF4                  MOV ESI,ESP
+
+0040103A  |. 8D7E F4               LEA EDI,DWORD PTR DS:[ESI-C]
+
+0040103D  |. 33DB                  XOR EBX,EBX
+
+0040103F  |. B7 04                 MOV BH,4
+
+00401041  |. 2BE3                  SUB ESP,EBX
+
+00401043  |. 66:BB 3332            MOV BX,3233
+
+00401047  |. 53                    PUSH EBX
+
+00401048  |. 68 75736572           PUSH 72657375
+
+0040104D  |. 54                    PUSH ESP
+
+0040104E  |. 33D2                  XOR EDX,EDX
+
+00401050  |. 64:8B5A 30            MOV EBX,DWORD PTR FS:[EDX+30]
+
+00401054  |. 8B4B 0C               MOV ECX,DWORD PTR DS:[EBX+C]
+
+00401057  |. 8B49 1C               MOV ECX,DWORD PTR DS:[ECX+1C]
+
+0040105A  |. 8B09                  MOV ECX,DWORD PTR DS:[ECX]
+
+0040105C  |. 8B69 08               MOV EBP,DWORD PTR DS:[ECX+8]
+
+0040105F  |> AD                    /LODS DWORD PTR DS:[ESI]
+
+00401060  |. 3D 6A0A381E           |CMP EAX,1E380A6A
+
+00401065  |. 75 05                 |JNZ SHORT findApi.0040106C
+
+00401067  |. 95                    |XCHG EAX,EBP
+
+00401068  |. FF57 F8               |CALL DWORD PTR DS:[EDI-8]
+
+0040106B  |. 95                    |XCHG EAX,EBP
+
+0040106C  |> 60                    |PUSHAD
+
+0040106D  |. 8B45 3C               |MOV EAX,DWORD PTR SS:[EBP+3C]
+
+00401070  |. 8B4C05 78             |MOV ECX,DWORD PTR SS:[EBP+EAX+78]
+
+00401074  |. 03CD                  |ADD ECX,EBP
+
+00401076  |. 8B59 20               |MOV EBX,DWORD PTR DS:[ECX+20]
+
+00401079  |. 03DD                  |ADD EBX,EBP
+
+0040107B  |. 33FF                  |XOR EDI,EDI
+
+0040107D  |> 47                    |/INC EDI
+
+0040107E  |. 8B34BB                ||MOV ESI,DWORD PTR DS:[EBX+EDI*4]
+
+00401081  |. 03F5                  ||ADD ESI,EBP
+
+00401083  |. 99                    ||CDQ
+
+00401084  |> 0FBE06                ||/MOVSX EAX,BYTE PTR DS:[ESI]
+
+00401087  |. 3AC4                  |||CMP AL,AH
+
+00401089  |. 74 08                 |||JE SHORT findApi.00401093
+
+0040108B  |. C1CA 07               |||ROR EDX,7
+
+0040108E  |. 03D0                  |||ADD EDX,EAX
+
+00401090  |. 46                    |||INC ESI
+
+00401091  |.^EB F1                 ||\JMP SHORT findApi.00401084
+
+00401093  |> 3B5424 1C             ||CMP EDX,DWORD PTR SS:[ESP+1C]
+
+00401097  |.^75 E4                 |\JNZ SHORT findApi.0040107D
+
+00401099  |. 8B59 1C               |MOV EBX,DWORD PTR DS:[ECX+1C]
+
+0040109C  |. 03DD                  |ADD EBX,EBP
+
+0040109E  |. 032CBB                |ADD EBP,DWORD PTR DS:[EBX+EDI*4]
+
+004010A1  |? 95                    XCHG EAX,EBP
+
+004010A2  |. 5F                    |POP EDI
+
+004010A3  |? AB                    STOS DWORD PTR ES:[EDI]
+
+004010A4  |? 57                    PUSH EDI
+
+004010A5  |. 61                    |POPAD
+
+004010A6  |? 3D 6A0A381E           CMP EAX,1E380A6A
+
+004010AB  |.^75 B2                 |JNZ SHORT findApi.0040105F
+
+004010AD  |. 33DB                  |XOR EBX,EBX
+
+004010AF  |. 53                    |PUSH EBX
+
+004010B0  |? 68 77657374           PUSH 74736577
+
+004010B5  |? 68 6661696C           PUSH 6C696166
+
+004010BA  |? 8BC4                  MOV EAX,ESP
+
+004010BC  |? 53                    PUSH EBX
+
+004010BD  |? 50                    PUSH EAX
+
+004010BE  |. 50                    PUSH EAX
+
+004010BF  |? 53                    PUSH EBX
+
+004010C0  |? FF57 FC               CALL DWORD PTR DS:[EDI-4]
+
+004010C3  |. 53                    PUSH EBX
+
+004010C4  |? FF57 F8               CALL DWORD PTR DS:[EDI-8]
+```
+
+这是一段oday上的从OD复制下来的汇编
+
+下面我使用小程序后得到如下：
+
+```
+"\xFC\x68\x6A\x0A\x38\x1E\x68\x63\x89\xD1\x4F\x68\x32\x74\x91\x0C"
+
+"\x8B\xF4\x8D\x7E\xF4\x33\xDB\xB7\x04\x2B\xE3\x66\xBB\x33\x32\x53"
+
+"\x68\x75\x73\x65\x72\x54\x33\xD2\x64\x8B\x5A\x30\x8B\x4B\x0C\x8B"
+
+"\x49\x1C\x8B\x09\x8B\x69\x08\xAD\x3D\x6A\x0A\x38\x1E\x75\x05\x95"
+
+"\xFF\x57\xF8\x95\x60\x8B\x45\x3C\x8B\x4C\x05\x78\x03\xCD\x8B\x59"
+
+"\x20\x03\xDD\x33\xFF\x47\x8B\x34\xBB\x03\xF5\x99\x0F\xBE\x06\x3A"
+
+"\xC4\x74\x08\xC1\xCA\x07\x03\xD0\x46\xEB\xF1\x3B\x54\x24\x1C\x75"
+
+"\xE4\x8B\x59\x1C\x03\xDD\x03\x2C\xBB\x95\x5F\xAB\x57\x61\x3D\x6A"
+
+"\x0A\x38\x1E\x75\xB2\x33\xDB\x53\x68\x77\x65\x73\x74\x68\x66\x61"
+
+"\x69\x6C\x8B\xC4\x53\x50\x50\x53\xFF\x57\xFC\x53\xFF\x57\xF8"
+```
+
+本人初学各种知识，求各位大神多多给点意见，怎样开始一个黑客之旅？谢谢～
+
+同时求给个激活码，以后能够更好的交流！
+
+之后附上小程序的代码，装上`python2.7`就可以使用了
+
+```
+"""
+
+python 2.7
+
+author:hacklvwar
+
+date:2012/10/24
+
+use:createshellcode
+
+"""
+
+incode=raw_input("Enter the input filename:")
+outcode=raw_input("Enter the output filename:")
+infile=open(incode,'r')
+outfile=open(outcode,'a+')
+flag=True
+outlines=''
+
+while flag:
+    linecode=infile.readline()
+    if linecode:
+        outline=linecode[13:35].strip()
+        lines=outline.split(' ')
+        outline=''.join(lines)
+        lines=outline.split(':')
+        outline=''.join(lines)
+        newline=''
+        for c in range(0,len(outline)-1,2):
+            newline+='\\x'+outline[c:c+2]
+        outlines+=newline
+    else:
+        flag=False
+
+newlines=''
+for c in range(0,len(outlines)-1,64):
+    newlines+='\"'+outlines[c:c+64]+'\"\n'
+outfile.writelines(newlines)
+infile.close()
+outfile.close()
+```
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [`pytool_create_shellcode.zip`](javascript:void(0);)
+
+  （0.49kb，24次下载）
