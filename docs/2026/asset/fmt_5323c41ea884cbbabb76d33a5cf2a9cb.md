@@ -1,0 +1,101 @@
+
+
+```
+If Command2.Caption = "Get now !" Then
+
+    If Len(Text1.Text) = 0 Then
+        message_enter_name = MsgBox("Use a name of at least 1 Char,please!", 4096 + vbExclamation, "Information")
+        Exit Sub
+    End If
+
+    User_Name = Text1.Text
+    CDQ = 0
+    Base = 1
+
+    SN_1 = ((Base + 2) Mod 9 + Asc(Mid$(User_Name, 1)) + 8) Mod 11 + 112
+    Mod_Number = (Base + 9) Mod 5
+
+    If Mid$(User_Name, 2) <> "" Then
+        SN_2 = ((((((Asc(Mid$(User_Name, 2)) + Mod_Number + 44) Xor Mod_Number) - Mod_Number) And 7) Xor Mod_Number) - Mod_Number) + 65
+    Else
+        SN_2 = ((((((Mod_Number + 44) Xor Mod_Number) - Mod_Number) And 7) Xor Mod_Number) - Mod_Number) + 65
+    End If
+
+    Mod_Number = (Base + 9) Mod 3
+
+    If Mid$(User_Name, 3) <> "" Then
+        SN_3 = (((((Asc(Mid$(User_Name, 3)) + Mod_Number Xor CDQ) - CDQ) And 7) Xor CDQ) - CDQ) + 50
+    Else
+        SN_3 = (((((Mod_Number Xor CDQ) - CDQ) And 7) Xor CDQ) - CDQ) + 50
+    End If
+
+    Mod_Number = ((((((Base + 4) Xor CDQ) - CDQ) And 7) Xor CDQ) - CDQ)
+
+    If Mid$(User_Name, 4) <> "" Then
+        SN_4 = ((Asc(Mid$(User_Name, 4)) + Mod_Number + 2) Mod 5) + 74
+    Else
+        SN_4 = ((Mod_Number + 2) Mod 5) + 74
+    End If
+
+    If Mid$(User_Name, 5) <> "" Then
+        SN_5 = (Asc(Mid$(User_Name, 5)) + (Base + 3) Mod 6 + 7) Mod 11 + 97
+    Else
+        SN_5 = ((Base + 3) Mod 6 + 7) Mod 11 + 97
+    End If
+
+    Mod_Number = (((((Base + 6) Xor CDQ) - CDQ) And 7) Xor CDQ) - CDQ
+
+    If Mid$(User_Name, 6) <> "" Then
+        SN_6 = ((((((Asc(Mid$(User_Name, 6)) + Mod_Number + 7) Xor CDQ) - CDQ) And 7) Xor CDQ) - CDQ) + 50
+    Else
+        SN_6 = ((((((Mod_Number + 7) Xor CDQ) - CDQ) And 7) Xor CDQ) - CDQ) + 50
+    End If
+
+    Mod_Number = ((((Base + 4) Xor CDQ) - CDQ) And 3) Xor CDQ - CDQ
+
+    If Mid$(User_Name, 7) <> "" Then
+        SN_7 = ((((((Asc(Mid$(User_Name, 7)) + Mod_Number + 1) Xor CDQ) - CDQ) And 1) Xor CDQ) - CDQ) + 109
+    Else
+        SN_7 = ((((((Mod_Number + 1) Xor CDQ) - CDQ) And 1) Xor CDQ) - CDQ) + 109
+    End If
+
+    Mod_Number = (Base + 9) Mod 9
+
+    If Mid$(User_Name, 8) <> "" Then
+        SN_8 = ((((((Asc(Mid$(User_Name, 8)) + Mod_Number + 3) Xor CDQ) - CDQ) And 7) Xor CDQ) - CDQ) + 50
+    Else
+        SN_8 = ((((((Mod_Number + 3) Xor CDQ) - CDQ) And 7) Xor CDQ) - CDQ) + 50
+    End If
+
+    Mod_Number = (((((Base + 1) Xor CDQ) - CDQ) And 3) Xor CDQ) - CDQ
+
+    If Mid$(User_Name, 9) <> "" Then
+        SN_9 = ((((((Asc(Mid$(User_Name, 9)) + Mod_Number + 9) Xor CDQ) - CDQ) And 1) Xor CDQ) - CDQ) + 109
+    Else
+        SN_9 = ((((((Mod_Number + 9) Xor CDQ) - CDQ) And 1) Xor CDQ) - CDQ) + 109
+    End If
+
+    Mod_Number = (((((Base + 8) Xor CDQ) - CDQ) And 1) Xor CDQ) - CDQ
+
+    If Mid$(User_Name, 10) <> "" Then
+        SN_10 = ((Asc(Mid$(User_Name, 10)) + Mod_Number + 13) Mod 11) + 80
+    Else
+        SN_10 = ((Mod_Number + 13) Mod 11) + 80
+    End If
+
+    Text2.Text = Chr(SN_1) + Chr(SN_2) + Chr(SN_3) + Chr(SN_4) + Chr(SN_5) + Chr(SN_6) + Chr(SN_7) + Chr(SN_8) + Chr(SN_9) + Chr(SN_10)
+
+    With Command2
+        .SetFocus
+        .Font = Tahoma
+        .Caption = "Bye !"
+    End With
+
+Else
+    End
+End If
+
+End Sub
+```
+
+小菜鸟,不足之处请高手指点!
