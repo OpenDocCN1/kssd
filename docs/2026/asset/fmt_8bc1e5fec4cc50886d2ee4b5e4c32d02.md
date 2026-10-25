@@ -1,0 +1,424 @@
+
+# ReadBOOK v1.43 中文阅读程序--注册破解全攻略 一
+
+`13千字`
+
+# ReadBOOK v1.43 中文阅读程序--注册破解全攻略
+
+作者：华仔
+
+版权：China Cracking Group
+
+时间：2001.04.14
+
+由于本地上网包月制被取消，网费居高不下，太惨了，每周我只争取到两小时的上网时间（没办法，都是Money惹的祸）。朋友推荐我用`ReadBOOK v1.41`这个软件在平时多读点书，软件还不错，真正的绿色环保，不在除解压目录之外的地方留下任何痕迹（我喜欢），再一看要注册（注册事小，但有违Cracker的精神），毫不犹豫拉下了它的新版本`ReadBOOK v1.43`，心想这下可大展身手了，不想运行一看差点把我气趴下，居然是什么XXXXX专用版本，已不用注册了（如果你只是想使用这个软件，强烈建议你按一下键盘上的`Back Space`键），主窗口中XXXXX标语太打眼，这怎么行，我一定要注册它，仔细分析这个软件，发现它调用了`oem.4rb`这个插件，删除它，我们又成为未注册版本了。
+
+## 一、试运行：
+
+进入注册窗口
+
+用户名：华仔[CCG]
+
+注册码：`1974923`
+
+单击“填写完毕”按钮后，提示：“注册码错误,请重新填写注册码”。
+
+## 二、注册分析：
+
+1、注册码无法输入数字之外的任何字符，故猜测注册码可能是十进制数
+  （八进制数和二进制数也有可能，但这种情况很少见）。
+
+2、确定后马上弹出注册错误窗口，说明它立即对你输入的注册码进行了判断。设断时可从此下手。
+
+## 三、实战：
+
+用`W32dsm89`反汇编主程序，找关键字串“您已经成功地注册了”，来到以下一大串代码中（分析时我用`TRW2000`）：
+
+```
+:00409FFC BF98444600      mov      edi,00464498
+```
+//读取`ReadBook.ini`文件中`[File]`段
+
+```
+:0040A001 68A0484600      push    DWORD 004648A0
+```
+//读取`ReadBook.ini`文件`User`项
+
+```
+:0040A006 57              push
+edi
+:0040A007 E8A0D30000      call    004173AC
+```
+//读取`ReadBook.ini`文件`User`项中的值并送给`[ebp+FFFFFF44]`
+//取姓名十六进制ASCII码，结束以00为标志，并用20补足128位。
+
+```
+//BB AA D7 D0 5B 43 43 47 5D 00 20 20 20 20 20 20
+  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20
+  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20
+  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20
+  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20
+```
+
+```
+:0040A00C 83C41C          add
+esp, 1C
+:0040A00F 389D44FFFFFF    cmp      byte ptr [ebp+FFFFFF44],
+bl
+```
+//将`[ebp+FFFFFF44]`和`BL`作比较
+
+```
+:0040A015 756D            jne
+0040A084
+```
+//`[ebp+FFFFFF44]`不为空则跳到校验代码
+
+```
+..
+..
+..
+..
+```
+
+```
+:0040A084 8D8544FFFFFF    LEA      EAX,[EBP+FFFFFF44]
+:0040A08A 50              PUSH
+EAX
+:0040A08B E8E6A30200      CALL    00434476
+```
+//将大写字母转换为小写，其它类型字符不转换。
+
+```
+//BB AA D7 D0 5B 63 63 67 5D 00 20 20 20 20 20 20
+  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20
+  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20
+  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20
+  20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20
+```
+
+```
+:0040A090 8B854CFFFFFF    MOV      EAX,[EBP+FFFFFF4C]
+```
+//以姓名第12位开始向前依次取四位并送给`EAX`
+//`2020005D`
+
+```
+:0040A096 8B8D48FFFFFF    MOV      ECX,[EBP+FFFFFF48]
+```
+//以姓名第8位开始向前依次取四位并送给`ECX`
+//`6763635B`
+
+```
+:0040A09C 8BB544FFFFFF    MOV      ESI,[EBP+FFFFFF44]
+```
+//以姓名第4位开始向前依次取四位并送给`ESI`
+//`D0D7AABB`
+
+```
+:0040A0A2 03C8            ADD
+ECX,EAX
+```
+//简单的加法运算：`ECX=ECX+EAX=6763635B+2020005D=878363B8`
+
+```
+:0040A0A4 038D50FFFFFF    ADD      ECX,[EBP+FFFFFF50]
+```
+//取姓名第16位开始向前依次取四位与`ECX`相加，再将结果送给`ECX`
+//`ECX=ECX+[EBP+FFFFFF50]=878363B8+20202020=A7A383D8`
+
+```
+:0040A0AA 69F631750000    IMUL    ESI,ESI,7531
+```
+//带符号数乘法运算：`ESI=ESI*7531=D0D7AABB*7531=8A4F24CB`
+
+```
+:0040A0B0 69C931750000    IMUL    ECX,ECX,7531
+```
+//`ECX=ECX*7531=A7A383D8*7531=D18DF458`
+
+```
+:0040A0B6 C704240C434600  MOV      DWORD [ESP],0046430C
+:0040A0BD 68B5000000      PUSH    DWORD B5
+:0040A0C2 53              PUSH
+EBX
+:0040A0C3 2BF1            SUB
+ESI,ECX
+```
+//减法运算：`ESI=ESI-ECX=8A4F24CB-D18DF458=B8C13073`
+
+```
+:0040A0C5 FF1534224500    CALL    `KERNEL32!FindResourceA`
+```
+//函数说明：在模块中寻找资源
+
+```
+:0040A0CB 50              PUSH
+EAX
+:0040A0CC 53              PUSH
+EBX
+:0040A0CD FF153C224500    CALL    `KERNEL32!LoadResource`
+```
+//函数说明：返回资源句柄
+
+```
+:0040A0D3 6894484600      PUSH    DWORD 00464894
+```
+//读取`ReadBook.ini`文件
+
+```
+:0040A0D8 57              PUSH
+EDI
+:0040A0D9 8945EC          MOV
+[EBP-14],EAX
+```
+//将`EAX`的值送给`[EBP-14]`
+
+```
+:0040A0DC E8EDD20000      CALL    004173CE
+```
+//读取`ReadBook.ini`文件中`Register`的值并送给`EAX`
+
+```
+:0040A0E1 6880484600      PUSH    DWORD 00464880
+:0040A0E6 57              PUSH
+EDI
+:0040A0E7 8945F8          MOV
+[EBP-08],EAX
+```
+//将`EAX`的值送给`[EBP-08]`
+
+```
+:0040A0EA C745F012320000  MOV      DWORD [EBP-10],3212
+:0040A0F1 C745E434120000  MOV      DWORD [EBP-1C],1234
+:0040A0F8 C745E888880000  MOV      DWORD [EBP-18],8888
+:0040A0FF C745F423230000  MOV      DWORD [EBP-0C],2323
+:0040A106 E8C3D20000      CALL    004173CE
+:0040A10B 83C410          ADD
+ESP,BYTE +10
+:0040A10E 85C0            TEST
+EAX,EAX
+:0040A110 7524            JNZ
+0040A136
+:0040A112 8D45F4          LEA
+EAX,[EBP-0C]
+:0040A115 50              PUSH
+EAX
+:0040A116 8D45E8          LEA
+EAX,[EBP-18]
+:0040A119 50              PUSH
+EAX
+:0040A11A 8D45E4          LEA
+EAX,[EBP-1C]
+:0040A11D 50              PUSH
+EAX
+:0040A11E 8D45F0          LEA
+EAX,[EBP-10]
+:0040A121 50              PUSH
+EAX
+:0040A122 6860474600      PUSH    DWORD 00464760
+```
+//取硬盘盘符`C:`
+
+```
+:0040A127 FF15F8214500    CALL    `KERNEL32!GetDiskFreeSpaceA`
+```
+//函数说明：获取磁盘剩余空间
+
+```
+:0040A12D 8B45F4          MOV
+EAX,[EBP-0C]
+:0040A130 0FAF45F0        IMUL    EAX,[EBP-10]
+:0040A134 EB19            JMP
+SHORT 0040A14F
+:0040A136 8D45C4          LEA
+EAX,[EBP-3C]
+:0040A139 C745C420000000  MOV      DWORD [EBP-3C],20
+:0040A140 50              PUSH
+EAX
+:0040A141 FF15F0214500    CALL    `KERNEL32!GlobalMemoryStatus`
+```
+//函数说明：检查内存状态
+
+```
+:0040A147 8B45D0          MOV
+EAX,[EBP-30]
+:0040A14A 05CCEDFFFF      ADD      EAX,FFFFEDCC
+:0040A14F F7D0            NOT
+EAX
+:0040A151 3145F8          XOR
+[EBP-08],EAX
+:0040A154 33C0            XOR
+EAX,EAX
+```
+//`EAX=0`
+
+```
+:0040A156 A3FC644600      MOV      [004664FC],EAX
+```
+//将`EAX`的值送给`[004664FC]`
+
+```
+:0040A15B 3975F8          CMP
+[EBP-08],ESI
+```
+//将`[EBP-08]`（假注册码的十六进制）和`ESI`（真注册码）比较
+
+```
+:0040A15E 741D            JZ
+0040A17D
+```
+//如果相等则跳到注册成功窗口
+//暴破时此处改为`JMP`
+
+```
+:0040A160 8B55EC          MOV
+EDX,[EBP-14]
+```
+//将`[EBP-14]`的值送给`EDX`
+
+```
+:0040A163 8BC8            MOV
+ECX,EAX
+```
+//将`EAX`的值送给`ECX`
+
+```
+:0040A165 83E17F          AND
+ECX,BYTE +7F
+```
+//逻辑与运算：`ECX=ECX AND 7F`
+
+```
+:0040A168 03348A          ADD
+ESI,[EDX+ECX*4]
+```
+//加法运算：`ESI=ESI+[EDX+ECX*4]`
+
+```
+:0040A16B 40              INC
+  EAX
+```
+//`EAX=EAX+1`
+
+```
+:0040A16C 3DFF0F0000      CMP      EAX,0FFF
+```
+//比较`EAX`是否等于`FFF`
+
+```
+:0040A171 A3FC644600      MOV      [004664FC],EAX
+```
+//将`EAX`送给`[004664FC]`
+
+```
+:0040A176 72E3            JC
+0040A15B
+```
+//`EAX`不等于`FFF`则跳
+
+```
+:0040A178 3975F8          CMP
+[EBP-08],ESI
+```
+//将`[EBP-08]`（假注册码的十六进制）和`ESI`（真注册码）比较
+
+```
+:0040A17B 7547            JNZ
+0040A1C4
+```
+//不相等则跳到注册不成功窗口
+
+```
+:0040A17D 8B75FC          MOV
+ESI,[EBP-04]
+:0040A180 C705A4974B000100+MOV      DWORD [004B97A4],01
+:0040A18A FF761C          PUSH    DWORD
+[ESI+1C]
+:0040A18D FF1598254500    CALL    `USER32!GetMenu`
+```
+//函数说明：返回指定窗口的菜单句柄
+
+```
+:0040A193 50              PUSH
+EAX
+:0040A194 E881270300      CALL    0043C91A
+:0040A199 53              PUSH
+EBX
+:0040A19A 6850800000      PUSH    DWORD 8050
+:0040A19F FF7004          PUSH    DWORD
+[EAX+04]
+:0040A1A2 FF158C254500    CALL    `USER32!RemoveMenu`
+```
+//函数说明：删除菜单项和弹出式菜单
+
+```
+:0040A1A8 391DA8974B00    CMP      [004B97A8],EBX
+:0040A1AE 744C            JZ
+0040A1FC
+:0040A1B0 53              PUSH
+EBX
+:0040A1B1 6878484600      PUSH    DWORD 00464878
+```
+//祝贺
+
+```
+:0040A1B6 6864484600      PUSH    DWORD 00464864
+```
+//您已经成功地注册了!
+
+```
+:0040A1BB 8BCE            MOV
+ECX,ESI
+:0040A1BD E819000300      CALL    0043A1DB
+:0040A1C2 EB38            JMP
+SHORT 0040A1FC
+:0040A1C4 53              PUSH
+EBX
+:0040A1C5 68A0484600      PUSH    DWORD 004648A0
+:0040A1CA 57              PUSH
+EDI
+:0040A1CB 891DA4974B00    MOV      [004B97A4],EBX
+:0040A1D1 E88ED10000      CALL    00417364
+:0040A1D6 53              PUSH
+EBX
+:0040A1D7 6894484600      PUSH    DWORD 00464894
+:0040A1DC 57              PUSH
+EDI
+:0040A1DD E882D10000      CALL    00417364
+:0040A1E2 8B45FC          MOV
+EAX,[EBP-04]
+:0040A1E5 83C418          ADD
+ESP,BYTE +18
+:0040A1E8 53              PUSH
+EBX
+:0040A1E9 6853800000      PUSH    DWORD 8053
+:0040A1EE 6811010000      PUSH    DWORD 0111
+:0040A1F3 FF701C          PUSH    DWORD
+[EAX+1C]
+:0040A1F6 FF1528264500    CALL    `USER32!PostMessageA`
+```
+//函数说明：将消息加入线索消息队列
+
+```
+:0040A1FC 891DA8974B00    MOV      [004B97A8],EBX
+:0040A202 5F              POP
+  EDI
+:0040A203 5E              POP
+  ESI
+:0040A204 5B              POP
+  EBX
+:0040A205 C9              LEAVE
+:0040A206 C3              RET
+:0040A207 56              PUSH
+ESI
+:0040A208 6A00            PUSH
+BYTE +00
+:0040A20A 68C8484600      PUSH    DWORD 004648C8
+```
+//错了啦!
+
+```
+:0040A20F 8BF1            MOV
+ESI,ECX
+```
