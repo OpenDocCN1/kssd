@@ -1,0 +1,224 @@
+
+# 算法浅探――EXE文件捆绑器V1.0
+
+- 下载页面：<http://www.yd123.com/cncg/>
+- 软件大小：278 KB
+- 适用平台：WIN9x, NT, 2000
+
+## 软件简介
+
+将两个可执行文件捆绑在一起的软件，捆绑后的文件图标是第一个文件的图标。软件自带10个系统图标，也可以从另外的可执行文件中提取图标。
+
+## 软件限制
+
+30次试用。
+
+## 作者声明
+
+初学Crack，只是感兴趣，没有其它目的。失误之处敬请诸位大侠赐教！
+
+## 破解工具
+
+`TRW2000`娃娃修改版、`Ollydbg1.09`、`FI2.5`、`AspackDie`、`W32Dasm` 10修改版
+
+## 破解过程
+
+`exebind.exe`是ASPack 2.12壳，用`AspackDie`脱之。278K->1.22M。Delphi编写。
+
+软件重启验证。注册码保存在注册表中，因此在反汇编代码里查找`regcode`，很容易就能找到下面的核心。
+
+- 序列号：`211C1E09`（呵呵，又要用我的硬盘序列号了）
+- 用户名：`fly0`（呵呵，至少4位。否则重启软件就非法操作了！）
+- 试炼码：`13572468`（注册码要8位）
+
+```asm
+* Referenced by a CALL at Address:
+|:00486E3A
+
+:004862F8 55                      push ebp
+:004862F9 8BEC                    mov ebp, esp
+:004862FB 6A00                    push 00000000
+:004862FD 6A00                    push 00000000
+:004862FF 53                      push ebx
+:00486300 33C0                    xor eax, eax
+:00486302 55                      push ebp
+:00486303 6828654800              push 00486528
+:00486308 64FF30                  push dword ptr fs:[eax]
+:0048630B 648920                  mov dword ptr fs:[eax], esp
+:0048630E C60560BD480001          mov byte ptr [0048BD60], 01
+:00486315 B201                    mov dl, 01
+:00486317 A140BB4500              mov eax, dword ptr [0045BB40]
+:0048631C E81F59FDFF              call 0045BC40
+:00486321 A358BD4800              mov dword ptr [0048BD58], eax
+:00486326 BA02000080              mov edx, 80000002
+:0048632B A158BD4800              mov eax, dword ptr [0048BD58]
+:00486330 E8AB59FDFF              call 0045BCE0
+:00486335 33C9                    xor ecx, ecx
+
+* Possible StringData Ref from Code Obj ->"\software\exebind\reg"
+  |
+:00486337 BA40654800              mov edx, 00486540
+:0048633C A158BD4800              mov eax, dword ptr [0048BD58]
+:00486341 E8DA5AFDFF              call 0045BE20
+:00486346 84C0                    test al, al
+:00486348 0F84BD010000            je 0048650B
+
+* Possible StringData Ref from Code Obj ->"user"
+  |
+:0048634E BA60654800              mov edx, 00486560
+:00486353 A158BD4800              mov eax, dword ptr [0048BD58]
+:00486358 E8235EFDFF              call 0045C180
+:0048635D 84C0                    test al, al
+:0048635F 0F84A2010000            je 00486507
+
+* Possible StringData Ref from Code Obj ->"regcode"
+  |
+:00486365 BA70654800              mov edx, 00486570
+:0048636A A158BD4800              mov eax, dword ptr [0048BD58]
+:0048636F E80C5EFDFF              call 0045C180
+:00486374 84C0                    test al, al
+:00486376 0F848B010000            je 00486507
+:0048637C 8D4DFC                  lea ecx, dword ptr [ebp-04]
+
+* Possible StringData Ref from Code Obj ->"user"
+  |
+:0048637F BA60654800              mov edx, 00486560
+:00486384 A158BD4800              mov eax, dword ptr [0048BD58]
+:00486389 E85A5CFDFF              call 0045BFE8
+:0048638E 8D4DF8                  lea ecx, dword ptr [ebp-08]
+
+* Possible StringData Ref from Code Obj ->"regcode"
+  |
+:00486391 BA70654800              mov edx, 00486570
+:00486396 A158BD4800              mov eax, dword ptr [0048BD58]
+:0048639B E8485CFDFF              call 0045BFE8
+:004863A0 8B55F8                  mov edx, dword ptr [ebp-08]
+         ====>EDX=[ebp-08]=13572468
+:004863A3 B85CBD4800              mov eax, 0048BD5C
+:004863A8 E81BE1F7FF              call 004044C8
+:004863AD 837DFC00                cmp dword ptr [ebp-04], 00000000
+                 ====>[ebp-04]=fly0
+       没填用户名？
+:004863B1 7409                    je 004863BC
+:004863B3 833D5CBD480000          cmp dword ptr [0048BD5C], 00000000
+         ====>[0048BD5C]=13572468  没填注册码？
+:004863BA 7507                    jne 004863C3
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004863B1(C)
+|
+:004863BC 33DB                    xor ebx, ebx
+:004863BE E94A010000              jmp 0048650D
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004863BA(C)
+|
+:004863C3 A15CBD4800              mov eax, dword ptr [0048BD5C]
+               ====>EAX=[0048BD5C]=13572468
+:004863C8 E85FE3F7FF              call 0040472C
+:004863CD 83F808                  cmp eax, 00000008
+             ====>注册码是否8位？
+:004863D0 7407                    je 004863D9
+:004863D2 33DB                    xor ebx, ebx
+:004863D4 E934010000              jmp 0048650D
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004863D0(C)
+|
+:004863D9 33C0                    xor eax, eax
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:004863FD(C)
+|
+:004863DB 33D2                    xor edx, edx
+:004863DD 8AD0                    mov dl, al
+:004863DF 8B0D5CBD4800            mov ecx, dword ptr [0048BD5C]
+                       ====>ECX=[0048BD5C]=13572468
+:004863E5 8A0C11                  mov cl, byte ptr [ecx+edx]
+               ====>依次取试炼码字符的HEX值
+   1、   ====>CL=31
+               2、   ====>33
+:004863E8 8D5801                  lea ebx, dword ptr [eax+01]
+                 ====>EBX依次增1
+   1、   ====>EBX=1
+               2、   ====>EBX=2
+:004863EB C1E304                  shl ebx, 04
+     1、   ====>EBX=1 SHL 04=10
+                     2、====>EBX=2 SHL 04=20
+             3、   ====>EBX=3 SHL 04=30
+   4、   ====>EBX=4 SHL 04=40
+                   5、====>EBX=5 SHL 04=50
+           6、   ====>EBX=6 SHL 04=60
+   7、   ====>EBX=7 SHL 04=70
+                   8、====>EBX=8 SHL 04=80
+:004863EE 32CB                    xor cl, bl
+       1、   ====>CL=31 XOR 10=21
+                       2、====>CL=33 XOR 20=13
+             3、   ====>CL=35 XOR 30=05
+   4、   ====>CL=37 XOR 40=77
+                   5、====>CL=32 XOR 50=62
+           6、   ====>CL=34 XOR 60=54
+   7、   ====>CL=36 XOR 70=46
+                   8、====>CL=38 XOR 80=B8
+:004863F0 42                      inc edx
+:004863F1 8D1452                  lea edx, dword ptr [edx+2*edx]
+:004863F4 888A7BBD4800            mov byte ptr [edx+0048BD7B], cl
+ ====>CL 入  [edx+0048BD7B]处
+
+0048BD7B
+ 00 00 00 21 00 00 13 00 00 05 00 00 77 00 00 62  ...!......w..b
+0048BD8B
+ 00 00 54 00 00 46 00 00 B8 00 00 00 00 00 00 00  ..T..F..?......4
+
+:004863FA 40                      inc eax
+             ====>EAX 依次增1
+:004863FB 3C08                    cmp al, 08
+:004863FD 75DC                    jne 004863DB
+                   ====>循环8次
+:004863FF 8B45FC                  mov eax, dword ptr [ebp-04]
+                 ====>EAX=fly0
+:00486402 E805FBFFFF              call 00485F0C
+       ====>关键CALL！对用户名和序列号运算得出一组值！
+       ====>下面进行逐位比较，有一处不同就OVER了！
+:00486407 A084BD4800              mov al, byte ptr [0048BD84]
+         ====>AL=05
+:0048640C 3A05ABBD4800            cmp al, byte ptr [0048BDAB]
+         ====>[0048BDAB]=76  比较第3位！
+:00486412 7412                    je 00486426
+         ====>不跳则OVER！
+:00486414 803D60BD480000          cmp byte ptr [0048BD60], 00
+:0048641B 33C0                    xor eax, eax
+:0048641D EB02                    jmp 00486421
+:0048641F B001                    mov al, 01
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0048641D(U)
+|
+:00486421 A260BD4800              mov byte ptr [0048BD60], al
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00486412(C)
+|
+:00486426 A08ABD4800              mov al, byte ptr [0048BD8A]
+         ====>[0048BD8A]=62
+:0048642B 3A05CBBD4800            cmp al, byte ptr [0048BDCB]
+         ====>[0048BDCB]=18  比较第5位！
+:00486431 7412                    je 00486445
+         ====>不跳则OVER！
+:00486433 803D60BD480000          cmp byte ptr [0048BD60], 00
+:0048643A 33C0                    xor eax, eax
+:0048643C EB02                    jmp 00486440
+:0048643E B001                    mov al, 01
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:0048643C(U)
+|
+:00486440 A260BD4800              mov byte ptr [0048BD60], al
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+|:00486431(C)
+|
+:00486445 A081BD4800              mov al, byte ptr [0048BD81]
+         ====>[0048BD81]=13
+:0048644A 3A059BBD4800            cmp al, byte ptr [0048BD9B]
+```
