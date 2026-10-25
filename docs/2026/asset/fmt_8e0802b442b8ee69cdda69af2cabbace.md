@@ -1,0 +1,303 @@
+
+# [原创]逆向基础二
+
+把自己最近的读书笔记与学习心得分享总结，希望各位看官能有所收获吧。
+
+参考书籍：
+
+`C++`反汇编与逆向技术
+
+黑客免杀攻防
+
+天书夜谈
+
+需要用到的工具：
+
+`IDA`
+
+`OD`
+
+编译环境：`VS2013 Debug`版
+
+首先附上跳转表：
+
+![](https://bbs.kanxue.com/upload/attach/202002/585205_1rlcvcln6xhqiib.png)
+
+![](https://bbs.kanxue.com/upload/attach/201704/585205_wpjlvo9kl61tvyq.png)
+
+## 主要内容（不分先后顺序）
+
+1. `if-else`反汇编
+2. `for`反汇编
+3. `do-while`反汇编与`while`反汇编（阉割版`for`循环）
+4. 总结`for`、`do-while`、`while`最容易记的特征
+5. `switch-case`的三种不同表现方式
+
+## 1. `if`语言反汇编
+
+先来个最简单`if`语言看下再汇编层是如何体现出来的
+
+渣渣代码：
+
+```
+int nNumberA = 2,nNumberB = 3;
+
+002813DE  mov         dword ptr [nNumberA],2  
+002813E5  mov         dword ptr [nNumberB],3  
+if (nNumberA > nNumberB)
+002813EC  mov         eax,dword ptr [nNumberA]  
+002813EF  cmp         eax,dword ptr [nNumberB]   //cmp比较两个操作数做减法，不送回结果，只影响标志位
+002813F2  jle            wmain+4Bh (028140Bh)        //我们发现汇编指令满足条件是小于等于则跳转，绕过代码块，好像跟我们写的条件相反。
+{
+printf("A>B\r\n");
+002813F4  mov         esi,esp  
+002813F6  push        285858h  
+002813FB  call        dword ptr ds:[289114h]  
+00281401  add         esp,4                                           //cdecl调用方式在函数内没有任何平衡参数操作，而在退出函数后对esp执行加8操作
+00281404  cmp         esi,esp                                       //VS自带的检查堆栈平衡
+00281406  call        __RTC_CheckEsp (0281140h)  //这个是VS自带的检查堆栈平衡
+}
+```
+
+我们来做个测试
+
+```
+if (nNumberA == nNumberB)
+000313EC  mov         eax,dword ptr [nNumberA]  
+000313EF  cmp         eax,dword ptr [nNumberB]  
+000313F2  jne         wmain+4Bh (03140Bh)           //jnz(不等于)汇编翻译的跳转是跳出去的条件，好像与我们处处作对一样
+```
+
+总结：
+
+汇编翻译的跳转指令是跳出代码的条件，与你写的条件完全相反。希望各位以后看到汇编翻译的是 `jne` ,那么你写的条件就是等于
+
+### 1.2 `if-else if-else`代码的反汇编
+
+这里我把`VS`的一些检查堆栈代码给删掉了
+
+上渣渣代码:
+
+```
+int nNumberA = 5;
+00B41A1E  mov         dword ptr [nNumberA],5  
+if (nNumberA == 2)
+00B41A25  cmp         dword ptr [nNumberA],2            
+00B41A29  jne         wmain+44h (0B41A44h)                 //不成立跳到下一个if判断
+{
+printf("nNumberA=2\r\n");
+00B41A2B  mov         esi,esp  
+00B41A2D  push        0B458B0h  
+00B41A32  call        dword ptr ds:[0B49114h]  
+00B41A38  add         esp,4                                                //cdecl调用方式在函数内没有任何平衡参数操作，而在退出函数后对esp执行加8操作
+00B41A42  jmp         wmain+7Ah (0B41A7Ah)             //如果代码成立执行到这里直接jmp跳出全部判断语句外面
+}
+else if(nNumberA == 3)
+00B41A44  cmp         dword ptr [nNumberA],3  
+00B41A48  jne         wmain+63h (0B41A63h)              //不成立跳到下一个if判断
+{
+printf("nNumberA=3\r\n");
+00B41A4A  mov         esi,esp  
+00B41A4C  push        0B45920h  
+00B41A51  call        dword ptr ds:[0B49114h]  
+00B41A57  add         esp,4                                               //cdecl调用方式在函数内没有任何平衡参数操作，而在退出函数后对esp执行加8操作
+00B41A61  jmp         wmain+7Ah (0B41A7Ah)             //如果代码成立执行到这里直接jmp跳出全部判断语句的外面
+}
+Else                                                                                      //不用判断了什么都不是直接执行了
+{
+printf("都不是\r\n");
+00B41A63  mov         esi,esp  
+00B41A65  push        0B459CCh  
+00B41A6A  call        dword ptr ds:[0B49114h]  
+00B41A70  add         esp,4  
+}
+```
+
+## 2. 最强的`for`循环反汇编
+
+```
+int Sum = 0;
+0085139E  mov         dword ptr [Sum],0                      
+for (int i = 0; i < 5; i++)
+/*************    int i=0   ************/
+008513A5  mov         dword ptr [i],0             //这句就是int i=0,只初始化一次，初始化完就没用利用价值了
+008513AC  jmp         wmain+37h (08513B7h)          //直接跳到判断语句也就是i<5的地方
+/**************  int i = 0  ************/
+/**************  i++  **************/
+008513AE  mov         eax,dword ptr [i]      
+008513B1  add         eax,1  
+008513B4  mov         dword ptr [i],eax     
+/**************  i++  **************/
+/**************  i<5  ***************/
+008513B7  cmp         dword ptr [i],5  
+008513BB  jge         wmain+48h (08513C8h)             //还记得我们的汇编翻译特征码？唱反调，不大于等于则跳出去循环外
+{
+Sum = Sum + i;
+008513BD  mov         eax,dword ptr [Sum]  
+008513C0  add         eax,dword ptr [i]  
+008513C3  mov         dword ptr [Sum],eax    
+008513C6  jmp         wmain+2Eh (08513AEh)        //执行完代码跳回去执行i++操作           
+}
+return 0;
+008513C8  xor         eax,eax
+```
+
+我带画张图帮助大家理解，图画的很渣：
+
+![](https://bbs.kanxue.com/upload/attach/201704/585205_7zy1soo3yfq32br.png)
+
+## 3. `do-while`循环与`while`循环（阉割版`for`循环）
+
+```
+while (Sum < 5)
+008C13A5  cmp         dword ptr [Sum],5          
+008C13A9  jge         wmain+36h (08C13B6h)     //一开始就判断
+{
+Sum++;
+008C13AB  mov         eax,dword ptr [Sum]  
+008C13AE  add         eax,1  
+008C13B1  mov         dword ptr [Sum],eax  
+}
+008C13B4  jmp         wmain+25h (08C13A5h)    //无条件跳转指令回到循环开始的地方
+```
+
+`do-while`语句的特征，不管怎么样先执行一遍再说
+
+```
+do
+{
+Sum = Sum + 1;
+00B013A5  mov         eax,dword ptr [Sum]  
+00B013A8  add          eax,1                                      
+00B013AB  mov         dword ptr [Sum],eax           //先执行一遍循环体代码再说
+} while (Sum<5);
+00B013AE  cmp         dword ptr [Sum],5  
+00B013B2  jl          wmain+25h (0B013A5h)         //再判断
+return 0;
+00B013B4  xor         eax,eax
+```
+
+## 4. 总结特征
+
+`For`有2个`jmp`
+
+`While`循环有1个`jmp`
+
+`Do-while`没有`jmp`
+
+## 5. `switch-case`的三种不同表现方式
+
+### 方式一：`case<3`
+
+代码如下
+
+```
+int NnumA = 2;
+00B339CE  mov         dword ptr [NnumA],2  
+switch (NnumA)
+00B339D5  mov         eax,dword ptr [NnumA]  
+00B339D8  mov         dword ptr [ebp-0D0h],eax  
+00B339DE  cmp         dword ptr [ebp-0D0h],1       //我们发现switch语句的特点就是把判断全部放在前面
+00B339E5  je          wmain+42h (0B339F2h)            
+00B339E7  cmp         dword ptr [ebp-0D0h],2  
+00B339EE  je          wmain+5Fh (0B33A0Fh)  
+00B339F0  jmp         wmain+7Ah (0B33A2Ah)  
+{
+case 1:
+{
+printf("%d", NnumA);
+00B339F2  mov         esi,esp  
+00B339F4  mov         eax,dword ptr [NnumA]  
+00B339F7  push        eax  
+00B339F8  push        0B358A8h  
+00B339FD  call        dword ptr ds:[0B39114h]  
+00B33A03  add         esp,8  
+00B33A06  cmp         esi,esp  
+00B33A08  call        __RTC_CheckEsp (0B311D1h)  
+break;
+00B33A0D  jmp         wmain+7Ah (0B33A2Ah)           //跳出判断外面                 
+}
+case 2:
+{
+printf("%d", NnumA);
+00B33A0F  mov         esi,esp  
+00B33A11  mov         eax,dword ptr [NnumA]  
+00B33A14  push        eax  
+00B33A15  push        0B358A8h  
+00B33A1A  call        dword ptr ds:[0B39114h]  
+00B33A20  add         esp,8  
+00B33A23  cmp         esi,esp  
+00B33A25  call        __RTC_CheckEsp (0B311D1h)  
+break;
+}
+}
+return 0;
+00B33A2A  xor         eax,eax
+```
+
+问题：
+
+那么我们就滋生出了一个问题：假如我有10甚至100个判断，程序前面就写100个判断语句吗？那么我们来实验下
+
+类似:
+
+`Cmp eax,1`
+
+`Jxxx xxxx`
+
+`Cmp eax,2`
+
+`Jxxx xxxx`
+
+`Cmp eax,3`
+
+`Jxxx xxxx`
+
+`Cmp eax,4`
+
+……….
+
+这就引出了`switch`算法的优化问题
+
+### 方式2
+
+那么就出现我们第二种方式`case > 3` 并且 `case < 256`
+
+计算机是很聪明的，会优化算法。索引地址是从0开始的，我写1-4是方便阅读。其实真正是0-3
+
+![](https://bbs.kanxue.com/upload/attach/201704/585205_1q25us8uj1rw0qp.png)
+
+这四个值刚好就是我们`case`的4个值得首地址
+
+部分代码：
+
+```
+case 1:
+{
+printf("%d", NnumA);
+010313BF  mov         eax,dword ptr [NnumA]
+}
+case 2:
+{
+printf("%d", NnumA);
+010313D3  mov         eax,dword ptr [NnumA]
+}
+case 3:
+{
+printf("%d", NnumA);
+010313E7  mov         eax,dword ptr [NnumA]  
+}
+case 4:
+{
+printf("%d", NnumA);
+010313FB  mov         eax,dword ptr [NnumA]  
+}
+```
+
+### 方式3
+
+大于255就采用了平衡二叉树方式优化算法
+
+假如我们`case 1000、700、500、300、100`平衡二叉树表现形式
+
+然后我们再上代码：
