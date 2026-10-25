@@ -1,0 +1,46 @@
+
+# [原创]让x64dbg的`Ctrl+G`更方便
+
+粘贴以下代码
+
+```
+<font color='red'><b>得基址(A.EXE:base)=mod.base(地址)</b></font>
+<br>
+<font color='green'><b>跳转VA=RVA+基址</b></font>
+<br>
+<font color='blue'><b>跳转VA=A.EXE:#FOA</font>
+<br><br>
+<font color='orange'><b>VA=mod.rva(VA)</b></font>
+<br>
+<font color='green'><b>FOA=mod.offset(VA)</b></font>
+<br><br>
+<font color='red'><b>OEP=b.exe:oep=b.exe:imagebase</b></font>
+<br>
+<font color='green'><b>交换字节=bswap(value)</b></font>
+<br>
+<font color='blue'><b>返回内存页基地址=mem.base(地址)</b></font>
+```
+
+到以下软件中：（QT语言家）
+
+![](https://bbs.kanxue.com/upload/attach/202103/37853_NXRPBWRSCGKW4CK.jpg)
+
+来到x32dbg/x64dbg，`Ctrl+G`，清掉全部：
+
+![](https://bbs.kanxue.com/upload/attach/202103/37853_G8STECWZY6NE7DG.jpg)
+
+虽然不如自编的Ollydbg/x36dbg贴心伴侣中`Alt+G`、`Ctrl+Shift+G`到WinHEX中复制FOA地址经过，自动一键化把RVA地址，或FOA地址转换跳转来得方便，但了胜于无。起到了临时提示输入的效果也是不错的啦~~
+
+本想DIY 这个QT的调试器的。把下面红圈处的模块名，弄到清光后的输入框中去，这样就不用再输入模块名等了。。。但这样还得跟踪调试，太过麻烦。。。
+
+感兴趣的同学可以挑战下，用内存字符搜索定位`.html`字样来DIY汇编修改。。。时间关系，就先凑合这样了，别有一番风味~~
+
+![](https://bbs.kanxue.com/upload/attach/202103/37853_TSZ4RESB6TT2EXA.jpg)
+
+测试修改样本：
+
+![](https://bbs.kanxue.com/upload/attach/202103/37853_YH9ZGVXCYHZAN89.jpg)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+最后于 2021-3-4 21:49 被ninebell编辑，原因：[#其他内容](https://bbs.kanxue.com/forum-4-1-10.htm)
