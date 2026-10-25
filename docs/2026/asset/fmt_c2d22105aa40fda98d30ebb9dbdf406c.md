@@ -1,0 +1,656 @@
+
+# Email地址搜索器 (14千字)
+
+执行`emailserach`，点击注册，输入
+
+`name=12345678  code=12345678`
+
+确定后出现 "注册名不正确"
+
+用`w32dasm`打开`emailserach`，看到如下信息：
+
+```
+:00403F24 55
+
+  push ebp
+
+:00403F25 E879FD0100              call 00423CA3
+
+:00403F2A 51
+
+  push ecx
+
+:00403F2B 8BCC
+
+  mov ecx, esp
+
+:00403F2D 89642418                mov
+
+dword ptr [esp+18], esp
+
+:00403F31 53
+
+  push ebx
+
+:00403F32 E8D1250200              call 00426508
+
+:00403F37 51
+
+  push ecx
+
+:00403F38 8D8780010000            lea eax, dword
+
+ptr [edi+00000180]
+
+:00403F3E 8BCC
+
+  mov ecx, esp
+
+:00403F40 89642420                mov
+
+dword ptr [esp+20], esp
+
+:00403F44 50
+
+  push eax
+
+:00403F45 C78424A800000000000000  mov dword ptr [esp+000000A8], 00000000
+
+:00403F50 E8B3250200              call 00426508
+
+:00403F55 8BCF
+
+  mov ecx, edi
+
+:00403F57 C78424A4000000FFFFFFFF  mov dword ptr [esp+000000A4], FFFFFFFF
+
+:00403F62 E869150000              call 004054D0
+
+      <----进入此处的call
+
+:00403F67 85C0
+
+  test eax, eax
+
+:00403F69 7511
+
+  jne 00403F7C
+
+:00403F6B 50
+
+  push eax
+
+:00403F6C 50
+
+  push eax
+
+\* Possible StringData Ref from Data Obj ->"注册名不正确"
+
+            |
+
+:00403F6D 68480C4400              push 00440C48
+
+:00403F72 E8396D0200              call 0042ACB0
+
+:00403F77 E940010000              jmp 004040BC
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00403F69(C)
+
+|
+
+:00403F7C 51
+
+  push ecx
+
+:00403F7D 8BCC
+
+  mov ecx, esp
+
+:00403F7F 8964241C                mov
+
+dword ptr [esp+1C], esp
+
+:00403F83 55
+
+  push ebp
+
+:00403F84 E87F250200              call 00426508
+
+:00403F89 51
+
+  push ecx
+
+:00403F8A C78424A400000001000000  mov dword ptr [esp+000000A4], 00000001
+
+:00403F95 8BCC
+
+  mov ecx, esp
+
+:00403F97 8964241C                mov
+
+dword ptr [esp+1C], esp
+
+:00403F9B 53
+
+  push ebx
+
+:00403F9C E867250200              call 00426508
+
+:00403FA1 8BCF
+
+  mov ecx, edi
+
+:00403FA3 C78424A4000000FFFFFFFF  mov dword ptr [esp+000000A4], FFFFFFFF
+
+:00403FAE E89D160000              call 00405650
+
+        <----进入此处的call
+
+:00403FB3 85C0
+
+  test eax, eax
+
+:00403FB5 7511
+
+  jne 00403FC8
+
+:00403FB7 50
+
+  push eax
+
+:00403FB8 50
+
+  push eax
+
+\* Possible StringData Ref from Data Obj ->"注册码不正确"
+
+            |
+
+:00403FB9 68380C4400              push 00440C38
+
+:00403FBE E8ED6C0200              call 0042ACB0
+
+:00403FC3 E9F4000000              jmp 004040BC
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00403FB5(C)
+
+|
+
+:00403FC8 6A00
+
+  push 00000000
+
+:00403FCA 6A00
+
+  push 00000000
+
+\* Possible StringData Ref from Data Obj ->"注册成功!"
+
+            |
+
+:00403FCC 682C0C4400              push 00440C2C
+
+:00403FD1 C7878801000001000000    mov dword ptr [edi+00000188], 00000001
+
+:00403FDB E8D06C0200              call 0042ACB0
+
+\* Possible StringData Ref from Data Obj ->"\windows.reg"
+
+            |
+
+:00403FE0 681C0C4400              push 00440C1C
+
+:00403FE5 8D4C2414                lea
+
+ecx, dword ptr [esp+14]
+
+:00403FE9 E8C3260200              call 004266B1
+
+:00403FEE 8D4C241C                lea
+
+ecx, dword ptr [esp+1C]
+
+:00403FF2 BB02000000              mov ebx,
+
+00000002
+
+:00403FF7 6A1E
+
+  push 0000001E
+
+:00403FF9 51
+
+  push ecx
+
+:00403FFA 899C24A4000000          mov dword ptr [esp+000000A4],
+
+ebx
+
+========================================================================
+
+:004054D0 6AFF
+
+  push FFFFFFFF
+
+:004054D2 6850244300              push 00432450
+
+:004054D7 64A100000000            mov eax, dword
+
+ptr fs:[00000000]
+
+:004054DD 50
+
+  push eax
+
+:004054DE 64892500000000          mov dword ptr fs:[00000000],
+
+esp
+
+:004054E5 83EC0C
+
+sub esp, 0000000C
+
+:004054E8 53
+
+  push ebx
+
+:004054E9 56
+
+  push esi
+
+:004054EA 57
+
+  push edi
+
+:004054EB 8B7C2428                mov
+
+edi, dword ptr [esp+28]
+
+:004054EF 83C9FF
+
+or ecx, FFFFFFFF
+
+:004054F2 33C0
+
+  xor eax, eax
+
+:004054F4 8D54240C                lea
+
+edx, dword ptr [esp+0C]
+
+:004054F8 F2
+
+  repnz
+
+:004054F9 AE
+
+  scasb
+
+:004054FA F7D1
+
+  not ecx
+
+:004054FC 2BF9
+
+  sub edi, ecx
+
+:004054FE C744242001000000        mov [esp+20], 00000001
+
+:00405506 8BC1
+
+  mov eax, ecx
+
+:00405508 8BF7
+
+  mov esi, edi
+
+:0040550A 8BFA
+
+  mov edi, edx
+
+:0040550C C1E902
+
+shr ecx, 02
+
+:0040550F F3
+
+  repz
+
+:00405510 A5
+
+  movsd
+
+:00405511 8BC8
+
+  mov ecx, eax
+
+:00405513 83E103
+
+and ecx, 00000003
+
+:00405516 F3
+
+  repz
+
+:00405517 A4
+
+  movsb
+
+:00405518 8A4C240F                mov
+
+cl, byte ptr [esp+0F]      ；[esp+0c]指向产品密钥
+
+:0040551C 8A44240C                mov
+
+al, byte ptr [esp+0C]      ；
+
+:00405520 8A5C240D                mov
+
+bl, byte ptr [esp+0D]      ；将产品密钥的各个字母
+
+:00405524 8A54240E                mov
+
+dl, byte ptr [esp+0E]      ；
+
+:00405528 80C104
+
+add cl, 04
+
+；与其位数相加。
+
+:0040552B FEC0
+
+  inc al
+
+      ；
+
+:0040552D 884C240F                mov
+
+byte ptr [esp+0F], cl      ；如:32(2)+1=33(3)
+
+:00405531 8A4C2413                mov
+
+cl, byte ptr [esp+13]      ；
+
+:00405535 80C302
+
+add bl, 02
+
+；  6E(n)+2=70(p)
+
+:00405538 80C203
+
+add dl, 03
+
+；
+
+:0040553B 80C108
+
+add cl, 08
+
+；密钥：2ndJ8gIFkNF'
+
+:0040553E 8844240C                mov
+
+byte ptr [esp+0C], al      ；
+
+:00405542 8A442410                mov
+
+al, byte ptr [esp+10]      ；得到：3pgN=mPNtXQl
+
+:00405546 885C240D                mov
+
+byte ptr [esp+0D], bl      ；
+
+:0040554A 8A5C2411                mov
+
+bl, byte ptr [esp+11]      ；
+
+:0040554E 8854240E                mov
+
+byte ptr [esp+0E], dl      ；
+
+:00405552 8A542412                mov
+
+dl, byte ptr [esp+12]      ；
+
+:00405556 884C2413                mov
+
+byte ptr [esp+13], cl      ；
+
+:0040555A 8A4C2417                mov
+
+cl, byte ptr [esp+17]      ；
+
+:0040555E 0405
+
+  add al, 05
+
+  ；
+
+:00405560 80C306
+
+add bl, 06
+
+；
+
+:00405563 80C207
+
+add dl, 07
+
+；
+
+:00405566 80C10C
+
+add cl, 0C
+
+；
+
+:00405569 88442410                mov
+
+byte ptr [esp+10], al      ；
+
+:0040556D 8A442414                mov
+
+al, byte ptr [esp+14]      ；
+
+:00405571 885C2411                mov
+
+byte ptr [esp+11], bl      ；
+
+:00405575 8A5C2415                mov
+
+bl, byte ptr [esp+15]      ；
+
+:00405579 88542412                mov
+
+byte ptr [esp+12], dl      ；
+
+:0040557D 8A542416                mov
+
+dl, byte ptr [esp+16]      ；
+
+:00405581 884C2417                mov
+
+byte ptr [esp+17], cl      ；
+
+:00405585 8D4C240C                lea
+
+ecx, dword ptr [esp+0C]    ；
+
+:00405589 0409
+
+  add al, 09
+
+  ；
+
+:0040558B 80C30A
+
+add bl, 0A
+
+；
+
+:0040558E 80C20B
+
+add dl, 0B
+
+；
+
+:00405591 51
+
+  push ecx
+
+    ；
+
+:00405592 8D4C242C                lea
+
+ecx, dword ptr [esp+2C]    ；
+
+:00405596 88442418                mov
+
+byte ptr [esp+18], al      ；
+
+:0040559A 885C2419                mov
+
+byte ptr [esp+19], bl      ；
+
+:0040559E 8854241A                mov
+
+byte ptr [esp+1A], dl      ；
+
+:004055A2 E8E4110200              call 0042678B
+
+:004055A7 8B74242C                mov
+
+esi, dword ptr [esp+2C]
+
+:004055AB 8B442428                mov
+
+eax, dword ptr [esp+28]
+
+:004055AF 33D2
+
+  xor edx, edx
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004055CF(C)
+
+|
+
+:004055B1 8A18
+
+  mov bl, byte ptr [eax]
+
+:004055B3 8ACB
+
+  mov cl, bl
+
+:004055B5 3A1E
+
+  cmp bl, byte ptr [esi]
+
+:004055B7 751C
+
+  jne 004055D5
+
+:004055B9 3ACA
+
+  cmp cl, dl
+
+:004055BB 7414
+
+  je 004055D1
+
+:004055BD 8A5801
+
+mov bl, byte ptr [eax+01]
+
+:004055C0 8ACB
+
+  mov cl, bl
+
+:004055C2 3A5E01
+
+cmp bl, byte ptr [esi+01]
+
+:004055C5 750E
+
+  jne 004055D5
+
+:004055C7 83C002
+
+add eax, 00000002
+
+:004055CA 83C602
+
+add esi, 00000002
+
+:004055CD 3ACA
+
+  cmp cl, dl
+
+:004055CF 75E0
+
+  jne 004055B1
+
+;这段是将算出的值与name比较
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004055BB(C)
+
+|
+
+:004055D1 33C0
+
+  xor eax, eax
+
+:004055D3 EB05
+
+  jmp 004055DA
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:004055B7(C), :004055C5(C)
+
+|
+
+:004055D5 1BC0
+
+  sbb eax, eax
+
+:004055D7 83D8FF
+
+sbb eax, FFFFFFFF
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004055D3(U)
+
+|
+
+:004055DA 33C9
+
+  xor ecx, ecx
+
+:004055DC 3BC2
+
+  cmp eax, edx
+
+:004055DE 0F94C1
+
+sete cl
+
+:004055E1 84C9
+
+  test cl, cl
+
+:004055E3 88542420                mov
+
+byte ptr [esp+20], dl
+```
