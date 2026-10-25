@@ -1,0 +1,235 @@
+
+# 公文写作助手 V1.0
+
+前几天收到一封垃圾邮件叫什么公文写作助手，但是需要注册才能使用，看着挺来气的，就想把它做了，因为自己本就是菜鸟一个，现学现卖到看雪这里学习了一下，用了俩天时间终于搞定了。不敢独享，从这里学的再返回到这里，也算是对给和我一样的菜鸟一些鼓励吧。
+
+【软件名称】：公文写作助手 V1.0
+【下载页面】：`http://hn-http.skycn.net/down/gongwen.exe`
+【软件大小】：1647 KB
+【软件语言】：简体中文
+【应用平台】：WIN9X/WINNT/WIN2K/WINXP
+【软件简介】：办公司，当文秘，一刻也离不开写文章。可是许多人，却因为写不出文章而发愁。其实，写文章也有很多诀窍，其中最关键的，就是要先学会模仿，而后才能熟中生巧，写出一手漂亮文章来。 本电子书积累类作者多年写文章的经验，既提供了各种行政、经济、法律、礼仪、事物、新闻类文章的写作要点，又提供了各种公文的例文和范本。即使你没有任何写作经验，对着范本来个照本宣科，马上就会写出一手漂亮文章来。特别提示：本书提供了数百篇例文，对于初学者，可以利用复制、粘帖的办法，快速写出称心的文章.正所谓：有此软件做助手，从此写作不再愁。
+【软件限制】：只有注册后才能使用。
+【作者声明】：本人发表这篇文章只是为了学习!!!请不用于商业用途或是将本文方法制作的注册机任意传播,读者看了文章后所做的事情与我无关,我也不会负责,请读者看了文章后三思而后行!最后希望大家在经济基础好的时候,支持共享软件!
+【破解工具】：`fileinfo2.45a`、`UnAspack`、`DeDe3.20.04`、`vc6.0`(没办法，水平太菜，`softice`不太会用)
+【破解平台】：W2K ADV SERVER
+
+## 破解过程
+
+先说一下此软件的注册方式，它是自己先根据机器信息生成一个每台机器独立的10位代码，然后经过对其进行运算后生成所谓的解锁码。经过跟踪找出解锁码跟容易，我们的目标就是找出它的计算解锁码的算法。
+
+先用`fi`查看是用`Aspack`加的壳，于是用`UnAspack`脱掉后再看，是delphi写的。于是用`DeDe`处理。根据处理的结果可以看出在注册界面点确定后会进入如下函数调用：
+
+```
+0047876C   call  dword ptr [edx+0F0h]
+```
+
+所以用`VC`打开程序，F10进入调试模式，断点下在`0047876C`。按F5运行程序后，进入注册界面随便输入一个解锁码，点确定后程序中断，按F11跟进：
+
+### 第一步
+
+```
+00478698   push ebp
+00478699   mov         ebp,esp
+0047869B   push        0
+0047869D   push        0
+0047869F   push        ebx
+004786A0   mov         ebx,eax
+004786A2   xor         eax,eax
+004786A4   push        ebp
+004786A5   push        4786FAh
+004786AA   push        dword ptr fs:[eax]
+004786AD   mov         dword ptr fs:[eax],esp
+004786B0   lea         edx,[ebp-4]
+004786B3   mov         eax,ebx
+004786B5   mov         ecx,dword ptr [eax]
+004786B7   call        dword ptr [ecx+0E0h]
+004786BD   mov         eax,dword ptr [ebp-4]
+004786C0   push        eax
+        <-这里是输入的解锁码压栈
+004786C1   lea         edx,[ebp-8]
+004786C4   mov         eax,ebx
+004786C6   mov         ecx,dword ptr [eax]
+004786C8   call        dword ptr [ecx+0E4h]
+004786CE   mov         eax,dword ptr [ebp-8] <-这里eax的值是机器生成的10位代码
+004786D1   mov         ecx,dword ptr [ebx+2F8h]
+004786D7   pop         edx
+004786D8   call        00477DFC   <-eax是输入的解锁码，edx是机器算出的10位代码，进入函数
+004786DD   mov         ebx,eax
+004786DF   xor         eax,eax
+004786E1   pop         edx
+004786E2   pop         ecx
+004786E3   pop         ecx
+004786E4   mov         dword ptr fs:[eax],edx
+004786E7   push        478701h
+004786EC   lea         eax,[ebp-8]
+004786EF   mov         edx,2
+004786F4   call        00403BC8
+004786F9   ret
+```
+
+### 第二步
+
+接上一步的`004786D8 call 00477DFC`调用。
+
+```
+00477DFC   push ebp
+00477DFD   mov         ebp,esp
+00477DFF   add         esp,0FFFFFEFCh
+00477E05   push        ebx
+00477E06   push        esi
+00477E07   push        edi
+00477E08   xor         ebx,ebx
+00477E0A   mov         dword ptr [ebp-4],ebx
+00477E0D   mov         edi,ecx
+00477E0F   mov         esi,edx  <-输入的解锁码
+00477E11   mov         ebx,eax  <-机器算出的10位代码
+00477E13   xor         eax,eax
+00477E15   push        ebp
+00477E16   push        477E63h
+00477E1B   push        dword ptr fs:[eax]
+00477E1E   mov         dword ptr fs:[eax],esp
+00477E21   lea         ecx,[ebp-104h]
+00477E27   mov         edx,edi
+00477E29   mov         eax,ebx
+00477E2B   call        00477C94  <-eax:机器算出的10位代码，esi:输入的解锁码,进入函数
+00477E30   lea         edx,[ebp-104h]
+00477E36   lea         eax,[ebp-4]
+00477E39   call        00403DC8
+00477E3E   mov         eax,dword ptr [ebp-4]
+00477E41   mov         edx,esi
+00477E43   call        00403F34
+00477E48   sete        al
+00477E4B   mov         ebx,eax
+00477E4D   xor         eax,eax
+00477E4F   pop         edx
+00477E50   pop         ecx
+00477E51   pop         ecx
+00477E52   mov         dword ptr fs:[eax],edx
+00477E55   push        477E6Ah
+00477E5A   lea         eax,[ebp-4]
+00477E5D   call        00403BA4
+00477E62   ret
+```
+
+### 第三步
+
+接上一步的`00477E2B call 00477C94`调用。
+
+```
+00477C94   push ebp
+00477C95   mov         ebp,esp
+00477C97   add         esp,0E0h
+00477C9A   push        ebx
+00477C9B   push        esi
+00477C9C   push        edi
+00477C9D   xor         ebx,ebx
+00477C9F   mov         dword ptr [ebp-20h],ebx
+00477CA2   mov         dword ptr [ebp-1Ch],ebx
+00477CA5   mov         dword ptr [ebp-18h],ebx
+00477CA8   mov         edi,ecx
+00477CAA   mov         dword ptr [ebp-8],edx
+00477CAD   mov         dword ptr [ebp-4],eax
+00477CB0   mov         eax,dword ptr [ebp-4]
+00477CB3   call        00403FD8
+00477CB8   mov         eax,dword ptr [ebp-8]
+00477CBB   call        00403FD8
+00477CC0   xor         eax,eax
+00477CC2   push        ebp
+00477CC3   push        477DEDh
+00477CC8   push        dword ptr fs:[eax]
+00477CCB   mov         dword ptr fs:[eax],esp
+00477CCE   cmp         dword ptr [ebp-4],0
+00477CD2   je          00477D43
+00477CD4   mov         ebx,1
+00477CD9   lea         esi,[ebp-11h]
+00477CDC   mov         eax,dword ptr [ebp-4]
+00477CDF   call        00403E24
+00477CE4   push        eax
+00477CE5   mov         eax,ebx
+00477CE7   dec         eax
+00477CE8   pop         edx
+00477CE9   mov         ecx,edx
+00477CEB   cdq
+00477CEC   idiv        eax,ecx
+00477CEE   mov         eax,dword ptr [ebp-4]
+00477CF1   mov         al,byte ptr [eax+edx]<-分别取出10位机器码放入al中
+00477CF4   push        eax
+00477CF5   mov         eax,dword ptr [ebp-4]
+00477CF8   call        00403E24
+00477CFD   pop         edx
+00477CFE   xor         dl,al
+         <-先与al进行xor运算,al值为0x0a
+00477D00   xor         dl,bl
+         <-再与bl进行xor运算,bl为从1开始每次递增1
+00477D02   mov         byte ptr [esi],dl    <-运算结果放进ESI
+00477D04   inc         ebx
+00477D05   inc         esi
+00477D06   cmp         ebx,0Ah
+       <-循环记数
+00477D09   jne         00477CDC
+00477D0B   mov         eax,dword ptr [ebp-4]
+00477D0E   call        00403E24
+00477D13   mov         esi,eax
+00477D15   test        esi,esi
+00477D17   jle         00477D43
+00477D19   mov         ebx,1
+00477D1E   mov         eax,dword ptr [ebp-4]
+00477D21   call        00403E24
+00477D26   sub         eax,ebx
+00477D28   mov         edx,dword ptr [ebp-4]
+00477D2B   mov         cl,byte ptr [edx+eax] <-每次一个反序取出机器码
+00477D2E   mov         eax,ebx
+00477D30   dec         eax
+00477D31   push        ecx
+00477D32   mov         ecx,9
+00477D37   cdq
+00477D38   idiv        eax,ecx
+00477D3A   pop         ecx
+00477D3B   xor         byte ptr [ebp+edx-11h],cl
+<-取出的内容与上面的结果进行xor操作
+    <-循环共9次，所以最后一位要和第一
+    <-次的计算结果进行运算
+00477D3F   inc         ebx
+00477D40   dec         esi
+00477D41   jne         00477D1E
+00477D43   cmp         dword ptr [ebp-8],0
+00477D47   je          00477D82
+00477D49   mov         ebx,1
+00477D4E   lea         esi,[ebp-11h]
+00477D51   mov         eax,dword ptr [ebp-8]
+00477D54   call        00403E24
+00477D59   push        eax
+00477D5A   mov         eax,ebx
+00477D5C   dec         eax
+00477D5D   pop         edx
+00477D5E   mov         ecx,edx
+00477D60   cdq
+00477D61   idiv        eax,ecx
+00477D63   mov         eax,dword ptr [ebp-8]
+00477D66   mov         al,byte ptr [eax+edx]
+00477D69   xor         al,byte ptr [esi]
+00477D6B   push        eax
+00477D6C   mov         eax,dword ptr [ebp-8]
+00477D6F   call        00403E24
+00477D74   pop         edx
+00477D75   xor         dl,al
+00477D77   xor         dl,bl
+00477D79   mov         byte ptr [esi],dl
+00477D7B   inc         ebx
+00477D7C   inc         esi
+00477D7D   cmp         ebx,0Ah
+00477D80   jne         00477D51
+00477D82   lea         eax,[ebp-18h]
+00477D85   call        00403BA4
+00477D8A   mov         ebx,9
+00477D8F   lea         esi,[ebp-11h]
+00477D92   lea         eax,[ebp-1Ch]
+00477D95   mov         dl,byte ptr [esi]
+00477D97   call        00403D4C
+00477D9C   mov         edx,dword ptr [ebp-1Ch]
+00477D9F   lea         eax,[ebp-18h]
+00477DA2   call        00403E2C
+00477DA7   inc         esi
+00477DA8   dec         ebx
+```
