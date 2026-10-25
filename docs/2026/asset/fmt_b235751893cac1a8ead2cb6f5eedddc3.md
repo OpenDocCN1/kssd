@@ -1,0 +1,133 @@
+
+```text
+004017DD  |.  85>test    eax, eax                                           ;  AUTH936.00C90000
+004017DF  |.  75>jnz     short AUTHREG.004017EB
+```
+
+注意了：下面这一招很有意思的！可以做为反调试的一个小技巧！先用`GetForegroundWindows`函数得到当前桌面上激活的窗口句柄，这时这个句柄就是我们的`Olldbg`窗口的句柄，不信请你运行到`004017E7`后停下来，记住`EAX`中的值。然后用`windowJuggler`插件查看`Olldbg`主窗口的句柄，比较一下是不是一样的。看来它针对我们的`olldbg`做些什么事情！？果然在`00401810`处将这个句柄压入，原来它是想用前景窗口做它的父窗口，而它又是一个模态的对话框，当对话框建立之后，这个父窗口将会被暂时冻结，直到对话框结束才解冻，如果父窗口是调试器的话，对不起，在它结束之前调试器将会被系统冻结而失去作用！这里它的父窗口就是我们的`Olldbg`了，看来敌人想要冻结我们。
+
+没关系，你可以停在`00401810`处将`EAX`中的值改为`00000000`就可以不被冻结了。但是我不想这样做，我按了`F9`（千万不要按`F8`运行下去了，不然你会死得很惨，Win9x系统会因此而挂机的，原因自己分析）。果然我们的`Olldbg`光荣了。如果你不强行关闭`AuthReg.exe`的话，还可以保存数据重启计算机。在下就是挂机重启了！在WIN2000/xp上不会挂机，但`olldbg`一定死了。看来这个技巧对防`olldbg`这一类ring-3级的调试器是很有用的！\*\*\*\*\*
+
+```text
+004017E1  |.  FF>call    near dword ptr ds:[<&USER32.GetForegroundWindow>]  ; [GetForegroundWindow
+004017E7  |.  89>mov     dword ptr ss:[esp], eax             ; 保存得到的当前激活窗口的句柄
+004017EB  |>  8B>mov     ecx, dword ptr ss:[esp+4]
+004017EF  |.  A3>mov     dword ptr ds:[40F838], eax          ; 保存得到的当前激活窗口的句柄
+004017F4  |.  85>test    ecx, ecx
+004017F6  |.  6A>push    0
+004017F8  |.  74>je      short AUTHREG.0040180B
+004017FA  |.  8B>mov     edx, dword ptr ds:[40CD64]                         ;  AUTH936.00C90000
+00401800  |.  68>push    AUTHREG.00401CF0
+00401805  |.  50 push    eax                                                ;  AUTH936.00C90000
+00401806  |.  6A>push    68
+00401808  |.  52 push    edx
+00401809  |.  EB>jmp     short AUTHREG.00401819
+0040180B  |>  68>push    AUTHREG.00401850                                   ; |对话框的处理函数\*\*\*\*\*\*
+00401810  |.  50 push    eax                                  ; 压入前景窗口的句柄，做对话框的父窗口
+00401811  |.  A1>mov     eax, dword ptr ds:[40CD64]                         ; |
+00401816  |.  6A>push    67                                                 ; |pTemplate = 67
+00401818  |.  50 push    eax                                                ; |hInst = 00C90000
+00401819  |>  FF>call    near dword ptr ds:[<&USER32.DialogBoxParamA>]      ; \显示对话框
+0040181F  |.  A1>mov     eax, dword ptr ds:[40CD64]
+00401824  |.  8B>mov     ecx, dword ptr ds:[40CC2C]                         ;  AUTHREG.00400000
+0040182A  |.  3B>cmp     eax, ecx
+0040182C  |.  74>je      short AUTHREG.00401835
+0040182E  |.  50 push    eax                                                ; /hLibModule = 00C90000
+0040182F  |.  FF>call    near dword ptr ds:[<&KERNEL32.FreeLibrary>]        ; \FreeLibrary，释放DLL文件
+00401835  |>  B8>mov     eax, 1
+0040183A  |.  81>add     esp, 8C
+00401840  \.  C2>retn    10                                                 ；退出
+```
+
+---
+
+## 作战手册第四条：屡败屡战
+
+只不过是从头在来！OK，死机了！没关系，关键是要总结经验教训。血的事实告诉我们，破解不能有一点失误。看来如果不在`00401810`处修改`EAX`的值，`Olldbg`将不能正常发挥作用。
+
+没事，`olldbg`给了我们另一个选择，这就是`Attath`（挂接）。请先运行`authreg.exe`，再打开`olldbg`。在`olldbg`的File菜单中选择`Attach`，并在弹出的窗口中选择`AuthReg.exe`文件。OK！敌人再次进入了我们的包围圈！很快`olldbg`完成分析并停在了`Kernel.dll`中，按`F9`运行，还在`Kernel.dll`中，没关系按`ALT+E`，选择`AuthReg.exe`文件，双击就可以回到`Authreg.exe`的代码中了，记得再按`ctrl+A`，对程序进行分析，这样程序会好看得多！
+
+由于对话框已经运行了，上面的分析已经没有太多作用了，不过请大家看到`0040180B`这个位置就在上面的代码中，我做了注释：`push AUTHREG.00401850`这个指令就是将这个对话框的处理函数压入堆栈。简单的说，从`00401850`开始就是处理这个对话框的各种信息和指令的位置。这就好说了！按`ctrl+G`输入`00401850`，跳转到这里：
+
+```text
+00401850   .  8B>mov     eax, dword ptr ss:[esp+8]   ;处理函数的入口
+00401854   .  81>sub     esp, 29C
+0040185A   .  2D>sub     eax, 110                    ;  Switch (cases 110..111)各种消息的分支
+0040185F   .  53 push    ebx
+00401860   .  55 push    ebp
+00401861   .  8B>mov     ebp, dword ptr ss:[esp+2B0]
+00401868   .  56 push    esi
+00401869   .  8B>mov     esi, dword ptr ss:[esp+2AC]
+00401870   .  57 push    edi
+00401871   .  0F>je      AUTHREG.00401B0B
+00401877   .  48 dec     eax
+00401878   .  0F>jnz     AUTHREG.00401C7A
+0040187E   .  8B>mov     edi, ebp                     ;  Case 111 of switch 0040185A 处理WM\_COMMAND消息的入口
+00401880   .  81>and     edi, 0FFFF          ； 请记住，111代表WM\_COMMAND消息
+00401886   .  81>cmp     edi, 9C41                    ;  Switch (cases 1..9C45)
+0040188C   .  0F>jg      AUTHREG.00401A0D        ；先下断点
+00401892   .  0F>je      AUTHREG.004019D2        ; 先下断点
+00401898   .  4F dec     edi
+00401899   .  0F>je      AUTHREG.0040199B        ; 先下断点；这个地方跳到处理“确定”按钮的代码
+0040189F   .  4F dec     edi
+004018A0   .  0F>je      AUTHREG.004019BF        ; 先下断点
+004018A6   .  81>sub     edi, 3F2
+004018AC   .  0F>jnz     AUTHREG.00401C7A        ; 先下断点
+004018B2   .  A1>mov     eax, dword ptr ds:[40F83C]   ;  Case 3F4 of switch 00401886
+004018B7   .  8D>lea     ecx, dword ptr ss:[esp+2C]
+```
+
+由于Windows是基于消息驱动的，所有的动作都会产生消息，同时根据消息进行不同的处理！请观察程序运行的对话窗，其中有两个按钮，“确定”按钮和“继续试用”按钮，可以推测当按下“确定”按钮的时候，程序将进行注册码的判断。所以要捕获按钮的消息。而按钮的消息代码是`WM_COMMAND`其值就是`111`。很容易看到，在对话框消息处理函数入口处下面不远就是处理`WM_COMMAND`消息的代码（请看上面的注释）。从`0040187E`到`004018AC`都是处理`WM_COMMAND`消息的代码，其中有五处跳转，不知跳到什么地方。不管它，先对这五个地方都按`F2`下断点，一个一个试就知道了。
+
+下断点后，转到注册对话框，马上就断下了。停在`0040188C`处，看来这个断点不是处理“确定”按钮的，按`F2`取消这个断点，再按`F9`到运行。又停在`00401892`处，这个断点也不是处理“确定”按钮的，按`F2`取消这个断点，再按`F9`运行。对话框出现了，输入注册名：`ILOVEYOU`，注册码：`4321-5678-0987-1234`，点“确定”按钮。呵呵，断下来了在`00401899`这个位置，一步一步的跟吧！按`F8`走到`0040199B`。
+
+```text
+0040199B   > \6A>push    0                              ;  按下“确定”按钮后就到这里了; Case 1 of switch 00401886
+0040199D   .  56 push    esi
+0040199E   .  E8>call    AUTHREG.00402350               ;  对你输入的注册名和注册码的长度进行检查
+```
+
+步步为营，按`F7`进入`0040199e`的`CALL AUTHREG.00402350`中：
+
+```text
+00402350  /$  A1>mov     eax, dword ptr ds:[40CC30]     ；
+00402355  |.  56 push    esi                            ；
+00402356  |.  8B>mov     esi, dword ptr ds:[<&USER32.GetWindowTextLengthA>] ；将GetWindowTextLengthA函数地址复制给ESI
+0040235C  |.  50 push    eax                            ; /hWnd = NULL压入“注册码”编辑框的句柄，
+0040235D  |.  FF>call    near esi                       ; \GetWindowTextLengthA
+0040235F  |.  85>test    eax, eax                       ;  得到注册名的长度
+00402361  |.  75>jnz     short AUTHREG.00402380         ; 如果有注册名就跳跳转
+00402363  |.  8B>mov     eax, dword ptr ss:[esp+C]
+00402367  |.  85>test    eax, eax
+00402369  |.  75>jnz     short AUTHREG.004023D3
+0040236B  |.  8B>mov     ecx, dword ptr ss:[esp+8]
+0040236F  |.  6A>push    2
+00402371  |.  6A>push    3
+00402373  |.  51 push    ecx
+00402374  |.  E8>call    AUTHREG.004022B0               ； 如果是注册名空就提示错误信息，并返回
+00402379  |.  83>add     esp, 0C
+0040237C  |.  33>xor     eax, eax
+0040237E  |.  5E pop     esi                                                ;  AUTHREG.004019A3
+0040237F  |.  C3 retn
+00402380  |>  8B>mov     edx, dword ptr ds:[40CC38]                         ;  得到注册码文字框的句柄！
+00402386  |.  53 push    ebx                                                ;  保存计数器
+00402387  |.  55 push    ebp                                                ;  保存计数器
+00402388  |.  57 push    edi                                                ;  保存计数器
+00402389  |.  52 push    edx                                                ;  压入句柄
+0040238A  |.  FF>call    near esi                                           ;  得到第一段注册码的长度
+0040238C  |.  8B>mov     edi, eax                                           ;  edi中是长度
+0040238E  |.  A1>mov     eax, dword ptr ds:[40CC34]
+00402393  |.  50 push    eax
+00402394  |.  FF>call    near esi                                           ;  得到第二段注册码的长度
+00402396  |.  8B>mov     ecx, dword ptr ds:[40CC40]
+0040239C  |.  8B>mov     ebx, eax                                           ;  ebx 中是长度
+0040239E  |.  51 push    ecx
+0040239F  |.  FF>call    near esi                                           ;  得到第三段注册码的长度
+004023A1  |.  8B>mov     edx, dword ptr ds:[40CC3C]
+004023A7  |.  8B>mov     ebp, eax                                           ;  ebp中是长度
+004023A9  |.  52 push    edx
+004023AA  |.  FF>call    near esi              ；得到第四段注册码的长度
+004023AC  |.  23>and     eax, ebp                                           ；eax中是长度
+004023AE  |.  23>and     eax, ebx              ；检查长度
+004023B0  |.  23>and     eax, edi              ；检查长度
+```
