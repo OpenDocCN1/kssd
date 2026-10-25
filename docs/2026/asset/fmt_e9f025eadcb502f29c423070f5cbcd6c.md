@@ -1,0 +1,180 @@
+
+# IPTOOLS (5千字)
+
+- 软件名称：IP Tools
+- 整理日期：2001.3.10
+- 最新版本：1.11
+- 文件大小：944KB
+- 软件授权：共享软件
+- 使用平台：Win9x/Me/2000/NT
+- 发布公司：home page
+
+软件简介：
+
+集成了许多TCP/IP实用工具于一体，比如本地信息、连接信息、端口扫描、`PING`、`TRACE`、`WHOIS`、`FINGER`、`NSLOOKUP`、`Telnet`客户端、NETBIOS信息、IP监视器等等。
+
+下`BPX`中断后，大约按十次F12来到这里
+
+```
+:004972F1 8B45F8
+mov eax, dword ptr [ebp-08]--------------注册名的地址
+:004972F4 8D55FC
+lea edx, dword ptr [ebp-04]
+:004972F7 E84804F7FF              call
+00407744
+:004972FC 8B55FC
+mov edx, dword ptr [ebp-04]
+:004972FF 8BC7
+  mov eax, edi
+:00497301 E8AABCF8FF              call
+00422FB0
+:00497306 8D55F8
+lea edx, dword ptr [ebp-08]
+:00497309 8B06
+  mov eax, dword ptr [esi]
+:0049730B 8BB8F4010000            mov edi, dword
+ptr [eax+000001F4]
+:00497311 8BC7
+  mov eax, edi
+:00497313 E868BCF8FF              call
+00422F80
+:00497318 8B45F8
+mov eax, dword ptr [ebp-08]
+:0049731B 8D55FC
+lea edx, dword ptr [ebp-04]
+:0049731E E82104F7FF              call
+00407744
+:00497323 8B55FC
+mov edx, dword ptr [ebp-04]
+:00497326 8BC7
+  mov eax, edi
+:00497328 E883BCF8FF              call
+00422FB0
+:0049732D 8D55F8
+lea edx, dword ptr [ebp-08]
+:00497330 8B06
+  mov eax, dword ptr [esi]
+:00497332 8B80F0010000            mov eax, dword
+ptr [eax+000001F0]
+:00497338 E843BCF8FF              call
+00422F80
+:0049733D 837DF800
+cmp dword ptr [ebp-08], 00000000----------比较
+:00497341 0F84C9010000            je 00497510－－－－－－－－－－－－－－－如果你没有输入注册名的话，在这里玩完啦
+:00497347 8D55F4
+lea edx, dword ptr [ebp-0C]
+:0049734A 8B06
+  mov eax, dword ptr [esi]
+:0049734C 8B80F4010000            mov eax, dword
+ptr [eax+000001F4]
+:00497352 E829BCF8FF              call
+00422F80
+:00497357 837DF400
+cmp dword ptr [ebp-0C], 00000000-------------这里也是比较你有否输入的地方，
+:0049735B 0F84AF010000            je 00497510－－－－－－－－－－－－－－－－－但这里比较的是你有否输入注册码不同而己　
+:00497361 8D55F0
+lea edx, dword ptr [ebp-10]　　　　　　　　　
+:00497364 8B06
+  mov eax, dword ptr [esi]
+:00497366 8B80F0010000            mov eax, dword
+ptr [eax+000001F0]
+:0049736C E80FBCF8FF              call
+00422F80
+:00497371 8B45F0
+mov eax, dword ptr [ebp-10]
+:00497374 E8DF7CFFFF              call
+0048F058
+:00497379 8BF8
+  mov edi, eax
+:0049737B 8D55F0
+lea edx, dword ptr [ebp-10]
+:0049737E 8B06
+  mov eax, dword ptr [esi]
+:00497380 8B80F4010000            mov eax, dword
+ptr [eax+000001F4]
+:00497386 E8F5BBF8FF              call
+00422F80
+:0049738B 8B45F0
+mov eax, dword ptr [ebp-10]
+:0049738E E8617DFFFF              call
+0048F0F4－－－－－－－大家可不好小看这个CALL，它可利害的啊，后来才知道它在比较注册码位数。
+　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　（其实到现在也有点怀疑是否真的要注册码的位数大于1，反正我输入两位，就不会在下面的00497396处跳跃，也就不会跳到注册错误窗口）
+　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　请各位大哥跟下这个CALL，指导一下小菜呀！在这里先谢啦。
+:00497393 663BF8
+cmp di, ax
+:00497396 0F8574010000            jne 00497510------------如果不相同的话就西西啦
+:0049739C A1B0994B00              mov eax,
+dword ptr [004B99B0]
+:004973A1 BAFF010000              mov edx,
+000001FF
+:004973A6 E8957CFFFF              call
+0048F040
+:004973AB 8BF8
+  mov edi, eax
+:004973AD A1E8984B00              mov eax,
+dword ptr [004B98E8]
+:004973B2 BAFF010000              mov edx,
+000001FF
+:004973B7 E8847CFFFF              call
+0048F040-------------------想了解多点的话，在这里跟进入
+:004973BC 3BF8
+  cmp edi, eax
+:004973BE 0F854C010000            jne 00497510－－－－－－－－－－－在这下A指令将JNZ改为JZ后，一直走，走过0049740A的CALL后就注册成功了
+:004973C4 8D55F8
+lea edx, dword ptr [ebp-08]
+:004973C7 8B06
+  mov eax, dword ptr [esi]
+:004973C9 8B80F0010000            mov eax, dword
+ptr [eax+000001F0]
+:004973CF E8ACBBF8FF              call
+00422F80
+:004973D4 8B55F8
+mov edx, dword ptr [ebp-08]
+:004973D7 A1949A4B00              mov eax,
+dword ptr [004B9A94]
+:004973DC E8C7C8F6FF              call
+00403CA8
+:004973E1 8D55F8
+lea edx, dword ptr [ebp-08]
+:004973E4 8B06
+  mov eax, dword ptr [esi]
+:004973E6 8B80F4010000            mov eax, dword
+ptr [eax+000001F4]
+:004973EC E88FBBF8FF              call
+00422F80
+:004973F1 8B55F8
+mov edx, dword ptr [ebp-08]
+:004973F4 A11C994B00              mov eax,
+dword ptr [004B991C]
+:004973F9 E8AAC8F6FF              call
+00403CA8
+:004973FE 8BC3
+  mov eax, ebx
+:00497400 E8E7F9FFFF              call
+00496DEC
+\* Possible StringData Ref from Code Obj ->
+            |
+:00497405 B85C754900              mov eax,
+0049755C
+:0049740A E8A1C2FAFF              call
+004436B0-------------------来到这里就注册成功了
+:0049740F B201
+  mov dl, 01
+:00497411 A1F8444300              mov eax,
+dword ptr [004344F8]
+:00497416 E839D2F9FF              call
+00434654
+:0049741B 8BD8
+  mov ebx, eax
+:0049741D B101
+  mov cl, 01
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+|:00497341(C), :0049735B(C), :00497396(C), :004973BE(C)
+|
+\* Possible StringData Ref from Code Obj
+            |
+:00497510 B86C764900              mov eax,
+0049766C
+:00497515 E896C1FAFF              call
+004436B0----------------------注册错误窗口
+```
