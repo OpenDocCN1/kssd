@@ -1,0 +1,270 @@
+
+```
+005AE728  |.  56            PUSH    ESI                              ; |hWnd = 10080
+
+005AE729  |.  E8 FA94E5FF   CALL    <JMP.&user32.PostMessageA>       ; \PostMessageA  ；广播消息函数
+```
+
+现在知道了，所谓的反破解手段之一“EnumWindows”大法就是列举所有正在运行的窗口，发现和跟踪、调试相关的软件后发送一个“WM\_QUIT”的消息使其关闭（把`005AE726  PUSH  12`这一行改成`PUSH 0`，即发送一个NULL信息，就破掉了这个反调试，不过我们现在并不破解，只是跟踪一下程序流程而已）。PS：竟然OD也在黑名单，嘿嘿，太小看我们 OD了吧？你在我手心里还想反过来整我？ 没门儿！OD是不会被终结的。
+
+继续运行到这里：
+
+```
+005AF63F   .  8B45 EC       MOV     EAX, SS:[EBP-14]
+
+005AF642   .  8B96 08040000 MOV     EDX, DS:[ESI+408]
+
+005AF648   .  E8 6359E5FF   CALL    SpokenKi.00404FB0
+
+005AF64D   .  74 47         JE      SHORT SpokenKi.005AF696
+
+= = = =
+
+EAX 00FFA540 ASCII "spokenking.exe"
+
+ECX 00FFA538
+
+EDX 00FF7AA8 ASCII "spokenking.exe"
+```
+
+原来文件名也不能改。----幸亏没有`DUMP`！
+
+再往下走就更多的限制了，文件修改日期也不能改，运行文件夹里不能存在其他exe文件，如果存在`C:\WINNT\System32\MSSpeechEAPI.dll`文件，也同样提示过期，这些也不能一一道来，最后在做个总结吧，反正都是反破解的手段，关键是只要一次出错，就运行次数到期（我也是在重装了几次系统之后知道的，别以为我是高手，高手才不会爆破呢），我们需要找到次数运算的地方。先粗略地 F8一下，结果这一粗略，我按了N次（N>50）F8，最后来到：
+
+```
+005BBAF5   > \A1 7C4A5C00   MOV     EAX, DS:[5C4A7C]
+
+005BBAFA   .  8B00          MOV     EAX, DS:[EAX]
+
+005BBAFC   .  E8 AB5CECFF   CALL    SpokenKi.004817AC ；--这个Call后出现运行窗口。
+
+005BBB01   .  E8 6A2CFFFF   CALL    SpokenKi.005AE770
+```
+
+这一路下来，分析得知：
+
+运行次数保存在注册表和系统目录的文件中，每次运行都会交替在`System32`中和`Help`文件夹生成次数文件，每次的文件名是固定的，但不相同，文件名字串也经过加密后放在程序里，程序会根据文件中和注册表中的次数运行，两者不一致直接KO，中途还会有很多暗桩，不下3、40处，不过都是比较明显的判断，现在我们要说了，这么多的点，怎么爆破呢？我要说，当你知道了程序流程之后，爆破纯粹就是力气活了（怪不得大牛们不屑爆破，但菜菜鸟倒应该从爆破学起）。在这里我采取“倒叙法”，就是从上面的运行窗口出现的地方开始，往上走，看怎样才能到这里。
+
+1，
+
+```
+005BB9C6   .  E8 E594E4FF   CALL    SpokenKi.00404EB0
+
+005BB9CB   .  8B85 58F3FFFF MOV     EAX, SS:[EBP-CA8]                ;  SpokenKi.0065006E
+
+005BB9D1   .  E8 22E2E4FF   CALL    SpokenKi.00409BF8
+
+005BB9D6   .  84C0          TEST    AL, AL
+
+005BB9D8   .  0F84 17010000  JE      SpokenKi.005BBAF5          ；需要改为jmp（以下所有爆破点均需要在脱壳后的程序上修改，不再明示）。
+```
+
+2，
+
+```
+005BB7F8   .  8B85 64F3FFFF MOV     EAX, SS:[EBP-C9C]
+
+005BB7FE   .  E8 F5E3E4FF   CALL    SpokenKi.00409BF8
+
+005BB803   .  84C0          TEST    AL, AL
+
+005BB805   .  0F84 1A010000 JE      SpokenKi.005BB925          ；需要改为jmp。
+```
+
+中间只要看到跳转我们就直接改为`JMP`，这就是爆破者的特征^-^，此处我就略过N个，
+
+到这里：
+
+```
+005BB43E   > \833D 20935C00>CMP     DWORD PTR DS:[5C9320], 0  ；运行次数不能等0，否则OVER.
+
+005BB445   .  74 72         JE      SHORT SpokenKi.005BB4B9
+
+005BB447   .  68 792C0000   PUSH    2C79
+
+005BB44C   .  8D85 8CF3FFFF LEA     EAX, SS:[EBP-C74]
+
+005BB452   .  50            PUSH    EAX
+
+005BB453   .  B9 DD570000   MOV     ECX, 57DD
+
+005BB458   .  BA 870A0000   MOV     EDX, 0A87
+
+005BB45D   .  B8 7CC05B00   MOV     EAX, SpokenKi.005BC07C  ; ASCII "OGw="；经过加密后的最大次数“20”。
+
+005BB462   .  E8 A189F8FF   CALL    SpokenKi.00543E08
+
+005BB467   .  8B85 8CF3FFFF MOV     EAX, SS:[EBP-C74]    ；解密得到字符串“20”。
+
+005BB46D   .  E8 BAE3E4FF   CALL    SpokenKi.0040982C    ；转换成十六进制“14”到EAX中，
+
+005BB472   .  3B05 20935C00 CMP     EAX, DS:[5C9320]    ；和当前运行次数备份进行比较。
+
+005BB478   .  74 3F         JE      SHORT SpokenKi.005BB4B9；相等则OVER。
+
+005BB47A   .  68 792C0000   PUSH    2C79
+
+005BB47F   .  8D85 88F3FFFF LEA     EAX, SS:[EBP-C78]
+
+005BB485   .  50            PUSH    EAX
+
+005BB486   .  B9 DD570000   MOV     ECX, 57DD
+
+005BB48B   .  BA 870A0000   MOV     EDX, 0A87
+
+005BB490   .  B8 7CC05B00   MOV     EAX, SpokenKi.005BC07C ; ASCII "OGw=" ASCII "OGw="；经过加密后的次数“20”。
+
+005BB495   .  E8 6E89F8FF   CALL    SpokenKi.00543E08
+
+005BB49A   .  8B85 88F3FFFF MOV     EAX, SS:[EBP-C78]
+
+005BB4A0   .  E8 87E3E4FF   CALL    SpokenKi.0040982C    ；再次得到最大运行次数定义值“14”。
+
+005BB4A5   .  3BF8          CMP     EDI, EAX        ；EDI中为当前运行次数。
+
+005BB4A7   .  74 10         JE      SHORT SpokenKi.005BB4B9 ；相等则OVER。
+
+005BB4A9   .  85FF          TEST    EDI, EDI                         ;  ntdll.7C930738
+
+005BB4AB   .  74 0C         JE      SHORT SpokenKi.005BB4B9  ；等“0”也OVER。
+
+005BB4AD   .  3B3D 20935C00 CMP     EDI, DS:[5C9320]    ；比较两个方式存放的运行次数是否相等。
+
+005BB4B3   .  0F84 88010000 JE      SpokenKi.005BB641    ；相等则OK。
+```
+
+上面这一段不必爆破，原因是如果你再走走可以发现，这样的判断有多个，要爆破工作量太大，且还不能保证程序运行中是否还有次数判断，这就给了我们方向—把次数都设置成1即可，我们再往上走，看看这两个次数是怎么得到的。
+
+PS：通过分析`CALL SpokenKi.00543E08`之后我们得知，这个是解密程序，其实质是一个BASE64的变形版本，只不过多了三个运算参数，而这三个参数看起来和每一个加密字串都一一对应，包括程序资源中的所有字符串。所以如果你想更改系统资源串，工作量就非常大，我就特意写了一个加密器，来对付这个软件，把我们的加密串替换掉程序中的加密串，就可以显示我们自己的信息了。这些都是题外话了，暂且不提。
+
+再往上走：
+
+```
+005BB2E8   > \A1 44935C00   MOV     EAX, DS:[5C9344]                 ; 又一个次数备份：
+
+005BB2ED   .  3B05 20935C00 CMP     EAX, DS:[5C9320]                 ; |
+
+005BB2F3   .  74 05         JE      SHORT SpokenKi.005BB2FA          ; 次数比较，相等则OK。
+
+；；；
+
+005BA5A0   > \A1 44935C00   MOV     EAX, DS:[5C9344]                 ;
+
+005BA5A5   .  3B05 20935C00 CMP     EAX, DS:[5C9320]                 ; |
+
+005BA5AB   .  74 05         JE      SHORT SpokenKi.005BA5B2          ; |
+
+DS:[005C9344]=00000000
+
+EAX=00000000
+
+跳转来自 005B39CB, 005B4338, 005B4871, 005B4DAA, 005B52E3, 005B581C, 005B5D55, 005B628E,
+
+   005B67C7, 005B6D00, 005B7239, 005B7772,005B7CAB, 005B81E4, 005B871D, 005B8C56,
+
+   005B918F, 005B96C8, 005B9C05
+
+; 这个地方有很多程序跳过来，数一数，19个！和运行次数20次相比，少一个，除去最后一次运行，正好，现在就猜到上面都是运行次数有效后的跳转，我们直接找到第二次跳转“005B4338”（任何一个都可以破解，为了方便，我们找第二个）。
+```
+
+```
+005B42D7   > \8B15 00495C00 MOV     EDX, DS:[5C4900]                 ;  SpokenKi.005C8C9C
+
+005B42DD   .  8B52 28       MOV     EDX, DS:[EDX+28]
+
+005B42E0   .  B9 75670000   MOV     ECX, 6775
+
+005B42E5   .  A1 24935C00   MOV     EAX, DS:[5C9324]
+
+005B42EA   .  E8 F1ACFFFF   CALL    SpokenKi.005AEFE0        ；从文件中得到运行次数。
+
+005B42EF   .  FF05 20935C00 INC     DWORD PTR DS:[5C9320]        ；运行次数加一，
+
+====》快刀斩乱麻：不跟踪得到运行次数的Call，直接送1
+
+；；005B42EA   .  C705 20935C00>MOV     DWORD PTR DS:[5C9320], 1    ；搞定一个运行次数。
+
+；；005B42F4   .  90            NOP
+
+005B42F5   .  8B15 00495C00 MOV     EDX, DS:[5C4900]                 ;  SpokenKi.005C8C9C
+
+005B42FB   .  8B52 2C       MOV     EDX, DS:[EDX+2C]
+
+005B42FE   .  B9 3C540000   MOV     ECX, 543C
+
+005B4303   .  A1 28935C00   MOV     EAX, DS:[5C9328]
+
+005B4308   .  E8 A3ABFFFF   CALL    SpokenKi.005AEEB0      ；生成下一次运行次数的文件，NOP掉。
+
+005B430D   .  8B0D 00495C00 MOV     ECX, DS:[5C4900]                 ;  SpokenKi.005C8C9C
+
+005B4313   .  8B49 28       MOV     ECX, DS:[ECX+28]
+
+005B4316   .  8D85 7CFBFFFF LEA     EAX, SS:[EBP-484]
+
+005B431C   .  8B15 24935C00 MOV     EDX, DS:[5C9324]
+
+005B4322   .  E8 890BE5FF   CALL    SpokenKi.00404EB0
+
+005B4327   .  8B85 7CFBFFFF MOV     EAX, SS:[EBP-484]
+
+005B432D   .  E8 320DE5FF   CALL    SpokenKi.00405064
+
+005B4332   .  50            PUSH    EAX                           ; /FileName = NULL  ；NOP掉。
+
+005B4333   .  E8 882EE5FF   CALL    <JMP.&KERNEL32.DeleteFileA>   ; \DeleteFileA.删除运行次数文件，NOP掉
+
+005B4338   . /E9 63620000    JMP     SpokenKi.005BA5A0
+```
+
+继续向上看。
+
+```
+005B3E1A   .  8B85 DCFBFFFF MOV     EAX, SS:[EBP-424]                ；判断第一个运行文件是否存在。
+
+005B3E20   .  E8 D35DE5FF   CALL    SpokenKi.00409BF8
+
+005B3E25   .  84C0          TEST    AL, AL
+
+005B3E27   .  0F84 10050000 JE      SpokenKi.005B433D          ；直接JMP。
+
+；EAX=0106C7F8, (ASCII "C:\\WINDOWS\\system32\\SCBZDEIES.DLL")；第一次运行后生成的文件，我们默认存在即可。
+
+005B3BC2   .  8B15 00495C00 MOV     EDX, DS:[5C4900]                 ;  SpokenKi.005C8C9C
+
+        ；；EDX=01065530, (ASCII "{97BB3C69-D52A-11D0-D149-17748809437B}"
+
+005B3BC8   .  8B52 20       MOV     EDX, DS:[EDX+20]
+
+005B3BCB   .  B9 01000000   MOV     ECX, 1
+
+005B3BD0   .  A1 1C935C00   MOV     EAX, DS:[5C931C]
+
+005B3BD5   .  E8 DEF2EDFF   CALL    SpokenKi.00492EB8        ；从注册表中得到运行次数备份。
+
+爆破点！ 直接修改为：
+
+005B3BD5      33C0          XOR     EAX, EAX              ；搞定第二个运行次数。
+
+005B3BD7      40            INC     EAX
+
+005B3BD8      90            NOP
+
+005B3BD9      90            NOP
+
+005B3BDA   .  8BF8          MOV     EDI, EAX              ；得到运行次数到EDI！
+
+005B3BDC   .  68 712C0000   PUSH    2C71
+
+005B3BE1   .  8D85 FCFBFFFF LEA     EAX, SS:[EBP-404]
+
+005B3BE7   .  50            PUSH    EAX
+
+005B3BE8   .  B9 D5570000   MOV     ECX, 57D5
+
+005B3BED   .  BA 7F0A0000   MOV     EDX, 0A7F
+
+005B3BF2   .  B8 1CC05B00   MOV     EAX, SpokenKi.005BC01C           ;  ASCII "O3Y="
+
+005B3BF7   .  E8 0C02F9FF   CALL    SpokenKi.00543E08
+```
