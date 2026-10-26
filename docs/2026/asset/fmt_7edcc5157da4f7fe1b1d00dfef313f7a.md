@@ -1,0 +1,197 @@
+
+# 反汇编分析
+
+```asm
+016F:005222CB 8D45FC           LEA      EAX,[EBP-04]
+016F:005222CE E82926EEFF       CALL     004048FC
+016F:005222D3 C3               RET
+```
+关键算法`CALL(2)`
+
+```
+016F:005222E4 55               PUSH     EBP
+016F:005222E5 8BEC             MOV      EBP,ESP
+016F:005222E7 33C9             XOR      ECX,ECX
+016F:005222E9 51               PUSH     ECX
+016F:005222EA 51               PUSH     ECX
+016F:005222EB 51               PUSH     ECX
+016F:005222EC 51               PUSH     ECX
+016F:005222ED 51               PUSH     ECX
+016F:005222EE 51               PUSH     ECX
+016F:005222EF 53               PUSH     EBX
+016F:005222F0 56               PUSH     ESI
+016F:005222F1 8BF2             MOV      ESI,EDX
+016F:005222F3 8BD8             MOV      EBX,EAX     //EAX=436016E
+016F:005222F5 33C0             XOR      EAX,EAX
+016F:005222F7 55               PUSH     EBP
+016F:005222F8 6830245200       PUSH     DWORD 00522430
+016F:005222FD 64FF30           PUSH     DWORD [FS:EAX]
+016F:00522300 648920           MOV      [FS:EAX],ESP
+016F:00522303 81F38776FBDD     XOR      EBX,DDFB7687  //EBX=436016E xor DDFB7687=D9CD77E9
+016F:00522309 8BC3             MOV      EAX,EBX
+016F:0052230B 33D2             XOR      EDX,EDX
+016F:0052230D 52               PUSH     EDX
+016F:0052230E 50               PUSH     EAX
+016F:0052230F 8D45FC           LEA      EAX,[EBP-04]
+016F:00522312 E8A972EEFF       CALL     004095C0      //D9CD77E9转为十进制入[EBP-04]
+016F:00522317 8B45FC           MOV      EAX,[EBP-04]  //EAX=3654121449
+016F:0052231A 0FB600           MOVZX    EAX,BYTE [EAX]//EAX=33
+016F:0052231D 8B55FC           MOV      EDX,[EBP-04]  //EDX=3654121449
+016F:00522320 0FB65201         MOVZX    EDX,BYTE [EDX+01]//EDX=36
+016F:00522324 03C2             ADD      EAX,EDX       //EAX=33+36=69
+016F:00522326 B905000000       MOV      ECX,05
+016F:0052232B 99               CDQ
+016F:0052232C F7F9             IDIV     ECX           //EDX=69 mod 5=0
+016F:0052232E 80C266           ADD      DL,66         //DL=0+66=66     ★注册码其中一位
+016F:00522331 8855F8           MOV      [EBP-08],DL
+016F:00522334 8B45FC           MOV      EAX,[EBP-04]  //EAX=3654121449
+016F:00522337 0FB64002         MOVZX    EAX,BYTE [EAX+02]  //EAX=35
+016F:0052233B 8B55FC           MOV      EDX,[EBP-04]
+016F:0052233E 0FB65203         MOVZX    EDX,BYTE [EDX+03]  //EDX=34
+016F:00522342 03C2             ADD      EAX,EDX       //EAX=35+34=69
+016F:00522344 B905000000       MOV      ECX,05
+016F:00522349 99               CDQ
+016F:0052234A F7F9             IDIV     ECX           //EDX=69 mod 5=0
+016F:0052234C 80C275           ADD      DL,75         //DL=0+75=75     ★注册码其中一位
+016F:0052234F 8855F9           MOV      [EBP-07],DL
+016F:00522352 8B45FC           MOV      EAX,[EBP-04]  //EAX=3654121449
+016F:00522355 0FB64004         MOVZX    EAX,BYTE [EAX+04]  //EAX=31
+016F:00522359 8B55FC           MOV      EDX,[EBP-04]
+016F:0052235C 0FB65205         MOVZX    EDX,BYTE [EDX+05]  //EDX=32
+016F:00522360 03C2             ADD      EAX,EDX       //EAX=31+32=63
+016F:00522362 B905000000       MOV      ECX,05
+016F:00522367 99               CDQ
+016F:00522368 F7F9             IDIV     ECX           //EDX=63 mod 5=4
+016F:0052236A 80C27A           ADD      DL,7A         //DL=4+7A=7E     ★注册码其中一位
+016F:0052236D 8855FA           MOV      [EBP-06],DL
+016F:00522370 8B45FC           MOV      EAX,[EBP-04]  //EAX=3654121449
+016F:00522373 0FB64006         MOVZX    EAX,BYTE [EAX+06]//EAX=31
+016F:00522377 8B55FC           MOV      EDX,[EBP-04]
+016F:0052237A 0FB65207         MOVZX    EDX,BYTE [EDX+07]//EDX=34
+016F:0052237E 03C2             ADD      EAX,EDX          //EAX=34+31=65
+016F:00522380 8B55FC           MOV      EDX,[EBP-04]     //EDX=3654121449
+016F:00522383 0FB65208         MOVZX    EDX,BYTE [EDX+08]//EDX=34
+016F:00522387 03C2             ADD      EAX,EDX          //EAX=65+34=99
+016F:00522389 B905000000       MOV      ECX,05
+016F:0052238E 99               CDQ
+016F:0052238F F7F9             IDIV     ECX              //EDX=99 mod 5=3
+016F:00522391 80C269           ADD      DL,69            //DL=69+3=6C ★注册码其中一位
+016F:00522394 8855FB           MOV      [EBP-05],DL
+016F:00522397 8D45F4           LEA      EAX,[EBP-0C]
+016F:0052239A 8A55F8           MOV      DL,[EBP-08]      //DL=66
+016F:0052239D E83A27EEFF       CALL     00404ADC         //转为ASCII码f
+016F:005223A2 8B45F4           MOV      EAX,[EBP-0C]
+016F:005223A5 8D55FC           LEA      EDX,[EBP-04]
+016F:005223A8 B907000000       MOV      ECX,07           //应放在3654121449的第7位
+016F:005223AD E8E22AEEFF       CALL     00404E94         //实现365412f1449
+016F:005223B2 8D45F0           LEA      EAX,[EBP-10]
+016F:005223B5 8A55FB           MOV      DL,[EBP-05]      //DL=6C
+016F:005223B8 E81F27EEFF       CALL     00404ADC         //转为ASCII码l
+016F:005223BD 8B45F0           MOV      EAX,[EBP-10]
+016F:005223C0 8D55FC           LEA      EDX,[EBP-04]
+016F:005223C3 B903000000       MOV      ECX,03           //应放在365412f1449的第3位
+016F:005223C8 E8C72AEEFF       CALL     00404E94         //实现36l5412f1449
+016F:005223CD 8D45EC           LEA      EAX,[EBP-14]
+016F:005223D0 8A55F9           MOV      DL,[EBP-07]      //DL=75
+016F:005223D3 E80427EEFF       CALL     00404ADC         //转为ASCII码u
+016F:005223D8 8B45EC           MOV      EAX,[EBP-14]
+016F:005223DB 8D55FC           LEA      EDX,[EBP-04]
+016F:005223DE B905000000       MOV      ECX,05           //应放在36l5412f1449的第5位
+016F:005223E3 E8AC2AEEFF       CALL     00404E94         //实现36l5u412f1449
+016F:005223E8 8D45E8           LEA      EAX,[EBP-18]
+016F:005223EB 8A55FA           MOV      DL,[EBP-06]      //DL=7E
+016F:005223EE E8E926EEFF       CALL     00404ADC         //转为ASCII码~
+016F:005223F3 8B45E8           MOV      EAX,[EBP-18]
+016F:005223F6 8D55FC           LEA      EDX,[EBP-04]
+016F:005223F9 B909000000       MOV      ECX,09           //应放在36l5u412f1449的第9位
+016F:005223FE E8912AEEFF       CALL     00404E94         //实现36l5u412~f1449
+016F:00522403 8BC6             MOV      EAX,ESI
+016F:00522405 8B55FC           MOV      EDX,[EBP-04]     //EDX=36l5u412~f1449   ★注册码第二部分
+016F:00522408 E84325EEFF       CALL     00404950
+016F:0052240D 33C0             XOR      EAX,EAX
+016F:0052240F 5A               POP      EDX
+016F:00522410 59               POP      ECX
+016F:00522411 59               POP      ECX
+016F:00522412 648910           MOV      [FS:EAX],EDX
+016F:00522415 6837245200       PUSH     DWORD 00522437
+016F:0052241A 8D45E8           LEA      EAX,[EBP-18]
+016F:0052241D BA04000000       MOV      EDX,04
+016F:00522422 E8F924EEFF       CALL     00404920
+016F:00522427 8D45FC           LEA      EAX,[EBP-04]
+016F:0052242A E8CD24EEFF       CALL     004048FC
+016F:0052242F C3               RET
+```
+
+## 总结
+
+注册码由主要两部分组成，两部分运行不相连，但基本大同。
+
+### 注册码第1部分
+
+先把输入定单号`123456`转为16进制`1E240`，然后`1E240 mod 309=2B2`，再把结果转为10进制`690`，就是注册码第一部分。
+
+### 注册码第2部分
+
+首先利用定单号`1E240`计算出过渡码`436016E`，然后再经过一系列计算，计算过程上边已标明，最后得出注册码第2部分`3615u412~f1449`
+
+## 推算过程
+
+注册码第1部分
+
+`1E240 mod 309=2B2`   `(690)`
+
+过渡码:`1E240 xor B25F1=AC7B1` `(706481)` 再计算得:`70648174`
+
+`(70648174)436016E xor DDFB7687=D9CD77E9(3654121449)`
+
+注册码第2部分
+
+第1位 `33(3)`
+
+第2位 `36(6)`
+
+第3位 `[(34+31+34) mod 5]+69=6C(l)`
+
+第4位 `35(5)`
+
+第5位 `[(35+34) mod 5]+75=75(u)`
+
+第6位 `34(4)`
+
+第7位 `31(1)`
+
+第8位 `32(2)`
+
+第9位 `[(31+32) mod 5]+7A=7E(~)`
+
+第10位 `[(33+36) mod 5]+66=66(f)`
+
+第11位 `31(1)`
+
+第12位 `34(4)`
+
+第13位 `34(4)`
+
+第14位 `39(9)`
+
+最后两部分组合: `69036l5u412~f1449`
+
+## 内存注册机
+
+中断地址:`005246E8`
+
+中断次数:`1`
+
+第一字节:`58`
+
+字节长度:`1`
+
+寄存器方式:`EDX` *内存方式*
+
+## 破后总结
+
+其实本软件早在两天前已经被刀刀兄弟做出内存注册机，我纯粹是为了学习才看算法的，因为我也是新手，所以写的尽量的简单,希望老鸟们不要笑我罗嗦。
+
+如果大家能从我这篇文章中学到点什么，那么我的目的也就达到了。
+
+感冒了，该吃药了.....
