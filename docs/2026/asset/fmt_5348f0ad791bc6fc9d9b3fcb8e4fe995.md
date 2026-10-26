@@ -1,0 +1,610 @@
+
+```
+005246B8   .  55            PUSH    EBP
+005246B9   .  8BEC          MOV     EBP, ESP
+005246BB   .  B9 0E000000   MOV     ECX, 0E
+005246C0   >  6A 00         PUSH    0
+005246C2   .  6A 00         PUSH    0
+005246C4   .  49            DEC     ECX
+005246C5   .^ 75 F9         JNZ     SHORT Magic_Ph.005246C0
+005246C7   .  53            PUSH    EBX
+005246C8   .  56            PUSH    ESI
+005246C9   .  57            PUSH    EDI
+005246CA   .  8945 FC       MOV     DWORD PTR [EBP-4], EAX
+005246CD   .  33C0          XOR     EAX, EAX
+005246CF   .  55            PUSH    EBP
+005246D0   .  68 214B5200   PUSH    Magic_Ph.00524B21
+005246D5   .  64:FF30       PUSH    DWORD PTR FS:[EAX]
+005246D8   .  64:8920       MOV     DWORD PTR FS:[EAX], ESP
+005246DB   .  33C0          XOR     EAX, EAX
+005246DD   .  55            PUSH    EBP
+005246DE   .  68 734A5200   PUSH    Magic_Ph.00524A73
+005246E3   .  64:FF30       PUSH    DWORD PTR FS:[EAX]
+005246E6   .  64:8920       MOV     DWORD PTR FS:[EAX], ESP
+005246E9   .  8D55 F0       LEA     EDX, DWORD PTR [EBP-10]
+005246EC   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+005246EF   .  8B98 60030000 MOV     EBX, DWORD PTR [EAX+360]
+005246F5   .  8BC3          MOV     EAX, EBX
+005246F7   .  E8 3CD7F2FF   CALL    Magic_Ph.00451E38
+005246FC   .  8B45 F0       MOV     EAX, DWORD PTR [EBP-10]          ;  //用户名
+005246FF   .  8D55 F4       LEA     EDX, DWORD PTR [EBP-C]
+00524702   .  E8 3151EEFF   CALL    Magic_Ph.00409838
+00524707   .  8B55 F4       MOV     EDX, DWORD PTR [EBP-C]           ;  //用户名
+0052470A   .  8BC3          MOV     EAX, EBX
+0052470C   .  E8 57D7F2FF   CALL    Magic_Ph.00451E68
+00524711   .  8D55 E8       LEA     EDX, DWORD PTR [EBP-18]
+00524714   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+00524717   .  8B98 64030000 MOV     EBX, DWORD PTR [EAX+364]
+0052471D   .  8BC3          MOV     EAX, EBX
+0052471F   .  E8 14D7F2FF   CALL    Magic_Ph.00451E38
+00524724   .  8B45 E8       MOV     EAX, DWORD PTR [EBP-18]          ;  //试练码
+00524727   .  8D55 EC       LEA     EDX, DWORD PTR [EBP-14]
+0052472A   .  E8 0951EEFF   CALL    Magic_Ph.00409838
+0052472F   .  8B55 EC       MOV     EDX, DWORD PTR [EBP-14]          ;  //试练码
+00524732   .  8BC3          MOV     EAX, EBX
+00524734   .  E8 2FD7F2FF   CALL    Magic_Ph.00451E68
+00524739   .  8D55 E4       LEA     EDX, DWORD PTR [EBP-1C]
+0052473C   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+0052473F   .  8B80 60030000 MOV     EAX, DWORD PTR [EAX+360]
+00524745   .  E8 EED6F2FF   CALL    Magic_Ph.00451E38
+0052474A   .  837D E4 00    CMP     DWORD PTR [EBP-1C], 0
+0052474E   .  75 54         JNZ     SHORT Magic_Ph.005247A4          ;  //用户名为空则跳
+00524750   .  6A 30         PUSH    30
+00524752   .  8D55 E0       LEA     EDX, DWORD PTR [EBP-20]
+00524755   .  A1 48E65200   MOV     EAX, DWORD PTR [52E648]
+0052475A   .  8B00          MOV     EAX, DWORD PTR [EAX]
+0052475C   .  E8 E7B6F4FF   CALL    Magic_Ph.0046FE48
+00524761   .  8B45 E0       MOV     EAX, DWORD PTR [EBP-20]
+00524764   .  E8 5B0EEEFF   CALL    Magic_Ph.004055C4
+00524769   .  50            PUSH    EAX
+0052476A   .  A1 28E55200   MOV     EAX, DWORD PTR [52E528]
+0052476F   .  8B40 1C       MOV     EAX, DWORD PTR [EAX+1C]
+00524772   .  E8 4D0EEEFF   CALL    Magic_Ph.004055C4
+00524777   .  8BD0          MOV     EDX, EAX
+00524779   .  A1 48E65200   MOV     EAX, DWORD PTR [52E648]
+0052477E   .  8B00          MOV     EAX, DWORD PTR [EAX]
+00524780   .  59            POP     ECX
+00524781   .  E8 12BFF4FF   CALL    Magic_Ph.00470698
+00524786   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+00524789   .  8B80 60030000 MOV     EAX, DWORD PTR [EAX+360]
+0052478F   .  8B10          MOV     EDX, DWORD PTR [EAX]
+00524791   .  FF92 D4000000 CALL    DWORD PTR [EDX+D4]
+00524797   .  33C0          XOR     EAX, EAX
+00524799   .  5A            POP     EDX
+0052479A   .  59            POP     ECX
+0052479B   .  59            POP     ECX
+0052479C   .  64:8910       MOV     DWORD PTR FS:[EAX], EDX
+0052479F   .  E9 D9020000   JMP     Magic_Ph.00524A7D
+005247A4   >  8D55 DC       LEA     EDX, DWORD PTR [EBP-24]
+005247A7   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+005247AA   .  8B80 64030000 MOV     EAX, DWORD PTR [EAX+364]
+005247B0   .  E8 83D6F2FF   CALL    Magic_Ph.00451E38
+005247B5   .  837D DC 00    CMP     DWORD PTR [EBP-24], 0
+005247B9   .  75 54         JNZ     SHORT Magic_Ph.0052480F          ;  //注册码为空则跳
+005247BB   .  6A 30         PUSH    30
+005247BD   .  8D55 D8       LEA     EDX, DWORD PTR [EBP-28]
+005247C0   .  A1 48E65200   MOV     EAX, DWORD PTR [52E648]
+005247C5   .  8B00          MOV     EAX, DWORD PTR [EAX]
+005247C7   .  E8 7CB6F4FF   CALL    Magic_Ph.0046FE48
+005247CC   .  8B45 D8       MOV     EAX, DWORD PTR [EBP-28]
+005247CF   .  E8 F00DEEFF   CALL    Magic_Ph.004055C4
+005247D4   .  50            PUSH    EAX
+005247D5   .  A1 28E55200   MOV     EAX, DWORD PTR [52E528]
+005247DA   .  8B40 20       MOV     EAX, DWORD PTR [EAX+20]
+005247DD   .  E8 E20DEEFF   CALL    Magic_Ph.004055C4
+005247E2   .  8BD0          MOV     EDX, EAX
+005247E4   .  A1 48E65200   MOV     EAX, DWORD PTR [52E648]
+005247E9   .  8B00          MOV     EAX, DWORD PTR [EAX]
+005247EB   .  59            POP     ECX
+005247EC   .  E8 A7BEF4FF   CALL    Magic_Ph.00470698
+005247F1   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+005247F4   .  8B80 64030000 MOV     EAX, DWORD PTR [EAX+364]
+005247FA   .  8B10          MOV     EDX, DWORD PTR [EAX]
+005247FC   .  FF92 D4000000 CALL    DWORD PTR [EDX+D4]
+00524802   .  33C0          XOR     EAX, EAX
+00524804   .  5A            POP     EDX
+00524805   .  59            POP     ECX
+00524806   .  59            POP     ECX
+00524807   .  64:8910       MOV     DWORD PTR FS:[EAX], EDX
+0052480A   .  E9 6E020000   JMP     Magic_Ph.00524A7D
+0052480F   >  8D55 D4       LEA     EDX, DWORD PTR [EBP-2C]
+00524812   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+00524815   .  8B80 64030000 MOV     EAX, DWORD PTR [EAX+364]
+0052481B   .  E8 18D6F2FF   CALL    Magic_Ph.00451E38
+00524820   .  8B45 D4       MOV     EAX, DWORD PTR [EBP-2C]          ;  //试练码
+00524823   .  50            PUSH    EAX
+00524824   .  8D55 CC       LEA     EDX, DWORD PTR [EBP-34]
+00524827   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+0052482A   .  8B80 60030000 MOV     EAX, DWORD PTR [EAX+360]
+00524830   .  E8 03D6F2FF   CALL    Magic_Ph.00451E38
+00524835   .  8B45 CC       MOV     EAX, DWORD PTR [EBP-34]          ;  //用户名
+00524838   .  8D55 D0       LEA     EDX, DWORD PTR [EBP-30]
+0052483B   .  E8 A03EFFFF   CALL    Magic_Ph.005186E0                ;  //关键CALL
+00524840   .  8B55 D0       MOV     EDX, DWORD PTR [EBP-30]          ;  //真码
+00524843   .  58            POP     EAX                              ;  //假码
+00524844   .  E8 C70CEEFF   CALL    Magic_Ph.00405510                ;  //比较CALL
+00524849   .  0F85 AA010000 JNZ     Magic_Ph.005249F9                ;  //关键跳转
+0052484F   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+00524852   .  C680 84030000>MOV     BYTE PTR [EAX+384], 1
+00524859   .  8D55 C8       LEA     EDX, DWORD PTR [EBP-38]
+0052485C   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+0052485F   .  8B80 60030000 MOV     EAX, DWORD PTR [EAX+360]
+00524865   .  E8 CED5F2FF   CALL    Magic_Ph.00451E38
+0052486A   .  8B55 C8       MOV     EDX, DWORD PTR [EBP-38]
+0052486D   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+00524870   .  05 88030000   ADD     EAX, 388
+00524875   .  E8 DA08EEFF   CALL    Magic_Ph.00405154
+0052487A   .  8D55 C4       LEA     EDX, DWORD PTR [EBP-3C]
+0052487D   .  A1 48E65200   MOV     EAX, DWORD PTR [52E648]
+00524882   .  8B00          MOV     EAX, DWORD PTR [EAX]
+00524884   .  E8 BFB5F4FF   CALL    Magic_Ph.0046FE48
+00524889   .  8B55 C4       MOV     EDX, DWORD PTR [EBP-3C]
+0052488C   .  A1 80E25200   MOV     EAX, DWORD PTR [52E280]
+00524891   .  8B00          MOV     EAX, DWORD PTR [EAX]
+00524893   .  E8 D0D5F2FF   CALL    Magic_Ph.00451E68
+00524898   .  A1 80E25200   MOV     EAX, DWORD PTR [52E280]
+0052489D   .  8B00          MOV     EAX, DWORD PTR [EAX]
+0052489F   .  8B80 A8030000 MOV     EAX, DWORD PTR [EAX+3A8]
+005248A5   .  33D2          XOR     EDX, EDX
+005248A7   .  E8 ACD4F2FF   CALL    Magic_Ph.00451D58
+005248AC   .  B2 01         MOV     DL, 1
+005248AE   .  A1 98934200   MOV     EAX, DWORD PTR [429398]
+005248B3   .  E8 E04BF0FF   CALL    Magic_Ph.00429498
+005248B8   .  8945 F8       MOV     DWORD PTR [EBP-8], EAX
+005248BB   .  33C0          XOR     EAX, EAX
+005248BD   .  55            PUSH    EBP
+005248BE   .  68 64495200   PUSH    Magic_Ph.00524964
+005248C3   .  64:FF30       PUSH    DWORD PTR FS:[EAX]
+005248C6   .  64:8920       MOV     DWORD PTR FS:[EAX], ESP
+005248C9   .  BA 01000080   MOV     EDX, 80000001
+005248CE   .  8B45 F8       MOV     EAX, DWORD PTR [EBP-8]
+005248D1   .  E8 624CF0FF   CALL    Magic_Ph.00429538
+005248D6   .  68 3C4B5200   PUSH    Magic_Ph.00524B3C                ;  ASCII "Software\East Imperial Soft\"
+005248DB   .  8D55 BC       LEA     EDX, DWORD PTR [EBP-44]
+005248DE   .  A1 48E65200   MOV     EAX, DWORD PTR [52E648]
+005248E3   .  8B00          MOV     EAX, DWORD PTR [EAX]
+005248E5   .  E8 5EB5F4FF   CALL    Magic_Ph.0046FE48
+005248EA   .  FF75 BC       PUSH    DWORD PTR [EBP-44]
+005248ED   .  68 644B5200   PUSH    Magic_Ph.00524B64                ;  ASCII "\Settings"
+005248F2   .  8D45 C0       LEA     EAX, DWORD PTR [EBP-40]
+005248F5   .  BA 03000000   MOV     EDX, 3
+005248FA   .  E8 850BEEFF   CALL    Magic_Ph.00405484
+005248FF   .  8B55 C0       MOV     EDX, DWORD PTR [EBP-40]
+00524902   .  B1 01         MOV     CL, 1
+00524904   .  8B45 F8       MOV     EAX, DWORD PTR [EBP-8]
+00524907   .  E8 904CF0FF   CALL    Magic_Ph.0042959C
+0052490C   .  8D55 B8       LEA     EDX, DWORD PTR [EBP-48]
+0052490F   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+00524912   .  8B80 60030000 MOV     EAX, DWORD PTR [EAX+360]
+00524918   .  E8 1BD5F2FF   CALL    Magic_Ph.00451E38
+0052491D   .  8B4D B8       MOV     ECX, DWORD PTR [EBP-48]
+00524920   .  BA 784B5200   MOV     EDX, Magic_Ph.00524B78           ;  ASCII "UserName"
+00524925   .  8B45 F8       MOV     EAX, DWORD PTR [EBP-8]
+00524928   .  E8 C34FF0FF   CALL    Magic_Ph.004298F0
+0052492D   .  8D55 B4       LEA     EDX, DWORD PTR [EBP-4C]
+00524930   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+00524933   .  8B80 64030000 MOV     EAX, DWORD PTR [EAX+364]
+00524939   .  E8 FAD4F2FF   CALL    Magic_Ph.00451E38
+0052493E   .  8B4D B4       MOV     ECX, DWORD PTR [EBP-4C]
+00524941   .  BA 8C4B5200   MOV     EDX, Magic_Ph.00524B8C           ;  ASCII "LicenseKey"
+00524946   .  8B45 F8       MOV     EAX, DWORD PTR [EBP-8]
+00524949   .  E8 A24FF0FF   CALL    Magic_Ph.004298F0
+0052494E   .  33C0          XOR     EAX, EAX
+00524950   .  5A            POP     EDX
+00524951   .  59            POP     ECX
+00524952   .  59            POP     ECX
+00524953   .  64:8910       MOV     DWORD PTR FS:[EAX], EDX
+00524956   .  68 6B495200   PUSH    Magic_Ph.0052496B
+0052495B   >  8B45 F8       MOV     EAX, DWORD PTR [EBP-8]
+0052495E   .  E8 D1F8EDFF   CALL    Magic_Ph.00404234
+00524963   .  C3            RETN
+00524964   .^ E9 9F00EEFF   JMP     Magic_Ph.00404A08
+00524969   .^ EB F0         JMP     SHORT Magic_Ph.0052495B
+0052496B   .  6A 40         PUSH    40
+0052496D   .  A1 28E55200   MOV     EAX, DWORD PTR [52E528]
+00524972   .  FF70 24       PUSH    DWORD PTR [EAX+24]
+00524975   .  68 A04B5200   PUSH    Magic_Ph.00524BA0                ;  ASCII "
+"
+0052497A   .  8D45 AC       LEA     EAX, DWORD PTR [EBP-54]
+0052497D   .  50            PUSH    EAX
+0052497E   .  8D55 A0       LEA     EDX, DWORD PTR [EBP-60]
+00524981   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+00524984   .  8B80 60030000 MOV     EAX, DWORD PTR [EAX+360]
+0052498A   .  E8 A9D4F2FF   CALL    Magic_Ph.00451E38
+0052498F   .  8B45 A0       MOV     EAX, DWORD PTR [EBP-60]          ; |
+00524992   .  8945 A4       MOV     DWORD PTR [EBP-5C], EAX          ; |
+00524995   .  C645 A8 0B    MOV     BYTE PTR [EBP-58], 0B            ; |
+00524999   .  8D55 A4       LEA     EDX, DWORD PTR [EBP-5C]          ; |
+0052499C   .  A1 28E55200   MOV     EAX, DWORD PTR [52E528]          ; |
+005249A1   .  8B40 28       MOV     EAX, DWORD PTR [EAX+28]          ; |
+005249A4   .  33C9          XOR     ECX, ECX                         ; |
+005249A6   .  E8 7D63EEFF   CALL    Magic_Ph.0040AD28                ; \Magic_Ph.0040AD28
+005249AB   .  FF75 AC       PUSH    DWORD PTR [EBP-54]
+005249AE   .  8D45 B0       LEA     EAX, DWORD PTR [EBP-50]
+005249B1   .  BA 03000000   MOV     EDX, 3
+005249B6   .  E8 C90AEEFF   CALL    Magic_Ph.00405484
+005249BB   .  8B45 B0       MOV     EAX, DWORD PTR [EBP-50]
+005249BE   .  E8 010CEEFF   CALL    Magic_Ph.004055C4
+005249C3   .  50            PUSH    EAX
+005249C4   .  8D55 9C       LEA     EDX, DWORD PTR [EBP-64]
+005249C7   .  A1 48E65200   MOV     EAX, DWORD PTR [52E648]
+005249CC   .  8B00          MOV     EAX, DWORD PTR [EAX]
+005249CE   .  E8 75B4F4FF   CALL    Magic_Ph.0046FE48
+005249D3   .  8B45 9C       MOV     EAX, DWORD PTR [EBP-64]
+005249D6   .  E8 E90BEEFF   CALL    Magic_Ph.004055C4
+005249DB   .  8BC8          MOV     ECX, EAX
+005249DD   .  A1 48E65200   MOV     EAX, DWORD PTR [52E648]
+005249E2   .  8B00          MOV     EAX, DWORD PTR [EAX]
+005249E4   .  5A            POP     EDX
+005249E5   .  E8 AEBCF4FF   CALL    Magic_Ph.00470698
+005249EA   .  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+005249ED   .  C780 94020000>MOV     DWORD PTR [EAX+294], 1
+005249F7   .  EB 70         JMP     SHORT Magic_Ph.00524A69
+005249F9   >  6A 30         PUSH    30
+005249FB   .  A1 28E55200   MOV     EAX, DWORD PTR [52E528]
+00524A00   .  FF70 2C       PUSH    DWORD PTR [EAX+2C]
+00524A03   .  68 A04B5200   PUSH    Magic_Ph.00524BA0                ;  ASCII "
+"
+00524A08   .  8D45 94       LEA     EAX, DWORD PTR [EBP-6C]
+00524A0B   .  50            PUSH    EAX                              ; /Arg1
+00524A0C   .  B8 AC4B5200   MOV     EAX, Magic_Ph.00524BAC           ; |ASCII "support@magicuneraser.com"
+00524A11   .  8945 A4       MOV     DWORD PTR [EBP-5C], EAX          ; |
+00524A14   .  C645 A8 0B    MOV     BYTE PTR [EBP-58], 0B            ; |
+00524A18   .  8D55 A4       LEA     EDX, DWORD PTR [EBP-5C]          ; |
+00524A1B   .  A1 28E55200   MOV     EAX, DWORD PTR [52E528]          ; |
+00524A20   .  8B40 30       MOV     EAX, DWORD PTR [EAX+30]          ; |
+00524A23   .  33C9          XOR     ECX, ECX                         ; |
+00524A25   .  E8 FE62EEFF   CALL    Magic_Ph.0040AD28                ; \Magic_Ph.0040AD28
+00524A2A   .  FF75 94       PUSH    DWORD PTR [EBP-6C]
+00524A2D   .  8D45 98       LEA     EAX, DWORD PTR [EBP-68]
+00524A30   .  BA 03000000   MOV     EDX, 3
+00524A35   .  E8 4A0AEEFF   CALL    Magic_Ph.00405484
+00524A3A   .  8B45 98       MOV     EAX, DWORD PTR [EBP-68]
+00524A3D   .  E8 820BEEFF   CALL    Magic_Ph.004055C4
+00524A42   .  50            PUSH    EAX
+00524A43   .  8D55 90       LEA     EDX, DWORD PTR [EBP-70]
+00524A46   .  A1 48E65200   MOV     EAX, DWORD PTR [52E648]
+00524A4B   .  8B00          MOV     EAX, DWORD PTR [EAX]
+00524A4D   .  E8 F6B3F4FF   CALL    Magic_Ph.0046FE48
+00524A52   .  8B45 90       MOV     EAX, DWORD PTR [EBP-70]
+00524A55   .  E8 6A0BEEFF   CALL    Magic_Ph.004055C4
+00524A5A   .  8BC8          MOV     ECX, EAX
+00524A5C   .  A1 48E65200   MOV     EAX, DWORD PTR [52E648]
+00524A61   .  8B00          MOV     EAX, DWORD PTR [EAX]
+00524A63   .  5A            POP     EDX
+00524A64   .  E8 2FBCF4FF   CALL    Magic_Ph.00470698
+00524A69   >  33C0          XOR     EAX, EAX
+00524A6B   .  5A            POP     EDX
+00524A6C   .  59            POP     ECX
+00524A6D   .  59            POP     ECX
+00524A6E   .  64:8910       MOV     DWORD PTR FS:[EAX], EDX
+00524A71   .  EB 0A         JMP     SHORT Magic_Ph.00524A7D
+00524A73   .^ E9 DCFCEDFF   JMP     Magic_Ph.00404754
+00524A78   .  E8 E700EEFF   CALL    Magic_Ph.00404B64
+00524A7D   >  33C0          XOR     EAX, EAX
+00524A7F   .  5A            POP     EDX
+00524A80   .  59            POP     ECX
+00524A81   .  59            POP     ECX
+00524A82   .  64:8910       MOV     DWORD PTR FS:[EAX], EDX
+00524A85   .  68 2B4B5200   PUSH    Magic_Ph.00524B2B
+00524A8A   >  8D45 90       LEA     EAX, DWORD PTR [EBP-70]
+00524A8D   .  BA 04000000   MOV     EDX, 4
+00524A92   .  E8 8D06EEFF   CALL    Magic_Ph.00405124
+00524A97   .  8D45 A0       LEA     EAX, DWORD PTR [EBP-60]
+00524A9A   .  E8 6106EEFF   CALL    Magic_Ph.00405100
+00524A9F   .  8D45 AC       LEA     EAX, DWORD PTR [EBP-54]
+00524AA2   .  BA 02000000   MOV     EDX, 2
+00524AA7   .  E8 7806EEFF   CALL    Magic_Ph.00405124
+00524AAC   .  8D45 B4       LEA     EAX, DWORD PTR [EBP-4C]
+00524AAF   .  BA 02000000   MOV     EDX, 2
+00524AB4   .  E8 6B06EEFF   CALL    Magic_Ph.00405124
+00524AB9   .  8D45 BC       LEA     EAX, DWORD PTR [EBP-44]
+00524ABC   .  BA 03000000   MOV     EDX, 3
+00524AC1   .  E8 5E06EEFF   CALL    Magic_Ph.00405124
+00524AC6   .  8D45 C8       LEA     EAX, DWORD PTR [EBP-38]
+00524AC9   .  BA 02000000   MOV     EDX, 2
+00524ACE   .  E8 5106EEFF   CALL    Magic_Ph.00405124
+00524AD3   .  8D45 D0       LEA     EAX, DWORD PTR [EBP-30]
+00524AD6   .  E8 2506EEFF   CALL    Magic_Ph.00405100
+00524ADB   .  8D45 D4       LEA     EAX, DWORD PTR [EBP-2C]
+00524ADE   .  E8 1D06EEFF   CALL    Magic_Ph.00405100
+00524AE3   .  8D45 D8       LEA     EAX, DWORD PTR [EBP-28]
+00524AE6   .  E8 1506EEFF   CALL    Magic_Ph.00405100
+00524AEB   .  8D45 DC       LEA     EAX, DWORD PTR [EBP-24]
+00524AEE   .  E8 0D06EEFF   CALL    Magic_Ph.00405100
+00524AF3   .  8D45 E0       LEA     EAX, DWORD PTR [EBP-20]
+00524AF6   .  E8 0506EEFF   CALL    Magic_Ph.00405100
+00524AFB   .  8D45 E4       LEA     EAX, DWORD PTR [EBP-1C]
+00524AFE   .  BA 02000000   MOV     EDX, 2
+00524B03   .  E8 1C06EEFF   CALL    Magic_Ph.00405124
+00524B08   .  8D45 EC       LEA     EAX, DWORD PTR [EBP-14]
+00524B0B   .  E8 F005EEFF   CALL    Magic_Ph.00405100
+00524B10   .  8D45 F0       LEA     EAX, DWORD PTR [EBP-10]
+00524B13   .  E8 E805EEFF   CALL    Magic_Ph.00405100
+00524B18   .  8D45 F4       LEA     EAX, DWORD PTR [EBP-C]
+00524B1B   .  E8 E005EEFF   CALL    Magic_Ph.00405100
+00524B20   .  C3            RETN
+00524B21   .^ E9 E2FEEDFF   JMP     Magic_Ph.00404A08
+00524B26   .^ E9 5FFFFFFF   JMP     Magic_Ph.00524A8A
+00524B2B   .  5F            POP     EDI
+00524B2C   .  5E            POP     ESI
+00524B2D   .  5B            POP     EBX
+00524B2E   .  8BE5          MOV     ESP, EBP
+00524B30   .  5D            POP     EBP
+00524B31   .  C3            RETN
+
+==============================================================
+
+005186E0  /$  55            PUSH    EBP
+005186E1  |.  8BEC          MOV     EBP, ESP
+005186E3  |.  B9 07000000   MOV     ECX, 7
+005186E8  |>  6A 00         /PUSH    0
+005186EA  |.  6A 00         |PUSH    0
+005186EC  |.  49            |DEC     ECX
+005186ED  |.^ 75 F9         \JNZ     SHORT Magic_Ph.005186E8
+005186EF  |.  51            PUSH    ECX
+005186F0  |.  53            PUSH    EBX
+005186F1  |.  56            PUSH    ESI
+005186F2  |.  8955 F8       MOV     DWORD PTR [EBP-8], EDX
+005186F5  |.  8BD8          MOV     EBX, EAX
+005186F7  |.  33C0          XOR     EAX, EAX
+005186F9  |.  55            PUSH    EBP
+005186FA  |.  68 E5895100   PUSH    Magic_Ph.005189E5
+005186FF  |.  64:FF30       PUSH    DWORD PTR FS:[EAX]
+00518702  |.  64:8920       MOV     DWORD PTR FS:[EAX], ESP
+00518705  |.  8D45 FC       LEA     EAX, DWORD PTR [EBP-4]
+00518708  |.  8BD3          MOV     EDX, EBX
+0051870A  |.  E8 89CAEEFF   CALL    Magic_Ph.00405198
+0051870F  |.  8B45 F8       MOV     EAX, DWORD PTR [EBP-8]
+00518712  |.  E8 E9C9EEFF   CALL    Magic_Ph.00405100
+00518717  |.  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]           ;  //用户名
+0051871A  |.  85C0          TEST    EAX, EAX
+0051871C  |.  74 05         JE      SHORT Magic_Ph.00518723
+0051871E  |.  83E8 04       SUB     EAX, 4
+00518721  |.  8B00          MOV     EAX, DWORD PTR [EAX]             ;  //用户名长度
+00518723  |>  85C0          TEST    EAX, EAX
+00518725  |.  0F84 8A020000 JE      Magic_Ph.005189B5
+0051872B  |.  8D55 F4       LEA     EDX, DWORD PTR [EBP-C]
+0051872E  |.  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]           ;  //用户名
+00518731  |.  E8 6610EFFF   CALL    Magic_Ph.0040979C                ;  //用户名转小写
+00518736  |.  8B55 F4       MOV     EDX, DWORD PTR [EBP-C]           ;  //小写用户名
+00518739  |.  8D45 FC       LEA     EAX, DWORD PTR [EBP-4]
+0051873C  |.  E8 57CAEEFF   CALL    Magic_Ph.00405198
+00518741  |.  33DB          XOR     EBX, EBX                         ;  //EBX=0
+00518743  |.  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]           ;  //小写用户名
+00518746  |.  85C0          TEST    EAX, EAX
+00518748  |.  74 05         JE      SHORT Magic_Ph.0051874F
+0051874A  |.  83E8 04       SUB     EAX, 4
+0051874D  |.  8B00          MOV     EAX, DWORD PTR [EAX]             ;  //用户名长度
+0051874F  |>  8BD0          MOV     EDX, EAX                         ;  //EDX=EAX=用户名长度
+00518751  |.  85D2          TEST    EDX, EDX
+00518753  |.  7E 35         JLE     SHORT Magic_Ph.0051878A
+00518755  |.  B8 01000000   MOV     EAX, 1                           ;  //EAX=1
+0051875A  |>  8B4D FC       /MOV     ECX, DWORD PTR [EBP-4]          ;  //小写用户名
+0051875D  |.  48            |DEC     EAX
+0051875E  |.  85C9          |TEST    ECX, ECX
+00518760  |.  74 05         |JE      SHORT Magic_Ph.00518767
+00518762  |.  3B41 FC       |CMP     EAX, DWORD PTR [ECX-4]          ;  //与用户名长度比较
+00518765  |.  72 05         |JB      SHORT Magic_Ph.0051876C
+00518767  |>  E8 98B9EEFF   |CALL    Magic_Ph.00404104
+0051876C  |>  40            |INC     EAX
+0051876D  |.  0FB64C01 FF   |MOVZX   ECX, BYTE PTR [ECX+EAX-1]       ;  //依次取用户名ASCII码
+00518772  |.  6BF0 15       |IMUL    ESI, EAX, 15                    ;  //ESI=EAX*15
+00518775  |.  81C6 8D020000 |ADD     ESI, 28D                        ;  //ESI=ESI+28D
+0051877B  |.  0FAFCE        |IMUL    ECX, ESI                        ;  //ECX=ECX*ESI
+0051877E  |.  03D9          |ADD     EBX, ECX                        ;  //EBX=EBX+ECX
+00518780  |.  81C3 C2040000 |ADD     EBX, 4C2                        ;  //EBX=EBX+4C2
+00518786  |.  40            |INC     EAX                             ;  //EAX=EAX+1
+00518787  |.  4A            |DEC     EDX                             ;  //EDX=EDX-1
+00518788  |.^ 75 D0         \JNZ     SHORT Magic_Ph.0051875A         ;  //循环
+0051878A  |>  81C3 48050000 ADD     EBX, 548                         ;  //EBX=EBX+548
+00518790  |.  8D55 F0       LEA     EDX, DWORD PTR [EBP-10]
+00518793  |.  8BC3          MOV     EAX, EBX
+00518795  |.  E8 0A12EFFF   CALL    Magic_Ph.004099A4                ;  //将EBX转10进制
+0051879A  |.  8B45 F0       MOV     EAX, DWORD PTR [EBP-10]          ;  //10进制字符串
+0051879D  |.  8945 EC       MOV     DWORD PTR [EBP-14], EAX
+005187A0  |.  8B75 EC       MOV     ESI, DWORD PTR [EBP-14]
+005187A3  |.  85F6          TEST    ESI, ESI
+005187A5  |.  74 05         JE      SHORT Magic_Ph.005187AC
+005187A7  |.  83EE 04       SUB     ESI, 4
+005187AA  |.  8B36          MOV     ESI, DWORD PTR [ESI]
+005187AC  |>  8B45 F8       MOV     EAX, DWORD PTR [EBP-8]
+005187AF  |.  50            PUSH    EAX
+005187B0  |.  8D55 E8       LEA     EDX, DWORD PTR [EBP-18]
+005187B3  |.  8BC3          MOV     EAX, EBX
+005187B5  |.  E8 EA11EFFF   CALL    Magic_Ph.004099A4
+005187BA  |.  8B45 E8       MOV     EAX, DWORD PTR [EBP-18]          ; |
+005187BD  |.  8BD6          MOV     EDX, ESI                         ; |
+005187BF  |.  83EA 03       SUB     EDX, 3                           ; |
+005187C2  |.  B9 04000000   MOV     ECX, 4                           ; |
+005187C7  |.  E8 58CEEEFF   CALL    Magic_Ph.00405624                ; \//取10进制字符串3-6位
+005187CC  |.  33DB          XOR     EBX, EBX
+005187CE  |.  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+005187D1  |.  85C0          TEST    EAX, EAX
+005187D3  |.  74 05         JE      SHORT Magic_Ph.005187DA
+005187D5  |.  83E8 04       SUB     EAX, 4
+005187D8  |.  8B00          MOV     EAX, DWORD PTR [EAX]
+005187DA  |>  8BD0          MOV     EDX, EAX
+005187DC  |.  85D2          TEST    EDX, EDX
+005187DE  |.  7E 2F         JLE     SHORT Magic_Ph.0051880F
+005187E0  |.  B8 01000000   MOV     EAX, 1
+005187E5  |>  8B4D FC       /MOV     ECX, DWORD PTR [EBP-4] 
+005187E8  |.  48            |DEC     EAX
+005187E9  |.  85C9          |TEST    ECX, ECX
+005187EB  |.  74 05         |JE      SHORT Magic_Ph.005187F2
+005187ED  |.  3B41 FC       |CMP     EAX, DWORD PTR [ECX-4]
+005187F0  |.  72 05         |JB      SHORT Magic_Ph.005187F7
+005187F2  |>  E8 0DB9EEFF   |CALL    Magic_Ph.00404104
+005187F7  |>  40            |INC     EAX
+005187F8  |.  0FB64C01 FF   |MOVZX   ECX, BYTE PTR [ECX+EAX-1]       ;  //依次取用户名ASCII码
+005187FD  |.  6BF0 6B       |IMUL    ESI, EAX, 6B                    ;  //ESI=EAX*6B
+00518800  |.  83C6 0C       |ADD     ESI, 0C                         ;  //ESI=ESI+0C
+00518803  |.  0FAFCE        |IMUL    ECX, ESI                        ;  //ECX=ECX*ESI
+00518806  |.  03D9          |ADD     EBX, ECX                        ;  //EBX=EBX+ECX
+00518808  |.  83C3 75       |ADD     EBX, 75                         ;  //EBX=EBX+75
+0051880B  |.  40            |INC     EAX
+0051880C  |.  4A            |DEC     EDX
+0051880D  |.^ 75 D6         \JNZ     SHORT Magic_Ph.005187E5         ;  //循环
+0051880F  |>  81C3 E3090000 ADD     EBX, 9E3                         ;  //EBX=EBX+9E3
+00518815  |.  8D55 E4       LEA     EDX, DWORD PTR [EBP-1C]
+00518818  |.  8BC3          MOV     EAX, EBX
+0051881A  |.  E8 8511EFFF   CALL    Magic_Ph.004099A4                ;  //将EBX转10进制
+0051881F  |.  8B45 E4       MOV     EAX, DWORD PTR [EBP-1C]          ;  //10进制字符串
+00518822  |.  8945 EC       MOV     DWORD PTR [EBP-14], EAX
+00518825  |.  8B75 EC       MOV     ESI, DWORD PTR [EBP-14]
+00518828  |.  85F6          TEST    ESI, ESI
+0051882A  |.  74 05         JE      SHORT Magic_Ph.00518831
+0051882C  |.  83EE 04       SUB     ESI, 4
+0051882F  |.  8B36          MOV     ESI, DWORD PTR [ESI]
+00518831  |>  8B45 F8       MOV     EAX, DWORD PTR [EBP-8]
+00518834  |.  FF30          PUSH    DWORD PTR [EAX]
+00518836  |.  68 FC895100   PUSH    Magic_Ph.005189FC
+0051883B  |.  8D45 E0       LEA     EAX, DWORD PTR [EBP-20]
+0051883E  |.  50            PUSH    EAX
+0051883F  |.  8D55 DC       LEA     EDX, DWORD PTR [EBP-24]
+00518842  |.  8BC3          MOV     EAX, EBX
+00518844  |.  E8 5B11EFFF   CALL    Magic_Ph.004099A4
+00518849  |.  8B45 DC       MOV     EAX, DWORD PTR [EBP-24]          ; |
+0051884C  |.  8BD6          MOV     EDX, ESI                         ; |
+0051884E  |.  83EA 03       SUB     EDX, 3                           ; |
+00518851  |.  B9 04000000   MOV     ECX, 4                           ; |
+00518856  |.  E8 C9CDEEFF   CALL    Magic_Ph.00405624                ; \//取10进制字符串3-6位
+0051885B  |.  FF75 E0       PUSH    DWORD PTR [EBP-20]
+0051885E  |.  8B45 F8       MOV     EAX, DWORD PTR [EBP-8]
+00518861  |.  BA 03000000   MOV     EDX, 3
+00518866  |.  E8 19CCEEFF   CALL    Magic_Ph.00405484
+0051886B  |.  33DB          XOR     EBX, EBX
+0051886D  |.  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+00518870  |.  85C0          TEST    EAX, EAX
+00518872  |.  74 05         JE      SHORT Magic_Ph.00518879
+00518874  |.  83E8 04       SUB     EAX, 4
+00518877  |.  8B00          MOV     EAX, DWORD PTR [EAX]
+00518879  |>  8BD0          MOV     EDX, EAX
+0051887B  |.  85D2          TEST    EDX, EDX
+0051887D  |.  7E 38         JLE     SHORT Magic_Ph.005188B7
+0051887F  |.  B8 01000000   MOV     EAX, 1
+00518884  |>  8B4D FC       /MOV     ECX, DWORD PTR [EBP-4]
+00518887  |.  48            |DEC     EAX
+00518888  |.  85C9          |TEST    ECX, ECX
+0051888A  |.  74 05         |JE      SHORT Magic_Ph.00518891
+0051888C  |.  3B41 FC       |CMP     EAX, DWORD PTR [ECX-4]
+0051888F  |.  72 05         |JB      SHORT Magic_Ph.00518896
+00518891  |>  E8 6EB8EEFF   |CALL    Magic_Ph.00404104
+00518896  |>  40            |INC     EAX
+00518897  |.  0FB64C01 FF   |MOVZX   ECX, BYTE PTR [ECX+EAX-1]       ;  //依次取用户名ASCII码
+0051889C  |.  8BF0          |MOV     ESI, EAX                        ;  //ESI=EAX
+0051889E  |.  03F6          |ADD     ESI, ESI                        ;  //ESI=ESI+ESI
+005188A0  |.  03F6          |ADD     ESI, ESI                        ;  //ESI=ESI+ESI
+005188A2  |.  81C6 9F000000 |ADD     ESI, 9F                         ;  //ESI=ESI+9F
+005188A8  |.  0FAFCE        |IMUL    ECX, ESI                        ;  //ECX=ECX*ESI
+005188AB  |.  03D9          |ADD     EBX, ECX                        ;  //EBX=EBX+ECX
+005188AD  |.  81C3 12010000 |ADD     EBX, 112                        ;  //EBX=EBX+112
+005188B3  |.  40            |INC     EAX
+005188B4  |.  4A            |DEC     EDX 
+005188B5  |.^ 75 CD         \JNZ     SHORT Magic_Ph.00518884         ;  //循环
+005188B7  |>  81C3 02150000 ADD     EBX, 1502                        ;  //EBX=EBX+1502
+005188BD  |.  8D55 D8       LEA     EDX, DWORD PTR [EBP-28]
+005188C0  |.  8BC3          MOV     EAX, EBX
+005188C2  |.  E8 DD10EFFF   CALL    Magic_Ph.004099A4                ;  //将EBX转10进制
+005188C7  |.  8B45 D8       MOV     EAX, DWORD PTR [EBP-28]          ;  //10进制字符串
+005188CA  |.  8945 EC       MOV     DWORD PTR [EBP-14], EAX
+005188CD  |.  8B75 EC       MOV     ESI, DWORD PTR [EBP-14]
+005188D0  |.  85F6          TEST    ESI, ESI
+005188D2  |.  74 05         JE      SHORT Magic_Ph.005188D9
+005188D4  |.  83EE 04       SUB     ESI, 4
+005188D7  |.  8B36          MOV     ESI, DWORD PTR [ESI]
+005188D9  |>  8B45 F8       MOV     EAX, DWORD PTR [EBP-8]
+005188DC  |.  FF30          PUSH    DWORD PTR [EAX]
+005188DE  |.  68 FC895100   PUSH    Magic_Ph.005189FC
+005188E3  |.  8D45 D4       LEA     EAX, DWORD PTR [EBP-2C]
+005188E6  |.  50            PUSH    EAX
+005188E7  |.  8D55 D0       LEA     EDX, DWORD PTR [EBP-30]
+005188EA  |.  8BC3          MOV     EAX, EBX
+005188EC  |.  E8 B310EFFF   CALL    Magic_Ph.004099A4
+005188F1  |.  8B45 D0       MOV     EAX, DWORD PTR [EBP-30]          ; |
+005188F4  |.  8BD6          MOV     EDX, ESI                         ; |
+005188F6  |.  83EA 03       SUB     EDX, 3                           ; |
+005188F9  |.  B9 04000000   MOV     ECX, 4                           ; |
+005188FE  |.  E8 21CDEEFF   CALL    Magic_Ph.00405624                ; \//取10进制字符串3-6位
+00518903  |.  FF75 D4       PUSH    DWORD PTR [EBP-2C]
+00518906  |.  8B45 F8       MOV     EAX, DWORD PTR [EBP-8]
+00518909  |.  BA 03000000   MOV     EDX, 3
+0051890E  |.  E8 71CBEEFF   CALL    Magic_Ph.00405484
+00518913  |.  33DB          XOR     EBX, EBX
+00518915  |.  8B45 FC       MOV     EAX, DWORD PTR [EBP-4]
+00518918  |.  85C0          TEST    EAX, EAX
+0051891A  |.  74 05         JE      SHORT Magic_Ph.00518921
+0051891C  |.  83E8 04       SUB     EAX, 4
+0051891F  |.  8B00          MOV     EAX, DWORD PTR [EAX]
+00518921  |>  8BD0          MOV     EDX, EAX
+00518923  |.  85D2          TEST    EDX, EDX
+00518925  |.  7E 32         JLE     SHORT Magic_Ph.00518959
+00518927  |.  B8 01000000   MOV     EAX, 1
+0051892C  |>  8B4D FC       /MOV     ECX, DWORD PTR [EBP-4]
+0051892F  |.  48            |DEC     EAX
+00518930  |.  85C9          |TEST    ECX, ECX
+00518932  |.  74 05         |JE      SHORT Magic_Ph.00518939
+00518934  |.  3B41 FC       |CMP     EAX, DWORD PTR [ECX-4]
+00518937  |.  72 05         |JB      SHORT Magic_Ph.0051893E
+00518939  |>  E8 C6B7EEFF   |CALL    Magic_Ph.00404104
+0051893E  |>  40            |INC     EAX
+0051893F  |.  0FB64C01 FF   |MOVZX   ECX, BYTE PTR [ECX+EAX-1]       ;  //依次取用户名ASCII码
+00518944  |.  6BF0 5F       |IMUL    ESI, EAX, 5F                    ;  //ESI=EAX*5F
+00518947  |.  83C6 6F       |ADD     ESI, 6F                         ;  //ESI=ESI+6F
+0051894A  |.  0FAFCE        |IMUL    ECX, ESI                        ;  //ECX=ECX*ESI
+0051894D  |.  03D9          |ADD     EBX, ECX                        ;  //EBX=EBX+ECX
+0051894F  |.  81C3 6D180000 |ADD     EBX, 186D                       ;  //EBX=EBX+186D
+00518955  |.  40            |INC     EAX
+00518956  |.  4A            |DEC     EDX
+00518957  |.^ 75 D3         \JNZ     SHORT Magic_Ph.0051892C         ;  //循环
+00518959  |>  81C3 57040000 ADD     EBX, 457                         ;  //EBX=EBX+457
+0051895F  |.  8D55 CC       LEA     EDX, DWORD PTR [EBP-34]
+00518962  |.  8BC3          MOV     EAX, EBX
+00518964  |.  E8 3B10EFFF   CALL    Magic_Ph.004099A4                ;  //将EBX转10进制
+00518969  |.  8B45 CC       MOV     EAX, DWORD PTR [EBP-34]          ;  //10进制字符串
+0051896C  |.  8945 EC       MOV     DWORD PTR [EBP-14], EAX
+0051896F  |.  8B75 EC       MOV     ESI, DWORD PTR [EBP-14]
+00518972  |.  85F6          TEST    ESI, ESI
+00518974  |.  74 05         JE      SHORT Magic_Ph.0051897B
+00518976  |.  83EE 04       SUB     ESI, 4
+00518979  |.  8B36          MOV     ESI, DWORD PTR [ESI]
+0051897B  |>  8B45 F8       MOV     EAX, DWORD PTR [EBP-8]
+0051897E  |.  FF30          PUSH    DWORD PTR [EAX]
+00518980  |.  68 FC895100   PUSH    Magic_Ph.005189FC
+00518985  |.  8D45 C8       LEA     EAX, DWORD PTR [EBP-38]
+00518988  |.  50            PUSH    EAX
+00518989  |.  8D55 C4       LEA     EDX, DWORD PTR [EBP-3C]
+0051898C  |.  8BC3          MOV     EAX, EBX
+0051898E  |.  E8 1110EFFF   CALL    Magic_Ph.004099A4
+00518993  |.  8B45 C4       MOV     EAX, DWORD PTR [EBP-3C]          ; |
+00518996  |.  8BD6          MOV     EDX, ESI                         ; |
+00518998  |.  83EA 03       SUB     EDX, 3                           ; |
+0051899B  |.  B9 04000000   MOV     ECX, 4                           ; |
+005189A0  |.  E8 7FCCEEFF   CALL    Magic_Ph.00405624                ; \//取10进制字符串3-6位
+005189A5  |.  FF75 C8       PUSH    DWORD PTR [EBP-38]
+005189A8  |.  8B45 F8       MOV     EAX, DWORD PTR [EBP-8]
+005189AB  |.  BA 03000000   MOV     EDX, 3
+005189B0  |.  E8 CFCAEEFF   CALL    Magic_Ph.00405484
+005189B5  |>  33C0          XOR     EAX, EAX
+005189B7  |.  5A            POP     EDX
+005189B8  |.  59            POP     ECX
+005189B9  |.  59            POP     ECX
+005189BA  |.  64:8910       MOV     DWORD PTR FS:[EAX], EDX
+005189BD  |.  68 EC895100   PUSH    Magic_Ph.005189EC
+005189C2  |>  8D45 C4       LEA     EAX, DWORD PTR [EBP-3C]
+005189C5  |.  BA 0A000000   MOV     EDX, 0A
+005189CA  |.  E8 55C7EEFF   CALL    Magic_Ph.00405124
+005189CF  |.  8D45 F0       LEA     EAX, DWORD PTR [EBP-10]
+005189D2  |.  BA 02000000   MOV     EDX, 2
+005189D7  |.  E8 48C7EEFF   CALL    Magic_Ph.00405124
+005189DC  |.  8D45 FC       LEA     EAX, DWORD PTR [EBP-4]
+005189DF  |.  E8 1CC7EEFF   CALL    Magic_Ph.00405100
+005189E4  \.  C3            RETN
+005189E5   .^ E9 1EC0EEFF   JMP     Magic_Ph.00404A08
+005189EA   .^ EB D6         JMP     SHORT Magic_Ph.005189C2
+005189EC   .  5E            POP     ESI
+005189ED   .  5B            POP     EBX
+005189EE   .  8BE5          MOV     ESP, EBP
+005189F0   .  5D            POP     EBP
+005189F1   .  C3            RETN
+```
