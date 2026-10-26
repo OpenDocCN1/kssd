@@ -1,0 +1,151 @@
+
+# 1-More Scanner V1.10 注册码算法分析
+
+日期：2005年5月1日　　破解人：Baby2008
+
+---
+
+- 『软件名称』：1-More Scanner V1.10
+- 『软件大小』：1.50MB
+- 『下载地址』：`d31K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6e0q4Q4x3X3c8E0L8%4u0W2i4K6u0V1M7$3y4S2L8X3&6W2M7W2)9J5k6h3y4G2L8g2)9J5c8R3`.`.
+- 『软件介绍』：Find images, MP3s or any type file on the web
+- 『保护方式』：注册码保护
+- 『破解声明』：初学Crack，只是感兴趣,失误之处敬请诸位大侠赐教!
+- 『破解工具』：`OllyDbg.V1.10` 聆风听雨汉化第二版、`PeID 0.93`
+
+---
+
+## 破解过程
+
+`PeID`查壳，Borland Delphi 6.0 - 7.0，`Dede`查的`Unlock`按钮事件地址`00653438`，`OD`载入，`F9`运行，输入注册信息，`Email:jw6y8@21cn.com`（给点面子，请不要发送垃圾给我!），用户名：`Baby2008`，注册码：`1234567890`，点击确定，`OD`中断在：
+
+```text
+00653438 >  55              push ebp                                       ; BtnRegisterClick
+00653439    8BEC            mov ebp,esp
+0065343B    81C4 D4FEFFFF   add esp,-12C
+00653441    53              push ebx
+00653442    33C9            xor ecx,ecx
+00653444    898D DCFEFFFF   mov dword ptr ss:[ebp-124],ecx
+0065344A    898D E0FEFFFF   mov dword ptr ss:[ebp-120],ecx
+00653450    898D E4FEFFFF   mov dword ptr ss:[ebp-11C],ecx
+00653456    898D F0FEFFFF   mov dword ptr ss:[ebp-110],ecx
+0065345C    898D ECFEFFFF   mov dword ptr ss:[ebp-114],ecx
+00653462    898D E8FEFFFF   mov dword ptr ss:[ebp-118],ecx
+00653468    894D FC         mov dword ptr ss:[ebp-4],ecx
+0065346B    894D F8         mov dword ptr ss:[ebp-8],ecx
+0065346E    894D F4         mov dword ptr ss:[ebp-C],ecx
+00653471    8BD8            mov ebx,eax
+00653473    33C0            xor eax,eax
+00653475    55              push ebp
+00653476    68 63366500     push <OmS.->System.@HandleFinally;>
+0065347B    64:FF30         push dword ptr fs:[eax]
+0065347E    64:8920         mov dword ptr fs:[eax],esp
+00653481    8D55 FC         lea edx,dword ptr ss:[ebp-4]                   ; 存放试炼码
+00653484 >  8B83 FC020000   mov eax,dword ptr ds:[ebx+2FC]
+0065348A >  E8 25E4DFFF     call OmS.004518B4
+0065348F    8D85 F4FEFFFF   lea eax,dword ptr ss:[ebp-10C]
+00653495    50              push eax
+00653496    A1 38796600     mov eax,dword ptr ds:[667938]
+0065349B    8B00            mov eax,dword ptr ds:[eax]
+0065349D    B9 70366500     mov ecx,OmS.00653670                           ; ASCII 0D,"Freischaltung"
+006534A2    BA 80366500     mov edx,OmS.00653680                           ; ASCII 0D,"UnlockCaption"
+006534A7    E8 544CFEFF     call OmS.00638100
+006534AC    8D95 F4FEFFFF   lea edx,dword ptr ss:[ebp-10C]
+006534B2    8D45 F8         lea eax,dword ptr ss:[ebp-8]
+006534B5 >  E8 7618DBFF     call OmS.00404D30                               (String;String;ShortString;ShortString);<+>
+006534BA    8D95 ECFEFFFF   lea edx,dword ptr ss:[ebp-114]
+006534C0 >  8B83 F8020000   mov eax,dword ptr ds:[ebx+2F8]
+006534C6 >  E8 E9E3DFFF     call OmS.004518B4
+006534CB    8B85 ECFEFFFF   mov eax,dword ptr ss:[ebp-114]                 ; 用户名
+006534D1    50              push eax                                       ; 用户名入栈
+006534D2    8D95 E8FEFFFF   lea edx,dword ptr ss:[ebp-118]
+006534D8 >  8B83 F4020000   mov eax,dword ptr ds:[ebx+2F4]
+006534DE >  E8 D1E3DFFF     call OmS.004518B4
+006534E3    8B85 E8FEFFFF   mov eax,dword ptr ss:[ebp-118]                 ; Email
+006534E9    8D8D F0FEFFFF   lea ecx,dword ptr ss:[ebp-110]                 ; 存放真正的注册码
+006534EF    5A              pop edx                                        ; 用户名出栈
+006534F0    E8 F35AFEFF     call OmS.00638FE8                //计算注册码，关键
+006534F5    8B85 F0FEFFFF   mov eax,dword ptr ss:[ebp-110]                 ; 正真注册码
+006534FB    8B55 FC         mov edx,dword ptr ss:[ebp-4]                   ; 试炼码
+006534FE >  E8 CD19DBFF     call OmS.00404ED0                              ; ->System.@LStrCmp;
+00653503    0F85 CC000000   jnz OmS.006535D5                               ; 明码比较,爆破点。
+00653509    8D95 E4FEFFFF   lea edx,dword ptr ss:[ebp-11C]
+0065350F >  8B83 F4020000   mov eax,dword ptr ds:[ebx+2F4]
+00653515 >  E8 9AE3DFFF     call OmS.004518B4
+0065351A    8B95 E4FEFFFF   mov edx,dword ptr ss:[ebp-11C]
+00653520    A1 1C7C6600     mov eax,dword ptr ds:[667C1C]
+
+..................省略................................
+
+0653662    C3              retn
+00653663 >^ E9 E40DDBFF     jmp OmS.0040444C
+00653668  ^ EB C5           jmp short OmS.0065362F
+0065366A    5B              pop ebx
+0065366B    8BE5            mov esp,ebp
+0065366D    5D              pop ebp
+0065366E    C3              retn
+```
+
+---
+
+明码比较!!经典，原来国外也流行啊?
+
+跟进`006534F0 E8 F35AFEFF call OmS.00638FE8`:
+
+---
+
+```text
+00638FE8    55              push ebp
+00638FE9    8BEC            mov ebp,esp
+00638FEB    6A 00           push 0
+00638FED    6A 00           push 0
+00638FEF    6A 00           push 0
+00638FF1    6A 00           push 0
+00638FF3    6A 00           push 0
+00638FF5    6A 00           push 0
+00638FF7    6A 00           push 0
+00638FF9    53              push ebx
+00638FFA    56              push esi
+00638FFB    57              push edi
+00638FFC    8BF9            mov edi,ecx
+00638FFE    8955 F8         mov dword ptr ss:[ebp-8],edx                   ; 用户名
+00639001    8945 FC         mov dword ptr ss:[ebp-4],eax                   ; Email
+00639004    8B45 FC         mov eax,dword ptr ss:[ebp-4]
+00639007    E8 68BFDCFF     call OmS.00404F74
+0063900C    8B45 F8         mov eax,dword ptr ss:[ebp-8]
+0063900F    E8 60BFDCFF     call OmS.00404F74
+00639014    33C0            xor eax,eax
+00639016    55              push ebp
+00639017    68 D3906300     push OmS.006390D3
+0063901C    64:FF30         push dword ptr fs:[eax]
+0063901F    64:8920         mov dword ptr fs:[eax],esp
+00639022    8BC7            mov eax,edi
+00639024    E8 9BBADCFF     call OmS.00404AC4
+00639029    8D55 F4         lea edx,dword ptr ss:[ebp-C]
+0063902C    8B45 FC         mov eax,dword ptr ss:[ebp-4]                   ; Email
+0063902F    E8 34FEFFFF     call OmS.00638E68                              ; 过滤字符非有效字符
+00639034    8D55 F0         lea edx,dword ptr ss:[ebp-10]
+00639037    8B45 F8         mov eax,dword ptr ss:[ebp-8]                   ; 用户名
+0063903A    E8 29FEFFFF     call OmS.00638E68                              ; 过滤字符非有效字符
+0063903F    8B45 F4         mov eax,dword ptr ss:[ebp-C]                   ; 过滤后的Email
+00639042    E8 F1FEFFFF     call OmS.00638F38                              ; 计算
+00639047    8BD8            mov ebx,eax                                    ; Email计算结果
+00639049    8B45 F0         mov eax,dword ptr ss:[ebp-10]                  ; 过滤后的用户名
+0063904C    E8 E7FEFFFF     call OmS.00638F38                              ; 计算
+00639051    8BF0            mov esi,eax                                    ; 用户名计算结果
+00639053    3BF3            cmp esi,ebx
+00639055    75 18           jnz short OmS.0063906F                         ; Email计算结果不能等于用户名计算结果
+00639057    B9 EC906300     mov ecx,OmS.006390EC                           ; ASCII "Invalid registration info"
+0063905C    B2 01           mov dl,1
+0063905E    A1 F0884000     mov eax,dword ptr ds:[4088F0]
+00639063    E8 144ADDFF     call OmS.0040DA7C
+00639068    E8 17B4DCFF     call OmS.00404484
+0063906D    EB 49           jmp short OmS.006390B8
+0063906F    85DB            test ebx,ebx
+00639071    7E 45           jle short OmS.006390B8
+00639073    85F6            test esi,esi
+00639075    7E 41           jle short OmS.006390B8
+00639077    8D55 EC         lea edx,dword ptr ss:[ebp-14]                  ; 用户名
+0063907A    8BC3            mov eax,ebx                                    ; EBX=Email计算结果
+0063907C    E8 6B0BDDFF     call OmS.00409BEC                              ; SysUtils.IntToStr(Integer)
+```
