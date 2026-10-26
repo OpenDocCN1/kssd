@@ -1,0 +1,224 @@
+
+# [原创]某五子棋软件分析
+
+【文章标题】: 某五子棋软件分析
+
+【文章作者】: CCDebuger
+
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+---
+
+## 【详细过程】
+
+写这个文章的原因是来自论坛的这篇求助帖：http://bbs.pediy.com/showthread.php?s=&threadid=31752，是个五子棋的小游戏，没事就下来玩了玩，顺便写一篇文章给新手参考一下，没什么技术含量，权当灌水，呵呵。
+
+先用PEiD来扫描一下这个程序，显示是Microsoft Visual C++ 6.0，没壳。运行一下，帮助菜单下有个注册，点击一下进去，随便输个注册码，点确定，弹出一对话框：注册失败！既然是有地方输入注册码的，我们就在程序的输入函数中找找看有没有 `GetDlgItemTextA` 或 `GetWindowTextA` 这样的函数，这两个函数都是用来获取文本内容的。用OD载入这个程序，利用函数参考，找到了这个函数：`GetWindowTextA`。就用它来试试吧。在 `GetWindowTextA` 的每个参考上都设上断点，F9运行程序，点击程序菜单 帮助->注册，随便输入注册码，点确定，被OD拦下：
+
+```
+004069A5  |.  FF15 28D14000  CALL DWORD PTR DS:[<&USER32.GetWindowTextA>]  ; \断在这里
+
+004069AB  |.  56             PUSH ESI
+
+004069AC  |.  E8 3F0D0000    CALL 5_termin.004076F0                        ;  关键CALL，要跟进去
+
+004069B1  |.  59             POP ECX
+
+004069B2  |.  85C0           TEST EAX,EAX
+
+004069B4  |.  6A 00          PUSH 0
+
+004069B6  |.  74 0C          JE SHORT 5_termin.004069C4                    ;  跳就完蛋
+
+004069B8  |.  68 48E74000    PUSH 5_termin.0040E748                        ;  ASCII "SUCCEED"
+
+004069BD  |.  68 3CE74000    PUSH 5_termin.0040E73C
+
+004069C2  |.  EB 0A          JMP SHORT 5_termin.004069CE
+
+004069C4  |>  68 34E74000    PUSH 5_termin.0040E734                        ;  ASCII "FAILED"
+```
+
+为什么说`004069AC`地址处是关键`CALL`，大家看一下下面的代码和注释就清楚了。这个`CALL`的运算影响到`004069B2`地址处那条指令中`EAX`的值，要搞清楚这里`EAX`的值是怎么来的，就需要跟进那个`CALL`看看。我们到`004069AC`地址处的那个`CALL`时按F7跟进去：
+
+```
+004076F0  /$  55            PUSH EBP                                 ;  来到这里
+
+004076F1  |.  8BEC          MOV EBP,ESP
+
+004076F3  |.  51            PUSH ECX
+
+004076F4  |.  53            PUSH EBX
+
+004076F5  |.  56            PUSH ESI
+
+004076F6  |.  57            PUSH EDI
+
+004076F7  |.  FF75 08       PUSH DWORD PTR SS:[EBP+8]
+
+004076FA  |.  E8 41040000   CALL 5_termin.00407B40
+
+004076FF  |.  83F8 10       CMP EAX,10                               ;  注册码为16位
+
+00407702  |.  59            POP ECX
+
+00407703  |.  74 04         JE SHORT 5_termin.00407709
+
+00407705  |.  33C0          XOR EAX,EAX
+
+00407707  |.  EB 62         JMP SHORT 5_termin.0040776B
+
+00407709  |>  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]
+
+0040770C  |.  BB 88EC4000   MOV EBX,5_termin.0040EC88                ;  ASCII "%8lX"
+
+00407711  |.  50            PUSH EAX
+
+00407712  |.  53            PUSH EBX
+
+00407713  |.  FF75 08       PUSH DWORD PTR SS:[EBP+8]
+
+00407716  |.  E8 030A0000   CALL 5_termin.0040811E
+
+0040771B  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  取注册码前8位
+
+0040771E  |.  BF 888888F8   MOV EDI,F8888888
+
+00407723  |.  F7D0          NOT EAX                                  ;  前8位取反
+
+00407725  |.  33C7          XOR EAX,EDI                              ;  与F8888888异或
+
+00407727  |.  BE 000000F0   MOV ESI,F0000000
+
+0040772C  |.  0BC6          OR EAX,ESI                               ;  再与F0000000或
+
+0040772E  |.  83C4 0C       ADD ESP,0C
+
+00407731  |.  3B05 300A4100 CMP EAX,DWORD PTR DS:[410A30]            ;  与机器码的前8位比较
+
+00407737  |.  8945 FC       MOV DWORD PTR SS:[EBP-4],EAX
+
+0040773A  |.  75 05         JNZ SHORT 5_termin.00407741              ;  不等则跳到后面的计算步骤,等于则成功
+
+0040773C  |.  6A 01         PUSH 1
+
+0040773E  |.  58            POP EAX
+
+0040773F  |.  EB 2A         JMP SHORT 5_termin.0040776B
+
+00407741  |>  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]             ;  前面不等则跳到这
+
+00407744  |.  50            PUSH EAX
+
+00407745  |.  8B45 08       MOV EAX,DWORD PTR SS:[EBP+8]
+
+00407748  |.  83C0 08       ADD EAX,8
+
+0040774B  |.  53            PUSH EBX
+
+0040774C  |.  50            PUSH EAX
+
+0040774D  |.  E8 CC090000   CALL 5_termin.0040811E
+
+00407752  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]             ;  取注册码后8位
+
+00407755  |.  83C4 0C       ADD ESP,0C
+
+00407758  |.  F7D0          NOT EAX                                  ;  取反
+
+0040775A  |.  33C7          XOR EAX,EDI                              ;  与F8888888异或
+
+0040775C  |.  33C9          XOR ECX,ECX                              ;  把ECX清零，为下面的设置值做准备
+
+0040775E  |.  0BC6          OR EAX,ESI                               ;  再与F0000000或
+
+00407760  |.  3B05 340A4100 CMP EAX,DWORD PTR DS:[410A34]            ;  与机器码后8位比较
+
+00407766  |.  0F94C1        SETE CL                                  ;  根据比较结果设CL的值,上面比较相等时，CL置1
+
+00407769  |.  8BC1          MOV EAX,ECX                              ;  把ECX中的值送到EAX中，如果EAX中得到的是0，则注册失败
+```
+
+注册算法很简单，就是把16位的注册码分别取8位先和`F0000000`进行或运算，再和`F8888888`进行异或，然后取反，再与机器码的前8位和后8位比较，相等则注册成功。不过好像这个程序的注册是说着玩的，根本没用。看了作者的主页，说这个软件根本不提供注册。而这个软件的注册对话框中竟然还说正确注册后所有菜单都会生效，晕倒。所以这里只是让你玩玩，可用不用管了。
+
+### 2、启用禁用的菜单
+
+这个程序把很多菜单都禁用了，我们现在想让它的菜单都可用。在打算启用它所有菜单前，我们先考虑一下怎么才能在OD中断到程序设置菜单是否可用的地方。查一下API手册，我们知道 `CheckMenuItem` 函数有设置菜单是否可用或灰色等的功能。那我们先来试一下这个函数。用OD载入程序，下 `bp CheckMenuItem`，会断在这里：
+
+```
+77D31A8E >  8BFF            MOV EDI,EDI                              ; 断在这
+
+77D31A90    55              PUSH EBP
+```
+
+取消断点，ALT+F9返回，到这：
+
+```
+0040533B  |.  53            PUSH EBX                                         ; /Flags = MF_BYCOMMAND|MF_ENABLED|MF_CHECKED|MF_STRING
+
+0040533C  |.  68 D6000000   PUSH 0D6                                         ; |ItemId = D6 (214.)
+
+00405341  |.  57            PUSH EDI                                         ; |hMenu
+
+00405342  |.  FFD6          CALL ESI                                         ; \CheckMenuItem
+
+00405344  |.  53            PUSH EBX                                         ; /Flags => MF_BYCOMMAND|MF_ENABLED|MF_CHECKED|MF_STRING
+
+00405345  |.  68 D3000000   PUSH 0D3                                         ; |ItemId = D3 (211.)
+
+0040534A  |.  57            PUSH EDI                                         ; |hMenu
+
+0040534B  |.  FFD6          CALL ESI                                         ; \CheckMenuItem
+
+0040534D  |.  53            PUSH EBX                                         ; /Flags => MF_BYCOMMAND|MF_ENABLED|MF_CHECKED|MF_STRING
+
+0040534E  |.  68 D4000000   PUSH 0D4                                         ; |ItemId = D4 (212.)
+
+00405353  |.  57            PUSH EDI                                         ; |hMenu
+
+00405354  |.  FFD6          CALL ESI                                         ; \CheckMenuItem
+
+00405356  |.  53            PUSH EBX                                         ; /Flags => MF_BYCOMMAND|MF_ENABLED|MF_CHECKED|MF_STRING
+
+00405357  |.  68 D5000000   PUSH 0D5                                         ; |ItemId = D5 (213.)
+
+0040535C  |.  57            PUSH EDI                                         ; |hMenu
+
+0040535D  |.  FFD6          CALL ESI                                         ; \CheckMenuItem
+
+0040535F  |.  8B35 5CD14000 MOV ESI,DWORD PTR DS:[<&USER32.EnableMenuItem>]  ;  USER32.EnableMenuItem
+
+00405365      6A 01         PUSH 1                                           ;  把这句改成PUSH 0
+
+00405367  |.  5B            POP EBX
+
+00405368  |.  53            PUSH EBX                                         ; /Flags => MF_BYCOMMAND|MF_GRAYED|MF_STRING
+
+00405369  |.  68 D0000000   PUSH 0D0                                         ; |ItemID = D0 (208.)
+
+0040536E  |.  57            PUSH EDI                                         ; |hMenu
+
+0040536F  |.  FFD6          CALL ESI                                         ; \EnableMenuItem
+```
+
+注意这一句：
+
+```
+00405365      6A 01         PUSH 1
+```
+
+查API参数我们知道如果要启用菜单的话 `EnableMenuItem` 的第三个参数就是 `MF_ENABLED`，其值为0，而`MF_GRAYED`是使菜单变成灰色并禁用，其值是1。我们要启用菜单的话应该让这里的标志是 `MF_ENABLED`，就是把传递给 `EnableMenuItem` 的第三个参数改成0，所以这里改成 `PUSH 0`，现在所有的菜单都启用了。把修改后的文件另存为`5_terminator1.exe`，再用OD载入这个`5_terminator1.exe`，现在要去自校验。
+
+### 3、去自校验
+
+启动我们修改后的`5_terminator1.exe`，会出现一个出错对话框，点确定就退出了。所以我们就从这个对话框入手。对话框一般都是`MessageBoxA`，我们先来拦这个API：
+
+OD载入`5_terminator1.exe`，命令行中输入 `bp MessageBoxA`，回车，F9运行程序，会断在这里：
+
+```
+77D504EA >  8BFF            MOV EDI,EDI                              ; 断在这
+
+77D504EC    55              PUSH EBP
+
+77D504ED    8BEC            MOV EBP,ESP
+```
