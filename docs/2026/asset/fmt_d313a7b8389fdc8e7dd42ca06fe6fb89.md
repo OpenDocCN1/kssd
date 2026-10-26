@@ -1,0 +1,211 @@
+
+# [分享]ARM4.0双进程脱壳
+
+## 一、破解目标
+Armadillo 4.0 加壳的 XX 软件
+
+## 二、破解工具
+`OllyDbg v1.10`，`ImportREC 1.6 Final`，`LordPE`
+
+## 三、破解作者
+`DarkBull@email.com.cn`
+
+## 四、破解过程
+
+### 1. 寻找版本号
+
+`ZimoIII.<>/$` 55 PUSH EBP
+
+```
+0064C364  |.  8BEC     MOV EBP,ESP
+0064C366  |.  6A FF    PUSH -1
+0064C368  |.  68 206B6>PUSH ZimoIII.00676B20
+0064C36D  |.  68 A0C06>PUSH ZimoIII.0064C0A0                                 ;  SE handler installation
+0064C372  |.  64:A1 00>MOV EAX,DWORD PTR FS:[0]
+0064C378  |.  50       PUSH EAX
+0064C379  |.  64:8925 >MOV DWORD PTR FS:[0],ESP
+0064C380  |.  83EC 58  SUB ESP,58
+0064C383  |.  53       PUSH EBX
+0064C384  |.  56       PUSH ESI
+0064C385  |.  57       PUSH EDI
+0064C386  |.  8965 E8  MOV [LOCAL.6],ESP
+0064C389  |.  FF15 881>CALL NEAR DWORD PTR DS:[<&KERNEL32.Ge>                ;  kernel32.GetVersion
+```
+
+仿VC入口，下断`BP OpenMutexA`，返回后代码如下：
+
+```
+00637F33   .  52       PUSH EDX                                              ; /MutexName
+00637F34   .  6A 00    PUSH 0                                                ; |Inheritable = FALSE
+00637F36   .  68 01001>PUSH 1F0001                                           ; |Access = 1F0001
+00637F3B   .  FF15 A41>CALL NEAR DWORD PTR DS:[<&KERNEL32.Op>                ; \OpenMutexA
+00637F41   .  85C0     TEST EAX,EAX
+00637F43   .  74 04    JE SHORT ZimoIII.00637F49                        ; 修改ZF=0
+```
+
+按`F9`运行，再次拦截，取消断点，返回后代码如下：
+
+```
+00638335   .  50       PUSH EAX                                              ; /MutexName
+00638336   .  6A 00    PUSH 0                                                ; |Inheritable = FALSE
+00638338   .  68 01001>PUSH 1F0001                                           ; |Access = 1F0001
+0063833D   .  FF15 A41>CALL NEAR DWORD PTR DS:[<&KERNEL32.Op>                ; \OpenMutexA
+00638343   .  85C0     TEST EAX,EAX
+00638345   .  0F85 7A0>JNZ ZimoIII.006385C5                                ; 修改ZF=0
+```
+
+这就进入子进程了，下断`BP OutputDebugStringA`，返回后搜索字符串，发现如下：
+
+`Address=00E25403`
+
+`Disassembly=PUSH 0E55800`
+
+`Text string=ASCII "<armVersion xsi:type="xsd:string">%s</armVersion>`
+
+"`
+
+`00E25402`处代码为：`PUSH EAX` （`[EAX]`为版本号`4.00`）
+
+### 2. 寻找IAT
+
+下断`BP LoadLibraryA`，执行到返回后代码如下：
+
+```
+00E48851    E8 7237FEF>CALL 00E2BFC8                                         ; =>LoadLibrary
+00E48856    8985 88C3F>MOV DWORD PTR SS:[EBP-3C78],EAX
+00E4885C    83BD 88C3F>CMP DWORD PTR SS:[EBP-3C78],0
+00E48863    0F85 9F000>JNZ 00E48908
+........
+00E48A0B    8B85 60C1F>MOV EAX,DWORD PTR SS:[EBP-3EA0]
+00E48A11    8B0D E4C9E>MOV ECX,DWORD PTR DS:[E5C9E4]
+00E48A17    8B15 F81EE>MOV EDX,DWORD PTR DS:[E61EF8]
+00E48A1D    8B0481     MOV EAX,DWORD PTR DS:[ECX+EAX*4]
+00E48A20    3342 78    XOR EAX,DWORD PTR DS:[EDX+78]
+00E48A23    8B0D F81EE>MOV ECX,DWORD PTR DS:[E61EF8]
+00E48A29    3341 14    XOR EAX,DWORD PTR DS:[ECX+14]
+00E48A2C    8B0D F81EE>MOV ECX,DWORD PTR DS:[E61EF8]
+00E48A32    3341 58    XOR EAX,DWORD PTR DS:[ECX+58]
+00E48A35    8B0D F81EE>MOV ECX,DWORD PTR DS:[E61EF8]
+00E48A3B    3341 24    XOR EAX,DWORD PTR DS:[ECX+24]
+00E48A3E    3985 88C3F>CMP DWORD PTR SS:[EBP-3C78],EAX                        ; 比较是否为系统模块
+00E48A44    75 11      JNZ SHORT 00E48A57                                ; Magic JMP
+00E48A46    8B85 5CC1F>MOV EAX,DWORD PTR SS:[EBP-3EA4]
+00E48A4C    8B40 04    MOV EAX,DWORD PTR DS:[EAX+4]
+00E48A4F    8985 84C3F>MOV DWORD PTR SS:[EBP-3C7C],EAX
+00E48A55    EB 05      JMP SHORT 00E48A5C
+00E48A57  ^ E9 4FFFFFF>JMP 00E489AB
+00E48A5C    80A5 7CC3F>AND BYTE PTR SS:[EBP-3C84],0
+00E48A63    83BD D0C6F>CMP DWORD PTR SS:[EBP-3930],0
+00E48A6A    75 3F      JNZ SHORT 00E48AAB
+```
+
+去掉IAT间隙中填充的4个字节，用`ImportREC`手动填入`RVA=14B1D0`，`SIZE=12DC`，去掉不可用的指针即可获得完整的IAT。
+
+### 3. 寻找OEP及DUMP
+
+重新加载程序，下断`BP WaitForDebugEvent`，返回后代码如下：
+
+```
+0063C4D8    52         PUSH EDX
+0063C4D9    FF15 E0106>CALL NEAR DWORD PTR DS:[<&KERNEL32.Wa>                ; kernel32.WaitForDebugEvent
+0063C4DF >  85C0       TEST EAX,EAX
+```
+
+`0012CD90`为`DebugEvent`，按`F9`运行，当`0012CD9C`为`80000001`时，`0012CDA8`为`00401000` `=` `OEP` `=`。
+
+子进程运行到`OEP`时产生异常，下断`BP VirtualProtectEx`，返回后`F8`单步运行到如下处：
+
+```
+0063F162    A1 4C7F670>MOV EAX,DWORD PTR DS:[677F4C]                        ; 初始为0
+0063F167    83C0 01    ADD EAX,1                                        ; 计数器加1
+0063F16A    A3 4C7F670>MOV DWORD PTR DS:[677F4C],EAX                        ; 保存计数
+........
+0063F239    8B15 4C7F6>MOV EDX,DWORD PTR DS:[677F4C]                        ; 读计数
+0063F23F    3B15 D0176>CMP EDX,DWORD PTR DS:[6717D0]                        ; 与0x97比较
+0063F245    0F8E D9010>JLE ZimoIII.0063F424                                ; 不跳则加密代码段
+```
+
+修改跳转，再来到`ContinueDebugEvent`处，将如下代码改为：
+
+```
+0063EBCB   .  51                PUSH ECX                                      ; /ContinueStatus
+0063EBCC   .  8B95 DCF5FFFF     MOV EDX,DWORD PTR SS:[EBP-A24]                ; |
+0063EBD2   .  8B42 08           MOV EAX,DWORD PTR DS:[EDX+8]                  ; |
+0063EBD5   .  50                PUSH EAX                                      ; |ThreadId
+0063EBD6   .  8B8D DCF5FFFF     MOV ECX,DWORD PTR SS:[EBP-A24]                ; |
+0063EBDC   .  8B51 04           MOV EDX,DWORD PTR DS:[ECX+4]                  ; |
+0063EBDF   .  52                PUSH EDX                                      ; |ProcessId
+0063EBE0   .  FF15 D4106700     CALL NEAR DWORD PTR DS:[<&KERNEL32.Co>        ; \ContinueDebugEvent
+```
+
+`Patch`代码：
+
+```
+0063EBD2    8105 B4CD12>ADD DWORD PTR DS:[12CDB4],1000                        ; 将异常地址加1000h
+0063EBDC    8105 A8CD12>ADD DWORD PTR DS:[12CDA8],1000                        ; 同上
+```
+
+再将上面`WaitForDebugEvent`处`NOP`掉，让子进程停在入口处，改变`DebugEvent`的异常地址，就可欺骗父进程进行解码了，下条件断点`[0012CDB4]==0052E000` `（数据段VA）`，断下后用`LordPE DUMP`。
+
+去掉`.text1`等5个段，保留`.rsrc`段，再作些优化。
+
+### 4. 算法分析
+
+当出现注册窗口时，下断`BP ReadPhysicalDriveIn`，返回后代码如下：
+
+```
+0040F3B8  |.  E8 7B8EFF>CALL ZimoIIII.00408238                                ;  得到机器码
+0040F3BD  |.  8D55 F8   LEA EDX,[LOCAL.2]
+0040F3C0  |.  33C0      XOR EAX,EAX
+0040F3C2  |.  8D4D FC   LEA ECX,[LOCAL.1]
+0040F3C5  |.  8B12      MOV EDX,DWORD PTR DS:[EDX]
+0040F3C7  |.  8945 FC   MOV [LOCAL.1],EAX
+0040F3CA  |.  8BC3      MOV EAX,EBX
+0040F3CC  |.  FF46 1C   INC DWORD PTR DS:[ESI+1C]
+0040F3CF  |.  E8 F0FCFF>CALL ZimoIIII.0040F0C4                                ; F7进入①
+0040F3D4  |.  FF4E 1C   DEC DWORD PTR DS:[ESI+1C]
+0040F3D7  |.  8D45 F8   LEA EAX,[LOCAL.2]
+0040F3DA  |.  BA 020000>MOV EDX,2
+0040F3DF  |.  E8 28CE11>CALL ZimoIIII.0052C20C
+0040F3E4  |.  66:C746 1>MOV WORD PTR DS:[ESI+10],8
+0040F3EA  |.  66:C746 1>MOV WORD PTR DS:[ESI+10],20
+0040F3F0  |.  33C9      XOR ECX,ECX
+0040F3F2  |.  8BC3      MOV EAX,EBX
+0040F3F4  |.  894D F4   MOV [LOCAL.3],ECX
+0040F3F7  |.  8D4D F4   LEA ECX,[LOCAL.3]
+0040F3FA  |.  FF46 1C   INC DWORD PTR DS:[ESI+1C]
+0040F3FD  |.  8B55 FC   MOV EDX,[LOCAL.1]
+0040F400  |.  E8 43FEFF>CALL ZimoIIII.0040F248                                ;  F7进入②
+```
+
+计算过程①：
+
+```
+0040F0C4  /$  55        PUSH EBP
+0040F0C5  |.  8BEC      MOV EBP,ESP
+0040F0C7  |.  83C4 C4   ADD ESP,-3C
+0040F0CA  |.  53        PUSH EBX
+0040F0CB  |.  56        PUSH ESI
+0040F0CC  |.  57        PUSH EDI
+0040F0CD  |.  894D EC   MOV [LOCAL.5],ECX
+0040F0D0  |.  8955 FC   MOV [LOCAL.1],EDX
+0040F0D3  |.  8D7D C8   LEA EDI,[LOCAL.14]
+0040F0D6  |.  B8 D85553>MOV EAX,ZimoIIII.005355D8
+0040F0DB  |.  E8 F0BF0F>CALL ZimoIIII.0050B0D0
+0040F0E0  |.  C747 1C 0>MOV DWORD PTR DS:[EDI+1C],1
+0040F0E7  |.  8D55 FC   LEA EDX,[LOCAL.1]
+0040F0EA  |.  8D45 FC   LEA EAX,[LOCAL.1]
+0040F0ED  |.  E8 72CF11>CALL ZimoIIII.0052C064
+0040F0F2  |.  FF47 1C   INC DWORD PTR DS:[EDI+1C]
+0040F0F5  |.  BA 7A5453>MOV EDX,ZimoIIII.0053547A                             ;  ASCII "lovedj"
+0040F0FA  |.  66:C747 1>MOV WORD PTR DS:[EDI+10],8
+0040F100  |.  66:C747 1>MOV WORD PTR DS:[EDI+10],14
+0040F106  |.  8D45 F8   LEA EAX,[LOCAL.2]
+0040F109  |.  E8 1ECF11>CALL ZimoIIII.0052C02C
+0040F10E  |.  FF47 1C   INC DWORD PTR DS:[EDI+1C]
+0040F111  |.  8D55 F8   LEA EDX,[LOCAL.2]
+0040F114  |.  66:C747 1>MOV WORD PTR DS:[EDI+10],8
+0040F11A  |.  66:C747 1>MOV WORD PTR DS:[EDI+10],20
+0040F120  |.  8D45 F4   LEA EAX,[LOCAL.3]
+0040F123  |.  E8 3CCF11>CALL ZimoIIII.0052C064
+```
