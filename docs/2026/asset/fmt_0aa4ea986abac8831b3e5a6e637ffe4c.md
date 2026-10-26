@@ -1,0 +1,342 @@
+
+```
+009501AC  /$  55            push ebp
+
+009501AD  |.  8BEC          mov ebp,esp
+
+009501AF  |.  B9 06000000   mov ecx,0x6
+
+009501B4  |>  6A 00         /push 0x0
+
+009501B6  |.  6A 00         |push 0x0
+
+009501B8  |.  49            |dec ecx
+
+009501B9  |.^ 75 F9         \jnz short Efficien.009501B4
+
+009501BB  |.  53            push ebx
+
+009501BC  |.  56            push esi
+
+009501BD  |.  57            push edi
+
+009501BE  |.  8BF2          mov esi,edx
+
+009501C0  |.  8BF8          mov edi,eax
+
+009501C2  |.  33C0          xor eax,eax
+
+009501C4  |.  55            push ebp
+
+009501C5  |.  68 85039500   push Efficien.00950385
+
+009501CA  |.  64:FF30       push dword ptr fs:[eax]
+
+009501CD  |.  64:8920       mov dword ptr fs:[eax],esp
+
+009501D0  |.  33DB          xor ebx,ebx
+
+009501D2  |.  8B47 08       mov eax,dword ptr ds:[edi+0x8]
+
+009501D5  |.  E8 AA4FABFF   call Efficien.00405184
+
+009501DA  |.  50            push eax
+
+009501DB  |.  8B47 0C       mov eax,dword ptr ds:[edi+0xC]
+
+009501DE  |.  E8 A14FABFF   call Efficien.00405184
+
+009501E3  |.  C1E0 02       shl eax,0x2
+
+009501E6  |.  5A            pop edx
+
+009501E7  |.  03D0          add edx,eax
+
+009501E9  |.  83C2 1B       add edx,0x1B
+
+009501EC  |.  42            inc edx
+
+009501ED  |.  52            push edx
+
+009501EE  |.  8BC6          mov eax,esi
+
+009501F0  |.  E8 8F4FABFF   call Efficien.00405184
+
+009501F5  |.  5A            pop edx
+
+009501F6  |.  3BD0          cmp edx,eax
+
+009501F8  |.  0F85 6C010000 jnz Efficien.0095036A                    ;  验证注册码是否37位
+
+009501FE  |.  8D4D F0       lea ecx,[local.4]
+
+00950201  |.  8BD6          mov edx,esi
+
+00950203  |.  8BC7          mov eax,edi
+
+00950205  |.  E8 8E010000   call Efficien.00950398
+
+0095020A  |.  8D45 FC       lea eax,[local.1]
+
+0095020D  |.  50            push eax
+
+0095020E  |.  8B47 08       mov eax,dword ptr ds:[edi+0x8]
+
+00950211  |.  E8 6E4FABFF   call Efficien.00405184
+
+00950216  |.  8BF0          mov esi,eax
+
+00950218  |.  8B47 0C       mov eax,dword ptr ds:[edi+0xC]
+
+0095021B  |.  E8 644FABFF   call Efficien.00405184
+
+00950220  |.  03F0          add esi,eax
+
+00950222  |.  8BCE          mov ecx,esi
+
+00950224  |.  BA 01000000   mov edx,0x1
+
+00950229  |.  8B45 F0       mov eax,[local.4]
+
+0095022C  |.  E8 B351ABFF   call Efficien.004053E4
+
+00950231  |.  8D45 EC       lea eax,[local.5]
+
+00950234  |.  8B4F 0C       mov ecx,dword ptr ds:[edi+0xC]
+
+00950237  |.  8B57 08       mov edx,dword ptr ds:[edi+0x8]
+
+0095023A  |.  E8 914FABFF   call Efficien.004051D0
+
+0095023F  |.  8B55 EC       mov edx,[local.5]
+
+00950242  |.  8B45 FC       mov eax,[local.1]
+
+00950245  |.  E8 16CAABFF   call Efficien.0040CC60                   ;  比较前6位是否为EP200-
+
+0095024A  |.  84C0          test al,al
+
+0095024C  |.  0F84 18010000 je Efficien.0095036A
+
+00950252  |.  8D45 E8       lea eax,[local.6]
+
+00950255  |.  50            push eax
+
+00950256  |.  8B47 08       mov eax,dword ptr ds:[edi+0x8]
+
+00950259  |.  E8 264FABFF   call Efficien.00405184
+
+0095025E  |.  8BD8          mov ebx,eax
+
+00950260  |.  8B47 0C       mov eax,dword ptr ds:[edi+0xC]
+
+00950263  |.  E8 1C4FABFF   call Efficien.00405184
+
+00950268  |.  03C0          add eax,eax
+
+0095026A  |.  03D8          add ebx,eax
+
+0095026C  |.  8BD3          mov edx,ebx
+
+0095026E  |.  83C2 07       add edx,0x7
+
+00950271  |.  B9 03000000   mov ecx,0x3
+
+00950276  |.  8B45 F0       mov eax,[local.4]
+
+00950279  |.  E8 6651ABFF   call Efficien.004053E4                   ;  取注册码第17、18、20位=A组
+
+0095027E  |.  8B45 E8       mov eax,[local.6]
+
+00950281  |.  50            push eax
+
+00950282  |.  8D45 E4       lea eax,[local.7]
+
+00950285  |.  50            push eax
+
+00950286  |.  8B47 08       mov eax,dword ptr ds:[edi+0x8]
+
+00950289  |.  E8 F64EABFF   call Efficien.00405184
+
+0095028E  |.  8BD8          mov ebx,eax
+
+00950290  |.  8B47 0C       mov eax,dword ptr ds:[edi+0xC]
+
+00950293  |.  E8 EC4EABFF   call Efficien.00405184
+
+00950298  |.  03D8          add ebx,eax
+
+0095029A  |.  8BD3          mov edx,ebx
+
+0095029C  |.  42            inc edx
+
+0095029D  |.  B9 06000000   mov ecx,0x6
+
+009502A2  |.  8B45 F0       mov eax,[local.4]
+
+009502A5  |.  E8 3A51ABFF   call Efficien.004053E4                   ;  取注册码第7、9、10、12、13、15位=B组
+
+009502AA  |.  8B55 E4       mov edx,[local.7]
+
+009502AD  |.  8D45 F8       lea eax,[local.2]
+
+009502B0  |.  59            pop ecx
+
+009502B1  |.  E8 1A4FABFF   call Efficien.004051D0                   ;  A、B组组合
+
+009502B6  |.  8D45 E0       lea eax,[local.8]
+
+009502B9  |.  50            push eax
+
+009502BA  |.  8B47 08       mov eax,dword ptr ds:[edi+0x8]
+
+009502BD  |.  E8 C24EABFF   call Efficien.00405184
+
+009502C2  |.  8BD8          mov ebx,eax
+
+009502C4  |.  8B47 0C       mov eax,dword ptr ds:[edi+0xC]
+
+009502C7  |.  E8 B84EABFF   call Efficien.00405184
+
+009502CC  |.  8D0440        lea eax,dword ptr ds:[eax+eax*2]
+
+009502CF  |.  03D8          add ebx,eax
+
+009502D1  |.  8BD3          mov edx,ebx
+
+009502D3  |.  83C2 0D       add edx,0xD
+
+009502D6  |.  B9 06000000   mov ecx,0x6
+
+009502DB  |.  8B45 F0       mov eax,[local.4]
+
+009502DE  |.  E8 0151ABFF   call Efficien.004053E4                   ;  取注册码第28、29、30、32、33、34位=C组
+
+009502E3  |.  8B45 E0       mov eax,[local.8]
+
+009502E6  |.  50            push eax
+
+009502E7  |.  8D45 DC       lea eax,[local.9]
+
+009502EA  |.  50            push eax
+
+009502EB  |.  8B47 08       mov eax,dword ptr ds:[edi+0x8]
+
+009502EE  |.  E8 914EABFF   call Efficien.00405184
+
+009502F3  |.  8BD8          mov ebx,eax
+
+009502F5  |.  8B47 0C       mov eax,dword ptr ds:[edi+0xC]
+
+009502F8  |.  E8 874EABFF   call Efficien.00405184
+
+009502FD  |.  03C0          add eax,eax
+
+009502FF  |.  03D8          add ebx,eax
+
+00950301  |.  8BD3          mov edx,ebx
+
+00950303  |.  83C2 0A       add edx,0xA
+
+00950306  |.  B9 03000000   mov ecx,0x3
+
+0095030B  |.  8B45 F0       mov eax,[local.4]
+
+0095030E  |.  E8 D150ABFF   call Efficien.004053E4                   ;  取注册码第22、24、25位=D组
+
+00950313  |.  8B55 DC       mov edx,[local.9]
+
+00950316  |.  8D45 F4       lea eax,[local.3]
+
+00950319  |.  59            pop ecx
+
+0095031A  |.  E8 B14EABFF   call Efficien.004051D0                   ;  C、D组组合
+
+0095031F  |.  8D4D F4       lea ecx,[local.3]
+```
+
+小结：
+
+1. 取注册码第17、18、20位=A组
+
+2. 取注册码第7、9、10、12、13、15位=B组
+
+3. A、B组合(B在前A在后)
+
+4. 取注册码第28、29、30、32、33、34位=C组
+
+5. 取注册码第22、24、25位=D组
+
+6. C和D组合(D在前C在后)
+
+//接下来
+
+```
+00950322  |.  8D55 F8       lea edx,[local.2]
+
+00950325  |.  8BC7          mov eax,edi
+
+00950327  |.  E8 64010000   call Efficien.00950490                   ;  两组数据移位运算
+
+0095032C  |.  8D45 D0       lea eax,[local.12]
+
+0095032F  |.  50            push eax
+
+00950330  |.  8B4F 04       mov ecx,dword ptr ds:[edi+0x4]
+
+00950333  |.  8B55 F8       mov edx,[local.2]
+
+00950336  |.  A1 78F79400   mov eax,dword ptr ds:[0x94F778]
+
+0095033B  |.  E8 28FCFFFF   call Efficien.0094FF68                   ;  加密运算1
+
+00950340  |.  8B55 D0       mov edx,[local.12]
+
+00950343  |.  8D4D D4       lea ecx,[local.11]
+
+00950346  |.  A1 847C8800   mov eax,dword ptr ds:[0x887C84]
+
+0095034B  |.  E8 6CA2F3FF   call Efficien.0088A5BC                   ;  加密运算2
+
+00950350  |.  8B55 D4       mov edx,[local.11]
+
+00950353  |.  8D4D D8       lea ecx,[local.10]
+
+00950356  |.  8BC7          mov eax,edi
+
+00950358  |.  E8 DBFDFFFF   call Efficien.00950138                   ;  取加密2的奇数位
+
+0095035D  |.  8B45 D8       mov eax,[local.10]
+
+00950360  |.  8B55 F4       mov edx,[local.3]
+
+00950363  |.  E8 F8C8ABFF   call Efficien.0040CC60                   ;  比较...相等就注册成功
+```
+
+//移位运算入口
+
+```
+00950490  /$  55            push ebp
+
+00950491  |.  8BEC          mov ebp,esp
+
+00950493  |.  51            push ecx
+
+00950494  |.  B9 09000000   mov ecx,0x9
+
+00950499  |>  6A 00         /push 0x0
+
+0095049B  |.  6A 00         |push 0x0
+
+0095049D  |.  49            |dec ecx
+
+0095049E  |.^ 75 F9         \jnz short Efficien.00950499
+
+009504A0  |.  51            push ecx
+
+009504A1  |.  874D FC       xchg [local.1],ecx
+
+009504A4  |.  53            push ebx
+
+009504A5  |.  56            push esi
+```
