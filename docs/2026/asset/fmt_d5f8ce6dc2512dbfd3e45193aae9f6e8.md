@@ -1,0 +1,96 @@
+
+## 花指令总结方式
+
+下面总结花指令的方式，当有一个`JMP`指令跳到一个`XXXX`地址的时候，这个地址不管是不是花指令，其`JMP`指令到目标地址的上一条指令都是无效的，有模拟`JMP`指令的时候也是如此，比如`Jg` `Jle`指令这样的代码到目标地址的上一条指令之间的代码都是无效的，我们这样依次清除下去就能看到全部外壳段的代码了，这段代码比较长，是依次循环解码的，就不依依给出了，下面说下脱壳的方法，当装载进程序后，下一个硬件访问(`hr`)断点，其地址指向`ESP`，这里是`hr 0012FFA4`，当我们断点下好以后，按13次`F9`就间接跳到`OEP`了，
+
+## 跳向OEP的代码
+
+```
+0041C105    61               POPAD
+
+0041C106    EB 01            JMP SHORT 0041C109
+
+0041C108    90               NOP
+
+0041C109  - FF25 4BC14100    JMP DWORD PTR DS:[41C14B]                ; GUI1.00401000
+```
+
+来到`Oep`后我们发现输入表被加密了，看下代码：
+
+```
+00401000    6A 00            PUSH 0
+
+00401002    E8 27000000      CALL 0040102E                            ; GetModuleHandleA
+
+00401007    6A 00            PUSH 0
+
+00401009    68 09304000      PUSH 00403009                            ; ASCII "Test"
+
+0040100E    68 00304000      PUSH 00403000                            ; ASCII "UnpackMe"
+
+00401013    6A 00            PUSH 0
+
+00401015    E8 08000000      CALL 00401022                            ; MessageBoxA
+
+0040101A    6A 00            PUSH 0
+
+0040101C    E8 07000000      CALL 00401028                            ; ExitProcess
+
+00401021    CC               INT3
+
+00401022  - FF25 0C204000    JMP DWORD PTR DS:[40200C]                ; JMP函数地址，这里是外壳添加的代码的地址
+
+00401028  - FF25 04204000    JMP DWORD PTR DS:[402004]                ; JMP函数地址，这里是外壳添加的代码的地址
+
+0040102E  - FF25 00204000    JMP DWORD PTR DS:[402000]                ; JMP函数地址，这里是外壳添加的代码的地址
+```
+
+```
+0040501D    68 09C50F67      PUSH 670FC509
+
+00405022    813424 48728F1B  XOR DWORD PTR SS:[ESP],1B8F7248
+
+00405029    C3               RETN                                     ; 返回到 7C80B741 (kernel32.GetModuleHandleA)
+```
+
+## 修复输入表
+
+现在修复输入表，我们直接把`JMP`那个地址的内容改为函数的地址，示例
+
+```
+00401000   .  6A 00             PUSH 0                                   ; /pModule = NULL
+
+00401002   .  E8 27000000       CALL 0040102E                            ; \GetModuleHandleA
+
+00401007   .  6A 00             PUSH 0                                   ; /Style = MB_OK|MB_APPLMODAL
+
+00401009   .  68 09304000       PUSH 00403009                            ; |Title = "Test"
+
+0040100E   .  68 00304000       PUSH 00403000                            ; |Text = "UnpackMe"
+
+00401013   .  6A 00             PUSH 0                                   ; |hOwner = NULL
+
+00401015   .  E8 08000000       CALL 00401022                            ; \MessageBoxA
+
+0040101A   .  6A 00             PUSH 0                                   ; /ExitCode = 0
+
+0040101C   .  E8 07000000       CALL 00401028                            ; \ExitProcess
+
+00401021      CC                INT3
+
+00401022   $- FF25 0C204000     JMP DWORD PTR DS:[40200C]                ;  DS:[0040200C]=77D507EA (user32.MessageBoxA)
+
+00401028   .- FF25 04204000     JMP DWORD PTR DS:[402004]                ;  DS:[00402004]=7C81CB12 (kernel32.ExitProcess)
+
+0040102E   $- FF25 00204000     JMP DWORD PTR DS:[402000]                ;  DS:[00402004]=7C81CB12 (kernel32.ExitProcess)
+```
+
+然后使用`LoadPE`重建`PE`，修复成功，运行程序`OK`,分析完毕
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+
+- [GUI1.zip](javascript:void(0);)
+
+  （94.93kb，112次下载）
