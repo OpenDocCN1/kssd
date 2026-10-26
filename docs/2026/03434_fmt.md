@@ -1,0 +1,144 @@
+
+# SmartUndelete 2.6注册算法分析（有点不敢置信）
+
+顺手搞的结果，所以没有按照一贯的正规格式写
+
+最近我用替换SAM文件的方法获得了某台机器的管理员权限，但却不小心把原来的SAM文件删掉了，眼看大事不妙，心想在DOS时代都有个UNDELETE实用程序，现在到了Windows时代这类程序应该只会更多吧！于是搜了个这程序，用了一下，被删的文件找到了，但必须注册程序才能恢复文件。（官网：hxxp://aeaK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4y4E0j5i4u0@1N6h3&6V1k6h3I4W2N6r3g2Q4x3X3g2U0L8$3#2Q4x3V1k6Q4c8f1k6Q4b7V1y4Q4z5p5y4Q4c8e0S2Q4z5o6N6Q4b7f1q4Q4c8e0S2Q4b7e0q4Q4z5p5y4Q4c8e0k6Q4z5e0c8Q4b7U0W2Q4c8e0k6Q4b7f1c8Q4b7e0y4Q4c8f1k6Q4b7V1y4Q4z5o6V1`.
+
+现在鄙人都已经养成了个习惯，凡是碰到程序要求注册的，首先想到的第一件事便是`PEID`，呵呵，拿来一看，显示是`VC++ 6.0`写的程序，不错嘛，好象又有软柿子了，运行注册，只有一个输入框，要求在其中输入序列号。随便输入几个字符，出现提示信息：
+
+Wrong Registration Key
+
+然后`OD`加载，查找这个字串，来到：
+
+////////////////// 以下是代码 ///////////////////
+
+```
+004045E4   .  6A 01         push    1
+004045E6   .  E8 FDC70200   call    00430DE8
+004045EB   .  8B0D 24834600 mov     ecx, [468324]                    ;  SmartUnd.004680EC
+004045F1   .  8B46 5C       mov     eax, [esi+5C]
+004045F4   .  51            push    ecx                              ;  参数2:真码指针
+004045F5   .  50            push    eax                              ;  参数1:假码指针
+004045F6   .  E8 35F40100   call    00423A30
+004045FB   .  83C4 08       add     esp, 8
+004045FE   .  85C0          test    eax, eax                         ;  返回0为注册成功，非0为失败
+00404600   .  6A 00         push    0
+00404602   .  74 14         je      short 00404618
+00404604   .  68 F0834600   push    004683F0                         ;  ASCII "Message"
+00404609   .  68 D8834600   push    004683D8                         ;  ASCII "Wrong Registration Key"
+0040460E   .  8BCE          mov     ecx, esi
+00404610   .  E8 5CBB0200   call    00430171
+```
+////////////////// 上面是代码 ///////////////////
+
+还真是标准的C语言格式的函数调用，关键跳转一目了然，那么`004045F6`这个`call`应该就是比较注册码的地方了吧！刚打算在`004045EB`这里下断点，鼠标一点上去，下方状态框中竟然出现：
+
+`ds:[00468324]=004680EC (SmartUnd.004680EC), ASCII "4K5TY-UT3C2-KWP54-71MN2"`
+
+不是吧，自从调试器加载以来我还没输入过任何信息，怎么会自己出现注册码？一开始我也觉得它可能是用来与输入的注册码实行某种运算的测试数据，但这起码提示了注册码的格式，于是输入假码：
+
+`AAAAA-BBBBB-CCCCC-DDDDD`
+
+再跟进`00423A30`一看：
+
+////////////////// 以下是代码 ///////////////////
+
+```
+00423A30  /$  55            push    ebp
+00423A31  |.  8BEC          mov     ebp, esp
+00423A33  |.  57            push    edi
+00423A34  |.  56            push    esi
+00423A35  |.  53            push    ebx                              ;  uses ebx esi edi
+00423A36  |.  8B75 0C       mov     esi, [ebp+C]                     ;  真码
+00423A39  |.  8B7D 08       mov     edi, [ebp+8]                     ;  假码
+00423A3C  |.  8D05 6C304700 lea     eax, [47306C]
+00423A42  |.  8378 08 00    cmp     dword ptr [eax+8], 0
+00423A46  |.  75 3B         jnz     short 00423A83
+00423A48  |.  B0 FF         mov     al, 0FF
+00423A4A  |.  8BFF          mov     edi, edi
+00423A4C  |>  0AC0          /or      al, al                          ;  到达串尾？
+00423A4E  |.  74 2E         |je      short 00423A7E                  ;  成功
+00423A50  |.  8A06          |mov     al, [esi]
+00423A52  |.  46            |inc     esi                             ;  下个字符
+00423A53  |.  8A27          |mov     ah, [edi]
+00423A55  |.  47            |inc     edi
+00423A56  |.  38C4          |cmp     ah, al
+00423A58  |.^ 74 F2         |je      short 00423A4C
+00423A5A  |.  2C 41         |sub     al, 41                          ;  al -= 'A'
+00423A5C  |.  3C 1A         |cmp     al, 1A
+00423A5E  |.  1AC9          |sbb     cl, cl
+00423A60  |.  80E1 20       |and     cl, 20                          ;  cl=(al<'A' || al>'Z')?0:32;
+00423A63  |.  02C1          |add     al, cl
+00423A65  |.  04 41         |add     al, 41                          ;  若是大写字母则转为小写，其余不变
+00423A67  |.  86E0          |xchg    al, ah                          ;  下对ah实行相同手续
+00423A69  |.  2C 41         |sub     al, 41
+00423A6B  |.  3C 1A         |cmp     al, 1A
+00423A6D  |.  1AC9          |sbb     cl, cl
+00423A6F  |.  80E1 20       |and     cl, 20
+00423A72  |.  02C1          |add     al, cl
+00423A74  |.  04 41         |add     al, 41
+00423A76  |.  38E0          |cmp     al, ah                          ;  比较是否相等
+00423A78  |.^ 74 D2         \je      short 00423A4C                  ;  不等，失败
+00423A7A  |.  1AC0          sbb     al, al
+00423A7C  |.  1C FF         sbb     al, 0FF
+00423A7E  |>  0FBEC0        movsx   eax, al
+00423A81  |.  EB 78         jmp     short 00423AFB                   ;  跳至返回
+00423A83  |>  F0:FF05 68444>lock inc dword ptr [474468]
+00423A8A  |.  833D 64444700>cmp     dword ptr [474464], 0
+00423A91  |.  7F 04         jg      short 00423A97
+00423A93  |.  6A 00         push    0
+00423A95  |.  EB 15         jmp     short 00423AAC
+00423A97  |>  F0:FF0D 68444>lock dec dword ptr [474468]
+00423A9E  |.  6A 13         push    13
+00423AA0  |.  E8 B4E9FFFF   call    00422459
+00423AA5  |.  C70424 010000>mov     dword ptr [esp], 1
+00423AAC  |>  B8 FF000000   mov     eax, 0FF
+00423AB1  |.  33DB          xor     ebx, ebx
+00423AB3  |.  90            nop
+00423AB4  |>  0AC0          /or      al, al
+00423AB6  |.  74 27         |je      short 00423ADF
+00423AB8  |.  8A06          |mov     al, [esi]
+00423ABA  |.  46            |inc     esi
+00423ABB  |.  8A1F          |mov     bl, [edi]
+00423ABD  |.  47            |inc     edi
+00423ABE  |.  38D8          |cmp     al, bl
+00423AC0  |.^ 74 F2         |je      short 00423AB4
+00423AC2  |.  50            |push    eax
+00423AC3  |.  53            |push    ebx
+00423AC4  |.  E8 64B4FFFF   |call    0041EF2D
+00423AC9  |.  8BD8          |mov     ebx, eax
+00423ACB  |.  83C4 04       |add     esp, 4
+00423ACE  |.  E8 5AB4FFFF   |call    0041EF2D
+00423AD3  |.  83C4 04       |add     esp, 4
+00423AD6  |.  38C3          |cmp     bl, al
+00423AD8  |.^ 74 DA         \je      short 00423AB4
+00423ADA  |.  1BC0          sbb     eax, eax
+00423ADC  |.  83D8 FF       sbb     eax, -1
+00423ADF  |>  8BD8          mov     ebx, eax
+00423AE1  |.  58            pop     eax
+00423AE2  |.  0BC0          or      eax, eax
+00423AE4  |.  75 09         jnz     short 00423AEF
+00423AE6  |.  F0:FF0D 68444>lock dec dword ptr [474468]
+00423AED  |.  EB 0A         jmp     short 00423AF9
+00423AEF  |>  6A 13         push    13                               ; /Arg1 = 00000013
+00423AF1  |.  E8 C4E9FFFF   call    004224BA                         ; \SmartUnd.004224BA
+00423AF6  |.  83C4 04       add     esp, 4
+00423AF9  |>  8BC3          mov     eax, ebx
+00423AFB  |>  5B            pop     ebx
+00423AFC  |.  5E            pop     esi
+00423AFD  |.  5F            pop     edi
+00423AFE  |.  C9            leave
+00423AFF  \.  C3            retn
+```
+////////////////// 上面是代码 ///////////////////
+
+有意思了，从`00423A4C`到`00423A78`这段程序就是在逐字符比较两个串是否相等，虽然其中有一段把大写字母变小写的例程，但不影响实质，如果串比较成功，最后必定从`00423A4E`跳出，`eax`中返回`0`；一旦比较失败，则经过`00423A7A`以下的指令后，`eax`中返回`1`或`-1`。于是注册码为常字符串：
+
+`4K5TY-UT3C2-KWP54-71MN2`
+
+（当然，其中的某些字母也可改为其小写形式。）也许还有其他注册码，但从`00423A83`到返回，其间还有一大段代码，却没有机会执行，也就不好推断它是完成什么功能。因为这段代码只有当全局变量`[473074]`不等于`0`时才有机会被执行，而我反复运行无数次，这个变量的值却始终是`0`！
+
+鄙人还是奇怪为什么会出现常值注册码，如果有人也对其注册算法有兴趣研究一下，还望指教一二。
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
