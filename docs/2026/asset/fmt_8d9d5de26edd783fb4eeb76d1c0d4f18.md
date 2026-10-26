@@ -1,0 +1,254 @@
+
+```
+00536A86    |.  E8 D1D9ECFF        call    0040445C
+
+00536A8B    |.  8D45 FC            lea     eax, [local.1]
+
+00536A8E    |.  8B93 50050000      mov     edx, dword ptr [ebx+550]
+
+00536A94    |.  E8 C3D9ECFF        call    0040445C
+
+00536A99    |.  8D45 F8            lea     eax, [local.2]
+
+00536A9C    |.  8B93 54050000      mov     edx, dword ptr [ebx+554]
+
+00536AA2    |.  E8 B5D9ECFF        call    0040445C
+
+00536AA7    |.  8D45 FC            lea     eax, [local.1]
+
+00536AAA    |.  8B93 50050000      mov     edx, dword ptr [ebx+550]
+
+00536AB0    |.  E8 A7D9ECFF        call    0040445C
+
+00536AB5    |.  8D45 F8            lea     eax, [local.2]
+
+00536AB8    |.  8B93 54050000      mov     edx, dword ptr [ebx+554]
+
+00536ABE    |.  E8 99D9ECFF        call    0040445C
+
+00536AC3    |.  33F6               xor     esi, esi
+
+00536AC5    |.  8D55 FC            lea     edx, [local.1]
+
+00536AC8    |.  8B83 50050000      mov     eax, dword ptr [ebx+550]
+
+00536ACE    |.  E8 4121EDFF        call    00408C14
+
+00536AD3    |.  8D55 F8            lea     edx, [local.2]
+
+00536AD6    |.  8B83 54050000      mov     eax, dword ptr [ebx+554]
+
+00536ADC    |.  E8 3321EDFF        call    00408C14
+
+00536AE1    |.  8B45 F8            mov     eax, [local.2]
+
+00536AE4    |.  E8 ABDBECFF        call    00404694
+
+00536AE9    |.  83F8 16            cmp     eax, 16                                    ;  注册码长度22位
+
+00536AEC        0F85 FE010000      jnz     00536CF0
+
+00536AF2    |.  8B45 F8            mov     eax, [local.2]
+
+00536AF5    |.  E8 9ADBECFF        call    00404694
+
+00536AFA    |.  83F8 16            cmp     eax, 16
+
+00536AFD    |.  0F85 ED010000      jnz     00536CF0
+
+00536B03    |.  8B45 F8            mov     eax, [local.2]
+
+00536B06    |.  E8 89DBECFF        call    00404694
+
+00536B0B    |.  83F8 16            cmp     eax, 16
+
+00536B0E    |.  0F85 DC010000      jnz     00536CF0
+
+00536B14    |.  8B45 F8            mov     eax, [local.2]
+
+00536B17    |.  E8 78DBECFF        call    00404694
+
+00536B1C    |.  83F8 16            cmp     eax, 16
+
+00536B1F    |.  0F85 CB010000      jnz     00536CF0
+
+00536B25    |.  8D4D EC            lea     ecx, [local.5]
+
+00536B28    |.  BA 03000000        mov     edx, 3
+
+00536B2D    |.  8B83 54050000      mov     eax, dword ptr [ebx+554]
+
+00536B33    |.  E8 E416F0FF        call    0043821C
+
+00536B38    |.  8B45 EC            mov     eax, [local.5]                             ;  注册码前三位是 ERA
+
+00536B3B    |.  BA 246D5300        mov     edx, 00536D24                              ;  ASCII "ERA"
+
+00536B40    |.  E8 9BDCECFF        call    004047E0
+
+00536B45    |.  0F85 A5010000      jnz     00536CF0
+
+00536B4B    |.  8B45 F8            mov     eax, [local.2]
+
+00536B4E    |.  E8 41DBECFF        call    00404694
+
+00536B53    |.  83F8 16            cmp     eax, 16
+
+00536B56    |.  0F85 94010000      jnz     00536CF0
+
+00536B5C    |.  8D4D E8            lea     ecx, [local.6]
+
+00536B5F    |.  BA 03000000        mov     edx, 3
+
+00536B64    |.  8B83 54050000      mov     eax, dword ptr [ebx+554]
+
+00536B6A    |.  E8 AD16F0FF        call    0043821C
+
+00536B6F    |.  8B45 E8            mov     eax, [local.6]
+
+00536B72    |.  BA 246D5300        mov     edx, 00536D24                              ;  ASCII "ERA"
+
+00536B77    |.  E8 64DCECFF        call    004047E0
+
+00536B7C    |.  0F85 6E010000      jnz     00536CF0
+
+00536B82    |.  8B45 F8            mov     eax, [local.2]
+
+00536B85    |.  E8 0ADBECFF        call    00404694
+
+00536B8A    |.  83F8 16            cmp     eax, 16
+
+00536B8D    |.  0F85 5D010000      jnz     00536CF0
+
+00536B93    |.  8D4D E4            lea     ecx, [local.7]
+
+00536B96    |.  BA 03000000        mov     edx, 3
+
+00536B9B    |.  8B83 54050000      mov     eax, dword ptr [ebx+554]
+
+00536BA1    |.  E8 7616F0FF        call    0043821C
+
+00536BA6    |.  8B45 E4            mov     eax, [local.7]
+
+00536BA9    |.  BA 246D5300        mov     edx, 00536D24                              ;  ASCII "ERA"
+
+00536BAE    |.  E8 2DDCECFF        call    004047E0
+
+00536BB3    |.  0F85 37010000      jnz     00536CF0
+
+00536BB9    |.  8D4D F8            lea     ecx, [local.2]
+
+00536BBC    |.  BA 13000000        mov     edx, 13
+
+00536BC1    |.  8B83 54050000      mov     eax, dword ptr [ebx+554]
+
+00536BC7    |.  E8 C016F0FF        call    0043828C
+
+00536BCC    |.  837D FC 00         cmp     [local.1], 0
+
+00536BD0    |.  0F84 1A010000      je      00536CF0
+
+00536BD6    |.  837D F8 00         cmp     [local.2], 0                               ;  取后面的19位注册码
+
+00536BDA    |.  0F84 10010000      je      00536CF0
+
+00536BE0    |.  33FF               xor     edi, edi
+
+00536BE2    |>  8B45 F8            /mov     eax, [local.2]
+
+00536BE5    |.  8A1C38             |mov     bl, byte ptr [eax+edi]
+
+00536BE8    |.  80FB 2D            |cmp     bl, 2D                                    ;  去掉注册码里面-
+
+00536BEB    |.  74 15              |je      short 00536C02
+
+00536BED    |.  8D45 E0            |lea     eax, [local.8]
+
+00536BF0    |.  8BD3               |mov     edx, ebx
+
+00536BF2    |.  E8 B5D9ECFF        |call    004045AC
+
+00536BF7    |.  8B55 E0            |mov     edx, [local.8]
+
+00536BFA    |.  8D45 F4            |lea     eax, [local.3]
+
+00536BFD    |.  E8 9ADAECFF        |call    0040469C
+
+00536C02    |>  47                 |inc     edi
+
+00536C03    |.  83FF 13            |cmp     edi, 13                                   ;  循环到19位整个字符串结束
+
+00536C06    |.^ 75 DA              \jnz     short 00536BE2
+
+00536C08    |.  8D45 F8            lea     eax, [local.2]
+
+00536C0B    |.  8B55 F4            mov     edx, [local.3]                             ;  edx=ACEFA8EAE21AD3FE
+
+00536C0E    |.  E8 49D8ECFF        call    0040445C
+
+00536C13    |.  8D45 F4            lea     eax, [local.3]
+
+00536C16    |.  E8 A9D7ECFF        call    004043C4
+
+00536C1B    |.  8B45 F8            mov     eax, [local.2]                             ;  eax=ACEFA8EAE21AD3FE
+
+00536C1E    |.  E8 71DAECFF        call    00404694
+
+00536C23    |.  83F8 10            cmp     eax, 10                                    ;  看是否字符串长度为16位，那就是三个“-”
+
+00536C26        0F85 C4000000      jnz     00536CF0
+
+00536C2C    |.  33FF               xor     edi, edi
+
+00536C2E    |>  8BC7               /mov     eax, edi
+
+00536C30    |.  25 01000080        |and     eax, 80000001
+
+00536C35    |.  79 05              |jns     short 00536C3C
+
+00536C37    |.  48                 |dec     eax
+
+00536C38    |.  83C8 FE            |or      eax, FFFFFFFE
+
+00536C3B    |.  40                 |inc     eax
+
+00536C3C    |>  85C0               |test    eax, eax
+
+00536C3E    |.  75 1B              |jnz     short 00536C5B
+
+00536C40    |.  8D45 DC            |lea     eax, [local.9]
+
+00536C43    |.  8B55 F8            |mov     edx, [local.2]
+
+00536C46    |.  8A143A             |mov     dl, byte ptr [edx+edi]
+
+00536C49    |.  E8 5ED9ECFF        |call    004045AC
+
+00536C4E    |.  8B55 DC            |mov     edx, [local.9]
+
+00536C51    |.  8D45 F0            |lea     eax, [local.4]
+
+00536C54    |.  E8 43DAECFF        |call    0040469C
+
+00536C59    |.  EB 19              |jmp     short 00536C74
+
+00536C5B    |>  8D45 D8            |lea     eax, [local.10]
+
+00536C5E    |.  8B55 F8            |mov     edx, [local.2]
+
+00536C61    |.  8A143A             |mov     dl, byte ptr [edx+edi]
+
+00536C64    |.  E8 43D9ECFF        |call    004045AC
+
+00536C69    |.  8B55 D8            |mov     edx, [local.10]
+
+00536C6C    |.  8D45 F4            |lea     eax, [local.3]
+
+00536C6F    |.  E8 28DAECFF        |call    0040469C
+
+00536C74    |>  47                 |inc     edi
+
+00536C75    |.  83FF 10            |cmp     edi, 10
+
+00536C78    |.^ 75 B4              \jnz     short 00536C2E
+```
