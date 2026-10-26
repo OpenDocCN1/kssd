@@ -1,0 +1,185 @@
+
+# [原创] 天机 1.2.0 的注册算法
+
+## 破文标题
+
+双色球掌握天机 1.2.0 的注册算法
+
+## 破文作者
+
+`yzs`
+
+## 作者邮箱
+
+保密
+
+## 破解工具
+
+`OD`
+
+## 破解平台
+
+`xpsp2`
+
+## 软件名称
+
+双色球掌握天机 1.2.0
+
+## 软件大小
+
+`6463KB`
+
+## 原版下载
+
+`d2bK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3!0F1L8r3W2F1k6h3c8G2N6$3&6Q4x3X3g2U0L8$3#2Q4x3V1k6K6L8$3k6@1i4K6u0r3y4o6R3J5x3o6y4Q4x3X3g2Z5N6r3@1`
+
+## 保护方式
+
+注册码 + 重启验证 + 无壳（`VC`）
+
+## 软件简介
+
+『双色球掌握天机』是一套专业的乐透型彩票分析软件，它综合运用了目前最热门的彩票分析理论，对双色球的历次开奖数据进行系统的、复杂的整理、统计和运算，产生出具有很高分析价值的数据，以多达 30 余种图表直观、清晰地显示出来；以数据的统计分析为依据，『双色球掌握天机』提供强大的号码分析、复式缩水、旋转矩阵（聪明组合）功能，具有低投入、高回报的优势，最大限度地保证号码的中奖概率，最大限度地节约您的资金！
+
+## 破解声明
+
+向大侠们学习！！！只为学习！
+
+---
+
+## 破解过程
+
+---
+
+1、运行程序后，然后输入注册信息：注册码：`1111111`；用户名：`yzs`。其他随便补充完整，提示写注册信息成功，下次运行时注册信息才会生效！（重启验证）。重新载入，用字符插件寻找一下，发现 `software\zhijiasoft\lottery\register` 比较可疑，对这几个地方下断，运行，呵呵，果然断下，代码如下：
+
+```asm
+00409077     68 44FC4400      push Lottery\_.0044FC44   ; software\zhijiasoft\lottery\register断在这里
+```
+
+一路按 `F8` 往下：
+
+```asm
+0040907C     68 02000080      push 80000002
+00409081     8D4D E8          lea ecx,dword ptr ss:[ebp-18]
+00409084     E8 E7200000      call Lottery\_.0040B170
+00409089     85C0             test eax,eax
+0040908B     0F85 13010000    jnz Lottery\_.004091A4
+00409091     8D45 EC          lea eax,dword ptr ss:[ebp-14]
+00409094     50               push eax
+00409095     8D8D E4FEFFFF    lea ecx,dword ptr ss:[ebp-11C]
+0040909B     51               push ecx
+0040909C     68 6CFC4400      push Lottery\_.0044FC6C                    ; KeyName
+004090A1     8D4D E8          lea ecx,dword ptr ss:[ebp-18]
+004090A4     E8 17210000      call Lottery\_.0040B1C0
+004090A9     85C0             test eax,eax
+004090AB     75 19            jnz short Lottery\_.004090C6
+004090AD     8D95 E4FEFFFF    lea edx,dword ptr ss:[ebp-11C]
+004090B3     52               push edx
+004090B4     8B8D D8FEFFFF    mov ecx,dword ptr ss:[ebp-128]
+004090BA     81C1 98060000    add ecx,698
+004090C0     FF15 98DE4400    call dword ptr ds:[<&MFC71.#784>]         ; MFC71.7C14FF74
+004090C6     8D45 EC          lea eax,dword ptr ss:[ebp-14]
+004090C9     50               push eax
+004090CA     8D8D E4FEFFFF    lea ecx,dword ptr ss:[ebp-11C]
+004090D0     51               push ecx
+004090D1     68 70FC4400      push Lottery\_.0044FC70                    ; Name
+004090D6     8D4D E8          lea ecx,dword ptr ss:[ebp-18]
+004090D9     E8 E2200000      call Lottery\_.0040B1C0
+004090DE     85C0             test eax,eax
+004090E0     75 19            jnz short Lottery\_.004090FB
+004090E2     8D95 E4FEFFFF    lea edx,dword ptr ss:[ebp-11C]
+004090E8     52               push edx
+004090E9     8B8D D8FEFFFF    mov ecx,dword ptr ss:[ebp-128]
+004090EF     81C1 9C060000    add ecx,69C
+004090F5     FF15 98DE4400    call dword ptr ds:[<&MFC71.#784>]         ; MFC71.7C14FF74
+004090FB     8D45 EC          lea eax,dword ptr ss:[ebp-14]
+004090FE     50               push eax
+004090FF     8D8D E4FEFFFF    lea ecx,dword ptr ss:[ebp-11C]
+00409105     51               push ecx
+00409106     68 78FC4400      push Lottery\_.0044FC78                    ; Organize
+0040910B     8D4D E8          lea ecx,dword ptr ss:[ebp-18]
+0040910E     E8 AD200000      call Lottery\_.0040B1C0
+00409113     85C0             test eax,eax
+00409115     75 19            jnz short Lottery\_.00409130
+00409117     8D95 E4FEFFFF    lea edx,dword ptr ss:[ebp-11C]
+0040911D     52               push edx
+0040911E     8B8D D8FEFFFF    mov ecx,dword ptr ss:[ebp-128]
+00409124     81C1 A0060000    add ecx,6A0
+0040912A     FF15 98DE4400    call dword ptr ds:[<&MFC71.#784>]         ; MFC71.7C14FF74
+00409130     8D45 EC          lea eax,dword ptr ss:[ebp-14]
+00409133     50               push eax
+00409134     8D8D E4FEFFFF    lea ecx,dword ptr ss:[ebp-11C]
+0040913A     51               push ecx
+0040913B     68 84FC4400      push Lottery\_.0044FC84                    ; Email
+00409140     8D4D E8          lea ecx,dword ptr ss:[ebp-18]
+00409143     E8 78200000      call Lottery\_.0040B1C0
+00409148     85C0             test eax,eax
+0040914A     75 19            jnz short Lottery\_.00409165
+0040914C     8D95 E4FEFFFF    lea edx,dword ptr ss:[ebp-11C]
+00409152     52               push edx
+00409153     8B8D D8FEFFFF    mov ecx,dword ptr ss:[ebp-128]
+00409159     81C1 A4060000    add ecx,6A4
+0040915F     FF15 98DE4400    call dword ptr ds:[<&MFC71.#784>]         ; MFC71.7C14FF74
+00409165     8D45 EC          lea eax,dword ptr ss:[ebp-14]
+00409168     50               push eax
+00409169     8D8D E4FEFFFF    lea ecx,dword ptr ss:[ebp-11C]
+0040916F     51               push ecx
+00409170     68 8CFC4400      push Lottery\_.0044FC8C                    ; Phone
+00409175     8D4D E8          lea ecx,dword ptr ss:[ebp-18]
+00409178     E8 43200000      call Lottery\_.0040B1C0
+0040917D     85C0             test eax,eax
+0040917F     75 19            jnz short Lottery\_.0040919A
+00409181     8D95 E4FEFFFF    lea edx,dword ptr ss:[ebp-11C]
+00409187     52               push edx
+00409188     8B8D D8FEFFFF    mov ecx,dword ptr ss:[ebp-128]
+0040918E     81C1 A8060000    add ecx,6A8
+00409194     FF15 98DE4400    call dword ptr ds:[<&MFC71.#784>]         ; MFC71.7C14FF74
+0040919A     8D4D E8          lea ecx,dword ptr ss:[ebp-18]
+0040919D     E8 1E1F0000      call Lottery\_.0040B0C0
+004091A2     EB 2B            jmp short Lottery\_.004091CF
+004091A4     6A 00            push 0
+004091A6     6A 00            push 0
+004091A8     68 1F000200      push 2001F
+004091AD     6A 00            push 0
+004091AF     6A 00            push 0
+004091B1     68 94FC4400      push Lottery\_.0044FC94                    ; SOFTWARE\Zhijiasoft\Lottery\Register
+004091B6     68 02000080      push 80000002
+004091BB     8D4D E8          lea ecx,dword ptr ss:[ebp-18]
+004091BE     E8 3D1F0000      call Lottery\_.0040B100
+004091C3     85C0             test eax,eax
+004091C5     75 08            jnz short Lottery\_.004091CF
+004091C7     8D4D E8          lea ecx,dword ptr ss:[ebp-18]
+004091CA     E8 F11E0000      call Lottery\_.0040B0C0
+004091CF     8D85 E0FEFFFF    lea eax,dword ptr ss:[ebp-120]            ; -------------------F8到这里
+004091D5     50               push eax
+004091D6     E8 45B40100      call Lottery\_.00424620                    ; ----------------产生机器码的地方，没跟,F8再往下
+004091DB     83C4 04          add esp,4
+004091DE     8985 D4FEFFFF    mov dword ptr ss:[ebp-12C],eax
+004091E4     8B8D D4FEFFFF    mov ecx,dword ptr ss:[ebp-12C]
+004091EA     898D D0FEFFFF    mov dword ptr ss:[ebp-130],ecx
+004091F0     C645 FC 01       mov byte ptr ss:[ebp-4],1
+004091F4     8B95 D0FEFFFF    mov edx,dword ptr ss:[ebp-130]
+004091FA     52               push edx
+004091FB     8B8D D8FEFFFF    mov ecx,dword ptr ss:[ebp-128]
+00409201     81C1 94060000    add ecx,694
+00409207     FF15 94DE4400    call dword ptr ds:[<&MFC71.#781>]         ; MFC71.7C150F15
+0040920D     C645 FC 00       mov byte ptr ss:[ebp-4],0
+00409211     8D8D E0FEFFFF    lea ecx,dword ptr ss:[ebp-120]
+00409217     FF15 B0DE4400    call dword ptr ds:[<&MFC71.#578>]         ; MFC71.7C1771B1
+0040921D     8B85 D8FEFFFF    mov eax,dword ptr ss:[ebp-128]
+00409223     05 98060000      add eax,698
+00409228     51               push ecx
+00409229     8BCC             mov ecx,esp
+0040922B     89A5 DCFEFFFF    mov dword ptr ss:[ebp-124],esp
+00409231     50               push eax
+00409232     FF15 00DC4400    call dword ptr ds:[<&MFC71.#297>]         ; MFC71.7C14E575
+00409238     8985 CCFEFFFF    mov dword ptr ss:[ebp-134],eax
+0040923E     8D4D F0          lea ecx,dword ptr ss:[ebp-10]
+00409241     51               push ecx
+00409242     E8 19BA0100      call Lottery\_.00424C60                    ; 关键算法
+00409247     83C4 08          add esp,8
+0040924A     8985 C8FEFFFF    mov dword ptr ss:[ebp-138],eax
+00409250     8B8D D8FEFFFF    mov ecx,dword ptr ss:[ebp-128]
+00409256     81C1 94060000    add ecx,694
+```
