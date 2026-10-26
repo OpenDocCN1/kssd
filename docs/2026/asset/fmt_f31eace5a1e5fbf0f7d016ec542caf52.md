@@ -1,0 +1,253 @@
+
+# 反汇编代码
+
+```
+00464679  |.  46            |INC ESI
+
+0046467A  |.  EB 05         |JMP SHORT FygRec12.00464681
+
+0046467C  |>  BE 01000000   |MOV ESI,1
+
+00464681  |>  8B45 F8       |MOV EAX,DWORD PTR SS:[EBP-8]            ;  把一固定字符串"fengyungu"给EAX
+
+00464684  |.  0FB64430 FF   |MOVZX EAX,BYTE PTR DS:[EAX+ESI-1]       ;  顺序取固定字符串HEX码
+
+00464689  |.  33D8          |XOR EBX,EAX                             ;  固定字符串HEX码与上面的求的余数作异或运算
+
+0046468B  |.  8D45 D8       |LEA EAX,DWORD PTR SS:[EBP-28]
+
+0046468E  |.  50            |PUSH EAX                                ; /Arg1
+
+0046468F  |.  895D DC       |MOV DWORD PTR SS:[EBP-24],EBX           ; |
+
+00464692  |.  C645 E0 00    |MOV BYTE PTR SS:[EBP-20],0              ; |
+
+00464696  |.  8D55 DC       |LEA EDX,DWORD PTR SS:[EBP-24]           ; |
+
+00464699  |.  33C9          |XOR ECX,ECX                             ; |
+
+0046469B  |.  B8 EC474600   |MOV EAX,FygRec12.004647EC               ; |%1.2x
+
+004646A0  |.  E8 674CFAFF   |CALL FygRec12.0040930C                  ; \FygRec12.0040930C
+
+004646A5  |.  8B55 D8       |MOV EDX,DWORD PTR SS:[EBP-28]
+
+004646A8  |.  8D45 F0       |LEA EAX,DWORD PTR SS:[EBP-10]
+
+004646AB  |.  E8 1C00FAFF   |CALL FygRec12.004046CC
+
+004646B0  |.  8BFB          |MOV EDI,EBX
+
+004646B2  |.  FF45 EC       |INC DWORD PTR SS:[EBP-14]
+
+004646B5  |.  FF4D E4       |DEC DWORD PTR SS:[EBP-1C]
+
+004646B8  |.^ 75 A3         \JNZ SHORT FygRec12.0046465D
+
+004646BA  |.  E9 C3000000   JMP FygRec12.00464782
+
+004646BF  |>  8D45 D0       LEA EAX,DWORD PTR SS:[EBP-30]
+
+004646C2  |.  50            PUSH EAX
+
+004646C3  |.  B9 02000000   MOV ECX,2
+
+004646C8  |.  BA 01000000   MOV EDX,1
+
+004646CD  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+
+004646D0  |.  E8 4702FAFF   CALL FygRec12.0040491C
+
+004646D5  |.  8B4D D0       MOV ECX,DWORD PTR SS:[EBP-30]
+
+004646D8  |.  8D45 D4       LEA EAX,DWORD PTR SS:[EBP-2C]
+
+004646DB  |.  BA FC474600   MOV EDX,FygRec12.004647FC                ;  $
+
+004646E0  |.  E8 2B00FAFF   CALL FygRec12.00404710
+
+004646E5  |.  8B45 D4       MOV EAX,DWORD PTR SS:[EBP-2C]
+
+004646E8  |.  E8 1341FAFF   CALL FygRec12.00408800
+
+004646ED  |.  8BF8          MOV EDI,EAX
+
+004646EF  |.  C745 EC 03000>MOV DWORD PTR SS:[EBP-14],3
+
+004646F6  |>  8D45 C8       /LEA EAX,DWORD PTR SS:[EBP-38]
+
+004646F9  |.  50            |PUSH EAX
+
+004646FA  |.  B9 02000000   |MOV ECX,2
+
+004646FF  |.  8B55 EC       |MOV EDX,DWORD PTR SS:[EBP-14]
+
+00464702  |.  8B45 FC       |MOV EAX,DWORD PTR SS:[EBP-4]
+
+00464705  |.  E8 1202FAFF   |CALL FygRec12.0040491C
+
+0046470A  |.  8B4D C8       |MOV ECX,DWORD PTR SS:[EBP-38]
+
+0046470D  |.  8D45 CC       |LEA EAX,DWORD PTR SS:[EBP-34]
+
+00464710  |.  BA FC474600   |MOV EDX,FygRec12.004647FC               ;  $
+
+00464715  |.  E8 F6FFF9FF   |CALL FygRec12.00404710
+
+0046471A  |.  8B45 CC       |MOV EAX,DWORD PTR SS:[EBP-34]
+
+0046471D  |.  E8 DE40FAFF   |CALL FygRec12.00408800
+
+00464722  |.  8BD8          |MOV EBX,EAX
+
+00464724  |.  3B75 F4       |CMP ESI,DWORD PTR SS:[EBP-C]
+
+00464727  |.  7D 03         |JGE SHORT FygRec12.0046472C
+
+00464729  |.  46            |INC ESI
+
+0046472A  |.  EB 05         |JMP SHORT FygRec12.00464731
+
+0046472C  |>  BE 01000000   |MOV ESI,1
+
+00464731  |>  8B45 F8       |MOV EAX,DWORD PTR SS:[EBP-8]
+
+00464734  |.  0FB64430 FF   |MOVZX EAX,BYTE PTR DS:[EAX+ESI-1]
+
+00464739  |.  33C3          |XOR EAX,EBX
+
+0046473B  |.  8945 E8       |MOV DWORD PTR SS:[EBP-18],EAX
+
+0046473E  |.  3B7D E8       |CMP EDI,DWORD PTR SS:[EBP-18]
+
+00464741  |.  7C 0F         |JL SHORT FygRec12.00464752
+
+00464743  |.  8B45 E8       |MOV EAX,DWORD PTR SS:[EBP-18]
+
+00464746  |.  05 FF000000   |ADD EAX,0FF
+
+0046474B  |.  2BC7          |SUB EAX,EDI
+
+0046474D  |.  8945 E8       |MOV DWORD PTR SS:[EBP-18],EAX
+
+00464750  |.  EB 03         |JMP SHORT FygRec12.00464755
+
+00464752  |>  297D E8       |SUB DWORD PTR SS:[EBP-18],EDI
+
+00464755  |>  8D45 C4       |LEA EAX,DWORD PTR SS:[EBP-3C]
+
+00464758  |.  8B55 E8       |MOV EDX,DWORD PTR SS:[EBP-18]
+
+0046475B  |.  E8 8CFEF9FF   |CALL FygRec12.004045EC
+
+00464760  |.  8B55 C4       |MOV EDX,DWORD PTR SS:[EBP-3C]
+
+00464763  |.  8D45 F0       |LEA EAX,DWORD PTR SS:[EBP-10]
+
+00464766  |.  E8 61FFF9FF   |CALL FygRec12.004046CC
+
+0046476B  |.  8BFB          |MOV EDI,EBX
+
+0046476D  |.  8345 EC 02    |ADD DWORD PTR SS:[EBP-14],2
+
+00464771  |.  8B45 FC       |MOV EAX,DWORD PTR SS:[EBP-4]
+
+00464774  |.  E8 4BFFF9FF   |CALL FygRec12.004046C4
+
+00464779  |.  3B45 EC       |CMP EAX,DWORD PTR SS:[EBP-14]
+
+0046477C  |.^ 0F8F 74FFFFFF \JG FygRec12.004646F6
+
+00464782  |>  8B45 08       MOV EAX,DWORD PTR SS:[EBP+8]
+
+00464785  |.  8B55 F0       MOV EDX,DWORD PTR SS:[EBP-10]            ;  根据用户名计算出的注册码给EDX
+
+00464788  |.  E8 D3FCF9FF   CALL FygRec12.00404460
+
+0046478D  |.  33C0          XOR EAX,EAX
+
+0046478F  |.  5A            POP EDX
+
+00464790  |.  59            POP ECX
+
+00464791  |.  59            POP ECX
+
+00464792  |.  64:8910       MOV DWORD PTR FS:[EAX],EDX
+
+00464795  |.  68 C4474600   PUSH FygRec12.004647C4
+
+0046479A  |>  8D45 C4       LEA EAX,DWORD PTR SS:[EBP-3C]
+
+0046479D  |.  BA 06000000   MOV EDX,6
+
+004647A2  |.  E8 89FCF9FF   CALL FygRec12.00404430
+
+004647A7  |.  8D45 F0       LEA EAX,DWORD PTR SS:[EBP-10]
+
+004647AA  |.  E8 5DFCF9FF   CALL FygRec12.0040440C
+
+004647AF  |.  8D45 F8       LEA EAX,DWORD PTR SS:[EBP-8]
+
+004647B2  |.  BA 02000000   MOV EDX,2
+
+004647B7  |.  E8 74FCF9FF   CALL FygRec12.00404430
+```
+
+## 破解总结
+
+【破解总结】毫无技术性,娱乐!
+
+## 附 C 源程序
+
+```c
+#include <stdio.h>
+
+#include <string.h>
+
+int main(void)
+
+{int a=0xa6,temp,i;
+
+static char str1[20],str2[]="fengyungufengyungufengyungufengyungufengyungu";
+
+printf("Enter your name:");
+
+scanf("%s",str1);
+
+printf("SN=A6");
+
+for(i=0;i<strlen(str1);i++)
+
+    {temp=((a+str1[i])%0xff)^str2[i];
+
+     a=temp;
+
+    printf("%x",temp);
+
+    }
+
+printf("\n(输入时一定要是大写字母.)");
+
+getch();
+
+return 0;
+
+}
+```
+
+## 注册信息
+
+注册信息保存在注册表中:
+
+```
+[HKEY_LOCAL_MACHINE\SOFTWARE\fygrec]
+"soft"="0"
+"name"="jjkk"
+"regcode"="112233"
+```
+
+## 版权声明
+
+【版权声明】本文纯属技术交流, 转载请注明作者信息并保持文章的完整, 谢谢!
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
