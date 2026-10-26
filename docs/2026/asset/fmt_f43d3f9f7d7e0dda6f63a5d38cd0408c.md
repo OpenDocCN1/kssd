@@ -1,0 +1,171 @@
+
+```
+1003FEB0  /$  53            push    ebx
+1003FEB1  |.  55            push    ebp
+1003FEB2  |.  56            push    esi
+1003FEB3  |.  57            push    edi
+1003FEB4  |.  8B7C24 14     mov     edi, dword ptr [esp+14]
+1003FEB8  |>  833D CC080610>/cmp     dword ptr [100608CC], 1
+1003FEBF  |.  7E 0F         |jle     short 1003FED0
+1003FEC1  |.  0FB607        |movzx   eax, byte ptr [edi]
+1003FEC4  |.  6A 08         |push    8
+1003FEC6  |.  50            |push    eax
+1003FEC7  |.  E8 F2220000   |call    100421BE
+1003FECC  |.  59            |pop     ecx
+1003FECD  |.  59            |pop     ecx
+1003FECE  |.  EB 0F         |jmp     short 1003FEDF
+1003FED0  |>  0FB607        |movzx   eax, byte ptr [edi]
+1003FED3  |.  8B0D C0060610 |mov     ecx, dword ptr [100606C0]       ;  LDF.100606CA
+1003FED9  |.  8A0441        |mov     al, byte ptr [ecx+eax*2]
+1003FEDC  |.  83E0 08       |and     eax, 8
+1003FEDF  |>  85C0          |test    eax, eax
+1003FEE1  |.  74 03         |je      short 1003FEE6
+1003FEE3  |.  47            |inc     edi
+1003FEE4  |.^ EB D2         \jmp     short 1003FEB8
+1003FEE6  |>  0FB637        movzx   esi, byte ptr [edi]
+1003FEE9  |.  47            inc     edi
+1003FEEA  |.  83FE 2D       cmp     esi, 2D                          ;  '-'
+1003FEED  |.  8BEE          mov     ebp, esi
+1003FEEF  |.  74 05         je      short 1003FEF6
+1003FEF1  |.  83FE 2B       cmp     esi, 2B                          ;  '+'
+1003FEF4  |.  75 04         jnz     short 1003FEFA
+1003FEF6  |>  0FB637        movzx   esi, byte ptr [edi]
+1003FEF9  |.  47            inc     edi
+1003FEFA  |>  33DB          xor     ebx, ebx                         ;  ebx 清0
+1003FEFC  |>  833D CC080610>/cmp     dword ptr [100608CC], 1
+1003FF03  |.  7E 0C         |jle     short 1003FF11
+1003FF05  |.  6A 04         |push    4
+1003FF07  |.  56            |push    esi
+1003FF08  |.  E8 B1220000   |call    100421BE
+1003FF0D  |.  59            |pop     ecx
+1003FF0E  |.  59            |pop     ecx
+1003FF0F  |.  EB 0B         |jmp     short 1003FF1C
+1003FF11  |>  A1 C0060610   |mov     eax, dword ptr [100606C0]
+1003FF16  |.  8A0470        |mov     al, byte ptr [eax+esi*2]
+1003FF19  |.  83E0 04       |and     eax, 4
+1003FF1C  |>  85C0          |test    eax, eax
+1003FF1E  |.  74 0D         |je      short 1003FF2D
+1003FF20  |.  8D049B        |lea     eax, dword ptr [ebx+ebx*4]
+1003FF23  |.  8D5C46 D0     |lea     ebx, dword ptr [esi+eax*2-30]
+1003FF27  |.  0FB637        |movzx   esi, byte ptr [edi]
+1003FF2A  |.  47            |inc     edi
+1003FF2B  |.^ EB CF         \jmp     short 1003FEFC
+1003FF2D  |>  83FD 2D       cmp     ebp, 2D
+1003FF30  |.  8BC3          mov     eax, ebx
+1003FF32  |.  75 02         jnz     short 1003FF36
+1003FF34  |.  F7D8          neg     eax
+1003FF36  |>  5F            pop     edi
+1003FF37  |.  5E            pop     esi
+1003FF38  |.  5D            pop     ebp
+1003FF39  |.  5B            pop     ebx
+1003FF3A  \.  C3            retn
+```
+
+注意这一句
+
+`1003FED3  |.  8B0D C0060610 |mov     ecx, dword ptr [100606C0]       ;  LDF.100606CA`
+
+`LDF.100606CA`这里放了一个表，我以前是没有见过。内容如下
+
+```
+100606CA  20 00 20 00 20 00 20 00 20 00 20 00 20 00 20 00   . . . . . . . .
+100606DA  20 00 28 00 28 00 28 00 28 00 28 00 20 00 20 00   .(.(.(.(.(. . .
+100606EA  20 00 20 00 20 00 20 00 20 00 20 00 20 00 20 00   . . . . . . . .
+100606FA  20 00 20 00 20 00 20 00 20 00 20 00 20 00 20 00   . . . . . . . .
+1006070A  48 00 10 00 10 00 10 00 10 00 10 00 10 00 10 00  H........
+1006071A  10 00 10 00 10 00 10 00 10 00 10 00 10 00 10 00  ........
+1006072A  84 00 84 00 84 00 84 00 84 00 84 00 84 00 84 00  ????????
+1006073A  84 00 84 00 10 00 10 00 10 00 10 00 10 00 10 00  ??......
+1006074A  10 00 81 00 81 00 81 00 81 00 81 00 81 00 01 00  .??????.
+1006075A  01 00 01 00 01 00 01 00 01 00 01 00 01 00 01 00  ........
+1006076A  01 00 01 00 01 00 01 00 01 00 01 00 01 00 01 00  ........
+1006077A  01 00 01 00 01 00 10 00 10 00 10 00 10 00 10 00  ........
+1006078A  10 00 82 00 82 00 82 00 82 00 82 00 82 00 02 00  .??????.
+1006079A  02 00 02 00 02 00 02 00 02 00 02 00 02 00 02 00  ........
+100607AA  02 00 02 00 02 00 02 00 02 00 02 00 02 00 02 00  ........
+100607BA  02 00 02 00 02 00 10 00 10 00 10 00 10 00 20 00  ....... .
+```
+
+经过分析，发现是一个判断ascii字符的表。我标记了一部分。内容如下
+
+```
+100606CA  20(00)20    20    20    20    20    20    20      84 & 8 = 0
+100606DA  20    28    28    28    28    28    20    20      10 & 8 = 0
+100606EA  20    20    20    20    20    20    20    20      81 & 8 = 0
+100606FA  20    20    20    20    20    20    20    20      01 & 8 = 0
+1006070A  48 sp 10 !  10 "  10 #  10 $  10 %  10 &  10 '    48 & 8 = 8
+1006071A  10 (  10 )  10 *  10 +  10 ,  10 -  10 .  10 /
+1006072A  84 0  84 1  84 2  84 3  84 4  84 5  84 6  84 7
+1006073A  84 8  84 9  10 :  10 ;  10 <  10 =  10 >  10 ?
+1006074A  10 @  81 A  81 B  81 C  81 D  81 E  81 F  01 G
+1006075A  01 H  01 I  01 J  01 K  01 L  01 M  01 N  01 O
+1006076A  01 P  01 Q  01 R  01 S  01 T  01 U  01 V  01 W
+1006077A  01 X  01 Y  01 Z  10 [  10 \  10 ]  10 ^  10 _
+1006078A  10 `  82 a  82 b  82 c  82 d  82 e  82 f  02 g
+1006079A  02 h  02 i  02 j  02 k  02 l  02 m  02 n  02 o
+100607AA  02 p  02 q  02 r  02 s  02 t  02 u  02 v  02 w
+100607BA  02 x  02 y  02 z  10 {  10 |  10 }  10 ~  20
+```
+
+里面数字是84。。。
+
+```
+1003FF16  |.  8A0470        |mov     al, byte ptr [eax+esi*2]
+1003FF19  |.  83E0 04       |and     eax, 4
+1003FF1C  |>  85C0          |test    eax, eax
+1003FF1E  |.  74 0D         |je      short 1003FF2D
+```
+
+上面几句是判断是不是数字的。
+
+```
+1003FF20  |.  8D049B        |lea     eax, dword ptr [ebx+ebx*4]
+1003FF23  |.  8D5C46 D0     |lea     ebx, dword ptr [esi+eax*2-30]
+```
+
+同时可以看到，超过4字节的数值都丢了。那么数值就是最大 4294967295。在调试的时候不要大过这个数
+
+=============================================================================
+
+从上面的代码返回后来到主要的地方了。
+
+```
+100015EC   .  E8 5FFCFFFF   call    10001250                         ;  从注册表读取注册码，并初步计算
+100015F1   .  8A4424 1C     mov     al, byte ptr [esp+1C]
+100015F5   .  83C4 08       add     esp, 8
+100015F8   .  3C 4C         cmp     al, 4C                           ;  L
+100015FA   .  75 64         jnz     short 10001660
+100015FC   .  807C24 15 44  cmp     byte ptr [esp+15], 44            ;  D
+10001601   .  75 5D         jnz     short 10001660
+10001603   .  807C24 16 46  cmp     byte ptr [esp+16], 46            ;  F
+10001608   .  75 56         jnz     short 10001660
+1000160A   .  8D4C24 0C     lea     ecx, dword ptr [esp+C]
+1000160E   .  51            push    ecx
+1000160F   .  E8 FCE40300   call    1003FB10                         ;  算法比较
+10001614   .  83C4 04       add     esp, 4
+10001617   .  83F8 01       cmp     eax, 1                           ; 判断是否注册
+1000161A   .  75 44         jnz     short 10001660
+```
+
+到这里我们可以看到注册码的格式`LDF-XXXXXXXXX-YYYYYYYYYY`
+
+X,Y都是数字。从`call    1003FB10`这里进去。
+
+```
+1003FB10  /$  8B4C24 04     mov     ecx, dword ptr [esp+4]
+1003FB14  |.  83EC 08       sub     esp, 8
+1003FB17  |.  8D4424 00     lea     eax, dword ptr [esp]
+1003FB1B  |.  68 84060610   push    10060684
+1003FB20  |.  50            push    eax
+1003FB21  |.  51            push    ecx
+1003FB22  |.  E8 19000000   call    1003FB40                         ;  进去
+1003FB27  |.  8B4C24 10     mov     ecx, dword ptr [esp+10]
+1003FB2B  |.  33C0          xor     eax, eax
+1003FB2D  |.  85C9          test    ecx, ecx
+1003FB2F  |.  0F94C0        sete    al                               ; 根据ecx是否为0
+                                                                     ; 这里设置al,在上面的代码处比较
+1003FB32  |.  83C4 14       add     esp, 14
+1003FB35  \.  C3            retn
+```
+
+`1003FB22  |.  E8 19000000   call    1003FB40`就是具体的算法比较了。
