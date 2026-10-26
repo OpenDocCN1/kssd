@@ -1,0 +1,165 @@
+
+```
+FD F8 49 80 C0 F9 49 80 26 FA 49 80 FB FB 49 80 16 FC 49 80 66 FC 49 80 81 FC 49 80 87 FC 49 80
+CD FC 49 80 3A FE 49 80 16 FF 49 80 B5 FF 49 80 2B 00 4A 80 18 02 4A 80 51 02 4A 80 58 03 4A 80
+88 05 4A 80 DB 08 4A 80 E4 08 4A 80 46 0A 4A 80 66 0A 4A 80 9C 0B 4A 80 8F 0C 4A 80 00 0D 4A 80
+72 0D 4A 80 EA 0D 4A 80 73 0F 4A 80 2A 10 4A 80 92 10 4A 80 0A 11 4A 80 AD 11 4A 80 84 12 4A 80
+20 14 4A 80 F3 14 4A 80 63 15 4A 80 89 15 4A 80 F5 15 4A 80 00 17 4A 80 5B 17 4A 80 86 17 4A 80
+8F 17 4A 80 AF 17 4A 80 BA 17 4A 80 25 19 4A 80 03 1A 4A 80 98 1B 4A 80 01 1C 4A 80 71 1C 4A 80
+19 1E 4A 80 98 1E 4A 80 E8 1E 4A 80 93 1F 4A 80 A5 1F 4A 80 12 20 4A 80 62 20 4A 80 E5 20 4A 80
+1F 21 4A 80 9C 21 4A 80 17 22 4A 80 23 23 4A 80 3B 23 4A 80 1B 24 4A 80 52 25 4A 80 82 26 4A 80
+B3 26 4A 80 31 27 4A 80 59 27 4A 80 92 27 4A 80 AA 27 4A 80 B6 2B 4A 80 CA 2B 4A 80 4B 2C 4A 80
+E9 2D 4A 80 BE 2E 4A 80 F5 30 4A 80 0F 32 4A 80 79 33 4A 80 9D 33 4A 80 B7 34 4A 80 C7 34 4A 80
+E3 35 4A 80 27 37 4A 80 95 3A 4A 80 F5 3A 4A 80 36 3B 4A 80 C9 3B 4A 80 A0 3D 4A 80 B5 3D 4A 80
+4F 3E 4A 80 F0 3E 4A 80 D6 3F 4A 80 66 40 4A 80 36 43 4A 80 5E 43 4A 80 86 43 4A 80 75 45 4A 80
+AD 45 4A 80 25 47 4A 80 75 47 4A 80 DD 47 4A 80 DC 4A 4A 80 F0 4A 4A 80 19 4D 4A 80 7C 4D 4A 80
+74 4F 4A 80 8C 4F 4A 80 09 50 4A 80 D4 50 4A 80 EC 50 4A 80 33 51 4A 80 12 52 4A 80 27 52 4A 80
+31 52 4A 80 76 52 4A 80 E7 52 4A 80 51 54 4A 80 5E 54 4A 80 14 55 4A 80 AC 55 4A 80 07 56 4A 80
+3E 56 4A 80 8F 56 4A 80 1D 5D 4A 80 73 5D 4A 80 25 5F 4A 80 E0 60 4A 80 01 61 4A 80 A8 61 4A 80
+F6 61 4A 80 AC 62 4A 80 BE 62 4A 80 A4 63 4A 80 B6 65 4A 80 40 66 4A 80 C6 66 4A 80 01 68 4A 80
+1E 68 4A 80 04 69 4A 80 BA 6B 4A 80 65 6C 4A 80 6E 6C 4A 80 71 6D 4A 80 08 6E 4A 80 F8 6E 4A 80
+04 6F 4A 80 15 6F 4A 80 D5 6F 4A 80 68 70 4A 80 9A 70 4A 80 D2 71 4A 80 AE 72 4A 80 07 74 4A 80
+23 74 4A 80 A6 74 4A 80 AA 75 4A 80 C6 76 4A 80 D9 77 4A 80 E6 77 4A 80 BE 7A 4A 80 D5 7A 4A 80
+42 7B 4A 80 1F 7D 4A 80 C0 7D 4A 80 96 7E 4A 80 BB 7F 4A 80 1B 80 4A 80 46 80 4A 80 30 81 4A 80
+42 81 4A 80 83 81 4A 80 88 83 4A 80 87 85 4A 80 B9 85 4A 80 47 86 4A 80 B3 88 4A 80 52 89 4A 80
+35 8A 4A 80 62 8A 4A 80 E4 8A 4A 80 98 8B 4A 80 06 8E 4A 80 B6 8E 4A 80 8D 8F 4A 80 DD 8F 4A 80
+0F 90 4A 80 04 91 4A 80 AC 94 4A 80 C7 94 4A 80 08 95 4A 80 C8 95 4A 80 E5 95 4A 80 2F 96 4A 80
+97 97 4A 80 6D 98 4A 80 D7 99 4A 80 2A 9B 4A 80 8B 9C 4A 80 37 9E 4A 80 90 9F 4A 80 32 A0 4A 80
+23 A3 4A 80 3F A3 4A 80 C2 A3 4A 80 A5 A4 4A 80 22 A5 4A 80 FF A5 4A 80 90 A7 4A 80 9D A7 4A 80
+6B AA 4A 80 75 AA 4A 80 56 AD 4A 80 63 AD 4A 80 E2 AD 4A 80 32 AE 4A 80 CC AE 4A 80 0F B0 4A 80
+44 B0 4A 80 2D B1 4A 80 6A B1 4A 80 87 B2 4A 80 91 B2 4A 80 20 B3 4A 80 2A B3 4A 80 55 B3 4A 80
+E2 B3 4A 80 23 B4 4A 80 10 B5 4A 80 DD B6 4A 80 F4 B6 4A 80 24 B7 4A 80 3F B8 4A 80 BC B8 4A 80
+4D B9 4A 80 72 B9 4A 80 7C BA 4A 80 D3 BA 4A 80 0F BB 4A 80 EA BC 4A 80 CC BD 4A 80 79 BF 4A 80
+91 BF 4A 80 BA C4 4A 00 D7 C4 4A 00 BF C9 4A 00 DB CC 4A 00 76 CE 4A 00 8F D0 4A 00 31 D2 4A 00
+43 D6 4A 00 B0 D9 4A 00 94 DE 4A 00 72 E7 4A 00 EB F0 4A 00 C1 F5 4A 00 46 00 4B 00 51 04 4B 00
+8A 0E 4B 00 26 29 4B 00 E3 2E 4B 00 D1 3F 4B 00 00 49 4B 00 00 4F 4B 80 BA 56 4B 00 F4 56 4B 00
+4C 5D 4B 00 EB 69 4B 00 64 6C 4B 00 EA 70 4B 00 66 76 4B 80 41 94 4B 00 83 97 4B 00 4A 9F 4B 80
+CC A0 4B 00 5A B0 4B 00 7C B0 4B 00 60 C4 4B 00 07 CD 4B 00 6A D2 4B 00 46 DD 4B 00 7A DE 4B 00
+6B DF 4B 00 9E E2 4B 00 6E E5 4B 80 A4 E5 4B 00 48 E8 4B 00 08 08 4C 00 45 0C 4C 00 8B 0D 4C 80
+79 26 4C 00 02 2E 4C 00 E2 30 4C 00 C5 35 4C 00 E0 36 4C 00 4C 3E 4C 80 1A 51 4C 00 DF 56 4C 00
+0E 57 4C 00 7E 5A 4C 00 4D 66 4C 00 17 6C 4C 80 05 76 4C 00 A1 76 4C 00 C7 98 4C 80 A3 AA 4C 80
+DD AE 4C 80 4C AF 4C 00 B5 AF 4C 00 63 B0 4C 00 A0 B0 4C 00 12 B2 4C 00 F4 BA 4C 00 E1 D4 4C 00
+56 DC 4C 00 CF E4 4C 00 8C F9 4C 00 F0 F9 4C 00 11 01 4D 00 72 0E 4D 00 CB 10 4D 00 2A 1A 4D 00
+0C 34 4D 80 8E 47 4D 00 1B 49 4D 00 95 52 4D 80 9F 5D 4D 00 EA 5E 4D 80 01 61 4D 00 E8 61 4D 00
+28 6C 4D 00 79 76 4D 80 AD 78 4D 00 13 7B 4D 00 5E 81 4D 00 B1 8B 4D 00 08 A2 4D 00 AA AF 4D 00
+D8 B5 4D 00 9C B7 4D 80 74 BE 4D 00 F7 BF 4D 00 FE C3 4D 00 F7 C4 4D 00 36 C5 4D 00 19 CA 4D 80
+CB CF 4D 00 8B D3 4D 00 E5 DE 4D 00 6A E9 4D 00 89 EE 4D 00 C5 F7 4D 00 41 FA 4D 00 4C 00 4E 80
+81 01 4E 00 E7 01 4E 00 0C 03 4E 00 ED 06 4E 80 E4 07 4E 00 09 0E 4E 80 FC 14 4E 00 D1 15 4E 80
+EC 1D 4E 00 FA 2F 4E 00 D7 30 4E 00 B0 31 4E 00 01 36 4E 00 C6 3D 4E 00 57 53 4E 00 34 54 4E 00
+D9 62 4E 00 2A 67 4E 00 63 72 4E 00 40 73 4E 00 E8 8F 4E 00 C5 90 4E 00 12 95 4E 00 63 99 4E 00
+68 B2 4E 00 45 B3 4E 00 02 BB 4E 00 AF C9 4E 00 58 D8 4E 00 A9 DC 4E 00 86 DD 4E 00 63 DE 4E 00
+AE E2 4E 00 FA E2 4E 00 3E E3 4E 00 74 E3 4E 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+```
+
+其中地址的高位为00与80，分别对应0，1。
+
+## 5. Advanced Import Protection的函数修复：
+
+经过上面分析，现在可以写修复代码了，每个被加密的函数都从`call 014F0000`进入，在计算过程中某个点，其调用函数名会显示出来，因此我们在这个出口设断取得函数地址。
+
+**a情况：**
+
+```
+0127B7E9     8945 FC         mov dword ptr ss:[ebp-4],eax       // [ebp-4]是解密出来的API
+
+0127B819     8B4D FC         mov ecx,dword ptr ss:[ebp-4]      ; 这里下断，[ebp-4C]就是我们要的函数
+```
+
+**b情况：**
+
+**FF15：**
+
+```
+0127A7FC     0145 FC         add dword ptr ss:[ebp-4],eax       ; [ebp-4]是解密出来的API
+
+0127A7FF     EB 01           jmp short 0127A802                 ; 这里下断，[ebp-4]就是我们要的函数
+```
+
+**FF25：**
+
+```
+0127A8AE     0145 FC         add dword ptr ss:[ebp-4],eax       ; [ebp-4]是解密出来的API
+
+0127A8B1     8D45 0C         lea eax,dword ptr ss:[ebp+C]       ; 这里下断，[ebp-4]就是我们要的函数
+```
+
+因为是VB的程序，IAT并没有加密，范围从`401000`到`401398`。
+
+还记得第4节获得的地址表吧，现在可以用上了，写个补丁程序，扫描这个地址表，依次从表里的每个地址（这些地址都是`call 014F0000`形式的）进入，然后在`0127A7FF`或`0127A8B1`或`0127B819`这3个出口处获得函数地址，扫描IAT表，将找到的IAT地址写入程序代码中。
+
+```
+016C0000     A1 C0006C01     mov eax,dword ptr ds:[16C00C0]   ; 指向待处理的地址列表
+
+016C0005     8B18            mov ebx,dword ptr ds:[eax]
+
+016C0007     81E3 FFFFFF7F   and ebx,7FFFFFFF
+
+016C000D     FFE3            jmp ebx
+
+016C000F     0000            add byte ptr ds:[eax],al
+
+016C0011     0000            add byte ptr ds:[eax],al
+
+016C0013     0000            add byte ptr ds:[eax],al
+
+016C0015     0000            add byte ptr ds:[eax],al
+
+016C0017     0000            add byte ptr ds:[eax],al
+
+016C0019     0000            add byte ptr ds:[eax],al
+
+016C001B     0000            add byte ptr ds:[eax],al
+
+016C001D     0000            add byte ptr ds:[eax],al
+
+016C001F     0000            add byte ptr ds:[eax],al         ; 以下处理b情况
+
+016C0021     BF C0006C01     mov edi,16C00C0                  ; 指向需要处理的API地址表
+
+016C0026     8B07            mov eax,dword ptr ds:[edi]
+
+016C0028     8B18            mov ebx,dword ptr ds:[eax]
+
+016C002A     81FB FFFFFF7F   cmp ebx,7FFFFFFF
+
+016C0030     79 49           jns short 016C007B               ; 高位是1的走这条路线（跳）,即处理a方式
+
+016C0032     837D D4 FF      cmp dword ptr ss:[ebp-2C],-1     ; 如为－1，导入函数调用是干净
+
+016C0036     74 0F           je short 016C0047
+
+016C0038     8B47 04         mov eax,dword ptr ds:[edi+4]     ; 存放那些下一句被抽的API的CALL
+
+016C003B     8B1F            mov ebx,dword ptr ds:[edi]       ; 指向待处理的API列表
+
+016C003D     8B1B            mov ebx,dword ptr ds:[ebx]
+
+016C003F     8918            mov dword ptr ds:[eax],ebx
+
+016C0041     83C0 04         add eax,4
+
+016C0044     8947 04         mov dword ptr ds:[edi+4],eax
+
+016C0047     8B5D FC         mov ebx,dword ptr ss:[ebp-4]     ; ebp-4是获得的API函数地址
+
+016C004A     E8 46000000     call 016C0095                    ; 在IAT里搜索,正确的IAT项从ESI中返回
+
+016C004F     B0 F7           mov al,0F7                       ; 决定是ff15还是ff25,不同软件AL的值不同
+
+016C0051     66:B9 FF15      mov cx,15FF
+
+016C0055     3A45 EF         cmp al,byte ptr ss:[ebp-11]
+
+016C0058     74 05           je short 016C005F
+
+016C005A     66:81C1 0010    add cx,1000
+
+016C005F     8B07            mov eax,dword ptr ds:[edi]       ; 指向待处理的API列表
+
+016C0061     8B18            mov ebx,dword ptr ds:[eax]
+
+016C0063     81E3 FFFFFF7F   and ebx,7FFFFFFF                 ; 将高1位清除
+
+016C0069     83C0 04         add eax,4                        ; 指向下一个地址
+```

@@ -1,0 +1,2 @@
+
+# ASProtect脚本
