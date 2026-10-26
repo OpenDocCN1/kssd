@@ -1,0 +1,177 @@
+
+# 另类PEtite V2.2 脱壳+修复+破解――英汉汉英双向学习词典 V1.0
+
+- 下载页面： http://soft.269.net/SoftWareView.asp?SoftWareID=48727
+- 软件大小： 900 KB
+- 适用平台： Wn9x, NT, ME, Win2k, WinXP
+- 收录时间： 2003-7-31
+- 推荐等级： `*****`
+
+## 软件简介
+
+英汉汉英双向学习词典,很多英语爱好者喜欢采取“英汉―汉英”双向的学习方式来掌握英语词汇，对于“英汉”方式，普通的英汉词典就足够了，而对于“汉英”方式，一般的汉英词典就显得无能为力了；这是因为英语词汇的精髓和汉语词汇的精髓因文化背景和地域差异而有很大的差异：翻一翻英汉汉英双向学习词典的“汉英索引”部分，可以发现很多象“不…”、“无…”、“把…”、“使…”、“…的”、“…地”一类的“词”，而这类的“词”在汉英语词典中根本找不到，因为它们在汉语中并非作为词来对待，因而在传统的汉英词典中根本找不到象“不能永生的(mortal)”、“不精确的(inaccurate)”之类的词，而“mortal”、“inaccurate”之类的词恰恰是地地道道的英语词语；同理，在普通汉英词典中，很多汉语词汇只能用英文短语或句子来解释，所以通过常规的汉英词典很难学到英语词汇的精髓。鉴于上述原因，英汉汉英双向学习词典的18828条汉语词条全部取自“英汉词典”部分，从而达到了英汉、汉英的完全对等，对于习喜欢采用双向的方式来学习英语词汇的广大英语爱好者来说，英汉汉英双向学习词典是一种理想选择。
+
+## 软件限制
+
+功能限制。偶只是想看看这个壳，偶不用这个东东。
+
+## 作者声明
+
+初学Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+## 调试环境
+
+WinXP、Ollydbg1.09、PEiD、LordPE、ImportREC、WinHex、W32Dasm 9.0白金版
+
+---
+
+## 过程
+
+### 一、脱壳
+
+设置Ollydbg忽略所有的异常。老规矩：载入后弹出“是压缩代码――要继续进行分析吗？”，点“否”。
+
+下断：`BP LoadLibraryA`，按`F9`运行，断下！
+
+```asm
+77E605D8     837C24 04 00         cmp dword ptr ss:[esp+4],0
+                                  ====>断在这！CTRL+F9执行到返回
+77E605DD     53                   push ebx
+77E605DE     56                   push esi
+77E605DF     74 19                je short kernel32.77E605FA
+77E605E1     68 9C5BE777          push kernel32.77E75B9C
+77E605E6     FF7424 10            push dword ptr ss:[esp+10]
+77E605EA     FF15 9013E477        call dword ptr ds:[<&ntdll.\_strcmpi>]
+77E605F0     85C0                 test eax,eax
+77E605F2     59                   pop ecx
+77E605F3     59                   pop ecx
+77E605F4     0F84 76AF0100        je kernel32.77E7B570
+77E605FA     6A 00                push 0
+77E605FC     6A 00                push 0
+77E605FE     FF7424 14            push dword ptr ss:[esp+14]
+77E60602     E8 B1FFFFFF          call kernel32.LoadLibraryExA
+77E60607     5E                   pop esi
+77E60608     5B                   pop ebx
+77E60609     C2 0400              retn 4
+                                  ====>返回到 004A6355
+```
+
+---
+
+```asm
+004A6344     833E 00              cmp dword ptr ds:[esi],0
+004A6347     0F84 03020000        je 英汉汉英.004A6550
+004A634D     51                   push ecx
+004A634E     51                   push ecx
+004A634F     FF95 90070000        call dword ptr ss:[ebp+790]
+004A6355     85C0                 test eax,eax
+                                  ====>77E60609 返回到这
+004A6357     0F84 DF000000        je 英汉汉英.004A643C
+004A635D     8BF8                 mov edi,eax
+004A635F     0340 3C              add eax,dword ptr ds:[eax+3C]
+004A6362     8B40 78              mov eax,dword ptr ds:[eax+78]
+004A6365     FF7438 18            push dword ptr ds:[eax+edi+18]
+004A6369     8B4C38 24            mov ecx,dword ptr ds:[eax+edi+24]
+004A636D     03CF                 add ecx,edi
+004A636F     51                   push ecx
+004A6370     8B4C38 20            mov ecx,dword ptr ds:[eax+edi+20]
+004A6374     03CF                 add ecx,edi
+004A6376     51                   push ecx
+004A6377     FF7438 10            push dword ptr ds:[eax+edi+10]
+004A637B     FF7438 14            push dword ptr ds:[eax+edi+14]
+004A637F     8B4438 1C            mov eax,dword ptr ds:[eax+edi+1C]
+004A6383     03C7                 add eax,edi
+004A6385     50                   push eax
+004A6386     56                   push esi
+004A6387     8B36                 mov esi,dword ptr ds:[esi]
+004A6389     03F5                 add esi,ebp
+004A638B     8B06                 mov eax,dword ptr ds:[esi]
+004A638D     85C0                 test eax,eax
+004A638F     0F84 81000000        je 英汉汉英.004A6416
+004A6395     0FBAE0 1F            bt eax,1F
+004A6399     73 2B                jnb short 英汉汉英.004A63C6
+004A63C6     03C5                 add eax,ebp
+004A63C8     50                   push eax
+004A63C9     50                   push eax
+004A63CA     57                   push edi
+004A63CB     FF95 94070000        call dword ptr ss:[ebp+794]  ; kernel32.GetProcAddress
+004A63D1     85C0                 test eax,eax
+004A63D3     74 7F                je short 英汉汉英.004A6454
+004A63D5     FF4C24 28            dec dword ptr ss:[esp+28]
+004A63D9     7D 1F                jge short 英汉汉英.004A63FA
+004A63DB     8B5424 24            mov edx,dword ptr ss:[esp+24]
+004A63DF     C602 E9              mov byte ptr ds:[edx],0E9
+004A63E2     2BC2                 sub eax,edx
+004A63E4     83E8 05              sub eax,5
+004A63E7     8942 01              mov dword ptr ds:[edx+1],eax
+004A63EA     8BC2                 mov eax,edx
+004A63EC     83C2 05              add edx,5
+004A63EF     895424 24            mov dword ptr ss:[esp+24],edx
+004A63F3     83E2 07              and edx,7
+004A63F6     895424 28            mov dword ptr ss:[esp+28],edx
+004A63FA     8906                 mov dword ptr ds:[esi],eax
+004A63FC     873C24               xchg dword ptr ss:[esp],edi
+004A63FF     83C9 FF              or ecx,FFFFFFFF
+004A6402     33C0                 xor eax,eax
+004A6404     F2:AE                repne scas byte ptr es:[edi]
+004A6406     FD                   std
+004A6407     F7D1                 not ecx
+004A6409     4F                   dec edi
+004A640A     F3:AA                rep stos byte ptr es:[edi]
+004A640C     5F                   pop edi
+004A640D     FC                   cld
+004A640E     83C6 04              add esi,4
+004A6411   ^ E9 75FFFFFF          jmp 英汉汉英.004A638B
+                                  ====>向上看发现004A638F可跳出循环。 F4下去
+004A6416     5E                   pop esi
+004A6417     83C4 18              add esp,18
+004A641A     8B16                 mov edx,dword ptr ds:[esi]
+004A641C     03D5                 add edx,ebp
+004A641E     8D43 47              lea eax,dword ptr ds:[ebx+47]
+004A6421     8B4C24 04            mov ecx,dword ptr ss:[esp+4]
+004A6425     833A 00              cmp dword ptr ds:[edx],0
+004A6428     74 12                je short 英汉汉英.004A643C
+004A642A     3B1A                 cmp ebx,dword ptr ds:[edx]
+004A642C     8318 00              sbb dword ptr ds:[eax],0
+004A642F     390A                 cmp dword ptr ds:[edx],ecx
+004A6431     8318 00              sbb dword ptr ds:[eax],0
+004A6434     83C2 04              add edx,4
+004A6437     C108 03              ror dword ptr ds:[eax],3
+004A643A   ^ EB E9                jmp short 英汉汉英.004A6425
+                                  ====>F4下去跳出循环！
+004A643C     C706 00000000        mov dword ptr ds:[esi],0
+004A6442     5F                   pop edi
+004A6443     83C9 FF              or ecx,FFFFFFFF
+004A6446     33C0                 xor eax,eax
+004A6448     F2:AE                repne scas byte ptr es:[edi]
+004A644A     8BCF                 mov ecx,edi
+004A644C     83C6 04              add esi,4
+004A644F   ^ E9 F0FEFFFF          jmp 英汉汉英.004A6344
+                                  ====>向上看004A6347可以跳出循环。
+004A6550     59                   pop ecx
+                                  ====>此处下断。F9断在这
+004A6551     5E                   pop esi
+004A6552     FD                   std
+004A6553     33C0                 xor eax,eax
+004A6555     B9 54030000          mov ecx,354
+004A655A     E8 DEEA0300          call 英汉汉英.004E503D
+                                  ====>F7进入
+004E503D     5F                   pop edi
+004E503E     F3:AA                rep stos byte ptr es:[edi]
+004E5040     61                   popad
+004E5041     66:9D                popfw
+004E5043     83C4 08              add esp,8
+004E5046     E9 75EAFBFF          jmp 英汉汉英.004A3AC0
+                                  ====>飞向光明之巅！
+```
+
+PEtite V2.2 相当容易啦，如此找OEP就行了。:-)
+
+---
+
+```asm
+004A3AC0     55                   push ebp
+                                  ====>在这儿用LordPE完全DUMP这个进程
+004A3AC1     8BEC                 mov ebp,esp
+004A3AC3     83C4 F4              add esp,-0C
+```
