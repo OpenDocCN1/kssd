@@ -1,0 +1,170 @@
+
+# [原创]AceFTP3 算法分析
+
+【文章标题】: AceFTP3 算法分析
+
+【文章作者】: Suyana
+
+【作者邮箱】: Suyasha@163.com
+
+【作者主页】: `973K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8W2y4#2P5h3q4F1j5g2)9J5k6e0y4#2i4K6u0W2j5$3^5`
+
+【软件名称】: AceFTP3
+
+【使用工具】: DeDe, OD
+
+【作者声明】: 我只是一只小菜鸟，失误之处难免，敬望诸位大侠赐教!
+
+--------------------------------------------------------------------------------
+
+## 详细过程
+
+用 DeDe 找到注册按钮的例程：
+
+```
+0061D4B0        push    ebp
+...
+0061D572        mov     eax, [ebp-4]
+0061D575        call    005EA4C8                  ; 计算注册码，进入
+0061D57A        lea     edx, [ebp-38]
+0061D57D        mov     eax, [ebp-8]
+0061D580        call    00409798                  ; 注册码转为大写
+0061D585        mov     edx, [ebp-38]             ; 假注册码
+0061D588        mov     eax, [ebp-10]             ; 真注册码
+0061D58B        call    00404898                  ; ->System.@LStrCmp;这个就不用说了吧
+0061D590        jnz     short 0061D59C
+```
+
+说实话，这个软件的算法真有点烦。用 peid 查出三种算法：
+
+- BASE64 table :: `000A7830` :: `004A8430`
+- CRC32 [poly] :: `000AB807` :: `004AC407`
+- ZLIB deflate [long] :: `0028E508` :: `0068F908`
+
+好像都没有用在注册码方面，或许是有而偶不知道吧。~\_~![](https://bbs.kanxue.com/view/img/face/16.gif)
+
+来到`005EA4C8`：
+
+一开始是写入注册表项(不过好像没执行到)，这里就不贴出来了![](https://bbs.kanxue.com/view/img/face/12.gif)，来到：
+
+```
+005EA625   .        lea     edx, [ebp-18]        ; 下面的这个是表
+005EA628   .        mov     eax,005EA810         ; ASCII "WBNMH234598764SXZKPTREWQCVBN238"
+005EA62D   .        call    00409798             ; SysUtils.UpperCase
+005EA632   .        lea     edx, [ebp-10]
+005EA635   .        mov     eax, [ebp-4]
+005EA638   .        call    00409798             ; SysUtils.UpperCase(AnsiString):AnsiString;
+005EA63D   .        xor     eax, eax             ; 用户名转大写
+005EA63F   .        mov     [ebp-20], eax
+005EA642   .        lea     eax, [ebp-14]
+005EA645   .        call    00404470             ; System.@LStrClr(void;void);
+005EA64A   .        mov     eax, [ebp-4]
+005EA64D   .        call    0040474C             ; System.@LStrLen(String):Integer;
+005EA652   .        mov     edi, eax
+005EA654   .        test    edi, edi
+005EA656   .        jle     short 005EA699
+005EA658   .        mov     esi, 1
+005EA65D   >        lea     eax, [ebp-34]
+005EA660   .        mov     edx, [ebp-10]        ; 用户名
+005EA663   .        mov     dl, [edx+esi-1]      ; 依次取用户名的ascii
+005EA667   .        call    00404658             ; System.@LStrFromChar(String;String;Char);
+005EA66C   .        mov     eax, [ebp-34]
+005EA66F   .        mov     edx, [ebp-18]
+005EA672   .        call    00404A90             ; System.@LStrPos;
+005EA677   .        test    eax, eax
+005EA679   .        jle     short 005EA695       ; 用户名的第n位不在表中
+005EA67B   .        lea     eax, [ebp-38]
+005EA67E   .        mov     edx, [ebp-10]
+005EA681   .        mov     dl, [edx+esi-1]
+005EA685   .        call    00404658             ; System.@LStrFromChar(String;String;Char);
+005EA68A   .        mov     edx, [ebp-38]
+005EA68D   .        lea     eax, [ebp-14]        ; 把在表中的用户名连成字符串1
+005EA690   .        call    00404754             ; System.@LStrCat;
+005EA695   >        inc     esi
+005EA696   .        dec     edi
+005EA697   .^       jnz     short 005EA65D
+005EA699   >        lea     eax, [ebp-10]
+005EA69C   .        mov     edx, [ebp-14]        ; 连成字符串1
+005EA69F   .        call    00404508             ; System.@LStrLAsg(void;void;void;void);
+005EA6A4   .        mov     eax, [ebp-10]
+005EA6A7   .        call    0040474C             ; System.@LStrLen(String):Integer;
+005EA6AC   .        cmp     eax, 18
+005EA6AF   .        jge     short 005EA6DF       ; 字符串1的长度>=18h时跳
+005EA6B1   .        mov     edi, 18
+005EA6B6   .        sub     edi, eax
+005EA6B8   .        test    edi, edi
+005EA6BA   .        jle     short 005EA6DF       ; <=
+005EA6BC   .        mov     esi, 1
+005EA6C1   >        lea     eax, [ebp-3C]
+005EA6C4   .        mov     edx, [ebp-18]        ; 表
+005EA6C7   .        mov     dl, [edx+esi-1]      ; 表的第n位
+005EA6CB   .        call    00404658             ; System.@LStrFromChar(String;String;Char);
+005EA6D0   .        mov     edx, [ebp-3C]
+005EA6D3   .        lea     eax, [ebp-10]
+005EA6D6   .        call    00404754             ; System.@LStrCat;
+005EA6DB   .        inc     esi                  ; 字符串1和表连成长度为18h的字符串2
+005EA6DC   .        dec     edi
+005EA6DD   .^       jnz     short 005EA6C1
+005EA6DF   >        mov     eax, [ebp-10]        ; 得出的字符串2
+005EA6E2   .        call    0040474C             ; System.@LStrLen(String):Integer;
+005EA6E7   .        cmp     eax, 18
+005EA6EA   .        jle     short 005EA702       ; <=18跳
+005EA6EC   .        lea     eax, [ebp-10]
+005EA6EF   .        push    eax
+005EA6F0   .        mov     ecx, 18
+005EA6F5   .        mov     edx, 1
+005EA6FA   .        mov     eax, [ebp-10]
+005EA6FD   .        call    004049AC             ; System.@LStrCopy;
+005EA702   >        lea     eax, [ebp-14]
+005EA705   .        call    00404470             ; System.@LStrClr(void;void);
+005EA70A   .        mov     esi, 1
+005EA70F   >        mov     eax, [ebp-10]        ; 连成的字符串2
+005EA712   .        mov     bl, [eax+esi-1]      ; 依次取字符串2的ascii
+005EA716   .        lea     eax, [ebp-40]
+005EA719   .        mov     edx, ebx
+005EA71B   .        call    00404658             ; System.@LStrFromChar(String;String;Char);
+005EA720   .        mov     eax, [ebp-40]
+005EA723   .        mov     edx, [ebp-18]        ; 表
+005EA726   .        call    00404A90             ; System.@LStrPos;
+005EA72B   .        mov     ebx, eax             ; 该字符在表中的位置(以1开始，以0开始要加1)
+005EA72D   .        mov     eax, [ebp-18]        ; 表
+005EA730   .        call    0040474C             ; System.@LStrLen(String):Integer;
+005EA735   .        push    eax                  ; 表的长度(1Fh)
+005EA736   .        mov     eax, ebx
+005EA738   .        imul    ebx                  ; 该字符在表中的位置\*该字符在表中的位置
+005EA73A   .        sub     eax, ebx             ; 值再减去该字符在表中的位置
+005EA73C   .        add     eax, [ebp-20]        ; 上次运算出的余数+1，第一次为0
+005EA73F   .        pop     edx
+005EA740   .        mov     ecx, edx
+005EA742   .        cdq
+005EA743   .        idiv    ecx                  ; 除以表的长度
+005EA745   .        mov     ebx, edx             ; edx=余数
+005EA747   .        inc     ebx                  ; ebx=edx=余数+1
+005EA748   .        mov     [ebp-20], ebx        ; 写入[0012f2e8]
+005EA74B   .        mov     eax, [ebp-18]        ; 表
+005EA74E   .        mov     bl, [eax+ebx-1]      ; 表的第ebx-1位
+005EA752   .        lea     eax, [ebp-44]
+005EA755   .        mov     edx, ebx             ; edx=ebx=表的第ebx-1位的ascii码
+005EA757   .        call    00404658             ; System.@LStrFromChar(String;String;Char);
+005EA75C   .        mov     edx, [ebp-44]
+005EA75F   .        lea     eax, [ebp-14]
+005EA762   .        call    00404754             ; System.@LStrCat;
+005EA767   .        mov     eax, esi             ; eax=esi=循环次数
+005EA769   .        mov     ecx, 6
+005EA76E   .        cdq
+005EA76F   .        idiv    ecx                  ; 循环次数除以6
+005EA771   .        test    edx, edx
+005EA773   .        jnz     short 005EA787       ; 不能整除跳过
+005EA775   .        cmp     esi, 18              ; 可以整除
+005EA778   .        jge     short 005EA787       ; esi>=18跳
+005EA77A   .        lea     eax, [ebp-14]
+005EA77D   .        mov     edx,005EA838         ; 加上'-'
+005EA782   .        call    00404754             ; System.@LStrCat;
+005EA787   >        inc     esi                  ; 上面这段函数就是每6位加上'-'
+005EA788   .        cmp     esi, 19
+005EA78B   .^       jnz     short 005EA70F
+005EA78D   .        mov     eax, [ebp-C]
+005EA790   .        mov     edx, [ebp-14]
+```
+
+算法就出来了，简单说一下：
