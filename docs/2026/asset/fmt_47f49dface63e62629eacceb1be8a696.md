@@ -1,0 +1,247 @@
+
+\* Possible Reference to String Resource ID=00001: "b
+
+\*"
+
+                                  |
+
+`:0041B4BD` `C786B805000001000000`    `mov` dword ptr [`esi`+000005B8], 00000001  <--把注册失败值送全局变量`reg`
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0041B4B1(C)
+
+|
+
+`:0041B4C7` `5F`                      `pop` `edi`
+
+`:0041B4C8` `5E`                      `pop` `esi`
+
+`:0041B4C9` `C3`                      `ret`
+
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+### 第四次调用`call eax`会来到如下地方：
+
+```
+:0041BCC0 56                      push esi
+:0041BCC1 8BF1                    mov esi, ecx
+:0041BCC3 8B8E40050000            mov ecx, dword ptr [esi+00000540]
+:0041BCC9 8D8640010000            lea eax, dword ptr [esi+00000140]
+:0041BCCF 898644050000            mov dword ptr [esi+00000544], eax
+:0041BCD5 C684314001000000        mov byte ptr [ecx+esi+00000140], 00
+:0041BCDD C786B4050000D0B44100    mov dword ptr [esi+000005B4], 0041B4D0  <--送下一个检查子程序的地址
+:0041BCE7 6A3D                    push 0000003D  <--3D为"="的ascii码
+:0041BCE9 50                      push eax  <--eax为存放注册文件GRDuw.key内容的首地址
+:0041BCEA E8014D0000              call 004209F0  <--检查注册文件GRDuw.key中是否含有字符"="，有的话则eax为存放该字符的地址，否则eax为存放注册文件内容的首地址
+:0041BCEF 83C408                  add esp, 00000008
+:0041BCF2 85C0                    test eax, eax
+:0041BCF4 7419                    je 0041BD0F
+:0041BCF6 8A50FF                  mov dl, byte ptr [eax-01]
+:0041BCF9 B120                    mov cl, 20
+:0041BCFB 3AD1                    cmp dl, cl  <--检查字符"="的前一个字符是否为空格符
+:0041BCFD 7510                    jne 0041BD0F  <--不应该跳转
+:0041BCFF 384801                  cmp byte ptr [eax+01], cl  <--检查字符"="的后一个字符是否为空格符
+:0041BD02 750B                    jne 0041BD0F  <--不应该跳转
+:0041BD04 83C002                  add eax, 00000002
+:0041BD07 898644050000            mov dword ptr [esi+00000544], eax
+:0041BD0D 5E                      pop esi
+:0041BD0E C3                      ret
+```
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:0041BCF4(C), :0041BCFD(C), :0041BD02(C)
+
+|
+
+`:0041BD0F` `C786B405000020A94100`    `mov` dword ptr [`esi`+000005B4], 0041A920  <--送注册失败处理子程序的地址
+
+\* Possible Reference to String Resource ID=00001: "b
+
+\*"
+
+                                  |
+
+`:0041BD19` `C786B805000001000000`    `mov` dword ptr [`esi`+000005B8], 00000001  <--把注册失败值送全局变量`reg`
+
+`:0041BD23` `5E`                      `pop` `esi`
+
+`:0041BD24` `C3`                      `ret`
+
+//\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+### 第五次调用`call eax`会来到如下地方：
+
+```
+:0041B4D0 56                      push esi
+:0041B4D1 8BF1                    mov esi, ecx
+:0041B4D3 57                      push edi
+:0041B4D4 8B8644050000            mov eax, dword ptr [esi+00000544]  <--eax为存放注册文件中等号后面的注册码的首地址
+:0041B4DA 8D8E40010000            lea ecx, dword ptr [esi+00000140]  <--ecx为存放注册文件内容的首地址
+:0041B4E0 2BC6                    sub eax, esi
+:0041B4E2 8DBE48050000            lea edi, dword ptr [esi+00000548]
+:0041B4E8 2D40010000              sub eax, 00000140
+:0041B4ED 50                      push eax
+:0041B4EE 51                      push ecx
+:0041B4EF 8BCF                    mov ecx, edi
+:0041B4F1 E8DA2E0000              call 0041E3D0  <--把注册文件中注册码前面的内容(包括等号及其后面的空格符)存到MD5算法的初始值后面
+:0041B4F6 C786B405000030BD4100    mov dword ptr [esi+000005B4], 0041BD30  <--送下一个检查子程序的地址
+:0041B500 8BCF                    mov ecx, edi
+:0041B502 E8792F0000              call 0041E480  <--核心call，按F8进入
+:0041B507 8B8644050000            mov eax, dword ptr [esi+00000544]  <--eax为存放注册文件中注册码部分的首地址
+```
+
+\* Possible Reference to String Resource ID=00001: "b
+
+\*"
+
+                                  |
+
+`:0041B50D` `6A01`                    `push` 00000001
+
+`:0041B50F` `8A08`                    `mov` `cl`, byte ptr [`eax`]
+
+`:0041B511` `40`                      `inc` `eax`
+
+`:0041B512` `51`                      `push` `ecx`
+
+`:0041B513` `8BCF`                    `mov` `ecx`, `edi`
+
+`:0041B515` `898644050000`            `mov` dword ptr [`esi`+00000544], `eax2`
+
+`:0041B51B` `E870300000`              `call` 0041E590  <--注册码为64位（16个字符），这个`call`比对第1个字符
+
+`:0041B520` `85C0`                    `test` `eax`, `eax`
+
+`:0041B522` `751D`                    `jne` 0041B541  <--不应该跳转
+
+`:0041B524` `8B8644050000`            `mov` `eax`, dword ptr [`esi`+00000544]
+
+`:0041B52A` `6A00`                    `push` 00000000
+
+`:0041B52C` `8A08`                    `mov` `cl`, byte ptr [`eax`]
+
+`:0041B52E` `40`                      `inc` `eax`
+
+`:0041B52F` `51`                      `push` `ecx`
+
+`:0041B530` `8BCF`                    `mov` `ecx`, `edi`
+
+`:0041B532` `898644050000`            `mov` dword ptr [`esi`+00000544], `eax`
+
+`:0041B538` `E853300000`              `call` 0041E590  <--这个`call`比对第2个字符
+
+`:0041B53D` `85C0`                    `test` `eax`, `eax`
+
+`:0041B53F` `7414`                    `je` 0041B555  <--应该跳转
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0041B522(C)
+
+|
+
+`:0041B541` `C786B405000020A94100`    `mov` dword ptr [`esi`+000005B4], 0041A920  <--送注册失败处理子程序的地址
+
+\* Possible Reference to String Resource ID=00001: "b
+
+\*"
+
+                                  |
+
+`:0041B54B` `C786B805000001000000`    `mov` dword ptr [`esi`+000005B8], 00000001  <--把注册失败值送全局变量`reg`
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0041B53F(C)
+
+|
+
+`:0041B555` `5F`                      `pop` `edi`
+
+`:0041B556` `5E`                      `pop` `esi`
+
+`:0041B557` `C3`                      `ret`
+
+在上面的核心`call`按F8进入后会来到如下地方：
+
+\* Referenced by a CALL at Addresses:
+
+|:0041AF26   , :0041B261   , :0041B502
+
+|
+
+```
+:0041E480 83EC40                  sub esp, 00000040
+:0041E483 56                      push esi
+:0041E484 8BF1                    mov esi, ecx
+:0041E486 8B06                    mov eax, dword ptr [esi]
+:0041E488 8B4E04                  mov ecx, dword ptr [esi+04]
+:0041E48B 8944243C                mov dword ptr [esp+3C], eax
+:0041E48F 894C2440                mov dword ptr [esp+40], ecx
+:0041E493 C1E803                  shr eax, 03
+:0041E496 83E03F                  and eax, 0000003F
+:0041E499 B938000000              mov ecx, 00000038
+:0041E49E 83F838                  cmp eax, 00000038
+:0041E4A1 7C05                    jl 0041E4A8
+```
+
+\* Possible Reference to String Resource ID=00120: "辶\* X:z"
+
+                                  |
+
+`:0041E4A3` `B978000000`              `mov` `ecx`, 00000078
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0041E4A1(C)
+
+|
+
+```
+:0041E4A8 2BC8                    sub ecx, eax
+:0041E4AA 55                      push ebp
+:0041E4AB 57                      push edi
+:0041E4AC 51                      push ecx
+```
+
+\* Possible StringData Ref from Data Obj ->""
+
+                                  |
+
+`:0041E4AD` `6840484500`              `push` 00454840
+
+`:0041E4B2` `8BCE`                    `mov` `ecx`, `esi`
+
+`:0041E4B4` `E817FFFFFF`              `call` 0041E3D0  <--如果注册文件中注册码前面的内容长度不足0x40的话，则先在其后面添一个0x80，然后在用0x00填充，直到长度为0x40为止
+
+`:0041E4B9` `8D461A`                  `lea` `eax`, dword ptr [`esi`+1A]
+
+`:0041E4BC` `8D7C240C`                `lea` `edi`, dword ptr [`esp`+0C]
+
+\* Possible Reference to String Resource ID=00014: "b = %lu"
+
+                                  |
+
+`:0041E4C0` `BD0E000000`              `mov` `ebp`, 0000000E
+
+\* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0041E4EA(C)
+
+|
+
+```
+:0041E4C5 33D2                    xor edx, edx
+:0041E4C7 33C9                    xor ecx, ecx
+:0041E4C9 8A7001                  mov dh, byte ptr [eax+01]
+:0041E4CC 8A48FF                  mov cl, byte ptr [eax-01]
+:0041E4CF 8A10                    mov dl, byte ptr [eax]
+:0041E4D1 83C704                  add edi, 00000004
+:0041E4D4 C1E208                  shl edx, 08
+:0041E4D7 0BD1                    or edx, ecx
+:0041E4D9 33C9                    xor ecx, ecx
+:0041E4DB 8A48FE                  mov cl, byte ptr [eax-02]
+:0041E4DE 83C004                  add eax, 00000004
+```
