@@ -1,0 +1,213 @@
+
+```asm
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00481921(C)
+
+|
+
+:004817D7 3BF3                    cmp esi, ebx  ；比较转换到第几位
+:004817D9 7522                    jne 004817FD  ；没结束就跳下去
+:004817DB 8D45EC                  lea eax, dword ptr [ebp-14]
+:004817DE 50                      push eax
+:004817DF B901000000              mov ecx, 00000001
+:004817E4 8BD3                    mov edx, ebx
+:004817E6 8BC7                    mov eax, edi
+:004817E8 E86B28F8FF              call 00404058
+:004817ED 8B55EC                  mov edx, dword ptr [ebp-14]
+:004817F0 8D45F8                  lea eax, dword ptr [ebp-08]
+:004817F3 E86026F8FF              call 00403E58
+:004817F8 E921010000              jmp 0048191E
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004817D9(C)
+
+|
+
+:004817FD 33C0                    xor eax, eax  ；清零开始
+:004817FF 8A441FFF                mov al, byte ptr [edi+ebx-01]  ；edi里是00484E14，从第一位开始依次给al
+:00481803 8945F4                  mov dword ptr [ebp-0C], eax    ；传给ebp-0C
+:00481806 33C0                    xor eax, eax  ；清零
+:00481808 8A041F                  mov al, byte ptr [edi+ebx]  ；汉字是双字节，当然要2位一起计算
+:0048180B 807DFF00                cmp byte ptr [ebp-01], 00
+:0048180F 0F8499000000            je 004818AE   ；跳
+:00481815 8B55F4                  mov edx, dword ptr [ebp-0C]
+:00481818 81C25FFFFFFF            add edx, FFFFFF5F
+:0048181E 83EA59                  sub edx, 00000059
+:00481821 736C                    jnb 0048188F
+:00481823 8BD0                    mov edx, eax
+:00481825 83C2C0                  add edx, FFFFFFC0
+:00481828 83EA3F                  sub edx, 0000003F
+:0048182B 7208                    jb 00481835
+:0048182D 83C2DE                  add edx, FFFFFFDE
+:00481830 83EA5E                  sub edx, 0000005E
+:00481833 735A                    jnb 0048188F
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0048182B(C)
+
+|
+
+:00481835 83F87F                  cmp eax, 0000007F
+:00481838 7D19                    jge 00481853
+:0048183A 8B55F4                  mov edx, dword ptr [ebp-0C]
+:0048183D 81EAA1000000            sub edx, 000000A1
+:00481843 69D29D000000            imul edx, 0000009D
+:00481849 83E840                  sub eax, 00000040
+:0048184C 03D0                    add edx, eax
+:0048184E 8955F0                  mov dword ptr [ebp-10], edx
+:00481851 EB17                    jmp 0048186A
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00481838(C)
+
+|
+
+:00481853 8B55F4                  mov edx, dword ptr [ebp-0C]
+:00481856 81EAA1000000            sub edx, 000000A1
+:0048185C 69D29D000000            imul edx, 0000009D
+:00481862 83E862                  sub eax, 00000062
+:00481865 03D0                    add edx, eax
+:00481867 8955F0                  mov dword ptr [ebp-10], edx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00481851(U)
+
+|
+
+:0048186A 8D45E8                  lea eax, dword ptr [ebp-18]
+:0048186D 8B55F0                  mov edx, dword ptr [ebp-10]
+:00481870 8D1452                  lea edx, dword ptr [edx+2*edx]
+:00481873 81C2A4EB4800            add edx, 0048EBA4
+:00481879 E87625F8FF              call 00403DF4
+:0048187E 8B55E8                  mov edx, dword ptr [ebp-18]
+:00481881 8D45F8                  lea eax, dword ptr [ebp-08]
+:00481884 E8CF25F8FF              call 00403E58
+:00481889 43                      inc ebx
+:0048188A E98F000000              jmp 0048191E
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:00481821(C), :00481833(C)
+
+|
+
+:0048188F 8D45E4                  lea eax, dword ptr [ebp-1C]
+:00481892 50                      push eax
+:00481893 B901000000              mov ecx, 00000001
+:00481898 8BD3                    mov edx, ebx
+:0048189A 8BC7                    mov eax, edi
+:0048189C E8B727F8FF              call 00404058
+:004818A1 8B55E4                  mov edx, dword ptr [ebp-1C]
+:004818A4 8D45F8                  lea eax, dword ptr [ebp-08]
+:004818A7 E8AC25F8FF              call 00403E58
+:004818AC EB70                    jmp 0048191E
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0048180F(C)
+
+|
+
+:004818AE 8B55F4                  mov edx, dword ptr [ebp-0C]   ；第一位
+:004818B1 81C25FFFFFFF            add edx, FFFFFF5F    ；add
+:004818B7 83EA57                  sub edx, 00000057    ；sub
+:004818BA 7345                    jnb 00481901         ；不跳
+:004818BC 8BD0                    mov edx, eax         ；第二位
+:004818BE 81C25FFFFFFF            add edx, FFFFFF5F    ；add
+:004818C4 83EA5E                  sub edx, 0000005E    ；sub
+:004818C7 7338                    jnb 00481901
+:004818C9 8B55F4                  mov edx, dword ptr [ebp-0C]
+:004818CC 81EAA1000000            sub edx, 000000A1
+:004818D2 6BD25E                  imul edx, 0000005E
+:004818D5 2DA1000000              sub eax, 000000A1
+:004818DA 03D0                    add edx, eax
+:004818DC 8955F0                  mov dword ptr [ebp-10], edx
+:004818DF 8D45E0                  lea eax, dword ptr [ebp-20]
+:004818E2 8B55F0                  mov edx, dword ptr [ebp-10]
+:004818E5 8D1452                  lea edx, dword ptr [edx+2*edx]
+:004818E8 81C2CC8B4800            add edx, 00488BCC
+:004818EE E80125F8FF              call 00403DF4
+:004818F3 8B55E0                  mov edx, dword ptr [ebp-20]
+:004818F6 8D45F8                  lea eax, dword ptr [ebp-08]
+:004818F9 E85A25F8FF              call 00403E58
+:004818FE 43                      inc ebx
+:004818FF EB1D                    jmp 0048191E
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:004818BA(C), :004818C7(C)
+
+|
+
+:00481901 8D45DC                  lea eax, dword ptr [ebp-24]
+:00481904 50                      push eax
+:00481905 B901000000              mov ecx, 00000001
+:0048190A 8BD3                    mov edx, ebx
+:0048190C 8BC7                    mov eax, edi
+:0048190E E84527F8FF              call 00404058
+:00481913 8B55DC                  mov edx, dword ptr [ebp-24]
+:00481916 8D45F8                  lea eax, dword ptr [ebp-08]
+:00481919 E83A25F8FF              call 00403E58             ；以上分析略过了，反正是简体转繁体！
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Addresses:
+
+|:004817F8(U), :0048188A(U), :004818AC(U), :004818FF(U)
+
+|
+
+:0048191E 43                      inc ebx    ；加1
+:0048191F 3BF3                    cmp esi, ebx  ；比较到了第几位了！
+:00481921 0F8DB0FEFFFF            jnl 004817D7  ；没转完，就跳去循环！
+
+计算转换完毕来到下面
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004817D1(C)
+
+|
+
+:00481927 8B4508                  mov eax, dword ptr [ebp+08]
+:0048192A 8B55F8                  mov edx, dword ptr [ebp-08]  ；此时就是转好的繁体"定式详解" ，下d edx
+:0048192D E8F222F8FF              call 00403C24   ；这个就是显示菜单的call了
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:004817BD(U)
+
+|
+
+:00481932 33C0                    xor eax, eax
+:00481934 5A                      pop edx
+:00481935 59                      pop ecx
+:00481936 59                      pop ecx
+:00481937 648910                  mov dword ptr fs:[eax], edx
+:0048193A 685C194800              push 0048195C
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:0048195A(U)
+
+|
+
+:0048193F 8D45DC                  lea eax, dword ptr [ebp-24]
+:00481942 BA05000000              mov edx, 00000005
+:00481947 E8A822F8FF              call 00403BF4
+:0048194C 8D45F8                  lea eax, dword ptr [ebp-08]
+:0048194F E87C22F8FF              call 00403BD0
+:00481954 C3                      ret
+```
+
+那我们剩下的工作，就是不要让他转换！我们跳过他吧
+
+```asm
+:004817AC 8BF0                    mov esi, eax        ；esi＝eax＝8
+:004817AE 83FE02                  cmp esi, 00000002   ；比较
+:004817B1 7D0F                    jge 004817C2        ；我们强制不跳nop，90大法
+:004817B3 8B4508                  mov eax, dword ptr [ebp+08]
+```
