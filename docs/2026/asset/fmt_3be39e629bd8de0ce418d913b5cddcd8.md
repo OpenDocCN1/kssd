@@ -1,0 +1,281 @@
+
+## Disassembly
+
+```
+0041102D    .  83C0 10            add eax,10
+
+00411030    .  894424 10          mov dword ptr ss:[esp+10],eax
+
+00411034    .  6A 00              push 0
+
+00411036    .  68 00794400        push RRPro.00447900                     ;  ASCII "username"
+
+0041103B    .  8D4424 28          lea eax,dword ptr ss:[esp+28]
+
+0041103F    .  68 EC784400        push RRPro.004478EC                     ;  ASCII "Repair Registry Pro"
+
+00411044    .  B3 05              mov bl,5
+
+00411046    .  50                 push eax
+
+00411047    .  885C24 3C          mov byte ptr ss:[esp+3C],bl
+
+0041104B    .  E8 204E0000        call RRPro.00415E70
+
+00411050    .  8B08               mov ecx,dword ptr ds:[eax]
+
+00411052    .  51                 push ecx
+
+00411053    .  68 FCA94400        push RRPro.0044A9FC                     ;  ASCII "This version of Repair Registry is Licenced to "
+
+00411058    .  8D5424 28          lea edx,dword ptr ss:[esp+28]
+
+0041105C    .  68 F4A94400        push RRPro.0044A9F4                     ;  ASCII "%s %s"
+
+00411061    .  52                 push edx
+
+00411062    .  C64424 4C 06       mov byte ptr ss:[esp+4C],6
+
+00411067    .  E8 140DFFFF        call RRPro.00401D80
+
+0041106C    .  8B4424 40          mov eax,dword ptr ss:[esp+40]
+
+00411070    .  83C0 F0            add eax,-10
+
+00411073    .  83C4 20            add esp,20
+
+00411076    .  885C24 2C          mov byte ptr ss:[esp+2C],bl
+
+0041107A    .  8D48 0C            lea ecx,dword ptr ds:[eax+C]
+
+0041107D    .  83CA FF            or edx,FFFFFFFF
+
+00411080    .  F0:0FC111          lock xadd dword ptr ds:[ecx],edx
+
+00411084    .  4A                 dec edx
+
+00411085    .  85D2               test edx,edx
+
+00411087    .  7F 08              jg short RRPro.00411091
+
+00411089    .  8B08               mov ecx,dword ptr ds:[eax]
+
+0041108B    .  8B11               mov edx,dword ptr ds:[ecx]
+
+0041108D    .  50                 push eax
+
+0041108E    .  FF52 04            call dword ptr ds:[edx+4]
+
+00411091    >  8B46 74            mov eax,dword ptr ds:[esi+74]
+
+00411094    .  8D88 700C0000      lea ecx,dword ptr ds:[eax+C70]
+
+0041109A    .  8B01               mov eax,dword ptr ds:[ecx]
+
+0041109C    .  8D5424 10          lea edx,dword ptr ss:[esp+10]
+
+004110A0    .  52                 push edx
+
+004110A1    .  FF90 40010000      call dword ptr ds:[eax+140]
+
+004110A7    .  8B46 74            mov eax,dword ptr ds:[esi+74]
+
+004110AA    .  6A 01              push 1
+
+004110AC    .  05 040A0000        add eax,0A04
+
+004110B1    .  8B40 1C            mov eax,dword ptr ds:[eax+1C]
+
+004110B4    .  6A 00              push 0
+
+004110B6    .  50                 push eax
+
+004110B7    .  FFD7               call edi
+
+004110B9    .  8B4C24 18          mov ecx,dword ptr ss:[esp+18]
+
+004110BD    .  6A 00              push 0
+
+004110BF    .  51                 push ecx
+
+004110C0    .  68 A8A94400        push RRPro.0044A9A8                     ;  ASCII "Congratulations! successfully registered please restart RepairRegistryPro."
+
+004110C5    .  8BCE               mov ecx,esi
+
+004110C7    .  E8 64490200        call RRPro.00435A30
+
+004110CC    .  E8 95E50200        call RRPro.0043F666
+
+004110D1    .  8B40 04            mov eax,dword ptr ds:[eax+4]
+
+004110D4    .  C680 A0000000 00   mov byte ptr ds:[eax+A0],0
+
+004110DB    .  8B4424 10          mov eax,dword ptr ss:[esp+10]
+
+004110DF    .  83C0 F0            add eax,-10
+
+004110E2    .  C64424 2C 04       mov byte ptr ss:[esp+2C],4
+
+004110E7    .  8D50 0C            lea edx,dword ptr ds:[eax+C]
+
+004110EA    .  83C9 FF            or ecx,FFFFFFFF
+
+004110ED    .  F0:0FC10A          lock xadd dword ptr ds:[edx],ecx
+
+004110F1    .  49                 dec ecx
+
+004110F2    .  85C9               test ecx,ecx
+
+004110F4    .  7F 08              jg short RRPro.004110FE
+
+004110F6    .  8B08               mov ecx,dword ptr ds:[eax]
+
+004110F8    .  8B11               mov edx,dword ptr ds:[ecx]
+
+004110FA    .  50                 push eax
+
+004110FB    .  FF52 04            call dword ptr ds:[edx+4]
+
+004110FE    >  8B4424 18          mov eax,dword ptr ss:[esp+18]
+
+00411102    .  83C0 F0            add eax,-10
+
+00411105    .  C64424 2C 01       mov byte ptr ss:[esp+2C],1
+
+0041110A    .  8D48 0C            lea ecx,dword ptr ds:[eax+C]
+
+0041110D    .  83CA FF            or edx,FFFFFFFF
+
+00411110    .  F0:0FC111          lock xadd dword ptr ds:[ecx],edx
+
+00411114    .  4A                 dec edx
+
+00411115    .  85D2               test edx,edx
+
+00411117    .  7F 08              jg short RRPro.00411121
+
+00411119    .  8B08               mov ecx,dword ptr ds:[eax]
+
+0041111B    .  8B11               mov edx,dword ptr ds:[ecx]
+
+0041111D    .  50                 push eax
+
+0041111E    .  FF52 04            call dword ptr ds:[edx+4]
+
+00411121    >  8BCE               mov ecx,esi
+
+00411123    .  E8 5D330200        call RRPro.00434485
+
+00411128    .  8B4424 14          mov eax,dword ptr ss:[esp+14]
+
+0041112C    .  83C0 F0            add eax,-10
+
+0041112F    .  C64424 2C 00       mov byte ptr ss:[esp+2C],0
+
+00411134    .  8D48 0C            lea ecx,dword ptr ds:[eax+C]
+
+00411137    .  83CA FF            or edx,FFFFFFFF
+
+0041113A    .  F0:0FC111          lock xadd dword ptr ds:[ecx],edx
+
+0041113E    .  4A                 dec edx
+
+0041113F    .  85D2               test edx,edx
+
+00411141    .  7F 08              jg short RRPro.0041114B
+
+00411143    .  8B08               mov ecx,dword ptr ds:[eax]
+
+00411145    .  8B11               mov edx,dword ptr ds:[ecx]
+
+00411147    .  50                 push eax
+
+00411148    .  FF52 04            call dword ptr ds:[edx+4]
+
+0041114B    >  8B4424 1C          mov eax,dword ptr ss:[esp+1C]
+
+0041114F    .  83C0 F0            add eax,-10
+
+00411152    >  C74424 2C FFFFFFFF mov dword ptr ss:[esp+2C],-1
+
+0041115A    .  8D48 0C            lea ecx,dword ptr ds:[eax+C]
+
+0041115D    .  83CA FF            or edx,FFFFFFFF
+
+00411160    .  F0:0FC111          lock xadd dword ptr ds:[ecx],edx
+
+00411164    .  4A                 dec edx
+
+00411165    .  85D2               test edx,edx
+
+00411167    .  7F 2E              jg short RRPro.00411197
+
+00411169    .  8B08               mov ecx,dword ptr ds:[eax]
+
+0041116B    .  8B11               mov edx,dword ptr ds:[ecx]
+
+0041116D    .  50                 push eax
+
+0041116E    .  FF52 04            call dword ptr ds:[edx+4]
+
+00411171    .  8B4C24 24          mov ecx,dword ptr ss:[esp+24]
+
+00411175    .  64:890D 00000000   mov dword ptr fs:[0],ecx
+
+0041117C    .  5F                 pop edi
+
+0041117D    .  5E                 pop esi
+
+0041117E    .  5D                 pop ebp
+
+0041117F    .  5B                 pop ebx
+
+00411180    .  83C4 20            add esp,20
+
+00411183    .  C3                 retn
+
+00411184    >  6A 10              push 10
+
+00411186    .  68 1C8A4400        push RRPro.00448A1C                     ;  ASCII "Error"
+
+0041118B    .  68 88A94400        push RRPro.0044A988                     ;  ASCII "Please fill all the details"
+
+00411190    .  8BCE               mov ecx,esi
+
+00411192    .  E8 99480200        call RRPro.00435A30
+
+00411197    >  8B4C24 24          mov ecx,dword ptr ss:[esp+24]
+
+0041119B    .  5F                 pop edi
+
+0041119C    .  5E                 pop esi
+
+0041119D    .  5D                 pop ebp
+
+0041119E    .  64:890D 00000000   mov dword ptr fs:[0],ecx
+
+004111A5    .  5B                 pop ebx
+
+004111A6    .  83C4 20            add esp,20
+
+004111A9    .  C3                 retn
+
+###########################################################################################################################
+
+### 子程序[分析一]
+
+```
+00417690   /$  6A FF              push -1
+
+00417692   |.  68 70524400        push RRPro.00445270                     ;  SE handler installation
+
+00417697   |.  64:A1 00000000     mov eax,dword ptr fs:[0]
+
+0041769D   |.  50                 push eax
+
+0041769E   |.  64:8925 00000000   mov dword ptr fs:[0],esp
+
+004176A5   |.  83EC 14            sub esp,14
+
+004176A8   |.  8D4424 0C          lea eax,dword ptr ss:[esp+C]
+```
