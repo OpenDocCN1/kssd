@@ -1,0 +1,312 @@
+
+## 反汇编代码
+
+```
+00658EC9  |.  7E 13         JLE SHORT ASSET.00658EDE
+
+00658ECB  |.  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]
+
+00658ECE  |.  50            PUSH EAX
+
+00658ECF  |.  B9 0E000000   MOV ECX,0E
+
+00658ED4  |.  33D2          XOR EDX,EDX
+
+00658ED6  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+
+00658ED9  |.  E8 56BCDAFF   CALL ASSET.00404B34              ;  取前面14位数
+
+00658EDE  |>  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+
+00658EE1  |.  E8 EEB9DAFF   CALL ASSET.004048D4              ;  计算位数
+
+00658EE6  |.  83F8 0E       CMP EAX,0E
+
+00658EE9  |.  7C 11         JL SHORT ASSET.00658EFC          ;  位数小于14位就转
+
+00658EEB  |.  8D55 E4       LEA EDX,DWORD PTR SS:[EBP-1C]
+
+00658EEE  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+
+00658EF1  |.  E8 920ADBFF   CALL ASSET.00409988
+
+00658EF6  |.  837D E4 00    CMP DWORD PTR SS:[EBP-1C],0
+
+00658EFA  |.  75 0D         JNZ SHORT ASSET.00658F09
+
+00658EFC  |>  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]
+
+00658EFF  |.  BA 4C8F6500   MOV EDX,ASSET.00658F4C           ;  ASCII "19780302198302"---》如果位数小于14位数，则取此数。
+
+00658F04  |.  E8 A3B7DAFF   CALL ASSET.004046AC
+
+00658F09  |>  8BC7          MOV EAX,EDI
+
+00658F0B  |.  8B55 FC       MOV EDX,DWORD PTR SS:[EBP-4]
+
+00658F0E  |.  E8 55B7DAFF   CALL ASSET.00404668
+
+00658F13  |.  33C0          XOR EAX,EAX
+
+00658F15  |.  5A            POP EDX
+
+00658F16  |.  59            POP ECX
+
+00658F17  |.  59            POP ECX
+
+00658F18  |.  64:8910       MOV DWORD PTR FS:[EAX],EDX
+
+00658F1B  |.  68 3D8F6500   PUSH ASSET.00658F3D
+
+00658F20  |>  8D45 E4       LEA EAX,DWORD PTR SS:[EBP-1C]
+
+00658F23  |.  BA 02000000   MOV EDX,2
+
+00658F28  |.  E8 0BB7DAFF   CALL ASSET.00404638
+
+00658F2D  |.  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]
+
+00658F30  |.  E8 DFB6DAFF   CALL ASSET.00404614
+
+00658F35  \.  C3            RETN
+```
+
+由上面取的14位码计算注册码：
+
+`---------------CALL ASSET.00658F5C------------------------------`
+
+```
+00658F5C  /$  55            PUSH EBP
+
+00658F5D  |.  8BEC          MOV EBP,ESP
+
+00658F5F  |.  83C4 E0       ADD ESP,-20
+
+00658F62  |.  53            PUSH EBX
+
+00658F63  |.  56            PUSH ESI
+
+00658F64  |.  57            PUSH EDI
+
+00658F65  |.  33C9          XOR ECX,ECX
+
+00658F67  |.  894D E4       MOV DWORD PTR SS:[EBP-1C],ECX
+
+00658F6A  |.  894D E0       MOV DWORD PTR SS:[EBP-20],ECX
+
+00658F6D  |.  8955 F8       MOV DWORD PTR SS:[EBP-8],EDX
+
+00658F70  |.  8945 FC       MOV DWORD PTR SS:[EBP-4],EAX
+
+00658F73  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+
+00658F76  |.  E8 49BBDAFF   CALL ASSET.00404AC4
+
+00658F7B  |.  33C0          XOR EAX,EAX
+
+00658F7D  |.  55            PUSH EBP
+
+00658F7E  |.  68 70906500   PUSH ASSET.00659070
+
+00658F83  |.  64:FF30       PUSH DWORD PTR FS:[EAX]
+
+00658F86  |.  64:8920       MOV DWORD PTR FS:[EAX],ESP
+
+00658F89  |.  C745 E8 00000>MOV DWORD PTR SS:[EBP-18],0
+
+00658F90  |.  C745 EC 00000>MOV DWORD PTR SS:[EBP-14],0
+
+00658F97  |.  C745 F0 00000>MOV DWORD PTR SS:[EBP-10],0
+
+00658F9E  |.  C745 F4 00000>MOV DWORD PTR SS:[EBP-C],0
+
+00658FA5  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]
+
+00658FA8  |.  E8 27B9DAFF   CALL ASSET.004048D4
+
+00658FAD  |.  8BF0          MOV ESI,EAX
+
+00658FAF  |.  85F6          TEST ESI,ESI
+
+00658FB1  |.  7E 66         JLE SHORT ASSET.00659019
+
+00658FB3  |.  B9 01000000   MOV ECX,1
+
+00658FB8  |>  8B45 FC       /MOV EAX,DWORD PTR SS:[EBP-4]
+
+00658FBB  |.  8A5C08 FF     |MOV BL,BYTE PTR DS:[EAX+ECX-1]
+
+00658FBF  |.  8BFB          |MOV EDI,EBX
+
+00658FC1  |.  81E7 FF000000 |AND EDI,0FF
+
+00658FC7  |.  6BC7 11       |IMUL EAX,EDI,11
+
+00658FCA  |.  71 05         |JNO SHORT ASSET.00658FD1
+
+00658FCC  |.  E8 8FA6DAFF   |CALL ASSET.00403660
+
+00658FD1  |>  F7E9          |IMUL ECX
+
+00658FD3  |.  71 05         |JNO SHORT ASSET.00658FDA
+
+00658FD5  |.  E8 86A6DAFF   |CALL ASSET.00403660
+
+00658FDA  |>  99            |CDQ
+
+00658FDB  |.  0345 F0       |ADD EAX,DWORD PTR SS:[EBP-10]
+
+00658FDE  |.  1355 F4       |ADC EDX,DWORD PTR SS:[EBP-C]
+
+00658FE1  |.  71 05         |JNO SHORT ASSET.00658FE8
+
+00658FE3  |.  E8 78A6DAFF   |CALL ASSET.00403660
+
+00658FE8  |>  8945 F0       |MOV DWORD PTR SS:[EBP-10],EAX
+
+00658FEB  |.  8955 F4       |MOV DWORD PTR SS:[EBP-C],EDX
+
+00658FEE  |.  6BC7 0D       |IMUL EAX,EDI,0D
+
+00658FF1  |.  71 05         |JNO SHORT ASSET.00658FF8
+
+00658FF3  |.  E8 68A6DAFF   |CALL ASSET.00403660
+
+00658FF8  |>  F7E9          |IMUL ECX
+
+00658FFA  |.  71 05         |JNO SHORT ASSET.00659001
+
+00658FFC  |.  E8 5FA6DAFF   |CALL ASSET.00403660
+
+00659001  |>  99            |CDQ
+
+00659002  |.  0345 E8       |ADD EAX,DWORD PTR SS:[EBP-18]
+
+00659005  |.  1355 EC       |ADC EDX,DWORD PTR SS:[EBP-14]
+
+00659008  |.  71 05         |JNO SHORT ASSET.0065900F
+
+0065900A  |.  E8 51A6DAFF   |CALL ASSET.00403660
+
+0065900F  |>  8945 E8       |MOV DWORD PTR SS:[EBP-18],EAX
+
+00659012  |.  8955 EC       |MOV DWORD PTR SS:[EBP-14],EDX
+
+00659015  |.  41            |INC ECX
+
+00659016  |.  4E            |DEC ESI
+
+00659017  |.^ 75 9F         \JNZ SHORT ASSET.00658FB8
+
+00659019  |>  FF75 F4       PUSH DWORD PTR SS:[EBP-C]        ; /Arg2
+
+0065901C  |.  FF75 F0       PUSH DWORD PTR SS:[EBP-10]       ; |Arg1
+
+0065901F  |.  8D45 E4       LEA EAX,DWORD PTR SS:[EBP-1C]    ; |
+
+00659022  |.  E8 1911DBFF   CALL ASSET.0040A140              ; \ASSET.0040A140
+
+00659027  |.  FF75 E4       PUSH DWORD PTR SS:[EBP-1C]
+
+0065902A  |.  68 88906500   PUSH ASSET.00659088
+
+0065902F  |.  FF75 EC       PUSH DWORD PTR SS:[EBP-14]       ; /Arg2
+
+00659032  |.  FF75 E8       PUSH DWORD PTR SS:[EBP-18]       ; |Arg1
+
+00659035  |.  8D45 E0       LEA EAX,DWORD PTR SS:[EBP-20]    ; |
+
+00659038  |.  E8 0311DBFF   CALL ASSET.0040A140              ; \ASSET.0040A140
+
+0065903D  |.  FF75 E0       PUSH DWORD PTR SS:[EBP-20]
+
+00659040  |.  8B45 F8       MOV EAX,DWORD PTR SS:[EBP-8]
+
+00659043  |.  BA 03000000   MOV EDX,3
+
+00659048  |.  E8 47B9DAFF   CALL ASSET.00404994
+
+0065904D  |.  33C0          XOR EAX,EAX
+
+0065904F  |.  5A            POP EDX
+
+00659050  |.  59            POP ECX
+
+00659051  |.  59            POP ECX
+
+00659052  |.  64:8910       MOV DWORD PTR FS:[EAX],EDX
+
+00659055  |.  68 77906500   PUSH ASSET.00659077
+
+0065905A  |>  8D45 E0       LEA EAX,DWORD PTR SS:[EBP-20]
+
+0065905D  |.  BA 02000000   MOV EDX,2
+
+00659062  |.  E8 D1B5DAFF   CALL ASSET.00404638
+
+00659067  |.  8D45 FC       LEA EAX,DWORD PTR SS:[EBP-4]
+
+0065906A  |.  E8 A5B5DAFF   CALL ASSET.00404614
+
+0065906F  \.  C3            RETN
+```
+
+## C 程序算法
+
+```
+=============================================
+
+#include "Stdio.h"
+
+#include "Conio.h"
+
+int main(void)
+
+{char num[20];
+
+int i;
+
+long sn1,sn2;
+
+long a,b,c;
+
+scanf("%s",num);
+
+sn1=0; sn2=0;
+
+for (i=0;i<strlen(num);i++)
+
+    for (c=i+1;c<i+2;c++)
+
+        {a=(num[i]&0xff)*0x11*c;
+
+         b=(num[i]&0xff)*0xd*c;
+
+         sn1=sn1+a;
+
+         sn2=sn2+b;
+
+        }
+
+    printf("%ld-%ld\n",sn1,sn2);
+
+  getch();
+
+  return 0;
+
+}
+```
+
+注册信息保存在`ETZC.INI`里。
+
+----------------------------------------------------------------------------------------------
+
+【破解声明】   我是一只小菜鸟，偶得一点心得，愿与大家分享:)
+
+【版权声明】   本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+----------------------------------------------------------------------------------------------
+
+文章写于2005-10-30 23:19:35
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
