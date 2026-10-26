@@ -1,0 +1,228 @@
+
+# 反汇编片段
+
+```
+0060FFCD   |.  8D45 >lea eax,dword ptr ss:[ebp-1C]
+
+0060FFD0   |.  BA E8>mov edx,CYMS.006100E8
+
+0060FFD5   |.  E8 5A>call CYMS.00404B34
+
+0060FFDA   |.  8B55 >mov edx,dword ptr ss:[ebp-1C]
+
+0060FFDD   |.  58    pop eax
+
+0060FFDE   |.  E8 DD>call CYMS.004BB3C0
+
+0060FFE3   |.  A1 68>mov eax,dword ptr ds:[615F68]
+
+0060FFE8   |.  8038 >cmp byte ptr ds:[eax],0          ;  比较关键比较位如果为1的话显示“已注册”
+
+0060FFEB   |.  74 22 je short CYMS.0061000F
+
+0060FFED   |.  8B83 >mov eax,dword ptr ds:[ebx+370]
+
+0060FFF3   |.  8B80 >mov eax,dword ptr ds:[eax+208]
+
+0060FFF9   |.  BA 03>mov edx,3
+
+0060FFFE   |.  E8 61>call CYMS.004BB464
+
+00610003   |.  BA FC>mov edx,CYMS.006100FC            ;  显示已注册
+
+00610008   |.  E8 B3>call CYMS.004BB3C0
+
+0061000D   |.  EB 20 jmp short CYMS.0061002F
+
+0061000F   |>  8B83 >mov eax,dword ptr ds:[ebx+370]
+
+00610015   |.  8B80 >mov eax,dword ptr ds:[eax+208]
+
+0061001B   |.  BA 03>mov edx,3
+
+00610020   |.  E8 3F>call CYMS.004BB464
+
+00610025   |.  BA 18>mov edx,CYMS.00610118            ;  显示未未注册
+
+0061002A   |.  E8 91>call CYMS.004BB3C0
+
+0061002F   |>  8BC3  mov eax,ebx
+
+00610031   |.  E8 56>call CYMS.0060FB8C
+
+00610036   |.  8D55 >lea edx,dword ptr ss:[ebp-24]
+
+00610039   |.  A1 44>mov eax,dword ptr ds:[616544]
+
+0061003E   |.  8B00  mov eax,dword ptr ds:[eax]       ;  在EAX地址中可以看到“精诚酒家”
+
+00610040   |.  E8 3F>call CYMS.0057F484               ;  取“精诚酒家”开头拼音四个字母
+
+00610045   |.  8D45 >lea eax,dword ptr ss:[ebp-24]
+
+00610048   |.  BA 34>mov edx,CYMS.00610134            ;  ASCII "\Software\JingCheng\CYMS"
+
+0061004D   |.  E8 9E>call CYMS.00404AF0               ;  取我的第二个输入码
+
+00610052   |.  8B45 >mov eax,dword ptr ss:[ebp-24]
+
+00610055   |.  8D55 >lea edx,dword ptr ss:[ebp-20]
+
+00610058   |.  E8 3B>call CYMS.0057E298               ;  重新取机器码计算注册码
+
+0061005D   |.  8B55 >mov edx,dword ptr ss:[ebp-20]
+
+00610060   |.  A1 28>mov eax,dword ptr ds:[616528]
+
+00610065   |.  8B00  mov eax,dword ptr ds:[eax]       ;  出现我的第二个输入码！！
+
+00610067   |.  E8 C0>call CYMS.00404C2C               ;  比较第二次的输入码（不会对结果有作用了）
+
+0061006C   |.  A1 20>mov eax,dword ptr ds:[615F20]
+
+00610071   |.  0F940>sete byte ptr ds:[eax]           ;  置标志位0061906D为1
+
+00610074   |.  8BD3  mov edx,ebx
+
+00610076   |.  8BC3  mov eax,ebx
+```
+
+第2次注册码的算法与第一次的算法差不多用机器码的位数乘以5在加上此位机器码的数据，得到的结果在密码表中找字符如果是小写转化成大写
+
+机器码多少位，注册码就多少位
+
+只不过密码表换成了：
+
+```
+00C8822C  4A 43 4A 4A 5C 53 6F 66  JCJJ\Sof
+00C88234  74 77 61 72 65 5C 4A 69  tware\Ji
+00C8823C  6E 67 43 68 65 6E 67 5C  ngCheng\
+00C88244  43 59 4D 53 41 61 35 42  CYMSAa5B
+00C8824C  6E 66 75 65 77 6D 6D 6B  nfuewmmk
+00C88254  49 30 61 43 76 32 4A 6D  I0aCv2Jm
+00C8825C  6C 64 62 61 48 69 65 72  ldbaHier
+00C88264  72 74 4C 50 61 6E 59 72  rtLPanYr
+00C8826C  68 55 75 75 53 6D 4E 62  hUuuSmNb
+00C88274  79 73 77 77 6A 64 6A 4F  yswwjdjO
+00C8827C  4A 6A 6A 61 6F 69 6F 43  JjjaoioC
+00C88284  72 55 38 38 39 41 37 36  rU889A76
+```
+
+注册信息保存在`\Software\JingCheng\CYMS`中。
+
+## 取汉字拼音首字母算法
+
+```
+0057F270   /$  55    push ebp
+0057F271   |.  8BEC  mov ebp,esp
+0057F273   |.  51    push ecx
+0057F274   |.  53    push ebx
+0057F275   |.  8945 >mov dword ptr ss:[ebp-4],eax
+0057F278   |.  8B45 >mov eax,dword ptr ss:[ebp-4]
+0057F27B   |.  E8 50>call CYMS.00404CD0
+0057F280   |.  33C0  xor eax,eax
+0057F282   |.  55    push ebp
+0057F283   |.  68 75>push CYMS.0057F475
+0057F288   |.  64:FF>push dword ptr fs:[eax]
+0057F28B   |.  64:89>mov dword ptr fs:[eax],esp
+0057F28E   |.  8B45 >mov eax,dword ptr ss:[ebp-4]
+0057F291   |.  0FB60>movzx eax,byte ptr ds:[eax]     ;  取一个汉字的一半ASCII码
+0057F294   |.  C1E0 >shl eax,8
+0057F297   |.  8B55 >mov edx,dword ptr ss:[ebp-4]
+0057F29A   |.  0FB65>movzx edx,byte ptr ds:[edx+1]   ;  又取另一个汉字的一半ASCII码
+0057F29E   |.  03C2  add eax,edx                     ;  合在一起得到全部汉字的ASCII码
+0057F2A0       3D E8>cmp eax,0C2E8                   ;  与,0C2E8比较
+0057F2A5   |.  0F8D >jge CYMS.0057F35F               ;  大于跳走
+0057F2AB   |.  3D A2>cmp eax,0B7A2                   ;  与0B7A2比较
+0057F2B0   |.  7D 50 jge short CYMS.0057F302         ;  大于跳走
+0057F2B2       3D C1>cmp eax,0B2C1                   ;  与B2C1比较
+0057F2B7   |.  7D 1E jge short CYMS.0057F2D7         ;  大于跳走
+0057F2B9   |.  05 5F>add eax,FFFF4F5F                ;  汉字的ASCII码加上FFFF4F5F
+0057F2BE   |.  83E8 >sub eax,24                      ;  再减24
+0057F2C1   |.  0F82 >jb CYMS.0057F401
+0057F2C7   |.  2D FC>sub eax,1FC
+0057F2CC   |.  0F82 >jb CYMS.0057F405
+0057F2D2   |.  E9 86>jmp CYMS.0057F45D
+0057F2D7   |>  05 3F>add eax,FFFF4D3F                ;  加上FFFF4D3F
+0057F2DC   |.  2D 2D>sub eax,22D                     ;  再减去22d
+0057F2E1   |.  0F82 >jb CYMS.0057F409
+0057F2E7   |.  2D FC>sub eax,1FC
+0057F2EC   |.  0F82 >jb CYMS.0057F40D
+0057F2F2   |.  2D B8>sub eax,0B8
+0057F2F7   |.  0F82 >jb CYMS.0057F411
+0057F2FD   |.  E9 5B>jmp CYMS.0057F45D
+0057F302   |>  3D F7>cmp eax,0BBF7
+0057F307   |.  7D 2B jge short CYMS.0057F334
+0057F309   |.  05 5E>add eax,FFFF485E
+0057F30E   |.  2D 1F>sub eax,11F
+0057F313   |.  0F82 >jb CYMS.0057F415
+0057F319   |.  2D 3D>sub eax,13D
+0057F31E   |.  0F82 >jb CYMS.0057F419
+0057F324   |.  2D F9>sub eax,1F9
+0057F329   |.  0F82 >jb CYMS.0057F41D
+0057F32F   |.  E9 29>jmp CYMS.0057F45D
+0057F334   |>  05 09>add eax,FFFF4409
+0057F339   |.  2D AF>sub eax,3AF
+0057F33E   |.  0F82 >jb CYMS.0057F421
+0057F344   |.  2D 06>sub eax,106
+0057F349   |.  0F82 >jb CYMS.0057F425
+0057F34F   |.  2D 3C>sub eax,23C
+0057F354   |.  0F82 >jb CYMS.0057F429
+0057F35A   |.  E9 FE>jmp CYMS.0057F45D
+0057F35F   |>  3D F6>cmp eax,0C8F6
+0057F364   |.  7D 59 jge short CYMS.0057F3BF
+0057F366   |.  3D BE>cmp eax,0C5BE
+0057F36B   |.  7D 29 jge short CYMS.0057F396
+0057F36D   |.  05 18>add eax,FFFF3D18
+0057F372   |.  2D DB>sub eax,1DB
+0057F377   |.  0F82 >jb CYMS.0057F42D
+0057F37D   |.  2D F3>sub eax,0F3
+0057F382   |.  0F82 >jb CYMS.0057F431
+0057F388   |.  83E8 >sub eax,8
+0057F38B   |.  0F82 >jb CYMS.0057F435
+0057F391   |.  E9 C7>jmp CYMS.0057F45D
+0057F396   |>  05 42>add eax,FFFF3A42
+0057F39B   |.  2D 1C>sub eax,11C
+0057F3A0   |.  0F82 >jb CYMS.0057F439
+0057F3A6   |.  2D E1>sub eax,1E1
+0057F3AB   |.  0F82 >jb CYMS.0057F43D
+0057F3B1   |.  83E8 >sub eax,3B
+0057F3B4   |.  0F82 >jb CYMS.0057F441
+0057F3BA   |.  E9 9E>jmp CYMS.0057F45D
+0057F3BF   |>  3D F4>cmp eax,0CEF4
+0057F3C4   |.  7D 1C jge short CYMS.0057F3E2
+0057F3C6   |.  05 0A>add eax,FFFF370A
+0057F3CB   |.  2D 04>sub eax,304
+0057F3D0   |.  72 73 jb short CYMS.0057F445
+0057F3D2   |.  2D E0>sub eax,1E0
+0057F3D7   |.  72 70 jb short CYMS.0057F449
+0057F3D9   |.  2D 1A>sub eax,11A
+0057F3DE   |.  72 6D jb short CYMS.0057F44D
+0057F3E0   |.  EB 7B jmp short CYMS.0057F45D
+0057F3E2   |>  05 0C>add eax,FFFF310C
+0057F3E7   |.  2D 95>sub eax,295
+0057F3EC   |.  72 63 jb short CYMS.0057F451
+0057F3EE   |.  83C0 >add eax,-30
+0057F3F1   |.  2D 18>sub eax,318
+0057F3F6   |.  72 5D jb short CYMS.0057F455
+0057F3F8   |.  2D 29>sub eax,329
+0057F3FD   |.  72 5A jb short CYMS.0057F459
+0057F3FF   |.  EB 5C jmp short CYMS.0057F45D
+0057F401   |>  B3 41 mov bl,41                       ;  拼音A
+0057F403   |.  EB 5A jmp short CYMS.0057F45F
+0057F405   |>  B3 42 mov bl,42                       ;  拼音B
+0057F407   |.  EB 56 jmp short CYMS.0057F45F
+0057F409   |>  B3 43 mov bl,43                       ;  拼音C
+0057F40B   |.  EB 52 jmp short CYMS.0057F45F
+0057F40D   |>  B3 44 mov bl,44                       ;  拼音D
+0057F40F   |.  EB 4E jmp short CYMS.0057F45F
+0057F411   |>  B3 45 mov bl,45                       ;  拼音E
+0057F413   |.  EB 4A jmp short CYMS.0057F45F
+0057F415   |>  B3 46 mov bl,46                       ;  拼音F
+0057F417   |.  EB 46 jmp short CYMS.0057F45F
+0057F419   |>  B3 47 mov bl,47                       ;  拼音G
+0057F41B   |.  EB 42 jmp short CYMS.0057F45F
+0057F41D   |>  B3 48 mov bl,48                       ;  拼音H
+0057F41F   |.  EB 3E jmp short CYMS.0057F45F
+0057F421   |>  B3 4A mov bl,4A                       ;  拼音J
+```
