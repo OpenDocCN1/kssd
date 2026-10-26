@@ -1,0 +1,130 @@
+
+```asm
+004245B4    F685 219E4000 4>TEST BYTE PTR SS:[EBP+409E21],40         ; F8 ????
+004245E6   /0F84 940B0000   JE EmbedPE.00425180
+00424615    83BD 229E4000 0>CMP DWORD PTR SS:[EBP+409E22],1          ; 01 ????
+00424647   /0F85 330B0000   JNZ EmbedPE.00425180
+00424676    B8 00000080     MOV EAX,80000000
+004246A6    F0:0FC7C8       LOCK CMPXCHG8B EAX                    ; 异常取出第一个函数地址
+004246D5    81C2 E73B4000   ADD EDX,EmbedPE.00403BE7
+00424704    8D8D 1D9E4000   LEA ECX,DWORD PTR SS:[EBP+409E1D]
+00424735    51              PUSH ECX                              ; EmbedPE.0042AE1D
+00424761    6A 04           PUSH 4
+0042478E    6A 08           PUSH 8
+004247BB    8B9D D49B4000   MOV EBX,DWORD PTR SS:[EBP+409BD4]
+004247EA    039D 3A9E4000   ADD EBX,DWORD PTR SS:[EBP+409E3A]                        ; EmbedPE.00400000
+0042481B    53              PUSH EBX                                                 ; EmbedPE.00400148
+00424845    8038 CC         CMP BYTE PTR DS:[EAX],0CC
+00424XXX    8078 01 CC      CMP BYTE PTR DS:[EAX+1],0CC
+00424950    8078 02 CC      CMP BYTE PTR DS:[EAX+2],0CC
+004249D7    8078 03 CC      CMP BYTE PTR DS:[EAX+3],0CC
+00424A5C    8078 04 CC      CMP BYTE PTR DS:[EAX+4],0CC
+00424AE3    8078 05 CC      CMP BYTE PTR DS:[EAX+5],0CC
+00424B6A    52              PUSH EDX                                                 ; EmbedPE.00424BE7
+00424B96  - FFE0            JMP EAX                                                  ; KERNEL32.VirtualProtect
+      0012FF38   00424BE7  /CALL to VirtualProtect
+      0012FF3C   00400148  |Address = EmbedPE.00400148             ; Directory 的　Resource
+      0012FF40   00000008  |Size = 8
+      0012FF44   00000004  |NewProtect = PAGE\_READWRITE
+      0012FF48   0042AE1D  \pOldProtect = EmbedPE.0042AE1D
+00424BC3    8B85 DC9B4000   MOV EAX,DWORD PTR SS:[EBP+409BDC]
+00424BF2    8903            MOV DWORD PTR DS:[EBX],EAX                               ; [400148]=1F000, 资源真正的 RVA
+00424C1F    8B85 E09B4000   MOV EAX,DWORD PTR SS:[EBP+409BE0]                        ; 22D8
+00424C4E    8943 04         MOV DWORD PTR DS:[EBX+4],EAX                             ; [40014C]=22D8, 资源真正的长度
+00424C7A    B8 00000080     MOV EAX,80000000
+00424CAA    F0:0FC7C8       LOCK CMPXCHG8B EAX                                       ; 异常取出第一个函数地址
+00424CD9    81C2 80414000   ADD EDX,EmbedPE.00404180
+00424D0A    6A 00           PUSH 0
+00424D37    51              PUSH ECX
+00424D63    6A 08           PUSH 8
+00424D90    53              PUSH EBX                                                 ; EmbedPE.00400148
+00424DBA    B3 CC           MOV BL,0CC
+00424DE5    3A18            CMP BL,BYTE PTR DS:[EAX]
+00424E6A    3A58 01         CMP BL,BYTE PTR DS:[EAX+1]
+00424EEE    3A58 02         CMP BL,BYTE PTR DS:[EAX+2]
+00424F74    3A58 03         CMP BL,BYTE PTR DS:[EAX+3]
+00424FF8    3A58 04         CMP BL,BYTE PTR DS:[EAX+4]
+0042507E    3A58 05         CMP BL,BYTE PTR DS:[EAX+5]
+00425104    52              PUSH EDX                                                 ; EmbedPE.00425180
+00425130  - FFE0            JMP EAX                                                  ; KERNEL32.VirtualProtect
+            0012FF38   00425180  /CALL to VirtualProtect
+            0012FF3C   00400148  |Address = EmbedPE.00400148
+            0012FF40   00000008  |Size = 8
+            0012FF44   00000101  |NewProtect = PAGE\_NOACCESS|PAGE\_GUARD
+            0012FF48   00000000  \pOldProtect = NULL
+0042515B    F685 219E4000 8>TEST BYTE PTR SS:[EBP+409E21],80
+0042518D   /0F84 CA0A0000   JE EmbedPE.00425C5D
+004251BC    B8 00000080     MOV EAX,80000000
+004251EC    F0:0FC7C8       LOCK CMPXCHG8B EAX                                      ; 异常取出第一个函数地址
+0042521B    81C2 4D474000   ADD EDX,EmbedPE.0040474D
+0042524A    8D8D 1D9E4000   LEA ECX,DWORD PTR SS:[EBP+409E1D]
+0042527B    51              PUSH ECX                                                 ; EmbedPE.0042AE1D
+004252A7    6A 04           PUSH 4
+004252D4    6A 02           PUSH 2
+00425301    8B9D D89B4000   MOV EBX,DWORD PTR SS:[EBP+409BD8]
+00425330    039D 3A9E4000   ADD EBX,DWORD PTR SS:[EBP+409E3A]                        ; EmbedPE.00400000
+00425361    53              PUSH EBX                                                 ; EmbedPE.004000C6
+0042538B    B1 CC           MOV CL,0CC
+      0012FF38   0042574D  /CALL to VirtualProtect
+      0012FF3C   004000C6  |Address = EmbedPE.004000C6             ; section number
+      0012FF40   00000002  |Size = 2
+      0012FF44   00000004  |NewProtect = PAGE\_READWRITE
+      0012FF48   0042AE1D  \pOldProtect = EmbedPE.0042AE1D
+0042572C    66:0923         OR WORD PTR DS:[EBX],SP                                  ; 破坏区段数, 这句 NOP 掉 ============================NOP
+00425758    B8 00000080     MOV EAX,80000000
+00425788    F0:0FC7C8       LOCK CMPXCHG8B EAX                                       ; 异常取出第一个函数地址
+      0012FF38   00425C5D  /CALL to VirtualProtect
+      0012FF3C   004000C6  |Address = EmbedPE.004000C6
+      0012FF40   00000002  |Size = 2
+      0012FF44   00000101  |NewProtect = PAGE\_NOACCESS|PAGE\_GUARD
+      0012FF48   00000000  \pOldProtect = NULL
+00425C39    8B95 3A9E4000   MOV EDX,DWORD PTR SS:[EBP+409E3A]                        ; EmbedPE.00400000
+00425C6A    8B85 2A9E4000   MOV EAX,DWORD PTR SS:[EBP+409E2A]                        ; EmbedPE.00400000
+00425C99    2BD0            SUB EDX,EAX                                              ; EmbedPE.00400000
+00425CC6   /0F84 C8040000   JE EmbedPE.00426194                                      ; 重定位处理?
+```
+
+### (六)  一个简单的花招后,  调用 `SetUnhandledExceptionFilter`
+
+```asm
+00426170    8B85 C89D4000   MOV EAX,DWORD PTR SS:[EBP+409DC8]        ; D000
+004261A1    0385 3A9E4000   ADD EAX,DWORD PTR SS:[EBP+409E3A]        ; EmbedPE.00400000
+004261D0    B9 00010000     MOV ECX,100
+004261FE    B3 C3           MOV BL,0C3                               ; RET
+00426229    8BF0            MOV ESI,EAX                              ; EmbedPE.0040D000
+00426256    83C6 02         ADD ESI,2
+00426284    861E            XCHG BYTE PTR DS:[ESI],BL
+004262B1    FFD6            CALL ESI                                 ; EmbedPE.0040D002,
+004262DC    861E            XCHG BYTE PTR DS:[ESI],BL
+00426309    49              DEC ECX
+00426335  ^\0F85 3CFFFFFF   JNZ EmbedPE.00426277                      ; 实际上到 426256
+00426364    F685 219E4000 2>TEST BYTE PTR SS:[EBP+409E21],21
+00426396   /0F84 17060000   JE EmbedPE.004269B3
+004263C5    33C0            XOR EAX,EAX                              ; EmbedPE.0040D000
+004263F0    8D9D 019E4000   LEA EBX,DWORD PTR SS:[EBP+409E01]        ; "SetUnhandledExceptionFilter"
+00426421    F0:0FC7C8       LOCK CMPXCHG8B EAX                       ; 异常计算该函数地址
+0042644E    B8 00000080     MOV EAX,80000000
+0042647E    F0:0FC7C8       LOCK CMPXCHG8B EAX                       ; 异常取出该函数地址到 EAX
+004264AB    BF 7E544000     MOV EDI,EmbedPE.0040547E
+004264DB    03FD            ADD EDI,EBP
+00426508    8137 7BDA5758   XOR DWORD PTR DS:[EDI],5857DA7B
+00426539    81C2 B3594000   ADD EDX,EmbedPE.004059B3
+00426568    BB E77C4000     MOV EBX,EmbedPE.00407CE7
+00426596    03DD            ADD EBX,EBP
+004265C3    53              PUSH EBX                                 ; EmbedPE.00428CE7
+      0012FF44   004269B3  /CALL to SetUnhandledExceptionFilter
+      0012FF48   00428CE7  \pTopLevelFilter = EmbedPE.00428CE7
+```
+
+### (七)  恢复 IAT
+
+```asm
+0042698E    F685 219E4000 0>TEST BYTE PTR SS:[EBP+409E21],2
+004269C0   /0F84 A5030000   JE EmbedPE.00426D6B
+00426D47    8B95 3A9E4000   MOV EDX,DWORD PTR SS:[EBP+409E3A]        ; EmbedPE.00400000
+00426D76    8BB5 4E9E4000   MOV ESI,DWORD PTR SS:[EBP+409E4E]        ; 130F0
+00426DA5    03F2            ADD ESI,EDX                              ; EmbedPE.00400000
+00426DD2    8B46 0C         MOV EAX,DWORD PTR DS:[ESI+C]             ; 1333C
+00426DFE    85C0            TEST EAX,EAX
+00426E2B   /0F84 3E150000   JE EmbedPE.0042836F                      ; // 大循环出口, 所有 DLL 都处理完了
+```
