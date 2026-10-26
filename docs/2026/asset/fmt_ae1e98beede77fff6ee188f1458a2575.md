@@ -1,0 +1,70 @@
+
+```asm
+00405E60  |.  5F            POP EDI
+00405E61  |.  5E            POP ESI
+00405E62  \.  C3            RETN
+
+// 两个小的FUNCTION
+
+004109E4  /$  E8 CA390000   CALL Freecell.004143B3                   ; EAX = ...
+004109E9  |.  8B4C24 04     MOV ECX,DWORD PTR SS:[ESP+4]             ; para1
+004109ED  |.  8948 14       MOV DWORD PTR DS:[EAX+14],ECX            ; [EAX+14] = para1
+004109F0  \.  C3            RETN
+
+004109F1  /$  E8 BD390000   CALL Freecell.004143B3                   ; EAX = ...
+004109F6  |.  8B48 14       MOV ECX,DWORD PTR DS:[EAX+14]            ; ECX = [EAX+14]
+004109F9  |.  69C9 FD430300 IMUL ECX,ECX,343FD                       ; ECX *= 343FD
+004109FF  |.  81C1 C39E2600 ADD ECX,269EC3                           ; ECX += 269EC3
+00410A05  |.  8948 14       MOV DWORD PTR DS:[EAX+14],ECX            ; [EAX+14] = ECX
+00410A08  |.  8BC1          MOV EAX,ECX
+00410A0A  |.  C1E8 10       SHR EAX,10
+00410A0D  |.  25 FF7F0000   AND EAX,7FFF                             ; ret (ECX>>16) & 7FFF
+00410A12  \.  C3            RETN
+```
+
+## 注册机
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+static unsigned value;
+
+void sub1(unsigned para)
+{
+    value = para;
+}
+
+unsigned sub2(void)
+{
+    value = value * 0x343FD + 0x269EC3;
+    return (value >> 16) & 0x7fff;
+}
+
+void main(void) {
+    char UserName[100];
+    int i, len;
+    unsigned num;
+
+    printf("Input username:\n");
+    gets(UserName);
+
+    len = strlen(UserName);
+    num = 0x0D431;
+
+    for (i = 0; i < len; i++) {
+        sub1((unsigned)(unsigned char)UserName[i] ^ 0x14142135);
+        num = (sub2() + ((num << 16) | (num >> 16))) ^ 0x27181828;
+    }
+
+    sub1(0x75bCD15);
+    for (i = 0; i < 100; i++) {
+        num = (sub2() + ((num << 16) | (num >> 16))) ^ 0x17320508;
+    }
+
+    printf("UserName=%s\n", UserName);
+    printf("RegisterCode=%ld\n", num);
+}
+```
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
