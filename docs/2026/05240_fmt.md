@@ -1,0 +1,377 @@
+
+# [下载][原创]小白也能逆向分析扫雷游戏
+
+## 1. 样本概况具体分析过程
+
+### 1.1 应用程序信息
+
+应用程序名称：`winmine.exe`(扫雷)
+
+说明：一款基础的扫雷游戏
+
+### 1.2 分析环境及工具
+
+系统环境：Win7 32位
+
+工具：
+
+- OllyDbg(动态调试代码)
+- Cheat Engine(搜索数据)
+- Spy++(寻找窗口回调函数)
+- PEID/exeinfo(查壳，查编译环境)
+- Visual Studio2019(开发程序)
+- MFCInject(注入工具)
+
+### 1.3 分析目标
+
+1. 标注某处是否有雷
+2. 一键通关
+
+## 2. 具体分析过程
+
+### 2.1 已知与推测
+
+#### 2.1.1 判断开发游戏的语言
+
+首先将游戏拖拽到PEID上会发现是由C++编写的程序
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_GV497JUN6HNVRDR.jpg)
+
+当我们打开游戏时是一个窗口，而不是一个黑框框，猜测是SDK或MFC编写的
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_WCKGTXQY2XUVPRE.jpg)
+
+猜测是SDK编写的，这是由于：
+
+1. 点击子系统箭头，点击导入表箭头，会发现列表中有`msvrt.dll`，这是微软的运行时库，故多半是SDK编写
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_R22ZS2W5E26S8ZB.jpg)
+
+2. 列表中没有MFC特有的库
+3. 查看该游戏大小只有100kb，若是MFC静态编译则会有1M左右
+
+若游戏是由SDK编写的，这意味着会有一些相关的函数可供我们查找与调用，如：
+
+- `CreateWindowExW`/`CreateWindowExA`(创建窗口)
+- `GetWindowTextA`/`GetWindowTextW`(将指定窗口的标题拷贝到一个缓冲区内)
+- `SetWindowTextA`/`SetWindowTextW`(改变控件的文本内容，窗口也是一个控件)
+- `rand`(产生随机数函数)
+
+#### 2.1.2 可探究路线
+
+1. 动态调试，即从API函数入手
+
+由于是由SDK编写的代码，那么必定含有windows的api函数，那么就可以用OllyDbg进行调试，来探究这款游戏内部的逻辑，得到更多的信息
+
+2. 数据分析，即从变化的数据入手
+
+由于扫雷是一款游戏，必定有一些数据来代表着游戏的内容，诸如雷的数量，时间等信息。像雷的分布，可能会有一个数组来标注，那么我们可以通过获取数组的地址，来得到雷的分布数据。对于以上这些信息，通过Cheat Engine不仅可以获得，还可以进行修改，通过修改，可以验证我们的一些猜想。
+
+### 2.2 数据分析
+
+#### 2.2.1 寻找重要数值
+
+通过观察，左上角有自定义游戏选项，可自定义高度，宽度，雷的数量，右上角的时间计时与左上角的已判断雷数计数
+
+其中游戏通关与否与时间和待判定雷数无关，高度，宽度可用于表示坐标，雷数是用于判断的重要指标并与多项游戏机制相关，所以主要寻找高度，宽度，雷的数量这三项数据即可
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_28EZKRFVQ6MXPVZ.jpg)
+
+#### 2.2.2 寻找数值地址
+
+Cheat Engine添加扫雷进程
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_TY5777KVH748SMX.jpg)
+
+通过自定义选项改变游戏的高，宽，雷数，不断搜索这些数值，筛选到最后，剩下绿色标记的就是基地址(不会因为重新打开游戏而变化的地址)，最终得到6条地址信息
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_K4DU6AJEA69ZBJC.jpg)
+
+通过更改地址，得到访问数据的地址信息
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_PJNXVGRXKBW4KP8.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_WHCK24DHG4DF8ZD.jpg)
+
+用OllyDbg查找响应地址，数据窗口跟随，发现初始化雷数组的汇编代码区域
+
+宽的地址是`0x1005334`；
+
+高的地址是`0x1005338`；
+
+雷数的地址是`0x1005330`；
+
+雷数组的地址是`1005340`，边界的值是`10`，雷的值是`8F`
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_VYFR553SHNTHFRE.jpg)
+
+## 3. 游戏反汇编代码调试与注入软件编写
+
+用Visual Studio2019 创建项目
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_YW6MUUEN4MQ3F79.jpg)
+
+用spy++获取窗口类名，知道窗口的地址为`1001BC9`
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_B9D3ZYP3MUJXTWN.jpg)
+
+许多代码已被编写，直接写在instance函数中编写即可，`SetWindowLong`将游戏的回调函数替换为自己的回调函数，判断若返回值为`NULL`，说明没找到窗口，用于提示报错
+
+```cpp
+BOOL CMFCGamePlugApp::InitInstance()
+
+{
+
+	CWinApp::InitInstance();
+
+
+
+	//1.通过查找窗口，获取窗口句柄
+
+	g_Wnd=::FindWindow(L"扫雷", L"扫雷");
+
+	if (g_Wnd==NULL)
+
+	{
+
+		OutputDebugString(L"无法找到 扫雷窗口");
+
+		return FALSE;
+
+	}
+
+
+
+	//2.设置窗口回调函数
+
+	g_OldProc = (WNDPROC)SetWindowLong(g_Wnd,GWL_WNDPROC, (LONG)WindowProc);
+
+	if (g_OldProc == NULL)
+
+	{
+
+		OutputDebugString(L"设置窗口回调函数 失败");
+
+		return FALSE;
+
+	}
+
+
+
+	return TRUE;
+
+}
+```
+
+回调函数编写，如果按下F5，则进行接下来的行为(启动注入)
+
+```cpp
+LRESULT CALLBACK WindowProc(
+
+	_In_ HWND hWnd,
+
+	_In_ UINT Msg,
+
+	_In_ WPARAM wParam,
+
+	_In_ LPARAM lParam)
+
+{
+
+	if (Msg == WM_KEYDOWN && wParam == VK_F5)
+
+	{
+
+		
+
+	}
+
+
+
+	return CallWindowProc(g_OldProc, hWnd, Msg, wParam, lParam);
+
+}
+```
+
+编写代码，用MFCInject注入，按下F5后用DebugView查看是否得到想要的内容
+
+```cpp
+int nWidth = *g_pWidth;
+
+int nHeight = *g_pHeight;
+
+int nMineCount = *g_pMineCount;
+
+CString strString;
+
+strString.Format(L"宽度： %d,高度： %d,雷数：%d ", nWidth, nHeight,nMineCount);
+
+OutputDebugString(strString.GetBuffer());
+```
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_HSTTKDSUHYX4S5Q.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_H6ZMRZHD25YTZ4W.jpg)
+
+输入窗口的地址，在OllyDbg中找到窗口回调汇编代码，分析参数坐标和我们需要输出内容的数学计算关系
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_SDSC87JQAPWM82V.jpg)
+
+编写代码，根据鼠标移动获取坐标，用Spy++查看窗口输出的消息中是否有想要的坐标，最后在窗口标题处显示是否有雷
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_DJC48H7U4UPGT56.jpg)
+
+```cpp
+else if (Msg == WM_MOUSEMOVE)
+
+	{
+
+		//鼠标移动
+
+		int x, y;
+
+		x = LOWORD(lParam);
+
+		y = HIWORD(lParam);
+
+		x = (x + 4) >> 4;
+
+		y = (y-0x27)>>4;
+
+		BYTE byCode = *(PBYTE)((DWORD)g_pBase + x + y * 32);
+
+		if (byCode == MINE)
+
+		{
+
+			SetWindowText(hWnd,L"此处有雷");
+
+		}
+
+		else
+
+		{
+
+			SetWindowText(hWnd, L"无事");
+
+		}
+
+	}
+```
+
+在回调函数处设置条件断点，当点击时断下，分析反汇编代码，得到`x`,`y`坐标
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_8YE8GR5F78FTYNN.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_E64CYPUVR3AGCN9.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_NMY8FNQPTFYUAVY.jpg)
+
+通过模拟点击事件把所有非雷区域点击，实现一键通关
+
+```cpp
+if (Msg == WM_KEYDOWN && wParam == VK_F5)
+
+	{
+
+		//一键通关
+
+		OutputDebugString(L"F5");
+
+		int nWidth = *g_pWidth;
+
+		int nHeight = *g_pHeight;
+
+		int nMineCount = *g_pMineCount;
+
+		CString strString;
+
+		strString.Format(L"宽度： %d,高度： %d,雷数：%d ", nWidth, nHeight,nMineCount);
+
+		OutputDebugString(strString.GetBuffer());
+
+		int nFindCount = 0;
+
+		for (size_t y = 1;y<nHeight+1;y++)
+
+		{
+
+			CString strLine;
+
+			for (size_t x = 1; x < nWidth + 1; x++)
+
+			{
+
+				//数组基地址+(y+1)*32+x+1(y=0到高度)
+
+				BYTE byCode = *(PBYTE)((DWORD)g_pBase + x + y * 32);
+
+				if (byCode == MINE)
+
+				{
+
+					nFindCount++;
+
+				}
+
+				else
+
+				{
+
+					int xPos, yPos;
+
+					xPos = (x << 4) - 4;
+
+					yPos = (y << 4) + 0x27;					
+
+					SendMessage(hWnd,WM_LBUTTONDOWN,0,MAKELPARAM(xPos,yPos));
+
+					SendMessage(hWnd,WM_LBUTTONUP,0,MAKELPARAM(xPos,yPos));
+
+				}
+
+				CString strCode;
+
+				strCode.Format(L"%02x ", byCode);
+
+				strLine += strCode;
+
+			}
+
+			OutputDebugString(strLine.GetBuffer());
+
+		}
+
+		CString strCode;
+
+		strCode.Format(L"找到的雷数 %d ", nFindCount);
+
+		OutputDebugString(strCode.GetBuffer());
+
+	}
+```
+
+## 4. 最终效果与附件下载
+
+![](https://bbs.kanxue.com/upload/attach/202010/873637_VZR87EHQFRGRXCK.jpg)
+
+附件中包含：
+
+- 注入的dll
+- 注入工具MFCInject
+- 游戏本体
+- dll源码(用 Visual Studio2019编写)
+
+本文记录平日自己写的项目(其中用到的知识来自于15pb,遇到不解处多谢老师指导)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+最后于 2020-11-27 09:52 被哦哈哈哈哈编辑
+
+，原因：
+
+[#调试逆向](https://bbs.kanxue.com/forum-4-1-1.htm)
+
+上传的附件：
+
+- [每天都要好心情.zip](javascript:void(0);) （5.86MB，235次下载）
