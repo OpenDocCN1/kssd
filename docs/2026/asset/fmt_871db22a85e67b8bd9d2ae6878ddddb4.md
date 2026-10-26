@@ -1,0 +1,140 @@
+
+## 汇编 Dump
+
+```
+0041C100  |.  6A 02         PUSH 2                                   ; /Arg1 = 00000002
+0041C102  |.  8B4D E0       MOV ECX, DWORD PTR SS:[EBP-20]           ; |
+0041C105  |.  81C1 B8010000 ADD ECX, 1B8                             ; |
+0041C10B  |.  E8 00D0FEFF   CALL midi2mp3.00409110                   ; \midi2mp3.00409110
+0041C110  |.  8845 F6       MOV BYTE PTR SS:[EBP-A], AL              ;  将注册码的第三位存储
+0041C113  |.  6A 03         PUSH 3                                   ; /Arg1 = 00000003
+0041C115  |.  8B4D E0       MOV ECX, DWORD PTR SS:[EBP-20]           ; |
+0041C118  |.  81C1 B8010000 ADD ECX, 1B8                             ; |
+0041C11E  |.  E8 ED CFFEFF   CALL midi2mp3.00409110                   ; \midi2mp3.00409110
+0041C123  |.  8845 F5       MOV BYTE PTR SS:[EBP-B], AL              ;  将注册码的第四位存储
+0041C126  |.  6A 04         PUSH 4                                   ; /Arg1 = 00000004
+0041C128  |.  8B4D E0       MOV ECX, DWORD PTR SS:[EBP-20]           ; |
+0041C12B  |.  81C1 B8010000 ADD ECX, 1B8                             ; |
+0041C131  |.  E8 DA CFFEFF   CALL midi2mp3.00409110                   ; \midi2mp3.00409110
+0041C136  |.  8845 F9       MOV BYTE PTR SS:[EBP-7], AL              ;  将注册码的第五位存储
+0041C139  |.  6A 05         PUSH 5                                   ; /Arg1 = 00000005
+0041C13B  |.  8B4D E0       MOV ECX, DWORD PTR SS:[EBP-20]           ; |
+0041C13E  |.  81C1 B8010000 ADD ECX, 1B8                             ; |
+0041C144  |.  E8 C7 CFFEFF   CALL midi2mp3.00409110                   ; \midi2mp3.00409110
+0041C149  |.  8845 F7       MOV BYTE PTR SS:[EBP-9], AL              ;  将注册码的第六位存储
+0041C14C  |.  6A 06         PUSH 6                                   ; /Arg1 = 00000006
+0041C14E  |.  8B4D E0       MOV ECX, DWORD PTR SS:[EBP-20]           ; |
+0041C151  |.  81C1 B8010000 ADD ECX, 1B8                             ; |
+0041C157  |.  E8 B4 CFFEFF   CALL midi2mp3.00409110                   ; \midi2mp3.00409110
+0041C15C  |.  8845 FE       MOV BYTE PTR SS:[EBP-2], AL              ;  将注册码的第七位存储
+0041C15F  |.  6A 07         PUSH 7                                   ; /Arg1 = 00000007
+0041C161  |.  8B4D E0       MOV ECX, DWORD PTR SS:[EBP-20]           ; |
+0041C164  |.  81C1 B8010000 ADD ECX, 1B8                             ; |
+0041C16A  |.  E8 A1 CFFEFF   CALL midi2mp3.00409110                   ; \midi2mp3.00409110
+0041C16F  |.  8845 FB       MOV BYTE PTR SS:[EBP-5], AL              ;  将注册码的第八位存储
+0041C172  |.  0FB655 EF     MOVZX EDX, BYTE PTR SS:[EBP-11]          ;  用户名的第一位或4d后除A的余数
+0041C176  |.  0FB645 FC     MOVZX EAX, BYTE PTR SS:[EBP-4]
+0041C17A  |.  83E8 30       SUB EAX, 30                              ;  转换第一位字符为数字
+0041C17D  |.  3BD0          CMP EDX, EAX
+0041C17F  |.  75 3C         JNZ SHORT midi2mp3.0041C1BD
+0041C181  |.  0FB64D F8     MOVZX ECX, BYTE PTR SS:[EBP-8]           ;  用户名的第二位或44后除A的余数
+0041C185  |.  0FB655 FD     MOVZX EDX, BYTE PTR SS:[EBP-3]
+0041C189  |.  83EA 30       SUB EDX, 30                              ;  转换第二位字符为数字
+0041C18C  |.  3BCA          CMP ECX, EDX
+0041C18E  |.  75 2D         JNZ SHORT midi2mp3.0041C1BD
+0041C190  |.  0FB645 FF     MOVZX EAX, BYTE PTR SS:[EBP-1]           ;  用户名的第一位或32后除A的余数
+0041C194  |.  0FB64D F6     MOVZX ECX, BYTE PTR SS:[EBP-A]
+0041C198  |.  83E9 30       SUB ECX, 30
+0041C19B  |.  3BC1          CMP EAX, ECX                             ;  转换第三位字符为数字
+0041C19D  |.  75 1E         JNZ SHORT midi2mp3.0041C1BD
+0041C19F  |.  0FB655 FA     MOVZX EDX, BYTE PTR SS:[EBP-6]           ;  用户名的第二位或4d后除A的余数
+0041C1A3  |.  0FB645 F5     MOVZX EAX, BYTE PTR SS:[EBP-B]
+0041C1A7  |.  83E8 30       SUB EAX, 30
+0041C1AA  |.  3BD0          CMP EDX, EAX                             ;  转换第四位字符为数字
+0041C1AC  |.  75 0F         JNZ SHORT midi2mp3.0041C1BD
+0041C1AE  |.  0FB64D F4     MOVZX ECX, BYTE PTR SS:[EBP-C]           ;  用户名的各位的ASCII码的和除A后的余数
+0041C1B2  |.  0FB655 F9     MOVZX EDX, BYTE PTR SS:[EBP-7]
+0041C1B6  |.  83EA 30       SUB EDX, 30
+0041C1B9  |.  3BCA          CMP ECX, EDX                             ;  转换第五位字符为数字，并比较，相等就OK
+0041C1BB  |.  74 58         JE SHORT midi2mp3.0041C215               ;  相等就注册成功
+0041C1BD  |>  0FB645 FC     MOVZX EAX, BYTE PTR SS:[EBP-4]
+0041C1C1  |.  83F8 33       CMP EAX, 33                              ;  第一位与33进行比较，不等就over
+0041C1C4  |.  0F85 AD000000 JNZ midi2mp3.0041C277
+0041C1CA  |.  0FB64D FD     MOVZX ECX, BYTE PTR SS:[EBP-3]
+0041C1CE  |.  83F9 33       CMP ECX, 33                              ;  第二位与33进行比较，不等就over
+0041C1D1  |.  0F85 A0000000 JNZ midi2mp3.0041C277
+0041C1D7  |.  0FB655 F6     MOVZX EDX, BYTE PTR SS:[EBP-A]
+0041C1DB  |.  83FA 33       CMP EDX, 33                              ;  第三位与33进行比较，不等就over
+0041C1DE  |.  0F85 93000000 JNZ midi2mp3.0041C277
+0041C1E4  |.  0FB645 F5     MOVZX EAX, BYTE PTR SS:[EBP-B]           ;  第四位与36进行比较，不等就over
+0041C1E8  |.  83F8 36       CMP EAX, 36
+0041C1EB  |.  0F85 86000000 JNZ midi2mp3.0041C277
+0041C1F1  |.  0FB64D F9     MOVZX ECX, BYTE PTR SS:[EBP-7]           ;  第五位与36进行比较，不等就over
+0041C1F5  |.  83F9 36       CMP ECX, 36
+0041C1F8  |.  75 7D         JNZ SHORT midi2mp3.0041C277
+0041C1FA  |.  0FB655 F7     MOVZX EDX, BYTE PTR SS:[EBP-9]           ;  第六位与31进行比较，不等就over
+0041C1FE  |.  83FA 31       CMP EDX, 31
+0041C201  |.  75 74         JNZ SHORT midi2mp3.0041C277
+0041C203  |.  0FB645 FE     MOVZX EAX, BYTE PTR SS:[EBP-2]           ;  第七位与34进行比较，不等就over
+0041C207  |.  83F8 34       CMP EAX, 34
+0041C20A  |.  75 6B         JNZ SHORT midi2mp3.0041C277
+0041C20C  |.  0FB64D FB     MOVZX ECX, BYTE PTR SS:[EBP-5]           ;  第八位与36进行比较，不等就over
+0041C210  |.  83F9 36       CMP ECX, 36
+0041C213  |.  75 62         JNZ SHORT midi2mp3.0041C277
+0041C215  |>  6A 00         PUSH 0
+0041C217  |.  6A 00         PUSH 0
+0041C219  |.  68 EC0A4500   PUSH midi2mp3.00450AEC                   ;  ASCII "Registration has succeeded!"
+0041C21E  |.  E8 44 60 02 00   CALL midi2mp3.00442267
+0041C223  |.  8B4D E0       MOV ECX, DWORD PTR SS:[EBP-20]
+0041C226  |.  81C1 B4010000 ADD ECX, 1B4
+0041C22C  |.  E8 DF7EFFFF   CALL midi2mp3.00414110
+0041C231  |.  50            PUSH EAX
+0041C232  |.  68 080B4500   PUSH midi2mp3.00450B08                   ;  ASCII "username"
+0041C237  |.  68 140B4500   PUSH midi2mp3.00450B14                   ;  ASCII "Option"
+0041C23C  |.  E8 7FC3FEFF   CALL midi2mp3.004085C0
+0041C241  |.  8BC8          MOV ECX, EAX                             ; |
+0041C243  |.  E8 36 61 02 00   CALL midi2mp3.0044237E                   ; \midi2mp3.0044237E
+0041C248  |.  8B4D E0       MOV ECX, DWORD PTR SS:[EBP-20]
+0041C24B  |.  81C1 B8010000 ADD ECX, 1B8
+0041C251  |.  E8 BA7EFFFF   CALL midi2mp3.00414110
+0041C256  |.  50            PUSH EAX
+0041C257  |.  68 1C0B4500   PUSH midi2mp3.00450B1C                   ;  ASCII "registration_code"
+0041C25C  |.  68 300B4500   PUSH midi2mp3.00450B30                   ;  ASCII "Option"
+0041C261  |.  E8 5AC3FEFF   CALL midi2mp3.004085C0
+0041C266  |.  8BC8          MOV ECX, EAX                             ; |
+0041C268  |.  E8 11 61 02 00   CALL midi2mp3.0044237E                   ; \midi2mp3.0044237E
+0041C26D  |.  8B4D E0       MOV ECX, DWORD PTR SS:[EBP-20]
+0041C270  |.  E8 ABE50100   CALL midi2mp3.0043A820
+0041C275  |.  EB 0E         JMP SHORT midi2mp3.0041C285
+0041C277  |>  6A 00         PUSH 0
+0041C279  |.  6A 00         PUSH 0
+0041C27B  |.  68 380B4500   PUSH midi2mp3.00450B38                   ;  ASCII "Registration failed!"
+0041C280  |.  E8 E25F0200   CALL midi2mp3.00442267
+0041C285  |>  8BE5          MOV ESP, EBP
+0041C287  |.  5D            POP EBP
+0041C288  \.  C3            RETN
+```
+
+## 注册要求
+
+用户名至少两位
+
+注册码：至少8位
+
+注册码的运算过程是这样的：
+
+第一位为：用户名的ASCII码或4D后除以A即取其余数
+
+第二位为：用户名的ASCII码或44后除以A
+
+第三位为：用户名的ASCII码或32后除以A
+
+第四位为：用户名的ASCII码或4D后除以A
+
+第五位为：用户名的ASCII码相加后除以A取其余数
+
+第六七八任意
+
+或者是一个固定的注册码：`33366146`
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
