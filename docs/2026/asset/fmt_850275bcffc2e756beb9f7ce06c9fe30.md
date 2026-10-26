@@ -1,0 +1,245 @@
+
+# 雨过天晴自我注册
+
+雨过天晴电脑保护系统的注册判断过程非常直接，只要硬盘上有正版注册标志它就认为是正版。但是雨过天晴电脑保护系统可以分为两个部分：windows环境下的主体程序`EAZTRAY.exe`和非windows环境的辅助程序（计算机启动时按HOME键可进入），而每一个进度还原的操作都会用到这个辅助程序，所以在windows下爆破主体程序或者其他诸如补丁的方法没有任何意义。让试用版变成注册版，我们要做的只能是把已注册标志写入硬盘。自己写程序完成这个过程有点麻烦（在DOS下方便一点），让雨过天晴主体程序自我完成注册标志的写入才是最简单和快捷的。
+
+这里拿`060612`专业版本为例。雨过天晴软件在进入系统的时候自动运行，可以先用任务管理器结束其进程，然后OD加载分析看看其正式版的标志是什么。至于判断的位置，很容易就能找见，最简单的方法就是搜索字串"试用期限"然后向前定位，或者通过API函数`WinSysTime2ShieldSysTime`定位。这里说两个关键的地方：
+
+1. 内存地址`0040B8C6`处，`cmp byte ptr[esi+6CD],2`
+
+   `[esi+6CD]`中存放的就是注册标志，一个byte，1为试用版，2为正式版，3就不用管了。在这里中断后要记下`[esi+6CD]`所指的位置，每台机器上都是不同的。
+
+2. 内存地址`0040B93C`处，`jle 0040B95E`
+
+   注意后面不远处的`call 0043ED36`，这个call中有写入注册信息的部分，这意味着`0040B93Ch`处绝对不能跳。
+
+接下来很简单了，要做的就是在调用`call 0043ED36`前把注册标志改为2；当然这个过程必须是在程序执行到`0040B93C`处才能做。下断`0040B8C6`和`0040B93C`，
+
+在`0040B93C`中断后，修改`[esi+6CD]`中的值为2，然后设法不让跳，过了`call 0043ED36`后注册信息就被写入了。修改日期到7天以后，重新启动HOME键进去试试，没有任何提示，正版了吧？
+
+如果要写个类似loader的东西作为注册工具，可以如下：
+
+```
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+;雨过天晴自我注册
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+.386
+
+.model flat, stdcall
+
+option casemap :none
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+; Include 数据
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+include        windows.inc
+
+include        user32.inc
+
+include        kernel32.inc
+
+includelib     user32.lib
+
+includelib     kernel32.lib
+
+includelib     dic32u.lib
+
+include        macro.asm
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+BREAK_POINT1   equ 0040B8C6h ;第一个断点
+
+BREAK_POINT2   equ 0040B93Ch ;第二个断点
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+; 数据段
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+.const
+
+dbPatched1     db 02h
+
+dbPatched2     db 90h,90h
+
+dbInt3         db 0cch
+
+dbOldByte      db 80h
+
+szExecFilename db 'EAZTRAY.exe',0
+
+.data?
+
+align          dword
+
+PATCH_POSITION dd ?
+
+dwTemp         dd ?
+
+stCT           CONTEXT <?>
+
+stDE           DEBUG_EVENT <?>
+
+stStartUp      STARTUPINFO <>
+
+stProcInfo     PROCESS_INFORMATION <>
+
+stProcess      PROCESSENTRY32<>
+
+hSnapShot      dd ?
+
+.code
+
+Start:
+
+    invoke RtlZeroMemory,addr stProcess,sizeof stProcess
+
+    mov stProcess.dwSize,sizeof stProcess
+
+    invoke CreateToolhelp32Snapshot,TH32CS_SNAPPROCESS,0
+
+    mov hSnapShot,eax
+
+    invoke Process32First,hSnapShot,addr stProcess
+
+    .while eax
+
+        invoke CompareString,LOCALE_USER_DEFAULT,NORM_IGNORECASE,addr szExecFilename,\
+sizeof szExecFilename,addr stProcess.szExeFile,sizeof szExecFilename
+
+        .if eax==2
+
+            invoke OpenProcess,PROCESS_TERMINATE,FALSE,stProcess.th32ProcessID
+
+            .if eax
+
+                mov ebx,eax
+
+                invoke TerminateProcess,ebx,-1
+
+                invoke CloseHandle,ebx
+
+            .endif
+
+            .break
+
+        .endif
+
+        invoke Process32Next,hSnapShot,addr stProcess
+
+    .endw
+
+;*********************************************************************
+
+; 创建进程
+
+;*********************************************************************
+
+    invoke GetStartupInfo,addr stStartUp
+
+    invoke CreateProcess,offset szExecFilename,NULL,NULL,NULL,NULL,\
+DEBUG_PROCESS or DEBUG_ONLY_THIS_PROCESS,NULL,NULL,\
+offset stStartUp,offset stProcInfo
+
+    .if !eax
+
+        invoke MessageBox,NULL,CTEXT("无法装载目标文件,",0dh,"复制本程序到雨果天晴安装目录下执行!"),NULL,MB_OK or MB_ICONSTOP
+
+        invoke ExitProcess,NULL
+
+    .endif
+
+;*********************************************************************
+
+; 调试进程
+
+;*********************************************************************
+
+    .while TRUE
+
+        invoke WaitForDebugEvent,addr stDE,INFINITE
+
+        .break .if stDE.dwDebugEventCode == EXIT_PROCESS_DEBUG_EVENT
+
+;*********************************************************************
+
+; 如果进程开始，则将入口地址处的代码改为 int 3 断点中断
+
+;*********************************************************************
+
+        .if stDE.dwDebugEventCode == CREATE_PROCESS_DEBUG_EVENT
+
+            invoke WriteProcessMemory,stProcInfo.hProcess,BREAK_POINT1,addr dbInt3,1,addr dwTemp
+
+            invoke WriteProcessMemory,stProcInfo.hProcess,BREAK_POINT2,addr dbInt3,1,addr dwTemp
+
+;*********************************************************************
+
+; 如果发生断点中断，则恢复断点处代码并进行内存补丁
+
+;*********************************************************************
+
+        .elseif stDE.dwDebugEventCode == EXCEPTION_DEBUG_EVENT
+
+            .if stDE.u.Exception.pExceptionRecord.ExceptionCode == EXCEPTION_BREAKPOINT
+
+                mov stCT.ContextFlags,CONTEXT_FULL
+
+                invoke GetThreadContext,stProcInfo.hThread,addr stCT
+
+                .if stCT.regEip == BREAK_POINT1 + 1
+
+                    dec stCT.regEip
+
+                    invoke WriteProcessMemory,stProcInfo.hProcess,BREAK_POINT1,addr dbOldByte,1,addr dwTemp
+
+                    mov eax,stCT.regEsi
+
+                    add eax,6CDh
+
+                    mov PATCH_POSITION,eax
+
+                    invoke SetThreadContext,stProcInfo.hThread,addr stCT
+
+                .elseif stCT.regEip == BREAK_POINT2 + 1
+
+                    dec stCT.regEip
+
+                    invoke WriteProcessMemory,stProcInfo.hProcess,BREAK_POINT2,addr dbPatched2,sizeof dbPatched2,addr dwTemp
+
+                    invoke WriteProcessMemory,stProcInfo.hProcess,PATCH_POSITION,addr dbPatched1,sizeof dbPatched1,addr dwTemp
+
+                    invoke SetThreadContext,stProcInfo.hThread,addr stCT
+
+                .endif
+
+            .endif
+
+        .endif
+
+        invoke ContinueDebugEvent,stDE.dwProcessId,stDE.dwThreadId,DBG_CONTINUE
+
+    .endw
+
+    invoke CloseHandle,stProcInfo.hProcess
+
+    invoke CloseHandle,stProcInfo.hThread
+
+    invoke ExitProcess,NULL
+
+;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+end Start
+```
+
+好了，想要研究该软件的穷光蛋们不妨试试。
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
