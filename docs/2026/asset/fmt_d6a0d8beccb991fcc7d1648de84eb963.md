@@ -1,0 +1,114 @@
+
+```assembly
+00484580  ^\E9 2EFFFFFF      JMP Ultra\_MP.004844B3
+00484585    EB 20            JMP SHORT Ultra\_MP.004845A7
+00484587    8B4D DC          MOV ECX,DWORD PTR SS:[EBP-24]
+0048458A    51               PUSH ECX                                     ; 要处理的DLL名称
+0048458B    E8 BB5C0000      CALL Ultra\_MP.0048A24B                       ; 关键，这里处理捆绑DLL
+00484590    8945 EC          MOV DWORD PTR SS:[EBP-14],EAX
+00484593    837D EC 00       CMP DWORD PTR SS:[EBP-14],0
+00484597    75 0E            JNZ SHORT Ultra\_MP.004845A7
+00484599    8B55 DC          MOV EDX,DWORD PTR SS:[EBP-24]
+0048459C    52               PUSH EDX
+0048459D    68 D0FB4800      PUSH Ultra\_MP.0048FBD0                       ; ASCII "The dynamic link library '%s' could not be found"
+004845A2    E8 1C370000      CALL Ultra\_MP.00487CC3
+004845A7    A1 C0FB4800      MOV EAX,DWORD PTR DS:[48FBC0]
+004845AC    8945 E8          MOV DWORD PTR SS:[EBP-18],EAX
+004845AF    8B4D 14          MOV ECX,DWORD PTR SS:[EBP+14]
+004845B2    890D C0FB4800    MOV DWORD PTR DS:[48FBC0],ECX
+004845B8    6A 00            PUSH 0
+004845BA    FF15 98064900    CALL DWORD PTR DS:[490698]                   ; kernel32.GetModuleHandleA
+004845C0    3B45 0C          CMP EAX,DWORD PTR SS:[EBP+C]
+004845C3    75 67            JNZ SHORT Ultra\_MP.0048462C
+004845C5    C745 CC C4FB4800 MOV DWORD PTR SS:[EBP-34],Ultra\_MP.0048FBC4  ; ASCII "EXECUTABLE"
+004845CC    8B55 14          MOV EDX,DWORD PTR SS:[EBP+14]
+004845CF    8955 C8          MOV DWORD PTR SS:[EBP-38],EDX
+004845D2    8B45 C8          MOV EAX,DWORD PTR SS:[EBP-38]
+```
+
+跟进 `0048458B` 的那个 `CALL`，最后会看到这样的代码（一步步跟踪比较麻烦，我自己跟踪了一下，认为可能可以通过搜索对应命令序列来快速定位）：
+
+```assembly
+0048604F    6A 00            PUSH 0
+00486051    6A 00            PUSH 0
+00486053    8B85 74FFFFFF    MOV EAX,DWORD PTR SS:[EBP-8C]
+00486059    FF70 10          PUSH DWORD PTR DS:[EAX+10]
+0048605C    FF75 D4          PUSH DWORD PTR SS:[EBP-2C]
+0048605F    FF75 C4          PUSH DWORD PTR SS:[EBP-3C]
+00486062    E8 0EB1FFFF      CALL Ultra\_MP.00481175
+00486067    85C0             TEST EAX,EAX
+00486069    74 06            JE SHORT Ultra\_MP.00486071
+0048606B    837D 9C 00       CMP DWORD PTR SS:[EBP-64],0
+0048606F    75 0A            JNZ SHORT Ultra\_MP.0048607B
+00486071    B9 0F0000EF      MOV ECX,EF00000F
+00486076    E8 931A0000      CALL Ultra\_MP.00487B0E
+0048607B    8B85 74FFFFFF    MOV EAX,DWORD PTR SS:[EBP-8C]
+00486081    8B4D CC          MOV ECX,DWORD PTR SS:[EBP-34]
+00486084    8948 14          MOV DWORD PTR DS:[EAX+14],ECX
+00486087    8B85 74FFFFFF    MOV EAX,DWORD PTR SS:[EBP-8C]
+0048608D    C740 24 400000C0 MOV DWORD PTR DS:[EAX+24],C0000040
+00486094    E9 5A030000      JMP Ultra\_MP.004863F3
+00486099    8B85 74FFFFFF    MOV EAX,DWORD PTR SS:[EBP-8C]
+0048609F    8B8D 7CFFFFFF    MOV ECX,DWORD PTR SS:[EBP-84]
+004860A5    8B40 0C          MOV EAX,DWORD PTR DS:[EAX+C]
+004860A8    3B01             CMP EAX,DWORD PTR DS:[ECX]
+004860AA    0F87 C7020000    JA Ultra\_MP.00486377
+004860B0    8B85 74FFFFFF    MOV EAX,DWORD PTR SS:[EBP-8C]
+004860B6    8B40 0C          MOV EAX,DWORD PTR DS:[EAX+C]
+004860B9    8B8D 74FFFFFF    MOV ECX,DWORD PTR SS:[EBP-8C]
+004860BF    0341 10          ADD EAX,DWORD PTR DS:[ECX+10]
+004860C2    8B8D 7CFFFFFF    MOV ECX,DWORD PTR SS:[EBP-84]
+004860C8    3B01             CMP EAX,DWORD PTR DS:[ECX]                   ; 基址与IAT的RVA比较，这里直接在数据窗口中查看[ECX]的地址，可以看到完整的PE头。dump下来备用
+004860CA    0F86 A7020000    JBE Ultra\_MP.00486377
+004860D0    83A5 60FFFFFF 00 AND DWORD PTR SS:[EBP-A0],0
+004860D7    C745 FC 01000000 MOV DWORD PTR SS:[EBP-4],1
+004860DE    6A 04            PUSH 4
+004860E0    68 00100000      PUSH 1000
+004860E5    8B85 74FFFFFF    MOV EAX,DWORD PTR SS:[EBP-8C]
+004860EB    FF70 10          PUSH DWORD PTR DS:[EAX+10]
+004860EE    6A 00            PUSH 0
+004860F0    FF15 24074900    CALL DWORD PTR DS:[490724]                   ; kernel32.VirtualAlloc
+004860F6    8985 60FFFFFF    MOV DWORD PTR SS:[EBP-A0],EAX
+004860FC    6A 00            PUSH 0
+004860FE    6A 00            PUSH 0
+00486100    8B85 74FFFFFF    MOV EAX,DWORD PTR SS:[EBP-8C]
+00486106    FF70 14          PUSH DWORD PTR DS:[EAX+14]
+00486109    FF75 C4          PUSH DWORD PTR SS:[EBP-3C]
+0048610C    E8 0EA3FFFF      CALL Ultra\_MP.0048041F
+```
+
+搜索指令序列：
+
+```assembly
+ADD EAX,DWORD PTR DS:[ECX+CONST]
+MOV ECX,DWORD PTR SS:[EBP-CONST]
+CMP EAX,DWORD PTR DS:[ECX]
+```
+
+上面是采用了模糊搜索，可能会找到几个，可以根据这个指令序列后面调用 `VirtualAlloc` 函数来定位。断下来后堆栈中可以看到确切的文件名。
+
+注意：得到的 `PE` 头有可能区段的开始地址及大小有不正确的地方，粘贴了 `PE` 头后要自己在 `PE` 工具中看一下各个区段的地址和大小，有不正确的地方要自己修正一下。另外可能还要根据 `OD` 中所看到的模块基址的情况修正一下基址，否则重定位可能不正确。
+
+### 3、运行某些功能才调用的文件
+
+而对于运行程序某些功能才调用的的捆绑文件，还是采用 `BP GetSystemTimeAsFileTime`，断下后返回，在数据窗口中看数据，再在所看到的数据上设内存访问断点，`F9` 运行，会被断下：
+
+```assembly
+0043707D    C1E9 02           SHR ECX,2
+00437080    F3:A5             REP MOVS DWORD PTR ES:[EDI],DWORD PTR DS:[ESI]  ; 断在这里，EDI=001675D0，在数据窗口中跟随这个地址
+00437082    8BC8              MOV ECX,EAX
+00437084    83E1 03           AND ECX,3
+00437087    F3:A4             REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]
+00437089    B8 00000100       MOV EAX,10000                                   ; UNICODE "=::=::\"
+0043708E    2B45 F8           SUB EAX,DWORD PTR SS:[EBP-8]
+00437091    3945 10           CMP DWORD PTR SS:[EBP+10],EAX                   ; [EBP+10]=00016200，文件大小
+00437094    73 08             JNB SHORT mbox2w.0043709E
+```
+
+下面还有个地方继续复制，这里 `F8` 跟一下，等全部复制完，用 `LordPE` 或 `PETools` 的区域转存功能保存。
+
+---
+
+【版权声明】: 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
