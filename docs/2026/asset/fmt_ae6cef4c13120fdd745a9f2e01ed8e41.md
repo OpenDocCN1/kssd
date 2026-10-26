@@ -1,0 +1,431 @@
+
+# System Cleaner 4.89 Build 110
+
+用OllyDbg脱ASPR
+
+1.3x的壳
+
+================================
+
+作者：LaBBa
+
+翻译：gmh001
+
+软件： System Cleaner 4.89 Build 110
+
+Url    : http://www.allerasoft.com/products/systemcleaner/
+
+## 前言
+
+==================
+
+ＯＫ，贴上来！！这是我第三次写这篇破解文章，第一次正在写的时候机死机了，第二次停电了。
+
+（呵呵，运气有点背啊…）
+
+现在…
+
+这篇文章讲述如何真正快速简单的脱掉ASPR 1.3x的壳，并且找出被抽掉的字节…并且不使用SoftIce、IceDump和`/tracex`！
+
+用什么？
+
+使用OllyDbg！
+
+## 所需工具
+
+================
+
+1. `OllyDbg 1.09b2 or newer`
+2. `ProcDump(G-rom)/Pe-edit(y0da)`
+3. `imprec 1.3 (MackT/UCF)(protools.cjb.net)`
+4. `HVIEW / Hex Editor`
+
+## 脱壳步骤
+
+=======================
+
+1. 找到 `OEP`＋从内存中抓取程序
+2. 找到抽掉的字节
+3. 重建IAT
+4. 修正OEP
+5. 结束
+
+====================================
+
+## 第一步―找到 OEP＋从内存中抓取程序
+
+====================================
+
+1. 运行Olly并载入应用程序（如果有提示就按 YES！）
+2. 现在按`F9`就会在这儿中断：
+
+```
+017E3414  3100            XOR DWORD PTR DS:[EAX],EAX  ＜－我们在这儿中断！
+017E3416  EB 01
+       JMP SHORT 017E3419
+017E3418  68
+648F0500      PUSH 58F64
+```
+
+为什么Olly会中断？我们不用设断点吗？！
+
+呵呵，Olly在每次进入一个新模块时都会中断…我们将继续使用它！！
+
+3. 按`Shift+F9`，这样Olly会继续运行直到遇到一个新模块。
+4. 按`Shift+F9` 26次后我们将到达这里：
+
+```
+017E2D7A  3100
+         XOR DWORD PTR DS:[EAX],EAX＜－我们停在这里
+017E2D7C  64:8F05 00000000 POP DWORD PTR FS:[0]   ＜在这里设断点
+017E2D83  58              POP EAX
+017E2D84  833D 806D7E01 00 CMP DWORD PTR DS:[17E6D80],0
+017E2D8B  74 14            JE SHORT 017E2DA1
+017E2D8D  6A 0C
+   PUSH 0C
+017E2D8F  B9 806D7E01
+ MOV ECX,17E6D80
+017E2D94  8D45 F8
+   LEA EAX,DWORD PTR SS:[EBP-8]
+017E2D97  BA
+04000000      MOV EDX,4
+017E2D9C  E8 EFE0FFFF
+     CALL 017E0E90
+017E2DA1  FF75 FC
+       PUSH DWORD PTR SS:[EBP-4]
+017E2DA4
+FF75 F8          PUSH DWORD PTR SS:[EBP-8]
+017E2DA7  8B45 F4          MOV EAX,DWORD PTR SS:[EBP-C]
+017E2DAA  8338 00
+CMP DWORD PTR DS:[EAX],0
+017E2DAD  74 02
+       JE SHORT 017E2DB1
+017E2DAF  FF30
+           PUSH DWORD PTR DS:[EAX]
+017E2DB1
+FF75 F0          PUSH DWORD PTR SS:[EBP-10]
+017E2DB4  FF75 EC          PUSH DWORD PTR SS:[EBP-14]
+017E2DB7  C3
+     RETN
+```
+
+如果我们再按一次`Shift+F9`，软件就运行了…千万别这么做！！
+
+5. 现在我们向下移光标，到这里：
+
+```
+017E2D7C  64:8F05
+00000000 POP DWORD PTR FS:[0]
+```
+
+按`F2`（设断点）。
+
+再按`Shift+F9`，Olly就会在断点中断。
+
+6. 现在按`F8`单步追踪，执行RETN将会到达这里：
+
+```
+017F4EC8  E9 080A0000      JMP 017F58D5 ＜－在这里
+```
+
+按`F8`执行这个跳转…
+
+现在我们来到这里：
+
+```
+017F58D5  D3DE
+           RCR ESI,CL
+ ＜－停在这里
+017F58D7  B9 7D966271      MOV ECX,7162967D
+017F58DC  81C1 38F10A23    ADD ECX,230AF138
+017F58E2  D3EE            SHR ESI,CL
+017F58E4  BA 9ECC7376      MOV EDX,7673CC9E
+017F58E9  81EA C56EFFD4    SUB EDX,D4FF6EC5
+017F58EF  81F2 B7104902    XOR EDX,24910B7
+017F58F5  C1CA 94          ROR EDX,94
+017F58F8  8BF2            MOV ESI,EDX
+017F58FA  81EE 87D851D2    SUB ESI,D251D887
+017F5900  C1CE B0          ROR ESI,0B0
+017F5903  8BC6
+MOV EAX,ESI
+017F5905  C1C8 28
+   ROR EAX,28
+017F5908  53
+         PUSH EBX
+017F5909  5E
+             POP ESI
+017F590A
+81C5 974FAF73    ADD EBP,73AF4F97
+017F5910  BA
+048A9178      MOV EDX,78918A04
+017F5915  F7D2
+           NOT EDX
+017F5917  F7D2
+           NOT EDX
+017F5919  81C2
+FC756E87    ADD EDX,876E75FC
+017F591F  8BDA
+         MOV EBX,EDX
+017F5921  41
+             INC ECX-------------------------
+017F5922  8BD9            MOV EBX,ECX            |
+017F5924
+D1C3            ROL EBX,1
+     | a Realy Long
+017F5926  81F3 A38FD7AC
+   XOR EBX,ACD78FA3        |    Loop
+017F592C  3BD8            CMP EBX,EAX            |
+017F592E
+^0F85 EDFFFFFF    JNZ 017F5921--------------------
+017F5934  8BC1            MOV EAX,ECX
+＜＜－在这里设断点！！
+```
+
+好了，我们可以不用通过按`F8`来追踪整个循环！！我们在下面的指令上设一个断点：
+
+```
+017F5934  8BC1
+           MOV EAX,ECX
+```
+
+设置断点后（`F2`），按`F9`（运行），将会在断点上停下来。
+
+7. 为什么？？总是用`F8` / `F7`追踪？？！！
+
+好吧…不！！
+
+Olly里有一个很好的功能：调用命令行。
+
+从菜单里选择：`Plugins->Command line->Command line`
+
+现在我们将写一个条件追踪命令！
+
+YES ! Olly有一个追踪命令！它调用－`TC`－条件追踪
+
+它将会在条件表达式为真时中断！
+
+这样…在文本框里写入：`TC EIP<900000`
+
+按Enter键。
+
+在窗口的右下会出现：“正在追踪”
+
+我的机子慢，花了大约８分钟(350MHz)
+
+在另一台较快的机子上花了２分钟多一点(900MHz Celeron)
+
+8. 追踪完成后中断在这里：
+
+```
+0057EA5B    E8            DB E8
+0057EA5C    00
+ DB 00
+0057EA5D    8A
+   DB 8A
+0057EA5E    E8
+     DB E8
+0057EA5F    FF
+       DB FF
+```
+
+嘿！！
+
+i Dont See Shit !!这是为什么？！
+
+噢，Olly没有分析这段代码，实际上我们并没有真提停在OEP上！
+
+`OEP=57EA5B`
+
+9. 重点！！ 在OEP处看盾`EAX`值（CPU窗口的右上面）
+
+`EAX=57E318`
+
+记住它，以后会用到它的。
+
+10. 打开 `ProcDump/Pe-Edit`，完全抓取进程。
+
+===================================
+
+## 第三步－找出抽掉的字节＝
+
+===================================
+
+找出抽掉的字节有三种方法：
+
+1. ASPR会执行抽掉的字节，象下面这样跳转到OEP：
+
+```
+Stolen_Bytes_1
+Stolen_Bytes_2
+Stolen_Bytes_3
+.....
+.....
+PUSH_THE_ADDRESS_OF_OEP
+RET_TO_OEP
+```
+
+2. ASPR首先保存抽掉的字节，然后从OEP处还原，再象下面这样跳转到OEP：
+
+```
+Stolen_Bytes_1
+Stolen_Bytes_2
+Stolen_Bytes_3
+PUSH EBX
+PUSH ESI
+PUSH EDI
+......
+......
+......
+REPZ STOSB ＜－还原字节
+POPFD
+POPAD
+JMP_TO_OEP
+```
+
+3. 没有抽掉的字节时，只执行PopAD指令和跳转到OEP。
+
+那么我们怎么处理它呢？
+
+看看ASPR在跳转到OEP前的最后几步是什么。这需要查看跟踪日记。
+
+太好了！Olly可以使用"`Run Trace`"功能来得到一个跟踪日记。
+
+这样…选择菜单： `View->Run trace`
+
+现在我们看见一个新窗口…跳转到最后一行的前一行，你会看到CPU窗口也变为同样的地址，象下面这样：
+
+```
+017F5779  F3:AA
+         REP STOS BYTE PTR ES:[EDI]
+017F577B
+9D              POPFD
+017F577C
+61              POPAD
+017F577D
+-E9 D992D8FE      JMP SYSTEMCL.0057EA5B  ＜－OEP的地址
+```
+
+我们用第二种方法对付它！！
+
+上面的内容我是在 winXP下发现的，不是 win98::
+
+在CPU窗口里按 `Ctrl+S`（搜索命令的次序）
+
+写入下面的：
+
+```
+PUSH EBX
+PUSH ESI
+PUSH EDI
+```
+
+你会发现：
+
+```
+01029227  0055 8B          ADD BYTE PTR SS:[EBP-75],DL
+0102922A  EC
+IN AL,DX
+           ; I/O命令
+0102922B
+83EC 54          SUB ESP,54
+0102922E
+53              PUSH EBX
+0102922F  56              PUSH ESI
+01029230  57
+PUSH EDI
+01029231  6A 11
+   PUSH 11
+```
+
+忽略 `"00"`，你会找到抽掉的字节：`55,8b,ec,83,ec,54`
+
+记下它们，以后会有用的…
+
+关闭OLLY…
+
+目前是不需要它啦…
+
+=============================
+
+## 第三步－重建IAT＝
+
+=============================
+
+1. 首先运行软件，等候它被载入。
+2. 运行Imprec，从列表中选择进程。
+3. 按"`IAT AutoSearch`"
+4. 把大小从"`BC`"修改为1000（BC太小了！！）
+5. 按"`Get Imports`"
+6. 按"`Show Invalid`"
+7. 在显示无效的项目上右击鼠标，选择"`Trace level 1`"
+8. 再次按"`Show Invalid`"…现在我们应该得到下面的东西：
+
+（从保存的树中剪切）
+
+```
+FThunk: 0019E258    NbFunc: 00000400
+1    0019E258    kernel32.dll    00D6
+   DeleteCriticalSection
+1    0019E25C
+kernel32.dll    0228    LeaveCriticalSection
+................
+省略－省略
+................
+1    0019E2A4    kernel32.dll    01D1
+   GetThreadLocale
+1    0019E2A8
+kernel32.dll    01B9    GetStartupInfoA
+0    0019E2AC    ?    0000    017E0F2C
+           <-- good
+0
+0019E2B0    ?    0000    017E139C
+       <-- good
+1    0019E2B4
+   kernel32.dll    018B    GetModuleFileNameA
+1    0019E2B8    kernel32.dll    0183
+   GetLocaleInfoA
+1    0019E2BC    kernel32.dll
+   0181    GetLastError
+1    0019E2C0
+   kernel32.dll    0158    GetCurrentDirectoryA
+0    0019E2C4    ?    0000
+017E1408            <-- good
+1    0019E2C8    kernel32.dll    0133
+FreeLibrary
+1    0019E2CC    kernel32.dll
+   011C    FindFirstFileA
+..................
+省略－省略
+..................
+1
+   0019E314    kernel32.dll    00A0    CloseHandle
+0    0019E318    ?    0000
+0255A00E            <-- BAD
+1    0019E31C    user32.dll    0112
+GetKeyboardType
+1    0019E320    user32.dll
+   019F    LoadStringA
+1    0019E324
+user32.dll    01AD    MessageBoxA
+1    0019E328    user32.dll    0026
+CharNextA
+0    0019E32C    ?
+0000    70F7D832            <--
+BAD
+1    0019E330    advapi32.dll
+00F7    RegQueryvalueExA
+1    0019E334
+   advapi32.dll    00EF    RegOpenKeyExA
+1    0019E338    advapi32.dll    00D8
+RegCloseKey
+0    0019E33C    ?
+0000    F37514C2            <--
+BAD
+1    0019E340    oleaut32.dll
+0006    SysFreeString
+1    0019E344
+   oleaut32.dll    0005    SysReAllocStringLen
+1    0019E348    oleaut32.dll    0004
+   SysAllocStringLen
+0    0019E34C
+```

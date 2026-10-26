@@ -1,0 +1,306 @@
+
+```asm
+00AE6541   |90              NOP
+
+00AE6542   |6A 0A           PUSH    0A
+
+00AE6544   |E8 63C4FEFF     CALL    00AD29AC
+
+00AE6549   |8BC8            MOV     ECX, EAX
+
+00AE654B   |038B E4000000   ADD     ECX, DWORD PTR DS:[EBX+E4]
+
+00AE6551   |8BD6            MOV     EDX, ESI
+
+00AE6553   |8BC3            MOV     EAX, EBX
+
+00AE6555   |E8 9EE5FFFF     CALL    00AE4AF8
+
+00AE655A   |FF0C24          DEC     DWORD PTR SS:[ESP]
+
+00AE655D   |03B3 E4000000   ADD     ESI, DWORD PTR DS:[EBX+E4]
+
+00AE6563   |833C24 00       CMP     DWORD PTR SS:[ESP], 0
+
+00AE6567  ^|0F87 55FEFFFF   JA      00AE63C2
+
+00AE656D   |53              PUSH    EBX                              ; 写好代码后直接在这里F2断点
+
+00AE656E   |E8 5D000000     CALL    00AE65D0
+
+00AE6573   |0183 EC000000   ADD     DWORD PTR DS:[EBX+EC], EAX
+
+00AE6579   |B0 01           MOV     AL, 1
+
+00AE657B   |83C4 24         ADD     ESP, 24
+
+00AE657E   |5D              POP     EBP                              ; DVDFabGo.004033AD
+
+00AE657F   |5F              POP     EDI
+
+00AE6580   |5E              POP     ESI
+
+00AE6581   |5B              POP     EBX
+
+00AE6582   |C3              RETN
+
+00AE6583   |90              NOP
+
+00AE6584   \53              PUSH    EBX                              ; 保存堆栈
+
+00AE6585    51              PUSH    ECX
+
+00AE6586    B9 00415100     MOV     ECX, 514100                      ; 起始地址
+
+00AE658B    8339 00         CMP     DWORD PTR DS:[ECX], 0
+
+00AE658E    75 06           JNZ     SHORT 00AE6596
+
+00AE6590    C701 10415100   MOV     DWORD PTR DS:[ECX], 514110       ; 如果是第一次则写入相关数据
+
+00AE6596    8B19            MOV     EBX, DWORD PTR DS:[ECX]
+
+00AE6598    4D              DEC     EBP                              ; DVDFabGo.004033AD
+
+00AE6599    892B            MOV     DWORD PTR DS:[EBX], EBP          ; 保存call的地址
+
+00AE659B    83C3 04         ADD     EBX, 4
+
+00AE659E    8919            MOV     DWORD PTR DS:[ECX], EBX          ; 保存下次保存数据的地址
+
+00AE65A0    45              INC     EBP                              ; DVDFabGo.004033AD
+
+00AE65A1    59              POP     ECX
+
+00AE65A2    5B              POP     EBX
+
+00AE65A3    8945 00         MOV     DWORD PTR SS:[EBP], EAX          ; 执行壳原来的代码
+
+00AE65A6  ^ EB 9A           JMP     SHORT 00AE6542
+```
+
+写完代码后直接在`00AE656D`下F2断点，断下后，还原patch代码，`514100`处的数据保存起来(主要是方便一次操作不成功，第二次不用再写代码获取相关数据,当然其实完全可以一次操作成功的)。
+
+获取到了相关的数据后，运行到OEP处,然后就可以直接写上完整的修复代码了,在前面总结的`479BC0`处写上修复代码:
+
+```asm
+00479BC0   .  60            PUSHAD                                   ;  保护堆栈，直接定位到这里
+
+00479BC1   .  B9 10415100   MOV     ECX, 00514110                    ;  把call 00d40000改成call ds:[addr]
+
+00479BC6   >  8B19          MOV     EBX, DWORD PTR DS:[ECX]          ;  取出相关地址
+
+00479BC8   .  83FB 00       CMP     EBX, 0                           ;  判断是否处理完了
+
+00479BCB   .  74 15         JE      SHORT 00479BE2
+
+00479BCD   .- FFE3          JMP     EBX                              ;  执行原call
+
+00479BCF   .  8B15 08415100 MOV     EDX, DWORD PTR DS:[514108]       ;  [514108]就是保存call [address] 中的address
+
+00479BD5   .  66:C703 FF15  MOV     WORD PTR DS:[EBX], 15FF          ;  修复成call ds:[address]
+
+00479BDA   .  8953 02       MOV     DWORD PTR DS:[EBX+2], EDX        ;  填上实际的address
+
+00479BDD   .  83C1 04       ADD     ECX, 4
+
+00479BE0   .^ EB E4         JMP     SHORT 00479BC6
+
+00479BE2   >  33C0          XOR     EAX, EAX                         ;  这里开始修复call [addr]中实际上是jmp [addr]的部分
+
+00479BE4   .  B0 E8         MOV     AL, 0E8
+
+00479BE6   .  BF 00104000   MOV     EDI, <ModuleEntryPoint>          ;  代码段的起始地址
+
+00479BEB   .  B9 B89B0600   MOV     ECX, 69BB8                       ;  大小
+
+00479BF0   >  F2:AE         REPNE   SCAS BYTE PTR ES:[EDI]
+
+00479BF2   .  83F9 00       CMP     ECX, 0
+
+00479BF5   .  74 3C         JE      SHORT 00479C33                   ;  如果处理完则结束过程
+
+00479BF7   .  8B1F          MOV     EBX, DWORD PTR DS:[EDI]
+
+00479BF9   .  8D5C3B 04     LEA     EBX, DWORD PTR DS:[EBX+EDI+4]
+
+00479BFD   .  81FB 00104000 CMP     EBX, <ModuleEntryPoint>
+
+00479C03   .^ 72 EB         JB      SHORT 00479BF0
+
+00479C05   .  81FB BA9B4700 CMP     EBX, 00479BBA
+
+00479C0B   .^ 77 E3         JA      SHORT 00479BF0
+
+00479C0D   .  66:813B FF15  CMP     WORD PTR DS:[EBX], 15FF
+
+00479C12   .^ 75 DC         JNZ     SHORT 00479BF0
+
+00479C14   .  817B 02 00A04>CMP     DWORD PTR DS:[EBX+2], 0047A000   ;  再次准确的判断是否为真的要修改的代码
+
+00479C1B   .^ 72 D3         JB      SHORT 00479BF0
+
+00479C1D   .  817B 02 C0AB4>CMP     DWORD PTR DS:[EBX+2], 0047ABC0
+
+00479C24   .^ 77 CA         JA      SHORT 00479BF0
+
+00479C26   .  66:C703 FF25  MOV     WORD PTR DS:[EBX], 25FF
+
+00479C2B   .  83C7 04       ADD     EDI, 4
+
+00479C2E   .  83E9 04       SUB     ECX, 4
+
+00479C31   .^ EB BD         JMP     SHORT 00479BF0
+
+00479C33   >  61            POPAD                                    ;  还原现场
+
+00479C34   .  00            DB      00
+
+00479C35   .  00            DB      00                               ;  因为我是操作边写的，这里留多点空间方便修改代码
+
+00479C36   .  00            DB      00
+
+00479C37   .  00            DB      00
+
+00479C38   .  00            DB      00
+
+00479C39   .  00            DB      00
+
+00479C3A   .  00            DB      00
+
+00479C3B   .  00            DB      00
+
+00479C3C   .  00            DB      00
+
+00479C3D   .  00            DB      00
+
+00479C3E   .  00            DB      00
+
+00479C3F   .  00            DB      00
+
+00479C40   .  00            DB      00
+
+00479C41   .  00            DB      00
+
+00479C42   .  00            DB      00
+
+00479C43   .  00            DB      00
+
+00479C44   .  00            DB      00
+
+00479C45   .  00            DB      00
+
+00479C46   .  00            DB      00
+
+00479C47   .  00            DB      00
+
+00479C48   .  00            DB      00
+
+00479C49   .  00            DB      00
+
+00479C4A   .  00            DB      00
+
+00479C4B   .  00            DB      00
+
+00479C4C   .  00            DB      00
+
+00479C4D   .  00            DB      00
+
+00479C4E   .  00            DB      00
+
+00479C4F   .  00            DB      00
+
+00479C50   .  00            DB      00
+
+00479C51   .  00            DB      00
+
+00479C52   .  00            DB      00
+
+00479C53   .  00            DB      00
+
+00479C54   .  00            DB      00
+
+00479C55   .  00            DB      00
+
+00479C56   .  00            DB      00
+
+00479C57   .  00            DB      00
+
+00479C58   .  00            DB      00
+
+00479C59   .  00            DB      00
+
+00479C5A   .  00            DB      00
+
+00479C5B   .  00            DB      00
+
+00479C5C   .  00            DB      00
+
+00479C5D   .  00            DB      00
+
+00479C5E   .  00            DB      00
+
+00479C5F   .  00            DB      00
+
+00479C60   .  00            DB      00
+
+00479C61   .  00            DB      00
+
+00479C62   .  00            DB      00
+
+00479C63   .  00            DB      00
+
+00479C64   .  00            DB      00
+
+00479C65   .  00            DB      00
+
+00479C66   .  00            DB      00
+
+00479C67   .  00            DB      00
+
+00479C68   .  00            DB      00
+
+00479C69   .  00            DB      00
+
+00479C6A   .  00            DB      00
+
+00479C6B   .  00            DB      00
+
+00479C6C   .  00            DB      00
+
+00479C6D   .  00            DB      00
+
+00479C6E   .  00            DB      00
+
+00479C6F   .  00            DB      00
+
+00479C70      789C4700      DD      DVDFabGo.00479C78
+
+00479C74      00            DB      00
+
+00479C75      90            NOP
+
+00479C76      90            NOP
+
+00479C77      90            NOP
+
+00479C78   .  60            PUSHAD
+
+00479C79   .  8BC2          MOV     EAX, EDX
+
+00479C7B   .  B9 C80B0000   MOV     ECX, 0BC8                        ;  iat大小
+
+00479C80   .  BF 00A04700   MOV     EDI, 0047A000                    ;  iat起始地址
+
+00479C85   .  F2:AF         REPNE   SCAS DWORD PTR ES:[EDI]
+
+00479C87   .  83EF 04       SUB     EDI, 4
+
+00479C8A   .  893D 08415100 MOV     DWORD PTR DS:[514108], EDI       ;  保存地址
+
+00479C90   .  61            POPAD
+
+00479C91   .  FF15 18A0AE00 CALL    DWORD PTR DS:[AEA018]            ;  执行程序的原代码
+
+00479C97   .  C3            RETN
+```

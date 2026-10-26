@@ -1,0 +1,312 @@
+
+```
+00B85CC5     8B0424              mov eax,dword ptr ss:[esp]
+
+00B85CC8     FF53 44             call dword ptr ds:[ebx+44]
+
+00B85CCB     890424              mov dword ptr ss:[esp],eax
+
+00B85CCE     8B43 08             mov eax,dword ptr ds:[ebx+8]
+
+00B85CD1     66:8B00             mov ax,word ptr ds:[eax]
+
+00B85CD4     66:894424 04        mov word ptr ss:[esp+4],ax
+
+00B85CD9     8343 08 02          add dword ptr ds:[ebx+8],2
+
+00B85CDD     807C24 1C 00        cmp byte ptr ss:[esp+1C],0
+
+00B85CE2     74 0B               je short 00B85CEF
+
+00B85CE4     8B4424 28           mov eax,dword ptr ss:[esp+28]
+
+00B85CE8     C64424 1C 00        mov byte ptr ss:[esp+1C],0
+
+00B85CED     EB 06               jmp short 00B85CF5
+
+00B85CEF     8B4424 18           mov eax,dword ptr ss:[esp+18]
+
+00B85CF3     8B00                mov eax,dword ptr ds:[eax]
+
+00B85CF5     8BC8                mov ecx,eax
+
+00B85CF7     66:8B5424 04        mov dx,word ptr ss:[esp+4]
+
+00B85CFC     8B43 08             mov eax,dword ptr ds:[ebx+8]
+
+00B85CFF     E8 9CE4FFFF         call 00B841A0
+
+00B85D04     8B4424 10           mov eax,dword ptr ss:[esp+10]
+
+00B85D08     E8 37C8FEFF         call 00B72544
+
+00B85D0D     894424 0C           mov dword ptr ss:[esp+C],eax
+
+00B85D11     8B43 08             mov eax,dword ptr ds:[ebx+8]
+
+00B85D14     50                  push eax
+
+00B85D15     8B4424 18           mov eax,dword ptr ss:[esp+18]
+
+00B85D19     50                  push eax
+
+00B85D1A     A1 C026B900         mov eax,dword ptr ds:[B926C0]
+
+00B85D1F     8B00                mov eax,dword ptr ds:[eax]
+
+00B85D21     FFD0                call eax
+
+//GetProcAddress        ★
+
+00B85D23     8BE8                mov ebp,eax
+
+00B85D25     85ED                test ebp,ebp
+
+00B85D27     75 0A               jnz short 00B85D33
+
+00B85D29     68 405FB800         push 0B85F40    ; ASCII "11"
+
+00B85D2E     E8 61E1FFFF         call 00B83E94
+
+00B85D33     8B0424              mov eax,dword ptr ss:[esp]
+
+00B85D36     50                  push eax
+
+00B85D37     68 204AB800         push 0B84A20
+
+00B85D3C     8D4C24 20           lea ecx,dword ptr ss:[esp+20]
+
+00B85D40     8BD5                mov edx,ebp
+
+00B85D42     8BC3                mov eax,ebx
+
+00B85D44     E8 83F4FFFF         call 00B851CC
+
+00B85D49     8B5424 0C           mov edx,dword ptr ss:[esp+C]
+
+00B85D4D     8902                mov dword ptr ds:[edx],eax
+
+//修改①：jmp 00B99950    ★   跳到Patch部分
+
+00B85D4F     8B4424 0C           mov eax,dword ptr ss:[esp+C]
+
+00B85D53     8906                mov dword ptr ds:[esi],eax
+
+00B85D55     0FB74424 04         movzx eax,word ptr ss:[esp+4]
+
+00B85D5A     0143 08             add dword ptr ds:[ebx+8],eax
+
+00B85D5D     E9 ADFDFFFF         jmp 00B85B0F
+```
+
+## ★ Patch 处理① ★ ：
+
+在程序下面找快空地，写入Patch 代码。`00B99950`下面都是空地，就这里吧
+
+提前在`[B9ACC0]`处写入现在DLL的基址，在`[B9ACC8]`处写入准备放输入表的地址：`0056A000`
+
+```
+00B99950     51                  push ecx
+
+00B99951     52                  push edx
+
+00B99952     3E:8B5424 1C        mov edx,dword ptr ds:[esp+1C]
+
+//[esp+1C]＝0012FF10 此处保存的是处理的DLL基址 ★
+
+00B99957     3B15 C0ACB900       cmp edx,dword ptr ds:[B9ACC0]
+
+//在[0B1BFD0]处提前写入现在处理的DLL的基址：77E40000
+
+00B9995D     74 0D               je short 00B9996C
+
+//判断与上次DLL是否相同 ★
+
+00B9995F     8915 C0ACB900       mov dword ptr ds:[B9ACC0],edx
+
+//保存DLL基址
+
+00B99965     8305 C8ACB900 04    add dword ptr ds:[B9ACC8],4
+
+//不同则地址+4 ★
+
+00B9996C     8B0D C8ACB900       mov ecx,dword ptr ds:[B9ACC8]
+
+//提前在[B9ACC8]处写入准备放输入表的地址：0056A000
+
+00B99972     8929                mov dword ptr ds:[ecx],ebp
+
+//EBP保存的是正确函数的地址 ★ 正确的函数写入
+
+00B99974     890E                mov dword ptr ds:[esi],ecx
+
+//取代原先入壳的跳转地址
+
+00B99976     8305 C8ACB900 04    add dword ptr ds:[B9ACC8],4
+
+//地址 +4
+
+00B9997D     5A                  pop edx
+
+00B9997E     59                  pop ecx
+
+00B9997F     E9 D1C3FEFF         jmp 00B85D55
+
+//跳回去继续流程
+```
+
+## 2、AL=2 时的处理
+
+```
+00B85B8C     3C 02               cmp al,2
+
+//AL=2   ?
+
+00B85B8E     0F85 14010000       jnz 00B85CA8
+
+00B85B94     33C0                xor eax,eax
+
+00B85B96     894424 20           mov dword ptr ss:[esp+20],eax
+
+00B85B9A     8B43 08             mov eax,dword ptr ds:[ebx+8]
+
+00B85B9D     8A00                mov al,byte ptr ds:[eax]
+
+00B85B9F     FF43 08             inc dword ptr ds:[ebx+8]
+
+00B85BA2     EB 01               jmp short 00B85BA5
+
+00B85BA5     2C 01               sub al,1
+
+00B85BA7     73 34               jnb short 00B85BDD
+
+00B85BA9     8BC3                mov eax,ebx
+
+00B85BAB     E8 84F0FFFF         call 00B84C34
+
+00B85BB0     8B43 08             mov eax,dword ptr ds:[ebx+8]
+
+00B85BB3     0FB600              movzx eax,byte ptr ds:[eax]
+
+00B85BB6     FF43 08             inc dword ptr ds:[ebx+8]
+
+00B85BB9     8B53 08             mov edx,dword ptr ds:[ebx+8]
+
+00B85BBC     8B12                mov edx,dword ptr ds:[edx]
+
+00B85BBE     8343 08 04          add dword ptr ds:[ebx+8],4
+
+00B85BC2     8D4C24 24           lea ecx,dword ptr ss:[esp+24]
+
+00B85BC6     51                  push ecx
+
+00B85BC7     8A4C24 0B           mov cl,byte ptr ss:[esp+B]
+
+00B85BCB     51                  push ecx
+
+00B85BCC     8BCA                mov ecx,edx
+
+00B85BCE     8BD3                mov edx,ebx
+
+00B85BD0     92                  xchg eax,edx
+
+00B85BD1     E8 EAF7FFFF         call 00B853C0
+
+00B85BD6     894424 20           mov dword ptr ss:[esp+20],eax
+
+00B85BDA     EB 01               jmp short 00B85BDD
+
+00B85BDD     8B43 08             mov eax,dword ptr ds:[ebx+8]
+
+00B85BE0     8B28                mov ebp,dword ptr ds:[eax]
+
+00B85BE2     8343 08 04          add dword ptr ds:[ebx+8],4
+
+00B85BE6     8B4424 10           mov eax,dword ptr ss:[esp+10]
+
+00B85BEA     E8 55C9FEFF         call 00B72544
+
+00B85BEF     894424 0C           mov dword ptr ss:[esp+C],eax
+
+00B85BF3     8BD5                mov edx,ebp
+
+00B85BF5     8B4424 14           mov eax,dword ptr ss:[esp+14]
+
+00B85BF9     E8 5AECFFFF         call 00B84858
+
+//GetProcAddress
+
+00B85BFE     8BE8                mov ebp,eax
+
+00B85C00     85ED                test ebp,ebp
+
+00B85C02     75 0A               jnz short 00B85C0E
+
+00B85C04     68 305FB800         push 0B85F30       ; ASCII "10"
+
+00B85C09     E8 86E2FFFF         call 00B83E94
+
+00B85C0E     837C24 20 00        cmp dword ptr ss:[esp+20],0
+
+00B85C13     74 44               je short 00B85C59
+
+00B85C15     8B4424 0C           mov eax,dword ptr ss:[esp+C]
+
+00B85C19     8B5424 20           mov edx,dword ptr ss:[esp+20]
+
+00B85C1D     8910                mov dword ptr ds:[eax],edx
+
+00B85C1F     8B4424 20           mov eax,dword ptr ss:[esp+20]
+
+00B85C23     034424 24           add eax,dword ptr ss:[esp+24]
+
+00B85C27     C600 68             mov byte ptr ds:[eax],68
+
+00B85C2A     6A 00               push 0
+
+00B85C2C     68 204AB800         push 0B84A20
+
+00B85C31     8D4C24 20           lea ecx,dword ptr ss:[esp+20]
+
+00B85C35     8BD5                mov edx,ebp
+
+00B85C37     8BC3                mov eax,ebx
+
+00B85C39     E8 8EF5FFFF         call 00B851CC
+
+00B85C3E     8B5424 20           mov edx,dword ptr ss:[esp+20]
+
+00B85C42     035424 24           add edx,dword ptr ss:[esp+24]
+
+00B85C46     42                  inc edx
+
+00B85C47     8902                mov dword ptr ds:[edx],eax
+
+00B85C49     8B4424 20           mov eax,dword ptr ss:[esp+20]
+
+00B85C4D     034424 24           add eax,dword ptr ss:[esp+24]
+
+00B85C51     83C0 05             add eax,5
+
+00B85C54     C600 C3             mov byte ptr ds:[eax],0C3
+
+00B85C57     EB 29               jmp short 00B85C82
+
+00B85C59     6A 00               push 0
+
+00B85C5B     68 204AB800         push 0B84A20
+
+00B85C60     8D4C24 20           lea ecx,dword ptr ss:[esp+20]
+
+00B85C64     8BD5                mov edx,ebp
+
+00B85C66     8BC3                mov eax,ebx
+
+00B85C68     E8 5FF5FFFF         call 00B851CC
+
+00B85C6D     8B5424 0C           mov edx,dword ptr ss:[esp+C]
+
+00B85C71     8902                mov dword ptr ds:[edx],eax
+
+00B85C73     8D4C24 0C           lea ecx,dword ptr ss:[esp+C]
+```
