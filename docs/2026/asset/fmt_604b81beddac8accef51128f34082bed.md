@@ -1,0 +1,280 @@
+
+# [原创]瑞星2011 Hookhelp.sys在LoadImageNotifyRoutine中的全局性Fast Mutex设置可能导致死锁（deadlock）
+
+## 调试环境
+WIN7 32bit SP1
+
+## 调试工具
+`windbg`+`IDA`
+
+## 影响版本
+瑞星杀毒软件2011 `hookhelp.sys`版本25.0.0.9
+
+## 调试目的
+解决自己遇到的问题，同时学习相应方法和知识。
+
+近一个月来，我两台刚刚更新了WIN7 SP1系统的电脑（一台实验室用的PC，一台宿舍用的笔记本）多次出现死锁情况，现象表现为突然整个图形界面没响应，只有鼠标可以动，有时鼠标有忙的图标（蓝圈），有时没有，同时可以听到CPU风扇声明显增大。这种现象经常出现在系统长期待机后唤醒进入登录界面后几秒，后来在正在使用过程中时不时也出现。
+
+我十分头疼，觉得应该是系统底层哪里死锁了，不得已设置了`CrashOnCtrlScroll`键，希望遇到的时候可以用它来BSOD掉然后分析dmp。
+
+昨晚在宿舍的电脑上又给我碰上，这次是重启后刚登录后，过了登录界面将要出来桌面之前，刚好屏幕一片黑的时候，就又停在那里了。用右边Ctrl键+两次ScrollLock键手动BSOD，重启后选正常启动系统，用`windbg`加载保存下来的核心内存转储文件，开始找原因。
+
+以前调dmp文件都是有比较明确目标的，比如一个出异常的用户态程序，或者导致BSOD的驱动，那样只要在出异常或BSOD的当前线程进行栈回溯就比较容易发现问题了，这次则不然，因为BSOD是人工触发的，跟真正的死锁原因无关，所以找原因要麻烦得多。由于这块确实不熟，调了N久，中间有很多无用功，发帖的时候就只贴有用的部分了。
+
+```
+0: kd> !analyze -v
+
+*******************************************************************************
+
+*                                                                             *
+
+*                        Bugcheck Analysis                                    *
+
+*                                                                             *
+
+*******************************************************************************
+
+
+
+MANUALLY_INITIATED_CRASH (e2)
+
+The user manually initiated this crash dump.
+
+Arguments:
+
+Arg1: 00000000
+
+Arg2: 00000000
+
+Arg3: 00000000
+
+Arg4: 00000000
+
+
+
+Debugging Details:
+
+------------------
+
+
+
+
+
+BUGCHECK_STR:  MANUALLY_INITIATED_CRASH
+
+
+
+DEFAULT_BUCKET_ID:  VISTA_DRIVER_FAULT
+
+
+
+PROCESS_NAME:  System
+
+
+
+CURRENT_IRQL:  6
+
+
+
+LAST_CONTROL_TRANSFER:  from 945df160 to 83318f20
+
+
+
+STACK_TEXT:  
+
+83362c0c 945df160 000000e2 00000000 00000000 nt!KeBugCheckEx+0x1e
+
+83362c3c 945df768 00105d30 000000c6 00000000 i8042prt!I8xProcessCrashDump+0x251
+
+83362c88 832747ad 88ab4a00 86105c78 83362cb4 i8042prt!I8042KeyboardInterruptService+0x2ce
+
+83362c88 832b1e1a 88ab4a00 86105c78 83362cb4 nt!KiInterruptDispatch+0x6d
+
+83362d24 00000000 0000000e 00000000 00000000 nt!KiIdleLoop+0x1a
+```
+
+以前分析dmp最先用的`!analyze -v`，这次提供的信息显然没有什么大用，只是说明BSOD确实是我通过PS/2键盘手动触发的。
+
+看到网上有文章说查deadlock可以先用`!locks`命令看看哪些lock是在held的状态，就先试试了。
+
+```
+0: kd> !locks
+
+**** DUMP OF ALL RESOURCE OBJECTS ****
+
+KD: Scanning for held 
+
+
+
+locks........................................................................................................................................................
+
+
+
+.......................................................................................................
+
+8159 total locks
+```
+
+空白一片，看来不是ERESOURCE的问题。
+
+用`!stacks`看一看各个线程的情况（部分省略）：
+
+```
+0: kd> !stacks
+
+Proc.Thread  .Thread  Ticks   ThreadState Blocker
+
+                            [85404020 System]
+
+   4.00001c  85429850 0000923 Blocked    nt!AlpcpSignalAndWait+0x7b
+
+   4.000028  85424020 0000923 Blocked    nt!AlpcpSignalAndWait+0x7b
+
+   4.000034  85424798 0001178 Blocked    nt!AlpcpSignalAndWait+0x7b
+
+   4.000044  85423a70 0000923 Blocked    nt!AlpcpSignalAndWait+0x7b
+
+   4.00005c  8542a5f8 0000031 Blocked    nt!MiModifiedPageWriter+0x39
+
+   4.000074  85427a28 0000001 Blocked    nt!CcQueueLazyWriteScanThread+0x4a
+
+   4.000080  8541f5a8 0003751 Blocked    nt!AlpcpReceiveMessagePort+0x245
+
+   4.000084  85435d48 0000041 Blocked    nt!EtwpLogger+0xd0
+
+   4.000088  854357b0 0000001 Blocked    nt!EtwpLogger+0xd0
+
+   4.00008c  85449d48 0000001 Blocked    nt!EtwpLogger+0xd0
+
+   4.000090  854497b0 0000001 Blocked    nt!EtwpLogger+0xd0
+
+   4.000098  85c94540 0000001 Blocked    nt!EtwpLogger+0xd0
+
+......
+
+
+
+                            [88ab53d0 svchost.exe]
+
+ 48c.000490  a27caa88 00038c4 Blocked    nt!KiFastCallEntry+0x12a
+
+ 48c.0004a8  a27e43b0 000017f Blocked    nt!ObpWaitForMultipleObjects+0x262
+
+ 48c.0004b0  a27e7868 00031e0 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.0004c0  a15fdd48 00004ce Blocked    nt!ObpWaitForMultipleObjects+0x262
+
+ 48c.0004f8  a27f07e0 0000804 Blocked    nt!ObpWaitForMultipleObjects+0x262
+
+ 48c.0004fc  a27fd030 0003797 Blocked    nt!ObpWaitForMultipleObjects+0x262
+
+ 48c.000500  a27ffc18 0003817 Blocked    nt!ObpWaitForMultipleObjects+0x262
+
+ 48c.000548  a2d8d548 00038d2 Blocked    nt!IoRemoveIoCompletion+0x23
+
+ 48c.000560  a2d96388 0003081 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.0005b8  a2d89a10 00036fc Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.0005d4  a2db6380 0002db7 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.000674  a2df87b8 0003e84 Blocked    nt!ObpWaitForMultipleObjects+0x262
+
+ 48c.000ff8  b6c4dc50 0003675 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.000858  b6cc0910 00031e0 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.000728  85542030 0003534 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.0002dc  854a75f8 0003cab Blocked    nt!ObpWaitForMultipleObjects+0x262
+
+ 48c.000744  854a7a60 0003cb0 Blocked    nt!IoRemoveIoCompletion+0x23
+
+ 48c.000554  8554d4c0 00038c3 Blocked    nt!ObpWaitForMultipleObjects+0x262
+
+ 48c.001004  a15e6690 0003014 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.00105c  85639a08 0002ee7 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.001060  85639720 0002ee7 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.0010a8  a15e6358 0002e8e Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.0010ac  855a9030 0002e57 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.0010b8  8560c568 0002dc6 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.0010c0  85568880 0002a4f Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.0010fc  855b5030 0002a4f Blocked    nt!KiAcquireFastMutex+0x56
+
+ 48c.001100  855b5d48 0001274 Blocked    nt!AlpcpSignalAndWait+0x7b
+
+ 48c.001194  85585030 000017f Blocked    nt!IoRemoveIoCompletion+0x23
+
+ 48c.0011a8  85584a60 000017f Blocked    nt!IoRemoveIoCompletion+0x23
+
+......
+
+
+
+                            [855a4d40 explorer.exe]
+
+ 71c.0008b4  855c3030 00035ee Blocked    nt!KiAcquireFastMutex+0x56
+
+ 71c.000adc  b6cd7d48 0003069 Blocked    nt!ObpWaitForMultipleObjects+0x262
+
+ 71c.000cb0  b6cdc920 00037c0 Blocked    nt!KiFastCallEntry+0x12a
+
+ 71c.000480  854a4ad8 00034bc Blocked    nt!KiFastCallEntry+0x12a
+
+ 71c.00056c  8556ed48 000282e Blocked    nt!KiFastCallEntry+0x12a
+
+ 71c.000c80  854f14f0 0002889 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 71c.000cfc  854e1ad8 00036f9 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 71c.000070  85667030 0003790 Blocked    nt!ObpWaitForMultipleObjects+0x262
+
+ 71c.0001a4  8543dd48 000372c Blocked    nt!ObpWaitForMultipleObjects+0x262
+
+ 71c.000128  8560f030 00034a9 Blocked    nt!KiAcquireFastMutex+0x56
+
+ 71c.000de0  8560e970 0003719 Blocked    nt!ObpWaitForMultipleObjects+0x262
+
+ 71c.000e60  855c05f8 00036fc Blocked    nt!ExfAcquirePushLockExclusive+0x100
+
+ 71c.000ae8  85626030 0003743 Blocked    nt!ObpWaitForMultipleObjects+0x262
+
+ 71c.000a00  854fbbe0 0002800 Blocked    nt!KiFastCallEntry+0x12a
+
+ 71c.0009e4  856267f0 00034ac Blocked    nt!KiFastCallEntry+0x12a
+
+ 71c.000830  855bad48 000372c Blocked    win32k!xxxRealSleepThread+0x1d7
+
+ 71c.00099c  854fa380 0000a18 Blocked    win32k!xxxRealSleepThread+0x1d7
+
+ 71c.000814  8562f838 00036fc Blocked    nt!KiAcquireFastMutex+0x56
+
+ 71c.000568  8556f030 0003700 Blocked    nt!KiFastCallEntry+0x12a
+
+ 71c.000cdc  85632d48 0003069 Blocked    nt!ExfAcquirePushLockExclusive+0x100
+
+......
+
+
+
+                            [8562cd40 dllhost.exe]
+
+ d00.000d0c  85633030 00036fc Blocked    nt!KiAcquireFastMutex+0x56
+
+
+
+                            [856166a0 IMSCMIG.EXE]
+
+ bf8.0001b0  8564b640 00064ea ????       nt!KiThreadStartup
+```
+
+看到大量的进程的Blocker都是`nt!KiAcquireFastMutex+0x56`，给了我第一个线索，难道是拥有某个`FastMutex`的线程与其他线程造成了死锁？
+
+那么先应该找到那个`FastMutex`。比如看`dllhost.exe`的这个线程：
