@@ -1,0 +1,143 @@
+
+```
+001B:0018A51E  AC                  LODSB
+001B:0018A51F  08C0                OR        AL,AL
+001B:0018A521  74E4                JZ        0018A507
+001B:0018A523  4E                  DEC       ESI
+001B:0018A524  56                  PUSH      ESI
+001B:0018A525  53                  PUSH      EBX
+001B:0018A526  80F802              CMP       AL,02
+001B:0018A529  7407                JZ        0018A532
+001B:0018A52B  0FB64E01            MOVZX     ECX,BYTE PTR [ESI+01]
+001B:0018A52F  41                  INC       ECX
+001B:0018A530  EB05                JMP       0018A537
+001B:0018A532  B904000000          MOV       ECX,00000004
+001B:0018A537  41                  INC       ECX
+001B:0018A538  01CE                ADD       ESI,ECX
+001B:0018A53A  E8B5FDFFFF          CALL      0018A2F4 <- redirect this point note the address 0x18a2f4.
+001B:0018A53F  AB                  STOSD
+001B:0018A540  EBDC                JMP       0018A51E <- note this address too, it's the loop back jump.
+```
+
+All we have to do is to find a free mem location filled with 0 so we can write a small code to modify this routine. The address `0x190000` will be used as an example.
+
+```
+First patch 18a53a jmp 190000
+```
+
+Then write the following code in mem with softice:
+
+```
+190000 call 18a2f4 ; we use the legal call
+190005 cmp ecx,40000000 ; ecx contains an api address ?
+19000b jle 19001c ; if not
+19000d add ecx,eax ; if yes convert the address***case 2
+19000f add ecx,5 ; to the absolute api address for a normal import table
+190012 mov dword ptr [edi],ecx ; put it in import table, pointed by edi
+190014 add edi,4 ; updates edi to the next import
+190017 jmp 18a51e ; back to normal
+19001c cmp ecx,0 ; is it case 4 ?
+19001f jz 19002e
+190021 cmp eax,40000000 ; eax contains an api address ?
+190026 jle 19003c ; if not go to 19003c
+190028 stosd ; we're in case 1, direct copy of valid api address in import table
+190029 jmp 18a51e ; back to normal
+19002e push dword ptr [eax+1] ; we're in case 3, pushes the encrypted api address
+190031 call 16df80 ;IMPORTANT 
+you have to locate this Asprotect address by doing a S 0 L FFFFFFFF 55 8b ec 81 c4 f8 fe ff ff 53 56
+so we found as example 16df80, you MUST modify the code at offset 16df80+95 with three nops (90), if you don't
+this call will generate an error 13 in Asprotect (the call doesn't return properly)
+this call is used to decypher the encrypted api address, normally decrypted at run time
+190036 stosd ; the api's address is then decrypted, copy it to import table
+190037 jmp 18a51e ; back to normal, don't forget that this is the loop back jump
+19003c mov eax,KERNEL32!GetProcAddress ; use softice to have your system's getprocaddress. this is case 4
+190041 stosd ; copy to import table
+190042 jmp 18a51e ; back to normal
+```
+
+When you are finished typing this, put a `bpmb` to the prog's starting point (I found `0x4de384`) then launch, if you typed correctly, the import table is now normal and you can dump it using `icedump`:
+
+```
+PAGEIN D 400000 12d000 c:\temp\cv_dump.exe
+```
+
+Then use `procdump` to rebuild the `pe`.
+
+Very important: Use those `procump` options when rebuilding the `pe`:
+
+- Structure: all enabled
+- Import: don't rebuild import
+- Leave other options untouched.
+
+You have to manually copy the `.aspr` section from `cv.exe` (original) to `cv_dumped.exe`, using your favorite hexeditor. As an example I found inside original raw offset: `5aa00` length `14800`. dumped raw offset: `ff400` length `14800`, this manipulation will copy back the original import table.
+
+Modify the entry point to `000de384` inside `procdump`, so your dumped exe will start at `4de384`. Copy your dumped exe to the commview directory.
+
+Now if you launch it, it will direct exit, because there is a crc check, we have to patch this code inside the dumped `cv_dumped.exe`:
+
+```
+004DE3B9                 call    sub_4524A0
+004DE3BE                 mov     eax, [ebp+var_10]
+004DE3C1                 call    sub_465118
+004DE3C6                 cmp     eax, 6F200h
+004DE3CB                 jz      short loc_4DE3D2 <- patch to jmp 4de3d2
+004DE3CD                 call    sub_403BB4
+```
+
+Don't forget one thing, there is still an anti softice left. Reactivate the `bpx createfilea` do `d esp->4`; press `F12` when it hits then invert the `jz` just after.
+
+Launch again, it's now working and you're ready to continue the reversing of this crippled, time trial exe.
+
+### 4) What's left to crack ?
+
+Now the real work is finished, we can patch whatever we want inside. I will easily give you the patches, just because this section was not the main part of my essay, this will surely save you some work. To finish its agony, we dwelve with:
+
+#### Anti softice routine
+
+Typical one, just after the well known `createfileA`:
+
+```
+0046573E                 call    sub_406D0C (createfileA with softice driver as an argument)
+00465743 crack5:
+00465743                 cmp     eax, 0FFFFFFFFh is it loaded ?
+00465746                 jz      short loc_465750 <- patch this to jump
+00465748                 push    eax
+00465749                 call    sub_406CEC
+0046574E                 mov     bl, 1
+```
+
+#### The time limit
+
+You usually find those after a `bpx` to `getlocaltime`, and trace after.
+
+```
+004D8D5B                 call    sub_44EB74 ; this call contains a call to getlocaltime
+004D8D60 loc_4D8D60:                             ; CODE XREF: sub_4D899C+386j
+004D8D60                 mov     eax, ds:dword_4E051C
+004D8D65                 cmp     byte ptr [eax], 0 ;is the trial finished ?
+004D8D68                 jnz     short loc_4D8DB8 <- force this to jump
+004D8D6A                 mov     eax, ds:dword_4E0378
+```
+
+#### Half of the packets displayed
+
+An easy one with `ida`, just find the reference to string:
+
+```
+0048B5A4                 push    offset loc_48BB1C
+0048B5A9                 push    dword ptr fs:[eax]
+0048B5AC                 mov     fs:[eax], esp
+0048B5AF                 cmp     byte ptr [ebx+5Fh], 0
+0048B5B3                 nop ; nop those so it never jumps to 48b5c2, you guessed why
+0048B5B4                 nop
+0048B5B5                 lea     edx, [ebp-14h]
+0048B5B8                 mov     eax, [ebx+22h]
+0048B5BB                 call    sub_48A7C0
+0048B5C0                 jmp     short loc_48B5CF
+0048B5C2 ; ---------------------------------------------------------------------------
+0048B5C2                 lea     eax, [ebp-14h]
+0048B5C5                 mov     edx, offset aDataThisEvalua ; "DATA:THIS EVALUATION VERSION DISPLAYS O"...
+0048B5CA                 call    sub_403E08
+```
+
+you have two more places to do the same, find them and correct the *bug*.
