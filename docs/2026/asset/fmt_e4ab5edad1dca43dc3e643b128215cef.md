@@ -1,0 +1,194 @@
+
+# Armadillo V5.0X 标准加壳保护方式脱壳
+
+↑
+
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教
+
+【调试环境】：WinXP、TheODBG、PEiD、LordPE、ImportREC
+
+—————————————————————————————————
+
+## 脱壳过程
+
+`Armadillo V5.0X`比之`V4.X`改变了一些，主程序采用了`VC8`编译
+
+`Armadillo`新版加壳的输入表加密稍微有点变化。应朋友的邀请，简单写篇教程吧
+
+—————————————————————————————————
+
+## 一、Armadillo V5.0X PEiD Sign
+
+```
+[Armadillo V5.00 Dll -> Silicon Realms Toolworks   * Sign.By.fly]
+
+signature = 83 7C 24 08 01 75 05 E8 DE 4B 00 00 FF 74 24 04 8B 4C 24 10 8B 54 24 0C E8 ED FE FF FF 59 C2 0C 00 6A 0C 68 ?? ?? ?? ?? E8 E5 24 00 00 8B 4D 08 33 FF 3B CF 76 2E 6A E0 58 33 D2 F7 F1 3B 45 0C 1B C0 40 75 1F E8 8F 15 00 00 C7 00 0C 00 00 00 57 57 57 57 57 E8 20 15 00 00 83 C4 14 33 C0 E9 D5 00 00 00 0F AF 4D 0C 8B F1 89 75 08 3B F7 75 03 33 F6 46 33 DB 89 5D E4 83 FE E0 77 69 83 3D ?? ?? ?? ?? 03 75 4B 83 C6 0F 83 E6 F0 89 75 0C 8B 45 08 3B 05 ?? ?? ?? ?? 77 37 6A 04 E8 D7 23 00 00 59 89 7D FC FF 75 08 E8 EC 53 00 00 59 89 45 E4 C7 45 FC FE FF FF FF E8 5F 00 00 00 8B 5D E4 3B DF 74 11 FF 75 08 57 53 E8 2B C5 FF FF 83 C4 0C 3B DF 75 61 56 6A 08 FF 35 ?? ?? ?? ?? FF 15 ?? ?? ?? ?? 8B D8 3B DF 75 4C 39 3D ?? ?? ?? ?? 74 33 56 E8 19 ED FF FF 59 85 C0 0F 85 72 FF FF FF 8B 45 10 3B C7 0F 84 50 FF FF FF C7 00 0C 00 00 00 E9 45 FF FF FF 33 FF 8B 75 0C 6A 04 E8 7D 22 00 00 59 C3
+
+ep_only = true
+
+
+
+[Armadillo V5.00 -> Silicon Realms Toolworks   * Sign.By.fly]
+
+signature = E8 E3 40 00 00 E9 16 FE FF FF 6A 0C 68 ?? ?? ?? ?? E8 44 15 00 00 8B 4D 08 33 FF 3B CF 76 2E 6A E0 58 33 D2 F7 F1 3B 45 0C 1B C0 40 75 1F E8 36 13 00 00 C7 00 0C 00 00 00 57 57 57 57 57 E8 C7 12 00 00 83 C4 14 33 C0 E9 D5 00 00 00 0F AF 4D 0C 8B F1 89 75 08 3B F7 75 03 33 F6 46 33 DB 89 5D E4 83 FE E0 77 69 83 3D ?? ?? ?? ?? 03 75 4B 83 C6 0F 83 E6 F0 89 75 0C 8B 45 08 3B 05 ?? ?? ?? ?? 77 37 6A 04 E8 48 11 00 00 59 89 7D FC FF 75 08 E8 01 49 00 00 59 89 45 E4 C7 45 FC FE FF FF FF E8 5F 00 00 00 8B 5D E4 3B DF 74 11 FF 75 08 57 53 E8 66 D3 FF FF 83 C4 0C 3B DF 75 61 56 6A 08 FF 35 ?? ?? ?? ?? FF 15 ?? ?? ?? ?? 8B D8 3B DF 75 4C 39 3D ?? ?? ?? ?? 74 33 56 E8 AF F9 FF FF 59 85 C0 0F 85 72 FF FF FF 8B 45 10 3B C7 0F 84 50 FF FF FF C7 00 0C 00 00 00 E9 45 FF FF FF 33 FF 8B 75 0C 6A 04 E8 EE 0F 00 00 59 C3
+
+ep_only = true
+
+
+
+[Armadillo V3.X-V5.X -> Silicon Realms Toolworks   * Sign.By.fly]
+
+signature = 60 E8 00 00 00 00 5D 50 51 0F CA F7 D2 9C F7 D2 0F CA EB 0F B9 EB 0F B8 EB 07 B9 EB 0F 90 EB 08 FD EB 0B F2 EB F5 EB F6 F2 EB 08 FD EB E9 F3 EB E4 FC E9 9D 0F C9 8B CA F7 D1 59 58 50 51 0F CA F7 D2 9C F7 D2 0F CA EB 0F B9 EB 0F B8 EB 07 B9 EB 0F 90 EB 08 FD EB 0B F2 EB F5 EB F6 F2 EB 08 FD EB E9 F3 EB E4 FC E9 9D 0F C9 8B CA F7 D1 59 58 50 51 0F CA F7 D2 9C F7 D2 0F CA EB 0F B9 EB 0F B8 EB 07 B9 EB 0F 90 EB 08 FD EB 0B F2 EB F5 EB F6 F2 EB 08 FD EB E9 F3 EB E4 FC E9 9D 0F C9 8B CA F7 D1 59 58 60 33 C9 75 02 EB 15 EB 33
+
+ep_only = true
+```
+
+—————————————————————————————————
+
+## 二、Armadillo V5.0X EP
+
+使用`OllyDBG`修改版`TheODBG`，使用`IsDebug`插件`Hide`，忽略所有的异常选项。
+
+使用`Armadillo V5.00`的`Standard Protection Only`方式加壳`Win98`记事本作为试炼品
+
+```
+00444DC2     E8 E3400000        call 00448EAA
+
+//载入OllyDBG后暂停在EP
+
+00444DC7     E9 16FEFFFF        jmp 00444BE2
+
+00444DCC     6A 0C              push 0C
+
+00444DCE     68 B0304700        push 4730B0
+
+00444DD3     E8 44150000        call 0044631C
+
+00444DD8     8B4D 08            mov ecx,dword ptr ss:[ebp+8]
+
+00444DDB     33FF               xor edi,edi
+
+00444DDD     3BCF               cmp ecx,edi
+
+00444DDF     76 2E              jbe short 00444E0F
+
+00444DE1     6A E0              push -20
+
+00444DE3     58                 pop eax
+
+00444DE4     33D2               xor edx,edx
+
+00444DE6     F7F1               div ecx
+
+00444DE8     3B45 0C            cmp eax,dword ptr ss:[ebp+C]
+
+00444DEB     1BC0               sbb eax,eax
+
+00444DED     40                 inc eax
+
+00444DEE     75 1F              jnz short 00444E0F
+
+00444DF0     E8 36130000        call 0044612B
+
+00444DF5     C700 0C000000      mov dword ptr ds:[eax],0C
+
+00444DFB     57                 push edi
+
+00444DFC     57                 push edi
+
+00444DFD     57                 push edi
+
+00444DFE     57                 push edi
+
+00444DFF     57                 push edi
+
+00444E00     E8 C7120000        call 004460CC
+
+00444E05     83C4 14            add esp,14
+
+00444E08     33C0               xor eax,eax
+
+00444E0A     E9 D5000000        jmp 00444EE4
+```
+
+如果使用`Standard Protection Plus Debug-Blocker`方式加壳，则需要把双进程处理成单进程运行模式，处理方法和以前版本相同，使用`OpenMutexA`即可。
+
+—————————————————————————————————
+
+## 三、MagicJmp避开输入表加密
+
+`BP VirtualProtect`
+
+`Shift+F9`，中断后取消断点
+
+`BP CreateFileMappingA`
+
+`Shift+F9`，中断后取消断点
+
+`Ctrl+G`：`GetModuleHandleA`
+
+在`GetModuleHandleA`函数末尾处设断，防止壳检测函数首部的`CC`断点
+
+```
+7C80B6A1     8BFF               mov edi,edi
+
+7C80B6A3     55                 push ebp
+
+7C80B6A4     8BEC               mov ebp,esp
+
+7C80B6A6     837D 08 00         cmp dword ptr ss:[ebp+8],0
+
+7C80B6AA     74 18              je short 7C80B6C4
+
+7C80B6AC     FF75 08            push dword ptr ss:[ebp+8]
+
+7C80B6AF     E8 C0290000        call 7C80E074
+
+7C80B6B4     85C0               test eax,eax
+
+7C80B6B6     74 08              je short 7C80B6C0
+
+7C80B6B8     FF70 04            push dword ptr ds:[eax+4]
+
+7C80B6BB     E8 7D2D0000        call 7C80E43D ; kernel32.GetModuleHandleW
+
+7C80B6C0     5D                 pop ebp
+
+7C80B6C1     C2 0400            retn 4
+
+//这里设断
+```
+
+注意看堆栈：
+
+```
+00139478    00E05325   RETURN to 00E05325 from kernel32.GetModuleHandleA
+
+0013947C    00E30C04   ASCII "kernel32.dll"
+
+00139480    00E31AD0   ASCII "VirtualAlloc"
+```
+
+`Shift+F9`
+
+```
+00139478    00E05343   RETURN to 00E05343 from kernel32.GetModuleHandleA
+
+0013947C    00E30C04   ASCII "kernel32.dll"
+
+00139480    00E31AC4   ASCII "VirtualFree"
+```
+
+`Shift+F9`
+
+```
+001391C4    00DE7F54   RETURN to 00DE7F54 from kernel32.GetModuleHandleA
+
+001391C8    00139340   ASCII "kernel32.dll"
+```
+
+`[ESP+4]`处依次显示：`VirtualAlloc`、`VirtualFree`，之后`[ESP+8]`处显示：`kernel32.dll`
+
+如果有试用提示等，则需要确定之
+
+可以取消`GetModuleHandleA`函数末尾的断点了，`F7`返回`00DE7F54`调用处
