@@ -1,0 +1,304 @@
+
+```asm
+00408D2E  |.  B8 8F588B4F   mov eax,4F8B588F－－－－－－const_one
+
+00408D33  |.  895424 30     mov dword ptr ss:[esp+30],edx===保存余数,记为：coneight_regtwo
+
+00408D37  |.  F7E1          mul ecx－－－－－－－－－－－－－－const_one mul regtwo=E977FE0 D74AEE2D
+
+00408D39  |.  8BC1          mov eax,ecx
+
+00408D3B  |.  2BC2          sub eax,edx------------------------regtwo-E977FE0=205E93A3
+
+00408D3D  |.  D1E8          shr eax,1--------------------------205E93A3 shr 1=102F49D1
+
+00408D3F  |.  03C2          add eax,edx------------------------102F49D1+E977FE0=1EC6C9B1
+
+00408D41  |.  C1E8 10       shr eax,10-------------------------shr 10=1EC6
+
+00408D44  |.  33D2          xor edx,edx
+
+00408D46  |.  F7F5          div ebp----------------------------div 0xA=313 余 8
+
+00408D48  |.  B8 5917B7D1   mov eax,D1B71759－－－－－－const_two
+
+00408D4D  |.  895424 34     mov dword ptr ss:[esp+34],edx===保存余数，记为：conone_regtwo
+
+00408D51  |.  F7E1          mul ecx－－－－－－－－－－－－－－const_two mul regtwo=26787C1E 54F28D8B
+
+00408D53  |.  8BC2          mov eax,edx
+
+00408D55  |.  33D2          xor edx,edx
+
+00408D57  |.  C1E8 0D       shr eax,0D-------------------------26787C1E shr 0xD=133C3
+
+00408D5A  |.  F7F5          div ebp----------------------------div 0xA=1EC6 余 7
+
+00408D5C  |.  B8 D34D6210   mov eax,10624DD3－－－－－const_three
+
+00408D61  |.  895424 38     mov dword ptr ss:[esp+38],edx===保存余数,记为：contwo_regtwo
+
+00408D65  |.  F7E1          mul ecx－－－－－－－－－－－－－const_three  mul regtwo=30169B2 60D67BF9
+
+00408D67  |.  8BC2          mov eax,edx
+
+00408D69  |.  33D2          xor edx,edx
+
+00408D6B  |.  C1E8 06       shr eax,6------------------------30169B2 shr 6=C05A6
+
+00408D6E  |.  F7F5          div ebp--------------------------div 0xA=133C3 余 8
+
+00408D70  |.  B8 1F85EB51   mov eax,51EB851F－－－－－const_four
+
+00408D75  |.  895424 3C     mov dword ptr ss:[esp+3C],edx===保存余数，记为：conthree_regtwo
+
+00408D79  |.  F7E1          mul ecx－－－－－－－－－－－－－const_four mul regtwo=F07107B E4306BDD
+
+00408D7B  |.  8BC2          mov eax,edx
+
+00408D7D  |.  33D2          xor edx,edx
+
+00408D7F  |.  C1E8 05       shr eax,5------------------------F07107B shr 5=783883
+
+00408D82  |.  F7F5          div ebp--------------------------div 0xA=C05A6 余 7
+
+00408D84  |.  B8 CDCCCCCC   mov eax,CCCCCCCD－－－－const_five
+
+00408D89  |.  895424 40     mov dword ptr ss:[esp+40],edx===保存余数,记为：confour_regtwo
+
+00408D8D  |.  F7E1          mul ecx-------------------------const_five mul regtwo=2591A935 A2FE03E9
+
+00408D8F  |.  8BC2          mov eax,edx
+
+00408D91  |.  33D2          xor edx,edx
+
+00408D93  |.  C1E8 03       shr eax,3----------------------2591A935 shr 3=4B23526
+
+00408D96  |.  F7F5          div ebp------------------------div 0xA=783883 余 8
+
+00408D98  |.  8BC1          mov eax,ecx
+
+00408D9A  |.  B9 0A000000   mov ecx,0A
+
+00408D9F  |.  8BEA          mov ebp,edx===================保存余数，记为：confive_regtwo
+
+00408DA1  |.  33D2          xor edx,edx
+
+00408DA3  |.  F7F1          div ecx－－－regtwo div 0xA=04B23526 余 7====被置于EDX中，记为regtwo_num
+
+00408DA5  |.  8B4424 3C     mov eax,dword ptr ss:[esp+3C]
+
+00408DA9  |.  8D0C02        lea ecx,dword ptr ds:[edx+eax]
+
+00408DAC  |.  8B4424 34     mov eax,dword ptr ss:[esp+34]
+
+00408DB0  |.  8B5424 30     mov edx,dword ptr ss:[esp+30]
+
+00408DB4  |.  03C8          add ecx,eax
+
+00408DB6  |.  8B4424 28     mov eax,dword ptr ss:[esp+28]
+
+00408DBA  |.  03CA          add ecx,edx
+
+00408DBC  |.  8B5424 24     mov edx,dword ptr ss:[esp+24]
+
+00408DC0  |.  03C8          add ecx,eax
+
+00408DC2  |.  03CA          add ecx,edx
+
+00408DC4  |.  03CF          add ecx,edi
+
+00408DC6  |.  03CE          add ecx,esi
+
+///////////////////////////////////////////////////////////////////////////
+
+[esp+3C]==============》conthree_regtwo=8
+
+edx     ==============》regtwo_num     =7
+
+[esp+34]==============》conone_regtwo  =8
+
+[esp+30]==============》coneight_regtwo=7
+
+[esp+28]==============》consix_regtwo  =7
+
+[esp+24]==============》regone_num     =6
+
+edi     ==============》confour_regone =4
+
+esi     ==============》conone_regone  =1
+
+累加：
+
+这里是：8+7+8+7+7+6+4+1=0x30
+
+///////////////////////////////////////////////////////////////////////////
+
+00408DC8  |.  BE 0A000000   mov esi,0A
+
+00408DCD  |.  8D41 04       lea eax,dword ptr ds:[ecx+4]====0x30+4=0x34
+
+00408DD0  |.  99            cdq
+
+00408DD1  |.  F7FE          idiv esi===============0x34对0xA取余得到2
+
+00408DD3  |.  3BD3          cmp edx,ebx  >>>>>>>>第一次比较，EBX中是confive_regone,即常数0xCCCCCCCD和注册码第一部分运算的结果
+
+00408DD5  |.  74 0C         je short menumake.00408DE3
+
+00408DD7  |.  5F            pop edi
+
+00408DD8  |.  5E            pop esi
+
+00408DD9  |.  5D            pop ebp
+
+00408DDA  |.  33C0          xor eax,eax
+
+00408DDC  |.  5B            pop ebx
+
+00408DDD  |.  83C4 3C       add esp,3C
+
+00408DE0  |.  C2 0800       retn 8
+
+00408DE3  |> \03CA          add ecx,edx==================如果上面跳转成功，这里加上余数，0x30+2=0x32
+
+00408DE5  |.  BE 0A000000   mov esi,0A
+
+00408DEA  |.  8D41 01       lea eax,dword ptr ds:[ecx+1]===再加1
+
+00408DED  |.  99            cdq
+
+00408DEE  |.  F7FE          idiv esi=======================依旧对0xA取余
+
+00408DF0  |.  3B5424 18     cmp edx,dword ptr ss:[esp+18]＝＝conthree_regone
+
+00408DF4  |.  74 0C         je short menumake.00408E02
+
+00408DF6  |.  5F            pop edi
+
+00408DF7  |.  5E            pop esi
+
+00408DF8  |.  5D            pop ebp
+
+00408DF9  |.  33C0          xor eax,eax
+
+00408DFB  |.  5B            pop ebx
+
+00408DFC  |.  83C4 3C       add esp,3C
+
+00408DFF  |.  C2 0800       retn 8
+
+00408E02  |>  03CA          add ecx,edx
+
+00408E04  |.  BE 0A000000   mov esi,0A
+
+00408E09  |.  8D41 08       lea eax,dword ptr ds:[ecx+8]
+
+00408E0C  |.  99            cdq
+
+00408E0D  |.  F7FE          idiv esi
+
+00408E0F  |.  3B5424 2C     cmp edx,dword ptr ss:[esp+2C]＝＝＝conseven_regtwo：>>>>第二次比较
+
+00408E13  |.  74 0C         je short menumake.00408E21
+
+00408E15  |.  5F            pop edi
+
+00408E16  |.  5E            pop esi
+
+00408E17  |.  5D            pop ebp
+
+00408E18  |.  33C0          xor eax,eax
+
+00408E1A  |.  5B            pop ebx
+
+00408E1B  |.  83C4 3C       add esp,3C
+
+00408E1E  |.  C2 0800       retn 8
+
+00408E21  |>  03CA          add ecx,edx
+
+00408E23  |.  BE 0A000000   mov esi,0A
+
+00408E28  |.  8D41 05       lea eax,dword ptr ds:[ecx+5]
+
+00408E2B  |.  99            cdq
+
+00408E2C  |.  F7FE          idiv esi
+
+00408E2E  |.  3B5424 40     cmp edx,dword ptr ss:[esp+40]＝＝＝＝confour_regtwo:>>>>>第三次比较
+
+00408E32  |.  74 0C         je short menumake.00408E40
+
+00408E34  |.  5F            pop edi
+
+00408E35  |.  5E            pop esi
+
+00408E36  |.  5D            pop ebp
+
+00408E37  |.  33C0          xor eax,eax
+
+00408E39  |.  5B            pop ebx
+
+00408E3A  |.  83C4 3C       add esp,3C
+
+00408E3D  |.  C2 0800       retn 8
+
+00408E40  |>  03CA          add ecx,edx
+
+00408E42  |.  BE 0A000000   mov esi,0A
+
+00408E47  |.  8D41 09       lea eax,dword ptr ds:[ecx+9]
+
+00408E4A  |.  99            cdq
+
+00408E4B  |.  F7FE          idiv esi
+
+00408E4D  |.  3BD5          cmp edx,ebp＝＝＝＝＝＝＝＝＝＝＝＝＝＝confive_regtwo:>>>>第四次比较
+
+00408E4F  |.  74 0C         je short menumake.00408E5D
+
+00408E51  |.  5F            pop edi
+
+00408E52  |.  5E            pop esi
+
+00408E53  |.  5D            pop ebp
+
+00408E54  |.  33C0          xor eax,eax
+
+00408E56  |.  5B            pop ebx
+
+00408E57  |.  83C4 3C       add esp,3C
+
+00408E5A  |.  C2 0800       retn 8
+
+00408E5D  |>  03CA          add ecx,edx
+
+00408E5F  |.  BE 0A000000   mov esi,0A
+
+00408E64  |.  8D41 01       lea eax,dword ptr ds:[ecx+1]
+
+00408E67  |.  99            cdq
+
+00408E68  |.  F7FE          idiv esi
+
+00408E6A  |.  3B5424 38     cmp edx,dword ptr ss:[esp+38]＝＝＝＝＝＝contwo_regtwo:>>>>第五次比较
+
+00408E6E  |.  74 0C         je short menumake.00408E7C
+
+00408E70  |.  5F            pop edi
+
+00408E71  |.  5E            pop esi
+
+00408E72  |.  5D            pop ebp
+
+00408E73  |.  33C0          xor eax,eax
+
+00408E75  |.  5B            pop ebx
+
+00408E76  |.  83C4 3C       add esp,3C
+
+00408E79  |.  C2 0800       retn 8
+
+00408E7C  |>  8D440A 02     lea eax,dword ptr ds:[edx+ecx+2]
+```
