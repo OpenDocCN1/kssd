@@ -1,0 +1,152 @@
+
+# ECTool 7.01注册算法分析
+
+万里长征第一步：ECTool 7.01注册算法分析
+
+解密者：冲天剑@pediy
+
+解密工具：PEId0.94，OllyICE1.10
+
+## 0. 导言
+
+ECTool是一个功能强大的国际象棋通讯赛对局管理程序，用它可以方便地管理各种国际象棋（电子邮件，纸质邮件等）通讯赛对局。该软件主页可见`hxxp://bc8K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3g2U0N6r3!0G2L8q4)9J5k6h3&6#2i4K6u0r3i4@1g2r3i4@1u0o6i4K6R3^5i4@1f1$3i4K6S2m8i4@1t1I4i4@1f1$3i4@1q4p5i4K6R3&6i4@1g2r3i4@1u0o6i4K6S2o6`。（不提供可点击的链接，如果你愿意访问该站点，请自行改成正确格式的URL。）近日该软件作者在其主页上放出了免费版本的注册码，并声称已没有时间和精力投入后续的开发与维护。
+
+鄙人是一个国际象棋爱好者，数年前就开始使用这个软件，但当时只限于在网络上寻找注册码。现在趁此机会，对这个软件的注册算法研究一番，希望能写出注册机。
+
+## 1. 预分析
+
+所谓预分析就是搜集对于推测算法有帮助的信息的工作。具体如下：在网上搜得二个可用序列号，其密码部分有如下共同特征：纯由数码（0-9）构成；长度为12；最高位为1；低二位为00。因此推测此算法可能是纯粹的数值算法。
+
+## 2. 反向工程
+
+(1) 首先用PEid0.94查壳，显示Borland Delphi 2.0。――说到查壳，最初的时候我查壳的意识并不强。那时觉得既然调试器可加载运行就行了，何必查壳呢？直到有一次调试器发出警告，说代码段经过压缩，分析结果可能错误云云时，我才意识到有壳并且重视起查壳这道工序来。――还好这个程序没壳，否则，以鄙人目前的技术水平也搞不定。
+
+(2) 运行原程序，试注册，出现错误提示信息：`"The User Name or Password are not correct, please try again"`。然后用OllyICE加载，查找此字串。
+
+```asm
+004F89CD  |.  8B83 B4010000 MOV     EAX, [EBX+1B4]
+004F89D3  |.  E8 D065F2FF   CALL    0041EFA8
+004F89D8  |.  8B85 54FEFFFF MOV     EAX, [EBP-1AC]
+004F89DE  |.  8D95 58FEFFFF LEA     EDX, [EBP-1A8]                          ;  断点
+004F89E4  |.  E8 3FFEFFFF   CALL    004F8828                                ;  算密码CALL
+004F89E9  |.  8B85 58FEFFFF MOV     EAX, [EBP-1A8]
+004F89EF  |.  50            PUSH    EAX
+004F89F0  |.  8D95 54FEFFFF LEA     EDX, [EBP-1AC]
+004F89F6  |.  8B83 B0010000 MOV     EAX, [EBX+1B0]
+004F89FC  |.  E8 A765F2FF   CALL    0041EFA8
+004F8A01  |.  8B95 54FEFFFF MOV     EDX, [EBP-1AC]
+004F8A07  |.  58            POP     EAX
+004F8A08  |.  E8 03B1F0FF   CALL    00403B10
+004F8A0D  |.  0F85 9F010000 JNZ     004F8BB2                                ;  关键跳转
+004F8A13  |.  8B15 48BE5200 MOV     EDX, [52BE48]
+004F8A19  |.  8D85 58FEFFFF LEA     EAX, [EBP-1A8]
+004F8A1F  |.  E8 FCAEF0FF   CALL    00403920
+//　　……此段代码省略
+004F8BB2  |>  B8 908C4F00   MOV     EAX, 004F8C90                           ;  ASCII "The User Name or Password are not correct, please try again"
+004F8BB7  |.  E8 7403F4FF   CALL    00438F30
+```
+
+这个字串出现的位置恰好是一个跳转的目标，因此判定该跳转即为关键跳转。这个跳转Ｎ长（看地址差即可明白），因而我省略了中间一段非关键的代码。如果要爆破，把这个跳转占的几个字节全部改成`90H`就ＯＫ了，但现在的目标是要找注册算法。在这个跳转前面还有好几个`CALL`，究竟哪一个才是生成注册密码的`CALL`呢？为此在这些`CALL`之前分别尝试下断点，然后单步步过。直到看到步过某个`CALL`之后，堆栈区（或者别的某个地方）出现了注册码字串，而在之前并没有，便可肯定刚才步过的就是包含密码算法的`CALL`。以下跟进此`CALL`中：
+
+```asm
+004F8828  /$  55            PUSH    EBP
+004F8829  |.  8BEC          MOV     EBP, ESP
+004F882B  |.  83C4 EC       ADD     ESP, -14
+004F882E  |.  53            PUSH    EBX
+004F882F  |.  56            PUSH    ESI
+004F8830  |.  57            PUSH    EDI
+004F8831  |.  33C9          XOR     ECX, ECX
+004F8833  |.  894D F0       MOV     [EBP-10], ECX
+004F8836  |.  894D EC       MOV     [EBP-14], ECX
+004F8839  |.  8955 F8       MOV     [EBP-8], EDX
+004F883C  |.  8945 FC       MOV     [EBP-4], EAX
+004F883F  |.  8B45 FC       MOV     EAX, [EBP-4]
+004F8842  |.  E8 6DB3F0FF   CALL    00403BB4
+004F8847  |.  33C0          XOR     EAX, EAX
+004F8849  |.  55            PUSH    EBP
+004F884A  |.  68 4F894F00   PUSH    004F894F
+004F884F  |.  64:FF30       PUSH    DWORD PTR FS:[EAX]
+004F8852  |.  64:8920       MOV     FS:[EAX], ESP
+004F8855  |.  33FF          XOR     EDI, EDI
+004F8857  |.  8B45 FC       MOV     EAX, [EBP-4]
+004F885A  |.  E8 A1B1F0FF   CALL    00403A00                                ;  EAX <=== 用户名串长
+004F885F  |.  8BF0          MOV     ESI, EAX
+004F8861  |.  85F6          TEST    ESI, ESI
+004F8863  |.  7E 59         JLE     SHORT 004F88BE
+004F8865  |.  BB 01000000   MOV     EBX, 1
+004F886A  |>  8B45 FC       /MOV     EAX, [EBP-4]
+004F886D  |.  0FB64418 FF   |MOVZX   EAX, BYTE PTR [EAX+EBX-1]              ;  从用户名字符串中读一字符
+004F8872  |.  25 01000080   |AND     EAX, 80000001
+004F8877  |.  79 05         |JNS     SHORT 004F887E                         ;  所读数值为正，跳
+004F8879  |.  48            |DEC     EAX
+004F887A  |.  83C8 FE       |OR      EAX, FFFFFFFE
+004F887D  |.  40            |INC     EAX
+004F887E  |>  85C0          |TEST    EAX, EAX
+004F8880  |.  75 1D         |JNZ     SHORT 004F889F                         ;  字符ASCII码为奇数，跳
+004F8882  |.  8B45 FC       |MOV     EAX, [EBP-4]
+004F8885  |.  0FB64418 FF   |MOVZX   EAX, BYTE PTR [EAX+EBX-1]
+004F888A  |.  69C0 CEC10400 |IMUL    EAX, EAX, 4C1CE                        ;  EAX乘以311758
+004F8890  |.  8945 F4       |MOV     [EBP-C], EAX
+004F8893  |.  DB45 F4       |FILD    DWORD PTR [EBP-C]
+004F8896  |.  E8 31A3F0FF   |CALL    00402BCC
+004F889B  |.  03F8          |ADD     EDI, EAX
+004F889D  |.  EB 1B         |JMP     SHORT 004F88BA
+004F889F  |>  8B45 FC       |MOV     EAX, [EBP-4]
+004F88A2  |.  0FB64418 FF   |MOVZX   EAX, BYTE PTR [EAX+EBX-1]
+004F88A7  |.  69C0 0B581500 |IMUL    EAX, EAX, 15580B                       ;  EAX乘以1398795
+004F88AD  |.  8945 F4       |MOV     [EBP-C], EAX
+004F88B0  |.  DB45 F4       |FILD    DWORD PTR [EBP-C]
+004F88B3  |.  E8 14A3F0FF   |CALL    00402BCC
+004F88B8  |.  03F8          |ADD     EDI, EAX                               ;  EDI存放累加值
+004F88BA  |>  43            |INC     EBX
+004F88BB  |.  4E            |DEC     ESI
+004F88BC  |.^ 75 AC         \JNZ     SHORT 004F886A
+004F88BE  |>  8B45 FC       MOV     EAX, [EBP-4]
+004F88C1  |.  E8 3AB1F0FF   CALL    00403A00                                ;  EAX <== 用户名字符串长度
+004F88C6  |.  25 01000080   AND     EAX, 80000001
+004F88CB  |.  79 05         JNS     SHORT 004F88D2
+004F88CD  |.  48            DEC     EAX
+004F88CE  |.  83C8 FE       OR      EAX, FFFFFFFE
+004F88D1  |.  40            INC     EAX
+004F88D2  |>  85C0          TEST    EAX, EAX
+004F88D4  |.  75 2C         JNZ     SHORT 004F8902                          ;  串长为奇数，跳
+004F88D6  |.  8B45 F8       MOV     EAX, [EBP-8]
+004F88D9  |.  50            PUSH    EAX
+004F88DA  |.  8D45 F0       LEA     EAX, [EBP-10]
+004F88DD  |.  50            PUSH    EAX
+004F88DE  |.  8D55 EC       LEA     EDX, [EBP-14]
+004F88E1  |.  8BC7          MOV     EAX, EDI
+004F88E3  |.  E8 E0E3F0FF   CALL    00406CC8
+004F88E8  |.  8B45 EC       MOV     EAX, [EBP-14]
+004F88EB  |.  B1 31         MOV     CL, 31                                  ;  以1补高位，补足10位
+004F88ED  |.  B2 0A         MOV     DL, 0A
+004F88EF  |.  E8 98650100   CALL    0050EE8C
+004F88F4  |.  8B45 F0       MOV     EAX, [EBP-10]
+004F88F7  |.  B1 30         MOV     CL, 30                                  ;  以0补低位，补足12位
+004F88F9  |.  B2 0C         MOV     DL, 0C
+004F88FB  |.  E8 4C660100   CALL    0050EF4C
+004F8900  |.  EB 2A         JMP     SHORT 004F892C
+004F8902  |>  8B45 F8       MOV     EAX, [EBP-8]
+004F8905  |.  50            PUSH    EAX
+004F8906  |.  8D45 F0       LEA     EAX, [EBP-10]
+004F8909  |.  50            PUSH    EAX
+004F890A  |.  8D55 EC       LEA     EDX, [EBP-14]
+004F890D  |.  8BC7          MOV     EAX, EDI
+004F890F  |.  E8 B4E3F0FF   CALL    00406CC8                                ;  处理过程
+004F8914  |.  8B45 EC       MOV     EAX, [EBP-14]
+004F8917  |.  B1 37         MOV     CL, 37                                  ;  以7补高位，补足10位
+004F8919  |.  B2 0A         MOV     DL, 0A
+004F891B  |.  E8 6C650100   CALL    0050EE8C                                ;  只取10位
+004F8920  |.  8B45 F0       MOV     EAX, [EBP-10]
+004F8923  |.  B1 39         MOV     CL, 39                                  ;  以9补低位，补足12位
+004F8925  |.  B2 0C         MOV     DL, 0C
+004F8927  |.  E8 20660100   CALL    0050EF4C
+004F892C  |>  33C0          XOR     EAX, EAX
+004F892E  |.  5A            POP     EDX
+004F892F  |.  59            POP     ECX
+004F8930  |.  59            POP     ECX
+004F8931  |.  64:8910       MOV     FS:[EAX], EDX
+004F8934  |.  68 56894F00   PUSH    004F8956
+004F8939  |>  8D45 EC       LEA     EAX, [EBP-14]
+004F893C  |.  BA 02000000   MOV     EDX, 2
+```
