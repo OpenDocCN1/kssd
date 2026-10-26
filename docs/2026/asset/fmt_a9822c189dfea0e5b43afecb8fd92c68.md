@@ -1,0 +1,204 @@
+
+#### .4 decompress cpb
+
+这个游戏有多个`cpb`解压函数，对应着不同通道数的文件，这里以32位图为例分析。
+
+```
+int __thiscall sub_41D453(_DWORD *this, int a2, int a3, int a4)
+{
+  int v6; // esi
+  int v8; // ebx
+  int v9; // [esp+8h] [ebp-4h]
+
+  v9 = 0;
+  if ( (*(*a4 + 0x2C))(a4) != 1 ) // 00401291, mov
+    return 0;
+  v6 = this[*(a3 + 0x18) + 1];
+  if ( !v6 )
+    return 0;
+  if ( (*(*a4 + 0x1C))(a4) == 8 ) // 00401278, mov
+  {
+    if ( *(a3 + 4) == 8 ) // 8bit with color panel
+      return (*(*v6 + 4))(v6, a2, a4);
+  }
+  else if ( (*(*a4 + 0x1C))(a4) == 32 ) // 32bit rgba
+  {
+    v8 = *(a3 + 4);
+    if ( v8 == 8 )
+      return (*(*v6 + 8))(v6, a2, a4);
+    if ( v8 == 24 )
+      return (*(*v6 + 0xC))(v6, a2, a4); // 0041e1c8 decompresscpb24
+    if ( v8 != 32 || (*(*a4 + 0x30))(a4) != 1 ) // 00401298, mov
+      return v9;
+    return (*(*v6 + 0x10))(v6, a2, a4); // 0041E36F,decompresscpb32
+  }
+  return v9;
+}
+```
+
+注意这里`vv1 = (*(*obja + 0xC))(obja)`中的`vv1`值为`prepare dc`中的`v5 = CreateDIBSection(0, &pbmi, 0, this + 0x28, 0, 0)`此句的DIB缓冲区。
+
+我们可以替换`decompress_channel_40AA38`后的缓冲区为汉化后的图片，然后让游戏引擎帮我们复制到`DIB`缓冲区内。
+
+```
+int __thiscall decompresscpb32_41E36F(void *this, int *obj)
+{
+  int v3; // eax
+  size_t pixels; // esi
+  char *raw_buf; // eax MAPDST
+  char *pchanel1; // ebx
+  int vv2; // eax
+  char *pchannel0; // edi
+  _BYTE *v11; // esi
+  _BYTE *v12; // eax
+  int v13; // edx
+  cpb1a_header_t cpb_header; // [esp+408h] [ebp-58h] BYREF
+  int v16; // [esp+428h] [ebp-38h]
+  int v17; // [esp+42Ch] [ebp-34h]
+  char *v18; // [esp+430h] [ebp-30h]
+  int width; // [esp+434h] [ebp-2Ch] MAPDST
+  char *compressed_buf; // [esp+438h] [ebp-28h] MAPDST
+  int pcurvv2; // [esp+43Ch] [ebp-24h]
+  int i; // [esp+444h] [ebp-1Ch]
+  char *pchanel3; // [esp+448h] [ebp-18h]
+  _BYTE *vv1; // [esp+44Ch] [ebp-14h]
+  int j; // [esp+450h] [ebp-10h]
+  int v27; // [esp+45Ch] [ebp-4h]
+  char *obja; // [esp+46Ch] [ebp+Ch] MAPDST
+  char *pchanel2; // [esp+46Ch] [ebp+Ch]
+
+  v27 = 0;
+  j = 0;
+  if ( readcpb_40C03E(obj, cpb_header.magic, 0x20) )
+  {
+    v3 = *obja;
+    width = cpb_header.width;
+    i = cpb_header.height;
+    pixels = cpb_header.width * cpb_header.height;
+    v17 = (*(v3 + 0x24))(obja); // 00401283, mov
+    compressed_buf = operator new(cpb_header.max_comprlen);
+    raw_buf = operator new(4 * pixels);
+    pchanel1 = &raw_buf[pixels];
+    pchanel2 = &raw_buf[pixels + pixels];
+    pchanel3 = &pchanel2[pixels];
+    vv1 = (*(*obja + 0xC))(obja); // 0040125C, mov this+0x28, get hdc buffer
+    // CreateDIBSection(0, &pbmi, 0, this + 0x28, 0, 0);
+    vv2 = (*(*obja + 0x20))(obja);
+    pcurvv2 = vv2;
+    if ( readcpb_40C03E(obj, compressed_buf, cpb_header.comprlen[0])
+      && decompress_channel_40AA38(compressed_buf, cpb_header.comprlen[0], raw_buf, pixels) != -1
+      && readcpb_40C03E(obj, compressed_buf, cpb_header.comprlen[1])
+      && decompress_channel_40AA38(compressed_buf, cpb_header.comprlen[1], pchanel1, pixels) != -1
+      && readcpb_40C03E(obj, compressed_buf, cpb_header.comprlen[2])
+      && decompress_channel_40AA38(compressed_buf, cpb_header.comprlen[2], pchanel2, pixels) != -1
+      && readcpb_40C03E(obj, compressed_buf, cpb_header.comprlen[3])
+      && decompress_channel_40AA38(compressed_buf, cpb_header.comprlen[3], pchanel3, pixels) != -1 )
+    {
+      if ( i > 0 )
+      {
+        pchannel0 = &pchanel1[-pixels];
+        ++vv1;
+        j = i;
+        do // copy data to dc buf
+        {
+          if ( width > 0 )
+          {
+            v11 = vv1;
+            v16 = pchanel2 - pchanel1;
+            v18 = (pchanel3 - pchanel1);
+            v12 = pchanel1;
+            v13 = pcurvv2 - pchanel1;
+            i = width;
+            do
+            {
+              v11[1] = v12[pchannel0 - pchanel1];
+              *v11 = *v12;
+              *(v11 - 1) = v12[v16];
+              v12[v13] = v12[v18];
+              ++v12;
+              v11 += 4;
+              --i;
+            }
+            while ( i );
+          }
+          pchanel2 += width;
+          pchanel3 += width;
+          vv1 += 4 * width;
+          pcurvv2 += v17;
+          pchanel1 += width;
+          pchannel0 += width;
+          --j;
+        }
+        while ( j );
+      }
+      j = 1;
+    }
+    if ( raw_buf )
+      j__free(raw_buf);
+    if ( compressed_buf )
+      j__free(compressed_buf);
+  }
+  return j;
+}
+```
+
+解压各通道算法，看起来有点像`lzss`改版？
+
+```
+int __stdcall decompress_channel_40AA38(char *compressed_buf, size_t compressed_size, char *raw_buf, size_t raw_len)
+{
+  char *v5; // ebx
+  char *v6; // edx
+  char *v7; // esi
+  char *v8; // edi
+  unsigned int v9; // ecx
+  signed int v10; // eax
+  unsigned int v11; // ecx
+  char *v12; // esi
+  char v13; // cf
+  bool v14; // cc
+  unsigned int v15; // [esp+Ch] [ebp-4h]
+  signed int dstsizea; // [esp+24h] [ebp+14h]
+
+  if ( *(compressed_buf + 4) > raw_len )
+    return -1;
+  v5 = compressed_buf + 20;
+  v6 = &compressed_buf[*(compressed_buf + 1) + 20];
+  v7 = &v6[*(compressed_buf + 2)];
+  dstsizea = *(compressed_buf + 4);
+  v8 = raw_buf;
+  v15 = 0x80808080;
+  do
+  {
+    if ( (v15 & *v5) != 0 )
+    {
+      v9 = *v6;
+      v6 += 2;
+      v10 = (v9 >> 13) + 3;
+      qmemcpy(v8, &v8[-(v9 & 0x1FFF) - 1], v10);
+      v8 += v10;
+    }
+    else
+    {
+      v11 = *v7 + 1;
+      v12 = v7 + 1;
+      v10 = v11;
+      qmemcpy(v8, v12, v11);
+      v7 = &v12[v11];
+      v8 += v11;
+    }
+    v13 = v15 & 1;
+    v15 = __ROR4__(v15, 1);
+    if ( v13 )
+      ++v5;
+    v14 = dstsizea <= v10;
+    dstsizea -= v10;
+  }
+  while ( !v14 );
+  return v8 - raw_buf;
+}
+```
+
+#### .5 bitblt screen dc
+
+最后再通过`bitblt`到屏幕帧缓存中，至此整个游戏图片渲染分析完毕。
