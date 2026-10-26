@@ -1,0 +1,160 @@
+
+# 键盘幽灵3.20--简单算法分析
+
+没想到整出不好以前写的文章。现在看起来傻傻的。不过也许对和我一样的小鸟们有帮助。
+
+另外键盘幽灵现在最新的版本也就3.22好，但算法还是没变。可惜一个不错的软件不更新了：（
+
+==================================================================================
+
+【工程作者】深海游侠
+
+【作者邮箱】shenhaiyouxia@163.com
+
+==================================================================================
+
+【软件名称】键盘幽灵 3.20
+
+【下载地址】大家自己找下吧
+
+【所受限制】功能限制
+
+【软件介绍】
+
+比较著名的键盘记录工具，早在几年前就广泛被人们以"传奇黑眼睛"+"键盘幽灵"窃取传奇帐号。
+
+==================================================================================
+
+【工程平台】WIN ME
+
+【调试工具】TRW2000系列
+
+==================================================================================
+
+【破解过程】
+
+先查壳→VC++，直接用TRW2000载入，按ALT+F12呼出软件，找到注册地方，下万能断点BPX HMEMCPY，程序断下，打PMODULE回到程序领空，按N多次F12，程序到这里:
+
+```
+016F:0047558A 837DFC00         CMP      DWORD [EBP-04],BYTE +00    ------->是否输入注册码？
+016F:0047558E 0F8499000000     JZ       NEAR 0047562D              ------->没有那就直接完蛋。也算是个爆点吧。算是完全爆破。
+016F:00475594 8D85FCFEFFFF     LEA      EAX,[EBP+FFFFFEFC]
+016F:0047559A 8B55FC           MOV      EDX,[EBP-04]               ------->假码出现。
+016F:0047559D B9FF000000       MOV      ECX,FF
+016F:004755A2 E881E8F8FF       CALL     00403E28
+016F:004755A7 8D85FCFEFFFF     LEA      EAX,[EBP+FFFFFEFC]
+016F:004755AD E8CAC2FFFF       CALL     0047187C                   -------->关键算法CALL！跟进！
+016F:004755B2 84C0             TEST     AL,AL
+016F:004755B4 7477             JZ       0047562D                   -------->关键跳！爆破点。
+016F:004755B6 B201             MOV      DL,01
+016F:004755B8 8B8340030000     MOV      EAX,[EBX+0340]
+016F:004755BE E8F570FBFF       CALL     0042C6B8
+016F:004755C3 33D2             XOR      EDX,EDX
+016F:004755C5 8B8318030000     MOV      EAX,[EBX+0318]
+016F:004755CB E8E870FBFF       CALL     0042C6B8
+016F:004755D0 B201             MOV      DL,01
+016F:004755D2 8B8340040000     MOV      EAX,[EBX+0440]
+016F:004755D8 8B08             MOV      ECX,[EAX]
+016F:004755DA FF515C           CALL     NEAR [ECX+5C]
+016F:004755DD C605D1BA470001   MOV      BYTE [0047BAD1],01
+016F:004755E4 68A0564700       PUSH     DWORD 004756A0
+016F:004755E9 8D95E8FEFFFF     LEA      EDX,[EBP+FFFFFEE8]
+016F:004755EF 8B45FC           MOV      EAX,[EBP-04]
+016F:004755F2 E84595FEFF       CALL     0045EB3C
+016F:004755F7 8B95E8FEFFFF     MOV      EDX,[EBP+FFFFFEE8]
+016F:004755FD 8D85ECFEFFFF     LEA      EAX,[EBP+FFFFFEEC]
+016F:00475603 E8A4F9F8FF       CALL     00404FAC
+016F:00475608 8D85ECFEFFFF     LEA      EAX,[EBP+FFFFFEEC]
+016F:0047560E 50               PUSH     EAX
+016F:0047560F B9B0564700       MOV      ECX,004756B0               --------->看到一串注册表键值，应该是成功表示。
+016F:00475614 B202             MOV      DL,02
+016F:00475616 8B8310030000     MOV      EAX,[EBX+0310]
+016F:0047561C E85F21FEFF       CALL     00457780                   --------->我想这个CALL就是检验你的注册码是否是合法的吧，如果不合法，也就是说如果你是爆破的，那就不会在注册表那里给出注册标记，当然也要经过上面几个CALL的计算，具体我没跟，有兴趣的朋友可以看看。
+016F:00475621 B8D4564700       MOV      EAX,004756D4
+016F:00475626 E885A9FDFF       CALL     0044FFB0                   --------->成功画面！
+016F:0047562B EB0A             JMP      SHORT 00475637
+```
+
+算法CALL：
+
+```
+016F:004755AD E8CAC2FFFF       CALL     0047187C
+
+|
+016F:0047187C 55               PUSH     EBP
+016F:0047187D 8BEC             MOV      EBP,ESP
+016F:0047187F 81C4ECFCFFFF     ADD      ESP,FFFFFCEC
+016F:00471885 53               PUSH     EBX
+016F:00471886 56               PUSH     ESI
+016F:00471887 57               PUSH     EDI
+016F:00471888 33D2             XOR      EDX,EDX
+016F:0047188A 8995F0FCFFFF     MOV      [EBP+FFFFFCF0],EDX
+016F:00471890 8995ECFCFFFF     MOV      [EBP+FFFFFCEC],EDX
+016F:00471896 8995F8FCFFFF     MOV      [EBP+FFFFFCF8],EDX
+016F:0047189C 8995F4FCFFFF     MOV      [EBP+FFFFFCF4],EDX
+016F:004718A2 8BF0             MOV      ESI,EAX
+016F:004718A4 8DBDFFFEFFFF     LEA      EDI,[EBP+FFFFFEFF]
+016F:004718AA 33C9             XOR      ECX,ECX
+016F:004718AC 8A0E             MOV      CL,[ESI]
+016F:004718AE 41               INC      ECX
+016F:004718AF F3A4             REP MOVSB
+016F:004718B1 33C0             XOR      EAX,EAX
+016F:004718B3 55               PUSH     EBP
+016F:004718B4 68DE194700       PUSH     DWORD 004719DE
+016F:004718B9 64FF30           PUSH     DWORD [FS:EAX]
+016F:004718BC 648920           MOV      [FS:EAX],ESP
+016F:004718BF C645FF00         MOV      BYTE [EBP-01],00
+016F:004718C3 8D85F4FCFFFF     LEA      EAX,[EBP+FFFFFCF4]
+016F:004718C9 8D95FFFEFFFF     LEA      EDX,[EBP+FFFFFEFF]
+016F:004718CF E81C25F9FF       CALL     00403DF0
+016F:004718D4 8B85F4FCFFFF     MOV      EAX,[EBP+FFFFFCF4]
+016F:004718DA 8D95F8FCFFFF     LEA      EDX,[EBP+FFFFFCF8]
+016F:004718E0 E82374F9FF       CALL     00408D08             -------->输入注册码是否为有效字符？
+016F:004718E5 8B95F8FCFFFF     MOV      EDX,[EBP+FFFFFCF8]
+016F:004718EB 8D85FFFEFFFF     LEA      EAX,[EBP+FFFFFEFF]
+016F:004718F1 B9FF000000       MOV      ECX,FF
+016F:004718F6 E82D25F9FF       CALL     00403E28
+016F:004718FB 33DB             XOR      EBX,EBX
+016F:004718FD C685FFFDFFFF00   MOV      BYTE [EBP+FFFFFDFF],00
+016F:00471904 C685FFFCFFFF00   MOV      BYTE [EBP+FFFFFCFF],00
+016F:0047190B 8D95FFFEFFFF     LEA      EDX,[EBP+FFFFFEFF]
+016F:00471911 B8F0194700       MOV      EAX,004719F0         -------->出现字符“-”
+016F:00471916 E80511F9FF       CALL     00402A20             -------->检测注册码中是否带有“-”(通过串比较)
+016F:0047191B 8BF0             MOV      ESI,EAX
+016F:0047191D 85F6             TEST     ESI,ESI              -------->有的话那继续下面计算。
+016F:0047191F 0F8E9B000000     JNG      NEAR 004719C0
+016F:00471925 8D85FFFDFFFF     LEA      EAX,[EBP+FFFFFDFF]
+016F:0047192B 50               PUSH     EAX
+016F:0047192C 8BCE             MOV      ECX,ESI
+016F:0047192E 49               DEC      ECX
+016F:0047192F BA01000000       MOV      EDX,01
+016F:00471934 8D85FFFEFFFF     LEA      EAX,[EBP+FFFFFEFF]   -------->假码。
+016F:0047193A E8250FF9FF       CALL     00402864             -------->通过串比较来确定“-”后面是否跟有字符。
+016F:0047193F 8D85FFFCFFFF     LEA      EAX,[EBP+FFFFFCFF]
+016F:00471945 50               PUSH     EAX
+016F:00471946 33C9             XOR      ECX,ECX
+016F:00471948 8A8DFFFEFFFF     MOV      CL,[EBP+FFFFFEFF]    -------->注册码位数
+016F:0047194E 2BCE             SUB      ECX,ESI              -------->注册码为数-“-”前面的注册码位数=ECX
+016F:00471950 8D5601           LEA      EDX,[ESI+01]         -------->EDX=“-”前面的位数，用于下面计算。
+016F:00471953 8D85FFFEFFFF     LEA      EAX,[EBP+FFFFFEFF]
+016F:00471959 E8060FF9FF       CALL     00402864             -------->再确定一次。
+016F:0047195E 33D2             XOR      EDX,EDX              -------->EDX清0
+016F:00471960 8A95FFFDFFFF     MOV      DL,[EBP+FFFFFDFF]    -------->“-”后面的位数。(用于下面充当计数器)
+016F:00471966 85D2             TEST     EDX,EDX              -------->恩，“-“后面有字符，那让你过去。(其实这一部分只要你输入有也不用看，但我们最好多见见一些比较的方式，下面才是计算！)
+016F:00471968 7E16             JNG      00471980
+016F:0047196A 8D8500FEFFFF     LEA      EAX,[EBP+FFFFFE00]   -------->EAX=假码“-”前几位
+016F:00471970 33C9             XOR      ECX,ECX              -------->ECX清0
+016F:00471972 8A08             MOV      CL,[EAX]             -------->ECX=注册码第一位
+016F:00471974 03D9             ADD      EBX,ECX              -------->ECX=ECX+EBX
+016F:00471976 81C3A41D0F00     ADD      EBX,000F1DA4         -------->EBX=EBX+000F1DA4
+016F:0047197C 40               INC      EAX                  -------->EAX+1,该算第二位了
+016F:0047197D 4A               DEC      EDX                  -------->下一位
+016F:0047197E 75F0             JNZ      00471970             -------->跳回去。(这部分就是把“-”前几位以ASCII码的形式累加起来)此时EBX累加出的结果转化为10进制就是“-”后的注册码了。下面实现。
+016F:00471980 8D85F0FCFFFF     LEA      EAX,[EBP+FFFFFCF0]
+016F:00471986 8D95FFFCFFFF     LEA      EDX,[EBP+FFFFFCFF]
+016F:0047198C E85F24F9FF       CALL     00403DF0
+016F:00471991 8B85F0FCFFFF     MOV      EAX,[EBP+FFFFFCF0]   -------->看到注册码“-”后几位
+016F:00471997 50               PUSH     EAX                  -------->压栈用于下面比较
+016F:00471998 8D95ECFCFFFF     LEA      EDX,[EBP+FFFFFCEC]
+016F:0047199E 8BC3             MOV      EAX,EBX
+```
