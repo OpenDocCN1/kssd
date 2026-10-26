@@ -1,0 +1,143 @@
+
+# [原创]《恒特画王》的注册算法分析（浮点运算）
+
+【文章标题】：《恒特画王》的注册算法分析（浮点运算）
+【文章作者】：水中花
+【软件名称】：恒特画王
+【下载地址】：自己搜索下载
+【保护方式】：sn
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+--------------------------------------------------------------------------------
+
+## 【详细过程】
+
+下断在此处：
+
+```
+0041526B  /$  55            push    ebp
+0041526C  |.  8BEC          mov     ebp, esp
+0041526E  |.  6A FF         push    -1
+00415270  |.  68 728D4A00   push    dnhx.004A8D72              ;  SE 处理程序安装
+00415275  |.  64:A1 0000000>mov     eax, dword ptr fs:[0]
+0041527B  |.  50            push    eax
+0041527C  |.  64:8925 00000>mov     dword ptr fs:[0], esp
+00415283  |.  81EC EC010000 sub     esp, 1EC
+00415289  |.  898D 1CFEFFFF mov     dword ptr [ebp-1E4], ecx
+0041528F  |.  6A 00         push    0                          ; /Arg1 = 00000000
+00415291  |.  8D4D 90       lea     ecx, dword ptr [ebp-70]    ; |
+00415294  |.  E8 07360400   call    dnhx.004588A0              ; \dnhx.004588A0
+00415299  |.  C745 FC 00000>mov     dword ptr [ebp-4], 0
+004152A0  |.  8D4D 90       lea     ecx, dword ptr [ebp-70]
+004152A3  |.  E8 1BED0600   call    dnhx.00483FC3
+004152A8  |.  8D45 EC       lea     eax, dword ptr [ebp-14]    ;  密码
+004152AB  |.  50            push    eax
+004152AC  |.  8D4D F0       lea     ecx, dword ptr [ebp-10]
+004152AF  |.  E8 FA2D0700   call    dnhx.004880AE              ;  是否有输入密码
+004152B4  |.  C645 FC 01    mov     byte ptr [ebp-4], 1
+004152B8  |.  8D8D 2CFEFFFF lea     ecx, dword ptr [ebp-1D4]
+004152BE  |.  51            push    ecx                        ; /Arg1
+004152BF  |.  8B8D 1CFEFFFF mov     ecx, dword ptr [ebp-1E4]   ; |
+004152C5  |.  E8 C8DEFFFF   call    dnhx.00413192              ; \关键处，跟进
+004152CA  |.  8985 18FEFFFF mov     dword ptr [ebp-1E8], eax　　真码地址
+004152D0  |.  8B95 18FEFFFF mov     edx, dword ptr [ebp-1E8]
+004152D6  |.  8995 14FEFFFF mov     dword ptr [ebp-1EC], edx
+004152DC  |.  C645 FC 02    mov     byte ptr [ebp-4], 2
+004152E0  |.  8B85 14FEFFFF mov     eax, dword ptr [ebp-1EC]
+004152E6  |.  50            push    eax                        ; /Arg2
+004152E7  |.  8D4D F0       lea     ecx, dword ptr [ebp-10]    ; |
+004152EA  |.  51            push    ecx                        ; |Arg1
+004152EB  |.  E8 60090000   call    dnhx.00415C50              真假码比较
+004152F0  |.  25 FF000000   and     eax, 0FF
+004152F5  |.  85C0          test    eax, eax　　　　
+004152F7  |.  74 52         je      short dnhx.0041534B　　　
+004152F9  |.  68 C0A64C00   push    dnhx.004CA6C0              ; /无光盘
+004152FE  |.  8D55 F0       lea     edx, dword ptr [ebp-10]    ; |
+00415301  |.  52            push    edx                        ; |Arg1
+00415302  |.  E8 2987FFFF   call    dnhx.0040DA30              ; \dnhx.0040DA30
+00415307  |.  8885 28FEFFFF mov     byte ptr [ebp-1D8], al
+0041530D  |.  8B85 28FEFFFF mov     eax, dword ptr [ebp-1D8]
+00415313  |.  25 FF000000   and     eax, 0FF
+00415318  |.  85C0          test    eax, eax
+0041531A  |.  74 2F         je      short dnhx.0041534B
+0041531C  |.  8D4D F0       lea     ecx, dword ptr [ebp-10]
+0041531F  |.  E8 ACDAFEFF   call    dnhx.00402DD0
+00415324  |.  F7D8          neg     eax
+00415326  |.  1BC0          sbb     eax, eax
+00415328  |.  40            inc     eax
+00415329  |.  8885 24FEFFFF mov     byte ptr [ebp-1DC], al
+0041532F  |.  8B8D 24FEFFFF mov     ecx, dword ptr [ebp-1DC]
+00415335  |.  81E1 FF000000 and     ecx, 0FF
+0041533B  |.  85C9          test    ecx, ecx
+0041533D  |.  74 0C         je      short dnhx.0041534B
+0041533F  |.  C785 10FEFFFF>mov     dword ptr [ebp-1F0], 1
+00415349  |.  EB 0A         jmp     short dnhx.00415355
+0041534B  |>  C785 10FEFFFF>mov     dword ptr [ebp-1F0], 0
+00415355  |>  8A95 10FEFFFF mov     dl, byte ptr [ebp-1F0]
+0041535B  |.  8895 30FEFFFF mov     byte ptr [ebp-1D0], dl
+00415361  |.  C645 FC 01    mov     byte ptr [ebp-4], 1
+00415365  |.  8D8D 2CFEFFFF lea     ecx, dword ptr [ebp-1D4]
+0041536B  |.  E8 C92F0700   call    dnhx.00488339　　　　　　　比较处
+00415370  |.  8B85 30FEFFFF mov     eax, dword ptr [ebp-1D0]
+00415376  |.  25 FF000000   and     eax, 0FF
+0041537B  |.  85C0          test    eax, eax
+0041537D  |.  0F84 2B010000 je      dnhx.004154AE　　　　　　为0跳向错误处
+00415383  |.  6A 00         push    0
+00415385  |.  68 C8A64C00   push    dnhx.004CA6C8              ;  密码正确
+0041538A  |.  68 D4A64C00   push    dnhx.004CA6D4              ;  谢谢支持使用恒特软件产品!
+0041538F  |.  8B8D 1CFEFFFF mov     ecx, dword ptr [ebp-1E4]
+00415395  |.  E8 690C0700   call    dnhx.00486003
+0041539A  |.  68 04010000   push    104                        ; /BufSize = 104 (260.)
+0041539F  |.  8D8D 78FEFFFF lea     ecx, dword ptr [ebp-188]   ; |
+004153A5  |.  51            push    ecx                        ; |Buffer
+004153A6  |.  FF15 B4F24A00 call    dword ptr [<&KERNEL32.GetS>; \GetSystemDirectoryA
+004153AC  |.  8D95 78FEFFFF lea     edx, dword ptr [ebp-188]
+004153B2  |.  52            push    edx
+004153B3  |.  8D8D 7CFFFFFF lea     ecx, dword ptr [ebp-84]
+004153B9  |.  E8 E92F0700   call    dnhx.004883A7
+004153BE  |.  C645 FC 03    mov     byte ptr [ebp-4], 3
+004153C2  |.  68 F0A64C00   push    dnhx.004CA6F0              ;  \configa.hps
+004153C7  |.  8D8D 7CFFFFFF lea     ecx, dword ptr [ebp-84]
+004153CD  |.  E8 43330700   call    dnhx.00488715
+004153D2  |.  8D85 20FEFFFF lea     eax, dword ptr [ebp-1E0]
+004153D8  |.  50            push    eax                        ; /Arg1
+004153D9  |.  8B8D 1CFEFFFF mov     ecx, dword ptr [ebp-1E4]   ; |
+004153DF  |.  E8 AEDDFFFF   call    dnhx.00413192              ; \dnhx.00413192
+004153E4  |.  8985 0CFEFFFF mov     dword ptr [ebp-1F4], eax
+004153EA  |.  8B8D 0CFEFFFF mov     ecx, dword ptr [ebp-1F4]
+004153F0  |.  898D 08FEFFFF mov     dword ptr [ebp-1F8], ecx
+004153F6  |.  C645 FC 04    mov     byte ptr [ebp-4], 4
+004153FA  |.  8B95 08FEFFFF mov     edx, dword ptr [ebp-1F8]
+00415400  |.  52            push    edx
+00415401  |.  8D4D F0       lea     ecx, dword ptr [ebp-10]
+00415404  |.  E8 69300700   call    dnhx.00488472
+00415409  |.  C645 FC 03    mov     byte ptr [ebp-4], 3
+0041540D  |.  8D8D 20FEFFFF lea     ecx, dword ptr [ebp-1E0]
+00415413  |.  E8 212F0700   call    dnhx.00488339
+00415418  |.  8D4D 80       lea     ecx, dword ptr [ebp-80]
+0041541B  |.  E8 AF350700   call    dnhx.004889CF
+00415420  |.  C645 FC 05    mov     byte ptr [ebp-4], 5
+00415424  |.  6A 00         push    0
+00415426  |.  68 01100000   push    1001
+0041542B  |.  8D8D 7CFFFFFF lea     ecx, dword ptr [ebp-84]
+00415431  |.  E8 DAD9FEFF   call    dnhx.00402E10
+00415436  |.  50            push    eax                        ; |Arg1
+00415437  |.  8D4D 80       lea     ecx, dword ptr [ebp-80]    ; |
+0041543A  |.  E8 42370700   call    dnhx.00488B81              ; \dnhx.00488B81
+0041543F  |.  85C0          test    eax, eax
+00415441  |.  74 4E         je      short dnhx.00415491
+00415443  |.  6A 00         push    0
+00415445  |.  68 00100000   push    1000
+0041544A  |.  6A 00         push    0
+0041544C  |.  8D45 80       lea     eax, dword ptr [ebp-80]
+0041544F  |.  50            push    eax
+00415450  |.  8D8D 34FEFFFF lea     ecx, dword ptr [ebp-1CC]
+00415456  |.  E8 8C760700   call    dnhx.0048CAE7
+0041545B  |.  C645 FC 06    mov     byte ptr [ebp-4], 6
+0041545F  |.  8D4D F0       lea     ecx, dword ptr [ebp-10]
+00415462  |.  51            push    ecx                        ; /Arg2
+00415463  |.  8D95 34FEFFFF lea     edx, dword ptr [ebp-1CC]   ; |
+00415469  |.  52            push    edx                        ; |Arg1
+0041546A  |.  E8 4D740700   call    dnhx.0048C8BC              ; \dnhx.0048C8BC
+0041546F  |.  8D8D 34FEFFFF lea     ecx, dword ptr [ebp-1CC]
+```
