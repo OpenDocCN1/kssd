@@ -1,0 +1,148 @@
+
+# [原创]飞雪日历调试笔记
+
+## 简介
+飞雪日历V1.62.0437 绿色软件 有万年历、时钟、世界时间、定时、限时、提醒、备忘录、系统热键、光驱控制、定期清理、语音报时等功能。
+
+## 来源
+`361K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4A6Z5k6h3&6Y4z5e0W2Q4x3X3g2U0L8$3#2Q4x3V1j5`.
+
+## 限制
+未注册版没有时间和功能限制，但是定时弹出提醒注册的窗口
+
+## 工具
+`PEid`, `OllyDbg`, `Numega SmartCheck`
+
+## 声明
+调试分析纯属兴趣，请不要用于其他目的
+
+## 过程
+
+先注册，随便填写注册名`abc`、注册码`1234567890`，程序仅提示已保存机器码和用户输入的注册名、注册码，没有其他反应。
+
+`PEiD`查壳`UPX 0.89.6 - 1.02 / 1.05 - 1.24 -> Markus & Laszlo`，手工脱壳后再查是VB写的，但运行脱壳后的程序有"不精确的浮点数运算结果异常"而退出，看雪老大在脱壳基础第六课没有说这种粘壳的粽子怎么剥，没法子只好带壳调试。
+
+![](https://bbs.kanxue.com/view/img/face/50.gif) ![](https://bbs.kanxue.com/view/img/face/50.gif) ![](https://bbs.kanxue.com/view/img/face/50.gif)
+
+用`SmartCheck`打开运行原程序，是多线程，`Thread0`下的`ThunRTMain`有很多`DispatchMessageA`向下翻到一个`TimerTmp(1)_Timer`，展开看到有机器码等三项注册用的字串，估计是这里验证是否已注册，向前翻看可知是读自子目录`FXSYS`下的文件`FXSYS.INI`，还看到前面调用`Randomize`、用处理器信息字符串各ASCII值`*2`累加成机器码，有这些信息在`OD`就好定位了。
+
+用`OD`打开、停下，翻屏找`POPAD`和长`JMP`，在真正入口点`00405CE0`下断，`F9`运行再停下时程序已脱壳，入口点上面几行就是输入表的跳转命令，找到`MSVBVM60.rtcRandomize`是`JMP [DWORD DS:4010DC]`，查找命令`CALL [DWORD DS:4010DC]`只有一处。向下翻看见到读注册文件的地方就是我们要找的了。
+
+``` 
+00465880    55              PUSH EBP
+...注册过一次就能到这里，这些忽略过...
+00465B42    8B55 E0         MOV EDX,[DWORD SS:EBP-20]                ; 注册名地址
+00465B45    52              PUSH EDX
+00465B46    FF15 2C104000   CALL [DWORD DS:40102C]                   ; MSVBVM60.__vbaLenBstr
+00465B4C    3BC7            CMP EAX,EDI                              ; 注册名长度，不能少于2字节
+00465B4E    0F8C 4F060000   JL FXRL.004661A3                         ; 跳就完
+00465B54    C745 88 0100000>MOV [DWORD SS:EBP-78],1
+00465B5B    897D 80         MOV [DWORD SS:EBP-80],EDI
+00465B5E    8D45 80         LEA EAX,[DWORD SS:EBP-80]
+00465B61    50              PUSH EAX
+00465B62    6A 01           PUSH 1
+00465B64    8B4D E0         MOV ECX,[DWORD SS:EBP-20]
+00465B67    51              PUSH ECX
+00465B68    8B3D 20114000   MOV EDI,[DWORD DS:401120]                ; MSVBVM60.rtcMidCharBstr
+00465B6E    FFD7            CALL EDI
+00465B70    8BD0            MOV EDX,EAX                              ; 注册名第1个字符'a'(地址)
+00465B72    8D4D A0         LEA ECX,[DWORD SS:EBP-60]
+00465B75    FFD6            CALL ESI
+00465B77    50              PUSH EAX
+00465B78    FF15 50104000   CALL [DWORD DS:401050]                   ; MSVBVM60.rtcAnsiValueBstr
+00465B7E    8BD8            MOV EBX,EAX                              ; 返回'a'的ASCII值61
+00465B80    6A 01           PUSH 1
+00465B82    8B55 CC         MOV EDX,[DWORD SS:EBP-34]                ; 注册码地址
+00465B85    52              PUSH EDX
+00465B86    FF15 CC124000   CALL [DWORD DS:4012CC]                   ; MSVBVM60.rtcLeftCharBstr
+00465B8C    8BD0            MOV EDX,EAX                              ; 注册码第1个字符(地址)
+00465B8E    8D4D 98         LEA ECX,[DWORD SS:EBP-68]
+00465B91    FFD6            CALL ESI
+00465B93    50              PUSH EAX
+00465B94    6A 01           PUSH 1
+00465B96    53              PUSH EBX
+00465B97    FF15 08104000   CALL [DWORD DS:401008]                   ; MSVBVM60.__vbaStrI2
+00465B9D    8BD0            MOV EDX,EAX                              ; 注册名第1字符ASCII值(十进制)转换为字符串"97"
+00465B9F    8D4D 9C         LEA ECX,[DWORD SS:EBP-64]
+00465BA2    FFD6            CALL ESI
+00465BA4    50              PUSH EAX
+00465BA5    FF15 EC124000   CALL [DWORD DS:4012EC]                   ; MSVBVM60.rtcRightCharBstr
+00465BAB    8BD0            MOV EDX,EAX
+00465BAD    8D4D 94         LEA ECX,[DWORD SS:EBP-6C]
+00465BB0    FFD6            CALL ESI
+00465BB2    50              PUSH EAX                                 ; "97"的最后1个字符'7'(地址)
+00465BB3    FF15 60114000   CALL [DWORD DS:401160]                   ; MSVBVM60.__vbaStrCmp
+00465BB9    8BD8            MOV EBX,EAX                              ; 比较'7'和注册码第1字符，如果相等就返回0
+00465BBB    F7DB            NEG EBX
+00465BBD    1BDB            SBB EBX,EBX
+00465BBF    F7DB            NEG EBX
+00465BC1    F7DB            NEG EBX
+00465BC3    8D45 94         LEA EAX,[DWORD SS:EBP-6C]
+00465BC6    50              PUSH EAX
+00465BC7    8D4D 98         LEA ECX,[DWORD SS:EBP-68]
+00465BCA    51              PUSH ECX
+00465BCB    8D55 9C         LEA EDX,[DWORD SS:EBP-64]
+00465BCE    52              PUSH EDX
+00465BCF    8D45 A0         LEA EAX,[DWORD SS:EBP-60]
+00465BD2    50              PUSH EAX
+00465BD3    6A 04           PUSH 4
+00465BD5    FF15 70124000   CALL [DWORD DS:401270]                   ; MSVBVM60.__vbaFreeStrList
+00465BDB    83C4 14         ADD ESP,14
+00465BDE    8D4D 80         LEA ECX,[DWORD SS:EBP-80]
+00465BE1    FF15 20104000   CALL [DWORD DS:401020]                   ; MSVBVM60.__vbaFreeVar
+00465BE7    66:85DB         TEST BX,BX
+00465BEA    0F85 B3050000   JNZ FXRL.004661A3                        ; 上面字符比较相等，这里就不会跳走，否则跳就完。此时知道注册码第1字符对应注册名a应该是7才对。
+...然后比较注册名第2字符'b'与注册码第2字符，知道第2个应该是'8'。过程同上略过...
+00465CA5    0F85 F8040000   JNZ FXRL.004661A3                        ; 不能跳
+00465CAB    C745 88 0400028>MOV [DWORD SS:EBP-78],80020004
+00465CB2    C745 80 0A00000>MOV [DWORD SS:EBP-80],0A
+00465CB9    8D55 80         LEA EDX,[DWORD SS:EBP-80]
+00465CBC    52              PUSH EDX
+00465CBD    6A 03           PUSH 3
+00465CBF    8B45 CC         MOV EAX,[DWORD SS:EBP-34]
+00465CC2    50              PUSH EAX
+00465CC3    FFD7            CALL EDI
+00465CC5    8BD0            MOV EDX,EAX                              ; 取得注册码第3字符开始的右边子串(地址)
+00465CC7    8D4D CC         LEA ECX,[DWORD SS:EBP-34]
+00465CCA    FFD6            CALL ESI
+00465CCC    8D4D 80         LEA ECX,[DWORD SS:EBP-80]
+00465CCF    FF15 20104000   CALL [DWORD DS:401020]                   ; MSVBVM60.__vbaFreeVar
+00465CD5    8B4D CC         MOV ECX,[DWORD SS:EBP-34]                ; 截取注册码第3字符开始的右边子串
+00465CD8    51              PUSH ECX                                 ; 入栈，下面把它转换成浮点数
+00465CD9    FF15 50134000   CALL [DWORD DS:401350]                   ; MSVBVM60.rtcR8ValFromBstr
+00465CDF    FF15 14114000   CALL [DWORD DS:401114]                   ; MSVBVM60.__vbaFpR8
+00465CE5    DC1D 30234000   FCOMP [QWORD DS:402330]                  ; 和999999.0比较，要比这个常数大才行
+00465CEB    DFE0            FSTSW AX
+00465CED    F6C4 41         TEST AH,41
+00465CF0    C785 CCFEFFFF 0>MOV [DWORD SS:EBP-134],1
+00465CFA    74 0A           JE SHORT FXRL.00465D06                   ; 必须跳（以使之赋值为1后面马上用到）
+00465CFC    C785 CCFEFFFF 0>MOV [DWORD SS:EBP-134],0                 ; 然后同法比较机器码，暂时不管
+00465D06    8D55 A4         LEA EDX,[DWORD SS:EBP-5C]
+00465D09    52              PUSH EDX
+00465D0A    8D45 A0         LEA EAX,[DWORD SS:EBP-60]
+00465D0D    50              PUSH EAX
+00465D0E    FF15 0C124000   CALL [DWORD DS:40120C]                   ; MSVBVM60.__vbaStrVarVal
+00465D14    50              PUSH EAX
+00465D15    FF15 50134000   CALL [DWORD DS:401350]                   ; MSVBVM60.rtcR8ValFromBstr
+00465D1B    FF15 14114000   CALL [DWORD DS:401114]                   ; MSVBVM60.__vbaFpR8
+00465D21    DC1D 28234000   FCOMP [QWORD DS:402328]                  ; 和101.0比较
+00465D27    DFE0            FSTSW AX
+00465D29    F6C4 41         TEST AH,41
+00465D2C    75 07           JNZ SHORT FXRL.00465D35                  ; 这里正常地是不跳的
+00465D2E    BB 01000000     MOV EBX,1
+00465D33    EB 02           JMP SHORT FXRL.00465D37
+00465D35    33DB            XOR EBX,EBX
+00465D37    8B4D E0         MOV ECX,[DWORD SS:EBP-20]                ; 注册名，检查它的长度
+00465D3A    51              PUSH ECX
+00465D3B    FF15 2C104000   CALL [DWORD DS:40102C]                   ; MSVBVM60.__vbaLenBstr
+00465D41    33D2            XOR EDX,EDX
+00465D43    83F8 01         CMP EAX,1
+00465D46    0F9FC2          SETG DL                                  ; 长度大于1则条件为真，寄存器DL设置为1
+00465D49    F7DA            NEG EDX
+00465D4B    8B85 CCFEFFFF   MOV EAX,[DWORD SS:EBP-134]
+00465D51    F7D8            NEG EAX
+00465D53    23D0            AND EDX,EAX
+00465D55    F7DB            NEG EBX
+00465D57    23DA            AND EBX,EDX
+00465D59    8D4D A0         LEA ECX,[DWORD SS:EBP-60]
+```
