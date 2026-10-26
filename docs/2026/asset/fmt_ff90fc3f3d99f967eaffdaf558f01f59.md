@@ -1,0 +1,144 @@
+
+```asm
+00647757   |>  83C9 FF         or ecx,FFFFFFFF
+0064775A   |.  BF EC397D00     mov edi,PDFEdit.007D39EC
+0064775F   |.  33C0            xor eax,eax
+00647761   |.  8D5424 10       lea edx,dword ptr ss:[esp+10]
+00647765   |.  F2:AE           repne scas byte ptr es:[edi]
+00647767   |.  F7D1            not ecx
+00647769   |.  2BF9            sub edi,ecx
+0064776B   |.  8BD9            mov ebx,ecx
+0064776D   |.  8BF7            mov esi,edi
+0064776F   |.  83C9 FF         or ecx,FFFFFFFF
+00647772   |.  8BFA            mov edi,edx
+00647774   |.  F2:AE           repne scas byte ptr es:[edi]
+00647776   |.  8BCB            mov ecx,ebx
+00647778   |.  4F              dec edi
+00647779   |.  C1E9 02         shr ecx,2
+0064777C   |.  F3:A5           rep movs dword ptr es:[edi],dword ptr ds:[esi]
+0064777E   |.  8BCB            mov ecx,ebx
+00647780   |.  8B9424 1C010000 mov edx,dword ptr ss:[esp+11C]
+00647787   |.  83E1 03         and ecx,3
+0064778A   |.  8D5C24 10       lea ebx,dword ptr ss:[esp+10]
+0064778E   |.  F3:A4           rep movs byte ptr es:[edi],byte ptr ds:[esi]
+00647790   |.  8BFA            mov edi,edx
+00647792   |.  83C9 FF         or ecx,FFFFFFFF
+00647795   |.  F2:AE           repne scas byte ptr es:[edi]
+00647797   |.  F7D1            not ecx
+00647799   |.  2BF9            sub edi,ecx
+0064779B   |.  8BF7            mov esi,edi
+0064779D   |.  8BE9            mov ebp,ecx
+0064779F   |.  8BFB            mov edi,ebx
+006477A1   |.  83C9 FF         or ecx,FFFFFFFF
+006477A4   |.  F2:AE           repne scas byte ptr es:[edi]
+006477A6   |.  8BCD            mov ecx,ebp
+006477A8   |.  4F              dec edi
+006477A9   |.  C1E9 02         shr ecx,2
+006477AC   |.  F3:A5           rep movs dword ptr es:[edi],dword ptr ds:[esi]
+006477AE   |.  8BCD            mov ecx,ebp
+006477B0   |.  8D5C24 10       lea ebx,dword ptr ss:[esp+10]
+006477B4   |.  83E1 03         and ecx,3
+006477B7   |.  F3:A4           rep movs byte ptr es:[edi],byte ptr ds:[esi]
+006477B9   |.  BF CCA47F00     mov edi,PDFEdit.007FA4CC                             ; ASCII "key.txt"
+006477BE   |.  83C9 FF         or ecx,FFFFFFFF
+006477C1   |.  F2:AE           repne scas byte ptr es:[edi]
+006477C3   |.  F7D1            not ecx
+006477C5   |.  2BF9            sub edi,ecx
+006477C7   |.  8BF7            mov esi,edi
+006477C9   |.  8BE9            mov ebp,ecx
+006477CB   |.  8BFB            mov edi,ebx
+006477CD   |.  83C9 FF         or ecx,FFFFFFFF
+006477D0   |.  F2:AE           repne scas byte ptr es:[edi]
+006477D2   |.  8BCD            mov ecx,ebp
+006477D4   |.  4F              dec edi
+006477D5   |.  C1E9 02         shr ecx,2
+006477D8   |.  F3:A5           rep movs dword ptr es:[edi],dword ptr ds:[esi]
+006477DA   |.  8B8424 38010000 mov eax,dword ptr ss:[esp+138]
+006477E1   |.  8BCD            mov ecx,ebp
+006477E3   |.  83E1 03         and ecx,3
+006477E6   |.  50              push eax
+006477E7   |.  8B8424 34010000 mov eax,dword ptr ss:[esp+134]
+006477EE   |.  F3:A4           rep movs byte ptr es:[edi],byte ptr ds:[esi]
+006477F0   |.  8B8C24 38010000 mov ecx,dword ptr ss:[esp+138]
+006477F7   |.  51              push ecx
+006477F8   |.  8B8C24 34010000 mov ecx,dword ptr ss:[esp+134]
+006477FF   |.  50              push eax
+00647800   |.  8B8424 34010000 mov eax,dword ptr ss:[esp+134]
+00647807   |.  51              push ecx
+00647808   |.  8B8C24 34010000 mov ecx,dword ptr ss:[esp+134]
+0064780F   |.  50              push eax
+00647810   |.  8B8424 34010000 mov eax,dword ptr ss:[esp+134]
+00647817   |.  51              push ecx
+00647818   |.  50              push eax
+00647819   |.  8D4C24 2C       lea ecx,dword ptr ss:[esp+2C]
+0064781D   |.  52              push edx
+0064781E   |.  51              push ecx
+0064781F   |.  E8 4CF7FFFF     call PDFEdit.00646F70                                ; 关键调用
+00647824   |.  83C4 24         add esp,24
+00647827   |.  5F              pop edi
+00647828   |.  5E              pop esi
+00647829   |.  5D              pop ebp
+0064782A   |.  5B              pop ebx
+0064782B   |.  81C4 04010000   add esp,104
+00647831   \.  C3              retn
+```
+
+## 跟进
+
+```asm
+0064781D   |.  52              push edx                    ; 串常量"PED"
+0064781E   |.  51              push ecx                    ; pedkey.txt文件路径
+0064781F   |.  E8 4CF7FFFF     call PDFEdit.00646F70        ; 关键调用
+
+00646F70   /$  B8 F8130000     mov eax,13F8
+00646F75   |.  E8 E642E9FF     call PDFEdit.004DB260
+00646F7A   |.  53              push ebx
+00646F7B   |.  55              push ebp                                             ; 写入第一值
+00646F7C   |.  8BAC24 08140000 mov ebp,dword ptr ss:[esp+1408]
+00646F83   |.  56              push esi
+00646F84   |.  57              push edi
+00646F85   |.  68 C8A47F00     push PDFEdit.007FA4C8                                ; /Arg2 = 007FA4C8 ASCII "FSL"
+00646F8A   |.  55              push ebp                                             ; |Arg1
+00646F8B   |.  E8 9720E9FF     call PDFEdit.004D9027                                ; \PDFEdit.004D9027
+00646F90   |.  83C4 08         add esp,8
+00646F93   |.  85C0            test eax,eax
+00646F95   |.  75 0A           jnz short PDFEdit.00646FA1
+00646F97   |.  BE B8A47F00     mov esi,PDFEdit.007FA4B8                             ; ASCII "Foxit SSH Link"
+00646F9C   |.  E9 B8000000     jmp PDFEdit.00647059
+
+00646FA1   |>  68 B4A47F00     push PDFEdit.007FA4B4                                ; /Arg2 = 007FA4B4 ASCII "PTC"
+00646FA6   |.  55              push ebp                                             ; |Arg1
+00646FA7   |.  E8 7B20E9FF     call PDFEdit.004D9027                                ; \PDFEdit.004D9027
+00646FAC   |.  83C4 08         add esp,8
+00646FAF   |.  85C0            test eax,eax
+00646FB1   |.  75 0A           jnz short PDFEdit.00646FBD
+00646FB3   |.  BE A0A47F00     mov esi,PDFEdit.007FA4A0                             ; ASCII "PDF Text Converter"
+00646FB8   |.  E9 9C000000     jmp PDFEdit.00647059
+
+00646FBD   |>  68 9CA47F00     push PDFEdit.007FA49C                                ; /Arg2 = 007FA49C ASCII "PTV"
+00646FC2   |.  55              push ebp                                             ; |Arg1
+00646FC3   |.  E8 5F20E9FF     call PDFEdit.004D9027                                ; \PDFEdit.004D9027
+00646FC8   |.  83C4 08         add esp,8
+00646FCB   |.  85C0            test eax,eax
+00646FCD   |.  75 0A           jnz short PDFEdit.00646FD9
+00646FCF   |.  BE 8CA47F00     mov esi,PDFEdit.007FA48C                             ; ASCII "PDF Text Viewer"
+00646FD4   |.  E9 80000000     jmp PDFEdit.00647059
+
+00646FD9   |>  68 88A47F00     push PDFEdit.007FA488                                ; /Arg2 = 007FA488 ASCII "WAC"
+00646FDE   |.  55              push ebp                                             ; |Arg1
+00646FDF   |.  E8 4320E9FF     call PDFEdit.004D9027                                ; \PDFEdit.004D9027
+00646FE4   |.  83C4 08         add esp,8
+00646FE7   |.  85C0            test eax,eax
+00646FE9   |.  75 07           jnz short PDFEdit.00646FF2
+00646FEB   |.  BE 7CA47F00     mov esi,PDFEdit.007FA47C                             ; ASCII "WAC Server"
+00646FF0   |.  EB 67           jmp short PDFEdit.00647059
+
+00646FF2   |>  68 78A47F00     push PDFEdit.007FA478                                ; /Arg2 = 007FA478 ASCII "PPO"
+00646FF7   |.  55              push ebp                                             ; |Arg1
+00646FF8   |.  E8 2A20E9FF     call PDFEdit.004D9027                                ; \PDFEdit.004D9027
+00646FFD   |.  83C4 08         add esp,8
+00647000   |.  85C0            test eax,eax
+00647002   |.  75 07           jnz short PDFEdit.0064700B
+00647004   |.  BE 64A47F00     mov esi,PDFEdit.007FA464                             ; ASCII "PDF Page Organizer"
+00647009   |.  EB 4E           jmp short PDFEdit.00647059
+```
