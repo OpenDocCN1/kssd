@@ -1,0 +1,190 @@
+
+# Asproctect 1.2加壳的CAXA V2的脱壳和NAG窗口去除
+
+(4千字)
+
+软件： CAXA
+
+版本： V2
+
+破解者: 火翼[CCG]
+
+组织 :
+
+[CCG] (China Cracking Group)
+
+使用软件: `pedump`+`superbpm`+`importrec`+`trw2000`
+
+本来CAXA已经被破解过了，但破解者给程序加了一个NAG窗口，并
+且用`asprotect`1.2加了壳，最近正在研究脱壳，正好练习一下。
+
+加载`superbpm`,用`trw2000`载入，按3次`F10`来到下面
+
+```
+019F:005F3002  CALL
+005F3022    //注意，这里的Call就是asprotect的
+      //经典，不能按F10,只能按F8，否则就
+//飞了，下面还有很多处，多注意以下
+019F:005F3007  JMP      1014BE08
+019F:005F300C  PUSH    ES
+019F:005F300D  ADD
+    [EAX],AL
+```
+
+继续跟下去，会有几处循环，看明白后用`G`跳过去就可以了，循环都过去后在执行
+一会就会来到
+
+```
+019F:01F713AB  ADD      ESP,BYTE -0C
+019F:01F713AE
+CALL    01F63130
+019F:01F713B3  JNZ      NEAR
+01F63E0C
+019F:01F713B9  CALL    01F642C8
+//也是asprotect的经典，最后一个要
+019F:01F713BE  CALL    01F691CC
+    //跟进去
+019F:01F713C3  CALL    01F69B5C
+019F:01F713C8
+CALL    01F6BEBC
+019F:01F713CD  CALL    01F63E0C
+019F:01F713D2  MOV      ESP,EBP
+019F:01F713D4
+POP      EBP
+019F:01F713D5  RET      0C
+```
+
+跟进去后就会遇到最大的麻烦`RET`了
+
+对于`asprotect`很多`ret`的作用是跳到`esp`所指向的位置，遇到`ret`时要
+`d esp`一下如果显示的数字(要反着读，如看到`d5 14 f6 01` 就是`01 f6 14 d5`)和原来
+的地址差不多就可以按`F10`，如果是`BFXXXXX`之类的就要用些特殊的方法了
+
+一般都用找`ret`法，即找下面最近的`ret`，并在那里设断，并按`G`, 就会断下来
+但有时没有`RET`或不好找，也可以使用另一种办法，例如类似以下代码
+
+```
+019F:01F6FEA1  XOR      EAX,EAX
+019F:01F6FEA3
+RET                  //此处即为上述的ret,下面附近没有ret
+019F:01F6FEA4  JMP      SHORT 01F6FEA7
+019F:01F6FEA6
+CALL    04E2BEDC
+019F:01F6FEAB  INT      20
+019F:01F6FEAD  PUSH    DWORD [FS:EAX]
+019F:01F6FEB0
+JMP      SHORT 01F6FEB3
+019F:01F6FEB2  JMP
+ 3317881B
+019F:01F6FEB7  ADD      BL,CH
+019F:01F6FEB9
+ADD      [EAX+64],EBP
+019F:01F6FEBC  POP
+  DWORD [00]
+019F:01F6FEC2  JMP      SHORT 01F6FEC6
+//在这里设断，可以断下来
+019F:01F6FEC4  CALL    C22A56CA
+019F:01F6FEC9
+POP      EDX
+```
+
+类似的代码很多，都可用类似的设断方法断下来
+
+继续跟，如果遇到按`F10`时`CALL`使程序运行了，就用`F8`进去
+
+运行一段时间后(有点长，一定要有耐心)，来到下面
+
+```
+019F:01F6FBFE  MOV
+EDX,04
+019F:01F6FC03  CALL    01F6C39C
+          //也是看雪的书里提
+                //到过的代码
+019F:01F6FC08
+CALL    01F6FC22
+019F:01F6FC0D  MOV      EAX,[ESP+0C]
+019F:01F6FC11  ADD      DWORD [EAX+B8],BYTE +02
+019F:01F6FC18  MOV      DWORD [EAX+18],00
+019F:01F6FC1F
+XOR      EAX,EAX
+019F:01F6FC21  RET
+  //很特别的跳转
+019F:01F6FC22  XOR      EAX,EAX
+019F:01F6FC24  PUSH    DWORD [FS:EAX]
+019F:01F6FC27
+MOV      [FS:EAX],ESP
+019F:01F6FC2A  XOR
+  [EAX],EAX
+019F:01F6FC2C  POP      DWORD [FS:00]
+019F:01F6FC33  POP      EAX
+019F:01F6FC34
+CMP      DWORD [01F73934],BYTE +00
+019F:01F6FC3B  JZ
+    01F6FC51
+019F:01F6FC3D  PUSH    BYTE +0C
+019F:01F6FC3F  MOV      ECX,01F73934
+019F:01F6FC44
+LEA      EAX,[EBP-08]
+019F:01F6FC47  MOV
+  EDX,04
+019F:01F6FC4C  CALL    01F6C39C
+019F:01F6FC51
+PUSH    DWORD [EBP-04]
+019F:01F6FC54  PUSH    DWORD
+[EBP-08]
+```
+
+在那个`ret`处以下实在找不到什么有特点的设断处，所以就把下面的10来句全
+设上断，按`G`后，断在`01f6fc2c`处，继续运行，不一会就看到
+
+```
+019F:01FAC904  CLD
+019F:01FAC905  SUB
+  EAX,ESP
+019F:01FAC907  CALL    01FAC924
+019F:01FAC90C
+POP      EBX
+019F:01FAC90D  POP      EAX
+019F:01FAC90E  ADD      EAX,7C6060E4
+019F:01FAC913
+POP      ESP
+019F:01FAC914  OR      ECX,ECX
+019F:01FAC916  JZ      01FAC8FB
+019F:01FAC918
+MOV      [ECX],EAX
+019F:01FAC91A  ADD
+EAX,EBX
+019F:01FAC91C  MOV      [ESP+1C],EAX
+019F:01FAC920
+POPA
+019F:01FAC921  JMP      EAX
+//从这里转到入口点，在这里d eax就可以
+              //看到入口点 48d154
+019F:01FAC923
+ADD      [EBX],DH
+```
+
+按`f10`运行到`019f:00048d154`处`suspend`
+
+运行`pedump`,把程序`dump`出来,然后运行没脱壳的程序，用`importrec`重建引入表
+(具体操作参见看雪的书或者论坛精华里的相关文章)
+
+然后就只剩下去掉NAG窗口了，用`trw2000`载入脱好壳的程序，`bpx messageboxa`
+
+断下后，`pmodule`, 然后在前一句设断，再次载入，断下后把`call messageboxa`
+改为6个`nop`，执行，竟然非法操作，跟进下一个`call`发现是堆栈的问题，把前面
+的`call messageboxa` 改为`add esp ,10`(为什么是10？因为不去掉`call`时执行`call`
+前后`esp`相差10)，执行，成功
+
+记下修改前后的机器码，ok
+
+整理
+
+先脱壳
+
+然后用16进制编辑工具打开脱壳后的文件
+
+查找 `FF 15 80`
+`c3 56 00`
+
+改为 `81 C4 10 00 00 00`
