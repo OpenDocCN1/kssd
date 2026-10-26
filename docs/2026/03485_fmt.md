@@ -1,0 +1,190 @@
+
+# 新手请进 佳巧仓库管理系统 算法分析
+
+## 文章信息
+
+【文章标题】: 新手请进 佳巧仓库管理系统 算法分析
+
+【文章作者】: `KAN-LI`
+
+【作者邮箱】: `TOM8147@HOTMAIL.COM`
+
+【作者QQ号】: `591258070`
+
+【软件名称】: 佳巧仓库管理系统 `3.2`
+
+【软件大小】: 不大不小
+
+【下载地址】: `be3K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3!0F1L8r3W2F1k6h3c8G2N6$3&6Q4x3X3g2F1k6i4c8Q4x3V1k6K6L8$3k6@1i4K6u0r3y4o6t1H3x3e0k6Q4x3X3g2Z5N6r3@1`.
+
+【加壳方式】: 作者懒
+
+【保护方式】: 无
+
+【编写语言】: `Borland Delphi 6.0 - 7.0`
+
+【使用工具】: `OD 1.1`
+
+【操作平台】: `WINXP SP2`
+
+【软件介绍】: 我都不知道
+
+【作者声明】: 只是感兴趣，没有其他目的
+
+----------------------------------------------------------------------
+
+## 详细过程
+
+使用万能断点断下后，`ALT+F9` 返回
+
+`00786704  |.  E8 B70AF9FF   CALL Storage.007171C0`
+
+`00786709  |.  8B45 F4       MOV EAX,DWORD PTR SS:[EBP-C]      ;  机器码`
+
+`0078670C  |.  8D55 F8       LEA EDX,DWORD PTR SS:[EBP-8]`
+
+`0078670F  |.  E8 A00BF9FF   CALL Storage.007172B4             ;  关键 CALL F7 进入`
+
+`00786714  |.  8B55 F8       MOV EDX,DWORD PTR SS:[EBP-8]`
+
+`00786717  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]`
+
+`0078671A  |.  E8 A5EBC7FF   CALL Storage.004052C4`
+
+`0078671F  |.  75 49         JNZ SHORT Storage.0078676A        ;  关键跳转`
+
+`\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_`
+
+`F7` 进入 `0078671F` 后，省略 没用代码到下面
+
+`007172C8  |.  8945 FC       MOV DWORD PTR SS:[EBP-4],EAX      ;  机器码`
+
+`007172CB  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]`
+
+`007172CE  |.  E8 95E0CEFF   CALL Storage.00405368`
+
+`007172D3  |.  33C0          XOR EAX,EAX`
+
+`007172D5  |.  55            PUSH EBP`
+
+`007172D6  |.  68 A2737100   PUSH Storage.007173A2`
+
+`007172DB  |.  64:FF30       PUSH DWORD PTR FS:[EAX]`
+
+`007172DE  |.  64:8920       MOV DWORD PTR FS:[EAX],ESP`
+
+`007172E1  |.  C745 E8 00000>MOV DWORD PTR SS:[EBP-18],0`
+
+`007172E8  |.  C745 EC 00000>MOV DWORD PTR SS:[EBP-14],0`
+
+`007172EF  |.  C745 F0 00000>MOV DWORD PTR SS:[EBP-10],0`
+
+`007172F6  |.  C745 F4 00000>MOV DWORD PTR SS:[EBP-C],0`
+
+`007172FD  |.  8B45 FC       MOV EAX,DWORD PTR SS:[EBP-4]`
+
+`00717300  |.  E8 73DECEFF   CALL Storage.00405178`
+
+`00717305  |.  8BF0          MOV ESI,EAX`
+
+`00717307  |.  85F6          TEST ESI,ESI`
+
+`00717309  |.  7E 40         JLE SHORT Storage.0071734B`
+
+`0071730B  |.  B9 01000000   MOV ECX,1`
+
+`00717310  |>  8B45 FC       /MOV EAX,DWORD PTR SS:[EBP-4]`
+
+`00717313  |.  8A5C08 FF     |MOV BL,BYTE PTR DS:[EAX+ECX-1]   ;  机器码字符传入`
+
+`00717317  |.  8BFB          |MOV EDI,EBX`
+
+`00717319  |.  81E7 FF000000 |AND EDI,0FF                      ;  EDI 与 0xFF 做 逻辑与运算`
+
+`0071731F  |.  8BC7          |MOV EAX,EDI                      ;  其实上面几步是把数字的 ASCII 码送入 EAX`
+
+`00717321  |.  C1E0 04       |SHL EAX,4                        ;  EAX * 16`
+
+`00717324  |.  2BC7          |SUB EAX,EDI                      ;  忘恩负义啊 ，EAX 的值是 EDI 给的 减去`
+
+`00717326  |.  F7E9          |IMUL ECX                         ;  乘以循环次数`
+
+`00717328  |.  99            |CDQ                              ;  抗展，EDX 清0`
+
+`00717329  |.  0345 F0       |ADD EAX,DWORD PTR SS:[EBP-10]    ;  这里与上次的数值相加`
+
+`0071732C  |.  1355 F4       |ADC EDX,DWORD PTR SS:[EBP-C]`
+
+`0071732F  |.  8945 F0       |MOV DWORD PTR SS:[EBP-10],EAX    ;  循环最后一次的时候的数据将产生第一段 注册码`
+
+`00717332  |.  8955 F4       |MOV DWORD PTR SS:[EBP-C],EDX`
+
+`00717335  |.  6BC7 0B       |IMUL EAX,EDI,0B                  ;  EDI * 11 结果送入 EAX`
+
+`00717338  |.  F7E9          |IMUL ECX                         ;  EAX * 循环次数`
+
+`0071733A  |.  99            |CDQ`
+
+`0071733B  |.  0345 E8       |ADD EAX,DWORD PTR SS:[EBP-18]    ;  上次的数据相加`
+
+`0071733E  |.  1355 EC       |ADC EDX,DWORD PTR SS:[EBP-14]`
+
+`00717341  |.  8945 E8       |MOV DWORD PTR SS:[EBP-18],EAX    ;  循环最后一次的时候的数据将产生第二段 注册码`
+
+`00717344  |.  8955 EC       |MOV DWORD PTR SS:[EBP-14],EDX`
+
+`00717347  |.  41            |INC ECX                          ;  循环次数加一`
+
+`00717348  |.  4E            |DEC ESI`
+
+`00717349  |.^ 75 C5         \JNZ SHORT Storage.00717310`
+
+----------------------------------------------------------------------
+
+## 经验总结
+
+软件加密的简单程度，超出你的预算，没什么好说的，贴上 `C` 语言注册机
+
+```c
+#include<stdio.h>
+#include<string.h>
+main()
+{
+    int i,len,sum1=0,sum2=0,ax,di,cx=1;
+    char code[20];
+    printf("输入你的机器码吧:");
+    gets(code);
+    len=strlen(code);
+    for(i=0;i<len;i++)
+    {
+        di=code[i];
+        ax=di*16;       // SHL EAX,4
+        ax-=di;        // SUB EAX,EDI
+        ax*=cx;         // IMUL ECX
+        sum1+=ax;      //ADD EAX,DWORD PTR SS:[EBP-10]
+        ax=di*11;      // IMUL EAX,EDI,0B
+        ax*=cx;         //IMUL ECX
+        sum2+=ax;      // ADD EAX,DWORD PTR SS:[EBP-18]
+        cx++;          // INC ECX
+    }
+     printf("兄弟你要的注册码是：%d-%d",sum1,sum2);
+     printf("\n");
+     printf("有钱的话请支持共享软件\n\n");
+}
+```
+
+----------------------------------------------------------------------
+
+【版权声明】: 本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2006年09月10日 23:00:40
+
+![](https://bbs.kanxue.com/upload/attach/200609/50732_r2s04ld13aul8mz.jpg)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+
+- [003.jpg](javascript:void(0);)
+
+  （35.38kb，17次下载）
