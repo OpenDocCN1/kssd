@@ -1,0 +1,64 @@
+
+```assembly
+0042308A  |.  75 65         jnz     short 004230F1                                                //不同就出错
+0042308C  |.  0FB64D FB     movzx   ecx, byte ptr [ebp-5]
+00423090  |.  83F9 38       cmp     ecx, 38                                                        //取注册码第撒八位与’8‘比较
+00423093  |.  75 5C         jnz     short 004230F1                                                  //不同就出错
+00423095  |>  6A 00         push    0
+00423097  |.  6A 00         push    0
+00423099  |.  68 1CD04500   push    0045D01C                         ;  registration has succeeded!
+0042309E  |.  E8 18AC0200   call    0044DCBB
+004230A3  |.  8B4D E0       mov     ecx, [ebp-20]
+004230A6  |.  83C1 70       add     ecx, 70
+004230A9  |.  E8 E2F4FFFF   call    00422590
+004230AE  |.  50            push    eax
+004230AF  |.  68 38D04500   push    0045D038                         ;  username
+004230B4  |.  68 44D04500   push    0045D044                         ;  option
+004230B9  |.  E8 D22BFFFF   call    00415C90
+004230BE  |.  8BC8          mov     ecx, eax                         ; |
+004230C0  |.  E8 56A90200   call    0044DA1B                         ; \VideoJoi.0044DA1B
+004230C5  |.  8B4D E0       mov     ecx, [ebp-20]
+004230C8  |.  83C1 74       add     ecx, 74
+004230CB  |.  E8 C0F4FFFF   call    00422590
+004230D0  |.  50            push    eax
+004230D1  |.  68 4CD04500   push    0045D04C                         ;  registration\_code
+004230D6  |.  68 60D04500   push    0045D060                         ;  option
+004230DB  |.  E8 B02BFFFF   call    00415C90
+004230E0  |.  8BC8          mov     ecx, eax                         ; |
+004230E2  |.  E8 34A90200   call    0044DA1B                         ; \VideoJoi.0044DA1B
+004230E7  |.  8B4D E0       mov     ecx, [ebp-20]
+004230EA  |.  E8 334F0200   call    00448022
+004230EF  |.  EB 0E         jmp     short 004230FF
+004230F1  |>  6A 00         push    0
+004230F3  |.  6A 00         push    0
+004230F5  |.  68 68D04500   push    0045D068                         ;  registration failed!
+004230FA  |.  E8 BCAB0200   call    0044DCBB
+004230FF  |>  8BE5          mov     esp, ebp
+00423101  |.  5D            pop     ebp
+00423102  \.  C3            retn
+```
+
+呵呵，终于完了！！！
+
+至此，我们已弄明白了它的注册码比较原理。
+
+可得注册信息：用户名：elance  
+注册码：51897618
+
+---
+
+## 总结
+
+此软件注册算法不好，居然用明码逐位比较注册码，因此很容易得到他的通用注册码：51897618
+
+此文章没什么技术含量，浪费大家时间了，实在抱歉！！！：）
+
+---
+
+## 版权声明
+
+本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+2006.3.19
+
+[\[招生\]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
