@@ -1,0 +1,93 @@
+
+# [原创]最新版360安全卫士极速版蓝屏分析
+
+## 一、蓝屏背景
+
+今天（**2023年5月7号**）正在写文档，写到一半，还没来得及保存，突然电脑蓝屏了，瞬间懵了，我的文档！！蓝屏后，我又打开了电脑，我没来的及保存的文档没了，又的重写，重写就重写呗，写着写着，我擦！又蓝屏了，气的我吐血。作为一个程序员，受不了了，我要查查为什么蓝屏！
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202305/917132_T9JRECCNXSSEZRF.png)
+
+（蓝屏的操作系统版本）
+
+## 二、调查蓝屏原因
+
+1、查找蓝屏dmp文件
+
+在目录`C:\Windows\Minidump`下找到了蓝屏dmp文件，
+
+果然今天两次蓝屏的dmp文件都在这里。日期都是2023年5月7号
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202305/917132_HNPZMENFFF5VN7D.png)
+
+2、用`windbg`分析dmp文件
+
+显示的蓝屏原因：系统服务异常。
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202305/917132_NHDFVCUBYHWGJ2U.png)
+
+(蓝屏原因)
+
+再继续分析看看，从`windbg`的分析看，导致蓝屏的模块名称叫`360hvm64.sys`，这个文件到底是谁的啊，我用everything搜了一下，我擦！原来是360.
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202305/917132_PFMB52Q54PAKB5F.png)
+
+(蓝屏调用堆栈和蓝屏模块)
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202305/917132_9JCW3ZHV8R46UTE.png)
+
+（原来导致蓝屏的这个驱动文件是360安全卫士的）
+
+看下我电脑上的360安全卫士
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202305/917132_DXDT5FMKSBJPG96.png)
+
+（查看360安全卫士版本）
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202305/917132_Z2PYC267A24DNW6.png)
+
+（查看360主版本号和病毒库版本）
+
+使用`windbg`命令`lmvm`，查看下`360hvm64.sys`模块信息
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202305/917132_74YPCEK5NMZZG7C.png)
+
+找到`360hvm64.sys`文件，拖到IDA里面逆向分析下。看看到底是哪个位置蓝屏了。先rebase一下。方法，IDA菜单Edit->Segments->Rebase program...
+
+在弹出的框内输入`windbg`命令`lmvm 360Hvm64`命令显示的模块起始地址。
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202305/917132_FFCV8AYV3PYH4R4.png)
+
+（rebase程序）
+
+在IDA中，按下快捷键G(或者菜单Jump->Jump to address)跳转到崩溃的地址处
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202305/917132_T5AUNY876EH2X5C.png)
+
+（查看下奔溃的伪代码）
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202305/917132_W3CDTG4AUESY6GZ.png)
+
+个人盲猜是`hooknt!NtOpenKey` 下图有个指针转换，然后调用到`nt!NtOpenKey`，盲猜是hook `nt!NtOpenKey`出错，如果错误，欢迎各位大佬拍砖，下面我上传了dmp文件和引起蓝屏的
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202305/917132_2W3MPNBGSVPPZHH.png)
+
+**备注：附件中是dmp文件和导致蓝屏的360的驱动文件**
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+最后于  2023-5-9 17:34
+
+被kanxue编辑
+
+，原因：
+
+[#调试逆向](https://bbs.kanxue.com/forum-4-1-1.htm)
+
+[#系统底层](https://bbs.kanxue.com/forum-4-1-2.htm)
+
+[#其他内容](https://bbs.kanxue.com/forum-4-1-10.htm)
+
+上传的附件：
+
+- [dmp文件050723-14343-01.zip](javascript:void(0);)（364.40kb，25次下载）
+- [驱动文件360Hvm64.zip](javascript:void(0);)（136.97kb，23次下载）
