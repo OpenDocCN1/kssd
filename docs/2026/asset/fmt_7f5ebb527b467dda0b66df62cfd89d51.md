@@ -1,0 +1,170 @@
+
+# [原创]某某名片王 2.0 解码分析
+
+【破文标题】XX名片王 2.0 解码分析
+
+【破文作者】lzq1973[PYG][CZG][OCN][DFCG]
+
+【作者邮箱】lzq9888@126.com
+
+【作者主页】e0eK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3#2&6i4K6u0W2N6$3W2F1P5X3S2W2L8X3N6Q4x3X3g2U0L8$3#2Q4x3V1k6Q4x3@1j5@1y4e0f1K6z5e0M7`.
+
+【破解工具】`OD`、`PEiD`、`C32Asm`
+
+【破解平台】`WinXP`
+
+【软件名称】`XX名片王 2.0`
+
+【软件大小】2.45M
+
+【原版下载】669K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4y4Z5j5i4u0W2j5X3q4F1K9#2)9J5k6h3y4G2L8g2)9J5k6h3y4F1i4K6u0r3M7$3!0X3N6q4)9J5c8W2y4G2k6Y4c8h3K9h3g2%4i4K6g2X3x3U0p5J5y4e0u0Q4x3X3g2Z5N6r3@1`.
+
+【保护方式】SN
+
+【软件简介】名片本身是联系信息，各种各样的联系信息毫无疑问是您非常宝贵的无形资产。小巧名片王主要是为了管理您长期积累下来的众多名片而设计，当然也可以用来管理您的其他联系信息。
+本软件具有价格低廉，操作简单，查找方便，管理容易，界面直观优美，功能强大，程序小巧的优点
+
+【破解声明】俺是只小小鸟，纯为学习，愿与大家分享！
+
+------------------------------------------------------------------------
+
+## 【破解过程】
+1、运行程序，得知是重启验证型的，记住相关提示信息；
+2、`PEiD`侦之Borland Delphi 6.0 - 7.0；
+3、`OD`载入，在这里下断，来到
+
+```
+0058EE59   .  E8 D6DEFFFF   call    0058CD34                         ;  关键算法
+0058EE5E   .  8B55 A8       mov     edx, [ebp-58]                    ;  (ASCII "MPW4-145356ei8-3593")
+0058EE61   .  A1 40D45A00   mov     eax, [5AD440]
+0058EE66   .  8B00          mov     eax, [eax]
+0058EE68   .  8B80 54040000 mov     eax, [eax+454]                   ;  假码
+0058EE6E   .  E8 3D5EE7FF   call    00404CB0                         ;  进去真假码比较·［这里可做内存注册器（EDX）］
+0058EE73   .  74 44         je      short 0058EEB9                   ;  相等就跳
+0058EE75   .  8D4D A4       lea     ecx, [ebp-5C]
+0058EE78   .  A1 40D45A00   mov     eax, [5AD440]
+0058EE7D   .  8B00          mov     eax, [eax]
+0058EE7F   .  8B90 50040000 mov     edx, [eax+450]
+0058EE85   .  A1 7CD15A00   mov     eax, [5AD17C]
+0058EE8A   .  8B00          mov     eax, [eax]
+0058EE8C   .  E8 A3DEFFFF   call    0058CD34                         ;  关键算法
+0058EE91   .  8D45 A4       lea     eax, [ebp-5C]
+0058EE94   .  BA 00F25800   mov     edx, 0058F200                    ;  -sql
+0058EE99   .  E8 CE5CE7FF   call    00404B6C                         ;  拼接
+0058EE9E   .  8B55 A4       mov     edx, [ebp-5C]                    ;  拼接后的 (ASCII "MPW4-145356ei8-3593-SQL")
+0058EEA1   .  A1 40D45A00   mov     eax, [5AD440]
+0058EEA6   .  8B00          mov     eax, [eax]
+0058EEA8   .  8B80 54040000 mov     eax, [eax+454]
+0058EEAE   .  E8 FD5DE7FF   call    00404CB0
+0058EEB3   .  0F85 A0000000 jnz     0058EF59                         ;  不等就跳
+0058EEB9   >  A1 40D45A00   mov     eax, [5AD440]
+0058EEBE   .  8B00          mov     eax, [eax]
+0058EEC0   .  C680 4C040000>mov     byte ptr [eax+44C], 0
+0058EEC7   .  81FB C8000000 cmp     ebx, 0C8
+0058EECD   .  0F8C DC000000 jl      0058EFAF                         ;  相等就跳
+0058EED3   .  A1 40D45A00   mov     eax, [5AD440]
+0058EED8   .  8B00          mov     eax, [eax]
+0058EEDA   .  80B8 10040000>cmp     byte ptr [eax+410], 0
+0058EEE1   .  75 42         jnz     short 0058EF25
+0058EEE3   .  8D45 A0       lea     eax, [ebp-60]
+0058EEE6   .  50            push    eax
+0058EEE7   .  A1 40D45A00   mov     eax, [5AD440]
+0058EEEC   .  8B00          mov     eax, [eax]
+0058EEEE   .  8B80 54040000 mov     eax, [eax+454]
+0058EEF4   .  B9 03000000   mov     ecx, 3
+0058EEF9   .  BA 15000000   mov     edx, 15
+0058EEFE   .  E8 C15EE7FF   call    00404DC4
+```
+
+＝＝＝＝＝＝＝＝＝ 0058EE8C   .  E8 A3DEFFFF   call    0058CD34 ＝＝＝＝＝＝＝＝＝＝＝
+
+```
+0058CD34  /$  55            push    ebp                              ;  来到这里
+0058CD35  |.  8BEC          mov     ebp, esp
+0058CD37  |.  51            push    ecx
+0058CD38  |.  B9 04000000   mov     ecx, 4
+0058CD3D  |>  6A 00         /push    0
+0058CD3F  |.  6A 00         |push    0
+0058CD41  |.  49            |dec     ecx
+0058CD42  |.^ 75 F9         \jnz     short 0058CD3D
+0058CD44  |.  51            push    ecx
+0058CD45  |.  874D FC       xchg    [ebp-4], ecx
+0058CD48  |.  53            push    ebx
+0058CD49  |.  56            push    esi
+0058CD4A  |.  57            push    edi
+0058CD4B  |.  8BF9          mov     edi, ecx
+0058CD4D  |.  8955 FC       mov     [ebp-4], edx                     ;  (ASCII "PF2B27K2119S5A")
+0058CD50  |.  8B45 FC       mov     eax, [ebp-4]
+0058CD53  |.  E8 FC7FE7FF   call    00404D54
+0058CD58  |.  33C0          xor     eax, eax
+0058CD5A  |.  55            push    ebp
+0058CD5B  |.  68 F5CE5800   push    0058CEF5
+0058CD60  |.  64:FF30       push    dword ptr fs:[eax]
+0058CD63  |.  64:8920       mov     fs:[eax], esp
+0058CD66  |.  8BC7          mov     eax, edi
+0058CD68  |.  E8 377BE7FF   call    004048A4
+0058CD6D  |.  8B45 FC       mov     eax, [ebp-4]                     ;  (ASCII "PF2B27K2119S5A")
+0058CD70  |.  E8 EF7DE7FF   call    00404B64
+0058CD75  |.  8BF0          mov     esi, eax
+0058CD77  |.  85F6          test    esi, esi
+0058CD79  |.  7E 26         jle     short 0058CDA1
+0058CD7B  |.  BB 01000000   mov     ebx, 1
+0058CD80  |>  8D4D EC       /lea     ecx, [ebp-14]                   ;  / 字符串转为16进制（指机器码）
+0058CD83  |.  8B45 FC       |mov     eax, [ebp-4]
+0058CD86  |.  0FB64418 FF   |movzx   eax, byte ptr [eax+ebx-1]
+0058CD8B  |.  33D2          |xor     edx, edx
+0058CD8D  |.  E8 1ED0E7FF   |call    00409DB0
+0058CD92  |.  8B55 EC       |mov     edx, [ebp-14]
+0058CD95  |.  8D45 F8       |lea     eax, [ebp-8]
+0058CD98  |.  E8 CF7DE7FF   |call    00404B6C
+0058CD9D  |.  43            |inc     ebx
+0058CD9E  |.  4E            |dec     esi
+0058CD9F  |.^ 75 DF         \jnz     short 0058CD80                  ;  \ 循环
+0058CDA1  |>  8B45 F8       mov     eax, [ebp-8]                     ;  (ASCII "5046324232374B32313139533541")
+0058CDA4  |.  E8 BB7DE7FF   call    00404B64
+0058CDA9  |.  8BF0          mov     esi, eax
+0058CDAB  |.  85F6          test    esi, esi
+0058CDAD  |.  7E 2C         jle     short 0058CDDB
+0058CDAF  |.  BB 01000000   mov     ebx, 1
+0058CDB4  |>  8B45 F8       /mov     eax, [ebp-8]                    ;  / 翻转之
+0058CDB7  |.  E8 A87DE7FF   |call    00404B64
+0058CDBC  |.  2BC3          |sub     eax, ebx
+0058CDBE  |.  8B55 F8       |mov     edx, [ebp-8]
+0058CDC1  |.  8A1402        |mov     dl, [edx+eax]
+0058CDC4  |.  8D45 E8       |lea     eax, [ebp-18]
+0058CDC7  |.  E8 C07CE7FF   |call    00404A8C
+0058CDCC  |.  8B55 E8       |mov     edx, [ebp-18]
+0058CDCF  |.  8D45 F4       |lea     eax, [ebp-C]
+0058CDD2  |.  E8 957DE7FF   |call    00404B6C
+0058CDD7  |.  43            |inc     ebx
+0058CDD8  |.  4E            |dec     esi
+0058CDD9  |.^ 75 D9         \jnz     short 0058CDB4                  ;  \ 循环
+0058CDDB  |>  8D45 F8       lea     eax, [ebp-8]
+0058CDDE  |.  50            push    eax
+0058CDDF  |.  B9 04000000   mov     ecx, 4                           ;  长度4
+0058CDE4  |.  BA 01000000   mov     edx, 1                           ;  从第一位开始
+0058CDE9  |.  8B45 F4       mov     eax, [ebp-C]                     ;  翻转后的 (ASCII "14533593131323B4732324236405")
+0058CDEC  |.  E8 D37FE7FF   call    00404DC4
+0058CDF1  |.  8D45 F4       lea     eax, [ebp-C]
+0058CDF4  |.  50            push    eax
+0058CDF5  |.  B9 04000000   mov     ecx, 4                           ;  长度4
+0058CDFA  |.  BA 05000000   mov     edx, 5                           ;  从第五位开始
+0058CDFF  |.  8B45 F4       mov     eax, [ebp-C]
+0058CE02  |.  E8 BD7FE7FF   call    00404DC4
+0058CE07  |.  8B45 F8       mov     eax, [ebp-8]                     ;  前4位 (ASCII "1453")
+0058CE0A  |.  E8 557DE7FF   call    00404B64
+0058CE0F  |.  83F8 04       cmp     eax, 4
+0058CE12  |.  7D 2F         jge     short 0058CE43
+0058CE14  |.  8B45 F8       mov     eax, [ebp-8]
+0058CE17  |.  E8 487DE7FF   call    00404B64
+0058CE1C  |.  8BD8          mov     ebx, eax
+0058CE1E  |.  83FB 03       cmp     ebx, 3
+0058CE21  |.  7F 20         jg      short 0058CE43
+0058CE23  |>  8D4D E4       /lea     ecx, [ebp-1C]
+0058CE26  |.  8BC3          |mov     eax, ebx
+0058CE28  |.  C1E0 02       |shl     eax, 2
+0058CE2B  |.  33D2          |xor     edx, edx
+0058CE2D  |.  E8 7ECFE7FF   |call    00409DB0
+0058CE32  |.  8B55 E4       |mov     edx, [ebp-1C]
+0058CE35  |.  8D45 F8       |lea     eax, [ebp-8]
+```
