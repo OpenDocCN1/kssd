@@ -1,0 +1,131 @@
+
+```asm
+0040F201  |>  8B8D 6CFFFFFF |mov     ecx, dword ptr [ebp-94]
+0040F207  |.  837C8D BC 61  |cmp     dword ptr [ebp+ecx*4-44], 61
+0040F20C  |.  7C 26         |jl      short 0040F234
+0040F20E  |.  8B95 6CFFFFFF |mov     edx, dword ptr [ebp-94]
+0040F214  |.  837C95 BC 7A  |cmp     dword ptr [ebp+edx*4-44], 7A
+0040F219  |.  7F 19         |jg      short 0040F234
+0040F21B  |.  8B85 6CFFFFFF |mov     eax, dword ptr [ebp-94]
+0040F221  |.  8B4C85 BC     |mov     ecx, dword ptr [ebp+eax*4-44]
+0040F225  |.  83E9 3C       |sub     ecx, 3C
+0040F228  |.  8B95 6CFFFFFF |mov     edx, dword ptr [ebp-94]
+0040F22E  |.  894C95 BC     |mov     dword ptr [ebp+edx*4-44], ecx
+0040F232  |.  EB 07         |jmp     short 0040F23B
+0040F234  |>  32C0          |xor     al, al
+0040F236  |.  E9 F5020000   |jmp     0040F530
+0040F23B  |>  8B45 B8       |mov     eax, dword ptr [ebp-48]
+0040F23E  |.  83C0 01       |add     eax, 1
+0040F241  |.  8945 B8       |mov     dword ptr [ebp-48], eax
+0040F244  |.  8B4D B8       |mov     ecx, dword ptr [ebp-48]
+0040F247  |.  3B8D 24FFFFFF |cmp     ecx, dword ptr [ebp-DC]
+0040F24D  |.  7C 07         |jl      short 0040F256
+0040F24F  |.  C745 B8 00000>|mov     dword ptr [ebp-48], 0
+0040F256  |>^ E9 F0FEFFFF   \jmp     0040F14B
+0040F25B  |>  C785 6CFFFFFF>mov     dword ptr [ebp-94], 0
+0040F265  |.  EB 0F         jmp     short 0040F276
+0040F267  |>  8B95 6CFFFFFF /mov     edx, dword ptr [ebp-94]         ;  转换部分
+0040F26D  |.  83C2 01       |add     edx, 1                          ;  计数器x
+0040F270  |.  8995 6CFFFFFF |mov     dword ptr [ebp-94], edx
+0040F276  |>  83BD 6CFFFFFF> cmp     dword ptr [ebp-94], 8           ;  8次循环跳出
+0040F27D  |.  7D 36         |jge     short 0040F2B5
+0040F27F  |.  8B85 6CFFFFFF |mov     eax, dword ptr [ebp-94]         ;  计数器x
+0040F285  |.  8B4C85 BC     |mov     ecx, dword ptr [ebp+eax*4-44]   ;  字符串第x个字符（x=1 ~ 16）--》S1
+0040F289  |.  898D 20FFFFFF |mov     dword ptr [ebp-E0], ecx
+0040F28F  |.  8B95 6CFFFFFF |mov     edx, dword ptr [ebp-94]
+0040F295  |.  8B85 6CFFFFFF |mov     eax, dword ptr [ebp-94]
+0040F29B  |.  8B4C85 DC     |mov     ecx, dword ptr [ebp+eax*4-24]   ;  字符串第x+8个字符（x=1 ~ 8）
+0040F29F  |.  894C95 BC     |mov     dword ptr [ebp+edx*4-44], ecx   ;  放入字符串第x个字符（x=1 ~ 8）
+0040F2A3  |.  8B95 6CFFFFFF |mov     edx, dword ptr [ebp-94]
+0040F2A9  |.  8B85 20FFFFFF |mov     eax, dword ptr [ebp-E0]         ;  S1
+0040F2AF  |.  894495 DC     |mov     dword ptr [ebp+edx*4-24], eax   ;  放入字符串第x+8个字符（x=1 ~ 8）==》S2
+0040F2B3  |.^ EB B2         \jmp     short 0040F267
+0040F2B5  |>  68 10AC4300   push    0043AC10                         ;   实际上就是倒装一下
+0040F2BA  |.  E8 A1A70000   call    00419A60
+0040F2BF  |.  83C4 04       add     esp, 4
+0040F2C2  |.  8985 74FFFFFF mov     dword ptr [ebp-8C], eax
+0040F2C8  |.  83BD 74FFFFFF>cmp     dword ptr [ebp-8C], 10
+0040F2CF  |.  74 07         je      short 0040F2D8
+0040F2D1  |.  32C0          xor     al, al
+0040F2D3  |.  E9 58020000   jmp     0040F530
+0040F2D8  |>  C785 6CFFFFFF>mov     dword ptr [ebp-94], 0
+0040F2E2  |.  EB 0F         jmp     short 0040F2F3
+0040F2E4  |>  8B8D 6CFFFFFF /mov     ecx, dword ptr [ebp-94]         ;  假码转换方式同上
+0040F2EA  |.  83C1 01       |add     ecx, 1
+0040F2ED  |.  898D 6CFFFFFF |mov     dword ptr [ebp-94], ecx
+0040F2F3  |>  83BD 6CFFFFFF> cmp     dword ptr [ebp-94], 10          ;  假码0x10位
+0040F2FA  |.  0F8D 0C010000 |jge     0040F40C
+0040F300  |.  8B95 6CFFFFFF |mov     edx, dword ptr [ebp-94]
+0040F306  |.  0FBE82 10AC43>|movsx   eax, byte ptr [edx+43AC10]
+0040F30D  |.  8B8D 6CFFFFFF |mov     ecx, dword ptr [ebp-94]
+0040F313  |.  89848D 78FFFF>|mov     dword ptr [ebp+ecx*4-88], eax
+0040F31A  |.  8B95 6CFFFFFF |mov     edx, dword ptr [ebp-94]
+0040F320  |.  83BC95 78FFFF>|cmp     dword ptr [ebp+edx*4-88], 2D
+0040F328  |.  75 16         |jnz     short 0040F340
+0040F32A  |.  8B85 6CFFFFFF |mov     eax, dword ptr [ebp-94]
+0040F330  |.  C78485 78FFFF>|mov     dword ptr [ebp+eax*4-88], 0     ;  "-"写0
+0040F33B  |.  E9 C7000000   |jmp     0040F407
+0040F340  |>  8B8D 6CFFFFFF |mov     ecx, dword ptr [ebp-94]
+0040F346  |.  83BC8D 78FFFF>|cmp     dword ptr [ebp+ecx*4-88], 30
+0040F34E  |.  7C 32         |jl      short 0040F382
+0040F350  |.  8B95 6CFFFFFF |mov     edx, dword ptr [ebp-94]
+0040F356  |.  83BC95 78FFFF>|cmp     dword ptr [ebp+edx*4-88], 39
+0040F35E  |.  7F 22         |jg      short 0040F382
+0040F360  |.  8B85 6CFFFFFF |mov     eax, dword ptr [ebp-94]
+0040F366  |.  8B8C85 78FFFF>|mov     ecx, dword ptr [ebp+eax*4-88]
+0040F36D  |.  83E9 2F       |sub     ecx, 2F
+0040F370  |.  8B95 6CFFFFFF |mov     edx, dword ptr [ebp-94]
+0040F376  |.  898C95 78FFFF>|mov     dword ptr [ebp+edx*4-88], ecx
+0040F37D  |.  E9 85000000   |jmp     0040F407
+0040F382  |>  8B85 6CFFFFFF |mov     eax, dword ptr [ebp-94]
+0040F388  |.  83BC85 78FFFF>|cmp     dword ptr [ebp+eax*4-88], 41
+0040F390  |.  7C 2F         |jl      short 0040F3C1
+0040F392  |.  8B8D 6CFFFFFF |mov     ecx, dword ptr [ebp-94]
+0040F398  |.  83BC8D 78FFFF>|cmp     dword ptr [ebp+ecx*4-88], 5A
+0040F3A0  |.  7F 1F         |jg      short 0040F3C1
+0040F3A2  |.  8B95 6CFFFFFF |mov     edx, dword ptr [ebp-94]
+0040F3A8  |.  8B8495 78FFFF>|mov     eax, dword ptr [ebp+edx*4-88]
+0040F3AF  |.  83E8 36       |sub     eax, 36
+0040F3B2  |.  8B8D 6CFFFFFF |mov     ecx, dword ptr [ebp-94]
+0040F3B8  |.  89848D 78FFFF>|mov     dword ptr [ebp+ecx*4-88], eax
+0040F3BF  |.  EB 46         |jmp     short 0040F407
+0040F3C1  |>  8B95 6CFFFFFF |mov     edx, dword ptr [ebp-94]
+0040F3C7  |.  83BC95 78FFFF>|cmp     dword ptr [ebp+edx*4-88], 61
+0040F3CF  |.  7C 2F         |jl      short 0040F400
+0040F3D1  |.  8B85 6CFFFFFF |mov     eax, dword ptr [ebp-94]
+0040F3D7  |.  83BC85 78FFFF>|cmp     dword ptr [ebp+eax*4-88], 7A
+0040F3DF  |.  7F 1F         |jg      short 0040F400
+0040F3E1  |.  8B8D 6CFFFFFF |mov     ecx, dword ptr [ebp-94]
+0040F3E7  |.  8B948D 78FFFF>|mov     edx, dword ptr [ebp+ecx*4-88]
+0040F3EE  |.  83EA 3C       |sub     edx, 3C
+0040F3F1  |.  8B85 6CFFFFFF |mov     eax, dword ptr [ebp-94]
+0040F3F7  |.  899485 78FFFF>|mov     dword ptr [ebp+eax*4-88], edx
+0040F3FE  |.  EB 07         |jmp     short 0040F407
+0040F400  |>  32C0          |xor     al, al
+0040F402  |.  E9 29010000   |jmp     0040F530
+0040F407  |>^ E9 D8FEFFFF   \jmp     0040F2E4
+0040F40C  |>  C785 6CFFFFFF>mov     dword ptr [ebp-94], 0
+0040F416  |.  EB 0F         jmp     short 0040F427
+0040F418  |>  8B8D 6CFFFFFF /mov     ecx, dword ptr [ebp-94]
+0040F41E  |.  83C1 01       |add     ecx, 1
+0040F421  |.  898D 6CFFFFFF |mov     dword ptr [ebp-94], ecx
+0040F427  |>  83BD 6CFFFFFF> cmp     dword ptr [ebp-94], 10
+0040F42E  |.  7D 53         |jge     short 0040F483
+0040F430  |.  8B95 6CFFFFFF |mov     edx, dword ptr [ebp-94]
+0040F436  |.  8B85 6CFFFFFF |mov     eax, dword ptr [ebp-94]
+0040F43C  |.  8B8C95 78FFFF>|mov     ecx, dword ptr [ebp+edx*4-88]   ;  假码第x个字符（x=1 ~ 16）--》S3
+0040F443  |.  2B4C85 BC     |sub     ecx, dword ptr [ebp+eax*4-44]   ;  S3-S2
+0040F447  |.  8B95 6CFFFFFF |mov     edx, dword ptr [ebp-94]
+0040F44D  |.  898C95 78FFFF>|mov     dword ptr [ebp+edx*4-88], ecx   ;  放回
+0040F454  |.  8B85 6CFFFFFF |mov     eax, dword ptr [ebp-94]
+0040F45A  |.  83BC85 78FFFF>|cmp     dword ptr [ebp+eax*4-88], 0
+0040F462  |.  7D 1D         |jge     short 0040F481                  ;  大于等于0 跳
+0040F464  |.  8B8D 6CFFFFFF |mov     ecx, dword ptr [ebp-94]
+0040F46A  |.  8B948D 78FFFF>|mov     edx, dword ptr [ebp+ecx*4-88]
+0040F471  |.  83C2 3F       |add     edx, 3F                         ;  小于等于0则+0x3F
+0040F474  |.  8B85 6CFFFFFF |mov     eax, dword ptr [ebp-94]
+0040F47A  |.  899485 78FFFF>|mov     dword ptr [ebp+eax*4-88], edx   ;  放回
+0040F481  |>^ EB 95         \jmp     short 0040F418
+0040F483  |>  C785 6CFFFFFF>mov     dword ptr [ebp-94], 0
+0040F48D  |.  EB 0F         jmp     short 0040F49E
+```
