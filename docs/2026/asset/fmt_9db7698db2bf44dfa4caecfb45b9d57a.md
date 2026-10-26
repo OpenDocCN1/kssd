@@ -1,0 +1,298 @@
+
+### 汇编代码片段一
+
+```asm
+:1C00123A C745F8FFFFFFFF          mov [ebp-08], FFFFFFFF
+
+:1C001241 8B4508                  mov eax, dword ptr [ebp+08]
+
+:1C001244 8945FC                  mov dword ptr [ebp-04], eax
+
+:1C001247 EB09                    jmp 1C001252
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:1C001286(U)
+
+|
+
+:1C001249 8B4D0C                  mov ecx, dword ptr [ebp+0C]
+
+:1C00124C 83E901                  sub ecx, 00000001
+
+:1C00124F 894D0C                  mov dword ptr [ebp+0C], ecx
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:1C001247(U)
+
+|
+
+:1C001252 837D0C00                cmp dword ptr [ebp+0C], 00000000
+
+:1C001256 7E30                    jle 1C001288
+
+:1C001258 8B55F8                  mov edx, dword ptr [ebp-08]
+
+:1C00125B C1EA08                  shr edx, 08
+
+:1C00125E 8B45F8                  mov eax, dword ptr [ebp-08]
+
+:1C001261 25FF000000              and eax, 000000FF
+
+:1C001266 8B4DFC                  mov ecx, dword ptr [ebp-04]
+
+:1C001269 0FBE09                  movsx ecx, byte ptr [ecx]
+
+:1C00126C 33C1                    xor eax, ecx
+
+:1C00126E 25FF000000              and eax, 000000FF
+
+:1C001273 3314851C40001C          xor edx, dword ptr [4*eax+1C00401C]
+
+                                  ====>[1C00401C]内存中是一张CRC32数据表！:-)
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+:-)     CRC-32 Table  共有256个数   :-)
+
+77073096 EE0E612C 990951BA 076DC419 706AF48F E963A535 9E6495A3 0EDB8832
+
+79DCB8A4 E0D5E91E 97D2D988 09B64C2B 7EB17CBD E7B82D07 90BF1D91 00000000
+
+6AB020F2 F3B97148 84BE41DE 1ADAD47D 6DDDE4EB F4D4B551 83D385C7 136C9856
+
+646BA8C0 FD62F97A 8A65C9EC 14015C4F 63066CD9 FA0F3D63 8D080DF5 3B6E20C8
+
+4C69105E D56041E4 A2677172 3C03E4D1 4B04D447 D20D85FD A50AB56B 35B5A8FA
+
+42B2986C DBBBC9D6 ACBCF940 32D86CE3 45DF5C75 DCD60DCF ABD13D59 26D930AC
+
+51DE003A C8D75180 BFD06116 21B4F4B5 56B3C423 CFBA9599 B8BDA50F 2802B89E
+
+5F058808 C60CD9B2 B10BE924 2F6F7C87 58684C11 C1611DAB B6662D3D 76DC4190
+
+01DB7106 98D220BC EFD5102A 71B18589 06B6B51F 9FBFE4A5 E8B8D433 7807C9A2
+
+0F00F934 9609A88E E10E9818 7F6A0DBB 086D3D2D 91646C97 E6635C01 6B6B51F4
+
+1C6C6162 856530D8 F262004E 6C0695ED 1B01A57B 8208F4C1 F50FC457 65B0D9C6
+
+12B7E950 8BBEB8EA FCB9887C 62DD1DDF 15DA2D49 8CD37CF3 FBD44C65 4DB26158
+
+3AB551CE A3BC0074 D4BB30E2 4ADFA541 3DD895D7 A4D1C46D D3D6F4FB 4369E96A
+
+346ED9FC AD678846 DA60B8D0 44042D73 33031DE5 AA0A4C5F DD0D7CC9 5005713C
+
+270241AA BE0B1010 C90C2086 5768B525 206F85B3 B966D409 CE61E49F 5EDEF90E
+
+29D9C998 B0D09822 C7D7A8B4 59B33D17 2EB40D81 B7BD5C3B C0BA6CAD EDB88320
+
+9ABFB3B6 03B6E20C 74B1D29A EAD54739 9DD277AF 04DB2615 73DC1683 E3630B12
+
+94643B84 0D6D6A3E 7A6A5AA8 E40ECF0B 9309FF9D 0A00AE27 7D079EB1 F00F9344
+
+8708A3D2 1E01F268 6906C2FE F762575D 806567CB 196C3671 6E6B06E7 FED41B76
+
+89D32BE0 10DA7A5A 67DD4ACC F9B9DF6F 8EBEEFF9 17B7BE43 60B08ED5 D6D6A3E8
+
+A1D1937E 38D8C2C4 4FDFF252 D1BB67F1 A6BC5767 3FB506DD 48B2364B D80D2BDA
+
+AF0A1B4C 36034AF6 41047A60 DF60EFC3 A867DF55 316E8EEF 4669BE79 CB61B38C
+
+BC66831A 256FD2A0 5268E236 CC0C7795 BB0B4703 220216B9 5505262F C5BA3BBE
+
+B2BD0B28 2BB45A92 5CB36A04 C2D7FFA7 B5D0CF31 2CD99E8B 5BDEAE1D 9B64C2B0
+
+EC63F226 756AA39C 026D930A 9C0906A9 EB0E363F 72076785 05005713 95BF4A82
+
+E2B87A14 7BB12BAE 0CB61B38 92D28E9B E5D5BE0D 7CDCEFB7 0BDBDF21 86D3D2D4
+
+F1D4E242 68DDB3F8 1FDA836E 81BE16CD F6B9265B 6FB077E1 18B74777 88085AE6
+
+FF0F6A70 66063BCA 11010B5C 8F659EFF F862AE69 616BFFD3 166CCF45 A00AE278
+
+D70DD2EE 4E048354 3903B3C2 A7672661 D06016F7 4969474D 3E6E77DB AED16A4A
+
+D9D65ADC 40DF0B66 37D83BF0 A9BCAE53 DEBB9EC5 47B2CF7F 30B5FFE9 BDBDF21C
+
+CABAC28A 53B39330 24B4A3A6 BAD03605 CDD70693 54DE5729 23D967BF B3667A2E
+
+C4614AB8 5D681B02 2A6F2B94 B40BBE37 C30C8EA1 5A05DF1B 2D02EF8D 004C3E50
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+```asm
+:1C00127A 8955F8                  mov dword ptr [ebp-08], edx
+
+:1C00127D 8B55FC                  mov edx, dword ptr [ebp-04]
+
+:1C001280 83C201                  add edx, 00000001
+
+:1C001283 8955FC                  mov dword ptr [ebp-04], edx
+
+:1C001286 EBC1                    jmp 1C001249
+
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:1C001256(C)
+
+|
+
+:1C001288 8B45F8                  mov eax, dword ptr [ebp-08]
+
+:1C00128B 83F0FF                  xor eax, FFFFFFFF
+
+:1C00128E 8BE5                    mov esp, ebp
+
+:1C001290 5D                      pop ebp
+
+:1C001291 C20800                  ret 0008
+```
+
+―――――――――――――――――――――――――――――――――
+
+## 三、注册码验证、爆破
+
+这部分是 `pLayAr[FCG]` 兄的成果！:-D  谢谢老兄指点！
+
+程序的算法保护的挺好，共36位注册码，每框9位。程序对注册码有很多要求，并且分别在几个地方验证！参照 `pLayAr[FCG]` 兄的成果在特定的条件下进行爆破！
+
+―――――――――――――――――――――――――――――――――
+
+```asm
+* Referenced by a (U)nconditional or (C)onditional Jump at Address:
+
+|:00434A93(U)
+
+|
+
+:00434A9A 85C0                    test eax, eax
+
+:00434A9C 0F8410010000            je 00434BB2
+
+:00434AA2 8DBDD0030000            lea edi, dword ptr [ebp+000003D0]
+
+:00434AA8 83C9FF                  or ecx, FFFFFFFF
+
+:00434AAB 33C0                    xor eax, eax
+
+:00434AAD F2                      repnz
+
+:00434AAE AE                      scasb
+
+:00434AAF F7D1                    not ecx
+
+:00434AB1 49                      dec ecx
+
+:00434AB2 83F909                  cmp ecx, 00000009
+
+                                  ====>9位？
+
+:00434AB5 0F85F7000000            jne 00434BB2
+
+:00434ABB 8DBD14050000            lea edi, dword ptr [ebp+00000514]
+
+:00434AC1 83C9FF                  or ecx, FFFFFFFF
+
+:00434AC4 F2                      repnz
+
+:00434AC5 AE                      scasb
+
+:00434AC6 F7D1                    not ecx
+
+:00434AC8 49                      dec ecx
+
+:00434AC9 83F909                  cmp ecx, 00000009
+
+                                  ====>9位？
+
+:00434ACC 0F85E0000000            jne 00434BB2
+
+:00434AD2 8DBD58060000            lea edi, dword ptr [ebp+00000658]
+
+:00434AD8 83C9FF                  or ecx, FFFFFFFF
+
+:00434ADB F2                      repnz
+
+:00434ADC AE                      scasb
+
+:00434ADD F7D1                    not ecx
+
+:00434ADF 49                      dec ecx
+
+:00434AE0 83F909                  cmp ecx, 00000009
+
+                                  ====>9位？
+
+:00434AE3 0F85C9000000            jne 00434BB2
+
+:00434AE9 8DBD9C070000            lea edi, dword ptr [ebp+0000079C]
+
+:00434AEF 83C9FF                  or ecx, FFFFFFFF
+
+:00434AF2 F2                      repnz
+
+:00434AF3 AE                      scasb
+
+:00434AF4 F7D1                    not ecx
+
+:00434AF6 49                      dec ecx
+
+:00434AF7 83F909                  cmp ecx, 00000009
+
+                                  ====>9位？
+
+:00434AFA 0F85B2000000            jne 00434BB2
+
+:00434B00 E829220900              call 004C6D2E
+
+:00434B05 8B7008                  mov esi, dword ptr [eax+08]
+
+:00434B08 A1D4E85100              mov eax, dword ptr [0051E8D4]
+
+:00434B0D 8D889C070000            lea ecx, dword ptr [eax+0000079C]
+
+:00434B13 8D9058060000            lea edx, dword ptr [eax+00000658]
+
+:00434B19 51                      push ecx
+
+:00434B1A 8D8814050000            lea ecx, dword ptr [eax+00000514]
+
+:00434B20 52                      push edx
+
+:00434B21 05D0030000              add eax, 000003D0
+
+:00434B26 51                      push ecx
+
+:00434B27 50                      push eax
+
+:00434B28 8D542420                lea edx, dword ptr [esp+20]
+
+:00434B2C 68C0635000              push 005063C0
+
+:00434B31 52                      push edx
+
+:00434B32 E86E610600              call 0049ACA5
+
+:00434B37 8B0D78C65100            mov ecx, dword ptr [0051C678]
+
+:00434B3D 8B15D4E85100            mov edx, dword ptr [0051E8D4]
+
+:00434B43 B05A                    mov al, 5A
+
+:00434B45 8974244D                mov dword ptr [esp+4D], esi
+
+:00434B49 8844244C                mov byte ptr [esp+4C], al
+
+:00434B4D 894C2451                mov dword ptr [esp+51], ecx
+
+:00434B51 8B4A1C                  mov ecx, dword ptr [edx+1C]
+
+:00434B54 83C418                  add esp, 00000018
+
+:00434B57 894C243D                mov dword ptr [esp+3D], ecx
+
+:00434B5B 8A4C2433                mov cl, byte ptr [esp+33]
+```
