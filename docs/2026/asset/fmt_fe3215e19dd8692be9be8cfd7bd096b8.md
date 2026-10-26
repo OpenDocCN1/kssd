@@ -1,0 +1,159 @@
+
+```
+01640006     81FE 89000000           cmp esi,89
+0164000C   - 0F84 427648FF           je 00AC7654
+01640012     BE 89000000             mov esi,89
+01640017   - E9 387648FF             jmp 00AC7654
+```
+
+写好代码后,取消`00AC75F2`及`00AC75F4` 两处的断点,`F9`运行中断在`00AC7989`,中断后取消断点
+
+看看数据窗口,是不是得到所有的IAT了?起始`4062E4`,终点`406520`.
+
+```
+004062E4  77DA2410  ADVAPI32.RegQueryValueExA
+004062E8  77DA17D8  ADVAPI32.RegCloseKey
+004062EC  77DB63B1  ADVAPI32.RegSetValueExA
+004062F0  77DA23D9  ADVAPI32.RegOpenKeyA
+004062F4  77DA28BB  ADVAPI32.RegCreateKeyA
+004062F8  00000000
+004062FC  77C4513D  GDI32.GetObjectA
+00406300  77C44B71  GDI32.GetDeviceCaps
+00406304  77C4889D  GDI32.CreateFontIndirectA
+00406308  77C41B98  ASCII "U?Q??
+0040630C  77C6DCB4  GDI32.AbortDoc
+00406310  77C5472B  GDI32.EndDoc
+00406314  77C43607  GDI32.DeleteDC
+00406318  77C5483B  GDI32.StartPage
+0040631C  77C54D16  GDI32.StartDocA
+00406320  77C5460B  GDI32.EndPage
+00406324  77C48333  GDI32.GetTextExtentPointA
+00406328  77C53BB4  GDI32.CreateFontA
+0040632C  77C543A2  GDI32.SetAbortProc
+00406330  77C41EEB  GDI32.SetBkMode
+00406334  77C45011  GDI32.SetMapMode
+00406338  77C483C6  ASCII "U?H??
+0040633C  77C4A9F8  ASCII "U?Q??
+00406340  77C4AAF9  GDI32.SetViewportExtEx
+00406344  77C48D75  GDI32.LPtoDP
+00406348  77C47080  GDI32.CreateDCA
+```
+
+将`1640000`处的修改代码及`00AC75F4 75F4 - E9 078A3500 JMP 01640000`的修改全部取消修改.然后`shift+F9`到最后一次异常并用`CODE`断点法到达`OEP`处
+
+到达`OEP`后,搜索一下`89,45,F0,B8,00,07,00,00` 到达这里(也可以直接`CTRL+G` `00AC7190`,前面`00AC`每个机子可能是不同的,但后面的`7190`是一样的)：
+
+```
+00AC7188     8945 F0                 mov dword ptr ss:[ebp-10],eax
+00AC718B     B8 00070000             mov eax,700
+00AC7190     E8 B7B3FDFF             call 00AA254C---------------这里要修改
+00AC7195     8945 E4                 mov dword ptr ss:[ebp-1C],eax
+00AC7198     C645 EF 00              mov byte ptr ss:[ebp-11],0
+00AC719C     8B7D F8                 mov edi,dword ptr ss:[ebp-8]
+```
+
+就用刚才申请的内存空间`01640000`，`00AC7190`句修改为：
+
+```
+00AC7190  - E9 A28E3500     JMP 01640037
+```
+
+然后写下如何代码(抄`lchhome`的)：
+
+```
+01640000     BA 00104000             mov edx,401000----写好代码后在这里新建EIP
+01640005     803A E8                 cmp byte ptr ds:[edx],0E8
+01640008     75 12                   jnz short 0164001C
+0164000A     8B42 01                 mov eax,dword ptr ds:[edx+1]
+0164000D     03C2                    add eax,edx
+0164000F     83C0 05                 add eax,5
+01640012     3D 0000D000             cmp eax,0D00000----------------重要数据①
+01640017     75 03                   jnz short 0164001C
+01640019     EB 0C                   jmp short 01640027
+0164001B     90                      nop
+0164001C     42                      inc edx
+0164001D     81FA D04F4000           cmp edx,404FD0 ---------------确保所有的call 0D00000被修改过来
+01640023   ^ 72 E0                   jb short 01640005
+01640025   - EB FE                   jmp short 01640025
+01640027     8915 00016401           mov dword ptr ds:[1640100],edx
+0164002D     60                      pushad
+0164002E     FFE2                    jmp edx
+01640030     90                      nop
+01640031     90                      nop
+01640032     90                      nop
+01640033     90                      nop
+01640034     90                      nop
+01640035     90                      nop
+01640036     90                      nop
+01640037     60                      pushad
+01640038     B8 E4624000             mov eax,4062E4----------------------重要数据②
+0164003D     90                      nop
+0164003E     3910                    cmp dword ptr ds:[eax],edx
+01640040     75 20                   jnz short 01640062
+01640042     8B0D 00016401           mov ecx,dword ptr ds:[1640100]
+01640048     C701 FF150000           mov dword ptr ds:[ecx],15FF--------------是delphi语言程序的用25FF,其他语言的用15FF
+0164004E     8941 02                 mov dword ptr ds:[ecx+2],eax
+01640051     61                      popad
+01640052     90                      nop
+01640053     8B15 00016401           mov edx,dword ptr ds:[1640100]
+01640059     90                      nop
+0164005A     90                      nop
+0164005B     90                      nop
+0164005C   ^ EB BE                   jmp short 0164001C
+0164005E     90                      nop
+0164005F     90                      nop
+01640060     90                      nop
+01640061     90                      nop
+01640062     83C0 04                 add eax,4
+01640065     3D 60654000             cmp eax,406520 ----------------------IAT的终点
+0164006A   ^ 7E D2                   jle short 0164003E
+0164006C   ^ EB E3                   jmp short 01640051
+```
+
+```
+BA 00 10 40 00 80 3A E8 75 12 8B 42 01 03 C2 83 C0 05 3D 00 00 D0 00 75 03 EB 0C 90 42 81 FA 00
+20 40 00 72 E0 EB FE 89 15 00 01 64 01 60 FF E2 90 90 90 90 90 90 90 60 B8 E4 62 40 00 90 39 10
+75 20 8B 0D 00 01 64 01 C7 01 FF 25 00 00 89 41 02 61 90 8B 15 00 01 64 01 90 90 90 EB BE 90 90
+90 90 83 C0 04 3D 60 65 40 00 7E D2 EB E3
+```
+
+然后`F9`运行一会,用`LordPe`纠正大小后`dump`,用`ImportREC 1.6F`修复，填上`OEP=10CC`，点`IAT`自动搜索，获得输入信息，全部为有效指针
+
+修复抓取文件。运行脱壳文件，能正常运行.收工.
+
+> 引用: 最初由 wangcai 发布
+>
+> 楼主我发现个问题 你脱壳的`NOTEPAD.EXE` 打开后点->文件->打开  后出错.............
+>
+> 看到了,可以`OD`载入脱壳后的`dumped\_`,`F9`运行,打开后点->文件->打开,停在以下代码处,
+>
+> ```
+> 00404FAA    $- FF25 1C654000         jmp dword ptr ds:[<&comdlg32.CommDlgE>;  comdlg32.CommDlgExtendedError
+> 00404FB0       FF15 18654000         call dword ptr ds:[<&comdlg32.GetSave>;  comdlg32.GetSaveFileNameA
+> 00404FB6       FF15 14654000         call dword ptr ds:[<&comdlg32.PageSet>;  comdlg32.PageSetupDlgA
+> 00404FBC    $- FF25 10654000         jmp dword ptr ds:[<&comdlg32.FindText>;  comdlg32.FindTextA
+> 00404FC2       FF15 0C654000         call dword ptr ds:[<&comdlg32.ChooseF>;  comdlg32.ChooseFontA
+> 00404FC8       FF15 08654000         call dword ptr ds:[<&comdlg32.GetOpen>;  comdlg32.GetOpenFileNameA
+> 00404FCE       FF15 20654000         call dword ptr ds:[<&comdlg32.GetFile>;  comdlg32.GetFileTitleA
+> 00404FD4    .  0000                  add byte ptr ds:[eax],al----------停在这里
+> ```
+
+对比没有加壳的`NOTEPAD`发现从`00404AA`到`00404FCE`处应该全部是`jmp`,但是脱壳后的`dumped\_`有的`jmp`已经变成`call`,将`call`修改为`jmp`,程序正常运行.应该是到`OEP`后`patch`中:
+
+```
+0164001D     81FA D04F4000           cmp edx,404FD0 ---------404FD0这个数值太大的原因.应该是多少,还在寻找
+```
+
+配套脱壳动画在`bbs.chinapyg.com`视频区
+
+--------------------------------------------------------------------------------
+
+【版权声明】 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+
+- [notepad.rar](javascript:void(0);)
+
+  （295.09kb，55次下载）
