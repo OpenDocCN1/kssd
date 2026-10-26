@@ -1,0 +1,137 @@
+
+
+```
+00485E95     4E                   dec esi              用户名长度减一
+00485E96     85F6                 test esi,esi
+00485E98   ^ 75 82                jnz short AUTOCAD?00485E1C    是否取完，没有则继续。
+00485E9A     8D45 EC              lea eax,dword ptr ss:[ebp-14]     最后计算的结果记为H1
+00485E9D     BA B05F4800          mov edx,AUTOCAD?00485FB0           ; ASCII "12345678"
+00485EA2     E8 79E0F7FF          call AUTOCAD?00403F20
+00485EA7     8B45 EC              mov eax,dword ptr ss:[ebp-14]  H1与ASCII "12345678"连起来记为H2
+00485EAA     E8 69E0F7FF          call AUTOCAD?00403F18          取H2的长度
+00485EAF     83F8 07              cmp eax,7
+00485EB2     7E 16                jle short AUTOCAD?00485ECA
+00485EB4     8D45 EC              lea eax,dword ptr ss:[ebp-14]  H2入EAX
+00485EB7     50                   push eax
+00485EB8     B9 07000000          mov ecx,7
+00485EBD     BA 01000000          mov edx,1
+00485EC2     8B45 EC              mov eax,dword ptr ss:[ebp-14]
+00485EC5     E8 56E2F7FF          call AUTOCAD?00404120
+00485ECA     8D45 E8              lea eax,dword ptr ss:[ebp-18]
+00485ECD     E8 C6DDF7FF          call AUTOCAD?00403C98
+00485ED2     8B45 EC              mov eax,dword ptr ss:[ebp-14]   用户名入EAX
+00485ED5     E8 3EE0F7FF          call AUTOCAD?00403F18
+00485EDA     8BF0                 mov esi,eax
+00485EDC     83FE 01              cmp esi,1
+00485EDF     7C 53                jl short AUTOCAD?00485F34
+00485EE1     8B45 EC              mov eax,dword ptr ss:[ebp-14]  取H2的前七位入EAX记为H3
+00485EE4     0FB64430 FF          movzx eax,byte ptr ds:[eax+esi-1] 右向左取H3的一位记为G1
+00485EE9     03C3                 add eax,ebx                       G1加上C1记为G2
+00485EEB     B9 FF000000          mov ecx,0FF
+00485EF0     99                   cdq
+00485EF1     F7F9                 idiv ecx                         G2除0FF取余数记为G3
+00485EF3     8BDA                 mov ebx,edx                      G3入EBX
+00485EF5     83FF 01              cmp edi,1
+00485EF8     7D 03                jge short AUTOCAD?00485EFD
+00485EFA     4F                   dec edi
+00485EFB     EB 03                jmp short AUTOCAD?00485F00
+00485EFD     8B7D F0              mov edi,dword ptr ss:[ebp-10]   S1长度入EDI
+00485F00     8B45 E4              mov eax,dword ptr ss:[ebp-1C]   S1入EAX
+00485F03     0FB64438 FF          movzx eax,byte ptr ds:[eax+edi-1] 右向左取S1的一位记为F1
+00485F08     33D8                 xor ebx,eax                       G3与F1作异或运算结果记为C2
+00485F0A     8D45 D0              lea eax,dword ptr ss:[ebp-30]
+00485F0D     50                   push eax
+00485F0E     895D D8              mov dword ptr ss:[ebp-28],ebx
+00485F11     C645 DC 00           mov byte ptr ss:[ebp-24],0
+00485F15     8D55 D8              lea edx,dword ptr ss:[ebp-28]
+00485F18     33C9                 xor ecx,ecx
+00485F1A     B8 A05F4800          mov eax,AUTOCAD?00485FA0           ; ASCII "%1.2x"
+00485F1F     E8 6035F8FF          call AUTOCAD?00409484
+00485F24     8B55 D0              mov edx,dword ptr ss:[ebp-30]
+00485F27     8D45 E8              lea eax,dword ptr ss:[ebp-18]
+00485F2A     E8 F1DFF7FF          call AUTOCAD?00403F20
+00485F2F     4E                   dec esi
+00485F30     85F6                 test esi,esi
+00485F32   ^ 75 AD                jnz short AUTOCAD?00485EE1     七位是否已计算完没有则继续
+00485F34     8B45 F4              mov eax,dword ptr ss:[ebp-C]
+00485F37     8B55 E8              mov edx,dword ptr ss:[ebp-18]   计算的结果入EDX
+00485F3A     E8 ADDDF7FF          call AUTOCAD?00403CEC        可以做内存注册机
+```
+
+---
+
+## 破解总结
+
+算法比较简单,下面附上`VB`注册机。
+
+```
+Dim A1, A2, A5, A6, A7, A8, A9, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21, A22
+Dim A3 As String
+Dim A4 As Variant
+Dim A10 As Variant
+A1 = "autocad688387F9FF"
+If Text1.Text = "" Then
+MsgBox "^0^对不起！请输入你的用户名。^0^", , "AutoCAD七天超级速成2.0注册机"
+End If
+For A2 = 1 To Len(Text1.Text)
+A3 = A3 & Hex(Asc(Mid(Text1.Text, A2, 1)))
+Next A2
+For A7 = 1 To Len(A1)
+A8 = A8 & Hex(Asc(Mid(A1, A7, 1)))
+Next A7
+A6 = Len(A3) + 1
+A9 = Len(A8)
+A7 = 128
+For A5 = 1 To Len(A3) / 2
+A6 = A6 - 2
+A9 = A9 - 1
+A4 = CLng("&H" & Mid(A3, A6, 2))
+If A4 < 0 Then A4 = A4 + 65536
+A10 = CLng("&H" & Mid(A8, Len(A8) - A9, 2))
+A9 = A9 - 1
+If A10 < 0 Then A10 = A10 + 65536
+A7 = ((A4 + A7) Mod 255) Xor A10
+A12 = A5 And 80000001
+If A12 = 0 Then
+A11 = A11 & Hex(A7)
+Else
+A11 = A11 & Hex(Asc(Mid(Hex(A7), 1, 1))) & Hex(Asc(Mid(Hex(A7), 2, 1)))
+End If
+Next A5
+A13 = Mid(A11, Len(A11) - 1, 2)
+If A13 < 0 Then A13 = A13 + 65536
+A13 = CLng("&H" & A13)
+A11 = A11 & "3132333435363738"
+A14 = Len(Mid(A11, 1, 14)) + 1
+For A15 = 1 To 7
+A14 = A14 - 2
+If Len(Text1.Text) = 1 Then
+If Mid(A8, 1, 2) < 0 Then Mid(A8, 1, 2) = Mid(A8, 1, 2) + 65536
+A17 = CLng("&H" & Mid(A8, 1, 2))
+Else
+If Mid(A8, Len(A8) - 1, 2) < 0 Then Mid(A8, Len(A8) - 1, 2) = Mid(A8, Len(A8) - 1, 2) + 65536
+A17 = CLng("&H" & Mid(A8, Len(A8) - 1, 22))
+End If
+A20 = Mid(Mid(A11, 1, 14), A14, 2)
+If A20 < 0 Then A20 = A20 + 65536
+A16 = CLng("&H" & A20)
+A18 = ((A16 + A13) Mod 255) Xor A17
+A13 = A18
+If Len(Hex(A18)) = 1 Then
+A19 = A19 & 0 & Hex(A18)
+Else
+A19 = A19 & Hex(A18)
+End If
+Next A15
+Text2.Text = A19
+```
+
+本注册机在WINXP SP2 `VB6`下运行通过。`VB`只是凑和着用下，高手见笑了。
+
+---
+
+## 版权声明
+
+本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
