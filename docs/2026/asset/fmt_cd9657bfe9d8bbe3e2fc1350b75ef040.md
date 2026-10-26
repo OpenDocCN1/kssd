@@ -1,0 +1,215 @@
+
+```
+00B839E3     8906                mov dword ptr ds:[esi],eax
+00B839E5     8933                mov dword ptr ds:[ebx],esi
+//取代原先入壳的跳转地址
+00B839E7     8305 E04EB800 04    add dword ptr ds:[B84EE0],4
+00B839EE     5A                  pop edx
+00B839EF     33C0                xor eax,eax
+//00B77945处代码挪到这里执行
+00B839F1     8A4424 1D           mov al,byte ptr ss:[esp+1D]
+00B839F5     E9 513FFFFF         jmp 00B7794B
+```
+
+---
+
+## 三、壳自校验
+
+修改完以上部分后在`00B775FC`处下断，`Shift+F9`中断
+
+```
+00B775FC     837C24 2C 00        cmp dword ptr ss:[esp+2C],0
+//此处下断，IAT处理完毕，开始检验部分
+00B77601     74 0C               je short 00B7760F
+00B77603     8B4424 2C           mov eax,dword ptr ss:[esp+2C]
+00B77607     E8 50AFFEFF         call 00B6255C
+00B7760C     EB 01               jmp short 00B7760F
+00B7760F     BA 047AB700         mov edx,0B77A04
+00B77614     BB 886FB700         mov ebx,0B76F88
+00B77619     2BD3                sub edx,ebx
+00B7761B     83EA 04             sub edx,4
+00B7761E     8BC3                mov eax,ebx
+00B77620     E8 13F9FFFF         call 00B76F38
+00B77625     3B05 40E7B700       cmp eax,dword ptr ds:[B7E740]
+//不等就Over啦  ★
+00B7762B     74 12               je short 00B7763F
+//改标志位Z=1使这里跳转！
+00B7762D     A1 BCC5B700         mov eax,dword ptr ds:[B7C5BC]
+00B77632     C600 36             mov byte ptr ds:[eax],36
+00B77635     8B4424 2C           mov eax,dword ptr ss:[esp+2C]
+00B77639     0105 B8C4B700       add dword ptr ds:[B7C4B8],eax
+00B7763F     A1 5CE7B700         mov eax,dword ptr ds:[B7E75C]
+00B77644     E8 5FB4FEFF         call 00B62AA8
+00B77649     EB 01               jmp short 00B7764C
+```
+
+取消以前的所有断点，开始第五步操作。
+
+---
+
+## 四、附注：看看`AL=3`的`00B76E44`处几个分支处理
+
+```
+00B76E44     53                  push ebx
+00B76E45     56                  push esi
+00B76E46     8BF2                mov esi,edx
+00B76E48     8BD8                mov ebx,eax
+00B76E4A     33C0                xor eax,eax
+00B76E4C     8AC1                mov al,cl
+00B76E4E     83F8 05             cmp eax,5
+00B76E51     0F87 9D000000       ja 00B76EF4
+00B76E57     FF2485 5E6EB700     jmp dword ptr ds:[eax\*4+B76E5E]
+//根据EAX值进行分支处理，这个程序用了2个分支处理
+```
+
+---
+
+### 1、`EAX=1` `0B75200`是`GetProcAddres`
+
+```
+00B76E76     B8 0052B700         mov eax,0B75200
+//EAX=1跳到这里  0B75200
+00B76E7B     8903                mov dword ptr ds:[ebx],eax
+00B76E7D     5E                  pop esi
+00B76E7E     5B                  pop ebx
+00B76E7F     C3                  retn
+00B75200     55                  push ebp
+00B75201     8BEC                mov ebp,esp
+00B75203     8B55 0C             mov edx,dword ptr ss:[ebp+C]
+00B75206     8B45 08             mov eax,dword ptr ss:[ebp+8]
+00B75209     8B0D 1CC5B700       mov ecx,dword ptr ds:[B7C51C]
+00B7520F     8B09                mov ecx,dword ptr ds:[ecx]
+00B75211     3BC8                cmp ecx,eax
+00B75213     75 09               jnz short 00B7521E
+00B75215     8B0495 68C4B700     mov eax,dword ptr ds:[edx\*4+B7C468]
+00B7521C     EB 07               jmp short 00B75225
+00B7521E     52                  push edx
+00B7521F     50                  push eax
+00B75220     E8 2F03FFFF         call 00B65554 ; jmp to kernel32.GetProcAddress
+//这里！ ★
+00B75225     5D                  pop ebp
+00B75226     C2 0800             retn 8
+```
+
+---
+
+### 2、`EAX=5` `0B76DE8`是`FindResourceA`
+
+```
+00B76EDD     A1 1CC6B700         mov eax,dword ptr ds:[B7C61C]
+//EAX=5跳到这里
+00B76EE2     8B40 0C             mov eax,dword ptr ds:[eax+C]
+00B76EE5     A3 50E7B700         mov dword ptr ds:[B7E750],eax
+00B76EEA     B8 E86DB700         mov eax,0B76DE8
+//0B76DE8
+00B76EEF     8903                mov dword ptr ds:[ebx],eax
+00B76EF1     5E                  pop esi
+00B76EF2     5B                  pop ebx
+00B76EF3     C3                  retn
+00B76DE8     FF35 50E7B700       push dword ptr ds:[B7E750]
+00B76DEE     53                  push ebx
+00B76DEF     56                  push esi
+00B76DF0     57                  push edi
+00B76DF1     EB 01               jmp short 00B76DF4
+00B76DF4     89E3                mov ebx,esp
+00B76DF6     53                  push ebx
+00B76DF7     E8 10FEFFFF         call 00B76C0C
+00B76DFC     EB 01               jmp short 00B76DFF
+00B76DFF     5F                  pop edi
+00B76E00     5E                  pop esi
+00B76E01     5B                  pop ebx
+00B76E02     C3                  retn
+00B99F7C     6A 20               push 20
+00B99F7E     68 D814E677         push 77E614D8
+//FindResourceA 函数的前2条指令
+00B99F83     65:EB 01            jmp short 00B99F87
+00B99F87     68 96CAE477         push 77E4CA96
+00B99F8B     EB 01               jmp short 00B99F8E
+00B99F8E     68 86BBE777         push 77E7BB86
+00B99F93     64:A1 00000000      mov eax,dword ptr fs:[0]
+00B99F99     50                  push eax
+00B99F9A     64:8925 00000000    mov dword ptr fs:[0],esp
+00B99FA1     8B4424 10           mov eax,dword ptr ss:[esp+10]
+00B99FA5     896C24 10           mov dword ptr ss:[esp+10],ebp
+00B99FA9     8D6C24 10           lea ebp,dword ptr ss:[esp+10]
+00B99FAD     2BE0                sub esp,eax
+00B99FAF     53                  push ebx
+00B99FB0     56                  push esi
+00B99FB1     57                  push edi
+00B99FB2     8B45 F8             mov eax,dword ptr ss:[ebp-8]
+00B99FB5     8965 E8             mov dword ptr ss:[ebp-18],esp
+00B99FB8     50                  push eax
+00B99FB9     8B45 FC             mov eax,dword ptr ss:[ebp-4]
+00B99FBC     C745 FC FFFFFFFF    mov dword ptr ss:[ebp-4],-1
+00B99FC3     8945 F8             mov dword ptr ss:[ebp-8],eax
+//把CALL call kernel32.77E574E1放在这里执行
+00B99FC6     F2:                 prefix repne:
+00B99FC7     EB 01               jmp short 00B99FCA
+00B99FCA     68 1975E577         push 77E57519
+00B99FCF     C3                  retn
+77E4CA8A     6A 20               push 20
+//FindResourceA
+77E4CA8C     68 D814E677         push kernel32.77E614D8
+77E4CA91     E8 4BAA0000         call kernel32.77E574E1
+77E4CA96     33F6                xor esi,esi  ; mTrace.00400000
+//返回这里
+```
+
+---
+
+### 3、未知
+
+```
+00B76EA1     68 106FB700         push 0B76F10 ; ASCII "\_except\_handler2"
+00B76EA6     56                  push esi
+00B76EA7     A1 1CC6B700         mov eax,dword ptr ds:[B7C61C]
+00B76EAC     8B00                mov eax,dword ptr ds:[eax]
+00B76EAE     FFD0                call eax
+00B76EB0     A3 44E7B700         mov dword ptr ds:[B7E744],eax
+00B76EB5     B8 086EB700         mov eax,0B76E08
+00B76EBA     8903                mov dword ptr ds:[ebx],eax
+00B76EBC     5E                  pop esi
+00B76EBD     5B                  pop ebx
+00B76EBE     C3                  retn
+00B76EBF     68 246FB700         push 0B76F24 ; ASCII "\_except\_handler3"
+00B76EC4     56                  push esi
+00B76EC5     A1 1CC6B700         mov eax,dword ptr ds:[B7C61C]
+00B76ECA     8B00                mov eax,dword ptr ds:[eax]
+00B76ECC     FFD0                call eax
+00B76ECE     A3 48E7B700         mov dword ptr ds:[B7E748],eax
+00B76ED3     B8 246EB700         mov eax,0B76E24
+00B76ED8     8903                mov dword ptr ds:[ebx],eax
+00B76EDA     5E                  pop esi
+00B76EDB     5B                  pop ebx
+00B76EDC     C3                  retn
+```
+
+---
+
+## 五、Pre-Dip：用自己的名字注册
+
+```
+00B7AC61     3100                xor dword ptr ds:[eax],eax
+//异常，第2次看见硬盘指纹
+0012FF2C   0012FF34   指针到下一个 SEH 记录
+0012FF30   00B7AC18   SE 句柄
+0012FF34   0012FF40   指针到下一个 SEH 记录
+0012FF38   00B7B236   SE 句柄
+0012FF3C   0012FF90
+0012FF40   0012FFE0   指针到下一个 SEH 记录
+0012FF44   00B7B25B   SE 句柄
+0012FF48   0012FF90
+0012FF4C   00B60000
+0012FF50   00B30000
+0012FF54   00B7A684   ASCII "UE"
+0012FF58   00000000
+0012FF5C   00BEC1A4   ASCII "8wh3JAAQjOI="//硬盘指纹
+```
+
+`Alt+M`打开内存查看窗口，在`00401000`段下 内存访问断点，`Shift+F9`通过异常，断下
+
+```
+0052FE20     55                  push ebp
+//中断在这里
+0052FE21     8BEC                mov ebp,esp
+```
