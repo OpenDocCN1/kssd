@@ -1,0 +1,300 @@
+
+## 第一个 特征判断入口
+
+```
+00401D09  JNZ SHORT untelock.00401D0F
+
+00401D0B  XOR EAX,EAX
+
+00401D0D  JMP SHORT untelock.00401D10
+
+00401D0F  NOP
+
+00401D10  NOP
+
+00401D11  CMP EAX,-1
+
+00401D14  JNZ SHORT untelock.00401D2F
+
+00401D16  PUSH 10                                           ; /Style = MB_OK|MB_ICONHAND|MB_APPLMODAL
+
+00401D18  PUSH untelock.004040C6                            ; |Title = " tElock v0.98+ unpacker Special   "
+
+00401D1D  PUSH untelock.004041F5                            ; |Text = "This file is not packed by tElock v0.98+"
+
+00401D22  PUSH 0                                            ; |hOwner = NULL
+
+00401D24  CALL <JMP.&USER32.MessageBoxA>                    ; \MessageBoxA
+
+00401D29  PUSH EAX                                          ; /ExitCode
+
+00401D2A  CALL <JMP.&KERNEL32.ExitProcess>                  ; \ExitProcess
+
+00401D2F  POPAD
+
+00401D30  RETN
+```
+
+可以看到这是判断入口代码的特征字
+
+## 第二个 解压模拟代码
+
+`0402244` `CALL untelock.004016F1`：这里是模拟`telock`的解压代码,解到内存中
+
+```
+004016F1  PUSHAD
+
+004016F2  MOV EDI,DWORD PTR DS:[405740]            ;  基址
+
+004016F8  ADD EDI,DWORD PTR DS:[EDI+3C]            ;  pe
+
+004016FB  MOV EAX,DWORD PTR DS:[EDI+28]            ;  eop
+
+004016FE  PUSH EAX
+
+004016FF  PUSH DWORD PTR DS:[405740]
+
+00401705  CALL untelock.0040117E                   ;  fileoffset
+
+0040170A  MOV EDI,EAX
+
+0040170C  ADD EDI,DWORD PTR DS:[405740]
+
+00401712  MOV EAX,DWORD PTR DS:[EDI+1]             ;  jmp后的地址
+
+00401715  ADD EDI,5
+
+00401718  ADD EDI,EAX
+
+0040171A  MOV DWORD PTR DS:[40574C],EDI            ;  保存跳转后的地址
+
+00401720  MOV EBP,EDI
+
+00401722  MOV ESI,EDI
+
+00401724  ADD ESI,41                               ;  add 41
+
+00401727  MOV ECX,DWORD PTR DS:[EDI+17]            ;  14
+
+0040172A  MOV EAX,ECX
+
+0040172C  PUSH ESI
+
+0040172D  /LEA EAX,DWORD PTR DS:[ECX+EAX*4+67]
+
+00401731  |XOR BYTE PTR DS:[ESI],AL
+
+00401733  |INC ESI
+
+00401734  |AAM 9
+
+00401736  |DEC ECX
+
+00401737  \JG SHORT untelock.0040172D              ;  模拟解压
+
+00401739  POP ESI
+
+0040173A  PUSH ESI
+
+0040173B  MOV EAX,DWORD PTR DS:[ESI+1]                         ;  esi为解后的地址
+
+0040173E  ADD ESI,5
+
+00401741  ADD ESI,EAX                                          ;  跳转的地址
+
+00401743  MOV EAX,DWORD PTR DS:[ESI+8]
+
+00401746  ADD ESI,5
+
+00401749  SUB ESI,EAX
+
+0040174B  MOV ECX,0D
+
+00401750  CALL untelock.004013D2
+
+00401755  MOV CL,BYTE PTR DS:[ESI-1D]
+
+00401758  MOV CH,BYTE PTR DS:[ESI-16]
+
+0040175B  MOV EBX,DWORD PTR DS:[ESI-2C]
+
+0040175E  MOV ESI,EDI
+
+00401760  POP ESI
+
+00401761  ADD ESI,6
+
+00401764  /ROL BYTE PTR DS:[ESI+EBX],CL
+
+00401767  |ADD BYTE PTR DS:[ESI+EBX],BL
+
+0040176A  |XOR BYTE PTR DS:[ESI+EBX],CH
+
+0040176D  |INC BYTE PTR DS:[ESI+EBX]
+
+00401770  |DEC EBX
+
+00401771  \JG SHORT untelock.00401764    ;  模拟解压
+```
+
+## 第三个 保存文件模块
+
+```
+004020A5  PUSH 0                                            ; /hTemplateFile = NULL
+
+004020A7  PUSH 80                                           ; |Attributes = NORMAL
+
+004020AC  PUSH 2                                            ; |Mode = CREATE_ALWAYS
+
+004020AE  PUSH 0                                            ; |pSecurity = NULL
+
+004020B0  PUSH 1                                            ; |ShareMode = FILE_SHARE_READ
+
+004020B2  PUSH C0000000                                     ; |Access = GENERIC_READ|GENERIC_WRITE
+
+004020B7  PUSH untelock.00404630                            ; |FileName = "C:\Program Files\starTV\starTV.exe.TMP"
+
+004020BC  CALL <JMP.&KERNEL32.CreateFileA>                  ; \CreateFileA
+
+004020C1  MOV DWORD PTR DS:[405738],EAX
+
+004020C6  XOR EBX,EBX
+
+004020C8  MOV DWORD PTR DS:[405774],EBX
+
+004020CE  PUSH 0
+
+004020D0  PUSH DWORD PTR DS:[405740]
+
+004020D6  CALL untelock.0040110D
+
+004020DB  PUSH 0                                            ; /pOverlapped = NULL
+
+004020DD  PUSH untelock.00405748                            ; |pBytesWritten = untelock.00405748
+
+004020E2  PUSH EBX                                          ; |nBytesToWrite
+
+004020E3  PUSH DWORD PTR DS:[405740]                        ; |Buffer = 01270000
+
+004020E9  PUSH DWORD PTR DS:[405738]                        ; |hFile = 00000120 (window)
+
+004020EF  CALL <JMP.&KERNEL32.WriteFile>                    ; \WriteFile
+
+004020F4  MOV EAX,DWORD PTR DS:[405748]
+
+004020F9  MOV DWORD PTR DS:[405778],EAX
+
+004020FE  PUSH ESI
+
+004020FF  PUSH EDI
+
+00402100  PUSH ECX
+
+00402101  MOV ECX,EAX
+
+00402103  MOV ESI,DWORD PTR DS:[405740]
+
+00402109  LEA EDI,DWORD PTR DS:[404734]
+
+0040210F  REP MOVS BYTE PTR ES:[EDI],BYTE PTR DS:[ESI]
+
+00402111  POP ECX
+
+00402112  POP EDI
+
+00402113  POP ESI
+
+00402114  ADD DWORD PTR DS:[405774],EAX
+
+0040211A  CALL untelock.00401E4F
+
+0040211F  MOV DWORD PTR DS:[40576C],EAX
+
+00402124  XOR ESI,ESI
+
+00402126  JMP SHORT untelock.00402186
+
+00402128  /PUSH ESI
+
+00402129  |PUSH DWORD PTR DS:[405740]
+
+0040212F  |CALL untelock.0040110D  ==>节
+
+00402134  |MOV ECX,EAX
+
+00402136  |MOV DWORD PTR DS:[405748],0
+
+00402140  |CMP DWORD PTR DS:[405760],0
+
+00402147  |JE SHORT untelock.00402167
+
+00402149  |CALL untelock.00401FEB  ==>写入文件
+
+0040214E  |PUSH EAX
+
+0040214F  |PUSH DWORD PTR DS:[405774]
+
+00402155  |CALL untelock.0040115B
+
+0040215A  |MOV EAX,DWORD PTR DS:[405748]
+
+0040215F  |ADD DWORD PTR DS:[405774],EAX
+
+00402165  |JMP SHORT untelock.00402185
+
+00402167  |XOR EAX,EAX
+
+00402169  |MOV DWORD PTR DS:[405748],EAX
+
+0040216E  |PUSH EAX
+
+0040216F  |PUSH DWORD PTR DS:[405774]
+
+00402175  |CALL untelock.0040115B
+
+0040217A  |MOV EAX,DWORD PTR DS:[405748]
+
+0040217F  |ADD DWORD PTR DS:[405774],EAX
+
+00402185  |INC ESI
+
+00402186   CMP ESI,DWORD PTR DS:[40576C]
+
+0040218C  \JNZ SHORT untelock.00402128
+
+0040218E  PUSH 0                                            ; /Origin = FILE_BEGIN
+
+00402190  PUSH 0                                            ; |pOffsetHi = NULL
+
+00402192  PUSH 0                                            ; |OffsetLo = 0
+
+00402194  PUSH DWORD PTR DS:[405738]                        ; |hFile = 00000120 (window)
+
+0040219A  CALL <JMP.&KERNEL32.SetFilePointer>               ; \SetFilePointer
+
+0040219F  PUSH 0                                            ; /pOverlapped = NULL
+
+004021A1  PUSH untelock.00405748                            ; |pBytesWritten = untelock.00405748
+
+004021A6  PUSH DWORD PTR DS:[405778]                        ; |nBytesToWrite = 400 (1024.)
+
+004021AC  PUSH untelock.00404734                            ; |Buffer = untelock.00404734
+
+004021B1  PUSH DWORD PTR DS:[405738]                        ; |hFile = 00000120 (window)
+
+004021B7  CALL <JMP.&KERNEL32.WriteFile>                    ; \WriteFile
+
+004021BC  PUSH DWORD PTR DS:[405738]                        ; /hObject = 00000120 (window)
+
+004021C2  CALL <JMP.&KERNEL32.CloseHandle>                  ; \CloseHandle
+
+004021C7  RETN
+```
+
+## 总结
+
+可以看到脱壳机是模拟`telock`的原理进行脱壳的，`heXer`编写了大量的解压代码，直接对文件代码进行解压出正确的代码。
+
+防范：对于这种脱壳机，防范的方法是针对两种：一中它在判断特征码是作修改，另一个是它在解压时的数据作修改。如用`telock`加壳后，对入口代码作一些变形，这样特征码不起作用，也就脱不了。
+
+by lordor 04.6.16
