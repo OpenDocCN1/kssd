@@ -1,0 +1,280 @@
+
+## 汇编代码片段
+
+```
+00D072A5     03C2                          add eax,edx
+
+00D072A7     8B51 30                       mov edx,dword ptr ds:[ecx+30]
+
+00D072AA     3351 20                       xor edx,dword ptr ds:[ecx+20]
+
+00D072AD     33D7                          xor edx,edi
+
+00D072AF     2BC2                          sub eax,edx
+
+00D072B1     FFD0                          call eax
+
+00D072B3     EB 25                         jmp short 00D072DA
+
+00D072B5     83F9 01                       cmp ecx,1
+
+00D072B8     75 22                         jnz short 00D072DC
+
+00D072BA     FF76 04                       push dword ptr ds:[esi+4]
+
+00D072BD     FF76 08                       push dword ptr ds:[esi+8]
+
+00D072C0     6A 00                         push 0
+
+00D072C2     E8 D809FFFF                   call 00CF7C9F
+
+00D072C7     50                            push eax
+
+00D072C8     A1 6890D100                   mov eax,dword ptr ds:[D19068]
+
+00D072CD     8B48 50                       mov ecx,dword ptr ds:[eax+50]
+
+00D072D0     3348 30                       xor ecx,dword ptr ds:[eax+30]
+
+00D072D3     3348 20                       xor ecx,dword ptr ds:[eax+20]
+
+00D072D6     2BF9                          sub edi,ecx
+
+00D072D8     FFD7                          call edi                                    ; 抵达OEP，F7进入
+
+00D072DA     8BD8                          mov ebx,eax
+
+00D072DC     5F                            pop edi
+
+00D072DD     8BC3                          mov eax,ebx
+
+00D072DF     5E                            pop esi
+
+00D072E0     5B                            pop ebx
+
+00D072E1     C3                            retn
+```
+
+## ㈡、这是继方法二之后的事
+
+下断`bp GetCurrentThreadId`，`F9`运行
+
+```
+77E5A7DF k>  64:A1 18000000                mov eax,dword ptr fs:[18]                   ; 断在这里，留意堆栈
+
+77E5A7E5     8B40 24                       mov eax,dword ptr ds:[eax+24]
+
+77E5A7E8     C3                            retn
+```
+
+```
+※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※
+
+0012B198     66001E3A    /CALL 到 GetCurrentThreadId 来自 66001E34
+
+0012B19C     00000001
+
+0012B178     66003505    /CALL 到 GetCurrentThreadId 来自 660034FF
+
+0012B17C     00000000
+
+0012B3F4     761736A1    /CALL 到 GetCurrentThreadId 来自 WININET.7617369B
+
+0012B3F8     00000000
+
+0012F594     00D07245    /CALL 到 GetCurrentThreadId 来自 00D0723F                      ;  返回的时机，GO！
+
+0012F598     0012FF2C
+
+※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※
+```
+
+在这里中断四次，然后`Alt+F9`返回程序
+
+```
+00D07245     A3 8091D100                   mov dword ptr ds:[D19180],eax                ; 停在这里
+
+00D0724A     E8 6E28FEFF                   call 00CE9ABD
+
+00D0724F     6A 00                         push 0
+
+00D07251     E8 B981FEFF                   call 00CEF40F
+
+00D07256     6A 00                         push 0
+
+00D07258     C705 7810D100 041CD100        mov dword ptr ds:[D11078],0D11C04            ; ASCII "RC"
+
+00D07262     E8 CB22FEFF                   call 00CE9532
+
+00D07267     59                            pop ecx
+
+00D07268     59                            pop ecx
+
+00D07269     E8 310AFFFF                   call 00CF7C9F
+
+00D0726E     8BF8                          mov edi,eax
+
+00D07270     A1 6890D100                   mov eax,dword ptr ds:[D19068]
+
+00D07275     8B48 54                       mov ecx,dword ptr ds:[eax+54]
+
+00D07278     3348 50                       xor ecx,dword ptr ds:[eax+50]
+
+00D0727B     3348 34                       xor ecx,dword ptr ds:[eax+34]
+
+00D0727E     03F9                          add edi,ecx
+
+00D07280     8B0E                          mov ecx,dword ptr ds:[esi]
+
+00D07282     85C9                          test ecx,ecx
+
+00D07284     75 2F                         jnz short 00D072B5
+
+00D07286     8B78 50                       mov edi,dword ptr ds:[eax+50]
+
+00D07289     E8 110AFFFF                   call 00CF7C9F
+
+00D0728E     8B0D 6890D100                 mov ecx,dword ptr ds:[D19068]                ; czssgold.004E02A0
+
+00D07294     FF76 14                       push dword ptr ds:[esi+14]
+
+00D07297     8B51 54                       mov edx,dword ptr ds:[ecx+54]
+
+00D0729A     FF76 10                       push dword ptr ds:[esi+10]
+
+00D0729D     3351 34                       xor edx,dword ptr ds:[ecx+34]
+
+00D072A0     FF76 0C                       push dword ptr ds:[esi+C]
+
+00D072A3     33D7                          xor edx,edi
+
+00D072A5     03C2                          add eax,edx
+
+00D072A7     8B51 30                       mov edx,dword ptr ds:[ecx+30]
+
+00D072AA     3351 20                       xor edx,dword ptr ds:[ecx+20]
+
+00D072AD     33D7                          xor edx,edi
+
+00D072AF     2BC2                          sub eax,edx
+
+00D072B1     FFD0                          call eax
+
+00D072B3     EB 25                         jmp short 00D072DA
+
+00D072B5     83F9 01                       cmp ecx,1
+
+00D072B8     75 22                         jnz short 00D072DC
+
+00D072BA     FF76 04                       push dword ptr ds:[esi+4]
+
+00D072BD     FF76 08                       push dword ptr ds:[esi+8]
+
+00D072C0     6A 00                         push 0
+
+00D072C2     E8 D809FFFF                   call 00CF7C9F
+
+00D072C7     50                            push eax
+
+00D072C8     A1 6890D100                   mov eax,dword ptr ds:[D19068]
+
+00D072CD     8B48 50                       mov ecx,dword ptr ds:[eax+50]
+
+00D072D0     3348 30                       xor ecx,dword ptr ds:[eax+30]
+
+00D072D3     3348 20                       xor ecx,dword ptr ds:[eax+20]
+
+00D072D6     2BF9                          sub edi,ecx
+
+00D072D8     FFD7                          call edi                                      ; 根据地在现，F7进入吧
+
+00D072DA     8BD8                          mov ebx,eax
+
+00D072DC     5F                            pop edi
+
+00D072DD     8BC3                          mov eax,ebx
+
+00D072DF     5E                            pop esi
+
+00D072E0     5B                            pop ebx
+
+00D072E1     C3                            retn
+```
+
+## ㈢、这是继方法三之后的事
+
+下断`bp GetCurrentThreadId`，`F9`运行
+
+```
+77E5A7DF k>  64:A1 18000000                mov eax,dword ptr fs:[18]                      ; 停在这里
+
+77E5A7E5     8B40 24                       mov eax,dword ptr ds:[eax+24]
+
+77E5A7E8     C3                            retn
+```
+
+```
+※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※
+
+0012B3F4     761736A1    /CALL 到 GetCurrentThreadId 来自 WININET.7617369B
+
+0012B3F8     00000000
+
+0012F594     00D07245    /CALL 到 GetCurrentThreadId 来自 00D0723F                        ;  返回的时机，GO！
+
+0012F598     0012FF2C
+
+※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※※
+```
+
+在这里中断二次，然后`Alt+F9`返回程序，之后怎么去到OEP可以参考以上两例，我们直接进入下一个环节。
+
+## ㈣、用内存断点大法直抵OEP
+
+以上三种方法都可以直接用内存断点大法直抵OEP，这个方法确实很实在，也很好用，省了很多不必要的麻烦。
+
+`Alt+M` 查看内存，在`401000`开始的段上 下内存访问断点，`F9`运行
+
+```
+0043DC0D     6A 60                         push 60                                        ;  红色代码，呵呵，直达船，爽！
+
+0043DC0F     68 40A04800                   push czssgold.0048A040
+
+0043DC14     E8 BB0C0000                   call czssgold.0043E8D4
+
+0043DC19     BF 94000000                   mov edi,94
+
+0043DC1E     8BC7                          mov eax,edi
+
+0043DC20     E8 DBF0FFFF                   call czssgold.0043CD00
+
+0043DC25     8965 E8                       mov dword ptr ss:[ebp-18],esp
+
+0043DC28     8BF4                          mov esi,esp
+
+0043DC2A     893E                          mov dword ptr ds:[esi],edi
+
+0043DC2C     56                            push esi
+
+0043DC2D     FF15 04944700                 call dword ptr ds:[479404]                     ;  kernel32.GetVersionExA
+```
+
+只要来到这里，就代表胜利之神已降临在我们身边了，继续努力，GO！
+
+## 四、dumper、修复输入表和优化
+
+这个很容易了，不用我讲大家都会做得比我好，可省我很多口水 :)
+
+```
+0043DC0D     6A 60                         push 60                                        ;  在这儿用LordPE纠正ImageSize
+
+                                                                                             后完全DUMP这个进程
+
+0043DC0F     68 40A04800                   push czssgold.0048A040
+
+0043DC14     E8 BB0C0000                   call czssgold.0043E8D4
+
+0043DC19     BF 94000000                   mov edi,94
+
+0043DC1E     8BC7                          mov eax,edi
+```
