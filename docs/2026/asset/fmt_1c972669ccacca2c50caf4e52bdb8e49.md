@@ -1,0 +1,160 @@
+
+# [原创]WinASO Registry Optimizer V3.0.9算法分析
+
+【破文标题】WinASO Registry Optimizer V3.0.9算法分析
+
+【破解日期】96.09.20
+
+【破文作者】[濃咖啡&chuan]
+
+【原版下载】ebcK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4y4C8P5h3y4F1i4K6u0W2j5$3!0E0i4K6u0r3M7$3!0X3N6q4)9J5c8U0t1%4y4U0x3H3i4K6u0W2K9s2c8E0L8l9`.
+
+【软件介绍】WinASO Registry Optimizer 是一个 Windows 优化工具和高级注册表清理工
+具，它允许您以简单的鼠标单击来安全的清理及修复注册表故障。通过修复陈旧信息及调整 Windows 注册表参数，它对系统速度的提升是值得令人注意的。WinASO Registry Optimizer 被很好的设计为修复普遍的问题，例如对 Internet Explorer 页面的非法修改。我们已对此工具进行了实际测试来确保您的系统安全。我们没有收到过任何对系统稳定性的抱怨。
+
+查無殼為Borland Delphi 6.0 以超級字符串搜尋無提示，祭出函數斷點`BP` `bp MessageBoxA`，欄下後看堆疊
+
+視窗看到`0056A7C2` `/CALL`
+
+`0012F7BC   0056A7C2  /CALL` 到 `MessageBoxA` 來自 `RegOpt.0056A7BD`
+
+`0012F7C0   005F06FE  |hOwner = 005F06FE ('Register Information',class='TfrmRegister',parent=00200466)`
+
+`0012F7C4   015ED010  |Text = "Sorry, that is an invalid license key. Please ensure you have entered the license key exactly as provided."`
+
+`0012F7C8   0164EDB8  |Title = "Information"`
+
+`0012F7CC   00000040  \Style = MB_OK|MB_ICONASTERISK|MB_APPLMODAL`
+
+破解分析如下：
+
+```
+0056A3AB  |.  51            push ecx ---下斷點
+0056A3AC  |.  53            push ebx
+0056A3AD  |.  56            push esi
+0056A3AE  |.  57            push edi
+0056A3AF  |.  8BD8          mov ebx,eax
+0056A3B1  |.  33C0          xor eax,eax
+0056A3B3  |.  55            push ebp
+0056A3B4  |.  68 F4A95600   push RegOpt.0056A9F4
+0056A3B9  |.  64:FF30       push dword ptr fs:[eax]
+0056A3BC  |.  64:8920       mov dword ptr fs:[eax],esp
+0056A3BF  |.  8D45 FC       lea eax,dword ptr ss:[ebp-4]
+0056A3C2  |.  8B15 84055A00 mov edx,dword ptr ds:[5A0584]    ;  RegOpt.005A55E0
+0056A3C8  |.  8B92 70080000 mov edx,dword ptr ds:[edx+870]
+0056A3CE  |.  E8 5DAEE9FF   call RegOpt.00405230
+0056A3D3  |.  8D55 F4       lea edx,dword ptr ss:[ebp-C]
+0056A3D6  |.  8B83 A4030000 mov eax,dword ptr ds:[ebx+3A4]
+0056A3DC  |.  E8 3BC9EEFF   call RegOpt.00456D1C
+0056A3E1  |.  8B45 F4       mov eax,dword ptr ss:[ebp-C]
+0056A3E4  |.  E8 9B45F6FF   call RegOpt.004CE984
+0056A3E9  |.  84C0          test al,al
+0056A3EB  |.  75 2E         jnz short RegOpt.0056A41B
+0056A3ED  |.  6A 40         push 40
+0056A3EF  |.  A1 84055A00   mov eax,dword ptr ds:[5A0584]
+0056A3F4  |.  8B80 6C080000 mov eax,dword ptr ds:[eax+86C]
+0056A3FA  |.  E8 5DB2E9FF   call RegOpt.0040565C
+0056A3FF  |.  50            push eax
+0056A400  |.  8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0056A403  |.  E8 54B2E9FF   call RegOpt.0040565C
+0056A408  |.  50            push eax
+0056A409  |.  8BC3          mov eax,ebx
+0056A40B  |.  E8 0C44EFFF   call RegOpt.0045E81C
+0056A410  |.  50            push eax                         ; |hOwner
+0056A411  |.  E8 26DFE9FF   call <jmp.&user32.MessageBoxA>   ; \MessageBoxA
+0056A416  |.  E9 6D050000   jmp RegOpt.0056A988
+0056A41B  |>  8D55 F0       lea edx,dword ptr ss:[ebp-10]
+0056A41E  |.  8B83 A8030000 mov eax,dword ptr ds:[ebx+3A8]
+0056A424  |.  E8 F3C8EEFF   call RegOpt.00456D1C
+0056A429  |.  8B45 F0       mov eax,dword ptr ss:[ebp-10]
+0056A42C  |.  E8 5345F6FF   call RegOpt.004CE984
+0056A431  |.  84C0          test al,al
+0056A433  |.  75 2E         jnz short RegOpt.0056A463
+0056A435  |.  6A 40         push 40
+0056A437  |.  A1 84055A00   mov eax,dword ptr ds:[5A0584]
+0056A43C  |.  8B80 6C080000 mov eax,dword ptr ds:[eax+86C]
+0056A442  |.  E8 15B2E9FF   call RegOpt.0040565C
+0056A447  |.  50            push eax
+0056A448  |.  8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0056A44B  |.  E8 0CB2E9FF   call RegOpt.0040565C
+0056A450  |.  50            push eax
+0056A451  |.  8BC3          mov eax,ebx
+0056A453  |.  E8 C443EFFF   call RegOpt.0045E81C
+0056A458  |.  50            push eax                         ; |hOwner
+0056A459  |.  E8 DEDEE9FF   call <jmp.&user32.MessageBoxA>   ; \MessageBoxA
+0056A45E  |.  E9 25050000   jmp RegOpt.0056A988
+0056A463  |>  8D55 EC       lea edx,dword ptr ss:[ebp-14]
+0056A466  |.  8B83 AC030000 mov eax,dword ptr ds:[ebx+3AC]
+0056A46C  |.  E8 ABC8EEFF   call RegOpt.00456D1C
+0056A471  |.  8B45 EC       mov eax,dword ptr ss:[ebp-14]
+0056A474  |.  E8 0B45F6FF   call RegOpt.004CE984
+0056A479  |.  84C0          test al,al
+0056A47B  |.  75 2E         jnz short RegOpt.0056A4AB
+0056A47D  |.  6A 40         push 40
+0056A47F  |.  A1 84055A00   mov eax,dword ptr ds:[5A0584]
+0056A484  |.  8B80 6C080000 mov eax,dword ptr ds:[eax+86C]
+0056A48A  |.  E8 CDB1E9FF   call RegOpt.0040565C
+0056A48F  |.  50            push eax
+0056A490  |.  8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0056A493  |.  E8 C4B1E9FF   call RegOpt.0040565C
+0056A498  |.  50            push eax
+0056A499  |.  8BC3          mov eax,ebx
+0056A49B  |.  E8 7C43EFFF   call RegOpt.0045E81C
+0056A4A0  |.  50            push eax                         ; |hOwner
+0056A4A1  |.  E8 96DEE9FF   call <jmp.&user32.MessageBoxA>   ; \MessageBoxA
+0056A4A6  |.  E9 DD040000   jmp RegOpt.0056A988
+0056A4AB  |>  8D55 E8       lea edx,dword ptr ss:[ebp-18]
+0056A4AE  |.  8B83 B0030000 mov eax,dword ptr ds:[ebx+3B0]
+0056A4B4  |.  E8 63C8EEFF   call RegOpt.00456D1C
+0056A4B9  |.  8B45 E8       mov eax,dword ptr ss:[ebp-18]
+0056A4BC  |.  E8 C344F6FF   call RegOpt.004CE984
+0056A4C1  |.  84C0          test al,al
+0056A4C3  |.  75 2E         jnz short RegOpt.0056A4F3
+0056A4C5  |.  6A 40         push 40
+0056A4C7  |.  A1 84055A00   mov eax,dword ptr ds:[5A0584]
+0056A4CC  |.  8B80 6C080000 mov eax,dword ptr ds:[eax+86C]
+0056A4D2  |.  E8 85B1E9FF   call RegOpt.0040565C
+0056A4D7  |.  50            push eax
+0056A4D8  |.  8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0056A4DB  |.  E8 7CB1E9FF   call RegOpt.0040565C
+0056A4E0  |.  50            push eax
+0056A4E1  |.  8BC3          mov eax,ebx
+0056A4E3  |.  E8 3443EFFF   call RegOpt.0045E81C
+0056A4E8  |.  50            push eax                         ; |hOwner
+0056A4E9  |.  E8 4EDEE9FF   call <jmp.&user32.MessageBoxA>   ; \MessageBoxA
+0056A4EE  |.  E9 95040000   jmp RegOpt.0056A988
+0056A4F3  |>  8D55 E4       lea edx,dword ptr ss:[ebp-1C]
+0056A4F6  |.  8B83 B4030000 mov eax,dword ptr ds:[ebx+3B4]
+0056A4FC  |.  E8 1BC8EEFF   call RegOpt.00456D1C
+0056A501  |.  8B45 E4       mov eax,dword ptr ss:[ebp-1C]
+0056A504  |.  E8 7B44F6FF   call RegOpt.004CE984
+0056A509  |.  84C0          test al,al
+0056A50B  |.  75 2E         jnz short RegOpt.0056A53B
+0056A50D  |.  6A 40         push 40
+0056A50F  |.  A1 84055A00   mov eax,dword ptr ds:[5A0584]
+0056A514  |.  8B80 6C080000 mov eax,dword ptr ds:[eax+86C]
+0056A51A  |.  E8 3DB1E9FF   call RegOpt.0040565C
+0056A51F  |.  50            push eax
+0056A520  |.  8B45 FC       mov eax,dword ptr ss:[ebp-4]
+0056A523  |.  E8 34B1E9FF   call RegOpt.0040565C
+0056A528  |.  50            push eax
+0056A529  |.  8BC3          mov eax,ebx
+0056A52B  |.  E8 EC42EFFF   call RegOpt.0045E81C
+0056A530  |.  50            push eax                         ; |hOwner
+0056A531  |.  E8 06DEE9FF   call <jmp.&user32.MessageBoxA>   ; \MessageBoxA
+0056A536  |.  E9 4D040000   jmp RegOpt.0056A988
+0056A53B  |>  8D55 E0       lea edx,dword ptr ss:[ebp-20]
+0056A53E  |.  8B83 A4030000 mov eax,dword ptr ds:[ebx+3A4]
+0056A544  |.  E8 D3C7EEFF   call RegOpt.00456D1C
+0056A549  |.  8B45 E0       mov eax,dword ptr ss:[ebp-20]    ;  第1格
+0056A54C  |.  8945 DC       mov dword ptr ss:[ebp-24],eax
+0056A54F  |.  8B45 DC       mov eax,dword ptr ss:[ebp-24]
+0056A552  |.  85C0          test eax,eax
+0056A554  |.  74 05         je short RegOpt.0056A55B
+0056A556  |.  83E8 04       sub eax,4
+0056A559  |.  8B00          mov eax,dword ptr ds:[eax]
+0056A55B  |>  83F8 04       cmp eax,4
+0056A55E  |.  74 2E         je short RegOpt.0056A58E
+0056A560  |.  6A 40         push 40
+0056A562  |.  A1 84055A00   mov eax,dword ptr ds:[5A0584]
+```
