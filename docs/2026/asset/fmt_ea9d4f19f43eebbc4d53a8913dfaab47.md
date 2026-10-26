@@ -1,0 +1,162 @@
+
+# [原创][表格算法]Easy PDF to Word Converter 2.0 的算法分析 ＋ delphi（kol/mck）注册机源代码
+
+在 [c68K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4g2F1M7r3q4U0K9#2)9J5k6h3y4F1i4K6u0r3N6r3S2J5k6h3q4V1i4K6u0V1x3e0t1&6y4o6c8Q4x3X3b7I4i4K6u0V1x3g2)9J5k6h3S2@1L8h3H3`.](https://bbs.kanxue.com/elink@6d3K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4g2F1M7r3q4U0K9#2)9J5k6h3y4F1i4K6u0r3N6r3S2J5k6h3q4V1i4K6u0V1x3e0t1&6y4o6c8Q4x3X3b7I4i4K6u0V1x3g2)9J5k6h3S2@1L8h3H3`.) 上，看到 `xss517` 兄弟在讨论这个软件，我也下来看了看，发现又是个用了表格算法的，所以把它写了出来。
+
+又因为下载的是个汉化版，我怕版本有点老，不适用，所以我在它的官方主页：[f69K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4m8V1k6W2)9J5k6s2c8G2i4K6u0V1K9s2c8E0L8q4)9J5k6s2N6G2M7X3c8Q4x3X3g2U0L8$3#2Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5k6h3S2@1L8b7`.`.](https://bbs.kanxue.com/elink@d1eK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4m8V1k6W2)9J5k6s2c8G2i4K6u0V1K9s2c8E0L8q4)9J5k6s2N6G2M7X3c8Q4x3X3g2U0L8$3#2Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5k6h3S2@1L8b7`.`.) 下载了个原装版本来分析。
+
+这是我分析的第三个与这种算法相关的程序，估计也是写这种类型的最后一个了。下次再遇上这种[表格算法]的话，估计可以'小时杀'了，呵呵('秒杀'还办不到)。
+
+好的，我们开始：
+
+在注册框中输入注册名和假码后，会有提示：‘the registration code is wrong. please check it and try again.’，顺着这个提示，将程序拖入OD中，先不运行，使用字符串参考，找到了提示所在的位置：
+
+超级字符串参考         , 条目 851
+
+地址=`00428E6B`
+
+反汇编地址=`push    pdf2rtf.0049A1B8`
+
+字符内容=`the registration code is wrong. please check it and try again.`
+
+而在它的上面便是注册成功的提示：‘thanks for your registration! easy pdf to word converter.’
+
+超级字符串参考         , 条目 848
+
+地址=`00428DB0`
+
+反汇编地址=`push    pdf2rtf.0049A1F8`
+
+字符内容=`thanks for your registration! easy pdf to word converter.`
+
+双击错误提示、成功提示的字符串后，分别来到了如下的地方(当然，你也可以使用`GetDlgItemTextA`下断，来到这里)：
+
+》》》》》》》》
+
+```
+00428E69   > \6A 00         push    0                                ; 跳转来自 00428DA5
+00428E6B   .  68 B8A14900   push    pdf2rtf.0049A1B8                 ; |the registration code is wrong. please check it and try again.
+00428E70   .  56            push    esi                              ; |hOwner
+00428E71   .  FF15 F4344700 call    dword ptr [<&USER32.MessageBoxA>>; \MessageBoxA
+00428E77   .  68 FB030000   push    3FB                              ; /ControlID = 3FB (1019.)
+00428E7C   .  56            push    esi                              ; |hWnd
+00428E7D   .  FF15 F8344700 call    dword ptr [<&USER32.GetDlgItem>] ; \GetDlgItem
+00428E83   .  50            push    eax                              ; /hWnd
+00428E84   .  FF15 FC344700 call    dword ptr [<&USER32.SetFocus>]   ; \SetFocus
+00428E8A   .  E9 A4000000   jmp     pdf2rtf.00428F33
+```
+
+》》》》》》》》
+
+```
+00428DAB   .  68 34A24900   push    pdf2rtf.0049A234                 ; |thanks for your registration!
+00428DB0   .  68 F8A14900   push    pdf2rtf.0049A1F8                 ; |thanks for your registration! easy pdf to word converter.
+00428DB5   .  56            push    esi                              ; |hOwner
+00428DB6   .  FF15 F4344700 call    dword ptr [<&USER32.MessageBoxA>>; \MessageBoxA
+00428DBC   .  8B0D F0D64900 mov     ecx, dword ptr [49D6F0]          ;  pdf2rtf.0049D704
+00428DC2   .  894C24 18     mov     dword ptr [esp+18], ecx
+00428DC6   .  68 1C1A4A00   push    pdf2rtf.004A1A1C
+```
+
+》》》》》》》》
+
+顺着它们它们跳转来的地方，往上查看，来到这里：
+
+》》》》》》》》
+
+```
+00428D6C   > \8B7424 18     mov     esi, dword ptr [esp+18]          ;  Case 1 of switch 00428D3F
+00428D70   .  68 C8000000   push    0C8                              ; /Count = C8 (200.)
+00428D75   .  B9 32000000   mov     ecx, 32                          ; |
+00428D7A   .  33C0          xor     eax, eax                         ; |
+00428D7C   .  BF 1C1A4A00   mov     edi, pdf2rtf.004A1A1C            ; |
+00428D81   .  68 1C1A4A00   push    pdf2rtf.004A1A1C                 ; |Buffer = pdf2rtf.004A1A1C
+00428D86   .  68 FB030000   push    3FB                              ; |ControlID = 3FB (1019.)
+00428D8B   .  56            push    esi                              ; |hWnd
+00428D8C   .  F3:AB         rep     stos dword ptr es:[edi]          ; |
+00428D8E   .  FF15 F0344700 call    dword ptr [<&USER32.GetDlgItemTe>; \GetDlgItemTextA
+00428D94   .  68 1C1A4A00   push    pdf2rtf.004A1A1C
+00428D99   .  E8 E2FBFFFF   call    pdf2rtf.00428980
+00428D9E   .  83C4 04       add     esp, 4
+00428DA1   .  85C0          test    eax, eax
+00428DA3   .  6A 20         push    20                               ; /Style = MB\_OK|MB\_ICONQUESTION|MB\_APPLMODAL
+00428DA5   .  0F84 BE000000 je      pdf2rtf.00428E69                 ; |不跳，便OK了！
+00428DAB   .  68 34A24900   push    pdf2rtf.0049A234                 ; |thanks for your registration!
+00428DB0   .  68 F8A14900   push    pdf2rtf.0049A1F8                 ; |thanks for your registration! easy pdf to word converter.
+00428DB5   .  56            push    esi                              ; |hOwner
+00428DB6   .  FF15 F4344700 call    dword ptr [<&USER32.MessageBoxA>>; \MessageBoxA
+00428DBC   .  8B0D F0D64900 mov     ecx, dword ptr [49D6F0]          ;  pdf2rtf.0049D704
+```
+
+》》》》》》》》
+
+因此，我们在`00428D6C`这个地方按F2键下断点，然后Ctrl＋F2重新载入程序，F9运行，然后打开注册输入窗口，输入一组实验码：
+
+name：aCaFeeL
+
+code：1111-2222-3333-4444（为什么是这种格式呐？看下面进入算法后的反编代码，便明白了）
+
+点击‘OK’按钮，程序便被中断在了如下位置（开始分析）：
+
+》》》》》》》》
+
+```
+『以上代码省略』
+00428D6C   > \8B7424 18     mov     esi, dword ptr [esp+18]          ;  Case 1 of switch 00428D3F
+00428D70   .  68 C8000000   push    0C8                              ; /Count = C8 (200.)
+00428D75   .  B9 32000000   mov     ecx, 32                          ; |
+00428D7A   .  33C0          xor     eax, eax                         ; |
+00428D7C   .  BF 1C1A4A00   mov     edi, pdf2rtf.004A1A1C            ; |
+00428D81   .  68 1C1A4A00   push    pdf2rtf.004A1A1C                 ; |Buffer = pdf2rtf.004A1A1C
+00428D86   .  68 FB030000   push    3FB                              ; |ControlID = 3FB (1019.)
+00428D8B   .  56            push    esi                              ; |hWnd
+00428D8C   .  F3:AB         rep     stos dword ptr es:[edi]          ; |
+00428D8E   .  FF15 F0344700 call    dword ptr [<&USER32.GetDlgItemTe>; \得到注册码
+00428D94   .  68 1C1A4A00   push    pdf2rtf.004A1A1C
+00428D99   .  E8 E2FBFFFF   call    pdf2rtf.00428980                 ;  关键算法，决定eax值，F7进入
+00428D9E   .  83C4 04       add     esp, 4
+00428DA1   .  85C0          test    eax, eax                         ;  eax and eax = 0 ???
+00428DA3   .  6A 20         push    20                               ; /;
+00428DA5   .  0F84 BE000000 je      pdf2rtf.00428E69                 ; |eax and eax不为0，便OK了！
+00428DAB   .  68 34A24900   push    pdf2rtf.0049A234                 ; |;
+00428DB0   .  68 F8A14900   push    pdf2rtf.0049A1F8                 ; |thanks for your registration! easy pdf to word converter.
+00428DB5   .  56            push    esi                              ; |hOwner
+00428DB6   .  FF15 F4344700 call    dword ptr [<&USER32.MessageBoxA>>; \MessageBoxA
+00428DBC   .  8B0D F0D64900 mov     ecx, dword ptr [49D6F0]          ;  pdf2rtf.0049D704
+00428DC2   .  894C24 18     mov     dword ptr [esp+18], ecx
+『以下代码省略』
+```
+
+》》》》》》》》
+
+毫无疑问，上面这段代码显示了，当
+
+```
+00428DA1   .  85C0          test    eax, eax
+```
+
+处的 `eax` and `eax` ＝ `0`时，便注册成功了，而决定`eax`数值的便是`00428D99`处的：
+
+```
+00428D99   .  E8 E2FBFFFF   call    pdf2rtf.00428980
+```
+
+因此，我们自然应该F7键进入其中，重新来过后，中断在`00428D99`，然后进入到`call    pdf2rtf.00428980`中，走过一些代码后，来到这里：
+
+》》》》》》》》
+
+```
+『以上代码省略』
+00428A99  |.  8D4C24 24     lea     ecx, dword ptr [esp+24]
+00428A9D  |.  885C24 30     mov     byte ptr [esp+30], bl
+00428AA1  |.  E8 C68E0300   call    pdf2rtf.0046196C
+00428AA6  |.  8B4424 1C     mov     eax, dword ptr [esp+1C]          ;  注册码中的 1～4位
+00428AAA  |.  8D4C24 1C     lea     ecx, dword ptr [esp+1C]
+00428AAE  |.  8B40 F8       mov     eax, dword ptr [eax-8]
+00428AB1  |.  50            push    eax
+00428AB2  |.  E8 E5920300   call    pdf2rtf.00461D9C
+00428AB7  |.  50            push    eax
+00428AB8  |.  E8 E3480200   call    pdf2rtf.0044D3A0                 ;  eax计算：：F7进入 (eax为最终所要的结果)
+00428ABD  |.  8B4C24 1C     mov     ecx, dword ptr [esp+1C]          ;  注册码中的 6～9位
+00428AC1  |.  83C4 04       add     esp, 4
+```
