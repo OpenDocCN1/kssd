@@ -1,0 +1,157 @@
+
+```assembly
+01401A0E   >  68 00800000   push    8000                              ; /FreeType = MEM\_RELEASE
+01401A13   .  6A 00         push    0                                 ; |Size = 0
+01401A15   .  8B4D E8       mov     ecx, dword ptr [ebp-18]           ; |
+01401A18   .  51            push    ecx                               ; |Address
+01401A19   .  FF15 08B04001 call    dword ptr [<&KERNEL32.VirtualF... ; \VirtualFree
+01401A1F   .  8B15 08284101 mov     edx, dword ptr [1412808]          ; 在我这里 EDX = 9F0000，它是申请到的内存段的基址
+01401A25   .  0395 D8FEFFFF add     edx, dword ptr [ebp-128]          ; 换算得到申请内存段的程序入口
+01401A2B   .  8955 B8       mov     dword ptr [ebp-48], edx           ; 保存该入口地址
+01401A2E   .  8B45 B8       mov     eax, dword ptr [ebp-48]           ;
+01401A31   .  FFE0          jmp     eax                               ; 跳到该入口地址，即跳到解压出的程序入口
+```
+
+跳转过后：
+
+### 解压出的代码内部
+
+```assembly
+00A234DC    55              push    ebp
+00A234DD    8BEC            mov     ebp, esp
+00A234DF    6A FF           push    -1
+00A234E1    68 1071A300     push    0A37110
+00A234E6    68 0434A200     push    0A23404
+```
+
+晕。。。简直就是一个PE文件的开头。注意到地址已经变为00A2XXXX，现在程序已经运行在解压出的代码处了。实际上，在我这里，这段内存空间的地址是从009F0000-00B30FFF。在这段空间里面工作感觉不爽，因为OD的一些功能不能用了，比如代码分析，转换到其它模块等等（不知是不是我太笨没有找到）。
+
+又开始单步，几步路后来到这里：
+
+```assembly
+00A235AA    50              push    eax
+00A235AB    FF75 9C         push    dword ptr [ebp-64]
+00A235AE    56              push    esi
+00A235AF    56              push    esi
+00A235B0    FF15 98D2A200   call    dword ptr [A2D298]                ; kernel32.GetModuleHandleA
+00A235B6    50              push    eax
+00A235B7    E8 64C4FDFF     call    009FFA20                          ; 再走就弹出提示
+                                                                        ; 如果修改了文件名程序就从这里直接退出
+```
+
+看来这个才是真正要找的call，它负责服务端程序的一些初始化工作以及一些例行的检查，想必自效验和文件名检测都在里面。进去看看：
+
+### call 009FFA20 内部
+
+```assembly
+009FFA20    8B4424 04       mov     eax, dword ptr [esp+4]
+009FFA24    6A 00           push    0
+009FFA26    A3 3C80A600     mov     dword ptr [A6803C], eax
+009FFA2B    E8 E2360200     call    00A23112
+009FFA30    50              push    eax
+009FFA31    E8 D9310200     call    00A22C0F
+009FFA36    8B4C24 14       mov     ecx, dword ptr [esp+14]
+009FFA3A    83C4 08         add     esp, 8
+009FFA3D    68 3480A600     push    0A68034
+009FFA42    BA 3880A600     mov     edx, 0A68038
+009FFA47    E8 D4FF0000     call    00A0FA20
+009FFA4C    85C0            test    eax, eax
+009FFA4E    75 03           jnz     short 009FFA53
+009FFA50    C2 1000         retn    10
+009FFA53    E8 081A0000     call    00A01460                          ; 这个call完成一些初始化和自效验以及文件名效验的工作
+009FFA58    85C0            test    eax, eax
+009FFA5A    75 03           jnz     short 009FFA5F                    ; 不跳就挂了
+009FFA5C    C2 1000         retn    10
+009FFA5F    E8 ACCCFFFF     call    009FC710                          ; 这个call负责一些启动参数的判断，无关紧要:)
+009FFA64    E8 071C0000     call    00A01670
+009FFA69    B8 01000000     mov     eax, 1
+009FFA6E    C2 1000         retn    10
+```
+
+关注009FFA53处的call，我们来到了最终的地方。
+
+### call 00A01460 内部
+
+```assembly
+00A01460
+........   （跳过一些初始化过程）
+00A01511    8B0D 3C80A600   mov     ecx, dword ptr [A6803C]           ; r\_server.01400000
+00A01517    BA BC5EC995     mov     edx, 95C95EBC
+00A0151C    E8 9F8DFFFF     call    009FA2C0
+00A01521    85C0            test    eax, eax
+00A01523    0F84 21010000   je      00A0164A
+00A01529    8B0D 3C80A600   mov     ecx, dword ptr [A6803C]           ; r\_server.01400000
+00A0152F    68 DA43F0D3     push    D3F043DA
+00A01534    8D9424 A8000000 lea     edx, dword ptr [esp+A8]
+00A0153B    E8 3091FFFF     call    009FA670                          ; 文件自效验
+00A01540    85C0            test    eax, eax                          ; 效验结果送到eax
+00A01542    0F84 02010000   je      00A0164A                          ; 跳就死，弹出提示“可执行文件被破坏”
+00A01548    57              push    edi
+00A01549    83C9 FF         or      ecx, FFFFFFFF
+00A0154C    33C0            xor     eax, eax
+00A0154E    8DBC24 A8000000 lea     edi, dword ptr [esp+A8]
+00A01555    F2:AE           repne   scas byte ptr es:[edi]
+00A01557    F7D1            not     ecx
+00A01559    49              dec     ecx
+00A0155A    5F              pop     edi
+00A0155B    74 1F           je      short 00A0157C
+00A0155D    80BC0C A4000000>cmp     byte ptr [esp+ecx+A4], 2E
+00A01565    75 08           jnz     short 00A0156F
+00A01567    C6840C A4000000>mov     byte ptr [esp+ecx+A4], 0
+00A0156F    80BC0C A4000000>cmp     byte ptr [esp+ecx+A4], 5C
+00A01577    74 0D           je      short 00A01586
+00A01579    49              dec     ecx
+00A0157A  ^ 75 E1           jnz     short 00A0155D
+00A0157C    80BC0C A4000000>cmp     byte ptr [esp+ecx+A4], 5C
+00A01584    75 01           jnz     short 00A01587
+00A01586    41              inc     ecx
+00A01587    8D8C0C A4000000 lea     ecx, dword ptr [esp+ecx+A4]       ; ECX 装入当前的服务端程序的文件名
+00A0158E    68 9490A300     push    0A39094                           ; ASCII "r\_server" 服务端原始文件名入栈
+00A01593    51              push    ecx                               ; 服务端当前文件名入栈
+00A01594    E8 37B70200     call    00A2CCD0                          ; 比较两个文件名是否相同
+00A01599    83C4 08         add     esp, 8
+00A0159C    85C0            test    eax, eax                          ; 比较结果送到eax
+00A0159E    0F85 B5000000   jnz     00A01659                          ; 跳就死，什么提示都没有
+00A015A4    8D5424 04       lea     edx, dword ptr [esp+4]
+00A015A8    52              push    edx
+00A015A9    BE 00000100     mov     esi, 10000                        ; UNICODE "=::=::\"
+00A015AE    68 3877A500     push    0A57738
+00A015B3    BA BD0D0000     mov     edx, 0DBD
+00A015B8    B9 D0D5A200     mov     ecx, 0A2D5D0
+00A015BD    897424 0C       mov     dword ptr [esp+C], esi
+00A015C1    FF15 6CA6A300   call    dword ptr [A3A66C]
+00A015C7    85C0            test    eax, eax
+00A015C9    0F84 8A000000   je      00A01659
+00A015CF    8D4424 04       lea     eax, dword ptr [esp+4]
+00A015D3    50              push    eax
+00A015D4    68 3877A400     push    0A47738
+00A015D9    BA 39060000     mov     edx, 639
+00A015DE    B9 90E3A200     mov     ecx, 0A2E390
+00A015E3    897424 0C       mov     dword ptr [esp+C], esi
+00A015E7    FF15 6CA6A300   call    dword ptr [A3A66C]
+00A015ED    85C0            test    eax, eax
+00A015EF    74 68           je      short 00A01659
+00A015F1    8B35 A0D2A200   mov     esi, dword ptr [A2D2A0]           ; kernel32.GetVersionExA
+00A015F7    68 887FA600     push    0A67F88
+00A015FC    C705 887FA600 9>mov     dword ptr [A67F88], 94
+00A01606    FFD6            call    esi
+00A01608    85C0            test    eax, eax
+00A0160A    74 4D           je      short 00A01659
+00A0160C    8D4C24 08       lea     ecx, dword ptr [esp+8]
+00A01610    51              push    ecx
+00A01611    C74424 0C 9C000>mov     dword ptr [esp+C], 9C
+00A01619    FFD6            call    esi
+00A0161B    85C0            test    eax, eax
+00A0161D    74 0A           je      short 00A01629
+00A0161F    8B5424 0C       mov     edx, dword ptr [esp+C]
+00A01623    8915 8C7FA600   mov     dword ptr [A67F8C], edx
+00A01629    A1 987FA600     mov     eax, dword ptr [A67F98]
+00A0162E    A3 1C80A600     mov     dword ptr [A6801C], eax
+00A01633    E8 E83E0000     call    00A05520
+00A01638    A3 4C80A600     mov     dword ptr [A6804C], eax
+00A0163D    B8 01000000     mov     eax, 1
+00A01642    5E              pop     esi
+00A01643    81C4 A0040000   add     esp, 4A0
+00A01649    C3              retn
+00A0164A    68 349DA300     push    0A39D34                           ; ASCII "Executable file is corrupted"
+```
