@@ -1,0 +1,8 @@
+
+haha,拼出的路径为`ata\heroes3.vid`,加上前面的盘符D就是`data\heroes3.vid`,将文件`heroes3.vid`拷贝到游戏安装目录下`data`里，测试成功了，记得将注册表`[HKEY_LOCAL_MACHINE\SOFTWARE\New World Computing\Heroes of Might and Magic?III\1.0]`下`CDDrive`的值改为“D:”哦，当然不是D也没关系，第一次查找文件`heroes3.vid`失败后它会遍历所有盘符，最后还是能进游戏的，只是启动会感觉慢一拍,good luck!
+
+--------------------------------------------------------------------------------
+
+【版权声明】: 看雪论坛首发，转载请注明作者并保持文章的完整, 谢谢!
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
