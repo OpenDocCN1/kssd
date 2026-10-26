@@ -1,0 +1,227 @@
+
+# [原创]自写小小工具解密FeiQ消息
+
+写这个小工具主要是针对之前关于飞秋解密分析的测试，同时也是对自己的一个交代吧。
+
+## 概览
+
+这幅图就是我写解密代码的思路啦！
+
+由于之前只是分析了单人聊天的消息解密，所以可能具有片面性，例如消息组成的第一部分的标志位，在分析的过程中，它起到了一个判断跳转的作用，我估计`1001`这个只针对单人聊天，但是最重要的部分其实是第二部分和第三部分。
+
+![在这里插入图片描述](https://bbs.kanxue.com/upload/attach/202002/868245_G9AGW3D6824JHPZ.jpg)
+
+## 思路
+
+1：由之前的分析可知，此消息是按照`0x3A`也就是ASCII的“：”作为分隔符的，所以先将消息按照`0x3A`分割成独立的三个部分，分割原理很简单，遍历查找，然后将`0x3A`改成`0x00`。
+
+2：分割完成之后，就是后去会话密钥了，用于最后解密明文使用，这里需要对指定的算法进行实现。
+
+3：获取密文，密文的算法和获取密钥的算法是一致的。
+
+## 实施
+
+### 分割
+
+```
+//1：按照0x3A进行分割分割
+int AllLen = strlen(g\_DecodeText) + 1;
+for (int i = 0; i < AllLen; ++i)
+{
+if (\*(g\_DecodeText + i) == 0x3A)
+{
+\*(g\_DecodeText + i) = 0;
+}
+}
+```
+
+### 获取BLOB
+
+```
+//2：获取BLOB
+//由于BLOB分为头和身体两部分，我们需要先对头对齐进行赋值
+char BlobPart[1024] = { 0x01,0x02,0x00,0x00,0x02,0x66 ,0x00,0x00,0x00,0xA4,0x00,0x00};
+//定义输出指针接收BLOB的身体部分
+char\*pOutBlob = BlobPart + 0xc;
+//定义指针指向消息的第二部分
+char\*pInBlob = g\_DecodeText + 5;
+//定义变量用来计数
+int nCount = 0;
+//函数实现最后在完整代码中放出
+GetBlobBody(pInBlob, pOutBlob, 0x3f4, &nCount);
+```
+
+到这里，我们就获取了加密的BLOB，但是此时只是存在于内存中，我们需要将他导入到CSP中并获取句柄才能使用，导入过程中很重要的一点是我们还需要一个钥匙来对这个密钥块进行解锁，因为这个密钥块是被加密之后发过来的。
+
+```
+//3.1获取CSP
+//定义输出句柄
+HCRYPTPROV hCspHandle = NULL;
+//容器名要写好，每台电脑上的容器名不同
+const char CspName[] = "feiq.rsa512.15pb-win7";
+//供应商要写好，这个微软考虑到跨平台的操作性，基本相同
+const char CspProvider[] = "Microsoft Base Cryptographic Provider v1.0";
+CryptAcquireContextA(&hCspHandle, CspName, CspProvider,PROV\_RSA\_FULL,CRYPT\_MACHINE\_KEYSET);
+printf("CSP句柄：%08x\n", hCspHandle);
+//3.2获取公钥/私钥对句柄，这就是另外的一把钥匙啦
+//定义输出句柄
+HCRYPTPROV hUserHandle = NULL;
+//调用函数获取即可
+CryptGetUserKey(hCspHandle, AT\_KEYEXCHANGE, &hUserHandle);
+printf("公/私钥对句柄：%08x\n", hUserHandle);
+//3.3导入密钥并获取句柄（！！！！这个就是最后解密密文的密钥句柄啦）
+HCRYPTKEY hKey = NULL;
+CryptImportKey(hCspHandle,(const BYTE\*)BlobPart, nCount+0XC, hUserHandle,0,&hKey);
+printf("CryptImportKey：%08x\n", hKey);
+```
+
+### 获取最后密文
+
+```
+//3.4获取最终密文
+//先定义pTemp指向第二部分，循环查找0之后将其指向第三部分
+char\*pTemp = g\_DecodeText + 5;
+int tempcount = 0;
+while (\*pTemp != 0)
+{
+tempcount++;
+pTemp++;
+}
+//将指针指向第三部分数据
+pTemp = g\_DecodeText + 5 + tempcount + 1;
+//定义缓冲区接收最终密文
+char LastEncode[1024] = { 0 };
+int outvalue = 0;
+//完整代码放出
+GetLastEncode(pTemp, LastEncode,0x8000,&outvalue);
+printf("最终密文：%s\n", LastEncode);
+```
+
+### 解密
+
+```
+//4：获取明文
+CryptDecrypt(hKey,0,TRUE,0, (BYTE\*)LastEncode, (DWORD\*)&outvalue);
+printf("最终明文：%s\n", LastEncode);
+```
+
+### 测试
+
+首先发送一条消息，然后使用wireshark抓包，将`data`部分复制下来，只保留从`1001`开始的部分！
+
+![在这里插入图片描述](upload/attach/202002/868245_FUS7FXB4TFF8U7C.jpg)
+
+打开工具进行测试
+
+![在这里插入图片描述](upload/attach/202002/868245_Z8UWSD2MCMRFUB8.jpg)
+
+## 源码
+
+```
+// FeiQ.cpp : 此文件包含 "main" 函数。程序执行将在此处开始并结束。
+//
+#include "pch.h"
+#include <stdio.h>
+#include <windows.h>
+//获取原始密文
+char g\_DecodeText[8000] = { 0 };
+//算法
+char Caculate(unsigned int BlobByte)
+{
+char result; // al@3
+unsigned int BlobBytea; // [sp+8h] [bp+8h]@4
+if ((signed int)BlobByte < 48 || (signed int)BlobByte > 57)// 非数字
+{
+BlobBytea = toupper(BlobByte); // 转大写
+if ((signed int)BlobBytea < 65 || (signed int)BlobBytea > 90)// 非A-Z
+result = 0;
+else
+result = BlobBytea - 55; // A-Z
+}
+else // 数字
+{
+result = BlobByte - 48;
+}
+return result;
+}
+//获取BLOB
+BOOL GetBlobBody(char \*pBlob, char\* pOutBlob, int fixvalue, int\* pDwordValue)
+{
+int Temp; // ebx@4
+int BlobLen; // [sp+4h] [bp-4h]@1
+BlobLen = strlen(pBlob); // 计算BLOB长度
+while (BlobLen >= 2 && \*pDwordValue < fixvalue)// 判断BLOB长度是否大于2，参数三中的值是否小于0x3f4
+{
+Temp = Caculate(pBlob[BlobLen - 1]);// 倒序取pBlob[BlobLen-1]作为参数
+\*((char\*)(pOutBlob + \*pDwordValue)) = 16 \* Caculate(pBlob[BlobLen - 2]) | Temp;// 倒序取pBlob[BlobLen-2]作为参数
+BlobLen -= 2;
+++\*pDwordValue;
+}
+return 1;
+}
+//获取最终密文
+int GetLastEncode(char\* EncodeText, char\* OutDecodeText, int FixValue, int\*\_out\_index)
+{
+char v4; // bl@5
+for (\*\_out\_index = 0; \*EncodeText && \*(EncodeText + 1) && \*\_out\_index < FixValue; ++\*\_out\_index)
+{
+v4 = 16 \* Caculate(\*EncodeText); // 取EncodeText位置字节
+\*(char\*)(OutDecodeText + \*\_out\_index) = Caculate(\*(EncodeText + 1)) | v4;// 取EncodeText+1处字节进行运算
+EncodeText += 2; // 指针自增2
+}
+return 1;
+}
+int main()
+{
+printf("输入密文：\n");
+scanf\_s("%s", g\_DecodeText,8000);
+//1：按照0x3A进行分割分割
+int AllLen = strlen(g\_DecodeText) + 1;
+for (int i = 0; i < AllLen; ++i)
+{
+if (\*(g\_DecodeText + i) == 0x3A)
+{
+\*(g\_DecodeText + i) = 0;
+}
+}
+//2：获取BLOB
+char BlobPart[1024] = { 0x01,0x02,0x00,0x00,0x02,0x66 ,0x00,0x00,0x00,0xA4,0x00,0x00};
+char\*pOutBlob = BlobPart + 0xc;
+char\*pInBlob = g\_DecodeText + 5;
+int nCount = 0;
+GetBlobBody(pInBlob, pOutBlob, 0x3f4, &nCount);
+//3：获取最终密文
+//3.1获取CSP
+HCRYPTPROV hCspHandle = NULL;
+const char CspName[] = "feiq.rsa512.15pb-win7";
+const char CspProvider[] = "Microsoft Base Cryptographic Provider v1.0";
+CryptAcquireContextA(&hCspHandle, CspName, CspProvider,PROV\_RSA\_FULL,CRYPT\_MACHINE\_KEYSET);
+printf("CSP句柄：%08x\n", hCspHandle);
+//3.2获取公钥/私钥对句柄
+HCRYPTPROV hUserHandle = NULL;
+CryptGetUserKey(hCspHandle, AT\_KEYEXCHANGE, &hUserHandle);
+printf("公/私钥对句柄：%08x\n", hUserHandle);
+//3.3导入密钥并获取句柄
+HCRYPTKEY hKey = NULL;
+CryptImportKey(hCspHandle,(const BYTE\*)BlobPart, nCount+0XC, hUserHandle,0,&hKey);
+printf("CryptImportKey：%08x\n", hKey);
+//3.4获取最终密文
+char\*pTemp = g\_DecodeText + 5;
+int tempcount = 0;
+while (\*pTemp != 0)
+{
+tempcount++;
+pTemp++;
+}
+pTemp = g\_DecodeText + 5 + tempcount + 1;
+char LastEncode[1024] = { 0 };
+int outvalue = 0;
+GetLastEncode(pTemp, LastEncode,0x8000,&outvalue);
+printf("最终密文：%s\n", LastEncode);
+//4：获取明文
+CryptDecrypt(hKey,0,TRUE,0, (BYTE\*)LastEncode, (DWORD\*)&outvalue);
+printf("最终明文：%s\n", LastEncode);
+system("pause");
+return 0;
+}
+```
