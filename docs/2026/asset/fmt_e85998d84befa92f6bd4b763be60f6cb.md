@@ -1,0 +1,116 @@
+
+```
+004960A4       . |59                  pop ecx                                                  ;  kernel32.7C816FD7
+004960A5       . |85C0                test eax,eax
+004960A7       . |75 08               jnz short foobar20.004960B1
+004960A9       . |6A 1C               push 1C
+004960AB       . |E8 B9FEFFFF         call foobar20.00495F69
+004960B0       . |59                  pop ecx                                                  ;  kernel32.7C816FD7
+004960B1       > |E8 C5050000         call foobar20.0049667B
+004960B6       . |85C0                test eax,eax
+004960B8       . |75 08               jnz short foobar20.004960C2
+004960BA       . |6A 10               push 10
+004960BC       . |E8 A8FEFFFF         call foobar20.00495F69
+004960C1       . |59                  pop ecx                                                  ;  kernel32.7C816FD7
+004960C2       > |E8 80790000         call foobar20.0049DA47
+004960C7       . |895D FC             mov dword ptr ss:[ebp-4],ebx
+004960CA       . |E8 38770000         call foobar20.0049D807
+004960CF       . |85C0                test eax,eax
+004960D1       . |7D 08               jge short foobar20.004960DB
+004960D3       . |6A 1B               push 1B
+004960D5       . |E8 9B080000         call foobar20.00496975
+004960DA       . |59                  pop ecx                                                  ;  kernel32.7C816FD7
+004960DB       > |E8 88760000         call foobar20.0049D768
+004960E0       . |A3 9C544E00         mov dword ptr ds:[4E549C],eax
+004960E5       . |E8 1D750000         call foobar20.0049D607
+004960EA       . |A3 AC084E00         mov dword ptr ds:[4E08AC],eax
+004960EF       . |E8 68740000         call foobar20.0049D55C
+004960F4       . |85C0                test eax,eax
+004960F6       . |7D 08               jge short foobar20.00496100
+004960F8       . |6A 08               push 8
+004960FA       . |E8 76080000         call foobar20.00496975
+004960FF       . |59                  pop ecx                                                  ;  kernel32.7C816FD7
+00496100       > |E8 31720000         call foobar20.0049D336
+00496105       . |85C0                test eax,eax
+00496107       . |7D 08               jge short foobar20.00496111
+00496109       . |6A 09               push 9
+0049610B       . |E8 65080000         call foobar20.00496975
+00496110       . |59                  pop ecx                                                  ;  kernel32.7C816FD7
+00496111       > |53                  push ebx
+00496112       . |E8 7A090000         call foobar20.00496A91
+00496117       . |59                  pop ecx                                                  ;  kernel32.7C816FD7
+00496118       . |85C0                test eax,eax
+0049611A       . |74 07               je short foobar20.00496123
+0049611C       . |50                  push eax
+0049611D       . |E8 53080000         call foobar20.00496975
+00496122       . |59                  pop ecx                                                  ;  kernel32.7C816FD7
+00496123       > |E8 C8710000         call foobar20.0049D2F0
+00496128       . |845D BC             test byte ptr ss:[ebp-44],bl
+0049612B       . |74 06               je short foobar20.00496133
+0049612D       . |0FB74D C0           movzx ecx,word ptr ss:[ebp-40]
+00496131       . |EB 03               jmp short foobar20.00496136
+00496133       > |6A 0A               push 0A
+00496135       . |59                  pop ecx                                                  ;  kernel32.7C816FD7
+00496136       > |51                  push ecx
+00496137       . |50                  push eax
+00496138       . |6A 00               push 0
+0049613A       . |68 00004000         push foobar20.00400000
+0049613F       . |E8 8EAAF9FF         call foobar20.00430BD2
+00496144       . |8945 E4             mov dword ptr ss:[ebp-1C],eax
+00496147       . |837D E0 00          cmp dword ptr ss:[ebp-20],0
+0049614B       . |75 06               jnz short foobar20.00496153
+0049614D       . |50                  push eax
+0049614E       . |E8 9E0A0000         call foobar20.00496BF1
+00496153       > |E8 BB0A0000         call foobar20.00496C13
+00496158       . |EB 2E               jmp short foobar20.00496188
+0049615A       . |8B45 EC             mov eax,dword ptr ss:[ebp-14]
+0049615D       . |8B08                mov ecx,dword ptr ds:[eax]
+0049615F       . |8B09                mov ecx,dword ptr ds:[ecx]                               ;  ntdll.7C92E10E
+00496161       . |894D D4             mov dword ptr ss:[ebp-2C],ecx
+00496164       . |50                  push eax
+00496165       . |51                  push ecx
+00496166       . |E8 16700000         call foobar20.0049D181
+0049616B       . |59                  pop ecx                                                  ;  kernel32.7C816FD7
+0049616C       . |59                  pop ecx                                                  ;  kernel32.7C816FD7
+0049616D       . |C3                  retn
+0049616E       . |8B65 E8             mov esp,dword ptr ss:[ebp-18]
+00496171       . |8B45 D4             mov eax,dword ptr ss:[ebp-2C]                            ;  kernel32.7C816FD7
+00496174       . |8945 E4             mov dword ptr ss:[ebp-1C],eax
+00496177       . |837D E0 00          cmp dword ptr ss:[ebp-20],0
+0049617B       . |75 06               jnz short foobar20.00496183
+0049617D       . |50                  push eax
+0049617E       . |E8 7F0A0000         call foobar20.00496C02
+00496183       > |E8 9A0A0000         call foobar20.00496C22
+00496188       > |C745 FC FEFFFFFF    mov dword ptr ss:[ebp-4],-2
+0049618F       . |8B45 E4             mov eax,dword ptr ss:[ebp-1C]
+00496192       . |EB 13               jmp short foobar20.004961A7
+00496194       . |33C0                xor eax,eax
+00496196       . |40                  inc eax
+00496197       . |C3                  retn
+00496198       . |8B65 E8             mov esp,dword ptr ss:[ebp-18]
+0049619B       . |C745 FC FEFFFFFF    mov dword ptr ss:[ebp-4],-2
+004961A2       > |B8 FF000000         mov eax,0FF
+004961A7       > |E8 190B0000         call foobar20.00496CC5
+004961AC       . |C3                  retn
+004961AD foob> $ |E8 DD780000         call foobar20.0049DA8F
+004961B2       .^\E9 17FEFFFF         jmp foobar20.00495FCE
+004961B7       $  3B0D B0CC4D00       cmp ecx,dword ptr ds:[4DCCB0]
+004961BD       .  75 02               jnz short foobar20.004961C1
+004961BF       .  F3:                 prefix rep:
+004961C0       .  C3                  retn
+
+6A 60 68 38 7B 4C 00 E8 A6 0C 00 00 83 65 FC 00 8D 45 90 50 FF 15 14 41 4B 00 C7 45 FC FE FF FF
+FF BF 94 00 00 00 57 6A 00 8B 1D 10 41 4B 00 FF D3 50 FF 15 08 41 4B 00 8B F0 85 F6 75 0D 6A 12
+E8 56 FF FF FF 59 E9 89 01 00 00 89 3E 56 FF 15 0C 41 4B 00 56 6A 00 85 C0 75 0E FF D3 50 FF 15
+C8 41 4B 00 E9 6B 01 00 00 8B 46 10 89 45 E0 8B 46 04 89 45 DC 8B 46 08 89 45 D8 8B 7E 0C 81 E7
+FF 7F 00 00 FF D3 50 FF 15 C8 41 4B 00 8B 75 E0 83 FE 02 74 06 81 CF 00 80 00 00 8B 4D DC 8B C1
+C1 E0 08 8B 55 D8 03 C2 89 35 CC 08 4E 00 A3 D4 08 4E 00 89 0D D8 08 4E 00 89 15 DC 08 4E 00 89
+3D D0 08 4E 00 E8 F5 FE FF FF 89 45 E0 33 DB 43 53 E8 8C 10 00 00 59 85 C0 75 08 6A 1C E8 B9 FE
+FF FF 59 E8 C5 05 00 00 85 C0 75 08 6A 10 E8 A8 FE FF FF 59 E8 80 79 00 00 89 5D FC E8 38 77 00
+00 85 C0 7D 08 6A 1B E8 9B 08 00 00 59 E8 88 76 00 00 A3 9C 54 4E 00 E8 1D 75 00 00 A3 AC 08 4E
+00 E8 68 74 00 00 85 C0 7D 08 6A 08 E8 76 08 00 00 59 E8 31 72 00 00 85 C0 7D 08 6A 09 E8 65 08
+00 00 59 53 E8 7A 09 00 00 59 85 C0 74 07 50 E8 53 08 00 00 59 E8 C8 71 00 00 84 5D BC 74 06 0F
+B7 4D C0 EB 03 6A 0A 59 51 50 6A 00 68 00 00 40 00 E8 8E AA F9 FF 89 45 E4 83 7D E0 00 75 06 50
+E8 9E 0A 00 00 E8 BB 0A 00 00 EB 2E 8B 45 EC 8B 08 8B 09 89 4D D4 50 51 E8 16 70 00 00 59 59 C3
+8B 65 E8 8B 45 D4 89 45 E4 83 7D E0 00 75 06 50 E8 7F 0A 00 00 E8 9A 0A 00 00 C7 45 FC FE FF FF
+```

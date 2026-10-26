@@ -1,0 +1,131 @@
+
+# [分享]一些常见语言所编写的程序的OEP特征
+
+闲得无聊搜集的一些OEP和Section，希望能对研究脱壳的朋友们帮上一点小忙。
+
+末尾有打包下载。
+
+---
+
+## Borland C++ 1999
+
+```
+.text
+.data
+.tls
+.rdata
+.idata
+.edata
+.rsrc
+.reloc
+
+00401000 Find> $ /EB 10               jmp short Finder33.00401012
+00401002         |66                  db 66                                                    ;  CHAR 'f'
+00401003         |62                  db 62                                                    ;  CHAR 'b'
+00401004         |3A                  db 3A                                                    ;  CHAR ':'
+00401005         |43                  db 43                                                    ;  CHAR 'C'
+00401006         |2B                  db 2B                                                    ;  CHAR '+'
+00401007         |2B                  db 2B                                                    ;  CHAR '+'
+00401008         |48                  db 48                                                    ;  CHAR 'H'
+00401009         |4F                  db 4F                                                    ;  CHAR 'O'
+0040100A         |4F                  db 4F                                                    ;  CHAR 'O'
+0040100B         |4B                  db 4B                                                    ;  CHAR 'K'
+0040100C         |90                  nop
+0040100D         |E9                  db E9
+0040100E       . |AC                  lods byte ptr ds:[esi]
+0040100F       . |2348 00             and ecx,dword ptr ds:[eax]
+00401012       > \A1 9F234800         mov eax,dword ptr ds:[48239F]
+00401017       .  C1E0 02             shl eax,2
+0040101A       .  A3 A3234800         mov dword ptr ds:[4823A3],eax
+0040101F       .  52                  push edx                                                 ;  ntdll.KiFastSystemCallRet
+00401020       .  6A 00               push 0                                                   ; /pModule = NULL
+00401022       .  E8 79010800         call <jmp.&KERNEL32.GetModuleHandleA>                    ; \GetModuleHandleA
+00401027       .  8BD0                mov edx,eax
+00401029       .  E8 F64F0700         call Finder33.00476024
+0040102E       .  5A                  pop edx                                                  ;  kernel32.7C816FD7
+0040102F       .  E8 544F0700         call Finder33.00475F88
+00401034       .  E8 2B500700         call Finder33.00476064
+00401039       .  6A 00               push 0                                                   ; /Arg1 = 00000000
+0040103B       .  E8 48620700         call Finder33.00477288                                   ; \Finder33.00477288
+00401040       .  59                  pop ecx                                                  ;  kernel32.7C816FD7
+00401041       .  68 48234800         push Finder33.00482348
+00401046       .  6A 00               push 0                                                   ; /pModule = NULL
+00401048       .  E8 53010800         call <jmp.&KERNEL32.GetModuleHandleA>                    ; \GetModuleHandleA
+0040104D       .  A3 A7234800         mov dword ptr ds:[4823A7],eax
+00401052       .  6A 00               push 0
+00401054       .  E9 0BB40700         jmp Finder33.0047C464
+00401059 Find> $  E9 76620700         jmp Finder33.004772D4
+0040105E       .  33C0                xor eax,eax
+00401060       .  A0 91234800         mov al,byte ptr ds:[482391]
+00401065       .  C3                  retn
+
+EB 10 66 62 3A 43 2B 2B 48 4F 4F 4B 90 E9 AC 23 48 00 A1 9F 23 48 00 C1 E0 02 A3 A3 23 48 00 52
+6A 00 E8 79 01 08 00 8B D0 E8 F6 4F 07 00 5A E8 54 4F 07 00 E8 2B 50 07 00 6A 00 E8 48 62 07 00
+59 68 48 23 48 00 6A 00 E8 53 01 08 00 A3 A7 23 48 00 6A 00 E9 0B B4 07 00 E9 76 62 07 00 33 C0
+A0 91 23 48 00 C3
+```
+
+---
+
+## Borland C++
+
+```
+CODE
+DATA
+.INIT
+.idata
+.edata
+.reloc
+.rsrc
+
+00401000 BCW.> $  A1 59B05000         mov eax,dword ptr ds:[50B059]
+00401005       .  C1E0 02             shl eax,2
+00401008       .  A3 5DB05000         mov dword ptr ds:[50B05D],eax
+0040100D       .  57                  push edi                                                 ;  ntdll.7C930738
+0040100E       .  51                  push ecx
+0040100F       .  33C0                xor eax,eax
+00401011       .  BF 84665400         mov edi,BCW.00546684
+00401016       .  B9 8C345500         mov ecx,BCW.0055348C
+0040101B       .  3BCF                cmp ecx,edi                                              ;  ntdll.7C930738
+0040101D       .  76 05               jbe short BCW.00401024
+0040101F       .  2BCF                sub ecx,edi                                              ;  ntdll.7C930738
+00401021       .  FC                  cld
+00401022       .  F3:AA               rep stos byte ptr es:[edi]
+00401024       >  59                  pop ecx                                                  ;  kernel32.7C816FD7
+00401025       .  5F                  pop edi                                                  ;  kernel32.7C816FD7
+00401026       .  64:67:8B16 0400     mov edx,dword ptr fs:[4]
+0040102C       .  8B42 F8             mov eax,dword ptr ds:[edx-8]
+0040102F       .  A3 61B05000         mov dword ptr ds:[50B061],eax
+00401034       .  8B42 FC             mov eax,dword ptr ds:[edx-4]
+00401037       .  A3 65B05000         mov dword ptr ds:[50B065],eax
+0040103C       .  83EA 04             sub edx,4
+0040103F       .  8915 80345500       mov dword ptr ds:[553480],edx                            ;  ntdll.KiFastSystemCallRet
+00401045       .  83EA 04             sub edx,4
+00401048       .  3BD4                cmp edx,esp
+0040104A       .  73 02               jnb short BCW.0040104E
+0040104C       .  8BE2                mov esp,edx                                              ;  ntdll.KiFastSystemCallRet
+0040104E       >  6A 00               push 0                                                   ; /Arg1 = 00000000
+00401050       .  E8 45100000         call BCW.0040209A                                        ; \BCW.0040209A
+00401055       .  59                  pop ecx                                                  ;  kernel32.7C816FD7
+00401056       .  68 2CB05000         push BCW.0050B02C
+0040105B       .  6A 00               push 0                                                   ; /pModule = NULL
+0040105D       .  E8 73821000         call <jmp.&KERNEL32.GetModuleHandleA>                    ; \GetModuleHandleA
+00401062       .  A3 6AB05000         mov dword ptr ds:[50B06A],eax
+00401067       .  6A 00               push 0
+00401069       .  E9 93801000         jmp <jmp.&cw3220mt.__startup>
+0040106E BCW.> $  E9 09110000         jmp BCW.0040217C
+00401073          00                  db 00
+00401074          00                  db 00
+00401075          00                  db 00
+00401076          00                  db 00
+00401077          00                  db 00
+00401078      /$  55                  push ebp
+00401079      |.  8BEC                mov ebp,esp
+0040107B      |.  53                  push ebx
+0040107C      |.  56                  push esi
+0040107D      |.  57                  push edi                                                 ;  ntdll.7C930738
+0040107E      |.  8B75 0C             mov esi,dword ptr ss:[ebp+C]
+00401081      |.  6A 00               push 0                                                   ; /pDefaultCharUsed = NULL
+00401083      |.  6A 00               push 0                                                   ; |pDefaultChar = NULL
+00401085      |.  6A 00               push 0                                                   ; |MultiByteCount = 0
+```
