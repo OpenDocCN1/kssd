@@ -1,0 +1,397 @@
+
+### 反汇编代码
+
+```
+004A61AF    0FB692 D0BD4A00 movzx edx,byte ptr ds:[edx+4ABDD0]
+
+004A61B6    E8 B1E5F5FF     call h2t.0040476C
+
+004A61BB    FF75 E8         push dword ptr ss:[ebp-18]
+
+004A61BE    8BC7            mov eax,edi
+
+004A61C0    BA 03000000     mov edx,3
+
+004A61C5    E8 3AE7F5FF     call h2t.00404904
+
+004A61CA    46              inc esi
+
+004A61CB    FECB            dec bl
+
+004A61CD  ^ 75 B7           jnz short h2t.004A6186
+
+004A61CF    33C0            xor eax,eax
+
+004A61D1    5A              pop edx
+
+004A61D2    59              pop ecx
+
+004A61D3    59              pop ecx
+
+004A61D4    64:8910         mov dword ptr fs:[eax],edx
+
+004A61D7    68 F1614A00     push h2t.004A61F1
+
+004A61DC    8D45 E8         lea eax,dword ptr ss:[ebp-18]
+
+004A61DF    BA 02000000     mov edx,2
+
+004A61E4    E8 BFE3F5FF     call h2t.004045A8
+
+004A61E9    C3              retn                                         ; 返回程序
+```
+
+### 算法总结
+
+注册验证非常简单：
+
+1. 取`Registered Email`与固定字符串`"h2t"`相连接组合成新字符串记为`KEY`
+2. 用标准`MD5`算法模块转换运算`KEY`，然后以小写输出作为注册码
+
+（即：邮箱+固定信息--->转换为MD5码--->再转为小写--->输出注册码）
+
+```
+SN = LCase(MD5(Email + "h2t"))
+```
+
+### 算法注册机代码
+
+```
+'//////////////////////////////////////////////////////////////////////////////
+
+'/                                                                            /
+
+'/                 Program Disassembler & Debugger & Cracked                  /
+
+'/                            Author: KuNgBiM[DFCG]                           /
+
+'/                            E-mail: [email]gb\_1227@163.com[/email]                         /
+
+'/                 OS : WinXP、PEiD、Ollydbg、Visual Basic 6                  /
+
+'/                            Date :  2005-07-04                              /
+
+'/                                                                            /
+
+'//////////////////////////////////////////////////////////////////////////////
+
+'/     Note : If you have one or more question, email me please,thank you!    /
+
+'//////////////////////////////////////////////////////////////////////////////
+
+'窗体部分
+
+Option Explicit
+
+Private Sub Command1\_Click()
+
+Set c1 = New clsMD5                                                      '调用算法模块将ID转换成 MD5密钥
+
+sn = c1.Md5\_String\_Calc(Text1.Text + "h2t")
+
+Text2.Text = LCase(sn)                                                   '把转换后的MD5码转换为小写然后输出作为Key
+
+End Sub
+
+'类模块部分,模块名称:clsMD5
+
+Option Explicit
+
+Private Const OFFSET\_4 = 4294967296#
+
+Private Const MAXINT\_4 = 2147483647
+
+Private State(4) As Long
+
+Private ByteCounter As Long
+
+Private ByteBuffer(63) As Byte
+
+Private Const S11 = 7
+
+Private Const S12 = 12
+
+Private Const S13 = 17
+
+Private Const S14 = 22
+
+Private Const S21 = 5
+
+Private Const S22 = 9
+
+Private Const S23 = 14
+
+Private Const S24 = 20
+
+Private Const S31 = 4
+
+Private Const S32 = 11
+
+Private Const S33 = 16
+
+Private Const S34 = 23
+
+Private Const S41 = 6
+
+Private Const S42 = 10
+
+Private Const S43 = 15
+
+Private Const S44 = 21
+
+Property Get RegisterA() As String
+
+    RegisterA = State(1)
+
+End Property
+
+Property Get RegisterB() As String
+
+    RegisterB = State(2)
+
+End Property
+
+Property Get RegisterC() As String
+
+    RegisterC = State(3)
+
+End Property
+
+Property Get RegisterD() As String
+
+    RegisterD = State(4)
+
+End Property
+
+Public Function Md5\_String\_Calc(SourceString As String) As String
+
+    MD5Init
+
+    MD5Update LenB(StrConv(SourceString, vbFromUnicode)), StringToArray(SourceString)
+
+    MD5Final
+
+    Md5\_String\_Calc = GetValues
+
+End Function
+
+Public Function Md5\_File\_Calc(InFile As String) As String
+
+GoSub begin
+
+begin:
+
+    Dim FileO As Integer
+
+    FileO = FreeFile
+
+    Call FileLen(InFile)
+
+    Open InFile For Binary Access Read As #FileO
+
+    MD5Init
+
+    Do While Not EOF(FileO)
+
+        Get #FileO, , ByteBuffer
+
+        If Loc(FileO) < LOF(FileO) Then
+
+            ByteCounter = ByteCounter + 64
+
+            MD5Transform ByteBuffer
+
+        End If
+
+    Loop
+
+    ByteCounter = ByteCounter + (LOF(FileO) Mod 64)
+
+    Close #FileO
+
+    MD5Final
+
+    Md5\_File\_Calc = GetValues
+
+End Function
+
+Private Function StringToArray(InString As String) As Byte()
+
+    Dim I As Integer, bytBuffer() As Byte
+
+    ReDim bytBuffer(LenB(StrConv(InString, vbFromUnicode)))
+
+    bytBuffer = StrConv(InString, vbFromUnicode)
+
+    StringToArray = bytBuffer
+
+End Function
+
+Public Function GetValues() As String
+
+    GetValues = LongToString(State(1)) & LongToString(State(2)) & LongToString(State(3)) & LongToString(State(4))
+
+End Function
+
+Private Function LongToString(Num As Long) As String
+
+        Dim a As Byte, B As Byte, C As Byte, D As Byte
+
+        a = Num And &HFF&
+
+        If a < 16 Then LongToString = "0" & Hex(a) Else LongToString = Hex(a)
+
+        B = (Num And &HFF00&) \ 256
+
+        If B < 16 Then LongToString = LongToString & "0" & Hex(B) Else LongToString = LongToString & Hex(B)
+
+        C = (Num And &HFF0000) \ 65536
+
+        If C < 16 Then LongToString = LongToString & "0" & Hex(C) Else LongToString = LongToString & Hex(C)
+
+        If Num < 0 Then D = ((Num And &H7F000000) \ 16777216) Or &H80& Else D = (Num And &HFF000000) \ 16777216
+
+        If D < 16 Then LongToString = LongToString & "0" & Hex(D) Else LongToString = LongToString & Hex(D)
+
+End Function
+
+Public Sub MD5Init()
+
+    ByteCounter = 0
+
+    State(1) = UnsignedToLong(1732584193#)
+
+    State(2) = UnsignedToLong(4023233417#)
+
+    State(3) = UnsignedToLong(2562383102#)
+
+    State(4) = UnsignedToLong(271733878#)
+
+End Sub
+
+Public Sub MD5Final()
+
+    Dim dblBits As Double, padding(72) As Byte, lngBytesBuffered As Long
+
+    padding(0) = &H80
+
+    dblBits = ByteCounter \* 8
+
+    lngBytesBuffered = ByteCounter Mod 64
+
+    If lngBytesBuffered <= 56 Then MD5Update 56 - lngBytesBuffered, padding Else MD5Update 120 - ByteCounter, padding
+
+    padding(0) = UnsignedToLong(dblBits) And &HFF&
+
+    padding(1) = UnsignedToLong(dblBits) \ 256 And &HFF&
+
+    padding(2) = UnsignedToLong(dblBits) \ 65536 And &HFF&
+
+    padding(3) = UnsignedToLong(dblBits) \ 16777216 And &HFF&
+
+    padding(4) = 0
+
+    padding(5) = 0
+
+    padding(6) = 0
+
+    padding(7) = 0
+
+    MD5Update 8, padding
+
+End Sub
+
+Public Sub MD5Update(InputLen As Long, InputBuffer() As Byte)
+
+    Dim II As Integer, I As Integer, J As Integer, K As Integer, lngBufferedBytes As Long, lngBufferRemaining As Long, lngRem As Long
+
+    lngBufferedBytes = ByteCounter Mod 64
+
+    lngBufferRemaining = 64 - lngBufferedBytes
+
+    ByteCounter = ByteCounter + InputLen
+
+    If InputLen >= lngBufferRemaining Then
+
+        For II = 0 To lngBufferRemaining - 1
+
+            ByteBuffer(lngBufferedBytes + II) = InputBuffer(II)
+
+        Next II
+
+        MD5Transform ByteBuffer
+
+        lngRem = (InputLen) Mod 64
+
+        For I = lngBufferRemaining To InputLen - II - lngRem Step 64
+
+            For J = 0 To 63
+
+                ByteBuffer(J) = InputBuffer(I + J)
+
+            Next J
+
+            MD5Transform ByteBuffer
+
+        Next I
+
+        lngBufferedBytes = 0
+
+    Else
+
+      I = 0
+
+    End If
+
+    For K = 0 To InputLen - I - 1
+
+        ByteBuffer(lngBufferedBytes + K) = InputBuffer(I + K)
+
+    Next K
+
+End Sub
+
+Private Sub MD5Transform(Buffer() As Byte)
+
+    Dim X(16) As Long, a As Long, B As Long, C As Long, D As Long
+
+    a = State(1)
+
+    B = State(2)
+
+    C = State(3)
+
+    D = State(4)
+
+    Decode 64, X, Buffer
+
+    FF a, B, C, D, X(0), S11, -680876936
+
+    FF D, a, B, C, X(1), S12, -389564586
+
+    FF C, D, a, B, X(2), S13, 606105819
+
+    FF B, C, D, a, X(3), S14, -1044525330
+
+    FF a, B, C, D, X(4), S11, -176418897
+
+    FF D, a, B, C, X(5), S12, 1200080426
+
+    FF C, D, a, B, X(6), S13, -1473231341
+
+    FF B, C, D, a, X(7), S14, -45705983
+
+    FF a, B, C, D, X(8), S11, 1770035416
+
+    FF D, a, B, C, X(9), S12, -1958414417
+
+    FF C, D, a, B, X(10), S13, -42063
+
+    FF B, C, D, a, X(11), S14, -1990404162
+
+    FF a, B, C, D, X(12), S11, 1804603682
+
+    FF D, a, B, C, X(13), S12, -40341101
+
+    FF C, D, a, B, X(14), S13, -1502002290
+```
