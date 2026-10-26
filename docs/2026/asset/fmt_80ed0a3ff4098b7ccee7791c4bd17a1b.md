@@ -1,0 +1,728 @@
+
+```asm
+mov [tmp],GetVersion
+
+jmp nextfixapi
+
+GetVersionExA:
+
+eval "addr:{tmpapi} fix as:GetVersionExA"
+
+log $RESULT
+
+mov [tmp],GetVersionExA
+
+jmp nextfixapi
+
+GetModuleHandleA:
+
+eval "addr:{tmpapi} fix as:GetModuleHandleA"
+
+log $RESULT
+
+mov [tmp],GetModuleHandleA
+
+jmp nextfixapi
+
+GetCurrentProcess:
+
+eval "addr:{tmpapi} fix as:GetCurrentProcess"
+
+log $RESULT
+
+mov [tmp],GetCurrentProcess
+
+jmp nextfixapi
+
+GetCurrentProcessId:
+
+eval "addr:{tmpapi} fix as:GetCurrentProcessId"
+
+log $RESULT
+
+mov [tmp],GetCurrentProcessId
+
+jmp nextfixapi
+
+SetHandleCount:
+
+eval "addr:{tmpapi} fix as:SetHandleCount"  //LockResource
+
+log $RESULT
+
+mov [tmp],SetHandleCount
+
+jmp nextfixapi
+
+nextfixapi:
+
+add tmp,4
+
+jmp loopfixapi
+
+endfixapi:
+
+haha:
+
+find eip,#837804007417#   //pre-dip
+
+cmp $RESULT,0
+
+je nopredip
+
+cmt $RESULT,"pre-dip"
+
+add $RESULT,4
+
+bp $RESULT
+
+esto
+
+bc $RESULT
+
+var tmp
+
+mov tmp,!ZF
+
+cmp tmp,0
+
+jmp nopredip
+
+patchdip:
+
+mov tmp,eip
+
+add tmp,19
+
+bp tmp
+
+esto
+
+bc tmp
+
+//patch user name  //todo 有问题...
+
+var tmp
+
+mov tmp,eax
+
+add tmp,2FFC
+
+mov [tmp],#10000000437261636B6420427920736B796C6C7900#
+
+add tmp,4
+
+mov [eax],tmp
+
+nopredip:
+
+find eip,#8378100074??A1#             //0x1500以内
+
+cmp $RESULT,0
+
+je notimelimit
+
+cmt $RESULT,"是否有时间限制"
+
+bp $RESULT
+
+esto
+
+bc $RESULT
+
+find eip,#80783000750B#
+
+cmp $RESULT,0
+
+je err
+
+cmt $RESULT,"是否时间过期,跳则过期"
+
+add $RESULT,F
+
+cmt $RESULT,"必须跳"
+
+bp $RESULT
+
+esto
+
+bc $RESULT
+
+notimelimit:
+
+find dllbase,#59595DC21000#  //crc自校验
+
+cmp $RESULT,0
+
+je err
+
+bp $RESULT
+
+esto
+
+esto
+
+bc $RESULT
+
+//此时自校验结束
+
+//其实下面这个查找可以忽略(下面不远我们可以看到壳作者名字)
+
+//00EAFF88               B2 01               mov dl,1
+
+//00EAFF8A               B8 20CCEA00         mov eax,0EACC20                 ; ASCII 0E,"TBlockOperator"
+
+//00EAFF8F               E8 9CCCFFFF         call 00EACC30
+
+find eip,#B201??????????E8????????8945E8#
+
+cmp $RESULT,0
+
+je err
+
+bp $RESULT
+
+esto
+
+bc $RESULT
+
+find eip,#FF30FF75F0FF75ECC3#
+
+cmp $RESULT,0
+
+je jmp212
+
+add $RESULT,8
+
+bp $RESULT
+
+esto
+
+bc $RESULT
+
+sti
+
+sethwd:
+
+bphws espvar,"r"
+
+esto
+
+bphwc espvar
+
+sti
+
+var tmp
+
+mov tmp,[eip]
+
+and tmp,FFFF
+
+cmp tmp,C350
+
+je twosti
+
+cmp tmp,E0FF
+
+je onesti
+
+cmt eip,"fake oep"
+
+msg "fake oep"
+
+jmp goingoep
+
+ret
+
+jmp212:  //aspack2.12主程序的jmp
+
+find eip,#FF30FF75F0FF65EC#
+
+cmp $RESULT,0
+
+je jmp212
+
+add $RESULT,5
+
+bp $RESULT
+
+esto
+
+bc $RESULT
+
+sti
+
+jmp sethwd
+
+twosti:
+
+sti
+
+onesti:
+
+sti
+
+jmp final12
+
+ret
+
+goingoep:
+
+bprm cbase,csize
+
+esto
+
+bpmc
+
+final12:
+
+cmt eip,"oep"
+
+ret
+
+ver13:
+
+find dllbase,#89060FB7442404#     //aspr 1.3x 跳转表加密
+
+cmp $RESULT,0
+
+je startnow
+
+log "ver13"
+
+find dllbase,#8B54240C89028B44240C89060FB7442404#    //iat加密
+
+cmp $RESULT,0
+
+je err
+
+add $RESULT,5
+
+mov [$RESULT],#2A#
+
+find dllbase,#59595DC21000#  //crc自校验
+
+cmp $RESULT,0
+
+je err
+
+bp $RESULT
+
+esto
+
+esto
+
+bc $RESULT
+
+//此时自校验结束
+
+find eip,#C700DF??????B201??????????E8????????8B??A1????????8B0089????A1#
+
+cmp $RESULT,0
+
+je err
+
+add $RESULT,6
+
+bp $RESULT
+
+esto
+
+bc $RESULT
+
+find eip,#8B65F8FF35????????C3#
+
+cmp $RESULT,0
+
+je err
+
+sub $RESULT,2
+
+bp $RESULT
+
+esto
+
+bc $RESULT
+
+sti
+
+cmp ecx,0
+
+je someother
+
+rtr
+
+sti
+
+cmt eip,"fake oep"
+
+ret
+
+some131:
+
+find eip,#0F85????0000#
+
+cmp $RESULT,0
+
+je err
+
+add $RESULT,6
+
+bp $RESULT
+
+esto
+
+bc $RESULT
+
+jmp ffe0
+
+someother:
+
+rtr
+
+sti
+
+find eip,#0F85????FFFF#
+
+cmp $RESULT,0
+
+je some131
+
+add $RESULT,6
+
+bp $RESULT
+
+esto
+
+bc $RESULT
+
+ffe0:
+
+find eip,#FFE0#
+
+cmp $RESULT,0
+
+je err
+
+bp $RESULT
+
+esto
+
+bc $RESULT
+
+sti
+
+cmt eip,"OEP"
+
+ret
+
+bprm cbase,csize
+
+esto
+
+bpmc
+
+find ebp,#33C08945??FFE5#
+
+cmp $RESULT,0
+
+je err
+
+bp $RESULT
+
+esto
+
+bc $RESULT
+
+bp ebp
+
+esto
+
+bc ebp
+
+sti
+
+sti
+
+cmt eip,"oep"
+
+ret
+
+startnow:     //主要为1.0服务
+
+log "ver10"
+
+//第一层aspack结束
+
+bp GetProcAddress
+
+lop:
+
+esto
+
+cmp eip,GetProcAddress
+
+jne lop
+
+bc GetProcAddress
+
+rtu
+
+find eip,#85C07508B8#
+
+cmp $RESULT,0
+
+je special
+
+var fix1
+
+mov fix1,$RESULT
+
+add fix1,2
+
+find fix1,#741A#
+
+cmp $RESULT,0
+
+je err
+
+var fix2
+
+mov fix2,$RESULT
+
+mov [fix2],#9090#  //patch kernel32.dll
+
+find fix1,#753A#
+
+cmp $RESULT,0
+
+je err
+
+var fix3
+
+mov fix3,$RESULT
+
+mov [fix3],#EB#  //patch user32.dll
+
+msgyn "是否修复sdk?"
+
+cmp $RESULT,0
+
+je no10sdk
+
+add fix1,2
+
+bp fix1
+
+esto
+
+bc fix1
+
+find eip,#891083C604#
+
+cmp $RESULT,0
+
+je err
+
+bp $RESULT
+
+esto
+
+bc $RESULT
+
+mov hookedgpa,eax   //记录hook后的getprocaddress地址
+
+sub fix1,2
+
+jmp imp10ok
+
+no10sdk:
+
+mov [fix1],#EB#  //patch GetProcAddress
+
+imp10ok:
+
+find fix1,#33C05A59#
+
+cmp $RESULT,0
+
+je err
+
+bp $RESULT
+
+esto
+
+bc $RESULT  //输入表完毕
+
+fixok:
+
+//还原代码
+
+mov [fix1],#75#
+
+mov [fix2],#741A#
+
+mov [fix3],#75#
+
+//走oep
+
+jmpoep:
+
+find dllbase,#6150C3#
+
+cmp $RESULT,0
+
+jne final10
+
+find dllbase,#61EB01#
+
+cmp $RESULT,0
+
+je err
+
+final10:
+
+var jmpingoep
+
+mov jmpingoep,$RESULT
+
+bp jmpingoep
+
+lpfinal:
+
+esto
+
+cmp eip,jmpingoep
+
+jne lpfinal
+
+bc jmpingoep
+
+lpa: //自动走路
+
+sti
+
+var temp
+
+mov temp,[eip]
+
+and temp,FF
+
+cmp temp,C3
+
+jne lpa
+
+sti
+
+atoep:
+
+cmt eip,"OEP"
+
+cmp hookedgpa,0
+
+je allend
+
+msgyn "是否有sdk?"
+
+cmp $RESULT,0
+
+jne fixsdk
+
+mov [hookedgpa],GetProcAddressorg
+
+allend:
+
+ret
+
+fixsdk:
+
+var newgpa
+
+mov newgpa,[hookedgpa]
+
+add newgpa,18
+
+bp newgpa
+
+lo:
+
+esto
+
+cmp eip,newgpa
+
+jne end
+
+fixstart:
+
+var addr
+
+mov addr,[esp+4]
+
+sub addr,5
+
+var num
+
+mov num,[esp+c]
+
+bp eax
+
+esto
+
+bc eax
+
+mov addr,[esp]
+
+reg1:
+
+cmp num,8
+
+jne reg2
+
+eval "addr:{addr}:call isreged"
+
+ret
+
+jmp nextapi
+
+reg2:
+
+cmp num,5
+
+jne notregapi
+
+eval "addr:{addr}:call getregname"
+
+jmp nextapi
+
+notregapi:
+
+eval "addr:{addr}:call {num}"
+
+jmp nextapi
+
+nextapi:
+
+log $RESULT
+
+jmp lo
+
+end:
+
+bc GetProcAddressorg
+
+ret
+
+special:
+
+log "新版本,脚本不支持"
+
+ret
+
+err:
+
+msg "error"
+
+ret
+```
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
