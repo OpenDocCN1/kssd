@@ -1,0 +1,135 @@
+
+```
+  004CE233    68 0A020000               PUSH    20A
+  004CE238    68 03080000               PUSH    803
+  004CE23D    50                        PUSH    EAX
+  004CE23E    A3 40A34C00               MOV     DWORD PTR DS:[4CA340],EAX
+  004CE243    C705 48A34C00 00E04C00    MOV     DWORD PTR DS:[4CA348],hsl2.004CE000     ; ASCII "waveaudio"
+  004CE24D    C705 4CA34C00 10E04C00    MOV     DWORD PTR DS:[4CA34C],hsl2.004CE010     ; ASCII "mp3\track??.mp3"
+  004CE257    FF15 1CB44C00             CALL    DWORD PTR DS:[<&WINMM.mciSendCommandA>] ; WINMM.mciSendCommandA
+  004CE25D    85C0                      TEST    EAX,EAX
+  004CE25F    75 44                     JNZ     SHORT hsl2.004CE2A5
+  004CE261    A1 44A34C00               MOV     EAX,DWORD PTR DS:[4CA344]
+  004CE266    A3 28A64700               MOV     DWORD PTR DS:[47A628],EAX
+  004CE26B    BF 60A34C00               MOV     EDI,hsl2.004CA360
+  004CE270    8B15 04A54C00             MOV     EDX,DWORD PTR DS:[4CA504]
+  004CE276    4A                        DEC     EDX
+  004CE277    C1E2 02                   SHL     EDX,2
+  004CE27A    03FA                      ADD     EDI,EDX
+  004CE27C    8B0F                      MOV     ECX,DWORD PTR DS:[EDI]
+  004CE27E    68 00A54C00               PUSH    hsl2.004CA500                           ; 播放
+  004CE283    6A 0C                     PUSH    0C
+  004CE285    68 06080000               PUSH    806
+  004CE28A    50                        PUSH    EAX
+  004CE28B    890D 08A54C00             MOV     DWORD PTR DS:[4CA508],ECX
+  004CE291    C705 04A54C00 00000000    MOV     DWORD PTR DS:[4CA504],0
+  004CE29B    FF15 1CB44C00             CALL    DWORD PTR DS:[<&WINMM.mciSendCommandA>] ; WINMM.mciSendCommandA
+  004CE2A1    85C0                      TEST    EAX,EAX
+  004CE2A3    75 00                     JNZ     SHORT hsl2.004CE2A5
+  004CE2A5    61                        POPAD
+  004CE2A6    C3                        RETN
+```
+
+把原来`458C49`处调用函数的上面改成:
+
+```
+  00458C1C    C705 00A54C00 00000000    MOV     DWORD PTR DS:[4CA500],0                 ; lpPlay
+  00458C26    8935 04A54C00             MOV     DWORD PTR DS:[4CA504],ESI               ; 播放开始位置
+  00458C2C    A3 08A54C00               MOV     DWORD PTR DS:[4CA508],EAX               ; 播放结束位置
+  00458C31    B9 0C000000               MOV     ECX,0C                                  ; MCI_TO | MCI_FROM
+  00458C36    7E 05                     JLE     SHORT hsl2.00458C3D
+  00458C38    B9 04000000               MOV     ECX,4
+  00458C3D    E8 BE550700               CALL    hsl2.004CE200
+  00458C42    EB 0F                     JMP     SHORT hsl2.00458C53
+  00458C44    90                        NOP
+  00458C45    90                        NOP
+  00458C46    90                        NOP
+  00458C47    90                        NOP
+  00458C48    52                        PUSH    EDX
+  00458C49    FF15 1CB44C00             CALL    DWORD PTR DS:[<&WINMM.mciSendCommandA>] ; WINMM.mciSendCommandA
+  00458C4F    85C0                      TEST    EAX,EAX
+  00458C51    75 16                     JNZ     SHORT hsl2.00458C69
+  00458C53    56                        PUSH    ESI
+  00458C54    C705 5C534C00 01000000    MOV     DWORD PTR DS:[4C535C],1
+```
+
+利用新的播放函数取代原来的函数,原来`4CA504`处存放的是要播放的音轨号,现在可以需要把音轨号码更改为对应的文件路径.并取得对应文件长度,放在`4CA504`和`4CA508`处.
+
+改完之后,取出光盘,程序就可以运行了.并且音乐也正常播放.
+
+但是运行时有一点不好,就是一开始初始化时,由于要取得所有MP3的文件长度,需要反复打开和关闭文件,需要的时间比较长,并且由于还没有进行窗口的初始化,所以窗口都没有显示出来,给人感觉好像程序没有运行一样.
+
+由于文件长度只是在播放时需要用到,所以想到在初始化时不取文件长度,在播放时一起做这个工作,这样程序启动时间会缩短.
+
+根据这个思路,把`458E90`处更改为:
+
+```
+  00458E90    60                        PUSHAD
+  00458E91    E8 AAFFFFFF               CALL    hsl2.00458E40
+  00458E96    8B1D 1CB44C00             MOV     EBX,DWORD PTR DS:[<&WINMM.mciSendComman>; WINMM.mciSendCommandA
+  00458E9C    B9 64000000               MOV     ECX,64
+  00458EA1    83C8 FF                   OR      EAX,FFFFFFFF
+  00458EA4    BF 60A34C00               MOV     EDI,hsl2.004CA360
+  00458EA9    33F6                      XOR     ESI,ESI
+  00458EAB    F3:AB                     REP     STOS DWORD PTR ES:[EDI]                 ; 初始化成FFFFFFFF
+  00458EAD    B8 00000000               MOV     EAX,0
+  00458EB2    A3 28A64700               MOV     DWORD PTR DS:[47A628],EAX
+  00458EB7    61                        POPAD
+  00458EB8    C3                        RETN
+```
+
+只需要把对应文件长度的地方初始化即可.把`4CE200`处代码更改为:
+
+```
+  004CE200    60                        PUSHAD
+  004CE201    A1 28A64700               MOV     EAX,DWORD PTR DS:[47A628]
+  004CE206    85C0                      TEST    EAX,EAX
+  004CE208    74 19                     JE      SHORT hsl2.004CE223                     ; 关闭已经打开的设备
+  004CE20A    68 D4A14C00               PUSH    hsl2.004CA1D4
+  004CE20F    33F6                      XOR     ESI,ESI
+  004CE211    56                        PUSH    ESI
+  004CE212    68 04080000               PUSH    804
+  004CE217    50                        PUSH    EAX
+  004CE218    FF15 1CB44C00             CALL    DWORD PTR DS:[<&WINMM.mciSendCommandA>] ; WINMM.mciSendCommandA
+  004CE21E    A3 28A64700               MOV     DWORD PTR DS:[47A628],EAX
+  004CE223    8B15 04A54C00             MOV     EDX,DWORD PTR DS:[4CA504]
+  004CE229    E8 F2FDFFFF               CALL    hsl2.004CE020
+  004CE22E    68 40A34C00               PUSH    hsl2.004CA340                           ; 重新打开设备
+  004CE233    68 0A020000               PUSH    20A
+  004CE238    68 03080000               PUSH    803
+  004CE23D    50                        PUSH    EAX
+  004CE23E    A3 40A34C00               MOV     DWORD PTR DS:[4CA340],EAX
+  004CE243    C705 48A34C00 00E04C00    MOV     DWORD PTR DS:[4CA348],hsl2.004CE000     ; ASCII "waveaudio"
+  004CE24D    C705 4CA34C00 10E04C00    MOV     DWORD PTR DS:[4CA34C],hsl2.004CE010     ; ASCII "mp3\track??.mp3"
+  004CE257    FF15 1CB44C00             CALL    DWORD PTR DS:[<&WINMM.mciSendCommandA>] ; WINMM.mciSendCommandA
+  004CE25D    85C0                      TEST    EAX,EAX
+  004CE25F    75 44                     JNZ     SHORT hsl2.004CE2A5
+  004CE261    A1 44A34C00               MOV     EAX,DWORD PTR DS:[4CA344]
+  004CE266    A3 28A64700               MOV     DWORD PTR DS:[47A628],EAX
+  004CE26B    BF 60A34C00               MOV     EDI,hsl2.004CA360
+  004CE270    8B15 04A54C00             MOV     EDX,DWORD PTR DS:[4CA504]
+  004CE276    4A                        DEC     EDX
+  004CE277    C1E2 02                   SHL     EDX,2
+  004CE27A    03FA                      ADD     EDI,EDX
+  004CE27C    8B0F                      MOV     ECX,DWORD PTR DS:[EDI]
+  004CE27E    83F9 FF                   CMP     ECX,-1                                  ; 如果长度是-1,则先获取文件长度
+  004CE281    75 2F                     JNZ     SHORT hsl2.004CE2B2
+  004CE283    68 B0A14C00               PUSH    hsl2.004CA1B0
+  004CE288    68 00010000               PUSH    100
+  004CE28D    68 14080000               PUSH    814
+  004CE292    50                        PUSH    EAX
+  004CE293    33F6                      XOR     ESI,ESI
+  004CE295    8935 B0A14C00             MOV     DWORD PTR DS:[4CA1B0],ESI
+  004CE29B    A3 B8A14C00               MOV     DWORD PTR DS:[4CA1B8],EAX
+  004CE2A0    FF15 1CB44C00             CALL    DWORD PTR DS:[<&WINMM.mciSendCommandA>] ; WINMM.mciSendCommandA
+  004CE2A6    85C0                      TEST    EAX,EAX
+  004CE2A8    75 34                     JNZ     SHORT hsl2.004CE2DE
+  004CE2AA    8B0D B4A14C00             MOV     ECX,DWORD PTR DS:[4CA1B4]
+  004CE2B0    890F                      MOV     DWORD PTR DS:[EDI],ECX
+  004CE2B2    68 00A54C00               PUSH    hsl2.004CA500                           ; 播放
+  004CE2B7    6A 0C                     PUSH    0C
+  004CE2B9    68 06080000               PUSH    806
+  004CE2BE    A1 28A64700               MOV     EAX,DWORD PTR DS:[47A628]
+  004CE2C3    50                        PUSH    EAX
+  004CE2C4    C705 04A54C00 00000000    MOV     DWORD PTR DS:[4CA504],0
+```

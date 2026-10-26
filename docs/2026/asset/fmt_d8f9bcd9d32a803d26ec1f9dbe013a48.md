@@ -1,0 +1,61 @@
+
+## 修改过程
+
+```
+004CE2CE    890D 08A54C00             MOV     DWORD PTR DS:[4CA508],ECX
+004CE2D4    FF15 1CB44C00             CALL    DWORD PTR DS:[<&WINMM.mciSendCommandA>] ; WINMM.mciSendCommandA
+004CE2DA    85C0                      TEST    EAX,EAX
+004CE2DC    75 00                     JNZ     SHORT hsl2.004CE2DE
+004CE2DE    61                        POPAD
+004CE2DF    C3                        RETN
+```
+
+这时再运行程序,发现反而没有声音了,并且`458C00`处的程序段也没有被调用.使用更改前的程序在`458C00`处下断,发现调用是来自`42C820`处的程序段:
+
+```
+0042C820    A1 384B4C00               MOV     EAX,DWORD PTR DS:[4C4B38]
+0042C825    56                        PUSH    ESI
+0042C826    85C0                      TEST    EAX,EAX
+0042C828    74 65                     JE      SHORT hsl2.0042C88F                ;更改之后从这里就跳走了
+0042C82A    A1 408C4700               MOV     EAX,DWORD PTR DS:[478C40]
+0042C82F    85C0                      TEST    EAX,EAX
+0042C831    74 53                     JE      SHORT hsl2.0042C886
+0042C833    8B7424 08                 MOV     ESI,DWORD PTR SS:[ESP+8]
+0042C837    83FE FF                   CMP     ESI,-1
+0042C83A    74 53                     JE      SHORT hsl2.0042C88F
+0042C83C    56                        PUSH    ESI
+0042C83D    E8 BEC30200               CALL    hsl2.00458C00                     ;在这里调用播放音乐的程序段
+0042C842    83C4 04                   ADD     ESP,4
+0042C845    83F8 FF                   CMP     EAX,-1
+0042C848    A3 184B4C00               MOV     DWORD PTR DS:[4C4B18],EAX
+0042C84D    75 1B                     JNZ     SHORT hsl2.0042C86A
+0042C84F    6A 2A                     PUSH    2A
+0042C851    C705 384B4C00 00000000    MOV     DWORD PTR DS:[4C4B38],0
+0042C85B    A3 2C8C4700               MOV     DWORD PTR DS:[478C2C],EAX
+0042C860    E8 44340300               CALL    hsl2.0045FCA9
+0042C865    83C4 04                   ADD     ESP,4
+0042C868    5E                        POP     ESI
+0042C869    C3                        RETN
+```
+
+更改之后从`42C828`处就跳走了,不再执行播放音乐的程序段,把跳走的指令直接`NOP`掉,就可以了.
+
+顺便说一下,这个程序是用`FindWindow`函数来使程序只有一个实例运行,调试时有进需要两个同时运行进行对比,把调用这个函数之后的跳转指令修改就可以了.
+
+--------------------------------------------------------------------------------
+
+### 【经验总结】
+
+第一次真正自己修改一个程序,虽然现在回想起来还是不算困难的,但是中间动手做的过程确实费了很大周折.从中学到了不少东西,也找到了不少乐趣.
+
+与所有学习加密解密,软件调试的人共勉!
+
+--------------------------------------------------------------------------------
+
+### 【版权声明】
+
+本文原创于看雪技术论坛, 转载请注明作者并保持文章的完整, 谢谢!
+
+2008年10月26日 上午 12:42:31
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
