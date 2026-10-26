@@ -1,0 +1,187 @@
+
+```
+0040C1B3     BA 7D454000          mov edx,试炼ACP.0040457D
+0040C1B8     E8 39CCFFFF          call 试炼ACP.00408DF6
+0040C1BD     83BD F1204000 00     cmp dword ptr ss:[ebp+4020F1],0
+                                  ====>[ebp+4020F1]应＝0
+0040C1C4     74 24                je short 试炼ACP.0040C1EA
+   …… …… 省 略 …… ……
+0040C396     B8 9D444000          mov eax,试炼ACP.0040449D
+0040C39B     BA E9444000          mov edx,试炼ACP.004044E9
+0040C3A0     E8 51CAFFFF          call 试炼ACP.00408DF6
+0040C3A5     B8 A9444000          mov eax,试炼ACP.004044A9
+0040C3AA     BA ED444000          mov edx,试炼ACP.004044ED
+0040C3AF     E8 42CAFFFF          call 试炼ACP.00408DF6
+0040C3B4     B8 B8444000          mov eax,试炼ACP.004044B8
+0040C3B9     BA F1444000          mov edx,试炼ACP.004044F1
+0040C3BE     E8 33CAFFFF          call 试炼ACP.00408DF6
+0040C3C3     B8 C6444000          mov eax,试炼ACP.004044C6
+0040C3C8     BA F5444000          mov edx,试炼ACP.004044F5
+0040C3CD     E8 24CAFFFF          call 试炼ACP.00408DF6
+0040C3D2     C3                   retn
+```
+
+^O^ ^O^ →对付方法：可下断如 `BP GetProcAddress+1` 避开第1字节的检测！
+
+――――――――――――――――――――――――
+
+### 3、调用 `IsDebuggerPresent` 检测使用 Debug API 跟踪程序的调试器
+
+```
+0040B88B     FF95 29454000        call dword ptr ss:[ebp+404529]
+0040B891     0BC0                 or eax,eax
+0040B893     0F84 B4000000        je 试炼ACP.0040B94D
+77E52E92     64:A1 18000000       mov eax,dword ptr fs:[18]
+77E52E98     8B40 30              mov eax,dword ptr ds:[eax+30]
+77E52E9B     0FB640 02            movzx eax,byte ptr ds:[eax+2]
+                                  ====>或者把这里的返回值改为：0
+77E52E9F     C3                   retn
+```
+
+^O^ ^O^ →对付方法：最方便的直接用Ollydbg的IsDebug插件 去掉调试器标志 即可。
+
+――――――――――――――――――――――――
+
+### 4、黑名单
+
+```
+0040A100     FF95 01454000        call dword ptr ss:[ebp+404501] ; kernel32.Process32First
+   …… …… 省 略 …… ……
+0040A14D     47                   inc edi
+0040A14E     8BF0                 mov esi,eax
+0040A150     E8 01F1FFFF          call 试炼ACP.00409256
+                                  ====>里面逐位比较是否有黑名单中的成员：0040928E cmp dh,dl
+0040A155     80FE 01              cmp dh,1
+0040A158     74 1C                je short 试炼ACP.0040A176
+0040A15A     90                   nop
+0040A15B     90                   nop
+0040A15C     90                   nop
+0040A15D     90                   nop
+0040A15E     EB D7                jmp short 试炼ACP.0040A137
+0040A160     B8 3D424000          mov eax,试炼ACP.0040423D
+0040A165     03C5                 add eax,ebp
+0040A167     50                   push eax
+0040A168     FFB5 39424000        push dword ptr ss:[ebp+404239]
+0040A16E     FF95 05454000        call dword ptr ss:[ebp+404505] ; kernel32.Process32Next
+0040A174     EB 90                jmp short 试炼ACP.0040A106
+                                  ====>循环取进程名
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+黑名单：  作者想的很“周全”，还有没有“漏网之鱼”？ :-)
+
+```
+004092A1  45 58 45 53 50 59 00 57 58 52 39 35 00 52 45 47  EXESPY.WXR95.REG
+004092B1  4D 4F 4E 00 46 49 4C 45 20 4D 4F 4E 49 54 4F 52  MON.FILE MONITOR
+004092C1  00 52 45 47 4D 4F 4E 45 58 00 57 49 4E 44 4F 57  .REGMONEX.WINDOW
+004092D1  20 44 45 54 45 43 54 49 56 45 00 44 45 42 55 47   DETECTIVE.DEBUG
+004092E1  56 49 45 57 00 52 45 53 53 50 59 00 41 44 56 41  VIEW.RESSPY.ADVA
+004092F1  4E 43 45 44 20 52 45 47 49 53 54 52 59 20 54 52  NCED REGISTRY TR
+00409301  41 43 45 52 00 52 45 47 53 4E 41 50 00 4D 45 4D  ACER.REGSNAP.MEM
+00409311  53 50 59 00 4D 45 4D 4F 52 59 20 44 4F 43 54 4F  SPY.MEMORY DOCTO
+00409321  52 00 50 52 4F 43 44 55 4D 50 33 32 00 4D 45 4D  R.PROCDUMP32.MEM
+00409331  4F 52 59 20 45 44 49 54 4F 52 00 46 52 4F 47 53  ORY EDITOR.FROGS
+00409341  49 43 45 00 53 4D 55 20 57 49 4E 53 50 45 43 54  ICE.SMU WINSPECT
+00409351  4F 52 00 4D 45 4D 4F 52 59 20 44 55 4D 50 45 52  OR.MEMORY DUMPER
+00409361  00 4D 45 4D 4F 52 59 4D 4F 4E 49 54 4F 52 00 4E  .MEMORYMONITOR.N
+00409371  55 4D 45 47 41 20 53 4F 46 54 49 43 45 20 4C 4F  UMEGA SOFTICE LO
+00409381  41 44 45 52 00 55 52 53 4F 46 54 20 57 33 32 44  ADER.URSOFT W32D
+00409391  41 53 4D 00 2D 3D 43 48 49 4E 41 20 43 52 41 43  ASM.-=CHINA CRAC
+004093A1  4B 49 4E 47 20 47 52 4F 55 50 3D 2D 00 4F 6C 6C  KING GROUP=-.Oll
+004093B1  79 44 62 67 00 54 52 57 32 30 30 30 00 4F 4C 4C  yDbg.TRW2000.OLL
+004093C1  59 44 42 47 00 00 00 00 00 00 00 00 00 00 00 00  YDBG............
+```
+
+☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆
+
+^O^ ^O^ →对付方法：修改跳转、改掉黑名单 或者 用偶修改的Ollydbg来跟踪。
+
+――――――――――――――――――――――――
+
+### 5、检查加壳程序的父进程名
+
+现在偶觉得ACProtect的反跟踪算是比较“温柔”的了，只是用`TerminateProcess`悄悄关掉你，而不是让人心悸的蓝屏死机！感谢作者 :-)  唯独这个“检查加壳程序的父进程名”比较别出心裁，可以让一般修改版的Ollydbg难逃此劫！
+
+```
+004097B9     FF95 01454000        call dword ptr ss:[ebp+404501] ; kernel32.Process32First
+004097BF     E9 AD000000          jmp 试炼ACP.00409871
+00409871     0BC0                 or eax,eax
+00409873     0F84 A7050000        je 试炼ACP.00409E20
+00409879     8B95 45424000        mov edx,dword ptr ss:[ebp+404245]
+0040987F     3B95 31424000        cmp edx,dword ptr ss:[ebp+404231]
+                                  ====>比较自身程序的进程ID，然后取其父进程ID
+   …… …… 省 略 …… ……
+00409CE7     8DB5 61424000        lea esi,dword ptr ss:[ebp+404261]
+00409CED     E8 E7F0FFFF          call 试炼ACP.00408DD9
+                                  ====>把自身进程的父进程名转为大写字母
+00409CF2     803E 00              cmp byte ptr ds:[esi],0
+00409CF5     74 07                je short 试炼ACP.00409CFE
+00409D35     5E                   pop esi
+00409D36     8BFE                 mov edi,esi
+00409D38     83EF 07              sub edi,7
+00409D3B     813F 434D442E        cmp dword ptr ds:[edi],2E444D43
+                                  ====>①、比较EXE前是否是CMD.
+00409D41     0F84 D9000000        je 试炼ACP.00409E20
+                                  ====>可以强迫跳转
+00409D47     83EE 0C              sub esi, 0C
+00409D4A     AD                   lods dword ptr ds:[esi]
+00409D4B     0306                 add eax, dword ptr ds:[esi]
+00409D4D     0346 04              add eax, dword ptr ds:[esi+4]
+00409D50     8BD8                 mov ebx, eax
+00409D52     8DB5 AF554000        lea esi, dword ptr ss:[ebp+4055AF]
+00409D58     AD                   lods dword ptr ds:[esi]
+00409D59     0BC0                 or eax, eax
+00409D5B     74 0E                je short 试炼ACP.00409D6B
+00409D5D     90                   nop
+00409D5E     90                   nop
+00409D5F     90                   nop
+00409D60     90                   nop
+00409D61     2BC3                 sub eax, ebx
+                                  ====>②、这里EAX必须=0
+00409D63     0F84 B7000000        je 试炼ACP.00409E20
+                                  ====>不跳就要被KILL啦！  :-(
+00409D69     EB ED                jmp short 试炼ACP.00409D58
+00409E1A     FF95 11454000        call dword ptr ss:[ebp+404511] ; kernel32.TerminateProcess
+                                  ====>呵呵，很小心的关掉你！让你休息休息   :-)
+```
+
+^O^ ^O^ →对付方法：改掉上面的跳转避开被杀。或者用偶修改的Ollydbg来跟踪。
+
+如果不是 jingulong 兄的指教，偶现在可能还没找到这个地方，也就没有这篇笔记。 再次感谢！
+
+―――――――――――――――――――――――――――――――――
+
+## 二、脱壳实例
+
+OK，用偶修改的Ollydbg来脱壳。隐藏Ollydbg、设置不忽略所有异常。
+
+```
+0040B08E     CD 01                int 1
+                                  ====>第1次异常
+0040B090     40                   inc eax
+0040B091     40                   inc eax
+0040B092     0BC0                 or eax,eax
+0040B094     0F85 B6000000        jnz 试炼ACP.0040B150
+0040B394     CC                   int3
+                                  ====>第2次异常
+0040B395     90                   nop
+0040B396     64:67:8F06 0000      pop dword ptr fs:[0]
+0040B39C     83C4 04              add esp,4
+0040B39F     60                   pushad
+0040B3A0     E8 00000000          call 试炼ACP.0040B3A5
+```
+
+――――――――――――――――――――――――
+
+下断：`BP GetProcAddress+1`   然后CTRL+F9走，因为偶用的是未注册的ACProtect加壳，所以一直CTRL+F9走直至弹出 “Protected by Unregistered ACProtect!”的提示停下！
+
+留意看看堆栈的函数名，或许对以后脱这种壳的其他程序有参考价值。
+
+```
+77E5A5FD     55                   push ebp
+77E5A5FE     8BEC                 mov ebp,esp
+                                  ====>断在这里       GetProcAddress+1
+   …… …… 省 略 …… ……
+77D3AADF     FF15 E412D177        call dword ptr ds:[<&KERNEL32.HeapFree>]
+```
