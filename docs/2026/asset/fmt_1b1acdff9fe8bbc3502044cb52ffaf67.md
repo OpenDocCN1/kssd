@@ -1,0 +1,292 @@
+
+```
+00488B9C  |.  8B45 F8       mov eax,dword ptr ss:[ebp-8]
+
+00488B9F  |.  E8 F8B2F7FF   call dumped.00403E9C
+
+00488BA4  |.  8BF0          mov esi,eax
+
+00488BA6  |.  85F6          test esi,esi
+
+00488BA8  |.  7E 1B         jle short dumped.00488BC5
+
+00488BAA  |.  BB 01000000   mov ebx,1
+
+00488BAF  |.  B8 3C635600   mov eax,dumped.0056633C
+
+00488BB4  |>  8B55 F8       /mov edx,dword ptr ss:[ebp-8]
+
+00488BB7  |.  0FB6541A FF   |movzx edx,byte ptr ds:[edx+ebx-1]
+
+00488BBC  |.  8910          |mov dword ptr ds:[eax],edx
+
+00488BBE  |.  43            |inc ebx
+
+00488BBF  |.  83C0 04       |add eax,4
+
+00488BC2  |.  4E            |dec esi
+
+00488BC3  |.^ 75 EF         \jnz short dumped.00488BB4
+
+00488BC5  |>  8B45 F8       mov eax,dword ptr ss:[ebp-8]
+
+00488BC8  |.  E8 CFB2F7FF   call dumped.00403E9C
+
+00488BCD  |.  A3 C4655600   mov dword ptr ds:[5665C4],eax
+
+00488BD2  |.  8B35 C4655600 mov esi,dword ptr ds:[5665C4]
+
+00488BD8  |.  85F6          test esi,esi
+
+00488BDA  |.  7E 25         jle short dumped.00488C01
+
+00488BDC  |.  BB 01000000   mov ebx,1
+
+00488BE1  |.  B9 7C645600   mov ecx,dumped.0056647C
+
+00488BE6  |>  8B45 F8       /mov eax,dword ptr ss:[ebp-8]
+
+00488BE9  |.  0FB64418 FF   |movzx eax,byte ptr ds:[eax+ebx-1]
+
+00488BEE  |.  BF 0A000000   |mov edi,0A
+
+00488BF3  |.  33D2          |xor edx,edx
+
+00488BF5  |.  F7F7          |div edi
+
+00488BF7  |.  42            |inc edx
+
+00488BF8  |.  8911          |mov dword ptr ds:[ecx],edx
+
+00488BFA  |.  43            |inc ebx
+
+00488BFB  |.  83C1 04       |add ecx,4
+
+00488BFE  |.  4E            |dec esi
+
+00488BFF  |.^ 75 E5         \jnz short dumped.00488BE6
+
+00488C01  |>  C745 F4 01000>mov dword ptr ss:[ebp-C],1
+
+00488C08  |>  8B35 C4655600 /mov esi,dword ptr ds:[5665C4]
+
+00488C0E  |.  85F6          |test esi,esi
+
+00488C10  |.  0F8E 09030000 |jle dumped.00488F1F
+
+00488C16  |.  BB 01000000   |mov ebx,1
+
+00488C1B  |.  BF 3C635600   |mov edi,dumped.0056633C
+
+00488C20  |.  C745 EC 7C645>|mov dword ptr ss:[ebp-14],dumped.0056647C
+
+00488C27  |>  8B45 F4       |/mov eax,dword ptr ss:[ebp-C]
+
+00488C2A  |.  83F8 0A       ||cmp eax,0A                                  ;  Switch (cases 1..A)
+
+00488C2D  |.  0F87 DD020000 ||ja dumped.00488F10
+
+00488C33  |.  FF2485 3A8C48>||jmp dword ptr ds:[eax\*4+488C3A]
+
+00488C3A  |.  108F4800      ||dd dumped.00488F10                          ;  Switch table used at 00488C33
+
+00488C3E  |.  668C4800      ||dd dumped.00488C66
+
+00488C42  |.  A68C4800      ||dd dumped.00488CA6
+
+00488C46  |.  F08C4800      ||dd dumped.00488CF0
+
+00488C4A  |.  308D4800      ||dd dumped.00488D30
+
+00488C4E  |.  7A8D4800      ||dd dumped.00488D7A
+
+00488C52  |.  BA8D4800      ||dd dumped.00488DBA
+
+00488C56  |.  048E4800      ||dd dumped.00488E04
+
+00488C5A  |.  448E4800      ||dd dumped.00488E44
+
+00488C5E  |.  8E8E4800      ||dd dumped.00488E8E
+
+00488C62  |.  CB8E4800      ||dd dumped.00488ECB
+
+00488C66  |>  8B07          ||mov eax,dword ptr ds:[edi]                  ;  Case 1 of switch 00488C2A
+
+00488C68  |.  F7E8          ||imul eax
+
+00488C6A  |.  8BC8          ||mov ecx,eax
+
+00488C6C  |.  8B45 EC       ||mov eax,dword ptr ss:[ebp-14]
+
+00488C6F  |.  8B00          ||mov eax,dword ptr ds:[eax]
+
+00488C71  |.  F7E8          ||imul eax
+
+00488C73  |.  F72D C0655600 ||imul dword ptr ds:[5665C0]                  ;  固定值8
+
+00488C79  |.  03C8          ||add ecx,eax
+
+00488C7B  |.  894D E4       ||mov dword ptr ss:[ebp-1C],ecx
+
+00488C7E  |.  DB45 E4       ||fild dword ptr ss:[ebp-1C]
+
+00488C81  |.  D9FA          ||fsqrt
+
+00488C83  |.  E8 489EF7FF   ||call dumped.00402AD0                        ;  sqrt(31\*31+A\*A\*8)
+
+00488C88  |.  8B55 F4       ||mov edx,dword ptr ss:[ebp-C]
+
+00488C8B  |.  C1E2 02       ||shl edx,2
+
+00488C8E  |.  8D1492        ||lea edx,dword ptr ds:[edx+edx\*4]
+
+00488C91  |.  8B0D BC655600 ||mov ecx,dword ptr ds:[5665BC]
+
+00488C97  |.  8D14D1        ||lea edx,dword ptr ds:[ecx+edx\*8]
+
+00488C9A  |.  89849A 5CFFFF>||mov dword ptr ds:[edx+ebx\*4-A4],eax
+
+00488CA1  |.  E9 6A020000   ||jmp dumped.00488F10
+
+00488CA6  |>  8B07          ||mov eax,dword ptr ds:[edi]                  ;  Case 2 of switch 00488C2A
+
+00488CA8  |.  F7E8          ||imul eax
+
+00488CAA  |.  8BC8          ||mov ecx,eax
+
+00488CAC  |.  8B45 EC       ||mov eax,dword ptr ss:[ebp-14]
+
+00488CAF  |.  8B00          ||mov eax,dword ptr ds:[eax]
+
+00488CB1  |.  F7E8          ||imul eax
+
+00488CB3  |.  F72D C0655600 ||imul dword ptr ds:[5665C0]
+
+00488CB9  |.  51            ||push ecx
+
+00488CBA  |.  B9 05000000   ||mov ecx,5
+
+00488CBF  |.  99            ||cdq
+
+00488CC0  |.  F7F9          ||idiv ecx
+
+00488CC2  |.  59            ||pop ecx
+
+00488CC3  |.  2BC8          ||sub ecx,eax
+
+00488CC5  |.  894D E4       ||mov dword ptr ss:[ebp-1C],ecx
+
+00488CC8  |.  DB45 E4       ||fild dword ptr ss:[ebp-1C]
+
+00488CCB  |.  D9FA          ||fsqrt
+
+00488CCD  |.  E8 FE9DF7FF   ||call dumped.00402AD0                        ;  sqrt(31\*31-A\*A\*8\5)
+
+00488CD2  |.  8B55 F4       ||mov edx,dword ptr ss:[ebp-C]
+
+00488CD5  |.  C1E2 02       ||shl edx,2
+
+00488CD8  |.  8D1492        ||lea edx,dword ptr ds:[edx+edx\*4]
+
+00488CDB  |.  8B0D BC655600 ||mov ecx,dword ptr ds:[5665BC]
+
+00488CE1  |.  8D14D1        ||lea edx,dword ptr ds:[ecx+edx\*8]
+
+00488CE4  |.  89849A 5CFFFF>||mov dword ptr ds:[edx+ebx\*4-A4],eax
+
+00488CEB  |.  E9 20020000   ||jmp dumped.00488F10
+
+00488CF0  |>  8B07          ||mov eax,dword ptr ds:[edi]                  ;  Case 3 of switch 00488C2A
+
+00488CF2  |.  F7E8          ||imul eax
+
+00488CF4  |.  8BC8          ||mov ecx,eax
+
+00488CF6  |.  8B45 EC       ||mov eax,dword ptr ss:[ebp-14]
+
+00488CF9  |.  8B00          ||mov eax,dword ptr ds:[eax]
+
+00488CFB  |.  F7E8          ||imul eax
+
+00488CFD  |.  F72D C0655600 ||imul dword ptr ds:[5665C0]
+
+00488D03  |.  03C8          ||add ecx,eax
+
+00488D05  |.  894D E4       ||mov dword ptr ss:[ebp-1C],ecx
+
+00488D08  |.  DB45 E4       ||fild dword ptr ss:[ebp-1C]
+
+00488D0B  |.  D9FA          ||fsqrt
+
+00488D0D  |.  E8 BE9DF7FF   ||call dumped.00402AD0                        ;  sqrt(31\*31+A\*A\*8)
+
+00488D12  |.  8B55 F4       ||mov edx,dword ptr ss:[ebp-C]
+
+00488D15  |.  C1E2 02       ||shl edx,2
+
+00488D18  |.  8D1492        ||lea edx,dword ptr ds:[edx+edx\*4]
+
+00488D1B  |.  8B0D BC655600 ||mov ecx,dword ptr ds:[5665BC]
+
+00488D21  |.  8D14D1        ||lea edx,dword ptr ds:[ecx+edx\*8]
+
+00488D24  |.  89849A 5CFFFF>||mov dword ptr ds:[edx+ebx\*4-A4],eax
+
+00488D2B  |.  E9 E0010000   ||jmp dumped.00488F10
+
+00488D30  |>  8B07          ||mov eax,dword ptr ds:[edi]                  ;  Case 4 of switch 00488C2A
+
+00488D32  |.  F7E8          ||imul eax
+
+00488D34  |.  8BC8          ||mov ecx,eax
+
+00488D36  |.  8B45 EC       ||mov eax,dword ptr ss:[ebp-14]
+
+00488D39  |.  8B00          ||mov eax,dword ptr ds:[eax]
+
+00488D3B  |.  F7E8          ||imul eax
+
+00488D3D  |.  F72D C0655600 ||imul dword ptr ds:[5665C0]
+
+00488D43  |.  51            ||push ecx
+
+00488D44  |.  B9 05000000   ||mov ecx,5
+
+00488D49  |.  99            ||cdq
+
+00488D4A  |.  F7F9          ||idiv ecx
+
+00488D4C  |.  59            ||pop ecx
+
+00488D4D  |.  2BC8          ||sub ecx,eax
+
+00488D4F  |.  894D E4       ||mov dword ptr ss:[ebp-1C],ecx
+
+00488D52  |.  DB45 E4       ||fild dword ptr ss:[ebp-1C]
+
+00488D55  |.  D9FA          ||fsqrt
+
+00488D57  |.  E8 749DF7FF   ||call dumped.00402AD0                        ;  sqrt(31\*31-A\*A\*8\5)
+
+00488D5C  |.  8B55 F4       ||mov edx,dword ptr ss:[ebp-C]
+
+00488D5F  |.  C1E2 02       ||shl edx,2
+
+00488D62  |.  8D1492        ||lea edx,dword ptr ds:[edx+edx\*4]
+
+00488D65  |.  8B0D BC655600 ||mov ecx,dword ptr ds:[5665BC]
+
+00488D6B  |.  8D14D1        ||lea edx,dword ptr ds:[ecx+edx\*8]
+
+00488D6E  |.  89849A 5CFFFF>||mov dword ptr ds:[edx+ebx\*4-A4],eax
+
+00488D75  |.  E9 96010000   ||jmp dumped.00488F10
+
+00488D7A  |>  8B07          ||mov eax,dword ptr ds:[edi]                  ;  Case 5 of switch 00488C2A
+
+00488D7C  |.  F7E8          ||imul eax
+
+00488D7E  |.  8BC8          ||mov ecx,eax
+
+00488D80  |.  8B45 EC       ||mov eax,dword ptr ss:[ebp-14]
+```
