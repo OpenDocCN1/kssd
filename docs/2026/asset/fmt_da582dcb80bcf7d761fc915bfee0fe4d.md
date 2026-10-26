@@ -1,0 +1,150 @@
+
+```
+008CE55A   |.  8B4D F4        |mov ecx,[local.3]                       ;  ecx=1
+008CE55D   |.  8A540A FF      |mov dl,byte ptr ds:[edx+ecx-1]          ;  dl='V'
+008CE561   |.  E8 3E6FB3FF    |call x.004054A4                         ;  转存字符
+008CE566   |.  8B45 CC        |mov eax,[local.13]                      ;  eax='V'
+008CE569   |.  8B55 E4        |mov edx,[local.7]                       ;  edx="XYE9APQBdzestu34py5eJKZaLkv1F67GHghuwfjxnlmMNORSUVWboqrTCct28D"
+008CE56C   |.  E8 7B73B3FF    |call x.004058EC                         ;  计算eax中字符在edx字符串中的位置序号call
+008CE571   |.  8BD0           |mov edx,eax                             ;  edx=32
+008CE573   |.  B9 01000000    |mov ecx,1                               ;  ecx=1
+008CE578   |.  8B45 E8        |mov eax,[local.6]                       ;  eax="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+008CE57B   |.  E8 8872B3FF    |call x.00405808                         ;  取eax字符串中位置为edx-ecx处的字符call
+008CE580   |.  8B55 D0        |mov edx,[local.12]                      ;  取得的新字符
+008CE583   |.  8D45 EC        |lea eax,[local.5]                       ;  存放新字符，最终组成新字符串
+008CE586   |.  E8 2570B3FF    |call x.004055B0
+008CE58B   |.  FF45 F4        |inc [local.3]
+008CE58E   |.  FF4D DC        |dec [local.9]
+008CE591   |.^ 75 BD          \jnz short x.008CE550
+008CE593   |>  8D45 C8        lea eax,[local.14]
+008CE596   |.  50             push eax
+008CE597   |.  B9 01000000    mov ecx,1
+008CE59C   |.  BA 10000000    mov edx,10
+008CE5A1   |.  8B45 EC        mov eax,[local.5]                        ;  eax="nh6k1mntKi5OnM1zLli4L2" 生成的字符串
+008CE5A4   |.  E8 5F72B3FF    call x.00405808                          ;  取子串call
+008CE5A9   |.  FF75 C8        push [local.14]                          ;  "z"
+008CE5AC   |.  8D45 C4        lea eax,[local.15]
+008CE5AF   |.  50             push eax
+008CE5B0   |.  8B45 EC        mov eax,[local.5]
+008CE5B3   |.  E8 F06FB3FF    call x.004055A8                          ;  计算长度call
+008CE5B8   |.  8BC8           mov ecx,eax
+008CE5BA   |.  83E9 12        sub ecx,12
+008CE5BD   |.  BA 13000000    mov edx,13
+008CE5C2   |.  8B45 EC        mov eax,[local.5]
+008CE5C5   |.  E8 3E72B3FF    call x.00405808
+008CE5CA   |.  FF75 C4        push [local.15]                          ;  "i4L2"
+008CE5CD   |.  8D45 C0        lea eax,[local.16]
+008CE5D0   |.  50             push eax
+008CE5D1   |.  B9 05000000    mov ecx,5
+008CE5D6   |.  BA 01000000    mov edx,1
+008CE5DB   |.  8B45 EC        mov eax,[local.5]
+008CE5DE   |.  E8 2572B3FF    call x.00405808
+008CE5E3   |.  FF75 C0        push [local.16]                          ;  "nh6k1"
+008CE5E6   |.  8D45 BC        lea eax,[local.17]
+008CE5E9   |.  50             push eax
+008CE5EA   |.  B9 01000000    mov ecx,1
+008CE5EF   |.  BA 10000000    mov edx,10
+008CE5F4   |.  8B45 EC        mov eax,[local.5]
+008CE5F7   |.  E8 0C72B3FF    call x.00405808
+008CE5FC   |.  FF75 BC        push [local.17]                          ;  "z"
+008CE5FF   |.  8D45 B8        lea eax,[local.18]
+008CE602   |.  50             push eax
+008CE603   |.  B9 05000000    mov ecx,5
+008CE608   |.  BA 06000000    mov edx,6
+008CE60D   |.  8B45 EC        mov eax,[local.5]
+008CE610   |.  E8 F371B3FF    call x.00405808
+008CE615   |.  FF75 B8        push [local.18]                          ;  "mntKi"
+008CE618   |.  8D45 B4        lea eax,[local.19]
+008CE61B   |.  50             push eax
+008CE61C   |.  B9 01000000    mov ecx,1
+008CE621   |.  BA 11000000    mov edx,11
+008CE626   |.  8B45 EC        mov eax,[local.5]
+008CE629   |.  E8 DA71B3FF    call x.00405808
+008CE62E   |.  FF75 B4        push [local.19]                          ;  "L"
+008CE631   |.  8D45 B0        lea eax,[local.20]
+008CE634   |.  50             push eax
+008CE635   |.  8B45 EC        mov eax,[local.5]
+008CE638   |.  E8 6B6FB3FF    call x.004055A8
+008CE63D   |.  8BC8           mov ecx,eax
+008CE63F   |.  83E9 12        sub ecx,12
+008CE642   |.  BA 13000000    mov edx,13
+008CE647   |.  8B45 EC        mov eax,[local.5]
+008CE64A   |.  E8 B971B3FF    call x.00405808
+008CE64F   |.  FF75 B0        push [local.20]                          ;  "i4L2"
+008CE652   |.  8D45 AC        lea eax,[local.21]
+008CE655   |.  50             push eax
+008CE656   |.  B9 05000000    mov ecx,5
+008CE65B   |.  BA 0B000000    mov edx,0B
+008CE660   |.  8B45 EC        mov eax,[local.5]
+008CE663   |.  E8 A071B3FF    call x.00405808
+008CE668   |.  FF75 AC        push [local.21]                          ;  "5OnM1"
+008CE66B   |.  8D45 A8        lea eax,[local.22]
+008CE66E   |.  50             push eax
+008CE66F   |.  B9 01000000    mov ecx,1
+008CE674   |.  BA 11000000    mov edx,11
+008CE679   |.  8B45 EC        mov eax,[local.5]
+008CE67C   |.  E8 8771B3FF    call x.00405808
+008CE681   |.  FF75 A8        push [local.22]                          ;  "L"
+008CE684   |.  8D45 A4        lea eax,[local.23]
+008CE687   |.  50             push eax
+008CE688   |.  B9 05000000    mov ecx,5
+008CE68D   |.  BA 06000000    mov edx,6
+008CE692   |.  8B45 EC        mov eax,[local.5]
+008CE695   |.  E8 6E71B3FF    call x.00405808
+008CE69A   |.  FF75 A4        push [local.23]                          ;  "mntKi"
+008CE69D   |.  8D45 A0        lea eax,[local.24]
+008CE6A0   |.  50             push eax
+008CE6A1   |.  B9 05000000    mov ecx,5
+008CE6A6   |.  BA 06000000    mov edx,6
+008CE6AB   |.  8B45 EC        mov eax,[local.5]
+008CE6AE   |.  E8 5571B3FF    call x.00405808
+008CE6B3   |.  FF75 A0        push [local.24]                          ;  "mntKi"
+008CE6B6   |.  8D45 9C        lea eax,[local.25]
+008CE6B9   |.  50             push eax
+008CE6BA   |.  B9 01000000    mov ecx,1
+008CE6BF   |.  BA 11000000    mov edx,11
+008CE6C4   |.  8B45 EC        mov eax,[local.5]
+008CE6C7   |.  E8 3C71B3FF    call x.00405808
+008CE6CC   |.  FF75 9C        push [local.25]                          ;  "L"
+008CE6CF   |.  8D45 98        lea eax,[local.26]
+008CE6D2   |.  50             push eax
+008CE6D3   |.  8B45 EC        mov eax,[local.5]
+008CE6D6   |.  E8 CD6EB3FF    call x.004055A8
+008CE6DB   |.  8BC8           mov ecx,eax
+008CE6DD   |.  83E9 12        sub ecx,12
+008CE6E0   |.  BA 13000000    mov edx,13
+008CE6E5   |.  8B45 EC        mov eax,[local.5]
+008CE6E8   |.  E8 1B71B3FF    call x.00405808
+008CE6ED   |.  FF75 98        push [local.26]                          ;  "i4L2"
+008CE6F0   |.  8D45 94        lea eax,[local.27]
+008CE6F3   |.  50             push eax
+008CE6F4   |.  B9 05000000    mov ecx,5
+008CE6F9   |.  BA 0B000000    mov edx,0B
+008CE6FE   |.  8B45 EC        mov eax,[local.5]
+008CE701   |.  E8 0271B3FF    call x.00405808
+008CE706   |.  FF75 94        push [local.27]                          ;  "5OnM1"
+008CE709   |.  8D45 90        lea eax,[local.28]
+008CE70C   |.  50             push eax
+008CE70D   |.  B9 01000000    mov ecx,1
+008CE712   |.  BA 11000000    mov edx,11
+008CE717   |.  8B45 EC        mov eax,[local.5]
+008CE71A   |.  E8 E970B3FF    call x.00405808
+008CE71F   |.  FF75 90        push [local.28]                          ;  "L"
+008CE722   |.  8D45 8C        lea eax,[local.29]
+008CE725   |.  50             push eax
+008CE726   |.  B9 05000000    mov ecx,5
+008CE72B   |.  BA 06000000    mov edx,6
+008CE730   |.  8B45 EC        mov eax,[local.5]
+008CE733   |.  E8 D070B3FF    call x.00405808
+008CE738   |.  FF75 8C        push [local.29]                          ;  "mntKi"
+008CE73B   |.  8D45 88        lea eax,[local.30]
+008CE73E   |.  50             push eax
+008CE73F   |.  B9 01000000    mov ecx,1
+008CE744   |.  BA 12000000    mov edx,12
+008CE749   |.  8B45 EC        mov eax,[local.5]
+008CE74C   |.  E8 B770B3FF    call x.00405808
+008CE751   |.  FF75 88        push [local.30]                          ;  "l"
+008CE754   |.  8D45 84        lea eax,[local.31]
+008CE757   |.  50             push eax
+008CE758   |.  8B45 EC        mov eax,[local.5]
+```
