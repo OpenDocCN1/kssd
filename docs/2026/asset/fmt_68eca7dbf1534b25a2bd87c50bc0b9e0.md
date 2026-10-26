@@ -1,0 +1,150 @@
+
+# [原创]破解速写大师
+
+【破解作者】 yijun
+
+【作者邮箱】 `yijun8354@sina.com`
+
+【使用工具】 `OD`（二哥版）, `PEID`
+
+【破解平台】 `WinXP`
+
+【软件名称】 速写大师
+
+【软件简介】 一个能把照片转化成素描速写的软件！！！！！！！！！！
+
+【软件大小】 `991K`
+
+【加壳方式】 无
+
+【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+--------------------------------------------------------------------------------
+
+## 【破解内容】
+
+`PEID`查知道该软件无壳，`Borland C++ 1999`编写！`OD`载入，通过查找关键字很容易来到以下关键处^ -^
+
+```
+00405294   /.  55                push ebp   //在此下断
+00405295   |.  8BEC              mov ebp,esp
+00405297   |.  81C4 60FDFFFF     add esp,-2A0
+0040529D   |.  8995 74FFFFFF     mov dword ptr ss:[ebp-8C],edx
+004052A3   |.  8985 78FFFFFF     mov dword ptr ss:[ebp-88],eax
+004052A9   |.  B8 4C8B4800       mov eax,sxds.00488B4C
+004052AE   |.  E8 D5410600       call sxds.00469488
+004052B3   |.  66:C745 8C 1400   mov word ptr ss:[ebp-74],14
+004052B9   |.  BA C4864800       mov edx,sxds.004886C4                ;  ASCII  "software\ahao's softwares\wenku\mhj"
+004052BE   |.  8D45 F8           lea eax,dword ptr ss:[ebp-8]
+004052C1   |.  E8 E6E00600       call sxds.004733AC
+004052C6   |.  FF45 98           inc dword ptr ss:[ebp-68]
+004052C9   |.  8B08              mov ecx,dword ptr ds:[eax]
+004052CB   |.  B2 01             mov dl,1
+004052CD   |.  A1 30484100       mov eax,dword ptr ds:[414830]
+004052D2   |.  E8 41FC0000       call sxds.00414F18
+004052D7   |.  8985 70FFFFFF     mov dword ptr ss:[ebp-90],eax
+004052DD   |.  FF4D 98           dec dword ptr ss:[ebp-68]
+004052E0   |.  8D45 F8           lea eax,dword ptr ss:[ebp-8]
+004052E3   |.  BA 02000000       mov edx,2
+004052E8   |.  E8 77E10600       call sxds.00473464
+004052ED   |.  66:C745 8C 0800   mov word ptr ss:[ebp-74],8
+004052F3   |.  8D8D 60FDFFFF     lea ecx,dword ptr ss:[ebp-2A0]
+004052F9   |.  51                push ecx                             ; /Arg1
+004052FA   |.  E8 45E5FFFF       call sxds.00403844                   ; \sxds.00403844
+004052FF   |.  59                pop ecx
+00405300   |.  66:C745 8C 2000   mov word ptr ss:[ebp-74],20
+00405306   |.  8D45 F4           lea eax,dword ptr ss:[ebp-C]
+00405309   |.  E8 92C7FFFF       call sxds.00401AA0
+0040530E   |.  8BD0              mov edx,eax
+00405310   |.  FF45 98           inc dword ptr ss:[ebp-68]
+00405313   |.  8B8D 78FFFFFF     mov ecx,dword ptr ss:[ebp-88]
+00405319   |.  8B81 F4020000     mov eax,dword ptr ds:[ecx+2F4]
+0040531F   |.  E8 2C460500       call sxds.00459950   //取得一字符串mhds
+00405324   |.  8D45 F4           lea eax,dword ptr ss:[ebp-C]
+00405327   |.  E8 54E5FFFF       call sxds.00403880
+0040532C   |.  50                push eax
+0040532D   |.  8D45 F0           lea eax,dword ptr ss:[ebp-10]
+00405330   |.  E8 6BC7FFFF       call sxds.00401AA0
+00405335   |.  8BD0              mov edx,eax
+00405337   |.  FF45 98           inc dword ptr ss:[ebp-68]
+0040533A   |.  8B8D 78FFFFFF     mov ecx,dword ptr ss:[ebp-88]
+00405340   |.  8B81 F0020000     mov eax,dword ptr ds:[ecx+2F0]
+00405346   |.  E8 05460500       call sxds.00459950                   ;  计算用户名长度
+0040534B   |.  8D45 F0           lea eax,dword ptr ss:[ebp-10]
+0040534E   |.  E8 2DE5FFFF       call sxds.00403880                   ;  取用户名
+00405353   |.  50                push eax                             ; |Arg2
+00405354   |.  8D95 60FDFFFF     lea edx,dword ptr ss:[ebp-2A0]       ; |
+0040535A   |.  52                push edx                             ; |Arg1
+0040535B   |.  E8 40E5FFFF       call sxds.004038A0                   ; \处理用户名字和字符 串，跟进。
+00405360   |.  83C4 0C           add esp,0C
+00405363   |.  FF4D 98           dec dword ptr ss:[ebp-68]
+00405366   |.  8D45 F0           lea eax,dword ptr ss:[ebp-10]
+00405369   |.  BA 02000000       mov edx,2
+0040536E   |.  E8 F1E00600       call sxds.00473464
+00405373   |.  FF4D 98           dec dword ptr ss:[ebp-68]
+00405376   |.  8D45 F4           lea eax,dword ptr ss:[ebp-C]
+00405379   |.  BA 02000000       mov edx,2
+0040537E   |.  E8 E1E00600       call sxds.00473464
+00405383   |.  8D8D 60FDFFFF     lea ecx,dword ptr ss:[ebp-2A0]
+00405389   |.  51                push ecx                             ; /Arg1
+0040538A   |.  E8 F9E5FFFF       call sxds.00403988                   ; \跟进
+0040538F   |.  59                pop ecx
+00405390   |.  8D85 60FDFFFF     lea eax,dword ptr ss:[ebp-2A0]
+00405396   |.  50                push eax                             ; /Arg1
+00405397   |.  E8 84E9FFFF       call sxds.00403D20                   ; \EAX等于刚才最后那段 计算的取值，记为N
+0040539C   |.  59                pop ecx
+0040539D   |.  8985 6CFFFFFF     mov dword ptr ss:[ebp-94],eax
+004053A3   |.  66:C745 8C 0800   mov word ptr ss:[ebp-74],8
+004053A9   |.  66:C745 8C 2C00   mov word ptr ss:[ebp-74],2C
+004053AF   |.  8D45 FC           lea eax,dword ptr ss:[ebp-4]
+004053B2   |.  8B95 6CFFFFFF     mov edx,dword ptr ss:[ebp-94]        ;  N送EDX
+004053B8   |.  E8 EFDF0600       call sxds.004733AC
+004053BD   |.  FF45 98           inc dword ptr ss:[ebp-68]
+004053C0   |.  66:C745 8C 0800   mov word ptr ss:[ebp-74],8
+004053C6   |.  66:C745 8C 3800   mov word ptr ss:[ebp-74],38
+004053CC   |.  8D45 EC           lea eax,dword ptr ss:[ebp-14]
+004053CF   |.  E8 CCC6FFFF       call sxds.00401AA0
+004053D4   |.  8BD0              mov edx,eax
+004053D6   |.  FF45 98           inc dword ptr ss:[ebp-68]
+004053D9   |.  8B8D 78FFFFFF     mov ecx,dword ptr ss:[ebp-88]
+004053DF   |.  8B81 F8020000     mov eax,dword ptr ds:[ecx+2F8]
+004053E5   |.  E8 66450500       call sxds.00459950                   ;  计算假码长度
+004053EA   |.  8D45 EC           lea eax,dword ptr ss:[ebp-14]
+004053ED   |.  8D55 FC           lea edx,dword ptr ss:[ebp-4]
+004053F0   |.  E8 3FE10600       call sxds.00473534                   ;  跟进
+004053F5   |.  50                push eax                             ; /Arg1
+004053F6   |.  FF4D 98           dec dword ptr ss:[ebp-68]            ; |
+004053F9   |.  8D45 EC           lea eax,dword ptr ss:[ebp-14]        ; |
+004053FC   |.  BA 02000000       mov edx,2                            ; |
+00405401   |.  E8 5EE00600       call sxds.00473464                   ; \sxds.00473464
+00405406   |.  59                pop ecx
+00405407   |.  84C9              test cl,cl
+00405409   |.  0F84 15030000     je sxds.00405724                     ;  关键跳，跳就挂！！ ！！！！！
+0040540F   |.  6A 01             push 1
+00405411   |.  BA ED864800       mov edx,sxds.004886ED                ;  ASCII "registed"
+00405416   |.  8D45 E4           lea eax,dword ptr ss:[ebp-1C]
+00405419   |.  E8 8EDF0600       call sxds.004733AC
+0040541E   |.  FF45 98           inc dword ptr ss:[ebp-68]
+00405421   |.  FF30              push dword ptr ds:[eax]
+00405423   |.  66:C745 8C 4400   mov word ptr ss:[ebp-74],44
+00405429   |.  BA E8864800       mov edx,sxds.004886E8                ;  ASCII "smtp"
+```
+
+跟进`0040535B`处`CALL`来到：
+
+```
+004038A0   /$  55                push ebp
+004038A1   |.  8BEC              mov ebp,esp
+004038A3   |.  51                push ecx
+004038A4   |.  8B45 08           mov eax,dword ptr ss:[ebp+8]
+004038A7   |.  C640 04 01        mov byte ptr ds:[eax+4],1
+004038AB   |.  33D2              xor edx,edx
+004038AD   |.  8955 FC           mov dword ptr ss:[ebp-4],edx
+004038B0   |>  8B4D 0C           /mov ecx,dword ptr ss:[ebp+C]        ;  以下处理用户名
+004038B3   |.  8B45 FC           |mov eax,dword ptr ss:[ebp-4]
+004038B6   |.  8A1401            |mov dl,byte ptr ds:[ecx+eax]        ;  逐位取用户名
+004038B9   |.  8B4D FC           |mov ecx,dword ptr ss:[ebp-4]
+004038BC   |.  8B45 08           |mov eax,dword ptr ss:[ebp+8]
+004038BF   |.  885408 0C         |mov byte ptr ds:[eax+ecx+C],dl      ;  该位用户名送 [eax+ecx+C]
+004038C3   |.  EB 0B             |jmp short sxds.004038D0
+```
