@@ -1,0 +1,183 @@
+
+00459C09    81F9 3F0C0000   CMP ECX,0C3F
+
+00459C0F  ^ 72 ED           JB SHORT 00459BFE                        ; 没解压完则继续上去解压
+
+……
+
+```
+0045A5B8    0F31            RDTSC                                     ; 这里取API的地址的方法比较有意思
+0045A5BA    50              PUSH EAX
+0045A5BB    EB 13           JMP SHORT 0045A5D0                        ; 跳去准备取OutPutDebugStringA的地址
+0045A5BD    4F              DEC EDI
+0045A5BE    75 74           JNZ SHORT 0045A634
+0045A5C0    70 75           JO SHORT 0045A637
+0045A5C2    74 44           JE SHORT 0045A608
+0045A5C4    65:6275 67      BOUND ESI,QWORD PTR GS:[EBP+67]           ; Superfluous prefix
+0045A5C8    53              PUSH EBX
+0045A5C9    74 72           JE SHORT 0045A63D
+0045A5CB    696E 67 4100E80>IMUL EBP,DWORD PTR DS:[ESI+67],0E80041
+0045A5D2    0000            ADD BYTE PTR DS:[EAX],AL
+0045A5D4    0083 2C2418FF   ADD BYTE PTR DS:[EBX+FF18242C],AL
+0045A5DA    36:FF56 10      CALL DWORD PTR SS:[ESI+10]
+0045A5DE    8946 14         MOV DWORD PTR DS:[ESI+14],EAX             ; 获取到的地址保存到468014处
+0045A5E1    EB 01           JMP SHORT 0045A5E4
+0045A5E3    68 EB02CD20     PUSH 20CD02EB
+0045A5E8    EB 01           JMP SHORT 0045A5EB
+0045A5EA    E8 E8100000     CALL 0045B6D7
+0045A5EF    0047 65         ADD BYTE PTR DS:[EDI+65],AL
+0045A5F2    74 43           JE SHORT 0045A637
+0045A5F4    6F              OUTS DX,DWORD PTR ES:[EDI]                ; I/O command
+0045A5F5    6D              INS DWORD PTR ES:[EDI],DX                 ; I/O command
+0045A5F6    6D              INS DWORD PTR ES:[EDI],DX                 ; I/O command
+0045A5F7    61              POPAD
+0045A5F8    6E              OUTS DX,BYTE PTR ES:[EDI]                 ; I/O command
+0045A5F9    64:4C           DEC ESP                                   ; Superfluous prefix
+0045A5FB    696E 65 4100FF3>IMUL EBP,DWORD PTR DS:[ESI+65],36FF0041
+0045A602    FF56 10         CALL DWORD PTR DS:[ESI+10]
+0045A605    8946 18         MOV DWORD PTR DS:[ESI+18],EAX             ; [468018]保存GetCommandLineA的地址　
+0045A608    90              NOP
+0045A609    90              NOP
+0045A60A    90              NOP
+0045A60B    90              NOP
+0045A60C    90              NOP
+0045A60D    90              NOP
+0045A60E    90              NOP
+0045A60F    90              NOP
+0045A610    90              NOP
+0045A611    E8 0C000000     CALL 0045A622                             ; 获取CreateFileA的地址
+0045A616    43              INC EBX
+0045A617    72 65           JB SHORT 0045A67E
+0045A619    61              POPAD
+0045A61A    74 65           JE SHORT 0045A681
+0045A61C    46              INC ESI
+0045A61D    696C65 41 00FF3>IMUL EBP,DWORD PTR SS:[EBP+41],FF36FF00
+0045A625    56              PUSH ESI
+0045A626    1089 461C9090   ADC BYTE PTR DS:[ECX+90901C46],CL
+```
+
+……
+
+```
+0045A7E6    E8 11000000     CALL 0045A7FC
+0045A7EB    47              INC EDI
+0045A7EC    65:74 4D        JE SHORT 0045A83C                        ; Superfluous prefix
+0045A7EF    6F              OUTS DX,DWORD PTR ES:[EDI]               ; I/O command
+0045A7F0    64:75 6C        JNZ SHORT 0045A85F                       ; Superfluous prefix
+0045A7F3    65:48           DEC EAX                                  ; Superfluous prefix
+0045A7F5    61              POPAD
+0045A7F6    6E              OUTS DX,BYTE PTR ES:[EDI]                ; I/O command
+0045A7F7    64:6C           INS BYTE PTR ES:[EDI],DX                 ; I/O command
+0045A7F9    65:41           INC ECX                                  ; Superfluous prefix
+0045A7FB    00FF            ADD BH,BH
+0045A7FD    36:FF56 10      CALL DWORD PTR SS:[ESI+10]
+0045A801    8946 50         MOV DWORD PTR DS:[ESI+50],EAX            ; 最后一个GetModuleHandleA
+0045A804    90              NOP
+0045A805    90              NOP
+0045A806    90              NOP
+0045A807    90              NOP
+0045A808    90              NOP
+0045A809    90              NOP
+0045A80A    90              NOP
+0045A80B    90              NOP
+0045A80C    90              NOP
+0045A80D    90              NOP
+0045A80E    0F31            RDTSC
+0045A810    2B0424          SUB EAX,DWORD PTR SS:[ESP]               ; 又一个检测标志
+0045A813    83C4 04         ADD ESP,4
+0045A816    3D FFFFFF00     CMP EAX,0FFFFFF
+0045A81B  ^ 0F87 D0B8FFFF   JA 004560F1                              ; 如果发现跟踪则跳，也就over了
+0045A821   .  56            PUSH ESI                                  ;  ESI = 468000
+```
+
+到这里壳就取完了全部壳要用到的API，明细如下：
+
+……
+
+```
+0045B1C9    8CC9            MOV CX,CS                                 ; 开始判断系统是否为wk/xp之类的
+0045B1CB    32C9            XOR CL,CL
+0045B1CD    83F9 00         CMP ECX,0
+0045B1D0    75 28           JNZ SHORT 0045B1FA                        ; 如果为win9x则跳
+0045B1D2    64:FF35 3000000>PUSH DWORD PTR FS:[30]
+0045B1D9    58              POP EAX
+0045B1DA    0FB648 02       MOVZX ECX,BYTE PTR DS:[EAX+2]             ; 取TEB的值,
+0045B1DE    884E 0C         MOV BYTE PTR DS:[ESI+C],CL
+0045B1E1    8B40 0C         MOV EAX,DWORD PTR DS:[EAX+C]
+0045B1E4    8B40 0C         MOV EAX,DWORD PTR DS:[EAX+C]
+0045B1E7    8D58 20         LEA EBX,DWORD PTR DS:[EAX+20]
+0045B1EA    8D48 18         LEA ECX,DWORD PTR DS:[EAX+18]
+0045B1ED    8103 C8000000   ADD DWORD PTR DS:[EBX],0C8                                        ;破坏pe header
+0045B1F3    B8 00000000     MOV EAX,0
+0045B1F8    0101            ADD DWORD PTR DS:[ECX],EAX
+0045B1FA    33C9            XOR ECX,ECX
+0045B1FC    E8 00000000     CALL 0045B201
+0045B201    5F              POP EDI
+0045B202    81C7 C1090000   ADD EDI,9C1
+0045B208    0FB60439        MOVZX EAX,BYTE PTR DS:[ECX+EDI]           ; 从45BBC2开始解开下一段
+0045B20C    83F0 11         XOR EAX,11                                ; xor key 11
+0045B20F    880439          MOV BYTE PTR DS:[ECX+EDI],AL              ; 还原回去
+0045B212    41              INC ECX
+0045B213    81F9 521D0000   CMP ECX,1D52                              ; 解压代码大小1D52
+0045B219  ^ 72 ED           JB SHORT 0045B208                         ; 如果没有解压完跳回去继续
+```
+
+……
+
+```
+0045C569    0F31            RDTSC                                     ; 又准备异常。
+0045C56B    50              PUSH EAX
+0045C56C    E8 00000000     CALL 0045C571                             ; Install SEH
+0045C571    810424 CA090000 ADD DWORD PTR SS:[ESP],9CA
+0045C578    64:FF35 0000000>PUSH DWORD PTR FS:[0]
+0045C57F    64:8925 0000000>MOV DWORD PTR FS:[0],ESP                  ; 异常地址45CF3B
+0045C586    33DB            XOR EBX,EBX
+0045C588    8B1B            MOV EBX,DWORD PTR DS:[EBX]
+```
+
+……
+
+```
+0045D8DF    8B4424 0C       MOV EAX,DWORD PTR SS:[ESP+C]
+0045D8E3    33C9            XOR ECX,ECX
+0045D8E5    3348 04         XOR ECX,DWORD PTR DS:[EAX+4]              ; 再次清除硬件断点
+0045D8E8    3348 08         XOR ECX,DWORD PTR DS:[EAX+8]
+0045D8EB    3348 0C         XOR ECX,DWORD PTR DS:[EAX+C]
+0045D8EE    3348 10         XOR ECX,DWORD PTR DS:[EAX+10]
+0045D8F1    8B6424 08       MOV ESP,DWORD PTR SS:[ESP+8]
+0045D8F5    64:8F05 0000000>POP DWORD PTR FS:[0]
+0045D8FC    83C4 04         ADD ESP,4
+0045D8FF    0F31            RDTSC
+0045D901    2B0424          SUB EAX,DWORD PTR SS:[ESP]
+0045D904    83C4 04         ADD ESP,4
+0045D907    3D FFFFFF00     CMP EAX,0FFFFFF                           ; 这里一定要跳,又一个时间差来anit debug
+0045D90C    76 06           JBE SHORT 0045D914
+0045D90E    5E              POP ESI
+0045D90F    C646 0F 01      MOV BYTE PTR DS:[ESI+F],1
+0045D913    56              PUSH ESI
+```
+
+……
+
+```
+0045DA75    5E              POP ESI
+0045DA76    884E 0D         MOV BYTE PTR DS:[ESI+D],CL
+```
+
+……
+
+```
+0045E420    E8 05000000     CALL 0045E42A
+0045E425    25 73257300     AND EAX,732573                            ; /Debug String =%s%s
+0045E42A    FF56 14         CALL DWORD PTR DS:[ESI+14]                ; \OutPutStringA
+```
+
+注：如果你没有patch `OD`的那个漏洞的话，这里是过不来的
+
+……
+
+```
+0045EDD4    FF56 18         CALL DWORD PTR DS:[ESI+18]                ; GetCommandLineA获取命令行
+0045EDD7    40              INC EAX
+0045EDD8    33C9            XOR ECX,ECX
+```
