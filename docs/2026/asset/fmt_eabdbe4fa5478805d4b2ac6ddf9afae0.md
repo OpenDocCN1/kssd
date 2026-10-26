@@ -1,0 +1,205 @@
+
+# [原创]Enigma 1.66正式版试练品脱壳笔记
+
+这是我脱的第一个不能用esp定律搞定的壳，不好的地方还望大家指出。
+
+## 壳简介
+
+壳的主要加解密代码在`DLL_Loader.dll`这个`dll`中，它由程序在运行时动态解密在最后一个区段中，初始化后就在这个`dll`中解密原程序及加密输入表了，我们可以dump出完整的`dll`。
+
+关于这个`dll`及壳的详细介绍:
+
+```
+fe9K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6e0f1J5M7r3!0B7K9h3g2Q4x3X3g2U0L8W2)9J5c8Y4c8Z5M7X3g2S2k6q4)9J5k6o6x3J5z5e0j5J5i4K6u0V1x3g2)9J5k6o6q4Q4x3X3g2Z5N6r3#2D9
+```
+
+试练品下载:`44fK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4g2F1M7r3q4U0K9#2)9J5k6h3y4F1i4K6u0r3N6r3S2J5k6h3q4V1i4K6u0V1x3K6f1K6z5o6q4Q4x3X3b7I4i4K6u0V1x3g2)9J5k6h3S2@1L8h3H3`.
+
+先要设置一下`OD`，`StrongOD`设置`hidePEB`，`patchfloat`勾上，忽略所有异常，而且`OD`的窗口名改一下。重启`OD`，载入程序`test`，开始我们的不归路。
+
+不管有没有试用，它都会访问注册表或者自建的文件或别的什么来查看次数吧。那就先下断`RegCreateKeyA`，`Ctrl+G`，输入`RegCreateKeyA`，来到代码处。下断点就要注意了。因为
+
+壳会将要用到的函数的代码抽取到自己申请的空间中，然后调用。所以在这里下硬件执行断点是段不下来的。像下面这段代码就会被抽取。
+
+vista上的`RegCreateKeyA`：
+
+```
+77CAB8AE >  8BFF              MOV EDI,EDI
+77CAB8B0    55                PUSH EBP
+77CAB8B1    8BEC              MOV EBP,ESP
+77CAB8B3    8B55 10           MOV EDX,DWORD PTR SS:[EBP+10]
+77CAB8B6    33C0              XOR EAX,EAX
+77CAB8B8    3BD0              CMP EDX,EAX
+77CAB8BA    0F84 0AA90300     JE ADVAPI32.77CE61CA
+77CAB8C0    8B4D 0C           MOV ECX,DWORD PTR SS:[EBP+C]
+77CAB8C3    3BC8              CMP ECX,EAX
+77CAB8C5    0F84 07A90300     JE ADVAPI32.77CE61D2
+77CAB8CB    3801              CMP BYTE PTR DS:[ECX],AL
+77CAB8CD    0F84 FFA80300     JE ADVAPI32.77CE61D2
+77CAB8D3    50                PUSH EAX
+77CAB8D4    50                PUSH EAX
+77CAB8D5    52                PUSH EDX
+77CAB8D6    50                PUSH EAX
+77CAB8D7    68 00000002       PUSH 2000000
+77CAB8DC    50                PUSH EAX
+77CAB8DD    50                PUSH EAX
+77CAB8DE    50                PUSH EAX
+77CAB8DF    51                PUSH ECX
+77CAB8E0    FF75 08           PUSH DWORD PTR SS:[EBP+8]
+77CAB8E3    E8 82FEFFFF       CALL ADVAPI32.\_RegCreateKeyExInternalA@40
+77CAB8E8    5D                POP EBP
+77CAB8E9    C2 0C00           RETN 0C
+```
+
+大家看到`CALL ADVAPI32.\_RegCreateKeyExInternalA@40`，我们可以跟进在它里面下硬件执行断点。顺便说一下xp上与这不同，要找别的地方了。
+
+`F9`运行，会断下来几次，这些都不管，直到点了`try`断下后，`Alt+F9`来到程序领空，
+
+```
+01C24AC5    FF75 10           PUSH DWORD PTR SS:[EBP+10]
+01C24AC8    FF75 0C           PUSH DWORD PTR SS:[EBP+C]
+01C24ACB    FF75 08           PUSH DWORD PTR SS:[EBP+8]
+01C24ACE    E8 976C0876       CALL ADVAPI32.\_RegCreateKeyExInternalA@40
+01C24AD3    5D                POP EBP                                                ; 0012FF44
+01C24AD4    C2 2400           RETN 24
+```
+
+看并不在`advapi32.dll`领空，`F7`走出去：
+
+```
+0058DBF8    85C0              TEST EAX,EAX
+0058DBFA    74 04             JE SHORT test.0058DC00
+0058DBFC    33C0              XOR EAX,EAX
+0058DBFE    EB 02             JMP SHORT test.0058DC02
+0058DC00    B0 01             MOV AL,1
+0058DC02    8BD8              MOV EBX,EAX
+0058DC04    84DB              TEST BL,BL
+0058DC06    74 25             JE SHORT test.0058DC2D
+0058DC08    8D4424 0C         LEA EAX,DWORD PTR SS:[ESP+C]
+0058DC0C    50                PUSH EAX
+0058DC0D    8D4424 14         LEA EAX,DWORD PTR SS:[ESP+14]
+0058DC11    50                PUSH EAX
+0058DC12    8D4424 10         LEA EAX,DWORD PTR SS:[ESP+10]
+0058DC16    50                PUSH EAX
+0058DC17    6A 00             PUSH 0
+0058DC19    E8 DEFEFFFF       CALL test.0058DAFC
+0058DC1E    50                PUSH EAX
+0058DC1F    8B4424 14         MOV EAX,DWORD PTR SS:[ESP+14]
+0058DC23    50                PUSH EAX
+0058DC24    E8 0F57F7FF       CALL test.00503338
+0058DC29    85C0              TEST EAX,EAX
+0058DC2B    74 04             JE SHORT test.0058DC31
+0058DC2D    33C0              XOR EAX,EAX
+0058DC2F    EB 02             JMP SHORT test.0058DC33
+0058DC31    B0 01             MOV AL,1
+0058DC33    8BD8              MOV EBX,EAX
+0058DC35    833C24 00         CMP DWORD PTR SS:[ESP],0
+0058DC39    74 09             JE SHORT test.0058DC44
+0058DC3B    8B0424            MOV EAX,DWORD PTR SS:[ESP]
+0058DC3E    50                PUSH EAX
+0058DC3F    E8 C456F7FF       CALL test.00503308
+0058DC44    8BC3              MOV EAX,EBX                       ；无使用次数是ebx为1
+0058DC46    81C4 10010000     ADD ESP,110
+0058DC4C    5B                POP EBX
+0058DC4D    C3                RETN
+```
+
+这个地方就是对使用次数的验证了，结果放在`eax`中，只要`eax`返回`0`就行了。该`eax`为`0`删除断点，一路`F8`（有的时候到了关键代码的附近，最有效的办法就是`F8`，看看停在那个`Call`处）。一直到这：
+
+```
+0059D368    80B8 5E040000 00  CMP BYTE PTR DS:[EAX+45E],0
+0059D36F    74 05             JE SHORT test.0059D376
+0059D371    E8 9AA4FFFF       CALL test.00597810
+0059D376    E8 1180FEFF       CALL test.0058538C
+0059D37B    E8 14E7FFFF       CALL test.0059BA94
+0059D380    E8 8F13FFFF       CALL test.0058E714        ；从这个Call出来
+0059D385    E8 EE1AFFFF       CALL test.0058EE78
+0059D38A    E8 F916FFFF       CALL test.0058EA88
+0059D38F    E8 8C7FFEFF       CALL test.00585320
+0059D394    E8 FB80FEFF       CALL test.00585494
+0059D399    E8 DE60FEFF       CALL test.0058347C
+0059D39E    E8 C581FEFF       CALL test.00585568              ；这里要注意
+0059D3A3    50                PUSH EAX
+0059D3A4    89C1              MOV ECX,EAX
+0059D3A6    B8 E4D35900       MOV EAX,test.0059D3E4
+0059D3AB    E8 6481FEFF       CALL test.00585514
+0059D3B0    010424            ADD DWORD PTR SS:[ESP],EAX
+0059D3B3    C3                RETN
+```
+
+到这里后，就不能`F8`了，可能有时间验证吧，直接`F4`到`ADD DWORD PTR SS:[ESP],EAX`，，再往下`F8`就不行了。
+
+在这里下硬件执行断点 记作 “第一个断点”
+
+`Ctrl+F2`重新载入，再来看看壳对输入表的处理，下断`CreateWindowExA`，这次就直接在函数入口下硬件访问断点，为了直接到关键代码处，可以在注册框出来后下断。点`try`按钮，
+
+断下：
+
+```
+0057ECF4    55                PUSH EBP
+0057ECF5    8BEC              MOV EBP,ESP
+0057ECF7    53                PUSH EBX
+0057ECF8    56                PUSH ESI
+0057ECF9    57                PUSH EDI
+0057ECFA    8BF0              MOV ESI,EAX
+0057ECFC    33FF              XOR EDI,EDI
+0057ECFE    C602 00           MOV BYTE PTR DS:[EDX],0
+0057ED01    33C0              XOR EAX,EAX
+0057ED03    8901              MOV DWORD PTR DS:[ECX],EAX
+0057ED05    8B45 10           MOV EAX,DWORD PTR SS:[EBP+10]
+0057ED08    33DB              XOR EBX,EBX
+0057ED0A    8918              MOV DWORD PTR DS:[EAX],EBX
+0057ED0C    8B45 0C           MOV EAX,DWORD PTR SS:[EBP+C]
+0057ED0F    33DB              XOR EBX,EBX
+0057ED11    8918              MOV DWORD PTR DS:[EAX],EBX
+0057ED13    8B45 08           MOV EAX,DWORD PTR SS:[EBP+8]
+0057ED16    33DB              XOR EBX,EBX
+0057ED18    8918              MOV DWORD PTR DS:[EAX],EBX
+0057ED1A    33C0              XOR EAX,EAX
+0057ED1C    8A06              MOV AL,BYTE PTR DS:[ESI]
+0057ED1E    3D FF000000       CMP EAX,0FF                          ；断在这
+0057ED23    0F87 BC3E0000     JA test.00582BE5
+0057ED29    8A80 36ED5700     MOV AL,BYTE PTR DS:[EAX+57ED36]
+0057ED2F    FF2485 36EE5700   JMP DWORD PTR DS:[EAX*4+57EE36]
+0057ED36    0001              ADD BYTE PTR DS:[ECX],AL
+0057ED38    0203              ADD AL,BYTE PTR DS:[EBX]
+0057ED3A    04 00             ADD AL,0
+0057ED3C    0000              ADD BYTE PTR DS:[EAX],AL
+0057ED3E    0005 00060000     ADD BYTE PTR DS:[600],AL
+0057ED44    0007              ADD BYTE PTR DS:[EDI],AL
+0057ED46    0000              ADD BYTE PTR DS:[EAX],AL
+```
+
+这里就是壳抽取函数代码及重定向输入表的地方，看看堆栈：
+
+```
+0012FEC0  |00000000
+0012FEC4  |00000000
+0012FEC8  |00000008
+0012FECC  |00000005
+0012FED0  |00AFFEF4  UNICODE "3B0"
+0012FED4  |01BAFA30
+0012FED8  |01BB472B
+0012FEDC  |01BB46FD
+0012FEE0  |00000000
+0012FEE4  |0059D317  test.0059D317
+0012FEE8  |01BAE718
+0012FEDC里就是存放CreateWindowExA的代码的地址，那么这个地址肯定要写入程序输入表的IAT中，在0012FEDC下内存访问断点，断在这里：
+```
+
+```
+005958FC    8B55 FC           MOV EDX,DWORD PTR SS:[EBP-4]
+005958FF    8B4D F0           MOV ECX,DWORD PTR SS:[EBP-10]           ；读取重定向地址
+00595902    894C82 04         MOV DWORD PTR DS:[EDX+EAX*4+4],ECX      ；放入程序输入表，要将这 这里nop掉
+00595906    47                INC EDI
+00595907    FF4D D0           DEC DWORD PTR SS:[EBP-30]
+```
+
+开始准备跟一下输入表加密的，跟着跟着就迷糊了，就放弃了。于是就走了一条不归路。
+
+从输入表加密中出来,就到这：
+
+```
+0059D556    8B00              MOV EAX,DWORD PTR DS:[EAX]
+0059D558    E8 CF7DFFFF       CALL test.0059532C              ；输入表加密
+```

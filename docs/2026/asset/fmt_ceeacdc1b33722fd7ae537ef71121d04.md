@@ -1,0 +1,554 @@
+
+```
+71202DEC     53                  push ebx
+
+71202DED     56                  push esi
+
+71202DEE     57                  push edi
+
+71202DEF     55                  push ebp
+
+71202DF0     83C4 F4             add esp,-0C
+
+71202DF3     8BF0                mov esi,eax
+
+71202DF5     8B86 08030000       mov eax,dword ptr ds:[esi+308]
+
+71202DFB     8B90 80000000       mov edx,dword ptr ds:[eax+80]
+
+71202E01     8D86 A0030000       lea eax,dword ptr ds:[esi+3A0]
+
+71202E07     8B8E 84030000       mov ecx,dword ptr ds:[esi+384]
+
+71202E0D     E8 0A20F2FF         call 71124E1C
+
+71202E12     C686 DC030000 00    mov byte ptr ds:[esi+3DC],0
+
+71202E19     C686 DD030000 00    mov byte ptr ds:[esi+3DD],0
+
+71202E20     C686 DE030000 00    mov byte ptr ds:[esi+3DE],0
+
+71202E27     8B86 C4030000       mov eax,dword ptr ds:[esi+3C4]
+
+71202E2D     85C0                test eax,eax
+
+71202E2F     79 03               jns short 71202E34
+
+71202E31     83C0 03             add eax,3
+
+71202E34     C1F8 02             sar eax,2
+
+71202E37     48                  dec eax
+
+71202E38     85C0                test eax,eax
+
+71202E3A     0F8C 88010000       jl 71202FC8
+
+71202E40     40                  inc eax
+
+71202E41     894424 08           mov dword ptr ss:[esp+8],eax
+
+71202E45     C70424 00000000     mov dword ptr ss:[esp],0
+
+71202E4C     8B1C24              mov ebx,dword ptr ss:[esp]
+
+71202E4F     C1E3 02             shl ebx,2
+
+71202E52     039E A8030000       add ebx,dword ptr ds:[esi+3A8]
+
+71202E58     8B2B                mov ebp,dword ptr ds:[ebx]
+
+71202E5A     03AE E0030000       add ebp,dword ptr ds:[esi+3E0]
+
+71202E60     8BC5                mov eax,ebp
+
+71202E62     40                  inc eax
+
+71202E63     894424 04           mov dword ptr ss:[esp+4],eax
+
+71202E67     A1 18F72171         mov eax,dword ptr ds:[7121F718]
+
+71202E6C     8B40 3C             mov eax,dword ptr ds:[eax+3C]
+
+71202E6F     0305 18F72171       add eax,dword ptr ds:[7121F718]
+
+71202E75     8A40 28             mov al,byte ptr ds:[eax+28]
+
+71202E78     34 60               xor al,60
+
+71202E7A     34 A9               xor al,0A9
+
+71202E7C     8845 00             mov byte ptr ss:[ebp],al
+
+71202E7F     8B9E E8030000       mov ebx,dword ptr ds:[esi+3E8]
+
+71202E85     83FB 20             cmp ebx,20
+
+71202E88     7D 60               jge short 71202EEA
+
+71202E8A     6A 40               push 40
+
+71202E8C     68 00300000         push 3000
+
+71202E91     68 00000100         push 10000
+
+71202E96     6A 00               push 0
+
+71202E98     E8 C349F2FF         call 71127860 ; jmp to kernel32.VirtualAlloc
+
+71202E9D     8BF8                mov edi,eax
+
+71202E9F     85FF                test edi,edi
+
+71202EA1     74 65               je short 71202F08
+
+71202EA3     8B86 78030000       mov eax,dword ptr ds:[esi+378]
+
+71202EA9     E8 5E31F2FF         call 7112600C
+
+71202EAE     40                  inc eax
+
+71202EAF     50                  push eax
+
+71202EB0     8D86 78030000       lea eax,dword ptr ds:[esi+378]
+
+71202EB6     B9 01000000         mov ecx,1
+
+71202EBB     8B15 00BD1F71       mov edx,dword ptr ds:[711FBD00]
+
+71202EC1     E8 0233F2FF         call 711261C8
+
+71202EC6     83C4 04             add esp,4
+
+71202EC9     8B86 78030000       mov eax,dword ptr ds:[esi+378]
+
+71202ECF     E8 3831F2FF         call 7112600C
+
+71202ED4     8B96 78030000       mov edx,dword ptr ds:[esi+378]
+
+71202EDA     897C82 FC           mov dword ptr ds:[edx+eax*4-4],edi
+
+71202EDE     C786 E8030000 00000>mov dword ptr ds:[esi+3E8],10000
+
+71202EE8     EB 1E               jmp short 71202F08
+
+71202EEA     8B86 78030000       mov eax,dword ptr ds:[esi+378]
+
+71202EF0     E8 1731F2FF         call 7112600C
+
+71202EF5     8B96 78030000       mov edx,dword ptr ds:[esi+378]
+
+71202EFB     8B7C82 FC           mov edi,dword ptr ds:[edx+eax*4-4]
+
+71202EFF     B8 00000100         mov eax,10000
+
+71202F04     2BC3                sub eax,ebx
+
+71202F06     03F8                add edi,eax
+
+71202F08     85FF                test edi,edi
+
+71202F0A     0F84 AB000000       je 71202FBB
+
+71202F10     8B86 E8030000       mov eax,dword ptr ds:[esi+3E8]
+
+71202F16     83E8 1D             sub eax,1D
+
+71202F19     83E8 03             sub eax,3
+
+71202F1C     8986 E8030000       mov dword ptr ds:[esi+3E8],eax
+
+71202F22     A1 18F72171         mov eax,dword ptr ds:[7121F718]
+
+71202F27     8B40 3C             mov eax,dword ptr ds:[eax+3C]
+
+71202F2A     0305 18F72171       add eax,dword ptr ds:[7121F718]
+
+71202F30     8A40 28             mov al,byte ptr ds:[eax+28]
+
+71202F33     34 60               xor al,60
+
+71202F35     34 A8               xor al,0A8
+
+71202F37     8807                mov byte ptr ds:[edi],al
+
+//记事本此处处理没有使用，可能其他程序会有动作
+
+71202F39     8BDF                mov ebx,edi
+
+71202F3B     43                  inc ebx
+
+71202F3C     B8 34491F71         mov eax,711F4934
+
+71202F41     2BC3                sub eax,ebx
+
+71202F43     83E8 04             sub eax,4
+
+71202F46     8903                mov dword ptr ds:[ebx],eax
+
+71202F48     C647 05 00          mov byte ptr ds:[edi+5],0
+
+71202F4C     8BDF                mov ebx,edi
+
+71202F4E     83C3 06             add ebx,6
+
+71202F51     83C5 06             add ebp,6
+
+71202F54     892B                mov dword ptr ds:[ebx],ebp
+
+71202F56     8BDF                mov ebx,edi
+
+71202F58     83C3 0A             add ebx,0A
+
+71202F5B     8B0424              mov eax,dword ptr ss:[esp]
+
+71202F5E     8903                mov dword ptr ds:[ebx],eax
+
+71202F60     8BDF                mov ebx,edi
+
+71202F62     83C3 0E             add ebx,0E
+
+71202F65     8B86 AC030000       mov eax,dword ptr ds:[esi+3AC]
+
+71202F6B     8903                mov dword ptr ds:[ebx],eax
+
+71202F6D     8BDF                mov ebx,edi
+
+71202F6F     83C3 12             add ebx,12
+
+71202F72     8D86 A0030000       lea eax,dword ptr ds:[esi+3A0]
+
+71202F78     E8 A320F2FF         call 71125020
+
+71202F7D     8903                mov dword ptr ds:[ebx],eax
+
+71202F7F     8BDF                mov ebx,edi
+
+71202F81     83C3 16             add ebx,16
+
+71202F84     8D86 DD030000       lea eax,dword ptr ds:[esi+3DD]
+
+71202F8A     8903                mov dword ptr ds:[ebx],eax
+
+71202F8C     8BDF                mov ebx,edi
+
+71202F8E     83C3 1A             add ebx,1A
+
+71202F91     8D86 DC030000       lea eax,dword ptr ds:[esi+3DC]
+
+71202F97     8903                mov dword ptr ds:[ebx],eax
+
+71202F99     8D96 E5030000       lea edx,dword ptr ds:[esi+3E5]
+
+71202F9F     8BC7                mov eax,edi
+
+71202FA1     83C0 1E             add eax,1E
+
+71202FA4     B9 01000000         mov ecx,1
+
+71202FA9     E8 F652F2FF         call 711282A4
+
+71202FAE     2B7C24 04           sub edi,dword ptr ss:[esp+4]
+
+71202FB2     83EF 04             sub edi,4
+
+71202FB5     8B4424 04           mov eax,dword ptr ss:[esp+4]
+
+71202FB9     8938                mov dword ptr ds:[eax],edi
+
+71202FBB     FF0424              inc dword ptr ss:[esp]
+
+71202FBE     FF4C24 08           dec dword ptr ss:[esp+8]
+
+71202FC2     0F85 84FEFFFF       jnz 71202E4C
+
+71202FC8     8B86 CC030000       mov eax,dword ptr ds:[esi+3CC]
+
+71202FCE     85C0                test eax,eax
+
+71202FD0     79 03               jns short 71202FD5
+
+71202FD2     83C0 03             add eax,3
+
+71202FD5     C1F8 02             sar eax,2
+
+71202FD8     48                  dec eax
+
+71202FD9     85C0                test eax,eax
+
+71202FDB     0F8C AD010000       jl 7120318E
+
+71202FE1     40                  inc eax
+
+71202FE2     894424 08           mov dword ptr ss:[esp+8],eax
+
+71202FE6     C70424 00000000     mov dword ptr ss:[esp],0
+
+71202FED     8B1C24              mov ebx,dword ptr ss:[esp]
+
+71202FF0     C1E3 02             shl ebx,2
+
+71202FF3     039E B0030000       add ebx,dword ptr ds:[esi+3B0]
+
+71202FF9     8B2B                mov ebp,dword ptr ds:[ebx]
+
+71202FFB     03AE E0030000       add ebp,dword ptr ds:[esi+3E0]
+
+71203001     8BC5                mov eax,ebp
+
+71203003     83C0 02             add eax,2
+
+71203006     894424 04           mov dword ptr ss:[esp+4],eax
+
+7120300A     A1 18F72171         mov eax,dword ptr ds:[7121F718]
+
+7120300F     8B40 3C             mov eax,dword ptr ds:[eax+3C]
+
+71203012     0305 18F72171       add eax,dword ptr ds:[7121F718]
+
+71203018     8A40 28             mov al,byte ptr ds:[eax+28]
+
+7120301B     34 60               xor al,60
+
+7120301D     34 A9               xor al,0A9
+
+7120301F     8845 00             mov byte ptr ss:[ebp],al
+
+71203022     8B9E E8030000       mov ebx,dword ptr ds:[esi+3E8]
+
+71203028     83FB 2C             cmp ebx,2C
+
+7120302B     7D 60               jge short 7120308D
+
+7120302D     6A 40               push 40
+
+7120302F     68 00300000         push 3000
+
+71203034     68 00000100         push 10000
+
+71203039     6A 00               push 0
+
+7120303B     E8 2048F2FF         call 71127860 ; jmp to kernel32.VirtualAlloc
+
+71203040     8BF8                mov edi,eax
+
+71203042     85FF                test edi,edi
+
+71203044     74 65               je short 712030AB
+
+71203046     8B86 78030000       mov eax,dword ptr ds:[esi+378]
+
+7120304C     E8 BB2FF2FF         call 7112600C
+
+71203051     40                  inc eax
+
+71203052     50                  push eax
+
+71203053     8D86 78030000       lea eax,dword ptr ds:[esi+378]
+
+71203059     B9 01000000         mov ecx,1
+
+7120305E     8B15 00BD1F71       mov edx,dword ptr ds:[711FBD00]
+
+71203064     E8 5F31F2FF         call 711261C8
+
+71203069     83C4 04             add esp,4
+
+7120306C     8B86 78030000       mov eax,dword ptr ds:[esi+378]
+
+71203072     E8 952FF2FF         call 7112600C
+
+71203077     8B96 78030000       mov edx,dword ptr ds:[esi+378]
+
+7120307D     897C82 FC           mov dword ptr ds:[edx+eax*4-4],edi
+
+71203081     C786 E8030000 00000>mov dword ptr ds:[esi+3E8],10000
+
+7120308B     EB 1E               jmp short 712030AB
+
+7120308D     8B86 78030000       mov eax,dword ptr ds:[esi+378]
+
+71203093     E8 742FF2FF         call 7112600C
+
+71203098     8B96 78030000       mov edx,dword ptr ds:[esi+378]
+
+7120309E     8B7C82 FC           mov edi,dword ptr ds:[edx+eax*4-4]
+
+712030A2     B8 00000100         mov eax,10000
+
+712030A7     2BC3                sub eax,ebx
+
+712030A9     03F8                add edi,eax
+
+712030AB     85FF                test edi,edi
+
+712030AD     0F84 CE000000       je 71203181
+
+712030B3     8B86 E8030000       mov eax,dword ptr ds:[esi+3E8]
+
+712030B9     83E8 1D             sub eax,1D
+
+712030BC     83E8 03             sub eax,3
+
+712030BF     83E8 0C             sub eax,0C
+
+712030C2     8986 E8030000       mov dword ptr ds:[esi+3E8],eax
+
+712030C8     A1 18F72171         mov eax,dword ptr ds:[7121F718]
+
+712030CD     8B40 3C             mov eax,dword ptr ds:[eax+3C]
+
+712030D0     0305 18F72171       add eax,dword ptr ds:[7121F718]
+
+712030D6     8A40 28             mov al,byte ptr ds:[eax+28]
+
+712030D9     34 60               xor al,60
+
+712030DB     34 A8               xor al,0A8
+
+712030DD     8807                mov byte ptr ds:[edi],al
+
+//写入跳转命令
+
+712030DF     8BDF                mov ebx,edi
+
+712030E1     43                  inc ebx
+
+712030E2     B8 A84B1F71         mov eax,711F4BA8
+
+712030E7     2BC3                sub eax,ebx
+
+712030E9     83E8 04             sub eax,4
+
+712030EC     8903                mov dword ptr ds:[ebx],eax
+
+712030EE     C647 05 00          mov byte ptr ds:[edi+5],0
+
+712030F2     8BDF                mov ebx,edi
+
+712030F4     83C3 06             add ebx,6
+
+712030F7     892B                mov dword ptr ds:[ebx],ebp      ; EncryptP.00402FA4
+
+//记录处理地址
+
+//ebp=00401FF5 (EncryptP.00401FF5)
+
+//[011905EA]=00000000
+
+712030F9     8BDF                mov ebx,edi
+
+712030FB     83C3 0A             add ebx,0A
+
+712030FE     8B0424              mov eax,dword ptr ss:[esp]
+
+71203101     8903                mov dword ptr ds:[ebx],eax
+
+71203103     8BDF                mov ebx,edi
+
+71203105     83C3 0E             add ebx,0E
+
+71203108     8B86 B4030000       mov eax,dword ptr ds:[esi+3B4]
+
+7120310E     8903                mov dword ptr ds:[ebx],eax
+
+71203110     8BDF                mov ebx,edi
+
+71203112     83C3 12             add ebx,12
+
+71203115     8D86 A0030000       lea eax,dword ptr ds:[esi+3A0]
+
+7120311B     E8 001FF2FF         call 71125020
+
+71203120     8903                mov dword ptr ds:[ebx],eax
+
+71203122     8BDF                mov ebx,edi
+
+71203124     83C3 16             add ebx,16
+
+71203127     8D86 DE030000       lea eax,dword ptr ds:[esi+3DE]
+
+7120312D     8903                mov dword ptr ds:[ebx],eax
+
+7120312F     8BDF                mov ebx,edi
+
+71203131     83C3 1A             add ebx,1A
+
+71203134     BA 0C000000         mov edx,0C
+
+71203139     8BC3                mov eax,ebx
+
+7120313B     E8 7851F2FF         call 711282B8
+
+71203140     8BDF                mov ebx,edi
+
+71203142     83C3 1C             add ebx,1C
+
+71203145     8B4424 04           mov eax,dword ptr ss:[esp+4]
+
+71203149     8B00                mov eax,dword ptr ds:[eax]      ; EncryptP.004064B8
+
+7120314B     8903                mov dword ptr ds:[ebx],eax
+
+//记录原来的重定位地址
+
+//eax=004064AC (EncryptP.004064AC)
+
+//[01190600]=00000000
+
+7120314D     8BDF                mov ebx,edi
+
+7120314F     83C3 26             add ebx,26
+
+71203152     8D86 DC030000       lea eax,dword ptr ds:[esi+3DC]
+
+71203158     8903                mov dword ptr ds:[ebx],eax
+
+7120315A     8D96 E5030000       lea edx,dword ptr ds:[esi+3E5]
+
+71203160     8BC7                mov eax,edi
+
+71203162     83C0 2A             add eax,2A
+
+71203165     B9 01000000         mov ecx,1
+
+7120316A     E8 3551F2FF         call 711282A4
+
+7120316F     45                  inc ebp
+
+71203170     896C24 04           mov dword ptr ss:[esp+4],ebp
+
+71203174     2B7C24 04           sub edi,dword ptr ss:[esp+4]
+
+71203178     83EF 04             sub edi,4
+
+7120317B     8B4424 04           mov eax,dword ptr ss:[esp+4]
+
+7120317F     8938                mov dword ptr ds:[eax],edi
+
+//写入加密地址
+
+71203181     FF0424              inc dword ptr ss:[esp]
+
+//jmp 71232B20	★10
+
+71203184     FF4C24 08           dec dword ptr ss:[esp+8]
+
+71203188     0F85 5FFEFFFF       jnz 71202FED
+
+//循环处理CodeReplace
+
+7120318E     83C4 0C             add esp,0C
+
+//写好修复代码后这里设断
+
+71203191     5D                  pop ebp
+
+71203192     5F                  pop edi
+
+71203193     5E                  pop esi
+
+71203194     5B                  pop ebx
+
+71203195     C3                  retn
+```
