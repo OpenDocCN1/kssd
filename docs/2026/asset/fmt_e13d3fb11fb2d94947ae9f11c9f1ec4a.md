@@ -1,0 +1,188 @@
+
+# flashtools算法分析
+
+- 【破文作者】lnn1123
+- 【文章题目】flashtools算法分析
+- 【软件名称】flashtools
+- 【加密方式】注册码
+- 【破解工具】OD,PEID
+- 【破解平台】winxp
+
+---
+
+## 软件简介
+
+一个可以把`.exe`文件转化为flash文件，也可以把flash文件转化为`.exe`文件。
+
+---
+
+## 文章简介
+
+算法很简单，但是我刚开始的时候被它弄的满昏的。
+
+---
+
+## 解密过程
+
+软件是用UPX加的壳，很容易脱的，省略...
+
+验证注册码的方式是重新启动验证`.ini`文件，输入注册码后并不立刻进行注册码的验证，而是把注册信息下进注册文件`Reg.ini`中（它不通知你注册码是下次重新启动比较的），等下次重新启动软件的时候进行比较注册成功是否，所以输入注册码后，重新启动软件下断：
+
+```
+bpx GetPrivateProfileStringA
+```
+
+停在这里：
+
+```
+0044C098   E8 C3A6FBFF      CALL <JMP.&kernel32.GetPrivateProfileStr>
+0044C09D   8BC8             MOV ECX,EAX                              ; EAX为读取regcode 的位数
+0044C09F   8D95 00F8FFFF    LEA EDX,DWORD PTR SS:[EBP-800]           ; regcode
+0044C0A5   8B45 08          MOV EAX,DWORD PTR SS:[EBP+8]
+0044C0A8   E8 437CFBFF      CALL 1\_.00403CF0
+```
+
+跟一下到这里：
+
+```
+0044C7E8   53               PUSH EBX
+0044C7E9   56               PUSH ESI
+0044C7EA   57               PUSH EDI
+0044C7EB   33C0             XOR EAX,EAX
+0044C7ED   55               PUSH EBP
+0044C7EE   68 C9C84400      PUSH 1\_.0044C8C9
+0044C7F3   64:FF30          PUSH DWORD PTR FS:[EAX]
+0044C7F6   64:8920          MOV DWORD PTR FS:[EAX],ESP
+0044C7F9   8D55 F0          LEA EDX,DWORD PTR SS:[EBP-10]
+0044C7FC   A1 B4BB4600      MOV EAX,DWORD PTR DS:[46BBB4]
+0044C801   8B00             MOV EAX,DWORD PTR DS:[EAX]
+0044C803   E8 BCC1FFFF      CALL 1\_.004489C4
+0044C808   8B45 F0          MOV EAX,DWORD PTR SS:[EBP-10]
+0044C80B   8D55 F4          LEA EDX,DWORD PTR SS:[EBP-C]
+0044C80E   E8 D1BFFBFF      CALL 1\_.004087E4
+0044C813   8D45 F4          LEA EAX,DWORD PTR SS:[EBP-C]
+0044C813   8D45 F4          LEA EAX,DWORD PTR SS:[EBP-C]
+0044C816   BA E4C84400      MOV EDX,1\_.0044C8E4                      ; ASCII "Reg.ini"
+0044C81B   E8 7076FBFF      CALL 1\_.00403E90
+0044C820   8B4D F4          MOV ECX,DWORD PTR SS:[EBP-C]
+0044C823   B2 01            MOV DL,1
+0044C825   A1 90B94400      MOV EAX,DWORD PTR DS:[44B990]
+0044C82A   E8 09F2FFFF      CALL 1\_.0044BA38
+0044C82F   8BD8             MOV EBX,EAX
+0044C831   6A 00            PUSH 0
+0044C833   8D45 FC          LEA EAX,DWORD PTR SS:[EBP-4]
+0044C836   50               PUSH EAX
+0044C837   B9 F4C84400      MOV ECX,1\_.0044C8F4                      ; ASCII "RegCode"
+0044C83C   BA 04C94400      MOV EDX,1\_.0044C904                      ; ASCII "Reg"
+0044C841   8BC3             MOV EAX,EBX
+0044C843   8B30             MOV ESI,DWORD PTR DS:[EAX]
+0044C845   FF16             CALL DWORD PTR DS:[ESI]
+0044C847   8BC3             MOV EAX,EBX                              ; 返回到这里
+0044C849   E8 AE66FBFF      CALL 1\_.00402EFC
+0044C84E   33C0             XOR EAX,EAX
+0044C850   55               PUSH EBP
+0044C851   68 76C84400      PUSH 1\_.0044C876
+0044C856   64:FF30          PUSH DWORD PTR FS:[EAX]
+0044C859   64:8920          MOV DWORD PTR FS:[EAX],ESP
+0044C85C   8D4D F8          LEA ECX,DWORD PTR SS:[EBP-8]
+0044C85F   BA 10C94400      MOV EDX,1\_.0044C910                      ; ASCII "lovejingtao"
+0044C864   8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]             ; regcode
+0044C867   E8 E4FDFFFF      CALL 1\_.0044C650                         ; 这里是计算注册码过程
+0044C86C   33C0             XOR EAX,EAX
+0044C86E   5A               POP EDX
+0044C86F   59               POP ECX
+0044C870   59               POP ECX
+0044C871   64:8910          MOV DWORD PTR FS:[EAX],EDX
+0044C874   EB 0A            JMP SHORT 1\_.0044C880
+0044C876  ^E9 ED6AFBFF      JMP 1\_.00403368
+0044C87B   E8 446EFBFF      CALL 1\_.004036C4
+0044C880   8D55 EC          LEA EDX,DWORD PTR SS:[EBP-14]
+0044C883   8B45 F8          MOV EAX,DWORD PTR SS:[EBP-8]             ; CPUID
+0044C886   E8 A5BAFBFF      CALL 1\_.00408330
+0044C88B   8B45 EC          MOV EAX,DWORD PTR SS:[EBP-14]
+0044C88E   50               PUSH EAX
+0044C88F   8D45 E4          LEA EAX,DWORD PTR SS:[EBP-1C]
+0044C892   E8 C1FCFFFF      CALL 1\_.0044C558
+0044C897   8B45 E4          MOV EAX,DWORD PTR SS:[EBP-1C]            ; CPUID
+0044C89A   8D55 E8          LEA EDX,DWORD PTR SS:[EBP-18]
+0044C89D   E8 8EBAFBFF      CALL 1\_.00408330
+0044C8A2   8B55 E8          MOV EDX,DWORD PTR SS:[EBP-18]
+0044C8A5   58               POP EAX                                  ; 弹出
+0044C8A6   E8 ED76FBFF      CALL 1\_.00403F98                         ; 比较注册码
+0044C8AB   0F94C3           SETE BL                                  ; 等与时BL置1
+0044C8AE   33C0             XOR EAX,EAX                              ; 清0
+0044C8B0   5A               POP EDX
+0044C8B1   59               POP ECX
+0044C8B2   59               POP ECX
+0044C8B3   64:8910          MOV DWORD PTR FS:[EAX],EDX
+0044C8B6   68 D0C84400      PUSH 1\_.0044C8D0
+0044C8BB   8D45 E4          LEA EAX,DWORD PTR SS:[EBP-1C]
+0044C8BE   BA 07000000      MOV EDX,7
+0044C8C3   E8 6473FBFF      CALL 1\_.00403C2C
+0044C8C8   C3               RETN
+```
+
+`0044C8C8`后返回到这里：
+
+```
+00469407   C3               RETN
+00469408   55               PUSH EBP
+00469409   8BEC             MOV EBP,ESP
+0046940B   6A 00            PUSH 0
+0046940D   6A 00            PUSH 0
+0046940F   53               PUSH EBX
+00469410   8BD8             MOV EBX,EAX
+00469412   33C0             XOR EAX,EAX
+00469414   55               PUSH EBP
+00469415   68 B9944600      PUSH 1\_.004694B9
+0046941A   64:FF30          PUSH DWORD PTR FS:[EAX]
+0046941D   64:8920          MOV DWORD PTR FS:[EAX],ESP
+00469420   E8 B733FEFF      CALL 1\_.0044C7DC
+00469425   84C0             TEST AL,AL                               ; 标志位测试,注册成功?
+00469427   75 42            JNZ SHORT 1\_.0046946B
+```
+
+### `CALL 1\_.0044C650`
+
+```
+0044C650   55               PUSH EBP
+0044C651   8BEC             MOV EBP,ESP
+0044C653   83C4 D0          ADD ESP,-30
+0044C656   53               PUSH EBX
+0044C657   56               PUSH ESI
+0044C658   57               PUSH EDI
+0044C659   33DB             XOR EBX,EBX
+0044C65B   895D D0          MOV DWORD PTR SS:[EBP-30],EBX
+0044C65E   895D D8          MOV DWORD PTR SS:[EBP-28],EBX
+0044C661   895D D4          MOV DWORD PTR SS:[EBP-2C],EBX
+0044C664   895D E0          MOV DWORD PTR SS:[EBP-20],EBX
+0044C667   895D DC          MOV DWORD PTR SS:[EBP-24],EBX
+0044C66A   895D E8          MOV DWORD PTR SS:[EBP-18],EBX
+0044C66D   894D F4          MOV DWORD PTR SS:[EBP-C],ECX
+0044C670   8955 F8          MOV DWORD PTR SS:[EBP-8],EDX             ; 1\_.0044C910
+0044C673   8945 FC          MOV DWORD PTR SS:[EBP-4],EAX
+0044C676   8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]
+0044C679   E8 BE79FBFF      CALL 1\_.0040403C
+0044C67E   8B45 F8          MOV EAX,DWORD PTR SS:[EBP-8]
+0044C681   E8 B679FBFF      CALL 1\_.0040403C
+0044C686   33C0             XOR EAX,EAX
+0044C688   55               PUSH EBP
+0044C689   68 ADC74400      PUSH 1\_.0044C7AD
+0044C68E   64:FF30          PUSH DWORD PTR FS:[EAX]
+0044C691   64:8920          MOV DWORD PTR FS:[EAX],ESP
+0044C694   8B45 F8          MOV EAX,DWORD PTR SS:[EBP-8]             ; lovejingtao
+0044C697   E8 EC77FBFF      CALL 1\_.00403E88
+0044C69C   8945 F0          MOV DWORD PTR SS:[EBP-10],EAX
+0044C69F   837D F0 00       CMP DWORD PTR SS:[EBP-10],0
+0044C6A3   75 0D            JNZ SHORT 1\_.0044C6B2
+0044C6A5   8D45 F8          LEA EAX,DWORD PTR SS:[EBP-8]
+0044C6A8   BA C4C74400      MOV EDX,1\_.0044C7C4                      ; ASCII "Think Space"
+0044C6AD   E8 EE75FBFF      CALL 1\_.00403CA0
+0044C6B2   33FF             XOR EDI,EDI
+0044C6B4   8D45 DC          LEA EAX,DWORD PTR SS:[EBP-24]
+0044C6B7   50               PUSH EAX
+0044C6B8   B9 02000000      MOV ECX,2
+0044C6BD   BA 01000000      MOV EDX,1
+0044C6C2   8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]
+```
+

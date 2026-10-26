@@ -1,0 +1,139 @@
+
+### 反汇编
+
+```
+0040DC50   |.  33FF               xor edi,edi                                  ;  转化后的数值为：FD393F196BB60EABD610AC80972539C0
+0040DC52   |.  8BF5               mov esi,ebp                                  ;  下面开始用MD5转化后的数值进行运算了。
+0040DC54   |.  8D9C24 84000000    lea ebx,dword ptr ss:[esp+84]                ;  这里是数据区里的数值：0012EF20  FD 39 3F 19 6B B6 0E AB D6 10 AC 80 97 25 39 C0  ??k????9
+0040DC5B   |>  33C0               /xor eax,eax
+0040DC5D   |.  8A03               |mov al,byte ptr ds:[ebx]                    ;  取FD送到AL里
+0040DC5F   |.  B9 23000000        |mov ecx,23                                  ;  把0x23送到ECX里
+0040DC64   |.  99                 |cdq
+0040DC65   |.  F7F9               |idiv ecx                                    ;  s[i]%=0x23;对0x23取余,余数在EDX，EDX=8里。
+0040DC67   |.  33C0               |xor eax,eax                                 ;  EAX清0
+0040DC69   |.  8A4414 08          |mov al,byte ptr ss:[esp+edx+8]              ;  根据上面提到的字符串，用余数查表。
+0040DC6D   |.  50                 |push eax                                    ; /<%c>
+0040DC6E   |.  68 7ED94D00        |push Unpacked.004DD97E                      ; |Format = "%c"
+0040DC73   |.  8D5424 08          |lea edx,dword ptr ss:[esp+8]                ; |
+0040DC77   |.  52                 |push edx                                    ; |s
+0040DC78   |.  E8 B59E0C00        |call <jmp.&USER32.wsprintfA>                ; \然后转化成相应字符。得到'Q'.
+0040DC7D   |.  83C4 0C            |add esp,0C
+0040DC80   |.  8A0C24             |mov cl,byte ptr ss:[esp]
+0040DC83   |.  880E               |mov byte ptr ds:[esi],cl                    ;  把得到的字符存起来。
+0040DC85   |.  47                 |inc edi
+0040DC86   |.  46                 |inc esi                                     ;  后面就是循环，取数直到取完16个数为止。
+0040DC87   |.  43                 |inc ebx
+0040DC88   |.  83FF 10            |cmp edi,10
+0040DC8B   |.^ 7C CE              \jl short Unpacked.0040DC5B
+0040DC8D   |.  C645 11 00         mov byte ptr ss:[ebp+11],0
+0040DC91   |>  81C4 98000000      add esp,98
+0040DC97   |.  5D                 pop ebp                                      ;  这里，入栈的时候出现真码了"QSRB48L5UGWDO4SI"
+0040DC98   |.  5F                 pop edi
+0040DC99   |.  5E                 pop esi
+0040DC9A   |.  5B                 pop ebx
+0040DC9B   \.  C3                 retn
+```
+
+出CALL后：
+
+```
+0040D7F9   |.  837D F8 00         cmp dword ptr ss:[ebp-8],0                   ;  判断假注册码是否为空？
+0040D7FD   |.  74 05              je short Unpacked.0040D804
+0040D7FF   |.  8B55 F8            mov edx,dword ptr ss:[ebp-8]
+0040D802   |.  EB 03              jmp short Unpacked.0040D807
+0040D804   |>  8D56 1D            lea edx,dword ptr ds:[esi+1D]
+0040D807   |>  8BC3               mov eax,ebx
+0040D809   |.  E8 AA060000        call Unpacked.0040DEB8
+0040D80E   |.  84C0               test al,al
+0040D810   |.  0F85 97000000      jnz Unpacked.0040D8AD
+0040D816   |.  6A 10              push 10
+0040D818   |.  837D F8 00         cmp dword ptr ss:[ebp-8],0
+0040D81C   |.  74 05              je short Unpacked.0040D823
+0040D81E   |.  8B4D F8            mov ecx,dword ptr ss:[ebp-8]
+0040D821   |.  EB 03              jmp short Unpacked.0040D826
+0040D823   |>  8D4E 1E            lea ecx,dword ptr ds:[esi+1E]
+0040D826   |>  51                 push ecx                                     ; |Arg2
+0040D827   |.  8D45 B4            lea eax,dword ptr ss:[ebp-4C]                ; |
+0040D82A   |.  50                 push eax                                     ; |这出现真码了，可做内存注册机了。
+0040D82B   |.  E8 C4DA0B00        call Unpacked.004CB2F4                       ; \真假码比较，不对就OVER了。
+0040D830   |.  83C4 0C            add esp,0C
+0040D833   |.  85C0               test eax,eax
+0040D835   |.  74 76              je short Unpacked.0040D8AD
+0040D837   |.  66:C747 10 2C00    mov word ptr ds:[edi+10],2C
+0040D83D   |.  8D56 1F            lea edx,dword ptr ds:[esi+1F]
+0040D840   |.  8D45 F4            lea eax,dword ptr ss:[ebp-C]
+0040D843   |.  E8 988E0C00        call Unpacked.004D66E0
+```
+
+--------------------------------------------------------------------------------
+
+## 【算法注册机】
+
+注册机里没贴MD5源码，贴的话，一大堆只有MD5转化后的数值！
+
+```c
+#include <stdio.h>
+
+main()
+
+{
+
+    char CODE[255]={"PX4VUTE8Q1YONML6GIHJZFSDCBA9R7K5W32"};
+
+    int s[255]={
+                 0xFD,0x39,0x3F,0x19,0x6B,0xB6,0x0E,0xAB,
+                 0xD6,0x10,0xAC,0x80,0x97,0x25,0x39,0xC0,
+                 };
+
+    int i,n,j;
+
+printf("Crack by zmw1224[CZG][DFCG]\n");
+
+printf("\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\n");
+
+printf("你的注册码是:");
+
+           for(i=0;i<16;i++)
+
+              {
+
+                s[i]%=0x23;
+
+                j=s[i];
+
+                printf("%c",CODE[j]);
+
+               }
+
+}
+```
+
+--------------------------------------------------------------------------------
+
+## 【内存注册机】
+
+中断地址：`40D82A`
+
+中断次数：1
+
+第一字节：`50`
+
+寄存器：`EAX`
+
+长度：1
+
+--------------------------------------------------------------------------------
+
+## 【用户名、密码】
+
+用户名：`zmw1224@yahoo.com.cn`
+
+注册码：`QSRB48L5UGWDO4SI`
+
+--------------------------------------------------------------------------------
+
+## 【版权声明】
+
+本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
