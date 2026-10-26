@@ -1,0 +1,222 @@
+
+# SuperCHM2.2注册破解算法分析
+
+## 破文信息
+
+- 破文标题：SuperCHM2.2注册破解算法分析
+- 破文作者：gg1211[CZG][PYG][PCG][D.4s]
+- 破解平台：WinXp
+- 作者邮箱：QIBINLEI@YAHOO.COM.CN
+- 破解工具：`PEiD`、`OD`
+- 保护方式：机器码+用户名＋序列号
+- 破解目的：学习简单算法破解
+- 破解声明：我是一只小小鸟，偶得一点心得，愿与大家分享：）
+- 软件名称：SuperCHM2.2
+- 下载地址：362K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4S2E0M7h3#2Q4x3X3g2U0L8$3#2Q4x3V1k6@1P5g2)9J5c8R3`.`.
+
+## 软件简介
+
+SuperCHM是真正所见即所得的CHM制作工具，内置简单易用、功能齐全的网页编辑器，使您可以轻松地完成CHM制作，而不必在多个软件之间来回切换。SuperCHM具有以下特点：
+
+- 软件采用`hhp`格式保存和读取，使软件通用性增强。
+- 目录、索引可以直接定位到网页中的标签。
+- 强大的反编译功能，反编译后直接在SuperCHM中读取出来，使用轻松便捷。
+- SuperCHM支持绝大部分CHM的功能设置，使您制作的CHM与众不同。
+- 内置网页编辑器较好地结合了`DHTMLEDIT`，所见即所得，功能齐全。
+- 采用MDI设计，同时可以编辑多个网页。
+
+最新版本：V2.2
+
+### 系统需求
+
+SuperCHM适合于运行在Windows 98、Windows ME、Windows2000、Windows XP的平台
+
+## 破解步骤
+
+先用`PEiD`侦测，发现为Borland Delphi 6.0 - 7.0，无壳。
+
+运行机器码为`101701111149`，输入实验码`gg1211`  
+`123456789`
+
+有错误提示“你的注册码不正确，情重新输入”。
+
+`OD`载入，根据错误提示向上翻来到这里下断：
+
+```
+0050FBD4 /. 55         push   ebp               \\我在这里下断
+0050FBD5 |. 8BEC       mov   ebp, esp
+0050FBD7 |. 33C9       xor   ecx, ecx
+0050FBD9 |. 51         push   ecx
+0050FBDA |. 51         push   ecx
+0050FBDB |. 51         push   ecx
+0050FBDC |. 51         push   ecx
+0050FBDD |. 51         push   ecx
+0050FBDE |. 53         push   ebx
+0050FBDF |. 56         push   esi
+0050FBE0 |. 8BD8       mov   ebx, eax     \\机器码101701111149给edx
+0050FBE2 |. 33C0       xor   eax, eax
+0050FBE4 |. 55         push   ebp
+0050FBE5 |. 68 F2FC5000   push   0050FCF2
+0050FBEA |. 64:FF30     push   dword ptr fs:[eax]
+0050FBED |. 64:8920     mov   fs:[eax], esp
+0050FBF0 |. 8D4D FC     lea   ecx, [ebp-4]
+0050FBF3 |. 8B93 1C030000 mov   edx, [ebx+31C]
+0050FBF9 |. 8BC3       mov   eax, ebx
+0050FBFB |. E8 BCFEFFFF   call   0050FABC       \\这个call要跟进，他是明码比较
+0050FC00 |. 8B45 FC     mov   eax, [ebp-4]     \\在这里就出现注册码了，可以在这里
+0050FC03 |. 50         push   eax                 做内存注册机，我们的目的是学习算法
+0050FC04 |. 8D55 F8     lea   edx, [ebp-8]       跟进
+0050FC07 |. 8B83 04030000 mov   eax, [ebx+304]
+0050FC0D |. E8 D6CEF6FF   call   0047CAE8
+0050FC12 |. 8B45 F8     mov   eax, [ebp-8]
+0050FC15 |. 5A         pop   edx
+0050FC16 |. E8 7192EFFF   call   00408E8C
+0050FC1B |. 84C0       test   al, al
+0050FC1D |. 0F84 A2000000 je     0050FCC5
+0050FC23 |. B2 01       mov   dl, 1
+0050FC25 |. A1 DC2D4400   mov   eax, [442DDC]
+0050FC2A |. E8 AD32F3FF   call   00442EDC
+0050FC2F |. 8BF0       mov   esi, eax
+0050FC31 |. BA 01000080   mov   edx, 80000001
+0050FC36 |. 8BC6       mov   eax, esi
+0050FC38 |. E8 7B33F3FF   call   00442FB8
+0050FC3D |. B1 01       mov   cl, 1
+0050FC3F |. BA 08FD5000   mov   edx, 0050FD08             ; software\superchm
+0050FC44 |. 8BC6       mov   eax, esi
+0050FC46 |. E8 D533F3FF   call   00443020
+0050FC4B |. 8D55 F4     lea   edx, [ebp-C]
+0050FC4E |. 8B83 14030000 mov   eax, [ebx+314]
+0050FC54 |. E8 8FCEF6FF   call   0047CAE8
+0050FC59 |. 8B4D F4     mov   ecx, [ebp-C]
+0050FC5C |. BA 24FD5000   mov   edx, 0050FD24             ; regname
+0050FC61 |. 8BC6       mov   eax, esi
+0050FC63 |. E8 EC38F3FF   call   00443554
+0050FC68 |. 8D55 F0     lea   edx, [ebp-10]
+0050FC6B |. 8B83 04030000 mov   eax, [ebx+304]
+0050FC71 |. E8 72CEF6FF   call   0047CAE8
+0050FC76 |. 8B4D F0     mov   ecx, [ebp-10]
+0050FC79 |. BA 34FD5000   mov   edx, 0050FD34             ; regkey
+0050FC7E |. 8BC6       mov   eax, esi
+0050FC80 |. E8 CF38F3FF   call   00443554
+0050FC85 |. 8BC6       mov   eax, esi
+0050FC87 |. E8 FC32F3FF   call   00442F88
+0050FC8C |. 8BC6       mov   eax, esi
+0050FC8E |. E8 E93CEFFF   call   0040397C
+0050FC93 |. 8D55 EC     lea   edx, [ebp-14]
+0050FC96 |. 8B83 04030000 mov   eax, [ebx+304]
+0050FC9C |. E8 47CEF6FF   call   0047CAE8
+0050FCA1 |. 8B55 EC     mov   edx, [ebp-14]
+0050FCA4 |. 8D83 20030000 lea   eax, [ebx+320]
+0050FCAA |. E8 714BEFFF   call   00404820
+0050FCAF |. B8 44FD5000   mov   eax, 0050FD44             ; 非常感谢您注册本软件！您的注册成功了。
+0050FCB4 |. E8 1F93F2FF   call   00438FD8
+0050FCB9 |. A1 44125B00   mov   eax, [5B1244]
+0050FCBE |. E8 49A0F8FF   call   00499D0C
+0050FCC3 |. EB 0A       jmp   short 0050FCCF
+0050FCC5 |> B8 74FD5000   mov   eax, 0050FD74             ; 您的注册码不正确，请重新输入。
+```
+
+跟进来到这里：
+
+```
+0050FABC /$ 55         push   ebp
+0050FABD |. 8BEC       mov   ebp, esp
+0050FABF |. 6A 00       push   0
+0050FAC1 |. 6A 00       push   0
+0050FAC3 |. 6A 00       push   0
+0050FAC5 |. 6A 00       push   0
+0050FAC7 |. 6A 00       push   0
+0050FAC9 |. 53         push   ebx
+0050FACA |. 8BD9       mov   ebx, ecx
+0050FACC |. 8955 FC     mov   [ebp-4], edx
+0050FACF |. 8B45 FC     mov   eax, [ebp-4]
+0050FAD2 |. E8 A551EFFF   call   00404C7C
+0050FAD7 |. 33C0       xor   eax, eax
+0050FAD9 |. 55         push   ebp
+0050FADA |. 68 A1FB5000   push   0050FBA1
+0050FADF |. 64:FF30     push   dword ptr fs:[eax]
+0050FAE2 |. 64:8920     mov   fs:[eax], esp
+0050FAE5 |. 8D4D F8     lea   ecx, [ebp-8]
+0050FAE8 |. BA 04000000   mov   edx, 4
+0050FAED |. 8B45 FC     mov   eax, [ebp-4]
+0050FAF0 |. E8 6BF9F2FF   call   0043F460
+0050FAF5 |. 8B45 F8     mov   eax, [ebp-8]           \\取前四位机器码
+0050FAF8 |. E8 CF98EFFF   call   004093CC             跟进004093CC
+0050FAFD |. 8D4D F4     lea   ecx, [ebp-C]
+0050FB00 |. BA 04000000   mov   edx, 4
+0050FB05 |. E8 9A98EFFF   call   004093A4
+0050FB0A |. 8D45 F8     lea   eax, [ebp-8]
+0050FB0D |. 50         push   eax
+0050FB0E |. B9 04000000   mov   ecx, 4
+0050FB13 |. BA 05000000   mov   edx, 5
+0050FB18 |. 8B45 FC     mov   eax, [ebp-4]
+0050FB1B |. E8 34FAF2FF   call   0043F554
+0050FB20 |. 8B45 F8     mov   eax, [ebp-8]
+0050FB23 |. E8 A498EFFF   call   004093CC
+0050FB28 |. 05 3E080000   add   eax, 83E
+0050FB2D |. 8D4D F0     lea   ecx, [ebp-10]
+0050FB30 |. BA 05000000   mov   edx, 5
+0050FB35 |. E8 6A98EFFF   call   004093A4
+0050FB3A |. 8D4D F8     lea   ecx, [ebp-8]
+0050FB3D |. BA 04000000   mov   edx, 4
+0050FB42 |. 8B45 FC     mov   eax, [ebp-4]
+0050FB45 |. E8 86F9F2FF   call   0043F4D0
+0050FB4A |. 8B45 F8     mov   eax, [ebp-8]
+0050FB4D |. E8 7A98EFFF   call   004093CC
+0050FB52 |. 83C0 6E     add   eax, 6E
+0050FB55 |. 8D4D EC     lea   ecx, [ebp-14]
+0050FB58 |. BA 04000000   mov   edx, 4
+0050FB5D |. E8 4298EFFF   call   004093A4
+0050FB62 |. 68 B8FB5000   push   0050FBB8                 ; t
+0050FB67 |. FF75 F4     push   dword ptr [ebp-C]
+0050FB6A |. 68 C4FB5000   push   0050FBC4                 ; -y
+0050FB6F |. FF75 F0     push   dword ptr [ebp-10]
+0050FB72 |. 68 D0FB5000   push   0050FBD0                 ; -
+0050FB77 |. FF75 EC     push   dword ptr [ebp-14]
+0050FB7A |. 8BC3       mov   eax, ebx
+0050FB7C |. BA 06000000   mov   edx, 6
+0050FB81 |. E8 C64FEFFF   call   00404B4C
+0050FB86 |. 33C0       xor   eax, eax
+0050FB88 |. 5A         pop   edx
+0050FB89 |. 59         pop   ecx
+0050FB8A |. 59         pop   ecx
+0050FB8B |. 64:8910     mov   fs:[eax], edx
+0050FB8E |. 68 A8FB5000   push   0050FBA8
+0050FB93 |> 8D45 EC     lea   eax, [ebp-14]
+0050FB96 |. BA 05000000   mov   edx, 5
+0050FB9B |. E8 504CEFFF   call   004047F0
+0050FBA0 \. C3         retn
+```
+
+跟进来到这里：
+
+```
+004093CC /$ 53         push   ebx
+004093CD |. 56         push   esi
+004093CE |. 83C4 F4     add   esp, -0C
+004093D1 |. 8BD8       mov   ebx, eax
+004093D3 |. 8BD4       mov   edx, esp
+004093D5 |. 8BC3       mov   eax, ebx
+004093D7 |. E8 609FFFFF   call   0040333C           \\跟进
+004093DC |. 8BF0       mov   esi, eax
+004093DE |. 833C24 00   cmp   dword ptr [esp], 0
+004093E2 |. 74 19       je     short 004093FD
+004093E4 |. 895C24 04   mov   [esp+4], ebx
+004093E8 |. C64424 08 0B mov   byte ptr [esp+8], 0B
+004093ED |. 8D5424 04   lea   edx, [esp+4]
+004093F1 |. A1 D0EC5A00   mov   eax, [5AECD0]
+004093F6 |. 33C9       xor   ecx, ecx
+004093F8 |. E8 CBF8FFFF   call   00408CC8
+004093FD |> 8BC6       mov   eax, esi
+004093FF |. 83C4 0C     add   esp, 0C
+00409402 |. 5E         pop   esi
+00409403 |. 5B         pop   ebx
+00409404 \. C3         retn
+```
+
+到这里：
+
+```
+0040333C /$ 53         push   ebx
+0040333D |. 56         push   esi
+```

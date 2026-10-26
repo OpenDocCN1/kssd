@@ -1,0 +1,45 @@
+
+## 反汇编代码
+
+```
+00416D8F  |. 8BEC           MOV EBP,ESP
+00416D91  |. 83EC 08        SUB ESP,8
+00416D94  |. 894D FC        MOV DWORD PTR SS:[EBP-4],ECX
+00416D97  |. 837D 0C 00     CMP DWORD PTR SS:[EBP+C],0
+00416D9B  |. 7E 08          JLE SHORT UNIVERSE.00416DA5
+00416D9D  |. 8B45 0C        MOV EAX,DWORD PTR SS:[EBP+C]
+00416DA0  |. 8945 F8        MOV DWORD PTR SS:[EBP-8],EAX
+00416DA3  |. EB 09          JMP SHORT UNIVERSE.00416DAE
+00416DA5  |> 8B4D FC        MOV ECX,DWORD PTR SS:[EBP-4]
+00416DA8  |. 8B51 10        MOV EDX,DWORD PTR DS:[ECX+10]
+00416DAB  |. 8955 F8        MOV DWORD PTR SS:[EBP-8],EDX
+00416DAE  |> 8B45 08        MOV EAX,DWORD PTR SS:[EBP+8]
+00416DB1  |. 50             PUSH EAX
+00416DB2  |. E8 8DFAFFFF    CALL UNIVERSE.00416844
+00416DB7  |. 83C4 04        ADD ESP,4
+00416DBA  |. 33C9           XOR ECX,ECX
+00416DBC  |. 3945 F8        CMP DWORD PTR SS:[EBP-8],EAX   //在这里用户名计算结果和EAX内的假注册码计算结果进行比较。
+00416DBF  |. 0F94C1         SETE CL                        //相等则让CL=1。
+00416DC2  |. 8BC1           MOV EAX,ECX                    //把ECX送EAX，作为注册成功标志。
+00416DC4  |. 8BE5           MOV ESP,EBP
+00416DC6  |. 5D             POP EBP
+00416DC7  \. C2 0800        RETN 8
+```
+
+## 后记
+
+这个软件没有想到搞了那么多弯弯绕在里面，特别是在验证那个字符串`Plushmm [PC97]`时，感到莫名其妙！最后用户名的计算是用大数进行乘除运算，进行了3遍。最后得到一个结果与前面注册码16进制值比较，现在已经得到了真码，把最后拿来比较的那个数转换为10进制，输入就OK啦！比如我这里`UserName`是`wanggang`，得到的是`830350h`，转换为10进制数为`8586064`。现在输入正确注册码，注册成功！！所有限制解除！我试用了一下提供的银河系图象还有其他气团图象，效果非常棒！！犹如真的来到天上一样！！
+
+追踪这个软件的过程比较讨厌，真是如同掉进无底深渊一样！没有边际！因为无论哪个`CALL`都值得怀疑里面做了什么工作，所以不得不追进去看看。如果一下子掠过去可能就没戏。经过2个小时艰苦奋战，我终于又可以把我的破文与各位分享了！希望我们共同进步提高！！：）
+
+另附诗一首，献给各位关注我的坛友：
+
+“宇宙”软件无“银河”，功能限制真是多；如今遇到俺菜鸟，眩目银河失又得！
+
+`qduwg`
+
+`qduwg@163.com`
+
+完稿于2006年1月19日下午
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
