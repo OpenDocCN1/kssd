@@ -1,0 +1,216 @@
+
+```
+0040A090  /$  55            push    ebp
+0040A091  |.  8BEC          mov     ebp, esp
+0040A093  |.  6A FF         push    -1
+0040A095  |.  68 88D34300   push    0043D388
+0040A09A  |.  64:A1 0000000>mov     eax, dword ptr fs:[0]
+0040A0A0  |.  50            push    eax
+0040A0A1  |.  83EC 7C       sub     esp, 7C
+0040A0A4  |.  56            push    esi
+0040A0A5  |.  A1 ECBC4400   mov     eax, dword ptr [44BCEC]
+0040A0AA  |.  33C5          xor     eax, ebp
+0040A0AC  |.  50            push    eax
+0040A0AD  |.  8D45 F4       lea     eax, dword ptr [ebp-C]
+0040A0B0  |.  64:A3 0000000>mov     dword ptr fs:[0], eax
+0040A0B6  |.  894D A0       mov     dword ptr [ebp-60], ecx          ;  密码表
+0040A0B9  |.  C745 FC 00000>mov     dword ptr [ebp-4], 0
+0040A0C0  |.  C645 F3 00    mov     byte ptr [ebp-D], 0
+0040A0C4  |.  8D4D 08       lea     ecx, dword ptr [ebp+8]
+0040A0C7  |.  E8 14BBFFFF   call    00405BE0                         ;  转大写
+0040A0CC  |.  51            push    ecx
+0040A0CD  |.  8BCC          mov     ecx, esp
+0040A0CF  |.  8965 B8       mov     dword ptr [ebp-48], esp
+0040A0D2  |.  8D45 08       lea     eax, dword ptr [ebp+8]
+0040A0D5  |.  50            push    eax
+0040A0D6  |.  E8 357CFFFF   call    00401D10
+0040A0DB  |.  8945 9C       mov     dword ptr [ebp-64], eax
+0040A0DE  |.  8B4D A0       mov     ecx, dword ptr [ebp-60]
+0040A0E1  |.  E8 9A020000   call    0040A380                         ;  验证假码call
+0040A0E6  |.  8845 9B       mov     byte ptr [ebp-65], al            ;  标志位
+0040A0E9  |.  0FB64D 9B     movzx   ecx, byte ptr [ebp-65]
+0040A0ED  |.  85C9          test    ecx, ecx
+0040A0EF  |.  0F84 1B020000 je      0040A310                         ;  有一个不在就死翘翘。
+0040A0F5  |.  6A 08         push    8                                ;  假码第9位
+0040A0F7  |.  8D4D 08       lea     ecx, dword ptr [ebp+8]
+0040A0FA  |.  E8 F1A2FFFF   call    004043F0                         ;  取得
+0040A0FF  |.  0FB7D0        movzx   edx, ax
+0040A102  |.  52            push    edx
+0040A103  |.  8B4D A0       mov     ecx, dword ptr [ebp-60]
+0040A106  |.  E8 55050000   call    0040A660                         ;  在密码表中的位置
+0040A10B  |.  8945 DC       mov     dword ptr [ebp-24], eax          ;  保存为S
+0040A10E  |.  6A 07         push    7
+0040A110  |.  8D4D 08       lea     ecx, dword ptr [ebp+8]
+0040A113  |.  E8 D8A2FFFF   call    004043F0                         ;  假码第8位
+0040A118  |.  0FB7C0        movzx   eax, ax
+0040A11B  |.  50            push    eax
+0040A11C  |.  8B4D A0       mov     ecx, dword ptr [ebp-60]
+0040A11F  |.  E8 3C050000   call    0040A660                         ;  在密码表中的位置
+0040A124  |.  99            cdq
+0040A125  |.  B9 05000000   mov     ecx, 5
+0040A12A  |.  F7F9          idiv    ecx                              ;  %5
+0040A12C  |.  8955 E8       mov     dword ptr [ebp-18], edx          ;  保存余数a
+0040A12F  |.  6A 09         push    9                                ;  假码第10位
+0040A131  |.  8D4D 08       lea     ecx, dword ptr [ebp+8]
+0040A134  |.  E8 B7A2FFFF   call    004043F0
+0040A139  |.  0FB7D0        movzx   edx, ax
+0040A13C  |.  52            push    edx
+0040A13D  |.  8B4D A0       mov     ecx, dword ptr [ebp-60]
+0040A140  |.  E8 1B050000   call    0040A660                         ;  在密码表中的位置
+0040A145  |.  99            cdq
+0040A146  |.  B9 05000000   mov     ecx, 5
+0040A14B  |.  F7F9          idiv    ecx                              ;  %5
+0040A14D  |.  8955 D8       mov     dword ptr [ebp-28], edx          ;  保存余数b
+0040A150  |.  8D4D E0       lea     ecx, dword ptr [ebp-20]
+0040A153  |.  E8 987BFFFF   call    00401CF0
+0040A158  |.  C645 FC 01    mov     byte ptr [ebp-4], 1
+0040A15C  |.  C745 D0 00000>mov     dword ptr [ebp-30], 0
+0040A163  |.  EB 09         jmp     short 0040A16E
+0040A165  |>  8B55 D0       /mov     edx, dword ptr [ebp-30]
+0040A168  |.  83C2 01       |add     edx, 1
+0040A16B  |.  8955 D0       |mov     dword ptr [ebp-30], edx
+0040A16E  |>  837D D0 07     cmp     dword ptr [ebp-30], 7
+0040A172  |.  7D 3A         |jge     short 0040A1AE
+0040A174  |.  8B45 E8       |mov     eax, dword ptr [ebp-18]
+0040A177  |.  3B45 D0       |cmp     eax, dword ptr [ebp-30]
+0040A17A  |.  75 12         |jnz     short 0040A18E
+0040A17C  |.  8B4D D0       |mov     ecx, dword ptr [ebp-30]
+0040A17F  |.  51            |push    ecx
+0040A180  |.  8D4D 08       |lea     ecx, dword ptr [ebp+8]
+0040A183  |.  E8 68A2FFFF   |call    004043F0
+0040A188  |.  66:8945 EC    |mov     word ptr [ebp-14], ax
+0040A18C  |.  EB 1E         |jmp     short 0040A1AC
+0040A18E  |>  837D D0 05    |cmp     dword ptr [ebp-30], 5
+0040A192  |.  74 18         |je      short 0040A1AC
+0040A194  |.  8B55 D0       |mov     edx, dword ptr [ebp-30]
+0040A197  |.  52            |push    edx
+0040A198  |.  8D4D 08       |lea     ecx, dword ptr [ebp+8]
+0040A19B  |.  E8 50A2FFFF   |call    004043F0
+0040A1A0  |.  0FB7C0        |movzx   eax, ax
+0040A1A3  |.  50            |push    eax
+0040A1A4  |.  8D4D E0       |lea     ecx, dword ptr [ebp-20]
+0040A1A7  |.  E8 94010000   |call    0040A340
+0040A1AC  |>^ EB B7         \jmp     short 0040A165                  ;  这段去掉假码前6位中位置为余数a的那位，保存为新字符串StrA
+0040A1AE  |>  8D4D D4       lea     ecx, dword ptr [ebp-2C]
+0040A1B1  |.  E8 3A7BFFFF   call    00401CF0
+0040A1B6  |.  C645 FC 02    mov     byte ptr [ebp-4], 2
+0040A1BA  |.  C745 CC 00000>mov     dword ptr [ebp-34], 0
+0040A1C1  |.  EB 09         jmp     short 0040A1CC
+0040A1C3  |>  8B4D CC       /mov     ecx, dword ptr [ebp-34]
+0040A1C6  |.  83C1 01       |add     ecx, 1
+0040A1C9  |.  894D CC       |mov     dword ptr [ebp-34], ecx
+0040A1CC  |>  837D CC 07     cmp     dword ptr [ebp-34], 7
+0040A1D0  |.  7D 45         |jge     short 0040A217
+0040A1D2  |.  BA 10000000   |mov     edx, 10
+0040A1D7  |.  2B55 CC       |sub     edx, dword ptr [ebp-34]
+0040A1DA  |.  8955 C8       |mov     dword ptr [ebp-38], edx
+0040A1DD  |.  8B45 D8       |mov     eax, dword ptr [ebp-28]
+0040A1E0  |.  3B45 CC       |cmp     eax, dword ptr [ebp-34]
+0040A1E3  |.  75 12         |jnz     short 0040A1F7
+0040A1E5  |.  8B4D C8       |mov     ecx, dword ptr [ebp-38]
+0040A1E8  |.  51            |push    ecx
+0040A1E9  |.  8D4D 08       |lea     ecx, dword ptr [ebp+8]
+0040A1EC  |.  E8 FFA1FFFF   |call    004043F0
+0040A1F1  |.  66:8945 E4    |mov     word ptr [ebp-1C], ax
+0040A1F5  |.  EB 1E         |jmp     short 0040A215
+0040A1F7  |>  837D CC 05    |cmp     dword ptr [ebp-34], 5
+0040A1FB  |.  74 18         |je      short 0040A215
+0040A1FD  |.  8B55 C8       |mov     edx, dword ptr [ebp-38]
+0040A200  |.  52            |push    edx
+0040A201  |.  8D4D 08       |lea     ecx, dword ptr [ebp+8]
+0040A204  |.  E8 E7A1FFFF   |call    004043F0
+0040A209  |.  0FB7C0        |movzx   eax, ax
+0040A20C  |.  50            |push    eax
+0040A20D  |.  8D4D D4       |lea     ecx, dword ptr [ebp-2C]
+0040A210  |.  E8 2B010000   |call    0040A340
+0040A215  |>^ EB AC         \jmp     short 0040A1C3                  ;  这段去掉假码末6位中位置为余数b的那位，倒序保存为新字符串StrB
+0040A217  |>  0FB775 EC     movzx   esi, word ptr [ebp-14]
+0040A21B  |.  0FB74D 0C     movzx   ecx, word ptr [ebp+C]
+0040A21F  |.  51            push    ecx
+0040A220  |.  51            push    ecx
+0040A221  |.  8BCC          mov     ecx, esp
+0040A223  |.  8965 B4       mov     dword ptr [ebp-4C], esp
+0040A226  |.  8D55 E0       lea     edx, dword ptr [ebp-20]
+0040A229  |.  52            push    edx
+0040A22A  |.  E8 E17AFFFF   call    00401D10
+0040A22F  |.  8945 94       mov     dword ptr [ebp-6C], eax          ;  StrA
+0040A232  |.  8B4D A0       mov     ecx, dword ptr [ebp-60]          ;  密码表
+0040A235  |.  E8 56050000   call    0040A790                         ;  算法一
+0040A23A  |.  66:8945 92    mov     word ptr [ebp-6E], ax            ;  返回值
+0040A23E  |.  0FB745 92     movzx   eax, word ptr [ebp-6E]
+0040A242  |.  3BF0          cmp     esi, eax                         ;  和余数a去掉的那一位的ascii比较
+0040A244  |.  0F85 AE000000 jnz     0040A2F8                         ;  跳则死
+0040A24A  |.  0FB775 E4     movzx   esi, word ptr [ebp-1C]
+0040A24E  |.  0FB74D 10     movzx   ecx, word ptr [ebp+10]
+0040A252  |.  51            push    ecx
+0040A253  |.  51            push    ecx
+0040A254  |.  8BCC          mov     ecx, esp
+0040A256  |.  8965 B0       mov     dword ptr [ebp-50], esp
+0040A259  |.  8D55 D4       lea     edx, dword ptr [ebp-2C]
+0040A25C  |.  52            push    edx
+0040A25D  |.  E8 AE7AFFFF   call    00401D10
+0040A262  |.  8945 8C       mov     dword ptr [ebp-74], eax          ;  StrB
+0040A265  |.  8B4D A0       mov     ecx, dword ptr [ebp-60]          ;  密码表
+0040A268  |.  E8 23050000   call    0040A790                         ;  算法二
+0040A26D  |.  66:8945 8A    mov     word ptr [ebp-76], ax            ;  返回值
+0040A271  |.  0FB745 8A     movzx   eax, word ptr [ebp-76]
+0040A275  |.  3BF0          cmp     esi, eax                         ;  和余数a去掉的那一位的ascii比较
+0040A277  |.  75 7F         jnz     short 0040A2F8                   ;  跳则死
+0040A279  |.  6A 05         push    5
+0040A27B  |.  83EC 08       sub     esp, 8
+0040A27E  |.  DD05 68114400 fld     qword ptr [441168]               ;  24
+0040A284  |.  DD1C24        fstp    qword ptr [esp]
+0040A287  |.  E8 D4000000   call    0040A360                         ;  24的5次方
+0040A28C  |.  83C4 0C       add     esp, 0C
+0040A28F  |.  E8 8C4E0200   call    0042F120                         ;  =798000
+0040A294  |.  8945 C0       mov     dword ptr [ebp-40], eax
+0040A297  |.  51            push    ecx
+0040A298  |.  8BCC          mov     ecx, esp
+0040A29A  |.  8965 AC       mov     dword ptr [ebp-54], esp
+0040A29D  |.  8D55 E0       lea     edx, dword ptr [ebp-20]
+0040A2A0  |.  52            push    edx
+0040A2A1  |.  E8 6A7AFFFF   call    00401D10
+0040A2A6  |.  8945 84       mov     dword ptr [ebp-7C], eax
+0040A2A9  |.  8B4D A0       mov     ecx, dword ptr [ebp-60]
+0040A2AC  |.  E8 FF030000   call    0040A6B0                         ;  算法三
+0040A2B1  |.  8945 80       mov     dword ptr [ebp-80], eax          ;  结果A
+0040A2B4  |.  8B45 80       mov     eax, dword ptr [ebp-80]
+0040A2B7  |.  8945 C4       mov     dword ptr [ebp-3C], eax
+0040A2BA  |.  51            push    ecx
+0040A2BB  |.  8BCC          mov     ecx, esp
+0040A2BD  |.  8965 A8       mov     dword ptr [ebp-58], esp
+0040A2C0  |.  8D55 D4       lea     edx, dword ptr [ebp-2C]
+0040A2C3  |.  52            push    edx
+0040A2C4  |.  E8 477AFFFF   call    00401D10
+0040A2C9  |.  8985 7CFFFFFF mov     dword ptr [ebp-84], eax
+0040A2CF  |.  8B4D A0       mov     ecx, dword ptr [ebp-60]
+0040A2D2  |.  E8 D9030000   call    0040A6B0                         ;  算法四
+0040A2D7  |.  8985 78FFFFFF mov     dword ptr [ebp-88], eax          ;  结果B
+0040A2DD  |.  8B85 78FFFFFF mov     eax, dword ptr [ebp-88]
+0040A2E3  |.  8945 BC       mov     dword ptr [ebp-44], eax
+0040A2E6  |.  8B4D C4       mov     ecx, dword ptr [ebp-3C]
+0040A2E9  |.  034D DC       add     ecx, dword ptr [ebp-24]          ;  结果A+结果B+S
+0040A2EC  |.  034D BC       add     ecx, dword ptr [ebp-44]
+0040A2EF  |.  394D C0       cmp     dword ptr [ebp-40], ecx          ;  和0x798000比较
+0040A2F2  |.  75 04         jnz     short 0040A2F8                   ;  不等则死
+0040A2F4  |.  C645 F3 01    mov     byte ptr [ebp-D], 1              ;  设置标志位[ebp-D]
+0040A2F8  |>  C645 FC 01    mov     byte ptr [ebp-4], 1
+0040A2FC  |.  8D4D D4       lea     ecx, dword ptr [ebp-2C]
+0040A2FF  |.  E8 AC84FFFF   call    004027B0
+0040A304  |.  C645 FC 00    mov     byte ptr [ebp-4], 0
+0040A308  |.  8D4D E0       lea     ecx, dword ptr [ebp-20]
+0040A30B  |.  E8 A084FFFF   call    004027B0
+0040A310  |>  8A55 F3       mov     dl, byte ptr [ebp-D]             ;  取出标志位[ebp-D]，爆破点
+0040A313  |.  8855 A7       mov     byte ptr [ebp-59], dl            ;  另存
+0040A316  |.  C745 FC FFFFF>mov     dword ptr [ebp-4], -1
+0040A31D  |.  8D4D 08       lea     ecx, dword ptr [ebp+8]
+0040A320  |.  E8 8B84FFFF   call    004027B0
+0040A325  |.  8A45 A7       mov     al, byte ptr [ebp-59]
+0040A328  |.  8B4D F4       mov     ecx, dword ptr [ebp-C]
+0040A32B  |.  64:890D 00000>mov     dword ptr fs:[0], ecx
+0040A332  |.  59            pop     ecx
+0040A333  |.  5E            pop     esi
+0040A334  |.  8BE5          mov     esp, ebp
+0040A336  |.  5D            pop     ebp
+0040A337  \.  C2 0C00       retn    0C
+```
