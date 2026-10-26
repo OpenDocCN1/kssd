@@ -1,0 +1,194 @@
+
+# [原创][原创]D3D HOOK 游戏透视实现
+
+大家好 今天带来的是`D3D HOOK`游戏透视实现
+
+我是小叮当 编译 自己 下载 `DX SDK`
+
+```cpp
+#include <windows.h>
+#include <d3d9.h>
+#pragma comment(lib, "d3d9.lib")
+#include <d3dx9.h>
+#pragma comment(lib, "d3dx9.lib")
+#include <time.h>
+#include <stdlib.h>
+#include <fstream>
+#include <vector>
+#include <D3dx9tex.h>
+#include <stdio.h>
+#include <time.h>
+#include <tchar.h>
+#include <iostream>
+#pragma warning(disable:4996)//VC++ 2008
+```
+
+```cpp
+//-----------//
+bool fCall = true;
+bool Chams = false;
+bool zhunxin = false;
+bool bMenu = false;
+int menux= 10;
+int menuy= 15;
+IDirect3DPixelShader9 *Front,
+                      *Back;
+//----------//
+void DrawFont (int X, int Y, D3DCOLOR Color, char *format, ...)
+{
+  char buffer[256];
+  va_list args;
+  va_start (args, format);
+  vsprintf (buffer,format, args);
+  RECT FontRect = { X, Y, X + 120, Y + 90 };//原始大小 16
+  va_end (args);
+}
+```
+
+```cpp
+HRESULT CreateMyShader(IDirect3DPixelShader9 **pShader, IDirect3DDevice9 *Device, float red, float green, float blue, float alpha )
+{
+    ID3DXBuffer *MyBuffer = NULL;
+    char MyShader[ 256 ];
+    sprintf( MyShader, "ps.1.1\ndef c0, %f, %f, %f, %f\nmov r0,c0", red/255, green/255, blue/255, alpha/255 );
+    D3DXAssembleShader( MyShader, sizeof( MyShader ), NULL, NULL, 0, &MyBuffer , NULL );
+    if( FAILED( Device->CreatePixelShader((const DWORD*)MyBuffer ->GetBufferPointer(), pShader)) )return E_FAIL;
+    return S_OK;
+}
+```
+
+```cpp
+//=====================================================================================
+typedef HRESULT (WINAPI* CreateDevice_Prototype)        (LPDIRECT3D9, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESENT_PARAMETERS*, LPDIRECT3DDEVICE9*);
+typedef HRESULT (WINAPI* Reset_Prototype)               (LPDIRECT3DDEVICE9, D3DPRESENT_PARAMETERS*);
+typedef HRESULT (WINAPI* EndScene_Prototype)            (LPDIRECT3DDEVICE9);
+typedef HRESULT (WINAPI* DrawIndexedPrimitive_Prototype)(LPDIRECT3DDEVICE9, D3DPRIMITIVETYPE, INT, UINT, UINT, UINT, UINT);
+
+CreateDevice_Prototype         CreateDevice_Pointer         = NULL;
+Reset_Prototype                Reset_Pointer                = NULL;
+EndScene_Prototype             EndScene_Pointer             = NULL;
+DrawIndexedPrimitive_Prototype DrawIndexedPrimitive_Pointer = NULL;
+
+HRESULT WINAPI Direct3DCreate9_VMTable    (VOID);
+HRESULT WINAPI CreateDevice_Detour        (LPDIRECT3D9, UINT, D3DDEVTYPE, HWND, DWORD, D3DPRESENT_PARAMETERS*, LPDIRECT3DDEVICE9*);
+HRESULT WINAPI Reset_Detour               (LPDIRECT3DDEVICE9, D3DPRESENT_PARAMETERS*);
+HRESULT WINAPI EndScene_Detour            (LPDIRECT3DDEVICE9);
+HRESULT WINAPI DrawIndexedPrimitive_Detour(LPDIRECT3DDEVICE9, D3DPRIMITIVETYPE, INT, UINT, UINT, UINT, UINT);
+DWORD WINAPI VirtualMethodTableRepatchingLoopToCounterExtensionRepatching(LPVOID);
+PDWORD Direct3D_VMTable = NULL;
+```
+
+```cpp
+BOOL WINAPI DllMain(HINSTANCE hinstModule, DWORD dwReason, LPVOID lpvReserved)
+{
+  if(dwReason == DLL_PROCESS_ATTACH)
+  {
+    DisableThreadLibraryCalls(hinstModule);
+    if(Direct3DCreate9_VMTable() == D3D_OK)
+    return TRUE;
+  }
+  return FALSE;
+}
+```
+
+```cpp
+HRESULT WINAPI Direct3DCreate9_VMTable(VOID)
+{
+  LPDIRECT3D9 Direct3D_Object = Direct3DCreate9(D3D_SDK_VERSION);
+  if(Direct3D_Object == NULL)
+  return D3DERR_INVALIDCALL;
+  Direct3D_VMTable = (PDWORD)*(PDWORD)Direct3D_Object;
+  Direct3D_Object->Release();
+  DWORD dwProtect;
+  if(VirtualProtect(&Direct3D_VMTable[16], sizeof(DWORD), PAGE_READWRITE, &dwProtect) != 0)
+  {
+    *(PDWORD)&CreateDevice_Pointer = Direct3D_VMTable[16];
+    *(PDWORD)&Direct3D_VMTable[16] = (DWORD)CreateDevice_Detour;
+    if(VirtualProtect(&Direct3D_VMTable[16], sizeof(DWORD), dwProtect, &dwProtect) == 0)
+    return D3DERR_INVALIDCALL;
+  }
+  else
+  return D3DERR_INVALIDCALL;
+  return D3D_OK;
+}
+```
+
+```cpp
+HRESULT WINAPI CreateDevice_Detour(LPDIRECT3D9 Direct3D_Object, UINT Adapter, D3DDEVTYPE DeviceType, HWND FocusWindow,
+                    DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* PresentationParameters,
+                    LPDIRECT3DDEVICE9* Returned_Device_Interface)
+{
+  HRESULT Returned_Result = CreateDevice_Pointer(Direct3D_Object, Adapter, DeviceType, FocusWindow, BehaviorFlags,
+                                              PresentationParameters, Returned_Device_Interface);
+  DWORD dwProtect;
+  if(VirtualProtect(&Direct3D_VMTable[16], sizeof(DWORD), PAGE_READWRITE, &dwProtect) != 0)
+  {
+    *(PDWORD)&Direct3D_VMTable[16] = *(PDWORD)&CreateDevice_Pointer;
+    CreateDevice_Pointer           = NULL;
+    if(VirtualProtect(&Direct3D_VMTable[16], sizeof(DWORD), dwProtect, &dwProtect) == 0)
+    return D3DERR_INVALIDCALL;
+  }
+  else
+  return D3DERR_INVALIDCALL;
+  if(Returned_Result == D3D_OK)
+  {
+    Direct3D_VMTable = (PDWORD)*(PDWORD)*Returned_Device_Interface;
+    *(PDWORD)&Reset_Pointer                = (DWORD)Direct3D_VMTable[16];
+    *(PDWORD)&EndScene_Pointer             = (DWORD)Direct3D_VMTable[42];
+    *(PDWORD)&DrawIndexedPrimitive_Pointer = (DWORD)Direct3D_VMTable[82];
+    if(CreateThread(NULL, 0, VirtualMethodTableRepatchingLoopToCounterExtensionRepatching, NULL, 0, NULL) == NULL)
+    return D3DERR_INVALIDCALL;
+  }
+  return Returned_Result;
+}
+```
+
+```cpp
+HRESULT WINAPI Reset_Detour(LPDIRECT3DDEVICE9 Device_Interface, D3DPRESENT_PARAMETERS* PresentationParameters)
+{
+  return Reset_Pointer(Device_Interface, PresentationParameters);
+}
+```
+
+```cpp
+HRESULT WINAPI EndScene_Detour(LPDIRECT3DDEVICE9 Device_Interface)
+{
+  return EndScene_Pointer(Device_Interface);
+}
+```
+
+```cpp
+HRESULT WINAPI DrawIndexedPrimitive_Detour(LPDIRECT3DDEVICE9 Device_Interface, D3DPRIMITIVETYPE Type, INT BaseIndex,
+                                           UINT MinIndex, UINT NumVertices, UINT StartIndex, UINT PrimitiveCount)
+{
+  LPDIRECT3DVERTEXBUFFER9 Stream_Data;
+  UINT Offset = 0;
+  UINT Stride = 0;
+  if(Device_Interface->GetStreamSource(0, &Stream_Data, &Offset, &Stride) == D3D_OK)
+  Stream_Data->Release();
+
+  if(fCall)
+  {
+  CreateMyShader( &Front, Device_Interface,    0,   255,   0,   0 );
+  CreateMyShader( &Back,  Device_Interface,    255,   255,   0,   0 );
+  DrawFont( menux+1,menuy+1, D3DCOLOR_ARGB(255,255,215,0), "小叮当 透视");
+  fCall = false;
+  }
+
+  if( GetAsyncKeyState( VK_NUMPAD2 ) & 2 )
+  {
+    zhunxin = !zhunxin;
+  }
+    if( zhunxin )
+  {
+    D3DVIEWPORT9 viewP;
+    Device_Interface->GetViewport( &viewP );
+    DWORD ScreenCenterX = viewP.Width / 2;
+    DWORD ScreenCenterY = viewP.Height / 2;
+    D3DRECT rec16 = {ScreenCenterX-5, ScreenCenterY, ScreenCenterX+ 5, ScreenCenterY+1};
+    D3DRECT rec17 = {ScreenCenterX, ScreenCenterY-5, ScreenCenterX+ 1,ScreenCenterY+5};
+    Device_Interface->Clear( 1, &rec16, D3DCLEAR_TARGET, D3DXCOLOR(0, 255, 0, 0), 0,  0 );
+    Device_Interface->Clear( 1, &rec17, D3DCLEAR_TARGET, D3DXCOLOR(255, 255, 0, 0), 0,  0 );
+  }
+}
+```
