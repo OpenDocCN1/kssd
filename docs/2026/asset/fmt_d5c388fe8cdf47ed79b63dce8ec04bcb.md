@@ -1,0 +1,216 @@
+
+# [原创]WinCHM v5.01分析
+
+【文章标题】WinCHM v5.01分析  
+【文章作者】lacoucou  
+【软件名称】WinCHM  
+【软件大小】6.66 MB  
+【原版下载】`179K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4y4G2k6Y4c8S2L8Y4W2Q4x3X3g2U0L8$3#2Q4x3V1k6%4K9h3&6U0K9r3#2Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5k6h3S2@1L8g2)9J5y4X3&6T1M7%4m8Q4x3@1t1`.  
+【保护方式】序列号  
+【软件简介】WinCHM是一款简单易用的html帮助制作软件.  
+【作者声明】本文仅供研究学习，本人对因这篇文章而导致的一切后果，不承担任何法律责任。本文中的不足之处请多多指教。
+
+## 分析过程
+
+### 大体简介
+
+这个软件结构比较简单, Delphi写的 . 注册机制是: 十五天的试用时间，十五天之内可以使用软件，但是在生成的chm文件标题上会有没有注册字样。过了十五天没注册就没法使用。
+
+注册算法：根据注册码算出一个固定值然后跟存好的值比较来判断版本。
+
+注册信息保存位置：
+
+`HKEY_CURRENT_USER\Software\Softany\winchm` 下边。
+
+不过判断部分太失败了, 竟然是明码比较的方式, 当然为了不太扫兴, 我大概分析了下整个程序的算法.
+
+运行程序会显示`15days left...`这样的提示。点击注册按钮有错误提示。Illegal registration code!
+
+用IDA搜索字符串。
+
+![](https://bbs.kanxue.com/upload/attach/201504/244630_6xk4hiolpjcnpvs.jpg)
+
+往上边一找就找到关键点：
+
+```
+0057179C  |.  A1 0C265E00   MOV EAX,DWORD PTR DS:[0x5E260C]
+005717A1  |.  8338 00       CMP DWORD PTR DS:[EAX],0x0
+005717A4  |.  74 57         JE SHORT winchm.005717FD                 ;  关键跳
+005717A6  |.  8B0D 0C265E00 MOV ECX,DWORD PTR DS:[0x5E260C]          ;  winchm.005E84E8
+005717AC  |.  8B09          MOV ECX,DWORD PTR DS:[ECX]
+005717AE  |.  8D45 FC       LEA EAX,[LOCAL.1]
+005717B1  |.  BA 58185700   MOV EDX,winchm.00571858                  ;  UNICODE "Thank you for purchasing our product!\r\n\r\nLicense type: "
+005717B6  |.  E8 BD5AE9FF   CALL winchm.00407278
+005717BB  |.  A1 902A5E00   MOV EAX,DWORD PTR DS:[0x5E2A90]
+005717C0  |.  8338 01       CMP DWORD PTR DS:[EAX],0x1
+005717C3  |.  75 1C         JNZ SHORT winchm.005717E1
+005717C5  |.  FF75 FC       PUSH [LOCAL.1]
+005717C8  |.  68 D4185700   PUSH winchm.005718D4                     ;  UNICODE "\r\n"
+005717CD  |.  68 E8185700   PUSH winchm.005718E8                     ;  UNICODE "Version: WinCHM Pro"
+005717D2  |.  8D45 FC       LEA EAX,[LOCAL.1]
+005717D5  |.  BA 03000000   MOV EDX,0x3
+005717DA  |.  E8 7D5BE9FF   CALL winchm.0040735C
+005717DF  |.  EB 29         JMP SHORT winchm.0057180A
+005717E1  |>  FF75 FC       PUSH [LOCAL.1]
+005717E4  |.  68 D4185700   PUSH winchm.005718D4                     ;  UNICODE "\r\n"
+005717E9  |.  68 1C195700   PUSH winchm.0057191C                     ;  UNICODE "Version: WinCHM (Standard)"
+005717EE  |.  8D45 FC       LEA EAX,[LOCAL.1]
+005717F1  |.  BA 03000000   MOV EDX,0x3
+005717F6  |.  E8 615BE9FF   CALL winchm.0040735C
+005717FB  |.  EB 0D         JMP SHORT winchm.0057180A
+005717FD  |>  8D45 FC       LEA EAX,[LOCAL.1]
+00571800  |.  BA 60195700   MOV EDX,winchm.00571960                  ;  UNICODE "Illegal registration code!"
+00571805  |.  E8 0656E9FF   CALL winchm.00406E10
+0057180A  |>  8B45 FC       MOV EAX,[LOCAL.1]
+0057180D  |.  E8 3650F5FF   CALL winchm.004C6848
+```
+
+这里的关键就是全局地址`0x5E260C`。
+
+查找对这个全局变量的引用。
+
+![](https://bbs.kanxue.com/upload/attach/201504/244630_gc6c2cuqv6pj4mb.jpg)
+
+这些判读过程分布于程序的整个生命。
+
+程序在启动时读取主表表中保存的`RegName`和`RegCode`。根据读取到的信息调用调用`sub_005704EC`验证，如果验证不通过就根据第一次使用时间和最后关闭IE的时间的比较判断软件的使用时间。
+
+### 关键算法
+
+```
+005704EC  /$  55            PUSH EBP
+005704ED  |.  8BEC          MOV EBP,ESP
+005704EF  |.  83C4 D8       ADD ESP,-0x28
+005704F2  |.  53            PUSH EBX
+005704F3  |.  33C9          XOR ECX,ECX
+005704F5  |.  894D F4       MOV [LOCAL.3],ECX
+005704F8  |.  894D F0       MOV [LOCAL.4],ECX
+005704FB  |.  894D EC       MOV [LOCAL.5],ECX
+005704FE  |.  894D E8       MOV [LOCAL.6],ECX
+00570501  |.  894D E4       MOV [LOCAL.7],ECX
+00570504  |.  8955 F8       MOV [LOCAL.2],EDX                        ;  EDX=00D1E5AC, (UNICODE "1234-5555-6666-7777")
+00570507  |.  8945 FC       MOV [LOCAL.1],EAX                        ;  EAX=00D4C7AC, (UNICODE "lacouocu")
+0057050A  |.  8B45 FC       MOV EAX,[LOCAL.1]
+0057050D  |.  E8 9268E9FF   CALL winchm.00406DA4
+00570512  |.  8B45 F8       MOV EAX,[LOCAL.2]
+00570515  |.  E8 8A68E9FF   CALL winchm.00406DA4                     ;  结构体
+0057051A  |.  33C0          XOR EAX,EAX
+0057051C  |.  55            PUSH EBP
+0057051D  |.  68 B80D5700   PUSH winchm.00570DB8
+00570522  |.  64:FF30       PUSH DWORD PTR FS:[EAX]
+00570525  |.  64:8920       MOV DWORD PTR FS:[EAX],ESP
+00570528  |.  8D45 F4       LEA EAX,[LOCAL.3]
+0057052B  |.  8B55 F8       MOV EDX,[LOCAL.2]
+0057052E  |.  E8 DD68E9FF   CALL winchm.00406E10                     ;  copy 2_>>3
+00570533  |.  8B45 F4       MOV EAX,[LOCAL.3]
+00570536  |.  85C0          TEST EAX,EAX
+00570538  |.  74 16         JE SHORT winchm.00570550
+0057053A  |.  8BD0          MOV EDX,EAX
+0057053C  |.  83EA 0A       SUB EDX,0xA
+0057053F  |.  66:833A 02    CMP WORD PTR DS:[EDX],0x2
+00570543  |.  74 0B         JE SHORT winchm.00570550
+00570545  |.  8D45 F4       LEA EAX,[LOCAL.3]
+00570548  |.  8B55 F4       MOV EDX,[LOCAL.3]
+0057054B  |.  E8 3C5EE9FF   CALL winchm.0040638C
+00570550  |>  85C0          TEST EAX,EAX
+00570552  |.  74 05         JE SHORT winchm.00570559
+00570554  |.  83E8 04       SUB EAX,0x4
+00570557  |.  8B00          MOV EAX,DWORD PTR DS:[EAX]               ;  注册码长度
+00570559  |>  8BD8          MOV EBX,EAX
+0057055B  |.  A1 902A5E00   MOV EAX,DWORD PTR DS:[0x5E2A90]
+00570560  |.  C700 FFFFFFFF MOV DWORD PTR DS:[EAX],-0x1
+00570566  |.  8B45 F4       MOV EAX,[LOCAL.3]
+00570569  |.  E8 12F6FFFF   CALL winchm.0056FB80
+0057056E  |.  8945 D8       MOV [LOCAL.10],EAX                       ;  两个运算结果
+00570571  |.  8955 DC       MOV [LOCAL.9],EDX
+00570574 >|.  837D DC 00    CMP [LOCAL.9],0x0                        ;  关键算法
+00570578  |.  75 13         JNZ SHORT winchm.0057058D
+0057057A  |.  817D D8 2E240>CMP [LOCAL.10],0x242E
+00570581  |.  75 0A         JNZ SHORT winchm.0057058D
+00570583  |.  BB 01000000   MOV EBX,0x1
+00570588  |.  E9 10080000   JMP winchm.00570D9D
+0057058D  |>  837D DC 00    CMP [LOCAL.9],0x0
+00570591  |.  75 13         JNZ SHORT winchm.005705A6
+00570593  |.  817D D8 58370>CMP [LOCAL.10],0x3758
+0057059A  |.  75 0A         JNZ SHORT winchm.005705A6
+0057059C  |.  BB 02000000   MOV EBX,0x2
+005705A1  |.  E9 F7070000   JMP winchm.00570D9D
+005705A6  |>  837D DC 00    CMP [LOCAL.9],0x0
+005705AA  |.  75 13         JNZ SHORT winchm.005705BF
+005705AC  |.  817D D8 1A330>CMP [LOCAL.10],0x331A
+005705B3  |.  75 0A         JNZ SHORT winchm.005705BF
+005705B5  |.  BB 03000000   MOV EBX,0x3
+```
+
+### 验证注册码的算法
+
+```
+0056FBEA  |.  B9 01000000   MOV ECX,0x1
+0056FBEF  |>  8B45 F8       /MOV EAX,[LOCAL.2]
+0056FBF2  |.  0FB74448 FE   |MOVZX EAX,WORD PTR DS:[EAX+ECX*2-0x2]   ;  szBuf[i]
+0056FBF7  |.  F7E9          |IMUL ECX                                ;  i*szBuf[i]
+0056FBF9  |.  99            |CDQ
+0056FBFA  |.  0345 E8       |ADD EAX,[LOCAL.6]                       ;  local_6+=i*szBuf[i]
+0056FBFD  |.  1355 EC       |ADC EDX,[LOCAL.5]
+0056FC00  |.  8945 E8       |MOV [LOCAL.6],EAX
+0056FC03  |.  8955 EC       |MOV [LOCAL.5],EDX
+0056FC06  |.  41            |INC ECX
+0056FC07  |.  4B            |DEC EBX
+0056FC08  |.^ 75 E5         \JNZ SHORT winchm.0056FBEF
+```
+
+就相当与：
+
+```
+    char* szBuf="111122223333";//注册码
+
+    int nSum=0;
+
+    for (int i=0;i<strlen(szBuf);i++)
+
+    {
+
+        nSum+=i*szBuf[i];
+
+    }
+```
+
+当然程序中是UNICODE版的。。。。
+
+最后就是用计算出来的`nSum`跟不同的值比较来区别不同的版本。
+
+![](https://bbs.kanxue.com/upload/attach/201504/244630_p50kfnn11qr8wrl.jpg)
+
+`Local.10`里边就是`nSum`的结果。
+
+这个算法反推太费事，直接爆破：
+
+```
+00570569  |.  E8 12F6FFFF   CALL winchm.0056FB80
+```
+
+这个事算法call。把开头改为：
+
+```
+Mov eax,0x2c4c
+Xor edxx,edx
+Retn
+```
+
+就搞定了。
+
+## 破解感悟
+
+OD的字符串搜索各种不给力啊！！
+
+机器上没装DEDE，结果走了不少弯路，如果用DEDE找到注册事件，应该就会快很多！！！
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+[#调试逆向](https://bbs.kanxue.com/forum-4-1-1.htm)
+
+上传的附件：
+
+- [1.jpg](javascript:void(0);)（53.23kb，5次下载）
+- [2.jpg](javascript:void(0);)（120.98kb，4次下载）
+- [3.jpg](javascript:void(0);)（176.30kb，4次下载）
