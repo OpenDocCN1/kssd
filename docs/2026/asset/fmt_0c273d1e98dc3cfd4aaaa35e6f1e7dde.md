@@ -1,0 +1,174 @@
+
+# [原创]ACProtect1.41－同益起名 完美脱壳
+
+ACProtect 1.41 -- 同益起名大师 v3.36、v3.37、vp3.33(专业版)完美脱壳
+
+by gzgzlxg
+
+使用工具: OllyDBG、PE Explorer、PEditor、IDA
+
+软    件: 同益起名大师 v3.36、v3.37、vp3.33
+
+邮    箱: gzgzlxg@hotmail.com
+
+原创于看雪技术论坛(c56K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4m8W2k6r3W2&6i4K6u0W2j5$3!0E0i4K6t1&6 和 DFCG官方网站，并保持文章的完整性！
+
+请不要发信到我的邮箱去，请我破解同益起名软件。
+
+对文中的技术问题，可来信询问，其余一概不理。
+
+## 一、Dump
+
+用OD载入 `goodname.exe` （这里以 v3.36 做样板分析，其他版本将地址顺序移动即可）
+
+OD 设置：忽略全部异常，忽略硬件中断。
+
+将 OD 改名为按如下方法建立的任意名字：
+
+运算规则：将文件名最后12个字符由前往后按双字相加等于下列任何一个数值
+
+`0E3EDEFC2h`
+
+`0CAF9D7CEh`
+
+`* 0E8EDDAC5h`
+
+`0DB02D9C3h`
+
+`0BAD9D2D2h`
+
+例如 `GEESPPPP.EXE = 53454547h + 50505050h + 4558452Eh = 0E8EDDAC5h`
+
+(文中省略许多解说，fly大侠和股林精怪都有详细介绍，我不便多说，有画蛇添足之嫌。“眼前有景道不得，飞怪说文在天上”)
+
+在输入表区下内存写入断点。
+
+操作: 鼠标点内存操作 `M` ，在 `.idata` 行按鼠标右键，选设置内存写入断点
+
+`Shift + F9`
+
+在如下位置中断：
+
+```
+00690848    8366 0C 00      and dword ptr ds:[esi+C],0
+0069084C    03C2            add eax,edx
+```
+
+这段代码是壳用来建立一个变形的用户输入表，下面是 IDA中的详细分析，加有注解，我就不再解释了。省略了代码的前后都是加密解码部分。按代码注解中的位置Nop 某些地方。
+
+(我在 DFCG 官方网站－【基础知识交流】中登载了全部壳代码(html格式)有兴趣研究的朋友可以上那里去下载，另外还有4篇关于壳的详细解释，但没有最后写完，因无人欣赏，所以也就不在续了)
+
+```
+.perplex:00690661 ; ============== S U B R O U T I N E ==================================
+.perplex:00690661 ; int __cdecl CreateDistortionImportTable()
+.perplex:00690661 CreateDistortionImportTable proc near
+.perplex:00690661               pusha
+//这里省略了解码过程
+......
+......
+.perplex:0069080C loc_69080C:
+.perplex:0069080C               call GetRelativeBaseAddr27B000
+.perplex:00690811               mov byte ptr ss:(CreateDistortionImportTable+401000h - Start)[ebp], 0C3h
+.perplex:00690818               mov ss:(lpDistortionImportTable+401000h - Start)[ebp], 401000h
+.perplex:00690822               add ss:(lpDistortionImportTable+401000h - Start)[ebp], ebp ; 401000+27B000=67C000
+.perplex:00690828               add ss:(lpDistortionImportTable+401000h - Start)[ebp], 10h ; 67C000+10=67C010
+.perplex:00690828                                       ; 将在原来启动时的代码处建立一个加过密的 API 调用表，
+.perplex:00690828                                       ; 加密方法只是简单的异或：结构如下：
+.perplex:00690828                                       ; push A
+.perplex:00690828                                       ; xor dword ptr [esp],B
+.perplex:00690828                                       ; ret
+.perplex:00690828                                       ; 这里原来 API 调用地址= A xor B
+.perplex:0069082F               mov edx, ss:(BaseAddr_400000+401000h - Start)[ebp] ; 400000
+.perplex:00690835               mov esi, ss:(OriginalImportTableOffset+401000h - Start)[ebp] ; 181000
+.perplex:0069083B               add esi, edx            ; 581000 原输入表入口
+.perplex:0069083D LoopCreateDistortionImportTable:
+.perplex:0069083D               mov eax, [esi+IMAGE_IMPORT_DESCRIPTOR.Name]
+.perplex:00690840               or eax, eax
+.perplex:00690842               jz loc_690A6D
+//中断在这里
+.perplex:00690848 这里清除 IMAGE_IMPORT_DESCRIPTOR 结构中的 Name   *** Nop 这句
+.perplex:00690848               and [esi+IMAGE_IMPORT_DESCRIPTOR.Name], 0
+.perplex:0069084C               add eax, edx            ; 指向 IMAGE_IMPORT_DESCRIPTOR.Name 指向的函数名指针
+.perplex:0069084E               mov ebx, eax
+.perplex:00690850               push esi
+.perplex:00690851               push edi
+.perplex:00690852               push eax
+.perplex:00690853               mov esi, ebx
+.perplex:00690855               mov edi, ebx
+.perplex:00690857 loc_690857:
+.perplex:00690857               lodsb
+.perplex:00690858               rol al, 3               ; 这里经过简单的移位，恢复原函数名；
+.perplex:0069085B               stosb
+.perplex:0069085C               cmp byte ptr [edi], 0
+.perplex:0069085F               jnz short loc_690857
+.perplex:00690861               pop eax
+.perplex:00690862               pop edi
+.perplex:00690863               pop esi
+.perplex:00690864               push eax                ; lpModuleName
+.perplex:00690865               call ss:(GetModuleHandleA+401000h - Start)[ebp]
+.perplex:0069086B               or eax, eax
+.perplex:0069086D               jnz short loc_6908B2
+.perplex:0069086F               db 4 dup(90h)
+.perplex:00690873               push ebx                ; lpLibFileName
+.perplex:00690874               call ss:(LoadLibraryA+401000h - Start)[ebp]
+.perplex:0069087A               or eax, eax
+.perplex:0069087C               jnz short loc_6908B2
+.perplex:0069087E               db 4 dup(90h)
+.perplex:00690882 loc_690882:
+.perplex:00690882               mov edx, ss:(BaseAddr_400000+401000h - Start)[ebp]
+.perplex:00690888               add ss:(lpMSGCaption_0+401000h - Start)[ebp], edx
+.perplex:0069088E               add ss:(lpMSGText_0+401000h - Start)[ebp], edx
+.perplex:00690894               push 0                  ; uType
+.perplex:00690896               push ss:(lpMSGCaption_0+401000h - Start)[ebp] ; lpCaption
+.perplex:0069089C               push ss:(lpMSGText_0+401000h - Start)[ebp] ; lpText
+.perplex:006908A2               push 0                  ; hWnd
+.perplex:006908A4               call ss:(MessageBoxA+401000h - Start)[ebp]
+.perplex:006908AA               push 0                  ; uExitCode
+.perplex:006908AC               call ss:(ExitProcess+401000h - Start)[ebp]
+.perplex:006908B2 loc_6908B2:
+.perplex:006908B2               pusha
+.perplex:006908B3               sub eax, eax
+.perplex:006908B5 loc_6908B5:
+.perplex:006908B5               mov [ebx], al           ;*** 这句 Nop 掉，在取得了模块的句柄后，清除模块名(DLL文件名)
+.perplex:006908B7               inc ebx
+.perplex:006908B8               cmp [ebx], al
+.perplex:006908BA               jnz short loc_6908B5
+.perplex:006908BC               popa
+.perplex:006908BD               mov ss:(hHandle_CreateDistortionImportTable+401000h - Start)[ebp], eax
+.perplex:006908C3               mov ss:(LoopStep+401000h - Start)[ebp], 0
+.perplex:006908CD loc_6908CD:
+.perplex:006908CD               mov edx, ss:(BaseAddr_400000+401000h - Start)[ebp]
+.perplex:006908D3 如果OriginalFirstThunk不为零，则以OriginalFirstThunk为计算标准,
+.perplex:006908D3 否则以FirstThunk为计算实际地址的根据
+.perplex:006908D3               mov eax, [esi+IMAGE_IMPORT_DESCRIPTOR.OriginalFirstThunk]
+.perplex:006908D5               or eax, eax
+.perplex:006908D7               jnz short loc_6908E0
+.perplex:006908D9               db 4 dup(90h)
+.perplex:006908DD               mov eax, [esi+IMAGE_IMPORT_DESCRIPTOR.FirstThunk]
+.perplex:006908E0
+.perplex:006908E0 loc_6908E0:
+.perplex:006908E0               add eax, edx            ; 计算FirstThunk的实际地址
+.perplex:006908E2               add eax, ss:(LoopStep+401000h - Start)[ebp]
+.perplex:006908E8               mov ebx, [eax]          ; 获取FirstThunk指向的子表中的一个，由NextStep循环获取
+.perplex:006908EA               mov edi, [esi+IMAGE_IMPORT_DESCRIPTOR.FirstThunk]
+.perplex:006908ED               add edi, edx
+.perplex:006908EF               add edi, ss:(LoopStep+401000h - Start)[ebp]
+.perplex:006908F5               test ebx, ebx           ; 零表示这个模块的所以函数都处理完了。
+.perplex:006908F7               jz loc_690A5F
+.perplex:006908FD               test ebx, 80000000h     ; 如果高位置位，表示低31位是DLL的引入编号，如果高位没有置位，
+.perplex:006908FD                                       ; 则该数值是指向一个 IMAGE_IMPORT_BY_NAME struc。
+.perplex:00690903               jnz short loc_690922
+.perplex:00690905               db 4 dup(90h)
+.perplex:00690909 处理 IMAGE_IMPORT_BY_NAME struc
+.perplex:00690909               add ebx, edx            ; 计算  IMAGE_IMPORT_BY_NAME 表的实际地址
+.perplex:0069090B               add ebx, 2              ; 在偏移量为2的地方是不定长的函数名。
+.perplex:0069090E               push esi
+.perplex:0069090F               push edi
+.perplex:00690910               push eax
+.perplex:00690911               mov esi, ebx
+.perplex:00690913               mov edi, ebx
+.perplex:00690915 loc_690915:
+.perplex:00690915               lodsb
+.perplex:00690916               rol al, 3               ; 将函数名解码
+.perplex:00690919               stosb
+```

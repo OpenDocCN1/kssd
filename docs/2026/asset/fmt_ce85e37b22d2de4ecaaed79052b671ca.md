@@ -1,0 +1,227 @@
+
+# 用 Ollydbg 手脱 ACProtect
+
+V1.41 加壳的 DLL
+
+.
+
+【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+【调试环境】：WinXP、`flyODBG`、`PEiD`、`LordPE`
+
+【实例下载】：[点击此处下载](https://www.kanxue.com/pediy6922/ACProtect_DLL.rar)
+
+―――――――――――――――――――――――――――――――――
+
+## 脱壳过程
+
+`ACProtect`是非常优秀的中国强壳。至今没有脱 `ACProtect` 加壳 DLL 的教程，所以我来写个简单的过程。
+
+DLL 例子虽然是用现今最新的 `ACProtect V1.41` 专业版加壳，但是没有 SDK、`Stolen Code`，也不是 Delphi 程序，不必生搬硬套。
+
+本教程提供了寻找 `ACProtect` 加壳 DLL 重定位表信息、不用 `ImportREC` 来恢复其输入表的方法。
+
+放个 `PEiD` 的 Sign：
+
+`[ACProtect V1.3X-1.4X DLL -> risco]`
+
+`signature = 80 7C 24 08 01 0F 85`
+
+`ep_only = true`
+
+设置 `Ollydbg` 忽略所有的异常选项。老规矩：用 `IsDebug V1.4` 插件去掉 `Ollydbg` 的调试器标志。
+
+―――――――――――――――――――――――――――――――――
+
+### 一、EP 和 OEP
+
+```
+003D7000     807C24 08 01      cmp byte ptr ss:[esp+8],1
+//进入Ollydbg后暂停在这
+003D7005     0F85 FE700100     jnz EdrLib.003EE109
+//DLL退出时会跳转
+003D700B     60                pushad
+003D700C     4B                dec ebx
+003D700D     03D1              add edx,ecx
+003D700F     40                inc eax
+003D7010     85D8              test eax,ebx
+003D7012     E8 01000000       call EdrLib.003D7018
+```
+
+DLL 退出时会再次中断在 EP 处，找 OEP 就非常简单了。
+
+退出时会从 `003D7005` 处跳转，而这下面就是跳向 OEP 的地方！
+
+```
+003EE109     FF25 4BE13E00     jmp dword ptr ds:[3EE14B]; EdrLib.003D11C9
+//飞向光明之巅！ ^O^
+```
+
+―――――――――――――――――――――――――――――――――
+
+### 二、寻找重定位表信息
+
+一个有趣的现象，很多保护壳都没有加密重定位表，如 `ASProtect`、`Armadillo`、`ACProtect`、`幻影` 等；而一些压缩壳却加密了重定位表，如 `Neolite`、`Petite` 等。
+
+下断：`HE GlobalFree`   `Shift+F9` 运行，中断后取消断点。`Alt+F9` 返回
+
+```
+003E9598     FF95 03FD4000     call dword ptr ss:[ebp+40FD03]; kernel32.GlobalFree
+003E959E     5E                pop esi
+//返回这里
+003E959F     83C6 08           add esi,8
+003E95A2     EB B1             jmp short EdrLib.003E9555
+```
+
+Ctrl+F 在当前位置下搜索命令：
+
+`sub ebx,eax`
+
+找到在 `003EBB58` 处，下断，`F9` 运行，中断。
+
+```
+003EBB58     2BD8              sub ebx,eax ; LOADDLL.00400000
+//这里其实就是检测与映像基址是否相符，和ASProtect的方法一样。不符则重定位处理！★
+003EBB5A     899D 055B4100     mov dword ptr ss:[ebp+415B05],ebx
+003EBB60     0BDB              or ebx,ebx
+003EBB62     0F84 BB000000     je EdrLib.003EBC23
+//可以在这里改标志位Z=1，使其跳转，这样脱壳后就不需要修改基址了 ★
+003EBB68     8BB5 46F84000     mov esi,dword ptr ss:[ebp+40F846]
+003EBB6E     03B5 F75A4100     add esi,dword ptr ss:[ebp+415AF7]
+//[ebp+415AF7]＝[003EBAF7]＝00006000  这里保存的是重定位表的RVA  ★
+003EBB74     8B8D FB5A4100     mov ecx,dword ptr ss:[ebp+415AFB]
+//[ebp+415AFB]＝[003EBAFB]＝000003B0  这里保存的是重定位表的Size ★
+```
+
+下面处理重定位表部分就不看了。在 `003EBB62` 处，转存中跟随 `ebp+415AF7` 和 `ebp+415AFB`，得到重定位表 RVA 和 Size 后修改标志位 Z=1，使其跳转，免得脱壳后要修改基址。
+
+―――――――――――――――――――――――――――――――――
+
+### 三、搞定输入表，不用 ImportREC 了
+
+`ACProtect` 的输入表加密一直是比较弱的，作者以后肯定会加强这方面保护的。
+
+Go Go Go！呵呵，我们继续下断：`HE GetModuleHandleA`
+
+`Shift+F9` 运行，中断后取消断点。`Alt+F9` 返回。 注释如下
+
+```
+003EB479     8BB5 07F94000     mov esi,dword ptr ss:[ebp+40F907]
+003EB47F     03F2              add esi,edx
+003EB481     8B46 0C           mov eax,dword ptr ds:[esi+C]
+003EB484     0BC0              or eax,eax
+003EB486     0F84 25020000     je EdrLib.003EB6B1
+003EB48C     8366 0C 00        and dword ptr ds:[esi+C],0
+//这里清空ImageImportDescriptor的Name！     NOP掉 ①  ★
+```
+
+要注意的是，当我们中断后返回 `003EB4AF` 时，这里已经运行过一次了，清除了第一个 Name 指针。
+
+可以根据当时的寄存器情况来恢复这个指针。在 `003EB4AF` 时 `ESI＝003D442C`，`[esi+C]＝[003D4438]=00 00`，而 `EBX＝003D454C ASCII "KERNEL32.dll"` 是第一个处理的 DLL 名，所以可以确定 `[003D4438]=4C 45`，修改之，否则 DLLName 会有错误 ★
+
+```
+003EB490     03C2              add eax,edx
+003EB492     8BD8              mov ebx,eax
+003EB494     56                push esi
+003EB495     57                push edi
+003EB496     50                push eax
+003EB497     8BF3              mov esi,ebx
+003EB499     8BFB              mov edi,ebx
+003EB49B     AC                lods byte ptr ds:[esi]
+003EB49C     C0C0 03           rol al,3
+//解码出DLL名 ★
+003EB49F     AA                stos byte ptr es:[edi]
+003EB4A0     803F 00           cmp byte ptr ds:[edi],0
+003EB4A3     75 F6             jnz short EdrLib.003EB49B
+003EB4A5     58                pop eax
+003EB4A6     5F                pop edi
+003EB4A7     5E                pop esi
+003EB4A8     50                push eax
+003EB4A9     FF95 20854100     call dword ptr ss:[ebp+418520]; kernel32.GetModuleHandleA
+003EB4AF     0BC0              or eax,eax
+//返回这里
+//此时ESI＝003D442C-003D0000＝442C   输入表的RVA  ★
+003EB4B1     75 43             jnz short EdrLib.003EB4F6
+003EB4F6     60                pushad
+003EB4F7     2BC0              sub eax,eax
+003EB4F9     8803              mov byte ptr ds:[ebx],al
+//用完之后清空DLL名   NOP掉 ②！ ★
+003EB4FB     43                inc ebx
+003EB4FC     3803              cmp byte ptr ds:[ebx],al
+003EB4FE     75 F9             jnz short EdrLib.003EB4F9
+003EB500     61                popad
+003EB501     8985 3EF84000     mov dword ptr ss:[ebp+40F83E],eax
+//保存DLL基址
+003EB507     C785 42F84000 000>mov dword ptr ss:[ebp+40F842],0
+003EB511     8B95 46F84000     mov edx,dword ptr ss:[ebp+40F846]
+003EB517     8B06              mov eax,dword ptr ds:[esi]
+003EB519     0BC0              or eax,eax
+003EB51B     75 07             jnz short EdrLib.003EB524
+003EB51D     90                nop
+003EB51E     90                nop
+003EB51F     90                nop
+003EB520     90                nop
+003EB521     8B46 10           mov eax,dword ptr ds:[esi+10]
+003EB524     03C2              add eax,edx
+003EB526     0385 42F84000     add eax,dword ptr ss:[ebp+40F842]
+003EB52C     8B18              mov ebx,dword ptr ds:[eax]
+003EB52E     8B7E 10           mov edi,dword ptr ds:[esi+10]
+003EB531     03FA              add edi,edx
+003EB533     03BD 42F84000     add edi,dword ptr ss:[ebp+40F842]
+003EB539     85DB              test ebx,ebx
+003EB53B     0F84 62010000     je EdrLib.003EB6A3
+003EB541     F7C3 00000080     test ebx,80000000
+003EB547     75 1D             jnz short EdrLib.003EB566
+003EB549     90                nop
+003EB54A     90                nop
+003EB54B     90                nop
+003EB54C     90                nop
+003EB54D     03DA              add ebx,edx
+003EB54F     83C3 02           add ebx,2
+003EB552     56                push esi
+003EB553     57                push edi
+003EB554     50                push eax
+003EB555     8BF3              mov esi,ebx
+003EB557     8BFB              mov edi,ebx
+003EB559     AC                lods byte ptr ds:[esi]
+003EB55A     C0C0 03           rol al,3
+//解码出函数名 ★
+003EB55D     AA                stos byte ptr es:[edi]
+003EB55E     803F 00           cmp byte ptr ds:[edi],0
+003EB561     75 F6             jnz short EdrLib.003EB559
+003EB563     58                pop eax
+003EB564     5F                pop edi
+003EB565     5E                pop esi
+003EB566     3B9D 46F84000     cmp ebx,dword ptr ss:[ebp+40F846]
+003EB56C     7C 11             jl short EdrLib.003EB57F
+003EB56E     90                nop
+003EB56F     90                nop
+003EB570     90                nop
+003EB571     90                nop
+003EB572     83BD 1A204000 00  cmp dword ptr ss:[ebp+40201A],0
+003EB579     75 0A             jnz short EdrLib.003EB585
+003EB57B     90                nop
+003EB57C     90                nop
+003EB57D     90                nop
+003EB57E     90                nop
+003EB57F     81E3 FFFFFF0F     and ebx,0FFFFFFF
+003EB585     53                push ebx
+003EB586     FFB5 3EF84000     push dword ptr ss:[ebp+40F83E]
+003EB58C     FF95 1C854100     call dword ptr ss:[ebp+41851C]; kernel32.GetProcAddress
+003EB592     3B9D 46F84000     cmp ebx,dword ptr ss:[ebp+40F846]
+003EB598     7C 0F             jl short EdrLib.003EB5A9
+003EB59A     90                nop
+003EB59B     90                nop
+003EB59C     90                nop
+003EB59D     90                nop
+003EB59E     60                pushad
+003EB59F     2BC0              sub eax,eax
+003EB5A1     8803              mov byte ptr ds:[ebx],al
+//用完之后清空函数名   NOP掉 ③！ ★
+003EB5A3     43                inc ebx
+003EB5A4     3803              cmp byte ptr ds:[ebx],al
+003EB5A6     75 F9             jnz short EdrLib.003EB5A1
+003EB5A8     61                popad
+003EB5A9     0BC0              or eax,eax
+003EB5AB     0F84 15FFFFFF     je EdrLib.003EB4C6
+```
