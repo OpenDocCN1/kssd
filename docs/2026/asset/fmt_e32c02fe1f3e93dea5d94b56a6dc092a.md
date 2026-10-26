@@ -1,0 +1,185 @@
+
+# Easy Assembler Shell V5.0 [6.27]
+
+**脱壳+破解**
+
+- 下载地址：http://www.deepsoftware.ru/eas/eas5setup.exe
+- 软件大小：2M
+- 【软件简介】：Easy Assembler Shell (EAS) is Integrated Development Environment (IDE) oriented for ssembler Language programming under Win32/x86 platform.
+- 【保护方式】：ASProtect壳+30天试用
+- 【作者声明】：只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+- 【调试环境】：WinXP、`flyODBG`、`PEiD`、`LordPE`、`ImportREC V1.4.2+`
+
+---
+
+## 【脱壳过程】
+
+### 一、脱壳
+
+设置`Ollydbg`忽略除了“内存访问异常”之外的所有其它异常选项。老规矩：用`IsDebug 1.4`插件去掉`Ollydbg`的调试器标志。载入后弹出“是压缩代码――要继续进行分析吗？”，点“否”。
+
+```
+00401000     68 01F04800          push eas.0048F001//进入OD后停在这！
+00401005     E8 01000000          call eas.0040100B
+0040100A     C3                   retn
+```
+
+`F9`运行，程序会中断在异常处，`Shift+F9`通过异常 ASProtect的最后1次异常处的代码都相似。
+
+```
+00C13AFE     3100                 xor dword ptr ds:[eax],eax//最后1次异常
+00C13B00     64:8F05 00000000     pop dword ptr fs:[0]
+00C13B07     58                   pop eax
+00C13B08     833D D47DC100 00     cmp dword ptr ds:[C17DD4],0
+00C13B0F     74 14                je short 00C13B25
+00C13B11     6A 0C                push 0C
+00C13B13     B9 D47DC100          mov ecx,0C17DD4
+00C13B18     8D45 F8              lea eax,dword ptr ss:[ebp-8]
+00C13B1B     BA 04000000          mov edx,4
+00C13B20     E8 3FD3FFFF          call 00C10E64
+00C13B25     FF75 FC              push dword ptr ss:[ebp-4]
+00C13B28     FF75 F8              push dword ptr ss:[ebp-8]
+00C13B2B     8B45 F4              mov eax,dword ptr ss:[ebp-C]
+00C13B2E     8338 00              cmp dword ptr ds:[eax],0
+00C13B31     74 02                je short 00C13B35
+00C13B33     FF30                 push dword ptr ds:[eax]
+00C13B35     FF75 F0              push dword ptr ss:[ebp-10]
+00C13B38     FF75 EC              push dword ptr ss:[ebp-14]
+00C13B3B     C3                   retn//直接在这下断！ Shift+F9断在这！返回到 00C2E4F4
+00C2E4F4     E9 9B090000          jmp 00C2EE94//如果F7跟踪下去会兜个圈子。所以在此处可以直接F4到下1行
+00C2E4F9     66:0FBEF7            movsx si,bh
+00C2E4FD     81DA 21A2549E        sbb edx,9E54A221
+00C2E503     E8 00000000          call 00C2E508//当然可以F7继续手动跟踪，但是用TC跟踪岂不爽哉？
+```
+
+`TC EIP<600000` 使用模拟跟踪吧！几十秒后`Ollydbg`自动暂停在004459DC，查看运行跟踪，很容易看见从壳中返回程序的地方，发现挪到壳中执行的Stolen Code。![icon_smile.gif](https://www.kanxue.com/images/smiles/icon_smile.gif)
+
+```
+00C2ED80     5D                   pop ebp
+00C2ED81     81ED BA6F4900        sub ebp,496FBA
+00C2ED87     8D8D CE6F4900        lea ecx,dword ptr ss:[ebp+496FCE]
+00C2ED8D     03CB                 add ecx,ebx
+00C2ED8F     8941 01              mov dword ptr ds:[ecx+1],eax
+00C2ED92     EB 00                jmp short 00C2ED94
+00C2ED94     55                   push ebp       ★
+00C2ED95     8BEC                 mov ebp,esp      ★
+00C2ED97     83C4 F0              add esp,-10       ★这12个字节就是OEP处的Stolen Code
+00C2ED9A     53                   push ebx         ★
+00C2ED9B     B8 28564400          mov eax,445628  ★
+00C2EDA0     68 DC594400          push 4459DC//4459DC
+00C2EDA5     C3                   retn//飞向光明之巅！![icon_smile.gif](https://www.kanxue.com/images/smiles/icon_smile.gif) 返回 4459DC
+004459DC     E8 8BB8FBFF          call eas.0040126C//返回到这里
+004459E1     8B1D E8964400        mov ebx,dword ptr ds:[4496E8] ; vcl70.@Forms@Application
+004459E7     8B03                 mov eax,dword ptr ds:[ebx]
+004459E9     E8 0ED8FBFF          call eas.004031FC             ; jmp to vcl70
+```
+
+---
+
+**补上OEP处的Stolen Code**
+
+直接复制00C2ED94-00C2ED9F处的12个字节的2进制代码，粘贴到004459D0-004459DB处，补上Stolen Code。
+
+```
+004459D0     55                   push ebp//在这儿用LordPE纠正ImageSize后完全DUMP这个进程
+004459D1     8BEC                 mov ebp,esp
+004459D3     83C4 F0              add esp,-10
+004459D6     53                   push ebx
+004459D7     B8 28564400          mov eax,eas.00445628//这上面的12个字节是补上的Stolen Code
+004459DC     E8 8BB8FBFF          call eas.0040126C
+004459E1     8B1D E8964400        mov ebx,dword ptr ds:[4496E8] ; vcl70.@Forms@Application
+004459E7     8B03                 mov eax,dword ptr ds:[ebx]
+004459E9     E8 0ED8FBFF          call eas.004031FC
+```
+
+---
+
+运行`ImportREC V1.4.2+`，选择这个进程。把OEP改为000459E1，点`IT AutoSearch`，进入`OD`可以看出`ImportREC`给的RVA和大小不准确，改RVA=00048000、大小=00001900：点`Get Import`，用`ASProtect 1.3 calculated imports`插件修复，还有几个无效函数，`CUT`之。把OEP改回004459D0，`FixDump`，正常运行！看来这次ASProtect对这个输入表没有动太多的手脚。
+
+---
+
+### 二、破解
+
+脱壳后的程序在启动和About的画面上还有“Unregistered”和试用天数的NAG，去掉NAG岂不顺眼？![icon_biggrin.gif](https://www.kanxue.com/images/smiles/icon_biggrin.gif)
+
+#### 1、消掉“Unregistered”和试用天数的NAG
+
+```
+0042D0B9       E8 6E4EFDFF        call <jmp.&vcl70.@Graphics@TFon>
+0042D0BE       837D EC 00         cmp dword ptr ss:[ebp-14],0
+0042D0C2       74 0C              je short dumped\_.0042D0D0//★★就在这里下手啦！
+0042D0C4       837D F4 01         cmp dword ptr ss:[ebp-C],1
+0042D0C8       77 06              ja short dumped\_.0042D0D0
+0042D0CA       837D F0 01         cmp dword ptr ss:[ebp-10],1
+0042D0CE       76 2C              jbe short dumped\_.0042D0FC
+0042D0D0       8D45 EC            lea eax,dword ptr ss:[ebp-14]
+0042D0D3       50                 push eax
+0042D0D4       8B45 F4            mov eax,dword ptr ss:[ebp-C]
+0042D0D7       8945 DC            mov dword ptr ss:[ebp-24],eax
+0042D0DA       C645 E0 00         mov byte ptr ss:[ebp-20],0
+0042D0DE       8B45 F0            mov eax,dword ptr ss:[ebp-10]
+0042D0E1       8945 E4            mov dword ptr ss:[ebp-1C],eax
+0042D0E4       C645 E8 00         mov byte ptr ss:[ebp-18],0
+0042D0E8       8D55 DC            lea edx,dword ptr ss:[ebp-24]
+0042D0EB       B9 01000000        mov ecx,1
+0042D0F0       B8 BCD14200        mov eax,dumped\_.0042D1BC ;//这就是画面上显示的NAG!   ![icon_sad.gif](https://www.kanxue.com/images/smiles/icon_sad.gif)
+                                  "Unregistered !!!", CR,"%d days trial copy",CR,"%d days left"
+0042D0F5       E8 BA47FDFF        call <jmp.&rtl70.@Sysutils@Form>
+0042D0FA       EB 3C              jmp short dumped\_.0042D138
+0042D0FC       E8 DBA0FFFF        call dumped\_.004271DC
+0042D101       E9 2D000000        jmp dumped\_.0042D133
+```
+
+改：
+
+```
+0042D0C2   74 0C              je short dumped\_.0042D0D0
+```
+
+为：
+
+```
+0042D0C2   EB 38              jmp short dumped\_.0042D0FC//跳过NAG ![icon_biggrin.gif](https://www.kanxue.com/images/smiles/icon_biggrin.gif)
+```
+
+---
+
+#### 2、消掉启动画面
+
+```
+00445A0D       E8 1276FEFF        call 破解－du.0042D024
+00445A12       A1 74634400        mov eax,dword ptr ds:[446374]
+00445A17       8B00               mov eax,dword ptr ds:[eax]
+00445A19       E8 56D7FBFF        call <jmp.&vcl70.@Forms@TCustomForm@Show$qqrv>★
+00445A1E       A1 74634400        mov eax,dword ptr ds:[446374]               ★
+00445A23       8B00               mov eax,dword ptr ds:[eax]                ★把这几行全部NOP掉！
+00445A25       8B10               mov edx,dword ptr ds:[eax]                  ★
+00445A27       FF92 88000000      call dword ptr ds:[edx+88]                     ★
+00445A2D       8B03               mov eax,dword ptr ds:[ebx]
+00445A2F       83C0 50            add eax,50
+00445A32       BA 005B4400        mov edx,破解－du.00445B00 ;  ASCII "eas5.hlp"
+00445A37       E8 1CB7FBFF        call <jmp.&rtl70.@System@@LStrAsg$qqrpvpxv>
+00445A3C       8B03               mov eax,dword ptr ds:[ebx]
+00445A3E       BA 145B4400        mov edx,破解－du.00445B14  ;  ASCII "Eas 5"
+00445A43       E8 A4D7FBFF        call <jmp.&vcl70.@Forms@TApplication@SetTitle$qqrx17System@>
+```
+
+启动画面偶不愿欣赏，索性顺手消除之。当然，你愿意看就不必多此一举了。
+
+把00445A19－00445A2C这5行代码`NOP`掉就直接出现程序界面啦。![icon_biggrin.gif](https://www.kanxue.com/images/smiles/icon_biggrin.gif) 功能方面是否还有限制偶就不清楚啦。
+
+---
+
+0Day 2003年12月13日 发布了Easy Assembler Shell .v5.0.6.27-DYNAMiTE，破解版加了ASProtect 1.23 RC1壳。原版`eas.exe`的壳可以用`AsprStripper 1.35`脱壳。
+
+今天是2003年的最后一天，捏2个“软柿子”算是元旦小礼吧。祝愿大家来年如意！
+
+---
+
+```
+         ,     \_/
+
+        /| \_.-~/            \_     ,        青春都一饷
+
+       ( /~   /              ~-.\_ |
+```
