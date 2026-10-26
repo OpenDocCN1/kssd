@@ -1,0 +1,146 @@
+
+# [分享]LingoLessons 1.0算法分析
+
+- 【文章标题】: LingoLessons 1.0算法分析
+- 【文章作者】: 坚持到底
+- 【软件名称】: LingoLessons 1.0
+- 【软件大小】: 1093KB
+- 【下载地址】: 0b6K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3&6W2N6$3S2#2j5g2)9J5k6h3y4G2L8g2)9J5c8Y4y4G2k6Y4c8Q4x3V1j5I4x3U0x3K6y4g2)9J5k6h3S2@1L8b7`.`.
+- 【加壳方式】: 无
+- 【编写语言】: VC8 -> Microsoft Corporation \*
+- 【使用工具】: flyODBG,PEID
+- 【操作平台】: WINXP2
+- 【软件介绍】: LingoLessons 该软件使用桌面闪铄卡片帮助用户学习....
+- 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+--------------------------------------------------------------------------------
+
+## 【详细过程】
+
+```
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //下BP MessageBoxW到这里
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  00419F73    894424 60            mov dword ptr ss:[esp+60],eax
+  00419F77    894424 5C            mov dword ptr ss:[esp+5C],eax
+  00419F7B    FF15 84044400        call dword ptr ds:[<&USER32.SendMessageW>]           ; USER32.SendMessageW
+  00419F81    85C0                 test eax,eax
+  00419F83    74 66                je short LingoLes.00419FEB
+  00419F85    8B86 94000000        mov eax,dword ptr ds:[esi+94]
+  00419F8B    8B2D 78044400        mov ebp,dword ptr ds:[<&USER32.GetWindowTextLengthW>>; USER32.GetWindowTextLengthW
+  00419F91    8DBE 94000000        lea edi,dword ptr ds:[esi+94]
+  00419F97    50                   push eax
+  00419F98    FFD5                 call ebp
+  00419F9A    8D58 01              lea ebx,dword ptr ds:[eax+1]
+  00419F9D    53                   push ebx
+  00419F9E    8D4C24 54            lea ecx,dword ptr ss:[esp+54]
+  00419FA2    E8 299DFEFF          call LingoLes.00403CD0
+  00419FA7    53                   push ebx
+  00419FA8    50                   push eax
+  00419FA9    8BCF                 mov ecx,edi
+  00419FAB    E8 C099FEFF          call LingoLes.00403970
+  00419FB0    50                   push eax
+  00419FB1    8D4C24 54            lea ecx,dword ptr ss:[esp+54]
+  00419FB5    E8 969DFEFF          call LingoLes.00403D50
+  00419FBA    8B8E 98000000        mov ecx,dword ptr ds:[esi+98]                        ; //email
+  00419FC0    8DBE 98000000        lea edi,dword ptr ds:[esi+98]
+  00419FC6    51                   push ecx
+  00419FC7    FFD5                 call ebp
+  00419FC9    8D58 01              lea ebx,dword ptr ds:[eax+1]
+  00419FCC    53                   push ebx
+  00419FCD    8D4C24 50            lea ecx,dword ptr ss:[esp+50]
+  00419FD1    E8 FA9CFEFF          call LingoLes.00403CD0
+  00419FD6    53                   push ebx
+  00419FD7    50                   push eax
+  00419FD8    8BCF                 mov ecx,edi
+  00419FDA    E8 9199FEFF          call LingoLes.00403970
+  00419FDF    50                   push eax
+  00419FE0    8D4C24 50            lea ecx,dword ptr ss:[esp+50]
+  00419FE4    E8 679DFEFF          call LingoLes.00403D50                               ; //得到注册码
+  00419FE9    EB 25                jmp short LingoLes.0041A010
+  00419FEB    8D4E 30              lea ecx,dword ptr ds:[esi+30]
+  00419FEE    E8 0DFCFFFF          call LingoLes.00419C00
+  00419FF3    85C0                 test eax,eax
+  00419FF5    74 19                je short LingoLes.0041A010
+  00419FF7    8D5424 4C            lea edx,dword ptr ss:[esp+4C]
+  00419FFB    52                   push edx
+  00419FFC    8D4424 54            lea eax,dword ptr ss:[esp+54]
+  0041A000    50                   push eax
+  0041A001    8BCE                 mov ecx,esi
+  0041A003    E8 98F8FFFF          call LingoLes.004198A0
+  0041A008    84C0                 test al,al
+  0041A00A    0F84 B0000000        je LingoLes.0041A0C0
+  0041A010    8B6C24 4C            mov ebp,dword ptr ss:[esp+4C]
+  0041A014    55                   push ebp
+  0041A015    8D4C24 30            lea ecx,dword ptr ss:[esp+30]
+  0041A019    E8 42F5FEFF          call LingoLes.00409560
+  0041A01E    8B7C24 50            mov edi,dword ptr ss:[esp+50]
+  0041A022    50                   push eax
+  0041A023    57                   push edi
+  0041A024    8D4C24 18            lea ecx,dword ptr ss:[esp+18]
+  0041A028    E8 33F5FEFF          call LingoLes.00409560
+  0041A02D    50                   push eax
+  0041A02E    E8 BD8CFEFF          call LingoLes.00402CF0
+  0041A033    8BC8                 mov ecx,eax
+  0041A035    E8 768BFEFF          call LingoLes.00402BB0                               ; //关键call1
+  0041A03A    8D4C24 10            lea ecx,dword ptr ss:[esp+10]
+  0041A03E    8AD8                 mov bl,al
+  0041A040    E8 0B79FEFF          call LingoLes.00401950
+  0041A045    8D4C24 2C            lea ecx,dword ptr ss:[esp+2C]
+  0041A049    E8 0279FEFF          call LingoLes.00401950
+  0041A04E    84DB                 test bl,bl
+  0041A050    74 58                je short LingoLes.0041A0AA
+  0041A052    55                   push ebp
+  0041A053    8D4C24 14            lea ecx,dword ptr ss:[esp+14]
+  0041A057    E8 04F5FEFF          call LingoLes.00409560
+  0041A05C    50                   push eax
+  0041A05D    57                   push edi
+  0041A05E    8D4C24 34            lea ecx,dword ptr ss:[esp+34]
+  0041A062    E8 F9F4FEFF          call LingoLes.00409560
+  0041A067    50                   push eax
+  0041A068    E8 E3390000          call LingoLes.0041DA50
+  0041A06D    8BC8                 mov ecx,eax
+  0041A06F    E8 5C180000          call LingoLes.0041B8D0
+  0041A074    8D4C24 2C            lea ecx,dword ptr ss:[esp+2C]
+  0041A078    E8 D378FEFF          call LingoLes.00401950
+  0041A07D    8D4C24 10            lea ecx,dword ptr ss:[esp+10]
+  0041A081    E8 CA78FEFF          call LingoLes.00401950
+  0041A086    8B4E 04              mov ecx,dword ptr ds:[esi+4]
+  0041A089    6A 40                push 40
+  0041A08B    68 9C264400          push LingoLes.0044269C                               ; UNICODE "Registration Successful"
+  0041A090    68 90254400          push LingoLes.00442590                               ; UNICODE "Registration complete.
+  Thank you for supporting this software.
+  Your contribution helps us bring "
+  0041A095    51                   push ecx
+  0041A096    FF15 78034400        call dword ptr ds:[<&USER32.MessageBoxW>]            ; USER32.MessageBoxW
+  0041A09C    8B56 04              mov edx,dword ptr ds:[esi+4]
+  0041A09F    6A 01                push 1
+  0041A0A1    52                   push edx
+  0041A0A2    FF15 0C034400        call dword ptr ds:[<&USER32.EndDialog>]              ; USER32.EndDialog
+  0041A0A8    EB 16                jmp short LingoLes.0041A0C0
+  0041A0AA    8B46 04              mov eax,dword ptr ds:[esi+4]
+  0041A0AD    6A 10                push 10
+  0041A0AF    68 5C254400          push LingoLes.0044255C                               ; UNICODE "Registration unsuccessful"
+  0041A0B4    68 F0234400          push LingoLes.004423F0                               ; UNICODE "Registration failed.
+  Please check the email address and registration code you entered.
+  If you co"
+  0041A0B9    50                   push eax
+  0041A0BA    FF15 78034400        call dword ptr ds:[<&USER32.MessageBoxW>]            ; USER32.MessageBoxW
+  0041A0C0    8D4C24 4C            lea ecx,dword ptr ss:[esp+4C]
+```
+
+```
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  //跟进关键call1
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  00402BBB    50                   push eax
+  00402BBC    8D4C24 28            lea ecx,dword ptr ss:[esp+28]
+  00402BC0    51                   push ecx
+  00402BC1    E8 1A1C0200          call LingoLes.004247E0
+  00402BC6    8B5424 4C            mov edx,dword ptr ss:[esp+4C]
+  00402BCA    83C4 08              add esp,8
+  00402BCD    50                   push eax
+  00402BCE    52                   push edx
+```
