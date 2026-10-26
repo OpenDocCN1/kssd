@@ -1,0 +1,124 @@
+
+```
+004CB91C    .  53 00                ascii "S",0
+004CB91E       00                   db 00
+004CB91F       00                   db 00
+004CB920    .  FFFFFFFF             dd FFFFFFFF
+004CB924    .  01000000             dd 00000001
+004CB928    .  48 00                ascii "H",0
+004CB92A       00                   db 00
+004CB92B       00                   db 00
+004CB92C    .  FFFFFFFF             dd FFFFFFFF
+004CB930    .  01000000             dd 00000001
+004CB934    .  38 00                ascii "8",0
+004CB936       00                   db 00
+004CB937       00                   db 00
+004CB938    .  FFFFFFFF             dd FFFFFFFF
+004CB93C    .  01000000             dd 00000001
+004CB940    .  32 00                ascii "2",0
+004CB942       00                   db 00
+004CB943       00                   db 00
+004CB944    .  FFFFFFFF             dd FFFFFFFF
+004CB948    .  01000000             dd 00000001
+004CB94C    .  54 00                ascii "T",0
+004CB94E       00                   db 00
+004CB94F       00                   db 00
+004CB950    .  FFFFFFFF             dd FFFFFFFF
+004CB954    .  01000000             dd 00000001
+004CB958    .  43 00                ascii "C",0
+004CB95A       00                   db 00
+004CB95B       00                   db 00
+004CB95C    .  FFFFFFFF             dd FFFFFFFF
+004CB960    .  01000000             dd 00000001
+004CB964    .  59 00                ascii "Y",0
+004CB966       00                   db 00
+004CB967       00                   db 00
+004CB968   /$  55                   push ebp
+004CB969   |.  8BEC                 mov ebp,esp
+004CB96B   |.  51                   push ecx
+004CB96C   |.  53                   push ebx
+004CB96D   |.  8945 FC              mov dword ptr ss:[ebp-4],eax
+004CB970   |.  8B45 FC              mov eax,dword ptr ss:[ebp-4]
+004CB973   |.  E8 3C8DF3FF          call XDeskWeather.004046B4
+004CB978   |.  33C0                 xor eax,eax
+004CB97A   |.  55                   push ebp
+004CB97B   |.  68 FCB94C00          push XDeskWeather.004CB9FC
+004CB980   |.  64:FF30              push dword ptr fs:[eax]
+004CB983   |.  64:8920              mov dword ptr fs:[eax],esp
+004CB986   |.  8B45 FC              mov eax,dword ptr ss:[ebp-4]
+004CB989   |.  BA 14BA4C00          mov edx,XDeskWeather.004CBA14
+004CB98E   |.  E8 7D8CF3FF          call XDeskWeather.00404610
+004CB993   |.  74 4B                je short XDeskWeather.004CB9E0
+004CB995   |.  8B45 FC              mov eax,dword ptr ss:[ebp-4]
+004CB998   |.  BA 20BA4C00          mov edx,XDeskWeather.004CBA20
+004CB99D   |.  E8 6E8CF3FF          call XDeskWeather.00404610
+004CB9A2   |.  74 3C                je short XDeskWeather.004CB9E0
+004CB9A4   |.  8B45 FC              mov eax,dword ptr ss:[ebp-4]
+004CB9A7   |.  BA 2CBA4C00          mov edx,XDeskWeather.004CBA2C
+004CB9AC   |.  E8 5F8CF3FF          call XDeskWeather.00404610
+004CB9B1   |.  74 2D                je short XDeskWeather.004CB9E0
+004CB9B3   |.  8B45 FC              mov eax,dword ptr ss:[ebp-4]
+004CB9B6   |.  BA 38BA4C00          mov edx,XDeskWeather.004CBA38
+004CB9BB   |.  E8 508CF3FF          call XDeskWeather.00404610
+004CB9C0   |.  74 1E                je short XDeskWeather.004CB9E0
+004CB9C2   |.  8B45 FC              mov eax,dword ptr ss:[ebp-4]
+004CB9C5   |.  BA 44BA4C00          mov edx,XDeskWeather.004CBA44
+004CB9CA   |.  E8 418CF3FF          call XDeskWeather.00404610
+004CB9CF   |.  74 0F                je short XDeskWeather.004CB9E0
+004CB9D1   |.  8B45 FC              mov eax,dword ptr ss:[ebp-4]
+004CB9D4   |.  BA 50BA4C00          mov edx,XDeskWeather.004CBA50
+004CB9D9   |.  E8 328CF3FF          call XDeskWeather.00404610
+004CB9DE   |.  75 04                jnz short XDeskWeather.004CB9E4
+004CB9E0   |>  B3 01                mov bl,1
+004CB9E2   |.  EB 02                jmp short XDeskWeather.004CB9E6
+004CB9E4   |>  B3 01                mov bl,1
+004CB9E6   |>  33C0                 xor eax,eax
+004CB9E8   |.  5A                   pop edx
+004CB9E9   |.  59                   pop ecx
+004CB9EA   |.  59                   pop ecx
+004CB9EB   |.  64:8910              mov dword ptr fs:[eax],edx
+004CB9EE   |.  68 03BA4C00          push XDeskWeather.004CBA03
+004CB9F3   |>  8D45 FC              lea eax,dword ptr ss:[ebp-4]
+004CB9F6   |.  E8 0988F3FF          call XDeskWeather.00404204
+004CB9FB   \.  C3                   retn
+004CB9FC    .^ E9 8381F3FF          jmp XDeskWeather.00403B84
+004CBA01    .^ EB F0                jmp short XDeskWeather.004CB9F3
+004CBA03    .  8BC3                 mov eax,ebx
+004CBA05    .  5B                   pop ebx
+004CBA06    .  59                   pop ecx
+004CBA07    .  5D                   pop ebp
+004CBA08    .  C3                   retn
+004CBA09       00                   db 00
+004CBA0A       00                   db 00
+004CBA0B       00                   db 00
+004CBA0C    .  FFFFFFFF             dd FFFFFFFF
+004CBA10    .  01000000             dd 00000001
+004CBA14    .  44 00                ascii "D",0
+004CBA16       00                   db 00
+004CBA17       00                   db 00
+004CBA18    .  FFFFFFFF             dd FFFFFFFF
+004CBA1C    .  01000000             dd 00000001
+004CBA20    .  59 00                ascii "Y",0
+004CBA22       00                   db 00
+004CBA23       00                   db 00
+004CBA24    .  FFFFFFFF             dd FFFFFFFF
+004CBA28    .  01000000             dd 00000001
+004CBA2C    .  51 00                ascii "Q",0
+004CBA2E       00                   db 00
+004CBA2F       00                   db 00
+004CBA30    .  FFFFFFFF             dd FFFFFFFF
+004CBA34    .  01000000             dd 00000001
+004CBA38    .  31 00                ascii "1",0
+004CBA3A       00                   db 00
+004CBA3B       00                   db 00
+004CBA3C    .  FFFFFFFF             dd FFFFFFFF
+004CBA40    .  01000000             dd 00000001
+004CBA44    .  32 00                ascii "2",0
+004CBA46       00                   db 00
+004CBA47       00                   db 00
+004CBA48    .  FFFFFFFF             dd FFFFFFFF
+004CBA4C    .  01000000             dd 00000001
+004CBA50    .  36 00                ascii "6",0
+```
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
