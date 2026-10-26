@@ -1,0 +1,167 @@
+
+# [原创]初探逆向之URLegal破解
+
+- 【文章标题】：初探逆向之URLegal破解
+- 【文章作者】：代码疯子
+- 【作者邮箱】：stackexploit@gmail.com
+- 【操作系统】：Windows XP
+- 【软件名称】：URLegal 3.3.0.0
+- 【软件介绍】：可以自动找出HTML文件中的断链接并自动对其进行修复
+- 【加壳方式】：无
+- 【保护方式】：注册码
+- 【编写语言】：Microsoft Visual C++ 6.0
+- 【使用工具】：OD + PEID + IDA
+- 【作者声明】：纯属技术交流，没有其他目的。仅以本文献给跟我一样刚接触逆向的朋友，文章写得比较啰嗦，大牛们请飘过！
+
+本人小菜，刚接触逆向，前几天看了传说中的天草破解教程，看到里面有一个拿一个国外软件URLegal来做例子，很是感兴趣，于是视频还没看完就自己动起手来进行分析，试图去分析注册码计算算法，奈何功底不足，最终只做了个内存注册机，但仍然倍感兴奋，故发帖于看雪。失误之处请指正。附件为内存注册机汇编源码。
+
+这个URLegal 3.3.0.0网上很多大型软件下载站有下载，请朋友们自己下载和安装。
+
+## 查壳与注册测试
+
+首先，用PEID对目标程序进行查壳，发现没有加壳，显示“Microsoft Visual C++ 6.0”，很好，省的像我这样的初学者去脱壳了。
+
+接下来，试着去注册一下，在“`File->Register`”菜单下可以进行注册，试着输入假码进行一下测试：`Name`填`ForEduOnly`，`Code`填`112233445566778899`。点击“`Validate My Codes`”，提示“`Name / Code mis-match. Try again.`”的消息框。以前看别人的分析帖子时，往往提到去搜索消息框中的字符串，那我们也来试试。
+
+## 静态定位错误提示
+
+打开OD，将`Urlegal.exe`载入，然后在反汇编窗口中单击右键，选择“`超级字串参考->ASCII`”，接着在弹出的字符串窗口中`Ctrl+F`查找“`Name / Code mis-match. Try again.`”这个字符串。在找到字符串之后双击该行，来到程序中对应的位置，对应的子程序反汇编代码如下：
+
+```
+004025C6  /.  55            PUSH EBP
+004025C7  |.  8BEC          MOV EBP,ESP
+004025C9  |.  6A FF         PUSH -1
+004025CB  |.  68 AA754100   PUSH Urlegal.004175AA                    ;  SE 处理程序安装
+004025D0  |.  64:A1 0000000>MOV EAX,DWORD PTR FS:[0]
+004025D6  |.  50            PUSH EAX
+004025D7  |.  64:8925 00000>MOV DWORD PTR FS:[0],ESP
+004025DE  |.  81EC 80000000 SUB ESP,80
+004025E4  |.  898D 7CFFFFFF MOV DWORD PTR SS:[EBP-84],ECX
+004025EA  |.  6A 00         PUSH 0                                   ; /Arg1 = 00000000
+004025EC  |.  8D4D 8C       LEA ECX,DWORD PTR SS:[EBP-74]            ; |
+004025EF  |.  E8 8C120000   CALL Urlegal.00403880                    ; \Urlegal.00403880
+004025F4  |.  C745 FC 00000>MOV DWORD PTR SS:[EBP-4],0
+004025FB  |.  8D4D 8C       LEA ECX,DWORD PTR SS:[EBP-74]
+004025FE  |.  E8 09430100   CALL <JMP.&MFC42.#2514_?DoModal@CDialog@>
+00402603  |.  83F8 01       CMP EAX,1
+00402606  |.  0F85 D5000000 JNZ Urlegal.004026E1
+0040260C  |.  E8 7FEEFFFF   CALL Urlegal.00401490
+00402611  |.  8945 84       MOV DWORD PTR SS:[EBP-7C],EAX
+00402614  |.  51            PUSH ECX
+00402615  |.  8BCC          MOV ECX,ESP
+00402617  |.  8965 80       MOV DWORD PTR SS:[EBP-80],ESP
+0040261A  |.  8D45 F0       LEA EAX,DWORD PTR SS:[EBP-10]
+0040261D  |.  50            PUSH EAX
+0040261E  |.  E8 71450100   CALL <JMP.&MFC42.#535_??0CString@@QAE@AB>
+00402623  |.  8985 78FFFFFF MOV DWORD PTR SS:[EBP-88],EAX            ; |
+00402629  |.  8D4D 88       LEA ECX,DWORD PTR SS:[EBP-78]            ; |
+0040262C  |.  51            PUSH ECX                                 ; |Arg1
+0040262D  |.  8B4D 84       MOV ECX,DWORD PTR SS:[EBP-7C]            ; |
+00402630  |.  81C1 D0000000 ADD ECX,0D0                              ; |
+00402636  |.  E8 AE310000   CALL Urlegal.004057E9                    ; \Urlegal.004057E9
+0040263B  |.  8985 74FFFFFF MOV DWORD PTR SS:[EBP-8C],EAX
+00402641  |.  C645 FC 01    MOV BYTE PTR SS:[EBP-4],1
+00402645  |.  8D4D 88       LEA ECX,DWORD PTR SS:[EBP-78]
+00402648  |.  E8 C3050000   CALL Urlegal.00402C10
+0040264D  |.  85C0          TEST EAX,EAX
+0040264F  |.  75 76         JNZ SHORT Urlegal.004026C7
+00402651  |.  8D55 EC       LEA EDX,DWORD PTR SS:[EBP-14]
+00402654  |.  52            PUSH EDX                                 ; /Arg2
+00402655  |.  8D45 88       LEA EAX,DWORD PTR SS:[EBP-78]            ; |
+00402658  |.  50            PUSH EAX                                 ; |Arg1
+00402659  |.  E8 02060000   CALL Urlegal.00402C60                    ; \Urlegal.00402C60
+0040265E  |.  25 FF000000   AND EAX,0FF
+00402663  |.  85C0          TEST EAX,EAX
+00402665  |.  74 60         JE SHORT Urlegal.004026C7
+00402667  |.  8D4D F0       LEA ECX,DWORD PTR SS:[EBP-10]
+0040266A  |.  E8 E1050000   CALL Urlegal.00402C50
+0040266F  |.  50            PUSH EAX                                 ; /Arg3
+00402670  |.  68 04E24100   PUSH Urlegal.0041E204                    ; |name
+00402675  |.  68 0CE24100   PUSH Urlegal.0041E20C                    ; |user
+0040267A  |.  8B4D 84       MOV ECX,DWORD PTR SS:[EBP-7C]            ; |
+0040267D  |.  81C1 C4000000 ADD ECX,0C4                              ; |
+00402683  |.  E8 AD450000   CALL Urlegal.00406C35                    ; \Urlegal.00406C35
+00402688  |.  8D4D EC       LEA ECX,DWORD PTR SS:[EBP-14]
+0040268B  |.  E8 C0050000   CALL Urlegal.00402C50
+00402690  |.  50            PUSH EAX                                 ; /Arg3
+00402691  |.  68 14E24100   PUSH Urlegal.0041E214                    ; |code
+00402696  |.  68 1CE24100   PUSH Urlegal.0041E21C                    ; |user
+0040269B  |.  8B4D 84       MOV ECX,DWORD PTR SS:[EBP-7C]            ; |
+0040269E  |.  81C1 C4000000 ADD ECX,0C4                              ; |
+004026A4  |.  E8 8C450000   CALL Urlegal.00406C35                    ; \Urlegal.00406C35
+004026A9  |.  8B4D 84       MOV ECX,DWORD PTR SS:[EBP-7C]
+004026AC  |.  81C1 D0000000 ADD ECX,0D0
+004026B2  |.  E8 72170000   CALL Urlegal.00403E29
+004026B7  |.  6A 00         PUSH 0
+004026B9  |.  6A 00         PUSH 0
+004026BB  |.  68 24E24100   PUSH Urlegal.0041E224                    ;  thank you for registering!
+004026C0  |.  E8 B1440100   CALL <JMP.&MFC42.#1200_?AfxMessageBox@@Y>
+004026C5  |.  EB 0E         JMP SHORT Urlegal.004026D5
+004026C7  |>  6A 00         PUSH 0
+004026C9  |.  6A 00         PUSH 0
+004026CB  |.  68 40E24100   PUSH Urlegal.0041E240                    ;  name / code mis-match. try again.
+004026D0  |.  E8 A1440100   CALL <JMP.&MFC42.#1200_?AfxMessageBox@@Y>
+004026D5  |>  C645 FC 00    MOV BYTE PTR SS:[EBP-4],0
+004026D9  |.  8D4D 88       LEA ECX,DWORD PTR SS:[EBP-78]
+004026DC  |.  E8 DF420100   CALL <JMP.&MFC42.#800_??1CString@@QAE@XZ>
+004026E1  |>  C745 FC FFFFF>MOV DWORD PTR SS:[EBP-4],-1
+004026E8  |.  8D4D 8C       LEA ECX,DWORD PTR SS:[EBP-74]
+004026EB  |.  E8 C0040000   CALL Urlegal.00402BB0
+004026F0  |.  8B4D F4       MOV ECX,DWORD PTR SS:[EBP-C]
+004026F3  |.  64:890D 00000>MOV DWORD PTR FS:[0],ECX
+004026FA  |.  8BE5          MOV ESP,EBP
+004026FC  |.  5D            POP EBP
+004026FD  \.  C3            RETN
+```
+
+`004026C7`至`004026D0`处的代码为错误提示的消息框，我们选中`004026C7`这一行，可以看到可以从两个地方跳转过来，分别是：
+
+```
+0040264F  |.  75 76         JNZ SHORT Urlegal.004026C7				;一个关键跳转
+0040264F  |.  75 76         JNZ SHORT Urlegal.004026C7				;一个关键跳转
+```
+
+## 动态跟踪与注册码比对
+
+不管怎么样，先在这个过程的头部下个断点吧。接下来F9运行，并填入刚才的`Name`和`Code`进行注册……![](https://bbs.kanxue.com/view/img/face/50.gif)，还没有输入就断下了，那就F8单步吧。单步到这样一条的时候就可以输入`Name`和`Code`了：
+
+```
+004025FE  |.  E8 09430100   CALL <JMP.&MFC42.#2514_?DoModal@CDialog@> ;显示一个模态对话框供用户进行注册
+```
+
+继续小心的按F8进行单步跟踪。来到`0040260C`处的CALL，用F7单步跟进去一看，没什么，就是调用了`AfxGetModuleState`这个函数（这个什么函数具体我也不清楚，我以前MFC编程没有看到过，网上查了下，说跟数据库相关的，这里就忽略了）。
+
+```
+0040260C  |.  E8 7FEEFFFF   CALL Urlegal.00401490
+```
+
+接下来继续跟踪，发现经过`00402636`和`00402648`以及`00402659`处的三个CALL之后，程序跳转到了错误提示消息框，说明算法就在这三个CALL里面了。细心的朋友相信早就发现了OD堆栈窗口早就出现了明文了，但是我们是来分析加密算法的，不能就此满足，所以，还是继续分析吧。
+
+细心的朋友应该已经发现，在`00402659`处的CALL里面看到了密钥的对比。现在我们仔细看看`00402659`处的这个call到底传了什么参数进去。
+
+```
+00402651  |.  8D55 EC       LEA EDX,DWORD PTR SS:[EBP-14]
+00402654  |.  52            PUSH EDX                                                 ; /Arg2
+00402655  |.  8D45 88       LEA EAX,DWORD PTR SS:[EBP-78]                            ; |
+00402658  |.  50            PUSH EAX                                                 ; |Arg1
+00402659  |.  E8 02060000   CALL Urlegal.00402C60                                    ; \Urlegal.00402C60
+```
+
+发现传入了两个堆栈偏移值，观察堆栈窗口：
+
+```
+0012FB1C   0012FB38  |Arg1 = 0012FB38
+0012FB20   0012FB9C  \Arg2 = 0012FB9C
+```
+
+再看看这两个堆栈偏移值（即`0012FB38`和`0012FB9C`）在堆栈中到底有什么：
+
+```
+……
+0012FB38   003AE688  ASCII "9FF9FB892C7ED5CA1DB021CE61B34C76"
+……
+0012FB9C   003AE598  ASCII "112233445566778899"
+……
+```
+
+果然，是对密钥的一个比较，可以肯定`9FF9FB892C7ED5CA1DB021CE61B34C76`就是`ForEduOnly`所对应的真实的注册码了。也说明了生成注册码的算法在前面，而前面没有跟踪的只有两个CALL。
