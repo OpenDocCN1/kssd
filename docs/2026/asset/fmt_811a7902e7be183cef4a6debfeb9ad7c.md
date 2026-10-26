@@ -1,0 +1,372 @@
+
+```
+005054C2 |. 55 push ebp
+
+005054C3 |. 68 DB595000 push 005059DB
+
+005054C8 |. 64:FF30 push dword ptr fs:[eax]
+
+005054CB |. 64:8920 mov dword ptr fs:[eax], esp
+
+005054CE |. B2 01 mov dl, 1
+
+005054D0 |. A1 20BF4300 mov eax, dword ptr [43BF20]
+
+005054D5 |. E8 466BF3FF call 0043C020
+
+005054DA |. 8BF0 mov esi, eax
+
+005054DC |. BA 02000080 mov edx, 80000002
+
+005054E1 |. 8BC6 mov eax, esi
+
+005054E3 |. E8 D86BF3FF call 0043C0C0
+
+005054E8 |. B1 01 mov cl, 1
+
+005054EA |. BA F0595000 mov edx, 005059F0 ; ASCII
+"\SOFTWARE\Microsoft\Windows\CurrentVersion\olympic"
+
+005054EF |. 8BC6 mov eax, esi
+
+005054F1 |. E8 326CF3FF call 0043C128
+
+005054F6 |. 84C0 test al, al
+
+005054F8 |. 74 1D je short 00505517
+
+005054FA |. 8D4D F4 lea ecx, dword ptr [ebp-C]
+
+005054FD |. BA 2C5A5000 mov edx, 00505A2C ; ASCII "pic"
+
+00505502 |. 8BC6 mov eax, esi
+
+00505504 |. E8 8F70F3FF call 0043C598 ; 取注册表键值，此处是之前输入的注
+册码运算后的值
+
+00505509 |. 8B55 F4 mov edx, dword ptr [ebp-C]
+
+0050550C |. 8D83 C4040000 lea eax, dword ptr [ebx+4C4]
+
+00505512 |. E8 5DEFEFFF call 00404474
+
+00505517 |> BA 01000080 mov edx, 80000001
+
+0050551C |. 8BC6 mov eax, esi
+
+0050551E |. E8 9D6BF3FF call 0043C0C0
+
+00505523 |. B1 01 mov cl, 1
+
+00505525 |. BA 385A5000 mov edx, 00505A38 ; ASCII
+"\SoftWare\Microsoft\Windows\CurrentVersion\patron"
+
+0050552A |. 8BC6 mov eax, esi
+
+0050552C |. E8 F76BF3FF call 0043C128
+
+00505531 |. 84C0 test al, al
+
+00505533 |. 74 1D je short 00505552
+
+00505535 |. 8D4D F0 lea ecx, dword ptr [ebp-10]
+
+00505538 |. BA 745A5000 mov edx, 00505A74 ; ASCII "mortal"
+
+0050553D |. 8BC6 mov eax, esi
+
+0050553F |. E8 5470F3FF call 0043C598 ; 取注册表键值
+
+00505544 |. 8B55 F0 mov edx, dword ptr [ebp-10]
+
+00505547 |. 8D83 CC040000 lea eax, dword ptr [ebx+4CC]
+
+0050554D |. E8 22EFEFFF call 00404474
+
+00505552 |> 8BC6 mov eax, esi
+
+00505554 |. E8 376BF3FF call 0043C090 ; 关闭注册表
+
+00505559 |. 8BC6 mov eax, esi
+
+0050555B |. E8 0CE0EFFF call 0040356C
+
+00505560 |. 8D4D EC lea ecx, dword ptr [ebp-14]
+
+00505563 |. BA 845A5000 mov edx, 00505A84 ; ASCII "MeteorTV.username"
+
+00505568 |. 8B83 CC040000 mov eax, dword ptr [ebx+4CC]
+
+0050556E |. E8 A95DF7FF call 0047B31C ; 注册表中mortal的值是之前输入的用
+户名，此处取逆运算还原出来
+
+00505573 |. 8B55 EC mov edx, dword ptr [ebp-14]
+
+00505576 |. 8D83 CC040000 lea eax, dword ptr [ebx+4CC]
+
+0050557C |. E8 F3EEEFFF call 00404474
+
+00505581 |. 8D55 FC lea edx, dword ptr [ebp-4]
+
+00505584 |. 8B83 CC040000 mov eax, dword ptr [ebx+4CC]
+
+0050558A |. E8 9169F7FF call 0047BF20 ; 用户名的md5
+
+0050558F |. 8D4D E8 lea ecx, dword ptr [ebp-18]
+
+00505592 |. BA A05A5000 mov edx, 00505AA0 ; ASCII "killyou?yes"
+
+00505597 |. 8B45 FC mov eax, dword ptr [ebp-4]
+
+0050559A |. E8 B5A4FDFF call 004DFA54 ; PT=用户名md5,key="killyou?
+yes"......
+
+跟入
+
+004DFA54 /$ 55 push ebp
+
+004DFA55 |. 8BEC mov ebp, esp
+
+004DFA57 |. 51 push ecx
+
+004DFA58 |. B9 07000000 mov ecx, 7
+
+004DFA5D |> 6A 00 /push 0
+
+004DFA5F |. 6A 00 |push 0
+
+004DFA61 |. 49 |dec ecx
+
+004DFA62 |.^ 75 F9 \jnz short 004DFA5D
+
+004DFA64 |. 874D FC xchg dword ptr [ebp-4], ecx
+
+004DFA67 |. 53 push ebx
+
+004DFA68 |. 56 push esi
+
+004DFA69 |. 57 push edi
+
+004DFA6A |. 894D F8 mov dword ptr [ebp-8], ecx
+
+004DFA6D |. 8955 FC mov dword ptr [ebp-4], edx
+
+004DFA70 |. 8BD8 mov ebx, eax
+
+004DFA72 |. 8B45 FC mov eax, dword ptr [ebp-4]
+
+004DFA75 |. E8 564EF2FF call 004048D0
+
+004DFA7A |. 33C0 xor eax, eax
+
+004DFA7C |. 55 push ebp
+
+004DFA7D |. 68 56FC4D00 push 004DFC56
+
+004DFA82 |. 64:FF30 push dword ptr fs:[eax]
+
+004DFA85 |. 64:8920 mov dword ptr fs:[eax], esp
+
+004DFA88 |. 8D55 F4 lea edx, dword ptr [ebp-C]
+
+004DFA8B |. 8BC3 mov eax, ebx
+
+004DFA8D |. E8 26FFFFFF call 004DF9B8 ; 用户名md5的ascii值
+
+004DFA92 |. 8D55 F0 lea edx, dword ptr [ebp-10]
+
+004DFA95 |. 8B45 FC mov eax, dword ptr [ebp-4]
+
+004DFA98 |. E8 1BFFFFFF call 004DF9B8 ; "killyou?yes"的ascii值
+
+004DFA9D |. 8D45 EC lea eax, dword ptr [ebp-14]
+
+004DFAA0 |. 8B55 F4 mov edx, dword ptr [ebp-C]
+
+004DFAA3 |. E8 104AF2FF call 004044B8
+
+004DFAA8 |. 8B45 F0 mov eax, dword ptr [ebp-10]
+
+004DFAAB |. E8 304CF2FF call 004046E0
+
+004DFAB0 |. D1F8 sar eax, 1
+
+004DFAB2 |. 79 03 jns short 004DFAB7
+
+004DFAB4 |. 83D0 00 adc eax, 0
+
+004DFAB7 |> 85C0 test eax, eax
+
+004DFAB9 |. 0F8E 54010000 jle 004DFC13
+
+004DFABF |. 8945 E0 mov dword ptr [ebp-20], eax
+
+004DFAC2 |. BE 01000000 mov esi, 1
+
+004DFAC7 |> 83FE 01 /cmp esi, 1
+
+004DFACA |. 74 0B |je short 004DFAD7
+
+004DFACC |. 8D45 EC |lea eax, dword ptr [ebp-14]
+
+004DFACF |. 8B55 E8 |mov edx, dword ptr [ebp-18]
+
+004DFAD2 |. E8 E149F2FF |call 004044B8
+
+004DFAD7 |> 8D45 E8 |lea eax, dword ptr [ebp-18]
+
+004DFADA |. E8 4149F2FF |call 00404420
+
+004DFADF |. 8B45 EC |mov eax, dword ptr [ebp-14]
+
+004DFAE2 |. E8 F94BF2FF |call 004046E0
+
+004DFAE7 |. 8BF8 |mov edi, eax
+
+004DFAE9 |. D1FF |sar edi, 1 ; 算到这里为止得edi=length(ascii
+(md5(username)))
+
+004DFAEB |. 79 03 |jns short 004DFAF0
+
+004DFAED |. 83D7 00 |adc edi, 0
+
+004DFAF0 |> 85FF |test edi, edi
+
+004DFAF2 |. 0F8E 11010000 |jle 004DFC09 ; 其长度，不大于0则跳
+
+004DFAF8 |. BB 01000000 |mov ebx, 1
+
+004DFAFD |> BA 64FC4D00 |/mov edx, 004DFC64
+
+004DFB02 |. 8D45 D8 ||lea eax, dword ptr [ebp-28]
+
+004DFB05 |. E8 4E33F2FF ||call 00402E58
+
+004DFB0A |. 8D45 D4 ||lea eax, dword ptr [ebp-2C]
+
+004DFB0D |. 8BD3 ||mov edx, ebx
+
+004DFB0F |. 03D2 ||add edx, edx
+
+004DFB11 |. 8B4D EC ||mov ecx, dword ptr [ebp-14]
+
+004DFB14 |. 8A5411 FE ||mov dl, byte ptr [ecx+edx-2]
+
+004DFB18 |. 8850 01 ||mov byte ptr [eax+1], dl
+
+004DFB1B |. C600 01 ||mov byte ptr [eax], 1
+
+004DFB1E |. 8D55 D4 ||lea edx, dword ptr [ebp-2C]
+
+004DFB21 |. 8D45 D8 ||lea eax, dword ptr [ebp-28]
+
+004DFB24 |. B1 02 ||mov cl, 2
+
+004DFB26 |. E8 FD32F2FF ||call 00402E28
+
+004DFB2B |. 8D55 D8 ||lea edx, dword ptr [ebp-28]
+
+004DFB2E |. 8D45 D0 ||lea eax, dword ptr [ebp-30]
+
+004DFB31 |. E8 2233F2FF ||call 00402E58
+
+004DFB36 |. 8D45 D4 ||lea eax, dword ptr [ebp-2C]
+
+004DFB39 |. 8BD3 ||mov edx, ebx
+
+004DFB3B |. 03D2 ||add edx, edx
+
+004DFB3D |. 8B4D EC ||mov ecx, dword ptr [ebp-14]
+
+004DFB40 |. 8A5411 FF ||mov dl, byte ptr [ecx+edx-1]
+
+004DFB44 |. 8850 01 ||mov byte ptr [eax+1], dl
+
+004DFB47 |. C600 01 ||mov byte ptr [eax], 1
+
+004DFB4A |. 8D55 D4 ||lea edx, dword ptr [ebp-2C]
+
+004DFB4D |. 8D45 D0 ||lea eax, dword ptr [ebp-30]
+
+004DFB50 |. B1 03 ||mov cl, 3
+
+004DFB52 |. E8 D132F2FF ||call 00402E28
+
+004DFB57 |. 8D55 D0 ||lea edx, dword ptr [ebp-30]
+
+004DFB5A |. 8D45 DC ||lea eax, dword ptr [ebp-24]
+
+004DFB5D |. E8 224BF2FF ||call 00404684
+
+004DFB62 |. 8B45 DC ||mov eax, dword ptr [ebp-24]
+
+004DFB65 |. E8 CE96F2FF ||call 00409238
+
+004DFB6A |. 8845 E7 ||mov byte ptr [ebp-19], al
+
+004DFB6D |. BA 64FC4D00 ||mov edx, 004DFC64
+
+004DFB72 |. 8D45 D8 ||lea eax, dword ptr [ebp-28]
+
+004DFB75 |. E8 DE32F2FF ||call 00402E58
+
+004DFB7A |. 8D45 D4 ||lea eax, dword ptr [ebp-2C]
+
+004DFB7D |. 8BD6 ||mov edx, esi
+
+004DFB7F |. 03D2 ||add edx, edx
+
+004DFB81 |. 8B4D F0 ||mov ecx, dword ptr [ebp-10]
+
+004DFB84 |. 8A5411 FE ||mov dl, byte ptr [ecx+edx-2]
+
+004DFB88 |. 8850 01 ||mov byte ptr [eax+1], dl
+
+004DFB8B |. C600 01 ||mov byte ptr [eax], 1
+
+004DFB8E |. 8D55 D4 ||lea edx, dword ptr [ebp-2C]
+
+004DFB91 |. 8D45 D8 ||lea eax, dword ptr [ebp-28]
+
+004DFB94 |. B1 02 ||mov cl, 2
+
+004DFB96 |. E8 8D32F2FF ||call 00402E28
+
+004DFB9B |. 8D55 D8 ||lea edx, dword ptr [ebp-28]
+
+004DFB9E |. 8D45 D0 ||lea eax, dword ptr [ebp-30]
+
+004DFBA1 |. E8 B232F2FF ||call 00402E58
+
+004DFBA6 |. 8D45 D4 ||lea eax, dword ptr [ebp-2C]
+
+004DFBA9 |. 8BD6 ||mov edx, esi
+
+004DFBAB |. 03D2 ||add edx, edx
+
+004DFBAD |. 8B4D F0 ||mov ecx, dword ptr [ebp-10]
+
+004DFBB0 |. 8A5411 FF ||mov dl, byte ptr [ecx+edx-1]
+
+004DFBB4 |. 8850 01 ||mov byte ptr [eax+1], dl
+
+004DFBB7 |. C600 01 ||mov byte ptr [eax], 1
+
+004DFBBA |. 8D55 D4 ||lea edx, dword ptr [ebp-2C]
+
+004DFBBD |. 8D45 D0 ||lea eax, dword ptr [ebp-30]
+
+004DFBC0 |. B1 03 ||mov cl, 3
+
+004DFBC2 |. E8 6132F2FF ||call 00402E28
+
+004DFBC7 |. 8D55 D0 ||lea edx, dword ptr [ebp-30]
+
+004DFBCA |. 8D45 CC ||lea eax, dword ptr [ebp-34]
+
+004DFBCD |. E8 B24AF2FF ||call 00404684
+
+004DFBD2 |. 8B45 CC ||mov eax, dword ptr [ebp-34]
+
+004DFBD5 |. E8 5E96F2FF ||call 00409238
+```
