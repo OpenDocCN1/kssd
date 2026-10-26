@@ -1,0 +1,328 @@
+
+```
+00571767    8B55 00         MOV EDX,DWORD PTR SS:[EBP]
+
+0057176A    E8 95F8FFFF     CALL AutoRunD.00571004
+
+0057176F    8B03            MOV EAX,DWORD PTR DS:[EBX]
+
+00571771    50              PUSH EAX
+
+00571772    8B4424 30       MOV EAX,DWORD PTR SS:[ESP+30]
+
+00571776    50              PUSH EAX
+
+00571777    6A 1D           PUSH 1D                                  ; //标准MD5为15
+
+00571779    68 39A093FC     PUSH FC93A039
+
+0057177E    8BC6            MOV EAX,ESI
+
+00571780    8B4D 00         MOV ECX,DWORD PTR SS:[EBP]
+
+00571783    8B17            MOV EDX,DWORD PTR DS:[EDI]
+
+00571785    E8 7AF8FFFF     CALL AutoRunD.00571004
+
+0057178A    8B45 00         MOV EAX,DWORD PTR SS:[EBP]
+
+0057178D    50              PUSH EAX
+
+0057178E    8B4424 4C       MOV EAX,DWORD PTR SS:[ESP+4C]
+
+00571792    50              PUSH EAX
+
+00571793    6A 06           PUSH 6
+
+00571795    68 C3595B65     PUSH 655B59C3
+
+0057179A    8BC3            MOV EAX,EBX
+
+0057179C    8B0F            MOV ECX,DWORD PTR DS:[EDI]
+
+0057179E    8B16            MOV EDX,DWORD PTR DS:[ESI]
+
+005717A0    E8 5FF8FFFF     CALL AutoRunD.00571004
+
+005717A5    8B07            MOV EAX,DWORD PTR DS:[EDI]
+
+005717A7    50              PUSH EAX
+
+005717A8    8B4424 28       MOV EAX,DWORD PTR SS:[ESP+28]
+
+005717AC    50              PUSH EAX
+
+005717AD    6A 0A           PUSH 0A
+
+005717AF    68 92CC0C8F     PUSH 8F0CCC92
+
+005717B4    8BC5            MOV EAX,EBP
+
+005717B6    8B0E            MOV ECX,DWORD PTR DS:[ESI]
+
+005717B8    8B13            MOV EDX,DWORD PTR DS:[EBX]
+
+005717BA    E8 45F8FFFF     CALL AutoRunD.00571004
+
+005717BF    8B06            MOV EAX,DWORD PTR DS:[ESI]
+
+005717C1    50              PUSH EAX
+
+005717C2    8B4424 44       MOV EAX,DWORD PTR SS:[ESP+44]
+
+005717C6    50              PUSH EAX
+
+005717C7    6A 0F           PUSH 0F
+
+005717C9    68 7DF4EFFF     PUSH FFEFF47D
+
+005717CE    8BC7            MOV EAX,EDI
+
+005717D0    8B0B            MOV ECX,DWORD PTR DS:[EBX]
+
+005717D2    8B55 00         MOV EDX,DWORD PTR SS:[EBP]
+
+005717D5    E8 2AF8FFFF     CALL AutoRunD.00571004
+
+005717DA    8B03            MOV EAX,DWORD PTR DS:[EBX]
+
+005717DC    50              PUSH EAX
+
+005717DD    8B4424 20       MOV EAX,DWORD PTR SS:[ESP+20]
+
+005717E1    50              PUSH EAX
+
+005717E2    6A 1D           PUSH 1D                                  ; //标准MD5为15
+
+005717E4    68 D15D8485     PUSH 85845DD1
+
+005717E9    8BC6            MOV EAX,ESI
+
+005717EB    8B4D 00         MOV ECX,DWORD PTR SS:[EBP]
+
+005717EE    8B17            MOV EDX,DWORD PTR DS:[EDI]
+
+005717F0    E8 0FF8FFFF     CALL AutoRunD.00571004
+
+005717F5    8B45 00         MOV EAX,DWORD PTR SS:[EBP]
+
+005717F8    50              PUSH EAX
+
+005717F9    8B4424 3C       MOV EAX,DWORD PTR SS:[ESP+3C]
+
+005717FD    50              PUSH EAX
+
+005717FE    6A 06           PUSH 6
+
+00571800    68 4F7EA86F     PUSH 6FA87E4F
+
+00571805    8BC3            MOV EAX,EBX
+
+00571807    8B0F            MOV ECX,DWORD PTR DS:[EDI]
+
+00571809    8B16            MOV EDX,DWORD PTR DS:[ESI]
+
+0057180B    E8 F4F7FFFF     CALL AutoRunD.00571004
+
+00571810    8B07            MOV EAX,DWORD PTR DS:[EDI]
+
+00571812    50              PUSH EAX
+
+00571813    8B4424 58       MOV EAX,DWORD PTR SS:[ESP+58]
+
+00571817    50              PUSH EAX
+
+00571818    6A 0A           PUSH 0A
+
+0057181A    68 E0E62CFE     PUSH FE2CE6E0
+
+0057181F    8BC5            MOV EAX,EBP
+
+00571821    8B0E            MOV ECX,DWORD PTR DS:[ESI]
+
+00571823    8B13            MOV EDX,DWORD PTR DS:[EBX]
+
+00571825    E8 DAF7FFFF     CALL AutoRunD.00571004
+
+0057182A    8B06            MOV EAX,DWORD PTR DS:[ESI]
+
+0057182C    50              PUSH EAX
+
+0057182D    8B4424 34       MOV EAX,DWORD PTR SS:[ESP+34]
+
+00571831    50              PUSH EAX
+
+00571832    6A 12           PUSH 12                                  ; //标准MD5为0F
+
+00571834    68 144301A3     PUSH A3014314
+
+00571839    8BC7            MOV EAX,EDI
+
+0057183B    8B0B            MOV ECX,DWORD PTR DS:[EBX]
+
+0057183D    8B55 00         MOV EDX,DWORD PTR SS:[EBP]
+
+00571840    E8 BFF7FFFF     CALL AutoRunD.00571004
+
+00571845    8B03            MOV EAX,DWORD PTR DS:[EBX]
+
+00571847    50              PUSH EAX
+
+00571848    8B4424 50       MOV EAX,DWORD PTR SS:[ESP+50]
+
+0057184C    50              PUSH EAX
+
+0057184D    6A 1D           PUSH 1D                                  ; //标准MD5为15
+
+0057184F    68 A111084E     PUSH 4E0811A1
+
+00571854    8BC6            MOV EAX,ESI
+
+00571856    8B4D 00         MOV ECX,DWORD PTR SS:[EBP]
+
+00571859    8B17            MOV EDX,DWORD PTR DS:[EDI]
+
+0057185B    E8 A4F7FFFF     CALL AutoRunD.00571004
+
+00571860    8B45 00         MOV EAX,DWORD PTR SS:[EBP]
+
+00571863    50              PUSH EAX
+
+00571864    8B4424 2C       MOV EAX,DWORD PTR SS:[ESP+2C]
+
+00571868    50              PUSH EAX
+
+00571869    6A 06           PUSH 6
+
+0057186B    68 827E53F7     PUSH F7537E82
+
+00571870    8BC3            MOV EAX,EBX
+
+00571872    8B0F            MOV ECX,DWORD PTR DS:[EDI]
+
+00571874    8B16            MOV EDX,DWORD PTR DS:[ESI]
+
+00571876    E8 89F7FFFF     CALL AutoRunD.00571004
+
+0057187B    8B07            MOV EAX,DWORD PTR DS:[EDI]
+
+0057187D    50              PUSH EAX
+
+0057187E    8B4424 48       MOV EAX,DWORD PTR SS:[ESP+48]
+
+00571882    50              PUSH EAX
+
+00571883    6A 0A           PUSH 0A
+
+00571885    68 35F23ABD     PUSH BD3AF235
+
+0057188A    8BC5            MOV EAX,EBP
+
+0057188C    8B0E            MOV ECX,DWORD PTR DS:[ESI]
+
+0057188E    8B13            MOV EDX,DWORD PTR DS:[EBX]
+
+00571890    E8 6FF7FFFF     CALL AutoRunD.00571004
+
+00571895    8B06            MOV EAX,DWORD PTR DS:[ESI]
+
+00571897    50              PUSH EAX
+
+00571898    8B4424 24       MOV EAX,DWORD PTR SS:[ESP+24]
+
+0057189C    50              PUSH EAX
+
+0057189D    6A 19           PUSH 19                                  ; //标准MD5为0F
+
+0057189F    68 BBD2D72A     PUSH 2AD7D2BB
+
+005718A4    8BC7            MOV EAX,EDI
+
+005718A6    8B0B            MOV ECX,DWORD PTR DS:[EBX]
+
+005718A8    8B55 00         MOV EDX,DWORD PTR SS:[EBP]
+
+005718AB    E8 54F7FFFF     CALL AutoRunD.00571004
+
+005718B0    8B03            MOV EAX,DWORD PTR DS:[EBX]
+
+005718B2    50              PUSH EAX
+
+005718B3    8B4424 40       MOV EAX,DWORD PTR SS:[ESP+40]
+
+005718B7    50              PUSH EAX
+
+005718B8    6A 1D           PUSH 1D                                  ; //标准MD5为15
+
+005718BA    68 91D386EB     PUSH EB86D391
+
+005718BF    8BC6            MOV EAX,ESI
+
+005718C1    8B4D 00         MOV ECX,DWORD PTR SS:[EBP]
+
+005718C4    8B17            MOV EDX,DWORD PTR DS:[EDI]
+
+005718C6    E8 39F7FFFF     CALL AutoRunD.00571004
+
+005718CB    8B4424 04       MOV EAX,DWORD PTR SS:[ESP+4]
+
+005718CF    8B13            MOV EDX,DWORD PTR DS:[EBX]
+
+005718D1    0110            ADD DWORD PTR DS:[EAX],EDX
+
+005718D3    8B4424 04       MOV EAX,DWORD PTR SS:[ESP+4]
+
+005718D7    8B16            MOV EDX,DWORD PTR DS:[ESI]
+
+005718D9    0150 04         ADD DWORD PTR DS:[EAX+4],EDX
+
+005718DC    8B4424 04       MOV EAX,DWORD PTR SS:[ESP+4]
+
+005718E0    8B17            MOV EDX,DWORD PTR DS:[EDI]
+
+005718E2    0150 08         ADD DWORD PTR DS:[EAX+8],EDX
+
+005718E5    8B4424 04       MOV EAX,DWORD PTR SS:[ESP+4]
+
+005718E9    8B55 00         MOV EDX,DWORD PTR SS:[EBP]
+
+005718EC    0150 0C         ADD DWORD PTR DS:[EAX+C],EDX
+
+005718EF    83C4 58         ADD ESP,58
+
+005718F2    5D              POP EBP
+
+005718F3    5F              POP EDI
+
+005718F4    5E              POP ESI
+
+005718F5    5B              POP EBX
+
+005718F6    C3              RETN
+```
+
+*******************************
+
+## 【破解总结】
+
+--------------------------------------------------------------
+
+## 【算法总结】
+
+1. Serial的1-3位必须是"`002`"
+
+2. `Code=`到大写(`变形MD5(Serial+Name)`)
+
+--------------------------------------------------------------
+
+## 【算法注册机】
+
+注册机源代码就不贴了，太长了，有兴趣的朋友，可以到<http://bbs.pediy.com/showthread.php?t=73152>
+
+按上面变形MD5与标准MD5的区别改一下就可以了
+
+--------------------------------------------------------------
+
+## 【注册信息】
+
+Name:`tianxj`
