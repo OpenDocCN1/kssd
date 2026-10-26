@@ -1,0 +1,264 @@
+
+```asm
+00474A6E   . FF95 08FFFFFF  CALL DWORD PTR SS:[EBP-F8]
+
+00474A74   . 8D4D C8        LEA ECX,DWORD PTR SS:[EBP-38]
+
+00474A77   . 50             PUSH EAX
+
+00474A78   . 51             PUSH ECX
+
+00474A79   . FF15 80834900  CALL DWORD PTR DS:[<&MSVBVM50.\_\_vbaObjSe>;  MSVBVM50.\_\_vbaObjSet
+
+00474A7F   . 8B45 C8        MOV EAX,DWORD PTR SS:[EBP-38]
+
+00474A82   . 8D55 A0        LEA EDX,DWORD PTR SS:[EBP-60]
+
+00474A85   . 8945 B8        MOV DWORD PTR SS:[EBP-48],EAX
+
+00474A88   . 52             PUSH EDX
+
+00474A89   . 8D45 B0        LEA EAX,DWORD PTR SS:[EBP-50]
+
+00474A8C   . 56             PUSH ESI
+
+00474A8D   . 8D4D 90        LEA ECX,DWORD PTR SS:[EBP-70]
+
+00474A90   . 50             PUSH EAX
+
+00474A91   . 51             PUSH ECX
+
+00474A92   . C745 A8 010000>MOV DWORD PTR SS:[EBP-58],1
+
+00474A99   . C745 A0 020000>MOV DWORD PTR SS:[EBP-60],2
+
+00474AA0   . C745 C8 000000>MOV DWORD PTR SS:[EBP-38],0
+
+00474AA7   . C745 B0 090000>MOV DWORD PTR SS:[EBP-50],9
+
+00474AAE   . FF15 D4834900  CALL DWORD PTR DS:[<&MSVBVM50.#632>]     ;  MSVBVM50.rtcMidCharVar
+
+00474AB4   . 8D55 90        LEA EDX,DWORD PTR SS:[EBP-70]            ;  上面的是VB中的取字符函数
+
+00474AB7   . 8D45 E0        LEA EAX,DWORD PTR SS:[EBP-20]
+
+00474ABA   . 52             PUSH EDX
+
+00474ABB   . 50             PUSH EAX
+
+00474ABC   . FF15 80844900  CALL DWORD PTR DS:[<&MSVBVM50.\_\_vbaStrVa>;  MSVBVM50.\_\_vbaStrVarVal
+
+00474AC2   . 50             PUSH EAX                                 ;  转化为变量型
+
+00474AC3   . FF15 20834900  CALL DWORD PTR DS:[<&MSVBVM50.#516>]     ;  MSVBVM50.rtcAnsiValueBstr
+
+00474AC9   . 0FBFC8         MOVSX ECX,AX                             ;  AX为注册名某位ASC
+
+00474ACC   . 03CF           ADD ECX,EDI                              ;  累加到ECX
+
+00474ACE   . 0F80 6A0B0000  JO TimeReco.0047563E
+
+00474AD4   . 8BF9           MOV EDI,ECX                              ;  转移
+
+00474AD6   . 8D4D E0        LEA ECX,DWORD PTR SS:[EBP-20]
+
+00474AD9   . FF15 80854900  CALL DWORD PTR DS:[<&MSVBVM50.\_\_vbaFreeS>;  MSVBVM50.\_\_vbaFreeStr
+
+00474ADF   . 8D4D C8        LEA ECX,DWORD PTR SS:[EBP-38]
+
+00474AE2   . FF15 7C854900  CALL DWORD PTR DS:[<&MSVBVM50.\_\_vbaFreeO>;  MSVBVM50.\_\_vbaFreeObj
+
+00474AE8   . 8D55 90        LEA EDX,DWORD PTR SS:[EBP-70]
+
+00474AEB   . 8D45 A0        LEA EAX,DWORD PTR SS:[EBP-60]
+
+00474AEE   . 52             PUSH EDX
+
+00474AEF   . 8D4D B0        LEA ECX,DWORD PTR SS:[EBP-50]
+
+00474AF2   . 50             PUSH EAX
+
+00474AF3   . 51             PUSH ECX
+
+00474AF4   . 6A 03          PUSH 3
+
+00474AF6   . FF15 10834900  CALL DWORD PTR DS:[<&MSVBVM50.\_\_vbaFreeV>;  MSVBVM50.\_\_vbaFreeVarList
+
+00474AFC   . B8 01000000    MOV EAX,1
+
+00474B01   . 83C4 10        ADD ESP,10
+
+00474B04   . 03C6           ADD EAX,ESI                              ;  EAX=EAX+ESI
+
+00474B06   . 0F80 320B0000  JO TimeReco.0047563E
+
+00474B0C   . 8BF0           MOV ESI,EAX
+
+00474B0E   .^E9 4EFFFFFF    JMP TimeReco.00474A61                    ;  循环到00474A61
+
+00474B13   > A1 80204900    MOV EAX,DWORD PTR DS:[492080]
+
+00474B18   . 85C0           TEST EAX,EAX
+
+00474B1A   . 75 19          JNZ SHORT TimeReco.00474B35
+
+00474B1C   . 8B1D AC844900  MOV EBX,DWORD PTR DS:[<&MSVBVM50.\_\_vbaNe>;  MSVBVM50.\_\_vbaNew2
+
+00474B22   . 68 80204900    PUSH TimeReco.00492080
+
+00474B27   . 68 94044100    PUSH TimeReco.00410494
+
+00474B2C   . FFD3           CALL EBX                                 ;  <&MSVBVM50.\_\_vbaNew2>
+
+00474B2E   . A1 80204900    MOV EAX,DWORD PTR DS:[492080]
+
+00474B33   . EB 06          JMP SHORT TimeReco.00474B3B
+
+00474B35   > 8B1D AC844900  MOV EBX,DWORD PTR DS:[<&MSVBVM50.\_\_vbaNe>;  MSVBVM50.\_\_vbaNew2
+
+00474B3B   > 85C0           TEST EAX,EAX
+
+00474B3D   . 8985 28FFFFFF  MOV DWORD PTR SS:[EBP-D8],EAX
+
+00474B43   . 75 11          JNZ SHORT TimeReco.00474B56
+
+00474B45   . 68 80204900    PUSH TimeReco.00492080
+
+00474B4A   . 68 94044100    PUSH TimeReco.00410494
+
+00474B4F   . FFD3           CALL EBX
+
+00474B51   . A1 80204900    MOV EAX,DWORD PTR DS:[492080]
+
+00474B56   > 8B10           MOV EDX,DWORD PTR DS:[EAX]
+
+00474B58   . 50             PUSH EAX
+
+00474B59   . FF92 D4030000  CALL DWORD PTR DS:[EDX+3D4]
+
+00474B5F   . 50             PUSH EAX
+
+00474B60   . 8D45 C8        LEA EAX,DWORD PTR SS:[EBP-38]
+
+00474B63   . 50             PUSH EAX
+
+00474B64   . FF15 80834900  CALL DWORD PTR DS:[<&MSVBVM50.\_\_vbaObjSe>;  MSVBVM50.\_\_vbaObjSet
+
+00474B6A   . 8BF0           MOV ESI,EAX
+
+00474B6C   . 8D55 E0        LEA EDX,DWORD PTR SS:[EBP-20]
+
+00474B6F   . 52             PUSH EDX
+
+00474B70   . 56             PUSH ESI
+
+00474B71   . 8B0E           MOV ECX,DWORD PTR DS:[ESI]
+
+00474B73   . FF91 A0000000  CALL DWORD PTR DS:[ECX+A0]
+
+00474B79   . 85C0           TEST EAX,EAX
+
+00474B7B   . 7D 12          JGE SHORT TimeReco.00474B8F
+
+00474B7D   . 68 A0000000    PUSH 0A0
+
+00474B82   . 68 C8664100    PUSH TimeReco.004166C8
+
+00474B87   . 56             PUSH ESI
+
+00474B88   . 50             PUSH EAX
+
+00474B89   . FF15 4C834900  CALL DWORD PTR DS:[<&MSVBVM50.\_\_vbaHresu>;  MSVBVM50.\_\_vbaHresultCheckObj
+
+00474B8F   > A1 80204900    MOV EAX,DWORD PTR DS:[492080]
+
+00474B94   . 85C0           TEST EAX,EAX
+
+00474B96   . 75 11          JNZ SHORT TimeReco.00474BA9
+
+00474B98   . 68 80204900    PUSH TimeReco.00492080
+
+00474B9D   . 68 94044100    PUSH TimeReco.00410494
+
+00474BA2   . FFD3           CALL EBX
+
+00474BA4   . A1 80204900    MOV EAX,DWORD PTR DS:[492080]
+
+00474BA9   > 8B08           MOV ECX,DWORD PTR DS:[EAX]
+
+00474BAB   . 50             PUSH EAX
+
+00474BAC   . FF91 D4030000  CALL DWORD PTR DS:[ECX+3D4]
+
+00474BB2   . 8D55 C4        LEA EDX,DWORD PTR SS:[EBP-3C]
+
+00474BB5   . 50             PUSH EAX
+
+00474BB6   . 52             PUSH EDX
+
+00474BB7   . FF15 80834900  CALL DWORD PTR DS:[<&MSVBVM50.\_\_vbaObjSe>;  MSVBVM50.\_\_vbaObjSet
+
+00474BBD   . 8BF0           MOV ESI,EAX
+
+00474BBF   . 8D4D DC        LEA ECX,DWORD PTR SS:[EBP-24]
+
+00474BC2   . 51             PUSH ECX
+
+00474BC3   . 56             PUSH ESI
+
+00474BC4   . 8B06           MOV EAX,DWORD PTR DS:[ESI]
+
+00474BC6   . FF90 A0000000  CALL DWORD PTR DS:[EAX+A0]
+
+00474BCC   . 85C0           TEST EAX,EAX
+
+00474BCE   . 7D 12          JGE SHORT TimeReco.00474BE2
+
+00474BD0   . 68 A0000000    PUSH 0A0
+
+00474BD5   . 68 C8664100    PUSH TimeReco.004166C8
+
+00474BDA   . 56             PUSH ESI
+
+00474BDB   . 50             PUSH EAX
+
+00474BDC   . FF15 4C834900  CALL DWORD PTR DS:[<&MSVBVM50.\_\_vbaHresu>;  MSVBVM50.\_\_vbaHresultCheckObj
+
+00474BE2   > 8B95 28FFFFFF  MOV EDX,DWORD PTR SS:[EBP-D8]
+
+00474BE8   . 8B45 E0        MOV EAX,DWORD PTR SS:[EBP-20]            ;  1123
+
+00474BEB > . 50             PUSH EAX                                 ;  参数
+
+00474BEC   . 8B1A           MOV EBX,DWORD PTR DS:[EDX]               ;  下面是浮点转换
+
+00474BEE   . FF15 88854900  CALL DWORD PTR DS:[<&MSVBVM50.#581>]     ;  MSVBVM50.rtcR8ValFromBstr
+
+00474BF4   . FF15 1C854900  CALL DWORD PTR DS:[<&MSVBVM50.\_\_vbaFpI4>>;  MSVBVM50.\_\_vbaFpI4
+
+00474BFA   . 99             CDQ                                      ;  双字扩展，为下面除运算做准备
+
+00474BFB   . B9 E8030000    MOV ECX,3E8                              ;  被除常数
+
+00474C00   . F7F9           IDIV ECX                                 ;  除法运算，余数在EDX
+
+00474C02   . 8BF2           MOV ESI,EDX                              ;  余数在EDX
+
+00474C04   . 8B55 DC        MOV EDX,DWORD PTR SS:[EBP-24]
+
+00474C07   . 52             PUSH EDX                                 ;  参数
+
+00474C08   . FF15 88854900  CALL DWORD PTR DS:[<&MSVBVM50.#581>]     ;  MSVBVM50.rtcR8ValFromBstr
+
+00474C0E   . FF15 1C854900  CALL DWORD PTR DS:[<&MSVBVM50.\_\_vbaFpI4>>;  MSVBVM50.\_\_vbaFpI4
+
+00474C14   . 99             CDQ                                      ;  双字扩展，为下面除运算做准备
+
+00474C15   . B9 E8030000    MOV ECX,3E8                              ;  被除常数
+
+00474C1A   . F7F9           IDIV ECX
+
+00474C1C   . 0FAFF2         IMUL ESI,EDX                             ;  乘法运算，ESI=ESI\*EDX
+
+00474C1F   . 0F80 190A0000  JO TimeReco.0047563E                     ;  益出跳转
+```
