@@ -1,0 +1,353 @@
+
+# [原创]QQ辅助工具源代码
+
+心灰意冷了……大家共同学习。
+
+部分代码有bug，慎用。另外只提供了和QQ有关的代码，不全的代码找个`dll`自己逆向吧。
+
+## 节选部分代码
+
+### 在框内写消息
+
+```
+
+
+//这个还是在看雪上面看见的
+
+typedef struct CTXBSTR
+
+{
+
+	int zero;//貌似要一直是0
+
+	int count;//引用计数
+
+	int len1;
+
+	int len2;
+
+	wchar_t str[4100];
+
+} TXStr, * pTXStr;
+
+void QQMsgInFrame(unsigned long QQUIN,LPCTSTR lpText,int save)
+
+{
+
+	HWND hWnd = Util::ChatSession::GetContactChatSessionMainHWnd(QQUIN);
+
+	if(!IsWindow(hWnd) || !g_hwnd_inner) return;    //避免无效窗口
+
+
+
+	TXStr MyMsg;
+
+	MyMsg.zero = 0;
+
+	MyMsg.count = 3;
+
+	wcsncpy(MyMsg.str, lpText,4096);
+
+	MyMsg.str[4096]=0;
+
+	MyMsg.len1 = MyMsg.len2 = wcslen(MyMsg.str) * sizeof(wchar_t);
+
+
+
+	if(MyMsg.len1<=0) return;//不显示空文本
+
+
+
+	if(WriteMsgTip&&CreateChatFrame)
+
+	{
+
+		DWORD pointer = 0;//0x11111111;
+
+		CreateChatFrame(QQUIN, 0, &pointer, 0);
+
+		WriteMsgTip(pointer, 0, MyMsg.str, 0);
+
+	}
+
+	else
+
+	{
+
+		if(WriteMsgTip2)
+
+		{
+
+			WriteMsgTip2(QQUIN, 0, 0, MyMsg.str,0);
+
+		}
+
+	}
+
+}
+```
+
+### 去掉所有右下角弹窗
+
+```
+
+
+long __cdecl MyRawCreateGFElementByXtml(wchar_t  *p1,DWORD p2,DWORD p3,DWORD p4)
+
+{
+
+	if(wndf && oneminits && wcsstr(p1,L"PopupTip.xml")!=0) return 0;
+
+
+
+	if(RawCreateGFElementByXtml) return RawCreateGFElementByXtml(p1,p2,p3,p4);
+
+	return 0;
+
+}
+```
+
+### 一些用到的函数原型
+
+```
+
+
+#ifndef __QQDEF_H__
+
+#define __QQDEF_H__
+
+
+
+
+
+class CTXStringW;
+
+struct ITXMsgPack;
+
+
+
+#pragma comment(lib, "lib\\KernelUtil.lib")
+
+#pragma comment(lib, "lib\\AppUtil.lib")
+
+#pragma comment(lib, "lib\\Common.lib")
+
+
+
+#define DLLIMPORT __declspec (dllimport)
+
+
+
+namespace Registry
+
+{
+
+    namespace API
+
+    {
+
+        DLLIMPORT int __cdecl GetRegSubKeyBoolField(wchar_t *,wchar_t *,wchar_t *,int *,enum __MIDL___MIDL_itf_IRegistry_0000_0003,enum __MIDL___MIDL_itf_IRegistry_0000_0004);
+
+    }
+
+}
+
+namespace Util
+
+{
+
+    namespace ChatSession
+
+    {
+
+        //DLLIMPORT int __cdecl CreateChatFrameType(unsigned long,int,struct IAFChatFrameType * *,struct ITXData *);
+
+        //DLLIMPORT void __cdecl WriteMsgTipInChatSession(unsigned long,int,enum IconIndex,class CTXStringW,int);
+
+        DLLIMPORT long __cdecl SendAutoReplyMsgToBuddy(unsigned long);
+
+        DLLIMPORT void __cdecl OpenContactChatSession(unsigned long,struct ITXData *);
+
+        DLLIMPORT int __cdecl IsChatSessionOpen(unsigned long,int);
+
+    }
+
+    namespace Misc
+
+    {
+
+        DLLIMPORT void __cdecl SwitchUser(void);
+
+        DLLIMPORT int __cdecl IsServerControlBitOn(unsigned long);
+
+        DLLIMPORT int __cdecl IsTencentTrusted(wchar_t const *);
+
+        //DLLIMPORT int __cdecl MessageBoxExByHwnd(struct HWND__ *,wchar_t *,wchar_t *,unsigned int,struct ITXData *,struct ITXData * *);
+
+        //DLLIMPORT int __cdecl MessageBoxExByHwnd(struct HWND__ *,wchar_t *,wchar_t *,unsigned int,struct ITXData *,struct ITXData * *);
+
+    }
+
+    namespace AFChatSession
+
+    {
+
+        DLLIMPORT void __cdecl WriteMsgTipInChatSession(struct IAFChatFrameType *,enum IconIndex,class CTXStringW,int);
+
+    }
+
+    namespace Contact
+
+    {
+
+        DLLIMPORT int __cdecl IsFlagValid(unsigned long,unsigned long);
+
+        DLLIMPORT unsigned long __cdecl GetSelfUin(void);
+
+        DLLIMPORT unsigned short __cdecl GetIMVersion(unsigned long);
+
+        DLLIMPORT unsigned short __cdecl GetStatus(unsigned long);
+
+        DLLIMPORT class CTXStringW __cdecl GetNickname(unsigned long);
+
+        DLLIMPORT class CTXStringW __cdecl GetPublicName(unsigned long);
+
+        
+
+        namespace Self
+
+        {
+
+            DLLIMPORT int __cdecl GetAutoRelyContent(class CTXStringW &);
+
+        }
+
+    }
+
+    namespace ChatSession
+
+    {
+
+        DLLIMPORT struct HWND__ * __cdecl GetContactChatSessionMainHWnd(unsigned long);
+
+    }
+
+    namespace Group
+
+    {
+
+        DLLIMPORT int __cdecl CheckMsgImage(struct ITXMsgPack *,class CTXStringW &);
+
+    }
+
+    namespace Msg
+
+    {
+
+        DLLIMPORT class CTXStringW __cdecl GetMsgAbstract(struct ITXMsgPack *);
+
+    }
+
+    namespace Convert
+
+    {
+
+        DLLIMPORT int __cdecl ConvertXMLStrToTXData(wchar_t *,wchar_t * *,struct ITXData *,wchar_t *);
+
+    }
+
+    namespace Boot
+
+    {
+
+        DLLIMPORT int __cdecl InitPluginCoreConfig(wchar_t *);
+
+    }
+
+    namespace Com
+
+    {
+
+        DLLIMPORT long __stdcall CreateObjectFromDllFile(wchar_t const *,struct _GUID const &,struct _GUID const &,void * *,struct IUnknown *);
+
+    }
+
+    namespace CoreCenter
+
+    {
+
+        DLLIMPORT int __cdecl EnablePlugin(wchar_t *);
+
+        DLLIMPORT int __cdecl DisablePlugin(wchar_t *);
+
+    }
+
+}
+
+
+
+namespace Version
+
+{
+
+    DLLIMPORT unsigned long __cdecl GetBuildVer(void);
+
+    DLLIMPORT int __cdecl Init(void);
+
+}
+
+
+
+namespace FS
+
+{
+
+    DLLIMPORT int __cdecl IsFileExist(wchar_t const *);
+
+}
+
+
+
+//DLLIMPORT void __cdecl TXLog_DoTXLogVW(struct tagLogObj *,wchar_t const *,wchar_t const *,char *);
+
+
+
+//typedef unsigned long (WINAPI *GetAccountName)(struct ITXMsgPack *,unsigned long);
+
+//GetAccountName GetNickname = NULL;
+
+//GetAccountName GetPublicName = NULL;
+
+
+
+//typedef unsigned long (WINAPI *MsgAbstract)(struct ITXMsgPack *,struct ITXMsgPack *);
+
+//MsgAbstract GetMsgAbstract = NULL;
+
+
+
+
+
+typedef void (WINAPI *MyGetAccountName)(const wchar_t **,unsigned long);
+
+#define GetNickname ((MyGetAccountName)Util::Contact::GetNickname)
+
+#define GetPublicName ((MyGetAccountName)Util::Contact::GetPublicName)
+
+#define GetMsgAbstract ((MyGetAccountName)Util::Msg::GetMsgAbstract)
+
+
+
+#endif // __QQDEF_H__
+
+```
+
+## 下载源代码
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+### 上传的附件
+
+- [`CWUB2_SRC.7z`](javascript:void(0);)
+
+  （19.98kb，505次下载）
