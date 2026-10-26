@@ -1,0 +1,218 @@
+
+# PESpin V0.3 怒而脱之
+
+【脱文标题】 PESpin V0.3怒而脱之
+
+【脱文作者】 weiyi75[Dfcg]
+
+【作者邮箱】 weiyi75@sohu.com
+
+【作者主页】 Dfcg官方大本营
+
+【使用工具】 `Peid`,`olldbg`,`Loadpe`,`ImportREC`
+
+【破解平台】 Win2000/XP
+
+【软件名称】 PESpin V0.3
+
+【软件下载】 [点击此处本地下载](https://www.kanxue.com/pediy6928/PESpin03.rar)
+
+【软件大小】 19k
+
+【加壳方式】 PESpin 0.3 -> cyberbob
+
+【破解声明】 我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+--------------------------------------------------------------------------------
+
+## 脱壳内容
+
+看着PESpin V0.7-1.1 都被Fly,loveboom拿下，我这里N久下载的PESpin V0.3还没有搞定，主要是搞不定IAT加密，IAT知识还不全，但不愿意卡住，想办法吧。
+
+苦思好久，Magic Jmp 在PESpin0.1被fly攻下作者就更变态的隐藏住了，或者根本没有Magic Jmp代码，可以自己写解密IAT代码嘛，我是不会的。但可以利用作者的代码的，看加密选项有个IAT重定项，这就好办了，找到它们的区别，PATCH不就可以了，看清规律，这个可以处理一些变态壳，一般软件作者当然是全部Anti选项了，没料到免费的东西我们脱壳者也有的啊。分别用PESpin加密记事本(全部Anti选项),加密记事本(全部Anti选项除了不加密IAT)两个记事本。
+
+## 详细内容
+
+`OD`选项不忽略特权指令，其余全部忽略。
+
+再特权指令`SEH`异常后就开始处理`IAT`,然后到`Stolen code`
+
+`OD`载入全部Anti的记事本
+
+```
+0040C087 N> /EB 01               jmp short NOTEPADy.0040C08A //开始就有小花,用花指令插件清除6个
+0040C089    |68 60E80000         push 0E860
+0040C08E     0000                add byte ptr ds:[eax],al
+0040C090     8B1C24              mov ebx,dword ptr ss:[esp]
+0040C093     83C3 12             add ebx,12
+0040C096     812B E8B10600       sub dword ptr ds:[ebx],6B1E8
+0040C09C     FE4B FD             dec byte ptr ds:[ebx-3]
+0040C09F     822C24 B7           sub byte ptr ss:[esp],-49
+0040C0A3     CD 46               int 46
+0040C0A5     000B                add byte ptr ds:[ebx],cl
+0040C0A7     E4 74               in al,74
+0040C0A9     9E                  sahf
+0040C0AA     75 01               jnz short NOTEPADy.0040C0AD
+0040C0AC     C781 7304D77A F72F8>mov dword ptr ds:[ecx+7AD70473],738>
+0040C0B6     1977 00             sbb dword ptr ds:[edi],esi
+..............................................................
+0040C087 N>  90                  nop
+0040C088     90                  nop
+0040C089     90                  nop
+0040C08A     60                  pushad
+0040C08B     E8 00000000         call NOTEPADy.0040C090 //这里hr esp,方便找Stolen code，后面的版本无效，再说。
+0040C090     8B1C24              mov ebx,dword ptr ss:[esp]
+0040C093     83C3 12             add ebx,12
+0040C096     812B E8B10600       sub dword ptr ds:[ebx],6B1E8
+0040C09C     FE4B FD             dec byte ptr ds:[ebx-3]
+0040C09F     822C24 B7           sub byte ptr ss:[esp],-49
+0040C0A3     CD 46               int 46
+0040C0A5     000B                add byte ptr ds:[ebx],cl
+0040C0A7     E4 74               in al,74
+0040C0A9     9E                  sahf
+0040C0AA     90                  nop
+0040C0AB     90                  nop
+0040C0AC     90                  nop
+0040C0AD     8173 04 D77AF72F    xor dword ptr ds:[ebx+4],2FF77AD7
+0040C0B4     8173 19 770043B7    xor dword ptr ds:[ebx+19],B7430077
+..............................................................
+```
+
+`Shift+F9` 3此运行到最后一次特权指令`SEH`处
+
+```
+00400181     FFFF                ???                                 ; 未知命令
+00400183     FFFF                ???                                 ; 未知命令
+00400185     FFFF                ???                                 ; 未知命令
+00400187     FFFF                ???                                 ; 未知命令
+00400189     FFFF                ???                                 ; 未知命令
+0040018B     FFFF                ???                                 ; 未知命令
+0040018D     FFFF                ???                                 ; 未知命令
+0040018F     FFFF                ???                                 ; 未知命令
+00400191     FFFF                ???                                 ; 未知命令
+00400193     FFFF                ???                                 ; 未知命令
+00400195     FFFF                ???                                 ; 未知命令
+00400197     FFFF                ???                                 ; 未知命令
+.......................................................
+```
+
+然后你是记事本迷，`IAT`当然知道是
+
+`4062e0` 开始，大小`248`
+
+于是命令行
+
+`dd 4062e4`
+
+```
+004062E4  00006DB4
+004062E8  00006DC8
+004062EC  00006DA2
+004062F0  00006DE6
+004062F4  00006DD6
+004062F8  00000000
+..................
+00406314  00006C1E   //随意取一段下内存写入断点
+00406318  00006C4A
+0040631C  00006C56
+00406320  00006C40
+```
+
+`Shift+F9`中断
+
+```
+0040CAA6     830A 00             or dword ptr ds:[edx],0 //第一次，这不是加密IAT
+0040CAA9     0F84 D2000000       je NOTEPADy.0040CB81
+0040CAAF     8B02                mov eax,dword ptr ds:[edx]
+0040CAB1     A9 00000080         test eax,80000000
+0040CAB6     74 09               je short NOTEPADy.0040CAC1
+0040CAB8     25 FFFFFF7F         and eax,7FFFFFFF
+0040CABD     2BFF                sub edi,edi
+0040CABF     EB 08               jmp short NOTEPADy.0040CAC9
+0040CAC1     40                  inc eax
+0040CAC2     0385 CB2C4000       add eax,dword ptr ss:[ebp+402CCB]
+0040CAC8     97                  xchg eax,edi
+0040CAC9     68 75DFD0F9         push F9D0DF75
+0040CACE     012C24              add dword ptr ss:[esp],ebp
+0040CAD1     810424 B4466F06     add dword ptr ss:[esp],66F46B4
+0040CAD8     68 7366630F         push 0F636673
+0040CADD     812C24 9643230F     sub dword ptr ss:[esp],0F234396
+0040CAE4     012C24              add dword ptr ss:[esp],ebp
+0040CAE7     C3                  retn
+0040CB73     8902                mov dword ptr ds:[edx],eax  //这句就是加密IAT,正确IAT也是这里写入，记住地址。 现在错误地址00860838要写入4062fc，得分析这段来源。
+```
+
+我们就从
+
+`0040CAA6`     `830A 00`             `or dword ptr ds:[edx],0`
+
+到
+
+`0040CBF7`     `C3`                  `retn`
+
+清理一下花指令
+
+搜索地址
+
+`0040CAA6`
+
+大小
+
+`151`
+
+清除小花10个
+
+```
+0040CB75     EB 01               jmp short NOTEPADy.0040CB78
+0040CB77     40                  inc eax
+0040CB78     83C2 04             add edx,4
+0040CB7B   ^ E9 26FFFFFF         jmp NOTEPADy.0040CAA6
+0040CB80     E8 83661000         call 00513208
+0040CB85     74 01               je short NOTEPADy.0040CB88
+0040CB87     C483 C614E987       les eax,fword ptr ds:[ebx+87E914C6]
+0040CB8D     FE                  ???                                 ; 未知命令
+0040CB8E     FFFF                ???                                 ; 未知命令
+0040CB90     C9                  leave
+0040CB91     8000 60             add byte ptr ds:[eax],60
+0040CB94     0000                add byte ptr ds:[eax],al
+0040CB96     898D 3DE92640       mov dword ptr ss:[ebp+4026E93D],ecx
+.............................................................................
+```
+
+整理为
+
+```
+0040CAA6     830A 00             or dword ptr ds:[edx],0
+0040CAA9     0F84 D2000000       je NOTEPADy.0040CB81
+0040CAAF     8B02                mov eax,dword ptr ds:[edx]
+0040CAB1     A9 00000080         test eax,80000000
+0040CAB6     74 09               je short NOTEPADy.0040CAC1
+0040CAB8     25 FFFFFF7F         and eax,7FFFFFFF
+0040CABD     2BFF                sub edi,edi
+0040CABF     EB 08               jmp short NOTEPADy.0040CAC9
+0040CAC1     40                  inc eax
+0040CAC2     0385 CB2C4000       add eax,dword ptr ss:[ebp+402CCB]
+0040CAC8     97                  xchg eax,edi
+0040CAC9     68 75DFD0F9         push F9D0DF75
+0040CACE     012C24              add dword ptr ss:[esp],ebp
+0040CAD1     810424 B4466F06     add dword ptr ss:[esp],66F46B4
+0040CAD8     68 7366630F         push 0F636673
+0040CADD     812C24 9643230F     sub dword ptr ss:[esp],0F234396
+0040CAE4     012C24              add dword ptr ss:[esp],ebp
+0040CAE7     C3                  retn
+0040CAE8     85C0                test eax,eax
+0040CAEA     EA 0F845B05 0000    jmp far 0000:055B840F
+0040CAF1     90                  nop
+0040CAF2     90                  nop
+0040CAF3     90                  nop
+0040CAF4     0BFF                or edi,edi
+0040CAF6     9C                  pushfd
+0040CAF7     C12C24 06           shr dword ptr ss:[esp],6
+0040CAFB     832424 01           and dword ptr ss:[esp],1
+0040CAFF     50                  push eax
+0040CB00     52                  push edx
+0040CB01     B8 0ABBDC1B         mov eax,1BDCBB0A
+0040CB06     05 444523E4         add eax,E4234544
+0040CB0B     F76424 08           mul dword ptr ss:[esp+8]
+0040CB0F     8D8428 64264000     lea eax,dword ptr ds:[eax+ebp+40266>
+```
