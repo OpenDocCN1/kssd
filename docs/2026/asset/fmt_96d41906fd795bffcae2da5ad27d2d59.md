@@ -1,0 +1,158 @@
+
+# [原创]Rapid PHP 2010 算法分析，注册机制作及简单网络验证
+
+【文章标题】: Rapid PHP 2010 算法分析，注册机制作及简单网络验证
+
+【文章作者】: ella
+
+【软件名称】: Rapid PHP 2010 V10.0.2.118
+
+【下载地址】: 921K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4q4S2M7X3y4Z5K9i4k6W2i4K6u0W2L8%4u0Y4i4K6t1$3L8X3u0K6M7q4)9K6b7W2)9J5y4X3&6T1M7%4m8Q4x3@1u0%4N6%4N6Q4x3X3g2T1L8s2g2E0k6h3&6@1j5h3I4K6i4K6u0W2L8X3g2@1
+
+【编写语言】: Delphi 6.0-7.0
+
+【使用工具】: 没什么特别工具~^\_^
+
+【操作平台】: Windows XP Sp2
+
+【作者声明】: 小菜鸟，凑热闹，学习而已，没有其他目的，失误之处敬请诸位牛牛赐教!~^\_^
+
+--------------------------------------------------------------------------------
+
+## 【详细过程】
+
+### 一，前期工作
+
+查壳 PEID：不知道，Exeinfo PE：Program protector v2.1 ，走几步就脱了，略。
+
+KANAL 2.9 等工具，显示N多算法，不管，我们开始。
+
+未注册会出提示对话框，用30次，注册后提示框消失，功能上应该没什么限制。
+
+### 二，主要部分算法分析
+
+本来想用IDA复制代码，能识别显示函数，但看着好乱，OD里清楚点。
+
+#### 2.1， 算法主体部分及网络验证部分代码
+
+```
+00A4E344    55              push    ebp                                ; 输入假码：RP0ABCDEFGHIJKL1234567890，来到关键地方。
+00A4E345    8BEC            mov     ebp, esp
+00A4E347    B9 06000000     mov     ecx, 6
+00A4E34C    6A 00           push    0
+00A4E34E    6A 00           push    0
+00A4E350    49              dec     ecx
+00A4E351  ^ 75 F9           jnz     short 00A4E34C
+00A4E353    53              push    ebx
+00A4E354    8BD8            mov     ebx, eax
+00A4E356    33C0            xor     eax, eax
+00A4E358    55              push    ebp
+00A4E359    68 73E5A400     push    00A4E573
+00A4E35E    64:FF30         push    dword ptr fs:[eax]
+00A4E361    64:8920         mov     dword ptr fs:[eax], esp
+00A4E364    8D55 F4         lea     edx, dword ptr [ebp-C]
+00A4E367    8B83 FC020000   mov     eax, dword ptr [ebx+2FC]
+00A4E36D    E8 6E76A8FF     call    004D59E0                         ; GetText
+00A4E372    837D F4 00      cmp     dword ptr [ebp-C], 0
+00A4E376    75 1A           jnz     short 00A4E392
+00A4E378    8B83 FC020000   mov     eax, dword ptr [ebx+2FC]
+00A4E37E    8B10            mov     edx, dword ptr [eax]
+00A4E380    FF92 C4000000   call    dword ptr [edx+C4]
+00A4E386    6A 00           push    0
+00A4E388    E8 3FAB9BFF     call    <jmp.&user32.MessageBeep>
+00A4E38D    E9 91010000     jmp     00A4E523
+00A4E392    8D55 EC         lea     edx, dword ptr [ebp-14]
+00A4E395    8B83 FC020000   mov     eax, dword ptr [ebx+2FC]
+00A4E39B    E8 4076A8FF     call    004D59E0                         ; GetText
+00A4E3A0    8B45 EC         mov     eax, dword ptr [ebp-14]
+00A4E3A3    8D55 F0         lea     edx, dword ptr [ebp-10]
+00A4E3A6    E8 1572A0FF     call    004555C0                         ; UpperCase 输入小写会自动改为大写
+00A4E3AB    8B45 F0         mov     eax, dword ptr [ebp-10]
+00A4E3AE    8D55 F8         lea     edx, dword ptr [ebp-8]
+00A4E3B1    E8 DA76A0FF     call    00455A90                         ; Trim
+00A4E3B6    8D55 E4         lea     edx, dword ptr [ebp-1C]
+00A4E3B9    8B83 FC020000   mov     eax, dword ptr [ebx+2FC]
+00A4E3BF    E8 1C76A8FF     call    004D59E0                         ; GetText 重新取大写字串
+00A4E3C4    8B45 E4         mov     eax, dword ptr [ebp-1C]
+00A4E3C7    8D55 E8         lea     edx, dword ptr [ebp-18]
+00A4E3CA    E8 7DF4FFFF     call    00A4D84C
+00A4E3CF    8B45 E8         mov     eax, dword ptr [ebp-18]
+00A4E3D2    E8 21F5FFFF     call    00A4D8F8                         ; 关键算法CALL，我们进
+```
+
+**关键算法 `CALL`**
+
+```
+00A4D8F8    55              push    ebp
+00A4D8F9    8BEC            mov     ebp, esp
+00A4D8FB    81C4 ECFEFFFF   add     esp, -114
+00A4D901    53              push    ebx
+00A4D902    33D2            xor     edx, edx
+00A4D904    8995 2CFFFFFF   mov     dword ptr [ebp-D4], edx
+00A4D90A    8955 F8         mov     dword ptr [ebp-8], edx
+00A4D90D    8955 F4         mov     dword ptr [ebp-C], edx
+00A4D910    8955 F0         mov     dword ptr [ebp-10], edx
+00A4D913    8945 FC         mov     dword ptr [ebp-4], eax
+00A4D916    8B45 FC         mov     eax, dword ptr [ebp-4]
+00A4D919    E8 127C9BFF     call    00405530
+00A4D91E    33C0            xor     eax, eax
+00A4D920    55              push    ebp
+00A4D921    68 3CDAA400     push    00A4DA3C
+00A4D926    64:FF30         push    dword ptr fs:[eax]
+00A4D929    64:8920         mov     dword ptr fs:[eax], esp
+00A4D92C    33DB            xor     ebx, ebx
+00A4D92E    8B45 FC         mov     eax, dword ptr [ebp-4]
+00A4D931    E8 0A7A9BFF     call    00405340
+00A4D936    83F8 19         cmp     eax, 19                          ; 比较注册码长度是否为 25 位
+00A4D939    0F85 D7000000   jnz     00A4DA16
+00A4D93F    8B55 FC         mov     edx, dword ptr [ebp-4]
+00A4D942    A1 B467AC00     mov     eax, dword ptr [AC67B4]
+00A4D947    E8 387D9BFF     call    00405684                         ; 注册码中是否含有 RP0
+00A4D94C    48              dec     eax
+00A4D94D    0F85 C3000000   jnz     00A4DA16
+00A4D953    8D85 2CFFFFFF   lea     eax, dword ptr [ebp-D4]
+00A4D959    50              push    eax
+00A4D95A    B9 0F000000     mov     ecx, 0F
+00A4D95F    BA 01000000     mov     edx, 1
+00A4D964    8B45 FC         mov     eax, dword ptr [ebp-4]
+00A4D967    E8 347C9BFF     call    004055A0                         ; 取注册码前15位，RP0ABCDEFGHIJKL
+00A4D96C    8B85 2CFFFFFF   mov     eax, dword ptr [ebp-D4]
+00A4D972    8D55 F8         lea     edx, dword ptr [ebp-8]
+00A4D975    E8 52F9FFFF     call    00A4D2CC                         ; TIdEncoder.Encode 算法，实质是MD5，返回最后32位大小，1571902691
+00A4D97A    8D45 F4         lea     eax, dword ptr [ebp-C]           ; TIdEncoder.Encode 是 indy 里的 ，官网在7daK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3W2F1k6s2W2H3M7X3!0B7k6h3y4@1i4K6u0W2L8%4u0Y4i4K6u0r3
+00A4D97D    50              push    eax
+00A4D97E    B9 19000000     mov     ecx, 19
+00A4D983    BA 10000000     mov     edx, 10
+00A4D988    8B45 FC         mov     eax, dword ptr [ebp-4]
+00A4D98B    E8 107C9BFF     call    004055A0                         ; 取注册码后10位，1234567890
+00A4D990    8D95 70FFFFFF   lea     edx, dword ptr [ebp-90]
+00A4D996    33C0            xor     eax, eax
+00A4D998    E8 5BE1FFFF     call    00A4BAF8
+00A4D99D    8D95 30FFFFFF   lea     edx, dword ptr [ebp-D0]
+00A4D9A3    33C0            xor     eax, eax
+00A4D9A5    E8 4EE1FFFF     call    00A4BAF8
+00A4D9AA    8D55 B0         lea     edx, dword ptr [ebp-50]
+00A4D9AD    33C0            xor     eax, eax
+00A4D9AF    E8 44E1FFFF     call    00A4BAF8
+00A4D9B4    8D95 70FFFFFF   lea     edx, dword ptr [ebp-90]
+00A4D9BA    B8 54DAA400     mov     eax, 00A4DA54                    ; RSA e=17
+00A4D9BF    E8 80E0FFFF     call    00A4BA44
+00A4D9C4    8D95 30FFFFFF   lea     edx, dword ptr [ebp-D0]
+00A4D9CA    B8 60DAA400     mov     eax, 00A4DA60                    ; RSA n=4552764137
+00A4D9CF    E8 70E0FFFF     call    00A4BA44
+00A4D9D4    8D55 B0         lea     edx, dword ptr [ebp-50]
+00A4D9D7    8B45 F4         mov     eax, dword ptr [ebp-C]
+00A4D9DA    E8 65E0FFFF     call    00A4BA44                         ; RSA m=123456780
+00A4D9DF    8D85 ECFEFFFF   lea     eax, dword ptr [ebp-114]
+00A4D9E5    50              push    eax
+00A4D9E6    8D8D 30FFFFFF   lea     ecx, dword ptr [ebp-D0]
+00A4D9EC    8D95 70FFFFFF   lea     edx, dword ptr [ebp-90]
+00A4D9F2    8D45 B0         lea     eax, dword ptr [ebp-50]
+00A4D9F5    E8 6EF9FFFF     call    00A4D368                         ; RSA c = m^e mod n
+00A4D9FA    8D85 ECFEFFFF   lea     eax, dword ptr [ebp-114]         ; 结果,c=2327427866
+00A4DA00    8D55 F0         lea     edx, dword ptr [ebp-10]
+00A4DA03    E8 68DEFFFF     call    00A4B870
+00A4DA08    8B45 F0         mov     eax, dword ptr [ebp-10]          ; RSA密文,c=2327427866
+00A4DA0B    8B55 F8         mov     edx, dword ptr [ebp-8]           ; encode结果，1571902691
+00A4DA0E    E8 797A9BFF     call    0040548C                         ; c与 TIdEncoder.Encode 结果比较是否相同
+```
