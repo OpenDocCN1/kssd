@@ -1,0 +1,180 @@
+
+`00584CCE    E8 75EDE7FF           call dumped\_.00403A48                  ; 跟进，返回程序，进行2次校验`
+
+## 返回到这里
+
+```
+004093BC    50                    push eax
+004093BD    E8 C2DAFFFF           call dumped\_.00406E84                  ; 返回到这里，F7跟进，jmp to kernel32.CreateFileA
+004093C2    5F                    pop edi
+004093C3    5E                    pop esi
+004093C4    5B                    pop ebx
+004093C5    C3                    retn
+```
+
+### 跟进后
+
+```
+00406E84  - FF25 1C645A00         jmp dword ptr ds:[5A641C]              ; 这里继续F7跳过！kernel32.CreateFileA
+00406E8A    8BC0                  mov eax,eax
+```
+
+### 跳向这里
+
+```
+77E5B476 >  55                    push ebp                               ; 跳到这里，一路F8！
+77E5B477    8BEC                  mov ebp,esp
+77E5B479    FF75 08               push dword ptr ss:[ebp+8]
+77E5B47C    E8 11FFFFFF           call kernel32.77E5B392
+77E5B481    85C0                  test eax,eax
+77E5B483    0F84 A3FF0100         je kernel32.77E7B42C
+77E5B489    FF75 20               push dword ptr ss:[ebp+20]
+77E5B48C    FF75 1C               push dword ptr ss:[ebp+1C]
+77E5B48F    FF75 18               push dword ptr ss:[ebp+18]
+77E5B492    FF75 14               push dword ptr ss:[ebp+14]
+77E5B495    FF75 10               push dword ptr ss:[ebp+10]
+77E5B498    FF75 0C               push dword ptr ss:[ebp+C]
+77E5B49B    FF70 04               push dword ptr ds:[eax+4]
+77E5B49E    E8 EEFBFFFF           call kernel32.CreateFileW
+77E5B4A3    5D                    pop ebp
+77E5B4A4    C2 1C00               retn 1C                                ; F8到这里返回
+```
+
+## 返回到这里(也就是上面断点的下一个地址)
+
+```
+004093C2    5F                    pop edi                                ; 赋值数据，F7单步，00B80000
+004093C3    5E                    pop esi                                ; 赋值数据，F7单步，00BC689C
+004093C4    5B                    pop ebx                                ; 赋值数据，F7单步，00B8942C
+004093C5    C3                    retn                                   ; 返回下一个检测空间
+```
+
+## 返回到这里
+
+```
+0041F9D5    8BC8                  mov ecx,eax                            ; 返回到这里
+0041F9D7    33D2                  xor edx,edx
+0041F9D9    8BC3                  mov eax,ebx
+0041F9DB    E8 7CFEFFFF           call dumped\_.0041F85C
+0041F9E0    837B 04 00            cmp dword ptr ds:[ebx+4],0
+0041F9E4    7D 24                 jge short dumped\_.0041FA0A
+0041F9E6    8975 F4               mov dword ptr ss:[ebp-C],esi
+0041F9E9    C645 F8 0B            mov byte ptr ss:[ebp-8],0B
+0041F9ED    8D45 F4               lea eax,dword ptr ss:[ebp-C]
+0041F9F0    50                    push eax
+0041F9F1    6A 00                 push 0
+0041F9F3    8B0D A08C5900         mov ecx,dword ptr ds:[598CA0]          ; dumped\_.00418198
+0041F9F9    B2 01                 mov dl,1
+0041F9FB    A1 E49E4100           mov eax,dword ptr ds:[419EE4]
+0041FA00    E8 03D1FEFF           call dumped\_.0040CB08
+0041FA05    E8 0E46FEFF           call dumped\_.00404018
+0041FA0A    8BC3                  mov eax,ebx
+0041FA0C    807D FF 00            cmp byte ptr ss:[ebp-1],0
+0041FA10    74 0F                 je short dumped\_.0041FA21
+0041FA12    E8 F141FEFF           call dumped\_.00403C08
+0041FA17    64:8F05 00000000      pop dword ptr fs:[0]
+0041FA1E    83C4 0C               add esp,0C
+0041FA21    8BC3                  mov eax,ebx
+0041FA23    5F                    pop edi
+0041FA24    5E                    pop esi
+0041FA25    5B                    pop ebx
+0041FA26    8BE5                  mov esp,ebp
+0041FA28    5D                    pop ebp
+0041FA29    C2 0800               retn 8                                 ; 又一次一路F8后来到这里返回
+```
+
+## 返回到这里
+
+```
+0041F945    8BC6                  mov eax,esi
+0041F947    84DB                  test bl,bl
+0041F949    74 0F                 je short dumped\_.0041F95A
+0041F94B    E8 B842FEFF           call dumped\_.00403C08
+0041F950    64:8F05 00000000      pop dword ptr fs:[0]
+0041F957    83C4 0C               add esp,0C
+0041F95A    8BC6                  mov eax,esi
+0041F95C    5E                    pop esi
+0041F95D    5B                    pop ebx
+0041F95E    5D                    pop ebp
+0041F95F    C2 0400               retn 4                                 ; 再次一路F8后来到这里返回
+```
+
+## 返回到这里 (★重要★)
+
+```
+00581E4A    8945 F4               mov dword ptr ss:[ebp-C],eax
+00581E4D    33C0                  xor eax,eax                            ; 这里脱壳前和脱壳后数据不一样，eax=00B8942C
+00581E4F    55                    push ebp
+00581E50    68 7C1E5800           push dumped\_.00581E7C
+00581E55    64:FF30               push dword ptr fs:[eax]
+00581E58    64:8920               mov dword ptr fs:[eax],esp
+00581E5B    8B45 F4               mov eax,dword ptr ss:[ebp-C]
+00581E5E    E8 D5D5E9FF           call dumped\_.0041F438                  ; CRC冗余代码校验CALL
+00581E63    8945 F8               mov dword ptr ss:[ebp-8],eax           ; 当前文件大小赋值给eax，eax=001D5200    //1D5200 =1921536字节
+00581E66    33C0                  xor eax,eax                            ; 异或，eax=001D5200
+00581E68    5A                    pop edx
+00581E69    59                    pop ecx
+00581E6A    59                    pop ecx
+00581E6B    64:8910               mov dword ptr fs:[eax],edx
+00581E6E    68 831E5800           push dumped\_.00581E83
+00581E73    8B45 F4               mov eax,dword ptr ss:[ebp-C]
+00581E76    E8 D119E8FF           call dumped\_.0040384C
+00581E7B    C3                    retn
+00581E7C  ^\E9 5F21E8FF           jmp dumped\_.00403FE0
+00581E81  ^ EB F0                 jmp short dumped\_.00581E73
+00581E83    33C0                  xor eax,eax
+00581E85    5A                    pop edx
+00581E86    59                    pop ecx
+00581E87    59                    pop ecx
+00581E88    64:8910               mov dword ptr fs:[eax],edx
+00581E8B    EB 0A                 jmp short dumped\_.00581E97
+00581E8D  ^ E9 9A1EE8FF           jmp dumped\_.00403D2C
+00581E92    E8 FD21E8FF           call dumped\_.00404094
+00581E97    33C0                  xor eax,eax
+00581E99    5A                    pop edx
+00581E9A    59                    pop ecx
+00581E9B    59                    pop ecx
+00581E9C    64:8910               mov dword ptr fs:[eax],edx
+00581E9F    68 B41E5800           push dumped\_.00581EB4
+00581EA4    8D45 FC               lea eax,dword ptr ss:[ebp-4]
+00581EA7    E8 9027E8FF           call dumped\_.0040463C
+00581EAC    C3                    retn
+00581EAD  ^\E9 2E21E8FF           jmp dumped\_.00403FE0
+00581EB2  ^ EB F0                 jmp short dumped\_.00581EA4
+00581EB4    8B45 F8               mov eax,dword ptr ss:[ebp-8]           ; 最终赋值，堆栈 ss:[0012FDBC]=001D5200
+00581EB7    5F                    pop edi
+00581EB8    5E                    pop esi
+00581EB9    5B                    pop ebx
+00581EBA    8BE5                  mov esp,ebp
+00581EBC    5D                    pop ebp
+00581EBD    C3                    retn                                   ; 返回程序，告诉程序下一步该做什么！
+```
+
+## 返回到这里 (★重要★【第二处】)
+
+```
+005842C4    E8 3BDBFFFF           call dumped\_.00581E04
+005842C9    3D 00A00F00           cmp eax,0FA000                         ; 这里作者怕加壳后出错，所以给定了程序一个大小限制范围 FA000
+                                                                         ; FA000 = 1024000字节
+005842CE    7E 05                 jle short dumped\_.005842D5             ; 如果文件大小，小于这个数据，那么才能正常运行，必须跳！
+```
+
+***************
+
+### 代码修改
+
+```
+005842C9    3D 00A00F00           cmp eax,0FA000    // 我改为：cmp eax,0FFFFFFF   （嘿嘿，268435455字节约为256MB，有多少的软件能大过256MB啊？）
+```
+
+***************
+
+```
+005842D0    BB 01000000           mov ebx,1
+005842D5    4B                    dec ebx
+005842D6    0F85 0C020000         jnz dumped\_.005844E8                   ; 再次CRC冗余代码检测合格后跳(必须跳)！
+005842DC    B9 24475800           mov ecx,dumped\_.00584724               ; ASCII "system.ini"
+005842E1    B2 01                 mov dl,1
+005842E3    A1 04084700           mov eax,dword ptr ds:[470804]
+005842E8    E8 C7C5EEFF           call dumped\_.004708B4
+```
