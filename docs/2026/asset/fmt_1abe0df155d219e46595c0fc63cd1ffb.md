@@ -1,0 +1,366 @@
+
+```c
+#include<stdio.h>
+
+#include<Windows.h>
+
+
+
+
+
+int GetSeedEnd(unsigned int a1)
+
+{
+
+    return (a1 >> 24) | ((a1 & 0xFF0000) >> 8) | ((unsigned __int16)(a1 & 0xFF00) << 8) | (a1 << 24);
+
+}
+
+int GetSeedFirst(unsigned char * a1, int a2, int a3)
+
+{
+
+    unsigned char * Local1 = a1;
+    /*此处位运算无法根据idb还原*/
+    a3 = a3 & 0xFFFF00FF;
+    a3 |= ((a3 & 0xFF) << 8);
+    /**/
+    unsigned int Local3 = a3 << 16;
+    /*此处位运算无法根据idb还原*/
+    Local3 = Local3 & 0xFFFF0000;
+    Local3 |= a3 & 0xFFFF;
+    /**/
+    int Local2 = a2 >> 2;
+    if (a2 >> 2 >= 0)
+    {
+        memset(Local1, Local3, Local2);
+        memset(&Local1[4 * Local2], Local3, a2 & 3);
+    }
+    return Local3;
+}
+
+
+
+unsigned int * CalculateSeedEnd(unsigned int * a1, unsigned int * a2, unsigned int * a3)
+
+{
+
+    unsigned int * Local1 = a1;
+    unsigned int * Local2 = a2;
+    unsigned int * Local3 = a3;
+
+
+
+    unsigned int LocalFlag1[5] = { 0 };
+    unsigned int * LocalFlag3 = Local3;
+    unsigned int * LocalFlag4 = Local3 + 13;
+    unsigned int * LocalFlag5 = Local3;
+    int LocalFlag6;
+    unsigned int * LocalFlag7 = Local3 + 20;
+    unsigned int * LocalFlag8 = Local3 + 40;
+    int LocalFlag9;
+    int LocalFlag10;
+    unsigned int * LocalFlag11 = Local3 + 40;
+    int LocalFlag12;
+
+
+
+    unsigned int * result;
+    int count = 16;
+    do
+    {
+        *LocalFlag3 = (*Local2 >> 24) | ((*Local2 & 0xFF0000u) >> 8) | ((*Local2 & 0xFF00) << 8) | (*Local2 << 24);
+        ++LocalFlag3;
+        ++Local2;
+        --count;
+    } while (count);
+
+
+
+    count = 64;
+    do
+    {
+        LocalFlag4[3] = ((*(LocalFlag4 - 13) ^ *(LocalFlag4 - 11) ^ (unsigned int)(*(LocalFlag4 - 5) ^ *LocalFlag4)) >> 31) | 2 * (*(LocalFlag4 - 13) ^ *(LocalFlag4 - 11) ^ *(LocalFlag4 - 5) ^ *LocalFlag4);
+        ++LocalFlag4;
+        --count;
+    } while (count);
+
+
+
+    LocalFlag1[0] = *Local1;
+    LocalFlag1[1] = Local1[1];
+    LocalFlag1[2] = Local1[2];
+    LocalFlag1[3] = Local1[3];
+    LocalFlag1[4] = Local1[4];
+
+
+
+    count = 20;
+    do
+    {
+        LocalFlag6 = *LocalFlag5
+            + LocalFlag1[4]
+            + (LocalFlag1[3] ^ LocalFlag1[1] & (LocalFlag1[3] ^ LocalFlag1[2]))
+            + ((LocalFlag1[0] >> 27) | 32 * LocalFlag1[0])
+            + 1518500249;
+        LocalFlag1[4] = LocalFlag1[3];
+        LocalFlag1[3] = LocalFlag1[2];
+        LocalFlag1[2] = (LocalFlag1[1] >> 2) | (LocalFlag1[1] << 30);
+        LocalFlag1[1] = LocalFlag1[0];
+        LocalFlag1[0] = LocalFlag6;
+        ++LocalFlag5;
+        --count;
+    } while (count);
+
+
+
+    count = 20;
+    LocalFlag7 = Local3 + 20;
+    do
+    {
+        LocalFlag9 = *LocalFlag7
+            + LocalFlag1[4]
+            + (LocalFlag1[3] ^ LocalFlag1[1] ^ LocalFlag1[2])
+            + ((LocalFlag1[0] >> 27) | 32 * LocalFlag1[0])
+            + 1859775393;
+        LocalFlag1[4] = LocalFlag1[3];
+        LocalFlag1[3] = LocalFlag1[2];
+        LocalFlag1[2] = (LocalFlag1[1] >> 2) | (LocalFlag1[1] << 30);
+        LocalFlag1[1] = LocalFlag1[0];
+        LocalFlag1[0] = LocalFlag9;
+        ++LocalFlag7;
+        --count;
+    } while (count);
+    count = 20;
+    LocalFlag8 = Local3 + 40;
+    do
+    {
+        LocalFlag10 = *LocalFlag8
+            + LocalFlag1[4]
+            + (LocalFlag1[3] & LocalFlag1[2] | LocalFlag1[1] & LocalFlag1[3] | LocalFlag1[1] & LocalFlag1[2])
+            + ((LocalFlag1[0] >> 27) | 32 * LocalFlag1[0])
+            - 1894007588;
+        LocalFlag1[4] = LocalFlag1[3];
+        LocalFlag1[3] = LocalFlag1[2];
+        LocalFlag1[2] = (LocalFlag1[1] >> 2) | (LocalFlag1[1] << 30);
+        LocalFlag1[1] = LocalFlag1[0];
+        LocalFlag1[0] = LocalFlag10;
+        ++LocalFlag8;
+        --count;
+    } while (count);
+
+
+
+    count = 20;
+    LocalFlag11 = Local3 + 60;
+    do
+    {
+        LocalFlag12 = *LocalFlag11
+            + LocalFlag1[4]
+            + (LocalFlag1[3] ^ LocalFlag1[1] ^ LocalFlag1[2])
+            + ((LocalFlag1[0] >> 27) | 32 * LocalFlag1[0])
+            - 899497514;
+        LocalFlag1[4] = LocalFlag1[3];
+        LocalFlag1[3] = LocalFlag1[2];
+        LocalFlag1[2] = (LocalFlag1[1] >> 2) | (LocalFlag1[1] << 30);
+        LocalFlag1[1] = LocalFlag1[0];
+        LocalFlag1[0] = LocalFlag12;
+        ++LocalFlag11;
+        --count;
+    } while (count);
+    *Local1 += LocalFlag12;
+    Local1[1] += LocalFlag1[1];
+    Local1[2] += LocalFlag1[2];
+    Local1[3] += LocalFlag1[3];
+    result = Local1;
+    result[4] += LocalFlag1[4];
+    return result;
+}
+
+
+
+int CalculateSeedFirst(unsigned char * Seed, unsigned char * InitSeed, unsigned int Length)
+
+{
+
+    unsigned char * LocalFlag1 = Seed;
+    unsigned char * LocalFlag2;
+    unsigned char * LocalFlag3;
+    int LocalFlag4;
+    int LocalFlag5;
+    BYTE * LocalFlag6;
+    BYTE * LocalFlag7;
+    int result = Length;
+        /*此处指针比较代码存在漏洞，在建议直接走else分支/
+    if ((signed int)InitSeed > (signed int)LocalFlag1)
+    {
+        LocalFlag2 = &LocalFlag1[Length - 4];
+        LocalFlag3 = &InitSeed[Length - 4];
+        LocalFlag4 = Length >> 2;
+        if (LocalFlag4 >= 0)
+        {
+            while (LocalFlag4)
+            {
+                *(DWORD *)LocalFlag3 = *(DWORD *)LocalFlag2;
+                LocalFlag2 -= 4;
+                LocalFlag3 -= 4;
+                --LocalFlag4;
+            }
+            LocalFlag5 = result & 3;
+            LocalFlag6 = LocalFlag2 + 3;
+            LocalFlag7 = LocalFlag3 + 3;
+            while (LocalFlag5)
+            {
+                *LocalFlag7-- = *LocalFlag6--;
+                --LocalFlag5;
+            }
+        }
+    }else if (InitSeed != LocalFlag1)
+    {
+        int p = Length >> 2;
+        if (p >= 0)
+            memcpy(InitSeed, LocalFlag1, 4 * p + (result & 3));
+    }
+    return result;
+}
+
+
+
+int GetHashCode(unsigned int * HashCode, unsigned char * MyHashCode)
+
+{
+
+    unsigned int * LocalHashCode = HashCode;
+    unsigned char * LocalMyHashCode = MyHashCode;
+    unsigned int LocalFlag1 = HashCode[5] & 0x3F;
+    BYTE * LocalFlag2 = (unsigned char *)LocalHashCode + LocalFlag1 + 28;
+    *LocalFlag2 = 0x80;
+    unsigned char * LocalFlag3 = LocalFlag2 + 1;
+    int LocalFlag4 = 55 - LocalFlag1;
+    int LocalFlag5 = 5;
+    unsigned int * LocalFlag6 = LocalHashCode;
+
+
+
+    if (LocalFlag4 < 0)
+    {
+        GetSeedFirst(LocalFlag3, LocalFlag4 + 8, 0);
+        CalculateSeedEnd(LocalHashCode, LocalHashCode + 7, LocalHashCode + 23);
+        LocalFlag3 = (unsigned char *)(LocalHashCode + 7);
+        LocalFlag4 = 56;
+    }
+    GetSeedFirst(LocalFlag3, LocalFlag4, 0);
+    LocalHashCode[22] = GetSeedEnd(8 * LocalHashCode[5]);
+    LocalHashCode[21] = GetSeedEnd(LocalHashCode[5] >> 29);////check
+    CalculateSeedEnd(LocalHashCode, LocalHashCode + 7, LocalHashCode + 23);
+    do
+    {
+        *LocalFlag6 = GetSeedEnd(*LocalFlag6);
+        ++LocalFlag6;
+        --LocalFlag5;
+    } while (LocalFlag5);
+    CalculateSeedFirst((unsigned char *)LocalHashCode, LocalMyHashCode, 20);
+    return GetSeedFirst((unsigned char *)LocalHashCode, 412, 0);
+}
+
+
+
+
+
+
+
+int CalculateHashCode(unsigned int * HashCode, unsigned char * Seed, unsigned int SeedLength)
+
+{
+
+    unsigned int LocalSeedLength = SeedLength;
+    unsigned int * LocalHashCode = HashCode;
+    unsigned char * LocalSeed = Seed;
+    unsigned int LocalFlag1 = HashCode[5];
+    unsigned int LocalFlag2;
+    unsigned char * LocalSeedforCalculate;
+    unsigned int i;
+    LocalHashCode[5] += LocalSeedLength;
+    if (HashCode[5] < LocalFlag1)
+        ++HashCode[6];
+    LocalFlag2 = 64 - (LocalFlag1 & 0x3F);
+    if (LocalFlag2 > SeedLength)
+        return CalculateSeedFirst(Seed, (unsigned char *)HashCode - LocalFlag2 + 92, SeedLength);
+    CalculateSeedFirst(Seed, (unsigned char *)HashCode - LocalFlag2 + 92, LocalFlag2);
+    CalculateSeedEnd(LocalHashCode, LocalHashCode + 7, LocalHashCode + 23);
+    LocalSeedforCalculate = &LocalSeed[LocalFlag2];
+    for (i = LocalSeedLength - LocalFlag2; i >= 0x40; i -= 64)
+    {
+        CalculateSeedFirst(LocalSeedforCalculate, (unsigned char *)LocalHashCode + 28, 64);
+        CalculateSeedEnd(LocalHashCode, LocalHashCode + 7, LocalHashCode + 23);
+        LocalSeedforCalculate += 64;
+    }
+    return CalculateSeedFirst(LocalSeedforCalculate, (unsigned char *)LocalHashCode + 28, i);
+}
+
+
+
+void *    InitHashCode(unsigned int *    InitHashCode)
+
+{
+
+    InitHashCode[0] = 0x67452301;
+    InitHashCode[1] = 0xEFCDAB89;
+    InitHashCode[2] = 0x98BADCFE;
+    InitHashCode[3] = 0x10325476;
+    InitHashCode[4] = 0xC3D2E1F0;
+    InitHashCode[5] = 0;
+    InitHashCode[6] = 0;
+
+
+
+    return InitHashCode;
+}
+
+
+
+int GetValidPassword(unsigned char * Password)
+
+{
+
+    unsigned char * LocalPassword = Password;
+    unsigned char * LocalSeed1 = (unsigned char *)"PasswordCheckHash";
+    unsigned char LocalSeed2[8] = { 0x58 ,0x72 ,0x44 ,0xF1 ,0xB0 ,0x7B ,0x1B ,0x32};
+
+
+
+    unsigned int LengthOfPassword = strlen((const char *)LocalPassword);
+    unsigned int LocalInitHashCode[28] = { 0 };
+    unsigned char MyHashCode[32] = { 0 };
+
+
+
+    if (LengthOfPassword == 0)return 0;
+
+
+
+    InitHashCode(LocalInitHashCode);
+    CalculateHashCode(LocalInitHashCode, LocalSeed1, 0x11);
+    CalculateHashCode(LocalInitHashCode, LocalSeed2, 0x8);
+    CalculateHashCode(LocalInitHashCode, LocalPassword, LengthOfPassword);
+
+
+
+    unsigned int * p = (unsigned int *)malloc(1024 * 4);
+    memcpy(p, LocalInitHashCode, 28 * 4);
+    GetHashCode(p, MyHashCode);//LocalInitHashCode作为具部变量容易堆栈崩溃
+    free(p);
+    return 1;
+}
+
+
+
+int main()
+
+{
+
+    char *    Password = "123456";
+    GetValidPassword((unsigned char *)Password);//合法的hashcode为73 4D 89 77 37 77 82 3E 11 C1 E6 25 51 B3 D3 51 00 CF 9C C7
+    return 0;
+}
+```
