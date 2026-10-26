@@ -1,0 +1,151 @@
+
+# [原创]HTML to Image 2.0.2006.1001注册算法－MD5
+
+【破文标题】HTML to Image 2.0.2006.1001注册算法－MD5
+【破文作者】XXNB
+【作者邮箱】支持PYG
+【作者主页】binbinbin7456.ys168.com
+【破解工具】OD
+【破解平台】XPsp2
+【软件名称】HTML to Image 2.0.2006.1001
+【软件大小】1762KB
+【原版下载】[525K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3!0F1L8r3W2F1k6h3c8G2N6$3&6Q4x3X3g2F1k6i4c8Q4x3V1k6K6L8$3k6@1i4K6u0r3x3K6f1#2x3e0W2Q4x3X3g2Z5N6r3@1`.](https://bbs.kanxue.com/elink@dbeK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3!0F1L8r3W2F1k6h3c8G2N6$3&6Q4x3X3g2F1k6i4c8Q4x3V1k6K6L8$3k6@1i4K6u0r3x3K6f1#2x3e0W2Q4x3X3g2Z5N6r3@1`.)
+【保护方式】名+码
+【软件简介】Html To Image可以容易、快捷地将任意的html页转换成图片或缩略图。最新的特征：可直接将给定网址的网页保存成bmp、jpeg、tiff、gif、png格式的图片；由大图像生成缩略图；支持批量转换；嵌入IE浏览器的前后关联菜单中。
+【破解声明】向前辈们学习！只为学习交流！
+
+## 破解过程
+
+这几天玩aspr壳，好晕啊。还是分析算法好！用peid的插件发现有几个加密算法，当时我就保佑它只用到MD5（这个我熟悉）。结果，万事如意。作者没有加壳，我们直接进入主题：
+
+### 1、OD载入
+
+OD载入，找了半天找不到断点。只好拿出DEDE。很快发现一个`btnregist`（偷笑），双击。还是那句话“找到关键断点，成功一半”。输入注册信息：binbinbin。码：ACM-123456-123456-1234。注册码一定要类似这样的格式的，具体看我的分析。得到：
+
+```
+0054A170  /.  55            push    ebp
+0054A171  |.  8BEC          mov     ebp, esp
+0054A173  |.  33C9          xor     ecx, ecx
+0054A175  |.  51            push    ecx
+0054A176  |.  51            push    ecx
+0054A177  |.  51            push    ecx
+0054A178  |.  51            push    ecx
+0054A179  |.  53            push    ebx
+0054A17A  |.  8BD8          mov     ebx, eax
+0054A17C  |.  33C0          xor     eax, eax
+0054A17E  |.  55            push    ebp
+0054A17F  |.  68 9AA25400   push    0054A29A
+0054A184  |.  64:FF30       push    dword ptr fs:[eax]
+0054A187  |.  64:8920       mov     dword ptr fs:[eax], esp
+0054A18A  |.  8D55 F8       lea     edx, dword ptr [ebp-8]
+0054A18D  |.  8B83 78030000 mov     eax, dword ptr [ebx+378]
+0054A193  |.  E8 18E8F1FF   call    004689B0
+0054A198  |.  8B45 F8       mov     eax, dword ptr [ebp-8]           ;  用户名位数
+0054A19B  |.  8D55 FC       lea     edx, dword ptr [ebp-4]
+0054A19E  |.  E8 85F3EBFF   call    00409528
+0054A1A3  |.  8B55 FC       mov     edx, dword ptr [ebp-4]
+0054A1A6  |.  8D83 80040000 lea     eax, dword ptr [ebx+480]
+0054A1AC  |.  E8 6FA7EBFF   call    00404920
+0054A1B1  |.  8D55 F0       lea     edx, dword ptr [ebp-10]
+0054A1B4  |.  8B83 80030000 mov     eax, dword ptr [ebx+380]
+0054A1BA  |.  E8 F1E7F1FF   call    004689B0
+0054A1BF  |.  8B45 F0       mov     eax, dword ptr [ebp-10]          ;  假码位数
+0054A1C2  |.  8D55 F4       lea     edx, dword ptr [ebp-C]
+0054A1C5  |.  E8 5EF3EBFF   call    00409528
+0054A1CA  |.  8B55 F4       mov     edx, dword ptr [ebp-C]           ;  假码
+0054A1CD  |.  8D83 84040000 lea     eax, dword ptr [ebx+484]
+0054A1D3  |.  E8 48A7EBFF   call    00404920                         ;  上面都是对称的
+0054A1D8  |.  83BB 80040000>cmp     dword ptr [ebx+480], 0           ;  用户名是否为空
+0054A1DF  |.  75 20         jnz     short 0054A201
+0054A1E1  |.  BA ACA25400   mov     edx, 0054A2AC                    ;  p
+0054A1E6  |.  8B83 B4030000 mov     eax, dword ptr [ebx+3B4]
+0054A1EC  |.  E8 D774FAFF   call    004F16C8
+0054A1F1  |.  8B83 78030000 mov     eax, dword ptr [ebx+378]
+0054A1F7  |.  8B10          mov     edx, dword ptr [eax]
+0054A1F9  |.  FF92 C4000000 call    dword ptr [edx+C4]
+0054A1FF  |.  EB 6B         jmp     short 0054A26C
+0054A201  |>  83BB 84040000>cmp     dword ptr [ebx+484], 0           ;  输入注册码没有
+0054A208  |.  75 20         jnz     short 0054A22A
+0054A20A  |.  BA E0A25400   mov     edx, 0054A2E0                    ;  p
+0054A20F  |.  8B83 B4030000 mov     eax, dword ptr [ebx+3B4]
+0054A215  |.  E8 AE74FAFF   call    004F16C8
+0054A21A  |.  8B83 80030000 mov     eax, dword ptr [ebx+380]
+0054A220  |.  8B10          mov     edx, dword ptr [eax]
+0054A222  |.  FF92 C4000000 call    dword ptr [edx+C4]
+0054A228  |.  EB 42         jmp     short 0054A26C
+0054A22A  |>  8BC3          mov     eax, ebx
+0054A22C  |.  E8 B7010000   call    0054A3E8                         ；这个理所当然是算法call，《《《《《《《《《《《《《《
+0054A231  |.  85C0          test    eax, eax
+0054A233      74 19         je      short 0054A24E                   ；关键跳转。爆破点
+0054A235  |.  BA 30A35400   mov     edx, 0054A330                    ;  t   "Thank you for registration! All limitations are removed now."
+0054A23A  |.  8B83 B4030000 mov     eax, dword ptr [ebx+3B4]          ；作者只用了第一个字母来表示成功和失败的信息，所以
+0054A240  |.  E8 8374FAFF   call    004F16C8                          ；字符串搜索的时候可以直接搜索“t”
+0054A245  |.  8BC3          mov     eax, ebx
+0054A247  |.  E8 FC040000   call    0054A748
+0054A24C  |.  EB 1E         jmp     short 0054A26C
+0054A24E  |>  BA B0A35400   mov     edx, 0054A3B0                    ;  i   "Invalid registration code!"
+0054A253  |.  8B83 B4030000 mov     eax, dword ptr [ebx+3B4]
+0054A259  |.  E8 6A74FAFF   call    004F16C8
+0054A25E  |.  8B83 80030000 mov     eax, dword ptr [ebx+380]
+0054A264  |.  8B10          mov     edx, dword ptr [eax]
+0054A266  |.  FF92 C4000000 call    dword ptr [edx+C4]
+0054A26C  |>  33C0          xor     eax, eax
+```
+
+### 2、跟进算法call
+
+跟进算法call：`0054A22C |. E8 B7010000 call 0054A3E8`，得到下面：具体的看注释：
+
+```
+0054A3E8  /$  55            push    ebp
+0054A3E9  |.  8BEC          mov     ebp, esp
+0054A3EB  |.  B9 06000000   mov     ecx, 6
+0054A3F0  |>  6A 00         /push    0
+0054A3F2  |.  6A 00         |push    0
+0054A3F4  |.  49            |dec     ecx
+0054A3F5  |.^ 75 F9         \jnz     short 0054A3F0
+0054A3F7  |.  51            push    ecx
+0054A3F8  |.  53            push    ebx
+0054A3F9  |.  56            push    esi
+0054A3FA  |.  57            push    edi
+0054A3FB  |.  8BD8          mov     ebx, eax
+0054A3FD  |.  33C0          xor     eax, eax
+0054A3FF  |.  55            push    ebp
+0054A400  |.  68 2CA75400   push    0054A72C
+0054A405  |.  64:FF30       push    dword ptr fs:[eax]
+0054A408  |.  64:8920       mov     dword ptr fs:[eax], esp
+0054A40B  |.  8D45 FC       lea     eax, dword ptr [ebp-4]
+0054A40E  |.  8B93 80040000 mov     edx, dword ptr [ebx+480]         ;  用户名
+0054A414  |.  E8 4BA5EBFF   call    00404964
+0054A419  |.  8D45 F8       lea     eax, dword ptr [ebp-8]
+0054A41C  |.  8B93 84040000 mov     edx, dword ptr [ebx+484]         ;  假码
+0054A422  |.  E8 3DA5EBFF   call    00404964
+0054A427  |.  8D45 FC       lea     eax, dword ptr [ebp-4]
+0054A42A  |.  8B93 80040000 mov     edx, dword ptr [ebx+480]
+0054A430  |.  E8 2FA5EBFF   call    00404964
+0054A435  |.  8D45 F8       lea     eax, dword ptr [ebp-8]
+0054A438  |.  8B93 84040000 mov     edx, dword ptr [ebx+484]
+0054A43E  |.  E8 21A5EBFF   call    00404964
+0054A443  |.  8D45 FC       lea     eax, dword ptr [ebp-4]
+0054A446  |.  8B93 80040000 mov     edx, dword ptr [ebx+480]
+0054A44C  |.  E8 13A5EBFF   call    00404964
+0054A451  |.  8D45 F8       lea     eax, dword ptr [ebp-8]
+0054A454  |.  8B93 84040000 mov     edx, dword ptr [ebx+484]
+0054A45A  |.  E8 05A5EBFF   call    00404964
+0054A45F  |.  33F6          xor     esi, esi
+0054A461  |.  8D45 FC       lea     eax, dword ptr [ebp-4]
+0054A464  |.  8B93 80040000 mov     edx, dword ptr [ebx+480]
+0054A46A  |.  E8 F5A4EBFF   call    00404964
+0054A46F  |.  8D45 F8       lea     eax, dword ptr [ebp-8]
+0054A472  |.  8B93 84040000 mov     edx, dword ptr [ebx+484]
+0054A478  |.  E8 E7A4EBFF   call    00404964
+0054A47D  |.  8B45 F8       mov     eax, dword ptr [ebp-8]
+0054A480  |.  E8 17A7EBFF   call    00404B9C
+0054A485  |.  83F8 16       cmp     eax, 16                          ;  注册码要求16H位数的
+0054A488  |.  0F85 83020000 jnz     0054A711
+0054A48E  |.  8B45 F8       mov     eax, dword ptr [ebp-8]           ;  假码
+0054A491  |.  E8 06A7EBFF   call    00404B9C
+0054A496  |.  83F8 16       cmp     eax, 16
+0054A499  |.  0F85 72020000 jnz     0054A711
+0054A49F  |.  8B45 F8       mov     eax, dword ptr [ebp-8]
+```
