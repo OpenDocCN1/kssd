@@ -1,0 +1,147 @@
+
+# [原创] MIDI to MP3 Maker V3.1算法分析
+
+## 文章信息
+【文章标题】: MIDI to MP3 Maker V3.1算法分析
+【文章作者】: 网游难民
+【作者主页】: b9aK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3u0T1M7#2)9J5k6h3y4Z5K9h3&6S2M7s2W2Y4i4K6u0W2j5$3!0E0i4K6u0r3K9h3&6V1k6i4S2Q4x3X3g2H3K9s2l9`.
+【软件名称】: MIDI to MP3 Maker V3.1
+【软件大小】: 398 KB
+【下载地址】: 15dK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6K6y4Q4x3X3g2K6K9%4W2U0L8W2)9J5k6h3y4G2L8g2)9J5c8Y4y4G2k6Y4c8Q4x3V1j5J5y4e0p5#2x3q4)9J5k6h3S2@1L8h3H3`.
+【加壳方式】: 无
+【保护方式】: 注册码
+【编写语言】: Microsoft Visual C++ 7.0
+【使用工具】: `PEID`，`OD`
+【操作平台】: XP SP2
+【软件介绍】: 将文件目录结构或CD/DVD节目列表显示、输出为TXT文
+【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+--------------------------------------------------------------------------------
+
+## 详细过程
+
+`OD`载入，搜索字符串下断，开始分析~~~
+
+```
+00406EA3   .  55            PUSH EBP
+00406EA4   .  56            PUSH ESI
+00406EA5   .  57            PUSH EDI
+00406EA6   .  BF 01000000   MOV EDI,1
+00406EAB   .  57            PUSH EDI
+00406EAC   .  8BF1          MOV ESI,ECX
+00406EAE   .  E8 F3BC0100   CALL midi2mp3.00422BA6
+00406EB3   .  8B86 B4010000 MOV EAX,DWORD PTR DS:[ESI+1B4]     ;  用户名放入EAX中~~
+00406EB9   .  8B68 F4       MOV EBP,DWORD PTR DS:[EAX-C]       ;  用户名位数放在EBP中~
+00406EBC   .  83FD 02       CMP EBP,2                          ;  用户名位数要大于2~
+00406EBF   .  7D 15         JGE SHORT midi2mp3.00406ED6
+00406EC1   .  6A 00         PUSH 0
+00406EC3   .  6A 00         PUSH 0
+00406EC5   .  68 7C074300   PUSH midi2mp3.0043077C             ;  please input correct user name!
+00406ECA   .  E8 C4180200   CALL midi2mp3.00428793
+00406ECF   .  5F            POP EDI
+00406ED0   .  5E            POP ESI
+00406ED1   .  5D            POP EBP
+00406ED2   .  83C4 0C       ADD ESP,0C
+00406ED5   .  C3            RETN
+00406ED6   >  8B8E B8010000 MOV ECX,DWORD PTR DS:[ESI+1B8]     ;  注册码放在ECX中~~
+00406EDC   .  8379 F4 08    CMP DWORD PTR DS:[ECX-C],8         ;  注册码位数要大于8
+00406EE0   .  7D 15         JGE SHORT midi2mp3.00406EF7
+00406EE2   .  6A 00         PUSH 0
+00406EE4   .  6A 00         PUSH 0
+00406EE6   .  68 54074300   PUSH midi2mp3.00430754             ;  please input correct registration code!
+00406EEB   .  E8 A3180200   CALL midi2mp3.00428793
+00406EF0   .  5F            POP EDI
+00406EF1   .  5E            POP ESI
+00406EF2   .  5D            POP EBP
+00406EF3   .  83C4 0C       ADD ESP,0C
+00406EF6   .  C3            RETN
+00406EF7   >  8B86 B4010000 MOV EAX,DWORD PTR DS:[ESI+1B4]
+00406EFD   .  8B48 F4       MOV ECX,DWORD PTR DS:[EAX-C]
+00406F00   .  85C9          TEST ECX,ECX
+00406F02   .  7D 0A         JGE SHORT midi2mp3.00406F0E
+00406F04   .  68 57000780   PUSH 80070057
+00406F09   .  E8 82A6FFFF   CALL midi2mp3.00401590
+00406F0E   >  8A10          MOV DL,BYTE PTR DS:[EAX]           ;  用户名第一位ASCII码
+00406F10   .  8B86 B4010000 MOV EAX,DWORD PTR DS:[ESI+1B4]
+00406F16   .  3978 F4       CMP DWORD PTR DS:[EAX-C],EDI
+00406F19   .  7D 0A         JGE SHORT midi2mp3.00406F25
+00406F1B   .  68 57000780   PUSH 80070057
+00406F20   .  E8 6BA6FFFF   CALL midi2mp3.00401590
+00406F25   >  8A40 01       MOV AL,BYTE PTR DS:[EAX+1]         ;  用户名第二位ASCII码
+00406F28   .  884424 0E     MOV BYTE PTR SS:[ESP+E],AL
+00406F2C   .  8B86 B4010000 MOV EAX,DWORD PTR DS:[ESI+1B4]
+00406F32   .  8B48 F4       MOV ECX,DWORD PTR DS:[EAX-C]
+00406F35   .  85C9          TEST ECX,ECX
+00406F37   .  7D 0A         JGE SHORT midi2mp3.00406F43
+00406F39   .  68 57000780   PUSH 80070057
+00406F3E   .  E8 4DA6FFFF   CALL midi2mp3.00401590
+00406F43   >  8B8E B4010000 MOV ECX,DWORD PTR DS:[ESI+1B4]
+00406F49   .  53            PUSH EBX
+00406F4A   .  8A18          MOV BL,BYTE PTR DS:[EAX]           ;  用户名第一位ASCII码放在BL中~
+00406F4C   .  3979 F4       CMP DWORD PTR DS:[ECX-C],EDI
+00406F4F   .  7D 0A         JGE SHORT midi2mp3.00406F5B
+00406F51   .  68 57000780   PUSH 80070057
+00406F56   .  E8 35A6FFFF   CALL midi2mp3.00401590
+00406F5B   >  0FB6C2        MOVZX EAX,DL
+00406F5E   .  83C8 4D       OR EAX,4D                          ;  用户名第一位ASCII码与4D逻辑或运算~，结果记为A
+00406F61   .  99            CDQ
+00406F62   .  BF 0A000000   MOV EDI,0A
+00406F67   .  F7FF          IDIV EDI                           ;  A除EDI中的值，即0A，余数记为a。
+00406F69   .  0FB64424 12   MOVZX EAX,BYTE PTR SS:[ESP+12]     ;  用户名第二位ASCII码
+00406F6E   .  83C8 44       OR EAX,44                          ;  用户名第一位ASCII码与44逻辑或运算~，结果记为B
+00406F71   .  885424 16     MOV BYTE PTR SS:[ESP+16],DL        ;  a储存在SS:[ESP+16]中~~~
+00406F75   .  99            CDQ
+00406F76   .  F7FF          IDIV EDI                           ;  B除0A，余数记为b;
+00406F78   .  0FB6C3        MOVZX EAX,BL                       ;  用户名第一位ASCII码放在EAX中~
+00406F7B   .  83C8 32       OR EAX,32                          ;  用户名第一位ASCII码与32进行逻辑或运算，结果记为C~
+00406F7E      885424 12     MOV BYTE PTR SS:[ESP+12],DL        ;  b储存在SS:[ESP+12]中~~
+00406F82   .  99            CDQ
+00406F83   .  F7FF          IDIV EDI                           ;  C除以0A，余数记为c~
+00406F85   .  0FB641 01     MOVZX EAX,BYTE PTR DS:[ECX+1]      ;  用户名第二位ASCII码放在EAX中~
+00406F89   .  83C8 4D       OR EAX,4D                          ;  用户名第二位ASCII码与4D进行逻辑或运算~结果记为D~~
+00406F8C   .  8BCF          MOV ECX,EDI
+00406F8E      885424 17     MOV BYTE PTR SS:[ESP+17],DL        ;  c保存在SS:[ESP+17]中~~
+00406F92   .  99            CDQ
+00406F93   .  F7F9          IDIV ECX                           ;  D除以0A，余数记为d~
+00406F95   .  33C0          XOR EAX,EAX
+00406F97   .  33C9          XOR ECX,ECX
+00406F99   .  85ED          TEST EBP,EBP
+00406F9B   .  885424 18     MOV BYTE PTR SS:[ESP+18],DL        ;  d保存在SS:[ESP+18]中~~
+00406F9F   .  7E 22         JLE SHORT midi2mp3.00406FC3
+00406FA1   >  85C9          TEST ECX,ECX
+00406FA3   .  0F8C ED000000 JL midi2mp3.00407096
+00406FA9   .  8BBE B4010000 MOV EDI,DWORD PTR DS:[ESI+1B4]
+00406FAF   .  3B4F F4       CMP ECX,DWORD PTR DS:[EDI-C]
+00406FB2   .  0F8F DE000000 JG midi2mp3.00407096
+00406FB8   .  0FB6140F      MOVZX EDX,BYTE PTR DS:[EDI+ECX]
+00406FBC   .  03C2          ADD EAX,EDX
+00406FBE   .  41            INC ECX
+00406FBF   .  3BCD          CMP ECX,EBP
+00406FC1   .^ 7C DE         JL SHORT midi2mp3.00406FA1         ;  循环，求注册名的ASCII累加和~结果记为E~~
+00406FC3   >  8B8E B8010000 MOV ECX,DWORD PTR DS:[ESI+1B8]
+00406FC9   .  8B51 F4       MOV EDX,DWORD PTR DS:[ECX-C]
+00406FCC   .  85D2          TEST EDX,EDX
+00406FCE   .  7D 0A         JGE SHORT midi2mp3.00406FDA
+00406FD0   .  68 57000780   PUSH 80070057
+00406FD5   .  E8 B6A5FFFF   CALL midi2mp3.00401590
+00406FDA   >  8A11          MOV DL,BYTE PTR DS:[ECX]           ;  注册码第一位ASCII码放在DL中~
+00406FDC   .  8B8E B8010000 MOV ECX,DWORD PTR DS:[ESI+1B8]
+00406FE2   .  8379 F4 01    CMP DWORD PTR DS:[ECX-C],1
+00406FE6   .  885424 19     MOV BYTE PTR SS:[ESP+19],DL        ;  注册码第一位ASCII码放在SS:[ESP+19]中~
+00406FEA   .  7D 0A         JGE SHORT midi2mp3.00406FF6
+00406FEC   .  68 57000780   PUSH 80070057
+00406FF1   .  E8 9AA5FFFF   CALL midi2mp3.00401590
+00406FF6   >  8A49 01       MOV CL,BYTE PTR DS:[ECX+1]         ;  注册码第二位ASCII码放在CL中~
+00406FF9   .  8BBE B8010000 MOV EDI,DWORD PTR DS:[ESI+1B8]
+00406FFF      884C24 13     MOV BYTE PTR SS:[ESP+13],CL        ;  注册码第二位ASCII码放在SS:[ESP+13]中~
+00407003   .  837F F4 02    CMP DWORD PTR DS:[EDI-C],2
+00407007   .  7D 0A         JGE SHORT midi2mp3.00407013
+00407009   .  68 57000780   PUSH 80070057
+0040700E   .  E8 7DA5FFFF   CALL midi2mp3.00401590
+00407013   >  8A4F 02       MOV CL,BYTE PTR DS:[EDI+2]         ;  注册码第三位ASCII码放在CL中~
+00407016   .  8BBE B8010000 MOV EDI,DWORD PTR DS:[ESI+1B8]
+0040701C   .  884C24 14     MOV BYTE PTR SS:[ESP+14],CL        ;  注册码第三位ASCII码放在SS:[ESP+14]中~
+00407020   .  837F F4 03    CMP DWORD PTR DS:[EDI-C],3
+00407024   .  7D 0A         JGE SHORT midi2mp3.00407030
+00407026   .  68 57000780   PUSH 80070057
+```
