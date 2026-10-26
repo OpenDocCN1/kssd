@@ -1,0 +1,207 @@
+
+# [旧帖][原创]三国志5日文加强版去除256色限制0.00雪花
+
+先备份`San5W95.exe`
+
+用OD载入
+
+命令行下断点 `bp MessageBoxA`
+
+F9运行到断点，F2清除断点
+
+Alt+F9 执行返回到用户代码
+
+在弹出的窗口点确定
+
+按两次F7返回到上一级函数，此时 `EIP=004CF1DA`
+
+```
+004CF190   .  6A 00         push    0                                ; /hWnd = NULL
+004CF192   .  8935 804A5200 mov     dword ptr [524A80], esi          ; |
+004CF198   .  FF15 10965200 call    dword ptr [<&USER32.GetDC>]      ; \GetDC
+004CF19E   .  8BE8          mov     ebp, eax
+004CF1A0   .  85ED          test    ebp, ebp
+004CF1A2   .  74 45         je      short 004CF1E9
+004CF1A4   .  6A 26         push    26                               ; /Index = RASTERCAPS
+004CF1A6   .  8B3D E4935200 mov     edi, dword ptr [<&GDI32.GetDevic>; |GDI32.GetDeviceCaps
+004CF1AC   .  55            push    ebp                              ; |hDC
+004CF1AD   .  FFD7          call    edi                              ; \GetDeviceCaps
+004CF1AF   .  8BD8          mov     ebx, eax                             ;GetDeviceCaps(dc, RASTERCAPS)
+004CF1B1   .  6A 68         push    68                               ; /Index = SIZEPALETTE
+004CF1B3   .  80E7 01       and     bh, 1                                 ; GetDeviceCaps(dc, RASTERCAPS) & RC\_PALETTE
+004CF1B6   .  55            push    ebp                              ; |hDC
+004CF1B7   .  FFD7          call    edi                              ; \GetDeviceCaps
+004CF1B9   .  8BF8          mov     edi, eax                             ;系统调色板中的入口数目
+004CF1BB   .  55            push    ebp                              ; /hDC
+004CF1BC   .  6A 00         push    0                                ; |hWnd = NULL
+004CF1BE   .  FF15 0C965200 call    dword ptr [<&USER32.ReleaseDC>]  ; \ReleaseDC
+004CF1C4   .  84FF          test    bh, bh                              ;是否使用调色板
+004CF1C6   .  74 08         je      short 004CF1D0
+004CF1C8   .  81FF 00010000 cmp     edi, 100
+004CF1CE   .  74 19         je      short 004CF1E9
+004CF1D0   > \68 105F5100   push    00515F10                            ;弹出窗口显示的字符串地址
+004CF1D5   .  E8 AB2FF3FF   call    00402185                            ;弹出窗口
+004CF1DA   .  83C4 04       add     esp, 4
+004CF1DD   .  33C0          xor     eax, eax
+004CF1DF   .  5D            pop     ebp
+004CF1E0   .  5F            pop     edi
+004CF1E1   .  5E            pop     esi
+004CF1E2   .  5B            pop     ebx
+004CF1E3   .  83C4 30       add     esp, 30
+004CF1E6   .  C2 0800       retn    8
+004CF1E9   >  8D4424 10     lea     eax, dword ptr [esp+10]             ;应该跳到这里
+```
+
+往上查看代码，发现有两处跳转
+
+```
+004CF1C6   .  74 08         je      short 004CF1D0
+004CF1C8   .  81FF 00010000 cmp     edi, 100
+004CF1CE   .  74 19         je      short 004CF1E9
+```
+
+第一处跳或第二处不跳，都会弹出窗口
+
+因此，我们可以直接将第一处强行跳到第二处要跳的地址（可这样改的依据见下面说明）：
+
+```
+004CF1C6 处： je      short 004CF1D0
+
+        改为： jmp     short 004CF1E9
+```
+
+选中后右键选复制到可执行文件，保存覆盖原文件。
+
+`RC_PALETTE` is set in palettized color modes and clear in nonpalettized modes. Generally speaking, the `RC_PALETTE` bit is set in 8-bit color modes and clear in 4-bit and 24-bit color modes. The `RC_PALETTE` bit is also clear if the adapter is running in 16-bit color ("high color") mode, which for most applications produces color output every bit as good as true color. Don't make the mistake some programmers have made and rely on bit counts to tell you whether to use a palette. As sure as you do, you'll run across an oddball video adapter that defies the normal conventions and fools your application into using a palette when a palette isn't needed or not using a palette when a palette would help.
+
+What happens if you ignore the `RC_PALETTE` setting and use a logical palette regardless of color depth? The application will still work because the palette manager works even on nonpalettized devices. If `RC_PALETTE` is 0, palettes can still be created and selected into device contexts, but calls to `RealizePalette` do nothing. `PALETTEINDEX` values are dereferenced and converted into RGB colors in the logical palette, and `PALETTERGB` values are simply treated as if they were standard RGB color values. `OnQueryNewPalette` and `OnPaletteChanged` aren't called because no `WM_QUERYNEWPALETTE` and `WM_PALETTECHANGED` messages are sent. As explained in an excellent article, "The Palette Manager: How and Why," available on the Microsoft Developer Network (MSDN), "The goal is to allow applications to use palettes in a device-independent fashion and to not worry about the actual palette capabilities of the device driver."
+
+摘自： ba6K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3#2G2L8$3&6Q4x3X3c8K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3k6r3!0U0i4K6u0r3x3K6p5J5y4q4)9J5k6h3S2@1L8b7`.`.
+
+如果是三国志5简体中文版的话，这样修改后就可以正常运行。
+
+对于三国志5日文视窗加强版，仅这样修改还不够
+
+Ctrl+F2 重新载入，F9运行弹出错误，内存地址`10101010`不可读，此时堆栈内容为一堆`10101010`。
+
+（我们知道这是在修改256色才引起问题，因此可以直接上网查找与256色相关的API后下断点，下面用的最笨的方法）
+
+按F12暂停，堆栈停在`ESP`处，往下拉看到第一个指向代码段的地址：
+
+```
+0012FBA4   004E7D21  San5W95.004E7D21
+```
+
+选中按回车，来到CPU窗口，在此处下断点
+
+```
+004E7D21  |.  F3:AB         rep     stos dword ptr es:[edi]
+```
+
+Ctrl+F2 重新载入，F9运行，断在了`004E7D21`，清除断点，并在下一条指令（`004E7D23`）下断点
+
+F9运行，弹出错误窗口，说明确实是`004E7D21`处指行有问题。
+
+往上查看代码
+
+```
+004E7CE4  |.  8B4C24 04     mov     ecx, dword ptr [esp+4]
+004E7CF3  |.  8BF9          mov     edi, ecx
+```
+
+`edi`的值是由外部传入的第一个参数。直接在这段函数开始处`004E7CE0`下断点
+
+重新载入，运行到断点
+
+堆栈窗口：
+
+```
+0012FE84   004E6158  返回到 San5W95.004E6158 来自 San5W95.004E7CE0
+0012FE88   0012FAA0
+0012FE8C   00000010
+0012FE90   0004D800
+0012FE94   00000004
+0012FE98   004E2FEB  返回到 San5W95.004E2FEB 来自 San5W95.004E6136
+0012FE9C   00000280
+0012FEA0   000001F0
+0012FEA4   0012FAA0
+0012FEA8   00000003
+0012FEAC   004E2CDE  返回到 San5W95.004E2CDE 来自 San5W95.004E2FC2
+```
+
+在堆栈顶部按回车，CPU窗口来到函数返回地址`004E6158`
+
+`[esp+4]=0012FAA0`即为传给`edi`的值（对应`004E6150`处的`push dword ptr [ebp+10]`）
+
+从OD的分析（或从`ebp+10`）可以看出，是上一个函数传入的第三个参数。
+
+```
+004E6136  /$  55            push    ebp
+004E6137  |.  8B4424 0C     mov     eax, dword ptr [esp+C]
+004E613B  |.  0FAF4424 08   imul    eax, dword ptr [esp+8]
+004E6140  |.  837C24 14 07  cmp     dword ptr [esp+14], 7
+004E6145  |.  8BEC          mov     ebp, esp
+004E6147  |.  50            push    eax
+004E6148  |.  75 04         jnz     short 004E614E
+004E614A  |.  6A 00         push    0
+004E614C  |.  EB 02         jmp     short 004E6150
+004E614E  |>  6A 10         push    10
+004E6150  |>  FF75 10       push    [arg.3]                          ;  push    dword ptr [ebp+10]
+004E6153  |.  E8 881B0000   call    004E7CE0
+004E6158  |.  8BE5          mov     esp, ebp
+```
+
+堆栈窗口往下拉，选中第二个返回地址`004E2FEB`按回车
+
+```
+004E2FC2  /$  8B0D 68805200 mov     ecx, dword ptr [528068]
+004E2FC8  |.  A1 98735200   mov     eax, dword ptr [527398]
+004E2FCD  |.  50            push    eax
+004E2FCE  |.  8B048D 705752>mov     eax, dword ptr [ecx*4+525770]
+004E2FD5  |.  FF35 B05B5200 push    dword ptr [525BB0]
+004E2FDB  |.  83C0 10       add     eax, 10
+004E2FDE  |.  50            push    eax
+004E2FDF  |.  FF348D 985B52>push    dword ptr [ecx*4+525B98]
+004E2FE6  |.  E8 4B310000   call    004E6136
+004E2FEB  |.  83C4 10       add     esp, 10
+```
+
+`call 004E6136`往上数第三个`push`
+
+```
+  004E2FD5  |.  FF35 B05B5200 push    dword ptr [525BB0]
+```
+
+选中这一行，CPU提示窗口显示
+
+```
+  ds:[00525BB0]=0012FAA0
+```
+
+说明这个值正是传给先前`edi`的
+
+下硬件写入断点：`hw 00525BB0`
+
+重新载入，运行，断在`004E2799`，清除硬件断点：`hd 00525BB0`
+
+```
+004E276C  /$  8B4424 04     mov     eax, dword ptr [esp+4]
+004E2770  |.  81EC 28040000 sub     esp, 428
+004E2776  |.  3B05 74655100 cmp     eax, dword ptr [516574]
+004E277C  |.  7D 1B         jge     short 004E2799
+004E277E  |.  8D4C24 00     lea     ecx, dword ptr [esp]
+004E2782  |.  A3 68805200   mov     dword ptr [528068], eax
+004E2787  |.  51            push    ecx
+004E2788  |.  FF3485 AC5B52>push    dword ptr [eax*4+525BAC]
+004E278F  |.  E8 63370000   call    004E5EF7
+004E2794  |.  A3 B05B5200   mov     dword ptr [525BB0], eax
+004E2799  |> \81C4 28040000 add     esp, 428
+```
+
+显然要检查`call 004E5EF7`返回值
+
+进入`004E5EF7`，发现其主要作用是：
+
+```
+call    dword ptr [<&GDI32.GetObjectA>]  ; \GetObjectA
+```
