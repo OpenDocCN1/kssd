@@ -1,0 +1,132 @@
+
+```
+004063C8   - FF25 04D24900        jmp dword ptr ds:[49D204]                  ; kernel32.TlsGetValue
+004063CE     8BC0                 mov eax,eax
+004063D0   - FF25 00D24900        jmp dword ptr ds:[49D200]                  ; kernel32.TlsSetValue
+004063D6     8BC0                 mov eax,eax
+```
+
+```
+0049D13C  00 00 00 00 12 9D F6 77  ....?w
+0049D144  80 B3 F5 77 A0 B2 F5 77  ?貅\_蝉w
+0049D14C  45 A7 E5 77 CB 15 E6 77  Eуw?骥
+0049D154  72 AC E5 77 A0 60 E5 77  r?w\_`鬻
+```
+
+。。。。。。
+
+```
+0049D884  CB 3D 40 77 8B 88 D1 00  ?@w??
+0049D88C  58 0F DB 77 C3 88 D1 00  X埙??
+0049D894  6B 65 72 6E 65 6C 33 32  kernel32
+0049D89C  2E 64 6C 6C 00 00 00 00  .dll....
+```
+
+IAT地址49D13C　大小49D894－49D13C＝758
+
+重新载入主程序，`BP DebugActiveProcess` 中断后看堆栈：
+
+```
+0012DAC4    004C1BDB   /CALL 到 DebugActiveProcess 来自 Ball4.004C1BD5
+0012DAC8    00000F2C   \ProcessId = F2C
+```
+
+新开一个OllyDbg，附加进程ID E2C的子进程（每次子进程ID会不同）
+
+F9，再F12，会暂停在EP处：
+
+```
+004D1999 B>/$- EB FE              jmp short 004D1999 ///在此死循环。
+004D199B   |?  EC                 in al,dx
+004D199C   |.  6A FF              push -1
+004D199E   |.  68 501C4F00        push 4F1C50
+004D19A3   |.  68 80134D00        push 4D1380                                ;  SE handler installation
+004D19A8   |.  64:A1 00000000     mov eax,dword ptr fs:[0]
+004D19AE   |.  50                 push eax
+```
+
+将4D1999处代码改回558B　：
+
+```
+004D1999 B>    55                 push ebp///改回后的代码。
+004D199A       8BEC               mov ebp,esp
+004D199C       6A FF              push -1
+004D199E       68 501C4F00        push 4F1C50
+004D19A3       68 80134D00        push 4D1380                                ;  SE handler installation
+004D19A8       64:A1 00000000     mov eax,dword ptr fs:[0]
+004D19AE       50                 push eax
+```
+
+现在再用上述脚本转换为单进程。然后下断`HE GetModuleHandleA`　SHIFT＋F9　断下后堆栈如下：
+
+```
+0012ECC8    77C059FC   /CALL 到 GetModuleHandleA 来自 msvcrt.77C059F6
+0012ECCC    77BE31AC   \pModule = "kernel32.dll"
+```
+
+。。。。。。
+
+```
+0012BF20    00BFC807   /CALL 到 GetModuleHandleA 来自 00BFC801
+0012BF24    00C0D6C8   \pModule = "kernel32.dll"
+0012BF28    00C0E67C   ASCII "VirtualAlloc"
+0012BF20    00BFC824   /CALL 到 GetModuleHandleA 来自 00BFC81E
+0012BF24    00C0D6C8   \pModule = "kernel32.dll"
+0012BF28    00C0E670   ASCII "VirtualFree"
+0012BC98    00BE799B   /CALL 到 GetModuleHandleA 来自 00BE7995
+0012BC9C    0012BDD4   \pModule = "kernel32.dll"
+```
+
+堆栈如上变化时，取消`GetModuleHandleA`处断点，Alt+F9返回：
+
+```
+00BE799B     8B0D E011C100        mov ecx,dword ptr ds:[C111E0]
+00BE79A1     89040E               mov dword ptr ds:[esi+ecx],eax
+00BE79A4     A1 E011C100          mov eax,dword ptr ds:[C111E0]
+00BE79A9     393C06               cmp dword ptr ds:[esi+eax],edi
+00BE79AC     75 16                jnz short 00BE79C4
+00BE79AE     8D85 B4FEFFFF        lea eax,dword ptr ss:[ebp-14C]
+00BE79B4     50                   push eax
+00BE79B5     FF15 CC80C000        call dword ptr ds:[C080CC]                 ; kernel32.LoadLibraryA
+00BE79BB     8B0D E011C100        mov ecx,dword ptr ds:[C111E0]
+00BE79C1     89040E               mov dword ptr ds:[esi+ecx],eax
+00BE79C4     A1 E011C100          mov eax,dword ptr ds:[C111E0]
+00BE79C9     393C06               cmp dword ptr ds:[esi+eax],edi
+00BE79CC     0F84 AD000000        je 00BE7A7F///改为JMP
+00BE79D2     33C9                 xor ecx,ecx
+00BE79D4     8B03                 mov eax,dword ptr ds:[ebx]
+00BE79D6     3938                 cmp dword ptr ds:[eax],edi
+00BE79D8     74 06                je short 00BE79E0
+00BE79DA     41                   inc ecx
+00BE79DB     83C0 0C              add eax,0C
+00BE79DE   ^ EB F6                jmp short 00BE79D6
+00BE79E0     8BC1                 mov eax,ecx
+00BE79E2     C1E0 02              shl eax,2
+```
+
+。。。。。。
+
+```
+00BE7A7F     83C3 0C              add ebx,0C
+00BE7A82     83C6 04              add esi,4
+00BE7A85     397B FC              cmp dword ptr ds:[ebx-4],edi
+00BE7A88   ^ 0F85 CCFEFFFF        jnz 00BE795A
+00BE7A8E     EB 03                jmp short 00BE7A93
+```
+
+SHIFT+F9来到OEP处，由于代码没有解密，所以程序无法运行。
+
+```
+00497738     66:C7                ??? ///停在这里。
+0049773A     6C                   ins byte ptr es:[edi],dx
+0049773B     DFF7                 fcomip st,st(7)
+0049773D     BC 38B44705          mov esp,547B438
+00497742     80B407 A176A392 C4   xor byte ptr ds:[edi+eax+92A376A1],0C4
+0049774A     2915 33C780B4        sub dword ptr ds:[B480C733],edx
+```
+
+用ImportREC手动填入`OEP=97738`，`RVA=9D13C`，`SIZE=758`，去掉不可用的指针即可获得完整的IAT。
+
+`FIX`，完工。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
