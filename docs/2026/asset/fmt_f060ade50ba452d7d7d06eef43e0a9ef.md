@@ -1,0 +1,236 @@
+
+```
+01261F80    55              push    ebp
+
+01261F81    8BEC            mov     ebp, esp
+
+01261F83    83C4 D8         add     esp, -28
+
+01261F86    53              push    ebx
+
+01261F87    56              push    esi
+
+01261F88    57              push    edi
+
+01261F89    33C0            xor     eax, eax
+
+01261F8B    8945 DC         mov     dword ptr [ebp-24], eax
+
+01261F8E    8945 D8         mov     dword ptr [ebp-28], eax
+
+01261F91    8945 E0         mov     dword ptr [ebp-20], eax
+
+01261F94    8B5D 08         mov     ebx, dword ptr [ebp+8]           ; ebx=1210620,基本数据基址
+
+01261F97    33C0            xor     eax, eax
+
+01261F99    55              push    ebp
+
+01261F9A    68 54222601     push    1262254
+
+01261F9F    64:FF30         push    dword ptr fs:[eax]
+
+01261FA2    64:8920         mov     dword ptr fs:[eax], esp
+
+01261FA5    EB 01           jmp     short 01261FA8
+
+01261FA7    90              nop
+
+01261FA8    A1 54672601     mov     eax, dword ptr [1266754]
+
+01261FAD    C600 C9         mov     byte ptr [eax], 0C9
+
+01261FB0    A1 A8672601     mov     eax, dword ptr [12667A8]
+
+01261FB5    C600 72         mov     byte ptr [eax], 72
+
+01261FB8    33D2            xor     edx, edx
+
+01261FBA    55              push    ebp
+
+01261FBB    68 FB212601     push    12621FB
+
+01261FC0    64:FF32         push    dword ptr fs:[edx]
+
+01261FC3    64:8922         mov     dword ptr fs:[edx], esp
+
+01261FC6    A1 20672601     mov     eax, dword ptr [1266720]         ; [01266720]=012679D4
+
+01261FCB    8B00            mov     eax, dword ptr [eax]             ; [012679D4]=01210000
+
+01261FCD    FFD0            call    eax                              ; 功能：mov eax,[fs:[18]+34]
+
+01261FCF    8945 F0         mov     dword ptr [ebp-10], eax
+
+01261FD2    EB 01           jmp     short 01261FD5
+
+01261FD4    90              nop
+
+01261FD5    8B45 1C         mov     eax, dword ptr [ebp+1C]
+
+01261FD8    83E8 08         sub     eax, 8
+
+01261FDB    8B00            mov     eax, dword ptr [eax]             ; 入口时的EDX值
+
+01261FDD    50              push    eax
+
+01261FDE    8A8B 16010000   mov     cl, byte ptr [ebx+116]
+
+01261FE4    8B55 18         mov     edx, dword ptr [ebp+18]
+
+01261FE7    8BC3            mov     eax, ebx
+
+01261FE9    E8 7EFAFFFF     call    01261A6C                         ; 保存EDX值
+
+01261FEE    8B45 1C         mov     eax, dword ptr [ebp+1C]
+
+01261FF1    50              push    eax                              ; 返回时的地址指针
+
+01261FF2    B1 04           mov     cl, 4
+
+01261FF4    8B55 18         mov     edx, dword ptr [ebp+18]
+
+01261FF7    8BC3            mov     eax, ebx
+
+01261FF9    E8 6EFAFFFF     call    01261A6C                         ; 保存返回时的地址指针
+
+01261FFE    A1 DC672601     mov     eax, dword ptr [12667DC]
+
+01262003    8B40 34         mov     eax, dword ptr [eax+34]          ; GetCurrentProcessId
+
+01262006    FFD0            call    eax                              ; 获取线程ID
+
+01262008    2945 10         sub     dword ptr [ebp+10], eax          ; 计算出调用CALL 1410000时的指令地址codeaddr
+
+0126200B    8B45 10         mov     eax, dword ptr [ebp+10]
+
+0126200E    2B43 14         sub     eax, dword ptr [ebx+14]          ; codeaddr-baseaddr,相对地址
+
+01262011    8B55 10         mov     edx, dword ptr [ebp+10]
+
+01262014    2B53 24         sub     edx, dword ptr [ebx+24]          ; codeaddr-codebase,代码段地址偏移
+
+01262017    2B93 E0000000   sub     edx, dword ptr [ebx+E0]          ; codeaddr-codebase-offset
+
+0126201D    8955 F8         mov     dword ptr [ebp-8], edx
+
+01262020    3B43 28         cmp     eax, dword ptr [ebx+28]
+
+01262023    0F83 B2010000   jnb     012621DB                         ; 代码超出范围？
+
+01262029    8D53 40         lea     edx, dword ptr [ebx+40]
+
+0126202C    8955 E8         mov     dword ptr [ebp-18], edx
+
+0126202F    EB 01           jmp     short 01262032
+
+01262031    90              nop
+
+01262032    8B53 18         mov     edx, dword ptr [ebx+18]          ; 取出待修正跳转表的总数
+
+01262035    8955 F4         mov     dword ptr [ebp-C], edx
+
+01262038    8B55 10         mov     edx, dword ptr [ebp+10]
+
+0126203B    83C2 05         add     edx, 5
+
+0126203E    8A12            mov     dl, byte ptr [edx]               ; 取出调用的跳转表代码的后一字节数据codeextra
+
+01262040    3293 E0000000   xor     dl, byte ptr [ebx+E0]            ; codeextra xor offset
+
+01262046    8BFA            mov     edi, edx
+
+01262048    81E7 FF000000   and     edi, 0FF
+
+0126204E    25 FF000000     and     eax, 0FF
+
+01262053    33F8            xor     edi, eax                         ; codeextra xor offset xor (codeaddr-baseaddr)
+
+01262055    3B7D F4         cmp     edi, dword ptr [ebp-C]           ; 异或出的结果为当前API所用数据组的组号
+
+01262058    0F87 9F000000   ja      012620FD
+
+0126205E    8B83 E4000000   mov     eax, dword ptr [ebx+E4]          ; 取出每组数据的长度
+
+01262064    F7EF            imul    edi
+
+01262066    0343 54         add     eax, dword ptr [ebx+54]          ; 获取当前API所用数据组地址
+
+01262069    8945 FC         mov     dword ptr [ebp-4], eax
+
+0126206C    EB 01           jmp     short 0126206F
+
+0126206E    90              nop
+
+0126206F    8B45 E8         mov     eax, dword ptr [ebp-18]
+
+01262072    0FB600          movzx   eax, byte ptr [eax]
+
+01262075    8D0440          lea     eax, dword ptr [eax+eax*2]
+
+01262078    8B7483 68       mov     esi, dword ptr [ebx+eax*4+68]
+
+0126207C    8B45 FC         mov     eax, dword ptr [ebp-4]
+
+0126207F    FFD6            call    esi                              ; mov eax,[esi+4]
+
+01262081    8BF0            mov     esi, eax
+
+01262083    3B75 F8         cmp     esi, dword ptr [ebp-8]           ; 校验codeaddr-codebase-offset
+
+01262086    75 63           jnz     short 012620EB
+
+01262088    807B 20 00      cmp     byte ptr [ebx+20], 0             ; 检测总标志位
+
+0126208C    74 3C           je      short 012620CA
+
+0126208E    8B45 E8         mov     eax, dword ptr [ebp-18]
+
+01262091    0FB640 09       movzx   eax, byte ptr [eax+9]
+
+01262095    8D0440          lea     eax, dword ptr [eax+eax*2]
+
+01262098    8B5483 68       mov     edx, dword ptr [ebx+eax*4+68]
+
+0126209C    8B45 FC         mov     eax, dword ptr [ebp-4]
+
+0126209F    FFD2            call    edx                              ; mov eax,byte ptr [esi+1A]
+
+012620A1    3C 01           cmp     al, 1                            ; 检测数据组标志位
+
+012620A3    75 25           jnz     short 012620CA
+
+012620A5    56              push    esi                              ; codeaddr-codebase-offset
+
+012620A6    8D45 FC         lea     eax, dword ptr [ebp-4]
+
+012620A9    50              push    eax                              ; 数据组地址指针
+
+012620AA    8B45 14         mov     eax, dword ptr [ebp+14]
+
+012620AD    50              push    eax                              ; 状态寄存器
+
+012620AE    8B45 18         mov     eax, dword ptr [ebp+18]
+
+012620B1    50              push    eax                              ; 返回程序时的堆栈指针
+
+012620B2    8B45 0C         mov     eax, dword ptr [ebp+C]
+
+012620B5    50              push    eax                              ; fs:[0]
+
+012620B6    8B45 F0         mov     eax, dword ptr [ebp-10]
+
+012620B9    50              push    eax                              ; [fs:[18]+34]
+
+012620BA    8B4D 1C         mov     ecx, dword ptr [ebp+1C]          ; 返回程序的地址指针
+
+012620BD    8B55 10         mov     edx, dword ptr [ebp+10]          ; 调用的跳转表地址指针
+
+012620C0    8BC3            mov     eax, ebx                         ; 修正跳转表所用的基本数据
+
+012620C2    E8 BD010000     call    01262284                         ; 计算出API地址并调用
+```
+
+这一段代码的功能是计算出`CALL 1410000`入口的地址并根据入口地址`+5`的`BYTE`数据计算出所用数据组的组号；校验入口地址；校验标志位；把相关参数放入堆栈和寄存器并`call 01262284`。总的来说这一段代码没有进行太实际的计算。
+
+继续看`call 01262284`处的代码：
