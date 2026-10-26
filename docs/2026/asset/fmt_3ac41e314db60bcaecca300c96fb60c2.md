@@ -1,0 +1,166 @@
+
+```asm
+00408BEE  |.  8D5424 5C     LEA EDX,DWORD PTR SS:[ESP+5C]
+00408BF2  |.  52            PUSH EDX
+00408BF3  |.  8BCD          MOV ECX,EBP
+00408BF5  |.  E8 86FCFFFF   CALL xxxxx.00408880                   ；这里跟进进行网络验证数据的流通
+00408BFA  |.  85C0          TEST EAX,EAX
+00408BFC  |.  74 1B         JE SHORT xxxxx.00408C19
+00408BFE  |>  8975 04       MOV DWORD PTR SS:[EBP+4],ESI
+00408C01  |>  5F            POP EDI
+00408C02  |.  5E            POP ESI
+00408C03  |.  5D            POP EBP
+00408C04  |.  B8 F9FFFFFF   MOV EAX,-7
+00408C09  |.  5B            POP EBX
+00408C0A  |.  8B4C24 6C     MOV ECX,DWORD PTR SS:[ESP+6C]
+00408C0E  |.  E8 96DF0000   CALL xxxxx.00416BA9
+00408C13  |.  83C4 70       ADD ESP,70
+00408C16  |.  C2 1C00       RETN 1C
+00408880  /$  51            PUSH ECX                                 ;  xxxxx.00449A80
+00408881  |.  53            PUSH EBX
+00408882  |.  8B5C24 10     MOV EBX,DWORD PTR SS:[ESP+10]
+00408886  |.  55            PUSH EBP
+00408887  |.  8BE9          MOV EBP,ECX
+00408889  |.  8D4B 03       LEA ECX,DWORD PTR DS:[EBX+3]
+0040888C  |.  B8 56555555   MOV EAX,55555556
+00408891  |.  F7E9          IMUL ECX
+00408893  |.  56            PUSH ESI
+00408894  |.  8BF2          MOV ESI,EDX
+00408896  |.  C1EE 1F       SHR ESI,1F
+00408899  |.  03F2          ADD ESI,EDX
+0040889B  |.  57            PUSH EDI
+0040889C  |.  C1E6 02       SHL ESI,2
+0040889F  |.  56            PUSH ESI
+004088A0  |.  896C24 14     MOV DWORD PTR SS:[ESP+14],EBP
+004088A4  |.  E8 400D0200   CALL xxxxx.004295E9
+004088A9  |.  8B4C24 1C     MOV ECX,DWORD PTR SS:[ESP+1C]
+004088AD  |.  8BF8          MOV EDI,EAX
+004088AF  |.  8D46 FF       LEA EAX,DWORD PTR DS:[ESI-1]
+004088B2  |.  50            PUSH EAX
+004088B3  |.  53            PUSH EBX
+004088B4  |.  57            PUSH EDI
+004088B5  |.  51            PUSH ECX
+004088B6  |.  897C24 30     MOV DWORD PTR SS:[ESP+30],EDI
+004088BA  |.  E8 C1120000   CALL xxxxx.00409B80                       ；这里跟进进行用户名密码等数据加密准备传输
+004088BF  |.  83C4 14       ADD ESP,14
+004088C2  |.  6A 00         PUSH 0                                   ; /Protocol = IPPROTO\_IP
+004088C4  |.  6A 01         PUSH 1                                   ; |Type = SOCK\_STREAM
+004088C6  |.  6A 02         PUSH 2                                   ; |Family = AF\_INET
+```
+
+跟进`4088BA`的`CALLL`到这里
+
+```asm
+00409B80  /$  51            PUSH ECX
+00409B81  |.  8B4C24 10     MOV ECX,DWORD PTR SS:[ESP+10]
+00409B85  |.  56            PUSH ESI
+00409B86  |.  57            PUSH EDI
+00409B87  |.  33FF          XOR EDI,EDI
+00409B89  |.  33F6          XOR ESI,ESI
+00409B8B  |.  32C0          XOR AL,AL
+00409B8D  |.  3BCF          CMP ECX,EDI
+00409B8F  |.  897C24 08     MOV DWORD PTR SS:[ESP+8],EDI
+00409B93  |.  0F8E 86000000 JLE xxxxx.00409C1F
+00409B99  |.  55            PUSH EBP
+00409B9A  |.  8B6C24 18     MOV EBP,DWORD PTR SS:[ESP+18]
+00409B9E  |.  53            PUSH EBX
+00409B9F  |.  90            NOP
+00409BA0  |>  3B7424 24     /CMP ESI,DWORD PTR SS:[ESP+24]
+00409BA4  |.  7D 63         |JGE SHORT xxxxx.00409C09
+00409BA6  |.  8B4C24 18     |MOV ECX,DWORD PTR SS:[ESP+18]
+00409BAA  |.  8B5424 10     |MOV EDX,DWORD PTR SS:[ESP+10]
+00409BAE  |.  8A140A        |MOV DL,BYTE PTR DS:[EDX+ECX]
+；取用户名字等的字符一个一个取，其中开始取的次序为版本号，帐户，密码，帐户和密码取12位不够的补的是0，然后取系统
+运行时间分别加密的后的数字A，数字B
+00409BB1  |.  8D5F 02       |LEA EBX,DWORD PTR DS:[EDI+2]
+00409BB4  |.  885424 1C     |MOV BYTE PTR SS:[ESP+1C],DL
+00409BB8  |.  8ACB          |MOV CL,BL
+00409BBA  |.  D2EA          |SHR DL,CL
+00409BBC  |.  B9 06000000   |MOV ECX,6
+00409BC1  |.  2BCF          |SUB ECX,EDI
+00409BC3  |.  8BFB          |MOV EDI,EBX
+00409BC5  |.  0AD0          |OR DL,AL
+00409BC7  |.  0FB64424 1C   |MOVZX EAX,BYTE PTR SS:[ESP+1C]
+00409BCC  |.  D3E0          |SHL EAX,CL
+00409BCE  |.  80E2 3F       |AND DL,3F
+00409BD1  |.  80C2 3C       |ADD DL,3C
+00409BD4  |.  88142E        |MOV BYTE PTR DS:[ESI+EBP],DL
+00409BD7  |.  C1F8 02       |SAR EAX,2
+00409BDA  |.  24 3F         |AND AL,3F
+00409BDC  |.  83FF 06       |CMP EDI,6
+00409BDF  |.  7D 03         |JGE SHORT xxxxx.00409BE4
+00409BE1  |.  46            |INC ESI
+00409BE2  |.  EB 14         |JMP SHORT xxxxx.00409BF8
+00409BE4  |>  8B4C24 24     |MOV ECX,DWORD PTR SS:[ESP+24]
+00409BE8  |.  49            |DEC ECX
+00409BE9  |.  3BF1          |CMP ESI,ECX
+00409BEB  |.  7D 06         |JGE SHORT xxxxx.00409BF3
+00409BED  |.  46            |INC ESI
+00409BEE  |.  04 3C         |ADD AL,3C
+00409BF0  |.  88042E        |MOV BYTE PTR DS:[ESI+EBP],AL
+00409BF3  |>  46            |INC ESI
+00409BF4  |.  33FF          |XOR EDI,EDI
+00409BF6  |.  32C0          |XOR AL,AL
+00409BF8  |>  8B4C24 10     |MOV ECX,DWORD PTR SS:[ESP+10]
+00409BFC  |.  8B5424 20     |MOV EDX,DWORD PTR SS:[ESP+20]
+00409C00  |.  41            |INC ECX
+00409C01  |.  3BCA          |CMP ECX,EDX
+00409C03  |.  894C24 10     |MOV DWORD PTR SS:[ESP+10],ECX
+00409C07  |.^ 7C 97         \JL SHORT xxxxx.00409BA0               ;上面一共进行64次运行得到64位加密字符串
+00409C09  |>  85FF          TEST EDI,EDI
+00409C0B  |.  5B            POP EBX
+00409C0C  |.  7E 06         JLE SHORT xxxxx.00409C14
+00409C0E  |.  04 3C         ADD AL,3C
+00409C10  |.  88042E        MOV BYTE PTR DS:[ESI+EBP],AL
+00409C13  |.  46            INC ESI
+00409C14  |>  C6042E 00     MOV BYTE PTR DS:[ESI+EBP],0
+00409C18  |.  5D            POP EBP
+00409C19  |.  5F            POP EDI
+00409C1A  |.  8BC6          MOV EAX,ESI
+00409C1C  |.  5E            POP ESI
+00409C1D  |.  59            POP ECX
+00409C1E  |.  C3            RETN                                 ；返回调用CALL继续F8
+004088C8  |.  FF15 9C954300 CALL DWORD PTR DS:[<&WS2\_32.#23>]        ; \socket
+004088CE  |.  8BD8          MOV EBX,EAX
+004088D0  |.  83FB FF       CMP EBX,-1
+004088D3  |.  75 1D         JNZ SHORT xxxxx.004088F2
+004088D5  |.  57            PUSH EDI
+004088D6  |.  E8 090D0200   CALL xxxxx.004295E4
+004088DB  |.  83C4 04       ADD ESP,4
+004088DE  |.  53            PUSH EBX                                 ; /Socket
+004088DF  |.  FF15 A0954300 CALL DWORD PTR DS:[<&WS2\_32.#3>]         ; \closesocket
+004088E5  |.  5F            POP EDI
+004088E6  |.  5E            POP ESI
+004088E7  |.  5D            POP EBP
+004088E8  |.  B8 F9FFFFFF   MOV EAX,-7
+004088ED  |.  5B            POP EBX
+004088EE  |.  59            POP ECX
+004088EF  |.  C2 1400       RETN 14
+004088F2  |>  837C24 28 01  CMP DWORD PTR SS:[ESP+28],1
+004088F7  |.  75 0B         JNZ SHORT xxxxx.00408904
+004088F9  |.  8B55 0C       MOV EDX,DWORD PTR SS:[EBP+C]
+004088FC  |.  52            PUSH EDX
+004088FD  |.  68 08A34300   PUSH xxxxx.0043A308                      ;  66.36.243.164
+00408902  |.  EB 08         JMP SHORT xxxxx.0040890C
+00408904  |>  8B45 0C       MOV EAX,DWORD PTR SS:[EBP+C]
+00408907  |.  50            PUSH EAX
+00408908  |.  83C5 3A       ADD EBP,3A
+0040890B  |.  55            PUSH EBP
+0040890C  |>  53            PUSH EBX
+0040890D  |.  E8 7E420000   CALL xxxxx.0040CB90                      ；这个CALL进行网络连接连接上返回一数值到EAX中
+00408912  |.  83C4 0C       ADD ESP,0C
+00408915  |.  83F8 FF       CMP EAX,-1                               ；只要不等于-1即FFFFFFFF就发送数据
+00408918  |.  74 0F         JE SHORT xxxxx.00408929
+0040891A  |.  6A 00         PUSH 0                                   ; /Flags = 0
+0040891C  |.  56            PUSH ESI                                 ; |DataSize
+0040891D  |.  57            PUSH EDI                                 ; |Data
+0040891E  |.  53            PUSH EBX                                 ; |Socket
+0040891F  |.  FF15 A4954300 CALL DWORD PTR DS:[<&WS2\_32.#19>]        ; \send
+00408925  |.  3BC6          CMP EAX,ESI
+00408927  |.  74 1D         JE SHORT xxxxx.00408946
+00408929  |>  57            PUSH EDI
+0040892A  |.  E8 B50C0200   CALL xxxxx.004295E4
+0040892F  |.  83C4 04       ADD ESP,4
+00408932  |.  53            PUSH EBX                                 ; /Socket
+00408933  |.  FF15 A0954300 CALL DWORD PTR DS:[<&WS2\_32.#3>]         ; \closesocket
+```
