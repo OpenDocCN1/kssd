@@ -1,0 +1,222 @@
+
+00401B42  |.  57            PUSH EDI
+
+00401B43  |.  0FB778 06     MOVZX EDI,WORD PTR DS:[EAX+6]            ;  NumberOfSections = 5
+
+00401B47  |.  85FF          TEST EDI,EDI
+
+00401B49  |.  C74424 14 000>MOV DWORD PTR SS:[ESP+14],0              ;  做计数器
+
+00401B51  |.  897C24 1C     MOV DWORD PTR SS:[ESP+1C],EDI
+
+00401B55  |.  0F8E 9B000000 JLE Fengyue'.00401BF6
+
+00401B5B  |.  8D51 08       LEA EDX,DWORD PTR DS:[ECX+8]             ;  该区段的 VA
+
+00401B5E  |.  895424 10     MOV DWORD PTR SS:[ESP+10],EDX
+
+00401B62  |>  8B4A 0C       /MOV ECX,DWORD PTR DS:[EDX+C]            ;  文件偏移
+
+00401B65  |.  85C9          |TEST ECX,ECX
+
+00401B67  |.  8B02          |MOV EAX,DWORD PTR DS:[EDX]              ;  Size
+
+00401B69  |.  8B6A 08       |MOV EBP,DWORD PTR DS:[EDX+8]            ;  文件中的长度
+
+00401B6C  |.  74 6E         |JE SHORT Fengyue'.00401BDC
+
+00401B6E  |.  33D2          |XOR EDX,EDX
+
+00401B70  |.  F7F3          |DIV EBX
+
+00401B72  |.  8BF8          |MOV EDI,EAX
+
+00401B74  |.  33C0          |XOR EAX,EAX
+
+00401B76  |.  85D2          |TEST EDX,EDX
+
+00401B78  |.  0F95C0        |SETNE AL
+
+00401B7B  |.  33D2          |XOR EDX,EDX
+
+00401B7D  |.  03C7          |ADD EAX,EDI
+
+00401B7F  |.  0FAFC3        |IMUL EAX,EBX                            ;  计算一下 该区段size的对齐尺寸
+
+00401B82  |.  894424 18     |MOV DWORD PTR SS:[ESP+18],EAX
+
+00401B86  |.  8BC5          |MOV EAX,EBP
+
+00401B88  |.  F7F6          |DIV ESI
+
+00401B8A  |.  8BF8          |MOV EDI,EAX
+
+00401B8C  |.  33C0          |XOR EAX,EAX
+
+00401B8E  |.  85D2          |TEST EDX,EDX
+
+00401B90  |.  0F95C0        |SETNE AL
+
+00401B93  |.  33D2          |XOR EDX,EDX
+
+00401B95  |.  03C7          |ADD EAX,EDI
+
+00401B97  |.  0FAFC6        |IMUL EAX,ESI
+
+00401B9A  |.  8BF8          |MOV EDI,EAX
+
+00401B9C  |.  8BC1          |MOV EAX,ECX
+
+00401B9E  |.  F7F6          |DIV ESI
+
+00401BA0  |.  85D2          |TEST EDX,EDX
+
+00401BA2  |.  74 05         |JE SHORT Fengyue'.00401BA9
+
+00401BA4  |.  0FAFC6        |IMUL EAX,ESI
+
+00401BA7  |.  8BC8          |MOV ECX,EAX
+
+00401BA9  |>  8B5424 10     |MOV EDX,DWORD PTR SS:[ESP+10]
+
+00401BAD  |.  8B52 04       |MOV EDX,DWORD PTR DS:[EDX+4]            ;  VA
+
+00401BB0  |.  395424 24     |CMP DWORD PTR SS:[ESP+24],EDX           ;  文件的size
+
+00401BB4  |.  72 1E         |JB SHORT Fengyue'.00401BD4
+
+00401BB6  |.  8B4424 18     |MOV EAX,DWORD PTR SS:[ESP+18]
+
+00401BBA  |.  03C2          |ADD EAX,EDX
+
+00401BBC  |.  394424 24     |CMP DWORD PTR SS:[ESP+24],EAX
+
+00401BC0  |.  73 12         |JNB SHORT Fengyue'.00401BD4
+
+00401BC2  |.  8BC1          |MOV EAX,ECX
+
+00401BC4  |.  2BC2          |SUB EAX,EDX
+
+00401BC6  |.  034424 24     |ADD EAX,DWORD PTR SS:[ESP+24]
+
+00401BCA  |.  3BC1          |CMP EAX,ECX
+
+00401BCC  |.  72 06         |JB SHORT Fengyue'.00401BD4
+
+00401BCE  |.  03F9          |ADD EDI,ECX
+
+00401BD0  |.  3BC7          |CMP EAX,EDI
+
+00401BD2  |.  72 24         |JB SHORT Fengyue'.00401BF8
+
+00401BD4  |>  8B7C24 1C     |MOV EDI,DWORD PTR SS:[ESP+1C]
+
+00401BD8  |.  8B5424 10     |MOV EDX,DWORD PTR SS:[ESP+10]
+
+00401BDC  |>  8B4424 14     |MOV EAX,DWORD PTR SS:[ESP+14]
+
+00401BE0  |.  83C0 01       |ADD EAX,1
+
+00401BE3  |.  83C2 28       |ADD EDX,28
+
+00401BE6  |.  3BC7          |CMP EAX,EDI                             ;  下一个区段的size
+
+00401BE8  |.  894424 14     |MOV DWORD PTR SS:[ESP+14],EAX
+
+00401BEC  |.  895424 10     |MOV DWORD PTR SS:[ESP+10],EDX
+
+00401BF0  |.^ 0F8C 6CFFFFFF \JL Fengyue'.00401B62                    ;  循环处理各区段表中前四项的数据 校对
+
+00401BF6  |>  33C0          XOR EAX,EAX
+
+00401BF8  |>  5F            POP EDI
+
+00401BF9  |.  5D            POP EBP
+
+00401BFA  |.  5E            POP ESI
+
+00401BFB  |.  5B            POP EBX
+
+00401BFC  |.  83C4 10       ADD ESP,10
+
+00401BFF  \.  C3            RETN
+
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+### 第四个函数：`CALL 00401370` 这个函数 为PE添加新区段并将内存中的PE文件处理为磁盘PE文件格式
+
+```
+00401370  /$  A1 F4DB4000   MOV EAX,DWORD PTR DS:[40DBF4]
+00401375  |.  8B0D F8DB4000 MOV ECX,DWORD PTR DS:[40DBF8]
+0040137B  |.  8B49 50       MOV ECX,DWORD PTR DS:[ECX+50]
+0040137E  |.  83EC 08       SUB ESP,8
+00401381  |.  53            PUSH EBX
+00401382  |.  55            PUSH EBP
+00401383  |.  56            PUSH ESI
+00401384  |.  57            PUSH EDI
+00401385  |.  05 FF010000   ADD EAX,1FF
+0040138A  |.  C1E8 09       SHR EAX,9
+0040138D  |.  6A 04         PUSH 4                                   ; /Protect = PAGE_READWRITE
+0040138F  |.  C1E0 09       SHL EAX,9                                ; |
+00401392  |.  03C8          ADD ECX,EAX                              ; |
+00401394  |.  68 00100000   PUSH 1000                                ; |AllocationType = MEM_COMMIT
+00401399  |.  51            PUSH ECX                                 ; |Size
+0040139A  |.  6A 00         PUSH 0                                   ; |Address = NULL
+0040139C  |.  A3 F4DB4000   MOV DWORD PTR DS:[40DBF4],EAX            ; |
+004013A1  |.  890D F0DB4000 MOV DWORD PTR DS:[40DBF0],ECX            ; |
+004013A7  |.  FF15 28A04000 CALL DWORD PTR DS:[<&KERNEL32.VirtualAll>; \VirtualAlloc
+004013AD  |.  8B15 F8DB4000 MOV EDX,DWORD PTR DS:[40DBF8]            ;  申请了新文件的空间
+004013B3  |.  8B0D ECDB4000 MOV ECX,DWORD PTR DS:[40DBEC]
+004013B9  |.  8BD8          MOV EBX,EAX
+004013BB  |.  8B42 50       MOV EAX,DWORD PTR DS:[EDX+50]
+004013BE  |.  50            PUSH EAX
+004013BF  |.  51            PUSH ECX
+004013C0  |.  53            PUSH EBX
+004013C1  |.  891D 24DC4000 MOV DWORD PTR DS:[40DC24],EBX
+004013C7  |.  E8 14540000   CALL Fengyue'.004067E0                   ;  将原文件全部COPY到新空间
+004013CC  |.  8B73 3C       MOV ESI,DWORD PTR DS:[EBX+3C]
+004013CF  |.  0FB7441E 06   MOVZX EAX,WORD PTR DS:[ESI+EBX+6]
+004013D4  |.  0FB7541E 14   MOVZX EDX,WORD PTR DS:[ESI+EBX+14]
+004013D9  |.  03F3          ADD ESI,EBX
+004013DB  |.  8D4C32 18     LEA ECX,DWORD PTR DS:[EDX+ESI+18]
+004013DF  |.  83E8 01       SUB EAX,1
+004013E2  |.  8D0480        LEA EAX,DWORD PTR DS:[EAX+EAX*4]
+004013E5  |.  8B54C1 08     MOV EDX,DWORD PTR DS:[ECX+EAX*8+8]
+004013E9  |.  8D04C1        LEA EAX,DWORD PTR DS:[ECX+EAX*8]
+004013EC  |.  890D 18DC4000 MOV DWORD PTR DS:[40DC18],ECX
+004013F2  |.  8B48 0C       MOV ECX,DWORD PTR DS:[EAX+C]
+004013F5  |.  A1 F4DB4000   MOV EAX,DWORD PTR DS:[40DBF4]
+004013FA  |.  8DBC11 FF0F00>LEA EDI,DWORD PTR DS:[ECX+EDX+FFF]
+00401401  |.  8B0D 3CDC4000 MOV ECX,DWORD PTR DS:[40DC3C]
+00401407  |.  C1EF 0C       SHR EDI,0C
+0040140A  |.  C1E7 0C       SHL EDI,0C
+0040140D  |.  50            PUSH EAX
+0040140E  |.  8BEF          MOV EBP,EDI
+00401410  |.  2B2D 2CDC4000 SUB EBP,DWORD PTR DS:[40DC2C]
+00401416  |.  51            PUSH ECX
+00401417  |.  8D143B        LEA EDX,DWORD PTR DS:[EBX+EDI]
+0040141A  |.  52            PUSH EDX
+0040141B  |.  891D 20DC4000 MOV DWORD PTR DS:[40DC20],EBX
+00401421  |.  8935 F8DB4000 MOV DWORD PTR DS:[40DBF8],ESI
+00401427  |.  892D 2CDC4000 MOV DWORD PTR DS:[40DC2C],EBP
+0040142D  |.  E8 AE530000   CALL Fengyue'.004067E0                   ;  将 壳 区段 代码 连接到PE文件
+00401432  |.  A1 FCDB4000   MOV EAX,DWORD PTR DS:[40DBFC]
+00401437  |.  8B48 04       MOV ECX,DWORD PTR DS:[EAX+4]
+0040143A  |.  33D2          XOR EDX,EDX
+0040143C  |.  83C4 18       ADD ESP,18
+0040143F  |.  3BCA          CMP ECX,EDX
+00401441  |.  74 51         JE SHORT Fengyue'.00401494               ;  处理一下 壳区段部分代码的偏移值 第二次的重定位调整
+00401443  |>  83C1 F8       /ADD ECX,-8
+00401446  |.  D1E9          |SHR ECX,1
+00401448  |.  894C24 10     |MOV DWORD PTR SS:[ESP+10],ECX
+0040144C  |.  74 3C         |JE SHORT Fengyue'.0040148A
+0040144E  |.  8BFF          |MOV EDI,EDI
+00401450  |>  66:8B4C50 08  |/MOV CX,WORD PTR DS:[EAX+EDX*2+8]       ;  每次取两个字节 相对于壳区段的偏移值
+00401455  |.  66:81E1 00F0  ||AND CX,0F000
+0040145A  |.  66:81F9 0030  ||CMP CX,3000
+0040145F  |.  75 1E         ||JNZ SHORT Fengyue'.0040147F
+00401461  |.  0FB74C50 08   ||MOVZX ECX,WORD PTR DS:[EAX+EDX*2+8]
+00401466  |.  8B6E 34       ||MOV EBP,DWORD PTR DS:[ESI+34]
+```
