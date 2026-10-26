@@ -1,0 +1,140 @@
+
+```text
+00409322    3D F20F0300           cmp eax,30FF2                        ; 第二处
+00409327    74 07                 je short dumped\_1.00409330
+00409815    E8 D8DE0300           call dumped\_1.004476F2
+0040981A    3D F20F0300           cmp eax,30FF2                        ; 第三处
+0040981F    74 07                 je short dumped\_1.00409828
+0040A213    E8 DAD40300           call dumped\_1.004476F2
+0040A218    3D F20F0300           cmp eax,30FF2                        ; 第四处
+0040A21D    74 07                 je short dumped\_1.0040A226
+0040B413    E8 DAC20300           call dumped\_1.004476F2
+0040B418    3D F20F0300           cmp eax,30FF2                        ; 第五处
+0040B41D    74 07                 je short dumped\_1.0040B426
+0040FE94    E8 59780300           call dumped\_1.004476F2
+0040FE99    3D F20F0300           cmp eax,30FF2                        ; 第六处
+0040FE9E    74 07                 je short dumped\_1.0040FEA7
+00410EA5    E8 48680300           call dumped\_1.004476F2
+00410EAA    3D F20F0300           cmp eax,30FF2                        ; 第七处
+00410EAF    74 07                 je short dumped\_1.00410EB8
+00412423    E8 CA520300           call dumped\_1.004476F2
+00412428    3D F20F0300           cmp eax,30FF2                        ; 第八处
+0041242D    0F84 A6000000         je dumped\_1.004124D9
+00413E35    E8 B8380300           call dumped\_1.004476F2
+00413E3A    3D F20F0300           cmp eax,30FF2                        ; 第九处
+00413E3F    74 07                 je short dumped\_1.00413E48
+0041587F    E8 6E1E0300           call dumped\_1.004476F2
+00415884    3D F20F0300           cmp eax,30FF2                        ; 第十处
+00415889    74 07                 je short dumped\_1.00415892
+004173E8    E8 05030300           call dumped\_1.004476F2
+004173ED    3D F20F0300           cmp eax,30FF2                        ; 第十一处
+004173F2    74 07                 je short dumped\_1.004173FB
+```
+
+---
+
+## 总结去自校验修改点
+
+```text
+00404E08    3D F20F0300           cmp eax,30FF2
+00409322    3D F20F0300           cmp eax,30FF2
+0040981A    3D F20F0300           cmp eax,30FF2
+0040A218    3D F20F0300           cmp eax,30FF2
+0040FE99    3D F20F0300           cmp eax,30FF2
+00410EAA    3D F20F0300           cmp eax,30FF2
+00412428    3D F20F0300           cmp eax,30FF2
+00413E3A    3D F20F0300           cmp eax,30FF2
+00415884    3D F20F0300           cmp eax,30FF2
+004173ED    3D F20F0300           cmp eax,30FF2
+```
+
+---
+
+以上的汇编代码 `cmp eax,30FF2` 全部替换为 `cmp eax,79800` 保存即可！
+
+---
+
+好了，修改以上的代码后保存文件为`dumped\_1.exe`！OK，正常运行！校验解除咯~~~~
+
+---
+
+## 破解过程
+
+我们知道了该程序是VC6.0写的，而且在做准备工作的时候我们得到了一些的重要提示信息作为破解入手点：
+
+再次打开Ollydbg，载入我们脱壳除校验文件`dumped\_1.exe`，右键使用 Ultra String Reference 插件的 Find ASCII 功能项，查找我们需要的相关信息：
+
+---
+
+```text
+........
+004271E2   push drugdir.00455D70                     肛2F
+0042721A   push drugdir.0046D1A4                     药搜
+0042722D   push drugdir.0046D19C                     高手                                                    <-- 这是什么意思？？
+0042730C   push drugdir.0046D198                     %c
+00427319   push drugdir.0046D194                     %d
+004274EB   push drugdir.0046D24C                     注册成功                                                 ★重要提示信息★
+004274F0   push drugdir.0046D214                     注册成功！搜索专家的所有功能已对你开放！感谢你的支持！   ★重要提示信息①★
+004274FC   push drugdir.0046D208                     drugreg.ini                                              ★  可疑文件  ★
+0042750E   push drugdir.00468618                     w
+00427522   push drugdir.004682B8                     \n\n
+00427543   push drugdir.004682B8                     \n\n
+004275A2   push drugdir.0046D1FC                     注册失败                                                 ★重要提示信息★
+004275A7   push drugdir.0046D1D8                     注册失败！请认真核对你的注册码！                         ★重要提示信息②★
+004275B7   push drugdir.0046D1FC                     注册失败                                                 ★重要提示信息★
+004275BC   push drugdir.0046D1AC                     暂停验证：你连续尝试3次注册码验证均未成功！              ★重要提示信息③★
+00427615   push drugdir.0046D25C                     C:\
+0042762B   push drugdir.0046D258                     %ld
+004276B7   mov dword ptr ds:[esi+7C],drugdir.004593  ⑷D
+004276EE   mov dword ptr ds:[esi+1A0],drugdir.00459  ㄈD
+00427708   mov dword ptr ds:[esi+1DC],drugdir.00459  ⑷D
+........
+```
+
+---
+
+在“★重要提示信息★①、②、③”处分别双击，然后在可疑的地址F2下断：
+
+```text
+00427450    6A FF                 push -1                               ; 我下断在此，F9运行，填写注册相关信息！ ^\_\_^
+00427452    68 A85D4500           push drugdir.00455DA8
+00427457    64:A1 00000000        mov eax,dword ptr fs:[0]
+0042745D    50                    push eax                              ; eax=0012DB1C
+0042745E    64:8925 00000000      mov dword ptr fs:[0],esp
+00427465    83EC 10               sub esp,10                            ; esp=0012D9F0
+00427468    A1 1CD64600           mov eax,dword ptr ds:[46D61C]
+0042746D    53                    push ebx
+0042746E    55                    push ebp                              ; ebp=0012DA08
+0042746F    56                    push esi
+00427470    57                    push edi                              ; edi=0012EA6C
+00427471    8BF1                  mov esi,ecx                           ; ecx=0012EA6C，esi=00458908
+00427473    894424 10             mov dword ptr ss:[esp+10],eax         ; eax=0046D630，堆栈 ss:[0012D9E0]=00000111
+00427477    6A 01                 push 1
+00427479    C74424 2C 00000000    mov dword ptr ss:[esp+2C],0
+00427481    E8 F1D80100           call drugdir.00444D77                 ; 取用户名
+00427486    51                    push ecx                              ; ecx=0012D9F0
+00427487    8D96 00020000         lea edx,dword ptr ds:[esi+200]        ; 从用户名第2位开始取字符，edx=009746A9, (ASCII "uNgBiM")
+0042748D    8BCC                  mov ecx,esp                           ; esp=0012D9CC，ecx=0012D9F0
+0042748F    896424 20             mov dword ptr ss:[esp+20],esp
+00427493    52                    push edx                              ; edx=0012EC6C
+00427494    E8 4FEA0100           call drugdir.00445EE8                 ; 取机器码
+00427499    51                    push ecx                              ; ecx=009740AC
+0042749A    8DBE 04020000         lea edi,dword ptr ds:[esi+204]        ; edi=0012EA6C
+004274A0    8BCC                  mov ecx,esp                           ; esp=0012D9C8，ecx=009740AC
+004274A2    896424 20             mov dword ptr ss:[esp+20],esp         ; esp=0012D9C8，堆栈 ss:[0012D9E8]=00090408
+004274A6    57                    push edi                              ; edi=0012EC70
+004274A7    C64424 34 01          mov byte ptr ss:[esp+34],1
+004274AC    E8 37EA0100           call drugdir.00445EE8                 ; 取注册码
+004274B1    51                    push ecx                              ; ecx=00973FBC
+004274B2    8DAE 08020000         lea ebp,dword ptr ds:[esi+208]        ; 堆栈地址=0012EC74，ebp=0012DA08
+004274B8    8BCC                  mov ecx,esp                           ; esp=0012D9C4，ecx=00973FBC
+004274BA    896424 20             mov dword ptr ss:[esp+20],esp         ; esp=0012D9C4，堆栈 ss:[0012D9E4]=00000001
+004274BE    55                    push ebp                              ; ebp=0012EC74
+004274BF    C64424 38 02          mov byte ptr ss:[esp+38],2
+004274C4    E8 1FEA0100           call drugdir.00445EE8                 ; 把注册信息数据依次存放起来，准备下一步计算
+004274C9    8BCE                  mov ecx,esi                           ; esi=0012EA6C，ecx=0097469C
+004274CB    C64424 34 00          mov byte ptr ss:[esp+34],0
+004274D0    E8 0BFDFFFF           call drugdir.004271E0                 ; ★算法CALL★ F7跟进！
+004274D5    85C0                  test eax,eax
+004274D7    8B46 5C               mov eax,dword ptr ds:[esi+5C]
+```
