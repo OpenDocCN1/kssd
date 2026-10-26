@@ -1,0 +1,46 @@
+
+# [原创]2nd Speech Center V3.30.7.1129算法分析
+
+【破文标题】2nd Speech Center V3.30.7.1129算法分析
+
+【破文作者】tianxj
+
+【作者邮箱】tianxj_2007@126.com
+
+【作者主页】[WwW.ChiNaPYG.CoM](https://bbs.kanxue.com/WwW.ChiNaPYG.CoM)
+
+【破解工具】PEiD,OD
+
+【破解平台】Windows XP
+
+【软件名称】2nd Speech Center V3.30.7.1129
+
+【软件大小】4.21 MB
+
+【软件语言】英文
+
+【软件类别】国外软件 / 共享软件 / 电子阅读
+
+【更新时间】2007-12-07
+
+【原版下载】自己找一下
+
+【保护方式】注册码
+
+【软件简介】将任何文本转换成声音或MP3/WAVE音频文件的工具。2nd Speech Center是一款率获殊荣的文本到声音的播放器，可以让你听文档，email或网页，而无需再去阅读。除了文本，2nd Speech Center 也支持将文本转换成声音文件以备后用。2nd Speech Center支持超过11种语言，几十种男女声音及机器合成发声。2nd Speech Center会自动监测win的剪贴板并处理其中的内容。此外，2nd Speech Center集成了许多有用的功能，诸如闹铃，事务提醒和强大的命令行。无需担心，直观的VCR风格界面绝对简单易用。
+
+【破解声明】我是一只小菜鸟，偶得一点心得，愿与大家分享：）
+
+---
+
+## 【破解内容】
+
+### 一、运行程序，进行注册，输入错误的注册信息进行检测，有提示信息
+
+"Registered Code Error!"
+
+### 二、用PEiD对`iisc.exe`查壳，为 ASPack 2.12 -> Alexey Solodovnikov
+
+用PEiD插件脱壳后，为 Borland Delphi 6.0 - 7.0
+
+### 三、运行OD，打开`iisc.exe.unpacked\_.exe`，右键—超级字串参考—查找ASCII.
