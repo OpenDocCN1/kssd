@@ -1,0 +1,248 @@
+
+```asm
+1123A3BB  |.  E8 C0460900   call    #510                             ; \#510
+
+1123A3C0  |.  83C4 04       add     esp, 4
+
+1123A3C3  |.  8BC7          mov     eax, edi                         ;  eax为我们输入的注册码
+
+1123A3C5  |.  E8 D6F2FFFF   call    112396A0
+
+1123A3CA  |.  8BF0          mov     esi, eax                         ;  eax由注册值转换的16位数组值
+
+1123A3CC  |.  85F6          test    esi, esi                         ; |
+
+1123A3CE  |.  74 3C         je      short 1123A40C                   ; |
+
+1123A3D0  |.  8B7D 1C       mov     edi, dword ptr ss:[ebp+1C]       ; |
+
+1123A3D3  |.  6A 60         push    60                               ; |/n = 60 (96.)
+
+1123A3D5  |.  6A 00         push    0                                ; ||c = 00
+
+1123A3D7  |.  57            push    edi                              ; ||s
+
+1123A3D8  |.  E8 A3A00F00   call    <jmp.&MSVCR80.memset>            ; |\memset
+
+1123A3DD  |.  8B55 20       mov     edx, dword ptr ss:[ebp+20]       ; |
+
+1123A3E0  |.  8B45 18       mov     eax, dword ptr ss:[ebp+18]       ; |
+
+1123A3E3  |.  8B4D 10       mov     ecx, dword ptr ss:[ebp+10]       ; |
+
+1123A3E6  |.  52            push    edx                              ; |Arg6
+
+1123A3E7  |.  8B55 0C       mov     edx, dword ptr ss:[ebp+C]        ; |
+
+1123A3EA  |.  57            push    edi                              ; |Arg5
+
+1123A3EB  |.  50            push    eax                              ; |Arg4
+
+1123A3EC  |.  8B45 14       mov     eax, dword ptr ss:[ebp+14]       ; |
+
+1123A3EF  |.  51            push    ecx                              ; |Arg3
+
+1123A3F0  |.  52            push    edx                              ; |edx为每次循环提供的hash值
+
+1123A3F1  |.  56            push    esi                              ; |Arg1
+
+1123A3F2  |.  E8 99FDFFFF   call    1123A190                         ; \vmwareba.1123A190
+
+1123A3F7  |.  83C4 24       add     esp, 24                          ;
+
+1123A3FA  |.  56            push    esi                              ; /block
+
+1123A3FB  |.  8BF8          mov     edi, eax                         ; |
+
+1123A3FD  |.  FF15 BC253911 call    dword ptr ds:[<&MSVCR80.free>]   ; \free
+
+1123A403  |.  83C4 04       add     esp, 4
+
+1123A406  |.  8BC7          mov     eax, edi
+
+1123A408  |.  5F            pop     edi
+
+1123A409  |.  5E            pop     esi
+
+1123A40A  |.  5D            pop     ebp
+
+1123A40B  |.  C3            retn
+
+1123A40C  |>  56            push    esi                              ; /block
+
+1123A40D  |.  BF 01000000   mov     edi, 1                           ; |
+
+1123A412  |.  FF15 BC253911 call    dword ptr ds:[<&MSVCR80.free>]   ; \free
+
+1123A418  |.  83C4 04       add     esp, 4
+
+1123A41B  |.  8BC7          mov     eax, edi
+
+1123A41D  |.  5F            pop     edi
+
+1123A41E  |.  5E            pop     esi
+
+1123A41F  |.  5D            pop     ebp
+
+1123A420  \.  C3            retn
+```
+
+先进入`112396A0`，看到真正的注册码处理转换在`11239400`中
+
+```asm
+1123973C  |> \68 68C73D11   push    113DC768                         ; /Arg2 = 113DC768
+
+11239741  |.  50            push    eax                              ; |Arg1
+
+11239742  |.  B8 19000000   mov     eax, 19                          ; |注册码长度
+
+11239747  |.  E8 B4FCFFFF   call    11239400                         ; \
+
+1123974C  |.  83C4 08       add     esp, 8
+
+1123974F  \.  C3            retn
+```
+
+进入`11239400`，注册码转换为16位数组，算法描述如下：
+
+```asm
+11239400  /$  55            push    ebp
+
+11239401  |.  8BEC          mov     ebp, esp
+
+11239403  |.  51            push    ecx                              ;
+
+11239404  |.  56            push    esi
+
+11239405  |.  8BF0          mov     esi, eax
+
+11239407  |.  8D04B6        lea     eax, dword ptr ds:[esi+esi\*4]
+
+1123940A  |.  57            push    edi
+
+1123940B  |.  50            push    eax                              ; /Arg1
+
+1123940C  |.  E8 3F36EDFF   call    #201                             ; \#201
+
+11239411  |.  8BF8          mov     edi, eax
+
+11239413  |.  83C4 04       add     esp, 4
+
+11239416  |.  85FF          test    edi, edi
+
+11239418  |.  75 06         jnz     short 11239420
+
+1123941A  |.  5F            pop     edi
+
+1123941B  |.  5E            pop     esi
+
+1123941C  |.  8BE5          mov     esp, ebp
+
+1123941E  |.  5D            pop     ebp
+
+1123941F  |.  C3            retn
+
+11239420  |>  53            push    ebx
+
+11239421  |.  8D5E FF       lea     ebx, dword ptr ds:[esi-1]        ;  循环19次，从最后一位位开始
+
+11239424  |.  85DB          test    ebx, ebx
+
+11239426  |.  895D FC       mov     dword ptr ss:[ebp-4], ebx
+
+11239429  |.  0F8C 0C010000 jl      1123953B
+
+1123942F  |.  8D749B 02     lea     esi, dword ptr ds:[ebx+ebx\*4+2]  ;  赋值esi，位置计算从7a开始
+
+11239433  |>  8B4D 0C       /mov     ecx, dword ptr ss:[ebp+C]          ecx为索引数组
+
+11239436  |.  8B1499        |mov     edx, dword ptr ds:[ecx+ebx\*4]   ;  edx获取索引值
+
+11239439  |.  8B45 08       |mov     eax, dword ptr ss:[ebp+8]
+
+1123943C  |.  0FBE0C02      |movsx   ecx, byte ptr ds:[edx+eax]      ;  获取索引的注册码值
+
+11239440  |.  51            |push    ecx                             ; /c
+
+11239441  |.  68 30C63D11   |push    113DC630                        ; |s = "0123456789ACDEFGHJKLMNPQRTUVWXYZ"
+
+11239446  |.  FF15 38263911 |call    dword ptr ds:[<&MSVCR80.strchr>>; \strchr
+
+1123944C  |.  83C4 08       |add     esp, 8                          ;  eax计算注册码在113DC630数组的位置
+
+1123944F  |.  85C0          |test    eax, eax
+
+11239451  |.  0F84 ED000000 |je      11239544
+
+11239457  |.  BA 30C63D11   |mov     edx, 113DC630                   ;  ASCII "0123456789ACDEFGHJKLMNPQRTUVWXYZ"
+
+1123945C  |.  2AC2          |sub     al, dl                          ;  al为索引值
+
+1123945E  |.  8D4E FE       |lea     ecx, dword ptr ds:[esi-2]       ;  处理esi-2的位置值
+
+11239461  |.  8BD1          |mov     edx, ecx
+
+11239463  |.  83E1 1F       |and     ecx, 1F                         ;  ecx为32位中相对的位置
+
+11239466  |.  BB 01000000   |mov     ebx, 1                          ;  ebx赋值为1
+
+1123946B  |.  C1FA 05       |sar     edx, 5                          ;  edx为转换16位数组中的索引
+
+1123946E  |.  D3E3          |shl     ebx, cl                         ;  ebx为对32位中的cl的位置置1
+
+11239470  |.  A8 01         |test    al, 1                           ;  测试al是否为1
+
+11239472  |.  8D5497 08     |lea     edx, dword ptr ds:[edi+edx\*4+8] ;  计算转换数组的位置
+
+11239476  |.  74 04         |je      short 1123947C
+
+11239478  |.  091A          |or      dword ptr ds:[edx], ebx         ;  对转换数组中的位置赋值1
+
+1123947A  |.  EB 04         |jmp     short 11239480
+
+1123947C  |>  F7D3          |not     ebx
+
+1123947E  |.  211A          |and     dword ptr ds:[edx], ebx         ;  对转换数组中的位置赋值0
+
+11239480  |>  8D4E FF       |lea     ecx, dword ptr ds:[esi-1]       ;  处理esi-1的位置值
+
+11239483  |.  8BD1          |mov     edx, ecx
+
+11239485  |.  83E1 1F       |and     ecx, 1F                         ;  ecx为32位中相对的位置
+
+11239488  |.  BB 01000000   |mov     ebx, 1                          ;  ebx赋值为1
+
+1123948D  |.  D0E8          |shr     al, 1                           ;  al为索引值，右移一位
+
+1123948F  |.  C1FA 05       |sar     edx, 5                          ;  edx为转换16位数组中的索引
+
+11239492  |.  D3E3          |shl     ebx, cl                         ;  ebx为对32位中的cl的位置置1
+
+11239494  |.  A8 01         |test    al, 1                           ;  测试al是否为1
+
+11239496  |.  8D5497 08     |lea     edx, dword ptr ds:[edi+edx\*4+8] ;  计算转换数组的位置
+
+1123949A  |.  74 04         |je      short 112394A0
+
+1123949C  |.  091A          |or      dword ptr ds:[edx], ebx         ;  对转换数组中的位置赋值1
+
+1123949E  |.  EB 04         |jmp     short 112394A4
+
+112394A0  |>  F7D3          |not     ebx
+
+112394A2  |.  211A          |and     dword ptr ds:[edx], ebx         ;  对转换数组中的位置赋值0
+
+112394A4  |>  D0E8          |shr     al, 1                           ;  以下也有3步类似处理，同上
+
+112394A6  |.  BB 01000000   |mov     ebx, 1
+
+112394AB  |.  84C3          |test    bl, al
+
+112394AD  |.  8BCE          |mov     ecx, esi
+
+112394AF  |.  74 12         |je      short 112394C3
+
+112394B1  |.  C1F9 05       |sar     ecx, 5
+
+112394B4  |.  8D548F 08     |lea     edx, dword ptr ds:[edi+ecx\*4+8]
+```
