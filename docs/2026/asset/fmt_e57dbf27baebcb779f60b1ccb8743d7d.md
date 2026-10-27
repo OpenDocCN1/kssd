@@ -1,0 +1,184 @@
+
+# 幻影v1.5b3脱壳分析笔记之二
+
+[作者]: ljttt
+
+[日期]: 2000-09-15
+
+以上是一段被我处理掉的代码，从这里开始分析
+
+```
+00013381: 5E                        pop esi
+00013382: E800000000                call 00013387     <---JMP
+00013387: 5D                        pop ebp       <---获得 EBP = 413387
+00013388: 8BD5                      mov edx,ebp
+```
+`说明以后的一段代码常以EBP做为基地址`
+
+```
+0001338A: 81EDD4A64000              sub ebp,0040A6D4   <---EBP=413387-40A6D4 = 8CB3
+00013390: FA                        cli
+00013391: 58                        pop eax
+00013392: 80E401                    and ah,01
+00013395: 32C0                      xor al,al
+00013397: BE09A74000                mov esi,0040A709
+0001339C: 03F5                      add esi,ebp
+0001339E: B946160000                mov ecx,00001646
+000133A3: 03F1                      add esi,ecx
+000133A5: 4E                        dec esi
+000133A6: 90                        nop
+000133A7: 90                        nop
+000133A8: 90                        nop
+000133A9: 90                        nop
+000133AA: 90                        nop
+000133AB: 90                        nop
+000133AC: 90                        nop
+000133AD: 90                        nop
+000133AE: 90                        nop
+000133AF: 90                        nop
+000133B0: FA                        cli
+000133B1: 6681BD09A740009090        cmp word ptr [ebp+0040A709],9090
+000133BA: 75FE                      jnz 000133BA
+000133BC: 90                        nop
+000133BD: 90                        nop
+000133BE: 90                        nop
+000133BF: 2B95CBB24000              sub edx,dword ptr [ebp+0040B2CB]
+000133C5: 81EA87530000              sub edx,00005387
+000133CB: 8995D3B24000              mov dword ptr [ebp+0040B2D3],edx
+```
+`此处调用加载各个函数库` ID:`CALL000146AD`
+
+```
+000133D1: E8D7120000                call 000146AD             <---加载函数库
+000133D6: 83F800                    cmp eax,00000000
+000133D9: 7520                      jnz 000133FB             <---成功跳走
+```
+`显示Dial.dll加载失败，并退出程序`
+
+```
+000133DB: B8C0B94000                mov eax,0040B9C0
+000133E0: 03C5                      add eax,ebp
+000133E2: BBC2B94000                mov ebx,0040B9C2
+000133E7: 03DD                      add ebx,ebp
+000133E9: 6A30                      push 00000030
+000133EB: 50                        push eax
+000133EC: 53                        push ebx
+000133ED: 6A00                      push 00000000
+000133EF: FF9500BC4000              call dword ptr [ebp+0040BC00]     <---MessageBoxA
+000133F5: FF956CBF4000              call dword ptr [ebp+0040BF6C]     <---ExitProcess
+000133FB: 8B8DF2B94000              mov ecx,dword ptr [ebp+0040B9F2]   <---跳到此处
+```
+`申请内存`
+
+```
+00013401: 83C120                    add ecx,00000020
+00013404: 51                        push ecx
+00013405: 6A40                      push 00000040
+00013407: 6800201000                push 00102000
+0001340C: 51                        push ecx
+0001340D: 6A00                      push 00000000
+0001340F: FF95CBBB4000              call dword ptr [ebp+0040BBCB]     <---VirtualAlloc
+00013415: 59                        pop ecx
+```
+`申请内存`
+
+```
+00013416: 6A40                      push 00000040
+00013418: 6800101000                push 00101000
+0001341D: 51                        push ecx
+0001341E: 50                        push eax
+0001341F: FF95CBBB4000              call dword ptr [ebp+0040BBCB]     <---VirtualAlloc
+00013425: 8BD0                      mov edx,eax
+00013427: 8BF8                      mov edi,eax
+```
+`搬家`
+
+```
+00013429: BE4D534000                mov esi,0040534D
+0001342E: 03F5                      add esi,ebp
+00013430: 8B8DF2B94000              mov ecx,dword ptr [ebp+0040B9F2]
+00013436: F3A4                      repe movsb es:[edi],ds:[esi]     <----复制到新位置
+00013438: B893A74000                mov eax,0040A793
+0001343D: 2D4D534000                sub eax,0040534D
+00013442: 03C2                      add eax,edx
+00013444: 50                        push eax
+00013445: C3                        ret            <----到新地址执行下面的语句
+```
+`把原来地方的代码清零`
+
+```
+00013446: BF4D534000                mov edi,0040534D
+0001344B: 03FD                      add edi,ebp
+0001344D: 8B8DF2B94000              mov ecx,dword ptr [ebp+0040B9F2]
+00013453: 32C0                      xor al,al
+00013455: F3AA                      repe stosb es:[edi],al   <----把原来的位置的内容清零
+```
+`取新的EBP值，以后许多地方以EBP为基地址`
+
+```
+00013457: E800000000                call 0001345C         <---JMP语句
+0001345C: 5D                        pop ebp           <---EBP = 41345C
+0001345D: 81EDA9A74000              sub ebp,0040A7A9       <---EBP = 41345C-40A7A9 = 8CB3
+```
+`以下是一段检测跟踪的代码`
+
+```
+00013463: BEDDA74000                mov esi,0040A7DD
+00013468: 03F5                      add esi,ebp
+0001346A: 6A00                      push 00000000
+0001346C: 6A00                      push 00000000
+0001346E: 6A00                      push 00000000
+00013470: 6A00                      push 00000000
+00013472: 6A00                      push 00000000
+00013474: 6A00                      push 00000000
+00013476: 56                        push esi
+00013477: FF95A3BB4000              call dword ptr [ebp+0040BBA3]  <----CreateFileA
+0001347D: 83F8FF                    cmp eax,FFFFFFFF
+00013480: 7568                      jnz 000134EA           <----判断是否发现跟踪
+00013482: 46                        inc esi
+00013483: 803E00                    cmp byte ptr [esi],00
+00013486: 75FA                      jnz 00013482
+00013488: 46                        inc esi
+00013489: 803E00                    cmp byte ptr [esi],00
+0001348C: 75DC                      jnz 0001346A
+0001348E: EB5A                      jmp 000134EA           <----跳走
+```
+`这里不是代码区`
+
+```
+00013490: 5C                        pop esp
+00013491: 5C                        pop esp
+00013492: 2E5C                      pop esp
+00013494: 54                        push esp
+00013495: 52                        push edx
+00013496: 57                        push edi
+00013497: 005C5C2E                  add byte ptr [esp+ebx*2+2E],bl
+0001349B: 5C                        pop esp
+0001349C: 54                        push esp
+0001349D: 52                        push edx
+0001349E: 57                        push edi
+0001349F: 3230                      xor dh,byte ptr [eax]
+000134A1: 3030                      xor byte ptr [eax],dh
+000134A3: 005C5C2E                  add byte ptr [esp+ebx*2+2E],bl
+000134A7: 5C                        pop esp
+000134A8: 54                        push esp
+000134A9: 52                        push edx
+000134AA: 57                        push edi
+000134AB: 44                        inc esp
+000134AC: 45                        inc ebp
+000134AD: 42                        inc edx
+000134AE: 55                        push ebp
+000134AF: 47                        inc edi
+000134B0: 005C5C2E                  add byte ptr [esp+ebx*2+2E],bl
+000134B4: 5C                        pop esp
+000134B5: 52                        push edx
+000134B6: 45                        inc ebp
+000134B7: 47                        inc edi
+000134B8: 56                        push esi
+000134B9: 58                        pop eax
+000134BA: 44                        inc esp
+000134BB: 005C5C2E                  add byte ptr [esp+ebx*2+2E],bl
+000134BF: 5C                        pop esp
+000134C0: 4E                        dec esi
+000134C1: 54                        push esp
+```
