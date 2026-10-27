@@ -1,0 +1,227 @@
+
+# [原创]多项式MBA原理及其在代码混淆中的应用
+
+上文[《线性MBA混淆的LLVM Pass实现》](https://bbs.pediy.com/thread-271574.htm)介绍了线性MBA的原理和LLVM Pass实现。本文介绍如何利用**可逆多项式**和线性MBA表达式构造多项式MBA表达式，并用LLVM Pass实现一种简单的多项式MBA混淆。
+
+**MATH WARNING: 本文涉及少量抽象代数知识，不过基本上都是网安专业信安数学必修课中学到的内容。推荐这篇文章<a href="elink@0cdK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6\*7K9s2g2S2L8X3I4S2L8W2)9J5k6i4A6Z5K9h3S2#2i4K6u0W2j5$3!0E0i4K6u0r3M7q4)9J5c8U0t1I4y4e0R3K6y4U0M7@1">《代数结构入门：群、环、域、向量空间》</a>，总结得很好。**
+
+原论文：<a href="elink@29fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6D9K9h3&6C8i4K6u0W2M7%4m8J5K9h3&6Y4k6i4u0Q4x3X3g2U0L8$3#2Q4x3V1k6U0K9r3q4H3N6r3g2J5i4K6u0r3x3e0m8Q4x3X3f1I4x3o6l9%4i4K6u0r3z5e0M7^5i4K6u0V1x3#2)9J5k6o6f1@1x3q4)9J5k6o6M7%4y4e0x3#2i4K6u0V1y4g2)9#2k6U0f1`.">Information Hiding in Software with Mixed Boolean-Arithmetic Transforms</a>
+
+# 0x00. 基本概念
+
+定义在集合`Z/(2^n)`上的多项式集合Pm。`n`一般取32或者64，即系数和变量都为32位整数或64位整数的多项式：
+
+![图片描述](upload/attach/202203/910514_KM433M5SGCSZKX6.png)
+
+定义集合Pm上的运算`◦`，`◦`即函数复合，例如`f(x)◦g(x)=f(g(x))`。集合Pm与运算`◦`构成一个群：
+
+![图片描述](upload/attach/202203/910514_KRJMHT2S5UGYJVC.png)
+
+对于Pm中的多项式`f(x)`，一定存在一个`g(x)`，使得`f(x)`与`g(x)`满足`f(x)◦g(x)=x`或者说`f(g(x))=x`。`g(x)`可以通过以下公式来求解：
+
+![图片描述](upload/attach/202203/910514_UZZ9Q9SAJ66467P.png)
+
+待会我们就要利用`f(g(x))=x`这一性质构造混淆表达式。
+
+# 0x01. 多项式求逆C语言实现
+
+多项式求逆，即随机生成一个符合条件的多项式`f(x)`，生成对应的逆多项式`g(x)`。主要就是套公式，并没有什么技术含量，不过公式有点复杂所以写起来也比较麻烦。
+
+用到的有以下几个运算：求逆、求组合数、次方、相乘、求和、取反。这些运算都是在`Z/(2^n)`上的，也就是说运算结果都要模`2^n`。可以用`flint2`这个库来实现，代码如下：
+
+```cpp
+#include "flint/fmpz_mod_poly.h"
+#include "flint/flint.h"
+#include <time.h>
+#include <cstdio>
+#include <cstdint>
+#include <iostream>
+using namespace std;
+int factorial(int n){
+int fc=1;
+for(int i=1;i<=n;++i) fc *= i;
+return fc;
+}
+int combo(int n,int m){
+return factorial(n) / (factorial(m) * factorial(n-m));
+}
+fmpz** gen_poly(int degree){
+fmpz_mod_ctx ctx;
+fmpz n = 1LL << 32;
+fmpz_mod_ctx_init(&ctx, &n);
+fmpz_mod_poly_struct f, g;
+fmpz_mod_poly_init(&f, &ctx);
+fmpz_mod_poly_init(&g, &ctx);
+fmpz m = degree;
+fmpz *a = new fmpz[m + 1];
+fmpz *b = new fmpz[m + 1];
+fmpz a1_inv;
+fmpz *A = new fmpz[m + 1];
+fmpz *A_sum = new fmpz[m + 1];
+a[0] = rand(), a[1] = rand() | 1;
+for(int i = 2;i <= m;i ++){
+a[i] = (rand() >> 16) << 16;
+}
+// Calculate a1_inv
+fmpz_mod_inv(&a1_inv, a + 1, &ctx);
+// Calculate A
+fmpz_mod_pow_ui(A + m, &a1_inv, m, &ctx);
+fmpz_mod_neg(A + m, A + m, &ctx);
+fmpz_mod_mul(A + m, A + m, a + m, &ctx);
+for(int k = m - 1; k >= 0;k --){
+fmpz sum = 0;
+for(int j = k + 1;j <= m;j ++){
+fmpz tmp;
+fmpz_mod_pow_ui(&tmp, a, j - k, &ctx);
+fmpz_mod_mul(&tmp, &tmp, A + j, &ctx);
+fmpz_mod_mul_ui(&tmp, &tmp, combo(j, k), &ctx);
+fmpz_mod_add(&sum, &sum, &tmp, &ctx);
+}
+fmpz_mod_pow_ui(A + k, &a1_inv, k, &ctx);
+fmpz_mod_mul(A + k, A + k, a + k, &ctx);
+fmpz_mod_neg(A + k, A + k, &ctx);
+fmpz_mod_sub(A + k, A + k, &sum, &ctx);
+A_sum[k] = sum;
+}
+// Calculate bm
+fmpz_mod_pow_ui(b + m, &a1_inv, m + 1, &ctx);
+fmpz_mod_neg(b + m, b + m, &ctx);
+fmpz_mod_mul(b + m, b + m, a + m, &ctx);
+// Calculate bk
+for(int k = 2;k < m;k ++){
+fmpz_mod_pow_ui(b + k, &a1_inv, k + 1, &ctx);
+fmpz_mod_mul(b + k, b + k, a + k, &ctx);
+fmpz_mod_neg(b + k, b + k, &ctx);
+fmpz tmp;
+fmpz_mod_mul(&tmp, &a1_inv, A_sum + k, &ctx);
+fmpz_mod_sub(b + k, b + k, &tmp, &ctx);
+}
+// Calculate b1
+fmpz sum = 0;
+for(int j = 2;j <= m;j ++){
+fmpz tmp;
+fmpz_mod_pow_ui(&tmp, a, j - 1, &ctx);
+fmpz_mod_mul(&tmp, &tmp, A + j, &ctx);
+fmpz_mod_mul_ui(&tmp, &tmp, j, &ctx);
+fmpz_mod_add(&sum, &sum, &tmp, &ctx);
+}
+fmpz_mod_mul(&sum, &sum, &a1_inv, &ctx);
+fmpz_mod_sub(b + 1, &a1_inv, &sum, &ctx);
+// Calculate b0
+b[0] = 0;
+for(int j = 1;j <= m;j ++){
+fmpz tmp;
+fmpz_mod_pow_ui(&tmp, a, j, &ctx);
+fmpz_mod_mul(&tmp, &tmp, b + j, &ctx);
+fmpz_mod_add(b, b, &tmp, &ctx);
+}
+fmpz_mod_neg(b, b, &ctx);
+fmpz **coeff = new fmpz*[2];
+coeff[0] = a, coeff[1] = b;
+delete[] A;
+delete[] A_sum;
+return coeff;
+}
+int main(){
+int degree = 10;
+srand(time(NULL));
+fmpz** coeff = gen_poly(degree);
+fmpz_mod_ctx ctx;
+fmpz n = 1LL << 32;
+fmpz_mod_ctx_init(&ctx, &n);
+fmpz_mod_poly_struct f, g, res;
+fmpz_mod_poly_init(&f, &ctx);
+fmpz_mod_poly_init(&g, &ctx);
+fmpz_mod_poly_init(&res, &ctx);
+for(int i = 0;i <= degree;i ++){
+fmpz_mod_poly_set_coeff_ui(&f, i, coeff[0][i], &ctx);
+fmpz_mod_poly_set_coeff_ui(&g, i, coeff[1][i], &ctx);
+}
+fmpz_mod_poly_compose(&res, &g, &f, &ctx);
+flint_printf("f(x) = "); fmpz_mod_poly_print_pretty(&f, "x", &ctx); flint_printf("\n");
+flint_printf("g(x) = "); fmpz_mod_poly_print_pretty(&g, "x", &ctx); flint_printf("\n");
+flint_printf("g(f(x)) = "); fmpz_mod_poly_print_pretty(&res, "x", &ctx); flint_printf("\n");
+}
+```
+
+运行结果：
+
+```
+f(x) = 1756102656*x^10+947978240*x^9+368902144*x^8+1950089216*x^7+497156096*x^6+1583087616*x^5+178454528*x^4+202440704*x^3+932052992*x^2+421111353*x+593005452
+g(x) = 2268332032*x^10+395247616*x^9+2160525312*x^8+2187591680*x^7+3999137792*x^6+833880064*x^5+806682624*x^4+1138688000*x^3+2095448064*x^2+3762448393*x+1736062996
+g(f(x)) = x
+```
+
+`flint2`的整数（`fmpz`）是用`signed long`实现的，也就是说`Z/(2^n)`的`n`不能取64，因为`2^64`无法用`signed long`表示出来，所以这里选取的`n`是32：
+
+```
+fmpz_mod_ctx ctx;
+fmpz n = 1LL << 32;
+fmpz_mod_ctx_init(&ctx, &n);
+```
+
+如果只要生成`degree`为1，也就是`f(x)`和`g(x)`都为`ax+b`这种形式的式子，公式会简单很多，并且可以只用`z3`实现（安装`flint2`实在太麻烦了）。度数为1（即`x`的最高次方为1）的多项式求逆C语言代码如下：
+
+```
+#include "flint/fmpz_mod_poly.h"
+#include "flint/flint.h"
+#include "z3++.h"
+#include <time.h>
+#include <cstdio>
+#include <cstdint>
+#include <iostream>
+using namespace std;
+using namespace z3;
+uint64_t inverse(uint64_t n){
+context c;
+solver s(c);
+expr a = c.bv_val(n, 64);
+expr a_inv = c.bv_const("a_inv", 64);
+s.add(a * a_inv == 1);
+s.check();
+model m = s.get_model();
+return m.eval(a_inv).get_numeral_uint64();
+}
+void gen_univariate_poly(uint64_t *a, uint64_t *b){
+uint64_t a0, a1, b0, b1, a1_inv;
+a0 = ((uint64_t)rand() << 32) | rand(), a1 = ((uint64_t)rand() << 32LL) | (rand() | 1);
+// Calculate a1_inv
+a1_inv = inverse(a1);
+// Calculate b1
+b1 = a1_inv;
+// Calculate b0
+b0 = -(b1 * a0);
+uint64_t **coeff = new uint64_t*[2];
+a[0] = a0, a[1] = a1, b[0] = b0, b[1] = b1;
+}
+```
+
+使用度数为1的多项式有几个好处，一是代码实现简单，二是用`z3`实现可以拓展到64位，三是混淆后对程序大小和速度的影响相对来说比较小。所以接下来的混淆只会用度数为1的多项式。
+
+# 0x02. 混淆思路
+
+虽然原论文提供了几种混淆思路，但我个人感觉都不太好用。后来我采用了<a href="elink@4aaK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6S2M7X3&6S2N6h3N6S2L8h3g2\*7i4K6u0r3N6r3q4D9K9%4y4Q4x3V1k6T1L8r3!0T1i4K6u0r3L8h3q4K6N6r3g2J5i4K6u0r3x3U0l9J5x3g2)9J5c8U0l9H3i4K6g2X3K9h3&6@1k6h3&6@1i4K6u0r3M7$3I4A6k6r3g2K6i4K6u0W2M7r3c8X3">这里</a>提到的方法：
+
+![图片描述](upload/attach/202203/910514_SPNGTYWN5NEEG2K.png)
+
+这里举了一个对`x+y`进行混淆的例子，大概的思路就是：
+
+1. 生成一对互逆的一次多项式`f(x)`和`g(x)`
+
+2. 构造与`x+y`等价的线性MBA表达式`E2=(x^y)+2*(x&y)`（关于什么是线性MBA表达式见我的上一篇文章）
+
+3. 构造`E3=g(f(E2))`，由之前提到过的性质，`g(f(E2))`实际上就等于`E2`
+
+4. 用等价但更复杂`E3`表达式替代原`x+y`表达式
+
+# 0x03. LLVM Pass实现
+
+线性MBA混淆的LLVM Pass实现也在上一篇文章提到过了，现在要介绍的多项式MBA混淆基于线性MBA混淆。
+
+Github：
+
+<a href="elink@1b8K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6T1L8s2g2W2M7$3q4V1K9g2)9J5c8W2m8D9N6i4c8G2i4K6u0V1e0$3u0X3N6i4y4U0j5i4c8G2M7W2)9J5c8X3u0D9L8$3u0Q4x3V1k6E0j5h3W2F1i4K6u0r3L8r3I4$3L8g2)9J5c8X3I4A6j5W2)9J5c8W2c8J5j5h3&6K6k6X3!0J5L8i4y4Q4x3V1k6a6j5X3k6#2M7$3y4S2N6r3W2G2L8W2)9J5c8V1#2n7b7f1!0T1k6Y4g2K6j5$3q4@1K9h3!0F1i4K6u0W2j5%4m8H3"><code>MBAObfuscation.cpp</code></a>
+
+<a href="elink@8fbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6T1L8s2g2W2M7$3q4V1K9g2)9J5c8W2m8D9N6i4c8G2i4K6u0V1e0$3u0X3N6i4y4U0j5i4c8G2M7W2)9J5c8X3u0D9L8$3u0Q4x3V1k6E0j5h3W2F1i4K6u0r3L8r3I4$3L8g2)9J5c8X3I4A6j5W2)9J5c8W2c8J5j5h3&6K6k6X3!0J5L8i4y4Q4x3V1k6a6j5X3k6#2M7$3y4S2N6r3W2G2L8W2)9J5c8V1#2n7b7g2g2@1K9h3I4K6i4K6u0W2j5%4m8H3"><code>MBAUtils.cpp</code></a>
+
+首先是把求逆多项式的代码移植一下，跟之前区别不大：
