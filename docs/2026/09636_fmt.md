@@ -1,0 +1,68 @@
+
+# [原创]通过分析调用堆栈定位MFC按钮事件
+
+## 1. 逆向分析的前提
+
+逆向分析这个东西的前提是你得懂这个东西，例如，就像逆飞机一样，你连飞机是什么都不知道，当然你也就逆不出来。逆之前，你得自己会造飞机，只是你没有别人造的好。分析过程中，不需要弄懂每个细节，只需关注重点部分和整体流程。学会根据经验猜测。
+
+## 2. 原理
+
+我们新建的MFC程序，界面上就放2个按钮，事件处理函数随便写。然后我们在按钮那里设置断点。
+
+![](https://bbs.kanxue.com/upload/attach/201901/756836_3GP23C8G7MPQE5V.jpg)
+![](https://bbs.kanxue.com/upload/attach/201901/756836_JEZF3KKS2N5SPAZ.jpg)
+
+程序运行起来后，我们点击`button1`，程序就断下来了，然后我们就查看它的调用堆栈，谁调用了这个按钮处理函数，找到事件分发函数。`_AfxDispatchCmdMsg`就是分发函数。
+
+![](https://bbs.kanxue.com/upload/attach/201901/756836_BH2ZGV9R2P34VN2.jpg)
+![](https://bbs.kanxue.com/upload/attach/201901/756836_2PQSDKH3E2SQ72R.jpg)
+
+双击`_AfxDispatchCmdMsg`进入到如下函数，这个就是处理过程。然后我们分析这个函数的参数，有点不太一样，它有7个参数，可以作为一个特征。
+
+```
+_AfxDispatchCmdMsg(CCmdTarget * 0x0018fe50 {CSssDlg}, unsigned int 1000, int 0, void (void)* 0x00401014 CSssDlg::OnButton1(void), void * 0x00000000, unsigned int 12, AFX_CMDHANDLERINFO * 0x00000000) line 88
+```
+
+调用堆栈已经显示了调用这个函数时的所有参数：比如`nID=1000`，我们需要大胆猜测这个东西是什么，`nID`有可能是按钮的编号。拿着这个疑问我们来试第二个按钮：
+
+```
+_AfxDispatchCmdMsg(CCmdTarget * 0x0018fe50 {CSssDlg hWnd=0x001d1e92}, unsigned int 1001, int 0, void (void)* 0x0040107d CSssDlg::OnButton2(void), void * 0x00000000, unsigned int 12, AFX_CMDHANDLERINFO * 0x00000000) line 88
+```
+
+`nID`变成了`1001`，哈哈猜对了，`nID`基本就是窗口编号。
+
+我们注意到倒数第3个参数传递的是按钮事件函数的地址。
+
+`_AfxDispatchCmdMsg`函数的特征是什么呢？特征码的选取是随机的，爱取什么就取什么，只要满足它能代表这个函数的唯一性就可以了。
+
+![](https://bbs.kanxue.com/upload/attach/201901/756836_KMHZ8HBUZR6BZG8.jpg)
+
+## 3. OD分析
+
+A，选择特征码：
+
+我们进入到`_AfxDispatchCmdMsg`函数，查看汇编，以红色框内的硬编码作为特征码。
+
+![](https://bbs.kanxue.com/upload/attach/201901/756836_YJE724NAZXCGT2G.jpg)
+
+B，我们直接把刚刚的程序拖入OD中，让程序运行起来，搜索二进制字符串，填入上面选择的特征码，搜索到以后在这个函数入口处下断点。
+
+![](https://bbs.kanxue.com/upload/attach/201901/756836_BES7KRCRNV4C6CG.jpg)
+![](https://bbs.kanxue.com/upload/attach/201901/756836_MGK3SZG6P58V4Y3.jpg)
+![](https://bbs.kanxue.com/upload/attach/201901/756836_CMSCDXPJRBJY42C.jpg)
+
+让程序运行起来，然后点击按钮1，我们的程序就断在`014BD310`处了，查看此时的堆栈，保存了传入的参数，红色箭头指向的就是对应当前窗口ID的事件处理函数。
+
+![](https://bbs.kanxue.com/upload/attach/201901/756836_F69QTA5TCM8HJMM.jpg)
+
+然后我们进入到这个函数，发现就是我们写的事件处理函数。
+
+![](https://bbs.kanxue.com/upload/attach/201901/756836_F5D3WXFDSKDVXYN.jpg)
+
+## 4. 总结
+
+所有的事件都会通过一个分发函数分发到不同的事件处理函数中，根据这个特征，可以应用到易语言、Borland C++等不同的窗口程序中。
+
+上述针对MFC做的测试，通杀所有版本的MFC程序按钮事件的查找。
+
+[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)(https://bbs.kanxue.com/thread-51839.htm)
