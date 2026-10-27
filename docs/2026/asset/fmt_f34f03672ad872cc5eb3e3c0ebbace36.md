@@ -1,0 +1,152 @@
+
+```
+00487498   |.  8D45 94        lea eax,dword ptr ss:[ebp-6C]
+0048749B   |.  8BCF           mov ecx,edi
+0048749D   |.  8BD6           mov edx,esi
+0048749F   |.  E8 20FFFFFF    call INS.004873C4                    ;  开始变换
+004874A4   |.  8D55 94        lea edx,dword ptr ss:[ebp-6C]
+004874A7   |.  8D45 EC        lea eax,dword ptr ss:[ebp-14]
+004874AA   |.  E8 59F6FFFF    call INS.00486B08
+004874AF   |.  8B45 FC        mov eax,dword ptr ss:[ebp-4]
+004874B2   |.  E8 55DAF7FF    call INS.00404F0C
+004874B7   |.  BB 10000000    mov ebx,10                           ;  转换成字符串
+004874BC   |.  8D75 EC        lea esi,dword ptr ss:[ebp-14]
+004874BF   |>  8D4D 90        /lea ecx,dword ptr ss:[ebp-70]
+004874C2   |.  33C0           |xor eax,eax
+004874C4   |.  8A06           |mov al,byte ptr ds:[esi]
+004874C6   |.  BA 02000000    |mov edx,2
+004874CB   |.  E8 3823F8FF    |call INS.00409808
+004874D0   |.  8B55 90        |mov edx,dword ptr ss:[ebp-70]
+004874D3   |.  8B45 FC        |mov eax,dword ptr ss:[ebp-4]
+004874D6   |.  E8 F9DCF7FF    |call INS.004051D4
+004874DB   |.  8B45 FC        |mov eax,dword ptr ss:[ebp-4]
+004874DE   |.  46             |inc esi
+004874DF   |.  4B             |dec ebx
+004874E0   |.^ 75 DD          \jnz short INS.004874BF
+004874E2   |.  33C0           xor eax,eax
+004874E4   |.  5A             pop edx
+004874E5   |.  59             pop ecx
+004874E6   |.  59             pop ecx
+004874E7   |.  64:8910        mov dword ptr fs:[eax],edx
+004874EA   |.  68 FF744800    push INS.004874FF
+004874EF   |>  8D45 90        lea eax,dword ptr ss:[ebp-70]
+004874F2   |.  E8 15DAF7FF    call INS.00404F0C
+004874F7   \.  C3             retn
+```
+
+下断处`00486B08`：
+
+```
+00486B08   /$  53             push ebx                             ;  真正的变换处!
+00486B09   |.  56             push esi
+00486B0A   |.  8BDA           mov ebx,edx
+00486B0C   |.  8BF0           mov esi,eax
+00486B0E   |.  8B43 10        mov eax,dword ptr ds:[ebx+10]
+00486B11   |.  C1E8 03        shr eax,3
+00486B14   |.  66:83E0 3F     and ax,3F
+00486B18   |.  8BD0           mov edx,eax
+00486B1A   |.  33C9           xor ecx,ecx
+00486B1C   |.  8ACA           mov cl,dl
+00486B1E   |.  C6440B 18 80   mov byte ptr ds:[ebx+ecx+18],80
+00486B23   |.  42             inc edx
+00486B24   |.  66:B9 3F00     mov cx,3F
+00486B28   |.  66:2BC8        sub cx,ax
+00486B2B   |.  8BC1           mov eax,ecx
+00486B2D   |.  66:83F8 08     cmp ax,8
+00486B31   |.  73 37          jnb short INS.00486B6A
+00486B33   |.  81E2 FF000000  and edx,0FF
+00486B39   |.  8D5413 18      lea edx,dword ptr ds:[ebx+edx+18]
+00486B3D   |.  0FB7C0         movzx eax,ax
+00486B40   |.  33C9           xor ecx,ecx
+00486B42   |.  92             xchg eax,edx
+00486B43   |.  E8 D4C7F7FF    call INS.0040331C
+00486B48   |.  6A 0F          push 0F                              ; /Arg1 = 0000000F
+00486B4A   |.  8D4B 18        lea ecx,dword ptr ds:[ebx+18]        ; |
+00486B4D   |.  8BC3           mov eax,ebx                          ; |
+00486B4F   |.  BA 03000000    mov edx,3                            ; |
+00486B54   |.  E8 4F010000    call INS.00486CA8                    ; \INS.00486CA8
+00486B59   |.  8D43 18        lea eax,dword ptr ds:[ebx+18]
+00486B5C   |.  33C9           xor ecx,ecx
+00486B5E   |.  BA 38000000    mov edx,38
+00486B63   |.  E8 B4C7F7FF    call INS.0040331C                    ; 清除缓冲区
+00486B68   |.  EB 18          jmp short INS.00486B82
+00486B6A   |>  81E2 FF000000  and edx,0FF
+00486B70   |.  8D5413 18      lea edx,dword ptr ds:[ebx+edx+18]
+00486B74   |.  0FB7C0         movzx eax,ax
+00486B77   |.  83E8 08        sub eax,8
+00486B7A   |.  33C9           xor ecx,ecx
+00486B7C   |.  92             xchg eax,edx
+00486B7D   |.  E8 9AC7F7FF    call INS.0040331C
+00486B82   |>  8B43 10        mov eax,dword ptr ds:[ebx+10]
+00486B85   |.  8943 50        mov dword ptr ds:[ebx+50],eax
+00486B88   |.  8B43 14        mov eax,dword ptr ds:[ebx+14]
+00486B8B   |.  8943 54        mov dword ptr ds:[ebx+54],eax
+00486B8E   |.  6A 0F          push 0F                              ; /Arg1 = 0000000F
+00486B90   |.  8D4B 18        lea ecx,dword ptr ds:[ebx+18]        ; |
+00486B93   |.  8BC3           mov eax,ebx                          ; |
+00486B95   |.  BA 03000000    mov edx,3                            ; |
+00486B9A   |.  E8 09010000    call INS.00486CA8                    ; \INS.00486CA8
+00486B9F   |.  8BD6           mov edx,esi
+00486BA1   |.  8BC3           mov eax,ebx
+00486BA3   |.  B9 10000000    mov ecx,10
+00486BA8   |.  E8 2BBEF7FF    call INS.004029D8
+00486BAD   |.  8BC3           mov eax,ebx
+00486BAF   |.  33C9           xor ecx,ecx
+00486BB1   |.  BA 58000000    mov edx,58
+00486BB6   |.  E8 61C7F7FF    call INS.0040331C
+00486BBB   |.  5E             pop esi
+00486BBC   |.  5B             pop ebx
+00486BBD   \.  C3             retn
+```
+
+传说中的 MD5 算法，四轮运算，下断处`00486CA8`：
+
+```
+00486CA8   /$  55             push ebp
+00486CA9   |.  8BEC           mov ebp,esp
+00486CAB   |.  83C4 EC        add esp,-14
+00486CAE   |.  53             push ebx
+00486CAF   |.  56             push esi
+00486CB0   |.  57             push edi
+00486CB1   |.  8BD9           mov ebx,ecx
+00486CB3   |.  8945 FC        mov dword ptr ss:[ebp-4],eax
+00486CB6   |.  8D75 F8        lea esi,dword ptr ss:[ebp-8]
+00486CB9   |.  8D7D F4        lea edi,dword ptr ss:[ebp-C]
+00486CBC   |.  8B45 FC        mov eax,dword ptr ss:[ebp-4]
+00486CBF   |.  8B00           mov eax,dword ptr ds:[eax]
+00486CC1   |.  8906           mov dword ptr ds:[esi],eax
+00486CC3   |.  8B45 FC        mov eax,dword ptr ss:[ebp-4]
+00486CC6   |.  8B40 04        mov eax,dword ptr ds:[eax+4]
+00486CC9   |.  8907           mov dword ptr ds:[edi],eax
+00486CCB   |.  8B45 FC        mov eax,dword ptr ss:[ebp-4]
+00486CCE   |.  8B40 08        mov eax,dword ptr ds:[eax+8]
+00486CD1   |.  8945 F0        mov dword ptr ss:[ebp-10],eax
+00486CD4   |.  8B45 FC        mov eax,dword ptr ss:[ebp-4]
+00486CD7   |.  8B40 0C        mov eax,dword ptr ds:[eax+C]
+00486CDA   |.  8945 EC        mov dword ptr ss:[ebp-14],eax
+00486CDD   |.  8B45 EC        mov eax,dword ptr ss:[ebp-14]
+00486CE0   |.  50             push eax                             ; /Arg3
+00486CE1   |.  8B03           mov eax,dword ptr ds:[ebx]           ; |
+00486CE3   |.  05 78A46AD7    add eax,D76AA478                     ; |
+00486CE8   |.  50             push eax                             ; |Arg2
+00486CE9   |.  6A 07          push 7                               ; |Arg1 = 00000007
+00486CEB   |.  8BC6           mov eax,esi                          ; |
+00486CED   |.  8B4D F0        mov ecx,dword ptr ss:[ebp-10]        ; |
+00486CF0   |.  8B17           mov edx,dword ptr ds:[edi]           ; |
+00486CF2   |.  E8 C9FEFFFF    call INS.00486BC0                    ; \INS.00486BC0
+00486CF7   |.  8B45 F0        mov eax,dword ptr ss:[ebp-10]
+00486CFA   |.  50             push eax                             ; /Arg3
+00486CFB   |.  8B43 04        mov eax,dword ptr ds:[ebx+4]         ; |
+00486CFE   |.  05 56B7C7E8    add eax,E8C7B756                     ; |
+00486D03   |.  50             push eax                             ; |Arg2
+00486D04   |.  6A 0C          push 0C                              ; |Arg1 = 0000000C
+00486D06   |.  8D45 EC        lea eax,dword ptr ss:[ebp-14]        ; |
+00486D09   |.  8B0F           mov ecx,dword ptr ds:[edi]           ; |
+00486D0B   |.  8B16           mov edx,dword ptr ds:[esi]           ; |
+00486D0D   |.  E8 AEFEFFFF    call INS.00486BC0                    ; \INS.00486BC0
+00486D12   |.  8B07           mov eax,dword ptr ds:[edi]
+00486D14   |.  50             push eax                             ; /Arg3
+00486D15   |.  8B43 08        mov eax,dword ptr ds:[ebx+8]         ; |
+00486D18   |.  05 DB702024    add eax,242070DB                     ; |
+00486D1D   |.  50             push eax                             ; |Arg2
+```

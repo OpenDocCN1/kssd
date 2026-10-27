@@ -1,0 +1,4 @@
+
+求个邀请码 ![](https://bbs.kanxue.com/view/img/face/16.gif)
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)

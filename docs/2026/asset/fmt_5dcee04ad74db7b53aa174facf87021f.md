@@ -1,0 +1,60 @@
+
+# [原创]读写端口的方法总结1
+
+//以下都是我的个人理解 有什么不妥之处欢迎跟帖指正
+
+## 1什么是I/O端口? CPU使用什么指令与外设进行数据交换?
+
+CPU与I/O设备通过硬件接口或控制器相连接，这些接口或控制器都有数量不等的端口，这些端口有统一的地址编码，CPU通过这些端口使用输入输出指令`IN`、`OUT`与外设进行数据交换。
+
+## 2读写端口有什么意义
+
+其实读写端口就是在读写硬件了 在这几个小例子中 我仅仅是向CMOS(注意与BIOS的区别 BIOS存放在ROM CMOS存放在RAM中 断电信息就会丢失 ) 写入垃圾数据达到清除密码的目的实际上端口是CPU与硬件交互的桥梁 举个具体的例子 比方说软件还原卡 分为两种吧 一种是磁盘过滤型的 比方说无盘系统常用的顺网   还有一种就是MBR型的 还原精灵
+
+其实都可以用读写硬盘的端口来绕过这些还原卡的保护
+
+大家都知道有一个软件叫MHDD  很神奇 没有BIOS依然可以对硬盘进行各种操作  BIOS提供了`INT13H` 以及扩展`INT13H`标准(只支持到128GB的硬盘如果没记错的话)现在用的应该是扩扩展的标准  很明显了 通过直接读写硬盘的端口来读取修改数据是可以绕过`INT13h`的限制的 采用端口读写硬盘这种技术的话足以让很多基于接管`INT13H`的还原卡下岗的了
+
+## 3读写端口的方法
+
+**@1使用六个宏定义**
+
+`READ_PORT_UCHAR` `READ_PORT_USHORT` `READ_PORT_ULONG` `WRITE_PORT_UCHAR` `WRITE_PORT_USHORT` `WRITE_PORT_ULONG`
+
+（其实VC中也有`Inp`、`Outp` 这样的宏 汇编代码都是用`in` `out`实现的）
+
+**@2VC中内嵌汇编代码** 和@1中的原理是一样的
+
+**@3**
+
+```
+BOOLEAN Ke386QueryIoAccessMap(ULONG MapNumber, PKIO_ACCESS_MAP IoAccessMap);
+BOOLEAN Ke386SetIoAccessMap(ULONG MapNumber, PKIO_ACCESS_MAP IoAccessMap);
+BOOLEAN Ke386IoSetAccessProcess(PKPROCESS Process, ULONG MapNumber);
+```
+
+未文档化函数的使用操纵`IOPM`
+
+**@4**`NtSystemDebugControl`、`ntsetinformationproces` 等windows系统内功能繁杂的函数的使用 可以实现无驱读写端口
+
+**@5**如果要实现较为稳定和兼容性好点的读写端口可以用第三方库 非常好用
+
+`WinIo` 目前可以支持到Win7 X64
+
+先把我总结的@1@2的方法发上来 代码在XP SP3虚拟机上运行通过
+
+证明读写端口成功的标志就是CMOS的密码被清空了  所以提前先在给虚拟机的CMOS设置上密码
+
+另外 哪个兄弟有通过端口读写硬盘的代码 希望能给个连接或者发份到我的邮箱（KMSRussian@163.com） 先谢谢了
+
+解压的时候将`我的帖子.apk`改名为 `我的帖子.7z`  否则无法解压
+
+因为文件大小超了
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+
+- [`我的帖子.apk`](javascript:void(0);)
+
+  （1.07MB，139次下载）

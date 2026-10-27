@@ -1,0 +1,258 @@
+
+## `RtlCompareUnicodeString`
+
+### `CaseInSensitive`
+
+If `TRUE`, case should be ignored when doing the comparison.
+
+### Include
+
+`wdm.h` or `ntddk.h`
+
+### Return Value
+
+`RtlCompareUnicodeString` returns a signed value that gives the results of the comparison:
+
+- `Zero`: `String1` equals `String2`.
+- `< Zero`: `String1` is less than `String2`.
+- `> Zero`: `String1` is greater than `String2`.
+
+`RtlEqualString` 与 `RtlEqualUnicodeString` 返回非零表示相等，零表示不相等。
+
+## 字符串转化成大写
+
+### `RtlUpperString`
+
+`RtlUpperString` copies the given `SourceString` to the `DestinationString` buffer, converting it to uppercase. 把源字符串 copy 到目的字符串的 buffer 中，并转换为大写。
+
+```c
+VOID
+  RtlUpperString(
+    IN OUT PSTRING  DestinationString,
+    IN PSTRING  SourceString
+    );
+```
+
+#### Parameters
+
+- `DestinationString`: Points to the buffer for the converted destination string.
+- `SourceString`: Points to the source string to be converted to uppercase.
+
+#### Include
+
+`ntddk.h`
+
+#### Comments
+
+- The `MaximumLength` and `Buffer` fields of `DestinationString` are not modified by this routine.
+- The number of bytes copied from `SourceString` is either the `Length` of `SourceString` or the `MaximumLength` of `DestinationString`, whichever is smaller.
+- Callers of `RtlUpperString` must be running at `IRQL PASSIVE_LEVEL`. // 必须运行在 `PASSIVE` 级
+
+### `RtlUpcaseUnicodeString`
+
+`RtlUpcaseUnicodeString` converts a copy of the source string to upper case and writes the converted string in the destination buffer.
+
+```c
+NTSTATUS
+  RtlUpcaseUnicodeString(
+    IN OUT PUNICODE_STRING  DestinationString  OPTIONAL,
+    IN PCUNICODE_STRING  SourceString,
+    IN BOOLEAN  AllocateDestinationString //是否为目的字符串分配内存
+    );//源与目的可以是同一个字符串
+```
+
+#### Parameters
+
+- `DestinationString`: Points to a caller-allocated buffer for the converted Unicode string or is `NULL` if `AllocateDestinationString` is set to `TRUE`.
+- `SourceString`: Points to the source Unicode string to be converted to upper case.
+- `AllocateDestinationString`: `TRUE` if `RtlUpcaseUnicodeString` is to allocate the buffer space for the `DestinationString`. If it does, the buffer must be deallocated by calling `RtlFreeUnicodeString`.
+
+#### Include
+
+`ntddk.h`
+
+#### Return Value
+
+If the operation succeeds, `RtlUpcaseUnicodeString` returns `STATUS_SUCCESS`. Otherwise, no storage was allocated, and no conversion was done.
+
+#### Comments
+
+Callers of `RtlUpcaseUnicodeString` must be running at `IRQL PASSIVE_LEVEL`.
+
+```c
+UNICODE_STRING unicodestring;
+RtlInitUnicodeString(&unicodestring,L"study driver");
+RtlUpcaseUnicodeString(&unicodestring,&unicodestring,FALSE);
+```
+
+## `UNICODE_STRING` 字符串与整数相互转换
+
+### `RtlUnicodeStringToInteger`
+
+`RtlUnicodeStringToInteger` converts a Unicode string representation of an integer into its integer equivalent.
+
+```c
+NTSTATUS
+  RtlUnicodeStringToInteger(
+    IN PUNICODE_STRING  String,
+    IN ULONG  Base  OPTIONAL,
+    OUT PULONG  Value
+    );
+```
+
+#### Parameters
+
+- `String`: Points to the Unicode string to be converted to its integer equivalent.
+- `Base`: An optional argument that indicates the base of the number expressed as a Unicode string. // 转换的数进制 2/8/10/16
+- `Value`: Points to caller supplied storage of type `ULONG`. `RtlUnicodeStringToInteger` returns the integer conversion results in `Value`.
+
+#### Include
+
+`wdm.h` or `ntddk.h`
+
+#### Return Value
+
+If the conversion is successful, `RtlUnicodeStringToInteger` returns `STATUS_SUCCESS` and `Value` is set to the integer equivalent of the Unicode string. Otherwise, the `Value` is set to 0, and `RtlUnicodeStringToInteger` returns `STATUS_INVALID_PARAMETER`.
+
+If the first character of the string is a "–", the sign of the output `Value` is negative, otherwise if the first character is a "+" or there is no sign character, the sign of `Value` is positive.
+
+// 如果字符第一个字符是 `-`，那么输出的值是负的，反之是正的。
+
+### 整数转换成 `UNICODE_STRING` 字符串
+
+#### `RtlIntegerToUnicodeString`
+
+`RtlIntegerToUnicodeString` converts an unsigned integer value to a `NULL`-terminated string of one or more Unicode characters in the specified base.
+
+```c
+NTSTATUS
+  RtlIntegerToUnicodeString(
+    IN ULONG  Value,
+    IN ULONG  Base  OPTIONAL,
+    IN OUT PUNICODE_STRING  String
+    );
+```
+
+#### Parameters
+
+- `Value`: Identifies an unsigned integer of type `ULONG`.
+- `Base`: Optional. If not zero, this must be 2, 8, 10, or 16, to specify that the returned string should represent the integer as a binary, octal, decimal, or hexadecimal number. If zero, the integer is represented as a decimal number.
+- `String`: Points to a buffer large enough to contain the Unicode string.
+
+#### Include
+
+`wdm.h` or `ntddk.h`
+
+#### Return Value
+
+If `RtlIntegerToUnicodeString` succeeds, it returns `STATUS_SUCCESS`. Otherwise, it can return `STATUS_INVALID_PARAMETER` if `Base` is not 0, 2, 8, 10, or 16, or `STATUS_BUFFER_OVERFLOW` if an internal buffer overflow occurs.
+
+### 转换演示
+
+```c
+//(1)字符串转换成数字
+//初始化UnicodeString1
+UNICODE_STRING UnicodeString1;
+RtlInitUnicodeString(&UnicodeString1,L"-100");
+ULONG lNumber;
+NTSTATUS nStatus = RtlUnicodeStringToInteger(&UnicodeString1,10,&lNumber);
+if ( NT_SUCCESS(nStatus))
+{
+        KdPrint(("Conver to integer succussfully!\n"));
+        KdPrint(("Result:%d\n",lNumber));
+}else
+{
+        KdPrint(("Conver to integer unsuccessfully!\n"));
+}
+
+//(2)数字转换成字符串
+//初始化UnicodeString2
+UNICODE_STRING UnicodeString2={0};
+UnicodeString2.Buffer = (PWSTR)ExAllocatePool(PagedPool,BUFFER_SIZE);
+UnicodeString2.MaximumLength = BUFFER_SIZE;
+nStatus = RtlIntegerToUnicodeString(200,10,&UnicodeString2);
+if ( NT_SUCCESS(nStatus))
+{
+        KdPrint(("Conver to string succussfully!\n"));
+        KdPrint(("Result:%wZ\n",&UnicodeString2));
+}else
+{
+        KdPrint(("Conver to string unsuccessfully!\n"));
+}
+
+//销毁UnicodeString2
+//注意!!UnicodeString1不用销毁
+RtlFreeUnicodeString(&UnicodeString2);
+```
+
+## `UNICODE_STRING` 与 `ANSI_STRING` 相互转换
+
+### `RtlUnicodeStringToAnsiString`
+
+`RtlUnicodeStringToAnsiString` converts a given Unicode string into an ANSI string.
+
+```c
+NTSTATUS
+  RtlUnicodeStringToAnsiString(
+    IN OUT PANSI_STRING  DestinationString,
+    IN PUNICODE_STRING  SourceString,
+    IN BOOLEAN  AllocateDestinationString
+    );
+```
+
+### `RtlAnsiStringToUnicodeString`
+
+`RtlAnsiStringToUnicodeString` converts the given ANSI source string into a Unicode string.
+
+```c
+NTSTATUS
+  RtlAnsiStringToUnicodeString(
+    IN OUT PUNICODE_STRING  DestinationString,
+    IN PANSI_STRING  SourceString,
+    IN BOOLEAN  AllocateDestinationString
+    );
+```
+
+### 转换演示
+
+```c
+//(1)将UNICODE_STRING字符串转换成ANSI_STRING字符串
+//初始化UnicodeString1
+UNICODE_STRING UnicodeString1;
+RtlInitUnicodeString(&UnicodeString1,L"Hello World");
+ANSI_STRING AnsiString1;
+NTSTATUS nStatus = RtlUnicodeStringToAnsiString(&AnsiString1,&UnicodeString1,TRUE);
+if ( NT_SUCCESS(nStatus))
+{
+        KdPrint(("Conver succussfully!\n"));
+        KdPrint(("Result:%Z\n",&AnsiString1));
+}else
+{
+        KdPrint(("Conver unsuccessfully!\n"));
+}
+//销毁AnsiString1
+RtlFreeAnsiString(&AnsiString1);
+
+//(2)将ANSI_STRING字符串转换成UNICODE_STRING字符串
+//初始化AnsiString2
+ANSI_STRING AnsiString2;
+RtlInitString(&AnsiString2,"Hello World");
+UNICODE_STRING UnicodeString2;
+nStatus = RtlAnsiStringToUnicodeString(&UnicodeString2,&AnsiString2,TRUE);
+if ( NT_SUCCESS(nStatus))
+{
+        KdPrint(("Conver succussfully!\n"));
+        KdPrint(("Result:%wZ\n",&UnicodeString2));
+}else
+{
+        KdPrint(("Conver unsuccessfully!\n"));
+}
+//销毁UnicodeString2
+RtlFreeUnicodeString(&UnicodeString2);
+```
+
+## CPU 表
+
+- 全局描述符表（Global Descriptor Table，`GDT`）：用于映射地址
+- 本地描述符表（Local Descriptor Table，`LDT`）：用于映射地址
+- 页目录（Page Directory）：用于映射地址

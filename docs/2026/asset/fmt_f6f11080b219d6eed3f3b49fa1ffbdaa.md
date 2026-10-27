@@ -1,0 +1,20 @@
+
+# [下载]加强版的`OsrNTStatusToString`
+
+之前一直用osr的`OsrNTStatusToString`来显示`NTSTATUS`的字符串形式，很省事。但是有个缺陷，osr应该是基于比较早的`ntddk`来整理的，不全，比如minifilter专用的`NTSTATUS`。
+
+于是花了一点时间用最新的wdk整理了一份，可以比较完美替换osr的那份。需要的童鞋请自取。（整理的方法比较简单，主要用到`vim`和正则表达式）
+
+目前只在最新的wdk上测试过，如果有BUG请告知我，谢谢。
+
+下载链接：（不单独上传到看雪了，免得更新的时候要多提交一次，我懒……）
+
+[356K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3u0G2P5r3y4G2N6h3&6@1k6i4u0Q4x3X3g2U0L8$3#2Q4x3V1k6S2N6s2c8S2j5$3S2E0k6h3&6@1i4K6u0W2M7r3S2H3i4K6y4r3j5h3W2V1i4K6y4p5x3U0l9`.](https://bbs.kanxue.com/elink@602K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3u0G2P5r3y4G2N6h3&6@1k6i4u0Q4x3X3g2U0L8$3#2Q4x3V1k6S2N6s2c8S2j5$3S2E0k6h3&6@1i4K6u0W2M7r3S2H3i4K6y4r3j5h3W2V1i4K6y4p5x3U0l9`.)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+
+- [`StatusStr.7z`](javascript:void(0);)
+
+  （24.30kb，24次下载）

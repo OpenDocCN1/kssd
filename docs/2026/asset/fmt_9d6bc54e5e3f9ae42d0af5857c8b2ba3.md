@@ -1,0 +1,554 @@
+
+```
+WeChatWin.dll+80F1A1 - 68 F4020000           - push 000002F4 { 756 }
+
+WeChatWin.dll+80F1A6 - B8 E5219166           - mov eax,WeChatWin.dll+11821E5 { (139) }
+
+WeChatWin.dll+80F1AB - E8 F0034D00           - call WeChatWin.dll+CDF5A0
+
+WeChatWin.dll+80F1B0 - 8B D9                 - mov ebx,ecx
+
+WeChatWin.dll+80F1B2 - 6A F0                 - push -10 { 240 }
+
+WeChatWin.dll+80F1B4 - E8 E7718DFF           - call WeChatWin.dll+E63A0
+
+WeChatWin.dll+80F1B9 - 50                    - push eax
+
+WeChatWin.dll+80F1BA - FF 15 D0E89866        - call dword ptr [WeChatWin.dll+11FE8D0] { ->USER32.GetWindowLongW }
+
+WeChatWin.dll+80F1C0 - 25 FFFF3FFF           - and eax,FF3FFFFF { -12582913 }
+
+WeChatWin.dll+80F1C5 - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F1C7 - 0D 00000006           - or eax,06000000 { 100663296 }
+
+WeChatWin.dll+80F1CC - 50                    - push eax
+
+WeChatWin.dll+80F1CD - 6A F0                 - push -10 { 240 }
+
+WeChatWin.dll+80F1CF - E8 CC718DFF           - call WeChatWin.dll+E63A0
+
+WeChatWin.dll+80F1D4 - 50                    - push eax
+
+WeChatWin.dll+80F1D5 - FF 15 C0E89866        - call dword ptr [WeChatWin.dll+11FE8C0] { ->USER32.SetWindowLongW }
+
+WeChatWin.dll+80F1DB - 8D 45 E0              - lea eax,[ebp-20]
+
+WeChatWin.dll+80F1DE - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F1E0 - 50                    - push eax
+
+WeChatWin.dll+80F1E1 - E8 BA718DFF           - call WeChatWin.dll+E63A0
+
+WeChatWin.dll+80F1E6 - 50                    - push eax
+
+WeChatWin.dll+80F1E7 - FF 15 D4E79866        - call dword ptr [WeChatWin.dll+11FE7D4] { ->USER32.GetClientRect }
+
+WeChatWin.dll+80F1ED - 8B 03                 - mov eax,[ebx]
+
+WeChatWin.dll+80F1EF - 8D 8D 08FDFFFF        - lea ecx,[ebp-000002F8]
+
+WeChatWin.dll+80F1F5 - 51                    - push ecx
+
+WeChatWin.dll+80F1F6 - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F1F8 - C7 85 08FDFFFF 20000000 - mov [ebp-000002F8],00000020 { 32 }
+
+WeChatWin.dll+80F202 - FF 90 A8000000        - call dword ptr [eax+000000A8]
+
+WeChatWin.dll+80F208 - FF B5 08FDFFFF        - push [ebp-000002F8]
+
+WeChatWin.dll+80F20E - 8B 45 EC              - mov eax,[ebp-14]
+
+WeChatWin.dll+80F211 - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F213 - 2B 45 E4              - sub eax,[ebp-1C]
+
+WeChatWin.dll+80F216 - 50                    - push eax
+
+WeChatWin.dll+80F217 - 8B 45 E8              - mov eax,[ebp-18]
+
+WeChatWin.dll+80F21A - 2B 45 E0              - sub eax,[ebp-20]
+
+WeChatWin.dll+80F21D - 50                    - push eax
+
+WeChatWin.dll+80F21E - FF 75 E4              - push [ebp-1C]
+
+WeChatWin.dll+80F221 - FF 75 E0              - push [ebp-20]
+
+WeChatWin.dll+80F224 - 6A 00                 - push 00 { 0 }
+
+WeChatWin.dll+80F226 - E8 75718DFF           - call WeChatWin.dll+E63A0
+
+WeChatWin.dll+80F22B - 50                    - push eax
+
+WeChatWin.dll+80F22C - FF 15 ECE89866        - call dword ptr [WeChatWin.dll+11FE8EC] { ->->win32u.NtUserSetWindowPos }
+
+WeChatWin.dll+80F232 - FF 73 04              - push [ebx+04]
+
+WeChatWin.dll+80F235 - 8D 7B 30              - lea edi,[ebx+30]
+
+WeChatWin.dll+80F238 - 8B CF                 - mov ecx,edi
+
+WeChatWin.dll+80F23A - E8 60120000           - call WeChatWin.dll+81049F
+
+WeChatWin.dll+80F23F - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F241 - 8D 43 24              - lea eax,[ebx+24]
+
+WeChatWin.dll+80F244 - F7 D9                 - neg ecx
+
+WeChatWin.dll+80F246 - 1B C9                 - sbb ecx,ecx
+
+WeChatWin.dll+80F248 - 23 C8                 - and ecx,eax
+
+WeChatWin.dll+80F24A - 51                    - push ecx
+
+WeChatWin.dll+80F24B - 8B CF                 - mov ecx,edi
+
+WeChatWin.dll+80F24D - E8 FD430000           - call WeChatWin.dll+81364F
+
+WeChatWin.dll+80F252 - 8D 8D 90FDFFFF        - lea ecx,[ebp-00000270]
+
+WeChatWin.dll+80F258 - E8 9CC20000           - call WeChatWin.dll+81B4F9
+
+WeChatWin.dll+80F25D - 83 65 FC 00           - and dword ptr [ebp-04],00 { 0 }
+
+WeChatWin.dll+80F261 - 8D 8D D8FEFFFF        - lea ecx,[ebp-00000128]
+
+WeChatWin.dll+80F267 - E8 65120000           - call WeChatWin.dll+8104D1
+
+WeChatWin.dll+80F26C - C6 45 FC 01           - mov byte ptr [ebp-04],01 { 1 }
+
+WeChatWin.dll+80F270 - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F272 - 8B 03                 - mov eax,[ebx]
+
+WeChatWin.dll+80F274 - FF 50 30              - call dword ptr [eax+30]
+
+WeChatWin.dll+80F277 - 48                    - dec eax
+
+WeChatWin.dll+80F278 - 83 E8 01              - sub eax,01 { 1 }
+
+WeChatWin.dll+80F27B - 0F84 AF000000         - je WeChatWin.dll+80F330
+
+WeChatWin.dll+80F281 - 48                    - dec eax
+
+WeChatWin.dll+80F282 - 83 E8 01              - sub eax,01 { 1 }
+
+WeChatWin.dll+80F285 - 0F85 D4000000         - jne WeChatWin.dll+80F35F
+
+WeChatWin.dll+80F28B - 8B 03                 - mov eax,[ebx]
+
+WeChatWin.dll+80F28D - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F28F - 68 608CC066           - push WeChatWin.dll+1478C60 { ("ZIPRES") }
+
+WeChatWin.dll+80F294 - FF 50 38              - call dword ptr [eax+38]
+
+WeChatWin.dll+80F297 - 50                    - push eax
+
+WeChatWin.dll+80F298 - E8 03130000           - call WeChatWin.dll+8105A0
+
+WeChatWin.dll+80F29D - 50                    - push eax
+
+WeChatWin.dll+80F29E - FF 15 F4E49866        - call dword ptr [WeChatWin.dll+11FE4F4] { ->KERNEL32.FindResourceW }
+
+WeChatWin.dll+80F2A4 - 8B F0                 - mov esi,eax
+
+WeChatWin.dll+80F2A6 - 85 F6                 - test esi,esi
+
+WeChatWin.dll+80F2A8 - 0F84 4C020000         - je WeChatWin.dll+80F4FA
+
+WeChatWin.dll+80F2AE - 56                    - push esi
+
+WeChatWin.dll+80F2AF - E8 EC120000           - call WeChatWin.dll+8105A0
+
+WeChatWin.dll+80F2B4 - 50                    - push eax
+
+WeChatWin.dll+80F2B5 - FF 15 F8E49866        - call dword ptr [WeChatWin.dll+11FE4F8] { ->KERNEL32.LoadResource }
+
+WeChatWin.dll+80F2BB - 89 85 00FDFFFF        - mov [ebp-00000300],eax
+
+WeChatWin.dll+80F2C1 - 56                    - push esi
+
+WeChatWin.dll+80F2C2 - 85 C0                 - test eax,eax
+
+WeChatWin.dll+80F2C4 - 75 0B                 - jne WeChatWin.dll+80F2D1
+
+WeChatWin.dll+80F2C6 - FF 15 28E29866        - call dword ptr [WeChatWin.dll+11FE228] { ->KERNEL32.FreeResource }
+
+WeChatWin.dll+80F2CC - E9 29020000           - jmp WeChatWin.dll+80F4FA
+
+WeChatWin.dll+80F2D1 - E8 CA120000           - call WeChatWin.dll+8105A0
+
+WeChatWin.dll+80F2D6 - 50                    - push eax
+
+WeChatWin.dll+80F2D7 - FF 15 00E59866        - call dword ptr [WeChatWin.dll+11FE500] { ->KERNEL32.SizeofResource }
+
+WeChatWin.dll+80F2DD - 89 85 04FDFFFF        - mov [ebp-000002FC],eax
+
+WeChatWin.dll+80F2E3 - 85 C0                 - test eax,eax
+
+WeChatWin.dll+80F2E5 - 0F84 0F020000         - je WeChatWin.dll+80F4FA
+
+WeChatWin.dll+80F2EB - 50                    - push eax
+
+WeChatWin.dll+80F2EC - E8 AEF14C00           - call WeChatWin.dll+CDE49F
+
+WeChatWin.dll+80F2F1 - A3 D834DB66           - mov [WeChatWin.dll+16234D8],eax { (0) }
+
+WeChatWin.dll+80F2F6 - 59                    - pop ecx
+
+WeChatWin.dll+80F2F7 - 85 C0                 - test eax,eax
+
+WeChatWin.dll+80F2F9 - 74 21                 - je WeChatWin.dll+80F31C
+
+WeChatWin.dll+80F2FB - FF B5 04FDFFFF        - push [ebp-000002FC]
+
+WeChatWin.dll+80F301 - FF B5 00FDFFFF        - push [ebp-00000300]
+
+WeChatWin.dll+80F307 - FF 15 FCE49866        - call dword ptr [WeChatWin.dll+11FE4FC] { ->KERNEL32.LockResource }
+
+WeChatWin.dll+80F30D - 50                    - push eax
+
+WeChatWin.dll+80F30E - FF 35 D834DB66        - push [WeChatWin.dll+16234D8] { (0) }
+
+WeChatWin.dll+80F314 - E8 77848B00           - call WeChatWin.dll+10C7790
+
+WeChatWin.dll+80F319 - 83 C4 0C              - add esp,0C { 12 }
+
+WeChatWin.dll+80F31C - 56                    - push esi
+
+WeChatWin.dll+80F31D - FF 15 28E29866        - call dword ptr [WeChatWin.dll+11FE228] { ->KERNEL32.FreeResource }
+
+WeChatWin.dll+80F323 - 8B 95 04FDFFFF        - mov edx,[ebp-000002FC]
+
+WeChatWin.dll+80F329 - E8 94120000           - call WeChatWin.dll+8105C2
+
+WeChatWin.dll+80F32E - EB 2F                 - jmp WeChatWin.dll+80F35F
+
+WeChatWin.dll+80F330 - 8B 03                 - mov eax,[ebx]
+
+WeChatWin.dll+80F332 - 8D 8D 5CFFFFFF        - lea ecx,[ebp-000000A4]
+
+WeChatWin.dll+80F338 - 51                    - push ecx
+
+WeChatWin.dll+80F339 - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F33B - FF 50 34              - call dword ptr [eax+34]
+
+WeChatWin.dll+80F33E - 8B C8                 - mov ecx,eax
+
+WeChatWin.dll+80F340 - C6 45 FC 02           - mov byte ptr [ebp-04],02 { 2 }
+
+WeChatWin.dll+80F344 - E8 67E9FFFF           - call WeChatWin.dll+80DCB0
+
+WeChatWin.dll+80F349 - 8B C8                 - mov ecx,eax
+
+WeChatWin.dll+80F34B - E8 DD120000           - call WeChatWin.dll+81062D
+
+WeChatWin.dll+80F350 - 8D 8D 5CFFFFFF        - lea ecx,[ebp-000000A4]
+
+WeChatWin.dll+80F356 - C6 45 FC 01           - mov byte ptr [ebp-04],01 { 1 }
+
+WeChatWin.dll+80F35A - E8 EAE9FFFF           - call WeChatWin.dll+80DD49
+
+WeChatWin.dll+80F35F - 8B 03                 - mov eax,[ebx]
+
+WeChatWin.dll+80F361 - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F363 - FF 50 30              - call dword ptr [eax+30]
+
+WeChatWin.dll+80F366 - 8D 8D 5CFFFFFF        - lea ecx,[ebp-000000A4]
+
+WeChatWin.dll+80F36C - 83 F8 03              - cmp eax,03 { 3 }
+
+WeChatWin.dll+80F36F - 8B 03                 - mov eax,[ebx]
+
+WeChatWin.dll+80F371 - 51                    - push ecx
+
+WeChatWin.dll+80F372 - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F374 - 75 3F                 - jne WeChatWin.dll+80F3B5
+
+WeChatWin.dll+80F376 - FF 50 28              - call dword ptr [eax+28]
+
+WeChatWin.dll+80F379 - 8B C8                 - mov ecx,eax
+
+WeChatWin.dll+80F37B - E8 30E9FFFF           - call WeChatWin.dll+80DCB0
+
+WeChatWin.dll+80F380 - 50                    - push eax
+
+WeChatWin.dll+80F381 - E8 46ED8C00           - call WeChatWin.dll+10DE0CC
+
+WeChatWin.dll+80F386 - 59                    - pop ecx
+
+WeChatWin.dll+80F387 - 8D 8D 5CFFFFFF        - lea ecx,[ebp-000000A4]
+
+WeChatWin.dll+80F38D - 0FB7 F0               - movzx esi,ax
+
+WeChatWin.dll+80F390 - E8 B4E9FFFF           - call WeChatWin.dll+80DD49
+
+WeChatWin.dll+80F395 - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F397 - 8D 43 28              - lea eax,[ebx+28]
+
+WeChatWin.dll+80F39A - F7 D9                 - neg ecx
+
+WeChatWin.dll+80F39C - 6A 00                 - push 00 { 0 }
+
+WeChatWin.dll+80F39E - 1B C9                 - sbb ecx,ecx
+
+WeChatWin.dll+80F3A0 - 57                    - push edi
+
+WeChatWin.dll+80F3A1 - 23 C8                 - and ecx,eax
+
+WeChatWin.dll+80F3A3 - 51                    - push ecx
+
+WeChatWin.dll+80F3A4 - 51                    - push ecx
+
+WeChatWin.dll+80F3A5 - 56                    - push esi
+
+WeChatWin.dll+80F3A6 - 8D 8D 90FDFFFF        - lea ecx,[ebp-00000270]
+
+WeChatWin.dll+80F3AC - E8 69C10000           - call WeChatWin.dll+81B51A
+
+WeChatWin.dll+80F3B1 - 8B F0                 - mov esi,eax
+
+WeChatWin.dll+80F3B3 - EB 7A                 - jmp WeChatWin.dll+80F42F
+
+WeChatWin.dll+80F3B5 - FF 50 28              - call dword ptr [eax+28]
+
+WeChatWin.dll+80F3B8 - C6 45 FC 03           - mov byte ptr [ebp-04],03 { 3 }
+
+WeChatWin.dll+80F3BC - 8D 8D 0CFDFFFF        - lea ecx,[ebp-000002F4]
+
+WeChatWin.dll+80F3C2 - 8B 03                 - mov eax,[ebx]
+
+WeChatWin.dll+80F3C4 - 51                    - push ecx
+
+WeChatWin.dll+80F3C5 - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F3C7 - FF 50 28              - call dword ptr [eax+28]
+
+WeChatWin.dll+80F3CA - 8B D3                 - mov edx,ebx
+
+WeChatWin.dll+80F3CC - C6 45 FC 04           - mov byte ptr [ebp-04],04 { 4 }
+
+WeChatWin.dll+80F3D0 - F7 DA                 - neg edx
+
+WeChatWin.dll+80F3D2 - 8D 4B 28              - lea ecx,[ebx+28]
+
+WeChatWin.dll+80F3D5 - 6A 00                 - push 00 { 0 }
+
+WeChatWin.dll+80F3D7 - 1B D2                 - sbb edx,edx
+
+WeChatWin.dll+80F3D9 - 57                    - push edi
+
+WeChatWin.dll+80F3DA - 23 D1                 - and edx,ecx
+
+WeChatWin.dll+80F3DC - 52                    - push edx
+
+WeChatWin.dll+80F3DD - 51                    - push ecx
+
+WeChatWin.dll+80F3DE - 8B C8                 - mov ecx,eax
+
+WeChatWin.dll+80F3E0 - E8 CBE8FFFF           - call WeChatWin.dll+80DCB0
+
+WeChatWin.dll+80F3E5 - 51                    - push ecx
+
+WeChatWin.dll+80F3E6 - 8B CC                 - mov ecx,esp
+
+WeChatWin.dll+80F3E8 - 89 01                 - mov [ecx],eax
+
+WeChatWin.dll+80F3EA - 8D 8D 90FDFFFF        - lea ecx,[ebp-00000270]
+
+WeChatWin.dll+80F3F0 - E8 25C10000           - call WeChatWin.dll+81B51A
+
+WeChatWin.dll+80F3F5 - 8D 8D 0CFDFFFF        - lea ecx,[ebp-000002F4]
+
+WeChatWin.dll+80F3FB - 8B F0                 - mov esi,eax
+
+WeChatWin.dll+80F3FD - E8 47E9FFFF           - call WeChatWin.dll+80DD49
+
+WeChatWin.dll+80F402 - 85 F6                 - test esi,esi
+
+WeChatWin.dll+80F404 - 75 1A                 - jne WeChatWin.dll+80F420
+
+WeChatWin.dll+80F406 - 6A 10                 - push 10 { 16 }
+
+WeChatWin.dll+80F408 - 68 848CC066           - push WeChatWin.dll+1478C84 { ("Duilib") }
+
+WeChatWin.dll+80F40D - 8D 8D 5CFFFFFF        - lea ecx,[ebp-000000A4]
+
+WeChatWin.dll+80F413 - E8 98E8FFFF           - call WeChatWin.dll+80DCB0
+
+WeChatWin.dll+80F418 - 50                    - push eax
+
+WeChatWin.dll+80F419 - 56                    - push esi
+
+WeChatWin.dll+80F41A - FF 15 48E79866        - call dword ptr [WeChatWin.dll+11FE748] { ->USER32.MessageBoxW }
+
+WeChatWin.dll+80F420 - 8D 8D 5CFFFFFF        - lea ecx,[ebp-000000A4]
+
+WeChatWin.dll+80F426 - C6 45 FC 01           - mov byte ptr [ebp-04],01 { 1 }
+
+WeChatWin.dll+80F42A - E8 1AE9FFFF           - call WeChatWin.dll+80DD49
+
+WeChatWin.dll+80F42F - 85 F6                 - test esi,esi
+
+WeChatWin.dll+80F431 - 75 1B                 - jne WeChatWin.dll+80F44E
+
+WeChatWin.dll+80F433 - 6A 10                 - push 10 { 16 }
+
+WeChatWin.dll+80F435 - 68 848CC066           - push WeChatWin.dll+1478C84 { ("Duilib") }
+
+WeChatWin.dll+80F43A - 68 708CC066           - push WeChatWin.dll+1478C70 { (-1887612256) }
+
+WeChatWin.dll+80F43F - 56                    - push esi
+
+WeChatWin.dll+80F440 - FF 15 48E79866        - call dword ptr [WeChatWin.dll+11FE748] { ->USER32.MessageBoxW }
+
+WeChatWin.dll+80F446 - 6A 01                 - push 01 { 1 }
+
+WeChatWin.dll+80F448 - FF 15 24E59866        - call dword ptr [WeChatWin.dll+11FE524] { ->KERNEL32.ExitProcess }
+
+WeChatWin.dll+80F44E - 56                    - push esi
+
+WeChatWin.dll+80F44F - 8B CF                 - mov ecx,edi
+
+WeChatWin.dll+80F451 - E8 FD370000           - call WeChatWin.dll+812C53
+
+WeChatWin.dll+80F456 - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F458 - 8D 43 20              - lea eax,[ebx+20]
+
+WeChatWin.dll+80F45B - F7 D9                 - neg ecx
+
+WeChatWin.dll+80F45D - 1B C9                 - sbb ecx,ecx
+
+WeChatWin.dll+80F45F - 23 C8                 - and ecx,eax
+
+WeChatWin.dll+80F461 - 51                    - push ecx
+
+WeChatWin.dll+80F462 - 8B CF                 - mov ecx,edi
+
+WeChatWin.dll+80F464 - E8 99410000           - call WeChatWin.dll+813602
+
+WeChatWin.dll+80F469 - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F46B - 8D 43 2C              - lea eax,[ebx+2C]
+
+WeChatWin.dll+80F46E - F7 D9                 - neg ecx
+
+WeChatWin.dll+80F470 - 1B C9                 - sbb ecx,ecx
+
+WeChatWin.dll+80F472 - 23 C8                 - and ecx,eax
+
+WeChatWin.dll+80F474 - 51                    - push ecx
+
+WeChatWin.dll+80F475 - 8B CF                 - mov ecx,edi
+
+WeChatWin.dll+80F477 - E8 40560000           - call WeChatWin.dll+814ABC
+
+WeChatWin.dll+80F47C - 8B 03                 - mov eax,[ebx]
+
+WeChatWin.dll+80F47E - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F480 - FF 50 1C              - call dword ptr [eax+1C]
+
+WeChatWin.dll+80F483 - 83 BB 08030000 00     - cmp dword ptr [ebx+00000308],00 { 0 }
+
+WeChatWin.dll+80F48A - 74 2E                 - je WeChatWin.dll+80F4BA
+
+WeChatWin.dll+80F48C - 6A EC                 - push -14 { 236 }
+
+WeChatWin.dll+80F48E - FF 73 04              - push [ebx+04]
+
+WeChatWin.dll+80F491 - FF 15 D0E89866        - call dword ptr [WeChatWin.dll+11FE8D0] { ->USER32.GetWindowLongW }
+
+WeChatWin.dll+80F497 - 0D 00000800           - or eax,00080000 { 524288 }
+
+WeChatWin.dll+80F49C - 50                    - push eax
+
+WeChatWin.dll+80F49D - 6A EC                 - push -14 { 236 }
+
+WeChatWin.dll+80F49F - FF 73 04              - push [ebx+04]
+
+WeChatWin.dll+80F4A2 - FF 15 C0E89866        - call dword ptr [WeChatWin.dll+11FE8C0] { ->USER32.SetWindowLongW }
+
+WeChatWin.dll+80F4A8 - 6A 01                 - push 01 { 1 }
+
+WeChatWin.dll+80F4AA - B8 FF000000           - mov eax,000000FF { 255 }
+
+WeChatWin.dll+80F4AF - 50                    - push eax
+
+WeChatWin.dll+80F4B0 - 50                    - push eax
+
+WeChatWin.dll+80F4B1 - FF 73 04              - push [ebx+04]
+
+WeChatWin.dll+80F4B4 - FF 15 BCE89866        - call dword ptr [WeChatWin.dll+11FE8BC] { ->->win32u.NtUserSetLayeredWindowAttributes }
+
+WeChatWin.dll+80F4BA - 8B CB                 - mov ecx,ebx
+
+WeChatWin.dll+80F4BC - E8 9C030000           - call WeChatWin.dll+80F85D
+
+WeChatWin.dll+80F4C1 - 8B CF                 - mov ecx,edi
+
+WeChatWin.dll+80F4C3 - E8 38C798FF           - call WeChatWin.dll+19BC00
+
+WeChatWin.dll+80F4C8 - 83 EC 10              - sub esp,10 { 16 }
+
+WeChatWin.dll+80F4CB - 8D 75 E0              - lea esi,[ebp-20]
+
+WeChatWin.dll+80F4CE - 8B FC                 - mov edi,esp
+
+WeChatWin.dll+80F4D0 - 8B C8                 - mov ecx,eax
+
+WeChatWin.dll+80F4D2 - 8B 10                 - mov edx,[eax]
+
+WeChatWin.dll+80F4D4 - A5                    - movsd 
+
+WeChatWin.dll+80F4D5 - A5                    - movsd 
+
+WeChatWin.dll+80F4D6 - A5                    - movsd 
+
+WeChatWin.dll+80F4D7 - A5                    - movsd 
+
+WeChatWin.dll+80F4D8 - FF 52 4C              - call dword ptr [edx+4C]
+
+WeChatWin.dll+80F4DB - 33 C0                 - xor eax,eax
+
+WeChatWin.dll+80F4DD - 8D 4B 30              - lea ecx,[ebx+30]
+
+WeChatWin.dll+80F4E0 - 50                    - push eax
+
+WeChatWin.dll+80F4E1 - 50                    - push eax
+
+WeChatWin.dll+80F4E2 - 50                    - push eax
+
+WeChatWin.dll+80F4E3 - 68 CC22A866           - push WeChatWin.dll+12F22CC { ("windowinit") }
+
+WeChatWin.dll+80F4E8 - E8 13C798FF           - call WeChatWin.dll+19BC00
+
+WeChatWin.dll+80F4ED - 50                    - push eax
+
+WeChatWin.dll+80F4EE - E8 AC420000           - call WeChatWin.dll+81379F
+
+WeChatWin.dll+80F4F3 - C6 83 14030000 01     - mov byte ptr [ebx+00000314],01 { 1 }
+
+WeChatWin.dll+80F4FA - 8D 8D D8FEFFFF        - lea ecx,[ebp-00000128]
+
+WeChatWin.dll+80F500 - E8 44E8FFFF           - call WeChatWin.dll+80DD49
+
+WeChatWin.dll+80F505 - 8D 8D 90FDFFFF        - lea ecx,[ebp-00000270]
+
+WeChatWin.dll+80F50B - E8 19020100           - call WeChatWin.dll+81F729
+
+WeChatWin.dll+80F510 - 33 C0                 - xor eax,eax
+
+WeChatWin.dll+80F512 - E8 33004D00           - call WeChatWin.dll+CDF54A
+
+WeChatWin.dll+80F517 - C2 1000               - ret 0010 { 16 }
+```

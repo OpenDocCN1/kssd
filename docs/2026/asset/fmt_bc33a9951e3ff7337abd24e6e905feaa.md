@@ -1,0 +1,257 @@
+
+```
+00494DAD   BB C4000000      MOV EBX,0C4                       ; EBX=0C4，代表作与运算
+
+00494DB2   E8 C38A0000      CALL 变压器设.0049D87A            ; 跟进可知调用易语言库函数（对[EBP-10]与3FB3A975作与运算）
+
+00494DB7   83C4 1C          ADD ESP,1C
+
+00494DBA   68 01030080      PUSH 80000301
+
+00494DBF   6A 00            PUSH 0
+
+00494DC1   50               PUSH EAX
+
+00494DC2   68 01000000      PUSH 1                            ; 1为参与运算参数个数
+
+00494DC7   BB D4010000      MOV EBX,1D4                       ; EBX=1D4，
+
+00494DCC   E8 A98A0000      CALL 变压器设.0049D87A            ；跟进可知调用易语言库函数（EAX中十六进制数转换为字符串得注册码第一部份）
+
+00494DD1   83C4 10          ADD ESP,10
+
+00494DD4   8945 E8          MOV DWORD PTR SS:[EBP-18],EAX     ; 注册码第一部份地址送[EBP-18]
+
+00494DD7   68 01030080      PUSH 80000301
+
+00494DDC   6A 00            PUSH 0
+
+00494DDE   68 75A9B33F      PUSH 3FB3A975
+
+00494DE3   68 01030080      PUSH 80000301
+
+00494DE8   6A 00            PUSH 0
+
+00494DEA   FF75 F8          PUSH DWORD PTR SS:[EBP-8]              ; [EBP-8]机器码整数部份入栈
+
+00494DED   68 02000000      PUSH 2                                 ; 2为参与运算参数个数
+
+00494DF2   BB CC000000      MOV EBX,0CC                            ; EBX=0CC，
+
+00494DF7   E8 7E8A0000      CALL 变压器设.0049D87A       ；跟进可知调用易语言库函数（3FB3A975与[EBP-8]作异或运算）
+
+00494DFC   83C4 1C          ADD ESP,1C
+
+00494DFF   68 01030080      PUSH 80000301
+
+00494E04   6A 00            PUSH 0
+
+00494E06   50               PUSH EAX
+
+00494E07   68 01000000      PUSH 1
+
+00494E0C   BB D4010000      MOV EBX,1D4                ; EBX=1D4，表示十六进制数转换为字符串
+
+00494E11   E8 648A0000      CALL 变压器设.0049D87A    ；跟进可知调用易语言库函数（EAX中十六进制数转换为字符串得注册码第二部份）
+
+00494E16   83C4 10          ADD ESP,10
+
+00494E19   8945 E0          MOV DWORD PTR SS:[EBP-20],EAX       ; 注册码第二部份地址送[EBP-20]
+
+00494E1C   68 01030080      PUSH 80000301
+
+00494E21   6A 00            PUSH 0
+
+00494E23   68 15CD5B07      PUSH 75BCD15
+
+00494E28   68 01030080      PUSH 80000301
+
+00494E2D   6A 00            PUSH 0
+
+00494E2F   FF75 F8          PUSH DWORD PTR SS:[EBP-8]          ; [EBP-8]为机器码整数部份入栈
+
+00494E32   68 02000000      PUSH 2                              ；2为参与运算参数个数
+
+00494E37   BB C8000000      MOV EBX,0C8                         ；EBX=0C8，表示作或运算
+
+00494E3C   E8 398A0000      CALL 变压器设.0049D87A              ；跟进可知调用易语言库函数（75BCD15与[EBP-8]作或运算）
+
+00494E41   83C4 1C          ADD ESP,1C
+
+00494E44   68 01030080      PUSH 80000301
+
+00494E49   6A 00            PUSH 0
+
+00494E4B   50               PUSH EAX
+
+00494E4C   68 01000000      PUSH 1
+
+00494E51   BB D4010000      MOV EBX,1D4                           ; EBX=1D4，表示十六进制数转换为字符串
+
+00494E56   E8 1F8A0000      CALL 变压器设.0049D87A                ；调用易语言库函数（EAX中十六进制数转换为字符串得注册码第二部份）
+
+00494E5B   83C4 10          ADD ESP,10
+
+00494E5E   8945 D8          MOV DWORD PTR SS:[EBP-28],EAX         ; 注册码第三部份地址送[EBP-28]
+
+00494E61   FF75 D8          PUSH DWORD PTR SS:[EBP-28]           ；第三部份
+
+00494E64   68 1E334000      PUSH 变压器设.0040331E
+
+00494E69   FF75 E0          PUSH DWORD PTR SS:[EBP-20]           ；第二部份
+
+00494E6C   68 1E334000      PUSH 变压器设.0040331E
+
+00494E71   FF75 E8          PUSH DWORD PTR SS:[EBP-18]           ；第一部份
+
+00494E74   B9 05000000      MOV ECX,5
+
+00494E79   E8 76C9FFFF      CALL 变压器设.004917F4               ; 连接三部份注册码
+
+00494E7E   83C4 14          ADD ESP,14
+
+00494E81   8945 D4          MOV DWORD PTR SS:[EBP-2C],EAX  ;   注册码地址送[EBP-2C](我的为36112924-36597FAE-FFBDFDF)
+
+00494E84   8B5D E8          MOV EBX,DWORD PTR SS:[EBP-18]
+
+00494E87   85DB             TEST EBX,EBX
+
+00494E89   74 09            JE SHORT 变压器设.00494E94
+
+00494E8B   53               PUSH EBX
+
+00494E8C   E8 EF890000      CALL 变压器设.0049D880
+
+00494E91   83C4 04          ADD ESP,4
+
+00494E94   8B5D E0          MOV EBX,DWORD PTR SS:[EBP-20]
+
+00494E97   85DB             TEST EBX,EBX
+
+00494E99   74 09            JE SHORT 变压器设.00494EA4
+
+00494E9B   53               PUSH EBX
+
+00494E9C   E8 DF890000      CALL 变压器设.0049D880
+
+00494EA1   83C4 04          ADD ESP,4
+
+00494EA4   8B5D D8          MOV EBX,DWORD PTR SS:[EBP-28]
+
+00494EA7   85DB             TEST EBX,EBX
+
+00494EA9   74 09            JE SHORT 变压器设.00494EB4
+
+00494EAB   53               PUSH EBX
+
+00494EAC   E8 CF890000      CALL 变压器设.0049D880
+
+00494EB1   83C4 04          ADD ESP,4
+
+00494EB4   8B5D F4          MOV EBX,DWORD PTR SS:[EBP-C]
+
+00494EB7   85DB             TEST EBX,EBX
+
+00494EB9   74 09            JE SHORT 变压器设.00494EC4
+
+00494EBB   53               PUSH EBX
+
+00494EBC   E8 BF890000      CALL 变压器设.0049D880
+
+00494EC1   83C4 04          ADD ESP,4
+
+00494EC4   8B45 D4          MOV EAX,DWORD PTR SS:[EBP-2C]     ; 注册码送EAX
+
+00494EC7   8945 F4          MOV DWORD PTR SS:[EBP-C],EAX
+
+00494ECA   8B45 FC          MOV EAX,DWORD PTR SS:[EBP-4]
+
+00494ECD   50               PUSH EAX                            ；我们输入注册码入栈（54321）
+
+00494ECE   FF75 F4          PUSH DWORD PTR SS:[EBP-C]           ；程序计算注册码入栈（我的为36112924-36597FAE-FFBDFDF）
+
+00494ED1   E8 DAC9FFFF      CALL 变压器设.004918B0              ；比较注册码CALL
+
+00494ED6   83C4 08          ADD ESP,8
+
+00494ED9   83F8 00          CMP EAX,0                         ; 比较注册码是否正确
+
+00494EDC   0F85 0A000000    JNZ 变压器设.00494EEC
+
+00494EE2   B8 01000000      MOV EAX,1                          ; 对EAX赋值1表示已注册
+
+00494EE7   E9 0A000000      JMP 变压器设.00494EF6
+
+00494EEC   B8 00000000      MOV EAX,0                          ; 对EAX赋值0表示未注册
+
+                                                               ；爆破可把这句改为 MOV EAX,1）
+
+00494EF1   E9 00000000      JMP 变压器设.00494EF6
+
+00494EF6   50               PUSH EAX
+
+00494EF7   8B5D FC          MOV EBX,DWORD PTR SS:[EBP-4]
+
+00494EFA   85DB             TEST EBX,EBX
+
+00494EFC   74 09            JE SHORT 变压器设.00494F07
+
+00494EFE   53               PUSH EBX
+
+00494EFF   E8 7C890000      CALL 变压器设.0049D880
+
+00494F04   83C4 04          ADD ESP,4
+
+00494F07   8B5D F4          MOV EBX,DWORD PTR SS:[EBP-C]
+
+00494F0A   85DB             TEST EBX,EBX
+
+00494F0C   74 09            JE SHORT 变压器设.00494F17
+
+00494F0E   53               PUSH EBX
+
+00494F0F   E8 6C890000      CALL 变压器设.0049D880
+
+00494F14   83C4 04          ADD ESP,4
+
+00494F17   58               POP EAX
+
+00494F18   8BE5             MOV ESP,EBP
+
+00494F1A   5D               POP EBP
+
+00494F1B   C3               RETN
+```
+
+### 6.算法总结：（以我的为例）
+
+- 机器码：166385371.9427
+
+- 机器码取整得：166385371转为十六进制`09EAD6DB`
+
+- `09EAD6DB`作求反运算得：`F6152924`
+
+- `F6152924` and `3FB3A975`(常数）=`36112924`（十六进制）............注册码第一部份
+
+- `09EAD6DB` xor `3FB3A975`(常数）=`36597FAE`（十六进制）............注册码第二部份
+
+- `09EAD6DB` or `75BCD15`(常数）=`FFBDFDF`（十六进制）............注册码第三部份
+
+- 上面三部份用“-”连结起来就的到了注册码：`36112924-36597FAE-FFBDFDF`
+
+### 7.VB注册机：
+
+```vb
+Private Sub Command1_Click()
+On Error Resume Next
+s = Text1.Text
+If s = "" Then Exit Sub
+m = Fix(s)
+s1 = Not (m) And &H3FB3A975
+s2 = m Xor &H3FB3A975
+s3 = m Or &H75BCD15
+Text2.Text = Hex(s1) + "-" + Hex(s2) + "-" + Hex(s3)
+End Sub
+```
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
