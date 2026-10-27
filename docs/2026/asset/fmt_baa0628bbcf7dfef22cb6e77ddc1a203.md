@@ -1,0 +1,269 @@
+
+# [原创]使用 Python 读写 Excel 文件（二）
+
+## 项目需求
+
+这一节课我们将学习到以下知识：
+
+1. 打开 Excel 文件
+2. 获取工作表
+3. 创建和删除工作表
+4. 定位单元格
+5. 'AAA' 是多少？
+6. 访问多个单元格
+7. 拷贝工作表
+
+## 开发思路
+
+### 思路一：打开 Excel 文件
+
+使用 `openpyxl.load_workbook()` 函数可以打开一个已存在的 Excel 文件。
+
+参数是文件的名称，
+
+下面让我们打开上一节课保存的豆瓣TOP250电影.xlsx文件：
+
+```
+>>> import openpyxl
+
+>>> wb = openpyxl.load_workbook(r"C:\Users\goodb\Desktop\豆瓣TOP250电影.xlsx")
+
+>>> type(wb)
+
+<class 'openpyxl.workbook.workbook.Workbook'>
+```
+
+### 思路二：获取工作表
+
+上一节我们通过 `active` 属性可以获取当前激活的工作表。
+
+如果你想获取当期工作簿中所有的工作表，可以使用 `get_sheet_names()` 方法或者直接打印 `sheetnames` 属性：
+
+```
+>>> wb.get_sheet_names()
+
+['Sheet']
+
+>>> print(wb.sheetnames)
+
+['Sheet']
+```
+
+注：这个工作簿中只存在一个工作表
+
+通过 `get_sheet_by_name()` 方法可以找到指定名称对应的工作表：
+
+```
+>>> ws = wb.get_sheet_by_name('Sheet')
+
+>>> type(ws)
+
+<class 'openpyxl.worksheet.worksheet.Worksheet'>
+```
+
+但如果传入一个不存在的工作表名称，程序会报错：
+
+```
+>>> wb.get_sheet_by_name('zy110')
+
+Traceback (most recent call last):
+
+  File "<pyshell#7>", line 1, in <module>
+    wb.get_sheet_by_name('zy110')
+  File "C:\Users\goodb\AppData\Local\Programs\Python\Python36\lib\site-packages\openpyxl\compat\__init__.py", line 60, in new_func
+    return obj(*args, **kwargs)
+  File "C:\Users\goodb\AppData\Local\Programs\Python\Python36\lib\site-packages\openpyxl\workbook\workbook.py", line 211, in get_sheet_by_name
+    return self[name]
+  File "C:\Users\goodb\AppData\Local\Programs\Python\Python36\lib\site-packages\openpyxl\workbook\workbook.py", line 237, in __getitem__
+    raise KeyError("Worksheet {0} does not exist.".format(key))
+
+KeyError: 'Worksheet zy110 does not exist.'
+```
+
+### 思路三：创建和删除工作表
+
+利用 `create_sheet()` 和 `remove_sheet()` 方法可以创建和删除工作表。
+
+`create_sheet()` 默认创建的工作表是存放在现有工作表的后面，名字是 Sheet1,2,3 这样排下去……
+
+但我们可以通过参数来修改这一默认设置，`index` 参数指定新工作表插入的位置（0 表示第一个位置），`title` 参数指定工作表的名称：
+
+```
+>>> nws = wb.create_sheet(index = 0, title = "zy110 Demo")
+
+>>> wb.get_sheet_names()
+
+['zy110 Demo', 'Sheet']
+```
+
+删除工作表使用 `remove_sheet()` 方法，该方法只有一个参数，就是制定待删除的工作表对象。
+
+这里需要注意一下，光给个名字是不够的，需要给它一个工作表对象。
+
+所以，删除名称为 “FishC Demo” 的工作表，应该这么写：
+
+```
+>>> wb.remove_sheet(wb.get_sheet_by_name("zy110 Demo"))
+```
+
+### 思路四：定位单元格
+
+获取工作表之后，可以通过像 Python 字典索引那样去定位单元格。
+
+单元格对象，拥有 `row`、`column` 和 `coordinate` 属性，代表单元格的行、列和坐标：
+
+```
+>>> c = ws['A2']
+
+>>> c.row
+
+2
+
+>>> c.column
+
+'A'
+
+>>> c.coordinate
+
+'A2'
+```
+
+通过 `value` 属性可以访问该单元格的值：
+
+```
+>>> ws['A2'].value
+
+'肖申克的救赎'
+```
+
+还可以通过 `offset(row, column)` 方法，定位距离该单元格 `row` 行 `column` 列偏移的另一个单元格：
+
+```
+>>> d = c.offset(2, 0)
+
+>>> d.coordinate
+
+'A4'
+
+>>> d.value
+
+'这个杀手不太冷'
+```
+
+### 思路五：'AAA' 是多少？
+
+这显然是一个常见的问题，由于 Excel 工作表的列是以字母为编号，即 ABCDEFG...Z，到达 Z 之后就从 AA 开始继续编号：
+
+![](https://bbs.kanxue.com/upload/attach/201801/784718_ZNBGBD5VXCHHEAH.jpg)
+
+所以列的话是以二十六进制的形式来表示数据的。
+
+这对于习惯使用十进制的人类来说，无疑要进行非常蛋疼的转换……
+
+不过好在 openpyxl 的作者早已洞悉这一切，并提供了 `get_column_letter()` 和 `column_index_from_string()` 方法来帮助大家进行转换
+
+比如我们想知道第 496 列如何表示，可以使用 `openpyxl.cell.cell.get_column_letter(496)` 方法进行转换（确实是有两个cell哈）
+
+```
+>>> openpyxl.cell.cell.get_column_letter(496)
+
+'SB'
+```
+
+如果我们知道列的编号是 “JB”，可以使用 `openpyxl.cell.cell.column_index_from_string('JB')` 方法得知其实际上位于第几列：
+
+```
+>>> openpyxl.cell.cell.column_index_from_string('JB')
+
+262
+```
+
+### 思路六：访问多个单元格
+
+`openpyxl` 允许将工作表对象进行切片操作，即表示一个范围内的多个单元格：
+
+```
+>>> for each_movie in ws['A2':'B10']:
+        for each_cell in each_movie:
+                print(each_cell.value, end=' ')
+        print('\n')
+
+肖申克的救赎 9.6 
+
+霸王别姬 9.5 
+
+这个杀手不太冷 9.4 
+
+阿甘正传 9.4 
+
+美丽人生 9.5 
+
+千与千寻 9.2 
+
+辛德勒的名单 9.4 
+
+泰坦尼克号 9.2 
+
+盗梦空间 9.3
+```
+
+从上面代码中我们可以看出，对于一个范围内的多个单元格，`openpyxl` 是遵循 “先行后列” 的原则进行迭代的。
+
+我们还可以通过工作表的 `rows` 和 `columns` 属性获取当前工作表下所有行或列的迭代。
+
+```
+>>> for each_row in ws.rows:
+        print(each_row[0].value)
+
+电影名称
+
+肖申克的救赎
+
+霸王别姬
+
+这个杀手不太冷
+
+阿甘正传
+
+美丽人生
+
+千与千寻
+
+辛德勒的名单
+
+泰坦尼克号
+
+盗梦空间
+```
+
+如果不想一次性迭代所有的行或列，可以使用 `iter_rows()` 和 `iter_columns()` 方法进行控制
+
+```
+>>> for each_row in ws.iter_rows(min_row=2, min_col=1, max_row=4, max_col=2):
+        print(each_row[0].value)
+
+肖申克的救赎
+
+霸王别姬
+
+这个杀手不太冷
+```
+
+### 思路七：拷贝工作表
+
+最后，拷贝整个工作表，可以使用工作簿对象的 `copy_worksheet()` 方法：
+
+```
+>>> new = wb.copy_worksheet(ws)
+
+>>> wb.save(r"C:\Users\goodb\Desktop\豆瓣TOP250电影.xlsx")
+```
+
+![](https://bbs.kanxue.com/upload/attach/201801/784718_NYKAQCGSBENRBR9.jpg)
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [中央纪委python1.rar](javascript:void(0);)
+  （40.35kb，14次下载）
