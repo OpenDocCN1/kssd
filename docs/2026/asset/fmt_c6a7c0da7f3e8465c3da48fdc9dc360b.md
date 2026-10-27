@@ -1,0 +1,174 @@
+
+# 海宇QQ斗地主记牌器助手 v1.0 注册算法分析
+
+【软件名称】海宇QQ斗地主记牌器助手 v1.0
+【逆向作者】forever[RCT]
+【编程语言】VB
+【保护方式】注册码
+【使用工具】ida4.6,ollydbg 1.10
+
+## 软件说明
+
+本软件为QQ斗地主游戏的辅助记牌器工具，它可以自动记录上家与下家出的牌，自动显示除自己外的还没出的牌。新游戏开始后，会自动重新记牌、算牌，无需人工干预，直到你停止记牌或关闭游戏。本软件使用方法简单，容易操作。
+
+本软件为共享软件，没有注册的用户，每次运行都会提示您注册，使用时只能记录上下家的前5张牌，注册用户则没有任何限制。我们非常希望您能喜欢我们的软件，您的支持是我们最大的动力。
+
+## 破解正文
+
+这是帮助一个朋友分析的软件。软件是用VB编写的，加了UPX壳。UPX壳用UPX1.24W就可以脱掉了。注册算法也不是很难。但需要您有耐心看完。
+
+很长时间来都想找个VB的软件分析一下，但分析这个软件用了我整整两天的时间。做逆向是需要耐心与毅力的:)
+
+由于用ollydbg很容易就可以找到关键点来分析。所以这里就只把分析过程写出来了。写的不是很详细，如果您对其中的一些地方不是很明白，可以找找MengLong的关于VB的贴子。
+
+关键地方在这里：
+
+```
+text:0046134C                 mov     edx, [ebp+var_20] ; 取得假注册码
+.text:0046134F                 mov     ebx, ds:__vbaStrMove
+.text:00461355                 xor     edi, edi
+.text:00461357                 lea     ecx, [ebp+var_28]
+.text:0046135A                 mov     [ebp+var_20], edi
+.text:0046135D                 call    ebx ; __vbaStrMove
+.text:0046135F                 mov     edx, [ebp+var_1C]
+.text:00461362                 lea     ecx, [ebp+var_24]
+.text:00461365                 mov     [ebp+var_1C], edi
+.text:00461368                 call    ebx ; __vbaStrMove
+.text:0046136A                 lea     edx, [ebp+var_28]
+.text:0046136D                 lea     eax, [ebp+var_24]
+.text:00461370                 push    edx             ; 假注册码
+.text:00461371                 push    eax             ; 用户名
+.text:00461372                 call    sub_464EF0      ; 看来这个调用得看看去了
+.text:00461377                 xor     ecx, ecx
+.text:00461379                 cmp     ax, 0FFFFh      ; 比较结果是否为真
+```
+
+后面跟进`sub_464ef0`看看：
+
+```
+.text:00464EF0 sub_464EF0      proc near               ; CODE XREF: sub_455570+573p
+.text:00464EF0                                         ; reg_460FE0+392p
+.text:00464EF0                                         ; sub_464600+3Ap
+.text:00464EF0                                         ; sub_466DF0+6E6p
+.text:00464EF0
+.text:00464EF0 var_288         = qword ptr -288h
+.text:00464EF0 var_280         = dword ptr -280h
+.text:00464EF0 var_27C         = dword ptr -27Ch
+.text:00464EF0 var_278         = dword ptr -278h
+.text:00464EF0 var_274         = dword ptr -274h
+.text:00464EF0 var_270         = dword ptr -270h
+.text:00464EF0 var_26C         = dword ptr -26Ch
+.text:00464EF0 var_268         = qword ptr -268h
+.text:00464EF0 var_260         = dword ptr -260h
+.text:00464EF0 var_25C         = dword ptr -25Ch
+.text:00464EF0 var_258         = dword ptr -258h
+.text:00464EF0 var_254         = qword ptr -254h
+.text:00464EF0 var_24C         = dword ptr -24Ch
+.text:00464EF0 var_248         = dword ptr -248h
+.text:00464EF0 var_244         = dword ptr -244h
+.text:00464EF0 var_240         = qword ptr -240h
+.text:00464EF0 var_238         = dword ptr -238h
+.text:00464EF0 var_234         = dword ptr -234h
+.text:00464EF0 var_230         = dword ptr -230h
+.text:00464EF0 var_22C         = dword ptr -22Ch
+.text:00464EF0 var_228         = dword ptr -228h
+.text:00464EF0 var_224         = dword ptr -224h
+.text:00464EF0 var_220         = qword ptr -220h
+.text:00464EF0 var_218         = dword ptr -218h
+.text:00464EF0 var_214         = dword ptr -214h
+.text:00464EF0 var_210         = dword ptr -210h
+.text:00464EF0 var_20C         = dword ptr -20Ch
+.text:00464EF0 var_208         = qword ptr -208h
+.text:00464EF0 var_200         = dword ptr -200h
+.text:00464EF0 var_1FC         = qword ptr -1FCh
+.text:00464EF0 var_1F4         = dword ptr -1F4h
+.text:00464EF0 var_1F0         = dword ptr -1F0h
+.text:00464EF0 var_1EC         = dword ptr -1ECh
+.text:00464EF0 var_1E8         = dword ptr -1E8h
+.text:00464EF0 var_1E4         = dword ptr -1E4h
+.text:00464EF0 var_1E0         = dword ptr -1E0h
+.text:00464EF0 var_1DC         = dword ptr -1DCh
+.text:00464EF0 var_1D8         = dword ptr -1D8h
+.text:00464EF0 var_1D4         = dword ptr -1D4h
+.text:00464EF0 var_1D0         = dword ptr -1D0h
+.text:00464EF0 var_1CC         = dword ptr -1CCh
+.text:00464EF0 var_1C8         = dword ptr -1C8h
+.text:00464EF0 var_1C4         = dword ptr -1C4h
+.text:00464EF0 var_1C0         = dword ptr -1C0h
+.text:00464EF0 var_1BC         = dword ptr -1BCh
+.text:00464EF0 var_1B8         = dword ptr -1B8h
+.text:00464EF0 var_1A0         = word ptr -1A0h
+.text:00464EF0 var_19C         = word ptr -19Ch
+.text:00464EF0 var_198         = word ptr -198h
+.text:00464EF0 var_194         = word ptr -194h
+.text:00464EF0 var_190         = word ptr -190h
+.text:00464EF0 var_18C         = word ptr -18Ch
+.text:00464EF0 var_188         = word ptr -188h
+.text:00464EF0 var_184         = word ptr -184h
+.text:00464EF0 var_180         = word ptr -180h
+.text:00464EF0 var_17C         = word ptr -17Ch
+.text:00464EF0 var_178         = word ptr -178h
+.text:00464EF0 var_174         = word ptr -174h
+.text:00464EF0 var_170         = word ptr -170h
+.text:00464EF0 var_16C         = word ptr -16Ch
+.text:00464EF0 var_168         = dword ptr -168h
+.text:00464EF0 var_164         = dword ptr -164h
+.text:00464EF0 var_160         = dword ptr -160h
+.text:00464EF0 var_15C         = dword ptr -15Ch
+.text:00464EF0 var_158         = dword ptr -158h
+.text:00464EF0 var_154         = dword ptr -154h
+.text:00464EF0 var_150         = dword ptr -150h
+.text:00464EF0 var_14C         = dword ptr -14Ch
+.text:00464EF0 var_148         = dword ptr -148h
+.text:00464EF0 var_144         = dword ptr -144h
+.text:00464EF0 var_13C         = dword ptr -13Ch
+.text:00464EF0 var_134         = dword ptr -134h
+.text:00464EF0 var_12C         = dword ptr -12Ch
+.text:00464EF0 var_124         = dword ptr -124h
+.text:00464EF0 var_114         = dword ptr -114h
+.text:00464EF0 var_10C         = dword ptr -10Ch
+.text:00464EF0 var_104         = dword ptr -104h
+.text:00464EF0 var_100         = word ptr -100h
+.text:00464EF0 var_FC          = word ptr -0FCh
+.text:00464EF0 var_F8          = dword ptr -0F8h
+.text:00464EF0 var_F4          = dword ptr -0F4h
+.text:00464EF0 var_F0          = word ptr -0F0h
+.text:00464EF0 time_EC         = dword ptr -0ECh
+.text:00464EF0 var_E8          = word ptr -0E8h
+.text:00464EF0 var_E4          = dword ptr -0E4h
+.text:00464EF0 var_E0          = word ptr -0E0h
+.text:00464EF0 myarray5_D8     = dword ptr -0D8h
+.text:00464EF0 var_CC          = dword ptr -0CCh
+.text:00464EF0 var_C0          = word ptr -0C0h
+.text:00464EF0 var_BC          = word ptr -0BCh
+.text:00464EF0 var_B8          = word ptr -0B8h
+.text:00464EF0 slen1_B4        = word ptr -0B4h
+.text:00464EF0 var_B0          = word ptr -0B0h
+.text:00464EF0 myarray4_A8     = dword ptr -0A8h
+.text:00464EF0 var_9C          = dword ptr -9Ch
+.text:00464EF0 myarray3_8C     = dword ptr -8Ch
+.text:00464EF0 var_80          = dword ptr -80h
+.text:00464EF0 myarray2_70     = dword ptr -70h
+.text:00464EF0 var_64          = dword ptr -64h
+.text:00464EF0 s2sum_58        = word ptr -58h
+.text:00464EF0 var_54          = word ptr -54h
+.text:00464EF0 var_50          = dword ptr -50h
+.text:00464EF0 s1sum_4C        = word ptr -4Ch
+.text:00464EF0 var_48          = word ptr -48h
+.text:00464EF0 myarray1_40     = dword ptr -40h
+.text:00464EF0 var_34          = dword ptr -34h
+.text:00464EF0 var_28          = word ptr -28h
+.text:00464EF0 slen2_24        = word ptr -24h
+.text:00464EF0 var_20          = dword ptr -20h
+.text:00464EF0 var_18          = dword ptr -18h
+.text:00464EF0 var_14          = dword ptr -14h
+.text:00464EF0 var_10          = dword ptr -10h
+.text:00464EF0 var_C           = dword ptr -0Ch
+.text:00464EF0 var_4           = dword ptr -4
+.text:00464EF0 arg_4           = dword ptr  8
+.text:00464EF0 arg_8           = dword ptr  0Ch
+.text:00464EF0
+.text:00464EF0                 push    ebp
+.text:00464EF1                 mov     ebp, esp
+.text:00464EF3                 sub     esp, 18h
+```
