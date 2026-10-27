@@ -1,0 +1,29 @@
+
+# [翻译]SHA1标准文档翻译
+
+![](https://bbs.kanxue.com/view/img/face/28.gif)
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [安全散列标准.part01.rar](javascript:void(0);)
+  （976.56kb，107次下载）
+- [安全散列标准.part02.rar](javascript:void(0);)
+  （976.56kb，215次下载）
+- [安全散列标准.part03.rar](javascript:void(0);)
+  （976.56kb，222次下载）
+- [安全散列标准.part04.rar](javascript:void(0);)
+  （976.56kb，207次下载）
+- [安全散列标准.part05.rar](javascript:void(0);)
+  （976.56kb，183次下载）
+- [安全散列标准.part06.rar](javascript:void(0);)
+  （976.56kb，200次下载）
+- [安全散列标准.part07.rar](javascript:void(0);)
+  （976.56kb，171次下载）
+- [安全散列标准.part08.rar](javascript:void(0);)
+  （976.56kb，185次下载）
+- [安全散列标准.part10.rar](javascript:void(0);)
+  （266.21kb，147次下载）
+- [安全散列标准.part09.rar](javascript:void(0);)
+  （976.56kb，82次下载）
