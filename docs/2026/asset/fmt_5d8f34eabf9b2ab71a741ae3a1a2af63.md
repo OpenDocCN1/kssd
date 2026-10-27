@@ -1,0 +1,193 @@
+
+```
+kd> !kdex2x86.strct peb  //如果 kdex2x86 已经加载，可以直接输入 !strct peb
+
+struct   _PEB (sizeof=488)
+
++000 byte     InheritedAddressSpace
+
++001 byte     ReadImageFileExecOptions
+
++002 byte     BeingDebugged                   //Debug运行标志
+
++003 byte     SpareBool
+
++004 void     *Mutant
+
++008 void     *ImageBaseAddress               //这里就是程序加载的基地址了
+
++00c struct   _PEB_LDR_DATA *Ldr
+
++010 struct   _RTL_USER_PROCESS_PARAMETERS *ProcessParameters
+
++014 void     *SubSystemData
+
++018 void     *ProcessHeap
+
++01c void     *FastPebLock
+
++020 void     *FastPebLockRoutine
+
++024 void     *FastPebUnlockRoutine
+
++028 uint32   EnvironmentUpdateCount
+
++02c void     *KernelCallbackTable
+
++030 uint32   SystemReserved[2]
+
++038 struct   _PEB_FREE_BLOCK *FreeList
+
++03c uint32   TlsExpansionCounter
+
++040 void     *TlsBitmap
+
++044 uint32   TlsBitmapBits[2]
+
++04c void     *ReadOnlySharedMemoryBase
+
++050 void     *ReadOnlySharedMemoryHeap
+
++054 void     **ReadOnlyStaticServerData
+
++058 void     *AnsiCodePageData
+
++05c void     *OemCodePageData
+
++060 void     *UnicodeCaseTableData
+
++064 uint32   NumberOfProcessors
+
++068 uint32   NtGlobalFlag
+
++070 union    _LARGE_INTEGER CriticalSectionTimeout
+
++070    uint32   LowPart
+
++074    int32    HighPart
+
++070    struct   __unnamed3 u
+
++070       uint32   LowPart
+
++074       int32    HighPart
+
++070    int64    QuadPart
+
++078 uint32   HeapSegmentReserve
+
++07c uint32   HeapSegmentCommit
+
++080 uint32   HeapDeCommitTotalFreeThreshold
+
++084 uint32   HeapDeCommitFreeBlockThreshold
+
++088 uint32   NumberOfHeaps
+
++08c uint32   MaximumNumberOfHeaps
+
++090 void     **ProcessHeaps
+
++094 void     *GdiSharedHandleTable
+
++098 void     *ProcessStarterHelper
+
++09c uint32   GdiDCAttributeList
+
++0a0 void     *LoaderLock
+
++0a4 uint32   OSMajorVersion
+
++0a8 uint32   OSMinorVersion
+
++0ac uint16   OSBuildNumber
+
++0ae uint16   OSCSDVersion
+
++0b0 uint32   OSPlatformId
+
++0b4 uint32   ImageSubsystem
+
++0b8 uint32   ImageSubsystemMajorVersion
+
++0bc uint32   ImageSubsystemMinorVersion
+
++0c0 uint32   ImageProcessAffinityMask
+
++0c4 uint32   GdiHandleBuffer[34]
+
++14c function *PostProcessInitRoutine
+
++150 void     *TlsExpansionBitmap
+
++154 uint32   TlsExpansionBitmapBits[32]
+
++1d4 uint32   SessionId
+
++1d8 void     *AppCompatInfo
+
++1dc struct   _UNICODE_STRING CSDVersion
+
++1dc    uint16   Length
+
++1de    uint16   MaximumLength
+
++1e0    uint16   *Buffer
+```
+
+注意这些是WinDBG的扩展命令，由外部模块 `kdex2x86.dll` 提供，可以到老盖的网站去下载，先觉条件是这个模块必须被装载。
+
+至于那个Ring0的 `KPCR` 结构如果我的兴趣还在，而且那个瓶子还没有满，再详细讨论，`KPCR` 的结构巨大无比也复杂无比。前些日子 `qduwg` 老师发了题为 “For菜鸟文章：PE文件格式, qduwg翻译”，我没有留心说漏嘴，大概意思是 PE 结构拿过来使用不就完了，用得着去学吗。其实此话来源就是因为底层的这些结构，和底层的这些结构相比，PE结构那真是小巫见大巫了，PE 文件头其实就是一个非常简单的结构，如果你一个 PE 文件头都要花那么大的力气去学，而且到处都可以找到详细的资料，那么底层的这些结构怎么办??? 其一是这些结构远比 PE 结构更加庞大，更加复杂；其二是根本就没有任何资料和解释，全部要靠你自己去努力去理解，去破解。而且这些巨大的结构有无数多，怎么办，以我看，如果真是那样，不如回家种红薯。没有想到这段无心的话引起了两国战争，伊万大叔立刻就对我发动了战争，伊万大叔在俄国，我在加拿大，你想，加拿大全国警察加军队也不过才几万人，怎么能打的过伊万大叔，于是我只好狼狈逃跑。哈哈，由于我的当机立断，结果世界大战没有爆发，为了消除坏影响，伊万大叔买通看雪老大，将这场争论给完全删了，毁灭罪证，实在可惜，哈哈。伊万大叔在随后的跟贴中可不要对我口诛笔伐。
+
+这些是玩笑话，当不得真，如果不写一些这样的垃圾，我的创作热情恐怕立刻就消失了，所以请看官们忍忍。
+
+这里插一句题外话，大家在使用OD脱壳时，往往为了隐藏OD，会加载IsDebug V1.4.dll来隐藏OD，其实完全不需要加载这个东西，在OD中的数据窗口，按 `Ctrl-G`，在打开的小窗中输入 `7FFDF000`，见上面的PEB表然后在偏移量 `02`， `PEB.BeingDebugged` 标志的地方或者干脆输入 `7FFDF002`, 将鼠标放在这个地址上，`Ctrl-E`，将 `1` 改为零就 IsDebug 了，如果已经是 `0` 就是你已经使用什么 dll 将 Debug 隐藏了。
+
+对这两张表有了一定的认识后，我们再来看上面的那段代码的头部：
+
+```
+77E80B1A           push  ebp
+77E80B1B           mov   ebp, esp
+77E80B1D           cmp   [ebp+lpModuleName], 0
+77E80B21           jnz   short loc_77E80B31      ; lpModuleName 是有效的则转移
+77E80B23           mov   eax, large fs:18h       ; TEB.NT_TIB.Self
+77E80B29           mov   eax, [eax+30h]          ; TEB.Peb
+77E80B2C           mov   eax, [eax+8]            ; PEB.ImageBaseAddress
+77E80B2F           jmp   short loc_77E80B45
+```
+
+其中：
+
+```
+77E80B23           mov   eax, large fs:18h       ; TEB.NT_TIB.Self
+```
+
+就是将那个 `7FFDE000` 的地址送到 `eax` 中去，现在我们知道那是 `TEB` 表。
+
+```
+77E80B29           mov   eax, [eax+30h]          ; TEB.Peb
+```
+
+根据上面的 `TEB` 表，我们知道 `7FFDE000` 偏移 `30h` 的地方是一个指针，指向 `PEB` 表。
+
+```
+77E80B2C           mov   eax, [eax+8]            ; PEB.ImageBaseAddress
+```
+
+根据上面的 `PEB` 表，我们得到最后结果，原来这几句代码的目的是获得程序启动后被装载的基地址。就这么简单。
+
+```
+77E80B1D           cmp   [ebp+lpModuleName], 0
+```
+
+这句是检测用户给出的 `lpModuleName` 是否为零，如果为零，用户发出的请求是获取自己当前进程的 `hModule`，这就是为什么要获取程序启动后被装载的基地址的原因了。再往下面的东西不用我解释了把，你可以亲眼看到他将那个Ansi字符串转换成Unicode后就调用 `GetModuleHandleW` 最后跑到一起去了。
+
+至于 `GetModuleHandleW` 干了一些什么事，且听下回分解，哈哈这样我可以多骗几个“加精”，`qduwg` 老师用三个 API 换一个“加精”，我准备用一个 API 调用换 3 到 5 个“加精”，哈哈，那当然还要看雪老大肯给我才行。
+
+后话：过些日子我就要回中国了，回到我可爱的祖国，如果很忙，可能就不能连续的写了，这点请大家谅解，如果成了海带，那就继续制造垃圾。多给我一点鼓励，使我能多写几篇，否则热情一旦消失或瓶子不幸装满了，就没有这些垃圾文章了，哈哈。
+
+另外伊万大叔花重金从专门出产那种体型苗条、曲线流畅的、并会飞的蟑螂的国家－－德国，现在中国许多城市的蟑螂多为这个德国种，本土的蟑螂太笨，不会飞，所以蔓延比较慢，危害也比较小，有灭亡的危险买了一条游艇，还说会开到珠江口，在船上请我喝那个“可爱的水”－－vodka，根据伊万大叔提供的资料，vodka 没有任何的味道，最大的好处就是你喝过以后，不影响你和你那一半做某些亲热的动作，不过可没有规定必须是那一半，也许是小密，因为嘴中没有异味。不过我还是认为我们中国的酒好，你看那茅台、五粮液，酒瓶一开满屋香，多来劲，另外中国酒还喝的放心，谁放心？当然是老婆啦，你想，满嘴的酒气，那种可能对小密产生的专用动作不就失效了，想不到中国酒还有这种妙用吧！！不过到时候说不定又要爆发新的战争，为酒而战，不过这次是中俄之战了，哈哈，请看官们不用担心，我依然会毫不犹豫的跳海逃走，幸亏我的游泳技术不错，尤其擅长长距离游泳。
+
+注：修改了一些错笔字，另外为了赢得更高的点击率，将标题也换了，最好那位仁兄大才，给弄一个不吓死人不罢休的标题，那我就感激不尽了。伊万大叔就给了一个主意，说标题上一定要有个“密”字，我觉得有道理，这不，马上就成了绝密了。
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
