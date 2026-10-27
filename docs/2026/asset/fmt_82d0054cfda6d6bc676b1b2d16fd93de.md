@@ -1,0 +1,81 @@
+
+# 修改PE的DllCharacteristics禁用ASLR
+
+最近在磕CEF,为了方便调试，就想禁用`libcef.dll`的ASLR。使用`CFF Explorer.exe`和`WinHex`都提示文件内存过大,导致不能保存修改后的内容。
+
+![图片描述](upload/attach/202312/940598_53E9KJXBJWY6SHJ.webp)
+
+网上也简单搜索了一下,发现需要下载一个工具(要熟悉界面操作)。这种操作就是太麻烦了，毕竟很清楚要做的事情就是修改一个二进制而已。也就是修改一个字节的事情。
+
+![图片描述](upload/attach/202312/940598_RJCMDWVZ2TXXSBY.webp)
+
+比如这里提到的[使用010editor修改PE文件随机基址](https://bbs.kanxue.com/thread-253590.htm)，不过我没有测试。后面看到有个`PEFile`的`python`模块,我觉得比较轻量级，也方便后续更多自定义需求的拓展，于是使用
+
+```
+pip install pefile
+```
+
+接着码上:
+
+```python
+import pefile
+def modify_dll_characteristics(file_path, new_characteristics):
+# 打开 PE 文件
+pe = pefile.PE(file_path, fast_load=True)
+# 获取当前的 DLLCharacteristics
+current_characteristics = pe.OPTIONAL_HEADER.DllCharacteristics
+# 修改 DLLCharacteristics
+print("pe.OPTIONAL_HEADER.DllCharacteristics:0x{:0>8X}".format(pe.OPTIONAL_HEADER.DllCharacteristics))
+pe.OPTIONAL_HEADER.DllCharacteristics = new_characteristics
+print("pe.OPTIONAL_HEADER.DllCharacteristics:0x{:0>8X}".format(pe.OPTIONAL_HEADER.DllCharacteristics))
+# 保存修改后的 PE 文件
+pe.write(filename=file_path)
+# 指定 PE 文件路径和要设置的 DLLCharacteristics
+file_path = "D:/libcef.dll"
+new_characteristics = 0x4100 # 替换为你想要设置的新值
+# 执行修改
+modify_dll_characteristics(file_path, new_characteristics)
+```
+
+执行结果:
+
+![图片描述](upload/attach/202312/940598_C6TQUU9QTR83KDK.webp)
+
+至此，目标达成!
+
+## 注意
+
+中间发生了一个小插曲，截止今日的`pefile`版本，在执行的`pe.write`时出现了错误:
+
+```
+F:\Python310>python C:\Users\thinc\Desktop\DisableASLR.py
+Traceback (most recent call last):
+File "C:\Users\thinc\Desktop\DisableASLR.py", line 25, in <module>
+modify_dll_characteristics(file_path, new_characteristics)
+File "C:\Users\thinc\Desktop\DisableASLR.py", line 14, in modify_dll_characteristics
+pe.write(filename=file_path)
+File "F:\Python310\lib\site-packages\pefile.py", line 3505, in write
+f = open(filename, "wb+")
+OSError: [Errno 22] Invalid argument: 'D:/libcef.dll'
+```
+
+于是找到`pefile.py`源码，将提示3505行的`f_open(filename, "wb+")`中的`wb+`改成`rb+`即可。接下来有空，我会试着提交这个可能存在的补丁。
+
+![图片描述](upload/attach/202312/940598_Z4847R895WHPWB5.webp)
+
+## 总结
+
+1. 不要轻易迷信所有现成的工具,杀鸡无需牛刀。
+2. 不要迷信"权威"的模块，毕竟自从第一行代码的产生开始，BUG也随之而来。
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+[#基础知识](https://bbs.kanxue.com/forum-41-1-130.htm)
+
+[#开源分享](https://bbs.kanxue.com/forum-41-1-134.htm)
+
+[#开发技巧](https://bbs.kanxue.com/forum-41-1-135.htm)
+
+[#工具脚本](https://bbs.kanxue.com/forum-41-1-137.htm)
+
+[#其他](https://bbs.kanxue.com/forum-41-1-138.htm)
