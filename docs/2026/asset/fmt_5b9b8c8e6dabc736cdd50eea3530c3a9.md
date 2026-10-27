@@ -1,0 +1,237 @@
+
+```c
+BOOLEAN PspInitPhase0(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
+{
+    UNICODE_STRING NameString;
+    OBJECT_ATTRIBUTES ObjectAttributes;
+    OBJECT_TYPE_INITIALIZER ObjectTypeInitializer;
+    HANDLE ThreadHandle;
+    PETHREAD Thread;
+    MM_SYSTEMSIZE SystemSize;
+
+    SystemSize = MmQuerySystemSize();
+    PspDefaultPagefileLimit = (ULONG)-1;
+
+    // 初始化进程相关的锁
+    ExInitializeFastMutex(&PspProcessLockMutex);
+    ExInitializeFastMutex(&PsProcessSecurityLock);
+
+    // 当前进程即是Idle进程
+    PsIdleProcess = PsGetCurrentProcess();
+    PsIdleProcess->Pcb.KernelTime = 0;
+    PsIdleProcess->Pcb.KernelTime = 0;
+
+    // 初始化OBJECT_TYPE_INITIALIZER结构
+    RtlZeroMemory(&ObjectTypeInitializer, sizeof(ObjectTypeInitializer));
+    ObjectTypeInitializer.Length = sizeof(ObjectTypeInitializer);
+    ObjectTypeInitializer.InvalidAttributes = OBJ_OPENLINK;
+    ObjectTypeInitializer.SecurityRequired = TRUE;
+    ObjectTypeInitializer.PoolType = NonPagedPool;
+    ObjectTypeInitializer.InvalidAttributes =
+        OBJ_PERMANENT | OBJ_EXCLUSIVE | OBJ_OPENIF;
+
+    // 创建进程对象
+    RtlInitUnicodeString(&NameString, L"Process");
+    ObjectTypeInitializer.DefaultPagedPoolCharge = PSP_PROCESS_PAGED_CHARGE;
+    ObjectTypeInitializer.DefaultNonPagedPoolCharge =
+        PSP_PROCESS_NONPAGED_CHARGE;
+    ObjectTypeInitializer.DeleteProcedure = PspProcessDelete; // 删除进程对象回调函数
+    ObjectTypeInitializer.ValidAccessMask = PROCESS_ALL_ACCESS;
+    ObjectTypeInitializer.GenericMapping = PspProcessMapping;
+
+    if (!NT_SUCCESS(ObCreateObjectType(
+            &NameString,
+            &ObjectTypeInitializer,
+            (PSECURITY_DESCRIPTOR)NULL,
+            &PsProcessType))) {
+        return FALSE;
+    }
+
+    // 创建线程对象
+    RtlInitUnicodeString(&NameString, L"Thread");
+    ObjectTypeInitializer.DefaultPagedPoolCharge = PSP_THREAD_PAGED_CHARGE;
+    ObjectTypeInitializer.DefaultNonPagedPoolCharge =
+        PSP_THREAD_NONPAGED_CHARGE;
+    ObjectTypeInitializer.DeleteProcedure = PspThreadDelete; // 删除线程对象回调函数
+    ObjectTypeInitializer.ValidAccessMask = THREAD_ALL_ACCESS;
+    ObjectTypeInitializer.GenericMapping = PspThreadMapping;
+
+    if (!NT_SUCCESS(ObCreateObjectType(
+            &NameString,
+            &ObjectTypeInitializer,
+            (PSECURITY_DESCRIPTOR)NULL,
+            &PsThreadType))) {
+        return FALSE;
+    }
+
+    // 创建Job对象
+    RtlInitUnicodeString(&NameString, L"Job");
+    ObjectTypeInitializer.DefaultPagedPoolCharge = 0;
+    ObjectTypeInitializer.DefaultNonPagedPoolCharge = sizeof(EJOB);
+    ObjectTypeInitializer.DeleteProcedure = PspJobDelete; // 删除Job对象回调函数
+    ObjectTypeInitializer.CloseProcedure = PspJobClose; // 关闭Job对象回调函数
+    ObjectTypeInitializer.ValidAccessMask = JOB_OBJECT_ALL_ACCESS;
+    ObjectTypeInitializer.GenericMapping = PspJobMapping;
+    ObjectTypeInitializer.InvalidAttributes = 0;
+
+    if (!NT_SUCCESS(ObCreateObjectType(
+            &NameString,
+            &ObjectTypeInitializer,
+            (PSECURITY_DESCRIPTOR)NULL,
+            &PsJobType))) {
+        return FALSE;
+    }
+
+    // 初始化进程链表，及保护该链表的互斥对象
+    InitializeListHead(&PsActiveProcessHead);
+    ExInitializeFastMutex(&PspActiveProcessMutex);
+
+    // 初始化Job链表，及保护该链表的互斥对象
+    InitializeListHead(&PspJobList);
+    ExInitializeFastMutex(&PspJobListLock);
+
+    // 初始化工作集链表，及保护该链表的互斥对象
+    InitializeListHead(&PspWorkingSetChangeHead.Links);
+    ExInitializeFastMutex(&PspWorkingSetChangeHead.Lock);
+
+    // 创建CID句柄表
+    PspCidTable = ExCreateHandleTable(NULL);
+    if (!PspCidTable) {
+        return FALSE;
+    }
+
+    // ?? 从链表中移除CID表，避免被ExSnapShotHandleTables或调试器扩展命令!
+    // handle枚举到
+    ExRemoveHandleTable(PspCidTable);
+
+#if defined(i386)
+    // ?? LDT初始化
+    if (!NT_SUCCESS(PspLdtInitialize())) {
+        return FALSE;
+    }
+
+    // ?? VDM初始化
+    if (!NT_SUCCESS(PspVdmInitialize())) {
+        return FALSE;
+    }
+#endif
+
+    // 初始化Reaper链表及数据结构
+    InitializeListHead(&PsReaperListHead);
+    ExInitializeWorkItem(&PsReaperWorkItem, PspReaper, NULL);
+
+    // 保存系统启动进程令牌到全局变量PspBootAccessToken
+    PspBootAccessToken = PsGetCurrentProcess()->Token;
+
+    // 初始化对象安全属性结构
+    InitializeObjectAttributes(
+        &ObjectAttributes,
+        NULL,
+        0,
+        NULL,
+        NULL);
+
+    // 创建系统进程
+    if (!NT_SUCCESS(PspCreateProcess(
+            &PspInitialSystemProcessHandle,
+            PROCESS_ALL_ACCESS,
+            &ObjectAttributes,
+            0L,
+            FALSE,
+            0L,
+            0L,
+            0L))) {
+        return FALSE;
+    }
+
+    // 增加引用计数，并获取EPROCESS结构，保存到全局变量PsInitialSystemProcess
+    if (!NT_SUCCESS(ObReferenceObjectByHandle(
+            PspInitialSystemProcessHandle,
+            0L,
+            PsProcessType,
+            KernelMode,
+            (PVOID *)&PsInitialSystemProcess,
+            NULL))) {
+        return FALSE;
+    }
+
+    // 设置当前进程映像名称为"Idle"
+    strcpy(&PsGetCurrentProcess()->ImageFileName[0], "Idle");
+
+    // 设置新创建的进程映像名称为"System"
+    strcpy(&PsInitialSystemProcess->ImageFileName[0], "System");
+
+    // 创建系统线程用于实现phase1的初始化过程，线程函数为Phase1Initialization
+    if (!NT_SUCCESS(PsCreateSystemThread(
+            &ThreadHandle,
+            THREAD_ALL_ACCESS,
+            &ObjectAttributes,
+            0L,
+            NULL,
+            Phase1Initialization,
+            (PVOID)LoaderBlock))) {
+        return FALSE;
+    }
+
+    // 增加引用计数
+    if (!NT_SUCCESS(ObReferenceObjectByHandle(
+            ThreadHandle,
+            0L,
+            PsThreadType,
+            KernelMode,
+            (PVOID *)&Thread,
+            NULL))) {
+        return FALSE;
+    }
+
+    // 关闭线程句柄
+    ZwClose(ThreadHandle);
+
+    return TRUE;
+}
+```
+
+在这个过程中，对于几个重要的全局变量进行初始化，例如`PspCidTable`、`PsActiveProcessHead`等。
+
+另外，在`_OBJECT_TYPE_INITIALIZER`有几个成员是用于注册对象操作回调函数的，例如在`PsInitPhase0`中注册删除进程对象回调函数`PspProcessDelete`。因而对于内核对象来说，完全可以从`_OBJECT_TYPE_INITIALIZER`结构入手HOOK对应的回调函数，实现对内核对象的完全监控。
+
+## 2.5 `[phase1]` Ntoskrnl初始化Phase1Initialiation
+
+（这里以wrk v1.2作为参考）
+
+在上一小节中已经提到，在进程管理器进行phase0阶段初始化时会创建新线程`phase1Initialation`，来实现phase1阶段的初始化。`phase1Initialation`函数实现如下：
+
+```c
+VOID Phase1Initialization(IN PVOID Context)
+{
+    Phase1InitializationDiscard(Context);
+
+    MmZeroPageThread();
+
+    return;
+}
+```
+
+`Phase1Initialization`分为两个步骤：
+
+1. 调用`Phase1InitializationDiscard`真正实现phase1阶段的初始化工作。
+2. 当完成phase1阶段的初始化后系统已经启动，线程`Phase1Initialization`已经完成最重要任务，接下去就以零页面线程的角色继续为系统提供服务。
+
+注：零页面线程，线程优先级为0，循环地从空闲页面链表中获取页面并清0，然后添加到零页面链表中。系统在运行过程会频繁地申请、释放内存，然后释放后的页面一般都不为0。零页面线程就好比是垃圾回收站的加工人员，把回收的垃圾粉刷一遍就变成新的了。这里主要目标是分析`Phase1InitializationDiscard`的具体实现过程，对于零页面线程不作过多探讨。
+
+这里的分析过程参考了《深入解析Windows操作系统》，关于phase1阶段的初始化流程虽然wrk与书中的描述非常接近，但并不完全一样。另外，我对于这些步骤进行了一定的简化。Phase1阶段的初始化具体如下：
+
+### （1）phase 0% -- 10%
+
+1. 调用`HalInitSystem`，让系统做好准备接受来自设置的中断，并允许中断。
+2. 调用`InbvEnableBootDriver`引导视频驱动，调用`InbvDriverInitialize`初始化视频驱动，并显示启动界面。
+3. 调用`PoInitSystem`初始化电源管理器(phase0)。
+4. 调用`KeSetSystemTime`初始化系统时间，设置系统启动时间并保存为全局变量`KeBootTime`。
+5. 在多处理器系统上，调用`KeStartAllProcessors`初始化其他处理器。
+6. 调用`ObInitSystem`初始化对象管理器(phase1)。
+7. 调用`ExInitSystem`初始化执行体(phase1)。
+8. 调用`KeInitSystem`初始化内核(phase1)。
+9. 调用`KdInitSystem`初始化内核调试器(phase1)。
+10. 调用`SeInitSystem`初始化安全引用监视器(phase1)。
+
+### （2）phase 10% -- 15%
