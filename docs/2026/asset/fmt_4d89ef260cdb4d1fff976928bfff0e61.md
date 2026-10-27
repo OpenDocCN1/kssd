@@ -1,0 +1,428 @@
+
+```cpp
+// dwRVA - the RVA to calculate
+
+// returns -1 if an error occurred else the calculated Offset will be returned
+
+//由文件偏移到节号
+
+DWORD CPELibrary::ImageOffset2SectionNum(DWORD dwRO)
+
+{
+
+    for(int i=0;i<image_nt_headers->FileHeader.NumberOfSections;i++)
+
+    {
+
+        if((dwRO>=image_section_header[i]->PointerToRawData) && (dwRO<(image_section_header[i]->PointerToRawData+image_section_header[i]->SizeOfRawData)))
+
+        {
+
+            return (i);
+
+        }
+
+    }
+
+    return(-1);
+
+}
+
+//增加新节----------------------------------------------------------------
+
+PIMAGE_SECTION_HEADER CPELibrary::AddNewSection(char* szName,DWORD dwSize)
+
+{
+
+    DWORD roffset,rsize,voffset,vsize;
+
+    //最后一节
+
+    int i=image_nt_headers->FileHeader.NumberOfSections;
+
+    rsize=PEAlign(dwSize,
+
+                image_nt_headers->OptionalHeader.FileAlignment);
+
+    vsize=PEAlign(rsize,
+
+                image_nt_headers->OptionalHeader.SectionAlignment);
+
+    roffset=PEAlign(image_section_header[i-1]->PointerToRawData+image_section_header[i-1]->SizeOfRawData,
+
+                image_nt_headers->OptionalHeader.FileAlignment);
+
+    voffset=PEAlign(image_section_header[i-1]->VirtualAddress+image_section_header[i-1]->Misc.VirtualSize,
+
+                image_nt_headers->OptionalHeader.SectionAlignment);
+
+    //初始化新节表
+
+    memset(image_section_header[i],0,(size_t)sizeof(IMAGE_SECTION_HEADER));
+
+    //通过计算上一节得到
+
+    image_section_header[i]->PointerToRawData=roffset;
+
+    image_section_header[i]->VirtualAddress=voffset;
+
+    //通过传递的参数得到
+
+    image_section_header[i]->SizeOfRawData=rsize;
+
+    image_section_header[i]->Misc.VirtualSize=vsize;
+
+    //属性
+
+    image_section_header[i]->Characteristics=0xC0000040;
+
+    //新节名称
+
+    memcpy(image_section_header[i]->Name,szName,(size_t)strlen(szName));
+
+    //申请一个节的空间
+
+    image_section[i]=(char*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT,rsize);
+
+    //更新文件头
+
+    image_nt_headers->FileHeader.NumberOfSections++;
+
+    //返回新节
+
+    return (PIMAGE_SECTION_HEADER)image_section_header[i];
+
+}
+
+//================================================================
+
+//----------------------------------------------------------------
+
+void CPELibrary::OpenFile(char* FileName)
+
+{
+
+    DWORD    dwBytesRead        = 0;
+
+    HANDLE    hFile= NULL;
+
+    DWORD SectionNum;
+
+    DWORD i;
+
+    DWORD dwRO_first_section;
+
+    //基类成员
+
+    pMem=NULL;
+
+    //----------------------------------------
+
+    hFile=CreateFile(FileName,
+
+                     GENERIC_READ,
+
+                     FILE_SHARE_WRITE | FILE_SHARE_READ,
+
+                     NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+
+    if(hFile==INVALID_HANDLE_VALUE)
+
+    {
+
+        ShowErr(FileErr);
+
+        return;
+
+    }
+
+    dwFileSize=GetFileSize(hFile,0);
+
+    if(dwFileSize == 0)
+
+    {
+
+        CloseHandle(hFile);
+
+        ShowErr(FsizeErr);
+
+        return;
+
+    }
+
+    //不用内存映射文件,奇怪？
+
+    pMem=(char*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT,dwFileSize);
+
+    if(pMem == NULL)
+
+    {
+
+        CloseHandle(hFile);
+
+        ShowErr(MemErr);
+
+        return;
+
+    }
+
+    //读入文件
+
+    ReadFile(hFile,pMem,dwFileSize,&dwBytesRead,NULL);
+
+    //关闭句柄
+
+    CloseHandle(hFile);
+
+    //----------------------------------------
+
+    //读出DOS文件头
+
+    memcpy(image_dos_header,pMem,sizeof(IMAGE_DOS_HEADER));
+
+    //MS-DOS Stub Program(位于e_lfanew和Signature之间)
+
+    dwDosStubSize=image_dos_header->e_lfanew-sizeof(IMAGE_DOS_HEADER);
+
+    dwDosStubOffset=sizeof(IMAGE_DOS_HEADER);
+
+    pDosStub=new CHAR[dwDosStubSize];
+
+    if((dwDosStubSize&0x80000000)==0x00000000)
+
+    {
+
+        CopyMemory(pDosStub,pMem+dwDosStubOffset,dwDosStubSize);
+
+    }
+
+    //读出NT文件头
+
+    memcpy(image_nt_headers,
+
+               pMem+image_dos_header->e_lfanew,
+
+               sizeof(IMAGE_NT_HEADERS));
+
+    //DOS头大小+NT头大小
+
+    dwRO_first_section=image_dos_header->e_lfanew+sizeof(IMAGE_NT_HEADERS);
+
+    if(image_dos_header->e_magic!=IMAGE_DOS_SIGNATURE)// MZ
+
+    {
+
+        ShowErr(PEErr);
+
+        GlobalFree(pMem);
+
+        return;
+
+    }
+
+    if(image_nt_headers->Signature!=IMAGE_NT_SIGNATURE)// PE00
+
+    {
+
+        ShowErr(PEErr);
+
+        GlobalFree(pMem);
+
+        return;
+
+    }
+
+    //----------------------------------------
+
+    //节的数量
+
+    SectionNum=image_nt_headers->FileHeader.NumberOfSections;
+
+    //----------------------------------------
+
+    for( i=0;i<SectionNum;i++)
+
+    {
+
+        //读取节表，储存节表的空间已经初始化了。
+
+        CopyMemory(image_section_header[i],pMem+dwRO_first_section+i*sizeof(IMAGE_SECTION_HEADER),
+
+            sizeof(IMAGE_SECTION_HEADER));
+
+    }
+
+    //----------------------------------------
+
+    for(i=0;i<SectionNum;i++)
+
+    {
+
+            //为每个节数据分配空间，大小为每个节在文件中的大小
+
+            image_section[i]=(char*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT,
+
+                PEAlign(image_section_header[i]->SizeOfRawData,
+
+                image_nt_headers->OptionalHeader.FileAlignment));
+
+            //循环读出每个节，按照文件对齐
+
+            CopyMemory(image_section[i],
+
+                    pMem+image_section_header[i]->PointerToRawData,
+
+                    image_section_header[i]->SizeOfRawData);
+
+    }
+
+    //是否存在TLS节----------------------------------------
+
+    if(image_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress!=0)
+
+    {
+
+        //分配空间
+
+        image_tls_directory = new (IMAGE_TLS_DIRECTORY32);
+
+        //文件偏移
+
+        DWORD dwOffset=RVA2Offset(image_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
+
+        //复制
+
+        memcpy(image_tls_directory,
+
+                pMem+dwOffset,
+
+                sizeof(IMAGE_TLS_DIRECTORY32));
+
+    }
+
+    //----------------------------------------
+
+    GlobalFree(pMem);
+
+}
+
+//----------------------------------------------------------------
+
+void CPELibrary::SaveFile(char* FileName)
+
+{
+
+    DWORD    dwBytesWritten    = 0;
+
+    DWORD i;
+
+    DWORD dwRO_first_section;
+
+    DWORD SectionNum;
+
+    HANDLE    hFile= NULL;
+
+    pMem=NULL;
+
+    //----------------------------------------
+
+    hFile=CreateFile(FileName,
+
+                     GENERIC_WRITE,
+
+                     FILE_SHARE_WRITE | FILE_SHARE_READ,
+
+                     NULL,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,NULL);
+
+    if(hFile==INVALID_HANDLE_VALUE)
+
+    {
+
+        hFile=CreateFile(FileName,
+
+                     GENERIC_WRITE,
+
+                     FILE_SHARE_WRITE | FILE_SHARE_READ,
+
+                     NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+
+        if(hFile==INVALID_HANDLE_VALUE)
+
+        {
+
+            ShowErr(FileErr);
+
+            return;
+
+        }
+
+    }
+
+    //对齐----------------------------------------
+
+    AlignmentSections();
+
+    //----------------------------------------
+
+    i=image_nt_headers->FileHeader.NumberOfSections;
+
+    //得到新文件的大小
+
+    dwFileSize=image_section_header[i-1]->PointerToRawData+
+
+        image_section_header[i-1]->SizeOfRawData;
+
+    //申请内存
+
+    pMem=(char*)GlobalAlloc(GMEM_FIXED | GMEM_ZEROINIT,dwFileSize);
+
+    if(pMem == NULL)
+
+    {
+
+        CloseHandle(hFile);
+
+        ShowErr(MemErr);
+
+        return;
+
+    }
+
+    //复制DOS头----------------------------------------
+
+    memcpy(pMem,image_dos_header,sizeof(IMAGE_DOS_HEADER));
+
+    //MS-DOS Stub Program
+
+    if((dwDosStubSize&0x80000000)==0x00000000)
+
+    {
+
+        memcpy(pMem+dwDosStubOffset,pDosStub,dwDosStubSize);
+
+    }
+
+    //复制NT头
+
+    memcpy(pMem+image_dos_header->e_lfanew,
+
+        image_nt_headers,
+
+        sizeof(IMAGE_NT_HEADERS));
+
+    //节表的偏移
+
+    dwRO_first_section=image_dos_header->e_lfanew+sizeof(IMAGE_NT_HEADERS);
+
+    //节的数量
+
+    SectionNum=image_nt_headers->FileHeader.NumberOfSections;
+
+    //复制节表----------------------------------------
+
+    for( i=0;i<SectionNum;i++)
+
+    {
+
+        CopyMemory(pMem+dwRO_first_section+i*sizeof(IMAGE_SECTION_HEADER),
+```
