@@ -1,0 +1,233 @@
+
+# [原创]IDA Python 去混淆
+
+# 基础理论
+
+## 程序的结构
+
+我们可以认为一个程序的代码结构如下图所示：
+
+![](upload/attach/202308/959167_DZ2B5TWGSUUPZGS.png)
+
+一个程序由多个`函数`（`function`）组成，而每个函数由多个`分支`（`branch`）组成，对于函数和分支我们做如下定义：
+
+- 函数：从 `CALL` 指令跳转到的代码`开始`，在不通过 `CALL` 指令跳转的前提下能访问到的所有代码。
+- 分支：通过 `JCC` 跳转到的代码开始，直到以 `RET` 结尾或者`跳转到已分析过的分支`的代码块。
+
+因此去混淆的时候我们可以有如下代码框架，即先 bfs 函数，然后在每个函数内部再 bfs 所有分支。在 bfs 的过程中将已去混淆的代码拼接起来。这样做的好处是同一个函数的代码尽可能放在一起，ida 在反编译的时候容易识别。
+
+```python
+func_queue = Queue()
+func_queue.put(entry_point)
+while not func_queue.empty():
+    func_address = func_queue.get()
+    branch_queue = Queue()
+    branch_queue.put(func_address)
+    while not branch_queue.empty():
+        branch_address = branch_queue.get()
+        ... # 去混淆代码
+        if idc.print_insn_mnem(ea) == 'call': # CALL function
+            func_queue.put(call_target)
+        elif idc.print_insn_mnem(ea)[0] == 'j' # JCC branch
+            branch_queue.put(jcc_target)
+        ... # 重定位代码
+```
+
+## 代码重定位
+
+代码的位置移动时，原本的 `CALL` 和 `JCC` 等跳转指令要想跳转到`原来的地方`需要进行指令修正，这个可以借助 `keystone-engine` 和 `capstone` 来完成。
+
+```python
+def mov_code(ea, new_code_ea):
+    return asm(disasm(idc.get_bytes(ea, idc.get_item_size(ea)), ea), new_code_ea)
+```
+
+然而在完成去混淆后程序中的绝大多数代码都移动了位置，因此程序中所有的 `CALL` 和 `JCC` 等跳转指令跳转的地址需要进行修正，也就是重定位。
+
+对于指令修正我们可以通过`并查集`来维护。
+
+![](upload/attach/202308/959167_P4SZ4S6F2B7745V.png)
+
+一个程序的跳转指令可以看做是上图左边的结构。即存在一个跳转指令跳转到另一个跳转指令的情况。通过并查集我们可以将指令 `A`，`B`，`C`，`D`，`E` 的`真实地址`都修正为指令 `E` 的`真实地址`。
+
+在使用并查集维护重定位的时候需要注意以下几点：
+
+- 上图中的指令 `E` 需要确保不存在指令复用的情况。因为有的代码混淆会将程序拆分成指令后放到一个巨大的 switch 中，然后通过在 switch 中查找依次执行指令。这种情况会造成一条指令在不同的分支中都会使用，如果此时我们用并查集维护就会把该指令重定位到其中一个使用该指令的地址，但实际上该指令还会在其他地址出现，这就造成了程序可能会跳转到错误的分支上。`对于这种情况我们需要重定位查找 switch 的代码到去混淆的代码上，而不是重定位 switch 中的具体指令，这样就保证一一对应了。`
+- 在上图的结构中我们可以发现，只有`连接根节点`的边是`重定位`的边，其余的边都是`跳转`的边。因为在跳转的时候我们不需要关心中间的跳转指令在哪里，而是需要关心最终跳转到的位置的真实地址。因此在并查集合并的时候如果是一条 `JMP` 指令就需要将该指令的`重定位后的实际地址`合并到指令的`原本地址`，然后将指令的`原本地址`合并到指令的`跳转地址`，否则将该指令的`原本地址`合并到指令的`重定位后的实际地址`。这样在并查集`路径压缩`之后每一个跳转指令`跳转地址`都被重定位到`非 JMP 指令的实际地址`。
+
+# 例题：强网杯2022 find_basic
+
+<a href="elink@19eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8U0L8$3c8W2i4K6u0W2L8X3g2@1i4K6u0r3M7i4q4Q4y4h3j5@1y4e0x3J5x3K6V1$3x3q4)9J5c8X3q4@1N6r3q4U0K9r3#2W2L8Y4c8Q4x3V1k6Q4x3X3c8Q4x3V1k6@1M7X3g2W2i4K6u0r3L8h3q4K6N6r3g2J5i4K6u0r3M7X3g2$3i4K6u0r3x3U0l9J5x3W2q4i4b7W2)9#2k6X3!0T1k6W2)9#2k6Y4S2^5i4K6g2X3k6X3W2F1k6l9`.`.">附件下载链接</a>
+
+观察发现程序由下面的代码块构成：
+
+```
+.text:000048F4 pushf
+.text:000048F5 pusha
+.text:000048F6 mov cl, 3Fh ; '?'
+.text:000048F8 call sub_44FA
+.text:000048F8
+.text:000048FD pop eax
+```
+
+分析该代码块的执行过程，发现本质是在一个 switch 中查找实际指令。该代码块可由 `lea ecx, [esp+4]` 指令代替。
+
+![](upload/attach/202308/959167_AMFV32N4NXFST69.png)
+
+首先，我们需要将程序中的代码块提取出来，然后记录几个有用的信息：
+
+- `start_ea`：代码块的起始地址
+- `end_ea`：代码块的结束地址
+- `imm`：在 switch 中查找指令用的立即数
+- `reg`：存放立即数用的寄存器
+- `call_target`：调用的 switch 函数
+
+在提取代码块的有效信息的同时也可以检测该代码块是否有效，因此分析发现程序中会在代码块直接插入一些有实际功能的代码。
+
+```python
+class Block:
+    def __init__(self, start_ea, end_ea, imm, reg, call_target):
+        self.start_ea = start_ea
+        self.end_ea = end_ea
+        self.imm = imm
+        self.reg = reg
+        self.call_target = call_target
+    def get_block(start_ea):
+        global imm, reg, call_target
+        mnem_list = ['pushf', 'pusha', 'mov', 'call', 'pop']
+        ea = start_ea
+        for i in range(5):
+            mnem = idc.print_insn_mnem(ea)
+            assert mnem == mnem_list[i]
+            if mnem == 'mov':
+                imm = idc.get_operand_value(ea, 1)
+                reg = idc.print_operand(ea, 0)
+            elif mnem == 'call':
+                call_target = idc.get_operand_value(ea, 0)
+            ea += idc.get_item_size(ea)
+        return Block(start_ea, ea, imm, reg, call_target)
+```
+
+在提取出代码块之后利用提取到的有效信息可以在 `call_target` 中查找代码块对应的实际代码。这里有几个特殊情况：
+
+- 一般情况在 cmp 判断找到对应位置后会依次执行 jnz，popa，popf 三条指令，然后后面紧跟着代码块对应的实际代码。然而想下面这种情况，在执行完 popf 后面紧跟着 pusha 而不是代码块对应的实际代码，简单分析一下发现这种情况代码块对应的实际代码为 retn 。这种情况需要返回 True 表示一个 branch 的结束。
+
+```
+.text:000045CC popa
+.text:000045CD popf
+.text:000045CE pushf
+.text:000045CF pusha
+.text:000045D0 call dec_index
+.text:000045D0
+.text:000045D5 popa
+.text:000045D6 popf
+.text:000045D7 retn
+```
+
+- 通常认为代码块对应的实际代码的结束标志为一个 jmp 指令，但是有的地方在 jmp 之后还会执行几条有效指令，因此判断实际代码的结束标志应当是 pushf 。
+
+```python
+def get_real_code(block, new_code_ea):
+    ea = block.call_target
+    while True:
+        if idc.print_insn_mnem(ea) == 'cmp':
+            reg = idc.print_operand(ea, 0)
+            imm = idc.get_operand_value(ea, 1)
+            if reg == block.reg and imm == block.imm:
+                ea += idc.get_item_size(ea)
+                break
+        ea += idc.get_item_size(ea)
+        # 在 cmp 判断找到对应位置后会依次执行 jnz，popa，popf 三条指令
+        assert idc.print_insn_mnem(ea) == 'jnz'
+        ea += idc.get_item_size(ea)
+        assert idc.print_insn_mnem(ea) == 'popa'
+        ea += idc.get_item_size(ea)
+        assert idc.print_insn_mnem(ea) == 'popf'
+        ea += idc.get_item_size(ea)
+        if idc.print_insn_mnem(ea) == 'pushf': # 第一种特殊情况，实际是 ret 指令。
+            return True, asm('ret')
+        new_code = b''
+        while True:
+            if idc.print_insn_mnem(ea) == 'jmp': # 第二种特殊情况，跳转过去可能还会有几条实际功能指令。
+                jmp_ea = idc.get_operand_value(ea, 0)
+                if idc.print_insn_mnem(jmp_ea) == 'pushf':
+                    break
+                ea = jmp_ea
+            else:
+                code = mov_code(ea, new_code_ea)
+                new_code += code
+                new_code_ea += len(code)
+                ea += get_item_size(ea)
+        return False, new_code
+```
+
+这里涉及到了维护重定位的并查集 `RelocDSU` ，对应代码如下。在 `get` 函数中如果遇到了 jmp 指令且操作数是立即数就路径压缩到跳转的地址，直到地址在 `.got.plt` 或者指令不是 jmp 指令。另外判断是否是已处理代码是根据地址对应的最终地址是否不在 `.text` 段。
+
+```python
+class RelocDSU:
+    def __init__(self):
+        self.reloc = {}
+    def get(self, ea):
+        if ea not in self.reloc:
+            if idc.print_insn_mnem(ea) == 'jmp' and idc.get_operand_type(ea, 0) != idc.o_reg:
+                jmp_ea = idc.get_operand_value(ea, 0)
+                if idc.get_segm_name(jmp_ea) == '.got.plt':
+                    self.reloc[ea] = ea
+                    return self.reloc[ea], False
+                self.reloc[ea], need_handle = self.get(idc.get_operand_value(ea, 0))
+                return self.reloc[ea], need_handle
+            else:
+                self.reloc[ea] = ea
+            if self.reloc[ea] != ea: self.reloc[ea] = self.get(self.reloc[ea])[0]
+            return self.reloc[ea], idc.get_segm_name(self.reloc[ea]) == '.text'
+    def merge(self, ea, reloc_ea):
+        self.reloc[self.get(ea)[0]] = self.get(reloc_ea)[0]
+reloc = RelocDSU()
+```
+
+接下来就是考虑如何提取出一个 branch 的代码了。前面提到过程序中会在代码块直接插入一些有实际功能的代码，因此需要借助 `try:...except:...` 和 `assert` 来处理。除此之外这里还有几个特殊情况：
+
+- 程序中的 0x900 和 0x435c 处分别有一个获取返回地址 eip 到 ebx 和 eax 的函数，程序借助这两个函数来访问全局变量实现地址无关代码，然而重定位后代码地址改变，因此这里需要将其修正为 `mov reg, xxx` 。
+- 需要根据程序中的 jmp 指令来决定下一步需要去混淆的代码位置，这里需要判断 jmp 后面跟的是否是立即数，另外需要判断 jmp 到的代码是否是已经处理过的代码。
+- 并查集合并的时候如果是代码块，需要将代码块的地址合并到代码块对应指令的实际重定位后的地址；如果不是代码块如果是 jmp 指令且操作数是立即数，需要将 jmp 指令和该指令的重定位后的实际地址合并到指令的原本地址，然后将指令的原本地址合并到指令的跳转地址，否则将该指令的地址合并到重定位后的地址。
+
+```python
+def handle_one_branch(branch_address, new_code_ea):
+    new_code = b''
+    ea = branch_address
+    while True:
+        try:
+            block = get_block(ea)
+            is_ret, real_code = get_real_code(block, new_code_ea)
+            reloc.merge(ea, new_code_ea)
+            ea = block.end_ea
+            new_code_ea += len(real_code)
+            new_code += real_code
+            if is_ret: break
+        except:
+            get_eip_func = {0x900: 'ebx', 0x435c: 'eax'}
+            if idc.print_insn_mnem(ea) == 'call' and get_operand_value(ea, 0) in get_eip_func:
+                reloc.merge(ea, new_code_ea)
+                real_code = asm('mov %s, 0x%x' % (get_eip_func[get_operand_value(ea, 0)], ea + 5), new_code_ea)
+            else:
+                if idc.print_insn_mnem(ea) == 'jmp' and idc.get_operand_type(ea, 0) != idc.o_reg:
+                    reloc.merge(new_code_ea, ea)
+                else:
+                    reloc.merge(ea, new_code_ea)
+                real_code = mov_code(ea, new_code_ea)
+            new_code += real_code
+            if real_code == asm('ret'): break
+            new_code_ea += len(real_code)
+            if idc.print_insn_mnem(ea) == 'jmp' and idc.get_operand_type(ea, 0) != idc.o_reg: # jmp reg is a swtich
+                jmp_ea = idc.get_operand_value(ea, 0)
+                if reloc.get(jmp_ea)[1] == False: break # 跳回之前的代码说明是个循环
+                ea = reloc.get(jmp_ea)[0]
+            else:
+                ea += get_item_size(ea)
+    return new_code
+```
+
+能够处理 branch 后，我们就可以 bfs 依次处理所有的 function 和 branch 了，这里还有几个特殊情况：
+
+- 0x4148 地址处的函数中有一个 switch ，由于是通过跳转表跳转，去混淆脚本分析不到跳转的分支，因此需要读取跳转表找到跳转的 branch 然后添加到 `branch_queue` 中。
+- 寻找新的 branch 时需要判断 jcc 的操作数类型是否是立即数。
