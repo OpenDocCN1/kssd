@@ -1,0 +1,429 @@
+
+```
+10026FF5     53                 push ebx
+10026FF6     FFD0               call eax
+```
+
+随便从程序中找个API调用：
+
+```
+10026EF8     FF15 E4610310      call dword ptr ds:[100361E4]; kernel32.GetSystemTime
+```
+
+数据窗口跟随`100361E4`，输入表函数已经全部获得正确的系统地址了。
+
+```
+10036000  BB D5 DC 77 8E 77 DA 77 E7 EB DA 77 F0 6B DA 77
+10036010  1B 76 DA 77 83 78 DA 77 B3 77 DA 77 00 00 00 00
+10036020  39 34 17 5D 00 00 00 00 3B 6A EF 77 A6 6C EF 77
+10036030  FC C6 EF 77 D5 5F EF 77 10 5E EF 77 82 9A EF 77
+10036040  C0 6D EF 77 0B 5D EF 77 F1 5F EF 77 A7 5B EF 77
+10036050  21 A8 EF 77 0C D1 EF 77 A0 59 EF 77 00 00 00 00
+10036060  D7 EF 80 7C 0E 18 80 7C 77 9B 80 7C C7 A0 80 7C
+10036070  7A A1 87 7C 8F 0C 81 7C AC 92 80 7C 37 97 80 7C
+10036080  57 B3 80 7C A1 97 83 7C 62 5F 82 7C AD 9C 80 7C
+10036090  4B 6F 82 7C 28 AC 80 7C 51 28 81 7C 31 03 93 7C
+100360A0  66 AA 80 7C 30 25 80 7C CB CA 81 7C 59 35 81 7C
+100360B0  24 1A 80 7C 19 90 83 7C 29 9F 80 7C 25 16 80 7C
+100360C0  42 24 80 7C 6E 9C 80 7C A9 26 82 7C 72 17 81 7C
+100360D0  50 F8 81 7C CB D8 81 7C 57 BB 80 7C 80 A4 80 7C
+100360E0  B9 8C 83 7C C0 9F 80 7C ED 70 83 7C 7E D4 80 7C
+100360F0  E3 12 81 7C 53 C1 81 7C 81 9A 80 7C 14 9B 80 7C
+10036100  29 29 81 7C 10 11 81 7C 6A 48 81 7C 78 2C 81 7C
+10036110  23 CC 81 7C 5F 48 81 7C 3F DC 81 7C EE 1E 80 7C
+10036120  69 10 81 7C A9 2C 81 7C CF C6 80 7C 8A 2B 86 7C
+10036130  86 03 81 7C 58 CD 80 7C A6 0D 81 7C 9F 0F 81 7C
+10036140  2A E8 81 7C 43 99 80 7C 50 97 80 7C 40 03 93 7C
+10036150  53 34 81 7C 0F 2B 81 7C ED 09 93 7C B3 9E 80 7C
+10036160  C4 2F 88 7C 29 B5 80 7C 11 03 81 7C E0 C6 80 7C
+10036170  4E 99 80 7C 4C 17 81 7C 54 2A 82 7C ED 10 92 7C
+10036180  05 10 92 7C A1 9F 80 7C 8A 18 93 7C 8D B7 80 7C
+10036190  6C 94 80 7C FE B9 80 7C FC B7 80 7C 2F 08 81 7C
+100361A0  3F EB 80 7C BD E4 81 7C 28 9C 80 7C 7C 2F 81 7C
+100361B0  1B EC 80 7C A7 24 80 7C 0D E0 80 7C 8D 2C 81 7C
+100361C0  AB 14 81 7C AD 97 80 7C 94 97 80 7C 7B 97 80 7C
+100361D0  40 7A 95 7C E1 EA 81 7C F5 9B 80 7C A9 CC 80 7C
+100361E0  AE 94 83 7C 6B 17 80 7C C1 C9 80 7C 2B 2E 83 7C
+100361F0  3D 04 93 7C D4 05 93 7C FD 79 93 7C A2 CA 81 7C
+10036200  4E A3 80 7C C4 CE 80 7C E6 2B 81 7C 93 D2 80 7C
+10036210  16 1E 80 7C 00 00 00 00 62 DB D1 77 AE E2 D1 77
+10036220  6D 86 D1 77 C5 D3 D1 77 56 B5 D1 77 97 86 D1 77
+10036230  DE D4 D1 77 5A DC D1 77 E1 88 D2 77 A8 67 D2 77
+10036240  C9 6C D2 77 50 8E D1 77 7C 94 D1 77 C5 B4 D1 77
+10036250  EF 01 D3 77 B1 B4 D1 77 A4 52 D2 77 AE 21 D2 77
+10036260  8E C7 D1 77 D3 DE D1 77 75 8F D1 77 7C B5 D1 77
+10036270  1A 8C D1 77 BB D7 D1 77 98 EC D3 77 B8 E7 D1 77
+10036280  3C FC D1 77 2E F8 D3 77 9D B4 D1 77 FA E8 D1 77
+10036290  A8 C6 D1 77 DC E5 D1 77 2F 3A D2 77 A9 F8 D3 77
+100362A0  2C 90 D1 77 64 C0 D1 77 4B E3 D1 77 2F 15 D3 77
+100362B0  32 E0 D1 77 D4 C4 D1 77 06 8C D1 77 DE A2 D1 77
+100362C0  BC C6 D1 77 0B 05 D5 77 00 00 00 00 00 00 00 00
+```
+
+```
+OEP RVA=00026FC4   IAT RVA=00036000  IAT Size=2C8
+```
+
+用`LordPE`把`AdobeLM.dll`抓取出来，修复输入表得到`dump\_.dll`。
+
+---
+
+`SafeDisc V2.43.000.osc` 辅助脚本如下
+
+```
+//////////////////////////////////////////////////
+
+//  FileName    :  SafeDisc V2.43.000.osc
+
+//  Comment     :  SafeDisc V2.43.000 FixedImportingFunction
+
+//  Environment :  WinXP SP2,OllyDbg V1.10,OllyScript V0.92
+
+//  Author      :  fly
+
+//  WebSite     :  fd5K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4g2F1M7r3q4U0K9#2)9J5k6h3y4F1
+
+//  Date        :  2005-11-23 22:00
+
+//////////////////////////////////////////////////
+
+#log
+
+dbh
+
+var EP
+
+var Temp
+
+var IsDebuggerPresent
+
+var GetCurrentProcess
+
+var ZwQueryInformationProcess
+
+var CreateEventA
+
+var MagicJmp
+
+var FixedOver
+
+//IsDebuggerPresent――――――――――――――――
+
+mov EP,eip
+
+log EP
+
+gpa "IsDebuggerPresent", "KERNEL32.dll"
+
+mov IsDebuggerPresent,$RESULT
+
+eob IsDebuggerPresent
+
+bp IsDebuggerPresent
+
+esto
+
+GoOn0:
+
+esto
+
+IsDebuggerPresent:
+
+log eip
+
+cmp eip,IsDebuggerPresent
+
+jne GoOn0
+
+bc IsDebuggerPresent
+
+//ZwQueryInformationProcess――――――――――――
+
+/\*
+
+00879889     FF15 B4208C00      call dword ptr ds:[8C20B4] ; kernel32.GetCurrentProcess
+
+0087988F     50                 push eax
+
+00879890     FFD7               call edi                   ; ntdll.ZwQueryInformationProcess
+
+00879892     8B4424 0C          mov eax,dword ptr ss:[esp+C]
+
+00879896     85C0               test eax,eax
+
+00879898     75 02              jnz short 0087989C
+
+\*/
+
+gpa "GetCurrentProcess", "KERNEL32.dll"
+
+mov GetCurrentProcess,$RESULT
+
+eob GetCurrentProcess
+
+bp GetCurrentProcess
+
+esto
+
+GoOn1:
+
+esto
+
+GetCurrentProcess:
+
+cmp eip,GetCurrentProcess
+
+jne GoOn1
+
+bc GetCurrentProcess
+
+rtu
+
+find eip, #8B44240C85C0#
+
+cmp $RESULT, 0
+
+je NoFind
+
+mov ZwQueryInformationProcess,$RESULT
+
+log ZwQueryInformationProcess
+
+eob ZwQueryInformationProcess
+
+bp ZwQueryInformationProcess
+
+esto
+
+ZwQueryInformationProcess:
+
+bc ZwQueryInformationProcess
+
+mov Temp,esp
+
+add Temp,0C
+
+mov [Temp],0000
+
+//CreateEventA――――――――――――――――――
+
+gpa "CreateEventA", "KERNEL32.dll"
+
+mov CreateEventA,$RESULT
+
+eob CreateEventA
+
+bphws CreateEventA, "x"
+
+esto
+
+GoOn2:
+
+esto
+
+CreateEventA:
+
+log eip
+
+cmp eip,CreateEventA
+
+jne GoOn2
+
+bphwc CreateEventA
+
+rtu
+
+//EP―――――――――――――――――――――――
+
+add EP,1
+
+mov Temp, [EP]
+
+add Temp,4
+
+add EP,Temp
+
+add EP,6
+
+log EP
+
+mov Temp, [EP]
+
+and Temp,0FF
+
+log Temp
+
+add EP,1
+
+add EP,Temp
+
+log EP
+
+//jmp Second
+
+//FixedImportingFunction―――――――――――
+
+/\*
+
+008BF088     8B45 F4            mov eax,dword ptr ss:[ebp-C]
+
+008BF08B     40                 inc eax
+
+008BF08C     8945 F4            mov dword ptr ss:[ebp-C],eax
+
+008BF08F     8B45 F4            mov eax,dword ptr ss:[ebp-C]
+
+008BF092     3B45 14            cmp eax,dword ptr ss:[ebp+14]
+
+008BF095     73 55              jnb short 008BF0EC
+
+008BF097     8B45 F4            mov eax,dword ptr ss:[ebp-C]
+
+008BF09A     C1E8 03            shr eax,3
+
+008BF09D     8B4D F8            mov ecx,dword ptr ss:[ebp-8]
+
+008BF0A0     8B15 DCEC8D00      mov edx,dword ptr ds:[8DECDC]
+
+008BF0A6     8B0C8A             mov ecx,dword ptr ds:[edx+ecx\*4]
+
+008BF0A9     0FB60401           movzx eax,byte ptr ds:[ecx+eax]
+
+008BF0AD     8B4D F4            mov ecx,dword ptr ss:[ebp-C]
+
+008BF0B0     83E1 07            and ecx,7
+
+008BF0B3     6A 01              push 1
+
+008BF0B5     5A                 pop edx
+
+008BF0B6     D3E2               shl edx,cl
+
+008BF0B8     23C2               and eax,edx
+
+008BF0BA     85C0               test eax,eax
+
+008BF0BC     75 2C              jnz short 008BF0EA
+
+008BF0BE     8B45 F8            mov eax,dword ptr ss:[ebp-8]
+
+008BF0C1     69C0 8D000000      imul eax,eax,8D
+
+008BF0C7     8B0D E0EC8D00      mov ecx,dword ptr ds:[8DECE0]
+
+008BF0CD     8B4401 4C          mov eax,dword ptr ds:[ecx+eax+4C]
+
+008BF0D1     8B4D F4            mov ecx,dword ptr ss:[ebp-C]
+
+008BF0D4     FF3488             push dword ptr ds:[eax+ecx\*4]
+
+008BF0D7     FF75 F8            push dword ptr ss:[ebp-8]
+
+008BF0DA     E8 DB000000        call 008BF1BA
+
+008BF0DF     59                 pop ecx
+
+008BF0E0     59                 pop ecx
+
+008BF0E1     8B4D F4            mov ecx,dword ptr ss:[ebp-C]
+
+008BF0E4     8B55 18            mov edx,dword ptr ss:[ebp+18]
+
+008BF0E7     89048A             mov dword ptr ds:[edx+ecx\*4],eax
+
+008BF0EA     EB 9C              jmp short 008BF088
+
+008BF0EC     EB 07              jmp short 008BF0F5
+
+\*/
+
+eob FixedImportingFunction
+
+find eip, #D3E223C285C0752C8B45F8#
+
+cmp $RESULT, 0
+
+je NoFind
+
+add $RESULT,4
+
+mov MagicJmp,$RESULT
+
+bphws MagicJmp, "x"
+
+find MagicJmp, #EB9CEB07#
+
+cmp $RESULT, 0
+
+je NoFind
+
+add $RESULT,2
+
+mov FixedOver,$RESULT
+
+bphws FixedOver, "x"
+
+bphws EP, "x"
+
+esto
+
+GoOn3:
+
+esto
+
+FixedImportingFunction:
+
+cmp eip,MagicJmp
+
+je MagicJmp
+
+cmp eip,FixedOver
+
+je MagicJmp
+
+cmp eip,EP
+
+je EP
+
+MagicJmp:
+
+bphwc MagicJmp
+
+asm MagicJmp, "xor eax,eax"
+
+esto
+
+FixedOver:
+
+asm MagicJmp, "test eax,eax"
+
+bphws MagicJmp, "x"
+
+jmp GoOn3
+
+Second:
+
+bphws EP, "x"
+
+eob EP
+
+esto
+
+EP:
+
+log EP
+
+bphwc MagicJmp
+
+bphwc FixedOver
+
+bphwc EP
+
+sti
+
+//GameOver――――――――――――――――――――
+
+log eip
+
+cmt eip, "This is the OEP! Found By: fly"
+```
