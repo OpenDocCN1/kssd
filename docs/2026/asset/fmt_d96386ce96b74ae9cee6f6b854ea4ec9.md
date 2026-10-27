@@ -1,0 +1,30 @@
+
+# [五一礼物]PhantOm插件笔记~!送给大家五一礼物吧~!
+
+明天五一了,把笔记发出来给大家学习一下,也算是个礼物吧,多余的话就不说了,直接看附件吧~!
+
+需要说明的是Delphi部分,是最初研究的,所以很多地方都不对的,一边看汇编,一边记录,根本没调试,也没测试,只要编译通过就可以了,Delphi部分基本全了,只少驱动部分了.驱动我没心思看了~~!
+
+C语言函数已经全部通过,也就是说功能代码没什么问题的,实际我是看着DELPHI写的C代码,后来DELPHI就再没修改了,直接用C了~!
+
+注意:本次贴出来的是学习笔记,大家研究学习用就好了,别乱飞就是了,希望大家支持一下了,有需要研究和学习的只管下就好了
+
+![](https://bbs.kanxue.com/view/img/face/1.gif)![](https://bbs.kanxue.com/view/img/face/1.gif)![](https://bbs.kanxue.com/view/img/face/50.gif)![](https://bbs.kanxue.com/view/img/face/50.gif)
+
+## DELPHI:
+
+2楼贴C代码...需要的看看~~!主要部分贴完了~~!
+
+应该没了~~!
+
+^\_^
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+[#调试逆向](https://bbs.kanxue.com/forum-4-1-1.htm)
+
+### 上传的附件：
+
+- [PhantOm.rar](javascript:void(0);)
+
+  （395.28kb，613次下载）
