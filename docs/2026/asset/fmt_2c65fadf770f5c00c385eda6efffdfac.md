@@ -1,0 +1,173 @@
+
+```xml
+<signed>
+<contentType> 1.2.840.113549.1.7.2 </contentType>
+<content>
+<version> 1 </version>
+<digestAlgorithms>
+<0>
+<0> 2.16.840.1.101.3.4.2.1 </0>
+</0>
+</digestAlgorithms>
+<contentInfo>
+<contentType> 1.3.6.1.4.1.44485.2.1 </contentType>
+<content> FF 81 64 81 C7 FF 81 21 37 DF 81 35 08 63 6D 62 6F 78 70 67 6D FF 81 25 12 DF 4E 02 00 01 DF 54 02 00 01 DF 20 05 00 00 00 00 00 FF 7A 12 DF 4E 02 00 01 DF 54 02 00 01 DF 20 05 00 00 00 00 00 FF 64 12 DF 81 32 05 00 27 2A DC 71 DF 81 33 05 00 27 04 8F 5F FF 7D 3A DE 30 54 00 65 00 72 00 72 00 61 00 20 00 43 00 6F 00 6E 00 74 00 61 00 69 00 6E 00 65 00 72 00 20 00 76 00 32 00 2E 00 33 00 2E 00 31 00 2E 00 34 00 DF 72 05 00 00 5B 91 26 FF 81 08 28 DF 81 14 04 32 30 30 31 DF 7F 05 00 00 00 00 00 FF 81 00 14 FF 81 04 10 C1 01 FF C1 01 FF C1 01 FF C1 01 00 C2 02 00 01 FF 81 05 0A DF 81 5B 01 00 DF 81 5C 01 00 </content>
+</contentInfo>
+<certificates>
+<0> 30 82 01 7B 30 82 01 28 A0 03 02 01 02 02 04 B2 D0 5E 01 30 0A 06 08 2A 86 48 CE 3D 04 03 02 30 26 31 15 30 13 06 03 55 04 0A 0C 0C 57 49 42 55 2D 53 59 53 54 45 4D 53 31 0D 30 0B 06 03 55 04 03 0C 04 52 6F 6F 74 30 1E 17 0D 31 35 30 31 30 31 30 30 30 30 30 30 5A 17 0D 33 35 31 32 33 31 32 33 35 39 35 39 5A 30 31 31 15 30 13 06 03 55 04 0A 0C 0C 57 49 42 55 2D 53 59 53 54 45 4D 53 31 18 30 16 06 03 55 04 03 0C 0F 57 69 62 75 2D 50 72 6F 64 75 63 74 69 6F 6E 30 4E 30 10 06 07 2A 86 48 CE 3D 02 01 06 05 2B 81 04 00 21 03 3A 00 04 32 37 DD 50 E5 A0 A5 A9 38 E2 88 47 36 13 12 39 26 B1 C2 FB 11 52 77 BE 21 88 45 BD A6 E0 14 EC F1 D1 99 05 8F 77 05 78 80 ED 3C C5 83 F9 EF 09 B9 E4 80 D7 8E 30 F2 4A 81 15 00 78 A4 68 59 55 F6 77 32 49 E8 57 6C 2A 5D 48 FB BB EA C6 E2 82 15 00 C6 8C 60 C4 C5 15 26 82 20 5B 1F 40 55 A3 F8 2D B9 A6 08 87 A3 16 30 14 30 12 06 03 55 1D 13 01 01 FF 04 08 30 06 01 01 FF 02 01 01 30 0A 06 08 2A 86 48 CE 3D 04 03 02 03 41 00 30 3E 02 1D 00 E1 5D F5 35 01 59 75 89 1E 7F 1A C8 F0 B1 7E 07 7C C1 0E 67 45 27 46 67 5A E0 52 26 02 1D 00 B6 E5 A1 AB CA 94 D5 B8 FE AB C7 94 94 10 07 83 92 61 F7 79 B4 DF F4 B3 4B 7B C7 74 </0>
+<1> 30 82 01 AF 30 82 01 5E A0 03 02 01 02 02 04 B2 D0 64 B3 30 0A 06 08 2A 86 48 CE 3D 04 03 02 30 31 31 15 30 13 06 03 55 04 0A 0C 0C 57 49 42 55 2D 53 59 53 54 45 4D 53 31 18 30 16 06 03 55 04 03 0C 0F 57 69 62 75 2D 50 72 6F 64 75 63 74 69 6F 6E 30 1E 17 0D 31 35 30 31 30 31 30 30 30 30 30 30 5A 17 0D 33 35 31 32 33 31 32 33 35 39 35 39 5A 30 20 31 10 30 0E 06 03 55 04 0A 0C 07 36 30 30 30 39 33 34 31 0C 30 0A 06 03 55 04 03 0C 03 4C 50 4B 30 4E 30 10 06 07 2A 86 48 CE 3D 02 01 06 05 2B 81 04 00 21 03 3A 00 04 50 54 29 9D 03 A7 3F 13 EB 24 35 3D BE 91 E9 A6 80 33 C3 01 57 52 81 3D AA 0B 6B 50 EB 57 59 44 07 92 E9 7B 0A 39 A2 9A 73 38 D2 B7 83 95 7B 85 26 00 C4 DB 37 35 68 C9 81 15 00 C6 8C 60 C4 C5 15 26 82 20 5B 1F 40 55 A3 F8 2D B9 A6 08 87 82 15 00 0B EB FF D7 68 9A 1C 9B 08 7A 60 5E 46 32 DB A3 96 26 42 92 A3 52 30 50 30 0F 06 03 55 1D 13 01 01 FF 04 05 30 03 01 01 00 30 0F 06 03 55 1D 0F 01 01 FF 04 05 03 03 00 0F 00 30 2C 06 0A 2B 06 01 04 01 82 DB 45 03 01 01 01 FF 04 1B FF 76 18 DF 72 03 5B 91 26 FF 78 0F DF 81 5D 01 FF DF 81 5E 01 FF DF 81 5F 01 FF 30 0A 06 08 2A 86 48 CE 3D 04 03 02 03 3F 00 30 3C 02 1C 34 EA 5B EB AD F0 70 17 22 A1 5B D0 E1 D0 B0 7A 16 16 2B CC CF E4 30 2F F8 D7 14 2B 02 1C 09 11 EB F5 07 49 36 AA B9 D7 6B 62 6F 7B 49 35 9E 1E EA 60 C0 2E 5B A2 DF D7 87 AF </1>
+</certificates>
+<signerInfos>
+<0>
+<version> 1 </version>
+<signerIdentifier>
+<subjectKeyIdentifier> 0B EB FF D7 68 9A 1C 9B 08 7A 60 5E 46 32 DB A3 96 26 42 92 </subjectKeyIdentifier>
+</signerIdentifier>
+<digestAlgorithm>
+<0> 2.16.840.1.101.3.4.2.1 </0>
+</digestAlgorithm>
+<digestEncryptionAlgorithm>
+<0> 1.2.840.10045.4.3.2 </0>
+</digestEncryptionAlgorithm>
+<encryptedDigest> 30 3D 02 1C 49 1D 06 76 D5 BE D1 E8 38 77 4B E5 64 A7 7C DF 9B 50 EB 1E 63 27 C5 3C 13 9A 86 73 02 1D 00 E4 3D 0E F8 FC CD 80 FD D1 57 3C 18 70 95 D6 8C 9E BF 85 6D A0 D7 EC 0D D9 9A 54 43 </encryptedDigest>
+</0>
+</signerInfos>
+</content>
+</signed>
+```
+
+# 后续
+
+接下来将会详细讲解如何使用`asn1tools`解析文件后缀为`WibuCmLIF`、`WibuCmRaC`、`WibuCmRaU`，并讲述其中几个关键密钥的生成和使用。
+
+# 前言
+
+通过上一节的处理，我们拿到了 asn1 码流，这节我们将使用 `CodeMeterLin` 中 asn1 的定义进行更加有效的解析。
+
+在 wibu 软授权系统中，大部分相关的数据都是使用 asn1 编码的，所以 **asn1 码流十分重要！**
+
+# 环境
+
+- `python3.7`
+- `asn1tools`
+
+# 知识储备
+
+## ASN.1
+
+ASN全称为 Abstract Syntax Notation dotone，是定义抽象数据类型形式的标准，描绘了与任何表示数据的编码技术无关的通用数据结构，目前只定义一个版本（ASN.1）。ASN.1有​​四种类型：
+
+- 简单类型，是"原子的"并且没有任何组件；
+- 具有组件的结构化类型；
+- 标记类型，从其他类型派生；
+- 其他类型，包括`CHOICE`类型和`ANY`类型。
+
+除`CHOICE`和`ANY`外，每种ASN.1类型都有一个标签，该标签由一个类型号（class）和一个非负标签号（tag）组成。当且仅当它们的标签号相同时，ASN.1类型才抽象地相同。换句话说，ASN.1类型的名称不会影响其抽象含义，只有标签会影响它的抽象含义。
+
+上述是 asn1 的描述，其中最关键的是每种 asn1 类型都有一个标签值这句话，这意味者我们通过标签值反过来找到 asn1 的定义。
+
+## TLV结构
+
+ber编码是asn1中最基础一种的编码方式，它传输格式是TLV（Tag-Length-Value）三元组。
+
+- Tag，指定结构的类型和嵌套关系。
+- Length，长度字段，指示结构的体长
+- Value，该字段用来存放具体的数据或嵌套的TLV结构。
+
+### Tag
+
+bits结构如下图所示：
+
+| 2 bit | 1 bit | 5 bit |
+| --- | --- | --- |
+| class | p/s | tagv |
+
+class用于表示tagv所在的类属，分为以下四类：
+
+- `Universal`，asn1中最基础的类型都属于这个类属，如`BOOLEAN`、`INTEGER`，除该类属外，其他类属都是复合类型。
+- `Application`，特定于应用程序的类型都属于这个类属，目前已不推荐使用。
+- `Private`，特定于特定企业的类型都属于这个类属，本次分析的码流使用了该类属下的多个类型。
+- `Context-specific`，特定于特定结构化的类型都属于这个类属，用于标记特定的上下文，不同的上下文可能具有相同的tagv但其含义不同，在本次分析的码流也会出现这种情况。
+
+p/s用于表示TLV中的V是否为嵌套的TVL结构，当p/s为1时，表示存在嵌套。
+
+`tagv`为具体的标签值，有效值为0-30，当`tagv=31`时，表示标签值使用长码表示，后面跟着的八元组为具体的标签值，直到八元组的最高bit不为0为止，此时八元组的最高位用于指示长码是否结束。
+
+![06](https://bbs.kanxue.com/upload/attach/202212/674195_458CN6MAG4TNSCV.png)
+
+### Length
+
+length表示TLV中的V的长度，不包含T和L的长度。
+
+当`length=0x80`时，表示V为不定长数据，V最后要以两个`00`结尾。
+
+当`length=0x8?`时，表示length使用长码，低7位表示长码的八元组数量。
+
+当length为其他值时，表示length使用短码，该八元组就是具体长度。
+
+![07](https://bbs.kanxue.com/upload/attach/202212/674195_TAUZB924ANZGB82.png)
+
+### Value
+
+value为TLV结构中的具体数据，该数据既可以是表示特定内容的数据，也可以嵌套的TLV结构。根据tag的不同，Value有着不同的表现形式。
+
+## `EXPLICIT`和`IMPLICIT`关键字
+
+默认情况下，大部分的asn1定义最终都是由`Universal`类属中的基础类型定义。
+
+当使用`EXPLICIT`和`IMPLICIT`关键字修饰时，表示使用中括号`[]`中指定的tag来描述该定义。
+
+`EXPLICIT`和`IMPLICIT`关键字的区别在于，前者直接使用中括号`[]`中的tag的替换原数据的tag，后者在原数据前额外增加新的tag，而原来的tag保留不变。
+
+`EXPLICIT`和`IMPLICIT`关键字默认使用`Context-specific`作为cls，此外，可以通过`PRIVATE`和`APPLICATION`显示指定cls。
+
+### 测试代码
+
+```python
+#!/usr/bin/env python3
+# -*- coding:utf-8 -*-
+
+import asn1tools
+
+asn_def = "TEST DEFINITIONS ::= BEGIN\n"\
+"Test ::= SEQUENCE\n"\
+"{\n"\
+"val1 INTEGER,\n"\
+"val2[0] IMPLICIT INTEGER,\n"\
+"val3[1] EXPLICIT INTEGER,\n"\
+"val4[PRIVATE 2] IMPLICIT INTEGER,\n"\
+"val5[PRIVATE 3] EXPLICIT INTEGER\n"\
+"}\n"\
+"END"
+
+asn_def = asn1tools.compile_string(asn_def, "der")
+asn_res = asn_def.encode("Test", {"val1":10,"val2":10,"val3":10,"val4":10,"val5":10})
+print(asn_res.hex().upper())
+```
+
+运行结果：
+
+```text
+> python .\test_asn.py
+> 301302010A80010AA10302010AC2010AE30302010A
+>
+> 30 13 #cls=0(Universal) tag=16(SEQUENCE) len=19
+>  02 01 0A #正常情况：cls=0(Universal) tag=2(INTEGER) len=1 data=10
+>  80 01 0A #加IMPLICIT修饰符并使用tag=0描述该定义：cls=2(Context-specific) tag=0 len=1 data=10
+>  A1 03 #加EXPLICIT修饰符，在原来的数据前额外添加tag：cls=2(Context-specific) tag=1 len=3
+>  02 01 0A #与正常情况的数据相同，cls=0(Universal) tag=2(INTEGER) len=1 data=10
+>  C2 01 0A #同时指定cls和tag，cls=3(Private) tag=2 len=1 data=10
+>  E3 03 #cls=3(Private) tag=3 len=3
+>  02 01 0A #与正常情况的数据相同，cls=0(Universal) tag=2(INTEGER) len=1 data=10
+```
+
+## 参考资料
+
+- [asn.1 格式学习](https://bbs.kanxue.com/elink@666K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2U0L8X3u0D9L8$3N6K6i4K6u0W2j5$3!0E0i4K6u0r3x3U0l9I4y4K6f1J5x3e0q4D9P5i4A6Q4x3V1k6H3i4K6u0r3x3e0t1%4x3U0t1K6y4U0m8Q4x3X3g2Z5N6r3#2D9)
+- [ASN/1 TLV](https://bbs.kanxue.com/elink@ccbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1K9i4u0W2j5%4c8G2M7Y4W2Q4x3X3g2S2M7r3q4U0K9r3g2Q4x3X3g2G2M7X3N6Q4x3V1k6S2M7r3W2Q4x3V1k6A6L8Y4c8W2M7X3&6S2L8q4)9J5k6r3c8W2M7$3W2Y4L8W2)9J5k6r3N6#2K9h3c8W2i4K6u0r3y4q4)9J5k6e0q4Q4x3X3c8S2M7$3^5I4i4K6u0V1N6r3I4$3i4K6u0W2K9s2c8E0L8l9`.`.)
+
+# 开始分析
+
+## asn1节点
+
+这里先放上一节的流程图，在`sub_77A950`中可以看到asn1码流的解析。
