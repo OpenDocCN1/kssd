@@ -1,0 +1,378 @@
+
+# [原创]PE编辑器之浅谈导入表信息的读取(附VC源程序)
+
+又好久没有发帖子了!今天我也来凑个热闹!![](https://bbs.kanxue.com/view/img/face/12.gif)
+
+其实起这么一个标题真的让我感到很惭愧,因为读取导入表这里我学的真是一塌糊涂!
+
+外加上最近不知道怎么了,个人头脑智商低下,看了挺多读取导入表的程序,还是没有弄明白怎么用一个指针把导入表中的所有信息都读出来!![](https://bbs.kanxue.com/view/img/face/16.gif)
+
+无奈之下,想了一个最笨的方法:按照《加密与解密》(第二版)中导入表的实例的步骤,把各个指针的地址转换成文件偏移,然后在用`CFile`类从文件里面读出数据来!![](https://bbs.kanxue.com/view/img/face/50.gif) ![](https://bbs.kanxue.com/view/img/face/50.gif)
+
+虽然这个方法效率确实低下,在程序中实在不可取!但是无论怎么说,这也是我学习PE文件结构的一个见证!也是我经过近四天努力的结果,几经考虑,终于还是决定帖出来,让新手朋友参考,请高手指教!![](https://bbs.kanxue.com/view/img/face/1.gif)
+
+好了,废话不说了，进入主题!
+
+要读取导入表的信息需要知道:区段表、目录表还有地址偏移转换相关的东西!
+
+怎么转换地址可以看我的另一个帖子:<http://bbs.pediy.com/showthread.php?t=67955>
+
+怎么读取区段和目录表不是这个帖子的主题,朋友们可以看其它相关的帖子文章或者看我附件中的源程序!
+
+获取导入表的代码如下:
+
+```
+void CImportViewsDlg::GetImports(DWORD _Addr)
+{
+
+	CFileException     ex;
+
+
+
+	CFile pFile;
+
+	if (!pFile.Open(m_FilePathName,CFile::shareDenyNone|CFile::typeBinary,&ex))       
+
+	{
+
+		TCHAR     szError[1024];       
+
+		ex.GetErrorMessage(szError,1024);
+
+		MessageBox(szError); 
+
+	}
+
+
+
+	pFile.Seek(_Addr,CFile::begin);
+
+
+
+	CString szTemp = "";
+
+	m_DllList.DeleteAllItems();
+
+	int i = 0;
+
+	while ( 1 )
+
+    {
+
+		pFile.Read(&_Imports,sizeof(IMAGE_IMPORT_DESCRIPTOR));
+
+
+
+        if((_Imports.TimeDateStamp==0 ) && (_Imports.Name==0) )
+
+            break;
+
+		szTemp = GetNames(RVAtoFileOffSet(_Imports.Name));
+
+		m_DllList.InsertItem(i,szTemp);
+
+
+
+		szTemp.Format("%p",_Imports.OriginalFirstThunk);
+
+		m_DllList.SetItemText(i,1,szTemp);
+
+		szTemp.Format("%p",_Imports.TimeDateStamp);
+
+		m_DllList.SetItemText(i,2,szTemp);
+
+		szTemp.Format("%p",_Imports.ForwarderChain);
+
+		m_DllList.SetItemText(i,3,szTemp);
+
+		szTemp.Format("%p",_Imports.FirstThunk);
+
+		m_DllList.SetItemText(i,4,szTemp);
+
+		i++;
+
+
+
+	}
+
+	pFile.Close();
+
+}
+```
+
+由于DLL的名称没有指明具体的大小只知道以0x00结尾,所以我就写了一个`GetNames()`函数,大家别笑话我哦~~~:
+
+```
+CString CImportViewsDlg::GetNames(DWORD _Addr)
+{
+
+	CString Name = "";
+
+	CString sTemp = "";
+
+	CFileException     ex;
+
+	CFile pFile;
+
+
+
+	if (!pFile.Open(m_FilePathName,CFile::shareDenyNone|CFile::typeBinary,&ex))       
+
+	{
+
+		TCHAR     szError[1024];       
+
+		ex.GetErrorMessage(szError,1024);
+
+		MessageBox(szError);       
+
+		return "";       
+
+	}
+
+	BYTE  fileBur;
+
+	pFile.Seek(_Addr,CFile::begin);
+
+	pFile.Read(&fileBur,0x1);
+
+	sTemp.Format("%c",fileBur);
+
+	Name += sTemp;
+
+	for(int i=0;fileBur!=0;i++)
+
+	{
+
+		pFile.Read(&fileBur,0x1);
+
+		sTemp.Format("%c",fileBur);
+
+		Name += sTemp;
+
+	}
+
+	pFile.Close();
+
+	return Name;
+}
+```
+
+获取相应DLL中API函数信息的代码如下![](https://bbs.kanxue.com/view/img/face/16.gif) :
+
+```
+void CImportViewsDlg::GetFunctions(IMAGE_IMPORT_DESCRIPTOR _Imports)
+{
+
+	DWORD RvaINT = _Imports.OriginalFirstThunk;
+
+	DWORD RvaIAT = _Imports.FirstThunk;
+
+	IMAGE_THUNK_DATA tdINT;
+
+	CString strFlag;
+
+	int FunNum = 0;
+
+
+
+	if ( RvaINT == 0 ) 
+
+    {
+
+       RvaINT = RvaIAT;
+
+      if ( RvaINT == 0 )
+
+		 return;
+
+    }
+
+
+
+	if(((CButton*)GetDlgItem(IDC_FIRSTTHUNK))->GetCheck()&1)
+
+	{
+
+		m_KindThunk = _Imports.FirstThunk;
+
+		strFlag = "( FirstThunk chain )";
+
+	}
+
+	else
+
+	{
+
+		m_KindThunk = _Imports.OriginalFirstThunk;
+
+		strFlag = "( OriginalFirstThunk chain )";
+
+	}
+
+	m_ListInfo.DeleteAllItems();
+
+
+
+	CFileException     ex;
+
+	CFile pFile;
+
+	if (!pFile.Open(m_FilePathName,CFile::shareDenyNone|CFile::typeBinary,&ex))       
+
+	{
+
+		TCHAR     szError[1024];       
+
+		ex.GetErrorMessage(szError,1024);
+
+		MessageBox(szError); 
+
+	}
+
+
+
+	pFile.Seek(RVAtoFileOffSet(RvaINT),CFile::begin);
+
+	CString szTemp = "";
+
+	while ( 1 )
+
+    {
+
+		pFile.Read(&tdINT,sizeof(IMAGE_THUNK_DATA));
+
+		if(!tdINT.u1.AddressOfData)
+
+			break;
+
+		ULONG ordinal=-1;
+
+		if(IMAGE_SNAP_BY_ORDINAL32(tdINT.u1.Ordinal))
+
+			ordinal = IMAGE_ORDINAL32(tdINT.u1.Ordinal);
+
+		CString strTemp;
+
+		CString RVApINT;
+
+		CString Hint;
+
+		CString Name;
+
+		CString OffsetOrdinalName;
+
+		CString ThunkZhi;
+
+		CString dHint;
+
+		CString FinalHint;
+
+
+
+		if(ordinal==-1)
+
+		{
+
+			RVApINT.Format("%p",(PBYTE)m_KindThunk);  
+
+			OffsetOrdinalName.Format("%p",RVAtoFileOffSet((DWORD)m_KindThunk));
+
+		    ThunkZhi.Format("%p",RVAtoFileOffSet((DWORD)(tdINT.u1.AddressOfData)));
+
+			dHint.Format("%u",GetOrdinalName(RVAtoFileOffSet((DWORD)(tdINT.u1.AddressOfData))));
+
+			Hint.Format("%.4X",GetOrdinalName(RVAtoFileOffSet((DWORD)(tdINT.u1.AddressOfData))));
+
+			FinalHint=Hint+"("+dHint+")";
+
+			Name.Format("%s",GetOrdinalName(RVAtoFileOffSet((DWORD)(tdINT.u1.AddressOfData)),TRUE));
+
+		}
+
+		else
+
+		{
+
+			RVApINT.Format("%p",(PBYTE)m_KindThunk);  
+
+			OffsetOrdinalName.Format("%p",RVAtoFileOffSet((DWORD)m_KindThunk));
+
+			ThunkZhi.Format("%p",RVAtoFileOffSet((DWORD)(tdINT.u1.AddressOfData)));
+
+			//OffsetOrdinalName="N/A";
+
+			FinalHint="N/A";
+
+			Name="N/A";
+
+		}
+
+		
+
+		m_ListInfo.InsertItem(FunNum,RVApINT);
+
+		m_ListInfo.SetItemText(FunNum,1,OffsetOrdinalName);
+
+		m_ListInfo.SetItemText(FunNum,2,ThunkZhi);
+
+		m_ListInfo.SetItemText(FunNum,3,FinalHint);
+
+		m_ListInfo.SetItemText(FunNum,4,Name);
+
+
+
+		FunNum++;
+
+		m_KindThunk += 4;
+
+	}
+
+	pFile.Close();
+
+	CString strTishi;
+
+	szTemp.Format("%X",FunNum);
+
+	strTishi += "Thunk数：" + szTemp + "h / ";
+
+	szTemp.Format("%d",FunNum);
+
+	strTishi += szTemp + "d" + strFlag;
+
+	SetDlgItemText(IDC_IMPORT_TISHI,strTishi);
+
+}
+```
+
+好了,主要的代码都帖完了,效果还不错的,如下图:
+
+![](https://bbs.kanxue.com/upload/attach/200807/27810_acugr3xcmwr4w9t.jpg)
+
+具体代码大家可以看附件中的程序!
+
+如果您有更好的方法,请一定要教一下我哦~~
+
+我最近智商太低了,让大家笑话了~~~![](https://bbs.kanxue.com/view/img/face/16.gif)
+
+> 附件内容
+
+> 原代码: [`ImportView(SRC)s.rar`](https://bbs.kanxue.com/attach-download-16525.htm)
+
+> 编译好的: [`ImportViews[EXE].rar`](https://bbs.kanxue.com/attach-download-16526.htm)
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [`ImportView(SRC)s.rar`](javascript:void(0);)
+
+  （37.12kb，303次下载）
+
+- [`ImportViews[EXE].rar`](javascript:void(0);)
+
+  （8.18kb，175次下载）
+
+- [`截图.JPG`](javascript:void(0);)
+
+  （70.51kb，912次下载）
