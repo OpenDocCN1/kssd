@@ -1,0 +1,60 @@
+
+# [原创][开源]sysenter;实现万分之一毫秒级sleep
+
+一直求大神无解。最后用OD调试竟然是`sysenter` sleep的参数是负着来的而且是完分之1毫秒级的。
+
+终于解决了。
+
+虽然暂时只会用`sysenter`实现`sleep`这样的简单函数，但至少知道怎么弄了，甚是开心。
+
+```assembly
+.386
+
+.model flat,stdcall
+
+option casemap:none
+
+include user32.inc
+
+includelib user32.lib
+
+.data
+
+a dd  -10000000;-10000000这是1秒,-20000000是2秒
+
+s dd  -1
+
+.code
+
+start:
+
+push offset a
+
+push 0
+
+push aa
+
+push aa
+
+mov eax,3bh
+
+mov edx,esp
+
+db 0fh
+
+db 34h;sysenter
+
+aa:
+
+pop eax
+
+invoke MessageBoxA,0,0,0,0
+
+leave
+
+ret
+
+end start
+```
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
