@@ -1,0 +1,128 @@
+
+```
+0042E2BB   .  FF15 0C124000 call    [<&MSVBVM60.\_\_vbaFreeStr>]       ;  MSVBVM60.\_\_vbaFreeStr
+0042E2C1   .  8D4D 88       lea     ecx, [ebp-78]
+0042E2C4   .  FF15 1C104000 call    [<&MSVBVM60.\_\_vbaFreeVar>]       ;  MSVBVM60.\_\_vbaFreeVar
+0042E2CA   .  8B45 C8       mov     eax, [ebp-38]                    ;  用户名长度
+0042E2CD   .  0345 E0       add     eax, [ebp-20]                    ;  +=
+0042E2D0   .  0F80 8B160000 jo      0042F961
+0042E2D6   .  8945 C8       mov     [ebp-38], eax
+0042E2D9   .  B8 05000000   mov     eax, 5
+0042E2DE   .  03C3          add     eax, ebx
+0042E2E0   .  0F80 7B160000 jo      0042F961
+0042E2E6   .  8BD8          mov     ebx, eax
+0042E2E8   .^ EB 8A         jmp     short 0042E274
+0042E2EA   > \8B4D C4       mov     ecx, [ebp-3C]                    ;  第四步
+0042E2ED   .  51            push    ecx                              ; /Arg1
+0042E2EE   .  FF15 20104000 call    [<&MSVBVM60.\_\_vbaLenBstr>]       ; \\_\_vbaLenBstr
+0042E2F4   .  8985 30FDFFFF mov     [ebp-2D0], eax
+0042E2FA   .  BB 01000000   mov     ebx, 1
+0042E2FF   >  3B9D 30FDFFFF cmp     ebx, [ebp-2D0]
+0042E305   .  7F 6E         jg      short 0042E375                   ;  循环
+0042E307   .  6A 01         push    1                                ; /Arg1 = 00000001
+0042E309   .  FF15 78104000 call    [<&MSVBVM60.\_\_vbaOnError>]       ; \\_\_vbaOnError
+0042E30F   .  C745 90 04000>mov     dword ptr [ebp-70], 4
+0042E316   .  C745 88 02000>mov     dword ptr [ebp-78], 2
+0042E31D   .  8D55 88       lea     edx, [ebp-78]
+0042E320   .  52            push    edx                              ;  取四位
+0042E321   .  53            push    ebx
+0042E322   .  8B45 C4       mov     eax, [ebp-3C]
+0042E325   .  50            push    eax
+0042E326   .  FF15 B8104000 call    [<&MSVBVM60.#631>]               ;  MSVBVM60.rtcMidCharBstr
+0042E32C   .  8BD0          mov     edx, eax
+0042E32E   .  8D4D BC       lea     ecx, [ebp-44]
+0042E331   .  FFD7          call    edi
+0042E333   .  50            push    eax
+0042E334   .  FF15 74114000 call    [<&MSVBVM60.\_\_vbaR8Str>]         ;  MSVBVM60.\_\_vbaR8Str
+0042E33A   .  FF15 CC114000 call    [<&MSVBVM60.\_\_vbaFpI4>]          ;  转换16进制
+0042E340   .  8945 E0       mov     [ebp-20], eax
+0042E343   .  8D4D BC       lea     ecx, [ebp-44]
+0042E346   .  FF15 0C124000 call    [<&MSVBVM60.\_\_vbaFreeStr>]       ;  MSVBVM60.\_\_vbaFreeStr
+0042E34C   .  8D4D 88       lea     ecx, [ebp-78]
+0042E34F   .  FF15 1C104000 call    [<&MSVBVM60.\_\_vbaFreeVar>]       ;  MSVBVM60.\_\_vbaFreeVar
+0042E355   .  8B4D D8       mov     ecx, [ebp-28]
+0042E358   .  034D E0       add     ecx, [ebp-20]                    ;  ＋＝
+0042E35B   .  0F80 00160000 jo      0042F961
+0042E361   .  894D D8       mov     [ebp-28], ecx
+0042E364   .  B8 04000000   mov     eax, 4
+0042E369   .  03C3          add     eax, ebx
+0042E36B   .  0F80 F0150000 jo      0042F961
+0042E371   .  8BD8          mov     ebx, eax
+0042E373   .^ EB 8A         jmp     short 0042E2FF
+0042E375   >  8B55 C4       mov     edx, [ebp-3C]                    ;  第五步
+0042E378   .  52            push    edx                              ; /Arg1
+0042E379   .  FF15 20104000 call    [<&MSVBVM60.\_\_vbaLenBstr>]       ; \\_\_vbaLenBstr
+0042E37F   .  8985 28FDFFFF mov     [ebp-2D8], eax
+0042E385   .  BB 01000000   mov     ebx, 1
+0042E38A   >  3B9D 28FDFFFF cmp     ebx, [ebp-2D8]
+0042E390   .  7F 6E         jg      short 0042E400
+0042E392   .  6A 01         push    1                                ; /Arg1 = 00000001
+0042E394   .  FF15 78104000 call    [<&MSVBVM60.\_\_vbaOnError>]       ; \\_\_vbaOnError
+0042E39A   .  C745 90 03000>mov     dword ptr [ebp-70], 3
+0042E3A1   .  C745 88 02000>mov     dword ptr [ebp-78], 2
+0042E3A8   .  8D45 88       lea     eax, [ebp-78]
+0042E3AB   .  50            push    eax                              ;  取三位
+0042E3AC   .  53            push    ebx
+0042E3AD   .  8B4D C4       mov     ecx, [ebp-3C]
+0042E3B0   .  51            push    ecx
+0042E3B1   .  FF15 B8104000 call    [<&MSVBVM60.#631>]               ;  MSVBVM60.rtcMidCharBstr
+0042E3B7   .  8BD0          mov     edx, eax
+0042E3B9   .  8D4D BC       lea     ecx, [ebp-44]
+0042E3BC   .  FFD7          call    edi
+0042E3BE   .  50            push    eax
+0042E3BF   .  FF15 74114000 call    [<&MSVBVM60.\_\_vbaR8Str>]         ;  MSVBVM60.\_\_vbaR8Str
+0042E3C5   .  FF15 CC114000 call    [<&MSVBVM60.\_\_vbaFpI4>]          ;  转换16进制
+0042E3CB   .  8945 E0       mov     [ebp-20], eax
+0042E3CE   .  8D4D BC       lea     ecx, [ebp-44]
+0042E3D1   .  FF15 0C124000 call    [<&MSVBVM60.\_\_vbaFreeStr>]       ;  MSVBVM60.\_\_vbaFreeStr
+0042E3D7   .  8D4D 88       lea     ecx, [ebp-78]
+0042E3DA   .  FF15 1C104000 call    [<&MSVBVM60.\_\_vbaFreeVar>]       ;  MSVBVM60.\_\_vbaFreeVar
+0042E3E0   .  8B55 D4       mov     edx, [ebp-2C]
+0042E3E3   .  0355 E0       add     edx, [ebp-20]                    ;  +=
+0042E3E6   .  0F80 75150000 jo      0042F961
+0042E3EC   .  8955 D4       mov     [ebp-2C], edx
+0042E3EF   .  B8 03000000   mov     eax, 3
+0042E3F4   .  03C3          add     eax, ebx
+0042E3F6   .  0F80 65150000 jo      0042F961
+0042E3FC   .  8BD8          mov     ebx, eax
+0042E3FE   .^ EB 8A         jmp     short 0042E38A
+0042E400   >  8B45 C4       mov     eax, [ebp-3C]                    ;  第六步
+0042E403   .  50            push    eax                              ; /Arg1
+0042E404   .  FF15 20104000 call    [<&MSVBVM60.\_\_vbaLenBstr>]       ; \\_\_vbaLenBstr
+0042E40A   .  8985 20FDFFFF mov     [ebp-2E0], eax
+0042E410   .  BB 01000000   mov     ebx, 1
+0042E415   >  3B9D 20FDFFFF cmp     ebx, [ebp-2E0]
+0042E41B   .  6A 01         push    1                                ; /Arg1 = 00000001
+0042E41D   .  7F 6C         jg      short 0042E48B                   ; |
+0042E41F   .  FF15 78104000 call    [<&MSVBVM60.\_\_vbaOnError>]       ; \\_\_vbaOnError
+0042E425   .  C745 90 01000>mov     dword ptr [ebp-70], 1
+0042E42C   .  C745 88 02000>mov     dword ptr [ebp-78], 2
+0042E433   .  8D4D 88       lea     ecx, [ebp-78]
+0042E436   .  51            push    ecx                              ;  取一位
+0042E437   .  53            push    ebx
+0042E438   .  8B55 C4       mov     edx, [ebp-3C]
+0042E43B   .  52            push    edx
+0042E43C   .  FF15 B8104000 call    [<&MSVBVM60.#631>]               ;  MSVBVM60.rtcMidCharBstr
+0042E442   .  8BD0          mov     edx, eax
+0042E444   .  8D4D BC       lea     ecx, [ebp-44]
+0042E447   .  FFD7          call    edi
+0042E449   .  50            push    eax
+0042E44A   .  FF15 74114000 call    [<&MSVBVM60.\_\_vbaR8Str>]         ;  MSVBVM60.\_\_vbaR8Str
+0042E450   .  FF15 CC114000 call    [<&MSVBVM60.\_\_vbaFpI4>]          ;  转换成16进制
+0042E456   .  8945 E0       mov     [ebp-20], eax
+0042E459   .  8D4D BC       lea     ecx, [ebp-44]
+0042E45C   .  FF15 0C124000 call    [<&MSVBVM60.\_\_vbaFreeStr>]       ;  MSVBVM60.\_\_vbaFreeStr
+0042E462   .  8D4D 88       lea     ecx, [ebp-78]
+0042E465   .  FF15 1C104000 call    [<&MSVBVM60.\_\_vbaFreeVar>]       ;  MSVBVM60.\_\_vbaFreeVar
+0042E46B   .  8B45 CC       mov     eax, [ebp-34]
+0042E46E   .  0345 E0       add     eax, [ebp-20]                    ;  +=
+0042E471   .  0F80 EA140000 jo      0042F961
+0042E477   .  8945 CC       mov     [ebp-34], eax
+0042E47A   .  B8 01000000   mov     eax, 1
+0042E47F   .  03C3          add     eax, ebx
+0042E481   .  0F80 DA140000 jo      0042F961
+0042E487   .  8BD8          mov     ebx, eax
+0042E489   .^ EB 8A         jmp     short 0042E415
+0042E48B   >  FF15 78104000 call    [<&MSVBVM60.\_\_vbaOnError>]       ; \第七步
+0042E491   .  8D4D CC       lea     ecx, [ebp-34]                    ;  1+
+```
