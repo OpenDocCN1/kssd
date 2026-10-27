@@ -1,0 +1,196 @@
+
+# [原创]美国Safe Net 公司保护安全--级别低
+
+发布美国Safe Net 公司出产加密狗的破解方法:
+
+其实在5月份的时候,我就研究过他们公司的加密狗,并且破之了.破之后,我又大方的把我的破解提交给了使用该狗进行软件保护的开发商.因为,我实在觉得没的勇气去干违法的事.
+
+在对他们提醒后,前不久他们有告诉我,他们的某些东西升级了.我想我也没的必须在隐瞒一个不是秘密的秘密了.其实技术含量真的不高.不过方法比较通用.
+
+其实破它们的加密狗,大概有两种方法.1.软件级别.2.硬件级别.
+
+硬件级别的话,难度有点大,因为我没搞过硬件相关开发.其在主要的芯片上加了掩膜.要破的话,还得多买几个,搞实验.成本也太高.没搞过的,我就不扯了.
+
+软件级别的话,成本低,破起来入手点也很多.比如`path`关键点.截获通信流.或者其它的一些技术.
+
+对于某些问题,我觉得`path`是一种最不好的方法,稳定性低,对抗性高.别人`lv up`.你也要跟着`lv up`.
+
+其实加密狗,就是个验证服器..你只要模拟了,狗和软件的通信.也就破掉了加密狗了.就像写外挂,或者破解网验证样.
+
+下边给出,如何模拟狗通信的一些关键技术的知识点.
+
+## 1.问:如何截获狗通信?
+
+狗是硬件,`windows`平台和硬件通信的是驱动,和驱动通信的是`CreateFile`,和`DeviceIoContral`.在`r3`下截获,狗数据,只需要`hook DeviceIoContral`.在`r0`下,就写一个`usb`过滤驱动.
+
+## 2.问:如何模拟通信?
+
+答:通过模拟,返回数据,返回值,平衡堆栈.实现脱离硬件构造一个假的返回,实现模拟.
+
+## 3.问:具体分析过程?
+
+答:具体要做的事,就是把狗通信,的注意力转换到随机变量的定死.如果在软件里的随机变量被定死了,我们就可以理解为同样的`send`,会`recv`到同样的数据.然后我们把这段数据抄写下来.进行返回.
+
+下边帖出`r3`级别的彩虹狗比较新的版本的破解.-----在例子中,所用到的定义数据,是从一台真机中爪出来,再写到编译文件中的.代码写的很潦草.也没注释什么.不过也不太难理解.
+
+### 模块1-模拟狗,破解硬盘效验
+
+;在此文档的文档工具栏项目上单击右键->参数属性
+
+```
+.386
+
+.model flat, stdcall
+
+option casemap :none
+
+include windows.inc
+
+include user32.inc
+
+include kernel32.inc
+
+include        masm32.inc
+
+include        shlwapi.inc
+
+includelib user32.lib
+
+includelib kernel32.lib
+
+includelib        masm32.lib
+
+includelib        shlwapi.lib
+
+HookApi        PROTO :DWORD,:DWORD,:DWORD
+
+MyDeviceIoControl PROTO
+
+MyCreateProcessA        PROTO
+
+MyGetTickCount                PROTO
+
+MyGetSystemTime        PROTO
+
+ByteCmp                                PROTO        :DWORD,:DWORD,:DWORD
+
+.data
+
+        lpszByDll db "Welcome",0
+
+        lpHookDll db "kernel32.dll",0
+
+        lpMsvcrt         db  "msvcrt.dll",0
+
+        szDeviceIoControl db "DeviceIoControl",0
+
+        szCreateProcessA        db        "CreateProcessA",0
+
+        szGetTickCount                db  "GetTickCount",0
+
+        szGetSystemTime        db  "GetSystemTime",0
+
+        szRand                                db  "rand",0
+
+        szSrand                                db  "srand",0
+
+        szGetLocalTime                db  "GetLocalTime",0
+
+        szExplorer                        db        'c:\windows\explorer.exe',0
+
+        szCmpProc                        db        'c:\windows\system32\check.exe',0
+
+        TimeData                                db  0e9h,07h,0ch,00h,03h,00h,18h,00h,0bh,00h,0ah,00h,29h,00h,86h,01h
+
+        dbRedDate1                        db  01h,01h,00h,04h,07h,00h,00h,0FAh,0C1h,0E3h,2Dh,82h,0DCh,\
+
+                                                                 86h,0BFh,78h,0DAh,4Ah,0E2h,78h,0A8h,5Eh,0E2h,0
+
+        dbRedDate2                        db  01h,01h,00h,04h,07h,00h,00h,0E8h,22h,0D3h,8Ah,00h,00h,00h,\
+
+                                                                 00h,00h,00h,00h,00h,00h,05h,00h,00h,84h
+
+        dbReadDate11                db  00h,02h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,\
+
+                                                                 5Ah,0Ch,0FFh,3Fh,37h,0C8h,10h,00h,00h,00h,00h,00h,3Fh,00h,00h,00h,\
+
+                                                                 00h,00h,00h,00h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h
+
+                                r12                db         52h,35h,30h,59h,35h,52h,35h,36h,00h,00h,00h,40h,04h,00h,2Eh,33h,\
+
+                                                                 41h,41h,20h,46h,20h,20h,54h,53h,32h,33h,30h,35h,31h,33h,41h,30h,\
+
+                                                                 20h,53h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h
+
+                           r13                db  20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,10h,80h,\
+
+                                                            00h,00h,00h,2Fh,00h,40h,00h,02h,00h,02h,07h,00h,0FFh,3Fh,10h,00h,\
+
+                                                            3Fh,00h,10h,0FCh,0FBh,00h,10h,01h,0FFh,0FFh,0FFh,0Fh,00h,00h,07h,00h
+
+                           r14                db  03h,00h,78h,00h,78h,00h,78h,00h,78h,00h,00h,00h,00h,00h,00h,00h,\
+
+                                                            00h,00h,00h,00h,00h,00h,00h,1Fh,00h,02h,05h,00h,00h,48h,00h,40h,00h,\
+
+                                                            0FEh,00h,00h,00h,6Bh,34h,01h,7Dh,23h,40h,68h,34h,01h,0BCh,23h,40h
+
+                           r15                db  7Fh,20h,00h,00h,00h,00h,0FEh,0FEh,0FEh,0FFh,00h,00h,00h,0D0h,00h,00h,\
+
+                                                            00h,00h,00h,00h,00h,00h,00h,70h,59h,1Ch,1Dh,00h,00h,00h,00h,\
+
+                                                            00h,00h,00h,00h,00h,00h,40h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+
+                           r16                db  00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,1Eh,40h,\
+
+                                                            1Ch,40h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,\
+
+                                                            09h,00h,70h,59h,1Ch,1Dh,70h,59h,1Ch,1Dh,20h,20h,02h,00h,0B6h,02h
+
+                           r17                db  02h,00h,8Ah,00h,06h,3Ch,0Ah,3Ch,00h,00h,0C6h,07h,00h,01h,00h,08h,\
+
+                                                            14h,13h,00h,12h,02h,00h,80h,00h,00h,00h,00h,00h,00h,80h,00h,02h,02h,\
+
+                                                            00h,00h,04h,04h,00h,00h,00h,00h,00h,00h,00h,00h,00h,1Dh,0Bh,00h
+
+                           r18                db  00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,\
+
+                                                                 00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,
+
+                                                                 00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+
+                           r19                db  00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,\
+
+                                                            00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,\
+
+                                                            00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,01h,00h,00h,00h
+
+                           r1a                db  00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,\
+
+                                                            00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,\
+
+                                                            00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+
+                           r1b                db  00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,\
+
+                                                            00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,\
+
+                                                            00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,0a5h,8fh
+
+                           r1c                db  00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h
+
+        dbReadDate22                db  00h,02h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,00h,\
+
+                                                                 5Ah,0Ch,0FFh,3Fh,37h,0C8h,10h,00h,00h,00h,00h,00h,3Fh,00h,00h,00h,\
+
+                                                                 00h,00h,00h,00h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h
+
+                                r22                 db  52h,35h,30h,59h,35h,52h,35h,36h,00h,00h,00h,40h,04h,00h,2Eh,33h,\
+
+                                                                 41h,41h,20h,46h,20h,20h,54h,53h,32h,33h,30h,35h,31h,33h,41h,30h,\
+
+                                                                 20h,53h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h
+
+                                r23                db  20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,20h,10h,80h,\
+
+                                                                 00h,00h,00h,2Fh,00h,40h,00h,02h,00h,02h,07h,00h,0FFh,3Fh,10h,00h,\
+```
