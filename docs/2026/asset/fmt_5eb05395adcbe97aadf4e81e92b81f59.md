@@ -1,0 +1,191 @@
+
+# [原创] PatchGuard原理分析 (update 1/19)
+
+## 1. Introduction
+
+虽然网上关于 PatchGuard 原理分析的资料已经较多，但缺乏完整性且部分地方的分析不够细致。因此，出于学习的目的，此贴仅记录本人在分析 pg 过程中的笔记，希望对他人有所裨益。
+
+如果错误之处，还望指正！
+
+## 2. DpcRoutine
+
+触发检查的 DeferredRoutine 函数是从以下函数池中选择出来的。
+
+> `ExpTimerDpcRoutine` -> `KiCustomAccessRoutine0`
+>
+> `FsRtlTruncateSmallMcb` -> `KiCustomAccessRoutine0`
+>
+> `IopTimerDispatch` -> `KiCustomAccessRoutine1`
+>
+> `IopIrpStackProfilerDpcRoutine` -> `KiCustomAccessRoutine2`
+>
+> `PopThermalZoneDpc` -> `KiCustomAccessRoutine3`
+>
+> `CmpEnableLazyFlushDpcRoutine` -> `KiCustomAccessRoutine4`
+>
+> `CmpLazyFlushDpcRoutine` -> `KiCustomAccessRoutine5`
+>
+> `KiBalanceSetManagerDeferredRoutine` -> `KiCustomAccessRoutine6`
+>
+> `ExpTimeRefreshDpcRoutine` -> `KiCustomAccessRoutine7`
+>
+> `ExpTimeZoneDpcRoutine` -> `KiCustomAccessRoutine8`
+>
+> `ExpCenturyDpcRoutine` -> `KiCustomAccessRoutine9`
+>
+> `KiTimerDispatch`
+>
+> `KiDpcDispatch`
+>
+> `KiDispatchCallout` 枚举线程插入APC调用?
+
+函数组 `KiCustomAccessRoutine_n` 使用异常处理程序来激活检查，而 `KiTimerDispatch` 和 `KiDpcDispatch` 则直接调用 DPC，而不使用此异常技巧。通过校验 `_KPDC::DeferredContext` 是否为规范地址来判断当前 DPC 是否与 PathGuard 相关。
+
+![图片描述](upload/attach/202601/832354_6HQNPCP458TV75J.webp)
+
+需要注意的是，参数 `SystemArgument1` 和 `dpc->SystemArgument1` 的值并不相同，`SystemArgument2` 也是类似的情况。*需要进一步分析...*
+
+`KiCustomAccessRoutine_n` 函数内部调用 `KiCustomRecurseRoutine_n`，取 `DeferredContext` 的低2位再加1作为循环轮次（`count`）。调用顺序为 0~9 的循环，每次循环 `count` 减1；直到计数结束，返回 `DeferredContext` 指针的值。
+
+![图片描述](upload/attach/202601/832354_9RKHZRU4C4WE3J2.webp)
+
+![图片描述](upload/attach/202601/832354_VBHRDGQQQ2Q7PGJ.webp)
+
+由于 `DeferredContext` 是无效指针，因此会触发 #GP 异常进入异常处理块 `KiBalanceSetManagerDeferredRoutine$fin$0`。该函数接收两个参数：`UnwindReason`（是否因异常展开 "exception unwinding" 而退出）和栈帧的 `Rsp`。
+
+![图片描述](upload/attach/202601/832354_UX2Q3FAAX4NJAA7.webp)
+
+函数 `ExpTimerDpcRoutine` 中被加密的变量，诸如 `SystemArgument1`、`Dpc` 等在异常处理块中被解密。
+
+![图片描述](upload/attach/202601/832354_GYKZY8GMG9JJ22J.webp)
+
+`__ROR8__` 刚好对应于函数 `KiBalanceSetManagerDeferredRoutine` 中的 `*(_QWORD *)((char *)&pgContext[0x34] + 2) = __ROL8__(DeferredContext, SystemArgument1);`。因此，`dpc->DeferredContext` 的解密算法为 `dpc->DeferredContext ^ DeferredContextMask | 0xffff800000000000`。后续，设置 `DeferredContext` 的前4字节硬编码，即函数 `CmpAppendDllSection` 的首条指令 `xor [rcx], rdx` 开始自解密。
+
+![图片描述](upload/attach/202601/832354_NKGY79PXPS6G3YQ.webp)
+
+`DeferredContext` 所指向地址的首条指令恰好为函数 `CmpAppendDllSection` 的首条指令。
+
+![图片描述](upload/attach/202601/832354_JDWK34TGAFAD4NN.webp)
+
+### 2.1 `CmpAppendDllSection`
+
+函数 `CmpAppendDllSection` 会逐行进行自解密，后完成对 context 的解密，因此在该函数中下软件断点将会出现异常。自解密完成后，将会调用 context 的入口函数 `PatchGuardEntryPoint`。
+
+![图片描述](upload/attach/202601/832354_FD5DH7S7TRXS8SR.webp)
+
+指令 `xor qword ptr [rcx], rdx`，导致前4字节被覆盖，后4字节指令被解密。每次执行4B，解密8字节。
+
+指令 `jmp r8` 插入工作项（`ExQueueWorkItem`），参数 `pgContext[0x798]` 指定工作项指针。`_WORK_QUEUE_ITEM::Parameter` 指向当前 `pgContext`，`_WORK_QUEUE_ITEM::WorkerRoutine` 为 `FsRtlUninitializeSmallMcb`。
+
+`key = 0xe499f116fbceb8f6`，函数入口硬编码 `opcodes = 0xecc8c05e1131482e`，则 `key ^ opcodes = 0x08513148eafff0d8`。
+
+![图片描述](upload/attach/202601/832354_XRYU43ZVXSSHJ8R.webp)
+
+### 2.2 `PatchGuardEntryPoint`
+
+`PatchGuardEntryPoint` 函数为 context 的入口函数。
+
+#### 2.2.1 反调试
+
+临时替换 `idt` 表和清空 `Dr7` 寄存器，从而依赖于 #DB 异常的硬件断点和单步调试失效。
+
+![图片描述](upload/attach/202601/832354_TVUFN6CSPF5GH24.webp)
+
+#### 2.2.2 Context 自检
+
+首先检验 context 自身是否被篡改？可有效避免诸如软中断（`int3`），先前已通过清空 `dr7` 导致硬件中断失效。第一部分的 context 自检长度为 `0x620`，每次校验 `128B`，共计12轮。数据校验时，利用内存预取技术 `_mm_prefetch` 将 context 缓存至 cache 中。以第 2 轮自检为例，每轮可细分为8次运算，包括 `^` / `__ROL8__`。接着，第二部分的 context 自检校验剩余的32B。
+
+![图片描述](upload/attach/202601/832354_DESZQMGDPKQAA9H.webp)
+
+![图片描述](upload/attach/202601/832354_V97HWYKVBSEJ77C.webp)
+
+如果 context 自检失败，则会最终调用 `SdbpCheckDll` 函数触发 `KeBugCheckEx` 蓝屏。`arg1`: `pgContext[0x900]` 指向 `pgContext` 首地址；`arg2`: `pgContext[0x908]` 被置空；`arg3`: `pgContext[0x918]` 校验和；`arg4`: `pgContext[0x910]` 错误码。
+
+![图片描述](upload/attach/202601/832354_UFRUP7P4HZ75GXC.webp)
+
+![图片描述](upload/attach/202601/832354_465CGSH7F7U2W8V.webp)
+
+只要在 context 自检时机前清除 `int3` 软中断即可。
+
+#### 2.2.3 内核完整性校验
+
+当 `pgContext[0x7e0]` 被设置时（当前内核完整性校验次数 > 0），将进入内核完整性校验阶段。`pgContext[0x808] + pgContext` 指向内核完整性校验描述符表 `KICDT`（Kernel integrity check descriptor table），不同类型的内核完整性校验对象的表项长度不同。对于函数而言，每个表项长度为 `0x30`。第一部分以 `128B` 为单位进行校验，第二部分将剩余不足 `128B` 的数据以 `8B` 为单位进行校验。若剩余字节不足 `8B`，将进入第三部分，以单字节为单位进行校验。
+
+```c
+typedef struct _KICD {
+ULONG Type;
+ULONG Unknow;
+PVOID Base;
+ULONG Limit;
+ULONG Checksum; // Checksum == pgContextChecksum & 0x7FFFFFFF ? 校验成功 : 失败
+ULONG bUnknow;
+...
+} KICD, * PKICD;
+```
+
+![图片描述](upload/attach/202601/832354_GNQHNBDVPW7V6WP.webp)
+
+![图片描述](upload/attach/202601/832354_HESEHMGBSCEVCFJ.webp)
+
+如果校验失败，则判断当前是否开启了虚拟化相关的安全策略导致内核完整性校验失败？`pgContext[0x994] & 0x40`
+
++ 调用 `VslVerifyPage` 函数进行验证。如果验证通过，则忽略该错误。
++ 检测到内核完整性被破坏，设置错误上下文。
+
+![图片描述](upload/attach/202601/832354_7N5YMH8WQHM2UUV.webp)
+
+#### 2.2.4 `newContext`
+
+计算并设置新的 context 地址。
+
+#### error: 校验失败
+
+当校验失败时（`pgContext[0x8f8]`），清空调用栈并调用 `SdbpCheckDll -> KeBugCheckEx` 蓝屏。该函数内部会将 `Rsp` 调用栈清空，从而造成无法获取调用源。参数依次是：`KeBugCheckEx(errorCode, pg+0x900, pg+0x908, pg+0x918, pg+0x910)`。
+
+![图片描述](upload/attach/202601/832354_VVXBM8XPKNMQTPM.webp)
+
+在函数 `KeBugCheckEx` 之前调用栈被清空；可通过被加密的内核完整性校验描述符地址回溯原始地址，其所记录的检测目标地址与 `arg3` 一致；`pgContext` 指向 `CmpAppendDllSection`。
+
+![图片描述](upload/attach/202601/832354_WQ3X9953PG3GM2V.webp)
+
+![图片描述](upload/attach/202601/832354_MAJYCWWB9GTXSK6.webp)
+
+### 2.3 `FsRtlUninitializeSmallMcb`
+
+> 在 `PatchGuardEntryPoint` 函数中会对部分重要的函数进行完整性检查，但是对 `pgContext` 内容的完整检查是由 `FsRtlUninitializeSmallMcb` 调用 `FsRtlMdlReadCompleteDevEx` 函数完成的。这些完整性检查包括核心驱动的 IAT、GDT、IDT（包括中断向量表）、SSDT、CRx、MSR寄存器、内核全局变量、内核全局指针、进程模块链表、内核堆栈、对象类型、Local APIC、第三方通知回调、某些配置和 Flags、KPP Self 等。*内部可能存在反调试导致蓝屏。*
+
+Ref. <mark class="encrypted">a25K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2L8s2k6A6L8X3!0$3L8#2)9J5k6i4c8G2M7q4)9J5c8Y4m8G2M7%4c8Q4x3V1k6w2k6i4u0F1k6h3I4Q4x3X3c8b7j5i4c8U0K9q4)9J5k6q4m8J5L8%4c8W2j5%4c8A6L8$3^5K6</mark>
+
+### 2.4 `pgContext`
+
+`pgContext` 关键偏移如下。
+
+```
+pg+0x0c4 context长度(390d)
+pg+0x110 工作项: ExQueueWorkItem
+pg+0x158 SdbpCheckDll将要执行的崩溃函数，KeBugCheckEx
+pg+0x264 反调试(临时idt+dr7清空)
+pg+0x268 回调函数: KeAcquireSpinLockRaiseToDpc，使用pg+0x800的SpinLock
+pg+0x270 回调函数: KeReleaseSpinLock
+pg+0x468 安全策略内核完整性校验验证函数: VslVerifyPage
+pg+0x00 ~ pg+0x620 context区域
+pg+0x798 工作项指针
+pg+0x7a8 newPgContext
+pg+0x7b0 oldPgContext
+pg+0x7e0 当前内核完整性校验次数
+pg+0x7f0 newPgContext偏移
+pg+0x800 SpinLock
+pg+0x808 内核完整性校验描述符偏移
+pg+0x818 context校验和
+pg+0x8f8 内核完整性校验失败
+pg+0x828 累计校验长度，每次递增0x620
+pg+0x900 pgContext 指针
+pg+0x908 内核完整性校验描述符地址
+pg+0x910 校验对象的类型 (Type)
+pg+0x918 检验目标地址
+pg+0x994 flag & 0x40 != 0 ? 因虚拟化相关安全策略导致内核完整性校验失败，调用 VslVerifyPage 进行验证
+```
+
+## Appendix
+
+函数 `PatchGuardEntryPoint` 的完整伪代码如下：
