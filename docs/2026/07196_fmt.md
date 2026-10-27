@@ -1,0 +1,228 @@
+
+# Cast-128 加密算法和 MyPassWord 的破解
+
+Cast-128 加密算法和 MyPassWord 的破解
+
+## 1. Cast-128 加密算法概述
+
+Cast-128 加密算法是一种类似于 DES 的置换组合网路（Substitution-Permutation Network，SPN）加密系统，对于微分密码分析、线性密码分析、密码相关分析具有较好的抵抗力。这种加密还有其他的几个理想的特点，包括雪崩、严格的雪崩标准（SAC）、位独立标准（BIC）、没有互补属性也不存在软弱或者半软弱的密钥。因此对于整个 Internet 社区——要求密码强壮、容易获取的加密算法——而言，这是一种能够满足一般应用的很好的选择。
+
+整个加密过程分为密钥预处理和信息加密两个过程。密钥预处理过程是根据输入的 128 位密钥，通过一系列的 S-盒置换生成 16 对子密钥。信息加密是把输入的 64 位信息分为左右两半 `L0` 和 `R0`，通过一系列的循环变换生成 `L16` 和 `R16`，然后连接 `L16` 和 `R16` 就是输出的密文。对 Cast-128 算法解密也要分为密钥预处理和信息解密两个过程。密钥预处理和加密的时候完全相同，输入的密钥表也一样。而信息解密是把加密时的一系列循环变换倒过来，按相反的顺序从 `L16` 和 `R16` 计算出 `L0` 和 `R0`。（Cast-128 算法的具体描述请参考 `RFC2144`）
+
+所以要想破解采用 Cast128 算法的软件，关键是找到密钥预处理时用到的密钥表，有了密钥表就可以根据密文解密出明文，一般而言也就是我们要找的注册码。而且要写一个注册机也不是难事。
+
+## 2. 实例分析：MyPassWord 的破解
+
+MyPassWord 是一款私人密码管理软件，可以帮助大家管理各种各样的密码，在《黑防》2004 年 1 月刊中有介绍。软件管理帐户信息应该是采用了 MD5 算法进行验证，如果跳过帐户验证打开别人的密码文件得到的只是一些看不懂的乱码。软件没注册会在每次打开的时候提示使用了多少次，提醒大家注册。
+
+先用 `PEiD` 查看一下加了壳没有，加了壳就先脱壳，没加壳就看看采用了什么加密算法。检测一下发现 `ASPack 2.12 -> Alexey Solodovnikov`，既然是 ASPack 的壳那就不客气了，利用 `stripper v2.07` 脱壳机很方便的就可以把壳脱掉。脱壳后再次用 `PEiD` 检测一下，发现软件是用 `Delphi6.0` 编写的，采用了 Cast 和 MD5 加密算法。
+
+这里要说一句，每次拿到一个软件先用 `PEiD` 和 `FileInfo` 等工具探测一番不失为一个好的习惯，可以节省时间对症下药（什么壳要脱，什么语言用什么工具对付，什么算法要不要复习看看书）。好，知道了是 Delphi 编写的软件，当然是先用 `DeDe` 反汇编寻找关键的代码。反汇编后找到“注册”对话框中的“注册”按纽的单击响应代码位置在 `0x004F0B60`，“注册”对话框的初始化代码在 `0x004F0D18` 处。
+
+`DeDe` 的工作做完后再打开 `Ida Pro` 反汇编，这个工具不单是静态反汇编之王，现在加入了动态调试的功能更是让人爱不释手。不但可以把变量改成容易理解的名字，还可以把分析过的代码写上注释，碰到一个过程可以先进去看看再决定是需要跟进还是直接带过，关键的过程可以知道被几个地方调用了，识别出了大部分的库函数使得代码更容易理解和更容易调试（不需要跟进该函数就能知道函数实现的功能），不过反汇编的时间有一点点长。
+
+反汇编结束后，在 `0x004F0B60` 处按 `F2` 下断点，按 `F9` 运行软件。在“注册”对话框中会发现“序列号”栏已经填写了一些字符，现在先不管它，在“注册码”栏输入 `123456789` 然后按“注册”按纽。程序中断在 `0x004F0B60` 处，跟踪一下发现输入的长度有要求，在“注册码”栏重新输入 `1234567890abcdef` 然后按“注册”按纽。中断后跟踪一下会来到如下代码处：
+
+```
+CODE:004F0BBB mov     eax, [ebp+var_10]             ;[eax]="1234567890abcdef"
+
+CODE:004F0BBE lea     ecx, [ebp+var_C]
+
+CODE:004F0BC1 mov     edx, ds:dword_55E6D8
+
+CODE:004F0BC7 call    sub_54B2F8
+
+CODE:004F0BCC mov     eax, [ebp+var_C]              ;[eax]==0D4h,15h,6Dh,0D8h,3Ch,0B7h,0F8h
+
+CODE:004F0BCF mov     edx, ds:dword_55E4C4
+
+CODE:004F0BD5 mov     edx, [edx]                    ;[edx]=="49988800"
+
+CODE:004F0BD7 call    @@LStrCmp                     ;比较 eax 和 edx 所指向的内容是否相同
+
+CODE:004F0BDC jz      short loc_4F0BEF              ;如果更改这个跳转会发现弹出消息框说注册成功
+```
+
+所以 `call sub_54B2F8` 肯定是关键的过程，跟进。又是经过一番细细的跟踪来到如下代码处：
+
+```
+CODE:0054B39C lea     ecx, [ebp+var_20]
+
+CODE:0054B39F mov     edx, edi
+
+CODE:0054B3A1 mov     eax, [ebp+var_10]             ;[eax]="1234567890abcdef"
+
+CODE:0054B3A4 call    sub_54B1B0
+
+CODE:0054B3A9 mov     edx, [ebp+var_20]             ;[edx]==0D4h,15h,6Dh,0D8h,3Ch,0B7h,0F8h
+```
+
+跟进 `call sub_54B1B0`，马上就会看到这样一个过程 `CODE:0054B1F3 call sub_4BD5A8`。如果先进去看看会发现很像 Cast-128 算法的密钥预处理过程，首先是在代码的注释（这个是 `Ida Pro` 自动产生的）中居然看到如下字符：
+
+```
+CODE:004BD5C4 mov     ecx, offset aCast128KeyMust     ; "Cast128: Key must be between 1 and 16 b"...
+
+CODE:004BD5C9 mov     dl, 1
+
+CODE:004BD5CB mov     eax, ds:dword_40881C
+
+CODE:004BD5D0 call    CreateExcept
+```
+
+看到没，`Cast128: Key must ...`，就是它，明明白白的指出了这是 Cast-128 的密钥预处理过程。我记得上次跟踪资料收藏大师 v3.73 时也看到一样的字符，看来它们都采用了同一个人写的 Cast-128 算法模块。初步断定了这是 Cast-128 的密钥预处理过程，但也不能排除软件作者迷惑我们的可能性。继续往下看：
+
+```
+CODE:004BD61E cmp     edi, 0Ah
+
+CODE:004BD621 jg      short loc_4BD62F
+
+CODE:004BD623 mov     dword ptr [ebx+90h], 0Ch
+
+CODE:004BD62D jmp     short loc_4BD639
+
+CODE:004BD62F ; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CODE:004BD62F
+
+CODE:004BD62F loc_4BD62F:                             ; CODE XREF: sub_4BD5A8+79j
+
+CODE:004BD62F mov     dword ptr [ebx+90h], 10h
+```
+
+上面这段代码就是根据密钥表的长度设置信息加密时是采用 12 循环还是 16 循环。
+
+```
+CODE:004BD713 mov     edx, [esi+0Ch]
+
+CODE:004BD716 mov     ecx, edx
+
+CODE:004BD718 shr     ecx, 10h
+
+CODE:004BD71B and     ecx, 0FFh
+
+CODE:004BD721 mov     ecx, ds:sbox5[ecx*4]
+
+CODE:004BD728 xor     ecx, [esi]
+
+CODE:004BD72A mov     edi, edx
+
+CODE:004BD72C and     edi, 0FFh
+
+CODE:004BD732 xor     ecx, ds:sbox6[edi*4]
+
+CODE:004BD739 mov     edi, edx
+
+CODE:004BD73B shr     edi, 18h
+
+CODE:004BD73E xor     ecx, ds:sbox7[edi*4]
+
+CODE:004BD745 shr     edx, 8
+
+CODE:004BD748 and     edx, 0FFh
+
+CODE:004BD74E xor     ecx, ds:sbox8[edx*4]
+
+CODE:004BD755 mov     edx, [esi+8]
+
+CODE:004BD758 shr     edx, 18h
+
+CODE:004BD75B xor     ecx, ds:sbox7[edx*4]
+
+CODE:004BD762 mov     [ebp+var_34], ecx
+
+......
+```
+
+上面的代码（省略了大部分）就是用来计算子密钥的。知道了 `sub_54B1B0` 就是 Cast-128 的密钥预处理过程，把 `sub_54B1B0` 改名为 `Cast128_InitKey` 方便后面跟踪。现在就是找出密钥预处理过程用到的密钥表：
+
+```
+CODE:0054B1E6 lea     eax, [ebp+TCastData]          ;[eax]=TCastData
+
+CODE:0054B1EC mov     ecx, 10h                      ;ecx=密钥长度
+
+CODE:0054B1F1 mov     edx, ebx                      ;[edx]=密钥
+
+CODE:0054B1F3 call    Cast128_InitKey
+```
+
+来到上面的代码处就可以从 `edx` 中得到密钥的位置找出密钥 `01h,23h,27h,67h,12h,74h,42h,78h,23h,52h,57h,35h,34h,56h,78h,9Ah`。把密钥记为 `key2`，我们写注册机的时候要用到。密钥预处理完后就是信息加密，继续跟踪程序来到下面的代码处：
+
+```
+CODE:0054B25E lea     ecx, [ebp+var_18]
+
+CODE:0054B261 lea     edx, [ebp+var_10]             ;[edx]=12h,34h,56h,78h,90h,0ABh,0CDh,0EFh 也就是明文
+
+CODE:0054B264 lea     eax, [ebp+TCastData]
+
+CODE:0054B26A call    sub_4BE41C
+
+CODE:0054B26F lea     eax, [ebp+var_1C]
+
+CODE:0054B272 call    @@LStrClr
+
+CODE:0054B277 mov     ebx, 8
+
+CODE:0054B27C lea     esi, [ebp+var_18]             ;[esi]=0D4h,15h,6Dh,0D8h,3Ch,0B7h,0F8h 也就是密文
+```
+
+可以看出 `sub_4BE41C` 过程就是把 `edx` 中的明文变换成 `esi` 中的密文，不过 `sub_4BE41C` 是对应 Cast-128 中的信息加密过程还是信息解密过程呢，我们需要继续分析。跟进 `sub_4BE41C` 会在开头的一段代码中发现如下的代码：
+
+```
+CODE:004BE4BB cmp     dword ptr [ebx+90h], 0Ch
+
+CODE:004BE4C2 jle     loc_4BE5F0
+```
+
+这里是测试循环的次数是 12 次还是 16 次，如果在开头部分发现这段代码，那么就是信息解密过程，如果是在过程结尾部分发现这段代码，那么就是信息加密过程。因为加密代码和解密代码很相似，只不过是循环的顺序不一样，不容易区分。另外也可以自己写段程序测试一下，看看是加密过程输出的结果与解密过程输出的结果哪一个和跟踪程序时得出的结果一样。
+
+知道了 `sub_4BE41C` 过程就是 Cast-128 算法的解密过程，可以把 `sub_4BE41C` 改名为 `Cast128_Decode`。到这里我们可以知道，软件在注册时把我们输入的注册码通过 Cast-128 解密，然后再把解密后的字节串与 `49988800` 作比较。如果一样，则是合法的注册码，注册成功。如果不一样，注册失败。那么 `49988800` 又是如何得出来的呢？我们需要继续跟踪分析程序。在两处调用 `Cast128_InitKey` 的地方下断点，重新运行程序，会中断在如下代码处：
+
+```
+CODE:0054B459 lea     eax, [ebp+TCastData]          ;[eax]=TCastData
+
+CODE:0054B45F mov     ecx, 10h                      ;ecx=密钥长度
+
+CODE:0054B464 mov     edx, ebx                      ;[edx]=密钥
+
+CODE:0054B466 call    Cast128_InitKey
+```
+
+这里的密钥和上面的密钥不同，记为 `key1`：`01h,23h,28h,67h,12h,78h,56h,78h,23h,50h,67h,89h,34h,56h,78h,9Ah`。继续运行，会来到如下代码处：
+
+```
+CODE:0054B54E lea     ecx, [ebp+var_18]
+
+CODE:0054B551 lea     edx, [ebp+var_18]             ;[edx]=0B4h,46h,6Bh,62h,0E4h,0FCh,53h,13h 也就是序列号
+
+CODE:0054B554 lea     eax, [ebp+TCastData]
+
+CODE:0054B55A call    Cast128_Decode
+
+CODE:0054B55F lea     eax, [ebp+var_20]
+
+CODE:0054B562 call    @@LStrClr
+
+CODE:0054B567 mov     ebx, 8
+
+CODE:0054B56C lea     esi, [ebp+var_18]             ;[esi]="49988800"
+```
+
+上面这段代码把序列号解密得到 `49988800`。现在我们就可以知道如何注册：利用 `key1` 预处理密钥，然后解密序列号，得到中间变量，再用 `key2` 预处理密钥，然后加密中间变量就可以得到注册码。注册机关键代码如下：
+
+```
+invoke  cast_setkey, addr key, addr key1, 16
+
+invoke  RtlZeroMemory, addr tmp, sizeof tmp
+
+invoke  cast_decrypt, addr key, addr buf, addr tmp
+
+invoke  cast_setkey, addr key, addr key2, 16
+
+invoke  RtlZeroMemory, addr buf, sizeof buf
+
+invoke  cast_encrypt, addr key, addr tmp, addr buf
+```
+
+因为在下是一个标准的小菜鸟，错误多多还请大家包涵。最后，希望大家的破解水平越来越高。
+
+[附件:Keygen.zip](https://www.kanxue.com/pediy6628/Keygen.zip)
