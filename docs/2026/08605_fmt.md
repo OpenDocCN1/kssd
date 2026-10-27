@@ -1,0 +1,134 @@
+
+# [原创]TP 第三处断点清0 寻找方法以及源码
+
+资料仅供学习研究 请勿用于非法或商业用途，本人不负责一切法律责任 转载请注明作者和出处
+
+听说TP第三处清0 能卖钱？那我免费给大家好了 本人不是研究DNF的 纯属爱好 以下说言 若有错误 请指出 我必定虚心改正
+
+建议大家用虚拟机调试DNF 因为找这个清0 一定会蓝屏
+
+工具：`Syser Debugger` 自己的驱动 计算器 `PowerToolV4.2`
+
+我们先要获取DNF的 `EPROCESS` `EPROCESS`获得方法多种多样 我比较喜欢驱动获取 大家可以自行百度找 `EPROCESS`的获取方法
+
+获取后我们在虚拟机打开 `Syser Debugger` 按AIT+ F12 写 `bpm EPROCESS的值+bc w`
+
+有人问为什么要加 `bc` 因为加`bc`就等于`DebugPort` 详细可以参考这个链接6f0K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3u0D9L8$3N6Q4x3X3g2U0M7$3c8F1i4K6u0W2L8X3g2@1i4K6u0r3L8r3g2A6N6r3W2S2L8X3A6#2L8W2)9J5c8X3q4J5N6r3W2U0L8r3g2Q4x3V1k6V1k6i4c8S2K9h3I4K6i4K6u0r3y4U0j5^5y4e0l9H3y4b7`.`.
+
+下断后 我们按F5（`bpm`是下断）记录下这个断点的特征码 然后再按F5 此时可能会重复断在同一个内存地址 如果重复了 继续按F5 直到内存地址不同 然后我们可以看到 另一个断点 这两个断点在以前的许多文章都有介绍 大家都可以去找找 由于新的断点 比较难断下 因此我们先不急着找这个新断点 我们记录下这两个断点的特征码 用网上的办法 定位特征码后 往回找 `0xCC`
+
+然后写入 `RETN` 把这两个清0删掉 当然还有一个监控 这个监控找的办法也很简单 虽然网上也有很多介绍 我在这也啰嗦几句 怎么找吧！上面的断点断下后 记录断点的内存地址 然后写 `bc EPROCESS的值+bc` 也就是删除断点 然后写`bpm 断点的内存地址 rw` 一会就会断下 断下的地址就是监控的地址 杀监控线程的方法和删除清0的方法一样
+
+我们把两处清0和监控用自己写的驱动解决掉后 在来下 `bpm EPROCESS的值+bc` 这样等几秒就会断下 断下的特征码如下图 注 这个图并非我是自己截的 是一个网友发给我的 因为我忘记了截这个图 ![](https://bbs.kanxue.com/upload/attach/201204/502025_e9oqnv9v8kj87hx.jpg)
+
+然后我们按F6 F6是运行到返回 然后按F11 然后就会到这里 F11是单步步入
+
+![](https://bbs.kanxue.com/upload/attach/201204/502025_ele8503p2bqym49.jpg)
+
+我们按F6 然后按F11 再按F6就会到这里
+
+![](https://bbs.kanxue.com/upload/attach/201204/502025_i2hiwxp90sxy0bh.jpg)
+
+然后我们按F11 就会到这里
+
+![](https://bbs.kanxue.com/upload/attach/201204/502025_ymvoypp09g3z5e9.jpg)
+
+图片上的 `CALL B1EAB080` 就是第三处清0 `CALL` 了 至此找三处清0的过程也完结 剩下的不过是简单的 写入 `RETN`
+
+第三处清0 原理我自己也说不准 为了不误导大家 我就不说了 希望会有大大说出来
+
+最后 源码奉上 源码比较乱 希望不要介意
+
+```
+for (;;)
+
+				{  
+
+					//CALL的头部特征码
+
+						//f0 0f c1 08 9d 61 8b e5 +29=9d +30=61 +34=ff +36=80
+
+					if (*Psd5==0xf0&&*(Psd5+1)==0x0f&&*(Psd5+2)==0xc1&&*(Psd5+3)==0x08&&*(Psd5+4)==0x9d&&*(Psd5+5)==0x61
+
+						&&*(Psd5+6)==0x8b&&*(Psd5+7)==0xe5&&*(Psd5+29)==0x9d&&*(Psd5+30)==0x61&&*(Psd5+34)==0xff&&*(Psd5+36)==0x80)
+
+					{
+
+
+
+						KdPrint(("Psd5首地址:%x \n",(ULONG)Psd5));
+
+						BYTE *calladd;
+
+
+
+					//	while (1) 
+
+						//{ 
+
+							Psd5add=Psd5-98;
+
+							calladd=Psd5add+5+*(ULONG*)(Psd5-97);
+
+							//if ((*(Psd5-1) == 0xcc) && (*(Psd5-2) == 0xcc))
+
+							//{ 
+
+								KdPrint(("calladd的数值是:%x \n",(ULONG)calladd)); 
+
+
+
+								//提升IRQL中断级 
+
+								WPOFF(); //清除CR0
+
+								//写入 
+
+								RtlCopyMemory(calladd,C390,2); 
+
+								//恢复Irql 
+
+								WPON(); //恢复CR0 
+
+
+
+								break; 
+
+							//} 
+
+							//Psd5--; 
+
+						//} 
+
+
+
+					//	break;
+
+
+
+					}
+
+					Psd5++;
+
+				}
+```
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [未命名.jpg](javascript:void(0);)
+
+  （54.92kb，292次下载）
+
+- [2.jpg](javascript:void(0);)
+
+  （60.37kb，292次下载）
+
+- [3.jpg](javascript:void(0);)
+
+  （48.02kb，291次下载）
+
+- [4.jpg](javascript:void(0);)
+
+  （33.00kb，292次下载）
