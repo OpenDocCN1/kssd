@@ -1,0 +1,264 @@
+
+## 反汇编分析
+
+```asm
+73D31BD7  >  81FB 11010000        CMP EBX,111
+
+73D31BDD     56                   PUSH ESI
+
+73D31BDE     57                   PUSH EDI
+
+73D31BDF     8BF9                 MOV EDI,ECX
+
+73D31BE1     75 1B                JNZ SHORT MFC42.73D31BFE
+
+73D31BE3     FF75 10              PUSH DWORD PTR SS:[EBP+10]
+
+73D31BE6     8B07                 MOV EAX,DWORD PTR DS:[EDI]
+
+73D31BE8     FF75 0C              PUSH DWORD PTR SS:[EBP+C]
+
+73D31BEB     FF90 80000000        CALL DWORD PTR DS:[EAX+80]                                 ; <JMP.&MFC42.#4441\_?OnCommand@CWnd@@MAEHIJ@Z>
+
+73D31BF1     85C0                 TEST EAX,EAX
+
+73D31BF3     0F84 CA000000        JE MFC42.73D31CC3
+```
+
+这里 `<JMP.&MFC42.#4441\_?OnCommand@CWnd@@MAEHIJ@Z>` 就是对按钮事件进行响应的位置, F7步入:
+
+```asm
+73D3323B     FF75 08              PUSH DWORD PTR SS:[EBP+8]
+
+73D3323E     8BCE                 MOV ECX,ESI
+
+73D33240     57                   PUSH EDI
+
+73D33241     FF50 14              CALL DWORD PTR DS:[EAX+14]                                 ; <JMP.&MFC42.#4425\_?OnCmdMsg@CDialog@@UAEHIHPAXPAUAFX\_CMDHANDLERINFO@@@Z>
+
+73D33244     5F                   POP EDI
+
+73D33245     5E                   POP ESI
+
+73D33246     5B                   POP EBX
+
+73D33247     C9                   LEAVE
+```
+
+单步到:
+
+```asm
+73D33241     FF50 14              CALL DWORD PTR DS:[EAX+14]                            ; <JMP.&MFC42.#4425\_?OnCmdMsg@CDialog@@UAEHIHPAXPAUAFX\_CMDHANDLERINFO@@@Z>
+```
+
+上继续步入:
+
+```asm
+73D9DEA4     8BF1                 MOV ESI,ECX
+
+73D9DEA6     57                   PUSH EDI
+
+73D9DEA7     53                   PUSH EBX
+
+73D9DEA8     E8 0844F9FF          CALL MFC42.#4424\_?OnCmdMsg@CCmdTarget@@UAEHIHPAXPAUAFX\_CMDHANDLERINFO@>
+```
+
+继续步入 `73D9DEA8     E8 0844F9FF          CALL MFC42.#4424\_?OnCmdMsg@CCmdTarget@@UAEHIHPAXPAUAFX\_CMDHANDLERINFO@>`:
+
+```asm
+73D32385     FF75 08              PUSH DWORD PTR SS:[EBP+8]
+
+73D32388     FF75 0C              PUSH DWORD PTR SS:[EBP+C]
+
+73D3238B     53                   PUSH EBX
+
+73D3238C     FF76 04              PUSH DWORD PTR DS:[ESI+4]
+
+73D3238F     E8 DAFEFFFF          CALL MFC42.#1145\_?AfxFindMessageEntry@@YGPBUAFX\_MSGMAP\_ENTRY@@PBU1@III>
+
+73D32394     85C0                 TEST EAX,EAX
+
+73D32396     75 0F                JNZ SHORT MFC42.73D323A7
+
+73D32398     FF16                 CALL DWORD PTR DS:[ESI]
+
+73D3239A     8BF0                 MOV ESI,EAX
+
+73D3239C     85F6                 TEST ESI,ESI
+
+73D3239E   ^ 75 E5                JNZ SHORT MFC42.73D32385
+
+73D323A0     5E                   POP ESI
+
+73D323A1     5B                   POP EBX
+
+73D323A2     5F                   POP EDI
+
+73D323A3     5D                   POP EBP
+
+73D323A4     C2 1000              RETN 10
+```
+
+这里面 `AfxFindMessageEntry` 就是 MFC 中实现消息映射的位置, MFC 的 `CWnd` 类中存放有
+
+```cpp
+BEGIN_MESSAGE_MAP(CMsgDlg, CDialog)
+        //{{AFX_MSG_MAP(CMsgDlg)
+        ON_WM_SYSCOMMAND()
+        ON_WM_PAINT()
+        ON_WM_QUERYDRAGICON()
+        ON_BN_CLICKED(IDC_BUTTON1, OnButton1)
+        ON_BN_CLICKED(IDC_BUTTON2, OnButton2)
+        //}}AFX_MSG_MAP
+END_MESSAGE_MAP()
+```
+
+```cpp
+STRUCT AFX_MSG_ENTRY
+{
+   UNIT nMessage;     //窗口消息
+   UNIT nCode;        //控制代码
+   UNIT nID;          //控件ID
+   UNIT nLastID
+   UNIT nSig          //消息处理函数的类型
+   AFX_PMSG pfn          //消息处理函数的地址
+}
+```
+
+如上所示的静态数组,称为消息映射表. MFC 用一个 `STRUCT AFX_MSG_ENTRY` 结构来描述映射表中的每个表项.
+
+在 这里通过一个 `GetMessageMap` 函数获得消息映射表的基地址,然后在 `AfxFindMessageEntry` 函数中,调用一个循环,比较传入的消息和映射表中表项的是否匹配来找到消息对应的处理函数,然后把这个数组中的 `pfn` 消息处理函数地址 记录下来.
+
+继续单步:
+
+```asm
+73D323BA     E8 7F000000          CALL MFC42.73D3243E
+
+73D323BF   ^ EB DF                JMP SHORT MFC42.73D323A0
+```
+
+`CALL MFC42.73D3243E` 步入:
+
+```asm
+73D3243E     8BFF                 MOV EDI,EDI
+
+73D32440     55                   PUSH EBP
+
+73D32441     8BEC                 MOV EBP,ESP
+
+73D32443     8B45 20              MOV EAX,DWORD PTR SS:[EBP+20]
+
+73D32446     53                   PUSH EBX
+
+73D32447     33DB                 XOR EBX,EBX
+
+73D32449     43                   INC EBX
+
+73D3244A     85C0                 TEST EAX,EAX
+
+73D3244C     74 12                JE SHORT MFC42.73D32460
+
+73D3244E     8B4D 08              MOV ECX,DWORD PTR SS:[EBP+8]
+
+73D32451     8908                 MOV DWORD PTR DS:[EAX],ECX
+
+73D32453     8B4D 14              MOV ECX,DWORD PTR SS:[EBP+14]
+
+73D32456     8948 04              MOV DWORD PTR DS:[EAX+4],ECX
+
+73D32459     8BC3                 MOV EAX,EBX
+
+73D3245B     E9 E4000000          JMP MFC42.73D32544
+
+73D32460     8B45 1C              MOV EAX,DWORD PTR SS:[EBP+1C]
+
+73D32463     83F8 28              CMP EAX,28
+
+73D32466     56                   PUSH ESI
+
+73D32467     77 71                JA SHORT MFC42.73D324DA
+
+73D32469     74 5C                JE SHORT MFC42.73D324C7
+
+73D3246B     48                   DEC EAX
+
+73D3246C     48                   DEC EAX
+
+73D3246D     74 53                JE SHORT MFC42.73D324C2
+
+73D3246F     83E8 0A              SUB EAX,0A
+
+73D32472     74 46                JE SHORT MFC42.73D324BA
+
+73D32474     48                   DEC EAX
+
+73D32475     74 3E                JE SHORT MFC42.73D324B5
+
+73D32477     83E8 16              SUB EAX,16
+
+73D3247A     74 2E                JE SHORT MFC42.73D324AA
+
+73D3247C     83E8 03              SUB EAX,3
+
+73D3247F     74 16                JE SHORT MFC42.73D32497
+
+73D32481     48                   DEC EAX
+
+73D32482     75 69                JNZ SHORT MFC42.73D324ED
+
+73D32484     8B45 18              MOV EAX,DWORD PTR SS:[EBP+18]
+
+73D32487     FF30                 PUSH DWORD PTR DS:[EAX]
+
+73D32489     8B4D 08              MOV ECX,DWORD PTR SS:[EBP+8]
+
+73D3248C     FF70 04              PUSH DWORD PTR DS:[EAX+4]
+
+73D3248F     FF55 14              CALL DWORD PTR SS:[EBP+14]
+
+73D32492     E9 A8000000          JMP MFC42.73D3253F
+```
+
+单步到第 1 个 `[ebp+14]`, 经常破解的应该知道 `[ebp+14]` 这是个参数, 你要是跟踪下来就会知道 `ebp+14` 的值就是 `AfxFindMessageEntry` 函数中, 保存的消息处理函数的地址.
+
+哦, 原来 `call [EBP+14]` 是调用我们的消息处理函数, 继续进入你就发现这就是程序的算法部分.
+
+在这里我们先, 停下来总结下. MFC 通过一连串的函数走到了 `AfxFindMessageEntry`, 然后记录下
+
+消息处理函数的地址, 在通过 `call [EBP+14]` 来调用消息处理函数.
+
+那我们是否可以通过 `call [EBP+14]` 来定位程序的算法部分. 删除所有断点,，直接 F9，然后 ALT+E，双击 `MFC42.DLL`，CTRL+F，输入 `CALL [EBP+14]`, 在第一个找到的地址处 F2 下断点。
+
+步入, 果然就到了算法部分. (这里是 看 书呆彭 的贴才知道, 大牛就是厉害, 可惜他没讲原理).
+
+那这中方法是否适用于其他的 MFC 版本呢?
+
+在 `MFC42d` 中, 也可以通过这种方式秒破. 不过特征值变成了 `call [ebp-4]`.
+
+最后我总结下 MFC 的消息路由:
+
+`AfxWindProc`
+
+    |
+
+`afxCallWndProc`
+
+    |
+
+`WindowProc`
+
+    |
+
+`OnWndMsg` 这里面判断消息类型, 然后进行分发
+
+如果 `OnWndMsg` 没有处理 `DefWindowProcA@CWnd` 进行默认处理
+
+这次的分析到这里就结束了, 算法很简单, 我就不详细说明了.
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+
+- [Rith CrackMe 1.rar](javascript:void(0);)
+
+  （4.32kb，103次下载）
