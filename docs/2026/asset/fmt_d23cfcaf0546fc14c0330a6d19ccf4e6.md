@@ -1,0 +1,135 @@
+
+```text
+L_0024: stloc.1                                (0,loc0,loc2,loc0[loc2],loc0[loc2] & 255,temp1)
+                                        //loc1=temp1+1
+```
+
+这样生成的C#代码序列为：
+
+```text
+temp1=loc1;
+loc1=temp1+1;
+```
+
+因为栈中记录的是`temp1`，对`loc1`的赋值不会影响栈中值的使用。
+
+2、过程调用返回值需要使用临时变量暂存
+
+过程调用有可能改变当前函数的上下文，也就是说过程调用语句的顺序可能是不能改变的,不过我们用堆栈分析IL指令时，栈中的值是用产生该值的表达式表示的（除非该表达式值赋给了临时变量），对于过程调用的返回值，在栈中是用过程调用表示的，仅当值出栈时才会生成C#语句，由于栈的后进先出特性，将过程调用表达式放在栈中就有可能改变语句的顺序。
+
+如果能够进行全程序优化，过程调用的影响是可以确切知道的，但不做这种优化的话，我们需要保证调用语句的执行顺序，此时就需要为返回值的调用引入临时变量。
+
+3、数组访问、指针需要引入临时变量
+
+如果数组元素与指针指向的值进栈后再被修改，则与1中所说变量被修改情形是一样的，需要对栈中记录的原值引入临时变量。
+
+4、块间利用堆栈传值需要为栈中变量引入临时变量名
+
+前面说的1、2、3都是基本块内的处理办法，除了块内有用堆栈混淆外，块间也会有这样的混淆：
+
+```text
+IL_0041:            ldstr                                L"\xDA8E\xE290\xF692\xF194\xB796\xDB98\xE29A"
+IL_0046:            ldloc                                V_1
+IL_004a:            call                                System::String^ undefined_type::a(System::String^,System::Int32)
+IL_004f:            br.s                                IL_007f
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+IL_0051:            ldstr                                L"\xDA8E\xE290\xF692\xF194\xB796\xD098\xF59A\xBD9C\xB89E"
+IL_0056:            ldloc                                V_1
+IL_005a:            call                                System::String^ undefined_type::a(System::String^,System::Int32)
+IL_005f:            ldarg.0
+IL_0060:            ldfld                                Reflector::CodeModel::IAssembly^ Root::T_x32::T_x1 F_x2
+IL_0065:            callvirt                                System::String^ Reflector::CodeModel::IAssemblyReference::get_Name()
+IL_006a:            ldstr                                L"\xA88E\xB190\xD192\xEC94"
+IL_006f:            ldloc                                V_1
+IL_0073:            call                                System::String^ undefined_type::a(System::String^,System::Int32)
+IL_0078:            call                                System::String^ System::String::Concat(System::String^,System::String^,System::String^)
+IL_007d:            br.s                                IL_007f
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+IL_007f:            call                                void System::Windows::Forms::TreeNode::set_Text(System::String^)
+IL_0084:            ldarg.0
+IL_0085:            call                                System::Windows::Forms::TreeNodeCollection^ System::Windows::Forms::TreeNode::get_Nodes()
+IL_008a:            newobj                                void Root::T_x32::T_x14::.ctor()
+IL_008f:            callvirt                                System::Int32 System::Windows::Forms::TreeNodeCollection::Add(System::Windows::Forms::TreeNode^)
+IL_0094:            pop
+IL_0095:            ret
+```
+
+上面这段代码由三个基本块组成，第一块与第二块为第三块的前导，我们看到第一块与第二块执行结束时最后一次函数调用的返回值在堆栈中并未出栈，在第三块开始的调用直接使用了栈中传入的参数（高级语言基于变量与表达式的语法是不会产生这种情况的）。
+
+当我们反编译这段代码时，反编译到第三块时，函数调用的参数用哪个呢？它有两个前导块，各自通过堆栈传入一个值，程序的原意是根据条件不同使用不同的参数，如果我们用高级语言这样的功能，我们会写成：
+
+```text
+string s;
+if(...)
+{
+    s=xxCall1();
+}
+else
+{
+    s=xxCall2();
+}
+xxCall3(s);
+```
+
+也就是说，我们使用一个局部变量来统一两个分支的返回值，然后用这个变量作参数调用`xxCall3`。这样一类比就比较清楚了，仍然是需要引入临时变量，只不过这次不只是引入临时变量，还需要两个分支块的临时变量是同一个变量。
+
+上面的是一个分支结构的例子，其实块间传值还有一种情形发生在循环时（从这个角度看，循环其实是可以归入分支结构的），这里的一个例子是我们前面用来说明堆栈存值混淆的refelctor的字符串解密函数，在循环的全过程中栈中有个值一直未出栈，`L_0049->L_0012`，前者是一个基本块的结束，后者是一个基本块的开始，所以栈中的值也是在基本块间传递的，按照前面的方法，我们也需要为它引入一个临时变量，这个变量便是循环变量了。
+
+最后我贴出我写的反混淆反编译程序对字符串解密函数反出来的代码（相对原始的代码，呵呵）与经过C++优化编译后再用refelctor看到的代码，大家有兴趣可以仔细看一下，这里面有关于堆栈混淆与反混淆的主要信息。
+
+反混淆反编译的结果：
+
+```text
+System::String^ a(System::String^ A_0,System::Int32 A_1)
+{
+    //temp variables , should be optimized by C++/cli compiler.
+    array<System::Char>^ Temp_0 = nullptr;
+    System::Int32 Temp_1 = 0;
+    System::Int32 Temp_2 = 0;
+    System::Int32 Temp_3 = 0;
+    System::Byte Temp_4 = 0;
+    System::String^ Temp_5 = nullptr;
+    System::String^ Temp_6 = nullptr;
+    System::Int32 Temp_7 = 0;
+    System::Int32 Temp_8 = 0;
+    System::Int32 Temp_9 = 0;
+    //local variables.
+    array<System::Char>^ V_0 = nullptr;
+    System::Int32 V_1 = 0;
+    System::Int32 V_2 = 0;
+    System::Byte V_3 = 0;
+    System::Byte V_4 = 0;
+    //method body -------
+    IL_0000:                                                                        //ldarg.0
+    IL_0001:            Temp_0=A_0->ToCharArray();                                  //callvirt                                array<System::Char>^ System::String::ToCharArray()
+    IL_0006:            V_0=Temp_0;                                                 //stloc.0
+    IL_0007:                                                                        //ldc.i4                                0x3197fc8c
+    IL_000c:                                                                        //ldarg.1
+    IL_000d:                                                                        //add
+    IL_000e:            V_1=(832044172 + A_1);                                      //stloc.1
+    IL_000f:                                                                        //ldc.i4.0
+    IL_0010:                                                                        //dup
+    IL_0011:                                                                        //ldc.i4.1
+    IL_0012:            Temp_8=0;goto IL_0047;                                      //blt.s                                IL_0047
+    IL_0014:                                                                        //dup
+    IL_0015:            Temp_9=Temp_8;                                              //stloc.2
+    IL_0016:                                                                        //ldloc.0
+    IL_0017:                                                                        //ldloc.2
+    IL_0018:                                                                        //ldloc.0
+    IL_0019:                                                                        //ldloc.2
+    IL_001a:                                                                        //ldelem.i2
+    IL_001b:                                                                        //dup
+    IL_001c:                                                                        //ldc.i4                                0xff
+    IL_0021:                                                                        //and
+    IL_0022:            Temp_2=V_1;                                                 //ldloc.1
+    IL_0023:                                                                        //dup
+    IL_0024:                                                                        //ldc.i4.1
+    IL_0025:                                                                        //add
+    IL_0026:            Temp_3=(Temp_2 + 1);                                        //stloc.1
+    IL_0027:                                                                        //xor
+    IL_0028:                                                                        //conv.u1
+    IL_0029:            V_3=safe_cast<System::Byte>(((V_0[Temp_9] & (System::Char)255) ^ Temp_2));//stloc.3
+    IL_002a:                                                                        //dup
+    IL_002b:                                                                        //ldc.i4.8
+    IL_002c:                                                                        //shr
+```
