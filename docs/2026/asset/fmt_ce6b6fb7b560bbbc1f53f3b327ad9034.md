@@ -1,0 +1,10 @@
+
+`a82K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8$3y4K6i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3k6h3&6Q4x3X3c8#2M7#2)9J5c8X3y4H3M7q4)9J5c8X3y4Q4x3X3c8J5N6h3&6@1K9h3#2W2i4K6u0V1L8r3W2T1M7X3q4J5P5g2)9J5c8Y4u0W2k6X3g2J5k6h3&6U0k6g2)9J5c8Y4y4W2N6r3#2S2P5s2y4@1k6r3W2G2i4K6y4r3N6X3W2W2N6#2)9K6c8r3#2K6N6X3y4Q4x3X3b7I4y4K6l9`.
+
+`vs2013` 自带的 `crt` 源码
+
+[\[招生\]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+[#基础知识](https://bbs.kanxue.com/forum-41-1-130.htm)
+
+[#其他](https://bbs.kanxue.com/forum-41-1-138.htm)
