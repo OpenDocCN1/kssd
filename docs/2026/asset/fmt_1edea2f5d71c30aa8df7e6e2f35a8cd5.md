@@ -1,0 +1,212 @@
+
+`:00402ED4  6C70FF                          ILdRf                      ;Push DWORD [LOCAL_0090]`
+
+***Possible String Ref To->"39"***
+
+                               |
+
+`:00402ED7  1B6100                          LitStr                     ;Push ptr_004025CC`
+
+`:00402EDA  2A                              ConcatStr                  ;vbaStrCat`
+
+
+        Case "j"
+
+          `strCode` = `strCode` & "39"
+
+
+`:00402EDB  3170FF                          FStStr                     ;SysFreeString [LOCAL_0090]; [LOCAL_0090]=Pop`
+
+`:00402EDE  1EAA08                          Branch                     ;ESI=0040308E`
+
+`:00402EE1  04A4FE                          FLdRfVar                   ;Push LOCAL_015C`
+
+***Possible String Ref To->"k"***
+
+                               |
+
+`:00402EE4  3A48FF6200                      LitVarStr                  ;PushVarString ptr_004025D8`
+
+`:00402EE9  5D                              HardType                   ;`
+
+`:00402EEA  FB33                            EqVarBool                  ;`
+
+`:00402EEC  1C1807                          BranchF                    ;If Pop=0 then ESI=00402EFC`
+
+`:00402EEF  6C70FF                          ILdRf                      ;Push DWORD [LOCAL_0090]`
+
+***Possible String Ref To->"30"***
+
+                               |
+
+`:00402EF2  1B6300                          LitStr                     ;Push ptr_004025E0`
+
+`:00402EF5  2A                              ConcatStr                  ;vbaStrCat`
+
+
+        Case "k"
+
+          `strCode` = `strCode` & "30"
+
+
+`:00402EF6  3170FF                          FStStr                     ;SysFreeString [LOCAL_0090]; [LOCAL_0090]=Pop`
+
+`:00402EF9  1EAA08                          Branch                     ;ESI=0040308E`
+
+`:00402EFC  04A4FE                          FLdRfVar                   ;Push LOCAL_015C`
+
+***Possible String Ref To->"l"***
+
+                               |
+
+`:00402EFF  3A48FF6400                      LitVarStr                  ;PushVarString ptr_004025EC`
+
+`:00402F04  5D                              HardType                   ;`
+
+`:00402F05  FB33                            EqVarBool                  ;`
+
+`:00402F07  1C3307                          BranchF                    ;If Pop=0 then ESI=00402F17`
+
+`:00402F0A  6C70FF                          ILdRf                      ;Push DWORD [LOCAL_0090]`
+
+***Possible String Ref To->"28"***
+
+                               |
+
+`:00402F0D  1B6500                          LitStr                     ;Push ptr_004025F4`
+
+`:00402F10  2A                              ConcatStr                  ;vbaStrCat`
+
+
+        Case "l"
+
+          `strCode` = `strCode` & "28"
+
+
+`:00402F11  3170FF                          FStStr                     ;SysFreeString [LOCAL_0090]; [LOCAL_0090]=Pop`
+
+`:00402F14  1EAA08                          Branch                     ;ESI=0040308E`
+
+`:00402F17  04A4FE                          FLdRfVar                   ;Push LOCAL_015C`
+
+***Possible String Ref To->"m"***
+
+                               |
+
+`:00402F1A  3A48FF6600                      LitVarStr                  ;PushVarString ptr_00402600`
+
+`:00402F1F  5D                              HardType                   ;`
+
+`:00402F20  FB33                            EqVarBool                  ;`
+
+`:00402F22  1C4E07                          BranchF                    ;If Pop=0 then ESI=00402F32`
+
+`:00402F25  6C70FF                          ILdRf                      ;Push DWORD [LOCAL_0090]`
+
+***Possible String Ref To->"16"***
+
+                               |
+
+`:00402F28  1B6700                          LitStr                     ;Push ptr_00402608`
+
+`:00402F2B  2A                              ConcatStr                  ;vbaStrCat`
+
+
+        Case "m"
+
+          `strCode` = `strCode` & "16"
+
+
+`:00402F2C  3170FF                          FStStr                     ;SysFreeString [LOCAL_0090]; [LOCAL_0090]=Pop`
+
+`:00402F2F  1EAA08                          Branch                     ;ESI=0040308E`
+
+`:00402F32  04A4FE                          FLdRfVar                   ;Push LOCAL_015C`
+
+***Possible String Ref To->"n"***
+
+                               |
+
+`:00402F35  3A48FF6800                      LitVarStr                  ;PushVarString ptr_00402614`
+
+`:00402F3A  5D                              HardType                   ;`
+
+`:00402F3B  FB33                            EqVarBool                  ;`
+
+`:00402F3D  1C6907                          BranchF                    ;If Pop=0 then ESI=00402F4D`
+
+`:00402F40  6C70FF                          ILdRf                      ;Push DWORD [LOCAL_0090]`
+
+***Possible String Ref To->"20"***
+
+                               |
+
+`:00402F43  1B6900                          LitStr                     ;Push ptr_0040261C`
+
+`:00402F46  2A                              ConcatStr                  ;vbaStrCat`
+
+
+        Case "n"
+
+          `strCode` = `strCode` & "20"
+
+
+`:00402F47  3170FF                          FStStr                     ;SysFreeString [LOCAL_0090]; [LOCAL_0090]=Pop`
+
+`:00402F4A  1EAA08                          Branch                     ;ESI=0040308E`
+
+`:00402F4D  04A4FE                          FLdRfVar                   ;Push LOCAL_015C`
+
+***Possible String Ref To->"o"***
+
+                               |
+
+`:00402F50  3A48FF6A00                      LitVarStr                  ;PushVarString ptr_00402628`
+
+`:00402F55  5D                              HardType                   ;`
+
+`:00402F56  FB33                            EqVarBool                  ;`
+
+`:00402F58  1C8407                          BranchF                    ;If Pop=0 then ESI=00402F68`
+
+`:00402F5B  6C70FF                          ILdRf                      ;Push DWORD [LOCAL_0090]`
+
+***Possible String Ref To->"56"***
+
+                               |
+
+`:00402F5E  1B6B00                          LitStr                     ;Push ptr_00402630`
+
+`:00402F61  2A                              ConcatStr                  ;vbaStrCat`
+
+
+        Case "o"
+
+          `strCode` = `strCode` & "56"
+
+
+`:00402F62  3170FF                          FStStr                     ;SysFreeString [LOCAL_0090]; [LOCAL_0090]=Pop`
+
+`:00402F65  1EAA08                          Branch                     ;ESI=0040308E`
+
+`:00402F68  04A4FE                          FLdRfVar                   ;Push LOCAL_015C`
+
+***Possible String Ref To->"p"***
+
+                               |
+
+`:00402F6B  3A48FF6C00                      LitVarStr                  ;PushVarString ptr_0040263C`
+
+`:00402F70  5D                              HardType                   ;`
+
+`:00402F71  FB33                            EqVarBool                  ;`
+
+`:00402F73  1C9F07                          BranchF                    ;If Pop=0 then ESI=00402F83`
+
+`:00402F76  6C70FF                          ILdRf                      ;Push DWORD [LOCAL_0090]`
+
+***Possible String Ref To->"3f"***
+
+                               |
+
+`:00402F79  1B6D00                          LitStr                     ;Push ptr_00402644`
