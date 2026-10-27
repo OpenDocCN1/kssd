@@ -1,0 +1,218 @@
+
+## 待加密值与加密值
+
+待加密值：111100111011111010111001111000110111110110110101
+
+加密值：1000111001010010010100000100110100011101111000001111101011001101100101101000111＝472928268EF07D66CB47
+
+## 验证
+
+`N`＝BED3E05921571679EEAD（H）
+
+`E`＝58FF54E068BD181EFD67（H）
+
+`M`＝F3BEB9E37DB5
+
+`C`＝`M~E MOD(N)`＝472928268EF07D66CB47
+
+## 找第一个111并去除前面的字符
+
+```
+0045CF7D     8D45 B0           lea eax,dword ptr ss:[ebp-50]
+0045CF80     B9 01000000       mov ecx,1
+0045CF85     BA 01000000       mov edx,1
+0045CF8A     E8 AD73FAFF       call dumped.0040433C
+0045CF8F     8D45 A0           lea eax,dword ptr ss:[ebp-60]
+0045CF92     50                push eax
+0045CF93     B9 03000000       mov ecx,3
+0045CF98     BA 01000000       mov edx,1
+0045CF9D     8B45 B0           mov eax,dword ptr ss:[ebp-50]
+0045CFA0     E8 5773FAFF       call dumped.004042FC
+0045CFA5     8B45 A0           mov eax,dword ptr ss:[ebp-60]
+0045CFA8     BA 40D04500       mov edx,dumped.0045D040                     ; ASCII "111"
+0045CFAD     E8 5272FAFF       call dumped.00404204
+0045CFB2     74 0D             je short dumped.0045CFC1
+0045CFB4     8B45 B0           mov eax,dword ptr ss:[ebp-50]
+0045CFB7     E8 3871FAFF       call dumped.004040F4
+0045CFBC     83F8 03           cmp eax,3
+0045CFBF   ^ 7F BC             jg short dumped.0045CF7D
+```
+
+待处理值：1000111001010010010100000100110100011101111000001111101011001101100101101000111
+
+处理后值：       001010010010100000100110100011101111000001111101011001101100101101000111
+
+十六进制：2928268EF07D66CB47
+
+## 加密值转换成字符（Base64）
+
+用到Base64
+
+```
+00560F97     E8 E892EFFF       call dumped.0045A284
+```
+
+### 加密值的调整
+
+使为6的倍数
+
+```
+0045A2F5     8D45 F8         lea eax,dword ptr ss:[ebp-8]
+0045A2F8     8B55 FC         mov edx,dword ptr ss:[ebp-4]
+0045A2FB     0FB65432 FF     movzx edx,byte ptr ds:[edx+esi-1]
+0045A300     8B9495 F4FBFFFF mov edx,dword ptr ss:[ebp+edx*4-40C]    ; 转换成2进制
+0045A307     E8 F09DFAFF     call dumped.004040FC
+0045A30C     46              inc esi
+0045A30D     4B              dec ebx
+0045A30E   ^ 75 E5           jnz short dumped.0045A2F5
+...
+0045A31F     8B45 F8         mov eax,dword ptr ss:[ebp-8]            ; JIAMIZHI
+0045A322     E8 CD9DFAFF     call dumped.004040F4
+0045A327     B9 06000000     mov ecx,6
+0045A32C     99              cdq
+0045A32D     F7F9            idiv ecx
+0045A32F     85D2            test edx,edx
+0045A331   ^ 75 DF           jnz short dumped.0045A312               ; 调整到6的倍数
+```
+
+如果加密值的2进制长度不够6整除，在后面添0。
+
+### 取6bit转换，再查表
+
+```
+0045A350     8D85 F0FBFFFF     lea eax,dword ptr ss:[ebp-410]
+0045A356     50                push eax
+0045A357     B9 06000000       mov ecx,6
+0045A35C     BA 01000000       mov edx,1
+0045A361     8B45 F8           mov eax,dword ptr ss:[ebp-8]
+0045A364     E8 939FFAFF       call dumped.004042FC
+0045A369     8B95 F0FBFFFF     mov edx,dword ptr ss:[ebp-410]
+0045A36F     8D45 F4           lea eax,dword ptr ss:[ebp-C]
+0045A372     E8 1DFCFFFF       call dumped.00459F94
+0045A377     8D85 ECFBFFFF     lea eax,dword ptr ss:[ebp-414]
+0045A37D     8B55 F4           mov edx,dword ptr ss:[ebp-C]
+0045A380     8A92 6F3B5600     mov dl,byte ptr ds:[edx+563B6F]   ; 查表
+0045A386     E8 919CFAFF       call dumped.0040401C
+0045A38B     8B95 ECFBFFFF     mov edx,dword ptr ss:[ebp-414]
+0045A391     8BC7              mov eax,edi
+0045A393     E8 649DFAFF       call dumped.004040FC
+0045A398     8D45 F8           lea eax,dword ptr ss:[ebp-8]
+0045A39B     B9 06000000       mov ecx,6
+0045A3A0     BA 01000000       mov edx,1
+0045A3A5     E8 929FFAFF       call dumped.0040433C
+0045A3AA     4B                dec ebx
+0045A3AB   ^ 75 A3             jnz short dumped.0045A350
+```
+
+核心集中在`ds:[edx+563B6F]`
+
+其中`edx`这样来的：
+
+加密值＝2928268EF07D66CB47＝001010010010100000100110100011101111000001111101011001101100101101000111
+
+拆分为6bit：001010 010010 100000 100110 100011 101111 000001 111101 011001 101100 101101 000111
+
+找对应关系得到`edx`：
+
+```
+0012F6BC   00FFBA6C    ASCII "00000000"      // 1
+0012F6C0   00F724D0    ASCII "00000001"      // 2
+0012F6C4   00FFE2E0    ASCII "00000010"      // 3
+0012F6C8   00FFE2F8    ASCII "00000011"      // 4
+0012F6CC   00FFE310    ASCII "00000100"      // 5
+0012F6D0   00FFE328    ASCII "00000101"      // 6
+0012F6D4   00FFE340    ASCII "00000110"      // 7
+0012F6D8   00FFE358    ASCII "00000111"      // 8
+0012F6DC   00FFE370    ASCII "00001000"      // 9
+0012F6E0   00FFE388    ASCII "00001001"      // A
+0012F6E4   00FFE3A0    ASCII "00001010"      // B
+0012F6E8   00FFE3B8    ASCII "00001011"      // C
+0012F6EC   00FFE3D0    ASCII "00001100"      // D
+0012F6F0   00FFE3E8    ASCII "00001101"      // E
+0012F6F4   00FFE400    ASCII "00001110"      // F
+0012F6F8   00FFE418    ASCII "00001111"      // 10
+0012F6FC   00FFE430    ASCII "00010000"      //
+0012F700   00FFE448    ASCII "00010001"      //
+0012F704   00FFE460    ASCII "00010010"      //
+0012F708   00FFE478    ASCII "00010011"      //
+0012F70C   00FFE490    ASCII "00010100"      //
+0012F710   00FFE4A8    ASCII "00010101"      //
+0012F714   00FFE4C0    ASCII "00010110"      //
+0012F718   00FFE4D8    ASCII "00010111"      //
+0012F71C   00FFE4F0    ASCII "00011000"      //
+0012F720   00FFE508    ASCII "00011001"      //
+0012F724   00FFE520    ASCII "00011010"      //
+0012F728   00FFE538    ASCII "00011011"      //
+0012F72C   00FFE550    ASCII "00011100"      //
+0012F730   00FFE568    ASCII "00011101"      //
+0012F734   00FFE580    ASCII "00011110"      //
+0012F738   00FFE598    ASCII "00011111"      // 20
+0012F73C   00FFE5B0    ASCII "00100000"      //
+0012F740   00FFE5C8    ASCII "00100001"      //
+0012F744   00FFE5E0    ASCII "00100010"      //
+0012F748   00FFE5F8    ASCII "00100011"      //
+0012F74C   00FFE610    ASCII "00100100"      //
+0012F750   00FFE628    ASCII "00100101"      //
+0012F754   00FFE640    ASCII "00100110"      //
+0012F758   00FFE658    ASCII "00100111"      //
+0012F75C   00FFE670    ASCII "00101000"      //
+0012F760   00FFE688    ASCII "00101001"      //
+0012F764   00FFE6A0    ASCII "00101010"      //
+0012F768   00FFE6B8    ASCII "00101011"      //
+0012F76C   00FFE6D0    ASCII "00101100"      //
+0012F770   00FFE6E8    ASCII "00101101"      //
+0012F774   00FFE700    ASCII "00101110"      //
+0012F778   00FFE718    ASCII "00101111"      // 30
+0012F77C   00FFE730    ASCII "00110000"      //
+0012F780   00FFE748    ASCII "00110001"      //
+0012F784   00FFE760    ASCII "00110010"      //
+0012F788   00FFE778    ASCII "00110011"      //
+0012F78C   00FFE790    ASCII "00110100"      //
+0012F790   00FFE7A8    ASCII "00110101"      //
+0012F794   00FFE7C0    ASCII "00110110"      //
+0012F798   00FFE7D8    ASCII "00110111"      //
+0012F79C   00FFE7F0    ASCII "00111000"      //
+0012F7A0   00FFE808    ASCII "00111001"      //
+0012F7A4   00FFE820    ASCII "00111010"      //
+0012F7A8   00FFE838    ASCII "00111011"      //
+0012F7AC   00FFE850    ASCII "00111100"      //
+0012F7B0   00FFE868    ASCII "00111101"      //
+0012F7B4   00FFE880    ASCII "00111110"      //
+0012F7B8   00FFE898    ASCII "00111111"      // 40
+```
+
+后面还有n多，不过用不上了。
+
+查表：`[563B6F]`
+
+```
+00563B60                                               C0
+00563B70  61 41 62 42 63 43 64 44 65 45 66 46 67 47 68 48  aAbBcCdDeEfFgGhH
+00563B80  69 49 6A 4A 6B 4B 6C 4C 6D 4D 6E 4E 6F 4F 70 50  iIjJkKlLmMnNoOpP
+00563B90  71 51 72 52 73 53 74 54 75 55 76 56 77 57 78 58  qQrRsStTuUvVwWxX
+00563BA0  79 59 7A 5A 30 31 32 33 34 35 36 37 38 39 2B 3D  yYzZ0123456789+=
+```
+
+这个就是Base64的表。
+
+加密值＝2928268EF07D66CB47＝001010010010100000100110100011101111000001111101011001101100101101000111
+
+查表值：00F72A6C  66 6A 71 74 52 58 41 39 4D 77 57 44              fjqtRXA9MwWD
+
+## 3. 获得参数之二：硬盘号计算值
+
+取硬盘号：
+
+```
+00560FAB      call gwyzl.0045DD24            ; jmp to offset diskseri.GetDiskSerial
+eax=1000CED8 (diskerseri.1000CED8), ASCII "WD-WCAD13523066"
+```
+
+计算硬盘号：
+
+```
+00560FEF     8B45 DC           mov eax,dword ptr ss:[ebp-24]
+00560FF2     0FB64418 FF       movzx eax,byte ptr ds:[eax+ebx-1]
+00560FF7     B9 0A000000       mov ecx,0A
+00560FFC     33D2              xor edx,edx
+```
