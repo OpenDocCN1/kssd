@@ -1,0 +1,279 @@
+
+无论本地 Gradle 版本是多少，Gradle Wrapper 都是获得可靠构建的一种方法。需要 Gradle 来安装 Wrapper。
+
+如果你只是想启动 Wrapper，也得先安装 Gradle。在扩展目录中执行`gradle wrapper` 。为了使用 Wrapper 构建项目，请把你命令中的`gradle`替换为`gradlew` (\*nix) 或`gradlew.bat` (Windows)，例如`gradlew.bat build`。
+
+## 创建一个框架扩展
+
+1. 创建`src\burp`目录，这个目录将会包含 burp 的包
+   - 所有包都将放在`src`目录下.
+
+![](upload/attach/201912/214974\_FEFV8DMUCVVYVFP.png)
+
+2. 在`src\burp`中创建一个名为`BurpExtender.java`的文件
+   - 该文件将是扩展的入口点
+
+3. 编辑`BurpExtender.java`并添加上这段代码：
+
+```
+package burp;
+public class BurpExtender implements IBurpExtender
+{
+//
+// implement IBurpExtender
+//
+@Override
+public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks)
+{
+// set our extension name
+callbacks.setExtensionName("Burp Sample Extension Java");
+}
+}
+```
+
+**注意**：如果你的扩展程序只有一个包（或者几个文件），你可以把你的所有文件都直接放到`src`目录下
+
+## 设置VS Code
+
+为了让我们敲代码更轻松，我们把`bigjar` Gradle 任务分配给 VS Code 中的默认构建任务，这一点很重要，如果你的扩展使用了非 Burp 依赖项（像上面的`gson`）。在这种情况下，你需要 publish 这个 jar 文件。
+
+1. 按`Ctrl+Shift+P`或`F1`打开 VS Code 的命令面板
+
+2. 输入`task`并选择`Configure Default Build Task`.
+
+3. 选择`Create tasks.json file from template`.
+
+4. 选择`Others`.
+
+5. VS Code 将创建`.vscode\tasks.json`文件
+
+6. 打开`.vscode\tasks.json`并且粘贴进以下内容：
+
+```
+{
+// See https://go.microsoft.com/fwlink/?LinkId=733558
+// for the documentation about the tasks.json format
+"version": "2.0.0",
+"tasks": [
+{
+"label": "gradle",
+"type": "shell",
+"command": "gradle bigjar",
+// "command": "gradlew.bat bigjar", // Wrapper on Windows
+// "command": "gradlew bigjar", // Wrapper on \*nix
+"group": {
+"kind": "build",
+"isDefault": true
+}
+}
+]
+}
+```
+
+现在我们可以这样构建项目：
+
+1. 推荐按`Ctrl+Shift+B`，这样更快而且看起来很 1337（黑客俚语）。
+
+2. `Terminal (菜单) > Run Task (子菜单) > gradle`
+
+3. 打开命令面板，输入`tasks`然后选择`Run Build Task`.
+
+执行一次即会下载 Burp Extender 接口并构建库，输出的 jar 文件将会被存放在`build\libs\burp-sample-extension-java-all.jar`
+
+## 设置IntelliCode
+
+我们的构建工作一切正常，但你可能已经注意到，VS Code 无法识别从`burp`包中导入的接口。
+
+![](upload/attach/201912/214974\_ERVBS3YVGA82WWU.png)
+
+每次添加新的依赖，我们都需要清理 Java 语言服务器。否则我们会再次遇到一样的错误.
+
+1. 使用`Ctrl+Shift+P`或`F1`，打开 VS Code 的命令面板
+
+2. 输入`java clean`并选择`Java Clean the Java language server workspace`.
+
+3. 询问是否重启 VS Code.
+
+4. 现在我们就有了 IntelliCode 支持.
+
+![](upload/attach/201912/214974\_PF3WWNRTBCHRQRU.png)
+
+**注意**：这是大多数`vscode-java`扩展问题的解决方案。
+
+## Burp 设置
+
+让我们添加一些代码到扩展中展示如何在每次编译之后测试扩展。
+
+修改`BurpExtender.java`，看下 IntelliCode 是如何让我们更轻松地编写代码的。
+
+![](upload/attach/201912/214974\_VEQBJFE44SXC3RG.gif)
+
+```
+package burp;
+public class BurpExtender implements IBurpExtender
+{
+//
+// implement IBurpExtender
+//
+@Override
+public void registerExtenderCallbacks(IBurpExtenderCallbacks callbacks)
+{
+// set our extension name
+callbacks.setExtensionName("Burp Sample Extension Java");
+String fileName = callbacks.getExtensionFilename();
+callbacks.printOutput(fileName);
+}
+}
+```
+
+这段代码打印了扩展文件的名字到控制台。使用`Ctrl+Shift+B`编译扩展。
+
+![](upload/attach/201912/214974\_SW7XZXEXPDNBMB5.png)
+
+jar 文件会出现在`build\libs`目录下。
+
+![](upload/attach/201912/214974\_YF5GK8YY5FCCSSW.png)
+
+BurpSuite配置：
+
+1. 在第二个监视器（扩展屏幕）中启动 Burp
+
+2. 通过`Window (菜单) > Detach Extender()`分离`Extender`窗口
+
+3. 按下 windows+左箭头 将其放置到屏幕的一边
+
+4. Windows 会显示其它进程的列表，要我选择一个放到屏幕的另一边
+
+5. 选择 Burp，以便 Extender 和 Burp 并排出现在第二个屏幕中
+
+6. 拖住这两个窗口之间的边界以调整其大小
+
+我的扩展开发周期是：
+
+1. 在监视器1（扩展屏幕）中编辑 VS Code 中的代码
+
+2. 按下`Ctrl+Shift+B`进行编译
+
+3. 通过 Ctrl+鼠标左键 选中 Extender 中扩展前面的复选框来重新加载它（在监视器2中）
+
+4. 在 Burp 中使用扩展（监视器2）
+
+![](upload/attach/201912/214974\_ZXZ39KXWJHMM9PA.png)
+
+## 使用VSCode调试扩展
+
+这是本篇文章最重要的一部分，我将讨论如何在 VS Code 中调试扩展程序。从网上我找到了这些参考资料：
+
+- Eric Gruber 在 <mark class="encrypted">f4dK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1L8r3!0Y4i4K6u0W2L8X3g2@1M7%4m8A6i4K6u0W2j5$3!0E0i4K6u0r3k6r3g2T1N6h3N6Y4K9h3&6Y4i4K6u0V1j5Y4g2J5M7q4)9J5k6r3g2^5N6r3g2F1M7$3W2G2L8Y4y4Q4x3V1j5`.</mark> 上的扩展程序调试展示了如何使用 IntelliJ 来调试 Burp，它给了我使用 jdwp 的想法。
+
+- Derek（<a href="elink@088K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6@1N6$3W2@1N6r3g2J5i4K6u0W2j5$3!0E0i4K6u0r3f1%4c8S2j5$3E0o6M7X3q4K6K9l9`.`.">@StackCrash</a>）在博客里 <mark class="encrypted">5deK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2A6N6s2y4W2j5$3N6#2P5g2)9J5k6h3y4G2L8g2)9J5c8X3#2&6i4K6u0V1k6X3W2J5M7%4c8Q4x3X3c8T1N6i4u0H3i4K6u0V1M7%4g2A6N6r3g2Q4x3X3c8W2P5s2c8W2L8Y4y4A6L8$3&6Q4x3V1j5`.</mark> 中提到，将`burp.StatBurp`添加到项目属性的 Run 部分即可。
+
+- 这与 Dafydd Stuttard 在 <a href="elink@661K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6K6N6i4m8H3L8%4u0@1i4K6u0W2M7r3!0J5N6s2y4%4K9h3N6Y4k6i4u0Q4x3X3g2F1k6i4c8Q4x3V1k6U0N6i4y4@1L8$3#2W2M7W2)9J5c8Y4m8G2M7Y4c8S2L8q4)9J5c8Y4q4#2k6i4y4@1K9h3!0F1M7#2)9J5c8U0p5$3y4K6l9&6x3K6j5J5i4K6u0V1k6r3g2T1N6h3N6Q4x3X3c8B7j5i4k6S2i4K6u0V1M7s2u0G2K9X3g2U0N6l9`.`.">Burp support ticket</a> 中所说的一致，“将 Burp JAR文件作为库添加到项目中，然后通过在`burp.StartBurp.main()`中调用 main 方法来启动 Burp”
+
+VS Code 的 Java 扩展包中自带一个 Java 调试器，要使用它，我们需要使用以下命令行选项运行 Burp：
+
+- `agentlib:jdwp=transport=dt\_socket,address=localhost:8000,server=y,suspend=n`
+
+这将在`localhost:80000`上运行调试服务器。请注意，互联网上的大多数示例都只是以端口来运行，这样服务器会默认监听`0.0.0.0`，这样显然不好（除非你能从远程主机来进行调试）。
+
+接下来，我们必须使用以下参数运行 Burp 的 jar 文件。Burp 的 jar 文件默认安装在以下路径：
+
+- `C:\Program Files\BurpSuiteCommunity\burpsuite\_community.jar`
+
+完整的命令：
+
+```
+java -agentlib:jdwp=transport=dt\_socket,address=localhost:8000,server=y,suspend=n
+-jar "C:\Program Files\BurpSuiteCommunity\burpsuite\_community.jar"
+```
+
+- **提示**：使用这个作为快捷方式，以便你一直在你的开发环境虚拟机中调试 Burp
+
+- 你可以忽略掉关于 JDK 没被 Burp 测试通过的错误，忽略它
+
+### 使用Burp的附带JRE
+
+你可能已经在 Burp 的目录中看到了`BurpSuiteCommunity.vmoptions`文件，我们可以向里面添加运行时参数，向文件中添加下面一行来启用调试：
+
+```
+-agentlib:jdwp=transport=dt\_socket,address=localhost:8000,server=y,suspend=n
+```
+
+现在我们可以运行`exe`然后调试我们的扩展程序。我已经在 Git 仓库中包含了一个`.vmoptions`样本文件 。
+
+接下来，我们必须在 VS Code 中启动 Java 调试器并连接到调试端口。在`callbacks.printOutput(fileName);`这一行设置断点，然后选择`Debug (菜单) > Start Debugging`或按下`F5`。
+
+这将创建并打开`.vscode\launch.json`文件，粘贴下面这段代码到里面并保存它：
+
+```
+{
+"version": "0.2.0",
+"configurations": [
+{
+"type": "java",
+"name": "BurpExtension",
+"request": "attach",
+"hostName": "localhost",
+"port": 8000 // Change this if you had set a different debug port.
+}
+]
+}
+```
+
+这个文件非常简单，唯一重要的参数就是`hostname`和`port`，指向上面的调试端口（`localhost:8000`）。
+
+再次开始调试，Windows 防火墙可能会弹出来。如果可以不是在调试一台远程计算机，请按取消。如果防火墙对话框没关掉但调试器已经超时了，就按`F5`重新调试。
+
+待调试器被附加后，通过在复选框上`Ctrl+鼠标右击`来重新加载扩展，然后能看到调试器成功断在断点处。
+
+![](upload/attach/201912/214974\_E8FSCVZDB6PBN8N.png)
+
+非常漂亮也超级有用。
+
+## 将扩展的jar存放在不同的路径中
+
+如果查看 build 目录里，会看到很多类文件，我们不希望这些出现在源代码控制中，所以把 build 目录添加到`.gitignore`文件中是明智的，但这意味着我们最终的 jar 文件也将被忽略，我们希望最终的 jar 文件出现在仓库中，以便人们可以下载并使用它。
+
+我们可以通过修改`build.gradle`文件中的`libDirName`来更改扩展程序 jar 文件的存放路径。
+
+```
+libsDirName = "../@jar"
+```
+
+此配置将最终的 jar 文件复制到`@jar\burp-sample-extension-java-all.jar`
+
+## 学习小结
+
+1. 用 Java 创建一个简单的 Burp 扩展
+
+2. 安装 Gradle 和编译扩展
+
+3. 在 VS Code 中开启 Java IntelliCode
+
+4. 在 VS Code 中调试 Java Burp 扩展
+
+5. 更改 jar 文件的存放路径
+
+原文链接：<mark class="encrypted">615K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5i4u0K6K9i4W2S2i4K6u0W2L8X3g2@1i4K6u0r3j5X3I4G2k6#2)9J5c8U0t1H3x3e0W2Q4x3X3b7I4x3W2)9J5k6o6l9J5i4K6u0V1k6r3g2$3k6h3I4G2M7r3W2F1k6#2)9J5k6r3q4F1k6q4)9J5k6r3c8W2j5Y4g2Y4k6$3W2F1k6#2)9J5k6r3A6S2N6X3q4Q4x3X3c8T1N6i4u0H3i4K6u0V1k6i4S2@1k6h3&6K6K9h3!0F1M7#2)9J5k6s2N6A6N6r3S2Q4x3X3c8$3K9i4y4#2j5h3I4Q4x3X3c8K6N6s2g2V1K9h3!0Q4x3X3c8U0L8$3c8W2i4K6u0r3i4K6t1K6k6r3g2T1N6h3N6Y4K9h3&6Y4i4K6u0V1N6r3S2W2i4K6u0V1k6i4S2@1k6h3&6K6K9h3!0F1i4K6u0V1N6$3W2@1K9q4)9J5k6s2k6K6i4K6u0V1j5$3!0V1k6b7`.`.</mark>
+
+翻译：lipss
+
+校对：nxe
+
+目录
+
+- [Python版扩展的错误记录](https://bbs.kanxue.com/#python版扩展的错误记录)
+- 安装Visual Studio代码
+- [安装OpenJDK](https://bbs.kanxue.com/#安装openjdk)
+- [Gradle](https://bbs.kanxue.com/#gradle)
+- [设置Gradle](https://bbs.kanxue.com/#设置gradle)
+- [构建.gradle](https://bbs.kanxue.com/#构建.gradle)
+- Gradle 包
+- [创建一个框架扩展](https://bbs.kanxue.com/#创建一个框架扩展)
+- 设置VS Code
+- [设置IntelliCode](https://bbs.kanxue.com/#设置intellicode)
+- Burp 设置
+- [使用VSCode调试扩展](https://bbs.kanxue.com/#使用vscode调试扩展)
+- [使用Burp的附带JRE](https://bbs.kanxue.com/#使用burp的附带jre)
+- [将扩展的jar存放在不同的路径中](https://bbs.kanxue.com/#将扩展的jar存放在不同的路径中)
+- [学习小结](https://bbs.kanxue.com/#学习小结)

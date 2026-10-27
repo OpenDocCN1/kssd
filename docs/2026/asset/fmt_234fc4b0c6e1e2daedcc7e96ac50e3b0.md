@@ -1,0 +1,315 @@
+
+# [原创]破解WebCombo.NET Version 2.0
+
+## 软件信息
+
+- 【软件名称】：WebCombo.NET Version 2.0
+- 【软件类别】：国外软件
+- 【整理时间】：2005-08-09
+- 【下载地址】：557K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3k6@1M7q4)9J5k6h3g2$3k6$3g2@1i4K6u0W2j5$3!0E0i4K6u0r3M7s2u0G2k6s2g2U0N6q4)9J5c8V1W2F1N6r3g2J5f1$3!0X3N6q4)9J5c8W2N6W2j5V1y4G2L8h3u0G2x3W2c8J5K9h3q4D9f1$3g2@1N6i4m8Q4x3X3g2\*7K9i4l9`.
+- 【软件简介】：WebCombo是一个具有高级功能的Dropdown类型的控件，可以添加到您的Asp.net应用程序中。WebCombo.NET基于.Net开发并且支持IE5。0以上版本。他能够控制大数据量的dropdown方式的显示，能自动获取数据而不需要提交表单。WebCombo.NET利用了很多.Net技术的高级功能，并充分利用了IE的特性，能够完全替代功能简单的标准Dropdown控件
+- 【保护方式】：NAG + 试用时间30天
+- 【保护软件】：Dotfuscator
+- 【编译语言】：ASP.NET
+- 【调试环境】：WinXP、.NET Framework 1.1、Reflector、`ildasm`、`sn`、`ultraedit`
+- 【破解日期】：2005-08-08
+- 【破解目的】：研究.NET程序的破解流程
+- 【作者声明】：初学Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+## 技术细节
+
+- 在线数据提交: 自动获取数据,不需要提交表单,能够有效地提高服务器端和客户端的数据传输性能
+- 通用的数据绑定过程: 能在一个表单中创建多个实例并通过`DataBind()`绑定数据
+- 支持所有的ADO.NET对象: 支持数据绑定和取消绑定，使用`DataSource`属性分配数据源
+- 自动访问控制: 查询数据不需要为查询的目的创建单独的过程或者代码去适应控件底层, 自动查询控制完整必要的查询或者过滤过程
+- 设计时支持: 支持设计时预显示并调整宽度
+- 自动数据缓存控制: 内置的数据缓存机制能有效降低服务器端工作量并提高服务器端的性能，该处理过程已经被证明能有效提高服务器端响应，并自动保存有用的数据并清除不使用的数据；
+- 自动错误处理: 当发生错误时，自动创建错误反馈；
+- Dropdownlist窗口: 能够有效覆盖所有的windows对象，包括标准的dropdownlist控件
+- 多列组合模式: 在dropdownlist显示框中展示数据
+- 通用的GUI行为: 实现所有标准windows Ui的导航，选择，控件聚焦等行为，可以使用键盘在dropdown显示项之间切换，点击快捷键Alt+Down 可以直接展开显示dropdown项目，使用tab进入选择状态，使用鼠标滚轮滚动dropdown项目；
+- 支持.Net框架的控件验证架构：与所有的验证控件兼容
+- 完全可定制：包含通用的版面设计对象，提供对控件属性以及界面的集中，快速地访问
+- 通用的架构：使用通用的控件框架，易于理解和使用，框架包含一个客户端事件对象（`ClientEvents` object）可以定制客户端事件 and shares a single common subfolder containing all required client scripts and images for updating and a managed environment
+- 支持Netscape: 支持Netscape包括自动数据缓存、自动访问控制Automatic Query Handler and多列组合方式
+
+## 破解过程
+
+相信用过Reflector的朋友都感受到Reflector的强大，先用Reflector打开`ISNet.WebUI.WebCombo.dll`，在庞大的类文件里面查找我们感兴趣的信息。可以看到里面部分internal class的类名已经被混淆器混淆，幸运的是还没有经过反Reflector的处理，依然可以直接静态分析代码。
+
+首先我们从经过混淆的部分开始看，按照逻辑来推测，既然作者没有全部代码都进行混淆，那么混淆的部分必然是存在一些秘密在里面。很快我们可以找到`internal class a`的`a()`方法（注意，这个不是构造函数，构造函数是`.ctor`，并且如果有同名而不同参数的函数，不要按照惯性思维认为是同一个功能的不同参数版本。那些都是混淆器干的好事而已）
+
+```csharp
+public void a(){
+
+      string text1 = Environment.GetFolderPath(Environment.SpecialFolder.System);
+
+      string text2 = text1 + @"\c4184ef0d326354b.data";//放一个文件到windows\system32
+
+      FileStream stream1 = File.Open(text2, FileMode.Create, FileAccess.Write);
+
+      DateTime time1 = DateTime.Today;
+
+      this.a = time1;
+
+      this.b = time1;//记录当前日期
+
+      this.c = time1.AddDays(30);//这里的30就是试用30天了，因此这个是过期日期
+
+      this.e = (TimeSpan) (this.c - this.b);//这个就是剩下使用天数
+
+      this.d = false;
+
+      string text3 = "";
+
+      string[] textArray1 = new string[7] { this.a.ToShortDateString(), ",", this.b.ToShortDateString(), ",", this.c.ToString(), ",", this.d.ToString() } ;
+
+      text3 = string.Concat(textArray1);
+
+      byte[] buffer1 = a.a(text3);
+
+      DESCryptoServiceProvider provider1 = new DESCryptoServiceProvider();
+
+      provider1.Key = this.g;
+
+      provider1.IV = this.g;
+
+      ICryptoTransform transform1 = provider1.CreateEncryptor();      CryptoStream stream2 = new CryptoStream(stream1, transform1, CryptoStreamMode.Write);
+
+      stream2.Write(buffer1, 0, buffer1.Length);//把上面几个参数经过DES变换后写到文件中
+
+      stream2.Flush();
+
+      stream2.Close();
+
+      stream2 = null;
+
+}
+```
+
+显然这里用到了密码学的加密变换，看起来是在第一次运行的时候执行的。这软件可真黑，在`system32`里面增加垃圾文件，去里面找找，果然找到一个data文件。既然有写文件，必定有读文件，因此我们继续找，来到这
+
+```csharp
+public void b()
+
+{
+
+      string text1 = Environment.GetFolderPath(Environment.SpecialFolder.System);
+
+      string text2 = text1 + @"\c4184ef0d326354b.data";
+
+      if (!File.Exists(text2))//如果文件不存在
+
+      {
+
+            this.a();//调用上面的a()初始化过期时间等信息
+
+      }
+
+      else
+
+      {
+
+            FileStream stream1 = File.Open(text2, FileMode.Open, FileAccess.Read);
+
+            DESCryptoServiceProvider provider1 = new DESCryptoServiceProvider();
+
+            provider1.IV = this.g;
+
+            provider1.Key = this.g;
+
+            ICryptoTransform transform1 = provider1.CreateDecryptor();
+
+            CryptoStream stream2 = new CryptoStream(stream1, transform1, CryptoStreamMode.Read);
+
+            string text3 = new StreamReader(stream2, new UnicodeEncoding()).ReadToEnd();
+
+            char[] chArray1 = new char[1] { ',' } ;
+
+            string[] textArray1 = text3.Split(chArray1);
+
+            stream2.Close();
+
+            transform1.Dispose();
+
+            provider1.Clear();
+
+            stream1.Close();
+
+            this.a = DateTime.Parse(textArray1.GetValue(0).ToString());
+
+            this.b = DateTime.Parse(textArray1.GetValue(1).ToString());
+
+            this.c = DateTime.Parse(textArray1.GetValue(2).ToString());
+
+            DateTime time1 = DateTime.Today;
+
+            if (time1 < this.b)//如果比第一次运行时间早
+
+            {
+
+                  this.d = true;//判断为非法
+
+            }
+
+            else if (time1 == this.b)//试用的第一天
+
+            {
+
+                  if (this.b > this.c)//好像没什么可能第一天就过期吧
+
+                  {
+
+                        this.d = true;
+
+                  }
+
+            }
+
+            else if (time1 > this.b)
+
+            {
+
+                  this.b = time1;
+
+                  if (this.b > this.c)//比试用结束日期晚
+
+                  {
+
+                        this.d = true;
+
+                  }
+
+                  this.c();//跟进去
+
+            }
+
+            if (!this.d)//未过期
+
+            {
+
+                  this.e = (TimeSpan) (this.c - this.b);//重新计算剩余过期时间
+
+            }
+
+      }
+
+}
+```
+
+```csharp
+public void c()//不注释了，就是把更新后的资料重新保存到文件中
+
+{
+
+      string text1 = Environment.GetFolderPath(Environment.SpecialFolder.System);
+
+      string text2 = text1 + @"\c4184ef0d326354b.data";
+
+      FileStream stream1 = File.Open(text2, FileMode.Open, FileAccess.Write);
+
+      string text3 = "";
+
+      string[] textArray1 = new string[7] { this.a.ToShortDateString(), ",", this.b.ToShortDateString(), ",", this.c.ToString(), ",", this.d.ToString() } ;
+
+      text3 = string.Concat(textArray1);
+
+      byte[] buffer1 = a.a(text3);
+
+      DESCryptoServiceProvider provider1 = new DESCryptoServiceProvider();
+
+      provider1.Key = this.g;
+
+      provider1.IV = this.g;
+
+      ICryptoTransform transform1 = provider1.CreateEncryptor();
+
+      CryptoStream stream2 = new CryptoStream(stream1, transform1, CryptoStreamMode.Write);
+
+      stream2.Write(buffer1, 0, buffer1.Length);
+
+      stream2.Close();
+
+      stream2 = null;
+
+}
+```
+
+到这里，我们可以确定出这个类是用来判断过期与否的，可是并没有注册验证的过程。于是打开`ICryptoTransform`的callee graph，找一下这个dll里面还有没其他使用到密码转换的过程，结果发现就只有这三个函数L
+
+换一个思路，去找`class a`的callee，找到`class d`里面的函数
+
+```csharp
+private void b(object A_0, EventArgs A_1)
+
+{
+
+      this.f.Links[0].LinkData = "fe5K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3W2F1N6r3g2J5M7$3!0X3N6s2m8@1i4K6u0W2j5$3!0E0";
+
+      if (this.l == ISNet.WebUI.WebCombo.WebCombo.a.c)//合法license
+
+      {
+
+            RegistryKey key1 = Registry.LocalMachine.OpenSubKey(@"Software\Intersoft Solutions");
+
+            if (key1 != null)
+
+            {
+
+                  try
+
+                  {
+
+                        RegistryKey key2 = key1.OpenSubKey(@"WebCombo.NET\2.0.2500");
+
+                        this.i.Text = key2.GetValue("User") as string;
+
+                        this.j.Text = key2.GetValue("Organization") as string;
+
+                        this.k.Text = key2.GetValue("SID") as string;
+
+                  }
+
+                  catch
+
+                  {
+
+                        this.i.Text = "Unknown user.";
+
+                        this.j.Text = "Unknown organization.";
+
+                        this.k.Text = "Unknown license.";
+
+                  }
+
+            }
+
+      }
+
+      else if (this.l == ISNet.WebUI.WebCombo.WebCombo.a.e)//试用license
+
+      {
+
+            this.o = new a(this.m);
+
+            this.o.b();
+
+            this.i.Text = "Trial User.";
+
+            this.j.Text = "Trial Version.";
+
+            this.m.u = this.o.d;
+
+            if (this.o.d)
+
+            {
+
+                  this.k.Text = "Trial period has expired.";
+
+                  this.n.Visible = true;
+
+            }
+
+            else
+
+            {
