@@ -1,0 +1,295 @@
+
+## `wf_jiemi` 函数
+
+```
+Function wf_jiemi(Parm: String): String;
+Var
+  i: Integer;
+Begin
+  i := 2;
+  While i <= Length(Parm) Do
+  Begin
+    Result := Result + Parm[i];
+    i := i + 5;
+  End;
+End;
+```
+
+另有字符替换函数：
+
+## `wf_numtochar` 函数
+
+```
+Function wf_numtochar
+string ls_mima[]
+string ls_parming
+integer li_i
+integer li_len
+
+li_len = len(ls_parm)
+for li_i = 1 to li_len
+        ls_mima[li_i] = mid(ls_parm,li_i,1)
+        if ls_mima[li_i] = "0" then
+                ls_mima[li_i] = "a"
+        end if
+        if ls_mima[li_i] = "1" then
+                ls_mima[li_i] = "b"
+        end if
+        if ls_mima[li_i] = "2" then
+                ls_mima[li_i] = "c"
+        end if
+        if ls_mima[li_i] = "3" then
+                ls_mima[li_i] = "d"
+        end if
+        if ls_mima[li_i] = "4" then
+                ls_mima[li_i] = "e"
+        end if
+        if ls_mima[li_i] = "5" then
+                ls_mima[li_i] = "f"
+        end if
+        if ls_mima[li_i] = "6" then
+                ls_mima[li_i] = "g"
+        end if
+        if ls_mima[li_i] = "7" then
+                ls_mima[li_i] = "h"
+        end if
+        if ls_mima[li_i] = "8" then
+                ls_mima[li_i] = "i"
+        end if
+        if ls_mima[li_i] = "9" then
+                ls_mima[li_i] = "j"
+        end if
+next
+for li_i = 1 to li_len
+        ls_parming = ls_parming + ls_mima[li_i]
+next
+return ls_parming
+```
+
+Delphi 7.0实现如下：
+
+```
+Function wf_numtochar(Parm: String): String;
+Var
+  i: Integer;
+Begin
+  Result := Parm;
+  For i := 1 To Length(Parm) Do
+    If Parm[i] In ['0'..'9'] Then Result[i] := Char(Ord(Parm[i]) + $31);
+End;
+```
+
+## `wf_chartonum` 函数
+
+```
+Function wf_chartonum
+string ls_mima[]
+string ls_parming
+integer li_i
+integer li_len
+
+li_len = len(ls_parm)
+for li_i = 1 to li_len
+        ls_mima[li_i] = mid(ls_parm,li_i,1)
+        if ls_mima[li_i] = "a" then
+                ls_mima[li_i] = "0"
+        end if
+        if ls_mima[li_i] = "b" then
+                ls_mima[li_i] = "1"
+        end if
+        if ls_mima[li_i] = "c" then
+                ls_mima[li_i] = "2"
+        end if
+        if ls_mima[li_i] = "d" then
+                ls_mima[li_i] = "3"
+        end if
+        if ls_mima[li_i] = "e" then
+                ls_mima[li_i] = "4"
+        end if
+        if ls_mima[li_i] = "f" then
+                ls_mima[li_i] = "5"
+        end if
+        if ls_mima[li_i] = "g" then
+                ls_mima[li_i] = "6"
+        end if
+        if ls_mima[li_i] = "h" then
+                ls_mima[li_i] = "7"
+        end if
+        if ls_mima[li_i] = "i" then
+                ls_mima[li_i] = "8"
+        end if
+        if ls_mima[li_i] = "j" then
+                ls_mima[li_i] = "9"
+        end if
+next
+for li_i = 1 to li_len
+        ls_parming = ls_parming + ls_mima[li_i]
+next
+return ls_parming
+```
+
+Delphi 7.0实现如下：
+
+```
+Function wf_chartonum(Parm: String): String;
+Var
+  i: Integer;
+Begin
+  Result := Parm;
+  For i := 1 To Length(Parm) Do
+    If Parm[i] In ['a'..'j'] Then Result[i] := Char(Ord(Parm[i]) - $31);
+End;
+```
+
+至此，注册信息产生过程已经搞清楚了，产生的文件信息后面还可以再利用，分析一下很有必要。
+
+## 三、注册授权文件分析
+
+软件作者根据注册信息文件返回注册授权文件，看一下“注册”按钮对注册授权文件有什么要求：
+
+### 注册按钮事件
+
+```
+string ls_file
+string ls_docname
+string ls_named
+string ls_typename
+string ls_ver
+integer li_value
+string ls_gsmc
+string ls_hard
+string ls_cpu
+string ls_maxuser
+string ls_macf
+string ls_regpass
+long ll_file
+string ls_regcompany
+string ls_regowner
+string ls_jq
+string ls_jqmatch
+string ls_zcm
+string ls_yhzt
+string ls_dqcs
+string ls_bzcs
+string ls_dqsj
+string ls_zcsj
+string ls_dlsj
+string ls_zclm
+string ls_dlsjold
+string ls_dlsjnew
+string ls_zcm1
+date ldt_dlsjold
+date ldt_dlsjnew
+long ll_match
+string ls_docname1
+string ls_path
+integer li_ren
+boolean rtn = false
+string ls_yhzt1
+integer li_max
+
+li_value = getfileopenname("保存文件",ls_docname,ls_named,"PAS","Pas Files (*.PAS),*.pas")
+if li_value = 1 then
+        ls_file = ls_docname
+end if
+if not fileexists(ls_file) then
+        messagebox("操作提示","该文件不存在或者您并没有输入文件的位置")
+        return
+end if
+ll_file = fileopen(ls_file,linemode!,read!,lockreadwrite!,replace!)               //开始读取注册文件
+if ll_file = -1 then
+        messagebox("操作提示","文件打开操作失败，确定文件的格式为.PAS")
+        return
+end if
+if fileread(ll_file,ls_ver) = -1 then
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(1))   //软件版本
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_zcm) = -1 then
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(1))   //软件注册码 Update ID
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_gsmc) = -1 then                                        //公司名称
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(1))
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_hard) = -1 then         //硬盘序列号
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(2))
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_cpu) = -1 then         //CPU ID
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(3))
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_macf) = -1 then        //网卡 ID
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(4))
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_regpass) = -1 then               //随机数?
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(5))
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_jqmatch) = -1 then          //重要,判断是否是非法注册文件
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(7))
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_maxuser) = -1 then
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(6))
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_yhzt) = -1 then             //用户状态
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(6))
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_dqcs) = -1 then
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(6))
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_bzcs) = -1 then
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(6))
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_dqsj) = -1 then          //到期时间
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(6))
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_zcsj) = -1 then          //注册时间
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(6))
+        fileclose(ll_file)
+        return
+end if
+if fileread(ll_file,ls_dlsj) = -1 then          //最后登入时间
+        messagebox("操作提示","文件读操作失败，确定文件的格式为.PAS" + "/" + string(6))
+        fileclose(ll_file)
+        return
+end if
+parent.is_gsmc = f_get_spellcn(ls_gsmc)      //公司名称－>转汉字拼音首字母
+if len(ls_maxuser) > 10 then                 //最大用户数，单机版不用
+        ls_maxuser = mid(ls_maxuser,9,len(ls_maxuser) - 16)
+else
+        ls_maxuser = ""
+end if
+select updateid , zclm from update_rq  using sqlca;
+
+/* SQL Parameters List
+0-> :ls_zcm1
+1-> :ls_zclm
+*/
+ls_dlsjnew = ls_dlsj                         //登入时间
+ls_dlsjnew = parent.wf_jiemi(ls_dlsjnew)
+ls_dlsjnew = parent.wf_chartonum(ls_dlsjnew)   //字母替换
+select dlsj from lcs  using sqlca;
+```
