@@ -1,0 +1,284 @@
+
+# [原创]重载内核实现
+
+最近研究重载内核，把论坛里有关的帖子都看了个遍。
+
+最后参考了这两位大佬的贴子：
+
+[重载内核全程分析笔记](https://bbs.pediy.com/thread-177555.htm)
+
+[sidyhe大牛](https://bbs.pediy.com/user-625093-2.htm)
+
+## 简单的说明下这个重载内核
+
+重载内核是为了过ssdt hook用的，因为ssdt hook太多了，与其跟人家对着干，不如想办法绕过去。
+
+这个需要学习过PE文件结构
+
+## 然后按照下面的步骤做：
+
+**1、将内核文件加载到内存并对齐内存格式**
+
+**2、修复重定位表**
+
+**3、构造好一个新的SSDT**
+
+**4、hook `KiFastCallEntry`**
+
+第一步比较简单就不说了，PE文件怎么加载就怎么做。
+
+### 修复重定位表
+
+这个很多人都容易写出问题,所以代码我贴一下
+
+```c
+DWORD32 CkRepairRelactionTable(IN OUT PVOID pImageBuffer, IN DWORD32 dwImageBase)
+{
+    //DOS头
+    IMAGE_DOS_HEADER* pDosHeader = (IMAGE_DOS_HEADER*)pImageBuffer;
+    //NT头
+    IMAGE_NT_HEADERS* pNtHeaders = (IMAGE_NT_HEADERS*)((DWORD32)pImageBuffer + pDosHeader->e_lfanew);
+    //PE头
+    IMAGE_FILE_HEADER* pFileHeader = (IMAGE_FILE_HEADER*)((DWORD32)pNtHeaders + sizeof(pNtHeaders->Signature));
+    //可选头
+    IMAGE_OPTIONAL_HEADER* pOpHeader = (IMAGE_OPTIONAL_HEADER*)((DWORD32)pFileHeader + sizeof(IMAGE_FILE_HEADER));
+    //获取重定位表
+    IMAGE_BASE_RELOCATION* pRelocationTable = (IMAGE_BASE_RELOCATION*)((DWORD32)pImageBuffer + pOpHeader->DataDirectory[5].VirtualAddress);
+    IMAGE_BASE_RELOCATION* pCurrentRelocationTable = pRelocationTable;
+    //遍历所有页
+    while (pCurrentRelocationTable->VirtualAddress != 0 || pCurrentRelocationTable->SizeOfBlock != 0)
+    {
+        //当前页需要修改的个数
+        DWORD32 dwCnt = (pCurrentRelocationTable->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(UINT16);
+        //地址位置
+        DWORD32 dwAddr = ((DWORD32)pCurrentRelocationTable) + sizeof(IMAGE_BASE_RELOCATION);
+        for (int i = 0; i < dwCnt; i++)
+        {
+            if ((*(DWORD32*)(dwAddr + i * sizeof(UINT16)) & 0x0000F000) != 0x00003000)
+            {
+                continue;
+            }
+            //获取要修改的地址
+            DWORD32* pRepairAddr = (DWORD32*)((DWORD32)pImageBuffer + pCurrentRelocationTable->VirtualAddress + (*((UINT16*)dwAddr + i) & 0x0FFF));
+            //修正重定位表值
+            *pRepairAddr += dwImageBase - pOpHeader->ImageBase;
+        }
+        pCurrentRelocationTable = (IMAGE_BASE_RELOCATION*)((DWORD32)&pCurrentRelocationTable->VirtualAddress + pCurrentRelocationTable->SizeOfBlock);
+    }
+    //修改imagebase
+    pOpHeader->ImageBase = dwImageBase;
+    return pOpHeader->SizeOfImage;
+}
+```
+
+### 构造新SSDT
+
+这段代码是引用的 [重载内核全程分析笔记](https://bbs.pediy.com/thread-177555.htm)
+
+因为写的比较详细，我也没怎么改他，直接拿来就用了。
+
+大概的操作就是重新设置ssdt内的函数
+
+```c
+VOID SetNewSSDT(PVOID pNewImage)
+{
+    //新内核地址-老内核地址，得到相对偏移
+    ULONG uNewKernelInc = (ULONG)pNewImage - OrigImage;
+    //老内核的ssdt指针加上相对偏移，得到新内核的ssdt指针
+    pNewSSDT = (PKSYSTEM_SERVICE_TABLE)((ULONG)KeServiceDescriptorTable + uNewKernelInc);
+    if (!MmIsAddressValid(pNewSSDT))
+    {
+        DbgPrint("pNewSSDT is unaviable!\r\n");
+        return;
+    }
+    //由于数量是一个数值，因此不必作相对偏移
+    pNewSSDT->NumberOfServices = KeServiceDescriptorTable->NumberOfServices;
+    //计算相对函数地址
+    ULONG uOffset = (ULONG)KeServiceDescriptorTable->ServiceTableBase - OrigImage;
+    //得到新的ssdt函数表地址
+    pNewSSDT->ServiceTableBase = (PULONG)((ULONG)pNewImage + uOffset);
+    if (!MmIsAddressValid(pNewSSDT->ServiceTableBase))
+    {
+        DbgPrint("pNewSSDT->ServiceTableBase: %X\r\n", pNewSSDT->ServiceTableBase);
+        return;
+    }
+    //依次遍历
+    for (ULONG uIndex = 0; uIndex < pNewSSDT->NumberOfServices; uIndex++)
+    {//新的函数地址再加上相对加载地址，得到现在的ssdt函数地址
+        pNewSSDT->ServiceTableBase[uIndex] += uNewKernelInc;
+    }
+}
+```
+
+### hook `KiFastCallEntry`
+
+hook这个函数的时候，在其内部有这么几行代码
+
+我们要hook的地方就是`sub esp, ecx` 和 `shr ecx, 2`这个位置
+
+这个地址是前人找出来的一个绝佳位置
+
+但要注意的是杀毒软件也hook了这个地方，如果你电脑有装杀毒软件了，那么你可能不会顺利的hook
+
+这个位置上`edi` = ssdt的第一个成员，`eax` = 函数索引
+
+```text
+.text:00466621 2B E1 sub esp, ecx
+.text:00466623 C1 E9 02 shr ecx, 2
+.text:00466626 8B FC mov edi, esp
+.text:00466628 3B 35 D4 19 48 00 cmp esi, ds:_MmUserProbeAddress
+.text:0046662E 0F 83 A8 01 00 00 jnb loc_4667DC
+.text:00466634
+.text:00466634 loc_466634: ; CODE XREF: _KiSystemService+35Fj
+.text:00466634 F3 A5 rep movsd
+.text:00466636 FF D3 call ebx
+```
+
+**要hook这个函数首先要找到他在哪，大概有下面两种方法：**
+
+1、通过msr寄存器0x176位置找到他的地址
+
+2、通过hook原来的ssdt里的函数，回溯查找
+
+本人这里是通过了msr获取的
+
+```c
+DWORD32 GetKiFastCallEntry()
+{
+    DWORD32 dwAddr = 0;
+    _asm
+    {
+        pushad
+        mov ecx, 0x176;
+        rdmsr
+        mov dwAddr, eax
+        popad
+    }
+    return dwAddr;
+}
+DWORD32 GetHookAddr()
+{
+    //获取快速调用地址
+    DWORD32 dwFastCallAddr = GetKiFastCallEntry();
+    //获取快速调用获取地址
+    DWORD32 dwHookAddr = 0;
+    //遍历
+    for (int i = 0; i < 1000; i++)
+    {
+        if (*(UCHAR*)(dwFastCallAddr + i + 0) == 0x2B &&
+            *(UCHAR*)(dwFastCallAddr + i + 1) == 0xE1 &&
+            *(UCHAR*)(dwFastCallAddr + i + 2) == 0xC1 &&
+            *(UCHAR*)(dwFastCallAddr + i + 3) == 0xE9 &&
+            *(UCHAR*)(dwFastCallAddr + i + 4) == 0x02)
+        {
+            dwHookAddr = dwFastCallAddr + i;
+            break;
+        }
+    }
+    //判断是否找到
+    if (dwHookAddr == 0)
+    {
+        //没找到
+        return 0;
+    }
+    return dwHookAddr;
+}
+void HookKiFastCallEntry()
+{
+    UCHAR buf[5] = { 0 };
+    buf[0] = 0xE8;
+    g_dwHookAddr = GetHookAddr();
+    *(DWORD32*)&buf[1] = (DWORD32)((DWORD32)MyKiFastCallEntry - g_dwHookAddr - 5);
+    //写入
+    for (int i = 0; i < 5; i++)
+    {
+        *(UCHAR*)(g_dwHookAddr + i) = buf[i];
+    }
+}
+```
+
+最后需要自己写一个处理函数
+
+我这写的有点复杂，大概的流程就是判断下是不是`hooktest.exe`进程
+
+如果是就用新内核，不是就用旧内核
+
+```c
+const char* c_pImageName = "hooktest.exe";
+int imagenamecnt = 12;
+void _declspec(naked) MyKiFastCallEntry()
+{
+    _asm
+    {
+        pop ebx
+        sub esp, ecx
+        push ebx
+        //判断进程------begin
+        push eax
+        push edx
+        push ecx
+        push esi
+        push edi
+        pushfd
+        //获取imagename------begin
+        mov eax, fs:[0x124]
+        mov eax, dword ptr[eax + 0x44]
+        lea eax, dword ptr[eax + 0x174]
+        //获取imagename------end
+        //判断imagename------begin
+        mov ecx, imagenamecnt
+        mov esi, c_pImageName
+        mov edi, eax
+        repz cmpsb
+        jz hook
+        //判断imagename------end
+        popfd
+        pop edi
+        pop esi
+        pop ecx
+        pop edx
+        pop eax
+        //判断进程------end
+        mov ebx, dword ptr[edi + eax * 4]
+        shr ecx, 2
+        ret
+    hook :
+        popfd
+        pop edi
+        pop esi
+        pop ecx
+        pop edx
+        pop eax
+        //判断进程------end
+        push edi
+        mov edi, dword ptr[pNewSSDT]
+        mov edi, dword ptr[edi]
+        mov ebx, dword ptr[edi + eax * 4]
+        pop edi
+        shr ecx, 2
+        ret
+    }
+}
+```
+
+到此也就差不多了，可以直接用了
+
+从pchunter中可以看到已经被hook了，而且系统也没有崩溃，基本算是可以了
+
+![](upload/attach/202010/743560_MVAN584QPXGD3ZC.png)
+
+然后测试一下用指定名称`hooktest.exe`的进程来调用下api
+
+我这里打开了一个计算器，然后用`hooktest.exe`去关闭它
+
+![](upload/attach/202010/743560_CUA82RV7Y4MN3ZP.png)
+
+关闭成功
+
+![](upload/attach/202010/743560_KVE7ND6NMBR489C.png)
+
+好了差不多就是这样了，基本上已经完成了，需要hook什么函数就自由发挥吧
+
+这个还有很多细节没有处理，就先说到这了。
+
+代码是vs2013 + wdk8.1编译通过
