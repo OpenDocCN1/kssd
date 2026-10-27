@@ -1,0 +1,18 @@
+
+# [分享]自编Hash值计算工具+源码
+
+利用`LibTomCrypt`库编写的Hash值计算工具，
+
+界面、功能与HashCalc基本一致，易于使用。
+
+计算速度明显快于HashCalc！
+
+程序和源码分享给大家！
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+
+- [Hash.zip](javascript:void(0);)
+
+  （866.67kb，176次下载）
