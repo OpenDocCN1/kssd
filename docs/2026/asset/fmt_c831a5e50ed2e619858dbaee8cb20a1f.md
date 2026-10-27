@@ -1,0 +1,217 @@
+
+# [原创]aspr用来anti调试器的代码
+
+首先申明，菜谱(菜得离谱),高手就不要浪费时间看了.
+
+我们知道aspr是有对调试器的anti的,不过它很弱,用hide-OD就可以躲过,几乎很多人都不会提起它
+
+我只知道它大概是检测PEB中的东西。
+
+反正是闲着无聊，我们来看看它怎么检测的,就以"我是盲人"发的crackme为例来看看这个anti
+
+只看anti......,不谈脱壳,因为大多人都会
+
+关掉hideod,用OD加载程序,忽略所有异常,运行,出现错误"请不要开启调试器调试本程序"
+
+![](http://bbs.pediy.com/upload/2006/8/image/err.jpg)
+
+明显是个`MessageBox`,,:)
+
+重新加载,`bp MessageBox`,运行断了下来,查看堆栈
+
+```
+0012FA10   00E55EA0  /CALL 到 MessageBoxA
+0012FA14   00000000  |hOwner = NULL
+0012FA18   00EB03F0  |Text = "请",B2,"",BB,"要开启?,F7,"试?,F7,"?,F7,"试本程序."
+0012FA1C   00E8E41C  |Title = "Protection Error"
+0012FA20   00002030  \Style = MB\_OK|MB\_ICONEXCLAMATION|MB\_TASKMODAL
+```
+
+看栈顶:E55EA0:
+
+```
+00E55E9E    8BC0            mov     eax, eax
+00E55EA0  - FF25 08C3E900   jmp     dword ptr [E9C308]               ; kernel32.ExitProcess
+00E55EA6    8BC0            mov     eax, eax
+00E55EA8  - FF25 04C3E900   jmp     dword ptr [E9C304]               ; kernel32.FileTimeToDosDateTime
+```
+
+原来E55EA0在跳转表中,而且是`ExitProcess`,
+
+这样程序执行完`MessageBox`就直接退出了,
+
+却不是我原本预料的回到壳检测代码附近,看来壳用了某种手法.....
+
+拿出杀手锏,ESP定律,hehhe
+
+重新加载,`hr 12FA10`(还记得这是什么吧,`call MessageBox`时的栈顶指针),运行断下,查看代码:
+
+```
+00E65DA9    0000            add     byte ptr [eax], al
+00E65DAB    0045 72         add     byte ptr [ebp+72], al
+00E65DAE    72 6F           jb      short 00E65E1F
+00E65DB0    72 00           jb      short 00E65DB2
+00E65DB2    0000            add     byte ptr [eax], al
+00E65DB4    55              push    ebp
+00E65DB5    8BEC            mov     ebp, esp
+00E65DB7    51              push    ecx
+00E65DB8    8B45 0C         mov     eax, dword ptr [ebp+C]
+00E65DBB    E8 F817FFFF     call    00E575B8
+00E65DC0    85C0            test    eax, eax
+00E65DC2    75 0D           jnz     short 00E65DD1
+00E65DC4    6A FF           push    -1
+00E65DC6    BB A15EE500     mov     ebx, 0E55EA1
+00E65DCB    4B              dec     ebx
+00E65DCC    53              push    ebx
+00E65DCD    C3              retn
+00E65DCE    EB 01           jmp     short 00E65DD1
+00E65DD0    E8 83C464E8     call    E94B2258
+00E65DD5    C702 FFFF8945   mov     dword ptr [edx], 4589FFFF
+00E65DDB    FC              cld
+00E65DDC    B8 0F61E500     mov     eax, 0E5610F
+00E65DE1    40              inc     eax
+00E65DE2    6A FF           push    -1                                //这是做什么的?
+00E65DE4    BB A15EE500     mov     ebx, 0E55EA1
+00E65DE9    4B              dec     ebx
+00E65DEA    68 30200000     push    2030                        //MessageBox's Style
+00E65DEF    FF75 08         push    dword ptr [ebp+8]                //MessageBox's Title
+00E65DF2    FF75 0C         push    dword ptr [ebp+C]                //MessageBox's Text
+00E65DF5    FF75 FC         push    dword ptr [ebp-4]                //MessageBox's hOwner
+00E65DF8    53              push    ebx
+00E65DF9    50              push    eax  ///////////断在这里    eax = jmp MessageBox; ebx = jmp ExitProcess
+00E65DFA    C3              retn
+00E65DFB    59              pop     ecx
+00E65DFC    5D              pop     ebp
+00E65DFD    C2 0800         retn    8
+```
+
+将0xE65DCE处去花,看到
+
+```
+00E65DCE    90              nop
+00E65DCF    90              nop
+00E65DD0    90              nop
+00E65DD1    83C4 64         add     esp, 64
+00E65DD4    E8 C702FFFF     call    00E560A0                         ; jmp 到 USER32.GetActiveWindow
+```
+
+原来如此....`add esp,64` 来隐藏检测代码....
+
+往上看看,我们猜测00E65DB4为壳显示消息框的入口地址,现在只要在这里下个断,呵呵...
+
+重新加载,因为00E65DB4这里是在动态内存空间,不能直接下断,所以我们不忽略内存异常(在第一个内存异常之后就出现错误提示了)
+
+运行出现内存异常断下,这时壳检测代码已经解开,
+
+我们在00E65DB4处下个F2断点,shift + F9,断下,查看堆栈:
+
+```
+0012F9CC   00E8E401  返回到 00E8E401 来自 00E65DB4
+0012F9D0   00E8E41C  ASCII "Protection Error"
+0012F9D4   00EB03F0
+0012F9D8   0012F9F8  指向下一个 SEH 记录的指针
+0012F9DC   00E8E40B  SE处理程序
+```
+
+在反汇编窗口来到0xE8E401处,查看代码,显然这一段就是aspr检测调试器的anti的主函数代码:
+
+我加了一点简单的注释。
+
+```
+00E8E3A8    55              push    ebp
+00E8E3A9    8BEC            mov     ebp, esp
+00E8E3AB    53              push    ebx
+00E8E3AC    56              push    esi
+00E8E3AD    57              push    edi
+00E8E3AE    8BF0            mov     esi, eax
+00E8E3B0    33DB            xor     ebx, ebx
+00E8E3B2    33C0            xor     eax, eax
+00E8E3B4    55              push    ebp
+00E8E3B5    68 0BE4E800     push    0E8E40B
+00E8E3BA    64:FF30         push    dword ptr fs:[eax]
+00E8E3BD    64:8920         mov     dword ptr fs:[eax], esp
+00E8E3C0    E8 9BFEFFFF     call    00E8E260                        //检测操作系统类型
+00E8E3C5    84C0            test    al, al
+00E8E3C7    74 07           je      short 00E8E3D0                //是98系统则跳
+00E8E3C9    E8 96FFFFFF     call    00E8E364                        //对nt以上系统,检测PEB中标志
+00E8E3CE    8BD8            mov     ebx, eax
+00E8E3D0    84DB            test    bl, bl
+00E8E3D2    75 22           jnz     short 00E8E3F6                //跳你就挂了
+00E8E3D4    E8 9FFEFFFF     call    00E8E278                        //又是检测,用一个SEH清调试寄存器
+00E8E3D9    84C0            test    al, al
+00E8E3DB    75 19           jnz     short 00E8E3F6                //跳你就挂了
+00E8E3DD    A1 D02BE900     mov     eax, dword ptr [E92BD0]        //取出壳用到的API的起始地址
+00E8E3E2    8378 24 00      cmp     dword ptr [eax+24], 0        //这个位置存的是IsDebuggerPresent,比较这个函数地址是否为空
+00E8E3E6    74 19           je      short 00E8E401                //抵达安全彼岸,:)
+00E8E3E8    A1 D02BE900     mov     eax, dword ptr [E92BD0]
+00E8E3ED    8B40 24         mov     eax, dword ptr [eax+24]        //取出IsDebuggerPresent地址
+00E8E3F0    FFD0            call    eax                                //调用IsDebuggerPresent
+00E8E3F2    84C0            test    al, al
+00E8E3F4    74 0B           je      short 00E8E401                //抵达安全彼岸,:)
+00E8E3F6    56              push    esi
+00E8E3F7    68 1CE4E800     push    0E8E41C                          ; ASCII "Protection Error"
+00E8E3FC    E8 B379FDFF     call    00E65DB4                              //这里出现MessageBox
+00E8E401    33C0            xor     eax, eax
+00E8E403    5A              pop     edx
+00E8E404    59              pop     ecx
+00E8E405    59              pop     ecx
+00E8E406    64:8910         mov     dword ptr fs:[eax], edx
+00E8E409    EB 0A           jmp     short 00E8E415
+00E8E40B  ^ E9 584AFCFF     jmp     00E52E68
+00E8E410    E8 AF4DFCFF     call    00E531C4
+00E8E415    5F              pop     edi
+00E8E416    5E              pop     esi
+00E8E417    5B              pop     ebx
+00E8E418    5D              pop     ebp
+00E8E419    C3              retn
+```
+
+`call E8E260`的代码,检测操作系统类型
+
+```
+00E8E260    90              nop
+00E8E261    90              nop
+00E8E262    90              nop
+00E8E263    66:8CD8         mov     ax, ds
+00E8E266    A8 04           test    al, 4
+00E8E268    90              nop
+00E8E269    90              nop
+00E8E26A    90              nop
+00E8E26B    74 03           je      short 00E8E270
+00E8E26D    31C0            xor     eax, eax        //98
+00E8E26F    C3              retn
+00E8E270    B8 01000000     mov     eax, 1        //nt,xp
+00E8E275    C3              retn
+```
+
+`call 00E8E364`的代码,检测PEB中的调试标志
+
+```
+00E8E364    64:8B05 3000000>mov     eax, dword ptr fs:[30]
+00E8E36B    90              nop
+00E8E36C    90              nop
+00E8E36D    90              nop
+00E8E36E    0FB640 02       movzx   eax, byte ptr [eax+2]  //读取BeingDebugged标志
+00E8E372    08C0            or      al, al
+00E8E374    74 02           je      short 00E8E378
+00E8E376    B0 01           mov     al, 1        //被调试往al赋1
+00E8E378    C3              retn
+```
+
+`call 00E8E278`的代码
+
+```
+00E8E278    53              push    ebx
+00E8E279    56              push    esi
+00E8E27A    57              push    edi
+00E8E27B    90              nop
+00E8E27C    90              nop
+00E8E27D    90              nop
+00E8E27E    90              nop
+00E8E27F    90              nop
+00E8E280    90              nop
+00E8E281    90              nop
+00E8E282    31C0            xor     eax, eax
+00E8E284    68 1CE2E800     push    0E8E21C                        //SEH处理地址
+00E8E289    64:FF30         push    dword ptr fs:[eax]                //push fs:[0]
+```
