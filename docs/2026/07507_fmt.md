@@ -1,0 +1,75 @@
+
+# [原创]Windows 8 32/64-Bit中关于`PspCidTable`的变更
+
+```text
+/**********************************************************
+* Author(s)                        : Stanford Zhang
+* E-Mail                        : zhangstanford@gmail.com
+*
+**********************************************************/
+```
+
+最近学习通过`PspCidTable`遍历进程列表，分享一点遍历`PspCidTable`在 Windows 8 32/64-Bit 中的变化。网上关于`PspCidTable`的文章多如牛毛，在这里就不再赘述，可参考百度和 Google，在这里推荐 sysdog 的《`PspCidTable`完全解读》。
+
+本文中只详细查看了 Windows XP 32-Bit、Windows 7 32/64-Bit、Windows 8 32/64-Bit 五个版本的Windows相关内核信息，如果其他系统略有差异，请具实际情况而论。`PspCidTable`在 Windows XP 32-Bit 和 Windows 7 32/64-Bit 中两个结构`_HANDLE_TABLE`和`_HANDLE_TABLE_ENTRY`没有变化，只是在 64-Bit 系统中一些指针和字段偏移变成64-Bit，其他都是一样的（下文中选中Windows XP 32-Bit 为被比较对象），其遍历方法请参考网上相关文章。
+
+## 1. `PspCidTable`变化之 Windows 8 32/64-Bit - `_HANDLE_TABLE`
+
+![](https://bbs.kanxue.com/upload/attach/201304/139470_2kb0ghp00rdm727.png)
+
+图1-1 Windows 7 32-Bit `_HANDLE_TABLE`结构
+
+![](https://bbs.kanxue.com/upload/attach/201304/139470_vcgpun06tt6w100.png)
+
+图1-2 Windows 8 32-Bit `_HANDLE_TABLE`结构
+
+![](https://bbs.kanxue.com/upload/attach/201304/139470_7sxwedeut33a9eq.png)
+
+图1-3 Windows 8 64-Bit `_HANDLE_TABLE`结构
+
+如以上3图所示，Windows 8中的`_HANDLE_TABLE`与其他系统中的`TableCode`字段偏移不一样，所以在查找地址的时候要加上偏移（`0x008`），且 Windows 8 32-Bit 和 64-Bit 的`TableCode`字段偏移是一样。`TableCode`字段的解释与其他系统中一样的，低 3 Bits 表示是几层表结构，低3位清0之后的值就是层表地址。
+
+## 2. `PspCidTable`变化之 Windows 8 64-Bit - `_HANDLE_TABLE_ENTRY`
+
+![](https://bbs.kanxue.com/upload/attach/201304/139470_8pu3zamrcnyjh3f.png)
+
+图2-1 Windows 7 32-Bit `_HANDLE_TABLE_ENTRY`结构
+
+![](https://bbs.kanxue.com/upload/attach/201304/139470_f0ny77i0mf4whsi.png)
+
+图2-2 Windows 8 32-Bit `_HANDLE_TABLE_ENTRY`结构
+
+![](https://bbs.kanxue.com/upload/attach/201304/139470_d9mlaj51r2knedv.png)
+
+图2-3 Windows 8 64-Bit `_HANDLE_TABLE_ENTRY`结构
+
+如以上图所示，Windows 7 32-Bit中的`_HANDLE_TABLE_ENTRY`和Windows 8 32-Bit/64-Bit都不一样。但在实验过程中发现，Windows 7 32-Bit 与Windows 8 32-Bit中偏移`0x000`处的4个字节的解释是一样的，只不过Windows 8 32-Bit中的结构用位域将信息详细表达了出来。从Windows 8 32-Bit中可看出低3 Bits另有用处，在解释的时候和Windows 7 32-Bit是一样的，将低3 Bits清零和最高Bit置1。计算公式如下：
+
+```text
+Object Address = (Object/ObjectPointerBits & 0xFFFFFFF8) | 0x80000000
+```
+
+注：这里的`ObjectPointerBits`是Windows 8 32-Bit中的字段。
+
+如图2-3中所示，Windows 8 64-Bit中`Unlocked`字段没变，但多了一个`RefCnt`（Windows 8 32-Bit中`RefCnt`字段是在偏移为`0x004`的4字节中，从第26 Bit开始的6 Bits）字段且占从第1 Bit开始的19 Bits，`Attributes`字段名称没变但从原来占2 Bits变成占3 Bits（从第20 Bit开始），`ObjectPointerBits`占位从第23 Bit的41 Bits。同时，`1 + 19 + 3 + 41 = 64`，正是64-Bit系统中地址所占位数。
+
+这里变化最大的是`ObjectPointerBits`字段，Windows 64-Bit系统中地址占64 Bits中的44 Bits，所以在这里猜测将`_HANDLE_TABLE_ENTRY`的前8个字节右移19位，这样结构就和Windows 8 32-Bit系统中的结构是一样的了，所以得以下计算公式：
+
+```text
+Object Address = ((ObjectPointerBits >> 19) & (~0xF)) | 0xFFFFF00000000000
+```
+
+经过实验验证，在这之后对这个地址进行处理就可以得到相应的进程之类的信息。
+
+注：由于实验资源有限，只在两台Windows 8 x64系统上经过测试无误，如果在其他系统中有误，请告知，谢谢。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+
+- [1.png](javascript:void(0);)（5.30kb，12次下载）
+- [2.png](javascript:void(0);)（6.59kb，11次下载）
+- [3.png](javascript:void(0);)（6.65kb，11次下载）
+- [4.png](javascript:void(0);)（5.77kb，11次下载）
+- [5.png](javascript:void(0);)（9.81kb，11次下载）
+- [6.png](javascript:void(0);)（10.43kb，5次下载）
