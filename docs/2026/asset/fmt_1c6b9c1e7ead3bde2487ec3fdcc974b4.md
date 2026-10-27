@@ -1,0 +1,262 @@
+
+# [原创] Windows线程恢复流程逆向分析
+
+# 目录
+
+[TOC]
+
+# 前言
+
+这线程恢复真的是比线程挂起麻烦的多，挂起线程插个apc就结了，线程恢复这块流程和分支非常多，wrk在这块的源码也不全，本次分析的流程和分支仅按照下方测试代码进行，不考虑其它情况；调试的操作系统是WindowsXP，单核
+
+# 测试代码
+
+```C
+VOID WINAPI testThreadA() {
+while (TRUE) {
+Sleep(1000);
+printf("AAA\n");
+}
+}
+HANDLE threadA = -1;
+int main()
+{
+threadA = CreateThread(0, 0, (LPTHREAD\_START\_ROUTINE)testThreadA, 0, 0, 0);
+SuspendThread(threadA);
+\_\_asm {
+int 3;
+}
+ResumeThread(threadA);
+system("pause");
+return 0;
+}
+```
+
+## 基本流程
+
+```C
+ResumeThread(ThreadHandle);
+//↓
+NtResumeThread(ThreadHandle);
+//↓
+PsResumeThread(Thread);
+//↓
+KeResumeThread(Thread);
+//↓
+KiWaitTest(Thread->SuspendSemaphore,increment(0));
+//↓
+KiUnwaitThread(increment(0),OUT &waitListEntry);
+//↓
+KiUnlinkThread(Thread,increment(0));//断链WaitBlockList
+//↓
+KiReadyThread(); //挂入调度链表
+```
+
+## 调用关系
+
+```C
+KiWaitTest -> KiUnwaitThread -> KiUnlinkThread
+-> KiReadyThread
+```
+
+## 函数分析
+
+以下操作流程用伪代码表示（非IDA）（`if`均成立）
+
+### `KeResumeThread`
+
+```C
+int \_\_stdcall KeResumeThread(\_ETHREAD \*Thread)
+{
+char SuspendCount = Thread->Tcb.SuspendCount;
+if ( SuspendCount )//如果没调用过SuspendThread()挂起线程，该值为0
+{
+char newSuspendCount = SuspendCount - 1;
+Thread->Tcb.SuspendCount = newSuspendCount;
+if ( !newSuspendCount && !Thread->Tcb.FreezeCount )
+{
+++Thread->Tcb.SuspendSemaphore.Header.SignalState;
+KiWaitTest(&Thread->Tcb.SuspendSemaphore, 0);
+}
+}
+KiUnlockDispatcherDatabase(KeRaiseIrqlToDpcLevel());
+return;
+}
+```
+
+### `KiWaitTest`
+
+```C
+\_\_fastcall KiWaitTest(\_KEVENT \*Event, \_KTHREAD \*Increment)
+{
+LIST\_ENTRY waitListEntry;
+waitListEntry.Blink = &waitListEntry;
+waitListEntry.Flink = &waitListEntry;
+PLIST\_ENTRY ListHead = &Event->Header.WaitListHead;
+PKWAIT\_BLOCK = WaitEntry = Event->Header.WaitListHead.Flink;
+if(Event->Header.SignalState > 0){
+if ( WaitEntry != ListHead ){
+PKTHREAD Thread = WaitEntry->Thread;
+if(WaitEntry->WaitType == WaitAny){
+USHORT waitStatus = WaitEntry->WaitKey;
+UCHAR Type = Event->Header.Type;
+}
+//获得一个需要挂入调度链表的就绪线程链表
+KiUnwaitThread(Thread, waitStatus, increment, &waitListEntry);
+WaitEntry = ListHead->Flink;
+while(IsListEmpty(&waitListEntry)){
+PVOID nextThread = waitListEntry.Flink;
+WaitEntry = &waitListEntry;
+waitListEntry.Flink = waitListEntry.Flink->Flink;
+waitListEntry.Flink->Blink = &waitListEntry;
+KiReadyThread((KTHREAD \*)(nextThread - 96));
+}
+}
+}
+}
+```
+
+### `KiUnwaitThread()`
+
+```C
+KiUnwaitThread(\_KTHREAD \*thread, LONG\_PTR WaitStatus, int Increment, OUT \_LIST\_ENTRY \*WaitListEntry){
+//将线程的等待块摘除
+KiUnlinkThread(thread, WaitStatus);
+CHAR Priority = thread->Priority;
+KPROCESS Process = thread->ApcState.Process;
+if ( Priority >= 16 ){
+if(WaitListEntry != NULL){
+PLIST\_ENTRY prev = WaitListEntry->Blink;
+PLIST\_ENTRY waitList = &thread->WaitListEntry;
+thread->WaitListEntry.Flink = WaitListEntry;
+thread->WaitListEntry.Blink = Blink;
+prev->Flink = &thread->WaitListEntry;
+WaitListEntry->Blink = &thread->WaitListEntry;
+return;
+}
+}
+}
+```
+
+### `KiUnlinkThread()`
+
+```C
+BOOL \_\_fastcall KiUnlinkThread(\_KTHREAD \*Thread, LONG\_PTR WaitStatus){
+Thread->WaitStatus |= WaitStatus;
+WaitBlockList = Thread->WaitBlockList;
+do{//将Thread从等待链中断链
+PLIST\_ENTRY Flink = WaitBlockList->WaitListEntry.Flink;
+PLIST\_ENTRY Blink = WaitBlockList->WaitListEntry.Blink;
+Blink->Flink = WaitBlockList->WaitListEntry.Flink;
+Flink->Blink = Blink;
+WaitBlockList = WaitBlockList->NextWaitBlock;
+}while ( WaitBlockList != Thread->WaitBlockList );
+return;
+}
+```
+
+### `KiReadyThread()`
+
+```C
+KiReadyThread(\_KTHREAD \*Thread){
+//设置字段属性
+Thread->State = Standby;
+Thread->WaitTime = KeTickCount
+Thread->NextProcessor = Thread->IdleProcessor
+Thread->State = Ready;
+//将线程挂入调度链表
+Thread->WaitListEntry.Flink = KiDispatcherReadyListHead
+Thread->WaitListEntry.Blink = KiDispatcherReadyListHead.Blink
+KiDispatcherReadyListHead.Blink.Flink = Thread->WaitListEntry
+KiDispatcherReadyListHead.Blink = Thread->WaitListEntry
+KiReadySummary |= 1 << Thread->priority;
+}
+```
+
+### `KiReadyThread()` /汇编/
+
+```C
+nt!KiReadyThread:
+mov edi,edi
+push ebp
+mov ebp,esp
+push ecx
+push ecx
+push ebx
+push esi
+mov esi,ecx ;esi = ecx = KTHREAD = ReadyThread
+lea ecx,[esi+128h] ;ecx = PCHAR Preempted = &\_KTHREAD->Preempted
+mov al,byte ptr [ecx] ;al = \*Preempted;
+mov byte ptr [ecx],0 ;\*Preempted = 0;
+mov ecx,dword ptr [nt!KeTickCount (8055b000)]
+push edi
+mov edi,dword ptr [esi+44h] ;esi = \_KTHREAD->APC\_STATE->Process
+mov byte ptr [ebp-1],al
+movsx eax,byte ptr [esi+33h] ;eax = \_KTHREAD->Priority
+mov dword ptr [esi+68h],ecx ;\_KTHREAD->WaitTime = KeTickCount
+nt!KiReadyThread+0x12a:
+cmp byte ptr [edi+65h],0 ;if
+jne nt!KiReadyThread+0x134 ;\_KPROCESS->State != STANDBY(0)
+nt!KiReadyThread+0x2f:
+cmp byte ptr [esi+12Ah],0 ;if
+je nt!KiReadyThread+0x17d ;\_KTHREAD->KernelStackResident == FALSE
+nt!KiReadyThread+0x3c:
+movzx ecx,byte ptr [esi+1BAh] ;ecx = \_KTHREAD->IdealProcessor
+mov edi,dword ptr [esi+124h] ;edi = \_KTHREAD->Affinity
+mov byte ptr [esi+2Dh],3 ;\_KTHREAD->State = ProcessInSwap(3)
+mov edx,dword ptr nt!KiProcessorBlock (805633c0)[ecx\*4] ;edx = KPRCB
+mov ebx,dword ptr [edx+4D0h] ;ebx = \_KPRCB->MultiThreadProcessorSet
+mov edx,dword ptr [esi+120h] ;edx = \_KTHREAD->SoftAffinity
+and edx,edi ;if
+je nt!KiReadyThread+0x66 (804dd6c2) ;Affinity == SoftAffinity
+nt!KiReadyThread+0x64:
+mov edi,edx ;Affinity = SoftAffinity
+nt!KiReadyThread+0x66:
+mov edx,dword ptr [nt!KiIdleSummary (8055ae80)];edx = 调度链表数组
+and edx,edi ;根据cpu编号找到对应调度链表，edx=调度链表
+jne nt!KiReadyThread+0x1aa (804e8755) ;如果调度链表不为空，跳转
+nt!KiReadyThread+0x74:
+xor edx,edx ;edx = 0
+inc edx ;edx = 1
+mov ebx,edx ;
+shl ebx,cl ;ebx << cpu
+test edi,ebx ;edi = Affinity & (1 << cpu)
+je nt!KiReadyThread+0x7f (8051992b) ; if(! edi & ebx)
+nt!KiReadyThread+0xb4:
+mov byte ptr [esi+12Bh],cl ;\_KTHREAD->NextProcessor = ecx
+mov ebx,dword ptr nt!KiProcessorBlock (805633c0)[ecx\*4] ;ebx = KPRCB
+mov edi,dword ptr [ebx+8] ;edi = NextThread
+test edi,edi ;if
+jne nt!KiReadyThread+0xcc (804e6ea0) ;NextThread != NULL
+nt!KiReadyThread+0x2d1:
+mov ecx,dword ptr [ebx+4] ;ecx = CurrentThread
+movsx edi,byte ptr [ecx+33h] ;edi = \_KTHREAD->Priority
+cmp eax,edi ;if
+jg nt!KiReadyThread+0x2dc ;ReadyThread->Priority > CurrentThread->Priority
+nt!KiReadyThread+0x307:
+mov byte ptr [esi+2Dh],1 ;\_KTHREAD->STATE = READY(1)
+add esi,60h ;esi = &\_KTHREAD->WaitListEntry
+cmp byte ptr [ebp-1],0 ; if \_KTHREAD->Preetempt != 0
+lea ecx,nt!KiDispatcherReadyListHead (80563da0)[eax\*8] ;ecx = 调度链表
+jne nt!KiReadyThread+0x31b (804dd641) ;\_KTHREAD->Preetempt ! 0
+nt!KiReadyThread+0x329: ;将ReadyThread挂入调度链表
+mov edi,dword ptr [ecx+4] ;edi = 调度链表->Blink
+mov dword ptr [esi],ecx ;\_KTHREAD->WaitListEntry.Flink = 调度链表
+mov dword ptr [esi+4],edi ;\_KTHREAD->WaitListEntry.Blink = 调度链表.Blink
+mov dword ptr [edi],esi ;调度链表.Blink.Flink = \_KTHREAD->WaitListEntry
+mov dword ptr [ecx+4],esi ;调度链表.Blink = \_KTHREAD->WaitListEntry
+nt!KiReadyThread+0x336:
+mov ecx,eax ;ecx = ReadyThread->Priority
+shl edx,cl ;edx = cpu
+or dword ptr [nt!KiReadySummary (8055ae88)],edx
+nt!KiReadyThread+0x340:
+pop edi
+pop esi
+pop ebx
+leave
+ret
+```
+
+# 结语
+
+如分析有错，欢迎指出

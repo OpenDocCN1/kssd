@@ -1,0 +1,201 @@
+
+```cpp
+NTSTATUS HookFltUnregisterFilter()
+{
+DbgPrint("Enter HookFltUnregisterFilter\n");
+NTSTATUS status = STATUS_UNSUCCESSFUL;
+BYTE* phookaddr = 0;
+BYTE* pfun = (BYTE*)FltUnregisterFilter;
+pfun = pfun + 6 + *(LONG*)(pfun + 2);
+pfun = *(BYTE**)pfun;
+//searching for the codes behind "call FltObjectDereference"
+//33 D2 48 8D 4B 08
+BYTE searchBytes[6] = { 0x33,0xD2, 0x48, 0x8D, 0x4B, 0x08 };
+for(int i = 0;i<0x400;i++)
+{
+if (memcmp(pfun + i, searchBytes, 6) == 0)
+{
+phookaddr = pfun + i-8;
+break;
+}
+}
+if (phookaddr == 0)
+{
+DbgPrint("HookFltUnregisterFilter cant find hoodaddr\n");
+return status;
+}
+/*
+mov rcx, rbx //48 8b cb
+mov rax, 0x0000000000000000 //48 b8 00 00 00 00 00 00 00 00
+call rax //ff d0
+mov edx, 1 //BA 01 00 00 00
+lea rcx, [rbx+8] //48 8b 4b 08
+lock cmpxchg [rcx], rdx
+cmp rax, 2 //F0 48 0F B1 11 48 83 F8 02
+jnb short loc_1402F84CC // 73 offset
+xor edx, edx //33 d2 must set rdx 0 due to the origin codes
+*/
+BYTE hookcode[] = {
+0x48,0x8b,0xcb,
+0x48,0xb8,0x00,0x0,0x00,0x00,0x00,0x00,0x00,0x00,
+0xff,0xd0,
+0xba,0x01,0x00,0x00,0x00,
+0x48,0x8d,0x4b,0x08,
+0xf0,0x48,0x0f,0xb1,0x11,0x48,0x83,0xf8,0x02,
+0x73,0x00,
+0x33,0xd2
+};
+//mov rax, next_addr ; jmp rax
+BYTE jumpcode[12] = { 0x48,0xB8,0xFF,0xFF,0xFF,0xFF,0xAA,0xAA,0xAA,0xAA,0xFF,0xE0 };
+int jmpcodelen = 12;
+int jmpcode_uselen = 14;
+int hookcodelen = sizeof(hookcode);
+//1 backup
+g_hookpoint1.g_HookBak = (BYTE*)ExAllocatePool(NonPagedPool, 0x100);
+memcpy(g_hookpoint1.g_HookBak, phookaddr, jmpcode_uselen);
+g_hookpoint1.g_HookBakSize = jmpcode_uselen;
+//2 prepare hook buffer
+g_hookpoint1.g_HookAddr = phookaddr;
+g_hookpoint1.g_HookBuffer = (BYTE*)ExAllocatePool(NonPagedPool, 0x100);
+///here i must calculate the abs addr of FltObjectDereference
+LONG offset = *(LONG*)((UINT64)phookaddr + 3 + 1);
+UINT64 nFltObjectDereferenceAddr = (UINT64)phookaddr + 3 + 5 + offset;
+*(UINT64*)(hookcode + 5) = nFltObjectDereferenceAddr;
+DbgPrint("nFltObjectDereferenceAddr:<0x%p>\n", nFltObjectDereferenceAddr);
+///calculate the offset for loop
+BYTE bytejmp = 0 - hookcodelen + 2;
+hookcode[hookcodelen - 3] = bytejmp;
+memcpy(g_hookpoint1.g_HookBuffer, hookcode, hookcodelen);
+///jump back
+*(UINT64*)(jumpcode + 2) = (UINT64)phookaddr + jmpcode_uselen;
+memcpy(g_hookpoint1.g_HookBuffer+ hookcodelen, jumpcode, jmpcodelen);
+g_hookpoint1.g_HookBufferSize = 0x100;
+//3 now set the hook
+*(UINT64*)(jumpcode + 2) = (UINT64)g_hookpoint1.g_HookBuffer;
+KIRQL tmpirql = WriteProtectOff(); //turn off write protect
+memcpy(phookaddr, jumpcode, jmpcodelen);
+WriteProtectOn(tmpirql); //recover
+DbgPrint("Leave HookFltUnregisterFilter\n");
+return status;
+}
+```
+
+搜索 hook 点和编写 hook 代码部分在部分平台会有差异，自行微调。当设置这个 hook 后，就只需要再对 filter 对象执行一次 `FltUnregisterFilter()` 即可稳定地摘除它的回调。
+
+## 0x6 有没有问题
+
+这个方法在 hook 中减掉了多余的引用计数，但是这会不会有个问题，内核对象的引用都是有意义的，如果一个对象的引用不是由使用者在使用完毕后自行关闭，而是被其他模块在不告知的情况下关闭，那么使用者再次使用这个对象时就可能出现未知问题。所以如果注册`MiniFilter`的模块再次使用这个 filter 对象时是有可能出现 BSOD 的，因为我在摘除后一直没有遇到问题所以暂时还没研究这个问题。
+
+## 0x7 这是不是最正确的姿势
+
+这是一种劫持执行流的解决方案，而且如 0x5 点所述我还不确定绝不会出现问题，不过这里似乎还有另一个方法，就是直接编写代码模仿`FltUnregisterFilter()`的行为，`FltUnregisterFilter()`反编译后可以看到其实并不是很复杂，如果手动循环调用`FltpFreeInstance()`后再在`FltpWaitForRundownProtectionReleaseInternal()`之前根据引用计数决定释放次数，然后结合调试执行其余关键的操作。我想理论上是可行的，这种办法还能避开不同系统版本的适配性问题，但这也无法解决 0x5 点中提到的问题，所以或许也不是拆除 MiniFilter 的最正确姿势。
+
+## 0x1 引言
+
+前段时间因有需要我必须摘除一个`MiniFilter`的回调，了解的人都知道`FltUnregisterFilter()`是移除`MiniFilter`的 API，但是 MSDN 强调过这个 API 只能模块自身使用，于是当我尝试拿他去对我的目标驱动下手时，代码进入`FltUnregisterFilter()`后就一去不返了。
+
+## 0x2 一篇启发性文章
+
+在看雪上拜读到[这篇文章](https://bbs.kanxue.com/elink@23aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0M7q4)9J5k6i4N6W2K9i4S2A6L8W2)9J5k6i4q4I4i4K6u0W2j5$3!0E0i4K6u0r3M7#2)9K6c8W2)9#2k6W2)9#2k6X3u0A6P5W2)9K6c8p5#2B7e0e0g2z5g2r3x3J5e0f1c8k6P5p5#2%4i4K6y4p5i4K6y4p5i4K6t1$3j5h3#2H3i4K6y4n7L8h3W2V1i4K6y4p5x3U0b7#2z5o6b7%4y4o6x3%4y4q4)9J5y4X3q4E0M7q4)9K6b7X3W2V1P5q4)9K6c8o6u0Q4x3U0k6S2L8i4m8Q4x3@1u0K6L8W2)9K6c8r3j5&6k6o6N6S2j5e0t1&6z5o6V1$3z5o6j5&6j5X3x3&6j5e0M7@1z5r3b7%4j5X3c8X3k6o6j5I4y4o6t1$3i4K6t1$3j5h3#2H3i4K6y4n7j5$3S2C8M7$3#2Q4x3@1c8T1x3e0S2W2y4U0M7H3j5K6R3$3k6U0W2W2k6e0q4S2y4e0t1J5z5o6R3J5x3e0x3$3y4r3u0U0j5K6R3%4x3o6M7$3y4$3y4S2y4r3u0S2k6o6p5&6k6r3y4W2k6h3f1^5y4K6V1%4z5e0c8W2y4h3t1^5x3X3b7@1k6e0M7H3y4e0j5J5k6e0j5@1y4o6l9@1y4$3x3%4i4K6t1$3j5h3#2H3i4K6y4n7M7$3y4W2L8X3g2Q4x3@1b7J5y4H3`.`.)，文中定位了阻塞的原因：进入`FltUnregisterFilter()`后，`ExWaitForRundownProtectionRelease()`会检查 filter 对象的引用计数，按照 MSDN 的解释，如果不为 0 那么就会阻塞。作者的实验场景中此时引用计数为 2，那么一定也就阻塞了。
+
+作者再观察使用`PCHunter`来摘除`MiniFilter`的过程，发现在进入`ExWaitForRundownProtectionRelease()`之前这个 filter 对象的引用计数已经变为了 0，于是他猜测`PCHunter`使用 API `ExReleaseRundownProtection()`来减少了引用计数。因此他也在自己驱动中在调用`FltUnregisterFilter()`之前添加执行了`ExReleaseRundownProtection()`，然后成功了。
+
+## 0x3 有没有问题
+
+我使用作者这个方法在一个环境下测试成功了，但是换了一个环境后并没成功，原因是要摘除的 filter 的引用计数在`ExWaitForRundownProtectionRelease()`之前并不能到达 0：
+
+执行`ExReleaseRundownProtection()`后进入`FltUnregisterFilter()`之时引用计数值为`0x7623`：
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202312/969962_KUDCCUBP3PFFVCH.webp)
+
+执行到`ExWaitForRundownProtectionRelease()`之时这个引用计数值还剩`0x6`：
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202312/969962_P22VDXMGR4TXCGZ.webp)
+
+接着进入`ExWaitForRundownProtectionRelease()`就再次一去不返了。
+
+## 0x4 寻找一个真正的解决方法
+
+所以我需要调多次`ExReleaseRundownProtection()`吗？如果是多次那么到底应该调几次才是恰当的？我尝试寻找一个真正的具有通用性的解决办法：
+
+我尝试连续调用`ExReleaseRundownProtection()`，发现每次这个引用计数都会减少 2：
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202312/969962_Q4JQSPW7MAU6YDQ.webp)
+
+所以如果我循环“引用计数 / 2”次是不是就能清零了？如下：
+
+```cpp
+UINT64 count = *((UINT64*)pFilter + 1);
+for (size_t i = 0; i < count / 2; i++)
+{
+    ExReleaseRundownProtection(RunRefs);
+}
+FltUnregisterFilter(pFilter);
+```
+
+这样在执行`FltUnregisterFilter()`之前，引用计数清零了：
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202312/969962_TFSTKR4JFBMTXBR.webp)
+
+但是继续执行后，依然阻塞了。
+
+暂停下来看传入对象的引用计数：
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202312/969962_G4KEPUJ4Q9T8JNE.webp)
+
+可见这个计数变得很大，高位为`ffff`，可以猜测是不是它在为 0 后经过了多次递减最终导致这么大的数字，现在就需要看看`FltUnregisterFilter()`中发生了什么事了，关键反编译代码如下：
+
+```cpp
+__int64 __fastcall FltUnregisterFilter(__int64 a1)
+{
+    _QWORD **v6;
+    _RBX = a1;
+    v6 = (_QWORD **)(_RBX + 208);
+    for (_QWORD *i = *v6; i != v6; i = (_QWORD *)*i )
+    {
+        if ( !(*(_DWORD *)(i - 14) & 1) && !(*(_DWORD *)(i - 5) & 4) )
+        {
+            v4 = FltObjectReference((__int64)(i - 14));
+            if ( v4 >= 0 )
+            {
+                ExReleaseResourceLite((PERESOURCE)(_RBX + 104));
+                KeLeaveCriticalRegion();
+                // Inside here the references reduced
+                FltpFreeInstance((__int64)(i - 14), 2 * (*(_DWORD *)(_RBX + 88) & 1) + 2, v8);
+                // a.
+                goto LABEL_7;
+            }
+        }
+    }
+    ......
+    FltObjectDereference(_RBX);
+    // b.
+    FltpWaitForRundownProtectionReleaseInternal(_RBX + 8, 0);
+    // c. Here the block resides
+    FltpTerminateActiveConnections(_RBX);
+    ......
+}
+```
+
+经过简单调试就可以发现，从刚进入`FltUnregisterFilter()`到断点`FltpWaitForRundownProtectionReleaseInternal()`，filter 对象的引用计数发生较大的减小，a 处`FltpFreeInstance()`函数和 b 处`FltObjectDereference()`执行了修改操作。
+
+看看具体引用计数是怎么被修改的，先看`FltObjectDereference()`：
+
+```cpp
+__int64 __fastcall FltObjectDereference(__int64 a1)
+{
+    return ExReleaseRundownProtection(a1 + 8); //located in ntoskrnl.exe
+}
+
+int __fastcall ExfReleaseRundownProtection(volatile signed __int64 *_RCX)
+{
+    ......
+    v3 = _InterlockedCompareExchange(_RCX, v1 - 2, v1);
+    ......
+    return v3;
+}
+```
+
+可见`InterlockedCompareExchange()`会将计数减 2。
+
+再看看`FltpFreeInstance()`，由于里面调用栈较深，我这里通过访问断点来演示，在`filter + 8`处下写断点很快就命中了，调用栈如下：
