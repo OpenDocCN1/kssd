@@ -1,0 +1,118 @@
+
+# [原创]如何设计简易的抗弱碰撞哈希函数
+
+这里介绍[knuth multiplicative](https://bbs.kanxue.com/elink@7d4K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6K6N6r3q4U0K9$3!0$3k6i4u0X3L8r3!0%4i4K6u0W2j5$3!0E0i4K6u0r3M7i4g2W2M7%4c8A6L8$3&6K6i4K6u0r3x3e0p5^5y4K6p5J5y4o6g2Q4x3V1k6C8L8Y4g2@1K9q4)9J5k6r3#2#2L8s2c8A6M7r3I4A6j5$3q4@1K9i4k6W2i4K6u0V1K9r3q4K6K9l9`.`.)法
+
+公式思路如下
+
+`this_hash = ( (R * last_hash).operateX( f(Magic_Num, this_block) ) ) % M`
+
+**`看似有点复杂,我们一步步讲,保证0基础看懂`**
+
+`operateX`指的是某种运算,可以是加减乘除四则运算,也可以是位运算,也可以是更复杂的运算组合
+
+这个运算的左操作数为`R * last_hash`,右操作数为`函数f()`的返回值
+
+`函数f`的参数:
+
+`Magic_Num`不多说,随意定的一个值就行
+
+`this_block`是本轮hash加密的加密块的内容
+
+`M`是hash表的表长
+
+这里分为三个理解阶段,在数学上并不严谨,但对我们的理解非常有帮助
+
+首先我们规定,待处理的原数据是长度和内容随机的字符串
+
+字符范围为大小写字母和十个阿拉伯数字,以ASCII表示
+
+接下来我们举一个用上面公式衍生出来的例子
+
+```
+//main.cpp
+
+int hash = 0; //这里我们应当将hash变量理解为计数器
+
+//这里的计数器指的是计算从自然数N累加到自然数M这一操作所需的那个中间变量;而非计数器这一数据结构
+
+for(int i = 0; i < strlen; i++){
+
+ hash = (R * hash + Str[i] ) % M
+
+}
+```
+
+本例当中略去`magic_Num`
+
+## 第一个理解阶段
+
+我们先把`M`看作是足够大的,也就说对`M`的模永远等于这个数本身,同时我们把`str`中的每一个字符的ASCII码都看作是小于10的,同时令`R`为10
+
+此时,`hash`值等价于原字符串的十进制形式,画图如下
+
+[![IBqGaq.jpg](https://bbs.kanxue.com/upload/attach/202111/908897_HB3K46WMAC2XFU6.jpg)](https://bbs.kanxue.com/elink@045K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6A6L8h3N6@1N6g2)9J5k6h3y4G2L8g2)9J5c8X3W2Q4x3V1k6u0b7Y4q4s2j5i4p5`.)
+
+## 第二个理解阶段
+
+由于ASCII值并非小于10(前面已经说了字符范围)
+
+因此我们假设`R`为128(只要大于字符串当中,ASCII意义上的最大字符就行,是多少无所谓)
+
+此时算出来的值相当于128进制的整数
+
+[![IBqTot.jpg](https://bbs.kanxue.com/upload/attach/202111/908897_S7UN2DEARKCQZHD.jpg)](https://bbs.kanxue.com/elink@2aeK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6A6L8h3N6@1N6g2)9J5k6h3y4G2L8g2)9J5c8X3W2Q4x3V1k6u0b7Y4q4f1L8%4b7`.)
+
+## 第三个理解阶段
+
+把`M`理解为一个并非足够大的数,这样可以做到**"扩散"**
+
+比如:
+
+字符串A = "abcdefg"
+
+字符串B = "abcdeff"
+
+如果`M`足够大,我们会发现A和B的`hash`值几乎是相同的,即,只有图中的Y会受到改变
+
+而我们希望元数据中,改变任意一位,最终的`hash`值会改变50%以上(一种安全性的考量,50%这个值的证明本文略过)
+
+因此我们会在每一轮运算中加入取模
+
+如果改变的这一位出现在字符串的前50%的位置,则目标可以因此轻易达成(可以照着上面的流程图过一下,很容易推导)
+
+如果出现在后50%的位置,则我们无法达成这一目标,主要原因在于我们的`block`分块的顺序,**是完全按照元数据顺序的**,且**一个block内只有一位字符**的内容
+
+这里有多种做法,最简单常见的做法是:让每个`block`的内容是元数据当中**多个乱序区域的内容的直接或间接的集合**,比如第一个字符和倒数第一个字符组成一个`block`,然后第二个和倒数第二个字符组合起来
+
+如果字符长度是奇数则填充为偶数,等等
+
+不过这些细节实现就可以自由发挥了
+
+至此结束
+
+## 参考资料
+
+[098K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2U0M7#2)9J5k6h3y4G2M7X3&6W2L8r3I4Q4x3X3g2W2k6s2g2Q4x3V1k6U0L8%4g2J5M7$3g2K6i4K6u0r3j5%4x3K6x3e0u0Q4x3V1j5J5x3o6l9^5M7%4m8Q4x3V1k6D9k6h3y4@1N6i4u0W2M7#2)9J5c8X3I4W2j5K6t1I4i4K6u0W2K9s2c8E0L8l9`.`.](https://bbs.kanxue.com/elink@7aaK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2U0M7#2)9J5k6h3y4G2M7X3&6W2L8r3I4Q4x3X3g2W2k6s2g2Q4x3V1k6U0L8%4g2J5M7$3g2K6i4K6u0r3j5%4x3K6x3e0u0Q4x3V1j5J5x3o6l9^5M7%4m8Q4x3V1k6D9k6h3y4@1N6i4u0W2M7#2)9J5c8X3I4W2j5K6t1I4i4K6u0W2K9s2c8E0L8l9`.`.)
+
+[6aeK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6K6N6r3q4U0K9$3!0$3k6i4u0X3L8r3!0%4i4K6u0W2j5$3!0E0i4K6u0r3M7i4g2W2M7%4c8A6L8$3&6K6i4K6u0r3x3e0p5^5y4K6p5J5y4o6g2Q4x3V1k6C8L8Y4g2@1K9q4)9J5k6r3#2#2L8s2c8A6M7r3I4A6j5$3q4@1K9i4k6W2i4K6u0V1K9r3q4K6K9l9`.`.](https://bbs.kanxue.com/elink@04fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6K6N6r3q4U0K9$3!0$3k6i4u0X3L8r3!0%4i4K6u0W2j5$3!0E0i4K6u0r3M7i4g2W2M7%4c8A6L8$3&6K6i4K6u0r3x3e0p5^5y4K6p5J5y4o6g2Q4x3V1k6C8L8Y4g2@1K9q4)9J5k6r3#2#2L8s2c8A6M7r3I4A6j5$3q4@1K9i4k6W2i4K6u0V1K9r3q4K6K9l9`.`.)
+
+《Algorithms 4th》
+
+欢迎交流，217K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3E0K6M7X3!0A6k6r3!0Q4x3X3g2S2M7Y4b7`.
+
+未经许可禁止转载
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+最后于  2021-11-16 00:15
+
+被KSr01dO编辑
+
+，原因：
+
+[#Hash函数](https://bbs.kanxue.com/forum-132-1-146.htm)
+
+[#算法设计](https://bbs.kanxue.com/forum-132-1-150.htm)
+
+[#算法分析](https://bbs.kanxue.com/forum-132-1-151.htm)
