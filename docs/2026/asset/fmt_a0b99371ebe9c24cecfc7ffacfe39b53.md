@@ -1,0 +1,196 @@
+
+`:0040352B`  `0A05001000`                      `ImpAdCallFPR4`              ;Call `ptr_00401036`; check stack `0010`; Push EAX
+
+`:00403530`  `0418FF`                          `FLdRfVar`                   ;Push `LOCAL_00E8`
+
+`**Possible String Ref To->"7"`
+
+                               |
+
+`:00403533`  `3A08FF1200`                      `LitVarStr`                  ;PushVarString `ptr_004022B8`
+
+`:00403538`  `5D`                              `HardType`                   ;
+
+`:00403539`  `FB33`                            `EqVarBool`                  ;
+
+`:0040353B`  `36040028FF18FF`                  `FFreeVar`                   ;Free `0004/2` variants
+
+`:00403542`  `1C6B0D`                          `BranchF`                    ;If Pop=`0` then ESI=`0040354F`
+
+`:00403545`  `6C74FF`                          `ILdRf`                      ;Push DWORD [`LOCAL_008C`]
+
+`**Possible String Ref To->"7"`
+
+                               |
+
+`:00403548`  `1B1200`                          `LitStr`                     ;Push `ptr_004022B8`
+
+`:0040354B`  `2A`                              `ConcatStr`                  ;`vbaStrCat`
+
+`:0040354C`  `3174FF`                          `FStStr`                     ;SysFreeString [`LOCAL_008C`]; [`LOCAL_008C`]=Pop
+
+`:0040354F`  `0464FF`                          `FLdRfVar`                   ;Push `LOCAL_009C`
+
+`:00403552`  `6480FE330D`                      `NextI2`                     ;
+
+```
+  For j = 1 To Len(strCode)
+    If Mid(strCode, j, 1) = "7" Then code = code & "7"
+  Next j
+```
+
+`:00403557`  `F401`                            `LitI2_Byte`                 ;Push `01`
+
+`:00403559`  `0464FF`                          `FLdRfVar`                   ;Push `LOCAL_009C`
+
+`:0040355C`  `6C70FF`                          `ILdRf`                      ;Push DWORD [`LOCAL_0090`]
+
+`:0040355F`  `4A`                              `FnLenStr`                   ;`vbaLenBstr`
+
+`:00403560`  `E4`                              `CI2I4`                      ;Verify [stack] high word is `0000`, ECX=[ECX]
+
+`:00403561`  `FE637CFEC30D`                    `ForI2`                      ;
+
+`:00403567`  `2828FF0100`                      `LitVarI2`                   ;PushVarInteger `0001`
+
+`:0040356C`  `6B64FF`                          `FLdI2`                      ;Push WORD [`LOCAL_009C`]
+
+`:0040356F`  `E7`                              `CI4UI1`                     ;
+
+`:00403570`  `0470FF`                          `FLdRfVar`                   ;Push `LOCAL_0090`
+
+`:00403573`  `4D48FF0840`                      `CVarRef`                    ;
+
+`:00403578`  `0418FF`                          `FLdRfVar`                   ;Push `LOCAL_00E8`
+
+`**Reference To->msvbvm60.rtcMidCharVar`
+
+                               |
+
+`:0040357B`  `0A05001000`                      `ImpAdCallFPR4`              ;Call `ptr_00401036`; check stack `0010`; Push EAX
+
+`:00403580`  `0418FF`                          `FLdRfVar`                   ;Push `LOCAL_00E8`
+
+`**Possible String Ref To->"6"`
+
+                               |
+
+`:00403583`  `3A08FF1000`                      `LitVarStr`                  ;PushVarString `ptr_004022A4`
+
+`:00403588`  `5D`                              `HardType`                   ;
+
+`:00403589`  `FB33`                            `EqVarBool`                  ;
+
+`:0040358B`  `36040028FF18FF`                  `FFreeVar`                   ;Free `0004/2` variants
+
+`:00403592`  `1CBB0D`                          `BranchF`                    ;If Pop=`0` then ESI=`0040359F`
+
+`:00403595`  `6C74FF`                          `ILdRf`                      ;Push DWORD [`LOCAL_008C`]
+
+`**Possible String Ref To->"6"`
+
+                               |
+
+`:00403598`  `1B1000`                          `LitStr`                     ;Push `ptr_004022A4`
+
+`:0040359B`  `2A`                              `ConcatStr`                  ;`vbaStrCat`
+
+`:0040359C`  `3174FF`                          `FStStr`                     ;SysFreeString [`LOCAL_008C`]; [`LOCAL_008C`]=Pop
+
+`:0040359F`  `0464FF`                          `FLdRfVar`                   ;Push `LOCAL_009C`
+
+`:004035A2`  `647CFE830D`                      `NextI2`                     ;
+
+```
+  For j = 1 To Len(strCode)
+    If Mid(strCode, j, 1) = "6" Then code = code & "6"
+  Next j
+```
+
+`:004035A7`  `F401`                            `LitI2_Byte`                 ;Push `01`
+
+`:004035A9`  `0464FF`                          `FLdRfVar`                   ;Push `LOCAL_009C`
+
+`:004035AC`  `6C70FF`                          `ILdRf`                      ;Push DWORD [`LOCAL_0090`]
+
+`:004035AF`  `4A`                              `FnLenStr`                   ;`vbaLenBstr`
+
+`:004035B0`  `E4`                              `CI2I4`                      ;Verify [stack] high word is `0000`, ECX=[ECX]
+
+`:004035B1`  `FE6378FE130E`                    `ForI2`                      ;
+
+`:004035B7`  `2828FF0100`                      `LitVarI2`                   ;PushVarInteger `0001`
+
+`:004035BC`  `6B64FF`                          `FLdI2`                      ;Push WORD [`LOCAL_009C`]
+
+`:004035BF`  `E7`                              `CI4UI1`                     ;
+
+`:004035C0`  `0470FF`                          `FLdRfVar`                   ;Push `LOCAL_0090`
+
+`:004035C3`  `4D48FF0840`                      `CVarRef`                    ;
+
+`:004035C8`  `0418FF`                          `FLdRfVar`                   ;Push `LOCAL_00E8`
+
+`**Reference To->msvbvm60.rtcMidCharVar`
+
+                               |
+
+`:004035CB`  `0A05001000`                      `ImpAdCallFPR4`              ;Call `ptr_00401036`; check stack `0010`; Push EAX
+
+`:004035D0`  `0418FF`                          `FLdRfVar`                   ;Push `LOCAL_00E8`
+
+`**Possible String Ref To->"5"`
+
+                               |
+
+`:004035D3`  `3A08FF0E00`                      `LitVarStr`                  ;PushVarString `ptr_00402290`
+
+`:004035D8`  `5D`                              `HardType`                   ;
+
+`:004035D9`  `FB33`                            `EqVarBool`                  ;
+
+`:004035DB`  `36040028FF18FF`                  `FFreeVar`                   ;Free `0004/2` variants
+
+`:004035E2`  `1C0B0E`                          `BranchF`                    ;If Pop=`0` then ESI=`004035EF`
+
+`:004035E5`  `6C74FF`                          `ILdRf`                      ;Push DWORD [`LOCAL_008C`]
+
+`**Possible String Ref To->"5"`
+
+                               |
+
+`:004035E8`  `1B0E00`                          `LitStr`                     ;Push `ptr_00402290`
+
+`:004035EB`  `2A`                              `ConcatStr`                  ;`vbaStrCat`
+
+`:004035EC`  `3174FF`                          `FStStr`                     ;SysFreeString [`LOCAL_008C`]; [`LOCAL_008C`]=Pop
+
+`:004035EF`  `0464FF`                          `FLdRfVar`                   ;Push `LOCAL_009C`
+
+`:004035F2`  `6478FED30D`                      `NextI2`                     ;
+
+```
+  For j = 1 To Len(strCode)
+    If Mid(strCode, j, 1) = "5" Then code = code & "5"
+  Next j
+```
+
+`:004035F7`  `F401`                            `LitI2_Byte`                 ;Push `01`
+
+`:004035F9`  `0464FF`                          `FLdRfVar`                   ;Push `LOCAL_009C`
+
+`:004035FC`  `6C70FF`                          `ILdRf`                      ;Push DWORD [`LOCAL_0090`]
+
+`:004035FF`  `4A`                              `FnLenStr`                   ;`vbaLenBstr`
+
+`:00403600`  `E4`                              `CI2I4`                      ;Verify [stack] high word is `0000`, ECX=[ECX]
+
+`:00403601`  `FE6374FE630E`                    `ForI2`                      ;
+
+`:00403607`  `2828FF0100`                      `LitVarI2`                   ;PushVarInteger `0001`
+
+`:0040360C`  `6B64FF`                          `FLdI2`                      ;Push WORD [`LOCAL_009C`]
+
+`:0040360F`  `E7`                              `CI4UI1`                     ;
+
+`:00403610`  `0470FF`                          `FLdRfVar`                   ;Push `LOCAL_0090`

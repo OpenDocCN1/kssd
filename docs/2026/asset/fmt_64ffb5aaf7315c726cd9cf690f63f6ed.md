@@ -1,0 +1,181 @@
+
+```
+:0040B157  3EBCFE                          FLdZeroAd                  ;Push DWORD [LOCAL_0144]; [LOCAL_0144]=0
+
+:0040B15A  46ACFE                          CVarStr                    ;
+
+:0040B15D  048CFE                          FLdRfVar                   ;Push LOCAL_0174
+
+********Reference To->msvbvm60.rtcMidCharVar                                  //取第七个字符
+
+                               |                                                //local_174 = Mid(注册码,7,1)
+
+:0040B160  0A0C001000                      ImpAdCallFPR4              ;Call ptr_00401090; check stack 0010; Push EAX
+
+:0040B165  048CFE                          FLdRfVar                   ;Push LOCAL_0174
+
+:0040B168  FDFE88FE                        CStrVarVal                 ;
+
+********Reference To->msvbvm60.rtcR8ValFromBstr
+
+                               |
+
+:0040B16C  0A0D000400                      ImpAdCallFPR4              ;Call ptr_004010AE; check stack 0004; Push EAX
+
+:0040B171  7478FE                          FStFPR8                    ;Fstp#8 [LOCAL_0188] //转换成数字保存在local_188
+
+:0040B174  2834FF0100                      LitVarI2                   ;PushVarInteger 0001
+
+:0040B179  F502000000                      LitI4                      ;Push 00000002
+
+:0040B17E  3E74FF                          FLdZeroAd                  ;Push DWORD [LOCAL_008C]; [LOCAL_008C]=0
+
+:0040B181  4654FF                          CVarStr                    ;
+
+:0040B184  0414FF                          FLdRfVar                   ;Push LOCAL_00EC
+
+********Reference To->msvbvm60.rtcMidCharVar
+
+                               |
+
+:0040B187  0A0C001000                      ImpAdCallFPR4              ;Call ptr_00401090; check stack 0010; Push EAX
+
+:0040B18C  0414FF                          FLdRfVar                   ;Push LOCAL_00EC   //取得注册码第二个字符
+
+:0040B18F  FDFEF0FE                        CStrVarVal                 ;
+
+********Reference To->msvbvm60.rtcR8ValFromBstr                                  //转换成实数
+
+                               |
+
+:0040B193  0A0D000400                      ImpAdCallFPR4              ;Call ptr_004010AE; check stack 0004; Push EAX
+
+:0040B198  6F80FE                          FLdFPR8                    ;Fld#8 [LOCAL_0180] //加上local_180
+
+:0040B19B  AB                              AddR8                      ;
+
+:0040B19C  6F78FE                          FLdFPR8                    ;Fld#8 [LOCAL_0188] //加上local_188
+
+:0040B19F  AB                              AddR8                      ;
+
+:0040B1A0  ED                              CR8R8                      ;
+
+:0040B1A1  F412                            LitI2_Byte                 ;Push 12            //整数&H12转换成实数
+
+:0040B1A3  EB                              CR8I2                      ;
+
+:0040B1A4  C8                              EqR4                       ;                   //和上面的和比较
+
+:0040B1A5  320600F0FEC4FE88                FFreeStr                   ;Do SysFreeString [arg_n]; [arg_n]=0 0006/2 times ~ arg
+
+:0040B1AE  29060078FFECFEC0                FFreeAd                    ;
+
+:0040B1B7  36120054FF34FF14                FFreeVar                   ;Free 0012/2 variants
+
+:0040B1CC  1CA701                          BranchF                    ;If Pop=0 then ESI=0040B21F //不等则跳去提示失败
+
+:0040B1CF  0474FF                          FLdRfVar                   ;Push LOCAL_008C   //相等则下面是保证注册信息
+
+:0040B1D2  0478FF                          FLdRfVar                   ;Push LOCAL_0088
+
+:0040B1D5  050000                          ImpAdLdRf                  ;Push ptr
+
+:0040B1D8  240100                          NewIfNullPr                ;[Pop] [SR]
+
+**********Reference To:Global.App
+
+                              |
+
+:0040B1DB  0D14000200                      VCallHresult               ;Call ptr_004042A8
+
+:0040B1E0  0878FF                          FLdPr                      ;[SR]=[LOCAL_0088]
+
+**********Reference To:[propget]App.EXEName
+
+                              |
+
+:0040B1E3  0D58000300                      VCallHresult               ;Call ptr_00404628
+
+:0040B1E8  F400                            LitI2_Byte                 ;Push 00
+
+:0040B1EA  FBFD                            CStrUI1                    ;vbaStrI2
+
+:0040B1EC  23F0FE                          FStStrNoPop                ;SysFreeString [LOCAL_0110]; [LOCAL_0110]=[stack]
+
+******Possible String Ref To->"杂乞??
+
+??搪逝"
+
+                               |
+
+:0040B1EF  1B0500                          LitStr                     ;Push ptr_00404518
+
+******Possible String Ref To->"Options"
+
+                               |
+
+:0040B1F2  1B0600                          LitStr                     ;Push ptr_0040463C
+
+:0040B1F5  6C74FF                          ILdRf                      ;Push DWORD [LOCAL_008C]
+
+**********Reference To->msvbvm60.rtcSaveSetting
+
+                               |
+
+:0040B1F8  0A07001000                      ImpAdCallFPR4              ;Call ptr_00401078; check stack 0010; Push EAX
+
+:0040B1FD  32040074FFF0FE                  FFreeStr                   ;Do SysFreeString [arg_n]; [arg_n]=0 0004/2 times ~ arg
+
+:0040B204  1A78FF                          FFree1Ad                   ;Push [LOCAL_0088]; Call [[[LOCAL_0088]]+8]; [[LOCAL_0088]]=0
+
+:0040B207  6C0800                          ILdRf                      ;Push DWORD [STACK_0008]
+
+:0040B20A  FD9C78FF                        FStAdNoPop                 ;
+
+:0040B20E  050000                          ImpAdLdRf                  ;Push ptr
+
+:0040B211  240100                          NewIfNullPr                ;[Pop] [SR]
+
+**********Reference To:Global.UnLoad
+
+                              |
+
+:0040B214  0D10000200                      VCallHresult               ;Call ptr_004042A8
+
+:0040B219  1A78FF                          FFree1Ad                   ;Push [LOCAL_0088]; Call [[[LOCAL_0088]]+8]; [[LOCAL_0088]]=0
+
+:0040B21C  1EF701                          Branch                     ;ESI=0040B26F
+
+:0040B21F  27F4FE                          LitVar                     ;PushVar LOCAL_010C
+
+:0040B222  2714FF                          LitVar                     ;PushVar LOCAL_00EC
+
+:0040B225  2734FF                          LitVar                     ;PushVar LOCAL_00CC
+
+:0040B228  F500000000                      LitI4                      ;Push 00000000
+
+******Possible String Ref To->"?猜????瞧??????忍"
+
+                               |
+
+:0040B22D  3A64FF0E00                      LitVarStr                  ;PushVarString ptr_00404720
+
+:0040B232  4E54FF                          FStVarCopyObj              ;[LOCAL_00AC]=vbaVarDup(Pop)
+
+:0040B235  0454FF                          FLdRfVar                   ;Push LOCAL_00AC
+
+**********Reference To->msvbvm60.rtcMsgBox
+
+                               |
+
+:0040B238  0A0A001400                      ImpAdCallFPR4              ;Call ptr_00401084; check stack 0014; Push EAX
+
+:0040B23D  36080054FF34FF14                FFreeVar                   ;Free 0008/2 variants
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+```
+
+可以看出验证注册的算法是非常简单的：取注册码第2，4，7位的字符，转换成数字，加在一起的和是18就可以了。
+
+【全文完】
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
