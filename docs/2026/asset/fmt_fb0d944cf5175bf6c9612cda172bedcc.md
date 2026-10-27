@@ -1,0 +1,223 @@
+
+```python
+from collections import namedtuple
+from dataclasses import dataclass
+
+@dataclass
+class Regs(object):
+    idx: int
+
+    def __repr__(self):
+        if self.idx == 0:
+            return "eax"
+        elif self.idx == 1:
+            return "ebx"
+        elif self.idx == 2:
+            return "ecx"
+        elif self.idx == 3:
+            return "edx"
+        else:
+            return "unknown reg {}".format(self.idx)
+
+Nop = namedtuple("Nop", ["addr"]) # case 0: nop
+MovReg = namedtuple("MovReg", ["addr", "dst", "imm"]) # case 1: mov reg, imm
+PushImm = namedtuple("PushImm", ["addr", "imm"]) # case 2: push imm
+PushReg = namedtuple("PushReg", ["addr", "reg"]) # case 3: push reg
+PopReg = namedtuple("PopReg", ["addr", "reg"]) # case 4: pop reg
+# case 5: print str by edx: 0:'right', 1:'wrong', 3:'plz input:', 4:'hacker'
+PrintStr = namedtuple("PrintStr", ["addr"])
+
+AddReg = namedtuple("AddReg", ["addr", "dst", "src"]) # case 6: add reg, reg
+SubReg = namedtuple("SubReg", ["addr", "dst", "src"]) # case 7: sub reg, reg
+MulReg = namedtuple("MulReg", ["addr", "dst", "src"]) # case 8: mul reg, reg
+DivReg = namedtuple("DivReg", ["addr", "dst", "src"]) # case 9: div reg, reg
+XorReg = namedtuple("XorReg", ["addr", "dst", "src"]) # case 10: xor reg, reg
+
+Jmp = namedtuple("Jmp", ["addr", "target"]) # case 11: jmp addr
+Cmp = namedtuple("Cmp", ["addr", "dst", "src"]) # case 12: cmp reg, reg
+Jz = namedtuple("Jz", ["addr", "target"]) # case 13: jz addr
+Jnz = namedtuple("Jnz", ["addr", "target"]) # case 14: jnz addr
+Jg = namedtuple("Jg", ["addr", "target"]) # case 15: jg addr
+Jl = namedtuple("Jl", ["addr", "target"]) # case 16: jl addr
+
+# case 17: gets(mem); eax=strlen(mem);
+InputStr = namedtuple("InputStr", ["addr"])
+
+InitMem = namedtuple(
+    "InitMem", ["addr", "mem_addr", "sz"]
+) # case 18: memset(mem_addr, 0, sz)
+
+MovRegStack = namedtuple(
+    "MovRegStack", ["addr", "dst", "src"]
+) # case 19: mov reg, [ebp-src]
+
+MovRegMem = namedtuple(
+    "MovRegMem", ["addr", "dst", "src"]
+) # case 20: mov reg, mem[src]
+
+Exit = namedtuple("Exit", ["addr"]) # case 0xff: exit(0)
+
+def parse(buffer):
+    instructions = []
+
+    pc = 0
+    while pc < len(buffer):
+        opcode = buffer[pc]
+
+        match opcode:
+            case 0:
+                instructions.append(Nop(pc))
+                pc += 1
+            case 1:
+                dst = buffer[pc + 1]
+                imm = buffer[pc + 2]
+                instructions.append(MovReg(pc, Regs(dst), imm))
+                pc += 3
+            case 2:
+                imm = buffer[pc + 1]
+                instructions.append(PushImm(pc, imm))
+                pc += 3
+            case 3:
+                reg = buffer[pc + 1]
+                instructions.append(PushReg(pc, Regs(reg)))
+                pc += 3
+            case 4:
+                reg = buffer[pc + 1]
+                instructions.append(PopReg(pc, Regs(reg)))
+                pc += 3
+            case 5:
+                instructions.append(PrintStr(pc))
+                pc += 3
+            case 6:
+                dst = buffer[pc + 1]
+                src = buffer[pc + 2]
+                instructions.append(AddReg(pc, Regs(dst), Regs(src)))
+                pc += 3
+            case 7:
+                dst = buffer[pc + 1]
+                src = buffer[pc + 2]
+                instructions.append(SubReg(pc, Regs(dst), Regs(src)))
+                pc += 3
+            case 8:
+                dst = buffer[pc + 1]
+                src = buffer[pc + 2]
+                instructions.append(MulReg(pc, Regs(dst), Regs(src)))
+                pc += 3
+            case 9:
+                dst = buffer[pc + 1]
+                src = buffer[pc + 2]
+                instructions.append(DivReg(pc, Regs(dst), Regs(src)))
+                pc += 3
+            case 10:
+                dst = buffer[pc + 1]
+                src = buffer[pc + 2]
+                instructions.append(XorReg(pc, Regs(dst), Regs(src)))
+                pc += 3
+            case 11:
+                target = 3 * buffer[pc + 1] - 3
+                instructions.append(Jmp(pc, target))
+                pc += 3
+            case 12:
+                dst = buffer[pc + 1]
+                src = buffer[pc + 2]
+                instructions.append(Cmp(pc, Regs(dst), Regs(src)))
+                pc += 3
+            case 13:
+                target = 3 * buffer[pc + 1] - 3
+                instructions.append(Jz(pc, target))
+                pc += 3
+            case 14:
+                target = 3 * buffer[pc + 1] - 3
+                instructions.append(Jnz(pc, target))
+                pc += 3
+            case 15:
+                target = 3 * buffer[pc + 1] - 3
+                instructions.append(Jg(pc, target))
+                pc += 3
+            case 16:
+                target = 3 * buffer[pc + 1] - 3
+                instructions.append(Jl(pc, target))
+                pc += 3
+            case 17:
+                instructions.append(InputStr(pc))
+                pc += 3
+            case 18:
+                mem_addr = buffer[pc + 1]
+                sz = buffer[pc + 2]
+                instructions.append(InitMem(pc, mem_addr, sz))
+                pc += 3
+            case 19:
+                dst = buffer[pc + 1]
+                src = buffer[pc + 2]
+                instructions.append(MovRegStack(pc, Regs(dst), src))
+                pc += 3
+            case 20:
+                dst = buffer[pc + 1]
+                src = buffer[pc + 2]
+                instructions.append(MovRegMem(pc, Regs(dst), src))
+                pc += 3
+            case 255:
+                instructions.append(Exit(pc))
+                pc += 3
+            case _:
+                raise Exception(f"unknown opcode: {opcode} at {pc}")
+                break
+
+    return instructions
+
+def dump(instructions):
+    for ins in instructions:
+        match ins:
+            case Nop(addr):
+                print(f"_0x{addr:04x}: nop")
+            case MovReg(addr, dst, imm):
+                print(f"_0x{addr:04x}: mov {dst}, 0x{imm:02x}")
+            case PushImm(addr, imm):
+                print(f"_0x{addr:04x}: push 0x{imm:02x}")
+            case PushReg(addr, reg):
+                print(f"_0x{addr:04x}: push {reg}")
+            case PopReg(addr, reg):
+                print(f"_0x{addr:04x}: pop {reg}")
+            case PrintStr(addr):
+                print(f"_0x{addr:04x}: print_str")
+            case AddReg(addr, dst, src):
+                print(f"_0x{addr:04x}: add {dst}, {src}")
+            case SubReg(addr, dst, src):
+                print(f"_0x{addr:04x}: sub {dst}, {src}")
+            case MulReg(addr, dst, src):
+                print(f"_0x{addr:04x}: mul {dst}, {src}")
+            case DivReg(addr, dst, src):
+                print(f"_0x{addr:04x}: div {dst}, {src}")
+            case XorReg(addr, dst, src):
+                print(f"_0x{addr:04x}: xor {dst}, {src}")
+            case Jmp(addr, target):
+                print(f"_0x{addr:04x}: jmp _0x{target:04x}")
+            case Cmp(addr, dst, src):
+                print(f"_0x{addr:04x}: cmp {dst}, {src}")
+            case Jz(addr, target):
+                print(f"_0x{addr:04x}: jz _0x{target:04x}")
+            case Jnz(addr, target):
+                print(f"_0x{addr:04x}: jnz _0x{target:04x}")
+            case Jg(addr, target):
+                print(f"_0x{addr:04x}: jg _0x{target:04x}")
+            case Jl(addr, target):
+                print(f"_0x{addr:04x}: jl _0x{target:04x}")
+            case InputStr(addr):
+                print(f"_0x{addr:04x}: input_str")
+            case InitMem(addr, mem_addr, sz):
+                print(f"_0x{addr:04x}: memset(0x{mem_addr:02x},0,{sz})")
+            case MovRegStack(addr, dst, src):
+                print(f"_0x{addr:04x}: mov {dst}, [ebp-{src}]")
+            case MovRegMem(addr, dst, src):
+                print(f"_0x{addr:04x}: mov {dst}, mem[{src}]")
+            case Exit(addr):
+                print(f"_0x{addr:04x}: exit(0)")
+            case _:
+                raise Exception(f"unknown instruction: {ins}")
+                break
+
+if __name__ == '__main__':
+    opcode = [0x01, 0x03, 0x03, 0x05, 0x00, 0x00, 0x11, 0x00, 0x00, 0x01, 0x01, 0x11, 0x0C, 0x00, 0x01, 0x0D, 0x0A, 0x00, 0x01, 0x03, 0x01, 0x05, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x01, 0x02, 0x00, 0x01, 0x00, 0x11, 0x0C, 0x00, 0x02, 0x0D, 0x2B, 0x00, 0x14, 0x00, 0x02, 0x01, 0x01, 0x61, 0x0C, 0x00, 0x01, 0x10, 0x1A, 0x00, 0x01, 0x01, 0x7A, 0x0C, 0x00, 0x01, 0x0F, 0x1A, 0x00, 0x01, 0x01, 0x47, 0x0A, 0x00, 0x01, 0x01, 0x01, 0x01, 0x06, 0x00, 0x01, 0x0B, 0x24, 0x00, 0x01, 0x01, 0x41, 0x0C, 0x00, 0x01, 0x10, 0x24, 0x00, 0x01, 0x01, 0x5A, 0x0C, 0x00, 0x01, 0x0F, 0x24, 0x00, 0x01, 0x01, 0x4B, 0x0A, 0x00, 0x01, 0x01, 0x01, 0x01, 0x07, 0x00, 0x01, 0x01, 0x01, 0x10, 0x09, 0x00, 0x01, 0x03, 0x01, 0x00, 0x03, 0x00, 0x00, 0x01, 0x01, 0x01, 0x06, 0x02, 0x01, 0x0B, 0x0B, 0x00, 0x02, 0x07, 0x00, 0x02, 0x0D, 0x00, 0x02, 0x00, 0x00, 0x02, 0x05, 0x00, 0x02, 0x01, 0x00, 0x02, 0x0C, 0x00, 0x02, 0x01, 0x00, 0x02, 0x00, 0x00, 0x02, 0x00, 0x00, 0x02, 0x0D, 0x00, 0x02, 0x05, 0x00, 0x02, 0x0F, 0x00, 0x02, 0x00, 0x00, 0x02, 0x09, 0x00, 0x02, 0x05, 0x00, 0x02, 0x0F, 0x00, 0x02, 0x03, 0x00, 0x02, 0x00, 0x00, 0x02, 0x02, 0x00, 0x02, 0x05, 0x00, 0x02, 0x03, 0x00, 0x02, 0x03, 0x00, 0x02, 0x01, 0x00, 0x02, 0x07, 0x00, 0x02, 0x07, 0x00, 0x02, 0x0B, 0x00, 0x02, 0x02, 0x00, 0x02, 0x01, 0x00, 0x02, 0x02, 0x00, 0x02, 0x07, 0x00, 0x02, 0x02, 0x00, 0x02, 0x0C, 0x00, 0x02, 0x02, 0x00, 0x02, 0x02, 0x00, 0x01, 0x02, 0x01, 0x13, 0x01, 0x02, 0x04, 0x00, 0x00, 0x0C, 0x00, 0x01, 0x0E, 0x5B, 0x00, 0x01, 0x01, 0x22, 0x0C, 0x02, 0x01, 0x0D, 0x59, 0x00, 0x01, 0x01, 0x01, 0x06, 0x02, 0x01, 0x0B, 0x4E, 0x00, 0x01, 0x03, 0x00, 0x05, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x01, 0x03, 0x01, 0x05, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00]
+    instructions = parse(opcode)
+    dump(instructions)
+```

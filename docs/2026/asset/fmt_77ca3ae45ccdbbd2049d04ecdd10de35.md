@@ -1,0 +1,162 @@
+
+```
+01F443D5   /FFE0            jmp     eax                          ;执行DISPATCH_CODE
+```
+
+从内存中提取初所有加密的地址，写个代码得到所有的`DISPATCH_CODE`。
+
+```
+// TTPdecode.cpp : Defines the entry point for the console application.
+
+//
+
+#include "stdafx.h"
+
+#include <stdio.h>
+
+#include <Windows.h>
+
+DWORD dispatch[]={
+
+          0xB1A71E26, 0xB2158CEE, 0xB1BB174B, 0xB1DB6D49, 0xB1C2C790, 0xB19011B6, 0xB1C3E920, 0xB1EC03C6, 0xB17EA2D4, 0xB15F06F1,
+      0xB209056F, 0xB178E836, 0xB1D1E146, 0xB1BB174B, 0xB17565A2, 0xB21AB0C1, 0xB1E26E56, 0xB1ED32A3, 0xB1C2C790, 0xB1A8CAAC,
+      0xB1B53F83, 0xB1B38C6B, 0xB20D81E2, 0xB15FDE21, 0xB1C2ECCF, 0xB20DD142, 0xB19D327D, 0xB1FBEC69, 0xB1BB174B, 0xB209056F,
+      0xB1AD0DB5, 0xB1E1E460, 0xB17EA2D4, 0xB17565A2, 0xB21AB0C1, 0xB1C2ECCF, 0xB209056F, 0xB1FD9013, 0xB1A8CAAC, 0xB1E1E460,
+      0xB19234F7, 0xB1DB6D49, 0xB1FB49D7, 0xB19011B6, 0xB2158CEE, 0xB1E62E64, 0xB15FDE21, 0xB1E32A0C, 0xB1B38C6B, 0xB16C9090,
+      0xB21AB0C1, 0xB1C76138, 0xB16B87DD, 0xB1CA1F2E, 0xB1C2C790, 0xB1FBEC69, 0xB17565A2, 0xB1F27DB1, 0xB1E62E64, 0xB20DD142,
+      0xB19DE8E6, 0xB1E62E64, 0xB20D81E2, 0xB19011B6, 0xB1BB174B, 0xB1FB49D7, 0xB1DA5A3D, 0xB17AF4E4, 0xB1F5E06F, 0xB19234F7,
+      0xB1AD0DB5, 0xB19DE8E6, 0xB1D1E146, 0xB1C2C790, 0xB1DB6D49, 0xB1AD0DB5, 0xB1E62E64, 0xB16C9090, 0xB1FBEC69, 0xB1F6BC35,
+      0xB1F7FF6E, 0xB1C2ECCF, 0xB1E32A0C, 0xB20D81E2, 0xB17EA2D4, 0xB1E32A0C, 0xB15FDE21, 0xB1F6BC35, 0xB1E26E56, 0xB17EA2D4,
+      0xB15FDE21, 0xB1C3E920, 0xB178E836, 0xB1E62E64, 0xB1DB6D49, 0xB15FDE21, 0xB1DB6D49, 0xB1DA5A3D, 0xB1AD0DB5, 0xB1A8CAAC,
+      0xB1EC03C6, 0xB20DD142, 0xB16C9090, 0xB1A8CAAC, 0xB19DE8E6, 0xB16C9090, 0xB17AF4E4, 0xB178E836, 0xB1D1E146, 0xB1D9BBB9,
+      0xB1C2ECCF, 0xB16B87DD, 0xB1ACEA6D, 0xB19234F7, 0xB1614C85, 0xB1C3E920, 0xB1A71E26, 0xB1C2ECCF, 0xB1CA1F2E, 0xB1E1E460,
+      0xB1D97554, 0xB1B53F83, 0xB1E32A0C, 0xB1AC9F66, 0xB1F27DB1, 0xB1B53F83, 0xB1BD681D, 0xB1C3E920, 0xB22AB7CA, 0xB19DE8E6,
+      0xB1FBEC69, 0xB1C3E920, 0xB15FDE21, 0xB1A71E26, 0xB1A8CAAC, 0xB20DD142, 0xB1B38C6B, 0xB22AB7CA, 0xB1C2ECCF, 0xB1E62E64,
+      0xB1F27DB1, 0xB1C3E920, 0xB1F6BC35, 0xB1E32A0C, 0xB1E1E460, 0xB1BBE22C, 0xB16B87DD, 0xB1ACEA6D, 0xB1B53F83, 0xB1FB49D7,
+      0xB1AD0DB5, 0xB19D327D, 0xB1BD681D, 0xB1E1E460, 0xB1BBE22C, 0xB1B53F83, 0xB17EA2D4, 0xB1BEB0C5, 0xB1D9BBB9, 0xB1BB174B,
+      0xB1E26E56, 0xB1EB1FB2, 0xB15FDE21, 0xB1AC9F66, 0xB1EB1FB2, 0xB19D327D, 0xB22AB7CA, 0xB1F27DB1, 0xB16C9090, 0xB1F5E06F,
+      0xB1E26E56, 0xB15F06F1, 0xB1F5E06F, 0xB1C3E920, 0xB17AF4E4, 0xB1F7FF6E, 0xB1BD681D, 0xB1D97554, 0xB1F7FF6E, 0xB19011B6,
+      0xB1FD9013, 0xB1B38C6B, 0xB1F27DB1, 0xB19D327D, 0xB17AF4E4, 0xB1B38C6B, 0xB19011B6, 0xB1A71E26, 0xB17EA2D4, 0xB1C2ECCF,
+      0xB16B87DD, 0xB1A71E26, 0xB1EC03C6, 0xB1AC9F66, 0xB1BB174B, 0xB19011B6, 0xB1EB1FB2, 0xB1F27DB1, 0xB1D97554, 0xB1FBEC69,
+      0xB18DF2E6, 0xB1ED32A3, 0xB17EA2D4, 0xB1AC9F66, 0xB1F6E0A1, 0xB1E26E56, 0xB1FBEC69, 0xB1F7FF6E, 0xB1614C85, 0xB209056F,
+      0xB1C2C790, 0xB1F6E0A1, 0xB1EC03C6, 0xB1A71E26, 0xB1DA5A3D, 0xB17EA2D4, 0xB1BBE22C, 0xB1D9BBB9, 0xB1C2ECCF, 0xB20DD142,
+      0xB19D327D, 0xB1DB6D49, 0xB19234F7, 0xB17AF4E4, 0xB1F27DB1, 0xB1FB49D7, 0xB1F27DB1, 0xB1B38C6B, 0xB16B87DD, 0xB20D81E2,
+      0xB1C2ECCF, 0xB1F5E06F, 0xB178E836, 0xB1E26E56, 0xB1ACEA6D, 0xB1F5E06F, 0xB18DF2E6, 0xB1AC9F66, 0xB15F06F1, 0xB19011B6,
+      0xB1CA1F2E, 0xB1DB6D49, 0xB178E836, 0xB1ACEA6D, 0xB1EB1FB2, 0xB1C76138, 0xB19DE8E6, 0xB22AB7CA, 0xB209056F, 0xB1D9BBB9,
+                  0xB1C3E920, 0xB1A8CAAC, 0xB1D1E146, 0xB17EA2D4, 0xB1B53F83, 0xB1ED32A3
+
+};
+
+int main(int argc, char* argv[])
+{
+    FILE *fp;
+    int k=0;
+    DWORD record=0;
+
+    fp = fopen("dispatch.txt","w");
+    for (int i=0;i<256;i++)
+    {
+        dispatch[i]+=0x506EFC2D;                          //解密所有的DISPATCH_CODE
+        fprintf(fp,"%02x   %08x\n",i,dispatch[i]);
+    }
+    fclose(fp);
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//进行分类
+    fp = fopen("fix.txt","w");
+    for (i=0;i<256;i++)
+    {
+        if (dispatch[i])
+        {
+            k++;
+            record=dispatch[i];
+            for (int j=0;j<256;j++)
+            {
+                if (dispatch[j]==record)
+                {
+                                    fprintf(fp,"%02x   %08x\n",j,dispatch[j]);
+                    dispatch[j]=0;
+                }
+            }
+        }
+    }
+    fprintf(fp,"total:%d",k);
+    fclose(fp);
+    return 0;
+}
+```
+
+一共得到256条`DIPATCH_NUMBER`，总共56条`DISPATCH_CODE`。
+
+其中很多`DISPATCH_CODE`中都会检查堆栈，即`CHECK_STACK_OVERFLOW`，如果`EBP`大于`EDI+100`的时候，就会引起堆栈的重新分配。
+
+```
+0274CD6F    8D97 00010000   lea     edx, dword ptr [edi+100]
+0274CD75    3BD5            cmp     edx, ebp                        ;是否越界
+0274CD77  ^ 0F8C 7632DEFF   jl      <FetchCode>
+0274CD7D    8DA5 00FEFFFF   lea     esp, dword ptr [ebp-200]        ;重新分配
+0274CD83    C7C1 80000000   mov     ecx, 80
+0274CD89    68 508561F7     push    F7618550
+0274CD8E    53              push    ebx
+```
+
+列举几条来看下，具体见附件，整理的有点乱。
+
+```
+0270019C    AD              lods    dword ptr [esi]            ;取VMDATA DWORD
+0270019D    03C3            add     eax, ebx                   ;下面是一系列的运算
+0270019F    81E8 633B97F2   sub     eax, F2973B63
+027001A5    F7D0            not     eax
+027001A7   /E9 A0661C00     jmp     028C684C
+
+028C684C    F7D8            neg     eax
+028C684E    81F0 260DE2BF   xor     eax, BFE20D26
+028C6854    2BC3            sub     eax, ebx
+028C6856    81E8 5676C0DF   sub     eax, DFC07656
+028C685C    F7D0            not     eax
+028C685E  ^ E9 F1BA53FF     jmp     01E02354
+
+01E02354    03D8            add     ebx, eax                    ;更新KEY
+01E02356    33D8            xor     ebx, eax                    ;更新KEY
+01E02358    81ED 04000000   sub     ebp, 4
+01E0235E    8985 00000000   mov     dword ptr [ebp], eax        ;保存结果
+01E02364    E9 12B16B00     jmp     024BD47B
+
+024BD47B   /E9 732B0700     jmp     <FetchCode>
+```
+
+这条其实就是`PUSH IMM32`。
+
+```
+01C848B2    8B85 00000000   mov     eax, dword ptr [ebp]
+01C848B8    81C5 04000000   add     ebp, 4
+01C848BE    0F85 9E87A100   jnz     0269D062
+01C848C4    0F84 9887A100   je      0269D062
+
+0269D062    66:8B8D 0000000>mov     cx, word ptr [ebp]
+0269D069    81C5 02000000   add     ebp, 2
+0269D06F    66:8908         mov     word ptr [eax], cx
+0269D072  ^ E9 5187A4FF     jmp     020E57C8
+
+020E57C8   /E9 26A84400     jmp     <FetchCode>
+```
+
+这条就是`MOV [ADDR],IMM16`。
+
+其他的具体见附件。
+
+我看了所有的`DISPATCH_CODE`，发现TTP的VM还是比较干净的，既没有`FAKE CALL`，也没有`JCC`和垃圾代码，有的只是两种变形后的`JMP`，一种是`je/jne`、`jo/jno`等等的成对出现，再就是形如`call /pop reg/add [esp+2],imm/ret`的形式，可能是DEMO的原因，我没有正式版，不知道正式版是什么样，可能正式版比这个要复杂。
+
+可以写程序恢复，注意寄存器的关系和堆栈的变化，恢复起来应该不难，只是工作量有点大。
+
+附件是整理的`DISPATCH_CODE`，生成的IDB较大，就不上传了，论坛上有主程序，可以对照这看，还有就是TTP的虚拟机地址是动态生成的，地址可能不一样，但代码是一样的。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+[#VM保护](https://bbs.kanxue.com/forum-4-1-4.htm)
+
+上传的附件：
+
+- [TTPVM.rar](javascript:void(0);)
+
+  （743.48kb，100次下载）

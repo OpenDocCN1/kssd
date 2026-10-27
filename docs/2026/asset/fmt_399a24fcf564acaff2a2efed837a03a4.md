@@ -1,0 +1,255 @@
+
+### 反汇编片段
+
+```
+00443AA1   648920                 mov     fs:[eax], esp
+
+00443AA4   8D55FC                 lea     edx, [ebp-$04]
+
+00443AA7   8B87D4020000           mov     eax, [edi+$02D4]
+* Reference to: controls.TControl.GetText(TControl):TCaption;
+
+00443AAD   E8EE01FEFF             call    00423CA0
+
+00443AB2   8B45FC                 mov     eax, [ebp-$04]
+* Reference to: system.@LStrLen:Integer;
+|           or: system.@DynArrayLength;
+|           or: system.DynArraySize(Pointer):Integer;
+
+00443AB5   E8A600FCFF             call    00403B60
+
+00443ABA   85C0                   test    eax, eax
+
+00443ABC   0F84AA000000           jz      00443B6C
+
+00443AC2   EB08                   jmp     00443ACC  //这个JMP命令的机器码 EB08 便是
+
+00443AC4   FC                     cld               //PESpin的 Crypt markers 的 SDK {$I crypt\_start.inc}
+
+00443AC5   FC                     cld               //的开始标志
+
+00443AC6   FC                     cld               //
+
+00443AC7   FC                     cld               //
+
+00443AC8   FC                     cld               //
+
+00443AC9   FC                     cld               //
+
+00443ACA   27                     daa               //PESpin的 Crypt markers 的 SDK {$I crypt\_start.inc}
+
+00443ACB   54                     push    esp       //的结束标志
+
+00443ACC   33DB                   xor     ebx, ebx        //× 准备在此处 ×开始× VMProtect的保护 ×//详见【5A】
+
+00443ACE   33F6                   xor     esi, esi
+
+00443AD0   43                     inc     ebx
+
+00443AD1   8D55F8                 lea     edx, [ebp-$08]
+
+00443AD4   8B87D4020000           mov     eax, [edi+$02D4]
+* Reference to: controls.TControl.GetText(TControl):TCaption;
+
+00443ADA   E8C101FEFF             call    00423CA0
+
+00443ADF   8B45F8                 mov     eax, [ebp-$08]
+
+00443AE2   0FB64418FF             movzx   eax, byte ptr [eax+ebx-$01]
+
+00443AE7   03F0                   add     esi, eax
+
+00443AE9   8D55F4                 lea     edx, [ebp-$0C]
+
+00443AEC   8B87D4020000           mov     eax, [edi+$02D4]
+* Reference to: controls.TControl.GetText(TControl):TCaption;
+
+00443AF2   E8A901FEFF             call    00423CA0
+
+00443AF7   8B45F4                 mov     eax, [ebp-$0C]
+* Reference to: system.@LStrLen:Integer;
+|           or: system.@DynArrayLength;
+|           or: system.DynArraySize(Pointer):Integer;
+
+00443AFA   E86100FCFF             call    00403B60
+
+00443AFF   3BD8                   cmp     ebx, eax
+
+00443B01   7CCD                   jl      00443AD0
+
+00443B03   83EE43                 sub     esi, +$43
+
+00443B06   83C610                 add     esi, +$10
+
+00443B09   81F69A020000           xor     esi, $0000029A
+
+00443B0F   81F609030000           xor     esi, $00000309
+
+00443B15   C1E602                 shl     esi, $02
+
+00443B18   33DB                   xor     ebx, ebx
+
+00443B1A   43                     inc     ebx
+
+00443B1B   8BC3                   mov     eax, ebx
+
+00443B1D   03C0                   add     eax, eax
+
+00443B1F   33C3                   xor     eax, ebx
+
+00443B21   F7EE                   imul    esi
+
+00443B23   8BF0                   mov     esi, eax
+
+00443B25   83FB06                 cmp     ebx, +$06
+
+00443B28   7CF0                   jl      00443B1A        //× 准备在此处 ×结束× VMProtect的保护 ×//详见【5B】
+
+00443B2A   EB08                   jmp     00443B34  //这个JMP命令的机器码 EB08 便是
+
+00443B2C   FD                     std               //PESpin的 Crypt markers 的 SDK {$I crypt\_end.inc}
+
+00443B2D   FD                     std               //的开始标志
+
+00443B2E   FD                     std               //
+
+00443B2F   FD                     std               //
+
+00443B30   FD                     std               //
+
+00443B31   FD                     std               //
+
+00443B32   54                     push    esp       //PESpin的 Crypt markers 的 SDK {$I crypt\_end.inc}
+
+00443B33   37                     aaa               //的结束标志
+
+00443B34   81FEC0884904           cmp     esi, $044988C0
+
+00443B3A   7408                   jz      00443B44
+
+00443B3C   81FEC0884904           cmp     esi, $044988C0
+
+00443B42   7515                   jnz     00443B59
+
+00443B44   6A00                   push    $00
+* Possible String Reference to: 'Example Markers'
+
+00443B46   68983B4400             push    $00443B98
+* Possible String Reference to: 'Good pass :D'
+
+00443B4B   68A83B4400             push    $00443BA8
+
+00443B50   6A00                   push    $00
+* Reference to: user32.MessageBoxA()
+
+00443B52   E8192BFCFF             call    00406670
+
+00443B57   EB13                   jmp     00443B6C
+
+00443B59   6A00                   push    $00
+* Possible String Reference to: 'Example Markers'
+
+00443B5B   68983B4400             push    $00443B98
+* Possible String Reference to: 'Bad password. Try: PESpin'
+
+00443B60   68B83B4400             push    $00443BB8
+
+00443B65   6A00                   push    $00
+* Reference to: user32.MessageBoxA()
+
+00443B67   E8042BFCFF             call    00406670
+
+00443B6C   33C0                   xor     eax, eax
+
+00443B6E   5A                     pop     edx
+
+00443B6F   59                     pop     ecx
+
+00443B70   59                     pop     ecx
+
+00443B71   648910                 mov     fs:[eax], edx
+
+***** FINALLY
+
+* Possible String Reference to: '\_^[?]?
+
+00443B74   688E3B4400             push    $00443B8E
+
+00443B79   8D45F4                 lea     eax, [ebp-$0C]
+
+00443B7C   BA03000000             mov     edx, $00000003
+* Reference to: system.@LStrArrayClr;
+
+00443B81   E87EFDFBFF             call    00403904
+
+00443B86   C3                     ret
+* Reference to: system.@HandleFinally;
+
+00443B87   E9ECF7FBFF             jmp     00403378
+
+00443B8C   EBEB                   jmp     00443B79
+
+***** END
+
+00443B8E   5F                     pop     edi
+
+00443B8F   5E                     pop     esi
+
+00443B90   5B                     pop     ebx
+
+00443B91   8BE5                   mov     esp, ebp
+
+00443B93   5D                     pop     ebp
+
+00443B94   C3                     ret
+
+...
+```
+
+【5A】。点击“Project”菜单下的“New procedure”或者是点击工具栏中的“New procedure”按钮，在弹出的添加地址窗口中输入 `00443ACC` 后，点击“OK”按钮，VMProtect便又会自动列出虚拟地址：`00443ACC` 后面的代码；
+
+【5B】。在操作了【5A】之后，VMProtect左边窗口中便多了一个以 `00443ACC` 这处为开始地址，可以被VMProtect保护的这段相关代码有哪些。点击这行后又发现，在列出的可被保护代码中，虚拟地址：`00443B2A` 这一行及后面的代码并不想被VMProtect保护；因此，在右边窗口列出的可被保护代码中，找到并选定：“`00443B2A EB08                    jmp 00443B34`” 这一行，单击鼠标右键，在弹出的菜单中选择：“End of procedure”或是 按：`Ctrl+B` 键； 这时虚拟地址：`00443B2A` 以及它后面的代码都变成了灰色； 表示这些灰色代码不再被VMProtect保护；
+
+因此，`TForm1.FormCreate` 事件被分成了三块，其中，中间将要被PeSpin的SDK所保护的这一块，先被VMProtect保护了。
+
+※ 6。在VMProtect中点击左边窗口中的 `TForm1.Image1Click` 这一行后，配合DeDe对eXe文件的反汇编，看到其相应的代码和虚拟地址为：
+
+```
+...
+00443BD4   53                     push    ebx
+
+00443BD5   8BD8                   mov     ebx, eax
+
+00443BD7   EB08                   jmp     00443BE1  //这个JMP命令的机器码 EB08 便是
+
+00443BD9   FC                     cld               //PESpin的 Crypt markers 的 SDK {$I crypt\_start.inc}
+
+00443BDA   FC                     cld               //的开始标志
+
+00443BDB   FC                     cld               //
+
+00443BDC   FC                     cld               //
+
+00443BDD   FC                     cld               //
+
+00443BDE   FC                     cld               //
+
+00443BDF   27                     daa               //PESpin的 Crypt markers 的 SDK {$I crypt\_start.inc}
+
+00443BE0   54                     push    esp       //的结束标志
+
+00443BE1   6A00                   push    $00             //× 准备在此处 ×开始× VMProtect的保护 ×//详见【6A】
+* Possible String Reference to: 'Example Markers...'
+
+00443BE3   68083C4400             push    $00443C08
+* Possible String Reference to: 'Example in Delphi by reywen^htb'
+
+00443BE8   681C3C4400             push    $00443C1C
+
+00443BED   8BC3                   mov     eax, ebx
+* Reference to: controls.TWinControl.GetHandle(TWinControl):HWND;
+
+00443BEF   E87C61FEFF             call    00429D70
+
+00443BF4   50                     push    eax
+```

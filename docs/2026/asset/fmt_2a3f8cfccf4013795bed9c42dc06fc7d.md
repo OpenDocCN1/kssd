@@ -1,0 +1,336 @@
+
+# [原创]vmprotect某版本浅析
+
+先说下仅仅是一部分，从零开始分析一个`vmprotect`虚拟机。
+
+## Step1:偶然入手一个`vmprotect`的样本
+我这里版本是`vmprotect3.0.8`，拖入`ida`，查看区段
+
+![](https://bbs.kanxue.com/upload/attach/201904/649095_NVFB583RCXWVPA8.png)
+
+啥也没看出来，估计真正入口在`text`段吧，暂时不管他。
+
+## Step2：尝试直接去入口分析
+
+![](https://bbs.kanxue.com/upload/attach/201904/649095_7DGAGXG6SQ3ABGU.png)
+
+一看这种代码就很坑，慢慢来吧
+
+## Step3：尝试用`ida`画图看下，乱七八糟的
+
+![](https://bbs.kanxue.com/upload/attach/201904/649095_ESA699JHR67SKJV.png)
+
+## Step4：这么乱的流程图不是我们想要的
+所以我们可以尝试写个程序清理出一块代码，基本来说，区分块就是用`jmp edi`和`ret`来截断了指令。看起来也很乱
+
+![](https://bbs.kanxue.com/upload/attach/201904/649095_Q5K2MUNPFANT8VD.png)
+
+## Step5：由于并不清楚这个虚拟机的结构
+于是尝试清理代码，去掉一些无用的花指令，先给第一个块去花。过程如下：
+
+![](https://bbs.kanxue.com/upload/attach/201904/649095_S8FTPTA3VCRK7BU.png)
+
+前面两个`jmp`是无效的，`nop`之
+
+![](https://bbs.kanxue.com/upload/attach/201904/649095_3KFXFA6TF473YB8.png)
+
+这种衔接`cmp`，无用，`nop`之
+
+## Step6：没意义的`cmp`与`test`，`nop`之……
+总是这些规律不难，需要注意的是`xchg`指令需要花点心思。直接给大家看下清理花指令以后的吧。
+
+![](https://bbs.kanxue.com/upload/attach/201904/649095_QZGVQGM877B5SQW.png)
+
+开头部分是一堆的`push`，可能是保存寄存器环境，最后的`mov esi,[esp+28h]`应该是取出一个`key`，继续往下分析
+
+## Step7:中间对`esi`和`eax`做了一系列的变化，
+
+![](https://bbs.kanxue.com/upload/attach/201904/649095_QVUHQDMPRXJPDT4.png)
+
+其中`esi`来源于一个`key`，`eax`也来源于一个`const`，然后一直变化
+
+## Step8:最后`ret`回去，来源于`edi`，而`edi`来源于`esi`和`eax`
+
+![](https://bbs.kanxue.com/upload/attach/201904/649095_248SXZNQYYGJ594.jpg)
+
+## Step9:根据前面的信息，我们大概就理清了一点思路
+首先一堆`push`保存寄存器；然后`ebp=esp`以后`esp`就随意变换了。。尽管他也没使用过`esp`，也就是说，这时候的`ebp`相当于`esp`，就是个堆栈指针；最后根据2个`key`变换`esi`和`eax`，`eax`和`esi`仅仅用来计算`edi`，`edi`用来计算`ret`的地址。
+
+## Sep10：
+
+`Ebp`：堆栈指针
+
+`Esi`：数据源
+
+`Eax`：临时变量
+
+`Edi`：`ret`专用返回（跳转）地址
+
+## Step11：根据上面的结果，我们只是得到了一个大概，还需要继续分析`block2`（实际上，所有的`block`已经获取到），才能分清楚他的机构，以便后期的继续自动化。
+
+## Step12：看`block2`，也就是第二个块，仍旧有很多花指令
+
+![](https://bbs.kanxue.com/upload/attach/201904/649095_5FC874CBU23K9WR.png)
+
+## Step13：继续尝试根据上面的规律去掉这些花指令，去掉以后如下：
+
+![](https://bbs.kanxue.com/upload/attach/201904/649095_DNW6XXNYRXNZ3ZJ.png)
+
+很显然，第二个`block`也是符合上面的规律的
+
+`ebp`作为一个指针`a`，`esp+eax`作为一个指针`b`，`eax`作为一个临时变量可以不用管，`edi`作为衔接作用也暂时不用管，`esi`作为一个指向`const`区域的指针也可以不用管，这些相当于虚拟机的内部，我们都可以屏蔽，我们要做的，就是搞清楚这个`block`哪些部分是重要的。
+
+## Step14：继续观察代码，发现真正有用的代码，只有下图（之所以说其他没用，因为其他代码里面的`eax`，`esi`寄存器，都是用来计算下一个代码块的，这些代码对于我们分析虚拟机没什么作用）
+
+![](https://bbs.kanxue.com/upload/attach/201904/649095_Z7W6XKTNC9WEBSG.png)
+
+## Step15：没错，真正有效代码，就是上面这四句，其实就是做了一个从`ebp`到`[esp+eax]`位置的变量转移，也可以说说一个 `x86`寄存器=》`vmp`虚拟机寄存器的`mov`。
+
+然后根据之前的分析结果，`ebp`是堆栈的话，那么这里的`ebp+4`相当于一个`vmp`的`pop`指令，`esi`作为指令指针继续指向下一条`const`，这句代码，可以简称为一个
+
+`vmp_push reg`，之所以是`push`，是因为`ebp+4`了，而这里变动的堆栈，则是`vmp`的`esp`（听起来很绕），同时看出来，他的指令是倒着走的，`vmp`的`eip`会减1 ，至于这个`reg`对应哪个寄存器，因为我们这里仅仅是纯静态，所以很难确定，但是这里可以暂时猜测这一块代码，仅仅是做了一个操作，那就是：把`x86`的寄存器放入到`vmp`的区域，如果以后写一个伪指令调试器，则可以直接模拟一个`push`即可，其他的`esi`寄存器、`ebp`寄存器，`eax`寄存器，忘掉他吧。或者，直接写伪调试器的时候，不去写这几句，因为他们仅仅是在初始化`vmp`的堆栈，给他们一个初始值。
+
+## Step16：对，你没看错，`block1`是保存了所有的`x86`寄存器，`block2`是开始初始化`vmp`的第一个寄存器，至于`block3`我们可以大胆猜测，是初始化`vmp`的第二个寄存器。而这些，如果在做还原的时候，其实是最好忽略掉的，因为来回的堆栈改变会影响我们的分析（这句现在说的很啰嗦，但是后面就知道，这句话会很重要）。
+
+## Step17：现在可以先停下来，重新梳理一下思路，已知他会先把所有寄存器保存下来，然后用新的`ptr`指针代替原操作，那么我们需要做的是，搞清楚他哪些`ptr`对应哪些寄存器，做了哪些操作。到这里，需要我们获取所有的`block`了，正好把他的反调试处理一下。
+
+## Step18:刚才说到了反调试。现在就按照严格的顺序，按部就班的说一下反调试怎么处理（不要打开任何反反调试插件，要么就自己写，我们要的是纯手工）
+
+`IsDebuggerPresent`下断点，这将使第一个反调试点，可以利用它回溯一下堆栈，会看到一句 `call eax`，这里将是`vmprptect`调用反调试函数的入口；
+
+`CheckRemoteDebuggerPresent`，这也也很好处理；返回值改`1`
+
+`ZwQueryInformationProcess`，这时的`[esp+4]`是`0x1e`，处理的方法是，把返回值`eax`改成`0xC0000353`，把`[esp+8]`的`buffer`改成`0`；
+
+`NtSetInformationThread` 这个需要改他的传递参数，`0x11`改成别的；
+
+`NtQuerySystemInformation` 调用号为`0x23`，这里需要改他的返回`OUT`参数为`0`；
+
+`NtQuerySystemInformation` 调用号为`0x0b`，这里他会遍历系统模块，一些`sys`和`dll`等，这个处理。我么不能直接全部清`0`，需要和没调试状态的对比一份修改，可能有人说直接清零缓冲区就可以。但是在我的系统里面，这样依然会被检测到，也可能是我姿势不对吧，继续
+
+## Step19：好了，关于反调试本身现在暂时到此为止，我们要做的，并不满足于如何过掉他，而是看他如何检测和调用的，如果想要过掉他直接用个插件就可以了。回到正题，先以第一个`IsDebuggerPresent`为例；我们看看他是怎么调用过来的，这对于理解`vmp`虚拟机，是有好处的。那么根据之前总结的结果，我们知道，代码都是一块一块的，由`0xc3`和`0xffe7`截断，也就是一些`ret`和`jmp edi`，我们现在，可以获取目前为止的所有`block`了，先说下结果，经过`ida trace`，从入口到`IsDebuggerPresent`，一共调用了`1022`个`block`，我们要做的，就是把这`1022`个`block`，尽可能的读懂。好了，现在可以开始尝试读混淆过的虚拟机代码了。
+
+## Step20：这里可能会有人问如何获取这么多`block`，其实办法很多，`run trace`可以，但是最好还是静态解析，然后下断，再`f9`，这样中途可以截获一些指令，而且效率也比较高一些。好了，现在先贴一下这`1022`个`block`的块头
+
+```
+block adress 008628aa
+
+block adress 00653dc2
+
+block adress 00663169
+
+block adress 0065be22
+
+。。。。。。以下略
+```
+
+## Step21：由于代码当中，有很多混淆，用肉眼识别，是很不现实的，所以这里需要我们清除一下这些混淆，清除的方法也很简单，利用寄存器的读写特性，假设所有`opcode`只有，一个字节寄存器`eax`在`0x00000001`和`0x00000003`被修改了，但是`0x00000002`没有被使用过，那么就可以判定，`0x00000001`是无效的混淆指令。
+
+例如下图
+
+```
+0x00000001 mov eax,1
+
+0x00000002 mov ebx,2
+
+0x00000003 mov eax,3
+```
+
+那么第一句`mov eax,1`就是无效的。这里我们可以自动化来完成。先看个`demo`
+
+```
+lea ecx, [edx + esi + 8]
+
+Registers read:  代表使用的寄存器，记为输入进村器
+
+edx
+
+esi
+
+Registers modified:代表改变的寄存器，记为输出寄存器
+
+ecx
+
+add eax, ebx
+
+Registers read:  输入寄存器
+
+eax
+
+ebx
+
+Registers modified:输出寄存器
+
+eflags
+
+eax
+```
+
+上图的代码识别，就是用我们的引擎做的，可以自动化识别出一条指令的细节。要写这么个引擎，需要用到反汇编引擎。
+
+## Step22:前文说道，既然要利用寄存器读写进行去混淆，那么我们首选`eflags`寄存器。用它可以去掉一些`jcc`指令和`test`、`cmp`指令以及`cmc`、`stc`指令
+
+## Step23:去混淆的过程可能比较枯燥。暂时跳过，以后会改。现在给大家看看去过混淆以后的`handle`，分析一下虚拟机结构，这是很爽的一个部分（提前给个惊喜，以后可以跳过混淆了，我们眼里只有`handle`）；下面请看一个`handle`（去混淆版）：
+
+```
+handle->vmp_pop_context  
+
+reference：这句指令相当于一个pop context指令，导致vmp堆栈变动，x86堆栈不变，简写为 vmp_pop_context
+
+//取出opcode，对ebx寄存器做一系列的解密
+lea 	 esi, [esi - 1]
+adc 	 cl, 3
+movzx 	 eax, byte ptr [esi]
+xor 	 al, bl
+adc 	 ch, al
+neg 	 al
+not 	 al
+neg 	 al
+inc 	 al
+not 	 al
+xor 	 bl, al
+//vmp的堆栈向下移动，导致vmp_esp=vmp_esp+4
+mov 	 ecx, dword ptr [ebp]
+add 	 ebp, 4
+//将上值放入vmp的context当中，由于vmp的context在堆栈里面，所以用[esp+eax]表示
+mov 	 dword ptr [esp + eax], ecx
+//取出opcode继续做解密，这决定着edi、ebx寄存器
+lea 	 esi, [esi - 4]
+mov 	 eax, dword ptr [esi]	 
+xor 	 eax, ebx
+sub 	 eax, 0x271051b0
+neg 	 eax
+dec 	 eax
+bswap 	 eax 	 
+not 	 eax
+lea 	 eax, [eax - 0x5eaa3b85]	 
+neg 	 eax	 
+ror 	 eax, 2
+inc 	 eax
+xor 	 ebx, eax
+add 	 edi, eax
+jmp 	 edi
+```
+
+如果上面这个不够看，再看一个，其实他两的功能是一样的
+
+```
+handle->vmp_pop_context
+
+reference：这句指令相当于一个pop context指令，导致vmp堆栈变动，x86堆栈不变，简写为 vmp_pop_context
+
+//opcode向左移动1字节
+lea 	 esi, [esi - 1]
+movzx 	 eax, byte ptr [esi]
+
+//根据取得的opcode，解密ebx寄存器
+xor 	 al, bl
+rcl 	 ch, cl
+neg 	 al
+sbb 	 cl, 0xeb
+btr 	 ecx, 0x76
+cmovno 	 ecx, eax
+not 	 al
+and 	 ecx, edx
+rol 	 cl, 0xc5
+neg 	 al
+movsx 	 cx, cl
+inc 	 cx
+inc 	 al
+rcl 	 cx, cl
+shl 	 ch, 0x55
+neg 	 cx
+not 	 al
+shl 	 ch, cl
+sub 	 cl, dl
+xor 	 bl, al
+//这里会改变vmp的堆栈，增加4个字节，相当于一个pop指令
+mov 	 ecx, dword ptr [ebp] 
+lea 	 ebp, [ebp + 4]
+//将vmp堆栈的值，pop以后放入context当中，并opcode继续移动，相当于x86的eip+1，只不过这个是倒着走的
+mov 	 dword ptr [esp + eax], ecx
+sub 	 esi, 4
+//取出opcode，用来计算edi，ebx，其中ebx用来计算key，edi用来做ret和jmp衔接
+mov 	 eax, dword ptr [esi]
+xor 	 eax, ebx
+lea 	 eax, [eax - 0x271051b0]
+neg 	 eax
+dec 	 eax
+bswap 	 eax
+not 	 eax
+sub 	 eax, 0x5eaa3b85	 
+neg 	 eax
+ror 	 eax, 2
+inc 	 eax
+xor 	 ebx, eax
+add 	 edi, eax
+jmp 	 edi
+```
+
+看到了吧。其实，他两的功能是一样的，都是一个`vmp_pop_context`，也就是说，即使是同一样的功能，也可能会用不同的汇编来表现他。这就是一项代码变形技术。这个手段，组织了我们对`handle`进行特征码识别，是个小技巧。
+
+继续再看一个有意思的`handle`，传说中的`vmp`堆栈调整在这里面，其实很简单。
+
+```
+handle->vmp_push_context
+
+reference:这指令的目的是将context的内容放入vmp的堆栈，会改变vmp的堆栈指针，类似于x86的push，这里可以是 push vmp_reg
+
+//移动opcode，解密ebx
+sub 	 esi, 1
+movzx 	 eax, byte ptr [esi]
+xor 	 al, bl	 
+neg 	 al
+not 	 al
+neg 	 al
+inc 	 al	 
+not 	 al
+xor 	 bl, al
+//从context取得数据
+mov 	 eax, dword ptr [esp + eax]
+//将context取得的数据，放入vmp堆栈，并且堆栈指针-4，相当于一句push
+sub 	 ebp, 4
+mov 	 dword ptr [ebp], eax
+//移动opcode四个字节，用于计算edi，也就是衔接地址
+lea 	 esi, [esi - 4]
+mov 	 eax, dword ptr [esi]	 
+xor 	 eax, ebx
+lea 	 eax, [eax - 0x271051b0]
+neg 	 eax
+dec 	 eax
+bswap 	 eax
+not 	 eax	 
+lea 	 eax, [eax - 0x5eaa3b85]
+neg 	 eax
+ror 	 eax, 2
+inc 	 eax
+xor 	 ebx, eax
+add 	 edi, eax
+//这里的比较，其实是比较vmp的当前堆栈和[esp+60]的大小，也就是说。现在vmp的堆栈。占用了x86堆栈的60个字节，这里看看我们的push和pop有没有使得堆栈重合，否则需要调整堆栈	 
+lea 	 eax, [esp + 0x60]
+cmp 	 ebp, eax
+ja 	 0x3f992a
+//这里进行了一次调整堆栈操作，将esp移动到了ebp-0x80的位置，也就是说门上面是ebp，下面是esp，中间的0x80个字节用于预留给vmp使用
+mov 	 edx, esp
+mov 	 ecx, 0x40
+lea 	 eax, [ebp - 0x80]
+and 	 al, 0xfc	//堆栈字节对齐
+sub 	 eax, ecx
+mov 	 esp, eax
+//调整堆栈以后，我们需要将x86堆栈的一些内容，再次拷贝到vmp的堆栈当中去，这是因为上一步我们如果仅仅改变了x86堆栈。但是堆栈内容不完全一致，容易使数据错位
+push 	 edi
+pushfd 	 
+push 	 esi
+mov 	 esi, edx
+mov 	 edi, eax
+cld 	 
+rep movsb 	 byte ptr es:[edi], byte ptr [esi]
+pop 	 esi
+popfd 	 
+pop 	 edi
+jmp 	 edi
+```
+
+## Step24。好了，暂时不需要纠结于浩如烟海的汇编代码。我们只需要大概的看一下，规整以后的形式
+
+![](https://bbs.kanxue.com/upload/attach/201905/649095_8XUEJFX2CJ5XNZA.png)

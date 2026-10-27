@@ -1,0 +1,639 @@
+
+```
+/*
+ * 只产生一层根表达式模型,不决定子表达式是什么
+ * 只决定运算符与分配主副表达式结构的内存
+ * 生成后,如果有子表达式则无常量值,无子表达式则
+ * 一定有常量值
+ * 被动表达式不能再有被动表达式,只能拥有子表达式
+ */
+
+#define __CreateMathExp__(pMathExp)\
+  (pMathExp) = __new__(MATHEXP, 1);\
+  memset((pMathExp), 0, sizeof(MATHEXP));
+
+#define __GenerateMathOpt__()        (MATH_OPT)(GenerateRandomNumber() % MAX_MATH_OPT + 1)
+#define __GenerateMathOptWithOutNot__()    (MATH_OPT)(GenerateRandomNumber() % (MAX_MATH_OPT-1) + 1)
+#define __HasPassMathExp__()        (RandRoll(g_MathExpGenRollArray))
+#define __HasSubMathExp__()          (RandRoll(g_MathExpGenRollArray))
+
+PMATHEXP  GenerateMathRootExp()
+{
+  PMATHEXP pMathExp = NULL;
+  __CreateMathExp__(pMathExp);
+
+  // 是否存在被动表达式
+  if (__HasPassMathExp__() == TRUE)//有被动表达式
+  {
+    /*
+     * 随机选定一个操作符
+     * 如果是NOT操作符设定后
+     * 重新生成操作符
+     */
+    MATH_OPT Opt = __GenerateMathOpt__();
+    if (Opt == MATH_NOT)
+    {
+      pMathExp->bNot = TRUE;
+      Opt = __GenerateMathOptWithOutNot__();
+      pMathExp->Opt = Opt;
+    }
+    else
+    {
+      pMathExp->Opt = Opt;
+    }
+
+    // 进入生成被动表达式
+    __CreateMathExp__(pMathExp->pPassivityExp);
+    // 被动表达式是否需要NOT操作符
+    Opt = __GenerateMathOpt__();
+    if (Opt == MATH_NOT)
+    {
+      pMathExp->pPassivityExp->bNot = TRUE;
+    }
+  }
+  else//没有被动表达式
+  {
+    MATH_OPT Opt = __GenerateMathOpt__();
+    if (Opt == MATH_NOT)
+    {
+      pMathExp->bNot = TRUE;
+    }
+  }
+
+  return pMathExp;
+}
+
+/*
+ * 产生子数学计算表达式链
+ * 这里采用宽度优先算法,先生成子表达式
+ */
+PMATHEXP  GenerateMathExp()
+{
+  PMATHEXP pMathExp = GenerateMathRootExp();//产生一个根
+  PMATHEXP pPassMathExp = pMathExp->pPassivityExp;
+
+  /*
+   * 决定主表达式是否有子表达式
+   * 如果没有子表达式则随机选定一个常数
+   */
+  if (__HasSubMathExp__() == TRUE)
+  {
+    pMathExp->pSubExp = GenerateMathExp();
+  }
+  else
+  {
+    pMathExp->dwVal = GenerateRandomNumber();//随机选定一个常数
+  }
+
+  // 生成被动表达式的子表达式
+  if (pPassMathExp != NULL)
+  {
+    if (__HasSubMathExp__() == TRUE)
+    {
+      pPassMathExp->pSubExp = GenerateMathExp();
+    }
+    else
+    {
+      pPassMathExp->dwVal = GenerateRandomNumber();//随机选定一个常数
+    }
+  }
+
+  return pMathExp;
+}
+
+/*
+ * 删除节点采用深度优先算法
+ */
+VOID  ReleaseMathExp(PMATHEXP *pMathExpPoint)
+{
+  PMATHEXP pCurr = *pMathExpPoint, pPassMathExp = pCurr->pPassivityExp;
+  if (pCurr->pSubExp == NULL)
+  {
+    __delete__(pCurr);
+  }
+  else
+  {
+    ReleaseMathExp(&(pCurr->pSubExp));
+  }
+
+  // 删除被动表达式
+  if (pPassMathExp != NULL)
+  {
+    ReleaseMathExp(&pPassMathExp);
+  }
+
+  *pMathExpPoint = NULL;
+  return;
+}
+
+INLINE ASM_BLOCK_TYPE  ReturnAsmBlockType(PMATHEXP pMathExp)
+{
+  if (pMathExp->bNot == TRUE)
+  {
+    if (pMathExp->pPassivityExp != NULL)
+    {
+      if (pMathExp->pSubExp != NULL)
+      {
+        return ASM_BLOCK_TYPE_NOT_PASSIV_SUB;
+      }
+      else
+      {
+        return ASM_BLOCK_TYPE_NOT_PASSIV;
+      }
+    }
+    else
+    {
+      if (pMathExp->pSubExp != NULL)
+      {
+        return ASM_BLOCK_TYPE_NOT_SUB;
+      }
+      else
+      {
+        return ASM_BLOCK_TYPE_NOT;
+      }
+    }
+  }/* end if */
+  else
+  {
+    if (pMathExp->pPassivityExp != NULL)
+    {
+      if (pMathExp->pSubExp != NULL)
+      {
+        return ASM_BLOCK_TYPE_PASSIV_SUB;
+      }
+      else
+      {
+        return ASM_BLOCK_TYPE_PASSIV;
+      }
+    }
+    else
+    {
+      if (pMathExp->pSubExp != NULL)
+      {
+        return ASM_BLOCK_TYPE_SUB;
+      }
+      else
+      {
+        return ASM_BLOCK_TYPE_CONST;
+      }
+    }
+  }/* end else */
+
+  return ASM_BLOCK_TYPE_NONE;
+}
+
+LPBYTE  AsmBlock(PMATHEXP pMathExp, DWORD *pdwOutBufferSize);
+INLINE LPBYTE  AsmAdd(DWORD *pdwBufferSize)
+{
+  /*
+   * add eax, ecx
+   */
+  BYTE AddEaxEcx[3] = "\x03\xC1";
+  LPBYTE pAsmBuffer = __new__(BYTE, 2);
+
+  memcpy(pAsmBuffer, AddEaxEcx, 2);
+  *pdwBufferSize = 2;
+  return pAsmBuffer;
+}
+
+INLINE LPBYTE  AsmSub(DWORD *pdwBufferSize)
+{
+  /*
+   * Sub eax, ecx
+   */
+  BYTE SubEaxEcx[3] = "\x2B\xC1";
+  LPBYTE pAsmBuffer = __new__(BYTE, 2);
+
+  memcpy(pAsmBuffer, SubEaxEcx, 2);
+  *pdwBufferSize = 2;
+  return pAsmBuffer;
+}
+
+INLINE LPBYTE  AsmMul(DWORD *pdwBufferSize)
+{
+  /*
+   * mul eax, ecx
+   */
+  BYTE MulEaxEcx[3] = "\xF7\xE1";
+  LPBYTE pAsmBuffer = __new__(BYTE, 2);
+
+  memcpy(pAsmBuffer, MulEaxEcx, 2);
+  *pdwBufferSize = 2;
+  return pAsmBuffer;
+}
+
+INLINE LPBYTE  AsmDiv(DWORD *pdwBufferSize)
+{
+  /*
+   * push edx
+   * div eax, ecx
+   * pop edx
+   */
+  BYTE PushEdx = 0x52;
+  BYTE DivEaxEcx[3] = "\xF7\xF1";
+  BYTE PopEdx = 0x5A;
+
+  LPBYTE pAsmBuffer = __new__(BYTE, 4);
+
+  memcpy(pAsmBuffer, &PushEdx, 1);
+  memcpy(pAsmBuffer + 1, DivEaxEcx, 2);
+  memcpy(pAsmBuffer + 1 + 2, &PopEdx, 1);
+
+  *pdwBufferSize = 1 + 2 + 1;
+  return pAsmBuffer;
+}
+
+INLINE LPBYTE  AsmMod(DWORD *pdwBufferSize)
+{
+  /*
+   * push edx
+   * div eax, ecx
+   * mov eax, edx
+   * pop edx
+   */
+  BYTE PushEdx = 0x52;
+  BYTE DivEaxEcx[3] = "\xF7\xF1";
+  BYTE MovEaxEdx[3] = "\x8B\xD0";
+  BYTE PopEdx = 0x5A;
+
+  LPBYTE pAsmBuffer = __new__(BYTE, 6);
+
+  memcpy(pAsmBuffer, &PushEdx, 1);
+  memcpy(pAsmBuffer + 1, DivEaxEcx, 2);
+  memcpy(pAsmBuffer + 1 + 2, MovEaxEdx, 2);
+  memcpy(pAsmBuffer + 1 + 2 + 2, &PopEdx, 1);
+
+  *pdwBufferSize = 1 + 2 + 2 + 1;
+  return pAsmBuffer;
+}
+
+INLINE LPBYTE  AsmOr(DWORD *pdwBufferSize)
+{
+  /*
+   * or eax, ecx
+   */
+  BYTE OrEaxEcx[3] = "\x09\xC8";
+  LPBYTE pAsmBuffer = __new__(BYTE, 2);
+
+  memcpy(pAsmBuffer, OrEaxEcx, 2);
+  *pdwBufferSize = 2;
+  return pAsmBuffer;
+}
+
+INLINE LPBYTE  AsmAnd(DWORD *pdwBufferSize)
+{
+  /*
+   * and eax, ecx
+   */
+  BYTE AndEaxEcx[3] = "\x21\xC8";
+  LPBYTE pAsmBuffer = __new__(BYTE, 2);
+
+  memcpy(pAsmBuffer, AndEaxEcx, 2);
+  *pdwBufferSize = 2;
+  return pAsmBuffer;
+}
+
+INLINE LPBYTE  AsmXor(DWORD *pdwBufferSize)
+{
+  /*
+   * xor eax, ecx
+   */
+  BYTE XorEaxEcx[3] = "\x33\xC1";
+  LPBYTE pAsmBuffer = __new__(BYTE, 2);
+
+  memcpy(pAsmBuffer, XorEaxEcx, 2);
+  *pdwBufferSize = 2;
+  return pAsmBuffer;
+}
+
+INLINE LPBYTE  AsmOpt(MATH_OPT Opt, DWORD *pdwBufferSize)
+{
+  DWORD dwBufferSize = 0;
+  LPBYTE pAsmBuffer = NULL;
+  switch (Opt)
+  {
+  case MATH_ADD:
+    {
+      pAsmBuffer = AsmAdd(&dwBufferSize);
+    }break;
+  case MATH_SUB:
+    {
+      pAsmBuffer = AsmSub(&dwBufferSize);
+    }break;
+  case MATH_MUL:
+    {
+      pAsmBuffer = AsmMul(&dwBufferSize);
+    }break;
+  case MATH_DIV:
+    {
+      pAsmBuffer = AsmDiv(&dwBufferSize);
+    }break;
+  case MATH_MOD:
+    {
+      pAsmBuffer = AsmMod(&dwBufferSize);
+    }break;
+  case MATH_OR:
+    {
+      pAsmBuffer = AsmOr(&dwBufferSize);
+    }break;
+  case MATH_AND:
+    {
+      pAsmBuffer = AsmAnd(&dwBufferSize);
+    }break;
+  case MATH_XOR:
+    {
+      pAsmBuffer = AsmXor(&dwBufferSize);
+    }break;
+  }
+
+  *pdwBufferSize = dwBufferSize;
+  return pAsmBuffer;
+}
+
+/*
+ * 只有常量
+ */
+LPBYTE  AsmBlockOnConst(PMATHEXP pMathExp, DWORD *pdwBufferSize)
+{
+  /*
+   * mov eax, 表达式的值
+   */
+  DWORD dwVal = pMathExp->dwVal;
+  LPBYTE pBuffer = __new__(BYTE, 5);
+  BYTE MovEaxConst[6] = "\xB8\x00\x00\x00\x00";
+  *(DWORD *)(MovEaxConst + 1) = dwVal;
+  memcpy(pBuffer, MovEaxConst, 5);
+  *pdwBufferSize = 5;
+  return pBuffer;
+}
+
+/*
+ * 有子表达式
+ */
+LPBYTE  AsmBlockOnSub(PMATHEXP pMathExp, DWORD *pdwBufferSize)
+{
+  DWORD dwAsmBufferSize = 0;
+  LPBYTE pAsmBuffer = NULL;
+  pAsmBuffer = AsmBlock(pMathExp->pSubExp, &dwAsmBufferSize);
+  return pAsmBuffer;
+}
+
+/*
+ * 有被动表达式
+ */
+LPBYTE  AsmBlockOnPassiv(PMATHEXP pMathExp, DWORD *pdwBufferSize)
+{
+  /*
+   * ... 计算被动表达式的值
+   * mov ecx, eax;ecx为被动表达式的值
+   * mov eax, 主动表达式的值
+   * opt eax, ecx
+   */
+  // 先求进行被动表达式的汇编
+  DWORD dwPassivBufferSize = 0;
+  LPBYTE pPassivBuffer = AsmBlock(pMathExp->pPassivityExp, &dwPassivBufferSize);
+  // mov ecx, eax | 8BC8
+  BYTE MovEcxEax[3] = "\x8B\xC8";
+  // mov eax, XXXXXXXX
+  DWORD dwVal = pMathExp->dwVal;
+  BYTE MovEaxConst[6] = "\xB8\x00\x00\x00\x00";
+  *(DWORD *)(MovEaxConst + 1) = dwVal;
+  // opt eax, ecx
+  DWORD dwOptSize = 0;
+  LPBYTE pOptBuffer = AsmOpt(pMathExp->Opt, &dwOptSize);
+
+  // 合成汇编代码
+  DWORD dwAsmSize = dwPassivBufferSize + 2 + 5 + dwOptSize;
+  LPBYTE pAsmBuffer = __new__(BYTE, dwAsmSize);
+  memcpy(pAsmBuffer, pPassivBuffer, dwPassivBufferSize);
+  memcpy(pAsmBuffer + dwPassivBufferSize, MovEcxEax, 2);
+  memcpy(pAsmBuffer + dwPassivBufferSize + 2, MovEaxConst, 5);
+  memcpy(pAsmBuffer + dwPassivBufferSize + 2 + 5, pOptBuffer, dwOptSize);
+  __delete__(pOptBuffer);
+  *pdwBufferSize = dwAsmSize;
+  return pAsmBuffer;
+}
+
+/*
+ * 有被动表达式
+ * 有子表达式
+ */
+LPBYTE  AsmBlockOnPassivSub(PMATHEXP pMathExp, DWORD *pdwBufferSize)
+{
+  /*
+   * ...计算被动表达式的值
+   * push eax
+   * ...计算子表达式的值
+   * pop ecx;ecx为先前压入栈的被动表达式的结果
+   * opt eax, ecx
+   */
+  // 计算被动表达式的值
+  DWORD dwPassivAsmBufferSize = 0;
+  LPBYTE pPassivAsmBuffer = AsmBlock(pMathExp->pPassivityExp, &dwPassivAsmBufferSize);
+  // push eax
+  BYTE PushEax = 0x50;
+  // 计算子表达式的值
+  DWORD dwSubAsmBufferSize = 0;
+  LPBYTE pSubAsmBuffer = AsmBlock(pMathExp->pSubExp, &dwSubAsmBufferSize);
+  // pop ecx
+  BYTE PopEcx = 0x59;
+  // opt eax, ecx
+  DWORD dwOptSize = 0;
+  LPBYTE pOptBuffer = AsmOpt(pMathExp->Opt, &dwOptSize);
+
+  // 合成
+  DWORD dwAsmSize = dwPassivAsmBufferSize + 1 + dwSubAsmBufferSize + 1 + dwOptSize;
+  LPBYTE pAsmBuffer = __new__(BYTE, dwAsmSize);
+  memcpy(pAsmBuffer, pPassivAsmBuffer, dwPassivAsmBufferSize);
+  memcpy(pAsmBuffer + dwPassivAsmBufferSize, &PushEax, 1);
+  memcpy(pAsmBuffer + dwPassivAsmBufferSize + 1, pSubAsmBuffer, dwSubAsmBufferSize);
+  memcpy(pAsmBuffer + dwPassivAsmBufferSize+ 1 + dwSubAsmBufferSize, &PopEcx, 1);
+  memcpy(pAsmBuffer + dwPassivAsmBufferSize + 1 + dwSubAsmBufferSize + 1, pOptBuffer, dwOptSize);
+  __delete__(pPassivAsmBuffer);
+  __delete__(pSubAsmBuffer);
+  __delete__(pOptBuffer);
+  *pdwBufferSize = dwAsmSize;
+  return pAsmBuffer;
+}
+
+/*
+ * 有NOT操作符
+ */
+LPBYTE  AsmBlockOnNot(PMATHEXP pMathExp, DWORD *pdwBufferSize)
+{
+  /*
+   * mov eax, 表达式的值
+   * not eax
+   */
+  // mov eax, XXXXXXXX
+  DWORD dwVal = pMathExp->dwVal;
+  BYTE MovEaxConst[6] = "\xB8\x00\x00\x00\x00";
+  *(DWORD *)(MovEaxConst + 1) = dwVal;
+  // not eax
+  BYTE NotEax[3] = "\xF7\xD0";
+
+  // 合成
+  DWORD dwAsmSize = 5 + 2;
+  LPBYTE pAsmBuffer = __new__(BYTE, dwAsmSize);
+  memcpy(pAsmBuffer, MovEaxConst, 5);
+  memcpy(pAsmBuffer + 5, NotEax, 2);
+
+  *pdwBufferSize = dwAsmSize;
+  return pAsmBuffer;
+}
+
+/*
+ * 有NOT操作符
+ * 有子表达式
+ */
+LPBYTE  AsmBlockOnNotSub(PMATHEXP pMathExp, DWORD *pdwBufferSize)
+{
+  /*
+   * ...计算子表达式的值
+   * not eax
+   */
+  DWORD dwSubBufferSize = 0;
+  LPBYTE pSubAsmBuffer = AsmBlockOnSub(pMathExp, &dwSubBufferSize);
+  // not eax
+  BYTE NotEax[3] = "\xF7\xD0";
+
+  // 合成
+  DWORD dwAsmSize = dwSubBufferSize + 2;
+  LPBYTE pAsmBuffer = __new__(BYTE, dwAsmSize);
+  memcpy(pAsmBuffer, pSubAsmBuffer, dwSubBufferSize);
+  memcpy(pAsmBuffer + dwSubBufferSize, NotEax, 2);
+  __delete__(pSubAsmBuffer);
+  *pdwBufferSize = dwAsmSize;
+  return pAsmBuffer;
+}
+
+/*
+ * 有NOT操作符
+ * 有被动表达式
+ */
+LPBYTE  AsmBlockOnNotPassiv(PMATHEXP pMathExp, DWORD *pdwBufferSize)
+{
+  /*
+   * ...计算被动表达式的值
+   * not eax
+   */
+  // 被动表达式
+  DWORD dwPassivBufferSize = 0;
+  LPBYTE pPassivBuffer = AsmBlockOnPassiv(pMathExp, &dwPassivBufferSize);
+  // not eax
+  BYTE NotEax[3] = "\xF7\xD0";
+
+  // 合成
+  DWORD dwAsmSize = dwPassivBufferSize + 2;
+  LPBYTE pAsmBuffer = __new__(BYTE, dwAsmSize);
+  memcpy(pAsmBuffer, pPassivBuffer, dwPassivBufferSize);
+  memcpy(pAsmBuffer + dwPassivBufferSize, NotEax, 2);
+  __delete__(pPassivBuffer);
+  *pdwBufferSize = dwAsmSize;
+  return pAsmBuffer;
+}
+
+/*
+ * 有NOT操作符
+ * 有被动表达式
+ * 有子表达式
+ */
+LPBYTE  AsmBlockOnNotPassivSub(PMATHEXP pMathExp, DWORD *pdwBufferSize)
+{
+  /*
+     * ...计算被动表达式与子表达式的值
+   * not eax
+   */
+  DWORD dwPassivSubAsmBufferSize = 0;
+  LPBYTE pPassivSubAsmBuffer = AsmBlockOnPassivSub(pMathExp, &dwPassivSubAsmBufferSize);
+  // not eax
+  BYTE NotEax[3] = "\xF7\xD0";
+
+  // 合成
+  DWORD dwAsmSize = dwPassivSubAsmBufferSize + 2;
+  LPBYTE pAsmBuffer = __new__(BYTE, dwAsmSize);
+  memcpy(pAsmBuffer, pPassivSubAsmBuffer, dwPassivSubAsmBufferSize);
+  memcpy(pAsmBuffer + dwPassivSubAsmBufferSize, NotEax, 2);
+  __delete__(pPassivSubAsmBuffer);
+  *pdwBufferSize = dwAsmSize;
+  return pAsmBuffer;
+}
+
+/*
+ * 汇编优先级
+ * 被动表达式 > 子表达式 > 主动表达式
+ */
+LPBYTE  AsmBlock(PMATHEXP pMathExp, DWORD *pdwOutBufferSize)
+{
+  LPBYTE pAsmBlock = NULL;
+  DWORD dwAsmBufferSize = 0;
+
+  ASM_BLOCK_TYPE AsmBlockType = ReturnAsmBlockType(pMathExp);
+  switch (AsmBlockType)
+  {
+  case ASM_BLOCK_TYPE_NOT_PASSIV_SUB:
+    {
+      pAsmBlock = AsmBlockOnNotPassivSub(pMathExp, &dwAsmBufferSize);
+    }break;
+  case ASM_BLOCK_TYPE_NOT_PASSIV:
+    {
+      pAsmBlock = AsmBlockOnNotPassiv(pMathExp, &dwAsmBufferSize);
+    }break;
+  case ASM_BLOCK_TYPE_NOT_SUB:
+    {
+      pAsmBlock = AsmBlockOnNotSub(pMathExp, &dwAsmBufferSize);
+    }break;
+  case ASM_BLOCK_TYPE_NOT:
+    {
+      pAsmBlock = AsmBlockOnNot(pMathExp, &dwAsmBufferSize);
+    }break;
+  case ASM_BLOCK_TYPE_PASSIV_SUB:
+    {
+      pAsmBlock = AsmBlockOnPassivSub(pMathExp, &dwAsmBufferSize);
+    }break;
+  case ASM_BLOCK_TYPE_PASSIV:
+    {
+      pAsmBlock = AsmBlockOnPassiv(pMathExp, &dwAsmBufferSize);
+    }break;
+  case ASM_BLOCK_TYPE_SUB:
+    {
+      pAsmBlock = AsmBlockOnSub(pMathExp, &dwAsmBufferSize);
+    }break;
+  case ASM_BLOCK_TYPE_CONST:
+    {
+      pAsmBlock = AsmBlockOnConst(pMathExp, &dwAsmBufferSize);
+    }break;
+  }
+
+  *pdwOutBufferSize = dwAsmBufferSize;
+  return pAsmBlock;
+}
+
+LPBYTE  AssemblerMathExp(PMATHEXP pMathExp, DWORD *pdwOutBufferSize)
+{
+  DWORD dwAsmBufferSize = 0;
+  LPBYTE pAsmBuffer = AsmBlock(pMathExp, &dwAsmBufferSize);
+  *pdwOutBufferSize = dwAsmBufferSize;
+
+  return pAsmBuffer;
+}
+
+LPBYTE  MathExpGen(DWORD *pOutBufferSize)
+{
+  // 产生一个随机值队列
+  GenerateRollArray(g_MathExpGenRollArray, DEF_GEN_MATHEXP_SEED);
+  PMATHEXP pMathExp = GenerateMathExp();
+
+  /*
+   * 进行汇编,利用深度优先算法
+   * 先移动到图中的最底层进行汇编(最底层的运算优先级最高)
+   */
+  DWORD dwAsmSize = 0;
+  LPBYTE pAsmBuffer = AssemblerMathExp(pMathExp, &dwAsmSize);
+  *pOutBufferSize = dwAsmSize;
+
+  // 释放表达式内存
+  ReleaseMathExp(&pMathExp);
+  return pAsmBuffer;
+}
+```

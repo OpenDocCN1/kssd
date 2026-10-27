@@ -1,0 +1,172 @@
+
+```
+Locked    Value      ASCII Comments
+
+$-C        759D0000  ..u
+
+$-8        00000001  ...
+
+$-4        0013F8FC  .
+
+$ ==>      009539E8  9.                                        ；这里是0013F8BC，双击后的效果
+
+$+4        00950000  ...
+
+$+8        00150000  ...
+
+$+C        00000080  ...
+
+$+10       019314D6
+```
+
+在跟踪VM时，在数据移动伪指令中的`AND AL,0x3C`的下一条指令下断点，这样每次进行数据移动，你都可以在这个断点看到，数据的去向和来源，这是极其有用的。在很多复杂的运算地方，你需要在草稿纸上记下，`EDISTACK`中一些空间的数据时来自于什么时候？比如标志位`ZF`检测+跳转是VM的一个重要操作，而`EFLAGS`标志数都是相差不多或类似的00000286 00000246等等，如果你不能准确知道`[EDI+EAX]`存储或读取的位置，你将无法理解VM的操作。这非常的重要，请牢记！必要时连OD得数据窗口也一起配合显示VM堆栈
+
+把OD里的堆栈窗口拉高，让它竟可能多的显示数据，在高分辨率的电脑上，最好是能够显示出整个VM的堆栈。默认情况下，堆栈窗口是随着`ESP`指针的变化而自动显示的，这对于我们要时刻盯着VM堆栈的需求不相符，在堆栈窗口-->右键-->`Lock address` 打钩，这样OD就会锁定堆栈窗口。
+
+到这里，关于堆栈空间的介绍就结束了。对堆栈的理解是本文的根基。
+
+## 1.3.伪指令汇总
+
+调试VMP前期的一个重要的体力活是，识别出所有的伪指令，并根据它的用途给它相应的命名。以后就可以在`DISPATCH`部件的最后跳转地址：
+
+```
+0043E11F  |.  C2 5000       RETN 50
+```
+
+下断点，再盯着VM堆栈就可以知道VM的所有操作。
+
+我们先来了解所有伪指令的`DISPATCH`（调遣）部件：
+
+```
+0043E6BF  |.  8A46 FF       MOV AL,BYTE PTR DS:[ESI-1]               ; \*
+0043E6C4  |.  30D8          XOR AL,BL                                ; \*
+0043E6CE  |.  F6D0          NOT AL                                   ; \*
+0043E6D6  |.  FEC8          DEC AL                                   ; \*
+0043E6DA  |.  C0C8 07       ROR AL,7                                 ; \*
+0043E6E1  |.  83EE 01       SUB ESI,1                                ; \*
+0043E6ED  |.  30C3          XOR BL,AL                                ; \*
+0043D02F  |.  0FB6C0        MOVZX EAX,AL                             ; \*
+0043F124  |.  8B1485 DBE143 MOV EDX,DWORD PTR DS:[EAX\*4+43E1DB]      ; \*
+0043E100  |> /81C2 6B197FB6 ADD EDX,B67F196B                         ; \*
+0043E10A  |.  895424 3C     MOV DWORD PTR SS:[ESP+3C],EDX            ; \*
+0043E11B  |.  FF7424 4C     PUSH DWORD PTR SS:[ESP+4C]               ; \*
+0043E11F  |.  C2 5000       RETN 50
+```
+
+首先从`ESI`中解密获得下一条伪指令在`DispatchTable`（调遣表）中的偏移量，使用`[EAX*4+43E1DB]`来读取出伪指令地址，简单的`ADD`解密后，把真正的伪指令地址压入`ESP`栈顶，最后用`RETN 50`跳转到相应的伪指令。
+
+`MOV EDX,DWORD PTR DS:[EAX*4+43E1DB]`给我们提供的信息：`DispatchTable`的起始地址是0043E1DB，最后一个dword的开始地址是以`AL`的最大值FF作为偏移量`[FF*4+43E1DB]`=0043E5D7。我们把记事本0043E1DB--0043E5D7的数据粘贴：
+
+```
+CPU Dump
+
+Address   Hex dump                                         ASCII
+
+0043E1D0                                   09|BA C4 49 D0|            .I
+0043E1E0  BA C4 49 1E|B7 C4 49 E6|C4 C4 49 53|D1 C4 49 05| IIISI
+0043E1F0  BE C4 49 75|D1 C4 49 D4|CE C4 49 0C|D6 C4 49 C3| IuII.I
+0043E200  BD C4 49 7B|CE C4 49 67|BE C4 49 26|BF C4 49 EB| I{IgI&I
+0043E210  C2 C4 49 82|D0 C4 49 3A|BA C4 49 1E|B5 C4 49 A8| II:II
+0043E220  C4 C4 49 1E|B5 C4 49 2E|C8 C4 49 B9|BB C4 49 E9| II.II
+0043E230  C3 C4 49 2D|B8 C4 49 95|C1 C4 49 82|D0 C4 49 75| I-IIIu
+0043E240  D1 C4 49 C3|BE C4 49 16|B6 C4 49 2D|B8 C4 49 75| I镁II-Iu
+0043E250  D1 C4 49 95|C1 C4 49 EB|C2 C4 49 52|BF C4 49 B4| IIIRI
+0043E260  D3 C4 49 8B|D3 C4 49 05|CE C4 49 52|BF C4 49 D4| IIIRI
+0043E270  CE C4 49 E8|B8 C4 49 C3|BD C4 49 C3|BE C4 49 5E| II媒I镁I^
+0043E280  B4 C4 49 B1|B8 C4 49 61|BD C4 49 5D|BF C4 49 E9| IIaI]I
+0043E290  C3 C4 49 26|BF C4 49 5F|D0 C4 49 B4|D3 C4 49 E6| I&I\_II
+0043E2A0  C4 C4 49 EC|B7 C4 49 1E|B5 C4 49 0D|C0 C4 49 0D| III.I.
+0043E2B0  C0 C4 49 C3|BD C4 49 5D|BF C4 49 7B|CE C4 49 C3| I媒I]I{I
+0043E2C0  BD C4 49 1E|B5 C4 49 82|D0 C4 49 8A|B9 C4 49 A6| IIII
+0043E2D0  D1 C4 49 EB|C2 C4 49 D4|CE C4 49 61|BD C4 49 09| IIIaI.
+0043E2E0  BA C4 49 53|D1 C4 49 61|BD C4 49 3A|BA C4 49 3A| ISIaI:I
+0043E2F0  D0 C4 49 0C|D6 C4 49 3A|BA C4 49 1E|B7 C4 49 05| I.I:II
+0043E300  CE C4 49 0D|C0 C4 49 82|D0 C4 49 27|D2 C4 49 7C| I.II'I|
+0043E310  BD C4 49 E8|B8 C4 49 41|C2 C4 49 E9|C3 C4 49 25| IIAII%
+0043E320  CE C4 49 53|C6 C4 49 61|BD C4 49 53|C6 C4 49 83| ISIaISI
+0043E330  D6 C4 49 53|C6 C4 49 5D|BF C4 49 53|C6 C4 49 A8| ISI]ISI
+0043E340  C4 C4 49 53|C6 C4 49 5F|D0 C4 49 53|C6 C4 49 E6| ISI\_ISI
+0043E350  C4 C4 49 53|C6 C4 49 3A|BA C4 49 53|C6 C4 49 00| ISI:ISI.
+0043E360  C7 C4 49 53|C6 C4 49 2D|B8 C4 49 53|C6 C4 49 25| ISI-ISI%
+0043E370  CE C4 49 53|C6 C4 49 83|D6 C4 49 53|C6 C4 49 1E| ISIISI
+0043E380  B7 C4 49 53|C6 C4 49 C3|BD C4 49 53|C6 C4 49 62| ISI媒ISIb
+0043E390  CF C4 49 53|C6 C4 49 12|D3 C4 49 53|C6 C4 49 E8| ISIISI
+0043E3A0  B8 C4 49 05|CE C4 49 1E|B7 C4 49 8A|B9 C4 49 B4| IIII
+0043E3B0  D3 C4 49 B9|BB C4 49 A6|D1 C4 49 E8|B8 C4 49 FE| IIII
+0043E3C0  C0 C4 49 82|D0 C4 49 53|D1 C4 49 2D|B8 C4 49 52| IISI-IR
+0043E3D0  BF C4 49 3A|D0 C4 49 C3|BE C4 49 A6|C1 C4 49 C3| I:I镁II
+0043E3E0  BE C4 49 5E|B4 C4 49 82|D0 C4 49 7C|BD C4 49 C3| I^II|I
+0043E3F0  BD C4 49 C3|BE C4 49 1E|B7 C4 49 61|BD C4 49 A6| I镁IIaI
+0043E400  C1 C4 49 82|D0 C4 49 12|D3 C4 49 FE|C0 C4 49 25| IIII%
+0043E410  CE C4 49 0C|D6 C4 49 09|BA C4 49 2E|C8 C4 49 67| I.I.I.Ig
+0043E420  BE C4 49 8A|B9 C4 49 EB|C2 C4 49 D4|CE C4 49 95| IIII
+0043E430  C1 C4 49 D1|C7 C4 49 09|BA C4 49 00|C7 C4 49 B9| II.I.I
+0043E440  BB C4 49 D1|C7 C4 49 B4|D3 C4 49 5E|B4 C4 49 D1| III^I
+0043E450  C7 C4 49 A8|C4 C4 49 A6|C1 C4 49 12|D3 C4 49 B4| IIII
+0043E460  D3 C4 49 D0|BA C4 49 41|C2 C4 49 82|D0 C4 49 B1| I泻IAII
+0043E470  B8 C4 49 1E|B5 C4 49 27|D2 C4 49 82|D0 C4 49 75| II'IIu
+0043E480  D1 C4 49 5E|B4 C4 49 25|CE C4 49 16|B6 C4 49 7B| I^I%II{
+0043E490  CE C4 49 7C|BD C4 49 EB|C2 C4 49 27|D2 C4 49 83| I|II'I
+0043E4A0  D6 C4 49 12|D3 C4 49 2E|C8 C4 49 1E|B5 C4 49 E6| II.II
+0043E4B0  C4 C4 49 C3|BD C4 49 95|C1 C4 49 1E|B5 C4 49 EC| I媒III
+0043E4C0  B7 C4 49 B9|BB C4 49 5F|D0 C4 49 83|D6 C4 49 8A| II\_II
+0043E4D0  B9 C4 49 A6|C1 C4 49 D4|CE C4 49 8B|D3 C4 49 0D| IIII.
+0043E4E0  C0 C4 49 E8|B8 C4 49 2D|B8 C4 49 61|BD C4 49 82| II-IaI
+0043E4F0  D0 C4 49 12|D3 C4 49 1E|B5 C4 49 7C|BD C4 49 D1| III|I
+0043E500  C7 C4 49 7C|BD C4 49 05|CE C4 49 A6|C1 C4 49 5F| I|III\_
+0043E510  D0 C4 49 1E|B7 C4 49 7B|CE C4 49 0C|D6 C4 49 05| II{I.I
+0043E520  BE C4 49 9F|C2 C4 49 B9|BB C4 49 9F|C2 C4 49 D4| IIII
+0043E530  CE C4 49 9F|C2 C4 49 EC|B7 C4 49 9F|C2 C4 49 62| IIIIb
+0043E540  CF C4 49 9F|C2 C4 49 2D|B8 C4 49 9F|C2 C4 49 0C| II-II.
+0043E550  D6 C4 49 9F|C2 C4 49 0D|C0 C4 49 9F|C2 C4 49 05| II.II
+0043E560  BE C4 49 9F|C2 C4 49 C3|BD C4 49 9F|C2 C4 49 53| II媒IIS
+0043E570  D1 C4 49 9F|C2 C4 49 75|D1 C4 49 9F|C2 C4 49 05| IIuII
+0043E580  CE C4 49 9F|C2 C4 49 75|D1 C4 49 9F|C2 C4 49 27| IIuII'
+0043E590  D2 C4 49 9F|C2 C4 49 09|BA C4 49 9F|C2 C4 49 B9| II.II
+0043E5A0  B5 C4 49 E6|C4 C4 49 09|BA C4 49 8B|D3 C4 49 25| II.II%
+0043E5B0  CE C4 49 0D|C0 C4 49 B9|B5 C4 49 E9|C3 C4 49 12| I.III
+0043E5C0  D3 C4 49 FE|C0 C4 49 05|CE C4 49 83|D6 C4 49 0D| IIII.
+0043E5D0  C0 C4 49 EC|B7 C4 49 D0|BA C4 49                 II泻I
+```
+
+虽然`DispatchTable`的数据很多，但是很多不同的偏移量指向的相同的数据，这是一种保护方式。我们反过来想，如果`DispatchTable`中每个dword指向的是不同的伪指令，这就意味着每个`EAX`偏移量指向着唯一的一条伪指令，进一步的来说就是每个`ESI`值代表着唯一的一条伪指令。那么，如果有人逆向这个算法，就可以知道每个`ESI`值对应的是哪个伪指令，这样就可以直接读取`ESI`值而了解VMP的执行伪指令，基本等于半自动识别VMP。一名对VMP经验丰富的人，只要看着VM执行的伪指令盯着`EBPSTACK`堆栈，就可以理解VM的情况。现在，由于多个`ESI`值指向相同的伪指令，还有动态`EBX`解码，将会艰难的多。
+
+我们在OD中寻找一个空间，写一段循环代码，把`DispatchTable`的数据全部解密出来：
+
+原来的代码：
+
+```
+0043F11F   \38F5            CMP CH,DH
+0043F121    66:FFC2         INC DX
+0043F124    8B1485 DBE14300 MOV EDX,DWORD PTR DS:[EAX\*4+43E1DB]      ; \*
+0043F12B    F9              STC
+0043F12C    84F4            TEST AH,DH
+0043F12E    60              PUSHAD
+0043F12F  ^ E9 CC5EFCFF     JMP 0043E100
+```
+
+把最后一条指令修改为：
+
+```
+0043F12F  ^\E9 CC5EFCFF     JMP 00405000
+```
+
+在00405000添加循环代码：
+
+```
+CPU Disasm
+
+Address   Hex dump          Command                                  Comments
+
+00405000    60              PUSHAD
+00405001    BE DBE14300     MOV ESI,0043E1DB                         ; DispatchTable地址
+00405006    BF 00514000     MOV EDI,00405100                         ; 解密循环地址
+0040500B    B9 00010000     MOV ECX,100
+00405010    31DB            XOR EBX,EBX
+00405012    8B0433          MOV EAX,DWORD PTR DS:[ESI+EBX]
+00405015    05 6B197FB6     ADD EAX,B67F196B                         ; 解密指令只有1条ADD
+0040501A    89043B          MOV DWORD PTR DS:[EDI+EBX],EAX
+0040501D    83C3 04         ADD EBX,4
+00405020    49              DEC ECX
+00405021  ^ 75 EF           JNE SHORT 00405012
+```

@@ -1,0 +1,188 @@
+
+# [原创]关于VMP调试插件原理的思考
+
+以超级大牛hkfans“vmp2.06全过程分析”一文中的`NOTEPAD.vmp.exe`作为例子，讲一下我的理解，错误之处请牛人指正！
+
+## 1、如何实现 retrieve handler info?
+
+我觉得主要是找到一张虚拟机指令地址入口表，类似于这样：
+
+``` 
+81 12 FA FE 43 2C FA FE 92 08 FA FE 69 08 FA FE
+E1 1C FA FE 76 03 FA FE BB 25 FA FE 31 00 FA FE
+E7 17 FA FE 05 08 FA FE 29 11 FA FE 77 1D FA FE
+6E 19 FA FE B7 18 FA FE 5A 2C FA FE 75 2C FA FE
+FB 19 FA FE 3E 2C FA FE EC 2C FA FE 8F 2B FA FE
+FA 2D FA FE 32 24 FA FE 6C 28 FA FE 1F 1E FA FE
+AB 06 FA FE E0 08 FA FE 86 1C FA FE EC 26 FA FE
+56 2B FA FE 34 0E FA FE 90 06 FA FE C2 17 FA FE
+3A 1B FA FE BB 11 FA FE 76 28 FA FE D1 1D FA FE
+CA 1C FA FE 90 26 FA FE 7D 04 FA FE 96 11 FA FE
+5C 1D FA FE 55 0F FA FE E0 28 FA FE D7 11 FA FE
+10 2A FA FE 70 2D FA FE 03 1F FA FE 76 20 FA FE
+2C 16 FA FE DF 03 FA FE 77 07 FA FE A4 23 FA FE
+23 2A FA FE E7 06 FA FE 14 16 FA FE AD 0F FA FE
+```
+
+简单解释一下，例如`81 12 FA FE`就是`0xFEFA1281`，只要`neg`一下，就变成了`0x0105ED7F`，到地址`0x0105ED7F`处看看，有一堆垃圾指令，这里直接给出里面的两条有效指令：
+
+``` 
+//edi是虚拟寄存器的基地址 eax定位其中的哪一个寄存器，这里是取出某个虚拟寄存器的值
+0105FF84    8B1438          mov     edx, dword ptr [eax+edi]
+//ebp是VESP，再把这个值压入虚拟栈
+01060000    8955 00         mov     dword ptr [ebp], edx
+```
+
+这条虚拟机指令前人起名叫做`vm_pushdw_regdw`。
+
+为什么要`neg`一下？直接上代码：
+
+``` 
+0105E4AF    8B1485 0EF20501 mov     edx, dword ptr [eax*4+105F20E] //105F20E 表地址
+0105E4B6    F9              stc
+0105E4B7    F7DA            neg     edx  //看到了吗
+0105E4B9    F9              stc
+0105E4BA    F5              cmc
+0105E4BB    81C2 00000000   add     edx, 0  //等于没加
+0105E4C1  ^ E9 33FBFFFF     jmp     0105DFF9
+```
+
+内存中的一张表`0x400`字节，去除里面重复的，实际就是前面给出的那张表：
+
+``` 
+0105F20E  81 12 FA FE 43 2C FA FE 92 08 FA FE 92 08 FA FE  ?C,??
+0105F21E  69 08 FA FE E1 1C FA FE 76 03 FA FE BB 25 FA FE  i???v??
+0105F22E  31 00 FA FE E1 1C FA FE E7 17 FA FE E7 17 FA FE  1.????
+0105F23E  05 08 FA FE 29 11 FA FE 77 1D FA FE 6E 19 FA FE  ???)???n??
+0105F24E  B7 18 FA FE 31 00 FA FE 5A 2C FA FE 69 08 FA FE  ??1.Z,?i??
+0105F25E  75 2C FA FE FB 19 FA FE 77 1D FA FE 3E 2C FA FE  u,??????>,?
+0105F26E  EC 2C FA FE 8F 2B FA FE 3E 2C FA FE FA 2D FA FE  ??+??>,??-?
+0105F27E  05 08 FA FE 32 24 FA FE 6C 28 FA FE 76 03 FA FE  ??2$?l(v??
+0105F28E  1F 1E FA FE BB 25 FA FE AB 06 FA FE E0 08 FA FE  ??%??????
+0105F29E  69 08 FA FE 86 1C FA FE 6E 19 FA FE 8F 2B FA FE  i?????n??+?
+0105F2AE  BB 25 FA FE E7 17 FA FE EC 26 FA FE E0 08 FA FE  ?%????&????
+0105F2BE  56 2B FA FE EC 26 FA FE 34 0E FA FE 76 03 FA FE  V+??&??4?v??
+0105F2CE  86 1C FA FE 90 06 FA FE 76 03 FA FE 34 0E FA FE  ??????v??4??
+0105F2DE  C2 17 FA FE E1 1C FA FE 76 03 FA FE 86 1C FA FE  ??????v????
+0105F2EE  34 0E FA FE 5A 2C FA FE FB 19 FA FE 3A 1B FA FE  4?Z,????:??
+0105F2FE  31 00 FA FE BB 11 FA FE 05 08 FA FE 76 03 FA FE  1.??????v??
+0105F30E  76 28 FA FE D1 1D FA FE C2 17 FA FE AB 06 FA FE  v(????????
+0105F31E  CA 1C FA FE 90 26 FA FE 7D 04 FA FE 96 11 FA FE  ???&??}????
+0105F32E  E0 08 FA FE 3E 2C FA FE 5C 1D FA FE 90 06 FA FE  ??>,?\????
+0105F33E  3A 1B FA FE 55 0F FA FE 5A 2C FA FE AB 06 FA FE  :?U?Z,????
+0105F34E  29 11 FA FE 76 28 FA FE E1 1C FA FE EC 26 FA FE  )?v(????&??
+0105F35E  32 24 FA FE 8F 2B FA FE E0 28 FA FE D7 11 FA FE  2$??+??(????
+0105F36E  FA 2D FA FE CA 1C FA FE 34 0E FA FE 10 2A FA FE  ?-???4?*??
+0105F37E  70 2D FA FE 03 1F FA FE C2 17 FA FE B7 18 FA FE  p-????????
+0105F38E  76 20 FA FE 5C 1D FA FE 2C 16 FA FE BB 11 FA FE  v ?\?,????
+0105F39E  34 0E FA FE DF 03 FA FE C2 17 FA FE 8F 2B FA FE  4???????+?
+0105F3AE  5C 1D FA FE 5A 2C FA FE E1 1C FA FE 77 1D FA FE  \?Z,??????
+0105F3BE  77 07 FA FE 76 20 FA FE 90 06 FA FE FB 19 FA FE  w?v ?????
+0105F3CE  56 2B FA FE 55 0F FA FE EC 2C FA FE 96 11 FA FE  V+U??,????
+0105F3DE  76 03 FA FE 76 03 FA FE 5A 2C FA FE 03 1F FA FE  v?v?Z,????
+0105F3EE  55 0F FA FE 31 00 FA FE FB 19 FA FE B7 18 FA FE  U?1.??????
+0105F3FE  3E 2C FA FE 92 08 FA FE 34 0E FA FE A4 23 FA FE  >,???4??#?
+0105F40E  86 1C FA FE AB 06 FA FE 3A 1B FA FE 3A 1B FA FE  ??????:?:??
+0105F41E  E7 17 FA FE BB 11 FA FE E0 28 FA FE 23 2A FA FE  ??????(?*??
+0105F42E  1F 1E FA FE 31 00 FA FE 90 26 FA FE 5A 2C FA FE  ??1.??Z,??
+0105F43E  BB 25 FA FE 56 2B FA FE 10 2A FA FE 3A 1B FA FE  ?%V+?*?:??
+0105F44E  E1 1C FA FE E0 08 FA FE 6C 28 FA FE 3E 2C FA FE  ??????l(>,?
+0105F45E  FA 2D FA FE E7 06 FA FE 70 2D FA FE 03 1F FA FE  ?-???p-??
+0105F46E  90 06 FA FE 96 11 FA FE 6E 19 FA FE 75 2C FA FE  ??????n?u,?
+0105F47E  32 24 FA FE A4 23 FA FE BB 11 FA FE 6E 19 FA FE  2$??#???n??
+0105F48E  92 08 FA FE 6E 19 FA FE 7D 04 FA FE E7 17 FA FE  ??n?}????
+0105F49E  D1 1D FA FE 14 16 FA FE 10 2A FA FE 70 2D FA FE  ??????*?p-?
+0105F4AE  31 00 FA FE 3A 1B FA FE 2C 16 FA FE 32 24 FA FE  1.?:?,?2$?
+0105F4BE  14 16 FA FE B7 18 FA FE 77 07 FA FE FB 19 FA FE  ??????w????
+0105F4CE  EC 26 FA FE 23 2A FA FE C2 17 FA FE E1 1C FA FE  ?&?#*????
+0105F4DE  05 08 FA FE 70 2D FA FE 32 24 FA FE E7 17 FA FE  ??p-2$???
+0105F4EE  D7 11 FA FE D1 1D FA FE BB 25 FA FE 76 03 FA FE  ??????%?v??
+0105F4FE  BB 11 FA FE BB 11 FA FE 14 16 FA FE E7 06 FA FE  ????????
+0105F50E  31 00 FA FE 3E 2C FA FE 86 1C FA FE 90 06 FA FE  1.>,??????
+0105F51E  81 12 FA FE 43 2C FA FE 86 1C FA FE 05 08 FA FE  ??C,??????
+0105F52E  81 12 FA FE 43 2C FA FE BB 11 FA FE 5C 1D FA FE  ??C,???\??
+0105F53E  81 12 FA FE 43 2C FA FE 69 08 FA FE 70 2D FA FE  ??C,?i?p-?
+0105F54E  81 12 FA FE 43 2C FA FE 92 08 FA FE 5A 2C FA FE  ??C,???Z,?
+0105F55E  81 12 FA FE 43 2C FA FE E1 1C FA FE AB 06 FA FE  ??C,??????
+0105F56E  81 12 FA FE 43 2C FA FE EC 2C FA FE 86 1C FA FE  ??C,??,???
+0105F57E  81 12 FA FE 43 2C FA FE A4 23 FA FE 3E 2C FA FE  ??C,??#?>,
+0105F58E  81 12 FA FE 43 2C FA FE 7D 04 FA FE 75 2C FA FE  ??C,?}?u,?
+0105F59E  81 12 FA FE 43 2C FA FE A4 23 FA FE E0 28 FA FE  ??C,??#??(
+0105F5AE  81 12 FA FE 43 2C FA FE 55 0F FA FE AB 06 FA FE  ??C,?U????
+0105F5BE  81 12 FA FE 43 2C FA FE 14 16 FA FE 31 00 FA FE  ??C,???1.?
+0105F5CE  81 12 FA FE 43 2C FA FE 6C 28 FA FE 92 08 FA FE  ??C,?l(???
+0105F5DE  81 12 FA FE 43 2C FA FE 8F 2B FA FE 90 26 FA FE  ??C,??+?&?
+0105F5EE  81 12 FA FE 43 2C FA FE EC 26 FA FE AD 0F FA FE  ??C,??&???
+0105F5FE  81 12 FA FE 43 2C FA FE FB 19 FA FE C2 17 FA FE  ??C,????
+```
+
+至于这张表为什么要有重复的入口地址，我认为可以让不同的虚拟字节码实现同样的功能，一条实际的指令对应多个字节码，增加了字节码的多样性，目的就是让你的头更大！还有个原因就是凑字数吧，以前写作文不就是这样干的吗？
+
+归根到底有多少虚拟指令，只要去掉重复的就可以了，化简后的上面那张表就只有56条。
+
+你要问我怎么找到这个表地址的，答案很简单。在OEP处一直F7就OK了，顶多1分钟吧！
+
+如果你人又懒，水平又高，可以用下面个函数，写个OD插件：
+
+- `OllyDbg._Readcommand`
+- `OllyDbg._Disasm`
+
+从OEP处读一条指令，反汇编一条，周而复始，找到下面这个地方就可以停下来了。先提取出表地址，再从`0x400`字节中提取出不重复的地址。
+
+``` 
+0105E4AF    8B1485 0EF20501 mov     edx, dword ptr [eax*4+105F20E] //105F20E 表地址
+0105E4B6    F9              stc
+0105E4B7    F7DA            neg     edx
+0105E4B9    F9              stc
+0105E4BA    F5              cmc
+0105E4BB    81C2 00000000   add     edx, 0
+0105E4C1  ^ E9 33FBFFFF     jmp     0105DFF9
+```
+
+有了这张表，你就可以做一张指令查找表了。前面举例已经讲了第一条，再讲简化表的最后一条，让你彻底搞懂。`AD 0F FA FE`对应`0xFEFA0FAD`，`NEG`一下就是`0x0105F053`，到那里提取出有效指令如下：
+
+``` 
+0105FA9B    8B45 00         mov     eax, dword ptr [ebp]
+0105E706    8B00            mov     eax, dword ptr [eax]
+0106013B    8945 00         mov     dword ptr [ebp], eax
+```
+
+前人取了名字`VM_READdw_MEMdw`，感觉还要适应！依次类推，做个虚拟指令查找表。
+
+## 2、如何反汇编虚拟机字节码？
+
+假如`VEIP`（`esi=010375AC`），也就是指向下面7个字节的尾部字节，这个记事本例子中`esi`是逐渐变小的。
+
+``` 
+//B1就是010375AC处的虚拟机字节码
+010375A6  9C A3 36 12 DB B0 B1
+```
+
+超级大牛hkfans的VMP插件可以从该处反汇编得到：
+
+``` 
+010375AC    C9                        pop       r14
+010375AB    58 C0C49CBB       push      BB9CC4C0
+010375A6    40                         add       dword
+```
+
+它是怎么来的？ 我们从OD中可以提取到以下有效指令，显示了从`B1`变为`C9`的全过程，上一条虚拟指令地址参与了计算。
+
+``` 
+0105E1B4    30D8            xor     al, bl //al=B1  ebx=010375AD （上一条虚拟指令地址）
+0105DA77    FEC8            dec     al     // al=1c-1=1b
+0105DD64    D0C0            rol     al, 1  //al=36
+0105DD6E    F6D0            not     al     //al=c9
+0105E49C    0FB6C0          movzx   eax, al  //eax=000000C9
+```
+
+现在得到：`010375AC    C9`
+
+根据计算公式求出虚拟指令入口地址如下：
+
+``` 
+0105E4AF    8B1485 0EF20501 mov     edx, dword ptr [eax*4+105F20E] //105F20E 表地址
+0105E4B7    F7DA            neg     edx
+```
+
+虚拟指令入口地址`edx = neg([c9*4+105F20E]) =neg(FEFA2C43)=0x0105D3BD`，有了这个入口地址，再查一下事先做好的指令表就可以得到虚拟机的汇编指令了。

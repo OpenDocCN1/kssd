@@ -1,0 +1,280 @@
+
+# [原创]简单分析VMProtect V1.10
+
+## 前言
+
+小生近来被高版本VMProtect的代码混淆虐到体无完肤，特来找找旧版本的VMProtect的晦气。看看能不能刷一波小怪，涨一波经验，积蓄力量，最后再和大BOSS干仗。
+
+## 工具
+
+VMProtect V1.10（帖子附件）
+
+OllyICE（看雪工具板块）
+
+## 无任何保护之小试身手
+
+且看这段汇编代码。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_UZFRJ8J7YSY8B64.jpg)
+
+VMProtect如下配置。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_FMFQR7S76N6Y3CS.jpg)
+![](https://bbs.kanxue.com/upload/attach/201801/783210_8QJ5M65MUK48N6P.jpg)
+
+编译后用OllyDbg打开进行调试。
+
+可以看到入口处的代码被替换为如下：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_HEHQMEBTG3S45PC.jpg)
+
+VM Dispatch：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_HRHPGU8PX636ASJ.jpg)
+
+开头备份环境，应该是为了填充`VMCONTEXT`。而往下面走没有发现填充`VMCONTEXT`的代码，可见填充`VMCONTEXT`应该是由`PCODE`完成的。执行完3条入栈指令后。我的堆栈布局如下图所示：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_GX2X5PJCQZWVC3A.jpg)
+
+此时，待解释执行的`PCODE`指令如下图所示：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_QM799P5MKB8647E.jpg)
+
+尾部出现了一个亲切的常数，`0x2018`。前面调用了好几次`0x45`号Handler，应该就是填充`VMCONTEXT`的。且看看这`0x45`号Handler，代码如下：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_4SPVA345VZV7Z3J.jpg)
+
+前面一共有10个`0x45`号Handler调用。总结一下`VMCONTEXT`结构。
+
+| 偏移 | 注释 |
+| --- | --- |
+| 0x24 | 入栈0 |
+| 0x28 | EDI |
+| 0x18 | ESI |
+| 0x0C | EBP |
+| 0x38 | EDX |
+| 0x04 | EBX |
+| 0x08 | ECX |
+| 0x14 | EAX |
+| 0x20 | EFLAGS |
+
+注意，`VMCONTEXT`结构里面没有`ESP`，虽然从堆栈里面弹出了`ESP`，但马上被`EDX`覆盖掉了（没有必要备份`ESP`）。
+
+这个`VMCONTEXT`结构是随机变动的，最好写个脚本什么的统计。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_ZJWPGCUTPQ5RZRK.jpg)
+
+填充完`VMCONTEXT`结构后，就该执行`0xDE`号Handler了，Handler代码如下：
+
+```
+00404088    59              POP ECX
+00404089    E9 B8080000     JMP test_vmp.00404946
+```
+
+`0xDE`号Handler，没有操作数。只是从栈顶弹出一个`DWORD`送入`ECX`。此时弹出的是`PCODE`起始地址。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_WJUADEF9W3VUEM2.jpg)
+
+此时应该执行`0x71`号Handler。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_X8TFNUAW4K4BEBE.jpg)
+
+`0x71`号Handler代码如下：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_83NX52VMTCTXYCT.jpg)
+
+`0x2018`被压缩成了`WORD`，应该是VMProtect出于节省空间的考虑吧。
+
+执行后，堆栈里面出现了`0x2018`。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_ZAJCPBE5W8ZTFCU.jpg)
+
+接下来是对`MessageBoxA`的调用，会入栈4个参数。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_CKAMM273TQ9VCCD.jpg)
+
+`0xAB`号Handler（把`BYTE`操作数扩展为`DWORD`入栈）：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_6Y86PQMYMBD75RF.jpg)
+
+`0x5B`号Handler（入栈`DWORD`操作数）：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_E33KPH989M49BC8.jpg)
+
+`0xF8`号Handler（和`0x5B`号Handler一样）：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_A24TVQA93EY6KVB.jpg)
+
+再次执行一次`0xAB`号Handler压入0后，开始执行`0x53`号Handler了（重头戏快到了，调用API）。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_2CCCSZMCY74NZHH.jpg)
+
+这里从`VMCONTEXT`压入了`0x24`偏移处的字段（入栈的0，非寄存器），
+
+`0x53`号Handler：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_3EE8VEZ8A5EMVAU.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_CMAADM68D2H7M6W.jpg)
+
+`0xF8`号Handler，压入一个`DWORD`操作数（前文介绍过），`0x404C26`，看官有无觉得这个地址有点意思呢？在反汇编窗口里面转入这个地址看看。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_SAPKPGKGHD857AG.jpg)
+
+`0xF8`号Handler执行完后，此时堆栈布局如图所示：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_25SPPMTDYZ2T7U7.jpg)
+
+接下来执行`0xCF`号Handler。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_7A3APW6FGTGBYQW.jpg)
+
+该Handler代码如下图所示：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_KPKFUHM7W9HQWTK.jpg)
+
+`0xCF`号Handler，堆栈里面第二个数加等于堆栈里第一个数，同时`ESP`指向栈顶第二个数。有点绕。
+
+没关系，看看执行完`0xCF`号Handler后的堆栈布局：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_K45QN7F5VFSKACS.jpg)
+
+文章写到这里，我突然有个猜测，压入的`VMCONTEXT`结构`0x24`处偏移的字段，是不是基址（DLL）呢？（俺也不确定哦，只是突发奇想）
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_WFFFDK3XBSR8439.jpg)
+
+执行完`0xCF`号Handler后，又压入了一个`0x401020`。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_ZBYYSYVSD5TC5Q6.jpg)
+
+紧跟其后，又压入了`VMCONTEXT`结构`0x24`处偏移的字段（0）。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_Z659437M3WTJZ5F.jpg)
+
+接着执行`0xBB`号Handler，该Handler于上文介绍的`0xCF`号Handler一样，在此不赘述了。
+
+接着又是入栈`VMCONTEXT`各字段。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_PWAT8YHMZE2SSQQ.jpg)
+
+此处依次压入了`VMCONTEXT`结构中的`EFLAGS`，`EAX`，`ECX`，`EDX`，`EBX`，`EAX`，`EBP`，`ESI`，`EDI`，入栈的0等字段。
+
+执行完后，堆栈中的布局为：
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_8H3DEJCFNAQ5KTK.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_WNTVFJACC8ZQQJB.jpg)
+
+接着执行`0x5`号Handler，退出虚拟机。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_GXS4F45ZNTF3GXW.jpg)
+
+可以看到，返回地址是VM区段里的地址，到时候还要转到这个地址重新进入虚拟机。
+
+步过`RET`，即转入对`MessageBoxA`的调用。
+
+`MessageBoxA`执行完后，又转入了此处。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_BQUJC8GU8DZVRZ9.jpg)
+
+可以看到，又开始填充`VMCONTEXT`结构了。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_RBTPGARVQHU7X57.jpg)
+
+这里就不统计新的`VMCONTEXT`结构了。只是接着往下面大概跟踪看看。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_3E97GKSCT8QG3X3.jpg)
+
+又压入了0，紧跟着就是对`ExitProcess`的调用了。
+
+## 常量展开保护
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_DB697C4PNNBC7YA.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_QQE8WPTTVPH78MA.jpg)
+
+这次我们只保护了一条`push 0x2018`指令。入口点的代码变成了如下：
+
+```
+00401000 > $- E9 023C0000   JMP test_vmp.00404C07
+00404C07    68 BB4B4000     PUSH test_vmp.00404BBB                   ; 入栈PCODE起始地址
+00404C0C  ^ E9 33F6FFFF     JMP test_vmp.00404244                    ; 进入 VM Dispatch
+```
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_N2682NKX52H3VY6.jpg)
+
+VM Dispatch有一点小小变化，不过换汤不换药。
+
+以下是`0xAF`号Handler和`0xD9`号Handler（同一个Handler）
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_X9SPA9CE92J72UY.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_CQ2RXU362AG7GC8.jpg)
+
+`0xAF`和`0xD9`是同一条指令，可以按前文一样整理出一份`VMCONTEXT`结构。此处不赘述。
+
+执行完`VMCONTEXT`结构的填充之后，发现`0x2018`常量消失了。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_7HKAW2JJWU8TKUC.jpg)
+
+`0xFB`号Handler，压入一个`DWORD`操作数。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_PPJ5K7FFUH7RKKS.jpg)
+
+执行完后，`0xECBD5026`被压入了堆栈。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_RB7CK8MZ388TWBF.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_EHFDNXGFERN53KH.jpg)
+
+`0x5E`号Handler，压入`ESP`。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_JKW9YS3U4U5D2UZ.jpg)
+
+`0x3B`号Handler，从堆栈里面弹出了原`ESP`，并压入了`0xFB`号Handler压入的`DWORD`常数的低16位。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_DBTGUKZU924YNUU.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_8U48PE73HEMMZSY.jpg)
+
+`0x74`号Handler，取出`0xFB`号Handler压入常数的低16位送入`BX`
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_MUASBEBPFMPFFZD.jpg)
+
+接下来又是`0x5E`，`0x3B`号调用。具体就是又入栈了待解密常数的低16位。
+
+然后调用`0x9Bh`号Handler。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_KYQV4FA73VC546W.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_3ZUWF7EZTQFYUZQ.jpg)
+
+`VMCONTEXT`，`0x24`偏移处似乎在前面没有哪个Handler备份了环境进去。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_F5U52QNNUBQG79K.jpg)
+
+感情这些全部都是垃圾指令，浪费青春，谋我钱财，可恶可恨！/手动滑稽笑脸，请看官自行脑部。
+
+前面低16位送入`BX`也没用到。接着往下面看吧。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_3AR7RZEJ62QX3VR.jpg)
+
+接着又调用了`0xFB`号Handler，压入了`0x1342CFF2`常数。
+
+然后是`0xF2`号Handler调用。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_78G8AJ2EFH76AE8.jpg)
+
+这个时候，`0x2018`出现在堆栈。请懂俄文的看官给VMProtect作者寄一份电子邮件，“心机BOY！！！”
+
+感情这`0x2018`就是两常数相加即可得到。绕了一大圈。
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_BMFZ223Q5BW9CZT.jpg)
+
+## 加密PCODE保护
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_4FKBPV2WAZWWNE7.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/201801/783210_DE5DP55ZZ4QHGKB.jpg)
+
+这次仍然只加密一条`push 0x2018`指令。编译后用OllyDbg打开调试。

@@ -1,0 +1,258 @@
+
+(图太大无法显示清楚，看得清基本的结构就好，完整的SVG格式图见附件)
+
+这回已经非常直观了。图中间的结点跳转到其他结点中再跳转回来，是典型的 `dispatcher` 结构，并列成排的每个代码块，就是 `Handler` 代码块。
+
+`dispatcher` 结点的代码如下：
+
+```
+0x40435f        lea edx, ptr [edx*8-0x7525bb7f]
+
+0x404366        mov al, byte ptr [esi-0x1]     ; [esi - 0x1] 取指令
+
+0x404369        inc dl
+
+0x40436b        setns dh
+
+0x40436e        dec esi
+
+0x40436f        sub edx, 0x9ec1cfd2
+
+0x404375        cmp dl, 0xea
+
+0x404378        rcl dl, 0x7
+
+0x40437b        sub al, bl  ; 解密 al
+
+0x40437d        dec dl
+
+0x40437f        push esi
+
+0x404380        call 0x4041ce
+
+0x4041ce        pop edx
+
+0x4041cf        dec al      ; 解密 al
+
+0x4041d1        rcl dh, cl
+
+0x4041d3        sar edx, cl
+
+0x4041d5        or dl, ch
+
+0x4041d7        xor al, 0xcd  ; 解密 al
+
+0x4041d9        lea edx, ptr [ebx*8-0xcbcbf63]
+
+0x4041e0        sar dx, cl
+
+0x4041e3        rcr edx, 0x10
+
+0x4041e6        rol dx, cl
+
+0x4041e9        sub al, 0x23
+
+0x4041eb        shl dl, cl
+
+0x4041ed        bsr dx, dx
+
+0x4041f1        bt bx, 0x9
+
+0x4041f6        sub bl, al
+
+0x4041f8        rcl dh, 0x4
+
+0x4041fb        movzx eax, al  ; eax <- al
+
+0x4041fe        pushad
+
+0x4041ff        mov edx, dword ptr [eax*4+0x404cf8]  ; 取跳转地址， 跳转表就是 0x404cf8
+
+0x404206        cmc
+
+0x404207        sub edx, 0x1aadee33  ; 解密跳转地址
+
+0x40420d        mov byte ptr [esp+0x8], 0x28
+
+0x404212        pushad
+
+0x404213        mov dword ptr [esp+0x40], edx  ; 跳转地址压栈
+
+0x404217        pushfd
+
+0x404218        mov byte ptr [esp+0x4], ch
+
+0x40421c        push dword ptr [esp+0x8]
+
+0x404220        push dword ptr [esp+0x48]
+
+0x404224        ret 0x4c  ; 通过 ret 跳转到前面压栈的 edx
+```
+
+除了注释外的代码，大多是混淆作用，不用关心。
+
+# Handler 分析
+
+接下来看 `Handler` 代码。当然我们也可以一个一个人工分析 `Handler` 代码。因为 `VMProtect` 的混淆没有代码变形，只是添加了很多的栈指令。
+
+因为原本的代码没变，人工分析也不困难，对于了解 `VMP` 的人，即使人工分析，分析每个 `Handler` 也不会太困难。
+
+然而如果不了解 `VMP Handler` 的特征，看这种混淆代码是很痛苦的。
+
+这里介绍一种利用符号执行分析 `Handler` 的方法。
+
+首先简单说明一下什么是符号执行。符号执行是将所有寄存器和内存当作符号变量，然后模拟执行所有语句。执行完毕后，每个寄存器和写入的内存都会变成符号表达式。
+
+比如如下代码
+
+```
+add eax, 1   ; eax = eax_init + 1
+
+add ebx, eax ; ebx = ebx_init + eax 
+
+sub ebx, eax ; ebx = ebx_init + eax - eax = ebx_init
+
+add ebx, ecx ; ebx = ebx_init + ecx_init
+```
+
+记 `eax` 和 `ebx` 的值是 `eax_init` 和 `ebx_init`。符号执行会将每条指令翻译成对应的语义表达式。执行过程如注释说明。
+
+最终的结果
+
+```
+eax = eax_init + 1
+
+ebx = ebx_init + ecx_init
+
+ecx = ecx_init
+```
+
+说明执行了上述代码， `eax` 增加了初始值的 1；`ebx` 变成 `ebx` 初始值加 `ecx`；`ecx` 还是初始值不变。值得注意的是 `ebx` 加 `eax` 又减 `eax` 这个过程没有显示在最终的结果里，符号执行引擎把结果化简了。`VMP` 添加的指令就是这类不影响最终结果的指令，因此可以被符号执行引擎化简掉。
+
+下面证明我们的想法。
+
+使用 `Miasm` 这个符号执行引擎去分析混淆的代码。
+
+以如下的 `Handler` 代码块为例：
+
+```
+0x40493f        shr al, 0x5
+
+0x404942        sbb al, 0x8b
+
+0x404944        stc
+
+0x404945        movzx eax, byte ptr [esi-0x1]
+
+0x404949        pushad
+
+0x40494a        stc
+
+0x40494b        xor al, bl
+
+0x40494d        jmp 0x404b01
+
+0x404b01        clc
+
+0x404b02        clc
+
+0x404b03        not al
+
+0x404b05        pushad
+
+0x404b06        cmc
+
+0x404b07        xor al, 0xc1
+
+0x404b09        clc
+
+0x404b0a        mov dword ptr [esp], 0xba247870
+
+0x404b11        jmp 0x405123
+
+0x405123        ror al, 0x5
+
+0x405126        pushfd
+
+0x405127        call 0x4051f2
+
+0x4051f2        cmp al, 0x15
+
+0x4051f4        bt sp, bp
+
+0x4051f8        xor bl, al
+
+0x4051fa        clc
+
+0x4051fb        sub ebp, 0x2
+
+0x4051fe        mov byte ptr [esp], 0x64
+
+0x405202        mov byte ptr [esp], 0x14
+
+0x405206        pushfd
+
+0x405207        jmp 0x405bde
+
+0x405bde        dec esi
+
+0x405bdf        pushfd
+
+0x405be0        mov word ptr [ebp], ax
+
+0x405be4        mov word ptr [esp], bp
+
+0x405be8        mov byte ptr [esp], dl
+
+0x405beb        lea esp, ptr [esp+0x50]
+
+0x405bef        jmp 0x4059a4
+```
+
+我们把所有跳转指令去掉，当作一个连续的代码块。然后把每条指令的二进制字节提取出来，拼接在一起，十进制表示如下：
+
+```
+c0e8051c8bf90fb646ff60f930d890f8f8f6d060f534c1f8c70424707824ba90c0c8059c682c5140003c15660fa3ec30c3f883ed02c6042464c60424149c904e9c6689450066892c248814248d64245090
+```
+
+之所以转化成二进制是为了方便使用 `Miasm` 进行符号执行。
+
+符号执行后，可以输出如下结果：
+
+```
+EBP = EBP_init + 0xFFFFFFFE;
+
+ESI = ESI_init + 0xFFFFFFFF;
+
+@16[EBP_init + 0xFFFFFFFE] = {(@8[ESI_init + 0xFFFFFFFF] ^ EBX_init[0:8] ^ 0x3E) >>> 0x5 0 8, 0x0 8 16};
+```
+
+上面的表达式是 `Miasm` 使用的表达式 其中 `@` 表示内存访问。上面的表达式的含意就是，执行上面的 `Handler` 后。
+
+- `EBP` 会减2
+- `ESI` 会减1
+- `[ebp - 2]` 的2字节，会写入值 `([esi -1] ^ ebx ^ 0x3e)` 再循环右移 `0x5` 的结果。
+
+因此可以很容易的确定这条指令是 `vPushImm1`。
+
+这样分析起来就容易了非常多。
+
+很方便就可以分析出每条 `Handler`。
+
+# 提取伪指令及伪指令分析
+
+分析完每条 `handler` 后，就可以从 `Trace` 中取出 `Handler` 的调用序列。
+
+方法和第1篇一样，首先用 `OD2` 跑 `Trace`，再写脚本还原伪代码。
+
+同样的对于需要使用寄存器或者立即数的指令，需要额外处理一下。
+
+比如前面的 `vPushImm1` `Handler`，只要查找 `Trace` 中 `0x405be0 mov word ptr [ebp], ax` 中 `ax` 的值，就可以知道具体的立即数压入的值是多少了。
+
+而对于 `push` 和 `pop` 指令 我们这次除了从 `Trace` 中提取出寄存器下标，还提取出读写的寄存器值，方便我们分析伪代码。
+
+`VMProtect 2.13.8` 相对之前的 `Demo` 版本，不但虚拟机内部混淆有明显增强，关键是伪代码级别变得更加难复杂了。
+
+其实伪代码也是可以利用前面介绍的符号执行方法进行分析，不过需要自行处理伪指令的语义
+
+这里简单人肉分析一下：
