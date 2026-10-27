@@ -1,0 +1,167 @@
+
+```
+00942781  ^ E2 F4           loopd short 00942777
+------------------------
+009427C9    64:A1 18000000  mov eax,dword ptr fs:[18]
+009427CF    8B48 30         mov ecx,dword ptr ds:[eax+30]
+009427D7    8B81 B0000000   mov eax,dword ptr ds:[ecx+B0]  // OSPlatformId
+009427DD    83F0 FE         xor eax,FFFFFFFE
+009427E3    C1E0 0E         shl eax,0E
+009427E6    0BC2            or eax,edx
+009427F1    C1E0 08         shl eax,8
+009427F4    0B81 A8000000   or eax,dword ptr ds:[ecx+A8]  //OSMinorVersion
+009427FF    C1E0 08         shl eax,8
+00942802    0B81 A4000000   or eax,dword ptr ds:[ecx+A4]   //OSMajorVersion
+00942811    84E4            test ah,ah
+00942813    74 43           je short 00942858         //不跳
+00942818    80FC 02         cmp ah,2
+0094281B    74 5D           je short 0094287A        //跳
+0094281D   /73 07           jnb short 00942826
+00942826    E8 02000000     call 0094282D
+0094282D    B8 36110000     mov eax,1136
+00942835    E8 03000000     call 0094283D
+0094283A   /EB 0F           jmp short 0094284B      //到这
+0094283D    8BD4            mov edx,esp
+0094283F    EB 01           jmp short 00942842
+00942842    0F34            sysenter
+```
+
+上面这段代码被重复了N编，把系统代码搬到了壳中。
+
+这段代码实际上就是调用`User32.BlockInput`函数：
+
+```
+77D6935A >  B8 36110000               mov eax,1136
+77D6935F    BA 0003FE7F               mov edx,7FFE0300
+77D69364    FFD2                      call edx
+77D69366    C2 0400                   retn 4
+---------------------------
+00942BC6    B9 15010000     mov ecx,115
+00942C23    0102            add dword ptr ds:[edx],eax   //edx=9430e2
+00942C28    83C2 04         add edx,4
+00942C2F  ^\E2 F2           loopd short 00942C23
+//SEH
+00942D9A    50              push eax
+00942D9B    E8 24000000     call 00942DC4
+00942DA0    8B4C24 0C       mov ecx,dword ptr ss:[esp+C]
+00942DA4    8381 B8000000 1>add dword ptr ds:[ecx+B8],11
+00942DAB    33C0            xor eax,eax
+00942DAD    8941 04         mov dword ptr ds:[ecx+4],eax
+00942DB0    8941 08         mov dword ptr ds:[ecx+8],eax
+00942DB3    8941 0C         mov dword ptr ds:[ecx+C],eax
+00942DB6    8941 10         mov dword ptr ds:[ecx+10],eax
+00942DB9    8941 14         mov dword ptr ds:[ecx+14],eax
+00942DBC    C741 18 5501000>mov dword ptr ds:[ecx+18],155
+00942E97   /7A 4A           jpe short 00942EE3
+0094324C    8F05 00000000   pop dword ptr ds:[0]
+00943252    F2:             prefix repne:
+00953777    64:A1 30000000  mov eax,dword ptr fs:[30]      //7ffdf000
+0095377D    8B40 0C         mov eax,dword ptr ds:[eax+C]   //struct \_PEB\_LDR\_DATA \*Ldr
+00953783    8B40 0C         mov eax,dword ptr ds:[eax+C]  //InLoadOrderModuleList  ;241ee0
+00953786    8B48 14         mov ecx,dword ptr ds:[eax+14]  //BaseAddress
+0095378C    81E1 47030000   and ecx,347                   //ecx=0
+//作者一路上会友情提示，“registered”
+009441E7  72 65 67 69 73 74 65 72  register
+009441EF  65 64 00                 ed.
+00945170    8330 2A         xor dword ptr ds:[eax],2A  //ecx=b3,eax=945177
+00945173    40              inc eax
+00945174  ^ E2 FA           loopd short 00945170
+//解压下面一段代码
+00945187    FF55 44         call dword ptr ss:[ebp+44]          ; kernel32.LoadLibraryA
+009451ED    50              push eax
+009451EE    FF55 3C         call dword ptr ss:[ebp+3C]          ; kernel32.GetProcAddress
+00945458    58              pop eax
+00945459    833C24 01       cmp dword ptr ss:[esp],1
+0094545D    75 06           jnz short 00945465
+00945485    83C4 04         add esp,4
+00945488    9D              popfd
+00945489    FFD0            call eax                         //  User32.BlockInput
+00945844    B9 B3000000     mov ecx,0B3
+009458CA    8330 4D         xor dword ptr ds:[eax],4D  //ecx=b3,eax=9458f4
+009458CD    40              inc eax
+009458CE  ^ E2 FA           loopd short 009458CA
+//解压下面一段代码
+00945905    FF55 44         call dword ptr ss:[ebp+44]          ; kernel32.LoadLibraryA
+00945941    50              push eax
+00945942    FF55 3C         call dword ptr ss:[ebp+3C]          ; kernel32.GetProcAddress
+009459A1    83C4 04         add esp,4
+009459A4    9D              popfd
+009459A5    FFD0            call eax                 //  User32.BlockInput
+00945D3C    B9 E5000000     mov ecx,0E5
+00945EA6    8330 51         xor dword ptr ds:[eax],51   //ecx=e5,eax=945ee5
+00945EA9    40              inc eax
+00945EAA  ^ E2 FA           loopd short 00945EA6
+//解压下面一段代码
+00945EF5    FF55 44         call dword ptr ss:[ebp+44]          ; kernel32.LoadLibraryA
+00945F53    FF55 3C         call dword ptr ss:[ebp+3C]          ; kernel32.GetProcAddress
+00945FF1    8039 C2         cmp byte ptr ds:[ecx],0C2
+00946001    8039 E9         cmp byte ptr ds:[ecx],0E9
+00946049    8039 CC         cmp byte ptr ds:[ecx],0CC
+00946056    8039 E8         cmp byte ptr ds:[ecx],0E8
+009460C6    8039 58         cmp byte ptr ds:[ecx],58
+00946132    8039 83         cmp byte ptr ds:[ecx],83
+00946192    8039 90         cmp byte ptr ds:[ecx],90
+00946198  ^\0F84 0BFFFFFF   je 009460A9
+0094619E    FFD0            call eax                            ; User32.BlockInput
+0094649C    B9 1E010000     mov ecx,11E
+009464F0    0102            add dword ptr ds:[edx],eax  //ecx=11e,eax=946815
+009464F5    83C2 04         add edx,4
+00946501  ^\E2 ED           loopd short 009464F0
+//解压下面一段代码
+00946613    B9 D6000000     mov ecx,0D6
+00946675    8330 00         xor dword ptr ds:[eax],0   //ecx=0d6,eax=9466b8
+0094667B    40              inc eax
+0094667F  ^\E2 F4           loopd short 00946675
+//解压下面一段代码
+009466C7    64:A1 18000000  mov eax,dword ptr fs:[18]
+009466CD    8B48 30         mov ecx,dword ptr ds:[eax+30]
+009466D5    8B81 B0000000   mov eax,dword ptr ds:[ecx+B0]
+009466DB    83F0 FE         xor eax,FFFFFFFE
+009466E1    C1E0 0E         shl eax,0E
+009466E4    0BC2            or eax,edx
+009466EF    C1E0 08         shl eax,8
+009466F2    0B81 A8000000   or eax,dword ptr ds:[ecx+A8]
+009466FD    C1E0 08         shl eax,8
+00946700    0B81 A4000000   or eax,dword ptr ds:[ecx+A4]
+0094670F    84E4            test ah,ah
+00946711    74 43           je short 00946756
+00946716    80FC 02         cmp ah,2
+00946719    74 5D           je short 00946778
+0094671B   /73 07           jnb short 00946724
+0094671D   |EB 01           jmp short 00946720
+0094671F   |90              nop
+00946720   |72 02           jb short 00946724
+00946722   |90              nop
+00946723   |90              nop
+00946724   \E8 02000000     call 0094672B
+00946729    0F35            sysexit
+0094672B    B8 36110000     mov eax,1136
+00946730    EB 01           jmp short 00946733
+00946732    90              nop
+00946733    E8 03000000     call 0094673B
+00946738    EB 0F           jmp short 00946749
+0094673B    8BD4            mov edx,esp
+00946AC4    B9 15010000     mov ecx,115
+00946B21    0102            add dword ptr ds:[edx],eax  //ecx=115,eax=946fe4
+00946B26    83C2 04         add edx,4
+00946B2D  ^\E2 F2           loopd short 00946B21
+//解压下面一段代码
+00946CB6    B9 19010000     mov ecx,119
+00946E2D    8330 5D         xor dword ptr ds:[eax],5D  //ecx=119,eax=946e68
+00946E30    40              inc eax
+00946E31  ^ E2 FA           loopd short 00946E2D
+//解压下面一段代码
+//进行ZwQueryInformationProcess的检查
+00946EB8  00 5A 77 51 75 65 72 79  .ZwQuery
+00946EC0  49 6E 66 6F 72 6D 61 74  Informat
+00946EC8  69 6F 6E 50 72 6F 63 65  ionProce
+00946ED0  73 73 00 E8 0A 00 00 00  ss.?
+00946ED8  6E 74 64 6C 6C 2E 64 6C  ntdll.dl
+00946EE0  6C 00 50 51 0F CA F7 D2  l.PQ树
+00946F17    FF55 44         call dword ptr ss:[ebp+44]          ; kernel32.LoadLibraryA
+00946F1A    50              push eax
+00946F1B    FF55 3C         call dword ptr ss:[ebp+3C]          ; kernel32.GetProcAddress
+00946F1E    8BF0            mov esi,eax                   ; ntdll.ZwQueryInformationProcess
+0094705E    FFD0            call eax                    1; ntdll.ZwQueryInformationProcess
+00947425    B9 7E010000     mov ecx,17E
+```
