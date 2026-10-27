@@ -1,0 +1,195 @@
+
+# [原创]VB的简单算法――图章制作专家 V4.89的注册算法分析
+
+- **破解作者**：jsliyangsj
+- **作者邮箱**：sjcrack@yahoo.com.cn
+- **使用工具**：`peid`、`OllyDbg1.10`
+- **破解平台**：Winxp
+- **软件名称**：图章制作专家 V4.89
+- **软件地址**：`a69K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4y4^5K9s2y4G2k6Y4c8Q4x3X3g2F1k6h3q4K6k6g2)9J5k6h3&6W2N6q4)9J5c8R3`.`.
+- **编写语言**：VB
+
+说明：上次在网上查找图章制作系统时，看到了它，以为是图章制作系统的升级版本，不同，功能上比图章制作系统好多了，更细化。
+
+VB程序，用常用断点：`__vbaVarTstEq`，来到关键点：
+
+```
+005CA690    > >push ebp
+005CA691    . >mov ebp,esp
+005CA693    . >sub esp,0C
+005CA696    . >push <jmp.&MSVBVM60.\_\_vbaExceptHandler>         ;  入口地址; SE 句柄安装
+005CA69B    . >mov eax,dword ptr fs:[0]
+005CA6A1    . >push eax
+005CA6A2    . >mov dword ptr fs:[0],esp
+005CA6A9    . >sub esp,0C0
+005CA6AF    . >push ebx
+005CA6B0    . >push esi
+005CA6B1    . >push edi
+005CA6B2    . >mov dword ptr ss:[ebp-C],esp
+005CA6B5    . >mov dword ptr ss:[ebp-8],图章制作.00408550
+005CA6BC    . >xor ebx,ebx
+005CA6BE    . >mov dword ptr ss:[ebp-4],ebx
+005CA6C1    . >mov edi,dword ptr ss:[ebp+8]
+005CA6C4    . >push edi
+005CA6C5    . >mov eax,dword ptr ds:[edi]
+005CA6C7    . >call dword ptr ds:[eax+4]
+005CA6CA    . >mov ecx,dword ptr ds:[edi]
+005CA6CC    . >push edi
+005CA6CD    . >mov dword ptr ss:[ebp-18],ebx
+005CA6D0    . >mov dword ptr ss:[ebp-1C],ebx
+005CA6D3    . >mov dword ptr ss:[ebp-20],ebx
+005CA6D6    . >mov dword ptr ss:[ebp-24],ebx
+005CA6D9    . >mov dword ptr ss:[ebp-28],ebx
+005CA6DC    . >mov dword ptr ss:[ebp-2C],ebx
+005CA6DF    . >mov dword ptr ss:[ebp-30],ebx
+005CA6E2    . >mov dword ptr ss:[ebp-34],ebx
+005CA6E5    . >mov dword ptr ss:[ebp-44],ebx
+005CA6E8    . >mov dword ptr ss:[ebp-54],ebx
+005CA6EB    . >mov dword ptr ss:[ebp-64],ebx
+005CA6EE    . >mov dword ptr ss:[ebp-74],ebx
+005CA6F1    . >mov dword ptr ss:[ebp-84],ebx
+005CA6F7    . >mov dword ptr ss:[ebp-94],ebx
+005CA6FD    . >mov dword ptr ss:[ebp-A4],ebx
+005CA703    . >mov dword ptr ss:[ebp-B4],ebx
+005CA709    . >call dword ptr ds:[ecx+B9C]
+005CA70F    . >mov eax,dword ptr ds:[98B1CC]
+005CA714    . >cmp eax,ebx
+005CA716    . >jnz short 图章制作.005CA72D
+005CA718    . >push 图章制作.0098B1CC
+005CA71D    . >push 图章制作.0042CBA0
+005CA722    . >call dword ptr ds:[<&MSVBVM60.\_\_vbaNew2>]       ;  MSVBVM60.\_\_vbaNew2
+005CA728    . >mov eax,dword ptr ds:[98B1CC]
+005CA72D    > >mov edx,dword ptr ds:[eax]
+005CA72F    . >push eax
+005CA730    . >call dword ptr ds:[edx+338]
+005CA736    . >push eax
+005CA737    . >lea eax,dword ptr ss:[ebp-30]
+005CA73A    . >push eax
+005CA73B    . >call dword ptr ds:[<&MSVBVM60.\_\_vbaObjSet>]     ;  MSVBVM60.\_\_vbaObjSet
+005CA741    . >mov esi,eax
+005CA743    . >lea edx,dword ptr ss:[ebp-24]
+005CA746    . >push edx
+005CA747    . >push esi
+005CA748    . >mov ecx,dword ptr ds:[esi]
+005CA74A    . >call dword ptr ds:[ecx+A0]
+005CA750    . >cmp eax,ebx
+005CA752    . >fclex
+005CA754    . >jge short 图章制作.005CA768
+005CA756    . >push 0A0
+005CA75B    . >push 图章制作.0044BF90
+005CA760    . >push esi
+005CA761    . >push eax
+005CA762    . >call dword ptr ds:[<&MSVBVM60.\_\_vbaHresultCheck>;  MSVBVM60.\_\_vbaHresultCheckObj
+005CA768    > >mov eax,dword ptr ss:[ebp-24]                   ;  得到输入码
+005CA76B    . >push eax
+005CA76C    . >call dword ptr ds:[<&MSVBVM60.#521>]            ;  MSVBVM60.rtcLeftTrimBstr
+005CA772    . >mov esi,dword ptr ds:[<&MSVBVM60.\_\_vbaStrMove>] ;  MSVBVM60.\_\_vbaStrMove
+005CA778    . >mov edx,eax
+005CA77A    . >lea ecx,dword ptr ss:[ebp-28]
+005CA77D    . >call esi                                        ;  <&MSVBVM60.\_\_vbaStrMove>
+005CA77F    . >push eax
+005CA780    . >call dword ptr ds:[<&MSVBVM60.#523>]            ;  MSVBVM60.rtcRightTrimBstr
+005CA786    . >mov edx,eax
+005CA788    . >lea ecx,dword ptr ss:[ebp-2C]
+005CA78B    . >call esi                                        ;  <&MSVBVM60.\_\_vbaStrMove>
+005CA78D    . >push eax
+005CA78E    . >call dword ptr ds:[<&MSVBVM60.#581>]            ;  把输入码变成实数！
+005CA794    . >fstp qword ptr ss:[ebp-AC]                      ;  储存用于后面比较
+005CA79A    . >mov dword ptr ss:[ebp-B4],8005
+005CA7A4    . >call 图章制作.00521CF0                          ;  只是得到机器吗的前5位变成实数形式，并转化为16进制数据
+```
+
+进入`005CA7A4`调用`图章制作.00521CF0`：
+
+```
+00522253    . >call dword ptr ds:[<&MSVBVM60.\_\_vba>;  得到部分机器码-前5位机器码
+00522259    . >push eax
+0052225A    . >call dword ptr ds:[<&MSVBVM60.#581>>;  把得到的机器码转化为实数
+00522260    . >call dword ptr ds:[<&MSVBVM60.\_\_vba>;  并把实数转化为16进制数据放在EAX中
+00522266    . >mov dword ptr ss:[ebp-24],eax       ;  把机器吗的前5位的16进制数
+00522269    . >lea ecx,dword ptr ss:[ebp-38]
+0052226C    . >call dword ptr ds:[<&MSVBVM60.\_\_vba>;  MSVBVM60.\_\_vbaFreeStr
+00522272    . >lea edx,dword ptr ss:[ebp-68]
+00522275    . >push edx
+00522276    . >lea eax,dword ptr ss:[ebp-58]
+00522279    . >push eax
+0052227A    . >push 2
+```
+
+返回后继续：
+
+```
+005CA7A9    . >mov ebx,3
+005CA7AE    . >mov dword ptr ss:[ebp-7C],eax                   ;  得到的结果储存
+005CA7B1    . >mov dword ptr ss:[ebp-84],ebx
+005CA7B7    . >call 图章制作.00823300                          ;  又得到机器吗的第6，7两位以16进制出现
+```
+
+进入`005CA7B7`调用`图章制作.00823300`：
+
+```
+008233F9    . >jnz short 图章制作.0082340D
+008233FB    . >mov edi,dword ptr ds:[<&MSVBVM60.\_\_>;  MSVBVM60.\_\_vbaStrCopy
+00823401    . >mov edx,图章制作.0044F248
+00823406    . >lea ecx,dword ptr ss:[ebp-18]
+00823409    . >call edi                            ;  <&MSVBVM60.\_\_vbaStrCopy>
+0082340B    . >jmp short 图章制作.00823413
+0082340D    > >mov edi,dword ptr ds:[<&MSVBVM60.\_\_>;  MSVBVM60.\_\_vbaStrCopy
+00823413    > >call 图章制作.00827BB0
+00823418    . >mov eax,dword ptr ss:[ebp-14]
+0082341B    . >mov ecx,dword ptr ss:[ebp-18]
+0082341E    . >push eax
+0082341F    . >push ecx
+00823420    . >call dword ptr ds:[<&MSVBVM60.\_\_vba>;  组合了成为机器码的第6，7位字符形式
+00823426    . >mov edx,eax
+00823428    . >lea ecx,dword ptr ss:[ebp-20]
+0082342B    . >call esi
+0082342D    . >push eax
+0082342E    . >call dword ptr ds:[<&MSVBVM60.#581>>;  将机器码的字符形式转化为实数形式
+00823434    . >call dword ptr ds:[<&MSVBVM60.\_\_vba>;  再将实数转化为十六进制的2B
+0082343A    . >lea ecx,dword ptr ss:[ebp-20]
+0082343D    . >mov dword ptr ss:[ebp-1C],eax
+00823440    . >call dword ptr ds:[<&MSVBVM60.\_\_vba>;  MSVBVM60.\_\_vbaFreeStr
+00823446    . >mov edx,图章制作.0044BA00
+0082344B    . >lea ecx,dword ptr ss:[ebp-14]
+0082344E    . >call edi
+```
+
+返回后继续：
+
+```
+005CA7BC    . >mov dword ptr ss:[ebp-8C],eax                   ;  得到的结果储存
+005CA7C2    . >mov dword ptr ss:[ebp-94],ebx
+005CA7C8    . >call 图章制作.00820170                         ;  又得到机器吗的前6，7，8，9，10位加上固定制200518198
+```
+
+进入`005CA7C8`调用`图章制作.00820170`：
+
+```
+00820176    . >push <jmp.&MSVBVM60.\_\_vbaExceptHand>;  入口地址; SE 句柄安装
+0082017B    . >mov eax,dword ptr fs:[0]
+00820181    . >push eax
+00820182    . >mov dword ptr fs:[0],esp
+00820189    . >sub esp,48
+0082018C    . >push ebx
+0082018D    . >push esi
+0082018E    . >push edi
+0082018F    . >mov dword ptr ss:[ebp-8],esp
+00820192    . >mov dword ptr ss:[ebp-4],图章制作.0041B>
+00820199    . >xor eax,eax
+0082019B    . >mov dword ptr ss:[ebp-18],eax
+0082019E    . >mov dword ptr ss:[ebp-28],eax
+008201A1    . >mov dword ptr ss:[ebp-38],eax
+008201A4    . >call 图章制作.00827BB0
+008201A9    . >call 图章制作.00821C40                  ;  用于得到固定值200518198的16进制数
+008201AE    . >mov dword ptr ss:[ebp-4C],eax
+008201B1    . >lea eax,dword ptr ss:[ebp-28]
+008201B4    . >push eax
+008201B5    . >push 6
+008201B7    . >lea ecx,dword ptr ss:[ebp-38]
+008201BA    . >push 图章制作.0098B200
+008201BF    . >push ecx
+008201C0    . >mov dword ptr ss:[ebp-20],5
+008201C7    . >mov dword ptr ss:[ebp-28],2
+008201CE    . >call dword ptr ds:[<&MSVBVM60.#632>>;  MSVBVM60.rtcMidCharVar
+```
