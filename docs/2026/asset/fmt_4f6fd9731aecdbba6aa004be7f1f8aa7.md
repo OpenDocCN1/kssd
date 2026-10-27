@@ -1,0 +1,253 @@
+
+```
+//定位目录项的方法(以导出表为例)： 所有操作都在FileBuffer状态下完成
+//1、指向相关内容
+PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)(FileAddress);
+PIMAGE_FILE_HEADER pFileHeader = (PIMAGE_FILE_HEADER)((DWORD)pDosHeader + pDosHeader->e_lfanew + 4);
+PIMAGE_OPTIONAL_HEADER32 pOptionalHeader = (PIMAGE_OPTIONAL_HEADER32)((DWORD)pFileHeader + sizeof(IMAGE_FILE_HEADER));
+//2、获取导出表的地址(目录项的第0个成员)
+DWORD ExportDirectory_RAVAdd = pOptionalHeader->DataDirectory[0].VirtualAddress;
+DWORD ExportDirectory_FOAAdd = 0;
+// (1)、判断导出表是否存在
+if (ExportDirectory_RAVAdd == 0)
+{
+printf("ExportDirectory 不存在!\n");
+return ret;
+}
+// (2)、获取导出表的FOA地址 转换函数看上一章作业提示
+ret = RVA_TO_FOA(FileAddress, ExportDirectory_RAVAdd, &ExportDirectory_FOAAdd);
+if (ret != 0)
+{
+printf("func RVA_TO_FOA() Error!\n");
+return ret;
+}
+//3、指向导出表
+PIMAGE_EXPORT_DIRECTORY ExportDirectory = (PIMAGE_EXPORT_DIRECTORY)((DWORD)FileAddress + ExportDirectory_FOAAdd);
+```
+
+***
+
+## 第二节：IMAGE_EXPORT_DIRECTORY——导出表
+
+> `IMAGE_EXPORT_DIRECTORY`的结构体定义如下:
+
+```
+typedef struct _IMAGE_EXPORT_DIRECTORY {
+DWORD Characteristics; // 未使用，总为0
+DWORD TimeDateStamp; // 文件创建时间戳
+WORD MajorVersion; // 未使用，总为0
+WORD MinorVersion; // 未使用，总为0
+DWORD Name; // **重要 指向一个代表此 DLL名字的 ASCII字符串的 RVA
+DWORD Base; // **重要 函数的起始序号
+DWORD NumberOfFunctions; // **重要 导出函数地址表的个数
+DWORD NumberOfNames; // **重要 以函数名字导出的函数个数
+DWORD AddressOfFunctions; // **重要 导出函数地址表RVA
+DWORD AddressOfNames; // **重要 导出函数名称表RVA
+DWORD AddressOfNameOrdinals; // **重要 导出函数序号表RVA
+} IMAGE_EXPORT_DIRECTORY, *PIMAGE_EXPORT_DIRECTORY;
+```
+
+**导出表简介：在导出表中前四个成员基本没有用，我们就不用去管他，但是剩下的成员都是非常重要的，我们会通过讲解导出表的结构时顺带介绍。现在我们来说说导出表的作用，简单来说导出表就是用来描述模块中的导出函数的结构，导出函数就是将功能的提供给外部使用的函数，如果一个PE文件导出了函数，那么这个函数的信息就会记录PE文件的导出表中，方便外部程序加载该文件进行动态调用。可能有时函数在导出表中只有一个序号而没有名字，也就造成了导出表中有了三个子表的存在，分别是：函数地址表、函数名称表和函数序号表。使得外部程序可以通过函数名称和函数序号两种方式获取该函数的地址。**
+
+```
+//系统中获取函数地址的两种方法：
+HMODULE hModule = LoadLibraryA("User32.dll");
+//1、函数名获取
+DWORD FuncAddress = GetProcAddress(hModule, "MessageBoxA");
+//2、序号获取
+DWORD FuncAddress = GetProcAddress(hModule, 12);
+```
+
+**`AddressOfFunctions`**
+
+这个值是一个4字节的RVA地址，他可以用来定位导出表中所有函数的地址表，这个地址表可以当作一个成员宽度为4的数组进行处理，它的长度由`NumberOfFunctions`进行限定，地址表中的成员也是一个RVA地址，在内存中加上`ImageBase`后才是函数真正的地址。
+
+**`AddressOfNames`**
+
+这个值是一个4字节的RVA地址，他可以用来定位导出表中所有函数的名称表，这个名称表也可以当作一个成员宽度为4的数组进行处理，它的长度由`NumberOfNames`进行限定，名称表的成员也是一个RVA地址，在FIleBuffer状态下需要进行RVA到FOA的转换才能真正找到函数名称。
+
+**`AddressOfNameOrdinals`**
+
+这个值是一个4字节的RVA地址，他可以用来定位导出表中所有函数的序号表，这个序号表可以当作一个成员宽度为2的数组进行处理，它的长度由`NumberOfNames`进行限定，名称表的成员是一个函数序号，该序号用于通过名称获取函数地址。
+
+**`NumberOfFunctions`**
+
+注意，这个值并不是真的函数数量，他是通过函数序号表中最大的序号减去最小的序号再加上一得到的，例如：一共导出了3个函数，序号分别是：0、2、4，`NumberOfFunctions` = 4 - 0 + 1 = 5个。
+
+**导出表结构图：**
+
+![导出表结构图](upload/attach/202002/813468_4Y653N4AWX58ZJY.png)
+
+**通过导出表查找函数地址的两种方法：**
+
+**1、通过函数名查找函数地址：**
+
+![按函数名查找函数地址](upload/attach/202002/813468_Y99MTFNF3KJEU7H.png)
+
+**(1)、首先定位函数名表，然后通过函数名表中的RVA地址定位函数名，通过比对函数名获取目标函数名的在函数名表中的索引。**
+
+**(2)、通过获取函数名表的索引获取函数序号表中对应索引中的函数序号。**
+
+**(3)、通过把该序号当作函数地址表的下标，就可以得到该下标中的函数地址。**
+
+**2、通过函数序号查找函数地址：**
+
+![通过函数序号查找函数地址](upload/attach/202002/813468_K2DSG26BY8VFWKU.png)
+
+**(1)、首先计算函数地址表的索引：index = 目标函数的函数序号 - 导出表的Base。**
+
+**(2)、通过计算出的索引就可以在函数地址表中获取到目标序号的函数地址。**
+
+注：通过序号获取函数地址不需要使用函数名称表和函数序号表就可以直接获取函数地址，实现上相对来说比较方便。
+
+***
+
+## 第三节：导出表小练习
+
+> **1.通过编写控制台程序，打印导出表信息，并打印出函数地址表、函数名表、序号表。**
+
+> **2.写出按名字查找函数地址、按序号查找函数地址相关函数。**
+
+> **3.在PE文件中创建一个新节，然后将导出表的所有信息移动到新节中。最后将文件写入硬盘，并可以正确解析导出表。**
+
+**练习小提示:**
+
+```
+1、
+// 1)定位导出表
+// 2)打印导出表所有信息
+// 3)定位函数地址表，并打印相关信息
+// 4)定位函数序号表，并打印相关信息
+// 5)定位函数名称表，并打印相关信息
+2、可以通过上一节的图片提示编程
+//参考代码声明
+//***********************************************************
+//GetProcAddressByName:按名字查找函数地址
+//参数说明：
+//FileAddress 缓冲区地址
+//pFuncName 要查找的函数名
+//FuncAddressRVA 查找出的函数地址指针
+//返回值说明：
+//成功返回0
+//***********************************************************
+int GetProcAddressByName(PVOID FileAddress, PCHAR pFuncName, PDWORD FuncAddressRVA);
+//***********************************************************
+//GetProcAddressByOrdinal:按序号查找函数地址
+//参数说明：
+//FileAddress 缓冲区地址
+//wFuncOrdinal 要查找的函数序号
+//FuncAddressRVA 查找出的函数地址指针
+//返回值说明：
+//成功返回0
+//***********************************************************
+int GetProcAddressByOrdinal(PVOID FileAddress, WORD wFuncOrdinal, PDWORD FuncAddressRVA);
+3、移动导出表的步骤：
+1）创建一个新节
+2）移动函数地址表到新节区
+3）移动函数序号表
+4）移动函数名称表
+5）将函数名称移动到函数名称表之后，并修正函数名表中的数据
+6）将文件名移动到函数名后
+7）将整个导出表移动到文件名后
+8）修复导出表数据：Name、AddressOfFunctions、AddressOfNames、NumberOfFunctions
+9）修正目录项的RVA地址
+```
+
+***
+
+## 第四节：IMAGE_BASE_RELOCATION——重定位表
+
+> `IMAGE_EXPORT_DIRECTORY`的结构体定义如下:
+
+```
+typedef struct _IMAGE_BASE_RELOCATION {
+DWORD VirtualAddress; 重定位数据所在页的RVA
+DWORD SizeOfBlock; 当前页中重定位数据块的大小
+} IMAGE_BASE_RELOCATION;
+typedef IMAGE_BASE_RELOCATION UNALIGNED * PIMAGE_BASE_RELOCATION;
+```
+
+**重定位表简介：正如我们所知，在程序运行时系统首先会给程序分配一个4GB的虚拟内存空间，低2G空间用于放置EXE文件和DLL文件，高2G空间则是用于取得程序使用(这个空间所有程序共享)。系统随后就会将EXE文件第一个贴入低2G空间占据文件指定的ImageBase，所以EXE文件有时会没有重定位表，因为ImageBase区域大多数情况是可以使用的，也就不需要重定位。贴完EXE文件后接下来就会将大量程序使用的DLL文件贴入虚拟空间，然而这些DLL文件的ImageBase可能会发生冲突，所以有些DLL文件就不会被贴入指定的地址，但是为了让程序正常运行就只能将这些DLL贴入其他的地址。但是在PE文件中很多地址都是被编译器写死固定的(例子在下方代码块)，如果基址改变这些地址就会无法使用，为了避免这样的事情发生就需要修正这些固定的地址，所以就有了重定位表。重定位表就是记录了这些需要修正的地址，在ImageBase发生改变时就会进行修正重定位表。**
+
+修正方法：需要重定位的地址 - 以前的基址 + 当前的基址。
+
+```
+//需要重定位的值013EBC98h和013ED49Ch
+printf("Helloworld %s", "hahaha");
+013E64B2 68 98 BC 3E 01 push offset string "hahaha" (013EBC98h)
+013E64B7 68 9C D4 3E 01 push offset string "Helloworld %s" (013ED49Ch)
+013E64BC E8 A3 AB FF FF call _printf (013E1064h)
+013E64C1 83 C4 08 add esp,8
+```
+
+**`VirtualAddress`**
+
+这个虚拟地址是一组重定位数据的开始RVA地址，只有重定位项的有效数据加上这个值才是重定位数据真正的RVA地址。
+
+**`SizeOfBlock`**
+
+它是当前重定位块的总大小，因为`VirtualAddress`和`SizeOfBlock`都是4字节的，所以(`SizeOfBlock` - 8)才是该块所有重定位项的大小，(`SizeOfBlock` - 8) / 2就是该块所有重定位项的数目。
+
+**`重定位项`**
+
+重定位项在该结构中没有体现出来，他的位置是紧挨着这个结构的，可以把他当作一个数组，宽度为2字节，每一个重定位项分为两个部分：高4位和低12位。高4位表示了重定位数据的类型(0x00没有任何作用仅仅用作数据填充，为了4字节对齐。0x03表示这个数据是重定位数据，需要修正。0x0A出现在64位程序中，也是需要修正的地址)，低12位就是重定位数据相对于`VirtualAddress`的偏移，也就是上面所说的有效数据。之所以是12位，是因为12位的大小足够表示该块中的所有地址(每一个数据块表示一个页中的所有重定位数据，一个页的大小位0x1000)。
+
+**注：如果修改了EXE文件的`ImageBase`，就要手动修复它的重定位表，因为系统会判断程序载入地址和`ImageBase`是否一致，如果一致就不会自动修复重定位表，双击运行时就会报错。**
+
+**重定位表结构：**
+
+![重定位表结构](upload/attach/202002/813468_FEG8VPR64ZZDTBB.png)
+
+**通过重定位表找到需要修正的数据：**
+
+![修复重定位数据](upload/attach/202002/813468_ZCC4225RYQBNRDB.png)
+
+***
+
+## 第五节：重定位表小练习
+
+> **1.通过编写控制台程序，打印出重定位表所有信息以及重定位项，同时找到需要修正的数据。**
+
+> **2.在PE文件中创建一个新节，然后将重定位表的所有信息移动到新节中。最后将文件写入硬盘，并可以正确解析重定位表。**
+
+> **3.改变EXE文件中的`ImageBase`，然后手动修复重定位表，使其能够正常运行。(EXE文件必须包含重定位表，否则会失败)**
+
+**练习小提示:**
+
+> 1、代码比较简单，参考图片可以轻松完成，提供下参考打印格式：
+
+![重定位表参考打印格式](upload/attach/202002/813468_E6QG87TWDNPQCQT.png)
+
+> 2、移动重定位表的步骤：
+
+1）在PE文件中创建一个新节
+2）将重定位表的数据块循环拷贝到新的节区
+3）修复目录项对应的虚拟地址
+
+> 3、修复重定位表的方式：
+
+修复结果 = 需要重定位的数据 - 以前的`ImageBase` + 现在的`ImageBase`;
+
+***
+
+## 第六节：IMAGE_IMPORT_DESCRIPTOR——导入表
+
+> `IMAGE_IMPORT_DESCRIPTOR`——导入表的结构体定义如下:
+
+```
+typedef struct _IMAGE_IMPORT_DESCRIPTOR {
+union {
+DWORD Characteristics;
+DWORD OriginalFirstThunk; //导入名称表(INT)的RVA地址
+} DUMMYUNIONNAME;
+DWORD TimeDateStamp; //时间戳多数情况可忽略 如果是0xFFFFFFFF表示IAT表被绑定为函数地址
+DWORD ForwarderChain;
+DWORD Name; //导入DLL文件名的RVA地址
+DWORD FirstThunk; //导入地址表(IAT)的RVA地址
+} IMAGE_IMPORT_DESCRIPTOR;
+typedef IMAGE_IMPORT_DESCRIPTOR UNALIGNED *PIMAGE_IMPORT_DESCRIPTOR;
+```
+
+**导入表简介：PE文件使用来自于其他DLL的代码或数据是，称作导入(或者输入)。当PE文件装入时，Windows装载器的工作之一就是定位所有被输入的函数和数据，并且让正在被装入的问渐渐可以使用这些地址。这个过程就是通过PE文件的导入表来完成的，导入表中保存的是函数名和其驻留的DLL名等动态链接所需的信息。**
+
+**`OriginalFirstThunk`**

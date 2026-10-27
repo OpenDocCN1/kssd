@@ -1,0 +1,222 @@
+
+这个值是一个4字节的`RVA`地址，这个地址指向了导入名称表（`INT`），`INT`是一个`IMAGE_THUNK_DATA`结构体数组，这个结构体的最后一个成员内容为0时数组结束。这个数组的每一个成员又指向了一个`IMAGE_IMPORT_BY_NAME`结构体，这个结构体包含了两个成员函数序号和函数名，不过这个序号一般没什么用，所以有的编译器会把函数序号置0。函数名可以当作一个以0结尾的字符串。(注：这个表不在目录项中。)
+
+**`Name`**
+
+`DLL`名字的指针，是一个`RVA`地址，指向了一个以0结尾的`ASCII`字符串。
+
+**`FirstThunk`**
+
+这个值是一个4字节的`RVA`地址，这个地址指向了导入地址表（`IAT`），这个`IAT`和`INT`一样，也是一个`IMAGE_THUNK_DATA`结构体数组，不过它在程序载入前和载入后由两种状态，在程序载入前它的结构和内容和`INT`表完全一样，但却是两个不同的表，指向了`IMAGE_IMPORT_BY_NAME`结构体。在程序载入后，他的结构和`INT`表一样，但内容就不一样了，里面存放的都是导入函数的地址。(注：这个表在目录项中，需要注意。)
+
+### `IMAGE_THUNK_DATA`——`INT`、`IAT`的结构体定义如下:
+
+```
+typedef struct _IMAGE_THUNK_DATA32 {
+union {
+DWORD ForwarderString; // PBYTE
+DWORD Function; // PDWORD
+DWORD Ordinal;
+DWORD AddressOfData; // PIMAGE_IMPORT_BY_NAME
+} u1;
+} IMAGE_THUNK_DATA32;
+typedef IMAGE_THUNK_DATA32 * PIMAGE_THUNK_DATA32;
+//注：这个结构体是联合类型的，每一个成员都是4字节，所以为了编程方便，完全可以用一个4字节的数组取代它。
+```
+
+### `IMAGE_IMPORT_BY_NAME`结构体定义如下:
+
+```
+typedef struct _IMAGE_IMPORT_BY_NAME {
+WORD Hint;
+CHAR Name[1];
+} IMAGE_IMPORT_BY_NAME, *PIMAGE_IMPORT_BY_NAME;
+//注：这个结构体由两个成员组成，大致一看它的大小是3个字节，其实它的大小是不固定的，
+// 因为无法判断函数名的长度，所以最后一个成员是一个以0结尾的字符串。
+```
+
+**`EXE`文件载入后`IAT`表的状态：**
+
+![EXE文件载入后IAT表的状态](upload/attach/202002/813468_PQ6TBT9FUVDMYN8.png)
+
+**注：我们随便用`OD`载入一个`EXE`文件，找到一个`Kernel32.DLL`的函数`GetStartupInfoA`，双击这条反汇编看看它的指令，发现`call`的是`0x41D034`中存放的内容，接着我们搜索这个地址发现里面存放了一个函数的地址，而这个函数正好就是`GetStartupInfoA`。于是我们得知在程序载入后，`IAT`表中存放的是函数的地址，而不是一个`RVA`地址。**
+
+**`EXE`文件载入后对应的导入表结构图：**
+
+![载入后导入表结构图](upload/attach/202002/813468_22KSVFBH3EK3PXY.png)
+
+**`EXE`文件载入前`IAT`表的状态：**
+
+![EXE文件载入前IAT表的状态](upload/attach/202002/813468_MM7U2693VDAD6ZP.png)
+
+**注：为了查看`0x41D034`这个地址在程序载入前存放的内容，我们就要将这个地址减去`ImageBase`得到一个`RAV`地址：`0x01D034`，由于这个`PE`文件的`FileAlignment`和`SectionAlignment`是一样的(都是`0x1000`)，用16进制编辑器打开这个文件直接跳转到`0x01D034`这个地址就可以获得里面的内容了。跳转到这个地址后发现里面存储的是一个`RVA`地址，并不是函数地址。我们就进行跳转到`0x23256`这个`RVA`地址，我们就可以发现它指向了`IMAGE_IMPORT_BY_NAME`结构体，这个结构体存储的函数名刚好就是`GetStartupInfoA`。所以我们就可以断定载入前和载入后的`IAT`表是不一样的。**
+
+**`EXE`文件载入前对应的导入表结构图：**
+
+![载入前导入表结构图](upload/attach/202002/813468_5U2236B6FY8V8RZ.png)
+
+## 第七节：导入表小练习
+
+**1.通过编写控制台程序，打印导入表的导入文件名、`INT`表和`IAT`表。**
+
+**2.在`PE`文件中创建一个新节，然后将导入表、`INT`表以及函数名、文件名移动到新节中。最后将文件写入硬盘，并可以执行。(有点难度)**
+
+**练习小提示:**
+
+```
+1、打印流程：
+(1)定位导入表
+(2)打印导入文件名
+(3)遍历INT表，打印出序号和函数名
+(4)遍历IAT表，打印出序号和函数名(不要使用notepad.exe等系统程序练习，等学完绑定导入表后进行修改代码)
+2、移动流程：
+(1)增加新的节区，注意节区的大小等于导入表、INT表和各种名字的总大小，如果觉得计算麻烦可以直接在导入表大小的基础上加上0x5000并对齐。
+(2)将所有的导入表移动到新节
+(3)获取INT表中项目的个数
+(4)将INT表移动到新节,同时移入函数名结构，修正数据。
+(5)将导入文件名移入新节
+(6)依次修复导入表数据信息(OriginalFirstThunk和Name)
+(7)修复目录项中导入表的RVA地址
+注：大家可能注意到我们没有移动IAT表，这是因为IAT表在程序加载后存储的是函数地址。程序通过访问IAT表才能获取函数的地址，如果移动IAT表，程序就无法获取函数地址，要想解决这个问题由两种方法：一是把程序中所有访问IAT表的地方进行修正，事实上目前来说无法实现。二是放弃移动IAT表。
+```
+
+## 第八节：`IMAGE_BOUND_IMPORT_DESCRIPTOR`——绑定导入表
+
+### `IMAGE_BOUND_IMPORT_DESCRIPTOR`的结构体定义如下:
+
+```
+typedef struct _IMAGE_BOUND_IMPORT_DESCRIPTOR {
+DWORD TimeDateStamp; //时间戳
+WORD OffsetModuleName; //DLL名的地址偏移
+WORD NumberOfModuleForwarderRefs; //该结构后IMAGE_BOUND_FORWARDER_REF数组的数量
+// Array of zero or more IMAGE_BOUND_FORWARDER_REF follows
+} IMAGE_BOUND_IMPORT_DESCRIPTOR, *PIMAGE_BOUND_IMPORT_DESCRIPTOR;
+```
+
+**绑定导入表简介：绑定导入是一个文件快速启动的技术，但是只能起到辅助的效果，它的存在只会影响到`PE`文件的加载过程，并不会影响`PE`文件的运行结果，这也就是说把绑定导入的信息从`PE`文件中清除后对这个`PE`文件的运行结果没有任何影响。从导入表部分我们可以知道，`FirstThunk`这个成员指向了`IAT`表，在程序加载时加载器会通过`INT`表来修复`IAT`表，使里面存放上对应函数的地址信息，但是如果导入的函数太多在加载过程中就会使程序启动变慢，绑定导入就是为了减少`IAT`表的修复时间。它会在程序加载前修复`IAT`表，然后在`PE`文件中声明绑定导入的数据信息，让操作系统知道这些事情已经提前完成。这就是绑定导入表的作用。**
+
+**`TimeDateStamp`**
+
+这个时间戳相对来说还是比较重要的，因为这个值只有和导入`DLL`的`IMAGE_FILE_HEADER`中的`TimeDateStamp`值相同才能起到绑定导入的效果，如果不一致加载器就会重新计算`IAT`表中的函数地址。(由于`DLL`文件的版本不同或者`DLL`文件的`ImageBase`被重定位时，`IAT`绑定的函数的地址就会发生变化)
+
+**`OffsetModuleName`**
+
+这个偏移不是`RVA`页不是`FOA`，所以模块名的定位与之前的方法不同，它的定位方式是以第一个`IMAGE_BOUND_IMPORT_DESCRIPTOR`的地址为基址，加上`OffsetModuleName`的值就是模块名所在的地址了，这个模块名是以0结尾的`ASCII`字符串。
+
+**`NumberOfModuleForwarderRefs`**
+
+这个值是在`IMAGE_BOUND_IMPORT_DESCRIPTOR`结构后跟随的`IMAGE_BOUND_FORWARDER_REF`结构的数量。在每一个`IMAGE_BOUND_IMPORT_DESCRIPTOR`结构后都会跟随着大于等于0个`IMAGE_BOUND_FORWARDER_REF`结构，然后在其后面又会跟上绑定表结构体，直至全部用0填充的绑定表结构。
+
+### `IMAGE_BOUND_IMPORT_DESCRIPTOR`的结构体定义如下:
+
+```
+typedef struct _IMAGE_BOUND_FORWARDER_REF {
+DWORD TimeDateStamp; //时间戳
+WORD OffsetModuleName; //DLL名的地址偏移
+WORD Reserved; //保留
+} IMAGE_BOUND_FORWARDER_REF, *PIMAGE_BOUND_FORWARDER_REF;
+//注：
+// 该结构中的成员和绑定导入表的成员含含义一致，所以不再过多叙述。
+// 由于IMAGE_BOUND_IMPORT_DESCRIPTOR和IMAGE_BOUND_FORWARDER_REF的大小结构相同，所以可以相互转型，方便编程。
+```
+
+**绑定导入表结构图：**
+
+![绑定导入表结构图](upload/attach/202002/813468_XZZS5S973BA5ZKU.png)
+
+## 第九节：绑定导入表小练习
+
+**1.通过编写控制台程序，打印绑定导入表的信息。(很多文件没有绑定导入表，需要判断)**
+
+**练习小提示:**
+
+1、代码比较简单，参考图片可以轻松完成，提供下参考打印格式：
+
+![打印绑定导入表](upload/attach/202002/813468_REWPYPFUQYCKUA3.png)
+
+## 第十节：`IMAGE_RESOURCE_DIRECTORY`——资源表
+
+### `IMAGE_RESOURCE_DIRECTORY`的结构体定义如下:(由四种结构体组成)
+
+```
+//资源目录头
+typedef struct _IMAGE_RESOURCE_DIRECTORY {
+DWORD Characteristics; //资源属性 一般为0
+DWORD TimeDateStamp; //资源创建时间戳 一般为0
+WORD MajorVersion;
+WORD MinorVersion;
+WORD NumberOfNamedEntries; //以名称命名的目录项数量 重要
+WORD NumberOfIdEntries; //以ID命名的目录项数量 重要
+// IMAGE_RESOURCE_DIRECTORY_ENTRY DirectoryEntries[];
+} IMAGE_RESOURCE_DIRECTORY, *PIMAGE_RESOURCE_DIRECTORY;
+//资源目录项
+typedef struct _IMAGE_RESOURCE_DIRECTORY_ENTRY {
+union {
+struct {
+DWORD NameOffset:31; //字符串的偏移(不是RVA、FOA，相对特殊)
+DWORD NameIsString:1; //判断名字是否是字符串 1:是 0:不是
+} DUMMYSTRUCTNAME;
+DWORD Name;
+WORD Id; //目录项的ID(在一级目录指资源类型，二级目录指资源编号，三级目录指代码的页号)
+} DUMMYUNIONNAME;
+union {
+DWORD OffsetToData; //如果不是目录，这里指数据的偏移(不是RVA、FOA，相对特殊)
+struct {
+DWORD OffsetToDirectory:31;//目录的偏移(不是RVA、FOA，相对特殊)
+DWORD DataIsDirectory:1; //判断子资源项是否是目录 1:是 0:不是
+} DUMMYSTRUCTNAME2;
+} DUMMYUNIONNAME2;
+} IMAGE_RESOURCE_DIRECTORY_ENTRY, *PIMAGE_RESOURCE_DIRECTORY_ENTRY;
+//数据项
+typedef struct _IMAGE_RESOURCE_DATA_ENTRY {
+DWORD OffsetToData; //数据的偏移 重要
+DWORD Size; //数据的大小 重要
+DWORD CodePage; //代码页(一般为0)
+DWORD Reserved; //保留
+} IMAGE_RESOURCE_DATA_ENTRY, *PIMAGE_RESOURCE_DATA_ENTRY;
+//名字字符串结构
+typedef struct _IMAGE_RESOURCE_DIR_STRING_U {
+WORD Length; //Unicode字符串长度
+WCHAR NameString[ 1 ]; //Unicode字符串
+} IMAGE_RESOURCE_DIR_STRING_U, *PIMAGE_RESOURCE_DIR_STRING_U;
+```
+
+**资源表简介：在`Windows`程序中其各种界面被称作为资源，其中被系统预先定义的资源类型包括：鼠标指针,位图, 图标,菜单,对话框, 字符串列表,字体目录, 字体,加速键,非格式化资源,消息列表,鼠标指针组,图标组,版本信息。当然还有用户自定义的资源类型，这些资源的就不举例了。这些资源都是以二进制的形式保存到`PE`文件中，而保存资源信息的结构就是资源表，它位于目录项的第三位。在`PE`文件的所有结构中，资源表的结构最为复杂，这是因为资源表用类似于文件目录结构的方式进行保存的，从根目录开始，下设一级目录、二级目录和三级目录，三级目录下才是资源文件的信息，而且资源表的结构定位也是最为特殊的，希望重点掌握。**
+
+一级目录是按照资源类型分类的，如位图资源、光标资源、图标资源。
+
+二级目录是按照资源编号分类的，同样是菜单资源，其子目录通过资源`ID`编号分类，例如：`IDM_OPEN`的`ID`号是`2001h`，`IDM_EXIT`的`ID`号是`2002h`等多个菜单编号。
+
+三级目录是按照资源的代码页分类的，即不同语言的代码页对应不同的代码页编号，例如：简体中文代码页编号是`2052`。
+
+三级目录下是节点，也称为资源数据，这是一个`IMAGE_RESOURCE_DATA_ENTRY`的数据结构，里面保存了资源的`RVA`地址、资源的大小，对所有资源数据块的访问都是从这里开始的。
+
+**注：资源表的一级目录、二级目录、三级目录的目录结构是相同的都是由一个资源目录头加上一个资源目录项数组组成的，可以将这个结构称作资源目录结构单元。**
+
+**`IMAGE_RESOURCE_DIRECTORY.NumberOfNamedEntries`和`IMAGE_RESOURCE_DIRECTORY.NumberOfIdEntries`**
+
+在资源目录头结构中这两个字段是最为重要的，其他字段大部分为0。`NumberOfNamedEntries`表示在该资源目录头后跟随的资源目录项中以`IMAGE_RESOURCE_DIR_STRING_U`结构命名的资源目录项数量。`NumberOfIdEntries`表示在该资源目录头后跟随的资源目录项中以`ID`命名的资源目录项数量。两个字段加起来就是本资源目录头后的资源目录项的数量总和。也就是后面`IMAGE_RESOURCE_DIRECTORY_ENTRY`结构的总数量。
+
+**`IMAGE_RESOURCE_DIRECTORY_ENTRY.DUMMYUNIONNAME`**
+
+在资源目录项中该字段是一个联合体类型，大小为4个字节，它决定这个资源目录的名字是字符串还是`ID`号。如果这个字段的最高位是1，则表示该资源的名字是字符串类型，该字段的低31位是`IMAGE_RESOURCE_DIR_STRING_U`结构的偏移，但这个偏移既不是`FOA`也不是`RVA`，它是以首个资源表的地址为基址，加上低31位的值才是字符串结构的地址。如果最高位为0，则表示该资源的名字是一个`ID`号，整个字段的值就是该资源的`ID`。(如果是一级目录的资源项，该`ID`有14个号码被预先定义了)
+
+**一级目录中预定义的资源ID：**
+
+| 资源ID | 含义 || 资源ID | 含义 |
+
+| :-----: | :-----------------------: || :-----: | :-----------------------: |
+
+| 0x01 | 鼠标指针(Cursor) || 0x08 | 字体(Font) |
+
+| 0x02 | 位图(Bitmap) || 0x09 | 加速键(Accelerators) |
+
+| 0x03 | 图标(Icon) || 0x0A | 非格式化资源(Unformatted) |
+
+| 0x04 | 菜单(Menu) || 0x0B | 消息列表(Message Table) |
+
+| 0x05 | 对话框(Dialog) || 0x0C | 鼠标指针组(Group Cursor) |
+
+| 0x06 | 字符串列表(String) || 0x0E | 图标组(Group Icon) |
+
+| 0x07 | 字体目录(Font Directory) || 0x10 | 版本信息(Version Information) |
