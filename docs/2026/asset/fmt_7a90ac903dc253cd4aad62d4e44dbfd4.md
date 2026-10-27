@@ -1,0 +1,172 @@
+
+# [原创]Windows内核逆向-----<中断处理 从硬件机制到用户驱动接管(下)>
+
+## 算是介绍
+
+难免由疏漏，请各位斧正
+
+本文主要描述 `win10_x64` + `IA32-E` 的中断处理流程 从 `I/O APIC` 开始 至调用用户注册的 `ISR` 函数被调用结束 ，分为上下两篇
+
+本章为 下篇 主要逆向 `win10_x64` 对中断的处理过程
+
+会用到的东西：`Win10_x64` + `Windbg` + `IDA` + `Xp` 源代码 + `Intel` 手册
+
+二本 大三 水平有限 还请各位前辈多多指点
+
+## 算是正文
+
+书接上文，在 `CPU` 接收到 `local APIC` 发来的中断请求后，在栈中自动压入必要参数并跳转至中断描述符中所指地址后，`win10_x64` 内核代码开始接管中断处理流程。
+
+从两个方向来分析 `NT` 内核的中断处理:
+
+1) 收到中断后的处理流程
+2) 驱动程序注册 `ISR`（`Interrupt Service Routines`）的过程
+
+### 收到中断后的处理流程
+
+在 `windbg` 中使用 `!idt` 命令 列出相关信息
+
+可以明显看出：
+
+`0-0x15(21)` 号中断 ：用于对 `CPU` 中产生的异常的处理
+
+`22-31(1f)` 号中断 ：未被使用
+
+`31-255` 号中断 ： 由系统自行分配
+
+![图片描述](upload/attach/202111/882390_CW4NUVDY2BNGR6R.png)
+
+以 `0x35` 号向量为例开始分析 使用 `u ffff803801dee38` 指令对 `IDT` 描述符所指中断处理例程进行反汇编，发现其存在明显特征 即在栈中压入其中断向量号 `0x35` 和 `rbp` 寄存器地址后，进行跳转且 下文存在同样结构，在压入 `0x36` 和 `rbp` 后进行跳转，且跳转地址一致，我们猜测 `0x36` 号中断的中断处理例程指向 `push 0x36` 首地址，通过分析证明此猜测正确。
+
+![图片描述](upload/attach/202111/882390_9SF332KDDYAKSK7.png)
+
+![图片描述](upload/attach/202111/882390_NJ2U38TPVW5ZYDQ.png)
+
+![图片描述](upload/attach/202111/882390_SVPJZYGVPQVXWY6.png)
+
+在 `IDA` 中加载内核文件，并重定位基址使其于 `windbg` 中一致，发现大量一致性结构 ，证明 对所有中断处理的第一步 是首先执行 `KiIsrThunkShadow` 中对应的代码，用于在栈中压入对应的中断向量，和保存 `rbp`
+
+![图片描述](upload/attach/202111/882390_GJRVH7PUK88MVGT.png)
+
+开启页表隔离后应为，可以看出少压入了 `rbp`
+
+![图片描述](upload/attach/202111/882390_CY59XCKKUJSTWE5.png)
+
+少压入的 `rbp` 参数会在进入 `KiIsrLinkage` 前被补充，所以页表隔离并不影响中断处理的主要逻辑
+
+![图片描述](upload/attach/202111/882390_Q4WBPN9VA3T938W.png)
+
+分析 `KxIsrLinkageShadow` 函数（开启页表隔离的情况下的中断处理流程）
+
+![图片描述](upload/attach/202111/882390_7DH2BUVS2DS24E5.png)
+
+分析 `KxIsrLinkage` 的主要部分
+
+![图片描述](upload/attach/202111/882390_Z228WKWQDSKZB97.png)
+
+![图片描述](upload/attach/202111/882390_R55U6S76YG9ACG7.png)
+
+![图片描述](upload/attach/202111/882390_TEFKBTRSTZQ5KWD.png)
+
+`_guard_dispatch_icall` 函数用作指令流保护，意在利用编译时产生的 `cfgbitmap`，检测出 被跳转位置是否为合法地址，已阻止 `shellocde` 的执行此处等价于 `jmp rax`
+
+总结上文所述 `NT` 内核 在接管中断后动作如下
+
+1） 在栈中压入中断号
+2） 处理页表隔离
+3） 保存好中断前的线程上下文
+4） 根据中断向量号 在此核心的 `KPCR` 中找到对应的中断对象
+5） 调用中断对象的 `DispatchAddress` 函数
+
+下文开始分析驱动程序注册 `ISR`（`Interrupt Service Routines`）的过程
+
+### 驱动程序注册ISR（Interrupt Service Routines）的过程
+
+中断处理过程的最后调用了 `_KINTERRUPT.DispatchAddress` 中所指函数，通过分析 `ISR` 注册过程得到 `DispatchAddress` 所对应的函数。
+
+`msdn` 中对 `IoConnectInterrupt` 给出的解释：
+
+The `IoConnectInterrupt` routine registers a device driver's InterruptService routine (`ISR`), so that it will be called when a device interrupts on any of a specified set of processors.
+
+```c
+NTSTATUS IoConnectInterrupt(
+[out] PKINTERRUPT *InterruptObject,
+[in] PKSERVICE_ROUTINE ServiceRoutine,
+[in, optional] PVOID ServiceContext,
+[in, optional] PKSPIN_LOCK SpinLock,
+[in] ULONG Vector,
+[in] KIRQL Irql,
+[in] KIRQL SynchronizeIrql,
+[in] KINTERRUPT_MODE InterruptMode,
+[in] BOOLEAN ShareVector,
+[in] KAFFINITY ProcessorEnableMask,
+[in] BOOLEAN FloatingSave
+);
+```
+
+我们只分析四个参数
+
+`[out] InterruptObject` 输出参数，返回被初始化好的中断对象
+
+`[in] ServiceRoutine` 由用户驱动实现的中断响应函数
+
+`[in, optional] ServiceContext` 调用用户中断响应函数时传递的参数
+
+`[in] Vector` 中断响应函数对应的中断向量
+
+`IoConnectInterruptEx` -> `IopConnectInterrupt` -> `KeInitializeInterruptEx`
+
+`KeInitializeInterruptEx` 用于初始化一个中断对象：
+
+![图片描述](upload/attach/202111/882390_EWESWQMNC3NV3DW.png)
+
+`IoConnectInterruptEx` -> `IopConnectInterrupt` -> `KeConnectInterrupt`—>`KiConnectInterrupt`
+
+`KiConnectInterrupt` 用于将一个被初始化好的中断对象插入目标核心的 `KPCR` 中
+
+![图片描述](upload/attach/202111/882390_CEHFFT2EQEP2A7Y.png)
+
+由此得出 `_KINTERRUPT.DispatchAddress` = `KiChainedDispatch`
+
+总结上文：
+
+1）`NT` 内核将用户注册的中断例程抽象为一个中断对象
+2）`NT` 内核将此对象初始化完毕后挂入 `KPCR.InterruptObject`
+3) 在发生中断后调用 `_KINTERRUPT.DispatchAddress` 函数
+
+即 `KiChainedDispatch`
+
+下文开始分析 `KiChainedDispatch`
+
+`KiChainedDispatch` -> `KiScanInterruptObjectList`
+
+-> `KiCallInterruptServiceRoutine`
+
+`KiScanInterruptObjectList` 扫描此 `KPCR` 核心相关联的所有中断对象
+
+![图片描述](upload/attach/202111/882390_WSNMH7HR925FH67.png)
+
+![图片描述](upload/attach/202111/882390_6JQ26JVZJTKURH9.png)
+
+![图片描述](upload/attach/202111/882390_W56H8WP2QYX6FPW.png)
+
+`KiCallInterruptServiceRoutine` 调用由用户注册的 `ISR` 函数
+
+![图片描述](upload/attach/202111/882390_CVK2R8N6VCKHQVW.png)
+
+总结一下上文：
+
+由用户设定的 `ISR` 由 `KeInitializeInterruptEx` 函数写入中断对象中 `_KINTERRUPT.ServiceRoutine` = `isr_callback` // 用户注册的 `isr`
+
+从一个中断到达 `I/O APIC` 至用户注册的 `ISR` 被调用的过程：
+
+1）`I/O APIC`
+2）`local APIC`
+3）`IDT`
+3）`KiIsrThunkShadow`
+4）`KxIsrLinkageShadow`
+5）`KiChainedDispatch`
+6）`KiCallInterruptServiceRoutine`
+7）`_KINTERRUPT.ServiceRoutine`
+
+先写到这里，难免由疏漏，请各位斧正。
