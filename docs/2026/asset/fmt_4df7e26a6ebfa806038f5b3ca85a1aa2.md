@@ -1,0 +1,274 @@
+
+```asm
+0167:0049E0FD 8D4DD4           LEA      ECX,[EBP-2C]
+
+0167:0049E100 FF15B4124000     CALL     `MSVBVM60!\_\_vbaStrMove`
+
+0167:0049E106 8D4DC4           LEA      ECX,[EBP-3C]
+
+0167:0049E109 FF1500134000     CALL     `MSVBVM60!\_\_vbaFreeStr`
+
+0167:0049E10F C745FC08000000   MOV      DWORD [EBP-04],08
+
+0167:0049E116 E927FFFFFF       JMP      0049E042
+
+;第一个循环完
+
+;///////////////////////////////////////////////////////////////////////////
+
+0167:0049E11B C745FC0A000000   MOV      DWORD [EBP-04],0A ;\*\*
+
+0167:0049E122 8B4DD4           MOV      ECX,[EBP-2C] ;上面的运算结果～tempString地址
+
+0167:0049E125 51               PUSH     ECX
+
+0167:0049E126 FF153C104000     CALL     `MSVBVM60!\_\_vbaLenBstr` ;tempString的长度
+
+0167:0049E12C 8945C8           MOV      [EBP-38],EAX ;\*\*
+
+0167:0049E12F C745FC0B000000   MOV      DWORD [EBP-04],0B ;\*\*
+
+0167:0049E136 8B55D4           MOV      EDX,[EBP-2C] ;tempString
+
+0167:0049E139 52               PUSH     EDX
+
+0167:0049E13A FF153C104000     CALL     `MSVBVM60!\_\_vbaLenBstr`
+
+0167:0049E140 898558FFFFFF     MOV      [EBP+FFFFFF58],EAX ;\*\*，tempString长度
+
+0167:0049E146 DB8558FFFFFF     FILD     DWORD [EBP+FFFFFF58] ;浮点指令：装入整数到st(0)
+
+0167:0049E14C DD9D50FFFFFF     FSTP     QWORD [EBP+FFFFFF50] ;浮点指令：保存st(0)到变量，并出栈
+
+0167:0049E152 DD8550FFFFFF     FLD      QWORD [EBP+FFFFFF50] ;浮点指令：装入实数到st(0)
+
+0167:0049E158 833D00004A0000   CMP      DWORD [004A0000],BYTE +00 ;00
+
+0167:0049E15F 7508             JNZ      0049E169
+
+0167:0049E161 DC35E8364000     FDIV     QWORD [004036E8] ;浮点指令：除以一个实数,2
+
+0167:0049E167 EB11             JMP      SHORT 0049E17A
+
+0167:0049E169 FF35EC364000     PUSH     DWORD [004036EC]
+
+0167:0049E16F FF35E8364000     PUSH     DWORD [004036E8]
+
+0167:0049E175 E8DA63F6FF       CALL     `MSVBVM60!\_adj\_fdiv\_m64`
+
+0167:0049E17A DFE0             FNSTSW   AX ;保存状态字到ax
+
+0167:0049E17C A80D             TEST     AL,0D
+
+0167:0049E17E 0F8555030000     JNZ      NEAR 0049E4D9
+
+0167:0049E184 FF1588124000     CALL     `MSVBVM60!\_\_vbaFpI2`
+
+0167:0049E18A 66898570FFFFFF   MOV      [EBP+FFFFFF70],AX ;\*\*tempString的长度的一半
+
+0167:0049E191 66C78574FFFFFF01+MOV      WORD [EBP+FFFFFF74],01 ;\*\*
+
+0167:0049E19A 66C745D80000     MOV      WORD [EBP-28],00 ;\*\*[ebp-28]清零了
+
+0167:0049E1A0 EB15             JMP      SHORT 0049E1B7 ;这里开始作第二个循环
+
+;【算法过程2】依次从tempString中取两位字符，把它们连起来；但？？(请读下去，谢谢)是注册码
+
+;///////////////////////////////////////////////////////////////////////////
+
+0167:0049E1A2 668B45D8         MOV      AX,[EBP-28]
+
+0167:0049E1A6 66038574FFFFFF   ADD      AX,[EBP+FFFFFF74]
+
+0167:0049E1AD 0F802B030000     JO       NEAR 0049E4DE ;溢出转移，玩完
+
+0167:0049E1B3 668945D8         MOV      [EBP-28],AX
+
+0167:0049E1B7 668B4DD8         MOV      CX,[EBP-28] ;从0开始
+
+0167:0049E1BB 663B8D70FFFFFF   CMP      CX,[EBP+FFFFFF70] ;比较
+
+0167:0049E1C2 0F8FA7020000     JG       NEAR 0049E46F ;循环结束则跳
+
+0167:0049E1C8 C745FC0C000000   MOV      DWORD [EBP-04],0C ;\*\*
+
+0167:0049E1CF 0FBF55D8         MOVSX    EDX,WORD [EBP-28] ;//
+
+0167:0049E1D3 85D2             TEST     EDX,EDX
+
+0167:0049E1D5 7570             JNZ      0049E247 ;循环第一次，则不跳
+
+;不是第一次，则跳
+
+;------------------------------------------------------------------------
+
+0167:0049E1D7 C745FC0D000000   MOV      DWORD [EBP-04],0D ;\*\*这个不同
+
+0167:0049E1DE C745BC02000000   MOV      DWORD [EBP-44],02 ;\*\*
+
+0167:0049E1E5 C745B402000000   MOV      DWORD [EBP-4C],02 ;\*\*
+
+0167:0049E1EC 8D45D4           LEA      EAX,[EBP-2C] ;tempString地址
+
+0167:0049E1EF 89459C           MOV      [EBP-64],EAX
+
+0167:0049E1F2 C7459408400000   MOV      DWORD [EBP-6C],4008 ;\*\*
+
+0167:0049E1F9 8D4DB4           LEA      ECX,[EBP-4C] ;tempString地址
+
+0167:0049E1FC 51               PUSH     ECX
+
+0167:0049E1FD 668B55D8         MOV      DX,[EBP-28] ;dx=[EBP-28]中值
+
+0167:0049E201 6683C201         ADD      DX,BYTE +01 ;++dx
+
+0167:0049E205 0F80D3020000     JO       NEAR 0049E4DE ;溢出转移
+
+0167:0049E20B 0FBFC2           MOVSX    EAX,DX ;eax=dx
+
+0167:0049E20E 50               PUSH     EAX
+
+0167:0049E20F 8D4D94           LEA      ECX,[EBP-6C]
+
+0167:0049E212 51               PUSH     ECX
+
+0167:0049E213 8D55A4           LEA      EDX,[EBP-5C]
+
+0167:0049E216 52               PUSH     EDX
+
+0167:0049E217 FF1520114000     CALL     `MSVBVM60!rtcMidCharVar`
+
+0167:0049E21D 8D45A4           LEA      EAX,[EBP-5C]
+
+0167:0049E220 50               PUSH     EAX
+
+0167:0049E221 FF1538104000     CALL     `MSVBVM60!\_\_vbaStrVarMove` ;从tempStr取头两个移到某个位置，返回eax
+
+0167:0049E227 8BD0             MOV      EDX,EAX
+
+0167:0049E229 8D4DCC           LEA      ECX,[EBP-34]
+
+0167:0049E22C FF15B4124000     CALL     `MSVBVM60!\_\_vbaStrMove`
+
+0167:0049E232 8D4DA4           LEA      ECX,[EBP-5C]
+
+0167:0049E235 51               PUSH     ECX
+
+0167:0049E236 8D55B4           LEA      EDX,[EBP-4C]
+
+0167:0049E239 52               PUSH     EDX
+
+0167:0049E23A 6A02             PUSH     BYTE +02
+
+0167:0049E23C FF1548104000     CALL     `MSVBVM60!\_\_vbaFreeVarList`
+
+0167:0049E242 83C40C           ADD      ESP,BYTE +0C
+
+0167:0049E245 EB78             JMP      SHORT 0049E2BF ;是循环第一次
+
+;------------------------------------------------------------------------
+
+；+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++;不是循环第一次，跳在这里
+
+0167:0049E247 C745FC0F000000   MOV      DWORD [EBP-04],0F ;\*\*这个不同
+
+0167:0049E24E C745BC02000000   MOV      DWORD [EBP-44],02 ;\*\*
+
+0167:0049E255 C745B402000000   MOV      DWORD [EBP-4C],02 ;\*\*
+
+0167:0049E25C 8D45D4           LEA      EAX,[EBP-2C] ;tempStr地址
+
+0167:0049E25F 89459C           MOV      [EBP-64],EAX
+
+0167:0049E262 C7459408400000   MOV      DWORD [EBP-6C],4008 ;\*\*
+
+0167:0049E269 8D4DB4           LEA      ECX,[EBP-4C]
+
+0167:0049E26C 51               PUSH     ECX
+
+0167:0049E26D 668B55D8         MOV      DX,[EBP-28]
+
+0167:0049E271 666BD202         IMUL     DX,DX,BYTE +02 ;这里第一次肯定没有
+
+0167:0049E275 0F8063020000     JO       NEAR 0049E4DE
+
+0167:0049E27B 6683C201         ADD      DX,BYTE +01
+
+0167:0049E27F 0F8059020000     JO       NEAR 0049E4DE
+
+0167:0049E285 0FBFC2           MOVSX    EAX,DX
+
+0167:0049E288 50               PUSH     EAX
+
+0167:0049E289 8D4D94           LEA      ECX,[EBP-6C]
+
+0167:0049E28C 51               PUSH     ECX
+
+0167:0049E28D 8D55A4           LEA      EDX,[EBP-5C];0
+
+0167:0049E290 52               PUSH     EDX
+
+0167:0049E291 FF1520114000     CALL     `MSVBVM60!rtcMidCharVar`
+
+0167:0049E297 8D45A4           LEA      EAX,[EBP-5C]
+
+0167:0049E29A 50               PUSH     EAX
+
+0167:0049E29B FF1538104000     CALL     `MSVBVM60!\_\_vbaStrVarMove` ;移动两个字符
+
+0167:0049E2A1 8BD0             MOV      EDX,EAX
+
+0167:0049E2A3 8D4DCC           LEA      ECX,[EBP-34] ;上两个字符
+
+0167:0049E2A6 FF15B4124000     CALL     `MSVBVM60!\_\_vbaStrMove`
+
+0167:0049E2AC 8D4DA4           LEA      ECX,[EBP-5C]
+
+0167:0049E2AF 51               PUSH     ECX
+
+0167:0049E2B0 8D55B4           LEA      EDX,[EBP-4C];2
+
+0167:0049E2B3 52               PUSH     EDX
+
+0167:0049E2B4 6A02             PUSH     BYTE +02
+
+0167:0049E2B6 FF1548104000     CALL     `MSVBVM60!\_\_vbaFreeVarList`
+
+0167:0049E2BC 83C40C           ADD      ESP,BYTE +0C
+
+;++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+;这里就是关键，通过浮点数比较，决定如何处理取出的两个字符：直接转为字符形式？还是取它们(当其为ASCII码)对应的字符？
+
+0167:0049E2BF C745FC11000000   MOV      DWORD [EBP-04],11 ;\*\*
+
+0167:0049E2C6 8B45CC           MOV      EAX,[EBP-34] ;从tempString取出的两个字符
+
+0167:0049E2C9 50               PUSH     EAX
+
+0167:0049E2CA FF1528124000     CALL     `MSVBVM60!\_\_vbaR8Str` ;这两个字符转为数值形式，并入栈
+
+;浮点数入st(0)，10
+
+0167:0049E2D0 DC1D00444000     FCOMP    QWORD [00404400] ;浮点指令：浮点数比较
+
+{DS段:
+
+004043E8   . 0000000000C05E40   DQ FLOAT 123.0000000000000
+
+004043F0   . 0000000000405840   DQ FLOAT 97.00000000000000
+
+004043F8   . 0000000000805640   DQ FLOAT 90.00000000000000
+
+00404400   . 0000000000005040   DQ FLOAT 64.00000000000000
+
+}
+
+0167:0049E2D6 DFE0             FNSTSW   AX ;浮点指令：保存状态字的值到ax
+
+0167:0049E2D8 F6C441           TEST     AH,41
+
+0167:0049E2DB 740C             JZ       0049E2E9 ;☆★
+
+0167:0049E2DD C7854CFFFFFF0100+MOV      DWORD [EBP+FFFFFF4C],01 ;\*\*
+```
