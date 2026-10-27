@@ -1,0 +1,263 @@
+
+# [原创]Crypto API 学习笔记一
+
+微软公司在NT4.0以上版本中提供了一套完整的Crypto API的函数，支持密钥交换，数据加密解密，数字签名，给程序员带来了很大方便，用户在对软件进行保护的时候可以直接利用Crypto API来完成这些工作，比如计算注册码，检查程序的完整性等。
+
+我们在用这些的API进行加密解密的时候，只需要知道如何去应用它们，而不必知道它们的底层实现。如果想知道它们更为详尽的资料，可以查找相关的资料。
+
+对Crypto API只是业余型的感兴趣，想通过写学习笔记，一是让自己记的更牢固些，二是想把自己的学的跟大家探讨一下。写的不好，大家多多原谅。我主要通过MSDN来学习，例子也是完全取自MSDN。
+
+首先，是Crypto API运行的环境。
+
+首先需要`Crypt32.lib`，将它加到`project->setting->link`下面，当然你也可以在程序中用`#pragma comment (lib, "crypt32.lib")`加入。
+
+在程序开头，你要加入两个头文件 `windows.h` 和 `Wincrypt.h`，和一个`#define MY_ENCODING_TYPE  (PKCS_7_ASN_ENCODING | X509_ASN_ENCODING)`
+
+在正式应用API进行一系列的加密解密的时候，需要有一些准备工作，下面是介绍一些在正式开始时所需要了解和做的工作。
+
+## 生成密钥和密钥容器
+
+我们知道，在进行加密解密的时候，我们需要一个密钥进行加密，和一个密钥进行解密，加密密钥和解密密钥可能相同，也可能不同。于是在我们进行加密解密的开始时，我们首先需要有密钥。下面这个程序，完成了三个任务，并且介绍了一些函数的用法。
+
+任务一：获取一个指定的密钥容器，如果这个容器不存在，创建一个。
+
+任务二：如果容器中不存在一个签名密钥对，创建一个
+
+任务三：如果容器中不存在一个交换密钥对，创建一个
+
+下面这段程序使用到了这几个函数
+
+`CryptAcquireContext`
+
+`CryptDestroyKey`
+
+`CryptGenKey`
+
+`CryptGetUserKey`
+
+```c
+// Copyright (c) Microsoft Corporation.  All rights reserved.
+
+#include <stdio.h>
+
+#include <tchar.h>
+
+#include <windows.h>
+
+#include <Wincrypt.h>
+```
+
+```c
+void MyHandleError(LPTSTR psz)
+{
+    _ftprintf(stderr, TEXT("An error occurred in the program. \n"));
+    _ftprintf(stderr, TEXT("%s\n"), psz);
+    _ftprintf(stderr, TEXT("Error number %x.\n"), GetLastError());
+    _ftprintf(stderr, TEXT("Program terminating. \n"));
+    exit(1);
+}
+```
+上面这个函数是一个异常处理函数，当出现错误的时候，出现提示，并推出程序。以后的程序中都有这个函数，以后就会将这个函数的实现省去。现在这个函数的实现在后面。
+
+```c
+void main(void)
+{
+        HCRYPTPROV hCryptProv;   //定义一个CSP模块的句柄。“CSP模块，请查看《加密解密二》222页，那里有简单的说明，这里就不说了。
+        LPCTSTR pszContainerName = TEXT("My Sample Key Container");//用一个TEXT宏定义一个容器的名字，
+    if(CryptAcquireContext(        //这个函数是获取有某个容器的CSP模块的指针，成功返回TRUE。
+        &hCryptProv,            //指向一个CSP模块句柄指针，里面用指定的容器
+        pszContainerName,       //指定容器的名称
+     NULL,                //这个参数这里用的是缺省值，指得是缺省得CSP模块，你也可以传入一个LPCTSTR类型的字符串，指定CSP模块
+        PROV_RSA_FULL,      //确定密钥的类型
+        0))                    //常设为0，还有些其他的类型，请看MSDN
+    {
+        _tprintf(
+            TEXT("A crypto context with the %s key container ")
+            TEXT("has been acquired.\n"),
+            pszContainerName);
+    }
+    else
+    {
+        //不成功的处理段
+        if(GetLastError() == NTE_BAD_KEYSET)     // NTE_BAD_KEYSET意味着密钥
+//容器不存在，下面就去创建一个
+//新的密钥容器
+        {
+            if(CryptAcquireContext(
+                &hCryptProv,
+                pszContainerName,
+                NULL,
+                PROV_RSA_FULL,
+                CRYPT_NEWKEYSET))           // CRYPT_NEWKEYSET意味着当指定容器不存在的时候，去创建一个容器。
+            {
+                _tprintf(TEXT("A new key container has been ")
+                    TEXT("created.\n"));
+            }
+            else
+            {
+                MyHandleError(TEXT("Could not create a new key ")
+                    TEXT("container.\n"));
+            }
+        }
+        else
+        {
+            MyHandleError(TEXT("CryptAcquireContext failed.\n"));
+        }
+    }
+
+    HCRYPTKEY hKey;                            //创建一个密钥句柄
+    if(CryptGetUserKey(                           // CryptGetUserKey是获取一个密钥//句柄的函数，成功返回TRUE
+        hCryptProv,                               //指定容器的CSP模块句柄
+        AT_SIGNATURE,                         //指定私钥的类型
+        &hKey))                                //原来接收获取的密钥句柄
+    {
+        _tprintf(TEXT("A signature key is available.\n"));
+    }
+    else
+    {
+        _tprintf(TEXT("No signature key is available.\n"));
+        if(GetLastError() == NTE_NO_KEY)              // NTE_NO_KEY意味着密钥不存在，下面就生成一个密钥
+        {
+            _tprintf(TEXT("The signature key does not exist.\n"));
+            _tprintf(TEXT("Create a signature key pair.\n"));
+            if(CryptGenKey(                          // CryptGenKey生成一个密钥
+                hCryptProv,                          //指定CSP模块的句柄
+                AT_SIGNATURE,                    //对于公钥密码系统，生成一个私钥和一个公钥，这个参数指定了这个密钥是公钥，于是生成了一个密码对。如果不是公钥系统，则指定了密码算法，具体看MSDN。
+                0,                                 //指定了生成密钥的类型，这个参数的说明挺多的，想获取更为详尽的资料请看MSDN。
+                &hKey))
+            {
+                _tprintf(TEXT("Created a signature key pair.\n"));
+            }
+            else
+            {
+                MyHandleError(TEXT("Error occurred creating a ")
+                    TEXT("signature key.\n"));
+            }
+        }
+        else
+        {
+            MyHandleError(TEXT("An error other than NTE_NO_KEY ")
+                TEXT("getting a signature key.\n"));
+        }
+    } // End if.
+
+    _tprintf(TEXT("A signature key pair existed, or one was ")
+        TEXT("created.\n\n"));
+        if(hKey)                              //将密钥句柄销毁
+    {
+        if(!(CryptDestroyKey(hKey)))
+        {
+            MyHandleError(TEXT("Error during CryptDestroyKey."));
+        }
+        hKey = NULL;
+    }
+
+    下面这部分和上面是类似的，只不过密钥类型不相同而已。
+    if(CryptGetUserKey(
+        hCryptProv,
+        AT_KEYEXCHANGE,
+        &hKey))
+    {
+        _tprintf(TEXT("An exchange key exists.\n"));
+    }
+    else
+    {
+        _tprintf(TEXT("No exchange key is available.\n"));
+        // Check to determine whether an exchange key
+        // needs to be created.
+        if(GetLastError() == NTE_NO_KEY)
+        {
+            // Create a key exchange key pair.
+            _tprintf(TEXT("The exchange key does not exist.\n"));
+            _tprintf(TEXT("Attempting to create an exchange key ")
+                TEXT("pair.\n"));
+            if(CryptGenKey(
+                hCryptProv,
+                AT_KEYEXCHANGE,
+                0,
+                &hKey))
+            {
+                _tprintf(TEXT("Exchange key pair created.\n"));
+            }
+            else
+            {
+                MyHandleError(TEXT("Error occurred attempting to ")
+                    TEXT("create an exchange key.\n"));
+            }
+        }
+        else
+        {
+            MyHandleError(TEXT("An error other than NTE_NO_KEY ")
+                TEXT("occurred.\n"));
+        }
+    }
+
+    // Destroy the exchange key.
+    if(hKey)
+    {
+        if(!(CryptDestroyKey(hKey)))
+        {
+            MyHandleError(TEXT("Error during CryptDestroyKey."));
+        }
+        hKey = NULL;
+    }
+
+    // Release the CSP.
+    if(hCryptProv)
+    {
+        if(!(CryptReleaseContext(hCryptProv, 0)))
+        {
+            MyHandleError(TEXT("Error during CryptReleaseContext."));
+        }
+    }
+
+    _tprintf(TEXT("Everything is okay. A signature key "));
+    _tprintf(TEXT("pair and an exchange key exist in "));
+    _tprintf(TEXT("the %s key container.\n"), pszContainerName);
+} // End main.
+```
+
+下面我们再通过一个程序，用几种不同的方法，将`CryptAcquireContext`和其他的API函数联系起来，看看它们是如何与一个CSP和容器工作的。这个程序演示了以下内容和几个函数。
+
+一． 用`CryptAcquireContext`获取一个缺省容器的缺省CSP的句柄。如果缺省容器不存在，用`CryptAcquireContext`创建一个。
+
+二． 用`CryptGetProvParam`获取CSP和容器的信息。
+
+三． 用`CryptContextAddRef`增加CSP的引用计数器的数值。
+
+四． 用`CryptAcquireContext`创建一个指定的容器
+
+五． 用`CryptAcquireContext`删除一个容器
+
+六． 用一个新创建的容器获取一个CSP的句柄。
+
+```c
+#include <stdio.h>
+#include <tchar.h>
+#include <windows.h>
+#include <Wincrypt.h>
+```
+
+异常处理函数省略
+
+```c
+void main(void)
+{
+    HCRYPTPROV hCryptProv;                            //定义CSP句柄
+    if(CryptAcquireContext(
+        &hCryptProv,
+        NULL,                                           //缺省容器
+        NULL,                                           //缺省CSP
+        PROV_RSA_FULL,
+        0))
+    {
+        _tprintf(TEXT("CryptAcquireContext succeeded.\n"));
+    }
+    else
+    {
+        if (GetLastError() == NTE_BAD_KEYSET)               //同样，如果当不存在这样的容器的时候，创建一个
+        {
+            if(CryptAcquireContext(
+                &hCryptProv,
+                NULL,
+```
