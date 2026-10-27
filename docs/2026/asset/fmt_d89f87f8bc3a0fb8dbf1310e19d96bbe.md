@@ -1,0 +1,512 @@
+
+```
+.686
+
+.model flat,stdcall
+
+option casemap:none
+
+include 		windows.inc
+include 		kernel32.inc
+includelib 	kernel32.lib
+include 		user32.inc
+includelib 	user32.lib
+include		comdlg32.inc
+includelib	comdlg32.lib
+include 		Shell32.inc
+includelib 	Shell32.lib
+
+IDD_DIALOG         equ                      100
+IDC_RICHEDIT       equ                      1006
+IDC_EDIT_NAME      equ  	                 1001
+ID_OK              equ                      1008
+ID_DEL             equ 							  1009				
+IDC_EDIT_SIZE		 equ							  1010
+
+_OpenFile          proto      
+
+		.data
+hInstancd 		dd ?
+hWinMain			dd ?
+hRichHandle 	dd ?
+lpMem				dd ?
+dwFileSize  	dd ?
+hMapFile			dd ?
+hFile				dd ?
+szFileName  	db MAX_PATH dup(?)
+
+		.const
+szMsg				db '节名称，取前8个字符',0
+szMsg2			db	'添加时填入节尺寸，删除时填入节编号',0
+szDllName		db	'RichEd20.dll',0
+szFilter			db 'PE Files',0,'*.exe;*.dll;*.scr;*.fon;*.drv',0
+szErrOpen		db '打开文件失败',0
+szErrMap			db '创建文件映射失败',0
+szErrView		db	'创建文件视图失败',0
+szErrPE			db	'不是PE文件',01
+szFmtSection	db	'%-4d  %-8s  %08X  %08X  %08X  %08X  %08X',0dh,0ah,0
+szMsgSection	db	'----------------------------------------------------------------',0dh,0ah
+					db	'序号  节区名称  节区大小  虚拟地址  Raw_尺寸  Raw_偏移  节区属性',0dh,0ah
+					db	'----------------------------------------------------------------',0dh,0ah,0
+
+		.code
+
+_AppendInfo	proc	_lpsz
+		local	@stCR:CHARRANGE
+		pushad
+		invoke	GetWindowTextLength,hRichHandle
+		mov	@stCR.cpMin,eax
+		mov	@stCR.cpMax,eax
+		invoke	SendMessage,hRichHandle,EM_EXSETSEL,0,addr @stCR
+		invoke	SendMessage,hRichHandle,EM_REPLACESEL,FALSE,_lpsz
+		popad
+		ret
+_AppendInfo	endp
+
+;计算对齐
+_Align proc uses edx dwSize,dwAlign
+	mov eax,dwSize
+	xor edx,edx
+	div dwAlign
+	test edx,edx	
+	jz @f	
+	inc eax
+@@:
+	mul dwAlign
+	ret
+_Align endp
+
+;删除Section
+;参数:dwNo Section序号
+_DelSection proc dwNo
+	local @dwDataSize,@dwSNum,@dwWriteSize,@dwMemAlign
+	local @hMap,@lpMem
+	mov esi,lpMem
+	add esi,[esi+3CH]
+	assume esi:ptr IMAGE_NT_HEADERS
+	push [esi].OptionalHeader.SectionAlignment
+	pop @dwMemAlign
+;Section序号是否正确
+	movzx ecx,[esi].FileHeader.NumberOfSections
+	dec ecx
+	mov @dwSNum,ecx
+	cmp ecx,dwNo
+	jb Err	
+	invoke CreateFileMapping,INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,dwFileSize,NULL
+	cmp eax,NULL
+	je Err
+	mov @hMap,eax
+	invoke MapViewOfFile,@hMap,FILE_MAP_WRITE,0,0,0
+	cmp eax,NULL
+	je Err
+;拷贝文件头
+	mov @lpMem,eax
+	add si,[esi].FileHeader.SizeOfOptionalHeader
+	add esi,sizeof IMAGE_FILE_HEADER
+	add esi,4
+	mov ecx,esi
+	sub ecx,lpMem
+	mov esi,lpMem
+	mov edi,@lpMem
+	rep movsb
+	assume esi:ptr IMAGE_SECTION_HEADER
+	assume edi:ptr IMAGE_SECTION_HEADER
+	xor edx,edx
+	mov @dwDataSize,edx
+	mov @dwWriteSize,edx	
+;循环拷贝Section,和Section节数据 要删除的跳过。
+loopsec:
+	cmp edx,dwNo
+	je delsec
+;拷贝Section
+	mov ecx,sizeof IMAGE_SECTION_HEADER	
+	rep movsb
+;修正Section PointerOfRawData
+	mov eax,@dwDataSize
+	sub [edi-40].PointerToRawData,eax
+;拷贝节区数据
+	push esi
+	push edi
+	mov eax,[esi-40].PointerToRawData
+	mov ecx,[esi-40].SizeOfRawData
+	mov esi,lpMem
+	add esi,eax
+	mov edi,@lpMem
+	add edi,eax
+	sub edi,@dwDataSize
+	rep movsb	
+	pop edi
+	pop esi
+	jmp nextSection
+delsec:
+	push [esi].SizeOfRawData
+	pop @dwDataSize
+;清除相关的DATA_DIRECTORY数据
+	push edi
+	mov edi,@lpMem
+	add edi,DWORD ptr [edi+3CH]
+	assume edi:ptr IMAGE_NT_HEADERS
+	add edi,4
+	add edi,sizeof IMAGE_FILE_HEADER
+	add edi,60H
+	assume edi:ptr IMAGE_DATA_DIRECTORY
+	mov ecx,16
+loopDD:
+	mov eax,[esi].VirtualAddress 
+	cmp eax,[edi].VirtualAddress
+	jne @f
+	mov [edi].VirtualAddress,0
+	mov [edi].isize,0
+@@:
+	add edi,sizeof IMAGE_DATA_DIRECTORY
+	loop loopDD	
+	assume edi:nothing
+	pop edi
+;删除的是最后一个Section
+	cmp edx,@dwSNum
+	jne secmid
+	push edi
+	mov edi,@lpMem
+	add edi,DWORD ptr [edi+3CH]
+	assume edi:ptr IMAGE_NT_HEADERS
+	invoke _Align,[esi].Misc.VirtualSize,@dwMemAlign
+	sub [edi].OptionalHeader.SizeOfImage,eax	
+	pop edi
+	assume edi:ptr IMAGE_SECTION_HEADER
+	jmp nextSection
+;删除的是中间的Section,修正上一个Section虚拟大小,需要计算对齐
+secmid:
+	mov eax,[esi].Misc.VirtualSize
+	invoke _Align,eax,@dwMemAlign
+	add [edi-40].Misc.VirtualSize,eax
+	add esi,sizeof IMAGE_SECTION_HEADER
+nextSection:
+	inc edx
+	cmp edx,@dwSNum
+	jle loopsec	
+;修正NT_HEADER  NumberOfSections，复制绑定输入
+	mov edi,@lpMem
+	add edi,DWORD ptr[edi+3CH]
+	assume edi:ptr IMAGE_NT_HEADERS
+	dec [edi].FileHeader.NumberOfSections
+	mov ecx,[edi].OptionalHeader.DataDirectory[88].isize
+	test ecx,ecx
+	jz @f
+	mov edx,[edi].OptionalHeader.DataDirectory[88].VirtualAddress
+	mov ebx,edx
+	sub ebx,sizeof IMAGE_SECTION_HEADER
+	mov [edi].OptionalHeader.DataDirectory[88].VirtualAddress,ebx
+	movzx eax,[edi].FileHeader.NumberOfSections	
+	add di,[edi].FileHeader.SizeOfOptionalHeader
+	add edi,sizeof IMAGE_FILE_HEADER
+	add edi,4
+	imul eax,40
+	add edi,eax
+	mov esi,lpMem
+	add esi,edx
+	rep movsb	
+;更新文件
+@@:
+	invoke UnmapViewOfFile,lpMem
+	invoke CloseHandle,hMapFile	
+	invoke WriteFile,hFile,@lpMem,dwFileSize,addr @dwWriteSize,NULL
+	mov ecx,dwFileSize
+	sub ecx,@dwDataSize
+	invoke SetFilePointer,hFile,ecx,NULL,FILE_BEGIN
+	invoke SetEndOfFile,hFile
+	invoke CloseHandle,hFile		
+	invoke UnmapViewOfFile,@lpMem
+	invoke CloseHandle,@hMap	
+	invoke _OpenFile
+Err:
+	ret	
+_DelSection endp
+
+;添加Section
+_AddSection proc scName,dwSize
+	local @dwSNum,@dwHeadSize,@dwDataSize,@dwSizeOfHeader,@dwWriteSize,@dwBindSize,@dwBindAdd
+	local @dwFileAlign,@dwMemAlign
+	local @lpMem,@hMap
+	lea eax,dwSize
+	mov esi,lpMem
+	assume esi:ptr IMAGE_DOS_HEADER	
+	add esi,[esi].e_lfanew
+	assume esi:ptr IMAGE_NT_HEADERS
+	push [esi].OptionalHeader.FileAlignment
+	pop  @dwFileAlign
+	push [esi].OptionalHeader.SectionAlignment
+	pop	 @dwMemAlign
+	push [esi].OptionalHeader.SizeOfHeaders
+	pop  @dwSizeOfHeader
+	movzx ecx,[esi].FileHeader.NumberOfSections
+	mov @dwSNum,ecx
+	push DWORD ptr[esi+0D4H]
+	pop @dwBindSize
+	push DWORD ptr[esi+0D0H]
+	pop  @dwBindAdd
+;计算PE头剩余空间，最后一个Section  到第一个节数据直接的空间，包括绑定输入数据的尺寸
+	add si,[esi].FileHeader.SizeOfOptionalHeader
+	add esi,4
+	add esi,sizeof IMAGE_FILE_HEADER
+	assume esi:ptr IMAGE_SECTION_HEADER
+	mov eax,[esi].PointerToRawData
+	add eax,lpMem
+	@@:
+	add esi,sizeof IMAGE_SECTION_HEADER
+	loop @b
+	mov ebx,esi
+	add ebx,@dwBindSize
+	sub eax,ebx
+	cmp eax,sizeof IMAGE_SECTION_HEADER
+	mov @dwHeadSize,0
+	ja @f
+;计算PE头需要添加的尺寸
+	push @dwFileAlign
+	pop	 @dwHeadSize
+	@@:
+;计算文件尾需要添加的尺寸
+	invoke _Align,dwSize,@dwFileAlign
+	mov @dwDataSize,eax
+;创建新内存映射对象，尺寸为原文件大小加扩充大小
+	mov ecx,dwFileSize
+	add ecx,@dwHeadSize
+	add ecx,@dwDataSize
+	invoke CreateFileMapping,INVALID_HANDLE_VALUE,NULL,PAGE_READWRITE,0,ecx,NULL
+	test eax,eax
+	jz errMap
+	mov @hMap,eax
+	invoke MapViewOfFile,eax,FILE_MAP_WRITE,0,0,0
+	test eax,eax
+	jz errView
+	mov @lpMem,eax
+;拷贝PE头
+	mov esi,lpMem
+	mov edi,@lpMem
+	mov ecx,@dwSizeOfHeader
+	rep movsb
+;拷贝节区数据
+	add edi,@dwHeadSize
+	mov ecx,dwFileSize
+	sub ecx,@dwSizeOfHeader
+	rep movsb	
+;修正新映像文件头
+	mov esi,@lpMem
+	assume esi:ptr IMAGE_DOS_HEADER
+	add esi,[esi].e_lfanew
+	assume esi:ptr IMAGE_NT_HEADERS
+	;如果有绑定表修正
+	mov ecx,@dwBindSize
+	test ecx,ecx
+	jz @f
+	mov eax,sizeof IMAGE_SECTION_HEADER
+	add DWORD ptr[esi+0D0H],eax
+	;节数目修正	
+	@@:
+	inc [esi].FileHeader.NumberOfSections	
+	;PE头大小修正
+	mov ecx,@dwSizeOfHeader
+	add ecx,@dwHeadSize
+	mov [esi].OptionalHeader.SizeOfHeaders,ecx
+	;PE映像大小修正
+	invoke _Align,dwSize,@dwMemAlign
+	add [esi].OptionalHeader.SizeOfImage,eax
+	;定位第一个Section
+	add si,[esi].FileHeader.SizeOfOptionalHeader
+	add esi,4
+	add esi,sizeof IMAGE_FILE_HEADER
+	assume esi:ptr IMAGE_SECTION_HEADER
+;循环修正所有Section数值 PointerOfRawData;
+	mov ecx,@dwSNum
+	mov edx,@dwHeadSize
+	@@:	
+	add [esi].PointerToRawData,edx	
+	add esi,40
+	loop @b	
+;添加新Section
+	mov ecx,[esi-40].VirtualAddress
+	add ecx,[esi-40].Misc.VirtualSize
+	invoke _Align,ecx,@dwMemAlign
+	mov [esi].VirtualAddress,eax
+	mov eax,dwSize	
+	mov [esi].Misc.VirtualSize,eax	
+	mov ecx,[esi-40].PointerToRawData
+	add ecx,[esi-40].SizeOfRawData
+	mov [esi].PointerToRawData,ecx
+	push @dwDataSize
+	pop [esi].SizeOfRawData
+	mov [esi].Characteristics,0E0000060H
+	lea edi,[esi].Name1
+	mov esi,scName
+	mov ecx,8
+	rep movsb
+;复制绑定表数据
+	mov ecx,@dwBindSize
+	test ecx,ecx
+	jz @f
+	mov edi,@lpMem
+	add edi,@dwBindAdd
+	add edi,40
+	mov esi,lpMem
+	add esi,@dwBindAdd
+	mov ecx,@dwBindSize
+	rep movsb		
+;更新文件
+@@:
+	invoke UnmapViewOfFile,lpMem
+	invoke CloseHandle,hMapFile	
+	mov ecx,dwFileSize
+	add ecx,@dwHeadSize
+	add ecx,@dwDataSize	
+	invoke WriteFile,hFile,@lpMem,ecx,addr @dwWriteSize,NULL	
+	invoke CloseHandle,hFile		
+	invoke UnmapViewOfFile,@lpMem
+	invoke CloseHandle,@hMap	
+	invoke _OpenFile
+	ret	
+errMap:
+	invoke MessageBox,NULL,offset szErrMap,offset szErrMap,MB_OK
+	ret
+errView:
+	invoke MessageBox,NULL,offset szErrView,offset szErrView,MB_OK	
+	ret
+_AddSection endp
+
+;显示Section 信息
+_PESectionInfo proc
+	local @szBuf[1024]:byte
+	mov esi,lpMem
+	add esi,DWORD ptr [esi+3CH]
+	assume esi:ptr IMAGE_NT_HEADERS
+	movzx ecx,[esi].FileHeader.NumberOfSections
+	add si,WORD ptr [esi].FileHeader.SizeOfOptionalHeader
+	add esi,4
+	add esi,sizeof IMAGE_FILE_HEADER
+	assume esi:ptr IMAGE_SECTION_HEADER
+	invoke _AppendInfo,offset szMsgSection
+	cld
+	xor ebx,ebx
+;循环显示SECTION
+@@:	
+	push ecx
+	invoke wsprintf,addr @szBuf,offset szFmtSection,ebx,addr [esi].Name1,[esi].Misc.VirtualSize,[esi].VirtualAddress,[esi].SizeOfRawData,[esi].PointerToRawData,[esi].Characteristics
+	invoke _AppendInfo,addr @szBuf
+	add esi,sizeof IMAGE_SECTION_HEADER
+	pop ecx
+	inc ebx
+	loop @b	
+	ret
+_PESectionInfo endp
+
+;获取文件名
+_OpenFile proc
+	invoke CreateFile,offset szFileName,GENERIC_READ or GENERIC_WRITE,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL
+	cmp	eax,INVALID_HANDLE_VALUE
+	je	ErrOpen	
+	mov hFile,eax
+	invoke GetFileSize,eax,0
+	mov dwFileSize,eax
+	invoke CreateFileMapping,hFile,NULL,PAGE_READONLY,0,0,NULL
+	cmp eax,NULL
+	je 	ErrMap
+	mov hMapFile,eax
+	invoke MapViewOfFile,eax,FILE_MAP_READ,0,0,0
+	cmp eax,NULL	
+	je	ErrView
+;判断是否为pe文件	
+	mov lpMem,eax
+	; cmp word ptr [eax],5A4DH
+	cmp word ptr [eax],"ZM"
+	jne ErrPe
+	add eax,[eax+03CH]
+	; cmp word ptr [eax],4550H
+	cmp word ptr [eax],"EP"
+	jne ErrPe
+	invoke _PESectionInfo
+	ret
+ErrOpen:
+	lea eax,offset szErrOpen
+	invoke CloseHandle,hFile
+	jmp @f
+ErrMap:
+	lea eax,offset szErrMap	
+	invoke CloseHandle,hMapFile
+	jmp @f
+ErrView:
+	lea eax,offset szErrView
+	invoke UnmapViewOfFile,lpMem	
+	jmp @f	
+ErrPe:
+	mov eax,offset szErrPE	
+	jmp @f	
+@@:
+	invoke SendMessage,hWinMain,WM_SETTEXT,NULL,eax	
+	ret
+_OpenFile endp
+
+_DlgProc proc hWnd,wMsg,wParam,lParam	
+	local @szNameBuf[8]:BYTE
+	mov eax,wMsg
+	cmp eax,WM_CLOSE
+	je  wmclose
+	cmp eax,WM_INITDIALOG
+	je 	wminit
+	cmp eax,WM_COMMAND
+	je 	wmcommand
+	cmp eax,WM_DROPFILES
+	je  wmdrop
+	xor eax,eax
+	jmp finish	
+wminit:
+	push hWnd
+	pop  hWinMain
+	invoke SetDlgItemText,hWnd,IDC_EDIT_NAME,offset szMsg
+	invoke SetDlgItemText,hWnd,IDC_EDIT_SIZE,offset szMsg2
+	invoke GetDlgItem,hWnd,IDC_RICHEDIT
+	mov hRichHandle, eax
+	jmp process
+wmcommand:
+	mov eax,wParam	
+	cmp ax,ID_OK
+	jne @f
+	lea edi,@szNameBuf
+	xor eax,eax
+	mov ecx,8
+	rep stosb 
+	invoke GetDlgItemText,hWnd,IDC_EDIT_NAME,addr @szNameBuf,8
+	invoke GetDlgItemInt,hWnd,IDC_EDIT_SIZE,NULL,FALSE
+	test eax,eax
+	jz	 process
+	invoke _AddSection,addr @szNameBuf,eax	
+	jmp process
+	wmdrop:
+	invoke DragQueryFile,wParam,0,offset szFileName,MAX_PATH
+	invoke SendMessage,hWnd,WM_SETTEXT,NULL,offset szFileName
+	invoke _OpenFile
+	jmp process
+@@:	
+	cmp ax,ID_DEL
+	jne @f
+	invoke GetDlgItemInt,hWnd,IDC_EDIT_SIZE,NULL,FALSE
+	cmp lpMem,0
+	jz process
+	invoke _DelSection,eax	
+	jmp process	
+@@:	
+	jmp finish
+wmclose:
+	invoke EndDialog,hWnd,0
+process:
+	mov eax,1
+finish:
+	ret
+_DlgProc endp
+
+start:
+	invoke LoadLibrary,offset szDllName
+	mov hRichHandle,eax
+	invoke GetModuleHandle,NULL
+	mov hInstancd,eax
+	invoke DialogBoxParam,hInstancd,IDD_DIALOG,NULL,offset _DlgProc,NULL	
+	invoke	ExitProcess,NULL		
+	end start
+```
