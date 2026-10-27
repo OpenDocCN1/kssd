@@ -1,0 +1,162 @@
+
+# [原创]win7下自己写未公开的内核函数`KiAttachProcess`
+
+#ifndef `HOOKKEATTCH`
+
+#define `HOOKKEATTCH`
+
+#define `PAGEDCODE` code_seg("PAGE")
+
+#define `LOCKEDCODE` code_seg()
+
+#define `INITCODE` code_seg("INIT")
+
+#define `PAGEDDATA` data_seg("PAGE")
+
+#define `LOCKEDDATA` data_seg()
+
+#define `INITDATA` data_seg("INIT")
+
+int `HookKeAttachProcessAddr`;
+int `KiAttachProcessAddr`;
+int `KiMoveApcState1`;
+int `KiInSwapSingleProcess1`;
+int `HvlLongSpinCountMask1`;
+int `HvlEnlightenments1`;
+int `HvlNotifyLongSpinWait1`;
+int `KiSwapProcess1`;
+int `imp_KfLowerIrql1`;
+
+__declspec(naked) `NTSTATUS` `MyKiAttachProcess`()
+{
+        if(`PanDuanProcessName`("DNF.exe")||`PanDuanProcessName`("TenSafe.exe"))
+        {
+                __asm
+                {
+                                mov     edi,edi
+                                push    ebp
+                                mov     ebp,esp
+                                push    ebx
+                                mov     ebx,dword ptr [ebp+8]
+                                push    esi
+                                mov     esi,eax
+                                mov     eax,dword ptr [ebp+10h]
+                                push    edi
+                                lea     edi,[esi+40h]
+                                push    edi
+                                call    `KiMoveApcState1` //(84290959)  1
+                                mov     ecx,dword ptr [ebp+10h]
+                                mov     dword ptr [edi+4],edi
+                                mov     dword ptr [edi],edi
+                                lea     eax,[esi+48h]
+                                mov     dword ptr [eax+4],eax
+                                mov     dword ptr [eax],eax
+                                lea     eax,[esi+170h]
+                                mov     byte ptr [esi+54h],0
+                                mov     byte ptr [esi+55h],0
+                                mov     byte ptr [esi+56h],0
+                                cmp     ecx,eax
+                                jne                `KiAttachProcess52`// nt!`KiAttachProcess`+0x52 (842908c5)
+`KiAttachProcess3f`:
+                                mov     dword ptr [esi+168h],eax
+                                mov     dword ptr [esi+16Ch],edi
+                                mov     byte ptr [esi+134h],1
+`KiAttachProcess52`:
+                                push    8
+                                pop     eax
+                                lea     edx,[ebx+74h]
+                                lock xadd dword ptr [edx],eax
+                                mov     dword ptr [ebp+8],eax
+                                mov     eax,dword ptr [ebp+8]
+                                test    al,7
+                                jne     `KiAttachProcess76`//`KiAttachProcess`+0x76 (842908e9)
+`KiAttachProcess66`:
+                                mov     dword ptr [esi+50h],ebx
+                                xor     eax,eax
+                                add     esi,60h
+                                lock and dword ptr [esi],eax
+                                push    dword ptr [ecx+10h]
+                                jmp     `KiAttachProcesscb`//nt!`KiAttachProcess`+0xcb (8429093e)
+`KiAttachProcess76`:
+                                lea     edi,[esi+60h]
+                                xor     eax,eax
+                                mov     ecx,edi
+                                lock and dword ptr [ecx],eax
+                                mov     eax,ebx
+                                call    `KiInSwapSingleProcess1`        //2
+                                and     dword ptr [ebp+8],0
+                                jmp     `KiAttachProcessb4`//nt!`KiAttachProcess`+0xb4 (84290927)
+`KiAttachProcess8d`:
+                                inc     dword ptr [ebp+8]
+                                mov     eax,dword ptr [ebp+8]
+                                test    dword ptr [`HvlLongSpinCountMask1`],eax//dword ptr [nt!`HvlLongSpinCountMask` (84376bc4)],eax   3
+                                jne     `KiAttachProcessac`//nt!`KiAttachProcess`+0xac (8429091f)
+`KiAttachProcess9b`:
+                                test    byte ptr [`HvlEnlightenments1`],40h //byte ptr [nt!`HvlEnlightenments` (84376bbc)],40h   4
+                                je      `KiAttachProcessac`//nt!`KiAttachProcess`+0xac (8429091f)
+`KiAttachProcessa4`:
+                                push    eax
+                                call    `HvlNotifyLongSpinWait1`              //5
+                                jmp     `KiAttachProcessae`//nt!`KiAttachProcess`+0xae (84290921)
+`KiAttachProcessac`:
+                                pause
+`KiAttachProcessae`:
+                                mov     eax,dword ptr [edi]
+                                test    eax,eax
+                                jne     `KiAttachProcess8d` //nt!`KiAttachProcess`+0x8d (84290900)
+`KiAttachProcessb4`:
+                                xor     eax,eax
+                                mov     ecx,edi
+                                inc     eax
+                                xchg    eax,dword ptr [ecx]
+                                test    eax,eax
+                                jne     `KiAttachProcess8d`//nt!`KiAttachProcess`+0x8d (84290900)
+`KiAttachProcessbf`:
+                                mov     dword ptr [esi+50h],ebx
+                                lock and dword ptr [edi],eax
+                                mov     eax,dword ptr [ebp+10h]
+                                push    dword ptr [eax+10h]
+`KiAttachProcesscb`:
+                                push    ebx
+                                call    `KiSwapProcess1`
+                                mov     cl,byte ptr [ebp+0Ch]
+                                call    dword ptr [`imp_KfLowerIrql1`]//dword ptr [nt!`_imp_KfLowerIrql` (8420e158)]   7
+                                pop     edi
+                                pop     esi
+                                pop     ebx
+                                pop     ebp
+                                   ret     0Ch
+                }
+        }
+        __asm jmp `KiAttachProcessAddr`
+}
+
+`VOID` `HookKeAttchProcess`()
+{
+//        `KeAttachProcessAddr`=GetFunCtionAddr(L"KeAttachProcess");
+        `KiAttachProcessAddr`=GetKiAttachProcessAddr();
+        `DbgPrint`("KiAttachProcessAddr=%x\n",`KiAttachProcessAddr`);
+        char `code1`[2]={(char)0x57,(char)0xe8};
+        int `addr`=SearchFeature(`KiAttachProcessAddr`,`code1`,2);
+        `KiMoveApcState1`=GetCallAddr(`addr`);                                                        //1
+        char `code2`[2]={(char)0xc3,(char)0xe8};
+        `addr`=SearchFeature(`KiAttachProcessAddr`,`code2`,2);
+        `KiInSwapSingleProcess1`=GetCallAddr(`addr`);                                                        //2
+        char `code3`[2]={(char)0x8,(char)0x05};
+        `addr`=SearchFeature(`KiAttachProcessAddr`,`code3`,2);
+        `HvlLongSpinCountMask1`=GetCallAddr(`addr`);                                                        //3
+        char `code4`[2]={(char)0xf6,(char)0x05};
+        `addr`=SearchFeature(`KiAttachProcessAddr`,`code4`,2);
+        `HvlEnlightenments1`=GetCallAddr(`addr`);                                //4
+        char `code5`[2]={(char)0x50,(char)0xe8};
+        `addr`=SearchFeature(`KiAttachProcessAddr`,`code5`,2);
+        `HvlNotifyLongSpinWait1`=GetCallAddr(`addr`);                                //5
+        char `code6`[2]={(char)0x53,(char)0xe8};
+        `addr`=SearchFeature(`KiAttachProcessAddr`,`code6`,2);
+        `KiSwapProcess1` =GetCallAddr(`addr`);                                //6
+        char `code7`[2]={(char)0xff,(char)0x15};
+        `addr`=SearchFeature(`KiAttachProcessAddr`,`code7`,2);
+        `imp_KfLowerIrql1`=GetCallAddr(`addr`);                                //7
+        char `myway`[6]={(char)0x8b,(char)0xc6,(char)0xff,(char)0x75,(char)0x08,(char)0xe8};
+        int        `nCallAddr`=SearchFeature(GetFunCtionAddr(L"KeAttachProcess"),`myway`,6);
+        `HookKeAttachProcessAddr`=`nCallAddr`;

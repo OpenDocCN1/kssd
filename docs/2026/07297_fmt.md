@@ -1,0 +1,191 @@
+
+# [原创]ZwQuerySystemInformation函数在驱动中的用法
+
+最近研究驱动 因为要枚举出内核模块 所以要用到`ZwQuerySystemInformation`函数 网上对这个函数的介绍也是比较多的 但是有一些错误 这里我详细的介绍一下 转帖请注明作者和网站
+
+`ZwQuerySystemInformation`是一个未公开的函数 所以必须定义他 定义如下
+
+```extern "C" NTKERNELAPI  NTSTATUS ZwQuerySystemInformation( IN ULONG SystemInformationClass, IN OUT PVOID SystemInformation, IN ULONG SystemInformationLength, OUT PULONG ReturnLength OPTIONAL );```
+
+网上有些文章并没有 使用`extern "C"`来修饰 可能是由于我编译器的问题 如果我不加`extern "C"` 编译器会报错  如果有同学在定义这个函数的时候报错 可以加上`extern "C"` 试试
+
+`ZwQuerySystemInformation`一共有四个参数 第一个参数是一个结构 其定义如下
+
+```typedef enum _SYSTEM_INFORMATION_CLASS   //   Q S
+
+{
+
+	SystemBasicInformation,           // 00 Y N
+
+	SystemProcessorInformation,         // 01 Y N
+
+	SystemPerformanceInformation,       // 02 Y N
+
+	SystemTimeOfDayInformation,         // 03 Y N
+
+	SystemNotImplemented1,           // 04 Y N
+
+	SystemProcessesAndThreadsInformation, // 05 Y N
+
+	SystemCallCounts,               // 06 Y N
+
+	SystemConfigurationInformation,     // 07 Y N
+
+	SystemProcessorTimes,             // 08 Y N
+
+	SystemGlobalFlag,               // 09 Y Y
+
+	SystemNotImplemented2,           // 10 Y N
+
+	SystemModuleInformation,           // 11 Y N
+
+	SystemLockInformation,           // 12 Y N
+
+	SystemNotImplemented3,           // 13 Y N
+
+	SystemNotImplemented4,           // 14 Y N
+
+	SystemNotImplemented5,           // 15 Y N
+
+	SystemHandleInformation,           // 16 Y N
+
+	SystemObjectInformation,           // 17 Y N
+
+	SystemPagefileInformation,         // 18 Y N
+
+	SystemInstructionEmulationCounts,     // 19 Y N
+
+	SystemInvalidInfoClass1,           // 20
+
+	SystemCacheInformation,           // 21 Y Y
+
+	SystemPoolTagInformation,         // 22 Y N
+
+	SystemProcessorStatistics,         // 23 Y N
+
+	SystemDpcInformation,             // 24 Y Y
+
+	SystemNotImplemented6,           // 25 Y N
+
+	SystemLoadImage,               // 26 N Y
+
+	SystemUnloadImage,               // 27 N Y
+
+	SystemTimeAdjustment,             // 28 Y Y
+
+	SystemNotImplemented7,           // 29 Y N
+
+	SystemNotImplemented8,           // 30 Y N
+
+	SystemNotImplemented9,           // 31 Y N
+
+	SystemCrashDumpInformation,         // 32 Y N
+
+	SystemExceptionInformation,         // 33 Y N
+
+	SystemCrashDumpStateInformation,     // 34 Y Y/N
+
+	SystemKernelDebuggerInformation,     // 35 Y N
+
+	SystemContextSwitchInformation,     // 36 Y N
+
+	SystemRegistryQuotaInformation,     // 37 Y Y
+
+	SystemLoadAndCallImage,           // 38 N Y
+
+	SystemPrioritySeparation,         // 39 N Y
+
+	SystemNotImplemented10,           // 40 Y N
+
+	SystemNotImplemented11,           // 41 Y N
+
+	SystemInvalidInfoClass2,           // 42
+
+	SystemInvalidInfoClass3,           // 43
+
+	SystemTimeZoneInformation,         // 44 Y N
+
+	SystemLookasideInformation,         // 45 Y N
+
+	SystemSetTimeSlipEvent,           // 46 N Y
+
+	SystemCreateSession,             // 47 N Y
+
+	SystemDeleteSession,             // 48 N Y
+
+	SystemInvalidInfoClass4,           // 49
+
+	SystemRangeStartInformation,       // 50 Y N
+
+	SystemVerifierInformation,         // 51 Y Y
+
+	SystemAddVerifier,               // 52 N Y
+
+	SystemSessionProcessesInformation     // 53 Y N
+
+} SYSTEM_INFORMATION_CLASS;```
+
+第二个参数与第一个参数是有关联的 如果第一个参数是`SystemModuleInformation` 那么第二个参数的结构就是
+
+```typedef struct _SYSTEM_MODULE_INFORMATION {
+
+ULONG Count;
+
+SYSTEM_MODULE_INFORMATION_ENTRY Module[1];
+
+} SYSTEM_MODULE_INFORMATION, *PSYSTEM_MODULE_INFORMATION;```
+
+而`SYSTEM_MODULE_INFORMATION_ENTRY`的结构如下
+
+```typedef struct _SYSTEM_MODULE_INFORMATION_ENTRY {
+
+HANDLE Section;
+
+PVOID MappedBase;
+
+PVOID Base;
+
+ULONG Size;
+
+ULONG Flags;
+
+USHORT LoadOrderIndex;
+
+USHORT InitOrderIndex;
+
+USHORT LoadCount;
+
+USHORT PathLength;
+
+CHAR ImageName[256];
+
+} SYSTEM_MODULE_INFORMATION_ENTRY, *PSYSTEM_MODULE_INFORMATION_ENTRY;```
+
+由于结构太多我不一一列举 详细可以百度 或者查询MSDN
+
+这个参数是我要重点提醒的 第二个参数必须是非分页内存 如果你定义一个变量 比如 `PVOID pBuffer = NULL;` 这样 你加载驱动运行函数的时候就会蓝屏 这时候`ZwQuerySystemInformation` 会返回一个 错误 错误代码是`0XC0000005`
+
+这个是关于`NTSTATUS`代码的详细介绍 `088K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3#2K6k6r3&6Q4x3X3g2E0K9h3y4J5L8%4y4G2k6Y4c8Q4x3X3g2U0L8$3#2Q4x3V1k6W2L8W2)9J5k6s2g2K6i4K6u0r3L8r3W2T1M7X3q4J5P5g2)9J5c8X3y4U0y4K6l9@1y4e0R3^5i4K6t1^5N6W2)9K6c8s2m8J5L8%4c8Q4x3X3f1I4x3q4)9J5z5g2)9J5k6h3q4K6M7s2R3`.
+
+由于英文水平比较低所以我不清楚错误代码`0XC0000005`的真正意思 我个人翻译是 无法有效的写入 希望有大牛能正确的翻译一下
+
+所以 当我们申请这个第三个参数的变量的时候要这样做
+
+`PVOID pBuffer = NULL;` //第二个参数
+`ULONG cbBuffer = 0x8000;` //第三个参数
+`pBuffer = ExAllocatePool (NonPagedPool, cbBuffer);`// //开辟非分页内存
+
+第三个参数是输入缓冲区的长度 一般是用一个循环来确认其长度
+
+第四个参数是函数调用后返回所需缓冲区的长度 如果我们不想用循环来确认长度 那么我们可以先调用`ZwQuerySystemInformation` 把第二参数设置为`NULL` 把第三个参数设置为`0` 调用成功后 会返回所需缓冲区的长度 代码如下
+
+`PULONG retureSize=0;` //缓冲区所需的长度
+`ZwQuerySystemInformation(SystemModuleInformation, NULL, 0, ULONG retureSize; );`
+
+对于分页内存和非分页内存的介绍可以参考这个 `3c8K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3y4F1j5X3I4G2k6%4y4Q4x3X3g2U0L8$3#2Q4x3V1k6U0K9r3q4F1j5$3S2S2N6#2)9J5c8X3q4J5j5$3S2A6N6X3g2Q4x3V1j5J5x3o6p5I4i4K6u0r3x3o6W2Q4x3V1j5J5x3W2)9J5c8U0t1I4z5o6f1K6z5e0q4Q4x3X3g2Z5N6r3#2D9`
+
+这是小弟第一次在看雪发帖 希望日后多多指教 文中有错误或者要补充的部分 希望大牛能指出
+
+SIZE
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
