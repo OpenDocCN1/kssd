@@ -1,0 +1,174 @@
+
+```
+  00494BA7    |. /0F84 DC0>je      <HideHelp.loc_494C89>
+
+  00494BAD    |. |8D55 84  lea     edx, [local.31]
+
+  00494BB0    |. |8BC3     mov     eax, ebx
+
+  00494BB2    |. |E8 99B9F>call    <HideHelp.Dialogs::TOpenDialog::GetFileName(void)>
+
+  00494BB7    |. |8B45 84  mov     eax, [local.31]
+
+  00494BBA    |. |8D55 A4  lea     edx, [local.23]
+
+  00494BBD    |. |E8 72F1F>call    <HideHelp.sub_483D34>                                       ;  读第一行：UserName....
+
+  00494BC2    |. |837D A4 >cmp     [local.23], 0
+
+  00494BC6    |. |0F84 D70>je      <HideHelp.loc_494CA3>                                       ;  失败跳走
+
+  00494BCC    |. |8D55 80  lea     edx, [local.32]
+
+  00494BCF    |. |8BC3     mov     eax, ebx
+
+  00494BD1    |. |E8 7AB9F>call    <HideHelp.Dialogs::TOpenDialog::GetFileName(void)>
+
+  00494BD6    |. |8B45 80  mov     eax, [local.32]
+
+  00494BD9    |. |8D55 A0  lea     edx, [local.24]
+
+  00494BDC    |. |E8 FBF1F>call    <HideHelp.sub_483DDC>
+
+  00494BE1    |. |8D55 F8  lea     edx, [local.2]
+
+  00494BE4    |. |8B45 A0  mov     eax, [local.24]                                             ;  读第二行：LicNum....
+
+  00494BE7    |. |E8 6071F>call    <HideHelp.ConvertBase64to256(AnsiString,AnsiString &)>      ;  将用户名Base64解码
+
+  00494BEC    |. |8D55 B8  lea     edx, [local.18]  
+
+  00494BEF    |. |8B45 DC  mov     eax, [local.9]                                              ;  转换第一个长串为十进制大数
+
+  00494BF2    |. |E8 4975F>call    <HideHelp.FGInt_Base10StringToFGInt>
+
+  00494BF7    |. |8D55 B0  lea     edx, [local.20]
+
+  00494BFA    |. |8B45 C0  mov     eax, [local.16]                                             ;  转换第二个长串为十进制大数
+
+  00494BFD    |. |E8 3E75F>call    <HideHelp.FGInt_Base10StringToFGInt>
+
+  00494C02    |. |8D45 A8  lea     eax, [local.22]
+
+  00494C05    |. |50       push    eax
+
+  00494C06    |. |8D45 A8  lea     eax, [local.22]
+
+  00494C09    |. |50       push    eax
+
+  00494C0A    |. |8D45 A8  lea     eax, [local.22]
+
+  00494C0D    |. |50       push    eax
+
+  00494C0E    |. |8D45 A8  lea     eax, [local.22]
+
+  00494C11    |. |50       push    eax
+
+  00494C12    |. |8D45 FC  lea     eax, [local.1]
+
+  00494C15    |. |50       push    eax
+
+  00494C16    |. |8D4D B0  lea     ecx, [local.20]                                             ;  第二个大数N
+
+  00494C19    |. |8D55 B8  lea     edx, [local.18]                                             ;  第一个大数D
+
+  00494C1C    |. |8B45 F8  mov     eax, [local.2]                                              ;  编码后的LicNum
+
+  00494C1F    |. |E8 B89BF>call    <HideHelp.RSADecrypt(AnsiString,TFGInt &,TFGInt &,TFGInt &,>;  RSA解密函数
+
+  00494C24    |. |8D55 FC  lea     edx, [local.1]
+
+  00494C27    |. |8B45 FC  mov     eax, [local.1]
+
+  00494C2A    |. |E8 1D71F>call    <HideHelp.ConvertBase64to256(AnsiString,AnsiString &)>      ;  解密结果Base64解码
+
+  00494C2F    |. |8D8D 7CF>lea     ecx, [local.33]
+
+  00494C35    |. |8BD6     mov     edx, esi
+
+  00494C37    |. |8B45 FC  mov     eax, [local.1]
+
+  00494C3A    |. |E8 B9EFF>call    <HideHelp.subN_111111_Decrypt>                              ;自定义函数解密LicNum
+
+  00494C3F    |. |8B95 7CF>mov     edx, [local.33]
+
+  00494C45    |. |8D45 FC  lea     eax, [local.1]
+
+  00494C48    |. |E8 23FBF>call    <HideHelp.System::__linkproc__ LStrLAsg(void *,void *)>
+
+  00494C4D    |. |8D85 78F>lea     eax, [local.34]
+
+  00494C53    |. |E8 D4E8F>call    <HideHelp.ReadHardWare>                                     ;  读硬盘指纹,并生成机器码。
+
+  00494C58    |. |8B85 78F>mov     eax, [local.34]                                             ;  (初始 cpu 选择)
+
+  00494C5E    |. |8B55 FC  mov     edx, [local.1]
+
+  00494C61    |. |E8 9200F>call    <HideHelp.System::__linkproc__ LStrPos(void)>               ; 关键比较，如果成功则保存许可文件路径到Config.ini
+
+  00494C66    |. |85C0     test    eax, eax
+
+  00494C68    |. |74 1F    je      short <HideHelp.loc_494C89>
+
+  00494C6A    |. |8D95 74F>lea     edx, [local.35]
+
+  00494C70    |. |8BC3     mov     eax, ebx
+
+  00494C72    |. |E8 D9B8F>call    <HideHelp.Dialogs::TOpenDialog::GetFileName(void)>
+
+  00494C77    |. |8B95 74F>mov     edx, [local.35]
+
+  00494C7D    |. |33C9     xor     ecx, ecx
+
+  00494C7F    |. |B8 18544>mov     eax, <HideHelp.aFilepath_0>                                 ;  filepath
+
+  00494C84    |. |E8 D7F7F>call    <HideHelp.sub_484460>
+
+  00494C89 <H>|> \8B87 A00>mov     eax, dword ptr ds:[edi+3A0]                                 ;  loc_494C89
+
+  00494C8F    |.  8A50 38  mov     dl, byte ptr ds:[eax+38]
+
+  00494C92    |.  A1 B4AE4>mov     eax, dword ptr ds:[<dword_49AEB4>]
+
+  00494C97    |.  E8 F4F4F>call    <HideHelp.sub_484190>                                       ;  界面更新
+
+  00494C9C    |.  8BC3     mov     eax, ebx
+
+  00494C9E    |.  E8 A5ECF>call    <HideHelp.System::TObject::Free(void)>
+
+  00494CA3 <H>|>  33C0     xor     eax, eax                                                    ;  loc_494CA3
+
+  00494CA5    |.  5A       pop     edx
+
+  00494CA6    |.  59       pop     ecx
+
+  00494CA7    |.  59       pop     ecx
+
+  00494CA8    |.  64:8910  mov     dword ptr fs:[eax], edx
+
+  00494CAB    |.  68 0D4D4>push    <HideHelp.loc_494D0D>
+```
+
+OK到此，导入许可证文件的过程的主线基本分析完成
+
+### 关键点
+
+1、`Base64`解码，然后再用他自己的解密过程处理，长串被还原成两个十进制数串 `D`，`N`。
+
+2、程序读入`Lic`文件中的用户名与序列号，对序列号进行`Base64`解码生成 `M`。
+
+3、调用`RSADecrypt`函数 参数为 `M`，`D`，`N` 对`M`解密。
+
+4、对解密后的`M`进行`Base64`解码 后成 `M1`。
+
+5、程序读硬盘序列号，生成机器码。
+
+6、比较：`M1`字串中是否包含机器码，如果是，则将`Lic`文件的路径写进`config.ini`的`filepath`字段中。
+
+导入是导入了，那么程序是不是在启动的时候还会验证呢，答案是肯定的，不然怎么限制我们使用呢 :)
+
+怎样才能快速在程序的启动验证过程中下断呢？通过上面的分析，估计上面的部分函数肯定还会被调用，那么就在`RSA`的关键解密函数的入口 `0x0047E7DC` 上下断。
+
+`Ctrl+F2`重启软件，这时会提示一些断点被禁用，`Yes` 。在`OEP`处下断，运行程序，`OEP`处断下后 `VLT+B`，打开`0x0047E7DC` 的断点。`F9`运行，软件一会就被断下来了。哈哈，我们分析的一点没错：
+
+### 三：分析启动验证流程
