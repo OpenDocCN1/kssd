@@ -1,0 +1,304 @@
+
+# [原创]反调试技巧总结-原理和实现(1)(2)(3)(4)(5)(6)......
+
+# 反调试技巧总结-原理和实现
+
+-------------------------------------------------------------------------------------------------------
+
+2008.8.7  shellwolf
+
+## 一、 前言
+
+前段学习反调试和vc，写了`antidebug-tester`，经常会收到`message`希望交流或索要实现代码，我都没有回复。其实代码已经在编程版提供了1个版本，另其多是`vc`内嵌`asm`写的，对`cracker`而言，只要反下就知道了。我想代码其实意义不是很大，重要的是理解和运用。
+
+做个简单的总结，说明下实现原理和实现方法。也算回复了那些给我发`Message`的朋友。
+
+部分代码和参考资料来源：
+
+1、<<脱壳的艺术>> hawking
+
+2、<<windows anti-debugger reference>> Angeljyt
+
+3、http://bbs.pediy.com
+
+4、<<软件加密技术内幕>> 看雪学院
+
+5、<<ANTI-UNPACKER TRICKS>> Peter Ferrie
+
+我将反调试技巧按行为分为两大类，一类为检测，另一类为攻击，每类中按操作对象又分了五个小类：
+
+1、 通用调试器     包括所有调试器的通用检测方法
+
+2、 特定调试器     包括`OD`、`IDA`等调试器，也包括相关插件，也包括虚拟环境
+
+3、 断点           包括内存断点、普通断点、硬件断点检测
+
+4、 单步和跟踪     主要针对单步跟踪调试
+
+5、 补丁           包括文件补丁和内存补丁
+
+### 反调试函数前缀
+
+检测        攻击
+
+通用调试器     `FD\_`        `AD\_`
+
+特定调试器     `FS\_`        `AS\_`
+
+断点           `FB\_`        `AB\_`
+
+单步和跟踪     `FT\_`        `AT\_`
+
+补丁           `FP\_`        `AP\_`
+
+声明：
+
+1、本文多数都是摘录和翻译，我只是重新组合并翻译，不会有人告侵权吧。里面多是按自己的理解来说明，可能有理解错误，或有更好的实现方法，希望大家帮忙指出错误。
+
+2、我并没有总结完全，上面的部分分类目前还只有很少的函数甚至空白，等待大家和我一起来完善和补充。我坚信如果有扎实的基础知识，丰富的想像力，灵活的运用，就会创造出更多的属于自己的反调试。而最强的反调试，通常都是自己创造的，而不是来自别人的代码。
+
+## 二、 查找-通用调试器(`FD\_`)
+
+函数列表如下，后面会依次说明，需事先说明的是，这些反调试手段多数已家喻户晓，目前有效的不多，多数已可以通过`OD`的插件顺利通过，如果你想验证它们的有效性，请关闭`OD`的所有反反调试插件：
+
+`bool FD\_IsDebuggerPresent();`
+
+`bool FD\_PEB\_BeingDebuggedFlag();`
+
+`bool FD\_PEB\_NtGlobalFlags();`
+
+`bool FD\_Heap\_HeapFlags();`
+
+`bool FD\_Heap\_ForceFlags();`
+
+`bool FD\_Heap\_Tail();`
+
+`bool FD\_CheckRemoteDebuggerPresent();`
+
+`bool FD\_NtQueryInfoProc\_DbgPort();`
+
+`bool FD\_NtQueryInfoProc\_DbgObjHandle();`
+
+`bool FD\_NtQueryInfoProc\_DbgFlags();`
+
+`bool FD\_NtQueryInfoProc\_SysKrlDbgInfo();`
+
+`bool FD\_SeDebugPrivilege();`
+
+`bool FD\_Parent\_Process();`
+
+`bool FD\_DebugObject\_NtQueryObject();`
+
+`bool FD\_Find\_Debugger\_Window();`
+
+`bool FD\_Find\_Debugger\_Process();`
+
+`bool FD\_Find\_Device\_Driver();`
+
+`bool FD\_Exception\_Closehandle();`
+
+`bool FD\_Exception\_Int3();`
+
+`bool FD\_Exception\_Popf();`
+
+`bool FD\_OutputDebugString();`
+
+`bool FD\_TEB\_check\_in\_Vista();`
+
+`bool FD\_check\_StartupInfo();`
+
+`bool FD\_Parent\_Process1();`
+
+`bool FD\_Exception\_Instruction\_count();`
+
+`bool FD\_INT\_2d();`
+
+### 2.1 `FD\_IsDebuggerPresent()`
+
+对调试器来说，`IsDebuggerPresent`是臭名昭著的恶意函数。不多说了，它是个检测调试的`api`函数。实现更简单，只要调用`IsDebuggerPresent`就可以了。在调用它之前，可以加如下代码，以用来检测是否在函数头有普通断点，或是否被钩挂。
+
+```
+//check softbreak
+if(*(BYTE*)Func_addr==0xcc)
+        return true;
+//check hook
+if(*(BYTE*)Func_addr!=0x64)
+        return true;
+```
+
+### 2.2 `FD\_PEB\_BeingDebuggedFlag`
+
+我们知道，如果程序处于调试器中，那么在`PEB`结构中有个`beingDegug`标志会被设置，直接读取它就可判断是否在调试器中。实际上`IsDebuggerPresent`就是这么干的。
+
+```asm
+__asm
+{
+        mov eax, fs:[30h] ;EAX =  TEB.ProcessEnvironmentBlock
+        inc eax
+        inc eax
+        mov eax, [eax]
+        and eax,0x000000ff        ;AL  =  PEB.BeingDebugged
+        test eax, eax
+        jne rt_label
+        jmp rf_label
+}
+```
+
+### 2.3 `FD\_PEB\_NtGlobalFlags`
+
+`PEB`中还有其它`FLAG`表明了调试器的存在，如`NtGlobalFlags`。它位于`PEB`环境中偏移为`0x68`的位置，默认情况下该值为`0`，在`win2k`和其后的`windows`平台下，如果在调试中，它会被设置为一个特定的值。使用该标志来判断是否被调试并不可靠（如在`winnt`中），但这种方法却也很常用。这个标志由下面几个标志组成：
+
+`FLG_HEAP_ENABLE_TAIL_CHECK` (0x10)
+
+`FLG_HEAP_ENABLE_FREE_CHECK` (0x20)
+
+`FLG_HEAP_VALIDATE_PARAMETERS` (0x40)
+
+检测`NtGlobalFlags`的方法如下，这个方法在`ExeCryptor`中使用过。
+
+```asm
+__asm
+        {
+                mov eax, fs:[30h]
+                mov eax, [eax+68h]
+                and eax, 0x70
+                test eax, eax
+                jne rt_label
+                jmp rf_label
+        }
+```
+
+### 2.4 `FD\_Heap\_HeapFlags()`
+
+同样，调试器也会在堆中留下痕迹，你可以使用`kernel32_GetProcessHeap()`函数，如果你不希望使用`api`函数（以免暴露），则可以直接在`PEB`中寻找。同样的，使用`HeapFlags`和后面提到的`ForceFlags`来检测调试器也不是非常可靠，但却很常用。
+
+这个域由一组标志组成，正常情况下，该值应为`2`。
+
+```asm
+        {
+                mov eax, fs:[30h]
+                mov eax, [eax+18h] ;PEB.ProcessHeap
+                mov eax, [eax+0ch] ;PEB.ProcessHeap.Flags
+                cmp eax, 2
+                jne rt_label
+                jmp rf_label
+        }
+```
+
+### 2.5 `FD\_Heap\_ForceFlags`
+
+进程堆里另外一个标志，`ForceFlags`，它也由一组标志组成，正常情况下，该值应为`0`。
+
+```asm
+        {
+                mov eax, fs:[30h]
+                mov eax, [eax+18h] ;PEB.ProcessHeap
+                mov eax, [eax+10h] ;PEB.ProcessHeap.ForceFlags
+                test eax, eax
+                jne rt_label
+                jmp rf_label
+        }
+```
+
+### 2.6 `FD\_Heap\_Tail`
+
+如果处于调试中，堆尾部也会留下痕迹。标志`HEAP_TAIL_CHECKING_ENABLED` 将会在分配的堆块尾部生成两个`0xABABABAB`。如果需要额外的字节来填充堆尾，`HEAP_FREE_CHECKING_ENABLED`标志则会生成`0xFEEEFEEE`。
+
+据说`Themida`使用过这个反调试
+
+```asm
+        {
+                mov eax, buff
+                ;get unused_bytes
+                movzx ecx, byte ptr [eax-2]
+                movzx edx, word ptr [eax-8] ;size
+                sub eax, ecx
+                lea edi, [edx*8+eax]
+                mov al, 0abh
+                mov cl, 8
+                repe scas*
+                je rt_label
+                jmp rf_label
+        }
+```
+
+### 2.7 `FD\_CheckRemoteDebuggerPresent`
+
+`CheckRemoteDebuggerPresent`是另一个检测调试的`api`，只是可惜它似乎只能在`winxp sp1`版本以后使用。它主要是用来查询一个在`winnt`时就有的一个数值，其内部会调用`NtQueryInformationProcess()`，我是这样实现的：
+
+```c
+FARPROC Func_addr ;
+HMODULE hModule = GetModuleHandle("kernel32.dll");
+if (hModule==INVALID_HANDLE_VALUE)
+        return false;
+(FARPROC&) Func_addr =GetProcAddress(hModule, "CheckRemoteDebuggerPresent");
+if (Func_addr != NULL)
+{
+        __asm
+        {
+                push        eax;
+                push        esp;
+                push        0xffffffff;
+                call        Func_addr;
+                test        eax,eax;
+                je                rf_label;
+                pop                eax;
+                test        eax,eax
+                je                rf_label;
+                jmp                rt_label;
+        }
+}
+```
+
+### 2.8 `FD\_NtQueryInfoProc\_DbgPort`
+
+使用`ntdll_NtQueryInformationProcess()`来查询`ProcessDebugPort`可以用来检测反调试。如果进程被调试，其返回值应为`0xffffffff`。
+
+下面的代码应该是从`pediy`里`copy`过来的，时间太长，不记得是哪位兄弟的代码了。
+
+```c
+HMODULE hModule = GetModuleHandle("ntdll.dll");
+ZW_QUERY_INFORMATION_PROCESS ZwQueryInformationProcess;
+ZwQueryInformationProcess = (ZW_QUERY_INFORMATION_PROCESS)GetProcAddress(hModule, "ZwQueryInformationProcess");
+if (ZwQueryInformationProcess == NULL)
+        return false;
+PROCESS_DEBUG_PORT_INFO ProcessInfo;
+if (STATUS_SUCCESS != ZwQueryInformationProcess(GetCurrentProcess( ), ProcessDebugPort, &ProcessInfo, sizeof(ProcessInfo), NULL))
+        return false;
+else
+        if(ProcessInfo.DebugPort)
+                return true;
+        else
+                return false;
+```
+
+### 2.9 `FD\_NtQueryInfoProc\_DbgObjHandle`
+
+在`winxp`中引入了"`debug object`".当一个调试活动开始，一个"`debug object`"被创建，同也相应产生了一个句柄。使用为公开的`ProcessDebugObjectHandle`类，可以查询这个句柄的数值。
+
+代码可能还是从`pediy`里复制的，不记得了。
+
+```c
+HMODULE hModule = GetModuleHandle("ntdll.dll");
+ZW_QUERY_INFORMATION_PROCESS ZwQueryInformationProcess;
+ZwQueryInformationProcess = (ZW_QUERY_INFORMATION_PROCESS)GetProcAddress(hModule, "ZwQueryInformationProcess");
+if (ZwQueryInformationProcess == NULL)
+        return false;
+_PROCESS_DEBUG_OBJECTHANDLE_INFO ProcessInfo;
+if (STATUS_SUCCESS != ZwQueryInformationProcess(GetCurrentProcess( ), (PROCESS_INFO_CLASS)0x0000001e, &ProcessInfo, sizeof(ProcessInfo), NULL))
+        return false;
+else
+        if(ProcessInfo.ObjectHandle)
+                return true;
+        else
+                return false;
+```
+
+### 2.10 `FD\_NtQueryInfoProc\_DbgFlags();`
+
+同样的未公开的`ProcessDebugFlags`类，当调试器存在时，它会返回`false`。
+
+```c
+HMODULE hModule = GetModuleHandle("ntdll.dll");
+ZW_QUERY_INFORMATION_PROCESS ZwQueryInformationProcess;
+```
