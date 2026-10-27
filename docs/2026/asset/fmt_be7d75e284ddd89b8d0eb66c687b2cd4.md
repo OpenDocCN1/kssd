@@ -1,0 +1,14 @@
+
+# [翻译]探索PE文件内幕—— Win32可移植可执行文件格式之旅
+
+Matt Pietrek最初关于PE的文章
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+[#系统底层](https://bbs.kanxue.com/forum-4-1-2.htm)
+
+上传的附件：
+
+- [Peering Inside the PE.pdf](javascript:void(0);)
+
+  （406.30kb，3862次下载）
