@@ -1,0 +1,233 @@
+
+```
+77e60160  00 00 10 00 00 10 00 00-00 00 00 00 10 00 00 00  ................
+77e60170  40 d0 06 00 39 6b 00 00-7c 3b 07 00 28 00 00 00  @...9k..|;..(...
+77e60180  00 a0 07 00 d8 5e 06 00-00 00 00 00 00 00 00 00  .....^..........
+77e60190  00 00 00 00 00 00 00 00-00 00 0e 00 54 53 00 00  ............TS..
+77e601a0  fc 63 07 00 38 00 00 00-00 00 00 00 00 00 00 00  .c..8...........
+77e601b0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+77e601c0  a8 76 07 00 40 00 00 00-90 02 00 00 1c 00 00 00  .v..@...........
+77e601d0  00 10 00 00 0c 06 00 00-00 00 00 00 00 00 00 00  ................
+77e601e0  00 00 00 00 00 00 00 00-00 00 00 00 00 00 00 00  ................
+```
+
+```
+> dd 77e60000+f8+0n24+5c L1 (检查NumberOfRvaAndSizes成员)
+77e6016c  00000010
+> dd 77e60000+f8+0n24+60 L2 (定位Export Directory，当前基是16)
+77e60170  0006d040 00006b39
+
+          ^^^^^^^^
+> ? 77e60000+0006d040+00006b39
+Evaluate expression: 2012035961 = 77ed3b79
+
+> ? 77e60000+0006d040
+Evaluate expression: 2012008512 = 77ecd040
+```
+
+现在我们知道Export Directory在`77e60000+0006d040`，格式如下:
+
+```
+typedef struct _IMAGE_EXPORT_DIRECTORY
+{
+    DWORD   Characteristics;        // +0x00
+    DWORD   TimeDateStamp;          // +0x04
+    WORD    MajorVersion;           // +0x08
+    WORD    MinorVersion;           // +0x0a
+    DWORD   Name;                   // +0x0c Name of the DLL
+    DWORD   Base;                   // +0x10 Starting ordinal number for exports
+    DWORD   NumberOfFunctions;      // +0x14 Number of entries in the EAT
+    DWORD   NumberOfNames;          // +0x18 Number of entries in the ENPT/EOT
+    DWORD   AddressOfFunctions;     // +0x1c RVA from base of image
+    DWORD   AddressOfNames;         // +0x20 RVA from base of image
+    DWORD   AddressOfNameOrdinals;  // +0x24 RVA from base of image
+                                    // +0x28
+} IMAGE_EXPORT_DIRECTORY, *PIMAGE_EXPORT_DIRECTORY;
+```
+
+`AddressOfFunctions` 指向 `Export Address Table`（`DWORD EAT[NumberOfFunctions];`）。  
+`EAT[i]` 可选头中`IMAGE_DATA_DIRECTORY`结构决定了引出信息范围。如果`EAT[i]`的值不在引出信息范围，则为函数地址（Export RVA）。否则，该值指向形如`dllname.#27`或者`dllname.exportfunc`的ASCIZ串，用MS术语说，这是一个Forwarder RVA，表示由另外一个dll实际引出某函数。
+
+`AddressOfNames` 指向 `Export Name Pointer Table`（`DWORD ENPT[NumberOfNames];`）。  
+`ENPT[i]` 指向`Export Name Table`中某个位置，`ENT`由ASCIZ串构成。
+
+`AddressOfNameOrdinals` 指向 `Export Ordinal Table`（`WORD EOT[NumberOfNames];`）。
+
+参看规范6.3.4小节，这几个数组之间的关系用伪C语言描述如下:
+
+```
+/*
+* 怀疑该规范与MS最终实现有出入，规范中EOT[0]应该等于ordinal_base的，但MS
+* 最终实现里EOT[0]等于0。这里的伪代码符合MS的最终实现。看来，理论->实践->
+* 再理论的学习过程永远都要牢记，否则死菜了都不知道怎么死菜的。
+*/
+index         = Search_ENPT( function_name );
+index         = EOT[ index ];
+function_addr = EAT[ index ];
+ordinal       = ordinal_base + index;
+```
+
+为何多出个`EOT`，因为可能不同的函数名对应同一个函数地址，参[14]的12.5小节。
+
+假设源代码中有如下声明:
+
+```c
+__declspec(dllexport) int __stdcall PublicFunc ( int a, int b, int c, int d );
+```
+
+假设没有使用DEF文件:
+
+```
+EXPORTS
+    PublicFunc
+```
+
+同时却又在源代码出现:
+
+```c
+#pragma comment( linker, "/EXPORT:PublicFunc=_PublicFunc@32" )
+```
+
+此时生成PE文件时会同时引出两个符号，`PublicFunc`与`_PublicFunc@32`，这两个符号对应同一个函数。反映在上述几个数组中，即`EOT[i]`等于`EOT[j]`。
+
+`NumberOfFunctions`与`NumberOfNames`在这种情形下不等。除此之外，还有一种不等情形。`NumberOfNames`为0，`NumberOfFunctions`不为0，表示模块仅通过`ordinal`引出函数，这是相当极端却有可能出现的情形。
+
+VC有个现成的工具`dumpbin`，可用于观察引出(export)信息:
+
+```
+> dumpbin X:\XP\system32\kernel32.dll /exports
+  Section contains the following exports for KERNEL32.dll
+    00000000 characteristics
+    3D6DE616 time date stamp Thu Aug 29 17:15:02 2002
+        0.00 version
+           1 ordinal base
+         942 number of functions
+         942 number of names
+    ordinal hint RVA      name
+          1    0 000137E8 ActivateActCtx
+          2    1 000093FE AddAtomA
+          3    2 0000D496 AddAtomW
+          4    3 000607C5 AddConsoleAliasA
+          5    4 0006078E AddConsoleAliasW
+          6    5 0004E0A1 AddLocalAlternateComputerNameA
+          7    6 0004DF8C AddLocalAlternateComputerNameW
+          8    7 00035098 AddRefActCtx
+          9    8          AddVectoredExceptionHandler (forwarded to NTDLL.RtlAddVectoredExceptionHandler)
+         10    9 00036909 AllocConsole
+        ... ...
+        401  190 0001B332 GetProcAddress
+        ... ...
+        571  23A 0001D961 LoadLibraryA
+        572  23B 0001D941 LoadLibraryExA
+        573  23C 0001D839 LoadLibraryExW
+        574  23D 00013B38 LoadLibraryW
+        ... ...
+```
+
+回windbg验证一下:
+
+```
+> db 77e60000+0006d040 L28
+77ecd040  00 00 00 00 16 e6 6d 3d-00 00 00 00 34 f5 06 00  ......m=....4...
+77ecd050  01 00 00 00 ae 03 00 00-ae 03 00 00 68 d0 06 00  ............h...
+77ecd060  20 df 06 00 d8 ed 06 00
+
+> da 77e60000+poi(0x77e60000+0x0006d040+0xc) (Name)
+77ecf534  "KERNEL32.dll"
+
+> dd 0x77e60000+0x0006d040+0x10 L1 (Base)
+77ecd050  00000001
+
+> dd 0x77e60000+0x0006d040+0x14 L1 (NumberOfFunctions)
+77ecd054  000003ae
+
+> dd 0x77e60000+0x0006d040+0x18 L1 (NumberOfNames)
+77ecd058  000003ae
+
+> dd 0x77e60000+0x0006d040+0x1c L3 (AddressOfFunctions、AddressOfNames、AddressOfNameOrdinals)
+77ecd05c  0006d068 0006df20 0006edd8
+```
+
+套用这个公式:
+
+```
+0x190      = Search_ENPT( "GetProcAddress" );
+0x190      = EOT[ 0x190 ];
+0x77e7b332 = EAT[ 0x190 ];
+0x191      = 1 + 0x190;
+```
+
+```
+> da 77e60000+poi(77e60000+0006df20+0x190\*4) (访问ENPT、ENT)
+77ed1393  "GetProcAddress"
+
+> dw 77e60000+0006edd8+0x190\*2 L1 (访问EOT)
+77ecf0f8  0190
+
+> ? 77e60000+poi(77e60000+0006d068+0x190\*4) (访问EAT)
+Evaluate expression: 2011673394 = 77e7b332
+
+> u 77e7b332 (这个地址不在[77ecd040, 77ed3b79)内)
+kernel32!GetProcAddress:
+77e7b332 55               push    ebp
+77e7b333 8bec             mov     ebp,esp
+77e7b335 51               push    ecx
+77e7b336 51               push    ecx
+77e7b337 53               push    ebx
+77e7b338 57               push    edi
+77e7b339 8b7d0c           mov     edi,[ebp+0xc]
+77e7b33c bbffff0000       mov     ebx,0xffff
+```
+
+再来验证一下Forwarder RVA的情形:
+
+```
+8          = Search_ENPT( "AddVectoredExceptionHandler" );
+8          = EOT[ 8 ];
+0x77ed38ad = EAT[ 8 ];
+9          = 1 + 8;
+```
+
+```
+> da 77e60000+poi(77e60000+0006df20+8\*4) (访问ENPT、ENT)
+77ecf5cf  "AddVectoredExceptionHandler"
+
+> dw 77e60000+0006edd8+8\*2 L1 (访问EOT)
+77ecede8  0008
+
+> ? 77e60000+poi(77e60000+0006d068+8\*4) (访问EAT)
+Evaluate expression: 2012035245 = 77ed38ad
+
+> da 77e60000+poi(77e60000+0006d068+8\*4) (这个地址在[77ecd040, 77ed3b79)内)
+77ed38ad  "NTDLL.RtlAddVectoredExceptionHan"
+77ed38cd  "dler"
+```
+
+现在总结一下"根据PE文件格式获取LoadLibraryA()/GetProcAddress()地址"全过程:
+
+a. 通过`TEB`/`PEB`获取`kernel32.dll`基址  
+b. 在`基址+0x3c`处获取`e_lfanew`  
+c. 在`基址+e_lfanew+0x78`处获取`Export Directory`地址(后面为描述方便简称`export`)  
+d. 在`基址+export+0x1c`处获取`AddressOfFunctions`、`AddressOfNames`、`AddressOfNameOrdinals`  
+e. 搜索`ENPT`，确定`"LoadLibraryA"`、`"GetProcAddress"`所对应的`index`  
+f. `index = EOT[ index ];`  
+g. `function_addr = EAT[ index ];`
+
+下面是完整的C语言演示程序，汇编化留到编写完整shellcode时进行。
+
+```c
+/*
+* -----------------------------------------------------------------------
+* Compile : For x86/EWindows XP SP1 & VC 7
+*         : cl GetAddr.c /nologo /Os /G6 /W3 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /link /RELEASE
+*         :
+* Create  : 2003-08-14 15:11
+* Modify  :
+* -----------------------------------------------------------------------
+*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+#pragma comment( linker, "/INCREMENTAL:NO"    )
+#pragma comment( linker, "/subsystem:console" )
+```
