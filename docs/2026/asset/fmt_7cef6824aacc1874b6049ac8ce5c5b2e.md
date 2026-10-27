@@ -1,0 +1,126 @@
+
+```cpp
+CreateProcess(path, // 可执行模块路径
+              NULL, // 命令行
+              NULL, // 安全描述符
+              NULL, // 线程属性是否可继承
+              FALSE, // 否从调用进程处继承了句柄
+              DEBUG_ONLY_THIS_PROCESS, // 以“只”调试的方式启动
+              NULL, // 新进程的环境块
+              NULL, // 新进程的当前工作路径（当前目录）
+              &stcStartupInfo, // 指定进程的主窗口特性
+              &stcProcInfo)) // 接收新进程的识别信息
+```
+
+`DEBUG_EVENT`中的`dwDebugEventCode`表示调试信息的种类，对于`DEBUG_EVENT`详细的介绍可以[查看MSDN](<https://bbs.kanxue.com/elink@1e3K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8$3y4K6i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3k6h3&6Q4x3X3c8#2M7#2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3V1k6%4K9h3^5K6x3W2)9J5c8X3q4H3K9g2)9J5c8X3#2A6L8Y4N6A6L8X3u0S2M7$3g2Q4x3V1k6F1M7#2)9J5k6r3#2A6L8Y4N6A6L8X3u0S2M7$3g2Q4x3X3c8V1k6h3u0#2k6#2)9#2k6X3g2$3k6h3&6@1>)，简单来说就是用共用体来存储具体的数据。
+
+```cpp
+typedef struct _DEBUG_EVENT {
+    DWORD dwDebugEventCode;
+    DWORD dwProcessId;
+    DWORD dwThreadId;
+    union {
+        EXCEPTION_DEBUG_INFO Exception;
+        CREATE_THREAD_DEBUG_INFO CreateThread;
+        CREATE_PROCESS_DEBUG_INFO CreateProcessInfo;
+        EXIT_THREAD_DEBUG_INFO ExitThread;
+        EXIT_PROCESS_DEBUG_INFO ExitProcess;
+        LOAD_DLL_DEBUG_INFO LoadDll;
+        UNLOAD_DLL_DEBUG_INFO UnloadDll;
+        OUTPUT_DEBUG_STRING_INFO DebugString;
+        RIP_INFO RipInfo;
+    } u;
+} DEBUG_EVENT, *LPDEBUG_EVENT;
+```
+
+## 0x02 用户态 `DebugActiveProcess` 实现
+
+我们通过查找NT5的源码可以看到`DebugActiveProcess`具体实现代码，主要就是调用了`DbgUiConnectToDbg`、`ProcessIdToHandle`和`DbgUiDebugActiveProcess`这三个函数。
+
+![image-20210818203841617](https://bbs.kanxue.com/upload/attach/202108/870016_D6B98XNBK6BJYFV.jpg)
+
+![image-20210818205033766](https://bbs.kanxue.com/upload/attach/202108/870016_7FX4GDYGN5U5DP8.jpg)
+
+### `DbgUiConnectToDbg`
+
+首先判断`TEB->DbgSsReserved[1]`是否保存着调试对象的句柄，如果存在则直接返回函数；如果不存在就进行初始化并调用`NtCreateDebugObject`创建调试对象。
+
+![image-20210818205728745](https://bbs.kanxue.com/upload/attach/202108/870016_AN5YS3HZ899F2M3.jpg)
+
+![image-20210818211454716](https://bbs.kanxue.com/upload/attach/202108/870016_XAVPH8TZU8WHMPG.jpg)
+
+### `ProcessIdToHandle`
+
+如果是伪句柄则调用`CsrGetProcessId`获取`csrss.exe`的PID，然后调用`NtOpenProcess`获得对应进程句柄，给后续调用做准备。
+
+![image-20210818213529075](https://bbs.kanxue.com/upload/attach/202108/870016_73248XBBUFTJFAJ.jpg)
+
+![image-20210818214255906](https://bbs.kanxue.com/upload/attach/202108/870016_W4GKC9T7EK3NZN3.jpg)
+
+### `DbgUiDebugActiveProcess`
+
+此函数首先传入进程和调试对象的句柄进入内核，然后调用`DbgUiIssueRemoteBreakin`函数创建线程开始地址为`DbgUiRemoteBreakin`的远程线程让被调试进程断下来，如果远程线程设置失败则调用`DbgUiStopDebugging`停止调试。**这个地方创建了远程线程是在将来反附加检测的主要检测点。**
+
+![image-20210818211939159](https://bbs.kanxue.com/upload/attach/202108/870016_7PB2QBE7JWEA6EX.jpg)
+
+![image-20210818213257737](https://bbs.kanxue.com/upload/attach/202108/870016_37433YY4CR4YDK8.jpg)
+
+### 全览图
+
+![](https://bbs.kanxue.com/upload/attach/202108/870016_MCA745JJST9S2YX.jpg)
+
+## 0x03 调试子系统
+
+Windows的调试子系统使用调试事件驱动，这个和窗体的消息驱动是很类似的。在调试子系统中使用`WaitForDebugEvent`在用户态等待调试事件，当调试器处理调试事件时，被调试进程会被挂起，所以调试器处理完毕后要调用`ContinueDebugEvent`使被挂起的被调试进程继续运行。
+
+下图是张银奎老师在软件调试纵横谈中的调试模型，在用户空间部分就是我们此前通过源码分析的用户态附加调试API `DebugActiveProcess`的基本流程，在系统空间维护着一个`DebugObject`的链表并且通过`Dbgk*`例程采集和传递调试事件。
+
+![用户态调试模型](https://bbs.kanxue.com/upload/attach/202108/870016_DGPUPJAGZDTGUQ5.jpg)
+
+## 0x04 反附加手段
+
+根据此前内容知道，当调试器附加一个进程的时候是调用`DebugActiveProcess`函数，该函数内部调用了`DbgUiDebugActiveProcess`，此函数内部会调用`DbgUiIssueRemoteBreakin`函数，最后内部则会通过`RtlCreateUserThread`在被调试进程内创建一个线程，线程的起始地址是`DbgUiRemoteBreakin`。
+
+![image-20210819204553058](https://bbs.kanxue.com/upload/attach/202108/870016_MXGC5PH55J3TSMF.jpg)
+
+在被调试进程内`DbgUiRemoteBreakin`会判断`PEB`中的`BeingDebugged`标志位，如果在调试则调用`DbgBreakPoint`函数，调试器附加后被调试进程就中断在`DbgBreakPoint`函数内。
+
+![image-20210819204416047](https://bbs.kanxue.com/upload/attach/202108/870016_CD6FCM2XFNCMTQA.jpg)
+
+根据上述流程我们可以知道，在被调试进程（我们的程序）中会创建新线程，线程起始函数是`DbgUiRemoteBreakin`。所以我们可以Hook `DbgUiRemoteBreakin`直接调用`ExitProcess`结束我们的程序。
+
+![image-20210819205656353](https://bbs.kanxue.com/upload/attach/202108/870016_V7SRJ734KZDY68G.jpg)
+
+## 0x05 反反附加插件
+
+本文以ScyllaHide为例子，因为ScyllaHide是[开源项目](<https://bbs.kanxue.com/elink@0fdK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6^5y4U0c8V1j5X3N6Q4x3V1k6e0j5%4W2D9L8r3q4t1K9h3c8W2>)可以直接分析源码，插件加载后我们此前设置的HOOK会被还原。
+
+![image-20210819210704926](https://bbs.kanxue.com/upload/attach/202108/870016_3ZNHUPEMS8KJ9RS.jpg)
+
+![image-20210819210717166](https://bbs.kanxue.com/upload/attach/202108/870016_WAKE6VNUH9YN8W4.jpg)
+
+对于SharpOD，他会在插件加载的时候Hook调试器的`DebugActiveProcess`和`CreateProcessInternalW`，在`DebugActiveProcessDetour`中会在被调试进程中添加ShellCode，并HOOK `LdrInitializeThunk`跳转到ShellCode中断，并在附加进程的调试事件到达后还原`LdrInitializeThunk`。
+
+![image-20210819210932220](https://bbs.kanxue.com/upload/attach/202108/870016_F34NTZC8U9V4BY2.jpg)
+
+![image-20210819210957423](https://bbs.kanxue.com/upload/attach/202108/870016_4YA9QNQ3KVDF3FG.jpg)
+
+## 0x06 `x64dbg`的Titan Engine
+
+对于新版`x64dbg`，会内嵌Titan Engine（2020年11月12日版本后添加），所以SharpOD插件对于反反附加对新版本`x64dbg`起不到作用。在Titan Engine内部自己实现了`DebugActiveProcess`一套流程。
+
+![image-20210819211542046](https://bbs.kanxue.com/upload/attach/202108/870016_QZX7M8JCQSQ546G.jpg)
+
+并且没有调用`DbgUiIssueRemoteBreakin`让程序被调试器附加的时候断下。
+
+![image-20210819211614725](https://bbs.kanxue.com/upload/attach/202108/870016_53T4NWUENE7GUC6.jpg)
+
+## 0x07 总结及参考链接
+
+本文初步学习了Windows用户层基本的调试原理和模型，并给出了一个简单的反附加方案，同时分析了目前常见的反反附加插件。不过同时存在不知道如何绕过SharpOD的反反附加检测等问题，还需要进一步学习研究。因为本人水平有限，如果存在错误还望各位前辈指正。
+
+- [Windows 调试原理学习](<https://bbs.kanxue.com/elink@431K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2U0L8X3u0D9L8$3N6K6i4K6u0W2j5$3!0E0i4K6u0r3e0%4R3&6b7e0R3J5i4K6u0r3M7q4)9J5c8U0f1K6x3K6p5K6z5o6N6Q4x3X3g2Z5N6r3#2D9>)
+- [调试器原理](<https://bbs.kanxue.com/elink@7f1K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4S2#2k6h3I4A6L8X3k6Q4x3X3g2Y4K9i4c8Z5N6h3u0Q4x3X3g2A6L8#2)9J5c8U0t1H3x3e0k6Q4x3V1j5H3z5g2)9J5c8U0l9J5i4K6u0r3i4K6t1#2c8e0N6Q4x3U0f1&6y4q4)9J5y4f1p5^5i4K6t1#2c8e0N6Q4x3U0f1^5z5q4)9J5y4f1t1%4i4K6t1#2c8e0k6Q4x3U0f1^5x3q4)9J5y4e0R3I4i4K6t1#2c8e0S2Q4x3U0g2n7x3q4)9J5y4e0R3K6i4K6t1#2c8e0S2Q4x3U0g2m8c8W2)9J5y4e0V1#2i4K6t1#2c8e0g2Q4x3U0f1&6z5g2)9J5y4f1p5^5i4K6t1#2c8e0g2Q4x3U0f1^5c8g2)9J5y4e0W2r3i4K6t1#2c8e0N6Q4x3U0f1&6x3q4)9J5y4e0R3$3i4K6t1#2c8e0g2Q4x3U0f1^5z5g2)9J5y4e0V1$3i4K6t1#2c8e0k6Q4x3U0f1&6c8g2)9J5y4e0V1H3i4K6u0V1i4K6t1#2c8e0g2Q4x3U0f1^5y4W2)9J5y4e0R3#2i4K6t1#2c8e0k6Q4x3U0g2m8x3q4)9J5y4f1t1^5i4K6t1#2c8e0N6Q4x3U0g2n7b7g2)9J5y4f1p5%4i4K6t1#2c8e0S2Q4x3U0g2n7x3q4)9J5y4e0R3K6i4K6t1#2c8e0S2Q4x3U0g2m8c8W2)9J5y4e0V1#2i4K6t1#2c8e0g2Q4x3U0f1^5c8g2)9J5y4e0W2r3i4K6t1#2c8e0N6Q4x3U0f1&6x3q4)9J5y4e0R3$3i4K6u0r3>)
+- [软件调试纵横谈](<https://bbs.kanxue.com/elink@648K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2T1K9h3I4A6j5X3W2D9K9g2)9J5k6h3y4G2L8g2)9J5c8Y4k6A6k6r3g2G2i4K6u0r3b7W2j5I4b7e0b7@1x3e0q4p5y4%4S2^5i4K6y4r3M7q4)9K6c8o6b7>)
+- [[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+- [#调试逆向](https://bbs.kanxue.com/forum-4-1-1.htm)
