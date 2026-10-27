@@ -1,0 +1,218 @@
+
+## 输入目录
+
+```text
+            2-->    func3        2-->  exported func3
+
+            3-->    foo          3-->  exported foo
+
+            4-->    mumpitz      4-->  exported mumpitz
+
+            5-->    knuff        5-->  exported knuff
+
+            6-->0            0<--6
+```
+
+这是最简单情况的基本结构，下面学习输入目录。
+
+首先，`IMAGE_THUNK_DATA`数组内的`IMAGE_ORDINAL_FLAG`的最高位可以置1，这种情况没有符号名信息在列表内，符号纯粹用序号引入。可以通过检查`IMAGE_THUNK_DATA`的低字得到序号。通过序号引入的方式不提倡，以名字引入更安全，因为输出序号可能因输出DLL的版本不同而改变。
+
+第二，存在所谓的绑定输入“bound imports”。考虑加载器的工作，当一个可执行文件需要运行一个DLL内的函数时，加载器加载DLL，找到输出目录，查找函数的RVA，计算函数的入口点，然后把所谓的地址补入`FirstThunk`列表内。考虑到程序员是聪明的，为不发生冲突的DLL提供唯一的优先加载地址，我们假定函数入口点总是一样的，在链接时他们可以被计算然后补入`FirstThunk`列表，这就是所谓的绑定输入。
+
+必须注意一点：用户的DLL可能是不同的版本或者需要重定位DLL，这样就作废先前补入的`FirstThunk`列表，这种情况下，加载器依然能够遍历`OriginalFirstThunk`列表，找出输入符号并重新补入`FirstThunk`列表内。加载器知道这是必须的，如果a) DLL版本不相符，b)DLL必须重定位。
+
+确定是否有重定位，对加载器来说不是问题，但是如何知道版本的不同？这是`IMAGE_IMPORT_DESCRIPTOR`中的`TimeDateStamp`出现的地方，如果是0，输入表没有绑定，加载器必须总是修复入口点，否则输入表被绑定，`TimeDateStamp`必须与DLL的文件头的时间戳相符，如果不相符，加载器假定执行文件绑定了一个错误的DLL，将重新补入输入列表。`//`输入列表就是`FirstThunk`所指的地址列表。
+
+还有一个怪事就是输入表内的转发器“forwarders”。一个DLL可以输出一个没有在本DLL内定义的符号，而是从另一个DLL引入的，这样的符号成为被转发的，现在，通过检查没有包含真正入口点的DLL的时间戳，很明显不能确定入口点是否有效。所以被转发的符号的入口点必须总是被修复，在输入列表内，必须被找到被转发符号的输入，加载器可以补入它。这个靠`ForwarderChain`。这是thunk列表的索引，在索引位置的输入是一个被转发的输出，在`FirstThunk`列表的该位置的内容是下一个转发的输出索引，直到－1为止，表明没有转发了。如果根本没有转发，`ForwarderChain`置-1。
+
+这是所谓的老式绑定。我们总结一下：
+
+我假定你已经找到了`IMAGE_DIRECTORY_ENTRY_IMPORT`，沿着它找到输入目录，在某个节内。现在你在`IMAGE_IMPORT_DESCRIPTOR`数组的开始，最后一个是全0。要解码一个`IMAGE_IMPORT_DESCRIPTOR`，首先找到`Name`，循着RVA可以找到输出的DLL名字。下面决定是否输入绑定与否了。如果时间戳非0，说明绑定。如果绑定了，现在通过比较时间戳检查是否DLL版本匹配。现在循着`OriginalFirstThunk`的RVA到达`IMAGE_THUNK_DATA`数组，顺着往下走，每个成员是一个指向`IMAGE_IMPORT_BY_NAME`结构的RVA，除非高位置1表示没有名字，只有序号可用。循着这个RVA，跳过2个字节（`hint`），现在我们得到一个以0结尾的引入函数名了。
+
+如果输入绑定了，要找到提供的入口点地址，沿着`FirstThunk`并行遍历`OriginalFirstThunk`数组；数组成员是入口点的线性地址。
+
+有的链接器设置`IMAGE_IMPORT_DESCRIPTOR`内的`OriginalFirstThunk`为0，只创建`FirstThunk`数组，非常明显，这个输入目录不能发现，因为无法找到函数名，必要的用于修复输入输入的信息丢失了。这种情况下，必须沿着`FirstThunk`数组得到输入符号名，永远得不到预先打过补丁的入口地址。
+
+最后一个关于输入目录的新式绑定。当用这个的时候，`TimeDateStamp`设置为全1，没有转发链`forwarderchain`；所有引入符号的地址被修补，无论是否被转发。依然需要DLL的版本，需要区别转发符号和普通符号。为了这个目的，`IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT`目录被建立，不在节内，而是在头内，在节头的后面，第一节的前面。这个目录告诉我们，对应每个用到的DLL，另外哪个DLL有转发输出。
+
+该结构是一个`IMAGE_BOUND_IMPORT_DESCRIPTOR`，组成如下：
+
+```text
+IMAGE_BOUND_IMPORT_DESCRIPTOR STRUCT
+    TimeDateStamp dd    ?
+    OffsetModuleName dw ?
+    NumberOfModuleForwarderRefs dw ?
+IMAGE_BOUND_IMPORT_DESCRIPTOR ENDS
+```
+
+DLL的32位`TimeDateStamp`；16位的`OffsetModuleName`，从目录的开始到DLL名字的偏移量。16位的`NumberOfModuleForwarderRefs`给出该DLL用于转发的DLL个数。
+
+紧跟这个结构，是`IMAGE_BOUND_FORWARDER_REF`结构，告诉你本DLL转发的DLL的名字和版本。该结构如下：
+
+```text
+IMAGE_BOUND_FORWARDER_REF STRUCT
+    TimeDateStamp dd    ?
+    OffsetModuleName dw ?
+    Reserved dw         ?
+IMAGE_BOUND_FORWARDER_REF ENDS
+```
+
+32位时间戳`TimeDateStamp`；16位的`OffsetModuleName`，被转发的DLL名字的偏移量；16位保留未用的。
+
+跟随`IMAGE_BOUND_FORWARDER_REF`后面的是下一个`IMAGE_BOUND_IMPORT_DESCRIPTOR`。该列表以全0结束。
+
+现在你有一个新绑定的输入目录，加载所有的DLL，使用目录指针`IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT`找到`IMAGE_BOUND_IMPORT_DESCRIPTOR`，扫描它检查时间戳是否与加载的DLL相符，如果不的话，修复输入目录内的`FirstThunk`数组内容即函数地址。
+
+## 资源 resources
+
+资源比如对话框，菜单，图标等等保存在由`IMAGE_DIRECTORY_ENTRY_RESOURCE`指向的数据目录内。那是一个至少含有一个位集合`IMAGE_SCN_CNT_INITIALIZED_DATA`和`IMAGE_SCN_MEM_READ`的节。
+
+资源的根基是一个`IMAGE_RESOURCE_DIRECTORY`；它包含几个`IMAGE_RESOURCE_DIRECTORY_ENTRY`项，每个指向一个`IMAGE_RESOURCE_DIRECTORY`。这样你得到一个`IMAGE_RESOURCE_DIRECTORY`树。`IMAGE_RESOURCE_DIRECTORY_ENTRY`是树叶，指向实际的资源数据。
+
+层次是这样的，一个目录是根，指向一些目录，每一个针对一个资源类型。这些目录指向子目录，每个含有一个名字或者ID，并指向一个为该资源提供的语言目录。对于每个语言你会发现资源入口，它指向数据。
+
+下面是没有指向数据的树：
+
+```text
+                           (root)
+
+                              |
+
+             +----------------+------------------+
+
+             |                |                  |
+
+            menu            dialog             icon
+
+             |                |                  |
+
+       +-----+-----+        +-+----+           +-+----+----+
+
+       |           |        |      |           |      |    |
+
+    "main"      "popup"   0x10   "maindlg"    0x100 0x110 0x120
+
+       |            |       |      |           |      |    |
+
+   +---+-+          |       |      |           |      |    |
+
+   |     |     default   english   default    def.   def.  def.
+
+german english
+```
+
+```text
+IMAGE_RESOURCE_DIRECTORY STRUCT
+    Characteristics dd      ?
+    TimeDateStamp dd        ?
+    MajorVersion dw         ?
+    MinorVersion dw         ?
+    NumberOfNamedEntries dw ?
+    NumberOfIdEntries dw    ?
+IMAGE_RESOURCE_DIRECTORY ENDS
+```
+
+`IMAGE_RESOURCE_DIRECTORY`结构包括：
+
+- 32位没有用到的`Characteristics`；
+- 32位`TimeDateStamp`给出资源创建时间。
+- 16位`MajorVersion`和16位`MinorVersion`，维护资源版本。
+- 16位`NumberOfNamedEntries`，带名字的项目个数和16位`NumberOfIdEntries`，ID项目个数。
+
+紧接在该结构后面的是`NumberOfNamedEntries`+`NumberOfIdEntries`个结构。它们是`IMAGE_RESOURCE_DIRECTORY_ENTRY`目录项，它们可能指向下一个`IMAGE_RESOURCE_DIRECTORY`或者实际的资源数据。
+
+`IMAGE_RESOURCE_DIRECTORY_ENTRY`结构：
+
+```text
+IMAGE_RESOURCE_DIRECTORY_ENTRY STRUCT
+    union
+        rName        RECORD NameIsString:1,NameOffset:31
+        Name1 dd ?         //名字是名字，串是串，各不相同的。
+        Id dw ?
+    ends
+
+    union
+        OffsetToData dd ?
+        rDirectory        RECORD DataIsDirectory:1,OffsetToDirectory:31
+    ends
+IMAGE_RESOURCE_DIRECTORY_ENTRY ENDS
+```
+
+32位资源标识或者其描述的目录；32位数据偏移量或者下个子目录的偏移量。
+
+ID的意义依赖与在树内的层次，ID可能是一个数字（高位清0）或者名字（高位置1），如果是名字，低31位是从资源节的原始数据开始到名字的偏移量。名字是16位长度，以宽字符结尾，不是0。
+
+如果在根目录下，如果ID是数字，是资源类型：
+
+- `1`：`cursor`
+- `2`：`bitmap`
+- `3`：`icon`
+- `4`：`menu`
+- `5`：`dialog`
+- `6`：`string table`
+- `7`：`font directory`
+- `8`：`font`
+- `9`：`accelerators`
+- `10`：`unformatted resource data`
+- `11`：`message table`
+- `12`：`group cursor`
+- `14`：`group icon`
+- `16`：`version information`
+
+任何其他数字都是自定义的，任何带类型名字的资源类型都是自定义的。更深一层的话，ID是资源ID或者资源名字。
+
+如果再深入一层，ID必须是数字，它是特定资源实例的语言ID，例如，可以具有不同本地化的语言的对话框。他们使用统一的资源ID，系统会选择基于线程的地域加载对话框，反过来反应用户的区域设置。如果对于线程本地没有资源发现，系统首先试图发现中立语言为资源的区域。如果还不能够发现，带有最小语言ID的实例将被使用。解码语言ID，拆分为主语言ID和子语言ID，使用宏`PRIMARYLANGID()`和`SUBLANGID()`，分别是0－9，10－15。其值定义在`winresrc.h`。
+
+语言资源只被加速键，对话框，菜单，串表支持，其他资源类型必须是`LANG_NEUTRAL`/`SUBLANG_NEUTRAL`。
+
+要找出资源目录的下级目录是否是另一个目录，检查偏移量的高位，如果置1，其余31位是从资源原始数据开始到下一个目录的偏移量。格式还是`IMAGE_RESOURCE_DIRECTORY`后面跟着`IMAGE_RESOURCE_DIRECTORY_ENTRY`项目。
+
+如果高位清0，偏移量是从节开始到资源原始数据描述结构（一个`IMAGE_RESOURCE_DATA_ENTRY`）的偏移量。一个`IMAGE_RESOURCE_DATA_ENTRY`包括：
+
+```text
+IMAGE_RESOURCE_DATA_ENTRY STRUCT
+    OffsetToData dd ?
+    Size1 dd        ?
+    CodePage dd     ?
+    Reserved dd     ?
+IMAGE_RESOURCE_DATA_ENTRY ENDS
+```
+
+32位`OffsetToData`从资源节开始到原始数据的偏移量，32位数据大小`Size`，32位`CodePage`，和32保留。
+
+原始数据格式依赖于资源类型，任何字符串资源都是UNICODE格式。
+
+## 重定位 relocations
+
+最后一个数据目录是重定位，基重定位目录被`IMAGE_DIRECTORY_ENTRY_BASERELOC`指向，典型的包括一个自己的节，名字是`.reloc`，以及`IMAGE_SCN_CNT_INITIALIZED_DATA`、`IMAGE_SCN_MEM_DISCARDABLE`和`IMAGE_SCN_MEM_READ`位集合。
+
+如果映象没有被加载器调入优先地址，则该数据被加载器使用。这种情况下给链接器填入的地址无效了。加载器必须修复用于静态变量的绝对地址，串等。
+
+```text
+IMAGE_BASE_RELOCATION STRUCT
+    VirtualAddress dd   ?
+    SizeOfBlock dd      ?
+IMAGE_BASE_RELOCATION ENDS
+```
+
+重定位目录是一系列块，每个块包括重定位信息针对4K的映象。一个块起始于一个`IMAGE_BASE_RELOCATION`结构，包括32位的`VirtualAddress`和32位的`SizeOfBlock`。随后是实际的重定位数据，每个都是16位的。`VirtualAddress`是本块要应用的基地址。`SizeOfBlock`是整个块的大小。后面的重定位的数目是`(SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / 2`，重定位信息以`VirtualAddress`＝0的`IMAGE_BASE_RELOCATION`结构结束。
+
+每个16位重定位信息包括低12位的重定位位置和高4位的重定位类型。要得到重定位的RVA，`IMAGE_BASE_RELOCATION`的`VirtualAddress`需要加上12位位置偏移量。类型是下列之一：
+
+- `IMAGE_REL_BASED_ABSOLUTE (0)`：使块按照32位对齐，位置为0。
+- `IMAGE_REL_BASED_HIGH (1)`：高16位必须应用于偏移量所指高字16位。
+- `IMAGE_REL_BASED_LOW (2)`：低16位必须应用于偏移量所指低字16位。
+- `IMAGE_REL_BASED_HIGHLOW (3)`：全部32位应用于所有32位。
+- `IMAGE_REL_BASED_HIGHADJ (4)`：需要32位，高16位位于偏移量，低16位位于下一个偏移量数组元素，组合为一个带符号数，加上32位的一个数，然后加上8000然后把高16位保存在偏移量的16位域内。
+- `IMAGE_REL_BASED_MIPS_JMPADDR (5)`：Unknown
+- `IMAGE_REL_BASED_SECTION (6)`：Unknown
+- `IMAGE_REL_BASED_REL32 (7)`：Unknown
+
+举例：
+
+```text
+0x00004000      (32 bits, starting RVA)
+0x00000010      (32 bits, size of chunk)
+0x3012          (16 bits reloc data)
+0x3080          (16 bits reloc data)
+```
