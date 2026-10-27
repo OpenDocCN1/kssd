@@ -1,0 +1,123 @@
+
+```
+0058ABD4                            |. |FF75 FC         |push dword ptr ss:[ebp-4]        //存放的用户ID
+0058ABD7                            |. |8D4D D1         |lea ecx,dword ptr ss:[ebp-2F]          ; |
+0058ABDA                            |. |51              |push ecx                               ; |Arg1
+0058ABDB                            |. |E8 1CFEFFFF     |call d1.0058A9FC  ; 对用户ID进行运算,有狗,所以直接读出用户ID
+0058ABE0                            |. |8B45 0C         |mov eax,dword ptr ss:[ebp+C]        //程序入口参数
+0058ABE3                            |. |33D2            |xor edx,edx
+0058ABE5                            |. |8A5405 D1       |mov dl,byte ptr ss:[ebp+eax-2F]
+0058ABE9                            |. |3BF2            |cmp esi,edx                        //对用户ID运算的结果比较
+0058ABEB                            |. |74 35           |je short d1.0058AC22        //跳向下一操作,不跳OVER
+0058ABED                            |> |8D4D D4         |lea ecx,dword ptr ss:[ebp-2C]
+0058ABF0                            |. |51              |push ecx
+0058ABF1                            |. |8D45 EE         |lea eax,dword ptr ss:[ebp-12]
+0058ABF4                            |. |50              |push eax
+0058ABF5                            |. |8D55 F0         |lea edx,dword ptr ss:[ebp-10]
+0058ABF8                            |. |52              |push edx
+0058ABF9                            |. |8D4D F2         |lea ecx,dword ptr ss:[ebp-E]
+0058ABFC                            |. |51              |push ecx
+0058ABFD                            |. |8D45 F4         |lea eax,dword ptr ss:[ebp-C]
+0058AC00                            |. |50              |push eax
+0058AC01                            |. |8D55 F8         |lea edx,dword ptr ss:[ebp-8]
+0058AC04                            |. |52              |push edx
+0058AC05                            |. |8D4D FC         |lea ecx,dword ptr ss:[ebp-4]
+0058AC08                            |. |51              |push ecx
+0058AC09                            |. |8D45 F6         |lea eax,dword ptr ss:[ebp-A]
+0058AC0C                            |. |50              |push eax        //为锁的句柄
+0058AC0D                            |. |6A 04           |push 4                //关闭锁
+0058AC0F                            |. |FF15 94E16400   |call dword ptr ds:[64E194]
+/\*
+(4) 关闭锁
+    输入参数:
+    function = 4
+    \*handle = 锁的句柄
+    返回:
+    返回为 0 表示成功, 其它为错误码
+\*/
+0058AC15                            |. |83C4 24         |add esp,24
+0058AC18                            |> |B8 02000000     |mov eax,2
+0058AC1D                            |.^\E9 F0FEFFFF     \jmp d1.0058AB12
+0058AC22                            |>  66:8B55 0C      mov dx,word ptr ss:[ebp+C]        //入口参数赋值
+0058AC26                            |.  C1E2 03         shl edx,3
+0058AC29                            |.  66:8955 F4      mov word ptr ss:[ebp-C],dx        //读入内容的开始地址0
+0058AC2D                            |.  66:C745 F2 0800 mov word ptr ss:[ebp-E],8        //读入内容的长度8
+0058AC33                            |.  53              push ebx        //为buffer指针,返回后,添入读入的内容
+0058AC34                            |.  8D4D EE         lea ecx,dword ptr ss:[ebp-12]
+0058AC37                            |.  51              push ecx
+0058AC38                            |.  8D45 F0         lea eax,dword ptr ss:[ebp-10]
+0058AC3B                            |.  50              push eax
+0058AC3C                            |.  8D55 F2         lea edx,dword ptr ss:[ebp-E]
+0058AC3F                            |.  52              push edx        //p2
+0058AC40                            |.  8D4D F4         lea ecx,dword ptr ss:[ebp-C]
+0058AC43                            |.  51              push ecx        //p1
+0058AC44                            |.  8D45 F8         lea eax,dword ptr ss:[ebp-8]
+0058AC47                            |.  50              push eax        //lp2
+0058AC48                            |.  8D55 FC         lea edx,dword ptr ss:[ebp-4]
+0058AC4B                            |.  52              push edx        //lp1
+0058AC4C                            |.  8D4D F6         lea ecx,dword ptr ss:[ebp-A]
+0058AC4F                            |.  51              push ecx        //handle
+0058AC50                            |.  6A 05           push 5                //function 读锁
+0058AC52                            |.  FF15 94E16400   call dword ptr ds:[64E194]
+/\*
+(5) 读锁
+    输入参数:
+    function = 5
+    \*handle = 锁的句柄
+    \*p1 = pos
+    \*p2 = length
+    buffer = 缓冲区的指针
+    返回:
+    buffer 中添入读入的内容
+    返回为 0 表示成功, 其它为错误码
+\*/
+0058AC58                            |.  83C4 24         add esp,24
+0058AC5B                            |.  66:85C0         test ax,ax
+0058AC5E                            |.  74 32           je short d1.0058AC92
+0058AC60                            |.  8D45 D4         lea eax,dword ptr ss:[ebp-2C]
+0058AC63                            |.  50              push eax
+0058AC64                            |.  8D55 EE         lea edx,dword ptr ss:[ebp-12]
+0058AC67                            |.  52              push edx
+0058AC68                            |.  8D4D F0         lea ecx,dword ptr ss:[ebp-10]
+0058AC6B                            |.  51              push ecx
+0058AC6C                            |.  8D45 F2         lea eax,dword ptr ss:[ebp-E]
+0058AC6F                            |.  50              push eax
+0058AC70                            |.  8D55 F4         lea edx,dword ptr ss:[ebp-C]
+0058AC73                            |.  52              push edx
+0058AC74                            |.  8D4D F8         lea ecx,dword ptr ss:[ebp-8]
+0058AC77                            |.  51              push ecx
+0058AC78                            |.  8D45 FC         lea eax,dword ptr ss:[ebp-4]
+0058AC7B                            |.  50              push eax
+0058AC7C                            |.  8D55 F6         lea edx,dword ptr ss:[ebp-A]
+0058AC7F                            |.  52              push edx        //锁的句柄
+0058AC80                            |.  6A 04           push 4
+0058AC82                            |.  FF15 94E16400   call dword ptr ds:[64E194]
+/\*
+WORD Rockey(WORD function, WORD\* handle, DWORD\* lp1,  DWORD\* lp2, WORD\* p1, WORD\* p2, WORD\* p3, WORD\* p4, BYTE\* buffer)
+(4) 关闭锁
+    输入参数:
+    function = 4
+    \*handle = 锁的句柄
+    返回:
+    返回为 0 表示成功, 其它为错误码
+\*/
+0058AC88                            |.  83C4 24         add esp,24
+0058AC8B                            |.  33C0            xor eax,eax
+0058AC8D                            |.  E9 8D020000     jmp d1.0058AF1F
+0058AC92                            |>  66:8B53 04      mov dx,word ptr ds:[ebx+4]
+0058AC96                            |.  66:8953 0E      mov word ptr ds:[ebx+E],dx
+0058AC9A                            |.  66:8B4B 06      mov cx,word ptr ds:[ebx+6]
+0058AC9E                            |.  66:894D CA      mov word ptr ss:[ebp-36],cx
+0058ACA2                            |.  33C0            xor eax,eax
+0058ACA4                            |.  8945 FC         mov dword ptr ss:[ebp-4],eax
+0058ACA7                            |.  8B55 0C         mov edx,dword ptr ss:[ebp+C]
+0058ACAA                            |.  8D1492          lea edx,dword ptr ds:[edx+edx\*4]
+0058ACAD                            |.  8955 F8         mov dword ptr ss:[ebp-8],edx
+0058ACB0                            |.  E8 03FEFFFF     call d1.0058AAB8                //取启动时间(),用作返回值
+0058ACB5                            |.  8BF8            mov edi,eax
+0058ACB7                            |.  66:8945 F4      mov word ptr ss:[ebp-C],ax
+0058ACBB                            |.  E8 F8FDFFFF     call d1.0058AAB8
+0058ACC0                            |.  8BF0            mov esi,eax
+0058ACC2                            |.  66:8945 F2      mov word ptr ss:[ebp-E],ax
+0058ACC6                            |.  E8 EDFDFFFF     call d1.0058AAB8
+```
