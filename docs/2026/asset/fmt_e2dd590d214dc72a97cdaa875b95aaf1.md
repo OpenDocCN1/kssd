@@ -1,0 +1,314 @@
+
+### 程序执行跟踪
+
+`00414F5B    52              PUSH EDX`
+
+`00414F5C    50              PUSH EAX`
+
+`00414F5D    8BD5            MOV EDX,EBP`
+
+`00414F5F    81C2 3D654200   ADD EDX,42653D`
+
+`00414F65    F702 04000000   TEST DWORD PTR DS:[EDX],4`
+
+`00414F6B    74 12           JE SHORT anota2.00414F7F`
+
+`00414F6D    8BD5            MOV EDX,EBP`
+
+`00414F6F    81C2 B55B4200   ADD EDX,425BB5`
+
+进入后，跟踪来到：
+
+```
+7FF667CA    8365 E4 00      AND DWORD PTR SS:[EBP-1C],0
+7FF667CE    6A 00           PUSH 0
+7FF667D0    8D45 EC         LEA EAX,DWORD PTR SS:[EBP-14]
+7FF667D3    50              PUSH EAX
+7FF667D4    FF75 08         PUSH DWORD PTR SS:[EBP+8]
+7FF667D7    E8 8B92FFFF     CALL 7FF5FA67
+7FF667DC    83C4 0C         ADD ESP,0C
+7FF667DF    0FB6C0          MOVZX EAX,AL
+7FF667E2    85C0            TEST EAX,EAX
+7FF667E4    74 48           JE SHORT 7FF6682E/////强制跳转!
+7FF667E6    6A 01           PUSH 1
+7FF667E8    6A 00           PUSH 0
+7FF667EA    FF75 0C         PUSH DWORD PTR SS:[EBP+C]
+7FF667ED    68 1065F87F     PUSH 7FF86510                            ; ASCII "GetProcAddress"
+7FF667F2    8B4D EC         MOV ECX,DWORD PTR SS:[EBP-14]
+7FF667F5    E8 7028FEFF     CALL 7FF4906A
+7FF667FA    8945 E4         MOV DWORD PTR SS:[EBP-1C],EAX
+7FF667FD    837D E4 00      CMP DWORD PTR SS:[EBP-1C],0
+7FF66801    75 1B           JNZ SHORT 7FF6681E
+```
+
+上面`7FF667E4`强制跳转后，就不会破坏IAT了。不过程序会检测到代码被修改，然后产生异常。但不要紧，这里IAT已经完整了，用`ImportREC`可以找到全部IAT。如下：
+
+#### ImportREC 语法说明
+
+`; Syntax for each function in a thunk (the separator is a TAB)`
+
+`; ------------------------------------------------------------`
+
+`; Flag   RVA   ModuleName   Ordinal   Name`
+
+`;`
+
+`; Details for <有效 > parameter:`
+
+`; ------------------------------`
+
+`; Flag:  0 = valid: no  -> - Name contains the address of the redirected API (you can set`
+
+`;                            it to zero if you edit it).`
+
+`;                          - Ordinal is not considered but you should let '0000' as value.`
+
+`;                          - ModuleName is not considered but you should let '?' as value.`
+
+`;`
+
+`;        1 = valid: yes -> All next parameters on the line will be considered.`
+
+`;                          Function imported by ordinal must have no name (the 4th TAB must`
+
+`;                                                                          be there though).`
+
+`;`
+
+`;        2 = Equivalent to 0 but it is for the loader.`
+
+`;`
+
+`;        3 = Equivalent to 1 but it is for the loader.`
+
+`;`
+
+`;        4 = Equivalent to 0 with (R) tag.`
+
+`;`
+
+`;        5 = Equivalent to 1 with (R) tag.`
+
+`;`
+
+`决定在于你 , 编辑这个文件需要承担风险 !       :-) `
+
+目标  : `C:\Documents and Settings\Administrator\桌面\anota2.rar\_620\anota2.exe`
+
+`OEP: 00004100  IATRVA: 00008234  IAT大小: 00000188`
+
+`FThunk: 00008238  NbFunc: 00000002`
+
+`1  00008238  advapi32.dll  01A5  RegOpenKeyExA`
+
+`1  0000823C  advapi32.dll  018C  RegCloseKey`
+
+`FThunk: 00008244  NbFunc: 00000001`
+
+`1  00008244  gdi32.dll  0168  GetStockObject`
+
+`FThunk: 0000824C  NbFunc: 00000020`
+
+`1  0000824C  kernel32.dll  001F  CloseHandle`
+
+`1  00008250  kernel32.dll  0039  CreateFileA`
+
+`1  00008254  kernel32.dll  0091  ExitProcess`
+
+`1  00008258  kernel32.dll  00BE  FlushFileBuffers`
+
+`1  0000825C  kernel32.dll  00C6  FreeEnvironmentStringsA`
+
+`1  00008260  kernel32.dll  00DF  GetCommandLineA`
+
+`1  00008264  kernel32.dll  010C  GetCurrentDirectoryA`
+
+`1  00008268  kernel32.dll  011E  GetEnvironmentStrings`
+
+`1  0000826C  kernel32.dll  012A  GetFileSize`
+
+`1  00008270  kernel32.dll  012D  GetFileType`
+
+`1  00008274  kernel32.dll  0132  GetLastError`
+
+`1  00008278  kernel32.dll  013F  GetModuleHandleA`
+
+`1  0000827C  kernel32.dll  016B  GetStartupInfoA`
+
+`1  00008280  kernel32.dll  0177  GetSystemInfo`
+
+`1  00008284  kernel32.dll  0194  GetVersionExA`
+
+`1  00008288  kernel32.dll  01A1  GlobalAlloc`
+
+`1  0000828C  kernel32.dll  01A8  GlobalFree`
+
+`1  00008290  kernel32.dll  0209  MultiByteToWideChar`
+
+`1  00008294  kernel32.dll  0244  ReadFile`
+
+`1  00008298  kernel32.dll  028F  SetCurrentDirectoryA`
+
+`1  0000829C  kernel32.dll  0293  SetEndOfFile`
+
+`1  000082A0  kernel32.dll  0296  SetErrorMode`
+
+`1  000082A4  kernel32.dll  029C  SetFilePointer`
+
+`1  000082A8  kernel32.dll  02A3  SetLastError`
+
+`1  000082AC  kernel32.dll  02CA  Sleep`
+
+`1  000082B0  kernel32.dll  02D7  TlsAlloc`
+
+`1  000082B4  kernel32.dll  02D8  TlsFree`
+
+`1  000082B8  kernel32.dll  02D9  TlsGetValue`
+
+`1  000082BC  kernel32.dll  02DA  TlsSetValue`
+
+`1  000082C0  kernel32.dll  0308  WideCharToMultiByte`
+
+`1  000082C4  kernel32.dll  0315  WriteFile`
+
+`1  000082C8  kernel32.dll  0193  GetVersion`
+
+`FThunk: 000082D0  NbFunc: 00000002`
+
+`1  000082D0  ole32.dll  003C  CoInitialize`
+
+`1  000082D4  ole32.dll  0064  CoUninitialize`
+
+`FThunk: 000082DC  NbFunc: 00000006`
+
+`1  000082DC  oleaut32.dll  000F  SafeArrayCreate`
+
+`1  000082E0  oleaut32.dll  0096  SysAllocStringByteLen`
+
+`1  000082E4  oleaut32.dll  0006  SysFreeString`
+
+`1  000082E8  oleaut32.dll  0095  SysStringByteLen`
+
+`1  000082EC  oleaut32.dll  0009  VariantClear`
+
+`1  000082F0  oleaut32.dll  000A  VariantCopy`
+
+`FThunk: 000082F8  NbFunc: 00000024`
+
+`1  000082F8  user32.dll  0051  CreateDialogParamA`
+
+`1  000082FC  user32.dll  005B  CreateWindowExA`
+
+`1  00008300  user32.dll  0098  DispatchMessageA`
+
+`1  00008304  user32.dll  00BA  EnableWindow`
+
+`1  00008308  user32.dll  00BC  EndDialog`
+
+`1  0000830C  user32.dll  00F4  GetClientRect`
+
+`1  00008310  user32.dll  0106  GetDlgItem`
+
+`1  00008314  user32.dll  015B  GetWindowLongA`
+
+`1  00008318  user32.dll  0161  GetWindowRect`
+
+`1  0000831C  user32.dll  0163  GetWindowTextA`
+
+`1  00008320  user32.dll  0164  GetWindowTextLengthA`
+
+`1  00008324  user32.dll  01C4  MessageBoxA`
+
+`1  00008328  user32.dll  0219  SendMessageA`
+
+`1  0000832C  user32.dll  0234  SetFocus`
+
+`1  00008330  user32.dll  0261  SetWindowPos`
+
+`1  00008334  user32.dll  0264  SetWindowTextA`
+
+`1  00008338  user32.dll  0270  ShowWindow`
+
+`1  0000833C  user32.dll  0288  TranslateMessage`
+
+`1  00008340  user32.dll  0083  DefFrameProcA`
+
+`1  00008344  user32.dll  0085  DefMDIChildProcA`
+
+`1  00008348  user32.dll  0096  DialogBoxParamA`
+
+`1  0000834C  user32.dll  012E  GetMessageA`
+
+`1  00008350  user32.dll  014A  GetSystemMetrics`
+
+`1  00008354  user32.dll  0198  IsZoomed`
+
+`1  00008358  user32.dll  019B  LoadAcceleratorsA`
+
+`1  0000835C  user32.dll  019F  LoadCursorA`
+
+`1  00008360  user32.dll  01A3  LoadIconA`
+
+`1  00008364  user32.dll  01AB  LoadMenuA`
+
+`1  00008368  user32.dll  01B0  LoadStringA`
+
+`1  0000836C  user32.dll  01CF  MoveWindow`
+
+`1  00008370  user32.dll  01F7  RegisterClassA`
+
+`1  00008374  user32.dll  01F8  RegisterClassExA`
+
+`1  00008378  user32.dll  0284  TranslateAccelerator`
+
+`1  0000837C  user32.dll  0287  TranslateMDISysAccel`
+
+`1  00008380  user32.dll  0297  UpdateWindow`
+
+`1  00008384  user32.dll  01E6  PostQuitMessage`
+
+`FThunk: 0000838C  NbFunc: 00000007`
+
+`1  0000838C  comctl32.dll  0011  InitCommonControls`
+
+`1  00008390  comctl32.dll  0046  ImageList\_ReplaceIcon`
+
+`1  00008394  comctl32.dll  0044  ImageList\_Remove`
+
+`1  00008398  comctl32.dll  003A  ImageList\_GetIcon`
+
+`1  0000839C  comctl32.dll  003F  ImageList\_LoadImage`
+
+`1  000083A0  comctl32.dll  0016  CreateToolbarEx`
+
+`1  000083A4  comctl32.dll  0006  CreateStatusWindowA`
+
+`FThunk: 000083AC  NbFunc: 00000003`
+
+`1  000083AC  comdlg32.dll  0075  PrintDlgA`
+
+`1  000083B0  comdlg32.dll  006E  GetOpenFileNameA`
+
+`1  000083B4  comdlg32.dll  0070  GetSaveFileNameA`
+
+### 三、修复主程序
+
+修复很简单。到入口后：
+
+```
+00404100    55              PUSH EBP                                 ; anota2.00413E4A
+00404101    8BEC            MOV EBP,ESP
+00404103    53              PUSH EBX
+00404104    56              PUSH ESI
+00404105    57              PUSH EDI
+00404106    BB 00704000     MOV EBX,anota2.00407000
+0040410B    66:2E:F705 8E47>TEST WORD PTR CS:[40478E],4
+00404115    0F85 DB000000   JNZ anota2.004041F6
+0040411B    6A 00           PUSH 0
+0040411D    FF15 D0824000   CALL NEAR DWORD PTR DS:[4082D0]
+00404123    E8 9C020000     CALL anota2.004043C4
+00404128    68 00F04000     PUSH anota2.0040F000////修复处1。
+0040412D    C3              RETN
+0040412E    0100            ADD DWORD PTR DS:[EAX],EAX
+00404130    0000            ADD BYTE PTR DS:[EAX],AL
+```
