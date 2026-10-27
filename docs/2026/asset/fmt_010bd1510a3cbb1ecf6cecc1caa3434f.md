@@ -1,0 +1,241 @@
+
+# 对抗GetTickCount的一种方法
+
+很多壳喜欢用检测代码运行时间来判断是否被调试。常用的有`rdtsc`及`GetTickCount`。
+
+调试时一一跳过非常麻烦。`rdtsc`可以通过设置`CR4`中的`Time Stamp Disable`位来解决。下面尝试把`GetTickCount`一并解决。
+
+简单的办法是直接`Hook`这个`api`，返回自己设定的值。但`Hook`容易被检测。有的壳直接模仿`GetTickCount`代码，`Hook`就不管用了。
+
+下面是`WinXP SP1`下`GetTickCount`代码:
+
+```
+77E5A29B >  BA 0000FE7F   mov edx,7FFE0000
+77E5A2A0    8B02          mov eax,dword ptr ds:[edx]
+77E5A2A2    F762 04       mul dword ptr ds:[edx+4]
+77E5A2A5    0FACD0 18     shrd eax,edx,18
+77E5A2A9    C3            retn
+```
+
+可以看到,直接用`7FFE0000`处的2个`dword`计算出结果。`<Windows2000 Native API>`对这里的数据结构说明为:
+
+`GetTickCount` reads from the `KUSER_SHARED_DATA` page.This page is mapped read-only into the user mode range of the virtual address and read-write in the kernel range.
+
+The system clock tick updates the system tick count, which is stored in this page directly.
+
+Reading the tick count from this page is faster than calling `ZwGetTickCount`.
+
+The `KUSER_SHARED_DATA` structure is defined in the Windows 2000 versions of `ntddk.h`.
+
+即这个地址对应的物理页以只读方式映射到用户空间(`7FFE0000`),以读写方式映射到内核空间(`FFDF0000`)。两个线性地址共享同一物理页。
+
+用`WinDbg`可显示其详细结构:
+
+```
+lkd> dt _KUSER_SHARED_DATA -r
+   +0x000 TickCountLow     : Uint4B
+   +0x004 TickCountMultiplier : Uint4B
+   +0x008 InterruptTime    : _KSYSTEM_TIME
+      +0x000 LowPart          : Uint4B
+      +0x004 High1Time        : Int4B
+      +0x008 High2Time        : Int4B
+   +0x014 SystemTime       : _KSYSTEM_TIME
+      +0x000 LowPart          : Uint4B
+      +0x004 High1Time        : Int4B
+      +0x008 High2Time        : Int4B
+   +0x020 TimeZoneBias     : _KSYSTEM_TIME
+      +0x000 LowPart          : Uint4B
+      +0x004 High1Time        : Int4B
+      +0x008 High2Time        : Int4B
+   +0x02c ImageNumberLow   : Uint2B
+   +0x02e ImageNumberHigh  : Uint2B
+   +0x030 NtSystemRoot     : [260] Uint2B
+   +0x238 MaxStackTraceDepth : Uint4B
+   +0x23c CryptoExponent   : Uint4B
+   +0x240 TimeZoneId       : Uint4B
+   +0x244 Reserved2        : [8] Uint4B
+   +0x264 NtProductType    :
+      NtProductWinNt = 1
+      NtProductLanManNt = 2
+      NtProductServer = 3
+   +0x268 ProductTypeIsValid : UChar
+   +0x26c NtMajorVersion   : Uint4B
+   +0x270 NtMinorVersion   : Uint4B
+   +0x274 ProcessorFeatures : [64] UChar
+   +0x2b4 Reserved1        : Uint4B
+   +0x2b8 Reserved3        : Uint4B
+   +0x2bc TimeSlip         : Uint4B
+   +0x2c0 AlternativeArchitecture :
+      StandardDesign = 0
+      NEC98x86 = 1
+      EndAlternatives = 2
+   +0x2c8 SystemExpirationDate : _LARGE_INTEGER
+      +0x000 LowPart          : Uint4B
+      +0x004 HighPart         : Int4B
+      +0x000 u                : __unnamed
+         +0x000 LowPart          : Uint4B
+         +0x004 HighPart         : Int4B
+      +0x000 QuadPart         : Int8B
+   +0x2d0 SuiteMask        : Uint4B
+   +0x2d4 KdDebuggerEnabled : UChar
+   +0x2d8 ActiveConsoleId  : Uint4B
+   +0x2dc DismountCount    : Uint4B
+   +0x2e0 ComPlusPackage   : Uint4B
+   +0x2e4 LastSystemRITEventTickCount : Uint4B
+   +0x2e8 NumberOfPhysicalPages : Uint4B
+   +0x2ec SafeBootMode     : UChar
+   +0x2f0 TraceLogging     : Uint4B
+   +0x2f8 Fill0            : Uint8B
+   +0x300 SystemCall       : [4] Uint8B
+```
+
+`GetTickCount`使用的是:
+
+```
++0x000 TickCountLow     : Uint4B
++0x004 TickCountMultiplier : Uint4B
+```
+
+`kernel32`中不少`api`都使用了这里的数据。用`IDA`可以找出不少:
+
+`GetSystemTime`
+
+`GetSystemTimeAsFileTime`
+
+`GetLocalTime`
+
+......
+
+注意不只是与时间或日期相关的`api`,还有些别的如`Beep`。
+
+用`OD`加载`notepad`,可以看到`7FFE0000`处数据是变化的(每单击1次)。
+
+是谁在写入数据? 用`SoftIce`可找到:
+
+`ntoskrnl!KeUpdateSystemTime`
+
+```
+.text:0043EFFE     public __stdcall KeUpdateSystemTime()
+.text:0043EFFE __stdcall KeUpdateSystemTime() proc near
+.text:0043EFFE     mov     ecx, 0FFDF0000h
+.text:0043F003     mov     edi, [ecx+8]
+.text:0043F006     mov     esi, [ecx+0Ch]
+.text:0043F009     add     edi, eax
+.text:0043F00B     adc     esi, 0
+.text:0043F00E     mov     [ecx+10h], esi
+.text:0043F011     mov     [ecx+8], edi
+.text:0043F014     mov     [ecx+0Ch], esi
+.text:0043F017     sub     _KiTickOffset, eax
+.text:0043F01D     mov     eax, _KeTickCount.LowPart
+.text:0043F022     mov     ebx, eax
+.text:0043F024     jg      short loc_43F08B
+.text:0043F026     mov     ebx, 0FFDF0000h
+.text:0043F02B     mov     ecx, [ebx+14h]
+.text:0043F02E     mov     edx, [ebx+18h]
+.text:0043F031     add     ecx, _KeTimeAdjustment
+.text:0043F037     adc     edx, 0
+.text:0043F03A     mov     [ebx+1Ch], edx
+.text:0043F03D     mov     [ebx+14h], ecx
+.text:0043F040     mov     [ebx+18h], edx
+.text:0043F043     mov     ebx, eax
+.text:0043F045     mov     ecx, eax
+.text:0043F047     mov     edx, _KeTickCount.High1Time
+.text:0043F04D     add     ecx, 1
+.text:0043F050     adc     edx, 0
+.text:0043F053     mov     _KeTickCount.High2Time, edx
+.text:0043F059     mov     _KeTickCount.LowPart, ecx
+.text:0043F05F     mov     _KeTickCount.High1Time, edx
+.text:0043F065     mov     ds:0FFDF0000h, ecx
+.text:0043F06B     and     eax, 0FFh
+.text:0043F070     lea     ecx, _KiTimerTableListHead[eax*8]
+……
+```
+
+可以用驱动直接`patch`这里的代码,使其不再更新数据,或者插入一些别的代码,减慢更新速度等。但这里的修改是全局性的,简单地`NOP`掉更新数据的`opcode`,会导致一些程序不能正常运行。
+
+由于`KUSER_SHARED_DATA`的特殊性，可以换个办法。`windows`操作系统使用分页机制管理内存,每个进程拥有自己的页目录和页表。可以替换掉被调试进程内地址`7FFE0000`对应页的`pte`,使其指向我们分配的`buffer`,这样可以向`buffer`内写入数据影响被调试进程,而不会产生全局性的后果。
+
+大致的实现如下:
+
+写1个`dll`,修改`OD`的引入表将这个`dll`映射到`OD`进程空间。`Hook OD`的`WaitForDebugEvent`:
+
+```
+BOOL __stdcall COllyDbg::NewWaitForDebugEvent(
+  LPDEBUG_EVENT lpDebugEvent,
+  DWORD dwMilliseconds)
+{
+        HANDLE        hDebuggedProcess = 0;
+        HANDLE        hDebuggedThread = 0;
+        BOOL        bRet = false;
+        bRet = m_pfnWaitForDebugEvent(lpDebugEvent,dwMilliseconds);        //call原api
+        switch(lpDebugEvent->dwDebugEventCode)
+        {
+        case EXCEPTION_DEBUG_EVENT:
+                // 第1个int 3调试事件,
+                if((EXCEPTION_BREAKPOINT ==
+                        lpDebugEvent->u.Exception.ExceptionRecord.ExceptionCode)
+                {
+                        // m_pDriver用来与驱动通信
+                        m_pDriver->SetTSD();                                // for rdtsc ;-)
+                        m_pDriver->ReplacePteOfKuserSharedData();        // 替换pte
+                }
+                break;
+        case EXIT_PROCESS_DEBUG_EVENT:
+                m_pDriver->ClearTSD();
+                m_pDriver->RecoverPteOfKuserSharedData();        // 恢复
+                break;
+        default:
+                break;
+        }
+        return bRet;
+}
+```
+
+这是在`dll`内定义的`4KB`的`buffer`,用来保存从被调试进程的`7FFE0000`读出的1页数据(因为这里的数据不少`api`要使用,必须保留)。使用单独的`section`,可以保证其虚拟地址按页对齐。
+
+```
+#pragma data_seg("shared")
+DWORD KuserSharedData[1024] = {0};
+#pragma data_seg()
+```
+
+`ReplacePteOfKuserSharedData`向驱动发送命令,读出`7FFE0000`处原来的1页数据到`KuserSharedData`,替换`pte`。
+
+```
+BOOL CDriver::ReplacePteOfKuserSharedData()
+{
+        DWORD        dwBytesReturned = 0;
+        DWORD        dwAddr = (DWORD)&KuserSharedData;
+        if(INVALID_HANDLE_VALUE == m_hDevice)        // CreateFile驱动的返回
+        {
+                return FALSE;
+        }
+        // 不知道有无必要? 是想确保真正提交到物理页
+        for(int i = 0; i <1024; i++)
+        {
+                KuserSharedData[i] = i;
+        }
+        VirtualLock(KuserSharedData,1024 * 4);        // 锁定
+        m_data[0] = (DWORD)(&KuserSharedData);        // 用来传递参数的array,这里只用1个dword
+        // IOCTL_821
+        return DeviceIoControl(
+                m_hDevice,
+                IOCTL_821,
+                &dwAddr,                // 传递buffer在OllyDbg进程空间内的Virtual Address
+                sizeof(DWORD) * 1,
+                (PVOID)dwAddr,                // 返回debuggee原来KUSER_SHARED_DATA处的4KB数据
+                sizeof(DWORD) * 1024,
+                &dwBytesReturned,
+                NULL);
+}
+```
+
+`RecoverPteOfKuserSharedData`在被调试进程结束前调用,恢复被调试进程地址`7FFE0000`对应的原`pte`。
+
+如果不执行,会导致蓝屏，错误为`PFN_LIST_CORRUPTED`(页帧号链表损坏,如果不用恢复原`pte`的做法,应该怎样解决这个问题?我不知道:-(
+```
+BOOL CDriver::RecoverPteOfKuserSharedData()
+{
+        DWORD        dwBytesReturned = 0;
+        VirtualUnlock(KuserSharedData,1024 * 4);
+```
