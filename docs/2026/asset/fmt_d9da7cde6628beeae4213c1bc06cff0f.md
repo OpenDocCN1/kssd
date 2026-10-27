@@ -1,0 +1,24 @@
+
+`007 00000000 SECT2 notype () External | \_imsl\_f\_lin\_sol\_gen`
+
+```
+F:\>dumpbin /exports %vni_dir%\cnl55\bin\cmath.dll | grep -i imsl_f_lin_sol_gen
+
+438 1B5 000432C0 imsl_f_lin_sol_gen
+
+439 1B6 0023B130 imsl_f_lin_sol_gen_band
+
+440 1B7 0024AE30 imsl_f_lin_sol_gen_coordinate
+
+441 1B8 00259C30 imsl_f_lin_sol_gen_min_residual
+```
+
+```
+F:\>lib /extract:vc++\flinslg.obj %vni_dir%\cnl55\lib\cmath_s.lib
+```
+
+IDA FLAIR将带入更深入的一步。虽然在源代码中API调用看起来好像“x = `imsl_f_lin_sol_gen(n, a, b, 0)`；”，在反汇编中它显示为“`call 004033B0`” (静态链接) or “`call [00402054]`” (动态链接)。沿着其内存地址的恰当的函数名称标记将使汇编分析容易得多，而这恰恰是FLAIR所能做到的。许多调试器有类似的注解功能，但通常限于输出的API。IDA试图扩展到包含尽可能多的函数。
+
+FLAIR的思想是为每个可标识的库函数创建一个“签名”，以使IDA在分析汇编代码时能认知和标记它。在名称指示时，它基本上就是一个认知的问题。再次，由于内容的不同，它仅为LIB工作而不针对发布的DLL版本。我们必须看到DLL有其优势诸如代码共享和主程序简化。例如，`cmath.exe`的静态链接大小约700KB，但其动态链接小于4KB。但破解所关心的是，LIB是比DLL更好的方式（当追踪DLL链接的应用程序时，我们的大多数时间都是在`10000000+` 或 `80000000+` 区而不是熟悉的`00400000+` 区; 在DLL版本的`cmath.exe`中，指令“`102D12BA: call 102D7980`” 返回`FFFFFFF8`）。
+
+IDA FLAIR并非完美的－它不能操作DLL，一些函数不能被识别，可能发生错误的认知等。但它仍然是切实可行的。它最初的目的是分离样板API(诸如`Win32,MFC,ATL`等[6])，因此我们可以聚焦在主程序算法上而不是标准的库函数上。在我们的实例中，我们更感兴趣的是得到这些重点的`FLEXLM`函数，因此我们不必步入每个调用以得到全部代码迷惑的一个大（结构）图。在实际中，我们创建了`cmath_s.lib`和`lmgr.lib`的签名文件，在IDA中将它们应用到`cmath.exe`，发现FLAIR做得很好－它认知了大多数`FLEXLM`函数。作为一个优秀的静态分析工具，IDA也提供了一个`WinGraph32`特征称作“显示流程图表”。我发现它在对照源代码时特别有助于代码的理解。

@@ -1,0 +1,264 @@
+
+# 【原创】制作AUTOcad2002网络版的Flexlm license 时的另类pediy，纯粹是玩，高手略过！
+
+标 题:【原创】制作AUTOcad2002网络版的Flexlm license 时的另类pediy，纯粹是玩，高手略过！
+
+发信人:laoqian
+
+时 间:2004-11-30,16:09
+
+详细信息:
+
+制作AUTOcad2002中文网络版的Flexlm license 时的另类pediy，纯粹是玩！
+
+软件名称： AUTOcad2002中文网络版
+
+应用平台： Win2000
+
+软件类别： 地球人都知道
+
+软件介绍： 地球人都知道 Flexlm7.1f加密
+
+破解工具： ollydbg 1.10（Fly修改版），w32Dasm\_2002828\_pll621，UltraEdit10.0，c32asm，剩余空间查看器，PEditor
+
+破解目的： 1.自动保存“制作无限制使用license文件的关键数据”到指定文件
+           2.练习diy PE
+           3.熟悉寄存器的使用，如`eax`，`[eax]`....等，顺便说一下心得。
+
+破解过程：
+
+通过这篇文章我们将向你介绍寄存器的使用的一些心得，如`eax`和`[eax]`区别，以及使用时方法，其实我也是刚明白
+至于如何制作FlexLm的license见|<http://bbs.pediy.com/showthread.php?s=&threadid=6562>|，当然有些重复的我省略了
+
+## 一、查找关键的存放位置――――准备工作
+
+废话少说，接上回，我们找到了关键地方如下：
+
+```
+代码:
+---
+* Referenced by a CALL at Addresses:
+|:00945490   , :0094C1EA   , :0094C7B0   , :0096383C   , :00971159   
+|:00985C14   
+
+|:0094DB50 55                      push ebp　　　<====先在这个地方下断
+|:0094DB51 8BEC                    mov ebp, esp
+|:0094DB53 83EC30                  sub esp, 00000030
+|:0094DB56 C745F08EB94876          mov [ebp-10], 7648B98E   <====这个数在确定l_sg函数上很有用
+|:0094DB5D C745EC03000000          mov [ebp-14], 00000003
+|:0094DB64 8B4508                  mov eax, dword ptr [ebp+08]
+|:0094DB67 8B486C                  mov ecx, dword ptr [eax+6C]
+|:0094DB6A 8B91D4010000            mov edx, dword ptr [ecx+000001D4]
+|:0094DB70 81E200800000            and edx, 00008000
+|:0094DB76 85D2                    test edx, edx
+|:0094DB78 7423                    je 0094DB9D　　
+|:0094DB7A 833DC4DAB50000          cmp dword ptr [00B5DAC4], 00000000
+|:0094DB81 741A                    je 0094DB9D
+|:0094DB83 8B4510                  mov eax, dword ptr [ebp+10]
+|:0094DB86 50                      push eax
+|:0094DB87 8B4D0C                  mov ecx, dword ptr [ebp+0C]
+|:0094DB8A 51                      push ecx
+|:0094DB8B 8B5508                  mov edx, dword ptr [ebp+08]
+|:0094DB8E 52                      push edx
+|:0094DB8F FF15C4DAB500            call dword ptr [00B5DAC4]　<====在这个地方下断，之后就是我们要的！
+|:0094DB95 83C40C                  add esp, 0000000C   <====我们修改这个地方
+|:0094DB98 E913010000              jmp 0094DCB0
+---
+```
+
+这时执行，中断在`0094DB50`后，我们下，下面这些数据就是我们计算`seed1`和`seed2`的关键！
+
+***************
+
+输入　d `[esp+8]`
+
+*******
+
+0012F608  00000004
+0012F60C  1731E48D     `data[0]`
+0012F610  061711DA     `data[1]`
+0012F614  A3A37979
+0012F618  CC926A64
+0012F61C  A1136749
+0012F620  F174A41F
+0012F624  00000000
+
+输入d `[esp]`
+
+*************
+
+0131B660  00000066
+0131B664  0073001F
+0131B668  AEF0D6A0   `job+08`
+0131B66C  A21343D5   `job+0c`
+0131B670  C156EC2E   `job+10`
+0131B674  00000000
+
+我们来保存`data[0]`，`data[1]`，`job+08`，`job+0c`，`job+10`这5个数据到文件！
+
+我们不讲为什么是这5个数据（其实我也一知半解），我们只是用它来讲解！
+
+*******
+
+首先我们来看`esp`和`[esp]`区别。输入d `esp`和d `[esp]`你会看到数据窗口不同,废话!
+
+d `esp`你会看到一个地址，而他的内容或者说"值"就是"0131B660" !
+
+就是说`esp`是指向地址"0131B660"
+
+而地址0131B660的值是"00000066",
+
+d `[esp]` 显示的就是`esp`的值作为地址所指向地址0131B660的值!
+
+比如你d 0131B660就和d `[esp]`是同样的结果.
+
+*******
+
+而我们需要保存的是0012F60C,0012F610,0131B668,0131B66C,0131B670地址的值
+对应的就是:
+
+0012F60C ==`[esp+8]+4`
+0012F610 ==`[esp+8]+8`
+0131B668 ==`[esp]+8`
+0131B66C ==`[esp]+0c`
+0131B670 ==`[esp]+10`
+
+为了容易理解,我们用上面的来表示,当然这是不规范的!
+
+我们的思路:把以上5个地址的内容在此刻(先存储到我们指定的空间),然后写到文件里
+
+## 二、查找剩余空间
+
+推荐：剩余空间查看器： 作者:牛博威
+Email:   advice107@sina.com
+
+用nbw写的"剩余空间查看器"分析,部分结果如下:
+
+***********************
+
+    名称     RVA     OA        尺寸D   可写否
+   .text  005e3a27  005e3a27   1497      否
+  .rdata  006b6c94  006b6c94    876      否
+   .data  0076089c  0076089c  -415900      可
+   .rsrc  00771ad8  0070bad8   1320      否
+
+有效剩余空间(字节D)为: 3693
+
+***********************
+
+我们用.rdata段，就说从文件偏移地址006b6c94开始,有876字节可用空间。但是.rdata段为不可写,无法利用这里的空间声明变量。不过不
+要紧,用PEditor把这个节区属性改成可写便可以了（方法不罗嗦了，简单）。事实证明，整个文件中.rdata区段最后的剩余空间可以被正确加
+载（win2000），这供我们利用足够了！
+
+## 三、准备winapi函数
+
+我们准备改造注册主程序`acad.exe`，但是由于`acad.exe`输入函数表里没有大部分winapi函数，不是他不调用而是反编译后看不到函数名。但是
+我们可以用peditor或者LordPE等工具找到winapi函数，再说即使没有我们也可以添加!具体方法我不说了，看雪书里有，找到如下：
+
+KERNEL32.CreateFileA
+
+FF1560479E00     call [009e4760]
+
+*******
+
+KERNEL32.SetFilePointer
+
+FF15A4489E00     call [009e48a4]
+
+*******
+
+KERNEL32.WriteFile
+
+FF15A8489E00     call [009e48a8]
+
+*******
+
+这里说一下`call [009e4760]`和`call 009e4760`不同，`[009e4760]`是指`009e4760`的值
+
+## 四、修改工作
+
+1.变量组织:我们需要用的变量就设在.rdata段006b6c94后面
+
+6b6c96 :    保存号码的文件地址.我们指定在`C:\cad.txt`里，也可以其他，随便了，不过不要太长！
+
+6b6ca0 :    WriteFile函数的一个参数，数据缓冲区。对我们来说没用。不过不可少！
+
+6b6cac :    文件句柄地址
+
+6B6CB0 :    我们保存的5个数据的存储地方，每个分配8个字节
+
+6B6CD8 :    一个临时的存放`esp`指针的地方
+
+6b6ce0 :    我们的修改代码区
+
+这是文件偏移地址file offset,在使用中要转换,具体参照看雪的书。
+
+2.修改文件,跳转到我们的代码区
+
+`:0094DB8F FF15C4DAB500      call dword ptr [00B5DAC4]`　<====在这个地方下断，之后就是我们要的！
+`:0094DB95 83C40C            add esp, 0000000C`   <====我们修改这个地方，在`esp`改变前保存他！
+`:0094DB98 E913010000        jmp 0094DCB0`
+
+`0094DB95  E946911600         jmp ab6ce0`
+`0094DB95  90                 nop`
+`0094DB96  90                 nop`
+`0094DB97  90                 nop`
+
+不足处不上90，下面两句后面补上。
+
+`add esp, 0000000C`
+`jmp  0094DCB0`
+
+`0094DB95`跳到我们的代码，我们在.rdata段006b6c96开始我们的工作：
+
+***********************
+
+```
+00AB6CE0    8925 D86CAB00        mov [AB6CD8], esp <===此时的esp指针保存在AB6CD8
+  为什么要保存esp指针呢？ 因为是堆栈寄存器，在堆栈操作时要变化比如下面一句pushad，而我们需要的是此刻的esp，
+只好保存一下。这里顺便说一下，eax，ebx，edx，ecx是数据寄存器，
+而esp，epb，esi，edi是指针及变址寄存器，因为我们在补丁程序时，
+不可避免使用寄存器，这时我们最好使用eax，ebx，edx，ecx是数据寄存器，
+否则可能会造成堆栈混乱，一点心得。
+
+00AB6CE6    60                   pushad  <===所有的寄存器依次入栈,保持堆栈平衡，后面对应popad
+00AB6CE7    A1 D86CAB00          mov eax, [AB6CD8] <===保存在AB6CD8的关键esp指针，这里有我们要的数据！！
+00AB6CEC    90                   nop
+00AB6CED    36:8B58 08           mov ebx, [eax+8] <===相当于前面[esp+8]的地址，我们传给ebx
+00AB6CF1    83C3 04              add ebx,4  <===相当于来到前面[esp+8]+4的地址
+00AB6CF4    36:8B0B              mov ecx,[ebx] <===相当于前面[esp+8]+4的地址的值我们传给ecx
+00AB6CF7    890D B06CAB00        mov [AB6CB0], ecx  <===相当于前面[esp+8]+4的值保存在AB6CB0
+  为什么这么麻烦？ 因为“mov [AB6CB0], [ebx]”这汇编命令不存在。
+00AB6CFD    83C3 04              add ebx,4  <===相当于来到前面[esp+8]+8的地址
+00AB6D00    36:8B0B              mov ecx, [ebx]    <===相当于前面[esp+8]+8的地址的值我们传给ecx
+00AB6D03    890D B86CAB00        mov [AB6CB8],ecx  <===相当于前面[esp+8]+8的值保存在AB6CB8
+00AB6D09    36:8B18              mov ebx, [eax] <===相当于前面[esp]的地址，我们传给ebx
+00AB6D0C    83C3 08              add ebx,8  <===相当于来到前面[esp]+8的地址
+00AB6D0F    36:8B0B              mov ecx, [ebx] <===相当于前面[esp]+8的地址的值我们传给ecx
+00AB6D12    890D C06CAB00        mov [AB6CC0],ecx  <===同上
+00AB6D18    83C3 04              add ebx,4  <===相当于来到前面[esp]+0c的地址
+00AB6D1B    36:8B0B              mov ecx, [ebx]
+00AB6D1E    890D C86CAB00        mov [AB6CC8],ecx
+00AB6D24    83C3 04              add ebx,4  <===相当于来到前面[esp]+10的地址
+00AB6D27    36:8B0B              mov ecx, [ebx]
+00AB6D2A    890D D06CAB00        mov [AB6CD0],ecx
+这里我们看到mov ecx, [ebx]和 mov ecx, ebx是不同，
+前者[ebx]是的ebx地址的值给ecx，后者是ebx，相当于ecx=ebx复制！
+00AB6D30    90                   nop
+00AB6D31    90                   nop
+00AB6D32    90                   nop
+00AB6D33    90                   nop
+00AB6D34    6A 00                push 0
+00AB6D36    6A 02                push 2  ；FILE_ATTRIBUTE_HIDDEN,建立文件时使文件属性为隐藏
+00AB6D38    6A 04                push 4  ；OPEN_ALWAYS.如果不存在该文件,则建立之
+00AB6D3A    6A 00                push 0
+00AB6D3C    6A 03                push 3  ;允许其他进程使用文件(为了不发生意外,所以这样设置)
+00AB6D3E    68 000000C0          push C0000000
+00AB6D43    68 966CAB00          push 00AB6C96      ; ASCII "C:\cad.txt"指向我们存盘文件
+00AB6D48    FF15 60479E00        call [009e4760]    ; KERNEL32.CreateFileA
+00AB6D4E    A3 AC6CAB00          mov  [AB6CAC],eax  ;保存文件句柄留给WriteFile用
+00AB6D53    6A 02                push 2  ;FILE_END.设置文件末尾
+00AB6D55    6A 00                push 0
+00AB6D57    6A 00                push 0  ;设定文件指针为文件末尾
+00AB6D59    50                   push eax  ；文件句柄
+```
