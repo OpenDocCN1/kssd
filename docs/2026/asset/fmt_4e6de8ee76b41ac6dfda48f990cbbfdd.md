@@ -1,0 +1,115 @@
+
+# [原创]可以修改indexing string的base64编码实现
+
+## 前言
+
+*注：本文没有特别详细地解释base64编码的原理，只是针对个人在理解过程中遇到的问题进行了介绍，同时引入了可变的indexing string，并对此使用python进行了实现。*
+
+最近正在看《Practical Malware Analysis》，决定写这篇文章的起因就是在看到第13章介绍base64的部分，作者提到了改变64个字符的顺序，base64得到的结果会完全不同：
+
+> One of the beautiful things about Base64 (at least from a malware author’s point of view) is how easy it is to develop a custom substitution cipher. The only item that needs to be changed is the indexing string, and it will have all the same desirable characteristics as the standard Base64. **As long as the string has 64 unique characters**, it will work to create a custom substitution cipher.
+
+我对这里产生了兴趣，因为这种情况下想要进行解码难度会大很多。即便在进行逆向的时候往往能够发现作者设置的字符顺序，没有一个自动化的工具，解码的过程也要耗费很多时间。
+
+除此之外，我自己也希望加深对base64编码原理的理解，以前没有自己实践过，往往过一段时间就忘记了。
+
+## 一个小磕绊
+
+事实上在搜索引擎里能找到大量介绍base64原理的文章，但是大部分文章举的例子都是怎样把三个字节的字符串编码为四个字节的base64码，在提到字符串长度无法被三整除的情况时，只是简单地说了一句要**在字符串后补零，这里补几个零，编码后的字符后面就补几个等号**。
+
+其实这种说法并没有什么问题，但是在代码实现的时候总是感觉哪里不太对劲，整个过程在脑海里复现的时候，我一直在纠结在字符串后面补的零要怎么进行转换。具体来说，如果有四个字符需要转换，按照上面的说法，就需要补两个字节的零`\x00\x00`，转换成二进制，后面就存在两个完全为零的6bits数据`000000 000000`，转换成索引值就是`0`，但是转换到编码结果之后，这两块数据对应的显然是`=`，而不是indexing string的第一个字符。
+
+我知道我这样思考的问题在哪里，但是导致我会首先这样思考的原因在于原文的叙述对于代码实现不是特别友好。
+
+## 图解代码实现
+
+![图解base64实现](https://bbs.kanxue.com/upload/attach/202008/600394_7BYJJY5BYK4R5DG.png)
+
+在上图中，补零发生在转换成二进程字符串之后，补零的个数由二进制字符串的长度确定，这样思考更加的直观与易于理解（至少对我来说）。下面以文字的方式进行介绍：
+
+### 编码过程
+
+读入待编码`str` -> 根据ASCII转为二进制字符串`binary` -> 根据`len(binary)%6`的值在其后补`0` -> 每6位一组并转换为十进制索引值 -> 查找indexing string中对应的字符组成编码结果 -> 根据`len(str)%3`的值在结果后补`=`
+
+### 解码过程
+
+读入待解码`str` -> 去掉后面多余的`=` -> 查找每个字符在indexing string中对应的索引值 -> 将索引值转换为二进制字符串`binary` -> 根据`len(binary)%8`的值去除后面多余的`0` -> 每8位一组并转换为十进制ASCII值 -> 由ASCII值获得最终的解码结果
+
+## 代码编写时遇到的bug
+
+在上述文字步骤中:
+
+> 编码：根据ASCII转为二进制字符串`binary`
+> 解码：将索引值转换为二进制字符串`binary`
+
+我直接假设转换生成的二进制字符串长度是符合要求的，但是python显然不这么认为，转换结果中的前置0都会被直接去掉，导致字符串整体长度不符合要求，因此需要使用format进行处理。
+
+```python
+编码：binary = ''.join([format(ord(c),'0>8b') for c in str])
+解码：binary = ''.join([format(self.idx_str.index(c), '0>6b') for c in str])
+```
+
+## 执行结果分析
+
+### 默认indexing string
+
+代码中默认的indexing string也是base64默认使用的`"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"`。
+
+测试结果和网上找到的在线base64编码结果相同：
+
+```
+PS D:\Study\Code\CosBase64> python
+Python 3.8.3 (tags/v3.8.3:6f8c832, May 13 2020, 22:20:19) [MSC v.1925 32 bit (Intel)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import cusbase64
+>>> b = cusbase64.CusBase64()
+>>> b.encode('secret message')
+'c2VjcmV0IG1lc3NhZ2U='
+>>> b.decode("RG9uJ3QgdGVsbCBub2JvZHkh")
+"Don't tell nobody!"
+```
+
+### 修改indexing string
+
+下例中，我把`h`移动到了indexing string的开头，看一下相同字符串的编码结果。
+
+```
+>>> b.config("hABCDEFGHIJKLMNOPQRSTUVWXYZabcdefgijklmnopqrstuvwxyz0123456789+/")
+New indexing string is 'hABCDEFGHIJKLMNOPQRSTUVWXYZabcdefgijklmnopqrstuvwxyz0123456789+/'
+>>> b.encode('secret message')
+'b2UjbmU0HF1lb3MgY2T='
+>>> b.encode("Don't tell nobody!")
+'QF9uI3PfcFUsaBAua2IvYGkg'
+```
+
+如果使用新的indexing string对之前的编码结果进行解码：
+
+```
+>>> b.decode('c2VjcmV0IG1lc3NhZ2U=') # "secret message"
+'we£ve´$}ews\x80ke'
+>>> b.decode("RG9uJ3QgdGVsbCBub2JvZHkh") # "Don't tell nobody!"
+'H\x7fn+taxu¬p0®sb¯h\x89\x00'
+```
+
+可以发现完全无法找到原始字符串。
+
+虽然从恶意代码分析的角度，只需要列出恶意软件中的字符串大概率就能找到修改后的indexing string，但是在其他场景中，想要破解就需要暴力枚举所有可能的indexing string了。而且《Practical Malware Analysis》的作者也提到，只要是可打印字符，都可以放入indexing string中，所以实际上indexing string就相当于一个密码本，可以进行很大的修改，得到更加面目全非的base64编码结果，或者已经不能叫做编码了。
+
+## 后记
+
+因为我的密码学知识也不是特别丰富，所以这种修改indexing string的base64对我来说十分有意思，也希望这篇文章的内容没有让你感觉特别无聊。感谢阅读 ：）
+
+## 源码
+
+[CusBase64](https://bbs.kanxue.com/elink@c76K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6*7L8$3g2E0N6i4u0E0N6i4u0W2i4K6u0r3b7%4g2K6b7X3q4K6k6e0j5@1)
+
+## 一个题外话
+
+我发现[站长之家](https://bbs.kanxue.com/elink@1a2K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4c8G2L8$3I4Q4x3X3g2U0K9r3W2F1j5i4A6Q4x3X3g2U0L8$3#2Q4x3V1k6f1L8$3!0D9M7#2)9J5c8V1u0S2M7$3f1$3y4q4)9J5k6h3q4K6M7s2R3`.)的工具在进行base64编码前会对字符进行HTML编码
+
+![站长之家base64](https://bbs.kanxue.com/upload/attach/202008/600394_YE35RQYV7SCWDGX.png)
+
+```python
+>>> b.decode("RG9uJiMzOTt0IHRlbGwgbm9ib2R5IQ==")
+'Don&#39;t tell nobody!'
+```
