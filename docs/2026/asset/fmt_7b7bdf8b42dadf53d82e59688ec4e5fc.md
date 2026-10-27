@@ -1,0 +1,278 @@
+
+# [原创]Windows 7中的段和门
+
+最初发在QQ空间里，`[Windows 7下的段和门](https://bbs.kanxue.com/elink@612K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4g2K6k6i4u0Q4x3X3g2I4P5X3!0F1k6g2)9J5k6i4q4I4i4K6u0W2j5$3!0E0i4K6u0r3x3K6p5%4x3K6p5%4x3o6g2Q4x3V1k6T1L8r3!0Y4i4K6u0r3x3e0x3I4x3K6M7K6x3K6x3$3y4b7`.`.)`
+
+这段时间看了保护模式的一些文章，零零碎碎一大堆概念，什么代码段，数据段，LDT，TSS，还有各种各样的门。，心血来潮写了个`windbg`的脚本，分析Windows系统的使用情况。先看看运行的结果吧，令人`surprise`。
+
+不带参数的运行，打印命令的说明，相当于`help`。
+
+**0: kd> $$>a< f:\sync\gdt.txt**
+
+```
+First argument (0) ...
+
+ 0x1 is to output code segment {00011000}.
+
+ 0x2 is to output data segment {00010000}.
+
+ 0x4 is to output LDT {00000010}.
+
+ 0x8 is to output TSS {0000x0y1 (x: 16/32 bit, y: avl/busy)}.
+
+ 0x10 is to output call gate {0000x100 (x: 16/32 bit)}.
+
+ 0x20 is to output task gate {00000101}.
+
+ 0x40 is to output trap gate {0000x111 (x: 16/32 bit)}.
+
+ 0x80 is to output interrupt gate {0000x110 (x: 16/32 bit)}.
+
+ 0x4000 is to output items with DPL 3.
+
+ 0x8000 is to output reserved items {0, 8, 0x0a, 0x0d}.
+
+Second argument (3)...
+
+ 0x1 is from GDT.
+
+ 0x2 is from IDT.
+```
+
+先看看代码段，GDT表中有3个，IDT表中没有，也不可能有。3个代码段分别是`0x8`（内核态下的代码段），`0x1B`（用户态下的代码段）和`0xF0`（用来调用Bios中断的代码`KiI386CallAbios`，属性 Execute Only）。
+
+**0: kd> $$>a< f:\sync\gdt.txt 1**
+
+```
+Implicit thread is now 8a4586e8
+
+====================================================================================
+
+========================== G D/B L AVL .... P DPL S Type ===========================
+
+GDT base address: 80b95000, Number of items: 128
+
+Index:0001, Attribute:c09b, DPL=0, Type=001B(InternalType:10001), Selector:8
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+0008 00000000 ffffffff Code RE Ac 0 Bg Pg P  Nl 00000c9b
+
+Index:0003, Attribute:c0fb, DPL=3, Type=001B(InternalType:10001), Selector:1b
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+001B 00000000 ffffffff Code RE Ac 3 Bg Pg P  Nl 00000cfb
+
+Index:001E, Attribute:  98, DPL=0, Type=0018(InternalType:10001), Selector:f0
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+00F0 8484896c 000003b2 Code EO    0 Nb By P  Nl 00000098
+
+There are total 3 item(s).
+
+IDT base address: 80b95400, Number of items: 256
+
+There are total 0 item(s).
+
+====================================================================================
+```
+
+再来看看数据段，IDT表中没有，GDT表中有8个，`0x10`是内核的数据段，`0x23`是用户态的，`0x30`，`0x3B`分别是内核态和用户态下的FS段，`0x70`是GDT表本身，`0x43`段很奇怪，从1K到64K，`DPL=3`，给用户态用的？`0xE8`和`0xF8`这2个段属性一样，地址范围也一样，为什么需要2个呢？
+
+**0: kd> $$>a< f:\sync\gdt.txt 2**
+
+```
+Implicit thread is now 8a4586e8
+
+====================================================================================
+
+========================== G D/B L AVL .... P DPL S Type ===========================
+
+GDT base address: 80b95000, Number of items: 128
+
+Index:0002, Attribute:c093, DPL=0, Type=0013(InternalType:10001), Selector:10
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+0010 00000000 ffffffff Data RW Ac 0 Bg Pg P  Nl 00000c93
+
+Index:0004, Attribute:c0f3, DPL=3, Type=0013(InternalType:10001), Selector:23
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+0023 00000000 ffffffff Data RW Ac 3 Bg Pg P  Nl 00000cf3
+
+Index:0006, Attribute:4093, DPL=0, Type=0013(InternalType:10001), Selector:30
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+0030 8493ac00 00003748 Data RW Ac 0 Bg By P  Nl 00000493
+
+Index:0007, Attribute:40f3, DPL=3, Type=0013(InternalType:10001), Selector:3b
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+003B 7ffdf000 00000fff Data RW Ac 3 Bg By P  Nl 000004f3
+
+Index:0008, Attribute:  f2, DPL=3, Type=0012(InternalType:10001), Selector:43
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+0043 00000400 0000ffff Data RW    3 Nb By P  Nl 000000f2
+
+Index:000E, Attribute:  92, DPL=0, Type=0012(InternalType:10001), Selector:70
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+0070 80b95000 000003ff Data RW    0 Nb By P  Nl 00000092
+
+Index:001D, Attribute:  92, DPL=0, Type=0012(InternalType:10001), Selector:e8
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+00E8 00000000 0000ffff Data RW    0 Nb By P  Nl 00000092
+
+Index:001F, Attribute:  92, DPL=0, Type=0012(InternalType:10001), Selector:f8
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+00F8 00000000 0000ffff Data RW    0 Nb By P  Nl 00000092
+
+There are total 8 item(s).
+
+IDT base address: 80b95400, Number of items: 256
+
+There are total 0 item(s).
+
+====================================================================================
+```
+
+`0x4000`是个特别的`option`，用来观察所有`DPL=3`的项。我的系统上有1个代码段，3个数据段，还有7个中断门，对应着7个系统服务。`DPL=3`，意味着可以在用户态下直接访问它们。
+
+**0: kd> $$>a< f:\sync\gdt.txt 4000**
+
+```
+Implicit thread is now 8a4586e8
+
+====================================================================================
+
+========================== G D/B L AVL .... P DPL S Type ===========================
+
+GDT base address: 80b95000, Number of items: 128
+
+Index:0003, Attribute:c0fb, DPL=3, Type=001B(InternalType:20001), Selector:1b
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+001B 00000000 ffffffff Code RE Ac 3 Bg Pg P  Nl 00000cfb
+
+Index:0004, Attribute:c0f3, DPL=3, Type=0013(InternalType:20001), Selector:23
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+0023 00000000 ffffffff Data RW Ac 3 Bg Pg P  Nl 00000cf3
+
+Index:0007, Attribute:40f3, DPL=3, Type=0013(InternalType:20001), Selector:3b
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+003B 7ffdf000 00000fff Data RW Ac 3 Bg By P  Nl 000004f3
+
+Index:0008, Attribute:  f2, DPL=3, Type=0012(InternalType:20001), Selector:43
+
+                                  P Si Gr Pr Lo
+
+Sel    Base     Limit     Type    l ze an es ng Flags
+
+---- -------- -------- ---------- - -- -- -- -- --------
+
+0043 00000400 0000ffff Data RW    3 Nb By P  Nl 000000f2
+
+There are total 4 item(s).
+
+IDT base address: 80b95400, Number of items: 256
+
+Index:0003, Attribute:  ee, DPL=3, Type=000E(InternalType:20004), Selector:0008, Offset:8484F5D0
+
+(8484f5d0)   nt!KiTrap03   |  (8484f6b0)   nt!Dr\_kit4\_a
+
+Exact matches:
+
+    nt!KiTrap03 = <no type information>
+
+Index:0004, Attribute:  ee, DPL=3, Type=000E(InternalType:20004), Selector:0008, Offset:8484F758
+
+(8484f758)   nt!KiTrap04   |  (8484f810)   nt!Dr\_kit5\_a
+
+Exact matches:
+
+    nt!KiTrap04 = <no type information>
+
+Index:002A, Attribute:  ee, DPL=3, Type=000E(InternalType:20004), Selector:0008, Offset:8484E64A
+
+(8484e64a)   nt!KiGetTickCount   |  (8484e74c)   nt!Dr\_kcb\_a
+
+Exact matches:
+
+    nt!KiGetTickCount = <no type information>
+
+Index:002B, Attribute:  ee, DPL=3, Type=000E(InternalType:20004), Selector:0008, Offset:8484E7D0
+```
