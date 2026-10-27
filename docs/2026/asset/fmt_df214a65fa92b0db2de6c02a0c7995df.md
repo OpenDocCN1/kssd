@@ -1,0 +1,322 @@
+
+# XcR V0.11 脱壳――XcR.ExE 主程序
+
+XcR V0.11 脱壳――XcR.ExE 主程序
+
+下载地址： `http://www.exetools.com/files/protectors/win/xcr011.zip`
+
+软件大小： 32 KB
+
+【软件简介】：XCR is a tool with that you can protect your Software against unproffesional crackers.
+
+【作者声明】：初学Crack，只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教！
+
+【调试环境】：Win98、`Ollydbg1.09`、`LordPE`、`ImportREC`
+
+―――――――――――――――――――――――――――――――――
+
+## 脱壳过程
+
+用`Ollydbg`载入程序后不要按`F9`，否则程序直接运行啦！
+
+```
+BFF76921     C3                   retn
+
+                                  ====>进入OD后断在这！F7走
+
+78001000     55                   push ebp
+
+  …… ……  省 略  …… ……              CTRL+F9走至返回
+
+780010DE     C2 0C00              retn 0C
+
+                                  ====>返回到 70BEE493
+
+70BEE493     8B4424 08            mov eax,dword ptr ss:[esp+8]
+
+  …… ……  省 略  …… ……              CTRL+F9走至返回
+
+70BEE603     C2 0C00              retn 0C
+
+                                  ====>返回到 7FCB219B
+
+7FCB219B     55                   push ebp
+
+  …… ……  省 略  …… ……              CTRL+F9走至返回
+
+7FCB21EA     C2 0C00              retn 0C
+
+                                  ====>返回到 7FE1F524
+
+7FE1F524     55                   push ebp
+
+  …… ……  省 略  …… ……              CTRL+F9走至返回
+
+7FE1F747     C2 0C00              retn 0C
+
+                                  ====>返回到 00419000
+```
+
+――――――――――――――――――――――――
+
+```
+00419000     60                   pushad
+
+                                  ====>直接CTRL+F9走至返回
+
+00419001     8BF0                 mov esi,eax
+
+00419003     33DB                 xor ebx,ebx
+
+00419005     83C3 01              add ebx,1
+
+00419008     83C0 01              add eax,1
+
+0041900B     8138 01010101        cmp dword ptr ds:[eax],1010101
+
+00419011   ^ 75 F5                jnz short XCR.00419008
+
+00419013     83FB 02              cmp ebx,2
+
+00419016   ^ 75 ED                jnz short XCR.00419005
+
+00419018     83C0 04              add eax,4
+
+0041901B     8B58 F8              mov ebx,dword ptr ds:[eax-8]
+
+0041901E     8B00                 mov eax,dword ptr ds:[eax]
+
+00419020     33C3                 xor eax,ebx
+
+00419022     56                   push esi
+
+00419023     96                   xchg eax,esi
+
+00419024     2BC6                 sub eax,esi
+
+00419026     5E                   pop esi
+
+00419027     8BE8                 mov ebp,eax
+
+00419029     83C5 01              add ebp,1
+
+0041902C     892E                 mov dword ptr ds:[esi],ebp
+
+0041902E     61                   popad
+
+0041902F     8B28                 mov ebp,dword ptr ds:[eax]
+
+00419031     8985 A71B4000        mov dword ptr ss:[ebp+401BA7],eax
+
+00419037     E8 D7000000          call XCR.00419113
+
+0041903C     B8 0000FBBF          mov eax,BFFB0000
+
+00419041     2D 00000100          sub eax,10000
+
+00419046     66:8138 4D5A         cmp word ptr ds:[eax],5A4D
+
+0041904B   ^ 75 F4                jnz short XCR.00419041
+
+0041904D     C3                   retn
+
+                                  ====>返回到 00419119
+```
+
+――――――――――――――――――――――――
+
+```
+00419119     8985 AB1B4000        mov dword ptr ss:[ebp+401BAB],eax
+
+0041911F     33C0                 xor eax,eax
+
+00419121     E8 0F000000          call XCR.00419135
+
+00419126     61                   popad
+
+00419127     8B28                 mov ebp,dword ptr ds:[eax]
+
+00419129     892C24               mov dword ptr ss:[esp],ebp
+
+                                  ====>[esp]=ebp=00401097    这就是OEP值
+
+0041912C     2BED                 sub ebp,ebp
+
+0041912E     81F5 2E586352        xor ebp,5263582E
+
+00419134     C3                   retn
+
+                                  ====>飞向光明之巅！
+```
+
+――――――――――――――――――――――――
+
+```
+00401097     8BF5                 mov esi,ebp
+
+                                  ====>在这儿用LordPE完全DUMP这个进程
+
+00401099     F7D8                 neg eax
+
+0040109B     0F21F0               mov eax,dr6
+
+0040109E     B8 5B104000          mov eax,XCR.0040105B ;"Why do you try to crack my application?"
+
+004010A3     37                   aaa
+
+004010A4     A3 053D4000          mov dword ptr ds:[403D05],eax
+
+004010A9     0F23F0               mov dr6,eax
+
+004010AC     E8 06000000          call XCR.004010B7
+
+004010B1     50                   push eax
+
+004010B2     E8 070C0000          call <jmp.&KERNEL32.ExitProcess>
+
+004010B7     81F6 2E586352        xor esi,5263582E
+
+                                  6A 00                push 0
+
+004010BF   |.  E8 120C0000          call <jmp.&KERNEL32.GetModuleHandleA>
+
+004010C4   |.  33C6                 xor eax,esi
+
+004010C6   |.  A3 98364000          mov dword ptr ds:[403698],eax
+
+004010CB   |.  E8 F40B0000          call <jmp.&KERNEL32.GetCommandLineA>
+```
+
+――――――――――――――――――――――――
+
+运行`ImportREC`，选择这个进程。把OEP改为`00001097`，点`IT AutoSearch`，
+
+点“Get Import”，`FixDump`， 90.5K->86.9K
+
+―――――――――――――――――――――――――――――――――
+
+但是脱壳后的程序却双击没反应，无法运行。看看作者的帮助文档：
+
+I built in the XCR loader another protection: you can test if the loader was loaded or not (=Cracked!!). Put the piece of code at the start of your application.
+
+here is the code for assembler:
+
+xor ebp,‘RcX’?
+
+cmp ebp,  00h
+
+jne Software\_is\_cracked
+
+;[here your code]
+
+Software\_is\_cracked:
+
+push 00h
+
+Call ExitProcess
+
+呵呵，那就用`Ollydbg`载入脱壳后的程序看看吧。
+
+```
+00401097 D> $  8BF5               mov esi,ebp
+
+00401099    .  F7D8               neg eax
+
+0040109B    .  0F21F0             mov eax,dr6
+
+0040109E    .  B8 5B104000        mov eax,DUMPED\_.0040105B
+
+004010A3    .  37                 aaa
+
+004010A4    .  A3 053D4000        mov dword ptr ds:[403D05],eax
+
+004010A9    .  0F23F0             mov dr6,eax
+
+004010AC    .  E8 06000000        call DUMPED\_.004010B7
+
+004010B1    .  50                 push eax
+
+004010B2    .  E8 070C0000        call <jmp.&kernel32.ExitProcess
+
+004010B7   /$  81F6 2E586352      xor esi,5263582E
+
+                                  ====>跟踪原程序发现ESI的值应等于5263582E。原来0041912E xor ebp,5263582E处脱壳后没有了，导致EBP的值发生改变。索性把这里改为：xor esi,esi  这样就OK啦！
+```
+
+```
+004010BD   |.  6A 00              push 0
+
+004010BF   |.  E8 120C0000        call <jmp.&kernel32.GetModuleHandleA>
+
+004010C4   |.  33C6               xor eax,esi
+
+004010C6   |.  A3 98364000        mov dword ptr ds:[403698],eax
+
+004010CB   |.  E8 F40B0000        call <jmp.&kernel32.GetCommandLineA>
+
+004010D0   |.  BE 00000000        mov esi,0
+
+004010D5   |.  83C0 01            add eax,1
+
+004010D8   |>  803C06 2A          /cmp byte ptr ds:[esi+eax],2A
+
+004010DC   |.  74 13              |je short DUMPED\_.004010F1
+
+004010DE   |.  803C06 00          |cmp byte ptr ds:[esi+eax],0
+
+004010E2   |.  74 2B              |je short DUMPED\_.0040110F
+
+004010E4   |.  81FE 24100000      |cmp esi,1024
+
+004010EA   |.  74 23              |je short DUMPED\_.0040110F
+
+004010EC   |.  83C6 01            |add esi,1
+
+004010EF   |.^ EB E7              jmp short DUMPED\_.004010D8
+
+004010F1   |>  83C6 01            add esi,1
+
+004010F4   |.  03C6               add eax,esi
+
+004010F6   |.  BB 00000000        mov ebx,0
+
+004010FB   |>  8B0C03             /mov ecx,dword ptr ds:[ebx+eax]
+
+004010FE   |.  898B 10304000      |mov dword ptr ds:[ebx+403010],ecx
+
+00401104   |.  83C3 04            |add ebx,4
+
+00401107   |.  803C03 00          |cmp byte ptr ds:[ebx+eax],0
+
+0040110B   |.  74 02              |je short DUMPED\_.0040110F
+
+0040110D   |.^ EB EC              jmp short DUMPED\_.004010FB
+
+0040110F   |>  33F6               xor esi,esi
+
+00401111   |.  8D05 10324000      lea eax,dword ptr ds:[403210]
+
+00401117   |.  BB 00020000        mov ebx,200
+
+0040111C   |>  53                 /push ebx                   ; /BufSize
+
+0040111D   |.  50                 |push eax                   ; |PathBuffer
+
+0040111E   |.  FF35 98364000      |push dword ptr ds:[403698] ; |hModule = NULL
+
+00401124   |.  E8 A70B0000        |call <jmp.&kernel32.GetModuleFileNameA
+
+00401129   |.  A3 10344000        |mov dword ptr ds:[403410],eax
+
+0040112E   |.  83FE 07            |cmp esi,7
+
+00401131   |.  BE 07000000        |mov esi,7
+
+00401136   |.  74 08              |je short DUMPED\_.00401140
+
+00401138   |.  8D05 24374000      |lea eax,dword ptr ds:[403724]
+
+0040113E   |.^ EB DC              jmp short DUMPED\_.0040111C
+
+00401140   |>  C780 24374000 202A>mov dword ptr ds:[eax+403724],31252A20
+```
