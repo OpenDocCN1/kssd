@@ -1,0 +1,227 @@
+
+回溯第一层栈使用`UnwindInternalContextUsingEbp`函数，该函数直接从`ebp`获取第一层栈的`ebp`和`eip`。
+
+该函数实现如下：
+
+```
+BOOL DbsX86StackUnwinder::UnwindInternalContextUsingEbp(){
+    BOOL result;
+
+    this[0xE3] = *(PDWORD)((PBYTE)this[0xE2] + 4); // 0xE2偏移处保存上一层的ebp，0xE3偏移处保存上一层的eip
+    this[0xE2] = *this[0xE2];
+
+    if (read memory failed)
+        result = TRUE;
+    else
+        result = FALSE;
+
+    return result;
+}
+```
+
+待`UnwindInternalContextUsingEbp`返回后，`DoUnwindUsingInternalContext`函数也直接返回，表示第一层栈已回溯完毕。
+
+> 注：本例只分析`ebp`回溯的情况，`esp`回溯的情况（等下周填充）
+
+## 4.2 第二层栈回溯（无符号）
+
+![](https://bbs.kanxue.com/upload/attach/202108/744796_PYCVJW7KTNSVUR3.jpg)
+
+从第二层栈回溯开始，都需要走这样的流程。
+
+`SearchForReturnAddress`获取`ebp`和`eip`是通过评定分数来确认的，分数最高的视为上一层的`ebp`，并从中获取本层的`ebp`和`eip`。
+
+分数由`ComputeScoreForReturnAddress`获取（算法请参考下一小节），鉴定方式如下：
+
+- 如果返回值为`0xFFFF`，则视为最高分数，直接返回
+
+- 如果返回值不为`0xFFFF`，则判断返回值与之前的返回值谁大，如果大于，则更新，否则不更新。之后继续循环，直到循环次数超过`0x42`次（从0开始计数）。
+
+> 注：前三次base `ebp`不变，只是传给`ComputeScoreForReturnAddress`的其中一个参数会变（根据这个参数，获取的分数会不一样）
+
+## 4.3 获取分数的算法
+
+- 上层通过`call imm16/imm32`（`E8 xxxx/E8 xxxxxxxx`），根据`ComputeScoreForReturnAddress`的参数(通常最高为`0x9000`)
+
+- 上层通过`call reg16/reg32`(`FF xx`)，根据`ComputeScoreForReturnAddress`的参数，获取分数（通常最高为`0xA000`）
+
+- 上层通过`call [mem16/mem32]`（`FF15[xxxxxxxx]/FF15[xxxx]`）,根据`ComputeScoreForReturnAddress`的参数，获取分数（通常最高为`0xA000`）
+
+> 注：
+>
+> - 如果以上三种情况都不是，那base `ebp`将持续加`4`，继续寻找。这样的结果就是跳过调用栈中不规则的调用层。
+> - 算法的详细讲解请参考第五节。
+
+## 4.4 被忽略的不规则调用层
+
+- `jmp`指令，`jmp`指令是`0xEB` or `0xE9` or `0xFF25`，所以会被跳过
+
+- 通过`esp`调节堆栈的函数（如果没有符号文件）
+
+# 5 细节讲解
+
+## 5.1 `DbsStackUnwinder::DoDbhUnwind`函数
+
+`DoDbhUnwind`函数为回溯栈的核心，每执行一次`DoDbhUnwind`函数，代表回溯完一层栈。
+
+![](https://bbs.kanxue.com/upload/attach/202108/744796_P8W9HVTQ278URX9.jpg)
+
+上图为`DoDbhUnwind`的大致流程，重点如下：
+
+- `nonFirstStackFlag`(`*(DWORD *)(a2 + 0x7C)`)的含义：
+
+  - 第一层栈时，该字段为`0`，只执行105行的`UnwindAndUpdateInternalContext`，回溯一次
+
+  - 第二层或以上时，该字段为`1`，执行78行和105行的`UnwindAndUpdateInternalContext`，回溯两次
+
+  根据4.1节和4.2节的描述，我们知道第一层栈回溯是通过`UnwindInternalContextUsingEbp`实现的，第二层或之后的栈回溯是通过`UnwindUsingPrologueSummary`实现的，选择执行哪条分支是通过`nonFirstStackFlag`来判断的，如下图：
+
+  ![](https://bbs.kanxue.com/upload/attach/202108/744796_RXF2DCK3AB6H4H7.jpg)
+
+  > 注：第二层或以上，为何要调用两次`UnwindAndUpdateInternalContext`将在之后下一小节讲解。
+
+- `ImportPreviousFrameSummary`函数
+
+  **说明该函数之前，需要补充一点背景，如下：**
+
+  从回溯第二层或以上的栈开始，都会调用`UnwindAndUpdateInternalContext`两次，每调用一次该函数，都能回溯一层栈。
+
+  可能大家会有疑问了，上文提及“每执行一次`DoDbhUnwind`函数，代表回溯完一层栈”，这里`DoDbhUnwind`调用两次`UnwindAndUpdateInternalContext`，那不应该是回溯了两层栈吗？
+
+  针对这个问题，请查看文末的附录1的实验，观察`StackWalk64`返回的`CONTEXT`（上下文）有何变化。
+
+  根据附录1的实验，能得出以下结论：
+
+  - 在分析第二层或以上的栈时，需要回溯两次才能回溯到真正的函数（`context`结构体的`ebp`和`eip`与待分析的函数差两层）
+
+  根据逆向分析结果，再补充以下结论：
+
+  ![](https://bbs.kanxue.com/upload/attach/202108/744796_A486MGNMBWN6Q2F.jpg)
+
+  - `Round1`由`FuncB`到`FuncC`的回溯与`Round2`由`FuncB`到`FuncC`的回溯是一样的
+
+  > 在分析第二层或以上的栈时，`context`结构体的`ebp`和`eip`与待分析的函数差两层的目的是为了获取上一层的栈帧信息（比如`Round2`的`FuncC`栈层的信息），这些栈帧信息在内部使用，并反映在`DbsStackUnwinder`类的一些标志变量中。猜测这些变量会根据情况改变函数的分析流程（比如`Round2`的`FuncD`的分析流程）。在接下来的分析中，大家会看到栈回溯的整个过程用到了很多标志变量，来改变比如`FuncD`函数的分析路径。
+
+  有以上背景后，我们理解了在分析第二层或以上的栈时，为何会调用两次`UnwindAndUpdateInternalContext`了，接下来回到对`ImportPreviousFrameSummary`函数的说明。
+
+  在回溯第二层栈时(Round1)，会像Round0一样先从函数A的`ebp`获取函数A的返回地址（`UnwindInternalContextUsingEbp`）。又因为只有`nonFirstFlag`为FALSE时，才会走`UnwindInternalContextUsingEbp`分支，所以`ImportPreviousFrameSummary`的其中一个作用就是在第二层栈回溯中，第一次调用`UnwindAndUpdateInternalContext`时，将`nonFirstFlag`置为FALSE（注意在第二层或之后的栈回溯，`nonFirstFlag`都为TRUE）。第二次调用`UnwindAndUpdateInternalContext`之前，`nonFirstFlag`会被恢复为TRUE。
+
+## 5.2 `UnwindAndUpdateInternalContext`
+
+回顾第四节的细节流程图，该函数是栈回溯真正功能的起始点。首先执行完初始化之后，会调用`UnwindInternalContextUsingDiaFrame`，去寻找返回地址（从`context.ebp+4`地址处获取）的符号文件，如果找到，则直接通过符号文件回溯栈，然后直接从`UnwindAndUpdateInternalContext`返回，完成该轮的栈回溯。如果没找到，则`UnwindInternalContextUsingDiaFrame`返回错误`0x80004002`，之后做无符号的栈回溯（通过`ebp`），如下图：
+
+![](https://bbs.kanxue.com/upload/attach/202108/744796_2KQS2S3HU5GRV6V.jpg)
+
+## 5.3 `UnwindUsingPrologueSummary`
+
+回顾4.2节的第二层栈回溯流程图，该函数先调用`CollectFullFunctionInformation`和`FindStackStateOnFunctionEntry`获取一些函数状态信息，之后调用`SearchForReturnAddress`，通过windows自定义的算法去寻找真正符合要求的返回地址。之后再调用`SearchForFramePointer`寻找`framePointer`(帧指针)，不过这个过程往往是直接从`ebp`读取出新的`ebp`。
+
+找到`ebp`和`eip`之后，将其保存到`DbhStackServices`类的`0x388`和`0x38C`偏移处。到这里，`UnwindAndUpdateInternalContext`就结束返回了，最后将`DbhStackServices`类获取到的`eip`交给`STACKFRAME64`结构体（`StackWalk64`提供的参数）。
+
+## 5.4 `ComputeScoreForReturnAddress`（获取分数的算法细节）
+
+```
+// psudo code
+int DbsX86HeuristicTool::SearchForReturnAddress(DWORD ebp){
+    DWORD dwScore = 0;
+    BYTE flag[3] = { 0 };
+
+    for (int i=0;i < 0x42; i++) {
+        if (i == 1)
+            flag[1] = 1;
+        else if (i == 2) {
+            flag[1] = 0;
+            flag[2] = 1;
+        }
+        else if (i > 2) {
+            ebp = ebp + 4;
+        }
+
+        DWORD eip = *(DWORD*)(ebp+4);
+        DWORD dwComputedScore = ComputeScoreForReturnAddress(eip, &flag);
+        if (dwScore == 0xFFFF)
+            return 0;
+        if (dwComputedScore > dwScore)
+            dwScore = dwComputedScore;
+    }
+
+    return dwScore != 0 ? 1 : 2;
+}
+
+DWORD DbsX86HeuristicTool::ComputeScoreForReturnAddress(DWORD eip, PBYTE pFlag){
+    DWORD dwScore = 0;
+    PVOID pImageBase = NULL;
+    DWORD rs = FALSE;
+
+    PBYTE content[8] = {0};
+    DWORD dwbytesRead = 0;
+    rs = ReadMemory(eip - 8, content, 8, &dwbytesRead);
+    if (!rs) {
+        // After some search, 0xC4C4 may be a invalid opcode.
+        if (content[0] == 0xC4 && content[1] == 0xC4 && dwbytesRead==8)
+            return 0xFFFF;
+    }
+
+    dwBytesRead = 0;
+    memset(content, 0, 7);
+    rs = ReadMemory(eip - 7, content, 7, &dwbytesRead);
+
+    if (content[2]==0xE8) {
+        //call imm16/imm32（E8 xxxx/E8 xxxxxxxx）
+        rs = IsCodeReachableViaDirectCall(...);
+        if (!rs)
+            // IsCodeReachableViaDirectCall always returns FALSE
+            if (pFlag[3] == 1)
+                return 0x9000;
+            else
+                dwScore = 0x3000;
+    }
+
+    for (PBYTE pNow = content; pNow - content <7; pNow++) {
+        if (pNow == 0xFF && (pNow[1] & 0x30 != 0x10)) {
+            if (pNow - content == 1) {
+                // call [mem16/mem32] -> FF15[xxxxxxxx]/FF15[xxxx]
+            }
+            else if (pNow - content == 5) {
+                // call reg16/reg32 -> (FF xx)
+            }
+            else
+                continue;
+
+            if (pFlag[3] && dwScore <= 0x9000)
+                dwScore = 0x9000;
+            else if (pFlag[2] && dwScore <= 0xA000)
+                dwScore = 0xA000;
+
+            if (dwScore < 0x6000)
+                dwScore = 0x6000;
+
+            break;
+        }
+    }
+
+    return dwScore;
+}
+```
+
+## 5.5 winXP和win10的`dbghelp.dll`在栈回溯的细微区别
+
+如果在栈回溯时，遇到返回地址不属于任何模块的情况（比如执行的是一段shellcode），winXP和win10的行为如下：
+
+- win10：win10会判断一个标志位是否为`0`，如果为`0`，则忽略返回地址，`ebp`继续加`4`，然后读取`ebp`指向的内容，继续解析下一个（参考上一节的算法细节）；如果为`1`，则继续解析该返回地址，即强制认为这个地址是有效的。
+
+  > 注：这个标志位在`DbsX86StackUnwinder`类的构造函数被置为1(写死的)，初始化路径为`StackWalk64`->`StackWalkEx`->`DoUnwindStackFrameUsingServices`->`New_DbsStackUnwinderhan`->`DbsX86StackUnwinder`。
+
+- winXP：winXP直接视该返回地址无效，`ebp`继续加`4`，继续解析下一个。
+
+## 5.6 Debug版和Release版程序在栈回溯的区别
+
+debug版的函数通常会预留一部分栈空间，并初始化为`0xCC`，方便栈溢出的检测，而release版本没有。这个区别导致栈回溯会出现以下区别：
+
+- Debug版：因为栈多出了很多`0xCC`，所以在寻找正确的返回地址时，可能会达到循环次数的上限，导致栈回溯找不到正确的返回地址，这种情况下，`dbghelp`（winXP和win10一样）会视最初的`ebp+4`指向的内容为返回地址，即使该返回地址是无效的。
+
+- Release版：因为栈排布很紧密，所以基本上不存在上述问题。
+
+# 附录：
+
+## 实验：`StackWalk64`返回的`CONTEXT`（上下文）
