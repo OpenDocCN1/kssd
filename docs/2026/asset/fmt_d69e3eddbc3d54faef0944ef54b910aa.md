@@ -1,11 +1,11 @@
 
 # [原创]08年用`masm`写的一套源码！
 
-2008年写的！并没有销售过，大家可放心看。里面包含了2个RadASM和MASMPlus的工程文件，打开`MainDll.app`可直接编译，当然你要配置一下`masm`的路径。直接打开`Main.exe`可选择系统自带的`calc.exe`计算器，启动后会自动呼出`dll`。由于现在没有服务器，为了方便直接看，已经把里面服务器通信的几个小地方删除。服务器端也是用`masm`写的，注册和充值我是用`.net`实现。用户直接点击“登录”就可以看到所有界面。资源文件`rs`用vc6.0以上的工具可查看。
+2008年写的！并没有销售过 大家可放心看。里面包含了2个`RadASM` 和 `MASMPlus` 的工程文件，打开`MainDll.app` 可直接编译,当然你要配置一下`masm`的路径，直接打开`Main.exe`可选择系统自带的 `calc.exe`计算器 启动后会自动呼出`dll`，由于现在没有服务器,为了方便直接看已经把里面服务器通信的几个小地方删除，服务器端也是用`masm`写的,注册和充值我是用`.net`实现. 用户直接点击‘登录’就可以看到所有界面 。资源文件`rs`用`vc6.0`以上的工具可查看。
 
-另外，我自己的一些经历、历程想写下来，链接是：
+另外，我自己的一些经历，历程想写下来 链接是：
 
-http://bbs.pediy.com/showthread.php?p=1308408#post1308408
+`http://bbs.pediy.com/showthread.php?p=1308408#post1308408`
 
 有兴趣的朋友请支持一下。谢谢
 
@@ -32,9 +32,9 @@ hGoodsMap3        dword        ?;怪物的map
 
 lpGoodsView3        dword        ?
 
-szGoodsFileBuf        BYTE MAX\_PATH DUP(?);sell.txt文件缓存
+szGoodsFileBuf        BYTE MAX_PATH DUP(?);sell.txt文件缓存
 
-szGoodCwpBuf        BYTE MAX\_PATH DUP(?);save.data文件缓存
+szGoodCwpBuf        BYTE MAX_PATH DUP(?);save.data文件缓存
 
                 .data
 
@@ -50,19 +50,19 @@ szSaveS                byte        '小块玄晶碎片（1级玄晶）,玄晶碎
 
 ;查找指定字符串 没有找到返回0 找到返回查找到的字符后面的地址
 
-;\_FillStart主块开始地址   \_Search要查找的字符串
+;_FillStart主块开始地址   _Search要查找的字符串
 
-\_SearchString        proc                \_FillStart,\_Search
+_SearchString        proc                _FillStart,_Search
 
                 local                @SearchSize,@FillSize,@return ;@SearchSize;要找查的大小 @FillSize主块的大小
 
                 pushad
 
-                invoke        lstrlen,\_Search
+                invoke        lstrlen,_Search
 
                 mov                @SearchSize,eax;要查找的大小
 
-                invoke        lstrlen,\_FillStart
+                invoke        lstrlen,_FillStart
 
                 mov                @FillSize,eax;主块大小
 
@@ -70,9 +70,9 @@ szSaveS                byte        '小块玄晶碎片（1级玄晶）,玄晶碎
 
                 .if                eax
 
-                                        mov                esi,\_Search;要查找的字符串地址
+                                        mov                esi,_Search;要查找的字符串地址
 
-                                        mov                edi,\_FillStart        ;主块开始地址
+                                        mov                edi,_FillStart        ;主块开始地址
 
                                         mov                ecx,@FillSize;主块的大小
 
@@ -82,15 +82,15 @@ szSaveS                byte        '小块玄晶碎片（1级玄晶）,玄晶碎
 
                                         or                ecx,ecx
 
-                                        jz                \_Ret;读取到的已经为0没有查找性了
+                                        jz                _Ret;读取到的已经为0没有查找性了
 
                                         or                ebx,ebx
 
-                                        jz                \_Ret;要比较的为0也没有比较性了
+                                        jz                _Ret;要比较的为0也没有比较性了
 
                                         cmp        ecx,ebx
 
-                                        jb                \_Ret;读取到的比要查找到的还要小 退出
+                                        jb                _Ret;读取到的比要查找到的还要小 退出
 
                                         mov        al,[esi]
 
@@ -120,11 +120,11 @@ szSaveS                byte        '小块玄晶碎片（1级玄晶）,玄晶碎
 
                                         or                ecx,ecx
 
-                                        jz                \_Ret;读取到的已经为0没有查找性了
+                                        jz                _Ret;读取到的已经为0没有查找性了
 
                                         cmp        ecx,ebx
 
-                                        jb                \_Ret;读取到的比要查找到的还要小 退出
+                                        jb                _Ret;读取到的比要查找到的还要小 退出
 
                                         mov        al,[esi]
 
@@ -134,7 +134,7 @@ szSaveS                byte        '小块玄晶碎片（1级玄晶）,玄晶碎
 
                                 S3:;到了这个阶段表示在第二阶段也没有找到
 
-                                        mov        esi,\_Search
+                                        mov        esi,_Search
 
                                         mov        ebx,@SearchSize
 
@@ -146,15 +146,15 @@ szSaveS                byte        '小块玄晶碎片（1级玄晶）,玄晶碎
 
                                         sub        eax,ecx                  ;主块的大小-还没有读取的主块大小=已经读取的主块大小
 
-                                        add        eax,\_FillStart;已经读取的主块大小+主块起始地址=查找到的字符后面的地址
+                                        add        eax,_FillStart;已经读取的主块大小+主块起始地址=查找到的字符后面的地址
 
                                         mov        @return,eax;查找到的字符后面的地址
 
-                                        jmp        \_Ret
+                                        jmp        _Ret
 
                 .endif
 
-\_Ret:
+_Ret:
 
                 popad
 
@@ -162,11 +162,11 @@ szSaveS                byte        '小块玄晶碎片（1级玄晶）,玄晶碎
 
                 ret
 
-\_SearchString        endp
+_SearchString        endp
 
 ;打开或创建文件,（文件不存在将要创建文件同时放入默认要保存的物品)
 
-\_CreateGoods        proc
+_CreateGoods        proc
 
                 local        @buf
 
@@ -176,21 +176,21 @@ szSaveS                byte        '小块玄晶碎片（1级玄晶）,玄晶碎
 
                 invoke        lstrcat,addr szGoodsFileBuf,addr szGoodsFile;取得sell.txt全路径
 
-                invoke        CreateFile,addr szGoodsFileBuf,GENERIC\_READ OR GENERIC\_WRITE,FILE\_SHARE\_READ OR FILE\_SHARE\_WRITE,NULL,OPEN\_EXISTING,FILE\_ATTRIBUTE\_NORMAL,NULL
+                invoke        CreateFile,addr szGoodsFileBuf,GENERIC_READ OR GENERIC_WRITE,FILE_SHARE_READ OR FILE_SHARE_WRITE,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL
 
-                .if                eax==INVALID\_HANDLE\_VALUE;如果文件不存在则创建此文件
+                .if                eax==INVALID_HANDLE_VALUE;如果文件不存在则创建此文件
 
-                                invoke        CreateFile,addr szGoodsFileBuf,GENERIC\_WRITE OR GENERIC\_READ,FILE\_SHARE\_READ OR FILE\_SHARE\_WRITE,NULL,OPEN\_ALWAYS,FILE\_ATTRIBUTE\_NORMAL,NULL;打开/创建文件
+                                invoke        CreateFile,addr szGoodsFileBuf,GENERIC_WRITE OR GENERIC_READ,FILE_SHARE_READ OR FILE_SHARE_WRITE,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL;打开/创建文件
 
-                                .if                eax !=INVALID\_HANDLE\_VALUE
+                                .if                eax !=INVALID_HANDLE_VALUE
 
                                                         mov                hGoodsFile,eax
 
-                                                        invoke        CreateFileMapping,hGoodsFile,NULL,PAGE\_READWRITE,0,4096\*50,NULL
+                                                        invoke        CreateFileMapping,hGoodsFile,NULL,PAGE_READWRITE,0,4096*50,NULL
 
                                                         mov                hGoodsMap,eax
 
-                                                        invoke        MapViewOfFile,hGoodsMap,FILE\_MAP\_READ OR FILE\_MAP\_WRITE,0,0,0
+                                                        invoke        MapViewOfFile,hGoodsMap,FILE_MAP_READ OR FILE_MAP_WRITE,0,0,0
 
                                                         mov                lpGoodsView,eax
 
@@ -206,11 +206,11 @@ szSaveS                byte        '小块玄晶碎片（1级玄晶）,玄晶碎
 
                                 mov                hGoodsFile,eax
 
-                                invoke        CreateFileMapping,hGoodsFile,NULL,PAGE\_READWRITE,0,4096\*50,NULL
+                                invoke        CreateFileMapping,hGoodsFile,NULL,PAGE_READWRITE,0,4096*50,NULL
 
                                 mov                hGoodsMap,eax
 
-                                invoke        MapViewOfFile,hGoodsMap,FILE\_MAP\_READ OR FILE\_MAP\_WRITE,0,0,0
+                                invoke        MapViewOfFile,hGoodsMap,FILE_MAP_READ OR FILE_MAP_WRITE,0,0,0
 
                                 mov                lpGoodsView,eax
 
@@ -222,15 +222,15 @@ szSaveS                byte        '小块玄晶碎片（1级玄晶）,玄晶碎
 
                 ;仓库物品
 
-                invoke        CreateFile,addr szGoodCwpBuf,GENERIC\_READ OR GENERIC\_WRITE,FILE\_SHARE\_READ OR FILE\_SHARE\_WRITE,NULL,OPEN\_EXISTING,FILE\_ATTRIBUTE\_NORMAL,NULL
+                invoke        CreateFile,addr szGoodCwpBuf,GENERIC_READ OR GENERIC_WRITE,FILE_SHARE_READ OR FILE_SHARE_WRITE,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL
 
-                .if                eax==INVALID\_HANDLE\_VALUE;如果文件不存在则创建此文件
+                .if                eax==INVALID_HANDLE_VALUE;如果文件不存在则创建此文件
 
-                                invoke        CreateFile,addr szGoodCwpBuf,GENERIC\_WRITE OR GENERIC\_READ,FILE\_SHARE\_READ OR FILE\_SHARE\_WRITE,NULL,OPEN\_ALWAYS,FILE\_ATTRIBUTE\_NORMAL,NULL;打开/创建文件
+                                invoke        CreateFile,addr szGoodCwpBuf,GENERIC_WRITE OR GENERIC_READ,FILE_SHARE_READ OR FILE_SHARE_WRITE,NULL,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL;打开/创建文件
 
-                                .if                eax !=INVALID\_HANDLE\_VALUE
+                                .if                eax !=INVALID_HANDLE_VALUE
 
                                                         mov                hGoodsFile2,eax
 
-                                                        invoke        CreateFileMapping,hGoodsFile2,NULL,PAGE\_READWRITE,0,4096\*50,NULL
+                                                        invoke        CreateFileMapping,hGoodsFile2,NULL,PAGE_READWRITE,0,4096*50,NULL
 ```
