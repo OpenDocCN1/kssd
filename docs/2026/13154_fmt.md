@@ -1,0 +1,150 @@
+
+# [原创]微信无痕清粉分析过程-附源码地址
+
+## 一、环境
+
+### 1、微信版本
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_ZCKH8UMHH5V7947.jpg)
+
+### 2、`WeChatWin.dll`基址
+
+基址=`0FD30000`
+
+大小=`018A2000 (25829376.)`
+
+入口=`10A0AA01 WeChatWi.`
+
+名称=`WeChatWi`
+
+文件版本=`2.8.0.121`
+
+路径=`C:\Program Files (x86)\Tencent\WeChat\WeChatWin.dll`
+
+## 二、观察添加好友过程
+
+### 1、发起添加好友
+
+日志
+
+调试字串: `AddFriend wxid_xxxxx`
+
+调试字串: `new NetSceneVerifyUser (id:330),name:wxid_xxxxx`
+
+调试字串: `opCode : 1, fromScene : 6 verifyContent: chatroomName :`
+
+调试字串: `VerifyUser doSceneImpl(seqid:330)`
+
+调试字串: `in send NetSceneVerifyUser(id:330)`
+
+界面
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_C2B7M7MPQQ5FC7W.jpg)
+
+### 2、点击确认
+
+日志
+
+调试字串: `new NetSceneVerifyUser (id:332),name:wxid_xxxxx`
+
+调试字串: `opCode : 2, fromScene : 6 verifyContent: 我是Kong chatroomName :`
+
+调试字串: `VerifyUser doSceneImpl(seqid:332)`
+
+调试字串: `in send NetSceneVerifyUser(id:332)`
+
+界面
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_2E9N82A6KWX85SC.jpg)
+
+### 3、添加好友流程
+
+1、请求服务器判断是不是好友：`opCode : 1`
+
+2、收到服务器的回复，判断是不是好友
+
+2、如果不是好友，弹出添加好友界面
+
+3、最后发起好友请求：`opCode : 2`
+
+### 4、清粉思路
+
+1、模拟添加好友，请求好友状态
+
+2、拦截弹出好友界面，判断好友状态
+
+3、配合通讯录，删除好友，就能实现无痕清粉功能
+
+## 三、找Call过程
+
+### 1、添加好友的界面
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_NCU8CPW89UCVJCS.jpg)
+
+微信界面是用`Duilib`，参考`Duilib`的微信分支，`Hook`创建界面，得到界面的`XML`文件
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_752FCKSAA9AC2YE.jpg)
+
+界面文件名：`main\VerifyDialog.xml`
+
+确认按钮：`okbtn`
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_ETN7U2XMD8DFEUX.jpg)
+
+### 2、判断好友状态
+
+堆栈往下翻 看到 class `AddFriendHelper`
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_43MGUKE695E7XV9.jpg)
+
+`IDA`看下`AddFriendHelper`
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_8B6M54Y34CZJ63T.jpg)
+
+接收服务器的响应是在：`AddFriendHelper::eventProc`
+
+里面判断各种情况：好友，删除，拉黑
+
+这里就找到了判读好友的状态了
+
+`A7`：删除
+
+`A8`：好友
+
+`AC`：拉黑
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_CY9EQV292TSM8EK.jpg)
+
+### 3、请求好友状态
+
+点击确认按钮，发送的是`opCode : 2`，改为`opCode : 1`，就变成请求好友状态
+
+搜索字符串下断点：`opCode :`
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_GPKTTXYRFC6RBKX.jpg)
+
+添加好友，触发这里的断点，第一次先跳过，点击添加好友界面的确认按钮，再次断下
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_R2TADFKJCAKCYAW.jpg)
+
+堆栈往回找看到`okbtn`
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_CHWFSVET9BUYP37.jpg)
+
+`IDA`对应的地方，可以看出这里就是对各种按钮的处理
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_J9HY27RCFHUYZ5R.jpg)
+
+点击确认按钮：`okbtn`之后触发的代码
+
+这里就找到了请求好友状态的`Call`
+
+![](https://bbs.kanxue.com/upload/attach/202004/880317_B6JBM6RSBWDFWGC.jpg)
+
+## 四、最终效果图
+
+## 五、源码
+
+`d7aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6w2L8$3&6Y4d9$3!0F1k6K6t1H3i4K6u0r3g2$3g2o6K9r3q4@1f1p5y4t1L8$3!0C8`
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
