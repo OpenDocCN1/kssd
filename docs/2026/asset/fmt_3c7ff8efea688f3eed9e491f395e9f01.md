@@ -1,0 +1,216 @@
+
+# [原创]在win7 x64下做个简单的内核绘制
+
+## 1.0
+
+本贴只针对win7 x64系统下的 32位D3D9程序，局限性太大，仅作为抛砖引玉。
+
+下面进入正题。
+
+基本流程如下:
+
+1:在内核中 hook相关`shadowSSDT`或`SSDT`函数
+
+2:在目标进程申请内存，写入用于D3D9绘制的`shellcode`
+
+3:利用`APC`的力量回到 用户模式，执行用于D3D9绘制的
+
+`shellcode`。
+
+## 1.1
+
+首先，如果我们要做一个hook D3D9的绘制。
+
+自然是要编写`dll`,
+
+注入到目标进程,
+
+hook D3D9虚函数,
+
+获取到D3D9设备,
+
+执行绘制代码。
+
+时至今日，这种技术已经是基本操作了。
+
+经历各大游戏厂商(代理商)以及外挂作者们之间的斗争，
+
+这种注入以及hook的方式已然不可取。
+
+那么是否有一种相对隐蔽的方式来完成这项工作呢?
+
+答案是有的。（废话，没有你写这贴干嘛【滑稽】）
+
+从我们能想到的根本问题入手的话......
+
+在应用层
+
+hook D3D9虚函数以及直接注入`dll`会拉闸，
+
+既然如此，我们在内核层做hook，代码全都以`shellcode`的形式
+
+在目标进程里跑起来。
+
+## 1.2
+
+在win7 x64下,
+
+通过调试一个网上下载的D3D9示例Demo
+
+仔细跟踪其 D3D9的`Present`函数，我们发现
+
+`Present`
+
+最终会调用
+
+`USER32.HungWindowFromGhostWindow+20`处的代码
+
+反汇编如下:
+
+![](https://bbs.kanxue.com/upload/attach/202002/690570_QJY4T7YQEHQS2FZ.jpg)
+
+`call fs:[000000C0]`其实是`call Wow64`子系统的调用
+
+经过`Wow64`子系统的包装，最终进入内核。
+
+`mov eax, 000012CF`这句汇编代码
+
+其中 `000012CF`代表的是 `shadowSSDT` 的索引值
+
+了解过 `SSDT`&`shadowsSSDT`的朋友都知道
+
+第一个4k页面指向的是`SSDT`函数
+
+第二个4k页面指向的是`shadowSSDT`函数
+
+另外两个页面未使用(这是题外话。)
+
+`00000012CF`在第二个页面上，所以这个索引指向`shadowSSDT`函数。
+
+我们减去 `0x1000` 就是它的真实索引值 `0x02CF`，十进制就是 719。
+
+我们打开`PChunter`这款非常有用的软件, 我们可以看到索引719指向的
+
+`shadowSSDT`函数名 `NtUserHwndQueryRedirectionInfo`
+
+![](https://bbs.kanxue.com/upload/attach/202002/690570_4WMBJ2WV6CHYVU7.jpg)
+
+接下来我们就hook这个函数并写好过滤
+
+一般来说，这种`shadowSSDT`函数，只传进来一个参数(`rcx`), 保险起见我们写四个。
+
+示例过滤函数如下：（自备`shadowSSDT` hook引擎，本贴不会放完整代码，防止伸手）
+
+![](https://bbs.kanxue.com/upload/attach/201811/690570_K57XYS95YTXWPEX.jpg)
+
+But, 光是这样是不够的, 我们还要在这里获取到D3D9的设备。
+
+这就给我们出了一个难题，一般在应用层都是hook取设备的。
+
+经过查资料，我们想到了一个好办法，利用栈回溯，找到最初调用
+
+`Present`函数的地方, 并把第一个参数(也就是设备)取出来。
+
+好在windows x86下的栈回溯是基于`EBP`来回溯的，原理相对简单，
+
+我们可以手动编写一下。
+
+## 1.3
+
+应用层在通过`syscall`进入内核之前，会把当前的`TrapFrame`保存
+
+起来。在内核中当前`_KTHREAD`成员
+
+`TrapFrame` 就是应用层保存的
+
+`TrapFrame` 指针。
+
+![](https://bbs.kanxue.com/upload/attach/201811/690570_H2PWMT5S7KF58D8.jpg)
+
+在win7 x64下，其结构偏移为 `0x1D8`。
+
+至此，我们可以顺利的获取应用层最后保存的`RBP`了。
+
+![](https://bbs.kanxue.com/upload/attach/201811/690570_CRN5CZUVPWJ9ME4.jpg)
+
+接下来写栈回溯，具体原理我就不多做描述，大家可以移步这两个帖子看一下
+
+395K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1L8r3!0Y4i4K6u0W2j5%4y4V1L8W2)9J5k6h3&6W2N6q4)9J5c8X3y4Z5k6h3&6D9P5h3y4D9P5g2)9J5c8X3q4J5N6r3W2U0L8r3g2Q4x3V1k6V1k6i4c8S2K9h3I4K6i4K6u0r3y4K6R3I4y4o6b7%4y4U0V1`.
+
+6c4K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1L8r3!0Y4i4K6u0W2j5%4y4V1L8W2)9J5k6h3&6W2N6q4)9J5c8Y4N6#2x3K6x3H3i4K6u0r3j5i4u0@1K9h3y4D9k6g2)9J5c8X3c8W2N6r3q4A6L8s2y4Q4x3V1j5J5z5e0t1I4x3K6t1H3x3b7`.`.
+
+示例代码如下:
+
+![](https://bbs.kanxue.com/upload/attach/201811/690570_M93MCR637SBMRW2.jpg)
+
+笔者这里偷了个懒，直接判断`call` 地址是否小于 `0x00500000`
+
+以此确定 当前帧就是`call present`的。
+
+当然，获取到设备的同时，得以确认，当前线程就是从
+
+`Present`函数一直`call` 进内核的。下面就可以放心的执行绘制操作了。
+
+## 2.0
+
+在内核中给当前进程申请内存，最方便的莫过于`ZwAllocateVirtualMemory`
+
+申请内存成功之后，写入`shell code`。
+
+比如直接`call` D3D9的 `Clear`函数，画个方块。
+
+示例如下:
+
+![](https://bbs.kanxue.com/upload/attach/201811/690570_ESVG6CGD7RBXRJN.jpg)
+
+要注意的是，不要一直不停的申请内存，我想各位看官应该不会这么做[滑稽]。
+
+## 3.0
+
+做完如上工作，接下来就可以想办法回到用户模式，执行`shellcode`了。
+
+回到用户模式的方法有好几种，比如`KeUserModeCallBack`, `APC`。
+
+其中
+
+`KeUserModeCallBack` 需要在应用层中写好代理分发，并且如果目标进程是
+
+`wow64`进程，还需要多写一层代理函数，着实麻烦。
+
+所以我们采用相对简单的 `APC`，利用`APC`机制回到用户模式。
+
+代码如下:
+
+![](https://bbs.kanxue.com/upload/attach/201811/690570_MMEB37432EURX55.jpg)
+
+注意这里的细节，如果目标进程是 `wow64`进程，起始地址需要 / -4。
+
+然后就是常规的初始化`APC`，插入队列。
+
+由于我们是回到当前进程的应用层，所以初始化`APC`时,
+
+`KeInitializeApc`第二个参数填 `PsGetCurrentThread()`。
+
+最后利用`KeTestAlertThread`直接触发队列里的`APC Routine`。
+
+## 3.1
+
+最后放上效果图如下:
+
+![](https://bbs.kanxue.com/upload/attach/201811/690570_5JUK2MKQTCJ9MB5.jpg)
+
+## 结尾:
+
+经过笔者测试，有些系统并不走 `NtUserHwndQueryRedirectionInfo`
+
+而是另外的`ShadowSSDT`函数，不过我们依然有办法解决这种小问题。
+
+有时间开下一帖讲一下
+
+#
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+[#系统底层](https://bbs.kanxue.com/forum-4-1-2.htm)
+
+[#调试逆向](https://bbs.kanxue.com/forum-4-1-1.htm)
