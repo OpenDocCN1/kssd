@@ -1,0 +1,142 @@
+
+```
+                Status = ObInsertObject( ClientPort,
+
+                                         NULL,
+
+                                         PORT_ALL_ACCESS,
+
+                                         0,
+
+                                         (PVOID *)NULL,
+
+                                         &Handle );
+```
+
+故`kernel32`中想通过`NtSecureConnectPort`创建`CsrApiPort`也会失败。
+
+而这又导致`kernel32`的`dllmain`失败。
+
+这样整个进程初始化便失败了。
+
+然后`_LdrpInitialize`便会调用`LdrpInitializationFailure`又通过`LPC`通知`Csrss`的`CsrApiRequestThread`弹出对话框：
+
+```
+        f7f5facc 804fc1e2 nt!KiUnlockDispatcherDatabase+0x77 (FPO: [Uses EBP] [0,0,4])
+
+        f7f5fae4 80598997 nt!KeReleaseSemaphore+0x70 (FPO: [4,1,4])
+
+        f7f5fb18 80598b21 nt!LpcpRequestWaitReplyPort+0x3ff (FPO: [4,4,0])
+
+        f7f5fb30 8060a467 nt!LpcRequestWaitReplyPortEx+0x21 (FPO: [3,0,0])
+
+        f7f5fcd4 8060a8c5 nt!ExpRaiseHardError+0x1bd (FPO: [Non-Fpo])
+
+        f7f5fd44 8053d808 nt!NtRaiseHardError+0x16b (FPO: [Non-Fpo])
+
+        f7f5fd44 7c92eb94 nt!KiFastCallEntry+0xf8 (FPO: [0,0] TrapFrame @ f7f5fd64)
+
+        0010fc7c 7c92e273 ntdll!KiFastSystemCallRet (FPO: [0,0,0])
+
+        0010fc80 7c97146b ntdll!NtRaiseHardError+0xc (FPO: [6,0,0])
+
+        0010fca4 7c95f8f3 ntdll!LdrpInitializationFailure+0x2d (FPO: [1,1,0])
+
+        0010fd1c 7c92eac7 ntdll!\_LdrpInitialize+0x239 (FPO: [Non-Fpo])
+
+        00000000 f000ff53 ntdll!KiUserApcDispatcher+0x7
+```
+
+这样一来，就回到我们开始的那个对话框了。
+
+调试过程还有个小地方，就是`BaseSrvCreateProcess`会在`TEB->CsrClientThread`中取到父进程的`PID`。这是
+
+我开始想不通的。不明白为什么`windows`会单独设一个字段保存这东西，
+
+完全可以通过参数压栈。也许是历史原因吧。
+
+下面这几句可以看出`CsrApiRequestThread`先把父进程的信息保存在`Teb->CsrClientThread` 然后在`BaseSrvCreateProcess`中
+
+供`NtDuplicateObject`使用，然后再还原的过程：
+
+```
+Teb->CsrClientThread = (PVOID)Thread;
+
+
+
+            ReplyMsg = &ReceiveMsg;
+
+            ReplyPortHandle = Thread->Process->ClientPort;
+
+
+
+            ReplyStatus = CsrReplyImmediate;
+
+            ReplyMsg->ReturnValue =
+
+                (*(LoadedServerDll->ApiDispatchTable[ ApiTableIndex ]))(
+
+                    &ReceiveMsg,
+
+                    &ReplyStatus
+
+                    );
+
+            ++CsrpStaticThreadCount;
+
+
+
+            Teb->CsrClientThread = (PVOID)MyThread;
+```
+
+下面来说说要注意的地方，也是我调试中碰到的小问题吧。
+
+首先是弹出的对话框我以为也是通过`NtRequestWaitReplyPort`，
+
+不过断遍了整个发送`LPC`的`ntxx`函数都没断到。
+
+后来才发现原来是`NtRaiseHardError->LpcpRequestWaitReplyPort`,
+
+这才恍然大悟，`NtRaiseHardError`不就是专门来弹这种框的么。
+
+甚至在驱动也可以霸气弹框。
+
+然后是觉得这几套逻辑的函数看似简单，不过消息发来发去的，调的我有点烦躁了。
+
+所以调试过程中耐心真是必不可少啊。
+
+下面再说说第八个门中的错误。最后他枚举句柄表来找到`CsrApiPort`的句柄，
+
+可惜代码写的有点问题。正确的枚举应该是这样的：
+
+```
+ObjectHeader = (POBJECT_HEADER)(((ULONG_PTR)(HandleTableEntry->Object))&~OBJ_HANDLE_ATTRIBUTES);
+if ((ObjectHeader->ObjectType) != *LpcPortObjectType) {return FALSE;}
+
+pLPCPortObject = (PVOID)(*(DWORD*)&(ObjectHeader->Body));
+
+    LPC_PORT_OBJECT_2K *pLPCPortObject2K = NULL;
+    LPC_PORT_OBJECT_XP *pLPCPortObjectXP = NULL;
+
+    pLPCPortObjectXP = pLPCPortObject;
+    pConnectionPort = pLPCPortObjectXP->ConnectionPort;
+
+ObDereferenceObject(pLPCPortObject);
+pLPCPortObject = NULL;
+
+if (!pConnectionPort || gpCsrssPort != pConnectionPort) {return FALSE;}
+
+g_CsrPortObj = (PVOID)(*(DWORD*)&(ObjectHeader->Body));
+
+return TRUE;
+```
+
+还有个问题，即使枚举到了句柄，发送消息也不可能成功。因为发送过去的消息保存的是`system`进程的信息。
+
+这个在`csrss`的`hash`表中是没有的。因此应该`DIY`一下这个`hash`表，以便让`CsrLocateThreadByClientId`得以成功，这个
+
+可能是比较麻烦的吧……
+
+由于时间关系，上面难免有不少错误，还望各位大牛指正。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
