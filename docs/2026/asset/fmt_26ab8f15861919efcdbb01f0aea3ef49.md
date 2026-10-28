@@ -1,0 +1,198 @@
+
+# [原创]一次带有疑问的“pediy”
+
+- 【文章标题】: 一次带有疑问的“pediy”
+- 【文章作者】: rdsnow[BCG][PYG][D.4s]
+- 【作者邮箱】: rdsnow@163.com
+- 【作者主页】: `ee8K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4u0V1M7$3&6G2N6#2)9J5k6i4W2K6x3e0j5^5i4K6u0W2j5$3!0E0` `https://bbs.kanxue.com/elink@d11K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4u0V1M7$3&6G2N6#2)9J5k6i4W2K6x3e0j5^5i4K6u0W2j5$3!0E0`
+- 【作者QQ号】: 83757177
+- 【下载地址】: `c86d9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3N6G2L8$3N6D9k6g2)9J5k6h3y4F1` `https://bbs.kanxue.com/elink@23ad9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3N6G2L8$3N6D9k6g2)9J5k6h3y4F1`，附件中也有
+- 【使用工具】: OllyICE、stud_pe、ResourceHacker、金山游侠
+- 【软件介绍】: Winline 1.21 一个五子连线的彩球游戏
+- 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+## 文章简介
+
+人生在世，有三件大事，“上网、女人和玩游戏”，可惜我们办公室内几个人合用一台电脑。汗！
+
+上次谁在休闲区放了这个小游戏，我水平太差了，玩这个游戏就好像等死的病人一样，看着桌面的小球越来越多，更加可气的是办公室同事们不知怎的，迷上了这个小游戏，一个接一个的上，竟然挤占了不少上网冲浪的时间。
+
+把游戏删了，不！君子如何能干这事(其实删了，同事会重新下载)，看来得给游戏动些手术，得让他们感觉到游戏太简单，没有意思！呵呵！
+
+学习了andy00提供的记事本修改系列，轮到自己动手了，现准备为游戏添加这样几个秘笈：(做好以后，不要忘记把这些故意透露给同事)
+
+1. 按 `F6`，分数就加 100
+2. 按 `F7`，小球将不再向下掉
+3. 按 `F8`，恢复每次向下掉的小球数为 3
+4. 在菜单中加入清除记录文件的功能
+5. 为程序添加老板键功能
+
+学习了andy00提供的记事本修改系列，轮到自己动手了，没想到给自己带来了不少疑问，把问题归结到文章的最后。希望高手帮忙解释一下。
+
+---
+
+## 破解过程
+
+### 第一步：找到分值保存的地址
+
+这个是N年前的小把戏了，通过不断的缩小范围，游侠最后定位所得分数保存在 `dword ptr ds:[430144]` 中，赶快用 OD 将游戏附上，预防分数保存在动态地址中，然后在 `[430144]` 上下硬件写断点，移动球直到拿分，果然被断下：
+
+```asm
+00411318   .  89C6          MOV ESI,EAX
+0041131A   .  8B1D 44014300 MOV EBX,DWORD PTR DS:[430144]
+00411320   .  01D3          ADD EBX,EDX
+00411322   .  891D 44014300 MOV DWORD PTR DS:[430144],EBX
+00411328   .  89D9          MOV ECX,EBX                            ;  停在这里
+0041132A   .  8B1D 4C014300 MOV EBX,DWORD PTR DS:[43014C]
+00411330   .  8B15 48014300 MOV EDX,DWORD PTR DS:[430148]
+00411336   .  E8 37FAFFFF   CALL Winline1.00410D72
+```
+
+这几行代码清楚的告诉我们，分值保存在 `[430144]` 这个固定地址中。
+
+### 第二步：粗略跟下这些代码
+
+```asm
+00411D69   > \31DB          XOR EBX,EBX
+00411D6B   .  8A1D 18004300 MOV BL,BYTE PTR DS:[430018]
+00411D71   .  31D2          XOR EDX,EDX
+00411D73   .  8A146D 940043>MOV DL,BYTE PTR DS:[EBP*2+430094]
+00411D7A   .  31C0          XOR EAX,EAX
+00411D7C   .  8A046D 950043>MOV AL,BYTE PTR DS:[EBP*2+430095]
+00411D83   .  E8 64EAFFFF   CALL Winline1.004107EC                 ;  判断有没有五子成线
+00411D88   .  89C5          MOV EBP,EAX
+00411D8A   .  85C0          TEST EAX,EAX
+00411D8C   .  74 24         JE SHORT Winline1.00411DB2             ;  没有成线，则跳去分发小球
+00411D8E   .  89F8          MOV EAX,EDI
+00411D90   .  E8 E1EBFFFF   CALL Winline1.00410976
+00411D95   .  89E8          MOV EAX,EBP
+00411D97   .  E8 2AEEFFFF   CALL Winline1.00410BC6                 ;  根据成线小球的个数计算应增加的分值
+00411D9C   .  89C2          MOV EDX,EAX                            ; EDX = 所要加的分值
+00411D9E   .  89F8          MOV EAX,EDI
+00411DA0   .  E8 6EF5FFFF   CALL Winline1.00411313                 ;  增加分值，并且动画调整小人的高度
+00411DA5   .^ E9 D8FCFFFF   JMP Winline1.00411A82
+00411DAA   >  89F8          MOV EAX,EDI                            ;  /
+00411DAC   .  E8 C0ECFFFF   CALL Winline1.00410A71                 ;  |重新分发小球
+00411DB1   .  45            INC EBP                                ;  |
+00411DB2   >  83FD 03       CMP EBP,3                              ;  |循环三次，即分发三个小球
+00411DB5   .^ 7C F3         JL SHORT Winline1.00411DAA             ;  \
+00411DB7   .  E8 7EECFFFF   CALL Winline1.00410A3A                 ;  判断有没有空格
+00411DBC   .  85C0          TEST EAX,EAX
+00411DBE   .  75 2C         JNZ SHORT Winline1.00411DEC            ;  有空格继续，没有则跳下面对话框
+00411DC0   .  6A 30         PUSH 30                                ; /Style = MB_OK|MB_ICONEXCLAMATION|MB_APPLMODAL
+00411DC2   .  68 90004200   PUSH Winline1.00420090                 ; |Title = "Color linez"
+00411DC7   .  68 DA8C4200   PUSH Winline1.00428CDA                 ; |Text = " 玩  完  !"
+00411DCC   .  8BAC24 880000>MOV EBP,DWORD PTR SS:[ESP+88]          ; |
+00411DD3   .  55            PUSH EBP                               ; |hOwner
+00411DD4   .  E8 E6130000   CALL <JMP.&USER32.MessageBoxA>         ; \MessageBoxA
+00411DD9   .  89E8          MOV EAX,EBP
+00411DDB   >  E8 E5F9FFFF   CALL Winline1.004117C5
+00411DE0   .  89F8          MOV EAX,EDI
+00411DE2   .  E8 3EF7FFFF   CALL Winline1.00411525
+00411DE7   .^ E9 96FCFFFF   JMP Winline1.00411A82
+```
+
+刚才的硬件写断就断在 `00411DA0 CALL Winline1.00411313` 内，这个函数的功能将 `[430144]` 的分值增加，同时在窗口画出一个编辑框，然后：
+
+跟进 `00411336 CALL Winline1.00410D72`：
+
+```asm
+00410E1A  |.  68 FFFFFF00   PUSH 0FFFFFF                           ; /Color = <WHITE>
+00410E1F  |.  56            PUSH ESI                               ; |hDC
+00410E20  |.  E8 88230000   CALL <JMP.&GDI32.SetTextColor>         ; \SetTextColor
+00410E25  |.  6A 01         PUSH 1                                 ; /BkMode = TRANSPARENT
+00410E27  |.  56            PUSH ESI                               ; |hDC
+00410E28  |.  E8 7A230000   CALL <JMP.&GDI32.SetBkMode>            ; \SetBkMode
+00410E2D  |.  8D5424 10     LEA EDX,DWORD PTR SS:[ESP+10]
+00410E31  |.  8B4424 30     MOV EAX,DWORD PTR SS:[ESP+30]
+00410E35  |.  E8 6EF2FFFF   CALL Winline1.004100A8
+00410E3A  |.  6A 02         PUSH 2                                 ; /Flags = DT_RIGHT|DT_TOP
+00410E3C  |.  8D4424 04     LEA EAX,DWORD PTR SS:[ESP+4]           ; |
+00410E40  |.  50            PUSH EAX                               ; |pRect
+00410E41  |.  6A FF         PUSH -1                                ; |Count = FFFFFFFF (-1.)
+00410E43  |.  8D4424 1C     LEA EAX,DWORD PTR SS:[ESP+1C]          ; |
+00410E47  |.  50            PUSH EAX                               ; |Text
+00410E48  |.  56            PUSH ESI                               ; |hDC
+00410E49  |.  836C24 1C 08  SUB DWORD PTR SS:[ESP+1C],8            ; |
+00410E4E  |.  E8 4E230000   CALL <JMP.&USER32.DrawTextA>           ; \DrawTextA
+```
+
+显示分值，最后根据分数计算小人的高度，并调整之。
+
+### 第三步：前期思考准备
+
+#### 1、按 `F6`，分数就加 100
+
+不要直接改 `[430144]` 的数值，那样虽然分数加了，但编辑框分值并不改变，小人高度也不随之变化。
+
+```asm
+00411D9C   .  89C2          MOV EDX,EAX                            ; EDX = 所要加的分值
+00411D9E   .  89F8          MOV EAX,EDI
+00411DA0   .  E8 6EF5FFFF   CALL Winline1.00411313                 ;  增加分值，并且动画调整小人的高度
+```
+
+这个 `call` 可以被我们利用下。
+
+#### 2、按 `F7`，小球将不再向下掉
+
+```asm
+00411DAA   >  89F8          MOV EAX,EDI                            ;  /
+00411DAC   .  E8 C0ECFFFF   CALL Winline1.00410A71                 ;  |重新分发小球
+00411DB1   .  45            INC EBP                                ;  |
+00411DB2   >  83FD 03       CMP EBP,3                              ;  |循环三次，即分发三个小球
+00411DB5   .^ 7C F3         JL SHORT Winline1.00411DAA             ;  \
+```
+
+只需将 `CMP EBP,3` 改为 `CMP EBP,0`，小球再也不会向下掉。
+
+#### 3、按 `F8`，恢复每次向下掉的小球数为 3
+
+和上面相反，改回 `CMP EBP,3` 即可。
+
+#### 4、在菜单中加入清除记录文件的功能
+
+记录文件保存在程序目录下的 `winlines.res` 中，用二进制编辑软件打开可以看到记录文件的结果，可以随意修改名字和分值。将这个文件删除即可以清除记录。需要给程序添加 `kernel32.DeleteFileA` 函数。
+
+#### 5、为程序添加老板键功能
+
+分两步完成，增加 `WM_RBOTTODOWN` 事件的处理功能，在其中添加 `ShowWindow` 的隐藏功能，(这个输入功能程序中已有，无需自行加)，同时给程序安装日志钩子。这是修改最失败的地方，原本是想在窗口初始化时安装钩子，后来考虑到使用全局钩子会拖慢系统的速度，老板不来，老板键是用不到的，所以在隐藏窗口的同时安装钩子。
+
+一旦主窗口被隐藏，窗口则处于非活动状态，不能接受到 `WM_KEYDOWN` 消息，所以安装了钩子，在钩子回调功能中显示被隐藏了的窗口。
+
+通过上面两步实现老板键功能。
+
+什么是钩子：
+
+> A hook is a point in the Microsoft Windows message-handling mechanism where an application can install a subroutine to monitor the message traffic in the system and process certain types of messages before they reach the target window procedure.
+
+我英文比较烂，只好猜想：安装了钩子就好像在大街上装个监视器，然后从人流中找到适合自己的 MM，如果找到，就拉过来聊聊。
+
+### 第四步：添加相应资源
+
+用资源黑客打开以上程序，添加一下快捷键：
+
+```text
+VK_F6, 780, VIRTKEY     ;ID=0x30C，对应 F6 键，用于启动秘笈1
+VK_F7, 781, VIRTKEY     ;ID=0x30D，对应 F7 键，用于启动秘笈2
+VK_F8, 782, VIRTKEY     ;ID=0x30E，对应 F8 键，用于启动秘笈3
+```
+
+上面的几个既然是秘笈，就不要添加菜单了。然后继续添加菜单：
+
+```text
+MENUITEM "删除记录文件(&H)",  783                        ; ID=0x30F，用于启动秘笈4
+POPUP "查看老板键(&B)"
+{
+        MENUITEM "鼠标右键  隐藏窗口",  784,  GRAYED     ; 只是放了一个菜单，没有为之添加代码
+        MENUITEM SEPARATOR
+        MENUITEM "键盘 A 键 恢复窗口",  785,  GRAYED     ; 只是放了一个菜单，没有为之添加代码
+}
+```
+
+不知道源程序何以能做到"帮助"和其他如"文件"、"选项"等菜单分开的，资源重新编译后这个菜单有靠拢一起了。
+
+### 第五步：使用 stud_pe 添加相应新的区段和 API 输入函数
+
+区段改好了，如下：
+
+No  | 名称      | VSize      | VOffset    | RSize      | ROffset    | Charact.   |
