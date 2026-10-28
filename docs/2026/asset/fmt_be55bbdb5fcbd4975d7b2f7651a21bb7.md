@@ -1,0 +1,76 @@
+
+# [原创] APT32组织样本分析
+
+## 前言
+
+OceanLotus(海莲花)APT组织是一个长期针对中国及其他东亚、东南亚国家(地区)政府、科研机构、海运企业等领域进行攻击的APT组织，该组织也是针对中国境内的最活跃的APT组织之一，该组织主要通过鱼叉攻击和水坑攻击等方法，配合多种社会工程学手段进行渗透，向境内特定目标人群传播特种木马程序，秘密控制部分政府人员、外包商和行业专家的电脑系统，窃取系统中相关领域的机密资料，通过追踪它这些年的攻击手法和攻击目标，OceanLotus很有可能是具有国外政府支持背景的、高度组织化的、专业化的境外国家级黑客组织。初期的OceanLotus特种木马技术并不复杂，容易发现和查杀，2014年OceanLotus特种木马开始采用包括文件伪装、随机加密和自我销毁等一系列复杂的攻击技术与安全软件进行对抗，随后OceanLotus特种木马又开始转向云控技术，攻击的危险性、不确定性与木马识别查杀的难度都大大增强。OceanLotus(海莲花) APT组织擅长使用鱼叉攻击和水坑攻击，NSA武器库曝光后，还使用了永恒系列漏洞进行攻击，投递的攻击武器种类比较多，RTA包括：Denis、`CobaltStrike`、`PHOREAL`、`salgorea`、类gh0st、`Ratsnif`等。
+
+## APT样本分析
+
+样本通过释放带数字签名的`WINWORD.EXE`程序侧加载（白加黑）“`wwlib.dll`”恶意DLL文件，“`wwwlib.dll`”执行后会解密自身携带的数据并释放诱饵白文档，然后通过解密后执行下载器Shellcode，最后通过HTTP请求下载`CobaltStrike` Beacon。
+
+### 一、样本基本信息
+
+![图片描述](upload/attach/202203/941725_KUW442B7MP7NYVH.png)
+
+将样本解压后
+
+![图片描述](upload/attach/202203/941725_74JMWZR64K49Y6Z.png)
+
+运行`WINWORD.EXE`会加载`wwwlib.dll`
+
+![图片描述](upload/attach/202203/941725_W8WC66UYM934A4Z.png)
+
+### 二、动态调试
+
+样本使用大量混淆以及多层加密，动过动态调试可解密部分代码。
+
+侧加载 “`wwwlib.dll`”，并将诱饵文档释放到“`%TEMP%`”目录
+
+![图片描述](upload/attach/202203/941725_VBJTNZ84X5RDS96.bmp)
+
+打开生成的诱饵文档
+
+![图片描述](upload/attach/202203/941725_Y8JV34YFDJ3DKRP.png)
+
+`index.dat`保存了cookie、历史记录，记录着通过浏览器访问过的网址、访问时间、历史记录等信息。
+
+![图片描述](upload/attach/202203/941725_5QGNZC8C6Z39ENM.png)
+
+通过`CryptDecrypt`解密ShellCode
+
+![图片描述](upload/attach/202203/941725_YYV3JTEYVSKPJNN.jpg)
+
+Shellcode代码主要功能是实现下载Payload，也就是通过URL“`c2eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6K6N6h3#2E0k6i4u0W2N6X3g2F1N6q4)9J5k6i4N6W2j5X3S2G2M7q4)9J5k6h3&6W2N6q4)9J5c8W2y4x3k6q4W2Q4c8e0u0Q4z5o6m8Q4z5f1c8Q4c8e0c8Q4b7U0S2Q4z5p5u0Q4c8e0S2Q4b7V1c8Q4b7V1c8o6L8$3u0S2L8s2b7`.” `Strike`生成的Beacon
+
+![图片描述](upload/attach/202203/941725_CZNTH88D3W8CV67.png)
+
+![图片描述](upload/attach/202203/941725_YFH2D8RP7YN87A8.png)
+
+`Cobalt Strike`是一款以`metasploit`为基础的GUI的框架式渗透工具，集成了端口转发、服务扫描，自动化溢出，多模式端口监听，`winexe`木马生成，`win dll`木马生成，`java`木马生成，`office`宏病毒生成，木马捆绑；钓鱼攻击包括：站点克隆，目标信息获取，`java`执行，浏览器自动攻击等等。
+
+`Cobalt Strike`主要用于团队作战，可以说是内网渗透中的团队渗透神器，`CobaltStrike`能够让多个攻击者同时连接到团队服务器上，共享攻击资源与目标信心和Session。要知道众人拾柴火焰高的道理，当我们发现一个内网控制点后，为了使我们的攻击收益最大化，最好的办法就是跟团队共享资源，给其他成员提供同样的接入点，`Cobalt Strike`很好的做到了这一点。因此`Cobalt Strike`作为一款协同APT工具，针对内网的渗透测试和作为APT的终端控制功能，使其变成众多APT组织的首选工具。
+
+### 三、下面是和此样本相关IP和子域名
+
+`summerevent.webhop.net`服务器iP
+
+![图片描述](upload/attach/202203/941725_7F9X4QXQ69S3CEF.png)
+
+`webhop.net`下的子域名
+
+![图片描述](upload/attach/202203/941725_7VV6TAJJNSAKR2A.png)
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+[#调试逆向](https://bbs.kanxue.com/forum-4-1-1.htm)
+
+[#病毒木马](https://bbs.kanxue.com/forum-4-1-6.htm)
+
+[#其他内容](https://bbs.kanxue.com/forum-4-1-10.htm)
+
+上传的附件：
+
+- [c0ea37db94aa0d747ece7f46afcf90e43fb22c06731f291f0b2ba189d4326e33.zip](javascript:void(0);)
+
+  （355.47kb，99次下载）

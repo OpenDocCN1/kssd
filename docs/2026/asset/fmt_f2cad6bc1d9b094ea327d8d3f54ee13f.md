@@ -1,0 +1,143 @@
+
+```
+unpacked:00402260 loc_402260:                   ; CODE XREF: Read_Overlay+FDj
+unpacked:00402260             push 6Dh          ; Size
+unpacked:00402262             lea eax, [ebp+DstBuf]
+unpacked:00402265             push 0            ; Val
+unpacked:00402267             push eax          ; Dst
+unpacked:00402268             call memset
+unpacked:0040226D             push 2            ; Origin
+unpacked:0040226F             push 0FFFFFF32h   ; Offset
+unpacked:00402274             push ebx          ; File
+unpacked:00402275             call esi ; fseek
+unpacked:00402277             push ebx          ; File
+unpacked:00402278             push 1            ; Count
+unpacked:0040227A             lea eax, [ebp+DstBuf]
+unpacked:0040227D             push 1            ; ElementSize
+unpacked:0040227F             push eax          ; DstBuf
+unpacked:00402280             call edi ; fread
+unpacked:00402282             add esp, 28h
+unpacked:00402285             test eax, eax
+unpacked:00402287             jnz short loc_402293
+unpacked:00402289             push offset aFopenCannTRe_0 ; "fopen cann't read data.. /isReSSDT "
+unpacked:0040228E             jmp loc_402384
+unpacked:00402293 ; ---------------------------------------------------------------------------
+unpacked:00402293
+unpacked:00402293 loc_402293:                   ; CODE XREF: Read_Overlay+173j
+unpacked:00402293             cmp [ebp+DstBuf], 59h
+unpacked:00402297             push 6Dh          ; Size
+unpacked:00402299             push 0            ; Val
+unpacked:0040229B
+unpacked:0040229B loc_40229B:                   ; DATA XREF: sub_409563+17Dr
+unpacked:0040229B             setz al           ; jump table for switch statement
+unpacked:0040229E             mov byte_404A0B, al ; jumptable 004096E0 case 1
+unpacked:004022A3             lea eax, [ebp+DstBuf]
+unpacked:004022A6             push eax          ; Dst
+unpacked:004022A7             call memset
+unpacked:004022AC             push 2            ; Origin
+unpacked:004022AE             push 0FFFFFF33h   ; Offset
+unpacked:004022B3             push ebx          ; File
+unpacked:004022B4             call esi ; fseek
+unpacked:004022B6             push ebx          ; File
+unpacked:004022B7             push 1            ; Count
+unpacked:004022B9             lea eax, [ebp+DstBuf]
+unpacked:004022BC             push 1            ; ElementSize
+unpacked:004022BE             push eax          ; DstBuf
+unpacked:004022BF             call edi ; fread
+unpacked:004022C1             add esp, 28h
+unpacked:004022C4             test eax, eax
+unpacked:004022C6             jnz short loc_4022D2
+unpacked:004022C8             push offset aFopenCannTRe_1 ; "fopen cann't read data.. /isStopShare.."...
+unpacked:004022CD             jmp loc_402384
+unpacked:004022D2 ; ---------------------------------------------------------------------------
+unpacked:004022D2
+unpacked:004022D2 loc_4022D2:                   ; CODE XREF: Read_Overlay+1B2j
+unpacked:004022D2             cmp [ebp+DstBuf], 59h
+unpacked:004022D6             push 6Dh          ; Size
+unpacked:004022D8             push 0            ; Val
+unpacked:004022DA             setz al
+unpacked:004022DD             mov byte_404A0A, al
+unpacked:004022E2             lea eax, [ebp+DstBuf]
+unpacked:004022E5             push eax          ; Dst
+unpacked:004022E6             call memset
+unpacked:004022EB             push 2            ; Origin
+unpacked:004022ED             push 0FFFFFF34h   ; Offset
+unpacked:004022F2             push ebx          ; File
+unpacked:004022F3             call esi ; fseek
+unpacked:004022F5             push ebx          ; File
+unpacked:004022F6             push 1            ; Count
+unpacked:004022F8             lea eax, [ebp+DstBuf]
+unpacked:004022FB             push 1            ; ElementSize
+unpacked:004022FD             push eax          ; DstBuf
+unpacked:004022FE             call edi ; fread
+unpacked:00402300             add esp, 28h
+unpacked:00402303             test eax, eax
+unpacked:00402305             jnz short loc_40230E
+unpacked:00402307             push offset aFopenCannTRe_2 ; "fopen cann't read data.. /delself "
+unpacked:0040230C             jmp short loc_402384
+unpacked:0040230E ; ---------------------------------------------------------------------------
+unpacked:0040230E
+unpacked:0040230E loc_40230E:                   ; CODE XREF: Read_Overlay+1F1j
+unpacked:0040230E             cmp [ebp+DstBuf], 59h
+unpacked:00402312             push 6Dh          ; Size
+unpacked:00402314             push 0            ; Val
+unpacked:00402316             setz al
+unpacked:00402319             mov byte_404A09, al
+unpacked:0040231E             lea eax, [ebp+DstBuf]
+unpacked:00402321             push eax          ; Dst
+unpacked:00402322             call memset
+unpacked:00402327             push 2            ; Origin
+unpacked:00402329             push 0FFFFFF35h   ; Offset
+unpacked:0040232E             push ebx          ; File
+unpacked:0040232F             call esi ; fseek
+unpacked:00402331             push ebx          ; File
+unpacked:00402332             push 1            ; Count
+unpacked:00402334             lea eax, [ebp+DstBuf]
+unpacked:00402337             push 1            ; ElementSize
+unpacked:00402339             push eax          ; DstBuf
+unpacked:0040233A             call edi ; fread
+unpacked:0040233C             add esp, 28h
+unpacked:0040233F             test eax, eax
+unpacked:00402341             jnz short loc_40234A
+unpacked:00402343             push offset aFopenCannTRe_3 ; "fopen cann't read data.. /isWebGet "
+unpacked:00402348             jmp short loc_402384
+unpacked:0040234A ; ---------------------------------------------------------------------------
+unpacked:0040234A
+unpacked:0040234A loc_40234A:                   ; CODE XREF: Read_Overlay+22Dj
+unpacked:0040234A             cmp [ebp+DstBuf], 59h
+unpacked:0040234E             push 6Dh          ; Size
+unpacked:00402350             push 0            ; Val
+unpacked:00402352             setz al
+unpacked:00402355             mov byte_404A08, al
+unpacked:0040235A             lea eax, [ebp+DstBuf]
+unpacked:0040235D             push eax          ; Dst
+unpacked:0040235E             call memset
+unpacked:00402363             push 2            ; Origin
+unpacked:00402365             push 0FFFFFF36h   ; Offset
+unpacked:0040236A             push ebx          ; File
+unpacked:0040236B             call esi ; fseek
+unpacked:0040236D             push ebx          ; File
+unpacked:0040236E             push 1            ; Count
+unpacked:00402370             lea eax, [ebp+DstBuf]
+unpacked:00402373             push 6Dh          ; ElementSize
+unpacked:00402375             push eax          ; DstBuf
+unpacked:00402376             call edi ; fread
+unpacked:00402378             add esp, 28h
+unpacked:0040237B             test eax, eax
+unpacked:0040237D             jnz short loc_40238E
+unpacked:0040237F             push offset aFopenCannTRe_4 ; "fopen cann't read data.. /szURL "
+unpacked:00402384
+unpacked:00402384 loc_402384:                   ; CODE XREF: Read_Overlay+3Fj
+unpacked:00402384                               ; Read_Overlay+63j
+unpacked:00402384                               ; Read_Overlay+A3j
+unpacked:00402384                               ; Read_Overlay+12Fj
+unpacked:00402384                               ; Read_Overlay+17Aj
+unpacked:00402384                               ; Read_Overlay+1B9j
+unpacked:00402384                               ; Read_Overlay+1F8j
+unpacked:00402384                               ; Read_Overlay+234j
+unpacked:00402384             call OutputDebugStringA
+unpacked:0040238A             xor al, al
+unpacked:0040238C             jmp short loc_4023A8
+unpacked:0040238E ; ---------------------------------------------------------------------------
+unpacked:0040238E
+```

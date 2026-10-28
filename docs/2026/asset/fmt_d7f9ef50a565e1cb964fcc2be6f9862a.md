@@ -1,0 +1,184 @@
+
+`004013DA`   .^\0F82 E5FFFFFF jb      `004013C5`
+
+#######################################################################
+
+`004013C0`   .  29BD 9634D00F sub     dword ptr [ebp+FD03496], edi
+
+部分数据不详，ollydug出错了吧
+
+`004013E8`   .^\E9 E2FEFFFF   jmp     `004012CF`
+
+`004012CF`   > /FF36          push    dword ptr [esi]
+
+`004012D1`   . |58            pop     eax
+
+`004012D2`   . |E9 3B010000   jmp     `00401412`
+
+#######################################################################
+
+`00401412`   > \03C6          add     eax, esi
+
+`00401414`   .  F8            clc                                      ;  set CF==0；（ 进位清零 ）
+
+`00401415`   .^ 0F83 E8FFFFFF jnb     `00401403`                         ;  if CF==0，jump（不小于）
+
+#######################################################################
+
+`00401403`   > /FF76 04       push    dword ptr [esi+4]                ；产生计数器，即edx
+
+`00401406`   . |5A            pop     edx
+
+`00401407`   .^|0F83 53FDFFFF jnb     `00401160`
+
+#######################################################################
+
+看样子，又要去做自解密 :)
+
+在`004013B4`上按shift+F2 设置条件断点 edx==0  :)
+
+在循环了`0x132Eh` 次之后；
+
+此时ZF==1，`004013B4` 不跳转，继续执行 `004013BA`
+
+edx==
+
+#######################################################################
+
+又要去做自解密 :)
+
+在`004013B4`上按shift+F2 设置条件断点 edx==0  :)
+
+在循环了`0x84ADh` 次之后；
+
+此时ZF==1，`004013B4` 不跳转，继续执行 `004013BA`
+
+#######################################################################
+
+又要去做自解密 :) `0040141F`--`0040141F+0x3Fh`
+
+在`004013B4`上按shift+F2 设置条件断点 edx==0  :)
+
+在循环了`0x3Fh` 次之后；
+
+此时ZF==1，`004013B4` 不跳转，继续执行 `004013BA`
+
+#######################################################################
+
+`004012B7`   . /0F82 36010000 jb      `004013F3`
+
+`004013F3`   > \E8 27000000   call    `0040141F`               ；未跟进，作用不祥
+
+`004013F8`   .^\E9 25FFFFFF   jmp     `00401322`
+
+`004012F7`   > /E9 85290000   jmp     `00403C81`
+
+#######################################################################
+
+若干次跳转之后，来到刚刚解密过的代码处，看上去想个vc 6.0 的OEP :)
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+```
+00403C81   > \55            push    ebp                              ;  maybe OEP
+00403C82   .  8BEC          mov     ebp, esp
+00403C84   ?  6A FF         push    -1
+00403C86   ?  68 F0724000   push    004072F0
+00403C8B   .  68 F4504000   push    004050F4
+00403C90   .  64:A1 0000000>mov     eax, dword ptr fs:[0]
+00403C96   .  50            push    eax
+00403C97   >  64:8925 00000>mov     dword ptr fs:[0], esp
+00403C9E   .  83EC 58       sub     esp, 58
+00403CA1   ?  53            push    ebx
+00403CA2   ?  56            push    esi
+00403CA3   ?  57            push    edi
+00403CA4   .  8965 E8       mov     dword ptr [ebp-18], esp
+00403CA7   .  FF15 48704000 call    dword ptr [<&KERNEL32.GetVersion>;  kernel32.GetVersion
+00403CAD  |.  33D2          xor     edx, edx
+00403CAF  |.  8AD4          mov     dl, ah
+00403CB1  |.  8915 6C9A4000 mov     dword ptr [409A6C], edx
+00403CB7  |.  8BC8          mov     ecx, eax
+00403CB9  |.  81E1 FF000000 and     ecx, 0FF
+00403CBF  |.  890D 689A4000 mov     dword ptr [409A68], ecx
+00403CC5  |.  C1E1 08       shl     ecx, 8
+00403CC8  |.  03CA          add     ecx, edx
+00403CCA  |.  890D 649A4000 mov     dword ptr [409A64], ecx
+00403CD0  |.  C1E8 10       shr     eax, 10
+00403CD3  |.  A3 609A4000   mov     dword ptr [409A60], eax
+00403CD8  |.  33F6          xor     esi, esi
+00403CDA  |.  56            push    esi
+00403CDB  |.  E8 D3010000   call    00403EB3
+00403CE0  |.  59            pop     ecx
+00403CE1  |.  85C0          test    eax, eax
+00403CE3  |.  75 08         jnz     short 00403CED
+00403CE5  |.  6A 1C         push    1C
+00403CE7  |.  E8 B0000000   call    00403D9C
+00403CEC  |.  59            pop     ecx
+00403CED  |>  8975 FC       mov     dword ptr [ebp-4], esi
+00403CF0  |.  E8 59110000   call    00404E4E
+00403CF5  |.  FF15 44704000 call    dword ptr [<&KERNEL32.GetCommand>; [GetCommandLineA
+00403CFB  |.  A3 549F4000   mov     dword ptr [409F54], eax
+00403D00  |.  E8 17100000   call    00404D1C
+00403D05  |.  A3 409A4000   mov     dword ptr [409A40], eax
+00403D0A  |.  E8 C00D0000   call    00404ACF
+00403D0F  |.  E8 020D0000   call    00404A16
+00403D14  |.  E8 1F0A0000   call    00404738
+00403D19  |.  8975 D0       mov     dword ptr [ebp-30], esi
+00403D1C  |.  8D45 A4       lea     eax, dword ptr [ebp-5C]
+00403D1F  |.  50            push    eax                              ; /pStartupinfo
+00403D20  |.  FF15 40704000 call    dword ptr [<&KERNEL32.GetStartup>; \GetStartupInfoA
+00403D26  |.  E8 930C0000   call    004049BE
+00403D2B  |.  8945 9C       mov     dword ptr [ebp-64], eax
+00403D2E  |.  F645 D0 01    test    byte ptr [ebp-30], 1
+00403D32  |.  74 06         je      short 00403D3A
+00403D34  |.  0FB745 D4     movzx   eax, word ptr [ebp-2C]
+00403D38  |.  EB 03         jmp     short 00403D3D
+00403D3D  |>  50            push    eax
+00403D3E  |.  FF75 9C       push    dword ptr [ebp-64]
+00403D41  |.  56            push    esi
+00403D42  |.  56            push    esi                              ; /pModule
+00403D43  |.  FF15 3C704000 call    dword ptr [<&KERNEL32.GetModuleH>; \GetModuleHandleA
+```
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+`00403D00`  |.  E8 17100000   call    `00404D1C`   ;返回指针，`003C4988`  ALLUSERSPROFILE=`C:\Documents andSettings\All Users`.
+
+\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*\*
+
+#######################################################################
+
+```
+00403D49  |.  50            push    eax                              ;  eax==00400000Recycled.00400000
+00403D4A  |.  E8 0DD8FFFF   call    0040155C                         ;  木马模块，按F7跟入,(要复制病毒到指定位置 :) )
+```
+
+```
+0040155C  /$  55            push    ebp
+0040155D  |.  8BEC          mov     ebp, esp
+0040155F  |.  81EC 98020000 sub     esp, 298
+00401565  |.  53            push    ebx
+00401566  |.  56            push    esi
+00401567  |.  57            push    edi
+00401568  |.  8D85 6CFEFFFF lea     eax, dword ptr [ebp-194]
+0040156E  |.  68 04010000   push    104                              ; /BufSize = 104 (260.)
+00401573  |.  50            push    eax                              ; |PathBuffer
+00401574  |.  FF75 08       push    dword ptr [ebp+8]                ; |hModule
+00401577  |.  33DB          xor     ebx, ebx                         ; |
+00401579  |.  895D FC       mov     dword ptr [ebp-4], ebx           ; |
+0040157C  |.  895D F8       mov     dword ptr [ebp-8], ebx           ; |
+0040157F  |.  895D F0       mov     dword ptr [ebp-10], ebx          ; |
+00401582  |.  FF15 24704000 call    dword ptr [<&KERNEL32.GetModuleF>; \GetModuleFileNameA
+00401588  |.  53            push    ebx                              ; /hTemplateFile => NULL
+00401589  |.  68 80000000   push    80                               ; |Attributes = NORMAL
+0040158E  |.  6A 03         push    3                                ; |Mode = OPEN\_EXISTING
+00401590  |.  53            push    ebx                              ; |pSecurity => NULL
+00401591  |.  6A 01         push    1                                ; |ShareMode = FILE\_SHARE\_READ
+00401593  |.  8D85 6CFEFFFF lea     eax, dword ptr [ebp-194]         ; |
+00401599  |.  68 00000080   push    80000000                         ; |Access = GENERIC\_READ
+0040159E  |.  50            push    eax                              ; |FileName  eax==0012FDA0  C:\Documents and Settings\Administrator\桌面\Recycled.exe.
+0040159F  |.  FF15 20704000 call    dword ptr [<&KERNEL32.CreateFile>; \CreateFileA
+004015A5  |.  8BF8          mov     edi, eax
+004015A7  |.  83FF FF       cmp     edi, -1
+004015AA  |. /75 0C         jnz     short 004015B8
+```

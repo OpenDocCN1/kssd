@@ -1,0 +1,30 @@
+
+# [原创]Ngrbot蠕虫简单分析
+
+**基本信息:**
+
+病毒名称： Worm.Win32.Ngrbot
+病毒类型： 蠕虫
+样本长度： 252.000 字节
+样本MD5：FA92DAE6F14F9B9DB1D263222FC65DFF
+样本SHA1： A0BA2E072CA9BA7C3BDDC2F3BEF2FA09E15A716D
+文件类型：PE\_EXE
+原始文件名： `txgxltogztf.exe`
+感染系统：Windows All(x86)
+
+**简介:**
+
+该蠕虫与Androm绑定在一起被下载到用户的计算机上,并能通过HTTP,FTP,MSN,email,U盘等手段进行传播,一旦用户感染此蠕虫,会立即窃取用户的密码及隐私信息,包括用户的电子银行,社交网站,邮箱密码,FTP密码和MSN好友信息等.同时该病毒监控用户下载的文件,搜集用户的上网习惯.被感染的用户组成一个庞大的僵尸网络用于对某目标进行攻击.
+
+解压密码:Ngrbot
+
+[Ngrbot分析文档.part1.rar](https://bbs.kanxue.com/attach-download-88586.htm)
+
+[Ngrbot分析文档.part2.rar](https://bbs.kanxue.com/attach-download-88587.htm)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+
+- [Ngrbot分析文档.part1.rar](javascript:void(0);)（3.00MB，1307次下载）
+- [Ngrbot分析文档.part2.rar](javascript:void(0);)（2.84MB，1122次下载）

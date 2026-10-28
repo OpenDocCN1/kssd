@@ -1,0 +1,42 @@
+
+可能的答案是，即使是最警惕的开发者也会安装这个恶意的 "Prettier "扩展，更不用说最初的Prettier发布者esbenp并没有验证一个域名。
+
+### Marketplace中的恶意VSCode扩展程序
+
+在我们的研究中，我们发现有几个可疑的VSCode扩展驻扎在Marketplace上，尽管目前还不清楚这些扩展是否真的是由攻击者创建并上传到VSCode Marketplace，或者它们在创建时有一些不良的编码选择，导致有漏洞的代码。
+
+例如，通过 "[API Generator Plugin](https://bbs.kanxue.com/elink@c00K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0j5i4u0C8k6i4c8H3L8r3q4U0k6g2)9J5k6i4k6A6M7%4g2S2L8s2y4@1N6h3c8A6L8#2)9J5k6h3y4G2L8g2)9J5c8X3W2@1k6h3#2K6i4K6y4r3K9i4c8W2L8f1&6S2L8h3g2Q4x3@1c8Y4N6h3!0*7k6h3u0A6L8W2)9J5k6h3q4H3K9g2)9J5k6r3N6W2L8X3g2J5j5i4c8G2M7W2)9J5k6s2m8D9N6h3N6A6L8R3`.`.) "和 "[code-tester](https://bbs.kanxue.com/elink@42eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0j5i4u0C8k6i4c8H3L8r3q4U0k6g2)9J5k6i4k6A6M7%4g2S2L8s2y4@1N6h3c8A6L8#2)9J5k6h3y4G2L8g2)9J5c8X3W2@1k6h3#2K6i4K6y4r3K9i4c8W2L8f1&6S2L8h3g2Q4x3@1c8U0L8$3c8W2i4K6u0V1N6r3g2K6N6r3g2J5i4K6u0W2j5$3!0V1k6g2)9J5k6s2c8W2M7%4c8W2M7R3`.`.) "扩展，让我们深入了解构成 "[code-tester](https://bbs.kanxue.com/elink@ee3K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0j5i4u0C8k6i4c8H3L8r3q4U0k6g2)9J5k6i4k6A6M7%4g2S2L8s2y4@1N6h3c8A6L8#2)9J5k6h3y4G2L8g2)9J5c8X3W2@1k6h3#2K6i4K6y4r3K9i4c8W2L8f1&6S2L8h3g2Q4x3@1c8U0L8$3c8W2i4K6u0V1N6r3g2K6N6r3g2J5i4K6u0W2j5$3!0V1k6g2)9J5k6s2c8W2M7%4c8W2M7R3`.`.) "的代码。
+
+[![](https://bbs.kanxue.com/upload/attach/202301/767964_SHWWK68CWJMPNH2.jpg)](https://bbs.kanxue.com/elink@031K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1j5I4y4U0j5#2z5o6V1I4i4K6u0W2k6Y4x3I4i4K6u0W2K9s2g2T1M7%4m8G2N6s2g2K6k6i4u0U0L8$3&6@1k6h3&6@1i4K6u0V1L8X3p5I4i4K6u0W2L8X3g2@1i4K6u0r3K9s2g2T1k6Y4y4Q4x3V1j5I4y4U0j5#2z5o6V1I4i4K6u0r3b7X3I4G2k6#2)9J5c8U0l9I4i4K6u0V1x3U0y4Q4x3U0f1J5x3p5y4S2L8W2)9J5y4e0t1H3h3h3!0#2i4K6t1#2x3U0m8f1M7Y4g2K6N6q4)9J5y4e0t1H3h3h3!0#2M7W2)9J5y4e0t1H3g2W2y4o6L8$3c8W2i4K6t1#2x3U0m8q4P5s2c8W2L8Y4y4A6L8$3&6K6i4K6u0r3j5$3!0V1k6g2)9J5k6s2c8W2M7%4c8W2M7W2)9J5k6h3A6H3k6H3`.`.)
+
+在上面的截图中，你可以看到安装后和每次VSCode启动时运行的激活功能。在这个函数中，代码向一个外部URL发送请求，该URL有一个专门的子域（"417K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8W2)9J5y4q4)9#2b7X3S2G2M7%4c8F1j5h3#2W2i4K6g2p5i4K6u0W2M7X3!0T1L8%4c8F1L8%4N6S2K9g2)9J5k6i4c8G2M7q4)9J5c8Y4k6K6j5$3!0V1k6g2)9J5y4Y4q4#2L8%4c8Q4x3@1u0Q4c8f1k6Q4b7V1y4Q4z5o6W2Q4c8f1k6Q4b7V1y4Q4z5p5y4Q4c8e0k6Q4z5e0S2Q4b7f1k6Q4c8e0c8Q4b7V1c8Q4b7e0m8Q4c8e0k6Q4z5f1y4Q4z5p5c8Q4c8e0g2Q4z5p5q4Q4b7e0q4Q4c8e0g2Q4z5e0W2Q4b7e0S2Q4c8e0N6Q4z5f1q4Q4z5o6c8Q4c8e0c8Q4b7U0S2Q4b7V1u0Q4c8e0k6Q4z5f1y4Q4b7V1q4Q4c8e0g2Q4z5e0m8Q4z5p5c8Q4c8e0y4Q4z5o6m8Q4z5o6u0Q4c8e0c8Q4b7U0S2Q4z5o6m8Q4c8e0k6Q4z5e0N6Q4b7e0k6Q4c8e0g2Q4b7f1g2Q4z5o6y4Q4c8e0k6Q4z5e0c8Q4b7U0k6Q4c8e0g2Q4z5o6S2Q4b7U0m8Q4c8e0k6Q4z5f1c8Q4b7e0g2Q4c8e0S2Q4z5o6N6Q4b7f1q4g2f1V1I4Q4c8e0N6Q4z5f1q4Q4z5o6c8Q4c8e0g2Q4z5e0y4Q4z5p5c8Q4c8e0g2Q4b7V1q4Q4z5e0c8Q4c8f1k6Q4b7V1y4Q4z5p5y4Q4c8e0g2Q4b7f1g2Q4z5o6y4Q4c8e0g2Q4b7U0m8Q4b7U0q4Q4c8e0c8Q4b7V1c8Q4b7V1k6Q4c8e0N6Q4z5e0c8Q4b7e0S2W2N6X3q4D9i4@1f1#2i4K6R3%4i4@1u0p5i4@1f1$3i4K6V1#2i4@1t1H3i4@1f1$3i4K6R3&6i4@1p5%4i4@1f1^5i4@1p5I4i4K6S2o6i4@1f1#2i4K6V1K6i4K6S2p5i4@1f1#2i4@1u0m8i4K6V1@1i4@1f1$3i4K6V1#2i4@1t1H3i4@1f1$3i4K6S2p5i4@1q4q4i4@1f1K6i4K6R3H3i4K6R3J5i4@1f1^5i4@1u0r3i4K6V1&6i4@1f1@1i4@1t1^5i4@1q4m8i4@1f1^5i4@1q4r3i4@1t1%4i4@1f1$3i4@1t1I4i4K6R3J5i4@1f1$3i4@1q4r3i4K6S2r3x3K6m8Q4c8e0N6Q4b7e0N6Q4z5e0u0Q4c8e0g2Q4z5p5k6Q4z5e0q4Q4c8e0N6Q4z5e0c8Q4z5f1k6Q4c8e0c8Q4b7U0S2Q4z5o6m8Q4c8e0k6Q4b7f1y4Q4b7e0q4Q4c8e0y4Q4z5o6m8Q4z5o6t1`。
+
+除此之外，由于通信使用HTTP而不是HTTPS，它容易受到中间人的攻击，当使用这个扩展时，允许其他不良行为者注入恶意代码。
+
+这些扩展已被报告给微软。
+
+### 概念验证(POC)
+
+在我们发现上面的 "坏 "扩展既不高级也不包含伪装的尝试后，我们看到了Marketplace中伪装的潜在面，我们决定创建一个POC。
+
+我们上传了一个POC扩展，如上图所示，伪装成Prettier，这是Marketplace上安装最多的十个扩展之一。它被设置为在每次安装时给我们一个PING。
+
+安装的数量就在你的面前：
+
+[![](https://bbs.kanxue.com/upload/attach/202301/767964_M7YE6EG2WJ35JAP.jpg)](https://bbs.kanxue.com/elink@cfcK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1j5I4y4U0j5#2z5o6V1I4i4K6u0W2k6Y4x3I4i4K6u0W2K9s2g2T1M7%4m8G2N6s2g2K6k6i4u0U0L8$3&6@1k6h3&6@1i4K6u0V1L8X3p5I4i4K6u0W2L8X3g2@1i4K6u0r3K9s2g2T1k6Y4y4Q4x3V1j5I4y4U0j5#2z5o6V1I4i4K6u0r3b7X3I4G2k6#2)9J5c8U0l9I4i4K6u0V1x3U0y4Q4x3U0f1J5x3p5y4S2L8W2)9J5y4e0t1H3h3h3!0#2i4K6t1#2x3U0m8f1M7Y4g2K6N6q4)9J5y4e0t1H3h3h3!0#2M7W2)9J5y4e0t1H3g2W2y4o6L8$3c8W2i4K6t1#2x3U0m8q4P5s2c8W2L8Y4y4A6L8$3&6K6i4K6u0r3f1p5!0o6i4K6u0W2K9Y4m8Y4)
+
+在短短的48小时内，我们得到了来自世界各地的活跃开发者的超过一千次的安装! 现在，想象一下一个真正的攻击者（这将使扩展有更多的时间活跃起来，从而获得更多的信誉），用一个真正的恶意扩展，安装在许多开发者身上，损害许多组织。这方面的影响是至关重要的。
+
+### 总结和缓解措施
+
+归根结底，恶意的VSCode扩展的威胁是真实的。可以说，在过去，这并没有得到最高的关注，也许是因为我们还没有看到它留下巨大影响的活动。然而，攻击者正在不断努力扩大他们的技术库，使他们能够在组织的网络中运行恶意代码。作为研究人员，我们在这里揭示像这样的威胁，并提高社区对这些新的潜在进入点的认识。
+
+同样重要的是要注意，VSCode扩展是用Node编写的，软件包从NPM下载。请记住，还存在着恶意代码包被上传到NPM等软件包管理器的持续威胁。因此，存在这样的实际风险：一个不知情的合法开发者可能在不知情的情况下使用NPM中的恶意包作为他的扩展的依赖，导致整个扩展被破坏，并在不知不觉中给社区带来风险。
+
+除了VSCode扩展外，Marketplace还提供Visual Studio和Azure [DevOps](https://bbs.kanxue.com/elink@620K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2S2M7i4g2S2M7$3g2U0i4K6u0W2j5$3!0E0i4K6u0r3j5$3I4G2N6h3c8Q4x3X3c8F1j5i4c8A6N6X3g2Q4x3X3c8S2j5$3q4V1k6h3#2&6i4K6u0r3k6r3g2$3M7$3g2U0L8%4m8K6i4K6u0r3j5i4A6#2M7X3g2Q4x3X3c8V1k6i4k6G2M7s2y4Q4x3V1j5`.).的扩展。乍一看，它们也很容易被伪装的外观所欺骗。然而，在这一轮的研究中，我们并没有追求这些线索。
+
+最后，我们已经展示了在短短几天内，我们是如何得到数以千计的冒充一个非常流行的选项的扩展的安装。像往常一样，对你安装的扩展保持警惕，并记住每个扩展都是以用户的权限运行的。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+[#病毒木马](https://bbs.kanxue.com/forum-4-1-6.htm)

@@ -1,0 +1,120 @@
+
+# [原创]Lazarus针对医药行业攻击的远控木马浅析
+
+## 一、概述
+
+Lazarus APT 组织是总部位于朝鲜的大型集团，其攻击活动足迹遍布世界各地，该组织经常攻击金融机构和研究中心，以进行经济动机或纯粹的间谍攻击，堪称全球金融机构首要威胁。
+
+在此次攻击活动中，Lazarus 入侵了一批暴漏在公网上的服务器，将入侵的服务器作为`Dtrack RAT`的 C2 服务端，再以攻陷的服务器为跳板继续其攻击活动，通过钓鱼邮件等攻击方式向目标发送恶意载荷文件例如`Dtrack_RAT`服务端。本次实验分析主体为`Dtrack_RAT`服务端。
+
+## 二、`Dtrack_RAT`技术分析
+
+程序是`exe`，利用`rc4`加密了所有的字符串，程序运行期间，`rc4`解密所有字符串
+
+![QQ截图20210212165218.png](https://bbs.kanxue.com/upload/attach/202103/886764_527V5V6XQK42EP3.jpg "QQ截图20210212165218.png")
+
+秘钥`gritdjhaychp`的`rc4`加密
+
+`WinMain`函数
+
+![QQ截图20210212165616.png](https://bbs.kanxue.com/upload/attach/202103/886764_YJ2QZ6CBCYA73Q7.jpg "QQ截图20210212165616.png")
+
+创建新的线程
+
+![QQ截图20210212165852.png](https://bbs.kanxue.com/upload/attach/202103/886764_MN6AVYQGVNYJ5EJ.jpg "QQ截图20210212165852.png")
+
+进入`sub_406310`
+
+![QQ截图20210212170500.png](https://bbs.kanxue.com/upload/attach/202103/886764_2EFZGC4HCE7XAVY.jpg "QQ截图20210212170500.png")
+
+`sub_405850`读取注册表项
+
+![QQ截图20210212172846.png](https://bbs.kanxue.com/upload/attach/202103/886764_MHKZEJ8GZAJYVVZ.jpg "QQ截图20210212172846.png")
+
+实验环境的注册表项
+
+![QQ截图20210212173343.png](https://bbs.kanxue.com/upload/attach/202103/886764_7C5NCXNF7U42VRF.jpg "QQ截图20210212173343.png")
+
+获取注册表的信息与`mac`地址拼接组成主机信息包
+
+![QQ截图20210212180711.png](https://bbs.kanxue.com/upload/attach/202103/886764_9TBQUT4M4HNFD6Z.jpg "QQ截图20210212180711.png")
+
+以`anon`作为密钥对主机信息包进行异或运算，得到一个4字节的值作为主机`ID`，实验时得到`50BA7BD9`
+
+![QQ截图20210212181518.png](https://bbs.kanxue.com/upload/attach/202103/886764_6ETPQZJWSSBP7TH.jpg "QQ截图20210212181518.png")
+
+然后对解密出的C2服务器路径文件名后缀进行判断校验，实验时的解密路径后缀为`.php`
+
+![QQ截图20210213141408.png](https://bbs.kanxue.com/upload/attach/202103/886764_68J7HV279FXZGFS.jpg "QQ截图20210213141408.png")
+
+同时发现还存在`.jsp`和`.asp`后缀校验，判断出该组织大概率重复使用之前的攻击模块
+
+接着传入主机`ID`、系统版本和木马版本，以`1,0,主机ID,系统版本和木马版本`的格式组成上传信息包`source`
+
+![QQ截图20210213132303.png](https://bbs.kanxue.com/upload/attach/202103/886764_28N5287C4QNC4EA.jpg "QQ截图20210213132303.png")
+
+计算上传信息包`source`的`MD5`值，取第11位的两个字节
+
+![QQ截图20210213123157.png](https://bbs.kanxue.com/upload/attach/202103/886764_47VH5YWMHKTDQZC.jpg "QQ截图20210213123157.png")
+
+以`C2服务器路径+?id=+MD5值的两个字节+上传信息包source`组成要访问的地址
+
+![QQ截图20210213131043.png](https://bbs.kanxue.com/upload/attach/202103/886764_H7FK8BESET2NNPH.jpg "QQ截图20210213131043.png")
+
+![QQ截图20210213142827.png](https://bbs.kanxue.com/upload/attach/202103/886764_9QZGXWDUM7387MR.jpg "QQ截图20210213142827.png")
+
+将上述信息以`POST`方式访问C2服务器
+
+![QQ截图20210213132509.png](https://bbs.kanxue.com/upload/attach/202103/886764_C5GG2VGGNMSDN9V.jpg "QQ截图20210213132509.png")
+
+接收服务器下发数据保存到`tmp`文件，同时判断C2是否访问成功（实验时C2地址已失效）
+
+![QQ截图20210213143341.png](https://bbs.kanxue.com/upload/attach/202103/886764_6ZPPRPR79MQRVQ5.jpg "QQ截图20210213143341.png")
+
+然后进行两次数据解密
+
+读取`tmp`文件的数据，以`FFFFFFFF`解密，通过判断`tick`位置来确定指令格式
+
+![QQ截图20210213133947.png](https://bbs.kanxue.com/upload/attach/202103/886764_7MN27PVCMCZS7SG.jpg "QQ截图20210213133947.png")
+
+读取`tmp`文件的数据，以主机`ID`解密，通过判断`tick`位置来确定指令格式
+
+![QQ截图20210213134311.png](https://bbs.kanxue.com/upload/attach/202103/886764_GTBFWBX3R5QFCES.jpg "QQ截图20210213134311.png")
+
+判断下发指令
+
+![QQ截图20210213134833.png](https://bbs.kanxue.com/upload/attach/202103/886764_ZE5CPRYJZUPMC23.jpg "QQ截图20210213134833.png")
+
+响应C2服务端的指令
+
+![QQ截图20210213135529.png](https://bbs.kanxue.com/upload/attach/202103/886764_XMJDN4JE2GDTKC4.jpg "QQ截图20210213135529.png")
+
+指令列表
+
+| 指令代码 | 指令操作 |
+| --- | --- |
+| 1003 | 下载文件 |
+| 1005 | 持久化 |
+| 1006 | 上传文件 |
+| 1018 | 重新设置通信频率时间 |
+| 1023 | 卸载木马 |
+| 默认 | 执行`CMD`命令 |
+
+指令执行完毕以`0xFFFFFFFF`生成`key`来加密执行结果，并上传至C2服务器
+
+![QQ截图20210213135928.png](https://bbs.kanxue.com/upload/attach/202103/886764_DYE9USU9HCN84KJ.jpg "QQ截图20210213135928.png")
+
+## 三、IOCS
+
+| URL |
+| --- |
+| hxxp://145.232.235.222/usr/users/common.php |
+| hxxp://46.14.68.202/editor/common.php |
+
+| 样本名称 | 文件大小 | 样本hash |
+| --- | --- | --- |
+| dwem/`Dtrack_RAT` | 135.50KB | 60425a4d5ee04c8ae09bfe28ca33bf9e76a43f69548b2704956d0875a0f25145 |
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+[#病毒木马](https://bbs.kanxue.com/forum-4-1-6.htm)

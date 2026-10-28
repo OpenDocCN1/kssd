@@ -1,0 +1,330 @@
+
+```
+100093B8   |.  83C4 4C         add esp, 4C
+
+100093BB   |.  50              push eax
+
+100093BC   |.  E8 94870100     call 10021B55
+
+100093C1   |.  C70424 F4010000 mov dword ptr [esp], 1F4
+
+100093C8   |.  FF15 7CDD0210   call dword ptr [1002DD7C]                        ;  kernel32.Sleep
+
+100093CE   |.  BE 70360210     mov esi, 10023670                                ;  star:
+
+100093D3   |.  8D85 FCD6FFFF   lea eax, [local.2625]
+
+100093D9   |.  56              push esi
+
+100093DA   |.  50              push eax
+
+100093DB   |.  E8 60A30000     call <比较cmp>
+
+100093E0   |.  59              pop ecx
+
+100093E1   |.  59              pop ecx
+
+100093E2   |.  85C0            test eax, eax
+
+100093E4   |.  0F84 DB010000   je 100095C5
+
+100093EA   |.  8D85 FCD6FFFF   lea eax, [local.2625]
+
+100093F0   |.  68 DC340210     push 100234DC                                    ;  okok:
+
+100093F5   |.  50              push eax
+
+100093F6   |.  E8 45A30000     call <比较cmp>
+
+100093FB   |.  59              pop ecx
+
+100093FC   |.  59              pop ecx
+
+100093FD   |.  85C0            test eax, eax
+
+100093FF   |.  0F84 C0010000   je 100095C5
+
+10009405   |.  8D85 FCD6FFFF   lea eax, [local.2625]
+
+1000940B   |.  68 DC340210     push 100234DC                                    ;  okok:
+
+10009410   |.  50              push eax
+
+10009411   |.  E8 2AA30000     call <比较cmp>
+
+10009416   |.  8818            mov byte ptr [eax], bl
+
+10009418   |.  8D85 FCD6FFFF   lea eax, [local.2625]
+
+1000941E   |.  56              push esi
+
+1000941F   |.  50              push eax
+
+10009420   |.  E8 1BA30000     call <比较cmp>
+
+10009425   |.  8D70 05         lea esi, dword ptr [eax+5]
+
+10009428   |.  6A 3B           push 3B
+
+1000942A   |.  56              push esi
+
+1000942B   |.  E8 50A20000     call 10013680
+
+10009430   |.  83C4 18         add esp, 18
+
+10009433   |.  85C0            test eax, eax
+
+10009435   |.  74 41           je short 10009478
+
+10009437   |.  89BD F8D6FFFF   mov [local.2626], edi
+
+1000943D   |>  6A 3B           /push 3B
+
+1000943F   |.  56              |push esi
+
+10009440   |.  E8 3BA20000     |call 10013680
+
+10009445   |.  6A 13           |push 13
+
+10009447   |.  56              |push esi
+
+10009448   |.  FFB5 F8D6FFFF   |push [local.2626]
+
+1000944E   |.  8985 F4D6FFFF   |mov [local.2627], eax
+
+10009454   |.  8818            |mov byte ptr [eax], bl
+
+10009456   |.  E8 E5A40000     |call <获取当前文件路径>
+
+1000945B   |.  8BB5 F4D6FFFF   |mov esi, [local.2627]
+
+10009461   |.  8385 F8D6FFFF 1>|add [local.2626], 14
+
+10009468   |.  46              |inc esi
+
+10009469   |.  6A 3B           |push 3B
+
+1000946B   |.  56              |push esi
+
+1000946C   |.  E8 0FA20000     |call 10013680
+
+10009471   |.  83C4 1C         |add esp, 1C
+
+10009474   |.  85C0            |test eax, eax
+
+10009476   |.^ 75 C5           \jnz short 1000943D
+
+10009478   |>  6A 10           push 10
+
+1000947A   |.  5E              pop esi
+
+1000947B   |.  56              push esi
+
+1000947C   |.  53              push ebx
+
+1000947D   |.  57              push edi
+
+1000947E   |.  E8 BEC00000     call <搜索特征码>
+
+10009483   |.  83C4 0C         add esp, 0C
+
+10009486   |.  85C0            test eax, eax
+
+10009488   |.  0F84 37010000   je 100095C5
+
+1000948E   |.  56              push esi
+
+1000948F   |.  53              push ebx
+
+10009490   |.  68 3CF40210     push 1002F43C
+
+10009495   |.  E8 A7C00000     call <搜索特征码>
+
+1000949A   |.  83C4 0C         add esp, 0C
+
+1000949D   |.  85C0            test eax, eax
+
+1000949F   |.  0F84 20010000   je 100095C5
+
+100094A5   |.  56              push esi
+
+100094A6   |.  53              push ebx
+
+100094A7   |.  68 C8F40210     push 1002F4C8
+
+100094AC   |.  E8 90C00000     call <搜索特征码>
+
+100094B1   |.  56              push esi
+
+100094B2   |.  53              push ebx
+
+100094B3   |.  68 64F40210     push 1002F464
+
+100094B8   |.  A3 34170310     mov dword ptr [10031734], eax
+
+100094BD   |.  E8 7FC00000     call <搜索特征码>
+
+100094C2   |.  56              push esi
+
+100094C3   |.  53              push ebx
+
+100094C4   |.  68 04F50210     push 1002F504
+
+100094C9   |.  A3 38170310     mov dword ptr [10031738], eax
+
+100094CE   |.  E8 6EC00000     call <搜索特征码>
+
+100094D3   |.  83C4 24         add esp, 24
+
+100094D6   |.  50              push eax
+
+100094D7   |.  68 5C020310     push 1003025C
+
+100094DC   |.  68 AE620010     push 100062AE
+
+100094E1   |.  56              push esi
+
+100094E2   |.  53              push ebx
+
+100094E3   |.  68 F0F40210     push 1002F4F0
+
+100094E8   |.  E8 54C00000     call <搜索特征码>
+
+100094ED   |.  83C4 0C         add esp, 0C
+
+100094F0   |.  50              push eax
+
+100094F1   |.  56              push esi
+
+100094F2   |.  53              push ebx
+
+100094F3   |.  68 DCF40210     push 1002F4DC
+
+100094F8   |.  E8 44C00000     call <搜索特征码>
+
+100094FD   |.  83C4 0C         add esp, 0C
+
+10009500   |.  50              push eax
+
+10009501   |.  E8 F97DFFFF     call <计算hook点>     //hook 函数
+
+10009506   |.  56              push esi
+
+10009507   |.  53              push ebx
+
+10009508   |.  68 50F40210     push 1002F450
+
+1000950D   |.  E8 2FC00000     call <搜索特征码>
+
+10009512   |.  83C4 20         add esp, 20
+
+10009515   |.  50              push eax
+
+10009516   |.  68 20140310     push 10031420
+
+1000951B   |.  68 CA660010     push 100066CA
+
+10009520   |.  56              push esi
+
+10009521   |.  53              push ebx
+
+10009522   |.  68 3CF40210     push 1002F43C
+
+10009527   |.  E8 15C00000     call <搜索特征码>
+
+1000952C   |.  83C4 0C         add esp, 0C
+
+1000952F   |.  50              push eax
+
+10009530   |.  56              push esi
+
+10009531   |.  53              push ebx
+
+10009532   |.  57              push edi
+
+10009533   |.  E8 09C00000     call <搜索特征码>
+
+10009538   |.  83C4 0C         add esp, 0C
+
+1000953B   |.  50              push eax
+
+1000953C   |.  E8 BE7DFFFF     call <计算hook点>
+
+10009541   |.  56              push esi
+
+10009542   |.  53              push ebx
+
+10009543   |.  68 B4F40210     push 1002F4B4
+
+10009548   |.  E8 F4BF0000     call <搜索特征码>
+
+1000954D   |.  83C4 20         add esp, 20
+
+10009550   |.  50              push eax
+
+10009551   |.  68 1CC40210     push 1002C41C
+
+10009556   |.  68 1D680010     push 1000681D
+
+1000955B   |.  56              push esi
+
+1000955C   |.  53              push ebx
+
+1000955D   |.  68 A0F40210     push 1002F4A0
+
+10009562   |.  E8 DABF0000     call <搜索特征码>
+
+10009567   |.  83C4 0C         add esp, 0C
+
+1000956A   |.  50              push eax
+
+1000956B   |.  56              push esi
+
+1000956C   |.  53              push ebx
+
+1000956D   |.  68 8CF40210     push 1002F48C
+
+10009572   |.  E8 CABF0000     call <搜索特征码>
+
+10009577   |.  83C4 0C         add esp, 0C
+
+1000957A   |.  50              push eax
+
+1000957B   |.  E8 7F7DFFFF     call <计算hook点>
+
+10009580   |.  6A 14           push 14
+
+10009582   |.  53              push ebx
+
+10009583   |.  BE 48140310     mov esi, 10031448
+
+10009588   |.  56              push esi
+
+10009589   |.  891D 4C170310   mov dword ptr [1003174C], ebx
+
+1000958F   |.  891D 44170310   mov dword ptr [10031744], ebx
+
+10009595   |.  891D 24170310   mov dword ptr [10031724], ebx
+
+1000959B   |.  E8 90870000     call <清理一块内存空间出来>
+
+100095A0   |.  68 78F40210     push 1002F478
+
+100095A5   |.  56              push esi
+
+100095A6   |.  E8 C5A40000     call 10013A70
+
+100095AB   |.  83C4 28         add esp, 28
+
+100095AE   |.  53              push ebx                                         ; /pThreadId
+
+100095AF   |.  53              push ebx                                         ; |CreationFlags
+
+100095B0   |.  53              push ebx                                         ; |pThreadParm
+
+100095B1   |.  68 BE910010     push 100091BE                                    ; |ThreadFunction = 4bf3db98.100091BE
+
+100095B6   |.  53              push ebx                                         ; |StackSize
+
+100095B7   |.  53              push ebx                                         ; |pSecurity
+```

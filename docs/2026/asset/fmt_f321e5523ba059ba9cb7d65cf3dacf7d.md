@@ -1,0 +1,106 @@
+
+# [原创]代码实现 让程序先执行我们插入的代码(不知道叫啥名字~~)
+
+最近在研究Win32感染型病毒，这个称不上感染型病毒，只是简单的玩一下。
+
+思路就是，让程序先执行我们插入的代码，然后在跳回原来的入口地址。
+
+我们先构造一个MessageBox的硬编码。
+
+MessageBox需要传入4个参数，我们都弄0
+
+`6A 00 6A 00 6A 00 6A 00 E8 00 00 00 00 E9 00 00 00` 总共17个字节。
+
+`E8`后面该填的是： 你要跳往的地址 - `E8`所在的地址(内存中) - 5 ， `E9` 也是这样。
+
+这段硬编码只能在自己的机器上运行，我没有一段通用的ShellCode。
+
+```c
+unsigned char shellcode[17] = {
+0x6A, 0x00, 0x6A, 0x00, 0x6A, 0x00, 0x6A, 0x00,
+0xE8, 0x91, 0xFC, 0x2E, 0x74,
+0xE9, 0xEE, 0x90, 0x0B
+};
+```
+
+直接上代码
+
+```c
+hFile = CreateFile("1.exe",GENERIC_READ | GENERIC_WRITE,FILE_SHARE_READ,NULL,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,NULL);
+
+if (hFile == INVALID_HANDLE_VALUE)
+{
+printf("CreateFile Error: %d\n", GetLastError());
+return;
+}
+
+hMap = CreateFileMapping(hFile, NULL, PAGE_READWRITE, 0, 0, 0);
+
+if (hMap == NULL)
+{
+printf("CreateFileMapping Error: %d\n", GetLastError());
+CloseHandle(hFile);
+return;
+}
+
+lpBase = MapViewOfFile(hMap, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
+
+if (!lpBase)
+{
+printf("MapViewOfFile Error: %d\n", GetLastError());
+CloseHandle(hMap);
+CloseHandle(hFile);
+return;
+}
+```
+
+打开文件，映射文件。
+
+```c
+pDosHeader = (PIMAGE_DOS_HEADER)lpBase;
+
+if (pDosHeader->e_magic != IMAGE_DOS_SIGNATURE)
+{
+UnmapViewOfFile(lpBase);
+CloseHandle(hMap);
+CloseHandle(hFile);
+return;
+}
+
+pNtHeader = (PIMAGE_NT_HEADERS)((BYTE *)lpBase + pDosHeader->e_lfanew);
+
+if (pNtHeader->Signature != IMAGE_NT_SIGNATURE)
+{
+UnmapViewOfFile(lpBase);
+CloseHandle(hMap);
+CloseHandle(hFile);
+return;
+}
+```
+
+获取Dos Nt头。
+
+偷点懒，打开文件随便找一个有空隙的地址，然后把代码写进去。
+
+![](https://bbs.kanxue.com/upload/attach/201901/822672_VXK3D2R7J2K4HSU.png)
+
+`0x80`的位置可以写入。
+
+Win32感染型病毒的话，可以添加节然后写入数据，将shellcode写入，把程序入口地址改为shellcode地址。
+
+```c
+for (int i = 0; i < 17; i++)
+{
+*((char*)lpBase + 0x80 + i) = shellcode[i];
+}
+```
+
+写入成功后，我们将程序入口地址改为我们插入的代码的地址。
+
+```c
+pNtHeader->OptionalHeader.AddressOfEntryPoint = 0x80;
+```
+
+等我把Win32病毒做出来，这寒假太忙了，白天要工作，晚上学习的时间太少了。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)

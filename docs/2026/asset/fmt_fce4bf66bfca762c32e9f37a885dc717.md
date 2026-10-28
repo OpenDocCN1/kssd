@@ -1,0 +1,152 @@
+
+# UcHelp 病毒分析 By Cater
+
+> 【文章标题】: UcHelp 病毒分析 By CaTer
+> 
+> 【文章作者】: Cater
+> 
+> 【作者邮箱】: 24882688@qq.com
+> 
+> 【作者QQ号】: 24882688
+> 
+> 【下载地址】: 自己搜索下载
+> 
+> 【加壳方式】: FSG 2.0
+> 
+> 【编写语言】: C++ 6.0
+> 
+> 【使用工具】: OD
+> 
+> 【操作平台】: XP-SP2
+> 
+> 【作者声明】: 只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+## 【详细过程】
+
+UcHelp 病毒分析
+
+旁白：
+都大二了，还是无所为，不知道以后工作怎么办哦~苦恼...
+
+烦人事一大堆，最近学校机房病毒泛滥,主要就是 UcHelp 病毒
+
+主要就是 移动存储器里面有
+
+```
+X:\RECYCLER\UcHelp.exe
+X:\RECYCLER\desktop.ini
+X:\autorun.inf
+```
+
+```
+X:\autorun.inf
+    正常情况下不可见
+X:\RECYCLER\
+    不能正常访问
+```
+
+Explorer 中自动加载
+`system32\AceExt32.dll`
+`windows\Downloaded Program Files\ZipExt32.dll`
+
+当然 ，病毒会感染所有移动存储设备，并加载到系统自动运行，继续传播感染其他及其和移动存储设备。
+
+程序没有修改注册表隐藏文件？病毒清理不干净~
+so 只好硬着头皮来分析分析这个病毒啦~（还不知道往上面有没有关于这个病毒的分析）
+
+废话这么多，就看看我的分析吧~
+
+Cater [*.S.T] QQ：24882688
+2007.06.01 扬州/南京 写
+
+### 第一步 从主程序（`UcHelp.exe`）开始分析
+
+```
+00401800  /$  55            PUSH EBP
+00401801  |.  8BEC          MOV EBP,ESP
+00401803  |.  83E4 F8       AND ESP,FFFFFFF8
+00401806  |.  81EC 94010000 SUB ESP,194
+0040180C  |.  33C0          XOR EAX,EAX
+0040180E  |.  894424 09     MOV DWORD PTR SS:[ESP+9],EAX
+00401812  |.  53            PUSH EBX
+00401813  |.  66:894424 11  MOV WORD PTR SS:[ESP+11],AX
+00401818  |.  56            PUSH ESI
+00401819  |.  57            PUSH EDI
+0040181A  |.  884424 20     MOV BYTE PTR SS:[ESP+20],AL
+0040181E  |.  884424 1B     MOV BYTE PTR SS:[ESP+1B],AL
+00401822  |.  B9 1F000000   MOV ECX,1F
+00401827  |.  8D7C24 21     LEA EDI,DWORD PTR SS:[ESP+21]
+0040182B  |.  F3:AB         REP STOS DWORD PTR ES:[EDI]
+0040182D  |.  68 80000000   PUSH 80                                  ; /BufSize = 80 (128.)
+00401832  |.  8D4C24 24     LEA ECX,DWORD PTR SS:[ESP+24]            ; |
+00401836  |.  66:AB         STOS WORD PTR ES:[EDI]                   ; |
+00401838  |.  51            PUSH ECX                                 ; |PathBuffer
+00401839  |.  6A 00         PUSH 0                                   ; |hModule = NULL
+0040183B  |.  C64424 20 00  MOV BYTE PTR SS:[ESP+20],0               ; |
+00401840  |.  AA            STOS BYTE PTR ES:[EDI]                   ; |
+00401841  |.  FF15 7C204000 CALL DWORD PTR DS:[<&KERNEL32.GetModuleF>]; \GetModuleFileNameA
+00401847  |.  E8 E4F8FFFF   CALL UcHelp.00401130                     ;  检查 进程 是否含有 avp.exe
+0040184C  |.  84C0          TEST AL,AL
+0040184E  |.  74 2E         JE SHORT UcHelp.0040187E
+00401850  |.  8B55 08       MOV EDX,DWORD PTR SS:[EBP+8]             ;  有 avp.exe 就 来这里拉
+00401853  |.  6A 05         PUSH 5                                   ; /ShowState = SW_SHOW
+00401855  |.  6A 00         PUSH 0                                   ; |/lParam = 0
+00401857  |.  68 E0174000   PUSH UcHelp.004017E0                     ; ||pDlgProc = UcHelp.004017E0
+0040185C  |.  6A 00         PUSH 0                                   ; ||hOwner = NULL
+0040185E  |.  6A 65         PUSH 65                                  ; ||pTemplate = 65
+00401860  |.  52            PUSH EDX                                 ; ||hInst
+00401861  |.  FF15 E4204000 CALL DWORD PTR DS:[<&USER32.CreateDialog>]; |\CreateDialogParamA
+00401867  |.  50            PUSH EAX                                 ; |hWnd
+00401868  |.  FF15 E8204000 CALL DWORD PTR DS:[<&USER32.ShowWindow>] ; \ShowWindow
+0040186E  |.  E8 2DF9FFFF   CALL UcHelp.004011A0                     ;  释放资源 ret 到 C:\sysret.dat 并 运行
+00401873  |.  68 58020000   PUSH 258                                 ; /Timeout = 600. ms
+00401878  |.  FF15 8C204000 CALL DWORD PTR DS:[<&KERNEL32.Sleep>]    ; \Sleep
+0040187E  |>.  E8 ADFBFFFF   CALL UcHelp.00401430                     ; 释放资源dll到 system32\AceExt32.dll 并载到explorer进程
+00401883  |.  8B35 B4204000 MOV ESI,DWORD PTR DS:[<&MSVCRT.strs>];  msvcrt.strstr
+00401889  |.  8D4424 20     LEA EAX,DWORD PTR SS:[ESP+20]
+0040188D  |.  68 C0234000   PUSH UcHelp.004023C0                ; /UcHelp.exe
+00401892  |.  50            PUSH EAX                            ; |s1
+00401893  |.  FFD6          CALL ESI                            ; \strstr
+00401895  |.  83C4 08       ADD ESP,8                           ;  检查 当前程序的文件名 中是否含有 UcHelp.exe
+00401898  |.  85C0          TEST EAX,EAX
+0040189A  |.  75 4B         JNZ SHORT UcHelp.004018E7
+0040189C  |.  8D4C24 10     LEA ECX,DWORD PTR SS:[ESP+10]       ;  没有 UcHelp.exe 就运行以下
+004018A0  |.  51            PUSH ECX                            ; /pHandle
+004018A1  |.  68 3F000F00   PUSH 0F003F                         ; |Access = KEY_ALL_ACCESS
+004018A6  |.  50            PUSH EAX                            ; |Reserved
+004018A7  |.  68 78214000   PUSH UcHelp.00402178                ; |SOFTWARE\Microsoft\Windows\CurrentVersion
+004018AC  |.  68 02000080   PUSH 80000002                       ; |hKey = HKEY_LOCAL_MACHINE
+004018B1  |.  FF15 08204000 CALL DWORD PTR DS:[<&ADVAPI32.RegOp>]; \RegOpenKeyExA
+004018B7  |.  68 68214000   PUSH UcHelp.00402168                ; /yes
+004018BC  |.  FF15 3C204000 CALL DWORD PTR DS:[<&KERNEL32.lstrl>]; \lstrlenA
+004018C2  |.  8B5424 10     MOV EDX,DWORD PTR SS:[ESP+10]
+004018C6  |.  50            PUSH EAX                            ; /BufSize
+004018C7  |.  68 68214000   PUSH UcHelp.00402168                ; |yes
+004018CC  |.  6A 01         PUSH 1                              ; |ValueType = REG_SZ
+004018CE  |.  6A 00         PUSH 0                              ; |Reserved = 0
+004018D0  |.  68 6C214000   PUSH UcHelp.0040216C                ; |SM_GameDrop
+004018D5  |.  52            PUSH EDX                            ; |hKey
+004018D6  |.  FF15 00204000 CALL DWORD PTR DS:[<&ADVAPI32.RegSe>]; \RegSetValueExA
+004018DC  |.  8B4424 10     MOV EAX,DWORD PTR SS:[ESP+10]       ;  写HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\SM_GameDrop=Yes
+004018E0  |.  50            PUSH EAX                            ; /hKey
+004018E1  |.  FF15 18204000 CALL DWORD PTR DS:[<&ADVAPI32.RegCl>]; \RegCloseKey
+004018E7  |>.  8D4C24 20     LEA ECX,DWORD PTR SS:[ESP+20]
+004018EB  |.  68 C0234000   PUSH UcHelp.004023C0                ;  UcHelp.exe
+004018F0  |.  51            PUSH ECX
+004018F1  |.  FFD6          CALL ESI
+004018F3  |.  83C4 08       ADD ESP,8
+004018F6  |.  85C0          TEST EAX,EAX
+004018F8  |.  0F84 70010000 JE UcHelp.00401A6E
+004018FE  |.  8B35 EC204000 MOV ESI,DWORD PTR DS:[<&USER32.wspr>];  USER32.wsprintfA
+00401904  |.  8B3D 70204000 MOV EDI,DWORD PTR DS:[<&KERNEL32.Ge>];  kernel32.GetDriveTypeA
+0040190A  |.  B3 43         MOV BL,43
+0040190C  |.  8D6424 00     LEA ESP,DWORD PTR SS:[ESP]
+00401910  |>.  0FBEC3        /MOVSX EAX,BL
+00401913  |.  50            |PUSH EAX
+00401914  |.  33D2          |XOR EDX,EDX
+00401916  |.  8D4C24 18     |LEA ECX,DWORD PTR SS:[ESP+18]
+0040191A  |.  895424 18     |MOV DWORD PTR SS:[ESP+18],EDX
+0040191E  |.  68 BC234000   |PUSH UcHelp.004023BC               ;  %c:
+00401923  |.  51            |PUSH ECX
+00401924  |.  895424 24     |MOV DWORD PTR SS:[ESP+24],EDX
+```

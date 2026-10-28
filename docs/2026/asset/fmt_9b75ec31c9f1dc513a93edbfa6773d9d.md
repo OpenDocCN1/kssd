@@ -1,0 +1,217 @@
+
+下面的代码是有关于负责运行目标程序并收集储存在共享内存中的覆盖信息的代码
+
+```
+use std::env;
+use std::ffi::c_void;
+use std::process::{Command, Stdio};
+use nix::fcntl::OFlag;
+use nix::sys::mman;
+use nix::sys::mman::{MapFlags, ProtFlags};
+use nix::sys::stat::Mode;
+use nix::sys::wait::waitpid;
+use nix::unistd::{ftruncate, Pid};
+use core::num::NonZeroUsize;
+
+const MAP_NAME: &str = "/fuzz.map";
+const STORAGE_SIZE: i64 = 64 * 1024;
+
+fn main() {
+let runtime = env::args().nth(1);
+
+/* open shared memory */
+let shm_open_flags = OFlag::O_CREAT | OFlag::O_RDWR;
+let shm_open_mode = Mode::S_IRUSR | Mode::S_IWUSR;
+let mem = mman::shm_open(MAP_NAME, shm_open_flags, shm_open_mode)
+.expect("Failed to open shared memory");
+
+/* resize the file to L1 cache size */
+ftruncate(&mem, STORAGE_SIZE).expect("Unable to resize file");
+
+/* map the shared memory as a memory region */
+let mmap_prot = ProtFlags::PROT_READ | ProtFlags::PROT_WRITE;
+let mmap_flags = MapFlags::MAP_SHARED;
+let var = unsafe {
+mman::mmap(
+None,
+NonZeroUsize::new(STORAGE_SIZE as usize).unwrap(),
+mmap_prot,
+mmap_flags,
+Some(&mem),
+0,
+)
+.unwrap()
+} as *const u8;
+
+if let Some(r) = runtime {
+println!("Running fuzz target: {}", r);
+let p = Command::new(r)
+.arg("ABC")
+.stdout(Stdio::null())
+.stderr(Stdio::null())
+.spawn()
+.expect("[!] Failed to run process:");
+let pid = Pid::from_raw(p.id() as i32);
+
+match waitpid(pid, None) {
+Ok(status) => {
+println!("[{}] Got status: {:?}", pid, status);
+println!("Reading from the shared memory...");
+let trace = unsafe {
+std::slice::from_raw_parts(var, STORAGE_SIZE as usize)
+};
+for x in 0..128 {
+if x != 0 && x % 32 == 0 {
+println!();
+}
+print!("{:02x} ", trace[x]);
+}
+println!();
+}
+Err(e) => {
+eprintln!("Error waiting for pid: {:?}", e);
+}
+};
+}
+
+unsafe { mman::munmap(var as *mut c_void, STORAGE_SIZE as usize).unwrap() };
+mman::shm_unlink(MAP_NAME).unwrap();
+}
+```
+
+首先我们将使用`nix` crate来访问我们需要的几个系统函数，例如：`mman::shm_open()`、`ftruncate()`和`mman:mmap()`，这三个分别是打开内存共享、自定义内存大小和映射为变量，这些标志和模式总体并不复杂；清理操作则是由`mman::munmap()` 和 `mman::shm_unlink()`完成
+
+可以看到，上面的代码中，我们使用了大量不安全的注解，这其实是正常情况，因为本质上，我们是在操作对于程序来说完全未知的指针，而这种指针是没办法很好的转换成rust代码的，因此这些指针需要转换成整个程序都能使用的指针，为此，我们需要调用`std::slice::from_raw_parts()`，并提供起始地址和字节大小；通过这个函数，我们最终可以得到一个允许自由读取的`u8`值片段；不过这些不安全注解会有一个巨大的问题，值类型是不确定的；回顾一下我们是如何映射内存的，我们就会发现我们会将值转换成一个`u8`指针，而rust作为一种高级语言，它是可以判断出我们要操作的片段包含这种类型的值的
+
+目前为止，我们编写的fuzzer基本上只是运行提供的二进制文件，然后等待运行结束，以便读取共享内存；接下来只需要将共享内存的名称和大小相匹配就行了；将setter作为参数传入fuzzer，就能以十六进制的形式打印出子进程修改过后的共享内存，如下图所示
+
+![shm_test1.png](https://bbs.kanxue.com/upload/attach/202401/777502_AE5TKT38DKJ3BHW.jpg)
+
+# 检测（Instrumentation）
+
+接下来是一些难度较高的内容，也就是二进制插桩的内容，如果想要自己实现二进制插桩的内容，则需要学习编译原理，这远超出我的能力范围了，不过好在clang和llvm的开发者已经提供了检测接口以便我们使用，我们只需要写几行代码调用一下，并简单修改一下makefile就行了
+
+```
+#include <stdio.h>
+#include <stdint.h>
+#include <sanitizer/coverage_interface.h>
+
+extern void __sanitizer_cov_trace_pc_guard_init(uint32_t *start,
+uint32_t *stop) {
+static uint64_t N;
+// Counter for the guards.
+if (start == stop || *start) return;
+// Initialize only once.
+printf("INIT: %p %p\n", start, stop);
+for (uint32_t *x = start; x < stop; x++)
+*x = ++N;
+// Guards should start from 1.
+}
+
+extern void __sanitizer_cov_trace_pc_guard(uint32_t *guard) {
+if (!*guard) return;
+// Duplicate the guard check.
+printf("Edge: %p %x\n", guard, *guard);
+}
+```
+
+上面的代码定义了两个函数，我们先从第二个`__sanitizer_cov_trace_pc_guard()`函数开始；编译器会在控制流的每个边插入这个函数，因为每个边都是不同的，所以`*guard`会指向一个唯一的内存位置；而第一个函数的两个参数：`*start`指针和`*stop`指针则标记了整个二进制文件的所有保护区，这个保护区可以设置为任何我们想要的值，这则案例中，我们选择了增量值；编译器会将第一个函数作为模块构造函数插入每个DSO中，这样从第二个函数的`*guard`指针中就能找到这些保护区了
+
+> 在我们的例子中，我们只检测了一个分支，而在文档中，还介绍了对其他操作（例如比较、存储或取消引用指针）的检测方式；当你尝试对其他操作做检测的时候，你可能会找到一些很有趣的收集的覆盖率方法
+
+知道了方法，那么就应该结合实际来做测试，不过我的fuzzer目前为止还是在测试阶段，并没有对实际的应用程序做测试，不过原理是相同的，我们还需要修改一下makefile，本例的makefile如下
+
+```
+CC=clang
+CFLAGS=-Wall -lrt
+
+CFLAGS_INSTR=-fsanitize-coverage=trace-pc-guard,no-prune
+## Universal rule for all cases
+case_%: sample_%.o instr_%.o
+$(CC) $^ -o $@
+
+sample_%.o: sample_%.c
+$(CC) $^ $(CFLAGS_INSTR) -c
+
+instr_%.o: instr_%.c
+$(CC) $^ -o $@ -c
+## Cleanup
+.PHONY: clean
+
+clean:
+rm -rf *.o
+```
+
+上面的makefile是我在本项目中的得意之作，它可以在不增加额外目标的情况下，适用于项目中所有的样本和检测变体（instrumentation variants）。这里先从`instr_%.o`开始分析，此文件的编译命令是：`clang instr_1.c -o instr_1.o -c`，`-c`参数的含义是将代码编译成对象，但是不链接，编译命令对我们的示例代码（本例文件是`sample_1.c`）同样有效，不过在本例中我们还添加了一些额外的参数：`-fsanitize-coverage=trace-pc-guard,no-prune`；这些参数会在编译器编译时在代码中插入一些别的内容；最后，我们将两个文件链接在一起并生成一个二进制文件：`case_1`
+
+> 我认为每个人都应该自己动手写点代码，所以我没有提供用于添加检测的示例代码；我用的则是用于检测某个特定单词的 if 嵌套程序
+
+这里解释一下 `no-prune` 参数，如果编译时不加这个选项的话，编译出来的二进制文件可能会出现某些边没有被检测到的情况，这是因为编译器在编译时会对目标程序的冗余内容进行优化，所以我会直接屏蔽这些优化项目，不过这些优化方式也是值得研究的内容
+
+# 拼接
+
+现在需要调整检测代码以配合fuzzer使用，代码如下
+
+```
+#include <fcntl.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <sanitizer/coverage_interface.h>
+#define STORAGE_ID "/fuzz.map"
+#define STORAGE_SIZE 64 * 1024
+
+void *addr = NULL;
+
+void unmap() {
+munmap(addr, STORAGE_SIZE);
+}
+
+extern void __sanitizer_cov_trace_pc_guard_init(uint32_t *start,
+uint32_t *stop) {
+// Setup guards
+static uint64_t N;
+// Counter for the guards.
+if (start == stop || *start) return;
+// Initialize only once.
+for (uint32_t *x = start; x < stop; x++)
+*x = ++N;
+// Guards should start from 1.
+
+// Setup shared memory
+int fd = shm_open(STORAGE_ID, O_RDWR, S_IRUSR | S_IWUSR);
+if (fd == -1) {
+perror("Failed to open shm share");
+return;
+}
+
+addr = mmap(NULL, STORAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+if (addr == MAP_FAILED) {
+perror("Failed to mmap file");
+return;
+}
+
+atexit(unmap);
+}
+
+extern void __sanitizer_cov_trace_pc_guard(uint32_t *guard) {
+if ((size_t *)addr && *guard) {
+// place a bit in a map
+uint8_t *map_ptr = ((uint8_t *)addr + *guard);
+*map_ptr += 1;
+printf("writing to: %p\n", map_ptr);
+}
+}
+```
+
+有些内容我们上面已经提到过了，比如初始化守护进程和获取共享内存段；这里唯一不同的是后面还加了用于在程序退出时负责解除内存映射的函数，因为clang本身并不提供销毁函数，所以我们要用`atexit()`函数自己写一个
+
+在边保护函数中，我们使用增量数初始化了所有的保护值，这时我们可以将共享内存段视为一个简单的位图，并将每个边标记为单字节（没有标记成位是因为我们还要计算出现的次数）；注意这种方法会在代码大小超过64k时失效，不过在我们的程序里是没什么问题的
+
+当出现如下输出内容时，说明fuzzer成功的检测了本地代码

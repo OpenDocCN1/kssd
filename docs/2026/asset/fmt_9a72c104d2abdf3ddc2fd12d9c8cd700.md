@@ -1,0 +1,81 @@
+
+```JSON
+SystemServer.run()
+├─> InitBeforeStartServices - 启动服务前初始化
+│ ├─> SystemProperties.set(SYSPROP\_START\_COUNT, ...) - 设置启动计数
+│ ├─> SystemTimeZone.initializeTimeZoneSettingsIfRequired() - 初始化时区
+│ ├─> 处理locale设置
+│ ├─> Binder.setWarnOnBlocking(true) - 设置Binder警告
+│ ├─> PackageItemInfo.forceSafeLabels() - 强制安全标签
+│ ├─> SQLiteGlobal.sDefaultSyncMode = SYNC\_MODE\_FULL - SQLite同步模式
+│ ├─> VMRuntime.getRuntime().clearGrowthLimit() - 清除内存增长限制
+│ ├─> Build.ensureFingerprintProperty() - 确保指纹属性
+│ ├─> Environment.setUserRequired(true) - 设置用户必需
+│ ├─> BaseBundle.setShouldDefuse(true) - 设置Bundle解包
+│ ├─> Parcel.setStackTraceParceling(true) - 设置Parcel堆栈跟踪
+│ ├─> BinderInternal.disableBackgroundScheduling(true) - 禁用后台调度
+│ ├─> BinderInternal.setMaxThreads(sMaxBinderThreads) - 设置Binder线程数
+│ ├─> Looper.prepareMainLooper() - 准备主Looper
+│ ├─> System.loadLibrary("android\_servers") - 加载native库
+│ ├─> initZygoteChildHeapProfiling() - 初始化堆分析
+│ ├─> spawnFdLeakCheckThread() - 生成FD泄漏检查线程 (DEBUG)
+│ ├─> performPendingShutdown() - 执行待处理的关机
+│ ├─> createSystemContext() - 创建系统上下文
+│ │ └─> ActivityThread.systemMain()
+│ │ └─> ActivityThread.getSystemContext()
+│ ├─> ActivityThread.initializeMainlineModules() - 初始化主线模块
+│ ├─> mSystemServiceManager = new SystemServiceManager() - 创建系统服务管理器
+│ └─> SystemServerInitThreadPool.start() - 启动初始化线程池
+│
+├─> StartServices - 启动服务
+│ ├─> startBootstrapServices() - 启动引导服务
+│ │ ├─> Installer installer = startInstaller() - 启动安装器
+│ │ ├─> ActivityManagerService.Lifecycle ams = startBootstrapServices()
+│ │ │ └─> mActivityManagerService = new ActivityManagerService()
+│ │ ├─> startPowerManager() - 启动电源管理
+│ │ ├─> startDisplayManager() - 启动显示管理
+│ │ ├─> startPackageManagerService() - 启动包管理服务
+│ │ │ └─> PackageManagerService.main()
+│ │ ├─> startUserManager() - 启动用户管理
+│ │ ├─> AttributeCache.init() - 初始化属性缓存
+│ │ ├─> SystemConfig.getInstance() - 获取系统配置
+│ │ ├─> startOverlayManager() - 启动Overlay管理
+│ │ ├─> startSensorService() - 启动传感器服务
+│ │ └─> 等等...
+│ │
+│ ├─> startCoreServices() - 启动核心服务
+│ │ ├─> startBatteryService() - 启动电池服务
+│ │ ├─> startUsageStatsService() - 启动使用统计服务
+│ │ ├─> startWebViewUpdateService() - 启动WebView更新服务
+│ │ └─> 等等...
+│ │
+│ ├─> startOtherServices() - 启动其他服务
+│ │ ├─> startWindowManagerService() - 启动窗口管理服务
+│ │ ├─> startInputManagerService() - 启动输入管理服务
+│ │ ├─> startNotificationManagerService() - 启动通知管理服务
+│ │ ├─> startLocationManagerService() - 启动位置管理服务
+│ │ ├─> startCountryDetectorService() - 启动国家检测服务
+│ │ ├─> startNetworkTimeUpdateService() - 启动网络时间更新服务
+│ │ ├─> startConnectivityService() - 启动连接服务
+│ │ ├─> startNetworkManagementService() - 启动网络管理服务
+│ │ ├─> startNetworkStatsService() - 启动网络统计服务
+│ │ ├─> startNetworkPolicyService() - 启动网络策略服务
+│ │ ├─> startWifiService() - 启动WiFi服务
+│ │ ├─> startBluetoothService() - 启动蓝牙服务
+│ │ ├─> startAudioService() - 启动音频服务
+│ │ ├─> startCameraService() - 启动相机服务
+│ │ ├─> startMediaRouterService() - 启动媒体路由服务
+│ │ ├─> startTelephonyRegistry() - 启动电话注册表
+│ │ ├─> startTelecomService() - 启动电信服务
+│ │ ├─> startWallpaperManagerService() - 启动壁纸管理服务
+│ │ ├─> startSystemUI() - 启动系统UI
+│ │ └─> 等等...
+│ │
+│ └─> startApexServices() - 启动Apex服务
+│
+└─> Looper.loop() - 进入主循环
+```
+
+### Select循环
+
+#### `runSelectLoop`(入口)

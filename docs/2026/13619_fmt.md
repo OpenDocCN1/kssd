@@ -1,0 +1,17 @@
+
+# [原创]熊猫烧香
+
+还记着年少时的梦吗?像朵永远不凋零花。无意翻到第一次分析病毒，看到了那时的模样。
+
+![](https://bbs.kanxue.com/upload/attach/202005/819685_846UYPX92QARE6D.jpg)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+最后于 2020-6-15 18:34
+
+被一半人生编辑，原因：
+
+上传的附件：
+
+- [PandaVirus分析报告.docx](javascript:void(0);)
+  （4.85MB，178次下载）

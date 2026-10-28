@@ -1,0 +1,50 @@
+
+```text
+CODE:00432D30 var_178         = dword ptr -178h
+CODE:00432D30 var_174         = dword ptr -174h
+CODE:00432D30 var_170         = dword ptr -170h
+CODE:00432D30 var_16C         = dword ptr -16Ch
+CODE:00432D30 var_168         = dword ptr -168h
+CODE:00432D30 var_164         = dword ptr -164h
+CODE:00432D30 var_160         = byte ptr -160h
+CODE:00432D30 var_154         = dword ptr -154h
+CODE:00432D30 var_8           = dword ptr -8
+CODE:00432D30 var_4           = dword ptr -4
+CODE:00432D30
+CODE:00432D30                 push    ebp
+CODE:00432D31                 mov     ebp, esp
+CODE:00432D33                 add     esp, 0FFFFFE88h
+CODE:00432D39                 push    ebx
+CODE:00432D3A                 push    esi
+CODE:00432D3B                 push    edi
+CODE:00432D3C                 xor     edx, edx
+CODE:00432D3E                 mov     [ebp+var_178], edx
+CODE:00432D44                 mov     [ebp+var_174], edx
+CODE:00432D4A                 mov     [ebp+var_170], edx
+CODE:00432D50                 mov     [ebp+var_16C], edx
+CODE:00432D56                 mov     [ebp+var_168], edx
+CODE:00432D5C                 mov     [ebp+var_164], edx
+CODE:00432D62                 mov     [ebp+var_4], edx
+CODE:00432D65                 mov     [ebp+var_8], edx
+CODE:00432D68                 lea     eax, [ebp+var_160]
+CODE:00432D6E                 mov     edx, off_406540
+CODE:00432D74                 call    unknown_libname_68 ; BDS 2005-2006 and Delphi6-7 Visual Component Library
+CODE:00432D79                 xor     eax, eax
+CODE:00432D7B                 push    ebp
+CODE:00432D7C                 push    offset loc_433129
+CODE:00432D81                 push    dword ptr fs:[eax]
+CODE:00432D84                 mov     fs:[eax], esp
+CODE:00432D87                 mov     ds:byte_437A3C, 1
+CODE:00432D8E                 push    0
+CODE:00432D90                 push    0
+CODE:00432D92                 push    0
+CODE:00432D94                 push    1
+CODE:00432D96                 push    offset s->Iexplore ; "iexplore"
+CODE:00432D9B                 call    InternetOpenA
+```
+
+---
+
+【版权声明】: 本文纯属技术交流, 转载请注明作者并保持文章的完整, 谢谢!
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)

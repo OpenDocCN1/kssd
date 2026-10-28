@@ -1,0 +1,235 @@
+
+在`IDA`中定位到`403020`，将光标定位到`403020`，Shift+F2 输入以上代码，则原先被加密起来的代码，就被解密掉了（解密是为以后动态分析，和静态做记录提供方便，不过你也可以用`OD`载入运行到`004010D0`后用`OD`的`dump`插件`dump`后接着用`IDA`分析，附件里面的`dump.idb`文件就是解密后从`ODdump`出来的文件）。
+
+在虚拟机中用`OD`载入木马程序，直接在`4010d2` F2下断点，断下后F7进入，则就到了真正的木马程序部分。
+
+在未用的堆栈区分配一片内存
+
+```
+data:00403020 55                                      push    ebp
+
+.data:00403021 8B EC                                   mov     ebp, esp
+
+.data:00403023 81 C4 3C F2 FF FF                       add     esp, 0FFFFF23Ch
+
+.data:00403029 60                                      pusha
+
+.data:0040302A 33 C0                                   xor     eax, eax
+
+.data:0040302C 8D BD 90 F2 FF FF                       lea     edi, [ebp-0D70h]
+
+.data:00403032 B9 5B 0D 00 00                          mov     ecx, 0D5Bh
+
+.data:00403037 F3 AA                                   rep stosb                   //分配内存
+
+.data:00403039 33 C0                                   xor     eax, eax
+
+.data:0040303B 8D BD 4C F2 FF FF                       lea     edi, [ebp-0DB4h]
+
+.data:00403041 B9 44 00 00 00                          mov     ecx, 44h            //分配内存
+
+.data:00403046 F3 AA                                   rep stosb
+
+.data:00403048 C7 85 B9 F3 FF FF E6 00+                mov     dword ptr [ebp-0C47h], 0E6h
+
+.data:00403052 E9 A6 13 00 00                          jmp     loc_4043FD           //跳转跟进
+```
+
+接着是一处循环，利用`rdtsc`（读入cpu时间戳到`EDX:EAX`）（之初以为它是想做反调试，作用其实跟`GetTickcount`比较一些指令之间的时间差，最后发现并没有比较这个）。
+
+循环中，是将时间戳的`EAX`部分连续乘以`0AC564B05h` `22h`次，并将每次的积放入上面分配的内存里面。（可能以后有用，且不管）
+
+```
+.data:004043FD 8D B5 90 F2 FF FF                       lea     esi, [ebp-0D70h]
+
+.data:00404403 0F 31                                   rdtsc
+
+.data:00404405 92                                      xchg    eax, edx
+
+.data:00404406 33 C9                                   xor     ecx, ecx
+
+.data:00404408
+
+.data:00404408                         loc_404408:                             ; CODE XREF: .data:0040441Ej
+
+.data:00404408 69 C0 05 4B 56 AC                       imul    eax, 0AC564B05h
+
+.data:0040440E 83 C0 01                                add     eax, 1
+
+.data:00404411 89 84 8E D9 08 00 00                    mov     [esi+ecx*4+8D9h], eax
+
+.data:00404418 83 C1 01                                add     ecx, 1
+
+.data:0040441B 83 F9 22                                cmp     ecx, 22h
+
+.data:0040441E 72 E8                                   jb      short loc_404408
+```
+
+接着往下看`sub_40439E`，被调用了两处，其中一处是在一个循环中，这个函数是对上面的时间戳数组做了一轮变换（一下代码应该比较明显）。
+
+```
+data:0040439E                         sub_40439E      proc near               ; CODE XREF: .data:0040443Cp
+
+.data:0040439E                                                                 ; .data:loc_404447p
+
+.data:0040439E 53                                      push    ebx
+
+.data:0040439F 8B 9E D1 08 00 00                       mov     ebx, [esi+8D1h]     //取出需要变换的数据
+
+.data:004043A5 8B 8E D5 08 00 00                       mov     ecx, [esi+8D5h]     //取出需要变换的数据
+
+.data:004043AB 8B 94 33 D9 08 00 00                    mov     edx, [ebx+esi+8D9h]
+
+.data:004043B2 8B 84 33 DD 08 00 00                    mov     eax, [ebx+esi+8DDh]
+
+.data:004043B9 C1 C2 13                                rol     edx, 13h             //移位变换
+
+.data:004043BC C1 C0 1B                                rol     eax, 1Bh             //移位变换
+
+.data:004043BF 03 94 31 D9 08 00 00                    add     edx, [ecx+esi+8D9h]
+
+.data:004043C6 03 84 31 DD 08 00 00                    add     eax, [ecx+esi+8DDh]
+
+.data:004043CD 89 84 33 D9 08 00 00                    mov     [ebx+esi+8D9h], eax
+
+.data:004043D4 89 94 33 DD 08 00 00                    mov     [ebx+esi+8DDh], edx
+
+.data:004043DB 83 EB 08                                sub     ebx, 8
+
+.data:004043DE 73 05                                   jnb     short loc_4043E5
+
+.data:004043E0 BB 80 00 00 00                          mov     ebx, 80h
+
+.data:004043E5
+
+.data:004043E5                         loc_4043E5:                             ; CODE XREF: sub_40439E+40j
+
+.data:004043E5 83 E9 08                                sub     ecx, 8
+
+.data:004043E8 73 05                                   jnb     short loc_4043EF
+
+.data:004043EA B9 80 00 00 00                          mov     ecx, 80h
+
+.data:004043EF
+
+.data:004043EF                         loc_4043EF:                             ; CODE XREF: sub_40439E+4Aj
+
+.data:004043EF 89 9E D1 08 00 00                       mov     [esi+8D1h], ebx     //保存变化后的数据
+
+.data:004043F5 89 8E D5 08 00 00                       mov     [esi+8D5h], ecx     //保存变化后的数据
+
+.data:004043FB 5B                                      pop     ebx
+
+.data:004043FC C3                                      retn
+
+.data:004043FC                         sub_40439E      endp
+```
+
+接下来用`fs:30`，找到`PEB`，进而找到`kernel32.dll`在内存中的加载地址。
+
+```
+.data:00404452 64 A1 30 00 00 00                       mov     eax, large fs:30h
+
+.data:00404458 8B 40 0C                                mov     eax, [eax+0Ch]
+
+.data:0040445B 8B 70 1C                                mov     esi, [eax+1Ch]
+
+.data:0040445E AD                                      lodsd
+
+.data:0040445F FF 70 08                                push    dword ptr [eax+8] 得到kernel的加载地址
+
+.data:00404462 8F 85 4B FD FF FF                       pop     dword ptr [ebp-2B5h]
+
+.data:00404468 68 AD D1 34 41                          push    4134D1ADh            //LoadlibrayA函数的信息摘要 ，姑且这样说吧 ）
+
+.data:0040446D FF B5 4B FD FF FF                       push    dword ptr [ebp-2B5h]
+
+.data:00404473 6A 00                                   push    0
+
+.data:00404475 E8 B4 F7 FF FF                          call    sub_403C2E  （这个函数是一个利用信息摘要寻在对应的API）
+
+.data:0040447A 89 85 2D F3 FF FF                       mov     [ebp-0CD3h], eax
+
+.data:00404480 E8 09 00 00 00                          call    near ptr loc_40448D+1
+
+.data:00404485 61                                      popa
+
+.data:00404486                                         db      64h
+
+.data:00404486 64 76 61                                jbe     short loc_4044EA
+
+.data:00404489 70 69                                   jo      short loc_4044F4
+
+.data:0040448B 33 32                                   xor     esi, [edx]
+
+.data:0040448D
+
+.data:0040448D                         loc_40448D:                             ; CODE XREF: .data:00404480p
+
+.data:0040448D 00 FF                                   add     bh, bh
+
+.data:0040448F 95                                      xchg    eax, ebp
+
+.data:00404490 2D F3 FF FF 89                          sub     eax, 89FFFFF3h
+
+.data:00404495 85 63 FD                                test    [ebx-3], esp
+```
+
+函数`sub_403C2E`是获得函数的地址，在遍历导出函数时，先将函数的名字用用摘要算法生成摘要，并与预期的摘要相比，如相等，则将此函数地址返回。
+
+`sub_403C2E`里面实际上是索引所有导出函数。要了解请参考`PE`结构里面的导出表。
+
+继续往下，进入`call loc_40448E`。
+
+分析到这里，考虑到OD会在调试的时候给出一些API的提示信息，将有助于我们理解木马的行为，请出OD。
+
+Ctr+G到达`40448E`，在此下硬件可执行断点，F9运行，断在`40448e`。
+
+OD F7一路往前走，到达：
+
+```
+00404621   833F 00          CMP DWORD PTR DS:[EDI],0
+
+00404624   74 1C            JE SHORT freecell.00404642
+
+00404626   0FB747 04        MOVZX EAX,WORD PTR DS:[EDI+4]
+
+0040462A   FF37             PUSH DWORD PTR DS:[EDI]          //EDI=4044ce 这里存储就是我说的一些API的信息摘要，这里逐个获得API的地址
+
+0040462C   FF3430           PUSH DWORD PTR DS:[EAX+ESI]
+
+0040462F   6A 00            PUSH 0
+
+00404631   E8 F8F5FFFF      CALL freecell.00403C2E           //sub_403C2E（通过信息摘要获得API地址）
+
+00404636   0FB757 06        MOVZX EDX,WORD PTR DS:[EDI+6]
+
+0040463A   890432           MOV DWORD PTR DS:[EDX+ESI],EAX
+
+0040463D   83C7 08          ADD EDI,8
+
+00404640  ^EB DF            JMP SHORT freecell.00404621      //jump to 404621 这里是一个循环，旨在通过信息摘要表获得APIs
+```
+
+上述循环在
+
+```
+00404621   833F 00          CMP DWORD PTR DS:[EDI],0
+00404624   74 1C            JE SHORT freecell.00404642
+```
+
+跳出。F4到`00404642`。
+
+继续F7跟进，到达如下：
+
+```
+00404642   E8 00000000      CALL freecell.00404647  F7跟进（实际到达下一条指令）
+
+00404647   5E               POP ESI
+
+00404648   81C6 9A020000    ADD ESI,29A
+
+0040464E   8DBD 90F2FFFF    LEA EDI,DWORD PTR SS:[EBP-D70]     //用上了之前分配的内存
+
+00404654   0FB706           MOVZX EAX,WORD PTR DS:[ESI]
+```

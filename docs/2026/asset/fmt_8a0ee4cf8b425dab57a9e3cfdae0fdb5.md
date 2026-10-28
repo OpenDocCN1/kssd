@@ -1,0 +1,16 @@
+
+# [原创][分享]`init_array`原理简单说明
+
+其实没啥技术含量。
+
+发出来跟大家分享一下吧。
+
+最原始的处理`init_array`的方法。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+
+- [`init_array.pdf`](javascript:void(0);)
+
+  （397.64kb，1599次下载）

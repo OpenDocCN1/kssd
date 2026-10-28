@@ -1,0 +1,164 @@
+
+上面整个病毒的主要流程。下面就分析它的解密部分
+
+### Bp ReadFile 下一个读文件的断点，可以来到如下位置：
+
+```
+00419919    8D40 00                 lea eax,dword ptr ds:[eax]
+0041991C    53                      push ebx
+0041991D    56                      push esi
+0041991E    57                      push edi
+0041991F    51                      push ecx
+00419920    8BF9                    mov edi,ecx
+00419922    8BF2                    mov esi,edx
+00419924    8BD8                    mov ebx,eax
+00419926    6A 00                   push 0
+00419928    8D4424 04               lea eax,dword ptr ss:[esp+4]
+0041992C    50                      push eax
+0041992D    57                      push edi
+0041992E    56                      push esi
+0041992F    53                      push ebx
+00419930    E8 DB17FFFF             call <jmp.&kernel32.ReadFile>
+00419935    85C0                    test eax,eax
+00419937    75 07                   jnz short Unpack_.00419940
+00419939    C70424 FFFFFFFF         mov dword ptr ss:[esp],-1
+00419940    8B0424                  mov eax,dword ptr ss:[esp]
+00419943    5A                      pop edx
+00419944    5F                      pop edi
+00419945    5E                      pop esi
+00419946    5B                      pop ebx
+```
+
+查看读取的内容：
+
+![](https://bbs.kanxue.com/upload/attach/201108/245444_f75zpci7n0xn1ne.png)
+
+下内存访问断点，来到
+
+```
+00404554    51                      push ecx
+00404555    45                      inc ebp
+00404556    40                      inc eax
+00404557    00D2                    add dl,dl
+00404559    45                      inc ebp
+0040455A    40                      inc eax
+0040455B    00D8                    add al,bl
+0040455D    45                      inc ebp
+0040455E    40                      inc eax
+0040455F    00DF                    add bh,bl
+00404561    45                      inc ebp
+00404562    40                      inc eax
+00404563    00EC                    add ah,ch
+00404565    45                      inc ebp
+00404566    40                      inc eax
+00404567    00F1                    add cl,dh
+00404569    45                      inc ebp
+0040456A    40                      inc eax
+0040456B    00FC                    add ah,bh
+0040456D    45                      inc ebp
+0040456E    40                      inc eax
+0040456F    0009                    add byte ptr ds:[ecx],cl
+00404571    46                      inc esi
+00404572    40                      inc eax
+00404573    001446                  add byte ptr ds:[esi+eax*2],dl
+00404576    40                      inc eax
+00404577    0052 DF                 add byte ptr ds:[edx-21],dl
+0040457A    288D 4401F88D           sub byte ptr ss:[ebp+8DF80144],cl
+00404580    4C                      dec esp
+00404581    0AF8                    or bh,al
+00404583    DF28                    fild qword ptr ds:[eax]
+00404585    51                      push ecx
+00404586    F7D9                    neg ecx
+00404588    83E2 F8                 and edx,FFFFFFF8
+0040458B    8D4C0A 08               lea ecx,dword ptr ds:[edx+ecx+8]
+0040458F    5A                      pop edx
+00404590    DF2C01                  fild qword ptr ds:[ecx+eax]                               ; 循环处理数据
+00404593    DF3C11                  fistp qword ptr ds:[ecx+edx]
+00404596    83C1 08                 add ecx,8
+00404599  ^ 7C F5                   jl short Unpack_.00404590
+0040459B    DF3A                    fistp qword ptr ds:[edx]
+0040459D    5A                      pop edx
+0040459E    DF3A                    fistp qword ptr ds:[edx]
+004045A0    C3                      retn
+```
+
+病毒对数据的处理，分很多处，我也没完全搞明白。将就贴两个地方了。
+
+```
+0040451C    39D0                    cmp eax,edx
+0040451E    74 31                   je short Unpack_.00404551
+00404520    83F9 20                 cmp ecx,20
+00404523    77 7C                   ja short Unpack_.004045A1
+00404525    83E9 08                 sub ecx,8
+00404528    7F 07                   jg short Unpack_.00404531
+0040452A    FF248D 74454000         jmp dword ptr ds:[ecx*4+404574]
+00404531    DF2C01                  fild qword ptr ds:[ecx+eax]
+00404534    DF28                    fild qword ptr ds:[eax]
+00404536    83F9 08                 cmp ecx,8
+00404539    7E 11                   jle short Unpack_.0040454C
+0040453B    DF68 08                 fild qword ptr ds:[eax+8]
+0040453E    83F9 10                 cmp ecx,10
+00404541    7E 06                   jle short Unpack_.00404549
+00404543    DF68 10                 fild qword ptr ds:[eax+10]
+00404546    DF7A 10                 fistp qword ptr ds:[edx+10]
+00404549    DF7A 08                 fistp qword ptr ds:[edx+8]
+0040454C    DF3A                    fistp qword ptr ds:[edx]
+0040454E    DF3C11                  fistp qword ptr ds:[ecx+edx]
+00404551    C3                      retn
+```
+
+最后生成一个VB的程序.
+
+![](https://bbs.kanxue.com/upload/attach/201108/245444_5oglpqcd4z0yood.png)
+
+### 最后以挂起的方式启动自己
+
+```
+0012FD54   00000000            |ModuleFileName = NULL
+0012FD58   00B14FBC            |CommandLine = "D:\Loader\Unpack_.exe"
+0012FD5C   00000000            |pProcessSecurity = NULL
+0012FD60   00000000            |pThreadSecurity = NULL
+0012FD64   00000000            |InheritHandles = FALSE
+0012FD68   00000004            |CreationFlags = CREATE_SUSPENDED
+0012FD6C   00000000            |pEnvironment = NULL
+0012FD70   00000000            |CurrentDir = NULL
+0012FD74   0012FDC0            |pStartupInfo = 0012FDC0
+0012FD78   0012FDB0            \pProcessInfo = 0012FDB0
+```
+
+修改挂起的进程之后，让进程运行起来，修改浏览器主页。
+
+```
+0012FDFC   00CF00C0            ASCII "PE"
+0012FE00   7FFDF000
+0012FE04   00001000
+0012FE08   0012FF24
+0012FE0C   004438A8            Unpack_.004438A8
+0012FE10   00000098            |hProcess = 00000098 (窗口)
+0012FE14   00400000            |Address = 400000
+0012FE18   00CF0000            |Buffer = 00CF0000
+0012FE1C   0000A000            |BytesToWrite = A000 (40960.)
+0012FE20   0012FF0C            \pBytesWritten = 0012FF0C
+```
+
+分析不好，高手莫笑。附件是该病毒，喜欢的自己再仔细看看。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+
+- [1.png](javascript:void(0);)
+
+  （13.26kb，277次下载）
+
+- [2.png](javascript:void(0);)
+
+  （17.66kb，276次下载）
+
+- [3.png](javascript:void(0);)
+
+  （14.40kb，277次下载）
+
+- [Loader.rar](javascript:void(0);)
+
+  （1.05MB，36次下载）

