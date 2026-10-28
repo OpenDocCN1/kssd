@@ -1,0 +1,177 @@
+
+# Re0: 从零实现一个解除文件占用的小工具
+
+## 前言
+
+相信大家或多或少都遇到过想删除一个文件，却提示被占用的情况：
+
+![](upload/attach/202309/830009\_ZRHT4FZXKHFZCBE.png)
+
+不知道各位都是如何处理的，反正我一直都是用的火绒。但是作为一名程序员，自己写一个小程序实现多有意思，是吧。况且为了一个小工具去安装一个杀毒软件，~~不~~是一个合格的程序员，你们说对不对。基于以上的原因，最终出现了这篇文章，效果如下，本文所对应的完整代码已上传到<a href="elink@e2bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6\*7K9r3q4F1k6$3A6A6N6$3g2A6x3e0t1J5x3g2)9J5c8X3u0D9L8$3N6Q4x3V1k6@1M7X3g2W2i4K6u0r3L8h3q4K6N6r3g2J5i4K6u0r3N6h3&6D9L8$3y4C8k6X3W2D9k6b7`.`.">GitHub</a>，可自行取用~~~
+
+![](upload/attach/202309/830009\_YGFETNRYXYWD7EZ.gif)
+
+## 一些可以使用的工具
+
+### 火绒等杀毒软件
+
+这里以火绒自带的工具为例，使用方式如下所示：
+
+![](upload/attach/202309/830009\_FUQK9V4WYEVU7RA.png)
+
+![](upload/attach/202309/830009\_FRYE8R53V4UY4VX.png)
+
+通过火绒自带的工具，可以看到文件被什么程序占用了，然后进行解锁。
+
+### 专用工具
+
+`Unlocker`、`LockHunter`、`IObit Unlocker`，由于未实际使用过，这里不再展开介绍。
+
+### 任务管理器
+
+![](upload/attach/202309/830009\_8XMRGMTY6VBBNYJ.png)
+
+![](upload/attach/202309/830009\_YS6A63XXRJUP4YK.png)
+
+通过Windows 自带的任务管理器也可以查询文件的占用状态，缺点是无法只解锁文件，只能关闭占用的进程。
+
+### Sysinternals 下的 handle
+
+Sysinternals 是 Windows 平台上使用的一个工具集合，可以监控系统的绝大部分文件，磁盘，网络，进程线程，模块，工具全集可以在<a href="elink@d35K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6D9k6h3q4J5L8W2)9J5k6h3#2A6j5%4u0G2M7$3!0X3N6q4)9J5k6h3y4G2L8g2)9J5c8Y4A6Z5i4K6u0V1j5$3&6Q4x3V1k6K6P5i4y4A6L8Y4c8W2M7X3&6S2L8s2y4Q4x3V1k6V1L8%4N6F1L8r3!0S2k6s2y4Q4x3V1j5`.">微软官网</a>进行下载，这里只讲解用于句柄操作的 Handle：
+
+首先在<a href="elink@8baK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5k6i4y4&6M7$3W2F1N6r3g2J5L8X3q4D9M7#2)9J5k6h3y4G2L8g2)9J5c8X3k6A6L8r3g2K6i4K6u0r3d9r3q4F1k6r3I4W2i4K6u0W2P5X3W2H3">官网</a>进行下载，可以发现包含的文件很简单，exe 文件可以直接运行：
+
+![](upload/attach/202309/830009\_KG76EWUR4RTKN82.png)
+
+在这里我们选择其中的 `handle64` 即可，首先以管理员身份运行终端，然后运行以下命令：
+
+```cmd
+handle64 "C:\Users\xxx\Desktop\demo.gif"
+```
+
+![](upload/attach/202309/830009\_ST9RXGF32UAHX9U.png)
+
+然后我们就可以看到上图所示的占用的程序进程号和对应的文件句柄，之后我们就可以运行以下命令去解除占用了，其中 1CE8 和 20392 分别是上述命令获取到的文件句柄和占用进程号：
+
+```cmd
+handle64 -nobanner -c 1CE8 -y -p 20392
+```
+
+![](upload/attach/202309/830009\_4XJQP3YJBJ4YKTV.png)
+
+## 自己编码实现
+
+以上讲解了一些解除文件占用的第三方功能，下面则开始步入正题，从零实现一个解除文件占用的小工具。
+
+### 软硬件运行环境及工具
+
+- Windows11
+
+- Visual Studio 2022
+
+- Qt5.15.2/QML（用于展示简单结果文本，不了解 Qt 也没什么影响）
+
+- Inno Setup（用于创建程序的安装程序）
+
+### 编码实现
+
+首先说明以下程序的整体思路：程序初始判断是否有传参，如果无参说明程序是手动运行，执行添加注册表实现右键菜单包含`解锁文件`选项的逻辑。如果包含参数，说明程序是通过右键菜单运行的，根据传递的参数（即文件路径）执行相应的文件解锁操作。
+
+> 以下不展示全部代码，完整代码可在前言中的<a href="elink@2caK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6\*7K9r3q4F1k6$3A6A6N6$3g2A6x3e0t1J5x3g2)9J5c8X3u0D9L8$3N6Q4x3V1k6@1M7X3g2W2i4K6u0r3L8h3q4K6N6r3g2J5i4K6u0r3N6h3&6D9L8$3y4C8k6X3W2D9k6b7`.`.">GitHub</a>查看，全部逻辑都在 `main.cpp` 中。
+
+#### 注册表功能实现
+
+最终效果如下：
+
+![](upload/attach/202309/830009\_GAPSC6ACS9QW72N.png)
+
+![](upload/attach/202309/830009\_EHS27SSBAR25J85.png)
+
+结合上图和以下代码即注释，相关代码不难理解，主要步骤如下：
+
+1. 添加名为`unlockfile`的注册键，包含两个键值，一个默认项`解锁文件`对应右键菜单显示的名称，一个`Icon`设置为应用程序的地址对应右键菜单显示的图标。
+
+2. 在`unlockfile`下添加名为`command`的子键，值是程序路径和 `"%1"`（对应传递的文件路径参数用于文件解锁操作）。
+
+> 使用注册表时要特别注意文件编码，字符串类型转换的处理。
+
+```cpp
+QVariant showInfo;
+string appPath = QCoreApplication::applicationDirPath()
+.replace(QRegExp("/"), "\\").toStdString() + "\\unlockfile.exe";
+if (setRightMenu("unlockfile", "解锁文件", appPath))
+{
+showInfo = u8"注册表添加成功";
+}
+else
+{
+showInfo = u8"注册表添加失败, 请确保以管理员身份运行";
+}
+QMetaObject::invokeMethod(root, "showInfo", Q\_ARG(QVariant, showInfo));
+/// <summary>
+/// 设置右键菜单
+/// </summary>
+/// <param name="strRegKeyKey">注册键</param>
+/// <param name="strRegKeyName">注册名</param>
+/// <param name="strApplication">应用地址</param>
+/// <returns>是否添加成功</returns>
+bool setRightMenu(string strRegKeyKey, string strRegKeyName, string strApplication)
+{
+HKEY hresult;
+string strRegKey = "\*\\shell\\" + strRegKeyKey;
+string strRegSubkey = strRegKey + "\\command";
+string strApplicationValue = "\"" + strApplication + "\"" + " \"%1\"";
+DWORD dwPos;
+// 创建注册表键, 对应右键菜单项
+if (RegCreateKeyEx(HKEY\_CLASSES\_ROOT, stringToWString(strRegKey.c\_str()), 0,
+NULL, REG\_OPTION\_NON\_VOLATILE, KEY\_CREATE\_SUB\_KEY | KEY\_ALL\_ACCESS, NULL, &hresult, &dwPos) != ERROR\_SUCCESS)
+{
+RegCloseKey(hresult);
+return false;
+}
+// 创建注册表值, 对应右键菜单项显示的内容
+if (RegSetValueEx(hresult, NULL, 0, REG\_SZ, (BYTE\*)stringToWString(strRegKeyName.c\_str()), (wcslen(stringToWString(strApplicationValue.c\_str())) + 1) \* sizeof(wchar\_t)) != ERROR\_SUCCESS)
+{
+RegCloseKey(hresult);
+return false;
+}
+// 设置右键菜单图标
+if (RegSetValueEx(hresult, stringToWString("Icon"), 0, REG\_SZ, (BYTE\*)stringToWString(strApplication.c\_str()), (wcslen(stringToWString(strApplication.c\_str())) + 1) \* sizeof(wchar\_t)) != ERROR\_SUCCESS)
+{
+RegCloseKey(hresult);
+return false;
+}
+// 创建注册表子项键, 对应点击右键菜单项后的命令项
+if (RegCreateKeyEx(HKEY\_CLASSES\_ROOT, stringToWString(strRegSubkey.c\_str()), 0, NULL, REG\_OPTION\_NON\_VOLATILE, KEY\_CREATE\_SUB\_KEY | KEY\_ALL\_ACCESS, NULL, &hresult, &dwPos) != ERROR\_SUCCESS)
+{
+RegCloseKey(hresult);
+return false;
+}
+// 创建注册表子项值, 对应点击右键菜单项后的具体执行命令
+if (RegSetValueEx(hresult, NULL, 0, REG\_SZ, (BYTE\*)stringToWString(strApplicationValue.c\_str()), (wcslen(stringToWString(strApplicationValue.c\_str())) + 1) \* sizeof(wchar\_t)) != ERROR\_SUCCESS)
+{
+RegCloseKey(hresult);
+return false;
+}
+RegCloseKey(hresult);
+return true;
+}
+```
+
+实现的效果如下，其中`解锁文件`就是我们创建的：
+
+![](upload/attach/202309/830009\_WNBWMZ2PUPBVTXQ.png)
+
+#### 解锁文件逻辑实现
+
+这部分逻辑稍微复杂一些，具体步骤如下：
+
+1. 首先执行`init()`进行初始化的操作，包括加载 Native API 和遍历系统中所有句柄。
+
+2. 调用`getFileObjectTypeNumber()`获取文件句柄对应的编号（句柄有很多种，比如窗口、文件、图标和菜单），经测试，不同系统版本的编号也有所不同：`win11: 40 win10: 37 win7: 28`。
+
+3. 遍历执行`init()`得到的系统所有句柄信息，只处理其中类型为文件且不属于系统进程的句柄。
+
+4. 对符合条件的文件句柄去获取其文件名，如果文件名和传递的文件名相同，则关闭相应的句柄即可实现解锁文件的效果，同时获取占用的进程路径展示给用户。
+
+> 特别注意，在 ring3 级调用`NtQueryObject`会出现阻塞的情况，因此需要通过开一个线程增加超时处理，避免程序卡住。此外，由于是跨进程处理句柄，因此需要调用`DuplicateHandle`方法。
