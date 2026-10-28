@@ -1,0 +1,6 @@
+
+![](http://www.mftp.info/20141101/1415427203x-1425050556.png)
+
+![](http://www.mftp.info/20141101/1415427939x-1425050556.png)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
