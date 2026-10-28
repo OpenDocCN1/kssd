@@ -1,0 +1,150 @@
+
+# [原创]静态程序分析之过程间数据流分析(CHA构建-ICFG-EDGE)
+
+大家好，我是TeddyBe4r，今天为大家带来CHA，ICFG和一些有关于过程间分析的内容。
+
+大纲如下所示，该篇笔记主要解释 CHA 的构建算法，ICFG数据流分析方法，以及基础的 Call edge，Return edge，Call-to-Return edge 的一些概念和Transfer Node 在常量传播中的一些经典处理手法，详细精准的定义可以看图片中的内容，对于大白话方便理解的我在关键的地方都精炼成一句话方便大家理解。
+
+## Motivation
+
+到目前位置我们学习的都是过程内分析的。我们一般假设都是 Safe-approximation
+
+这样的话就会损失精度。为了提升精度我们需要进行过程间的数据流分析。
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_PAX235TPJ8ZFMYP.jpg)
+
+过程间分析就会顺着边来传递数据流。
+
+为了更好的精度我们需要利用 `call graph`
+
+调用图就是一个程序调用关系的表示，他是一个调用边的集合。
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_UYBPYBNSNMRMSH5.jpg)
+
+### 调用图的用途
+
+调用图是一个非常重要的程序信息。
+
+**Static call**
+
+**Special call**
+
+**Virtual call** (最难处理的)
+
+**Instruction**
+
+`invoke static`
+
+`invoke special`
+
+`invoke interface`
+
+`invoke virtual`
+
+**Receiver Objects**
+
+NO
+
+YES
+
+YES
+
+**Target Methods**
+
+**#Target Methods**
+
+1
+
+1
+
+>= 1(`polymorphism`)
+
+**Determinacy**
+
+`complie-time`
+
+`complie-time`
+
+`runtime`
+
+对于OOP语言的调用处理最难的是虚方法。
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_FY88QX97YPN46GJ.jpg)对于虚方法而言通常是通过**方法分发**来进行操作的。该操作基于
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_TMZAQ8V2K45H3NT.jpg)
+
+可以通过设置`Dispatch`函数来模仿这个动态分发的过程
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_9R8A27C3XAAV6TR.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_RMNQCCVET83PRUQ.jpg)
+
+值得注意的是这里的 `m`必须是一个非抽象的方法，如果`c`没有这个方法则需要往`c`的父类去寻找直到找到一个非抽象方法。这里我们辅佐以图来理解`Dispatch`的过程
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_MK5RFHJZCST67DG.jpg)
+
+### DIspatch 例子
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_KZ76EPVAH5ZZ83D.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_C2BVUW69AM35UST.jpg)
+
+这里有一点值得注意的是 对于`Special call`的处理我们需要处理以下三种情况
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_6Y4ZY2SZRYJ88ZY.jpg)
+
+**一定要记住这里的`T`集合是包含当前类及其他的子类**
+
+给出一个例子帮助理解
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_MU6GKHQ48JFTVH8.jpg)
+
+值得注意的是对于 `B b = ...; b.foo();` 做`Dispatch`是包含`A C D`的因为 对`B`做`Dispatch`的时候会回溯到`A`类的 `A.foo()` 上面去。**且一定记住CHA算法只考虑声明类型不考虑右值的实际类型**
+
+即便 `B b = new B(); b.foo();` 也只和左值的类型有关。
+
+经常会在IDE里面看到这种CHA方法。
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_DGHKVZYPXYDVABM.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_SUEH7D5RRKB83ZR.jpg)
+
+本质上就是从入口方法开始递归的处理方法到方法的边，并且将这个边放到集合中去，直到没有一个新方法被发现。
+
+例子
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_M45ZCBPMHAJE8AU.jpg)
+
+可以跟着该例子推导一下该算法。
+
+在`ICFG`中有两种类型的边
+
+`ICFG = CFGs + call & return edges`
+
+### ICFG例子
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_MGGX7XV2CY2BN7R.jpg)
+
+不过在这里我们需要注意，**有了`Call Edges`和 `Return Edges`之后依旧需要保留原来基本块的`CFG edges`。**
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_BM8FEQ3H8G6Y3VZ.jpg)
+
+### 过程间常量传播分析例子
+
+![](https://bbs.kanxue.com/upload/attach/202510/983513_4Y6M2ZB9UJE558E.jpg)
+
+[回复或点赞可查看完整内容](https://bbs.kanxue.com/#quick_reply_form)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+最后于 2025-10-19 17:58
+
+被TeddyBe4r编辑，原因： 更改标题，使其观感更好
+
+[#基础知识](https://bbs.kanxue.com/forum-41-1-130.htm)
+
+[#开发技巧](https://bbs.kanxue.com/forum-41-1-135.htm)
+
+[#工具脚本](https://bbs.kanxue.com/forum-41-1-137.htm)
+
+[#其他](https://bbs.kanxue.com/forum-41-1-138.htm)

@@ -1,0 +1,172 @@
+
+# [原创]动态检测回调是否被反注册
+
+## 结构体
+
+```
+typedef struct _OBJECT_TYPE_INITIALIZER
+{
+	USHORT Length;
+	union
+	{
+		UCHAR ObjectTypeFlags;
+		struct
+		{
+			UCHAR CaseInsensitive: 1;    //  +0x002 CaseInsensitive  : Pos 0, 1 Bit
+			UCHAR UnnamedObjectsOnly: 1;  //  +0x002 UnnamedObjectsOnly : Pos 1, 1 Bit
+			UCHAR UseDefaultObject: 1;    //  +0x002 UseDefaultObject : Pos 2, 1 Bit
+			UCHAR SecurityRequired: 1;    //  +0x002 SecurityRequired : Pos 3, 1 Bit
+			UCHAR MaintainHandleCount: 1;  //  +0x002 MaintainHandleCount : Pos 4, 1 Bit
+			UCHAR MaintainTypeList: 1;    //  +0x002 MaintainTypeList : Pos 5, 1 Bit
+			UCHAR SupportsObjectCallbacks: 1;    //  +0x002 SupportsObjectCallbacks : Pos 6, 1 Bit
+			UCHAR CacheAligned: 1;      //  +0x002 CacheAligned     : Pos 7, 1 Bit
+		};
+	};
+	ULONG ObjectTypeCode;
+	ULONG InvalidAttributes;
+	GENERIC_MAPPING GenericMapping;
+	ULONG ValidAccessMask;
+	POOL_TYPE PoolType;
+	ULONG DefaultPagedPoolCharge;
+	ULONG DefaultNonPagedPoolCharge;
+	PVOID DumpProcedure;
+	LONG * OpenProcedure;
+	PVOID CloseProcedure;
+	PVOID DeleteProcedure;
+	LONG * ParseProcedure;
+	LONG * SecurityProcedure;
+	LONG * QueryNameProcedure;
+	UCHAR * OkayToCloseProcedure;
+} OBJECT_TYPE_INITIALIZER, *POBJECT_TYPE_INITIALIZER;
+```
+
+```
+typedef struct _OBJECT_TYPE_INITIALIZER_WIN8
+{
+	USHORT Length;
+	union
+	{
+		UCHAR ObjectTypeFlags;
+		struct
+		{
+			UCHAR CaseInsensitive: 1;    //  +0x002 CaseInsensitive  : Pos 0, 1 Bit
+			UCHAR UnnamedObjectsOnly: 1;  //  +0x002 UnnamedObjectsOnly : Pos 1, 1 Bit
+			UCHAR UseDefaultObject: 1;    //  +0x002 UseDefaultObject : Pos 2, 1 Bit
+			UCHAR SecurityRequired: 1;    //  +0x002 SecurityRequired : Pos 3, 1 Bit
+			UCHAR MaintainHandleCount: 1;  //  +0x002 MaintainHandleCount : Pos 4, 1 Bit
+			UCHAR MaintainTypeList: 1;    //  +0x002 MaintainTypeList : Pos 5, 1 Bit
+			UCHAR SupportsObjectCallbacks: 1;    //  +0x002 SupportsObjectCallbacks : Pos 6, 1 Bit
+			UCHAR CacheAligned: 1;      //  +0x002 CacheAligned     : Pos 7, 1 Bit
+		};
+	};
+	ULONG ObjectTypeCode;
+	ULONG InvalidAttributes;
+	GENERIC_MAPPING GenericMapping;
+	ULONG ValidAccessMask;
+	POOL_TYPE PoolType;
+	ULONG DefaultPagedPoolCharge;
+	ULONG DefaultNonPagedPoolCharge;
+	PVOID DumpProcedure;
+	LONG * OpenProcedure;
+	PVOID CloseProcedure;
+	PVOID DeleteProcedure;
+	LONG * ParseProcedure;
+	LONG * SecurityProcedure;
+	LONG * QueryNameProcedure;
+	UCHAR * OkayToCloseProcedure;
+	ULONG WaitObjectFlagMask;
+	USHORT WaitObjectFlagOffset;
+	USHORT WaitObjectPointerOffset;
+} OBJECT_TYPE_INITIALIZER_WIN8, *POBJECT_TYPE_INITIALIZER_WIN8;
+```
+
+```
+typedef struct _FAKE_OBJECT_TYPE_WIN7
+{
+	LIST_ENTRY TypeList;
+	UNICODE_STRING Name;
+	PVOID DefaultObject;
+	ULONG Index;
+	ULONG TotalNumberOfObjects;
+	ULONG TotalNumberOfHandles;
+	ULONG HighWaterNumberOfObjects;
+	ULONG HighWaterNumberOfHandles;
+	OBJECT_TYPE_INITIALIZER TypeInfo;
+	EX_PUSH_LOCK TypeLock;
+ 	ULONG Key;
+ 	LIST_ENTRY CallbackList;
+} FAKE_OBJECT_TYPE_WIN7, *PFAKE_OBJECT_TYPE_WIN7;
+```
+
+```
+typedef struct _FAKE_OBJECT_TYPE_WIN8
+{
+	LIST_ENTRY TypeList;
+	UNICODE_STRING Name;
+	PVOID DefaultObject;
+	ULONG Index;
+	ULONG TotalNumberOfObjects;
+	ULONG TotalNumberOfHandles;
+	ULONG HighWaterNumberOfObjects;
+	ULONG HighWaterNumberOfHandles;
+	OBJECT_TYPE_INITIALIZER_WIN8 TypeInfo;
+	EX_PUSH_LOCK TypeLock;
+	ULONG Key;
+	LIST_ENTRY CallbackList;
+} FAKE_OBJECT_TYPE_WIN8, *PFAKE_OBJECT_TYPE_WIN8;
+```
+
+## 实现代码
+
+```
+BOOLEAN EnumObCallbacks()
+{
+	PLIST_ENTRY CurrEntry=NULL;
+	POB_CALLBACK pObCallback;
+	PFAKE_OBJECT_TYPE_WIN7 PsProcessTypeW7 = (PFAKE_OBJECT_TYPE_WIN7)*PsProcessType;
+	PFAKE_OBJECT_TYPE_WIN8 PsProcessTypeW8 = (PFAKE_OBJECT_TYPE_WIN8)*PsProcessType;
+	PLIST_ENTRY ObProcessCallbackListHead;
+	if(obHandle == NULL)//全局变量obHandle,注册回调时的参数
+		return FALSE;
+	if(*NtBuildNumber < 6000)//vista以下系统不检测
+		return TRUE;
+	if(*NtBuildNumber <= 7601)//win7,2008r2
+	{
+		if(PsProcessTypeW7->TypeInfo.SupportsObjectCallbacks == 0)//检测回调是否生效
+			return FALSE;
+		ObProcessCallbackListHead=&PsProcessTypeW7->CallbackList;
+	}
+	else//win8,win10
+	{
+		if(PsProcessTypeW8->TypeInfo.SupportsObjectCallbacks == 0)//检测回调是否生效
+			return FALSE;
+		ObProcessCallbackListHead=&PsProcessTypeW8->CallbackList;
+	}
+	CurrEntry=ObProcessCallbackListHead->Flink;
+ 	KdPrint(("MyObHandle: %p\n",obHandle));
+	do
+	{
+		pObCallback=(POB_CALLBACK)CurrEntry;
+		if(pObCallback->ObHandle!=0)
+		{
+			KdPrint(("Unknown: %p\n",pObCallback->Unknown));
+			KdPrint(("ObHandle: %p\n",pObCallback->ObHandle));
+			KdPrint(("ObjTypeAddr: %p\n",pObCallback->ObjTypeAddr));
+			KdPrint(("PreCall: %p\n",pObCallback->PreCall));
+			KdPrint(("PostCall: %p\n",pObCallback->PostCall));
+			if((PVOID)pObCallback->PreCall == &CBTdPreOperationCallback)
+			{
+				return TRUE;
+			}
+		}
+		CurrEntry = CurrEntry->Flink;
+	}
+	while(CurrEntry != ObProcessCallbackListHead);
+	obHandle = NULL;//没有找到回调，将句柄清空，防止卸载时出错
+	return FALSE;
+}
+```
+
+新手，部分代码参考了某大神的，写得比较挫，大神们别喷
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)

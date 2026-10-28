@@ -1,0 +1,253 @@
+
+```c
+#include <stdio.h>
+#include <Windows.h>
+
+typedef int (WINAPI *lpMessageBoxA)(HWND, LPCSTR, LPCSTR, UINT);
+BYTE olddata32[5] = { 0 };
+void hook();
+void Unhook();
+
+//回调函数 当调用hook时，hook执行完成后调用该函数后再进入main函数
+int WINAPI MyMessageboxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType)
+{
+    Unhook();
+    lpMessageBoxA messagebox = (lpMessageBoxA)GetProcAddress(GetModuleHandleA("user32.dll"), "MessageBoxA");
+    int ret = messagebox(0, "inlinehook", "tip3", 0);
+    hook();//函数释放前再次HOOK,为了拦截下次调用
+    return ret;
+}
+
+void hook()
+{
+    //获取messagebox的基地址
+    DWORD messagebox = (DWORD)GetProcAddress(GetModuleHandleA("user32.dll"), "MessageBoxA");
+    BYTE data[5] = { 0xe9, };
+    DWORD offset = (DWORD)MyMessageboxA - messagebox - 5; //计算jmp跳转的偏移量
+    //保存前五个字节的数据
+    memcpy(olddata32, (const void *)messagebox, 5);
+    //把偏移量与JMP指令拼接
+    memcpy(&data[1], &offset, 4);
+    DWORD oldProtect = 0;
+    //更改页面属性 将内存改为可读可写可执行
+    VirtualProtect((LPVOID)messagebox, 5, PAGE_EXECUTE_READWRITE, &oldProtect);
+    memcpy((void*)messagebox, data, 5);
+    //还原属性
+    VirtualProtect((LPVOID)messagebox, 5, oldProtect, &oldProtect);
+}
+
+void Unhook()
+{
+    DWORD messagebox = (DWORD)GetProcAddress(GetModuleHandleA("user32.dll"), "MessageBoxA");
+    DWORD oldProtect = 0;
+    VirtualProtect((LPVOID)messagebox, 5, PAGE_EXECUTE_READWRITE, &oldProtect);
+    memcpy((void*)messagebox, olddata32, sizeof(olddata32));
+    VirtualProtect((LPVOID)messagebox, 5, oldProtect, &oldProtect);
+}
+
+void main()
+{
+    MessageBoxA(0, "hello", "tip1", 0);
+    hook();
+    MessageBoxA(0, "hello", "tip2", 0);
+}
+```
+
+### 结果分析
+
+Hook前
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_PMWUSSGFPCDUSR6.png)
+
+Hook后，我们的弹窗本该是hello的但是hook后，程序流程被我们修改了。
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_7PAFQE39NTSEZPK.png)
+
+### 过程分析
+
+（1）首先我们先给`MessageBoxA` API下软件断点
+
+这里我提供三种方法：
+
+方法一: `Ctrl + F` 快捷键输入`MessageBoxA`，跳到一个地址，下软件断点
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_9X78KDJVSB8AKSF.png)
+
+方法二:在Command后面红色标注的命令框里输入：`BP MessageBoxA`
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_CHMGFZQNB9XHBF2.png)
+
+方法三:利用吾爱破解里面的OD插件给`MessageBoxA`下断点
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_ZQWK7BMWKKU4CNR.png)
+
+（2）下好断点后程序运行后跳到了`760D34B0`地址
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_65XFFB8JMPERC7F.png)
+
+我们可以看到`760D34B0`就是我们`BP MessageBoxA`下断点后的地址，我们可以记住这个地址，因为我们HOOK主要修改的就是该地址，下面我们从汇编代码分析该函数流程
+
+```
+760D34B0 > 8BFF mov edi,edi
+760D34B2 55 push ebp
+760D34B3 8BEC mov ebp,esp
+```
+
+它只是一个占位符，方便在调试和优化代码时进行修改。
+
+```
+760D34B5 6A FF push -0x1
+760D34B7 6A 00 push 0x0
+```
+
+通常被用于函数的参数传递，将参数压入堆栈中，以便被调用函数在堆栈中获取。
+
+```
+760D34B9 FF75 14 push dword ptr ss:[ebp+0x14]
+760D34BC FF75 10 push dword ptr ss:[ebp+0x10] ;
+760D34BF FF75 0C push dword ptr ss:[ebp+0xC] ;
+760D34C2 FF75 08 push dword ptr ss:[ebp+0x8]
+```
+
+这四个push是将`MessageBoxA`的四个参数压入堆栈中去
+
+```
+760D34C5 E8 D6010000 call user32.MessageBoxTimeoutA
+```
+
+该函数是显示`MessageBoxA`的弹窗函数
+
+（3）执行函数后我们继续运行，执行该函数后OD显示如图所示
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_TX6E4UGWZK4H4TZ.png)
+
+```
+00C4295C 6A 00 push 0x0
+00C4295E 68 187CC400 push hookmess.00C47C18 ; ASCII "tip2"
+00C42963 68 107CC400 push hookmess.00C47C10 ; ASCII "hello"
+00C42968 6A 00 push 0x0
+```
+
+这四个push是hook前的函数流程，将该四个push压入堆栈后，在运行到光标的call中跳入到前面的`MessageBoxA`函数流程
+
+（4）hook后我们F7进入该函数
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_NSE8QKT46UZXEXN.png)
+
+我们可以看到`760D34B0-760D34B7`地址的汇编指令被我们修改了
+
+Hook前的执行指令：
+
+```
+760D34B0 > 8BFF mov edi,edi
+760D34B2 55 push ebp
+760D34B3 8BEC mov ebp,esp
+```
+
+Hook后执行过程的指令被我们修改成了`jmp 00C4110E`
+
+`00C4110E`地址就是我们修改`MessageBoxA`函数的地址
+
+（5）HOOK函数的逆向分析如下：
+
+这个跳转是VC编译器的特性可以不用管
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_GWJAHH8J5Y2JG55.png)
+
+`00C41730`是`HOOK`函数的起始地址
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_DTDMUUM2YPT6UKF.png)
+
+这下面的四个push就是将我们修改`MessageBoxA`也就是`MyMessageBoxA`的参数压入堆栈，然后通过下面的call调用
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_NPR2PYD7QTGCVFV.png)
+
+最后执行以前的函数流程,将修改后的`MessageBoxA`函数的弹窗显示出来
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_YQBKTHMPKA4ESW6.png)
+
+## 攻防世界逆向题Easy Hook分析过程
+
+### 查壳
+
+如下图所示，我们可以知道该程序是32位的PE文件
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_WRDW24KUCXU7NRG.png)
+
+### IDA静态分析
+
+步骤一，拉进`IDA`中按下`F5`得到`main`函数的反汇编代码
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_X72WYW97WE87BZJ.png)
+
+步骤二：分析伪代码，如下图是我整理的伪代码注释，我们分析完毕后可以知道`flag`的长度为`19`，`sub_401220()`函数就是`hook`函数，`hook`的是`WriteFile`函数。加密过程也在该函数里面。
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_WYUV6EU4BPJAEBT.png)
+
+步骤三：我们运行程序输入`1234567890123456789`，可以在程序运行目录下找到一个文件，我们用文本的形式打开该文件可以得到下面的结果，并不是我们的输入。
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_AJ96A2FZRQM3YTJ.png)
+
+步骤四：进入`sub_401220()`函数分析，这个函数逻辑清晰地找到了库函数`WriteFile`的地址，向`byte_40C9BC`中载入了`JUMP`指令的字节码`E9`，计算了`sub_401080`距离`WriteFile`的第五个字节的距离。我们分析先`sub_4010D0()`函数
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_4KHHSGTMVAAXEKP.png)
+
+步骤五：进入`sub_4010D0()`函数分析,我们分析该函数就可以确定是`hook`了，我们回到`sub_401220()`函数，可以知道`sub_401080`就是整个程序的关键了。
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_QV6DYVMSYE6BM6J.png)
+
+步骤六：进入`sub_401080()`函数分析,该函数就是我们`HOOK`的返回值，通过`sub_401080()`函数重新定义了一个`WriteFile`函数，修改了参数里面的值。我们先分析`sub_401140()`函数有什么用
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_6CJNQ7TW3GXCEAV.png)
+
+步骤七：进入`sub_401140()`函数分析，在`sub_401000()` 函数加密完 `lpBuffer` 后，`sub_401140`又把 `WriteFile` 函数还原，继续写操作。
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_YEWAK9DQBH84HXC.png)
+
+步骤八：进入`sub_401000()`函数分析，该函数就是我们加密的函数，`flag`由此解密，简单的异或，第一个判断`i=18`时，`flag[i] = a1[i] ^ 0x13`; `i`不等于`18`时，第二个判断，`if (i % 2)`，满足条件`flag[i] = (a1[i] ^ i) + i`，不满足条件`flag[i+2] = (res[i] ^ i)`。至此`IDA`的分析就完成了，接下来就是写解密脚本了。
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_ZA3KBSAY4QGBQY3.png)
+
+最后写解密脚本,得到flag
+
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202305/943939_RE4ETSCZQ2TFM3V.png)
+
+```c
+#include <stdio.h>
+
+unsigned char res[] = {
+    0x61, 0x6A, 0x79, 0x67, 0x6B, 0x46, 0x6D, 0x2E,
+    0x7F, 0x5F, 0x7E, 0x2D, 0x53, 0x56, 0x7B, 0x38,
+    0x6D, 0x4C, 0x6E, 0x00
+};
+char flag[19];
+
+int main()
+{
+    for (int i = 18; i >= 0; i--){
+        if (i == 18)
+            flag[i] = res[i] ^ 0x13;
+        else{
+            if (i % 2){
+                flag[i] = (res[i] ^ i) + i;
+            }else{
+                flag[i+2] = (res[i] ^ i);
+            }
+        }
+    }
+    for (int i = 1; i < 19; i++)
+        printf("%c", flag[i]);
+}
+```
+
+自此
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+[#调试逆向](https://bbs.kanxue.com/forum-4-1-1.htm)
+
+上传的附件：
+
+- [hook.rar](javascript:void(0);)
+
+  （24.83kb，49次下载）

@@ -1,0 +1,290 @@
+
+# [原创]一个纯汇编写的Hook API的例子！！！
+
+一个纯汇编写的Hook API的例子！！！这里只列出驱动程序，控制程序这里不列出了！![](https://bbs.kanxue.com/view/img/face/12.gif)
+
+有不好的地方，还请各位多见谅！也希望大家有好的建议能提出来！![](https://bbs.kanxue.com/view/img/face/41.gif)
+
+纯汇编写的，还望大家多多支持哦！
+
+```asm
+.386
+
+.model flat,stdcall
+
+option casemap:none
+
+include ntstatus.inc
+
+include ntddk.inc
+
+include w2kundoc.inc
+
+include hal.inc
+
+include ntoskrnl.inc
+
+includelib hal.lib
+
+includelib ntoskrnl.lib
+
+.const
+
+szdevicename dw '\','D','e','v','i','c','e','\','z','h','t','j','i','a',0
+
+szconnect dw '\','?','?','\','l','s','z','h',0
+
+.data?
+
+sz1 UNICODE_STRING <?>
+
+sz2 UNICODE_STRING <?>
+
+scr0 dd ?
+
+old dd ?
+
+padd dd ?
+
+.code
+
+func proc p1,p2,p3,p4,p5,p6,p7,p8,p9
+
+        xor eax,eax
+
+        ret
+
+func endp
+
+workit proc
+
+        pushad
+
+        cli
+
+        mov eax,cr0
+
+        mov scr0,eax
+
+        and eax,0fffeffffh
+
+        mov cr0,eax
+
+        mov eax,KeServiceDescriptorTable
+
+        mov eax,[eax]
+
+        mov eax,[eax]
+
+        add eax,30h*4h
+
+        mov padd,eax
+
+        mov ecx,[eax]
+
+        mov old,ecx
+
+        lea ecx,func
+
+        mov [eax],ecx
+
+        mov eax,scr0
+
+        mov cr0,eax
+
+        sti
+
+        cld
+
+        stosd
+
+        popad
+
+        mov eax,1000h
+
+        ret
+
+workit endp
+
+makeit proc pdevice,pirp
+
+        local status,dwbytesret
+
+        pushad
+
+        and dwbytesret,0
+
+        mov esi,pirp
+
+        mov edi,[esi+60h]
+
+        mov ecx,[edi+0ch]
+
+        sub ecx,22e000h
+
+        or ecx,ecx
+
+        jnz @1
+
+        mov ecx,[edi+4h]
+
+        sub ecx,1000h
+
+        or ecx,ecx
+
+        jnz @2
+
+        mov ecx,[edi+8h]
+
+        sub ecx,1000h
+
+        or ecx,ecx
+
+        jnz @2
+
+        mov edi,[esi+0ch]
+
+        invoke workit
+
+        mov dwbytesret,eax
+
+        and status,0
+
+        jmp @3
+
+@2:
+
+        mov status,STATUS_BUFFER_TOO_SMALL
+
+@1:
+
+        mov status,STATUS_INVALID_DEVICE_REQUEST
+
+@3:
+
+        push status
+
+        pop [esi+18h]
+
+        push dwbytesret
+
+        pop [esi+1ch]
+
+        invoke IoCompleteRequest,pirp,IO_NO_INCREMENT
+
+        popad
+
+        mov eax,status
+
+        ret
+
+makeit endp
+
+createclose proc pdevice,pirp
+
+        mov eax,pirp
+
+        xor ecx,ecx
+
+        mov [eax][18h],ecx
+
+        mov [eax][1ch],ecx
+
+        invoke IoCompleteRequest,pirp,IO_NO_INCREMENT
+
+        xor eax,eax
+
+        ret
+
+createclose endp
+
+driverunload proc pdri
+
+        cli
+
+        mov eax,cr0
+
+        mov scr0,eax
+
+        and eax,0fffeffffh
+
+        mov cr0,eax
+
+        mov edi,padd
+
+        mov eax,old
+
+        cld
+
+        stosd
+
+        mov eax,scr0
+
+        mov cr0,eax
+
+        sti
+
+        invoke IoDeleteSymbolicLink,offset sz2
+
+        mov eax,pdri
+
+        invoke IoDeleteDevice,[eax+04h]
+
+        ret
+
+driverunload endp
+
+driverentry proc pdri,pregpath
+
+        local pdevice,status
+
+        mov status,STATUS_DEVICE_CONFIGURATION_ERROR
+
+        invoke RtlInitUnicodeString,offset sz1,offset szdevicename
+
+        invoke RtlInitUnicodeString,offset sz2,offset szconnect
+
+        invoke IoCreateDevice,pdri,0,offset sz1,FILE_DEVICE_UNKNOWN,0,0,addr pdevice
+
+        .if !eax
+
+                invoke IoCreateSymbolicLink,offset sz2,offset sz1
+
+                .if !eax
+
+                        mov eax,pdri
+
+                        mov [eax][38h+4h*IRP_MJ_CREATE],offset createclose
+
+                        mov [eax][38h+4h*IRP_MJ_CLOSE],offset createclose
+
+                        mov [eax][38h+4h*IRP_MJ_DEVICE_CONTROL],offset makeit
+
+                        mov [eax][34h],offset driverunload
+
+                        and status,0
+
+                .else
+
+                        invoke IoDeleteDevice,pdevice
+
+                .endif
+
+        .endif
+
+        mov eax,status
+
+        ret
+
+driverentry endp
+
+end driverentry
+```
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+
+- [hooker.rar](javascript:void(0);)
+
+  （1.91kb，165次下载）

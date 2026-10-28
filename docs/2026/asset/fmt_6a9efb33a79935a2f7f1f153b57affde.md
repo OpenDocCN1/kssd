@@ -1,0 +1,178 @@
+
+```c
+//内核对象
+
+//0x88 bytes (sizeof)
+
+struct _OBJECT_TYPE
+{
+    struct _LIST_ENTRY TypeList;                                            //0x0
+    struct _UNICODE_STRING Name;                                            //0x8
+    VOID* DefaultObject;                                                    //0x10
+    UCHAR Index;                                                            //0x14
+    ULONG TotalNumberOfObjects;                                             //0x18
+    ULONG TotalNumberOfHandles;                                             //0x1c
+    ULONG HighWaterNumberOfObjects;                                         //0x20
+    ULONG HighWaterNumberOfHandles;                                         //0x24
+    struct _OBJECT_TYPE_INITIALIZER TypeInfo;                               //0x28
+    struct _EX_PUSH_LOCK TypeLock;                                          //0x78
+    ULONG Key;                                                              //0x7c
+    struct _LIST_ENTRY CallbackList;                                        //0x80
+};
+
+//0x50 bytes (sizeof)
+//内核对象的操作函数结构体
+struct _OBJECT_TYPE_INITIALIZER
+{
+    USHORT Length;                                                          //0x0
+    union
+    {
+        UCHAR ObjectTypeFlags;                                              //0x2
+        struct
+        {
+            UCHAR CaseInsensitive:1;                                        //0x2
+            UCHAR UnnamedObjectsOnly:1;                                     //0x2
+            UCHAR UseDefaultObject:1;                                       //0x2
+            UCHAR SecurityRequired:1;                                       //0x2
+            UCHAR MaintainHandleCount:1;                                    //0x2
+            UCHAR MaintainTypeList:1;                                       //0x2
+            UCHAR SupportsObjectCallbacks:1;                                //0x2
+        };
+    };
+    ULONG ObjectTypeCode;                                                   //0x4
+    ULONG InvalidAttributes;                                                //0x8
+    struct _GENERIC_MAPPING GenericMapping;                                 //0xc
+    ULONG ValidAccessMask;                                                  //0x1c
+    ULONG RetainAccess;                                                     //0x20
+    enum _POOL_TYPE PoolType;                                               //0x24
+    ULONG DefaultPagedPoolCharge;                                           //0x28
+    ULONG DefaultNonPagedPoolCharge;                                        //0x2c
+    VOID (*DumpProcedure)(VOID* arg1, struct _OBJECT_DUMP_CONTROL* arg2);   //0x30
+    LONG (*OpenProcedure)(enum _OB_OPEN_REASON arg1, CHAR arg2, struct _EPROCESS* arg3, VOID* arg4, ULONG* arg5, ULONG arg6); //0x34
+    VOID (*CloseProcedure)(struct _EPROCESS* arg1, VOID* arg2, ULONG arg3, ULONG arg4); //0x38
+    VOID (*DeleteProcedure)(VOID* arg1);                                    //0x3c
+    LONG (*ParseProcedure)(VOID* arg1, VOID* arg2, struct _ACCESS_STATE* arg3, CHAR arg4, ULONG arg5, struct _UNICODE_STRING* arg6, struct _UNICODE_STRING* arg7, VOID* arg8, struct _SECURITY_QUALITY_OF_SERVICE* arg9, VOID** arg10); //0x40
+    LONG (*SecurityProcedure)(VOID* arg1, enum _SECURITY_OPERATION_CODE arg2, ULONG* arg3, VOID* arg4, ULONG* arg5, VOID** arg6, enum _POOL_TYPE arg7, struct _GENERIC_MAPPING* arg8, CHAR arg9); //0x44
+    LONG (*QueryNameProcedure)(VOID* arg1, UCHAR arg2, struct _OBJECT_NAME_INFORMATION* arg3, ULONG arg4, ULONG* arg5, CHAR arg6); //0x48
+    UCHAR (*OkayToCloseProcedure)(struct _EPROCESS* arg1, VOID* arg2, VOID* arg3, CHAR arg4); //0x4c
+};
+
+//函数原型需用到该枚举变量
+typedef enum _OB_OPEN_REASON { 
+    ObCreateHandle,
+    ObOpenHandle,
+    ObDuplicateHandle,
+    ObInheritHandle,
+    ObMaxOpenReason
+} OB_OPEN_REASON;
+
+//OpenProcessDure函数原型
+typedef NTSTATUS(*OB_OPEN_METHOD)(
+    IN ULONG Unknown,
+    IN OB_OPEN_REASON OpenReason,
+    IN PEPROCESS Process OPTIONAL,
+    IN PVOID Object,
+    IN ACCESS_MASK GrantedAccess,
+    IN ULONG HandleCount
+    );
+
+// 声明函数 获取内核对象表地址
+PULONG _declspec(dllimport) ObGetObjectType(PVOID);
+
+//用来保存系统进程对象地址
+POBJECT_TYPE g_pFileObjTypeProcess;
+
+//用来保存原来系统打开进程内核对象的函数
+OB_OPEN_METHOD g_oldObjectParseProcess;
+
+//定义自己的打开进程内核对象函数
+NTSTATUS MyIopParseProcess(
+    IN ULONG Unknown,
+    IN OB_OPEN_REASON OpenReason,
+    IN PEPROCESS Process OPTIONAL,
+    IN PVOID Object,
+    IN ACCESS_MASK GrantedAccess,
+    IN ULONG HandleCount)
+{
+         //打开进程的名称保存的Object的偏移位0x16c位置，比较进程名
+    if (
+        RtlCompareMemory(((char*)Object + 0x16c), "notepad.exe", 12) == 12
+        )
+    {
+               //当打开记事本程序时返回失败
+
+        return STATUS_UNSUCCESSFUL;
+    }
+                //不是则调用系统打开进程的函数
+    return ((OB_OPEN_METHOD)g_oldObjectParseProcess)(0, OpenReason, Process, Object, GrantedAccess, HandleCount);
+}
+
+//进程内核对象HOOK
+NTSTATUS OnDeviceCtrlObjProcessHook(DEVICE_OBJECT* pDevice, IRP* pIrp)
+{
+    //获取typeIndexTable表的位置
+    ULONG addr = ObGetObjectType;
+    OBJECT_TYPE** typeIndexTable = (OBJECT_TYPE*)*(ULONG*)(addr + 0xF);
+    //在表中找到文件内核对象
+    ULONG i = 2;
+    UNICODE_STRING fileTypeName;
+    RtlInitUnicodeString(&fileTypeName, L"Process");
+    POBJECT_TYPE fileObjType = NULL;
+
+    // 遍历TypeIndex表,找到File对象的原型
+    while (typeIndexTable[i])
+    {
+        // 判断类型名是否一致
+        if (0 == RtlCompareUnicodeString(&typeIndexTable[i]->Name, &fileTypeName, TRUE))
+        {
+                        //保存内核对象的di'zhi
+            g_pFileObjTypeProcess = typeIndexTable[i];
+            break;
+        }
+        ++i;
+    }
+
+    //替换函数地址
+    if (g_pFileObjTypeProcess)
+    {
+        //保存老函数地址
+        g_oldObjectParseProcess = (OB_OPEN_METHOD)g_pFileObjTypeProcess->TypeInfo.OpenProcedure;
+        //替换新函数地址
+        g_pFileObjTypeProcess->TypeInfo.OpenProcedure = (PVOID)MyIopParseProcess;
+    }
+}
+
+//卸载进程内核对象HOOK
+NTSTATUS OnDeviceCtrlUnloadProHook(DEVICE_OBJECT* pDevice, IRP* pIrp)
+{
+    if (g_pFileObjTypeProcess)
+    {
+        _asm sti; // 屏蔽中断
+        // 将原始函数还原回去
+        g_pFileObjTypeProcess->TypeInfo.OpenProcedure = g_oldObjectParseProcess;
+        _asm cli; // 允许中断
+    }
+}
+```
+
+# 4.实验测试
+
+>新建文本文档，打开
+
+>Hook 进程内核对象
+
+>再次打开记事本失败
+
+![](https://bbs.kanxue.com/upload/attach/202001/854407_R57MG9RUC7WKG7J.png)
+
+![](https://bbs.kanxue.com/upload/attach/202001/854407_5PZYHHV66WZEABX.png)
+
+# 5.总结
+
+此实验程序三环用MFC框架编写，利用设备`IRP_MJ_DEVICE_CONTROL`进行通讯，可以看成三环发送消息进内核，内核处理消息，这里就不多叙述了。
+
+HOOK的关键在于找到内核对象原型数组，这里只介绍了32位win7环境下的方法。有兴趣的话可以查找其他方法。知道了以上过程，就可以对其他内核对象进行HOOK了，方法大同小异。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+最后于 2021-1-29 09:30 被Papboys编辑，原因：

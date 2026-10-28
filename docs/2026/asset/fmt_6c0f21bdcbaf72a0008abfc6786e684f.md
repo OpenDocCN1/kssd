@@ -1,0 +1,52 @@
+
+# [原创]windows x64 hook KiSystemCall64
+
+windows x64 hook KiSystemCall64
+
+需要在x64下做进线程监控，常规SSDT会被PG蓝屏，于是结合VT，替换`MSR_LSTAR`（`0xC0000082`）的值，重载`KiSystemCall64`函数，构建`fake_SSDT`表来达成目的。
+
+x64没有直接跳转到64位地址的指令，在不改变任何寄存器值的情况下，发现有以下两种方法达到跳转的目的：
+
+1.
+
+```asm
+push    rax
+mov     rax, 1234567812345678h
+xchg    rax, [rsp]
+retn
+```
+
+2.
+
+```asm
+jmp qword ptr [$+offset32 of QwordArray]  // FF25 XXXXXXXX
+
+...
+
+QwordArray[]
+
+0x1234567812345678
+0x1234567812345678
+0x1234567812345678
+0x1234567812345678
+...
+```
+
+`KiSystemCall64`下断必须位于这三句后面，因为这里，内核栈才设置好，调试机制依赖内核栈；
+
+```asm
+.text:000000014007F640 KiSystemCall64  proc near
+.text:000000014007F640                 swapgs
+.text:000000014007F643                 mov     gs:10h, rsp
+.text:000000014007F64C                 mov     rsp, gs:1A8h
+```
+
+### PS
+
+调试过程中发现一个问题：构建SSDT表一定要占够64字节，后32字节需要清零，后面要紧接着`ShadowSSDT`。
+
+代码见：`9f3K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6p5k6f1c8X3i4K6u0r3d9r3!0G2K9#2y4&6M7$3y4S2L8r3H3$3y4q4)9J5y4X3&6T1M7%4m8Q4x3@1u0Q4c8f1k6Q4b7V1y4Q4z5o6S2Q4c8e0c8Q4b7V1u0Q4z5o6g2Q4c8e0g2Q4z5f1y4Q4b7e0S2%4K9h3^5%4P5o6j5@1i4@1f1$3i4@1t1#2i4K6S2n7i4@1f1^5i4@1q4r3i4K6V1#2i4@1f1&6i4K6R3H3i4K6W2m8i4@1f1^5i4@1u0r3i4K6R3%4i4@1g2r3i4@1u0o6i4K6R3&6`
+
+实现具体hook时，需要打开`RebuiltSsdt`里的注释，`SsdtAddress[i]`里置入对应Hook函数地址。
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)

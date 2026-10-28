@@ -1,0 +1,135 @@
+
+# [原创]一个规避安装包在当前目录下被DLL劫持的想法
+
+**本文描述了一个避免安装包目录下被DLL劫持的思路。**
+
+## 问题描述
+
+之前碰到了一个被DLL劫持的情况，通过打包工具做好的安装包在启动会去加载某个系统DLL，设想一种情况，我们下载文件时经常是经常是放在了默认目录下，假如安装包和恶意DLL放在同一目录下，以管理员权限运行安装包时会优先加载本地的恶意DLL，前提是这个dll不在注册表的`KnownDlls`项中。即：对于不在`KnownDlls`项下的系统dll，很有可能会被当前进程目录下的DLL劫持。
+
+注册表下的`KnownDlls`项保存了多项内容，当进程加载时如果需要加载的dll中在`KnownDlls`中存在，那么系统会优先在系统路径下加载此DLL。
+
+**为了解决这个问题，想了两个思路，这两个思路都需要对安装包进行一个封装，有一个释放程序将安装包嵌入到自己的资源文件中，但是实际操作过程中第一个还无法实现，如下：**
+
+1. 有一个释放程序以管理员权限运行，操作`KnownDlls`，将即将被劫持的DLL假如到`KnownDlls`注册表项中，然后再释放安装包到当前目录或者其他目录下都可以，接着运行安装包程序，但是在实际操作过程中发现，很难获取到修改`KnownDlls`项的权限，目前还没有在代码层面想到办法，所以第一个思路失败。
+2. 有一个释放程序以管理员权限运行，在系统的临时目录（或者其他文件夹）下创建一个文件夹，创建时设置文件夹的访问权限，只能以管理员权限或者更高的权限才可以访问，接着将安装包释放到此目录下，此目录下只有安装包程序，没有恶意攻击者存放的恶意DLL，这样就避免了安装包运行时被恶意DLL在当前进程目录下劫持，这种方式只适用于NTFS文件系统，现在大部分的Windows硬盘都使用此文件系统，NTFS可以存储许多额外的信息。
+
+第一个思路需要具体到某个dll的名字写入到注册表，第二个方法应该实现更加简单。
+
+## 第二个思路的重点
+
+第二个思路的重点在于创建一个新的文件夹，这个文件夹只有管理员权限及以上权限才可以读写，而恶意攻击者一般情况下都运行于普通用户权限或者受限管理员权限下，有两种方式：
+
+1. 使用现成的已经限制号权限的文件夹，如将文件夹存放在`C:\ProgramData`（通过环境变量`%ALLUSERSPROFILE%`可以获得），这个文件夹下的内容默认情况下只有不受限管理员及以上权限才可以读写，可以将安装包释放到这个文件夹及子文件夹下，创建目录时文件描述符传入空即可。
+2. 可以在临时目录`C:\Users\用户名\AppData\Local\Temp`（通过`%TEMP%`来获取）下来创建文件夹，这个文件夹是`everyone`用户都可以读写的，所以释放程序以管理员权限运行时需要创建控制访问权限的目录，只能让不受限管理员和更高权限来读写此文件夹，然后将程序释放到此目录下，以不受限管理员权限运行安装包，此时刚创建目录下只有安装包，也不用担心被恶意攻击者在当前进程所在目录下劫持DLL了，反过来如果恶意攻击者可以在此目录下存放恶意DLL，那就意味着恶意攻击者已经拥有了不受限的管理员，本身就拥有很高权限了，正常情况下也不需要通过DLL劫持来提权了。
+
+有的高权限程序会去修改`C:\ProgramData`文件夹的权限，所以自己创建一个新的文件夹更可靠一些。
+
+### 临时文件夹下创建带访问权限控制的文件夹示例
+
+```c
+int queryTokenDaclToWriteFile()
+{
+TCHAR buffFileName[1024] = { 0 };
+ExpandEnvironmentStrings(L"%temp%", buffFileName, _countof(buffFileName));
+if (PathIsDirectory(buffFileName))
+{
+_stprintf_s(buffFileName, countof(buffFileName), L"%s\\%s", buffFileName, L"123");;
+}
+SECURITY_ATTRIBUTES sa;
+SECURITY_DESCRIPTOR sd;
+InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
+HANDLE hToken = NULL;
+OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken);
+DWORD dwReturnLength = 0;
+char *buffToken = NULL;
+GetTokenInformation(hToken, TokenDefaultDacl, NULL, 0, &dwReturnLength);//需要考虑内存空间不足的情况
+buffToken = (char *)LocalAlloc(LPTR, dwReturnLength);
+GetTokenInformation(hToken, TokenDefaultDacl, buffToken, dwReturnLength, &dwReturnLength);
+PTOKEN_DEFAULT_DACL pToken_Default_DACL = (PTOKEN_DEFAULT_DACL)buffToken;
+SetSecurityDescriptorDacl(&sd, TRUE, pToken_Default_DACL->DefaultDacl, FALSE);
+sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+sa.bInheritHandle = FALSE;
+sa.lpSecurityDescriptor = &sd;
+if (CreateDirectoryW(buffFileName, &sa))
+{
+MessageBox(NULL, L"Success", NULL, 0);
+}
+else
+{
+MessageBox(NULL, L"Fail", NULL, 0);
+}
+LocalFree(buffToken);
+buffToken = NULL;
+//之后删除文件夹 清理临时文件
+return 0;
+}
+```
+
+程序打开当前进程的Token令牌，获取令牌默认的访问控制权限DACL，然后将ACL赋值给`SECURITY_ATTRIBUTES`结构中，使用此结构来创建文件夹，由于当前进程是以管理员权限启动的，所以只有high权限或者system打开此进程，现在将进程令牌赋予文件夹，所以只有high权限或者system权限可以拥有对此文件夹的完全访问权限。
+
+还有几个步骤的代码没有编写，此处大概写下代码思路：
+
+1. 获取当前释放程序的资源
+2. 创建有权限的文件夹，文件夹的名字可以创建一个随机的GUID字符串，如果重复目录就继续随机字符串，直到一个不存在的GUID字符串，使用此字符串创建目录
+3. 释放安装包到刚才创建的文件夹
+4. 调用`CreateProcess`启动安装包
+5. 等待安装进程结束后，删除刚才创建的文件夹，删除垃圾文件
+
+补充：这个释放程序只依赖少数的几个系统DLL，或者说导入表中依赖的DLL都存在于`KnownDlls`注册表中，防止释放程序被DLL劫持。
+
+### 为文件赋予当前用户完全控制权限示例
+
+```c
+int queryUserSIDToFile()
+{
+SECURITY_ATTRIBUTES sa; // 和文件有关的安全结构
+SECURITY_DESCRIPTOR sd; // 声明一个SD
+BYTE aclBuffer[1024]; // buffer
+PACL pacl = (PACL)&aclBuffer;// 声明一个ACL，长度是1024
+BYTE sidBuffer[100]; // sid buffer
+PSID psid = (PSID)&sidBuffer;
+// 声明SID，长度是100
+DWORD sidBufferSize = 100;
+DWORD domainBufferSize = 80;
+TCHAR domainBuffer[80];
+HANDLE hFile;
+SID_NAME_USE snu;
+// 初始化SD、初始化ACL
+InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION);
+InitializeAcl(pacl, 1024, ACL_REVISION);
+TCHAR UserName[256] = { 0 };
+DWORD dwSize_UserName = _countof(UserName);
+//获取用户名
+GetUserName(UserName, &dwSize_UserName);
+//查询用户 sid
+LookupAccountName(0, UserName, psid, &sidBufferSize, domainBuffer, &domainBufferSize, &snu);
+// 设置该用户的Access-Allowed的ACE，其权限为All-Access
+SECURITY_INFORMATION info;
+DWORD err = GetLastError();
+AddAccessAllowedAce(pacl, ACL_REVISION, GENERIC_ALL, psid);
+// 把ACL设置到SD中
+SetSecurityDescriptorDacl(&sd, TRUE, pacl, FALSE);
+// 把SD放到文件安全结构SA中
+sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+sa.bInheritHandle = FALSE;
+sa.lpSecurityDescriptor = &sd;
+// 开始创建文件
+hFile = CreateFile(L"D://Test1.txt", 0, 0, &sa, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, 0);
+if (hFile == INVALID_HANDLE_VALUE)
+{
+DWORD derr = GetLastError();
+MessageBox(NULL, L"创建失败！", NULL, NULL);
+return -1;
+}
+MessageBox(NULL, L"创建成功！", NULL, NULL);
+CloseHandle(hFile);
+return 0;
+}
+```
+
+当前用户拥有读写执行等权限，system进程无法读写文件中的内容，如下：
+
+![图片描述](upload/attach/202207/762319_VFZS3NXDWE93X8N.png)
+
+此处记录，以备后用。

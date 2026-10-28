@@ -1,0 +1,232 @@
+
+# [原创]代码Hook之指令级实现
+
+在工作中经常会使用到 Hook 技术，一般函数 Hook 会较为广泛的应用。
+
+函数 Hook 分为很多种，修改 PE 的导入表是较为简单且常用的方法，但修改 PE 存在着实时性不高，时机不好掌握等特点，因为在 PE 文件被装载之后才能去动态地修改其导入表内容，进而达到函数跳转被截取的目的，但 PE 文件的加载可能很随意，任意一 PE 文件有导入表如果没有被 Hook 到，则就出现了漏洞，所以现在介绍一个古老但实用的技术，通过从根本上解决掉函数跳转来实现函数的 Hook。这就是今天的主角，指令级 Hook。
+
+函数Hook，本质就是在代码调用某个函数的时候，会先进入到自己预设的一个其它函数执行，好让我们得到一个控制的机会，那么指令级Hook，以 x86 平台为例，只要能完成跳转，即可跳转到我们自己的代码，有很多的指令可以完成如 `call`, `jmp` 系列的指令都可以做到，且 `jmp` 这种无条件跳转最能满足我们的需要。
+
+实现原理，那就很简单了，就是把目标函数的前五个字节替换成一个无条件跳转，然后保存这五个字节的内容，接着跳转到我们预设的函数里，然后我们就得到了控制权，此时你就可以无所欲为了，等您忙以后，再执行我们保存的指令，最后再跳转到目标函数的第六个字节的指令继续执行。
+
+下面以项目中会实际用到的代码为例，实地完成以上所说的技术。在一个大的项目中有时为了查找其它模块是否调用了 `ExitProcess` 导致程序退出，会对 `ExitProcess` 函数进行 Hook，或者查找内存申请和释放是否有泄漏，会对 `malloc` 和 `free` 函数进行 Hook，下面以实际项目中的代码为例来讲解一下。
+
+```
+BYTE g_btOldCode[5] = {0};
+
+LPVOID g_pSrc;
+
+void * _cdecl MyMallocBeforeImpl( void *pRetAddr, void *pRetAddr1, int nSize )
+{
+  if ( !g_bMallocWatchOn )
+  {
+    return 0;
+  }
+  if ( g_dwthreadID == 0 )
+  {
+    printf("Malloc size: %08d", nSize );
+  }
+  else if ( GetCurrentThreadId() == g_dwthreadID )
+  {
+    printf("Malloc size: %08d", nSize );
+  }
+  return 0;
+}
+
+void MyMallocAfterImpl( void *pBuff )
+{
+  if ( !g_bMallocWatchOn )
+  {
+    return;
+  }
+  if ( g_dwthreadID == 0 )
+  {
+    OspPrintf( TRUE, FALSE, TEXT("\t\taddr: 0x%08x\t\t%d\n") , pBuff, GetCurrentThreadId() );
+  }
+  else if ( GetCurrentThreadId() == g_dwthreadID )
+  {
+    OspPrintf( TRUE, FALSE, TEXT("\t\taddr: 0x%08x\t\t%d\n") , pBuff, GetCurrentThreadId() );
+  }
+}
+
+__declspec(naked) void _cdecl MyMallocBefore()
+{
+  _asm {
+    call  MyMallocBeforeImpl
+    ret
+  }
+}
+
+__declspec(naked) void _cdecl MyMallocAfter()
+{
+  _asm {
+    push  eax
+    push  ebx
+    push  ecx
+    mov    ebx, dword ptr[esp + 12]
+    mov    ecx, dword ptr[esp + 16]
+    mov    dword ptr[esp + 16], ebx
+    mov    dword ptr[esp + 12], ecx
+    pop    ecx
+    pop    ebx
+    call  MyMallocAfterImpl
+    pop    eax
+    ret
+  }
+}
+
+/*==============================================================================*/
+void MyFreeBeforeImpl( void *pRetAddr, void *pRetAddr1, void *pBuff )
+{
+  //printf( "Free: 0x%x\n", pBuff );
+}
+
+void MyFreeAfterImpl( void *pBuff )
+{
+}
+
+__declspec(naked) void _cdecl MyFreeBefore()
+{
+  _asm {
+    call MyFreeBeforeImpl
+    ret
+  }
+}
+
+__declspec(naked) void _cdecl MyFreeAfter()
+{
+  _asm {
+    push  eax
+    push  ebx
+    push  ecx
+    mov    ebx, dword ptr[esp + 12]
+    mov    ecx, dword ptr[esp + 16]
+    mov    dword ptr[esp + 16], ebx
+    mov    dword ptr[esp + 12], ecx
+    pop    ecx
+    pop    ebx
+    call  MyFreeAfterImpl
+    pop    eax
+    ret
+  }
+}
+
+void PlaceHolder()
+{
+}
+
+/*
+ * 指令中的 _emit 为占位符，会被填充为目标函数中被替换掉的指令
+ */
+__declspec(naked) void Adapter1( void )
+{
+  _asm {
+    call  PlaceHolder
+    push  PlaceHolder
+    push  eax
+    push  ebx
+    mov    eax, dword ptr[esp + 12]
+    mov    ebx, dword ptr[esp + 16]
+    mov    dword ptr[esp + 16], eax
+    mov    dword ptr[esp + 12], ebx
+    pop    ebx
+    pop    eax
+    _emit  0x00
+    _emit  0x00
+    _emit  0x00
+    _emit  0x00
+    _emit  0x00
+    jmp    PlaceHolder
+  }
+}
+
+__declspec(naked) void Adapter2( void )
+{
+  _asm {
+    call  PlaceHolder
+    push  PlaceHolder
+    push  eax
+    push  ebx
+    mov    eax, dword ptr[esp + 12]
+    mov    ebx, dword ptr[esp + 16]
+    mov    dword ptr[esp + 16], eax
+    mov    dword ptr[esp + 12], ebx
+    pop    ebx
+    pop    eax
+    _emit  0x00
+    _emit  0x00
+    _emit  0x00
+    _emit  0x00
+    _emit  0x00
+    jmp    PlaceHolder
+  }
+}
+
+void HookDebugFun1( LPVOID pSrc, LPVOID pDstBefore, LPVOID pDstAfter, LPVOID pAdapter )
+{
+  g_pSrc = pSrc;
+  /* 在源函数中构造跳转 */
+  BYTE btCode[] = { 0xE9, 0x00, 0x00, 0x00, 0x00 };
+  DWORD dwOffset = (DWORD)pAdapter - ((DWORD)pSrc + 5);
+  memcpy( btCode + 1, &dwOffset, 4 );
+
+  DWORD dwWriteenBytes;
+  DWORD dwReadBytes;
+  //   LPVOID pAdapterRealAddr = (LPBYTE)pAdapter + 5 + *(LPDWORD)((LPBYTE)pAdapter + 1);            // Debug 下本地函数地址有跳转语句
+  LPVOID pAdapterRealAddr = (LPBYTE)pAdapter;
+  LPVOID pOldCodeAddr = (LPBYTE)pAdapterRealAddr + 5 + 5 + 20;
+  LPVOID pHolder1Addr = (LPBYTE)pAdapterRealAddr + 1;
+  LPVOID pHolder2Addr = (LPBYTE)pAdapterRealAddr + 5 + 1;
+  LPVOID pHolder3Addr = (LPBYTE)pAdapterRealAddr + 5 + 20 + 5 + 5 + 1;
+
+  ReadProcessMemory( GetCurrentProcess(), pSrc, g_btOldCode, 5, &dwReadBytes );
+  /* 在源函数中写入跳转 */
+  WriteProcessMemory( GetCurrentProcess(), (LPDWORD)((LPBYTE)pSrc), btCode, 5, &dwWriteenBytes );
+
+  /* 将原函数中被替换的代码写入适配程序中 */
+  WriteProcessMemory( GetCurrentProcess(), pOldCodeAddr, g_btOldCode, 5, &dwWriteenBytes );
+
+  /* 将过滤函数写入适配函数中 PlaceHolder1*/
+  DWORD dwFilterOffset = (DWORD)pDstBefore - ((DWORD)pHolder1Addr + 4 );
+  WriteProcessMemory( GetCurrentProcess(), pHolder1Addr, &dwFilterOffset, 4, &dwWriteenBytes );
+
+  /* 将过滤函数写入适配函数中 PlaceHolder2*/
+  //DWORD dwFilterOffset = (DWORD)pDstBefore - ((DWORD)pHolder1Addr + 4 );
+  WriteProcessMemory( GetCurrentProcess(), pHolder2Addr, &pDstAfter, 4, &dwWriteenBytes );
+
+  /* 将适配函数中的跳转地址写入被 Hook 的函数的跳转指令之后的地址 PlaceHolder3 */
+  dwFilterOffset = ((DWORD)pSrc + 5) - ((DWORD)pHolder3Addr + 4);
+  WriteProcessMemory( GetCurrentProcess(), pHolder3Addr, &dwFilterOffset, 4, &dwWriteenBytes );
+}
+// #endif
+
+// 申请内存打印开
+API void mallocwatchon( int threadID )
+{
+  g_dwthreadID = threadID;
+  static BOOL32 bStart = FALSE;
+  if ( !bStart )
+  {
+    HookDebugFun1( malloc, MyMallocBefore, MyMallocAfter, Adapter1 );
+    HookDebugFun1( free, MyFreeBefore, MyFreeAfter, Adapter2 );
+    bStart = TRUE;
+  }
+  g_bMallocWatchOn = TRUE;
+}
+
+// 申请内存打印关
+API void mallocwatchoff()
+{
+  g_bMallocWatchOn = FALSE;
+}
+```
+
+代码中有详细的注释，`jmp` 计算偏移是一个炒剩饭的技术了，如果有疑问可 google 或讨论一下。在附件代码中，由于是从项目中截取的代码版本，但实现较为完整，只需要加上适当的头文件和 `main` 函数，经过修改即可运行实验了。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+
+- [`HookFunc.zip`](javascript:void(0);)
+
+  （1.41kb，58次下载）
