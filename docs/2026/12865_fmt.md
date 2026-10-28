@@ -1,0 +1,116 @@
+
+# [原创]调戏：Anti切屏器
+
+以前在看雪写过一次，暴力切屏器Anti方案，现在想象，好肤浅。
+
+anti方法：正常情况下鼠标不会出现断电`off`，也不会出现没有`vid`标识的鼠标（`rdp`的鼠标不是鼠标）。
+
+当用切屏器从当前pc切换到其他pc的时候，有2种情况发生：
+
+1. 鼠标`off`，但是鼠标还在；
+2. 鼠标不见了，即`vid`类鼠标不见了。
+
+于是有了下面粗糙的POC,吓写的代码~
+
+```
+#include "stdafx.h"
+#include <iostream>
+#include <thread>
+#include <functional>
+#include <algorithm>
+#include <chrono>
+#include <windows.h>
+#include <SetupAPI.h>
+
+typedef std::function<bool(LPCGUID guid)> fp_test;
+
+#define DEFINE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
+        EXTERN_C const GUID DECLSPEC_SELECTANY name \
+                = { l, w1, w2, { b1, b2,  b3,  b4,  b5,  b6,  b7,  b8 } }
+
+DEFINE_GUID(GUID_DEVINTERFACE_MONITOR, 0xe6f07b5f, 0xee97, 0x4a90, 0xb0, 0x76, 0x33, 0xf5, 0x7b, 0xf4, 0xea, 0xa7);
+
+DEFINE_GUID(GUID_DEVINTERFACE_MOUSE, 0x378de44c, 0x56ef, 0x11d1,
+	0xbc, 0x8c, 0x00, 0xa0, 0xc9, 0x14, 0x05, 0xdd);
+
+#pragma comment(lib,"setupapi.lib")
+
+bool check_device_by_guid(LPCGUID Guid)
+{
+	HDEVINFO DeviceInfoSet = SetupDiGetClassDevs(Guid, NULL, NULL, DIGCF_DEVICEINTERFACE | DIGCF_PRESENT);
+	SP_DEVINFO_DATA DeviceInfoData;
+	DeviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+	bool is_no_device = true;
+	for (DWORD dwDeviceIndex = 0; SetupDiEnumDeviceInfo(DeviceInfoSet, dwDeviceIndex, &DeviceInfoData); dwDeviceIndex++)
+	{
+		SP_DEVICE_INTERFACE_DATA DeviceInterfaceData;
+		DeviceInterfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+		for (DWORD dwMemberIndex = 0; SetupDiEnumDeviceInterfaces(DeviceInfoSet, &DeviceInfoData, Guid, dwMemberIndex, &DeviceInterfaceData); dwMemberIndex++)
+		{
+			DWORD dwDeviceInterfaceDetailDataSize = offsetof(SP_DEVICE_INTERFACE_DETAIL_DATA, DevicePath) + MAX_PATH * sizeof(TCHAR);
+			PSP_DEVICE_INTERFACE_DETAIL_DATA pDeviceInterfaceDetailData = (PSP_DEVICE_INTERFACE_DETAIL_DATA)new BYTE[dwDeviceInterfaceDetailDataSize];
+			pDeviceInterfaceDetailData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
+			if (SetupDiGetDeviceInterfaceDetail(DeviceInfoSet, &DeviceInterfaceData, pDeviceInterfaceDetailData, dwDeviceInterfaceDetailDataSize, NULL, NULL))
+			{
+				HANDLE hMonitor = CreateFile(pDeviceInterfaceDetailData->DevicePath, 0, 0, NULL, OPEN_EXISTING, 0, NULL);
+				std::cout << pDeviceInterfaceDetailData->DevicePath << std::endl;
+				//std::cout << GetLastError() << "\r\n";
+				auto s = std::string(pDeviceInterfaceDetailData->DevicePath);
+				std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+				if(s.find("vid_")!=std::string::npos && GetLastError()==32)
+				{
+					is_no_device = false;
+				}
+				delete[] pDeviceInterfaceDetailData;
+
+				if (hMonitor != INVALID_HANDLE_VALUE && hMonitor)
+				{
+					BOOL result;
+					if (GetDevicePowerState(hMonitor, &result))
+					{
+						std::cout << "Result = " << result << "\n";
+						if (result == TRUE){
+							std::cout << "Monitor is on!: \n";
+							is_no_device |= false;
+						}
+						else{
+							std::cout << "Monitor is off!: \n";
+							is_no_device |= true;
+						}
+					}
+					CloseHandle(hMonitor);
+				}
+				if (is_no_device == true)
+				{
+					break;
+				}
+			}
+		}
+	}
+	return is_no_device;
+}
+void CheckDevice()
+{
+	fp_test fp = fp_test(&check_device_by_guid);
+	bool ret = false;
+	do
+	{
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+		ret = fp(&GUID_DEVINTERFACE_MOUSE);
+	}
+	while (!ret);
+
+	std::cout << "find MT-KVM\r\n" << std::endl;
+	return ;
+}
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+	std::thread t(CheckDevice);
+	t.join();
+	system("PAUSE");
+	return 0;
+}
+```
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
