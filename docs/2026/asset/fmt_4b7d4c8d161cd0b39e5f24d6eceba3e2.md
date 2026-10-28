@@ -3,23 +3,23 @@
 
 这个找到最早的资料是mj0011的文档:
 
-> bypass-x64-dse.googlecode.com
+> `bypass-x64-dse.googlecode.com`
 
-> 433K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4m8G2N6$3g2J5L8$3k6U0L8$3#2E0N6h3&6A6N6s2W2Q4x3X3g2F1k6i4c8Q4x3V1k6H3L8$3x3J5x3o6p5J5i4K6u0r3L8h3Z5H3x3o6p5I4i4K6u0W2M7r3c8X3
+> `433K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4m8G2N6$3g2J5L8$3k6U0L8$3#2E0N6h3&6A6N6s2W2Q4x3X3g2F1k6i4c8Q4x3V1k6H3L8$3x3J5x3o6p5J5i4K6u0r3L8h3Z5H3x3o6p5I4i4K6u0W2M7r3c8X3`
 
 我是改进一下而已,mj0011的是ring3获取`g_CiOptions`然后xxoo的.我懒点,我是要么do all in ring3要么do all in ring0党,所以挪到里面xxoo完毕,然后简单注释一下.里面俩函数没提供,免得伸手党,我描述一下
 
-`GetSysModuleInfo`
+## `GetSysModuleInfo`
 
 主要是`NtQuerySystemInformation`的`SystemModuleInformation`这个引用号的用法,各个开源ark有类似代码
 
-`KernelGetProcAddress`
+## `KernelGetProcAddress`
 
 一样,各位去A开源ARK的吧.
 
 测试在win7 win8 win8.1 x64通过,编译加载后本次开机后续的驱动都不校验签名了,当然这个驱动本身是要签名的.
 
-```
+```c
 PVOID FindCiOptions()
 {
   ULONG i  = 0;
