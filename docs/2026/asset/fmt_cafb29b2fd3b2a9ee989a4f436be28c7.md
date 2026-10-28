@@ -1,0 +1,376 @@
+
+# [原创]PCXX逆向：发送与接收消息的分析与代码实现
+
+[TOC]
+
+## 定位微信的消息接收函数
+
+我们先来定位一下消息接收函数，这对我们后面分析消息发送函数会有所帮助
+
+### 定位消息接收函数的相关思路
+
+与接收消息函数最直接相关的东西肯定是消息本身，所以消息本身的内容就是我们的切入点。我们可以首先找到存放消息内容的地址，然后对地址下断，通过栈回溯最终定位到接收消息的函数
+
+### 定位消息内容的地址
+
+首先用另外一个微信给自己发一条消息，在不点开消息的状态下用CE搜索消息内容
+
+![](upload/attach/201906/833057\_6QZNST9Z8WQ4JRE.png)
+
+然后再发送一条消息
+
+![](upload/attach/201906/833057\_FUU272C2J9YPVDS.png)
+
+此时有效结果只剩下3个，把这三个地址加入到下方地址栏，右键->更改记录->类型
+
+![](upload/attach/201906/833057\_X4NEP7DUYMVAPYA.png)
+
+将显示范围调大
+
+![](upload/attach/201906/833057\_9APT6ME44JY7EAA.png)
+
+其中有一个是最原始的未经处理的消息，也是显示的最全的那一条，剩下的两条是经过处理的。我们需要中间那个未经任何处理的消息
+
+### 定位接收消息函数的地址
+
+既然消息内容的地址找到了，那么接下来就通过这个内容来找到接收消息的函数
+
+![](upload/attach/201906/833057\_J7EJAPEXR4XZ6SZ.png)
+
+在OD中找到这个地址，下内存写入断点。为什么是写入不是访问？因为这个是最原始的的消息，要想对这条消息进行处理就必须改写当前的这条消息，所以在这个位置下内存写入断点，当客户端对这条原始消息进行处理时，断点就会断下。
+
+此时，再次发送一条消息，程序断下，删除内存写入断点，这个时候堆栈的返回地址里面一定有一个函数是用来接收消息的。我们点击K查看调用堆栈。
+
+![](upload/attach/201906/833057\_48DF9J2XXYSFMYS.png)
+
+经过排查确认是这个`call`，大家可以根据我图中的函数特征直接找到这个`call`。我们在这个函数下断点，让程序再次断下，分析附近的代码。
+
+### 分析接收消息函数
+
+#### 好友消息
+
+![](upload/attach/201906/833057\_7HHQZFPG7EHMYX7.png)
+
+此时我们点击查看堆栈中`esp`寄存器的值，数据窗口跟随
+
+![](upload/attach/201906/833057\_F99SRAZW7RPQVPX.png)
+
+此时`[esp+0x40]`的位置是发送者的微信ID，`[esp+0x68]`的位置是消息内容（**通过这个`call`我们还可以拿到文件助手的ID是`filehelper`，这对后面分析消息发送会有用，大家可以去试验一下**）
+
+![](upload/attach/201906/833057\_V7NFWU9T37RH9B2.png)
+
+`[esp+0x114]`的位置是0，`[esp+0x128]`的位置是一串未知数据。
+
+![](upload/attach/201906/833057\_EXV5F4DAFJBEWCN.png)
+
+#### 群消息
+
+然后我们再发送一条群消息，看看有什么区别
+
+![](upload/attach/201906/833057\_SJFZXZVCZHXYAFG.png)
+
+此时`[esp+0x40]`的位置是群ID，`[esp+0x68]`的位置是消息内容
+
+![](upload/attach/201906/833057\_784GYXBNTCD4967.png)
+
+`[esp+0x114]`的地址不再是零，而是消息发送者的ID，`[esp+0x128]`的位置依旧是一串未知数据。大家可以用同样的方式分析处图片和表情在内存中的表现形式。
+
+那么我们只要记录下这个`call`的地址+偏移，然后写一个`dll`注入到微信进程空间中，`HOOK`这个函数，就能拦截所有的消息，并显示到我们的程序中。
+
+### 总结
+
+总结一下思路，寻找切入点->找地址->下断->栈回溯分析。就是这么简单粗暴
+
+### 代码实现
+
+注入之后接收消息的代码如下：
+
+```cpp
+void RecieveMsg()
+{
+wstring receivedMessage = L"";
+BOOL isFriendMsg = FALSE;
+//[[esp]]
+//信息块位置
+DWORD\*\* msgAddress = (DWORD \* \*)r\_esp;
+//消息类型[[esp]]+0x30
+//[01文字] [03图片] [31转账XML信息] [22语音消息] [02B视频信息]
+//感谢：.順唭\_自嘫ɑ、unravel提供类型消息。
+DWORD msgType = \*((DWORD\*)(\*\*msgAddress + 0x30));
+receivedMessage.append(L"消息类型:");
+switch (msgType)
+{
+case 0x01:
+receivedMessage.append(L"文字 ");
+break;
+case 0x03:
+receivedMessage.append(L"图片 ");
+break;
+case 0x22:
+receivedMessage.append(L"语音 ");
+break;
+case 0x25:
+receivedMessage.append(L"好友确认 ");
+break;
+case 0x28:
+receivedMessage.append(L"POSSIBLEFRIEND\_MSG ");
+break;
+case 0x2A:
+receivedMessage.append(L"名片 ");
+break;
+case 0x2B:
+receivedMessage.append(L"视频 ");
+break;
+case 0x2F:
+//石头剪刀布
+receivedMessage.append(L"表情 ");
+break;
+case 0x30:
+receivedMessage.append(L"位置 ");
+break;
+case 0x31:
+//共享实时位置
+//文件
+//转账
+//链接
+receivedMessage.append(L"共享实时位置、文件、转账、链接 ");
+break;
+case 0x32:
+receivedMessage.append(L"VOIPMSG ");
+break;
+case 0x33:
+receivedMessage.append(L"微信初始化 ");
+break;
+case 0x34:
+receivedMessage.append(L"VOIPNOTIFY ");
+break;
+case 0x35:
+receivedMessage.append(L"VOIPINVITE ");
+break;
+case 0x3E:
+receivedMessage.append(L"小视频 ");
+break;
+case 0x270F:
+receivedMessage.append(L"SYSNOTICE ");
+break;
+case 0x2710:
+//系统消息
+//红包
+receivedMessage.append(L"红包、系统消息 ");
+break;
+case 0x2712:
+receivedMessage.append(L"撤回消息 ");
+break;
+default:
+break;
+}
+receivedMessage.append(L"\r\n");
+//dc [[[esp]] + 0x114]
+//判断是群消息还是好友消息
+//相关信息
+wstring msgSource2 = L"<msgsource />\n";
+wstring msgSource = L"";
+msgSource.append(GetMsgByAddress(\*\*msgAddress + 0x168));
+if (msgSource.length() <= msgSource2.length())
+{
+receivedMessage.append(L"收到好友消息:\r\n");
+isFriendMsg = TRUE;
+}
+else
+{
+receivedMessage.append(L"收到群消息:\r\n");
+isFriendMsg = FALSE;
+}
+//好友消息
+if (isFriendMsg == TRUE)
+{
+receivedMessage.append(L"好友wxid：\r\n")
+.append(GetMsgByAddress(\*\*msgAddress + 0x40))
+.append(L"\r\n\r\n");
+}
+else
+{
+receivedMessage.append(L"群号：\r\n")
+.append(GetMsgByAddress(\*\*msgAddress + 0x40))
+.append(L"\r\n\r\n");
+receivedMessage.append(L"消息发送者：\r\n")
+.append(GetMsgByAddress(\*\*msgAddress + 0x114))
+.append(L"\r\n\r\n");
+receivedMessage.append(L"相关信息：\r\n");
+receivedMessage += msgSource;
+receivedMessage.append(L"\r\n\r\n");
+}
+receivedMessage.append(L"消息内容：\r\n")
+.append(GetMsgByAddress(\*\*msgAddress + 0x68))
+.append(L"\r\n\r\n");
+//文本框输出信息
+USES\_CONVERSION;
+SetWindowText(GetDlgItem(hWinDlg, IDC\_MSG), W2A(receivedMessage.c\_str()));
+}
+```
+
+## 定位微信的消息发送函数
+
+### 定位消息发送函数的相关思路
+
+一个发消息的函数，至少需要两个参数。第一个是发送给谁，第二个是发送的内容，所以我们可以从参数入手，然后通过栈回溯的方式找到发送消息的`call`。
+
+至于突破口我们可以从发送的消息内容和消息的接收者的微信ID入手，比如文件传输助手的微信ID是`filehelper`，这个可以在接收消息的`call`中拿到。以这个微信ID为突破口会比从文本来追溯方便。
+
+### 过滤当前聊天窗口的微信ID
+
+首先将当前聊天窗口设置为文件传输助手，搜索`filehelper`
+
+![](upload/attach/201906/833057\_EDYASPNFCU4PZ62.png)
+
+除了文件传输助手，我们还知道个人的微信ID都是以`wxid_`开头的，所以将窗口切换到微信好友，搜索`wxid_`
+
+![](upload/attach/201906/833057\_AMEXDTK5C3BHS7A.png)
+
+接着我们选中所有地址，加入到下方地址栏
+
+![](upload/attach/201906/833057\_H5D7RPYJCQWSY73.png)
+
+然后选择全部地址右键->更改记录->类型
+
+![](upload/attach/201906/833057\_H8V2BENURC628KX.png)
+
+将长度修改为50以显示更多的内容
+
+![](upload/attach/201906/833057\_ESZFQ2AM8B4NNBR.png)
+
+此时你会看到微信好友的ID，记录下这个ID，待会有用
+
+![](upload/attach/201906/833057\_MKJFZDDD2XMSNG7.png)
+
+再将窗口切回文件助手，下方地址栏的ID会发生变化，将数值不是`filehelper`的全部剔除掉。剩下的地址中的某一个是当前窗口的微信ID，它会随着你当前微信窗口ID进行变换。
+
+### 定位当前聊天窗口的ID
+
+这个当前聊天窗口的ID到底有什么作用呢？我们来测试一下
+
+![](upload/attach/201906/833057\_GRBRF9AGQG5Y7KF.png)
+
+选中所有地址，右键->更改记录->数值，将当前聊天窗口的ID改为`filehelper`，然后在当前好友的聊天窗口发送一条消息，你会发现此时消息发到了文件传输助手
+
+**当前聊天窗口的ID是谁 谁就会接收到这条消息**，利用这个特性我们来找出那个唯一的当前窗口ID
+
+![](upload/attach/201906/833057\_ZUBENA68QGHYCPX.png)
+
+选中一半地址，将其更改为`filehelper`，然后在当前窗口发送消息。如果消息发给了`filehelper`，那么选中的地址里面就有真正的当前聊天窗口的ID。重复这个步骤，可以找到真正的当前窗口ID
+
+### 定位发送消息的函数
+
+![](upload/attach/201906/833057\_559GYV3QDNZWYPU.png)
+
+接着载入OD，在找到的当前窗口ID的地址中下一个内存访问断点。为什么是内存访问断点而不是内存写入呢？因为当前微信窗口的ID肯定会被发送消息的当作参数传入到堆栈中，所以必定会访问这个ID，而不是写入ID。
+
+给好友发送一条消息，点击发送，内存访问断点断下。
+
+![](upload/attach/201906/833057\_8R3SUAJUBTXKQ2A.png)
+
+此时`eax`指向当前窗口ID，接着删除内存访问断点。点击K查看调用堆栈，在堆栈的返回地址中逐个排查每一个函数，这个函数必须有两个以上的参数，其中一个参数是消息内容，另外一个参数是消息ID
+
+![](upload/attach/201906/833057\_7N7X3GP37XXETNA.png)
+
+经过排查，可以在调用堆栈的第二层找到一个疑似发消息的`call`。在这个地方下断点，让程序断下，分析附近代码
+
+### 分析发送消息的函数
+
+#### 普通消息
+
+![](upload/attach/201906/833057\_UVAPXDF2JYJ85UQ.png)
+
+此时`edx`指向微信ID，`[edx+4]`保存的是微信ID的长度
+
+![](upload/attach/201906/833057\_EAYJENKBWV7KK4V.png)
+
+`ebx`指向消息内容，`[ebx+4]`保存的是消息内容的长度。那么这个很有可能就是我们要找的发送消息的`call`。
+
+找到了发送消息的函数，那么怎么验证呢？利用微信ID。将`edx`指向的微信ID的地址和我们之前在CE中找到的当前窗口的微信ID对比，你会发现两个地址是一样的。
+
+![](upload/attach/201906/833057\_JV57GEA9989KK8E.png)
+
+改变这个地址的微信ID和内容，就能直接改变消息的接收者和内容，这个刚才我们已经实验过了。再结合这个函数传入的参数有当前消息的内容，就可以确定这个`call`就是微信发送消息的函数。
+
+#### 艾特某人消息
+
+除了以普通文本的方式发送消息以外，还可以以艾特某人的方式发送消息。那么当发送的消息是艾特某人的时候，这个函数和发送普通文本消息有什么区别呢？区别就在于`eax`寄存器的值
+
+先发送一条普通消息程序断下
+
+![](upload/attach/201906/833057\_X49XMKY8Z5RRYWU.png)
+
+此时`eax`的值为0，然后再发送一条艾特某人的消息
+
+![](upload/attach/201906/833057\_Z9KM4Y75VBXRKDK.png)
+
+此时`eax`是有值的，数据窗口跟随，看看这个`14704C40`的地址保存的是什么内容
+
+![](upload/attach/201906/833057\_UUH9PRRV76UD2K6.png)
+
+里面的被艾特的人的微信ID，**普通消息与艾特消息的区别就在于`eax`是否保存了被艾特人的微信ID**。大家可以用同样的方式分析处图片和表情在内存中的表现形式。
+
+接下来我们只要记录下当前发送消息函数的地址+偏移，就能写一个`dll`注入到微信进程空间中，直接调用发送消息的函数，就能实现用自己写的程序给任何人发送消息。
+
+### 总结
+
+总结一下思路，寻找切入点->找地址->下断->栈回溯分析。跟接收消息的步骤是一致的。**找`call`的关键在于你能不能找到一个好的切入点，并且利用切入点与`call`之间的关系。**
+
+### 代码实现
+
+调用发送消息的函数代码如下：
+
+```cpp
+void SendTextMessage(wchar\_t\* wxid, wchar\_t\* msg)
+{
+//拿到发送消息的call的地址
+DWORD dwSendCallAddr = GetWeChatWinAddr() + 0x2EB4E0;
+//微信ID/群ID
+wxMsg id = {0};
+id.pMsg = wxid;
+id.msgLen = wcslen(wxid);
+id.buffLen = wcslen(wxid)\*2;
+//消息内容
+wxMsg text = { 0 };
+text.pMsg = msg;
+text.msgLen = wcslen(msg);
+text.buffLen = wcslen(msg)\*2;
+//取出微信ID和消息的地址
+char\* pWxid = (char\*)&id.pMsg;
+char\* pWxmsg = (char\*)&text.pMsg;
+char buff[0x81C] = { 0 };
+//调用微信发送消息call
+\_\_asm {
+mov edx, pWxid;
+push 1;
+mov eax, 0;
+push eax;
+mov ebx, pWxmsg;
+push ebx;
+lea ecx, buff;
+call dwSendCallAddr;
+add esp, 0xC;
+}
+}
+```
+
+## 最终效果
+
+发送消息
+
+![](upload/attach/201906/833057\_T983Y7QPK6W6XH6.jpg)
+
+接收消息
+
+![](upload/attach/201906/833057\_PKEJ2327DRQYY5C.png)
+
+成品就暂时不发了，下回补上，有个bug调了好久没调出来，拜拜~
+
+## 目录
+
+- [定位微信的消息接收函数](https://bbs.kanxue.com/#定位微信的消息接收函数)
+
+- [定位消息接收函数的相关思路](https://bbs.kanxue.com/#定位消息接收函数的相关思路)
+
+- [定位消息内容的地址](https://bbs.kanxue.com/#定位消息内容的地址)
