@@ -1,0 +1,224 @@
+
+```
+#include "stdafx.h"
+#include <Windows.h>
+
+// 读进程内存（中断门调用）
+BOOL WINAPI HbgReadProcessMemory_INT(HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesRead)
+{
+    LONG NtStatus;
+    __asm
+    {
+        // 直接模拟 KiIntSystemCall
+        lea edx,hProcess; // 要求 edx 存储最后入栈的参数
+        mov eax, 0xBA;
+        int 0x2E;
+        mov NtStatus, eax;
+    }
+    if (lpNumberOfBytesRead != NULL)
+    {
+        *lpNumberOfBytesRead = nSize;
+    }
+    // 错误检查
+    if (NtStatus < 0)
+    {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+// 读进程内存（快速调用）
+BOOL WINAPI HbgReadProcessMemory_FAST(HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesRead)
+{
+    LONG NtStatus;
+    /*  __asm
+    {
+        // 模拟 ReadProcessMemory
+        lea eax,nSize;
+        push eax;
+        push nSize;
+        push lpBuffer;
+        push lpBaseAddress;
+        push hProcess;
+        sub esp, 0x04; // 模拟 ReadProcessMemory 里的 CALL NtReadVirtualMemory
+        // 模拟 NtReadVirtualMemory
+        mov eax, 0xBA;
+        push NtReadVirtualMemoryReturn; // 模拟 NtReadVirtualMemory 函数里的 CALL [0x7FFE0300]
+        // 模拟 KiFastSystemCall
+        mov edx, esp;
+        _emit 0x0F; // sysenter
+        _emit 0x34;
+        NtReadVirtualMemoryReturn:
+        add esp, 0x18; // 模拟 NtReadVirtualMemory 返回到 ReadProcessMemory 时的 RETN 0x14
+        mov NtStatus, eax;
+    }
+    if (lpNumberOfBytesRead != NULL)
+    {
+        *lpNumberOfBytesRead = nSize;
+    }
+    */
+    __asm
+    {
+        lea eax,nSize;
+        push eax;
+        push nSize;
+        push lpBuffer;
+        push lpBaseAddress;
+        push hProcess;
+        sub esp, 0x04; // 模拟 ReadProcessMemory 里的 CALL NtReadVirtualMemory
+        // 模拟 NtReadVirtualMemory
+        mov eax, 0xBA;
+        mov edx, 0X7FFE0300  //不能直接调用内核，间接call函数地址来实现
+        CALL DWORD PTR[EDX]
+        add esp, 0x18;
+        mov NtStatus, eax;
+    }
+    // 错误检查
+    if (NtStatus < 0)
+    {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+// 写进程内存（中断门调用）
+BOOL WINAPI HbgWriteProcessMemory_INT(HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesWritten)
+{
+    LONG NtStatus;
+    __asm
+    {
+        lea edx,hProcess;
+        mov eax, 0x115;
+        int 0x2E;
+        mov NtStatus, eax;
+    }
+    if (lpNumberOfBytesWritten != NULL)
+    {
+        *lpNumberOfBytesWritten = nSize;
+    }
+    // 错误检查
+    if (NtStatus < 0)
+    {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+// 写进程内存（快速调用）
+BOOL WINAPI HbgWriteProcessMemory_FAST(HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesWritten)
+{
+    LONG NtStatus;
+    __asm
+    {
+        // 模拟 WriteProcessMemory
+        lea eax,nSize;
+        push eax;
+        push nSize;
+        push lpBuffer;
+        push lpBaseAddress;
+        push hProcess;
+        sub esp, 0x04; // 模拟 WriteProcessMemory 里的 CALL NtWriteVirtualMemory
+        // 模拟 NtWriteVirtualMemory
+        mov eax, 0x115;
+        /*  push NtWriteVirtualMemoryReturn; // 模拟 NtWriteVirtualMemory 函数里的 CALL [0x7FFE0300]
+        // 模拟 KiFastSystemCall
+        mov edx, esp;
+        _emit 0x0F; // sysenter
+        _emit 0x34;
+        NtWriteVirtualMemoryReturn: */
+        mov edx, 0X7FFE0300  //不能直接调用内核，间接call函数地址来实现
+        CALL DWORD PTR[EDX]
+        add esp, 0x18; // 模拟 NtWriteVirtualMemory 返回到 WriteProcessMemory 时的 RETN 0x14
+        mov NtStatus, eax;
+    }
+    if (lpNumberOfBytesWritten != NULL)
+    {
+        *lpNumberOfBytesWritten = nSize;
+    }
+    // 错误检查
+    if (NtStatus < 0)
+    {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+void __declspec(naked) MyReadMem(HANDLE hProcess,LPVOID addr,LPVOID buffer,DWORD len, LPDWORD lpNumberOfBytesWritten)
+{
+    _asm
+    {
+        mov eax, 0BAh
+        mov edx, 7FFE0300h
+        call dword ptr[edx]
+
+        ret 0x14
+    }
+}
+
+BOOL WINAPI HbgReadProcessMemory_FAST2(HANDLE hProcess, LPCVOID lpBaseAddress, LPVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesRead)
+{
+    LONG NtStatus;
+    __asm
+    {
+        lea eax,nSize;
+        push eax;
+        push nSize;
+        push lpBuffer;
+        push lpBaseAddress;
+        push hProcess;
+        call MyReadMem
+    }
+    // 错误检查
+    if (NtStatus < 0)
+    {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+HANDLE WINAPI MyOpenProcess(
+    __in DWORD dwDesiredAccess,
+    __in BOOL bInheritHandle,
+    __in DWORD dwProcessId
+    )
+{
+    __asm
+    {
+        mov eax, 07Ah
+        mov edx, 7FFE0300h
+        call dword ptr[edx]
+
+        ret 0x10
+    }
+}
+
+HANDLE WINAPI OpenProcessSub(
+    __in DWORD dwDesiredAccess,
+    __in BOOL bInheritHandle,
+    __in DWORD dwProcessId
+    )
+{
+    return 0;
+}
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+    int nTmp = 200;
+    int nValue = 100;
+
+    HbgWriteProcessMemory_FAST(INVALID_HANDLE_VALUE,&nValue,&nTmp,sizeof(int),0);
+    HbgReadProcessMemory_FAST(INVALID_HANDLE_VALUE,&nValue,&nTmp,sizeof(int),NULL);
+    HbgReadProcessMemory_FAST2(INVALID_HANDLE_VALUE,&nValue,&nTmp,sizeof(int),NULL);
+    HANDLE hProcess1 = OpenProcess( PROCESS_ALL_ACCESS, false, 2972 );
+    HANDLE hProcess2 = MyOpenProcess( PROCESS_ALL_ACCESS, false, 2972 );
+    return 0;
+}
+```
+
+志同道合的小伙伴们可以加群一起交流技术，共同进步 788518452
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+[#基础知识](https://bbs.kanxue.com/forum-41-1-130.htm)
+
+[#系统内核](https://bbs.kanxue.com/forum-41-1-131.htm)
