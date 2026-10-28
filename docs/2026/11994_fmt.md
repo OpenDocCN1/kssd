@@ -1,0 +1,20 @@
+
+# [原创] 发个驱动开发 VC 工程建立小工具（源码）
+
+1. 这是个没技术含量的小玩儿，方便而已。
+2. 这个是升级版本，修改了 Demo 文件的一个 bug，增加 X64 的编译环境。
+3. 用这个工具，可以方便大家快速新建一个 Demo 的 DDK 驱动开发工程，开发驱动程序。
+4. 用这个工具，也可以方便地编译其他的一些模块，例如 Winnt 代码的 ntfs 或者 nt 的 Cdfs 等等。
+
+![](https://bbs.kanxue.com/view/img/face/28.gif) 切记，方便而已。
+
+具体使用说明在第一版已经描述：![](https://bbs.kanxue.com/view/img/face/41.gif)
+
+第一版的链接：[aeaK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3c8W2j5Y4g2Y4L8h3q4F1i4K6u0W2j5$3!0E0i4K6u0r3k6r3W2K6j5%4g2K6M7$3W2G2L8W2)9J5c8U0f1H3x3o6q4Q4x3V1k6Q4x3U0g2q4y4g2)9J5y4e0S2r3i4K6t1#2z5e0q4Q4x3U0g2q4y4q4)9J5y4f1t1^5i4K6t1#2b7f1q4Q4x3U0g2q4y4g2)9J5y4f1u0r3i4K6t1#2b7f1u0Q4x3U0g2q4z5g2)9J5y4e0R3H3i4K6t1#2z5f1k6Q4x3U0g2q4y4g2)9J5y4f1u0n7i4K6t1#2b7V1q4$3j5#2)9J5y4f1f1&6i4K6t1#2b7e0W2Q4x3U0g2n7x3g2)9J5y4f1f1#2i4K6t1#2z5p5q4Q4x3U0g2m8z5q4)9J5y4f1f1#2i4K6t1#2b7U0N6Q4x3U0g2m8y4g2)9J5y4f1f1%4i4K6t1#2b7e0S2Q4x3U0f1^5b7W2)9J5y4f1f1#2i4K6t1#2b7U0m8Q4x3U0f1^5c8W2)9J5y4f1f1#2i4K6t1#2b7U0N6Q4x3U0g2m8y4g2)9J5y4f1f1#2i4K6t1#2z5o6g2Q4x3U0g2n7y4H3`.`.](https://bbs.kanxue.com/elink@988K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3c8W2j5Y4g2Y4L8h3q4F1i4K6u0W2j5$3!0E0i4K6u0r3k6r3W2K6j5%4g2K6M7$3W2G2L8W2)9J5c8U0f1H3x3o6q4Q4x3V1k6Q4x3U0g2q4y4g2)9J5y4e0S2r3i4K6t1#2z5e0q4Q4x3U0g2q4y4q4)9J5y4f1t1^5i4K6t1#2b7f1q4Q4x3U0g2q4y4g2)9J5y4f1u0r3i4K6t1#2b7f1u0Q4x3U0g2q4z5g2)9J5y4e0R3H3i4K6t1#2z5f1k6Q4x3U0g2q4y4g2)9J5y4f1u0n7i4K6t1#2b7V1q4$3j5#2)9J5y4f1f1&6i4K6t1#2b7e0W2Q4x3U0g2n7x3g2)9J5y4f1f1#2i4K6t1#2z5p5q4Q4x3U0g2m8z5q4)9J5y4f1f1#2i4K6t1#2b7U0N6Q4x3U0g2m8y4g2)9J5y4f1f1%4i4K6t1#2b7e0S2Q4x3U0f1^5b7W2)9J5y4f1f1#2i4K6t1#2b7U0m8Q4x3U0f1^5c8W2)9J5y4f1f1#2i4K6t1#2b7U0N6Q4x3U0g2m8y4g2)9J5y4f1f1#2i4K6t1#2z5o6g2Q4x3U0g2n7y4H3`.`.)]
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [WDKTool\_BIN.rar](javascript:void(0);)（670.42kb，96次下载）
+- [WDKTool\_SRC.rar](javascript:void(0);)（47.06kb，77次下载）
