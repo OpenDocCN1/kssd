@@ -1,0 +1,190 @@
+
+# [原创]数据包伪造替换、会话劫持、https劫持之探索和测试
+
+## （一）数据包替换攻击
+
+该攻击过程如下：**伪造服务器响应客户端的数据包。监听客户端的数据包，用预先伪造的数据包，伪装成服务器返回的数据发送给客户端。**
+
+因为攻击者跟目标在同一个局域网，所以攻击者发送的数据包肯定比服务器的响应数据要快很多，只要数据包构造正确，就一定可以被客户端按正常的数据处理。
+
+这部分的重点和难点在于，要构造正确的数据包，需要根据攻击者的目的，修改数据包中的数据、MAC、IP、TCP(UDP)层的长度、校验值等多个字段的值，还要兼容多种网络协议，另外还需要高效的处理数据包。
+
+这部分内容对于熟悉tcp/ip协议栈的程序员来讲非常容易，唯一需要注意的坑就是，udp和tcp封包中的`checksum`字段的计算，其格式不是简单的tcp和udp包头字节的crc校验，而是：
+
+1. 先将`checksum`字段清零
+
+2. 再将ip数据包中的 原ip（`dword`)、目的ip（`dword`)、包含tcp或者udp包头在内的数据长度值(`short`)、ip包中的协议字段(`short`)这4个字段加上tcp或者udp的包头加上数据部分之和（该长度还要2字节对齐，假如长度是奇数的话还要再补一个0）计算出来的校验和值。其结构体如下：
+
+```
+typedef struct
+{
+unsigned char SrcIP[IPV6\_IP\_SIZE];
+unsigned char DstIP[IPV6\_IP\_SIZE];
+unsigned short Protocol;
+unsigned short PackLen;
+}IPV6FAKEHEADER, \*LPIPV6FAKEHEADER;
+```
+
+计算tcp和udp中校验和的代码大体如下所示：
+
+```
+WORD Checksum::checksum(WORD \*buffer,int size)
+{
+unsigned long cksum = 0;
+while(1<size)
+{
+cksum += \*buffer++;
+size -= sizeof(USHORT);
+}
+if(0<size)
+cksum += \*(UCHAR\*)buffer;
+cksum = (cksum>>16) + (cksum&0xffff);
+cksum += (cksum>>16);
+return(unsigned short)(~cksum);
+}
+USHORT Checksum::subPackChecksum(char \* lpCheckSumData,WORD wCheckSumSize,DWORD dwSrcIP,DWORD dwDstIP,unsigned int wProtocol)
+{
+char szCheckSumBuf[MAX\_SINGLE\_PACKET\_SIZE];
+LPCHECKSUMFAKEHEADER lpFakeHdr = (LPCHECKSUMFAKEHEADER)szCheckSumBuf;
+lpFakeHdr->dwSrcIP = dwSrcIP;
+lpFakeHdr->dwDstIP = dwDstIP;
+lpFakeHdr->Protocol = ntohs(wProtocol);
+lpFakeHdr->usLen = ntohs(wCheckSumSize);
+memcpy(szCheckSumBuf + sizeof(CHECKSUMFAKEHEADER),(char\*)lpCheckSumData,wCheckSumSize);
+\*(DWORD\*)(szCheckSumBuf + sizeof(CHECKSUMFAKEHEADER) + wCheckSumSize) = 0;
+unsigned short nCheckSum = checksum((WORD\*)szCheckSumBuf,wCheckSumSize + sizeof(CHECKSUMFAKEHEADER));
+return nCheckSum;
+}
+```
+
+该模块基于winpcap开发。
+
+各层封包的包头处理有很多细节需要注意。在实际场景中，抓到的数据包并不是mac层，而是大多是pppoe或者wlan格式，其包头格式如下：
+
+```
+typedef struct {
+char version : 4;
+char type : 4;
+unsigned char code;
+unsigned short sessionid;
+unsigned short len;
+unsigned short protocol;
+}PPPOEHEADER, \*LPPPPOEHEADER;
+typedef struct
+{
+unsigned char idhigh : 4;
+unsigned char canonical : 1;
+unsigned char priority : 3;
+unsigned char id : 8;
+unsigned short type;
+}HEADER8021Q, \*LPHEADER8021Q;
+```
+
+具体处理流程更多是包头协议格式的解析，在此按下不表。
+
+本程序支持tcp和udp数据包的伪造、欺骗攻击，其代码主要位于`ReplacePacket.cpp`中。其中，dns劫持就是一种较为简单的数据包替换攻击，其代码位于`PacketProc.cpp`中，要实现攻击需要了解dns数据包的格式，读者请自行百度。其主要数据结构如下：
+
+```
+typedef struct
+{
+unsigned short TransactionID; //交易ID，发出和接收必须相同
+unsigned short Flags; //标志字段，发出和接收都应该修改该字段
+unsigned short Questions; //问题格式
+unsigned short AnswerRRS; //回答资源记录个数
+unsigned short AuthorityRRS; //认证资源记录个数
+unsigned short AdditionalRRS; //附加资源记录个数
+}DNSHEADER,\*LPDNSHEADER;
+//中间的要解析的名称以一个非可打印字符开头，以0结尾，后面紧跟着解析的类型要求，和CLASS要求
+typedef struct
+{
+unsigned short Name; //名称，低字节为从开头的偏移地址，只想要解析的内容
+unsigned short Type; //类型，0005为解析字符串，0001为解析IP地址
+unsigned short Class; //输入
+unsigned short HighTTL; //生存周期
+unsigned short LowTTL;
+unsigned short AddrLen; //解析的长度
+unsigned int Address; //解析的内容
+}DNSANSWER,\*LPDNSANSWER;
+typedef struct
+{
+unsigned short Name; //名称，低字节为从开头的偏移地址，只想要解析的内容
+unsigned short Type; //类型，0005为解析字符串，0001为解析IP地址
+unsigned short Class; //输入
+unsigned short HighTTL; //生存周期
+unsigned short LowTTL;
+unsigned short AddrLen; //解析的长度
+unsigned char Address[16]; //解析的内容
+}DNSANSWERIPV6, \*LPDNSANSWERIPV6;
+typedef struct {
+unsigned short dnstype;
+unsigned short dnsclass;
+}DNSTYPECLASS,\*LPDNSTYPECLASS;
+typedef struct {
+unsigned short Name;
+unsigned short Type;
+unsigned short Class;
+unsigned int TTL;
+unsigned short AddrLen;
+}DNSANSWERHEADER, \*LPDNSANSWERHEADER;
+```
+
+如下以下视频中，当dns欺骗未开启时，在`nslookup`中查询到的<mark class="encrypted">2e3K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3u0S2K9h3c8#2i4K6u0W2j5$3!0E0i4@1f1%4i4K6W2m8i4K6R3@1d9g2m8Q4c8e0g2Q4z5f1y4Q4b7U0m8Q4c8e0g2Q4z5f1c8Q4z5o6m8Q4c8e0k6Q4z5e0S2Q4b7f1j5I4z5o6u0Q4x3X3f1$3x3g2)9J5k6e0t1H3x3q4)9J5k6e0N6Q4c8f1k6Q4b7V1y4Q4z5p5y4Q4c8e0S2Q4z5o6m8Q4z5p5y4Q4c8e0g2Q4b7V1c8Q4z5e0y4V1L8Y4y4Q4c8e0k6Q4z5e0c8Q4b7V1u0Q4c8e0g2Q4z5o6N6Q4b7V1u0Q4c8e0g2Q4b7V1y4Q4z5o6m8Q4c8e0g2Q4z5e0m8Q4b7f1k6Q4c8e0k6Q4z5e0N6Q4b7U0k6Q4c8f1k6Q4b7V1y4Q4z5p5y4%4N6%4N6Q4x3X3g2T1j5h3W2V1N6h3y4G2L8g2!0q4y4#2)9&6b7g2)9^5y4r3W2H3i4@1f1#2i4K6W2o6i4@1t1H3i4@1f1#2i4K6W2p5i4K6R3H3i4@1f1^5i4@1p5J5i4@1q4n7i4@1f1$3i4K6W2n7i4@1u0r3i4@1f1$3i4K6S2p5i4@1p5J5i4@1f1@1i4@1t1^5i4@1u0m8x3e0V1J5i4K6u0W2x3e0j5^5i4K6u0W2x3e0l9I4i4K6u0W2x3e0t1J5i4@1g2r3i4@1u0o6i4K6S2o6i4@1f1^5i4@1u0r3i4K6V1&6i4@1f1@1i4@1t1^5i4@1q4m8i4@1f1#2i4K6W2o6i4@1t1H3i4@1f1#2i4K6W2p5i4K6R3H3i4@1f1$3i4@1q4p5i4@1p5K6i4@1f1#2i4@1p5#2i4@1u0p5i4@1f1$3i4K6V1^5i4@1q4r3i4@1f1$3i4K6W2o6i4@1q4o6i4@1f1$3i4K6W2o6i4@1u0m8i4@1f1%4i4K6W2m8i4K6R3@1K9i4m8Q4c8e0g2Q4z5f1y4Q4b7U0m8Q4c8e0g2Q4z5f1c8Q4z5o6m8Q4c8f1k6Q4b7V1y4Q4z5p5y4Q4c8e0k6Q4z5f1y4Q4b7f1y4Q4c8e0k6Q4z5f1y4Q4b7V1q4Q4c8e0c8Q4b7U0S2Q4z5p5q4Q4c8e0k6Q4z5f1y4Q4z5o6W2Q4c8e0c8Q4b7U0S2Q4z5o6m8Q4c8e0c8Q4b7U0S2Q4b7f1q4Q4c8e0k6Q4z5f1y4Q4z5p5c8Q4c8e0g2Q4z5p5q4Q4b7e0q4Q4c8e0g2Q4z5e0W2Q4b7e0S2Q4c8e0N6Q4b7e0S2Q4z5p5u0Q4c8e0g2Q4b7V1q4Q4z5p5k6Q4c8f1k6Q4b7V1y4Q4z5p5y4Q4c8e0N6Q4z5f1u0Q4z5e0q4Q4c8e0g2Q4z5e0m8Q4b7f1x3@1y4o6y4Q4c8e0k6Q4z5o6S2Q4z5e0k6Q4c8e0S2Q4z5o6m8Q4z5o6f1^5x3q4!0q4y4#2!0m8b7W2!0m8c8W2!0q4y4g2)9^5c8W2!0m8x3#2!0q4y4#2)9&6b7g2)9^5y4q4!0q4y4W2)9&6y4g2!0n7x3q4!0q4y4W2)9^5c8q4!0m8c8g2!0q4c8W2!0n7b7#2)9^5b7#2!0q4z5q4!0n7c8W2)9&6z5g2!0q4y4W2!0m8x3q4!0n7y4#2!0q4y4g2!0n7x3q4!0n7x3g2!0q4y4g2)9^5c8W2!0m8c8W2!0q4y4q4!0n7b7W2!0m8y4g2!0q4y4g2!0n7c8q4)9&6x3#2!0q4y4q4!0n7c8q4)9&6b7#2!0q4y4q4!0n7z5q4)9^5b7W2!0q4y4q4!0n7z5q4)9^5x3q4!0q4y4W2!0m8c8q4!0m8y4h3S2@1N6s2m8K6i4@1f1$3i4K6V1@1i4@1u0n7i4@1f1#2i4K6R3%4i4@1u0n7i4@1f1%4i4K6W2m8i4K6R3@1i4@1f1$3i4K6W2o6i4K6S2p5i4@1f1#2i4K6S2m8i4@1p5I4i4@1f1#2i4K6V1&6i4@1p5^5i4@1f1K6i4K6R3H3i4K6R3J5</mark>
+
+从wireshark可以清晰看到网卡发出的dns伪造数据包。
+
+![图片描述](upload/attach/202305/653410\_7N2BGEQXNJMCKGX.gif)
+
+![图片描述](upload/attach/202305/653410\_YUXSYWKECYKHPN8.gif)
+
+## （二）https劫持
+
+https劫持有多种方式可以实现，比如dns劫持方式和数据包转发。
+
+数据包转发方式较为复杂，各有各的实现方法。一般原理是：
+
+1. 在数据包监听处，有一链路层处理程序`S`，识别并修改ssl数据包，将目的mac和目的ip地址改为解析程序的mac和ip、并重新校验之后，从链路层发送。
+
+2. 解析程序在`recv()`函数之后，会收到目的地址是自己的数据包，然后调用`openssl`接口，进入`openssl`接口处理部分，其返回结果是将https脱去后的明文数据。此时，解析程序可以当作中间人，将客户端数据发送给服务器的数据，从`host`取出真正的服务器地址，数据部分根据需要加工处理后发送给真正的服务器。对于服务器返回的数据，根据攻击者的目的，处理之后发送给真正的客户端。
+
+3. 最后，`S`需要将链路层监听到的、跟发送给解析程序相匹配的、返回数据包，在链路层修改原mac和ip地址，并重新校验之后，从链路层上放回原来的数据流中。
+
+另一种方式较为简单，其过程如下：
+
+1. 预先获取客户端要访问的域名，对其进行dns数据包替换攻击，将客户端对域名`M`的访问，定向到特定的主机`H`上
+
+2. 客户端想要访问`M`域名时，由于伪造的dns数据包中返回的地址指向`H`，故此时客户端程序会误以为`H`就是`M`.
+
+3. 在`H`主机上有一特定程序，采用**中间人**方式，对客户端的数据访问伪装成服务器，将客户端数据再次转发给真正的服务器，对于服务务器返回的数据，再次转发给真正的客户端。
+
+本程序采用第二种方法，主要的https中间人代码在`sslEntry.cpp`，`sslProxyListener.cpp`，`sslProxy.cpp`，`makeCert.cpp`，`sslPublic.cpp`等几个文件中，搬砖的工作暂且不表：）。
+
+在https劫持中一个重要问题就是证书问题。这里采取的方式是，将生成次级证书的根证书导入到本机的根证书授信中心，接下来利用此证书签名的二级证书和三级证书在chrome和edge中的访问都是没问题的，但是firefox有单独的证书认证体系，windows等操作系统认可的证书、包括我们我们导入的证书不在其认可范围之内。
+
+程序中实现了域名证书证书自动生成功能，可以根据客户端的clienthello数据包中的域名，动态生成域名证书。另外还支持自动检测和生成、导入根证书。
+
+程序运行需要预先安装`openssl`。
+
+在实际测试中，国内大厂包括阿里系，腾讯系的软件大都采用了https传输方式，但是也有极个别软件的服务器域名的ssl流量可以劫持成功，特别是某些Android移动端软件，ios端也发现过此种情况。当然，现在的趋势是验证机制越来越严格，难度越来越大。
+
+本实例程序运行时，会将ssl数据存放在`output`目录下的`ssl.dat`文件中，如下截图所示，当未开启ssl攻击时，浏览器访问正常；当开启ssl劫持后，浏览器依然正常，此时`ouput`目录下的`ssl.dat`中存放着https中的明文数据。从`host`或者域名可以验证我们刚才点击访问的网址，证明ssl劫持成功。
+
+![图片描述](upload/attach/202305/653410\_TBXA55QPTB5CE93.gif)
+
+本次测试的具体代码下载地址：<a href="elink@113K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5k6h3y4K6k6r3&6Q4x3X3g2F1k6i4c8Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5c8X3@1H3i4K6g2X3x3K6M7#2y4U0M7%4x3K6S2Q4x3V1j5^5y4K6R3I4z5e0b7%4x3b7`.`.">点击此处下载</a>
+
+该项目具有tcp和udp数据包伪造替换、dns欺骗劫持、https中间人（mid in man)劫持攻击等多种功能。
+
+## （一）数据包替换攻击
+
+该攻击过程如下：**伪造服务器响应客户端的数据包。监听客户端的数据包，用预先伪造的数据包，伪装成服务器返回的数据发送给客户端。**
+
+因为攻击者跟目标在同一个局域网，所以攻击者发送的数据包肯定比服务器的响应数据要快很多，只要数据包构造正确，就一定可以被客户端按正常的数据处理。
+
+这部分的重点和难点在于，要构造正确的数据包，需要根据攻击者的目的，修改数据包中的数据、MAC、IP、TCP(UDP)层的长度、校验值等多个字段的值，还要兼容多种网络协议，另外还需要高效的处理数据包。
+
+这部分内容对于熟悉tcp/ip协议栈的程序员来讲非常容易，唯一需要注意的坑就是，udp和tcp封包中的`checksum`字段的计算，其格式不是简单的tcp和udp包头字节的crc校验，而是：
+
+1. 先将`checksum`字段清零
+
+2. 再将ip数据包中的 原ip（`dword`)、目的ip（`dword`)、包含tcp或者udp包头在内的数据长度值(`short`)、ip包中的协议字段(`short`)这4个字段加上tcp或者udp的包头加上数据部分之和（该长度还要2字节对齐，假如长度是奇数的话还要再补一个0）计算出来的校验和值。
+
