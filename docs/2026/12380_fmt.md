@@ -1,0 +1,38 @@
+
+# [原创]文件创建监控小工具-MzfFileMonitor(开源)
+
+最近几天看了楚狂人的文件过滤驱动的相关教程, 学习了下文件过滤驱动的编写, 不禁感叹楚狂人在文件过滤驱动方面的造诣.
+
+学习之余写了这个小工具MzfFileMonitor. 代码是由sfilter扩展而来.
+
+学习期间, 发现看雪上关于文件过滤驱动的东西很少, 特此放上本工具的源码, 包括 R3 和 R0 代码.
+
+Ps:1. 此工具只记录创建成功的文件(不记录文件夹).
+
+2. 驱动理论上支持XP - WIN7的系统.
+
+![](https://bbs.kanxue.com/upload/attach/201105/283934_a5bzie3ml1dz98m.png)
+
+代码:
+
+[MzfFileMonitor.zip](https://bbs.kanxue.com/attach-download-57117.htm)
+
+可执行文件:
+
+[bin.zip](https://bbs.kanxue.com/attach-download-57119.htm)
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+
+- [TM截图未命名.png](javascript:void(0);)
+
+  （77.37kb，1860次下载）
+
+- [MzfFileMonitor.zip](javascript:void(0);)
+
+  （72.68kb，1056次下载）
+
+- [bin.zip](javascript:void(0);)
+
+  （15.52kb，636次下载）
