@@ -1,0 +1,51 @@
+
+# [原创]进程伪装原理与破除
+
+首先演示下进程伪装的效果。
+
+伪装前
+
+![](https://bbs.kanxue.com/upload/attach/202507/1001878_BZKWQG6TT2D6HBV.jpg)
+
+伪装后
+
+![](https://bbs.kanxue.com/upload/attach/202507/1001878_7U5JWAQYKEA4V22.jpg)
+
+ark显示的信息
+
+![](https://bbs.kanxue.com/upload/attach/202507/1001878_7Y5NCQKPTR6RBBU.jpg)
+
+通过测试发现，可以伪装成系统进程或者其他正常应用，来迷惑ark工具的查询；相比隐藏进程而言更加稳定和隐蔽。
+
+伪装进程的实现方式：
+
+1. 傀儡进程，这种方法3环也可实现，原理类似`LoadPE`，在进程内存中手动拉伸修复我们的可执行程序。
+
+2. 修改进程结构体信息达到伪装。这种进程伪装核心思想：把要伪装成进程的各种信息复制到当前进程，并且不能干扰操作系统正常运行程序。可以理解为就是疯狂CV。
+
+   1. 复制`eprocess`中的`ImageFileName[15]` 进程名
+   2. 复制`eprocess`中的`SeAuditProcessCreationInfo` 进程全路径
+   3. 复制`eprocess`中的`ImageFilePointer` 文件对象
+   4. 复制`eprocess`中的`Token` 令牌
+   5. 复制`eprocess`中的`Peb` 环境块，注意32位程序与64位程序不同，这里只展示64位的，记得`CommandLine`，`WindowTitle`，`CurrentDirectory`也要复制，不然ark一眼看出差距。
+   6. 到此为止一个最基本的伪装进程已经实现，当然还有好多细节没有copy，细节就靠个人发挥了。
+
+那么问题来了，如果恶意程序进行了伪装，我们应该如何查询呢？
+
+俗话说的好，假的永远是假的，代替不了真的。下面介绍几个常见的查询点：
+
+1. 模块，虽然主模块可以伪装一致，但是其他模块和模块数量明显的差异，且模块大小和基地址都可能存在差异
+
+   ![](https://bbs.kanxue.com/upload/attach/202507/1001878_K5685ZBMBYFSEHN.jpg)
+
+2. 窗口，如果伪装成例如系统进程`csrss.exe`，是没有窗口的
+
+   ![](https://bbs.kanxue.com/upload/attach/202507/1001878_Y8A5WMUZKJ9Y864.jpg)
+
+[回复或点赞可查看完整内容](https://bbs.kanxue.com/#quick_reply_form)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+[#基础知识](https://bbs.kanxue.com/forum-41-1-130.htm)
+
+[#系统内核](https://bbs.kanxue.com/forum-41-1-131.htm)
