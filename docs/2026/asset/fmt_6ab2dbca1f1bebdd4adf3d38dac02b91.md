@@ -1,0 +1,140 @@
+
+# [原创]飞鸽传书简易消息尾巴制作记录(已经添加编译好的DLL和相关工具以及源码)
+
+## 制作目的
+学习娱乐,不以耍流氓为目的
+
+## 基本信息
+飞鸽版本: 飞鸽传书 V2.09
+使用工具: `OD` `VS2005`
+连接地址: `http://bbs.pediy.com/`
+
+## 功能概述
+替换飞鸽传书发送的所有消息的前几个字符,达到娱乐的效果。
+
+## 整体思路
+要向达到上述的娱乐效果首先要在内存中定位到存放发送消息的地址,然后修改之。思路很简单,实现也不复杂。
+
+## 实现步骤
+
+### 1. 调试,确定待发送消息的内存地址
+传统方法下断 `sendto` 方法,然后根据栈回溯 慢慢追到显示消息明文的地方,很通用,很麻烦,好在程序不大,如果是个网游就得找一阵子了.
+
+这里换一个方法查找消息明文:
+
+![](https://bbs.kanxue.com/upload/attach/201101/51458_n46rzvr1agxyc6i.jpg)
+
+图-1
+
+飞鸽在编写消息的对话框中有封装和上锁两个选项如(图-1所示)是用选择框形式提示的,那么做一个合理的猜测:处理消息前会对这两个对话框状态做检测,按照猜想在飞鸽传书的导入表中找到了检测对话框状态的API函数`USER32.IsDlgButtonChecked`,对他下断,单步走几下就发现了在内存中定位存放消息明文地址(如图-2,图-3所示)
+
+![](https://bbs.kanxue.com/upload/attach/201101/51458_d3suwmg7ki3bgx5.jpg)
+
+图-2
+
+![](https://bbs.kanxue.com/upload/attach/201101/51458_ntscbkclu713bet.jpg)
+
+图-3
+
+其中`Eax`存放的是消息的地址,而`eax`的值是`esi`计算而来,现在明文找到了娱乐任务完成了一半,为了能在接下的编码任务中让程序自动找到明文,有两个办法第一个用外挂的思路,继续跟踪`esi`的值直到找到一个重启程序都不会变化的基质,(类似于全局变量)另外一个办法是在这个位置直接取得`esi`的值经过一步简单计算获取存放消息明文的地址,这里采用后者也就是`Hook`的方式,在图-2中`0x4133D3`的位置跳转到自实现的方法中,这是可以轻松获取各个寄存器的值找到明文消息的地址。
+
+### 2. 编码
+
+```cpp
+// InIPmsg.cpp : 定义 DLL 应用程序的入口点。
+//
+
+#include "stdafx.h"
+LPSTR lpiwant = "whxright";
+VOID ChangeMemory()
+{
+
+    __asm{
+            push ebx
+            push lpiwant
+            mov edi,esi           //获取esi的值
+            add edi,0xd4        //获取明文消息地址
+            mov esi,lpiwant        //获取要替换的内容
+            movsb                    //替换
+            movsb
+            movsb
+            mov eax,0x00404b03  //由于修改导致原来的调用被覆盖现在替它调用下保证原流程正常
+            call eax
+            mov eax,0x004133da    //返回地址
+            pop esi                          //修复堆栈平衡
+            pop edi
+            jmp eax                         //该做的做完了跳回去保证原流程正常
+    }
+
+}
+
+BOOL APIENTRY DllMain( HMODULE hModule,
+                       DWORD  ul_reason_for_call,
+                       LPVOID lpReserved
+                     )
+{
+    if (ul_reason_for_call == DLL_PROCESS_ATTACH) {
+        MessageBox(NULL,L"XX",L"XXX",MB_OK);
+        __asm{
+                mov eax,ChangeMemory                //自定义方法的地址
+                add eax,3                           //跳过编译器生成的堆栈平衡代码
+                sub eax,0x4133d9                    //计算跳转地址
+                mov ebx,0x4133d3    //修改原来的代码,让它跳到自定义函数ChangeMemory
+                mov word ptr [ebx], 0xe990
+                mov    dword ptr [ebx+2],eax
+                mov byte ptr[ebx+6],0x90
+        }
+        return TRUE;
+    }
+
+}
+```
+注释很详细
+
+大致记录下,被修改后的程序关键点(如图-4所示:)
+
+![](https://bbs.kanxue.com/upload/attach/201101/51458_u144f1fhiejcnog.jpg)
+
+图-4
+
+图-2中的一个方法调用已经被`DllMain`修改成了上面的样子,原来的代码没有了程序肯定报错所以在我们的自定义方法中要完成图-2中对`0x00404b03`方法的调用、对消息的修改、修复堆栈、还有跳回原流程这4个功能才能达到正常娱乐的目的,自定义函数`InIPmsg.01991003`在`OD`中的样子(如图-5所示:)对应代码中的`ChangeMemory` 方法,
+
+![](https://bbs.kanxue.com/upload/attach/201101/51458_ed7ihrk5x35d375.jpg)
+
+图-5
+
+啰嗦了不说了。。。
+
+## 注意事项
+(1)源码编译完成后是个`DLL`文件,需要输入到飞鸽进程才可以生效。
+(2)编码仓促没有实现修改飞鸽`.text`段写入属性,如要实验请使用`stud_PE`等工具手动修改飞鸽`.text`的`MEM_WRITE`属性
+(3)由于有硬编码的存在,导致非本地实验可能不成功,请自行调试
+(4)编译时请将内联汇编的注释去掉,否则可能出错
+(5)代码写的很烂,Bug多多主要记录思路请轻砸…..
+
+## 效果图
+发送消息的前3个字符被替换为"`whx`"
+
+![](https://bbs.kanxue.com/upload/attach/201101/51458_m2nkky9asmytn82.jpg) ![](https://bbs.kanxue.com/upload/attach/201101/51458_tpcyjz1jd9llc6p.jpg)
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+- [201101050002427057.jpg](javascript:void(0);)
+  （7.19kb，258次下载）
+- [201101050002431102.jpg](javascript:void(0);)
+  （12.62kb，258次下载）
+- [201101050002436468.jpg](javascript:void(0);)
+  （12.96kb，257次下载）
+- [201101050002444973.jpg](javascript:void(0);)
+  （9.33kb，257次下载）
+- [201101050002446892.jpg](javascript:void(0);)
+  （70.58kb，258次下载）
+- [201101050002467774.jpg](javascript:void(0);)
+  （10.85kb，257次下载）
+- [201101050002469136.jpg](javascript:void(0);)
+  （20.67kb，260次下载）
+- [Syringe.rar](javascript:void(0);)
+  （3.12kb，11次下载）
+- [InIPmsg.rar](javascript:void(0);)
+  （3.51kb，12次下载）
