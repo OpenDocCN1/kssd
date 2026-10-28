@@ -1,0 +1,139 @@
+
+# [原创]WIN7 RC 系统服务函数变更
+
+以下涵盖了今天大约用了2个小时分析的 Windows 7 RC内核NT\*函数的变动，全部来自对WIN7 RC的内核的反汇编，没有太深入分析，包含了一些我觉得有一些意思或者影响的变动、增加的功能和函数等
+
+这里的变动和新增，指的是相对于WRK,即WIN2003 内核的变动，因此有些很多变动在VISTA中就已经有了
+
+## (1) `NtCreateFile` / `NtOpenFile`
+
+以下函数将改走`IopCreateFile`，而不是象此前的操作系统是从`IoCreateFile->IopCreateFile`。
+
+因此希望像从前一样 hook `IoCreateFile` 就掌控对文件打开、创建是不再可行了。
+
+同时`IopCreateFile`亦有`CALLBACK`机制了~很猥琐。
+
+但管道和邮槽的创建仍是走`IoCreateFile`。
+
+## (2) `Nt*Key`
+
+`Nt*Key`（除了`Create/Open`等）对于`KeyHandle`的引用改为了`CmObReferenceObjectByHandle`，并对`KeyObject`做一些校验。
+
+这样可能导致一些爆搜方式的XX实效了~
+
+## (3) `NtFreezeRegistry`/`NtThawRegistry`
+
+冻结和解冻注册表操作，这个在VISTA就有了可以做一些猥琐的XX。
+
+## (4) `NtMakePermanentObject`
+
+创建永久对象的好东东，也是VISTA支持。
+
+## (5) `NtNotifyChangeSession`
+
+很有用的东东。
+
+## (6) `NtQueryInformationProcess`/`NtSetInformationProcess`
+
+新增`InformationClass`：
+
+- `ProcessTotalCycleTime` : 38
+- `ProcessDefaultPagePriority` : 39
+- 40号ID未使用
+- 41号ID看了半天不知道是干啥的...
+- `ProcessWorkingSetWatch` : 42
+- `ProcessImageFileDosDeviceName` : 43
+    //取进程全路径DOS名,这个东东很厚道~
+- `ProcessIsSameFileProcess` : 44
+    检查指定的`FileHandle`是否和指定进程是同一个文件，这个东西也不错
+- `ProcesssAffinityUpdateModeEnable` : 45
+- `ProcessVmTopDown` : 46
+- `ProcessActiveGroupsMask` : 47
+- `ProcessVirtualizationToken` : 48（只能SET）
+    //虚拟化的TOKEN~
+- `ProcessConsoleHostProcess` : 49
+- `ProcessCopyProcessHeap` : 50
+    很强大~
+
+## (7) `NtQueryInformationThread`
+
+新增`InformationClass`：
+
+- `ThreadLastCall` : 21
+- `ThreadThreadIoPriority` : 22
+    //传说中的IO优先级~
+- `ThreadTotalCycleTime` : 23
+- `ThreadPagePriority` : 24
+- `ThreadFullTeb` : 26
+    //获得整个TEB
+- `ThreadAffinty` : 30
+- `ThreadProfing` : 32
+- `ThreadIdealProcessor` : 33
+
+## (8) `NtQueryInformationToken`
+
+新增`InformationClass`：
+
+- `TokenLogonSessionFlags` : 18
+- `TokenGetLogonSessionToken` : 19
+- `TokenXxxTokenSid` : 20（不知道是啥）
+- `TokenXxxTokenFlags` : 21（`tokenflags & 0x810`，不知道是啥）
+- `TokenAccess` : 22
+- `TokenTokenFlagsPos9` : 23
+- `TokenTokenFlagsPos10` : 24
+- `TokenGetTokenIntergrity` : 25
+    //ADMIN完整性。。
+- `TokenTokenFlagsPos12` : 26
+- `TokenMandatoryPolicy` : 27
+
+## (9) `NtQuerySystemInformation`/`NtQuerySystemInformationEx`/`NtSetSystemInformation`
+
+- `SystemBasePriorityInformation` : 82（need increasebasepriority privilege）
+- `SystemRefTraceInformation` : 86
+- `SystemSpecialPoolInformation` : 87
+- `SystemProcessesWithFullImageNameInformation` : 88
+    这个太强大了。。。
+- `SystemRegisterErrorPort`（only set, need tcb privilege）
+- `SystemBootEnvironmentInformation` : 90
+    获取`BootIdentifier` GUID（`_LOADER_PARAMETER_BLOCK->LOADER_PARAMETER_EXTENSION->BootIdentifier`(GUID)）
+    从此轻松定位BCD~
+- `SystemEnlightenmentInformation` : 91
+- `SystemVerifierInformtionEx` : 92
+- `SystemCovInformation` : 95
+- `SystemPartitionDeviceNameInformation` : 98
+- `SystemDiskDeviceNameInformation` : 99
+- `SystemPerformanceDistributionInforamtion` : 100
+- `SystemNumaProximityNodeInformation` : 101
+- `SystemTimeZoneInformation` : 102
+- `SystemCodeIntegrityInformation` : 103
+- `SystemProcessorMircoCodeUpdateInformation` : 104（only set）
+- `SystemtProcessorBrandStringInformation` : 105
+- `SystemSystemVaInformation` : 106
+- `SystemLogicalProcessorRelationshipInformation` : 107
+- `SystemStoreInformation` : 109
+- `SystemRegistryAppendStringInformation` : 110（only set）
+- `SystemAitSamplingInformation` : 111（only set）
+- `SystemVhdBootInformation` : 112
+- `SystemCpuQuotaInformation` : 113
+- `SystemLowPriorityIoInformation` : 116
+- `SystemTpmBootEntropyInformation` : 117（only in kernel mode）
+- `SystemVerifierInformation` : 118
+- `SystemAdjustPagedPoolWorkingSetSizeInformation` : 119（only set）
+- `SystemAdjustSystemPtesWorkingSetSizeInformation` : 120（only set）
+- `SystemNumaNodesInformation` : 121
+- `SystempAuditQueryResultsInformation` : 122
+- `SystemCommitInformation` : 123（total commit pages / Total Commit limt / Peak Commitment）
+
+## (10) `NtQueueApcThreadEx`
+
+强大~
+
+目前`NtQueueApcThread`直接调用`NtQueueApcThreadEx`实现。
+
+穿越HIPS~
+
+## (11) `NtSystemDebugControl`
+
+参考：`fbcK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3S2A6i4K6u0W2j5X3q4A6k6s2g2Q4x3X3g2U0L8$3#2Q4x3V1k6E0K9U0l9H3x3e0q4Q4x3V1k6T1L8r3!0Y4i4K6u0r3K9i4c8W2L8g2)9J5c8X3t1K6k6h3f1&6x3e0m8S2x3o6f1^5x3e0p5$3x3K6k6T1x3e0x3#2x3h3c8T1y4g2)9J5k6h3S2@1L8h3H3`.
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
