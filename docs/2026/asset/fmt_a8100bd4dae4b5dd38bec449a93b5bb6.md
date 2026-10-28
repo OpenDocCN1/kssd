@@ -1,0 +1,468 @@
+
+# [原创]仿InternetGetCookie自己解析Cookie文件
+
+主要参考f18K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3u0D9L8$3N6Q4x3X3g2U0M7$3c8F1i4K6u0W2L8X3g2@1i4K6u0r3N6$3S2S2N6r3c8S2P5g2)9J5c8X3q4J5N6r3W2U0L8r3g2Q4x3V1k6V1k6i4c8S2K9h3I4K6i4K6u0r3y4K6f1$3y4U0x3I4x3l9`.`.
+
+![](https://bbs.kanxue.com/upload/attach/201304/443879_8p2y0cl2adeb2yp.png)
+
+```cpp
+#include <Windows.h>
+
+#include <Stdio.h>
+
+#include <Tchar.h>
+
+#include <Wininet.h>
+
+#pragma comment(lib, "Wininet.lib")
+
+
+
+typedef struct _COOKIE_FIELD
+
+{
+
+	TCHAR			m_szKey[128];//键
+
+	TCHAR			m_szValue[512];//值
+
+	TCHAR			m_szDomain[128];//域
+
+	TCHAR			m_szFlag[32];//标志
+
+	TCHAR			m_szLowExpire[32];//过期时间的低32位
+
+	TCHAR			m_szHighExpire[32];//过期时间的高32位
+
+	TCHAR			m_szLowCreate[32];//创建时间的低32位
+
+	TCHAR			m_szHighCreate[32];//创建时间的高32位
+
+
+
+} COOKIE_FIELD, *LPCOOKIE_FIELD;
+
+
+
+//获取Cookie的名称
+
+BOOL CookieGetUrlName(LPTSTR lpszUrl, LPTSTR lpszUrlName)
+
+{
+
+	TCHAR				szUserName[32];
+
+	DWORD				cbUserName;
+
+	TCHAR				szHostName[128];
+
+	URL_COMPONENTS		urlComponents;
+
+	
+
+	cbUserName = 32;
+
+	GetUserName(szUserName, &cbUserName);//获取当前用户名
+
+
+
+	memset(&urlComponents, 0, sizeof(urlComponents));
+
+	urlComponents.dwStructSize = sizeof(urlComponents);
+
+	urlComponents.dwHostNameLength = 128;//主机名长度
+
+	urlComponents.lpszHostName = szHostName;//主机名
+
+	if(InternetCrackUrl(lpszUrl, lstrlen(lpszUrl), ICU_ESCAPE, &urlComponents))//破解Url
+
+	{
+
+		lstrcpy(lpszUrlName, _T("Cookie:"));
+
+		lstrcat(lpszUrlName, szUserName);
+
+		lstrcat(lpszUrlName, _T("@"));
+
+		lstrcat(lpszUrlName, szHostName);
+
+		lstrcat(lpszUrlName, _T("/"));
+
+		return TRUE;
+
+	}
+
+	return FALSE;
+
+}
+
+
+
+//获取Cookie的路径
+
+BOOL CookieGetPath(LPTSTR lpszUrl, LPTSTR lpszFilePath)
+
+{
+
+	BOOL						bRet;
+
+	HANDLE						hEnumHandle;
+
+	LPINTERNET_CACHE_ENTRY_INFO	lpCacheEntry;
+
+	DWORD						cbCacheEntry;
+
+	TCHAR						szCookieUrlName[256];
+
+
+
+	bRet = FALSE;
+
+
+
+	CookieGetUrlName(lpszUrl, szCookieUrlName);//获取Cookie的名称
+
+
+
+	cbCacheEntry = 10240;
+
+	lpCacheEntry = (LPINTERNET_CACHE_ENTRY_INFO)LocalAlloc(LMEM_FIXED, cbCacheEntry);//分配足够内存
+
+
+
+	hEnumHandle = FindFirstUrlCacheEntry(_T("cookie:"), lpCacheEntry, &cbCacheEntry);//查找Cookie缓存
+
+	if(hEnumHandle)
+
+	{
+
+		do
+
+		{
+
+			if(lpCacheEntry->CacheEntryType & COOKIE_CACHE_ENTRY)//应该是多余的
+
+			{
+
+				if(lstrcmpi(lpCacheEntry->lpszSourceUrlName, szCookieUrlName) == 0)//判断是否是我们要找的Cookie名
+
+				{
+
+					lstrcpy(lpszFilePath, lpCacheEntry->lpszLocalFileName);//复制Cookie的文件路径
+
+
+
+					bRet = TRUE;
+
+					break;
+
+				}
+
+			}
+
+
+
+			cbCacheEntry = 10240;
+
+		}
+
+		while(FindNextUrlCacheEntry(hEnumHandle, lpCacheEntry, &cbCacheEntry));//下一个
+
+
+
+		FindCloseUrlCache(hEnumHandle);//关闭句柄
+
+	}
+
+
+
+	LocalFree(lpCacheEntry);
+
+
+
+	return bRet;
+
+}
+
+
+
+//解析Cookie数据
+
+VOID CookieResolveData(LPTSTR lpszCookieData, LPCOOKIE_FIELD lpCookieFields, LPDWORD lpdwCookieField)
+
+{
+
+	LPTSTR				pStr;
+
+	LPTSTR				pStr2;
+
+	LPTSTR				pStr3;
+
+	LPTSTR				pStr4;
+
+	LPTSTR				pStr5;
+
+	LPTSTR				pStr6;
+
+	LPTSTR				pStr7;
+
+	LPTSTR				pStr8;
+
+	LPTSTR				pStr9;
+
+	DWORD				i;
+
+
+
+	/*
+
+	Cookie之间以*分隔，每个字段8行，只有0x0a没有0x0d
+
+	*/
+
+
+
+	pStr = lpszCookieData;
+
+	for(i=0; *pStr; i++)
+
+	{
+
+		pStr2 = _tcschr(pStr, _T('\n'));
+
+		lstrcpyn(lpCookieFields[i].m_szKey, pStr, pStr2 - pStr + 1);
+
+
+
+		pStr2 += 1;
+
+		pStr3 = _tcschr(pStr2, _T('\n'));
+
+		lstrcpyn(lpCookieFields[i].m_szValue, pStr2, pStr3 - pStr2 + 1);
+
+
+
+		pStr3 += 1;
+
+		pStr4 = _tcschr(pStr3, _T('\n'));
+
+		lstrcpyn(lpCookieFields[i].m_szDomain, pStr3, pStr4 - pStr3 + 1);
+
+		
+
+		pStr4 += 1;
+
+		pStr5 = _tcschr(pStr4, _T('\n'));
+
+		lstrcpyn(lpCookieFields[i].m_szFlag, pStr4, pStr5 - pStr4 + 1);
+
+
+
+		pStr5 += 1;
+
+		pStr6 = _tcschr(pStr5, _T('\n'));
+
+		lstrcpyn(lpCookieFields[i].m_szLowExpire, pStr5, pStr6 - pStr5 + 1);
+
+
+
+		pStr6 += 1;
+
+		pStr7 = _tcschr(pStr6, _T('\n'));
+
+		lstrcpyn(lpCookieFields[i].m_szHighExpire, pStr6, pStr7 - pStr6 + 1);
+
+
+
+		pStr7 += 1;
+
+		pStr8 = _tcschr(pStr7, _T('\n'));
+
+		lstrcpyn(lpCookieFields[i].m_szLowCreate, pStr7, pStr8 - pStr7 + 1);
+
+		
+
+		pStr8 += 1;
+
+		pStr9 = _tcschr(pStr8, _T('\n'));
+
+		lstrcpyn(lpCookieFields[i].m_szHighCreate, pStr8, pStr9 - pStr8 + 1);
+
+
+
+		pStr9 += 1;
+
+		pStr = _tcschr(pStr9, _T('\n'));
+
+		pStr += 1;
+
+	}
+
+	*lpdwCookieField = i;
+
+}
+
+
+
+//查询Cookie
+
+BOOL CookieQuery(LPTSTR lpszUrl, LPCOOKIE_FIELD lpCookieFields, LPDWORD lpdwCookieField)
+
+{
+
+	BOOL				bRet;
+
+	HANDLE				hFile;
+
+	LPVOID				lpFileBase;
+
+	DWORD				dwFileSize;
+
+	DWORD				dwRetLen;
+
+	TCHAR				szPath[MAX_PATH];
+
+
+
+	bRet = FALSE;
+
+
+
+	if(CookieGetPath(lpszUrl, szPath))
+
+	{
+
+		hFile = CreateFile(szPath,
+
+			GENERIC_READ | GENERIC_WRITE,
+
+			FILE_SHARE_READ,
+
+			NULL,
+
+			OPEN_EXISTING,
+
+			FILE_ATTRIBUTE_NORMAL,
+
+			NULL);
+
+		if(hFile != INVALID_HANDLE_VALUE)
+
+		{
+
+			dwFileSize = GetFileSize(hFile, NULL);
+
+			lpFileBase = LocalAlloc(LMEM_FIXED, dwFileSize);
+
+
+
+			if(ReadFile(hFile,
+
+				lpFileBase,
+
+				dwFileSize,
+
+				&dwRetLen,
+
+				NULL))
+
+			{
+
+				LPTSTR				lpszCookieData;
+
+				DWORD				dwCookieData;
+
+								
+
+				dwCookieData = dwRetLen + 1;
+
+				lpszCookieData = (LPTSTR)LocalAlloc(LMEM_FIXED, dwCookieData);
+
+				
+
+				//给Cookie结尾加个0
+
+				memcpy(lpszCookieData, lpFileBase, dwRetLen);
+
+				memset(lpszCookieData + dwRetLen, 0, 1);
+
+				
+
+				//解析Cookie数据
+
+				CookieResolveData(lpszCookieData, lpCookieFields, lpdwCookieField);
+
+				LocalFree(lpszCookieData);
+
+
+
+				bRet = TRUE;
+
+			}
+
+
+
+			LocalFree(lpFileBase);
+
+			CloseHandle(hFile);
+
+		}
+
+	}
+
+
+
+	return bRet;
+
+}
+
+
+
+int _tmain(int argc,TCHAR *argv[])
+
+{
+
+	LPCOOKIE_FIELD		lpCookieFields;
+
+	DWORD				dwCookieField;
+
+	DWORD				i;
+
+
+
+	dwCookieField = 100;
+
+	lpCookieFields = new COOKIE_FIELD[dwCookieField];
+
+	
+
+	//查询Cookie
+
+	CookieQuery(_T("http://bbs.pediy.com/"), lpCookieFields, &dwCookieField);
+
+
+
+	for(i=0; i<dwCookieField; i++)
+
+	{
+
+		printf("键: %s\n", lpCookieFields[i].m_szKey);
+
+		printf("值: %s\n\n", lpCookieFields[i].m_szValue);
+
+	}
+
+
+
+	return 0;
+
+}
+```
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+
+- [QQ截图20130426135008.png](javascript:void(0);)
+
+  （38.62kb，8次下载）

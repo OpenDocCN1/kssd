@@ -1,0 +1,12 @@
+
+# [原创]VC++下采用COM模式不需要用到MFC写Excel
+
+在网上有找了很多VC++下写Excel的源程序，但大部分都需要用到MFC。一直没有找到不需要用到MFC的，于是自己实现的不需要MFC下COM模式写Excel的源程序见附件，希望对有相同需求的人有用！
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+
+- [TestExcelWrite.rar](javascript:void(0);)
+
+  （20.01kb，99次下载）

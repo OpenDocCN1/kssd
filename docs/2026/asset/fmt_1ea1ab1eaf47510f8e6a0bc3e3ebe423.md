@@ -1,0 +1,217 @@
+
+# [原创]自制一个带OpenGL特效的注册机(Delphi实现)
+
+## 【文章标题】
+自制一个带OpenGL特效的注册机
+
+## 【文章作者】
+黄仁来[海浪轻风]
+
+## 【作者主页】
+fffK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3S2A6i4K6u0W2j5X3q4A6k6s2g2Q4x3X3g2U0L8$3#2Q4x3V1k6T1k6i4W2G2L8X3b7H3y4K6j5&6
+
+## 【作者声明】
+只是感兴趣，没有其他目的。失误之处敬请诸位大侠赐教!
+
+--------------------------------------------------------------------------------
+
+## 【详细过程】
+
+很久以前就对国外一些注册机很崇拜，因为它不仅提供破解软件功能，更吸引人的是它超酷的音乐和超炫的动态界面。
+
+后来知道那些音乐叫MOD音乐，(后来很快就实现了)，还有那些动态界面大多数采用了OpenGL技术，于是，俺也跟着模仿，自己梦想着做一个一样酷的注册机……
+
+后来查阅了不少网站和电脑书籍，终于实现了，不敢独享。
+
+就拿一个动画类似流星的动画效果为例子吧，结合Windows优化大师注册机模板来测试。
+
+这样编译出来的程序只有几十K，呵呵，我喜欢。
+
+```
+//添加uses OpenGL单元
+```
+```pascal
+const
+    StarCount       = 500;    //流星数量
+
+type TVertex = record
+        X, Y, Z: glFloat;
+    end;
+
+var
+    h_Wnd           : HWND;             // 保存需要进行绘图的窗口或控件的句柄
+    h_DC            : HDC;              // OpenGL渲染描述表句柄
+    h_RC            : HGLRC;            // 窗口着色描述表句柄
+    RndVal          : glFloat;
+    Stars           : array[0..StarCount, 0..1] of TVertex;
+    SSP             : array[0..StarCount] of glFloat;
+    GL_Rect         : TRect; //记录绘画的矩形
+```
+{------------------------------------------------------------------}
+{  绘图主体过程                                                    }
+{------------------------------------------------------------------}
+```pascal
+procedure glDraw();
+var
+    I : Integer;
+begin
+    glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT);  //清除屏幕和深度缓存
+    glLoadIdentity();                   // 重置当前的模型观察矩阵
+    glTranslate(0, 0, -7);               //移动坐标原点
+    glRotatef(90, 1, 0, 0);              //绕X轴90度旋转
+    // 绘制流星
+    for I := 0 to StarCount do
+    begin
+        glBegin(GL_LINE_STRIP);         //绘制不闭合折线
+        glColor3f((Stars[I, 0].Y / 5), (Stars[I, 0].Y / 5), (Stars[I, 0].Y / 5)); //设置流星颜色
+        glVertex3fv(@Stars[I, 0]);
+        glVertex3fv(@Stars[I, 1]);
+        Stars[I, 1] := Stars[I, 0];
+        Stars[I, 0].Y := Stars[I, 0].Y + SSP[I];
+        if Stars[I, 0].Y >= 10 then
+        begin
+            SSP[I] := Random(100) / 1000;
+            Stars[I, 0].X := (Random(200) - 100) / 100;
+            Stars[I, 0].Y := 0;
+            Stars[I, 0].Z := (Random(200) - 100) / 100;
+            Stars[I, 1] := Stars[I, 0];
+        end;
+        glEnd;
+    end;
+end;
+```
+{------------------------------------------------------------------}
+{  初始化 OpenGL 过程                                              }
+{------------------------------------------------------------------}
+```pascal
+procedure glInit();
+var
+    I  : Integer;
+begin
+    glClearColor(0.0, 0.0, 0.0, 0.0);   // 设置黑色背景
+    glShadeModel(GL_SMOOTH);            // 使用色彩阴影平滑
+    glClearDepth(1.0);                  // 设置深度缓存值
+    glDisable(GL_DEPTH_TEST);           // 启用深度测试
+    glBlendFunc(GL_ONE, GL_ONE);        // 调整混合模式
+    glEnable(GL_BLEND);                 // 使混合可用
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);  // 设置系统如何计算流星
+    glLineWidth(2);                     // 设置线宽为2
+    RndVal := 0.07;
+    for I := 0 to StarCount do
+        SSP[I] := Random(100) / 1000;
+end;
+```
+{------------------------------------------------------------------}
+{  绘图窗口/控件改变大小时的调整过程                               }
+{------------------------------------------------------------------}
+```pascal
+procedure glResizeWnd();
+var
+    Width, Height: Integer;
+begin
+    Width:=GL_Rect.Right - GL_Rect.Left; // 已经在 初始化窗口中获得数据
+    Height:= GL_Rect.Bottom - GL_Rect.Top;
+    glViewport(0, 0, Width, Height);    // 设置视口区域
+    glMatrixMode(GL_PROJECTION);        // 改变投影矩阵
+    glLoadIdentity();                   // 重置投影矩阵
+    gluPerspective(45.0, Width / Height, 1.0, 100.0);  // 窗口透视计算. Last value = max clipping depth
+    glMatrixMode(GL_MODELVIEW);         // 返回投影矩阵
+    glLoadIdentity();                   // 重置投影矩阵
+end;
+```
+{------------------------------------------------------------------}
+{  初始化OpenGL参数，在主窗口创建时加载                            }
+{------------------------------------------------------------------}
+```pascal
+procedure FormCreate_Event;
+var
+    pfd             : TPIXELFORMATDESCRIPTOR; // 窗口使用的像素格式
+    PixelFormat     : GLuint;
+begin
+    with pfd do
+    begin
+        nSize := SizeOf(TPIXELFORMATDESCRIPTOR);  // 上述格式描述符的大小
+        nVersion := 1;                  // 版本号
+        dwFlags := PFD_DRAW_TO_WINDOW   // 格式支持窗口
+        or PFD_SUPPORT_OPENGL           // 格式必须支持OpenGL
+        or PFD_DOUBLEBUFFER;            // 必须支持双缓冲
+        iPixelType := PFD_TYPE_RGBA;    // 申请 RGBA 格式
+        cColorBits := 24;               // 选定色彩深度
+        cRedBits := 0;
+        cRedShift := 0;
+        cGreenBits := 0;
+        cGreenShift := 0;
+        cBlueBits := 0;
+        cBlueShift := 0;                // 以上六个值为0，忽略红绿蓝色彩位
+        cAlphaBits := 0;                // 无Alpha缓存
+        cAlphaShift := 0;               // 忽略Shift Bit
+        cAccumBits := 0;                // 无累加缓存
+        cAccumRedBits := 0;
+        cAccumGreenBits := 0;
+        cAccumBlueBits := 0;
+        cAccumAlphaBits := 0;           // 以上四个值为0,忽略聚集位
+        cDepthBits := 16;               // 16位 Z-缓存 (深度缓存)
+        cStencilBits := 0;              // 无蒙板缓存
+        cAuxBuffers := 0;               // 无辅助缓存
+        iLayerType := PFD_MAIN_PLANE;   // 主绘图层
+        bReserved := 0;                 // Reserved
+        dwLayerMask := 0;
+        dwVisibleMask := 0;
+        dwDamageMask := 0;              // 以上三个值为0，忽略层遮罩
+    end;
+    PixelFormat := ChoosePixelFormat(h_DC, @pfd); // 选择相应的象素格式
+    SetPixelFormat(h_DC, PixelFormat, @pfd);      // 设置象素格式么
+    h_RC := wglCreateContext(h_DC);               // 取得着色描述表
+    wglMakeCurrent(h_DC, h_RC);                   // 尝试激活着色描述表
+    glResizeWnd;                                  //指定绘画范围
+    glInit();                                     //初始化OpenGL
+end;
+```
+{------------------------------------------------------------------}
+{  释放DC和RC描述表                                                }
+{------------------------------------------------------------------}
+```pascal
+procedure FormDestroy_Event;
+begin
+    wglMakeCurrent(h_DC, 0);
+    wglDeleteContext(h_RC);
+    ReleaseDC(h_Wnd, h_DC);
+end;
+```
+//OpenGL 绘图函数和过程构造至此结束.
+
+{------------------------------------------------------------------}
+{  以下以Windows优化大师注册机源代码为例实现OpenGL绘图             }
+{------------------------------------------------------------------}
+
+API创建窗口过程，在处理消息队列过程中，捕获`WM_INITDIALOG`消息后处理以下过程：
+```pascal
+SetTimer(hDlg,$A8,1,NIL);               //设置计时器，触发时间为1毫秒
+//获得进行绘图控件的句柄，这里我以 资源形式生成Group控件,ID为$7D0 = 2000;
+h_Wnd := GetDlgItem(hDlg,$7D0);
+h_DC:=GetDC(h_Wnd);                     //用于OPENGL绘画
+GetWindowRect(h_Wnd,GL_Rect);           //获得Group控件的矩形数据，保存至GL_Rect，用于以后取得矩形范围
+FormCreate_Event;                       // 初始化OpneGL 参数
+```
+然后再捕获`WN_TIMER`消息进行处理，加入以下代码
+```pascal
+glDraw();                           // 绘制场景
+SwapBuffers(h_DC);                  // 交换缓存 (双缓存)
+```
+捕获退出消息`MAIN_CLOSE`和`MAIN_EXIT`消息进行处理，加入以下代码
+```pascal
+FormDestroy_Event;       //释放资源
+```
+________________________________________________________
+
+到此为止，一个OpenGL的主要架框已经完成，并能正常运行。
+
+本文只是提供一种架框和思路而已，希望对大家有所启发。文章中的疏忽之处恳请高手指正。
+
+附件里是已经编译好的注册机程序。
+
+--------------------------------------------------------------------------------
+
+## 【经验总结】
+
+本人刚学OpenGl不久，还有许多疑问有待解决，网上有很多关于它的介绍，比如NEHE的教程就非常精彩，但都是用C语言来解释的，本人只懂Delphi，郁闷啊。看来要回头恶补C语言 `![](https://bbs.kanxue.com/view/img/face/50.gif)`
