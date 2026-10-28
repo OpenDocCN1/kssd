@@ -1,7 +1,7 @@
 
 # [原创]开机自启动技术
 
-## 一、快速启动文件夹
+## 一.快速启动文件夹
 
 在Windows系统中有一个快速启动文件夹，只要把我们的程序放到这个文件夹下，就可以实现开启启动。但由于每台计算机的快速启动文件夹都不一样，所以我们需要使用`SHGetSpecialFolderPath`函数来获取快速启动文件夹。它在文档中的定义如下
 
@@ -21,7 +21,7 @@ BOOL SHGetSpecialFolderPath(
 
 参数`lpszPath`是我们指定的缓冲区，用来保存返回快速启动文件夹路径。缓冲区的大小最少为`MAX_PATH`。
 
-参数`nFolder`是系统路径的CSIDL标识，这里传入`CSIDL_STARTUP`代表快速启动文件夹。
+参数`nFloader`是系统路径的CSIDL标识，这里传入`CSIDL_STARTUP`代表快速启动文件夹。
 
 参数`fCreate`指定文件夹不存在时是否要创建。`TRUE`表示创建，`FALSE`为不创建。
 
@@ -83,7 +83,7 @@ void StartProgram()
 
 ![](https://bbs.kanxue.com/upload/attach/202110/835440_T4NA7K7NFPZDXXJ.jpg)
 
-## 二、注册表
+## 二.注册表
 
 Windows每次开机启动后都会在两个专门的注册表键下遍历键值，得到相应的程序路径并且将它们启动。
 
@@ -122,7 +122,7 @@ LONG WINAPI RegOpenKeyEx(
 
 参数`lpSubKey`指向一个字符串用来表明我们要打开的键的名称。
 
-参数`ulOptions`被保留起来，必须设为`0`。
+参数`ulOptions`被保留起来，必须设为0。
 
 参数`samDesired`指定得到的键值的权限。其中`KEY_ALL_ACCESS`代表获取全部权限。
 
@@ -152,9 +152,9 @@ LONG WINAPI RegSetValueEx(
 
 参数`lpValueName`指向了包含预设值名称的字符串。
 
-参数`Reserved`被保留起来，必须设为`0`。
+参数`Reserved`被保留起来，必须设为0。
 
-参数`dwType`指定将存储的数据类型。其中`REG_SZ`表示类型是一个以`0`结尾的字符串。
+参数`dwType`指定将存储的数据类型。其中`REG_SZ`表示类型是一个以0结尾的字符串。
 
 参数`lpData`指向了一个缓冲区，缓冲区中包含了要存储的数据。
 
@@ -220,7 +220,7 @@ void StartProgram()
 
 此时重启系统，程序就会在重启后运行。
 
-## 三、驱动服务自启动
+## 三.驱动服务自启动
 
 这种自启动方式主要是通过设置我们编写的驱动以随系统自启动的方式启动我们的驱动来实现的。要实现这个功能需要以下的步骤
 
@@ -236,7 +236,7 @@ SC_HANDLE WINAPI OpenSCManager(
   __in      DWORD dwDesiredAccess);
 ```
 
-参数1指向目标计算机名的字符串，如果为`NULL`则连接到本地的服务控制管理器
+参数1指向目标计算机名的字符串，如果为`NULL`则连接到本地的服务控制管理器。
 
 参数2指向要打开的服务控制管理数据库的名称。此参数应该设置为`SERVICES_ACTIVE_DATABASE`，如果设置为`NULL`，就是默认打开它。
 
@@ -317,6 +317,8 @@ SC_HANDLE WINAPI OpenService(
   __in  LPCTSTR lpServiceName,
 
   __in  DWORD dwDesiredAccess);
+
+Parameters
 ```
 
 参数1指向的就是SCM数据库的句柄。
@@ -341,7 +343,7 @@ BOOL WINAPI StartService(
 
 参数1指向服务的句柄。
 
-参数2指定参数3的字符串个数，如果参数3为空，则它为`0`。
+参数2指定参数3的字符串个数，如果参数3为空，则它为0。
 
 参数3传递给服务的参数，如果没有则为`NULL`。
 
@@ -484,4 +486,4 @@ exit:
 
 [传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
 
-最后于  2021-11-12 15:26 被1900编辑 ，原因：
+最后于 2021-11-12 15:26 被1900编辑，原因：
