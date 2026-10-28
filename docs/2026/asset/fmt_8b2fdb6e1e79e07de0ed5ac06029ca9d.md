@@ -1,5 +1,5 @@
 
-```python
+```
 def change_size(self, file):
     image = cv2.imread(file, 1)  # 读取图片 image_name应该是变量
     img = cv2.medianBlur(image, 5)  # 中值滤波，去除黑色边际中可能含有的噪声干扰
@@ -26,7 +26,7 @@ def change_size(self, file):
 
 # 算出缺口的位置
 
-```python
+```
 def match(self, target, template):
     img_gray = cv2.imread(target, 0)
     img_rgb = self.change_size(template)
@@ -54,7 +54,7 @@ def match(self, target, template):
 
 # 模拟变加速
 
-```python
+```
 def get_tracks(self, distance, seconds, ease_func):
     distance += 20
     tracks = [0]
