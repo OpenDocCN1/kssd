@@ -1,0 +1,196 @@
+
+# [原创]inline MmFlushImageSection实现文件的强制删除
+
+说明下,技术比较古老,适合我等小菜...
+
+中秋的时候看了关于内核对象的内容, 为了加深理解, 就想试下文件的强制删除,只要把文件对象的引用计数改为0就可以了嘛... 不过郁闷的是根本就找不到那个文件对象![](https://bbs.kanxue.com/view/img/face/50.gif), 那个囧啊,然后就去网上找资料,怎么才能实现文件的强制删除呢?MJ说有两种方法
+
+1. 你可以使用自己给fsd发送`irp`请求来删除文件，或者用`HOOK` `MmFlushImageSection`等方法,详细见`xikug`等人逆向的`360FileKill`的驱动代码
+
+2. 使用`DeviceIoControl`调用驱动文件，或使用事件、共享内存等方法亦可
+
+然后就去看文件过滤驱动,也就是想给文件系统发`IRP`实现,看那个寒江独钓,好不容易看懂了,不过纠结的是他没有提供读写的源码![](https://bbs.kanxue.com/view/img/face/50.gif),郁闷ing... 接下来就是`HOOK` `MmFlushImageSection`函数了,终于找到了一篇代码了![](https://bbs.kanxue.com/view/img/face/41.gif),使用`hook` `MmFlushImageSection`实现文件保护... 作者`liuke_blue`,非常感谢,O(∩_∩)O哈哈~
+
+于是开始编写自己的文件强制删除机...
+
+```
+//自己的处理函数
+
+BOOLEAN NTAPI  Fake_MmFlushImageSection(IN PSECTION_OBJECT_POINTERS SectionObjectPointer,IN MMFLUSH_TYPE FlushType)
+
+{
+
+  PFILE_OBJECT pfile;
+
+  WCHAR *pwsz=NULL;
+
+  
+
+  if (FlushType == MmFlushForDelete)
+
+  {
+
+    if(SectionObjectPointer->DataSectionObject!=NULL)
+
+	{
+
+//这里取得文件对象
+
+	   pfile=(PFILE_OBJECT)( *(ULONG*)((ULONG)SectionObjectPointer->DataSectionObject + 0x24) );
+
+	   __try
+
+	   {
+
+         pwsz=wcsrchr(pfile->FileName.Buffer,L'\\');
+
+	     if (pwsz!=NULL)
+
+		 {
+
+	      pwsz++;
+
+		 }
+
+//比较文件名是否相同,如果是,则删除
+
+         if (strcmp(outBuf.Buffer, pwsz) == 0)
+
+         {
+
+			DbgPrint("FileName=%ws",pwsz);
+
+		    return TRUE;
+
+         }
+
+	   }
+
+	  except(1)
+
+	  {
+
+      return FALSE;  
+
+	  }
+
+	 
+
+	}
+
+  }
+
+  return  MmFlushImageSection(SectionObjectPointer,FlushType); 
+
+}
+```
+
+不过还是遇到那么些问题, 当文件在运行时将其删除,用常规的方法
+
+```
+BOOLEAN _DeleteFileNormal(PUNICODE_STRING filename)
+
+{
+
+	HANDLE hfile;
+
+	NTSTATUS ntstatus;
+
+	ACCESS_MASK  acmask;
+
+	OBJECT_ATTRIBUTES oa;
+
+	IO_STATUS_BLOCK iostatus;
+
+	ULONG shareAccess;
+
+	ULONG openOptions;
+
+	FILE_STANDARD_INFORMATION filestandardinfo;
+
+	FILE_DISPOSITION_INFORMATION filedisposition;
+
+
+
+    
+
+    InitializeObjectAttributes(&oa, filename, OBJ_CASE_INSENSITIVE , NULL, NULL);
+
+//方法1：调用ZwDeleteFile函数删除	
+
+ZwDeleteFile(&oa);
+
+/*
+
+//方法2：根据DeleteFile函数逆向出来的, 如果文件没在使用中可以删除,如果在使用中则ZwOpenFile函数失败,自然也不会调用MmFlushImageSection函数了,所以文件删除失败
+
+ 	ntstatus = ZwOpenFile(&hfile, GENERIC_READ | GENERIC_WRITE, &oa, &iostatus, FILE_SHARE_READ | FILE_SHARE_WRITE, FILE_NON_DIRECTORY_FILE);
+
+    if (!NT_SUCCESS(ntstatus))
+
+    {
+
+	   KdPrint(("ZwOpenFile failed\n"));
+
+	   return FALSE;
+
+    }
+
+
+
+	ntstatus = ZwQueryInformationFile(hfile, &iostatus, &filestandardinfo, sizeof(FILE_STANDARD_INFORMATION), FileStandardInformation);
+
+    if (!NT_SUCCESS(ntstatus))
+
+    {
+
+	  KdPrint(("Query FileStandardInformation failed..\n"));
+
+	  return FALSE;
+
+    }
+
+
+
+	if (filestandardinfo.DeletePending == FALSE)
+
+	{
+
+		filedisposition.DeleteFile = TRUE;
+
+		ntstatus = ZwSetInformationFile(hfile, &iostatus, &filedisposition, sizeof(FILE_DISPOSITION_INFORMATION), FileDispositionInformation);
+
+        if (!NT_SUCCESS(ntstatus))
+
+        {
+
+	        KdPrint(("ZwSetInformationFile failed\n"));
+
+	        return FALSE;
+
+        }
+
+	}
+
+	ZwClose(hfile);
+
+	*/
+
+	return TRUE;
+
+}
+```
+
+不过这里删除失败以后,去那个目录下直接删除,是可以删除成功的![](https://bbs.kanxue.com/view/img/face/1.gif),所以强制删除应该还是成功的吧,只是有那么个`bug`, 作为小菜的我是非常纠结丫...没找到原因![](https://bbs.kanxue.com/view/img/face/15.gif),所以哪位大侠知道的,劳烦告知下... 不胜感激... 具体的代码见附件.
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [ring0层代码.rar](javascript:void(0);)
+
+  （3.70kb，138次下载）
+
+- [ring3层代码.rar](javascript:void(0);)
+
+  （45.93kb，152次下载）
