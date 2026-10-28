@@ -1,0 +1,125 @@
+
+# [原创]NSudo 恶魔模式 - 一个面向希望无视文件和注册表访问检查的开发者的解决方案
+
+## 不算前言的前言
+
+由于在吾爱论坛发布了<a href="elink@555K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3f1#2x3Y4m8G2K9X3W2W2i4K6u0W2j5$3&6Q4x3V1k6@1K9s2u0W2j5h3c8Q4x3X3b7I4x3o6V1I4z5o6j5%4i4K6u0V1x3g2)9J5k6o6q4Q4x3X3g2Z5N6r3#2D9">同样的帖子</a>，并没有得到什么回复，更别提有价值的回复。向朋友吐槽后，他们建议我在看雪论坛发这个帖子。
+
+昨天注册了看雪论坛的账号后，貌似要获取 1k 雪币购买了邀请码才能升级为正式会员，自己为此头痛了一会儿，但由于运气足够好，五次幸运大转盘，一下子赚了 3k 雪币，购买了邀请码。
+
+当然，由于新账号 24 小时不能发帖的限制，让我硬生生地等待了 24 个小时……
+
+## NSudo 恶魔模式介绍
+
+NSudo 恶魔模式 (NSudo Devil Mode) 是为想无视文件和注册表操作权限检查的开发者量身定做的一个用起来还算优雅的解决方案。
+
+其原理是使用开源的 Microsoft Detours 库对 Windows NT 内核的文件和注册表相关的系统调用进行 Inline Hook 以传入选项让开发者基本不用修改自己的实现也能充分的利用管理员权限所提供的特权，这也使得开发者只需要把 NSudo 恶魔模式的动态链接库加载入自己的以管理员身份运行的应用进程的地址空间内即可启用 NSudo 恶魔模式。
+
+由于 NSudo 恶魔模式可以在大部分情况下替代类似 NSudo 的工具，于是 NSudo 未来的功能会变得更加专业向。毕竟作为 NSudo 的作者的我可不希望 NSudo 就这么轻易地被替代掉。
+
+当然，由于 NSudo 恶魔模式属于 Dism++ 春哥附体的后续版本 (毕竟我也是 Dism++ 的其中一位开发者，这么说还是有依据的)，于是未来 Dism++ 的春哥附体的实现会被替换成 NSudo 恶魔模式以帮助我更好的重构 Dism++ 的实现。当然，NSudo 也会支持以恶魔模式运行应用。
+
+## NSudo 恶魔模式的起源、命名和意义
+
+正如上文所说，NSudo 恶魔模式属于 Dism++ 春哥附体的后续版本，而且你也能在本文中了解 NSudo 恶魔模式和 Dism++ 春哥附体的区别。
+
+命名为 NSudo 恶魔模式的灵感来源是《入间同学入魔了》的被蛋爷改造过的拥有四个档位的入间手中的“恶食戒指”。
+
+最开始听到 MSMG Toolkit 的作者希望我能提供 NSudo 的 SDK 方便他进行二次开发的时候，我试着做了基于 COM 接口的 NSudo Shared Library 即`NSudoAPI`，但是由于`NSudoAPI`暴露的细节太多，如果不是对 Windows 安全特性足够了解的开发者是很难驾驭的。于是我觉得得换个方向，于是就做了 NSudo 恶魔模式。
+
+## NSudo 恶魔模式挂钩的 Windows NT 内核系统调用列表
+
+| 内核调用名称 | 起源 |
+| --- | --- |
+| `NtCreateKey` | 在 Dism++ 春哥附体中引入 |
+| `NtCreateKeyTransacted` | 在 NSudo 恶魔模式中引入 |
+| `NtOpenKey` | 在 Dism++ 春哥附体中引入，在 NSudo 恶魔模式中得到增强 |
+| `NtOpenKeyTransacted` | 在 NSudo 恶魔模式中引入 |
+| `NtOpenKeyEx` | 在 Dism++ 春哥附体中引入 |
+| `NtOpenKeyTransactedEx` | 在 NSudo 恶魔模式中引入 |
+| `NtCreateFile` | 在 Dism++ 春哥附体中引入 |
+| `NtOpenFile` | 在 Dism++ 春哥附体中引入 |
+
+## 如何使用 NSudo 恶魔模式
+
+调用`LoadLibrary`加载 NSudo 恶魔模式的动态链接库以启用 NSudo 恶魔模式，调用`FreeLibrary`释放 NSudo 恶魔模式的动态链接库的`HMODULE`句柄即可禁用 NSudo 恶魔模式。
+
+当然，你的应用需要在管理员权限下运行，相对于原本要求`SYSTEM`和`TrustedInstaller`权限的情况下其实好了不少。
+
+注：如果你有本事把 NSudo 恶魔模式远程注入到以管理员或者更高权限的进程内（譬如 7-Zip），也能为该进程赋能（无视文件和注册表的权限）。
+
+下面提供一个使用 C# 编写的测试用例。（遍历`C:\System Volume Information`目录的内容，当启用 NSudo 恶魔模式的情况下可以正常显示，禁用后会抛出文件夹拒绝访问的异常。）
+
+```csharp
+using System;
+using System.IO;
+using System.Runtime.InteropServices;
+namespace Demo
+{
+class Program
+{
+[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+static extern IntPtr LoadLibrary(string lpLibFileName);
+[DllImport("kernel32.dll", SetLastError = true)]
+[return: MarshalAs(UnmanagedType.Bool)]
+static extern bool FreeLibrary(IntPtr hLibModule);
+static void Main(string[] args)
+{
+IntPtr NSudoDevilModeModuleHandle = LoadLibrary(
+@"E:\GitHub\M2Team\NSudo\Output\Release\x64\NSudoDevilMode.dll");
+{
+DirectoryInfo Folder = new DirectoryInfo(
+@"C:\System Volume Information");
+foreach (FileInfo File in Folder.GetFiles())
+{
+Console.WriteLine(File.FullName);
+}
+}
+FreeLibrary(NSudoDevilModeModuleHandle);
+{
+DirectoryInfo Folder = new DirectoryInfo(
+@"C:\System Volume Information");
+foreach (FileInfo File in Folder.GetFiles())
+{
+Console.WriteLine(File.FullName);
+}
+}
+Console.ReadKey();
+}
+}
+}
+```
+
+## 屏幕截图
+
+### 某个 C# 示例
+
+![](upload/attach/202002/881623_TK782HUZDBNX5AR.jpg)
+
+未启用 NSudo 恶魔模式
+
+![](upload/attach/202002/881623_KQAF3NJCSNZRSEJ.jpg)
+
+已启用 NSudo 恶魔模式
+
+### 朋友的 Covariant Script 示例
+
+> `system.file.rename("C:/Windows/notepad.exe", "C:/Windows/ice1000.exe")`
+
+![](upload/attach/202002/881623_AT8ANGEPGY3VWRU.jpg)
+
+未启用 NSudo 恶魔模式
+
+![](upload/attach/202002/881623_N2B65EZPU3D8GXZ.jpg)
+
+已启用 NSudo 恶魔模式（由于朋友的项目是开源的，于是我直接在项目里面调用了下`LoadLibrary`）
+
+## 下载
+
+NSudo 8.0 已经发布，请到 <a href="elink@d98K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6y4x3W2c8W2j5h3#2Q4x3V1k6z5f1%4g2V1L8#2)9J5c8Y4u0W2L8r3g2S2M7$3g2K6i4K6u0r3N6r3q4Y4i4K6u0r3z5q4)9J5k6e0l9`."><mark class="encrypted">c39K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6y4x3W2c8W2j5h3#2Q4x3V1k6z5f1%4g2V1L8#2)9J5c8Y4u0W2L8r3g2S2M7$3g2K6i4K6u0r3N6r3q4Y4i4K6u0r3z5q4)9J5k6e0l9`.</mark></a> 下载
+
+## 有点推广性质的附注
+
+如果你也想要像我一样做出体积精巧的二进制（或者你好奇为什么 NSudo 恶魔模式的动态链接库文件都没有超过 40KB 的话），强烈推荐了解一下和 Dism++ 同属一个开发团队出品的 <a href="elink@946K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6o6K9s2g2&6N6g2)9J5k6q4c8W2j5h3#2Q4x3V1k6h3b7#2)9J5k6p5I4f1e0l9`.`.">VC-LTL</a>，NSudo 也在使用 VC-LTL，这也是 NSudo 本体可以做到 120KB 以内的体积的原因之一。
+
+## M2-Team
