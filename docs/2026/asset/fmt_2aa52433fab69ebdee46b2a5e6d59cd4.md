@@ -1,0 +1,239 @@
+
+# [翻译] Win32 asm 第二十三课：托盘图标
+
+## Tutorial 23: Tray Icon
+
+### 第二十三课：托盘图标
+
+In this tutorial, we will learn how to put icons into system tray and how to create/use a popup menu.
+
+在这一课中，我们将学习如何把一个图标放入系统托盘以及学习如何创建和使用一个弹出式菜单。
+
+Download the example here.
+
+## Theory:
+
+### 原理：
+
+System tray is the rectangular region in the taskbar where several icons reside. Normally, you'll see at least a digital clock in it. You can also put icons in the system tray too. Below are the steps you have to perform to put an icon into the system tray:
+
+系统托盘是在任务栏上可以驻留若干图标的一块矩形区域。通常，你至少可以在它上面看到一个数字显示式时钟。你也能放置一些图标在系统托盘上。你必须执行下面这些步骤来放置一图标在系统托盘上：
+
+1. Fill a `NOTIFYICONDATA` structure which has the following members:
+
+填充一个 `NOTIFYICONDATA`结构，这个结构的成员如下：
+
+o `cbSize` The size of this structure. 这个结构的字节大小
+
+o `hwnd` Handle of the window that will receive notification when a mouse event occurs over the tray icon.窗口句柄，当鼠标事件发生在系统托盘上时，这个窗口将接收通知码。
+
+o `uID` A constant that is used as the icon's identifier. You are the one who decides on this value. In case you have more than one tray icons, you will be able to check from what tray icon the mouse notification is from.
+
+作为图标标识的一常数。你可以取任意值，但是值必须是唯一的。因为，当有多个图标在托盘上时，你将要区分鼠标消息来自于那个图标。故这个值必须取唯一值。
+
+o `uFlags` Specify which members of this structure are valid
+
+指定这个结构的那些成员变量有效。
+
+- `NIF_ICON` The `hIcon` member is valid.
+
+`hIcon` 成员有效
+
+- `NIF_MESSAGE` The `uCallbackMessage` member is valid.
+
+`uCallbackMessage` 成员有效
+
+- `NIF_TIP` The `szTip` member is valid.
+
+`SzTip` 成员有效
+
+o `uCallbackMessage` The custom message that Windows will send to the window specified by the `hwnd` member when mouse events occur over the tray icon. You create this message yourself.
+
+`uCallbackMessage` 自定义消息。当鼠标事件在托盘图标上发生时，windows将通过`hwnd`成员发送给指定的窗口。你可以自己创建这个消息。
+
+o `hIcon` The handle of the icon you want to put into the system tray
+
+`hIcon` 你想放在系统托盘上的图标的句柄。
+
+o `szTip` A 64-byte array that contains the string that will be used as the tooltip text when the mouse hovers over the tray icon.
+
+`SzTip` 一个64位的数组，这个数组存放的是---当鼠标停留在小图标上时，作为提示文本的字符串。
+
+2. Call `Shell_NotifyIcon` which is defined in `shell32.inc`. This function has the following prototype:
+
+调用`Shell_NotifyIcon`函数，这个还属定义在`shell32.inc`中.函数原型如下:
+
+```
+Shell_NotifyIcon PROTO dwMessage:DWORD ,pnid:DWORD
+```
+
+`dwMessage` is the type of message to send to the shell.
+
+`DwMessage` 是发送给windows外壳的消息.
+
+`NIM_ADD` Adds an icon to the status area.
+
+往状态栏上增加一个图标.
+
+`NIM_DELETE` Deletes an icon from the status area.
+
+从状态栏上删除一图标.
+
+`NIM_MODIFY` Modifies an icon in the status area.
+
+在状态栏中修改一图标.
+
+`pnid` is the pointer to a `NOTIFYICONDATA` structure filled with proper values
+
+`Pnid` 是一个指向填满特征值的`NOTIFYICONDATA` 结构指针。
+
+If you want to add an icon to the tray, use `NIM_ADD` message, if you want to remove the icon, use `NIM_DELETE`.
+
+如果你想增加一个图标在托盘上，用`NIM_ADD` 消息，如果你想移出一个图标，用`NIM_DELETE`消息。
+
+That's all there is to it. But most of the time, you're not content in just putting an icon there. You need to be able to respond to the mouse events over the tray icon. You can do this by processing the message you specified in `uCallbackMessage` member of `NOTIFYICONDATA` structure. This message has the following values in `wParam` and `lParam` (special thanks to s__d for the info):
+
+基本上全部的消息就是这些。但是大多数时候，你并不满足于仅仅放置一图标在这儿。你需要在鼠标事件发生在托盘图标上时能够做出响应。你能够这样做，通过在`NOTIFYICONDATA`结构中的`uCallbackMessage`成员中指定你要处理的消息。这个消息的`wparam`和`lparam`的值如下。
+
+- `wParam` contains the ID of the icon. This is the same value you put into `uID` member of `NOTIFYICONDATA` structure.
+
+`Wparam` 包含这个图标的ID号。这是一个你放在`NOTIFYICONDATA`结构成员`uID`的值。
+
+- `lParam` The low word contains the mouse message. For example, if the user right-clicked at the icon, `lParam` will contain `WM_RBUTTONDOWN`.
+
+`Lparam` 低字节包含鼠标消息。例如，如果你在图标上点击了右键，`lparam`将包含`WM_RBUTTONDOWN`消息。
+
+Most tray icon, however, displays a popup menu when the user right-click on it. We can implement this feature by creating a popup menu and then call `TrackPopupMenu` to display it. The steps are described below:
+
+然而，当用户在托盘图标上点击右键时，大多数的托盘图标将显示一个弹出式菜单。我们能通过创建一个弹出式菜单来实现这一特征，然后调用`TrackPopupMenu`来显示它。这些步骤描述如下：
+
+1. Create a popup menu by calling `CreatePopupMenu`. This function creates an empty menu. It returns the menu handle in `eax` if successful.
+
+通过调用`CreatePopupMenu`函数来创建一弹出式菜单。这个函数创建一个空的菜单。如果成功，它在`eax`中返回一个菜单句柄。
+
+2. Add menu items to it with `AppendMenu`, `InsertMenu` or `InsertMenuItem`.
+
+用`AppendMenu`, `InsertMenu` 或`InsertMenuItem`函数来添加菜单项。
+
+3. When you want to display the popup menu where the mouse cursor is, call `GetCursorPos` to obtain the screen coordinate of the cursor and then call `TrackPopupMenu` to display the menu. When the user selects a menu item from the popup menu, Windows sends `WM_COMMAND` message to your window procedure just like normal menu selection.
+
+当你想在鼠标光标处显示这个菜单时，调用`GetCursorPos`函数来得到光标的屏幕坐标，然后调用`TrackPopMenu`来显示菜单。当用户从弹出式菜单上选择一个菜单项时，windows发送`WM_COMMAND`消息给你的窗口处理过程，就像你选择了正常的菜单一样。
+
+Note: Beware of two annoying behaviors when you use a popup menu with a tray icon:
+
+注意：当你在托盘图标上使用一个弹出菜单时，小心两件比较恼人的行为。
+
+1. When the popup menu is displayed, if you click anywhere outside the menu, the popup menu will not disappear immediately as it should be. This behavior occurs because the window that will receive the notifications from the popup menu MUST be the foreground window. Just call `SetForegroundWindow` will correct it.
+
+当弹出式菜单被显示时，如果你在菜单以外任何地方点击了鼠标，这个弹出式菜单不会像它应该做的那样立即消失不见。这个行为重现是因为接收菜单消息的窗口必须是前景窗口。仅需调用`SetForegroundWindow`就能纠正它。
+
+2. After calling `SetForegroundWindow`, you will find that the first time the popup menu is displayed, it works ok but on the subsequent times, the popup menu will show up and close immediately. This behavior is "intentional", to quote from MSDN. The task switch to the program that is the owner of the tray icon in the near future is necessary. You can force this task switch by posting any message to the window of the program. Just use `PostMessage`, not `SendMessage`!
+
+在调用`SetForegroundWindow`函数后，你将发现第一次弹出的菜单正常显示并且工作的很好，但是在后来，弹出式菜单弹出便立即关闭。引用MSDN这样的行为是“故意的”。为了使得弹出菜单保持住，必须要求下一个切换到的是程序的主窗口。你能通过置入任何消息给程序的窗口来强制的切换任务。但是只能用`PostMessage`函数而不能用`SendMessage`函数。
+
+## Example:
+
+```
+.386
+
+.model flat,stdcall
+
+option casemap:none
+
+include \masm32\include\windows.inc
+
+include \masm32\include\user32.inc
+
+include \masm32\include\kernel32.inc
+
+include \masm32\include\shell32.inc
+
+includelib \masm32\lib\user32.lib
+
+includelib \masm32\lib\kernel32.lib
+
+includelib \masm32\lib\shell32.lib
+
+WM_SHELLNOTIFY equ WM_USER+5
+
+IDI_TRAY equ 0
+
+IDM_RESTORE equ 1000
+
+IDM_EXIT equ 1010
+
+WinMain PROTO :DWORD,:DWORD,:DWORD,:DWORD
+
+.data
+
+ClassName  db "TrayIconWinClass",0
+
+AppName    db "TrayIcon Demo",0
+
+RestoreString db "&Restore",0
+
+ExitString   db "E&xit Program",0
+
+.data?
+
+hInstance dd ?
+
+note NOTIFYICONDATA <>
+
+hPopupMenu dd ?
+
+.code
+
+start:
+
+    invoke GetModuleHandle, NULL
+
+    mov    hInstance,eax
+
+    invoke WinMain, hInstance,NULL,NULL, SW_SHOWDEFAULT
+
+    invoke ExitProcess,eax
+
+WinMain proc hInst:HINSTANCE,hPrevInst:HINSTANCE,CmdLine:LPSTR,CmdShow:DWORD
+
+    LOCAL wc:WNDCLASSEX
+
+    LOCAL msg:MSG
+
+    LOCAL hwnd:HWND
+
+    mov   wc.cbSize,SIZEOF WNDCLASSEX
+
+    mov   wc.style, CS_HREDRAW or CS_VREDRAW or CS_DBLCLKS
+
+    mov   wc.lpfnWndProc, OFFSET WndProc
+
+    mov   wc.cbClsExtra,NULL
+
+    mov   wc.cbWndExtra,NULL
+
+    push  hInst
+
+    pop   wc.hInstance
+
+    mov   wc.hbrBackground,COLOR_APPWORKSPACE
+
+    mov   wc.lpszMenuName,NULL
+
+    mov   wc.lpszClassName,OFFSET ClassName
+
+    invoke LoadIcon,NULL,IDI_APPLICATION
+
+    mov   wc.hIcon,eax
+
+    mov   wc.hIconSm,eax
+
+    invoke LoadCursor,NULL,IDC_ARROW
+
+    mov   wc.hCursor,eax
+
+    invoke RegisterClassEx, addr wc
+
+    invoke CreateWindowEx,WS_EX_CLIENTEDGE,ADDR ClassName,ADDR AppName,\
+WS_OVERLAPPED+WS_CAPTION+WS_SYSMENU+WS_MINIMIZEBOX+WS_MAXIMIZEBOX+WS_VISIBLE,CW_USEDEFAULT,\
+```
