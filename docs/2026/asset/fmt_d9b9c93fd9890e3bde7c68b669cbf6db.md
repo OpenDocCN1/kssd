@@ -1,0 +1,368 @@
+
+# [原创]计算机的pci认识
+
+这篇文章源于对《windows驱动开发技术详解》这本书的读后感，这本书奇怪的很，开始就会介绍`ddk`安装,`nt`,`wdm`类型驱动的`helloworld`编写，然后讲`nt`驱动的构架，`irp`的串型，并行，`wdm`驱动实现电源管理，看完这些之后我当时是一个头两个大，不知道它想说啥，也不知道看完这本书之后自己能够干啥。所以为自己这60多块钱感叹不值，将它束之高阁了数月，这两天突然不知哪来的兴趣，就拿下来又看了看，这次直接看的其中一章，实用篇 `<pci设备驱动>`。
+
+这篇文章写的还算是一般晦涩，主要介绍了`pci`的发展，原理，以及到后面的具体开发步骤，继承了这本书的特点，到了真正实用的地方，总是一笔带过，叫你抓不到具体如何实现的精髓。
+
+`pci`是现在计算机主板总线，优胜略汰后的产物，有统一的标准。后来逐渐细分为南桥北桥芯片，南北桥芯片是挂接载原`pci`总线之上，实现了分类管理的功能。北桥上面挂了，`cpu`，内存，基本显示处理这些最基础的挂件，而南桥上挂了绝大多数复杂的设备，比如网卡，键盘，硬盘，声卡，等等一大堆。这样对`pci`是干啥吃的，就有了一定形象化的理解了。
+
+之后就说，`pci`总线配置空间，`pci`总线存储空间等等，说`pci`总线空间给分成两部分，一部分配置头，一部分配置数据，分别是64`byte`和192`byte`，加起来256`byte`，然后花了一页的功夫獒述了配置数据各部分的意义....看到这里我是麻木了一上午，真的恍惚的厉害，后来因为一句话找到了灵感“Intel公司的`VendorID`都是8086”，8086这个在大学计算机原理里面学到吐血的东西，它的总线好像就是16位的，16位的地址总线，复用数据总线，然后锁存器，然后`ad`转换，冥冥之中这些东西似乎有点作用，256=2^16所以，我想`pci`获取配置的原理是这样的：如果你想获取一个`pci`的详细配置数据，比如厂家，或者中断号等等，你就要把一个64字节的`pci`配置头发送到`pci`总线的高4位总线上，然后锁存起来，自然，这个锁存器是主板帮你做的，你只用做的是把`pci`配置头初始化好，然后直接发送到`0xcf8`端口，之后到`0xcfc`端口上读取数据，一次读4字节，连续读取48次，就读完一个`pci`设备的配置了。所以看到这里，我猜想，1.设备头初始化过程里面的每一个项是硬件工程师告诉我们的 2.各个`pci`配置内容是硬件工程师设计好的，而我们要做的工作仅仅只是把中断注册到系统里(`IoConnectInerrupt`)，然后等待这个中断触发，然后处理它。
+
+而处理`pci`中断的过程，似乎和`READ_REGISTER_XX`还有`READ_WRITE_REGISTER_XX`函数息息相关。
+
+整个的读取过程就在下面：
+
+```
+#include <windows.h>
+
+#include <stdio.h>
+
+//使用CTL_CODE必须加入winioctl.h
+
+#include <winioctl.h>
+
+#include "..\NT_Driver\Ioctls.h"
+
+DWORD In_32(HANDLE hDevice,USHORT port)
+
+{
+
+        DWORD dwOutput ;
+
+        DWORD inputBuffer[2] =
+
+        {
+
+                port,//对port进行操作
+
+                4//1代表8位操作，2代表16位操作，4代表32位操作
+
+        };
+
+        DWORD dResult;
+
+        DeviceIoControl(hDevice, READ_PORT, inputBuffer, sizeof(inputBuffer), &dResult, sizeof(DWORD), &dwOutput, NULL);
+
+        return dResult;
+
+}
+
+void Out_32(HANDLE hDevice,USHORT port,DWORD value)
+
+{
+
+        DWORD dwOutput ;
+
+        DWORD inputBuffer[3] =
+
+        {
+
+                port,//对port进行操作
+
+                4,//1代表8位操作，2代表16位操作，4代表32位操作
+
+                value//输出字节
+
+        };
+
+        DeviceIoControl(hDevice, WRITE_PORT, inputBuffer, sizeof(inputBuffer), NULL, 0, &dwOutput, NULL);
+
+}
+
+/* PCI配置空间寄存器 */
+
+#define PCI_CONFIG_ADDRESS      0xCF8
+
+#define PCI_CONFIG_DATA         0xCFC
+
+#define PCI_TYPE0_ADDRESSES             6
+
+#define PCI_TYPE1_ADDRESSES             2
+
+#define PCI_TYPE2_ADDRESSES             5
+
+typedef struct _PCI_COMMON_CONFIG {
+
+    USHORT  VendorID;                   // (ro)
+
+    USHORT  DeviceID;                   // (ro)
+
+    USHORT  Command;                    // Device control
+
+    USHORT  Status;
+
+    UCHAR   RevisionID;                 // (ro)
+
+    UCHAR   ProgIf;                     // (ro)
+
+    UCHAR   SubClass;                   // (ro)
+
+    UCHAR   BaseClass;                  // (ro)
+
+    UCHAR   CacheLineSize;              // (ro+)
+
+    UCHAR   LatencyTimer;               // (ro+)
+
+    UCHAR   HeaderType;                 // (ro)
+
+    UCHAR   BIST;                       // Built in self test
+
+    union {
+
+        struct _PCI_HEADER_TYPE_0 {
+
+            ULONG   BaseAddresses[PCI_TYPE0_ADDRESSES];
+
+            ULONG   CIS;
+
+            USHORT  SubVendorID;
+
+            USHORT  SubSystemID;
+
+            ULONG   ROMBaseAddress;
+
+            UCHAR   CapabilitiesPtr;
+
+            UCHAR   Reserved1[3];
+
+            ULONG   Reserved2;
+
+            UCHAR   InterruptLine;      //
+
+            UCHAR   InterruptPin;       // (ro)
+
+            UCHAR   MinimumGrant;       // (ro)
+
+            UCHAR   MaximumLatency;     // (ro)
+
+        } type0;
+
+// end_wdm end_ntminiport end_ntndis
+
+        //
+
+        // PCI to PCI Bridge
+
+        //
+
+        struct _PCI_HEADER_TYPE_1 {
+
+            ULONG   BaseAddresses[PCI_TYPE1_ADDRESSES];
+
+            UCHAR   PrimaryBus;
+
+            UCHAR   SecondaryBus;
+
+            UCHAR   SubordinateBus;
+
+            UCHAR   SecondaryLatency;
+
+            UCHAR   IOBase;
+
+            UCHAR   IOLimit;
+
+            USHORT  SecondaryStatus;
+
+            USHORT  MemoryBase;
+
+            USHORT  MemoryLimit;
+
+            USHORT  PrefetchBase;
+
+            USHORT  PrefetchLimit;
+
+            ULONG   PrefetchBaseUpper32;
+
+            ULONG   PrefetchLimitUpper32;
+
+            USHORT  IOBaseUpper16;
+
+            USHORT  IOLimitUpper16;
+
+            UCHAR   CapabilitiesPtr;
+
+            UCHAR   Reserved1[3];
+
+            ULONG   ROMBaseAddress;
+
+            UCHAR   InterruptLine;
+
+            UCHAR   InterruptPin;
+
+            USHORT  BridgeControl;
+
+        } type1;
+
+        //
+
+        // PCI to CARDBUS Bridge
+
+        //
+
+        struct _PCI_HEADER_TYPE_2 {
+
+            ULONG   SocketRegistersBaseAddress;
+
+            UCHAR   CapabilitiesPtr;
+
+            UCHAR   Reserved;
+
+            USHORT  SecondaryStatus;
+
+            UCHAR   PrimaryBus;
+
+            UCHAR   SecondaryBus;
+
+            UCHAR   SubordinateBus;
+
+            UCHAR   SecondaryLatency;
+
+            struct  {
+
+                ULONG   Base;
+
+                ULONG   Limit;
+
+            }       Range[PCI_TYPE2_ADDRESSES-1];
+
+            UCHAR   InterruptLine;
+
+            UCHAR   InterruptPin;
+
+            USHORT  BridgeControl;
+
+        } type2;
+
+// begin_wdm begin_ntminiport begin_ntndis
+
+    } u;
+
+    UCHAR   DeviceSpecific[192];
+
+} PCI_COMMON_CONFIG, *PPCI_COMMON_CONFIG;
+
+typedef struct _PCI_SLOT_NUMBER {
+
+    union {
+
+        struct {
+
+            ULONG   FunctionNumber:3;
+
+                        ULONG   DeviceNumber:5;
+
+            ULONG   Reserved:24;
+
+        } bits;
+
+        ULONG   AsULONG;
+
+    } u;
+
+} PCI_SLOT_NUMBER, *PPCI_SLOT_NUMBER;
+
+void DisplayPCIConfiguation(HANDLE hDevice,int bus,int dev,int func)
+
+{
+
+        DWORD        dwAddr;
+
+        DWORD        dwData;
+
+        PCI_COMMON_CONFIG pci_config;
+
+        PCI_SLOT_NUMBER SlotNumber;
+
+        SlotNumber.u.AsULONG = 0;
+
+        SlotNumber.u.bits.DeviceNumber = dev;
+
+        SlotNumber.u.bits.FunctionNumber = func;
+
+        dwAddr = 0x80000000 | (bus <<16) | (SlotNumber.u.AsULONG<<8);
+
+        /* 256字节的PCI配置空间 */
+
+        for (int i = 0; i < 0x100; i += 4)
+
+        {
+
+                /* Read */
+
+                Out_32(hDevice,PCI_CONFIG_ADDRESS, dwAddr | i);
+
+                dwData = In_32(hDevice,PCI_CONFIG_DATA);
+
+                memcpy( ((PUCHAR)&pci_config)+i,&dwData,4);
+
+        }
+
+        printf("bus:%d\tdev:%d\tfunc:%d\n",bus,dev,func);
+
+        printf("VendorID:%x\n",pci_config.VendorID);
+
+        printf("DeviceID:%x\n",pci_config.DeviceID);
+
+        printf("Command:%x\n",pci_config.Command);
+
+        printf("Status:%x\n",pci_config.Status);
+
+        printf("RevisionID:%x\n",pci_config.RevisionID);
+
+        printf("ProgIf:%x\n",pci_config.ProgIf);
+
+        printf("SubClass:%x\n",pci_config.SubClass);
+
+        printf("BaseClass:%x\n",pci_config.BaseClass);
+
+        printf("CacheLineSize:%x\n",pci_config.CacheLineSize);
+
+        printf("LatencyTimer:%x\n",pci_config.LatencyTimer);
+
+        printf("HeaderType:%x\n",pci_config.HeaderType);
+
+        printf("BIST:%x\n",pci_config.BIST);
+
+        for (i=0;i<6;i++)
+
+        {
+
+                printf("BaseAddresses[%d]:0X%08X\n",i,pci_config.u.type0.BaseAddresses[i]);
+
+        }
+
+        printf("InterruptLine:%d\n",pci_config.u.type0.InterruptLine);
+
+        printf("InterruptPin:%d\n",pci_config.u.type0.InterruptPin);
+
+}
+
+int main()
+
+{
+
+        HANDLE hDevice =
+
+                CreateFile("\\\\.\\HelloDDK",
+
+                                        GENERIC_READ | GENERIC_WRITE,
+
+                                        0,                // share mode none
+
+                                        NULL,        // no security
+
+                                        OPEN_EXISTING,
+
+                                        FILE_ATTRIBUTE_NORMAL,
+
+                                        NULL );                // no template
+
+        if (hDevice == INVALID_HANDLE_VALUE)
+
+        {
+
+                printf("Failed to obtain file handle to device: "
+
+                        "%s with Win32 error code: %d\n",
+```
