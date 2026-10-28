@@ -1,11 +1,11 @@
 
-# [分享] 驱动中使用脚本引擎
+# [分享]驱动中使用脚本引擎
 
-移植某个恶心的脚本引擎到 Windows 内核，然后……
+移植某个恶心的脚本引擎到windows内核然后...
 
-包编译通过版～
+包编译通过版~
 
-具体引擎有关的东西看文档目录里的文档吧～
+具体引擎有关的东西看文档目录里的文档吧~
 
 ![](https://bbs.kanxue.com/view/img/face/12.gif)
 
@@ -73,12 +73,14 @@
 
 一切都在附件中，just Read it.
 
-**PS：**
+PS:
 
-最近因为工作调动，手头较紧，求捐助。有意者联系 QQ：86879759。
+最近因为工作调动，手头较紧，求捐助。有意者联系 QQ:`86879759`
 
-[冰与火的战歌：Windows 内核攻防实战高级班！从零到实战，融合 AI 与 Windows 内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
 
 上传的附件：
 
-- [seer脚本内核移植编译通过版.rar](javascript:void(0);)（453.04kb，637 次下载）
+- [seer脚本内核移植编译通过版.rar](javascript:void(0);)
+
+  （453.04kb，637次下载）
