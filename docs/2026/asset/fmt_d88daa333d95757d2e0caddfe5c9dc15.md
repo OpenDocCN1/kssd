@@ -1,0 +1,267 @@
+
+# [原创][分享]c++重载运算符
+
+重载运算符是c++的一个重要特性，使用运算符重载，程序员可以把c++运算符的定义扩展到运算分量是对象的情况
+
+运算符重载的目的是使c++代码更直观，更易读
+
+在c++中除了下面几种运算符外，系统预定义的运算符都能够被重载
+
+```
+三目运算符       ?:
+
+分量运算符       .
+
+指针分量运算符   ->          //?
+
+范围解析运算符   ::
+
+取大小运算符   sizeof
+
+预处理符号       #
+```
+
+重载运算符要保持原运算符的以下特性不发生改变：
+
+- 优先级和结合性不变
+- 操作数个数不变
+- 语法结构不变
+
+运算符重载的实质是通过定义一个函数实现的
+
+运算符重载不能创造新的运算符
+
+---
+
+在c++中，运算符重载是通过运算符重载函数实现的，运算符重载函数一般有以下两种形式
+
+- 成员函数的形式
+- 友元函数的形式
+
+## 成员函数形式的运算符重载
+
+### 前置自增运算符(`++obj`)
+
+```
+//前置++
+MyClass& operator++() {
+    this->m_nNum++;
+    return *this;
+}
+```
+
+返回值为一个该类对象的引用，前置自增(`++obj`)，自增结果会返回给调用的类对象，不会生成副本
+
+返回值为引用也解决了连续自增的问题
+
+![前置问题](https://bbs.kanxue.com/upload/attach/201910/847304_G4U4X2BKXNRTZQS.png)
+
+在此引出一个新问题，运算符重载的本质是重载成员函数，所以调用时`obj++`也可以等价于`obj.operator++();`，他们的作用是相同的
+
+### 后置自增运算符(`obj++`)
+
+```
+//后置++的参数中有一个int，他没有实际的值，只是代表当后置++时调用本函数
+MyClass operator++(int) {
+    //拷贝一份副本
+    MyClass t = *this;
+    this->m_nNum++;
+    //返回的是副本
+    return t;
+}
+```
+
+为什么返回的是副本而不是`*this`呢？主要是为了解决赋值运算符的问题
+
+![后置问题](https://bbs.kanxue.com/upload/attach/201910/847304_3Z25XXY547DM475.png)
+
+后置`++`的调用也等价于`obj.operator++(1);`
+
+前置自减(`--obj`)和后置自减(`obj--`)同理
+
+### `+`运算符
+
+```
+MyClass operator+(int n) {
+    MyClass t = *this;
+    t.m_nNum += n;
+    return t;
+}
+```
+
+为什么出现了一个备份呢？试想一下，如果出现一下的代码`obj1 + obj2`，结果为两个类对象相加的值。但值并没有被接收，类对象`obj1`和`obj2`本身并没有改变。所以应该返回备份的值而不是原来的`*this`对象
+
+这里的参数是不是`const &`意义不大，如果不是则会将实参入栈，会多花费一点资源而已
+
+```
+MyClass operator+(MyClass obj) {
+    MyClass t = *this;
+    t.m_nNum += obj.m_nNum;
+    return t;
+}
+```
+
+同样的，上面的示例代码是重载了两个类对象的`+`运算符，且`+`运算符的本质是`obj.operator+(1);`，1会被先转换成`MyClass`类，在进行相加
+
+试想一下，如果形如`obj + 1 + 2 + 3`时，它调用的运算符重载函数是什么样子呢？
+
+```
+obj2 = obj1 + 1 + 2 + 3;
+obj2 = obj1.operator+(1).operator+(2).operator+(3);
+```
+
+以上两者等价
+
+### `+=`运算符
+
+```
+void operator+=(int n) {
+    this->m_nNum += n;
+}
+```
+
+重载`+=`运算符不需要返回值，它直接将结果赋值给调用的类对象
+
+实参为类对象同理，代码如下
+
+```
+void operator+=(MyClass obj) {
+    this->m_nNum += obj.m_nNum;
+}
+```
+
+`+=`运算符的实质是`obj.operator+=(1);`，与其他运算符的本质相同
+
+在重载运算符时，可以使用转换构造减少代码量，不用给不同类型的实参写不同的重载函数了
+
+```
+//当参数为int类型时会先调用转换构造，再将临时对象传递给运算符重载的函数
+MyClass(int n):m_nNum(n) { }
+MyClass operator+(MyClass obj) {
+    MyClass t = *this;
+    t.m_nNum += obj.m_nNum;
+    return t;
+}
+```
+
+其他的运算符如`*`,`*=`,`/`,`/=`的重载也同理
+
+### 重载特殊运算符
+
+有一些特殊运算符可以用成员函数的形式重载
+
+#### 重载`=`运算符
+
+```
+MyClass& operator=(MyClass& obj) {
+    this->m_nNum = obj.m_nNum;
+    return *this;
+}
+```
+
+#### 重载`[]`运算符
+
+```
+class MyClass {
+    int m_nNum[20];
+public:
+    //返回值类型为单个成员变量的类型
+    int operator[](int count) {
+        return this->m_nNum[count];
+    }
+};
+```
+
+---
+
+## 友元函数形式的运算符重载
+
+友元函数形式的运算符重载经常用在形如`1+obj`发生的时候，因为我们没有办法重载`int`类，所以只能在本类中重载。但成员函数重载的调用者是类对象，所以便只能用友元实现重载
+
+### `+`运算符
+
+```
+friend MyClass operator+(MyClass obj1,MyClass obj2) {
+    MyClass tmp(obj1);  //调用了默认的拷贝构造
+    tmp.m_nNum = tmp.m_nNum + obj2.m_nNum;
+    return tmp;
+}
+```
+
+友元函数的重载其参数顺序和调用顺序一致，也就是说，可以通过只实现一个友元函数的重载加转换构造即可完成所有类型的运算符重载。
+
+```
+MyClass(int n):m_nNum(n) { }
+friend MyClass operator+(MyClass obj1,MyClass obj2) {
+    MyClass tmp(obj1);
+    tmp.m_nNum = tmp.m_nNum + obj2.m_nNum;
+    return tmp;
+}
+```
+
+减少了代码量，增强了复用性
+
+```
+MyClass obj1;
+MyClass obj2;
+MyClass obj3;
+//以下三种均可以通过转换构造＋友元实现
+obj3 = 1 + obj2;
+obj3 = obj1 + 1;
+obj3 = obj1 + obj2;
+```
+
+其他的运算符同理
+
+### `++`运算符
+
+友元也可以用来重载`++`类似的单目运算符，代码如下
+
+```
+friend MyClass& operator++(MyClass& obj) {
+    obj.m_nNum++;
+    return obj;
+}
+```
+
+能使用`operator++(obj)`调用，也能通过`++obj`调用
+
+### 特殊运算符的重载
+
+友元能重载一些特殊的运算符
+
+#### 重载`<<`运算符
+
+最常用的当属`<<`、`>>`输入输出流的重载，也可以用友元实现
+
+```
+friend ostream& operator<<(ostream& o, const MyClass& obj)
+{
+    o << obj.m_nNum;
+    return o;
+}
+```
+
+当输出形如`cout << obj3 << "this is a test";`时，需要向重载后的流中继续输出，所以返回值的类型为`ostream&`
+
+#### 重载`<<`运算符
+
+```
+friend istream& operator>>(istream i,const MyClass& obj) {
+    i >> obj.m_nNum;
+    return i;
+}
+```
+
+返回值为`istream&`类型，注意事项和`>>`运算符一致
+
+---
+
+|  | 成员函数形式 | 友元函数形式 |
+| --- | --- | --- |
+| 一元运算 | 隐式:`对象#` 显示:`对象.operator#()` | 隐式:`对象#` 显示:`对象.operator#(对象)` |
+|  | 隐式:`#对象` 显示:`对象.operator#()` | 隐式:`#对象` 显示:`对象.operator#(对象)` |
+| 二元运算 | 隐式:`对象A#对象B` | 隐式:`对象A#对象B` |
+|  | 显示:`对象A.operator#(对象B)` | 显示:`operator#(对象A,对象B)` |
+
+小弟博客：<a href="elink@c43K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6C8L8X3!0U0K9$3g2V1i4K6u0W2k6$3W2@1K9s2g2T1i4K6u0W2K9h3)9`.">knocked.github.io</a>大佬求关照！勿喷万分感谢

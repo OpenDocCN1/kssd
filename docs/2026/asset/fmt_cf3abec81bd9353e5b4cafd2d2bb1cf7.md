@@ -1,0 +1,39 @@
+
+# [原创]Masm宏框架 简单编写复杂的ShellCode
+
+> 不知不觉已经工作三年，因为本人在三年前在家人的诱导下，跟着表哥去印染厂当起了电工，现在合同期已满，不想在续签，实在不喜欢现在的工作，计算机方面已经荒废已久，不知道该何去何从，现在回过头来看看之前写的代码，感觉失去了很多知识和记忆![](https://bbs.kanxue.com/view/img/face/33.gif)感觉自己真是太没用了![](https://bbs.kanxue.com/view/img/face/50.gif)以上是废话，也可以算广告![](https://bbs.kanxue.com/view/img/face/16.gif)
+
+该Masm宏框架是在几年前更新完成，现在拿出来让我自己看源代码完全吃不消，好在使用方法简单，加上之前我发过的帖子中有详细说明，只是现在这个版本加入了更加强大的功能（我没有用来做过坏事![](https://bbs.kanxue.com/view/img/face/16.gif)）让我图文并茂给大家演示一下：
+
+> **`DeBug` = 1 这个标志之前版本就有，略过。。。**
+
+> ![](https://bbs.kanxue.com/upload/attach/201408/155970_720vt0ihvn2omek.jpg)
+
+> **`PushMode` = 1 该标志改变了字符串的压入方式，使调试工具无法识别出字符串**
+
+> ![](https://bbs.kanxue.com/upload/attach/201408/155970_03x3pw7asmvciiz.jpg)
+
+> XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+> ![](https://bbs.kanxue.com/upload/attach/201408/155970_7b2zu2aqg92l32u.jpg)
+
+> XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+> ![](https://bbs.kanxue.com/upload/attach/201408/155970_y3u2gr1pkyrr5ey.jpg)
+
+> **`RetCall` = 1 该标志改变API调用方式，如图：**
+
+> ![](https://bbs.kanxue.com/upload/attach/201408/155970_ojo9k7mzof84o0m.jpg)
+
+> **最后的`HashApi` = 1 该标志开启后将由自己实现API地址的搜索，且API名称使用HASH值**
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+
+- [1.jpg](javascript:void(0);)（85.69kb，6次下载）
+- [2.jpg](javascript:void(0);)（100.14kb，5次下载）
+- [3.jpg](javascript:void(0);)（46.91kb，4次下载）
+- [4.jpg](javascript:void(0);)（82.41kb，5次下载）
+- [5.jpg](javascript:void(0);)（71.24kb，5次下载）
+- [msg.rar](javascript:void(0);)（13.37kb，64次下载）

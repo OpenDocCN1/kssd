@@ -1,0 +1,121 @@
+
+# [原创][分享]c++虚函数表的调用与修改
+
+在c++中**虚函数**的**继承**会生成一个**虚函数表**，来确定父类指针指向子类对象时所需要调用的具体的方法，用以实现多态。那么可不可以像静态方法一样直接调用类中的虚函数呢，答案是可行的
+
+## 虚函数表在内存中的分布
+
+这个东西可以去百度
+
+大致原理如下：
+
+![原理](https://bbs.kanxue.com/upload/attach/201910/847304_FD88TBURH9TGYGZ.png)
+
+## 通过虚函数表的地址直接调用虚函数
+
+如题，在子类对象中，首地址存在一个指向虚函数表的地址，虚函数表中保存着子类具体需要调用的函数地址，代码如下
+
+```cpp
+class A {
+public:
+    virtual void fun() {
+        std::cout << "A::fun\n";
+    }
+};
+
+class B1 : public A {
+public:
+    void fun() {
+        std::cout << "B1::fun\n";
+    }
+};
+
+class B2 : public A {
+public:
+    void fun() {
+        std::cout << "B2::fun\n";
+    }
+};
+```
+
+我们先定义一个父类和两个子类，父类中有一个虚函数，子类分别重写这个虚函数
+
+```cpp
+int main() {
+    A* pObj[3] = {
+        new A,
+        new B1,
+        new B2
+    };
+    for (A* pTmp : pObj) {
+        pTmp->fun();
+    }
+    return 0;
+}
+```
+
+定义一个数组，数组中有一个父类对象和两个子类对象，循环调用数组元素的`fun()`函数，结果如下
+
+![正常结果](https://bbs.kanxue.com/upload/attach/201910/847304_CQCJMG92QGWK7MR.png)
+
+现在我们了解了虚函数表在内存中的位置，那么可以通过特定的方法直接调用虚函数
+
+```cpp
+int objAddress = (int)&pObj[0];     //objAddress的地址是对象的地址
+int vtfAddress = *(int*)objAddress; //vtfAddress保存的即为虚函数表的地址
+int funAddress = *(int*)vtfAddress; //funAddress保存的是虚函数表中真正调用的函数的地址
+void(*pfun)();                      //函数指针，指向虚函数表中真正调用的地址
+pfun = (void(*)())(*(int*)funAddress);
+pfun();
+```
+
+没有通过类对象，也可以调用到类内的函数
+
+![函数指针调用](https://bbs.kanxue.com/upload/attach/201910/847304_7DY7VEAXMHZKG62.png)
+
+同样，还有一种更为高级的写法(来自韦老师的代码)
+
+```cpp
+uint32_t objAddress = (uint32_t)pObj[0];
+uint32_t vftAddress = *(uint32_t*)objAddress;
+uint32_t funAddress = *(uint32_t*)vftAddress;
+using fn = int(*)(int dire);
+((fn)funAddress)(0);
+```
+
+上述代码也可以不通过类对象调用类内函数
+
+## 修改虚函数表改变函数调用
+
+我们知道，如果可以直接调用函数，那么应该有方法来替换掉虚函数表中函数的地址，把他改成我们想要执行的函数
+
+现在，我们先来创建一个想要被执行的函数
+
+```cpp
+void g_fun() {
+    std::cout << "g_fun\n";
+}
+```
+
+把原来要执行的虚函数替换成我们想要让他执行的函数(来自韦老师的代码)
+
+```cpp
+//获取虚函数表的地址
+int* pVirtualFunctionTable = (int*)*(int*)pObj[0];
+DWORD old;
+//修改内存属性
+VirtualProtect(pVirtualFunctionTable, 4, PAGE_READWRITE, &old);
+pVirtualFunctionTable[0] = (int)g_fun;
+pObj[0]->fun();
+VirtualProtect(pVirtualFunctionTable, 4, old, &old);
+```
+
+通过上述代码可以达到修改虚函数表的目的
+
+![修改虚函数表](https://bbs.kanxue.com/upload/attach/201910/847304_XJNHC3JG9CMYER2.png)
+
+小弟博客：[knocked.github.io](https://bbs.kanxue.com/elink@492K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6C8L8X3!0U0K9$3g2V1i4K6u0W2k6$3W2@1K9s2g2T1i4K6u0W2K9h3)9`.)大佬求关照！勿喷万分感谢
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+最后于 2019-10-9 21:30 被Knocked编辑 ，原因：

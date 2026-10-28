@@ -1,0 +1,249 @@
+
+# [原创]用C实现多态
+
+(253732597@qq.com tonybo@gmail.com)
+
+大家对C++的多态不陌生吧，但是怎么用C来实现呢？最简单的办法就是自己先用C++写个简单的多态程序然后debug这个程序再看看反汇编再用C根据C++的实现思路再写一个就行了。
+
+下面就是用C++写的一个简单多态程序，程序就不多解释了，代码如下：
+
+```cpp
+#include<stdio.h>
+
+class Shape{
+
+public:
+
+    virtual double area()=0;
+
+};
+
+class Circle:public Shape{
+
+public:
+
+    Circle(double r){
+
+        radius=r;
+
+    };
+
+    double area(){
+
+        return 3.14*radius*radius;
+
+    };
+
+private:
+
+    double radius;
+
+};
+
+class Square:public Shape{
+
+public:
+
+    Square(double sq){
+
+        s=sq;
+
+    };
+
+    double area(){
+
+        return s*s;
+
+    };
+
+private:
+
+    double s;
+
+};
+
+class Rectangle:public Shape{
+
+public:
+
+    Rectangle(double len,double wi){
+
+        length=len;
+
+        width=wi;
+
+    };
+
+    double area(){
+
+        return length*width;
+
+    };
+
+private:
+
+    double length;
+
+    double width;
+
+};
+
+int main(){
+
+    Shape *shape[3];
+
+    Circle circle(10);
+
+    Square square(10);
+
+    Rectangle rectangle(10,20);
+
+    shape[0]=&circle;
+
+    shape[1]=&square;
+
+    shape[2]=&rectangle;
+
+    for(int i=0;i<3;i++){
+
+        printf("%f\n",shape[i]->area());
+
+    }
+
+}
+```
+
+然后用 `g++ -g -o shapecpp shape.cpp` 编译连接，然后运行 `shapecpp`，结果是：314,100,200.
+
+当然了如果你用VS2010那更方便啦。
+
+回到前面的问题，怎么用C写个和这个差不多的了？
+
+那没办法了，直接调试吧，看看别人怎么实现的。
+
+用GDB载入，然后设置GDB的C++显示设置，来看看`shape`里面到底有啥：
+
+可以清楚的看到`shape`里面保存了其派生类型成员以及vptr table。
+
+既然清楚根类里面有什么了，那么我们就可以用C来实现这个多态啦。
+
+用c写的`shape`如下：
+
+```c
+struct Shape{
+
+    struct Circle cir;
+
+    struct Square squ;
+
+    struct Rectangle rec;
+
+    double (*pf_shape_area[3])(struct Shape);
+
+};
+```
+
+也就是把你派生的对象嵌套在根类里面然后再加上vptr就可以啦！
+
+这就相当于一个表了，用C来实现这个表就很容易啦！完整代码如下：
+
+```c
+#include<stdio.h>
+
+struct Circle{
+
+    double radius;
+
+};
+
+struct Square{
+
+    double s;
+
+};
+
+struct Rectangle{
+
+    double width;
+
+    double length;
+
+};
+
+struct Shape{
+
+    struct Circle cir;
+
+    struct Square squ;
+
+    struct Rectangle rec;
+
+    double (*pf_shape_area[3])(struct Shape);
+
+};
+
+double Circle_area(struct Shape cir){
+
+    return 3.14*cir.cir.radius*cir.cir.radius;
+
+}
+
+double Square_area(struct Shape squ){
+
+    return squ.squ.s*squ.squ.s;
+
+}
+
+double Rectangle_area(struct Shape rec){
+
+    return rec.rec.length*rec.rec.width;
+
+}
+
+int main(){
+
+    struct Circle cir={10};
+
+    struct Square squ={10};
+
+    struct Rectangle rec={10,20};
+
+    struct Shape shape[3];
+
+    shape[0].cir=cir;
+
+    shape[0].pf_shape_area[0]=Circle_area;
+
+    shape[1].squ=squ;
+
+    shape[1].pf_shape_area[1]=Square_area;
+
+    shape[2].rec=rec;
+
+    shape[2].pf_shape_area[2]=Rectangle_area;
+
+    int i;
+
+    for(i=0;i<3;i++){
+
+       printf("%f\n",shape[i].pf_shape_area[i](shape[i]));
+
+    }
+}
+```
+
+```bash
+gcc -g -o shapec shape.c
+```
+
+这里是运行结果：
+
+## 小结
+
+运行时多态是面向对象编程一个很重要的概念，其实和其他语言里面的接口是一样滴，java有抽象类和接口支持这种方式（不明白为什么要两种机制？），Go只有接口支持这种运行时多态。
+
+但是C也能干净利索的实现了运行时多态，没有用什么高深的技巧和晦涩难懂的宏，一张表就搞定啦！所以我们真的要沉湎在那些设计模式当中么？在解决问题的时候要整这么复杂？
+
+最后希望能加深你对运行时多态的理解，完。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
