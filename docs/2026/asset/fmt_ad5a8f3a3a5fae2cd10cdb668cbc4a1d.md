@@ -11,7 +11,7 @@
 
 所有文章已经按年压缩，感兴趣的朋友可以自行下载。
 
-百度云盘：[281K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5h3&6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3V1j5I4k6@1N6^5y4$3#2$3e0s2y4#2L8h3u0@1P5X3!0c8j5X3q4@1f1s2y4X3N6#2)9K6c8Y4m8%4k6q4)9K6c8r3c8T1M7i4b7`.`.)](https://bbs.kanxue.com/elink@59fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5h3&6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3V1j5I4k6@1N6^5y4$3#2$3e0s2y4#2L8h3u0@1P5X3!0c8j5X3q4@1f1s2y4X3N6#2)9K6c8Y4m8%4k6q4)9K6c8r3c8T1M7i4b7`.`.) 提取码: dbqt
+百度云盘：[281K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5h3&6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3V1j5I4k6@1N6^5y4$3#2$3e0s2y4#2L8h3u0@1P5X3!0c8j5X3q4@1f1s2y4X3N6#2)9K6c8Y4m8%4k6q4)9K6c8r3c8T1M7i4b7`.](https://bbs.kanxue.com/elink@59fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5h3&6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3V1j5I4k6@1N6^5y4$3#2$3e0s2y4#2L8h3u0@1P5X3!0c8j5X3q4@1f1s2y4X3N6#2)9K6c8Y4m8%4k6q4)9K6c8r3c8T1M7i4b7`.) 提取码: dbqt
 
 `gitee`:
 
@@ -25,102 +25,115 @@
 
 ## 下载
 
-**Q:** download url and save to disk and then parse inner urls and then save these urls to disk
+Q:
 
-**A:** To download a URL, save it to disk, parse inner URLs, and then save these URLs to disk in `PowerShell`, you can use the `Invoke-WebRequest` cmdlet to download the webpage, `Out-File` cmdlet to save it to disk, and then use a regular expression to parse the inner URLs. Here is a simple example:
+download url and save to disk and then parse inner urls and then save these urls to disk
 
-```
-# Define the URL
-$url = "bd6K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3g2^5j5h3#2H3L8r3g2Q4x3X3g2U0L8$3@1`."
-# Define the output file for the webpage
-$outfile = "output.html"
-# Define the output file for the inner URLs
-$urlfile = "urls.txt"
-# Download the webpage and save to disk
-Invoke-WebRequest -Uri $url -OutFile $outfile
-# Read the saved file
-$content = Get-Content -Path $outfile
-# Parse the inner URLs
-$innerUrls = $content | Where-Object { $_ -match "(http|https)://[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(/\S*)?" }
-# Save the inner URLs to disk
-$innerUrls | Out-File -FilePath $urlfile
-```
+A:
 
-This script will download the webpage, save it to `output.html`, read the saved file, parse the inner URLs, and then save these URLs to `urls.txt`. You can adjust the regular expression in the `Where-Object` cmdlet to match the URLs you are interested in.
+To download a URL, save it to disk, parse inner URLs, and then save these URLs to disk in PowerShell, you can use the Invoke-WebRequest cmdlet to download the webpage, Out-File cmdlet to save it to disk, and then use a regular expression to parse the inner URLs. Here is a simple example:
+
+|  |  |
+
+| --- | --- |
+
+| 1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16  17  18  19  20 | `# Define the URL`  `$url` `=` `` "bd6K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3g2^5j5h3#2H3L8r3g2Q4x3X3g2U0L8$3@1`." ``    `# Define the output file for the webpage`  `$outfile` `=` `"output.html"`    `# Define the output file for the inner URLs`  `$urlfile` `=` `"urls.txt"`    `# Download the webpage and save to disk`  `Invoke-WebRequest` `-Uri` `$url` `-OutFile` `$outfile`    `# Read the saved file`  `$content` `=` `Get-Content` `-Path` `$outfile`    `# Parse the inner URLs`  `$innerUrls` `=` `$content` `|` `Where-Object` `{` `$_` `-match` `"(http|https)://[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,3}(/\S*)?"` `}`    `# Save the inner URLs to disk`  `$innerUrls` `|` `Out-File` `-FilePath` `$urlfile` |
+
+This script will download the webpage, save it to output.html, read the saved file, parse the inner URLs, and then save these URLs to urls.txt. You can adjust the regular expression in the Where-Object cmdlet to match the URLs you are interested in.
 
 > **画外音：** 我发现解析出来的内部 `urls` 不太对，于是查看了原始网页中的链接形式，又对 `Cursor` 提出了进一步的要求，这次是用中文提的。
 
-**Q:** 解析匹配 `href="xxx"` 模式的字符串。
+Q:
 
-**A:** 要在 `PowerShell` 中下载 `URL`，将其保存到磁盘，然后解析内部 `URL`，并将这些 `URL` 保存到磁盘，您可以使用 `Invoke-WebRequest` cmdlet 下载网页，使用 `Out-File` cmdlet 将其保存到磁盘，然后使用正则表达式解析内部 `URL`。以下是一个简单的示例：
+解析匹配 `href="xxx"` 模式的字符串。
 
-```
-# 省略 N 行
-# 解析内部 URL
-$innerUrls = $content | Where-Object { $_ -match 'href="([^"]*)"' }
-# 保存内部 URL 到磁盘
-$innerUrls | Out-File -FilePath $urlfile
-```
+A:
 
-此脚本将下载网页，将其保存到 `output.html`，读取保存的文件，解析内部 `URL`，然后将这些 `URL` 保存到 `urls.txt`。您可以调整 `Where-Object` cmdlet 中的正则表达式以匹配您感兴趣的 `URL`。
+要在 `PowerShell` 中下载 `URL`，将其保存到磁盘，然后解析内部 `URL`，并将这些 `URL` 保存到磁盘，您可以使用 `Invoke-WebRequest cmdlet` 下载网页，使用 `Out-File cmdlet` 将其保存到磁盘，然后使用正则表达式解析内部 `URL`。以下是一个简单的示例：
+
+|  |  |
+
+| --- | --- |
+
+| 1  2  3  4  5  6  7 | `# 省略 N 行`    `# 解析内部 URL`  `$innerUrls` `=` `$content` `|` `Where-Object` `{` `$_` `-match` `'href="([^"]*)"'` `}`    `# 保存内部 URL 到磁盘`  `$innerUrls` `|` `Out-File` `-FilePath` `$urlfile` |
+
+此脚本将下载网页，将其保存到 `output.html`，读取保存的文件，解析内部 `URL`，然后将这些 `URL` 保存到 `urls.txt`。您可以调整 `Where-Object cmdlet` 中的正则表达式以匹配您感兴趣的 `URL`。
 
 > **画外音：** 非常不错，可以记住上下文。
 
-**Q:** 解析内部 `url` 的语句有问题，没有只保存 `href=""` 内部的内容
+Q:
 
-**A:** 对不起，我之前的回答中的正则表达式确实有误。我们应该使用一个捕获组来只获取 `href=""` 内部的内容。以下是修正后的代码：
+解析内部 `url` 的语句有问题，没有只保存 `href=""` 内部的内容
 
-```
-# 省略 N 行
-# 解析内部 URL
-$innerUrls = $content | Select-String -Pattern 'href="([^"]*)"' -AllMatches | % { $_.Matches } | % { $_.Groups[1].Value }
-# 保存内部 URL 到磁盘
-$innerUrls | Out-File -FilePath $urlfile
-```
+A:
 
-这段脚本将下载网页，将其保存到 `output.html`，读取保存的文件，解析内部 `URL`，然后将这些 `URL` 保存到 `urls.txt`。`Select-String` cmdlet 中的正则表达式已经被修改，现在它只会匹配 `href=""` 内部的内容。
+对不起，我之前的回答中的正则表达式确实有误。我们应该使用一个捕获组来只获取 `href=""` 内部的内容。以下是修正后的代码：
+
+|  |  |
+
+| --- | --- |
+
+| 1  2  3  4  5  6  7 | `# 省略 N 行`    `# 解析内部 URL`  `$innerUrls` `=` `$content` `|` `Select-String` `-Pattern` `'href="([^"]*)"'` `-AllMatches` `| % {` `$_``.Matches } | % {` `$_``.Groups[1].Value }`    `# 保存内部 URL 到磁盘`  `$innerUrls` `|` `Out-File` `-FilePath` `$urlfile` |
+
+这段脚本将下载网页，将其保存到 `output.html`，读取保存的文件，解析内部 `URL`，然后将这些 `URL` 保存到 `urls.txt`。`Select-String cmdlet` 中的正则表达式已经被修改，现在它只会匹配 `href=""` 内部的内容。
 
 > **画外音：** 看了生成的内容，已经无限接近最终想要的结果了，但是没想到居然写了 `5000` 多篇文章，手动拼接网址还是需要操作一会的。于是继续优化脚本。
 
-**Q:** 需要在解析出来的 `url` 前加上前缀 [6ccK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1P5i4c8W2M7r3!0A6L8Y4c8W2M7W2)9J5k6h3y4G2L8g2)9J5c8Y4u0W2M7$3!0#2M7X3y4W2M7#2)9J5c8X3!0D9k6q4)9#2k6X3&6W2N6#2)9#2k6Y4c8Z5K9h3&6Y4i4K6u0r3](https://bbs.kanxue.com/elink@3ddK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1P5i4c8W2M7r3!0A6L8Y4c8W2M7W2)9J5k6h3y4G2L8g2)9J5c8Y4u0W2M7$3!0#2M7X3y4W2M7#2)9J5c8X3!0D9k6q4)9#2k6X3&6W2N6#2)9#2k6Y4c8Z5K9h3&6Y4i4K6u0r3) 再保存
+Q:
 
-**A:** 在解析出来的 `URL` 前加上前缀并保存的 `PowerShell` 代码如下：
+需要在解析出来的 url 前加上前缀 [6ccK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1P5i4c8W2M7r3!0A6L8Y4c8W2M7W2)9J5k6h3y4G2L8g2)9J5c8Y4u0W2M7$3!0#2M7X3y4W2M7#2)9J5c8X3!0D9k6q4)9#2k6X3&6W2N6#2)9#2k6Y4c8Z5K9h3&6Y4i4K6u0r3](https://bbs.kanxue.com/elink@3ddK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1P5i4c8W2M7r3!0A6L8Y4c8W2M7W2)9J5k6h3y4G2L8g2)9J5c8Y4u0W2M7$3!0#2M7X3y4W2M7#2)9J5c8X3!0D9k6q4)9#2k6X3&6W2N6#2)9#2k6Y4c8Z5K9h3&6Y4i4K6u0r3) 再保存
 
-```
-# 省略 N 行
-# 添加前缀
-$prefix = "260K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1P5i4c8W2M7r3!0A6L8Y4c8W2M7W2)9J5k6h3y4G2L8g2)9J5c8Y4u0W2M7$3!0#2M7X3y4W2M7#2)9J5c8X3!0D9k6q4)9#2k6X3&6W2N6#2)9#2k6Y4c8Z5K9h3&6Y4i4K6u0r3"
-$innerUrls = $innerUrls | ForEach-Object { $prefix + $_ }
-# 保存内部 URL 到磁盘
-$innerUrls | Out-File -FilePath $urlfile
-```
+A:
+
+在解析出来的 `URL` 前加上前缀并保存的 `PowerShell` 代码如下：
+
+|  |  |
+
+| --- | --- |
+
+| 1  2  3  4  5  6  7  8 | `# 省略 N 行`    `# 添加前缀`  `$prefix` `=` `"260K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1P5i4c8W2M7r3!0A6L8Y4c8W2M7W2)9J5k6h3y4G2L8g2)9J5c8Y4u0W2M7$3!0#2M7X3y4W2M7#2)9J5c8X3!0D9k6q4)9#2k6X3&6W2N6#2)9#2k6Y4c8Z5K9h3&6Y4i4K6u0r3"`  `$innerUrls` `=` `$innerUrls` `|` `ForEach-Object` `{` `$prefix` `+` `$_` `}`    `# 保存内部 URL 到磁盘`  `$innerUrls` `|` `Out-File` `-FilePath` `$urlfile` |
 
 这段脚本将下载网页，将其保存到 `output.html`，读取保存的文件，解析内部 `URL`，然后在每个 `URL` 前添加前缀，最后将这些 `URL` 保存到 `urls.txt`。
 
-至此，已经把需要下载的 `url` 保存到了 `urls.txt`。接下来就要写脚本下载这些 `url` 了。最终下载脚本如下：
+至此，已经把需要下载的 `url` 保存到了 `urls.txt`。接下来就要写脚本下载这些 `url` 了。最终载脚本如下：
 
 ```
 # 定义 URL
-$url = "32bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1P5i4c8W2M7r3!0A6L8Y4c8W2M7W2)9J5k6h3y4G2L8g2)9J5c8Y4u0W2M7$3!0#2M7X3y4W2M7#2)9J5c8X3!0D9k6q4)9#2k6X3&6W2N6#2)9#2k6Y4c8Z5K9h3&6Y4i4K6u0r3K9h3&6V1k6i4S2Q4x3X3g2Z5N6r3@1`."
+$url = ` "32bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1P5i4c8W2M7r3!0A6L8Y4c8W2M7W2)9J5k6h3y4G2L8g2)9J5c8Y4u0W2M7$3!0#2M7X3y4W2M7#2)9J5c8X3!0D9k6q4)9#2k6X3&6W2N6#2)9#2k6Y4c8Z5K9h3&6Y4i4K6u0r3K9h3&6V1k6i4S2Q4x3X3g2Z5N6r3@1`."
+
 # 定义网页的输出文件
 $outfile = "output.html"
+
 # 定义内部 URL 的输出文件
 $urlfile = "urls.txt"
+
 # 下载网页并保存到磁盘
 Invoke-WebRequest -Uri $url -OutFile $outfile
+
 # 读取保存的文件
 $content = Get-Content -Path $outfile
+
 # 解析内部 URL
 $innerUrls = $content | Select-String -Pattern 'href="([^"]*)"' -AllMatches | % { $_.Matches } | % { $_.Groups[1].Value }
+
 # 添加前缀
 $prefix = "487K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1P5i4c8W2M7r3!0A6L8Y4c8W2M7W2)9J5k6h3y4G2L8g2)9J5c8Y4u0W2M7$3!0#2M7X3y4W2M7#2)9J5c8X3!0D9k6q4)9#2k6X3&6W2N6#2)9#2k6Y4c8Z5K9h3&6Y4i4K6u0r3"
 $innerUrls = $innerUrls | ForEach-Object { $prefix + $_ }
+
 # 保存内部 URL 到磁盘
 $innerUrls | Out-File -FilePath $urlfile
 ```
 
 ## 解析 url 并下载
 
-**Q:** 遍历 `urls.txt` 并下载里面的每个 `url`，如果下载失败需要有提示，并且记录下载的位置。
+Q:
 
-**A:** 在 `PowerShell` 中，你可以使用 `Invoke-WebRequest` cmdlet 来下载 `URL`，并使用 `try/catch` 语句来处理可能的错误。以下是一个简单的示例：
+遍历 `urls.txt` 并下载里面的每个 `url`，如果下载失败需要有提示，并且记录下载的位置。
+
+A:
+
+在 `PowerShell` 中，你可以使用 `Invoke-WebRequest cmdlet` 来下载 `URL`，并使用 `try/catch` 语句来处理可能的错误。以下是一个简单的示例：
+
+|  |  |
+
+| --- | --- |

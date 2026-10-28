@@ -1,0 +1,20 @@
+
+# [原创] 18年前的小玩意，身份证号生成
+
+![](https://bbs.kanxue.com/upload/attach/202204/365144_UBT4NPTZV63WMBM.jpg)
+
+看起来是不是很神奇？
+
+其实核心奥义就在身份证前几位和最后一位。
+
+就不一一讲原理了，想看懂原理自己看代码。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+[#开源分享](https://bbs.kanxue.com/forum-41-1-134.htm)
+
+上传的附件：
+
+- [`IdCard.rar`](javascript:void(0);)
+
+  （2.26MB，98次下载）
