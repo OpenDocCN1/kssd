@@ -1,0 +1,305 @@
+
+# [原创]Windows API调用详解
+
+## API调用流程（x86）
+
+### 综述：
+
+Windows内核中的执行体层暴露了大量执行体中的对象给Windows用户层的API来操作，那么用户层的API是怎么调用这些功能的呢，比如说创建一个文件，文件是一个内核对象必须得有内核层来处理，所以肯定有一个从用户层到内核层然后内核层解决再返回到用户层的一个流程。
+
+### API调用流程：
+
+这里以`CreateFile`举例：(大致流程如下)
+
+![图片描述](upload/attach/202203/948248_VGCNQ57685QDS73.png)
+
+### 采用OllyDbg跟踪观察：
+
+```cpp
+#include<iostream>
+#include<Windows.h>
+using namespace std;
+int main()
+{
+cout << "Begin" << endl;
+auto hFile =CreateFileW(
+L"temp.txt",
+GENERIC_READ,
+FILE_SHARE_READ,
+NULL,
+OPEN_ALWAYS,
+FILE_ATTRIBUTE_NORMAL,
+NULL
+);
+return NULL;
+}
+```
+
+![图片描述](upload/attach/202203/948248_HA5JR6667AZXGK3.png)
+
+可以看到在调用`CreateFile`时，是直接采用的`Kernel32`中的`CreateFileW`函数：
+
+然后跟进`Kernel32.CreateFileW`函数中：
+
+![图片描述](upload/attach/202203/948248_FDXMN2YESF2SW94.png)
+
+会跳转到`KernelBase`中的`CreateFileW`函数中，继续步入查看：
+
+一直往下翻才能看到`NtCreateFile`函数，前面的我猜是给创建新文件所需进行初始化的一些代码。
+
+![图片描述](upload/attach/202203/948248_XKREB82WNBJMZWJ.png)
+
+正所谓前人栽树后人乘凉，书上的大牛写的是调用`ntdll`中的`NtCreateFile`我们就不要怀疑了，然后步入`Ntdll.NtCreateFile`查看：
+
+![图片描述](upload/attach/202203/948248_2KCV3ZM5BDUZ98G.png)
+
+这里的`call esi`就是调用`NtCreateFile`的地方，然后继续步入查看：
+
+![图片描述](upload/attach/202203/948248_6MG2N8YZEQMNX46.png)
+
+就成了这样子，这个我也不知道什么意思，就继续`call dword ptr ds:[edx]`查看：
+
+![图片描述](upload/attach/202203/948248_J86VVTHJQD4BGF2.png)
+
+最后的最后是由三个汇编指令为结尾：
+
+```assembly
+mov edx,esp
+sysenter
+retn
+```
+
+`retn`是返回指令，表示已经执行完成。
+
+`sysenter`在od中无法看到，不管是步入还是步过只会直接执行完跳过。
+
+所以目前而言的API调用过程是这样的：
+
+![图片描述](upload/attach/202203/948248_6VF4JNFBB8UAK3T.png)
+
+现在不理解的就是`NtCreateFile`函数内部的代码逻辑：
+
+```assembly
+mov eax,xx
+mov edx,xxx
+call dword ptr ds:[edx]
+retn xxx
+...
+mov edx,esp
+sysenter
+```
+
+这几行汇编代码是什么意思。
+
+### 详解NtCreateFile：
+
+首先是`NtCreateFile`中的第一层汇编代码：
+
+```assembly
+mov eax,xx
+mov edx,xx
+call dword ptr ds:[edx]
+retn xxx
+```
+
+这附近的汇编代码都是这样的样式：
+
+![图片描述](upload/attach/202203/948248_48756574T7V5QWX.png)
+
+#### `mov eax,xx`
+
+这里的`eax`叫做**系统服务号**，它代表进入0环后，调用那一个API，就类似于数组和下标的关系，根据下标一对一对应内核中的某一个API，然后内核调用内核的对应的API。
+
+也就是说由`eax`的值来决定内核API的调用。
+
+#### `mov edx,xxx`
+
+![图片描述](upload/attach/202203/948248_HR8XJKQP2FCY6E3.png)
+
+所有通过`ntdll`调用的函数，给`edx`所传递的值都是一样的，这里都是`0x7FFE0300`
+
+该值是`_KUSER_SHARED_DATA`结构体的一个成员，该结构体所在的内存空间是一个提供给User层和Kernel层共享的一个内存空间，该空间主要用来在User和Kernel之间快速传递信息。
+
+该结构体所在的内存空间是固定的：User层下：`0x7FFE0000`，Kernel层下：`0xFFDF0000`
+
+```c
+//0x5f0 bytes (sizeof)
+struct _KUSER_SHARED_DATA
+{
+ULONG TickCountLowDeprecated; //0x0
+ULONG TickCountMultiplier; //0x4
+volatile struct _KSYSTEM_TIME InterruptTime; //0x8
+volatile struct _KSYSTEM_TIME SystemTime; //0x14
+volatile struct _KSYSTEM_TIME TimeZoneBias; //0x20
+USHORT ImageNumberLow; //0x2c
+USHORT ImageNumberHigh; //0x2e
+WCHAR NtSystemRoot[260]; //0x30
+ULONG MaxStackTraceDepth; //0x238
+ULONG CryptoExponent; //0x23c
+ULONG TimeZoneId; //0x240
+ULONG LargePageMinimum; //0x244
+ULONG Reserved2[7]; //0x248
+enum _NT_PRODUCT_TYPE NtProductType; //0x264
+UCHAR ProductTypeIsValid; //0x268
+ULONG NtMajorVersion; //0x26c
+ULONG NtMinorVersion; //0x270
+UCHAR ProcessorFeatures[64]; //0x274
+ULONG Reserved1; //0x2b4
+ULONG Reserved3; //0x2b8
+volatile ULONG TimeSlip; //0x2bc
+enum _ALTERNATIVE_ARCHITECTURE_TYPE AlternativeArchitecture; //0x2c0
+ULONG AltArchitecturePad[1]; //0x2c4
+union _LARGE_INTEGER SystemExpirationDate; //0x2c8
+ULONG SuiteMask; //0x2d0
+UCHAR KdDebuggerEnabled; //0x2d4
+UCHAR NXSupportPolicy; //0x2d5
+volatile ULONG ActiveConsoleId; //0x2d8
+volatile ULONG DismountCount; //0x2dc
+ULONG ComPlusPackage; //0x2e0
+ULONG LastSystemRITEventTickCount; //0x2e4
+ULONG NumberOfPhysicalPages; //0x2e8
+UCHAR SafeBootMode; //0x2ec
+union
+{
+UCHAR TscQpcData; //0x2ed
+struct
+{
+UCHAR TscQpcEnabled:1; //0x2ed
+UCHAR TscQpcSpareFlag:1; //0x2ed
+UCHAR TscQpcShift:6; //0x2ed
+};
+};
+UCHAR TscQpcPad[2]; //0x2ee
+union
+{
+ULONG SharedDataFlags; //0x2f0
+struct
+{
+ULONG DbgErrorPortPresent:1; //0x2f0
+ULONG DbgElevationEnabled:1; //0x2f0
+ULONG DbgVirtEnabled:1; //0x2f0
+ULONG DbgInstallerDetectEnabled:1; //0x2f0
+ULONG DbgSystemDllRelocated:1; //0x2f0
+ULONG DbgDynProcessorEnabled:1; //0x2f0
+ULONG DbgSEHValidationEnabled:1; //0x2f0
+ULONG SpareBits:25; //0x2f0
+};
+};
+ULONG DataFlagsPad[1]; //0x2f4
+ULONGLONG TestRetInstruction; //0x2f8
+ULONG SystemCall; //0x300
+ULONG SystemCallReturn; //0x304
+ULONGLONG SystemCallPad[3]; //0x308
+union
+{
+volatile struct _KSYSTEM_TIME TickCount; //0x320
+volatile ULONGLONG TickCountQuad; //0x320
+ULONG ReservedTickCountOverlay[3]; //0x320
+};
+ULONG TickCountPad[1]; //0x32c
+ULONG Cookie; //0x330
+ULONG CookiePad[1]; //0x334
+LONGLONG ConsoleSessionForegroundProcessId; //0x338
+ULONG Wow64SharedInformation[16]; //0x340
+USHORT UserModeGlobalLogger[16]; //0x380
+ULONG ImageFileExecutionOptions; //0x3a0
+ULONG LangGenerationCount; //0x3a4
+ULONGLONG Reserved5; //0x3a8
+volatile ULONGLONG InterruptTimeBias; //0x3b0
+volatile ULONGLONG TscQpcBias; //0x3b8
+volatile ULONG ActiveProcessorCount; //0x3c0
+volatile USHORT ActiveGroupCount; //0x3c4
+USHORT Reserved4; //0x3c6
+volatile ULONG AitSamplingValue; //0x3c8
+volatile ULONG AppCompatFlag; //0x3cc
+ULONGLONG SystemDllNativeRelocation; //0x3d0
+ULONG SystemDllWowRelocation; //0x3d8
+ULONG XStatePad[1]; //0x3dc
+struct _XSTATE_CONFIGURATION XState; //0x3e0
+};
+```
+
+`edx`是该结构体中的`SystemCall`成员，该结构体成员指定了从User层到Kernel层的调用方式，这里我们可以通过WinDbg来查看一下：
+
+```text
+kd> dt nt!_KUSER_SHARED_DATA 0xFFDF0000
++0x000 TickCountLowDeprecated : 0
++0x004 TickCountMultiplier : 0xf99a027
++0x008 InterruptTime : _KSYSTEM_TIME
++0x014 SystemTime : _KSYSTEM_TIME
++0x020 TimeZoneBias : _KSYSTEM_TIME
++0x02c ImageNumberLow : 0x14c
++0x02e ImageNumberHigh : 0x14c
++0x030 NtSystemRoot : [260] "C:\Windows"
++0x238 MaxStackTraceDepth : 0
++0x23c CryptoExponent : 0
++0x240 TimeZoneId : 0
++0x244 LargePageMinimum : 0x200000
++0x248 Reserved2 : [7] 0
++0x264 NtProductType : 1 ( NtProductWinNt )
++0x268 ProductTypeIsValid : 0x1 ''
++0x26c NtMajorVersion : 6
++0x270 NtMinorVersion : 1
++0x274 ProcessorFeatures : [64] ""
++0x2b4 Reserved1 : 0x7ffeffff
++0x2b8 Reserved3 : 0x80000000
++0x2bc TimeSlip : 0
++0x2c0 AlternativeArchitecture : 0 ( StandardDesign )
++0x2c4 AltArchitecturePad : [1] 0
++0x2c8 SystemExpirationDate : _LARGE_INTEGER 0x0
++0x2d0 SuiteMask : 0x110
++0x2d4 KdDebuggerEnabled : 0x3 ''
++0x2d5 NXSupportPolicy : 0x2 ''
++0x2d8 ActiveConsoleId : 1
++0x2dc DismountCount : 0
++0x2e0 ComPlusPackage : 0xffffffff
++0x2e4 LastSystemRITEventTickCount : 0
++0x2e8 NumberOfPhysicalPages : 0x3ff7e
++0x2ec SafeBootMode : 0 ''
++0x2ed TscQpcData : 0 ''
++0x2ed TscQpcEnabled : 0y0
++0x2ed TscQpcSpareFlag : 0y0
++0x2ed TscQpcShift : 0y000000 (0)
++0x2ee TscQpcPad : [2] ""
++0x2f0 SharedDataFlags : 0xe
++0x2f0 DbgErrorPortPresent : 0y0
++0x2f0 DbgElevationEnabled : 0y1
++0x2f0 DbgVirtEnabled : 0y1
++0x2f0 DbgInstallerDetectEnabled : 0y1
++0x2f0 DbgSystemDllRelocated : 0y0
++0x2f0 DbgDynProcessorEnabled : 0y0
++0x2f0 DbgSEHValidationEnabled : 0y0
++0x2f0 SpareBits : 0y0000000000000000000000000 (0)
++0x2f4 DataFlagsPad : [1] 0
++0x2f8 TestRetInstruction : 0xc3
++0x300 SystemCall : 0x76f46c00
++0x304 SystemCallReturn : 0x76f46c04
++0x308 SystemCallPad : [3] 0
++0x320 TickCount : _KSYSTEM_TIME
++0x320 TickCountQuad : 0x9806
++0x320 ReservedTickCountOverlay : [3] 0x9806
++0x32c TickCountPad : [1] 0
++0x330 Cookie : 0xccc8c182
++0x334 CookiePad : [1] 0
++0x338 ConsoleSessionForegroundProcessId : 0n1504
++0x340 Wow64SharedInformation[16] : 0
++0x380 UserModeGlobalLogger[16] : 0
++0x3a0 ImageFileExecutionOptions : 0
++0x3a4 LangGenerationCount : 1
++0x3a8 Reserved5 : 0
++0x3b0 InterruptTimeBias : 0
++0x3b8 TscQpcBias : 0
++0x3c0 ActiveProcessorCount : 1
++0x3c4 ActiveGroupCount : 1
++0x3c6 Reserved4 : 0
++0x3c8 AitSamplingValue : 0
++0x3cc AppCompatFlag : 1
++0x3d0 DEPRECATED_SystemDllNativeRelocation : 0
++0x3d8 DEPRECATED_SystemDllWowRelocation : 0
++0x3dc XStatePad : [1] 0
++0x3e0 XState : _XSTATE_CONFIGURATION
+```
+
+`+0x300 SystemCall : 0x76f46c00`，该字段存放着函数的调用地址，结合前面的内容可以看到确实是该地址：
+
+![图片描述](upload/attach/202203/948248_TZFSJT6D8JH22ZM.png)
