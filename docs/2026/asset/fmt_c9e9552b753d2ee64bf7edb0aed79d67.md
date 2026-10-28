@@ -1,0 +1,291 @@
+
+# [原创]内核实现x86QQ防截屏
+
+这篇帖子之前写的是别的知识点，但是错误太多，帖子又不好删，就直接在原帖删了重写这篇。
+
+> 防截屏需要hook一个函数`NtGdiBitBlt`, 实现代码在附件里
+
+//本来我以为要hook两个函数呢，还有个`NtGdiStretchBlt`，后来测试发现不用
+
+这个函数在`shadowSSdt`表里，后面简称`SSSDT`
+
+本篇帖子系统为win7x86，只是给一个思路和实现，相信大部分人都可以直接移植到X64上，当然也有更好的方式去解决，比如使用驱动框架。
+
+## windbg查看SSSDT表的方式
+
+`SSSDT`表和`SSDT`表示不同的，在`system`进程中是没有加载的，我们需要切换进程，比如打开一个绘图工具，或者切换到`csrss.exe`这个常驻进程
+
+`!process 0 0` 查看所有进程
+
+```
+!process 0 0
+PROCESS 855d3920 SessionId: none Cid: 0004 Peb: 00000000 ParentCid: 0000
+DirBase: 00185000 ObjectTable: 89201b28 HandleCount: 506.
+Image: System
+PROCESS 8687ac70 SessionId: 0 Cid: 0140 Peb: 7ffd4000 ParentCid: 0138
+DirBase: 3f373060 ObjectTable: 99226d70 HandleCount: 455.
+Image: csrss.exe
+PROCESS 85761838 SessionId: 1 Cid: 098c Peb: 7ffd6000 ParentCid: 0540
+DirBase: 3f3735e0 ObjectTable: 988b79d8 HandleCount: 120.
+Image: mspaint.exe
+...
+...
+...
+```
+
+`.process /p` 切换进程
+
+```
+kd> .process /p 8687ac70
+Implicit process is now 8687ac70
+.cache forcedecodeuser done
+```
+
+`x` 命令查表
+
+```
+kd> x nt!kes*des*table**
+83fbea00 nt!KeServiceDescriptorTableShadow = <no type information>
+83fbe9c0 nt!KeServiceDescriptorTable = <no type information>
+```
+
+`dd` 命令查`SSSDT`表
+
+第一行是`SSDT`表
+
+第二行是`SSSDT`表
+
+表地址为94726000，函数个数为0x339个
+
+```
+kd> dd 83fbea00
+83fbea00 83ed2d9c 00000000 00000191 83ed33e4
+83fbea10 94726000 00000000 00000339 9472702c
+83fbea20 00000000 00000000 83fbea24 00000340
+83fbea30 00000340 855eeeb0 00000007 00000000
+83fbea40 855eede8 855e9550 855e96e0 855e9618
+83fbea50 00000000 855e9488 00000000 00000000
+83fbea60 83ecc809 83ed9eed 83ee83a5 00000003
+83fbea70 85535000 85536000 00000120 ffffffff
+```
+
+`dds` 命令查看`SSSDT`表函数，想查看`0x339`个就输入`339`对应的十进制数
+
+可以看到现在的函数是`Gdi`开头的图形相关的
+
+```
+kd> dds 94726000 L2
+94726000 946b3d37 win32k!NtGdiAbortDoc
+94726004 946cbc23 win32k!NtGdiAbortPath
+```
+
+---
+
+那我们知道了拿`SSSDT`表的流程了，需要切换到图形相关的进程，才能hook放截屏的两个函数，那我们用代码实现一下吧
+
+## 防截屏实现
+
+需要做的很细的话，还要重载内核，但是因为这篇帖子只是为了做防截屏并不是做ARK或者做其它功能，所以就只说防截屏
+
+代码放在最下面
+
+### 第一步获取到`csrss`常驻进程
+
+```c
+HANDLE GetCsrPid() {
+HANDLE Process, hObject;
+HANDLE CsrId = (HANDLE)0;
+OBJECT_ATTRIBUTES obj;
+CLIENT_ID cid;
+UCHAR Buff[0x100];
+POBJECT_NAME_INFORMATION ObjName = (PVOID)&Buff;
+PSYSTEM_HANDLE_INFORMATION_EX Handles;
+ULONG r;
+Handles = GetInfoTable(SystemHandleInformation);
+if (!Handles) return CsrId;
+for (r = 0; r < Handles->NumberOfHandles; r++){
+//Port object
+InitializeObjectAttributes(&obj, NULL, OBJ_KERNEL_HANDLE, NULL, NULL);
+cid.UniqueProcess = (HANDLE)Handles->Information[r].ProcessId;
+cid.UniqueThread = 0;
+if (NT_SUCCESS(NtOpenProcess(&Process, PROCESS_DUP_HANDLE, &obj, &cid))){
+if (NT_SUCCESS(ZwDuplicateObject(Process, (HANDLE)Handles->Information[r].Handle, NtCurrentProcess(), &hObject, 0, 0, DUPLICATE_SAME_ACCESS))){
+if (NT_SUCCESS(ZwQueryObject(hObject, ObjectNameInformation, ObjName, 0x100, NULL))){
+if (ObjName->Name.Buffer && !wcsncmp(L"\\Windows\\ApiPort", ObjName->Name.Buffer, 20)){
+CsrId = (HANDLE)Handles->Information[r].ProcessId;
+KdPrintEx((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "ZwQueryObject：%wZ ID:%d Type::%d\n", &ObjName->Name, Handles->Information[r].ProcessId, Handles->Information[r].ObjectTypeNumber));
+}
+}
+ZwClose(hObject);
+}
+ZwClose(Process);
+}
+}
+ExFreePool(Handles);
+return CsrId;
+}
+```
+
+### 第二步 附加进程，CR0关写保护
+
+```c
+VOID SetHook(){
+NTSTATUS status;
+status = PsLookupProcessByProcessId(GetCsrPid(), &g_crsEProc);
+if (!NT_SUCCESS(status)) {
+KdPrint(("[breeze]PsLookupProcessByProcessId() error = %x\n", status));
+return;
+}
+KeAttachProcess(g_crsEProc);//将当前线程附加到目标进程的地址空间
+__try{
+//关闭写保护
+_asm
+{
+push eax
+mov eax, CR0
+and eax, 0FFFEFFFFh
+mov CR0, eax
+pop eax
+}
+KeServiceDescriptorTableShadow = (PServiceDescriptorTableEntry_t)((ULONG)&KeServiceDescriptorTable + 0x50);
+OldNtDgiBitBlt = KeServiceDescriptorTableShadow->ServiceTableBase[14];
+KeServiceDescriptorTableShadow->ServiceTableBase[14] = MyNtGdiBitBlt;
+//恢复写保护
+_asm
+{
+push eax
+mov eax, CR0
+or eax, NOT 0FFFEFFFFh
+mov CR0, eax
+pop eax
+}
+}
+__finally{
+KeDetachProcess(); //切换回来，否则爆炸
+}
+}
+```
+
+### 第三步，自己实现hook函数
+
+判断进程为`QQ.EXE`结尾就直接返回`false`
+
+```c
+int APIENTRY MyNtGdiBitBlt(HDC hDCDest, INT XDest, INT YDest, INT Width, INT Height, HDC hDCSrc, INT XSrc, INT YSrc, DWORD ROP, DWORD crBackColor, FLONG fl) {
+ULONG_PTR ulPtr = 0;
+DECLARE_UNICODE_STRING_SIZE(StrProcessName, 260);
+UNICODE_STRING uExpression;
+RtlInitUnicodeString(&uExpression, L"*QQ.EXE");
+ulPtr = (ULONG_PTR)PsGetCurrentProcessId();
+GetProcessFullNameByPid((HANDLE)ulPtr, &StrProcessName);
+if (IsPatternMatch(&uExpression, &StrProcessName, TRUE)){
+KdPrint((DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[breeze]Hook成功，路径为：%wZ\n", &StrProcessName));
+return FALSE;
+}
+return OldNtDgiBitBlt(hDCDest, XDest, YDest, Width, Height, hDCSrc, XSrc, YSrc, ROP, crBackColor, fl);
+}
+```
+
+## 测试
+
+hook成功
+
+![图片描述](upload/attach/202203/913912\_YQCQDTDH6P3W28C.png)
+
+测试截图
+
+![图片描述](upload/attach/202203/913912\_6AWA4E6DQC2TD7R.png)
+
+截图结果
+
+![图片描述](upload/attach/202203/913912\_SNKGXGHFMRJCYF7.png)
+
+这篇帖子之前写的是别的知识点，但是错误太多，帖子又不好删，就直接在原帖删了重写这篇。
+
+> 防截屏需要hook一个函数`NtGdiBitBlt`, 实现代码在附件里
+
+//本来我以为要hook两个函数呢，还有个`NtGdiStretchBlt`，后来测试发现不用
+
+这个函数在`shadowSSdt`表里，后面简称`SSSDT`
+
+本篇帖子系统为win7x86，只是给一个思路和实现，相信大部分人都可以直接移植到X64上，当然也有更好的方式去解决，比如使用驱动框架。
+
+## windbg查看SSSDT表的方式
+
+`SSSDT`表和`SSDT`表示不同的，在`system`进程中是没有加载的，我们需要切换进程，比如打开一个绘图工具，或者切换到`csrss.exe`这个常驻进程
+
+`!process 0 0` 查看所有进程
+
+```
+!process 0 0
+PROCESS 855d3920 SessionId: none Cid: 0004 Peb: 00000000 ParentCid: 0000
+DirBase: 00185000 ObjectTable: 89201b28 HandleCount: 506.
+Image: System
+PROCESS 8687ac70 SessionId: 0 Cid: 0140 Peb: 7ffd4000 ParentCid: 0138
+DirBase: 3f373060 ObjectTable: 99226d70 HandleCount: 455.
+Image: csrss.exe
+PROCESS 85761838 SessionId: 1 Cid: 098c Peb: 7ffd6000 ParentCid: 0540
+DirBase: 3f3735e0 ObjectTable: 988b79d8 HandleCount: 120.
+Image: mspaint.exe
+...
+...
+...
+```
+
+`.process /p` 切换进程
+
+```
+kd> .process /p 8687ac70
+Implicit process is now 8687ac70
+.cache forcedecodeuser done
+```
+
+`x` 命令查表
+
+```
+kd> x nt!kes*des*table**
+83fbea00 nt!KeServiceDescriptorTableShadow = <no type information>
+83fbe9c0 nt!KeServiceDescriptorTable = <no type information>
+```
+
+`dd` 命令查`SSSDT`表
+
+第一行是`SSDT`表
+
+第二行是`SSSDT`表
+
+表地址为94726000，函数个数为0x339个
+
+```
+kd> dd 83fbea00
+83fbea00 83ed2d9c 00000000 00000191 83ed33e4
+83fbea10 94726000 00000000 00000339 9472702c
+83fbea20 00000000 00000000 83fbea24 00000340
+83fbea30 00000340 855eeeb0 00000007 00000000
+83fbea40 855eede8 855e9550 855e96e0 855e9618
+83fbea50 00000000 855e9488 00000000 00000000
+83fbea60 83ecc809 83ed9eed 83ee83a5 00000003
+83fbea70 85535000 85536000 00000120 ffffffff
+```
+
+`dds` 命令查看`SSSDT`表函数，想查看`0x339`个就输入`339`对应的十进制数
+
+可以看到现在的函数是`Gdi`开头的图形相关的
+
+```
+kd> dds 94726000 L2
+94726000 946b3d37 win32k!NtGdiAbortDoc
+94726004 946cbc23 win32k!NtGdiAbortPath
+```
+
+---
+
+那我们知道了拿`SSSDT`表的流程了，需要切换到图形相关的进程，才能hook放截屏的两个函数，那我们用代码实现一下吧
+
+## 防截屏实现
+
+需要做的很细的话，还要重载内核，但是因为这篇帖子只是为了做防截屏并不是做ARK或者做其它功能，所以就只说防截屏
+
+代码放在最下面
+
+### 第一步获取到`csrss`常驻进程

@@ -1,0 +1,28 @@
+
+# [原创]mbr 感染源码~~~
+
+![](https://bbs.kanxue.com/view/img/face/27.gif)![](https://bbs.kanxue.com/view/img/face/27.gif)逆了一份 biso和mbr 感染的驱动，多亏一群苦逼 里面的小A。。 帮助了一下（不知道是不是他）
+
+![](https://bbs.kanxue.com/view/img/face/27.gif)![](https://bbs.kanxue.com/view/img/face/27.gif) 这个程序分驱动和r3层操作~~ 很狠~~![](https://bbs.kanxue.com/view/img/face/28.gif)
+
+木马程序不给![](https://bbs.kanxue.com/view/img/face/27.gif)还有些不清楚![](https://bbs.kanxue.com/view/img/face/27.gif)慢慢研究后在变为代码发出来。。
+
+求9学校中9 那个学校生源不够能否破例，只要一所大学其他无要求~~
+
+![](https://bbs.kanxue.com/view/img/face/27.gif)~~~  PS:问一些大牛，大牛死活不解释~~![](https://bbs.kanxue.com/view/img/face/27.gif)
+
+ps：那个木马比这个牛逼多的多，系统重新装了以后还会重新在没个盘写文件，重复感染~~![](https://bbs.kanxue.com/view/img/face/50.gif)我只是提取一段代码来写~r0和这个差不多~。。BOIS还在研究中.......
+
+![](https://bbs.kanxue.com/view/img/face/16.gif)祝：大家晚安~~~~！！
+
+![](https://bbs.kanxue.com/upload/attach/201306/439417_5yomdn9rnsaqale.jpg)
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+
+- [mbr.zip](javascript:void(0);)
+  （11.82kb，480次下载）
+
+- [728da9773912b31b3ec182978718367adbb4e1db.jpg](javascript:void(0);)
+  （100.19kb，62次下载）

@@ -1,0 +1,232 @@
+
+# [原创]对笔记本 Inject code 实验
+
+菜鸟第一次发分享帖，平时一直潜水，深受看雪中分享精神的感动，故在实验有些心得时分享，同时求教，求讨论
+
+实验是对 `xp` 自带笔记本的 `inject code`
+
+老方法 `Inject Dll` `hook` 目标 `call`
+
+`injector` 参考看雪中前辈们提供的方法
+
+回顾一下在目标进程中分配空间写入目的 `dll` 路径
+
+并用 `createremotethread` 执行 `LoadLibrary`（由 `getprocaddress` 取得加载地址）
+
+其中 `show_console`, `close_console` 是测式过程中输出信息看有无成功
+
+原本想用 `codeblock` 开发但编译设定没法弄好一直找不到 `PTHREAD_START_ROUTINE` 的定义还是用至宝 `VC6`
+
+`dll` 部分分为三个函式 `inject`, `asm_head`, `hook_call`
+
+## `inject`
+
+取得 `asm_head` 地址，改写 `page` 权限，改写 `inject call` 头
+
+## `asm_head`
+
+从当前环境取出所需资料，环境保护，执行 `hook_call`，还原环境，执行原始 `call` 被吃掉的部分
+
+由于不会在 `c++` 单纯写一段内嵌汇编只好开一个函式内嵌并记下地址直接转跳有什么更好的方法请大牛们不吝拍砖指点哈 :)
+
+## `hook_call`
+
+按设计应可以独立于 `inject` 过程，也就是可以完全的用 `c++` 写所需要的码，这里只是实验就把笔记本中的内容印出来
+
+直接上 `code`
+
+`Inject_DLL` 很多是参考前辈的 `code`
+
+```
+#include "stdafx.h"
+#include <windows.h>
+#include <winbase.h>
+#include <winnt.h>
+#include <stdio.h>
+#include <Tlhelp32.h>
+
+BOOL LoadRometeDll(DWORD dwProcessId)
+{
+    const DWORD THREADSIZE=1024*4;
+HANDLE pRemoteThread,hRemoteProcess;
+PTHREAD_START_ROUTINE pfnAddr;void *pFileRemote;
+    hRemoteProcess=OpenProcess(PROCESS_ALL_ACCESS,FALSE,dwProcessId);
+     printf("remote process handle: %d", &hRemoteProcess);
+    pFileRemote=VirtualAllocEx(hRemoteProcess,0,THREADSIZE,MEM_COMMIT|MEM_RESERVE,PAGE_EXECUTE_READWRITE);
+    if(!WriteProcessMemory(hRemoteProcess,pFileRemote,"C:\\Documents and Settings\\Administrator\\My Documents\\Dropbox\\ShareVM\\dll_vc\\Debug\\dll_vc.dll",THREADSIZE,NULL)){
+          return FALSE;}
+    pfnAddr=(PTHREAD_START_ROUTINE)GetProcAddress(GetModuleHandle(TEXT("Kernel32")),"LoadLibraryA");
+    pRemoteThread=CreateRemoteThread(hRemoteProcess,NULL,0,pfnAddr,pFileRemote,0,NULL);
+    if(pRemoteThread==NULL){
+          return FALSE;}
+    else{
+          printf("ok");}
+}
+
+BOOL GetProcessIdByName(LPSTR szProcessName,LPDWORD lpPID)
+{
+  STARTUPINFO st;
+  PROCESS_INFORMATION pi;
+  PROCESSENTRY32 ps;
+  HANDLE hSnapshot;
+  ZeroMemory(&st,sizeof(STARTUPINFO));
+  ZeroMemory(&pi,sizeof(PROCESS_INFORMATION));
+  st.cb = sizeof(STARTUPINFO);
+  ZeroMemory(&ps,sizeof(PROCESSENTRY32));
+  ps.dwSize = sizeof(PROCESSENTRY32);
+  hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS,0);
+  if (hSnapshot == INVALID_HANDLE_VALUE)
+  {
+    return FALSE;
+  }
+  if (!Process32First(hSnapshot,&ps))
+  {
+    return FALSE;
+  }
+
+  do
+  {
+    if (lstrcmpi(ps.szExeFile,szProcessName) == 0)
+    {
+      *lpPID = ps.th32ProcessID;
+      printf("found: %d\n", ps.th32ProcessID);
+      CloseHandle(hSnapshot);
+      return TRUE;
+    }
+  } while (Process32Next(hSnapshot,&ps));
+  CloseHandle(hSnapshot);
+  return FALSE;
+}
+
+int main()
+{
+    DWORD dwPID;
+  if (!GetProcessIdByName("notepad.exe",&dwPID))
+    return -2;
+  if (!LoadRometeDll(dwPID))
+    return 0;
+  return 1;
+}
+```
+
+`DLL` 代码风格不是很好，也有很大的局限性，请指点
+
+```
+#include <stdio.h>
+#include "stdafx.h"
+
+char* ori;
+void* asm_head_addr;
+int flag=0;
+char* str1;
+
+void hook_call()
+{
+  DWORD ws;
+  WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE),str1,wcslen((unsigned short*)str1),&ws,NULL);
+}
+
+void asm_head()
+{
+LL:
+  __asm{
+    mov [asm_head_addr],offset LL
+  }
+  if(flag == 1)
+    return;
+  __asm{
+    push eax
+    mov eax,[esp+0x14]
+    mov str1,eax
+    pop eax
+  }
+  __asm{
+    pushad
+  }
+  
+  hook_call();
+  __asm{
+    popad
+  }
+  __asm{
+    mov     edi, edi
+    push    ebp
+    mov     ebp, esp
+    jmp    ori
+  }
+}
+
+void inject_code()
+{
+    char* pos = (char*)0x01004B99; // inject address
+  int i;
+  int jmp_op_addr;
+  char* start = (char*)0x01001000;
+  int seg_size = 0x8000;
+  char byte_code[] = {0xE9, 0x6C, 0xC4, 0xFF, 0x0E};
+  unsigned long output;
+
+  flag = 1;
+  asm_head(); // get pos first
+  flag = 0;
+
+  jmp_op_addr = (int)asm_head_addr - (int)(pos+5);
+  memcpy(byte_code+1, &jmp_op_addr, 4);
+
+  for(i=0;i<0x50;i++)
+        printf(" %2x", *(pos+i));
+  ori = (char*)(pos+sizeof(byte_code));
+
+  VirtualProtect(start, seg_size, PAGE_EXECUTE_READWRITE, &output); // inject code
+  memcpy(pos, byte_code, sizeof(byte_code));
+}
+
+void show_console()
+{
+  AllocConsole();
+    freopen("CONOUT$","w+t",stdout);
+    freopen("CONIN$","r+t",stdin);
+}
+
+void close_console()
+{
+  fclose(stdout);
+    fclose(stdin);
+    FreeConsole();
+}
+
+BOOL APIENTRY DllMain( HANDLE hModule, 
+                       DWORD  ul_reason_for_call, 
+                       LPVOID lpReserved
+           )
+{
+  
+    switch (ul_reason_for_call)
+    {
+        case DLL_PROCESS_ATTACH:
+      show_console();
+      inject_code();
+      printf("DLL_PROCESS_ATTACH\n");
+            break;
+
+        case DLL_PROCESS_DETACH:
+            // detach from process
+            printf("DLL_PROCESS_DETACH\n");
+      close_console();
+            break;
+
+        case DLL_THREAD_ATTACH:
+            // attach to thread
+            printf("DLL_THREAD_ATTACH\n");
+            break;
+
+        case DLL_THREAD_DETACH:
+            // detach from thread
+      printf("DLL_THREAD_DETACH\n");
+            break;
+    }
+    return TRUE; // succesful
+}
+```
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)

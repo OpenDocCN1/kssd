@@ -1,0 +1,143 @@
+
+# [原创]WIN32汇编邮件发送学习笔记
+
+![](https://bbs.kanxue.com/view/img/face/1.gif)发上这两天写的一个简单的邮件发送模块源码，没什么技术含量，仅作为学习笔记共享了，![](https://bbs.kanxue.com/view/img/face/1.gif)注释写的还算详细吧，看看...
+
+![](https://bbs.kanxue.com/view/img/face/1.gif)水平有限，自己写的一个简单的Base64编码函数:
+
+```
+;按Base64编码方式加密字符串
+;参数:
+;\_lpSource:源字符地址                \_lpDest:加密后的字符串存放缓冲区                \_len:源字符串长度
+Base64Encode        proc        \_lpSource, \_lpDest, \_len
+local        dwCount:DWORD        ;记录3位一次字节处理次数
+local        dwYuShu:DWORD        ;被3位整除剩余的字节数
+local        index:DWORD                ;记录当前正在处理的位置
+        pushad
+                mov esi, \_lpSource        ;源字符地址
+                mov edi, \_lpDest                ;目的字符缓冲区
+                ;求出余数和3位一次处理循环次数
+                xor edx, edx
+                mov eax, \_len
+                mov ecx, 3
+                div cx
+                mov dwCount, eax        ;循环次数
+                mov dwYuShu, edx        ;余数保存
+                mov index, 1        ;表示当前处理第一位
+                .while dwCount != 0
+                        .while TRUE
+                                xor eax, eax
+                                .if index == 1                ;第一位6Bit字符处理
+                                        lodsb
+                                        shr al, 2                ;源第一字节右移两位，去掉低2位，高2位补零
+                                        mov al, BYTE ptr [offset base64\_alphabet + eax]
+                                        stosb                                ;填充字符到目的缓冲区
+                                        add index, 1        ;索引加一，表示将要处理下一字符
+                                .elseif index == 2        ;第二位6Bit字符处理
+                                        dec esi                                ;根据源字节的第一个字节和第二个字节联合处理。
+                                        lodsw                                        ;规则:
+                                        and al, 3                        ;第一个字节高6位去掉左移四位，第二个字节右移四位
+                                        shl al, 4
+                                        shr ah, 4
+                                        add al, ah                        ;即：源第一字节低2位 + 源第2字节高4位
+                                        and ax, 0FFH                ;清除AX中高8位无用数据
+                                        mov al, BYTE ptr [offset base64\_alphabet + eax]
+                                        stosb                                        ;填充字符到目的缓冲区
+                                        add index, 1
+                                .elseif index == 3        ;第三位6Bit字符处理
+                                        dec esi                                ;根据源字节的第二个字节和第三个字节联合处理
+                                        lodsw                                        ;规则:第二个字节去掉高4位并左移两位（得高6位），第三个字节右移6位并去掉高6位（得低2位），相加即可
+                                        and al, 0FH                        ;去除源第二字节高4位
+                                        shl al, 2
+                                        shr ah, 6                        ;第三字节右移6位
+                                        and ah, 3                        ;去除高6位，只保留低两位 AND 00000011B
+                                        add al, ah
+                                        and ax, 0FFH                ;清除AX中高8位无用数据
+                                        mov al, BYTE ptr [offset base64\_alphabet + eax]
+                                        stosb                                        ;填充字符到目的缓冲区
+                                        add index, 1
+                                .else                                ;第四个6Bit字符的处理
+                                        dec esi                ;源第三字节去掉高2位即可
+                                        lodsb
+                                        and al, 3FH        ;去除高两位
+                                        mov al, BYTE ptr [offset base64\_alphabet + eax]
+                                        stosb                        ;填充字符到目的缓冲区
+                                        mov index, 1
+                                        .break                ;跳出3位一次的处理循环
+                                .endif
+                        .endw
+                        dec dwCount
+                .endw
+                ;处理剩余的需要补齐的字节
+                .if dwYuShu == 1                ;需要补齐两个字节'=='
+                        ;按第一个字节的处理方式正常处理
+                        xor eax, eax
+                        lodsb
+                        shr al, 2
+                        mov al, BYTE ptr [offset base64\_alphabet + eax]
+                        stosb
+                        ;按第二个字节的处理方式正常处理
+                        xor eax, eax
+                        dec esi
+                        lodsw
+                        and al, 3
+                        shl al, 4
+                        shr ah, 4
+                        add al, ah
+                        and ax, 0FFH
+                        mov al, BYTE ptr [offset base64\_alphabet + eax]
+                        stosb
+                        ;填充2个字节'=='
+                        mov ax, 3D3DH
+                        stosw
+                .elseif dwYuShu == 2                        ;需要补齐一个字节'='
+                        ;按第一个字节的处理方式正常处理
+                        xor eax, eax
+                        lodsb
+                        shr al, 2
+                        mov al, BYTE ptr [offset base64\_alphabet + eax]
+                        stosb
+                        ;按第二个字节的处理方式正常处理
+                        xor eax, eax
+                        dec esi
+                        lodsw
+                        and al, 3
+                        shl al, 4
+                        shr ah, 4
+                        add al, ah
+                        and ax, 0FFH
+                        mov al, BYTE ptr [offset base64\_alphabet + eax]
+                        stosb
+                        ;按第三个字节的处理方式正常处理
+                        dec esi
+                        lodsw
+                        and al, 0FH
+                        shl al, 2
+                        shr ah, 6
+                        and ah, 3
+                        add al, ah
+                        and ax, 0FFH
+                        mov al, BYTE ptr [offset base64\_alphabet + eax]
+                        stosb
+                        ;补齐一个字节'='
+                        mov al, 3DH
+                        stosb
+                .endif
+        popad
+        ret
+Base64Encode        endp
+```
+
+![](https://bbs.kanxue.com/view/img/face/27.gif)有错误和建议，欢迎提出
+
+![](https://bbs.kanxue.com/view/img/face/1.gif)另外 求推荐好的C语言学习资料，最好是WIN32带界面的程序开发，不胜感激！
+
+源码下载:
+
+[EmailDll.rar](https://bbs.kanxue.com/attach-download-81653.htm)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+
+- [EmailDll.rar](javascript:void(0);)（5.14kb，47次下载）

@@ -1,0 +1,130 @@
+
+# [原创]N种内核注入DLL的思路及实现
+
+**《N种内核注入DLL的思路及实现》**
+
+Author : sudami [sudami@163.com]
+
+Time : 01-11-2008
+
+Links : [0d5K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3S2A6i4K6u0W2j5X3q4A6k6s2g2Q4x3X3g2U0L8$3#2Q4x3V1k6K6N6h3c8S2L8h3V1`.](https://bbs.kanxue.com/elink@d7aK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3S2A6i4K6u0W2j5X3q4A6k6s2g2Q4x3X3g2U0L8$3#2Q4x3V1k6K6N6h3c8S2L8h3V1`.)
+
+内核注入，技术古老但很实用。现在部分RK趋向无进程，玩的是`SYS+DLL`，有的无文件，全部存在于内存中。可能有部分人会说："都进内核了，什么不能干？"。是啊，要是内核中可以做包括R3上所有能做的事，软件开发商们也没必要做应用程序了。有时，我们确实需要R3程序去干驱动做起来很困难或者没必要驱动中去做的事，进程 / DLL是不错的选择，但进程目标太大，所以更多的同学趋向于注DLL。
+
+若要开发安全软件、小型工具，可借鉴其思路，Anti Rootkits时，在某些极端情况下，可使用同样的技术发现、清除RK，保证用户电脑的正常使用。在此，我将探讨几种内核注入DLL的思路及实现原理。
+
+## (1) APC技术
+
+给一个Alertbale的用户态线程插APC，让其执行其中的ShellCode，来执行我们的代码。这个方法简单易行，但是不够稳定，兼容性不好。测试中发现经常出现Explorer.exe等插崩溃的情况，而且有杀软在的情况下，插入有时会被拦截，起不到应有的效果。(可参考我以前逆过的一个驱动：[逆向fuck.sys--编译通过--源码](https://bbs.kanxue.com/elink@3a0K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3S2A6i4K6u0W2j5X3q4A6k6s2g2Q4x3X3g2U0L8$3#2Q4x3V1k6K6N6h3c8S2L8h3W2Q4x3V1k6T1L8r3!0Y4i4K6u0r3K9i4c8W2L8g2)9J5c8U0t1K6k6h3q4U0z5r3t1I4z5o6b7%4x3h3b7I4y4e0p5H3z5e0t1K6x3o6u0X3z5g2)9J5k6h3S2@1L8h3H3`.))
+
+## (2) 内核Patch [\\KnownDLLs\\Kernel32.dll](https://bbs.kanxue.com/elink@8e8k6X3W2D9k6g2)9K6b7g2)9J5c8W2)9J5c8V1E0F1L8%4N6F1c8p5I4x3M7#2)9J5c8V1E0W2M7X3&6W2L8o6x3J5i4K6u0W2k6r3I4D9) CreateThread
+
+[\\KnownDLLs](https://bbs.kanxue.com/elink@6d4k6X3W2D9k6g2)9K6b7g2)9J5c8W2)9J5c8W2)9#2b7#2)9#2b7@1E0F1L8%4N6F1c8p5I4x3M7H3`.)是系统加载时对象管理器加载最新磁盘DLL到内存的，当其他进程想调用某个DLL时，就不用重复从磁盘加载了，而会从这里映射一份到自己的进程空间中去。这样给我们做全局Patch提供了一个很好的机会：
+
+`ZwOpenSection`打开[\\KnownDlls\\kernel32.dll](https://bbs.kanxue.com/elink@36fk6X3W2D9k6g2)9K6b7g2)9J5c8W2)9J5c8V1E0F1L8%4N6F1c8r3I4D9M7#2)9J5c8X3E0W2M7X3&6W2L8o6x3J5i4K6u0W2k6r3I4D9)，调用`ZwMapViewOfSection`映射一份到自己进程空间，然后寻找kernel32.dll在内存中代码节的空隙，选择这里作为我们fake函数的存储Buffer。修改`CreateThread`函数的开头5字节跳转到这个间隙，当系统任何一个线程创建时，会走到`CreateThread`函数，然后执行空隙中的ShellCode，其负责调用`LoadLibrary`加载我们的DLL。DLL一经加载，会发IOCTL通知本驱动，让驱动卸载HOOK。这样就完成了内核注DLL的过程。测试时发现**Svchost.exe**进程调用`CreateThread`函数很频繁，所以触发也会很快，基本1秒不到就能将DLL加载进去，而我们的HOOK也卸掉了。所以稳定性提高不少。示意图如下：
+
+![](https://bbs.kanxue.com/upload/attach/200811/57632_6jmq04hr5xvubjy.gif)
+
+![](https://bbs.kanxue.com/upload/attach/200811/57632_mdsjj6i5wegbva3.gif)
+
+## (3) 内核HOOK ZwMapViewOfSection
+
+有部分模块加载时会调用`ZwMapViewOfSection`，比如进程创建时映射N份DLL到自己的虚拟空间中去。我们替换SSDT中的这个函数，过滤出是加载`Kernel32.dll`的情况，从参数中取得其基址，Inline Hook其EAT中的`CreateThread`函数，跳转到在这个进程虚拟地址空间中申请的Buffer，在其中完成DLL的加载过程。
+
+关键API：
+
+`ZwAllocateVirtualMemory` ---- 在此进程空间中分配内存，存放Shellcode
+
+`ZwProtectVirtualMemory` ---- 使当前内存块具有可读可写属性
+
+`IoAllocateMdl` ---- 创建MDL
+
+关键Code如下：
+
+![](https://bbs.kanxue.com/upload/attach/200811/57632_vtwz50k4sj2p9e5.gif)
+
+![](https://bbs.kanxue.com/upload/attach/200811/57632_lq8cng9c7jsc0zj.gif)
+
+同方法2相比，原理类似。但修改时机不同，效果差不多，只是注入DLL的时间会慢一些。至于Shellcode的编写，就大同小异了。萝卜白菜各有所爱，主要看个人发挥。要是闲写shellcode麻烦，请到看雪学院去查资料，模板很多，在这里就不YY了。
+
+[【看雪读书月】学习ShellCode编写](http://bbs.pediy.com/showthread.php?t=69754&highlight=shellcode)
+
+[[note]一个简单的Shellcode](https://bbs.kanxue.com/elink@301K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3S2A6i4K6u0W2j5X3q4A6k6s2g2Q4x3X3g2U0L8$3#2Q4x3V1k6K6N6h3c8S2L8h3W2Q4x3V1k6T1L8r3!0Y4i4K6u0r3K9i4c8W2L8g2)9J5c8X3q4U0y4K6k6W2z5o6c8T1k6h3k6X3k6U0R3@1k6U0x3^5x3K6l9J5y4h3x3@1x3g2)9J5k6h3S2@1L8h3H3`.)
+
+[shellcode之小小琢磨](http://bbs.pediy.com/showthread.php?t=60338&highlight=shellcode)
+
+[Add_Section](http://bbs.pediy.com/showthread.php?t=36497&highlight=shellcode)
+
+## (4) 内核HOOK NtCreateThread
+
+跟踪**进程创建的流程**，会很明晰的发现有多点可以patch来实现DLL的注入。
+
+进程创建完时是一个**空水壶**，里面没有沸腾的热水（threads），于是系统调用`NtCreateThread`创建其主线程（给空水壶注水 – **凉水**），在这个暂停的线程里面折腾了一阵后完事了也厌倦了，于是系统跳了出来，回到进程空间中，调用`Kernel32.dll`去通知`CSRSS.EXE`，对它说："这里有一个新进程出生了，你在你的表里标记一下"。然后就开始加载DLL啦，把系统KnownDLLs中的自己需要的DLL都Map一份到这个大水壶中。接着`KiThreadStartup`加热水壶中的凉水，于是水就开始**沸腾**了，此时主线程开始工作……
+
+拦截`NtCreateThread`，取得**当前线程上下文**，保存它要返回的地址（会回到空水壶中去），劫持为我们自己分配的地址，在其中填充ShellCode来加载目的DLL。至于选择Buffer，思路很多。这里可简单的Attach到当前进程，在充足的虚拟2GB进程地址空间中分配属于你自己的一块小内存，够放ShellCode足矣。示意图如下：
+
+![](https://bbs.kanxue.com/upload/attach/200811/57632_6zmcgrkmdf9hzpz.jpg)
+
+## (5) 内核感染常用模块，让感染模块帮我们Load DLL
+
+这个方法就有点绕远了，开始了最本质最原始的感染，可增加新节，可插空隙，总之，让别人的模块Load进内存时顺路的帮我们加载下DLL，DLL一旦加载就可以恢复感染，清除痕迹。至于感染代码，网上一堆。只要不是驱动感染驱动（多了个校验和），其他性质都一样，看自己发挥啦。
+
+## (6) 拦截NtCreateUserProcess、NtCreateSymbolicLinkObject
+
+前者在Vista下才有。拦截后通过`PsLookupProcessThreadByCid`得到ETHREAD / EPROCESS，判断是否是**CSRSS.EXE**引起的，若是则在此进程空间内分配一块内存，调用`NtGetContextThread`得到当前的线程上下文，调用`ZwWriteVirtualMemory`填充Shellcode区域，取得`LdrUnloadDll`、`LdrGetDllHandle`等函数地址，通过他们加载DLL。然后调用`NtSetContextThread`恢复原始的Context。关于这种方法，可参考DriverDevelop上某人发的BIN。
+
+["内核实现DLL注入.可以完美绕过KAV瑞星等杀毒软件](https://bbs.kanxue.com/elink@f25K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3u0T1M7#2)9J5k6h3c8J5K9i4k6W2M7X3c8W2N6X3g2D9L8%4m8Q4x3X3g2U0L8$3#2Q4x3V1k6Z5N6r3#2Q4y4h3k6V1j5i4c8S2i4K6u0r3x3e0k6Q4x3V1j5H3z5o6l9%4i4K6u0r3x3e0p5J5y4o6V1&6i4K6u0W2K9s2c8E0L8l9`.)"]
+
+## (7) 内核拦截NtResumeThread
+
+## (8) NtUserSetWindowsHookEx 注入
+
+顺便提下R3上DLL的注入：
+
+1. `CreateRemoteThread` (or `NtCreateThreadEx` (Used in Vista))
+2. `SetThreadContext` (change the EIP)
+3. `NtQueueAPCThread`
+4. `RtlCreateUserThread`
+5. `SetWindowHookEx`
+
+## 小结
+
+纵观进程启动的全过程，可patch的地方很多，只要保证进程、线程上下文不被破坏，注入的手法可多种多样。只要保证我们的DLL注入时间足够短，稳定性足够高即可。当我们迫不得已要从内核注入DLL到用户进程去时，系统已经中毒很深，此时运用类似上面提到的技术来加载DLL，让DLL做我们驱动无法完成的任务，是可以接受的。
+
+上面提到的思路是我暂时想到并且已经实现了的，详细过程可参见代码。欢迎积极探讨更好更稳定而且**不邪恶**的方法。
+
+-----------------------------------------------------------------------------------
+
+参考资料：
+
+1. [Windows Internals---Processes,Threads,Jobs](https://bbs.kanxue.com/elink@31eK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3S2A6i4K6u0W2j5X3q4A6k6s2g2Q4x3X3g2U0L8$3#2Q4x3V1k6K6N6h3c8S2L8h3W2Q4x3V1k6T1L8r3!0Y4i4K6u0r3K9i4c8W2L8g2)9J5c8X3j5%4x3U0j5J5y4U0t1%4k6U0j5J5k6e0p5%4x3o6l9&6x3o6S2X3z5h3b7#2j5#2)9J5k6h3S2@1L8h3H3`.)
+2. [漫谈兼容内核系列:WINDOWS进程的用户空间](https://bbs.kanxue.com/elink@532K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3N6G2L8$3N6D9k6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4W2j5i4u0U0K9q4)9K6c8Y4q4Q4x3@1c8Q4x3U0g2q4y4W2)9J5y4f1u0o6i4K6t1#2b7f1u0Q4x3U0g2q4z5q4)9J5y4f1t1H3i4K6t1#2z5o6S2Q4x3U0g2q4y4g2)9J5y4e0R3#2i4K6t1#2b7V1y4Q4x3U0g2q4y4g2)9J5y4f1q4q4i4K6t1#2b7U0W2Q4x3U0g2q4y4g2)9J5y4e0R3$3i4K6t1#2z5o6g2Q4x3U0g2q4y4W2)9J5y4f1p5H3i4K6t1#2b7U0S2Q4x3U0g2q4y4q4)9J5y4f1t1&6i4K6t1#2z5p5u0Q4x3U0g2q4y4q4)9J5y4f1u0m8i4K6t1#2z5p5y4Q4x3U0g2q4y4g2)9J5y4e0S2p5i4K6t1#2z5o6q4Q4x3U0g2q4y4q4)9J5y4f1t1^5i4K6t1#2z5o6m8Q4x3V1u0i4d9f1&6p5e0#2N6e0i4K6t1#2c8e0S2Q4x3U0g2n7c8W2)9J5y4e0W2n7i4K6t1#2c8e0N6Q4x3U0g2m8z5q4)9J5y4e0S2n7i4K6t1#2c8e0N6Q4x3U0f1&6b7g2)9J5y4e0R3@1i4K6t1#2c8e0N6Q4x3U0f1&6y4q4)9J5y4f1p5^5i4K6t1#2c8e0k6Q4x3U0f1^5z5q4)9J5y4f1t1%4i4K6t1#2c8e0N6Q4x3U0g2m8z5g2)9J5y4f1u0m8i4K6t1#2c8e0W2Q4x3U0f1&6y4#2)9J5y4f1t1@1i4K6t1$3K9r3I4Q4x3@1c8*7K9q4)9J5k6p5y4z5i4K6t1$3M7$3!0#2M7X3y4W2K9h3c8Q4x3@1c8Y4k6q4)9J5y4Y4u0D9P5W2)9K6c8o6q4c8x3f1N6s2e0p5c8Q4y4h3k6*7K9q4)9J5k6p5y4z5b7@1^5J5z5e0W2o6e0U0t1&6z5g2)9J5y4X3q4I4i4K6y4p5N6l9`.)
+3. WRK 1.2 ,windbg
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [hook.gif](javascript:void(0);)
+
+  （51.92kb，3562次下载）
+
+- [Effect.1.gif](javascript:void(0);)
+
+  （30.22kb，3511次下载）
+
+- [Tmpcode_show_1.gif](javascript:void(0);)
+
+  （10.15kb，3506次下载）
+
+- [Tmpcode_show_2.gif](javascript:void(0);)
+
+  （8.86kb，3485次下载）
+
+- [绘图2.jpg](javascript:void(0);)
+
+  （121.17kb，3526次下载）
+
+- [N种内核注入DLL的思路及实现.pdf](javascript:void(0);)
+
+  （557.77kb，1394次下载）

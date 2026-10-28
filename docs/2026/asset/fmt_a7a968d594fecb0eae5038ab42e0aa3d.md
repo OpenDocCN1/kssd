@@ -1,0 +1,19 @@
+
+# [原创]百度卫士驱动设备打开绕过
+
+标 题: 【原创】百度卫士驱动设备打开绕过
+作 者: Jtian  (FlyingCat)
+时 间: 2015-03-15,16:40
+链 接: http://bbs.pediy.com/showthread.php?t=198766
+
+`BDDedefense.sys`是百度卫士的驱动文件，其会创建设备“`\\Device\\BDDefense`”，`BaiduHips.exe`会使用到它。由于打开时存在校验，一般情况下，第三方程序打开“`\\.\ BDDefense`”的时候会被拒绝，打开失败。但是，如果利用`BaiduHips.exe`的数据，人为构造出一个特殊的第三方程序，则可以骗过 `BDDedefense.sys`的校验过程，打开成功。并且由于没有做权限判断，所以普通用户也可以打开。能够造成多大的危害，则取决于`DeviceIoControl`能做多大的事情。
+
+详细分析请见附件。
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+
+- [百度卫士驱动设备打开绕过漏洞.pdf](javascript:void(0);)
+
+  （534.53kb，541次下载）
