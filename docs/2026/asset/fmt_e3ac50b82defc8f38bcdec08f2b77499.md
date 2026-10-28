@@ -1,0 +1,203 @@
+
+# 控制台显示Windows串口过滤的内容
+
+记录自己学习《Windows 内核驱动》章节中的串口过滤驱动。
+
+## 最终效果
+
+先看下最终效果吧
+
+![图片描述](upload/attach/202211/762319_53C53QKGCKEGYGX.png)
+
+图中并没有展示对串口1的读写监控，但是已经绑定成功了。
+
+## 程序结构
+
+程序分为驱动程序和用户态程序`ControlSerialPort.exe`两部分。
+
+## 用户态程序功能
+
+用户态程序主要有两个功能：
+
+1、使用`-L`参数会遍历注册表枚举串口。
+
+2、以管理员权限使用`-C`参数来监控过滤串口，形式为`ControlSerialPort.exe -C COM1 COM2`，可以监控多个串口，也可以只监控一个串口，程序会根据串口号得到注册表`Hardware\DeviceMap\SerialComm`下的串口信息：设备名称如`\Device\Serial0`，使用`DeviceIoControl`将设备名称传入驱动程序中进行绑定。绑定需要绑定的串口后，如果存在串口可以绑定成功，那么会调用`ReadFile`读取过滤到的串口信息，包括打开串口、发送信息、收到信息、关闭串口这四种类型的消息。
+
+需要注意的是用户态程序是32位的，而驱动程序是32位或者64位的，所以有的数据结构需要进行调整。
+
+## 驱动程序功能
+
+驱动程序使用WDM框架编写，下面介绍下驱动程序的功能逻辑：
+
+1、在`DriverEntry`函数中创建一个控制设备，使用`IoCreateDeviceSecure(WdmlibIoCreateDeviceSecure)`函数，经过测试`IoCreateDevice`创建的设备，传入参数`FILE_DEVICE_SECURE_OPEN`或者传入0时，普通用户也可以打开此设备创建的链接，这样是不安全的，所以使用`IoCreateDeviceSecure`函数，使用的`sddl`为`L"D:P(A;;GA;;;SY)(A;;GRGWGX;;;BA)(A;;GR;;;WD)"`，并且设置独占性为`TRUE`，只允许用户态控制程序打开一次此设备。
+
+2、在驱动的回调函数中处理控制设备的`IRP_MJ_DEVICE_CONTROL`消息，使用`DeviceIoControl`函数时，传入参数为如下类型：
+
+```
+typedef struct tagMonitorInfo
+{
+    ULONG _ulComId;
+    UNICODE_STRING32 _deviceName;
+}TagMonitorInfo, *PTagMonitorInfo;
+```
+
+包括要过滤的串口号和对应的设备名（是用户态通过注册表查找出来的），因为要考虑到驱动运行在64位，为了数据结构的统一就使用`UNICODE_STRING32`来表示需要绑定的串口设备的名称。调用自己写的`genFilterAndBind`函数传入`PUNICODE_STRING32`和`ULONG`，在此函数中先调用`IoGetDeviceObjectPointer`函数获取需要绑定串口的指针，注意此函数的参数1类型为`PUNICODE_STRING`，所以此时要对`genFilterAndBind`传入的`PUNICODE_STRING32`数据赋值指针（`Buffer`）和长度（`Length`、`MaximumLength`）到一份临时变量`PUNICODE_STRING`中，使用临时变量获取设备指针，调用`IoCreateDevice`创建一个过滤设备，调用时传入`DeviceExtensionSize`不为0，用来保存串口ID、以及之后的过滤设备之下的设备指针，用于将请求交给下层，接着设置此过滤设备的属性`Flags`，调用`IoAttachDeviceToDeviceStack`将此过滤设备绑定到刚才得到的串口设备对象上，这样就过滤成功了。
+
+调用`IoCreateDevice`时传入`sizeof(TagFilterDevice)`大小，使用设备的`DeviceExtension`指针存放如下结构体：
+
+```
+typedef struct tagFilterDevice
+{
+    ULONG _comId;
+    PDEVICE_OBJECT _topDev;
+}TagFilterDevice, *PTagFilterDevice;
+```
+
+调用`IoAttachDeviceToDeviceStack`将过滤设备绑定到硬件设备上时，可以将硬件设备想象成一个栈，其中最底层的可能就是硬件设备，最上层的是其它设备，将此过滤设备添加到最顶层后，此函数的返回值是原来的是顶层设备，使用`_topDev`来保存。
+
+需要注意的是在调用`IoGetDeviceObjectPointer`函数时除了设备指针，还获取到一个文件对象`fileobj`，需要调用`ObDereferenceObject`减少文件对象的引用计数，如果在过滤设备已经绑定到了硬件设备之上后调用此函数，那么会触发过滤设备的`IRP_MJ_CLOSE`例程。在绑定之前调用`ObDereferenceObject`不会触发过滤设备的`IRP_MJ_CLOSE`例程。
+
+3、接下来在分发例程中处理`IRP`。来到此函数的`IRP`设备分为两种，一个是在`DriverEntry`中申请的设备，称之为控制设备，另一个是自己生成的过滤设备，控制设备只有一个，过滤设备可能有多个。
+
+判断是过滤设备：就处理`IRP_MJ_CREATE`、`IRP_MJ_CLEANUP`、`IRP_MJ_WRITE`、`IRP_MJ_READ`对应的`IRP`，将内容插入到一个链表中，只有当`handlecount`为0即所有用户态句柄都关闭了才会触发`IRP_MJ_CLEANUP`，当`pointcount`为0时会触发`IRP_MJ_CLOSE`。链表操作时用锁来保护链表操作。打开、关闭、写串口、读串口数据保存在如下结构中：
+
+```
+typedef enum eSerialAction
+{
+    eComOpen,
+    eComClose,
+    eComWrite,
+    eComReceive
+}ESerialAction;
+
+typedef struct serialActionInfo
+{
+    ULONG _ulComId;
+    ULONG _ProcessId;
+    ESerialAction _eAction;
+    ULONG _infoLength; //如果是读写 此属性表示buffer中数据的长度
+    union
+    {
+        LONG _user_buffer;
+        LONGLONG _kernel_buffer;
+    }_buffer;
+}SerialActionInfo, *PSerialActionInfo;
+```
+
+如果是打开关闭操作，那么不需要操作`_buffer`，如果是读写串口，用户态地址保存在`_buffer._user_buffer`，内核态地址保存在`_buffer._kernel_buffer`，用户态程序和驱动程序共用这个结构体，因为用户态程序使用的是32位的，而驱动程序不管是32位还是64位，使用此结构体都可以满足需求，链表数据使用如下结构体表示：
+
+```
+typedef struct mySerialAction
+{
+    SerialActionInfo _serialAction;
+    LIST_ENTRY _listEntry;
+}MySerialAction, *PMySerialAction;
+
+LIST_ENTRY gloListHead = {0};
+```
+
+打开、关闭、写都比较简单，将信息保存在链表中，并转发下层驱动即可，如下：
+
+```
+PTagFilterDevice pDeviceExtension = device->DeviceExtension;
+PDEVICE_OBJECT topdev = pDeviceExtension->_topDev;
+IoSkipCurrentIrpStackLocation(irp);
+return IoCallDriver(topdev, irp);
+```
+
+读串口信息需要交给下层驱动读完串口之后，才能得到读到的内容：
+
+```
+if (irpsp->MajorFunction == IRP_MJ_READ)
+{
+    DbgPrint("filterDevice IRP_MJ_READ default\r\n");
+    //控制某个串口 拷贝irp 交由下一层驱动去读取完成后 再获取内容
+    KEVENT completeEvent = { 0 };
+    KeInitializeEvent(&completeEvent, SynchronizationEvent, FALSE);
+    IoCopyCurrentIrpStackLocationToNext(irp);
+    IoSetCompletionRoutine(irp, completeRead, &completeEvent, TRUE, TRUE, TRUE);
+    NTSTATUS nextStatus = IoCallDriver(topdev, irp);
+    KeWaitForSingleObject(&completeEvent, Executive, KernelMode, TRUE, 0);
+    if (NT_SUCCESS(nextStatus))
+    {
+        //此处插入读到的内容 参见源码
+    }
+    return nextStatus;
+}
+```
+
+上面代码等待下层驱动完成`IRP`，调用我们传入的`completeEvent`函数，在此函数中触发`IoSetCompletionRoutine`传入的第三个参数，为`KEVENT`类型：
+
+```
+NTSTATUS completeRead(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp, _In_reads_opt_(_Inexpressible_("varies")) PVOID Context)
+{
+    PKEVENT pcompleteEvent = Context;
+    KeSetEvent(pcompleteEvent, 0, FALSE);
+    return STATUS_SUCCESS;
+}
+```
+
+这样`KeWaitForSingleObject`函数就可以返回了，处理读到的串口内容。
+
+4、接下来处理控制设备的请求：
+
+将串口的各项动作信息保存到链表后，还需要处理控制设备的读请求`IRP_MJ_READ`，因为我是通过在用户态调用`ReadFile`传入控制设备句柄来读过滤到的串口动作信息，在`IRP_MJ_READ`中判断链表是否为空（记得使用锁），为空则等待：
+
+```
+//读取链表是否为空
+if (listInfoIsEmpty())
+{
+    status = KeWaitForSingleObject(&gloWaitEvent, Executive, KernelMode, TRUE, 0);
+    //如果关闭用户态程序 那么等待也会返回 继续返回到返回到用户态之前KiServiceExit函数 检查到有需要执行的apc nt!KiDeliverApc 执行apc 关闭句柄退出
+    //如果关闭程序 会返回STATUS_ALERTED 0n257 0x101
+}
+```
+
+等待到数据后，获取信息，如果`_infoLength`不为0，那么进行一些判断，比如用户态缓冲区是否足够等，之后拷贝内存：
+
+```
+//判断用户态缓冲区是否合法
+__try
+{
+    ProbeForWrite((void*)infoUser->_buffer._user_buffer, infoUser->_infoLength, 1);
+    //拷贝内存
+    memcpy_s((void*)infoUser->_buffer._user_buffer, infoUser->_infoLength, (void*)listInfo->_buffer._kernel_buffer, listInfo->_infoLength);
+    infoUser->_infoLength = listInfo->_infoLength;
+}
+__except (EXCEPTION_EXECUTE_HANDLER)
+{
+    KdBreakPoint();
+    status = STATUS_INVALID_USER_BUFFER;
+    __leave;
+}
+```
+
+上面代码中先对用户态传入的缓冲区`infoUser->_buffer._user_buffer`调用`ProbeForWrite`检查缓冲区是否可写，调用`memcpy_s`时可以看到第一个参数和第三个参数分别表示`_user_buffer`和`_kernel_buffer`，如果是32位驱动，那么这两个数据都是32位的，`ProbeForWrite`函数可能会触发异常，使用异常处理机制进行处理。
+
+5、如果是控制设备的`IRP_MJ_CLEANUP`请求，那么代表用户态控制程序调用`CloseHandle`关闭了控制设备的句柄，`handlecount`为0。在这个请求中通过驱动对象找到`DeviceObject`，再循环遍历`NextDevice`，如果不是控制设备，那就属于过滤设备，此时因为用户态程序已经不需要过滤串口了，那么就调用`IoDetachDevice`传入`_topDev`解除串口绑定，然后删除过滤设备。接着循环遍历链表，看看是否还有串口数据在链表中，调用`ExFreePool`释放`PMySerialAction`，还有如果是读写串口类型的数据，那么还需要释放`_buffer`。
+
+控制设备的`IRP_MJ_DEVICE_CONTROL`请求处理前面已经有说过了。
+
+驱动程序需要调用`IoCreateDeviceSecure(WdmlibIoCreateDeviceSecure)`，所以需要在项目->属性->配置属性->链接器->输入中附加依赖项链接`Wdmsec.lib`。
+
+用户态程序代码此处就不做介绍了，比较简单，参见附件源码即可。
+
+## 问题与测试
+
+问题：假如在处理串口信息的过程中，用户关闭了用户态控制端程序，那么会触发控制设备的`IRP_MJ_CLEANUP`请求，此时会解绑设备，接着删除设备，此时是否会影响到正在读串口或者正在写串口的`IRP`请求导致蓝屏，应该怎么测试复现这个问题?
+
+### 2022-11-04测试
+
+经过测试，如果在过滤串口`IRP_MJ_WRITE`的处理函数（当串口调试工具写串口时触发）中，延迟5s，在这5s的过程中关闭用户态控制程序，此时会触发控制设备的`IRP_MJ_CLEANUP`请求，此时会解绑设备，并删除过滤设备，在调试过程中发现，调用删除设备函数后，此时过滤设备还没有删除，在过滤串口`IRP_MJ_WRITE`的5s延迟后，将请求交给下层设备`_topdev`，继续运行系统后，再次中断系统，查看之前的过滤设备发现已经被释放了。
+
+也就是说删除设备时并不会真的删除，处理完成`IRP`后系统才会删除设备。
+
+### 2022-11-08测试
+
+如果修改串口的波特率，那么读取到设备发送的数据时，每次可以多读一些字节。
+
+### 2022-11-14测试
+
+在用户态代码中连续两次调用`DeviceIOControl`对同一个串口进行监听，得到如下结论：
+
+在调用`IoGetDeviceObjectPointer`函数时，会触发上一层设备的`IRP_MJ_CREATE`和`IRP_MJ_CLEANUP`例程，第一次绑定后，第二次绑定调用`IoGetDeviceObjectPointer`时会触发第一次绑定设备的上述两个例程。而调用`ObDereferenceObject(fileobj)`时会触发第一次绑定的设备的`IRP_MJ_CLOSE`例程。
