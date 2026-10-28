@@ -1,6 +1,5 @@
 
 ![](https://bbs.kanxue.com/upload/attach/202201/777502_T4GDUVP2AXH44YJ.jpg)![](https://bbs.kanxue.com/upload/attach/202201/777502_3FWVTZ6KJSG34MH.jpg)
-
 ```
 # 应用对数变换
 
@@ -16,9 +15,7 @@ fig = plt.figure()
 
 res = stats.probplot(df_train['SalePrice'], plot=plt)
 ```
-
 ![](https://bbs.kanxue.com/upload/attach/202201/777502_3CBT2NMNN2MT3XS.jpg)![](https://bbs.kanxue.com/upload/attach/202201/777502_KMTQ8X6YZCVMMJC.jpg)
-
 ```
 # grlivarea在对数变换前的直方图和正态概率图
 
@@ -28,9 +25,7 @@ fig = plt.figure()
 
 res = stats.probplot(df_train['GrLivArea'], plot=plt)
 ```
-
 ![](https://bbs.kanxue.com/upload/attach/202201/777502_Z6CR4SV6WXXKVCJ.jpg)![](https://bbs.kanxue.com/upload/attach/202201/777502_38BC9AATUJ3X4E3.jpg)
-
 ```
 # 应用对数变换
 
@@ -46,9 +41,7 @@ fig = plt.figure()
 
 res = stats.probplot(df_train['GrLivArea'], plot=plt)
 ```
-
 ![](https://bbs.kanxue.com/upload/attach/202201/777502_GPYWSCN4UU6FJ4W.jpg)![](https://bbs.kanxue.com/upload/attach/202201/777502_VTDWC4MKGNTBQ2K.jpg)
-
 ```
 # totalbsmtsf在做对数转换前的直方图和正态概率图
 
@@ -58,9 +51,7 @@ fig = plt.figure()
 
 res = stats.probplot(df_train['TotalBsmtSF'], plot=plt)
 ```
-
 ![](https://bbs.kanxue.com/upload/attach/202201/777502_8K752PJSYAGNKG4.jpg)![](https://bbs.kanxue.com/upload/attach/202201/777502_WVMAZB6N3NBXGUQ.jpg)
-
 ```
 # totalbsmtsf这项数据有些特殊，因为有很多0值，而0是没有对数的，所以不能进行对数转换
 
@@ -88,9 +79,7 @@ fig = plt.figure()
 
 res = stats.probplot(df_train[df_train['TotalBsmtSF']>0]['TotalBsmtSF'], plot=plt)
 ```
-
 ![](https://bbs.kanxue.com/upload/attach/202201/777502_EYRTATYGY6GZSQR.jpg)![](https://bbs.kanxue.com/upload/attach/202201/777502_PBH86QEJ38ZMTC3.jpg)
-
 ```
 # 之前的grlivarea与saleprice的图是类似于圆锥的形状（同质问题严重）
 
@@ -98,23 +87,18 @@ res = stats.probplot(df_train[df_train['TotalBsmtSF']>0]['TotalBsmtSF'], plot=pl
 
 plt.scatter(df_train['GrLivArea'], df_train['SalePrice']);
 ```
-
 ![](https://bbs.kanxue.com/upload/attach/202201/777502_A9DMJD2XHNKYMN8.jpg)
-
 ```
 # 对totalbsmtsf做正态处理后，同质问题也得到了解决
 
 plt.scatter(df_train[df_train['TotalBsmtSF']>0]['TotalBsmtSF'], df_train[df_train['TotalBsmtSF']>0]['SalePrice']);
 ```
-
 ![](https://bbs.kanxue.com/upload/attach/202201/777502_PQQA92M8T3HRJWN.jpg)
-
 ```
 # 将分类变量转换为虚拟变量
 
 df_train = pd.get_dummies(df_train)
 ```
-
 剩下的就和我自己的代码一样了，就是用随机森林做二分类判断，然后将训练好的模型直接对`test.csv`进行预测，然后将预测好的结果输出到`submission.csv`，这里不知道为什么没有写下去
 
 # 结尾
