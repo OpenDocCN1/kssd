@@ -1,21 +1,21 @@
 
-`+0x060 DeviceQueue`      : `\_KDEVICE\_QUEUE`
++0x060 `DeviceQueue` : `\_KDEVICE\_QUEUE`
 
-`+0x074 Dpc`              : `\_KDPC`
++0x074 `Dpc` : `\_KDPC`
 
-`+0x094 ActiveThreadCount` : `0`
++0x094 `ActiveThreadCount` : 0
 
-`+0x098 SecurityDescriptor` : `(null)`
++0x098 `SecurityDescriptor` : (null)
 
-`+0x09c DeviceLock`       : `\_KEVENT`
++0x09c `DeviceLock` : `\_KEVENT`
 
-`+0x0ac SectorSize`       : `0`
++0x0ac `SectorSize` : 0
 
-`+0x0ae Spare1`           : `1`
++0x0ae `Spare1` : 1
 
-`+0x0b0 DeviceObjectExtension` : `0x822d7658` `\_DEVOBJ\_EXTENSION`
++0x0b0 `DeviceObjectExtension` : 0x822d7658 `\_DEVOBJ\_EXTENSION`
 
-`+0x0b4 Reserved`         : `(null)`
++0x0b4 `Reserved` : (null)
 
 从这里我们知道了，这个驱动程序`i8042prt`创建了两个设备，这两个设备互相形成链式结构，这个链表以`NULL`表示
 
@@ -39,7 +39,7 @@ kd> !devstack 822d7310
   ServiceName is "i8042prt"
 ```
 
-其中只有两个驱动对象有名字`\Driver\Kbdclass` ，`\Driver\ACPI`
+其中只有两个驱动对象有名字`\Driver\Kbdclass`，`\Driver\ACPI`
 
 我们从上往下依次看
 
