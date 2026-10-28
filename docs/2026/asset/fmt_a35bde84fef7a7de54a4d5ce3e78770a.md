@@ -1,0 +1,134 @@
+
+在Hook函数中我简单设置了一个白名单，因为实践的时候发现`svchost`会很频繁地与系统去交互<在win7下测试>，而TM绝对令人发指……
+
+大家可以像HS一样将这个改为一个白名单链表，更容易扩展，我偷懒就写成固定形式了，虽然起名为`whitelist`……
+
+像`GetDriverObjectByFileHandle`等函数我都封装成了独立的模块，大家可以抽取出来引入到自己的驱动中，都十分简单，不多说了，看一下代理函数：
+
+```
+NTSTATUS MyDeviceIoControlFIle(HANDLE FileHandle, 
+							   HANDLE Event, 
+							   PIO_APC_ROUTINE ApcRoutine, 
+							   PVOID ApcContext,
+							   PIO_STATUS_BLOCK IoStatusBlock, 
+							   ULONG IoControlCode, 
+							   PVOID InputBuffer,
+							   ULONG InputBufferLength, 
+							   PVOID OutputBuffer, 
+							   ULONG OutputBufferLength)
+{
+	NTSTATUS	status;
+	HANDLE		ProcessId;
+	KPROCESSOR_MODE	mode;
+	PDRIVER_OBJECT	pDriverObject = NULL;
+	UNICODE_STRING	DestUniString;
+	ULONG	i;
+
+	//DbgBreakPoint();
+
+	InterlockedIncrement(&globe_Proxy_NtDeviceIoControlFile_BusyNow);
+
+	mode = ExGetPreviousMode();
+
+	if ( mode == KernelMode )
+	{
+__sss:
+		status = ((NTDEVICEIOCONTROLFILE)globe_RealNtDeviceIoControlFileAddress)(FileHandle,Event,ApcRoutine,ApcContext,IoStatusBlock,IoControlCode,InputBuffer,InputBufferLength,OutputBuffer,OutputBufferLength);
+		InterlockedDecrement(&globe_Proxy_NtDeviceIoControlFile_BusyNow);
+		return status;
+	}
+
+	pDriverObject = GetDriverObjectByFileHandle(FileHandle);
+	if (pDriverObject == NULL) goto __sss;
+	RtlInitUnicodeString(&DestUniString,DEBUGVIEW_NAME);
+	if ( RtlEqualUnicodeString(&DestUniString,&pDriverObject->DriverName,TRUE) == TRUE ) goto __sss;
+
+	ProcessId = PsGetCurrentProcessId();
+	if ( globe_WhiteList.WhiteListCount_svchost != 0 )
+	{
+		for ( i = 0; i < globe_WhiteList.WhiteListCount_svchost; i++ )
+		{
+			if ( (ULONG)ProcessId == globe_WhiteList.WhiteProcessIdList_svchost[i] )
+				goto __sss;
+		}
+	}
+	if ( globe_WhiteList.WhiteListCount_TM != 0 )
+	{
+		for ( i = 0; i < globe_WhiteList.WhiteListCount_TM; i++ )
+		{
+			if ( (ULONG)ProcessId == globe_WhiteList.WhiteProcessIdList_TM[i] )
+				goto __sss;
+		}
+	}
+	if ( globe_WhiteList.WhiteListCount_taskmgr != 0 )
+	{
+		for ( i = 0; i < globe_WhiteList.WhiteListCount_taskmgr; i++ )
+		{
+			if ( (ULONG)ProcessId == globe_WhiteList.WhiteProcessIdList_taskmgr[i] )
+				goto __sss;
+		}
+	}
+
+	KdPrint(("当前进程-----------------:%d \n控制代码-----------------:%x \n输入缓冲-----------------:%x \n输出缓冲-----------------:%x \n目标驱动-----------------:%wZ \n",ProcessId,IoControlCode,InputBufferLength,OutputBufferLength,&pDriverObject->DriverName));
+
+	status = ((NTDEVICEIOCONTROLFILE)globe_RealNtDeviceIoControlFileAddress)(FileHandle,Event,ApcRoutine,ApcContext,IoStatusBlock,IoControlCode,InputBuffer,InputBufferLength,OutputBuffer,OutputBufferLength);
+
+	//KdPrint(("当前进程:%d \n完成状态:%x",ProcessId,status));
+
+	InterlockedDecrement(&globe_Proxy_NtDeviceIoControlFile_BusyNow);
+
+	return status;
+}
+```
+
+因为Hook成功之后我们的代理函数就会随时运行在不同的进程环境中，所以当我们要卸载这个Hook的时候如果不加以检测很容易因为代理函数没有执行完毕就强行退出，从而导致蓝屏。
+
+在这里我山寨了一下HS的做法：每当代理函数被调用一次，就增加一次引用计数，相应的，在函数执行完毕之后进行递减。这样当我们卸载Hook的时候可以通过检测这个引用计数来判断我们的代理函数是否还处于被调用中。如果引用计数降至1，我们就可以安全地卸载它了。<为什么是1而不是0呢？大家自己想想吧>
+
+其中：
+
+```
+mode = ExGetPreviousMode();
+```
+
+这个函数用来判断之前处理器的模式，是内核模式还是用户模式，可以通过这里栏判断调用来自哪里，进行简单过滤。
+
+另外，因为我们要通过`debugview`来观察输出结果，而`debugview`也会非常频繁地与驱动交互，所以为了方便我们观察也对它进行了过滤。
+
+`RestoreHook`中我注册了一个DPC TIMER来循环等待未完成的调用，也是山寨了HS的做法，嘿嘿。
+
+其他的应该没有什么理解上的难度了。
+
+最后声明一下，这两个小程序都是在Win7下开发测试的，xp系统也用过，不过相对较少，如果有什么问题的话大家对照这里的源码自己修改下把~~
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [`dbgv2.jpg`](javascript:void(0);)
+
+  （197.39kb，787次下载）
+
+- [`dbgv.jpg`](javascript:void(0);)
+
+  （195.34kb，779次下载）
+
+- [`mon.jpg`](javascript:void(0);)
+
+  （82.31kb，786次下载）
+
+- [`memcopy.jpg`](javascript:void(0);)
+
+  （79.93kb，782次下载）
+
+- [`xt.jpg`](javascript:void(0);)
+
+  （55.11kb，785次下载）
+
+- [`deviceIoControlMonitor.rar`](javascript:void(0);)
+
+  （323.60kb，511次下载）
+
+- [`ImageLoadmonitor.rar`](javascript:void(0);)
+
+  （329.50kb，243次下载）

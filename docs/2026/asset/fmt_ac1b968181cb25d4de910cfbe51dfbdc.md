@@ -1,0 +1,173 @@
+
+```
+00424E4F    .  50            push    eax
+00424E50    .  8D55 9C       lea     edx, dword ptr [ebp-64]
+00424E53    .  52            push    edx
+00424E54    .  E8 D7E60700   call    004A3530                                        ;memcpy
+00424E59    .  8B4D C4       mov     ecx, dword ptr [ebp-3C]
+00424E5C    .  8B45 9C       mov     eax, dword ptr [ebp-64]
+00424E5F    .  2B86 60010000 sub     eax, dword ptr [esi+160]
+00424E65    .  2B0E          sub     ecx, dword ptr [esi]
+00424E67    .  83C4 0C       add     esp, 0C
+00424E6A    .  3BC8          cmp     ecx, eax
+00424E6C    .  74 29         je      short 00424E97
+00424E6E    .  8B16          mov     edx, dword ptr [esi]
+00424E70    .  8D4D C4       lea     ecx, dword ptr [ebp-3C]
+00424E73    .  2B96 60010000 sub     edx, dword ptr [esi+160]
+00424E79    .  2955 C4       sub     dword ptr [ebp-3C], edx
+00424E7C    .  6A 04         push    4                            ; /Arg3 = 00000004
+00424E7E    .  51            push    ecx                          ; |Arg2
+00424E7F    .  8B07          mov     eax, dword ptr [edi]         ; |
+00424E81    .  0345 84       add     eax, dword ptr [ebp-7C]      ; |
+00424E84    .  2B05 2DDA4C00 sub     eax, dword ptr [4CDA2D]      ; | choose\_addr\_begin
+00424E8A    .  50            push    eax                          ; |Arg1
+00424E8B    .  E8 A0E60700   call    004A3530                    ; \memcpy
+00424E90    .  83C4 0C       add     esp, 0C
+00424E93    .  834D D4 01    or      dword ptr [ebp-2C], 1
+```
+
+修改点结构体自加，指向下个修改点信息：
+
+```
+00424E97    >  83C7 08       add     edi, 8
+```
+
+首先检查选择部分的代码是否为0，如果是则跳过代码检查：
+
+```
+00424E9A    >  833F 00       cmp     dword ptr [edi], 0
+00424E9D    .  74 0E         je      short 00424EAD        ;跳过代码检查
+```
+
+检查模块中修改过部分的是否已经超出选择部分，如果没有超出继续copy下个修改处：
+
+```
+00424E9F    .  8B17          mov     edx, dword ptr [edi]
+00424EA1    .  3B15 31DA4C00 cmp    edx, dword ptr [4CDA31]
+00424EA7    .^ 0F82 14FEFFFF jb      00424CC1        ;没超出则继续copy
+```
+
+检查选择部分是否在重定位表区域，并检查重定位表区是否被修改，根据修改地址的不同弹出不同的错误提示窗口，并要求确认对重定位表的更新：
+
+……
+
+……
+
+这里为copy更改的代码到为dump准备的程序内存映射的相应位置，并发送广播消息：
+
+```
+00424FC3    >  837D D4 00    cmp     dword ptr [ebp-2C], 0
+00424FC7    .  75 2E         jnz     short 00424FF7
+00424FC9    .  8B55 AC       mov     edx, dword ptr [ebp-54]
+00424FCC    .  52            push    edx                                                 ; /Arg3
+00424FCD    .  8B4D 84       mov     ecx, dword ptr [ebp-7C]            ; |
+00424FD0    .  51            push    ecx                                                 ; |Arg2
+00424FD1    .  8B85 38D8FFFF mov     eax, dword ptr [ebp-27C8]    ; |
+00424FD7    .  0385 30D8FFFF add     eax, dword ptr [ebp-27D0]    ; |
+00424FDD    .  50            push    eax                                                 ; |Arg1
+00424FDE    .  E8 4DE50700   call    004A3530                                  ; \memcpy
+00424FE3    .  83C4 0C       add     esp, 0C
+00424FE6    .  6A 00         push    0                                          ; /Arg3 = 00000000
+00424FE8    .  6A 00         push    0                                          ; |Arg2 = 00000000
+00424FEA    .  68 74040000   push    474                                ; |Arg1 = 00000474
+00424FEF    .  E8 80540300   call    \_Broadcast                        ; \\_Broadcast
+00424FF4    .  83C4 0C       add     esp, 0C
+```
+
+下面是读取失败的处理部分，主要释放已经申请的内存空间，并跳转到整个消息处理函数的后面：
+
+```
+00424FF7    >  8B55 84       mov     edx, dword ptr [ebp-7C]
+00424FFA    .  52            push    edx                          ; /hMem
+00424FFB    .  E8 F6A00800   call    <jmp.&KERNEL32.GlobalFree>   ; \GlobalFree
+```
+
+2）第二种情况：
+
+首先为代码段申请一块内存空间，并检查是否申请成功，如果失败则报错：
+
+```
+00425022    .  8B55 AC       mov     edx, dword ptr [ebp-54]
+00425025    .  52            push    edx                      ; /MemSize
+00425026    .  6A 00         push    0                        ; |Flags = GMEM\_FIXED
+00425028    .  E8 C3A00800   call    <jmp.&KERNEL32.GlobalAlloc>  ; \GlobalAlloc
+0042502D    .  8945 84       mov     dword ptr [ebp-7C], eax
+00425030    .  837D 84 00    cmp     dword ptr [ebp-7C], 0
+00425034    .  75 18         jnz     short 0042504E
+00425036    .  8B4D AC       mov     ecx, dword ptr [ebp-54]
+00425039    .  51            push    ecx                   ; /Arg2
+0042503A    .  68 3A494B00   push    004B493A             ; |Arg1 = 004B493A
+0042503F    .  E8 D8EF0200   call    \_Error                  ; \\_Error
+00425044    .  83C4 08       add     esp, 8
+00425047    .  33C0          xor     eax, eax
+00425049    .  E9 E90D0000   jmp     00425E37        ;跳转到结束处
+```
+
+然后将代码段中的所有内容都copy到申请到的内存中，并检查是否完全读取，若没有完全读取，则释放申请的内存，并退出：
+
+```
+0042504E    >  6A 01         push    1                        ; /Arg4 = 00000001
+00425050    .  8B55 AC       mov     edx, dword ptr [ebp-54]     ; |
+00425053    .  52            push    edx                      ; |Arg3
+00425054    .  8B4D B0       mov     ecx, dword ptr [ebp-50]     ; |
+00425057    .  51            push    ecx                      ; |Arg2
+00425058    .  8B45 84       mov     eax, dword ptr [ebp-7C]     ; |
+0042505B    .  50            push    eax                      ; |Arg1
+0042505C    .  E8 ABC20300   call    \_Readmemory               ; \\_Readmemory
+00425061    .  83C4 10       add     esp, 10
+00425064    .  3B45 AC       cmp     eax, dword ptr [ebp-54]        ;检查是否完全读取
+00425067    .  74 10         je      short 00425079
+00425069    .  8B55 84       mov     edx, dword ptr [ebp-7C]
+0042506C    .  52            push    edx                         ; /hMem
+0042506D    .  E8 84A00800   call    <jmp.&KERNEL32.GlobalFree>     ; \GlobalFree
+00425072    .  33C0          xor     eax, eax
+00425074    .  E9 BE0D0000   jmp     00425E37        ;跳转到结束处
+```
+
+下面是一个大的循环体，用于将代码段的内容反汇编，并检查是否有代码被修改；并将程序文件内存映射到一块申请的内存空间中，根据被修改过的代码修改对应的文件内存中的位置，并用一个dump窗口显示出来：
+
+初始化一些用于循环的变量：
+
+```
+00425079    >  33D2          xor     edx, edx
+0042507B    .  33C9          xor     ecx, ecx
+0042507D    .  8955 F4       mov     dword ptr [ebp-C], edx
+00425080    .  894D E0       mov     dword ptr [ebp-20], ecx
+00425083    .  8B45 B0       mov     eax, dword ptr [ebp-50]
+00425086    .  8945 B8       mov     dword ptr [ebp-48], eax
+00425089    .  E9 5E040000   jmp     004254EC
+```
+
+将代码段的机器码转换成一行汇编码：
+
+```
+0042508E    >  8B55 B8       mov     edx, dword ptr [ebp-48]
+00425091    .  8955 BC       mov     dword ptr [ebp-44], edx
+00425094    .  6A 01         push    1                        ; /Arg6 = 00000001
+00425096    .  6A 01         push    1                        ; |Arg5 = 00000001
+00425098    .  8B4D BC       mov     ecx, dword ptr [ebp-44]     ; |
+0042509B    .  51            push    ecx                      ; |Arg4
+0042509C    .  8B45 AC       mov     eax, dword ptr [ebp-54]     ; |
+0042509F    .  50            push    eax                      ; |Arg3
+004250A0    .  8B55 B0       mov     edx, dword ptr [ebp-50]     ; |
+004250A3    .  52            push    edx                      ; |Arg2
+004250A4    .  8B4D 84       mov     ecx, dword ptr [ebp-7C]     ; |
+004250A7    .  51            push    ecx                      ; |Arg1
+004250A8    .  E8 5F9A0500   call    \_Disassembleforward         ; \\_Disassembleforward
+004250AD    .  83C4 18       add     esp, 18
+```
+
+比较代码段中的一行机器码是否与原程序相同，如果相同则比较下一行机器码：
+
+```
+004250B0    .  8945 B8       mov     dword ptr [ebp-48], eax
+004250B3    .  8B45 B8       mov     eax, dword ptr [ebp-48]
+004250B6    .  2B45 BC       sub     eax, dword ptr [ebp-44]
+004250B9    .  50            push    eax                          ; /Arg3
+004250BA    .  8B15 4DDA4C00 mov     edx, dword ptr [4CDA4D]        ; |
+004250C0    .  0355 BC       add     edx, dword ptr [ebp-44]          ; |
+004250C3    .  2B55 B0       sub     edx, dword ptr [ebp-50]          ; |
+004250C6    .  52            push    edx                          ; |Arg2
+004250C7    .  8B4D 84       mov     ecx, dword ptr [ebp-7C]         ; |
+004250CA    .  034D BC       add     ecx, dword ptr [ebp-44]          ; |
+```
