@@ -1,0 +1,105 @@
+
+# [原创]汇编学习之网络编程
+
+在C语言中写过网络编程，但是用汇编怎么实现呢？
+
+```
+;winsock
+;======================================
+include ws2_32.inc
+includelib ws2_32.lib
+;***************************** const *********************
+.const
+szConnect db "连接",0
+szDisConnect db "断开",0
+szErr db "error !",0
+szAddr db "127.0.0.1",0
+szClient db "Client: %s",0dh,0ah,0
+szServer db "Server: %s",0dh,0ah,0
+;********************* code **************************
+_Connect proc uses ebx esi edi ;_lParam
+	LOCAL _szBuffer[256]:byte
+	LOCAL _stSin:sockaddr_in
+	;创建流套接字
+	invoke socket,AF_INET,SOCK_STREAM,0
+	.if eax == INVALID_SOCKET
+		invoke MessageBox,NULL,addr szErr,addr szErr,MB_OK
+		ret
+	.endif
+	mov hSocket,eax
+	;设置套接字属性
+	invoke WSAAsyncSelect,hSocket,hDlg,WM_WINSOCK,FD_CONNECT or FD_READ or FD_CLOSE or FD_WRITE
+	;链接到服务器中的监听套接字
+	lea esi, _stSin
+	assume esi: PTR sockaddr_in
+	invoke RtlZeroMemory,addr _stSin,sizeof _stSin
+	invoke GetDlgItemText,hDlg,IDC_EDIT_ADDR,addr _szBuffer,sizeof _szBuffer
+	invoke inet_addr,addr _szBuffer ;ip地址转换
+	.if eax ==INADDR_NONE
+		invoke MessageBox,NULL,addr szErr,addr szErr,MB_OK
+		ret
+	.endif
+	mov [esi].sin_addr,eax
+	mov [esi].sin_family,AF_INET
+	invoke htons,TCP_PORT
+	mov [esi].sin_port,ax
+	invoke connect,hSocket,addr _stSin ,sizeof _stSin
+	;返回
+	.if eax == SOCKET_ERROR
+		invoke WSAGetLastError
+		.if eax != WSAEWOULDBLOCK
+			invoke closesocket,hSocket;关闭套接字
+			mov hSocket,0
+			invoke MessageBox,NULL,addr szErr,addr szErr,MB_OK
+			ret
+		.endif
+	.endif
+	ret
+_Connect endp
+_DisConnect pro
+	invoke closesocket,,hSocket
+	mov hSocket,0
+	mov bCntFlag,NOTCONNECT
+	invoke SetDlgItemText,hDlg,IDC_BUTTON_CONNECT,addr szConnect
+	invoke SendDlgItemMessage,hDlg,IDC_EDIT_ADDR,EM_SETREADONLY,FALSE,0
+	;enable button
+	invoke EnableWindow,hIDOK,FALSE
+	ret
+_DisConnect endp
+;send text
+_SendData proc
+	LOCAL _szBuffer[1024]:byte
+	invoke GetDlgItemText,hDlg,IDC_EDIT_SEND,addr _szBuffer,sizeof _szBuffer
+	invoke lstrlen,addr _szBuffer
+	.if eax
+		invoke send,hSocket,addr _szBuffer,eax,0
+	.endif
+	;clear the text
+	invoke SetDlgItemText,hDlg,IDC_EDIT_SEND,NULL
+	invoke RtlZeroMemory,addr szBuffer,sizeof szBuffer
+	invoke wsprintf,addr szBuffer,addr szClient,addr _szBuffer
+	invoke GetWindowTextLength,hEditShow
+	invoke SendMessage,hEditShow,EM_SETSEL,eax,eax
+	invoke SendMessage,hEditShow,EM_REPLACESEL,FALSE,addr szBuffer
+	ret
+_SendData endp
+```
+
+```
+;装入并初始化Winsock动态链接库
+invoke WSAStartup,02h,addr wsd
+.else 
+	mov eax,FALSE
+	ret
+.endif
+mov eax,TRUE
+ret
+;程序入口点
+start:
+	invoke GetModuleHandle,NULL
+	invoke DialogBoxParam,eax,IDD_DIALOG_CLIENT,NULL,addr _DlgProc,NULL
+	invoke ExitProcess,NULL
+end start
+```
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
