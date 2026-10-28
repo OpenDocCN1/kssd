@@ -1,0 +1,233 @@
+
+# “可过PG”的驱动伪装与隐藏
+
+潜水太久啦，来水个帖。
+
+## 1 驱动是如何加载的
+
+### 1.1 调用路径分析
+
+非常简单，手写个驱动，在`DriverEntry`上加上一句：
+
+```c
+DbgBreakPoint();
+```
+
+手动加载，调用栈如下：
+
+![](upload/attach/202304/914360\_Z34XBUJRXDSGHW2.png)
+
+发现华点：
+
+```c
+ExpWorkerThread -> IopLoadUnloadDriver -> IopLoadDriver -> DriverEntry
+```
+
+`IopLoadDriver`基本上只有第一个参数没确定意义了。
+
+![](upload/attach/202304/914360\_354AYF5SH96YNRR.png)
+
+使用IDA对`IopLoadUnloadDriver`进行引用分析。来自`IopLoadDriverImage`：
+
+![](upload/attach/202304/914360\_UGSAZ862JV755E6.png)
+
+再对`IopLoadDriverImage`引用分析。来自`NtLoadDriver`。
+
+![](upload/attach/202304/914360\_QJW59TGMPK9BGGJ.png)
+
+这唯一的一个参数，就是注册表对应的服务路径啦，例：`\HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Test_Drv`
+
+这个注册表是在你 Ring3 调用 `CreateServiceW`的时候就填好的。
+
+那么调用路径就清晰啦：
+
+```c
+添加注册项 -> NtLoadDriver -> IopLoadDriverImage -> IopLoadUnloadDriver -> IopLoadDriver -> DriverEntry
+```
+
+### 1.2 IopLoadDriver
+
+`IopLoadDriver`这个函数是基本算是最重要的函数啦，毕竟是它调用的`DriverEntry`。
+
+而分析上述调用路径的唯一作用，就是为了得到 `IopLoadDriver`参数的意义。（注册表的 Handle）
+
+由于这个函数比较大，仅分析重要部分，伪代码如下：
+
+```c
+//获取注册表项基本信息
+status = NtQueryKey(KeyHandle, KeyBasicInformation, P, Length, &Length);
+//从注册表键中获取驱动路径 放入 Destination
+//例：\??\C:\Users\nihao\Desktop\Kernel\_PDB\_Frame\_R0.sys
+status = IopBuildFullDriverPath(&v38, KeyHandle, &Destination);
+//这个函数非常重要！返回DriverObject.DriverSection 和 驱动基地址 BaseAddress
+//通过这个函数就能直接安装一个可运行的驱动了，待会分析
+status = MmLoadSystemImageEx(&Destination, 0, 0, 0, &DriverSection, &BaseAddress);
+//创建一个新的DriverObject
+OBJECT\_ATTRIBUTES Obj\_Att = { 0 };
+Obj\_Att.Length = 0x30;
+Obj\_Att.Attributes = 0x250;
+Obj\_Att.ObjectName = &ObjectName;// L"\\Driver\\Test\_Drv" ， "\\Driver\\"串接 服务名
+status = ObCreateObjectEx(KeGetCurrentThread()->PreviousMode,
+IoDriverObjectType,
+&Obj\_Att,// POBJECT\_ATTRIBUTES
+0,
+&out,//这个是一个ULONG64 类型 没啥用
+0x1A0,
+0,
+0,
+&DriverObject,//返回新的 DriverObject
+0i64);
+//填充DriverObject
+memset(DriverObject, 0, 0x1A0ui64);
+DriverObject->DriverExtension = &DriverObject[1];// 准备填充 Driver\_Object
+\*&DriverObject[1].Type = DriverObject;
+ReturnLength = 28;
+memset64(DriverObject->MajorFunction, IopInvalidDeviceRequest, 0x1Cui64);
+v18 = BaseAddress;//MmLoadSystemImageEx返回的基地址
+v19 = BaseAddress;
+\*&DriverObject->Type = 0x1500004; // Type = 4,Size = 0x150
+v20 = RtlImageNtHeader(v19);
+\*v40 = v20->OptionalHeader.MinorImageVersion | (v20->OptionalHeader.MajorImageVersion << 16);
+v21 = &v18[v20->OptionalHeader.AddressOfEntryPoint];
+if ( (v20->OptionalHeader.DllCharacteristics & 0x2000) == 0 )
+DriverObject->Flags |= 2u;
+DriverObject->DriverInit = v21;//DriverEntry 啦
+DriverObject->DriverSection = DriverSection;//MmLoadSystemImageEx 返回的DriverSection
+DriverObject->DriverStart = v18;//基地址
+DriverObject->DriverSize = v20->OptionalHeader.SizeOfImage;
+//将DriverObject添加入全局Object表
+status = ObInsertObjectEx(DriverObject, 0i64, 1i64, 0, 0, 0i64, &Handle);// 加入Object表
+//继续填充DriverObject
+status = ObReferenceObjectByHandle(Handle,0,IoDriverObjectType,
+KeGetCurrentThread()->PreviousMode,
+&DriverObject,
+0i64);//测试一下能不能通过Handle获得DriverObject ?!
+ZwClose(Handle);
+DriverObject->HardwareDatabase = PCmRegistryMachineHardwareDescriptionSystemName;
+DriverObject->DriverName.Buffer = ExAllocatePool(NonPagedPool, ObjectName.MaximumLength);
+DriverObject->DriverName.Length = ObjectName.Length;
+DriverObject->DriverName.MaximumLength = ObjectName.MaximumLength;
+memcpy(DriverObject->DriverName.Buffer, ObjectName.Buffer, ObjectName.MaximumLength);
+//这里的 ObjectName 就是 L"\\Driver\\Test\_Drv" ， "\\Driver\\"串接 服务名
+//调用DriverEntry
+status = ZwQueryObject(HRegistry, 1, PSTR, 0x1000, &NtQueryObjReturnLen);//拿到注册表路径
+DriverObject->DriverInit(DriverObject,PSTR);//刚好对应DriverEntry的两个参数
+//提交驱动申请的设备（如果驱动有注册设备）
+IopReadyDeviceObjects(DriverObject);//不调用这个函数的话，设备无法打开
+//收尾工作
+```
+
+### 1.3 MmLoadSystemImageEx
+
+这个函数非常强大，传入需要加载的驱动的路径，就可以直接加载一个可直接运行的无`DriverObject`驱动。（请读者自行测试）
+
+功能包括：创建`DriverSection`、映射内存、修复重定位、将`DriverSection`添加入`PsLoadedModuleList`、填充`IAT`、填充`_security_cookie`、...(这几个功能已经够用了)
+
+没错，上述的`DriverSection`就是驱动模块链表连接的结构体：`_LDR_DATA_TABLE_ENTRY`。
+
+同样，这个函数比较大，这里仅列出重要部分伪代码：
+
+```c
+//准备一下接下来需要用到的字符串
+status = MiGenerateSystemImageNames(DriverPath, zero1, zero2, &v69, v73, &String1);
+//string1同DriverPath \??\C:\Users\nihao\Desktop\Kernel\_PDB\_Frame\_R0.sys
+//创建DriverSection （仅创建、不插入PsLoadedModuleList）
+status = MiObtainSectionForDriver(&String1, DriverPath, 0, 0, &DriverSection);
+//申请映射地址
+PUCHAR Section = DriverSection + 0x70;
+int out\_uk;
+DllBase = MiGetSystemAddressForImage(Section, 0, &out\_uk);//此时还未映射
+//进行映射
+KIRQL OldIrql;
+KeRaiseIrql(1, &OldIrql);
+status = MiMapSystemImage(Section, DllBase);//一定要是 irql = 1 才能映射成功
+KeLowerIrql(OldIrql);//映射好的驱动是已经修好了重定位的了，非常nice
+//填充DriverSection信息并插入PsLoadedModuleList
+DriverSection->SizeOfImage = DllSize;
+DriverSection->DllBase = DllBase;
+status = MiConstructLoaderEntry(DriverSection, &OutU, &AString, 0, 1, &NewDriverSection);
+//此时可以Free旧的DriverSection，新的 NewDriverSection 才是真正有效的。
+// &OutU和&AString都是没用的输出值，不用管，给个空间就行了
+//修复IAT
+略
+//填充\_security\_cookie
+略
+```
+
+至此，一个可在驱动模块链表（`PsLoadedModuleList`）可以找到的驱动就加载完成了。
+
+#### 1.3.1 数字签名验证部分
+
+如果你需要隐藏或伪装的驱动本身有签名，就不用patch了，如果硬要加载一个无签名的，那才需要patch，最好不要啦，因为有蓝屏几率。
+
+在通过`MiObtainSectionForDriver`获取`DriverSection`的时候，Windows就会进行数字签名认证啦！调用栈如下：
+
+![](upload/attach/202304/914360\_BR9ZFXVECZ7ADUY.png)
+
+通过 `SeValidateImageHeader`进入 `CI.DLL` 进行签名校验，`CL.DLL` 部分就不再继续跟了，我们主要看如何进入`CI.DLL`：
+
+![](upload/attach/202304/914360\_HDBCDPY8UBSUJN7.png)
+
+网上一般通过Patch `CI!g_CiOptions`实现绕过数字签名校验，这边就不搞这么复杂了，我们 patch `qword_14040EF40`，换成我们的函数，返回 `STATUS_SUCCESS` 就可以通过签名校验了，虽然 `qword_14040EF40`受PG保护，但是只修改一会，加载完驱动就改回去，PG就反应不过来了。（我试过很多次，基本上改了 `qword_14040EF40` 后几个小时PG才能反应过来）。定位：
+
+![](upload/attach/202304/914360\_Y25CE5S2CZYM2ZJ.png)
+
+win10、win11 我都看过， 都是在 `&SeCiCallbacks + 0x20` 的位置，可能有些版本不同。
+
+## 2 开始操作
+
+操作很简单，通过调用上面说到过的未导出函数，就能实现。
+
+需要隐藏的驱动或伪装的驱动代码如下：（主要是创建一个 名为 `ICEY_Device`的设备，创建成功说明 驱动加载成功）
+
+```c
+#include<ntddk.h>
+#define my\_device\_name L"\\Device\\ICEY\_Device"//设备名
+#define my\_link\_name L"\\??\\ICEY\_Device"//符号链接名
+NTSTATUS Exit(DRIVER\_OBJECT\* DriverObject) {
+UNICODE\_STRING symbolLinkName;
+if (DriverObject->DeviceObject)
+IoDeleteDevice(DriverObject->DeviceObject);
+RtlInitUnicodeString(&symbolLinkName, my\_link\_name);
+IoDeleteSymbolicLink(&symbolLinkName);
+return STATUS\_SUCCESS;
+}
+NTSTATUS Test(PDEVICE\_OBJECT pDeviceObject, PIRP pIrp)
+{
+NTSTATUS Status;
+DbgPrint("Create File Finsh!\n");//输出成功，则代表成功
+Status = STATUS\_SUCCESS;
+pIrp->IoStatus.Status = Status;
+pIrp->IoStatus.Information = 0;
+IoCompleteRequest(pIrp, IO\_NO\_INCREMENT);
+return STATUS\_SUCCESS;
+}
+NTSTATUS DriverEntry(PDRIVER\_OBJECT DrvObj, PUNICODE\_STRING Str) {
+UNICODE\_STRING device\_name, device\_link\_name, event\_name1, event\_name2;//设备名，符号链接名，事件名
+RtlInitUnicodeString(&device\_name, my\_device\_name);//初始化设备名
+RtlInitUnicodeString(&device\_link\_name, my\_link\_name);//初始化符号链接名
+NTSTATUS status = 0;
+PDEVICE\_OBJECT ShellDevObj = NULL;
+status = IoCreateDevice(DrvObj, 200, &device\_name, FILE\_DEVICE\_UNKNOWN, 0, 1, &ShellDevObj);
+if (!NT\_SUCCESS(status))
+{
+DbgPrint("无法创建设备!\n");
+return status;
+}
+status = IoCreateSymbolicLink(&device\_link\_name, &device\_name);
+if (!NT\_SUCCESS(status))
+{
+DbgPrint("无法创建符号链接！\n");
+IoDeleteDevice(ShellDevObj);
+return status;
+}
+DrvObj->MajorFunction[IRP\_MJ\_CREATE] = Test;
+return status;
+}
+```
+
+编译出来的 驱动文件 名字为 ： `Test_Drv.sys`
+
+### 2.1 驱动隐藏加载
+
+这里就贴一下伪代码，实际代码请查看项目：
