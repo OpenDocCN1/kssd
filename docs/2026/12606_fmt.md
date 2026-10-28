@@ -1,0 +1,16 @@
+
+# [原创]Windows对象管理篇
+
+1. 遍历对象目录枚举内核驱动，支持Win10 X64
+2. 注册对象回调进行反枚举，支持Win7 Win10 X86/X64
+3. 总结Windows对象管理一些知识点
+
+表示老了不想再帖代码什么的了，有需要的自取，留个言让我看到你谢谢
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+最后于 2019-1-29 16:47 被FaEry编辑，原因：
+
+上传的附件：
+
+- [WinSubsystem-ObjectManager.zip](javascript:void(0);) （559.78kb，628次下载）
