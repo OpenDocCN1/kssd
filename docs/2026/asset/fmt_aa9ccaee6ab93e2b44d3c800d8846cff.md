@@ -1,0 +1,340 @@
+
+# [原创]菜鸟学飞之 Frida 整合怪
+
+## 学习历程
+
+入行两年了，从刚开始的丝毫不懂，到现在的蹒跚学步，可谓是一步一个脚印走过来的。当然现在依然还是菜鸟一只。但是比起两年前茫然不知学习方向来说，现在有了明确前进的目标，只要不停下脚本，终有一天能飞上枝头成为合格的老鸟。下面整理了一些我的学习方式。希望能够帮到和曾经的我一样茫然的萌新。
+
+### 1、阅读书籍
+
+最核心的基础大多是在书中有详细的介绍。看书一般不是只读一遍。我个人的方式是先大致的过一遍，每页都粗略的翻一遍，过完一遍就能大概知道哪些内容以自己目前的知识量，很难看明白，哪些是自己熟悉但是却理解不深的。然后第二遍才开始细翻，暂时跳过很难读懂的，先做个标记，以后知识面广了，再回过头来看。
+
+简单推荐几本《android软件安全权威指南》、《android应用安全防护和逆向分析》、《深入理解android java虚拟机ART》、《深入理解计算机系统》。
+
+### 2、论坛
+
+很多大佬都会发些实战的帖子，还有一些工具的使用，以及各种经验之谈。看书相当于是闭门造车，单靠自己的摸索的路是非常艰难的。站在巨人的肩膀上才能前进得更快。
+
+我最早先啥也不懂，就是看着大佬们的帖子渐渐入门，然后慢慢的才能看得懂书籍。
+
+### 3、培训
+
+我经历过很多次培训。2011年培训前我本职是修电脑的，在北京培训了`asp.net`然后入行做网站。2016年我在广州培训`c++`然后转行做游戏。2018年自学后转行做安全，然后发现基础特烂，有些问题稍微变一点就很难自己解决。2020年又报了看雪的2w和3w班。
+
+关于培训很多人有各种说法，只能说是智者见智，仁者见仁，不能以一概全。至少我觉得物有所值。如果你缺乏自制力，或者自学很久也不见成效，可以找合适的线上课程试试。
+
+### 4、开源项目
+
+`github`说它是公认最大的学习网站，应该不过分吧？很多时候，伟大的前人早就踩过了数不清的弯路，然后他们为我们铺平了道路。感谢开源精神，让知识遍地开花结果。
+
+当使用一些优秀的工具时，我们可以阅读源码，看看是如何实现的。熟悉代码后，完全可以根据自己的使用场景来修改`bug`，或者做一些优化。如果对底层非常熟悉，甚至可以看穿作者的核心思路，知道核心实现的原理。
+
+### 5、个人博客
+
+学习这么久，最吃亏的就是好多看过的东西，久久不用，基本都忘干净了。但是如果在当时有详细的记录，记下整个思路的话，翻一翻还是可以捡得回来的。
+
+个人博客的存在我觉得其实很像是一个线上的笔记簿，可以随时在任意地方翻看。而且现在`markdown`的风格也很漂亮。我是用`hexo`搭建的个人博客，空间是`github`的免费空间。
+
+写笔记的时候记住一个要点，这个记录的第一目标客户是未来的自己。为了确保自己肯定看得懂，要尽量地详细。
+
+### 6、练手和实战
+
+学习了新的知识点后，一般会自己做个正向的`apk`练手，或者是拿别人的`crashMe`之类的来练手。
+
+当我们前置知识准备得差不多了，就可以拿一些自己常用的软件来进行练手。比如说某色流`app`，或者是某小说软件去广告。
+
+不论最后能否成功达到目的，主要是在实战逆向中的一些见识，总结碰到的问题，最后如何解决的。如果解决不了，那又是因为什么因素。结果不重要，重要的是过程中的收获。
+
+## FridaUiTools 整合怪
+
+> 整合工具开发，我觉得是一种比较高效的学习方式。将别人优秀的项目魔改，并且进行一定的拼合，整理成一个成套的工具。在整理的过程中，必然要熟悉对方的代码，并且对部分代码进行调整。在这个过程中，就能快速汲取到他人的经验。这种行为，就是所谓的整合怪/缝合怪了。
+
+`fridaUiTools`主要是把一些常用的`frida`的`hook`脚本简单统一输出方式后，整合进来。并且将自己觉得常用的功能做成界面调用的，并且在附加进程成功时获取一些信息，默认直接展示。后续会根据自己实战的经验，不断完善这个工具。
+
+一直想做一个`frida`的脚本整理工具。有很多化腐朽为神奇的脚本由于常年不使用，自己都忘记了，觉得应该有一个工具把这些东西统一起来调用。因为常年使用`win`系统，导致我倾向于界面化的工具。
+
+我个人感觉，界面化的工具至少不用再记命令，操作也方便。然后我直接参考`ZenTracer`，在他的原理上，重新对整体的流程以及界面和功能做得更加完善一些。
+
+我对这个工具整体功能划分为三块。
+
+### 1、JS 脚本的 Hook 和管理
+
+对批量多个脚本同时`hook`，可以自定义脚本进行管理，可以保存、加载。必须是在附加前进行操作。
+
+- 整合`r0capture`
+- 整合`jnitrace`
+- 整合`ZenTracer`
+- `java`层的加解密相关自吐
+- `ssl`证书导出
+- `ssl pining`（整合`DroidSSLUnpinning`）
+- 模糊匹配函数进行批量`hook`（整合`ZenTracer`）
+- 模糊匹配`so`函数批量`hook`（参数统一方式打印，所以输出只能做参考）
+- `native`的`sub`函数批量`hook`（参数统一方式打印，所以输出只能做参考）
+- `stalker`的`trace`
+- 脱壳相关（整合`frida_dump`、`FRIDA-DEXDump`、`fart`）
+- 自定义脚本添加（`todo`待开发）
+- `patch`汇编代码（`todo`待开发）
+
+### 2、常用功能的调用
+
+常见的内存漫游操作进行功能化，以后再根据实战需求增加新功能。必须是在附加后进行操作。
+
+- `fart`主动调用
+- `DUMPDex`主动调用
+- `dump`打印指定地址
+- `dump`指定模块
+- `wallBreak`整合
+
+### 3、初始化信息
+
+附加进程成功后，将一些常用的信息在界面展示。目前只处理了`module`列表和`class`列表，以后再根据需求增加新的信息。
+
+### GitHub
+
+> <a href="elink@2e1K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6V1M7i4A6Y4x3e0t1K6x3o6m8Q4x3V1k6X3M7X3W2V1j5g2g2A6g2r3!0G2L8s2x3`.">`fridaUiTools`</a>
+
+**重点并不是开发整合工具的流程，而是学习并利用别人的项目的过程，所以下面主要是分析我整合用到的项目。**
+
+## ZenTracer
+
+### GitHub
+
+> **<a href="elink@9b4K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5L8s2g2%4j5g2)9J5c8W2A6W2L8W2c8J5j5h3y4W2M7R3`.`.">ZenTracer</a>**
+
+### 功能
+
+界面化的批量`hook`多个类，可以通过拉黑过滤掉一些调用率特别高的类。
+
+### 实现原理
+
+在`js`脚本中使用占位符`{MATCHREGEX}`和`{BLACKREGEX}`在后续替换，来传递参数需要批量`trace`的类名以及黑名单。
+
+遍历所有类，匹配出符合要求的类名，并且不在黑名单中，则进行批量`hook`。批量`hook`时会将函数所有重载都`hook`上。
+
+最后是三种输出方式：正常的`log`输出、函数进入时的参数输出、函数结束时的返回值输出。
+
+### 核心代码（简略）
+
+```javascript
+//批量hook
+function traceClass(clsname) {
+    try {
+        var target = Java.use(clsname);
+
+        //获取本类所有函数（注意getMethods这个是获取本类和父类中的函数。）
+        var methods = target.class.getDeclaredMethods();
+
+        methods.forEach(function (method) {
+            var methodName = method.getName();
+
+            //获取所有重载
+            var overloads = target[methodName].overloads;
+
+            overloads.forEach(function (overload) {
+                //参数的类型
+                var proto = "(";
+
+                overload.argumentTypes.forEach(function (type) {
+                    proto += type.className + ", ";
+                });
+
+                if (proto.length > 1) {
+                    proto = proto.substr(0, proto.length - 2);
+                }
+
+                proto += ")";
+
+                log("hooking: " + clsname + "." + methodName + proto);
+
+                //hook 函数
+                overload.implementation = function () {
+                    var args = [];
+                    var tid = getTid();
+                    var tName = getTName();
+
+                    for (var j = 0; j < arguments.length; j++) {
+                        args[j] = arguments[j] + ""
+                    }
+
+                    //函数进入时的参数啥的在里面通过send传给py
+                    enter(tid, tName, clsname, methodName + proto, args);
+
+                    var retval = this[methodName].apply(this, arguments);
+
+                    //函数结束时的返回值在里面通过send传给py
+                    exit(tid, "" + retval);
+
+                    return retval;
+                }
+            });
+        });
+    } catch (e) {
+        log("'" + clsname + "' hook fail: " + e)
+    }
+}
+
+//匹配符合要求的类。并且不在黑名单中的
+if (Java.available) {
+    Java.perform(function () {
+        log('ZenTracer Start...');
+
+        //在js被读取时，会替换这里的数据
+        var matchRegEx = {MATCHREGEX};
+        var blackRegEx = {BLACKREGEX};
+
+        Java.enumerateLoadedClasses({
+            onMatch: function (aClass) {
+                for (var index in matchRegEx) {
+                    // console.log(matchRegEx[index]);
+                    if (match(matchRegEx[index], aClass)) {
+                        var is_black = false;
+
+                        for (var i in blackRegEx) {
+                            if (match(blackRegEx[i], aClass)) {
+                                is_black = true;
+                                log(aClass + "' black by '" + blackRegEx[i] + "'");
+                                break;
+                            }
+                        }
+
+                        if (is_black) {
+                            break;
+                        }
+
+                        log(aClass + "' match by '" + matchRegEx[index] + "'");
+                        traceClass(aClass);
+                    }
+                }
+            },
+
+            onComplete: function () {
+                log("Complete.");
+            }
+        });
+    });
+}
+```
+
+### 改造并整合
+
+优化界面显示，优化类名的输入环节。每次附加进程后，都将所有类名保存下来。这里就可以选择之前缓存下来的所有类数据，然后根据输入智能过滤，可以快捷方便地找到自己想要`hook`的类。
+
+快捷添加操作：将经常要`hook`的类放在里面，就可以迅速地`hook`了。
+
+### 相关贴图
+
+![](upload/attach/202106/659397_455YX7TP9Q7A6MP.png)
+
+## r0capture
+
+### GitHub
+
+> <a href="elink@ca0K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6J5x3s2W2K6N6h3g2Q4x3V1k6J5x3r3y4S2M7s2c8#2M7X3f1`.">`r0capture`</a>
+
+### 功能
+
+安卓应用抓包的通杀脚本，并且可以过证书校验解绑定`ssl pining`，可以导出客户端`ssl`证书，也可以导出`pcap`文件。
+
+### 实现原理
+
+通过分析`http`、`https`、`tcp`、`udp`、`ssl`的系统框架或者第三方框架的调用流程，找到底层调用的地方进行`hook`，就可以在一定程度上通杀了。
+
+关于调用流程的分析的详细过程，可以看看我之前整理的另一篇文章[android抓包学习的整理和归纳](https://bbs.pediy.com/thread-267940.htm)。
+
+证书的导出是选择一个证书会调用的时机，函数`getPrivateKey`和函数`getCertificateChain`。`hook`后，取出私钥和证书内容，重新设置密码导出新的证书。
+
+定位`sslpinning`证书绑定的位置，是通过`hook`类型`File`的构造函数，并且打印出调用堆栈，然后在里面匹配证书绑定函数是否在调用链。这是一种技巧，在其他场合同样可以使用类似的技巧来找到关键代码的位置。
+
+可以将抓包结果保存为`pcap`数据，便捷于一些擅长使用网卡抓包工具的人导入分析（例如`wireshark`）。这个关键是需要熟悉网络数据包的组成结构，然后按照格式写入文件。可以参考他的这个，顺便学习一下数据包的组成。
+
+### 核心代码（简略，网络抓包相关的就不贴了，太多了）
+
+```javascript
+//导出证书到指定路径,并使用新密码
+function storeP12(pri, p7, p12Path, p12Password) {
+    var X509Certificate = Java.use("java.security.cert.X509Certificate")
+    var p7X509 = Java.cast(p7, X509Certificate);
+    var chain = Java.array("java.security.cert.X509Certificate", [p7X509])
+    var ks = Java.use("java.security.KeyStore").getInstance("PKCS12", "BC");
+
+    ks.load(null, null);
+    ks.setKeyEntry(
+        "client",
+        pri,
+        Java.use('java.lang.String').$new(p12Password).toCharArray(),
+        chain
+    );
+
+    try {
+        var out = Java.use("java.io.FileOutputStream").$new(p12Path);
+        ks.store(
+            out,
+            Java.use('java.lang.String').$new(p12Password).toCharArray()
+        )
+    } catch (exp) {
+        console.log(exp)
+    }
+}
+
+//在服务器校验客户端的情形下，帮助dump客户端证书，并保存为p12的格式，证书密码为r0ysue
+Java.use("java.security.KeyStore$PrivateKeyEntry").getPrivateKey.implementation = function () {
+    var result = this.getPrivateKey()
+
+    var packageName = Java.use("android.app.ActivityThread")
+        .currentApplication()
+        .getApplicationContext()
+        .getPackageName();
+
+    storeP12(
+        this.getPrivateKey(),
+        this.getCertificate(),
+        '/sdcard/Download/' + packageName + uuid(10, 16) + '.p12',
+        'r0ysue'
+    );
+
+    var message = {};
+    message["function"] =
+        "dumpClinetCertificate=>" +
+        '/sdcard/Download/' +
+        packageName +
+        uuid(10, 16) +
+        '.p12' +
+        ' pwd: r0ysue';
+
+    message["stack"] = Java.use("android.util.Log")
+        .getStackTraceString(
+            Java.use("java.lang.Throwable").$new()
+        );
+
+    var data = Memory.alloc(1);
+    send(message, Memory.readByteArray(data, 1))
+
+    return result;
+}
+
+//SSLpinning helper 帮助定位证书绑定的关键代码
+Java.use("java.io.File")
+    .$init
+    .overload('java.io.File', 'java.lang.String')
+    .implementation = function (file, cert) {
+        var result = this.$init(file, cert)
+
+        //打印堆栈
+        var stack = Java.use("android.util.Log")
+            .getStackTraceString(
+                Java.use("java.lang.Throwable").$new()
+            );
+
+        //匹配证书绑定的函数是否在调用链中
+        if (
+            file.getPath().indexOf("cacert") >= 0 &&
+            stack.indexOf("X509TrustManagerExtensions.checkServerTrusted") >= 0
+        ) {
+            var message = {};
+            message["function"] =
+                "SSLpinning position locator => " +
+                file.getPath() +
+                " " +
+                cert;
+            message["stack"] = stack;
+```

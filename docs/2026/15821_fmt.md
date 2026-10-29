@@ -1,34 +1,33 @@
 
-
-# [原创]小菜花的 `frida-svc-interceptor`
+# [原创]小菜花的frida-svc-interceptor
 
 ## 一、目标
 
-现在很多 App 不讲武德了，为了防止 `openat`、`read`、`kill` 等底层函数被 hook：
+现在很多App不讲武德了，为了防止`openat`、`read`、`kill`等等底层函数被hook：
 
-1. 干脆直接通过 `syscall` 的方式来做。
-2. 或者直接通过内联汇编 `svc` 的方式去做。
+1. 干脆就直接通过`syscall`的方式来做。
+2. 或者就直接通过内联汇编`svc`的方式去做。
 
-最近在研究 `svc bypass`，想用一个通用点的方案来实现它，继而继续进行 IO 重定向……嗯，IO 重定向的好处就不说了。
+最近在研究`svc` bypass，想用一个通用点的方案来实现它，继而继续进行`io`重定向。。。，嗯，`io`重定向的好处就不说了。
 
 听说的方案有：
 
-1. `ptrace` 直接搞（PS：还在看资料）。
-2. 找到 `svc` 指令地址，继续去 `inline hook` 它。
+1. `ptrace`直接搞（ps：还在看资料）
+2. 找到`svc`指令地址，继续去`inlinehook`它
 
-我们今天采用第二种方法，用 `frida` 来实现：
+我们今天采用第二种方法，用`frida`来实现：
 
-- `frida memory search svc`
+- `frida momory search svc`
 - `parse insn and count call_number`
 - `frida native hook svc`
 
 ## 二、步骤
 
-1. 参考了葫芦娃 dumpDex 扫描内存的思路。
-2. `frida` 是可以直接 hook `svc` 的，也不用地址减 `0x4`。
-3. 上 `frida` 脚本：
+1. 参考了葫芦娃`dumpDex`扫描内存的思路。
+2. `frida`是可以直接hook `svc`的，也不用地址减`0x4`。
+3. 上`frida`脚本：
 
-```javascript
+```
 let target_code_hex;
 
 let call_number_openat;
@@ -210,29 +209,26 @@ if (arch){
 
 ## 三、总结
 
-0. 这里样本是 `mov x8(r7)` 调用号和 `svc 0` 紧挨着的情况，也可以持续向上访问地址，查找目标寄存器指令，适配得更好一点。
-
-1. 这里只对目标 App 的 `.so` 进行了内存扫描，同理也可以对系统库进行内存扫描。
-2. 用了同步的 `Memory.scan` 扫描方式，为了区分到底是哪个目标 `.so` 文件。
-3. 这里只是 `frida attach` 脚本，同理可以改成 `frida spawn` 方式，选个好的注入时机就好了。
-4. 这里只搞了两个系统调用号，同理可以多搞一点。
-5. 落地成 `Dobby` 实现，如果直接 `DobbyHook` `svc` 地址的话，进入 `new_func` 一切正常，进 `org_func` 的时候就开始闪退了，那是因为 `x8`（`r7`）寄存器的值变了，导致系统调用号没了，进而闪退。此时可以 `svc address - 0x4` 去 hook，也是可以的，当然前提是 `mov` 和 `svc` 指令紧挨着。
-6. 感觉稳定的生产环境之一应该是用 `riru` 模块来搞。
-7. 当然此方案有一定局限性，比如 `svc` 在扫描的内存之外、`inline hook` 特征等等。
-8. Git 地址：[`23dK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5N6h3q4W2M7Y4S2A6k6h3I4S2i4K6u0r3k6Y4u0A6k6r3q4Q4x3X3c8K6j5%4u0A6M7s2b7`](https://bbs.kanxue.com/elink@340K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5N6h3q4W2M7Y4S2A6k6h3I4S2i4K6u0r3k6Y4u0A6k6r3q4Q4x3X3c8K6j5%4u0A6M7s2b7)。
-9. 很简单的思路，好像也是 VA 核心 IO 的思路……
+0. 这里样本是`mov x8(r7)` 调用号 和`svc 0`紧挨着的情况，也可以持续向上访问地址查找目标寄存器指令适配的更好一点。
+1. 这里只对目标app的`so`进行了内存扫描，同理也可以对系统库进行内存扫描。
+2. 用了同步的`Memory.scan`扫描方式，为了区分到底是哪个目标so文件。
+3. 这里只是`frida attach`脚本，同理可以改成`frida spawn`方式，选个好的注入时机就好了。
+4. 这是只搞了两个系统调用号，同理可以多搞一点。
+5. 落地成`Dobby`实现，如果直接`DobbyHook` `svc`地址的话，进入`new_func`一切正常，进`org_func`的时候就开始闪退了，那是因为`x8(r7)`寄存器的值变了，导致系统调用号没了，进而闪退。此时可以`svc address - 0x4`去hook也是可以的，当然前提是`mov`和`svc`指令紧挨着。
+6. 感觉稳定的生产环境之一应该是用`riru`模块来搞。
+7. 当然此方案有一定局限性，比如`svc`在扫描的内存之外，`inlinehook`特征等等。
+8. git地址：[23dK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5N6h3q4W2M7Y4S2A6k6h3I4S2i4K6u0r3k6Y4u0A6k6r3q4Q4x3X3c8K6j5%4u0A6M7s2b7`.](https://bbs.kanxue.com/elink@340K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5N6h3q4W2M7Y4S2A6k6h3I4S2i4K6u0r3k6Y4u0A6k6r3q4Q4x3X3c8K6j5%4u0A6M7s2b7`.)
+9. 很简单的思路，好像也是`va`核心`io`的思路。。。
 
 ## 四、参考文献
 
-<https://bbs.pediy.com/thread-269895.htm> 批量检测 Android App 的 `.so` 中是否有 `svc` 调用
-
-反调试及绕过 [`b31K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6B7L8i4m8W2N6%4y4Q4x3X3g2Y4K9i4c8Z5N6h3u0Q4x3X3g2A6L8#2)9J5c8U0t1H3x3e0N6Q4x3V1j5H3z5q4)9J5c8U0l9&6i4K6u0r3k6r3q4J5N6$3W2F1i4K6u0r3i4K6t1#2c8e0g2Q4x3U0f1^5c8W2)9J5y4e0S2p5i4K6t1#2c8e0S2Q4x3U0g2n7x3q4)9J5y4e0R3K6i4K6t1#2c8e0S2Q4x3U0g2m8c8W2)9J5y4e0V1#2i4K6t1#2c8e0g2Q4x3U0f1^5c8W2)9J5y4e0S2m8i4K6t1#2c8e0N6Q4x3U0g2n7b7W2)9J5y4e0V1#2i4K6t1#2c8e0S2Q4x3U0g2n7c8W2)9J5y4e0R3%4i4K6u0r3`](https://bbs.kanxue.com/elink@a66K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2Y4K9i4c8Z5N6h3u0Q4x3X3g2A6L8#2)9J5c8U0t1H3x3e0N6Q4x3V1j5H3z5q4)9J5c8U0l9&6i4K6u0r3k6r3q4J5N6$3W2F1i4K6u0r3i4K6t1#2c8e0g2Q4x3U0f1^5c8W2)9J5y4e0S2p5i4K6t1#2c8e0S2Q4x3U0g2n7x3q4)9J5y4e0R3K6i4K6t1#2c8e0S2Q4x3U0g2m8c8W2)9J5y4e0V1#2i4K6t1#2c8e0g2Q4x3U0f1^5c8W2)9J5y4e0S2m8i4K6t1#2c8e0N6Q4x3U0g2n7b7W2)9J5y4e0V1#2i4K6t1#2c8e0S2Q4x3U0g2n7c8W2)9J5y4e0R3%4i4K6u0r3)`【奋飞】`Frida-syscall-interceptor`
-
-<https://bbs.pediy.com/thread-268283.htm> [原创]iOS 反反调试助手
-
-<https://bbs.pediy.com/thread-260731.htm> [原创]使用 `ptrace` 过 `ptrace` 反调试
-
-[[招生]科锐逆向工程师培训（2026 年 11 月 13 日实地，远程教学同时开班，第 57 期）](https://bbs.kanxue.com/thread-51839.htm)
+- <https://bbs.pediy.com/thread-269895.htm> 批量检测android app的so中是否有svc调用
+- 反调试及绕过 [b31K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6B7L8i4m8W2N6%4y4Q4x3X3g2Y4K9i4c8Z5N6h3u0Q4x3X3g2A6L8#2)9J5c8U0t1H3x3e0N6Q4x3V1j5H3z5q4)9J5c8U0l9&6i4K6u0r3k6r3q4J5N6$3W2F1i4K6u0r3i4K6t1#2c8e0g2Q4x3U0f1^5c8W2)9J5y4e0S2p5i4K6t1#2c8e0S2Q4x3U0g2n7x3q4)9J5y4e0R3K6i4K6t1#2c8e0S2Q4x3U0g2m8c8W2)9J5y4e0V1#2i4K6t1#2c8e0g2Q4x3U0f1^5c8W2)9J5y4e0S2m8i4K6t1#2c8e0N6Q4x3U0g2n7b7W2)9J5y4e0V1#2i4K6t1#2c8e0S2Q4x3U0g2n7c8W2)9J5y4e0R3%4i4K6u0r3](https://bbs.kanxue.com/elink@a66K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6B7L8i4m8W2N6%4y4Q4x3X3g2Y4K9i4c8Z5N6h3u0Q4x3X3g2A6L8#2)9J5c8U0t1H3x3e0N6Q4x3V1j5H3z5q4)9J5c8U0l9&6i4K6u0r3k6r3q4J5N6$3W2F1i4K6u0r3i4K6t1#2c8e0g2Q4x3U0f1^5c8W2)9J5y4e0S2p5i4K6t1#2c8e0S2Q4x3U0g2n7x3q4)9J5y4e0R3K6i4K6t1#2c8e0S2Q4x3U0g2m8c8W2)9J5y4e0V1#2i4K6t1#2c8e0g2Q4x3U0f1^5c8W2)9J5y4e0S2m8i4K6t1#2c8e0N6Q4x3U0g2n7b7W2)9J5y4e0V1#2i4K6t1#2c8e0S2Q4x3U0g2n7c8W2)9J5y4e0R3%4i4K6u0r3)
+- `bypass svc 0 PTRACE_TRACEME` <https://bbs.pediy.com/thread-212404.htm>
+- [c11K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8U0V1I4k6X3q4F1M7#2)9J5k6h3y4G2L8g2)9J5k6h3y4F1i4K6u0r3M7r3!0K6N6q4)9J5c8X3k6J5K9h3c8S2M7%4W2K6j5$3q4D9L8r3W2F1N6r3g2J5j5$3g2H3N6r3!0J5i4K6u0r3](https://bbs.kanxue.com/elink@b2aK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8U0V1I4k6X3q4F1M7#2)9J5k6h3y4G2L8g2)9J5k6h3y4F1i4K6u0r3M7r3!0K6N6q4)9J5c8X3k6J5K9h3c8S2M7%4W2K6j5$3q4D9L8r3W2F1N6r3g2J5j5$3g2H3N6r3!0J5i4K6u0r3)【奋飞】Frida-syscall-interceptor
+- <https://bbs.pediy.com/thread-268283.htm> [原创]iOS反反调试助手
+- <https://bbs.pediy.com/thread-260731.htm> [原创]使用 ptrace 过 ptrace 反调试
+- [[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
 
 最后于 2021-11-10 14:50 被 huaerxiela 编辑，原因：优化脚本
 
@@ -241,4 +237,3 @@ if (arch){
 [#基础理论](https://bbs.kanxue.com/forum-161-1-117.htm)
 
 [#HOOK注入](https://bbs.kanxue.com/forum-161-1-125.htm)
-
