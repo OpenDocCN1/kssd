@@ -26,7 +26,7 @@ if (filename == null) {...
 
 ### Android 7.0：
 
-[System.java] `java.lang.System`:
+[System.java] java.lang.System:
 
 ```java
 public static void load(String filename) {
@@ -37,7 +37,7 @@ Runtime.getRuntime().loadLibrary0(VMStack.getCallingClassLoader(), libname);
 }
 ```
 
-[Runtime.java] `java.lang.Runtime`:
+[Runtime.java] java.lang.Runtime:
 
 ```java
 synchronized void load0(Class fromClass, String filename) {
@@ -65,7 +65,7 @@ loadLibrary0(classLoader, libname);
 Android 6.0采用的是loadLibrary,6.0之后都采用的是loadLibrary0; 同理 load函数也一样,6.0之后采用的是load0
 ```
 
-同时我们分析了`loadLibrary0`：
+同时我们分析了loadLibrary0：
 
 ```
 1. classLoader存在时，通过classLoader.findLibrary(libraryName)来获取存放指定so文件的路径；
@@ -79,25 +79,25 @@ hook技术就是指截获进程对某个API函数的调用，使得API的执行�
 
 ### 1.Xposed hook技术
 
-Xposed的基本原理，我在[源码编译（3）——Xposed框架定制](https://bbs.pediy.com/thread-269627.htm)中已经给大家做了详细的讲解，其主要就是Android应用进程都是由 `zygote` 进程孵化而来，zygote对应的可执行程序就是`app_process`,posed 框架通过替换系统的 `app_process` 可执行文件以及虚拟机动态链接库，让 `zygote` 在启动应用程序进程时注入框架代码，进而实现对应用程序进程的劫持。
+Xposed的基本原理，我在[源码编译（3）——Xposed框架定制](https://bbs.pediy.com/thread-269627.htm)中已经给大家做了详细的讲解，其主要就是Android应用进程都是由 zygote 进程孵化而来，zygote对应的可执行程序就是app_process,posed 框架通过替换系统的 app_process 可执行文件以及虚拟机动态链接库，让 zygote 在启动应用程序进程时注入框架代码，进而实现对应用程序进程的劫持。
 
 具体怎么实现hook技术，Xposed就是通过修改了Art虚拟机，将需要hook的函数注册为Native函数，当执行这一函数时，虚拟机会优先执行Native函数，然后执行java函数，这样就成功完成了函数的hook。
 
-![image-20210919155021588](upload/attach/202205/905443\_A6M5RGRCQ2A3HGM.png)
+![image-20210919155021588](upload/attach/202205/905443_A6M5RGRCQ2A3HGM.png)
 
 具体实现流程:
 
-在 Android 系统启动的时候， `zygote` 进程加载 `XposedBridge` 将所有需要替换的 `Method` 通过 JNI 方法 `hookMethodNative` 指向 Native 方法 `xposedCallHandler` ， `xposedCallHandler` 在转入 `handleHookedMethod` 这个 Java 方法执行用户规定的 Hook Func
+在 Android 系统启动的时候， zygote 进程加载 XposedBridge 将所有需要替换的 Method 通过 JNI 方法 hookMethodNative 指向 Native 方法 xposedCallHandler ， xposedCallHandler 在转入 handleHookedMethod 这个 Java 方法执行用户规定的 Hook Func
 
-![image-20220517133042720](upload/attach/202205/905443\_TTUBVG5KA7YWR9W.png)
+![image-20220517133042720](upload/attach/202205/905443_TTUBVG5KA7YWR9W.png)
 
-`dvmCallMethodV`会根据`accessFlags`决定调用native还是java函数，因此修改`accessFlags`后，Dalvik会认为这个函数是一个native函数，便走向了native分支也就是说Xposed在对java方法进行hook时，先将虚拟机里面这个方法的`Method`的`accessFlag`改为native对应的值，然后将该方法的`nativeFunc`指向自己实现的一个native方法，这样方法在调用时，就会调用到这个native方法，接管了控制权
+dvmCallMethodV会根据accessFlags决定调用native还是java函数，因此修改accessFlags后，Dalvik会认为这个函数是一个native函数，便走向了native分支也就是说Xposed在对java方法进行hook时，先将虚拟机里面这个方法的Method的accessFlag改为native对应的值，然后将该方法的nativeFunc指向自己实现的一个native方法，这样方法在调用时，就会调用到这个native方法，接管了控制权
 
 其他的就详细参考上篇文章了
 
 ### 2.Frida hook技术
 
-`frida` 也是一种动态插桩工具，原理和Xposed hook一样，也是把java method转为native method，但是Art下的实现与Dalivk有所不同，这里就需要了解ART的运行机制，这里主要参考博客：<a href="elink@82aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0j5h3u0A6L8U0l9H3y4q4)9J5k6h3N6A6N6r3S2#2j5W2)9J5k6h3W2G2i4K6u0r3x3U0l9I4z5q4)9J5c8U0l9%4i4K6u0r3x3K6q4Q4x3V1k6y4j5h3y4Q4x3U0g2q4y4q4)9J5y4f1t1^5i4K6t1#2z5p5q4Q4x3U0g2q4y4#2)9J5y4f1u0o6i4K6t1#2z5e0k6Q4x3U0g2q4z5q4)9J5y4f1q4r3i4K6t1#2z5e0q4r3M7X3W2V1j5g2)9J5c8R3`.`.">Frida源码分析</a>
+frida 也是一种动态插桩工具，原理和Xposed hook一样，也是把java method转为native method，但是Art下的实现与Dalivk有所不同，这里就需要了解ART的运行机制，这里主要参考博客：<a href="elink@82aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0j5h3u0A6L8U0l9H3y4q4)9J5k6h3N6A6N6r3S2#2j5W2)9J5k6h3W2G2i4K6u0r3x3U0l9I4z5q4)9J5c8U0l9%4i4K6u0r3x3K6q4Q4x3V1k6y4j5h3y4Q4x3U0g2q4y4q4)9J5y4f1t1^5i4K6t1#2z5p5q4Q4x3U0g2q4y4#2)9J5y4f1u0o6i4K6t1#2z5e0k6Q4x3U0g2q4z5q4)9J5y4f1q4r3i4K6t1#2z5e0q4r3M7X3W2V1j5g2)9J5c8R3`.`.">Frida源码分析</a>
 
 ART 是一种代替 Dalivk 的新的运行时,它具有更高的执行效率。ART虚拟机执行 Java 方法主要有两种模式：quick code 模式和 Interpreter 模式
 
@@ -106,13 +106,13 @@ quick code 模式：执行 arm 汇编指令
 Interpreter 模式：由解释器解释执行 Dalvik 字节码
 ```
 
-即使是在quick code模式中，也有类方法可能需要以Interpreter模式执行。反之亦然。解释执行的类方法通过函数`artInterpreterToCompiledCodeBridge`的返回值调用本地机器指令执行的类方法；本地机器指令执行的类方法通过函数`GetQuickToInterpreterBridge`的返回值调用解释执行的类方法
+即使是在quick code模式中，也有类方法可能需要以Interpreter模式执行。反之亦然。解释执行的类方法通过函数artInterpreterToCompiledCodeBridge的返回值调用本地机器指令执行的类方法；本地机器指令执行的类方法通过函数GetQuickToInterpreterBridge的返回值调用解释执行的类方法
 
 这里引用博客中的一张图
 
-![image-20220517133042720](upload/attach/202205/905443\_VJRV8CFKFQS475P.png)
+![image-20220517133042720](upload/attach/202205/905443_VJRV8CFKFQS475P.png)
 
-如图，对于一个native方法，ART虚拟机会先尝试使用quickcode的模式去执行，并检查`ARTMethod`结构中的`entry_point_from_quick_compiled_code`成员，这里分3种情况：
+如图，对于一个native方法，ART虚拟机会先尝试使用quickcode的模式去执行，并检查ARTMethod结构中的entry_point_from_quick_compiled*code*成员，这里分3种情况：
 
 ```
 1.如果函数已经存在quick code, 则指向这个函数对应的 quick code的起始地址，而当quick code不存在时，它的值则会代表其他的意义；
@@ -120,9 +120,9 @@ Interpreter 模式：由解释器解释执行 Dalvik 字节码
 3.当一个 java native（JNI）函数不存在 quick code时，它的值是函数 art_quick_generic_jni_trampoline 的地址，用以执行没有quick code的 jni 函数
 ```
 
-因此，frida将一个java method修改jni mthod 显然是不存在quick code，这时需要将`entry_point_from_quick_compiled_code`值修改为`art_quick_generic_jni_trampoline` 的地址
+因此，frida将一个java method修改jni mthod 显然是不存在quick code，这时需要将entry_point_from_quick_compiled*code*值修改为art_quick_generic_jni_trampoline 的地址
 
-总结，frida把java method改为jni method，需要修改`ARTMethod`结构体中的这几个值：
+总结，frida把java method改为jni method，需要修改ARTMethod结构体中的这几个值：
 
 ```
 accessflags = native
@@ -152,7 +152,7 @@ Trampoline:用于绕过钩子，以便我们可以正常调用钩子函数
 
 #### （3）inlineHook实现
 
-![image-20210918161352124](upload/attach/202205/905443\_CQY5DDQWTKHP3WS.png)
+![image-20210918161352124](upload/attach/202205/905443_CQY5DDQWTKHP3WS.png)
 
 从示意图上，我们可以这样理解：
 
@@ -160,7 +160,7 @@ Trampoline:用于绕过钩子，以便我们可以正常调用钩子函数
 我们将目标函数MessgeBoxA()中的地址拿出来，然后我们用重写的hook函数替换，然后我们执行完成之后，再回调到函数的执行地址出，保证程序的正常运行
 ```
 
-![image-20210919152200104](upload/attach/202205/905443\_JXZH5VUZP7ETYGZ.png)
+![image-20210919152200104](upload/attach/202205/905443_JXZH5VUZP7ETYGZ.png)
 
 我们也可以通过上述示意图去理解inlinehook的基本原理
 
@@ -227,16 +227,16 @@ xposed installer https://repo.xposed.info/module/de.robv.android.xposed.installe
 
 首先我们先下载n5镜像，然后刷机，这里我们已经安装就不再安装了
 
-然后我们刷入 `twrp-3.4.0-0-hammerhead.img`
+然后我们刷入 twrp-3.4.0-0-hammerhead.img
 
 ```
 fastboot flash recovery twrp-3.4.0-0-hammerhead.img
 ```
 
-![image-20210919152200104](upload/attach/202205/905443\_PTP5YTG7G8Q65Q4.png)
+![image-20210919152200104](upload/attach/202205/905443_PTP5YTG7G8Q65Q4.png)
 
 然后我们就可以进入recovery模式了
 
 然后我们将Supersu拷贝进去，然后将Xposed-v89-sdk.zip拷贝进去
 
-![image-20210919152200104](upload/attach/202205/905443\_USKZ6Q73UJ67BPY.png)
+![image-20210919152200104](upload/attach/202205/905443_USKZ6Q73UJ67BPY.png)
