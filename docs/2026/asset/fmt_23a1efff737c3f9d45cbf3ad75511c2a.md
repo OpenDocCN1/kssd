@@ -1,32 +1,33 @@
 
-```text
+```
 (base) /data/code/OpenSource/crack/frida/build/frida-linux-x86_64/bin (16.0.11 ✔) ./frida -U -l ../../../../frida_script/test.js com.example.myapplication
-____
-/ _  |   Frida 16.0.11 - A world-class dynamic instrumentation toolkit
-| (_| |
- > _  |   Commands:
-/_/ |_|       help      -> Displays the help system
-. . . .       object?   -> Display information about 'object'
-. . . .       exit/quit -> Exit
-. . . .
-. . . .   More info at https://frida.re/docs/home/
-. . . .
-. . . .   Connected to AOSP on redfin (id=0A051FDD4003BW)
-Failed to spawn: cannot read properties of undefined (reading 'getRunningAppProcesses')
+
+    ____
+   / _  |   Frida 16.0.11 - A world-class dynamic instrumentation toolkit
+  | (_| |
+   > _  |   Commands:
+   /_/ |_|       help      -> Displays the help system
+  . . . .       object?   -> Display information about 'object'
+  . . . .       exit/quit -> Exit
+  . . . .
+  . . . .   More info at https://frida.re/docs/home/
+  . . . .
+  . . . .   Connected to AOSP on redfin (id=0A051FDD4003BW)
+  Failed to spawn: cannot read properties of undefined (reading 'getRunningAppProcesses')
 ```
 
-咳，出师不利，不过反正我也是做c++开发的，虽然不懂javascript, 连蒙带猜也能看个差不多，那就研究研究报错原因吧。
+咳，出师不利，不过反正我也是做c++开发的，虽然不懂javascript，连蒙带猜也能看个差不多，那就研究研究报错原因吧。
 
-从现有信息来看，第一怀疑对象应该是那个报错`Error: Java API not available`，也指明了报错位置`at _checkAvailable (frida/node_modules/frida-java-bridge/index.js:298:1) at .perform (frida/node_modules/frida-java-bridge/index.js:203:1)`，那就在源码里搜索下。
+从现有信息来看，第一怀疑对象应该是那个报错`Error: Java API not available`，也指明了报错位置`at _checkAvailable (frida/node_modules/frida-java-bridge/index.js:298:1) at .perform (frida/node_modules/frida-java-bridge/index.js:203:1)\n`，那就在源码里搜索下。
 
-发现这个`index.js`位于`build/tmp-android-arm64/frida-gum/bindings/gumjs/node_modules/frida-java-bridge`目录,
+发现这个`index.js`位于`build/tmp-android-arm64/frida-gum/bindings/gumjs/node_modules/frida-java-bridge`目录，
 
 然后看下`perform`实现
 
-```text
+```
 perform (fn) {
   this._checkAvailable();
-  
+
   if (!this._isAppProcess() || this.classFactory.loader !== null) {
     try {
       this.vm.perform(fn);
@@ -44,7 +45,7 @@ perform (fn) {
 
 这个函数第一行就是`_checkAvailable`，跟进去看看
 
-```text
+```
 _checkAvailable () {
   if (!this.available) {
     throw new Error('Java API not available');
@@ -54,7 +55,7 @@ _checkAvailable () {
 
 果然报错就是在这里，那么关键的判断就是`available`了，再跳过去看看
 
-```text
+```
 get available () {
   return this._tryInitialize();
 }
@@ -93,9 +94,9 @@ _tryInitialize () {
 }
 ```
 
-那么只有一种可能，就是`getApi()`返回为`null`，再跟进去看看，这个`getApi()`的有几层跳转如下
+那么只有一种可能，就是`getApi()`返回为`null`，再跟进去看看，这个`getApi`的有几层跳转如下
 
-```text
+```
 // index.js
 const getApi = require('./lib/api');
 
@@ -118,8 +119,8 @@ function getApi () {
 
 function _getApi () {
   const vmModules = Process.enumerateModules()
-  .filter(m => /^lib(art|dvm).so$/.test(m.name))
-  .filter(m => !/\/system\/fake-libs\//.test(m.path));
+    .filter(m => /^lib(art|dvm).so$/.test(m.name))
+    .filter(m => !/\/system\/fake-libs\//.test(m.path));
   if (vmModules.length === 0) {
     return null; // 这里返回了null
   }
@@ -132,57 +133,57 @@ function _getApi () {
 
 那就看下这个进程加载了什么，首先找到进程id
 
-```text
+```
 redfin:/ # ps -ef | grep com.example.myapplication
-u0_a108   27168 21776 0 11:18:29 ?     00:00:03 com.example.myapplication
+u0_a108   27168 21776 0 11:18:29 ? 00:00:03 com.example.myapplication
 root      28255 28250 35 14:11:06 pts/1 00:00:00 grep com.example.myapplication
 ```
 
 然后检查下maps
 
-```text
+```
 redfin:/ # cat /proc/27168/maps | grep libart.so
 1|redfin:/ #
 ```
 
-果然没有，见鬼了,我把`maps`的输出保存下来，在编辑器里查看才发现了端倪，原来进程加载的so里有一个`libartd.so`，因为这个手机是pixel5,系统是我自己下载AOSP编译的，选择的是eng版，这样编出来的系统so都是debug版，也就意味着后缀都有一个d，难怪`frida`找不到。
+果然没有，见鬼了，我把maps的输出保存下来，在编辑器里查看才发现了端倪，原来进程加载的so里有一个`libartd.so`，因为这个手机是pixel5，系统是我自己下载AOSP编译的，选择的是eng版，这样编出来的系统so都是debug版，也就意味着后缀都有一个d，难怪`frida`找不到。
 
 知道了原因，那解决方案就简单了，把那段查找`libart.so`的代码改成查找`libartd.so`即可。不过还有一个问题，这个`frida-java-bridge`是编译的时候从网上下载的，我们本地修改会被覆盖，那么就得研究下`frida`的编译系统了，让它使用我们本地的`frida-java-bridge`。
 
 首先在源码里搜索`frida-java-bridge`，果不其然，是在一个`generate-runtime.py`里面，代码如下
 
-```text
+```
 XACT_DEPS = {
-    "frida-java-bridge": "6.2.3",
-    "frida-objc-bridge": "7.0.2",
-    "frida-swift-bridge": "2.0.6"
+  "frida-java-bridge": "6.2.3",
+  "frida-objc-bridge": "7.0.2",
+  "frida-swift-bridge": "2.0.6"
 }
 
 def generate_runtime(backends, arch, endian, input_dir, gum_dir, capstone_incdir, libtcc_incdir, quickcompile, output_dir):
-    frida_compile = output_dir / "node_modules" / ".bin" / make_script_filename("frida-compile")
-    if not frida_compile.exists():
-        pkg_files = [output_dir / "package.json", output_dir / "package-lock.json"]
-        for f in pkg_files:
-            if f.exists():
-                f.unlink()
-        (output_dir / "tsconfig.json").write_text("{ \"files\": [], \"compilerOptions\": { \"typeRoots\": [] } }", encoding="utf-8")
+  frida_compile = output_dir / "node_modules" / ".bin" / make_script_filename("frida-compile")
+  if not frida_compile.exists():
+    pkg_files = [output_dir / "package.json", output_dir / "package-lock.json"]
+    for f in pkg_files:
+      if f.exists():
+        f.unlink()
+    (output_dir / "tsconfig.json").write_text("{ \"files\": [], \"compilerOptions\": { \"typeRoots\": [] } }", encoding="utf-8")
 
     node_modules = output_dir / "node_modules"
     if node_modules.exists():
-        shutil.rmtree(node_modules)
+      shutil.rmtree(node_modules)
 
     npm = os.environ.get("NPM", make_script_filename("npm"))
     try:
-        subprocess.run([npm, "init", "-y"], capture_output=True, cwd=output_dir, check=True)
-        subprocess.run([npm, "install"] + [f"{name}@{version_spec}" for name, version_spec in RELAXED_DEPS.items()], capture_output=True, cwd=output_dir, check=True)
-        subprocess.run([npm, "install", "-E"] + [f"{name}@{version_spec}" for name, version_spec in EXACT_DEPS.items()], capture_output=True, cwd=output_dir, check=True) <=========这里下载了EXACT_DEPS里面的依赖项
+      subprocess.run([npm, "init", "-y"], capture_output=True, cwd=output_dir, check=True)
+      subprocess.run([npm, "install"] + [f"{name}@{version_spec}" for name, version_spec in RELAXED_DEPS.items()], capture_output=True, cwd=output_dir, check=True)
+      subprocess.run([npm, "install", "-E"] + [f"{name}@{version_spec}" for name, version_spec in EXACT_DEPS.items()], capture_output=True, cwd=output_dir, check=True) <=========这里下载了EXACT_DEPS里面的依赖项
 ```
 
 看来是编译的时候，用`npm install -E`把`frida-java-bridge`下载下来了，那么接下来就是要把这个依赖项改成我们本地的。
 
 首先下载一个到本地
 
-```text
+```
 git clone https://github.com/frida/frida-java-bridge.git
 ```
 
@@ -192,7 +193,7 @@ git clone https://github.com/frida/frida-java-bridge.git
 
 这时候需要用到`npm link`把我们本地的`frida-java-bridge`注册到系统中
 
-```text
+```
 (base) /data/code/OpenSource/crack/frida/frida-java-bridge (main ✗) npm link
 
 up to date, audited 3 packages in 574ms
