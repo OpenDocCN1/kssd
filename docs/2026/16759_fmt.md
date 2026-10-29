@@ -1,0 +1,105 @@
+
+# [原创]某火热的区块链游戏(mir4)的一次通信协议分析
+
+## 前言
+
+最近区块链游戏不是挺火的嘛，本着研究的态度，对整个游戏网络框架进行了一次分析。
+
+> 本文不会直接告诉你怎么样去做才是正确的，而是基于一次一次的分析尝试得出正确的结果。
+> 
+> 可以视为一次逆向笔记吧。
+> 
+> 本文不涉及脱壳反检测方面姿势。
+
+游戏名：Mir4(传奇4)
+
+---
+
+## 准备工作
+
+1. 平台: iOS 14.3越狱环境
+2. 工具: hopper, ida, frida
+3. 知识: 需要对c++虚表有一定的了解，UE4dump和ProtoDump需要。
+
+---
+
+## 正文
+
+### 1. 思路
+
+既然是网络层分析，那么第一步肯定是抓包分析一下啦。逆向基础的wirashark, charles这些就不做介绍了。
+
+这一块就不贴图了。抓包分析后得知：
+
+1. 网络交互是走的tcp连接；
+2. 协议是基于protobuf；
+3. 通信过程加密了，前几个包是明文包，后续加密了，看了一下位数，不像是非对称加密，因为长度不符合，还是需要验证一下。
+
+```bash
+protoc --decode_raw < 二级制文件 //可以直接解析proto协议
+```
+
+### 2. 切入点寻找
+
+首先我们是要对游戏网络交互进行分析，那么需要对UE4虚幻引擎有一定的了解。
+
+通过查阅相关资料得知虚幻引擎是通过`UNetDriver`进行网络交互的，而`UNetDriver`是在`UWorld`下，那么我们就需要对游戏先进行sdk dump拿到实例化对象。
+
+然后拿到`UNetDriver`后，可以在ida里面跟到相应的网络流程，加密等。
+
+let's go
+
+那么ue4dump是怎么做的呢？首先安卓平台有一个开源的ue4dumper，我们可以参阅一下：[UE4Dumper](<https://bbs.kanxue.com/elink@8c1K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6C8M7o6M7%4y4o6u0Q4x3V1k6g2c8e0c8p5N6h3#2H3k6i4u0Q4x3V1k6@1M7X3g2W2i4K6u0r3L8h3q4K6N6r3g2J5i4K6u0r3K9X3&6A6>)
+
+核心原理就是找到`GNamesArray`、`GObjectsArray`、`GWorld`这三个内存位置，然后进行遍历读取。
+
+现有的资料基本都是基于ue4.23版本的，4.25有一点改动
+
+1. `GNamesArray` > `FNamePool`
+2. `GObjectsArray` > `TUObjectArray`
+
+关于`GWrold`的寻找，论坛已经又相关帖子了，不再说明，主要说一下自己摸索的剩下两个关键字的寻找。
+
+### FNamePool
+
+我们首先在源码里找到`FNamePool`的初始化函数，在附近看看有没有相关关键字可以定位的。
+
+> `/UnrealEngine/Engine/Source/Runtime/Core/Private/UObject/UnrealNames.cpp`
+> 
+> `FNamePool::FNamePool()`;
+
+运气比较好，可以看到有字符串^ ^
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202112/585132_M9F2Z78HPP7ZMNA.png)
+
+也就是说，我们在hopper中找到字符串并查找相关引用，就可以得到`FNamePool`啦：
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202112/585132_GVT8BY2YUJJBSUY.png)
+
+找到函数顶部，按`X`查找引用：
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202112/585132_9PSMKB33CQQHJE3.png)
+
+然后随便找一个进入，看看调用是什么：
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202112/585132_NPDBXKKQM2VWAS4.png)
+
+这里解释一下，在C++面向对象中，一般的`X0`就是this指针，那么这个函数调用了我们的`FNamePool::FNamePool()`，传入的`x0`对象就是`FNamePool`的地址，也就是：`0x1065c2000 + 0x1c0 = 0x1065c21c0`。
+
+剩下`TUObjectArray`基本也一样。
+
+然后自己改一改UE4Dumper就可以拿到完整的sdk了：
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202112/585132_WU4FRSRDYPTCGTC.png)
+
+## 验证想法
+
+后续补充...午休时间结束了，有时间摸鱼的话我再补充。
+
+包括怎么寻找切入点，算法还原，包括怎么样dump出proto文件等，一时半会写不完。
+
+有空我慢慢写，大家可以加Q群交流：`418993549`。
+
+dump出的proto文件类似下面的：
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202112/585132_6SQ8VF6G9SDXJ8Q.png)

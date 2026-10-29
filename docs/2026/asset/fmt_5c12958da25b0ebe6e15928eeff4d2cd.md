@@ -1,0 +1,205 @@
+
+# 探究FishHook底层原理实现
+
+看雪新人第一次发帖，大家多多指教。
+
+之前只知道Fishhook是Facebook家的通过修改懒加载表（GOT表）的函数的指向达到hook的框架，但是没有真正的探究过代码。动态调试的一下Fishhook探究一下原理。
+
+## 一. Fishhook hook的实现思路
+
+**修改外部引用的函数在（懒）加载表中指向的目标函数的地址，修改为自定义代码的地址**
+
+实现上，主要分两步走：
+
+1. 通过MachO文件的Load Commands段中定义的各个段中的偏移计算出，Dynamic Symbol Table（Indirect Symbol），Symbol Table （Symbols）和String Table这三个段的起始地址。
+
+2. 遍历Lazy Symbol pointers中的所有函数定义，从中查找需要hook的函数（通过函数名的字符串比较，这也是为什么需要String Table段，查找字符串的过程见下面的备注1）。如果是需要被修改的函数，那么修改此函数在(懒)加载表（GOT表）中指向的地址为自己代码实现的地址以达到Hook。
+
+## 二. Fishhook第一步
+
+计算3个段的起始地址：
+
+[![wLRdjs.png](upload/attach/202009/889798\_2XZ5RBEQX495PHZ.jpg)](<mark class="encrypted">f57K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6A6L8h3N6U0K9s2u0Q4x3X3g2U0L8$3#2Q4x3V1k6A6i4K6u0r3N6@1I4d9k6r3A6K6i4K6t1&6</mark>
+
+这里先贴上MachO文件的Load Commands段示意图：
+
+![wLouI1.png](upload/attach/202009/889798\_VQDQ49AFZUT3GFZ.jpg)
+
+从上向下分析fish的逻辑：
+
+```C
+// Find base symbol/string table addresses
+uintptr\_t linkedit\_base = (uintptr\_t)slide + linkedit\_segment->vmaddr - linkedit\_segment->fileoff;
+nlist\_t \*symtab = (nlist\_t \*)(linkedit\_base + symtab\_cmd->symoff);
+char \*strtab = (char \*)(linkedit\_base + symtab\_cmd->stroff);
+// Get indirect symbol table (array of uint32\_t indices into symbol table)
+uint32\_t \*indirect\_symtab = (uint32\_t \*)(linkedit\_base + dysymtab\_cmd->indirectsymoff);
+```
+
+首先计算了`_LinkEdit`的起始地址，因为`LC_SYMTAB`和`LC_DYSYMTAB`的Offset都是依据`_LinkEdit`的起始地址的。
+
+然后根据`_linkedit`的起始地址，计算这3个段的起始地址。
+
+首先，Load Command中的显示:
+
+1. `linkedit_segment->vmaddr = 0x100010000`
+
+2. `linkedit_segment->fileoff = 0x10000`
+
+调试时，lldb中执行`image list -o -f`查看内存当中的基地址：
+
+`slide = 0x2cb0000`
+
+接下面是动态调试的计算值：
+
+2.1> 根据代码计算：`linkedit_base = (0x4510000 + 0x100010000 - 0x10000) = 4367384576`
+
+动态调试时，内存中的值也为 4367384576:
+
+![wLozQO.png](upload/attach/202009/889798\_QJ3C2TMCRWFWNHT.jpg)
+
+2.2> `symtab_cmd->symoff = 67160`
+
+根据代码计算：`symtab = (4367384576+67160).toString(16) = 0x104520658`
+
+动态调试，Xcode动态调试如上图，显示的`symtab`也为：`0x104520658`
+
+![wLoXJx.png](upload/attach/202009/889798\_2GTZ9U4VBT4N3FF.jpg)
+
+2.3>
+
+`symtab_cmd->stroff = 70632`
+
+根据代码计算：`strtab =(4367384576 + 70632).toString(16) = 0x1045213e8`
+
+动态调试，Xcode动态调试如上图，显示的`strtab = ""`;
+
+2.4>
+
+`dysymtab_cmd->indirectsymoff = 70424`
+
+根据代码计算：`indirectsymoff = (4367384576 + 70424) = 0x104521318`
+
+[![wLojW6.png](upload/attach/202009/889798\_SG3MHZRWQU3QFQW.jpg)](<mark class="encrypted">698K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6A6L8h3N6U0K9s2u0Q4x3X3g2U0L8$3#2Q4x3V1k6A6i4K6u0r3N6@1I4G2K9W2M7$3i4K6t1&6</mark>
+
+这样，就计算到了`Symbols Table`，`Indirect Symbols`,`Strings`三个表的起始地址。这样准备工作就做好了，下面开始进入真正的got表hook。
+
+## 三.Fishhook第二步
+
+根据上图贴的代码，计算3个值后，开始遍历`Header`，从`Load Command`中寻找`_DATA`下的`S_LAZY_SYMBOL_POINTERS`和`S_NON_LAZY_SYMBOL_POINTERS`，即懒加载表和非懒加载段，这两个段中保存这函数调用时的真正指向，最终的目的也是修改这两个段中想要hook的函数的指向。
+
+找到后，根据代码，进入关键的`perform_rebinding_with_section`函数。将计算的3个函数的段起始地址，ALSR地址，（懒）加载表的地址，传入的想要hook的函数`rebingings`链表传给这个函数，
+
+开始从`Indirect Symbols`中查找想要hook的函数（通过函数名比较），如果找到了，那么就修改对应的在(懒)加载表中符号的指向。
+
+这是`perform_rebinding_with_section`函数的实现：
+
+![wLjIln.png](upload/attach/202009/889798\_ZZN73PCURJYACVH.jpg)
+
+首先计算了`indirect_symbol_bindings`的地址，这是（懒）符号表在内存中的起始地址，计算方法是偏移量+(懒)加载表中的addr，这里动态调试查看：
+
+`indirect_symbol_bindings =(0x4510000 + 4295000064)= 0x104518000`，这个值就是(懒)加载表中在内存中的基地址。
+
+![wLzJLq.png](upload/attach/202009/889798\_JR6WJE64HP5UHX5.jpg)
+
+下面进入循环，循环传入的（懒）加载表，这里也相当于循环`Indirect Symbols`，因为这两个表中的函数的index是相同的，这里详细见下面备注2。
+
+对于（懒）加载表中的定义的每一个函数，得到这个函数在`Indirect Symbols`的data值（`uint32_t symtab_index = indirect_symbol_indices[i];`），然后再通过data找到`symbol table`中的该函数在字符串表中的偏移量（`uint32_t strtab_offset = symtab[symtab_index].n_un.n_strx;`），最终找到在字符串表中找到该函数的名称（`char *symbol_name = strtab + strtab_offset;`）。
+
+程序接下来，开始循环想要hook的函数的链表，如果链表中函数名和当前遍历的函数的名称相同（`strcmp() == 0`），那么就修改此函数在got表中的指向为传入的被修改的函数的地址(`indirect_symbol_bindings[i] = cur->rebindings[j].replacement;`)：
+
+[![wOFnje.md.png](upload/attach/202009/889798\_AZ66FAZPM39BK7P.jpg)](<mark class="encrypted">987K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6A6L8h3N6U0K9s2u0Q4x3X3g2U0L8$3#2Q4x3V1k6A6i4K6u0r3N6@1!0r3L8X3A6W2i4K6t1&6</mark>
+
+这里拿一个循环进行动态调试观察过程。例如当`i = 0`时：
+
+`symtab_index = 181`，`indirect_symbol_indices[i] =181;`
+
+代码中计算：`uint32_t strtab_offset = symtab[symtab_index].n_un.n_strx;`
+
+这里动态调试即为：`strtab_offset = symtab[181].n_un.n_strx;`（Symbol Table中各项的定义见下面备注3）
+
+[![wOkTds.png](upload/attach/202009/889798\_FYX7WME2N8RRQBG.jpg)](<mark class="encrypted">4beK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6A6L8h3N6U0K9s2u0Q4x3X3g2U0L8$3#2Q4x3V1k6A6i4K6u0r3N6@1!0C8g2r3c8K6i4K6t1&6</mark>
+
+根据图中显示，`strtab_offset`为`0x22E`，为558。
+
+那么`String table`的起始地址+558即为这个函数的函数名。
+
+## 四.fishhook前后got表变化
+
+通过前面的分析，知道替换got表即为`indirect_symbol_bindings[i] = cur->rebindings[j].replacement;`这行代码，那么在此前后断点，就知道got表想要被hook的函数前后究竟有什么变化，这里以hook NSlog举例：
+
+这是我的调用代码：
+
+```Objective-C
+- (void)viewDidLoad {
+[super viewDidLoad];
+// Do any additional setup after loading the view.
+NSLog(@"lalala111");
+startHook();
+char \*s = "lalala";
+NSLog(@"len : %ld",strlen(s));
+}
+void startHook() {
+rebind\_symbols((struct rebinding[1]){{"NSLog",myNSLog,NULL}},1);
+}
+```
+
+GOT表中NSlog指向的地址为：
+
+ASLR + （懒）加载表里的偏移量，这里为：
+
+`0x1003f8000+ 0xc000 = 0x100404000`。`0x100404000`存储着NSlog的函数指针。`*(0x100404000)`存储着NSlog的代码。
+
+![wOECng.png](upload/attach/202009/889798\_2AHTRVMCP23T9K8.jpg)
+
+`0x100404000`的值为：
+
+![wOEEhq.png](upload/attach/202009/889798\_UQEE7X93WDXYKVN.jpg)
+
+`0x100404000`存储着`0x01a97ff7f0`，寻这个地址的值，发现是NSLog实现。
+
+`disassemble --start-address 0x01a97ff7f0`
+
+[![wOEQHJ.png](upload/attach/202009/889798\_CDVMD4ARCQAE8X5.jpg)](<mark class="encrypted">e72K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6A6L8h3N6U0K9s2u0Q4x3X3g2U0L8$3#2Q4x3V1k6A6i4K6u0r3N6@1!0q4f1f1S2v1i4K6t1&6</mark>
+
+接着执行`indirect_symbol_bindings[i] = cur->rebindings[j].replacement;`代码，在这之后，got表即被修改了指向，下面验证一下：
+
+执行后，再查看`0x100404000`存储的值：
+
+![wOEyCt.png](upload/attach/202009/889798\_29PCVZD6RWXEDDS.jpg)
+
+`0x100404000`存储的值为`0x01003fd5ec`，`*(0x01003fd5ec)`可以找到改变后的"NSlog"（自定义的`myNSlog`）:
+
+![wOEWDg.png](upload/attach/202009/889798\_CBB9FXJAEMRN5P5.jpg)
+
+## 备注1
+
+通过遍历（懒）加载表中定义的函数，找到函数的函数名的逻辑如下(上面第三节的最后也动态调试了)。遍历懒加载表中的函数，找到Indirect symbol表中该函数的index，通过该index找到symbol表中该函数的定义，symbol表中定义了函数在字符串表中函数的偏移，通过偏移找到字符串表中该函数的名称。
+
+[![wOEH2V.md.png](upload/attach/202009/889798\_ZM743C8EVM8NK4V.jpg)](<mark class="encrypted">dedK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6A6L8h3N6U0K9s2u0Q4x3X3g2U0L8$3#2Q4x3V1k6A6i4K6u0r3N6@1!0q4d9o6u0h3i4K6t1&6</mark>
+
+## 备注2
+
+遍历懒符号表和遍历Inderect表使用了相同的index，因为两个函数的定义的index相同，下面可以验证一下：
+
+下面是Lazy Symbol Pointers的定义：
+
+![wOVRRx.png](upload/attach/202009/889798\_H65PME9QGQ7KF5F.jpg)
+
+下面是Indirect Symbols中定义的函数：
+
+![wOZwtA.png](upload/attach/202009/889798\_4WUZWGENPYVH5G5.jpg)
+
+可以看到，顺序都为NSlog,NSStringFromClass.....
+
+## 备注3
+
+Symbol table中符号表的定义如下，其中`n_strx`即为该函数在字符串表中的偏移量。
+
+[![wOn9Te.png](upload/attach/202009/889798\_QQ7W2GCUFUQJJNV.jpg)](<mark class="encrypted">ba9K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6A6L8h3N6U0K9s2u0Q4x3X3g2U0L8$3#2Q4x3V1k6A6i4K6u0r3N6@1!0F1z5g2c8W2i4K6t1&6</mark>
+
+参考链接：
+
+1. [段的地址计算过程](elink@d66K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2V1k6i4y4Y4j5i4u0V1i4K6u0W2j5$3!0E0i4K6u0r3K9f1!0e0i4K6u0V1f1$3!0#2M7X3y4W2i4K6u0V1f1s2u0G2j5X3g2Q4x3V1k6o6i4K6u0r3k6X3W2K6K9r3S2G2L8$3E0Q4x3V1k6Q4c8e0g2Q4b7U0N6Q4b7e0N6Q4c8e0N6Q4z5e0c8Q4b7e0S2Q4c8e0N6Q4b7f1y4Q4b7e0k6Q4c8e0g2Q4z5p5k6Q4b7U0N6Q4c8e0S2Q4b7e0q4Q4b7e0S2Q4x3U0f1J5x3q4)9J5k6q4)9J5y4e0t1H3i4@1f1$3i4K6S2q4i4@1p5J5i4@1f1$3i4@1t1I4i4K6R3J5i4K6t1#2x3U0m8X3K9i4y4Z5K9r3!0G2K9#2)9J5y4e0t1H3i4@1f1#2i4K6S2q4i4K6W2r3i4@1f1%4i4K6V1H3i4K6R3$3i4@1g2r3i4@1u0o6i4K6R3^5i4@1f1@1i4@1t1^5i4K6R3H3i4@1g2r3i4@1u0o6i4K6R3&6i4K6u0W2K9s2c8E0L8l9`.`.)
+
+2. [字符串寻址过程](elink@06bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2B7K9h3q4F1M7$3S2#2i4K6u0W2j5$3!0E0i4K6u0r3M7q4)9J5c8U0c8V1z5o6k6V1k6e0V1H3z5o6M7J5x3b7`.`.)
