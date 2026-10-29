@@ -1,0 +1,200 @@
+
+## 释放资源函数
+
+### 调用处
+
+```asm
+  0012FCAC  43 3A 5C 57 49 4E 44 4F 57 53 5C 73 79 73 74 65  C:\WINDOWS\syste
+
+  0012FCBC  6D 33 32 00 00 00 00 00 00 00 00 00 00 00 00 00  m32.............
+
+  0040243D    8D95 D8FAFFFF   lea     edx, dword ptr [ebp-528]
+
+  00402443    52              push    edx
+
+  00402444    8D85 ECFCFFFF   lea     eax, dword ptr [ebp-314]
+
+  0040244A    50              push    eax
+
+  0040244B    FF15 40104000   call    dword ptr [<&kernel32.lstrcat>]  ; kernel32.lstrcatA
+
+  EAX 0012FCAC ASCII "C:\WINDOWS\system32\killdll.dll"
+
+  00402451    68 64124000     push    00401264                         ; ASCII "SERVER"
+
+  00402456    68 81000000     push    81
+
+  0040245B    8D8D ECFCFFFF   lea     ecx, dword ptr [ebp-314]
+
+  00402461    51              push    ecx
+
+  00402462    E8 A9F0FFFF     call    00401510   //释放资源
+```
+
+（3）、释放动态链接库`%SystemRoot%\system32\killdll.dll`
+
+`F7`跟进去
+
+### 函数内部
+
+```asm
+  00401510    83EC 08         sub     esp, 8
+  00401513    8B4424 0C       mov     eax, dword ptr [esp+C]
+  00401517    6A 00           push    0
+  00401519    6A 00           push    0
+  0040151B    6A 02           push    2
+  0040151D    6A 00           push    0
+  0040151F    6A 00           push    0
+  00401521    68 00000040     push    40000000
+  00401526    50              push    eax
+  00401527    FF15 1C104000   call    dword ptr [<&kernel32.CreateFile>; kernel32.CreateFileA
+  0040152D    85C0            test    eax, eax
+  0040152F    894424 00       mov     dword ptr [esp], eax
+  00401533    0F84 89000000   je      004015C2
+  00401539    8B4C24 14       mov     ecx, dword ptr [esp+14]
+  0040153D    8B5424 10       mov     edx, dword ptr [esp+10]
+  00401541    53              push    ebx
+  00401542    55              push    ebp
+  00401543    56              push    esi
+  00401544    57              push    edi
+  00401545    51              push    ecx
+  00401546    52              push    edx
+  00401547    6A 00           push    0
+  00401549    FF15 18104000   call    dword ptr [<&kernel32.FindResour>; kernel32.FindResourceA
+  0040154F    8BF8            mov     edi, eax
+  00401551    57              push    edi
+  00401552    6A 00           push    0
+  00401554    FF15 14104000   call    dword ptr [<&kernel32.LoadResour>; kernel32.LoadResource
+  0040155A    50              push    eax
+  0040155B    33F6            xor     esi, esi
+  0040155D    894424 28       mov     dword ptr [esp+28], eax
+  00401561    FF15 10104000   call    dword ptr [<&kernel32.LockResour>; kernel32.SetHandleCount
+  00401567    8B2D 0C104000   mov     ebp, dword ptr [<&kernel32.Sizeo>; kernel32.SizeofResource
+  0040156D    57              push    edi
+  0040156E    56              push    esi
+  0040156F    8BD8            mov     ebx, eax
+  00401571    C64424 24 00    mov     byte ptr [esp+24], 0
+  00401576    FFD5            call    ebp
+  00401578    85C0            test    eax, eax
+  0040157A    74 2C           je      short 004015A8
+  0040157C    8A0433          mov     al, byte ptr [ebx+esi]
+  0040157F    8D4C24 14       lea     ecx, dword ptr [esp+14]
+  00401583    04 02           add     al, 2
+  00401585    6A 00           push    0
+  00401587    884424 20       mov     byte ptr [esp+20], al
+  0040158B    8B4424 14       mov     eax, dword ptr [esp+14]
+  0040158F    51              push    ecx
+  00401590    8D5424 24       lea     edx, dword ptr [esp+24]
+  00401594    6A 01           push    1
+  00401596    52              push    edx
+  00401597    50              push    eax
+  00401598    FF15 08104000   call    dword ptr [<&kernel32.WriteFile>>; kernel32.WriteFile
+  0040159E    57              push    edi
+  0040159F    6A 00           push    0
+  004015A1    46              inc     esi
+  004015A2    FFD5            call    ebp
+  004015A4    3BF0            cmp     esi, eax
+  004015A6  ^ 72 D4           jb      short 0040157C
+  004015A8    8B4C24 24       mov     ecx, dword ptr [esp+24]
+  004015AC    51              push    ecx
+  004015AD    FF15 04104000   call    dword ptr [<&kernel32.FreeResour>; kernel32.FreeResource
+  004015B3    8B5424 10       mov     edx, dword ptr [esp+10]
+  004015B7    52              push    edx
+  004015B8    FF15 00104000   call    dword ptr [<&kernel32.CloseHandl>; kernel32.CloseHandle
+  004015BE    5F              pop     edi
+  004015BF    5E              pop     esi
+  004015C0    5D              pop     ebp
+  004015C1    5B              pop     ebx
+  004015C2    83C4 08         add     esp, 8
+  004015C5    C2 0C00         retn    0C
+```
+
+## 类似的释放资源程序
+
+通过对该释放资源函数的分析，我写了个类似的释放资源程序。
+
+```cpp
+// DynamicMakeRc.cpp : Defines the entry point for the console application.
+//
+#include "stdafx.h"
+#include "resource.h"
+#include <stdio.h>
+#include <windows.h>
+int main(int argc, char* argv[])
+{
+        HRSRC hRes = FindResource(NULL, MAKEINTRESOURCE(ID_DRIVER_SYS), MAKEINTRESOURCE(RC_SYS));
+        if ( hRes == NULL)
+        {
+                printf("FindResource error!\n");
+        }
+        HGLOBAL hGRes = LoadResource(NULL, hRes);
+        if (hGRes == NULL)
+        {
+                printf("LoadResource error!\n");
+        }
+        void *pRes = LockResource(hGRes);
+        DWORD dwSize = SizeofResource(NULL, hRes);
+        char FileName[256];
+        GetCurrentDirectory(sizeof(FileName), FileName);
+        strcat(FileName, "\\Driver.sys");
+        HANDLE hFile = CreateFile(FileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS,
+                FILE_ATTRIBUTE_NORMAL, 0);
+        if ( hFile == INVALID_HANDLE_VALUE)
+        {
+                printf("CreateFile error!\n");
+        }
+        DWORD dwWrite;
+        if (!WriteFile(hFile, pRes, dwSize, &dwWrite, 0))
+        {
+                printf("WriteFile error!\n");
+        }
+        CloseHandle(hFile);
+        GlobalFree(hGRes);
+        return 0;
+}
+```
+
+## 调用 `Rundll.exe`
+
+```asm
+  00402467    8D95 A8F7FFFF   lea     edx, dword ptr [ebp-858]
+  0040246D    52              push    edx
+  0040246E    8D85 ECFCFFFF   lea     eax, dword ptr [ebp-314]
+  00402474    50              push    eax
+  00402475    FF15 44104000   call    dword ptr [<&kernel32.lstrcpy>]  ; kernel32.lstrcpyA
+  0040247B    8D8D D8FAFFFF   lea     ecx, dword ptr [ebp-528]
+  00402481    51              push    ecx
+  00402482    8D95 ECFCFFFF   lea     edx, dword ptr [ebp-314]
+  00402488    52              push    edx
+  00402489    FF15 40104000   call    dword ptr [<&kernel32.lstrcat>]  ; kernel32.lstrcatA
+  0040248F    8D85 B0F9FFFF   lea     eax, dword ptr [ebp-650]
+  00402495    50              push    eax
+  00402496    8D8D A8F7FFFF   lea     ecx, dword ptr [ebp-858]
+  0040249C    51              push    ecx
+  0040249D    FF15 40104000   call    dword ptr [<&kernel32.lstrcat>]  ; kernel32.lstrcatA
+  004024A3    8D95 ECFCFFFF   lea     edx, dword ptr [ebp-314]
+  004024A9    52              push    edx
+  004024AA    8D85 A8F7FFFF   lea     eax, dword ptr [ebp-858]
+  004024B0    50              push    eax
+  004024B1    FF15 40104000   call    dword ptr [<&kernel32.lstrcat>]  ; kernel32.lstrcatA
+  004024B7    60              pushad
+
+  00402563    8D8D F0FDFFFF   lea     ecx, dword ptr [ebp-210]
+  00402569    51              push    ecx
+  0040256A    8D95 A8F7FFFF   lea     edx, dword ptr [ebp-858]
+  00402570    52              push    edx
+  00402571    FF15 40104000   call    dword ptr [<&kernel32.lstrcat>]  ; kernel32.lstrcatA
+  00402577    6A 05           push    5
+  00402579    8D85 A8F7FFFF   lea     eax, dword ptr [ebp-858]
+  0040257F    50              push    eax
+  此时
+  eax=0012F768, (ASCII "C:\WINDOWS\system32\rundll32.exe C:\WINDOWS\system32\killdll.dll testall")
+  00402580    FF15 20104000   call    dword ptr [<&kernel32.WinExec>]  ; kernel32.WinExec
+```
+
+`Rundll.exe`的作用是以命令行的方式调用Windows的动态链接库，其命令格式是：`RUNDLL.EXE`，`<入口点>`，`<调用参数>`。
+
+这里要注意三点：
+
+1. Dll文件名中不能含有空格，比如该文件位于`c:\Program Files\`目录，你要把这个路径改成`c:\Progra～1\`；
+2. Dll文件名与Dll入口点间的逗号不能少，否则程序将出错并且不会给出任何信息！
