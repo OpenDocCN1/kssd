@@ -1,0 +1,231 @@
+
+```
+（1）这里我们已经替换了art
+（2）记得将修改的xposed替换/SourceCode/Android-6.0.1_r1/frameworks/base/cmds/文件夹下的xposed文件夹
+（3）还记得把编译出来的XppsedBridge.jar放到$AOSP/out/java/目录中去噢，替换旧的XposedBridge.jar
+```
+
+![image-20211003152549464](upload/attach/202110/905443_BAPRABVW2SPNUN9.png)
+
+我们再次输入编译指令：
+
+```
+./build.pl -t arm:23
+```
+
+![image-20211003152549464](upload/attach/202110/905443_ST6KX8ZV48WA2QS.png)
+
+编译成功，生成文件：
+
+![image-20211003152549464](upload/attach/202110/905443_YWMGZA9EVBUKDGE.png)
+
+![image-20211003152549464](upload/attach/202110/905443_URJPJNNYKC9WPY2.png)
+
+![image-20211003152549464](upload/attach/202110/905443_VTZRKZ4MN6CWDX5.png)
+
+我们重新移动生成文件到源码文件夹下，具体参考上文：
+
+```bash
+cp /home/tom/SourceCode/XposedBridge/sdk23/arm/files/system/bin/* .
+cp /home/tom/SourceCode/XposedBridge/sdk23/arm/files/system/lib/* .
+cp /home/tom/SourceCode/XposedBridge/sdk23/arm/files/system/xppsed.prop .
+```
+
+记得将xposed编译生成的`app_process32_xposed`替换`system/bin`文件夹下的`app_process32`
+
+然后我们进入源码目录下，再次编译镜像：
+
+```
+source build/envsetup.sh
+lunch 19
+make snod //make snod命令的作用是重新生成镜像文件system.img
+```
+
+![image-20211003165926906](upload/attach/202110/905443_QUYVQC2FXFY5R2S.png)
+
+### 6.结果与验证
+
+#### （1）结果
+
+我们将镜像刷入手机：
+
+```
+fastboot flash system system.img
+```
+
+然后重启，发现Xposed安装成功
+
+![image-20211003165926906](upload/attach/202110/905443_YYUZFQAQD9U5SFA.png)
+
+#### （2）验证
+
+我们下载<a href="elink@b76K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6%4y4e0j5^5N6#2)9J5c8W2S2H3L8%4y4W2k6p5y4Z5k6h3y4C8k6i4t1`.">XposedCheck</a>，这里我们从官网下载源码，用Android Studio打开，然后编译安装，发现我们定制Xposed框架成功
+
+![image-20211003165926906](upload/attach/202110/905443_Z2WVGUNEFC5V9DF.png)
+
+### 7.错误
+
+#### （1）错误1
+
+![image-20211003165926906](upload/attach/202110/905443_8U9YVT6E697JEGF.png)
+
+问题分析：
+
+这是我们没有替换xposed导致的
+
+问题解决：
+
+我们将修改的Xposed替换原来`/SourceCode/Android-6.0.1_r1/frameworks/base/cmds/`文件夹下的`xposed`文件夹
+
+#### （2）错误2
+
+![image-20211003165926906](upload/attach/202110/905443_QB9PY8VAJS85NWV.png)
+
+问题分析：
+
+这是我们的`Xposed`文件夹首字母为大写导致
+
+问题解决：
+
+我们将其首字母改为小写
+
+#### （3）错误3
+
+![image-20211003165926906](upload/attach/202110/905443_RXU3CCTSW7WECTE.png)
+
+错误分析：
+
+这是`xposedinstaller`和`XposedBridge`版本不一致导致
+
+问题解决：
+
+匹配详细参考上文
+
+#### （4）错误4
+
+![image-20211003165926906](upload/attach/202110/905443_2F5TMU4UHXEU7A6.png)
+
+错误分析：
+
+![image-20211003165926906](upload/attach/202110/905443_5WJT64M6WN9YKAJ.png)
+
+错误分析：
+
+经过反复的检查，最后原来是`XposedBridge.jar`编译的问题
+
+问题解决：
+
+因为我们编译过程中，将这里给注释掉了 所以导致并没导入Android6.0的环境支持，我们需要加入支持，详细见上文
+
+## 六、实验总结
+
+经过几天的学习，处理完许许多多的bug，从源码分析到源码定制，花了一周终于将这几篇文章写完了，从中收获了很多，这中间参考了很多大佬的文章，在文中和参考文献中会一一列出来，如果其中还存在一些问题，就请各位大佬指正了。
+
+后续文件资料全部会上传github: <a href="elink@332K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Y4N6h3!0^5N6h3q4S2i4K6u0r3b7h3&6V1M7X3!0A6k6q4)9J5k6s2u0W2N6X3g2J5M7$3g2Q4x3V1k6@1M7X3g2W2i4K6u0r3L8h3q4A6L8W2)9J5c8V1q4F1k6s2u0G2K9h3c8Q4x3U0g2q4y4W2)9J5y4f1u0m8i4K6t1#2z5e0m8Q4x3U0g2q4y4#2)9J5y4f1p5H3i4K6t1#2z5o6q4Q4x3U0g2q4y4g2)9J5y4f1q4q4i4K6t1#2z5f1q4Q4x3U0g2q4y4g2)9J5y4e0R3^5i4K6t1#2b7U0j5`.">github地址</a>
+
+## 七、参考文献
+
+**Android源码分析：**
+
+- https://juejin.cn/post/6844903748058218509
+- https://www.jianshu.com/p/2c0b76d0f4f2
+- https://www.jianshu.com/p/8bb770ec4c48
+- https://www.javatt.com/p/42078
+- https://blog.csdn.net/luoshengyang/article/details/8852432
+- https://blog.csdn.net/luoshengyang/article/details/8885792
+- https://www.jianshu.com/p/89d06f626540
+- https://www.wuyifei.cc/dex-vdex-odex-art/
+- https://skytoby.github.io/2019/Android%20dex%EF%BC%8Codex%EF%BC%8Coat%EF%BC%8Cvdex%EF%BC%8Cart%E6%96%87%E4%BB%B6%E7%BB%93%E6%9E%84/
+- https://cloud.tencent.com/developer/article/1755790
+- https://www.kancloud.cn/alex_wsc/androids/473620
+
+**Xposed：**
+
+- https://zhuanlan.zhihu.com/p/389889716
+- https://www.bbsmax.com/A/MAzAq2Ynz9/
+- https://www.cnblogs.com/baiqiantao/p/10699552.html
+- https://www.jianshu.com/p/6b4a80654d4e
+- http://www.uml.org.cn/mobiledev/201903052.asp
+- https://bbs.pediy.com/thread-255836.htm
+- https://mp.weixin.qq.com/s/YAMCrQSi0LFJGNIwB9qHDA
+
+# 源码编译（3）——Xposed源码定制
+
+目录
+
+- [源码编译（3）——Xposed源码定制](https://bbs.kanxue.com/#源码编译（3）——xposed源码定制)
+  - [一、前言](https://bbs.kanxue.com/#一、前言)
+  - [二、Android运行机制](https://bbs.kanxue.com/#二、android运行机制)
+    - 1. Android平台架构
+      - [（1）Linux内核](https://bbs.kanxue.com/#（1）linux内核)
+      - [（2）硬件抽象层（HAL）](https://bbs.kanxue.com/#（2）硬件抽象层（hal）)
+      - （3）Android Runtime
+      - [（4）原生C/C++库](https://bbs.kanxue.com/#（4）原生c/c++库)
+      - （5）Java API框架
+    - [2. Android启动流程](https://bbs.kanxue.com/#2.-android启动流程?)
+      - [（1）Loader](https://bbs.kanxue.com/#（1）loader)
+      - [（2）Linux内核](https://bbs.kanxue.com/#（2）linux内核)
+      - [（3）执行init进程](https://bbs.kanxue.com/#（3）执行init进程)
+      - [（4）Zygote](https://bbs.kanxue.com/#（4）zygote)
+  - [三、Xposed框架运行机制](https://bbs.kanxue.com/#三、xposed框架运行机制)
+    - 1. Xposed实现原理
+    - 2. Xposed hook原理
+      - [（1）取消重启手机](https://bbs.kanxue.com/#（1）取消重启手机)
+      - （2）取消操作Installer APP
+  - [四、Xposed框架特征](https://bbs.kanxue.com/#四、xposed框架特征)
+  - [五、Xposed特征修改](https://bbs.kanxue.com/#五、xposed特征修改)
+    - 1. XposedInstaller
+      - [（1）修改整体包名](https://bbs.kanxue.com/#（1）修改整体包名)
+      - [（2）`xposed.prop`改成`xpsed.prop`](https://bbs.kanxue.com/#（2）`xposed.prop`改成`xpsed.prop`)
+    - 2. XposedBridge
+      - [（1）修改整体包名](https://bbs.kanxue.com/#（1）修改整体包名)
+      - [（2）生成文件](https://bbs.kanxue.com/#（2）生成文件)
+    - 3. Xposed
+      - [（1）libxposed_common.h](https://bbs.kanxue.com/#（1）libxposed_common.h)
+      - [（2）Xposed.h](https://bbs.kanxue.com/#（2）xposed.h)
+      - [（3）xposed_service.cpp](https://bbs.kanxue.com/#（3）xposed_service.cpp)
+      - [（4）xposed_shared.h](https://bbs.kanxue.com/#（4）xposed_shared.h)
+      - [（5）ART.mk](https://bbs.kanxue.com/#（5）art.mk)
+      - [（6）libxposed_art.cpp](https://bbs.kanxue.com/#（6）libxposed_art.cpp)
+    - 4. XposedTools
+    - [5.源码编译](https://bbs.kanxue.com/#5.源码编译)
+    - [6.结果与验证](https://bbs.kanxue.com/#6.结果与验证)
+      - [（1）结果](https://bbs.kanxue.com/#（1）结果)
+      - [（2）验证](https://bbs.kanxue.com/#（2）验证)
+    - [7.错误](https://bbs.kanxue.com/#7.错误)
+      - [（1）错误1](https://bbs.kanxue.com/#（1）错误1)
+      - [（2）错误2](https://bbs.kanxue.com/#（2）错误2)
+      - [（3）错误3](https://bbs.kanxue.com/#（3）错误3)
+      - [（4）错误4](https://bbs.kanxue.com/#（4）错误4)
+  - [六、实验总结](https://bbs.kanxue.com/#六、实验总结)
+  - [七、参考文献](https://bbs.kanxue.com/#七、参考文献)
+
+## 一、前言
+
+在上篇文章[源码编译（2）——Xopsed源码编译详解](https://bbs.pediy.com/thread-269616.htm)中详细介绍了Xposed源码编译的完整过程，本文将从Android编译过程到Xposed运行机制，最后进行Xposed框架的详细定制。其中Xposed的定制主要参考世界美景大佬的[定制Xposed框架](https://bbs.pediy.com/thread-255836.htm)和肉丝大佬的[来自高纬的对抗：魔改XPOSED过框架检测(下)](https://bbs.kanxue.com/elink@eefK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0M7q4)9J5k6i4N6W2K9i4S2A6L8W2)9J5k6i4q4I4i4K6u0W2j5$3!0E0i4K6u0r3M7#2)9J5c8W2W2m8e0f1y4J5f1g2y4A6x3p5I4r3d9V1N6z5d9i4N6n7z5i4q4t1c8p5p5`.)。
+
+**致谢：**
+
+首先感谢世界美景大佬的[定制Xposed框架](https://bbs.pediy.com/thread-255836.htm)，从里面学习到对Xposed框架特征的修改，但是由于个人水平有限，大佬的贴子不够详细，不能完整复现，经过搜索发现肉丝大佬的基于此的两篇详细的贴子讲解：[来自高纬的对抗：魔改XPOSED过框架检测(上)](https://bbs.kanxue.com/elink@2e9K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0M7q4)9J5k6i4N6W2K9i4S2A6L8W2)9J5k6i4q4I4i4K6u0W2j5$3!0E0i4K6u0r3M7#2)9J5c8X3x3&6y4%4A6G2g2s2S2d9M7V1g2W2h3f1I4$3c8o6S2k6N6@1W2g2g2W2p5`.)和[来自高纬的对抗：魔改XPOSED过框架检测(下)](https://bbs.kanxue.com/elink@6c7K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0M7q4)9J5k6i4N6W2K9i4S2A6L8W2)9J5k6i4q4I4i4K6u0W2j5$3!0E0i4K6u0r3M7#2)9J5c8W2W2m8e0f1y4J5f1g2y4A6x3p5I4r3d9V1N6z5d9i4N6n7z5i4q4t1c8p5p5`.)，本文的Android系统运行参考[老罗的博客](https://bbs.kanxue.com/elink@8daK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2C8j5h3&6U0L8r3!0#2k6q4)9J5k6h3y4F1i4K6u0r3j5h3I4W2P5q4)9#2k6Y4N6K6j5#2)9J5c8X3q4F1k6s2u0G2K9h3c8K6i4K6u0r3y4o6M7J5x3e0j5^5)
+
+## 二、Android运行机制
+
+我们在了解Xposed的运行机制前，不得不需要了解Android系统的基本结构和运行机制，这样我们才能进一步学习如何进行Xposed定制，才能减少更多的错误
+
+### 1. Android平台架构
+
+Android的平台架构如下图所示：
+
+![image-20211002145934512](https://bbs.kanxue.com/upload/attach/202110/905443_MNN5RBEPXGMCBKN.png)
+
+下面我们依次介绍各层之间的功能和作用：
+
+#### （1）Linux内核
+
+Android平台的基础是linux内核，Android Runtime（ART）依靠Linux内核来执行底层功能，使用Linux内核可让Android利用主要安全功能，并且运行设备制造商为著名的内核开发硬件驱动程序，可以理解基于linux内核让Android更安全并且可以拥有很多设备驱动
+
+#### （2）硬件抽象层（HAL）
+
+HAL提供标准界面，向更高级别Java API框架显示设备硬件功能，HAL包含多个模块，其中每个模块都为特定类型的硬件组件实现一个界面，例如相机和蓝牙模块，当框架API要访问设备硬件时，Android系统为该硬件组件加载库模块。
+
+#### （3）Android Runtime
