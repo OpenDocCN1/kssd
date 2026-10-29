@@ -125,7 +125,7 @@ extensions: ['.ts'],
 
 > 如何 `F5` 开始调试 `TypeScript` ，并且还具备断点调试功能，答案是，使用 `TS-node`。
 
-> 详情查看：`<mark class="encrypted">417K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6f1P5i4m8W2f1%4c8J5L8$3&6Y4i4K6u0r3N6s2y4Q4x3X3c8F1L8$3c8W2i4K6j5H3</mark>`
+> 详情查看：`<mark class="encrypted">417K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6f1P5i4m8W2f1%4c8J5L8$3&6Y4i4K6u0r3N6s2y4Q4x3X3c8F1L8$3c8W2i4K6j5H3</mark>
 
 在项目的根目录下，执行下面的命令：
 
@@ -170,9 +170,9 @@ Run->Add Configuration
 
 ## 3. Frida调试环境的配置
 
-Frida的安装参考Frida官方文档
+Frida的安装参考<a href="elink@7efK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6X3M7X3W2V1j5g2)9J5k6i4u0W2i4K6u0r3k6r3!0U0M7#2)9J5c8X3W2F1M7%4c8S2L8r3I4S2N6r3W2G2L8W2)9J5c8R3`.`.">Frida官方文档</a>
 
-我们已经搭建好了TypeScript调试环境，下面继续Frida调试环境的配置，可以参考[frida-agent-example](git://github.com/oleavr/frida-agent-example.git)项目的配置文件。
+我们已经搭建好了TypeScript调试环境，下面继续Frida调试环境的配置，可以参考`frida-agent-example`项目的配置文件。
 
 **frida-agent-example的package.json文件**
 
@@ -302,7 +302,7 @@ Frida自动监测脚本是否修改
 
 ### 5.1 pycharm调试frida脚本
 
-参考正确配置 Visual Studio Code 开发和调试 TypeScript中用pycharm调试frida脚本，PyCharm给js文件和ts文件下断点都没有反应，不知道是为什么
+参考<a href="elink@67aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6B7N6h3g2B7K9h3&6Q4x3X3g2U0L8W2)9J5c8Y4m8G2M7%4c8Q4x3V1j5$3z5o6b7@1z5e0l9K6z5o6p5K6z5o6R3%4z5o6x3$3x3e0M7K6i4K6t1K6K9r3g2S2k6r3W2F1k6#2)9J5k6o6p5I4">正确配置 Visual Studio Code 开发和调试 TypeScript</a>中用pycharm调试frida脚本，PyCharm给js文件和ts文件下断点都没有反应，不知道是为什么
 
 ### 5.2 chrome的DelTools工具显示不出来文件
 
@@ -322,7 +322,7 @@ Frida自动监测脚本是否修改
 
 ## 6. 参考
 
-正确配置 Visual Studio Code 开发和调试 TypeScript
+<a href="elink@1f8K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6B7N6h3g2B7K9h3&6Q4x3X3g2U0L8W2)9J5c8Y4m8G2M7%4c8Q4x3V1j5$3z5o6b7@1z5e0l9K6z5o6p5K6z5o6R3%4z5o6x3$3x3e0M7K6i4K6t1K6K9r3g2S2k6r3W2F1k6#2)9J5k6o6p5I4">正确配置 Visual Studio Code 开发和调试 TypeScript</a>
 
 [FRIDA 使用经验交流分享](https://bbs.pediy.com/thread-265160-1.htm)
 
