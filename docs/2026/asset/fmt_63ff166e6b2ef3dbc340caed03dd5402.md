@@ -1,0 +1,243 @@
+
+# [原创] Android安全测试流程以及一些简单过滤  part1
+
+## 0x00 反编译测试
+
+### 测试目的
+
+测试目标apk是否能被反编译
+
+目前绝大多数Android软件都是由java编写，由于java的本质属于解释型语言（即java编译之后需要依赖JVM虚拟机执行，类似于C#编译之后会生成IL），故java代码编译之后，从理论上来讲是可以还原的。若源代码未混淆，源代码反编译之后就可以看到源代码，对Android应用程序来讲，是极大的隐患。
+
+将apk反编译通常是安全测试的第一步，目前有很多工具可以实现apk的反编译。其中大多数依赖于`apktool`，所以首先以Apktool为例，介绍一下Apktool的配置和使用
+
+### 测试方法
+
+#### windows平台常用工具
+
+windows平台下有许多apk反编译工具，例举几个常用的如下：
+
+- `apktool`
+- JEB
+- Android killer
+- ApkToolBox
+- `dex2jar`
+- ....
+
+#### Apktool安装以及使用
+
+`apktool`官方下载地址：<mark class="encrypted">a03K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6A6j5X3!0@1M7r3g2S2j5$3S2W2M7#2)9J5k6h3N6A6N6r3S2#2j5W2)9J5k6h3W2G2i4K6u0r3b7i4m8C8N6r3!0G2L8q4)9J5c8X3W2F1M7%4c8S2L8r3I4Q4x3V1j5`.</mark>
+
+`apktool`提供了三个平台的下载以及安装教程
+
+![图片描述](upload/attach/202004/757351\_8ZJ2D43XXUQBDJW.png)
+
+`apktool`使用方法：
+
+1. 在apk所在文件夹打开`cmd`或者`powershell`，然后在空白处按住shift然后鼠标右键，选择在此处打开`powershell`/`cmd`。
+
+    ![图片描述](upload/attach/202004/757351\_G3ANSGUUDGAPHHB.png)
+
+    或者在地址栏直接输入`cmd`或者`powershell`，然后回车运行，即可在当前目录打开`powershell`/`cmd`。
+
+    ![图片描述](upload/attach/202004/757351\_ZM49X248KJD5TJG.png)
+
+    如下所示：
+
+    ![图片描述](upload/attach/202004/757351\_4SDWR82YZ2Z33D3.png)
+
+2. 在当前目录执行`apktool d 包名`对目标apk进行解包（需要先根据`apktool`官网教程将`apktool`配置到环境变量）。
+
+    ![图片描述](upload/attach/202004/757351\_FEW3VAZXJ6ZRH3W.png)
+
+    成功执行后，会在当前目录生成一个和apk同名的文件夹，里面即包含了apk解包后的数据。
+
+    ![图片描述](upload/attach/202004/757351\_VU4RVH8248TNY63.png)
+
+    一个简单的apk，解包后的文件夹结构如下：
+
+    ![图片描述](upload/attach/202004/757351\_3NXJNEGQNVMXYMF.png)
+
+    其中
+
+    ![图片描述](upload/attach/202004/757351\_XEB945FFP7DY4JZ.png)
+
+反编译是否成功，可以通过查看反编译之后的`AndroidManifest.xml`来判断。
+
+`AndroidManifest.xml`文件中存放了APK的大量配置信息，比如软件的名称、包名、图标、组件配置等。
+
+如果反编译之后的`AndroidManifest.xml`以明文显示则说明反编译成功，比如在本例子中该文件如下：
+
+![图片描述](upload/attach/202004/757351\_37K6ANHE43HQVNK.png)
+
+我们可以从`Application`标签的`Activity`标签的`Android:name`字段中知道，该apk在开发的时候，程序入口点在`com.example.myapplication.MainActivity`。
+
+一般来说，`AndroidManifest`文件被反编译成功即说明apk未做反编译保护，我们也可以接着对`res`目录下的资源文件以及`smali`目录下的`smali`文件进行查看，如果明文显示则说明反编译成功。如下所示
+
+![图片描述](upload/attach/202004/757351\_WEGYF5JFQNEE8ME.png)
+
+#### 使用ApktoolBox工具集反编译
+
+由于Apktool依赖于命令行，有些参数和操作不太方便，所以后面有了许多带UI界面的反编译工具，但其实基本上都是依赖于Apktool。以ApktoolBox为例。ApktoolBox界面如图所示，是一个工具集：
+
+![图片描述](upload/attach/202004/757351\_DJ9QT4W4QW3RC7V.png)
+
+通过查看ApktoolBox的路径可以得知，反编译所使用的工具还是`Apktool.jar`
+
+![图片描述](upload/attach/202004/757351\_6UK6TMDE2YUYSEX.png)
+
+可以看到，这里的`Apktool.jar`是17年的，比较老，我们直接替换为刚从官网下载的最新版。（其他工具的替换方式同理，直接下载新版本替换即可）
+
+![图片描述](upload/attach/202004/757351\_VRX83DRG4C3KQSR.png)
+
+现在直接用ApktoolBox打开我们想要反编译的apk，然后选择`<反编译apk>`即可
+
+![图片描述](upload/attach/202004/757351\_UG364CG5YX5TPCA.png)
+
+这里的`<是否需要忽略res资源文件>`需要选`<取消>`，如果选择了`<确定>`则会在反编译的时候不对`AndroidManifest`以及资源文件进行反编译，没有`AndroidManifest`，我们将不能直观的了解到程序的入口`Activity`在哪里。
+
+反编译完成之后，则会在指定目录下释放生成对应的文件夹，和`Apktool d 包名`的方式的结果一样。
+
+![图片描述](upload/attach/202004/757351\_E6TVR5G3ZWX72NK.png)
+
+### 解决方案
+
+可以针对`AndroidManifest`做简单的处理，起到入门级的反编译作用。
+
+首先介绍一下`AndroidManifest`的相关知识。Android studio在编译APK的时候会把`AndroidManifest.xml`处理为一个二进制文件。我们必须对APK反编译之后，才能看到原本的`AndroidManifest.xml`内容，否则只能看到一个全是乱码的文件，这种文件格式称为"`AXML`"。
+
+根据之前大佬们发现的AXML解析漏洞，我们可以直接尝试修改AXML文件，使得反编译工具无法正常识别该文件，从而起到防反编译的作用。
+
+我们通过ApktoolBox打开目标apk，然后选择`<反编译apk>`，在反编译的时候会弹出选项`<是否需要忽略res资源文件>` 选择`<确定>`，忽略了资源文件之后，将只会反编译`smali`文件，不会反编译`AndroidManifest`以及`res`目录下的各种资源文件。
+
+![图片描述](upload/attach/202004/757351\_QGM85W7VH6YATTG.png)
+
+然后打开`AndroidManifest`，此时的`AndroidManifest`是一个`AXML`文件格式的二进制数据流。
+
+![图片描述](upload/attach/202004/757351\_3X528JDQMJU3SUJ.png)
+
+根据`AndroidManifest`的解析漏洞，我们可以使用一个简单的方法起到反编译的作用，即更改编译之后的`AndroidManifest`文件头，然后直接重新打包，签名。这样可以在一定程度上防止程序被直接反编译。
+
+所以我们把的`AndroidManifest`的文件头`03 00 08 00`更改为`00 00 08 00`
+
+然后将后面的数据跟改一下再保存。
+
+![图片描述](upload/attach/202004/757351\_K6QFAJKAF27ANFS.png)
+
+再重新打开该文件，可以看到`010edit`已经没有正常识别该文件为`AndroidManifest`。
+
+![图片描述](upload/attach/202004/757351\_XB9AV9K98P5FNTS.png)
+
+此时我们直接使用ApktoolBox打开我们修改过后的文件夹，选择`<回编译apk>`。
+
+![图片描述](upload/attach/202004/757351\_WP7D93P9BG2B496.png)
+
+回编译成功之后将会在当前文件夹下生成指定的apk，我们将`<demo1_Mod.apk>`安装到手机上是可以正常运行的。
+
+![图片描述](upload/attach/202004/757351\_7KPQGKSS3NJHZ9T.png)
+
+但是此时的`<demo1_Mod.apk>`已经不能正常反编译了。
+
+我们通过`Apktool d 包名`的方式对`<demo1_Mod.apk>`会得到如下结果，反编译之后的文件夹中只有一个空的`AndroidManifest`文件。
+
+![图片描述](upload/attach/202004/757351\_ER3Z5J2N6QW9G5Y.png)
+
+使用ApktoolBox在反编译资源文件的情况下也是同样的结果
+
+![图片描述](upload/attach/202004/757351\_B4ZYU7RCSEWFTNK.png)
+
+这是因为我们更改了`AndroidManifest`文件，导致Apktool在反编译的时候不认识这个文件了，从而解析失败。
+
+要想绕过这样的"保护"也很简单，使用Apktool的`-no -res`参数即可，这样Apktool在反编译的时候就不会尝试解析资源文件和`AndroidManifest`文件。
+
+![图片描述](upload/attach/202004/757351\_RRU6NWE3UCJP5BV.png)
+
+就可以正常反编译出`smali`文件
+
+![图片描述](upload/attach/202004/757351\_RTF9K3WGHTQBFB6.png)
+
+第二个解决方案也是一样，就是在是使用ApktoolBox反编译的时候，`<是否需要忽略res资源文件>`选择确定，这样也会跳过资源文件去反编译`class`文件。
+
+但是如果想要看到原本的`AndroidManifest`文件，我们就需要尝试修复一下被更改的文件头。
+
+我们可以找几个正常的apk，查看`AndroidManifest`的二进制文件，通过对比的方法将被更改的`AndroidManifest`文件改成正常的格式，然后重复上面的步骤，打包之后再反编译，应该就可以正常反编译出`AndroidManifest`文件了。
+
+## 0x01 签名测试
+
+### 测试目的
+
+测试目标apk是否能对签名有验证。
+
+Android的签名机制是一种比较邮件的身份标识，若开发人员没有对Android的签名，那么攻击者可以对apk反编译之后，插入恶意代码再二次打包运行。
+
+关于如何在编写Android程序的时候自定义签名，网上有很多教程，这里就不赘述。
+
+### 测试方法
+
+还是使用ApktoolBox进行测试，我们将有签名的APK反编译，然后直接使用ApktoolBox进行重签名，如果重前面之后还可以正常运行，则说明程序没有做签名验证。
+
+首先我们可以查看一下APK的签名信息，随便找一个APK的安装包，我们可以直接解压该APK或者反编译。如果是直接解压，签名的文件存放在`META-INF`文件夹下
+
+![图片描述](upload/attach/202004/757351\_CM57Q3TRD2SVSH8.png)
+
+如果是反编译，签名的文件在`original`的`META-INF`文件夹下
+
+![图片描述](upload/attach/202004/757351\_YDGVMC7CCMBXJXG.png)
+
+在本例中签名文件为`CERT.RSA`
+
+![图片描述](upload/attach/202004/757351\_BBPFC6WFWASUSFK.png)
+
+我们可以直接通过`keytool`对该签名文件进行解析
+
+解析语法为：
+
+```
+keytool -printcert -file CERT.RSA
+```
+
+![图片描述](upload/attach/202004/757351\_QCWAZYKTKPUVDT5.png)
+
+我们可以在这里看到签名的所有者 Henry
+
+签名的序列号，有效日期，证书的指纹等信息。
+
+我们使用apktoolbox直接对反编译出来的文件夹进行重打包
+
+回编译完成之后，会自动重新签名并在当前目录下生成一个`原始文件名_Mod.apk`的文件
+
+![图片描述](upload/attach/202004/757351\_CAPVNY6P5QQBWBW.png)
+
+我们再查看`Naver Mail_Mod.apk`的签名信息
+
+此时的签名文件已经变成了我们自定义的签名文件`NETEASE.RSA`
+
+![图片描述](upload/attach/202004/757351\_BFM3PU95KJ5DKEZ.png)
+
+具体信息如下：
+
+![图片描述](upload/attach/202004/757351\_946EMW55CD99NZK.png)
+
+然后我们安装自己签名的`Naver Mail_Mod.apk`依旧可以正常运行，说明该APK并没有进行签名验证。
+
+### 解决方案
+
+我们可以先确定好我们所使用的签名文件，然后通过`keytool`计算出该文件的MD5值，然后在代码中写一个验证，获取当前apk前面的MD5和预定义的MD5进行对比，如果不相同，则说明签名文件不是我们所指定的，说明文件被重新签名，这个时候可以终止运行。
+
+为了测试方便，新建一个Android studio项目，然后通过代码获取当前的包名和签名文件的MD5，获取到的信息如下。我们可以看到，如果使用Android studio 默认的签名MD5为:`90f2ba57841b2e30d56581f8d5c47c33`
+
+![图片描述](upload/attach/202004/757351\_H8EGWR7YU3KQWVC.png)
+
+于是我们将这个MD5硬编码到代码中进行比较。
+
+![图片描述](upload/attach/202004/757351\_2B6DTRB4WXA3KGJ.png)
+
+然后我们将生成的apk拿去反编译，然后再重新打包和签名。
+
+![图片描述](upload/attach/202004/757351\_Y9GM8FUR4H9C3YQ.png)
+
+然后我们安装`app_Mod.apk`，会发现运行直接闪退，因为检测到签名信息不一致。
+
+这里更好的做法是将预定义的MD5值写到JNI层，这个后面再详细说说。
+
+获取并判断签名的代码如下
