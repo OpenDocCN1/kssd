@@ -1,0 +1,179 @@
+
+# [原创]利用Frida实现lua热重载
+
+## 背景与需求
+
+对游戏进行修改时，尤其是代码逻辑在lua中，经常重启是一件很低效的事。所以考虑能不能有一款工具，**不需要重启游戏就能让lua文件改动后立刻生效**
+
+非游戏开发，所以只有apk作为目标，无游戏工程代码。
+
+## 设计原理与实现
+
+主要分为两个模块：
+
+- **LuaFileWatcher**，检测lua文件发生变化，当发生变化时调用`Hotfix.lua`进行重载模块的操作。
+- **Hotfix**，重载lua模块
+
+### LuaFileWatcher
+
+此处分享两种方法，一种使用Android的`FileObserver`（虽然本质上还是用的inotify），另一种直接使用 linux inotify。
+
+#### android.os.FileObserver
+
+关于该类的介绍，可以优先阅读：[3a8K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1k6i4k6W2L8r3!0H3k6i4u0Q4x3X3g2S2L8X3c8J5L8$3W2V1i4K6u0W2j5$3!0E0i4K6u0r3M7X3g2X3k6i4u0W2L8X3y4W2i4K6u0r3j5h3&6V1M7X3!0A6k6q4)9J5c8X3!0K6i4K6u0r3c8X3W2D9k6f1!0T1M7$3g2J5N6X3g2J5](https://bbs.kanxue.com/elink@fdbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1k6i4k6W2L8r3!0H3k6i4u0Q4x3X3g2S2L8X3c8J5L8$3W2V1i4K6u0W2j5$3!0E0i4K6u0r3M7X3g2X3k6i4u0W2L8X3y4W2i4K6u0r3j5h3&6V1M7X3!0A6k6q4)9J5c8X3!0K6i4K6u0r3c8X3W2D9k6f1!0T1M7$3g2J5N6X3g2J5)
+
+主要是通过frida js 实现 创建一个继承`FileObserver`的类，用于监控`LUA_PATH`下有哪些文件被打开了。
+
+```
+const LUA_PATH = "文件监控路径"
+Java.performNow(function (){
+    var FileObserver = Java.use("android.os.FileObserver");
+    var LuaFileObserver = Java.registerClass({
+        name:'com.hotfix.LuaFileObserver',
+        superClass:FileObserver,
+        implements: [FileObserver],
+        methods:{
+            $init:[{
+                returnType: 'void',
+                arguments:['java.lang.String'],
+                implementation:function (p){
+                    this.$super.$init(p)
+                }
+            }, {
+                    returnType: 'void',
+                    arguments:[''],
+                    implementation:function (){
+                        this.$super.$init()
+                    }
+                }],
+            $new:{
+                returnType: 'void',
+                arguments:['java.lang.String'],
+                implementation:function (p){
+                    this.$super.$new(p)
+                }
+            },
+            stopWatching:{
+                returnType: 'void',
+                arguments:[''],
+                implementation:function (){
+                    this.$super.stopWatching()
+                }
+            },
+            startWatching:{
+                returnType: 'void',
+                arguments:[''],
+                implementation:function (){
+                    this.$super.stopWatching()
+                }
+            },
+            finalize:{
+                returnType: 'void',
+                arguments:[''],
+                implementation:function (){
+                    this.$super.stopWatching()
+                }
+            },
+            onEvent:function(event,path){
+               // console.log("event :"+event)
+                //console.log("path :"+path)
+            }
+
+        }
+    });
+    var FileWatcher = LuaFileObserver.$new(LUA_PATH)
+    FileObserver.onEvent.implementation = function (event,path){
+        console.log("event :"+event)
+        console.log("path :"+path)
+        if(event == 32)
+            doHotfix(path)
+    }
+    FileWatcher.startWatching()
+})
+```
+
+优点：简单
+
+缺点：不稳定，很多机型会提示`ClassNotFound`。
+
+#### inotify
+
+需要先了解inotify是什么，有什么用，怎么使用：[414K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0j5h3^5%4i4K6u0W2L8%4u0Y4i4K6u0r3L8r3W2F1N6i4S2Q4x3V1k6E0j5h3&6Q4x3X3c8H3j5h3N6W2M7#2)9J5c8X3#2S2L8U0N6Q4x3V1k6A6L8X3!0@1K9h3k6&6i4K6u0W2y4#2)9J5k6h3S2@1L8h3H3`.](https://bbs.kanxue.com/elink@8bcK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0j5h3^5%4i4K6u0W2L8%4u0Y4i4K6u0r3L8r3W2F1N6i4S2Q4x3V1k6E0j5h3&6Q4x3X3c8H3j5h3N6W2M7#2)9J5c8X3#2S2L8U0N6Q4x3V1k6A6L8X3!0@1K9h3k6&6i4K6u0W2y4#2)9J5k6h3S2@1L8h3H3`.)
+
+该功能主要是创建一个线程，不停的监控`LUA_PATH`下文件打开的情况。如果有文件被打开，则加载一段lua代码。
+
+```
+const LUA_PATH = "文件监控路径"
+function LuaFileWatcher(){
+    var inotify_init = new NativeFunction(Module.findExportByName(null,"inotify_init"),'int',[])
+    var inotify_add_watch = new NativeFunction(Module.findExportByName(null,"inotify_add_watch"),'int',['int','pointer','int'])
+    const read = new NativeFunction(Module.findExportByName(null,"read"),'int',['int','pointer','int']);
+    var fd = inotify_init()
+    var wd = inotify_add_watch(fd,Memory.allocUtf8String(LUA_PATH),256) //ALL_EVENTS = 4095
+    console.log("fd "+fd+",wd "+wd)
+    const inotify_event_len = 0x10
+    var data = Memory.alloc(inotify_event_len*10);
+    while (1){
+        let readlen = read(fd,data,inotify_event_len*10-1)
+        if( readlen<0){
+            console.log('[+] Unable to read  [!] ');
+            continue
+        }
+        console.log(readlen,data)
+
+        // struct inotify_event {
+        //     __s32 wd;
+        //     __u32 ;
+        //     __u32 cookie;
+        //     __u32 len;
+        //     char name[0];
+        // };
+        for (let i = 0; i < (readlen/0x10) ; i++) {
+            let readData = data.add(i*0x10)
+            let envent = []
+            envent.wd = readData.readS32();
+            envent.mask = readData.add(4).readU32();
+            envent.cookie = readData.add(8).readU32();
+            envent.len = readData.add(12).readU32();
+            envent.name = readData.add(16).readCString();
+            console.log('open file : ',envent.name,envent.mask)
+            if(envent.mask!=256)
+                continue;
+            try{
+                console.log('----------------------')
+                let luaname = envent.name.replaceAll("_",".")
+                console.log("luaname"+luaname)
+                var scr ='if string.find(package.path,\"'+ LUA_PATH+'\") == nil then\n' +
+                    '    package.path = package.path .. \";'+LUA_PATH+'/?\"\n' +
+                    'end\n'+
+                    'require(\"HotFixOOOK\")\n'+
+                    'hotfix(\"'+luaname+'\")'
+                var luaL_loadstring_ret = luaL_loadstring(lua_State,Memory.allocUtf8String(scr))
+                console.log("luaL_loadstring_ret  : "+luaL_loadstring_ret)
+                send("load lua init ret "+ lua_pcall(lua_State,0,0,0) + "  str:"+lua_tolstring(lua_State, -1).readCString())
+
+            }catch (e) {
+                send("err:"+e.toString())
+            }
+        }
+
+    }
+
+}
+
+var  pthread_create = new NativeFunction(Module.findExportByName(null,"pthread_create"),'int',['pointer','pointer','pointer','pointer'])
+var LuaFileWatcherNative = new NativeCallback(LuaFileWatcher,'void',['void'])
+
+//启动新线程对目标目录进行文件监控。
+pthread_create(Memory.alloc(16),new NativePointer(0),LuaFileWatcherNative,new NativePointer(0))
+```
+
+`package.path = package.path .. ";LUA_PATH/?"`,这句的主要作用是将`LUA_PATH`添加到luaenv加载路径里面。不加会`require`不到用于热更的lua代码`HotFixOOOK`。
+
+**lua_State** 通过hook `libxlua.so`的`luaL_openlibs`函数获取。
+
+### Hotfix
+
+根据[LuaRuntimeHotfix](https://bbs.kanxue.com/elink@424K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1j5%4y4e0j5&6x3e0f1K6y4K6m8Q4x3V1k6x3N6h3q4d9N6h3&6@1K9h3#2W2d9r3!0@1k6X3W2^5)中的热更代码修改了一下。（默认apk使用的是xlua，如果不是xlua，删掉打印日志即可）
+
+如果只修改函数，可以注释掉`update_table`.

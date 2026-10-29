@@ -1,0 +1,150 @@
+
+# [原创]微信5.0 Android版飞机大战破解无敌模式手记
+
+**微信5.0 Android版飞机大战破解无敌模式手记**
+
+最近微信出了5.0，新增了游戏中心，并内置了一个经典游戏《飞机大战》。游戏其实很简单，但由于可以和好友一起竞争排名，一时间受到大家的追捧，小伙伴们进入“全民打飞机”时代。
+
+ios 版出来不久就被破解出了无敌模式。Android版出后好像一直风平浪静。周末无事，加之看雪zmworm版主邀请，于是花了一天的工夫研究了下。也出了个Android版的无敌模式增强版。具体来说就是无敌、双排子弹加无限炸弹。当然，这个不是重点，我们的重点当然是技术细节啦！
+
+微信的游戏继承了Android版手机QQ游戏中心的思想，也采用插件动态加载方式。具体来说，就是插件及游戏以jar包形式存在，jar包中有`classes.dex`及其他资源文件，在运行时动态加载资源及`classes.dex`代码。这样的好处是灵活管理，易于扩展。以后更多的游戏只要上架到微信的服务器，用户就能在微信应用内部下载、安装、运行。具体原理可以参考我2011年的一篇文章[《Android类动态加载技术》](https://bbs.kanxue.com/elink@31dK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3u0D9L8$3N6B7j5i4k6S2i4K6u0W2L8X3g2@1i4K6u0r3P5X3S2Q4x3X3c8%4k6h3W2J5i4K6u0r3j5i4u0U0K9r3W2$3k6g2)9J5c8U0t1H3x3e0q4Q4x3V1j5I4x3q4)9J5c8U0t1&6i4K6u0r3x3K6j5J5x3U0V1@1i4K6u0W2K9s2c8E0L8l9`.`.) 。
+
+当然，那篇文章讲的只是基本原理，而微信在代码动态加载方面则走得更远。针对插件的管理及安全，它有一套完整的框架，并自称为sandbox。由于代码有做混淆，加之代码量挺大，所以我仅算管中窥豹，看到的也只是冰山一角。与实际情况有所出入，还请见谅！
+
+## 一、微信游戏插件的安全校验
+
+其实说实话，微信在游戏插件的安全架构方面花了不少功夫。我能破解并不是利用微信在安全方面的漏洞，而是Android系统本身的安全漏洞。这个漏洞也就是我前段时间发的以为是bluebox上报google的漏洞，后来被证实不是。详情请看[《Bluebox Security最新提报Android漏洞的初步探讨》](https://bbs.kanxue.com/elink@104K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3u0D9L8$3N6B7j5i4k6S2i4K6u0W2L8X3g2@1i4K6u0r3P5X3S2Q4x3X3c8%4k6h3W2J5i4K6u0r3j5i4u0U0K9r3W2$3k6g2)9J5c8U0t1H3x3e0y4Q4x3V1j5H3y4#2)9J5c8U0l9$3i4K6u0r3y4o6l9I4x3U0M7H3i4K6u0W2K9s2c8E0L8l9`.`.) 。
+
+那微信是如何对游戏插件进行加载及安全校验的呢？
+
+飞机大战的游戏插件以jar包的形式，放在微信apk的`assets/preload`文件夹下：
+
+![](https://bbs.kanxue.com/upload/attach/201308/176088_919873d6d973076a.jpg)
+
+jar包中包括`classex.dex`、`so`本地库及`drawable`图片资源或者还有xml资源。微信处理插件加载的代码在`com.tencent.mm.compatible.loader`包中。加载插件资源的类叫做`PluginResourceLoader`，它是`android.content.res.Resources`的子类。
+
+而最核心的加载类应该是`PluginClassLoader`。上面说的`PluginResourceLoader`也是它的成员变量。它似乎负责整个插件加载的各个环节调度。
+
+Android动态加载类有一个弊端，就是dex文件必须释放为本地文件。这是dalvik虚拟机机制决定的。一直以为google或者dalvik会改，不过似乎到现在还没见改进。释放到本地缓存的dex是很容易受到攻击的，不过微信在这些细节上处理得还挺好，没有明显漏洞。这个后面再说。
+
+`PluginClassLoader`会在微信安装后第一次启动时，扫描插件的情况，并将插件拷贝到自己应用data下面的`app_dex`文件夹下。接下来会对插件进行处理。将`so`库释放到`app_lib`文件夹下，将jar包中的`classes.dex`重命名释放到`app_cache`文件夹下。
+
+在拷贝插件jar包的过程中，会对插件进行第一次校验——签名校验。关于签名校验的原理，可以参看我2011年的另一篇文章[《Android APK 签名比对》](https://bbs.kanxue.com/elink@afcK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3u0D9L8$3N6B7j5i4k6S2i4K6u0W2L8X3g2@1i4K6u0r3P5X3S2Q4x3X3c8%4k6h3W2J5i4K6u0r3j5i4u0U0K9r3W2$3k6g2)9J5c8U0t1H3x3e0q4Q4x3V1j5H3y4#2)9J5c8U0p5&6i4K6u0r3x3K6f1@1y4U0j5K6i4K6u0W2K9s2c8E0L8l9`.`.) 。微信的签名校验就是微信APK的签名需要和插件jar包的签名一致。这里我考虑过用bluebox上报的`ANDROID-8219321`漏洞绕过插件jar包的签名检测。经过一段时间的研究发现了它还有第二次校验。。。
+
+由于是在拷贝之前进行签名校验，所以我考虑过拷贝完成后，直接替换`app_dex`和`app_lib`下的文件的方法。发现均不可行。继续分析发现了第二次校验——MD5校验。一开始看到jar包命名就很疑惑，文件名后面一串数字是干嘛的。想过是MD5码，没做验证。直到碰壁之后，才发现了这里的奥秘。后面这一串数字就是jar包的MD5值。插件加载的时候会去解析这个MD5值，并存起来。在加载运行的时候会对这个MD5值进行校验，如果缓存中的文件MD5值不同，会用重新释放apk中的插件覆盖。缓存中的dex应该也有类似的机制。这部分代码分析得不是很透彻，大概原理如此，有感兴趣的朋友可以继续深入。
+
+MD5值作文件名+签名校验，以为着利用`ANDROID-8219321`漏洞的企图落空了。因为`ANDROID-8219321`漏洞的前提是apk中文件的文件名需要保持不变，这样才能通过重名文件绕过签名校验。然而只要我们改了插件jar包，MD5值就必须得变，从而导致文件名改变。因此此路不通了。（也许可以通过修改MD5校验和签名校验的smali绕过校验，无奈我暂时没找到具体MD5校验的代码，只能作罢）。
+
+**MD5值作文件名+插件签名校验，再加上安装APK本身的签名校验。三重校验保证了微信游戏的安全性。**
+
+因此我只能采用[《Bluebox Security最新提报Android漏洞的初步探讨》](https://bbs.kanxue.com/elink@e4cK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3u0D9L8$3N6B7j5i4k6S2i4K6u0W2L8X3g2@1i4K6u0r3P5X3S2Q4x3X3c8%4k6h3W2J5i4K6u0r3j5i4u0U0K9r3W2$3k6g2)9J5c8U0t1H3x3e0y4Q4x3V1j5H3y4#2)9J5c8U0l9$3i4K6u0r3y4o6l9I4x3U0M7H3i4K6u0W2K9s2c8E0L8l9`.`.) 一文中所述的安全漏洞。此漏洞针对`system/app`和`vendor/app`下的apk只会校验`manifest.xml`文件签名。因此我可以任意修改插件jar包，在重新生成新包之后计算出新包的MD5值，并对新包进行重命名。对于插件的签名校验，则直接通过修改smali代码，屏蔽掉微信签名校验的函数功能，直接返回true：
+
+![](https://bbs.kanxue.com/upload/attach/201308/176088_a7d49829202558b0.jpg)
+
+**这就是我们修改插件之后得以正常运行的理论基础及可行性保证。有了上面的理论，我们就可以开始修改游戏了！**
+
+## 二、飞机大战游戏破解
+
+飞机大战这个游戏据说是腾讯一个程序员一周时间开发完成的作品。其实考虑到这个游戏的规模，除GUI和交互设计外，程序员一周时间应该也差不多了。没有太大出入。
+
+此游戏采用的游戏引擎是`libgdx`。相信做过Android游戏的朋友对此款引擎不会陌生。如果在Android平台开源游戏引擎里，`cocos2d`当仁不让地排第一的话，那么`libgdx`也可以当仁不让地排第二了。`cocos2d`主要采用C++开发，而`libgdx`则主要采用java方式开发。学习成本低，开发周期短，是它的优势。当然它也是跨多平台的游戏引擎，运行效率方面稍有欠缺但也不错。因此广大的Android单机小游戏都是采用`libgdx`作为游戏引擎。
+
+微信飞机大战的代码量不大，有兴趣的朋友可以研究下，移植成为一款独立的单机游戏应该也不难。下面我详细介绍下飞机大战游戏破解的技术细节。
+
+第一步就是将飞机大战游戏的插件包从apk中释放出来。我们可以采用反编译APK的方式反编译这个插件包。修改smali代码之后，再打包回jar包文件。如果还有朋友对APK破解流程不熟悉的话，可以参考我以前的一篇文章[《APK Crack》](https://bbs.kanxue.com/elink@7c0K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3u0D9L8$3N6B7j5i4k6S2i4K6u0W2L8X3g2@1i4K6u0r3P5X3S2Q4x3X3c8%4k6h3W2J5i4K6u0r3j5i4u0U0K9r3W2$3k6g2)9J5c8U0t1H3x3e0q4Q4x3V1j5H3y4W2)9J5c8U0p5I4i4K6u0r3x3K6f1J5x3o6V1&6i4K6u0W2K9s2c8E0L8l9`.`.) 。这里我们主要介绍游戏的架构及破解思路。
+
+解压之后，smali部分其实可以分为两个包：`com.badlogic.gdx`和`com.tencent.mm.plugin.shoot`。前面一个是`libgdx`导入的jar包，这个不是我们关心的内容。我们的重点就在`com.tencent.mm.plugin.shoot`这个包中。
+
+游戏主要有两个Activity：`ShootMainUI`和`ShootFlashUI`。它们都继承自`com.badlogic.gdx.backends.android.AndroidApplication`，这个类事实上继承自Android系统的Activity。它们一个是主加载界面，一个是我们停留时间最长的游戏界面。当然需要了解，但都不是重点，重点是我们游戏中的各种角色：
+
+![](https://bbs.kanxue.com/upload/attach/201308/176088_5d57bb2ee430f07e.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/201308/176088_4574bb01e9d8d14b.jpg)
+
+这些角色构成了整个游戏的演员，他们都继承自同一个类：`GameSprite`。相当于游戏引擎中精灵的概念。它们都有生命值、宽高、速度、类型、状态等属性。这些类的定义都在`actor`子包内。在游戏过程中会对每个精灵做碰撞检测，当你发现你的飞机爆炸时，就是碰撞检测在起作用。顺便说一下，`libgdx`引擎采用的物理引擎是C++版的`box2d`，性能非常不错。
+
+好了，我们具体的破解特性，我会以任务的形式一个一个娓娓道来。下面我们接到的第一个任务就是“永久双子弹”！
+
+### 任务1、永久双子弹！
+
+在玩飞机大战时，双子弹意味着更大的威力。可以消灭更多的敌机，化险为夷。然而在实际游戏中我们只有吃到`PROPS_DOUBLE`之后才能拥有一段有限时间的双子弹状态。
+
+双子弹属性属于`HERO`的，对应的类是`Player`和`PlayerActor`。`Player`继承自`GameSprite`，而`PlayerActor`则是`libgdx`中的`actor`类的概念。两个前者注重状态和属性，后者注重逻辑和动作。
+
+`Player`在构造函数初始化时就会设置子弹类型:
+
+![](https://bbs.kanxue.com/upload/attach/201308/176088_c0c97562a340707f.jpg)
+
+我们只需要把`BulletType`从`NORMAL`改为`DOUBLE`就可以了。
+
+`PlayerActor`会对子弹类型进行定时地检测，检测是会将双子弹还原为单子弹。应该是为了处理吃到`PROPS_DOUBLE`后，一段时间子弹还原的问题。所以我们一并改掉：
+
+![](https://bbs.kanxue.com/upload/attach/201308/176088_09ef5dbf50692f7b.jpg)
+
+OK，双子弹破解任务完成！
+
+### 任务2、炸弹无限！
+
+炸弹是个好东西，威力无穷。关键时候全靠它清屏，消灭所有敌机！而且它还是刷分利器。当然，只有在它变为无限的时候，我们才能用它来刷分。
+
+这里我试图修改`Player`的`getBombNumber`和`setBombNumber`方法，发现均不行。后来转变思路，只要在使用炸弹后炸弹数量不减少，就能实现无限炸弹的功能。经过代码追踪，最后定位到一处混淆代码处。将`-0x1`改为了`0x0`。
+
+![](https://bbs.kanxue.com/upload/attach/201308/176088_89c85817a04fb732.jpg)
+
+修改的结果，在吃到两个炸弹后使用炸弹不会减少炸弹数量。吃一个炸弹时，使用炸弹后炸弹按钮消失，因此无法做到无限。请记住一定要存到两个炸弹之后才能无限炸弹。无限炸弹破解任务完成！
+
+### 任务3、开启无敌模式！
+
+长生不死一直是我们人类的终极梦想，在游戏中也不例外。iphone版微信也是因为有了飞机大战无敌模式而被各大新闻站点竞相转载。让我们Android版也无敌一下吧~
+
+前面提到了`GameSprite`是所有角色的父类，在游戏用物理引擎做碰撞检测后，会调用`GameSprite`类的`hit`方法。`hit`方法中将`GameSprite`的`liftCount`减一，如果减到0则将状态设置为`DEAD`。
+
+`GameSprite`的状态有如下一些：
+
+`DEAD`
+
+`EXPLODING`
+
+`FLIGTHING`
+
+`HITING`
+
+`INVINCIBLE`
+
+在飞机正常的死亡过程中，是先`HITING`，再`EXPLODING`，再`DEAD`。`FLIGTHING`我不清楚干嘛的，`INVINCIBLE`应该是无敌模式。但是在我的破解里，并没有使用这个模式，而是强制在碰撞检测结果中，把它列在了生死薄之外。至于`INVINCIBLE`的方式，大家可以试试能不能很好的维护这个状态。
+
+具体来说就是`hit`方法不管`GameSprite`是`hero`也好，`enemy`也罢，均一视同仁，生命值减一，或者死掉。然而我们可以通过修改smali代码，将`hero`列在生死薄之外：
+
+![](https://bbs.kanxue.com/upload/attach/201308/176088_952e3b23527b9102.jpg)
+
+其中`goto_1`标签跳转到`return-void`。这样我们的`hero`将永远不会被`hit`，因此也就无敌啦！
+
+### 任务4、独孤求败。。。
+
+本以为完成任务3就大功告成了，谁知我们缺遇到了无敌的尴尬——死不了。。。死不了，意味着永远无法结束游戏，永远不会有机会上传自己的得分进入排行榜。哎，现在终于明白为什么独孤求败了。。。
+
+基于此，我们得想个办法触发飞机非自然死亡。想来想去，我还是觉得让飞机自己决定自己的生死最合理。具体就是当飞机飞到屏幕最上方时触发死亡。因为一般情况，我们不会把飞机飞到屏幕最上方，所以误操作概率极低。
+
+通过前面我们知道`hero`飞机的类就是`Player`。而`Player`中有一个函数更新飞机的坐标位置：`updatePosition`。所以我们可以在这个函数中进行我们想要的操作：
+
+![](https://bbs.kanxue.com/upload/attach/201308/176088_0ca066b0cf61d8cf.jpg)
+
+其中`0x64`就是我指定的y坐标下限100。当飞机坐标y在100以内时，我会把飞机的`LiftCount`设置为0，然后再将状态设置为`EXPLODING`。飞机就会爆炸死亡了~
+
+OK,任务完成，打完收工！
+
+## 三、一些扫尾工作
+
+插件包修改完成后，我们通过`apktool`，将其打包回jar包。`res`资源包需要手动添加会jar包中。然后按照第一节所说的，生成jar报的MD5码，重命名jar包。
+
+微信APK也需要按第一节的方法，将插件的签名校验屏蔽掉。编译出`classes.dex`，替换微信原始包中的`classes.dex`。
+
+再将APK包中的飞机大战插件换为我们编译出来重命名的这个jar包。
+
+OK，APK准备好了。
+
+由于我利用的是[《Bluebox Security最新提报Android漏洞的初步探讨》](https://bbs.kanxue.com/elink@762K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3u0D9L8$3N6B7j5i4k6S2i4K6u0W2L8X3g2@1i4K6u0r3P5X3S2Q4x3X3c8%4k6h3W2J5i4K6u0r3j5i4u0U0K9r3W2$3k6g2)9J5c8U0t1H3x3e0y4Q4x3V1j5H3y4#2)9J5c8U0l9$3i4K6u0r3y4o6l9I4x3U0M7H3i4K6u0W2K9s2c8E0L8l9`.`.) 一文中所述的安全漏洞，所以安装此APK的过程并不是菜鸟能玩的。。。简单来说，你需要root权限，并能将`system`分区mount为可写。
+
+然后卸载你原本的微信。将这个apk放到`/system/app/`文件夹下。稍等片刻，你就是打飞机的高手了！
+
+如需技术交流，请与我联系。新浪微博： [@囧虎张建伟](https://bbs.kanxue.com/elink@ec4K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6W2K9h3u0G2i4K6u0W2j5$3!0E0i4K6u0r3P5X3S2%4k6h3W2J5)
