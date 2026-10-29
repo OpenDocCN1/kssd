@@ -1,0 +1,286 @@
+
+```python
+import ida_segment
+import idautils
+import idc
+import ida_bytes
+from keystone import *
+def patch_nop(begin, end): # arm64中的NOP指令是b'\x1F\x20\x03\xD5'
+while end > begin:
+ida_bytes.patch_bytes(begin, b'\x1F\x20\x03\xD5')
+begin = begin + 4
+# 获取text段的起始地址
+text_seg = ida_segment.get_segm_by_name(".text")
+start, end = text_seg.start_ea, text_seg.end_ea
+# start, end = 0x3BA34, 0x3BA80
+# start, end = 0x37390,0x373B4#测试ADRP指令
+# start, end = 0x3FCE0, 0x3FD00 # 测试EQ情况
+#start, end = 0x3AA90, 0x3AAA4
+# start, end = 0x3A078, 0x3A090#测试CSET-BR去除情况
+current_addr = start
+# print(text_seg.start_ea,text_seg.end_ea)
+nop_addr_array_after_finish = [] # 在CSEL/CSET-BR结构修复完成后需要NOP的指令
+while current_addr < end:
+# 处理CSEL-BR结构
+if idc.print_insn_mnem(current_addr) == "CSEL":
+CSEL_addr = current_addr
+nop_addr_array_temp = []
+nop_addr_array_temp.append(CSEL_addr)
+BR_addr = 0
+BR_reg = ""
+temp_addr = idc.next_head(current_addr)
+for _ in range(9): # 向下搜寻9条指令,寻找是否有BR指令
+if idc.print_insn_mnem(temp_addr) == "BR":
+BR_addr = temp_addr
+BR_reg = idc.print_operand(temp_addr, 0)
+break
+if idc.print_insn_mnem(temp_addr) == "CSEL":
+break
+temp_addr = idc.next_head(temp_addr)
+if BR_addr != 0: # 匹配到了CSEL-BR结构的汇编,需要去除
+# 形如CSEL X11, X12, X11, GE,获取CSEL后的操作数op1~3,以及条件码cond
+CSEL_op1 = idc.print_operand(CSEL_addr, 0)
+CSEL_op2 = idc.print_operand(CSEL_addr, 1)
+CSEL_op2_val = -1
+CSEL_op3 = idc.print_operand(CSEL_addr, 2)
+CSEL_op3_val = -1
+CSEL_cond = idc.print_operand(CSEL_addr, 3)
+# 读取条件分支语句CSEL中要赋值给目标寄存器的两个源寄存器中存储的值
+temp_addr = idc.prev_head(CSEL_addr)
+while (CSEL_op2_val == -1 or CSEL_op3_val == -1) and temp_addr > text_seg.start_ea:
+if CSEL_op2 == "XZR": # 如果寄存器的值是XZR,说明该值为0
+CSEL_op2_val = 0
+if CSEL_op3 == "XZR":
+CSEL_op3_val = 0
+if idc.print_insn_mnem(temp_addr) == "MOV":
+if idc.print_operand(temp_addr, 0)[1::] == CSEL_op2[1::] and CSEL_op2_val == -1: # 寄存器X11和W11是同一个寄存器
+CSEL_op2_val = idc.get_operand_value(temp_addr, 1)
+nop_addr_array_temp.append(temp_addr)
+elif idc.print_operand(temp_addr, 0)[1::] == CSEL_op3[1::] and CSEL_op3_val == -1:
+CSEL_op3_val = idc.get_operand_value(temp_addr, 1)
+nop_addr_array_temp.append(temp_addr)
+temp_addr = idc.prev_head(temp_addr)
+# print(CSEL_op2_val, CSEL_op3_val, hex(current_addr))
+assert CSEL_op2_val != -1 and CSEL_op3_val != -1
+temp_addr = BR_addr
+jump_array_reg = "" # 存贮跳转表的寄存器名称
+jump_array_addr = -1 # 跳转表所在的位置
+add_reg = [] # 加到跳转表的值所在的寄存器
+add_val = -1 # 加到跳转表的值
+while temp_addr > CSEL_addr: # 从后往前找,以BR所在的地址开始,CSEL所在的地址结束,匹配必要的寄存器名称和值
+# print(hex(temp_addr),idc.print_insn_mnem(temp_addr))
+if idc.print_insn_mnem(temp_addr) == "ADD" and idc.print_operand(temp_addr, 0) == BR_reg:
+add_reg.append(idc.print_operand(temp_addr, 1)[1::])
+add_reg.append(idc.print_operand(temp_addr, 2)[1::])
+nop_addr_array_temp.append(temp_addr)
+elif idc.print_insn_mnem(temp_addr) == "MOV":
+if idc.print_operand(temp_addr, 0)[1::] in add_reg:
+add_val = idc.get_operand_value(temp_addr, 1)
+nop_addr_array_temp.append(temp_addr)
+elif idc.print_insn_mnem(temp_addr) == "LDR":
+jump_array_reg = idc.print_operand(temp_addr, 1)[1:-1].split(',')[0] # 获取存储跳转表的寄存器名称
+nop_addr_array_temp.append(temp_addr)
+elif idc.print_insn_mnem(temp_addr) == "ADRL":
+jump_array_reg = idc.print_operand(temp_addr, 0)
+jump_array_addr = idc.get_operand_value(temp_addr, 1)
+nop_addr_array_temp.append(temp_addr)
+temp_addr = idc.prev_head(temp_addr)
+# 如果在CSEL-BR间的指令中没找到跳转表所在的位置,则向上寻找
+if jump_array_addr == -1:
+temp_addr = CSEL_addr
+while temp_addr > text_seg.start_ea:
+# print(hex(temp_addr), idc.print_insn_mnem(temp_addr))
+if idc.print_insn_mnem(temp_addr) == "ADRL":
+if idc.print_operand(temp_addr, 0) == jump_array_reg:
+jump_array_addr = idc.get_operand_value(temp_addr, 1)
+nop_addr_array_temp.append(temp_addr)
+break
+elif idc.print_insn_mnem(temp_addr) == "ADRP": # ADRP指令,还需要加上另一部分
+if idc.print_operand(temp_addr, 0) == jump_array_reg:
+jump_array_addr = idc.get_operand_value(temp_addr, 1)
+nop_addr_array_temp.append(temp_addr)
+while temp_addr < text_seg.end_ea:
+if idc.print_insn_mnem(temp_addr) == "ADD":
+if idc.print_operand(temp_addr, 0) == jump_array_reg:
+jump_array_addr += idc.get_operand_value(temp_addr, 2)
+nop_addr_array_temp.append(temp_addr)
+break
+temp_addr = idc.next_head(temp_addr)
+break
+temp_addr = idc.prev_head(temp_addr)
+# print(hex(jump_array_addr),hex(add_val))
+if add_val == -1:
+temp_addr = CSEL_addr
+while temp_addr > text_seg.start_ea:
+# print(hex(temp_addr), idc.print_insn_mnem(temp_addr))
+if idc.print_insn_mnem(temp_addr) == "MOV":
+if idc.print_operand(temp_addr, 0)[1::] in add_reg and idc.print_operand(temp_addr, 0)[0] == 'X':
+add_val = idc.get_operand_value(temp_addr, 1)
+nop_addr_array_temp.append(temp_addr)
+break
+temp_addr = idc.prev_head(temp_addr)
+# 计算出分支跳转的两个位置
+branch_a = (ida_bytes.get_qword(jump_array_addr + CSEL_op2_val) + add_val) & 0xffffffffffffffff
+branch_b = (ida_bytes.get_qword(jump_array_addr + CSEL_op3_val) + add_val) & 0xffffffffffffffff
+# print(hex(branch_a), hex(branch_b))
+# print(CSEL_cond,hex(current_addr))
+# GE<->LT 有符号大于等于 vs 有符号小于
+# EQ<->NE 结果相等 vs 结果不相等
+# CC<->CS 无符号小于 vs 无符号大于等于
+# HI<->LS 无符号大于 vs 无符号小于等于
+# if CSEL_cond == "GE":#构造B.LT跳转
+logic_rev = {"GE": "LT", "LT": "GE", "EQ": "NE", "NE": "EQ", "CC": "CS", "CS": "CC", "HI": "LS", "LS": "HI"}
+ks = Ks(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN)
+code = ""
+if branch_b == idc.next_head(BR_addr): # 判断逻辑不取反
+code = f"B.{CSEL_cond} #{hex(branch_a)}"
+elif branch_a == idc.next_head(BR_addr): # 判断逻辑取反
+code = f"B.{logic_rev[CSEL_cond]} #{hex(branch_b)}"
+#print(hex(current_addr), hex(add_val), CSEL_op2_val, CSEL_op3_val, hex(jump_array_addr), code)
+# 修复BR跳转
+if code != "":
+patch_br_byte, count = ks.asm(code, addr=BR_addr)
+ida_bytes.patch_bytes(BR_addr, bytes(patch_br_byte))
+print(f"fix CSEL-BR at {hex(BR_addr)}")
+nop_addr_array_after_finish.extend(nop_addr_array_temp)
+current_addr = idc.next_head(BR_addr)
+continue
+else:
+print(f"error! unable to fix CSEL-BR at {hex(current_addr)},branch:{hex(branch_a)}, {hex(branch_b)}")
+# 处理CSET-BR结构
+elif idc.print_insn_mnem(current_addr) == "CSET":
+CSET_addr = current_addr
+nop_addr_array_temp = []
+nop_addr_array_temp.append(CSET_addr)
+BR_addr = 0
+BR_reg = ""
+temp_addr = idc.next_head(current_addr)
+for _ in range(15): # 向下搜寻15条指令,寻找是否有BR指令
+if idc.print_insn_mnem(temp_addr) == "BR":
+BR_addr = temp_addr
+BR_reg = idc.print_operand(temp_addr, 0)
+break
+elif idc.print_insn_mnem(temp_addr) == "CSEL":
+break
+elif idc.print_insn_mnem(temp_addr) == "RET":
+break
+temp_addr = idc.next_head(temp_addr)
+if BR_addr != 0: # 匹配到了CSET-BR结构的汇编,需要去除
+# 形如CSET W23, NE,获取CSET后的操作数op1,以及条件码cond
+CSET_op1 = idc.print_operand(CSET_addr, 0)
+CSET_op1_val = -1
+CSET_cond = idc.print_operand(CSET_addr, 1)
+temp_addr = BR_addr
+jump_array_reg = "" # 存贮跳转表的寄存器名称
+jump_array_addr = 0 # 跳转表所在的位置
+add_reg = [] # 加到跳转表的值所在的寄存器
+add_val = 0 # 加到跳转表的值
+Lshift_val = -1
+while temp_addr > CSET_addr: # 从后往前找,以BR所在的地址开始,CSET所在的地址结束,匹配必要的寄存器名称和值
+# print(hex(temp_addr),idc.print_insn_mnem(temp_addr))
+if idc.print_insn_mnem(temp_addr) == "ADD" and idc.print_operand(temp_addr, 0) == BR_reg:
+add_reg.append(idc.print_operand(temp_addr, 1)[1::])
+add_reg.append(idc.print_operand(temp_addr, 2)[1::])
+nop_addr_array_temp.append(temp_addr)
+elif idc.print_insn_mnem(temp_addr) == "MOVK":
+if idc.print_operand(temp_addr, 0)[1::] in add_reg:
+add_val += (idc.get_operand_value(temp_addr, 1) << 16)
+elif idc.print_insn_mnem(temp_addr) == "MOV":
+if idc.print_operand(temp_addr, 0)[1::] in add_reg:
+add_val += idc.get_operand_value(temp_addr, 1)
+nop_addr_array_temp.append(temp_addr)
+elif idc.print_insn_mnem(temp_addr) == "LDR":
+LDR_temp = idc.print_operand(temp_addr, 1)[1:-1].split(',')
+jump_array_reg = LDR_temp[0] # 获取存储跳转表的寄存器名称
+if len(LDR_temp) == 3:
+Lshift_val = int(LDR_temp[2][-1:])
+nop_addr_array_temp.append(temp_addr)
+elif idc.print_insn_mnem(temp_addr) == "ADRL":
+jump_array_reg = idc.print_operand(temp_addr, 0)
+jump_array_addr = idc.get_operand_value(temp_addr, 1)
+nop_addr_array_temp.append(temp_addr)
+elif idc.print_insn_mnem(temp_addr) == "LSL":
+if idc.print_operand(temp_addr, 0)[1::] == CSET_op1[1::]:
+Lshift_val = idc.get_operand_value(temp_addr, 2)
+temp_addr = idc.prev_head(temp_addr)
+# 如果在CSET-BR间的指令中没找到跳转表所在的位置,则向上寻找
+if jump_array_addr == 0:
+temp_addr = CSET_addr
+while temp_addr > text_seg.start_ea:
+# print(hex(temp_addr), idc.print_insn_mnem(temp_addr))
+if idc.print_insn_mnem(temp_addr) == "ADRL":
+if idc.print_operand(temp_addr, 0) == jump_array_reg:
+jump_array_addr = idc.get_operand_value(temp_addr, 1)
+nop_addr_array_temp.append(temp_addr)
+break
+elif idc.print_insn_mnem(temp_addr) == "ADRP": # ADRP指令,还需要加上另一部分
+if idc.print_operand(temp_addr, 0) == jump_array_reg:
+jump_array_addr = idc.get_operand_value(temp_addr, 1)
+nop_addr_array_temp.append(temp_addr)
+while temp_addr < text_seg.end_ea:
+if idc.print_insn_mnem(temp_addr) == "ADD":
+if idc.print_operand(temp_addr, 0) == jump_array_reg:
+jump_array_addr += idc.get_operand_value(temp_addr, 2)
+nop_addr_array_temp.append(temp_addr)
+break
+temp_addr = idc.next_head(temp_addr)
+break
+temp_addr = idc.prev_head(temp_addr)
+# print(hex(jump_array_addr),hex(add_val))
+# 向上寻找加到跳转表的值
+if add_val == 0:
+temp_addr = CSET_addr
+while temp_addr > text_seg.start_ea:
+# print(hex(temp_addr), idc.print_insn_mnem(temp_addr))
+if idc.print_insn_mnem(temp_addr) == "MOV":
+if idc.print_operand(temp_addr, 0)[1::] in add_reg:
+add_val = idc.get_operand_value(temp_addr, 1)
+nop_addr_array_temp.append(temp_addr)
+break
+elif idc.print_insn_mnem(temp_addr) == "MOVK": # 形如MOV W9, #0x76BC;MOVK W9, #0x4C48,LSL#16;的形式
+if idc.print_operand(temp_addr, 0)[1::] in add_reg:
+# print(hex(add_val))
+add_val = (idc.get_operand_value(temp_addr, 1) << 16)
+# print(hex(add_val))
+while temp_addr > text_seg.start_ea:
+if idc.print_insn_mnem(temp_addr) == "MOV":
+if idc.print_operand(temp_addr, 0)[1::] in add_reg:
+add_val += idc.get_operand_value(temp_addr, 1)
+# print(hex(add_val))
+break
+temp_addr = idc.prev_head(temp_addr)
+break
+temp_addr = idc.prev_head(temp_addr)
+# print(hex(current_addr))
+# 计算出分支跳转的两个位置
+branch_a = (ida_bytes.get_qword(jump_array_addr + (1 << Lshift_val)) + add_val) & 0xffffffffffffffff
+branch_b = (ida_bytes.get_qword(jump_array_addr + (0 << Lshift_val)) + add_val) & 0xffffffffffffffff
+# print(hex(branch_a), hex(branch_b))
+# print(CSEL_cond,hex(current_addr))
+# GE<->LT 有符号大于等于 vs 有符号小于
+# EQ<->NE 结果相等 vs 结果不相等
+# CC<->CS 无符号小于 vs 无符号大于等于
+# HI<->LS 无符号大于 vs 无符号小于等于
+# if CSEL_cond == "GE":#构造B.LT跳转
+logic_rev = {"GE": "LT", "LT": "GE", "EQ": "NE", "NE": "EQ", "CC": "CS", "CS": "CC", "HI": "LS", "LS": "HI"}
+ks = Ks(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN)
+code = ""
+if branch_b == idc.next_head(BR_addr): # 判断逻辑不取反
+code = f"B.{CSET_cond} #{hex(branch_a)}"
+elif branch_a == idc.next_head(BR_addr): # 判断逻辑取反
+code = f"B.{logic_rev[CSET_cond]} #{hex(branch_b)}"
+# print(hex(current_addr),add_reg,hex(add_val),CSET_op1,CSET_op1_val,jump_array_reg,hex(jump_array_addr),Lshift_val,code)
+# 修复BR跳转
+if code != "":
+patch_br_byte, count = ks.asm(code, addr=BR_addr)
+ida_bytes.patch_bytes(BR_addr, bytes(patch_br_byte))
+print(f"fix CSET-BR at {hex(BR_addr)}")
+nop_addr_array_after_finish.extend(nop_addr_array_temp)
+current_addr = idc.next_head(BR_addr)
+continue
+else:
+print(f"error! unable to fix CSET-BR at {hex(current_addr)},branch:{hex(branch_a)}, {hex(branch_b)}")
+current_addr = idc.next_head(current_addr)
+for addr in nop_addr_array_after_finish:
+patch_nop(addr, addr + idc.get_item_size(addr))
+```
