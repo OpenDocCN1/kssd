@@ -1,0 +1,12 @@
+
+# [翻译]Linux (x86) Exploit 开发系列教程之十二 释放后使用
+
+在线阅读：a4fK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3u0D9L8$3N6Q4x3X3g2U0M7$3c8F1i4K6u0W2L8X3g2@1i4K6u0r3N6$3W2\*7j5i4u0V1k6X3!0J5j5$3g2D9i4K6u0r3j5i4u0@1K9h3y4D9k6g2)9J5c8X3c8W2N6r3q4A6L8s2y4Q4x3V1j5%4x3e0p5J5z5o6f1#2x3b7`.`.
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+
+- [sploitfun-exp-12.pdf](javascript:void(0);)
+
+  （403.35kb，82次下载）
