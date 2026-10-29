@@ -1,0 +1,122 @@
+
+# [原创][分享]中小企业网站漏洞自监测脚本
+
+中小公司，没事写个破脚本自己定时去主动瞅瞅自己公司有没有上榜、被爆了漏洞。
+
+```python
+#!/usr/bin/python
+
+# -*- coding: utf-8 -*-
+
+import urllib2
+
+import re
+
+import urllib
+
+import smtplib
+
+from email.mime.text import MIMEText
+
+import json
+
+import sys
+
+import string
+
+class Vul_Monitor:
+
+    def __init__(self):
+
+        self.botianurl = "1a9K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1N6i4c8A6j5h3&6Q4x3X3f1K6y4U0m8Q4x3X3g2U0L8W2)9J5c8Y4k6#2L8q4)9J5c8X3I4A6M7%4c8Q4x3V1k6H3j5h3N6W2i4K6u0r3"
+
+        self.wooyunurl = "" #暂时访问不了
+
+        self.vulboxurl = "" #暂时访问不了
+
+        self.result = {} # 临时存放漏洞爬到的结果..
+
+    def Butian(self):
+
+        for num in range(1,10):
+
+            request = urllib2.Request(self.botianurl+str(num))
+
+            content = urllib2.urlopen(request).read()
+
+            rule = re.compile(r'<a\shref="/vul/info/qid/QTVA-\d{4}-\d{6}">.*杭州.*</a>') #匹配公司name特定字符串
+
+            for line in re.findall(rule,content):
+
+                value = re.sub(r'(<a\shref="/vul/info/qid/QTVA-\d{4}-\d{6}">)|(</a>)','',line).strip()
+
+                key = line[9:39]
+
+                self.result[key] = value
+
+    #def Wooyun(self):
+
+    #def Vulbox(self):
+
+    def Send_Mail(self,content):
+
+        host = 'smtp.163.com'
+
+        port = 25
+
+        sender = 'test@qq.com'  # 发送者
+
+        pwd = 'password'  # 邮箱密码
+
+        receiver = ['test1@qq.com','test2@163.com']  #
+
+        body = '<h1>Security_vul</h1>'+content  # 设置邮件正文
+
+        msg = MIMEText(body, 'html','utf-8')  # 设置正文为符合邮件格式的HTML内容
+
+        msg['subject'] = 'Security_vul'  # 设置邮件标题
+
+        msg['from'] = sender  # 设置发送人
+
+        msg['to'] = ';'.join(receiver)  # 设置接收人
+
+        #s = smtplib.SMTP(host, port)  # 注意！如果是使用SSL端口，这里就要改为SMTP_SSL
+
+        s = smtplib.SMTP_SSL(host,port)
+
+        s.login(sender, pwd)  # 登陆邮箱
+
+        s.sendmail(sender, receiver, msg.as_string())
+
+        return 'True'
+
+cz = Vul_Monitor()
+
+cz.Butian()
+
+if cz.result:
+
+    if cz.Send_Mail(json.dumps(cz.result,ensure_ascii=False)):
+
+        print 'email 发送成功..'
+
+    else:
+
+        print 'email 发送失败..'
+
+else:
+
+    print "未采集到关联漏洞信息.."
+
+    sys.exit(0)
+```
+
+代码保存下，丢进`crontab`，定2－3h跑一次。
+
+![](https://bbs.kanxue.com/upload/attach/201608/508937_ghicrkwwuaiw6xm.jpg)
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [1.jpg](javascript:void(0);) （18.07kb，43次下载）
