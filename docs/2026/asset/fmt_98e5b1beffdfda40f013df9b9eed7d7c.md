@@ -1,0 +1,168 @@
+
+在此层中，它提供了节点间的数据传送，应用程序之间的通信服务，主要功能是数据格式化、数据确认和丢失重传等。如[传输控制协议](https://bbs.kanxue.com/elink@28fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3@1k6%4k6q4)9K6c8q4)9J5y4f1f1@1i4K6t1#2b7V1y4Q4x3U0g2m8x3q4)9J5y4f1f1^5i4K6t1#2b7V1g2Q4x3U0f1&6x3#2)9J5y4f1f1$3i4K6t1#2z5p5g2Q4x3U0g2m8y4#2)9J5y4f1f1#2i4K6t1#2z5o6S2Q4x3U0g2n7y4W2)9J5y4f1f1#2i4K6t1#2z5p5c8Q4x3U0f1^5c8W2)9J5y4f1f1^5i4K6t1#2b7f1g2Q4x3U0g2m8c8g2)9J5y4X3q4E0M7q4)9K6b7Y4c8F1i4K6y4p5f1@1g2Q4y4h3k6b7j5#2A6Z5K9h3c8S2L8$3&6%4K9r3y4Q4y4h3k6F1k6%4m8S2k6$3#2B7P5W2)9J5y4X3q4E0M7q4)9K6b7Y4u0K6N6W2)9#2k6X3c8D9i4K6y4p5k6$3S2Q4y4h3k6H3j5#2)9#2k6Y4A6Z5K9h3c8S2L8H3`.`.)(TCP)、[用户数据报协议](https://bbs.kanxue.com/elink@e25K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3@1k6%4k6q4)9K6c8q4)9J5y4f1f1%4i4K6t1#2z5e0c8Q4x3U0g2m8z5q4)9J5y4f1f1$3i4K6t1#2z5o6S2Q4x3U0g2n7y4#2)9J5y4f1f1$3i4K6t1#2z5e0g2Q4x3U0g2n7x3q4)9J5y4f1f1$3i4K6t1#2z5p5c8Q4x3U0g2m8c8g2)9J5y4f1f1$3i4K6t1#2z5p5q4Q4x3U0g2m8y4g2)9J5y4f1f1#2i4K6t1#2z5p5c8Q4x3U0f1^5c8W2)9J5y4f1f1^5i4K6t1#2b7f1g2Q4x3U0g2m8c8g2)9J5y4X3q4E0M7q4)9K6b7Y4c8F1i4K6y4p5f1@1g2Q4y4h3k6b7j5#2A6Z5K9h3c8S2L8$3&6%4K9r3y4Q4y4h3k6F1k6%4m8S2k6$3#2B7P5W2)9J5y4X3q4E0M7q4)9K6b7Y4u0K6N6W2)9#2k6X3c8D9i4K6y4p5k6$3S2Q4y4h3k6H3j5#2)9#2k6Y4A6Z5K9h3c8S2L8H3`.`.)(UDP)等，TCP和UDP给数据包加入传输数据并把它传输到下一层中，这一层负责传送数据，并且确定数据已被送达并接收。
+
+- 互连网络层
+
+  负责提供基本的数据封包传送功能，让每一块数据包都能够到达目的主机(但不检查是否被正确接收)，如网际协议(IP)。
+
+- [网络接口层](https://bbs.kanxue.com/elink@32eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3@1k6%4k6q4)9K6c8q4)9J5y4f1f1%4i4K6t1#2b7V1c8Q4x3U0f1&6x3g2)9J5y4f1f1%4i4K6t1#2b7V1u0Q4x3U0f1&6b7#2)9J5y4f1f1$3i4K6t1#2z5p5g2Q4x3U0g2m8y4g2)9J5y4f1f1#2i4K6t1#2z5p5k6Q4x3U0g2m8x3#2)9J5y4f1f1#2i4K6t1#2b7U0q4Q4x3U0f1^5x3W2)9J5y4X3q4E0M7q4)9K6b7Y4c8F1i4K6y4p5f1@1g2Q4y4h3k6b7j5#2A6Z5K9h3c8S2L8$3&6%4K9r3y4Q4y4h3k6F1k6%4m8S2k6$3#2B7P5W2)9J5y4X3q4E0M7q4)9K6b7Y4u0K6N6W2)9#2k6X3c8D9i4K6y4p5k6$3S2Q4y4h3k6H3j5#2)9#2k6Y4A6Z5K9h3c8S2L8H3`.`.)(主机-网络层)
+
+  接收IP数据报并进行传输，从网络上接收物理帧，抽取IP数据报转交给下一层，对实际的网络媒体的管理，定义如何使用实际网络(如Ethernet、Serial Line等)来传送数据。
+
+### 环境准备
+
+- 安装Python环境及`frida`：注意`frida`和`frida-tools`版本匹配，这里我选择指定版本安装的方式
+
+  | 序号 | 命令 |
+  | --- | --- |
+  | 1 2 | `pip install frida==14.2.17` `pip install frida-tools==9.2.4` |
+
+  查看python所有安装包：`pip list`
+
+  ![请添加图片描述](https://bbs.kanxue.com/upload/attach/202204/944393_CRBP38CZG4S8G8A.jpg)
+
+- 下载安装`frida-server`
+
+  在官方[github](https://bbs.kanxue.com/elink@9a3K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6X3M7X3W2V1j5g2)9J5c8X3k6J5K9h3c8S2i4K6u0r3M7X3g2D9k6h3q4K6k6i4x3`.)页面的`release`标签里，找到对应版本的`frida-server`，注意要匹配系统和架构，比如`arm`和`arm64`就不能搞错
+
+  - 查看手机CPU架构类型
+
+    | 序号 | 命令 |
+    | --- | --- |
+    | 1 | `adb shell getprop ro.product.cpu.abi` |
+
+    ![请添加图片描述](https://bbs.kanxue.com/upload/attach/202204/944393_7XA2CE3DQNU4V4P.jpg)
+
+  - 根据`frida`版本和手机CPU版本下载对应的`frida-server`
+
+    ![请添加图片描述](https://bbs.kanxue.com/upload/attach/202204/944393_22QNEQDJRQU2S6G.jpg)
+
+    下载完成后进行解压，获得`linux`原生的可执行文件，我们将它重命名为`frida-server`
+
+  - 将`frida-server`安装至手机
+
+    使用`adb`命令将其推送到手机上去
+
+    | 序号 | 命令 |
+    | --- | --- |
+    | 1 | `$ adb push frida-server /data/local/tmp/` |
+
+    然后使用`adb shell`命令进入到手机中去，执行以下命令：
+
+    | 序号 | 命令 |
+    | --- | --- |
+    | 1 2 3 4 5 6 7 8 | `$ adb shell`<br>`bullhead:/ $ su`<br>`bullhead:/ # whoami`<br>`root`<br>`bullhead:/ # cd /data/local/tmp/`<br>`bullhead:/data/local/tmp # chmod 755 /data/local/tmp/frida-server`<br>`bullhead:/data/local/tmp # ./frida-server &`<br>`[1] 6669` |
+
+    `frida-server`运行成功。
+
+- 至此所需环境准备完成
+
+### 工具脚本用法
+
+**下载安卓应用层抓包通杀脚本：[e50K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6J5x3s2W2K6N6h3g2Q4x3V1k6J5x3r3y4S2M7s2c8#2M7X3f1`.](https://bbs.kanxue.com/elink@5e0K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6J5x3s2W2K6N6h3g2Q4x3V1k6J5x3r3y4S2M7s2c8#2M7X3f1`.)**
+
+#### 两种抓包模式
+
+- Spawn 模式，直接抓包
+
+  | 序号 | 命令 |
+  | --- | --- |
+  | 1 | `python r0capture.py -U -f 包名` |
+
+- Attach 模式，将抓包内容保存成pcap格式文件
+
+  | 序号 | 命令 |
+  | --- | --- |
+  | 1 | `python r0capture.py -U 包名 -p 文件名.pcap` |
+
+  建议使用`Attach`模式，从感兴趣的地方开始抓包，并且保存成`pcap`文件，供后续使用Wireshark进行分析。
+
+#### 导入脚本项目
+
+- 导入到Pycharm项目中
+
+  ![请添加图片描述](https://bbs.kanxue.com/upload/attach/202204/944393_4THG4REG98WVPNT.jpg)
+
+- 安装项目所需的包
+
+  | 序号 | 命令 |
+  | --- | --- |
+  | 1 2 3 | `# pip install win_inet_pton` `# pip install hexdump` `# pip install loguru` |
+
+- 在要执行文件`r0captue.py`的上一级开启一个命令行或直接`cd`到要执行的目录，如下图所示：
+
+  ![请添加图片描述](https://bbs.kanxue.com/upload/attach/202204/944393_3NUF2TG8QUZR84X.jpg)
+
+  在开启的命令行中两种方式的任意一种进行抓包，建议使用**Attach模式**，从感兴趣的地方开始抓包，并且保存成`pcap`文件。
+
+#### 开始抓包
+
+- 获取应用包名
+
+  | 序号 | 操作 |
+  | --- | --- |
+  | 1 | `adb shell am monitor` |
+  | 2 | 启动需要获取包名的应用 |
+  | 3 | 窗口就会打印出来当前应用的包名 |
+
+  ![请添加图片描述](https://bbs.kanxue.com/upload/attach/202204/944393_YYYYW9R69ZN9HDN.jpg)
+
+- **给应用添加读取存储空间权限**
+
+- 启动`frida-server`
+
+  | 序号 | 命令 |
+  | --- | --- |
+  | 1 | `adb sehll` |
+  | 2 | `su` |
+  | 3 | `cd /data/local/tmp/` |
+  | 4 | `./frida-server &` |
+  | 5 | `ps \| grep frida` |
+
+  ![请添加图片描述](https://bbs.kanxue.com/upload/attach/202204/944393_58MH94A2CTQ92X4.jpg)
+
+  检查是否启动成功：在电脑上新开一个`shell`，运行`frida-ps -U`命令，即可显示手机中正在运行的进程。
+
+  ![请添加图片描述](https://bbs.kanxue.com/upload/attach/202204/944393_9YSDFFZ56R3WN45.jpg)
+
+- Spawn 模式，直接抓包
+
+  用法：`python r0capture.py -U -f com.dianping.v1`
+
+  ![请添加图片描述](https://bbs.kanxue.com/upload/attach/202204/944393_J8UY3WS3J28GEU7.jpg)
+
+- Attach 模式，将抓包内容保存成pcap格式文件
+
+  先打开需要抓包的应用，然后在命令行输入
+
+  `python r0capture.py -U com.dianping.v1 -p 123.pcap`
+
+  在操作想抓包的地方，对应的记录会保存至项目同目录下的pcap文件中
+
+  ![请添加图片描述](https://bbs.kanxue.com/upload/attach/202204/944393_D4FYZ9EX3SHJEM2.jpg)
+
+  `Press Ctrl+C to stop logging.`
+
+  `Ctrl+C`结束，如果数据量很大的话，需要等待一会才能彻底关闭
+
+- 分析数据
+
+  通过上面的方式将抓取到的`pcap`格式的文件通过Wireshark打开，选择里面的某条数据内容使用`分析->追踪流->分析抓包数据`即可！如下图所示：
+
+  ![请添加图片描述](https://bbs.kanxue.com/upload/attach/202204/944393_YCAX3F96J9V6SJY.jpg)
+
+  ![请添加图片描述](https://bbs.kanxue.com/upload/attach/202204/944393_VY82HDCDWYGP3GQ.jpg)
+
+### 资源下载
+
+[e04K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5k6h3y4K6k6r3&6Q4x3X3g2F1k6i4c8Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5c8Y4q4I4i4K6g2X3x3K6R3I4y4e0b7&6y4o6S2Q4x3V1j5^5y4e0l9$3x3e0M7^5z5l9`.`.](https://bbs.kanxue.com/elink@d0cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5k6h3y4K6k6r3&6Q4x3X3g2F1k6i4c8Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5c8Y4q4I4i4K6g2X3x3K6R3I4y4e0b7&6y4o6S2Q4x3V1j5^5y4e0l9$3x3e0M7^5z5l9`.`.)
+
+---
+
+本文仅供学习交流使用，如侵立删！
+
+---
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+[#工具脚本](https://bbs.kanxue.com/forum-161-1-128.htm)
