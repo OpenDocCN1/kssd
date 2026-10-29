@@ -1,0 +1,208 @@
+
+# 基于 Python 的开源 LLDB 前端 GUI Voltron 简介
+
+译者：拟人（看雪 ID：piasvic）
+
+原文链接：2e1K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6L8X3q4J5k6g2)9J5c8Y4k6G2L8s2c8J5L8$3&6Q4c8e0g2Q4z5p5g2Q4z5f1k6Q4c8e0k6Q4z5e0k6Q4z5o6N6Q4c8e0c8Q4b7V1c8Q4z5f1y4Q4c8e0S2Q4z5o6m8Q4z5o6g2Q4c8f1k6Q4b7V1y4Q4z5f1q4K6L8X3q4J5k6b7.
+
+![](https://bbs.kanxue.com/upload/attach/201611/734558_hk8d3awaju53qoc.jpg)
+![](https://bbs.kanxue.com/upload/attach/201611/734558_f8q58z2pkosry7p.png)
+
+- 微信公众号：看雪 iOS 安全小组
+- 我们的微博：weibo.com/pediyiosteam
+- 我们的知乎：zhihu.com/people/pediyiosteam
+- 加入我们：看雪 iOS 安全小组成员募集中：<http://bbs.pediy.com/showthread.php?t=212949>
+- 看雪 iOS 安全小组]置顶向导集合贴：<http://bbs.pediy.com/showthread.php?t=212685>
+
+Voltron 是一个可扩展的调试器界面配置工具，以 Python 写成。它的目标是增强调试器（包括 LLDB、GDB、VDB 和 WinDbg）的用户体验，方式是允许自由组合各种工具视图，这些视图从宿主调试器处获取数据。你可以跟搭积木一样随便组合这些终端界面的视图来构建切合自己需要的调试界面。
+
+Voltron 并不试图讨好所有人。与其说它会成为你常用的调试器命令行的完整替代品，不如说它在试图以补充的方式让调试器命令行界面更易用。你可以只是简单地在调试器的命令行旁边加个寄存器视图，也可以把它折腾得跟 OllyDbg 差不多。
+
+下面是内建的视图类型：
+
+- 寄存器
+- 反汇编
+- 栈
+- 内存
+- 断点
+- Backtrace
+
+看看作者本人的设置：
+
+![](https://bbs.kanxue.com/upload/attach/201611/734558_9xgorpk5eglyu5s.png)
+
+任何调试指令都可以被分割进一个视窗，并用一个指定的 Pygments lexer 高亮：
+
+![](https://bbs.kanxue.com/upload/attach/201611/734558_3rs2whzep25s2oe.png)
+
+更多截图见[这儿](<https://bbs.kanxue.com/elink@c6bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6L8X3q4J5k6g2)9J5c8Y4k6G2L8s2c8J5L8$3&6Q4x3V1k6%4K9h3E0A6i4K6u0r3f1$3y4J5k6h3g2F1M7$3S2G2N6s2x3>)。
+
+## 支持的调试器和架构
+
+Voltron 支持 LLDB、GDB、VDB 和 WinDbg/CDB（通过 PyKD），可以跑在 macOS、Linux 和 Windows 上。
+
+WinDbg 支持刚刚加入，若发现任何问题请开个 issue。
+
+下面是支持的架构：
+
+|         | lldb | gdb | vdb | windbg |
+|---------|------|-----|-----|--------|
+| x86     | ✓    | ✓   | ✓   | ✓      |
+| x86_64  | ✓    | ✓   | ✓   | ✓      |
+| arm     | ✓    | ✓   | ✓   | ✗      |
+| arm64   | ✓    | ✗   | ✗   | ✗      |
+| powerpc | ✗    | ✓   | ✗   | ✗      |
+
+## 安装
+
+用下面的脚本下载安装：
+
+```bash
+$ git clone 8b8K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6L8X3q4J5k6g2)9J5c8Y4k6G2L8s2c8J5L8$3^5
+$ cd voltron
+$ ./install.sh
+```
+
+如果你想把这个 Python 包装到当前用户的 `site-packages` 目录，就加个 `-u` 参数：
+
+```bash
+$ ./install.sh -u
+```
+
+如果你在 Windows 上没有 shell 装不上，或者喜欢手动安装，来看这个手动安装文档。
+
+## 速成指南
+
+如果你的调试器支持初始化脚本（LLDB 是 `.lldbinit`，GDB 是 `.gdbinit`），把它设置成在里面执行 `entry.py` 脚本，来保证每次启动载入 Voltron。完整的路径在 `voltron` 包里。举个例子，在 macOS 里它可能是 `/Library/Python/2.7/site-packages/voltron/entry.py`。`install.sh` 脚本执行时如果在当前路径里探测到了 GDB 或者 LLDB 会自动把它加进去。
+
+LLDB：
+
+```lldb
+command script import /path/to/voltron/entry.py
+```
+
+GDB：
+
+```gdb
+source /path/to/voltron/entry.py
+```
+
+如果需要的话，手动启动你的调试器，然后初始化 Voltron。
+
+比较新的 LLDB 版本里不需要手动初始化 Voltron：
+
+```bash
+$ lldb target_binary
+```
+
+老点的版本里你就得在载入调试对象后手动调用 `voltron init` 了：
+
+```bash
+$ lldb target_binary
+(lldb) voltron init
+```
+
+GDB：
+
+```bash
+$ gdb target_binary
+```
+
+VDB：
+
+```bash
+$ ./vdbbin target_binary
+> script /path/to/voltron/entry.py
+```
+
+WinDbg/CDB 仅通过 Bash on Windows 支持。作者已通过 Git Bash 和 ConEmu 进行了测试。PyKD 可以在启动调试器时一并启动 Voltron：
+
+```bash
+$ cdb -c '.load C:\path\to\pykd.pyd ; !py --global C:\path\to\voltron\entry.py' target_binary
+```
+
+在另一个终端（我用 iTerm panes）里启动任一 UI 视图。在 LLDB、WinDbg 和 GDB 这几个调试器下这几个视图会立刻更新。在 VDB 下它们需要等到下个更新点（跑到断点、走完一步，等等）才会更新：
+
+```bash
+$ voltron view register
+$ voltron view stack
+$ voltron view disasm
+$ voltron view backtrace
+```
+
+设个断点，开动。
+
+```text
+(*db) b main
+(*db) run
+```
+
+当断点被触发时，视图会被更新到寄存器、堆栈、内存等等当前的状态。调试器命令行里的每个指令都会利用调试器的「暂停挂钩」更新视图。所以每次你 `step`，或者触发断点，视图都会更新。
+
+## 文档
+
+看看 GitHub 上的 [wiki](<https://bbs.kanxue.com/elink@932K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6L8X3q4J5k6g2)9J5c8Y4k6G2L8s2c8J5L8$3&6Q4x3V1k6%4K9h3E0A6>)。
+
+## 问答
+
+**Q. 为什么我载入 Voltron 时碰到一个 `ImportError`？**
+
+A. 你机器上可能不只装了一个版本的 Python，而且你把 Voltron 装到错误版本的 Python 上了。看看下面这个细节更多的[安装指南](<https://bbs.kanxue.com/elink@00fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6L8X3q4J5k6g2)9J5c8Y4k6G2L8s2c8J5L8$3&6Q4x3V1k6%4K9h3E0A6i4K6u0r3d9h3&6K6N6r3q4D9L8r3q4@1K9h3!0F1>)。
+
+**Q. [GEF](<https://bbs.kanxue.com/elink@9ecK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5N6h3N6K6P5g2)9J5c8X3N6W2k6R3>)? [PEDA](<https://bbs.kanxue.com/elink@712K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6D9L8$3&6Y4L8r3c8Q4x3V1k6H3k6h3c8S2>)? [PwnDbg](<https://bbs.kanxue.com/elink@56cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6H3N6$3&6V1j5X3N6Q4x3V1k6H3N6$3&6V1j5X3M7>)? [fG's gdbinit](<https://bbs.kanxue.com/elink@872K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Y4k6r3u0A6L8X3W2@1i4K6u0r3k6$3c8T1K9h3&6A6N6l9>)?**
+
+A. 这些都是超牛的 GDB 扩展。它们的主要目的是给挖洞提供更多针对性的命令，但是又都提供了各自独立的上下文来显示寄存器啊、栈啊、代码啊等等，跟 Voltron 一样。这些工具都在每次调试器暂停时打印各自的上下文。Voltron 则另辟蹊径，在调试器里塞了个 RPC 服务器，而让显示数据的视图可以容纳在其他终端（甚至浏览器，乃至 [synchronising with Binary Ninja](<https://bbs.kanxue.com/elink@80fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6L8X3q4J5k6g2)9J5c8X3u0A6L8X3A6S2>)中。这样用户就有机会给他们的调试器构建一个更干净的多窗口界面。Voltron 不需要这些工具就可以工作得很好，但你也可以改改这些工具，把它们本来在各自上下文里显示的内容钩到另外的 Voltron 视图里，就可以鱼与熊掌得兼了。
+
+**Q. 为什么我载入 Voltron 时碰到一个巨长的 Python backtrace，里面有 `error: [Errno 48] Address already in use?`（这个是译者加的，Surge 用户特供……）**
+
+A. 因为 Voltron 默认的配置使用 5555 端口进行 RPC 通讯，这个端口被 Surge 占了……从 Voltron 源码里把 `config/default.cfg` 拷贝为 `~/.voltron/config`（不存在请自行创建），然后找个文本编辑器改掉即可。
+
+## Bugs 和修复
+
+来 GitHub 上的 [issue tracker](<https://bbs.kanxue.com/elink@4a0K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6L8X3q4J5k6g2)9J5c8Y4k6G2L8s2c8J5L8$3&6Q4x3V1k6A6M7%4y4#2k6i4x3>) 了解了解，有问题就提问。
+
+要是你还在载入 Voltron 时碰见 `ImportError` 问题，请瞅瞅是否遵循了你用的平台的[安装指南](<https://bbs.kanxue.com/elink@f88K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6L8X3q4J5k6g2)9J5c8Y4k6G2L8s2c8J5L8$3&6Q4x3V1k6%4K9h3E0A6i4K6u0r3d9h3&6K6N6r3q4D9L8r3q4@1K9h3!0F1>)。
+
+### LLDB
+
+在较旧的 LLDB 版本下，`voltron init` 命令只能在载入调试目标后手动执行，因为没有目标 Voltron 不能开始挂钩。Voltron 会自动尝试注册其事件处理代码，如果 `voltron init` 是必需的会加以提示。
+
+### WinDbg
+
+关于 WinDbg/CDB 支持的更多信息请看[这儿](<https://bbs.kanxue.com/elink@ba1K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6L8X3q4J5k6g2)9J5c8Y4k6G2L8s2c8J5L8$3&6Q4x3V1k6%4K9h3E0A6i4K6u0r3d9h3&6K6N6r3q4D9L8r3q4@1K9h3!0F1i4K6t1K6N6$3W2F1k6r3u0Y4>)。
+
+### 其他
+
+作者的主要工作平台是 macOS 和最新的 LLDB。我们会尽最大努力解决其他架构和平台上的问题，但是 LLDB/macOS/x64 到目前为止是测试最全的。希望 Voltron 别给你造成麻烦——但这事还是得看人品。
+
+## 协议
+
+---
+
+看看[授权文件](<https://bbs.kanxue.com/elink@ae2K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6L8X3q4J5k6g2)9J5c8Y4k6G2L8s2c8J5L8$3&6Q4x3V1k6T1L8r3!0T1i4K6u0r3L8h3q4K6N6r3g2J5i4K6u0r3e0p5W2o6c8f1&6e0c8b7>)。
+
+如果你在用 Voltron——并且不讨厌——参加会议碰见的时候可以给我买杯啤酒。这个协议同样适用于其他的贡献者——[richo](<https://bbs.kanxue.com/elink@73dK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3N6A6N6r3S2#2j5W2)9J5k6h3y4G2L8g2)9J5c8Y4u0A6j5$3S2G2>)的贡献可值好几杯呢。
+
+## 致谢
+
+感谢我之前的雇主 Assurance and Azimuth Security 给了我在这个项目上工作的时间。
+
+向[richo](<https://bbs.kanxue.com/elink@350K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3N6A6N6r3S2#2j5W2)9J5k6h3y4G2L8g2)9J5c8Y4u0A6j5$3S2G2>)致谢，为了他给 Voltron 的所有贡献。
+
+[fG!](<https://bbs.kanxue.com/elink@b0dK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3N6A6N6r3S2#2j5W2)9J5k6h3y4G2L8g2)9J5c8X3N6V1j5X3W2F1K9i4b7>) 的 `gdbinit` 脚本是这个项目一开始的灵感。
+
+感谢[Willi](<https://bbs.kanxue.com/elink@54dK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3N6A6N6r3S2#2j5W2)9J5k6h3y4G2L8g2)9J5c8Y4N6A6L8r3I4A6j5X3q4D9L8r3g2F1N6r3S2A6L8R3>) 实现 VDB 支持。
+
+Voltron 现在使用[Capstone](<https://bbs.kanxue.com/elink@70bK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3y4S2M7s2y4@1L8$3&6W2i4K6u0V1k6h3&6Y4K9h3&6W2i4K6u0W2L8%4u0Y4>)作为反汇编器，以及调试器主机端内部的反汇编机制。这是一个强大的开源跨平台反汇编器，下一代逆向工程和调试工具将在其基础上诞生。看看吧。
+
+感谢[grazfather](<https://bbs.kanxue.com/elink@f07K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3N6A6N6r3S2#2j5W2)9J5k6h3y4G2L8g2)9J5c8X3N6J5j5i4A6X3j5i4c8Z5k6i4t1>)当下和未来的贡献。
+
+本文下载：[`Voltron简介翻译.pdf`](https://bbs.kanxue.com/attach-download-108220.htm)
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [`微信二维码150.jpg`](javascript:void(0);)（15.94kb，6次下载）
+- [`新浪微博二维码.png`](javascript:void(0);)（15.42kb，4次下载）
+- [`1.png`](javascript:void(0);)
