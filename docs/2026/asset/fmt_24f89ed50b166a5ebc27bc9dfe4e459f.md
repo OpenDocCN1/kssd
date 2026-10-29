@@ -37,13 +37,13 @@ return SandHook.getObject(address);
 
 ----
 
-### 结果
+## 结果
 
 - 如此，几乎 9 成以上的函数 Hook 都走内部 Stub 的方式，Hook 耗时在 1ms 以内
 
-- DexMaker 方式第一次大约需要 80ms 左右，后面直接加载约为 3 - 5ms，其实也能接受
+- `DexMaker` 方式第一次大约需要 80ms 左右，后面直接加载约为 3 - 5ms，其实也能接受
 
----
+----
 
 ## Inline 处理
 
@@ -51,7 +51,7 @@ return SandHook.getObject(address);
 
 - 阻止 JIT Inline
 
-- 阻止 dex2oat Inline(Profile)
+- 阻止 `dex2oat` Inline(Profile)
 
 - 系统类中 Inline 的如何处理
 
@@ -59,7 +59,7 @@ return SandHook.getObject(address);
 
 ### ART Inline 优化
 
-ART 的 inline 类似其他语言的编译器优化，在 Runtime(JIT) 或者 dex2oat 期间, ART 将 “invoke 字节码指令” 替换成 callee 的方法体。
+ART 的 inline 类似其他语言的编译器优化，在 Runtime(JIT) 或者 `dex2oat` 期间, ART 将 “invoke 字节码指令” 替换成 callee 的方法体。
 
 往往被 inline 的都是较为简单的方法。
 
@@ -95,7 +95,7 @@ return false;
 
 当被 inline 方法的 code units 大于设置的阈值的时候，方法 Inline 失败。
 
-这个阈值是 `CompilerOptions -> inline_max_code_units_`
+这个阈值是 `CompilerOptions` -> `inline_max_code_units_`
 
 ----
 
@@ -117,9 +117,31 @@ std::unique\_ptr<CompilerOptions> compiler\_options\_;
 
 ----
 
+ART 的 `JitCompiler` 为全局单例：
+
+```cpp
+// JIT compiler
+static void\* jit\_compiler\_handle\_;
+jit->dump\_info\_on\_shutdown\_ = options->DumpJitInfoOnShutdown();
+if (jit\_compiler\_handle\_ == nullptr && !LoadCompiler(error\_msg)) {
+return nullptr;
+}
+jit\_compiler\_handle\_ = (jit\_load\_)(&will\_generate\_debug\_symbols);
+extern "C" void\* jit\_load(bool\* generate\_debug\_info) {
+VLOG(jit) << "loading jit compiler";
+auto\* const jit\_compiler = JitCompiler::Create();
+CHECK(jit\_compiler != nullptr);
+\*generate\_debug\_info = jit\_compiler->GetCompilerOptions()->GetGenerateDebugInfo();
+VLOG(jit) << "Done loading jit compiler";
+return jit\_compiler;
+}
+```
+
+----
+
 #### 结论
 
-ok，那么我们就得到了 “`static void\* jit\_compiler\_handle\_`” 的 C++ 符号 “`\_ZN3art3jit3Jit20jit\_compiler\_handle\_E`“
+ok，那么我们就得到了 “`static void* jit_compiler_handle_`” 的 C++ 符号 “`_ZN3art3jit3Jit20jit_compiler_handle_E`“
 
 最后修改里面的值就可以了。
 
@@ -127,11 +149,11 @@ ok，那么我们就得到了 “`static void\* jit\_compiler\_handle\_`” 的 
 
 ----
 
-### 阻止 dex2oat Inline
+### 阻止 `dex2oat` Inline
 
 - Android N 以上默认的 ART 编译策略为 speed-profile
 
-- 除了 JIT 期间的内联，系统在空闲时会根据这个所谓的 profile 进行 speed 模式的 dex2oat
+- 除了 JIT 期间的内联，系统在空闲时会根据这个所谓的 profile 进行 speed 模式的 `dex2oat`
 
 - speed 模式包含 Inline 优化
 
@@ -141,9 +163,9 @@ ok，那么我们就得到了 “`static void\* jit\_compiler\_handle\_`” 的 
 
 #### 如何阻止
 
-- 提前主动调用 dex2oat，附带 `--inline-max-code-units=0` 参数，要求 Dex 是动态加载的 (`ArtDexOptimizer`)
+- 提前主动调用 `dex2oat`，附带 `--inline-max-code-units=0` 参数，要求 Dex 是动态加载的 (`ArtDexOptimizer`)
 
-- 如果上述条件无法满足，则需要干掉 profile 文件以阻止空闲时 dex2oat，当然会对性能造成一定影响 (`SandHook.tryDisableProfile`)
+- 如果上述条件无法满足，则需要干掉 profile 文件以阻止空闲时 `dex2oat`，当然会对性能造成一定影响 (`SandHook.tryDisableProfile()`)
 
 ----
 
@@ -151,7 +173,7 @@ ok，那么我们就得到了 “`static void\* jit\_compiler\_handle\_`” 的 
 
 - 首先明确一点是 profile 是安装时创建的，并非由 ART 创建，ART 只负责读取以及写入
 
-- profile 存储了方法的热度，以指导 dex2oat 进程编译高热度方法
+- profile 存储了方法的热度，以指导 `dex2oat` 进程编译高热度方法
 
 - 如果你从 Google Play 下载某个热门 App，是有可能带有一份已经有内容的 profile 的
 
@@ -191,7 +213,7 @@ return false;
 
 ----
 
-#### dexOptimize
+#### `dexOptimize`
 
 - 我们 `dexOptimize Caller` 使 `Caller` 重返解释执行，那么就可以顺利的调入我们的 Hook 方法
 
@@ -207,27 +229,27 @@ return false;
 
 - 但是这个符号是被保留的，在 `SHT_SYMTAB` 中，这个表存储了所有的符号，所以我重新实现了符号搜索
 
-- 除此之外也可以从从未调用的方法中获取，但是可能遇到被强制 dex2oat 的情况
+- 除此之外也可以从从未调用的方法中获取，但是可能遇到被强制 `dex2oat` 的情况
+
+----
 
 <mark class="encrypted">df9K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Y4j5h3&6&6j5h3)9I4x3e0c8Q4x3V1k6m8L8X3c8J5L8$3W2V1c8f1I4r3</mark>
 
----
+----
 
 ## Android Q
 
-- AccessFlag
+- `AccessFlag`
 
 - Hidden API
 
 ----
 
-### AccessFlag
+### `AccessFlag`
 
 这个比较好解决，Android Q 上也是因为 Hidden Api 机制为每个方法增加了一个 Flag，导致我使用预测 Flag 值在 `ArtMethod` 中搜索 Offset 未能搜到。
 
 `kAccPublicApi = 0x10000000` 代表此方法/Field 为公开 API
-
-----
 
 ```cpp
 uint32\_t accessFlag = getIntFromJava(jniEnv, "com/swift/sandhook/SandHook",
@@ -252,7 +274,7 @@ int offset = findOffset(p, getParentSize(), 2, accessFlag);
 
 - Hook 法，Hook 某些判断函数，修改 ART 对限制 API 的判断流程
 
-- Hidden API 在内部抽象为 `Policy`，修改全局的 `Policy` 策略，一般是 `Runtime` 中的某个 Flag
+- Hidden API 在内部抽象为 Policy，修改全局的 Policy 策略，一般是 Runtime 中的某个 Flag
 
 - 系统函数调 Hidden API 是 OK 的，想办法让 ART 误以为是系统函数调用 API，一般是修改 `ClassLoader`
 
@@ -260,7 +282,7 @@ int offset = findOffset(p, getParentSize(), 2, accessFlag);
 
 ### P 与 Q 的区别
 
-P 上，判断函数较为集中，`Policy` 的 Flag 也较为好搜索，然而到了 Q 上就多了，至于在 `Runtime` 中搜索 Flag，由于 `Runtime` 是个巨大的结构体，这并不是一个健壮的方法。。。
+P 上，判断函数较为集中，Policy 的 Flag 也较为好搜索，然而到了 Q 上就多了，至于在 `Runtime` 中搜索 Flag，由于 `Runtime` 是个巨大的结构体，这并不是一个健壮的方法。。。
 
 ----
 
@@ -298,11 +320,11 @@ return false;
 }
 ```
 
----
+----
 
-![sandhook\_arch.png](upload/attach/202001/675677\_X69WEGRSA8KGTUV.jpg)
+![sandhook_arch.png](upload/attach/202001/675677_X69WEGRSA8KGTUV.jpg)
 
----
+----
 
 ## 进程注入
 
@@ -357,6 +379,8 @@ Root 注入基本分为：
 - 需要沙箱环境，核心在于利用同 UID 免 Root 使用 `ptrace`，步骤和上面相同
 
 - 类似 GG 助手
+
+----
 
 <mark class="encrypted">833K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Y4j5h3&6&6j5h3)9I4x3e0c8Q4x3V1k6e0j5h3&6V1b7X3!0^5d9r3!0G2K9#2m8D9N6h3N6A6L8R3`.`.</mark>
 

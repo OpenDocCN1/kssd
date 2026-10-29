@@ -1,0 +1,278 @@
+
+# [原创]Art模式下Xposed实现原理
+
+算是作为一个 Art 学习的切入点吧
+
+网上找了很多资料，大多数基于dvm的资料。
+
+（Dvm可以 参考 邓凡平先生的 博客 ：bcfK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1L8r3!0Y4i4K6u0W2j5%4y4V1L8W2)9J5k6h3&6W2N6q4)9J5c8V1W2F1L8X3!0K6N6q4)9J5c8X3q4J5N6r3W2U0L8r3g2Q4x3V1k6V1k6i4c8S2K9h3I4K6i4K6u0r3y4e0l9@1y4U0p5%4z5o6y4Q4c8f1k6Q4b7V1y4Q4z5o6V1`.
+
+今天也是自我总结一下 Art模式下的
+
+在github 搜索 可得如下三个项目，分别介绍一下
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_Y2HXX6QN76GFQ44.jpg)
+
+XposedInstaller ，这是 Xposed 的插件管理和功能控制 APP，也就是说 Xposed 整体管控功能就是由这个 APP 来完成的，它包括启用 Xposed 插件功能，下载和启用指定插件 APP，还可以禁用 Xposed 插件功能等。注意，这个 app 要正常无误得运行必须能拿到 root 权限。
+
+Xposed，这个项目属于 Xposed 框架，其实它就是单独搞了一套 xposed 版的 zygote。这个 zygote 会替换系统原生的 zygote。所以，它需要由 XposedInstaller 在 root 之后放到 /system/bin 下。
+
+XposedBridge，这个项目也是 Xposed 框架，它属于 Xposed 框架的 Java 部分，编译出来是一个 XposedBridge.jar 包。
+
+## 问题1
+
+当我们获取Root以后安装Xposed会发生什么？
+
+下载XposedInstaller 导入 AndroidStudio
+
+先看看 安装之前 ：
+
+从页面初始化开始入手
+
+`StatusInstallerFragment->onCreateView`
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_PSD95XAWCTKVZFD.jpg)
+
+第一次见到`user_de`目录 使用如下
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_XZYWHT488C3KB8U.jpg)
+
+安装完毕之后 ，当我们点击
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_Y8GJSEUMFNVEA2P.jpg)
+
+获取手机的各种信息，拼接成下载的URL
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_NZGPBYAYXCA8QYS.jpg)
+
+我们以 安卓 7.1 arm64的 为标准
+
+下载完毕的 zip内容如下 主要包含 system 和 META-INT两个文件夹
+
+```
+system->
+    ---lib64->
+        ------libart.so
+        ------libart-compiler.so
+        ------libart-disassembler.so
+        ------libsigchain.so
+        ------libxposed_art.so
+    ---lib->
+        ------libart.so
+        ------libart-compiler.so
+        ------libsigchain.so
+        ------libxposed_art.so
+    ---framework->
+        ------XposedBridge.jar（注入到对应app进程里面的jar包）
+    ---bin->
+        ------app_process32_xposed
+        ------app_process64_xposed
+        ------dex2oat
+        ------patchoat
+    xposed.prop->
+        ------xposed版本说明文件
+META-INT->
+    ---里面有文件配置脚本 flash-script.sh 配置各个文件安装位置
+```
+
+下载完毕会跳转到 `InstallationActivity`
+
+`onCreate` 函数 -> 创建 `InstallationFragment`
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_Y2UZU9CF9MQTYYG.jpg)
+
+-> 调用 `startInstallation` 解压 zip 文件 -> 执行 `done` 回调 ->
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_D4G9MZZ2QXTK4UW.jpg)
+
+替换系统system对应目录下的文件 -> 执行刷机命令 -> 重启手机
+
+## 问题2
+
+Xposed 如何注入到zygote 进程中的？
+
+首先复习一下Art虚拟机启动流程：
+
+主要大致流程
+
+①Linux init进程解析配置脚本 -> ②`app_process`（zygote进程对应的程序）-> ③`ZygoteInit`
+
+### ① 解析配置脚本
+
+`service zygote`：它告诉`init`进程，现在我们要配置一个名为`zygote`的服务。
+
+`/system/bin/app_process`：声明`zygote`进程对应的文件路径。`init`创建服务的处理逻辑很简单，就是启动（fork）一个子进程来运行指定的程序。对`zygote`服务而言这个程序就是`/system/bin/app_process`。
+
+`-Xzygote/system/bin--zygote--start-system-server`：传递给`app_process`的启动参数。
+
+### ② app_process 创建
+
+`frameworks\base\cmds\app_process.cpp` -> `main`函数
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_WJWRCKM6E5GDKWM.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_7DE5DJCMMYVUU2U.jpg)
+
+`frameworks\base\core\jni\AndroidRuntime.cpp` -> `start`函数
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_CESY658DFBEC543.jpg)
+
+核心函数为： `init`, `startVm`
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_964SK2XU3X5EK7Y.jpg)
+
+三个函数主要功能：
+
+1. `JNI_GetDefaultJavaVMInitArgs` -- 获取虚拟机的默认初始化参数
+
+2. `JNI_CreateJavaVM` -- 在进程中创建虚拟机实例
+
+3. `JNI_GetCreatedJavaVMs` -- 获取进程中创建的虚拟机实例
+
+ART像Dalvik一样，都实现Java虚拟机接口，这三个接口也是ART虚拟机核心接口。
+
+`startVm`函数很复杂牵扯逻辑也很多，不 逐一描述了。
+
+### ③ ZygoteInit
+
+继续查看 `frameworks\base\core\jni\AndroidRuntime.cpp` -> `start`函数
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_964SK2XU3X5EK7Y.jpg)
+
+参数`className`的值等于`com.android.internal.os.ZygoteInit`，本地变量`env`是从调用另外一个成员函数`startVm`创建的ART虚拟机获得的JNI接口。函数的目标就是要找到一个名称为`com.android.internal.os.ZygoteInit`的类，以及它的静态成员函数`main`，然后就以这个函数为入口，开始运行ART虚拟机。为此，函数执行了以下步骤：
+
+① 调用JNI接口`FindClass`加载`com.android.internal.os.ZygoteInit`类。
+
+② 调用JNI接口`GetStaticMethodID`找到`com.android.internal.os.ZygoteInit`类的静态成员函数`main`。
+
+③ 调用JNI接口`CallStaticVoidMethod`开始执行`com.android.internal.os.ZygoteInit`类的静态成员函数`main`。
+
+下面看看 Xposed是如何做拦截的
+
+开打 Xposed项目
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_C9BB6SMVQKZ6MDU.jpg)
+
+大于21编译走的是`app_main2.cpp` 看看 具体改动了哪些
+
+经过查阅，被修改的`main`函数，一共有两个地方。
+
+其一，红框的地方 是判断是否是Xposed版本的虚拟机
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_Q8WYNH36RPAEQJJ.jpg)
+
+在解析开启启动`init`脚本的时候 添加了`--xposedversion`版本号的命令
+
+这块启动的已经是自定义的虚拟机了
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_ZWXAH2HZ3ENCFGC.jpg)
+
+`handleOptions`函数
+
+第二个地方在 `start`函数这块，先看看 原函数。
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_5UHFWG787HH2HNN.jpg)
+
+原函数
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_RJ9CFXJCY9EXHXJ.jpg)
+
+xposed zygote函数
+
+也是在这个地方 进行的初始化 判断是否初始化成功 。
+
+`initialize` 函数返回的是否加载成功的 一个全局变量 `isXposedLoaded`
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_4KAP7CJRXJCM96A.jpg)
+
+initialize函数
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_4N67A39W2X9FD5H.jpg)
+
+xposed自定义的数据结构体
+
+初始化完毕以后开始调用真正的`start`函数
+
+下面看 `runtimeStart` 函数
+
+这块很有趣 在`libart.so`里面根据符号表信息尝试拿到`Android::start`函数
+
+上面这些只要有一步失败了，在刷入的时候就可能变砖。
+
+如果获取到了，则可以直接通过函数指针调用，主要是针对一些特殊的安卓版本号。
+
+如果都没有找到 可以看到 `Log`会打印 。
+
+`app_process: could not locate AndroidRuntime::start() method.`
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_V2UND2GJGV27STB.jpg)
+
+runtimeStart函数
+
+（这个地方有个小技巧，可以对so文件里面的全部函数名字进行逐一字符判断，比如可以对这个字符串 判断 是否含有 R u n t i m e s t a r t 这几个字符，来绕过因为编译优化字符串不同问题）
+
+这样一来完美替换了原虚拟机。
+
+在新的虚拟机里面 会 将 `XposedBridge.jar` 进行注入，这么一来，所有被Xposed fork的进程都具备了 `XposedBridge.jar` 的代码 。
+
+## 问题3
+
+当我们`findAndHookMethod`一个函数以后Xposed是怎么处理的？
+
+打开XposedBridge项目
+
+找到 `findAndHookMethod`
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_DJ8AY98R4J6GCSU.jpg)
+
+findAndHookMethod
+
+跟入`XposedBridge.hookMethod`
+
+参数1 是一个 接口 可能传入的是一个 `Constructor` （构造方法的反射实例）也可能是 `Method`
+
+`Member` 类型是`Constructor` 和`Method`都已经实现的，因为Xposed支持 Hook构造和`Method`。
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_UVJB9CHVB2K2G7V.jpg)
+
+hookMethod
+
+最终 走到`HookMethodNative`方法，注册地方在Xposed里面的`libXposed_common.cpp`中
+
+`slot` 是 `Method`在类中的偏移位置
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_M8V93G2CS34RK36.jpg)
+
+重点分析一下实现过程
+
+返回到Xposed 项目
+
+`libxposed_art.cpp` -> `XposedBridge_hookMethodNative`函数
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_3BPSN9TWW595G3Y.jpg)
+
+XposedBridge_hookMethodNative
+
+`ScopedObjectAccess soa(env);`
+
+（SOA，就是约定的调用，包装`env`，出了函数范围自动释放）
+
+`FromReflectedMethod`是`ArtMethod`里面的方法
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_PFFKZC46K4GXTEU.jpg)
+
+FromReflectedMethod
+
+也很简单 就是调用里面的`GetArtMethod`，在art虚拟机中，每一个加载的类方法都有一个对应的`ArtMethod`对象。
+
+返回去 继续看 `EnableXposedHook` 函数
+
+`EnableXposedHook` 在`art_method.cc`里面
+
+文件地址 ：ca9K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6J5L8%4k6G2z5o6W2Q4x3V1k6S2L8X3c8J5L8$3W2V1i4K6g2X3j5i4u0@1i4K6u0r3j5X3I4G2j5W2)9J5c8X3t1J5x3$3j5@1z5e0j5J5x3$3q4S2y4o6q4X3k6U0c8S2j5$3x3&6j5U0p5^5k6X3y4V1z5r3t1@1y4h3y4V1j5U0R3@1z5e0y4W2j5U0k6Q4x3V1k6J5N6h3&6@1K9h3#2W2i4K6u0r3j5i4u0@1i4K6g2X3L8h3g2@1K9r3!0V1i4K6u0W2j5$3x3
+
+![](https://bbs.kanxue.com/upload/attach/202002/819934_SF7WX7J7SKQB6D5.jpg)
+
+EnableXposedHook①
+
+（`PrettyMethod`函数有个小技巧 当我们分析被So中注册函数的时候 ，可以直接用`ArtMethod`的this指针调用 `PrettyMethod` 函数拿到签名信息）

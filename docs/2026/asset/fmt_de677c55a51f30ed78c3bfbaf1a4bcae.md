@@ -1,0 +1,42 @@
+
+- 参考我的[数据滤镜](https://bbs.kanxue.com/elink@5f1K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6j5h3&6X3k6h3&6Y4b7h3&6V1M7X3!0A6k6q4)9J5c8V1k6S2K9$3g2j5M7r3!0K6k6h3c8Q4x3V1k6T1L8r3!0T1i4K6u0r3L8h3q4A6L8W2)9J5c8X3q4H3M7q4)9J5c8Y4y4J5j5#2)9J5c8X3#2S2K9h3&6Q4x3V1k6U0M7s2m8Q4x3V1k6Z5L8$3!0C8i4K6u0r3K9r3!0G2K9#2)9#2k6X3A6S2N6X3q4Q4y4h3k6F1j5i4c8A6N6X3g2Q4x3X3g2U0M7s2l9`.) 内部完成了`VMDebug.isDebuggerConnected`、`Throwable.nativeGetStackTrace`、`Class.classForName`等等函数。
+
+- 上面我们采用重新注册来替换原来的地址，那么自然第一种动态查找的`native`方法我们也采取动态注册的方法占坑，然后系统就不会再走查找流程，如果我们要调用原函数则自己动态查找符号即可。
+
+- 上面的方式需要在原方法已经注册后再 Hook，不然拿到的地址只是动态查找入口地址，那么假如我们不知道它什么时候注册该怎么办呢，或者我们先注册后面又被它自己重新注册呢。这种情况我们可以`Hook` `RegisterNative`函数，其具体实现也在我的[fake-linker](https://bbs.kanxue.com/elink@068K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6j5h3&6X3k6h3&6Y4b7h3&6V1M7X3!0A6k6q4)9J5c8X3k6S2K9$3g2Q4x3X3c8D9K9h3&6C8k6i4u0Q4x3V1k6T1L8r3!0T1i4K6u0r3L8h3q4A6L8W2)9J5c8Y4y4J5j5#2)9J5c8X3#2S2K9h3&6Q4x3V1k6U0M7s2m8Q4x3V1k6D9K9h3&6C8k6i4u0Q4x3V1k6S2M7Y4c8Q4x3V1k6Z5L8$3!0C8i4K6g2X3K9X3&6A6i4K6g2X3L8X3q4@1K9i4k6W2i4K6g2X3K9h3&6@1k6i4u0X3j5h3y4W2i4K6g2X3K9h3#2H3L8q4)9J5k6h3y4H3M7l9`.`.) 中，`Hook JNI`函数更加简单，本质上只是一些函数指针，直接替换为我们的即可，但是要注意读写权限。
+
+## 注意事项
+
+- 在`Android 9`以上不能反射隐藏类，通过`jni`函数也不能获取到，因此需要先过掉反射限制。
+
+- `Android 8`以下使用的是`!bang JNI`，8及以上使用`FastNative`，参考[变更](https://bbs.kanxue.com/elink@559K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6K6L8%4g2J5j5$3g2Q4x3X3g2S2L8X3c8J5L8$3W2V1i4K6u0W2k6$3!0G2k6$3I4W2i4K6u0W2j5$3&6Q4x3V1k6V1k6i4k6A6j5$3g2K6i4K6u0r3N6r3g2U0K9q4)9J5c8X3c8S2L8s2k6A6K9#2)9J5c8X3W2E0M7s2u0G2N6X3g2E0k6h3&6@1M7#2)9K6c8X3S2D9i4K6y4p5P5X3S2Q4x3X3c8U0L8R3`.`.)，因此低版本注册`FastNative`方法时签名需要`!`开头。
+
+- 在源码中注册都是加了锁的而我们没有加锁，因此理论上可能会出错，但实际上`ArtMethod`位置并不会改变，并且注册以后通常其值也不会改变，因此没有必要加锁。
+
+## 后记
+
+- 通过上面的方法调用`RegisterNatives`来交给系统帮我们`Hook`，这样减少很大的适配，而我们只需获取原方法地址和访问标志，适配代码量大大减少且通用性更强。在`Android`中比较关键的函数基本都是在`Native`方法中完成，因此适用性还是挺高的。
+
+- 避免被检测性加强，因为我们`Hook`更底层的`Native`函数，整个过程唯一变动的就是`ArtMethod`中的`jni`入口指针，这样检测难度稍微增加。
+
+- 不必依赖任何框架，更加减少被检测到的可能性。
+
+- 缺点就是`Java Hook`变成了`native hook`了，编写代码的难度上升了一些，当然你可以注册一个通用的`native`函数做跳板，然后跳转回`Java`处理。
+
+## 我的项目参考
+
+- [fake-linker](https://bbs.kanxue.com/elink@f63K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6j5h3&6X3k6h3&6Y4b7h3&6V1M7X3!0A6k6q4)9J5c8X3k6S2K9$3g2Q4x3X3c8D9K9h3&6C8k6i4t1`.) 集成`JNI`、`Java native`函数`Hook`、`LD_PRELOAD`模式的`PLT Hook`、`Android 7`以上绕过命名空间限制等等。
+
+- [数据滤镜](https://bbs.kanxue.com/elink@515K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6j5h3&6X3k6h3&6Y4b7h3&6V1M7X3!0A6k6q4)9J5c8V1k6S2K9$3g2j5M7r3!0K6k6h3b7`.) 用于分析恶意软件，提供高度自由的数据过滤、文件重定向、maps文件过滤、动态符号查找过滤等等。
+
+## 原文我的博客链接
+
+点击[这里](https://bbs.kanxue.com/elink@472K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6K6j5h3&6X3k6h3&6Y4j5h3&6V1M7X3!0A6k6q4)9J5k6h3N6A6N6r3S2#2j5W2)9J5k6h3W2G2i4K6u0r3x3U0l9J5x3g2)9J5c8U0l9J5i4K6u0r3x3U0S2Q4x3V1k6K6K9h3#2H3L8r3g2Q4x3X3c8B7j5i4k6S2i4K6u0V1L8X3q4@1K9i4k6W2i4K6u0V1K9r3!0G2K9#2)9J5c8R3`.`.)。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+[#逆向分析](https://bbs.kanxue.com/forum-161-1-118.htm)
+
+[#HOOK注入](https://bbs.kanxue.com/forum-161-1-125.htm)
+
+[#源码框架](https://bbs.kanxue.com/forum-161-1-127.htm)
