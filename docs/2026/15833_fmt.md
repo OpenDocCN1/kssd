@@ -1,11 +1,11 @@
 
-# 利用Hook技术实现对Instagram的抓包
+# [原创]利用Hook技术实现对Instagram的抓包
 
 ## 前言
 
 听别人说Instagram没法抓包，于是这篇文章诞生了。
 
-Instagram的防护做的很好，自己实现了一层SSL，直接过掉了`r0capture`等一些常见的工具，既然大佬的轮子用不了，那就只能自己动手了。
+Instagram的防护做的很好，自己实现了一层SSL，直接过掉了r0capture等一些常见的工具，既然大佬的轮子用不了，那就只能自己动手了。
 
 **分析样本**：Instagram `184.0.0.30.117`
 
@@ -13,7 +13,7 @@ Instagram的防护做的很好，自己实现了一层SSL，直接过掉了`r0ca
 
 使用反编译工具导入，发现对变量名进行了混淆，先捋一下思路：
 
-抓不到包，看不到关键字，那就只能根据经验猜测字段了，APP有登录功能，尝试搜索常见的API名称 `login`、`login/`、`login"`、`"login"`、`"login`。定位到URI的处理点在附近查看有没有关于协议头，URL和HTTP的处理。找到底层Send函数，Hook，拿到HTTP报文。
+抓不到包，看不到关键字，那就只能根据经验猜测字段了，APP有登录功能，尝试搜索常见的API名称 `login`，`login/`，`login"`，`"login"`，`"login`。定位到URI的处理点在附近查看有没有关于协议头，URL和HTTP的处理。找到底层Send函数，Hook，拿到HTTP报文。
 
 ## 定位迷途
 
@@ -47,11 +47,11 @@ Instagram的防护做的很好，自己实现了一层SSL，直接过掉了`r0ca
 
 ![](upload/attach/202104/883754_76QJGY5J8J8S36J.png)
 
-既然没找错，看`A02`方法，发现`JADX`反编译不出来，换用`GDA`。
+既然没找错，看`A02`方法，发现JADX反编译不出来，换用GDA。
 
 ![](upload/attach/202104/883754_DN4SCSK6TBWMDSZ.png)
 
-明显的协议头，明显的`http`，引用了`apache`开源的HTTP框架
+明显的协议头，明显的http，引用了apache开源的HTTP框架
 
 ![](upload/attach/202104/883754_ZJU8TMSD5AXUQN2.png)
 
@@ -69,7 +69,7 @@ Instagram的防护做的很好，自己实现了一层SSL，直接过掉了`r0ca
 
 综上分析，只需要Hook `com.facebook.proxygen.JniHandler.sendHeadersWithBodyAndEom` 就能得到包数据了。
 
-google了一下`org.apache.http`的源码：
+google了一下`org.apache.http`的源码：<a href="elink@e6eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2L8X3c8J5L8$3W2V1i4K6u0W2k6$3!0G2k6$3I4W2M7$3!0#2M7X3y4W2i4K6u0W2j5$3!0E0i4K6u0r3M7r3I4S2N6r3k6G2M7X3#2Q4x3V1k6W2P5s2c8W2M7X3&6S2L8q4)9J5c8X3q4H3j5h3y4Z5k6g2)9J5k6r3S2@1N6s2m8Q4x3V1k6Q4x3V1u0Q4x3V1k6J5k6h3k6K6i4K6u0r3K9r3g2S2k6s2y4Q4x3V1k6D9L8$3I4D9K9i4m8G2M7q4)9J5k6r3#2J5x3g2)9J5k6s2N6X3j5#2)9J5k6s2u0W2L8r3g2S2M7$3g2Q4x3V1k6K6M7X3y4Q4x3V1k6G2M7X3N6Q4x3V1k6S2M7r3q4U0K9r3g2Q4x3V1k6Z5N6s2c8H3">org.apache.http - Google</a>
 
 ```javascript
 function getClassName(obj) {
@@ -113,4 +113,4 @@ setTimeout(getNetPack,10);
 
 看了看`enc_password`的加密，看起来是`RSA+AES-GCM`，满心欢喜。
 
-仔细一看`native`层调用，动态加载`so`… dump出来一看是`vmp`，`mmp`…
+仔细一看native层调用，动态加载so… dump出来一看是vmp，mmp…

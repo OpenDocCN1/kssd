@@ -1,0 +1,385 @@
+
+```C
+export default class Cat {
+private name: string;
+constructor(name: string) {
+this.name = name;
+}
+say() {
+console.log(this.name);
+}
+}
+```
+
+现在项目结构如下：
+
+```C
+ts3
+├─dist
+└─node\_modules
+└─src
+└─Cat.ts
+└─index.ts
+└─.eslintrc.js
+└─package-lock.json
+└─package.json
+└─tsconfig.json
+```
+
+上述代码复制粘贴，保存之后，会提示这样的错误：
+
+**错误1**
+
+```C
+Unable to resolve path to module './Cat'.eslint[import/no-unresolved](https://github.com/benmosher/eslint-plugin-import/blob/v2.22.1/docs/rules/no-unresolved.md)
+```
+
+解决办法是使用 `eslint-import-resolver-alias` ，先安装依赖，执行下面的命令：
+
+```C
+npm install eslint-plugin-import eslint-import-resolver-alias --save-dev
+```
+
+然后，在 `.eslintrc.js` 配置中，编辑成如下代码：
+
+```C
+module.exports = {
+parser: 'typescript-eslint-parser',
+env: {
+browser: true,
+es6: true,
+},
+extends: 'airbnb-base',
+globals: {
+Atomics: 'readonly',
+SharedArrayBuffer: 'readonly',
+},
+parserOptions: {
+ecmaVersion: 2018,
+sourceType: 'module',
+},
+rules: {
+},
+settings: {
+//import/resolver起的作用
+'import/resolver': {
+alias: {
+map: [
+['@', './src'],
+],
+extensions: ['.ts'],
+},
+},
+},
+};
+```
+
+**错误2**
+
+```C
+Missing file extension "ts" for "./Cat"eslint[import/extensions](https://github.com/benmosher/eslint-plugin-import/blob/v2.22.1/docs/rules/extensions.md)
+```
+
+在 `.eslintrc.js` 配置中，编辑成如下代码：
+
+```C
+module.exports = {
+parser: 'typescript-eslint-parser',
+env: {
+browser: true,
+es6: true,
+},
+extends: 'airbnb-base',
+globals: {
+Atomics: 'readonly',
+SharedArrayBuffer: 'readonly',
+},
+parserOptions: {
+ecmaVersion: 2018,
+sourceType: 'module',
+},
+rules: {
+//import/extensions起的作用
+'import/extensions': [
+2, // 0 = off, 1 = warn, 2 = error
+'ignorePackages',
+{
+ts: 'never',
+},
+],
+},
+settings: {
+'import/resolver': {
+alias: {
+map: [
+['@', './src'],
+],
+extensions: ['.ts'],
+},
+},
+},
+};
+```
+
+### 2.3 调试TypeScript
+
+> 如何 `F5` 开始调试 `TypeScript` ，并且还具备断点调试功能，答案是，使用 `TS-node`。
+
+> 详情查看：`<mark class="encrypted">417K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6f1P5i4m8W2f1%4c8J5L8$3&6Y4i4K6u0r3N6s2y4Q4x3X3c8F1L8$3c8W2i4K6j5H3</mark>`
+
+在项目的根目录下，执行下面的命令：
+
+```C
+npm install -D ts-node
+```
+
+Run->Add Configuration
+
+![](upload/attach/202102/825187\_DC5KPR6CB35MEHU.jpg)
+
+然后修改成如下配置：
+
+```C
+{
+// 使用 IntelliSense 了解相关属性。
+// 悬停以查看现有属性的描述。
+// 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+"version": "0.2.0",
+"configurations": [
+{
+"type": "node",
+"request": "launch",
+"name": "Launch Program",
+"runtimeArgs": [
+"-r",
+"ts-node/register"
+],
+"args": [
+"${workspaceFolder}/src/index.ts"
+]
+}
+]
+}
+```
+
+按 `F5` 开始愉快的调试吧，`F9` 是添加断点：
+
+![](upload/attach/202102/825187\_64RVE2FJ75DC89E.jpg)
+
+如果出现`unbound breakpoint`的问题，修改`debug.javascript.usePreview`为false即可
+
+## 3. Frida调试环境的配置
+
+Frida的安装参考Frida官方文档
+
+我们已经搭建好了TypeScript调试环境，下面继续Frida调试环境的配置，可以参考[frida-agent-example](git://github.com/oleavr/frida-agent-example.git)项目的配置文件。
+
+**frida-agent-example的package.json文件**
+
+```C
+{
+"name": "frida-agent-example",
+"version": "1.0.0",
+"description": "Example Frida agent written in TypeScript",
+"private": true,
+//入口函数
+"main": "agent/index.ts",
+//下面的脚本可以用npm run prepare、npm run build和npm run prepar watch运行
+"scripts": {
+"prepare": "npm run build",
+"build": "frida-compile agent/index.ts -o \_agent.js -c",
+"watch": "frida-compile agent/index.ts -o \_agent.js -w"
+},
+//依赖库，可以在项目根目录用npm install进行安装
+"devDependencies": {
+"@types/frida-gum": "^16.2.0",
+"@types/node": "^14.14.10",
+"frida-compile": "^10.0.0"
+}
+}
+```
+
+也就是我们可以需要将以下内容拷贝到自己的`package.json`文件中，然后在项目根目录下执行`npm install`安装下面的依赖
+
+```C
+{
+//下面的脚本可以用npm run prepare、npm run build和npm run prepar watch运行
+"scripts": {
+"prepare": "npm run build",
+"build": "frida-compile src/index.ts -o dist/index.js -c",
+"watch": "frida-compile src/index.ts -o dist/index.js -w"
+},
+//依赖库，可以在项目根目录用npm install进行安装
+"devDependencies": {
+"@types/frida-gum": "^16.2.0",
+"@types/node": "^14.14.10",
+"frida-compile": "^10.0.0"
+}
+}
+```
+
+## 4. 开始调试Frida脚本
+
+**注意点**
+
+- 没有找到方法直接用VSCode进行附加调试，而是用chrome的**DelTools工具**进行的附加调试，用vscode编写`TypeScript`语言的Frida代码，并结合实时编译、DelTools工具自动监测脚本是否修改和Frida自动监测脚本是否修改的特性，可以达到比较理性的调试效果
+
+- 没有找到方法直接用VSCode进行附加调试，而是用chrome的**DelTools工具**进行的附加调试，用vscode编写`TypeScript`语言的Frida代码，并结合实时编译、DelTools工具自动监测脚本是否修改和Frida自动监测脚本是否修改的特性，可以达到比较理性的调试效果
+
+- 实时编译：通过`frida-compile src/index.ts -o dist/index.js -w`命令可以实时把成`TypeScript`编译成`JavaScript`代码
+
+- Frida不支持直接注入`TypeScipt`
+
+- DelTools工具自动监测脚本是否修改：如果修改了，自动更新被调试的脚本
+
+- Frida自动监测脚本是否修改：如果修改了，注入的脚本也会跟着修改
+
+**1.开启实时编译**
+
+`Ctrl+F9`选择`npm: watch`
+
+![](upload/attach/202102/825187\_RK4656U4KKUYYYM.jpg)
+
+![](upload/attach/202102/825187\_MHBM2QTJXY9VRMZ.jpg)
+
+**2.启动frida-server**
+
+![](upload/attach/202102/825187\_67D5F4GWMV4EZSW.jpg)
+
+**3.注入脚本**
+
+`.\frida.exe -U -f com.android.chrome --debug --runtime=v8 --no-pause -l "...\ts3\dist\index.js"`
+
+监听端口为本地的`9229`
+
+![](upload/attach/202102/825187\_FB7JAJZVK8RCZGD.jpg)
+
+![](upload/attach/202102/825187\_MQSXRZHAEZBH32Y.jpg)
+
+**4.chrome的DelTools工具进行附加调试**
+
+打开chrome，输入`chrome://inspect`
+
+![](upload/attach/202102/825187\_P3Y7QWDF978MBJK.jpg)
+
+添加连接——本地端口`9229`
+
+![](upload/attach/202102/825187\_GMJY2B3U7R7GHYB.jpg)
+
+在`Sources`界面，`Ctrl+P`选择要调试的脚本
+
+![](upload/attach/202102/825187\_SJKFKMGVGFWD8PF.jpg)
+
+格式化脚本
+
+格式化前
+
+![](upload/attach/202102/825187\_5GTQXKPQBKYJ9ME.jpg)
+
+格式化后
+
+![](upload/attach/202102/825187\_AVP2YD2U6VNZPR7.jpg)
+
+**5.Ctrl+B下断点**
+
+![](upload/attach/202102/825187\_THR22HSF62TQTKB.jpg)
+
+**6.vscode修改脚本**
+
+实时编译
+
+![](upload/attach/202102/825187\_P9SNPBDGVZSCJZX.jpg)
+
+DelTools工具自动监测脚本是否修改
+
+![](upload/attach/202102/825187\_KS6GB7BX6YKKE69.jpg)
+
+Frida自动监测脚本是否修改
+
+![](upload/attach/202102/825187\_X4T834GEEUSS2DB.jpg)
+
+## 5. 问题记录
+
+### 5.1 pycharm调试frida脚本
+
+参考正确配置 Visual Studio Code 开发和调试 TypeScript中用pycharm调试frida脚本，PyCharm给js文件和ts文件下断点都没有反应，不知道是为什么
+
+### 5.2 chrome的DelTools工具显示不出来文件
+
+如果chrome的DelTools工具显示不出来文件，那么点击`Configure`配置，`Enable port forwarding`，然后再取消
+
+![](upload/attach/202102/825187\_5WHMNZA8XPNPJN6.jpg)
+
+### 5.3 chrome的DelTools工具显示的脚本名是script1
+
+这是因为你用api的方式注入的脚本，是直接用变量输入的code，没有文件名，所以chrome默认取名为script1
+
+### 5.4 get\_usb\_device有时候会找不到设备 device not found
+
+加延迟就行了`get\_usb\_device(10)`
+
+### 5.5 如果frida注入脚本，导致app退出，可以尝试重启手机
+
+## 6. 参考
+
+正确配置 Visual Studio Code 开发和调试 TypeScript
+
+[FRIDA 使用经验交流分享](https://bbs.pediy.com/thread-265160-1.htm)
+
+## 7. 附件
+
+**工程文件：**
+
+链接：<mark class="encrypted">19eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5h3&6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3V1j5I4z5s2q4D9c8$3x3I4e0@1k6e0e0%4f1@1h3e0t1&6L8f1g2E0f1g2V1K6k6H3`.`.</mark>
+
+提取码：abco
+
+## 1. 前言
+
+- 目标：使用VSCode”调试“frida脚本
+
+- 环境
+
+  - 设备：Pixel 3 Android9 180720.030
+
+  - frida：14.2.6
+
+  - Node.js：14.15.4
+
+  - npm：6.14.10
+
+  - Visual Studio Code 1.52.1 (user setup)
+
+  - VSCode使用的是IntelliJ IDEA Keybindings
+
+  - 2021/1/31
+
+我们使用`TypeScript`编写frida脚本，再通过`frida-compile`把`TypeScript`编译成`JavaScript`代码。
+
+- 使用`TypeScript`的好处
+
+  - 自动补全
+
+  - 类型检查
+
+  - 内联文档
+
+  - 重构工具
+
+  - ......
+
+首先介绍搭建`TypeScript`调试环境，再具体介绍Frida调试环境的配置
+
+## 2. 搭建TypeScript调试环境
+
+### 2.1 搭建TypeScript开发环境
+
+#### 2.1.1 安装Node.js和npm
+
+**Node.js下载**
+
+a70K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6F1L8$3c8W2K9Y4y4Q4x3X3g2G2M7X3N6Q4x3V1k6W2L8W2)9J5c8X3c8G2N6$3&6D9L8$3q4V1i4K6u0r3
+
+npm和Node.js是捆绑在一起的
+
+**配置npm**

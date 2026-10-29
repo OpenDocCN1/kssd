@@ -73,7 +73,7 @@ Enter the need to attach package.
 :
 ```
 
-提示1: 第一次调试你的应用时`hooker`将在当前目录生成以进程Identifier命名的应用专有工作目录，并初始化生成一些你可能会用到的通杀脚本。
+提示1: 第一次调试你的应用时hooker将在当前目录生成以进程Identifier命名的应用专有工作目录，并初始化生成一些你可能会用到的通杀脚本。
 
 提示2: 成功attach一个应用时，命令将pause在等待输入调试指令的阶段。pause状态下使用命令进行高级调试请直接跳到
 
@@ -81,7 +81,7 @@ Enter the need to attach package.
 
 ## j - 生成指定类的hook脚本
 
-在命令行输入`j com.bytedance.frameworks.core.encrypt.RequestEncryptUtils -o com.bytedance.frameworks.core.encrypt.RequestEncryptUtils.js`就会生成指定类名称的hook脚本，也是`hooker`最核心的功能之一。相比objection，`hooker`生成的脚本有标注生产脚本的apk版本和类名。并且每个方法内部已经具备打印堆栈的功能，包括调用时间、线程id、线程名、调用对象的hashcode，调用方法用时都有很详细的描述。
+在命令行输入`j com.bytedance.frameworks.core.encrypt.RequestEncryptUtils -o com.bytedance.frameworks.core.encrypt.RequestEncryptUtils.js`就会生成指定类名称的hook脚本，也是hooker最核心的功能之一。相比objection，hooker生成的脚本有标注生产脚本的apk版本和类名。并且每个方法内部已经具备打印堆栈的功能，包括调用时间、线程id、线程名、调用对象的hashcode，调用方法用时都有很详细的描述。
 
 ![](upload/attach/202103/913632_FR682WUVCKKVYE3.png)
 
@@ -89,7 +89,7 @@ Enter the need to attach package.
 
 ![](upload/attach/202103/913632_MK5NPZEWZ8QV6H7.png)
 
-此脚本源码参考[RequestEncryptUtils.js](elink@15cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6o6M7X3g2V1K9i4c8f1L8$3&6W2i4K6u0r3j5X3I4G2j5W2)9J5c8X3#2S2M7%4c8W2M7W2)9J5c8X3y4G2L8g2)9J5k6i4y4K6i4K6u0W2j5h3&6V1M7X3!0A6k6q4)9J5k6i4g2Y4j5#2)9J5k6h3q4%4k6h3#2W2i4K6u0r3j5$3!0E0i4K6u0W2j5Y4W2@1k6h3c8S2L8X3y4W2i4K6u0W2k6Y4u0S2L8h3g2%4L8%4u0C8M7#2)9J5k6h3y4G2M7X3g2Q4x3X3g2W2L8X3y4J5P5i4m8@1i4K6u0W2f1X3g2I4N6h3g2K6N6p5g2F1j5%4u0&6M7s2c8g2N6r3W2D9M7#2)9J5k6h3A6K6)
+此脚本源码参考<a href="elink@15cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6o6M7X3g2V1K9i4c8f1L8$3&6W2i4K6u0r3K9r3!0G2K9$3g2J5i4K6u0r3j5X3I4G2j5W2)9J5c8X3#2S2M7%4c8W2M7W2)9J5c8X3y4G2L8g2)9J5k6i4y4K6i4K6u0W2j5h3&6V1M7X3!0A6k6q4)9J5k6i4g2Y4j5#2)9J5k6h3q4%4k6h3#2W2i4K6u0r3j5$3!0E0i4K6u0W2j5Y4W2@1k6h3c8S2L8X3y4W2i4K6u0W2k6Y4u0S2L8h3g2%4L8%4u0C8M7#2)9J5k6h3y4G2M7X3g2Q4x3X3g2W2L8X3y4J5P5i4m8@1i4K6u0W2f1X3g2I4N6h3g2K6N6p5g2F1j5%4u0&6M7s2c8g2N6r3W2D9M7#2)9J5k6h3A6K6">RequestEncryptUtils.js</a>
 
 objection生成的脚本就不贴了，给objection留点面子！！！
 
