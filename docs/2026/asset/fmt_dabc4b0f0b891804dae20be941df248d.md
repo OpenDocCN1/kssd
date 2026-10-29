@@ -11,7 +11,7 @@ Error: bad instruction `str.w r14,[sp,#8]'
 
 所以不用在`Android.mk`中指定`LOCAL_ARM_MODE := arm`，因为这样整个`module`都是`arm`指令、4字节，浪费了空间，所以默认就行。奇怪的是编译出的文件包含`arm`和`thumb32`，混合的。没有细看是什么情况，编译`c/c++`使用的汇编器不一致吗？
 
-呃，后来看到:经过Google工程师的提醒，对于ARM GCC的汇编器，在汇编文件最上面加入`.syntax unified`之后，Thumb-2 T3 encoding汇编也能正常使用了，比如：
+呃，后来看到:经过`Google`工程师的提醒，对于`ARM GCC`的汇编器，在汇编文件最上面加入`.syntax unified`之后，`Thumb-2 T3 encoding`汇编也能正常使用了，比如：
 
 ```
 .syntax unified
@@ -61,7 +61,7 @@ helloThumb:
 
 至于这个`shellcode`编译到`.text`还是`.data`都可以。不同的就是`.data`中是数据，`.text`中为函数。
 
-### 跳板0统一使用`ldr pc`
+### 跳板0统一使用ldr pc
 
 只要`cpu`是`armv5`以上就行，因为目前很少`armv5`及以下的`cpu`了，所以不考虑支持问题。
 
@@ -187,7 +187,7 @@ _dump_end:
 .end
 ```
 
-这里和`arm64`比有点不同的是多了一个标号/4个字节存放`_oriFuc`/原函数的地址，这么做的原因是比较无奈的，因为`_hk_info`取到的是`HK_INFO`,还需要再计算一次才能得到`pOriFuncAddr`，这样就需要占用一个寄存器去计算，`pc`寄存器是不能这么用的，所以还是在`shellcode`中存储吧。当然其实还可以让`_hk_info`存放的是`pOriFuncAddr`这个变量的地址，那么可以一次取到`pc`寄存器中，但是其他`shellcode`都要变且不如原来的直观/简单了，同样的方式还可以把`pOriFuncAddr`放在结构体头部，然后`_hk_info`存放`pOriFuncAddr`变量的地址/`HK_INFO`结构体的地址，也是可以的，但是也是要变动太多。而且其实只有这一个`shellcode`需要多定义一个`_oriFuc`，其他是不需要的，所以折衷后就这样了。
+这里和`arm64`比有点不同的是多了一个标号/4个字节存放`_oriFuc`/`原函数`的地址，这么做的原因是比较无奈的，因为`_hk_info`取到的是`HK_INFO`,还需要再计算一次才能得到`pOriFuncAddr`，这样就需要占用一个寄存器去计算，`pc`寄存器是不能这么用的，所以还是在`shellcode`中存储吧。当然其实还可以让`_hk_info`存放的是`pOriFuncAddr`这个变量的地址，那么可以一次取到`pc`寄存器中，但是其他`shellcode`都要变且不如原来的直观/简单了，同样的方式还可以把`pOriFuncAddr`放在结构体头部，然后`_hk_info`存放`pOriFuncAddr`变量的地址/`HK_INFO`结构体的地址，也是可以的，但是也是要变动太多。而且其实只有这一个`shellcode`需要多定义一个`_oriFuc`，其他是不需要的，所以折衷后就这样了。
 
 `demo`和`arm64`一致，`api`也是一致的。`arm`和`thumb`共用这一个`shellcode`，注意的一点就是如果被`hook`的函数是`thumb`，那么`_oriFuc`存放的地址+1即可。
 
