@@ -5,7 +5,7 @@
 
 得到 `User = 0x7f0d0000` 应该是标记内存地址指向了某个元素，相互映射的关系，我们再搜索 `0x7f0d0000`
 
-果然再资源文件里面，我再进行搜索。发现 对应的user字符串： `RkxBR3s1N0VSTDFOR180UkNIM1J9Cg==`
+果然再资源文件里面，我再进行搜索。发现对应的`user`字符串：`RkxBR3s1N0VSTDFOR180UkNIM1J9Cg==`
 
 ```js
 var system = Java.use("java.lang.System");
@@ -29,7 +29,7 @@ adb shell input text 'codenameduchess'
 
 ## 0x05 第四关：Incorrect password.
 
-随便输入密码 会提示 `Incorrect password.`，查看上面的图片我们可以知道，`j()`这函数是关键，满足`true`这个条件，即可跳入到下一关。
+随便输入密码会提示 `Incorrect password.`，查看上面的图片我们可以知道，`j()`这函数是关键，满足`true`这个条件，即可跳入到下一关。
 
 让结果强行改`true`.
 
@@ -45,7 +45,7 @@ return true;
 
 来到这一关，我们进入到一个消息聊天界面，发送消息是没有反馈的，看代码：
 
-`this.o.add(new com.tlamb96.kgbmessenger.b.a(R.string.user, obj, j(), false));`这个是发送消息的模板，`true`是对方发送的，`flase`代表我发发送的消息。当然了这段代码和解密无关，但是地了解它的发送逻辑，排除掉无关的代码。`a(obj.toString()).equals(this.p)`是闯关的关键。 `p="V@]EAASB\u0012WZF\u0012e,a$7(&am2(3.\u0003";`输入的值经过`a`方法，返回值等于`p`值即可进入下一关。
+`this.o.add(new com.tlamb96.kgbmessenger.b.a(R.string.user, obj, j(), false));`这个是发送消息的模板，`true`是对方发送的，`flase`代表我发发送的消息。当然了这段代码和解密无关，但是地了解它的发送逻辑，排除掉无关的代码。`a(obj.toString()).equals(this.p)`是闯关的关键。 `p="V@]EAASB\u0012WZF\u0012e,a$7(&am2(3.\u0003"`;输入的值经过`a`方法，返回值等于`p`值即可进入下一关。
 
 `a()`
 
@@ -65,7 +65,8 @@ return new String(charArray);
 
 再写算法之前，我们先了解下`python`的异或`^`运算。
 
-`chr()`将数字（`10`进制）转化为中文    `ord()` 将中文转化为数字(`10`进制)
+`chr()`将数字（`10`进制）转化为中文  
+`ord()`将中文转化为数字(`10`进制)
 
 `python a()`还原：
 
@@ -76,7 +77,8 @@ for ii in range(0, int(len(charArray2) / 2)):
 cc = charArray2[ii]
 print("ii ", ii, cc, " charArray2[ii] :", len(charArray2) - ii - 1, charArray2[len(charArray2) - ii - 1],
 chr(ord(charArray2[len(charArray2) - ii - 1]) ^ ord('2')),
-"charArray2[len(charArray2) - ii - 1] :", len(charArray2) - ii - 1, chr(ord(cc) ^ ord('A')))
+"charArray2[len(charArray2) - ii - 1] :", len(charArray2) - ii - 1,
+chr(ord(cc) ^ ord('A')))
 charArray2[ii] = chr(ord(charArray2[len(charArray2) - ii - 1]) ^ ord('2'))
 charArray2[len(charArray2) - ii - 1] = chr(ord(cc) ^ ord('A'))
 charArrayStr2 = "".join(charArray2)
@@ -89,7 +91,7 @@ str_m = "abcdef"
 # re = a(str_m)
 ```
 
-`"abcdef"` 经过加密得到 `#TWV"#` ，当然了得必须验证下你得算法是否正确，万一写错误，不是陷入到了死胡同？所有`hook a`方法，输入 `abcdef` 看看打印的结果是不是`TWV"#`
+`"abcdef"`经过加密得到`#TWV" #`，当然了得必须验证下你得算法是否正确，万一写错误，不是陷入到了死胡同？所有`hook a`方法，输入`abcdef`看看打印的结果是不是`TWV"#`
 
 ```js
 var MessengerActivity = Java.use("com.tlamb96.kgbmessenger.MessengerActivity");
@@ -99,18 +101,15 @@ var ret = this.a(str);
 console.log('a ret value is ' + ret);
 return ret;
 };
-
-结果：
-a is called, str: abcdef
-a ret value is TWV"#
 ```
+结果：
+`a is called, str: abcdef`
+`a ret value is TWV"#`
 
 得到了正向的加密，反推就简单多了，因为写了一遍，再反推和没写直接推演是不一样的。在这里我们要注意下 `^` 这个值的还原。记住这一点：当然也不一定对，欢迎批评指正，互相学习。
 
-```
-求y : x ^ '值' = y
-求x : y ^ '值' = x
-```
+`求y : x ^ '值' = y`
+`求x : y ^ '值' = x`
 
 反推算法：
 
@@ -136,16 +135,17 @@ return str_m_fanzhuan
 ```python
 ss = "V@]EAASB\u0012WZF\u0012e,a$7(&am2(3.\u0003"
 re = a_jie(ss) # Boris, give me the password
-返回结果： Boris, give me the password
 ```
 
-输入 ： `Boris, give me the password` 即可进入到下一关。
+返回结果：`Boris, give me the password`
+
+输入 ：`Boris, give me the password` 即可进入到下一关。
 
 ## 0x07 第六关：\u0000dslp}oQ\u0000 dks∣M0˘000h+AYQg0˘000P∗!M|M\u0000h +AYQg\u0000P\*!M∣M0˘000h+AYQg0˘000P∗!MgQ\u0000
 
 这一关的思路和第五关一样，他们的风控手段也是雷同的。主要是 `b(String str) = r = "\u0000dslp}oQ\u0000 dks∣M0˘000h+AYQg0˘000P∗!M|M\u0000h +AYQg\u0000P\*!M∣M0˘000h+AYQg0˘000P∗!MgQ\u0000";`
 
-`b()` 源码：
+`b()`源码：
 
 ```java
 private String b(String str) {
@@ -183,7 +183,7 @@ charArrayStr2 = "".join(charArray)
 return charArrayStr2
 ```
 
-我们发现以下代码是主要的加密位置，后面只是实现了一个倒序，只是他实现的过程比较复杂，如果用`python` 实现这个逻辑只要一行代码就行。废话不多说，只要实现以下代码的反推逻辑即可破解。
+我们发现以下代码是主要的加密位置，后面只是实现了一个倒序，只是他实现的过程比较复杂，如果用`python`实现这个逻辑只要一行代码就行。废话不多说，只要实现以下代码的反推逻辑即可破解。
 
 ```java
 char[] charArray = str.toCharArray();
