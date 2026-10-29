@@ -1,0 +1,179 @@
+
+# [原创]利用CFG寻找潜在的ShellCode内存
+
+## CFG(ControlFlowGuard)
+
+### 引言
+
+CFG(控制流防护)是微软对`/Gs`，`DEP`和`ALSR`等漏洞缓解技术的又一项安全性功能扩展，运行在Windows8.1 Update和Win10之上（当然一个开启了CFG应用是可以运行在不支持CFG的平台上的），CFG缓解了因溢出导致的任意代码执行漏洞利用，以及防止内存损坏和勒索软件攻击等。开发者启用CFG功能需要Visual Studio 2015以上，具体如何开启CFG选项可以见[微软关于CFG的介绍](elink@a63K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6D9k6h3q4J5L8W2)9J5k6h3#2A6j5%4u0G2M7$3!0X3N6q4)9J5k6h3y4G2L8g2)9J5c8X3g2F1i4K6u0V1N6i4y4Q4x3V1k6%4K9h3&6V1L8%4N6K6i4K6u0r3N6$3W2F1x3K6u0Q4x3V1k6K6k6h3y4T1M7q4)9J5c8X3y4G2L8Y4c8J5L8$3I4Q4x3X3c8X3L8r3!0%4i4K6u0V1k6%4g2S2M7X3b7`.">[1]
+
+同时在今年（2023）的黑客大会上来自著名的EDR厂商Elastic的安全研究员**John Uhlmann**发表了名为“[You Can Run, but You Can't Hide - Finding the Footprints of Hidden Shellcode](elink@01dK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2T1L8r3q4U0K9$3S2S2N6q4)9J5k6h3y4G2L8g2)9J5c8X3q4K6K9h3q4Q4x3X3b7J5x3#2)9J5c8X3u0J5K9h3g2X3K9h3&6Y4M7#2)9J5c8Y4y4U0K9r3g2V1N6h3I4W2i4K6u0r3K9h3&6V1k6i4S2Q4x3X3g2Z5N6r3#2D9i4K6t1K6P5h3!0#2i4K6u0V1j5$3q4F1i4K6u0V1M7Y4g2F1i4K6u0V1j5Y4g2@1i4K6u0V1P5h3!0#2i4K6u0V1j5$3q4F1N6q4)9J5k6r3S2A6k6r3g2Q4x3X3c8Q4x3X3c8Q4x3X3c8X3K9h3&6V1K9h3&6Y4i4K6u0V1N6r3S2W2i4K6u0V1k6X3!0G2N6s2m8J5K9h3&6@1M7#2)9J5k6r3!0X3i4K6u0V1K9r3W2V1k6r3g2F1i4K6u0V1M7$3S2W2L8r3I4U0L8$3c8W2i4K6u0V1x3K6p5J5x3K6M7`.”>[2]的演讲。
+
+他的主要内容是结合**CFG会记录当前或曾经是可执行的所有私有内存地址**以及**VAD会记录内存块的原始内存属性以及当前的内存属性**来追踪可疑的内存块（shellcode）。
+
+通过这篇文章我们希望了解CFG以及针对其POC（[CFG-FindHiddenShellcode](elink@693K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6B7k6s2f1J5y4U0l9H3i4K6u0r3b7@1k6s2i4K6u0V1c8X3W2F1k6p5S2A6k6r3c8W2L8W2y4Z5k6h3I4D9j5$3!0V1k6g2)9J5c8Y4c8J5k6h3g2Q4x3V1k6E0j5h3W2F1">）[3]分析其是如何通过CFG来查找可疑内存块的。
+
+## 细节
+
+从微软的简单描述中，我们并不能理解CFG是如何对我们的代码执行进行保护的，所以我们写一个简单的测试程序，分别在开启了CFG和未开启CFG状态下进行调试。代码如下：
+
+```
+#include <stdio.h>
+#include <windows.h>
+typedef void (WINAPI \*MYSHELLCODE)();
+int main()
+{
+// 用于弹出计算器的ShellCode，由msfvenom生成
+UCHAR ShellCode[] =
+"\xeb\x27\x5b\x53\x5f\xb0\xb0\xfc\xae\x75\xfd\x57\x59\x53\x5e"
+"\x8a\x06\x30\x07\x48\xff\xc7\x48\xff\xc6\x66\x81\x3f\xd8\xcd"
+"\x74\x07\x80\x3e\xb0\x75\xea\xeb\xe6\xff\xe1\xe8\xd4\xff\xff"
+"\xff\x07\xb0\xfb\x4f\x84\xe3\xf7\xef\xc7\x07\x07\x07\x46\x56"
+"\x46\x57\x55\x56\x51\x4f\x36\xd5\x62\x4f\x8c\x55\x67\x4f\x8c"
+"\x55\x1f\x4f\x8c\x55\x27\x4f\x8c\x75\x57\x4f\x08\xb0\x4d\x4d"
+"\x4a\x36\xce\x4f\x36\xc7\xab\x3b\x66\x7b\x05\x2b\x27\x46\xc6"
+"\xce\x0a\x46\x06\xc6\xe5\xea\x55\x46\x56\x4f\x8c\x55\x27\x8c"
+"\x45\x3b\x4f\x06\xd7\x8c\x87\x8f\x07\x07\x07\x4f\x82\xc7\x73"
+"\x60\x4f\x06\xd7\x57\x8c\x4f\x1f\x43\x8c\x47\x27\x4e\x06\xd7"
+"\xe4\x51\x4f\xf8\xce\x46\x8c\x33\x8f\x4f\x06\xd1\x4a\x36\xce"
+"\x4f\x36\xc7\xab\x46\xc6\xce\x0a\x46\x06\xc6\x3f\xe7\x72\xf6"
+"\x4b\x04\x4b\x23\x0f\x42\x3e\xd6\x72\xdf\x5f\x43\x8c\x47\x23"
+"\x4e\x06\xd7\x61\x46\x8c\x0b\x4f\x43\x8c\x47\x1b\x4e\x06\xd7"
+"\x46\x8c\x03\x8f\x4f\x06\xd7\x46\x5f\x46\x5f\x59\x5e\x5d\x46"
+"\x5f\x46\x5e\x46\x5d\x4f\x84\xeb\x27\x46\x55\xf8\xe7\x5f\x46"
+"\x5e\x5d\x4f\x8c\x15\xee\x50\xf8\xf8\xf8\x5a\x4f\xbd\x06\x07"
+"\x07\x07\x07\x07\x07\x07\x4f\x8a\x8a\x06\x06\x07\x07\x46\xbd"
+"\x36\x8c\x68\x80\xf8\xd2\xbc\xe7\x1a\x2d\x0d\x46\xbd\xa1\x92"
+"\xba\x9a\xf8\xd2\x4f\x84\xc3\x2f\x3b\x01\x7b\x0d\x87\xfc\xe7"
+"\x72\x02\xbc\x40\x14\x75\x68\x6d\x07\x5e\x46\x8e\xdd\xf8\xd2"
+"\x64\x66\x6b\x64\x29\x62\x7f\x62\x07\xd8\xcd";
+PVOID Target = VirtualAlloc(NULL, sizeof(ShellCode), MEM\_COMMIT | MEM\_RESERVE, PAGE\_EXECUTE\_READWRITE);
+if (!Target) {
+printf("VirtualAlloc Fail %d\n", GetLastError());
+return -1;
+}
+CopyMemory(Target, ShellCode, sizeof(ShellCode));
+MYSHELLCODE Ptr = (MYSHELLCODE)Target;
+Ptr();
+return 0;
+}
+```
+
+上面的代码先申请了一段内存并将shellcode放入其中，之后执行，最终结果是会弹出一个计算器。我们依据上述代码分别在开启CFG和不开启CFG的情况下生成两个可执行文件并通过X64dbg进行调试对比。
+
+下图是在**未开启CFG**情况下准备调用**Ptr函数**
+
+![](upload/attach/202306/868245\_VXM3MHRK7F9GFNG.png)
+
+下图是**未开启CFG**的调用：可以看到是直接跳转到了**ShellCode**位置执行
+
+![](upload/attach/202306/868245\_ZPKJXW2K8H5B32S.png)
+
+下图是在**开启CFG**情况下准备调用**Ptr函数**：调用了**guard\_dispatch\_icall\_ftpr**保存的地址
+
+![](upload/attach/202306/868245\_ARQUS96PATPBURM.png)
+
+下图是**开启CFG**的调用：可以看到是先执行 **[_guard\_dispatch\_icall\_fptr]** 之后再跳转到**ShellCode**执行
+
+![](upload/attach/202306/868245\_MGUGSU9CHHHFEVC.png)
+
+**_guard\_dispatch\_icall\_fptr**是为了实现CFG机制而被添加到PE文件的加载配置目录表（**LOAD\_CONFIG\_DIRECTORY**）中的五个域其中之一（如下）：
+
+```
+.rdata:000000014000B7A0 dq offset \_\_guard\_check\_icall\_fptr ; GuardCFCheckFunctionPointer
+.rdata:000000014000B7A8 dq offset \_\_guard\_dispatch\_icall\_fptr ; GuardCFDispatchFunctionPointer
+.rdata:000000014000B7B0 dq offset \_\_guard\_fids\_table ; GuardCFFunctionTable
+.rdata:000000014000B7B8 dq 0Dh ; GuardCFFunctionCount
+.rdata:000000014000B7C0 dd 14500h ; GuardFlags
+```
+
+我在查找资料过程中发现 J 总 在2014年写的关于[CFG原理介绍](elink@8a5K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3L8%4N6W2M7X3!0X3j5$3!0E0L8i4g2F1K9i4c8&6i4K6u0W2L8X3g2@1i4K6u0r3M7r3!0U0x3U0l9I4y4q4)9J5c8X3#2B7x3o6l9I4x3g2)9J5k6i4m8V1k6R3`.`.">[4]，那时候
+
+**_guard\_dispatch\_icall\_fptr**还是属于保留字段（**Reserved2**），具体是什么时候更改的无从所知，可能是在2016年。
+
+![](upload/attach/202306/868245\_CYU5SEQWYX9VVJV.png)
+
+**guard\_dispatch\_icall\_fptr** 在开启了CFG之后保存的是**NTDLL!LdrpDispatchUserCallTarget**。(依据J总的文章中之前指向的应该是 **NTDLL!LdrpValidateUserCallTarget**)
+
+*如果将其放在不支持CFG的机器上运行则指向间接跳转指令stub，最终调用JMP Rax指令跳转到目标地址.*
+
+从**NTDLL!LdrpDispatchUserCallTarget**的汇编代码中可以了解其大概的判断流程，先获得**GuardCFBitMapAddress**地址（此地址位于**LdrSystemDllInitBlock**一个偏移处，不同的NTDLL版本可能不同），之后将目标地址**右移9位**作为BitMap的取值下标**Index**，之后依据如下公式获取从BitMap中取出值：
+
+```
+SIZE\_T BmValue = BitMapAddress + sizeof(PVOID) \* Index
+```
+
+之后将**目标地址**右移3位，并取**低五位**作为**BmValue**的位下标。比如下标位10则判断BmValue下标位10的位是0/1，**是1则代表有效，是0则代表无效**。当然这只是针对目标地址是按照**0x10对齐**的，不过一般情况下函数都是按照0x10对齐。**NTDLL!LdrpDispatchUserCallTarget**的伪代码如下：参数一是BitMapAddress的地址，参数二是需要判断的目标地址
+
+`BitMapAddress`需要根据自己当前Ntdll中`BitMapAddress`所在偏移来获取，比如我的`BitMapAddress`存放在`Ntdll.ModuleBase + 0x179390`位置处：
+
+```
+DWORD BitOffset = 0x179390;
+size\_t BitMapAddresss = \*(size\_t\*)((size\_t)NtdllHandle + BitOffset);
+```
+
+```
+void MyLdrpDispatchUserCallTarget(size\_t BitMapAddress,size\_t TargetAddress)
+{
+//unsigned \_\_int64 qword\_180179390;
+//unsigned \_\_int64 v0; // rax
+unsigned \_\_int64 v2; // r10
+\_\_int64 v1; // r11
+v1 = \*(size\_t\*)(BitMapAddress + 8 \* (TargetAddress >> 9));
+v2 = TargetAddress >> 3;
+if ((TargetAddress & 0xF) != 0)
+{
+v2 &= 0xFFFFFFFFFFFFFFFEui64;
+if (!\_bittest64(&v1, v2 % 64)) {
+printf("%llx Is Not Valid\n",TargetAddress);
+return;
+}
+}
+else if (\_bittest64(&v1, v2 % 64))
+{
+printf("%llx Is Valid\n", TargetAddress);
+return;
+}
+if (\_bittest64(&v1, (v2 | 1) % 64)) {
+printf("%llx Is Valid\n", TargetAddress);
+return;
+}
+printf("%llx Is Not Valid\n", TargetAddress);
+return;
+}
+```
+
+在对**MyLdrpDispatchUserCallTarget**测试过程中，我发现这个函数是可以用来查找下个函数的起始地址的，我相信有很多人判断下个函数的地址是通过`C3`（ret）来判断的，我觉着这个函数提供了另外一个不错的方案。举个例子：
+
+```
+for (DWORD i = 0; i < SIZE; i++) {
+MyLdrpDispatchUserCallTarget(BitMapAddresss, (size\_t)GetAtomNameA + i);
+}
+```
+
+我向其传递**GetAtomNameA**地址并尝试验证接下来一段范围内的地址是否有效，结果运行如下：
+
+```
+7ffeed0437d0 Is Valid
+7ffeed0437d1 Is Not Valid
+7ffeed0437d2 Is Not Valid
+...
+7ffeed0437de Is Not Valid
+7ffeed0437df Is Not Valid
+7ffeed0437e0 Is Not Valid
+...
+7ffeed0437f0 Is Not Valid
+...
+7ffeed0437ff Is Not Valid
+7ffeed043800 Is Valid
+7ffeed043801 Is Not Valid
+7ffeed043802 Is Not Valid
+7ffeed043803 Is Not Valid
+...
+```
+
+为了节省篇幅，我省略了其中的一部分，**...代表的地址都是无效的**，很明显可以看到**7ffeed0437d0**作为**GetAtomNameA**的起始地址是有效的，下一个有效地址**7ffeed043800**地址则代表**GlobalAddAtomExA** ，当中的所有地址都是无效的，所以我们便可以据此来判断下个函数所在地址了。（只是个小插曲）
+
+还记得上面说的**CFG会记录当前或曾经是可执行的所有私有内存地址**吗？这句话的意思是，CFG会将所有曾经或现在是**可执行的私有内存地址保存在BITMAP**中，当然他并不是真的把这些地址记录在案，而是如果你分配了这么一段私有内存，那么这段连续的内存在**BITMAP**中都被认为是有效地址，不像上面的DLL中只有函数的起始地址才被认为是有效的。
+
+我们将使用**VirtualAlloc**分配的可读可写可执行的内存地址作为目标地址传递给**MyLdrpDispatchUserCallTarget**你就会得到这样的结果：
