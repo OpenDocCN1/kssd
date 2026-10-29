@@ -1,0 +1,128 @@
+
+`startActivity(intent);`
+
+log: START u0 {dat=openapp://test:8000/detail cmp=com.example.webviewapplication/.VulnActivity} from uid 10701
+
+通过log打印出来
+
+`Log.i("ActivityTaskManager",intent.toString());`
+
+out = Intent { dat=openapp://test:8000/detail cmp=com.example.webviewapplication/.VulnActivity }
+
+`Log.i("ActivityTaskManager",intent.toUri(Intent.URI_INTENT_SCHEME));`
+
+out = intent://test:8000/detail#Intent;scheme=openapp;component=com.example.webviewapplication/.VulnActivity;end
+
+然后我把源代码，替换成通过这个字符串，生成Intent
+
+|  |  |
+| --- | --- |
+| 1  2  3  4  5  6  7 | `Intent intent` `=` `null;`  `try` `{`  `intent` `=` `Intent.parseUri(` `"intent://test:8000/detail#Intent;scheme=openapp;component=com.example.webviewapplication/.VulnActivity;end"`,Intent.URI_INTENT_SCHEME);`  `} catch (URISyntaxException e) {`  `e.printStackTrace();`  `}`  `startActivity(intent);` |
+
+这种方式依然启动成功了
+
+|  |  |
+| --- | --- |
+| 1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47  48  49  50  51  52  53  54  55  56 | ``` ```  `+` `隐式 Intent ：`    `通过 new Intent ,然后设置 action category 和data，来启动activity`  ``` ```  `Intent intent` `=` `new Intent(` `"com.myaction"`, Uri.parse(` "openapp://test:8000/detail" `));`  `startActivity(intent);`    `log: I/ActivityTaskManager: START u0 {act=com.myaction dat=openapp://test:8000/detail cmp=com.example.webviewapplication/.VulnActivity}` `from` `uid` `10701`    `通过log打印出来`  `Log.i("ActivityTaskManager",intent.toString());`  `out` `=` `Intent { act=com.myaction dat=openapp://test:8000/detail }`    `Log.i("ActivityTaskManager",intent.toUri(Intent.URI_INTENT_SCHEME));`  `out` `=` `intent://test:8000/detail#Intent;scheme=openapp;action=com.myaction;end`    `然后我把源代码，替换成通过这个字符串，生成Intent`  `Intent intent` `=` `null;`  `try` `{`  `intent` `=` `Intent.parseUri(` `"intent://test:8000/detail#Intent;scheme=openapp;action=com.myaction;end"`,Intent.URI_INTENT_SCHEME);`  `} catch (URISyntaxException e) {`  `e.printStackTrace();`  `}`  `startActivity(intent);`    `这种方式依然启动成功了`  ``` ```  `+` `Intent 扩展 String参数 ：`  ``` ```  `String` `str` `=` `"intent:#Intent;component=com.example.123456/.MainActivity;S.url=dwqdwqdwqfqf;end"``;`  `Intent intent` `=` `null;`  `try` `{`  `intent` `=` `Intent.parseUri(` `str`,Intent.URI_INTENT_SCHEME);`  `} catch (URISyntaxException e) {`  `e.printStackTrace();`  `}`  `Log.i("ActivityTaskManager",intent.getStringExtra("url"));`  `out ： dwqdwqdwqfqf`    `可以看到Intent 后缀为 S.url=dwqdwqdwqfqf;end";`  `;end估计是结束标志`  `S.可能是String的意思`  `然后就是url 和 dwqdwqdwqfqf`  ``` ```    `通过这种方式我们了解了Intent 的构造，并且我们可以反向解析并打印的方式，显示出Intent的这种字符串组成结构`  ``` ```  `Intent intent` `=` `new Intent(` `"com.myaction"`, Uri.parse(` "openapp://test:8000/detail" `));`  `Log.i("ActivityTaskManager",intent.toUri(Intent.URI_INTENT_SCHEME));`    `out:`  `intent://test:8000/detail#Intent;scheme=openapp;action=com.myaction;end`    `输出的这个就是字符串形式的Intent ，我们可以把这个字符串通过上面的Intent.parseUri(` `str`,Intent.URI_INTENT_SCHEME);将他转变成一个Intent`  ``` ``` |
+
+- activity 返回接收--`startActivityForResult()`
+  如何启动activity的时候，希望了解调用详情，接受来自被调用的activity返回的参数，需要使用`startActivityForResult`替换`startActivity`调动activity。
+
+  当目标activity调用完成时，会调用当前activity的`onActivityResult()`。
+
+  目标activity返回调用结果，也必须通过`Intent`进行传递，当前activity在`onActivityResult`这个回调方法中，通过回传的`Intent`，获取调用结果。
+
+### Intent 启动 service
+
+网上文档说，从Lollipop开始，service服务必须采用显示方式启动。
+
+|  |  |
+| --- | --- |
+| 1  2  3  4  5 | `//跨进程启动service`  `Intent intent` `=` `new Intent();`  `intent.setClassName("com.example.serviceapplication",` `"com.example.serviceapplication.MyService"``);`  `//包名，和server的类名`  `startService(intent);` |
+
+`startService` 这个，个人分析，不好作为攻击的第一入口点，因为，如果想要跨进程启动服务，必须建立在，目标进程已经启动的基础了（我们可以用activity攻击，先启动进程，然后攻击对应的服务）
+
+注：service 写了个debug版本的demo ，默认是不导出的，要主动写 `android:exported="true"` ，才能被外部调用
+
+### Intent 和广播（BroadcastReceiver）
+
+- 有序广播和无序广播(这一部分全抄的，我的代码，全部是无序的)
+
+  - 无序广播
+
+    无序广播即为我们平时经常使用的广播，其主要是通过`public abstract void sendBroadcast (Intent intent)`方法进行发送，并通过`intent`传递数据。代码示例如下：
+
+    |  |  |
+    | --- | --- |
+    | 1  2  3 | `Intent nonOrderIntent` `=` `new Intent();`  `nonOrderIntent.setAction(ACTION);`  `sendBroadcast(nonOrderIntent);` |
+
+    无序广播会被注册了的相应的感兴趣（intent-filter匹配）接收，且顺序是无序的。如果发送广播时有相应的权限要求，BroadCastReceiver如果想要接收此广播，也需要有相应的权限。
+
+    无序广播的广播接收者不可以使用`setResultData()`方法和`abortBroadcast()`方法，如果使用了会报错。 但是可以使用`getResultData()`方法，虽然不报错，但是获取到的数据为null。但是在一种<u>特殊情况</u>下，`getResultData()`方法能取到无序广播传递的数据，下文会说明在什么情况下。
+
+    无序广播不可以被拦截，不可以被终止，不可以被修改，无序广播任何接收者只要匹配条件都可以接收到，无优先级问题。
+
+    如果想通过无序广播传递数据，则可以调用`intent.putExtra`方法传递， 接收者可通过`intent.get...`接收，不可通过`getResultData`接收。
+  - 有序广播
+
+    有序广播主要是通过
+
+    |  |  |
+    | --- | --- |
+    | 1 | `public abstract void sendOrderedBroadcast (Intent intent, String receiverPermission, BroadcastReceiver resultReceiver, Handler scheduler,` `int` `initialCode, String initialData, Bundle initialExtras)` |
+
+    方法进行发送。代码示例如下：
+
+    |  |  |
+    | --- | --- |
+    | 1  2  3 | `Intent intent` `=` `new Intent();`  `intent.setAction(ACTION);`  `sendOrderedBroadcast(intent, null, new Priority2BroadcastReceiver(), null, Activity.RESULT_OK,` `"MainActivity发送了一个有序广播"``, null);` |
+
+    第一个`intent`：不多说指定intent，所有广播接收者的匹配规则
+
+    第二个`receiverPermission`：指定广播接收器的权限，一般自定义，不常用，可传null。
+
+    第三个`resultReceiver`：指定一个最终的广播接收器，相当于finally功能，不论优先级，最后都要接收一次广播，而这一次收到的广播为无序广播（可以在`BroadcastReceiver`中通过`boolean orderedBroadcast = isOrderedBroadcast()`方法验证），但是却可以通过`getResultData`等方法取得数据，这就是上面提到的特殊情况。
+
+    第四个`scheduler`：看英文没怎么看懂什么意思，一般传null。
+
+    第五个`initialCode`：指定一个code，一般传`Activity.RESULT_OK`。
+
+    第六个`initialData`：传一个字符串数据。对应的在`BroadcastReceiver`中通过`String resultData = getResultData()`取得数据；通过`setResultData("优先级为3的setResultData的数据")`修改数据，将数据传给下一个优先级较低的`BroadcastReceiver`；如果在优先级较高的`BroadcastReceiver`中没有使用`setResultData`修改数据，那么优先级较低的接收到的数据还是最原始的数据，即`initialData`的值。
+
+    第七个`initialExtras`：传一个`Bundle`对象，也就是可以传多种类型的数据。对应的在`BroadcastReceiver`中通过`Bundle bundle = getResultExtras(false)`取得`Bundle`对象，然后再通过`bundle`的各种`get`方法取得数据；通过`setResultExtras()`传入一个修改过的`bundle`，将该`bundle`对象传给下一个优先级较低的`BroadcastReceiver`；如果在优先级较高的`BroadcastReceiver`中没有使用`setResultExtras`修改数据，那么优先级较低的接收到的数据还是最原始的`bundle`对象，即`initialExtras`的值。
+
+    有序广播所对应的所有的`receiver`按照在`intent-filter`中设置的`android:priority`属性依次执行，`android:priority`表示优先级，值越大，其所对应的广播接收者，越先接收到广播。在`android:priority`相同的情况下，如果广播接收器是通过静态注册的，则接收到广播的顺序不确定，如果是动态注册的，先注册的将先收到广播。
+
+    有序广播可以被拦截，可以在较高优先级的接收器中通过`abortBroadcast()`拦截广播，这样就会导致较低优先级的接收器无法收到广播了，但是`sendOrderedBroadcast`第三个参数指定的`BroadcastReceiver`还是会收到广播的，而且能获得数据。
+
+    有序广播可以通过原始`intent.putExtra`这种方式传递数据给`BroadcastReceiver`，也能通过`sendOrderedBroadcast`方法的最后2个参数传递数据，但是通过第一种方式传递的数据无法中途修改，通过第二种方式传递的可以通过上面参数说明中的方式进行修改。
+
+- 静态注册
+
+  |  |  |
+  | --- | --- |
+  | 1  2  3  4  5  6  7  8 | `public` `class` `MyBroadcastReceiver extends BroadcastReceiver {`  `@Override`  `public void onReceive(Context context, Intent intent) {`  `//`        `if`(`"com.victim.messenger.IN_APP_MESSAGE"`.equals(intent.getAction())) {`  `//`            `Log.d("evil",` `"From: "` `+` `intent.getStringExtra("from")` `+` `", text: "` `+` `intent.getStringExtra("text"));`  `//`        `}`  `}`  `}` |
+
+  |  |  |
+  | --- | --- |
+  | 1  2  3  4  5 | `<receiver android:name=".BroadcastReceiver.MyBroadcastReceiver">`  `<intent-filter>`  `<action android:name="com.victim.messenger.IN_APP_MESSAGE" />`  `</intent-filter>`  `</receiver>` |
+- 动态注册
+
+```
+ // 注册接收端
+
+ private void initBroadcast() {
+
+|  |  |
+
+| --- | --- |
+
+| 1  2  3 | `mBroadcastReceiver` `=` `new TestBroadcastReceiver();`  `IntentFilter` `filter` `=` `new IntentFilter(action);``/` `过滤`  `registerReceiver(mBroadcastReceiver,` `filter`); |
+
+}
+
+private class TestBroadcastReceiver extends BroadcastReceiver {
+
+|  |  |
+
+| --- | --- |
