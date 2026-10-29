@@ -1,0 +1,246 @@
+
+# [原创]梆梆企业版加固技术之防篡改剖析
+
+（本文仅限于技术讨论，不得用于非法途径，造成不良后果，与作者无关）
+
+本篇主要介绍梆梆安全加固防篡改的原理和方法。选择梆梆，是因为其在防篡改方面是比较突出的。如果后续有时间会陆续将梆梆企业版使用的加固技术和大家分享。
+
+## 1. 前言
+
+既然我们选择BB，我们先看一下BB在防篡改技术的介绍，下图是BB官网上关于防篡改的介绍。（4a9K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2T1j5h3&6Y4j5$3I4W2i4K6u0W2j5$3!0E0i4K6u0r3M7s2u0G2k6s2g2U0N6s2y4Q4x3V1k6H3M7X3!0V1N6h3y4@1K9h3&6V1k6i4S2Q4x3@1k6H3M7X3!0V1N6h3y4@1i4K6g2X3K9h3c8Q4x3@1b7I4i4@1g2r3i4@1u0o6i4K6R3&6
+
+![](https://bbs.kanxue.com/upload/attach/201712/768730_qywbr6f4ft8fqkd.jpg)
+
+从上图可知，APK“任何文件”（这里的任何加引号的意思是APKl里面还是有几个文件不在其防篡改的保护之内的，我们后面会说明）被替换或修改，应用都无法运行。实现的方法是文件都会分配一个识别指纹。
+
+根据BB这个说明，我们将开始逆向分析其防篡改技术。实际在逆向分析中我们会发现其采用很多加密算法和数据结构。为了便于大家对了解其防篡改的技术全貌，先介绍分析完后的成果，然后在下一篇介绍这些成果是怎样分析过程。
+
+## 2. 算法与数据结构
+
+### 2.1 使用了如下6种加密算法：
+
+```
+● MD5
+● RC4
+● 斐波那契数列
+● BAS64
+● SHA-1
+● RSA
+```
+
+### 2.2 使用了如下3种数据结构：
+
+```
+● UTHASH
+● 单项链表
+● ZIP
+```
+
+参考资料的2和3是关于`UTHASH`与`sha1withRDA`的介绍，感兴趣的话可以看一下。
+
+### 2.3 自定义的结构变量
+
+#### 2.3.1 `APK/assets/meta-data/manifest.mf`文件格式
+
+`BB`在其防篡改功能说明中说到，会为每个文件分配一个识别指纹，那么这个指纹到底存在哪里呢。经过分析发现`APK/assets/meta-data/manifest.mf`文件存放的就是对应的指纹信息。下面介绍一下这个文件的格式。
+
+![](https://bbs.kanxue.com/upload/attach/201712/768730_o2vsf8dl9odi6qk.jpg)
+
+图 2-1 `[APK/assets/meta-data/manifest.mf]`
+
+从上图中可以看到这个文件的内容看起来像是BASE64编码，实际上是不是呢，我们可以验证一下，先将文件开始像base64编码复制出来如下：
+
+“j20KiwhQW5kcm9pZE1hbmlmZXN0LnhtbA==”但是这个字符串是35个字符，对于base64编码一定是4字节对齐的，不够则用=补齐。我们可以把前面的3个字符去掉，让其是32个字节（为啥去掉3个字节，实际上在后面逆向分析过程中我们可以明白），经过base64解码后，如下 ：
+
+![](https://bbs.kanxue.com/upload/attach/201712/768730_hcs7dr797nm0rgd.jpg)
+
+表 2-1 `[[APK/assets/meta-data/manifest.mf文件格式]`
+
+![](https://bbs.kanxue.com/upload/attach/201712/768730_18i8l7th66l042b.jpg)
+
+整个签名校验的过程就是验证上面的4个文件指纹。在后面的分析中我们会真正的了解。
+
+#### 2.3.2 `BB_HashTable` 数据结构
+
+`BB_HashTable`主要用于存储`APK/META-INF/MANIFEST.MF`文件内容的。`APK/META-INF/MANIFEST.MF`文件存储的是APK包中所有文件的SHA1签名：
+
+![](https://bbs.kanxue.com/upload/attach/201712/768730_d40ate215w8k01m.jpg)
+
+其定义如下：
+
+```
+typedef struct BB_HashTable
+{
+	char* fileName;					//文件名
+	char* sha1;					//对应文件的sha1签名 
+	int	  noUsed0;
+	int	  noUsed1;
+	int	  noUsed2;
+	UT_hash_table strhashTalbe;		        //uthash结构
+	
+}BB_HashTable;
+```
+
+其中成员`sha1`用于文件指纹1的判断，同时用于组合文件指纹3。
+
+#### 2.3.3 `ORG_file_Sign_list`数据结构
+
+这个结构主要是保存加固时APK的原始签名。如果实现防篡改功能，势必要保存原始APK的指纹信息，然后与当前APK的指纹信息进行对比，从而来判断是否被篡改。
+
+这个结构对应的数据内容在如下目录：`APK/assets/meta-data/manifest.mf`，其定义如下：
+
+```
+typedef struct ORG_file_Sign_list
+{
+	int index;	               //链表索引   like 0 1 2 3...
+	char* sha1First4Char;	       //对应文件sha1字符串20个字符的0-3个字符(指纹3)
+	char* sha1Second4Char;         //对应文件sha1字符串20个字符的4-7个字符
+	char* sha1third4Char;	       //对应文件sha1字符串20个字符的8-11个字符
+	char* sha1fourth4Char;	       //对应文件sha1字符串20个字符的12-15个字符
+	char* sha1fifth4Char;	       //对应文件sha1字符串20个字符的16-19个字符（指纹4）
+	ORG_file_Sign_list* next;	//下一个节点 如果为0则表示是尾节点。
+
+}ORG_file_Hash_list;
+
+typedef struct ORG_fileSign
+{
+	//文件指纹1，原始APK的所有文件sha1的前4个字符组合在一起的sha1再进行base64
+	char* allFileSha1First4Char;         
+	char* noUsed0;
+	int	  noUsed1;
+	int	  noUsed2;
+	//文件指纹2，原始APK压缩包中第一个文件的CRC32的低4个字节转换成的字符串	
+	char* allFileCrc32Sha1;					
+	//单个文件对应的文件指纹信息，文件指纹3与文件指纹4
+	ORG_file_Sign_list* orgFileSignListHead;
+}ORG_fileSign;
+```
+
+本文件是识别指纹的核心文件，里面共存储了4种类型的文件指纹如下;
+
+```
+● 指纹1：原始APK单个文件sha1字符串的前4个字节
+● 指纹2：原始APK单个文件对应的CRC32的低4个字节
+● 指纹3：指纹1组合起来的SHA1的base64
+● 指纹4：指纹2组合起来的SHA1的base64
+```
+
+#### 2.3.4 `CUR_file_crc32`结构
+
+本结构用于存储当前APK中每个文件的CRC32的数值，用于进行文件指纹2的比较。
+
+```
+typedef struct CUR_file_crc32
+{
+	char* fileName;						//文件名
+	int	  crc32;					        //文件对应的CRC32
+	CUR_file_crc32 next;			        //下一个节点
+}CUR_file_crc32;
+```
+
+## 3 识别指纹的生成
+
+从前面介绍中我们可以知道其存在4种类型的识别指纹，这些指纹存储在“`APK/assets/meta-data/manifest.mf`”中。同时还存在另外2个文件见下图 ：
+
+![](https://bbs.kanxue.com/upload/attach/201712/768730_rhpfwni2o5nxjld.jpg)
+
+其中`ras.sig`保存的是`manifest.mf`的RSA加密后的签名。`Ras.pub`保存的是RSA的公钥信息。BB不大可能拿到APP开发者签名的私钥，因此这个`ras.pub`应该是BB自己的公钥。这2个文件的作用其实就是验证原始的文件指纹是否被篡改。
+
+### 3.1 识别指纹生成流程
+
+![](https://bbs.kanxue.com/upload/attach/201712/768730_p1h1dm2n5by4r76.jpg)
+
+## 4 验证流程
+
+整个验证流程可以分为如下8个步骤：
+
+1、 验证原始APK的文件指纹(`manifest.mf`)、文件指纹的签名(`cert.sig`)以及公钥文件(`cer.pub`)是否被篡改，如果被篡改，则终止应用；
+2、 提取原始`manifest.mf`的4种类型的文件指纹；
+3、 提取当前文件的`sha1`，其中包括当前文件指纹1；
+4、 提取当前文件的`CRC32`，包括当前文件指纹2；
+5、 对当前文件指纹1与原始文件指纹1比较，如果不一致，则终止应用；
+6、 对当前文件指纹2与原始文件指纹2比较，如果不一致，则终止应用；
+7、 将当前APK所有文件指纹1组合成一个字符串，并计算其整体的SHA1，然后再base64，即获得当前APK的文件指纹3，与原始的文件指纹3进行比较，如果不一致，则终止应用；
+8、 将当前APK所有文件指纹2组合成一个字符串，并计算其整体的SHA1，然后再base64，即获得当前APK的文件指纹4，与原始的文件指纹4进行比较，如果不一致，则终止应用。
+
+### 4.1 验证原始APK指纹文件的有效性
+
+原始APK文件指纹文件包括如下三个文件：
+
+```
+● manifest.mf：原始APK的文件指纹，文件格式见2.3.1；
+● cert.sig：manifest.mf经过RSA加密后的签名；
+● cer.pub：用于验证cert.sig的RSA公钥。
+```
+
+这里的RSA签名，并不是APK开发者的签名，而是BB自己的签名。
+
+#### 4.1.1 验证`cert.pub`文件正确性
+
+在BB的`libdexhelper.so`文件中保存着`cert.pub`的MD5值，但是这个MD5值是经过加密后的，而且其加密的流程还是比较复杂的。解密流程首先 实现了一个从APK文件中提取文件的C语言版本解压程序，包括如下函数：
+
+```
+● dexZipOpenArchive             //打开zip文件获得ZipArchive结构
+● dexZipFindEntry                  //从ZIP中获取指定文件的入口结构
+● dexZipGetEntryInfo              //得到指定文件入口结构对应的信息
+● ReadToBufFromZipFile        //将指定文件的内容读到BUF中
+● dexZipCloseArchive              //关闭zip文件
+```
+
+利用上面的函数，将`cert.pub`读取到内存中，然后计算其MD5值。接着开始获取原始APK的MD5值，其经过如下4个步骤：
+
+1、计算`0x52600`开始`0x1000`个字节的MD5 值；
+2、构造一个斐波那契数列，1 1 2 3 5 8 13 21 34 55；
+3、以斐波那契数列为索引从数组`0x52600`取出对应的数值，然后与步骤1得到的MD5值按字节亦或，获得一个`0x10`大小的KEY。实际上是下面RC4解密的KEY
+4、利用步骤3获得的RC4 KEY ，对`525E0`开始的`0x10`大小的数据，进行RC4解密。解密的结果就是原始的`cer.pub`对应的MD5值。
+
+然后，将2个MD5值进行比较，如果不一致，则终止应用。
+
+#### 4.1.2 验证`manifest.mf`正确性
+
+经过如下步骤进行验证：
+
+1、 读取`manifest.mf`文件到内存；
+2、 读取`cert.sig`文件到内存；
+3、 使用`cert.pub`对`manifest.mf`进行RSA签名；
+4、 利用步骤3获得签名与`cert.sig`进行比较，如果不一致，则终止应用。
+
+### 4.2 里程碑
+
+至此确定原始APK的识别指纹没有被篡改，下面开始进行真正的防篡改流程。
+
+### 4.3 提取当前APK的文件指纹1
+
+将`APK/META-INF/MANIFEST.MF`读到内存，并进行一行一行的遍历，将文件名和对应的`sha1`数值存储在结构`BB_HashTable`中。 `BB_HashTable`结构见2.3.2。
+
+### 4.4 提取原始`manifest.mf`的4种类型的文件指纹
+
+对原始`manifest.mf`文件进行解析，并将解析结果存储到`ORG_file_Sign_list`结构中，`ORG_file_Sign_list`结构见2.33。
+
+### 4.5 提取当前文件的文件指纹2
+
+遍历APK，过滤掉“`assert/meta-data`”、“`META-INF/`”目录，并且获得每个文件的`CRC32`的数值，并存储在`CUR_file_crc32`结构中，`CUR_file_crc32`结构见2.3.4。
+
+### 4.6 文件指纹验证
+
+前面已经将原始APK的4种文件指纹，以及当前APK的4种文件指纹都获取到，然后就开始进行判断，只要有任何一个文件指纹不一致，则终止应用。
+
+## 5 终止应用的方法
+
+对于通用的终止应用的方法，一般可能采用`kill`、`abort`、`exit`等系统函数，BB显然知道这样去终止会带来很大的安全问题。因此其采用了另外一种终止方式。
+
+当需要终止应用时，首先破坏堆栈内容，然后将PC指针指向存储APK路径名的位置，而其对应的代码是无法执行的，从而引发异常来使应用终止运行。
+
+## 6 总结
+
+1、 提取原始文件的文件指纹，并分为4种类型；
+2、 使用RSA对原始文件指纹进行加密；
+3、 同时在SO中保存RSA公钥的MD5值，而这个MD5值是经过多重加密存放的。里面用到了`MD5`/`斐波那契数列`/`RC4`/`base64`等加密算法；
+4、 验证RSA公钥正确性；
+5、 验证原始文件指纹的正确性，使用RSA公钥验证；
+6、 至此确保原始文件的所有指纹都是正确的，下面开始进行真正的校验过程；
+7、 获取原始文件的4种文件指纹
+8、 获取当前文件的4种文件指纹
+9、 进行4种文件指纹的一一比较，只要有一个不符合，则终止进程。
+
+参考资料：
