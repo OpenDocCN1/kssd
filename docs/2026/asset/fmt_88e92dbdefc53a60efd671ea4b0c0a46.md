@@ -1,34 +1,34 @@
 
 ```java
 private void testDexClassLoader(Context context, String dexfilepath) {
-//构建文件路径：/data/data/com.emaxple.test02/app\_opt\_dex，存放优化后的dex,lib库
-File optfile = context.getDir("opt\_dex",0);
-File libfile = context.getDir("lib\_dex",0);
-ClassLoader parentclassloader = MainActivity.class.getClassLoader();
-ClassLoader tmpclassloader = context.getClassLoader();
-//可以为DexClassLoader指定父类加载器
-DexClassLoader dexClassLoader = new DexClassLoader(dexfilepath,optfile.getAbsolutePath(),libfile.getAbsolutePath(),parentclassloader);
-Class clazz = null;
-try {
-clazz = dexClassLoader.loadClass("com.example.test.TestClass");
-} catch (ClassNotFoundException e) {
-e.printStackTrace();
-}
-if(clazz!=null){
-try {
-Method testFuncMethod = clazz.getDeclaredMethod("test02");
-Object obj = clazz.newInstance();
-testFuncMethod.invoke(obj);
-} catch (NoSuchMethodException e) {
-e.printStackTrace();
-} catch (IllegalAccessException e) {
-e.printStackTrace();
-} catch (InstantiationException e) {
-e.printStackTrace();
-} catch (InvocationTargetException e) {
-e.printStackTrace();
-}
-}
+    //构建文件路径：`/data/data/com.emaxple.test02/app_opt_dex`，存放优化后的dex,lib库
+    File optfile = context.getDir("opt_dex",0);
+    File libfile = context.getDir("lib_dex",0);
+    ClassLoader parentclassloader = MainActivity.class.getClassLoader();
+    ClassLoader tmpclassloader = context.getClassLoader();
+    //可以为DexClassLoader指定父类加载器
+    DexClassLoader dexClassLoader = new DexClassLoader(dexfilepath,optfile.getAbsolutePath(),libfile.getAbsolutePath(),parentclassloader);
+    Class clazz = null;
+    try {
+        clazz = dexClassLoader.loadClass("com.example.test.TestClass");
+    } catch (ClassNotFoundException e) {
+        e.printStackTrace();
+    }
+    if(clazz!=null){
+        try {
+            Method testFuncMethod = clazz.getDeclaredMethod("test02");
+            Object obj = clazz.newInstance();
+            testFuncMethod.invoke(obj);
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+    }
 }
 ```
 
@@ -42,50 +42,50 @@ private static native String[] getClassNameList(Object cookie);
 
 ```java
 public static void getClassListInClassLoader(ClassLoader classLoader){
-//先拿到BaseDexClassLoader
-try {
-//拿到pathList
-Class BaseDexClassLoader = Class.forName("dalvik.system.BaseDexClassLoader");
-Field pathListField = BaseDexClassLoader.getDeclaredField("pathList");
-pathListField.setAccessible(true);
-Object pathListObj = pathListField.get(classLoader);
-//拿到dexElements
-Class DexElementClass = Class.forName("dalvik.system.DexPathList");
-Field DexElementFiled = DexElementClass.getDeclaredField("dexElements");
-DexElementFiled.setAccessible(true);
-Object[] dexElementObj = (Object[]) DexElementFiled.get(pathListObj);
-//拿到dexFile
-Class Element = Class.forName("dalvik.system.DexPathList$Element");
-Field dexFileField = Element.getDeclaredField("dexFile");
-dexFileField.setAccessible(true);
-Class DexFile =Class.forName("dalvik.system.DexFile");
-Field mCookieField = DexFile.getDeclaredField("mCookie");
-mCookieField.setAccessible(true);
-Field mFiledNameField = DexFile.getDeclaredField("mFileName");
-mFiledNameField.setAccessible(true);
-//拿到getClassNameList
-Method getClassNameListMethod = DexFile.getDeclaredMethod("getClassNameList",Object.class);
-getClassNameListMethod.setAccessible(true);
-for(Object dexElement:dexElementObj){
-Object dexfileObj = dexFileField.get(dexElement);
-Object mCookiedobj = mCookieField.get(dexfileObj);
-String mFileNameobj = (String) mFiledNameField.get(dexfileObj);
-String[] classlist = (String[]) getClassNameListMethod.invoke(null,mCookiedobj);
-for(String classname:classlist){
-Log.e("classlist",classLoader.toString()+"-----"+mFileNameobj+"-----"+classname);
-}
-}
-} catch (ClassNotFoundException e) {
-e.printStackTrace();
-} catch (NoSuchFieldException e) {
-e.printStackTrace();
-} catch (IllegalAccessException e) {
-e.printStackTrace();
-} catch (NoSuchMethodException e) {
-e.printStackTrace();
-} catch (InvocationTargetException e) {
-e.printStackTrace();
-}
+    //先拿到BaseDexClassLoader
+    try {
+        //拿到pathList
+        Class BaseDexClassLoader = Class.forName("dalvik.system.BaseDexClassLoader");
+        Field pathListField = BaseDexClassLoader.getDeclaredField("pathList");
+        pathListField.setAccessible(true);
+        Object pathListObj = pathListField.get(classLoader);
+        //拿到dexElements
+        Class DexElementClass = Class.forName("dalvik.system.DexPathList");
+        Field DexElementFiled = DexElementClass.getDeclaredField("dexElements");
+        DexElementFiled.setAccessible(true);
+        Object[] dexElementObj = (Object[]) DexElementFiled.get(pathListObj);
+        //拿到dexFile
+        Class Element = Class.forName("dalvik.system.DexPathList$Element");
+        Field dexFileField = Element.getDeclaredField("dexFile");
+        dexFileField.setAccessible(true);
+        Class DexFile = Class.forName("dalvik.system.DexFile");
+        Field mCookieField = DexFile.getDeclaredField("mCookie");
+        mCookieField.setAccessible(true);
+        Field mFiledNameField = DexFile.getDeclaredField("mFileName");
+        mFiledNameField.setAccessible(true);
+        //拿到getClassNameList
+        Method getClassNameListMethod = DexFile.getDeclaredMethod("getClassNameList",Object.class);
+        getClassNameListMethod.setAccessible(true);
+        for(Object dexElement:dexElementObj){
+            Object dexfileObj = dexFileField.get(dexElement);
+            Object mCookiedobj = mCookieField.get(dexfileObj);
+            String mFileNameobj = (String) mFiledNameField.get(dexfileObj);
+            String[] classlist = (String[]) getClassNameListMethod.invoke(null,mCookiedobj);
+            for(String classname:classlist){
+                Log.e("classlist",classLoader.toString()+"-----"+mFileNameobj+"-----"+classname);
+            }
+        }
+    } catch (ClassNotFoundException e) {
+        e.printStackTrace();
+    } catch (NoSuchFieldException e) {
+        e.printStackTrace();
+    } catch (IllegalAccessException e) {
+        e.printStackTrace();
+    } catch (NoSuchMethodException e) {
+        e.printStackTrace();
+    } catch (InvocationTargetException e) {
+        e.printStackTrace();
+    }
 }
 ```
 
@@ -151,7 +151,7 @@ Android中的类加载器机制与JVM一样遵循双亲委派模式
 
 |  |  |
 | --- | --- |
-| 1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16  17  18  19  20  21 | `protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException{`  `//1.先检查是否已经加载过--findLoaded`  `Class<?> c` `=` `findLoadedClass(name);`  `if` `(c` `=``=` `null) {`  `try` `{`  `//2.如果自己没加载过,存在父类,则委托父类`  `if` `(parent !``=` `null) {`  `c` `=` `parent.loadClass(name, false);`  `}` `else` `{`  `c` `=` `findBootstrapClassOrNull(name);`  `}`  `} catch (ClassNotFoundException e) {`  `}`    `if` `(c` `=``=` `null) {`  `//3.如果父类也没加载过,则尝试本级classLoader加载`  `c` `=` `findClass(name);`  `}`  `}`  `return` `c;`  `}` |
+| 1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16  17  18  19  20  21 | `protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException{`  `//1.先检查是否已经加载过--findLoaded`  `Class<?> c = findLoadedClass(name);`  `if (c == null) {`  `try {`  `//2.如果自己没加载过,存在父类,则委托父类`  `if (parent != null) {`  `c = parent.loadClass(name, false);`  `} else {`  `c = findBootstrapClassOrNull(name);`  `}`  `} catch (ClassNotFoundException e) {`  `}`    `if (c == null) {`  `//3.如果父类也没加载过,则尝试本级classLoader加载`  `c = findClass(name);`  `}`  `}`  `return c;`  `}` |
 
 |  |  |
 | --- | --- |

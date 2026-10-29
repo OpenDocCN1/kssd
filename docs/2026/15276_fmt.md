@@ -1,0 +1,14 @@
+
+# `Android.Trojan.Midown` 的分析
+
+关于这个Android病毒，大家也可以参考腾讯的这篇分析报告，虽然个人认为腾旭的这篇报告讲的不是很准确，事实上，腾讯抓了很多这种类似的病毒，起的诊断名都不尽相同，后来我通过与米迪广告联盟联系，他们最新版的SDK默认就有自动在后台下载广告里的应用，只是这个SDK没在官方网站里发布，你联系他们时他们才会给你，不知道米迪在搞什么。。。
+
+`9b5K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3#2Q4x3X3g2I4M7g2)9J5k6h3y4G2L8g2)9J5c8Y4y4W2j5%4g2J5K9i4c8&6i4K6g2X3L8r3q4T1i4K6u0r3L8X3g2%4M7#2)9#2k6X3c8W2N6r3q4A6L8q4)9#2k6U0p5&6x3W2)9J5k6h3S2@1L8h3H3`.
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [`Analysis Report of Android-Trojan-Midown.doc`](javascript:void(0);)
+
+  （1.42MB，411次下载）

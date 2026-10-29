@@ -1,0 +1,247 @@
+
+# [原创]某盟逆向
+
+## 一、流程分析
+
+### 二、罗列 Hook 代码
+
+#### 主要的部分代码
+
+想看下某盟有哪些设备数据、设备指纹等，所以逆向看了下。样本就是自己注册个账号，自己随便写个 App，集成一下，就可以了。
+
+版本：9.1.0
+
+```java
+package com.umeng.commonsdk.statistics;
+
+public class SdkVersion {
+
+public static final String PROTOCOL_VERSION = "1.0.0";
+
+public static int SDK_TYPE = 0;
+
+public static final String SDK_VERSION = "9.1.0";
+
+}
+```
+
+分析要点，我罗列几个。
+
+1. 他是用二进制的接口，直接发送流，不像其他接口，直接就是 JSON 文件，好看，能明白。我总结对付这种，就是把二进制直接发送，然后修改二进制中的数据。比如某盟包括打开、在线时长、启动等，直接拿到二进制，改二进制。
+2. Frida Hook，万能的脚本。既然不知道，那就 Hook 吧，直接看到发送的数据。
+3. 耐心，写程序需要耐心，差点放弃。我用了大概一周左右的时间，中途差点放弃。
+4. iOS 和安卓。当我做好安卓之后，我就开始搞苹果，开始干起来。但是回头想想，它们应该是差不多的，只是某些地方不一样，基本流程是一样的。
+5. 反编译代码，先用 JADX。其中某些方法如果没有成功，可以使用 GDA。GDA 好用得不能再好用，我就没有发现哪些方法是搞不出来的。不过它的逻辑有的难，同一个变量用过多次，不像 JADX，直接可以用。
+
+### 流程分析
+
+1. `com.umeng.commonsdk.internal.d public static org.json.JSONObject e(android.content.Context r5)`：该方法写入信封（Envelope），即传输的类，包含 CPU、IMEI 等信息。
+2. `com.umeng.commonsdk.statistics.b private int a(Context context, Envelope envelope, String str, String str2)`：方法写入文件。该类中有个写入 JSON 的过程，估计是产生数据。
+
+`UMFrUtils.getEnvelopeFile(appContext)` 获取文件。文件存在某个目录，然后定时取文件，取到文件后发送文件，然后删除文件。
+
+## 三、几个重要的类
+
+- `com.umeng.commonsdk.statistics.b private int a(Context context, Envelope envelope, String str, String str2) {`：方法写入文件。该类中有个写入 JSON 的过程，估计是产生数据。
+- `UMFrUtils.getEnvelopeFile(appContext)`：获取文件。
+- `com.umeng.commonsdk.statistics.proto`：协议，直接把 Java 对象转成 byte 数组。
+- `com.umeng.commonsdk.statistics.common.DeviceConfig`、`DeviceConfigEx`：取设备数据，如 IMEI、MAC 等。
+- `com.umeng.analytics.pro.af`：构造 JSON，JSON 包括设备的数据。
+- `com.umeng.analytics.pro.br`、`com.umeng.analytics.pro.bs`：实现 `serial` 接口，Java 对象可以直接转为 byte 数组。
+- `com.umeng.commonsdk.stateless.b`：好像是传输的对象，也是继承 `serial` 接口。
+
+### `com.umeng.commonsdk.statistics.idtracking.UMEnvelope` 核心类讲解
+
+这个类就是核心类，构建一个这个类，然后用它的 `toBinary()` 方法，直接转换成 byte 数组，然后 POST。
+
+```java
+public byte[] toBinary() {
+
+ay ayVar = new ay();
+
+ayVar.a(this.mVersion);
+
+ayVar.b(this.mAddress);
+
+ayVar.c(DataHelper.toHexString(this.mSignature));
+
+ayVar.a(this.mSerialNo);
+
+ayVar.b(this.mTimestamp);
+
+ayVar.c(this.mLength);
+
+ayVar.a(this.mEntity);
+
+ayVar.d(this.encrypt ? 1 : 0);
+
+ayVar.d(DataHelper.toHexString(this.mGuid));
+
+ayVar.e(DataHelper.toHexString(this.mChecksum));
+
+try {
+
+return new bo().a(ayVar);
+
+} catch (Exception e) {
+
+e.printStackTrace();
+
+return null;
+
+}
+
+}
+```
+
+截取一段 JSON：
+
+```json
+{"header":{"app_signature":"82:86:EF:88:58:C2:FF:74:A2:B0:92:3C:CA:EA:65:64","app_sig_sha1":"FC:F3:67:40:C1:74:34:25:9C:60:03:7C:B5:B1:AC:EA:03:33:28:74","app_sig_sha":"\/PNnQMF0NCWcYAN8tbGs6gMzKHQ=","app_version":"2.0.4","version_code":"10","idmd5":"6f82557d7bbc5f681745415d8c2df","cpu":"ARMv7 processor rev 10 (v7l)","mccmnc":"","device_type":"Phone","package_name":"com.wangyue10.phonelive0140","sdk_type":"Android","device_id":"674045672200500","device_model":"oneplus 5T","device_board":"unknown","device_brand":"Oneplus","device_manutime":1594636811000,"device_manufacturer":"Oneplus","device_manuid":"V417IR","device_name":"x86","os_version":"6.0.1","os":"Android","resolution":"1664*1040","mc":"08:00:27:33:59:27","timezone":8,"country":"CN","language":"zh","carrier":"","display_name":"helooworld","access":"wifi","local_ip":"172.16.0.1","network_type":0,"com_ver":"9.1.0","com_type":0,"module":"azioc","api_level":23,"session_id":"9357ee1d-1d2e-46cc-965d-edea686fd5c6","oaid_required_time":"","successful_requests":1,"failed_requests":0,"req_time":583,"channel":"test11","appkey":"5f3e9cb2d309322154734911","wrapper_type":"native","wrapper_version":"","targetSdkVer":27,"rps_pr":"yes","acl_pr":"yes","afl_pr":"yes","imprint":"GwAVAhggNTI1ODZjYjI2YzI3ZGM3MmMxMWQ3MTgxYzIzNGY5ZWUA\n","i_sdk_v":"1.2.0","id_tracking":"GwaMBXV0ZGlkGBhYei9Yd1hlc2ZuSURBRnZYemxDVk9lRXoWzMuCnp1dFQIABnNlcmlhbBgKWlgx\nRzQyQ1BKRBauy4KenV0VAgAEaW1laRgPNjY3ODY4NDg3NDI4Njg0Fs7Lgp6dXRUCAAVpZG1kNRgg\nYzBlNTY3ZDYyM2JhOTZkMzdkZDQxM2EyNWQ3MGU4OWYWzsuCnp1dFQIAA21hYxgRMDg6MDA6Mjc6\nMzM6NTk6MjcWzsuCnp1dFQIACmFuZHJvaWRfaWQYEGE1NTlmZWJlN2Q4MzQ0NDIWrsuCnp1dFQIA\nGWwYCmFuZHJvaWRfaWQoEGE1NTlmZWJlN2Q4MzQ0NDIWrsuCnp1dABgGc2VyaWFsKApaWDFHNDJD\nUEpEFq7Lgp6dXQAYBXV0ZGlkKBhYei9Yd1hlc2ZuSURBRnZYemxDVk9lRXoWzMuCnp1dABgDbWFj\nKBEwODowMDoyNzozMzo1OToyNxbOy4KenV0AGARpbWVpKA82Njc4Njg0ODc0Mjg2ODQWzsuCnp1d\nABgFaWRtZDUoIGMwZTU2N2Q2MjNiYTk2ZDM3ZGQ0MTNhMjVkNzBlODlmFs7Lgp6dXQAA\n","vertical_type":0,"sdk_version":"9.1.0","pro_ver":"1.0.0","atm":"1","$pr_ve":"0","$ud_da":"2020-10-02","st":"1","id_tracking":"GwaMBXV0ZGlkGBhYei9Yd1hlc2ZuSURBRnZYemxDVk9lRXoWpK2kn51dFQIABnNlcmlhbBgKWlgx\nRzQyQ1BKRBaMraSfnV0VAgAEaW1laRgPNjc0MDQ1NjcyMjAwNTAwFqatpJ+dXRUCAAVpZG1kNRgd\nNmY4MjU1N2Q3YmJjNWY2ODE3NDU0MTVkOGMyZGYWpq2kn51dFQIAA21hYxgRMDg6MDA6Mjc6MzM6\nNTk6MjcWpq2kn51dFQIACmFuZHJvaWRfaWQYEGE1NTlmZWJlN2Q4MzQ0NDIWjq2kn51dFQIAGWwY\nBnNlcmlhbCgKWlgxRzQyQ1BKRBaMraSfnV0AGAphbmRyb2lkX2lkKBBhNTU5ZmViZTdkODM0NDQy\nFo6tpJ+dXQAYBXV0ZGlkKBhYei9Yd1hlc2ZuSURBRnZYemxDVk9lRXoWpK2kn51dABgFaWRtZDUo\nHTZmODI1NTdkN2JiYzVmNjgxNzQ1NDE1ZDhjMmRmFqatpJ+dXQAYA21hYygRMDg6MDA6Mjc6MzM6\nNTk6MjcWpq2kn51dABgEaW1laSgPNjc0MDQ1NjcyMjAwNTAwFqatpJ+dXQAA\n"},"analytics":{"sessions":[]}}
+```
+
+有用的几个字段：
+
+- `"appkey":"5f3e9cb2d309322154734911"`：这个就是后台生成 App 时生成的一个 key。
+- `"channel":"test11"`：后台设置的推广通道。
+- `"id_tracking"`：暂时叫做指纹吧，包含安卓 ID、序号、IMEI、MAC 等。
+
+比如安卓：
+
+- `Key = idmd5, Value = IdSnapshot(identity:6f82557d7bbc5f681745415d8c2df, ts:9223372036484926327, version:1)`
+- `Key = utdid, Value = IdSnapshot(identity:Xz/XwXesfnIDAFvXzlCVOeEz, ts:9223372036484926326, version:1)`
+- `Key = imei, Value = IdSnapshot(identity:674045672200500, ts:9223372036484926327, version:1)`
+- `Key = android_id, Value = IdSnapshot(identity:a559febe7d834442, ts:9223372036484926327, version:1)`
+- `Key = mac, Value = IdSnapshot(identity:08:00:27:33:59:27, ts:9223372036484926327, version:1)`
+- `IdJournal(domain:serial, new_id:ZX1G42CPJD, ts:9223372036484926326)`
+- `IdJournal(domain:android_id, new_id:a559febe7d834442, ts:9223372036484926327)`
+- `IdJournal(domain:utdid, new_id:Xz/XwXesfnIDAFvXzlCVOeEz, ts:9223372036484926326)`
+- `IdJournal(domain:idmd5, new_id:6f82557d7bbc5f681745415d8c2df, ts:9223372036484926327)`
+- `IdJournal(domain:mac, new_id:08:00:27:33:59:27, ts:9223372036484926327)`
+- `IdJournal(domain:imei, new_id:674045672200500, ts:9223372036484926327)`
+
+苹果：
+
+```java
+com.umeng.commonsdk.statistics.proto.b newB = new com.umeng.commonsdk.statistics.proto.b();
+
+newB.a = hostName;
+
+newB.b = fixTs;
+
+newB.f968c = 1;
+
+newT.put("hostname",newB);
+
+com.umeng.commonsdk.statistics.proto.b newB2 = new com.umeng.commonsdk.statistics.proto.b();
+
+newB2.a = idfa;
+
+newB2.b = fixTs;
+
+newB2.f968c = 1;
+
+newT.put("idfa",newB2);
+
+com.umeng.commonsdk.statistics.proto.b newB3 = new com.umeng.commonsdk.statistics.proto.b ();
+
+newB3.a = idfv;
+
+newB3.b = fixTs;
+
+newB3.f968c = 1;
+
+newT.put("idfv",newB3);
+
+com.umeng.commonsdk.statistics.proto.b newB4 = new com.umeng.commonsdk.statistics.proto.b ();
+
+newB4.a = umId;
+
+newB4.b = fixTs;
+
+newB4.f968c = 1;
+
+newT.put("kid",newB4);
+
+com.umeng.commonsdk.statistics.proto.b newB5 = new com.umeng.commonsdk.statistics.proto.b ();
+
+newB5.a = dev1.get("mac").getAsString();
+
+newB5.b = fixTs;
+
+newB5.f968c = 1;
+
+newT.put("mac",newB5);
+
+com.umeng.commonsdk.statistics.proto.b newB6 = new com.umeng.commonsdk.statistics.proto.b ();
+
+newB6.a = devid;
+
+newB6.b = fixTs;
+
+newB6.f968c = 1;
+```
+
+### `imprint` 字段
+
+`imprint` 暂时叫做打印，包含 `umid`，即安装 App 之后，一个手机对应一个 ID；其他还有安装时间、安装通道等。
+
+```java
+if("app_version".equals(key)) {
+
+//a value,
+
+value.a = app.get("apiver_android").getAsString();
+
+// ts 984385020
+
+// 377612148
+
+// 1049523708
+
+// value.b = 0L;
+
+//apiver_android apiver_android 5695381ed889183bc2923311bef6c80a
+
+// guid
+
+}
+
+if("did_ts".equals(key)) {
+
+value.a = Long.toString(now.getTime());
+
+}
+
+if("umid".equals(key)) {
+
+value.a = umId;
+
+}
+
+if("os_version".equals(key)) {
+
+value.a = dev1.get("osvernum").getAsString();
+
+}
+
+if("install_app_version".equals(key)) {
+
+value.a = app.get("apiver_android").getAsString();
+
+}
+
+if("did_idvalue".equals(key)) {
+
+value.a = dev1.get("mac").getAsString();
+
+}
+
+if("install_datetime".equals(key)) {
+
+value.a = format.format(now);
+
+}
+
+if("pretime".equals(key)) {
+```

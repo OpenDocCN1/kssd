@@ -1,0 +1,61 @@
+
+# [原创]记萌新第一次分析so文件，破解我的世界pe版
+
+事情经过：朋友想开个我的世界手游服，但是客户端会有验证，强制弹窗让你登录xbox，不然不让加入服务器。朋友就把仅改掉了启动验证的apk包让我帮忙看看。我也是第一次接触安卓平台，完全没经验。
+
+## 分析步骤
+
+1. 首先使用`apktool`解包apk文件。
+2. 据朋友说怀疑是`/lib/armeabi-v7a/libminecraftpe.so`（48.1M），载入`ida`看看，仅仅载入就花了好几个小时。。。cpu还跑不满，就15%，不知道有没有办法能优化一下？
+3. 准备从字符串下手，是多语言游戏的话，要先找语言文件，根据对话框内容找到`/assets/resource/_packs/vanilla/texts/zh_CN.lang`
+
+![](https://bbs.kanxue.com/upload/attach/201807/749612_8JEUW9C3R79EZ6T.png)
+
+4. 搜索字符串`xbox.externalServer.title`，定位到相关代码
+
+![](https://bbs.kanxue.com/upload/attach/201807/749612_3J52UB6PDKGKSA5.png)
+
+5. 不懂arm的指令集。。。按`f5`看伪代码，伪代码有527行，大概分析了一下
+
+![](https://bbs.kanxue.com/upload/attach/201807/749612_6C75EV7UJR5BP4B.png)
+
+看一下`v13`变量来源，是检测是否登录
+
+![](https://bbs.kanxue.com/upload/attach/201807/749612_3USWEQD52783GBH.png)
+
+6. 看汇编指令
+
+![](https://bbs.kanxue.com/upload/attach/201807/749612_5J82QWNGPXE6HPV.png)
+
+查阅资料，`blx`是调用，返回值通过`r0`传递。`r4`是变量`v13`
+
+准备修改，不支持用汇编语言修改？
+
+![](https://bbs.kanxue.com/upload/attach/201807/749612_DQ3X368SHN9W7S7.png)
+
+找到在线arm转hex工具：`a6eK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3q4J5L8h3y4G2L8Y4k6W2M7Y4c8W2M7W2)9J5k6h3y4G2L8g2)9J5c8W2!0q4c8W2!0n7b7#2)9^5b7#2!0q4z5q4!0m8y4W2)9^5x3g2!0q4y4#2)9&6b7#2)9^5b7Y4c8Z5N6h3#2T1i4@1f1$3i4K6S2o6i4K6R3%4i4@1f1@1i4@1u0n7i4@1p5@1i4@1f1&6i4K6W2n7i4K6R3$3`
+
+使用`mov r4,#1`指令处理掉这个检测，用`nop`补齐剩余字节
+7. 打包，上手机测试，连接之后提示“无法连接至世界”
+8. 继续搜索字符串，定位到相关代码
+
+![](https://bbs.kanxue.com/upload/attach/201807/749612_3KTA3BD6AAYGW66.png)
+
+看调用
+
+![](https://bbs.kanxue.com/upload/attach/201807/749612_4JUJ43XZNFCJ7DF.png)
+
+又是个检测，直接用`nop`处理掉
+9. 上游戏看看，没有问题了，成功交差
+
+## 问题请教
+
+有几个小问题想请教一下
+1. `ida`分析`so`时，cpu跑不满，效率低，有办法解决吗？
+2. 这个子程序中大量出现，类似的这种代码，是干什么用的？
+
+![](https://bbs.kanxue.com/upload/attach/201807/749612_RBS55NR7J3RDRC3.png)
+3. `ida`不支持直接用汇编修改，有办法解决吗？
+4. 如何判断这个程序使用的是什么指令集？
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)

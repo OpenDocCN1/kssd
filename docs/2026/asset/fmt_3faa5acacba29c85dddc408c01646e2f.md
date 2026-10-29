@@ -1,0 +1,127 @@
+
+# [原创] NDK加载 LLVM Pass方案
+
+本文基于 `ndk r25c`（`25.2.9519653`）
+
+仅测试 `Linux` 和 `macOS`
+
+## 获取 ndk r25c
+
+### 直接下载
+
+点只因下载：<a href="elink@cbbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8q4)9J5k6h3N6G2L8$3N6D9k6g2)9J5k6h3y4G2L8g2)9J5c8X3q4F1k6s2u0G2K9h3c8Q4x3V1k6J5k6i4m8G2M7$3W2@1L8%4u0&6i4K6u0r3j5h3&6V1M7X3!0A6k6q4)9J5k6r3&6V1K9#2)9J5k6s2t1J5y4h3y4Q4x3X3c8D9K9h3&6#2P5q4)9J5k6i4A6A6M7l9`.`."><mark class="encrypted">b4cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8q4)9J5k6h3N6G2L8$3N6D9k6g2)9J5k6h3y4G2L8g2)9J5c8X3q4F1k6s2u0G2K9h3c8Q4x3V1k6J5k6i4m8G2M7$3W2@1L8%4u0&6i4K6u0r3j5h3&6V1M7X3!0A6k6q4)9J5k6r3&6V1K9#2)9J5k6s2t1J5y4h3y4Q4x3X3c8D9K9h3&6#2P5q4)9J5k6i4A6A6M7l9`.`.</mark></a>
+
+### 使用 sdkmanager 安装
+
+```bash
+$ANDROID_HOME/tools/bin/sdkmanager --install "ndk;25.2.9519653"
+```
+
+> 坑：archlinux 需要 `sudo archlinux-java set java-8-openjdk`
+
+## 查看 clang 信息
+
+```bash
+cat $ANDROID_HOME/ndk/25.2.9519653/toolchains/llvm/prebuilt/linux-x86_64/AndroidVersion.txt
+```
+
+内容：
+```
+14.0.7
+based on r450784d1
+for additional information on LLVM revision and cherry-picks, see clang_source_info.md
+```
+
+## 下载未精简的 clang
+
+![Untitled](upload/attach/202305/892096_8YUEVRCX7B76TFW.png)
+
+然后去Google的 prebuilt clang仓库找到 `r450784d1` 相关的分支并打开：
+
+<a href="elink@410K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2L8X3c8J5L8$3W2V1i4K6u0W2k6$3!0G2k6$3I4W2M7$3!0#2M7X3y4W2i4K6u0W2j5$3!0E0i4K6u0r3M7r3I4S2N6r3k6G2M7X3#2Q4x3V1k6H3M7X3g2T1N6h3W2D9N6s2y4Q4x3V1k6U0L8r3q4F1k6#2)9J5c8X3S2G2M7%4c8Q4x3V1k6D9K9h3&6#2P5q4)9J5k6s2R3^5y4W2)9J5c8W2)9J5b7X3I4G2k6#2)9J5c8Y4u0W2k6Y4y4Q4x3V1k6Z5k6h3q4V1M7#2)9J5c8X3#2S2M7%4c8W2M7W2)9J5c8X3y4D9j5h3&6Y4i4K6u0V1M7U0b7#2x3o6M7^5y4r3b7`."><mark class="encrypted">783K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2L8X3c8J5L8$3W2V1i4K6u0W2k6$3!0G2k6$3I4W2M7$3!0#2M7X3y4W2i4K6u0W2j5$3!0E0i4K6u0r3M7r3I4S2N6r3k6G2M7X3#2Q4x3V1k6H3M7X3g2T1N6h3W2D9N6s2y4Q4x3V1k6U0L8r3q4F1k6#2)9J5c8X3S2G2M7%4c8Q4x3V1k6D9K9h3&6#2P5q4)9J5k6s2R3^5y4W2)9J5c8W2)9J5b7X3I4G2k6#2)9J5c8Y4u0W2k6Y4y4Q4x3V1k6Z5k6h3q4V1M7#2)9J5c8X3#2S2M7%4c8W2M7W2)9J5c8X3y4D9j5h3&6Y4i4K6u0V1M7U0b7#2x3o6M7^5y4r3b7`.</mark></a>
+
+![Untitled](upload/attach/202305/892096_MKR4Q38W6JRS25S.png)
+
+点开最新的一个 `commit`，进入
+
+<a href="elink@541K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2L8X3c8J5L8$3W2V1i4K6u0W2k6$3!0G2k6$3I4W2M7$3!0#2M7X3y4W2i4K6u0W2j5$3!0E0i4K6u0r3M7r3I4S2N6r3k6G2M7X3#2Q4x3V1k6H3M7X3g2T1N6h3W2D9N6s2y4Q4x3V1k6U0L8r3q4F1k6#2)9J5c8X3S2G2M7%4c8Q4x3V1k6D9K9h3&6#2P5q4)9J5k6s2R3^5y4W2)9J5c8W2)9J5b7W2)9J5c8U0c8V1y4e0t1H3y4U0R3%4x3e0S2X3j5U0M7&6y4o6m8T1x3e0l9K6j5$3x3@1z5e0f1H3y4X3j5%4y4$3f1#2k6o6t1J5k6U0t1#2k6r3k6Q4x3V1k6U0L8r3q4F1k6#2)9J5k6s2t1@1y4e0l9%4z5o6c8V1x3g2)9J5c8R3`.`."><mark class="encrypted">7cbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2L8X3c8J5L8$3W2V1i4K6u0W2k6$3!0G2k6$3I4W2M7$3!0#2M7X3y4W2i4K6u0W2j5$3!0E0i4K6u0r3M7r3I4S2N6r3k6G2M7X3#2Q4x3V1k6H3M7X3g2T1N6h3W2D9N6s2y4Q4x3V1k6U0L8r3q4F1k6#2)9J5c8X3S2G2M7%4c8Q4x3V1k6D9K9h3&6#2P5q4)9J5k6s2R3^5y4W2)9J5c8W2)9J5b7W2)9J5c8U0c8V1y4e0t1H3y4U0R3%4x3e0S2X3j5U0M7&6y4o6m8T1x3e0l9K6j5$3x3@1z5e0f1H3y4X3j5%4y4$3f1#2k6o6t1J5k6U0t1#2k6r3k6Q4x3V1k6U0L8r3q4F1k6#2)9J5k6s2t1@1y4e0l9%4z5o6c8V1x3g2)9J5c8R3`.`.</mark></a>
+
+然后点击 `tgz` 下载这一份 `clang`
+
+![Untitled](upload/attach/202305/892096_AAQQTTW8PWZASA6.png)
+
+然后基于这一份 `clang` 直接编译 `llvm` 动态库插件就可以直接用 `ndk` 加载了
+
+解压
+
+```bash
+mkdir clang
+tar xzvf clang-r450784d1.tar.gz -C clang
+```
+
+## 编译使用 pass 实例
+
+1. 下载代码
+
+```bash
+git clone https://github.com/LeadroyaL/llvm-pass-tutorial
+```
+
+2. 修改 `CMakeLists.txt`，在 `project()` 后加上
+
+```
+set(CMAKE_C_COMPILER /home/ylarod/ndk-r25c/clang/bin/clang)
+set(CMAKE_CXX_COMPILER /home/ylarod/ndk-r25c/clang/bin/clang)
+set(ENV{LLVM_HOME} /home/ylarod/ndk-r25c/clang)
+```
+
+这个时候 `cmake ..` 会报错
+
+```
+CMake Error at /home/ylarod/ndk-r25c/clang/lib64/cmake/llvm/LLVMExports.cmake:1036 (message):
+The imported target "LLVMDemangle" references the file
+"/home/ylarod/ndk-r25c/clang/lib64/libLLVMDemangle.a"
+but this file does not exist. Possible reasons include:
+* The file was deleted, renamed, or moved to another location.
+* An install or uninstall procedure did not complete successfully.
+* The installation package was faulty and contained
+"/home/ylarod/ndk-r25c/clang/lib64/cmake/llvm/LLVMExports.cmake"
+but not all the files it references.
+Call Stack (most recent call first):
+/home/ylarod/ndk-r25c/clang/lib64/cmake/llvm/LLVMConfig.cmake:251 (include)
+CMakeLists.txt:14 (find_package)
+```
+
+这个时候去注释掉 `clang/lib64/cmake/llvm/LLVMExports.cmake` 下面这一段代码
+
+![Untitled](upload/attach/202305/892096_VGBWF4XUFSW4DQV.png)
+
+然后
+
+```bash
+mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -G Ninja
+ninja
+```
+
+![Untitled](upload/attach/202305/892096_47WJJ2KBGFF79FK.png)
+
+测试代码来自 <a href="elink@5bbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6T1L8s2g2W2M7$3q4V1K9g2)9J5c8W2m8D9N6i4c8G2i4K6u0V1e0$3u0X3N6i4y4U0j5i4c8G2M7W2)9J5c8Y4c8J5k6h3g2Q4x3V1k6E0j5h3W2F1i4K6u0r3N6r3g2K6N6q4)9J5c8X3q4W2M7H3`.`."><mark class="encrypted">6b7K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6T1L8s2g2W2M7$3q4V1K9g2)9J5c8W2m8D9N6i4c8G2i4K6u0V1e0$3u0X3N6i4y4U0j5i4c8G2M7W2)9J5c8Y4c8J5k6h3g2Q4x3V1k6E0j5h3W2F1i4K6u0r3N6r3g2K6N6q4)9J5c8X3q4W2M7H3`.`.</mark></a>
+
+`build.sh`:
+
+```bash
+export CC=/home/ylarod/Android/Sdk/ndk/25.2.9519653/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++
+$CC aes.cpp test.cpp -o no_obf
+$CC -fpass-plugin=/home/ylarod/ndk-r25c/llvm-pass-tutorial/build/Hikari/libHikari.so -Xclang -load -Xclang /home/ylarod/ndk-r25c/llvm-pass-tutorial/build/Hikari/libHikari.so -mllvm -split_num=3 -mllvm -fw_prob=100 -mllvm -fw_times=4 -mllvm -bcf_prob=100 -mllvm -bcf_loop=3 aes.cpp test.cpp -o obf
+```
+
+编译后：
+
+![Untitled](upload/attach/202305/892096_5K6WYQ2P2T3WWZ5.png)
+
+差不多鸟～
+
+## 当我们来到 macOS 上
+
+由于 Google 编译 `macOS` 工具链的系统版本太低，加载 `so` 的时候会报错

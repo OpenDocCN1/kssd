@@ -1,0 +1,158 @@
+
+SSL pinning 就是在应用发布时将服务端的安全证书的证书指纹内置在 `apk` 中，当客户端与服务器交互时将当前服务端的证书与内置的证书指纹进行对比校验，如果验证通过则判定安全，否则为不安全，强行断开连接。SSL pinning 在带来较高安全性的同时也牺牲了灵活性，因为证书锁定只信任内置的证书指纹，一旦服务端证书发生变化那么客户端也必须随着升级，除此之外，服务端不得不为了兼容以前的客户端而做出一些妥协或直接停用以前的客户端。不过一般是很少变动证书的，所以如果产品安全性要求较高的还是启动证书锁定比较好，实现方式多种多样，一般通过预埋证书的方式。
+
+首先创建一个带证书锁定的 `SSLContext` 对象，大概流程：使用 `KeyStore` 加载应用内置的安全证书，然后用这个 `KeyStore` 去初始化生成 `TrustManager`，并用生成的 `TrustManager` 初始化 `SSLContext` 对象，最后将 `SSLContext` 对象提供给各网络框架使用。
+
+```java
+private static SSLContext getSSLContext(boolean needVerifyCa, Context context, String cAalias)
+        throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, KeyManagementException {
+    X509TrustManager x509TrustManager;
+    // https请求，需要校验证书
+    if (needVerifyCa) {
+        // 第一步：使用安全证书创建一个包含可信CA的密钥库(KeyStore对象)
+        InputStream caInputStream = context.getAssets().open("CA.crt");
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+        KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+        keyStore.load(null, null); // 可在这里加载带密码的CA证书
+        keyStore.setCertificateEntry(cAalias, certificateFactory.generateCertificate(caInputStream));
+        // 第二步：使用包含信任CA的密钥库获取TrustManager对象
+        TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        trustManagerFactory.init(keyStore);
+        // 第三步：使用TrustManager数组初始化SSLContext对象
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, trustManagerFactory.getTrustManagers(), new SecureRandom());
+        return sslContext;
+    }
+    // https请求，不作证书校验
+    // 第一步：自定义一个无证书校验的TrustManager对象
+    x509TrustManager = new X509TrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] arg0, String arg1) {
+        }
+        @Override
+        public void checkServerTrusted(X509Certificate[] arg0, String arg1) {
+            // 不对服务端证书进行验证
+        }
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    };
+    // 第二步：使用无证书校验的TrustManager数组初始化SSLContext对象
+    SSLContext sslContext = SSLContext.getInstance("TLS");
+    sslContext.init(null, new TrustManager[]{x509TrustManager}, new SecureRandom());
+    return sslContext;
+}
+```
+
+各网络框架证书校验实现如下：
+
+### 一、`HttpClient` 实现证书锁定
+
+```java
+public static CloseableHttpClient getHttpClient(Context context) {
+    CloseableHttpClient httpClient;
+    SSLConnectionSocketFactory sslSocketFactory;
+    try {
+        // 证书的别名， 注:cAalias只需要保证唯一即可，不过推荐使用生成keystore时使用的别名。
+        String cAalias = System.currentTimeMillis() + "" + new SecureRandom().nextInt(1000);
+        // 创建带证书锁定的sslSocketFactory
+        sslSocketFactory = new SSLConnectionSocketFactory(getSSLContext(true, context, cAalias));
+    } catch (Exception e) {
+        throw new RuntimeException(e);
+    }
+    httpClient = HttpClientBuilder.create().setSSLSocketFactory(sslSocketFactory).build();
+    return httpClient;
+}
+```
+
+### 二、`HttpsURLConnection` 实现证书锁定
+
+```java
+public static void doHttpsGet(final Context context, final String urlPath){
+    new Thread(){
+        @Override
+        public void run() {
+            Looper.prepare();
+            try {
+                // 证书的别名， 注:cAalias只需要保证唯一即可，不过推荐使用生成keystore时使用的别名。
+                String cAalias = System.currentTimeMillis() + "" + new SecureRandom().nextInt(1000);
+                URL realUrl = new URL(urlPath);
+                HttpsURLConnection conn = (HttpsURLConnection) realUrl.openConnection();
+                // 创建带证书锁定的sslSocketFactory
+                conn.setSSLSocketFactory(getSSLContext(true, context, cAalias).getSocketFactory());
+                conn.setRequestMethod("GET");
+                conn.connect();
+                int code = conn.getResponseCode();
+                if (code == 200){
+                    Log.i("https","connection success");
+                }else {
+                    Log.i("https","connection failed code:" + code);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            Looper.loop();
+        }
+    }.start();
+}
+```
+
+### 三、`Okhttp` 实现证书锁定
+
+#### 公钥锁定
+
+```java
+private static final String CA_DOMAIN = "*.xxx.com";
+private static final String CA_PUBLIC_KEY = "sha256/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+.....
+CertificatePinner pinner = new CertificatePinner.Builder()
+    .add(CA_DOMAIN, CA_PUBLIC_KEY)
+    .build();
+.....
+OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+    .certificatePinner(pinner);
+```
+
+#### 证书锁定
+
+```java
+private SSLSocketFactory getSSLSocketFactory()
+        throws CertificateException, KeyStoreException, IOException,
+        NoSuchAlgorithmException, KeyManagementException {
+    CertificateFactory cf = CertificateFactory.getInstance("X.509");
+    InputStream caInput = getResources().openRawResource(R.raw.cert);
+    Certificate ca = cf.generateCertificate(caInput);
+    caInput.close();
+    KeyStore keyStore = KeyStore.getInstance("BKS");
+    keyStore.load(null, null);
+    keyStore.setCertificateEntry("ca", ca);
+    String tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
+    TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(tmfAlgorithm);
+    trustManagerFactory.init(keyStore);
+    SSLContext sslContext = SSLContext.getInstance("TLS");
+    sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
+    return sslContext.getSocketFactory();
+}
+
+private HostnameVerifier getHostnameVerifier() {
+    return new HostnameVerifier() {
+        @Override
+        public boolean verify(String hostname, SSLSession session) {
+            HostnameVerifier hv = HttpsURLConnection.getDefaultHostnameVerifier();
+            return hv.verify("BNK-PC.LOCALHOST.COM", session);
+        }
+    };
+}
+
+OkHttpClient client = new OkHttpClient.Builder()
+    .sslSocketFactory(getSSLSocketFactory())
+    .hostnameVerifier(getHostnameVerifier())
+    .build();
+```
+
+### 四、`WebView` 实现证书锁定
+
+`WebView` 没有自定义SSL Pinning的实现方法，只能通过`network_security_config.xml`配置证书锁定；
+
+分别在应用的`\res\xml\network_security_config.xml`文件和`\AndroidManifest.xml`文件中添加证书相关信息，系统自动对访问的域名进行校验；

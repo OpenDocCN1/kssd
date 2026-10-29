@@ -1,0 +1,246 @@
+
+# 某艺TV版 apk 破解去广告及源码分析
+
+[TOC]
+
+# 1. 准备工作
+
+**用例 APK**
+
+用例 APK 版本：爱奇艺TV版 v12.1.0
+
+![](upload/attach/202304/939796_3RHDDHFPVXWGC8B.png)
+
+原 APK 链接：<a href="elink@047K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5h3&6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3V1j5I4P5V1&6w2K9K6j5$3x3W2c8$3L8@1&6G2f1@1p5^5e0V1k6e0g2$3c8f1f1g2)9K6c8Y4m8%4k6q4)9K6c8o6m8W2M7$3p5`."><mark class="encrypted">a36K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5h3&6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3V1j5I4P5V1&6w2K9K6j5$3x3W2c8$3L8@1&6G2f1@1p5^5e0V1k6e0g2$3c8f1f1g2)9K6c8Y4m8%4k6q4)9K6c8o6m8W2M7$3p5`.</mark></a>
+
+修改 APK 链接：<a href="elink@55bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5h3&6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3V1j5I4y4Y4S2G2y4V1k6z5i4K6g2X3L8K6t1^5y4r3I4m8g2f1&6f1K9r3I4H3k6s2u0c8i4K6y4r3M7s2N6V1i4K6y4p5z5e0c8B7N6l9`.`."><mark class="encrypted">80fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5h3&6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3V1j5I4y4Y4S2G2y4V1k6z5i4K6g2X3L8K6t1^5y4r3I4m8g2f1&6f1K9r3I4H3k6s2u0c8i4K6y4r3M7s2N6V1i4K6y4p5z5e0c8B7N6l9`.`.</mark></a>
+
+**本人测试环境**
+
+1. 测试机 Pixel 2（Android 10）
+2. `frida` v15.1.27（`objection` 插件 v1.11.0）
+3. 开发者助手 v1.2.1
+4. MT管理器 v13.3
+5. `jadx-gui` v1.4.4
+6. `fiddler` v5.0.20211.51073
+
+# 2. 去除广告思路
+
+## 2.1 Android 广告
+
+### 2.1.1 Android 中的广告形式
+
+广告的表现形式很多，可能是一个界面（`activity`），可能是局部在上方或下方的一个区域视图（`view`）等。以下是常见广告形式：
+
+1. 嵌入式广告：将广告直接嵌入到应用程序中，通常出现在应用程序的底部、顶部或侧边栏。
+2. 插页式广告：应用程序的某个时间点弹出的广告，通常会覆盖整个屏幕。插页式广告通常在应用程序的特定事件之后出现，例如游戏中的关卡结束或应用程序的主菜单页面。
+3. 横幅广告：在应用程序的顶部或底部显示的广告，通常以图像或文本的形式出现。横幅广告通常比嵌入式广告小，不会占用应用程序的太多空间。
+4. 视频广告：在应用程序中播放的广告，通常以全屏或插页式的形式出现。通常需要观看一段时间才能跳过或关闭。
+
+### 2.1.2 Android 广告来源
+
+1. Push 推送广告：通过推送消息到用户设备通知栏上展示广告。
+2. 第三方 SDK 广告：很多应用都会集成第三方广告平台，比如 AdMob、Facebook Audience Network、Unity Ads 等等，应用程序可以用第三方广告 SDK 来从其他公司的广告库中获取广告并在应用程序中展示。
+
+## 2.2 Android 去除广告思路
+
+无论怎样形式、怎样来源的广告，在本地一定需要展示出来，展示就需要广告内容载体，如界面、视图等，对于这些容器，即可以利用静态的布局，也可以动态生成布局。如果能移除这些容器、或者破坏容器生成条件就可以达到去广告的地步。
+
+- 对于静态布局的广告：广告图片视频都是保存在apk里的，只需要直接从配置清单 xml 文件，或相应的布局xml文件入手，修改容器的布局或者删除相应的代码，就可去除广告。
+- 对于动态导入第三方SDK的广告：我们就需要从代码逻辑上入手。找到它动态导入广告的地方，尝试修改判断条件，从而使导入广告失败，或者让广告无法显示，从而去除广告。
+
+本次案例是来自于第三方 SDK 软件的广告投放，通过发送请求包，从而获取相对应的广告 ID 与资源，对于这种情况，我们可以通过定位 SDK 的初始化、广告请求、广告展示等代码，来分析其逻辑，从而找到突破点。
+
+# 3. 分析开屏广告
+
+## 3.1 分析步骤
+
+### 3.1.1 分析广告页面
+
+![](upload/attach/202304/939796_Q54D4GKSNKPRGHY.jpg)
+
+首先对开屏广告页面进行分析，通过MT管理器发现该广告是处在 `WelcomeActivity` 类中，我们直接hook 类，得到其函数调用栈。
+
+![](upload/attach/202304/939796_VAG28EFPW3WWNZ4.png)
+
+### 3.1.2 分析启动时函数调用栈
+
+可以猜测 `showHomePage()` 就是展示我们的主页了，我们逐条分析广告发生前的函数：
+
+```java
+private void checkPermission() {
+if (lpt2.br(InitHelper.getInstance().checkInitPermission(this))) {
+jumpToMain();
+return;
+}
+List<String> checkInitPermission = InitHelper.getInstance().checkInitPermission(this);
+androidx.core.app.aux.a(this, (String[]) checkInitPermission.toArray(new String[checkInitPermission.size()]), 1);
+}
+// 检查初始化权限
+public List<String> checkInitPermission(Context context) {
+ArrayList<String> arrayList = new ArrayList();
+ArrayList arrayList2 = new ArrayList();
+arrayList.add("android.permission.INTERNET"); // 访问网络的权限
+if (!org.qiyi.speaker.u.con.bMX()) {
+arrayList.add("android.permission.READ_PHONE_STATE"); // 取手机状态的权限
+}
+arrayList.add("android.permission.WRITE_EXTERNAL_STORAGE"); // 写入外部存储设备的权限
+arrayList.add("android.permission.ACCESS_NETWORK_STATE"); // 访问网络状态的权限
+....
+}
+private void jumpToMain() {
+Log.e("gzy", "size:" + SpeakerApplication.getInstance().getCurrentActivitySize());
+// 用户是否给软件授权
+if (!org.qiyi.speaker.o.con.bLa()) {
+org.qiyi.speaker.o.con.a(this, this.mLisenceCallback); // 显示免责声明并进行用户许可
+// 加载splash启动页动画（没有后台进程）
+} else if (GuideController.INSTANCE.needShowSplashGuide()) {
+showGuidePage();
+} else {
+//
+launchMain(false);
+}
+}
+// 首次打开，启动应用程序主界面
+public void launchMain(final boolean z) {
+// 如果当前Activity数量不等于1，那么显示主页。
+if (SpeakerApplication.getInstance().getCurrentActivitySize() != 1) {
+showHomePage(z);
+return;
+}
+// 注册一个启动画面的回调，请求广告并下载，当启动画面结束后, 显示广告。
+com.qiyi.video.g.con.aXh().registerSplashCallback(new ISplashCallback() { // from class: com.qiyi.video.speaker.activity.WelcomeActivity.2
+@Override // org.qiyi.video.module.api.ISplashCallback
+public void onAdAnimationStarted() {
+}
+@Override // org.qiyi.video.module.api.ISplashCallback
+public void onAdCountdown(int i) {
+}
+@Override // org.qiyi.video.module.api.ISplashCallback
+public void onAdOpenDetailVideo() {
+}
+@Override // org.qiyi.video.module.api.ISplashCallback
+public void onAdStarted(String str) {
+}
+@Override // org.qiyi.video.module.api.ISplashCallback
+public void onSplashFinished(int i) {
+WelcomeActivity.this.showHomePage(z);
+JobManagerUtils.a(new Runnable() { // from class: com.qiyi.video.speaker.activity.WelcomeActivity.2.1
+@Override // java.lang.Runnable
+public void run() {
+com.qiyi.video.qysplashscreen.ad.aux.aUv().aUE();
+((ISplashScreenApi) ModuleManager.getModule(IModuleConstants.MODULE_NAME_SPLASH_SCREEN, ISplashScreenApi.class)).requestAdAndDownload();
+}
+}, 500, PageAutoScrollUtils.HANDLER_SWITCH_NEXT_TIPS_DELAY, "splashAD_requestad", WelcomeActivity.TAG);
+}
+});
+launchAppGuide();
+}
+```
+
+### 3.1.3 修改 if 判断
+
+可以看到当当前Activity数量不等于1时，就直接调 `showHomePage` 函数，我们可以将这个判断改为永真，让其直接显示主页。
+
+![](upload/attach/202304/939796_CKG5CMDAX9TVDW4.png)
+
+重打包编译签名，运行程序，已去除开屏广告：
+
+![](upload/attach/202304/939796_B23W2Y2PV8XN969.gif)
+
+## 3.2 总结
+
+对于开屏广告，我们可以观察应用启动的 Activity 顺序 (先从主入口切入Main)，寻找其函数调用顺序，找到其播送广告的页面，将其逻辑更改，就可以屏蔽掉开屏广告。
+
+# 4. 分析播放视频广告
+
+## 4.1 分析步骤
+
+### 4.1.1 分析广告页面
+
+![](upload/attach/202304/939796_JQK92U8X3NYKXYZ.jpg)
+
+首先对视频广告页面进行分析，有暂停键、静音键、详情键、持续时间、会员关闭提示…，我们可以想到：
+
+- 剩余时间：获取广告时长，并设置计时器（可能会有判断时间归零，结束视频）
+- 了解详情：获取广告 ID，设置按钮监听，保存广告详情 url
+- 暂停键：保留当前广告播放位置
+
+### 4.1.2 分析持续时间
+
+本人选择剩余时间作为破解入口，通过开发者助手查到显示时间的资源 ID 是 `R.id.account_ads_time_pre_ad`，搜索资源ID可得三处引用该资源。
+
+![](upload/attach/202304/939796_P95RTVEKS4XGP8Z.jpeg)
+
+![](upload/attach/202304/939796_3TVQ76ZDDUNSR7S.png)
+
+通过 hook 分析发现在视频启动时的广告，调用的是 `aux` 类的函数：
+
+![](upload/attach/202304/939796_9RCUZ4PEQV92CH8.png)
+
+分析 `aux` 类里使用了 `R.id.account_ads_time_pre_ad` 的方法，找到三处，分别分析：
+
+第一、二处均用在 `Xi()` 函数中，该函数主要设置广告配置及布置广告界面。
+
+```java
+private void Vz() {
+......
+this.bPB = (TextView) findViewById(R.id.account_ads_time_pre_ad);
+}
+private void Xi() {
+...
+// 获取当前广告播放器的状态
+BaseState currentState = this.mAdInvoker.getCurrentState();
+// 获取了广告播放器的UI策略
+int adUIStrategy = this.mAdInvoker.getAdUIStrategy();
+// 打印日志
+com.iqiyi.video.qyplayersdk.g.aux.i("PLAY_SDK_AD_ROLL", "{GPhoneRollAdView}", " show ad UI, current state = ", currentState, ", adUiStrategy: ", Integer.valueOf(adUIStrategy));
+// 设置视图的背景，根据当前广告播放器的状态来选择不同的背景资源
+this.bPy.setBackgroundResource(currentState.isOnPaused() ? R.drawable.qiyi_sdk_play_ads_player : R.drawable.qiyi_sdk_play_ads_pause);
+// 获取了当前广告的交付类型
+int i = this.mDeliverType;
+boolean z = i == 3 || i == 7 || i == 4;
+// 获取广告播放器配置
+QYPlayerADConfig adConfig = this.mAdInvoker.getAdConfig();
+int i2 = 8;
+// 根据UI策略的不同值，来设置一些视图的可见性或执行一些方法，8不可见，0可见
+if (adUIStrategy == 1) {
+this.bPA.setVisibility(8);
+this.bPy.setVisibility(8);
+this.bPF.setVisibility(8);
+this.bPz.setVisibility(8);
+} else if (adUIStrategy == 2) {
+this.bPA.setVisibility(8);
+this.bPy.setVisibility(8);
+this.bPz.setVisibility(8);
+this.bSv.setVisibility(8);
+this.bSq.setVisibility(8);
+this.bSq.setOnTouchListener(null);
+} else if (adUIStrategy == 3) {
+this.bPA.setVisibility(8);
+this.bPF.setVisibility(8);
+boolean isMute = isMute(); // 检查广告是否处于静音状态
+this.bPL = isMute;
+setAdMute(isMute, false);
+} else {
+this.bPF.setVisibility(0);
+TextView textView = this.bPA;
+if (!this.mIsLand) {
+i2 = 0;
+}
+textView.setVisibility(i2);
+boolean isMute2 = isMute();
+this.bPL = isMute2;
+setAdMute(isMute2, false);
+Xk();
+}
+if (this.mDeliverType != 6) {
+this.bPB.setVisibility(0); // 设置时间视图可显
+}
+this.bPB.setText(String.valueOf(this.mAdInvoker.getAdDuration())); // 给时间视图赋值
+}
+```
+
+第三处位于 `Xc()` 函数中，根据 hook 到的函数调用栈，分析其运行过程：
+
+![](upload/attach/202304/939796_W67ZWSDGHV996QS.png)

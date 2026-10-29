@@ -1,0 +1,477 @@
+
+```text
+0x10d580..0x10d718 varint / zigzag encoder
+0x10c1ec..0x10c32c protobuf field writer
+```
+
+所以这一段不应该按加密算法理解，而应该按 protobuf builder 还原。
+
+对应 Python 中实现了：
+
+```text
+proto_varint()
+proto_key()
+proto_field_varint()
+proto_field_bytes()
+proto_field_fixed32()
+medusa_src_a_rebuild()
+medusa_src_a_from_runtime_values()
+```
+
+验证方式：
+
+```text
+native src_a == Python rebuilt src_a
+```
+
+## 第十步：top.f14 是 URL query 的 SM3 前 6 字节
+
+对 SM3 helper 的 IO 做 trace 后确认：
+
+```text
+top.f14 = SM3(URL query bytes)[0:6]
+```
+
+注意这里是 query，不包含 path，也不包含问号前面的部分。
+
+样例：
+
+```text
+SM3(query) =
+6cc3b8b4c20643691762996898e9a999546377e6713affda2d66b09c19020aca
+top.f14 =
+6cc3b8b4c206
+```
+
+## 第十一步：f23 里的 pid 和时间
+
+`src_a.f23` 是一段嵌套环境 message，其中几个字段是动态值。
+
+最终确认：
+
+```text
+f23.f7 = zigzag32(getpid())
+f23.12.f28 = zigzag64(X-Khronos_seconds * 1000)
+f23.12.f40 = zigzag64(current_epoch_milliseconds)
+```
+
+对应 native 证据：
+
+```text
+lib+0xdc8e4 调 getpid
+lib+0x101c64 gettimeofday -> sec * 1000 + usec / 1000
+lib+0x101c9c gettimeofday_ms / 1000
+```
+
+这里要区分：
+
+```text
+f23.12.f28 跟 X-Khronos 秒相关
+f23.12.f40 跟当前 epoch ms 相关
+```
+
+即使锁定 URL 里的 `ts` 或 emu 的 `--lock-time`，`f40` 仍可能变化。要复现同一次签名，就必须使用 native run 里抓到的当前毫秒值。
+
+## 第十二步：f24 是 UUID、MD5、CRC32 组合
+
+`src_a.f24` 是 JSON 字符串，形态如下：
+
+```json
+{"cmr":16777216,"cmr2":16777216,"un_h":0,"vpn":0,"kd":694367,"fkd":...,"pd":...,"dyn":"","do":0,"tk":true}
+```
+
+先从最终 JSON 里的 `fkd/pd` 回溯 source string：
+
+```text
+vm+0x18db5c CRC32(fkd_source)
+vm+0x18dd2c CRC32(pd_source)
+```
+
+确认：
+
+```text
+pd = signed_crc32(uuid_source)
+fkd = unsigned_crc32(md5(uuid_source || "694367").hexdigest())
+```
+
+继续追 `uuid_source`，发现它不是直接把 `/dev/urandom` 的 16 字节格式化成 UUID，而是：
+
+```text
+/dev/urandom first16
+-> 作为 xorshift128+ seed
+-> PRNG 调用两次
+-> raw16 = le64(out0) || le64(out1)
+-> 按 native nibble 顺序填 UUID 模板
+```
+
+PRNG 逻辑：
+
+```python
+x = s0
+y = s1
+x ^= (x << 23) & 0xffffffffffffffff
+new_s1 = x ^ y ^ (y >> 5) ^ (x >> 18)
+out = (new_s1 + y) & 0xffffffffffffffff
+new_s0 = y
+```
+
+UUID 模板：
+
+```text
+xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+```
+
+填充规则：
+
+```text
+每个 byte 先用低 nibble，再用高 nibble
+x -> alphabet[nibble]
+y -> alphabet[(nibble & 3) | 8]
+固定的版本位 4 不消耗随机 nibble
+```
+
+用固定 `/dev/urandom` 输入 `--urandom-int 1` 验证：
+
+```text
+seed16 = 01000000000000000000000000000000
+out0 = 0x0000000000800021
+out1 = 0x0000000001040041
+uuid = 12000800-0000-4000-8140-040100000000
+md5(uuid || "694367").hexdigest()
+= 4a5edaf53834ae3aef2e1fcc298394c4
+fkd = 922802938
+pd = 508833512
+```
+
+## 第十三步：bit-slice 提取和 patch
+
+最终 packet 的 body 还会经过一层 bit-slice 处理。
+
+流程：
+
+```text
+1. 从 second_buffer 前 31 个 64-bit word 中提取 31 字节
+2. 这 31 字节拼一个 32-byte block，最后补 00
+3. 送入 AES-like transform
+4. transform 输出 aes32
+5. aes32[:31] patch 回 second_buffer 的前 31 个 64-bit word
+6. aes32[31] 放到 packet 的 body_first
+```
+
+提取位置：
+
+```text
+vm+0x18ee54..0x18f024
+```
+
+patch 位置：
+
+```text
+vm+0x190f4c..0x1910b8
+```
+
+稀疏 bit lanes：
+
+```text
+bit positions: 5, 14, 18, 28, 35, 41, 48, 63
+```
+
+byte bit permutation：
+
+```text
+in bit 0 -> out bit 2
+in bit 1 -> out bit 0
+in bit 2 -> out bit 4
+in bit 3 -> out bit 7
+in bit 4 -> out bit 5
+in bit 5 -> out bit 6
+in bit 6 -> out bit 1
+in bit 7 -> out bit 3
+```
+
+这一步看起来很绕，但动态验证很直接：
+
+```text
+记录每个 old_word、input_byte、new_word
+Python 按相同 bit permutation 和 sparse mask 计算
+逐项对比 new_word
+```
+
+## 第十四步：AES-like transform
+
+在 `vm+0x193800` 附近能看到明显的 AES GF(2^8) 乘法痕迹：
+
+```text
+andi ..., 0x80
+xori ..., 0x1b
+```
+
+但它不是标准 AES。
+
+继续 trace S-box、state permutation、key schedule 和 round-key 顺序后，最终确认它是一个自定义 AES-like 变换：
+
+```text
+1. 使用 AES MixColumns arithmetic
+2. 使用自定义 substitution table
+3. 使用自定义 state permutation
+4. 使用自定义 round-key byte order
+5. 对两个 16-byte block 做 CBC-like chaining
+```
+
+固定材料：
+
+```text
+material16 = d31e3718288a1027baab59f146a09a9c
+iv16 = ea180a0336ed352fcd24e4d50018ae54
+```
+
+输入：
+
+```text
+aes_input = extract31 || 00
+```
+
+输出：
+
+```text
+aes32 = medusa_aes_like_transform32(aes_input, material16)
+```
+
+其中：
+
+```text
+aes32[:31] -> patch second_buffer
+aes32[31] -> packet body_first
+```
+
+这一阶段逐轮验证了：
+
+```text
+sub bytes
+shift rows
+mix columns
+round key xor
+key schedule
+完整 transform32
+```
+
+## 第十五步：组合成完整 pipeline
+
+到这里，所有局部块都已经能和 native 对上。
+
+最终 Python pipeline：
+
+```python
+d71bc_seed32_le = uint32_le(d71bc_rand)
+tail2 = d71bc_seed32_le[:2]
+d71bc_key = SM3(sign_key || d71bc_seed32_le || sign_key)
+reverse_key4 = hash_tail2_to_key4(tail2)
+seed8 = uint32_le(seed8_rand) + bytes.fromhex("013a0b00")
+src_a = build_src_a(...)
+d71bc_output = block_d71bc_encode(src_a, d71bc_key)
+reverse_source = b"\x00" * 8 + d71bc_output
+first_intermediate = reverse_xor(reverse_source, reverse_key4)
+second_buffer = layout(0xa6, seed8, first_intermediate, tail2)
+aes32 = custom_aes_like(extract31(second_buffer), material16)
+packet = assemble_packet(tail2, aes32, second_buffer)
+X_Medusa = base64(packet)
+```
+
+最终封装成：
+
+```python
+medusa_x_medusa_from_full_runtime_values(...)
+```
+
+以及纯 Python 命令行：
+
+```bash
+python3 medusa_pure_x_medusa.py \
+--top-rand 0xef26a2e7 \
+--d71bc-rand 0x2d39c8b6 \
+--seed8-rand 0x93bbc24b \
+--pid 92685 \
+--khronos-sec 1777603264 \
+--current-epoch-ms 1777965666036 \
+--f24-seed16 0x1
+```
+
+## 最终验证
+
+端到端验证脚本会在同一次 native run 中抓取：
+
+```text
+src_a
+三个 rand
+pid
+current_epoch_ms
+f24 source
+native X-Medusa
+```
+
+然后 Python 用这些值重新生成：
+
+```text
+src_a
+packet
+X-Medusa
+```
+
+验证结果：
+
+```text
+[rebuild] src_a_match=True x_medusa_match=True
+```
+
+这说明：
+
+```text
+1. src_a 明文结构已还原
+2. d71bc helper 已还原
+3. reverse-xor 已还原
+4. second_buffer layout 已还原
+5. bit-slice extract/patch 已还原
+6. AES-like transform 已还原
+7. packet assembly 和 base64 已还原
+```
+
+## 复现同一次签名需要哪些输入
+
+如果要让纯 Python 和某一次 native 运行输出完全一致，至少要提供：
+
+```text
+URL/query
+rand@vm+0x18c788
+rand@vm+0x18e408
+rand@vm+0x18ec30
+pid
+X-Khronos seconds
+current epoch milliseconds
+f24 UUID seed16，或直接给 device_uuid/device_hash_hex/f24_fkd/f24_pd
+```
+
+其中最容易忽略的是：
+
+```text
+1. 三个 rand 不会被 --lock-time 固定
+2. f23.12.f40 是当前 epoch ms
+3. f24 UUID 不是直接 urandom 格式化，而是 xorshift128+ 后再按 nibble 填模板
+```
+
+## AI 在这次逆向中的作用
+
+这篇文章标题里有 “AI逆向”，但它不是指把 so 丢给 AI 然后自动出结果。
+
+这次更接近一种分阶段的人机协作式逆向。
+
+第一阶段用的是 Cursor 的 Opus 模型，重点解决工程入口问题：
+
+```text
+1. 搭建 ExAndroidNativeEmu 调用环境
+2. 加载 so、跑 JNI_OnLoad
+3. 调通 sub_D4F3C(url, headers_blob)
+4. 拿到 X-Argus / X-Gorgon / X-Helios / X-Khronos / X-Ladon / X-Medusa
+```
+
+这个阶段的价值很大，因为没有稳定 emu 调用，就谈不上后续动态验证。但它继续深入时基本只能推到 SM3 和一些外层 helper，面对 VM 内部的数据流、buffer 来源、bit-slice patch、AES-like transform 时，很难继续拆下去。
+
+第二阶段切到 Codex，重点从“能调用”转向“能解释和复现”：
+
+```text
+1. 围绕 Medusa VM 调用边界写 targeted trace
+2. 每次只回答一个小问题，例如某个 buffer 从哪来、某个字段怎么生成
+3. 根据同一次 native run 的 IO 写 Python lift
+4. 让 Python lift 和 native buffer 做 byte-for-byte 对比
+5. 最后把所有局部 lift 合成完整 X-Medusa pipeline
+```
+
+这也是后半段能继续推进的关键：不是让模型直接“猜算法”，而是让它不断写脚本、跑验证、缩小未知范围。
+
+整体分工更像这样：
+
+```text
+人负责：
+- 判断分析方向
+- 选择 hook 点
+- 判断哪些 trace 有价值
+- 识别哪些结论可能是误判
+AI 负责：
+- 快速写 trace 脚本
+- 根据动态 IO 归纳局部算法
+- 把局部算法整理成 Python lift
+- 反复跑 native 对照和 self-test
+- 维护 notes、脚本、验证命令
+```
+
+这类 VM 保护样本如果只靠静态反编译，很容易被以下问题拖住：
+
+```text
+1. VM 指令格式和标准 MIPS 不完全一致
+2. 静态伪代码容易看反 src/dst
+3. VM 栈 slot 在嵌套 helper 中会复用
+4. native helper、对象字符串和 VM 寄存器混在一起
+5. 同一个字段可能来自 rand/time/pid/urandom 多个动态源
+```
+
+AI 的优势在于可以很快写出大量“小而准”的 trace：
+
+```text
+trace packet
+trace memcpy
+trace heap writes
+trace helper IO
+trace rand
+trace protobuf source
+trace AES-like round
+trace f24 source generation
+trace full rebuild
+```
+
+每个 trace 都只回答一个问题。只要问题拆得足够小，AI 生成代码和整理结论的效率很高。
+
+## 方法论总结
+
+这次逆向最重要的不是某一个算法，而是验证方式：
+
+```text
+1. 先确定最终输出位置
+2. 从最终 packet 往前倒推
+3. 每一段只关心输入、输出和实际内存读写变化
+4. 写最小 Python lift
+5. 和同一次 native run 做 byte-for-byte 对比
+6. 再把小块组合成完整 pipeline
+```
+
+在 VM 保护场景里，不要迷信静态反编译。
+
+更稳的方式是：
+
+```text
+用静态分析找大致范围
+用动态 trace 确认真实数据流
+用 Python lift 固化结论
+用 native 对照防止自嗨
+```
+
+最终产物不是一份“看起来像”的伪代码，而是可以跑出同样结果的实现。
+
+## 当前边界
+
+这次完整还原的是 `X-Medusa` 主路径，不等于整个 so 或所有 header 都已经完全还原。
+
+当前边界：
+
+```text
+1. X-Medusa 主路径可以纯 Python 复现
+2. X-Argus / X-Ladon / X-Gorgon 等其它头不在本文范围内
+3. VM 解释器本身没有完整转成 C
+4. 三个 rand、pid、时间、f24 seed 仍属于运行时输入
+5. 要跨运行输出完全一致，必须固定或捕获这些动态值
+```
+
+如果后续继续做，可以有两个方向：
+
+```text
+1. 把 VM interpreter 的所有 handler 系统性转成 C/Python
+2. 继续还原其它 header 的完整算法链
+```

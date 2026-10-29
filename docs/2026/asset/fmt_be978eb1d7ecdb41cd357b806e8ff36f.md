@@ -1,0 +1,239 @@
+
+# [原创]一款最简单的关于动态注册的APP分析
+
+题目来自 看雪2w班4月第2题
+
+## 写在前面
+
+本来以为凉凉了，但是最后竟然做出来了，惊奇
+
+## 描述
+
+找出`flag`
+
+## WriteUp
+
+拿到手，一看360加固，先脱壳，发现程序关键步骤`native`化了，
+
+![](upload/attach/202004/715334_FZZ896HFHFMHDEK.jpg)
+
+再打开`so`文件一看，动态注册
+
+本来想着动态调试吧，可是还得先过360加固的反调试，算了还是静态分析吧
+
+先看`.init.array`段
+
+![](upload/attach/202004/715334_5RHK4RYDTU96SXZ.jpg)
+
+可以看到一一进去查看函数伪代码，发现其实最关键的就是一个字符串动态解密的函数
+
+```c
+unsigned int str_decode()
+{
+unsigned int v0; // r0
+unsigned int v1; // r0
+unsigned int v2; // r0
+unsigned int v3; // r0
+unsigned int v4; // r0
+unsigned int v5; // r0
+unsigned int v6; // r0
+unsigned int v7; // r0
+unsigned int v8; // r0
+unsigned int v9; // r0
+unsigned int v10; // r0
+unsigned int v11; // r0
+unsigned int v12; // r0
+unsigned int result; // r0
+unsigned int v14; // [sp+0h] [bp-38h]
+unsigned int v15; // [sp+4h] [bp-34h]
+unsigned int v16; // [sp+8h] [bp-30h]
+unsigned int v17; // [sp+Ch] [bp-2Ch]
+unsigned int v18; // [sp+10h] [bp-28h]
+unsigned int v19; // [sp+14h] [bp-24h]
+unsigned int v20; // [sp+18h] [bp-20h]
+unsigned int v21; // [sp+1Ch] [bp-1Ch]
+unsigned int v22; // [sp+20h] [bp-18h]
+unsigned int v23; // [sp+24h] [bp-14h]
+unsigned int v24; // [sp+28h] [bp-10h]
+unsigned int v25; // [sp+2Ch] [bp-Ch]
+unsigned int v26; // [sp+30h] [bp-8h]
+unsigned int i; // [sp+34h] [bp-4h]
+i = 0;
+do
+{
+v0 = i;
+ELF[i++] ^= 0x61u; // ELF
+}
+while ( v0 < 4 );
+v26 = 0;
+do
+{
+v1 = v26;
+read_maps[v26++] ^= 0xBAu; // read /proc/self/maps
+}
+while ( v1 < 0x14 );
+v25 = 0;
+do
+{
+v2 = v25;
+self_maps[v25++] ^= 0xE6u; // /proc/self/maps
+//
+}
+while ( v2 < 0xF );
+v24 = 0;
+do
+{
+v3 = v24;
+frida[v24] ^= 0x51u; // frida
+//
+++v24;
+}
+while ( v3 < 5 );
+v23 = 0;
+do
+{
+v4 = v23;
+frida_so_found[v23++] ^= 0x98u; // found frida.so in memory
+}
+while ( v4 < 0x18 );
+v22 = 0;
+do
+{
+v5 = v22;
+fmt[v22++] ^= 0x5Cu; // %x-%lx %4s %lx %*s %*s %s
+}
+while ( v5 < 0x19 );
+v21 = 0;
+do
+{
+v6 = v21;
+end_oat[v21++] ^= 0xA6u; // .oat
+}
+while ( v6 < 4 );
+v20 = 0;
+do
+{
+v7 = v20;
+found_frida[v20++] ^= 0x31u; // found frida in memory
+}
+while ( v7 < 0x15 );
+v19 = 0;
+do
+{
+v8 = v19;
+course[v19++] ^= 0x86u; // course
+}
+while ( v8 < 6 );
+v18 = 0;
+do
+{
+v9 = v18;
+check[v18] ^= 0x24u; // check
+++v18;
+}
+while ( v9 < 5 );
+v17 = 0;
+do
+{
+v10 = v17;
+sig[v17] ^= 0xFDu; // (Ljava/lang/Object;)Z
+++v17;
+}
+while ( v10 < 0x15 );
+v16 = 0;
+do
+{
+v11 = v16;
+MainActivity[v16] ^= 0xD1u; // com/kanxue/reflectiontest/MainActivity
+++v16;
+}
+while ( v11 < 0x26 );
+v15 = 0;
+do
+{
+v12 = v15;
+training[v15++] ^= 0x32u; // training
+}
+while ( v12 < 8 );
+v14 = 0;
+do
+{
+result = v14;
+kanxue[v14++] ^= 0x18u; // kanxue
+}
+while ( result < 6 );
+return result;
+}
+```
+
+发现都是一堆异或，没有什么难的算法
+
+直接`IDA`脚本，一一解密,从解密后的字符串可以看到，这个`so`存在检测`frida`的反调试，以及其他不知名的字符串
+
+再之后看`.init`函数
+
+![](upload/attach/202004/715334_CZUKZ7XXPCKBES3.jpg)
+
+实际上最终调用的是创建新线程执行函数`sub_E80`,跟进去看看
+
+![](upload/attach/202004/715334_GV4TUQJRYBTKX73.jpg)
+
+大概就是检测`frida`是否注入进程，以及一些`elf`魔数的检查和是否存在`oat`文件的检查
+
+如果检测不通过，则`kill`掉进程
+
+接下来，看`JNI_Onload`函数
+
+![](upload/attach/202004/715334_VDJZFDGASPWT6HC.jpg)
+
+就是动态注册而已，我们直接修改源码，跟踪动态注册的函数`check`
+
+![](upload/attach/202004/715334_NGW9AF5E2TFC3JS.jpg)
+
+可以观察到`check`函数地址为`0xb39444c9`,
+
+再通过`cat /proc/13291/maps | grep native-lib`命令查看`libnative-lib.so`的加载基地址为`0xb3943000`,这里的`13291`为进程`pid`
+
+![](upload/attach/202004/715334_8E8CB2K4GNSVUG3.jpg)
+
+从而确认`check`的函数偏移为`0x14c9`,找到对应函数
+
+![](upload/attach/202004/715334_2REECG85Y9FA7WM.jpg)
+
+可以发现这个函数做了4件事
+
+1. 检测输入`string`长度是否为20
+2. 再次动态注册`check`函数到,新的`native`函数偏移为`0x1234`
+3. 检测输入的`string`是否以`kanxue`开头
+4. 调用新的`check`函数，即`sub_1234`函数，并传递输入字符串的第六位之后的字符串为参数
+
+再次跟进`sub_1234`函数
+
+![](upload/attach/202004/715334_9Z8R37FZ6RZDFFC.jpg)
+
+可以看到同上个函数一样，这个函数也做了四件事
+
+1. 检测输入`string`长度是否为14
+2. 再次动态注册`check`函数到,新的`native`函数偏移为`0x1148`
+3. 检测输入的`string`是否以`training`开头
+4. 调用新的`check`函数，即`sub_1148`函数，并传递输入字符串的第8位之后的字符串为参数
+
+最后再次跟进`sub_1148`函数
+
+![](upload/attach/202004/715334_UVX7VCPTKD8XUJQ.jpg)
+
+这个函数只是检测了最后的字符串长度是否为6，并且将之与字符串`course`对比
+
+最终，拿到`flag`为`kanxuetrainingcourse`.
+
+验证。
+
+![](upload/attach/202004/715334_UZUK63HBP8P96QA.png)
+
+这个时候再看`log`,会发现确实动态注册了三次`check` 函数,且注册在了不同的位置
+
+![](upload/attach/202004/715334_ZE4GG4VM59AHBMR.jpg)
+
+## 后记
+
+这个程序貌似存在一个`bug`,就是我第一次验证成功后，不退出程序,再次输入同样的`flag`,这个时候再`check`就不对了，而输入`course`就对了，估计是多次动态注册导致再次`check`时只走了最后`sub_1148`函数的原因。

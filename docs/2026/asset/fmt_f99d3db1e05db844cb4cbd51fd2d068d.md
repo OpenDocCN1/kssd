@@ -1,0 +1,83 @@
+
+# [原创] 某音国际版助手-TK助手分析
+
+抖音国际版，通常打不开，需要安装一些xposed插件，找到了个TK助手，分享一下
+
+小白都会的东西，只是想分享下过程  高手略过
+
+解包发现里面,这里有个收费的，很好奇，想研究一下
+
+![](https://bbs.kanxue.com/upload/attach/201903/791948_6ZM3AUK5W5WSAWY.jpg)
+
+是个xposed插件，
+
+1. 列表通常搜索`ListView` `RecycleView`
+2. 类似操作找找`Click`时间或者`CheckBox`
+
+## 1-Java层
+
+来到在这个类的点击方法这里
+
+  `com.cowherd.up.M`类;
+
+![](https://bbs.kanxue.com/upload/attach/201903/791948_6YNZG52KDE9KXEX.jpg)
+
+可以看到，对于日本的区域来了个检测，在`Config.getLocAble`里面
+
+![](https://bbs.kanxue.com/upload/attach/201903/791948_3F3NXS68PUE4GTS.jpg)
+
+简单点直接return  对应的smali就是
+
+```
+const/4 v1, 0x1
+
+return v1
+```
+
+## 2-JNI层
+
+修改了发现启动崩溃，`logcat`找到是提示是在jni层，其实就是个签名验证
+
+![](https://bbs.kanxue.com/upload/attach/201903/791948_W7K6W37JHQNDG44.jpg)
+
+打开 IDA查看
+
+![](https://bbs.kanxue.com/upload/attach/201903/791948_9GAQA95R323RSP3.jpg)
+
+修改`BEQ loc_f6E3`这里，
+
+`BEQ loc_f6E3` 对应16进制是     `0C D0`
+
+看ARM手册
+
+![](https://bbs.kanxue.com/upload/attach/201903/791948_GUEMXHMHEP4XPM6.jpg)
+
+修改机器码为`BNE`
+
+![](https://bbs.kanxue.com/upload/attach/201903/791948_CEA4JPAJPRH46RC.jpg)
+
+也就是修改对应的cond
+
+`0XD00C` 对应的二进制   `1101 0000 0000 1100`
+
+修改为    `1101 0001 0000 1100`   就是`0xd10c`
+
+然后写回去
+
+![](https://bbs.kanxue.com/upload/attach/201903/791948_VXKT2DR6AF25H6X.jpg)
+
+上面的`BEQ`变成了`BNE`
+
+![](https://bbs.kanxue.com/upload/attach/201903/791948_4ZFFDTVKSW4NSUY.jpg)
+
+然后打包安装 ，VIP就有了，来个图，好像是日本的吧大概可能
+
+![](https://bbs.kanxue.com/upload/attach/201903/791948_QSA87PKDVGR8Q9Y.jpg)   ![](https://bbs.kanxue.com/upload/attach/201903/791948_EJ8CNG62PWKFHS7.jpg)
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+最后于  2019-3-18 01:00
+
+被贝a塔编辑
+
+，原因：

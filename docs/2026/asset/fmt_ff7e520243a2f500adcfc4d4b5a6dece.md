@@ -1,0 +1,333 @@
+
+# [原创]Android下载者分析
+
+## 一、基本信息
+
+样本大小：256139
+
+样本md5：50836808a5fe7febb6ce8b2109d6c93a
+
+样本sh256：ae7a20692250f85d7a2ed205994f2d26f2d695aef15a9356938454bccbbbd069
+
+## 二、简介
+
+该样本是和需要root权限的合法软件打包在一起的，运行起来后会释放并加载两个包，当手机处于待机状态时，它会后台下载安装其他恶意的包
+
+## 三、样本分析
+
+### 1. `AndroidManifest.xml`分析
+
+写文件权限：
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_o2zfsaj8zox1y3f.png)
+
+很明显`com.android.md5.Settings`是病毒作者添加的服务用来启动恶意代码的：
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_ojbxre7lyhdhonx.png)
+
+### 2. 我们就从`com.android.md5.Settings`开始分析吧
+
+看看其启动部分：
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_7r32qq5xt199613.png)
+
+启动部分会调用`Settings.1`，`Settings.1`只有一个`run()`函数，其会调用`com.gamex.inset.A`下面的函数，首先检查`flag`，判断sdcard是否已经挂载，是否有`com.android.setting`的包存在。
+
+如果已挂载且没有`com.android.setting`的包存在，则设置`flag`为1。
+
+启动`com.gamex.inset.C`。
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_f3vxpjzfet0prvc.png)
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_ajz0iajlbhjcnhj.png)
+
+不幸的是`com.gamex.inset.C`的`run()`函数反编译出错，不知道各位大侠有没有什么好方法，对于我来说只有去读它对应的smali。
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_ngutixoxd7dewn7.png)
+
+对于smali我只贴关键点：
+
+读取`assets\logos.png`
+
+```
+const-string v11, "logos.png"
+invoke-virtual {v10, v11}, Landroid/content/res/AssetManager;->open(Ljava/lang/String;)Ljava/io/InputStream;
+```
+
+异或`0x12`进行解密
+
+```
+    aget-byte v10, v1, v5
+    xor-int/lit8 v10, v10, 0x12
+    int-to-byte v10, v10
+    aput-byte v10, v0, v5
+```
+
+调用方法`com.gamex.inset.C.a`
+
+将解密后的文件写到`/system/app/ComAndroidSetting.apk`
+
+进行加载
+
+```
+invoke-static {v10}, Lcom/gamex/inset/C;->a(Ljava/lang/String;)V
+```
+
+### 下面主要分析其解密出来的包`ComAndroidSetting.apk`
+
+#### 1. `AndroidManifest.xml`分析
+
+权限
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_b7waap1ir12585v.png)
+
+入口
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_4mkm94l2qx28bge.png)
+
+#### 2. 样本分析
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_xuilja6n34vtbk9.png)
+
+函数`F`和`B`都是调用`A.b`，`A.b`负责启动服务`.Settings`，就不截代码了。
+
+看看`.Settings`服务
+
+调用启动`Settings.1`
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_5l11nujrs11a0v1.png)
+
+看着代码应该很熟悉了吧，和前面释放包的代码是一样的。
+
+`E`的代码也反编译失败，直接读smali吧，贴下关键的。
+
+打开`assets\icon.png`进行解密，解密方法是`xor 0x12`。
+
+```
+    const-string v10, "icon.png"
+    invoke-virtual {v9, v10}, Landroid/content/res/AssetManager;->open(Ljava/lang/String;)Ljava/io/InputStream;
+    aget-byte v9, v1, v4
+    xor-int/lit8 v9, v9, 0x12
+    int-to-byte v9, v9
+```
+
+调用函数`a`进行安装释放的包
+
+```
+    iget-object v9, p0, Lcom/android/setting/E;->p:Ljava/lang/String;
+    invoke-virtual {p0, v9}, Lcom/android/setting/E;->a(Ljava/lang/String;)V
+```
+
+另外`Settings`的代码还会从`assets\logo.png`解密`url`发送。
+
+发送IMEI,IMSI到
+
+网址 + `/inputex/index.php?s=/Interface/keinter/a1/[IMEI/a2/[IMSI/a3/[CMP_PID]`
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_byudshgb0vt4t77.png)
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_jr6e9s8ve2qburn.png)
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_hj2qujaadcc6l7y.png)
+
+上面这个`c()`函数明显代码逻辑有问题，应该是反编译的问题，要想解密其`url`直接去读其smali吧。
+
+Smali如下
+
+```
+.method public c(Ljava/lang/String;)Ljava/lang/String;
+    .locals 7
+    .parameter "d"
+
+    .prologue
+    .line 71
+    invoke-virtual {p1}, Ljava/lang/String;->getBytes()[B
+    move-result-object v0
+
+    .line 72
+    .local v0, a:[B
+    const/4 v2, 0x0
+
+    .local v2, i:I
+    :goto_0
+    invoke-virtual {p1}, Ljava/lang/String;->length()I
+    move-result v5
+    div-int/lit8 v5, v5, 0x2
+    if-lt v2, v5, :cond_0
+
+    .line 77
+    new-instance v5, Ljava/lang/String;
+    invoke-direct {v5, v0}, Ljava/lang/String;-><init>([B)V
+    const-string v6, ","
+    invoke-virtual {v5, v6}, Ljava/lang/String;->split(Ljava/lang/String;)[Ljava/lang/String;
+    move-result-object v3
+
+    .line 78
+    .local v3, s:[Ljava/lang/String;
+    const-string v1, ""
+
+    .line 79
+    .local v1, dx:Ljava/lang/String;
+    const/4 v2, 0x0
+
+    :goto_1
+    array-length v5, v3
+    if-lt v2, v5, :cond_1
+
+    .line 82
+    return-object v1
+
+    .line 73
+    .end local v1           #dx:Ljava/lang/String;
+    .end local v3           #s:[Ljava/lang/String;
+    :cond_0
+    aget-byte v4, v0, v2
+
+    .line 74
+    .local v4, t:B
+    invoke-virtual {p1}, Ljava/lang/String;->length()I
+    move-result v5
+    add-int/lit8 v5, v5, -0x1
+    sub-int/2addr v5, v2
+    aget-byte v5, v0, v5
+    aput-byte v5, v0, v2
+
+    .line 75
+    invoke-virtual {p1}, Ljava/lang/String;->length()I
+    move-result v5
+    add-int/lit8 v5, v5, -0x1
+    sub-int/2addr v5, v2
+    aput-byte v4, v0, v5
+
+    .line 72
+    add-int/lit8 v2, v2, 0x2
+    goto :goto_0
+
+    .line 80
+    .end local v4           #t:B
+    .restart local v1       #dx:Ljava/lang/String;
+    .restart local v3       #s:[Ljava/lang/String;
+    :cond_1
+    new-instance v5, Ljava/lang/StringBuilder;
+    invoke-static {v1}, Ljava/lang/String;->valueOf(Ljava/lang/Object;)Ljava/lang/String;
+    move-result-object v6
+    invoke-direct {v5, v6}, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+    aget-object v6, v3, v2
+    invoke-static {v6}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
+    move-result v6
+    int-to-char v6, v6
+    invoke-virtual {v5, v6}, Ljava/lang/StringBuilder;->append(C)Ljava/lang/StringBuilder;
+    move-result-object v5
+    invoke-virtual {v5}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+    move-result-object v1
+
+    .line 79
+    add-int/lit8 v2, v2, 0x2
+    goto :goto_1
+.end method
+```
+
+写个python解密下：
+
+```
+#encoding=utf-8
+import string,sys,os
+import struct
+
+def get_url(data, hDstFile):
+    PASS = [9,5,9,8,5]
+    url = []
+    for k in range(len(data)):
+        m = data[k]
+        len_pass = len(PASS)
+        i1 = k % len_pass
+        i2 = PASS[i1]
+        i3 = (i2 ^ ord(m)) & 0xff
+        url.append(chr(i3))
+    v0 = url[:]
+    v2 = 0
+    while True:
+        v5 = len(url)
+        v5 = v5 / 2
+        if v2 >= v5:
+            v3 = "".join(v0).split(",")
+            v1 = ""
+            v2 = 0
+            while True:
+                v5 = len(v3)
+                if v2 >= v5:
+                    print v1
+                    hDstFile.write(v1)
+                    return
+                else:
+                    v6 = v3[v2]
+                    v6 = int(v6)
+                    if v6 > 127:
+                        tmp = v6
+                        tmp = tmp % 128
+                        tmp = chr(tmp)
+                    v1 = v1 + chr(v6)
+                    v2 = v2 + 2
+        else:
+            v4 = v0[v2]
+            v5 = len(url)
+            v5 = v5 - 1
+            v5 = v5 - v2
+            v5 = v0[v5]
+            v0[v2] = v5
+            v5 = len(url)
+            v5 = v5 - 1
+            v5 = v5 - v2
+            v0[v5] = v4
+            v2 = v2 + 2
+
+if '__main__' == __name__:
+    if len(sys.argv) != 2:
+        print "usage: %prog logo.png"
+        os.sys.exit(1)
+    srcFile = os.sys.argv[1]
+    hSrc = file(srcFile, "rb")
+    data = hSrc.read()
+    hSrc.close()
+    dstFile = "%s.chr.v" % srcFile
+    hDstFile = file(dstFile, "wb")
+    get_url(data, hDstFile)
+    hDstFile.close()
+    print "decode to file: %s complete" % dstFile
+```
+
+最后解出来的网址为：
+
+`669K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3k6A6L8X3g2S2L8X3c8J5L8$3W2V1i4K6u0W2j5$3!0E0i4K6u0r3`
+
+### 释放的`update.apk`
+
+#### 1. `AndroidManifest.xml`分析
+
+权限
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_v5859mcvmdwqrcl.png)
+
+入口
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_nu74edgy5kwpoov.png)
+
+#### 2. 样本分析
+
+入口`.C`、`.B`都是启动服务`.Updater`，代码就不贴了。
+
+重点看看服务`.Updater`
+
+除了线程`D`其他的都很明显了，
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_v58la9ilyeugd2j.png)
+
+看看`D`都干了什么，
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_cj55gbai1ymqtij.png)
+
+`D.1`的反编译又有点问题，大致就是当屏幕处于`SCREEN_OFF`的时候，启动安装下载下来的软件，
+
+当`SCREEN_ON`的时候，直接显示主屏幕来迷惑用户
+
+![](https://bbs.kanxue.com/upload/attach/201205/177511_ptwauzwjhtvb95s.png)

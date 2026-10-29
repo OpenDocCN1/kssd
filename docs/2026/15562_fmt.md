@@ -1,0 +1,121 @@
+
+# [原创]用 Lua 简单还原 OpCode 顺序
+
+前段时间外出游荡，遇上个大兄弟说能不能跑个 Lua 脚本把 Lua 里被修改的 OpCode 顺序弄出来，最近有空自己尝试一下
+
+## 首先准备材料
+
+- 被修改 OpCode 顺序的 Lua 虚拟机程序一个，不限 `SO`/`DLL`/`EXE`；
+- 同版本的正常 Lua 虚拟机程序一个，不知道版本的同学可以从字符串里找，这里是 Lua `5.1.5`；
+- 随便写一个能正常编译的 Lua 函数。
+
+![](upload/attach/201904/850401_KMHW7A7F34ZF54J.png)
+
+## 思路
+
+1. dump 出 Lua 虚拟机中的脚本字节码文件；
+2. 用正常的字节码去校对 OpCode 乱序的字节码。
+
+一般情况下 `*.luac` 文件由 `luac` 程序生成，其中的数据是由 `luaU_dump` 函数产生，在 `luac.c` 文件中被调用，而 `luaU_dump` 的另一个入口在 `lapi.c` 的 `lua_dump`，被绑定到 Lua 的 `string.dump` 函数。
+
+通过在 Lua 脚本中对需要 dump 的函数用 `string.dump`，可以得到对应的字节码。
+
+分别在目标 Lua 和正常 Lua 虚拟机中运行以下这段代码，获得 OpCode 乱序后的 luac 文件和正常的 luac 文件：
+
+```lua
+-- lua script
+function test()
+-- ...略
+end
+local data = string.dump(test)
+local fp = io.open("test.luac","wb")
+fp:write(data)
+fp:close()
+```
+
+拿得到的两份 `luac` 文件比较下，提取出差异内容，差异的部分应该是 Instruction 中的 OpCode。
+
+![](upload/attach/201904/850401_VQWS65EQRBXNGFZ.png)
+
+从 Lua 源码中的 `lvm.c` 文件的 `luaV_execute` 函数中得知，是通过 `GET_OPCODE` 宏获取到 OpCode，再执行对应的操作
+
+```C
+// lvm.c
+void luaV_execute (lua_State *L, int nexeccalls) {
+//......
+switch (GET_OPCODE(i)) {
+case OP_MOVE: {
+setobjs2s(L, ra, RB(i));
+continue;
+}
+case OP_LOADK: {
+setobj2s(L, ra, KBx(i));
+continue;
+}
+//......
+}
+```
+
+`GET_OPCODE` 宏的定义在 `lopcodes.h` 文件中，相关代码如下：
+
+```C
+// lopcodes.h
+#define cast(t, exp) ((t)(exp))
+#define SIZE_OP 6
+#define POS_OP 0
+#define MASK1(n, p) ((~((~(Instruction)0)<<n))<<p)
+#define GET_OPCODE(i) (cast(OpCode, ((i)>>POS_OP) & MASK1(SIZE_OP,0)))
+```
+
+简单来说，指令 & `0x3F` 就可以得到 OpCode 的数值
+
+依旧在目标 Lua 中执行，让它自己输出 OpCode 顺序，完整代码资源在附件
+
+```lua
+-- lua sciprt
+-- ...
+local data = string.dump(test) -- dump
+local new_op = {}
+-- 用目标 lua 和正常 lua 的 dump 数据对比
+for i = 1, #data do
+local by_ori = string.byte(ori_data,i)
+local by_new = string.byte(data,i)
+if by_ori ~= by_new then
+local op_name = ori_op_name[bit:_and(0x3F,by_ori) + 1]
+local op_idx = bit:_and(0x3F,by_new)
+new_op[op_name] = op_idx
+end
+end
+print("old \t new \t name")
+for idx, op_name in pairs(ori_op_name) do
+local tmp = ''
+if new_op[op_name] ~= nil then
+tmp = new_op[op_name]
+end
+print((idx - 1) .. "\t" .. tmp .. "\t" .. op_name )
+end
+```
+
+输出结果
+
+![](upload/attach/201904/850401_MA4WC7N6RR99VT8.png)
+
+对于手游中使用的 `xlua`/`ulua`/`tolua`，操作方法类似
+
+## 技术总结
+
+1. Lua 版本一定要相同
+2. 用于 dump 的函数，尽量覆盖所有的指令操作，否则只能提取出已有的指令
+
+附件为用到的相关资源
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+最后于 2019-4-4 17:29
+
+被Amun编辑，原因： 话题修正
+
+上传的附件：
+
+- [Check_OpCode.zip](javascript:void(0);)
+  （408.11kb，1522次下载）

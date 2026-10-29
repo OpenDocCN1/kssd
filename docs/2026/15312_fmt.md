@@ -1,0 +1,68 @@
+
+# [原创]反编译系统的apk错误修正过程
+
+一般我们在美化系统的时候，会对系统的apk进行反编译，例如`System.apk`，反编译然后修改xml布局文件中的数值，达到对通知栏和各个布局中的美化修改，透明操作。
+
+在反编译系统apk中会出现很多错误，例如我们从小米手机上拿到`Weather.apk`，直接进行反编译，则会提示以下的错误
+
+![](https://bbs.kanxue.com/upload/attach/201306/357578_u1x0clynjqe3ig9.png)
+
+好了，我们根据提示进行操作，
+
+![](https://bbs.kanxue.com/upload/attach/201306/357578_550c6qhfzv6i9yh.png)
+
+这里，调用`framework\1.apk`，出现错误，我们用rar工具打开`apktool.jar`进行查看，发现里面没有`framework`的文件夹，好吧，我们手动创建一个`framework`的文件夹，将我们从eclipse中导出来的这个`framework-miui-res.apk`，如下图
+
+![](https://bbs.kanxue.com/upload/attach/201306/357578_pn7gtoit4dtp57l.png)
+
+修改为`1.apk`放到刚刚创建的文件夹下，然后拖到`apktool.jar`用rar打开的页面中，压缩进去，然后，我们重新输入命令，查看结果：
+
+![](https://bbs.kanxue.com/upload/attach/201306/357578_v4xplmorq5n28ot.png)
+
+出现同样的错误。说明我们的操作方式有误，同时这里提示`id:6`。这个时候，我们使用正常方式来操作，将`framework-miui-res.apk`放到`apktool.jar`同级目录下，输入命令：`java -jar apktool.jar if framework-miui-res.apk`
+
+![](https://bbs.kanxue.com/upload/attach/201306/357578_tub6vb2qnxxf44x.png)
+
+提示，我们安装完了`framework`，这个时候，我们再次输入命令：`java -jar apktool.jar d Weather.apk bba`，结果如下：
+
+![](https://bbs.kanxue.com/upload/attach/201306/357578_ixxwv5mfo2l1r7i.png)
+
+可以看到，apk正常反编译，文件目录结果如下：
+
+![](https://bbs.kanxue.com/upload/attach/201306/357578_0azesfpieexahlf.png)
+
+好了，本次修正，到这里就算结束了。
+
+总体来说，针对系统的apk，需要安装框架，对应在手机中找到，安装到`apktool`中即可。
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+
+- [图片1.png](javascript:void(0);)
+
+  （14.09kb，14次下载）
+
+- [图片2.png](javascript:void(0);)
+
+  （1.59kb，12次下载）
+
+- [图片3.png](javascript:void(0);)
+
+  （36.88kb，11次下载）
+
+- [图片4.png](javascript:void(0);)
+
+  （2.81kb，11次下载）
+
+- [图片5.png](javascript:void(0);)
+
+  （2.65kb，11次下载）
+
+- [图片6.png](javascript:void(0);)
+
+  （6.40kb，11次下载）
+
+- [图片7.png](javascript:void(0);)
+
+  （16.42kb，9次下载）

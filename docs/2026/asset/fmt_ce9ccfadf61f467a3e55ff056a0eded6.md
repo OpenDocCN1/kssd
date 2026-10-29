@@ -1,0 +1,139 @@
+
+### 3. hook `com.google.protobuf.Utf8.encode(java.lang.CharSequence, [B, int, int)`
+
++ ![](upload/attach/202308/900788_NP88DC7QGZDZ224.png)
+
+### 4. 使用frida hook socket 结果如下
+
++ ![](upload/attach/202308/900788_3ZSFTM5NWSBSMUC.png)
+
++ ![](upload/attach/202308/900788_JRMTEJ7V3GC9V2X.png)
+
++ ![](upload/attach/202308/900788_PQ2KWRHDPWTQQP6.png)
+
+> 至此全部完结~
+
+以上就是最近几天学习内容,接下来研究研究Java具体如何实现的，争取学会还原tag来实现无proto文件反解析出数据.
+
+第一次写文章,难免会有差错,文章若有不妥之处,还请大家不吝赐教~
+
+> 希望这篇文章对你有帮助,可以减轻入门protobuf的一些负担~
+
+> 目标:
+>
+> 1. 搭建window & Nexus6P(Kali NetHunter) 运行gRPC环境 ps:Nexus6P环境的搭建可有可无~
+> 2. 使用Python gRPC 实现: 客户端<-->服务端的protobuf的通信
+> 3. PC上 `client.py` 移植到Nexus6P (Kali NetHunter) 上 实现 android 与服务端(PC)交互 (ps:啥Android啊 那就是Linux.... 可有可无)
+> 4. ~~r0env2022 搭建 Android app 运行服务端环境 & 编译apk....~~ 案例Dem0可直接在r0env2022下编译运行,只需要提取出`.proto`文件 生成服务端代码就可直接使用~真的是太爽了,节省了时间
+> 5. 拦截AndroidDem0 <--> PC 上 Python实现的服务端的通信 ~~&反序列化~~
+
+### 与宿主机隔离开发环境
+
+1. 使用 `virtualenv` 创建一个船新的Python310 的环境 ~~`virtualenv Python310_LearningProtobuf`~~
+   - 先执行`pip3 install virtualenv -i de9K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3P5i4m8A6i4K6u0W2k6r3!0#2j5X3q4F1i4K6u0W2j5$3!0E0i4K6u0r3M7$3W2E0M7r3I4W2` 再执行 `pip3 install virtualenvwrapper-win -i ed6K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3P5i4m8A6i4K6u0W2k6r3!0#2j5X3q4F1i4K6u0W2j5$3!0E0i4K6u0r3M7$3W2E0M7r3I4W2`
+   - ![](https://bbs.kanxue.com/upload/attach/202308/900788_JNV72SSX5NMBD5Y.png)
+   - 创建Python虚拟环境存放目录, `D:\Interpreter installation Directory\virtualenv` 并加入系统环境PATH中
+   - ![](https://bbs.kanxue.com/upload/attach/202308/900788_CTSASPUTC77FBVN.png)
+   - 创建虚拟环境 `mkvirtualenv Py310protobuf` 并进入虚拟环境中...
+   - ![](https://bbs.kanxue.com/upload/attach/202308/900788_U463SXM9PQF83XV.png)
+
+2. 虚拟环境安装 **protobuf** **grpcio grpcio-tools** `pip3 install protobuf grpcio grpcio-tools -i 84bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3P5i4m8A6i4K6u0W2k6r3!0#2j5X3q4F1i4K6u0W2j5$3!0E0i4K6u0r3M7$3W2E0M7r3I4W2`
+   - ![](https://bbs.kanxue.com/upload/attach/202308/900788_TQD7C3E746N4J37.png)
+   - 查看虚拟环境中第三方库及版本
+   - ![](https://bbs.kanxue.com/upload/attach/202308/900788_P474KSC2HAWRDAH.png)
+
+### 什么是grpc & Protobuf？
+
+- gRPC是一种高性能、开源的远程过程调用（Remote Procedure Call，简称RPC）框架。它由Google开发并开源，旨在解决分布式系统中不同服务之间的通信问题。gRPC基于HTTP/2协议进行通信，并使用Protocol Buffers（简称Protobuf）作为默认的数据序列化和传输格式。
+- Protocol Buffers（protobuf）是一种轻量级、高效的数据序列化机制，也是Google开源的项目。它能够将结构化的数据序列化为二进制格式，以便在不同的系统之间进行数据交换。相比于JSON或XML等常见的文本格式，Protobuf产生的数据体积更小，序列化和反序列化速度更快。
+- gRPC使用Protobuf作为默认的消息传递格式，通过定义接口和消息类型来描述服务和数据格式，然后自动生成客户端和服务器端的代码。这样可以方便地进行跨语言的服务通信，提供了强大的代码生成能力和易于扩展的特性。gRPC支持多种编程语言，包括C++、Java、Python、Go、Ruby等。
+- 总而言之，gRPC是一个基于HTTP/2和Protobuf的高性能RPC框架，它提供了简单、可靠的通信方式，使得分布式系统中的不同服务之间能够高效地进行数据交互。
+- ![](https://bbs.kanxue.com/upload/attach/202308/900788_EUVAEB8GX8FH7VJ.png)
+- [Protobuf Github](https://bbs.kanxue.com/elink@b25K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6H3M7X3!0@1L8$3y4G2L8r3u0#2k6X3k6W2M7Y4y4Q4x3V1k6H3M7X3!0@1L8$3u0#2k6W2)9J5c8Y4c8J5k6h3g2Q4x3V1k6E0j5h3W2F1i4K6u0r3M7s2W2@1K9r3!0F1)
+- [Protobuf Python 文档](https://bbs.kanxue.com/elink@421K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3M7X3!0@1L8$3u0#2k6W2)9J5k6h3c8W2N6W2)9J5c8X3N6W2N6s2c8A6L8X3N6Q4x3X3c8K6N6r3q4J5N6r3g2V1i4K6u0r3M7s2W2@1K9r3!0F1N6s2g2@1L8%4u0A6j5h3I4Q4x3V1j5`.)
+
+### Python gRPC Protobuf正向开发 实现PC Client <-->Server 交互
+
+1. 创建 `example.proto` 文件 来编写对应规则,创建了一个服务 以及两个数据格式
+
+   |  |  |
+   | --- | --- |
+   | 1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16  17 | `syntax` `=` `"proto3"``;`    `package test;`    `service HelloDemo {`  `rpc Hello(HelloReq) returns(HelloReply){}`  `}`    `message HelloReq{`  `string name` `=` `1``;`  `int32 age` `=` `2``;`  `string sendtime` `=` `3``;`  `}`    `message HelloReply{`  `string result` `=` `1``;`  `}` |
+
+2. 利用 `example.proto` 通过 `grpcio_tools` `protoc` 来生成Python 客户端和服务端`grpc-server`文件 为踩坑记录
+   - `python -m grpcio_tools -I. --python_out=. --grpc_python_out=. example.proto` 失败 ,原因-> 猜测应该使用`./` 来 表示当前目录~
+   - ![](https://bbs.kanxue.com/upload/attach/202308/900788_4VEMYJU7K485JY4.png)
+   - 换一种方式,使用文档中提供的方式  [protoc github download](https://bbs.kanxue.com/elink@755K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6H3M7X3!0@1L8$3y4G2L8r3u0#2k6X3k6W2M7Y4y4Q4x3V1k6H3M7X3!0@1L8$3u0#2k6W2)9J5c8Y4u0W2L8r3g2S2M7$3g2K6i4K6u0r3N6r3q4Y4i4K6u0r3N6U0t1K6i4K6u0W2y4l9`.) 下载之后加入到PATH中
+   - `protoc -I=. --python_out=. --grpc_python_out=. example.proto` 对`example`进行编译 并生成 python客户端和服务端grpc代码
+   - but 又又又又报错了 原因不可知也
+   - ![](https://bbs.kanxue.com/upload/attach/202308/900788_XY29HXDTYHHHSKN.png)
+   - 最后,执行 `python -m grpc_tools.protoc -I./ --python_out=./ --grpc_python_out=./ example.proto` 生成了两份代码
+   - ![](https://bbs.kanxue.com/upload/attach/202308/900788_UJGZ87JDW4BWTWN.png)
+
+3. 根据生成的`example_pb2_grpc.py`编写 `service.py`
+   ``` 
+   # coding:utf-8
+   import grpc
+   import example_pb2 as pb2
+   import example_pb2_grpc as pb2_grpc
+   from concurrent import futures # 目的为了给服务器增加线程
+
+   # HelloDemo 为 .proto 文件中 service
+   class HelloDemo(pb2_grpc.HelloDemoServicer):
+   # Hello 为  .proto 文件中 service 包含 rpc 方法名
+   def Hello(self, request, context):
+   name, age, sendtime = request.name, request.age, sendtime
+   result = f"My Name is {name},age is {age} years old!\n now time is {sendtime}"
+   # 返回数据类型为.proto 文件中 message   HelloReply
+   return pb2.HelloReply(result=result)
+
+   def run():
+   grpc_server = grpc.server(
+   futures.ThreadPoolExecutor(max_workers=4),
+   )
+   pb2_grpc.add_HelloDemoServicer_to_server(HelloDemo(),grpc_server)
+   # PC 上 监听 127.0.0.1 局域网连接 监听 0.0.0.0
+   ip_port = "127.0.0.1:5505"
+   grpc_server.add_insecure_port(ip_port)
+   grpc_server.start()
+   print(f"service start at {ip_port}")
+   grpc_server.wait_for_termination()
+
+   if __name__ == "__main__":
+   run()
+   ```
+
+4. 根据生成的`example_pb2.py` 编写`client.py`
+   ```
+   # coding:utf-8
+
+   import grpc
+   import example_pb2 as pb2
+   import example_pb2_grpc as pb2_grpc
+   from concurrent import futures
+
+   def run():
+   # 构建通道与服务器连接
+   conn = grpc.insecure_channel("127.0.0.1:5505")
+   # HelloDemoStub表示客户端  ,HelloDemoStub是 protoc 自动生成的
+   client = pb2_grpc.HelloDemoStub(channel=conn)
+   name, age, sendtime = "xiaozhu0513", 18, datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
+   # 相当于先生成一个 HelloReq 类型的数据  为 本地发送到客户端的数据, 然后传输  实例化客户端的
+   response = client.Hello(pb2.HelloReq(
+   name = name,
+   age = age,
+   sendtime = f"{sendtime}"
+   ))
+   print(f"客户端发送 {name} {age} {sendtime} -> 服务器")
+   print("客户端接收到服务器返回信息 ",response.result)
+
+   if __name__ == "__main__":
+   run()
+   ```
+
+5. 先运行`service.py` 再运行 `client.py` 效果图如下
+   - ![](https://bbs.kanxue.com/upload/attach/202308/900788_BXP387P3VG8EJ2A.png)
+
+6. 至此,完成了第一个小任务,最后查阅资料时,发现官方提供了Demo 以及教程....
+   - [官方demo](https://bbs.kanxue.com/elink@a52K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4M7Y4m8U0i4K6u0W2K9h3!0Q4x3V1k6V1L8$3y4K6i4K6u0r3L8r3q4F1k6%4g2S2k6$3g2K6i4K6u0r3M7s2W2@1K9r3!0F1i4K6u0r3M7i4g2A6j5$3E0K6N6r3q4J5N6q4)9J5c8R3`.`.)
+   - [client.py](https://bbs.kanxue.com/elink@c26K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Y4M7Y4m8U0i4K6u0r3k6%4u0H3j5#2)9J5c8X3u0D9L8$3u0Q4x3V1k6E0j5i4y4@1k6i4u0Q4x3V1k6W2P5r3q4E0M7r3I4W2M7#2)9J5c8Y4m8&6N6r3S2G2L8W2)9J5c8X3S2W2L8r3I4G2N6$3!0J5L8r3c8Q4x3V1k6Y4M7X3g2W2N6r3g2J5i4K6g2X3j5$3I4A6k6h3&6@1i4K6u0W2M7s2V1`.)

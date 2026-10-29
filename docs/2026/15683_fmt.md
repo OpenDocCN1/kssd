@@ -1,0 +1,39 @@
+
+# [原创]android 简单实现`Bitmap`和`Drawable`的切换，`ImageView`中得到`Bitmap`
+
+![](https://bbs.kanxue.com/view/img/face/16.gif)照顾下新人，我只会android，可想学其他，发帖也只能在这发了……
+
+很多人实现图片功能时都会遇到的问题，图片很多功能都只有`Bitmap`可以实现，但是读取图片一般都是`Drawable`的，下面说说简单的实现方法~~
+
+一般很多人使用的方法是：
+
+```java
+view.buildDrawingCache(true);
+view.getDrawingCache();
+Bitmap bt=viewg.etDrawingCache();
+```
+
+这方法其实是对的，不过呢，这方法经常返回的图BT都是`NULL`，这是因为`View`是new出来的，因为没有cache可以获得，所有返回空。
+
+如果是使用在有展示的`ImageView`，这方法并没有太大的问题。
+
+这开始就讲讲简单的方法，这方法不管是new不new都没有太大的问题。
+
+```java
+Bitmap image = ((BitmapDrawable)view.getDrawable()).getBitmap();
+```
+
+很简单的一段代码，这是将`ImageView`中得到的图片以`Drawable`格式出来后再强制转换的。
+
+同理将`Bitmap`转为`Drawable`就是：
+
+```java
+view.setImageBitmap(image);
+view.getDrawable();
+```
+
+简单高效快捷。
+
+![](https://bbs.kanxue.com/view/img/face/16.gif)新人第一次发帖，照顾下
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)

@@ -1,0 +1,178 @@
+
+# AD Blocker Trial 注册算法
+
+## 基本信息
+
+- **文章标题**：【原创】AD Blocker Trial 注册算法
+- **下载地址**：`eefK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3q4K6i4K6u0W2j5X3q4A6k6s2g2Q4x3X3g2U0L8$3#2Q4x3V1k6S2i4K6u0r3K9i4c8W2L8g2)9K6c8X3c8G2j5$3W2V1i4K6y4p5x3e0f1H3y4e0j5^5i4K6t1$3M7s2u0W2i4K6y4p5N6$3g2T1i4K6g2X3j5h3#2Q4y4h3k6K6k6b7`.`.
+- **操作平台**：Ubuntu11.10
+- **使用工具**：Apktool v1.4.3，dex2jar-0.0.9.9，jd-gui-0.3.3
+- **作者邮箱**：iltgcl@163.com
+- **作者声明**：仅作为研究交流使用。
+- **软件名称**：英文名：AD Blocker Trial；中文名：广告拦截器及净触发器的审判。
+
+## 破解过程
+
+先安装程序，启动以后，点击弹出菜单 Buy 选项，进入到注册界面。发现程序已经给出了我的 Product Code：`44173112`，输入试炼码：`12345678`，程序弹出对话框表示出错了。
+
+![](https://bbs.kanxue.com/upload/attach/201208/4435_unbci172c333ubn.png)
+
+好了，基本信息搜集完了。使用 dex2jar 反编译，然后用 jd-gui 打开，太好了，代码竟然没有混淆，省了不少麻烦。虽然这个程序的算法非常简单，但我还是尽量详细地将分析过程写下来。
+
+首先需要找到注册界面。从前面信息搜集过程中知道是在弹出菜单中点击 Buy 选项出现的注册界面，找到如下代码片段：
+
+```
+public boolean onOptionsItemSelected(MenuItem paramMenuItem)
+  {
+    int i = 1;
+    switch (paramMenuItem.getItemId())
+    {
+    default:
+      i = 0;
+    case 1:
+    case 0:
+    case 2:
+    case 3:
+    case 4:
+    }
+    while (true)
+    {
+      return i;
+      showAbout();
+      continue;
+      showHelp();
+      continue;
+      Intent localIntent = new Intent();
+      localIntent.setClass(this, ProtectorPreferencesActivity.class);
+      startActivity(localIntent);
+      continue;
+      showDonateDialog();
+      continue;
+      startActivity(new Intent("android.intent.action.VIEW", Uri.parse("market://search?q=\"SmartDog Studio\"")));
+    }
+  }
+```
+
+由于反编译不太可能与原码一样，所以上面这段代码流程比较乱。通常这种情况需要通过 smali 文件来仔细分析，不过这里你可以试着猜猜看，我反正一眼就看到了 `showDonateDialog()`。
+
+```
+private void showDonateDialog()
+  {
+    View localView = LayoutInflater.from(this).inflate(2130903043, null);
+    EditText localEditText = (EditText)localView.findViewById(2131296263);
+    ((TextView)localView.findViewById(2131296262)).setText(RegUtil.getProdCode(this));
+    ((TextView)localView.findViewById(2131296264)).setText(ContentUtil.getDonateGuide(this));
+    new AlertDialog.Builder(this).setTitle(Html.fromHtml("<b>" + getText(2131165207) + "</b>")).setView(localView).setPositiveButton("OK", new ADBlocker.3(this, localEditText)).setNeutralButton("Buy", new ADBlocker.4(this)).setNegativeButton("Cancel", null).show();
+  }
+```
+
+我们知道，点击 OK 会进行注册判断，继续进入 `ADBlocker.3` 看看：
+
+```
+class ADBlocker$3
+  implements DialogInterface.OnClickListener
+{
+  public void onClick(DialogInterface paramDialogInterface, int paramInt)
+  {
+    if (this.val$key.getText() != null)
+      ADBlocker.access$3(this.this$0, this.this$0, this.val$key.getText().toString());
+  }
+}
+```
+
+哦，点击后会调用 `ADBlocker.access$3(...)`，我输入的试炼码会作为参数。比较讨厌的是 `access$3` 是什么意思呢？
+
+当在 JAVA 内部类中调用外部类的私有方法时，编译器会自动合成一个静态函数。好了，使用 Apktool 工具反编译吧，然后打开：
+
+```
+.method static synthetic access$3(Lnet/xdevelop/adblocker_t/ADBlocker;Landroid/content/Context;Ljava/lang/String;)V
+    .locals 0
+    .parameter
+    .parameter
+    .parameter
+
+    .prologue
+    .line 476
+    invoke-direct {p0, p1, p2}, Lnet/xdevelop/adblocker_t/ADBlocker;->reg(Landroid/content/Context;Ljava/lang/String;)V
+
+    return-void
+.end method
+```
+
+仅仅调用了 `reg` 函数而已。
+
+```
+private final void reg(Context paramContext, String paramString)
+  {
+    if (RegUtil.check(paramContext, paramString))
+    {
+      ProtectorPrefModel localProtectorPrefModel = ProtectorPreferences.getPref(this);
+      localProtectorPrefModel.donated = true;
+      ProtectorPreferences.savePref(this, localProtectorPrefModel);
+      showMsg(getText(2131165201).toString(), getText(2131165203).toString());
+    }
+    while (true)
+    {
+      return;
+      showMsg(getText(2131165202).toString(), getText(2131165204).toString());
+    }
+  }
+```
+
+看到这里，聪明的你一定知道 `RegUtil.check` 就是关键比较点了！只要返回 `true` 就可以了。
+
+```
+public static boolean check(Context paramContext, String paramString)
+  {
+    return check(getProdCode(getLocalPhone(paramContext)), paramString);
+  }
+
+private static boolean check(String paramString1, String paramString2)
+  {
+    int i = 0;
+    if ((paramString1 == null) || (paramString2 == null));
+    while (true)
+    {
+      return i;
+      try
+      {
+        boolean bool = genKey(paramString1).equals(paramString2);
+        if (!bool)
+          continue;
+        i = 1;
+      }
+      catch (Exception localException)
+      {
+      }
+    }
+  }
+```
+
+看后面那个 check 函数：
+
+- `paramString1`：Product Code（模拟器上就是 `44173112`）
+- `paramString2`：试炼码
+
+显然只要 `genKey` 函数返回值等于试炼码就可以了，注意 `genKey` 函数的参数就是 ProductCode，那么来看看该函数吧：
+
+```
+private static String genKey(String paramString)
+  {
+    long l1 = Long.parseLong(paramString);
+    long l2 = l1 / 10000L;
+    long l3 = l1 - 10000L * l2;
+    return Long.toString((l2 + l3) * (l2 * l3));
+  }
+```
+
+我靠，这么简单！用白话来说就是将 ProductCode 分成两个部分：`l2` = 前 4 位，`l3` = 后 4 位。
+
+试炼码应该等于 `(l2 + l3) * (l2 * l3)`。
+
+那么对于 `44173112` 来说，注册码 = `((4417+3112)*(4417*3112))` = `103491405416`。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+## 上传的附件
+
+- [reg_ui.png](javascript:void(0);)（26.87kb，272次下载）
