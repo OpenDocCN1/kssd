@@ -1,0 +1,237 @@
+
+# [原创]源码编译（3）——Xposed框架定制
+## 源码编译（3）——Xposed源码定制
+
+[TOC]
+
+## 一、前言
+
+在上篇文章[源码编译（2）——Xopsed源码编译详解](https://bbs.pediy.com/thread-269616.htm)中详细介绍了Xposed源码编译的完整过程，本文将从Android编译过程到Xposed运行机制，最后进行Xposed框架的详细定制。其中Xposed的定制主要参考世界美景大佬的[定制Xposed框架](https://bbs.pediy.com/thread-255836.htm)和肉丝大佬的<a href="elink@16eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0M7q4)9J5k6i4N6W2K9i4S2A6L8W2)9J5k6i4q4I4i4K6u0W2j5$3!0E0i4K6u0r3M7#2)9J5c8W2W2m8e0f1y4J5f1g2y4A6x3p5I4r3d9V1N6z5d9i4N6n7z5i4q4t1c8p5p5`.">来自高纬的对抗：魔改XPOSED过框架检测(下)</a>。
+
+**致谢：**
+
+首先感谢世界美景大佬的[定制Xposed框架](https://bbs.pediy.com/thread-255836.htm)，从里面学习到对Xposed框架特征的修改，但是由于个人水平有限，大佬的贴子不够详细，不能完整复现，经过搜索发现肉丝大佬的基于此的两篇详细的贴子讲解：<a href="elink@00dK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0M7q4)9J5k6i4N6W2K9i4S2A6L8W2)9J5k6i4q4I4i4K6u0W2j5$3!0E0i4K6u0r3M7#2)9J5c8X3x3&6y4%4A6G2g2s2S2d9M7V1g2W2h3f1I4$3c8o6S2k6N6@1W2g2g2W2p5`.">来自高纬的对抗：魔改XPOSED过框架检测(上)</a>和<a href="elink@1f9K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0M7q4)9J5k6i4N6W2K9i4S2A6L8W2)9J5k6i4q4I4i4K6u0W2j5$3!0E0i4K6u0r3M7#2)9J5c8W2W2m8e0f1y4J5f1g2y4A6x3p5I4r3d9V1N6z5d9i4N6n7z5i4q4t1c8p5p5`.">来自高纬的对抗：魔改XPOSED过框架检测(下)</a>，本文的Android系统运行参考<a href="elink@53cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2C8j5h3&6U0L8r3!0#2k6q4)9J5k6h3y4F1i4K6u0r3j5h3I4W2P5q4)9#2k6Y4N6K6j5#2)9J5c8X3q4F1k6s2u0G2K9h3c8K6i4K6u0r3y4o6M7J5x3e0j5^5">老罗的博客</a>
+
+## 二、Android运行机制
+
+我们在了解Xposed的运行机制前，不得不需要了解Android系统的基本结构和运行机制，这样我们才能进一步学习如何进行Xposed定制，才能减少更多的错误
+
+### 1. Android平台架构
+
+Android的平台架构如下图所示：
+
+![image-20211002145934512](upload/attach/202110/905443\_MNN5RBEPXGMCBKN.png)
+
+下面我们依次介绍各层之间的功能和作用：
+
+#### （1）Linux内核
+
+Android平台的基础是linux内核，Android Runtime（ART）依靠Linux内核来执行底层功能，使用Linux内核可让Android利用主要安全功能，并且运行设备制造商为著名的内核开发硬件驱动程序，可以理解基于linux内核让Android更安全并且可以拥有很多设备驱动
+
+#### （2）硬件抽象层（HAL）
+
+HAL提供标准界面，向更高级别Java API框架显示设备硬件功能，HAL包含多个模块，其中每个模块都为特定类型的硬件组件实现一个界面，例如相机和蓝牙模块，当框架API要访问设备硬件时，Android系统为该硬件组件加载库模块。
+
+#### （3）Android Runtime
+
+Android 5.0之前Android Runtime为Dalvik，Android 5.0之后Android Runtime为ART
+
+首先我们先了解一些文件的含义：
+
+```java
+（1）dex文件：Android将所有的class文件打包形成一个dex文件，是Dalvik运行的程序
+（2）odex文件：优化过的dex文件，Apk在安装时会进行验证和优化，通过dexopt生成odex文件，加快Apk的响应时间
+（3）oat文件：Android私有ELF文件格式，有dex2oat处理生成，包含（原dex文件+dex翻译的本地机器指令），是ART虚拟机使用的文件，可以直接加载
+（4）vdex文件：Android 8.0引入，包含APK的未压缩DEX代码，以及一些旨在加快验证速度的元数据
+```
+
+下面我们从Android系统的发展过程中详细介绍二者的区别：
+
+| 版本 | 虚拟机类型 | 特性 |
+| ------- | ---------- | -------------- |
+| 2.1-4.4 | Dalvik | JIT+解释器 |
+| 5.0-7.0 | ART | AOT |
+| 7.0-11 | ART | AOT+JIT+解释器 |
+
+下面部分参考博客：<a href="elink@676K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6B7N6h3g2B7K9h3&6Q4x3X3g2U0L8W2)9J5c8Y4m8G2M7%4c8Q4x3V1j5$3z5o6b7@1z5e0l9K6y4K6b7^5x3o6f1^5x3U0p5^5y4e0l9&6">博客地址</a>
+
+**Android 2.2**
+
+**Dalvik**
+
+```
+支持已转换成dex格式的android应用，基于寄存器，指令执行更快，加载的是odex文件，采用JIT运行时编译
+```
+
+**JIT:**
+
+```
+JIT即运行时编译策略，可以理解成一种运行时编译器，此时Android的虚拟机使用的是Dalvik，为了加快Dalvik虚拟机解释dex速度，运行时动态地将执行频率很高的dex字节码翻译成本地机器码
+缺点：
+（1）每次启动应用都需要重新编译
+（2）运行时比较耗电，造成电池额外的开销
+```
+
+![image-20211002145934512](upload/attach/202110/905443\_NWK43FAQMD83H2G.png)
+
+![image-20211003100041210](upload/attach/202110/905443\_AF57PEUV7DXGFB9.png)
+
+```
+基于Dalvik的虚拟机，在APK安装时会对dex文件进行优化，产生odex文件，然后在启动APP后，运行时会利用JIT即时编译，处理执行频率高的一部分dex，将其翻译成机器码，这样在再次调用的时候就可以直接运行机器码，从而提高了Dalvik翻译的速率，提高运行速度
+缺点：
+（1）由于在Dex加载时会触发dexopt , 导致Multidex加载的时候会非常慢
+（2）由于热点代码的Monitor一直在运行 , 解释器解释的字节码会带来CPU和时间的消耗, 会带来电量的损耗
+```
+
+**Android 4.4——ART和AOT**
+
+此时引入全新的虚拟机运行环境ART和全新的编译策略AOT，此时ART和Dalvik是共存的，用户可以在两者之间选择
+
+**Android 5.0——ART全面取代Dalvik**
+
+AOT:
+
+```java
+AOT是一种运行前编译的策略
+缺点：
+（1）应用安装和系统升级之后的应用优化比较耗时
+（2）优化后的文件会占用额外的存储空间
+```
+
+AOT与JIT区别：
+
+```
+JIT 是在运行时进行编译，是动态编译，并且每次运行程序的时候都需要对 odex 重新进行编译
+AOT 是静态编译，应用在安装的时候会启动 dex2oat 过程把 dex 预编译成 ELF 文件，每次运行程序的时候不用重新编译，是真正意义上的本地应用
+```
+
+JVM、Dalvik和ART区别：
+
+```
+JVM：传统的Java虚拟机、基于栈、运行class文件
+Dalvik:支持已转换成dex格式的android应用，基于寄存器，指令执行更快,加载的是odex（优化的dex）
+ART:第一次安装时，将dex进行Aot(预编译)，字节码预先编译成机器码，生成可执行oat文件（ELF文件）
+```
+
+![image-20211002154534641](upload/attach/202110/905443\_MNJJBGKSUG3AD9G.png)
+
+![image-20211003101124310](upload/attach/202110/905443\_WATDYB6PWZH9AZD.png)
+
+```java
+基于ART的虚拟机，会在APK第一次安装时，将dex进行AOT(预编译)，通过dex2oat生成oat文件，即Android可执行ELF文件，包括原dex文件和翻译后的机器码，然后启动程序后，直接运行
+缺点：
+（1）由于安装APK时触发dex2oat , 需要编译成native code , 导致安装时间过长
+（2）由于dex2oat生成的文件较大 , 会占用较多的空间
+```
+
+**Android 7.0——JIT回归**
+
+考虑上面AOT的缺点，dex2oat过程比较耗时且会占用额外的存储空间，Android 7.0 再次加入JIT形成`AOT+JIT+解释器`模式
+
+特点：
+
+```
+（1）应用在安装的时候 dex 不会被编译
+（2）应用在运行时 dex 文件先通过解析器（Interpreter）后会被直接执行，与此同时，热点函数（Hot Code）会被识别并被 JIT 编译后存储在 jit code cache 中并生成 profile 文件以记录热点函数的信息
+（3）手机进入 IDLE（空闲） 或者 Charging（充电） 状态的时候，系统会扫描 App 目录下的 profile 文件并执行 AOT 过程进行编译
+```
+
+混合编译模式综合了 AOT 和 JIT 的各种优点，使得应用在安装速度加快的同时，运行速度、存储空间和耗电量等指标都得到了优化
+
+![image-20211003102555392](upload/attach/202110/905443\_MEEBZXF5JUW7G3Z.png)
+
+最后我们可以看下Android各版本ClassLoader加载dex时的dexopt过程：
+
+![image-20211003102844820](upload/attach/202110/905443\_U5HEESE5529NAVC.png)
+
+#### （4）原生C/C++库
+
+许多核心 Android 系统组件和服务（例如 ART 和 HAL）构建自原生代码，需要以 C 和 C++ 编写的原生库。Android 平台提供 Java 框架 API 以向应用显示其中部分原生库的功能，我们可以通过NDK开发Android中的C/C++库
+
+#### （5）Java API框架
+
+通过以 Java 语言编写的 API 使用 Android OS 的整个功能集。这些 API 形成创建 Android 应用所需的构建块，它们可简化核心模块化系统组件和服务的重复使用，包括以下组件和服务
+
+### 2. Android启动流程
+
+Android启动流程如下图所示：
+
+![image-20211003102844820](upload/attach/202110/905443\_ZVX94URZK2CY3XG.png)
+
+#### （1）Loader
+
+```
+Boot ROM: 当手机处于关机状态时，长按Power键开机，引导芯片开始从固化在ROM里的预设代码开始执行，然后加载引导程序到RAM
+Boot Loader：这是启动Android系统之前的引导程序，主要是检查RAM，初始化硬件参数，拉起Android OS
+```
+
+我们长按电源键后，手机就会在Loader层加载引导程序，并启动引导程序，初始化参数
+
+#### （2）Linux内核
+
+```java
+(1)启动Kernel的swapper进程(pid=0)：该进程又称为idle进程, 系统初始化过程Kernel由无到有开创的第一个进程, 用于初始化进程管理、内存管理，加载Display,Camera Driver，Binder Driver等相关工作，这些模块驱动都会封装到对应的HAL层中
+(2)启动 init 进程（用户进程的祖宗）。pid = 1，用来孵化用户空间的守护进程、HAL、开机动画等
+(3)启动kthreadd进程（pid=2）：是Linux系统的内核进程，会创建内核工作线程kworkder，软中断线程ksoftirqd，thermal等内核守护进程。kthreadd进程是所有内核进程的鼻祖
+```
+
+#### （3）执行init进程
+
+init 进程是Linux系统中用户空间的第一个进程，进程号为1，是所以用户进程的祖先
+
+Linux Kernel完成系统设置后，会首先在系统中寻找init.rc文件，并启动init进程，init.rc脚本存放路径：`/system/core/rootdir/init.rc` ，init进程：`/system/core/init`
+
+init进程的启动可以分为三个部分：
+
+```java
+（1）init进程会孵化出ueventd、logd、healthd、installd、adbd、lm这里写代码片kd等用户守护进程
+（2）init进程还会启动ServiceManager(Binder服务管家)、bootanim(开机动画)等重要服务
+（3）解析init.rc配置文件并孵化zygote进程,Zygote进程是Android系统的第一个java进程（虚拟机进程），zygote进程是所以Java进程的父进程
+```
+
+创建Zygote过程：
+
+```java
+（1）解析 init.zygote.rc //parse_service()
+（2）启动 main 类型服务 //do_class_start()
+（3）启动 zygote 服务 //service_start()
+（4）创建 Zygote 进程 //fork()
+（5）创建 Zygote Socket //create_socket()
+```
+
+#### （4）Zygote
+
+Zygote为孵化器，即所有Android应用的祖先，Zygote 让 VM 共享代码、低内存占用以及最小的启动时间成为可能， Zygote 是一个虚拟机进程，Zygote是由init进程通过解析`init.zygote.rc`文件而创建的，zygote所对应的可执行程序`app_process`，所对应的源文件是`App_main.cpp`，进程名为zygote
+
+Zygote作用过程：
+
+```java
+(1)解析init.zygote.rc中的参数，创建AppRuntime并调用AppRuntime.start()方法；
+(2)调用AndroidRuntime的startVM()方法创建虚拟机，再调用startReg()注册JNI函数；
+(3)通过JNI方式调用ZygoteInit.main()，第一次进入Java世界；
+(4)registerZygoteSocket()建立socket通道，zygote作为通信的服务端，用于响应客户端请求；
+(5)preload()预加载通用类、drawable和color资源、openGL以及共享库以及WebView，用于提高app启动效率；
+(6)zygote完毕大部分工作，接下来再通过startSystemServer()，fork得力帮手system_server进程，也是上层framework的运行载体。
+(7)zygote功成身退，调用runSelectLoop()（死循环），随时待命，当接收到请求创建新进程请求时立即唤醒并执行相应工作。
+```
+
+Android系统流程总结：
+
+```java
+(1) 手机开机后，引导芯片启动，引导芯片开始从固化在ROM里的预设代码执行，加载引导程序到到RAM，BootLoader检查RAM，初始化硬件参数等功能；
+(2) 硬件等参数初始化完成后，进入到Kernel层，Kernel层主要加载一些硬件设备驱动，初始化进程管理等操作。在Kernel中首先启动swapper进程（pid=0），用于初始化进程管理、内管管理、加载Driver等操作，再启动kthread进程(pid=2),这些linux系统的内核进程，kthread是所有内核进程的鼻祖；
+(3) Kernel层加载完毕后，硬件设备驱动与HAL层进行交互。初始化进程管理等操作会启动init进程 ，这些在Native层中；
+(4) init进程(pid=1，init进程是所有进程的鼻祖，第一个启动)启动后，会启动adbd，logd等用户守护进程，并且会启动servicemanager(binder服务管家)等重要服务，同时孵化出zygote进程，这里属于C++ Framework，代码为C++程序；
+(5) zygote进程是由init进程解析init.rc文件后fork生成，它会加载虚拟机，启动System Server(zygote孵化的第一个进程)；SystemServer负责启动和管理整个Java Framework，包含ActivityManager，WindowManager，PackageManager，PowerManager等服务；
+(6) zygote同时会启动相关的APP进程，它启动的第一个APP进程为Launcher，然后启动Email，SMS等进程，所有的APP进程都有zygote fork生成。
+```
+
+## 三、Xposed框架运行机制
+
+我们从上文中已经详细介绍了Android的启动流程，如下图所示：
+
+![image-20211003102844820](upload/attach/202110/905443\_ZFPEBJFXVJ4CYER.png)
+
+下面我们来详细介绍Xposed框架的实现原理：
+
+### 1. Xposed实现原理
