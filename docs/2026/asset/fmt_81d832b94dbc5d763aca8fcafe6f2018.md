@@ -1,0 +1,6 @@
+
+`e93K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6V1M7i4A6Y4x3e0t1K6x3o6m8Q4x3V1k6#2L8X3W2V1j5X3N6Q4y4h3k6@1L8$3!0D9M7#2)9J5k6h3N6A6N6l9.`.
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+[#脱壳反混淆](https://bbs.kanxue.com/forum-161-1-122.htm)

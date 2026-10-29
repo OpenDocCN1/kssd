@@ -1,0 +1,60 @@
+
+# [原创]简单完善《ARM64 OLLVM反混淆》中的脚本
+
+简单完善了一下无名侠大佬这篇文章：[ARM64 OLLVM反混淆](https://bbs.pediy.com/thread-252321.htm)中的脚本。
+
+## 主要改动
+
+1. 增加 `patch` 二进制文件的代码；
+2. 研究代码可以发现 `BL` 指令调用的函数全部都是真实的逻辑，所以不根据 `BL` 指令分割基本块，并且含有 `BL` 指令一定是真实块；
+
+```
+......
+if (len(i.groups) > 0 and i.mnemonic != "bl") or i.mnemonic == 'ret':
+isNew = True
+block_item["eaddress"] = i.address
+block_item['ins'] = insStr
+block_item['insns'] = insStrlist
+......
+# 如果某个代码块含有 BL 指令那一定是真实块
+for b in list_blocks:
+if re.search( r'\s+bl\s+', list_blocks[b]['ins']):
+real_blocks.append(list_blocks[b]['saddress'])
+......
+```
+
+3. 修改到 `python3` 环境下运行。
+
+## 修复效果
+
+![](upload/attach/202202/734571_JADMFQMFZX233GX.png)
+
+简单完善了一下无名侠大佬这篇文章：[ARM64 OLLVM反混淆](https://bbs.pediy.com/thread-252321.htm)中的脚本。
+
+主要改动：
+
+1. 增加 `patch` 二进制文件的代码；
+2. 研究代码可以发现 `BL` 指令调用的函数全部都是真实的逻辑，所以不根据 `BL` 指令分割基本块，并且含有 `BL` 指令一定是真实块；
+
+|  |  |
+| --- | --- |
+| 1 2 3 4 5 6 7 8 9 10 11 12 | `......` `if` `(``len``(i.groups) >` `0` `and` `i.mnemonic !``=` `"bl"``)` `or` `i.mnemonic` `=``=` `'ret'``:` `isNew` `=` `True` `block_item[``"eaddress"``]` `=` `i.address` `block_item[``'ins'``]` `=` `insStr` `block_item[``'insns'``]` `=` `insStrlist` `......` `#如果某个代码块含有BL指令那一定是真实块` `for` `b` `in` `list_blocks:` `if` `re.search( r``'\s+bl\s+'``, list_blocks[b][``'ins'``]):` `real_blocks.append(list_blocks[b][``'saddress'``])` `......` |
+
+3. 修改到 `python3` 环境下运行。
+
+修复效果：
+
+![](https://bbs.kanxue.com/upload/attach/202202/734571_JADMFQMFZX233GX.png)
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+[#混淆加固](https://bbs.kanxue.com/forum-161-1-121.htm)
+
+上传的附件：
+
+- [`fix.py`](javascript:void(0);)
+  （12.22kb，288次下载）
+- [`libvdog.so`](javascript:void(0);)
+  （2.02MB，156次下载）
+- [`libvdog.fix.so`](javascript:void(0);)
+  （2.02MB，122次下载）

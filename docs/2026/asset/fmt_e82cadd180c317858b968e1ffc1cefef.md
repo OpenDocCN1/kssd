@@ -1,0 +1,173 @@
+
+```java
+package com.kanxue.crackme;
+
+import com.github.unidbg.AndroidEmulator;
+import com.github.unidbg.LibraryResolver;
+import com.github.unidbg.arm.backend.BlockHook;
+import com.github.unidbg.linux.android.AndroidARM64Emulator;
+import com.github.unidbg.linux.android.AndroidResolver;
+import com.github.unidbg.linux.android.dvm.*;
+import com.github.unidbg.linux.android.dvm.jni.ProxyClassFactory;
+import com.github.unidbg.linux.android.dvm.jni.ProxyDvmObject;
+import com.github.unidbg.memory.Memory;
+import capstone.Capstone;
+import keystone.Keystone;
+import keystone.KeystoneArchitecture;
+import keystone.KeystoneMode;
+import org.apache.commons.codec.binary.Hex;
+import unicorn.Arm64Const;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.*;
+
+public class MainActivity {
+    public static byte[] readFile(File file) throws IOException {
+        long len = file.length();
+        byte[] bytes = new byte[(int)len];
+
+        try (FileInputStream in = new FileInputStream(file)) {
+            in.read(bytes);
+        }
+
+        return bytes;
+    }
+
+    public static void main(String[] args) throws IOException {
+        MainActivity mainActivity = new MainActivity();
+        emulator = new AndroidARM64Emulator();
+        Memory memory = emulator.getMemory();
+        LibraryResolver resolver = new AndroidResolver(23);
+        memory.setLibraryResolver(resolver);
+        vm = emulator.createDalvikVM(null);
+        vm.setVerbose(true);
+        vm.setDvmClassFactory(new ProxyClassFactory());
+        DalvikModule dm = vm.loadLibrary(new File("unidbg-android/src/test/resources/example_binaries/kanxue-dec/03/libnative-lib.so"), true);
+        dm.callJNI_OnLoad(emulator);
+
+        crypt2Addr = dm.getModule().findSymbolByName("Java_com_kanxue_crackme_MainActivity_crypt2").getAddress();
+
+        obj = ProxyDvmObject.createObject(vm,mainActivity);
+        //        emulator.traceCode(dm.getModule().base, dm.getModule().base + dm.getModule().size);
+
+        Map<Long, List<String>> blockAsm = new HashMap<>();
+        Map<Long, Long> blockEnd = new HashMap<>();
+        Map<Long, List<Long>> blockCount = new HashMap<>();
+        Map<Long, Set<Long>> jumpCount = new HashMap<>();
+
+        long start = dm.getModule().base;
+        long end = start + dm.getModule().size;
+        System.out.println("base:" + Long.toHexString(dm.getModule().base) + " end:" + Long.toHexString(end));
+
+        emulator.getBackend().hook_add_new((BlockHook) (backend, address, size, user) -> {
+            blockEnd.put(address, address + size);
+            if (!blockCount.containsKey(address)) {
+                blockCount.put(address, new ArrayList<>());
+            }
+            if (!jumpCount.containsKey(lastBlock)) {
+                jumpCount.put(lastBlock, new HashSet<>());
+            }
+            jumpCount.get(lastBlock).add(address);
+            blockCount.get(address).add(lastBlock);
+            lastBlock = address;
+            if (!blockAsm.containsKey(address)) {
+                Capstone.CsInsn[] csInsns = emulator.disassemble(address, size, 0);
+                ArrayList<String> asms = new ArrayList<>(csInsns.length);
+                for (Capstone.CsInsn csInsn : csInsns) {
+                    asms.add(csInsn.mnemonic);
+                }
+                blockAsm.put(address, asms);
+            }
+        }, start, end, null);
+
+        byte[] content = readFile(new File("unidbg-android/src/test/resources/example_binaries/kanxue-dec/03/libnative-lib.so"));
+        Set<String> blackList = new HashSet<>();
+        blackList.add("orr,tbnz");
+        blackList.add("stur,tbnz");
+        blackList.add("stur,tbz");
+        blackList.add("str,tbz");
+        blackList.add("str,tbnz");
+
+        boolean result = obj.callJniMethodBoolean(emulator,"jnicheck(Ljava/lang/String;)Z","aaa");
+        obj.callJniMethodBoolean(emulator,"jnicheck(Ljava/lang/String;)Z","bbbb");
+        obj.callJniMethodBoolean(emulator,"jnicheck(Ljava/lang/String;)Z","cc");
+
+        Keystone ks = new Keystone(KeystoneArchitecture.Arm64, KeystoneMode.LittleEndian);
+
+        jumpCount.forEach((aLong, aLong2) -> {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append('[');
+            aLong2.forEach(addr -> stringBuilder.append("0x" + Long.toHexString(addr) + ","));
+            stringBuilder.setLength(stringBuilder.length() - 1);
+            stringBuilder.append(']');
+            List<String> asms = blockAsm.get(aLong);
+            if (asms != null && asms.size() >= 2) {
+                String lastTwo = asms.get(asms.size() - 2) + "," + asms.get(asms.size() - 1);
+                stringBuilder.append(" <").append(lastTwo).append('>');
+                if (aLong2.size() == 1) {
+                    if (blackList.contains(lastTwo)) {
+                        int address = blockEnd.get(aLong).intValue() - 4;
+                        byte[] code = ks.assemble("b #0x" + Long.toHexString(aLong2.iterator().next()), address).getMachineCode();
+                        System.out.println("file address: 0x" + Long.toHexString(address - start - 0x10000) + " patch address: 0x" + Long.toHexString(address) + " code:" + Hex.encodeHexString(code));
+                        for (int i = 0; i < code.length; i++) {
+                            content[(int) (address - start + i)] = code[i];
+                        }
+                    }
+                }
+            }
+            System.out.println("0x" + Long.toHexString(aLong) + " : " + stringBuilder.toString());
+        });
+        try (FileOutputStream out = new FileOutputStream(new File("unidbg-android/src/test/resources/example_binaries/kanxue-dec/03/libnative-lib.fix.so"))) {
+            out.write(content);
+        }
+        System.out.println("result:" + result);
+    }
+
+    public static boolean crypt2(String arg0) {
+        obj.initArgs(emulator, arg0);
+        // 通过R0告诉CallStaticBooleanMethodV忽略函数返回值
+        long x0 = emulator.getBackend().reg_read(Arm64Const.UC_ARM64_REG_X0).longValue();
+        emulator.getBackend().reg_write(Arm64Const.UC_ARM64_REG_X0, x0 + 1);
+        emulator.getBackend().reg_write(Arm64Const.UC_ARM64_REG_PC, crypt2Addr);
+        // 该返回值将被忽略
+        return true;
+    }
+
+    private static long lastBlock = 0;
+    private static AndroidEmulator emulator;
+    private static VM vm;
+    private static DvmObject obj;
+    private static long crypt2Addr;
+}
+```
+
+不太懂`ollvm`怎么剪枝,通过观察发现`ollvm`生成的很多块都有一些特征,于是直接通过一些简单的条件来把一些块末尾跳转直接改成无条件跳转.
+
+条件是：
+
+1. 这个块在执行时的下一个块是唯一的
+2. 块的结尾两条汇编指令符合一定特征
+
+```java
+Set<String> blackList = new HashSet<>();
+blackList.add("orr,tbnz");
+blackList.add("stur,tbnz");
+blackList.add("stur,tbz");
+blackList.add("str,tbz");
+blackList.add("str,tbnz");
+```
+
+然后随便用几个输入调用一下函数,让尽可能多的块被执行
+
+```java
+obj.callJniMethodBoolean(emulator,"jnicheck(Ljava/lang/String;)Z","aaa");
+obj.callJniMethodBoolean(emulator,"jnicheck(Ljava/lang/String;)Z","bbbb");
+obj.callJniMethodBoolean(emulator,"jnicheck(Ljava/lang/String;)Z","cc");
+```
+
+之后把`patch`后的`so`保存下来.使用`IDA`进行分析
+
+`Java_com_kanxue_crackme_MainActivity_jnicheck`的反编译结果如下
