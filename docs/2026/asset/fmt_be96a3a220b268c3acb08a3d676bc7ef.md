@@ -1,5 +1,6 @@
 
-| 1  2 | `art::DexFileLoader::open`(hook后：`0x6D39C`/`0x6D3E8`)  `art::OatFileManager::OpenDexFilesFromOat`(hook后：`0x6A2C0`/`0x6AF14`/`0x6B9B0`/`0x6C188`/`0x6CB5C`) |
+1. `art::DexFileLoader::open(hook后：0x6D39C/0x6D3E8)`
+2. `art::OatFileManager::OpenDexFilesFromOat(hook后：0x6A2C0/0x6AF14/0x6B9B0/0x6C188/0x6CB5C)`
 
 ### 0x6D4A0
 
@@ -7,21 +8,19 @@ patch掉`art::Runtime::IsVerificationEnabled`。
 
 ### 0x6DAD8
 
-hook `art::DexFileVerifier::Verify`(hook后：`0x6D38C`/`0x6D394`，直接返回`1`)。
+hook `art::DexFileVerifier::Verify(hook后：0x6D38C/0x6D394，直接返回1)`。
 
 ### 0x6E40C
 
-hook `art::DexFileLoader::open`(hook后：`0x6D39C`/`0x6D3E8`)。
+hook `art::DexFileLoader::open(hook后：0x6D39C/0x6D3E8)`。
 
 ### 0x70410
 
 hook下列函数：
 
-|  |  |
-
-| --- | --- |
-
-| 1  2  3 | `art::DexFileVerifier::Verify`(hook后：`0x6EB04`/`0x6EB0C`/`0x6EB14`，直接返回`1`)  `art::DexFile::OpenMemory`(hook后：`0x74EE8`/`0x74E90`/`0x74F38`)  `Art::DexFile`(hook后：`0x74E30`/`0x74F88`) |
+1. `art::DexFileVerifier::Verify(hook后：0x6EB04/0x6EB0C/0x6EB14，直接返回1)`
+2. `art::DexFile::OpenMemory(hook后：0x74EE8/0x74E90/0x74F38)`
+3. `Art::DexFile(hook后：0x74E30/0x74F88)`
 
 ### 0x75054
 
@@ -29,7 +28,7 @@ hook `libdvm.so`中的函数，具体没仔细看，`0x6EB1C`/`0x74DEC`/`0x6FFBC
 
 ### 0x75AA8
 
-读`java.lang.DexCache.dexfile`（这个dexfile就是解压apk之后根目录的那个`classes.dex`）。
+读`java.lang.DexCache.dexfile`(这个`dexfile`就是解压apk之后根目录的那个`classes.dex`)。
 
 ### 0x767F8
 
@@ -53,7 +52,7 @@ hook `libdvm.so`中的函数，具体没仔细看，`0x6EB1C`/`0x74DEC`/`0x6FFBC
 
 ### 0x76E18
 
-md5。
+`md5`。
 
 ### 0x7783C
 
@@ -61,17 +60,17 @@ md5。
 
 ### 0x79270
 
-计算传入字符串的hash（不完全是md5）。
+计算传入字符串的hash(不完全是`md5`)。
 
 ### 0x7A240
 
 热补丁检测，特征字符串：
 
-|  |  |
-
-| --- | --- |
-
-| 1  2  3  4  5 | `nuwa`  `andfix`  `hotfix`  `.RiskStu`  `tinker` |
+- `nuwa`
+- `andfix`
+- `hotfix`
+- `.RiskStu`
+- `tinker`
 
 ### 0x80458
 
@@ -79,17 +78,24 @@ md5。
 
 ### 0x804A8
 
-hook libc中的下列函数：
+hook `libc`中的下列函数：
 
-|  |  |
-
-| --- | --- |
-
-| 1  2  3  4  5  6  7  8  9  10  11  12 | `msync`(hook后：`0x78470`)  `close`(hook后：`0x7AF50`)  `munmap`(hook后：`0x7A568`)  `openat64`(hook后：`0x7DC48`)  `__open_2`(hook后：`0x7DC80`)  `_open64`(hook后：`0x7DCB8`)  `_openat_2`(hook后：`0x7DCF0`)  `ftruncate64`(hook后：`0x7DD30`)  `mmap64`(hook后：`0x7EF60`)  `pread64`(hook后：`0x7F5D0`)  `read`(hook后：`0x7F7DC`)  `write`(hook后：`0x8022C`) |
+1. `msync(hook后：0x78470)`
+2. `close(hook后：0x7AF50)`
+3. `munmap(hook后：0x7A568)`
+4. `openat64(hook后：0x7DC48)`
+5. `__open_2(hook后：0x7DC80)`
+6. `_open64(hook后：0x7DCB8)`
+7. `_openat_2(hook后：0x7DCF0)`
+8. `ftruncate64(hook后：0x7DD30)`
+9. `mmap64(hook后：0x7EF60)`
+10. `pread64(hook后：0x7F5D0)`
+11. `read(hook后：0x7F7DC)`
+12. `write(hook后：0x8022C)`
 
 ### 0x87F98
 
-hook `libdvm.so`中的函数（类似于`0x44708`），具体没仔细看，`0x856C0`/`0x87F00`/`0x87F4C`都是被hook后的实现。
+hook `libdvm.so`中的函数(类似于`0x44708`)，具体没仔细看，`0x856C0`/`0x87F00`/`0x87F4C`都是被hook后的实现。
 
 ### 0x889B0
 
@@ -135,29 +141,44 @@ frida检测，读`/proc/self/task`，特征字符串：`gum-js-loop`；读`/proc
 
 xposed检测，特征字符串：
 
-|  |  |
-
-| --- | --- |
-
-| 1  2  3 | `.xposed.`  `xposedbridge`  `xposed_art` |
+- `.xposed.`
+- `xposedbridge`
+- `xposed_art`
 
 ### 0x99D28
 
 hook框架检测，特征字符串：
 
-|  |  |
-
-| --- | --- |
-
-| 1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16  17  18  19  20  21  22 | `frida`  `ddi_hook`  `dexposed`  `substrate`  `adbi_hook`  `MSFindSymbol`  `hook_precall`  `hook_postcall`  `MSHookFunction`  `DexposedBridge`  `MSCloseFunction`  `dexstuff_loaddex`  `dexposedIsHooked`  `ALLINONEs_arthook`  `dexstuff_resolv_dvm`  `dexposedCallHandler`  `art_java_method_hook`  `artQuickToDispatcher`  `dexstuff_defineclass`  `dalvik_java_method_hook`  `art_quick_call_entrypoint`  `frida_agent_main` |
+- `frida`
+- `ddi_hook`
+- `dexposed`
+- `substrate`
+- `adbi_hook`
+- `MSFindSymbol`
+- `hook_precall`
+- `hook_postcall`
+- `MSHookFunction`
+- `DexposedBridge`
+- `MSCloseFunction`
+- `dexstuff_loaddex`
+- `dexposedIsHooked`
+- `ALLINONEs_arthook`
+- `dexstuff_resolv_dvm`
+- `dexposedCallHandler`
+- `art_java_method_hook`
+- `artQuickToDispatcher`
+- `dexstuff_defineclass`
+- `dalvik_java_method_hook`
+- `art_quick_call_entrypoint`
+- `frida_agent_main`
 
 ### 0x9C0BC
 
-调用`0x96398`检测frida，`system_property_get` `ro.product.model`，调用`0x9FD88`检测xposed和自动脱壳机，hook `dlopen`(hook后：`0x9B89C`)和`ptrace`(hook后：`0x95BF8`)。
+调用`0x96398`检测frida，`system_property_get ro.product.model`，调用`0x9FD88`检测xposed和自动脱壳机，hook `dlopen(hook后：0x9B89C)`和`ptrace(hook后：0x95BF8)`。
 
 ### 0x9CFCC
 
-通过读取`/proc/%d/status`判断TracerPid等实现反调试。
+通过读取`/proc/%d/status`判断`TracerPid`等实现反调试。
 
 ### 0x9D878
 
@@ -165,7 +186,7 @@ hook框架检测，特征字符串：
 
 ### 0x9DCF4
 
-通过读取`/proc/%ld/task/%ld/status`判断TracerPid等实现反调试。
+通过读取`/proc/%ld/task/%ld/status`判断`TracerPid`等实现反调试。
 
 ### 0x9ED44
 
@@ -177,17 +198,24 @@ hook框架检测，特征字符串：
 
 ### 0x9FD88
 
-调用`0x9ED44`和`0x9F770`，通过判断ServiceManager里是否有`user.xposed.system`进行xposed检测，然后检测自动脱壳机：
+调用`0x9ED44`和`0x9F770`，通过判断`ServiceManager`里是否有`user.xposed.system`进行xposed检测，然后检测自动脱壳机：
 
-fart(2ddK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5j5h3&6T1K9h3&6Y4L8r3g2F1k6%4W2#2k6g2)9J5c8V1k6m8f1W2c8Q4x3U0V1`.FUPK3(4bbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6r3z5p5I4q4c8W2c8Q4x3V1k6r3g2g2m8w2x3#2)9J5z5b7`.
-Youpk(fd8K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6k6L8%4g2D9L8%4u0Q4x3V1k6k6L8%4g2H3K9#2)9J5z5b7`.
+`fart(2ddK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5j5h3&6T1K9h3&6Y4L8r3g2F1k6%4W2#2k6g2)9J5c8V1k6m8f1W2c8Q4x3U0V1`.
+
+`FUPK3(4bbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6r3z5p5I4q4c8W2c8Q4x3V1k6r3g2g2m8w2x3#2)9J5z5b7`.
+
+`Youpk(fd8K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6k6L8%4g2D9L8%4u0Q4x3V1k6k6L8%4g2H3K9#2)9J5z5b7`.
+
 检测方法是判断下列类或者方法是否存在：
 
-|  |  |
-
-| --- | --- |
-
-| 1  2  3  4  5  6  7  8 | `dumpMethodCode`  `fartthread`  `fart`  `android/app/fupk3/Fupk`  `android/app/fupk3/Global`  `android/app/fupk3/UpkConfig`  `android/app/fupk3/FRefInvoke`  `cn/youlor/Unpacker` |
+- `dumpMethodCode`
+- `fartthread`
+- `fart`
+- `android/app/fupk3/Fupk`
+- `android/app/fupk3/Global`
+- `android/app/fupk3/UpkConfig`
+- `android/app/fupk3/FRefInvoke`
+- `cn/youlor/Unpacker`
 
 ### 0xA18D4
 
@@ -195,37 +223,42 @@ Youpk(fd8K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q
 
 ### 0xA7D3C
 
-解密出字符串`Java`和`JNI_OnLoad`，hook了几个函数，被hook的原地址未知，新地址：`0xA43A0`/`0xA485C`/`0xA48F4`/`0xA54B0`；hook `dlsym`(hook后：`0xA4554`)和`dlopen`(hook后：`0xA4D30`)。
+解密出字符串`Java`和`JNI_OnLoad`，hook了几个函数，被hook的原地址未知，新地址：`0xA43A0`/`0xA485C`/`0xA48F4`/`0xA54B0`；hook `dlsym(hook后：0xA4554)`和`dlopen(hook后：0xA4D30)`。
 
 ### 0xB4B94
 
-hook libc中的下列函数：
+hook `libc`中的下列函数：
 
-|  |  |
+1. `write(hook后：0xAA2CC)`
+2. `pwrite64(hook后：0xAA51C)`
+3. `close(hook后：0xAA774)`
+4. `read64(hook后：0xAAA9C)`
+5. `openat64(hook后：0xAACB8)`
+6. `__openat_2(hook后：0xAB6D4)`
+7. `__open_2(hook后：0xAC0F4)`
+8. `open64(hook后：0xACB10)`
+9. `read(hook后：0xAFE18)`
+10. `mmap64(hook后：0xB1C54)`
 
-| --- | --- |
-
-| 1  2  3  4  5  6  7  8  9  10 | `write`(hook后：`0xAA2CC`)  `pwrite64`(hook后：`0xAA51C`)  `close`(hook后：`0xAA774`)  `read64`(hook后：`0xAAA9C`)  `openat64`(hook后：`0xAACB8`)  `__openat_2`(hook后：`0xAB6D4`)  `__open_2`(hook后：`0xAC0F4`)  `open64`(hook后：`0xACB10`)  `read`(hook后：`0xAFE18`)  `mmap64`(hook后：`0xB1C54`) |
-
-`system_property_get` `debug.atrace.tags.enableflags`，hook `bionic_trace_begin`和`bionic_trace_end`(hook后：`0xA8EF4`和`0xA8EF8`，直接返回)，没有找到则hook `g_trace_marker_fd`(hook后：`0xA8EFC`，返回`-1`)。
+`system_property_get debug.atrace.tags.enableflags`，hook `bionic_trace_begin`和`bionic_trace_end`(hook后：`0xA8EF4`和`0xA8EF8`，直接返回)，没有找到则hook `g_trace_marker_fd`(hook后：`0xA8EFC`，返回-1)。
 
 这些hook是为了透明加密，具体没仔细看，之前论坛也有人分析过，估计应该没有太大的变化：[梆梆加固之透明加密分析](https://bbs.pediy.com/thread-226358.htm)。
 
 ### 0xB9BEC
 
-sha1。
+`sha1`。
 
 ### 0xBAE64
 
-md5init。
+`md5init`。
 
 ### 0xC3378
 
-base64。
+`base64`。
 
 ### 0xC5DDC
 
-base64。
+`base64`。
 
 ### 0xC7B18
 
@@ -233,15 +266,15 @@ APK签名相关。
 
 ### 0xD024C
 
-sha1。
+`sha1`。
 
 ### 0xD1C04
 
-sha1init。
+`sha1init`。
 
 ### 0xD2E98
 
-md5。
+`md5`。
 
 ### 0xD6484
 
@@ -253,7 +286,7 @@ md5。
 
 ### 0xD6578
 
-hook `libdvm.so`中的函数（hook后：`0xD6988`）。
+hook `libdvm.so`中的函数(hook后：`0xD6988`)。
 
 ### 0xD68A8
 
@@ -261,31 +294,20 @@ hook `libdvm.so`中的函数（hook后：`0xD6988`）。
 
 ### 0xD75A0
 
-hook `libaoc.so`中的函数（hook后：`0xD69BC`）。
+hook `libaoc.so`中的函数(hook后：`0xD69BC`)。
 
 ### 0x3EA68
 
 `JNI_OnLoad`。分析环境pixel4 android10，动态分析过程中一些没有被调用的函数不再分析。
 
-1.初始化cpuabi字符串(`arm64`)于`0x12E7C8`
-
-2.初始化so名字符串(`libDexHelper`)于`0x12EC38`
-
-3.初始化字符串`com/secneo/apkwrapper/H`于`0x137B10`
-
-4.调用`0x1E520`
-
-5.
-
-|  |  |
-
-| --- | --- |
-| 1  2  3  4 | `JNIEnv->FindClass(com/secneo/apkwrapper/H)`  `JNIEnv->GetStaticFieldID(com/secneo/apkwrapper/H.PKGNAMELjava/lang/String;)`  `JNIEnv->GetStaticObjectField(class com/secneo/apkwrapper/H, PKGNAME Ljava/lang/String; => "cn.missfresh.application")`  `JNIEnv->GetStringUtfChars("cn.missfresh.application")` |
-
-6.将包名存于`0x138040`
-
-7.
-
-|  |  |
-
-| --- | --- |
+1. 初始化`cpuabi`字符串(`arm64`)于`0x12E7C8`
+2. 初始化`so`名字符串(`libDexHelper`)于`0x12EC38`
+3. 初始化字符串`com/secneo/apkwrapper/H`于`0x137B10`
+4. 调用`0x1E520`
+5. 
+   - `JNIEnv->FindClass(com/secneo/apkwrapper/H)`
+   - `JNIEnv->GetStaticFieldID(com/secneo/apkwrapper/H.PKGNAMELjava/lang/String;)`
+   - `JNIEnv->GetStaticObjectField(class com/secneo/apkwrapper/H, PKGNAME Ljava/lang/String; => "cn.missfresh.application")`
+   - `JNIEnv->GetStringUtfChars("cn.missfresh.application")`
+6. 将包名存于`0x138040`
+7. 

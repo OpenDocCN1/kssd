@@ -1,19 +1,19 @@
 
-## `vm_begin`
+2. `vm_begin`
 
-## `vm_run`
+3. `vm_run`
 
-## `vm_return`
+4. `vm_return`
 
-## `vm_do_ops1`
+5. `vm_do_ops1`
 
-## `vm_do_ops2`
+6. `vm_do_ops2`
 
-## `vm_lshift_op`
+7. `vm_lshift_op`
 
-## `vm_rshift_op`
+8. `vm_rshift_op`
 
-## `vm_mathop`
+9. `vm_mathop`
 
 可能是这样吧，我画个图说明下:
 
@@ -23,19 +23,19 @@
 
 `Vm_do_cbranch`, `vm_do_lshift`, … 没有边指向它，是因为我不想把图画的太乱，实际上有不同的case分支指向它。
 
-打开ida 用`libjiagu.so`做对照，`_Z10**arm_a_21v`地址`83d0`:
+打开ida 用`libjiagu.so`做对照，`_Z10**arm_a_21v`地址83d0:
 
- ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_CQEV3QPVH395572.png)
+![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_CQEV3QPVH395572.png)
 
 然后我们打开 `_Z9**arm_a_0v`
 
- ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_RGF64GSZXAXS7YU.png)
+![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_RGF64GSZXAXS7YU.png)
 
 然后我们从最外层的`vm_enter`开始，inline掉 `vm_begin`和`vm_run`函数。
 
 让框架上变成这样:
 
- ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_KUSXTMRHDDBJE9C.png)
+![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_KUSXTMRHDDBJE9C.png)
 
 严格上来说，所有的vm框架函数都要inline，但是这样会导致代码体积膨胀的非常厉害。我们采取部分完全inline，然后还有部分按需inline的方式来做优化
 
@@ -51,7 +51,7 @@
 
 |  |  |
 | --- | --- |
-| 1  2  3  4 | `mov r0, r1` `/``/` `原始的mov可能有个编号，在外层`    `VM_PUSH r1` `/``/` `然后虚拟的hanlder也有个编号`  `VM_POP r0` |
+| 1  2  3  4 | `mov r0, r1` `/``/` `原始的mov可能有个编号，在外层` `VM_PUSH r1` `/``/` `然后虚拟的hanlder也有个编号` `VM_POP r0` |
 
 但我们不关心这些细节。反正不停的循环展开即可。
 
@@ -71,7 +71,7 @@
 
 |  |  |
 | --- | --- |
-| 1  2  3  4  5 | `r0` `=` `lrand48();`  `r6` `=` `r0`  `r2` `=` `r6` `*` `r6` `+` `r6 (这里r2一定为偶数)`  `r2` `=` `r2 &` `1` `-``> r2` `=` `0`  `r12` `=` `r2` `-``> r12` `=` `0` |
+| 1  2  3  4  5 | `r0` `=` `lrand48();` `r6` `=` `r0` `r2` `=` `r6` `*` `r6` `+` `r6 (这里r2一定为偶数)` `r2` `=` `r2 &` `1` `-``> r2` `=` `0` `r12` `=` `r2` `-``> r12` `=` `0` |
 
 推导出`r12`为0
 
@@ -113,11 +113,11 @@
 
 估计你们看的头晕，直接上图吧，针对4的情况
 
- ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_622EYM8PFTZVXPT.png)
+![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_622EYM8PFTZVXPT.png)
 
 我们假设先走的case5，直接按途中1, 2 ,3 ,4 ,5的顺序把代码全走出来。然后生成一个新的绿色节点。重新插入到pre和`vm_engine_head`中。
 
- ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_XSE87WPFKM27M93.png)
+![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_XSE87WPFKM27M93.png)
 
 这是好的情况，大部分运气都非常糟糕，走的是上图中case1的分支，接下去我们直接上`libjiagu.so`中的真实数据。
 
@@ -129,13 +129,13 @@
 
 |  |  |
 | --- | --- |
-| 1  2  3  4  5  6  7  8 | `process flowblock sub_cc10`  `process flowblock sub_cc18`  `process flowblock sub_cc20`  `process flowblock sub_cc24`  `process flowblock sub_cc88`  `process flowblock sub_d278`  `process flowblock sub_d29c`  `process flowblock sub_d2ac` |
+| 1  2  3  4  5  6  7  8 | `process flowblock sub_cc10` `process flowblock sub_cc18` `process flowblock sub_cc20` `process flowblock sub_cc24` `process flowblock sub_cc88` `process flowblock sub_d278` `process flowblock sub_d29c` `process flowblock sub_d2ac` |
 
 ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_YTZ3K4YVZY7EE7C.png)
 
 `Cc24`还有`cc28`，以及最后的3个节点。
 
- ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_QETRQSSKZZYGVBE.png)
+![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_QETRQSSKZZYGVBE.png)
 
 我在cfg流图中用绿色或者粉红表示有循环的点，`d2ac`已经无法分析了，我们直接把从它的出边开始到vmhead的所有node以及关系都复制出去。
 
@@ -147,7 +147,7 @@
 
 我在框架分析中说过，原则上来说要inline掉框架内所有的框架函数，但是假如一开始就inline全部函数，会导致代码体积过大。所以我们是一边循环展开一边inline。我们看下上图中，那个被展开的节点:
 
- ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_6RFTCD82VXCQ9ZW.png)
+![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_6RFTCD82VXCQ9ZW.png)
 
 我们到了这一步才开始决定inline它
 
@@ -165,17 +165,17 @@
 
 上图中的`vmp_math_op1`没优化前长这样:
 
- ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_P4CG34UUE4URK7N.png)
+![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_P4CG34UUE4URK7N.png)
 
 优化以后长这样:
 
- ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_NGN965X6FD4XBQC.png)
+![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_NGN965X6FD4XBQC.png)
 
 就只剩下一个唯一的块了，这样就方便多了。最后嵌入到原先的代码中。
 
 嵌入到原先的块后，
 
- ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_PHXS9TCSKDN23ZT.png)
+![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_PHXS9TCSKDN23ZT.png)
 
 原先块的末尾那个cbranch就变得可以计算了。会删除其中一边
 
@@ -183,15 +183,15 @@
 
 2. 假如是右边的话，左边保留了下来，因为左边长这样:
 
-   ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_HWES4FWZSPCFQG5.png)
+![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_HWES4FWZSPCFQG5.png)
 
-   它是一个循环，所以需要继续对do..while代码做循环展开。展开的方式都是一样的。一直到展开不动为止。
+它是一个循环，所以需要继续对do..while代码做循环展开。展开的方式都是一样的。一直到展开不动为止。
 
-   最后上面那一坨循环就会变成下面这样一个标准快了。
+最后上面那一坨循环就会变成下面这样一个标准快了。
 
-   ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_J6SDR6QCFW432T6.png)
+![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_J6SDR6QCFW432T6.png)
 
-   然后我们发现，上面箭头指向的`vmeip(vm_bytecode_index)`的值被跟新到`0x19`了
+然后我们发现，上面箭头指向的`vmeip(vm_bytecode_index)`的值被跟新到`0x19`了
 
 这个图好像不是很清晰的样子
 
@@ -213,11 +213,11 @@
 
 新的类型定义变成这样:
 
- ![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_V8AQ7XYFRXEYFN5.png)
+![图片描述](https://bbs.kanxue.com/upload/attach/202102/630711_V8AQ7XYFRXEYFN5.png)
 
 |  |  |
 | --- | --- |
-| 1  2  3  4  5  6  7  8  9  10 | `struct` `type` `{`  `enum {`  `a_top,`  `a_constant,`  `a_rel_constant,`  `bottom`  `}`  `int` `con;`  `void` `*``space;`  `}` |
+| 1  2  3  4  5  6  7  8  9  10 | `struct` `type` `{` `enum {` `a_top,` `a_constant,` `a_rel_constant,` `bottom` `}` `int` `con;` `void` `*``space;` `}` |
 
 常量不能和相对常量比较，相同空间的常量可以互相比较，不同空间是正交的。相同空间的常量可以比较大小。
 
@@ -227,9 +227,9 @@
 
 |  |  |
 | --- | --- |
-| 1  2  3 | `1.`    `store [sp` `+` `200``], r0`  `2.`    `store [r1], r3`  `3.`    `r4` `=` `load [sp` `+` `200``]` |
+| 1  2  3 | `1.` `store [sp` `+` `200``], r0` `2.` `store [r1], r3` `3.` `r4` `=` `load [sp` `+` `200``]` |
 
-假如这个`r1`是alloc space的，那么3可以关联到1，因为alloc space，代表`r1`是`malloc`或者`new`出来的，`malloc`出的内存，你在上面操作，不会和堆栈和其他的空间发生重叠。Caller space也类似。
+假如这个`r1`是alloc space的，那么3可以关联到1，因为alloc space，代表`r1`是malloc或者new出来的，malloc出的内存，你在上面操作，不会和堆栈和其他的空间发生重叠。Caller space也类似。
 
 现在只支持stack space.
 
@@ -253,7 +253,7 @@
 
 |  |  |
 | --- | --- |
-| 1  2  3 | `1.`    `store [sp], r0`  `2.`    `store [r1], r2;   r1` `=` `T`  `3.`    `r3` `=` `load [sp]` |
+| 1  2  3 | `1.` `store [sp], r0` `2.` `store [r1], r2; r1` `=` `T` `3.` `r3` `=` `load [sp]` |
 
 指令1,3都在操作 `sp + 0`的位置，指令2在操作一个未知位置，并且在常量传播以后，也依然是 `T` 的。
 
@@ -267,19 +267,19 @@
 
 |  |  |
 | --- | --- |
-| 1  2  3 | `1.` `store [sp], r0`  `2.` `store [r1], r2`  `3.` `mov r3, r0` |
+| 1  2  3 | `1.` `store [sp], r0` `2.` `store [r1], r2` `3.` `mov r3, r0` |
 
 ## 实际项目中如何应用？
 
 标注安全区域确实方便，但是如何知道哪些区域绝对安全呢？
 
-VMP在生成`vm_enter`的时候，会生成一个区域保护用户堆栈，在生成一个堆栈操作operand， 我们认为这个区域，这个是相对于整个算法的 `vmp-dependent` 的部分。我们认为这个区域的操作不会和任何非vm-dependent call产生交互。
+VMP在生成`vm_enter`的时候，会生成一个区域保护用户堆栈，在生成一个堆栈操作operand， 我们认为这个区域，这个是相对于整个算法的 vmp-dependent 的部分。我们认为这个区域的操作不会和任何非vm-dependent call产生交互。
 
 ## 函数如何处理
 
 |  |  |
 | --- | --- |
-| 1  2  3  4 | `store [sp], r0`  `mov r0, sp`  `call.mathop (r0)`  `load r1, [r0]` |
+| 1  2  3  4 | `store [sp], r0` `mov r0, sp` `call.mathop (r0)` `load r1, [r0]` |
 
 假如这个函数是vmp生成的框架函数必须得inline掉，具体如何inline参考章节 《360加固.lazy inline》 和 《360加固.argument inline》
 
@@ -287,13 +287,13 @@ VMP在生成`vm_enter`的时候，会生成一个区域保护用户堆栈，在�
 
 |  |  |
 | --- | --- |
-| 1  2  3 | `1.` `store [sp], r0`  `2.` `store [r2], r3`  `3.` `r5` `=` `load [sp]` |
+| 1  2  3 | `1.` `store [sp], r0` `2.` `store [r2], r3` `3.` `r5` `=` `load [sp]` |
 
 假如我们在没有充分计算的前提下就把指令 1, 3关联起来。那么也许在常量传播到后面，我们才发现
 
 |  |  |
 | --- | --- |
-| 1  2  3 | `1.` `store [sp], r0`  `2.` `store [r2], r3  ; r2` `=` `sp`  `3.` `r5` `=` `load [sp]` |
+| 1  2  3 | `1.` `store [sp], r0` `2.` `store [r2], r3 ; r2` `=` `sp` `3.` `r5` `=` `load [sp]` |
 
 实际上应该关联的是 3和2。
 
@@ -307,17 +307,17 @@ VMP在生成`vm_enter`的时候，会生成一个区域保护用户堆栈，在�
 
 1. 假如一个pccode的所有in节点都是
 
-   1.1 常量
+1.1 常量
 
-   1.2 输入参数
+1.2 输入参数
 
-   1.3 充分计算过的
+1.3 充分计算过的
 
 2. 那么此pcode的output也都是充分计算过的
 
 3. 递归遍历此output的use，重复1-3过程
 
-   伪代码:
+伪代码:
 
 |  |  |
 | --- | --- |
