@@ -3,7 +3,7 @@
 
 ## 一、网页打开APP简介
 
-Android有一个特性，可以通过点击网页内的某个链接打开APP，或者在其他APP中通过点击某个链接打开另外一个APP（AppLink），一些用户量比较大的APP，已经通过发布其AppLink SDK，开发者需要申请相应的资格，配置相关内容才能使用。这些都是通过用户自定义的URI scheme实现的，不过背后还是Android的`Intent`机制。Google的官方文档《Android Intents with Chrome》一文，介绍了在Android Chrome浏览器中网页打开APP的两种方法，一种是用户自定义的URI scheme（Custom URI scheme），另一种是“intent:”语法（Intent-based URI）。
+Android有一个特性，可以通过点击网页内的某个链接打开APP，或者在其他APP中通过点击某个链接打开另外一个APP（AppLink），一些用户量比较大的APP，已经通过发布其AppLink SDK，开发者需要申请相应的资格，配置相关内容才能使用。这些都是通过用户自定义的URI scheme实现的，不过背后还是Android的Intent机制。Google的官方文档《Android Intents with Chrome》一文，介绍了在Android Chrome浏览器中网页打开APP的两种方法，一种是用户自定义的URI scheme（Custom URI scheme），另一种是“intent:”语法（Intent-based URI）。
 
 第一种用户自定义的URI scheme形式如下：
 
@@ -15,9 +15,9 @@ Android有一个特性，可以通过点击网页内的某个链接打开APP，�
 
 因为第二种形式大体是第一种形式的特例，所以很多文章又将第二种形式叫Intent Scheme URL，但是在Google的官方文档并没有这样的说法。
 
-注意：使用Custom URI scheme给APP传递数据，只能使用相关参数来传递数据，不能想当然的使用`scheme://host#intent;参数;end`的形式来构造传给APP的intent数据。详见3.1节的说明。
+注意：使用Custom URI scheme给APP传递数据，只能使用相关参数来传递数据，不能想当然的使用`scheme://host#intent;参数;end`的形式来构造传给APP的`intent`数据。详见3.1节的说明。
 
-此外，还必须在APP的Androidmanifest文件中配置相关的选项才能产生网页打开APP的效果，具体在下面讲。
+此外，还必须在APP的`Androidmanifest`文件中配置相关的选项才能产生网页打开APP的效果，具体在下面讲。
 
 ## 二、Custom Scheme URI打开APP
 
@@ -29,41 +29,39 @@ Android有一个特性，可以通过点击网页内的某个链接打开APP，�
 
 ![](https://bbs.kanxue.com/upload/attach/201604/666663_9ca3e0dfd8e03e69.jpg)
 
-注意： uri要用UTF-8编码和URI编码。
+注意： `uri`要用UTF-8编码和URI编码。
 
 网页端的写法如下：
 
 ![](https://bbs.kanxue.com/upload/attach/201604/666663_d33cd5617e9db83e.jpg)
 
-APP端接收来自网页信息的Activity，要在Androidmanifest.xml文件中Activity的intent-filter中声明相应action、category和data的scheme等。
+APP端接收来自网页信息的Activity，要在`Androidmanifest.xml`文件中Activity的`intent-filter`中声明相应`action`、`category`和`data`的`scheme`等。
 
-如在`MainActivity`中接收从网页来的信息，其在AndroidManifest.xml中的内容如下：
+如在`MainActivity`中接收从网页来的信息，其在`AndroidManifest.xml`中的内容如下：
 
 ![](https://bbs.kanxue.com/upload/attach/201604/666663_80fe583a922fa9a4.jpg)
 
-在`MainActivity`中接收intent并且获取相应参数的代码：
+在`MainActivity`中接收`intent`并且获取相应参数的代码：
 
 ![](https://bbs.kanxue.com/upload/attach/201604/666663_6cf138b53f1c3db5.jpg)
 
 另外还有以下几个API来获取相关信息：
 
-```
-getIntent().getScheme(); //获得Scheme名称
-getIntent().getDataString(); //获得Uri全部路径
-getIntent().getHost(); //获得host
-```
+`getIntent().getScheme();` //获得Scheme名称
+`getIntent().getDataString();` //获得Uri全部路径
+`getIntent().getHost();` //获得host
 
 ### 2.2 风险示例
 
-常见的用法是在APP获取到来自网页的数据后，重新生成一个intent，然后发送给别的组件使用这些数据。比如使用Webview相关的Activity来加载一个来自网页的url，如果此url来自url scheme中的参数，如：`jaq://jaq.alibaba.com?load_url=e8eK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4c8S2L8$3u0S2L8#2)9J5k6h3y4G2L8g2!0q4x3#2)9^5x3q4)9^5x3R3`.`.
+常见的用法是在APP获取到来自网页的数据后，重新生成一个`intent`，然后发送给别的组件使用这些数据。比如使用Webview相关的Activity来加载一个来自网页的`url`，如果此`url`来自`url scheme`中的参数，如：`jaq://jaq.alibaba.com?load_url=e8eK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4c8S2L8$3u0S2L8#2)9J5k6h3y4G2L8g2!0q4x3#2)9^5x3q4)9^5x3R3`.`.
 
 如果在APP中，没有检查获取到的`load_url`的值，攻击者可以构造钓鱼网站，诱导用户点击加载，就可以盗取用户信息。
 
-接2.1的示例，新建一个`WebviewActivity`组件，从intent里面获取`load_url`，然后使用Webview加载url：
+接2.1的示例，新建一个`WebviewActivity`组件，从`intent`里面获取`load_url`，然后使用Webview加载`url`：
 
 ![](https://bbs.kanxue.com/upload/attach/201604/666663_71c1ec7314d32bf9.jpg)
 
-修改`MainActivity`组件，从网页端的URL中获取`load_url`参数的值，生成新的intent，并传给`WebviewActivity`：
+修改`MainActivity`组件，从网页端的URL中获取`load_url`参数的值，生成新的`intent`，并传给`WebviewActivity`：
 
 ![](https://bbs.kanxue.com/upload/attach/201604/666663_7a1331f095ac5880.jpg)
 
@@ -87,21 +85,21 @@ getIntent().getHost(); //获得host
 
 1、APP中任何接收外部输入数据的地方都是潜在的攻击点，过滤检查来自网页的参数。
 
-2、不要通过网页传输敏感信息，有的网站为了引导已经登录的用户到APP上使用，会使用脚本动态的生成URL Scheme的参数，其中包括了用户名、密码或者登录态token等敏感信息，让用户打开APP直接就登录了。恶意应用也可以注册相同的URL Sechme来截取这些敏感信息。Android系统会让用户选择使用哪个应用打开链接，但是如果用户不注意，就会使用恶意应用打开，导致敏感信息泄露或者其他风险。
+2、不要通过网页传输敏感信息，有的网站为了引导已经登录的用户到APP上使用，会使用脚本动态的生成URL Scheme的参数，其中包括了用户名、密码或者登录态`token`等敏感信息，让用户打开APP直接就登录了。恶意应用也可以注册相同的URL Sechme来截取这些敏感信息。Android系统会让用户选择使用哪个应用打开链接，但是如果用户不注意，就会使用恶意应用打开，导致敏感信息泄露或者其他风险。
 
 ## 三、Intent-based URI打开APP
 
 ### 3.1 基本用法
 
-Intent-based URI语法：
+`Intent-based URI`语法：
 
 ![](https://bbs.kanxue.com/upload/attach/201604/666663_d6feeb5d96f566c5.jpg)
 
 注意：第二个`Intent`的第一个字母一定要大写，不然不会成功调用APP。
 
-如何正确快速的构造网页端的intent？
+如何正确快速的构造网页端的`intent`？
 
-可以先建个Android demo app，按正常的方法构造自己想打开某个组件的`Intent`对象，然后使用`Intent`的`toUri()`方法，会得到`Intent`对象的Uri字符串表示，并且已经用UTF-8和Uri编码好，直接复制放到网页端即可，切记前面要加上“intent:”。
+可以先建个Android demo app，按正常的方法构造自己想打开某个组件的`Intent`对象，然后使用`Intent`的`toUri()`方法，会得到`Intent`对象的Uri字符串表示，并且已经用UTF-8和Uri编码好，直接复制放到网页端即可，切记前面要加上“`intent:`”。
 
 如：
 
@@ -111,13 +109,13 @@ Intent-based URI语法：
 
 ![](https://bbs.kanxue.com/upload/attach/201604/666663_7620a0bcda79909e.png)
 
-`S.load_url`是跟的是intent对象的`putExtra()`方法中的数据。其他类型的数据可以一个个试。如果在demo中的`Intent`对象不能传递给目标APP的Activity或其他组件，则其Uri形式放在网页端也不可能打开APP的，这样写个demo容易排查错误。
+`S.load_url`是跟的是`intent`对象的`putExtra()`方法中的数据。其他类型的数据可以一个个试。如果在demo中的`Intent`对象不能传递给目标APP的Activity或其他组件，则其Uri形式放在网页端也不可能打开APP的，这样写个demo容易排查错误。
 
-APP端中的Androidmanifest.xml的声明写法同2.1节中的APP端写法完全一样。对于接收到的uri形式的intent，一般使用`Intent`的`parseUri()`方法来解析产生新的intent对象，如果处理不当会产生Intent Scheme URL攻击。
+APP端中的`Androidmanifest.xml`的声明写法同2.1节中的APP端写法完全一样。对于接收到的`uri`形式的`intent`，一般使用`Intent`的`parseUri()`方法来解析产生新的`intent`对象，如果处理不当会产生Intent Scheme URL攻击。
 
-为何不能用`scheme://host#intent;参数;end`的形式来构造传给APP的intent数据？
+为何不能用`scheme://host#intent;参数;end`的形式来构造传给APP的`intent`数据？
 
-这种形式的intent不会直接被Android正确解析为intent，整个scheme字符串数据可以使用`Intent`的`getDataSting()`方法获取到。
+这种形式的`intent`不会直接被Android正确解析为`intent`，整个`scheme`字符串数据可以使用`Intent`的`getDataSting()`方法获取到。
 
 如对于：
 
@@ -131,7 +129,7 @@ APP端中的Androidmanifest.xml的声明写法同2.1节中的APP端写法完全�
 
 ![](https://bbs.kanxue.com/upload/attach/201604/666663_a78c4668209435f7.png)
 
-由上图可知Android系统自动为Custom URI scheme添加了默认的intent。
+由上图可知Android系统自动为Custom URI scheme添加了默认的`intent`。
 
 要想正确的解析，还需使用`Intent`的`parseUri()`方法对`getDataString()`获取到的数据进行解析，如：
 
@@ -139,7 +137,7 @@ APP端中的Androidmanifest.xml的声明写法同2.1节中的APP端写法完全�
 
 ### 3.2 风险示例
 
-关于Intent-based URI的风险我觉得《Android Intent Scheme URLs攻击》和《Intent Scheme URL attack》这两篇文章写的非常好，基本把该说的都都说了，我就不多说了，大家看这两篇文章吧。
+关于`Intent-based URI`的风险我觉得《Android Intent Scheme URLs攻击》和《Intent Scheme URL attack》这两篇文章写的非常好，基本把该说的都都说了，我就不多说了，大家看这两篇文章吧。
 
 ### 3.3 阿里聚安全对开发者建议
 
@@ -147,21 +145,21 @@ APP端中的Androidmanifest.xml的声明写法同2.1节中的APP端写法完全�
 
 ![](https://bbs.kanxue.com/upload/attach/201604/666663_43b739e00a1abb9c.jpg)
 
-除了以上的做法，还是不要信任来自网页端的任何intent，为了安全起见，使用网页传过来的intent时，还是要进行过滤和检查。
+除了以上的做法，还是不要信任来自网页端的任何`intent`，为了安全起见，使用网页传过来的`intent`时，还是要进行过滤和检查。
 
 ## 四、参考
 
 [1] Android Intents with Chrome，45dK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1k6i4k6W2L8r3!0H3k6i4u0Q4x3X3g2U0K9s2u0G2L8h3g2Q4x3X3g2U0L8$3#2Q4x3V1k6E0N6h3I4@1K9h3c8W2N6X3W2U0k6g2)9J5c8X3q4F1k6s2u0G2K9h3c8Q4x3V1k6A6L8Y4c8W2L8Y4c8K6i4K6t1$3L8X3u0K6M7q4)9K6b7R3`.`.
 
-[2] Intent scheme URL attack，a9bK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3c8J5L8%4m8K6i4K6u0W2N6$3!0G2P5i4g2F1i4K6u0W2L8%4u0Y4i4K6u0r3M7r3q4H3k6i4u0K6i4K6u0r3x3U0R3&6x3#2)9J5y4X3&6T1M7%4m8Q4x3@1t1`.
+[2] Intent scheme URL attack，a9bK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3c8J5L8%4m8K6i4K6u0W2N6$3!0G2P5i4g2F1i4K6u0W2L8%4u0Y4i4K6u0r3M7r3q4H3k6i4u0K6i4K6u0r3x3U0R3&6x3#2)9J5y4X3&6T1M7%4m8Q4x3@1t1`.`.
 
 [3] Android Appliaction Secure Design/Secure Coding Guidebook，f77K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3A6K6M7$3g2U0i4K6u0W2L8%4u0Y4i4K6u0r3k6r3I4Q4x3V1k6S2L8X3c8J5L8$3W2V1i4K6g2X3M7$3g2U0N6i4u0W2j5$3!0V1K9h3&6Y4i4K6g2X3k6h3&6Q4x3X3g2H3k6r3k6Q4x3U0k6F1j5Y4y4H3i4K6y4n7
 
 [4] Handling App Links，e36K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3c8W2N6X3g2D9L8%4m8W2M7W2)9J5k6h3q4F1k6s2u0G2K9h3c8Q4x3X3g2U0L8$3#2Q4x3V1k6A6L8Y4c8D9i4K6u0r3P5X3S2Q4x3X3c8U0L8W2)9J5c8Y4c8J5j5h3W2F1K9h3&6Y4i4K6u0r3j5i4m8H3i4K6u0V1L8r3W2F1K9%4y4Q4x3V1k6A6L8X3c8W2P5q4)9J5k6h3S2@1L8h3I4Q4x3U0k6F1j5Y4y4H3i4K6y4n7
 
-[5] Android M App Links: 实现, 缺陷以及解决办法，605K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3A6U0L8$3c8W2j5%4u0S2k6h3g2J5i4K6u0W2j5$3!0E0i4K6u0r3j5g2)9J5c8X3q4F1P5X3S2#2L8$3E0S2K9h3k6S2i4K6u0r3j5h3&6V1M7X3!0A6k6r3E0S2K9h3k6S2i4K6u0r3x3U0l9I4y4g2)9J5c8U0l9%4x3e0S2Q4x3V1j5K6x3U0l9H3i4K6u0W2K9s2c8E0L8q4)9J5y4X3&6T1M7%4m8Q4x3@1t1`.
+[5] Android M App Links: 实现, 缺陷以及解决办法，605K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3A6U0L8$3c8W2j5%4u0S2k6h3g2J5i4K6u0W2j5$3!0E0i4K6u0r3j5g2)9J5c8X3q4F1P5X3S2#2L8$3E0S2K9h3k6S2i4K6u0r3j5h3&6V1M7X3!0A6k6r3E0S2K9h3k6S2i4K6u0r3x3U0l9I4y4g2)9J5c8U0l9%4x3e0S2Q4x3V1j5K6x3U0l9H3i4K6u0W2K9s2c8E0L8q4)9J5y4X3&6T1M7%4m8Q4x3@1t1`.`.
 
-[6] Android Intent Scheme URLs攻击，925K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3u0D9L8$3N6Q4x3X3g2U0M7$3c8F1i4K6u0W2L8X3g2@1i4K6u0r3L8o6p5%4x3K6R3$3y4o6V1K6x3q4)9J5c8X3q4J5N6r3W2U0L8r3g2Q4x3V1k6V1k6i4c8S2K9h3I4K6i4K6u0r3x3K6j5&6y4e0p5^5x3o6f1`.
+[6] Android Intent Scheme URLs攻击，925K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3u0D9L8$3N6Q4x3X3g2U0M7$3c8F1i4K6u0W2L8X3g2@1i4K6u0r3L8o6p5%4x3K6R3$3y4o6V1K6x3q4)9J5c8X3q4J5N6r3W2U0L8r3g2Q4x3V1k6V1k6i4c8S2K9h3I4K6i4K6u0r3x3K6j5&6y4e0p5^5x3o6f1`.`.
 
 作者：伊樵，呆狐，舟海@阿里移动安全，完整版技术文章，请点击[阿里聚安全博客](https://bbs.kanxue.com/elink@e13K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6B7j5i4q4Q4x3X3g2S2L8r3W2T1j5h3u0S2i4K6u0W2j5$3!0E0i4K6u0r3j5$3!0E0L8i4g2F1K9i4c8&6i4K6u0r3K9h3&6V1k6i4R3`.)
 
