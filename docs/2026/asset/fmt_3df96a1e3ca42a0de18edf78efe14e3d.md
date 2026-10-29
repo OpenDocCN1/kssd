@@ -1,0 +1,212 @@
+
+# 旧书重温：0day2[3] 详细解读PEB法 查找kernel32地址
+
+## 旧书重温系列
+
+- 旧书重温：0day2【1】 简单的缓冲区溢出案例 http://bbs.pediy.com/showthread.php?t=182497
+- 旧书重温：0day2【2】 实验：三种获取kernel32.dll基址的方法 http://bbs.pediy.com/showthread.php?t=182498
+- 旧书重温：0day2【3】 详细解读PEB法 查找kernel32地址 http://bbs.pediy.com/showthread.php?t=182499
+- 旧书重温：0day2【4】动态获取函数地址 http://bbs.pediy.com/showthread.php?t=182520
+- 旧书重温：0day2【5】shellcode变形记 http://bbs.pediy.com/showthread.php?t=182551
+- 旧书重温：0day2【6】bind\_shell http://bbs.pediy.com/showthread.php?t=182689
+
+## 题外话
+
+上一篇文章中的 PEB法查找kernel32地址的方法 对TEB、PEB、PE结构知识要求很高，确实在写汇编代码时候小编感觉自己能力不足，信手啪啪一顿乱撸，结果一运行，非法访问了，没办法翻阅前人的文章，贴来，但是，感到很羞愧，故有此文章对此过程认真学习、分析下。
+
+## 正题
+
+### TEB结构
+
+```
+//
+// Thread Environment Block (TEB)
+//
+typedef struct _TEB
+{
+    NT_TIB Tib;                             /* 00h */
+    PVOID EnvironmentPointer;               /* 1Ch */
+    CLIENT_ID Cid;                          /* 20h */
+    PVOID ActiveRpcHandle;                  /* 28h */
+    PVOID ThreadLocalStoragePointer;        /* 2Ch */
+    struct _PEB *ProcessEnvironmentBlock;   /* 30h */
+    ULONG LastErrorValue;                   /* 34h */
+    ULONG CountOfOwnedCriticalSections;     /* 38h */
+    PVOID CsrClientThread;                  /* 3Ch */
+    struct _W32THREAD* Win32ThreadInfo;     /* 40h */
+    ULONG User32Reserved[0x1A];             /* 44h */
+    ULONG UserReserved[5];                  /* ACh */
+    PVOID WOW32Reserved;                    /* C0h */
+    LCID CurrentLocale;                     /* C4h */
+    ULONG FpSoftwareStatusRegister;         /* C8h */
+    PVOID SystemReserved1[0x36];            /* CCh */
+    LONG ExceptionCode;                     /* 1A4h */
+    struct _ACTIVATION_CONTEXT_STACK *ActivationContextStackPointer; /* 1A8h */
+    UCHAR SpareBytes1[0x28];                /* 1ACh */
+    GDI_TEB_BATCH GdiTebBatch;              /* 1D4h */
+    CLIENT_ID RealClientId;                 /* 6B4h */
+    PVOID GdiCachedProcessHandle;           /* 6BCh */
+    ULONG GdiClientPID;                     /* 6C0h */
+    ULONG GdiClientTID;                     /* 6C4h */
+    PVOID GdiThreadLocalInfo;               /* 6C8h */
+    ULONG Win32ClientInfo[62];              /* 6CCh */
+    PVOID glDispatchTable[0xE9];            /* 7C4h */
+    ULONG glReserved1[0x1D];                /* B68h */
+    PVOID glReserved2;                      /* BDCh */
+    PVOID glSectionInfo;                    /* BE0h */
+    PVOID glSection;                        /* BE4h */
+    PVOID glTable;                          /* BE8h */
+    PVOID glCurrentRC;                      /* BECh */
+    PVOID glContext;                        /* BF0h */
+    NTSTATUS LastStatusValue;               /* BF4h */
+    UNICODE_STRING StaticUnicodeString;     /* BF8h */
+    WCHAR StaticUnicodeBuffer[0x105];       /* C00h */
+    PVOID DeallocationStack;                /* E0Ch */
+    PVOID TlsSlots[0x40];                   /* E10h */
+    LIST_ENTRY TlsLinks;                    /* F10h */
+    PVOID Vdm;                              /* F18h */
+    PVOID ReservedForNtRpc;                 /* F1Ch */
+    PVOID DbgSsReserved[0x2];               /* F20h */
+    ULONG HardErrorDisabled;                /* F28h */
+    PVOID Instrumentation[14];              /* F2Ch */
+    PVOID SubProcessTag;                    /* F64h */
+    PVOID EtwTraceData;                     /* F68h */
+    PVOID WinSockData;                      /* F6Ch */
+    ULONG GdiBatchCount;                    /* F70h */
+    BOOLEAN InDbgPrint;                     /* F74h */
+    BOOLEAN FreeStackOnTermination;         /* F75h */
+    BOOLEAN HasFiberData;                   /* F76h */
+    UCHAR IdealProcessor;                   /* F77h */
+    ULONG GuaranteedStackBytes;             /* F78h */
+    PVOID ReservedForPerf;                  /* F7Ch */
+    PVOID ReservedForOle;                   /* F80h */
+    ULONG WaitingOnLoaderLock;              /* F84h */
+    ULONG SparePointer1;                    /* F88h */
+    ULONG SoftPatchPtr1;                    /* F8Ch */
+    ULONG SoftPatchPtr2;                    /* F90h */
+    PVOID *TlsExpansionSlots;               /* F94h */
+    ULONG ImpersionationLocale;             /* F98h */
+    ULONG IsImpersonating;                  /* F9Ch */
+    PVOID NlsCache;                         /* FA0h */
+    PVOID pShimData;                        /* FA4h */
+    ULONG HeapVirualAffinity;               /* FA8h */
+    PVOID CurrentTransactionHandle;         /* FACh */
+    PTEB_ACTIVE_FRAME ActiveFrame;          /* FB0h */
+    PVOID FlsData;                          /* FB4h */
+    UCHAR SafeThunkCall;                    /* FB8h */
+    UCHAR BooleanSpare[3];                  /* FB9h */
+} TEB, *PTEB;
+```
+
+### PEB结构
+
+```
+typedef struct _PEB
+{
+    UCHAR InheritedAddressSpace; // 00h
+    UCHAR ReadImageFileExecOptions; // 01h
+    UCHAR BeingDebugged; // 02h
+    UCHAR Spare; // 03h
+    PVOID Mutant; // 04h
+    PVOID ImageBaseAddress; // 08h
+    PPEB_LDR_DATA Ldr; // 0Ch
+    PRTL_USER_PROCESS_PARAMETERS ProcessParameters; // 10h
+    PVOID SubSystemData; // 14h
+    PVOID ProcessHeap; // 18h
+    PVOID FastPebLock; // 1Ch
+    PPEBLOCKROUTINE FastPebLockRoutine; // 20h
+    PPEBLOCKROUTINE FastPebUnlockRoutine; // 24h
+    ULONG EnvironmentUpdateCount; // 28h
+    PVOID* KernelCallbackTable; // 2Ch
+    PVOID EventLogSection; // 30h
+    PVOID EventLog; // 34h
+    PPEB_FREE_BLOCK FreeList; // 38h
+    ULONG TlsExpansionCounter; // 3Ch
+    PVOID TlsBitmap; // 40h
+    ULONG TlsBitmapBits[0x2]; // 44h
+    PVOID ReadOnlySharedMemoryBase; // 4Ch
+    PVOID ReadOnlySharedMemoryHeap; // 50h
+    PVOID* ReadOnlyStaticServerData; // 54h
+    PVOID AnsiCodePageData; // 58h
+    PVOID OemCodePageData; // 5Ch
+    PVOID UnicodeCaseTableData; // 60h
+    ULONG NumberOfProcessors; // 64h
+    ULONG NtGlobalFlag; // 68h
+    UCHAR Spare2[0x4]; // 6Ch
+    LARGE_INTEGER CriticalSectionTimeout; // 70h
+    ULONG HeapSegmentReserve; // 78h
+    ULONG HeapSegmentCommit; // 7Ch
+    ULONG HeapDeCommitTotalFreeThreshold; // 80h
+    ULONG HeapDeCommitFreeBlockThreshold; // 84h
+    ULONG NumberOfHeaps; // 88h
+    ULONG MaximumNumberOfHeaps; // 8Ch
+    PVOID** ProcessHeaps; // 90h
+    PVOID GdiSharedHandleTable; // 94h
+    PVOID ProcessStarterHelper; // 98h
+    PVOID GdiDCAttributeList; // 9Ch
+    PVOID LoaderLock; // A0h
+    ULONG OSMajorVersion; // A4h
+    ULONG OSMinorVersion; // A8h
+    ULONG OSBuildNumber; // ACh
+    ULONG OSPlatformId; // B0h
+    ULONG ImageSubSystem; // B4h
+    ULONG ImageSubSystemMajorVersion; // B8h
+    ULONG ImageSubSystemMinorVersion; // C0h
+    ULONG GdiHandleBuffer[0x22]; // C4h
+    PVOID ProcessWindowStation; // ???
+} PEB, *PPEB;
+```
+
+```
+typedef struct _PEB_LDR_DATA
+{
+　ULONG Length; // +0x00
+　BOOLEAN Initialized; // +0x04
+　PVOID SsHandle; // +0x08
+　LIST_ENTRY InLoadOrderModuleList; // +0x0c
+　LIST_ENTRY InMemoryOrderModuleList; // +0x14
+　LIST_ENTRY InInitializationOrderModuleList;// +0x1c
+} PEB_LDR_DATA,*PPEB_LDR_DATA; // +0x24
+```
+
+```
+1 typedef struct _LIST_ENTRY {
+2    struct _LIST_ENTRY *Flink;
+3    struct _LIST_ENTRY *Blink;
+4 } LIST_ENTRY, *PLIST_ENTRY, *RESTRICTED_POINTER PRLIST_ENTRY;
+```
+
+## 原理
+
+在NT内核系统中`fs`寄存器指向`TEB`结构，`TEB+0x30`处指向`PEB`结构，`PEB+0x0c`处指向`PEB_LDR_DATA`结构，`PEB_LDR_DATA+0x1c`处存放一些动态链接库地址，第一个指向`ntdll.dll`，第二个就是`kernel32.dll`的基地址了。
+
+```
+// sty_teb_peb_ker32.cpp : Defines the entry point for the application.
+//
+
+#include "stdafx.h"
+
+int APIENTRY WinMain(HINSTANCE hInstance,
+                     HINSTANCE hPrevInstance,
+                     LPSTR     lpCmdLine,
+                     int       nCmdShow)
+{
+     // TODO: Place code here.
+    _asm
+    {
+
+            mov eax, fs:[0x30] ;PEB的地址
+            mov eax, [eax + 0x0c] ;Ldr的地址
+            mov esi, [eax + 0x1c] ;Flink地址
+            lodsd
+            mov eax, [eax + 0x08] ;eax就是kernel32.dll的地址
+    }
+    return 0;
+}
+```
+
+以上代码生成`exe`，`ollydby`调试（我发现这种`WinMain`生成的`exe`更容易发现入口）
+
+![](https://bbs.kanxue.com/upload/attach/201312/396123_a13db907805e480f.jpg)
+
+当我们走到这一步时，数据窗上面的那个地方提示我们`FS:[0000030]=[7FFDF030]=7FFD5000`，可以推测`FS`就在`7FFDF000`处，在数据窗体上`Alt + G`弹出输入窗口，填入`7ffdf000`回车。
