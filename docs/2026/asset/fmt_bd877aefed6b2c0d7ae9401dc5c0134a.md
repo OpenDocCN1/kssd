@@ -1,0 +1,76 @@
+
+# [原创] Google Nexus 5X 刷机抓包逆向环境配置（一）
+
+<table><tr><td bgcolor="orange">本文仅供学习交流使用，如侵立删！</td></tr></table>
+
+## 操作环境
+
+- `nexus5x`
+- `kaliLinux`
+- `win10`
+
+## 准备
+
+官方工具包官方下载地址：<mark class="encrypted">a03K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8q4)9J5k6h3N6G2L8$3N6D9k6g2)9J5k6h3y4G2L8g2)9J5c8X3q4F1k6s2u0G2K9h3c8Q4x3V1k6J5k6i4m8G2M7$3W2@1L8%4u0&6i4K6u0r3M7r3I4S2N6r3k6G2M7X3#2Q4x3X3c8@1L8$3!0D9M7#2)9J5k6r3I4S2N6r3g2K6N6q4)9J5k6s2N6A6L8X3c8G2N6%4y4Q4x3X3g2\*7K9i4l9`.</mark>
+
+官方刷机包官方下载地址：<mark class="encrypted">92bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1k6i4k6W2L8r3!0H3k6i4u0K6i4K6u0W2k6$3!0G2k6$3I4W2i4K6u0W2j5$3!0E0i4K6u0r3j5h3&6V1M7X3!0A6k6q4)9J5c8X3W2E0j5h3N6W2M7H3`.`.</mark>
+
+### 注意事项
+
+1. 如果手机里有系统，需要先清理一下，进入 `twrp` → `Wipe` → `Format Data` → `yes`。
+
+   ![在这里插入图片描述](upload/attach/202203/944393_2BBNW6XERZNV8BV.jpg)
+
+2. 如果之前登录过 Google 账号，最好先退出登录，否则刷入新系统后激活时跳不过 WLAN 设置。
+
+#### 跳过方法
+
+- 刷入临时 `twrp`
+- `adb shell`
+- 删除印记：
+
+```bash
+dd if=/dev/zero of=/dev/block/bootdevice/by-name/frp
+```
+
+下载后解压：`bullhead-opm7.181205.001-factory-5f189d84.zip`
+
+解压后得到 `bullhead-opm7.181205.001` ROM 包。
+
+![在这里插入图片描述](upload/attach/202203/944393_Z2NNDSG5KSRG4C7.jpg)
+
+## 刷机
+
+1. 解压线刷工具。
+
+   ![在这里插入图片描述](upload/attach/202203/944393_ZBKNKSWK5JJ88CS.jpg)
+
+2. 解压官方 ROM 包（刷机包里面的那个以 `image` 开头的 ZIP 是不用再解压缩的）。
+
+   ![在这里插入图片描述](upload/attach/202203/944393_GXW28UH7DA2UQS4.jpg)
+
+3. 将两个解压后的文件放在一起。
+
+   ![在这里插入图片描述](upload/attach/202203/944393_HY9D8ZRSD9RKMSX.jpg)
+
+4. 进入 `fastboot` 模式（机器人界面）：
+
+```bash
+adb reboot bootloader
+```
+
+   ![在这里插入图片描述](upload/attach/202203/944393_6CMNB4FMV827KK3.jpg)
+
+5. 运行刷机包内的 `flash-all.bat`。
+
+   ![请添加图片描述](upload/attach/202203/944393_TXRDJERN5KQFVZC.jpg)
+
+6. 等待窗口运行完，手机自动重启即可。
+
+## 资源下载
+
+<mark class="encrypted">c7aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5k6h3y4K6k6r3&6Q4x3X3g2F1k6i4c8Q4x3V1k6V1L8%4N6F1L8r3!0S2k6q4)9J5k6q4)9J5c8Y4q4I4i4K6g2X3x3K6R3I4y4e0b7&6y4o6S2Q4x3V1j5^5y4e0l9I4x3K6p5@1y4l9`.`.</mark>
+
+<table><tr><td bgcolor="orange">本文仅供学习交流使用，如侵立删！</td></tr></table>
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
