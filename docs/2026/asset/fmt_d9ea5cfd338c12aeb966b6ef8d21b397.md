@@ -1,0 +1,342 @@
+
+# [原创]QQ 浏览器 `JceStruct` 协议
+
+发现自己写的文章更多是偏向于理论.
+
+现在就写点实战的文章吧.
+
+QQ浏览器返回和发送的数据都是通过`JceStruct`协议来传输的.当然这个传输过程是经过层层加密的.解密后的内容就是`JceStruct`协议.
+
+`JceStruct`协议和`Protobuf`协议有点像,也是采用`Key-Value`的形式.但感觉比`Protobuf`更简洁一点.也更简单一点.
+
+## `JceStruct` 的内容组织形式
+
+![](upload/attach/201904/793792_B234PJNA5R934BV.png)
+
+### `Key`
+
+我们先来看看`Key`是怎么组织的.
+
+描述`Key`的类为`HeadData`.
+
+```java
+public static class HeadData {
+public int tag;
+public byte type;
+}
+```
+
+读取`Key`的函数为
+
+```java
+public static int readHead(HeadData headData, ByteBuffer byteBuffer) {
+byte b = byteBuffer.get();//获取一个byte
+headData.type = (byte) (b & 0xF);//低4位为类型
+headData.tag = (b & 0xF0) >> 4;//高4位为tag,
+if (headData.tag != 0xF) {//如果tag为0xF 则下一个字段为tag
+return 1;
+}
+headData.tag = byteBuffer.get() & 0xFF;
+return 2;
+}
+```
+
+函数功能非常简单.
+
+1. 字节低4位为`type` 表示序号对应的类型
+
+2. 字节高4位为`tag` 表示序号
+
+3. 如果`tag`为`0xF`,下一个字节为`tag`.
+
+总结一下:
+
+1. `Key`由`tag`和`type`组成
+
+2. `Key`为1个字节或两个字节. 两个字节时第二个字节为`tag`, 否则第一个字节的高4位为`tag`. `type`始终为第一个字节的低4位.
+
+3. `type`最多有16种类型,`tag`最大为255.
+
+#### `type`
+
+根据分析`type`的类型如下:
+
+| 值 | 类型 |
+| --- | --- |
+| 0 | `byte` 或 `bool` |
+| 1 | `Short` |
+| 2 | `Int` |
+| 3 | `Long` |
+| 4 | `Float` |
+| 5 | `Double` |
+| 6,7 | `String` |
+| 8 | `Map` |
+| 9 | `List` |
+| 10 | `STRUCT_BEGIN` 继承了`JceStruct`类的开始 |
+| 11 | `STRUCT_END` 继承了`JceStruct`类的结束 |
+| 12 | `ZERO_TAG` |
+
+### `Value`解析
+
+根据不同的类型对`Value`的解析就会有所不同.
+
+其中`byte`、`bool`、`Short`、`Int`、`Long`、`Float`、`Double`的解析都是一样的,只不过读取的字节数不同而已.
+
+我们以`Int`为例:
+
+```java
+public int read(int i, int i2, boolean z) {
+if (skipToTag(i2)) {
+HeadData headData = new HeadData();
+readHead(headData);
+switch (headData.type) {
+case (byte) 0:
+return this.bs.get();
+case (byte) 1:
+return this.bs.getShort();
+case (byte) 2:
+return this.bs.getInt();//就直接geInt就Ok
+case (byte) 12:
+return 0;
+default:
+throw new JceDecodeException("type mismatch.");
+}
+} else if (!z) {
+return i;
+} else {
+throw new JceDecodeException("require field not exist.");
+}
+}
+```
+
+可以看到非常简单,读到指定类型,那么`getXXX`就可以了.这是Java的标准类型.
+
+#### 解析`String`
+
+我们先看一下解析`String`的Java代码.
+
+```java
+public String readString(int i, boolean z) {
+if (skipToTag(i)) {
+HeadData headData = new HeadData();
+readHead(headData);
+int i2;
+byte[] bArr;
+switch (headData.type) {
+case (byte) 6:
+i2 = this.bs.get();
+if (i2 < 0) {
+i2 += 256;
+}
+bArr = new byte[i2];
+this.bs.get(bArr);
+try {
+return new String(bArr, this.sServerEncoding);
+} catch (UnsupportedEncodingException e) {
+return new String(bArr);
+}
+case (byte) 7:
+i2 = this.bs.getInt();
+if (i2 > 104857600 || i2 < 0 || i2 > this.bs.capacity()) {
+throw new JceDecodeException("String too long: " + i2);
+}
+bArr = new byte[i2];
+this.bs.get(bArr);
+try {
+return new String(bArr, this.sServerEncoding);
+} catch (UnsupportedEncodingException e2) {
+return new String(bArr);
+}
+default:
+throw new JceDecodeException("type mismatch.");
+}
+} else if (!z) {
+return null;
+} else {
+throw new JceDecodeException("require field not exist.");
+}
+}
+```
+
+我们知道`String`的类型为6,7.
+
+当类型为6时,`String`的长度为一个字节.
+
+当类型为7时,`String`的长度为一个`Int`.且字符串的最大长度为104857600个字节.
+
+读取了长度之后,之后的字节就是`String`的内容.其中`sServerEncoding`字段指定了字符串的编码类型.
+
+在我分析的时候都是UTF-8.
+
+#### 解析`Map`
+
+依然是我们看代码说话:
+
+```java
+private <K, V> Map<K, V> readMap(Map<K, V> map, Map<K, V> map2, int i, boolean z) {
+if (map2 == null || map2.isEmpty()) {
+return new HashMap();
+}
+Entry entry = (Entry) map2.entrySet().iterator().next();
+Object key = entry.getKey();
+Object value = entry.getValue();
+if (skipToTag(i)) {
+HeadData headData = new HeadData();
+readHead(headData);
+switch (headData.type) {
+case (byte) 8:
+int read = read(0, 0, true);//读取一个int
+if (read < 0) {
+throw new JceDecodeException("size invalid: " + read);
+}
+for (int i2 = 0; i2 < read; i2++) {
+map.put(read(key, 0, true), read(value, 1, true));
+}
+return map;
+default:
+throw new JceDecodeException("type mismatch.");
+}
+} else if (!z) {
+return map;
+} else {
+throw new JceDecodeException("require field not exist.");
+}
+}
+```
+
+我们看一下`read(key, 0, true)`、`read(value, 1, true)`调用的函数是
+
+```java
+public <T> Object read(T t, int i, boolean z) {
+if (t instanceof Byte) {
+return Byte.valueOf(read((byte) 0, i, z));
+}
+if (t instanceof Boolean) {
+return Boolean.valueOf(read(false, i, z));
+}
+if (t instanceof Short) {
+return Short.valueOf(read((short) 0, i, z));
+}
+if (t instanceof Integer) {
+return Integer.valueOf(read(0, i, z));
+}
+if (t instanceof Long) {
+return Long.valueOf(read(0, i, z));
+}
+if (t instanceof Float) {
+return Float.valueOf(read(0.0f, i, z));
+}
+if (t instanceof Double) {
+return Double.valueOf(read(0.0d, i, z));
+}
+if (t instanceof String) {
+return readString(i, z);
+}
+if (t instanceof Map) {
+return readMap((Map) t, i, z);
+}
+if (t instanceof List) {
+return readArray((List) t, i, z);
+}
+if (t instanceof JceStruct) {
+return read((JceStruct) t, i, z);
+}
+if (t.getClass().isArray()) {
+return ((t instanceof byte[]) || (t instanceof Byte[])) ? read((byte[]) null, i, z) : t instanceof boolean[] ? read((boolean[]) null, i, z) : t instanceof short[] ? read((short[]) null, i, z) : t instanceof int[] ? read((int[]) null, i, z) : t instanceof long[] ? read((long[]) null, i, z) : t instanceof float[] ? read((float[]) null, i, z) : t instanceof double[] ? read((double[]) null, i, z) : readArray((Object[]) t, i, z);
+} else {
+throw new JceDecodeException("read object error: unsupport type.");
+}
+}
+```
+
+1. 如果类型为8,也就是说类型是`Map`,那么接下来的值是一个`Int`表示这个`Map`有`n`个成员.
+
+2. 然后他的`n`个成员都是按照`Key-Value`,`Key-Value`.....这样子连续存储下来.
+
+#### `List`解析
+
+`List`解析调用的是`readArray`函数.
+
+```java
+public <T> List<T> readArray(List<T> list, int i, boolean z) {
+int i2 = 0;
+if (list == null || list.isEmpty()) {
+return new ArrayList();
+}
+Object[] readArrayImpl = readArrayImpl(list.get(0), i, z);
+if (readArrayImpl == null) {
+return null;
+}
+ArrayList arrayList = new ArrayList();
+while (i2 < readArrayImpl.length) {
+arrayList.add(readArrayImpl[i2]);
+i2++;
+}
+return arrayList;
+}
+private <T> T[] readArrayImpl(T t, int i, boolean z) {
+if (skipToTag(i)) {
+HeadData headData = new HeadData();
+readHead(headData);
+switch (headData.type) {
+case (byte) 9:
+int read = read(0, 0, true);
+if (read < 0) {
+throw new JceDecodeException("size invalid: " + read);
+}
+Object[] objArr = (Object[]) Array.newInstance(t.getClass(), read);
+for (int i2 = 0; i2 < read; i2++) {
+objArr[i2] = read((Object) t, 0, true);
+}
+return objArr;
+default:
+throw new JceDecodeException("type mismatch.");
+}
+} else if (!z) {
+return null;
+} else {
+throw new JceDecodeException("require field not exist.");
+}
+}
+```
+
+可以看到和`Map`差不多,只不过是没有`Map`的`Key`部分而已.
+
+1. 如果类型为9,也就是说是`List`,那么接下来的值是一个`Int`表示接下来`List`有`n`个成员.
+
+2. 然后他的`n`个成员都是按照`Value`,`Value`,....这样子连续存储下来.
+
+#### 解析继承`JceObject`的对象
+
+有人和觉得解析这个可能会比前面都难,但是其实也挺简单,单单就是调用`JceObject`类的抽象函数`readFrom`
+
+```java
+public abstract class JceStruct implements Serializable {
+...
+public abstract void readFrom(JceInputStream jceInputStream);
+...
+}
+public JceStruct read(JceStruct jceStruct, int i, boolean z) {
+...
+}
+```
+
+`readFrom`就是看每个继承了`JceStruct`类怎么组织自己的内容,然后按照自己的字段组织在里面顺序调用各个`read`重载函数就可以了.
+
+## 实例
+
+通过抓包工具抓取下来一个包,并对其进行解密后得到的就是`JceStruct`.这个包是返回Home页内容的.
+
+![](upload/attach/201904/793792_8BB3W8XKH4WZP9E.png)
+
+我用IDEA写了一个Java项目.通过把`JceStruct`的代码抽取出来.其中只有少许的改动.因为有几个函数经过反编译是编译结果是错误的.只能手动从Smali翻译过来了.
+
+进过项目解析之后:
+
+![](upload/attach/201904/793792_6CZAG2KEBDQXNQQ.png)
+
+最近996很流行啊.
+
+[996 ICU](upload/attach/201904/793792_P3ZU4KJYDVRNBTC.jpg)
+
+项目看附件.
