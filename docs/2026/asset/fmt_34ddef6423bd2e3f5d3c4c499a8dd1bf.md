@@ -1,0 +1,198 @@
+
+# Unidbg文档慢更(二)
+
+- [Unidbg文档慢更(二)](#unidbg文档慢更二)
+- [CallMethod](#callmethod)
+  - [执行JNI函数](#执行jni函数)
+  - [执行任意函数](#执行任意函数)
+  - [执行返回值由参数指针传递的函数](#执行返回值由参数指针传递的函数)
+- [Hook](#hook)
+  - [HookZz](#hookzz)
+    - [wrap](#wrap)
+    - [replace](#replace)
+    - [instrument](#instrument)
+  - [Dobby](#dobby)
+    - [replace](#replace-1)
+    - [wrap](#wrap-1)
+  - [xHook](#xhook)
+
+## CallMethod
+
+### 执行JNI函数
+
+- 创建一个VM对象，此对象相当于在Java层去调用native函数的类的实例对象
+
+```java
+DvmObject<?> obj = ProxyDvmObject.createObject(vm, this);
+```
+
+> 注意：Unidbg会根据第二个参数类的包名进行匹配JNI方法，所以此处的`this`对象所属类的包名应该与目标函数相匹配
+
+- 使用该对象进行调用JNI方法
+
+```java
+boolean result = obj.callJniMethodBoolean(emulator, "jnitest(Ljava/lang/String;)Z", str);
+```
+
+> 参数二是方法的签名，根据参数二找到对应的函数来执行。假设此时的`this`对象所属类的包名为`com.kanxue.test2`，那此时就会调用：
+
+```c
+jboolean Java_com_kanxue_test2_jnitest(JNIEnv *env, jobject thiz, jstring str);
+```
+
+### 执行任意函数
+
+当我们想执行SO中任意函数时，我们也可以通过地址来进行调用
+
+```java
+//获取JNIEnv *
+Pointer jniEnv = vm.getJNIEnv();
+//创建jobject对象
+DvmObject<?> thiz = vm.resolveClass("com.kanxue.test2").newObject(null);
+//准备入参
+List<Object> args = new ArrayList<>();
+args.add(jniEnv);
+args.add(vm.addLocalObject(thiz));
+args.add(vm.addLocalObject(new StringObject(vm,"XuE")));
+//根据地址调用
+Number[] numbers = module.callFunction(emulator, 0x9180 + 1, args.toArray());
+System.out.println(numbers[0].intValue());
+```
+
+> 当入参为非指针和`Number`类型，都需要将对象先添加到VM，才能够在VM中使用这些对象
+
+> 当返回值为对象时，此时的`Number`为该对象在VM中的hash值，需要通过`vm.getObject()`将对象取出进行使用，例：
+
+```java
+DvmObject<?> object = vm.getObject(numbers[0].intValue());
+String result = (String) object.getValue();
+```
+
+### 执行返回值由参数指针传递的函数
+
+如：
+
+```c
+void md5(const uint8_t *initial_msg, size_t initial_len, uint8_t *digest);
+```
+
+这种函数我们来看一下我们该如何进行主动执行
+
+```java
+String initial = "unidbg";
+int initial_length = initial.length();
+//开辟一块的空间来存放第一个参数
+MemoryBlock initial_msg = emulator.getMemory().malloc(initial_length+1, false);
+UnidbgPointer initial_msg_ptr=initial_msg.getPointer();
+//将参数1写入
+initial_msg_ptr.write(initial.getBytes());
+//开辟一块16字节的空间来存放第三个参数
+MemoryBlock digest = emulator.getMemory().malloc(16, false);
+UnidbgPointer digest_ptr=digest.getPointer();
+//准备参数
+List<Object> args = new ArrayList<>();
+args.add(initial_msg);
+args.add(initial_length);
+args.add(digest_ptr);
+//执行
+module.callFunction(emulator, 0x7A8D + 1, args.toArray());
+//打印结果
+Inspector.inspect(digest_ptr.getByteArray(0, 0x10), "digest");
+```
+
+## Hook
+
+### HookZz
+
+`HookZz`为`Dobby`的前身，32位模式下推荐使用`HookZz`
+
+#### wrap
+
+```java
+HookZz hook = HookZz.getInstance(emulator);
+hook.wrap(module.base + 0xC09D, new WrapCallback<RegisterContext>() {
+@Override
+public void preCall(Emulator<?> emulator, RegisterContext ctx, HookEntryInfo info) {
+Pointer input = ctx.getPointerArg(0);
+System.out.println(input.getString(0));
+}
+@Override
+public void postCall(Emulator<?> emulator, RegisterContext ctx, HookEntryInfo info) {
+Pointer result = ctx.getPointerArg(0);
+System.out.println(result.getString(0));
+}
+});
+```
+
+#### replace
+
+```java
+HookZz hook = HookZz.getInstance(emulator);
+hook.replace(module.base + 0x1C61, new ReplaceCallback() {
+@Override
+public HookStatus onCall(Emulator<?> emulator, HookContext context, long originFunction) {
+emulator.getBackend().reg_write(Unicorn.UC_ARM_REG_R0,1);
+return HookStatus.RET(emulator,context.getLR());
+}
+@Override
+public void postCall(Emulator<?> emulator, HookContext context) {
+System.out.println("postCall!");
+super.postCall(emulator, context);
+}
+},true);
+```
+
+#### instrument
+
+```java
+HookZz hook = HookZz.getInstance(emulator);
+hook.instrument(module.base + 0x1C61, new InstrumentCallback<RegisterContext>() {
+@Override
+public void dbiCall(Emulator<?> emulator, RegisterContext ctx, HookEntryInfo info) {
+System.out.println(ctx.getIntArg(0));
+}
+});
+```
+
+### Dobby
+
+64位模式下推荐使用`Dobby`
+
+#### replace
+
+```java
+Dobby dobby = Dobby.getInstance(emulator);
+dobby.replace(module.base+0xAC90, new ReplaceCallback() {
+@Override
+public HookStatus onCall(Emulator<?> emulator, HookContext context, long originFunction) {
+Pointer result = context.getPointerArg(0);
+System.out.println("input:" + result.getString(0));
+return super.onCall(emulator, context, originFunction);
+}
+@Override
+public void postCall(Emulator<?> emulator, HookContext context) {
+super.postCall(emulator, context);
+}
+},true);
+```
+
+#### wrap
+
+不支持
+
+### xHook
+
+`xHook`框架实现原理本身就存在局限性，只能够hook符号表函数，所以这里只是提供一种思路，可以学习一下这种hook的实现思路
+
+```java
+IxHook hook = XHookImpl.getInstance(emulator);
+hook.register("libutility.so", "free", new ReplaceCallback() {
+@Override
+public HookStatus onCall(Emulator<?> emulator, HookContext context, long originFunction) {
+System.out.println("free called!");
+return HookStatus.RET(emulator,context.getLR());
+}
+});
+//使hook生效
+hook.refresh();
+```
