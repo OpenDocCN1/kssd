@@ -1,0 +1,347 @@
+
+# [转帖]通信安全：IOS客户端证书校验方法
+
+随着移动互联网的发展，互联网应用也在与日俱增，传统的金融行业，如银行的手机银行业务，现在热门的互联网金融企业，其移动应用都在不断的更新，同时，移动客户端的安全性也受到了前所未有的威胁，如盗版app，SQL注入，任意用户密码重置等漏洞，但这些漏洞的进一步利用很多情况下都依赖于中间人攻击，也就是客户端与服务端进行通信时未采用安全的https方式进行通信，而是采用不安全的http方式进行通信。本文就https基于SSL安全传输中相关问题进行了探索研究，以便在以后的客户端安全测试当中有一定的帮助。
+
+由于移动互联网发展起始时间比较晚，开发人员也是近几年才发展起来，所以对于技术的水平也参差不齐。很多开发人员在开发初期都进行了比较安全的设计，但是在实现的时候没有很好的发挥其功能，特别是威胁比较大的SSL证书校验。有报道称，在2013年抽样对国内的手机银行客户端进行了SSL证书的安全测试，发现90%的客户端都没有很好的发挥了SSL证书校验的功能。
+
+本文就当前IOS客户端SSL证书校验存在的问题做了阐述和分析，以帮助安全工程服务人员更好的测试ssl证书的安全性。
+
+## HTTPS 通信原理
+
+说到HTTPS通信，首先要说明一下HTTPS的通信原理。HTTPS是基于安全目的的Http通道，其安全基础由SSL层来保证。最初由netscape公司研发，主要提供了通讯双方的身份认证和加密通信方法。现在广泛应用于互联网上安全敏感通讯。
+
+下面为IOS移动客户端其通信过程和证书校验过程可以用如下图过程展示：
+
+![](https://bbs.kanxue.com/upload/attach/202002/93_M4PKMB4HXV7JDPX.jpg)
+
+1. 第1步：IOS客户端发送一个连接请求给服务器;服务器将自己的证书(包含服务器公钥`S_PuKey`)、对称加密算法种类及其他相关信息返回客户端。
+2. 第2步：客户端检查服务器传送到CA证书是否由自己信赖的CA中心签发。若是，执行4步;否则，给客户提示连接错误或者拒绝连接。
+3. 第3步：客户端比较证书里的信息，如证书有效期、服务器域名和公钥`S_PK`，与服务器传回的信息是否一致，如果一致，则浏览器完成对服务器的身份认证。
+4. 第4步：服务器要求客户端发送客户端证书(包含客户端公钥`C_PuKey`)、支持的对称加密方案及其他相关信息。收到后，服务器进行相同的身份认证，若没有通过验证，则拒绝连接;
+5. 第5步：服务器根据客户端发送到密码种类，选择一种加密程度最高的方案，用客户端公钥`C_PuKey`加密后通知到客户端。
+6. 第6步：客户端通过私钥`C_PrKey`解密后，得知服务器选择的加密方案，并选择一个通话密钥`key`，接着用服务器公钥`S_PuKey`加密后发送给服务器;
+7. 第7步：服务器接收到客户端传送到消息，用私钥`S_PrKey`解密，获得通话密钥`key`。
+8. 第8步：接下来的数据传输都使用该对称密钥`key`进行加密。
+
+由上述过程可以看到，要达到ssl安全通信，服务端和客户端都必有含有有效公私钥证书。
+
+## IOS客户端证书校验方式
+
+针对当前的市面上的IOS客户端，大多数客户端都采用http的方式进行通信。http通信方式是一种不安全的应用层通信方式，极易遭到中间人攻击。目前市面上的移动app主要有http方式和https方式进行通信，这里不再讨论http通信的优缺点，只讨论https通信方式上遇到的问题和安全加固建议。
+
+### 1. 无SSL证书校验
+
+#### 缺陷描述
+
+无ssl证书校验是指虽然客户端与服务端的通信采用https加密通讯，但对ssl证书信任无任何校验，SSL证书形同虚设，无论服务器提供哪一种SSL证书指纹信息，客户端与服务端都可以正常通信，目前市场上80%的APP都没有很好的发挥SSL证书校验功能，甚至很大一部分APP都直接采用没有任何安全校验的http方式，这种客户端很明显的缺陷就是可以对app进行中间人攻击。
+
+#### 缺陷分析
+
+无证书校验最简单的黑河测试方式是对IOS设备做代理测试(IOS此时未越狱/不进行任何安装证书操作)，当我们能抓取到https通信内容时，则证明此app与服务端间的通信未对ssl证书进行校验或者此app直接走http协议进行通信，如下图所示：
+
+![](https://bbs.kanxue.com/upload/attach/202002/93_86V64JQ64F58EZJ.jpg)
+
+查看客户端代码，发现对ssl证书的校验没有开启：
+
+```objc
+#define SERVER_PATH @”pmobile”
+
+//*配置服务端是否为SSL
+
+#if defined (MODEL_RELEASE)
+
+#define SERVER_SSL YES
+
+#elif defined (MODEL_QUASIPRODUCTION)
+
+#define SERVER_SSL YES
+
+#else
+
+#define SERVER_SSL NO
+
+#endif
+
+//#define SERVER_CHECKSSL YES//校验ssl证书
+
+#define SERVER_CHECKSSL NO //不校验ssl证书
+
+//省略部分代码
+
+NSMutableString *urlString = [NSMutableString stringWithFormat:@”%@://%@”, useSSL ? @”https” : @”http”, self.hostName];
+
+if(self.portNumber != 0)
+
+[urlString appendFormat:@”:%d”, self.portNumber];
+
+if(self.apiPath)
+
+[urlString appendFormat:@”/%@”, self.apiPath];
+
+if(![path isEqualToString:@”/”]) { // fetch for root?
+
+if(path.length > 0 && [path characterAtIndex:0] == ‘/’) // if user passes /, don’t prefix a slash
+
+[urlString appendFormat:@”%@”, path];
+
+else if (path != nil)
+
+[urlString appendFormat:@”/%@”, path];
+
+}
+
+return [self operationWithURLString:urlString params:body httpMethod:method];
+
+}
+
+//省略部分代码
+
+NSMutableDictionary *webInfo = [[NSMutableDictionary alloc]initWithObjectsAndKeys:
+
+[NSString stringWithFormat:@”%ld”,(long)completedOperation.HTTPStatusCode],@”httpStatus”,
+
+completedOperation.responseString,@”WebData”,
+
+nil];
+
+onSuccessBlock([completedOp
+```
+
+以上代码可以说明客户端并没有对ssl证书做信任校验。
+
+#### 安全改进
+
+根据OWASP官方给出的对于IOS客户端，可以通过以下代码实现SSL证书信任操作：
+
+```objc
+-(IBAction)fetchButtonTapped:(id)sender
+
+{
+
+[m_fetchedLabel setText:@””];
+
+NSString* requestString = @”9eeK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2J5j5h3&6V1L8$3#2Q4x3X3g2G2M7X3N6Q4x3V1k6A6L8Y4c8W2k6$3g2J5M7#2)9J5c8W2)9K6c8R3`.`.
+
+num=16&min=0&max=255&col=16&base=16&format=plain&rnd=new”;
+
+NSURL* requestUrl = [NSURL URLWithString:requestString];
+
+ASSERT(nil!= requestUrl);
+
+if(!(nil!= requestUrl))
+
+{
+
+[self displayError:@”Failed to create requestString.”];
+
+return;
+
+}
+
+NSURLRequest* request = [NSURLRequest requestWithURL:requestUrl
+
+cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
+
+timeoutInterval:10.0f];
+
+ASSERT(nil!= request);
+
+if(!(nil!= request))
+
+{
+
+[self displayError:@”Failed to create request.”];
+
+return;
+
+}
+
+// Note that the delegate for the NSURLConnection is self, so delegate methods must be defined in this
+
+file
+
+NSURLConnection* connection = [[NSURLConnection alloc] initWithRequest:request delegate:self];
+
+ASSERT(nil!= connection);
+
+if(!(nil!= connection))
+
+{
+
+[self displayError:@”Failed to create connection.”];
+
+return;
+
+}
+
+self.m_fetchedData = [[NSMutableString string] retain];
+
+ASSERT(nil!= m_fetchedData);
+
+}
+
+-(BOOL)connection:(NSURLConnection*)connection canAuthenticateAgainstProtectionSpace:(NSURLProtectionSpace
+
+*)space
+
+{
+
+return [[space authenticationMethod] isEqualToString: NSURLAuthenticationMethodServerTrust];
+
+}
+
+– (void)connection:(NSURLConnection*)connection didReceiveAuthenticationChallenge:
+
+(NSURLAuthenticationChallenge*)challenge
+
+{
+
+if ([[[challenge protectionSpace] authenticationMethod] isEqualToString:
+
+NSURLAuthenticationMethodServerTrust])
+
+{
+
+do
+
+{
+
+SecTrustRef serverTrust= [[challenge protectionSpace] serverTrust];
+
+ASSERT(nil!= serverTrust);
+
+if(!(nil!= serverTrust)) break; /* failed */
+
+OSStatus status= SecTrustEvaluate(serverTrust, NULL);
+
+ASSERT(errSecSuccess== status);
+
+if(!(errSecSuccess== status)) break; /* failed */
+
+SecCertificateRef serverCertificate= SecTrustGetCertificateAtIndex(serverTrust, 0);
+
+ASSERT(nil!= serverTrust);
+
+if(!(nil!= serverTrust)) break; /* failed */
+
+CFDataRef serverCertificateData= SecCertificateCopyData(serverCertificate);
+
+ASSERT(nil!= serverCertificateData);
+
+if(!(nil!= serverCertificateData)) break; /* failed */
+
+[(id)serverCertificateData autorelease];
+
+const UInt8* const data= CFDataGetBytePtr(serverCertificateData);
+
+const CFIndex size= CFDataGetLength(serverCertificateData);
+
+ASSERT(nil!= data);
+
+ASSERT(size> 0);
+
+if(!(nil!= data)|| !(size> 0)) break; /* failed */
+
+// (lldb) p data
+
+// (const UInt8 *) $0 = 0x1d8d3820
+
+// (lldb) p size
+
+// (CFIndex) $1 = 1772
+
+// (lldb) po serverCertificateData
+
+// $2 = 0x1d8d3800 <308206e8 308205d0 a0030201 02021074 b805ae19
+
+// e5ad4bed 4c3a20e6af02c930 0d06092a 864886f7 0d010105 05003081 … >
+
+NSData* cert1= [NSData dataWithBytes:data length:(NSUInteger)size];
+
+ASSERT(nil!= cert1);
+
+if(!(nil!= cert1)) break; /* failed */
+
+NSString*file= [[NSBundle mainBundle] pathForResource:@”random-org” ofType:@”der”];
+
+ASSERT(nil!= file);
+
+if(!(nil!= file)) break; /* failed */
+
+NSData* cert2= [NSData dataWithContentsOfFile:file];
+
+ASSERT(nil!= cert2);
+
+if(!(nil!= cert2)) break; /* failed */
+
+const BOOL equal= [cert1 isEqualToData:cert2];
+
+ASSERT(NO!= equal);
+
+if(!(NO!= equal)) break; /* failed */
+
+// The only good exit point
+
+return [[challenge sender] useCredential: [NSURLCredential credentialForTrust: serverTrust]
+
+forAuthenticationChallenge: challenge];
+
+} while (0);
+
+}
+
+// Bad dog
+
+return [[challenge sender] cancelAuthenticationChallenge: challenge];
+```
+
+### 2. 单向SSL证书校验
+
+#### 缺陷描述
+
+如果客户端代码实现了ssl证书的校验，但目前大多数的IOS客户端都采用ssl单向校验的方式，此种单向校验ssl证书可以通过安装证书的方式成功截获到数据包，安装的证书是代理服务器提供的证书，如下所示，可以通过安装ssl证书的方式绕过客户端ssl单向证书校验：
+
+首先安装代理工具的CA证书，这里我以burpsuit作为例子：
+
+![](https://bbs.kanxue.com/upload/attach/201711/5Q5J7D2W4PY3BCT.png)![](https://bbs.kanxue.com/upload/attach/202002/93_MDP9K2FNPTUASXB.jpg)
+
+发现依然可以截获到https的数据包：
+
+![](https://bbs.kanxue.com/upload/attach/202002/93_C9D3YZ7YQRG4KDB.jpg)
+
+#### 缺陷分析
+
+对于此类的客户端，有效的保障了客户端与服务端间的通信中间人攻击，抓取到数据包的前提是首先要在用户的手机上安装代理服务器SSL指纹信息，所以如果要进行中间人攻击，难度明显增加了很多。但依然可能存在风险，例如攻击者通过自己的手机登录用户的手机银行或者其他APP，然后再自己手机上面安装SSL指纹证书信息，可以成功对其进行中间人攻击，如：修改交易信息，获取客户端与服务端间的通信内容，截取用户私有敏感信息。
+
+#### 安全改进
+
+针对SSL证书的单向校验性，我们依然可以有方法防止攻击者利用代理服务器做中间人攻击，比如：将服务器SSL指纹信息获取到客户端，然后每一次建立通信前都必须要校验服务器SSL指纹信息是否和自己保存的信息一致，如果一直则建议正常通信，如果不一致，则抛出通信异常的错误，具体代码实现如下：
+
+获取服务器指纹信息：
+
+![](https://bbs.kanxue.com/upload/attach/201711/RMP9DHZ9YREUHTG.png)
+
+指纹校验：
+
+![](https://bbs.kanxue.com/upload/attach/202002/93_5KHJJN2VUGUFF29.jpg)
+
+但此种由客户端控制证书信任的机制依然可以通过对客户端IOS客户端的校验过程做篡改，例如将指纹校验关闭，这样就绕过了客户端对服务端的SSL指纹证书的校验。
+
+### 3. 双向SSL证书校验
+
+#### 缺陷描述
+
+SSL证书双向校验即不仅客户端需要校验服务端的SSL证书指纹，还需要服务端校验客户端的指纹信息，双向校验证书不仅可以保证服务器的证书可信，还可以保证客户端的证书可信，是目前市场上比较安全有效的一种https通信方式。
+
+#### 实现原理
+
+具体实现代码如下：
+
+```objc
+– (void)testClientCertificate {
+
+SecIdentityRef identity = NULL;
+
+SecTrustRef trust = NULL;
+```

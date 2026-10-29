@@ -1,0 +1,177 @@
+
+# [原创]初探OSX x86_64传参
+
+近来在搞OSX/IOS方面的东西，本篇文章仅为我想探索下xcode编译出的x64在传参规则上与vs编译是否有什么不同，毫无技术含量。
+
+编译器会为函数开辟函数自己的栈桢，空函数(无参数、无变量)源码如下：
+
+``` 
+        #import <Foundation/Foundation.h>
+
+        float testfun1(){
+
+                        return 1.0f;
+
+        }
+
+        int testfun2(){
+
+                        return 2;
+
+        }
+
+        int main(int argc, const char * argv[]) {
+
+                        NSLog(@"testfun : %f %d", testfun1(), testfun2());
+
+                        return 0;
+
+        }
+```
+
+从汇编上可以看到函数框架的返回值是在`rax`或者`xmm0`：
+
+```
+        __text:0000000100000F10                 public __testfun1
+        __text:0000000100000F10 __testfun1       proc near               ; CODE XREF: __main+16p
+        __text:0000000100000F10                 push    rbp
+        __text:0000000100000F11                 mov     rbp, rsp
+        __text:0000000100000F14                 movss   xmm0, cs:dword_100000F9C
+        __text:0000000100000F1C                 pop     rbp
+        __text:0000000100000F1D                 retn
+        __text:0000000100000F1D __testfun1       endp
+        __text:0000000100000F20                 public __testfun2
+        __text:0000000100000F20 __testfun2       proc near               ; CODE XREF: __main+24p
+        __text:0000000100000F20                 push    rbp
+        __text:0000000100000F21                 mov     rbp, rsp
+        __text:0000000100000F24                 mov     eax, 2
+        __text:0000000100000F29                 pop     rbp
+        __text:0000000100000F2A                 retn
+        __text:0000000100000F2A __testfun2       endp
+```
+
+众所周知x64下有以下寄存器：
+
+`rax`、`rbx`、`rcx`、`rdx`、`rdi`、`rsi`、`rbp`、`rsp`、`r8`、`r9`、`r10`、`r11`、`r12`、`r13`、`r14`、`r15`、`rip`、`rflags`
+
+测试程序的源代码如下：
+
+``` 
+    int testfun(char a, int b, int c, int d, int e, int f,int g, int h, int i, int j, int k){
+
+        return (int)(a + b + c + d + e + f + g + h + i + j + k);
+
+    }
+
+    int main(int argc, const char * argv[]) {
+
+        NSLog(@"testfun : %d", testfun(1,2,3,4,5,6,7,8,9,10,11));
+
+        return 0;
+
+    }
+```
+
+汇编层如下：
+
+```
+    __text:0000000100000EB0                 public __main
+    __text:0000000100000EB0 __main           proc near
+    __text:0000000100000EB0
+
+    __text:0000000100000EB0 arg7_rsp_80     = dword ptr -80h
+    __text:0000000100000EB0 var_7C          = dword ptr -7Ch
+    __text:0000000100000EB0 arg8_rsp_78     = dword ptr -78h
+    __text:0000000100000EB0 var_74          = dword ptr -74h
+    __text:0000000100000EB0 arg9_rsp_70     = dword ptr -70h
+    __text:0000000100000EB0 var_6C          = dword ptr -6Ch
+    __text:0000000100000EB0 arg10_rsp_68    = dword ptr -68h
+    __text:0000000100000EB0 var_64          = dword ptr -64h
+    __text:0000000100000EB0 arg11_rsp_60    = dword ptr -60h
+    __text:0000000100000EB0 var_5C          = dword ptr -5Ch
+    __text:0000000100000EB0 arg7_rbp_4c     = dword ptr -4Ch
+    __text:0000000100000EB0 arg8_rbp_48     = dword ptr -48h
+    __text:0000000100000EB0 arg9_rbp_44     = dword ptr -44h
+    __text:0000000100000EB0 arg10_rbp_40    = dword ptr -40h
+    __text:0000000100000EB0 arg11_rbp_3c    = dword ptr -3Ch
+    __text:0000000100000EB0 var_38          = qword ptr -38h
+    __text:0000000100000EB0 var_30          = dword ptr -30h
+    __text:0000000100000EB0 var_2C          = dword ptr -2Ch
+
+    __text:0000000100000EB0                 push    rbp
+    __text:0000000100000EB1                 mov     rbp, rsp
+    __text:0000000100000EB4                 push    r15
+    __text:0000000100000EB6                 push    r14
+    __text:0000000100000EB8                 push    r13
+    __text:0000000100000EBA                 push    r12
+    __text:0000000100000EBC                 push    rbx
+    __text:0000000100000EBD                 sub     rsp, 58h
+    __text:0000000100000EC1                 mov     eax, 1
+    __text:0000000100000EC6                 mov     ecx, 2
+    __text:0000000100000ECB                 mov     edx, 3          ; rdx == arg3
+    __text:0000000100000ED0                 mov     r8d, 4
+    __text:0000000100000ED6                 mov     r9d, 5
+    __text:0000000100000EDC                 mov     r10d, 6
+    __text:0000000100000EE2                 mov     r11d, 7
+    __text:0000000100000EE8                 mov     ebx, 8
+    __text:0000000100000EED                 mov     r14d, 9
+    __text:0000000100000EF3                 mov     r15d, 0Ah
+    __text:0000000100000EF9                 mov     r12d, 0Bh
+    __text:0000000100000EFF                 mov     [rbp+var_2C], 0
+    __text:0000000100000F06                 mov     [rbp+var_30], edi
+    __text:0000000100000F09                 mov     [rbp+var_38], rsi
+    __text:0000000100000F0D                 mov     edi, eax        ; rdi == arg1
+    __text:0000000100000F0F                 mov     esi, ecx        ; rsi == arg2
+    __text:0000000100000F11                 mov     ecx, r8d        ; rcx == arg4
+    __text:0000000100000F14                 mov     r8d, r9d        ; r8 == arg5
+    __text:0000000100000F17                 mov     r9d, r10d       ; r9 == arg6
+    __text:0000000100000F1A                 mov     [rsp+80h+arg7_rsp_80], 7
+    __text:0000000100000F21                 mov     [rsp+80h+arg8_rsp_78], 8
+    __text:0000000100000F29                 mov     [rsp+80h+arg9_rsp_70], 9
+    __text:0000000100000F31                 mov     [rsp+80h+arg10_rsp_68], 0Ah
+    __text:0000000100000F39                 mov     [rsp+80h+arg11_rsp_60], 0Bh
+    __text:0000000100000F41                 mov     [rbp+arg11_rbp_3c], r12d
+    __text:0000000100000F45                 mov     [rbp+arg10_rbp_40], r15d
+    __text:0000000100000F49                 mov     [rbp+arg9_rbp_44], r14d
+    __text:0000000100000F4D                 mov     [rbp+arg8_rbp_48], ebx
+    __text:0000000100000F50                 mov     [rbp+arg7_rbp_4c], r11d
+    __text:0000000100000F54                 call    __testfun
+    __text:0000000100000F59                 lea     r13, cfstr_TestfunD ; "testfun : %d"
+    __text:0000000100000F60                 mov     rdi, r13
+    __text:0000000100000F63                 mov     esi, eax
+    __text:0000000100000F65                 mov     al, 0
+    __text:0000000100000F67                 call    __NSLog
+    __text:0000000100000F6C                 xor     eax, eax
+    __text:0000000100000F6E                 add     rsp, 58h
+    __text:0000000100000F72                 pop     rbx
+    __text:0000000100000F73                 pop     r12
+    __text:0000000100000F75                 pop     r13
+    __text:0000000100000F77                 pop     r14
+    __text:0000000100000F79                 pop     r15
+    __text:0000000100000F7B                 pop     rbp
+    __text:0000000100000F7C                 retn
+    __text:0000000100000F7C __main           endp
+```
+
+栈空间布局：
+
+```
+          ... testfun stack ...
+    00007FFF5FBFFBA8  0000000100000F59 <- testfun retn eip -> main
+    00007FFF5FBFFBB0  ???????????????? <- 第六个参数
+    00007FFF5FBFFBB8  ????????????????    ....
+    00007FFF5FBFFBC0  ????????????????    ....
+    00007FFF5FBFFBC8  ????????????????    ....
+    00007FFF5FBFFBD0  ???????????????? <- 最后的参数
+           ... rsp offset 58h ...
+    00007FFF5FBFFBD8  ????????????????
+    00007FFF5FBFFBE0  ???????????????? <- 高位 Endarg-m
+                                          地位 Endarg-n
+    00007FFF5FBFFBE8  ???????????????? <- 高位 Endarg-2
+                                          地位 Endarg-3
+    00007FFF5FBFFBF0  ???????????????? <- 高位 最后的参数
+                                          地位 Endarg-1
+    00007FFF5FBFFBF8  ???????????????? <- 保存的rsi
+    00007FFF5FBFFC00  0000000000000001 <- 高位 mov  [rbp+var_2C], 0
+                                          低位 edi
+```
