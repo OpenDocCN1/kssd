@@ -1,0 +1,28 @@
+
+| 1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47  48  49  50  51  52  53  54  55  56  57  58 | `svc代码：` `libcompatible.so:``0000007479C6E4E0` `FF` `03` `04` `D1` `SUB` `SP, SP,``#0x100` `libcompatible.so:``0000007479C6E4E4` `FD` `7B` `09` `A9` `STP` `X29, X30, [SP,``#0x90]` `libcompatible.so:``0000007479C6E4E8` `7A` `00` `00` `14` `B` `loc_7479C6E6D0` `libcompatible.so:``0000007479C6E6D0` `68` `00` `00` `18` `LDR` `W8,``=``0xE350F765` `libcompatible.so:``0000007479C6E6D4` `08` `01` `07` `4A` `EOR` `W8, W8, W7` `libcompatible.so:``0000007479C6E6D8` `85` `FF FF` `17` `B` `loc_7479C6E4EC` `libcompatible.so:``0000007479C6E4EC` `50` `00` `00` `58` `LDR` `X16,``=``0x7479C6E8D0` `libcompatible.so:``0000007479C6E4F0` `00` `02` `1F` `D6` `BR` `X16` `libcompatible.so:``0000007479C6E4F4` `D0 E8 C6` `79``+``qword_7479C6E4F4 DCQ` `0x7479C6E8D0` `libcompatible.so:``0000007479C6E8D0` `01` `00` `00` `D4` `SVC` `0` `libcompatible.so:``0000007479C6E8D4` `01` `00` `00` `90` `ADRP` `X1,``#0x7479C6E000` `libcompatible.so:``0000007479C6E8D8` `50` `00` `00` `58` `LDR` `X16,``=``0x7479C6E80C` `libcompatible.so:``0000007479C6E8DC` `00` `02` `3F` `D6` `BLR` `X16` `libcompatible.so:``0000007479C6E8E0` `0C` `E8 C6` `79``+``qword_7479C6E8E0 DCQ` `0x7479C6E80C` `libcompatible.so:``0000007479C6E80C` `E0` `07` `08` `A9` `STP` `X0, X1, [SP,``#0x80]` `libcompatible.so:``0000007479C6E810` `E2` `0F` `07` `A9` `STP` `X2, X3, [SP,``#0x70]` `libcompatible.so:``0000007479C6E814` `E4` `17` `06` `A9` `STP` `X4, X5, [SP,``#0x60]` `libcompatible.so:``0000007479C6E818` `E6` `1F` `05` `A9` `STP` `X6, X7, [SP,``#0x50]` `libcompatible.so:``0000007479C6E81C` `E2` `03` `1E` `AA` `MOV` `X2, X30` `libcompatible.so:``0000007479C6E820` `28` `01` `00` `58` `LDR` `X8,``=``0x7479C5B42C` `libcompatible.so:``0000007479C6E824` `00` `01` `3F` `D6` `BLR` `X8` `libcompatible.so:``0000007479C6E828` `E0` `07` `48` `A9` `LDP` `X0, X1, [SP,``#0x80]` `libcompatible.so:``0000007479C6E82C` `E2` `0F` `47` `A9` `LDP` `X2, X3, [SP,``#0x70]` `libcompatible.so:``0000007479C6E830` `E4` `17` `46` `A9` `LDP` `X4, X5, [SP,``#0x60]` `libcompatible.so:``0000007479C6E834` `E6` `1F` `45` `A9` `LDP` `X6, X7, [SP,``#0x50]` `libcompatible.so:``0000007479C6E838` `FD` `7B` `49` `A9` `LDP` `X29, X30, [SP,``#0x90]` `libcompatible.so:``0000007479C6E83C` `FF` `03` `04` `91` `ADD` `SP, SP,``#0x100` `libcompatible.so:``0000007479C6E840` `C0` `03` `5F` `D6` `RET` `libcompatible.so:``0000007479C6E844` `2C` `B4 C5` `79``+``qword_7479C6E844 DCQ` `0x7479C5B42C` `libcompatible.so:``0000007479C5B42C` `88` `09` `00` `F0` `ADRP` `X8,``#qword_7479D8EEA8@PAGE` `libcompatible.so:``0000007479C5B430` `08` `55` `47` `F9` `LDR` `X8, [X8,``#qword_7479D8EEA8@PAGEOFF]` `libcompatible.so:``0000007479C5B434` `1F` `01` `01` `EB` `CMP` `X8, X1` `libcompatible.so:``0000007479C5B438` `28` `01` `00` `54` `B.HI` `loc_7479C5B45C` `libcompatible.so:``0000007479C5B43C` `89` `09` `00` `F0` `ADRP` `X9,``#qword_7479D8EEB0@PAGE` `libcompatible.so:``0000007479C5B440` `29` `59` `47` `F9` `LDR` `X9, [X9,``#qword_7479D8EEB0@PAGEOFF]` `libcompatible.so:``0000007479C5B444` `3F` `01` `01` `EB` `CMP` `X9, X1` `libcompatible.so:``0000007479C5B448` `A3` `00` `00` `54` `B.CC` `loc_7479C5B45C` `libcompatible.so:``0000007479C5B44C` `1F` `01` `02` `EB` `CMP` `X8, X2` `libcompatible.so:``0000007479C5B450` `68` `00` `00` `54` `B.HI` `loc_7479C5B45C` `libcompatible.so:``0000007479C5B454` `3F` `01` `02` `EB` `CMP` `X9, X2` `libcompatible.so:``0000007479C5B458` `C2` `00` `00` `54` `B.CS` `locret_7479C5B470` `libcompatible.so:``0000007479C5B45C` `libcompatible.so:``0000007479C5B45C` `loc_7479C5B45C` `; CODE XREF: libcompatible.so:SoLibraryStart``+``13A8``↑j` `libcompatible.so:``0000007479C5B45C` `; libcompatible.so:SoLibraryStart``+``13B8``↑j ...` `libcompatible.so:``0000007479C5B45C` `68` `09` `00` `90` `ADRP` `X8,``#off_7479D87388@PAGE` `libcompatible.so:``0000007479C5B460` `08` `C5` `41` `F9` `LDR` `X8, [X8,``#off_7479D87388@PAGEOFF]` `libcompatible.so:``0000007479C5B464` `09` `01` `40` `B9` `LDR` `W9, [X8]` `libcompatible.so:``0000007479C5B468` `29` `01` `1D` `32` `ORR` `W9, W9,``#8` `libcompatible.so:``0000007479C5B46C` `09` `01` `00` `B9` `STR` `W9, [X8]` `libcompatible.so:``0000007479C5B470` `libcompatible.so:``0000007479C5B470` `locret_7479C5B470` `; CODE XREF: libcompatible.so:SoLibraryStart``+``13C8``↑j` `libcompatible.so:``0000007479C5B470` `C0` `03` `5F` `D6` `RET` |
+- `svc`调用代码准备好以后，开始对手机是否刷入`magisk`做检测
+- 当检测到`magisk`存在时，会设置对应的全局标志`magisk_flag_off_1FF838`
+- 对该标志交叉引用，可以发现有`jni`方法会获取该标志
+
+|  |  |
+
+| --- | --- |
+
+| 1  2  3  4  5  6  7 | `magiskMountsPattern()` `读取了文件` `"/proc/self/mounts"` `，查找是否存在``"magisk"``字符串` `magiskTimePattern()` `获取了文件` `"/proc/%d/mountinfo"` `的` `"Modify"` `时间戳` `mountinfo_FileTimeStamp` `获取了文件` `"/proc/%d/ns/mnt"` `的` `"Modify"` `时间戳` `mnt_FileTimeStamp` `当` `mountinfo_FileTimeStamp > mnt_FileTimeStamp` `时，代表存在magisk` |
+- 对`0x52abc`处的方法进行解密，和之前一样可以直接`dump`下来，该方法为`JNI_OnLoad`方法
+- 对`0x20b90`处的方法进行解密，和之前一样可以直接`dump`下来，但貌似没有调用到，在下面的初始化函数调用结束后会加密回去
+- 开始调用`init_array`初始化方法
+
+![](https://bbs.kanxue.com/upload/attach/202305/893279_43K495XRDANBWVJ.png)
+- `init_array`的信息在文件格式中也是被抹除了的，转换成了so自己来调用
+- 从下图也可以看出来那么一点相关性
+
+![](https://bbs.kanxue.com/upload/attach/202305/893279_EKJ5JE3RX2K2HUK.png)
+- 初始化函数调用完后，会解密和拼接字符串，得到`/system/lib64/libc.so`字符串
+- 在`sub_9FAA8`方法中解析了`/system/lib64/libc.so`的`ELF`文件格式，并将各种文件信息填充到对应的结构体中
+
+![](https://bbs.kanxue.com/upload/attach/202305/893279_KZNWUYRHY8YY2VG.png)
+
+|  |  |
+
+| --- | --- |
