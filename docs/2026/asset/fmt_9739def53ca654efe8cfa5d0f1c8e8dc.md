@@ -1,0 +1,139 @@
+
+```c++
+//
+// Created by liuzhuangzhuang on 2021/8/16.
+//
+#define DEBUG
+#include <android/log.h>
+#include <jni.h>
+#define LOG\_TAG "apifake"
+#define DEBUG
+#ifdef DEBUG
+#define ALOGD(fmt, args...) do {\_\_android\_log\_print(ANDROID\_LOG\_DEBUG, LOG\_TAG, fmt, ##args);} while(0)
+#define ALOGI(fmt, args...) do {\_\_android\_log\_print(ANDROID\_LOG\_INFO, LOG\_TAG, fmt, ##args);} while(0)
+#else
+#define ALOGD(fmt, args...) do {} while(0)
+#define ALOGI(fmt, args...) do {} while(0)
+#endif
+#define ALOGE(fmt, args...) do {\_\_android\_log\_print(ANDROID\_LOG\_ERROR, LOG\_TAG, fmt, ##args);} while(0)
+typedef union {
+JNIEnv\* env;
+void\* venv;
+} UnionJNIEnvToVoid;
+bool setApiBlacklistExemptions(JNIEnv\* env) {
+/\*=================在这里使用了ZygoteInit,而不是VMRuntime, 效果一样==================\*/
+jclass zygoteInitClass = env->FindClass("com/android/internal/os/ZygoteInit");
+if (zygoteInitClass == nullptr) {
+ALOGE("not found class");
+env->ExceptionClear();
+return false;
+}
+jmethodID setApiBlackListApiMethod =
+env->GetStaticMethodID(zygoteInitClass,
+"setApiBlacklistExemptions",
+"([Ljava/lang/String;)V");
+if (setApiBlackListApiMethod == nullptr) {
+env->ExceptionClear();
+setApiBlackListApiMethod =
+env->GetStaticMethodID(zygoteInitClass,
+"setApiDenylistExemptions",
+"([Ljava/lang/String;)V");
+}
+if (setApiBlackListApiMethod == nullptr) {
+ALOGE("not found method");
+return false;
+}
+jclass stringCLass = env->FindClass("java/lang/String");
+jstring fakeStr = env->NewStringUTF("L");
+jobjectArray fakeArray = env->NewObjectArray(
+1, stringCLass, NULL);
+env->SetObjectArrayElement(fakeArray, 0, fakeStr);
+env->CallStaticVoidMethod(zygoteInitClass,
+setApiBlackListApiMethod, fakeArray);
+env->DeleteLocalRef(fakeStr);
+env->DeleteLocalRef(fakeArray);
+ALOGD("fakeapi success!");
+return true;
+}
+jint JNI\_OnLoad(JavaVM\* vm, void\* reserved) {
+UnionJNIEnvToVoid uenv;
+uenv.venv = NULL;
+jint result = -1;
+JNIEnv\* env = NULL;
+ALOGD("JNI\_OnLoad");
+if (vm->GetEnv(&uenv.venv, JNI\_VERSION\_1\_6) != JNI\_OK) {
+ALOGE("ERROR: GetEnv failed");
+goto bail;
+}
+env = uenv.env;
+if (!setApiBlacklistExemptions(env)) {
+ALOGE("failed");
+goto bail;
+}
+result = JNI\_VERSION\_1\_6;
+bail:
+return result;
+}
+```
+
+## 测试通过:
+
+```txt
+08-16 16:00:51.672 3485 3485 D apifake : JNI\_OnLoad
+08-16 16:00:51.672 3485 3485 D apifake : fakeapi success!
+08-16 16:00:51.673 3485 3485 D whulzz : setTargetSdkVersionNative success!
+08-16 16:00:51.678 606 1217 I netd : tetherGetStats() <1.74ms>
+```
+
+[下面摘录自官方](https://bbs.kanxue.com/elink@9c4K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1k6i4k6W2L8r3!0H3k6i4u0Q4x3X3g2S2L8X3c8J5L8$3W2V1i4K6u0W2j5$3!0E0i4K6u0r3k6%4g2A6k6r3g2Q4x3V1k6S2M7s2m8Q4x3X3c8U0L8$3#2H3j5i4c8A6j5X3W2D9K9i4c8&6i4K6u0r3M7X3g2K6N6s2u0A6j5%4c8A6L8$3&6K6i4K6u0V1L8X3!0F1i4K6u0V1M7$3c8C8i4K6u0V1K9h3&6@1k6i4u0X3j5h3y4W2M7H3`.`.)
+
+## 针对非 SDK 接口的限制
+
+从 Android 9（API 级别 28）开始，Android 平台对应用能使用的非 SDK 接口实施了限制。只要应用引用非 SDK 接口或尝试使用反射或 JNI 来获取其句柄，这些限制就适用。这些限制旨在帮助提升用户体验和开发者体验，为用户降低应用发生崩溃的风险，同时为开发者降低紧急发布的风险。如需详细了解有关此限制的决定，请参阅[通过减少非 SDK 接口的使用来提高稳定性](https://bbs.kanxue.com/elink@212K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2L8X3c8J5L8$3W2V1i4K6u0V1k6r3g2$3k6h3I4G2M7r3g2J5M7#2)9J5k6h3N6G2L8$3N6D9k6h3u0D9L8$3N6Q4x3X3g2U0L8$3#2Q4x3V1j5J5x3o6p5^5i4K6u0r3x3o6u0Q4x3V1k6A6L8i4m8J5L8%4k6A6L8X3N6Q4x3X3c8K6N6r3q4T1K9h3I4A6N6s2W2Q4x3X3c8T1P5g2)9J5k6s2u0W2k6s2g2U0K9h3&6Y4i4K6u0V1N6i4y4S2k6$3g2Q4x3X3g2Z5N6r3#2D9)。
+
+## 非 SDK API 名单
+
+随着每个 Android 版本的发布，会有更多非 SDK 接口受到限制。 我们知道这些限制会影响您的发布工作流，同时我们希望确保您拥有相关工具来检测非 SDK 接口的使用情况、有机会[向我们提供反馈](https://bbs.kanxue.com/elink@e8fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1k6i4k6W2L8r3!0H3k6i4u0Q4x3X3g2S2L8X3c8J5L8$3W2V1i4K6u0W2j5$3!0E0i4K6u0r3k6%4g2A6k6r3g2Q4x3V1k6S2M7s2m8Q4x3X3c8U0L8$3#2H3j5i4c8A6j5X3W2D9K9i4c8&6i4K6u0r3M7X3g2K6N6s2u0A6j5%4c8A6L8$3&6K6i4K6u0V1L8X3!0F1i4K6u0V1M7$3c8C8i4K6u0V1K9h3&6@1k6i4u0X3j5h3y4W2M7#2)9J5x3$3k6W2j5i4c8#2M7X3g2Q4x3X3c8J5k6i4q4#2k6i4y4@1)，并且有时间根据相应新政策做出规划和调整。
+
+为最大程度地降低非 SDK 使用限制对开发工作流的影响，我们将非 SDK 接口分成了几个名单，这些名单界定了非 SDK 接口使用限制的严格程度（取决于应用的目标 API 级别）。下表介绍了这些名单：
+
+| 名单 | 说明 |
+| --- | --- |
+| 屏蔽名单 (`blacklist`) | 无论应用的[目标 API 级别](https://bbs.kanxue.com/elink@fc9K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1k6i4k6W2L8r3!0H3k6i4u0Q4x3X3g2S2L8X3c8J5L8$3W2V1i4K6u0W2j5$3!0E0i4K6u0r3k6r3W2K6N6s2u0A6j5Y4g2@1k6g2)9J5c8X3u0W2M7%4c8Q4x3X3c8H3M7X3q4U0N6r3W2U0k6i4y4Q4x3V1k6V1k6i4k6W2L8r3!0H3i4K6u0r3N6r3q4J5k6$3g2@1i4K6u0V1M7$3c8C8)是什么，您都无法使用的非 SDK 接口。 如果您的应用尝试访问其中任何一个接口，系统就会[抛出错误](https://bbs.kanxue.com/elink@da0K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1k6i4k6W2L8r3!0H3k6i4u0Q4x3X3g2S2L8X3c8J5L8$3W2V1i4K6u0W2j5$3!0E0i4K6u0r3k6%4g2A6k6r3g2Q4x3V1k6S2M7s2m8Q4x3X3c8U0L8$3#2H3j5i4c8A6j5X3W2D9K9i4c8&6i4K6u0r3M7X3g2K6N6s2u0A6j5%4c8A6L8$3&6K6i4K6u0V1L8X3!0F1i4K6u0V1M7$3c8C8i4K6u0V1K9h3&6@1k6i4u0X3j5h3y4W2M7#2)9J5x3%4u0W2M7%4g2D9N6s2y4Q4x3X3c8G2k6W2)9J5k6r3E0W2k6i4m8A6L8X3N6Q4x3X3c8F1L8$3&6Q4x3X3c8K6k6r3D9`.)。 |
+| 有条件屏蔽 (`greylist-max-x`) | 从 Android 9（API 级别 28）开始，当有应用以该 API 级别为目标平台时，我们会在每个 API 级别分别限制某些非 SDK 接口。这些名单会以应用无法再访问该名单中的非 SDK 接口之前可以作为目标平台的最高 API 级别 (`max-target-x`) 进行标记。例如，在 Android Pie 中未被屏蔽、但现在已被 Android 10 屏蔽的非 SDK 接口会列入 `max-target-p` (`greylist-max-p`) 名单，其中的“p”表示 Pie 或 Android 9（API 级别 28）。如果您的应用尝试访问受目标 API 级别限制的接口，系统就会[将此 API 视为已列入屏蔽名单](https://bbs.kanxue.com/elink@31bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1k6i4k6W2L8r3!0H3k6i4u0Q4x3X3g2S2L8X3c8J5L8$3W2V1i4K6u0W2j5$3!0E0i4K6u0r3k6%4g2A6k6r3g2Q4x3V1k6S2M7s2m8Q4x3X3c8U0L8$3#2H3j5i4c8A6j5X3W2D9K9i4c8&6i4K6u0r3M7X3g2K6N6s2u0A6j5%4c8A6L8$3&6K6i4K6u0V1L8X3!0F1i4K6u0V1M7$3c8C8i4K6u0V1K9h3&6@1k6i4u0X3j5h3y4W2M7#2)9J5x3%4u0W2M7%4g2D9N6s2y4Q4x3X3c8G2k6W2)9J5k6r3E0W2k6i4m8A6L8X3N6Q4x3X3c8F1L8$3&6Q4x3X3c8K6k6r3D9`.)。 |
+| 不支持 (`greylist`) | 当前不受限制且您的应用可以使用的非 SDK 接口。 但请注意，这些接口**不受支持**，可能会在未发出通知的情况下随时发生更改。预计这些接口在未来的 Android 版本中会被有条件地屏蔽，并列在 `max-target-x` 名单中。 |
+| SDK (`whitelist`) | 已在 Android 框架[软件包索引](https://bbs.kanxue.com/elink@edfK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1k6i4k6W2L8r3!0H3k6i4u0Q4x3X3g2S2L8X3c8J5L8$3W2V1i4K6u0W2j5$3!0E0i4K6u0r3M7X3g2X3k6i4u0W2L8X3y4W2i4K6u0r3M7r3q4U0K9$3q4Y4k6i4x3`.)中正式记录、受支持并且可以自由使用的接口。 |
+
+尽管您目前仍可以使用某些非 SDK 接口（取决于应用的目标 API 级别），但只要您使用任何非 SDK 方法或字段，终归存在导致应用出问题的显著风险。如果您的应用依赖于非 SDK 接口，建议您开始计划迁移到 SDK 接口或其他替代方案。如果您无法为应用中的功能找到无需使用非 SDK 接口的替代方案，我们建议您[请求添加新的公共 API](https://bbs.kanxue.com/elink@87dK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1k6i4k6W2L8r3!0H3k6i4u0Q4x3X3g2S2L8X3c8J5L8$3W2V1i4K6u0W2j5$3!0E0i4K6u0r3k6%4g2A6k6r3g2Q4x3V1k6S2M7s2m8Q4x3X3c8U0L8$3#2H3j5i4c8A6j5X3W2D9K9i4c8&6i4K6u0r3M7X3g2K6N6s2u0A6j5%4c8A6L8$3&6K6i4K6u0V1L8X3!0F1i4K6u0V1M7$3c8C8i4K6u0V1K9h3&6@1k6i4u0X3j5h3y4W2M7#2)9J5x3$3k6W2j5i4c8#2M7X3g2Q4x3X3c8J5k6i4q4#2k6i4y4@1)。
+
+## 访问受限的非 SDK 接口时可能会出现的预期行为
+
+下表说明了当您的应用尝试访问屏蔽名单中的非 SDK 接口时可能会出现的预期行为。
+
+| 访问方式 | 结果 |
+| --- | --- |
+| Dalvik 指令引用某个字段 | 抛出 `NoSuchFieldError` |
+| Dalvik 指令引用某个方法 | 抛出 `NoSuchMethodError` |
+| 通过 `Class.getDeclaredField()` 或 `Class.getField()` 进行反射 | 抛出 `NoSuchFieldException` |
+| 通过 `Class.getDeclaredMethod()`、`Class.getMethod()` 进行反射 | 抛出 `NoSuchMethodException` |
+| 通过 `Class.getDeclaredFields()`、`Class.getFields()` 进行反射 | 结果中未获取到非 SDK 成员 |
+| 通过 `Class.getDeclaredMethods()`、`Class.getMethods()` 进行反射 | 结果中未获取到非 SDK 成员 |
+| 通过 `env->GetFieldID()` 进行 JNI 调用 | 返回 `NULL`，抛出 `NoSuchFieldError` |
+| 通过 `env->GetMethodID()` 进行 JNI 调用 | 返回 `NULL`，抛出 `NoSuchMethodError` |
+
+## 从官网的sdk api介绍中，我们可获得以下几种信息：
+
+1.谷歌建议开发者尽量使用公开的sdk接口，并没有禁止非sdk接口的使用
+
+2.非sdk接口，开发者一般都是通过反射的机制进行使用，`api>=28`会进行限制，也就是说访问非sdk接口可能会失败
+
+3.非sdk接口会进行等级分类，包括`blacklist`, `greylist-max-x`, `greylist`, `whitelist`等，其中`greylist`与`whitelist`不受限制
+
+4.非sdk接口的等级可能会随着`targetSdk`以及系统sdk版本变化
+
+### 写个demo，测试一下访问blacklist-api
+
+Blacklist-api的配置文件一般在aops源码的`aosp/frameworks/base/config/hiddenapi-force-blacklist.txt`
+
+|  |  |
+| --- | --- |
