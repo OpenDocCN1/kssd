@@ -20,37 +20,37 @@ Frida在这些环境下较为方便，但是在工具开发上有难度，因为
 
 XServer启动，长得完全就像是个Frida工具
 
-![图片描述](upload/attach/202007/776971_RSND7TQ3CAVD4JK.png)
+![图片描述](upload/attach/202007/776971\_RSND7TQ3CAVD4JK.png)
 
 使用XServer查看应用已加载的类
 
-![图片描述](upload/attach/202007/776971_RZQHUA28SGGD8YS.png)
+![图片描述](upload/attach/202007/776971\_RZQHUA28SGGD8YS.png)
 
 在图形化界面Hook特定的方法~~（好了我知道界面很丑）~~
 
-![图片描述](upload/attach/202007/776971_PA2A4NAPF3FXBWC.png)
+![图片描述](upload/attach/202007/776971\_PA2A4NAPF3FXBWC.png)
 
 跟踪应用内的方法调用
 
-![图片描述](upload/attach/202007/776971_8VSAPUBW6YWW2GT.png)
+![图片描述](upload/attach/202007/776971\_8VSAPUBW6YWW2GT.png)
 
 点进去还能跟踪调用的堆栈信息
 
-![图片描述](upload/attach/202007/776971_6788Y4E86Q9JYR6.png)
+![图片描述](upload/attach/202007/776971\_6788Y4E86Q9JYR6.png)
 
 并通过Burp动态拦截应用的方法调用，并实时篡改参数或结果
 
-![图片描述](upload/attach/202007/776971_9B594J8KMVWR7FW.png)
+![图片描述](upload/attach/202007/776971\_9B594J8KMVWR7FW.png)
 
-![图片描述](upload/attach/202007/776971_TQMKVFRUNJZS9EY.png)
+![图片描述](upload/attach/202007/776971\_TQMKVFRUNJZS9EY.png)
 
 并且可以在Burp里重放请求，从而直接调用对应方法（用于通信协议或加解密）
 
-![图片描述](upload/attach/202007/776971_36NY5XFM9H69ARW.png)
+![图片描述](upload/attach/202007/776971\_36NY5XFM9H69ARW.png)
 
 再就是可以直接读取/修改/Dump内存，这个功能还很简陋
 
-![图片描述](upload/attach/202007/776971_SEWDXTNZPKV3GBZ.png)
+![图片描述](upload/attach/202007/776971\_SEWDXTNZPKV3GBZ.png)
 
 以上，XServer的功能全部都能用Frida正常实现。
 
@@ -60,7 +60,7 @@ XServer本身是一个Xposed插件，但其实依赖Xposed的地方只是注入�
 
 所以我对Hook部分进行了封装，使其既可以被Xposed实现（默认），也可以被其他Hook框架实现（比如Frida），从而使一个Xposed插件可以脱离Xposed Framework工作。
 
-然后我用Frida实现了XServer的注入和Hook功能。然后，就正常工作了。这部分实现可以在[`XServer.js`](<elink@971K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6E0L8$3&6C8k6i4W2D9L8%4u0V1i4K6u0r3h3q4y4W2M7Y4k6W2M7W2)9J5c8X3u0D9L8$3u0Q4x3V1k6E0j5i4y4@1k6i4u0Q4x3V1k6j5f1$3g2J5N6X3g2J5i4K6u0W2K9Y4x3)>中看到，使用了一些技巧。
+然后我用Frida实现了XServer的注入和Hook功能。然后，就正常工作了。这部分实现可以在[XServer.js](elink@971K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6E0L8$3&6C8k6i4W2D9L8%4u0V1i4K6u0r3h3q4y4W2M7Y4k6W2M7W2)9J5c8X3u0D9L8$3u0Q4x3V1k6E0j5i4y4@1k6i4u0Q4x3V1k6j5f1$3g2J5N6X3g2J5i4K6u0W2K9Y4x3`.)中看到，使用了一些技巧。
 
 （实际上，我还用Frida实现了Xposed API，从而可以加载一般的Xposed插件，但还不稳定，所以不拿出来了）
 
@@ -70,7 +70,7 @@ XServer本身是一个Xposed插件，但其实依赖Xposed的地方只是注入�
 
 用Java编写工具的逻辑，然后用Frida去实现它的底层功能，至少，我这个Xposed遗民觉得，挺香。
 
-XServer：9c1K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6E0L8$3&6C8k6i4W2D9L8%4u0V1i4K6u0r3h3q4y4W2M7Y4k6W2M7R3`.`.
+XServer：9c1K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6E0L8$3&6C8k6i4W2D9L8%4u0V1i4K6u0r3h3q4y4W2M7Y4k6W2M7R3`.
 
 （另附操作视频，见附件）
 
@@ -93,7 +93,7 @@ Frida在这些环境下较为方便，但是在工具开发上有难度，因为
 
 XServer启动，长得完全就像是个Frida工具
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202007/776971_RSND7TQ3CAVD4JK.png)
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202007/776971_RSND7TQ3CAVD4JK.png)
 
 使用XServer查看应用已加载的类
 
@@ -101,7 +101,7 @@ XServer启动，长得完全就像是个Frida工具
 
 在图形化界面Hook特定的方法
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202007/776971_PA2A4NAPF3FXBWC.png)
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202007/776971_PA2A4NAPF3FXBWC.png)
 
 跟踪应用内的方法调用
 
@@ -119,11 +119,11 @@ XServer启动，长得完全就像是个Frida工具
 
 并且可以在Burp里重放请求，从而直接调用对应方法（用于通信协议或加解密）
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202007/776971_36NY5XFM9H69ARW.png)
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202007/776971_36NY5XFM9H69ARW.png)
 
 再就是可以直接读取/修改/Dump内存，这个功能还很简陋
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202007/776971_SEWDXTNZPKV3GBZ.png)
+ ![图片描述](https://bbs.kanxue.com/upload/attach/202007/776971_SEWDXTNZPKV3GBZ.png)
 
 以上，XServer的功能全部都能用Frida正常实现。
 
@@ -133,7 +133,7 @@ XServer本身是一个Xposed插件，但其实依赖Xposed的地方只是注入�
 
 所以我对Hook部分进行了封装，使其既可以被Xposed实现（默认），也可以被其他Hook框架实现（比如Frida），从而使一个Xposed插件可以脱离Xposed Framework工作。
 
-然后我用Frida实现了XServer的注入和Hook功能。然后，就正常工作了。这部分实现可以在[`XServer.js`](<https://bbs.kanxue.com/elink@37fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6E0L8$3&6C8k6i4W2D9L8%4u0V1i4K6u0r3h3q4y4W2M7Y4k6W2M7W2)9J5c8X3u0D9L8$3u0Q4x3V1k6E0j5i4y4@1k6i4u0Q4x3V1k6j5f1$3g2J5N6X3g2J5i4K6u0W2K9Y4x3)>中看到，使用了一些技巧。
+然后我用Frida实现了XServer的注入和Hook功能。然后，就正常工作了。这部分实现可以在[XServer.js](https://bbs.kanxue.com/elink@37fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6E0L8$3&6C8k6i4W2D9L8%4u0V1i4K6u0r3h3q4y4W2M7Y4k6W2M7W2)9J5c8X3u0D9L8$3u0Q4x3V1k6E0j5i4y4@1k6i4u0Q4x3V1k6j5f1$3g2J5N6X3g2J5i4K6u0W2K9Y4x3`.)中看到，使用了一些技巧。
 
 （实际上，我还用Frida实现了Xposed API，从而可以加载一般的Xposed插件，但还不稳定，所以不拿出来了）
 
@@ -143,24 +143,20 @@ XServer本身是一个Xposed插件，但其实依赖Xposed的地方只是注入�
 
 用Java编写工具的逻辑，然后用Frida去实现它的底层功能，至少，我这个Xposed遗民觉得，挺香。
 
-XServer：751K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6E0L8$3&6C8k6i4W2D9L8%4u0V1i4K6u0r3h3q4y4W2M7Y4k6W2M7R3`.`.
+XServer：751K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6E0L8$3&6C8k6i4W2D9L8%4u0V1i4K6u0r3h3q4y4W2M7Y4k6W2M7R3`.
 
 （另附操作视频，见附件）
 
 [传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
 
-最后于 2020-7-7 21:55 被Monkeylord编辑，原因： 补充附件
+最后于  2020-7-7 21:55
+
+被Monkeylord编辑
+
+，原因： 补充附件
 
 上传的附件：
 
-- [`XServer V0.7.1.apk`](javascript:void(0);)
-
-  （2.52MB，171次下载）
-
-- [`XServer.js`](javascript:void(0);)
-
-  （12.56kb，138次下载）
-
-- [`使用Frida加载XServer.mp4`](javascript:void(0);)
-
-  （6.01MB，217次下载）
+- [XServer V0.7.1.apk](javascript:void(0);)（2.52MB，171次下载）
+- [XServer.js](javascript:void(0);)（12.56kb，138次下载）
+- [使用Frida加载XServer.mp4](javascript:void(0);)（6.01MB，217次下载）
