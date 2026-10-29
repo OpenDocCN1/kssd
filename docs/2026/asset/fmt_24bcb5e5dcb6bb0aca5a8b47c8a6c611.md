@@ -1,0 +1,67 @@
+
+```
+__int64 __fastcall RaffelPanel__LotteryCheck(__int64 a1)
+{
+  __int64 v1; // x19
+  __int64 v2; // x0
+  __int64 v3; // x0
+  int v4; // w20
+  int v5; // w23
+  signed int v6; // w24
+  __int64 v7; // x0
+  __int64 result; // x0
+
+  v1 = a1;
+  if ( !(byte_10137EDBB & 1) )
+  {
+    sub_100DEAD34(6810LL);
+    byte_10137EDBB = 1;
+  }
+  v2 = qword_101439198;
+  if ( *(_BYTE *)(qword_101439198 + 266) & 1 && !*(_DWORD *)(qword_101439198 + 188) )
+  {
+    sub_100DFF71C();
+    v2 = qword_101439198;
+  }
+  if ( !*(_QWORD *)(*(_QWORD *)(v2 + 160) + 192LL) )
+LABEL_17:
+    sub_100DE28B4();
+  v3 = sub_1000FB954();
+  v4 = Random__Range_71094(0LL, 0LL, v3, 0LL);
+  v5 = 0;
+  *(_DWORD *)(v1 + 80) = 0;   this.result = Rank.White;  //默认都是白色的球
+  v6 = -1;
+  while ( 1 )
+  {
+    v7 = qword_101439198;
+    if ( *(_BYTE *)(qword_101439198 + 266) & 1 )
+    {
+      if ( !*(_DWORD *)(qword_101439198 + 188) )
+      {
+        sub_100DFF71C();
+        v7 = qword_101439198;
+      }
+    }
+    if ( !*(_QWORD *)(*(_QWORD *)(v7 + 160) + 192LL) )
+      goto LABEL_17;
+    result = sub_1000FB954();
+    v5 += result;
+    if ( v4 < v5 )  //if (num < num2)
+      break;
+    if ( ++v6 >= 4 )
+      return result;
+  }
+  *(_DWORD *)(v1 + 80) = v6 + 1;  //this.result = (Rank)i;
+  return result;
+}
+```
+
+这里的`*(_DWORD *)(v1 + 80)`的位置其实就是`this.result`，所以直接修改`80`偏移位置的值就可以了。
+
+### iOS总结
+
+总结来说的话，要分析iOS里面转换后的脚本C代码还是不容易的，如果能够根据Android C#脚本分析的结果然后对iOS的符号进行恢复一下的话，就可以直接根据Android分析到的函数直接来Hook iOS对应的函数来修改参数或者值了。不过这里还是在越狱设备上面进行的hook，然后可能还会写个非越狱设备同样进行静态的hook操作。
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+最后于 2019-1-31 09:39 被admin编辑，原因：
