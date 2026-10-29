@@ -48,7 +48,7 @@ return result;
 
 3. 依次读取每个DEX的数据，详细结构：`dexindex+next+data1size+data1+data2`
 
-**解密流程：**
+解密流程：
 
 ```java
 result = new byte[(int) size][];
@@ -83,7 +83,7 @@ for (int i = 0; i < size; i++) {
 }
 ```
 
-用`makekey`计算出来的`rc4key`先解密，然后`LZMA:24`解压，再把前`0x70`个字节和`makeykey`的第二个`KEY` ^ 最后和`dex_data2`合并就得到完整的dex
+用`makekey`计算出来的`rc4key`先解密，然后`LZMA:24`解压，再把前`0x70`个字节和`makekey`的第二个`KEY`异或，最后和`dex_data2`合并就得到完整的`dex`。
 
 其余的代码很好逆，菜鸟代码写的比较挫就不献丑了。
 
