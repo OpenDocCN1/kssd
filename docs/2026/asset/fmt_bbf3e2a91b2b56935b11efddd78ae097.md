@@ -1,0 +1,218 @@
+
+3. 初始化clang编译库，进行预处理操作，首先调用`clang::CompilerInvocation`的`getPreprocessorOpts().addRemappedFile()`函数进行remapping操作，将上面涉及到的虚拟文件映射成真实的文件，其中`/virtual/main.c`映射为内存中源代码的表示`llvm::MemoryBuffer`对象。
+
+4. 接着进行三轮基于抽象语法树ast处理，分别是`TracepointFrontendAction`、`BFrontendAction`、`EmitLLVMOnlyAction`，这种处理可以进行源代码的转换，其中`BFrontendAction`相当复杂，处理的类型很多，理解它需要对`clang`相关api和ast很熟悉才行，不过可以直接将处理后的源代码打印出来只看对目前程序的处理即可。`BFrontendAction`有一步重要的处理：`Catch the map declarations and open the fd's`。
+
+5. 经过上面的处理以后就会生成LLVM的IR表示`llvm::Module`对象，接着调用`finalize()`函数，针对IR进行bpf程序的编译，并且执行`PassManager`将涉及到的函数都变成内联函数。编译出的指令存放在`prog_func_info`对象中，其中`FuncInfo`代表着每个编译出来的函数，函数执行指令在内存中地址为`FuncInfo`对象的`start_`指针。
+
+6. 调用`load_maps`函数通过`bpf`系统调用创建出bpf maps。
+
+来重点看一下第6条的`load_maps`，`hello_perf_output.py`程序有一行代码：`BPF_PERF_OUTPUT(events);`
+
+`BPF_PERF_OUTPUT`是一个宏，定义在文件`src/cc/export/helpers.h`文件中，`BPF_PERF_OUTPUT(events)`其实等价于：
+
+```c
+struct events_table_t {
+int key;
+u32 leaf;
+/* map.perf_submit(ctx, data, data_size) */
+int (*perf_submit) (void *, void *, u32);
+int (*perf_submit_skb) (void *, u32, void *, u32);
+u32 max_entries;
+};
+__attribute__((section("maps/perf_output")))
+struct events_table_t events = { .max_entries = 0 }
+```
+
+`__attribute__((section("maps/perf_output")))`这个编译属性指定的section为`maps/perf_output`，上面的编译过程中`BFrontendAction`扫描到了这个编译属性以后会生成一个生成map的fake id，并存放在`fake_fd_map_`成员变量中。
+
+这个map的类型为`BPF_MAP_TYPE_PERF_EVENT_ARRAY`，key大小对应于`events_table_t`结构的key类型`int`，value大小对应于`events_table_t`结构的leaf类型`u32`，`max_entries`大小为cpu的个数。
+
+当执行到上面第6步的`load_maps`函数时，该函数会遍历`fake_fd_map_`，调用`bpf`系统调用，简化版代码可以认为是这样调用的：
+
+```c
+union bpf_attr attr = {
+.map_type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
+.key_size = sizeof(int),
+.value_size = sizeof(u32),
+.max_entries = get_possible_cpus().size(),
+.map_name = "events",
+};
+int bpf_map_fd = bpf(BPF_MAP_CREATE, &attr, sizeof(attr));
+```
+
+总结一下上面的过程：
+
+1. 编译bpf程序，编译产物存放在`BPFModule`类的`prog_func_info_`成员变量中
+
+2. 因为有了这一行代码：`BPF_PERF_OUTPUT(events);`就会调用`bpf`系统调用创建出一个bpf maps，类型为`BPF_MAP_TYPE_PERF_EVENT_ARRAY`
+
+### 2. 加载bpf程序：
+
+这一步就是调用`bpf`系统调用，cmd为`BPF_PROG_LOAD`，将上面编译的ebpf程序加载到内核中。
+
+### 3. attach bpf程序：
+
+加载完ebpf程序以后，还得将它以kprobes形式挂载到系统调用函数`sys_clone`，这种attach操作依赖于内核中已经存在机制：perf或者ftrace。
+
+bcc会优先使用perf的系统调用`perf_event_open`进行attach，如果它失败了则使用ftrace进行attach。
+
+使用`perf_event_open`进行attach的时候是这么调用的：
+
+```c
+perf_event_attr attr;
+attr.sample_period = 1;
+attr.wakeup_events = 1;
+attr.config |= (0 << 32);
+attr.config2 = 0;
+attr.size = sizeof(attr);
+attr.type = type;   //cat /sys/bus/event_source/devices/kprobe/type
+attr.config1 = ptr_to_u64((void *)"sys_clone");
+int pfd = perf_event_open(&attr,-1,0,-1,PERF_FLAG_FD_CLOEXEC)
+ioctl(pfd, PERF_EVENT_IOC_SET_BPF, progfd);//progfd为bpf(BPF_PROG_LOAD)后的返回值
+```
+
+这是第一次遇到`perf_event_open`这个系统调用，本文实现的dwarf的用户态栈回溯正是基于这个系统调用。
+
+如果失败了则使用ftrace进行attach：
+
+将attach字符串写入文件`/sys/kernel/debug/tracing/kprobe_events`即可。
+
+#### bpf程序的执行与数据获取：
+
+`hello_perf_output.py`程序的`hello`函数中的`events.perf_submit(ctx, &data, sizeof(data));`
+
+已经被替换成了如下函数：
+
+`bpf_perf_event_output(ctx, bpf_pseudo_fd(1, -1), CUR_CPU_IDENTIFIER, &data, sizeof(data));`
+
+`bpf_perf_event_output`第二个参数类型为`struct bpf_map *map`，而上面为`bpf_pseudo_fd(1, -1)`，可以看到生成的bpf程序的字节码：
+
+```asm
+; bpf_perf_event_output(ctx, bpf_pseudo_fd(1, -1), CUR_CPU_IDENTIFIER, &data, sizeof(data)); // Line 35
+
+14: 18 12 00 00 ff ff ff ff 00 00 00 00 00 00 00 00 ld_pseudo r2, 1, 4294967295
+```
+
+其实上`BPFModule::load_maps`函数中会对涉及到`bpf_pseudo_fd(1, -1)`形式的指令进行改写，将这个指令的立即数改写成events所对应的bpf maps文件描述符，也就是上面的`bpf_map_fd`。
+
+为什么`bpf_perf_event_output`第二个参数是`struct bpf_map *map`，但是调用它的时候传递的却是文件描述符呢，事实上在加载bpf程序的时候内核的`verifier.c`会调用`replace_map_fd_with_map_ptr`将`bpf_map_fd`映射为`bpf_map *`。
+
+`bpf_map`其实算是面向对象中的基类，map可以有很多种类型，比如`BPF_MAP_TYPE_PERF_EVENT_ARRAY`、`BPF_MAP_TYPE_HASH`、`BPF_MAP_TYPE_PERCPU_ARRAY`，对于`BPF_MAP_TYPE_PERF_EVENT_ARRAY`类型的bpf maps来说，内核中的实际数据结构为`bpf_array`，它包含着`bpf_map`对象。
+
+上面虽然调用了`int bpf_map_fd = bpf(BPF_MAP_CREATE, &attr, sizeof(attr));`创建出了一个`BPF_MAP_TYPE_PERF_EVENT_ARRAY`类型的bpf maps，但是这个maps并没有关联实际的perf存储，因此还无法往其中写入数据，需要用户空间调用`perf_event_open()`函数，将perf和bpf maps关联才行，我们在代码中看这是如何做的：
+
+看一下python程序中的这一句：
+
+`b["events"].open_perf_buffer(print_event)`
+
+它做的事情如下：
+
+1. 根据`"events"`名称找到events所对应的`bpf_map_fd`，创建出`PerfEventArray`对象并且调用它的`open_perf_buffer`函数，`print_event`是用于接收数据的回调。
+
+2. `PerfEventArray`对象的`open_perf_buffer`函数会针对每个在线的cpu都调用`perf_event_open`系统调用创建针对该cpu的`perf_event`：
+
+```c
+struct perf_event_attr attr = {};
+attr.config = 10;//PERF_COUNT_SW_BPF_OUTPUT;
+attr.type = PERF_TYPE_SOFTWARE;
+attr.sample_type = PERF_SAMPLE_RAW;
+attr.sample_period = 1;
+attr.wakeup_events = opts->wakeup_events;
+pfd = syscall(__NR_perf_event_open, &attr, pid, cpu, -1, PERF_FLAG_FD_CLOEXEC);
+```
+
+可以看到`perf_event_open`是个相当复杂的系统调用，有很多的参数配置。
+
+3. 调用`mmap`将`pfd`映射到当前用户空间，用于和内核通信，读取内核发送的perf记录。
+
+4. `ioctl(pfd, PERF_EVENT_IOC_ENABLE, 0)`启用事件。
+
+5. 回到`table.py`的`_open_perf_buffer`函数中调用：`self[self.Key(cpu)] = self.Leaf(fd)` 将所有的`perf_event`与bpf maps关联。这一步的原理其实是调用了`bpf(BPF_MAP_UPDATE_ELEM)`更新bpf maps中的键值对，键为cpu的下标，值为`perf_event_open`系统调用的返回值。
+
+bpf maps和`perf_event`关联以后，当`clone`系统调用被调用时，bpf程序会调用helper函数`bpf_perf_event_output`，往bpf maps所关联的`perf_event`中写数据，bcc会通过读取之前`mmap`的perf内存获取这些数据，调用python端的回调函数`print_event`从而打印出ebpf程序发送的数据。
+
+下面来看一下`perf_event_open`系统调用，`perf_event_open`的配置是相当复杂的，返回的信息也是五花八门。
+
+一开始这只是一个性能监测所使用的系统调用，现代的cpu都有被称为`PMU(performance monitoring unit)`的硬件模块，PMU有几个硬件计数器，用于给诸如以下的事件计数：cpu运转了多少个时钟周期，执行了多少指令以及有多少缓存丢失等等。
+
+Linux内核将这些硬件计数器包装成了硬件`perf events`，同时也有和硬件无关的软件perf events，后来软件perf events越来越多，比如和bpf相关的软件perf events为`PERF_COUNT_SW_BPF_OUTPUT`。
+
+perf事件有两种模式：计数和采样，配置了`sample_period`就是采样模式：
+
+```c
+static inline bool is_sampling_event(struct perf_event *event)
+{
+return event->attr.sample_period != 0;
+}
+```
+
+在采样模式下每达到一定的采样数量会将事件相关信息写入内核和用户空间共享的环形缓冲区中，而用户空间则通过`mmap`来读取这些数据。
+
+上面可以看到不仅attach ebpf程序的时候可以通过`perf_event_open`（被称为`perf_kprobe PMU`），ebpf程序和用户空间程序进行通信也可以使用它，而且效率很高，也是bcc推荐的通信方式。
+
+## 四. `trace.py`的栈打印
+
+`trace.py`会自动根据传入的参数帮我们生成一个bpf程序：
+
+```c
+#include <linux/ptrace.h>
+#include <linux/sched.h> /* For TASK_COMM_LEN */
+struct probe_do_sys_open_1_data_t
+{
+u32 tgid;
+u32 pid;
+char comm[TASK_COMM_LEN];
+char v0[80];
+int user_stack_id;
+u32 uid;
+};
+BPF_PERF_OUTPUT(probe_do_sys_open_1_events);
+BPF_STACK_TRACE(probe_do_sys_open_1_stacks, 1024);
+int probe_do_sys_open_1(struct pt_regs *ctx)
+{
+u64 __pid_tgid = bpf_get_current_pid_tgid();
+u32 __tgid = __pid_tgid >> 32;
+u32 __pid = __pid_tgid; // implicit cast to u32 for bottom half
+u32 __uid = bpf_get_current_uid_gid();
+if (__tgid == 22803) { return 0; }
+if (__uid != 10121) { return 0; }
+if (!(1)) return 0;
+struct probe_do_sys_open_1_data_t __data = {0};
+__data.tgid = __tgid;
+__data.pid = __pid;
+__data.uid = __uid;
+bpf_get_current_comm(&__data.comm, sizeof(__data.comm));
+if (PT_REGS_PARM2(ctx) != 0) {
+void *__tmp = (void *)PT_REGS_PARM2(ctx);
+bpf_probe_read_user(&__data.v0, sizeof(__data.v0), __tmp);
+}
+__data.user_stack_id = probe_do_sys_open_1_stacks.get_stackid(
+ctx, BPF_F_USER_STACK
+);
+probe_do_sys_open_1_events.perf_submit(ctx, &__data, sizeof(__data));
+return 0;
+}
+```
+
+经过处理以后
+
+```c
+__data.user_stack_id = probe_do_sys_open_1_stacks.get_stackid(ctx, BPF_F_USER_STACK);
+probe_do_sys_open_1_events.perf_submit(ctx, &__data, sizeof(__data));
+```
+
+变为：
+
+```c
+__data.user_stack_id = bpf_get_stackid(ctx,bpf_pseudo_fd(1, -2), BPF_F_USER_STACK);
+bpf_perf_event_output(ctx, bpf_pseudo_fd(1, -1), CUR_CPU_IDENTIFIER, &__data, sizeof(__data));
+```
+
+其中`bpf_perf_event_output`和`hello_perf_output.py`的流程一样就不再赘述了，这里还多了一个`bpf_get_stackid()`函数，它也是一个bpf helper函数。
+
+来看一下上面的程序的这一句：
+
+`BPF_STACK_TRACE(probe_do_sys_open_1_stacks, 1024);`
+
+`BPF_STACK_TRACE`这个宏同样定义在`src/cc/export/helpers.h`文件中，它被扩展为：
