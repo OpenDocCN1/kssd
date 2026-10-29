@@ -1,0 +1,712 @@
+
+```
+    {
+
+        //获取类android.app.ActivityThread的非静态成员变量mPackages的ID
+
+        mPackages=(*env)->GetFieldID(env, ActivityThread, "mPackages",  "Landroid/util/ArrayMap;");
+
+        // 获取类android.util.ArrayMap的全局引用(class)
+
+        if ( !myFindClass(env, &myArrayMap, "android/util/ArrayMap") )
+
+        {
+
+          LOGI("ERROR:myArrayMap");
+
+          return;
+
+        }
+
+        //通过myArrayMap获取其get方法的ID
+
+        ArrayMap_get=(*env)->GetMethodID(env,myArrayMap,"get","(Ljava/lang/Object;)Ljava/lang/Object;");
+
+
+
+        //通过ActivityThread获取mBoundApplication的ID
+
+        mBoundApplication = (*env)->GetFieldID(env,
+
+                            ActivityThread,
+
+                            "mBoundApplication",
+
+                            "Landroid/app/ActivityThread$AppBindData;");
+
+        //通过ActivityThread获取mInitialApplication的ID
+
+        mInitialApplication = (*env)->GetFieldID(
+
+                              env,
+
+                              ActivityThread,
+
+                              "mInitialApplication",
+
+                              "Landroid/app/Application;");
+
+        //通过ActivityThread获取mAllApplications的ID
+
+        mAllApplications = (*env)->GetFieldID(env, 
+
+                    ActivityThread, 
+
+                    "mAllApplications",
+
+                     "Ljava/util/ArrayList;");
+
+        //通过ActivityThread获取currentActivityThread的ID
+
+        currentActivityThread = (*env)->GetStaticMethodID(
+
+                                env,
+
+                                ActivityThread,
+
+                                "currentActivityThread",
+
+                                "()Landroid/app/ActivityThread;");
+
+        //LOGI("ActivityThread:%p,%p,%p,%p",mBoundApplication,mInitialApplication,mAllApplications,currentActivityThread);
+
+
+
+
+
+        // 获取类android.app.ActivityThread$AppBindData的全局引用（内部class）
+
+        if ( !myFindClass(env, &AppBindData, "android/app/ActivityThread$AppBindData") )
+
+        {
+
+          LOGI("ERROR:AppBindData");
+
+          return;
+
+        }
+
+        //通过AppBindData获取info的ID
+
+        AppBindData_info=(*env)->GetFieldID(env, AppBindData, "info", "Landroid/app/LoadedApk;");
+
+
+
+        // 获取类java.util.ArrayList的全局引用（class）
+
+        if ( !myFindClass(env, &myArrayList, "java/util/ArrayList") )
+
+        {
+
+           LOGI("ERROR:myArrayList");
+
+            return;
+
+        }
+
+        //通过ArrayList获取ArrayList的size、get、set方法的ID
+
+        arraylist_size = (*env)->GetMethodID(env, myArrayList, "size", "()I");
+
+        arraylist_get = (*env)->GetMethodID(env, myArrayList, "get", "(I)Ljava/lang/Object;");
+
+        arraylist_set = (*env)->GetMethodID(env, myArrayList, "set", "(ILjava/lang/Object;)Ljava/lang/Object;");
+
+
+
+        // 获取类android.content.Context的全局引用（class）
+
+        if ( !myFindClass(env, &myContext, "android/content/Context") )
+
+        {
+
+          LOGI("ERROR:myContext");
+
+           return;
+
+        }
+
+        //通过Context获取Context的getPackName、getApplicationInfo、getClassLoader、getAssets、getPackageResourePath方法的ID
+
+        context_getPackageName = (*env)->GetMethodID(env, myContext, "getPackageName", "()Ljava/lang/String;");
+
+        context_getApplicationInfo = (*env)->GetMethodID(
+
+                                           env,
+
+                                           myContext,
+
+                                           "getApplicationInfo",
+
+                                           "()Landroid/content/pm/ApplicationInfo;");
+
+        context_getClassLoader = (*env)->GetMethodID(
+
+                                         env,
+
+                                         myContext,
+
+                                         "getClassLoader",
+
+                                         "()Ljava/lang/ClassLoader;");
+
+        context_getAssets = (*env)->GetMethodID(
+
+                                    env,
+
+                                    myContext,
+
+                                    "getAssets",
+
+                                    "()Landroid/content/res/AssetManager;");
+
+        context_getPackageResourePath = (*env)->GetMethodID(
+
+                                      env,
+
+                                      myContext,
+
+                                      "getPackageResourcePath",
+
+                                      "()Ljava/lang/String;");
+
+
+
+
+
+        // 获取类java.lang.rel.WeakReference的全局引用（class）
+
+        if ( !myFindClass(env, &myWeakReference, "java/lang/ref/WeakReference") )
+
+        {
+
+           LOGI("ERROR:myWeakReference");
+
+          return;
+
+        }
+
+        //通过WeakReference获取其的get方法的ID
+
+        WeakReference_get = (*env)->GetMethodID(env, myWeakReference, "get", "()Ljava/lang/Object;");
+
+
+
+        // 获取类android.app.LoadedApk的全局引用（class）
+
+        if ( !myFindClass(env, &myLoadedApk, "android/app/LoadedApk") )
+
+        {
+
+            LOGI("ERROR:myLoadedApk");
+
+            return;
+
+        }
+
+        //通过LoadedApk获取其的mClassLoader、mApplication的ID
+
+        LoadedApk_mClassLoader = (*env)->GetFieldID(
+
+                                           env,
+
+                                           myLoadedApk,
+
+                                           "mClassLoader",
+
+                                           "Ljava/lang/ClassLoader;");
+
+        LoadedApk_mApplication = (*env)->GetFieldID(
+
+                                           env,
+
+                                           myLoadedApk,
+
+                                           "mApplication",
+
+                                           "Landroid/app/Application;");
+
+
+
+        // 获取类android.content.pm.ApplicationInfo的全局引用（class）
+
+        if ( !myFindClass(env, &myApplicationInfo, "android/content/pm/ApplicationInfo") )
+
+        {
+
+           LOGI("ERROR:myApplicationInfo");
+
+            return;
+
+        }
+
+        //通过ApplicationInfo获取其dataDir、nativeLibraryDir、sourceDir的ID
+
+        ApplicationInfo_dataDir = (*env)->GetFieldID(
+
+                                              env,
+
+                                              myApplicationInfo,
+
+                                              "dataDir",
+
+                                              "Ljava/lang/String;");
+
+        ApplicationInfo_nativeLibraryDir =(*env)->GetFieldID(
+
+                                                       env,
+
+                                                       myApplicationInfo,
+
+                                                       "nativeLibraryDir",
+
+                                                       "Ljava/lang/String;");
+
+        ApplicationInfo_sourceDir = (*env)->GetFieldID(
+
+                                                env,
+
+                                                myApplicationInfo,
+
+                                                "sourceDir",
+
+                                                "Ljava/lang/String;");
+
+
+
+
+
+        // 获取类android.app.Application的全局引用（class）
+
+        if ( !myFindClass(env, &myApplication, "android/app/Application") )
+
+        {
+
+          LOGI("ERROR:myApplication");
+
+          return;
+
+        }
+
+        //通过Application类获取其onCreate、attach方法的ID
+
+        Application_onCreate = (*env)->GetMethodID(env, myApplication, "onCreate", "()V");
+
+        Application_attach = (*env)->GetMethodID(
+
+                                           env,
+
+                                           myApplication,
+
+                                           "attach",
+
+                                           "(Landroid/content/Context;)V");
+
+        /*
+
+        StubApplication-->atachContextBaseContext()-->super.attachBaseContext
+
+        */
+
+        // 获取类android.content.ContextWrapper的全局引用（class）
+
+        if ( !myFindClass(env, &myContextWrapper, "android/content/ContextWrapper") )
+
+        {
+
+          LOGI("ERROR:myContextWrapper");
+
+          return;
+
+        }
+
+        //通过android.content.ContextWrapper类获取其attachBaseContext方法的ID
+
+        ContextWrapper_attachBaseContext = (*env)->GetMethodID(
+
+                                                       env,
+
+                                                       myContextWrapper,
+
+                                                       "attachBaseContext",
+
+                                                       "(Landroid/content/Context;)V");
+
+
+
+
+
+
+
+        LOGI("PathClassLoader start");  
+
+        // 获取类dalvik.system.PathClassLoader的全局引用（class）
+
+        if ( !myFindClass(env, &myPathClassLoader, "dalvik/system/PathClassLoader") )
+
+        {
+
+          LOGI("ERROR:myPathClassLoader");
+
+          return;
+
+        }
+
+        //判断sdk版本
+
+        if(sdk_int>13)
+
+        {
+
+        // 获取类dalvik.system.BaseDexClassLoader的全局引用（class）
+
+          if ( !myFindClass(env, &myBaseDexClassLoader, "dalvik/system/BaseDexClassLoader") )
+
+          {
+
+            LOGI("ERROR:myBaseDexClassLoader");
+
+            return;
+
+          }
+
+        //通过BaseDexClassLoader类获取其pathlist的ID
+
+          BaseDexClassLoader_pathList = (*env)->GetFieldID(
+
+                                              env,
+
+                                              myBaseDexClassLoader,
+
+                                              "pathList",
+
+                                              "Ldalvik/system/DexPathList;");
+
+        // 获取类dalvik.system.DexPathList的全局引用（class）                                      
+
+          if ( !myFindClass(env, &myDexPathList, "dalvik/system/DexPathList") )
+
+          {
+
+            LOGI("ERROR:myDexPathList");
+
+            return;
+
+          }
+
+        //通过DexPathList类获取其pathlist的ID
+
+          DexPathList_dexElements = (*env)->GetFieldID(
+
+                                              env,
+
+                                              myDexPathList,
+
+                                              "dexElements",
+
+                                              "[Ldalvik/system/DexPathList$Element;");
+
+        // 获取类dalvik.system.DexPathList.Element的全局引用（内部class）
+
+          if ( !myFindClass(env, &myElement, "dalvik/system/DexPathList$Element") )
+
+          {
+
+            LOGI("ERROR:myElement");
+
+            return;
+
+          }
+
+
+
+        //通过Element类获取其dexFile的ID
+
+          DexPathList_Element_dexFile = (*env)->GetFieldID(
+
+                                              env,
+
+                                              myElement,
+
+                                              "dexFile",
+
+                                              "Ldalvik/system/DexFile;");
+
+        //判断sdk版本，这里是基于安卓6.0的初始化
+
+        /*
+
+        由于6.0和其之前的版本存在差异，需要反射其他代码
+
+        */
+
+          if(sdk_int>22){//6.0
+
+          //通过Element类获取其dir的ID
+
+            DexPathList_Element_file = (*env)->GetFieldID(env, myElement, "dir", "Ljava/io/File;");
+
+          }else{
+
+            //通过Element类获取其dir的ID
+
+            DexPathList_Element_file = (*env)->GetFieldID(env, myElement, "file", "Ljava/io/File;");
+
+          }
+
+            //获取类java.io.File的全局引用（class）
+
+          if ( !myFindClass(env, &myFile, "java/io/File") )
+
+          {
+
+            LOGI("ERROR:myFile");
+
+            return;
+
+          }
+
+          //通过myFile类获取其getAbsolutePath的ID
+
+          myFile_getAbsolutePath = (*env)->GetMethodID(
+
+                                              env,
+
+                                              myFile,
+
+                                              "getAbsolutePath",
+
+                                              "()Ljava/lang/String;");
+
+          LOGI("PathClassLoader end"); 
+
+          //获取类dalvik.system.DexFile的全局引用（class）
+
+          if ( !myFindClass(env, &myDexFile, "dalvik/system/DexFile") )
+
+          {
+
+            LOGI("ERROR:myDexFile");
+
+            return;
+
+          }   
+
+          //判断sdk版本（其实这里有点累赘了可以把代码放在前面的判断）
+
+          if(sdk_int>22)
+
+          {//通过DexFile类获取其mCookie的ID和静态方法openDexFile的ID
+
+              mCookie = (*env)->GetFieldID(env, myDexFile, "mCookie", "Ljava/lang/Object;");
+
+              myOpenDexFile=(*env)->GetStaticMethodID(env, myDexFile, "openDexFile", "(Ljava/lang/String;Ljava/lang/String;I)Ljava/lang/Object;");
+
+          }
+
+
+
+          else if ( sdk_int > 19 )//5.0版本的mCookie和myOpenDexFile的签名和6.0存在差异
+
+          {//通过DexFile类获取其mCookie的ID和静态方法openDexFile的ID
+
+            mCookie = (*env)->GetFieldID(env, myDexFile, "mCookie", "J");
+
+
+
+            myOpenDexFile=(*env)->GetStaticMethodID(env, myDexFile, "openDexFile", "(Ljava/lang/String;Ljava/lang/String;I)J");
+
+
+
+          }
+
+
+
+          else
+
+          {
+
+              //5.0一下版本的mCookie和myOpenDexFile的签名和6.0存在差异
+
+            mCookie = (*env)->GetFieldID(env,myDexFile, "mCookie", "I");     
+
+            myOpenDexFile=(*env)->GetStaticMethodID(env, myDexFile, "openDexFile", "(Ljava/lang/String;Ljava/lang/String;I)I");
+
+
+
+          }      
+
+
+
+          if ( !myFindClass(env, &myClassLoader, "java/lang/ClassLoader") )
+
+          {
+
+            LOGI("ERROR:myClassLoader");
+
+            return;
+
+          }
+
+          //android 5+以上无法用findClass找到android.app.Application类
+
+          classLoader_findClass = (*env)->GetMethodID( env,
+
+                                                        myClassLoader,
+
+                                                        "loadClass",
+
+                                                        "(Ljava/lang/String;)Ljava/lang/Class;");
+
+
+
+          LOGI("System start");
+
+          //获取类java.lang.System的全局引用（class）
+
+          if ( !myFindClass(env, &mySystem, "java/lang/System") )
+
+          {
+
+            LOGI("ERROR:myClassLoader");
+
+            return;
+
+          }
+
+          //通过System类获取getProperty静态方法的ID
+
+          system_getProperty = (*env)->GetStaticMethodID(
+
+                                 env,
+
+                                 mySystem,
+
+                                 "getProperty",
+
+                                 "(Ljava/lang/String;)Ljava/lang/String;");
+
+
+
+          LOGI("SystemProperties start");
+
+
+
+          status= myFindClass(env,
+
+                               &mySystemProperties,
+
+                               "android/os/SystemProperties");
+
+
+
+          if(status)
+
+          {
+
+          /*            SystemProperties_get = (*env)->GetStaticMethodID(
+
+                              env,
+
+                              mySystemProperties,
+
+                              "get",
+
+                              "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");*/
+
+             SystemProperties_get = (*env)->GetStaticMethodID(
+
+                              env,
+
+                              mySystemProperties,
+
+                              "get",
+
+                              "(Ljava/lang/String;)Ljava/lang/String;");
+
+            //获取jstring类型的变量vmname，存放"java.vm.name"字符串
+
+            jstring vmname = (*env)->NewStringUTF(env, "java.vm.name");
+
+            //通过获取的getProperty方法的ID，调用有参方法getProperty("java.vm.name")，获取当前安卓虚拟机的名字
+
+            jobject tmp= (*env)->CallStaticObjectMethod(env, mySystem, system_getProperty, vmname);
+
+
+
+            // 将tmp转换成C语言字符串
+
+            const char* v22 =  (*env)->GetStringUTFChars(env, tmp, 0);
+
+            LOGI("------- vmNameStr:%s", v22);//将转换成c语言字符的虚拟机名字打印
+
+            (*env)->ReleaseStringUTFChars(env, tmp, v22);
+
+
+
+            // persist.sys.dalvik.vm.lib
+
+            // persist.sys.dalvik.vm.lib.2
+
+            jstring vmlibstr = (*env)->NewStringUTF(env, "persist.sys.dalvik.vm.lib.2");
+
+
+
+            //这里反编译出错
+
+            jobject runtime = (*env)->CallStaticObjectMethod(env, mySystemProperties, SystemProperties_get, vmlibstr );
+
+
+
+            const char* v28 = (*env)->GetStringUTFChars(env, runtime, 0);
+
+
+
+            //释放内存空间
+
+            (*env)->ReleaseStringUTFChars(env, runtime, v28);
+
+            //获取jstring类型的变量vm_version，存放"java.vm.version"字符串
+
+            jstring vm_version = (*env)->NewStringUTF(env, "java.vm.version");
+
+            //通过获取的getProperty方法的ID，调用有参方法getProperty("java.vm.name")，获取当前安卓虚拟机的版本
+
+            jobject v32 = (*env)->CallStaticObjectMethod(env, mySystem, system_getProperty, vm_version);
+
+            // 将v32转换成C语言字符串
+
+            const char* runtime_version = (*env)->GetStringUTFChars(env, v32, 0);
+
+            LOGI("---- vmVersionStr:%s", runtime_version);
+
+            //将虚拟机版本字符串转化成双精度浮点型(double)
+
+            double d=atof(runtime_version);
+
+            //根据逻辑，如果d>2则不是Dalvik虚拟机
+
+            if(d>2)
+
+              isDalvik=0;
+
+            else
+
+              isDalvik=1;
+
+          //释放内存
+
+            (*env)->ReleaseStringUTFChars(env, v32, runtime_version);
+
+
+
+            return ;
+
+          }
+
+
+
+        }
+
+    }
+```
