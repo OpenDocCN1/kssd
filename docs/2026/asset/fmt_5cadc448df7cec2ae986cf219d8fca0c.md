@@ -1,0 +1,173 @@
+
+# IOS逆向笔记汇总
+
+## 1.砸壳 dumpdecrypted [下载地址](https://bbs.kanxue.com/elink@d50K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6p5j5g2y4W2L8Y4y4Q4x3V1k6o6M7X3q4U0K9#2)9J5k6r3k6A6L8r3f1`.)
+
+1. `ssh root@[设备ip]` （iP地址为设备的iP地址）
+2. `ps -e` （查看需要砸壳的进程）
+3. `cycript -p` （附加进程）
+4. `[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask][0]` （查看app在documents的地址）
+5. `scp ~/dumpdecrypted.dylib root@[设备ip]:/var/mobile/Containers/Data/Application/2B4C6281-C015-4FF3-A8EC-5E5C7554D447/Documents` （将砸壳的动态库文件存入到documets目录下）
+6. `DYLD_INSERT_LIBRARIES=dumpdecrypted.dylib/var/mobile/Containers/Bundle/Application/3F00BB3C-F56E-46B1-A785-562E0C130002/WeChat.app/WeChat` （砸壳）
+
+7. documents下的`WeChat.decrypted`为砸壳后的文件
+
+## 2.导出头文件 class-dump [下载地址](https://bbs.kanxue.com/elink@b65K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4y4@1k6i4k6W2L8Y4W2Y4j5i4u0V1i4K6u0W2j5$3!0E0i4K6u0r3M7s2u0G2K9X3g2U0N6s2y4Q4x3V1k6U0L8r3q4K6M7#2)9J5k6r3c8#2L8i4m8Q4x3V1j5`.)
+
+`class-dump -s -S -H <砸壳后的文件> -o <文件存放的目录>`
+
+## 3.THEOS越狱开发工具包 [下载地址](https://bbs.kanxue.com/elink@0edK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6@1K9r3g2G2M7#2)9J5c8Y4c8Z5k6h3!0K6i4K6u0W2k6$3W2@1)
+
+1. `sudo git clone --recursive 854K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6@1K9r3g2G2M7#2)9J5c8Y4c8Z5k6h3!0K6i4K6u0W2k6$3W2@1 /opt/theos` （下载直接安装到`/opt/theos`目录下）
+2. 安装`dkkg ldid`（安装前需要下载homebrew套件管理工具）
+   `homebrew:/usr/bin/ruby -e "$(curl -fsSL 96bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6J5j5i4N6Q4x3X3g2Y4K9i4c8Z5N6h3u0#2M7$3g2J5j5$3!0F1N6r3g2F1N6q4)9J5k6h3y4G2L8g2)9J5c8V1S2G2L8h3g2T1M7X3g2%4i4K6u0r3K9h3&6K6N6r3q4D9L8q4)9J5c8X3#2S2M7%4c8W2M7W2)9J5c8X3W2F1M7%4c8S2L8r3I4Q4x3U0V1`."`
+   `brew install dpkg`
+   `brew install ldid`
+3. 创建`nic.pl`工程。
+   `export THEOS=/opt/theos`
+   `$THEOS/bin/nic.pl`
+4. 根据不同的需求创建不同的包,然后`make package install` 执行3个步骤 编译,打包,安装（Makefile编译的文件后面会有文档）
+5. 将生成的`deb`安装包放入`/var/root/Media/Cydia/AutoInstall`目录下面。
+
+## 4.常用 Tweak.xm 预处理指令
+
+```
+%hook classname   需要hook的类名字
+
+%hook a
+%end
+
+%orig 打印原始函数,可以修改原始参数
+%orig(@“fix the param”,param);
+
+%log  该指令在%hook内部使用  将函数的类名，参数等信息写入到syslog
+   %log((NSString *)@“iosre”,(NSString *)@“debug”)
+
+%group
+hook分组需要%init来初始化这个分组,
+
+%group a
+%hook
+-(void)a{
+NSLog(@“aaaaa”);
+}
+%end
+%end
+
+%group b
+%hook
+-(void)b{
+NSLog(@“bbbb”);
+}
+%end
+%end
+
+%hook springboard
+-(void)method{
+     if(true){
+     %init(a);
+}else{
+%init(b);
+}
+}
+
+%ctor  完成初始化init方法的作用(不需要以%end结尾)
+%ctor{
+  %init();
+}
+
+%new
+%hook c 动态创建一个c的class(相当于重新创建一个c的class)
+%new
+-(void)namespacenewmethod{
+  NSLog(@“We’ve added a new method to c”);
+}
+%end
+
+%c
+该指令的等同于objc_getclass或NSClassFromString,即动态获取一个类的定义,在%hook或%ctor内使用
+```
+
+## 5.cycript 脚本语言
+
+可以通过获取这个对象的内存地址来操作它的函数或者属性.
+`uialertview:0x166b4fb0` 比如说这个`uialertview`在内存中的地址是`0x166b4fb0`,可以直接调用它的api
+`[#0x166b4fb0 show]`
+
+#查看当前布局
+`UIApp.keyWindow.recursiveDescription().toString()`
+#查看当前控件的父级元素
+#控件在内存中的16进制数地址.nextResponder()
+
+`control+d` 退出`cycript`
+`cycript -p [进程id]` 编辑这个进程中的脚本
+
+## 6.openssh
+
+`ssh root@[ios设备ip]` （连接越狱手机的设备）
+`openssh`默认密码:`alpine`
+
+`scp`命令:
+将本地文件拷贝到远程:
+`scp <本地文件> root@<远程ip地址>:<远程目录>`
+将远程文件拷贝到本地:
+`scp root@<远程ip>:<远程文件目录> <本地目录>`
+
+## 7.iFiles,iFunBox 文件管理工具
+
+`iFiles` ios设备查看文件系统
+`iFunBox` mac设备查看ios设备的文件系统
+
+## 8.syslogd 日志清空
+
+`cydia`下载`syslogd`插件
+`cat /dev/null > /var/log/syslog`
+
+## 9.二进制文件提取 dyld_decache [下载地址](https://bbs.kanxue.com/elink@1c0K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2K6x3#2)9J5k6h3q4E0j5i4A6G2L8X3q4%4M7#2)9J5k6h3y4G2L8g2)9J5c8X3c8G2N6$3&6D9L8$3q4V1M7#2)9J5c8X3E0W2L8X3&6&6N6r3#2Q4x3V1k6y4K9i4y4U0k6h3I4D9j5h3&6W2L8%4g2K6i4K6u0r3k6s2W2D9k6q4)9#2k6X3c8W2j5$3q4U0K9r3g2Q4x3U0f1#2b7Y4j5H3i4K6u0W2x3h3y4Q4x3U0f1#2c8q4)9J5k6h3u0*7x3W2)9K6c8W2S2Q4x3X3c8m8L8i4A6Q4x3X3c8m8L8r3N6G2M7X3W2@1K9r3#2Q4x3@1c8m8g2#2x3@1i4K6u0V1d9p5#2m8b7#2)9J5k6q4y4t1b7e0t1#2y4W2)9J5y4X3q4E0M7q4)9K6b7W2S2Q4x3X3c8m8L8i4A6Q4x3X3c8o6M7X3g2V1k6h3&6@1K9h3q4D9i4K6y4p5b7f1E0u0b7f1W2e0g2p5&6K9c8V1!0h3b7V1W2v1e0f1D9K6g2q4q4Q4x3U0f1J5c8U0t1H3x3e0M7I4x3U0t1H3i4K6t1#2x3V1k6#2M7#2)9J5k6r3g2S2M7%4c8Q4x3X3b7I4i4K6t1#2x3V1k6K6x3#2)9J5y4e0u0r3j5i4N6K6y4q4)9#2k6Y4u0W2M7i4g2W2M7%4c8Q4x3U0k6S2L8i4m8Q4x3@1u0j5i4K6u0V1b7h3#2*7i4K6u0V1c8r3q4@1k6g2)9K6c8o6t1H3x3e0M7I4x3U0t1H3g2o6p5@1x3U0l9#2x3q4A6Q4x3U0k6S2L8i4m8Q4x3@1u0j5i4K6u0V1b7h3#2*7i4K6u0V1c8i4S2H3K9i4u0W2M7#2)9K6c8o6x3H3x3q4)9J5y4X3q4E0M7q4)9K6b7W2S2Q4x3X3c8m8L8i4A6Q4x3X3c8e0K9h3N6F1k6h3c8t1k6h3q4V1k6i4u0K6i4K6y4p5K9r3!0K6N6q4)9J5y4X3q4E0M7q4)9K6b7W2S2Q4x3X3c8m8L8i4A6Q4x3X3c8e0K9h3N6F1j5i4c8#2M7X3g2Q4x3@1c8U0j5e0x3I4y4X3x3$3y4r3x3^5z5e0l9J5x3e0M7K6j5$3f1^5y4e0W2X3j5K6j5#2y4K6M7J5y4U0V1@1x3U0b7#2k6o6x3$3y4K6g2V1k6U0l9I4z5o6M7#2y4o6M7$3x3$3b7@1y4X3f1%4z5e0V1@1x3$3x3#2k6e0g2X3)
+
+因为 ios 很多二进制库文件被隐藏许多 framwork 库文件放进了 cache 里面
+`chmod 777 /path/to/dyld_decache` 9 （添加权限）
+
+导出 framework 隐藏的二进制文件
+`./dyld_decache[v0.1c] -o <输出目录> dyld_shared_cache_armx`
+
+## 10.reveal 逆向分析
+
+`cydia`中的插件
+`Reveal Loader 1.0.0`
+安装后，请重启手机
+连接调试的进程就可以看到当前的 ui
+
+## 11.debugserver (动态调试,附加子进程)
+
+`debugserver`
+1. `scp root@[iosip]:/Developer/user/bin/debugserver ~/debugserver`
+2. `lipo -thin armv7s ~/debugserver -output ~/debugserver` （帮它减肥）
+3. `/opt/theos/bin/ldid -Sent.xml debugserver` （添加 task_fore_pid 权限）
+4. `scp ~/debugserver root@iosip:/user/bin/debugserver`（将处理好的 debugserver 放回去）
+5. `debugserver ip:port -a "mobilesms"` （附加 mobilesms 进程）
+   `debugserver -x background ip:port /application/mobilesms.app/mobilesms`（启动 mobilesms 进程）
+
+## 12.lldb
+
+`/Applications/Xcode.app/Contents/Developer/usr/bin/lldb`
+使用 `usbmuxd` 能提升 `ssh` 的速度,`lldb` 连接 `debugserver` 时间缩短至 15 秒内
+
+## usbmuxd [下载地址](https://bbs.kanxue.com/elink@12bK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3y4Y4K9i4c8Q4x3X3g2K6N6h3E0A6L8h3q4K6K9r3W2@1j5g2)9J5k6h3y4G2L8g2)9J5c8Y4g2K6j5X3#2#2P5r3c8Q4x3X3g2Y4K9i4c8Q4x3V1k6K6L8X3q4H3M7$3S2G2N6q4)9J5c8Y4g2K6j5X3#2#2P5r3c8Q4x3X3b7I4i4K6u0W2x3q4)9J5k6e0S2Q4x3X3g2@1j5i4u0Q4x3X3g2Y4P5R3`.`.)
+
+1. `/Users/beyond/Code/USBSSH` （将 python-client 目录下的 `tcprelay.py` 和 `usbmuxd.py` 两文件，复制到工作目录）
+2. `/Users/beyond/Code/USBSSH/tcprelay.py -t iOS的端口:mac上的端口` （即可将 mac 上的端口转发到 iOS 上的端口）
+3. `debugserver` 附加 `springboard`
+   `ssh root@localhost -p mac端口`
+   `debugserver *:1234 -a "springboard"`
+4. 将本地 mac 端口转发到 ios
+5. `lldb` 调试
+   `/Applications/Xcode.app/Contents/Developer/usr/bin/lldb`
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+- [Ios逆向文档.rtf](javascript:void(0);)
+  （6.93kb，184次下载）
+- [IOS的tweak语法.txt](javascript:void(0);)
+  （0.91kb，164次下载）
