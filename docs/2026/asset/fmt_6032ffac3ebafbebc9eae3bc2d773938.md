@@ -1,0 +1,80 @@
+
+新的代码空间地址是`0xa9b83000`。从我们修改的指令来看，它会跳转到`0xa9b83000`，木有问题。
+
+然后返回的地址是`0x93762204`，恰好也是要回来的地址。
+
+### 执行备份指令，和我们自己的逻辑
+
+执行备份指令比较简单，但是我们自己的逻辑可不能用Arm汇编来写，frida已经帮我们想好了，可以创建一个`NativeCallback`，执行备份指令之后，直接可以跳转到 firida的 `NativeCallback`。听起来很牛的样子。
+
+```js
+// Hook 逻辑，这里只打印 参数
+hookSyscall(address, new NativeCallback(function (dirfd, pathname, mode, flags) {
+  let path = pathname.readCString();
+  log('Called openat hook');
+  log('- R0: ' + dirfd);
+  log('- R1: ' + path);
+  log('- R2: ' + mode);
+  log('- R3: ' + flags);
+  return 0;
+}, 'int', ['int', 'pointer', 'int', 'int']));
+......
+// 创建一个新的代码空间，放我们自己的代码
+let frida = Memory.alloc(Process.pageSize);
+// 开始写程序了
+writer = new ArmWriter(code, { pc: frida });
+// 执行备份的指令
+writer.putBytes(instructions);
+// 寄存器入栈，这里把r0也入栈了
+// FF 5F 2D E9 STMFD SP!, {R0-R12,LR} 寄存器入栈
+writer.putInstruction(0xE92D5FFF);
+// 00 A0 0F E1 MRS R10, CPSR
+// 00 04 2D E9 STMFD SP!, {R10} 状态寄存器入栈
+writer.putInstruction(0xE10FA000);
+writer.putInstruction(0xE92D0400);
+// instructions.size = 20 + 5条指令
+// 修改lr寄存器，保障执行我们自己的逻辑之后还能回来继续向下执行。
+writer.putLdrRegAddress("lr",frida.add(20 + 5*4));
+writer.putBImm(callback);
+// 00 04 BD E8 LDMFD SP!, {R10}
+// 状态寄存器出栈
+// 0A F0 29 E1 MSR CPSR_cf, R10
+writer.putInstruction(0xE8BD0400);
+writer.putInstruction(0xE129F00A);
+// FF 5F BD E8 LDMFD SP!, {R0-R12,LR} 寄存器出栈
+writer.putInstruction(0xE8BD5FFF);
+// 我回来了 0x93762204
+writer.putBranchAddress(retAddress);
+writer.flush();
+```
+
+再跑一下，
+
+```text
+Called openat hook
+- R0: 86
+- R1: /proc/self/maps
+- R2: 0
+- R3: 0
+```
+
+## 三、总结
+
+本文来自[b8cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6m8k6h3!0F1e0s2g2U0K9h3c8Q4x3V1k6X3M7X3W2V1j5g2)9J5k6s2y4&6M7$3y4S2L8r3I4Q4x3X3c8A6L8Y4c8W2M7X3y4W2M7s2c8G2M7R3`.`.](https://bbs.kanxue.com/elink@9f3K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6m8k6h3!0F1e0s2g2U0K9h3c8Q4x3V1k6X3M7X3W2V1j5g2)9J5k6s2y4&6M7$3y4S2L8r3I4Q4x3X3c8A6L8Y4c8W2M7X3y4W2M7s2c8G2M7R3`.`.) ，(对，就是AndroidNativeEmu的作者。 Orz) ,**作者实现了arm64下面的hook，我们把arm32的hook补上了**，所以调试的时候需要在 arm32的手机上去调试。
+
+frida 脚本采用 typescript project, 调试和编译脚本的时候需要参照 [6e3K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3V1k6G2L8r3g2S2N6Y4u0Q4x3V1k6X3M7X3W2V1j5g2)9J5k6r3q4Y4k6h3&6@1i4K6u0V1k6i4S2S2L8i4m8D9k6b7`.`.](https://bbs.kanxue.com/elink@97fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3V1k6G2L8r3g2S2N6Y4u0Q4x3V1k6X3M7X3W2V1j5g2)9J5k6r3q4Y4k6h3&6@1i4K6u0V1k6i4S2S2L8i4m8D9k6b7`.`.)  。
+
+frida-syscall-interceptor和frida-agent-example在同级目录。
+
+生成js文件时，会提示`ArmWriter`的`putBranchAddress`函数找不到，其实这个函数是存在的，只是库文件没有更新， 手工在`declare class ArmWriter`里面增加一下`putBranchAddress`的声明。
+
+我们的实现只是把参数和结果打印出来了，在我们自己的`NativeCallback`中并不能方便的去修改这些入参和返回值。这个就给大家留作业了。 参照 [e3fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3V1k6*7K9s2g2G2N6r3!0F1k6#2)9J5c8V1q4F1k6s2u0G2K9h3c8Q4y4h3k6u0L8X3I4A6L8X3g2t1L8$3!0C8](https://bbs.kanxue.com/elink@473K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6*7K9s2g2G2N6r3!0F1k6#2)9J5c8V1q4F1k6s2u0G2K9h3c8Q4y4h3k6u0L8X3I4A6L8X3g2t1L8$3!0C8) 的原理，那就想怎么玩就怎么玩。
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+[#基础理论](https://bbs.kanxue.com/forum-161-1-117.htm)
+
+上传的附件：
+
+- [fridaSrc.zip](javascript:void(0);)（297.20kb，216次下载）
+- [syscalldemoAPK.zip](javascript:void(0);)（2.66MB，164次下载）
