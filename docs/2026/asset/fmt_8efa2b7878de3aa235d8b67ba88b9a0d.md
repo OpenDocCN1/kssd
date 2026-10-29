@@ -1,0 +1,235 @@
+
+# [原创]移动应用安全与风控——汇编基础
+
+[移动应用安全与风控](https://bbs.kanxue.com/thread-277381.htm)
+
+# 第三章 汇编基础
+
+汇编语言是一种用于电子计算机、微处理器、微控制器或其他可编程器件的低级语言，亦称为符号语言。在汇编语言中，用助记符（Mnemonics）代替机器指令的操作码，用地址符号（Symbol）或标号（Label）代替指令或操作数的地址。
+
+## 3.1 Smali汇编基础
+
+Smali语言最早是由JesusFreke发布在Google Code上的一个开源项目，并不是拥有官方标准的语言。Smali是Dalvik虚拟机字节码的反向翻译，Dalvik虚拟机（Dalvik VM）是Google专门为Android平台设计的一套虚拟机，在Dalvik虚拟机上运行的文件是dex文件，dex文件反编译之后就是Smali代码。因此也将Smali语言称作Android虚拟机的反汇编语言。
+
+### 3.1.1 基本类型
+
+Smali基本数据类型中包含两种类型，原始类型和引用类型。对象类型和数组类型是引用类型，其它都是原始类型。具体数据类型如下表所示。
+
+| **Smali** | **Java** | 说明 |
+| --- | --- | --- |
+| `v` | `void` | 只能用于返回值类型 |
+| `Z` | `boolean` | 布尔类型 |
+| `B` | `byte` | 字节类型 |
+| `S` | `short` | 短整型 |
+| `C` | `char` | 字符型 |
+| `I` | `int` | 整数类型 |
+| `J` | `long` | 长整型 |
+| `F` | `float` | 浮点型数据类型 |
+| `D` | `double` | 双精度浮点型 |
+| `Lpackage/name;` | 对象类型 | `L`接完整的包名，使用“`;`”表示对象名称的结束 |
+| `[数据类型` | 数组 | `[Ljava/lang/String;`，表示一个`String`类型的数组 |
+
+如果熟悉Java的数据类型，就会发现Smali的原始数据类型除`boolean`类型外都是Java基本数据类型首字母的大写，很容易理解。这里重点介绍对象类型和数组类型：
+
+对象类型，在Java代码中使用完整的包名的方式表示对象类型，比如：`java.lang.String`。而在Smali中则是以`LpackageName/objectName`的形式表示对象类型。`L`即上面定义的Java类类型，表示后面跟着的是类的全限定名。比如Java中的`java.lang.String`对象类型在Smali中对应的描述是`Ljava/lang/String;`。
+
+数组类型，Smali中的数组类型使用“`[`”进行标记，“`[`”后跟着基本数据类型的描述符。比如Java中的`int[]`数组在Smali中表示是`[I`，二维数组`int[][]`为`[[I`，三维数组则用`[[[I`表示。对于对象数组来说，“`[`”后跟着对应类的全限定符即可。比如Java当中的`String[]`数组在Smali中对应描述是`[java/lang/String;`。
+
+### 3.1.2 寄存器
+
+Smali中寄存器的数量和Dalvik虚拟机有关最多支持65536个寄存器，具体程序中使用的寄存数量由具体函数中的参数和变量决定。每个寄存器可存储的数据长度为32位，可以存储任何类型的数据。比如`int`类型使用一个寄存器，`Long`类型的数据使用两个寄存器即可存储。
+
+寄存器命名方式有两种：
+
+- `v`命名法：使用`v`命名法命名的寄存器可以称做本地寄存器，此类寄存器常用于表示函数内部定义的变量。
+- `p`命名法：使用`p`命名法命名的寄存器也被称作参数寄存器，此类寄存器常用于表示函数传入的参数。
+
+将通过一段代码实例详细介绍这两种寄存器命名方式的使用方法，具体Smali代码如下：
+
+```smali
+.method static add(II)I
+.locals 2
+const/4 v0, 0x4
+const/4 v1, 0x5
+add-int/2addr p0, p1
+return p0
+.end method
+.method add(II)I
+.locals 0
+add-int/2addr p1, p2
+return p1
+.end method
+```
+
+第一个方法为静态方法传入2个参数，方法内部定义了两个变量。由`v0`和`v1`寄存器命名可知这是函数内部定义的变量，而使用`p`命名法命名的`p0`和`p2`寄存器表示的是函`add`传入的参数。在非静态方法中需要使用一个寄存器保存`this`指针，一般使用`p0`寄存器存储，因此在第二个非静态方法中函数传入的第一个参数为由`p1`开始。在函数内部使用`.locals N`标记内部可以使用的本地寄存器数量。例如第一个函数中`.locals 2`的含义即该函数中有2个本地寄存器。
+
+### 3.1.3 基础指令
+
+要想快速学习任何一门编程语言首先需要需要学习了解该语言最基本的指令。本节将介绍Smali汇编语言中经常用到的一些基础指令，以便我们能快速学习和分析Smali代码。
+
+数据定义指令，数据定义指令用于定义代码中使用的常量,类等数据,基础指令是`const`。
+
+| **命令** | **指令含义** |
+| --- | --- |
+| `const/4 vA, #+B` | 将数值符号扩展为32后赋值给寄存器`vA` |
+| `const-string vA, string@BB` | 通过字符串索引高走字符串赋值给寄存器`vA` |
+| `const-class vA,type@BB` | 通过类型索引获取一个类的引用赋值给寄存器`vA` |
+
+示例代码
+
+```smali
+const/4 v0, 0x1 # 将值0x1存到寄存器v0
+const-string v0, "HelloSmali" # 将字符串"HelloSmali"存到寄存器v0
+```
+
+数据操作指令，Smali语言中使用`move`指令和`return`指令进行数据操。`move`指令用于进行赋值操作，`return`指令用于返回数据。
+
+| **命令** | **指令含义** |
+| --- | --- |
+| `move vA,vB` | 将 `vB` 寄存器的值赋值给 `vA`寄存器 |
+| `move-wide vA,vB` | 将 `vB` 中存储的 `long` 或 `double` 类型数据赋值给 `vA` |
+| `move/from16 vA,vBB` | 将`vBB`中的值赋给`vA`，源寄存器16位，目的寄存器8位 |
+| `move-object vA,vB` | 将 `vB` 存储的对象引用赋值给 `vA` |
+| `move-result vA` | 将上一个方法调用的结果值移到`vA`中 |
+| `move-result-wide vA` | 将上个方法调用的结果 ( 类型为 `double` 或 `long` ) 移到`vA`中 |
+| `move-result-object vA` | 将上一个方法调用后得到的对象的引用赋值给 `vA` |
+| `move-exception vA` | 将程序执行过程中抛出的异常赋值给 `vA` |
+| `return-void` | 表示函数从一个 `void`方法返回 |
+| `return vA` | 函数返回寄存器中存储的值 |
+| `return-object vA` | 表示函数返回一个对象类型的值 |
+
+示例代码
+
+```smali
+invoke-static {v0, v1}, Lcom/smali/test/Test;->test(II)I
+move-result v0 # 将方法调用的结果值存储的v0
+return v0 # 函数返回寄存器v0中存储的值
+```
+
+对象操作指令，对象实例相关的操作，比如对象类型转换等。
+
+| **命令** | **指令含义** |
+| --- | --- |
+| `new-instance vA,type@BB` | 构造指定类型的对象，并将其引用赋值给`vA`寄存器。 |
+| `instance-of vA,vB,type@BB` | 判断`vB`寄存器中对象的引用是否是指定类型，如果是则将`v1`赋值为1，否则赋值为0。 |
+| `check-cast vA,type@BB` | 将`vA`寄存器中对象的引用转换成指定类型，成功则将结果赋值给`vA`，否则抛出`ClassCastException`异常。 |
+
+示例代码
+
+```smali
+# 构造指定类型对象并将引用赋值给寄存器p1
+new-instance p1, Lcom/smali/test/Test;
+```
+
+数组操作指令，Smali语言中有专门用于操作数组的指令。
+
+| **命令** | **指令含义** |
+| --- | --- |
+| `new-array vA,vB,type@BB` | 创建指定类型和指定大小的数组，并将其赋值给`vA`寄存器。(寄存器`vB`表示数组大小) |
+| `fill-array-data vA,+BBBB` | 使用指定的数据填充数组，`vA`代表数组的引用(即数组中第一个元素的地址） |
+
+示例代码
+
+```smali
+const/4 v0, 0x5 # 定义数组元素个数
+new-array v1, v0, [Ljava/lang/String; # 创建字符串数组
+```
+
+比较指令，Smali中有`cmp`，`cmpl`，`cmpg`三种比较指令用于比较两个寄存器中值的大小。`cmpl`表示寄存器`vB`小于`vC`中的值的条件是否成立，成立则返回1，否则返回-1，相等返回0；`cmp`和`cmpg`含义一致，表示寄存器`vB`大于`vC`中的值的条件是否成立，成立则返回1，否则返回-1，相等返回0。 比较指令一般用于配合跳转指令使用。
+
+| **命令** | **指令含义** |
+| --- | --- |
+| `cmpl-float vA,vB,vC` | 比较单精度的浮点数。如果`vB`寄存器中的值大于`vC`寄存器的值返回-1到寄存器`vA`中，相等则返回0，小于返回1。 |
+| `cmpg-float vA,vB,vC` | 比较单精度的浮点数，如果`vB`寄存器中的值大于`vC`的值返回1到寄存器`vA`中，相等返回0，小于返回-1。 |
+| `cmpl-double vA,vB,vC` | 比较双精度浮点数，如果`vBB`寄存器中的值大于`vCC`的值,则返回-1，相等返回0，小于则返回1。 |
+| `cmpg-double vA,vB,vC` | 比较双精度浮点数,和`cmpl-float`的语意一致。 |
+| `cmp-double vA,vB,vC` | 等价与`cmpg-double vA，vB，vC`指令。 |
+
+跳转指令，跳转指令用于从当前地址条状到指定的偏移地址，在`if`和`switch`分支中使用的居多。
+
+| **命令** | **指令含义** |
+| --- | --- |
+| `if-eq vA,vB,target` | 判断寄存器`vA`，`vB`中的值是否相等，等价于Java中的`if(a==b)` |
+| `if-ne vA,vB,target` | 判断寄存器`vA`，`vB`中的值是否不相等，等价与Java中的`if(a!=b)` |
+| `if-lt vA,vB,target` | 判断寄存器`vA`中的值小于`vB`中的值，等价于Java中的`if(a \|` |
+| `if-gt vA,vB,target` | 判断寄存器`vA`中的值大于`vB`中的值，等价于Java中的`if(a>b)` |
+| `if-ge vA,vB,target` | 判断寄存器`vA`中的值大于等于`vB`中的值，等价于Java中的`if(a>=b)` |
+| `if-le vA,vB,target` | 判断寄存器`vA`中的值小等于于`vB`中的值，等价于Java中的`if(a<=b)` |
+| `packed-switch vA,+BB` | 分支跳转指令，`vA`寄存器中的值是`switch`分支中需要判断的，`+BB`则是偏移表(`packed-switch-payload`)中的索引值, |
+| `spare-switch vA,+BB` | 分支跳转指令，和`packed-switch`类似，只不过`BB`偏移表(`spare-switch-payload`)中的索引值 |
+| `goto +AA` | 无条件跳转到指定偏移处(`AA`即偏移量) |
+
+示例代码
+
+```smali
+# if条件语句和goto跳转示例
+.method static test(I)V
+if-eq p0, v0, :cond\_1
+.....
+:cond\_1
+.....
+goto :goto\_0
+.....
+:goto\_0
+return-void
+.end method
+# packed-switch示例
+.packed-switch v0 # packed-switch解析v0, 根据不同解析值则走相应的分支
+:pswitch\_0
+:pswitch\_1
+:pswitch\_2
+.end packed-switch
+```
+
+### 3.1.4 语法修饰
+
+Smali语言提供了很多修饰符，有的编程语言中也将其叫做关键字。修饰符是一个重复关键词的修饰词，然后添加与该词有关的信息或描述性细节 。修饰符可以用来标记类、方法或者变量，通常放在语句的最前端。下面的列表展示了Smali中经常用到的语法修饰符来：
+
+| **修饰符** | **具体含义** |
+| --- | --- |
+| `.class` | 定义Java类名 |
+| `.super` | 定义父类名 |
+| `.source` | 定义Java源文件名 |
+| `.filed` | 定义字段 |
+| `.method` | 定义方法开始 |
+| `.end method` | 定义方法结束 |
+| `.annotation` | 定义注解开始 |
+| `.end annotation` | 定义注解结束 |
+| `.implements` | 定义接口指令 |
+| `.local` | 指定了方法内局部变量的个数 |
+| `.registers` | 指定方法内使用寄存器的总数 |
+| `.prologue` | 表示方法中代码的开始处 |
+| `.line` | 表示Java源文件中指定行 |
+| `.paramter` | 指定了方法的参数 |
+| `.param` | 和`.paramter`含义一致,但是表达格式不同 |
+
+通过以下这段Smali代码说明这些修饰符的具体用处，Smali文件的前三行描述了当前类的信息
+
+```smali
+.class <访问权限修饰符> [非权限修饰符] <类名>
+.super <父类名>
+.source <源文件名称>
+```
+
+备注：`<>`中的内容表示必不可缺的,`[]`表示的是可选择的。
+
+访问权限修饰符即所谓的`public`，`protected`，`private`即`default`。而非权限修饰符则指的是`final`，`abstract`。
+
+示例代码
+
+```smali
+.class public Lcom/smali/test/Test;
+.super Ljava/lang/Object;
+.source "Test.java"
+```
+
+在文件头之后便是文件的正文,即类的主体部分,包括类实现的接口描述,注解描述,字段描述和方法描述四部分.下面我们就分别看看字段和方法的结构.(别忘了我们在Davilk中说过的方法和字段的表示)
+
+Nage接口描述，如果该类实现了某个接口,则会通过`.implements`定义,其格式如下:
+
+```smali
+#interfaces
+.implements <接口名称>
+```
+
+示例代码

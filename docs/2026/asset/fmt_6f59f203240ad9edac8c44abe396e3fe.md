@@ -1,0 +1,269 @@
+
+### iput vAA,vBB,字段ID
+根据字段ID将vAA寄存器的值存入实例的`int`型字段，vBB寄存器中是该实例的引用。例如：
+
+```
+iput v0, p0, Lcom/alipay/android/phone/mrpc/core/e;->a:I
+```
+
+可以看到例子中将`v0`寄存器中`int`型的值存入到`p0`寄存器中，`p0`寄存器中是`Lcom/alipay/android/phone/mrpc/core/e;`类型下字段名为`a`的实例字段，并且实例字段`a`的存储值类型为`boolean`。
+
+### iget-object vAA,vBB,字段ID
+根据字段ID读取一个实例的对象引用字段到`vAA`，`vBB`寄存器中是该实例的引用。例如：
+
+```
+iget-object v4, p0, Lbin/mt/apksignaturekillerplus/HookApplication;->appPkgName:Ljava/lang/String;
+```
+
+可以看到例子中将`p0`寄存器中`Ljava/lang/String;`类型的值(实例的对象引用)存入到`v4`寄存器中，`p0`寄存器中是`Lbin/mt/apksignaturekillerplus/HookApplication;`类型下字段名为`appPkgName`的实例字段，并且实例字段`appPkgName`的存储值类型为`Ljava/lang/String;`
+
+### iget-boolean vAA,vBB,字段ID
+根据字段ID读取实例的`boolean`型字段到`vAA`，`vBB`寄存器中是该实例的引用。例如：
+
+```
+iget-boolean v1, p0, Lbin/mt/plugin/api/translation/TranslationEngine$ConfigurationBuilder;->acceptTranslated:Z
+```
+
+可以看到例子中将`p0`寄存器中`boolean`型的值存入到`v1`寄存器中，`p0`寄存器中是`Lbin/mt/plugin/api/translation/TranslationEngine$ConfigurationBuilder;`类型下字段名为`acceptTranslated`的实例字段，并且实例字段`acceptTranslated`的存储值类型为`boolean`。
+
+### iget-wide vAA,vBB,字段ID
+根据字段ID读取实例的`double`/`long`型字段到`vAA`,`vAA+1`，`vBB`寄存器中是该实例的引用。例如：
+
+```
+iget-wide v3, p0, Lcom/alipay/android/phone/mrpc/core/l;->g:J
+```
+
+可以看到例子中将`p0`寄存器中`long`型的值存入到`v3`,`v4`寄存器中，`p0`寄存器中是`Lcom/alipay/android/phone/mrpc/core/l;`类型下字段名为`g`的实例字段，并且实例字段`g`的存储值类型为`long`。
+
+### iget vAA,vBB,字段ID
+根据字段ID读取实例的`int`型字段到`vAA`，`vBB`寄存器中是该实例的引用。例如：
+
+```
+iget v1, v8, Landroid/util/TypedValue;->data:I
+```
+
+可以看到例子中将`v8`寄存器中`int`型的值存入到`v1`寄存器中，`v8`寄存器中是`Landroid/util/TypedValue;`类型下字段名为`data`的实例字段，并且实例字段`data`的存储值类型为`int`。
+
+### sput-object vAA,字段ID
+根据字段ID将`vAA`寄存器中的对象引用赋值到对象引用静态字段。例如：
+
+```
+sput-object v0, Lbin/tools/inject/InjectedLog;->TIME_FORMAT1:Ljava/text/SimpleDateFormat;
+```
+
+可以看到例子中将`v0`寄存器中`Ljava/text/SimpleDateFormat;`类型的值(对象引用)存入到`Lbin/tools/inject/InjectedLog;`类型下的存储值为`Ljava/text/SimpleDateFormat;`类型的对象引用静态字段`TIME_FORMAT1`中。
+
+### sput-boolean vAA,字段ID
+根据字段ID将`vAA`寄存器中的值赋值到`boolean`型静态字段。例如：
+
+```
+sput-boolean v6, Lcom/alipay/sdk/cons/a;->r:Z
+```
+
+可以看到例子中将`v6`寄存器中`boolean`类型的值存入到`Lcom/alipay/sdk/cons/a;`类型下的存储值为`boolean`类型的静态字段`r`中。
+
+### sput-wide vAA,字段ID
+根据字段ID将`vAA`,`vAA+1`寄存器中的值赋值到`double`/`long`型静态字段。例如：
+
+```
+sput-wide v0, Lcom/alipay/sdk/app/PayTask;->i:J
+```
+
+可以看到例子中将`v0`,`v1`寄存器中`long`类型的值存入到`Lcom/alipay/sdk/app/PayTask;`类型下的存储值为`long`类型的静态字段`i`中。
+
+### sput vAA,字段ID
+根据字段ID将`vAA`寄存器中的值赋值到`int`型静态字段。例如：
+
+```
+sput v0, Lcom/google/android/material/appbar/AppBarLayout;->DEF_STYLE_RES:I
+```
+
+可以看到例子中将`v0`寄存器中`int`类型的值存入到`Lcom/google/android/material/appbar/AppBarLayout;`类型下的存储值为`int`类型的静态字段`DEF_STYLE_RES`中。
+
+### sget-object vAA,字段ID
+根据字段ID读取静态对象引用字段到`vAA`。例如：
+
+```
+sget-object v17, Ljava/lang/System;->out:Ljava/io/PrintStream;
+```
+
+可以看到例子中将`Ljava/lang/System;`类型下的静态字段`out`中的`Ljava/io/PrintStream;`类型的值(对象引用)存入`v17`寄存器中。
+
+### sget-boolean vAA,字段ID
+根据字段ID读取静态`boolean`型字段到`vAA`。例如：
+
+```
+sget-boolean v1, Lbin/mt/plus/Features;->ۘf:Z
+```
+
+可以看到例子中将`Lbin/mt/plus/Features;`类型下的静态字段`f`中的`boolean`类型的值存入`v1`寄存器中。
+
+### sget-wide vAA,字段ID
+根据字段ID读取静态`double`/`long`型字段到`vAA`,`vAA+1`。例如：
+
+```
+sget-wide v2, Lcom/alipay/android/phone/mrpc/core/b;->a:J
+```
+
+可以看到例子中将`Lcom/alipay/android/phone/mrpc/core/b;`类型下的静态字段`a`中的`long`类型的值存入`v2`,`v3`寄存器中。
+
+### sget vAA,字段ID
+根据字段ID读取静态`int`型字段到`vAA`。例如：
+
+```
+sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
+```
+
+可以看到例子中将`Landroid/os/Build$VERSION;`类型下的静态字段`SDK_INT`中的`int`类型的值存入`v0`寄存器中。
+
+## 方法调用指令(重点)
+
+### invoke-virtual {参数},方法名
+调用带参数的实例的虚方法(虚方法相当于Java中的普通方法)。
+
+### invoke-virtual/range {vAA .. vBB},方法名
+调用以寄存器范围为参数的虚方法。该指令第一个寄存器和寄存器的数量将会传递给方法。该指令与普通的`invoke-virtual`指令相比，可以同时传递多个参数，提高了效率。例如：
+
+```
+sget-object v17, Ljava/lang/System;->out:Ljava/io/PrintStream;
+const-string/jumbo v18, "PmsHook success."
+invoke-virtual/range {v17 .. v18}, Ljava/io/PrintStream;->println(Ljava/lang/String;)V
+```
+
+在这条指令中，寄存器范围为`{v17 .. v18}`，调用`java.io.PrintStream`类的`println(String)`方法，该方法需要一个参数，参数类型为`java.lang.String`，并且不返回任何值。该指令的第一个寄存器为`v17`，寄存器的数量为2，因此`v17`和`v18`两个寄存器都将作为参数传递给方法，其中`v18`存储了传递给`println()`方法的参数值，`v17`则存储了`PrintStream`对象的引用。在执行该指令之前，需要先将参数值存储在寄存器`v18`中，将`PrintStream`对象的引用存储在寄存器`v17`中。该虚方法的作用是将参数值打印到控制台上。在Dalvik字节码中，方法的参数和返回值都是通过寄存器进行传递的。
+
+### invoke-super {参数},方法名
+调用带参数的直接父类的虚方法。
+
+### invoke-super/range {vAA .. vBB},方法名
+调用以寄存器范围为参数的直接父类的虚方法。该指令第一个寄存器和寄存器的数量将会传递给方法。
+
+### invoke-direct {参数},方法名
+不解析直接调用带参数的方法，例如构造方法、静态语句块。
+
+### invoke-direct/range {vAA .. vBB},方法名
+不解析直接调用以寄存器范围为参数的方法。该指令第一个寄存器和寄存器的数量将会传递给方法。
+
+### invoke-static {参数},方法名
+调用带参数的静态方法。
+
+### invoke-static/range {vAA .. vBB},方法名
+调用以寄存器范围为参数的静态方法。该指令第一个寄存器和寄存器的数量将会传递给方法。
+
+### invoke-interface {参数},方法名
+调用带参数的接口方法。
+
+### invoke-interface/range {vAA .. vBB},方法名
+调用以寄存器范围为参数的接口方法。该指令第一个寄存器和寄存器的数量将会传递给方法。
+
+## 数据转换指令
+
+### neg-int
+对整型数求补。取补指令是按位取反后加1，即将二进制数中的0变为1，1变为0，然后再加1。在Dalvik指令集中，取补指令的格式为`neg vA, vB`，表示将`vB`寄存器中的值按位取反后加1后存储到`vA`寄存器中。
+
+### not-int
+对整型数求反。取反指令是按位取反，即将二进制数中的0变为1，1变为0。在Dalvik指令集中，取反指令的格式为`not vA, vB`，表示将`vB`寄存器中的值按位取反后存储到`vA`寄存器中。
+
+### neg-long
+对长整型数求补。
+
+### not-long
+对长整型数求反。
+
+### neg-float
+对单精度浮点型数求补。
+
+### neg-double
+对双精度浮点型数求补。
+
+### int-to-byte
+将整型数转换为字节型。格式为`int-to-byte vA, vB`，表示将`vB`寄存器中的整型数转换为字节型后存放到`vA`寄存器中。需要注意的是，由于字节型数的范围是-128到127，因此在转换时可能会出现溢出情况。
+
+### int-to-char
+将整型数转换为字符型。格式为`int-to-char vA, vB`，表示将`vB`寄存器中的整型数转换为字符型后存放到`vA`寄存器中。因为`char`类型是无符号的，大小为两个字节，所以可以表示的最大值就是2^16-1=65535。字符型数的范围是0到65535，在转换时可能会出现溢出情况。
+
+### int-to-short
+将整型数转换为短整型。格式为`int-to-short vA, vB`，表示将`vB`寄存器中的整型数转换为短整型后存放到`vA`寄存器中。短整型数的范围是-32768到32767，因此在转换时可能会出现溢出情况。
+
+### long-to-int
+将长整型数转换为整型数。格式为`long-to-int vA, vB`，表示将`vB`寄存器中的长整型数转换为整型数后存放到`vA`寄存器中。需要注意的是，由于长整型数的范围比整型数大，因此在转换时可能会出现溢出情况。
+
+### long-to-float
+将长整型数转换为单精度浮点型数。格式为`long-to-float vA, vB`，表示将`vB`寄存器中的长整型数转换为单精度浮点型数后存放到`vA`寄存器中。
+
+### long-to-double
+将长整型数转换为双精度浮点型数。格式为`long-to-double vA, vB`，表示将`vB`寄存器中的长整型数转换为双精度浮点型数后存放到`vA`寄存器中。
+
+### float-to-int
+将单精度浮点型数转换为整型数。格式为`float-to-int vA, vB`，表示将`vB`寄存器中的单精度浮点型数转换为整型数后存放到`vA`寄存器中。需要注意的是，由于单精度浮点型数的范围比整型数大，因此在转换时可能会出现溢出情况。
+
+### float-to-long
+将单精度浮点型数转换为长整型数。格式为`float-to-long vA, vB`，表示将`vB`寄存器中的单精度浮点型数转换为长整型数后存放到`vA`寄存器中。
+
+### float-to-double
+将单精度浮点型数转换为双精度浮点型数。格式为`float-to-double vA, vB`，表示将`vB`寄存器中的单精度浮点型数转换为双精度浮点型数后存放到`vA`寄存器中。
+
+### double-to-int
+将双精度浮点型数转换为整型数。格式为`double-to-int vA, vB`，表示将`vB`寄存器中的双精度浮点型数转换为整型数后存放到`vA`寄存器中。需要注意的是，由于双精度浮点型数的范围比整型数大，因此在转换时可能会出现溢出情况。
+
+### double-to-long
+将双精度浮点型数转换为长整型数。格式为`double-to-long vA, vB`，表示将`vB`寄存器中的双精度浮点型数转换为长整型数后存放到`vA`寄存器中。
+
+### double-to-float
+将双精度浮点型数转换为单精度浮点型数。格式为`double-to-float vA, vB`，表示将`vB`寄存器中的双精度浮点型数转换为单精度浮点型数后存放到`vA`寄存器中。需要注意的是，由于单精度浮点型数的范围比双精度浮点型数小，因此在转换时可能会出现精度损失的情况。
+
+## 数据运算指令
+
+### add-type
+进行加法运算。格式为`add-int vA, vB, vC`，表示将`vB`寄存器中的整型数与`vC`寄存器中的整型数相加，结果存放到`vA`寄存器中。
+
+### sub-type
+进行减法运算。格式为`sub-int vA, vB, vC`，表示将`vB`寄存器中的整型数减去`vC`寄存器中的整型数，结果存放到`vA`寄存器中。
+
+### mul-type
+进行乘法运算。格式为`mul-int vA, vB, vC`，表示将`vB`寄存器中的整型数与`vC`寄存器中的整型数相乘，结果存放到`vA`寄存器中。
+
+### div-type
+进行除法运算。格式为`div-int vA, vB, vC`，表示将`vB`寄存器中的整型数除以`vC`寄存器中的整型数，结果存放到`vA`寄存器中。
+
+### rem-type
+进行取余运算。格式为`rem-int vA, vB, vC`，表示将`vB`寄存器中的整型数除以`vC`寄存器中的整型数的余数，结果存放到`vA`寄存器中。
+
+### and-type
+进行按位与运算。格式为`and-int vA, vB, vC`，表示将`vB`寄存器中的整型数与`vC`寄存器中的整型数进行按位与运算，结果存放到`vA`寄存器中。
+
+### or-type
+进行按位或运算。格式为`or-int vA, vB, vC`，表示将`vB`寄存器中的整型数与`vC`寄存器中的整型数进行按位或运算，结果存放到`vA`寄存器中。
+
+### xor-type
+进行按位异或运算。格式为`xor-int vA, vB, vC`，表示将`vB`寄存器中的整型数与`vC`寄存器中的整型数进行按位异或运算，结果存放到`vA`寄存器中。
+
+### shl-type
+有符号左移。格式为`shl-type vA, vB, vC`，表示将`vB`寄存器中的有符号整型数左移`vC`位，结果存放到`vA`寄存器中。左移时，低位补0，高位舍弃。
+
+### shr-type
+有符号右移。格式为`shr-type vA, vB, vC`，表示将`vB`寄存器中的有符号整型数右移`vC`位，结果存放到`vA`寄存器中。右移时，高位补符号位，低位舍弃。
+
+### ushr-type
+无符号右移。格式为`ushr-type vA, vB, vC`，表示将`vB`寄存器中的无符号整型数右移`vC`位，结果存放到`vA`寄存器中。右移时，高位补0，低位舍弃。
+
+## smali文件
+
+无论是普通类、抽象类、接口类还是内部类，在反编译出来的代码中，它们都是以单独的`smali`文件进行存放的。每个`smali`文件中的语句都遵循着一套语法规范，这里想要讲解的正是这套`smali`文件中的语法规范。
+
+### Smali中开头的包信息以及包信息格式
+`.class <访问权限> [修饰关键字] <类名>`
+`.super <父类名>`
+`.source <源文件名>`
+例如：
+
+```
+.class public interface abstract Landroid/support/v4/os/IResultReceiver;
+.super Ljava/lang/Object;
+.source "IResultReceiver.java"
+```
+
+### 静态字段定义
+格式：
+`.field <访问权限> static [修饰关键字] <字段名>:<字段类型>`
+例如：
