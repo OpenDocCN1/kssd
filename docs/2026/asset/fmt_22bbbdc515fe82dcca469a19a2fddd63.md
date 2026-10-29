@@ -1,0 +1,151 @@
+
+# [原创]steam令牌算法分析
+
+## 0x00 前言
+
+最近有一个项目需要将steam的令牌算法取出放置在PC上对接接口执行，由于steam令牌只能在手机上查看，所以使用起来非常不方便。但我也没想到steam的APK居然才4M，而且没做任何混淆啥的处理，对新手非常之友好！
+
+## 0x01 介绍
+
+![](https://bbs.kanxue.com/upload/attach/202103/885524_FTMGXGRB9MJHEWP.png)
+
+由于steam令牌它是不需要联网计算的，所以得知肯定是本地算法生成，但它是如何做到与服务器同步？那必然肯定是在我们登录steam添加令牌时服务器和APP已经协商好了加密的方式，数据等并且存放在手机缓存上了。
+
+## 0x02 思路
+
+由于steam令牌弹出的界面，它显示的只有令牌码以及用户名，我们没办法直接通过搜索字符串的方式去定位，所以只能换个其它的方式去定位它的代码，而且发现界面大部分是webview组成的，唯独令牌显示的地方不是，所以他肯定会有组件ID，就可以通过组件ID的方式定位了~ 开整。
+
+## 0x03 定位算法
+
+首先先把APK拖入到`JADX`等待检索完成，接着我们打开Android SDK自带的`uiautomatorviewer`工具，手机接入`ADB`调试才能使用。
+
+![](https://bbs.kanxue.com/upload/attach/202103/885524_H5D3ZRBQKFMUUWE.png)
+
+这里我们看到，令牌的组件ID是`twofactorcode_code`，所以我们直接在`jadx`搜索该组件ID。
+
+![](https://bbs.kanxue.com/upload/attach/202103/885524_XX6AF5G88N2SGJQ.png)
+
+我们看到第三行，使用`setText`进行显示`code`变量，那么点击进去查看下代码。
+
+```
+TwoFactorToken token = sgState.getTwoFactorToken();
+String code = token.generateSteamGuardCode();
+String account = sgState.getAccountName();
+remoteViews.setTextViewText(R.id.twofactorcode_code, code);
+```
+
+由于整个方法代码很多，但有用的就这几行，其中`code`是执行`generateSteamGuardCode()`方法所返回，我们先跟进该方法查看一下。
+
+```
+public final String generateSteamGuardCode() {
+return generateSteamGuardCodeForTime(currentTime());
+}
+```
+
+我们看到，这里它传了一个时间戳进去，这里暂且先不跟进去，我们在继续跟进调用的方法内查看。
+
+```
+public final String generateSteamGuardCodeForTime(long time) {
+if (this.mSecret == null) {
+return "";
+}
+long time2 = time / 30;
+byte[] timeBytes = new byte[8];
+int i = 8;
+while (true) {
+int i2 = i;
+i = i2 - 1;
+if (i2 <= 0) {
+break;
+}
+timeBytes[i] = (byte) ((int) time2);
+time2 >>>= 8;
+}
+SecretKeySpec signKey = new SecretKeySpec(this.mSecret, "HmacSHA1");
+try {
+Mac mac = Mac.getInstance("HmacSHA1");
+mac.init(signKey);
+byte[] hmac_result = mac.doFinal(timeBytes);
+int offset = hmac_result[19] & 15;
+int bin_code = ((hmac_result[offset] & Byte.MAX_VALUE) << 24) | ((hmac_result[offset + 1] & 255) << 16) | ((hmac_result[offset + 2] & 255) << 8) | (hmac_result[offset + 3] & 255);
+byte[] resultBytes = new byte[5];
+for (int i3 = 0; i3 < 5; i3++) {
+resultBytes[i3] = s_rgchSteamguardCodeChars[bin_code % s_rgchSteamguardCodeChars.length];
+bin_code /= s_rgchSteamguardCodeChars.length;
+}
+return new String(resultBytes);
+} catch (NoSuchAlgorithmException e) {
+return null;
+} catch (InvalidKeyException e2) {
+return null;
+}
+}
+```
+
+可以看到，这是一个非常清晰的算法，其中它就使用了2个属性，也就是传进来的`time`以及`this.mSecret`，从字面意思估计就是和服务器保存下来的`key`了。
+
+## 0x04 还原
+
+我们直接将代码扣出，并且进行适当的修改，把2个参数都改为传参的方式。
+
+![](https://bbs.kanxue.com/upload/attach/202103/885524_YSZ3282CVZPJYPY.png)
+
+我们需要知道它传递的2个参数是什么值。
+
+## 0x05 参数time的来源
+
+所以我们回到刚刚进来的地方，分析`currentTime()`方法。
+
+```
+public final long currentTime() {
+return TimeCorrector.getInstance().currentTimeSeconds();
+}
+```
+
+继续跟进方法内。
+
+```
+public long currentTimeSeconds() {
+return systemTimeSeconds() + this.m_timeAdjustment;
+}
+public long systemTimeSeconds() {
+return System.currentTimeMillis() / 1000;
+}
+```
+
+我们看到，它是直接取出了时间戳，然后加上`m_timeAdjustment`的值，我估计这也是为了和服务器时间进行调整误差。这里我们知道参数2传递的是现在的时间戳+误差值。
+
+## 0x06 参数secret的来源
+
+这里我并没有第一时间去hook该方法，因为我猜测肯定是存放在app缓存下面的，但不知道具体是哪个key值，所以我们先跟一下`this.mSecret`的赋值来源。
+
+![](https://bbs.kanxue.com/upload/attach/202103/885524_4KKXSTUDV2WGYY6.png)
+
+我们看到，最后一行进行了一个base解码的，所以估计它的格式肯定是BASE64的，我们点击进去查看。
+
+```
+public TwoFactorToken(JSONObject json) {
+String sSecret = json.optString("shared_secret");
+if (sSecret != null && sSecret.length() > 0) {
+this.mSecret = Base64.decode(sSecret.getBytes(), 0);
+}
+}
+```
+
+这个时候我们没必要着急的去继续跟了，直接进入`adb shell`模式进去到app的缓存位置，利用`grep`命令搜索关键字`shared_secret`来查找。
+
+![](upload/attach/202103/885524_R2S8PCFUYAV2F4U.png)
+
+这里我们搜索出了一个文件，我们直接查看该文件内容
+
+![](upload/attach/202103/885524_JZCKF93N5CQYWBW.png)
+
+这里清楚的看到是一个json字符串并且里面确实有一串base64的secret，我们直接拿出来放到扣出来的代码调用测试
+
+## 0x07 还原核对
+
+这里我已经将java代码编译成了jar包使用传参的方式进行测试，至于时间误差的值我最后是怎么找出来的。其实我也没找，因为我直接填0进行测试，直接传的当前北京时间的时间戳，发现计算的令牌是对的。。。当然如果不对的话，我们只需要用`frida` HOOK一下刚刚的方法拿到时间戳，在减去我们当前的时间戳也是可以知道具体的差值。
+
+![](upload/attach/202103/885524_2UFUNFCS7656GS9.png)
+
+以上就是最终还原后的计算结果。
