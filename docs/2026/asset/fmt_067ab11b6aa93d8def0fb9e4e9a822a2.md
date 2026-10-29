@@ -1,117 +1,113 @@
 
-# [原创]CydiaSubstrate框架
+# CydiaSubstrate框架
 
 最近研究了一下CydiaSubstrate框架，不知道还有啥新东西，所以分享一下，希望大家可以对我多指点指点。
 
-## 1、substrate的基本概念：
+## 1、Substrate的基本概念
 
-Cydia Substrate是一个基于Hook的代码修改框架，其可以在Android、iOS平台使用，并实现修改系统默认代码
+Cydia Substrate是一个基于Hook的代码修改框架，其可以在Android、iOS平台使用，并实现修改系统默认代码。
 
-## 2、substrate的API介绍：
+## 2、Substrate的API介绍
 
 具体的运行是由我们的这个jar包所执行
 
 ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_7324646HNYQJWNK.png)
 
-## 3、Substrate的代码编写实现系统文字颜色篡改：
+## 3、Substrate的代码编写实现系统文字颜色篡改
 
-1、创建一个空的Android工程。由于创建的工程将以插件的形式被加载，所以不需要activity。将SDK中的`substrate-api.jar`复制到`project/libs`文件夹中。
+1. 创建一个空的Android工程。由于创建的工程将以插件的形式被加载，所以不需要`Activity`。将SDK中的`substrate-api.jar`复制到`project/libs`文件夹中。
 
-2、配置Manifest文件需要指定权限：`cydia.permission.SUBSTRATE`
+2. 配置`Manifest`文件需要指定权限：`cydia.permission.SUBSTRATE`
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_MXAKZBSJ9WXMKSN.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_MXAKZBSJ9WXMKSN.png)
 
-3、创建一个类，类名为`Main`。类中包含一个static方法`initialize`，当插件被加载的时候，该方法中的代码就会运行，完成一些必要的初始化工作。
+3. 创建一个类，类名为`Main`。类中包含一个static方法`initialize()`，当插件被加载的时候，该方法中的代码就会运行，完成一些必要的初始化工作。
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_RZ3BESEKV4NNERH.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_RZ3BESEKV4NNERH.png)
 
-4、添加meta标签，`name`为`cydia.permission.SUBSTRATE`，`value`为下一步中创建的类名：例如 `Main`
+4. 添加`meta`标签，`name`为`cydia.permission.SUBSTRATE`，`value`为下一步中创建的类名：例如`Main`
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_NVCP2F82RUMX655.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_NVCP2F82RUMX655.png)
 
-5、为了实现HOOK，达到修改目标类中的代码的目的，我们需要得到目标类的一个实例
+5. 为了实现HOOK，达到修改目标类中的代码的目的，我们需要得到目标类的一个实例
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_QRETCNF6P6Z7T89.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_QRETCNF6P6Z7T89.png)
 
-6、通过`MS.MethodHook`实例实现原代码的修改
+6. 通过`MS.MethodHook`实例实现原代码的修改
 
-7、为了调用原来代码中的方法，我们需要创建一个`MS.MethodPointer`类的实例，它可以在任何时候运行原来的代码。
+7. 为了调用原来代码中的方法，我们需要创建一个`MS.MethodPointer`类的实例，它可以在任何时候运行原来的代码。
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_AN998C3N5GEUJUQ.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_AN998C3N5GEUJUQ.png)
 
-8、返回颜色，重启系统即可。
+8. 返回颜色，重启系统即可。
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_PMMH4JD3WGZPFKV.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_PMMH4JD3WGZPFKV.png)
 
-## 4、Substrate的代码编写实现游戏金币篡改：
+## 4、Substrate的代码编写实现游戏金币篡改
 
-1、定义方法
+1. 定义方法
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_4MK7N793CSRXCWC.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_4MK7N793CSRXCWC.png)
 
-2、hook获取金币数的方法
+2. hook获取金币数的方法
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_YWPRB6P2R8J7KXP.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_YWPRB6P2R8J7KXP.png)
 
-3、新建一个`MethodPointer`对象
+3. 新建一个`MethodPointer`对象
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_W264M8TBN8M33M9.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_W264M8TBN8M33M9.png)
 
-4、开始hook方法，写入自己想改变的数据
+4. 开始hook方法，写入自己想改变的数据
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_GAB635GBTX7WST4.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_GAB635GBTX7WST4.png)
 
-5、调用原`getMoney`方法，将原方法的返回值放到`coin_num`
+5. 调用原`getMoney()`方法，将原方法的返回值放到`coin_num`
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_6K476WVAB265APG.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_6K476WVAB265APG.png)
 
-6、修改金币数
+6. 修改金币数
 
-7、返回`coin_num`
+7. 返回`coin_num`
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_JCYZBB2W8K3MUJT.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_JCYZBB2W8K3MUJT.png)
 
-8、返回游戏即可
+8. 返回游戏即可
 
-## 5、native层hook：
+## 5、Native层Hook
 
-1、创建一个android程序，如果没什么特殊需要，可以不创建activity（这个不是必须）
+1. 创建一个Android程序，如果没什么特殊需要，可以不创建`Activity`（这个不是必须）
 
-2、在android工程中新建`jni`文件夹，然后加入相关的头文件`substrate.h`和库文件，例如我的工程只支持arm，那么就加入`cydia_substrate/lib/armeabi`下的两个so
+2. 在Android工程中新建`jni`文件夹，然后加入相关的头文件`substrate.h`和库文件，例如我的工程只支持`arm`，那么就加入`cydia_substrate\lib\armeabi`下的两个`.so`文件
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_DYUTCSVJVPCJVPT.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_DYUTCSVJVPCJVPT.png)
 
-3、在`AndroidManifest.xml`中注册cydia的自定义权限`cydia.permission.SUBSTRATE`。
+3. 在`AndroidManifest.xml`中注册Cydia的自定义权限`cydia.permission.SUBSTRATE`。另外，设置`android:hasCode`为`"false"`，`android:installLocation`为`"internalOnly"`。
 
-另外，设置`android:hasCode`为`"false"`，`android:installLocation`为`"internalOnly"`.
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_BT6TB4XB94REAPW.png)
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_BT6TB4XB94REAPW.png)
+4. 编写Hook模块代码，即上面的`test.cpp`
 
-4、编写Hook模块代码，即上面的`test.cpp`
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_729NN3F996M79RH.png)
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_729NN3F996M79RH.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_TB8DPZR6BQCHVHU.png)
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_TB8DPZR6BQCHVHU.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_JJX7YUTDH9GKD4C.png)
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_JJX7YUTDH9GKD4C.png)
+5. 编写`Android.mk`
 
-5、编写`Android.mk`
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_CFP7VJQ26VBYG6M.png)
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_CFP7VJQ26VBYG6M.png)
+6. `ndk-build`之后会在Android工程中生成`libs`目录
 
-6、`ndk-build`之后会在android工程中生成`libs`目录
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_95KG3XK6XVP5DT7.png)
 
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_95KG3XK6XVP5DT7.png)
+7. build Android工程即可生成Hook模块的`apk`安装包
 
-7、build android工程即可生成hook模块的apk安装包
+8. 打开框架apk，点击`Link Substrate Files`，之后点击`Restart System`就可以使用了
 
-8、打开框架apk，点击“Link Substrate Files”，之后点击“Restart System”就可以使用了
+9. `Hook native demo`运行之后，会打印每个程序加载so的情况
 
-9、打开框架apk，点击“Link Substrate Files”，之后点击“Restart System”就可以使用了
-
-10、 Hook native demo运行之后，会打印每个程序加载so的情况
-
-![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_E75EHPTZQ2XRHVF.png)
+    ![图片描述](https://bbs.kanxue.com/upload/attach/202010/905378_E75EHPTZQ2XRHVF.png)
 
 有什么不足的地方希望大家帮小弟看看，小弟也学习学习
 
