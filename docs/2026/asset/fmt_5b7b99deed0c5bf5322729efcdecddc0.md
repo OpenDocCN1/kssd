@@ -1,0 +1,116 @@
+
+# 利用Hook技术实现对Instagram的抓包
+
+## 前言
+
+听别人说Instagram没法抓包，于是这篇文章诞生了。
+
+Instagram的防护做的很好，自己实现了一层SSL，直接过掉了`r0capture`等一些常见的工具，既然大佬的轮子用不了，那就只能自己动手了。
+
+**分析样本**：Instagram `184.0.0.30.117`
+
+## 思路
+
+使用反编译工具导入，发现对变量名进行了混淆，先捋一下思路：
+
+抓不到包，看不到关键字，那就只能根据经验猜测字段了，APP有登录功能，尝试搜索常见的API名称 `login`、`login/`、`login"`、`"login"`、`"login`。定位到URI的处理点在附近查看有没有关于协议头，URL和HTTP的处理。找到底层Send函数，Hook，拿到HTTP报文。
+
+## 定位迷途
+
+一番查找之后，初步断定URI的处理在`X.6s1`中
+
+![](upload/attach/202104/883754_62H27WE55XV4VD9.png)
+
+这里的参数生成的过程及算法暂时不去管，先抓到包才是首要的~
+
+通过参数`r3`，追到了`X.0uU`，翻看之后看到了一堆像是协议头的操作
+
+![](upload/attach/202104/883754_34JHSEP9ENY4B9G.png)
+
+又发现了https链接的格式化，Hook试了试，URL就出来了。
+
+![](upload/attach/202104/883754_3N6WW7C8QRYQA37.png)
+
+之后线索就断了，堆栈回溯看了都没什么发现，突破点是在查看交叉引用向上找，在`X.222.A7c`，发现了一个用于打印错误的函数。
+
+![](upload/attach/202104/883754_KE5QSKZ4PGHP22X.png)
+
+本着死马当活马医的想法，搜了一下`builder.`，发现了可疑点
+
+![](upload/attach/202104/883754_JW8UYSKVQE54B9X.png)
+
+跟进去看，尝试Hook了一下，调用到了这个类
+
+![](upload/attach/202104/883754_EMJ5CZBX4R6UD78.png)
+
+再Hook看了看调用的`A02`方法，看看有没有找歪~
+
+![](upload/attach/202104/883754_76QJGY5J8J8S36J.png)
+
+既然没找错，看`A02`方法，发现`JADX`反编译不出来，换用`GDA`。
+
+![](upload/attach/202104/883754_DN4SCSK6TBWMDSZ.png)
+
+明显的协议头，明显的`http`，引用了`apache`开源的HTTP框架
+
+![](upload/attach/202104/883754_ZJU8TMSD5AXUQN2.png)
+
+`executeWithDefragmentation`调用了`sendHeadersWithBodyAndEom`
+
+![](upload/attach/202104/883754_MWHQU9F2HAAWJSG.png)
+
+继续往下看
+
+![](upload/attach/202104/883754_THDN9E4UGQX9B4Y.png)
+
+已经到底了...再往下就是Native，再追下去没什么意义，所以下面就是最终的Hook了~
+
+## HOOK打印HTTP报文
+
+综上分析，只需要Hook `com.facebook.proxygen.JniHandler.sendHeadersWithBodyAndEom` 就能得到包数据了。
+
+google了一下`org.apache.http`的源码：
+
+```javascript
+function getClassName(obj) {
+const objClass = Java.use("java.lang.Object").getClass.apply(obj);
+return Java.use("java.lang.Class").getName.apply(objClass);
+}
+function getNetPack() {
+Java.perform(function(){
+var jString = Java.use("java.lang.String");
+var jHttpMessage = Java.use("org.apache.http.HttpMessage");
+var JniHandler = Java.use("com.facebook.proxygen.JniHandler");
+var jBasicHeader = Java.use("org.apache.http.message.BasicHeader");
+JniHandler.sendRequestWithBodyAndEom.overload('org.apache.http.client.methods.HttpUriRequest', '[B', 'int', 'int').implementation = function(jHttpUriRequest,bArr,i,i2){
+console.log("\n-------------------------Headers-------------------------\n");
+console.log(jhttpUriRequest.getURI() + "\n");
+var headers = Java.cast(jhttpUriRequest, jHttpMessage).getAllHeaders();
+for(var i = 0; i < headers.length; i++) {
+if (getClassName(headers[i]) === "org.apache.http.message.BasicHeader") {
+console.log(Java.cast(headers[i], jBasicHeader).toString());
+} else {
+console.log(headers[i].toString());
+}
+}
+console.log("\n" + jString.$new(bArr) + "\n");
+return this.sendRequestWithBodyAndEom(jHttpUriRequest,bArr,i,i2);
+}
+})
+}
+setImmediate(function(){
+setTimeout(getNetPack,10);
+})
+```
+
+![](upload/attach/202104/883754_CT8TFN9THJD65B9.png)
+
+***你以为就这样完了？***
+
+**没错，就这样完了。**(逃~)
+
+## 题外话
+
+看了看`enc_password`的加密，看起来是`RSA+AES-GCM`，满心欢喜。
+
+仔细一看`native`层调用，动态加载`so`… dump出来一看是`vmp`，`mmp`…
