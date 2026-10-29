@@ -1,5 +1,5 @@
 
-```c
+```
   uint32_t vmap_table_offset_ = 0u;
 
   uint32_t method_info_offset_ = 0u;
@@ -15,11 +15,12 @@
   // The actual code.
 
   uint8_t code_[0];
+
 ```
 
 ---
 
-#### 获取指令长度
+### 获取指令长度
 
 `JitCompile->CommitCode->CommitCodeInternal`
 
@@ -71,13 +72,12 @@
       FlushInstructionCache(reinterpret_cast<char*>(code_ptr),
 
                             reinterpret_cast<char*>(code_ptr + code_size));
+
 ```
 
 ---
 
-#### 获取指令长度
-
-那么可得出 Code Entry - 4 就是存放 Code Size 的地址
+那么可得出 `CodeEntry - 4` 就是存放 Code Size 的地址
 
 ---
 
@@ -95,6 +95,7 @@ bool isThumbCode(Size codeAddr) {
             return (codeAddr & 0x1) == 0x1;
 
 }
+
 ```
 
 ---
@@ -127,6 +128,7 @@ public void setCloseOnTouchOutsideIfNotSet(boolean close) {
     }
 
 }
+
 ```
 
 ---
@@ -135,7 +137,7 @@ public void setCloseOnTouchOutsideIfNotSet(boolean close) {
 
 ![pc_relate.png](https://bbs.kanxue.com/upload/attach/202001/675677_BZUMMYFUAG8Z53F.jpg)
 
-`CBNZ` 依赖于当前 PC 值。
+`CBNZ` 依赖于当前 `PC` 值。
 
 虽然这种情况不多，但是检查是必要的，如果我们发现这种指令，直接转用入口替换即可。
 
@@ -197,11 +199,13 @@ public void setCloseOnTouchOutsideIfNotSet(boolean close) {
 
 - 依然是写一堆 Stub，不过这次 Stub 是 Hook 方法
 
-- 为了兼容更多的参数情况(Object 类型以及基本类型(浮点除外))，将所有参数设为 `long`(32位为 `int`)，返回值类似
+- 为了兼容更多的参数情况(`Object` 类型以及基本类型(浮点除外))，将所有参数设为 `long`(32位为 `int`)，返回值类似
 
 - 这样如果是基本类型参数，则可以简单转换得到值，`Object` 参数收到的则是内存地址
 
 - 参数多的 stub 可以兼容较少参数的情况
+
+---
 
 写了一个 python 脚本以自动生成
 
@@ -213,6 +217,7 @@ public void setCloseOnTouchOutsideIfNotSet(boolean close) {
         return hookBridge(getMethodId(3, 13), null , a0, a1, a2);
 
     }
+
 ```
 
 ---
@@ -265,6 +270,7 @@ public static Object addressToObject64(Class objectType, long address) {
         }
 
     }
+
 ```
 
 ---
@@ -293,7 +299,7 @@ public static Object addressToObject64(Class objectType, long address) {
 
 - 阻止 JIT Inline
 
-- 阻止 `dex2oat` Inline(Profile)
+- 阻止 dex2oat Inline(Profile)
 
 - 系统类中 Inline 的如何处理
 
@@ -353,15 +359,14 @@ const CompilerOptions& compiler_options = compiler_driver_->GetCompilerOptions()
     return false;
 
   }
+
 ```
 
 ---
 
 当被 inline 方法的 code units 大于设置的阈值的时候，方法 Inline 失败。
 
-这个阈值是 `CompilerOptions -> inline_max_code_units`
-
----
+这个阈值是 `CompilerOptions -> inline_max_code_units`。
 
 经过搜索，`CompilerOptions` 一般与 `JitCompiler` 绑定：
 
@@ -393,6 +398,7 @@ class JitCompiler {
 }  // namespace jit
 
 }  // namespace art
+
 ```
 
 ---
@@ -435,25 +441,24 @@ extern "C" void* jit_load(bool* generate_debug_info) {
   return jit_compiler;
 
 }
+
 ```
 
 ---
 
 #### 结论
 
-ok，那么我们就得到了 “`static void* jit_compiler_handle_`” 的 C++ 符号 “`_ZN3art3jit3Jit20jit_compiler_handle_E`“
+ok，那么我们就得到了 “`static void* jit_compiler_handle_`“ 的 C++ 符号 “`_ZN3art3jit3Jit20jit_compiler_handle_E`“
 
-最后修改里面的值就可以了。
-
-`SandHook.disableVMInline()`
+最后修改里面的值就可以了。`SandHook.disableVMInline()`
 
 ---
 
-### 阻止 `dex2oat` Inline
+### 阻止 dex2oat Inline
 
-- Android N 以上默认的 ART 编译策略为 speed-profile
+- Android N 以上默认的 ART 编译策略为 `speed-profile`
 
-- 除了 JIT 期间的内联，系统在空闲时会根据这个所谓的 profile 进行 speed 模式的 `dex2oat`
+- 除了 JIT 期间的内联，系统在空闲时会根据这个所谓的 profile 进行 speed 模式的 dex2oat
 
 - speed 模式包含 Inline 优化
 
