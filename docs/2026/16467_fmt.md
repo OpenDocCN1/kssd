@@ -1,0 +1,14 @@
+
+# [原创]无聊，发个 elf 压缩壳。
+
+这是最近学 linux 写的，压缩率还可以。
+
+对 linux 还未沾皮毛，所以这个壳肯定有许多地方设计的不合理，看的人请海涵。
+
+如果有什么问题可以和我联系.![](https://bbs.kanxue.com/view/img/face/27.gif)
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+上传的附件：
+
+- [\`elfp.rar\`](javascript:void(0);)（14.10kb，824次下载）
