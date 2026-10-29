@@ -1,0 +1,160 @@
+
+## 3.将上面面两步得到的`dex`，替换`apk`中的`classes.dex`与`classes4.dex`
+
+Windows：我是通过zip工具打开的`apk`，然后直接将`dex`拖进去就行，比较方便
+
+Mac：未尝试
+
+![](upload/attach/202106/855618\_KWNA6885K6BRAHV.png)
+
+## 4.删除`apk`中原本的签名文件夹`META-INF`重签名
+
+![](upload/attach/202106/855618\_HR737MWY7CH74SB.png)
+
+# 不足之处
+
+1.广告页面会先弹出，80ms左右才会消失掉，所以视觉上还能看到广告activity
+
+2.可能还有其他地方有广告。这个`apk`广告太多了。。。。不过目前来看应该好多了
+
+带插件的`apk`如下:(法律原因，已删除)
+
+~~链接: <mark class="encrypted">6e4K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5h3&6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3V1j5I4d9Y4u0\*7h3h3g2W2c8o6m8m8i4K6u0V1N6f1N6m8P5V1q4i4P5X3!0F1f1$3A6Y4</mark> 密码: 396l~~
+
+原包`apk`:
+
+链接: <mark class="encrypted">f17K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5h3&6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3V1j5I4N6r3)9$3y4r3k6J5c8#2)9#2k6Y4R3$3c8s2c8I4L8Y4u0h3b7g2g2K9e0r3k6c8</mark> 密码: 7fwm
+
+# 声明:
+
+​ 本篇只供学习，本人未用作商业用途。他人若未经允许，也不得使用以及参考本篇中提到的源码以及附件进行谋利，违者必究
+
+# 本篇目的：
+
+​ 由于工作原因，很长时间没搞破解了。几个月前只是简单对某镖游戏dump了il2cpp与meta-data，昨天试玩了一下，竟然要更新，fuck! fuck! fuck!
+
+​ 然后随便在小米应用商店下载了个小游戏，广告太多，就以去广告为目标 练一下手吧。
+
+## 游戏主页的最上方有一个广告栏：
+
+![](https://bbs.kanxue.com/upload/attach/202106/855618_VUY4E28CTRQD6SD.png)
+
+## 点击礼物盒后启动了一个新的页面：
+
+![](https://bbs.kanxue.com/upload/attach/202106/855618_KXCCXMQR3DAPMXQ.png)
+
+## 目标一：去除红色箭头所示的广告栏
+
+## 目标二：礼物盒点击后去除广告
+
+# 本篇用到的逆向工具
+
+dex文件查看工具
+
+[Jeb(windows)](https://bbs.kanxue.com/elink@082K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3f1#2x3Y4m8G2K9X3W2W2i4K6u0W2j5$3&6Q4x3V1k6@1K9s2u0W2j5h3c8Q4x3X3b7&6z5e0b7$3x3U0u0Q4x3X3b7I4i4K6u0V1x3g2)9J5k6h3S2@1L8h3H3`.)
+
+[mac可参考这里](https://bbs.kanxue.com/elink@73fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6#2k6X3!0D9L8$3N6A6M7%4c8Q4x3V1k6G2L8X3g2C8k6i4W2Q4x3V1k6V1k6h3y4G2L8i4m8A6L8r3g2Q4x3X3c8S2M7r3D9`.)
+
+[apktool2.5](https://bbs.kanxue.com/elink@f11K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6A6b7X3!0@1f1r3g2S2j5$3S2W2M7#2)9J5c8V1q4H3K9%4c8G2L8$3I4Q4x3V1k6J5k6h3I4W2j5i4y4W2M7H3`.`.)
+
+```
+java -jar ~/env/apktool_2.5.0.jar d app-debug.apk
+java -jar ~/env/apktool_2.5.0.jar d -r app-debug.apk // Do not decode resources. 不反编译资源文件
+java -jar ~/env/apktool_2.5.0.jar d -s app-debug.apk // Do not decode sources. 不反编译源码文件
+```
+
+[Baksmali-2.5.2/smali-2.5.2](https://bbs.kanxue.com/elink@e99K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6v1k6i4y4#2M7@1k6J5k6h3E0W2i4K6u0r3M7$3#2S2L8r3W2Q4x3V1k6J5k6h3I4W2j5i4y4W2M7H3`.`.)
+
+```
+java -jar ~/env/baksmali-2.5.2.jar d classes4.dex // 反编译dex文件，输出目录默认位out
+java -jar ~/env/smali-2.5.2.jar a out // 将out目录下面的smali源文件编译为dex文件，输出默认为out.dex
+```
+
+`keytool`
+
+该`cmd`是为了生成`keystore`文件，重签名`apk`时需要。`keytool`命令在java安装目录`/bin`下面
+
+```
+keytool -genkey -alias mine.keystore -keyalg RSA -validity 30000 -keystore mine.keystore
+```
+
+`jarsigner`
+
+该`cmd`是为了将`apk`进行重签名，重签名需要使用`keystore`文件。`jarsigner`命令也在java安装目录`/bin`下面
+
+```
+jarsigner -verbose -keystore mine.keystore -signedjar new.apk old.apk mine.keystore
+```
+
+参数说明：
+
+- `-keystore`：`keystore` 的名称
+- `new.apk`：签名后的`apk`
+- `old.apk`：签名前的`apk`
+
+`adb shell dumpsys activity activities top`
+
+打印手机上当前的未销毁的activity列表
+
+`adb shell dumpsys window windows`
+
+打印手机上当前的window，默认Z-order
+
+# 游戏主页的广告栏分析与去除
+
+## 将app启动，显示游戏主页，查看activity
+
+`dumpsys`看看当前的广告栏属于哪个activity
+
+![](https://bbs.kanxue.com/upload/attach/202106/855618_VMKVE3J8B7GYTVM.png)
+
+activity为`com.outfit7.mytalkingtomfree/com.jinke.Main`
+
+## 用jeb打开，`Main`--activity中看看没有相关的`contentView`之类的。
+
+分析后，发现`Main`的父类中含有可疑的布局代码
+
+![](https://bbs.kanxue.com/upload/attach/202106/855618_KBUQFFYBE2JRYWK.png)
+
+上图中`onCreate`中调用了`initContentLayout`函数
+
+```
+private void initContentLayout() {
+    WeakReference v0 = this.banneContainerReference;
+    if (v0 == null || v0.get() == null) {
+        this.banneContainerReference = new WeakReference(LayoutInflater.from(this.activityWeakReference.get()).inflate(layout.adjustable_banner_layout, this.findViewById(0x1020002), true));
+        Log.d(MaoActivity.TAG, "setAdjustableBannerXY create view");
+    }
+}
+```
+
+这个函数中有一个`Log.d`，我们可通过查看程序运行日志确认该函数中的`if`语句是否执行了。
+
+我这边在app冷启动时开始抓log，确实有这个日志
+
+```
+06-16 17:44:45.360 27784 27784 D com.outfit7.jinke.MaoActivity: setAdjustableBannerXY create view
+```
+
+或者大家也可以通过打断点调试，确认这里是否执行了。
+
+代码拆分说明：
+
+```
+LayoutInflater.from(this.activityWeakReference.get()) 获取当前显示的activity，然后基于该activity对应的上下文创建一个LayoutInflater
+```
+
+```
+inflate(layout.adjustable_banner_layout, this.findViewById(0x1020002), true));
+```
+
+`LayoutInflater.inflate`函数，代码加载布局，其函数声明为：
+
+```
+public View inflate(@LayoutRes int resource, @Nullable ViewGroup root, boolean attachToRoot)
+```
+
+所以布局文件为`layout.adjustable_banner_layout`，这个布局的名字看起来就像是广告位。
+
+## 看看广告位布局文件`layout.adjustable_banner_layout`
+
