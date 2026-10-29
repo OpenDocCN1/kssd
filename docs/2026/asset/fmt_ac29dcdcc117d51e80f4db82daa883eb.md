@@ -1,35 +1,33 @@
 
 从学习脱壳到现在，不知不觉，竟已两月有余，期间遇到过许许多多，一言难尽的问题。对于这类事物，我认为仅仅靠一两篇文章，读者依然很难去复现它。为了能让像我一样的新手去更好的学习和参考，我将同hanbingle大佬一样，将其开源。
 
-AUPK:`701K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6r3k6f1A6c8i4K6u0r3b7g2g2b7d9H3`.`.
+AUPK:<mark class="encrypted">701K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6r3k6f1A6c8i4K6u0r3b7g2g2b7d9H3.</mark>
 
-DexPatcher:`3d9K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6r3k6f1A6c8i4K6u0r3c8r3g2^5f1r3q4@1j5$3S2W2M7R3`.`.
+DexPatcher:<mark class="encrypted">3d9K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6r3k6f1A6c8i4K6u0r3c8r3g2^5f1r3q4@1j5$3S2W2M7R3.</mark>
 
-参考文献：
+### 参考文献
 
-\[1] hanbingle.[FART：ART环境下基于主动调用的自动化脱壳方案](https://bbs.pediy.com/thread-252630.htm)
-
-\[2] Youlor.[Youpk: 又一款基于ART的主动调用的脱壳机](https://bbs.pediy.com/thread-259854.htm)
-
-\[3] 邓凡平.深入理解Android：Java虚拟机ART[M].机械工业出版社.2019.04
-
-\[4] <a href="elink@e7aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5j5h3&6T1K9h3&6Y4L8r3g2F1k6%4W2#2k6g2)9J5c8V1k6m8f1W2b7`.">FART</a>
+1. hanbingle. [FART：ART环境下基于主动调用的自动化脱壳方案](https://bbs.pediy.com/thread-252630.htm)
+2. Youlor. [Youpk: 又一款基于ART的主动调用的脱壳机](https://bbs.pediy.com/thread-259854.htm)
+3. 邓凡平. 深入理解Android：Java虚拟机ART[M]. 机械工业出版社. 2019.04
+4. [FART](<elink@e7aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5j5h3&6T1K9h3&6Y4L8r3g2F1k6%4W2#2k6g2)9J5c8V1k6m8f1W2b7.>)
 
 ### 一. 背景
 
 如今,随着开发者安全意识的提高,加壳的app比比皆是,反而不加壳的并不多见.对于一款加壳的app,脱壳是逆向工程中非常重要的一个步骤.有一个好的脱壳机,可以大大节省逆向人员的时间与精力.
 
-android系统的换代升级非常块,在4.4版本后舍弃了以往的dalvik虚拟机,取而代之的是更高效的art虚拟机.在android脱壳领域,有许多前辈共享了其思路,代码,使本人得已站在巨人的肩膀上进行学习,研究.如[FART：ART环境下基于主动调用的自动化脱壳方案](https://bbs.pediy.com/thread-252630.htm)中,[hanbingle](https://bbs.pediy.com/user-home-632473.htm)大佬开源的基于art的主动调用方案:[FART](https://bbs.kanxue.com/elink@36bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5j5h3&6T1K9h3&6Y4L8r3g2F1k6%4W2#2k6g2)9J5c8V1k6m8f1W2b7`.).
+Android系统的换代升级非常快,在4.4版本后舍弃了以往的Dalvik虚拟机,取而代之的是更高效的ART虚拟机.在Android脱壳领域,有许多前辈共享了其思路,代码,使本人得以站在巨人的肩膀上进行学习,研究.如[FART：ART环境下基于主动调用的自动化脱壳方案](https://bbs.pediy.com/thread-252630.htm)中,[hanbingle](<https://bbs.kanxue.com/elink@36bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5j5h3&6T1K9h3&6Y4L8r3g2F1k6%4W2#2k6g2)9J5c8V1k6m8f1W2b7.>).大佬开源的基于ART的主动调用方案:[FART](<https://bbs.kanxue.com/elink@36bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5j5h3&6T1K9h3&6Y4L8r3g2F1k6%4W2#2k6g2)9J5c8V1k6m8f1W2b7.>).
 
-#### 那么,既然有了FART,为什么我还要写AUPK呢?
+#### 那么，既然有了FART，为什么我还要写AUPK呢？
 
-1. FART是通过ClassLoader里的`path_list`来获取`DexFile`对象，再通过以下方法来获取到所有类,
+1. FART是通过`ClassLoader`里的`path_list`来获取`DexFile`对象，再通过以下方法来获取到所有类：
 
-|  |  |
-|---|---|
-| 1  2 | `package dalvik.system.DexFile;`  `String[] getClassNameList(DexFile dexFile,``Object` `mCookie);` |
+    ```
+    package dalvik.system.DexFile;
+    String[] getClassNameList(DexFile dexFile, Object mCookie);
+    ```
 
-进而获取到所有`Method`对象并进行主动调用.这种方案在大多数情况下非常有效,但对某些壳,如某南极动物壳,这里无法获取到关键的`DexFile`对象,导致无法进行后面的主动调用.AUPK提供了其他思路来应对这种情况.
+    进而获取到所有`Method`对象并进行主动调用.这种方案在大多数情况下非常有效,但对某些壳,如某南极动物壳,这里无法获取到关键的`DexFile`对象,导致无法进行后面的主动调用.AUPK提供了其他思路来应对这种情况.
 
 2. FART的调用链只到了`Invoke`函数即返回,对于许多函数恢复时机更晚的抽取壳,如某加密,某叠字壳,如果函数是第一次执行,此时dump下来的`codeItem`,显然是未解密的,AUPK构造了更深的调用链,以及更晚的dump时机来解决这一问题.
 
@@ -45,43 +43,124 @@ android系统的换代升级非常块,在4.4版本后舍弃了以往的dalvik虚
 
 关于如何整体dump Dex文件，网上有诸多的解决方案,各家都有不同的脱壳点，如`DexFile:init`,`DexFile::OpenCommon`等，其原理是因为dex文件在进行加载的时候，必定会调用这些函数，且此时能方便的拿到`DexFile`对象,从而进行dump。AUPK的脱壳点在`ExecuteSwitchImpl`，当满足特定条件时，类中的某些函数必定会走到这里，此时可以通过栈帧拿到`ArtMethod`对象，进而获取到`DexFile`对象。
 
-在[拨云见日：安卓APP脱壳的本质以及如何快速发现ART下的脱壳点](https://bbs.pediy.com/thread-254555.htm)一文中,作者阐明了,不管壳是否禁用了dex2oat,类的初始化函数始终运行在ART下的inpterpreter模式,即`class.<clinit>`函数是必定要运行到`Execute`函数中的,当app运行时,不可避免的要加载dex,加载、链接、解析、初始化类，而当有类进行初始化的时候，就一定会走到`Execute`
+在[拨云见日：安卓APP脱壳的本质以及如何快速发现ART下的脱壳点](https://bbs.pediy.com/thread-254555.htm)一文中,作者阐明了,不管壳是否禁用了`dex2oat`,类的初始化函数始终运行在ART下的interpreter模式,即`class.<clinit>`函数是必定要运行到`Execute`函数中的,当app运行时,不可避免的要加载dex,加载、链接、解析、初始化类，而当有类进行初始化的时候，就一定会走到`Execute`
 
 `Execute`部分代码如下所示:
 
-|  |  |
-|---|---|
-| 1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47  48  49  50  51  52  53  54  55  56  57  58  59  60  61  62  63  64  65  66  67  68  69  70  71  72  73  74 | `/``/` `interpreter.cc`  `static inline JValue Execute(`  `Thread` `*``self``,`  `const DexFile::CodeItem` `*``code_item,`  `ShadowFrame &shadow_frame,`  `JValue result_register,`  `bool` `stay_in_interpreter` `=` `false) SHARED_REQUIRES(Locks::mutator_lock_){`  `if` `(kInterpreterImplKind` `=``=` `kMterpImplKind)`  `{`  `if` `(transaction_active)`  `{`  `/``/` `No Mterp variant` `-` `just use the switch interpreter.`  `return` `ExecuteSwitchImpl<false, true>(``self``, code_item, shadow_frame, result_register,`  `false);`  `}`  `else` `if` `(UNLIKELY(!Runtime::Current()``-``>IsStarted()))`  `{`  `return` `ExecuteSwitchImpl<false, false>(``self``, code_item, shadow_frame, result_register,`  `false);`  `}`  `else`  `{`  `while` `(true)`  `{`  `/``/` `Mterp does` `not` `support` `all` `instrumentation``/``debugging.`  `if` `(MterpShouldSwitchInterpreters())`  `{`  `return` `ExecuteSwitchImpl<false, false>(``self``, code_item, shadow_frame, result_register,false);`  `}`  `bool` `returned` `=` `ExecuteMterpImpl(``self``, code_item, &shadow_frame, &result_register);`  `if` `(returned)`  `{`  `return` `result_register;`  `}`  `else`  `{`  `/``/` `Mterp didn't like that instruction.  Single``-``step it with the reference interpreter.`  `result_register` `=` `ExecuteSwitchImpl<false, false>(``self``, code_item, shadow_frame,result_register, true);`  `if` `(shadow_frame.GetDexPC()` `=``=` `DexFile::kDexNoIndex)`  `{`  `/``/` `Single``-``stepped a` `return` `or` `an exception` `not` `handled locally.  Return to caller.`  `return` `result_register;`  `}`  `}`  `}`  `}`  `}`  `else` `if` `(kInterpreterImplKind` `=``=` `kSwitchImplKind)`  `{`  `if` `(transaction_active)`  `{`  `return` `ExecuteSwitchImpl<false, true>(``self``, code_item, shadow_frame, result_register,`  `false);`  `}`  `else`  `{`  `return` `ExecuteSwitchImpl<false, false>(``self``, code_item, shadow_frame, result_register,`  `false);`  `}`  `}`  `else`  `{`  `DCHECK_EQ(kInterpreterImplKind, kComputedGotoImplKind);`  `if` `(transaction_active)`  `{`  `return` `ExecuteGotoImpl<false, true>(``self``, code_item, shadow_frame, result_register);`  `}`  `else`  `{`  `return` `ExecuteGotoImpl<false, false>(``self``, code_item, shadow_frame, result_register);`  `}`  `}`  `...`  `}` |
+```
+// interpreter.cc
+static inline JValue Execute(
+    Thread* self,
+    const DexFile::CodeItem* code_item,
+    ShadowFrame& shadow_frame,
+    JValue result_register,
+    bool stay_in_interpreter = false) SHARED_REQUIRES(Locks::mutator_lock_) {
+  if (kInterpreterImplKind == kMterpImplKind) {
+    if (transaction_active) {
+      // No Mterp variant - just use the switch interpreter.
+      return ExecuteSwitchImpl<false, true>(self, code_item, shadow_frame, result_register,
+                                            false);
+    } else if (UNLIKELY(!Runtime::Current()->IsStarted())) {
+      return ExecuteSwitchImpl<false, false>(self, code_item, shadow_frame, result_register,
+                                             false);
+    } else {
+      while (true) {
+        // Mterp does not support all instrumentation/debugging.
+        if (MterpShouldSwitchInterpreters()) {
+          return ExecuteSwitchImpl<false, false>(self, code_item, shadow_frame, result_register, false);
+        }
+        bool returned = ExecuteMterpImpl(self, code_item, &shadow_frame, &result_register);
+        if (returned) {
+          return result_register;
+        } else {
+          // Mterp didn't like that instruction.  Single-step it with the reference interpreter.
+          result_register = ExecuteSwitchImpl<false, false>(self, code_item, shadow_frame, result_register, true);
+          if (shadow_frame.GetDexPC() == DexFile::kDexNoIndex) {
+            // Single-stepped a return or an exception not handled locally.  Return to caller.
+            return result_register;
+          }
+        }
+      }
+    }
+  } else if (kInterpreterImplKind == kSwitchImplKind) {
+    if (transaction_active) {
+      return ExecuteSwitchImpl<false, true>(self, code_item, shadow_frame, result_register,
+                                            false);
+    } else {
+      return ExecuteSwitchImpl<false, false>(self, code_item, shadow_frame, result_register,
+                                             false);
+    }
+  } else {
+    DCHECK_EQ(kInterpreterImplKind, kComputedGotoImplKind);
+    if (transaction_active) {
+      return ExecuteGotoImpl<false, true>(self, code_item, shadow_frame, result_register);
+    } else {
+      return ExecuteGotoImpl<false, false>(self, code_item, shadow_frame, result_register);
+    }
+  }
+  ...
+}
+```
 
-可以看到，`Execute`会根据当前选择的解释器类型，进入不同的解释器去执行，当我们手动把默认的解释器改为`kSwitchImplKind`，则可以让`Execute`默认走swich型解释器，从而进入`ExecuteSwitchImpl`
+可以看到，`Execute`会根据当前选择的解释器类型，进入不同的解释器去执行，当我们手动把默认的解释器改为`kSwitchImplKind`，则可以让`Execute`默认走switch型解释器，从而进入`ExecuteSwitchImpl`
 
-|  |  |
-|---|---|
-| 1  2  3 | `/``/` `interpreter.cc`  `/``/``static constexpr InterpreterImplKind kInterpreterImplKind` `=` `kMterpImplKind;`  `static constexpr InterpreterImplKind kInterpreterImplKind` `=` `kSwitchImplKind;` |
+```
+// interpreter.cc
+// static constexpr InterpreterImplKind kInterpreterImplKind = kMterpImplKind;
+static constexpr InterpreterImplKind kInterpreterImplKind = kSwitchImplKind;
+```
 
 在`ExecuteSwitchImpl`函数中，通过`shadow_frame.GetMethod()`可以拿到当前`ArtMethod`对象，再通过`artMethod->GetDexFile()`可以获取`DexFile`对象，
 
-最后通过`DexFile`对象的`Begin(),Size()`获取到起始位置和大小，来dump `Dex`文件.
+最后通过`DexFile`对象的`Begin()`,`Size()`获取到起始位置和大小，来dump Dex文件.
 
-|  |  |
-|---|---|
-| 1  2  3  4  5  6  7  8  9  10  11  12  13  14  15 | `template <``bool` `do_access_check,` `bool` `transaction_active>`  `JValue ExecuteSwitchImpl(Thread` `*``self``, const DexFile::CodeItem` `*``code_item,`  `ShadowFrame &shadow_frame, JValue result_register,`  `bool` `interpret_one_instruction) SHARED_REQUIRES(Locks::mutator_lock_){`  `ArtMethod` `*``artMethod` `=` `shadow_frame.GetMethod();`  `bool` `isFakeInvokeMethod` `=` `Aupk::isFakeInvoke(``self``, artMethod);`    `if` `(!isFakeInvokeMethod && strstr(PrettyMethod(shadow_frame.GetMethod()).c_str(),` `"<clinit>"``) !``=` `nullptr)`  `{`  `const DexFile` `*``dexFile` `=` `artMethod``-``>GetDexFile();`  `char feature[]` `=` `"ExecuteSwitchImpl"``;`  `Aupk::dumpDexFile(dexFile, feature);`  `Aupk::dumpClassName(dexFile, feature);`  `}`  `}` |
+```
+template <bool do_access_check, bool transaction_active>
+JValue ExecuteSwitchImpl(Thread* self, const DexFile::CodeItem* code_item,
+                         ShadowFrame& shadow_frame, JValue result_register,
+                         bool interpret_one_instruction) SHARED_REQUIRES(Locks::mutator_lock_) {
+  ArtMethod* artMethod = shadow_frame.GetMethod();
+  bool isFakeInvokeMethod = Aupk::isFakeInvoke(self, artMethod);
+  if (!isFakeInvokeMethod && strstr(PrettyMethod(shadow_frame.GetMethod()).c_str(), "<clinit>") != nullptr) {
+    const DexFile* dexFile = artMethod->GetDexFile();
+    char feature[] = "ExecuteSwitchImpl";
+    Aupk::dumpDexFile(dexFile, feature);
+    Aupk::dumpClassName(dexFile, feature);
+  }
+}
+```
 
-与此同时，在`dumpClassName`函数中，获取`Dex`文件的所有类名,并写入到文件(关于这一步的作用,后面会讲到)：
+与此同时，在`dumpClassName`函数中，获取Dex文件的所有类名,并写入到文件(关于这一步的作用,后面会讲到)：
 
-|  |  |
-|---|---|
-| 1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16 | `json root;`  `for` `(size_t i` `=` `0``; i < dexFile``-``>NumClassDefs(); i``+``+``)`  `{`  `const DexFile::ClassDef &classDef` `=` `dexFile``-``>GetClassDef(i);`  `const char` `*``descriptor` `=` `dexFile``-``>GetClassDescriptor(classDef);`  `root[``"count"``]` `=` `i` `+` `1``;`  `root[``"data"``][i]` `=` `descriptor;`  `}`  `ofstream oFile;`  `oFile.``open``(fileName, ios::out);`  `if` `(oFile.is_open())`  `{`  `oFile << root;`  `oFile.close();`  `LOG(INFO) <<` `"AUPK->dump class name:success:"` `<< fileName;`  `}` |
+```
+json root;
+for (size_t i = 0; i < dexFile->NumClassDefs(); i++) {
+  const DexFile::ClassDef &classDef = dexFile->GetClassDef(i);
+  const char* descriptor = dexFile->GetClassDescriptor(classDef);
+  root["count"] = i + 1;
+  root["data"][i] = descriptor;
+}
+ofstream oFile;
+oFile.open(fileName, ios::out);
+if (oFile.is_open()) {
+  oFile << root;
+  oFile.close();
+  LOG(INFO) << "AUPK->dump class name:success:" << fileName;
+}
+```
 
-到这里,我们已经拿到了`Dex`文件，以及`Dex`文件包含的所有类的类名。
+到这里,我们已经拿到了Dex文件，以及Dex文件包含的所有类的类名。
 
 若想对函数进行主动调用，则必须得到函数对应的`ArtMethod`对象，以下方法将`jMethod`转为`ArtMethod`
 
-|  |  |
-|---|---|
-| 1  2  3  4  5  6  7 | `/``/` `aupk_method.cc`  `ArtMethod` `*``jMethodToArtMethod(JNIEnv` `*``env, jobject jMethod)`  `{`  `ScopedFastNativeObjectAccess soa(env);`  `ArtMethod` `*``method` `=` `ArtMethod::FromReflectedMethod(soa, jMethod);`  `return` `method;`  `}` |
+```
+// aupk_method.cc
+ArtMethod* jMethodToArtMethod(JNIEnv* env, jobject jMethod) {
+  ScopedFastNativeObjectAccess soa(env);
+  ArtMethod* method = ArtMethod::FromReflectedMethod(soa, jMethod);
+  return method;
+}
+```
 
-在`Java`中，`Method`对象可以通过`Class`对象的成员方法`getDeclaredMethods()`来获得
+在Java中，`Method`对象可以通过`Class`对象的成员方法`getDeclaredMethods()`来获得
 
-|  |  |
-|---|---|
