@@ -1,0 +1,265 @@
+
+![init_proc](upload/attach/202104/767217_VFE6A3FJ7P4ENQ4.png)
+
+还有`copy`函数，以及地址和数据大小问题。上面的`copy`次数可以看出来，其实主要大小就是第二次，而后三次应该是用来反断点调试的，确保你调试这段`copy`过去的函数时，能刚好在`copy`过去要执行的代码上。
+
+```asm
+OAD:C88C2DEE PUSH {LR}
+LOAD:C88C2DF0 LDRB R3, [R1,#5]
+LOAD:C88C2DF2 PUSH {R3}
+LOAD:C88C2DF4 LDRB R3, [R1,#6]
+LOAD:C88C2DF6 PUSH {R3}
+LOAD:C88C2DF8 PUSH {R4}
+LOAD:C88C2DFA PUSH {R0}
+.........
+.........
+OAD:C88C30FA loc_C88C30FA ; CODE XREF: C7E2B0B6↑j
+LOAD:C88C30FA ; C7E380B6↑j ...
+LOAD:C88C30FA LSLS R3, R3, #2
+LOAD:C88C30FC SUBS R3, #4 ; r3= 上层函数进入的地址
+LOAD:C88C30FE
+LOAD:C88C30FE loc_C88C30FE ; CODE XREF: C7E2A9BA↑j
+LOAD:C88C30FE ; C7E2ADF6↑j ...
+LOAD:C88C30FE LDRH R5, [R3]
+LOAD:C88C3100
+LOAD:C88C3100 loc_C88C3100 ; CODE XREF: C7E2ACBA↑j
+LOAD:C88C3100 ; C7E37CBA↑j ...
+LOAD:C88C3100 LSLS R5, R5, #0x15
+LOAD:C88C3102 LSRS R5, R5, #0xA
+LOAD:C88C3104 LDRH R3, [R3,#2]
+LOAD:C88C3106
+LOAD:C88C3106 loc_C88C3106 ; CODE XREF: C7E2AA56↑j
+LOAD:C88C3106 ; C7E2AA62↑j ...
+LOAD:C88C3106 LSLS R3, R3, #0x15
+LOAD:C88C3108 LSRS R3, R3, #0x15
+LOAD:C88C310A ADDS R5, R5, R3
+LOAD:C88C310C ADDS R5, #2
+LOAD:C88C310E
+LOAD:C88C310E loc_C88C310E ; CODE XREF: C7E2A9CA↑j
+LOAD:C88C310E ; C7E379CA↑j ...
+LOAD:C88C310E LSRS R5, R5, #1
+LOAD:C88C3110 BX LR
+```
+
+明显是手工写的汇编。首先将`lr`地址放入`r3`，然后跳转到取地址的函数以后，通过`lr`减`4`，就得到了`b`指令的地址。而`b`指令会有一个跳转位置的相对偏移，就可以用这个偏移作为`copy`的大小。
+
+通过`mmap`将源地址内容清空，清空的内容是`base + E000`，然后将复制到`malloc`中的内容再复制回去，解密。
+
+```text
+这里清空的代码包括 init_proc 入口的代码，也就是调试一会，发现入口函数的代码数据，全部变成 0 了
+```
+
+解密数据`eor 0x50`（`310`第一个数据开始对比）。
+
+![init_proc](upload/attach/202104/767217_RKQFMCSF9ACX85Q.png)
+
+下面这个函数是`copy`函数，我在这个位置下了断点，结果在`copy`过去的时候，断点错位，指令无法解析。
+
+![init_proc](upload/attach/202104/767217_FAZE4CU2ED722CQ.png)
+
+## 2. `init_array`系列函数
+
+`init_array`函数应该有两次的`fopen /proc/self/status`，检测`TracerPid`。
+
+这两个`ptrace`，我是直接在`open`函数下断点，然后硬调试出来的。而且，最后我发现它调用`fgets`函数来获取结果。这个`fgets`函数在这个加固中很关键，许多位置都是直接调用`fgets`返回的，像`frida`内存`maps`检测时也是如此。
+
+而且，我还发现它特别喜欢调用时间函数。我`hook`的是`gettimeofday`函数，然后每次这个函数一出来，都是关键位置，直接找到相关代码了。
+
+## 3. 特征检测
+
+这部分代码在哪里找到的我忘了，但是`fgets`是我的幸运函数（我想以后可能不会有人用了）。我`hook open`函数以后，如果打开关键文件，我就`hook fgets`。果然，我看它打开了`maps`文件，然后就跟了下去，发现了这个汇编写的比较函数：
+
+![](upload/attach/202201/93_95ESNHVXJ73QP4F.png)
+
+```text
+/data/local/tmp/libFupk3.so
+/data/dexname
+/data/local/tmp/unpacker.config
+/data/fart
+/data/local/tmp/re.frida.server.re.frida.server
+com.example.FunDex-
+```
+
+## 4. 多线程与反调试创建线程的代码
+
+```text
+偏移位置和函数地址（没写全）
+Line 228: module name: libexec.so offset: 0x1ec93 0x1EB60
+open proc/self/status fgets strdup strtok
+然后找到了base.apk文件，fread了几个字节，然后关闭了
+然后好像，直接退出了
+Line 261: module name: libexec.so offset: 0x2b037 0x2BCDC
+sleep(1)
+open proc/self/status fgets TracerPid
+后几个我直接用frida脚本，打印thread id ,看结果
+Line 266: module name: libexec.so offset: 0x2b045
+Line 271: module name: libexec.so offset: 0x2b057
+Line 276: module name: libexec.so offset: 0x2b18b
+```
+
+在第一个线程创建完了以后有一个`java debug`检测：
+
+```java
+android/os/Debug.()Z.isDebuggerConnected 检测位置 0x1AC54 偏移
+```
+
+然后有一次`/proc/getpid()/status`，检查`TracerPid`。
+
+之后在后几个线程里，有检测。我尝试过睡眠过几个线程，但是效果不好，全部卡死了，怀疑可能有线程同步部分，最后这一部分没有好好分析。
+
+`wchan`反调试是无意间发现的。我当时`hook`的是`popen`，我以为它会用`mount`来检查`magisk`，是我菜了，然后无意间发现了这个：`/proc/self/wchan`。这个文件会有个字符串，`attach`以及调试时是不同的，可以通过读取这个文件做反调试。
+
+还有一个线程循环检测`TracerPid`。
+
+可能还有`linker`反调试什么的，但是后来没有接着调试了。
+
+目前就发现了这些。
+
+## 5. `jni jni_onload`
+
+函数`dlopen libdvm.so`，好像还有`libmthook.so`库（这个，我后续的`frida`分析日志，打印的日志不太匹配，不太确定了）。
+
+然后会调用`attachbaseContext`的这个位置的函数：
+
+![图片描述](upload/attach/202201/93_3ABUHTWQWXFZCF7.png)
+
+这个`l`是个`native`：
+
+```java
+public static native boolean l(Application application, String str);
+```
+
+就到这里了，后续没有再分析了。`frida`已经跑过去了，硬分析没什么意义了。
+
+## 6. `frida` `so`文件检测
+
+大部分都是通过`maps`文件检测，另外还有内存扫射`frida`的，端口检测的这个不说了。
+
+```text
+frida这个路径是固定的，开源的必在这个位置
+/data/local/tmp/re.frida.server/frida-agent-32.so
+/proc/self/fd 下 /data/local/tmp/re.frida.server/linjector-13 凡是开了frida的都有这个文件描述符，检测这里也能检测到
+/proc/self/fd u0_a125 u0_a125 64 2021-04-10 00:33 34 -> /data/local/tmp/re.frida.server/linjector-13
+```
+
+这里我提供一种隐藏`maps`文件检测的方法，这个方法来自`Riru`的`hide self maps`。
+
+大致原理就是将这一段内存`mmap`一下。不过这个代码必须放到一个`so`库中，通过获取符号调用，不能隐藏它本身。
+
+```cpp
+struct hide_struct {
+procmaps_struct *original;
+uintptr_t backup_address;
+};
+static int get_prot(const procmaps_struct *procstruct) {
+int prot = 0;
+if (procstruct->is_r) {
+prot |= PROT_READ;
+}
+if (procstruct->is_w) {
+prot |= PROT_WRITE;
+}
+if (procstruct->is_x) {
+prot |= PROT_EXEC;
+}
+return prot;
+}
+#define FAILURE_RETURN(exp, failure_value) ({ \
+__typeof__(exp) _rc; \
+_rc = (exp); \
+if (_rc == failure_value) { \
+LOGE(#exp); \
+return 1; \
+} \
+_rc; })
+static int do_hide(hide_struct *data) {
+auto procstruct = data->original;
+auto start = (uintptr_t) procstruct->addr_start;
+auto end = (uintptr_t) procstruct->addr_end;
+auto length = end - start;
+int prot = get_prot(procstruct);
+// backup
+data->backup_address = (uintptr_t) FAILURE_RETURN(
+mmap(nullptr, length, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0),
+MAP_FAILED);
+LOGD("%" PRIxPTR"-%" PRIxPTR" %s %ld %s is backup to %" PRIxPTR, start, end, procstruct->perm,
+procstruct->offset,
+procstruct->pathname, data->backup_address);
+if (!procstruct->is_r) {
+LOGD("mprotect +r");
+FAILURE_RETURN(mprotect((void *) start, length, prot | PROT_READ), -1);
+}
+LOGD("memcpy -> backup");
+memcpy((void *) data->backup_address, (void *) start, length);
+// munmap original
+LOGD("munmap original start = %x",start);
+FAILURE_RETURN(munmap((void *) start, length), -1);
+// restore
+LOGD("mmap original");
+FAILURE_RETURN(mmap((void *) start, length, prot, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0),
+MAP_FAILED);
+LOGD("mprotect +w");
+FAILURE_RETURN(mprotect((void *) start, length, prot | PROT_WRITE), -1);
+LOGD("memcpy -> original");
+memcpy((void *) start, (void *) data->backup_address, length);
+if (!procstruct->is_w) {
+LOGD("mprotect -w");
+FAILURE_RETURN(mprotect((void *) start, length, prot), -1);
+}
+return 0;
+}
+int riru_hide(std::string &names) {
+procmaps_iterator *maps = pmparser_parse(-1);
+if (maps == nullptr) {
+LOGE("cannot parse the memory map");
+return false;
+}
+char buf[PATH_MAX];
+hide_struct *data = nullptr;
+size_t data_count = 0;
+procmaps_struct *maps_tmp;
+while ((maps_tmp = pmparser_next(maps)) != nullptr) {
+bool matched = false;
+//#ifdef DEBUG_APP
+// matched = strstr(maps_tmp->pathname, "libriru.so");
+//#endif
+matched = strstr(maps_tmp->pathname,names.c_str());
+if (!matched) continue;
+auto start = (uintptr_t) maps_tmp->addr_start;
+auto end = (uintptr_t) maps_tmp->addr_end;
+if (maps_tmp->is_r) {
+if (data) {
+data = (hide_struct *) realloc(data, sizeof(hide_struct) * (data_count + 1));
+} else {
+data = (hide_struct *) malloc(sizeof(hide_struct));
+}
+data[data_count].original = maps_tmp;
+data_count += 1;
+}
+LOGD("%" PRIxPTR"-%" PRIxPTR" %s %ld %s", start, end, maps_tmp->perm, maps_tmp->offset,
+maps_tmp->pathname);
+}
+for (int i = 0; i < data_count; ++i) {
+do_hide(&data[i]);
+}
+if (data) free(data);
+pmparser_free(maps);
+return 0;
+}
+```
+
+## 7. `magisk`检测
+
+可能是我这个有点老，没有只有包名和`so`。这里我提供一种在`git`上找到的，原理不讲了，有时间`magisk`单开一个。
+
+<mark class="encrypted">c9bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6V1j5i4u0$3K9h3&6U0K9i4y4W2j5#2)9J5c8V1c8W2N6r3g2U0N6p5#2S2k6$3W2K6K9@1S2A6k6r3f1`.</mark>
+
+## 8. 如何预防`idf`反汇编，只谈论`armv7`
+
+不知道为什么，好像没有人写过这个问题。
+
+下面这个函数就是其中一个例子。
+
+![图片描述](upload/attach/202201/93_SPMCWAWYUJ4JUPZ.png)
+
+ARM汇编和`c`函数调用是有标准的，ARM调用标准（`ATPC`）与函数参数传递，我就写一点，剩下网上查吧。
