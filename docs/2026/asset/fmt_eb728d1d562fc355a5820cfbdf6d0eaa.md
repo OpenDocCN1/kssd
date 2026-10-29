@@ -1,0 +1,37 @@
+
+拿到数组首个元素的地址 `base`，接下来第 `i` 个元素就是 `base + i * size` 啦。但是问题来了，怎么计算 `ArtMethod` 的大小呢？这个直接参考 `SandHook` 的实现就可以了：直接在 Java 定义两个连续的方法，然后指针相减就是了[^5](https://bbs.kanxue.com/elink@e92K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Y4j5h3&6&6j5h3)9I4x3e0c8Q4x3V1k6e0j5h3&6V1d9r3!0G2K9#2)9J5c8X3u0D9L8$3u0Q4x3V1k6E0j5i4y4@1k6i4u0Q4x3V1k6V1L8$3y4Q4x3V1k6V1L8$3y4Q4x3X3g2E0k6q4)9J5x3$3q4J5N6r3#2W2N6r3S2G2k6q4)9J5k6q4)9J5y4f1f1%4i4K6t1#2z5f1q4Q4x3U0f1^5y4q4)9J5y4f1f1#2i4K6t1#2b7e0c8Q4x3U0g2m8y4#2)9J5y4f1f1#2i4K6t1#2b7U0m8Q4x3U0f1^5c8R3`.`.)。
+这时候就涉及第二个问题：怎么从 Java 的 `Method` 转换成 `ArtMethod` 指针？反过来又如何？
+
+## `Method` 与 `ArtMethod` 互转
+
+我们之前提到过，`Executable` 里面放了一个 `ArtMethod` 的指针。既然映射到 Java 就证明它有被使用的地方，我们看看它的源码：
+
+|  |  |
+| --- | --- |
+| 1 2 3 4 5 6 7 8 | `public abstract` `class` `Executable {` `/``*``*` `*` `@hide` `-` `exposed` `for` `use by {@code java.lang.invoke.``*``}.` `*``/` `public final` `long` `getArtMethod() {` `return` `artMethod;` `}` `}` |
+
+非常明确地说明给 `java.lang.invoke.*` 接口使用的。这很好，因为这些接口都是 Java 原生地公开接口，谷歌可不能隐藏他们。那么怎么被使用的呢？或者说，怎么被转换的呢？
+
+|  |  |
+| --- | --- |
+| 1 2 3 4 | `public abstract` `class` `MethodHandle {` `/``/``其他成员...` `/``*``*` `@hide` `*``/` `protected final` `long` `artFieldOrMethod;` `}` |
+
+原来是放在了 `MethodHadle` 上。而且这个东西也是一个 mirror 类，native 和 Java 一对一的。也就是说，只要把一个 `Method` 转换成 `MethodHandle` 然后读出这个 `artFieldOrMethod` 就可以了。
+
+然后就是转回来。我们把某个 `MethodHandle` 的这个 `artFieldOrMethod` 设置成 `ArtMethod` 指针之后，再把这个 `MethodHandle` 转成 `Executable` 就行了。要注意，转换成 `Member` 时候，这个接口会检查解析出来的 `Member` 是否能被当前类访问。不过好在，他得先转换出来才能进行检查。那么，只要忽略这个检查（抛出的异常），然后直接拿出这个成员就行了。
+
+# 稳定性分析
+
+这个方法在 P-S DP2 上均进行了测试，都能完美运行。并且，谷歌方面已经承诺 `Unsafe` 不会被彻底隐藏，而剩下使用的都是 Java 公开接口，更不可能被隐藏。依赖的 mirror 类的 offset 都被谷歌小心翼翼地维护，改动可能性也不大。因而可以说方法稳定切通用，并且大概率不会被谷歌后续掐掉。
+
+# 源码
+
+源码已经[公开](https://bbs.kanxue.com/elink@4e9K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6x3f1#2m8G2M7$3g2V1i4K6u0r3b7h3&6V1M7X3!0A6k6p5S2A6k6r3c8W2L8V1q4H3K9f1u0&6M7r3q4K6M7H3`.)，并且已经上架 Maven，欢迎推广和使用。
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
+
+最后于 2021-4-24 20:52
+
+被yujincheng08编辑，原因：
+
+[#系统相关](https://bbs.kanxue.com/forum-161-1-126.htm)
