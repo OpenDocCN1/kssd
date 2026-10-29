@@ -1,0 +1,186 @@
+
+| 1  2  3  4  5  6  7  8  9  10  11 | `client.newCall(request).enqueue(new Callback() {`  `@Override`  `public void onFailure(Call call, IOException e) {`  `call.cancel();`  `}`    `@Override`  `public void onResponse(Call call, Response response) throws IOException {`  `String responseData` `=` `response.body().string();`  `}`  `});` |
+
+#### （3）各自证书的校验方式
+
+|  |  |
+
+| --- | --- |
+
+| 1  2  3  4  5  6 | `（``1``）根据 app 内置证书 KeyStore 生成 TrustManager 验证`  `（``2``）自定义 SSLSocketFactory(org.apache.http.conn.ssl.SSLSocketFactory)实现 TrustManager 验证策略(httpClient)`  `（``3``）自定义SSLSocketFactory(javax.net.ssl.SSLSocketFactory)实现TrustManager 验证策略(HttpsURLConnection,OkHttp3)`  `（``4``）自定义的 HostnameVerifier 和 X509TrustManager 实现验证`  `（``5``）第三方库中的验证，如 OkHttp3 中的 CertificatePinner(证书锁定)`  `（``6``）WebView 加载 Https 页面时证书校验出错，停止加载` |
+
+下面是比较常见的实现https类的各自证书校验方式：
+
+![image-20211205163031752](https://bbs.kanxue.com/upload/attach/202112/905443_VRDJKTB2QDRSNQ6.png)
+
+下面是证书验证的一些关系示意图，参考链接：[证书关系](https://bbs.kanxue.com/elink@3d0K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8$3y4K6i4K6u0W2L8%4u0S2j5$3I4W2i4K6u0W2j5$3!0E0i4K6u0r3K9X3q4$3j5i4y4W2i4K6u0r3y4W2i4K6u0r3y4#2M7X3W2@1P5g2)9J5c8X3c8G2j5%4y4Q4x3V1k6@1k6h3y4Z5L8X3!0@1k6i4y4Q4x3V1k6Y4N6h3W2V1k6i4y4Q4x3V1k6K6k6h3y4#2M7X3W2@1P5g2)9J5c8X3A6K6M7$3g2Q4x3V1k6v1f1#2y4q4f1X3g2X3c8%4g2A6k6r3g2Q4x3X3g2Z5N6r3#2D9)
+
+![image-20211205163311496](https://bbs.kanxue.com/upload/attach/202112/905443_9G2XZ9J7CNQRDM4.png)
+
+上图中要进行 SSL 会话，必须先建立一个 `SSLSocket` 对象，而 `SSLSocket` 对象是通过 `SSLSocketFactory` 来管理的，`SSLSocketFactory` 对象则依赖于 `SSLContext` ，`SSLContext` 对象的初始化需要 `keyManager`、`TrustManager` 和 `SecureRandom`。`TrustManager` 对象是我们后文比较关心的，因为正是 `TrustManager` 负责证书的校验，对网站进行认证，要想确保数据不被中间人抓包分析，就需要实现这个类进行验证，以保障数据的安全性
+
+在整个过程中 `TrustManager` 类专门负责校验证书，可以改写 `TrustManager` 类，实现对证书对校验或让它不要对证书做校验
+
+## 三、HTTP/HTTPs漏洞分析和复现
+
+### 1.漏洞的安全种类和危害
+
+Andoid的网络通信中一般采用http明文传输，或使用SSL/TLS协议的https密文传输，对于http明文传输来说自然会导致很多漏洞，例如信息泄露漏洞，升级劫持漏洞，验证码口令泄露漏洞等等，而使用https传输的明文，也存在大量的HTTPs证书不校验漏洞，中间人攻击漏洞等等
+
+![image-20211205145836325](https://bbs.kanxue.com/upload/attach/202112/905443_Z5CQYSQEWEXYEP5.png)
+
+### 2.HTTP明文传输漏洞
+
+#### （1）漏洞案例
+
+##### <1>酷我音乐APP存在逻辑缺陷漏洞
+
+[酷我音乐APP存在逻辑缺陷漏洞](https://bbs.kanxue.com/elink@7a6K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2U0L8Y4k6V1i4K6u0W2L8%4u0Y4i4K6u0W2j5$3&6Q4x3V1k6X3L8r3q4%4i4K6u0r3M7$3S2G2N6#2)9J5c8V1y4z5g2V1c8Q4x3X3b7J5x3o6t1I4i4K6u0V1y4o6f1$3z5o6b7`.)
+
+漏洞原理：
+
+|  |  |
+
+| --- | --- |
+
+| 1 | `酷我音乐APP采用http明文传输，攻击者可以通过利用该漏洞利用代理工具篡改数据包来升级校验，从而导致APP升级过程中恶意软件注入攻击` |
+
+漏洞复现：
+
+我们点击检测新版本，可以抓取对应的响应请求，其中下面的是下载请求
+
+![image-20211205145836325](https://bbs.kanxue.com/upload/attach/202112/905443_6KW96YXS22HVWTW.png)
+
+然后，我们可以发现程序下载完成后，显示正常的升级界面
+
+![image-20211205150811779](https://bbs.kanxue.com/upload/attach/202112/905443_J98G328JND35KBG.png)
+
+我们可以知道这条请求就是程序的下载请求，对应的就是下载的apk，我们尝试劫持这条请求，将apk替换成我们的恶意锁机程序
+
+![image-20211205150811779](https://bbs.kanxue.com/upload/attach/202112/905443_GEFPVG2P74RSHH2.png)
+
+下劫持响应请求断点，可以让我们在请求响应前劫持
+
+![image-20211205150811779](https://bbs.kanxue.com/upload/attach/202112/905443_ECQF6979VDWT3Q2.png)
+
+通过HFS文件管理服务器，来模拟请求的服务器
+
+![image-20211205150811779](https://bbs.kanxue.com/upload/attach/202112/905443_353NBAWAFHS25JE.png)
+
+注意路径应与apk下载请求url保持一致，域名设置为我们本机的ip地址
+
+重新安装，开始升级
+
+![image-20211205150811779](https://bbs.kanxue.com/upload/attach/202112/905443_SYYV864XAEFDKNA.png)
+
+然后升级手机被恶意软件劫持
+
+![image-20211205150811779](https://bbs.kanxue.com/upload/attach/202112/905443_3HYS3764EEKE2T6.png)
+
+![image-20211205150811779](https://bbs.kanxue.com/upload/attach/202112/905443_9C5SMYHZ6ZYRS97.png)
+
+##### <2> 上海任意门科技有限公司Soul APP存在信息泄露漏洞
+
+[上海任意门科技有限公司Soul APP存在信息泄露漏洞](https://bbs.kanxue.com/elink@ed5K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2U0L8Y4k6V1i4K6u0W2L8%4u0Y4i4K6u0W2j5$3&6Q4x3V1k6#2M7$3g2J5i4K6u0r3L8i4W2J5k6i4m8G2M7Y4c8Q4x3V1j5@1z5o6t1%4x3o6b7$3)
+
+信息泄露原理很简单就是利用http明文传输，导致一些账户信息、登录信息的泄露，具体大家可以拿一个http传输的样本去测试，然后自己去查看一些信息问题
+
+##### <3>酷狗直播存在逻辑缺陷漏洞（hash验证）
+
+[酷狗直播存在逻辑缺陷漏洞（hash验证）](https://bbs.kanxue.com/elink@849K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2U0L8Y4k6V1i4K6u0W2L8%4u0Y4i4K6u0W2j5$3&6Q4x3V1k6X3L8r3q4%4i4K6u0r3M7$3S2G2N6#2)9J5c8U0b7H3y4e0l9$3z5e0j5`.)
+
+考虑到http明文传输的危害后，一些厂商开始加入hash验证，这也是我们前面讲述过的验证Android应用的完整性，因为每一个Android APP仅拥有唯一的hash值，但是这种我们可以在升级时，同时去替换相应的hash值来达到升级劫持漏洞的过程
+
+![image-20211205150811779](https://bbs.kanxue.com/upload/attach/202112/905443_4BTW8BP94YHKBFT.png)
+
+我们可以发现在一些厂商的报文中会包含hash值验证，所以如果我们直接去注入恶意程序，我们的应用是安装不上去，但是我们对对应的报文进行替换hash值，替换成我们对于的恶意程序的hash值，我们就可以成功的复现上述升级劫持漏洞的过程
+
+#### （2）漏洞防护
+
+通过上面分析，我们发现上述的漏洞都是因为厂家的APP在传输过程中采用了明文传输导致的，因此防护措施：
+
+|  |  |
+
+| --- | --- |
+
+| 1  2 | `（``1``）HTTPs加密传输`  `（``2``）本地``hash``验证` |
+
+### 3.HTTPs密文传输漏洞
+
+#### （1）漏洞案例
+
+##### <1> 忽略SSL证书校验漏洞
+
+漏洞原理：
+
+在自定义实现`X509TrustManager`时，`checkServerTrusted`中没有检查证书是否可信，导致通信过程中可能存在中间人攻击，造成敏感数据劫持危害。由于客户端没有校验服务端的证书，因此攻击者就能与通讯的两端分别创建独立的联系，并交换其所收到的数据，使通讯的两端认为他们正在通过一个私密的连接与对方直接对话，但事实上整个会话都被攻击者完全控制。在中间人攻击中，攻击者可以拦截通讯双方的通话并插入新的内容
+
+目标程序代码：
+
+|  |  |
+
+| --- | --- |
+
+| 1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16 | `public` `class` `MyX509TrustManager implements X509TrustManager {`  `/``/` `检查客户端证书`  `public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {`  `/``/``没有校验的话，就代表接收任意的证书`  `}`    `/``/` `检查服务器端证书`  `public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {`  `/``/``没有校验的话，就代表接收任意的证书`  `}`    `/``/` `返回受信任的X509证书数组`  `public X509Certificate[] getAcceptedIssuers() {`  `return` `null;`  `}`  `}` |
+
+在重写`WebViewClient`的`onReceivedSslError`方法时，调用`proceed`忽略证书验证错误信息继续加载页面，导致通信过程中可能存在中间人攻击，造成敏感数据劫持危害
+
+目标程序代码：
+
+|  |  |
+
+| --- | --- |
+
+| 1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16 | `mywebview.setWebViewClient(new WebviewClient(){`    `@Override`  `public void onReceivedError(WebView view,``int` `errorCode,String description,String falingUrl){`    `/``/` `TODO Auto generated method stub`  `super``.onReceivedError(view,errorCode,description,fallingUrl) ;`  `}`    `@Override`  `public void onReceivedSslError(WebView view,SslErrorHandler handler,SslError error)`    `/``/` `T0D0 Auto``-``generated method stub`  `handler.proceed( );` `/``/``不对证书进行处理`  `};`  `});` |
+
+**案例一：京东金融MITM漏洞**
+
+漏洞原理：
+
+|  |  |
+
+| --- | --- |
+
+| 1 | `京东金融Ver` `2.8``.``0``由于证书校验有缺陷，导致https中间人攻击，攻击者直接可以获取到会话中敏感数据的加密秘钥，另外由于APP没有做应用加固或混淆，因此可以轻松分析出解密算法，利用获取到的key解密敏感数据` |
+
+登录后捕获的数据：
+
+![image-20211205150811779](https://bbs.kanxue.com/upload/attach/202112/905443_X52FMQD7AY4DWRG.png)
+
+![image-20211205150811779](https://bbs.kanxue.com/upload/attach/202112/905443_6H4HPNQGXKZR293.png)
+
+安全防护：
+
+|  |  |
+
+| --- | --- |
+
+| 1  2  3  4  5 | `（``1``）建议自定义实现X509TrustManager时，checkServerTrusted中对服务器信息进行严格校验。`  `（``2``）针对自定义TrustManager,检查checkServerTrusted()函数是否为空实现。`  `（``3``）建议不要重写TrustManager 和HostnameVerifier,使用系统默认的。`  `（``4``）在重写WebViewClient的onReceivedSslError方法时，避免调用proceed忽略证书验证。`  `（``5``）禁止使用proceed()函数忽略证书错误，应该抛给系统进行安全警告` |
+
+例如，我们在相应的地方加上校验：
+
+![image-20211205154720291](https://bbs.kanxue.com/upload/attach/202112/905443_UC5V7ZK9GAS2JBZ.png)
+
+![image-20211205154828588](https://bbs.kanxue.com/upload/attach/202112/905443_R47Z7JDY63E7YEC.png)
+
+![image-20211205154751251](https://bbs.kanxue.com/upload/attach/202112/905443_DWQ84T5A74B882X.png)
+
+##### <2>忽略域名校验漏洞
+
+在自定义实现`HostnameVerifier`时，没有在`verify`中进行严格证书校验，导致通信过程中可能存在中间人攻击，造成敏感数据劫持危害
+
+目标代码：
+
+|  |  |
+
+| --- | --- |
+
+| 1  2  3  4  5  6 | `HostnameVerifier hv` `=` `new HostnameVerifier (){`  `@Override`  `public boolean verify(String hostname,SSLSession session){`  `return` `true;`  `}`  `};` |
+
+在`setHostnameVerifier`方法中使用`ALLOW_ALL_HOSTNAME_VERIFIER`,信任所有Hostname,导致通信过程中可能存在中间人攻击，造成敏感数据劫持危害
+
+目标代码：
+
+|  |  |
+
+| --- | --- |
