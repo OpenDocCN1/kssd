@@ -1,0 +1,268 @@
+
+# [讨论][原创]第二题 lelfeiCM的writeup
+
+使用IDA工具装入`lelfeiCM.exe`很容易来到`main`函数，粗略阅读汇编代码，得出注册序号的格式的长度满足整数区间[8,20]，且ASCII码满足整数区间[1,9]。
+
+我使用`InputKey`辅助标记输入的字符串变量
+```
+.text:00401044                 lea     eax, [esp+4148h+InputKey]
+
+.text:00401048                 push    104h            ; int
+
+.text:0040104D                 push    eax             ; char *
+
+.text:0040104E                 call    _fgets
+```
+先观察第一个重要的函数调用
+```
+.text:004010AC                 lea     ecx, [esp+4138h+bignumber] ;使用bignumber辅助标记该局部变量
+
+.text:004010B3                 call    Construct_void
+```
+发现使用了`ecx`，并且接下来的汇编大量使用了`ecx`寄存器传输数据结构地址，可以反推出这个数据结构是一个类，猜测如下：
+```
+class BigNumber 
+
+{
+
+private:
+
+	DWORD magic;                     //mov     dword ptr [ecx], offset off_4080C8, 这行汇编取相当于SetMagic函数
+
+	DWORD length;                    //mov     eax, [ecx+4],相当于GetLength函数
+
+	DWORD val[1024];                 //保存十进制数字的实际值
+
+	DWORD idx[1024];                 //十进制数字的索引，使用GetVal(INDEX)取对应位上的数字，即val[idx[INDEX]]
+
+	DWORD seed;                      
+
+	DWORD tickcount;                 //保存两个GetTickCount值,两个用途，1.Hash映射的seed,2.时间戳校验
+
+public:
+
+	BigNumber(void) {};              //void参数 构造函数
+
+	BigNumber(DWORD number) {};      //Int参数 构造函数
+
+	BigNumber(BigNumber* number) {}; //BigNumber 复制构造函数
+
+	...当然还有其他成员函数，
+
+};
+```
+先来看`bignumber`变量与`InputKey`的第一次交集，最后一行标记的`Assign_char_`调用的作用是将`InputKey`表示的数字依次放到`BigNumber`数据结构中，
+
+还原一下函数形式`BigNumber::Assign(char * input)`， 表现为`bignumber` = '123456789'
+```
+.text:004010AC                 lea     ecx, [esp+4138h+bignumber]
+
+.text:004010B3                 call    Construct_void ;BigNumber(void)
+
+.text:004010B8                 lea     ecx, [esp+4138h+InputKey]
+
+.text:004010BC                 mov     [esp+4138h+Bool], 0
+
+.text:004010C7                 push    ecx
+
+.text:004010C8                 lea     ecx, [esp+413Ch+BigNumber_A]
+
+.text:004010CF                 call    Assign_char_
+```
+进入`Assign_char_`发现有两个直接调用，
+
+第一个调用的作用就是`SetVal(INDEX, VALUE)`，`val` [`idx` [`Index`]] = `InputKey` [`Index`] - '0'
+
+第二个调用就是为了进位计算的，当某一位大于或等于10时，向前进位
+```
+.text:00401525                 call    sub_401580 ;ComputeBit
+
+ ...
+
+.text:00401531                 call    sub_401970 ;ComputeCarry
+```
+来到第一个关键的调用，经过分析，该函数作用是计算`BigNumber`与数字乘法运算的
+
+还原一下形式`BigNumber::Multiply(int multiplier)`
+
+必然还有另外一个函数`BigNumber::Multiply(BigNumber multiplier)`
+```
+.text:004010E0                 push    9
+
+.text:004010E2                 lea     ecx, [esp+413Ch+bignumber]
+
+.text:004010E9                 call    MultiplyWith_9           ;这里用MultiplyWith_9代替Multiply__int
+
+ ...
+
+.text:00401774                 mov     eax, [esp+403Ch+arg_0]   ;在这里arg_0 = 9
+
+ ...
+
+.text:00401787                 cdq
+
+.text:00401788                 mov     ecx, 0Ah
+
+.text:0040178D                 idiv    ecx
+
+.text:0040178F                 mov     esi, edx                  ;余数9%A = 9
+
+.text:00401791                 mov     ebx, eax                  ;商9/A=0
+
+.text:004017A1                 push    edi
+
+.text:004017A2                 lea     ecx, [esp+4040h+Handler_B]
+
+.text:004017A6                 call    ShiftRight                ;edi作为参数,将Handler_B(class BigNumber)向高位移动edi步
+
+.text:004017AB                 push    esi
+
+.text:004017AC                 lea     ecx, [esp+4040h+Handler_B]
+
+.text:004017B0                 call    Multiply_LA               ;余数作为参数，将Handler_B与less than A大小的数相乘
+```
+恰好下一部分就是对`BigNumber::Multiply(BigNumber multiplier)`的调用，
+
+首先使用构造函数初始化`TmpHandler`，然后调用 `this->MultiplySelfKey(TmpHandler)`，`MultiplySelfKey`就是乘法运算的实现
+
+`MultiplySelfKey`与`MultiplyWith_9`的汇编代码大同小异。
+
+紧接着又是一个`MultiplyWith_9`
+```
+.text:004010FA                 lea     edx, [esp+4138h+InputKey]
+
+.text:004010FE                 lea     ecx, [esp+4138h+TmpHandler]
+
+.text:00401105                 push    edx
+
+.text:00401106                 call    Construct_Char
+
+.text:0040110B                 lea     eax, [esp+4138h+TmpHandler]
+
+.text:00401112                 lea     ecx, [esp+4138h+bignumber]
+
+.text:00401119                 push    eax
+
+.text:0040111A                 mov     byte ptr [esp+413Ch+Bool], 1
+
+.text:00401122                 call    MultiplySelfKey
+
+.text:00401127                 push    9
+
+.text:00401129                 lea     ecx, [esp+413Ch+bignumber]
+
+.text:00401132                 call    MultiplyWith_
+```
+看到这里就是为了计算 `Number = Origin * 9 * Origin * 9`，然后判断大数长度是否是奇数，
+```
+.text:0040114D                 lea     ecx, [esp+4138h+bignumber]
+
+.text:00401154                 call    GetLength
+
+.text:00401159                 and     eax, 80000001h
+
+.text:0040115E                 jns     short loc_401165
+
+.text:00401160                 dec     eax
+
+.text:00401161                 or      eax, 0FFFFFFFEh
+
+.text:00401164                 inc     eax
+
+.text:00401165
+
+.text:00401165 loc_401165:                             ; CODE XREF: _main+15Ej
+
+.text:00401165                 cmp     eax, 1                               ;长度是否是奇数
+
+.text:00401168                 jnz     loc_401215
+
+.text:0040116E                 lea     ecx, [esp+4138h+bignumber]
+
+.text:00401175                 call    GetLength
+
+.text:0040117A                 sar     eax, 1
+
+.text:0040117C                 push    eax
+
+.text:0040117D                 lea     ecx, [esp+413Ch+bignumber]
+
+.text:00401184                 call    GetVal                               ;取中位数
+
+.text:00401189                 push    0
+
+.text:0040118B                 lea     ecx, [esp+413Ch+TmpHandler]
+
+.text:00401192                 mov     edi, eax
+
+.text:00401194                 call    GetVal
+
+.text:00401199                 cmp     edi, eax                            ;取首(个)位数,进行比较，需要满足相等
+
+.text:0040119B                 lea     ecx, [esp+4138h+TmpHandler]
+
+.text:004011A2                 jnz     short loc_40121C
+```
+最后是判断两个子数字的海明距离 `HammingDist`，
+```
+.text:004011D0                 lea     ecx, [esp+4144h+TmpHandler]
+
+.text:004011D7                 push    esi
+
+.text:004011D8                 push    ecx
+
+.text:004011D9                 lea     ecx, [esp+414Ch+bignumber]
+
+.text:004011E0                 call    HammingDist
+
+.text:004011E5                 push    1
+
+.text:004011E7                 lea     ecx, [esp+413Ch+TmpHandler]
+
+.text:004011EE                 mov     esi, eax
+
+.text:004011F0                 call    GetLength
+
+.text:004011F5                 dec     eax
+
+.text:004011F6                 lea     edx, [esp+413Ch+TmpHandler]
+
+.text:004011FD                 push    eax
+
+.text:004011FE                 push    1
+
+.text:00401200                 push    0
+
+.text:00401202                 push    edx
+
+.text:00401203                 lea     ecx, [esp+414Ch+bignumber]
+
+.text:0040120A                 call    HammingDist
+
+.text:0040120F                 add     esi, eax
+
+.text:00401211                 jz      short loc_401257
+```
+当满足`bigNumber.HammingDist(TmpHandler, ...)`判断大数前部分和后部分与原始数的海明距离之和为0时则转到well done的打印输出。
+
+最后分析得到满足的条件是 `Origin * 9 * Origin * 9 = Origin[0:7] __ Origin[8] __ Origin[7:0]` 条件 (1)
+
+`Origin`是小端在前的表示方式，这里表述方式可能不太恰当。
+
+即便 知道条件(1)-数字回文，想要计算出`Origin`仍然是比较困难的。我想到去搜索下“数字回文”
+
+事实上，这个答案是缺8数，
+
+12345679 × 81 x 12345679 = 12345679 x 999999999=1234567 8 9 8 7654321
+
+缺8数乘以9的任意倍数可以得到该倍数的清一色
+
+并且缺8数乘以多个9能到得到回文数字。
+
+当缺8数乘以9x9能够得到清一色的999999999，
+
+清一色的999999999与缺8数相乘，得到回文数字12345678987654321。
+
+答案是12345679 ，要遵循`BigNumber`低位在前方式输入，97654321，well done。
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
