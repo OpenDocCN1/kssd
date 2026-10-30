@@ -1,0 +1,187 @@
+
+* [1] <a href="elink@139K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0N6r3k6Q4x3X3c8%4K9h3E0A6i4K6u0W2L8%4u0Y4i4K6u0r3M7s2N6F1i4K6u0r3L8r3W2F1N6i4S2Q4x3V1k6#2M7$3g2J5i4K6u0V1L8h3!0V1k6g2)9J5c8X3S2W2j5i4m8Q4x3V1k6H3N6r3#2S2L8r3I4G2j5K6u0Q4x3V1k6Z5L8%4g2K6k6g2)9J5k6r3!0X3i4K6u0V1M7X3!0E0j5h3&6Q4x3V1j5`.">House of Roman - CTF Wiki (ctf-wiki.org)</a>
+* [2] <a href="elink@bf7K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6K9r3g2D9L8s2m8Z5K9i4y4Z5i4K6u0r3K9r3!0%4x3X3S2W2j5i4m8Q4x3V1k6T1L8r3!0T1i4K6u0r3L8h3q4K6N6r3g2J5i4K6u0r3k6$3I4A6j5X3y4Q4y4h3j5J5i4K6u0W2x3U0y4Q4x3V1k6Z5L8%4g2K6k6g2)9#2k6X3!0X3i4K6g2X3M7X3!0E0j5h3&6Q4x3X3g2U0">`how2heap/glibc_2.23/house_of_roman.c` at master · shellphish/how2heap (github.com)</a>
+* [3] <a href="elink@6d2K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1L8r3!0Y4i4K6u0W2j5%4y4V1L8W2)9J5k6h3&6W2N6q4)9J5c8Y4q4I4i4K6g2X3y4o6b7^5y4o6t1&6y4K6y4Q4x3V1k6S2M7Y4c8A6j5$3I4W2i4K6u0r3k6r3g2@1j5h3W2D9M7#2)9J5c8U0p5H3y4K6x3%4x3K6p5&6x3l9`.`.">undefined reference to symbol ‘dlsym@@GLIBC_2.4‘ 解决_undefined reference to `dlsym`-CSDN博客</a>
+* [4] <a href="elink@238K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6^5P5W2)9J5k6h3q4D9K9i4W2#2L8W2)9J5k6h3y4G2L8g2)9J5c8Y4c8Q4x3V1j5J5x3K6p5$3i4K6y4r3N6r3W2E0k6g2)9#2k6W2)9#2k6U0p5K6x3e0q4Q4x3@1c8F1y4q4)9J5y4e0u0n7P5r3&6A6k6f1c8I4g2%4q4k6N6%4N6n7c8r3I4q4d9h3f1H3i4K6t1#2x3@1c8Q4x3U0f1K6c8p5D9H3d9%4c8k6y4f1E0H3d9@1c8o6k6f1c8Q4x3U0k6S2L8r3W2U0K9r3I4Y4M7X3g2X3i4K6y4p5K9s2c8@1M7s2y4Q4x3U0f1K6b7g2)9J5y4e0u0r3i4K6t1#2x3V1k6U0N6r3k6Q4x3X3c8%4K9h3E0A6i4K6u0W2L8%4u0Y4i4K6t1#2x3V1j5`.">House of Roman 实战 - 先知社区 (aliyun.com)</a>
+* [5] <a href="elink@b6cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6\*7K9s2g2S2L8X3I4S2L8W2)9J5k6i4A6Z5K9h3S2#2i4K6u0W2j5$3!0E0i4K6u0r3M7q4)9J5c8U0x3%4x3o6M7H3y4e0b7&6z5l9`.`.">【进程管理】`fork` 之后子进程到底复制了父进程什么？ - 知乎 (zhihu.com)</a>
+* [6] <a href="elink@303K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6&6N6$3S2C8K9%4S2Q4x3X3g2Y4K9i4c8Z5N6h3u0Q4x3X3g2A6L8#2)9J5c8U0t1H3x3U0u0Q4x3V1j5H3x3#2)9J5c8U0p5K6i4K6u0r3d9r3!0#2M7$3g2Q4x3U0f1J5x3p5!0X3i4K6t1#2x3U0m8d9L8$3#2S2L8W2)9J5k6q4)9J5y4f1f1#2i4K6t1#2z5p5g2Q4x3U0f1&6c8W2)9J5y4f1f1%4i4K6t1#2z5e0m8Q4x3U0f1^5y4W2)9J5c8R3`.`.">House Of Roman-原理 | Pwn进你的心 (ywhkkx.github.io)</a>
+* [7] <a href="elink@bddK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2C8L8U0m8K6K9%4W2Q4x3X3g2U0L8$3#2Q4x3V1k6Q4x3@1k6H3i4K6y4p5x3X3u0S2k6U0f1$3j5U0c8Q4x3X3c8V1y4X3j5@1i4K6u0V1y4o6R3@1x3#2)9J5k6r3q4V1z5h3y4Q4x3X3b7J5y4o6b7$3x3K6N6S2x3K6u0S2k6X3x3`.">堆利用详解：fastbin dup - 我可是会飞的啊 (kn0sky.com)</a>
+* [8] <a href="elink@ac8K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2C8L8U0m8K6K9%4W2Q4x3X3g2U0L8$3#2Q4x3V1k6Q4x3@1k6H3i4K6y4p5x3X3f1H3k6X3b7@1k6o6g2Q4x3X3c8V1y4e0x3&6i4K6u0V1y4o6S2S2x3#2)9J5k6r3t1%4k6X3y4Q4x3X3c8X3z5o6b7J5j5e0p5^5k6o6V1J5k6o6M7`.">堆利用详解：Unsortedbin Attack - 我可是会飞的啊 (kn0sky.com)</a>
+
+## 简介
+
+> 介绍部分来自参考资料[0]，其余内容参考自 glibc `malloc` 源码，介绍了其中用到的两个部分 `fastbin dup` 和 `unsortedbin attack`，探究了 `House of Roman` 的过程，概率的计算，如何爆破，鉴于原理简单和成功率极低，就不做额外实验了
+
+### 漏洞成因
+
+`use after free`、`heap overflow write`
+
+### 适用范围
+
+- `2.23`——`2.29`（`libc 2.29`：`unsortedbin attack` 失效）
+
+- 可以 `edit after free`
+
+- 不需要泄露地址
+
+- 需要爆破 `12 bit`，成功的概率 `1/4096`
+
+### 利用原理
+
+可以说这个技巧是 `fastbin attack` + `unsortedbin attack` 的组合技，利用思路如下：
+
+- 申请 `chunk A`、`chunk B`、`chunk C` 和 `chunk D`，`chunk B` 的大小为 `0x70`
+
+- 释放 `chunk B`，使其进入到 `fastbin[0x70]`
+
+- 溢出写 `A`，修改 `chunk B` 的 `size`，使其大小在 `unsortedbin` 范围
+
+- 再次释放 `B`，`B` 进入 `unsortedbin` 中
+
+- 部分写 `B` 的 `fd`，使得 `fd` 指向 `malloc_hook-0x23`
+
+- 利用 `A` 的溢出写修正 `B` 的 `size`，连续分配两次 `0x70`，即可分配到 `malloc_hook` 上方
+
+- 触发 `unsortedbin attack`，将 `__malloc_hook` 写为 `main_arena+88`
+
+- 部分写 `__malloc_hook` 的低三个字节，修改为 `one_gadget`
+
+- 再次 `malloc` 即可拿到 `shell`
+
+换个方式概况一下：
+
+1. stage1 - `fastbin dup`
+
+   - 需要1个 `fastbin chunk`，其中 `fd` 的内容是 `unsortedbin` 的指针
+
+   - 然后复写最后几个字节使得能够定位到 `malloc_hook-0x23` 的地方（`fake fastbin chunk`）
+
+   - 从而申请走这个 `fake chunk`，并能够向 `malloc hook` 写入内容
+
+2. stage2 - `unsortedbin attack`
+
+   - 需要一个 `unsortedbin chunk`，并能够修改其 `bk` 指向 `malloc_hook-0x10` 的地方
+
+   - 通过 `unsortedbin` 断链修改 `malloc_hook` 为 `arena+88` 的地址，也就是 `unsortedbin` 链表头指针的地址
+
+3. stage3 - 使用 `fastbin dup` 申请的 `chunk` 部分覆盖 `malloc_hook` 的值，使其指向 `one_gadgets` 等
+
+### 相关技巧
+
+- 使用 `house of roman` 的时候，需要采用多线程爆破
+
+- 可以使用其他方法代替，比如先攻击 `stdout` 泄露地址，使得爆破的成本降低
+
+### 利用效果
+
+- 执行 `one_gadget`
+
+- 绕过 `ASLR`
+
+## [前置] 实验：how2heap - `fastbin dup`
+
+> 节选自我的博客，完整内容见参考资料[7]
+
+实验环境：`libc 2.35`
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
+int main()
+{
+    setbuf(stdout, NULL);
+
+    printf("This file demonstrates a simple double-free attack with fastbins.\n");
+    printf("Fill up tcache first.\n");
+    void *ptrs[8];
+    for (int i=0; i<8; i++) {
+        ptrs[i] = malloc(8);
+    }
+    for (int i=0; i<7; i++) {
+        free(ptrs[i]);
+    }
+
+    printf("Allocating 3 buffers.\n");
+    int *a = calloc(1, 8);
+    int *b = calloc(1, 8);
+    int *c = calloc(1, 8);
+
+    printf("1st calloc(1, 8): %p\n", a);
+    printf("2nd calloc(1, 8): %p\n", b);
+    printf("3rd calloc(1, 8): %p\n", c);
+
+    printf("Freeing the first one...\n");
+    free(a);
+
+    printf("If we free %p again, things will crash because %p is at the top of the free list.\n", a, a);
+    // free(a);
+
+    printf("So, instead, we'll free %p.\n", b);
+    free(b);
+
+    printf("Now, we can free %p again, since it's not the head of the free list.\n", a);
+    free(a);
+
+    printf("Now the free list has [ %p, %p, %p ]. If we malloc 3 times, we'll get %p twice!\n", a, b, a, a);
+    a = calloc(1, 8);
+    b = calloc(1, 8);
+    c = calloc(1, 8);
+    printf("1st calloc(1, 8): %p\n", a);
+    printf("2nd calloc(1, 8): %p\n", b);
+    printf("3rd calloc(1, 8): %p\n", c);
+
+    assert(a == c);
+}
+```
+
+为了使用 `fastbin`，首先是填充满 `tcachebin`
+
+从 `fastbin` 申请3个 `chunk`：`A`，`B`，`C`
+
+按照顺序进行释放：`A`，`B`，`A`，完成对 `fastbin` 的双重释放，同一个 `chunk` 被释放两次，意味着在第二次被申请前可以修改 `chunk` 指针
+
+```
+0x55555555b390  0x0000000000000000      0x0000000000000021      ........!.......         <-- fastbins[0x20][0], fastbins[0x20][0]
+0x55555555b3a0  0x000055500000e6eb      0x0000000000000000      ....PU..........
+0x55555555b3b0  0x0000000000000000      0x0000000000000021      ........!.......         <-- fastbins[0x20][1]
+0x55555555b3c0  0x000055500000e6cb      0x0000000000000000      ....PU..........
+0x55555555b3d0  0x0000000000000000      0x0000000000000021      ........!.......
+0x55555555b3e0  0x0000000000000000      0x0000000000000000      ................
+0x55555555b3f0  0x0000000000000000      0x0000000000020c11      ................         <-- Top chunk
+```
+
+```
+pwndbg> fastbins
+fastbins
+0x20: 0x55555555b390 —▸ 0x55555555b3b0 ◂— 0x55555555b390
+```
+
+接下来就可以控制 `fastbin` 的指针了
+
+### 探究：为什么可以 double-free ？
+
+在 `_int_free` 中对 `fastbin` 处理里，有一个双重释放安全检查：
+
+```c
+/* Check that the top of the bin is not the record we are going to
+   add (i.e., double free).  */
+// 如果该fastbin当前指向的chunk和要释放的chunk指针相同，报错，双重释放检测
+// 只检测第一个chunk是否和要释放的chunk相同
+if (__builtin_expect(old == p, 0))
+    malloc_printerr("double free or corruption (fasttop)");
+// 指针加密
+p->fd = PROTECT_PTR(&p->fd, old);
+*fb = p;
+```
+
+这个检查和 `libc 2.23` 一样，只检查释放的 `fastbin` 链表中的第一个 `chunk` 和释放的 `chunk` 是否是同一个，是就表示为双重释放
+
+要触发这个检查，就需要连续释放两个同样的 `chunk` 到 `fastbin` 链表中，如果不是连续的，就会存在双重释放问题
+
+## [前置] 实验：how2heap - `unsortedbin attack`
+
+> 节选自我的博客，完整内容见参考资料[8]
+
+实验环境：`libc 2.23`
