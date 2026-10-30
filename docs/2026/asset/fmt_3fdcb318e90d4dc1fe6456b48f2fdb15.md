@@ -1,0 +1,164 @@
+
+# [原创]MS08-046漏洞分析
+
+Author: dge
+
+通过阅读微软安全公告和`CVE-2008-2245`，我们可以知道这是个发生在`MSCMS`模块里的堆溢出，`CVE`甚至给出了漏洞函数`InternalOpenColorProfile`。这个漏洞也是跟`EMF`图片有关，`POC`地址在这里：`efaK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3#2A6L8s2M7H3M7X3#2Q4x3X3g2U0L8$3#2Q4x3V1k6K6M7r3I4G2K9i4c8K6i4K6u0r3x3U0l9H3z5q4)9J5k6r3g2E0k6W2)9#2k6V1#2e0x3o6S2Q4x3X3b7H3y4o6k6Q4x3X3g2J5j5i4u0Q4c8e0y4Q4z5o6m8Q4z5o6t1`。
+
+本来可以直接对`InternalOpenColorProfile`函数进行分析，并且对其进行设断的，不过我在`IDA`里没找到这个函数，用`PAIMEI`定位到溢出点后才知道，`IDA`识别出了这个符号，只不过没把它放到`FUNCTIONS`列表里面，我们可以在`NAMES`列表里找到它，不过没关系，用`PAIMEI`找它也很简单。
+
+说下跟踪步骤：
+
+先用`PAIMEI`跟踪，在跟踪记录中从后望前找，既然是堆溢出，那肯定得有堆分配的函数，而且在其附近代码中很可能有指向输入数据的寄存器和拷贝函数，这样很容易可以定位到溢出点，下一步就是在`OD`中对发生溢出的函数设断，中断后查看调用栈就可以获得漏洞触发路径了，如果这样不行的话，那就只能继续向上翻看`PAIMEI`的跟踪记录了，因为它记录的内容超多，所以有点麻烦，当然也可以只对函数进行跟踪，不过`IDA`在识别函数上经常出现问题，所以`PAIMEI`也会跟着倒霉。
+
+漏洞产生路径：
+
+```text
+PlayEnhMetaFileRecord
+  |\_MRSETICMPROFILE::bPlay
+        |\_SetICMProfileInternalA
+              |\_IcmSetDestinationColorSpace
+                   |\_IcmCreateColorSpaceByName
+                        |\_IcmCreateColorSpaceByColorSpace
+                             |\_IcmRealizeColorProfile
+                                  |\_OpenColorProfileW
+                                        |\_lstrcatW
+```
+
+POC截图：
+
+![](https://bbs.kanxue.com/upload/attach/200812/105705_halkguvzje6z8ab.jpg)
+
+蓝框就是`RECORD`的内容，当程序把它拷贝到小的堆中导致了溢出。
+
+下边就仔细分析下这个漏洞：
+
+```asm
+.text:77EFEF66 __stdcall PlayEnhMetaFileRecord(x, x, x, x) proc near
+.text:77EFEF66                                         ; CODE XREF: bInternalPlayEMF(x,x,x,x,x)+6A2 p
+.text:77EFEF66                                         ; bInternalPlayEMF(x,x,x,x,x)+13B2 p ...
+.text:77EFEF66
+.text:77EFEF66 var_58          = dword ptr -58h
+.text:77EFEF66 var_54          = dword ptr -54h
+.text:77EFEF66 var_50          = dword ptr -50h
+.text:77EFEF66 var_4C          = dword ptr -4Ch
+.text:77EFEF66 var_48          = dword ptr -48h
+.text:77EFEF66 var_44          = dword ptr -44h
+.text:77EFEF66 var_40          = dword ptr -40h
+.text:77EFEF66 var_3C          = dword ptr -3Ch
+.text:77EFEF66 var_38          = dword ptr -38h
+.text:77EFEF66 var_34          = dword ptr -34h
+.text:77EFEF66 var_30          = dword ptr -30h
+.text:77EFEF66 var_2C          = dword ptr -2Ch
+.text:77EFEF66 var_28          = dword ptr -28h
+.text:77EFEF66 var_24          = dword ptr -24h
+.text:77EFEF66 var_20          = dword ptr -20h
+.text:77EFEF66 var_1C          = dword ptr -1Ch
+.text:77EFEF66 var_18          = dword ptr -18h
+.text:77EFEF66 var_14          = dword ptr -14h
+.text:77EFEF66 var_10          = dword ptr -10h
+.text:77EFEF66 var_C           = dword ptr -0Ch
+.text:77EFEF66 var_8           = dword ptr -8
+.text:77EFEF66 var_4           = dword ptr -4
+.text:77EFEF66 arg_0           = dword ptr  8
+.text:77EFEF66 arg_4           = dword ptr  0Ch
+.text:77EFEF66 arg_8           = dword ptr  10h
+.text:77EFEF66 arg_C           = dword ptr  14h
+.text:77EFEF66
+.text:77EFEF66 ; FUNCTION CHUNK AT .text:77F18A61 SIZE 0000028A BYTES
+.text:77EFEF66
+.text:77EFEF66                 mov     edi, edi
+.text:77EFEF68                 push    ebp
+.text:77EFEF69                 mov     ebp, esp
+.text:77EFEF6B                 sub     esp, 58h
+.text:77EFEF6E                 push    ebx
+.text:77EFEF6F                 mov     ebx, [ebp+arg_8]
+.text:77EFEF72                 mov     eax, [ebx]
+.text:77EFEF74                 cmp     eax, 1
+.text:77EFEF77                 push    esi
+.text:77EFEF78                 push    edi
+.text:77EFEF79                 jb      short loc_77EFEF99
+.text:77EFEF7B                 cmp     eax, 7Ah
+.text:77EFEF7E                 ja      short loc_77EFEF99
+.text:77EFEF80                 push    [ebp+arg_C]
+.text:77EFEF83                 mov     ecx, ebx
+.text:77EFEF85                 push    [ebp+arg_4]
+.text:77EFEF88                 push    [ebp+arg_0]
+.text:77EFEF8B                 call    _fpStartDocDlgW[eax*4] ; eax必须是70
+.text:77EFEF92
+.text:77EFEF92 loc_77EFEF92:                           ; CODE XREF: PlayEnhMetaFileRecord(x,x,x,x)+19D72 j
+.text:77EFEF92                                         ; PlayEnhMetaFileRecord(x,x,x,x)+19D80 j
+.text:77EFEF92                 pop     edi
+.text:77EFEF93                 pop     esi
+.text:77EFEF94                 pop     ebx
+.text:77EFEF95                 leave
+.text:77EFEF96                 retn    10h
+.text:77EFEF99 ; ---------------------------------------------------------------------------
+```
+
+上图中的红线上边必须是`0x70`，这样才可以让数据流到达`MRSETICMPROFILE::bPlay`。
+
+```asm
+.text:77F2EA1B public: int __thiscall MRSETICMPROFILE::bPlay(void *, struct tagHANDLETABLE *, unsigned int) proc near
+.text:77F2EA1B                                         ; DATA XREF: .data:77F3279C o
+.text:77F2EA1B                                         ; .data:77F327A0 o
+.text:77F2EA1B
+.text:77F2EA1B var_46C         = dword ptr -46Ch
+.text:77F2EA1B var_468         = dword ptr -468h
+.text:77F2EA1B var_464         = dword ptr -464h
+.text:77F2EA1B var_460         = dword ptr -460h
+.text:77F2EA1B var_45C         = dword ptr -45Ch
+.text:77F2EA1B var_458         = dword ptr -458h
+.text:77F2EA1B var_454         = dword ptr -454h
+.text:77F2EA1B var_450         = dword ptr -450h
+.text:77F2EA1B var_44C         = dword ptr -44Ch
+.text:77F2EA1B var_448         = dword ptr -448h
+.text:77F2EA1B var_414         = dword ptr -414h
+.text:77F2EA1B var_20C         = byte ptr -20Ch
+.text:77F2EA1B var_4           = dword ptr -4
+.text:77F2EA1B arg_0           = dword ptr  8
+.text:77F2EA1B arg_4           = dword ptr  0Ch
+.text:77F2EA1B
+.text:77F2EA1B                 mov     edi, edi
+.text:77F2EA1D                 push    ebp
+.text:77F2EA1E                 mov     ebp, esp
+.text:77F2EA20                 sub     esp, 46Ch
+.text:77F2EA26                 mov     eax, ___security_cookie
+.text:77F2EA2B                 push    esi
+.text:77F2EA2C                 mov     [ebp+var_4], eax
+.text:77F2EA2F                 mov     eax, [ebp+arg_4]
+.text:77F2EA32                 push    edi
+.text:77F2EA33                 mov     edi, [ebp+arg_0]
+.text:77F2EA36                 push    eax
+.text:77F2EA37                 mov     esi, ecx
+.text:77F2EA39                 mov     [ebp+var_460], edi
+.text:77F2EA3F                 call    MRNAMEDESCAPE::bCheckRecord(tagHANDLETABLE *) ;  这里必须符合[esi+10h]+[esi+c]&0FFFFFFFCh==[esi+4h]
+.text:77F2EA44                 test    eax, eax
+.text:77F2EA46                 jz      loc_77F2EBA2
+.text:77F2EA4C                 push    ebx
+.text:77F2EA4D                 xor     ebx, ebx
+.text:77F2EA4F                 test    byte ptr [esi+8], 1 ; [esi+8h]必须等于0
+.text:77F2EA53                 mov     [ebp+var_45C], ebx
+.text:77F2EA59                 jz      loc_77F2EB74
+```
+
+当`esi`指向上图蓝色的位置时，`[esi+10h]+[esi+c]&0FFFFFFFCh==[esi+4h]`，`[esi+8h]`必须等于`0`。
+
+```asm
+.text:77F2EB74 loc_77F2EB74:                           ; CODE XREF: MRSETICMPROFILE::bPlay(void *,tagHANDLETABLE *,uint)+3E j
+.text:77F2EB74                 cmp     dword ptr [esi], 70h
+.text:77F2EB77                 push    10002h          ; int
+.text:77F2EB7C                 push    ebx             ; int
+.text:77F2EB7D                 jnz     short loc_77F2EB8B
+.text:77F2EB7F                 add     esi, 14h
+.text:77F2EB82                 push    esi             ; lpString
+.text:77F2EB83                 push    edi             ; HDC
+.text:77F2EB84                 call    SetICMProfileInternalA(x,x,x,x)
+.text:77F2EB89                 jmp     short loc_77F2EB95
+.text:77F2EB8B ; ---------------------------------------------------------------------------
+.text:77F20F7F __stdcall SetICMProfileInternalA(x, x, x, x) proc near
+.text:77F20F7F                                         ; CODE XREF: SetICMProfileA(x,x)+F p
+.text:77F20F7F                                         ; MRSETICMPROFILE::bPlay(void *,tagHANDLETABLE *,uint)+169 p
+.text:77F20F7F
+.text:77F20F7F var_210         = dword ptr -210h
+```

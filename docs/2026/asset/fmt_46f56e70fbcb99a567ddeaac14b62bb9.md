@@ -1,0 +1,151 @@
+
+# [原创] CVE-2017-8890 漏洞分析 原理篇
+
+## 2018.08 CVE-2017-8890 漏洞分析 原理篇
+
+[TOC]
+
+## 正文开始
+
+关于`CVE-2017-8890`的原理分析已经有好几位前辈分析过了，本文也做一个简单的总结。首先会从补丁分析一下漏洞的成因，其次会从调试的角度验证之前分析的内容。
+
+## 漏洞原理
+
+通过该漏洞的`patch`，我们可以看到在`net/ipv4/inet_connection_sock.c`中，增加了对于`mc_list`的置`NULL`操作。`newsk`是一个`sock`的结构体指针（`struct sock *newsk`）。
+
+![Alt text](./upload/attach/201901/730610_79P5BVQ5SMUYVU3.png)
+
+通过查看`sock`结构体在`kernel4.10.0`中的源码，可知`mc_list`是`ip_mc_socklist`的结构体指针。所以我们可以确定`ip_mc_socklist`就是存在问题的结构体。
+
+![Alt text](./upload/attach/201901/730610_WB8W9BNCYP5EMPN.png)
+
+为什么要对`mc_list`置`NULL`呢？这得看一下`inet_connection_sock.c`中`inet_csk_clone_lock`的功能。该函数的调用过程如下，引用云图信安文章中用`understand`生成的调用流程图：
+
+![Alt text](./upload/attach/201901/730610_6XBJ9YHGG4F3PGP.png)
+
+这里对以上函数做简单分析（现在感觉用处不大），具体的过程可以看源码实现：
+
+- 源头是`tcp_v4_rcv`这个函数。`tcp_v4_rcv`中调用了 `tcp_check_req`。
+- `tcp_check_req`会检查包是否正确，会`return`一个新建立的`socket`。
+- `tcp_check_req`是调用 `tcp_v4_syn_recv_sock`来实现的，`tcp_v4_syn_recv_sock`里面会初始化和创建一个新的`socket`。
+- `tcp_v4_syn_recv_sock` 是调用`tcp_create_openreq_child` 来实现的。 `tcp_create_openreq_child(sk, req, skb)`根据监听`sock`和`req`，为新连接创建一个传输控制块，并初始化。
+- `tcp_create_openreq_child`是调用 `inet_csk_clone_lock`来实现的。该函数会创建一个`socket`，其实是根据父`socket`来创建`child socket`。
+
+到这里已经定位到了`inet_csk_clone_lock`函数。看一下源码：
+
+![Alt text](./upload/attach/201901/730610_76ZSUFKS7NRKUGM.png)
+
+这个函数在`clone sk`给`newsk`时，通过调用链：`inet_csk_clone_lock -> sk_clone_lock(sk, priority)->sock_copy(newsk, sk);`来完成对`sk`的拷贝。拷贝完成后没有对`mc_list`初始化，因此在`newsk`和`sk`中存在同一个指向`ip_mc_socklist`的结构体指针。
+
+总结一下目前的漏洞原因：根据`PATCH`代码分析，在建立`socket`连接时，由父`socket` `copy`数据 给子 `socket`，`mc_list`这个`ip_mc_socklist`类型的结构体指针没有被置为`NULL`，因此子`socket`中存在对父`socket`中数据的引用。
+
+## POC
+
+由于是`double free`的漏洞，写`POC`时，必然要对`mc_list`进行创建和二次释放。创建和释放的过程需要通过`understand`找关于`mc_list`的引用。细节还是参考云图信安的文章[1]吧。不重复赘述了。
+
+创建过程：
+
+![Alt text](./upload/attach/201901/730610_FWUG9PUAWAP44PW.png)
+
+释放过程：
+
+![Alt text](./upload/attach/201901/730610_TRCQRZ3KXXX7EXD.png)
+
+POC伪代码:
+
+```c
+sockfd = socket(AF_INET, xx, IPPROTO_TCP);
+setsockopt(sockfd, SOL_IP, MCAST_JOIN_GROUP, xxxx, xxxx);
+bind(sockfd, xxxx, xxxx);
+listen(sockfd, xxxx)
+newsockfd = accept(sockfd, xxxx, xxxx);
+close(newsockfd);// first free (kfree_rcu)
+sleep(5);// wait rcu free(real first free)
+close(sockfd);// double free
+```
+
+创建一个`socket`并加入组播模式（`MCAST_JOIN_GROUP`），这时`socket`中存在`mc_list`结构体，监听该`socket`，并用`accept`等待连接。建立连接时，会创建新的子`sokcet`，其中依然存在父`socket`的`mc_list`结构体。关闭新的`socket`，这时等待`RCU`机制的的宽限期结束后，在`rcu`回调函数中触发第一次`kfree`。之后关闭父`socket`，同样的位置触发第二次`free`。（也就是两次`free`的位置都是相同的，之前被别的文章误导了）
+
+POC下载地址：<a href="elink@a1bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4y4@1i4K6u0W2k6$3W2@1K9s2g2T1i4K6u0W2j5$3!0E0i4K6u0r3N6r3S2A6L8X3E0&6j5%4S2Q4x3V1j5H3k6X3j5H3x3h3g2S2y4e0c8T1j5$3b7#2k6U0j5K6y4K6W2S2k6h3g2S2z5e0b7^5x3$3k6S2x3U0k6W2z5b7`.`.">POC</a>
+
+## 开始调试
+
+环境：
+
+- `ubuntu16.04.1@kernel 4.10.0-19`
+- 调试机（`debugging`）、被调试机（`debuggee`）
+- 参考：`ubuntu` 内核源码调试
+
+## 动态调试
+
+### mc_list的创建过程
+
+`mc_list` 结构定义如下，大小是`0x30`，其中的`rcu_head`的`offset`是`0x20`，`func`指针的`offset`是`0x28`：
+
+![Alt text](./upload/attach/201901/730610_ZQAM7Y8DXBJBCYA.png)
+
+![Alt text](./upload/attach/201901/730610_PMGUXSHXUEQS8ZY.png)
+
+`mc_list` 创建过程`ip_mc_join_group() -> sock_kmalloc() -> kmalloc()`
+
+- `ip_mc_join_group`
+
+![Alt text](./upload/attach/201901/730610_YATMW6N9EWBS6RT.png)
+
+- `sock_kmalloc`
+
+![Alt text](./upload/attach/201901/730610_BHKWETGS2YGWCJ6.png)
+
+- `sock_kmalloc` 反汇编代码
+
+![Alt text](./upload/attach/201901/730610_UCAPAGK8W3CZZBV.png)
+
+在`sock_kmalloc` 下断点，查看`rax`的值也就是创建的`mc_list`结构体：
+
+```
+gdb-peda$ x/6gx $rax
+0xffff880074a83780: 0xffff880074a83dc0 0xffff880074a83780
+0xffff880074a83790: 0xffff880037288958 0x0000000008000002
+0xffff880074a837a0: 0x0000000000000002 0x6c73797300000006
+```
+
+### mc_list 的free过程
+
+- `ip_mc_drop_socket`
+
+`mc_list`在这个函数里面释放。由于`mc_list`是一个单链表，通过`next_rcu`来索引下一个`mc_list`。因此在释放的时候，会循环遍历这个链表。此外，由于`mc_list`是`ip_mc_socklist`的结构体，引用了`rcu`机制（正常采用`rcu`机制保护的结构体中会有`struct rcu_head rcu;` 这个成员）因此对于该结构体写比较特殊（释放也可以理解为是写过程）。
+
+简单来说可以理解为当有一个线程要对该成员写时，开始一个宽限期，等到所有读的线程结束后，宽限期结束，通过触发时钟中断检查是否存在回调函数，如果存在回调函数，则在回调函数中写。简单的`rcu`机制可以参考这篇文章：<a href="elink@37fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1L8r3!0Y4i4K6u0W2j5%4y4V1L8W2)9J5k6h3&6W2N6q4)9J5c8Y4c8Z5K9h3&6C8i4K6g2X3P5h3y4^5i4K6u0r3j5i4u0@1K9h3y4D9k6g2)9J5c8X3c8W2N6r3q4A6L8s2y4Q4x3V1j5^5x3e0p5#2y4e0j5%4x3R3`.`.">浅析linux kernel RCU机制</a>
+
+![Alt text](./upload/attach/201901/730610_K2YPAX4MYQHSETH.png)
+
+- `ip_mc_leave_src` （这个函数和`crash`有关，也贴一下）
+
+![Alt text](./upload/attach/201901/730610_RGRS2UJBRTQJ798.png)
+
+### double free之：sk和newsk中共有的mc_list
+
+根据一开始的漏洞分析，我们可以知道在`inet_csk_clone_lock`中`sk_clone_lock`完成了`sock copy`的过程。通过`gdb`调试我们可以看到`sk`和`newsk`中存在同一个指向`mc_list`的指针。首先我们需要知道`mc_list`在`sk`中的偏移。
+
+这个偏移可以通过`IDA`查看`free mc_list`时的反汇编代码得到：`0x310`。
+
+![Alt text](./upload/attach/201901/730610_T6U6PZ7GSTGE8YV.png)
+
+找到偏移后，通过`gdb`调试`inet_csk_clone_lock`函数即可看到`mc_list`的创建过程，首先`IDA`看一下该函数地址。
+
+这里可以考虑设置一下断点：
+
+```
+.text:FFFFFFFF817FB491 call near ptr sk_clone_lock-68B86h ; rdi sk
+.text:FFFFFFFF817FB496 test rax, rax ; newsk
+```
+
+![Alt text](./upload/attach/201901/730610_VRHB58PXNVCRJP5.png)
+
+确定地址后，`gdb`查看此时`newsk`和`sk 0x310`偏移处，果然存在指向同一个`mc_list`的指针。（这里还不太严谨，因为`patch`代码是在`sk_clone_lock`之后置`mc_list`为`NULL`的，`gdb`中可以输入`finish`查看函数调用完了之后这个指针依然是存在的）
+
+![Alt text](./upload/attach/201901/730610_U5WZR7PS6PURNF7.png)
+
+### 定位crash点 ip_mc_leave_src
+
+继续运行`poc`后，发生`crash`。

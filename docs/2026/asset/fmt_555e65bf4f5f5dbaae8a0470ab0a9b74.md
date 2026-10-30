@@ -1,0 +1,207 @@
+
+# [原创]极路由远程命令执行漏洞-环境模拟
+
+## 前言
+
+极路由存在远程命令执行漏洞,这是一个非常古老的漏洞,并且影响到全版本。分为两篇进行介绍,第一篇为固件分析和环境的模拟运行,第二篇为`cloud_token`的计算和远程命令执行漏洞分析。
+
+## 固件分析
+
+极路由的固件有两种打包方式一种是以`R34-sysupgrade-20180615-fafd840f.bin`固件为例，一种是以`HC5661-sysupgrade-20180510-5dd5e8fd.bin`固件为例。
+
+### R34固件分析
+
+运行`binwalk R34-sysupgrade-20180615-fafd840f.bin`命令分析固件的格式。
+
+```bash
+binwalk R34-sysupgrade-20180615-fafd840f.bin
+DECIMAL HEXADECIMAL DESCRIPTION
+--------------------------------------------------------------------------------
+0 0x0 Flattened device tree, size: 18341440 bytes, version: 17
+220 0xDC ELF, 32-bit LSB shared object, ARM, version 1 (SYSV)
+321153 0x4E681 Certificate in DER format (x509 v3), header length: 4, sequence length: 1284
+321269 0x4E6F5 Certificate in DER format (x509 v3), header length: 4, sequence length: 1288
+322357 0x4EB35 Certificate in DER format (x509 v3), header length: 4, sequence length: 1284
+391812 0x5FA84 CRC32 polynomial table, little endian
+393544 0x60148 CRC32 polynomial table, little endian
+404739 0x62D03 HTML document header
+413385 0x64EC9 HTML document footer
+413487 0x64F2F HTML document header
+422816 0x673A0 HTML document footer
+422915 0x67403 HTML document header
+431154 0x69432 HTML document footer
+431267 0x694A3 HTML document header
+431555 0x695C3 HTML document footer
+514524 0x7D9DC UBI erase count header, version: 1, EC: 0x0, VID header offset: 0x800, data offset: 0x1000
+```
+
+系统文件是UBI格式的，使用`binwalk -e R34-sysupgrade-20180615-fafd840f.bin`进行解包，会提取出一个`7D9DC.ubi`文件,查看文件信息为UBI image, version 1。
+
+```bash
+file 7D9DC.ubi
+7D9DC.ubi: UBI image, version 1
+```
+
+使用`ubireader_extract_images 7D9DC.ubi`命令提取到3个ubifs文件，分别为kernel data rootfs 。
+
+```bash
+img-1782569745_vol-kernel.ubifs img-1782569745_vol-rootfs_data.ubifs img-1782569745_vol-ubi_rootfs.ubifs
+```
+
+执行`file img-1782569745_vol-ubi_rootfs.ubif`查看rootfs的文件格式,发现是Squashfs filesystem格式的文件系统，使用xz格式进行的压缩。
+
+```bash
+file img-1782569745_vol-ubi_rootfs.ubifs
+img-1782569745_vol-ubi_rootfs.ubifs: Squashfs filesystem, little endian, version 4.0, xz compressed, 13262802 bytes, 3148 inodes, blocksize: 262144 bytes, created: Fri Jun 15 04:51:41 2018
+```
+
+执行`7z x img-1782569745_vol-ubi_rootfs.ubif`进行解压缩得到路由器的系统文件。
+
+```bash
+7z x img-1782569745_vol-ubi_rootfs.ubifs
+7-Zip 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+64-bit locale=C.UTF-8 Threads:20 OPEN_MAX:10240
+Scanning the drive for archives:
+1 file, 13459456 bytes (13 MiB)
+Extracting archive: img-1782569745_vol-ubi_rootfs.ubifs
+WARNINGS:
+There are data after the end of archive
+--
+Path = img-1782569745_vol-ubi_rootfs.ubifs
+Type = SquashFS
+WARNINGS:
+There are data after the end of archive
+Physical Size = 13262802
+Tail Size = 196654
+Headers Size = 65784
+File System = SquashFS 4.0
+Method = XZ
+Cluster Size = 262144
+Big-endian = -
+Created = 2018-06-15 12:51:41
+Characteristics = DUPLICATES_REMOVED EXPORTABLE NO_XATTRS COMPRESSOR_OPTIONS
+Code Page = UTF-8
+```
+
+### HC5761固件分析
+
+使用`binwalk HC5761-sysupgrade-20180510-0dd7abd0.bin`分析固件的文件系统，固态文件是由U-Boot + uImage + xz 文件组成，xz就是我们需要提取的rootfs。
+
+```bash
+binwalk HC5761-sysupgrade-20180510-0dd7abd0.bin
+DECIMAL HEXADECIMAL DESCRIPTION
+--------------------------------------------------------------------------------
+116944 0x1C8D0 U-Boot version string, "U-Boot 1.1.3 (May 10 2018 - 06:06:17)"
+124311 0x1E597 HTML document header
+132957 0x2075D HTML document footer
+133059 0x207C3 HTML document header
+142384 0x22C30 HTML document footer
+142483 0x22C93 HTML document header
+150722 0x24CC2 HTML document footer
+150835 0x24D33 HTML document header
+151123 0x24E53 HTML document footer
+327680 0x50000 uImage header, header size: 64 bytes, header CRC: 0x46F46105, created: 2018-05-09 22:25:36, image size: 1122008 bytes, Data Address: 0x80000000, Entry Point: 0x80000000, data CRC: 0x755C17D9, OS: Linux, CPU: MIPS, image type: OS Kernel Image, compression type: lzma, image name: "HC5761"
+327744 0x50040 LZMA compressed data, properties: 0x6D, dictionary size: 8388608 bytes, uncompressed size: 3333004 bytes
+1507454 0x17007E xz compressed data
+1614226 0x18A192 xz compressed data
+1707378 0x1A0D72 xz compressed data
+...
+12768656 0xC2D590 xz compressed data
+12770562 0xC2DD02 xz compressed data
+12772524 0xC2E4AC xz compressed data
+```
+
+用010打开固件跳到`0x17007E`发现从`0x170000`开始的是SquashFS文件格式。
+
+![SquashFS文件格式](upload/attach/202510/920134_W2M3KQF8MKZNXCE.webp)
+
+既然是SquashFS文件格式，为什么`binwalk`没有识别出呢，先使用`dd`命令或者手动把从`0x170000`开始的所有文件导出存为`HC5761.bin`，执行`file HC5761.bin`命令查看文件类型。
+
+```bash
+file HC5761.bin
+HC5761.bin: Squashfs filesystem, little endian, version -5.-1, 1525904730 bytes, -3179 inodes, blocksize: 6314 bytes, created: Sun May 22 10:03:44 2061
+```
+
+`version -5.-1`显然是错误的，R34的是`version 4.0`。使用SquashFS.bt打开`img-1782569745_vol-ubi_rootfs.ubifs`，然后查看`version`的字段的偏移，将`HC5761.bin`的`0X1C`开始处修改为 `04 00 00 00` . 然后就可以使用SquashFS.bt打开`HC5761.bin`了，这里也可以确定是与`0XFF`进行了异或。
+
+`-3179 inodes` 也需要修改， `95 F3 FF FF` 与 `0XFF` 异或 `6A 0C 00 00` 。
+
+`compression` 的 `FB FF` 修改为 `04 00` 。
+
+![SquashFS文件格式](upload/attach/202510/920134_59MSWEUYASGGRH9.webp)
+
+使用 `file HC5761.bin` 和 `binwalk HC5761.bin` 分析，都显示正常。
+
+```bash
+file HC5761.bin
+HC5761.bin: Squashfs filesystem, little endian, version 4.0, xz compressed, 11265554 bytes, 3178 inodes, blocksize: 262144 bytes, created: Wed May 9 22:25:30 2018
+```
+
+```bash
+binwalk HC5761.bin
+DECIMAL HEXADECIMAL DESCRIPTION
+--------------------------------------------------------------------------------
+0 0x0 Squashfs filesystem, little endian, version 4.0, compression:xz, size: 11265554 bytes, 3178 inodes, blocksize: 262144 bytes, created: 2018-05-09 22:25:30
+```
+
+然后使用`7z x HC5761.bin` 解压得到固件的rootfs。
+
+```bash
+7z x HC5761.bin
+7-Zip 23.01 (x64) : Copyright (c) 1999-2023 Igor Pavlov : 2023-06-20
+64-bit locale=C.UTF-8 Threads:20 OPEN_MAX:10240
+Scanning the drive for archives:
+1 file, 11272196 bytes (11 MiB)
+Extracting archive: HC5761.bin
+WARNINGS:
+There are data after the end of archive
+--
+Path = HC5761.bin
+Type = SquashFS
+WARNINGS:
+There are data after the end of archive
+Physical Size = 11265554
+Tail Size = 6642
+Headers Size = 66284
+File System = SquashFS 4.0
+Method = XZ
+Cluster Size = 262144
+Big-endian = -
+Created = 2018-05-10 06:25:30
+Characteristics = DUPLICATES_REMOVED EXPORTABLE NO_XATTRS COMPRESSOR_OPTIONS
+Code Page = UTF-8
+```
+
+***
+
+## 模拟运行
+
+安装qemu模拟器`qemu-user-static`，利用Linux的`binfmt_misc`机制执行MIPS架构的`sh`，跳转到rootfs的根目录，执行`sudo chroot . bin/busybox sh` 进入固件的shell。
+
+```bash
+sudo chroot . bin/busybox sh
+BusyBox v1.22.1 (2018-05-10 06:04:58 CST) built-in shell (ash)
+Enter 'help' for a list of built-in commands.
+/ # ls
+bin dev etc lib mnt overlay proc rom root sbin sys tmp usr www
+```
+
+`/etc/init.d/nginx` 为nginx的启动shell。运行`source /etc/init.d/nginx;start;`启动nginx，提示`/var/run/` 目录不存在，`mkdir -p /var/run/`建立目录，再建立目录 `mkdir -p /var/lock/`。
+
+```bash
+$source /etc/init.d/nginx;start;
+sh: awk: not found
+sh: awk: not found
+ifconfig: /proc/net/dev: No such file or directory
+ifconfig: eth2: error fetching interface information: Device not found
+/sbin/uci: Entry not found
+sh: awk: not found
+nginx: [alert] lua_code_cache is off; this will hurt performance in /etc/nginx/vh.tw.conf:18
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: [emerg] open() "/var/run/nginx.pid" failed (2: No such file or directory)
+nginx: configuration file /etc/nginx/nginx.conf test failed
+```
+
+之后再运行 `source /etc/init.d/nginx;start;` 开启nginx。
+
+运行 `source /etc/init.d/fcgi-cgi;start;` 开启fcgi-cgi。

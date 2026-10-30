@@ -1,0 +1,185 @@
+
+# [原创]《0day 安全：软件漏洞分析技术 第二版》笔记
+
+## 前言
+
+&emsp;&emsp;最近读了一遍0day安全这本书，收获颇多。有种农村人进城，大开眼界的感觉。这本书比较全面的介绍了windows系统安全机制方面的知识，在没接触这本书之前，自我感觉对windows系统比较了解，但看了书中介绍的知识，一下子崩溃了，盲点太多。不知道作者有更新版本的打算没有？书里的漏洞案例太老了，测试系统也是32位的老系统。估计其他人读到这本书时，也有此种牢骚。
+
+&emsp;&emsp;实验时，需要用到windows系统的很多版本，但是我只准备windows xp sp2，很多实验没有做，只是走马观花，大概了解了下。MS08-067这个漏洞，能够在windows xp sp2重现，所以我跟着书中提供的思路，对MS08-067做了比较详细的分析记录。本书的一大亮点，是对shellcode的编写做了详细的介绍，包括shellcode组织的各种形式和一些编写技巧。我在win10系统上编写了一个有栈溢出漏洞的程序，然后根据第三章的3.6.2 节所说的功能（打开6666端口），编写了一个shellcode，并且成功利用了这个漏洞。
+
+## 打开6666端口
+
+测试系统：windows10（版本1909）
+
+编译器：vs2019（版本：16.9.6）
+
+shellcode要实现的功能：
+
+1. 绑定一个shell到6666端口。
+2. 允许外部的网络连接使用这个shell。
+3. 程序能够正常退出。
+
+### 测试程序
+
+首先要写一个有栈溢出的漏洞的程序：
+
+```c++
+#define _CRT_SECURE_NO_WARNINGS
+//#include <Windows.h>
+#include <iostream>
+#include <WinSock2.h>
+#include <winsock.h>
+#pragma comment(lib,"ws2_32")
+#define DLL_NAME "user32.dll"
+#define PASSWORD "1234567"
+using namespace std;
+int verify_password(char* password)
+{
+    int authenticated;
+    char buffer[44];
+    authenticated = strcmp(password, PASSWORD);
+    strcpy(buffer, password);//造成栈溢出的函数
+    return authenticated;
+}
+int shellcode_test()
+{
+    int valid_flag = 0;
+    char password[1024] = { 0 };
+    FILE* fp;
+    DWORD filesize = 0;
+    if (!(fp = fopen("key.txt", "rb+")))
+    {
+        exit(0);
+    }
+    fseek(fp, 0, SEEK_END); //指针指向尾部
+    filesize = ftell(fp); //记录文件的长度
+    fseek(fp, 0, SEEK_SET); //恢复指针，指向开始位置
+    //将文件读取缓冲区
+    fread(password, filesize, 1, fp);
+    valid_flag = verify_password(password);
+    if (valid_flag)
+    {
+        printf("密码错误\n");
+    }
+    else
+    {
+        printf("密码正确\n");
+    }
+    fclose(fp);
+}
+int main()
+{
+    LoadLibraryA("ws2_32.dll");
+    shellcode_test();
+    system("pause");
+    return 0;
+}
+```
+
+上面构造了一个能够造成栈溢出的程序，栈溢出来自`verify_password()`函数里的`strcpy()`函数。
+
+编译时，要关闭以下的一些安全选项，以保证实验顺利进行。
+
+基本运行时检查，选择默认值；安全检查，选择禁用安全检查。
+
+![clipboard_14_](./upload/attach/202105/877885_3X6FMW6KJWUGJ6R.png)
+
+关闭SDL检查：
+
+![clipboard_36_](./upload/attach/202105/877885_6BEQC4SAZQWGUP6.png)
+
+关闭DEP保护：
+
+![clipboard_12_](./upload/attach/202105/877885_4K57A5V4YCWD6C2.png)
+
+此外，准备一个52个字节的`key.txt`，测试使用：
+
+![clipboard_10_](./upload/attach/202105/877885_EH3UWBKN85FSPFU.png)
+
+---
+
+程序编译好后，用OD来打开这个程序，直接定位到关键点。
+
+查看`strcpy()`执行之前的堆栈状况：
+
+![clipboard_35_](./upload/attach/202105/877885_PZ3RADCAUHZPFQ7.png)
+
+再看`strcpy()`执行之后的堆栈状况：
+
+![clipboard_23_](./upload/attach/202105/877885_W47DZSMTC2DFW3E.png)
+
+---
+
+### 构造shellcode
+
+知道栈溢出的地方后，接下来开始编写shellcode来验证。由于程序启动后，堆栈的地址都是随机的，所以返回地址不能填固定地址。可以利用跳板技术（`jmp esp`），在程序加载的系统库里找一条`jmp esp`的指令，`jmp esp`指令的硬编码是`0xFFE4`。
+
+这个程序是在`kernelbase.dll`里寻找`jmp esp`指令：
+
+![clipboard_32_](./upload/attach/202105/877885_ZUSM4UGSV97R48U.png)
+
+搜找一条`jmp esp`指令：
+
+![clipboard](./upload/attach/202105/877885_XHBGNA57TB52SUP.png)
+
+注：`0x759802EA`必须在代码区，也就是`.text`所在节，不然执行会出错。这个地址不是一劳永逸的，系统重启的时候，需要重新定位。
+
+通过内存布局查看，`0x759802EA`在`.text`节：
+
+![clipboard_17_](./upload/attach/202105/877885_4QWQDKQDW2399QU.png)
+
+那么，整个shellcode就可以根据下面的图来组织了：
+
+![clipboard_22_](./upload/attach/202105/877885_BR69QC96S5S9SFB.png)
+
+上面已经给出了shellcode要实现的功能，这里再说一下：
+
+1. 绑定一个shell到6666端口。
+2. 允许外部的网络连接使用这个shell。
+3. 程序能够正常退出。
+
+需要用的函数：`LoadLibraryA()`、`CreateProcessA()`、`TerminateProcess()`、`WSAStartup()`、`WSASocketA()`、`bind()`、`listen()`、`accept()`。前三个函数来自`kernel32.dll`，后面函数来自`ws2_32.dll`。退出程序时，书中给的函数是`ExitProcess()`，但是我在测试的时候，`ExitProcess()`会出现异常，所以这里用`TerminateProcess()`代替`ExitProcess()`，用来退出程序。
+
+接下来对函数字符串进行编码。依照书上的代码，把这些函数经过运算后用一个字节的hash来表示，但是在最新的系统上，`LoadLibraryA()`以及`listen()`函数与其他函数有相同的hash值，因此，需要把8位的hash扩展为16位，以解决hash值相同的问题。
+
+下面的算法，把函数字符串转换成2个字节的hash值：
+
+```c++
+//这里把源代码稍微改了一下，变为2个字节的hash值
+DWORD hash_collision(const char* funcname)
+{
+    DWORD ret = 0;
+    __asm
+    {
+        CLD //清除DF标志
+        xor edx, edx
+        xor eax, eax
+        mov esi, funcname
+hash_loop:
+        lodsb
+        xor al, 0x71
+        sub dx, ax
+        rol dx,1
+        cmp al, 0x71
+        jne hash_loop
+        mov ret, edx
+    }
+    return ret;
+}
+int _tmain(int argc, _TCHAR* argv[])
+{
+    //char ldba[] = "LoadLibraryA";//0x00002BA3
+    //char ldba[] = "CreateProcessA"; //0x00006b10
+    //char ldba[] = "TerminateProcess";//0x0000a51b
+    //char ldba[] = "WSAStartup";//0x0000c5c7
+    //char ldba[] = "WSASocketA";//0x0000b433
+    //char ldba[] = "bind";//0x0000fa11
+    //char ldba[] = "listen";//0x0000e971
+    char ldba[] = "accept";//0x0000ef81
+    DWORD hashval = hash_collision(ldba);
+    system("pause");
+    return 0;
+}
+```
+
+现在来组织橙色部分的shellcode：

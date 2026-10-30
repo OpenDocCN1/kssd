@@ -1,0 +1,38 @@
+
+# [原创]OllyDbg命令栏插件缓冲区溢出
+
+刚刚玩一个程序,无意中粘贴了一长串文字到命令栏中,瞬间崩溃...
+
+效果:
+
+在命令栏中写入一长串AAAA....
+
+![](https://bbs.kanxue.com/upload/attach/201407/603227_blgyeojxj3ky744.jpg)
+
+当前堆栈情况,ESP指向输入的长串数据...
+
+![](https://bbs.kanxue.com/upload/attach/201407/603227_bvr076mubms17e3.jpg)
+
+典型的缓冲区溢出...
+
+看了看`CmdBar`是开源的,那玩着就没意思了...exploit也没什么好写的了 ![](https://bbs.kanxue.com/view/img/face/50.gif)
+
+不过初学exploit的同学可以拿来练手...整天拿书上那些自己构造的例子来自X也没意思
+
+是吧...刚好可以拿OD的
+
+这个插件来实验...
+
+Have fun!
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [POC1.jpg](javascript:void(0);)
+
+  （39.94kb，7次下载）
+
+- [POC2.jpg](javascript:void(0);)
+
+  （96.40kb，11次下载）

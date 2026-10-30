@@ -1,0 +1,8 @@
+
+LNK Shortcut File Code Execution POC [4e1K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3g2^5M7r3I4G2K9i4c8Q4x3X3c8V1j5W2)9J5k6h3y4G2L8g2)9J5c8X3g2^5M7r3I4G2K9i4c8K6i4K6u0r3x3e0b7@1x3o6y4Q4x3V1j5`.](https://bbs.kanxue.com/elink@7a4K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3g2^5M7r3I4G2K9i4c8Q4x3X3c8V1j5W2)9J5k6h3y4G2L8g2)9J5c8X3g2^5M7r3I4G2K9i4c8K6i4K6u0r3x3e0b7@1x3o6y4Q4x3V1j5`.)
+
+《windows平台.lnk文件感染技术研究》<http://bbs.pediy.com/showthread.php?t=110426>
+
+《枚举Windows系统中的外壳名字空间》[acdK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3u0D9L8$3N6Q4x3X3g2$3j5$3E0T1j5i4y4W2i4K6u0W2j5$3!0E0i4K6u0r3M7X3!0$3k6i4u0K6K9r3g2F1i4K6u0r3j5i4u0U0K9r3W2$3k6g2)9J5c8U0t1H3x3o6c8Q4x3V1j5I4x3g2)9J5c8U0l9K6i4K6u0r3x3e0t1J5y4#2)9J5k6h3q4K6M7s2R3`.](https://bbs.kanxue.com/elink@8aaK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3u0D9L8$3N6Q4x3X3g2$3j5$3E0T1j5i4y4W2i4K6u0W2j5$3!0E0i4K6u0r3M7X3!0$3k6i4u0K6K9r3g2F1i4K6u0r3j5i4u0U0K9r3W2$3k6g2)9J5c8U0t1H3x3o6c8Q4x3V1j5I4x3g2)9J5c8U0l9K6i4K6u0r3x3e0t1J5y4#2)9J5k6h3q4K6M7s2R3`.)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)

@@ -1,0 +1,26 @@
+
+# [翻译]BadNets：识别机器学习模型供应链中的漏洞
+
+摘要——基于深度学习的技术在大多数识别和分类任务中已达到最佳性能。但是，这些网络的训练代价通常比较大，需要花数周在多个GPU上训练。因此，很多用户将训练过程外包给云服务，或者利用先前已经训练好的模型，再对具体任务稍作调整。在本文中，我们发现了外包训练会引入新的安全问题：敌手可以构造一个恶意的、已经训练好的网络（神经网络后门，称之为BadNet），这个网络对于用户的训练集和验证集都能给出好的结果，但是对于攻击者选定的输入就会出错。我们首先利用一个小例子来探索BadNets的属性，此过程通过创建一个有后门的手写数字分类器来完成。然后，在更真实的场景中证明后门的存在，通过创建一个美国街道指示牌检测器，在停止信号中添加特定的混淆后，这个分类器会将停止信号识别为限速信号。然后我们还证明，即使后面这个美国街道指示牌检测器为其他任务重新做了训练，那个后门也依然存在，并且当后门触发器出现时能引起正确率平均下降25%。这些结果证明，神经网络中的后门攻击力强——因为神经网络的行为很难详细解释——并且极具隐密性。本文为后面神经网络的审查检测工作提供了启发，因为我们已开发了检测工具和调试软件。
+
+因为有公式，格式比较难调整。所以直接上传pdf和doc。
+
+原文链接：[bd4K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2M7Y4S2A6N6W2)9J5k6h3!0J5k6#2)9J5c8Y4m8V1k6W2)9J5c8U0p5%4x3o6S2Q4x3X3f1H3y4U0M7K6x3%4j5I4i4K6u0W2M7r3c8X3](https://bbs.kanxue.com/elink@fd2K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2M7Y4S2A6N6W2)9J5k6h3!0J5k6#2)9J5c8Y4m8V1k6W2)9J5c8U0p5%4x3o6S2Q4x3X3f1H3y4U0M7K6x3%4j5I4i4K6u0W2M7r3c8X3)
+
+本文由看雪翻译小组 lumou 编译
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [BadNets\_Identifying Vulnerabilities in the Machine Learning Model Supply Chain.docx](javascript:void(0);)
+
+  （1.40MB，61次下载）
+
+- [BadNets 识别机器学习模型供应链中的漏洞.pdf](javascript:void(0);)
+
+  （1.43MB，136次下载）
+
+- [BadNets\_Identifying Vulnerabilities in the Machine Learning Model Supply Chain.pdf](javascript:void(0);)
+
+  （2.94MB，55次下载）

