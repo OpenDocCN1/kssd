@@ -1,0 +1,120 @@
+
+# [翻译]ARM汇编基础教程——ARM汇编简介
+
+原文链接：426K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2P5X3g2J5K9h3q4Q4x3X3c8D9j5h3u0K6i4K6u0W2j5$3!0E0i4K6u0r3N6%4u0A6N6r3W2F1k6#2)9J5k6r3q4J5L8g2)9J5k6r3q4K6M7$3g2E0j5X3I4&6i4K6u0V1M7r3q4J5N6q4)9J5k6o6q4Q4x3V1j5`.
+
+最近在学IoT安全，这个教程挺不错的，边学边翻译出来，分享给大家。
+
+![](https://bbs.kanxue.com/upload/attach/201708/746171_500acl66acq5pji.gif)
+
+## ARM汇编基础教程 ——ARM汇编简介
+
+原文链接：[e61K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2P5X3g2J5K9h3q4Q4x3X3c8D9j5h3u0K6i4K6u0W2j5$3!0E0i4K6u0r3N6%4u0A6N6r3W2F1k6#2)9J5k6r3q4J5L8g2)9J5k6r3q4K6M7$3g2E0j5X3I4&6i4K6u0V1M7r3q4J5N6q4)9J5k6o6q4Q4x3V1j5`.](https://bbs.kanxue.com/elink@cfbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2P5X3g2J5K9h3q4Q4x3X3c8D9j5h3u0K6i4K6u0W2j5$3!0E0i4K6u0r3N6%4u0A6N6r3W2F1k6#2)9J5k6r3q4J5L8g2)9J5k6r3q4K6M7$3g2E0j5X3I4&6i4K6u0V1M7r3q4J5N6q4)9J5k6o6q4Q4x3V1j5`.)
+
+翻译：ljcnaix
+
+欢迎来到系列文章《ARM汇编基础教程》。这个系列是为后续的《ARM漏洞利用教程》打基础而编写的。在我们深入用ARM汇编编写shellcode和构造ROP链之前，我们需要先掌握一些ARM汇编的基础知识。
+
+我们会一步一步覆盖如下主题：
+
+第一篇： ARM汇编简介
+
+第二篇： 数据类型和寄存器
+
+第三篇： ARM指令集
+
+第四篇： 内存读写
+
+第五篇： 高级内存读写
+
+第六篇： 条件分支
+
+第七篇： 栈和函数
+
+为了执行本文后续的示例，你需要搭建一个学习ARM汇编的实验环境。如果你没有一台ARM设备，比如树莓派，你可以根据这个教程`1ccK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2P5X3g2J5K9h3q4Q4x3X3c8D9j5h3u0K6i4K6u0W2j5$3!0E0i4K6u0r3k6h3#2#2L8r3q4@1k6g2)9J5k6s2u0S2M7%4m8T1k6i4u0J5P5g2)9J5k6s2m8A6i4K6u0V1N6$3W2@1K9q4)9J5k6s2q4W2L8i4g2Q4x3V1j5`.】使用QEMU模拟器创建一台虚拟设备来配置你的实验环境。如果你缺乏使用GDB调试程序的基础知识，你可以在这片教程中学习`570K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2P5X3g2J5K9h3q4Q4x3X3c8D9j5h3u0K6i4K6u0W2j5$3!0E0i4K6u0r3k6r3g2T1N6h3N6Y4K9h3&6Y4i4K6u0V1N6$3W2@1K9q4)9J5k6r3N6V1j5W2)9J5k6r3W2F1N6s2u0G2k6s2g2U0N6r3W2G2L8W2)9J5c8R3`.`.】。在本系列教程中，我们将关注ARM 32-bit，所有的例子将按照ARMv6指令集编译。
+
+## 为什么介绍ARM？
+
+这篇教程是为有兴趣学习基础的ARM汇编知识的人而写的。尤其是那些想在ARM平台编写漏洞利用的人。你可能已经发现ARM处理器在你的生活中无处不在。当我环顾我的身边，我发现我身边的大多数设备使用着ARM处理器而不是intel。这些设备包括我的手机、路由器以及最近销售火爆的IoT设备。可以说，ARM处理器已经成为了当世最广泛使用的CPU核心。随之而来的是和PC时代类似的问题，ARM设备也易于受到缓冲区溢出之类的攻击。由于被广泛的使用和潜在的脆弱性，针对这些设备的攻击将变得越来越常见。
+
+目前在二进制安全领域，比起ARM平台，我们对x86/x64平台有深入的多的研究，即使ARM汇编可能是主流CPU指令集中最易学的。那么，为什么没有更多的人来关注ARM，研究ARM呢？可能因为漏洞利用的学习资料，大多数是针对Intel平台的，而很少针对ARM平台的。比如著名的由Corelan Team编写的Intel x86漏洞利用教程`418K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2U0L8%4u0W2L8r3q4F1i4K6u0W2j5X3g2Q4x3V1k6A6L8X3c8W2P5q4)9J5k6i4m8Z5M7q4)9J5c8U0t1H3x3o6W2Q4x3V1j5H3y4#2)9J5c8U0p5&6i4K6u0r3k6i4S2H3L8r3!0A6N6q4)9J5k6s2N6J5K9i4c8A6L8X3N6Q4x3X3c8@1N6i4c8G2M7X3W2S2L8q4)9J5k6s2m8S2M7Y4c8Q4x3X3b7I4i4K6u0V1M7%4c8S2j5$3E0Q4x3X3c8T1j5i4y4W2k6q4)9J5k6r3!0$3k6i4u0X3L8r3!0%4M7#2)9J5c8R3`.`.】，帮助了很多对二进制漏洞利用感兴趣的人，通过学习和实践这个教程包含的知识，进入这个领域。如果你对x86平台的漏洞利用感兴趣，Corelan Team的教程是非常好的起点。在这篇教程中，我们将关注ARM汇编的基础知识以及如何在ARM平台下编写漏洞利用。
+
+## ARM处理器和Intel处理器
+
+ARM处理器和Intel处理器之间有很多的差异，其中最大的不同点就是它们的指令集。Intel是一个CISC处理器。因此它具有更庞大，功能更丰富的指令集，并且允许指令进行一些复杂的访存操作。它也因此具有支持更多的复杂操作和寻址方式，并且寄存器的数量比ARM要少的多。CISC处理器一般用在通用PC，工作站和服务器中。
+
+ARM是一个RISC处理器。因此它拥有一套精简的指令集以及比CISC处理器更多的通用寄存器。与Intel处理器不同，ARM指令只处理寄存器中的数据，并使用了load/store结构访问存储器，也就是说只有load/store指令可以访问存储器。所以如果我们要增加某个内存地址中保存的值，至少需要三种类型的指令，load指令、加法指令和store指令，首先我们需要使用load指令将指定地址内存中的值加载到寄存器中，然后使用加法指令增加寄存器中的值，然后用store指令将寄存器中的值写回内存。
+
+硬币有两面，精简指令集也有它的优势和劣势。其中一个重要的优势是指令可以被更快的执行。它的劣势也很明显，较少的指令增加了软件的复杂性。另一个重要的事实是，ARM具有两种运行模式，ARM模式和Thumb模式。Thumb指令可以是2或4个字节的。
+
+ARM和x86/x64之间更多的区别还包括：
+
+* 在ARM中大多数指令可以用于分支跳转的条件判断。
+* Intel的x86/x64系列CPU是小端序的。
+* ARM架构在ARMv3之前是小端序的，在那之后，ARM处理器提供一个配置项，可以通过配置在大端和小端之间切换。
+
+事实上，不仅ARM平台和Intel平台之间存在差异，ARM平台内部的不同版本之间也存在很多差别。我们努力让本系列教程尽可能通用，让你能对ARM平台有一个全面的了解。当你掌握了ARM基础之后，再去针对某个特定版本学习就轻松了。本教程的示例是在32 bit ARMv6上创建的，因此示例相关的讲解是针对这个版本的。
+
+我们刚才谈到了ARM指令集有不同的版本，这可能使你感到困惑，我们用下表简单的表示ARM指令集版本和处理器版本之间的映射关系：
+
+| ARM 处理器家族 | ARM指令集架构 |
+| --- | --- |
+| ARM7 | ARM v4 |
+| ARM9 | ARM v5 |
+| ARM11 | ARM v6 |
+| Cortex-A | ARM v7-A |
+| Cortex-R | ARM v7-R |
+| Cortex-M | ARM v7-M |
+
+## 编写ARM汇编
+
+在我们深入学习编写ARM平台漏洞利用之前，我们需要理解使用ARM汇编编写程序的基本方法。为什么我们要使用ARM汇编来编程呢，我们不是有很多高级语言和脚本语言吗？如果你想对ARM程序进行逆向工程从而了解程序的执行流程，或者构建ROP链来实现你自己的ARM shellcode，亦或者调试ARM程序，你都需要ARM汇编的知识作为基础。
+
+为了从事ARM平台的逆向工程和漏洞利用开发，你不需要知道ARM汇编语言的所有细节，但你要对相关的主干知识有一个把握。本系列教程将介绍必要的基础知识，如果你想了解更多，你可以访问本章末尾列出的链接。
+
+说了那么多，那么汇编语言到底是什么呢？汇编语言只是机器代码之上的一个简单语法层，它由映射了二进制机器码的助记符组成。二进制机器码是CPU所能理解的指令。那么为什么我们不直接写机器码呢？我只能说，那会很蛋疼。因此我们会使用汇编语言，这对于人类来说更易于理解。当然，我们的计算机本身不能运行汇编代码，它需要机器码。我们将使用GNU Binutils工具集中的汇编器`as`将汇编代码转换为对应的机器码，`as`会读取后缀为`.s`的汇编源代码文件，然后输出汇编后的二进制目标文件。
+
+最终的过程是这样的，当你编写了后缀为`.s`的汇编文件，你可以使用`as`将它汇编，最后使用`ld`链接，如下所示：
+
+```
+$ as program.s –o program.o
+$ ld program.o –o program
+```
+
+## 深入汇编语言
+
+这一节，让我们从最底层开始，自底向上，看看汇编语言是如何工作的。在计算机系统的最底层，是密布的传输着电信号的电路。信号是通过控制电压，在两个电平之间切换形成的，例如0伏和5伏。对于硬件系统，电路中电压的具体数值是没有意义的，所以我们用抽象的数字0和1来表示电路的开/关电平。有意思的是，0和1不仅代表了电信号，也构成了一个二进制系统。在这个基础上，我们将电信号序列分组，每一组序列就是一个机器码指令。下面是机组机器码指令的示意：
+
+```
+1110 0001 1010 0000 0010 0000 0000 0001
+```
+
+到目前为止一切都很顺利，但是我们马上就会迎来第一个困难，机器码序列难以记忆。为了解决这个问题，我们引入了助记符，它是我们赋予机器码指令的一个简短名称，一般由2~4个字符组成。我们可以使用这些助记符带上符合该助记符语法规则的操作数构成汇编指令来编写程序代码。这种程序代码称为汇编程序代码。用于表示机器代码的助记符及其附带操作数的规则构成的集合被称为计算机的汇编语言。因此，汇编语言是人类编写程序所使用的最低级别语言。下面是一个例子：
+
+```
+MOV R2, R1
+```
+
+我们现在已经知道了汇编程序代码是由许多汇编指令组成的文本信息，所以我们需要把它转化为对应的机器代码。根据上文，对于ARM汇编，GNU Binutils项目为我们提供了一个名为`as`的工具来完成这个转换。使用汇编器如`as`将ARM汇编程序代码转换成ARM机器码的过程称为汇编。总结一下就是我们知道计算机可以读取并理解电信号序列，而我们可以用0和1来表示这种序列并告知计算机这就是机器码。我们可以使用机器码，令计算机以一些确定的方式做出响应，所以我们可以对计算机进行编程。但这些机器码序列难以记忆，所以我们给它们命名从而引入了助记符，并用它来表示指令。这些助记符和对应的操作数语法就构成了汇编语言，我们使用一个汇编器将汇编程序代码转换为机器码。这个过程和编译器将高级语言转换为汇编代码是类似的。
+
+## 拓展阅读
+
+1. Whirlwind Tour of ARM Assembly. [c78K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2U0L8%4u0S2L8X3q4U0i4K6u0W2j5$3!0E0i4K6u0r3N6r3!0F1j5#2)9J5c8Y4c8W2P5s2c8Q4x3V1k6S2M7$3#2Q4x3X3g2Z5N6r3@1`.](https://bbs.kanxue.com/elink@5b6K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2U0L8%4u0S2L8X3q4U0i4K6u0W2j5$3!0E0i4K6u0r3N6r3!0F1j5#2)9J5c8Y4c8W2P5s2c8Q4x3V1k6S2M7$3#2Q4x3X3g2Z5N6r3@1`.)
+
+2. ARM assembler in Rasberry Pi. [673K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4c8Z5K9h3&6C8K9h3&6Y4k6h3g2C8i4K6u0W2j5$3!0E0i4K6u0r3j5i4u0E0i4K6u0V1j5i4y4K6k6h3#2T1L8r3g2J5i4K6u0V1M7X3q4K6M7r3u0W2M7Y4u0&6i4K6u0V1M7r3W2Q4x3V1j5`.](https://bbs.kanxue.com/elink@ebfK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4c8Z5K9h3&6C8K9h3&6Y4k6h3g2C8i4K6u0W2j5$3!0E0i4K6u0r3j5i4u0E0i4K6u0V1j5i4y4K6k6h3#2T1L8r3g2J5i4K6u0V1M7X3q4K6M7r3u0W2M7Y4u0&6i4K6u0V1M7r3W2Q4x3V1j5`.)
+
+3. Practical Reverse Engineering: x86, x64, ARM, Windows Kernel, Reversing Tools, and Obfuscation by Bruce Dang, Alexandre Gazet, Elias Bachaalany and Sebastien Josse.
+
+4. ARM Reference Manual. [2f3K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3W2F1k6X3!0U0k6h3&6@1k6i4u0Q4x3X3g2S2M7X3#2Q4x3X3g2U0L8$3#2Q4x3V1k6Z5k6h3I4H3i4K6u0r3N6r3!0H3K9h3y4Q4x3V1k6U0L8$3#2Q4x3X3g2S2M7X3#2Q4x3X3g2V1L8$3y4Q4x3X3g2V1N6h3V1H3x3o6j5^5j5W2)9J5c8X3W2F1k6r3g2^5i4K6u0W2K9s2c8E0L8l9`.`.](https://bbs.kanxue.com/elink@d84K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3W2F1k6X3!0U0k6h3&6@1k6i4u0Q4x3X3g2S2M7X3#2Q4x3X3g2U0L8$3#2Q4x3V1k6Z5k6h3I4H3i4K6u0r3N6r3!0H3K9h3y4Q4x3V1k6U0L8$3#2Q4x3X3g2S2M7X3#2Q4x3X3g2V1L8$3y4Q4x3X3g2V1N6h3V1H3x3o6j5^5j5W2)9J5c8X3W2F1k6r3g2^5i4K6u0W2K9s2c8E0L8l9`.`.)
+
+5. Assember User Guide. [b21K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3E0W2K9h3I4Q4x3X3g2U0L8$3#2Q4x3V1k6K6N6i4m8H3L8%4u0@1i4K6u0r3L8h3q4F1i4K6u0r3k6r3!0U0M7#2)9J5c8X3q4J5L8h3q4K6L8g2)9J5c8X3c8W2k6X3q4#2L8s2c8Q4x3X3g2Z5N6r3@1`.](https://bbs.kanxue.com/elink@094K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3E0W2K9h3I4Q4x3X3g2U0L8$3#2Q4x3V1k6K6N6i4m8H3L8%4u0@1i4K6u0r3L8h3q4F1i4K6u0r3k6r3!0U0M7#2)9J5c8X3q4J5L8h3q4K6L8g2)9J5c8X3c8W2k6X3q4#2L8s2c8Q4x3X3g2Z5N6r3@1`.)
+
+冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。https://www.kanxue.com/book-section_list-227.htm
+
+最后于 2018-3-27 21:27
+
+被ljcnaix编辑，原因：修正坛友指出的错误
+
+上传的附件：
+
+- ARM汇编基础教程之ARM汇编简介.docx
