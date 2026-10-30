@@ -1,0 +1,762 @@
+
+# [原创][讨论]Tx 第三题的两个正向函数
+
+基本上两个正向函数逆了出来，也没花多少时间，但是在`reversekey`算法的时候卡死了，穷举当然可以，但`32**32`，不知道穷举下来我这破电脑要几天，而且还是想学习下`kengen`；
+
+由于右手石膏ing，代码逆的时候没太注意格式，试了下`base32`直接encode `username` 的hash，结果不对，贴下代码，往大牛指点指点
+
+```cpp? 不，无需语言标识。
+// kengon.cpp : Defines the entry point for the console application.
+
+//
+
+
+
+#include "stdafx.h"
+
+#include <string.h>
+
+#include <Windows.h>
+
+#include <iostream>
+
+#include "sha1.h"
+
+#include "Base32.h"
+
+using namespace std;
+
+/*
+
+*  Function prototype
+
+*/
+
+void DisplayMessageDigest(unsigned *message_digest,unsigned len);
+
+
+
+int StrCpy(BYTE Dst[],BYTE Src[],DWORD len)
+
+{
+
+	DWORD iLen = len;
+
+	DWORD iSrc = (DWORD)&Src[0];
+
+	DWORD iDst = (DWORD)&Dst[0];
+
+	DWORD disTen = iSrc - iDst;
+
+	DWORD Ret = iDst;
+
+	if ( iLen!=0 )
+
+	{
+
+		do 
+
+		{
+
+			--iLen;
+
+			*((BYTE *)iDst) = (*(BYTE *)(iDst + disTen));
+
+			++iDst;
+
+		} while (iLen);
+
+
+
+	}
+
+	return iDst;
+
+}
+
+
+
+/** \fn  int GetHash(BYTE *username,BYTE userkey[])
+
+ *  \brief 用户名生成20 byte
+
+ */
+
+int GetHash(BYTE *username,BYTE userkey[])
+
+{
+
+	DWORD a = 0;
+
+	DWORD VolumeNumber = 0;
+
+	BYTE tail[] = "Tencent";
+
+	BYTE userbuf[32] = {0};
+
+	BYTE Det[0x2B] ;
+
+	memset(Det,0,0x2B);
+
+	int iuserlen = strlen((char*)username);
+
+	GetVolumeInformation("C:\\",NULL,NULL,&VolumeNumber,NULL,NULL,NULL,NULL);
+
+	StrCpy(userbuf,username,iuserlen);
+
+	memcpy(userbuf+iuserlen,&VolumeNumber,4);
+
+
+
+	memcpy(userbuf+iuserlen+4,tail,7);
+
+	iuserlen +=0xB;
+
+	SHA1Context sha;
+
+	SHA1Reset(&sha);
+
+   // SHA1Input(&sha,  userbuf, strlen((char *)userbuf));
+
+	SHA1Input(&sha,  userbuf, iuserlen);
+
+    if (!SHA1Result(&sha))
+
+    {
+
+        fprintf(stderr, "ERROR-- could not compute message digest\n");
+
+    }
+
+    else
+
+    {
+
+        printf("\t");  
+
+        for(int i = 0; i < 5 ; i++)
+
+        {
+
+            printf("%X ", sha.Message_Digest[i]);
+
+        }
+
+        printf("\n");
+
+        
+
+	}
+
+	memcpy(userkey,sha.Message_Digest,20);
+
+	for (int i =0;i<5;i++)
+
+	{
+
+		DWORD temp = *(unsigned*)(userkey + i*4);
+
+		_asm {
+
+			pushad
+
+			mov eax,temp
+
+			bswap eax
+
+			mov temp,eax
+
+			popad
+
+		}
+
+		memcpy(userkey + i*4,&temp,4);
+
+	}
+
+	return 0;
+
+
+
+}
+
+
+
+bool CreateTable(BYTE * Table,BYTE *lpinit)
+
+{
+
+	BYTE Value = 0XFF;
+
+	BYTE index = 0;
+
+	memset(Table,0xFF,256);
+
+	for (int i = 0;i <32;i++)
+
+	{
+
+		index = lpinit[i];
+
+		Table[index] = i;
+
+
+
+	}
+
+	Table[0x3D] = 0x20;
+
+	return true;
+
+}
+
+BYTE FindCharleft(BYTE Hash,BYTE proHash,BYTE cl)
+
+{
+
+	BYTE al = 0xFF;
+
+	for(int i = 0;i<32;i++)
+
+	{
+
+		al = i;
+
+		al = al |(al<< cl);
+
+		if (al == Hash)
+
+		{
+
+			return i;
+
+		}
+
+	}
+
+	return al;
+
+}
+
+BYTE FindSingle(BYTE Hash,BYTE proHash)
+
+{
+
+	BYTE al = 0xFF;
+
+	for(int i = 0;i<32;i++)
+
+	{
+
+		al = i;
+
+		al = al | proHash;
+
+		if (al == Hash)
+
+		{
+
+			return i;
+
+		}
+
+	}
+
+	return al;
+
+}
+
+BYTE FindCharRight(BYTE Hash,BYTE proHash,BYTE cl,BYTE *p)
+
+{
+
+	BYTE al = 0xFF;
+
+	BYTE dl = *p;
+
+	for(BYTE i = 0;i<32;i++)
+
+	{
+
+		al = i; 
+
+		al = al<<cl;
+
+		for (BYTE j = 0;j<32;j++)
+
+		{
+
+			BYTE	d = j;
+
+			d = d >> dl;
+
+			BYTE temp = al | d |proHash; 
+
+			if (temp  == Hash)
+
+			{
+
+				*p = j;
+
+				return i;
+
+			}	
+
+		}
+
+		
+
+		
+
+	
+
+	}
+
+	return al;
+
+}
+
+int ReverseKey(BYTE *userHash,BYTE * key,BYTE *Table,BYTE *charset)
+
+{
+
+	DWORD len = 32;
+
+	DWORD iebx = 0,
+
+		iesi = 0,
+
+		iebp = 0,
+
+		iecx = 0;
+
+	BYTE ProChar[32] = {0};
+
+	BYTE Hashbuf[33] = {0};
+
+	BYTE Index[32] = {0};
+
+
+
+	BYTE  cl = 0,
+
+		  index ;
+
+	DWORD count = 0;
+
+ 	while(iebp <32 )
+
+	{
+
+
+
+		index = 0xFF;
+
+		BYTE  hash = userHash[iebp];
+
+		if (iebx <3)
+
+		{
+
+			iebx = (iebx - 3)&7;
+
+			if (iebx != 0)
+
+			{
+
+				iecx = 8;
+
+				iecx -= iebx;
+
+				cl = BYTE(0x000000FF & iecx);
+
+				ProChar[count] = cl;
+
+				count++;
+
+
+
+			}else{
+
+				index = FindSingle(hash,Hashbuf[iebp]);
+
+				if ((index!= 0xFF)&&(index < 32))
+
+				{
+
+					key[iebp] = charset[index];
+
+					printf("%c",charset[key[0]]);
+
+					Index[count] = charset[index];
+
+					iebp++;
+
+					count++;
+
+				}
+
+
+
+			}
+
+		}else if (iebx >= 3)
+
+		{
+
+			iebx = (iebx - 3)&7;
+
+		    BYTE	dl = BYTE(0x000000FF&iebx);
+
+			index = FindCharRight(hash,Hashbuf[iebp],cl,&dl);
+
+			if ((index!= 0xFF)&&(index < 32))
+
+			{
+
+				Index[count--] = index;
+
+				key[iebp] = charset[index];
+
+				printf("%c",charset[index]);
+
+				iebp++;
+
+				iecx = 8;
+
+				iecx -= iebx;
+
+				Index[count] = dl;
+
+				BYTE bl = BYTE(0x000000FF & iecx);
+
+				dl = dl << bl;
+
+				Hashbuf[iebp] = Hashbuf[iebp] | dl;
+
+				ProChar[iebp] = bl;
+
+				count++;
+
+			}
+
+		
+
+			
+
+		
+
+
+
+		}
+
+
+
+ 
+
+ 	}
+
+	printf("\n");
+
+	iebx = 0;
+
+	for (int k = 0;k<32;k++)
+
+	{
+
+		
+
+		printf("%d\t",iebx);
+
+		iebx = (iebx - 3)&7;
+
+		
+
+	}
+
+	return 0;
+
+}
+
+
+
+/** \fn  int CreateHashKey(BYTE *hashkey,BYTE * key,BYTE *Table)
+
+ *  \brief 由32字节生成20字节
+
+ *	\param hashkey 生成的Hash值
+
+ *  \param key 去除‘-’字符的key
+
+ */
+
+int CreateHashKey(BYTE *hashkey,BYTE * key,BYTE *Table)
+
+{
+
+	DWORD len = 32;
+
+	DWORD i = 0,
+
+		  index = 0,
+
+		  count = 0;
+
+	BYTE  cl = 0;
+
+	while(count < 32)
+
+	{
+
+		DWORD item = key[count];
+
+		BYTE  al = Table[item];
+
+		if (i < 3)
+
+		{
+
+			i = (i - 3)&7;
+
+			if (i != 0)
+
+			{
+
+				item = 8;
+
+				item -= i;
+
+				cl = BYTE(0x000000FF & item);
+
+				al = al << cl;
+
+				hashkey[index] = hashkey[index] | al;
+
+				count++;
+
+			}else{
+
+					hashkey[index] = hashkey[index] | al;
+
+					index++;
+
+					count++;
+
+			}
+
+   
+
+		}else if(i>=3){
+
+			i = (i - 3)&7;
+
+			BYTE dl = al;
+
+			cl = BYTE(0x000000FF&i);
+
+			dl = dl >>cl;
+
+			hashkey[index] = hashkey[index] | dl;
+
+			index++;
+
+			item = 8;
+
+			item -= i;
+
+			cl = BYTE(0x000000FF & item);
+
+			al = al << cl;
+
+			hashkey[index] = hashkey[index] | al;
+
+			count++;
+
+
+
+		}
+
+
+
+	}
+
+	return 0;
+
+}
+
+
+
+int main(int argc, BYTE* argv[])
+
+{
+
+	BYTE username[64] = {0};
+
+	BYTE userkey[20]= {0};
+
+	char key[36] = {0};
+
+	BYTE keykey[20] = {0};
+
+	BYTE table[256] = {0};
+
+	BYTE lpinit[] ="ABCDEFGHJKMNPQRSTVWXYZ1234567890";
+
+	BYTE lpkey[] ="12345678123456781234567812345678";
+
+	BYTE buf[32] ={0};
+
+	BYTE lpname[]="kanghtta";
+
+	StrCpy(username,lpname,strlen((char*)lpname));
+
+	GetHash(username,userkey);
+
+	
+
+//	DisplayMessageDigest((unsigned *)userkey,20);
+
+	bool result = CreateTable(table,lpinit);
+
+//	DisplayMessageDigest((unsigned * )table,256);
+
+	BYTE Table[256] = {0};
+
+
+
+	Base32 base32 ;
+
+	base32.GetEncode32Length(20);
+
+	base32.Encode32(userkey,20,buf);
+
+	base32.Map32(buf,32,lpinit);
+
+
+
+
+
+
+
+	//CreateKey(userkey,buf,table,lpinit);
+
+	memcpy(key,buf,8);
+
+	strcat(key,"-");
+
+	memcpy(key + 9,buf+8,8);
+
+	strcat(key,"-");
+
+	memcpy(key + 0x12,buf+0x11,8);
+
+	strcat(key,"-");
+
+	memcpy(key + 0x1B,buf+0x1A,8);
+
+	printf("\tusername:\n\t\t%s\n",lpname);
+
+	printf("\tkey:\n");
+
+	printf("\t\t%s \n ",key);
+
+	
+
+// 	CreateHashKey(keykey,lpkey,table);
+
+// 	DisplayMessageDigest((unsigned *)keykey,20);
+
+
+
+
+
+	return 0;
+
+}
+
+
+
+
+
+
+
+/*  
+
+*  DisplayMessageDigest
+
+*
+
+*  Description:
+
+*      Display Message Digest array
+
+*
+
+*  Parameters:
+
+*      None.
+
+*
+
+*  Returns:
+
+*      Nothing.
+
+*
+
+*  Comments:
+
+*
+
+*/
+
+void DisplayMessageDigest(unsigned *message_digest,unsigned len)
+
+{
+
+    ios::fmtflags   flags;
+
+	
+
+    cout << '\t';
+
+	
+
+    flags = cout.setf(ios::hex|ios::uppercase,ios::basefield);
+
+    cout.setf(ios::uppercase);
+
+	
+
+    for(int i = 0; i < len/4 ; i++)
+
+    {
+
+        cout << message_digest[i] << ' ';
+
+		if((i%5 == 0)&&i>=5)
+
+		{
+
+			cout << endl << '\t';
+
+		}
+
+    }
+
+	
+
+    cout << endl;
+
+	
+
+    cout.setf(flags);
+
+}
+```
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+上传的附件：
+- [kengon.rar](javascript:void(0);)
+  （786.44kb，16次下载）
