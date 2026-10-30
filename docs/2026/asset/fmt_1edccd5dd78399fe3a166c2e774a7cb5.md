@@ -1,0 +1,152 @@
+
+# [原创]HEVD学习笔记之任意地址写入
+
+> 实验环境与HEVD介绍请看:[**HEVD学习笔记之概述**](https://bbs.pediy.com/thread-270159.htm)
+
+# 一.漏洞原理
+
+这种漏洞之所以存在，是因为没有对要修改保存内容的地址进行检查，看看这个地址中的内容是否可以被更改。又由于在内核中，程序拥有的权限可以让它修改任意地址中的内容，所以它可以将保存了系统函数的地址作为输出地址来修改这个函数的地址。
+
+详细内容请看:[**0day书中内核漏洞exploitme.sys的学习记录**](https://bbs.pediy.com/thread-270055.htm)。
+
+# 二.漏洞分析
+
+HEVD中存在任意地址写入漏洞的是函数地址表中的第三个函数，所以`IOCTL`等于`0x222003 + 2 * 4`。
+
+```
+PAGE:004440F1 loc_4440F1:                             ; CODE XREF: DispatchIoCtrl+34↑j
+
+PAGE:004440F1                                         ; DATA XREF: PAGE:Func_Table↓o
+
+PAGE:004440F1                 mov     esi, ds:DbgPrintEx ; jumptable 00444098 case 2236427
+
+PAGE:004440F7                 push    offset aHevdIoctlArbit ; "****** HEVD_IOCTL_ARBITRARY_WRITE *****"...
+
+PAGE:004440FC                 push    3               ; Level
+
+PAGE:004440FE                 push    4Dh             ; ComponentId
+
+PAGE:00444100                 call    esi ; DbgPrintEx
+
+PAGE:00444102                 add     esp, 0Ch
+
+PAGE:00444105                 push    ebx             ; 将CurrentStackLocation指针入栈
+
+PAGE:00444106                 push    edi             ; 将IRP的指针入栈
+
+PAGE:00444107                 call    ArbitraryWriteIoCtrl
+
+PAGE:0044410C                 push    offset aHevdIoctlArbit ; "****** HEVD_IOCTL_ARBITRARY_WRITE *****"...
+
+PAGE:00444111                 jmp     short loc_4440BF
+```
+
+要触发该漏洞，只需要将IRP的指针入栈以后调用`ArbitraryWriteIoCtrl`函数。
+
+```
+PAGE:00444BCE ArbitraryWriteIoCtrl proc near          ; CODE XREF: DispatchIoCtrl+A3↑p
+
+PAGE:00444BCE
+
+PAGE:00444BCE arg_CurrentStackLocation= dword ptr  0Ch
+
+PAGE:00444BCE
+
+PAGE:00444BCE                 push    ebp
+
+PAGE:00444BCF                 mov     ebp, esp
+
+PAGE:00444BD1                 mov     eax, [ebp+arg_CurrentStackLocation]
+
+PAGE:00444BD4                 mov     ecx, STATUS_UNSUCCESSFUL
+
+PAGE:00444BD9                 mov     eax, [eax+IO_STACK_LOCATION.Parameters.DeviceIoControl.Type3InputBuffer]
+
+PAGE:00444BDC                 test    eax, eax
+
+PAGE:00444BDE                 jz      short loc_444BE8
+
+PAGE:00444BE0                 push    eax             ; void *
+
+PAGE:00444BE1                 call    TriggerArbitraryWrite
+
+PAGE:00444BE6                 mov     ecx, eax
+
+PAGE:00444BE8
+
+PAGE:00444BE8 loc_444BE8:                             ; CODE XREF: ArbitraryWriteIoCtrl+10↑j
+
+PAGE:00444BE8                 mov     eax, ecx
+
+PAGE:00444BEA                 pop     ebp
+
+PAGE:00444BEB                 retn    8
+
+PAGE:00444BEB ArbitraryWriteIoCtrl endp
+```
+
+而在`ArbitraryWriteIoCtrl`函数中，函数会将输入缓冲区的地址取出入栈，随后调用`TriggerArbitraryWrite`函数来触发漏洞。
+
+```
+PAGE:00444BEE ; int __stdcall TriggerArbitraryWrite(void *)
+
+PAGE:00444BEE TriggerArbitraryWrite proc near         ; CODE XREF: ArbitraryWriteIoCtrl+13↑p
+
+PAGE:00444BEE
+
+PAGE:00444BEE var_20          = dword ptr -20h
+
+PAGE:00444BEE var_1C          = dword ptr -1Ch
+
+PAGE:00444BEE ms_exc          = CPPEH_RECORD ptr -18h
+
+PAGE:00444BEE arg_InputBuffer = dword ptr  8
+
+PAGE:00444BEE
+
+PAGE:00444BEE ; __unwind { // __SEH_prolog4
+
+PAGE:00444BEE                 push    10h
+
+PAGE:00444BF0                 push    offset stru_402360
+
+PAGE:00444BF5                 call    __SEH_prolog4
+
+PAGE:00444BFA                 xor     eax, eax
+
+PAGE:00444BFC                 mov     [ebp+var_1C], eax
+
+PAGE:00444BFF ;   __try { // __except at loc_444C71
+
+PAGE:00444BFF                 mov     [ebp+ms_exc.registration.TryLevel], eax
+
+PAGE:00444C02                 push    1               ; Alignment
+
+PAGE:00444C04                 push    8               ; Length
+
+PAGE:00444C06                 mov     esi, [ebp+arg_InputBuffer] ; 将输入缓冲区的指针赋给esi
+
+PAGE:00444C09                 push    esi             ; Address
+
+PAGE:00444C0A                 call    ds:ProbeForRead ; 验证输入缓冲区是否可读
+
+PAGE:00444C10                 mov     edi, [esi]      ; 输入缓冲区前4字节数据给edi
+
+PAGE:00444C12                 mov     ebx, [esi+4]    ; 输入缓冲区后4字节数据给ebx
+```
+
+在该函数中，首先会对输入缓冲区的前8字节的数据进行检查是否可读，随后就将这8字节的数据取出，分别赋值到`edi`和`ebx`中。
+
+```
+PAGE:00444C5D                 mov     eax, [edi]      ; 将edi保存的地址中的内容给eax
+
+PAGE:00444C5F                 mov     [ebx], eax      ; 将ebx保存的地址中内容赋值为eax
+```
+
+随后程序就会将`ebx`保存的地址中的内容赋值为`edi`保存的地址中的内容。
+
+由此可以知道这段代码做的事情就是将输入缓冲区前4字节保存的地址中的内容赋给输入缓冲区后4字节保存的地址中的内容。由于整个过程并没有对输入缓冲区后4字节保存的地址进行可写检查，所以完全可以利用该漏洞实现提权。
+
+# 三.漏洞利用
+
+根据上述的内容，可以得出下面的代码来实现提权
