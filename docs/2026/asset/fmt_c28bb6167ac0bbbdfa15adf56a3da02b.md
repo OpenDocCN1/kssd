@@ -1,0 +1,239 @@
+
+# 漏洞利用
+
+当输入特定的`name`时，会在`entry[-2]`即`bits[60]`写入堆地址，而在`find_by_name`中的`check`会对`bits[60]`进行检查，确定是否有某一`bit`，检查失败会返回"No such entry! "，利用这一点可以对`bits[60]`中的堆地址进行逐位泄露，方法是暴力破解。
+
+另外，在新增结点时，`bit[idx] |= 1<<a2|1<<a3`，通过操作`a2`和`a3`能够修改`bit[idx]`中的内容，即如果能够修改`bit[60]`中的堆地址，就相当于修改了`entry[-2]`的首个结点地址，控制这个堆地址中存放满足条件的`name`，就能泄露或者修改指定的`value`值。
+
+1. 确定特定的`name`，使得`h1(name)`为`0x80000000`。采用暴力破解的方法。
+
+2. `bit by bit`泄露堆地址，同样也是暴力破解。首先破解特定`name`满足：`h2(name)==h3(name) && abs(h1(name))%62==60`（和61），这样当`a2=a3`时，`1<<a2|1<<a3`就相当于`1<<a2`，这样就能逐位暴破堆地址了。由于`bits`数组是`DWORD`类型的，因此堆地址存放在`bits[60]`和`bits[61]`中。`Linux`系统中规定堆地址为6字节，且最高字节为5x，并且最低1.5字节（12bit）都是从000开始的，因此只需要破解中间的4字节即可。
+
+3. 泄露`libc`地址。采用的方法是`house of orange`，修改`top`的`size`，得到一个`unsorted bin`后泄露`libc`地址。修改`top size`的方法正如前面所述，先通过位异或修改`bit[60]`中的堆地址为我们构造好的地址，这个地址作为`entry[-2]`的首个结点，构造`name`满足条件，`value`为`top size`处的地址，即可通过`edit`修改`top size`。这里需要注意的是，修改后的`top size`需要满足 `top end`是页对齐的（参考`sysmalloc`的源码）
+
+4. 修改`malloc_hook`为`one_gadget`，方法同上。
+
+## 利用脚本
+
+脚本我是参考EmpireCTF队伍的[wp](elink@b3dK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0N6r3k6@1K9h3#2W2i4K6u0W2L8%4u0Y4i4K6u0r3N6%4u0A6N6r3g2#2M7q4)9J5c8U0p5I4y4o6j5H3)，这里就只附上暴破的简单脚本：
+
+```python
+from pwn import *
+def h1(s):
+result = 4919;
+for c in s:
+result = result * ord(c)+1
+return result
+def h2(s):
+result = 0
+i=0
+while i+1<len(s) and s[i] and s[i+1] :
+tmp = ord(s[i+1])<<8 | ord(s[i])
+result ^= tmp
+i+=2
+if i<len(s) and s[i]:
+result ^= ord(s[i])
+return ((result>>10) ^ (result ^ (result >> 5))) &0x1f
+def h3(s):
+result = 0
+for c in s:
+for i in range(8):
+if (ord(c)>>i)&1:
+result+=1;
+result&=0x1f;
+return result;
+#破解h1(name)==0x80000000
+def brute1():
+for i in range(255,0,-1):
+print i
+for j in range(0,256):
+for k in range(0,256):
+for l in range(0,256):
+tmp = chr(i)+chr(j)+chr(k)+chr(l)
+if h1(tmp)%0x100000000 == 0x80000000:
+print tmp
+print "%d %d %d %d" %(i,j,k,l)
+return
+#破解h2(name)==h3(name) && abs(h1(name))%62==60(和61)
+#i可以从2字节开始逐步增加到4字节
+def brute2():
+pos={}
+for i in range(0x10000):
+tmp=p32(i)[:-2]
+a2=h2(tmp)
+a3=h3(tmp)
+if (abs(h1(tmp))%62)==60 and a2==a3:
+if not pos.has_key(a2):
+pos[a2]=1
+print "%d:%#x" %(a2,u32(tmp.ljust(4,'\x00')))
+```
+
+MY BLOG: [0gur1.cc](https://bbs.kanxue.com/elink@1b2K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8U0m8Y4N6i4t1I4i4K6u0W2j5$3y4Q4x3V1j5J5x3o6p5^5i4K6u0r3x3e0m8Q4x3V1j5I4x3W2)9J5c8W2c8W2j5i4y4W2M7W2)9J5k6p5c8J5j5h3N6G2L8W2)9J5k6p5y4f1c8W2)9J5k6o6t1H3x3e0S2Q4x3V1j5`.)
+
+# Production
+
+这题据说是远程没有启用`assert`，导致文件没有`close`。但我当时没看出来，现在平台关闭了也试不了了TAT，就看了些大佬（[Ne0](https://bbs.kanxue.com/elink@7c7K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0K9r3q4F1k6$3!0U0K9r3g2F1i4K6u0W2k6$3W2@1K9s2g2T1i4K6u0W2K9h3!0Q4x3V1j5J5x3o6p5^5i4K6u0r3x3o6W2Q4x3V1j5J5z5g2)9J5c8W2c8W2j5i4y4W2M7W2)9J5k6p5c8J5j5h3N6G2L8W2)9J5k6p5y4f1c8W2)9J5k6o6t1H3x3e0S2Q4x3V1j5`.) 和[dcua](https://bbs.kanxue.com/elink@0ddK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0N6r3k6@1K9h3#2W2i4K6u0W2L8%4u0Y4i4K6u0r3N6%4u0A6N6r3g2#2M7q4)9J5c8U0p5I4y4o6f1@1) ）的wp，了解这个漏洞是怎么用的。`duca`的wp更细一点，两者结合更容易理解。
+
+## 相关知识
+
+**关于 `assert`**
+
+> **DESCRIPTION** If the macro `NDEBUG` was defined at the moment `<assert.h>` was last included, the macro `assert()` generates no code, and hence does nothing at all. Otherwise, the macro `assert()` prints an error message to standard error and terminates the program by calling `abort(3)` if expression is false (i.e., compares equal to zero).
+
+如果`assert.h`中包含了宏`NDEBUG`，`assert`将不生成代码，不执行任何操作；否则当`assert`中的条件不满足时，`assert`会输出错误并终止程序。
+
+也就是说，如果远程`assert.h`中有`NDEBUG`，那么在`read_lyrics`中的关闭文件操作就不会执行：
+
+```c
+if (strstr(buffer, "DrgnS")) {
+
+    printf("[-] Attack detected and stopped!\n");
+
+    assert(close(globals::records[idx]) == 0);
+
+    memmove(&globals::records[idx], &globals::records[idx + 1],
+            (globals::records.size() - idx - 1) * sizeof(int));
+
+    globals::records.pop_back();
+
+    return true;
+
+}
+```
+
+`memmove`通过数组的前移实现删除，因此当读到的内容包含“DrgnS”时，只会在数组中删除元素，但文件仍处于打开状态，即`fd`的数量没有减少。
+
+**关于 `setrlimit`**
+
+程序进行了一些限制，其中就包含能够打开文件描述符的最大值：
+
+```c
+rlim.rlim_cur = rlim.rlim_max = 32;
+setrlimit(RLIMIT_NOFILE, &rlim);
+```
+
+打开的文件个数超过32个时，再通过`open`打开文件就会失败。观察`open_lyrics`的检查顺序，有两个用到`open`的操作位于`flag`之前，因此可以通过这一操作绕过`flag`的读取。
+
+另外，程序中限制输入的`band`或者`song`中不能包含“../”，但是可以输入“..”绕过。
+
+## 利用方法
+
+参考[Ne0大佬](https://bbs.kanxue.com/elink@5a3K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0K9r3q4F1k6$3!0U0K9r3g2F1i4K6u0W2k6$3W2@1K9s2g2T1i4K6u0W2K9h3!0Q4x3V1j5J5x3o6p5^5i4K6u0r3x3o6W2Q4x3V1j5J5z5g2)9J5c8W2c8W2j5i4y4W2M7W2)9J5k6p5c8J5j5h3N6G2L8W2)9J5k6p5y4f1c8W2)9J5k6o6t1H3x3e0S2Q4x3V1j5`.) 的思路。
+
+1. 在`lyrics`二进制文件中有“DrgnS”字符串，因此打开16次该文件（`./data/../lyrics`），然后读取内容，每次都读到“DrgnS”处，此时`fd`为18(包含0,1,2标准的输入输出)，而`record`数组因为`memmove`，元素都被删除了，`size`为0。
+
+2. 打开12个任意的文件，此时`fd`为30.
+
+3. `open_lyrics` `./data/../flag`，在`read_lyrics`先是检查`path`是否为一个文件时，`open`文件，这时`fd1`为31，文件描述符有32个，把文件放入数组后，又检查`path`是否为链接文件，再次`open`，这时`fd2=-1`，并返回`true`。由此绕过了`flag`的检查
+
+```c
+  // Open the path, make sure that it's a file (and not e.g. directory), and
+  // save the file descriptor.
+  int fd1 = open(path, O_RDONLY);
+  if (fd1 == -1) {
+    return false;
+  }
+
+  struct stat st;
+  if (fstat(fd1, &st) != 0 || !S_ISREG(st.st_mode)) {
+    return false;
+  }
+
+  globals::records.push_back(fd1);
+
+  // Better safe then sorry. Make sure that the path also doesn't point to a
+  // symbolic link.
+  int fd2 = open(path, O_RDONLY | O_NOFOLLOW);
+  if (fd2 == -1) {
+    printf("[-] Detected attempt to open a symbolic link!\n");
+
+    // Some kind of attack detected?
+    return true;
+  }
+  close(fd2);
+
+  // Extra check to protect the flag.
+  if (strstr(path, "flag") != NULL) {
+    printf("[-] Not today\n");
+
+    close(globals::records.back());
+    globals::records.pop_back();
+    return false;
+  }
+```
+
+1. 由于`flag`中也包含“DrgnS”字符串，因此无法直接打印出来。`read_line_buffered`中，如果读到文件结尾处会返回0，`buffer`中的内容不会改变。并且如果连续调用`read_line_buffered`时，`buffer`在栈上的地址保持不变，内容也就不变。因此可以先对某个文件读到结尾，再读`flag`，再返回读那个文件，`buffer`中就会保持`flag`中的内容。
+
+# Fast Storage
+
+这题用到了一个奇怪的点：`abs(0x80000000)==0x80000000`。从开始看大佬的wp到自己捋顺一共花了两天时间ORZ。
+
+## 基本逻辑
+
+`add`，`print`和`edit`功能。
+
+`add`函数输入`name`、`size`和`value`，并对`size`和`value`地址做简单的处理后一起存放。题目中实现了一个类似于哈希表的简单结构：对`name`进行哈希作为索引，出现碰撞后用`next`字段链接起来。
+
+```c
+_DWORD *__fastcall add(__int64 a1, __int64 a2)
+{
+  int v2; // eax@1
+  size_t v3; // rbx@7
+  int v4; // eax@7
+  char *name; // rax@9
+  size_t size; // [sp+8h] [bp-128h]@1
+  char buf; // [sp+10h] [bp-120h]@1
+  char v9; // [sp+10Fh] [bp-21h]@3
+  void *value_addr; // [sp+110h] [bp-20h]@1
+  __int64 v11; // [sp+118h] [bp-18h]@1
+
+  memset(&buf, 0, 0x100uLL);
+  v11 = 0LL;
+  size = 0LL;
+  value_addr = 0LL;
+  printf("Name: ", a2, &buf);
+  v2 = fileno(stdin);
+  v11 = read(v2, &buf, 0x100uLL);
+  if ( v11 <= 0 )
+    ouch();
+  v9 = 0;
+  printf("Size: ", &buf);
+  _isoc99_scanf("%lu", &size);
+  fgetc(stdin);
+  if ( size > 0x400 )
+    ouch();
+  value_addr = malloc(size);
+  if ( !value_addr )
+    ouch();
+  printf("Value: ", &size);
+  v3 = size;
+  v4 = fileno(stdin);
+  v11 = read(v4, value_addr, v3);
+  if ( v11 <= 0 )
+    ouch();
+  value_addr = (void *)((size << 48) | (unsigned __int64)value_addr);
+  name = strdup(&buf);
+  return insert_item((__int64)name, (__int64)value_addr);
+}
+```
+
+其种`insert_item`函数是对`name`作一些运算并进行插入操作。我用的IDA6.8版本的就看不出来用了`abs`函数（当然即使看出来也不觉得有问题），据说7.0的可以直接显示。
+
+```c
+_DWORD *__fastcall insert_item(__int64 name, __int64 content)
+{
+  signed int v2; // ST1C_4@1
+  int v3; // ST18_4@1
+  int v4; // ST14_4@1
+  int idx; // ST1C_4@1
+
+  v2 = h1((_BYTE *)name);
+  v3 = h2(name);
+  v4 = h3((_BYTE *)name);
+  idx = ((v2 ^ (v2 >> 31)) - (v2 >> 31)) % 62;  // abs
+  insert_idx(idx, name, content);
+  return set_hash_bits(idx, v3, v4);
+}
+```
+
+通过`insert_idx`函数了解到哈希链表结点的结构。
