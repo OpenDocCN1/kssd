@@ -1,0 +1,34 @@
+
+# [下载]ctf_pwn相关环境
+
+## 注意事项
+`gdb.sh`脚本可根据实际路径修改(其实没什麼用)，并不常用。
+`.gdbinit`文件为我的配置文件（需要自行安装`Pwngdb`,`pwndbg`）。
+在家目录下运行。
+`docker`安装需要 root。
+`get-pwn.sh`脚本根据需要修改。
+
+## 搭建好的pwn环境
+主要工具
+1. `pwncli`
+2. `qemu`
+3. ……
+
+[ubuntu22.04_FORPWN,MSYS2(已改源),libc-database(本地)](https://bbs.kanxue.com/elink@26bK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5h3&6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3V1j5I4y4V1x3^5h3s2S2*7d9@1#2K9c8U0g2S2N6$3!0w2z5q4S2t1g2#2)9J5k6p5q4%4i4K6y4r3M7s2N6V1i4K6y4p5y4%4N6E0M7l9`.`.)
+
+## glibc_debug库
+[debug_glibc](https://bbs.kanxue.com/elink@f30K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8U0L8$3c8W2i4K6u0W2L8X3g2@1i4K6u0r3M7i4q4Q4y4h3j5@1y4e0x3J5x3K6V1$3x3q4)9J5c8X3c8W2j5Y4g2Y4i4K6g2X3k6$3I4A6j5X3x3`.`)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+最后于 2023-12-8 14:46
+
+被jelasin编辑，原因：
+
+[#基础知识](https://bbs.kanxue.com/forum-171-1-180.htm)
+
+上传的附件：
+
+- `.gdbinit`（1.51kb，24次下载）
+- `get-pwn.sh`（5.09kb，27次下载）
+- `gdb.sh`（1.56kb，16次下载）

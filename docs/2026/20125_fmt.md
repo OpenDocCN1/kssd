@@ -1,0 +1,106 @@
+
+# [原创]网鼎杯2020 白虎组 【恶龙】 解题
+
+第一步依然是丢到IDA喽
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202005/352135_U4897U9Z9FXMSZS.png)
+
+看到`eff`要大于 5000000 就OK了
+
+那就找找源头。
+
+```
+int __cdecl __noreturn main(int argc, const char **argv, const char **envp)
+{
+    unsigned int v3; // [rsp+Ch] [rbp-4h]
+
+    init();
+    eff = unief;
+    v3 = 0;
+    while (bossexist)
+        dround(v3++);
+    outflag();
+    exit(1);
+}
+```
+
+恩，`eff`是由`unief`传递的，那就干脆点，`winhex`改个比这个大的吧。
+
+```
+int __cdecl __noreturn main(int argc, const char **argv, const char **envp)
+{
+    unsigned int v3; // [rsp+Ch] [rbp-4h]
+
+    init();
+    eff = 100; /// 改这里
+    v3 = 0;
+    while (bossexist)
+        dround(v3++);
+    outflag();
+    exit(1);
+}
+```
+
+```
+; int __cdecl main(int argc, const char **argv, const char **envp)
+.text:0000000000401A40                 public main
+.text:0000000000401A40 main            proc near               ; DATA XREF: _start+1D↑o
+.text:0000000000401A40
+.text:0000000000401A40 var_4           = dword ptr -4
+.text:0000000000401A40
+.text:0000000000401A40 ; __unwind {
+.text:0000000000401A40                 push    rbp
+.text:0000000000401A41                 mov     rbp, rsp
+.text:0000000000401A44                 sub     rsp, 10h
+.text:0000000000401A48                 mov     eax, 0
+.text:0000000000401A4D                 call    init
+.text:0000000000401A52                 mov     eax, 64h ####这里
+.text:0000000000401A57                 nop ####这里
+.text:0000000000401A58                 mov     cs:eff, eax
+.text:0000000000401A5E                 mov     [rbp+var_4], 0
+.text:0000000000401A65
+.text:0000000000401A65 loc_401A65:                             ; CODE XREF: main+53↓j
+.text:0000000000401A65                 mov     eax, cs:bossexist
+.text:0000000000401A6B                 test    eax, eax
+.text:0000000000401A6D                 jz      short loc_401A7B
+```
+
+![图片描述](https://bbs.kanxue.com/upload/attach/202005/352135_37YP7MJRJJYFQ53.png)
+
+改好保存好。扔到`docker`中运行，选择打boss3次，GAME OVER.
+
+```
+[root@xxx ~]# ./hero
+Day 0 , You want to:
++-----------------------+
+| 1.battle with slime.  |
+| 2.battle with boss.   |
+| 3.go to the shop.     |
++-----------------------+
+Input the number of your chioce:2
+The dragon appears, its Combat Effectiveness is 1000000.
+The dragon is beated! flag is partly decrypted...
+Day 1 , You want to:
++-----------------------+
+| 1.battle with slime.  |
+| 2.battle with boss.   |
+| 3.go to the shop.     |
++-----------------------+
+Input the number of your chioce:2
+The dragon appears, its Combat Effectiveness is 3000000.
+The dragon is beated! flag is partly decrypted...
+Day 2 , You want to:
++-----------------------+
+| 1.battle with slime.  |
+| 2.battle with boss.   |
+| 3.go to the shop.     |
++-----------------------+
+Input the number of your chioce:2
+The dragon appears, its Combat Effectiveness is 5000000.
+The dragon is beated! combining flag and print...
+flag{0259-6430-726f077b-5959-bf477a78c83b}
+```
+
+emmm.....
+
+see you next time.

