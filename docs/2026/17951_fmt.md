@@ -1,0 +1,157 @@
+
+# [原创]CVE-2011-0104 Microsoft Excel ToolBardef Record 栈溢出漏洞在Excel 2003下利用分析
+
+最近在研究CVE-2011-0104栈溢出漏洞，学习了《漏洞战争》中关于该漏洞的分析，书中介绍了Excel 2003 下利用已公布的PoC代码触发异常、下断点定位导致溢出的复制操作位置以及基于污点追踪的漏洞分析方法，但是对如何在Excel 2003下如何利用该漏洞没有做更加深入的分析，同时abysssec组织提供的漏洞样本也是基于Excel 2007 (xp) SP2的。笔者在学习该篇文章的基础上，动手进行了调试，通过定位字符串复制操作、分析函数调用栈、修改样本数据、修复异常，成功完成了Excel2003下该漏洞的利用，弹出了计算器。现将该调试分析过程发布出来，供学习交流。
+
+## 一、分析环境
+
+| 类别 | 推荐使用环境 | 备注 |
+| --- | --- | --- |
+| **操作系统** | Windows xp | 简体中文版 |
+| **虚拟机** | VMware Workstation | 版本号：12.1.1 build |
+| **调试器** | Immunity Debugger | 版本号：V1.73 |
+| **调试器** | WinDbg | 版本号：6.12.0002.633 |
+| **漏洞软件** | MicrosoftOffice Excel | 版本号：2003 11.5612.6568 |
+
+## 二、分析调试过程
+
+运行`excel.exe`，然后用WinDbg附加excel2003进程，在命令输入框中按`g`，使excel2003运行出现打开后的界面，打开`exploit.xlb`样本文件，打开后触发异常：
+
+```
+(e48.e4c): Access violation - code c0000005   (first chance)
+First chance exceptions are reported before any exception handling.
+This exception may be expected and handled.
+eax=51453844 ebx=00000002 ecx=00000006 edx=3161feb0 esi=00000000 edi=00000400
+eip=300ce361 esp=0013aa24 ebp=0013aa8c iopl=0 nv up ei pl nz na pe nc
+cs=001b ss=0023 ds=0023 es=0023 fs=003b gs=0000 efl=00010206
+*** ERROR: Symbol file could not be found. Defaulted to export symbols for C:\Program Files\Microsoft Office\OFFICE11\EXCEL.EXE -
+EXCEL!Ordinal41+0xce361:
+300ce361 8908 mov dword ptr [eax],ecx ds:0023:51453844=????????
+0:000> kb
+ChildEBP RetAddr Args to Child
+WARNING: Stack unwind information not available. Following frames may be wrong.
+0013aa8c 30424232 42414242 41385058 494a7542 EXCEL!Ordinal41+0xce361
+0013aa90 42414242 41385058 494a7542 584b4c4b EXCEL!Ordinal41+0x424232
+0013aa94 41385058 494a7542 584b4c4b 30435451 0x42414242
+0013aa98 494a7542 584b4c4b 30435451 50453043 0x41385058
+```
+
+运行`excel.exe`，然后用Immunity Debugger附加excel2003进程，按`F9`，使excel2003运行出现打开后的界面，打开`exploit.xlb`样本文件，打开后触发异常：
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_strj2w3q4c0w81m.png)
+
+通过向上进行代码回溯分析，崩溃地址位于函数`sub_300CE252`：
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_atim7eaz9rusylv.png)
+
+然后，在`0x300CE252`下断点，并对栈顶下内存写入断点（此处的栈顶就是调用`sub_300CE252`函数时将返回地址压栈时的`ESP`值，即`0x0013AA90`）：
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_o1ax19w5umpfo6u.png)
+
+按`F9`执行到`0x300CE3C8`，此处进行循环复制数据到栈上，导致溢出：
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_w88vq01av9s8u55.png)
+
+此时中断，查看寄存器值发现`EBP=0013AA3B`，`EDI=0013AA9B`，复制了`0x60`个字节：
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_y8aznlb591e5sbj.png)
+
+根据《漏洞战争》P53和P54的分析，`REP MOVS`操作的目的地址由`ebp`提供，由此得知，当复制`0x60`个字节时`edi`的值由于递增覆盖到了栈顶（`0x0013AA90`，此处在漏洞利用中应为“跳板地址”）。
+
+单步执行到该段程序的末尾处`retn 0c`处时，此时栈如图：
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_joccr42sqxwmaoe.png)
+
+此时`ESP`值为`0x001379EC`。
+
+通过向上回溯代码，发现该段函数开始于`0x300CE380`，因此定义该函数为`sub_300CE380`：
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_m6ufsbv0mz5gn5f.png)
+
+从Call Stack中可以看出，函数`sub_300CE380`被函数`sub_306DF0DC`调用：
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_0gg258npnv4bglf.png)
+
+为了找出异常发生地址所在函数`sub_300CE252`与`sub_300CE380`之间的调用关系，我们再次回到`sub_300CE252`函数开头，`F8`单步执行，同时注意观察栈中`0x0013AA90`的数据变化情况。
+
+执行`CALL EXCEL.306DEEFE`之前：
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_x2devbkd0ol8tgn.png)
+
+此时栈中`0013AA90`中的内容仍为正常的返回地址：
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_rcv8apw2fnxco2g.png)
+
+当执行完`0x302188D8`处`CALL EXCEL.306DEEFE`后，`0x0013AA90`处内容被覆写：
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_4raz571ry3ziqv2.png)
+
+观察此时函数Call Stack:
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_yaaea3wp44khrro.png)
+
+可以看出，函数`sub_306DEEFE`由函数`sub_302188D8`调用。
+
+重复以上步骤，从`sub_300CE252`开始，执行到`0x300CE30C`处执行`JE EXCEL.302188B5`，跳转到`0x302188B5`处，单步执行到`0x302188D8`处调用`CALL EXCEL.306DEEFE`，结合前面对`sub_300CE380` Call Stack的分析，单步执行并在`0x306DF0DC`处下断点，执行`CALL EXCEL.300CE380`，继续单步执行，执行完`0x300CE3C8`处的`REP MOVS`后，`sub_300CE252`的返回地址被覆写。
+
+执行跳转
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_jhdpbv2asdnuecd.png)
+
+调用`EXCEL.306DEEFE`
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_y3vu5nanbo6zrdu.png)
+
+进入`EXCEL.306DEEFE`代码段
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_0rbyw2e544p2u4e.png)
+
+调用`EXCEL.300CE380`
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_ic3z8zw9ehyzeay.png)
+
+执行`0x300CE3C8`处的`REP MOVS`
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_c1cwm0l82sncl5p.png)
+
+通过以上调试过程，可以得知`sub_300CE252`、`sub_300CE380`、`sub_306DF0DC`、`sub_306DEEFE`和`sub_302188D8`之间的调用关系为：
+
+  `sub_300CE25`
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_vtpbefg11y2x6nf.png)
+
+         `0x302188B5`
+
+         `sub_302188D8`
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_yxntt5y2njvo895.png)
+
+        `sub_306DEEFE`
+
+        `sub_306DF0DC`
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_g18sgh0lr9vigf1.png)
+
+         `sub_300CE380`
+
+         `0x300CE3C8`
+
+## 三、样本分析
+
+用`HexEditor2.exe`打开样本`exploit.xlb`，发现在`0000000610`附近出现`recordType`、`recordLength`等字段的值（`\xA7\x00,\x04\x00`），`0000000620`附近出现`0x326551EE`（EXCEL 2007下`CALL ESP`指令地址）。
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_eo7vhn0bkmysh2s.png)
+
+我们现在的目标是使指令执行到`sub_300CE252`函数的末尾处（`retn`），按`F9`执行，当执行到`0x300CE361`处的`MOV DWORD PTR DS:[EAX],ECX`时出现访问违例：访问到一个不可写的地址`0x51453844`，此时`EAX=0x51453844`，向上回溯程序，找出`EAX`的赋值处，发现在`0x300CE354`处出现给`EAX`赋值的操作：`MOV EAX, DWORD PTR SS:[EBP+2C]`，此时`EBP=0x0013AA8C`，`EBP+2C=0x0013AAB8`，`0x0013AAB8`处的值恰好是`0x51453844`。观察栈中的数据，`51453844`恰好又是shellcode中的数据。
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_8n87rm0nw9g9cz8.png)
+
+因此考虑，在shellcode前面继续添加`0x90`，同时确保返回地址`0x0013AA90`处的值为EXCEL2003下的跳板指令`CALL ESP`的地址`0x300F2903`，因为函数`sub_300CE252`末尾为`retn 2C`，即跳板地址和shellcode之间有`0x30`个字节的空间（shellcode的开头地址应该为`0x0013AAC0>` `0x0013AAB8`），所以不妨将`0x0013AAB8`处的值填充为一个可写的内存地址（如`0x001379E4`）。这样，既解决了访问违例的问题，又不会影响shellcode的执行。
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_5q26se8uyygj4b0.png)
+
+修改样本数据后，重新用EXCEL2003打开，弹出了计算器。
+
+![](https://bbs.kanxue.com/upload/attach/201705/717768_u2y126gdpqhemzb.png)
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
