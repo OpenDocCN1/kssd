@@ -1,0 +1,235 @@
+
+`WaitListEntry`字段用于添加`KTHREAD`结构体到链表中，这些线程均已在特定CPU上进入了等待状态。内核进程控制区域结构体（KPRCB）的`WaitListHead`字段通过`KTHREAD.WaitListEntry`链接了这样的线程到一起。函数`KiCommitThreadWait()`添加线程，`KiSignalThread()`移除线程。
+
+## 内核与 HAL
+
+### `nt!_KPCR`
+
+`KPCR`表示内核进程控制区域。它包含了每个CPU的信息，被内核和HAL所共享。系统有几个CPU，就有几个`KPCR`。
+
+当前CPU的`KPCR`总是可以通过`fs:[0]`在x86系统上访问，x64系统上则通过`gs:[0]`。通用的内核函数诸如`PsGetCurrentProcess()`和`KeGetCurrentThread()`会利用FS/GS相对访问来从`KPCR`中获取信息。
+
+`Prcb`字段包含了一个内嵌的`KPRCB`结构体，用于表示内核进程控制块。
+
+### `nt!_KINTERRUPT`
+
+一旦一个中断或异常发生，中断服务例程（ISRs）就会在CPU上执行。中断描述符表（IDT）是一个CPU定义的数据结构，指向了内核注册的ISRs。当中断或异常发生时，IDT被CPU硬件所使用来查找ISR并进行分发。IDT有256个表项，每个都指向一个ISR。中断向量是IDT中每个特定槽的索引值。`KINTERRUPT`结构体表示一个驱动注册的某个中断向量的ISR。
+
+字段`DispatchCode`是一个字节数组，它包含了中断服务码的一些说明。特定向量的IDT条目直接指向了`DispatchCode`数组，调用`DispatchAddress`指向的函数。该函数一般是`KiInterruptDispatch()`，它负责建立一个需要去调用驱动提供的ISR的环境，该ISR由`ServiceRoutine`字段提供。
+
+对消息信号中断（MSIs）来讲，`ServiceRoutine`指向了内核包装器函数`KiInterruptMessageDispatch()`，它通过`MessageServiceRoutine`指向的驱动提供的MSI中断服务例程来调用。
+
+`ActualLock`字段指向一个自旋锁，在调用驱动支持的ISR之前用于`SynchronizeIrql`字段获取IRQL。
+
+因为中断共享PCI总线的多重`KINTERRUPT`数据结构可以被注册为一个单一中断请求线（IRQ）。每个共享的中断向量的IDT条目都指向了第一个`KINTERRUPT`结构体，其他的`KINTERRUPT`结构体通过字段`InterruptListEntry`形成链。
+
+调试器`!idt -a`命令展示了全部的每CPU中断描述表。
+
+**APIs：**
+
+- `IoConnectInterrupt()`
+- `IoConnectInterruptEx()`
+- `IoDisconnectInterrupt()`
+- `IoDisconnectInterruptEx()`
+- `KeAcquireInterruptSpinLock()`
+- `KeReleaseInterruptSpinLock()`
+- `KeSynchronizeExecution()`
+
+### `nt!_CONTEXT`
+
+`CONTEXT`结构体存储了异常上下文依赖于CPU的部分，它由CPU寄存器组成并被`KiDispatchException()`这样的函数用来下发异常。
+
+`CONTEXT`结构体的部分内容由`KeContextFromKframes()`函数捕获的`KTRAP_FRAME`结构体组成。同样地，在异常被分发后，`CONTEXT`结构体中被修改的内容会被`KeContextToKframes()`改回原貌。这一机制用于实现结构化异常处理（SEH）。
+
+`ContextFlags`字段是一个位掩码，决定了`CONTEXT`结构体的哪些字段包含有效的值。例如，`CONTEXT_SEGMENTS`指示上下文结构体中段寄存器是有效的。
+
+调试器的`.cxr`命令用于切换调试器当前寄存器上下文，加载存储的`CONTEXT`结构体的值。
+
+**API：**
+
+- `RtlCaptureContext()`
+
+### `nt!_KTRAP_FRAME`
+
+`KTRAP_FRAME`用于在中断或异常发生时保存CPU寄存器的内容。`KTRAP_FRAME`结构体一般在线程的内核模式栈上分配。陷阱帧的一小部分由CPU组成，一部分由自身的中断和异常控制组成，剩下的那些由软件异常和硬件中断handler提供，Windows下诸如函数`KiTrap0E()`或`KiPageFault`、`KiInterruptDispatch()`。在64位CPU上，陷阱帧的某些包含非优化（non-volatile）寄存器值的字段不是由异常handler构成的。
+
+调试器的`.trap`命令切换调试器当前寄存器上下文到存储的`KTRAP_FRAME`结构。
+
+### `nt!_KDPC`
+
+DPC例程用于延迟中断进程到IRQL的`DISPATCH_LEVEL`。它会降低特定CPU在高IRQL（例如`DIRQLx`）上的运行时间。DPC也被用来提醒内核组件超时的定时器。ISRs和定时器都需要DPC。
+
+> 译者注：延迟过程调用是Windows下一个很重要的机制，这个东西不仅用于定时器超时处理，还用于实现类似Linux中中断下半部分softirq的机制。
+
+`KDPC`表示一个延迟过程调用（DPC）数据结构，包含一个指向了驱动提供的例程。它应该在IRQL为`DISPATCH_LEVEL`优先级时在任意线程上下文中被调用。
+
+和中断服务例程不同之处在于，中断服务例程在线程栈上执行，DPC例程在per-CPU DPC栈上执行，它存储在`KPCR.PrcbData.DpcStack`。
+
+`DEVICE_OBJECT`结构有一个`KDPC`结构体内置在`Dpc`字段，用来从ISR请求DPC例程。
+
+`KDPC`结构体持有一个per-CPU DPC队列。`KPCR`数据结构的`PrcbData.DpcData[0]`字段包含了链表头。`KDPC`的`DpcListEntry`字段用来保存链表中的DPC。
+
+调试命令`!pcr`和`!dpcs`显示了单一进程的DPC例程。
+
+**APIs：**
+
+- `IoRequestDpc()`
+- `IoInitializeDpcRequest()`
+- `KeInitializeDpc()`
+- `KeInsertQueueDpc()`
+- `KeRemoveQueueDpc()`
+- `KeSetTargetProcessorDpcEx()`
+
+### `nt!_KAPC`
+
+异步过程调用例程在特定线程的上下文、`PASSIVE_LEVEL`或`APC_LEVEL`优先级上执行。这些例程被驱动用来执行特定进程上下文的行为，主要是访问进程的用户模式虚拟地址空间。Windows中具体的功能如附加和分离一个线程到进程以及线程悬挂都是基于APC实现。APC有3种类型：用户模式、普通内核模式、特殊内核模式。
+
+`KAPC`表示了异步过程调用（APC）结构体，它包含一个指向驱动支持的例程的指针。当APC可以下发给该线程的时候，该例程会在此特定线程上下文的`PASSIVE_LEVEL`或`APC_LEVEL`优先级上执行。
+
+`KTHREAD.ApcState.ApcListHead[]`数组的两个表项包含了用户模式和内核模式的线程悬挂的APC列表。`KAPC`结构通过字段`ApcListEntry`链入此结构。
+
+设置`KTHREAD.SpecialApcDisable`为一个负数会引起线程的特殊和普通内核APC被禁用。
+
+设置`KTHREAD.KernelApcDisable`为一个负数会引起线程的普通内核APC被禁用。
+
+`NormalRoutine`字段对特殊内核APC来说是NULL。对普通内核APC来说，它指向的函数运行在`PASSIVE_LEVEL`。
+
+`KernelRoutine`字段指向了在`APC_LEVEL`执行的函数。
+
+`RundownRoutine`字段指向了一个函数，当APC在线程终止被丢弃时会被执行。
+
+调试命令`!apc`用以扫描系统中所有线程的悬挂APC并显示。
+
+**APIs：**
+
+- `KeEnterGuardedRegion()`
+- `KeLeaveGuardedRegion()`
+- `KeEnterCriticalRegion()`
+- `KeLeaveCriticalRegion()`
+- `KeInitializeApc()`
+- `KeInsertQueueApc()`
+- `KeRemoveQueueApc()`
+- `KeFlushQueueApc()`
+- `KeAreApcsDisabled()`
+
+### `nt!_KAPC_STATE`
+
+Windows内核允许线程附加到不同的进程中而不必是原始创建它的那个进程。这允许线程去获取对另外的进程的用户模式虚拟地址空间的临时访问。当线程附加到其他进程时，`KAPC_STATE`用来保存线程的APC列表。因为APC是线程（以及进程）特定的，当一个线程附加到一个不同于当前所在进程的进程时，它的APC状态数据需要被保存。这是必须的，因为线程当前队列中的APC（需要知道原始进程的地址）不能被下发给新的进程上下文。`KTHREAD`结构有两个内置的`KAPC_STATE`对象：一个是线程原始进程，另一个是线程附加的进程。在线程执行堆栈附加事件中，调用者需要提供更多`KAPC_STATE`结构体的存储空间来保存当前APC状态变量并可以转移到新的APC环境上。
+
+`ApcListHead`数组的两个成员分别是用户模式和内核模式的线程悬挂APC队列。`KAPC`结构体通过`ApcListEntry`字段链入到链表中。
+
+**APIs：**
+
+- `KeAttachProcess()`
+- `KeDetachProcess()`
+- `KeStackAttachProcess()`
+- `KeUnstackDetachProcess()`
+
+## 异步对象
+
+### `nt!_DISPATCHER_HEADER`
+
+Windows本地内核对象是一些数据结构。它们种类繁多，且可以被线程直接通过调用`KeWaitForSingleObject()`来等待。内核中有着这些结构的逻辑实现，大部分结构都通过用户模式应用程序的本地（Nt/Zw）Win32 API函数暴露出去。事件、信号量、互斥量、定时器、线程、进程以及队列都是本地内核对象的例子。
+
+`DISPATCHER_HEADER`结构内嵌到每一个本地内核对象中，它是一个线程等待机制实现中非常关键的组件。
+
+每一个`KTHREAD`结构体都包含一个内置的`KWAIT_BLOCK`数组结构，它用于让线程在本地内核对象上阻塞。`DISPATCHER_HEADER`的`WaitListHead`字段指向了一个`KWAIT_BLOCKS`链结构，链中每个成员表示了线程所等待的某个本地内核对象。`KWAIT_LOCK_WaitListEntry`字段用于保存处于链表中的`KWAIT_BLOCK`结构。当本地内核对象被通知（Signaled）时，一到多个`KWAIT_BLOCK`会从链表中移除，其包含的线程会被置入就绪态。
+
+`Type`字段用于识别内嵌的`DISPATCHER_HEADER`所包含的对象类别。它是枚举类型`nt!_KOBJECTS`的前10个值中的一个。该字段决定了`DISPATCHER_HEADER`的其他字段应该如何被解析。
+
+`Lock`字段（bit7）实现了一个对象特定自定义的自旋锁，用以保护`SignalState`和`WaitListFields`字段。`SignalState`字段决定了该对象是否已通知（Signaled）。
+
+**APIs：**
+
+- `KeWaitForSingleObject()`
+- `KeWaitForMultipleObjects()`
+- `KeWaitForMutexObject()`
+
+### `nt!_KEVENT`
+
+`KEVENT`表示了内核事件数据结构。事件有两种类型：异步（自动重置）和通知（手动重置）。当一个异步事件被某线程通知（Signaled）时，等待它的线程中仅有一个会进入就绪态；但是当一个通知事件被某个线程通知时，等待它的所有线程都会被置入就绪态。`KEVENTS`可以作为独立的数据结构存在，用`KeInitializeEvent()`初始化或者作为事件对象由`ZwCreateEvent()`、一个本地被内核API内部使用的函数`IoCreateSynchronizationEvent()`或`IoCreateNotificationEvent()`创建。
+
+**APIs：**
+
+- `KeInitializeEvent()`
+- `KeSetEvent()`
+- `KeClearEvent()`
+- `KeResetEvent()`
+- `KeReadStateEvent()`
+- `KeWaitForSingleObject()`
+- `KeWaitForMultipleObject()`
+- `IoCreateSynchronizationEvent()`
+- `IoCreateNotificationEvent()`
+
+### `nt!_KSEMAPHORE`
+
+`KSEMAPHORE`表示内核信号量数据结构。信号量由线程调用`KeWaitForSingleObject()`进行获取。如果已经有一定数量的线程获取了信号量使得信号量超出了使用限制，后续的线程调用`KeWaitForSingleObject()`时就会进入等待状态。一旦任何线程使用`KeReleaseSemaphore()`释放了信号量，一个等待的线程就进入准备执行的状态。
+
+线程的数量也就是获取了信号量的个数存储在字段`Header.SignalState`。`Limit`字段用于存储可同时持有该信号量的最大数量的线程。
+
+**APIs：**
+
+- `KeInitializeSemaphore()`
+- `KeReadStateSemaphore()`
+- `KeReleaseSemaphore()`
+
+### `nt!_KMUTANT`
+
+`KMUTANT`表示一个内核互斥量数据结构。一个互斥量只能被单一线程在一个时间点拥有，但同一线程可以递归地多次获取这个互斥量。
+
+`OwnerThread`字段指向了线程的`KTHREAD`结构，该线程持有互斥量。
+
+每个线程持有一个获取的所有互斥量组成的链表，`KTHREAD.MutantListHead`是该链表的头，`MutantListEntry`字段用于链入该链表。
+
+`ApcDisable`字段决定了互斥量是一个用户模式还是内核模式对象，值0表示用户模式互斥量，其他任何值都表示是一个内核模式互斥量。
+
+`Abandoned`字段会在互斥量没有被释放而被删除时设置。这将抛出一个`STATUS_ABANDONED`异常。
+
+**APIs：**
+
+- `KeInitializeMutex()`
+- `KeReadStateMutex()`
+- `KeReleaseMutex()`
+- `KeWaitForMutexObject()`
+
+### `nt!_KTIMER`
+
+`KTIMER`表示一个定时器数据结构。当一个线程睡眠或等待一个分发对象且持有一个超时值时，Windows内核内部使用`KTIMER`来实现这一等待。
+
+内核持有一个数组`KiTimerListHead[]`，它包含512个链表头，每个头存储一个`KTIMER`对象链表，它们会在一个确定的时间超时。`TimerListEntry`字段用于将`KTIMER`链入队列。
+
+当一个定时器超时时，它要么唤醒一个在该定时器等待的线程，要么调度一个DPC例程来通知一个驱动该定时器已超时，指向DPC数据结构的指针存放在`Dpc`字段。定时器可以是偶然发生（超时1次）或周期性发生（在被取消之前重复不断的超时）。
+
+调试器的`!timer`命令用以显示系统中所有的活动`KTIMER`。
+
+**APIs：**
+
+- `KeInitializeTimer()`
+- `KeSetTimer()`
+- `KeSetTimerEx()`
+- `KeCancelTimer()`
+- `KeReadStateTimer()`
+
+### `nt!_KGATE`
+
+`KGATE`表示一个内核门对象。`KGATE`提供的功能和异步类型的`KEVENT`十分相似，然而`KGATE`比`KEVENT`更为高效。
+
+当一个线程在等待诸如事件、信号量、互斥量等分发对象时，它会使用`KeWaitForSingleObject()`或其变形函数，这些函数都是通用函数，并且需要处理所有和线程等待相关的特殊情况，例如警告（alerts）、APCs、工作线程唤醒等。另一方面，在`KGATE`上等待是通过一个特殊的函数`KiWaitForGate()`来完成的，它不满足所有特殊的情况，使得代码路径非常的高效。但是，使用专用API的缺点是，线程不能同时在`KGATE`对象和另一个分发对象上等待。
+
+`KGATE` APIs被内核内部使用，不会导出给驱动调用。`KGATE`在内核的内部多处被使用，这其中包括实现的守卫互斥锁（guarded mutexes）。当互斥量不可用时，守卫互斥锁内部等待一个`KGATE`对象。
+
+**APIs：**
+
+- `KeWaitForGate()`
+- `KeInitializeGate()`
+- `KeSignalGateBoostPriority()`
+
+### `nt!_KQUEUE`
+
+`KQUEUE`表示一个内核队列数据结构。`KQUEUE`用于实现执行体工作队列、线程池以及I/O完成端口。
+
+多个线程可以经调用`KeRemoveQueueEx()`函数同时等待一个队列。当一个队列条目（任何内嵌了`LIST_ENTRY`的数据结构）被插入到队列时，其中的一个等待线程会被唤醒并在从队列中取出条目后，得到一个指向该队列条目的指针。
+
+通用内核等待函数诸如`KeWaitForSingleObject()`、`KeWaitForMultipleObjects()`中有特殊的逻辑来处理那些关联一个队列的线程。每当这样的线程在队列以外的分发对象上等待时，与队列关联的另一个线程将被唤醒，以处理来自队列的后续项目。这可以确保在队列中插入的条目能够尽快得到服务。
+
+`EntryListHead`字段是使用内嵌的`LIST_ENTRY`字段插入到队列形成的链表的头。函数`KiAttemptFastInsertQueue()`负责插入条目，`KeRemoveQueueEx()`负责移除条目。
