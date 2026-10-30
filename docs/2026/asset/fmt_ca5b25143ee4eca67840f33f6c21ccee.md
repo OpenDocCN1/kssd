@@ -1,0 +1,192 @@
+
+```
+int __stdcall PlainRelease(LONG a1)
+{
+LONG v1; // eax@7
+LONG v2; // eax@8
+bool v3; // zf@1
+int result; // eax@1
+
+v3 = (*(_DWORD *)(a1 + 4))-- == 1;
+result = *(_DWORD *)(a1 + 4);
+if ( v3 )
+{
+if ( *(_DWORD *)(a1 + 12) && !(*(_BYTE *)(a1 + 28) & 4) )
+(*(void (__stdcall **)(_DWORD))(*(_DWORD *)(a1 + 16) + 8))(*(_DWORD *)(a1 + 12));
+if ( *(_DWORD *)(a1 + 20) )
+(*(void (__stdcall **)(_DWORD))(*(_DWORD *)(a1 + 24) + 8))(*(_DWORD *)(a1 + 20));
+v1 = InterlockedExchange(&dword_7515B03C, a1);
+if ( v1 )
+{
+v2 = InterlockedExchange(&dword_7515B040, v1);
+if ( v2 )
+HeapFree(g_hProcessHeap, 0, (LPVOID)v2);
+}
+result = 0;
+}
+return result;
+}
+struct TEAROFF_THUNK
+{
+void *      papfnVtblThis;     // Thunk's vtable
+ULONG       ulRef;             // Reference count for this thunk.
+IID const * const * apIID;     // Short circuit QI using these IIDs.
+void *      pvObject1;         // Delegate other methods to this object using...
+const void * apfnVtblObject1;  // ...this array of pointers to member functions.
+void *      pvObject2;         // Delegate methods to this object using...
+void *      apfnVtblObject2;   // ...this array of pointers to member functions...
+DWORD       dwMask;            // ...the index of the method is set in the mask.
+DWORD       n;                 // index of method into vtbl
+void *      apVtblPropDesc;    // array of propdescs in Vtbl order
+}
+```
+
+如上所示，同时会释放`pvObject1`和`pvObject2`，会调用到`CAttrCollectionator::~CAttrCollectionator`，该函数会删除属性数组中`DISPID`为`8001145a`的属性，而`onpropertychange`的`DISPID`为`8001179f`，因此会导致`onpropertychange`在属性数组中的位置前移，导致`CAttrValue::Free`返回后调用`CImplAry::Delete`时无法删除`onpropertychange`属性，但是又释放了该接口指针，放入了`dword_7515B03C`、`dword_7515B040`指向的`TEAROFF_THUNK`缓存中，导致下次获取`onpropertychange`属性时仍然可以查找到该属性，最终导致内存已经释放，但缓存和属性数组中仍然有指向该内存的指针，引起use after free漏洞。
+
+```
+.text:74C68B19 ; public: virtual __thiscall CAttrCollectionator::~CAttrCollectionator(void)
+.text:74C68B19 ??1CAttrCollectionator@@UAE@XZ proc near
+.text:74C68B19                                         ; CODE XREF: CAttrCollectionator::`vector deleting destructor'(uint)+8p
+.text:74C68B19                 mov     edi, edi
+.text:74C68B1B                 push    esi
+.text:74C68B1C                 push    3
+.text:74C68B1E                 mov     esi, ecx
+.text:74C68B20                 push    8001145Ah
+.text:74C68B25                 push    dword ptr [esi+14h]
+.text:74C68B28                 mov     dword ptr [esi], offset ??_7CAttrCollectionator@@6B@ ; const CAttrCollectionator::`vftable'
+.text:74C68B2E                 call    ?DidFindAAIndexAndDelete@CBase@@QAEHJW4AATYPE@CAttrValue@@@Z ; CBase::DidFindAAIndexAndDelete(long,CAttrValue::AATYPE)
+.text:74C68B33                 mov     eax, [esi+14h]
+.text:74C68B36                 mov     ecx, [eax]
+.text:74C68B38                 push    eax
+.text:74C68B39                 call    dword ptr [ecx+0E0h]
+.text:74C68B3F                 lea     eax, [esi+1Ch]
+.text:74C68B42                 call    ??1CImplAry@@QAE@XZ ; CImplAry::~CImplAry(void)
+.text:74C68B47                 mov     ecx, esi
+.text:74C68B49                 pop     esi
+.text:74C68B4A                 jmp     ??1CBase@@UAE@XZ ; CBase::~CBase(void)
+.text:74C68B4A ??1CAttrCollectionator@@UAE@XZ endp
+```
+
+## 3.2 信息泄露漏洞分析
+
+```
+.text:7503F5D8 ; public: long __stdcall COptionElement::get_index(long *)
+.text:7503F5D8 ?get_index@COptionElement@@QAGJPAJ@Z proc near
+.text:7503F5D8
+.text:7503F5D8 arg_0           = dword ptr  8
+.text:7503F5D8 arg_4           = dword ptr  0Ch
+.text:7503F5D8
+.text:7503F5D8                 mov     edi, edi
+.text:7503F5DA                 push    ebp
+.text:7503F5DB                 mov     ebp, esp
+.text:7503F5DD                 push    esi
+.text:7503F5DE                 push    edi
+.text:7503F5DF                 mov     edi, [ebp+arg_4]
+.text:7503F5E2                 test    edi, edi
+.text:7503F5E4                 jnz     short loc_7503F5F0
+.text:7503F5E6                 mov     esi, [ebp+arg_0]
+.text:7503F5E9                 call    ?SetErrorInfoInvalidArg@CBase@@QAEJXZ ; CBase::SetErrorInfoInvalidArg(void)
+.text:7503F5EE                 jmp     short loc_7503F61A
+.text:7503F5F0 ; ---------------------------------------------------------------------------
+.text:7503F5F0
+.text:7503F5F0 loc_7503F5F0:                           ; CODE XREF: COptionElement::get_index(long *)+Cj
+.text:7503F5F0                 mov     edx, [ebp+arg_0]
+.text:7503F5F3                 test    byte ptr [edx+32h], 2
+.text:7503F5F7                 jz      short loc_7503F618
+.text:7503F5F9                 mov     ecx, edx
+.text:7503F5FB                 call    ?GetParentSelect@COptionElement@@QAEPAVCSelectElement@@XZ ; COptionElement::GetParentSelect(void)
+.text:7503F600                 mov     esi, eax
+.text:7503F602                 test    esi, esi
+.text:7503F604                 jz      short loc_7503F618
+.text:7503F606                 push    edx
+.text:7503F607                 lea     ecx, [esi+38h]
+.text:7503F60A                 call    ?Find@CImplPtrAry@@IAEHPAX@Z ; CImplPtrAry::Find(void *)
+.text:7503F60F                 mov     ecx, esi
+.text:7503F611                 call    ?RelIdxFromAbs@CSelectElement@@QAEJJ@Z ; CSelectElement::RelIdxFromAbs(long)
+.text:7503F616                 mov     [edi], eax
+.text:7503F618
+.text:7503F618 loc_7503F618:                           ; CODE XREF: COptionElement::get_index(long *)+1Fj
+.text:7503F618                                         ; COptionElement::get_index(long *)+2Cj
+.text:7503F618                 xor     eax, eax
+.text:7503F61A
+.text:7503F61A loc_7503F61A:                           ; CODE XREF: COptionElement::get_index(long *)+16j
+.text:7503F61A                 pop     edi
+.text:7503F61B                 pop     esi
+.text:7503F61C                 pop     ebp
+.text:7503F61D                 retn    8
+.text:7503F61D ?get_index@COptionElement@@QAGJPAJ@Z endp
+```
+
+当执行`var table_pointer = document.createElement('option').index;`时，会调用到上面的函数，
+
+此处由于该`option`元素尚未插入`select`中，`COptionElement::GetParentSelect`失败，导致未对传入的地址赋值，但是返回值与正常返回时相同，导致信息泄露。
+
+此处泄露的值指向JavaScript堆上的临时变量，其中每个变量占据16个字节空间，0-4字节表示该变量的类型，如果是32位整数，则直接存放在8-12字节，如果为字符串，则8-12字节为指向该字符串的指针。
+
+## 3.3 漏洞利用分析
+
+由于`TEAROFF_THUNK`结构是40字节大小，可以使用40字节大小的字符串占位释放的内存，当调用`expvalueclass.style.color = 'red';`时，会调用到`CreateTearoffThunk`函数，该函数会获取一个`TEAROFF_THUNK`结构，先从缓存中获取，如果为空则直接申请大小为40的内存，此处，释放的内存被字符串占位后同时也在缓存中，`CreateTearoffThunk`函数对该结构初始化，覆盖写入的字符串内容。
+
+```
+unsigned int __userpurge CreateTearOffThunk(void **a1, void *a2, const void *a3, struct IUnknown *a4, void **a5, void *a6, signed int a7, const RECT *a8, const struct _GUID *const *a9, void *a10, unsigned __int8 a11)
+{
+void *v11; // ebx@1
+__int32 v12; // esi@2
+const RECT *v13; // eax@3
+unsigned int result; // eax@9
+
+v11 = a6;
+if ( a1 )
+{
+v11 = *a1;
+a5 = a1;
+a7 = 1;
+}
+v12 = InterlockedExchange(&dword_7515B03C, 0);
+if ( v12
+|| (v12 = InterlockedExchange(&dword_7515B040, 0)) != 0
+|| (v12 = (__int32)HeapAlloc(g_hProcessHeap, 0, 40u)) != 0 )
+{
+*(_DWORD *)(v12 + 4) = 0;
+*(_DWORD *)(v12 + 20) = a5;
+v13 = a8;
+*(_DWORD *)(v12 + 12) = a2;
+*(_DWORD *)(v12 + 16) = a3;
+*(_DWORD *)(v12 + 24) = v11;
+*(_DWORD *)(v12 + 28 ) = a7;
+if ( !a8 )
+v13 = &g_Zero;
+*(_DWORD *)(v12 + 8) = v13;
+*(_DWORD *)(v12 + 36) = a9;
+JUMPOUT((unsigned __int8)a10 & 1, 0, sub_74DF5D80);
+*(_DWORD *)v12 = &off_7515CAF0;
+//此处0-4字节指向mshtml模块中的虚函数表
+*(_BYTE *)(v12 + 34) = 0;
+*(_BYTE *)(v12 + 35) = (_BYTE)a10;
+if ( a2 && !(a7 & 2) )
+(*((void (__stdcall **)(_DWORD))a3 + 1))(a2);
+if ( a5 )
+(*((void (__stdcall **)(_DWORD))v11 + 1))(a5);
+a4->lpVtbl = (struct IUnknownVtbl *)v12;
+result = 0;
+}
+else
+{
+a4->lpVtbl = 0;
+result = 0x8007000Eu;
+}
+return result;
+}
+```
+
+当再次获取`title`属性时，由于字符串已经被上面的操作覆盖，便可以获取到`mshtml`模块中虚函数表的地址。
+
+如果被字符串占位后，直接获取`onpropertychange`属性，则会调用`TEAROFF_HUNK`的虚函数，触发shellcode执行。
+
+通过控制`var table_pointer = document.createElement('option').index;`上面执行的语句，我们可以控制泄露的地址指向的内容，放置shellcode。
+
+## 3.4 调试分析方法
+
+在JavaScript中获取、设置属性时，会先调用`mshtml!plaingetdispid`，然后调用`mshtml!plaininvokeex`，通过对这两个函数下断点，可以对应到执行的JavaScript语句。
+
+首先下断点到第一次为`onpropertychange`属性赋值的地方
