@@ -1,0 +1,198 @@
+
+# [原创]linux内核SLUB机制介绍
+
+## SLUB机制介绍
+
+本篇文章是学习内核堆利用时的视频笔记，视频源链接在最后
+
+### 基本概念
+
+`Slab`分配器：是用来管理内核堆内存的基础设施
+
+目前`linux`内核提供三种主流的实现：`SLOB`，`SLAB`，`SLUB`，这三种提供相同的接口供外部使用。其中`SLUB`是`linux`默认启用的，也可以在编译前通过修改编译配置文件，换成其他两种。
+
+`objects`：`slab`可以分配出去小内存区域，也是管理的基本对象。
+
+`slabs`：是保存`objects`的大内存区域，其上区域被切分成大小相同的内存区域称为`object slots`。这片内存是通过`page_alloc`分配的。
+
+`slot`：是`Slab`分配器中预定义的固定大小的内存块区。
+
+（`slot`和`objects`其实指代的东西相同，因为它们在内存上是重叠的，但是只是在不同场合他们的称呼不一样。区分不开问题也不大，理解工作流程即可。）
+
+### Slab bugs
+
+与用户空间的堆一样，典型的动态内存`bugs`：
+
+- `Out-of-bounds(OOB)`越界读写
+- `Use-after-free(UAF)`
+- `Double-free`，`invalid-free`
+
+攻击方式：
+
+利用上述`bug`，可以达到`overwrite`和泄漏的目的。
+
+因为`free`的`object slot`中存在元数据，我们可以通过覆盖链表的`next`指针，控制下一次的分配对象，获得任意地址读写，可以提权或者泄漏内核地址。堆上的内容也可能包含函数指针，我们可以控制它达成任意代码执行或者泄漏内核地址。具体的攻击措施还要看特定的漏洞详情。
+
+### 内核堆上的防护措施
+
+下一个`free slot`的指针被保存在`free slot`的中间附近，这样可以防止小范围的溢出破坏指针
+
+```C
+cache->offset = ALIGN_DOWN(cache->object_size / 2, sizeof(void *));
+freeptr_addr = (unsigned long)object + cache->offset;
+```
+
+通过一个 `CONFIG_SLAB_FREELIST_HARDENED=y` 的编译配置选项，`freelist`指针会被加密保存。
+
+```C
+cache->random = get_random_long();
+freelist_ptr = (void *)((unsigned long)ptr ^ cache->random ^ swab(ptr_addr));
+// ptr — actual value of freelist pointer
+// ptr_addr — location where freelist pointer is stored
+// swab() — exchanges adjacent even and odd bytes
+```
+
+`ptr`是`freelist pointer`的值，`ptr_addr`是`freelist pointer`被保存的地址，`swab`交换奇偶`byte`字节序。
+
+所以要利用只能先泄漏 `cache->random` 和 `ptr_addr`，让利用更加困难。大多数现代 `Slab` 漏洞利用的是覆盖对象或者通过跨分配器攻击覆盖其他类型的内存。
+
+通过 `CONFIG_SLAB_FREELIST_RANDOM=y` 配置，当分配新的 `slab` 时，`SLUB` 会打乱空闲列表中对象的顺序，这样让分配的地址更难预测。
+
+### slab关键数据结构
+
+1. `struct kmem_cache`
+
+```C
+struct kmem_cache {
+// Per-CPU cache data:
+struct kmem_cache_cpu __percpu *cpu_slab;
+// Per-node cache data:
+struct kmem_cache_node *node[MAX_NUMNODES];
+...
+const char *name; // Cache name
+slab_flags_t flags; // Cache flags
+unsigned int object_size; // Size of objects
+unsigned int offset; // Freelist pointer offset
+unsigned long min_partial;
+unsigned int cpu_partial_slabs;
+};
+```
+
+比较关键的几个成员变量：
+
+`name`: 内核有许多不同的`caches`，可以通过 `cat /proc/slabinfo` 查看其中`name`就是第一列的名字，该`name`通过`kmem_cache_create`的参数指定
+
+`object_size`: 也是通过`kmem_cache_create`的参数指定，每一个`cache`只可以分配固定大小的内存。
+
+`cpu_slab`:
+
+`SLUB`分配器为每个`CPU`核心分配独立的`kmem_cache_cpu`结构，保存系统内特定`cpu`绑定的`slab`信息，目的是避免多核并发访问时的锁竞争。每个核心通过自己的`kmem_cache_cpu`直接从本地缓存分配内存对象。其内的`slabs`是绑定到特定`CPU`上的`slab`。在`6.8`版本以前也被称为`froze slabs`，当`CPU`分配内存的时候，首先会从这些`slabs`中分配。
+
+`node`：是为每个`NUMA`节点保存`slab`信息。`NUMA`的核心思想是把`CPU`分组，来简化资源的分配的复杂性。相当于拥有一个全局的`slabs`列表，尚未绑定到任何`CPU`，但是也仍然属于`cache`，也会包含已经分配的`objects`。
+
+结构体详情：
+
+```C
+struct kmem_cache_cpu {
+struct slab *slab; // Active slab
+struct slab *partial; // Partial slabs
+...
+};
+struct kmem_cache_node {
+struct list_head partial; // Slabs
+...
+};
+```
+
+2. per-CPU
+
+对于 `struct slab` 的简化信息：
+
+```C
+struct slab { // Aliased with struct page
+struct kmem_cache *slab_cache; // Cache this slab belongs to
+struct slab *next; // Next slab in per-cpu list
+int slabs; // Slabs left in per-cpu list
+struct list_head slab_list; // List links in per-node list
+void *freelist; // Per-slab freelist
+...
+};
+```
+
+`slab`是一个 `struct slab` 的结构体，上述是简化的版本，`struct slab` 别名为`struct page`，提到这就不得不提一下历史了，在`Linux`内核`5.17`版本中，`struct slab`被引入，目的是将`slab`相关的字段从`struct page`中分离出来。`struct page`（每一个物理页面都有一个相应的`page`对应）之前包含了很多不同用途的字段，使用`union`来适应不同场景，导致结构复杂。现在`struct slab`作为`struct page`的一个`overlay`，共享同一块内存，但隐藏了`struct page`的细节，这样`slab`分配器只需要处理自己的结构。
+
+`slab_cache`指向自己属于的`cache`。
+
+每一个`slab`都有后备内存，后备内存是通过`page_alloc`想`buddy system`分配。不需要指针指向它，`struct slab`本身就是一个`struct page`
+
+包含`object slots`，`size`是基于`objects`大小计算出来的。
+
+`freelist`指针指向第一个`slab`中`free`的`slot`，下一个`free slot`的指针被保存在`free slot`中。`freelist`最后一个指针是`NULL`，`objects`都是从链表头分配，`free`也是插入链表头。
+
+`full slabs`是指没有`free slot`的`slab`，此时它的`freelist`指针是`NULL`。
+
+多个`slab`可以用链表结构串联在一起。`per-CPU`的是单链表，`struct slab` 中的 `next` 指针，`per-node`的是双链表，`struct slab` 中的 `list_head slab_list`。
+
+3. active slab
+
+先来看下`kmem_cache_cpu`的`active slab`，`per-CPU`的`slabs`的其中之一被设计成激活的，并把`slab`成员指针赋值为该`slab`。分配`object`的时候会首先从这个`slab`中分配。
+
+`active slab`有两个`freelists`。 `kmem_cache_cpu->freelist` 和 `kmem_cache_cpu->slab->freelist` 都指向它的`slots`。但是两个链表并不相交，
+
+`kmem_cache_cpu->freelist` 用来给绑定的`CPU`分配释放内存的。
+
+`kmem_cache_cpu->slab->freelist` 被用来给其他`CPUs`分配释放内存的（这个模块的代码有可能不只在一个`cpu`上运行，可能会在任务切换过程中跑到其他`cpu`上执行了）。
+
+4. partial slabs
+
+`partial`意思是这些`slab`有空闲`slot`（至少有一个，也有可能是`fully free`）。
+
+每个`partial slabs`都有后备内存。
+
+只有一个`freelist`，
+
+只在`active slab`变为`full`后被使用。
+
+`per-CPU partial slabs`的列表最大数量是有限的，这个大小是由`kmem_cache->cpu_partial_slabs`字段指定，这个值是根据`object`和`slab`的大小计算出来的 用户空间是无法查看这个字段值的，只能查看 `/sys/kernel/slab/$CACHE/cpu_partial` ，然后自己计算出`cpu_partial_slabs`。
+
+5. per-node
+
+`kmem_cache_node` 有一个`per-node partial slabs`的列表。这就意味这每一个都至少有一个`free slots`。
+
+每一个都有后备内存和一个`freelist`。
+
+一旦`per-CPU`中的`slabs`都用完都变成`full`后他们就会被使用。
+
+`per-node slabs` 的最小数量也是有限制的。由`kmem_cache->min_partial`指定，计算也是基于`object`的大小
+
+可以在用户空间中查看 `/sys/kernel/slab/$CACHE/min_partial`
+
+6. full slabs
+
+`full slabs` 不会被`tracked`。没有指针指向`full slabs`（除非开启`slub_debug`），一旦任意一个`object`被释放到`full slab`中，分配器会获得指向该`slab`的指针。我们只需使用 `virt_to_slab` 计算。
+
+### 分配过程
+
+为了方便介绍，这里分为五个不同层次的分配过程
+
+1. allocating from lockless per-CPU freelist `kmem_cache_cpu->freelist`
+
+当无锁的该`cpu slab`的`freelist`是不为空，那么就会分配该`freelist`的第一个`object`
+
+如果为空，`goto 2`。
+
+2. allocating from active slab (`kmem_cache_cpu->slab->freelist`)
+
+如果`active slab freelist`不是空的，
+
+首先`move active slab freelist`到 `lockless per-CPU freelist`；
+
+然后从这个`lockless`的`per-CPU freelist`分配第一个`object`。并更新这个`freelist`
+
+如果这个`active slab freelist`为空。 `goto 3`
+
+3. allocating from per-CPU partial slabs (`kmem_cache_cpu->partial`)
+
+如果有`per-CPU`的`partial slabs`：
+
+首先将链表中的第一个脱链，并指定为`active slabs`
