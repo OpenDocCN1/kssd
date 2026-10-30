@@ -1,0 +1,199 @@
+
+# [原创]WarGame-behemoth0 解题思路
+
+[WarGame-behemoth2 解题思路](https://bbs.pediy.com/thread-253880.htm)
+
+[WarGame-behemoth4 解题思路](https://bbs.pediy.com/thread-254381.htm)
+
+[WarGame-behemoth6 番外篇-再学ShellCode](https://bbs.pediy.com/thread-254602.htm)
+
+[WarGame-behemoth6 解题思路](https://bbs.pediy.com/thread-254605.htm)
+
+从`behemoth`开始就没有源码了，`IDA`伪代码如下
+
+```
+int __cdecl main(int argc, const char **argv, const char **envp)
+
+{
+
+  size_t v3; // eax@1
+
+  __uid_t v4; // ebx@2
+
+  __uid_t v5; // eax@2
+
+  char s1; // [sp+3h] [bp-5Dh]@1
+
+  char s[4]; // [sp+44h] [bp-1Ch]@1
+
+  const char *v9; // [sp+50h] [bp-10h]@1
+
+  const char *v10; // [sp+54h] [bp-Ch]@1
+
+  const char *v11; // [sp+58h] [bp-8h]@1
+
+
+
+  strcpy(s, "OK^GSYBEX^Y");
+
+  v11 = "unixisbetterthanwindows";
+
+  v10 = "followthewhiterabbit";
+
+  v9 = "pacmanishighoncrack";
+
+  printf("Password: ");
+
+  __isoc99_scanf("%64s", &s1);
+
+  v3 = strlen(s);
+
+  memfrob(s, v3);
+
+  if ( !strcmp(&s1, s) )
+
+  {
+
+    puts("Access granted..");
+
+    v4 = geteuid();
+
+    v5 = geteuid();
+
+    setreuid(v5, v4);
+
+    system("/bin/sh");
+
+  }
+
+  else
+
+  {
+
+    puts("Access denied..");
+
+  }
+
+  return 0;
+
+}
+```
+
+简单的验证，下断到`strcmp`的第一个`push`即可
+
+```
+LEGEND: STACK | HEAP | CODE | DATA | RWX | RODATA
+
+────────────────────────────────────────────────────────────[ REGISTERS ]────────────────────────────────────────────────────────────
+
+ EAX  0xffffd52c ◂— 'eatmyshorts'
+
+ EBX  0x0
+
+ ECX  0x2c
+
+ EDX  0xffffffff
+
+ EDI  0x0
+
+ ESI  0xf7fb2000 (_GLOBAL_OFFSET_TABLE_) ◂— 0x1d7d6c
+
+ EBP  0xffffd548 ◂— 0x0
+
+ ESP  0xffffd4e8 ◂— 0x31000000
+
+ EIP  0x804861c (main+107) ◂— push   eax
+
+─────────────────────────────────────────────────────────────[ DISASM ]──────────────────────────────────────────────────────────────
+
+   0x804860d <main+92>     lea    eax, [ebp - 0x1c]
+
+   0x8048610 <main+95>     push   eax
+
+   0x8048611 <main+96>     call   memfrob <0x804858b>
+
+ 
+
+   0x8048616 <main+101>    add    esp, 8
+
+   0x8048619 <main+104>    lea    eax, [ebp - 0x1c]
+
+ ► 0x804861c <main+107>    push   eax
+
+   0x804861d <main+108>    lea    eax, [ebp - 0x5d]
+
+   0x8048620 <main+111>    push   eax
+
+   0x8048621 <main+112>    call   strcmp@plt <0x80483f0>
+
+ 
+
+   0x8048626 <main+117>    add    esp, 8
+
+   0x8048629 <main+120>    test   eax, eax
+
+──────────────────────────────────────────────────────────────[ STACK ]──────────────────────────────────────────────────────────────
+
+00:0000│ esp  0xffffd4e8 ◂— 0x31000000
+
+01:0004│      0xffffd4ec ◂— 0x333232 /* '223' */
+
+02:0008│      0xffffd4f0 ◂— 0x8
+
+03:000c│      0xffffd4f4 —▸ 0xffffd730 ◂— '/home/gavin/warGame/behemoth/behemoth0'
+
+04:0010│      0xffffd4f8 —▸ 0xf7e0a4a9 (__new_exitfn+9) ◂— add    ebx, 0x1a7b57
+
+05:0014│      0xffffd4fc —▸ 0xf7fb5748 (__exit_funcs_lock) ◂— 0x0
+
+06:0018│      0xffffd500 —▸ 0xf7fb2000 (_GLOBAL_OFFSET_TABLE_) ◂— 0x1d7d6c
+
+... ↓
+
+────────────────────────────────────────────────────────────[ BACKTRACE ]────────────────────────────────────────────────────────────
+
+ ► f 0  804861c main+107
+
+   f 1 f7df2e81 __libc_start_main+241
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+pwndbg>
+```
+
+得到密码，获得shell
+
+```
+behemoth0@behemoth:/behemoth$ ./behemoth0 
+
+Password: eatmyshorts
+
+Access granted..
+
+$ whoami
+
+behemoth1
+
+$ cat /etc/behemoth_pass/behemoth1
+
+aesebootiv
+
+$
+```
+
+## 小结
+
+narnia终于完结了（暂时还没出第九题），好开心
+
+附件是可执行程序
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+最后于 2020-10-22 11:44
+
+被BDomne编辑，原因：
+
+上传的附件：
+
+- [behemoth0](javascript:void(0);)
+  （5.76kb，8次下载）
