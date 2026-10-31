@@ -1,0 +1,300 @@
+
+如果发现个性函数存在，就会进入个性函数解析`LSDA`，没有发现异常处理器就会继续找下个`FDE`和`CIE`，如果找到异常处理器，就进入`\_Unwind\_RaiseException\_Phase2`开启第二阶段，此阶段的主要任务是将`LSDA`中的寄存器信息（当前程序指针寄存器）放入待执行上下文内，返回后进入`uw\_install\_context`，并通过`\_\_builtin\_eh\_return`跳转到前面设置的程序指针地址上，开始进行异常处理。
+
+`catch`语句支持筛选异常类型，执行`catch`执行体内语句前，会先判断异常类型是否和当前类型匹配然后执行，执行结束后，通过`\_\_cxa\_end\_catch`清除`\_\_cxa\_begin\_catch`阶段设置的信息以及通过`\_\_cxa\_free\_exception`释放前面分配的内存空间是常规操作，除此之外，如果需要运行析构函数，那么`catch`执行体中还会插入调用析构函数的指令。
+
+```
+\_\_cxa\_allocate\_exception
+logic\_error
+\_\_cxa\_throw
+-> \_Unwind\_RaiseException
+-> while
+-> uw\_frame\_state\_for
+-> \_Unwind\_Find\_FDE
+-> get\_cie
+-> extract\_cie\_info
+-> if (fs.personality)
+-> (\*fs.personality) -> \_\_gxx\_personality\_v0 -> parse LSDA
+-> \_Unwind\_RaiseException\_Phase2
+-> while
+-> uw\_frame\_state\_for
+-> if (fs.personality)
+-> (\*fs.personality) -> \_\_gxx\_personality\_v0 -> parse LSDA
+-> install\_context
+-> uw\_install\_context
+-> \_\_builtin\_eh\_return -> goto catch
+catch
+cmp && je
+\_\_cxa\_begin\_catch
+exception hadler
+\_\_cxa\_end\_catch
+call destructor
+\_\_cxa\_free\_exception
+```
+
+除此之外，`GCC`还提供`\_Unwind\_Resume`函数，该函数只会在不存在`catch`或找不到`catch`时调用，一般情况下不会被调用。
+
+```
+jmp 401569 <main+0x363>
+401569: add $0x38,%rsp
+```
+
+## 利用思路
+
+### 个性函数可以吗？
+
+首先我们知道，异常发生后一定会调用个性函数，还会调用两次，而且个性函数有一个好处，即它是调用保持在`.data.rel.ro`节中，然后在运行期进行重定位。假如我们可以控制重定位的流程，假如我们可以向`.data.rel.ro`节中写入数据，那么就可以控制异常发生后的执行流程了！
+
+只不过可惜现实没有那么美好。
+
+`.data.rel.ro`中保存的个性函数地址，在程序启动初始化阶段就会完成重定位，重定位之后它所在的内存区域会被设置成只读状态。
+
+而在程序启动初始化阶段不管是拥有向`.data.rel.ro`写入的数据的操作权，还是拥有控制重定位过程的能力都是极为困难的。
+
+### CFA可以吗？
+
+`.eh_frame`节中存储着`CIE`和`FDE`信息，这些信息通过汇编文件提供的`.cfi`伪指令生成，`cfi`的全程是`Call Frame Instruction`，被用作统计调用栈指令，它们是记录函数活动记录的关键数据。
+
+这些关键数据主要包含下面几个方面。
+
+- 被调用函数的地址
+- 操作栈的指令
+
+操作栈的指令由规范栈帧地址`CFA Canonical Frame Address`定义，这是`DWARF`委员会定义的一种规则，用于在支持独立于体系结构的情况下进行虚拟栈展开。
+
+下面展示了一段`CFI`示例，它来自于`.eh_frame`节，第一列是指令在程序中的位置，第一列是指令地址，第二列了指令运行前`rsp`的数值，第三列记录了指令运行前`rbp`寄存器的数值（c是`CFA`的简称，一般指栈底），第四列记录了返回地址`ra return address`。
+
+```
+FDE cie=0000002c pc=0000000000401574..00000000004015c6
+CFI：
+LOC CFA rbp ra
+0000000000401574 rsp+8 u c-8
+0000000000401575 rsp+16 c-16 c-8
+0000000000401578 rbp+16 c-16 c-8
+00000000004015c5 rsp+8 c-16 c-8
+原信息：
+401574: 55 push %rbp
+401575: 48 89 e5 mov %rsp,%rbp
+401578: 48 83 ec 10 sub $0x10,%rsp
+4015c5: c3 ret
+```
+
+当发生异常进行栈展开时，会根据`CFI`模拟栈展开的过程，但是程序并不会直接执行这些指令，而且`CFI`对函数调用以及跳转执行这样的指令支持有限，再加上`.eh_frame`在运行阶段是只读状态，因此想要修改`CFI`信息，完成对程序执行流的控制是比较困难的。
+
+`CFA`提供了非常强大的功能，可以被看作是一种指令集，尽管它不算特别强大，那么`CFA`有没有可能在其他地方被更灵活的使用呢？
+
+关于利用`DWARF`信息干坏事的事情，或许可以从`katana`项目中获取一些经验。
+
+```
+https://katana.nongnu.org/
+https://savannah.nongnu.org/projects/katana
+```
+
+### 着陆垫可以吗？
+
+`.gcc_except_table`节中调用点表内存放着一个名为着陆垫的东西，异常发生后，在阶段二中，`\_Unwind\_SetIP`函数会根据着陆垫设置程序指针，然后`\_\_builtin\_eh\_return`根据`\_Unwind\_SetIP`设置的指针进行跳转。
+
+在当前程序中，调用点表中存在这一个表项，指令对应`throw std::out_of_range`，着陆垫对应着一个`catch`语句。
+
+```
+Position = 122UL, LandingPad = 331UL
+0000000000401216 <main>
+(gdb) l *0x401216+122 -> throw std::out_of_range(...)
+(gdb) l *0x401216+331 -> catch (...) { ... }
+```
+
+在程序中，存在着一个礼物函数，该函数会直接运行`Shell`，因此可以尝试修改着陆垫数值，让异常处理流程跳转到运行`Shell`的礼物函数。
+
+首先我们需要计算出新着陆垫的`16`进制数值。
+
+```
+landing pad
+331 -> uint to uled128 -> 0x02cb
+0000000000401216 <main>
+0000000000401584 <\_ZL9gift\_givev>
+-> call system("/bin/sh")
+0x401584 - 0x401216 = 878 -> uint to uled128 -> 0x06ee
+-> new landing pad = 0x06ee
+```
+
+然后修改程序的`16`进制文件，将`.gcc_except_table`中调用点表中表现存储的着陆垫数值修改成新的数值。
+
+当程序发生异常时，就会跳转到`\_ZL9gift\_givev`函数的位置。
+
+```
+.gcc_except_table
+05 cb 02 07 -> 05 ee 06 07
+```
+
+当运行修改好的程序时，会发现虽然程序成功跳转到`\_ZL9gift\_givev`函数的位置，但是由于`rsp`未与`0x10`对齐，所以出现了程序崩溃的情况。
+
+```
+Program received signal SIGSEGV, Segmentation fault.
+-> <do_system+339>: movaps %xmm0,0x50(%rsp)
+-> rsp 0x7fffffffda98
+```
+
+显然直接修改`.gcc_except_table`还需要面临不少困难，一是运行期间想要修改，就要`.gcc_except_table`所在段是可读，这一点就非常致命，二是不管是直接修改静态二进制文件，还是想方设法在运行期完成修改，都要面临程序跳转运行后出现段错误的问题，这其中很大一部分原因都是对齐导致的。
+
+### 异常处理流程的缺陷！
+
+异常处理流程有一个很明显的问题，就是只要`\_Unwind\_RaiseException`函数在调用栈上找到`catch`语句，后面`\_\_builtin\_eh\_return`就会进行跳转，跳转的依据就是着陆垫，它在运行期位于一段只读内存区域，不是太方便修改。
+
+`\_Unwind\_RaiseException`从当前函数开始查找`catch`语句，当本函数无法找到`catch`语句时，`uw_update_context`会查找`CFI`信息中的`ra return address`，`ra`代表着返回地址，`ra`一般对应着`c-xxx`，`c`对应着栈底`rsp`。
+
+所以查找栈帧的过程就是一个相对可控的部分了，如果数据溢出到被调用函数保存返回地址的位置上，那么`uw_update_context`更新时就会在栈上找到错误的返回地址。
+
+```
+func a
+-> throw exception
+-> find catch
+-> found -> goto catch
+-> not found -> terminate
+-> security check
+```
+
+此时做这样的一个假设，如果函数的局部变量存在溢出，我们将构造了恶意地址到`ra`的位置上，`ra`所在函数中的上方指令是存在`try catch`结构的，那么程序的执行流程就可以被控制，调整到我们期望的地方中。
+
+假如设置的返回地址上方没有`try catch`结构，那么你会看见程序打印出下面的话，它代表程序无法找到`try catch`结构。
+
+```
+terminate called after throwing an instance of xxx
+```
+
+`\_\_gxx\_personality\_v0`在无法找到`try catch`结构时，自动会给`found_type`设置成`found_terminate`，之后就会调用`\_\_terminate`，该函数先调用`handler`，再调用函数`abort`抛出错误，让程序退出。
+
+```
+\_\_gxx\_personality\_v0
+-> found_type = found_terminate
+-> if (found_type == found_terminate)
+-> \_\_cxa\_call\_terminate
+-> \_\_terminate
+-> handler()
+-> std::abort
+```
+
+一般来讲`handler`对应着`\_\_verbose\_terminate\_handler`函数。
+
+```
+#define \_GLIBCXX\_DEFAULT\_TERM\_HANDLER \_\_gnu\_cxx::\_\_verbose\_terminate\_handler
+\_\_verbose\_terminate\_handler
+-> fputs("terminate called after throwing an instance of '", stderr)
+```
+
+除了返回地址我们可以控制外，`rbp`也是可以被控制的（相当于可以进行栈迁移），当`throw`完成异常处理的跳转后，`rbp`会更新成缓冲区变量读取的溢出数值，当程序再次运行`leave`和`ret`指令时，就会从`fake rbp`上读取指令。
+
+```
+| bad return address |
+| fake rbp |
+after overflow -> | rbp | -> after throw -> | fake rbp |
+| data | | ... |
+| rsp | | rsp |
+after throw -> leave && ret
+-> leave -> rbp = *(fake rbp)
+-> ret -> rip = *(rbp)
+```
+
+值得注意的是，`fake rbp`一定要是一个可读写的有效值，因为程序内部可能会通过指令读取或写入`rbp`寄存器。
+
+```
+mov xxx,yyy(%rbp) -> *(rbp+yyy)=xxx
+```
+
+### 必备调用的析构函数
+
+在标准`C++`中会更加鼓励使用析构函数执行销毁操作，而不是类似于`Windows`平台上自定义的`finally`语句或其他语言支持的`finally`语句。
+
+因此当异常发生时，如果析构函数已经被控制，那么必备调用的析构函数就会带来风险。
+
+## 示例讲解
+
+### 源代码
+
+从源代码中可以看到，`vuln`函数存在着明显的栈溢出，且溢出一定长度后会抛出异常，与此同时`gift_give`函数中没有被任何函数直接调用，但它会运行`Shell`，且在该函数的内部存在`try catch`结构，因此我们可以利用异常处理流程的缺陷做些坏事！
+
+```c
+#include <setjmp.h>
+#include <unistd.h>
+#include <iostream>
+#define BUF_SIZE 0x20
+#define SETJMP_RET_VAL 2333
+static bool jumped;
+static jmp_buf my_env;
+class eh_help_info {
+public:
+eh_help_info() {
+jumped = false;
+std::cout << "enter eh_help_info" << std::endl;
+}
+~eh_help_info() {
+std::cout << "leave eh_help_info" << std::endl;
+if (jumped == false) {
+jumped = true;
+longjmp(my_env, SETJMP_RET_VAL);
+}
+}
+};
+static void vuln(void)
+{
+ssize_t len;
+char buf[BUF_SIZE];
+len = read(STDIN_FILENO, buf, 0x100);
+if (len > BUF_SIZE) {
+throw "too big";
+}
+}
+int main(void)
+{
+int ret;
+eh_help_info tmp;
+try {
+std::cout << "stage 1" << std::endl;
+try {
+throw std::out_of_range("i need a exception AAA");
+}
+catch (...) {
+std::cerr << "stage 1: oh no!" << std::endl;
+}
+throw std::out_of_range("i need a exception BBB");
+}
+catch (const std::runtime_error& e) {
+std::cerr << "stage 1: runtime_error " << e.what() << std::endl;
+}
+catch (const std::out_of_range& e) {
+std::cerr << "stage 1: array out of range " << e.what() << std::endl;
+ret = setjmp(my_env);
+if (ret == 0) {
+return 0;
+}
+printf("setjmp return %d\n", ret);
+}
+try {
+std::cout << "stage 2" << std::endl;
+throw std::invalid_argument("i need a exception");
+}
+catch (...) {
+std::cerr << "stage 2: receive unknow exception" << std::endl;
+}
+try {
+vuln();
+}
+catch (const std::runtime_error& e) {
+std::cerr << e.what() << std::endl;
+}
+return 0;
+}
+static void gift_give(void)
+{
+try {
+std::cout << "stage 3: enter " << __func__ << std::endl;
+}
+catch (const char* msg) {
+std::cout << "stage 3: receive exception [" << msg << "]" << std::endl;
+}
+system("/bin/sh");
+}
+```
+
+### exploit构造
+
+经过前面的分析，构造出下方的`exploit`。
