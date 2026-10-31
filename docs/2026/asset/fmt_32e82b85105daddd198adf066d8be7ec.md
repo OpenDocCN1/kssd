@@ -1,0 +1,219 @@
+
+## 异常处理流程
+
+```
+_Unwind_RaiseException
+-> uw_init_context
+-> __builtin_return_address(0)
+-> uw_init_context_1
+-> uw_update_context_1
+-> while
+-> uw_frame_state_for(&cur_context, &fs)
+-> _Unwind_Find_FDE
+-> get_cie
+-> extract_cie_info
+-> case 'L' && 'P'
+-> read_encoded_value(context, fs->lsda_encoding, aug, &lsda)
+-> base_of_encoded_value
+-> result = read_sleb128
+-> result += ((encoding & 0x70) == DW_EH_PE_pcrel ? (_Unwind_Internal_Ptr) u : base)
+-> context->lsda = (void *)lsda
+-> if (fs.personality)
+-> code = (*fs.personality)(_UA_SEARCH_PHASE, xxx)
+-> __gxx_personality_v0
+-> parse_lsda_header
+-> while (p < info.action_table)
+-> landing_pad = info.LPStart + cs_lp
+-> action_record = info.action_table + cs_action - 1
+-> while (1)
+-> saw_handler = true
+-> return _URC_HANDLER_FOUND
+-> if (code == _URC_HANDLER_FOUND)
+-> break
+-> _Unwind_RaiseException_Phase2
+-> uw_install_context
+```
+
+找到异常处理器后，会开始第二阶段的工作。
+
+`_Unwind_RaiseException_Phase2`与阶段一的流程颇为类似，它们的第一步都是借助函数`uw_frame_state_for`遍历栈帧寻找个性函数，如果个性函数存在，那就调用它。
+
+区别在于，阶段一中个性函数接收的参数为`_UA_SEARCH_PHASE`，阶段二中个性函数接收的参数为`_UA_CLEANUP_PHASE | _UA_HANDLER_FRAME`，参数`_UA_SEARCH_PHASE`代表让个性函数查找异常处理器，参数`_UA_CLEANUP_PHASE | _UA_HANDLER_FRAME`代表让异常函数查找清理器。
+
+当个性函数发现参数为`_UA_CLEANUP_PHASE | _UA_HANDLER_FRAME`时，会先通过函数`restore_caught_exception`恢复异常处理器信息，然后跳转到`install_context`。
+
+跳转到`install_context`位置后会设置`r0`、`r1`、`ip`寄存器，数值为`ue_header`、`handler_switch_value`、`landing_pad`，然后返回`_URC_INSTALL_CONTEXT`。
+
+`_Unwind_RaiseException_Phase2`返回后会继续执行`uw_install_context`，该函数先通过`uw_install_context_1`将异常处理器的上下文更新到当前上下文信息中。
+
+更新完上下文信息后，会执行`_Unwind_DebugHook`函数，当调试器挂到程序上，并发现该函数存在时，会在此处设置断点，该函数一旦被执行就会陷到调试器里面。
+
+然后借助`_Unwind_Frames_Extra`的帮助还原栈帧。
+
+最后通过`__builtin_eh_return`跳转到异常处理器的所在位置。
+
+```
+_Unwind_RaiseException_Phase2
+-> while
+-> uw_frame_state_for
+-> if (fs.personality)
+-> code = (*fs.personality)(_UA_SEARCH_PHASE | match_handler, xxx)
+-> __gxx_personality_v0
+-> if (actions == (_UA_CLEANUP_PHASE | _UA_HANDLER_FRAME))
+-> restore_caught_exception
+-> goto install_context
+-> install_context
+-> _Unwind_SetGR(context, 0, ue_header)
+-> _Unwind_SetGR(context, 1, handler_switch_value)
+-> _Unwind_SetIP(context, landing_pad)
+-> return _URC_INSTALL_CONTEXT
+-> if (code == _URC_INSTALL_CONTEXT)
+-> break
+uw_install_context
+-> uw_install_context_1
+-> __builtin_frob_return_addr
+-> _Unwind_DebugHook
+-> _Unwind_Frames_Extra
+-> __builtin_eh_return
+```
+
+`_Unwind_SetGR`需要特别说明一下，这里的`r0`和`r1`并不是真实的寄存器，而是CFI中记录的寄存器，通过索引值指定不同的寄存器，完成后会更新上下文信息中的寄存器数值。
+
+```
+_Unwind_SetGR
+-> index = DWARF_REG_TO_UNWIND_COLUMN
+-> context->reg[index] = _Unwind_Get_Unwind_Context_Reg_Val
+```
+
+### 异常处理器的筛选
+
+`__builtin_eh_return`跳回异常处理器的起始位置后，由于`try`结构可能会对应多个`catch`结构，为了区分它们，`.gcc_except_table`会保存异常对应的异常处理类型，函数`_Unwind_RaiseException`拿到异常处理类型并并跳转到异常处理器时，会针对异常处理类型进行判断，如果类型匹配就继续执行，反之则跳转到下一个异常处理器的位置执行。
+
+```
+当前异常处理器类型为0x1（.gcc_except_table保持的数值位于rdx内）：
+cmp    $0x1,%rdx
+je 4013cb <main+0x1c5>
+catch (xxx) { ...... }
+cmp $xx,%rdx
+je xxx
+do something
+catch (...) { ...... }
+cmp $xx,%rdx
+je xxx
+do something
+```
+
+### 异常处理器的开始和结束
+
+异常处理器开始执行的标志是`__cxa_begin_catch`，结束标志是`__cxa_end_catch`，以及`__cxa_free_exception`。
+
+```
+call 401060 <__cxa_begin_catch@plt>
+call 4010e0 <__cxa_end_catch@plt>
+call 401080 <__cxa_free_exception@plt>
+```
+
+它们做的事情并不复杂，主要就是更新一下保存异常处理信息的全局变量。
+
+```
+__cxa_get_globals_fast
+```
+
+### 异常处理与析构函数
+
+编译器会在需要执行析构函数的异常处理器中，插入调用析构函数的`call`指令。
+
+```
+call 40161e <_ZN12eh_help_infoD1Ev>
+```
+
+## 异常处理机制的总结
+
+Windows和Linux的异常处理方式并没有非常夸张的差异，主要提供支持的都是二进制文件，以及按照函数区分。
+
+编译器会在二进制文件中插入异常处理信息，主要是栈帧信息和异常处理器。
+
+Windows平台下会在`.pdata`中放置`RUNTIME_FUNCTION`，`RUNTIME_FUNCTION`记录函数运行期的信息，其中包含函数体起始地址以及栈展开信息，异常处理需要关注的就是栈展开信息`UnwindInfo`，该结构中的`LanguageHandler`和`UNWIND_CODE`是与异常处理密切相关的，`LanguageHandler`标明了异常处理器的位置（没有可以不存在），`UNWIND_CODE`代表操作栈的指令，用于模拟栈操作。
+
+在WinDBG调试器中，可以通过`.fnet`和`!exchain`分析这些信息。
+
+Windows下异常机制除了支持`__finally`语句，也支持析构函数，在`RUNTIME_FUNCTION`中放置了调用析构函数的指令，它位于调用异常处理指令的后面。
+
+```
+Windows PE
+-> .pdata
+-> RUNTIME_FUNCTION
+-> UnwindInfo
+-> UNWIND_CODE
+-> LanguageHandler
+-> call destructor
+```
+
+Linux平台下还是针对函数处理`try`结构，在`.eh_frame_header`会记录FDE的数量、FDE的开始地址以及`.eh_frame`的开始地址，`.eh_frame`记录调用栈信息，每个CIE代表一个完整的调用栈，CIE中包含的FDE记录着栈帧信息，`.gcc_except_table`记录这异常处理的方式，它是多个LSDA的集合，其中比较重要的就是记录可能发生异常指令范围的调用点表、记录处理异常方式的着陆垫以及记录`catch`筛选异常类型信息的动作表。
+
+处理异常需要根据调用点表中表项确认着陆垫位置和异常类型，LSDA需要通过LSDA头解析出来，`.eh_frame`中保存着FDE信息，FDE信息中的`Augmentation`信息可以带领我们前往LSDA头的位置。
+
+标准C++中`try`结构运行对应多个`catch`，为了处理`catch`，CIE会指定一个个性函数完成该任务，CIE中保存着`Augmentation`信息，它指名了个性函数的地址。
+
+个性函数一般保存在`.data.rel.lo`中，程序启动时会完成重定位操作。
+
+```
+Linux ELF
+-> .eh_frame_header
+-> .eh_frame
+-> CIE
+-> Augmentation info [P]
+-> goto personality func
+-> FDE
+-> Augmentation info [L]
+-> goto LSDA Header
+-> cie
+-> .gcc_except_table
+-> LSDA
+-> lsda header
+-> lsda
+-> call site table
+-> landing pad
+-> action table
+-> type table
+```
+
+Windows平台通过跨空间交互接口ntdll开始处理异常，内核发现异常后，会将执行权交给函数`KiUserExceptionDispatch`，然后开始通过`RtlDispatchException`处理异常。
+
+`RtlDispatchException`分发异常的流程分成两步，这个根据Windows的异常处理机制来的，第一步是检查全局异常处理器是否存在（VEH机制），如果没有，才会对函数注册的异常处理器进行检查（SEH机制）。
+
+遍历调用栈查找SEH处理器的过程由`RtlLookupFunctionEntry`和`RtlpxVirtualUnwind`支持，`RtlLookupFunctionEntry`负责查找当前函数的`RUNTIME_FUNCTION`，父函数通过`RtlpxVirtualUnwind`查找。
+
+`RtlpxVirtualUnwind`除了通过栈展开找到父函数地址，还会找到`UnwindInfo`中的SEH处理器信息，SEH处理器存在时进入`RtlpExecuteHandlerForException`并调用。
+
+虽然Windows中`__try`结构只能对应一个`__except`或`__finally`，但它允许`__try`出现嵌套的情况，因此进入`__C_specific_handler`后，还会继续对函数内部进行遍历，函数中每个`__try`结构都对于一个`RUNTIME_FUNCTION`，`RtlUnwindEx`会继续查找SEH处理器，直到找到最近的一个，然后通过`RtlRestoreContext`还原信息跳转执行。
+
+```
+Windows
+-> catch
+-> KiUserExceptionDispatch
+-> RtlDispatchException
+-> dispatch
+-> RtlDispatchException
+-> VEH handle
+-> check LdrpVectorHandlerList
+-> RtlLookupFunctionEntry
+-> get func RUNTIME_FUNCTION
+-> RtlpxVirtualUnwind
+-> restore func context
+-> RtlpExecuteHandlerForException
+-> call handler
+-> if RUNTIME_FUNCTION.UnwindInfo.LanguageHandler exist
+-> __GSHandlerCheck_SEH
+-> __C_specific_handler
+-> RtlUnwindEx
+-> RtlpExecuteHandlerForUnwind
+-> __GSHandlerCheck_SEH
+-> RtlRestoreContext
+```
+
+Linux平台下异常发生时，会给异常处理信息分配空间，然后由`logic_error`填充特定异常类型的信息进入刚刚分配好的空间，进入`__cxa_throw`就代表正式开始处理异常，在处理异常前，会先进入`_Unwind_RaiseException`查找异常处理器，`uw_frame_state_for`会通过`_Unwind_Find_FDE`获取FDE（通过b树找`.eh_frame_hdr`），然后借助`get_cie`查找FDE对应的CIE，然后解析CIE并找到个性函数。
+
+如果发现个性函数存在，就会进入个性函数解析LSDA，没有发现异常处理器就会继续找下个FDE和CIE，如果找到异常处理器，就进入`_Unwind_RaiseException_Phase2`开启第二阶段，此阶段的主要任务是将LSDA中的寄存器信息（当前程序指针寄存器）放入待执行上下文内，返回后进入`uw_install_context`，并通过`__builtin_eh_return`跳转到前面设置的程序指针地址上，开始进行异常处理。
+
+`catch`语句支持筛选异常类型，执行`catch`执行体内语句前，会先判断异常类型是否和当前类型匹配然后执行，执行结束后，通过`__cxa_end_catch`清除`__cxa_begin_catch`阶段设置的信息以及通过`__cxa_free_exception`释放前面分配的内存空间是常规操作，除此之外，如果需要运行析构函数，那么`catch`执行体中还会插入调用析构函数的指令。
