@@ -1,0 +1,351 @@
+
+### stashing 打任意地址写一个bin的地址（任意地址大数写）
+*启动条件（假设`chunk`大小`0x110`）：*
+1. (`0x110`) `smallbin` 中两个`chunk`：`#1` -> `#2`
+2. `tcache_entry[0x110]` 中不满（not full）
+*过程与结果：*
+1. 劫持 `#1` 的 `bk` 指针指向 `evil_addr-0x10`，并 保证 `#1` 的 `fd` 指针不变。
+2. 越过 `tcache`，从 `smallbin` 中取 `0x110` 的 `chunk`（一般是用 `calloc` 实现），此时 `#2` 从 free 状态被取出变成 used 。 `#1` 被 `tcahce_put` 放入对应的不满的 `tcache_entry` 中 。 `evil_addr` 被写入 `bin` 地址（`0x7f` 的大数）
+
+### stashing 打任意地址分配 与 任意地址写一个bin的地址（任意地址大数写）
+*启动条件（假设`chunk`大小`0x110`，假设我们想分配到 `evil_addr`）：*
+1. (`0x110`) `smallbin` 中两个`chunk`：`#1` -> `#2`
+2. `tcache_entry[0x110]` 中不满（not full）
+*过程与结果：*
+1. 劫持 `#2` 的 `bk` 指向 `evil_addr`
+2. 保证 `evil_addr+0x10` 处存 `#2` 的地址
+3. 此时 `bin` 的 `bk` 变为 `evil_addr` , `evil_addr+0x10` 被写上 `bin` 的地址。
+4. 保证 `*(evil_addr+0x8)+0x10` 可写（会被写上一个 `bin` 地址）
+5. `tcache_put` 将 `evil_addr` 放入 `tcachebin` 中
+
+## House_of_botcake系列
+`house_of_botcake` : 假如我们有 `#1` `#2` 两个 `chunk`，那么通过将 `#1` `#2` 合并放入 `ub`，然后再单独 `free` `#2`，就实现了 `#2` 既在 `ub` 又在 `tc` 中，之后对 `#1` 进行合适大小的错位切割，可以劫持 `#2` 的 `next` 指针实现任意地址申请。
+`House_of_botcake+` : 假如我们有 `#1` `#2` 两个 `chunk`（`0x110`），假设只能申请最大 `malloc` `0x100`，那么通过将 `#1` `#2` 合并放入 `ub`，然后再单独 `free` `#2`，就实现了 `#2` 既在 `ub` 又在 `tc` 中，但是此时做不出特别合适的切割大小来一步到位劫持 `#2` 指针，可以考虑先切一个小的 `chunk`，比如 `0x20`，之后 `ub` 中的 `chunk` 会被切割，导致当我们再次 `add` 一个大 `chunk`（`0x100`）时，返回给我们的 `chunk` 是 `#1+0x20` ，此时如果再 `add` `0x100`，就实现了申请一个地址在：[`#1+0x20`，`#2+0x20`] 的 `chunk` `#3`，然后把 `#3` `free` 进 `tc` 中与 `#2` 连接，就可以劫持 `#2` 的 `next` 指针实现任意地址申请。
+
+## 高版本栈迁移的问题，使用了一些特有的gadgets
+`2.29` `2.31` 的 `gadget`，用来拉栈。
+<mark class="encrypted">bf3K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1L8r3!0Y4i4K6u0W2j5%4y4V1L8W2)9J5k6h3&6W2N6q4)9J5c8X3y4S2M7X3!0D9x3U0x3#2z5q4)9J5c8X3q4J5N6r3W2U0L8r3g2Q4x3V1k6V1k6i4c8S2K9h3I4K6i4K6u0r3x3e0l9^5x3K6f1I4x3K6l9^5</mark>
+
+# 其他
+## 关于字节对齐
+举个例子:
+`malloc(0xf8)`，返回`0x100`
+`malloc(0xf9)`，返回`0x110`
+
+目录
+- CTF PWN调试技巧
+- [带源码调试glibc](https://bbs.kanxue.com/#带源码调试glibc)
+- [gdb参数](https://bbs.kanxue.com/#gdb参数)
+- [如何使用patchelf换上题目的libc.so.6](https://bbs.kanxue.com/#如何使用patchelf换上题目的libc.so.6)
+- [在gdb中dump当前进程的memory](https://bbs.kanxue.com/#在gdb中dump当前进程的memory)
+- [编写gdbscript自动化操作的一些例子](https://bbs.kanxue.com/#编写gdbscript自动化操作的一些例子)
+- [栈利用tricks](https://bbs.kanxue.com/#栈利用tricks)
+- [栈迁移相关](https://bbs.kanxue.com/#栈迁移相关)
+- [堆利用tricks](https://bbs.kanxue.com/#堆利用tricks)
+- [关于几种bins的进入，退出方式](https://bbs.kanxue.com/#关于几种bins的进入，退出方式)
+- 关于top chunk的合并
+- [关于申请/切割大小](https://bbs.kanxue.com/#关于申请/切割大小)
+- [关于fd和bk](https://bbs.kanxue.com/#关于fd和bk)
+- 当存在uaf，但是清空了table中的指针，size时，如何泄露地址/利用？（无法做到直接连续的tcahce dup或连续free）
+- [info_struct类型的题](https://bbs.kanxue.com/#info_struct类型的题)
+- [关于劫持stdout](https://bbs.kanxue.com/#关于劫持stdout)
+- 关于top chunk的利用
+- [关于size被卡死时](https://bbs.kanxue.com/#关于size被卡死时)
+- [关于UAF与地址泄露](https://bbs.kanxue.com/#关于uaf与地址泄露)
+- [关于memset(chunk_addr,0,size)清空残留指针](https://bbs.kanxue.com/#关于memset(chunk_addr,0,size)清空残留指针)
+- [关于tcache取chunk（glibc2.27，glibc2.29）](https://bbs.kanxue.com/#关于tcache取chunk（glibc2.27，glibc2.29）)
+- [高版本堆利用（glibc2.29，glibc2.31）](https://bbs.kanxue.com/#高版本堆利用（glibc2.29，glibc2.31）)
+- Tcahce stashing unlink
+- stashing 打任意地址写一个bin的地址（任意地址大数写）
+- stashing 打任意地址分配 与 任意地址写一个bin的地址（任意地址大数写）
+- [House_of_botcake系列](https://bbs.kanxue.com/#house_of_botcake系列)
+- [高版本栈迁移的问题，使用了一些特有的gadgets](https://bbs.kanxue.com/#高版本栈迁移的问题，使用了一些特有的gadgets)
+- [其他](https://bbs.kanxue.com/#其他)
+- [关于字节对齐](https://bbs.kanxue.com/#关于字节对齐)
+
+本文主要记录一些个人在CTF PWN（主要是linux用户态）中遇到的一些坑，以及一些方法/套路的总结。
+
+# CTF PWN调试技巧
+## 带源码调试glibc
+da3K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6^5N6h3q4F1P5s2g2S2L8X3u0D9K9h3&6Y4j5X3I4A6L8X3N6Q4x3X3g2Y4K9i4c8Z5N6h3u0Q4x3X3g2A6L8#2)9J5c8X3y4@1k6W2)9J5c8Y4c8G2L8$3I4K6i4K6u0r3x3U0l9J5x3q4)9J5c8U0l9K6i4K6u0r3x3U0m8Q4x3V1k6Y4k6r3u0Q4x3V1j5`.
+
+## gdb参数
+9a8K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1L8r3!0Y4i4K6u0W2j5%4y4V1L8W2)9J5k6h3&6W2N6q4)9J5c8X3N6S2N6r3W2W2L8h3g2Q4x3V1k6S2M7Y4c8A6j5$3I4W2i4K6u0r3k6r3g2@1j5h3W2D9M7#2)9J5c8U0f1I4y4U0M7I4y4o6x3H3
+
+## 如何使用patchelf换上题目的libc.so.6
+c34K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2B7K9h3q4F1M7$3S2#2i4K6u0W2j5$3!0E0i4K6u0r3M7q4)9J5c8X3k6W2j5X3q4S2k6e0m8U0y4o6p5H3k6l9`.`.
+
+|  |  |
+| --- | --- |
+| 1 | `patchelf --set-rpath /root/roarctf/ ./2a1` |
+
+其中 `--set-rpath` 后面跟题目给的 `libc.so.6` 路径，然后最后是文件名
+
+**效果如下**
+
+修改前：
+```
+root@ubuntu:~/roarctf# ldd 2+1
+ linux-vdso.so.1 => (0x00007fff2b9d9000)
+ libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f37286c1000)
+ /lib64/ld-linux-x86-64.so.2 (0x00007f3728a8b000)
+```
+修改后：
+```
+root@ubuntu:~/roarctf# ldd 2a1
+ linux-vdso.so.1 => (0x00007fff12b47000)
+ libc.so.6 => /root/roarctf/libc.so.6 (0x00007fca605af000)
+ /lib64/ld-linux-x86-64.so.2 (0x00007fca60979000)
+```
+可以看到路径已经变化。
+
+有时候光换`libc`是不够的，大概率`ld`也要换。
+
+## 在gdb中dump当前进程的memory
+2e6K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1L8r3!0Y4i4K6u0W2j5%4y4V1L8W2)9J5k6h3&6W2N6q4)9J5c8X3y4S2K9i4q4A6K9i4q4A6i4K6u0r3j5i4u0@1K9h3y4D9k6g2)9J5c8X3c8W2N6r3q4A6L8s2y4Q4x3V1j5%4x3U0R3H3y4K6V1#2x3R3`.`.
+
+585K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1L8r3!0Y4i4K6u0W2j5%4y4V1L8W2)9J5k6h3&6W2N6q4)9J5c8X3I4#2L8%4A6Z5j5h3!0@1K9h3q4F1i4K6u0r3j5i4u0@1K9h3y4D9k6g2)9J5c8X3c8W2N6r3q4A6L8s2y4Q4x3V1j5%4z5e0j5H3z5e0l9%4y4H3`.`.
+
+```
+pwndbg> print getpid()
+Program received signal SIGALRM, Alarm clock.
+$1 = 101499
+pwndbg> shell cat /proc/101499/maps | grep vdso
+7ffff7ffa000-7ffff7ffc000 r-xp 00000000 00:00 0                          [vdso]
+pwndbg> dump memory ./linux-vdso.so.1 0x7ffff7ffa000 0x7ffff7ffc000
+# 这一步dump内存生成linux-vdso.so.1
+pwndbg> q
+root@ubuntu:~/roarctf# ls
+2a1
+core  exp.py  libc.so.6
+linux-vdso.so.1
+root@ubuntu:~/roarctf# file li
+libc.so.6        linux-vdso.so.1
+root@ubuntu:~/roarctf# file linux-vdso.so.1             # 查看dump出来的
+linux-vdso.so.1: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, BuildID[sha1]=4cd5c52e24bb8daba3f767be4ca9084487a64e78, stripped
+root@ubuntu:~/roarctf#
+```
+
+## 编写gdbscript自动化操作的一些例子
+1.可以直接在`.gdb`文件中写。然后`source`进去
+2.利用`python` `import gdb`然后通过`gdb.execute(cmd)`来执行命令，同样也是`source`进去
+
+例子1：d84K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6%4N6%4N6Q4x3X3g2U0L8X3u0D9L8$3N6K6i4K6u0W2j5$3!0E0i4K6u0r3k6s2W2D9j5h3&6U0j5h3!0Q4x3V1k6H3i4K6u0r3z5e0t1#2x3U0M7#2y4W2)9J5k6h3S2@1L8h3H3`.
+
+例子2：
+在前一段时间的`sudo cve`中，我们使用`gdb`脚本编写了一个基于`gdb`的`fuzz`程序，也拿上来给大家做一个参考。
+```python
+import gdb
+import random
+#from pwn import *
+# POC
+ # sudo gdb --args sudoedit -s '\' `perl -e 'print "A" x 550'`
+    # 1.sudo gdb sudoedit
+    # 2.source gdb.py
+def set_up():
+    gdb.execute("start")
+    gdb.execute("set pagination off")
+    gdb.execute("set logging on ./gdb.output")
+
+def over():
+    gdb.execute("set logging off")
+#gdb.execute("quit")
+
+def fuzz():
+    set_up()
+    cmd = "set env LC_ALL = %s" %("A"*4792)
+    #print("fuzz1_test:",i)
+    gdb.execute(cmd)
+    cmd = "run -s '\\' `perl -e 'print \"A\" x %s'`" % (4792)
+    print("fuzz1_test:",cmd)
+    gdb.execute(cmd)
+    gdb.execute("bt")
+    over()
+...
+```
+
+1.通过 `gdb.execute(cmd)` 来执行 `gdb` 命令。
+2.关闭分页并打开 `log` 输出，指定输出到 `./gdb.output`
+```
+gdb.execute("set pagination off")
+gdb.execute("set logging on ./gdb.output")
+```
+3.在 `gdb` 中通过执行 `set env` 来调整环境变量的值。
+4.每次 `crash` 完都运行 `backtrace` 导出 `bt` 信息到 `log` 文件。
+
+# 栈利用tricks
+## 栈迁移相关
+- 当 `A` 中调用 `B` 时，两个函数的栈是相邻的，可以覆盖返回地址为 `ret` 直接滑到 `A` 的栈里，调用 `A` 的栈里布置的 `payload`
+- 有时候会崩溃在 `system+1094` 这个位置，往往是 `rsp` 对齐的问题，只需要在调用 `payload` 前加一个/多个 `ret` 即可，抬高一下栈
+
+# 堆利用tricks
+堆利用的一些小 `trick` 总结
+## 关于几种bins的进入，退出方式
+- `fastbin`：头插头取，FILO
+- `unsortedbin`：头插尾取，FIFO。一开始通过 `unortedbin->bk` 找到最后一个 `chunk`
+- `tcachebin`：LIFO，因为要做缓存
+
+## 关于top chunk的合并
+- `topchunk` 不合并 `fastbin` 里的
+- 当 `topchunk` 前面的 `chunk` 为空闲且不为 `fastbin` 里的 `chunk` 时进行合并
+
+## 关于申请/切割大小
+- 有时候直接对 `unsortbin` 做切割时不会返回切割后刚好的大小，而是整个 `chunk` 返回——因为 `64` 位下最小可用 `chunk` 大小为 `0x20`，如果切割后 `chunk` 小于这个大小，那么就会返回整个 `chunk`，不会切割。
+
+## 关于fd和bk
+- `fd`：point to the next free chunk
+- `bk`：point to the preovious free chunk
+
+## 当存在uaf，但是清空了table中的指针，size时，如何泄露地址/利用？（无法做到直接连续的tcahce dup或连续free）
+- 如果有堆溢出，考虑 `overlap` 掉下面的，然后通过上面的 `chunk` 做溢出劫持下方的 `fd`、`bk`、`next` 指针。
+- 虽然清空了 `table` 中的指针，但是我们可以先 `free` 一次放进 `unsortbin`，然后再申请出来，若使用的是 `malloc` 而不是 `calloc`，或者没有特定的清楚堆块内容的操作时，`fd` 和 `bk` 指针会留在里面（相当于进 `bins` 里溜了一圈带了俩指针出来。。），然后直接 `show` 出来。
+- 注意检查 `add`、`edit`、`del` 函数中 `index` 的合法性（是否为 `unsigned int`？是否可以越界？）
+- 注意映射位置，`heap` 的 `mapped` 到的位置很接近 `bss` 段，看是否可以越界过去。
+- 当有 `off-by-one` 时考虑，做 `overlap`，假如可以修改 `pre_in_use` 位，那么比如说先申请三个 `chunk`，`0`，`1`，`2`（其中 `0` 号为大 `chunk` 可直接进入 `unsortbin`，`1` 号为 `0x68` 小 `chunk`，`2` 号为大 `chunk` 可直接进入 `unsortbin`），先 `del(0)`，再 `del`，`add` `1` 号，对 `2` 号使用 `off-by-one`，同时伪造 `pre_size` 位为 `0+1` 号的总 `size` 合（注意申请 `1` 号 `chunk` 大小以 `0x8` 结尾，方便 `off-by-one`），此时指示 `0`，`1` 号 `chunk` 为 `free` 状态，再 `del`（`2`），此时触发 `unsortbin` 的前向合并，`0`、`1`、`2` 三个 `chunk` 被合并放入 `unsortbin`，然后再单独 `del`（`1`）使其进入 `tcahce`（或 `fastbin`），此时 `1` 号 `chunk` 被 `overlap`，他既在 `unsortbin` 又再 `tcache`。
+
+然后对于合并放入 `unsortbin` 的大 `chunk` 做切割，将 `fd`、`bk` 指针下放进入 `1` 号 `chunk`（既在 `unsort` 又在 `tcache`），注意切割的时候要错开，防止把 `tcache` 里的 `1` 返回，比如 `1` 大小为 `0x68`，`0` 大小为 `0x500`，那么先申请 `0x500`，然后申请 `0x78`（注意不是 `0x68`，此时要求从 `unsortbin` 中返回而不是 `tcahce`）
+
+以上操作结束以后，`1` 号 `chunk` 此时在 `tache` 中，但是被下放了指向 `main_arena` 的指针，在申请 `0x78` 的时候同时做 `edit`，则可以修改 `fd`、`bk` 指针的位置，比如让其指向 `stdout`。这一方法的目的是在 `tcache` 中踩出指向 `main_arena` 的指针
+
+## info_struct类型的题
+此种类型的题中，`bss` 段上的全局变量并不直接储存 `chunk` 的地址，而是储存一个 `info struct` 的地址（一般与 `chunk` 一同被申请出来），而 `info struct` 记录了 `chunk` 的一些信息，一般是大小，地址等。题目通过先查找 `info struct` 再去操作具体的 `chunk`
+- 看 `info struct` 是否可能共用？（比如内容输入一样时只申请 `info struct` 不申请 `new note`）
+- 看是否可以直接 `show` 出 `fd`、`bk` 指针？
+- 注意 `strcmp` 类似的函数！注意 `if/else` 分支中 `malloc` 的区别！
+
+## 关于劫持stdout
+- `stdout`/`stderr`/`stdin` 在 `got` 表中存有真实的地址，如果是 `tcache pwn`，可以考虑 `dup` 然后从 `got` 表劫持 `stdout`
+- `stdout` 结构：
+改 `_flags` 为 `0xfbad1800`，然后 `p64(0)*3`，然后改 `_IO_write_base/ptr/end` 可控制输出的位置和内容，一般直接输出自己就行。
+- `2.24` 以下可以劫持 `vtable`，伪造 `IO` 结构体，注意 `fclose` 函数会调用 `vtable` 中的函数指针，可以伪造 `vtable+IO` 结构体让 `vtable` 中的函数指针指向 `system`
+
+## 关于top chunk的利用
+- 劫持 `top chunk` 的 `size` 的时候记得 `addr(top chunk)+size` 必须是页对齐的。
+- 如果一开始 `top chunk` 的大小太大，没法劫持（超过了能申请的最大大小），那么就做多次申请，对 `topchunk` 进行切割，等 `top chunk` 的 `size` 变小了再申请。
+
+## 关于size被卡死时
+- 看能不能劫持到大小为 `0x290` 的 `pthread_tcache_struct` 这样就能拿一个 `0x290` 的 `chunk`，扔进 `ub` 里。
+
+## 关于UAF与地址泄露
+- 如果程序有且只有一个 `UAF` 时，此时泄露地址一般不是特别困难，尤其注意能不能直接造一个大 `chunk` 扔进 `ub` 里，然后重新拉回来（切割回来）然后直接 `show` 出来残留的指针。（没有 `memset` 或者 `calloc` 的话）
+
+## 关于memset(chunk_addr,0,size)清空残留指针
+- 注意 `64` 位下最小分配单元为 `0x20`，那么我们通过 `malloc(1)`，这样拉回来 `0x20` 的 `chunk`，此时 `size=1`，`memset` 无法清空全部的残留指针。
+
+## 关于tcache取chunk（glibc2.27，glibc2.29）
+查看一下 `tcache_get`
+```c
+/* Caller must ensure that we know tc_idx is valid and there's available chunks to remove. */
+static __always_inline void * tcache_get (size_t tc_idx)
+ /* 从tcache中取 */
+{
+  tcache_entry *e = tcache->entries[tc_idx];
+  assert (tc_idx < TCACHE_MAX_BINS);
+  /*保证tc_idx下标合法*/
+  assert (tcache->entries[tc_idx] > 0);
+  /*保证对应的entry的指针存在。所以这里产生了一个问题，tcache_get的时候没有验证对应的tcache->counts[tc_idx]的计数。只要entry指针存在就往出嗯取*/
+  tcache->entries[tc_idx] = e->next;
+  /*将e->next挂上entry*/
+  --(tcache->counts[tc_idx]);
+  /*entry计数 -1*/
+  e->key = NULL;
+  /*清空key*/
+  return (void *) e;
+}
+```
+你会发现，当 `tcache` 取 `chunk` 的时候会出现即使计数为 `0`，但只要 `next` 指针合法，也能取出来的情况。。。并且此时 `tcache` 计数为 `-1`（`255`）
+
+**此漏洞在 `glibc2.31` 中被修复。**
+
+# 高版本堆利用（glibc2.29，glibc2.31）
+## Tcahce stashing unlink
+**简述：在高版本下对于 `tcache` 有一种 `stashing` 机制，大体就是说，当从 `smallbin` 中取大小为 `size` 的 `chunk` 时，如果发现取出来一个 `chunk`，但是 `smallbin` 中还有剩余的 `chunk`，那么会将剩余的 `chunk` 插入对应 `size` 的 `tcache_entry` 中。称为：“stashing”**
+
+源码：
+```c
+/* If a small request, check regular bin. Since these "smallbins" hold one size each, no searching within bins is necessary.
+(For a large request, we need to wait until unsorted chunks are processed to find best fit. But for small ones, fits are exact anyway, so we can check now, which is faster.)
+*/
+if (in_smallbin_range (nb))
+{
+  idx = smallbin_index (nb);
+  bin = bin_at (av, idx);
+  if ((victim = last (bin)) != bin)
+  {
+    bck = victim->bk;
+    if (__glibc_unlikely (bck->fd != victim))
+      malloc_printerr ("malloc(): smallbin double linked list corrupted");
+    set_inuse_bit_at_offset (victim, nb);
+    bin->bk = bck;
+    bck->fd = bin;
+    if (av != &main_arena)
+      set_non_main_arena (victim);
+    check_malloced_chunk (av, victim, nb);
+#if USE_TCACHE
+    /*
+    While we're here, if we see other chunks of the same size, stash them in the tcache.
+    */
+    size_t tc_idx = csize2tidx (nb);
+    if (tcache && tc_idx < mp_.tcache_bins)
+    {
+      mchunkptr tc_victim;
+      /* While bin not empty and tcache not full, copy chunks over. */
+      /* #define first(b)     ((b)->fd) */
+      /* #define last(b)      ((b)->bk) */
+      /* stashing 机制 */
+      while (tcache->counts[tc_idx] < mp_.tcache_count && (tc_victim = last (bin)) != bin)
+      {
+        if (tc_victim != 0)
+        {
+          bck = tc_victim->bk;
+          set_inuse_bit_at_offset (tc_victim, nb);
+          if (av != &main_arena)
+            set_non_main_arena (tc_victim);
+          bin->bk = bck;
+          bck->fd = bin;
+          tcache_put (tc_victim, tc_idx);
+        }
+      }
+    }
+#endif
+    void *p = chunk2mem (victim);
+    alloc_perturb (p, bytes);
+    return p;
+  }
+}
+```
+
+### stashing 打任意地址写一个bin的地址（任意地址大数写）
+*启动条件（假设`chunk`大小`0x110`）：*
+1. (`0x110`) `smallbin` 中两个 `chunk`：`#1` -> `#2`
+2. `tcache_entry[0x110]` 中不满（not full）
+*过程与结果：*
+1. 劫持 `#1` 的 `bk` 指针指向 `evil_addr-0x10`，并 保证 `#1` 的 `fd` 指针不变。
+2. 越过 `tcache`，从 `smallbin` 中取 `0x110` 的 `chunk`（一般是用 `calloc` 实现），此时 `#2` 从 `free` 状态被取出变成 `used` 。 `#1` 被 `tcahce_put` 放入对应的不满的 `tcache_entry` 中 。 `evil_addr` 被写入 `bin` 地址（`0x7f` 的大数）
+
+### stashing 打任意地址分配 与 任意地址写一个bin的地址（任意地址大数写）
+*启动条件（假设`chunk`大小`0x110`，假设我们想分配到 `evil_addr`）：*
+1. (`0x110`) `smallbin` 中两个 `chunk`：`#1` -> `#2`
+2. `tcache_entry[0x110]` 中不满（not full）
+*过程与结果：*
+1. 劫持 `#2` 的 `bk` 指向 `evil_addr`
+2. 保证 `evil_addr+0x10` 处存 `#2` 的地址
+3. 此时 `bin` 的 `bk` 变为 `evil_addr` , `evil_addr+0x10` 被写上 `bin` 的地址。
+4. 保证 `*(evil_addr+0x8)+0x10` 可写（会被写上一个 `bin` 地址）
+5. `tcache_put` 将 `evil_addr` 放入 `tcachebin` 中
+
+## House_of_botcake系列
+**house_of_botcake** : 假如我们有 `#1` `#2` 两个 `chunk`，那么通过将 `#1` `#2` 合并放入 `ub`，然后再单独 `free` `#2`，就实现了 `#2` 既在 `ub` 又在 `tc` 中，之后对 `#1` 进行合适大小的错位切割，可以劫持 `#2` 的 `next` 指针实现任意地址申请。
+**House_of_botcake+** : 假如我们有 `#1` `#2` 两个 `chunk`（`0x110`），假设只能申请最大 `malloc` `0x100`，那么通过将 `#1` `#2` 合并放入 `ub`，然后再单独 `free` `#2`，就实现了 `#2` 既在 `ub` 又在 `tc` 中，但是此时做不出特别合适的切割大小来一步到位劫持 `#2` 指针，可以考虑先切一个小的 `chunk`，比如 `0x20`，之后 `ub` 中的 `chunk` 会被切割，导致当我们再次 `add` 一个大 `chunk`（`0x100`）时，返回给我们的 `chunk` 是 `#1+0x20` ，此时如果再 `add` `0x100`，就实现了申请一个地址在：[`#1+0x20`，`#2+0x20`] 的 `chunk` `#3`，然后把 `#3` `free` 进 `tc` 中与 `#2` 连接，就可以劫持 `#2` 的 `next` 指针实现任意地址申请。
+
+## 高版本栈迁移的问题，使用了一些特有的gadgets
+`2.29` `2.31` 的 `gadget`，用来拉栈。
+e7fK9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6T1L8r3!0Y4i4K6u0W2j5%4y4V1L8W2)9J5k6h3&6W2N6q4)9J5c8X3y4S2M7X3!0D9x3U0x3#2z5q4)9J5c8X3q4J5N6r3W2U0L8r3g2Q4x3V1k6V1k6i4c8S2K9h3I4K6i4K6u0r3x3e0l9^5x3K6f1I4x3K6l9^5
+
+# 其他
+## 关于字节对齐
+举个例子:
+`malloc(0xf8)`，返回`0x100`
+`malloc(0xf9)`，返回`0x110`
+
+[传递专业知识、拓宽行业人脉——看雪讲师团队等你加入！！](https://bbs.kanxue.com/thread-275828.htm)
