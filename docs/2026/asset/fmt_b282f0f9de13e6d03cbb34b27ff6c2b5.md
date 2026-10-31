@@ -1,0 +1,274 @@
+
+```C++
+/**
+ * handle_pte_fault - 处理 PTE（页表项）级别的页错误
+ * @vmf: 页错误描述结构体
+ *
+ * 功能说明：
+ * 这是页表遍历的最后一级，负责检查和处理 PTE 的状态。
+ * 对于 punch hole 场景，PTE 为空（pte_none），表示页面未映射。
+ *
+ * PTE 状态检查和处理：
+ * 1. pte_none() - PTE 为空（页面未映射）
+ * → 调用 do_pte_missing() → do_fault() → shmem_fault()
+ * → 这是 punch hole 场景的路径！
+ *
+ * 2. !pte_present() - PTE 存在但不是 present（页面在 swap）
+ * → 调用 do_swap_page() 从 swap 换入页面
+ *
+ * 3. pte_protnone() - PTE 存在但权限不足（NUMA 页面）
+ * → 调用 do_numa_page() 处理 NUMA 迁移
+ *
+ * 4. pte_present() - PTE 存在且有效
+ * → 检查写权限，处理写时复制（COW）或更新访问标志
+ *
+ * 对于 punch hole 攻击：
+ * 当访问被 fallocate PUNCH_HOLE 打洞的地址时：
+ * - PTE 为空（pte_none），vmf->pte 被设置为 NULL
+ * - 调用 do_pte_missing() 处理缺失的页面
+ * - 最终会调用文件系统的 fault 处理函数
+ */
+static vm_fault_t handle_pte_fault(struct vm_fault *vmf)
+{
+pte_t entry;
+if (unlikely(pmd_none(*vmf->pmd))) {
+/*
+ * Leave __pte_alloc() until later: because vm_ops->fault may
+ * want to allocate huge page, and if we expose page table
+ * for an instant, it will be difficult to retract from
+ * concurrent faults and from rmap lookups.
+ */
+vmf->pte = NULL;
+vmf->flags &= ~FAULT_FLAG_ORIG_PTE_VALID;
+} else {
+/*
+ * A regular pmd is established and it can't morph into a huge
+ * pmd by anon khugepaged, since that takes mmap_lock in write
+ * mode; but shmem or file collapse to THP could still morph
+ * it into a huge pmd: just retry later if so.
+ */
+/* 获取 PTE 指针 */
+vmf->pte = pte_offset_map_nolock(vmf->vma->vm_mm, vmf->pmd,
+vmf->address, &vmf->ptl);
+if (unlikely(!vmf->pte))
+return 0;
+/* 读取 PTE 的值（无锁读取） */
+vmf->orig_pte = ptep_get_lockless(vmf->pte);
+vmf->flags |= FAULT_FLAG_ORIG_PTE_VALID;
+/* 关键检查：如果 PTE 为空（页面未映射，例如被 punch hole） */
+if (pte_none(vmf->orig_pte)) {
+pte_unmap(vmf->pte);
+vmf->pte = NULL; /* 标记 PTE 不存在 */
+}
+}
+/* 情况1: PTE 为空（页面未映射）- punch hole 场景走这里 */
+if (!vmf->pte)
+return do_pte_missing(vmf);
+/* 情况2: PTE 存在但不是 present（页面在 swap 中） */
+if (!pte_present(vmf->orig_pte))
+return do_swap_page(vmf);
+/* 情况3: PTE 存在但权限不足（NUMA 页面） */
+if (pte_protnone(vmf->orig_pte) && vma_is_accessible(vmf->vma))
+return do_numa_page(vmf);
+spin_lock(vmf->ptl);
+entry = vmf->orig_pte;
+if (unlikely(!pte_same(ptep_get(vmf->pte), entry))) {
+update_mmu_tlb(vmf->vma, vmf->address, vmf->pte);
+goto unlock;
+}
+if (vmf->flags & (FAULT_FLAG_WRITE | FAULT_FLAG_UNSHARE)) {
+if (!pte_write(entry))
+return do_wp_page(vmf);
+else if (likely(vmf->flags & FAULT_FLAG_WRITE))
+entry = pte_mkdirty(entry);
+}
+entry = pte_mkyoung(entry);
+if (ptep_set_access_flags(vmf->vma, vmf->address, vmf->pte, entry,
+vmf->flags & FAULT_FLAG_WRITE)) {
+update_mmu_cache_range(vmf, vmf->vma, vmf->address, vmf->pte,
+1);
+} else {
+/* Skip spurious TLB flush for retried page fault */
+if (vmf->flags & FAULT_FLAG_TRIED)
+goto unlock;
+/*
+ * This is needed only for protection faults but the arch code
+ * is not yet telling us if this is a protection fault or not.
+ * This still avoids useless tlb flushes for .text page faults
+ * with threads.
+ */
+if (vmf->flags & FAULT_FLAG_WRITE)
+flush_tlb_fix_spurious_fault(vmf->vma, vmf->address,
+vmf->pte);
+}
+unlock:
+pte_unmap_unlock(vmf->pte, vmf->ptl);
+return 0;
+}
+```
+
+### `do_pte_missing`
+
+- 若为 swap，调用 `do_swap_page()`
+- 对于 shmem 文件映射，通常走 `do_pte_missing`（`do_pte_missing() → do_fault()`）
+
+```C++
+/**
+ * do_pte_missing - 处理 PTE 为空（页面未映射）的情况
+ * @vmf: 页错误描述结构体
+ *
+ * 功能说明：
+ * 当 handle_pte_fault() 检测到 PTE 为空时调用此函数。
+ * 这是 punch hole 攻击场景的关键路径。
+ *
+ * 处理逻辑：
+ * - 匿名 VMA（匿名内存映射）：调用 do_anonymous_page() 分配新页面
+ * - 文件映射 VMA（如 shmem 文件）：调用 do_fault() 处理文件页错误
+ *
+ * 对于 punch hole 场景：
+ * - shmem 文件映射走 do_fault() 路径
+ * - 最终会调用 shmem_fault()，检测到正在打洞时会阻塞等待
+ */
+static vm_fault_t do_pte_missing(struct vm_fault *vmf)
+{
+if (vma_is_anonymous(vmf->vma))
+return do_anonymous_page(vmf);
+else
+return do_fault(vmf);
+}
+```
+
+### `do_fault`
+
+- 读操作走 `do_read_fault`，写操作根据是否共享选择 `do_cow_fault` 或 `do_shared_fault`
+- 当然我们这里是走 `copy_from_user` 是读操作，走 `do_read_fault`（`do_read_fault -> _do_fault`）
+
+```C++
+/**
+ * do_fault - 处理文件映射的页错误
+ * @vmf: 页错误描述结构体
+ *
+ * 功能说明：
+ * 当 do_pte_missing() 检测到是文件映射（非匿名）时调用此函数。
+ * 根据访问类型（读/写）和 VMA 属性（共享/私有）选择不同的处理路径。
+ *
+ * 处理路径：
+ * 1. 没有 fault 处理函数：返回错误
+ * 2. 读操作（copy_from_user 是读）：
+ * → do_read_fault() → __do_fault() → vma->vm_ops->fault()
+ * → 对于 shmem: shmem_fault()
+ * 3. 写操作 + 私有映射（COW）：
+ * → do_cow_fault() 写时复制
+ * 4. 写操作 + 共享映射：
+ * → do_shared_fault() 共享写入
+ *
+ * 对于 punch hole 场景：
+ * - copy_from_user 是读操作，走 do_read_fault() 路径
+ * - 最终调用 shmem_fault()，检测到正在打洞时会阻塞
+ */
+static vm_fault_t do_fault(struct vm_fault *vmf)
+{
+struct vm_area_struct *vma = vmf->vma;
+struct mm_struct *vm_mm = vma->vm_mm;
+vm_fault_t ret;
+/*
+ * The VMA was not fully populated on mmap() or missing VM_DONTEXPAND
+ */
+if (!vma->vm_ops->fault) {
+vmf->pte = pte_offset_map_lock(vmf->vma->vm_mm, vmf->pmd,
+vmf->address, &vmf->ptl);
+if (unlikely(!vmf->pte))
+ret = VM_FAULT_SIGBUS;
+else {
+/*
+ * Make sure this is not a temporary clearing of pte
+ * by holding ptl and checking again. A R/M/W update
+ * of pte involves: take ptl, clearing the pte so that
+ * we don't have concurrent modification by hardware
+ * followed by an update.
+ */
+if (unlikely(pte_none(ptep_get(vmf->pte))))
+ret = VM_FAULT_SIGBUS;
+else
+ret = VM_FAULT_NOPAGE;
+pte_unmap_unlock(vmf->pte, vmf->ptl);
+}
+} else if (!(vmf->flags & FAULT_FLAG_WRITE))
+/* 读操作：copy_from_user 走这里 */
+ret = do_read_fault(vmf);
+else if (!(vma->vm_flags & VM_SHARED))
+/* 写操作 + 私有映射：写时复制 */
+ret = do_cow_fault(vmf);
+else
+/* 写操作 + 共享映射：共享写入 */
+ret = do_shared_fault(vmf);
+/* preallocated pagetable is unused: free it */
+if (vmf->prealloc_pte) {
+pte_free(vm_mm, vmf->prealloc_pte);
+vmf->prealloc_pte = NULL;
+}
+return ret;
+}
+```
+
+### `__do_fault -> vma->vm_ops->fault`
+
+> 然后如果我们是 `shmem_fault` 调用的则指向 `shmem_fault`
+
+```C++
+static vm_fault_t __do_fault(struct vm_fault *vmf)
+{
+struct vm_area_struct *vma = vmf->vma;
+struct folio *folio;
+vm_fault_t ret;
+/*
+ * Preallocate pte before we take page_lock because this might lead to
+ * deadlocks for memcg reclaim which waits for pages under writeback:
+ * lock_page(A)
+ * SetPageWriteback(A)
+ * unlock_page(A)
+ * lock_page(B)
+ * lock_page(B)
+ * pte_alloc_one
+ * shrink_folio_list
+ * wait_on_page_writeback(A)
+ * SetPageWriteback(B)
+ * unlock_page(B)
+ * # flush A, B to clear the writeback
+ */
+if (pmd_none(*vmf->pmd) && !vmf->prealloc_pte) {
+vmf->prealloc_pte = pte_alloc_one(vma->vm_mm);
+if (!vmf->prealloc_pte)
+return VM_FAULT_OOM;
+}
+ret = vma->vm_ops->fault(vmf);
+if (unlikely(ret & (VM_FAULT_ERROR | VM_FAULT_NOPAGE | VM_FAULT_RETRY |
+VM_FAULT_DONE_COW)))
+return ret;
+folio = page_folio(vmf->page);
+if (unlikely(PageHWPoison(vmf->page))) {
+vm_fault_t poisonret = VM_FAULT_HWPOISON;
+if (ret & VM_FAULT_LOCKED) {
+if (page_mapped(vmf->page))
+unmap_mapping_folio(folio);
+/* Retry if a clean folio was removed from the cache. */
+if (mapping_evict_folio(folio->mapping, folio))
+poisonret = VM_FAULT_NOPAGE;
+folio_unlock(folio);
+}
+folio_put(folio);
+vmf->page = NULL;
+return poisonret;
+}
+if (unlikely(!(ret & VM_FAULT_LOCKED)))
+folio_lock(folio);
+else
+VM_BUG_ON_PAGE(!folio_test_locked(folio), vmf->page);
+return ret;
+}
+```
+
+### `shmem_fault`（检查是否正在打洞）
+
+- `inode->i_private` 非空表示正在打洞
+- 调用 `shmem_falloc_wait()` 等待打洞完成
