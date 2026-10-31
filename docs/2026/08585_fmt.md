@@ -1,2 +1,0 @@
-
-# Anti-W32dasm
